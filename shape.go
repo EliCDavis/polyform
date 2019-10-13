@@ -1,6 +1,7 @@
 package mesh
 
 import (
+	"errors"
 	"math"
 	"math/rand"
 
@@ -15,18 +16,39 @@ type Shape struct {
 }
 
 // NewShape creates a new shape with a center computed by averaging points positions
-func NewShape(bounds []vector.Vector2) Shape {
+func NewShape(bounds []vector.Vector2) (Shape, error) {
+
+	if bounds == nil {
+		return Shape{}, errors.New("Can not create a shape without any bounds")
+	}
+
+	if len(bounds) < 3 {
+		return Shape{}, errors.New("Can not create a shape with less than 3 points")
+	}
+
 	center := vector.NewVector2(0, 0)
 	for _, point := range bounds {
 		center = center.Add(point)
 	}
 
-	return Shape{bounds, center.MultByConstant(1.0 / float64(len(bounds))), vector.NewVector2(0, 0)}
+	return Shape{bounds, center.MultByConstant(1.0 / float64(len(bounds))), vector.NewVector2(0, 0)}, nil
 }
 
 // NewShapeWithCustomCenter creates a shape with a center you set
 func NewShapeWithCustomCenter(bounds []vector.Vector2, center vector.Vector2) Shape {
 	return Shape{bounds, center, vector.NewVector2(0, 0)}
+}
+
+func (s Shape) GetPoints() []vector.Vector2 {
+	return s.points
+}
+
+func (s Shape) GetCenter() vector.Vector2 {
+	return s.center
+}
+
+func (s Shape) GetOrigin() vector.Vector2 {
+	return s.origin
 }
 
 func (s Shape) GetBounds() (vector.Vector2, vector.Vector2) {
@@ -126,7 +148,8 @@ func (s Shape) shapesOnSide(vericalLineX float64, side int) []Shape {
 
 	if startingPointIndex == -1 {
 		if onOurSide {
-			return []Shape{NewShape(s.points)}
+			newShape, _ := NewShape(s.points)
+			return []Shape{newShape}
 		}
 		return []Shape{}
 	}
@@ -238,10 +261,13 @@ func (s Shape) shapesOnSide(vericalLineX float64, side int) []Shape {
 		lastPointsSide = currentSide
 	}
 
-	resultingShapes := make([]Shape, len(regions))
+	resultingShapes := make([]Shape, 0)
 
 	for r := range regions {
-		resultingShapes[r] = NewShape(regions[r].points)
+		newShape, err := NewShape(regions[r].points)
+		if err == nil {
+			resultingShapes = append(resultingShapes, newShape)
+		}
 	}
 
 	return resultingShapes
@@ -266,7 +292,7 @@ func (s Shape) IsInside(p vector.Vector2) bool {
 
 		// Check if the line segment from 'p' to 'extreme' intersects
 		// with the line segment from 'polygon[i]' to 'polygon[next]'
-		if doIntersect(NewLine(s.points[i], s.points[next]), NewLine(p, extreme)) {
+		if NewLine(s.points[i], s.points[next]).Intersects(NewLine(p, extreme)) {
 			// If the point 'p' is colinear with line segment 'i-next',
 			// then check if it lies on segment. If it lies, return true,
 			// otherwise false

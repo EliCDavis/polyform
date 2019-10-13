@@ -20,8 +20,13 @@ func NewModel(faces []Polygon) (Model, error) {
 	return Model{faces}, nil
 }
 
+// GetFaces returns all faces of the model
+func (m Model) GetFaces() []Polygon {
+	return m.faces
+}
+
 // Merge combines the faces of both the models into a new model
-func (m Model) Merge(other *Model) Model {
+func (m Model) Merge(other Model) Model {
 	return Model{append(m.faces, other.faces...)}
 }
 

@@ -41,6 +41,22 @@ func NewPolygon(vertices []vector.Vector3, normals []vector.Vector3) (Polygon, e
 	return Polygon{vertices, normals, nil}, nil
 }
 
+// GetVertices returns all vertices the polygon contains
+func (p Polygon) GetVertices() []vector.Vector3 {
+	return p.vertices
+}
+
+// GetNormals returns all normals the polygon contains
+func (p Polygon) GetNormals() []vector.Vector3 {
+	return p.normals
+}
+
+// GetUVs returns all UVs of the polygon
+func (p Polygon) GetUVs() []vector.Vector2 {
+	return p.uv
+}
+
+// Translate moves each point of the polygon by some delta.
 func (p Polygon) Translate(mv vector.Vector3) Polygon {
 	newVertices := make([]vector.Vector3, len(p.vertices))
 	for pIndex := range p.vertices {
