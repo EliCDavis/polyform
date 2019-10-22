@@ -14,6 +14,7 @@ type Polygon struct {
 	vertices []vector.Vector3
 	normals  []vector.Vector3
 	uv       []vector.Vector2
+	center   vector.Vector3
 }
 
 // NewPolygon creates a new polygon
@@ -30,15 +31,11 @@ func NewPolygon(vertices []vector.Vector3, normals []vector.Vector3) (Polygon, e
 		return Polygon{}, errors.New("Polygon must have 3 or more points")
 	}
 
-	if len(normals) < 3 {
-		return Polygon{}, errors.New("Polygon must have 3 or more normals")
-	}
-
 	if len(normals) != len(vertices) {
 		return Polygon{}, errors.New("The number of vertices and normals must match")
 	}
 
-	return Polygon{vertices, normals, nil}, nil
+	return Polygon{vertices, normals, nil, vector.AverageVector3(vertices)}, nil
 }
 
 // GetVertices returns all vertices the polygon contains
@@ -62,7 +59,16 @@ func (p Polygon) Translate(mv vector.Vector3) Polygon {
 	for pIndex := range p.vertices {
 		newVertices[pIndex] = p.vertices[pIndex].Add(mv)
 	}
-	return Polygon{newVertices, newVertices, p.uv}
+	return Polygon{newVertices, newVertices, p.uv, vector.AverageVector3(newVertices)}
+}
+
+func (p Polygon) Scale(amount vector.Vector3, pivot vector.Vector3) Polygon {
+	newVertices := make([]vector.Vector3, len(p.vertices))
+	for pIndex := range p.vertices {
+		direction := p.vertices[pIndex].Sub(pivot)
+		newVertices[pIndex] = pivot.Add(direction.MultByVector(amount))
+	}
+	return Polygon{newVertices, newVertices, p.uv, vector.AverageVector3(newVertices)}
 }
 
 func (p Polygon) Rotate(amount vector.Vector3, pivot vector.Vector3) Polygon {
@@ -108,7 +114,7 @@ func (p Polygon) Rotate(amount vector.Vector3, pivot vector.Vector3) Polygon {
 
 		newVertices[pIndex] = final.Add(pivot)
 	}
-	return Polygon{newVertices, newVertices, p.uv}
+	return Polygon{newVertices, newVertices, p.uv, vector.AverageVector3(newVertices)}
 }
 
 // NewPolygonFromShape creates a 3D polygon from a 2D shape

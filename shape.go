@@ -314,19 +314,24 @@ func (s Shape) IsInside(p vector.Vector2) bool {
 }
 
 // Translate Moves all points over by the specified amount
-func (s *Shape) Translate(amount vector.Vector2) {
+func (s Shape) Translate(amount vector.Vector2) Shape {
+	newShapePonts := make([]vector.Vector2, len(s.points))
 	for i, point := range s.points {
-		s.points[i] = point.Add(amount)
+		newShapePonts[i] = point.Add(amount)
 	}
+	newshape, _ := NewShape(newShapePonts)
+	return newshape
 }
 
 // Scale shifts all points towards or away from the origin
-func (s *Shape) Scale(amount float64) {
+func (s Shape) Scale(amount float64) Shape {
+	newShapePonts := make([]vector.Vector2, len(s.points))
+
 	for i, point := range s.points {
-		// log.Print(s.points[i])
-		s.points[i] = s.origin.Add(point.Sub(s.origin).Normalized().MultByConstant(amount * s.origin.Distance(point)))
-		// log.Print(s.points[i])
+		newShapePonts[i] = s.origin.Add(point.Sub(s.origin).Normalized().MultByConstant(amount * s.origin.Distance(point)))
 	}
+	newshape, _ := NewShape(newShapePonts)
+	return newshape
 }
 
 // Len returns the number of points in the polygon
@@ -335,9 +340,9 @@ func (s Shape) Len() int {
 }
 
 // Swap switches two points indeces so the polygon is ordered a different way
-func (s *Shape) Swap(i, j int) {
-	s.points[i], s.points[j] = s.points[j], s.points[i]
-}
+// func (s *Shape) Swap(i, j int) {
+// 	s.points[i], s.points[j] = s.points[j], s.points[i]
+// }
 
 // PointClosestToCenter returns the index of the closest point to the center of the polygon
 func (s Shape) PointClosestToCenter() int {
