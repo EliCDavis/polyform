@@ -323,6 +323,30 @@ func (s Shape) Translate(amount vector.Vector2) Shape {
 	return newshape
 }
 
+// Rotate will rotate all points in the shape around the pivot by the passed in amount
+func (s Shape) Rotate(amount float64, pivot vector.Vector2) Shape {
+	newPoints := make([]vector.Vector2, s.Len())
+
+	for p, point := range s.points {
+
+		// https://play.golang.org/p/qWUotd3Lb56
+		directionWithMag := point.Sub(pivot)
+
+		magnitude := directionWithMag.Length()
+
+		newRot := math.Atan2(directionWithMag.Y(), directionWithMag.X()) + amount
+
+		newPoints[p] = vector.NewVector2(
+			math.Cos(newRot)*magnitude,
+			math.Sin(newRot)*magnitude,
+		)
+
+	}
+
+	newShape, _ := NewShape(newPoints)
+	return newShape
+}
+
 // Scale shifts all points towards or away from the origin
 func (s Shape) Scale(amount float64) Shape {
 	newShapePonts := make([]vector.Vector2, len(s.points))

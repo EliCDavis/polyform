@@ -40,3 +40,34 @@ func calculateOrientation(p, q, r vector.Vector2) Orientation {
 func onSegment(p, q, r vector.Vector2) bool {
 	return q.X() <= math.Max(p.X(), r.X()) && q.X() >= math.Min(p.X(), r.X()) && q.Y() <= math.Max(p.Y(), r.Y()) && q.Y() >= math.Min(p.Y(), r.Y())
 }
+
+// CenterOfBoundingBoxOfShapes finds the center point of the smallest box that
+// could be drawn to encompas all shapes passed in.
+func CenterOfBoundingBoxOfShapes(shapes []Shape) vector.Vector2 {
+
+	bottomLeftX := 10000000.
+	bottomLeftY := 10000000.
+
+	topRightX := -10000000.
+	topRightY := -10000000.
+
+	for _, s := range shapes {
+		for _, p := range s.GetPoints() {
+			if p.X() < bottomLeftX {
+				bottomLeftX = p.X()
+			}
+			if p.Y() < bottomLeftY {
+				bottomLeftY = p.Y()
+			}
+			if p.X() > topRightX {
+				topRightX = p.X()
+			}
+			if p.Y() > topRightY {
+				topRightY = p.Y()
+			}
+		}
+	}
+	width := (topRightX - bottomLeftX)
+	height := (topRightY - bottomLeftY)
+	return vector.NewVector2(bottomLeftX+(width/2.0), bottomLeftY+(height/2.0))
+}
