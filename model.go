@@ -32,21 +32,42 @@ func NewModel(faces []Polygon) (Model, error) {
 }
 
 func (m Model) GetCenterOfBoundingBox() vector.Vector3 {
-	totalX := 0.0
-	totalY := 0.0
-	totalZ := 0.0
-	counted := 0.0
+	bottomLeftX := 10000000.
+	bottomLeftY := 10000000.
+	bottomLeftZ := 10000000.
+
+	topRightX := -10000000.
+	topRightY := -10000000.
+	topRightZ := -10000000.
 
 	for _, poly := range m.faces {
-		for _, vertice := range poly.GetVertices() {
-			totalX += vertice.X()
-			totalY += vertice.Y()
-			totalZ += vertice.Z()
-			counted += 1.0
+		for _, p := range poly.GetVertices() {
+			if p.X() < bottomLeftX {
+				bottomLeftX = p.X()
+			}
+			if p.Y() < bottomLeftY {
+				bottomLeftY = p.Y()
+			}
+			if p.Z() < bottomLeftZ {
+				bottomLeftZ = p.Z()
+			}
+
+			if p.X() > topRightX {
+				topRightX = p.X()
+			}
+			if p.Y() > topRightY {
+				topRightY = p.Y()
+			}
+			if p.Z() > topRightZ {
+				topRightZ = p.Z()
+			}
 		}
 	}
 
-	return vector.NewVector3(totalX, totalY, totalZ).DivByConstant(counted)
+	width := (topRightX - bottomLeftX)
+	height := (topRightY - bottomLeftY)
+	depth := (topRightZ - bottomLeftZ)
+	return vector.NewVector3(bottomLeftX+(width/2.0), bottomLeftY+(height/2.0), bottomLeftZ+(depth/2.0))
 }
 
 // GetFaces returns all faces of the model

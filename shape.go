@@ -77,6 +77,11 @@ func (s Shape) GetBounds() (vector.Vector2, vector.Vector2) {
 	return vector.NewVector2(bottomLeftX, bottomLeftY), vector.NewVector2(topRightX, topRightY)
 }
 
+func (s Shape) GetBoundingBoxDimensions() (width, height float64) {
+	bottomLeft, topRight := s.GetBounds()
+	return topRight.X() - bottomLeft.X(), topRight.Y() - bottomLeft.Y()
+}
+
 // RandomPointInShape returns a random point inside of the shape
 func (s Shape) RandomPointInShape() vector.Vector2 {
 	bottomLeftBounds, topRightBounds := s.GetBounds()
@@ -339,7 +344,7 @@ func (s Shape) Rotate(amount float64, pivot vector.Vector2) Shape {
 		newPoints[p] = vector.NewVector2(
 			math.Cos(newRot)*magnitude,
 			math.Sin(newRot)*magnitude,
-		)
+		).Add(pivot)
 
 	}
 
@@ -364,9 +369,9 @@ func (s Shape) Len() int {
 }
 
 // Swap switches two points indeces so the polygon is ordered a different way
-// func (s *Shape) Swap(i, j int) {
-// 	s.points[i], s.points[j] = s.points[j], s.points[i]
-// }
+func (s *Shape) Swap(i, j int) {
+	s.points[i], s.points[j] = s.points[j], s.points[i]
+}
 
 // PointClosestToCenter returns the index of the closest point to the center of the polygon
 func (s Shape) PointClosestToCenter() int {
