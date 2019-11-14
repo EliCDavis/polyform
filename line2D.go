@@ -6,8 +6,8 @@ import (
 	"github.com/EliCDavis/vector"
 )
 
-// Line represents a line segment
-type Line struct {
+// Line2D represents a line segment
+type Line2D struct {
 	p1 vector.Vector2
 	p2 vector.Vector2
 }
@@ -15,24 +15,40 @@ type Line struct {
 // ErrNoIntersection is thrown when Intersection() contains no intersection
 var ErrNoIntersection = errors.New("No Intersection")
 
-// NewLine create a new
-func NewLine(p1, p2 vector.Vector2) Line {
-	return Line{p1, p2}
+// NewLine2D create a new line
+func NewLine2D(p1, p2 vector.Vector2) Line2D {
+	return Line2D{p1, p2}
 }
 
 // GetStartPoint returns the starting point of the line segment
-func (l Line) GetStartPoint() vector.Vector2 {
+func (l Line2D) GetStartPoint() vector.Vector2 {
 	return l.p1
 }
 
 // GetEndPoint returns the end point of the line segment
-func (l Line) GetEndPoint() vector.Vector2 {
+func (l Line2D) GetEndPoint() vector.Vector2 {
 	return l.p2
+}
+
+// Dir is end point - starting point
+func (l Line2D) Dir() vector.Vector2 {
+	return l.p2.Sub(l.p1)
+}
+
+// ScaleOutwards multiplies the current length of the line by extending it out
+// further in the two different directions it's heading
+func (l Line2D) ScaleOutwards(amount float64) Line2D {
+	dirAndMag := l.p2.Sub(l.p1).DivByConstant(2.0)
+	center := dirAndMag.Add(l.p1)
+	return NewLine2D(
+		center.Add(dirAndMag.MultByConstant(amount)),
+		center.Add(dirAndMag.MultByConstant(-amount)),
+	)
 }
 
 // Intersection finds where two lines intersect
 // https://stackoverflow.com/questions/563198/how-do-you-detect-where-two-line-segments-intersect
-func (l Line) Intersection(other Line) (vector.Vector2, error) {
+func (l Line2D) Intersection(other Line2D) (vector.Vector2, error) {
 
 	s1_x := l.p2.X() - l.p1.X()
 	s1_y := l.p2.Y() - l.p1.Y()
@@ -50,8 +66,8 @@ func (l Line) Intersection(other Line) (vector.Vector2, error) {
 	return vector.Vector2{}, ErrNoIntersection
 }
 
-// DoIntersect determines whether two lines intersect eachother
-func (l Line) Intersects(other Line) bool {
+// Intersects determines whether two lines intersect eachother
+func (l Line2D) Intersects(other Line2D) bool {
 	// Find the four orientations needed for general and
 	// special cases
 	o1 := calculateOrientation(l.p1, l.p2, other.p1)

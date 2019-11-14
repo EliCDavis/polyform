@@ -17,6 +17,11 @@ func NewQuaternion(v vector.Vector3, w float64) Quaternion {
 	return Quaternion{v, w}
 }
 
+// QuaternionZero returns a quaternion with 0 for all it's components
+func QuaternionZero() Quaternion {
+	return Quaternion{vector.Vector3Zero(), 0}
+}
+
 // Rotate takes a given vector and rotates it with by this quaternion.
 //
 // Resources Used:

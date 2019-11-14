@@ -173,8 +173,8 @@ func (s Shape) shapesOnSide(vericalLineX float64, side int) []Shape {
 		pointBefore += len(s.points)
 	}
 
-	verticalLine := NewLine(vector.NewVector2(vericalLineX, -1000000), vector.NewVector2(vericalLineX, 1000000))
-	curLine := NewLine(s.points[startingPointIndex], s.points[pointBefore])
+	verticalLine := NewLine2D(vector.NewVector2(vericalLineX, -1000000), vector.NewVector2(vericalLineX, 1000000))
+	curLine := NewLine2D(s.points[startingPointIndex], s.points[pointBefore])
 	intersection, err := verticalLine.Intersection(curLine)
 	if err == ErrNoIntersection {
 		panic("Intersection is nil!")
@@ -214,7 +214,7 @@ func (s Shape) shapesOnSide(vericalLineX float64, side int) []Shape {
 				pointBefore += len(s.points)
 			}
 
-			intersection, err := NewLine(s.points[n], s.points[pointBefore]).Intersection(verticalLine)
+			intersection, err := NewLine2D(s.points[n], s.points[pointBefore]).Intersection(verticalLine)
 			if err == ErrNoIntersection {
 				panic("Intersection is nil!")
 			}
@@ -297,7 +297,7 @@ func (s Shape) IsInside(p vector.Vector2) bool {
 
 		// Check if the line segment from 'p' to 'extreme' intersects
 		// with the line segment from 'polygon[i]' to 'polygon[next]'
-		if NewLine(s.points[i], s.points[next]).Intersects(NewLine(p, extreme)) {
+		if NewLine2D(s.points[i], s.points[next]).Intersects(NewLine2D(p, extreme)) {
 			// If the point 'p' is colinear with line segment 'i-next',
 			// then check if it lies on segment. If it lies, return true,
 			// otherwise false
