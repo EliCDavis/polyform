@@ -28,6 +28,14 @@ func (l Line3D) GetEndPoint() vector.Vector3 {
 	return l.p2
 }
 
+func (l Line3D) SetStartPoint(newStart vector.Vector3) Line3D {
+	return NewLine3D(newStart, l.GetEndPoint())
+}
+
+func (l Line3D) SetEndPoint(newEnd vector.Vector3) Line3D {
+	return NewLine3D(l.GetStartPoint(), newEnd)
+}
+
 func (l Line3D) Translate(amt vector.Vector3) Line3D {
 	return Line3D{
 		l.p1.Add(amt),
