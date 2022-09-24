@@ -17,13 +17,12 @@ type Shape struct {
 
 // NewShape creates a new shape with a center computed by averaging points positions
 func NewShape(bounds []vector.Vector2) (Shape, error) {
-
 	if bounds == nil {
-		return Shape{}, errors.New("Can not create a shape without any bounds")
+		return Shape{}, errors.New("can not create a shape without any bounds")
 	}
 
 	if len(bounds) < 3 {
-		return Shape{}, errors.New("Can not create a shape with less than 3 points")
+		return Shape{}, errors.New("can not create a shape with less than 3 points")
 	}
 
 	center := vector.NewVector2(0, 0)
@@ -52,7 +51,6 @@ func (s Shape) GetOrigin() vector.Vector2 {
 }
 
 func (s Shape) GetBounds() (vector.Vector2, vector.Vector2) {
-
 	bottomLeftX := 10000000.
 	bottomLeftY := 10000000.
 
@@ -148,7 +146,6 @@ func (s Shape) startinPointForSideShape(vericalLine float64, side int) (bool, in
 }
 
 func (s Shape) shapesOnSide(vericalLineX float64, side int) []Shape {
-
 	onOurSide, startingPointIndex := s.startinPointForSideShape(vericalLineX, side)
 
 	if startingPointIndex == -1 {
@@ -180,7 +177,7 @@ func (s Shape) shapesOnSide(vericalLineX float64, side int) []Shape {
 		panic("Intersection is nil!")
 	}
 
-	regions := []region{region{-100000, 100000, make([]vector.Vector2, 1), false}}
+	regions := []region{{-100000, 100000, make([]vector.Vector2, 1), false}}
 	regions[0].points[0] = intersection
 	regions[0].lowestPoint = intersection.Y()
 
@@ -231,7 +228,6 @@ func (s Shape) shapesOnSide(vericalLineX float64, side int) []Shape {
 
 				// Find region we're in.
 				for regionIndex := range regions {
-
 					if regions[regionIndex].lowestPoint <= s.points[n].Y() &&
 						regions[regionIndex].highestPoint >= s.points[n].Y() {
 						currentRegion = regionIndex
@@ -280,7 +276,6 @@ func (s Shape) shapesOnSide(vericalLineX float64, side int) []Shape {
 
 // IsInside returns true if the point p lies inside the polygon[] with n vertices
 func (s Shape) IsInside(p vector.Vector2) bool {
-
 	// There must be at least 3 vertices in polygon[]
 	if len(s.points) < 3 {
 		return false
