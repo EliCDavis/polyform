@@ -192,20 +192,21 @@ func (m Mesh) WeldByVertices(decimalPlace int) Mesh {
 	finalVerts := make([]vector.Vector3, 0)
 	finalNormals := make([]vector.Vector3, 0)
 	finalUVs := make([]vector.Vector2, 0)
-	shiftBy := make([]int, len(m.vertices))
+	shiftBy := make([]int, uniqueVertCount)
 	curShift := 0
 	for vertIndex := 0; vertIndex < uniqueVertCount; vertIndex++ {
 
-		v := m.vertices[vertIToOriginalLU[vertIndex]]
+		originalIndex := vertIToOriginalLU[vertIndex]
+		v := m.vertices[originalIndex]
 		vi := Vector3ToInt(v, decimalPlace)
 		if vertLUUsed[vi] {
 			finalVerts = append(finalVerts, v)
 			if len(m.normals) > 0 {
-				finalNormals = append(finalNormals, m.normals[vertIndex])
+				finalNormals = append(finalNormals, m.normals[originalIndex])
 			}
 
 			if len(m.uv) > 0 && len(m.uv[0]) > 0 {
-				finalUVs = append(finalUVs, m.uv[0][vertIndex])
+				finalUVs = append(finalUVs, m.uv[0][originalIndex])
 			}
 		} else {
 			// Not used, need to shift triangles who's points point to vertices that come after this unsed one
