@@ -30,6 +30,12 @@ func smoothCommand() *cli.Command {
 				Usage:   "Number of times to run the smoothing",
 				Value:   5,
 			},
+			&cli.IntFlag{
+				Name:    "weld-precision",
+				Aliases: []string{"wp"},
+				Usage:   "Number of significant digits to use while rounding vertices to compare for likeness",
+				Value:   4,
+			},
 			&cli.Float64Flag{
 				Name:    "smoothing-weight",
 				Aliases: []string{"sw"},
@@ -54,6 +60,7 @@ func smoothCommand() *cli.Command {
 			}
 
 			return readMesh.
+				WeldByVertices(c.Int("weld-precision")).
 				SmoothLaplacian(c.Int("iterations"), c.Float64("smoothing-weight")).
 				CalculateSmoothNormals().
 				WriteObj(outFile)

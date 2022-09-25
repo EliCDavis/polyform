@@ -24,6 +24,20 @@ func EmptyMesh() Mesh {
 	}
 }
 
+func NewMesh(
+	triangles []int,
+	vertices []vector.Vector3,
+	normals []vector.Vector3,
+	uvs [][]vector.Vector2,
+) Mesh {
+	return Mesh{
+		vertices:  vertices,
+		triangles: triangles,
+		normals:   normals,
+		uv:        uvs,
+	}
+}
+
 func MeshFromView(view MeshView) Mesh {
 	return Mesh{
 		vertices:  view.Vertices,
@@ -104,6 +118,112 @@ func (m Mesh) CalculateFlatNormals() Mesh {
 		normals:   normals,
 		triangles: m.triangles,
 		uv:        m.uv,
+	}
+}
+
+func (m Mesh) RemoveDegenerateTriangles(sideLength float64) Mesh {
+	cm := NewCollapsableMesh(m)
+
+	for triI := 0; triI < len(m.triangles); triI += 3 {
+		if m.vertices[m.triangles[triI]].Distance(m.vertices[m.triangles[triI+1]]) < sideLength {
+			cm.CollapseTri(triI / 3)
+			continue
+		}
+		if m.vertices[m.triangles[triI+1]].Distance(m.vertices[m.triangles[triI+2]]) < sideLength {
+			cm.CollapseTri(triI / 3)
+			continue
+		}
+		if m.vertices[m.triangles[triI+2]].Distance(m.vertices[m.triangles[triI+1]]) < sideLength {
+			cm.CollapseTri(triI / 3)
+		}
+	}
+
+	return cm.ToMesh()
+}
+
+func (m Mesh) WeldByVertices(decimalPlace int) Mesh {
+	// =================== Finding unique vertices ============================
+	vertILU := make(map[VectorInt]int)
+	vertIToOriginalLU := make(map[int]int)
+
+	// Mapping from rounded vector to whether or not it get's used by a triangle
+	// in the resulting mesh
+	vertLUUsed := make(map[VectorInt]bool)
+
+	// count of unique vertices once rounded
+	uniqueVertCount := 0
+
+	for vi, v := range m.vertices {
+		vInt := Vector3ToInt(v, decimalPlace)
+
+		if _, ok := vertILU[vInt]; !ok {
+			vertILU[vInt] = uniqueVertCount
+			vertLUUsed[vInt] = false
+			vertIToOriginalLU[uniqueVertCount] = vi
+			uniqueVertCount++
+		}
+	}
+
+	// Building tris from unique vertices
+	newTris := make([]int, 0)
+	for triI := 0; triI < len(m.triangles); triI += 3 {
+		v1 := Vector3ToInt(m.vertices[m.triangles[triI+0]], decimalPlace)
+		v2 := Vector3ToInt(m.vertices[m.triangles[triI+1]], decimalPlace)
+		v3 := Vector3ToInt(m.vertices[m.triangles[triI+2]], decimalPlace)
+
+		if v1 == v2 {
+			continue
+		}
+
+		if v1 == v3 {
+			continue
+		}
+
+		if v2 == v3 {
+			continue
+		}
+
+		vertLUUsed[v1] = true
+		vertLUUsed[v2] = true
+		vertLUUsed[v3] = true
+		newTris = append(newTris, vertILU[v1], vertILU[v2], vertILU[v3])
+	}
+
+	finalVerts := make([]vector.Vector3, 0)
+	finalNormals := make([]vector.Vector3, 0)
+	finalUVs := make([]vector.Vector2, 0)
+	shiftBy := make([]int, len(m.vertices))
+	curShift := 0
+	for vertIndex := 0; vertIndex < uniqueVertCount; vertIndex++ {
+
+		v := m.vertices[vertIToOriginalLU[vertIndex]]
+		vi := Vector3ToInt(v, decimalPlace)
+		if vertLUUsed[vi] {
+			finalVerts = append(finalVerts, v)
+			if len(m.normals) > 0 {
+				finalNormals = append(finalNormals, m.normals[vertIndex])
+			}
+
+			if len(m.uv) > 0 && len(m.uv[0]) > 0 {
+				finalUVs = append(finalUVs, m.uv[0][vertIndex])
+			}
+		} else {
+			// Not used, need to shift triangles who's points point to vertices that come after this unsed one
+			curShift++
+		}
+		shiftBy[vertIndex] = curShift
+	}
+
+	// Shift all the triangles appropriately since we just removed a bunch of vertices no longer used
+	for triI := 0; triI < len(newTris); triI++ {
+		newTris[triI] -= shiftBy[newTris[triI]]
+	}
+
+	return Mesh{
+		triangles: newTris,
+		vertices:  finalVerts,
+		normals:   finalNormals,
+		uv:        [][]vector.Vector2{finalUVs},
 	}
 }
 
