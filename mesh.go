@@ -107,10 +107,61 @@ func (m Mesh) CalculateFlatNormals() Mesh {
 	}
 }
 
+func (m Mesh) VertexNeighborTable() VertexLUT {
+	table := VertexLUT{}
+	for triI := 0; triI < len(m.triangles); triI += 3 {
+		p1 := m.triangles[triI]
+		p2 := m.triangles[triI+1]
+		p3 := m.triangles[triI+2]
+
+		table.AddLookup(p1, p2)
+		table.AddLookup(p1, p3)
+
+		table.AddLookup(p2, p1)
+		table.AddLookup(p2, p3)
+
+		table.AddLookup(p3, p1)
+		table.AddLookup(p3, p2)
+	}
+	return table
+}
+
+func (m Mesh) SmoothLaplacian(iterations int, smoothingFactor float64) Mesh {
+	lut := m.VertexNeighborTable()
+
+	vertices := make([]vector.Vector3, len(m.vertices))
+	for i := range vertices {
+		vertices[i] = m.vertices[i]
+	}
+
+	for i := 0; i < iterations; i++ {
+		for vi, vertex := range vertices {
+			vs := vector.Vector3Zero()
+
+			for vn := range lut.Lookup(vi) {
+				vs = vs.Add(vertices[vn])
+			}
+
+			vertices[vi] = vertex.Add(
+				vs.
+					DivByConstant(float64(lut.Count(vi))).
+					Sub(vertex).
+					MultByConstant(smoothingFactor))
+		}
+	}
+
+	return Mesh{
+		vertices:  vertices,
+		normals:   m.normals,
+		triangles: m.triangles,
+		uv:        m.uv,
+	}
+}
+
 func (m Mesh) CalculateSmoothNormals() Mesh {
 	normals := make([]vector.Vector3, len(m.vertices))
 	for i := range normals {
-		normals[i] = vector.Vector3One()
+		normals[i] = vector.Vector3Zero()
 	}
 
 	verts := m.vertices
@@ -120,7 +171,7 @@ func (m Mesh) CalculateSmoothNormals() Mesh {
 		p2 := tris[triIndex+1]
 		p3 := tris[triIndex+2]
 		// normalize(cross(B-A, C-A))
-		normalized := verts[p2].Sub(verts[p1]).Cross(verts[p3].Sub(verts[p1])).Normalized()
+		normalized := verts[p2].Sub(verts[p1]).Cross(verts[p3].Sub(verts[p1]))
 
 		// This occurs whenever the given tri is actually just a line
 		if math.IsNaN(normalized.X()) {
