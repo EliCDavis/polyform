@@ -36,9 +36,11 @@ func MeshFromView(view MeshView) Mesh {
 // View exposes the underlying data to be modified. Using this breaks the
 // immutable design of the system, but required for some mesh processing.
 //
-// Modifying the data stored at the indices in the mesh found here will
-// directly update the mesh, and side steps any type of validation we could
-// have done previously.
+// Modifying the data stored in the mesh found here will directly update the
+// mesh, and side-steps any type of validation we could have done previously.
+//
+// If you make changes to this view, assume the mesh and all ancestors of said
+// mesh have just become garbage.
 func (m Mesh) View() MeshView {
 	return MeshView{
 		Vertices:  m.vertices,
@@ -57,6 +59,21 @@ func (m Mesh) Tri(i int) Tri {
 
 func (m Mesh) TriCount() int {
 	return len(m.triangles) / 3
+}
+
+func (m Mesh) Scale(origin, amount vector.Vector3) Mesh {
+	scaledVerts := make([]vector.Vector3, len(m.vertices))
+
+	for i, v := range m.vertices {
+		scaledVerts[i] = origin.Add(v.Sub(origin).MultByVector(amount))
+	}
+
+	return Mesh{
+		vertices:  scaledVerts,
+		normals:   m.normals,
+		triangles: m.triangles,
+		uv:        m.uv,
+	}
 }
 
 func (m Mesh) CalculateFlatNormals() Mesh {

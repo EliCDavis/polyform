@@ -86,7 +86,7 @@ func parseObjFaceComponent(component string) (v int, vt int, vn int, err error) 
 	return
 }
 
-func ImportObj(in io.Reader) (*Mesh, error) {
+func FromObj(in io.Reader) (*Mesh, error) {
 	scanner := bufio.NewScanner(in)
 
 	tris := make([]int, 0)

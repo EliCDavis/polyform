@@ -47,7 +47,7 @@ f  2//1  8//1  4//1
 `
 
 	// ACT ====================================================================
-	square, err := mesh.ImportObj(strings.NewReader(objString))
+	square, err := mesh.FromObj(strings.NewReader(objString))
 	squareView := square.View()
 
 	// ASSERT =================================================================
@@ -77,7 +77,7 @@ f  2 3 4
 `
 
 	// ACT ====================================================================
-	square, err := mesh.ImportObj(strings.NewReader(objString))
+	square, err := mesh.FromObj(strings.NewReader(objString))
 	squareView := square.View()
 
 	// ASSERT =================================================================
@@ -123,7 +123,7 @@ f  2/2/2 3/3/3 4/4/4
 `
 
 	// ACT ====================================================================
-	square, err := mesh.ImportObj(strings.NewReader(objString))
+	square, err := mesh.FromObj(strings.NewReader(objString))
 	squareView := square.View()
 
 	// ASSERT =================================================================
