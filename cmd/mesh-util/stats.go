@@ -2,9 +2,7 @@ package main
 
 import (
 	"fmt"
-	"os"
 
-	"github.com/EliCDavis/mesh"
 	"github.com/urfave/cli/v2"
 )
 
@@ -21,17 +19,12 @@ func statsCommand() *cli.Command {
 			},
 		},
 		Action: func(c *cli.Context) error {
-			inFile, err := os.Open(c.String("in"))
+			loadedMesh, err := readMesh(c.String("in"))
 			if err != nil {
 				return err
 			}
 
-			readMesh, err := mesh.FromObj(inFile)
-			if err != nil {
-				return err
-			}
-
-			_, err = fmt.Fprintf(c.App.Writer, "tris: %d", readMesh.TriCount())
+			_, err = fmt.Fprintf(c.App.Writer, "tris: %d", loadedMesh.TriCount())
 
 			return err
 		},

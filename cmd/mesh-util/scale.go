@@ -3,7 +3,6 @@ package main
 import (
 	"os"
 
-	"github.com/EliCDavis/mesh"
 	"github.com/EliCDavis/vector"
 	"github.com/urfave/cli/v2"
 )
@@ -46,12 +45,7 @@ func scaleCommand() *cli.Command {
 			},
 		},
 		Action: func(c *cli.Context) error {
-			inFile, err := os.Open(c.String("in"))
-			if err != nil {
-				return err
-			}
-
-			readMesh, err := mesh.FromObj(inFile)
+			loadedMesh, err := readMesh(c.String("in"))
 			if err != nil {
 				return err
 			}
@@ -61,7 +55,7 @@ func scaleCommand() *cli.Command {
 				return err
 			}
 
-			scaledMesh := readMesh.
+			scaledMesh := loadedMesh.
 				Scale(
 					vector.Vector3Zero(),
 					vector.NewVector3(c.Float64("x"), c.Float64("y"), c.Float64("z")),

@@ -80,7 +80,7 @@ func parseObjFaceComponent(component string) (v int, vt int, vn int, err error) 
 	}
 
 	if len(components) == 3 {
-		vn, err = strconv.Atoi(components[1])
+		vn, err = strconv.Atoi(components[2])
 		vn -= 1
 	}
 	return

@@ -122,23 +122,35 @@ func (m Mesh) CalculateFlatNormals() Mesh {
 }
 
 func (m Mesh) RemoveDegenerateTriangles(sideLength float64) Mesh {
-	cm := NewCollapsableMesh(m)
+	removedSomething := true
 
-	for triI := 0; triI < len(m.triangles); triI += 3 {
-		if m.vertices[m.triangles[triI]].Distance(m.vertices[m.triangles[triI+1]]) < sideLength {
-			cm.CollapseTri(triI / 3)
-			continue
+	finalMesh := m
+	for removedSomething {
+		removedSomething = false
+		cm := NewCollapsableMesh(finalMesh)
+
+		for triI := 0; triI < len(finalMesh.triangles); triI += 3 {
+			if finalMesh.vertices[finalMesh.triangles[triI]].Distance(finalMesh.vertices[finalMesh.triangles[triI+1]]) < sideLength {
+				cm.CollapseTri(triI / 3)
+				removedSomething = true
+				continue
+			}
+			if finalMesh.vertices[finalMesh.triangles[triI+1]].Distance(finalMesh.vertices[finalMesh.triangles[triI+2]]) < sideLength {
+				cm.CollapseTri(triI / 3)
+				removedSomething = true
+				continue
+			}
+			if finalMesh.vertices[finalMesh.triangles[triI+2]].Distance(finalMesh.vertices[finalMesh.triangles[triI]]) < sideLength {
+				removedSomething = true
+				cm.CollapseTri(triI / 3)
+			}
 		}
-		if m.vertices[m.triangles[triI+1]].Distance(m.vertices[m.triangles[triI+2]]) < sideLength {
-			cm.CollapseTri(triI / 3)
-			continue
-		}
-		if m.vertices[m.triangles[triI+2]].Distance(m.vertices[m.triangles[triI+1]]) < sideLength {
-			cm.CollapseTri(triI / 3)
+		if removedSomething {
+			finalMesh = cm.ToMesh()
 		}
 	}
 
-	return cm.ToMesh()
+	return finalMesh
 }
 
 func (m Mesh) WeldByVertices(decimalPlace int) Mesh {
@@ -340,7 +352,7 @@ func (m Mesh) WriteObj(out io.Writer) error {
 		}
 	}
 
-	if len(m.normals) > 0 && len(m.uv) > 0 {
+	if len(m.normals) > 0 && len(m.uv) > 0 && len(m.uv[0]) > 0 {
 		for triIndex := 0; triIndex < len(m.triangles); triIndex += 3 {
 			p1 := m.triangles[triIndex] + 1
 			p2 := m.triangles[triIndex+1] + 1

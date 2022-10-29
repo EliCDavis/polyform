@@ -3,7 +3,6 @@ package main
 import (
 	"os"
 
-	"github.com/EliCDavis/mesh"
 	"github.com/urfave/cli/v2"
 )
 
@@ -44,12 +43,7 @@ func smoothCommand() *cli.Command {
 			},
 		},
 		Action: func(c *cli.Context) error {
-			inFile, err := os.Open(c.String("in"))
-			if err != nil {
-				return err
-			}
-
-			readMesh, err := mesh.FromObj(inFile)
+			loadedMesh, err := readMesh(c.String("in"))
 			if err != nil {
 				return err
 			}
@@ -59,8 +53,9 @@ func smoothCommand() *cli.Command {
 				return err
 			}
 
-			return readMesh.
+			return loadedMesh.
 				WeldByVertices(c.Int("weld-precision")).
+				// RemoveDegenerateTriangles(0.001).
 				SmoothLaplacian(c.Int("iterations"), c.Float64("smoothing-weight")).
 				CalculateSmoothNormals().
 				WriteObj(outFile)
