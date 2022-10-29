@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/EliCDavis/mesh"
+	"github.com/EliCDavis/mesh/obj"
 	"github.com/EliCDavis/mesh/ply"
 )
 
@@ -22,7 +23,7 @@ func readMesh(path string) (*mesh.Mesh, error) {
 	switch strings.ToLower(ext) {
 
 	case ".obj":
-		return mesh.FromObj(inFile)
+		return obj.ToMesh(inFile)
 
 	case ".ply":
 		return ply.ToMesh(inFile)

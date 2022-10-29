@@ -18,9 +18,18 @@ const (
 	Binary
 )
 
+func scanToNextNonEmptyLine(scanner *bufio.Scanner) string {
+	for scanner.Scan() {
+		text := scanner.Text()
+		if strings.TrimSpace(text) != "" {
+			return text
+		}
+	}
+	panic("end of scanner")
+}
+
 func readPlyHeaderFormat(scanner *bufio.Scanner) (Format, error) {
-	scanner.Scan()
-	line := scanner.Text()
+	line := scanToNextNonEmptyLine(scanner)
 	contents := strings.Fields(line)
 
 	if len(contents) != 3 {
@@ -88,6 +97,10 @@ func readPlyHeader(in io.Reader) (reader, error) {
 	for {
 		scanner.Scan()
 		line := scanner.Text()
+		if strings.TrimSpace(line) == "" {
+			continue
+		}
+
 		if line == "end_header" {
 			break
 		}

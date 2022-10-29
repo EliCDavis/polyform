@@ -1,8 +1,6 @@
 package mesh
 
 import (
-	"fmt"
-	"io"
 	"math"
 
 	"github.com/EliCDavis/vector"
@@ -326,73 +324,4 @@ func (m Mesh) CalculateSmoothNormals() Mesh {
 		triangles: m.triangles,
 		uv:        m.uv,
 	}
-}
-
-func (m Mesh) WriteObj(out io.Writer) error {
-	for _, v := range m.vertices {
-		_, err := fmt.Fprintf(out, "v %f %f %f\n", v.X(), v.Y(), v.Z())
-		if err != nil {
-			return err
-		}
-	}
-
-	for _, uvChannel := range m.uv {
-		for _, uv := range uvChannel {
-			_, err := fmt.Fprintf(out, "vt %f %f\n", uv.X(), uv.Y())
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	for _, n := range m.normals {
-		_, err := fmt.Fprintf(out, "vn %f %f %f\n", n.X(), n.Y(), n.Z())
-		if err != nil {
-			return err
-		}
-	}
-
-	if len(m.normals) > 0 && len(m.uv) > 0 && len(m.uv[0]) > 0 {
-		for triIndex := 0; triIndex < len(m.triangles); triIndex += 3 {
-			p1 := m.triangles[triIndex] + 1
-			p2 := m.triangles[triIndex+1] + 1
-			p3 := m.triangles[triIndex+2] + 1
-			_, err := fmt.Fprintf(out, "f %d/%d/%d %d/%d/%d %d/%d/%d\n", p1, p1, p1, p2, p2, p2, p3, p3, p3)
-			if err != nil {
-				return err
-			}
-		}
-	} else if len(m.normals) > 0 {
-		for triIndex := 0; triIndex < len(m.triangles); triIndex += 3 {
-			p1 := m.triangles[triIndex] + 1
-			p2 := m.triangles[triIndex+1] + 1
-			p3 := m.triangles[triIndex+2] + 1
-			_, err := fmt.Fprintf(out, "f %d//%d %d//%d %d//%d\n", p1, p1, p2, p2, p3, p3)
-			if err != nil {
-				return err
-			}
-		}
-	} else if len(m.uv) > 0 {
-		for triIndex := 0; triIndex < len(m.triangles); triIndex += 3 {
-			p1 := m.triangles[triIndex] + 1
-			p2 := m.triangles[triIndex+1] + 1
-			p3 := m.triangles[triIndex+2] + 1
-			_, err := fmt.Fprintf(out, "f %d/%d %d/%d %d/%d\n", p1, p1, p2, p2, p3, p3)
-			if err != nil {
-				return err
-			}
-		}
-	} else {
-		for triIndex := 0; triIndex < len(m.triangles); triIndex += 3 {
-			p1 := m.triangles[triIndex] + 1
-			p2 := m.triangles[triIndex+1] + 1
-			p3 := m.triangles[triIndex+2] + 1
-			_, err := fmt.Fprintf(out, "f %d %d %d\n", p1, p2, p3)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
 }

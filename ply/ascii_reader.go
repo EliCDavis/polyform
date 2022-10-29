@@ -35,10 +35,16 @@ func (ar *AsciiReader) readVertexData(element Element) ([]vector.Vector3, error)
 	}
 
 	vertices := make([]vector.Vector3, element.count)
-
-	for i := 0; i < element.count; i++ {
+	i := 0
+	for i < element.count {
 		ar.scanner.Scan()
-		contents := strings.Fields(ar.scanner.Text())
+
+		text := ar.scanner.Text()
+		if text == "" {
+			continue
+		}
+
+		contents := strings.Fields(text)
 
 		xParsed, err := strconv.ParseFloat(contents[xIndex], 32)
 		if err != nil {
@@ -56,6 +62,7 @@ func (ar *AsciiReader) readVertexData(element Element) ([]vector.Vector3, error)
 		}
 
 		vertices[i] = vector.NewVector3(xParsed, yParsed, zParsed)
+		i++
 	}
 
 	return vertices, nil

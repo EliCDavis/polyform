@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 
+	"github.com/EliCDavis/mesh/obj"
 	"github.com/urfave/cli/v2"
 )
 
@@ -53,12 +54,13 @@ func smoothCommand() *cli.Command {
 				return err
 			}
 
-			return loadedMesh.
+			smoothedMesh := loadedMesh.
 				WeldByVertices(c.Int("weld-precision")).
 				// RemoveDegenerateTriangles(0.001).
 				SmoothLaplacian(c.Int("iterations"), c.Float64("smoothing-weight")).
-				CalculateSmoothNormals().
-				WriteObj(outFile)
+				CalculateSmoothNormals()
+
+			return obj.Write(&smoothedMesh, outFile)
 		},
 	}
 }

@@ -1,4 +1,4 @@
-package mesh
+package obj
 
 import (
 	"bufio"
@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/EliCDavis/mesh"
 	"github.com/EliCDavis/vector"
 )
 
@@ -86,7 +87,7 @@ func parseObjFaceComponent(component string) (v int, vt int, vn int, err error) 
 	return
 }
 
-func FromObj(in io.Reader) (*Mesh, error) {
+func ToMesh(in io.Reader) (*mesh.Mesh, error) {
 	scanner := bufio.NewScanner(in)
 
 	tris := make([]int, 0)
@@ -204,7 +205,7 @@ func FromObj(in io.Reader) (*Mesh, error) {
 		return nil, err
 	}
 
-	mesh := MeshFromView(MeshView{
+	mesh := mesh.MeshFromView(mesh.MeshView{
 		Triangles: tris,
 		Vertices:  verts,
 		Normals:   normals,

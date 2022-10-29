@@ -1,10 +1,10 @@
-package mesh_test
+package obj_test
 
 import (
 	"strings"
 	"testing"
 
-	"github.com/EliCDavis/mesh"
+	"github.com/EliCDavis/mesh/obj"
 	"github.com/EliCDavis/vector"
 	"github.com/stretchr/testify/assert"
 )
@@ -47,7 +47,7 @@ f  2//1  8//1  4//1
 `
 
 	// ACT ====================================================================
-	square, err := mesh.FromObj(strings.NewReader(objString))
+	square, err := obj.ToMesh(strings.NewReader(objString))
 	squareView := square.View()
 
 	// ASSERT =================================================================
@@ -77,7 +77,7 @@ f  2 3 4
 `
 
 	// ACT ====================================================================
-	square, err := mesh.FromObj(strings.NewReader(objString))
+	square, err := obj.ToMesh(strings.NewReader(objString))
 	squareView := square.View()
 
 	// ASSERT =================================================================
@@ -123,7 +123,7 @@ f  2/2/2 3/3/3 4/4/4
 `
 
 	// ACT ====================================================================
-	square, err := mesh.FromObj(strings.NewReader(objString))
+	square, err := obj.ToMesh(strings.NewReader(objString))
 	squareView := square.View()
 
 	// ASSERT =================================================================
