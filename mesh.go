@@ -73,6 +73,58 @@ func (m Mesh) TriCount() int {
 	return len(m.triangles) / 3
 }
 
+func (m Mesh) Append(other Mesh) Mesh {
+	finalTris := append(m.triangles, other.triangles...)
+	shift := len(m.vertices)
+	for i := len(m.triangles); i < len(finalTris); i++ {
+		finalTris[i] += shift
+	}
+
+	finalVerts := append(m.vertices, other.vertices...)
+
+	finalNormals := make([]vector.Vector3, 0, len(finalVerts))
+
+	// Fill 2nd "half" of normals
+	if len(m.normals) != 0 && len(other.normals) == 0 {
+		finalNormals = append(finalNormals, m.normals...)
+		for i := 0; i < len(other.vertices); i++ {
+			finalNormals = append(finalNormals, vector.Vector3Zero())
+		}
+	} else if len(m.normals) == 0 && len(other.normals) != 0 {
+		for i := 0; i < len(m.vertices); i++ {
+			finalNormals = append(finalNormals, vector.Vector3Zero())
+		}
+		finalNormals = append(finalNormals, other.normals...)
+	} else {
+		finalNormals = append(finalNormals, m.normals...)
+		finalNormals = append(finalNormals, other.normals...)
+	}
+
+	return NewMesh(finalTris, finalVerts, finalNormals, nil)
+}
+
+func (m Mesh) Translate(v vector.Vector3) Mesh {
+	finalVerts := make([]vector.Vector3, len(m.vertices))
+	for i := 0; i < len(finalVerts); i++ {
+		finalVerts[i] = m.vertices[i].Add(v)
+	}
+	return NewMesh(m.triangles, finalVerts, m.normals, nil)
+}
+
+func (m Mesh) Rotate(q Quaternion) Mesh {
+	finalVerts := make([]vector.Vector3, len(m.vertices))
+	for i := 0; i < len(finalVerts); i++ {
+		finalVerts[i] = q.Rotate(m.vertices[i])
+	}
+
+	finalNormals := make([]vector.Vector3, len(m.normals))
+	for i := 0; i < len(finalNormals); i++ {
+		finalNormals[i] = q.Rotate(m.normals[i])
+	}
+
+	return NewMesh(m.triangles, finalVerts, finalNormals, nil)
+}
+
 func (m Mesh) Scale(origin, amount vector.Vector3) Mesh {
 	scaledVerts := make([]vector.Vector3, len(m.vertices))
 
@@ -80,12 +132,7 @@ func (m Mesh) Scale(origin, amount vector.Vector3) Mesh {
 		scaledVerts[i] = origin.Add(v.Sub(origin).MultByVector(amount))
 	}
 
-	return Mesh{
-		vertices:  scaledVerts,
-		normals:   m.normals,
-		triangles: m.triangles,
-		uv:        m.uv,
-	}
+	return NewMesh(m.triangles, scaledVerts, m.normals, m.uv)
 }
 
 func (m Mesh) CalculateFlatNormals() Mesh {
