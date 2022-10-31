@@ -7,7 +7,7 @@ import (
 
 // TODO: Pretty sure this breaks for paths that have multiple points in the
 // same direction.
-func Shape(shape []vector.Vector2, path []vector.Vector3) mesh.Mesh {
+func makeShape(shape []vector.Vector2, path []vector.Vector3, close bool) mesh.Mesh {
 	if len(path) < 2 {
 		panic("Can not extrude a path with less than 2 points")
 	}
@@ -49,12 +49,12 @@ func Shape(shape []vector.Vector2, path []vector.Vector3) mesh.Mesh {
 		bottom := pathIndex * sides
 		top := (pathIndex + 1) * sides
 		if pathIndex == len(path)-1 {
-			continue
+			if close {
+				top = 0
+			} else {
+				continue
+			}
 		}
-
-		// if pathIndex > 0 {
-		// 	continue
-		// }
 
 		for sideIndex := 0; sideIndex < sides; sideIndex++ {
 			topRight := top + sideIndex
@@ -82,4 +82,12 @@ func Shape(shape []vector.Vector2, path []vector.Vector3) mesh.Mesh {
 	}
 
 	return mesh.NewMesh(tris, vertices, normals, nil)
+}
+
+func Shape(shape []vector.Vector2, path []vector.Vector3) mesh.Mesh {
+	return makeShape(shape, path, false)
+}
+
+func ClosedShape(shape []vector.Vector2, path []vector.Vector3) mesh.Mesh {
+	return makeShape(shape, path, true)
 }

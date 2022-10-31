@@ -7,6 +7,9 @@ import (
 	"github.com/EliCDavis/vector"
 )
 
+// TODO
+// 		Pretty sure normal calculation is wrong. Need to determine what is and
+//      isn't a convex / concave point
 func ProjectFace(center, normal, perpendicular vector.Vector3, shape []vector.Vector2) ([]vector.Vector3, []vector.Vector3) {
 	cross := normal.Cross(perpendicular)
 	transformation := mesh.Matrix{
@@ -15,20 +18,20 @@ func ProjectFace(center, normal, perpendicular vector.Vector3, shape []vector.Ve
 		{cross.Z(), perpendicular.Z(), normal.Z()},
 	}
 
-	// transformation = mesh.Matrix{
-	// 	{cross.X(), cross.Y(), cross.Z()},
-	// 	{perpendicular.X(), perpendicular.Y(), perpendicular.Z()},
-	// 	{normal.X(), normal.Y(), normal.Z()},
-	// }
-
 	outerPoints := make([]vector.Vector3, len(shape))
 	outerNormals := make([]vector.Vector3, len(shape))
 
 	for i := 0; i < len(shape); i++ {
 		v := mesh.Multiply3x3by3x1(transformation, vector.NewVector3(shape[i].X(), shape[i].Y(), 0))
-
 		outerPoints[i] = v.Add(center)
-		outerNormals[i] = v.Normalized()
+	}
+
+	for i := 0; i < len(shape); i++ {
+		previous := i - 1
+		if i == 0 {
+			previous = len(shape) - 1
+		}
+		outerNormals[i] = outerPoints[i].Sub(outerPoints[previous]).Normalized()
 	}
 
 	return outerPoints, outerNormals
