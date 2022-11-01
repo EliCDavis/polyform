@@ -1,6 +1,7 @@
 package extrude
 
 import (
+	"log"
 	"math"
 
 	"github.com/EliCDavis/mesh"
@@ -25,6 +26,10 @@ func angle(from, to vector.Vector3) float64 {
 // TODO: Pretty sure this breaks for paths that have multiple points in the
 // same direction.
 func circle(sides int, thickness []float64, path []vector.Vector3, closed bool) mesh.Mesh {
+	if len(thickness) != len(path) {
+		panic("thickness count must match path count")
+	}
+
 	if len(path) < 2 {
 		panic("Can not extrude a path with less than 2 points")
 	}
@@ -54,12 +59,13 @@ func circle(sides int, thickness []float64, path []vector.Vector3, closed bool) 
 		}
 
 		dir = dir.Normalized()
+		log.Println(dir)
 
 		for sideIndex := 0; sideIndex < sides; sideIndex++ {
 
 			point := circlePoints[sideIndex]
 
-			if dir != vector.Vector3Up() {
+			if dir.Sub(vector.Vector3Up()).SquaredLength() > 0.00000001 {
 				angleVector := dir.Cross(vector.Vector3Up())
 				angleDot := angle(dir, vector.Vector3Up())
 				rot := mesh.UnitQuaternionFromTheta(angleDot, angleVector)
@@ -129,8 +135,9 @@ func Circle(sides int, thickness float64, path []vector.Vector3) mesh.Mesh {
 }
 
 func CircleWithThickness(sides int, thickness []float64, path []vector.Vector3) mesh.Mesh {
-	if len(thickness) != len(path) {
-		panic("thickness count must match path count")
-	}
 	return circle(sides, thickness, path, false)
+}
+
+func ClosedCircleWithThickness(sides int, thickness []float64, path []vector.Vector3) mesh.Mesh {
+	return circle(sides, thickness, path, true)
 }

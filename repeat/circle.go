@@ -15,8 +15,8 @@ func Circle(in mesh.Mesh, times int, radius float64) mesh.Mesh {
 	for i := 0; i < times; i++ {
 		angle := angleIncrement * float64(i)
 
-		pos := vector.NewVector3(math.Cos(angle)*radius, 0, math.Sin(angle)*radius)
-		rot := mesh.UnitQuaternionFromTheta(angle, vector.Vector3Up())
+		pos := vector.NewVector3(math.Cos(angle), 0, math.Sin(angle)).MultByConstant(radius)
+		rot := mesh.UnitQuaternionFromTheta(-angle, vector.Vector3Up())
 
 		final = final.Append(in.Rotate(rot).Translate(pos))
 	}
