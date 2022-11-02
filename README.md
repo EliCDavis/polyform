@@ -1,57 +1,61 @@
 # Mesh
 
-Library for generating meshes in golang and outputs them in obj format. Adding functionality overtimes as hobby projects need it.
+Library for editing and generating meshes.
 
 ```
 go get github.com/EliCDavis/mesh
 ```
 
-## Example
+## Processing Example
+
+Reads in a obj file and welds vertices, applies laplacian smoothing, and calculates smoothed normals.
 
 ```go
-// MakeShape creates a shape at 0, 0, 0 with a certain number of sides with
-// each point of the shape a distance from 0, 0, 0 equal to the radius
-// passed in.
-func MakeShape(sides int, radius float64) (mesh.Model, error) {
-	polys := make([]mesh.Polygon, sides)
+package main
 
-	angleIncrement := (1.0 / float64(sides)) * 2.0 * math.Pi
-	for sideIndex := 0; sideIndex < sides; sideIndex++ {
-		angle := angleIncrement * float64(sideIndex)
-		angleNext := angleIncrement * (float64(sideIndex) + 1)
+import (
+	"os"
 
-		points := []vector.Vector3{
-			vector.NewVector3(0, 0, 0),
-			vector.NewVector3(math.Cos(angleNext)*radius, 0, math.Sin(angleNext)*radius),
-			vector.NewVector3(math.Cos(angle)*radius, 0, math.Sin(angle)*radius),
-		}
-
-		poly, _ := mesh.NewPolygon(points, points)
-
-		polys[sideIndex] = poly
-	}
-
-	return mesh.NewModel(polys)
-}
+	"github.com/EliCDavis/mesh"
+	"github.com/EliCDavis/mesh/obj"
+)
 
 func main() {
-    shape, err := MakeShape(10, 5.0)
-    if err != nil {
-		panic(err)
-    }
-
-    f, err := os.Create("out.obj")
+	inFile, err := os.Open("dirty.obj")
 	if err != nil {
 		panic(err)
 	}
-	defer f.Close()
+	defer inFile.Close()
 
-	w := bufio.NewWriter(f)
-	err = shape.Save(w)
+	loadedMesh, err := obj.ToMesh(inFile)
 	if err != nil {
 		panic(err)
 	}
 
-    w.Flush()
+	outFile, err := os.Create("smooth.obj")
+	if err != nil {
+		panic(err)
+	}
+	defer outFile.Close()
+
+	smoothedMesh := loadedMesh.
+		WeldByVertices(4).
+		SmoothLaplacian(5, 0.5).
+		CalculateSmoothNormals()
+
+	obj.Write(&smoothedMesh, outFile)
 }
+
 ```
+
+## Helpful Procedural Generation Sub Packages
+
+- [extrude](/extrude/) - Functionality for generating geometry from 2D shapes.
+- [repeat](/repeat/) - Functionality for copying geometry in common patterns.
+- [primitives](/repeat/) - Functionality pertaining to generating common geometry.
+
+## Procedural Generation Examples
+
+You can at the different projects under the [cmd](/cmd/) folder for different examples on how to procedurally generate meshes.
+
+![ufo](/cmd/ufo/ufo.png)

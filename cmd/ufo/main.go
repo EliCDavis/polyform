@@ -27,22 +27,23 @@ func AbductionRing(radius, baseThickness, magnitude float64) mesh.Mesh {
 	return extrude.ClosedCircleWithThickness(20, thickness, path)
 }
 
-func contour(positions []vector.Vector3) mesh.Mesh {
-	return repeat.Circle(extrude.Circle(7, .3, positions), 8, 0)
+func contour(positions []vector.Vector3, times int) mesh.Mesh {
+	return repeat.Circle(extrude.Circle(7, .3, positions), times, 0)
 }
 
 func sideLights(numberOfLights int, radius float64) mesh.Mesh {
-	light := primitives.Cylinder(16, 0.5, 0.5).
-		Append(primitives.Cylinder(16, 0.25, 0.25).Translate(vector.NewVector3(0, .35, 0))).
+	sides := 8
+	light := primitives.Cylinder(sides, 0.5, 0.5).
+		Append(primitives.Cylinder(sides, 0.25, 0.25).Translate(vector.NewVector3(0, .35, 0))).
 		Rotate(mesh.UnitQuaternionFromTheta(-math.Pi/2, vector.Vector3Forward()))
 
 	return repeat.Circle(light, numberOfLights, radius)
 }
 
-func UfoBody(outerRadius float64, portalRadius float64) mesh.Mesh {
+func UfoBody(outerRadius float64, portalRadius float64, frameSections int) mesh.Mesh {
 	path := []vector.Vector3{
-		vector.Vector3Up().MultByConstant(0),
-		vector.Vector3Up().MultByConstant(1),
+		vector.Vector3Up().MultByConstant(-1),
+		vector.Vector3Up().MultByConstant(2),
 
 		vector.Vector3Up().MultByConstant(0.5),
 		vector.Vector3Up().MultByConstant(3),
@@ -87,11 +88,13 @@ func UfoBody(outerRadius float64, portalRadius float64) mesh.Mesh {
 			vector.NewVector3(thickness[3], path[3].Y(), 0),
 			vector.NewVector3(thickness[4], path[4].Y(), 0),
 			vector.NewVector3(thickness[5], path[5].Y(), 0),
-		})).
+		}, frameSections)).
 		Append(primitives.
 			Cylinder(20, 1, outerRadius+1).
 			Translate(vector.NewVector3(0, 3.5, 0))).
-		Append(sideLights(8, outerRadius+1).Translate(vector.NewVector3(0, 3.5, 0)))
+		Append(extrude.ClosedCircle(8, .25, repeat.Point(frameSections, portalRadius)).
+			Translate(vector.Vector3Up().MultByConstant(0.5))).
+		Append(sideLights(frameSections, outerRadius+1).Translate(vector.NewVector3(0, 3.5, 0)))
 }
 
 func main() {
@@ -102,7 +105,7 @@ func main() {
 	final := ring.
 		Append(ring.Translate(ringSpacing.MultByConstant(1)).Rotate(mesh.UnitQuaternionFromTheta(0.3, vector.Vector3Down()))).
 		Append(ring.Translate(ringSpacing.MultByConstant(2)).Rotate(mesh.UnitQuaternionFromTheta(0.5, vector.Vector3Down()))).
-		Append(UfoBody(ufoOuterRadius, ufoportalRadius).Translate(ringSpacing.MultByConstant(3)))
+		Append(UfoBody(ufoOuterRadius, ufoportalRadius, 8).Translate(ringSpacing.MultByConstant(3)))
 
 	f, err := os.Create("ufo.obj")
 	if err != nil {
