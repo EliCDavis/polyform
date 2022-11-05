@@ -11,6 +11,7 @@ type Mesh struct {
 	triangles []int
 	normals   []vector.Vector3
 	uv        [][]vector.Vector2
+	materials []MeshMaterial
 }
 
 func EmptyMesh() Mesh {
@@ -19,6 +20,7 @@ func EmptyMesh() Mesh {
 		triangles: make([]int, 0),
 		normals:   make([]vector.Vector3, 0),
 		uv:        make([][]vector.Vector2, 0),
+		materials: make([]MeshMaterial, 0),
 	}
 }
 
@@ -33,6 +35,23 @@ func NewMesh(
 		triangles: triangles,
 		normals:   normals,
 		uv:        uvs,
+		materials: []MeshMaterial{{len(triangles) / 3, nil}},
+	}
+}
+
+func NewMeshWithMaterials(
+	triangles []int,
+	vertices []vector.Vector3,
+	normals []vector.Vector3,
+	uvs [][]vector.Vector2,
+	materials []MeshMaterial,
+) Mesh {
+	return Mesh{
+		vertices:  vertices,
+		triangles: triangles,
+		normals:   normals,
+		uv:        uvs,
+		materials: materials,
 	}
 }
 
@@ -62,6 +81,14 @@ func (m Mesh) View() MeshView {
 	}
 }
 
+func (m Mesh) Materials() []MeshMaterial {
+	return m.materials
+}
+
+func (m Mesh) SetMaterial(mat Material) Mesh {
+	return NewMeshWithMaterials(m.triangles, m.vertices, m.normals, m.uv, []MeshMaterial{{NumOfTris: len(m.triangles) / 3, Material: &mat}})
+}
+
 func (m Mesh) Tri(i int) Tri {
 	return Tri{
 		mesh:          m,
@@ -75,11 +102,12 @@ func (m Mesh) TriCount() int {
 
 func (m Mesh) Append(other Mesh) Mesh {
 	finalTris := append(m.triangles, other.triangles...)
-	shift := len(m.vertices)
-	for i := len(m.triangles); i < len(finalTris); i++ {
-		finalTris[i] += shift
-	}
+	finalMaterials := append(m.materials, other.materials...)
 
+	vertexCountShift := len(m.vertices)
+	for i := len(m.triangles); i < len(finalTris); i++ {
+		finalTris[i] += vertexCountShift
+	}
 	finalVerts := append(m.vertices, other.vertices...)
 
 	finalNormals := make([]vector.Vector3, 0, len(finalVerts))
@@ -100,7 +128,7 @@ func (m Mesh) Append(other Mesh) Mesh {
 		finalNormals = append(finalNormals, other.normals...)
 	}
 
-	return NewMesh(finalTris, finalVerts, finalNormals, nil)
+	return NewMeshWithMaterials(finalTris, finalVerts, finalNormals, nil, finalMaterials)
 }
 
 func (m Mesh) Translate(v vector.Vector3) Mesh {
@@ -108,7 +136,7 @@ func (m Mesh) Translate(v vector.Vector3) Mesh {
 	for i := 0; i < len(finalVerts); i++ {
 		finalVerts[i] = m.vertices[i].Add(v)
 	}
-	return NewMesh(m.triangles, finalVerts, m.normals, nil)
+	return NewMeshWithMaterials(m.triangles, finalVerts, m.normals, m.uv, m.materials)
 }
 
 func (m Mesh) Rotate(q Quaternion) Mesh {
@@ -122,7 +150,7 @@ func (m Mesh) Rotate(q Quaternion) Mesh {
 		finalNormals[i] = q.Rotate(m.normals[i])
 	}
 
-	return NewMesh(m.triangles, finalVerts, finalNormals, nil)
+	return NewMeshWithMaterials(m.triangles, finalVerts, finalNormals, m.uv, m.materials)
 }
 
 func (m Mesh) Scale(origin, amount vector.Vector3) Mesh {
@@ -132,7 +160,7 @@ func (m Mesh) Scale(origin, amount vector.Vector3) Mesh {
 		scaledVerts[i] = origin.Add(v.Sub(origin).MultByVector(amount))
 	}
 
-	return NewMesh(m.triangles, scaledVerts, m.normals, m.uv)
+	return NewMeshWithMaterials(m.triangles, scaledVerts, m.normals, m.uv, m.materials)
 }
 
 func (m Mesh) CalculateFlatNormals() Mesh {
@@ -163,6 +191,7 @@ func (m Mesh) CalculateFlatNormals() Mesh {
 		normals:   normals,
 		triangles: m.triangles,
 		uv:        m.uv,
+		materials: m.materials,
 	}
 }
 
@@ -333,6 +362,7 @@ func (m Mesh) SmoothLaplacian(iterations int, smoothingFactor float64) Mesh {
 		normals:   m.normals,
 		triangles: m.triangles,
 		uv:        m.uv,
+		materials: m.materials,
 	}
 }
 
@@ -370,5 +400,6 @@ func (m Mesh) CalculateSmoothNormals() Mesh {
 		normals:   normals,
 		triangles: m.triangles,
 		uv:        m.uv,
+		materials: m.materials,
 	}
 }

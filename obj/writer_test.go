@@ -19,7 +19,7 @@ func TestWriteObj_EmptyMesh(t *testing.T) {
 	buf := bytes.Buffer{}
 
 	// ACT ====================================================================
-	err := obj.Write(&m, &buf)
+	err := obj.WriteMesh(&m, "", &buf)
 
 	// ASSERT =================================================================
 	assert.NoError(t, err)
@@ -42,7 +42,7 @@ func TestWriteObj_NoNormalsOrUVs(t *testing.T) {
 	buf := bytes.Buffer{}
 
 	// ACT ====================================================================
-	err := obj.Write(&m, &buf)
+	err := obj.WriteMesh(&m, "", &buf)
 
 	// ASSERT =================================================================
 	assert.NoError(t, err)
@@ -75,7 +75,7 @@ func TestWriteObj_NoUVs(t *testing.T) {
 	buf := bytes.Buffer{}
 
 	// ACT ====================================================================
-	err := obj.Write(&m, &buf)
+	err := obj.WriteMesh(&m, "", &buf)
 
 	// ASSERT =================================================================
 	assert.NoError(t, err)
@@ -113,7 +113,7 @@ func TestWriteObj_NoNormals(t *testing.T) {
 	buf := bytes.Buffer{}
 
 	// ACT ====================================================================
-	err := obj.Write(&m, &buf)
+	err := obj.WriteMesh(&m, "", &buf)
 
 	// ASSERT =================================================================
 	assert.NoError(t, err)
@@ -156,7 +156,7 @@ func TestWriteObj(t *testing.T) {
 	buf := bytes.Buffer{}
 
 	// ACT ====================================================================
-	err := obj.Write(&m, &buf)
+	err := obj.WriteMesh(&m, "", &buf)
 
 	// ASSERT =================================================================
 	assert.NoError(t, err)

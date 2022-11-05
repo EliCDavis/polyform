@@ -66,7 +66,7 @@ func scaleCommand() *cli.Command {
 				scaledMesh = scaledMesh.CalculateSmoothNormals()
 			}
 
-			return obj.Write(&scaledMesh, outFile)
+			return obj.WriteMesh(&scaledMesh, "", outFile)
 		},
 	}
 }

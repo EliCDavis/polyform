@@ -191,5 +191,5 @@ func main() {
 		panic(err)
 	}
 
-	obj.Write(&final, f)
+	obj.WriteMesh(&final, "", f)
 }

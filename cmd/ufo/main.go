@@ -1,7 +1,7 @@
 package main
 
 import (
-	"log"
+	"image/color"
 	"math"
 	"os"
 
@@ -24,7 +24,19 @@ func AbductionRing(radius, baseThickness, magnitude float64) mesh.Mesh {
 		path[i] = vector.NewVector3(math.Cos(angle)*radius, math.Sin(angle*5)*magnitude, math.Sin(angle)*radius)
 		thickness[i] = (math.Sin(angle*8) * magnitude * 0.25) + baseThickness
 	}
-	return extrude.ClosedCircleWithThickness(20, thickness, path)
+
+	mat := mesh.Material{
+		Name:              "Abduction Ring",
+		DiffuseColor:      color.RGBA{0, 255, 0, 255},
+		AmbientColor:      color.RGBA{0, 255, 0, 255},
+		SpecularColor:     color.Black,
+		SpecularHighlight: 0,
+		Dissolve:          1,
+		OpticalDensity:    5,
+	}
+	return extrude.
+		ClosedCircleWithThickness(20, thickness, path).
+		SetMaterial(mat)
 }
 
 func contour(positions []vector.Vector3, times int) mesh.Mesh {
@@ -71,15 +83,38 @@ func UfoBody(outerRadius float64, portalRadius float64, frameSections int) mesh.
 	domeStartHeight := 5.5
 	domeStartWidth := portalRadius - 1
 	halfPi := math.Pi / 2.
+	domePath := make([]vector.Vector3, 0)
+	domePath = append(domePath, path[len(path)-1])
+	domeThickness := make([]float64, 0)
+	domeThickness = append(domeThickness, thickness[len(thickness)-1])
 	for i := 0; i < domeResolution; i++ {
 		percent := float64(i+1) / float64(domeResolution)
 
 		height := math.Sin(percent*halfPi) * float64(domeHight)
-		path = append(path, vector.Vector3Up().MultByConstant(height+domeStartHeight))
+		domePath = append(domePath, vector.Vector3Up().MultByConstant(height+domeStartHeight))
 
 		cosResult := math.Cos(percent * halfPi)
-		log.Println(cosResult)
-		thickness = append(thickness, (cosResult * domeStartWidth))
+		domeThickness = append(domeThickness, (cosResult * domeStartWidth))
+	}
+
+	mat := mesh.Material{
+		Name:              "UFO Body",
+		DiffuseColor:      color.RGBA{128, 128, 128, 255},
+		AmbientColor:      color.RGBA{128, 128, 128, 255},
+		SpecularColor:     color.RGBA{128, 128, 128, 255},
+		SpecularHighlight: 100,
+		Dissolve:          1,
+		OpticalDensity:    1,
+	}
+
+	domeMat := mesh.Material{
+		Name:              "UFO Dome",
+		DiffuseColor:      color.RGBA{0, 0, 255, 255},
+		AmbientColor:      color.RGBA{0, 0, 255, 255},
+		SpecularColor:     color.RGBA{0, 0, 255, 255},
+		SpecularHighlight: 100,
+		Dissolve:          0.8,
+		OpticalDensity:    2,
 	}
 
 	return extrude.CircleWithThickness(20, thickness, path).
@@ -94,7 +129,9 @@ func UfoBody(outerRadius float64, portalRadius float64, frameSections int) mesh.
 			Translate(vector.NewVector3(0, 3.5, 0))).
 		Append(extrude.ClosedCircle(8, .25, repeat.Point(frameSections, portalRadius)).
 			Translate(vector.Vector3Up().MultByConstant(0.5))).
-		Append(sideLights(frameSections, outerRadius+1).Translate(vector.NewVector3(0, 3.5, 0)))
+		Append(sideLights(frameSections, outerRadius+1).Translate(vector.NewVector3(0, 3.5, 0))).
+		SetMaterial(mat).
+		Append(extrude.CircleWithThickness(20, domeThickness, domePath).SetMaterial(domeMat))
 }
 
 func main() {
@@ -103,15 +140,29 @@ func main() {
 	ring := AbductionRing(ufoportalRadius, 0.5, 0.5)
 	ringSpacing := vector.NewVector3(0, 3., 0)
 	final := ring.
-		Append(ring.Translate(ringSpacing.MultByConstant(1)).Rotate(mesh.UnitQuaternionFromTheta(0.3, vector.Vector3Down()))).
-		Append(ring.Translate(ringSpacing.MultByConstant(2)).Rotate(mesh.UnitQuaternionFromTheta(0.5, vector.Vector3Down()))).
-		Append(UfoBody(ufoOuterRadius, ufoportalRadius, 8).Translate(ringSpacing.MultByConstant(3)))
+		Append(ring.
+			Scale(vector.Vector3Zero(), vector.Vector3One().MultByConstant(.75)).
+			Translate(ringSpacing.MultByConstant(1)).
+			Rotate(mesh.UnitQuaternionFromTheta(0.3, vector.Vector3Down()))).
+		Append(ring.
+			Scale(vector.Vector3Zero(), vector.Vector3One().MultByConstant(.5)).
+			Translate(ringSpacing.MultByConstant(2)).
+			Rotate(mesh.UnitQuaternionFromTheta(0.5, vector.Vector3Down()))).
+		Append(UfoBody(ufoOuterRadius, ufoportalRadius, 8).Translate(ringSpacing.MultByConstant(2.5)))
 
-	f, err := os.Create("ufo.obj")
+	mtlFile, err := os.Create("ufo.mtl")
 	if err != nil {
 		panic(err)
 	}
-	defer f.Close()
+	defer mtlFile.Close()
 
-	obj.Write(&final, f)
+	objFile, err := os.Create("ufo.obj")
+	if err != nil {
+		panic(err)
+	}
+	defer objFile.Close()
+
+	obj.WriteMesh(&final, "ufo.mtl", objFile)
+
+	obj.WriteMaterials(&final, mtlFile)
 }
