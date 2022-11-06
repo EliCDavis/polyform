@@ -17,13 +17,21 @@ func ColorString(color color.Color) string {
 func WriteMaterial(mat mesh.Material, out io.Writer) {
 	fmt.Fprintf(out, "newmtl %s\n", strings.Replace(mat.Name, " ", "", -1))
 
-	fmt.Fprintf(out, "Kd %s\n", ColorString(mat.DiffuseColor))
-	fmt.Fprintf(out, "Ka %s\n", ColorString(mat.AmbientColor))
-	fmt.Fprintf(out, "Ks %s\n", ColorString(mat.SpecularColor))
+	if mat.DiffuseColor != nil {
+		fmt.Fprintf(out, "Kd %s\n", ColorString(mat.DiffuseColor))
+	}
+
+	if mat.AmbientColor != nil {
+		fmt.Fprintf(out, "Ka %s\n", ColorString(mat.AmbientColor))
+	}
+
+	if mat.SpecularColor != nil {
+		fmt.Fprintf(out, "Ks %s\n", ColorString(mat.SpecularColor))
+	}
 
 	fmt.Fprintf(out, "Ns %f\n", mat.SpecularHighlight)
 	fmt.Fprintf(out, "Ni %f\n", mat.OpticalDensity)
-	fmt.Fprintf(out, "d %f\n", mat.Dissolve)
+	fmt.Fprintf(out, "d %f\n", 1-mat.Transparency)
 
 	if mat.ColorTextureURI != nil {
 		fmt.Fprintf(out, "map_Kd %s\n", *mat.ColorTextureURI)
@@ -102,6 +110,12 @@ func WriteMesh(m *mesh.Mesh, materialFile string, out io.Writer) error {
 
 	if len(view.Normals) > 0 && len(view.UVs) > 0 && len(view.UVs[0]) > 0 {
 		for triIndex := 0; triIndex < len(view.Triangles); triIndex += 3 {
+			if len(mats) > 0 && triIndex/3 == mats[matIndex].NumOfTris+matOffset {
+				matOffset = triIndex / 3
+				matIndex++
+				writeUsingMaterial(mats[matIndex].Material, out)
+			}
+
 			p1 := view.Triangles[triIndex] + 1
 			p2 := view.Triangles[triIndex+1] + 1
 			p3 := view.Triangles[triIndex+2] + 1
@@ -128,6 +142,12 @@ func WriteMesh(m *mesh.Mesh, materialFile string, out io.Writer) error {
 		}
 	} else if len(view.UVs) > 0 {
 		for triIndex := 0; triIndex < len(view.Triangles); triIndex += 3 {
+			if len(mats) > 0 && triIndex/3 == mats[matIndex].NumOfTris+matOffset {
+				matOffset = triIndex / 3
+				matIndex++
+				writeUsingMaterial(mats[matIndex].Material, out)
+			}
+
 			p1 := view.Triangles[triIndex] + 1
 			p2 := view.Triangles[triIndex+1] + 1
 			p3 := view.Triangles[triIndex+2] + 1
@@ -138,6 +158,12 @@ func WriteMesh(m *mesh.Mesh, materialFile string, out io.Writer) error {
 		}
 	} else {
 		for triIndex := 0; triIndex < len(view.Triangles); triIndex += 3 {
+			if len(mats) > 0 && triIndex/3 == mats[matIndex].NumOfTris+matOffset {
+				matOffset = triIndex / 3
+				matIndex++
+				writeUsingMaterial(mats[matIndex].Material, out)
+			}
+
 			p1 := view.Triangles[triIndex] + 1
 			p2 := view.Triangles[triIndex+1] + 1
 			p3 := view.Triangles[triIndex+2] + 1

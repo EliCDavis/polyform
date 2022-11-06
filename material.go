@@ -25,8 +25,8 @@ type Material struct {
 	OpticalDensity float64
 
 	// Specifies how much this material dissolves into the background. A factor
-	// of 1.0 is fully opaque. A factor of 0.0 is completely transparent.
-	Dissolve float64
+	// of 0.0 is fully opaque. A factor of 1.0 is completely transparent.
+	Transparency float64
 
 	ColorTextureURI *string
 }
@@ -34,12 +34,12 @@ type Material struct {
 func DefaultMaterial() Material {
 	return Material{
 		Name:              "Default Diffuse",
-		AmbientColor:      color.White,
+		AmbientColor:      color.Black,
 		DiffuseColor:      color.White,
-		SpecularColor:     color.White,
+		SpecularColor:     color.Black,
 		SpecularHighlight: 100,
 		OpticalDensity:    1,
-		Dissolve:          1,
+		Transparency:      0,
 		ColorTextureURI:   nil,
 	}
 }
@@ -52,7 +52,7 @@ func DefaultColorMaterial(c color.Color) Material {
 		SpecularColor:     color.Black,
 		SpecularHighlight: 100,
 		OpticalDensity:    1,
-		Dissolve:          1,
+		Transparency:      0,
 		ColorTextureURI:   nil,
 	}
 }

@@ -43,7 +43,7 @@ func main() {
 		SmoothLaplacian(5, 0.5).
 		CalculateSmoothNormals()
 
-	obj.Write(&smoothedMesh, outFile)
+	obj.WriteMesh(&smoothedMesh, "", outFile)
 }
 
 ```
@@ -58,4 +58,10 @@ func main() {
 
 You can at the different projects under the [cmd](/cmd/) folder for different examples on how to procedurally generate meshes.
 
+### UFO
+
 ![ufo](/cmd/ufo/ufo.png)
+
+### Candle
+
+![candle](/cmd/candle/candle.png)

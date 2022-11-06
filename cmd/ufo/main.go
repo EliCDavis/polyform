@@ -31,7 +31,6 @@ func AbductionRing(radius, baseThickness, magnitude float64) mesh.Mesh {
 		AmbientColor:      color.RGBA{0, 255, 0, 255},
 		SpecularColor:     color.Black,
 		SpecularHighlight: 0,
-		Dissolve:          1,
 		OpticalDensity:    5,
 	}
 	return extrude.
@@ -40,7 +39,7 @@ func AbductionRing(radius, baseThickness, magnitude float64) mesh.Mesh {
 }
 
 func contour(positions []vector.Vector3, times int) mesh.Mesh {
-	return repeat.Circle(extrude.Circle(7, .3, positions), times, 0)
+	return repeat.Circle(extrude.CircleWithConstantThickness(7, .3, positions), times, 0)
 }
 
 func sideLights(numberOfLights int, radius float64) mesh.Mesh {
@@ -103,7 +102,6 @@ func UfoBody(outerRadius float64, portalRadius float64, frameSections int) mesh.
 		AmbientColor:      color.RGBA{128, 128, 128, 255},
 		SpecularColor:     color.RGBA{128, 128, 128, 255},
 		SpecularHighlight: 100,
-		Dissolve:          1,
 		OpticalDensity:    1,
 	}
 
@@ -113,7 +111,7 @@ func UfoBody(outerRadius float64, portalRadius float64, frameSections int) mesh.
 		AmbientColor:      color.RGBA{0, 0, 255, 255},
 		SpecularColor:     color.RGBA{0, 0, 255, 255},
 		SpecularHighlight: 100,
-		Dissolve:          0.8,
+		Transparency:      0.2,
 		OpticalDensity:    2,
 	}
 
@@ -127,7 +125,7 @@ func UfoBody(outerRadius float64, portalRadius float64, frameSections int) mesh.
 		Append(primitives.
 			Cylinder(20, 1, outerRadius+1).
 			Translate(vector.NewVector3(0, 3.5, 0))).
-		Append(extrude.ClosedCircle(8, .25, repeat.Point(frameSections, portalRadius)).
+		Append(extrude.ClosedCircleWithConstantThickness(8, .25, repeat.Point(frameSections, portalRadius)).
 			Translate(vector.Vector3Up().MultByConstant(0.5))).
 		Append(sideLights(frameSections, outerRadius+1).Translate(vector.NewVector3(0, 3.5, 0))).
 		SetMaterial(mat).

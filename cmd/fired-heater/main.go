@@ -1,6 +1,7 @@
 package main
 
 import (
+	"image/color"
 	"math"
 	"os"
 
@@ -95,7 +96,7 @@ func Floor(floorHeight, radius, walkWidth float64) mesh.Mesh {
 		angle := angleIncrement * float64(i)
 		path[i] = vector.NewVector3(math.Cos(angle)*postRadius, 0, math.Sin(angle)*postRadius)
 	}
-	railing := extrude.ClosedCircle(12, .05, path)
+	railing := extrude.ClosedCircleWithConstantThickness(12, .05, path)
 
 	sides := 20
 	angleIncrement = (1.0 / float64(sides)) * 2.0 * math.Pi
@@ -155,6 +156,15 @@ func main() {
 	floorHeight := 0.5
 	legsHeight := 5.
 
+	mat := mesh.Material{
+		Name:              "Fired Heater Body",
+		DiffuseColor:      color.RGBA{128, 128, 128, 255},
+		AmbientColor:      color.RGBA{128, 128, 128, 255},
+		SpecularColor:     color.RGBA{128, 128, 128, 255},
+		SpecularHighlight: 100,
+		OpticalDensity:    1,
+	}
+
 	final := PutTogetherSegments(
 		Segment{
 			mesh:   Legs(legsHeight, 8., 8),
@@ -176,20 +186,18 @@ func main() {
 			mesh:   Chimney(chasisWidth, 4, 5, chasisWidth/6, 10),
 			height: 19,
 		},
-	)
-
-	sides := 20
-	angleIncrement := (1.0 / float64(sides)) * 2.0 * math.Pi
-	path := make([]vector.Vector3, sides)
-	for i := 0; i < sides; i++ {
-		angle := angleIncrement * float64(i)
-		path[i] = vector.NewVector3(math.Cos(angle)*10, 0, math.Sin(angle)*10)
-	}
+	).SetMaterial(mat)
 
 	f, err := os.Create("fired-heater.obj")
 	if err != nil {
 		panic(err)
 	}
 
-	obj.WriteMesh(&final, "", f)
+	mtl, err := os.Create("fired-heater.mtl")
+	if err != nil {
+		panic(err)
+	}
+
+	obj.WriteMesh(&final, "fired-heater.mtl", f)
+	obj.WriteMaterials(&final, mtl)
 }
