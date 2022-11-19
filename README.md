@@ -60,8 +60,21 @@ You can at the different projects under the [cmd](/cmd/) folder for different ex
 
 ### UFO
 
-![ufo](/cmd/ufo/ufo.png)
+![ufo](/examples/ufo/ufo.png)
 
 ### Candle
 
-![candle](/cmd/candle/candle.png)
+![candle](/examples/candle/candle.png)
+
+
+## Todo List
+
+Things I want to implement eventually...
+
+- [] Cube Marching
+- [] Bezier Curves
+- [] Constrained Delaunay Tesselation
+- [] 3D Tesselation
+- [] Slice By Plane
+- [] Slice By Octree
+- [] Poisson Reconstruction
