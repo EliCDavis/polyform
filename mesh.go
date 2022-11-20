@@ -163,6 +163,26 @@ func (m Mesh) Scale(origin, amount vector.Vector3) Mesh {
 	return NewMeshWithMaterials(m.triangles, scaledVerts, m.normals, m.uv, m.materials)
 }
 
+func (m Mesh) ModifyVertices(f func(v vector.Vector3) vector.Vector3) Mesh {
+	modified := make([]vector.Vector3, len(m.vertices))
+
+	for i, v := range m.vertices {
+		modified[i] = f(v)
+	}
+
+	return NewMeshWithMaterials(m.triangles, modified, m.normals, m.uv, m.materials)
+}
+
+func (m Mesh) ModifyUVs(f func(v vector.Vector3, uv vector.Vector2) vector.Vector2) Mesh {
+	modified := make([]vector.Vector2, len(m.uv[0]))
+
+	for i, uv := range m.uv[0] {
+		modified[i] = f(m.vertices[i], uv)
+	}
+
+	return NewMeshWithMaterials(m.triangles, m.vertices, m.normals, [][]vector.Vector2{modified}, m.materials)
+}
+
 func (m Mesh) CalculateFlatNormals() Mesh {
 	normals := make([]vector.Vector3, len(m.vertices))
 	for i := range normals {

@@ -53,6 +53,8 @@ func main() {
 - [extrude](/extrude/) - Functionality for generating geometry from 2D shapes.
 - [repeat](/repeat/) - Functionality for copying geometry in common patterns.
 - [primitives](/repeat/) - Functionality pertaining to generating common geometry.
+- [noise](/noise/) - Utilities around noise functions for common usecases like stacking multiple samples of perlin noise from different frequencies.
+- [coloring](/coloring/) - Color utilities for blending multiple colors together using weights.
 
 ## Procedural Generation Examples
 

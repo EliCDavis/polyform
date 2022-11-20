@@ -233,14 +233,16 @@ func BowyerWatson(pointsDirty []vector.Vector2) mesh.Mesh {
 	}
 
 	verts := make([]vector.Vector3, len(pointsDirty))
+	uvs := make([]vector.Vector2, len(pointsDirty))
 	for i, p := range pointsDirty {
 		verts[i] = vector.NewVector3(p.X(), 0, p.Y())
+		uvs[i] = vector.Vector2Zero()
 	}
 
 	return mesh.NewMesh(
 		tris,
 		verts,
 		nil,
-		nil,
+		[][]vector.Vector2{uvs},
 	)
 }
