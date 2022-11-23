@@ -6,14 +6,43 @@ import (
 )
 
 type ColorStackEntry struct {
-	Weight float64
-	Color  color.Color
+	size  float64
+	color color.Color
+
+	// What percentage of the left side do you want to have faded
+	fadeLeft float64
+
+	// What percentage of the right side do you want to have faded
+	fadeRight float64
+}
+
+func NewColorStackEntry(size, fadeLeft, fadeRight float64, color color.Color) ColorStackEntry {
+	if size <= 0 {
+		panic("color stack entry size must be greater than 0")
+	}
+
+	if fadeLeft < 0 || fadeLeft > 1 {
+		panic("color stack entry fade left value must be a value between 0 and 1")
+	}
+
+	if fadeRight < 0 || fadeRight > 1 {
+		panic("color stack entry fade right value must be a value between 0 and 1")
+	}
+
+	return ColorStackEntry{
+		size:      size,
+		color:     color,
+		fadeLeft:  fadeLeft,
+		fadeRight: fadeRight,
+	}
 }
 
 type ColorStack struct {
-	entries      []ColorStackEntry
-	totalWeight  float64
-	endingValues []float64
+	entries          []ColorStackEntry
+	totalWeight      float64
+	startValues      []float64
+	rightBlendValues []float64
+	leftBlendValues  []float64
 }
 
 func NewColorStack(entries []ColorStackEntry) ColorStack {
@@ -21,21 +50,29 @@ func NewColorStack(entries []ColorStackEntry) ColorStack {
 		panic("can not create a color sampling stack without any entries")
 	}
 
-	endingValues := make([]float64, len(entries))
+	rightBlendValues := make([]float64, len(entries))
+	leftBlendValues := make([]float64, len(entries))
+	startValues := make([]float64, len(entries))
 
 	totalWeight := 0.
 	for i, e := range entries {
-		if e.Weight <= 0 {
-			panic(fmt.Errorf("invalid weight value: %f", e.Weight))
-		}
-		totalWeight += e.Weight
-		endingValues[i] = totalWeight
+		halfSize := e.size / 2.
+
+		startValues[i] = totalWeight
+
+		leftBlendValues[i] = totalWeight + ((e.fadeLeft) * halfSize)
+
+		rightBlendValues[i] = totalWeight + ((1. - e.fadeRight) * halfSize) + halfSize
+
+		totalWeight += e.size
 	}
 
 	return ColorStack{
-		entries:      entries,
-		totalWeight:  totalWeight,
-		endingValues: endingValues,
+		entries:          entries,
+		totalWeight:      totalWeight,
+		startValues:      startValues,
+		leftBlendValues:  leftBlendValues,
+		rightBlendValues: rightBlendValues,
 	}
 }
 
@@ -45,48 +82,77 @@ func (cs ColorStack) LinearSample(v float64) color.Color {
 	}
 
 	if len(cs.entries) == 1 {
-		return cs.entries[0].Color
+		return cs.entries[0].color
 	}
 
-	currentWeightRead := 0.
+	scaledV := v * cs.totalWeight
 
-	selectedIndex := -1
+	indexA := -1
+	indexB := -1
 	for i, entry := range cs.entries {
-		currentWeightRead += entry.Weight
-		adjustedWeight := currentWeightRead / cs.totalWeight
 
-		if adjustedWeight >= v {
-			selectedIndex = i
+		// Nothing to blend with
+		if i == 0 && scaledV <= cs.rightBlendValues[i] {
+			return entry.color
+		}
+
+		// Nothing to blend with
+		if i == len(cs.entries)-1 && scaledV >= cs.leftBlendValues[i] {
+			return entry.color
+		}
+
+		// Nothing to blend with
+		if scaledV >= cs.leftBlendValues[i] && scaledV <= cs.rightBlendValues[i] {
+			return entry.color
+		}
+
+		if scaledV < cs.leftBlendValues[i] && scaledV > cs.rightBlendValues[i-1] {
+			indexA = i - 1
+			indexB = i
+			break
+		}
+
+		if scaledV > cs.rightBlendValues[i] && scaledV < cs.leftBlendValues[i+1] {
+			indexA = i
+			indexB = i + 1
 			break
 		}
 	}
 
-	if selectedIndex == -1 {
+	if indexA == -1 {
 		panic(fmt.Errorf("unimplemented situation: linear color sample could not find appropriate colors to sample"))
 	}
 
-	indexA := selectedIndex - 1
-	indexB := selectedIndex
-	if selectedIndex == 0 {
-		indexA = 0
-		indexB = 1
+	adjustedStart := scaledV - cs.rightBlendValues[indexA]
+
+	weightA := cs.startValues[indexB] - cs.rightBlendValues[indexA]
+	weightB := cs.leftBlendValues[indexB] - cs.startValues[indexB]
+
+	var percentA float64
+	var percentB float64
+
+	if adjustedStart < weightA {
+		// We're on the left side, trending towards A
+		percentA = 1. - ((adjustedStart / weightA) * 0.5)
+		percentB = 1. - percentA
+	} else {
+		// We're on the right side, trending towards B
+		percentB = (((adjustedStart - weightA) / weightB) * 0.5) + 0.5
+		percentA = 1. - percentB
 	}
 
-	colorA := cs.entries[indexA]
-	colorB := cs.entries[indexB]
+	// Debug code for helping me get math right.
+	if percentA < 0 || percentB < 0 || percentA > 1 || percentB > 1 {
+		return color.RGBA{
+			R: 0,
+			G: 0,
+			B: 255,
+			A: 255,
+		}
+	}
 
-	endA := cs.endingValues[indexA]
-	endB := cs.endingValues[indexB]
-
-	scaledV := v * cs.totalWeight
-	distA := scaledV - endA
-	distB := endB - scaledV
-	distA2B := distA + distB
-	percentA := distA / distA2B
-	percentB := distB / distA2B
-
-	cA_R, cA_G, cA_B, cA_A := colorA.Color.RGBA()
-	cB_R, cB_G, cB_B, cB_A := colorB.Color.RGBA()
+	cA_R, cA_G, cA_B, cA_A := cs.entries[indexA].color.RGBA()
+	cB_R, cB_G, cB_B, cB_A := cs.entries[indexB].color.RGBA()
 
 	final_R := uint32((float64(cA_R) * percentA) + (percentB * float64(cB_R)))
 	final_G := uint32((float64(cA_G) * percentA) + (percentB * float64(cB_G)))

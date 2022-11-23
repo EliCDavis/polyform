@@ -59,17 +59,6 @@ func main() {
 		ColorTextureURI: &textureName,
 	}
 
-	terrain := triangulation.
-		BowyerWatson(points).
-		ModifyVertices(func(v vector.Vector3) vector.Vector3 {
-			return v.SetY(perlinStack.Value(v.XZ()))
-		}).
-		ModifyUVs(func(v vector.Vector3, uv vector.Vector2) vector.Vector2 {
-			return v.XZ().DivByConstant(float64(mapSize))
-		}).
-		CalculateSmoothNormals().
-		SetMaterial(mat)
-
 	Texture(
 		mapSize,
 		2048,
@@ -77,15 +66,21 @@ func main() {
 		textureName,
 		noise.Sampler2D(perlinStack.Value),
 		coloring.NewColorStack([]coloring.ColorStackEntry{
-			// Sand
-			{Weight: 1, Color: color.RGBA{222, 219, 122, 255}},
-			// Dirt
-			{Weight: 0.5, Color: color.RGBA{133, 109, 50, 255}},
-			// Grass
-			{Weight: 2, Color: color.RGBA{70, 176, 77, 255}},
-			// Mountain Top Snow
-			{Weight: 2, Color: color.RGBA{224, 224, 224, 255}},
+			coloring.NewColorStackEntry(3, 0.5, 0.5, color.RGBA{59, 120, 65, 255}),   // Grass
+			coloring.NewColorStackEntry(2, 0.5, 0.5, color.RGBA{145, 145, 145, 255}), // Stone
+			coloring.NewColorStackEntry(2, 0.5, 0.5, color.RGBA{224, 224, 224, 255}), // Mountain Top Snow
 		}))
+
+	terrain := triangulation.
+		BowyerWatson(points).
+		ModifyVertices(func(v vector.Vector3) vector.Vector3 {
+			return v.SetY(perlinStack.Value(v.XZ()))
+		}).
+		ModifyUVs(func(v vector.Vector3, uv vector.Vector2) vector.Vector2 {
+			return vector.NewVector2(v.X(), -v.Z()).DivByConstant(float64(mapSize))
+		}).
+		CalculateSmoothNormals().
+		SetMaterial(mat)
 
 	objFile, err := os.Create("terrain.obj")
 	if err != nil {
@@ -97,7 +92,6 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-
 	defer mtlFile.Close()
 
 	obj.WriteMesh(&terrain, "terrain.mtl", objFile)
