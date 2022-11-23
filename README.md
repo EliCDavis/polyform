@@ -60,14 +60,31 @@ func main() {
 
 You can at the different projects under the [cmd](/cmd/) folder for different examples on how to procedurally generate meshes.
 
+### Terrain
+
+This shows off how to use Delaunay triangulation, perlin noise, and the coloring utilities in this repository.
+
+[[Source Here](/examples/terrain/main.go)]
+
+![terrain](/examples/terrain/terrain.png)
+
 ### UFO
+
+Shows off how to use the repeat, primitives, and extrude utilities in this repository.
+
+[[Source Here](/examples/ufo/main.go)]
+
 
 ![ufo](/examples/ufo/ufo.png)
 
 ### Candle
 
-![candle](/examples/candle/candle.png)
+Shows off how to use the primitives and extrude utilities in this repository.
 
+[[Source Here](/examples/candle/main.go)]
+
+
+![candle](/examples/candle/candle.png)
 
 ## Todo List
 

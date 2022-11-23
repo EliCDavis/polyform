@@ -87,19 +87,17 @@ func (cs ColorStack) LinearSample(v float64) color.Color {
 
 	scaledV := v * cs.totalWeight
 
+	if scaledV <= cs.rightBlendValues[0] {
+		return cs.entries[0].color
+	}
+
+	if scaledV >= cs.leftBlendValues[len(cs.entries)-1] {
+		return cs.entries[len(cs.entries)-1].color
+	}
+
 	indexA := -1
 	indexB := -1
 	for i, entry := range cs.entries {
-
-		// Nothing to blend with
-		if i == 0 && scaledV <= cs.rightBlendValues[i] {
-			return entry.color
-		}
-
-		// Nothing to blend with
-		if i == len(cs.entries)-1 && scaledV >= cs.leftBlendValues[i] {
-			return entry.color
-		}
 
 		// Nothing to blend with
 		if scaledV >= cs.leftBlendValues[i] && scaledV <= cs.rightBlendValues[i] {

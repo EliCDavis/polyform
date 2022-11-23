@@ -79,7 +79,6 @@ func main() {
 		ModifyUVs(func(v vector.Vector3, uv vector.Vector2) vector.Vector2 {
 			return vector.NewVector2(v.X(), -v.Z()).DivByConstant(float64(mapSize))
 		}).
-		CalculateSmoothNormals().
 		SetMaterial(mat)
 
 	objFile, err := os.Create("terrain.obj")
