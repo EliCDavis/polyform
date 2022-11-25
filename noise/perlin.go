@@ -89,7 +89,8 @@ func grad(p float64) float64 {
 	return -1.0
 }
 
-func grad2D(p vector.Vector2) vector.Vector2 {
+func grad2D(pDirty vector.Vector2) vector.Vector2 {
+	p := vector.NewVector2(math.Abs(pDirty.X()), math.Abs(pDirty.Y()))
 	width := float64(len(randvals))
 	xVal := randvals[int(math.Round(p.X()))%len(randvals)]
 	yVal := randvals[int(math.Round(p.Y()+(xVal*width)))%len(randvals)]
@@ -128,7 +129,7 @@ func noise2D(p vector.Vector2, f func(float64) float64, g func(vector.Vector2) v
 	p2p3 := (1.0-fade_t0)*g2.Dot(p.Sub(p2)) + fade_t0*g3.Dot(p.Sub(p3)) /* between lower two lattice points */
 
 	/* Calculate final result */
-	return (1.0-fade_t1)*p0p1 + fade_t1*p2p3
+	return ((1.0-fade_t1)*p0p1 + fade_t1*p2p3) + .5
 }
 
 // https://gpfault.net/posts/perlin-noise.txt.html
