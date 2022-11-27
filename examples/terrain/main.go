@@ -21,17 +21,19 @@ func sigmoid(xScale, x, xShift, yShift float64) float64 {
 	return (-1 / denominator) + yShift
 }
 
-func Texture(mapSize float64, textureSize int, height, waterLevel float64, name string, sampler noise.Sampler2D, colors coloring.ColorStack) {
+func Texture(textureSize int, mapSize, height, waterLevel float64, name string, landNoise, waterNoise noise.Sampler2D, landColors, waterColors coloring.ColorStack) {
 	tex := image.NewRGBA(image.Rect(0, 0, textureSize, textureSize))
 
 	scaleFactor := mapSize / float64(textureSize)
 	for x := 0; x < textureSize; x++ {
 		for y := 0; y < textureSize; y++ {
-			sample := sampler(vector.NewVector2(float64(x), float64(y)).MultByConstant(scaleFactor))
+			samplePos := vector.NewVector2(float64(x), float64(y)).MultByConstant(scaleFactor)
+
+			sample := landNoise(samplePos)
 			if sample <= waterLevel {
-				tex.Set(x, y, color.RGBA{0, 174, 255, 255})
+				tex.Set(x, y, waterColors.LinearSample(waterNoise(samplePos)))
 			} else {
-				tex.Set(x, y, colors.LinearSample((sample-waterLevel)/(height-waterLevel)))
+				tex.Set(x, y, landColors.LinearSample((sample-waterLevel)/(height-waterLevel)))
 			}
 		}
 	}
@@ -50,7 +52,7 @@ func Texture(mapSize float64, textureSize int, height, waterLevel float64, name 
 
 func main() {
 	n := 5000
-	mapSize := 2000.
+	mapSize := 3000.
 	mapRadius := mapSize / 2
 	mapOffset := vector.NewVector2(mapRadius, mapRadius)
 	totalHeight := 200.
@@ -83,18 +85,30 @@ func main() {
 	}
 
 	Texture(
-		mapSize,
 		2048,
+		mapSize,
 		totalHeight,
 		waterLevel,
 		textureName,
 		heightFunc,
+		noise.Sampler2D(noise.PerlinStack([]noise.Stack2DEntry{
+			{Scalar: 1 / 300., Amplitude: 1. / 2},
+			{Scalar: 1 / 150., Amplitude: 1. / 4},
+			{Scalar: 1 / 75., Amplitude: 1. / 8},
+			{Scalar: 1 / 37.5, Amplitude: 1. / 16},
+		}).Value),
 		coloring.NewColorStack([]coloring.ColorStackEntry{
+			coloring.NewColorStackEntry(0.1, 0.5, 0.7, color.RGBA{199, 237, 255, 255}), // Water Foam
 			coloring.NewColorStackEntry(0.5, 0.5, 0.1, color.RGBA{209, 191, 138, 255}), // Sand
 			coloring.NewColorStackEntry(3, 0.1, 0.5, color.RGBA{59, 120, 65, 255}),     // Grass
 			coloring.NewColorStackEntry(2, 0.5, 0.5, color.RGBA{145, 145, 145, 255}),   // Stone
 			coloring.NewColorStackEntry(2, 0.5, 0.5, color.RGBA{224, 224, 224, 255}),   // Mountain Top Snow
-		}))
+		}),
+		coloring.NewColorStack([]coloring.ColorStackEntry{
+			coloring.NewColorStackEntry(1, 0.8, 0.8, color.RGBA{0, 174, 255, 255}),
+			coloring.NewColorStackEntry(0.5, 0.8, 0.8, color.RGBA{84, 201, 255, 255}),
+		}),
+	)
 
 	terrain := triangulation.
 		BowyerWatson(points).
