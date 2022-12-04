@@ -119,8 +119,8 @@ func (p Polygon) Rotate(amount vector.Vector3, pivot vector.Vector3) Polygon {
 
 // NewPolygonFromShape creates a 3D polygon from a 2D shape
 func NewPolygonFromShape(shape Shape) Polygon {
-	vertices := make([]vector.Vector3, len(shape.points))
-	for i, point := range shape.points {
+	vertices := make([]vector.Vector3, len(shape))
+	for i, point := range shape {
 		vertices[i] = vector.NewVector3(point.X(), 0, point.Y())
 	}
 	poly, _ := NewPolygon(vertices, vertices)
@@ -158,7 +158,6 @@ func NewPolygonWithTexture(vertices []vector.Vector3, normals []vector.Vector3, 
 
 // Save Writes a polygon to obj format and returns the number of
 func (p Polygon) Save(w io.Writer, pointOffset int) (int, error) {
-
 	face := "f "
 
 	for pointIndex := 0; pointIndex < len(p.vertices); pointIndex++ {

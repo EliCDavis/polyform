@@ -44,7 +44,6 @@ func onSegment(p, q, r vector.Vector2) bool {
 // CenterOfBoundingBoxOfShapes finds the center point of the smallest box that
 // could be drawn to encompas all shapes passed in.
 func CenterOfBoundingBoxOfShapes(shapes []Shape) vector.Vector2 {
-
 	bottomLeftX := 10000000.
 	bottomLeftY := 10000000.
 
@@ -52,7 +51,7 @@ func CenterOfBoundingBoxOfShapes(shapes []Shape) vector.Vector2 {
 	topRightY := -10000000.
 
 	for _, s := range shapes {
-		for _, p := range s.GetPoints() {
+		for _, p := range s {
 			if p.X() < bottomLeftX {
 				bottomLeftX = p.X()
 			}

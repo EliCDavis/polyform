@@ -31,6 +31,27 @@ func (t Triangle) CounterClockwise(points []vector.Vector2) bool {
 	return (b.X()-a.X())*(c.Y()-a.Y())-(c.X()-a.X())*(b.Y()-a.Y()) > 0
 }
 
+func (t Triangle) Intersects(points []vector.Vector2, start, end vector.Vector2) []vector.Vector2 {
+	intersections := make([]vector.Vector2, 0)
+
+	intersects, point := intersection(points[t[0]], points[t[1]], start, end)
+	if intersects {
+		intersections = append(intersections, point)
+	}
+
+	intersects, point = intersection(points[t[1]], points[t[2]], start, end)
+	if intersects {
+		intersections = append(intersections, point)
+	}
+
+	intersects, point = intersection(points[t[2]], points[t[0]], start, end)
+	if intersects {
+		intersections = append(intersections, point)
+	}
+
+	return intersections
+}
+
 func (t Triangle) InsideCircumcircle(p vector.Vector2, points []vector.Vector2) bool {
 	// edges := t.Edges()
 	// a := edges[0].Length(points)
@@ -144,7 +165,7 @@ func fillHole(polygon []Edge, point int, triangulation map[Triangle]struct{}, po
 	}
 }
 
-func BowyerWatson(pointsDirty []vector.Vector2) mesh.Mesh {
+func bowyerWatson(pointsDirty []vector.Vector2) map[Triangle]struct{} {
 	if len(pointsDirty) < 3 {
 		panic("can not tesselate without at least 3 points")
 	}
@@ -227,6 +248,125 @@ func BowyerWatson(pointsDirty []vector.Vector2) mesh.Mesh {
 		}
 	}
 
+	return triangulation
+}
+
+func ConstrainedBowyerWatson(pointsDirty []vector.Vector2, constraints []Constraint) mesh.Mesh {
+	finalPoints := pointsDirty
+	// finalPoints = append(finalPoints, constraints[0].shape...)
+	triangulation := bowyerWatson(finalPoints)
+	trisToAdd := make(map[Triangle]struct{})
+
+	for _, constraint := range constraints {
+		for triangle := range triangulation {
+
+			containsP1 := constraint.contains(finalPoints[triangle[0]])
+			containsP2 := constraint.contains(finalPoints[triangle[1]])
+			containsP3 := constraint.contains(finalPoints[triangle[2]])
+
+			totalPointsContained := containsP1 + containsP2 + containsP3
+
+			if totalPointsContained == 0 {
+				delete(triangulation, triangle)
+				continue
+			}
+
+			if totalPointsContained == 3 {
+				continue
+			}
+
+			for i := 0; i < len(constraint.shape); i++ {
+				edgeEnd := constraint.shape[i]
+
+				left := i - 1
+				if i == 0 {
+					left = len(constraint.shape) - 1
+				}
+
+				edgeStart := constraint.shape[left]
+
+				intersections := triangle.Intersects(
+					finalPoints,
+					edgeStart,
+					edgeEnd,
+				)
+
+				if len(intersections) != 2 {
+					continue
+				}
+
+				delete(triangulation, triangle)
+
+				log.Println(totalPointsContained, len(intersections))
+
+				if totalPointsContained == 1 {
+					finalPoints = append(finalPoints, intersections...)
+					pointContained := triangle[0]
+					if containsP2 == 1 {
+						pointContained = triangle[1]
+					}
+					if containsP3 == 1 {
+						pointContained = triangle[2]
+					}
+					tri := Triangle{pointContained, len(finalPoints) - 1, len(finalPoints) - 2}
+					if tri.CounterClockwise(finalPoints) {
+						tri = Triangle{pointContained, len(finalPoints) - 2, len(finalPoints) - 1}
+					}
+					trisToAdd[tri] = exists
+				} else {
+
+					km1 := triangle[2]
+					k := triangle[0]
+					kp1 := triangle[1]
+
+					if containsP2 == 0 {
+						km1 = triangle[0]
+						k = triangle[1]
+						kp1 = triangle[2]
+					}
+					if containsP3 == 0 {
+						km1 = triangle[1]
+						k = triangle[2]
+						kp1 = triangle[0]
+					}
+
+					_, cPoint := intersection(finalPoints[km1], finalPoints[k], edgeStart, edgeEnd)
+					_, dPoint := intersection(finalPoints[k], finalPoints[kp1], edgeStart, edgeEnd)
+					finalPoints = append(finalPoints, cPoint, dPoint)
+
+					trisToAdd[Triangle{km1, len(finalPoints) - 2, kp1}] = exists
+					trisToAdd[Triangle{len(finalPoints) - 2, len(finalPoints) - 1, kp1}] = exists
+
+				}
+			}
+		}
+	}
+
+	tris := make([]int, 0, len(triangulation)*3)
+	for triangle := range triangulation {
+		tris = append(tris, triangle[0], triangle[1], triangle[2])
+	}
+	for triangle := range trisToAdd {
+		tris = append(tris, triangle[0], triangle[1], triangle[2])
+	}
+
+	verts := make([]vector.Vector3, len(finalPoints))
+	uvs := make([]vector.Vector2, len(finalPoints))
+	for i, p := range finalPoints {
+		verts[i] = vector.NewVector3(p.X(), 0, p.Y())
+		uvs[i] = vector.Vector2Zero()
+	}
+
+	return mesh.NewMesh(
+		tris,
+		verts,
+		nil,
+		[][]vector.Vector2{uvs},
+	)
+}
+
+func BowyerWatson(pointsDirty []vector.Vector2) mesh.Mesh {
+	triangulation := bowyerWatson(pointsDirty)
 	tris := make([]int, 0, len(triangulation)*3)
 	for triangle := range triangulation {
 		tris = append(tris, triangle[0], triangle[1], triangle[2])

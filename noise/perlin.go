@@ -124,12 +124,12 @@ func noise2D(p vector.Vector2, f func(float64) float64, g func(vector.Vector2) v
 	t1 := p.Y() - p0.Y()
 	fade_t1 := f(t1) /* Used for interpolation in vertical direction. */
 
-	/* Calculate dot products and interpolate.*/
-	p0p1 := (1.0-fade_t0)*g0.Dot(p.Sub(p0)) + fade_t0*g1.Dot(p.Sub(p1)) /* between upper two lattice points */
-	p2p3 := (1.0-fade_t0)*g2.Dot(p.Sub(p2)) + fade_t0*g3.Dot(p.Sub(p3)) /* between lower two lattice points */
+	// Calculate dot products and interpolate
+	p0p1 := ((1.0 - fade_t0) * g0.Dot(p.Sub(p0))) + (fade_t0 * g1.Dot(p.Sub(p1))) /* between upper two lattice points */
+	p2p3 := ((1.0 - fade_t0) * g2.Dot(p.Sub(p2))) + (fade_t0 * g3.Dot(p.Sub(p3))) /* between lower two lattice points */
 
-	/* Calculate final result */
-	return ((1.0-fade_t1)*p0p1 + fade_t1*p2p3) + .5
+	// Calculate final result
+	return (((1.0 - fade_t1) * p0p1) + (fade_t1 * p2p3)) + .5
 }
 
 // https://gpfault.net/posts/perlin-noise.txt.html

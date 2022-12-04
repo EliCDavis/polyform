@@ -7,15 +7,13 @@ import (
 )
 
 func TestPointInShape(t *testing.T) {
-	shape, err := NewShape([]vector.Vector2{
+	shape := Shape([]vector.Vector2{
 		vector.NewVector2(0, 0),
 		vector.NewVector2(0, 1),
 		vector.NewVector2(1, 1),
 		vector.NewVector2(1, 0),
 	})
-	if err != nil {
-		t.Error(err)
-	}
+
 	point := vector.NewVector2(0.5, 0.5)
 	if shape.IsInside(point) == false {
 		t.Error("Point should be inside shape")
@@ -23,15 +21,13 @@ func TestPointInShape(t *testing.T) {
 }
 
 func TestGetPointtInShape(t *testing.T) {
-	shape, err := NewShape([]vector.Vector2{
+	shape := Shape([]vector.Vector2{
 		vector.NewVector2(0, 0),
 		vector.NewVector2(0, 1),
 		vector.NewVector2(1, 1),
 		vector.NewVector2(1, 0),
 	})
-	if err != nil {
-		t.Error(err)
-	}
+
 	point := shape.RandomPointInShape()
 	if shape.IsInside(point) == false {
 		t.Error("Point should be inside shape")
@@ -39,16 +35,12 @@ func TestGetPointtInShape(t *testing.T) {
 }
 
 func TestSplit(t *testing.T) {
-	shape, err := NewShape([]vector.Vector2{
+	shape := Shape([]vector.Vector2{
 		vector.NewVector2(0, 0),
 		vector.NewVector2(0, 1),
 		vector.NewVector2(1, 1),
 		vector.NewVector2(1, 0),
 	})
-
-	if err != nil {
-		t.Error(err)
-	}
 
 	left, right := shape.Split(.5)
 
@@ -81,7 +73,7 @@ func TestSplit(t *testing.T) {
 	}
 
 	// l 2 points, r 1 point
-	shape, err = NewShape([]vector.Vector2{
+	shape = Shape([]vector.Vector2{
 		vector.NewVector2(0, 0),   // l
 		vector.NewVector2(.7, .5), // r
 		vector.NewVector2(0, 1),   // l
@@ -89,10 +81,6 @@ func TestSplit(t *testing.T) {
 		vector.NewVector2(.9, .5), // r
 		vector.NewVector2(.3, 0),  // l
 	})
-
-	if err != nil {
-		t.Error(err)
-	}
 
 	left, right = shape.Split(.5)
 
@@ -103,5 +91,4 @@ func TestSplit(t *testing.T) {
 	if len(right) != 1 {
 		t.Errorf("Split should have returned 1 right shape! Instead returned %d", len(right))
 	}
-
 }

@@ -1,7 +1,6 @@
 package mesh
 
 import (
-	"errors"
 	"math"
 	"math/rand"
 
@@ -9,55 +8,16 @@ import (
 )
 
 // Shape is a flat (2D) arrangement of points.
-type Shape struct {
-	points []vector.Vector2
-	center vector.Vector2
-	origin vector.Vector2
-}
-
-// NewShape creates a new shape with a center computed by averaging points positions
-func NewShape(bounds []vector.Vector2) (Shape, error) {
-	if bounds == nil {
-		return Shape{}, errors.New("can not create a shape without any bounds")
-	}
-
-	if len(bounds) < 3 {
-		return Shape{}, errors.New("can not create a shape with less than 3 points")
-	}
-
-	center := vector.NewVector2(0, 0)
-	for _, point := range bounds {
-		center = center.Add(point)
-	}
-
-	return Shape{bounds, center.MultByConstant(1.0 / float64(len(bounds))), vector.NewVector2(0, 0)}, nil
-}
-
-// NewShapeWithCustomCenter creates a shape with a center you set
-func NewShapeWithCustomCenter(bounds []vector.Vector2, center vector.Vector2) Shape {
-	return Shape{bounds, center, vector.NewVector2(0, 0)}
-}
-
-func (s Shape) GetPoints() []vector.Vector2 {
-	return s.points
-}
-
-func (s Shape) GetCenter() vector.Vector2 {
-	return s.center
-}
-
-func (s Shape) GetOrigin() vector.Vector2 {
-	return s.origin
-}
+type Shape []vector.Vector2
 
 func (s Shape) GetBounds() (vector.Vector2, vector.Vector2) {
-	bottomLeftX := 10000000.
-	bottomLeftY := 10000000.
+	bottomLeftX := math.Inf(1)
+	bottomLeftY := math.Inf(1)
 
-	topRightX := -10000000.
-	topRightY := -10000000.
+	topRightX := math.Inf(-1)
+	topRightY := math.Inf(-1)
 
-	for _, p := range s.points {
+	for _, p := range s {
 		if p.X() < bottomLeftX {
 			bottomLeftX = p.X()
 		}
@@ -105,26 +65,26 @@ func (s Shape) startinPointForSideShape(vericalLine float64, side int) (bool, in
 	lowestPointHeight := 1000000.0
 	lastSide := 0
 	crossed := false
-	if s.points[len(s.points)-1].X() < vericalLine {
+	if s[len(s)-1].X() < vericalLine {
 		lastSide = -1
 	} else {
 		lastSide = 1
 	}
 
-	for i := 0; i < len(s.points); i++ {
+	for i := 0; i < len(s); i++ {
 		n := i * -1 * side
 		if n < 0 {
-			n += len(s.points)
+			n += len(s)
 		}
-		if lastSide == side*-1 && s.points[n].Y() < lowestPointHeight {
-			if (side == -1 && s.points[n].X() < vericalLine) || (side == 1 && s.points[n].X() > vericalLine) {
-				lowestPointHeight = s.points[n].Y()
+		if lastSide == side*-1 && s[n].Y() < lowestPointHeight {
+			if (side == -1 && s[n].X() < vericalLine) || (side == 1 && s[n].X() > vericalLine) {
+				lowestPointHeight = s[n].Y()
 				startingPointIndex = n
 			}
 		}
 
 		newSide := 0
-		if s.points[n].X() <= vericalLine {
+		if s[n].X() <= vericalLine {
 			newSide = -1
 		} else {
 			newSide = 1
@@ -150,8 +110,7 @@ func (s Shape) shapesOnSide(vericalLineX float64, side int) []Shape {
 
 	if startingPointIndex == -1 {
 		if onOurSide {
-			newShape, _ := NewShape(s.points)
-			return []Shape{newShape}
+			return []Shape{s}
 		}
 		return []Shape{}
 	}
@@ -164,14 +123,14 @@ func (s Shape) shapesOnSide(vericalLineX float64, side int) []Shape {
 	}
 
 	pointBefore := startingPointIndex + side
-	if pointBefore >= len(s.points) {
-		pointBefore -= len(s.points)
+	if pointBefore >= len(s) {
+		pointBefore -= len(s)
 	} else if pointBefore < 0 {
-		pointBefore += len(s.points)
+		pointBefore += len(s)
 	}
 
 	verticalLine := NewLine2D(vector.NewVector2(vericalLineX, -1000000), vector.NewVector2(vericalLineX, 1000000))
-	curLine := NewLine2D(s.points[startingPointIndex], s.points[pointBefore])
+	curLine := NewLine2D(s[startingPointIndex], s[pointBefore])
 	intersection, err := verticalLine.Intersection(curLine)
 	if err == ErrNoIntersection {
 		panic("Intersection is nil!")
@@ -186,16 +145,16 @@ func (s Shape) shapesOnSide(vericalLineX float64, side int) []Shape {
 	// -1 for left, +1 for right, 0 for unset
 	lastPointsSide := side
 
-	for i := 0; i < len(s.points); i++ {
+	for i := 0; i < len(s); i++ {
 		n := (i * -1 * side) + startingPointIndex
-		if n >= len(s.points) {
-			n -= len(s.points)
+		if n >= len(s) {
+			n -= len(s)
 		} else if n < 0 {
-			n += len(s.points)
+			n += len(s)
 		}
 		var currentSide int
 
-		if s.points[n].X() <= vericalLineX {
+		if s[n].X() <= vericalLineX {
 			currentSide = -1
 		} else {
 			currentSide = 1
@@ -205,13 +164,13 @@ func (s Shape) shapesOnSide(vericalLineX float64, side int) []Shape {
 		if currentSide != lastPointsSide {
 
 			pointBefore = n + side
-			if pointBefore >= len(s.points) {
-				pointBefore -= len(s.points)
+			if pointBefore >= len(s) {
+				pointBefore -= len(s)
 			} else if pointBefore < 0 {
-				pointBefore += len(s.points)
+				pointBefore += len(s)
 			}
 
-			intersection, err := NewLine2D(s.points[n], s.points[pointBefore]).Intersection(verticalLine)
+			intersection, err := NewLine2D(s[n], s[pointBefore]).Intersection(verticalLine)
 			if err == ErrNoIntersection {
 				panic("Intersection is nil!")
 			}
@@ -228,8 +187,8 @@ func (s Shape) shapesOnSide(vericalLineX float64, side int) []Shape {
 
 				// Find region we're in.
 				for regionIndex := range regions {
-					if regions[regionIndex].lowestPoint <= s.points[n].Y() &&
-						regions[regionIndex].highestPoint >= s.points[n].Y() {
+					if regions[regionIndex].lowestPoint <= s[n].Y() &&
+						regions[regionIndex].highestPoint >= s[n].Y() {
 						currentRegion = regionIndex
 						foundRegion = true
 						break
@@ -254,9 +213,9 @@ func (s Shape) shapesOnSide(vericalLineX float64, side int) []Shape {
 
 		if currentRegion != -1 {
 			if regions[currentRegion].started == false {
-				regions[currentRegion].highestPoint = s.points[n].Y()
+				regions[currentRegion].highestPoint = s[n].Y()
 			}
-			regions[currentRegion].points = append(regions[currentRegion].points, s.points[n])
+			regions[currentRegion].points = append(regions[currentRegion].points, s[n])
 		}
 
 		lastPointsSide = currentSide
@@ -265,9 +224,8 @@ func (s Shape) shapesOnSide(vericalLineX float64, side int) []Shape {
 	resultingShapes := make([]Shape, 0)
 
 	for r := range regions {
-		newShape, err := NewShape(regions[r].points)
-		if err == nil {
-			resultingShapes = append(resultingShapes, newShape)
+		if len(regions[r].points) > 2 {
+			resultingShapes = append(resultingShapes, Shape(regions[r].points))
 		}
 	}
 
@@ -277,27 +235,27 @@ func (s Shape) shapesOnSide(vericalLineX float64, side int) []Shape {
 // IsInside returns true if the point p lies inside the polygon[] with n vertices
 func (s Shape) IsInside(p vector.Vector2) bool {
 	// There must be at least 3 vertices in polygon[]
-	if len(s.points) < 3 {
+	if len(s) < 3 {
 		return false
 	}
 
 	// Create a point for line segment from p to infinite
-	extreme := vector.NewVector2(100000, p.Y())
+	extreme := vector.NewVector2(math.MaxFloat64, p.Y())
 
 	// Count intersections of the above line with sides of polygon
 	count := 0
 	i := 0
 	for {
-		next := (i + 1) % len(s.points)
+		next := (i + 1) % len(s)
 
 		// Check if the line segment from 'p' to 'extreme' intersects
 		// with the line segment from 'polygon[i]' to 'polygon[next]'
-		if NewLine2D(s.points[i], s.points[next]).Intersects(NewLine2D(p, extreme)) {
+		if NewLine2D(s[i], s[next]).Intersects(NewLine2D(p, extreme)) {
 			// If the point 'p' is colinear with line segment 'i-next',
 			// then check if it lies on segment. If it lies, return true,
 			// otherwise false
-			if calculateOrientation(s.points[i], p, s.points[next]) == Colinear {
-				return onSegment(s.points[i], p, s.points[next])
+			if calculateOrientation(s[i], p, s[next]) == Colinear {
+				return onSegment(s[i], p, s[next])
 			}
 
 			count++
@@ -315,19 +273,18 @@ func (s Shape) IsInside(p vector.Vector2) bool {
 
 // Translate Moves all points over by the specified amount
 func (s Shape) Translate(amount vector.Vector2) Shape {
-	newShapePonts := make([]vector.Vector2, len(s.points))
-	for i, point := range s.points {
+	newShapePonts := make([]vector.Vector2, len(s))
+	for i, point := range s {
 		newShapePonts[i] = point.Add(amount)
 	}
-	newshape, _ := NewShape(newShapePonts)
-	return newshape
+	return Shape(newShapePonts)
 }
 
 // Rotate will rotate all points in the shape around the pivot by the passed in amount
 func (s Shape) Rotate(amount float64, pivot vector.Vector2) Shape {
 	newPoints := make([]vector.Vector2, s.Len())
 
-	for p, point := range s.points {
+	for p, point := range s {
 
 		// https://play.golang.org/p/qWUotd3Lb56
 		directionWithMag := point.Sub(pivot)
@@ -343,69 +300,53 @@ func (s Shape) Rotate(amount float64, pivot vector.Vector2) Shape {
 
 	}
 
-	newShape, _ := NewShape(newPoints)
-	return newShape
+	return Shape(newPoints)
 }
 
 // Scale shifts all points towards or away from the origin
-func (s Shape) Scale(amount float64) Shape {
-	newShapePonts := make([]vector.Vector2, len(s.points))
+func (s Shape) Scale(amount float64, origin vector.Vector2) Shape {
+	newShapePonts := make([]vector.Vector2, len(s))
 
-	for i, point := range s.points {
-		newShapePonts[i] = s.origin.Add(point.Sub(s.origin).Normalized().MultByConstant(amount * s.origin.Distance(point)))
+	for i, point := range s {
+		newShapePonts[i] = origin.Add(point.Sub(origin).Normalized().MultByConstant(amount * origin.Distance(point)))
 	}
-	newshape, _ := NewShape(newShapePonts)
-	return newshape
+	return newShapePonts
 }
 
 // Len returns the number of points in the polygon
 func (s Shape) Len() int {
-	return len(s.points)
+	return len(s)
 }
 
 // Swap switches two points indeces so the polygon is ordered a different way
-func (s *Shape) Swap(i, j int) {
-	s.points[i], s.points[j] = s.points[j], s.points[i]
+func (s Shape) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
 }
 
-// PointClosestToCenter returns the index of the closest point to the center of the polygon
-func (s Shape) PointClosestToCenter() int {
-	bestDistance := math.Inf(0)
-	curPoint := -1
-
-	for i, point := range s.points {
-		dist := s.center.Distance(point)
-		if dist < bestDistance {
-			bestDistance = dist
-			curPoint = i
-		}
-	}
-
-	return curPoint
-}
-
-// Less determines which point is more orriented more clockwise from the center than the other
+// Less determines which point is more oriented more clockwise from the center than the other
 func (s Shape) Less(i, j int) bool {
-	a := s.points[i]
-	b := s.points[j]
+	center := vector.Vector2Zero()
 
-	if a.X()-s.center.X() >= 0 && b.X()-s.center.X() < 0 {
+	a := s[i]
+	b := s[j]
+
+	if a.X()-center.X() >= 0 && b.X()-center.X() < 0 {
 		return true
 	}
 
-	if a.X()-s.center.X() < 0 && b.X()-s.center.X() >= 0 {
+	if a.X()-center.X() < 0 && b.X()-center.X() >= 0 {
 		return false
 	}
 
-	if a.X()-s.center.X() == 0 && b.X()-s.center.X() == 0 {
-		if a.Y()-s.center.Y() >= 0 || b.Y()-s.center.Y() >= 0 {
+	if a.X()-center.X() == 0 && b.X()-center.X() == 0 {
+		if a.Y()-center.Y() >= 0 || b.Y()-center.Y() >= 0 {
 			return a.Y() > b.Y()
 		}
 		return b.Y() > a.Y()
 	}
 
 	// compute the cross product of vectors (center -> a) x (center -> b)
-	det := (a.X()-s.center.X())*(b.Y()-s.center.Y()) - (b.X()-s.center.X())*(a.Y()-s.center.Y())
+	det := (a.X()-center.X())*(b.Y()-center.Y()) - (b.X()-center.X())*(a.Y()-center.Y())
 	if det < 0 {
 		return true
 	}
@@ -415,7 +356,7 @@ func (s Shape) Less(i, j int) bool {
 
 	// points a and b are on the same line from the center
 	// check which point is closer to the center
-	d1 := (a.X()-s.center.X())*(a.X()-s.center.X()) + (a.Y()-s.center.Y())*(a.Y()-s.center.Y())
-	d2 := (b.X()-s.center.X())*(b.X()-s.center.X()) + (b.Y()-s.center.Y())*(b.Y()-s.center.Y())
+	d1 := (a.X()-center.X())*(a.X()-center.X()) + (a.Y()-center.Y())*(a.Y()-center.Y())
+	d2 := (b.X()-center.X())*(b.X()-center.X()) + (b.Y()-center.Y())*(b.Y()-center.Y())
 	return d1 > d2
 }

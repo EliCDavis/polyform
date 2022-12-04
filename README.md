@@ -90,10 +90,14 @@ Shows off how to use the primitives and extrude utilities in this repository.
 
 Things I want to implement eventually...
 
-- [] Cube Marching
-- [] Bezier Curves
-- [] Constrained Delaunay Tesselation
-- [] 3D Tesselation
-- [] Slice By Plane
-- [] Slice By Octree
-- [] Poisson Reconstruction
+- [ ] Cube Marching
+- [ ] Bezier Curves
+- [ ] Constrained Delaunay Tesselation
+- [ ] 3D Tesselation
+- [ ] Slice By Plane
+- [ ] Slice By Octree
+- [ ] Poisson Reconstruction
+
+## Resources Used
+
+* [Perlin Noise](https://gpfault.net/posts/perlin-noise.txt.html)
