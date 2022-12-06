@@ -1,6 +1,6 @@
 # Mesh
 
-Library for editing and generating meshes.
+Library for editing and generating 3D geometry.
 
 ```
 go get github.com/EliCDavis/mesh
@@ -100,4 +100,24 @@ Things I want to implement eventually...
 
 ## Resources Used
 
-* [Perlin Noise](https://gpfault.net/posts/perlin-noise.txt.html)
+Resources either directly contributing to the code here or interesting finds while researching.
+
+* Noise 
+	* [Perlin Noise](https://gpfault.net/posts/perlin-noise.txt.html)
+* Triangulation
+	* Delaunay
+		* Bowyer–Watson
+			* [A short video overview](https://www.youtube.com/watch?v=4ySSsESzw2Y)
+			* [General Algorithm Description](https://en.wikipedia.org/wiki/Bowyer%E2%80%93Watson_algorithm)
+		* Constraint/Refinement
+			* [Computing Constrained Delaunay Traingulations By Samuel Peterson](http://www.geom.uiuc.edu/~samuelp/del_project.html#implementation)
+			* [Chew's Second Algorithm](https://cccg.ca/proceedings/2011/papers/paper91.pdf)
+	* Polygons
+	  * [Wikipedia](https://en.wikipedia.org/wiki/Polygon_triangulation)
+	  * [Fast Polygon Triangulation Based on Seidel's Algorithm By Atul Narkhede and Dinesh Manocha](http://gamma.cs.unc.edu/SEIDEL/)
+	  * [Triangulating a Monotone Polygon
+](http://homepages.math.uic.edu/~jan/mcs481/triangulating.pdf)
+* Formats
+	* OBJ
+		* [jburkardt MTL](https://people.sc.fsu.edu/~jburkardt/data/mtl/mtl.html) 
+		* [Excerpt from FILE FORMATS, Version 4.2 October 1995 MTL](http://paulbourke.net/dataformats/mtl/)

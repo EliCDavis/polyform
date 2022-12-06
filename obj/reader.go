@@ -44,6 +44,27 @@ func parseObjTextureLine(components []string) (vector.Vector2, error) {
 	return vector.NewVector2(parsedX, parsedY), nil
 }
 
+func parseMtllibLine(components []string) ([]string, error) {
+	if len(components) == 1 {
+		return nil, fmt.Errorf("mtllib line is empty")
+	}
+
+	files := make([]string, len(components)-1)
+	for i := 1; i < len(components); i++ {
+		files[i-1] = strings.TrimSpace(components[i])
+	}
+
+	return files, nil
+}
+
+func parseUsemtlLine(components []string) (string, error) {
+	if len(components) == 1 {
+		return "", fmt.Errorf("usemtl line is empty")
+	}
+
+	return strings.Join(components[1:], " "), nil
+}
+
 func parseObjFaceComponent(component string) (v int, vt int, vn int, err error) {
 	v = -1
 	vt = -1
@@ -87,18 +108,22 @@ func parseObjFaceComponent(component string) (v int, vt int, vn int, err error) 
 	return
 }
 
-func ToMesh(in io.Reader) (*mesh.Mesh, error) {
+func ReadMesh(in io.Reader) (*mesh.Mesh, []string, error) {
 	scanner := bufio.NewScanner(in)
 
 	tris := make([]int, 0)
 	readVerts := make([]vector.Vector3, 0)
 	readNormals := make([]vector.Vector3, 0)
 	readUVs := make([]vector.Vector2, 0)
+	readMaterialFiles := make([]string, 0)
 
 	pointHash := make(map[string]int)
 	verts := make([]vector.Vector3, 0)
 	normals := make([]vector.Vector3, 0)
 	uvs := make([]vector.Vector2, 0)
+	materials := make([]mesh.MeshMaterial, 0)
+
+	trisSenseLastMat := 0
 
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -108,28 +133,65 @@ func ToMesh(in io.Reader) (*mesh.Mesh, error) {
 
 		components := strings.Fields(line)
 		switch components[0] {
+		case "mtllib":
+			materialFiles, err := parseMtllibLine(components)
+			if err != nil {
+				return nil, nil, fmt.Errorf("unable to parse mtllib line '%s': %w", line, err)
+			}
+			readMaterialFiles = append(readMaterialFiles, materialFiles...)
+
+		case "usemtl":
+			matToUse, err := parseUsemtlLine(components)
+			if err != nil {
+				return nil, nil, fmt.Errorf("unable to parse usemtl line '%s': %w", line, err)
+			}
+
+			if trisSenseLastMat > 0 {
+				if len(materials) == 0 {
+					materials = append(materials, mesh.MeshMaterial{
+						NumOfTris: trisSenseLastMat,
+						Material: &mesh.Material{
+							Name: "Default",
+						},
+					})
+				} else {
+					materials[len(materials)-1].NumOfTris = trisSenseLastMat
+				}
+			}
+
+			trisSenseLastMat = 0
+
+			materials = append(materials, mesh.MeshMaterial{
+				NumOfTris: 0,
+				Material: &mesh.Material{
+					Name: matToUse,
+				},
+			})
+
 		case "v":
 			v, err := parseObjVectorLine(components)
 			if err != nil {
-				return nil, fmt.Errorf("unable to parse vertex line '%s': %w", line, err)
+				return nil, nil, fmt.Errorf("unable to parse vertex line '%s': %w", line, err)
 			}
 			readVerts = append(readVerts, v)
 
 		case "vn":
 			vn, err := parseObjVectorLine(components)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 			readNormals = append(readNormals, vn)
 
 		case "vt":
 			vt, err := parseObjTextureLine(components)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 			readUVs = append(readUVs, vt)
 
 		case "f":
+
+			trisSenseLastMat++
 
 			var p1 int
 			if val, ok := pointHash[components[1]]; ok {
@@ -137,7 +199,7 @@ func ToMesh(in io.Reader) (*mesh.Mesh, error) {
 			} else {
 				v, vt, vn, err := parseObjFaceComponent(components[1])
 				if err != nil {
-					return nil, err
+					return nil, nil, err
 				}
 				p1 = len(pointHash)
 				pointHash[components[1]] = p1
@@ -159,7 +221,7 @@ func ToMesh(in io.Reader) (*mesh.Mesh, error) {
 			} else {
 				v, vt, vn, err := parseObjFaceComponent(components[2])
 				if err != nil {
-					return nil, err
+					return nil, nil, err
 				}
 				p2 = len(pointHash)
 				pointHash[components[2]] = p2
@@ -181,7 +243,7 @@ func ToMesh(in io.Reader) (*mesh.Mesh, error) {
 			} else {
 				v, vt, vn, err := parseObjFaceComponent(components[3])
 				if err != nil {
-					return nil, err
+					return nil, nil, err
 				}
 				p3 = len(pointHash)
 				pointHash[components[3]] = p3
@@ -202,17 +264,24 @@ func ToMesh(in io.Reader) (*mesh.Mesh, error) {
 	}
 
 	if err := scanner.Err(); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	mesh := mesh.MeshFromView(mesh.MeshView{
-		Triangles: tris,
-		Vertices:  verts,
-		Normals:   normals,
-		UVs: [][]vector.Vector2{
+	if trisSenseLastMat > 0 {
+		if len(materials) > 0 {
+			materials[len(materials)-1].NumOfTris = trisSenseLastMat
+		}
+	}
+
+	mesh := mesh.NewMeshWithMaterials(
+		tris,
+		verts,
+		normals,
+		[][]vector.Vector2{
 			uvs,
 		},
-	})
+		materials,
+	)
 
-	return &mesh, nil
+	return &mesh, readMaterialFiles, nil
 }

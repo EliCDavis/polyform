@@ -18,6 +18,8 @@ type Material struct {
 
 	// Typically between 0 - 1000, with a high value resulting in a tight,
 	// concentrated highlight
+	//
+	// Defines the focus of the specular highlight
 	SpecularHighlight float64
 
 	// Index of refraction, between 0.001 to 10, 1.0 means light does not bend
