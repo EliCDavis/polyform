@@ -515,7 +515,12 @@ func (m Mesh) SplitOnUniqueMaterials() []Mesh {
 			}
 		}
 		mesh := workingMeshes[m.materials[curMatIndex].Material]
-		mesh.triangles = append(mesh.triangles, triStart, triStart+1, triStart+2)
+		mesh.triangles = append(
+			mesh.triangles,
+			m.triangles[triStart],
+			m.triangles[triStart+1],
+			m.triangles[triStart+2],
+		)
 		mesh.materials[0].NumOfTris += 1
 	}
 
