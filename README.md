@@ -27,7 +27,7 @@ func main() {
 	}
 	defer inFile.Close()
 
-	loadedMesh, err := obj.ToMesh(inFile)
+	loadedMesh, _, err := obj.ReadMesh(inFile)
 	if err != nil {
 		panic(err)
 	}

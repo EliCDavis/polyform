@@ -121,7 +121,8 @@ func ReadMesh(in io.Reader) (*mesh.Mesh, []string, error) {
 	verts := make([]vector.Vector3, 0)
 	normals := make([]vector.Vector3, 0)
 	uvs := make([]vector.Vector2, 0)
-	materials := make([]mesh.MeshMaterial, 0)
+	meshMaterials := make([]mesh.MeshMaterial, 0)
+	meshNameToMaterial := make(map[string]*mesh.Material)
 
 	trisSenseLastMat := 0
 
@@ -147,25 +148,34 @@ func ReadMesh(in io.Reader) (*mesh.Mesh, []string, error) {
 			}
 
 			if trisSenseLastMat > 0 {
-				if len(materials) == 0 {
-					materials = append(materials, mesh.MeshMaterial{
+				if len(meshMaterials) == 0 {
+					meshMaterials = append(meshMaterials, mesh.MeshMaterial{
 						NumOfTris: trisSenseLastMat,
 						Material: &mesh.Material{
 							Name: "Default",
 						},
 					})
 				} else {
-					materials[len(materials)-1].NumOfTris = trisSenseLastMat
+					meshMaterials[len(meshMaterials)-1].NumOfTris = trisSenseLastMat
 				}
 			}
 
 			trisSenseLastMat = 0
 
-			materials = append(materials, mesh.MeshMaterial{
-				NumOfTris: 0,
-				Material: &mesh.Material{
+			var meshMat *mesh.Material = nil
+
+			if mat, ok := meshNameToMaterial[matToUse]; ok {
+				meshMat = mat
+			} else {
+				meshMat = &mesh.Material{
 					Name: matToUse,
-				},
+				}
+				meshNameToMaterial[matToUse] = meshMat
+			}
+
+			meshMaterials = append(meshMaterials, mesh.MeshMaterial{
+				NumOfTris: 0,
+				Material:  meshMat,
 			})
 
 		case "v":
@@ -268,8 +278,8 @@ func ReadMesh(in io.Reader) (*mesh.Mesh, []string, error) {
 	}
 
 	if trisSenseLastMat > 0 {
-		if len(materials) > 0 {
-			materials[len(materials)-1].NumOfTris = trisSenseLastMat
+		if len(meshMaterials) > 0 {
+			meshMaterials[len(meshMaterials)-1].NumOfTris = trisSenseLastMat
 		}
 	}
 
@@ -280,7 +290,7 @@ func ReadMesh(in io.Reader) (*mesh.Mesh, []string, error) {
 		[][]vector.Vector2{
 			uvs,
 		},
-		materials,
+		meshMaterials,
 	)
 
 	return &mesh, readMaterialFiles, nil

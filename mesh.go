@@ -423,3 +423,105 @@ func (m Mesh) CalculateSmoothNormals() Mesh {
 		materials: m.materials,
 	}
 }
+
+func (m Mesh) RemoveUnusedIndices() Mesh {
+	finalTris := make([]int, len(m.triangles))
+	finalVerts := make([]vector.Vector3, 0)
+	finalNormals := make([]vector.Vector3, 0)
+	finalUVs := make([]vector.Vector2, 0)
+
+	used := make([]bool, len(m.vertices))
+	for _, t := range m.triangles {
+		used[t] = true
+	}
+
+	shiftBy := make([]int, len(m.vertices))
+	skipped := 0
+	for i, v := range m.vertices {
+		if used[i] {
+			finalVerts = append(finalVerts, v)
+		} else {
+			skipped++
+		}
+		shiftBy[i] = skipped
+	}
+
+	if len(m.normals) > 0 {
+		for i, n := range m.normals {
+			if used[i] {
+				finalNormals = append(finalNormals, n)
+			}
+		}
+	}
+
+	if len(m.uv) > 0 && len(m.uv[0]) > 0 {
+		for i, n := range m.uv[0] {
+			if used[i] {
+				finalUVs = append(finalUVs, n)
+			}
+		}
+	}
+
+	for triI := 0; triI < len(finalTris); triI++ {
+		finalTris[triI] = m.triangles[triI] - shiftBy[m.triangles[triI]]
+	}
+
+	return Mesh{
+		triangles: finalTris,
+		vertices:  finalVerts,
+		normals:   finalNormals,
+		uv:        [][]vector.Vector2{finalUVs},
+		materials: m.materials,
+	}
+}
+
+// SplitOnUniqueMaterials generates a mesh per material,
+func (m Mesh) SplitOnUniqueMaterials() []Mesh {
+	if len(m.materials) < 2 {
+		return []Mesh{m}
+	}
+
+	workingMeshes := make(map[*Material]*Mesh)
+
+	curMatIndex := 0
+	trisFromOtherMats := 0
+
+	workingMeshes[m.materials[curMatIndex].Material] = &Mesh{
+		vertices: m.vertices,
+		normals:  m.normals,
+		uv:       m.uv,
+		materials: []MeshMaterial{
+			{
+				NumOfTris: 0,
+				Material:  m.materials[curMatIndex].Material,
+			},
+		},
+	}
+
+	for triStart := 0; triStart < len(m.triangles); triStart += 3 {
+		if m.materials[curMatIndex].NumOfTris+trisFromOtherMats <= triStart/3 {
+			trisFromOtherMats += m.materials[curMatIndex].NumOfTris
+			curMatIndex++
+			workingMeshes[m.materials[curMatIndex].Material] = &Mesh{
+				vertices: m.vertices,
+				normals:  m.normals,
+				uv:       m.uv,
+				materials: []MeshMaterial{
+					{
+						NumOfTris: 0,
+						Material:  m.materials[curMatIndex].Material,
+					},
+				},
+			}
+		}
+		mesh := workingMeshes[m.materials[curMatIndex].Material]
+		mesh.triangles = append(mesh.triangles, triStart, triStart+1, triStart+2)
+		mesh.materials[0].NumOfTris += 1
+	}
+
+	finalMeshes := make([]Mesh, 0, len(workingMeshes))
+	for _, m := range workingMeshes {
+		finalMeshes = append(finalMeshes, m.RemoveUnusedIndices())
+	}
+	return finalMeshes
+}

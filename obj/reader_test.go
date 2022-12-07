@@ -127,6 +127,9 @@ f  1/1/1 2/2/2 3/3/3
 
 usemtl green
 f  2/2/2 3/3/3 4/4/4
+
+usemtl red 
+f  1/1/1 2/2/2 3/3/3
 `
 
 	// ACT ====================================================================
@@ -135,7 +138,7 @@ f  2/2/2 3/3/3 4/4/4
 
 	// ASSERT =================================================================
 	assert.NoError(t, err)
-	assert.Equal(t, 2, square.TriCount())
+	assert.Equal(t, 3, square.TriCount())
 	if assert.Len(t, matReferences, 1) {
 		assert.Equal(t, "test.mtl", matReferences[0])
 	}
@@ -167,14 +170,25 @@ f  2/2/2 3/3/3 4/4/4
 	assert.Equal(t, vector.NewVector2(0.0, 1.0), squareView.UVs[0][2])
 	assert.Equal(t, vector.NewVector2(0.0, 0.0), squareView.UVs[0][3])
 
-	if assert.Len(t, square.Materials(), 2) {
+	if assert.Len(t, square.Materials(), 3) {
 		assert.Equal(t, 1, square.Materials()[0].NumOfTris)
 		assert.Equal(t, 1, square.Materials()[1].NumOfTris)
+		assert.Equal(t, 1, square.Materials()[2].NumOfTris)
+
 		if assert.NotNil(t, square.Materials()[0].Material) {
 			assert.Equal(t, "red", square.Materials()[0].Material.Name)
 		}
+
 		if assert.NotNil(t, square.Materials()[1].Material) {
 			assert.Equal(t, "green", square.Materials()[1].Material.Name)
+		}
+
+		if assert.NotNil(t, square.Materials()[2].Material) {
+			assert.Equal(t, "red", square.Materials()[2].Material.Name)
+		}
+
+		if square.Materials()[0].Material != square.Materials()[2].Material {
+			t.Error("mesh materials don't reference same underlying material")
 		}
 	}
 }
