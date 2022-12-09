@@ -133,6 +133,6 @@ func main() {
 	}
 	defer mtlFile.Close()
 
-	obj.WriteMesh(&terrain, "terrain.mtl", objFile)
-	obj.WriteMaterials(&terrain, mtlFile)
+	obj.WriteMesh(terrain, "terrain.mtl", objFile)
+	obj.WriteMaterials(terrain, mtlFile)
 }

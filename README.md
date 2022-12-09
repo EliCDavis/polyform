@@ -2,6 +2,10 @@
 
 Library for editing and generating 3D geometry.
 
+❌ Doing one thing really well.
+
+✔️ Doing everything terribly.
+
 ```
 go get github.com/EliCDavis/mesh
 ```
@@ -43,7 +47,7 @@ func main() {
 		SmoothLaplacian(5, 0.5).
 		CalculateSmoothNormals()
 
-	obj.WriteMesh(&smoothedMesh, "", outFile)
+	obj.WriteMesh(smoothedMesh, "", outFile)
 }
 
 ```
@@ -104,6 +108,8 @@ Resources either directly contributing to the code here or interesting finds whi
 
 * Noise 
 	* [Perlin Noise](https://gpfault.net/posts/perlin-noise.txt.html)
+	* [Worley Noise](https://thebookofshaders.com/12/)
+	* [Simplex Noise](https://en.wikipedia.org/wiki/Simplex_noise)
 * Triangulation
 	* Delaunay
 		* Bowyer–Watson

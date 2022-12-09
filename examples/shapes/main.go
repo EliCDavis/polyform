@@ -56,6 +56,6 @@ func main() {
 	}
 	defer mtlFile.Close()
 
-	obj.WriteMesh(&terrain, "shape.mtl", objFile)
-	obj.WriteMaterials(&terrain, mtlFile)
+	obj.WriteMesh(terrain, "shape.mtl", objFile)
+	obj.WriteMaterials(terrain, mtlFile)
 }

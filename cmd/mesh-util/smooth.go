@@ -60,7 +60,7 @@ func smoothCommand() *cli.Command {
 				SmoothLaplacian(c.Int("iterations"), c.Float64("smoothing-weight")).
 				CalculateSmoothNormals()
 
-			return obj.WriteMesh(&smoothedMesh, "", outFile)
+			return obj.WriteMesh(smoothedMesh, "", outFile)
 		},
 	}
 }

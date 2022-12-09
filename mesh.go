@@ -502,16 +502,18 @@ func (m Mesh) SplitOnUniqueMaterials() []Mesh {
 		if m.materials[curMatIndex].NumOfTris+trisFromOtherMats <= triStart/3 {
 			trisFromOtherMats += m.materials[curMatIndex].NumOfTris
 			curMatIndex++
-			workingMeshes[m.materials[curMatIndex].Material] = &Mesh{
-				vertices: m.vertices,
-				normals:  m.normals,
-				uv:       m.uv,
-				materials: []MeshMaterial{
-					{
-						NumOfTris: 0,
-						Material:  m.materials[curMatIndex].Material,
+			if _, ok := workingMeshes[m.materials[curMatIndex].Material]; !ok {
+				workingMeshes[m.materials[curMatIndex].Material] = &Mesh{
+					vertices: m.vertices,
+					normals:  m.normals,
+					uv:       m.uv,
+					materials: []MeshMaterial{
+						{
+							NumOfTris: 0,
+							Material:  m.materials[curMatIndex].Material,
+						},
 					},
-				},
+				}
 			}
 		}
 		mesh := workingMeshes[m.materials[curMatIndex].Material]

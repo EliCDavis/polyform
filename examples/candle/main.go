@@ -159,7 +159,6 @@ func main() {
 	}
 	defer objFile.Close()
 
-	obj.WriteMesh(&final, "candle.mtl", objFile)
-
-	obj.WriteMaterials(&final, mtlFile)
+	obj.WriteMesh(final, "candle.mtl", objFile)
+	obj.WriteMaterials(final, mtlFile)
 }

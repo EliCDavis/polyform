@@ -198,6 +198,6 @@ func main() {
 		panic(err)
 	}
 
-	obj.WriteMesh(&final, "fired-heater.mtl", f)
-	obj.WriteMaterials(&final, mtl)
+	obj.WriteMesh(final, "fired-heater.mtl", f)
+	obj.WriteMaterials(final, mtl)
 }

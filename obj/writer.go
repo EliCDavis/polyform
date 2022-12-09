@@ -14,33 +14,60 @@ func ColorString(color color.Color) string {
 	return fmt.Sprintf("%f %f %f", float64(r)/0xffff, float64(g)/0xffff, float64(b)/0xffff)
 }
 
-func WriteMaterial(mat mesh.Material, out io.Writer) {
-	fmt.Fprintf(out, "newmtl %s\n", strings.Replace(mat.Name, " ", "", -1))
+func WriteMaterial(mat mesh.Material, out io.Writer) error {
+	_, err := fmt.Fprintf(out, "newmtl %s\n", strings.Replace(mat.Name, " ", "", -1))
+	if err != nil {
+		return err
+	}
 
 	if mat.DiffuseColor != nil {
-		fmt.Fprintf(out, "Kd %s\n", ColorString(mat.DiffuseColor))
+		_, err = fmt.Fprintf(out, "Kd %s\n", ColorString(mat.DiffuseColor))
+		if err != nil {
+			return err
+		}
 	}
 
 	if mat.AmbientColor != nil {
-		fmt.Fprintf(out, "Ka %s\n", ColorString(mat.AmbientColor))
+		_, err = fmt.Fprintf(out, "Ka %s\n", ColorString(mat.AmbientColor))
+		if err != nil {
+			return err
+		}
 	}
 
 	if mat.SpecularColor != nil {
-		fmt.Fprintf(out, "Ks %s\n", ColorString(mat.SpecularColor))
+		_, err = fmt.Fprintf(out, "Ks %s\n", ColorString(mat.SpecularColor))
+		if err != nil {
+			return err
+		}
 	}
 
-	fmt.Fprintf(out, "Ns %f\n", mat.SpecularHighlight)
-	fmt.Fprintf(out, "Ni %f\n", mat.OpticalDensity)
-	fmt.Fprintf(out, "d %f\n", 1-mat.Transparency)
+	_, err = fmt.Fprintf(out, "Ns %f\n", mat.SpecularHighlight)
+	if err != nil {
+		return err
+	}
+
+	_, err = fmt.Fprintf(out, "Ni %f\n", mat.OpticalDensity)
+	if err != nil {
+		return err
+	}
+
+	_, err = fmt.Fprintf(out, "d %f\n", 1-mat.Transparency)
+	if err != nil {
+		return err
+	}
 
 	if mat.ColorTextureURI != nil {
-		fmt.Fprintf(out, "map_Kd %s\n", *mat.ColorTextureURI)
+		_, err = fmt.Fprintf(out, "map_Kd %s\n", *mat.ColorTextureURI)
+		if err != nil {
+			return err
+		}
 	}
 
-	fmt.Fprintln(out, "")
+	_, err = fmt.Fprintln(out, "")
+	return err
 }
 
-func WriteMaterials(m *mesh.Mesh, out io.Writer) {
+func WriteMaterials(m mesh.Mesh, out io.Writer) error {
 	defaultWritten := false
 
 	written := make(map[mesh.Material]bool)
@@ -49,7 +76,10 @@ func WriteMaterials(m *mesh.Mesh, out io.Writer) {
 
 		if mat.Material == nil {
 			if !defaultWritten {
-				WriteMaterial(mesh.DefaultMaterial(), out)
+				err := WriteMaterial(mesh.DefaultMaterial(), out)
+				if err != nil {
+					return err
+				}
 				defaultWritten = true
 			}
 			continue
@@ -59,9 +89,13 @@ func WriteMaterials(m *mesh.Mesh, out io.Writer) {
 		if ok {
 			continue
 		}
-		WriteMaterial(*mat.Material, out)
+		err := WriteMaterial(*mat.Material, out)
+		if err != nil {
+			return err
+		}
 		written[*mat.Material] = true
 	}
+	return nil
 }
 
 func writeUsingMaterial(mat *mesh.Material, out io.Writer) {
@@ -72,7 +106,59 @@ func writeUsingMaterial(mat *mesh.Material, out io.Writer) {
 	}
 }
 
-func WriteMesh(m *mesh.Mesh, materialFile string, out io.Writer) error {
+func writeFaceVerts(tris []int, out io.Writer, start, end int) error {
+	for triIndex := start; triIndex < end; triIndex += 3 {
+		p1 := tris[triIndex] + 1
+		p2 := tris[triIndex+1] + 1
+		p3 := tris[triIndex+2] + 1
+		_, err := fmt.Fprintf(out, "f %d %d %d\n", p1, p2, p3)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func writeFaceVertsAndUvs(tris []int, out io.Writer, start, end int) error {
+	for triIndex := start; triIndex < end; triIndex += 3 {
+		p1 := tris[triIndex] + 1
+		p2 := tris[triIndex+1] + 1
+		p3 := tris[triIndex+2] + 1
+		_, err := fmt.Fprintf(out, "f %d/%d %d/%d %d/%d\n", p1, p1, p2, p2, p3, p3)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func writeFaceVertsAndNormals(tris []int, out io.Writer, start, end int) error {
+	for triIndex := start; triIndex < end; triIndex += 3 {
+		p1 := tris[triIndex] + 1
+		p2 := tris[triIndex+1] + 1
+		p3 := tris[triIndex+2] + 1
+		_, err := fmt.Fprintf(out, "f %d//%d %d//%d %d//%d\n", p1, p1, p2, p2, p3, p3)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func writeFaceVertAndUvsAndNormals(tris []int, out io.Writer, start, end int) error {
+	for triIndex := start; triIndex < end; triIndex += 3 {
+		p1 := tris[triIndex] + 1
+		p2 := tris[triIndex+1] + 1
+		p3 := tris[triIndex+2] + 1
+		_, err := fmt.Fprintf(out, "f %d/%d/%d %d/%d/%d %d/%d/%d\n", p1, p1, p1, p2, p2, p2, p3, p3, p3)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func WriteMesh(m mesh.Mesh, materialFile string, out io.Writer) error {
 	if materialFile != "" {
 		fmt.Fprintf(out, "mtllib %s\no mesh\n", materialFile)
 	}
@@ -101,76 +187,31 @@ func WriteMesh(m *mesh.Mesh, materialFile string, out io.Writer) error {
 		}
 	}
 
-	mats := m.Materials()
-	matIndex := 0
-	matOffset := 0
-	if len(mats) > 0 {
-		writeUsingMaterial(mats[0].Material, out)
-	}
+	var faceWriter func(tris []int, out io.Writer, start, end int) error
 
 	if len(view.Normals) > 0 && len(view.UVs) > 0 && len(view.UVs[0]) > 0 {
-		for triIndex := 0; triIndex < len(view.Triangles); triIndex += 3 {
-			if len(mats) > 0 && triIndex/3 == mats[matIndex].NumOfTris+matOffset {
-				matOffset = triIndex / 3
-				matIndex++
-				writeUsingMaterial(mats[matIndex].Material, out)
-			}
-
-			p1 := view.Triangles[triIndex] + 1
-			p2 := view.Triangles[triIndex+1] + 1
-			p3 := view.Triangles[triIndex+2] + 1
-			_, err := fmt.Fprintf(out, "f %d/%d/%d %d/%d/%d %d/%d/%d\n", p1, p1, p1, p2, p2, p2, p3, p3, p3)
-			if err != nil {
-				return err
-			}
-		}
+		faceWriter = writeFaceVertAndUvsAndNormals
 	} else if len(view.Normals) > 0 {
-		for triIndex := 0; triIndex < len(view.Triangles); triIndex += 3 {
-			if len(mats) > 0 && triIndex/3 == mats[matIndex].NumOfTris+matOffset {
-				matOffset = triIndex / 3
-				matIndex++
-				writeUsingMaterial(mats[matIndex].Material, out)
-			}
-
-			p1 := view.Triangles[triIndex] + 1
-			p2 := view.Triangles[triIndex+1] + 1
-			p3 := view.Triangles[triIndex+2] + 1
-			_, err := fmt.Fprintf(out, "f %d//%d %d//%d %d//%d\n", p1, p1, p2, p2, p3, p3)
-			if err != nil {
-				return err
-			}
-		}
+		faceWriter = writeFaceVertsAndNormals
 	} else if len(view.UVs) > 0 {
-		for triIndex := 0; triIndex < len(view.Triangles); triIndex += 3 {
-			if len(mats) > 0 && triIndex/3 == mats[matIndex].NumOfTris+matOffset {
-				matOffset = triIndex / 3
-				matIndex++
-				writeUsingMaterial(mats[matIndex].Material, out)
-			}
+		faceWriter = writeFaceVertsAndUvs
+	} else {
+		faceWriter = writeFaceVerts
+	}
 
-			p1 := view.Triangles[triIndex] + 1
-			p2 := view.Triangles[triIndex+1] + 1
-			p3 := view.Triangles[triIndex+2] + 1
-			_, err := fmt.Fprintf(out, "f %d/%d %d/%d %d/%d\n", p1, p1, p2, p2, p3, p3)
-			if err != nil {
-				return err
-			}
+	mats := m.Materials()
+	if len(mats) == 0 {
+		err := faceWriter(view.Triangles, out, 0, len(view.Triangles))
+		if err != nil {
+			return err
 		}
 	} else {
-		for triIndex := 0; triIndex < len(view.Triangles); triIndex += 3 {
-			if len(mats) > 0 && triIndex/3 == mats[matIndex].NumOfTris+matOffset {
-				matOffset = triIndex / 3
-				matIndex++
-				writeUsingMaterial(mats[matIndex].Material, out)
-			}
-
-			p1 := view.Triangles[triIndex] + 1
-			p2 := view.Triangles[triIndex+1] + 1
-			p3 := view.Triangles[triIndex+2] + 1
-			_, err := fmt.Fprintf(out, "f %d %d %d\n", p1, p2, p3)
-			if err != nil {
-				return err
-			}
+		offset := 0
+		for _, mat := range mats {
+			writeUsingMaterial(mat.Material, out)
+			nextOffset := offset + (mat.NumOfTris * 3)
+			faceWriter(view.Triangles, out, offset, nextOffset)
+			offset = nextOffset
 		}
 	}
 
