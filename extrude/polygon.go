@@ -1,30 +1,50 @@
 package extrude
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/EliCDavis/mesh"
 	"github.com/EliCDavis/vector"
 )
 
-func clamp(f, min, max float64) float64 {
-	return math.Max(math.Min(f, max), min)
+func directionOfPoints(points []vector.Vector3) []vector.Vector3 {
+	directions := make([]vector.Vector3, len(points))
+
+	for i, point := range points {
+		if i == 0 {
+			directions[i] = points[1].Sub(point).Normalized()
+			continue
+		}
+
+		if i == len(points)-1 {
+			directions[i] = point.Sub(points[i-1]).Normalized()
+			continue
+		}
+
+		dirA := point.Sub(points[i-1]).Normalized()
+		dirB := points[i+1].Sub(point).Normalized()
+		directions[i] = dirA.Add(dirB).Normalized()
+	}
+
+	return directions
 }
 
-// angle in radians
-func angle(from, to vector.Vector3) float64 {
-	// sqrt(a) * sqrt(b) = sqrt(a * b) -- valid for real numbers
-	denominator := math.Sqrt(from.SquaredLength() * to.SquaredLength())
-	if denominator < 1e-15 {
-		return 0.
+func directionsOfExtrusionPoints(points []ExtrusionPoint) []vector.Vector3 {
+	pointVec := make([]vector.Vector3, len(points))
+	for i, point := range points {
+		pointVec[i] = point.Point
 	}
-	dot := clamp(from.Dot(to)/denominator, -1., 1.)
-	return (math.Acos(dot))
+	return directionOfPoints(pointVec)
 }
 
 // TODO: Pretty sure this breaks for paths that have multiple points in the
 // same direction.
-func circle(sides int, points []ExtrusionPoint, closed bool) mesh.Mesh {
+func polygon(sides int, points []ExtrusionPoint, closed bool) mesh.Mesh {
+	if len(points) < 2 {
+		panic(fmt.Errorf("can not extrude polygon with %d points", len(points)))
+	}
+
 	vertCount := sides + 1
 	vertices := make([]vector.Vector3, 0, len(points)*vertCount)
 	uvs := make([]vector.Vector2, 0, len(points)*vertCount)
@@ -40,33 +60,20 @@ func circle(sides int, points []ExtrusionPoint, closed bool) mesh.Mesh {
 		circlePoints[i] = rot.Rotate(vector.Vector3Right())
 	}
 
+	pointDirections := directionsOfExtrusionPoints(points)
+
 	// Vertices and normals ===================================================
 	for i, p := range points {
 
-		var dirA vector.Vector3
-		var dirB vector.Vector3
-
-		if i == 0 {
-			dirA = points[0].Point.MultByConstant(points[0].Thickness)
-			dirB = points[1].Point.MultByConstant(points[1].Thickness)
-		} else if i == len(points)-1 {
-			dirA = points[i-1].Point.MultByConstant(points[i-1].Thickness)
-			dirB = points[i].Point.MultByConstant(points[i].Thickness)
-		} else {
-			dirA = points[i].Point.Sub(points[i-1].Point).MultByConstant(points[i].Thickness)
-			dirB = points[i+1].Point.Sub(points[i].Point).MultByConstant(points[i+1].Thickness)
-		}
-
-		dir := dirB.Sub(dirA).Normalized()
-		// log.Print(i, dirA, dirB, dir)
+		dir := pointDirections[i]
 
 		for sideIndex := 0; sideIndex < vertCount; sideIndex++ {
 
 			point := circlePoints[sideIndex]
 
-			if dir.Cross(vector.Vector3Up()) != vector.Vector3Zero() {
-				angleVector := dir.Cross(vector.Vector3Up())
-				angleDot := angle(dir, vector.Vector3Up())
+			angleVector := dir.Cross(vector.Vector3Up())
+			if angleVector != vector.Vector3Zero() {
+				angleDot := dir.Angle(vector.Vector3Up())
 				// log.Print(angleVector, angleDot)
 				rot := mesh.UnitQuaternionFromTheta(angleDot, angleVector)
 				point = rot.Rotate(point)
@@ -151,7 +158,7 @@ func ClosedCircleWithConstantThickness(sides int, thickness float64, path []vect
 			Thickness: thickness,
 		}
 	}
-	return circle(sides, points, true)
+	return polygon(sides, points, true)
 }
 
 func CircleWithConstantThickness(sides int, thickness float64, path []vector.Vector3) mesh.Mesh {
@@ -162,7 +169,7 @@ func CircleWithConstantThickness(sides int, thickness float64, path []vector.Vec
 			Thickness: thickness,
 		}
 	}
-	return circle(sides, points, false)
+	return polygon(sides, points, false)
 }
 
 func CircleWithThickness(sides int, thickness []float64, path []vector.Vector3) mesh.Mesh {
@@ -173,7 +180,7 @@ func CircleWithThickness(sides int, thickness []float64, path []vector.Vector3) 
 			Thickness: thickness[i],
 		}
 	}
-	return circle(sides, points, false)
+	return polygon(sides, points, false)
 }
 
 func ClosedCircleWithThickness(sides int, thickness []float64, path []vector.Vector3) mesh.Mesh {
@@ -184,9 +191,9 @@ func ClosedCircleWithThickness(sides int, thickness []float64, path []vector.Vec
 			Thickness: thickness[i],
 		}
 	}
-	return circle(sides, points, true)
+	return polygon(sides, points, true)
 }
 
-func Circle(sides int, points []ExtrusionPoint) mesh.Mesh {
-	return circle(sides, points, false)
+func Polygon(sides int, points []ExtrusionPoint) mesh.Mesh {
+	return polygon(sides, points, false)
 }

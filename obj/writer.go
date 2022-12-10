@@ -1,9 +1,12 @@
 package obj
 
 import (
+	"bufio"
 	"fmt"
 	"image/color"
 	"io"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/EliCDavis/mesh"
@@ -214,6 +217,37 @@ func WriteMesh(m mesh.Mesh, materialFile string, out io.Writer) error {
 			offset = nextOffset
 		}
 	}
-
 	return nil
+}
+
+// Save writes the mesh to the path specified in OBJ format, optionally writing
+// an additional MTL file with materials are found within the mesh.
+func Save(path string, meshToSave mesh.Mesh) error {
+	objFile, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer objFile.Close()
+
+	extension := filepath.Ext(path)
+	mtlName := path[0:len(path)-len(extension)] + ".mtl"
+	if len(meshToSave.Materials()) > 0 {
+		mtlFile, err := os.Create(mtlName)
+		if err != nil {
+			return err
+		}
+		defer mtlFile.Close()
+
+		err = WriteMaterials(meshToSave, mtlFile)
+		if err != nil {
+			return err
+		}
+	}
+
+	out := bufio.NewWriter(objFile)
+	err = WriteMesh(meshToSave, mtlName, out)
+	if err != nil {
+		return err
+	}
+	return out.Flush()
 }

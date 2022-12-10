@@ -81,7 +81,7 @@ func candleBody(height, width, rimWidth, percentUsed, wickWidth, wickHeight floa
 		},
 	)
 
-	return extrude.Circle(
+	return extrude.Polygon(
 		30,
 		points,
 	)

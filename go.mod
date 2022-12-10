@@ -3,7 +3,7 @@ module github.com/EliCDavis/mesh
 go 1.17
 
 require (
-	github.com/EliCDavis/vector v0.0.0-20221120194931-9eb1c85d82e2
+	github.com/EliCDavis/vector v0.0.0-20221210010219-dbfbe02d9619
 	github.com/stretchr/testify v1.8.1
 )
 

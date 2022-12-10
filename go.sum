@@ -4,6 +4,8 @@ github.com/EliCDavis/vector v0.0.0-20221120161543-1fc7a3420bbd h1:ol6QXBNJzZf65G
 github.com/EliCDavis/vector v0.0.0-20221120161543-1fc7a3420bbd/go.mod h1:7JWED8HBcDj9JWyV8wKNjCefl+tbh213fX9dkNqIDPY=
 github.com/EliCDavis/vector v0.0.0-20221120194931-9eb1c85d82e2 h1:bVbN4nKLEWSi/SqT00pC4EEnr5B6uQjjp/uRMJPgfII=
 github.com/EliCDavis/vector v0.0.0-20221120194931-9eb1c85d82e2/go.mod h1:7JWED8HBcDj9JWyV8wKNjCefl+tbh213fX9dkNqIDPY=
+github.com/EliCDavis/vector v0.0.0-20221210010219-dbfbe02d9619 h1:gz0Hdn3nzrrxUjNDqN5ExkIlwu929+F4qwhLBb696rc=
+github.com/EliCDavis/vector v0.0.0-20221210010219-dbfbe02d9619/go.mod h1:7JWED8HBcDj9JWyV8wKNjCefl+tbh213fX9dkNqIDPY=
 github.com/cpuguy83/go-md2man/v2 v2.0.2 h1:p1EgwI/C7NhT0JmVkwCD2ZBK8j4aeHQX2pMHHBfMQ6w=
 github.com/cpuguy83/go-md2man/v2 v2.0.2/go.mod h1:tgQtvFlXSQOSOSIRvRPT7W67SCa46tRHOmNcaadrF8o=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
