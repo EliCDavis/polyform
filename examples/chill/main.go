@@ -2,66 +2,147 @@ package main
 
 import (
 	"image/color"
+	"math"
 	"math/rand"
 
 	"github.com/EliCDavis/mesh"
+	"github.com/EliCDavis/mesh/coloring"
 	"github.com/EliCDavis/mesh/extrude"
+	"github.com/EliCDavis/mesh/noise"
 	"github.com/EliCDavis/mesh/obj"
 	"github.com/EliCDavis/vector"
 	"github.com/fogleman/gg"
 )
 
-func BranchTexture() {
-	const W = 1024
-	const H = 1024
-	halfHeight := H / 2.
-	dc := gg.NewContext(W, H)
-	dc.SetRGBA(0, 0, 0, 0)
-	dc.Clear()
-
-	branchWidth := 20.
-
+func Bristle(dc *gg.Context, start, end vector.Vector2, branchWidth, chanceOfSnow float64, colors coloring.ColorStack, depth int) {
 	dc.SetColor(color.RGBA{99, 62, 10, 255})
 	dc.SetLineWidth(branchWidth)
-	dc.DrawLine(W/2, 0, W/2, H)
+	dc.DrawLine(start.X(), start.Y(), end.X(), end.Y())
 	dc.Stroke()
 
-	chanceOfSnow := 0.3
+	dir := end.Sub(start)
+	right := dir.Perpendicular()
+	for i := 0; i < 300; i++ {
+		startPercentage := rand.Float64()
+		endPercentage := startPercentage + (.1 * (1 - startPercentage))
+		point := start.Add(dir.MultByConstant(startPercentage))
 
-	for i := 0; i < 200; i++ {
-		x1 := 0.5*W - (branchWidth / 2) + (branchWidth * rand.Float64())
-		y1 := rand.Float64() * H
-		x2 := rand.Float64() * W
-		y2 := y1 - ((rand.Float64() * halfHeight) + halfHeight)
+		side := 1
+		if rand.Float64() <= .5 {
+			side = -1
+		}
 
-		w := rand.Float64()*4 + 1
+		needleLength := .05 + (.1 * (1. - endPercentage))
+
+		endPoint := start.Add(dir.MultByConstant((endPercentage) + (rand.Float64() * .05))).
+			Add(right.MultByConstant(needleLength * float64(side)))
+
+		w := branchWidth / 7.
 
 		if rand.Float64() <= chanceOfSnow {
 			dc.SetColor(color.RGBA{255, 255, 255, 255})
 		} else {
-			dc.SetColor(color.RGBA{0, 143, 45, 255})
+			dc.SetColor(colors.LinearSample(rand.Float64()))
 		}
 
 		dc.SetLineWidth(w)
-		dc.DrawLine(x1, y1, x2, y2)
+		dc.DrawLine(point.X(), point.Y(), endPoint.X(), endPoint.Y())
 		dc.Stroke()
 	}
 
-	dc.SetColor(color.RGBA{255, 255, 255, 255})
-	for i := 0; i < 30; i++ {
-		x1 := 0.5*W - (branchWidth / 2) + (branchWidth * rand.Float64())
-		y1 := rand.Float64() * H
-		x2 := rand.Float64() * W
-		y2 := y1 - ((rand.Float64() * halfHeight) + halfHeight)
+	if depth > 1 {
 
-		w := rand.Float64()*4 + 1
+		subBristles := 4
+		currentStart := .1
 
-		dc.SetLineWidth(w)
-		dc.DrawLine(x1, y1, x2, y2)
-		dc.Stroke()
+		spacing := (1. - currentStart) / float64(subBristles)
+		halfSpacing := spacing * 0.5
+
+		for i := 0; i < subBristles; i++ {
+			startPercentage := currentStart + (rand.Float64() * halfSpacing * 0.25)
+			endPercentage := startPercentage + .2 + (rand.Float64() * .2)
+			point := start.Add(dir.MultByConstant(startPercentage))
+
+			generalSize := (1. - startPercentage) * .5
+
+			rightBristleEnd := start.Add(dir.MultByConstant(endPercentage)).
+				Add(right.MultByConstant(generalSize * (.8 + (rand.Float64() * .4))))
+
+			leftBristleEnd := start.Add(dir.MultByConstant(endPercentage)).
+				Sub(right.MultByConstant(generalSize * (.8 + (rand.Float64() * .4))))
+
+			Bristle(
+				dc,
+				point,
+				rightBristleEnd,
+				branchWidth/2,
+				chanceOfSnow,
+				colors,
+				depth-1,
+			)
+
+			Bristle(
+				dc,
+				point,
+				leftBristleEnd,
+				branchWidth/2,
+				chanceOfSnow,
+				colors,
+				depth-1,
+			)
+
+			currentStart = startPercentage + (halfSpacing * 2)
+		}
+	}
+}
+
+func BranchTexture(colors coloring.ColorStack, imageSize float64) {
+	dc := gg.NewContext(int(imageSize), int(imageSize))
+	dc.SetRGBA(0, 0, 0, 0)
+	dc.Clear()
+
+	numBranches := 2
+	branchImageSize := imageSize / float64(numBranches)
+	halfBranchImageSize := branchImageSize / 2
+
+	minSnow := .2
+	maxSnow := .9
+	snowInc := (maxSnow - minSnow) / float64(numBranches*numBranches)
+
+	for x := 0; x < numBranches; x++ {
+		for y := 0; y < numBranches; y++ {
+			start := vector.NewVector2(halfBranchImageSize, 0).
+				Add(vector.NewVector2(float64(x)*branchImageSize, float64(y)*branchImageSize))
+
+			Bristle(
+				dc,
+				start,
+				start.Add(vector.NewVector2(0, branchImageSize*.8)),
+				20.,
+				minSnow+(snowInc*float64(x+(y*numBranches))),
+				colors,
+				4,
+			)
+		}
 	}
 
 	dc.SavePNG("branch.png")
+}
+
+func TrunkTexture(imageSize int, colors coloring.ColorStack, barkNoise noise.Sampler2D) error {
+	dc := gg.NewContext(imageSize, imageSize)
+	dc.SetRGBA(0, 0, 0, 0)
+	dc.Clear()
+
+	for x := 0; x < imageSize; x++ {
+		for y := 0; y < imageSize; y++ {
+			sample := barkNoise(vector.NewVector2(float64(x), (float64(y))))
+			dc.SetColor(colors.LinearSample(sample))
+			dc.SetPixel(x, y)
+		}
+	}
+
+	return dc.SavePNG("bark.png")
 }
 
 func Cone(base float64, points ...vector.Vector3) mesh.Mesh {
@@ -78,14 +159,14 @@ func Cone(base float64, points ...vector.Vector3) mesh.Mesh {
 			Point:       points[i],
 			Thickness:   (base * size),
 			UvThickness: size,
-			UvPoint:     vector.NewVector2(0, size),
+			UvPoint:     vector.NewVector2(0, size*3),
 		}
 	}
 
 	return extrude.Polygon(16, extrusionPoints)
 }
 
-func Tree(height, base, percentageCovered float64) mesh.Mesh {
+func Tree(height, base, percentageCovered float64, branchSnowNoise noise.Sampler2D, pos vector.Vector3) mesh.Mesh {
 	percentBare := 1 - percentageCovered
 
 	heightCovered := height * percentageCovered
@@ -102,47 +183,58 @@ func Tree(height, base, percentageCovered float64) mesh.Mesh {
 
 		trailOffGivenHeight := ((1 - availableHeightUsed) + .2)
 
+		branchMaxWidth := (base) * 2 * trailOffGivenHeight * (1 + (.4 * rand.Float64()))
+
 		dir := vector.NewVector3(-1+(2*rand.Float64()), 0, -1+(2*rand.Float64())).
 			Normalized().
 			MultByConstant(branchLength * trailOffGivenHeight)
+
+		branchIndex := int(math.Floor(4 * branchSnowNoise(vector.NewVector2(pos.X()*branchHeight, pos.Y()*branchHeight))))
+		xCordOfBranch := branchIndex % 2
+		yCordOfBranch := math.Floor(float64(branchIndex) / 2.)
+
+		branchUV := vector.NewVector2(0.25, 0).
+			Add(vector.NewVector2(float64(xCordOfBranch)*.5, yCordOfBranch*.5))
+		branchUVLength := 0.5
 
 		branches = branches.Append(extrude.Line([]extrude.LinePoint{
 			{
 				Point:   vector.NewVector3(0, branchHeight, 0),
 				Up:      vector.Vector3Up(),
 				Height:  -(height / 30),
-				Width:   (base) * trailOffGivenHeight * 0.35,
-				Uv:      vector.NewVector2(0.5, 0),
-				UvWidth: 1,
+				Width:   branchMaxWidth * 0.35,
+				Uv:      branchUV.Add(vector.Vector2Up().MultByConstant(branchUVLength)),
+				UvWidth: .5,
 			},
 			{
 				Point:   dir.MultByConstant(.25).SetY(branchHeight - 1),
 				Up:      vector.Vector3Up(),
 				Height:  -(height / 30),
-				Width:   (base) * 2 * trailOffGivenHeight,
-				Uv:      vector.NewVector2(0.5, .25),
-				UvWidth: 1,
+				Width:   branchMaxWidth,
+				Uv:      branchUV.Add(vector.Vector2Up().MultByConstant(branchUVLength * .5)),
+				UvWidth: .5,
 			},
 			{
 				Point:   dir.MultByConstant(.5).SetY(branchHeight - 1.5),
 				Up:      vector.Vector3Up(),
 				Height:  -(height / 30),
-				Width:   (base) * 2 * trailOffGivenHeight * 0.75,
-				Uv:      vector.NewVector2(0.5, .75),
-				UvWidth: 1,
+				Width:   branchMaxWidth * 0.75,
+				Uv:      branchUV.Add(vector.Vector2Up().MultByConstant(branchUVLength * .25)),
+				UvWidth: .5,
 			},
 			{
 				Point:   dir.SetY(branchHeight - 2),
 				Up:      vector.Vector3Up(),
 				Height:  0,
-				Width:   (base) * trailOffGivenHeight * 0.35,
-				Uv:      vector.NewVector2(0.5, 1),
-				UvWidth: 1,
+				Width:   branchMaxWidth * 0.15,
+				Uv:      branchUV,
+				UvWidth: .5,
 			},
 		}))
 	}
 
 	branchImage := "branch.png"
+	barkImage := "bark.png"
 
 	branches = branches.SetMaterial(mesh.Material{
 		Name:            "Branches",
@@ -155,16 +247,25 @@ func Tree(height, base, percentageCovered float64) mesh.Mesh {
 		vector.NewVector3(0, 0, 0),
 		vector.NewVector3(0, height, 0),
 	).
+		CalculateSmoothNormals().
 		SetMaterial(mesh.Material{
-			Name:         "Trunk",
-			DiffuseColor: color.RGBA{99, 62, 10, 255},
+			Name:            "Trunk",
+			DiffuseColor:    color.RGBA{99, 62, 10, 255},
+			ColorTextureURI: &barkImage,
 		}).
-		Append(branches)
+		Append(branches).
+		Translate(pos)
 }
 
 func main() {
-	numTree := 1
-	forestWidth := 100.
+	leafColors := coloring.NewColorStack([]coloring.ColorStackEntry{
+		coloring.NewColorStackEntry(1, 1, 1, color.RGBA{12, 89, 36, 255}),
+		coloring.NewColorStackEntry(1, 1, 1, color.RGBA{3, 191, 0, 255}),
+		coloring.NewColorStackEntry(1, 1, 1, color.RGBA{2, 69, 23, 255}),
+	})
+
+	numTree := 500
+	forestWidth := 200.
 	forest := mesh.EmptyMesh()
 
 	for i := 0; i < numTree; i++ {
@@ -180,12 +281,32 @@ func main() {
 				20+(25*rand.Float64()),
 				0.5+(rand.Float64()*2),
 				.7+(.2*rand.Float64()),
-			).
-				Translate(treePos),
+				noise.Sampler2D(noise.PerlinStack([]noise.Stack2DEntry{
+					{Scalar: 1 / 150., Amplitude: 1. / 2},
+					{Scalar: 1 / 75., Amplitude: 1. / 4},
+					{Scalar: 1 / 37.5, Amplitude: 1. / 8},
+					{Scalar: 1 / 18., Amplitude: 1. / 16},
+				}).Value),
+				treePos,
+			),
 		)
 	}
 
-	BranchTexture()
+	BranchTexture(leafColors, 2048)
+	TrunkTexture(
+		1024,
+		coloring.NewColorStack([]coloring.ColorStackEntry{
+			coloring.NewColorStackEntry(1, 1, 1, color.RGBA{115, 87, 71, 255}),
+			coloring.NewColorStackEntry(1, 1, 1, color.RGBA{97, 61, 41, 255}),
+			coloring.NewColorStackEntry(1, 1, 1, color.RGBA{102, 78, 44, 255}),
+		}),
+		noise.Sampler2D(noise.PerlinStack([]noise.Stack2DEntry{
+			{Scalar: 1 / 150., Amplitude: 1. / 2},
+			{Scalar: 1 / 75., Amplitude: 1. / 4},
+			{Scalar: 1 / 37.5, Amplitude: 1. / 8},
+			{Scalar: 1 / 18., Amplitude: 1. / 16},
+		}).Value),
+	)
 
 	obj.Save("chill.obj", forest)
 }

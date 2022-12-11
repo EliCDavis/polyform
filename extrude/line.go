@@ -73,9 +73,9 @@ func Line(linePoints []LinePoint) mesh.Mesh {
 		uvDir := uvBPoint.Sub(uvAPoint)
 		uvs[0] = append(
 			uvs[0],
-			uvAPoint,
-			uvAPoint.Add(uvDir.Perpendicular().MultByConstant(linePoints[i].UvWidth/2)),
-			uvAPoint.Add(uvDir.Perpendicular().MultByConstant(-linePoints[i].UvWidth/2)),
+			linePoints[i].Uv,
+			linePoints[i].Uv.Add(uvDir.Perpendicular().Normalized().MultByConstant(linePoints[i].UvWidth/2)),
+			linePoints[i].Uv.Add(uvDir.Perpendicular().Normalized().MultByConstant(-linePoints[i].UvWidth/2)),
 		)
 	}
 
