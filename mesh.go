@@ -100,6 +100,10 @@ func (m Mesh) TriCount() int {
 	return len(m.triangles) / 3
 }
 
+func (m Mesh) hasUVs() bool {
+	return len(m.uv) > 0 && len(m.uv[0]) > 0
+}
+
 func (m Mesh) Append(other Mesh) Mesh {
 	finalTris := append(m.triangles, other.triangles...)
 	finalMaterials := append(m.materials, other.materials...)
@@ -128,7 +132,25 @@ func (m Mesh) Append(other Mesh) Mesh {
 		finalNormals = append(finalNormals, other.normals...)
 	}
 
-	return NewMeshWithMaterials(finalTris, finalVerts, finalNormals, nil, finalMaterials)
+	finalUVs := make([]vector.Vector2, 0, len(finalVerts))
+
+	// Fill 2nd "half" of UVs
+	if m.hasUVs() && !other.hasUVs() {
+		finalUVs = append(finalUVs, m.uv[0]...)
+		for i := 0; i < len(other.vertices); i++ {
+			finalUVs = append(finalUVs, vector.Vector2Zero())
+		}
+	} else if !m.hasUVs() && other.hasUVs() {
+		for i := 0; i < len(m.vertices); i++ {
+			finalUVs = append(finalUVs, vector.Vector2Zero())
+		}
+		finalUVs = append(finalUVs, other.uv[0]...)
+	} else {
+		finalUVs = append(finalUVs, m.uv[0]...)
+		finalUVs = append(finalUVs, other.uv[0]...)
+	}
+
+	return NewMeshWithMaterials(finalTris, finalVerts, finalNormals, [][]vector.Vector2{finalUVs}, finalMaterials)
 }
 
 func (m Mesh) Translate(v vector.Vector3) Mesh {
