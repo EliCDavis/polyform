@@ -31,6 +31,8 @@ type Material struct {
 	Transparency float64
 
 	ColorTextureURI *string
+
+	NormalTextureURI *string
 }
 
 func DefaultMaterial() Material {

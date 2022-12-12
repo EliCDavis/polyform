@@ -2,14 +2,17 @@ package main
 
 import (
 	"image/color"
+	"image/png"
 	"math"
 	"math/rand"
+	"os"
 
 	"github.com/EliCDavis/mesh"
 	"github.com/EliCDavis/mesh/coloring"
 	"github.com/EliCDavis/mesh/extrude"
 	"github.com/EliCDavis/mesh/noise"
 	"github.com/EliCDavis/mesh/obj"
+	"github.com/EliCDavis/mesh/texturing"
 	"github.com/EliCDavis/vector"
 	"github.com/fogleman/gg"
 )
@@ -127,6 +130,10 @@ func BranchTexture(colors coloring.ColorStack, imageSize float64) {
 	}
 
 	dc.SavePNG("branch.png")
+
+	normal := texturing.ToNormal(dc.Image())
+	f, _ := os.Create("branch_normal.png")
+	png.Encode(f, normal)
 }
 
 func TrunkTexture(imageSize int, colors coloring.ColorStack, barkNoise noise.Sampler2D) error {
@@ -172,7 +179,7 @@ func Tree(height, base, percentageCovered float64, branchSnowNoise noise.Sampler
 	heightCovered := height * percentageCovered
 	heightBare := height * percentBare
 
-	branchCount := 300
+	branchCount := 200 + int(rand.Float64()*300)
 	branchLength := height * 0.25 * (.8 + (.4 * rand.Float64()))
 
 	branches := mesh.EmptyMesh()
@@ -189,12 +196,12 @@ func Tree(height, base, percentageCovered float64, branchSnowNoise noise.Sampler
 			Normalized().
 			MultByConstant(branchLength * trailOffGivenHeight)
 
-		branchIndex := int(math.Floor(4 * branchSnowNoise(vector.NewVector2(pos.X()*branchHeight, pos.Y()*branchHeight))))
+		branchIndex := int(math.Floor(4 * branchSnowNoise(pos.XZ().Add(dir.XZ()))))
 		xCordOfBranch := branchIndex % 2
 		yCordOfBranch := math.Floor(float64(branchIndex) / 2.)
 
-		branchUV := vector.NewVector2(0.25, 0).
-			Add(vector.NewVector2(float64(xCordOfBranch)*.5, yCordOfBranch*.5))
+		branchUV := vector.NewVector2(0.25, 1).
+			Add(vector.NewVector2(float64(xCordOfBranch)*.5, -yCordOfBranch*.5))
 		branchUVLength := 0.5
 
 		branches = branches.Append(extrude.Line([]extrude.LinePoint{
@@ -202,16 +209,16 @@ func Tree(height, base, percentageCovered float64, branchSnowNoise noise.Sampler
 				Point:   vector.NewVector3(0, branchHeight, 0),
 				Up:      vector.Vector3Up(),
 				Height:  -(height / 30),
-				Width:   branchMaxWidth * 0.35,
-				Uv:      branchUV.Add(vector.Vector2Up().MultByConstant(branchUVLength)),
-				UvWidth: .5,
+				Width:   branchMaxWidth * 0.45,
+				Uv:      branchUV,
+				UvWidth: .25,
 			},
 			{
 				Point:   dir.MultByConstant(.25).SetY(branchHeight - 1),
 				Up:      vector.Vector3Up(),
 				Height:  -(height / 30),
 				Width:   branchMaxWidth,
-				Uv:      branchUV.Add(vector.Vector2Up().MultByConstant(branchUVLength * .5)),
+				Uv:      branchUV.Add(vector.Vector2Down().MultByConstant(branchUVLength * .25)),
 				UvWidth: .5,
 			},
 			{
@@ -219,27 +226,29 @@ func Tree(height, base, percentageCovered float64, branchSnowNoise noise.Sampler
 				Up:      vector.Vector3Up(),
 				Height:  -(height / 30),
 				Width:   branchMaxWidth * 0.75,
-				Uv:      branchUV.Add(vector.Vector2Up().MultByConstant(branchUVLength * .25)),
+				Uv:      branchUV.Add(vector.Vector2Down().MultByConstant(branchUVLength * .5)),
 				UvWidth: .5,
 			},
 			{
 				Point:   dir.SetY(branchHeight - 2),
 				Up:      vector.Vector3Up(),
 				Height:  0,
-				Width:   branchMaxWidth * 0.15,
-				Uv:      branchUV,
-				UvWidth: .5,
+				Width:   branchMaxWidth * 0.35,
+				Uv:      branchUV.Add(vector.Vector2Down().MultByConstant(branchUVLength)),
+				UvWidth: .25,
 			},
 		}))
 	}
 
 	branchImage := "branch.png"
+	branchNormalImage := "branch_normal.png"
 	barkImage := "bark.png"
 
 	branches = branches.SetMaterial(mesh.Material{
-		Name:            "Branches",
-		DiffuseColor:    color.RGBA{0, 143, 45, 255},
-		ColorTextureURI: &branchImage,
+		Name:             "Branches",
+		DiffuseColor:     color.RGBA{0, 143, 45, 255},
+		ColorTextureURI:  &branchImage,
+		NormalTextureURI: &branchNormalImage,
 	})
 
 	return Cone(
@@ -258,14 +267,8 @@ func Tree(height, base, percentageCovered float64, branchSnowNoise noise.Sampler
 }
 
 func main() {
-	leafColors := coloring.NewColorStack([]coloring.ColorStackEntry{
-		coloring.NewColorStackEntry(1, 1, 1, color.RGBA{12, 89, 36, 255}),
-		coloring.NewColorStackEntry(1, 1, 1, color.RGBA{3, 191, 0, 255}),
-		coloring.NewColorStackEntry(1, 1, 1, color.RGBA{2, 69, 23, 255}),
-	})
-
-	numTree := 500
-	forestWidth := 200.
+	numTree := 1
+	forestWidth := 100.
 	forest := mesh.EmptyMesh()
 
 	for i := 0; i < numTree; i++ {
@@ -292,7 +295,11 @@ func main() {
 		)
 	}
 
-	BranchTexture(leafColors, 2048)
+	// BranchTexture(coloring.NewColorStack([]coloring.ColorStackEntry{
+	// 	coloring.NewColorStackEntry(1, 1, 1, color.RGBA{12, 89, 36, 255}),
+	// 	coloring.NewColorStackEntry(1, 1, 1, color.RGBA{3, 191, 0, 255}),
+	// 	coloring.NewColorStackEntry(1, 1, 1, color.RGBA{2, 69, 23, 255}),
+	// }), 2048)
 	TrunkTexture(
 		1024,
 		coloring.NewColorStack([]coloring.ColorStackEntry{
@@ -301,10 +308,10 @@ func main() {
 			coloring.NewColorStackEntry(1, 1, 1, color.RGBA{102, 78, 44, 255}),
 		}),
 		noise.Sampler2D(noise.PerlinStack([]noise.Stack2DEntry{
-			{Scalar: 1 / 150., Amplitude: 1. / 2},
-			{Scalar: 1 / 75., Amplitude: 1. / 4},
-			{Scalar: 1 / 37.5, Amplitude: 1. / 8},
-			{Scalar: 1 / 18., Amplitude: 1. / 16},
+			{Scalar: 1 / 50., Amplitude: 1. / 2},
+			{Scalar: 1 / 25., Amplitude: 1. / 4},
+			{Scalar: 1 / 12.5, Amplitude: 1. / 8},
+			{Scalar: 1 / 7.25, Amplitude: 1. / 16},
 		}).Value),
 	)
 
