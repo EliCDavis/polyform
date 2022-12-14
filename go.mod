@@ -3,14 +3,14 @@ module github.com/EliCDavis/mesh
 go 1.17
 
 require (
-	github.com/EliCDavis/vector v0.0.0-20221210010219-dbfbe02d9619
+	github.com/EliCDavis/vector v0.0.0-20221214034925-f4542b232de4
 	github.com/stretchr/testify v1.8.1
 )
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/urfave/cli/v2 v2.23.5
+	github.com/urfave/cli/v2 v2.23.7
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
@@ -19,7 +19,10 @@ require (
 	github.com/fogleman/gg v1.3.0
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
-	golang.org/x/image v0.1.0
+	golang.org/x/image v0.2.0
 )
 
-require github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
+require (
+	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
+	github.com/stretchr/objx v0.5.0 // indirect
+)

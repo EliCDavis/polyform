@@ -1,7 +1,9 @@
 package main
 
 import (
+	"image"
 	"image/color"
+	"image/jpeg"
 	"image/png"
 	"math"
 	"math/rand"
@@ -13,6 +15,7 @@ import (
 	"github.com/EliCDavis/mesh/noise"
 	"github.com/EliCDavis/mesh/obj"
 	"github.com/EliCDavis/mesh/texturing"
+	"github.com/EliCDavis/mesh/triangulation"
 	"github.com/EliCDavis/vector"
 	"github.com/fogleman/gg"
 )
@@ -141,9 +144,14 @@ func TrunkTexture(imageSize int, colors coloring.ColorStack, barkNoise noise.Sam
 	dc.SetRGBA(0, 0, 0, 0)
 	dc.Clear()
 
+	df := noise.NewDistanceField(10, 10, vector.Vector2One().MultByConstant(float64(imageSize)))
+
 	for x := 0; x < imageSize; x++ {
 		for y := 0; y < imageSize; y++ {
-			sample := barkNoise(vector.NewVector2(float64(x), (float64(y))))
+			// sample := barkNoise(vector.NewVector2(float64(x), float64(y)))
+
+			sample := math.Min(df.Sample(vector.NewVector2(float64(x), float64(y)))/(float64(imageSize)/10.), 1)
+
 			dc.SetColor(colors.LinearSample(sample))
 			dc.SetPixel(x, y)
 		}
@@ -166,7 +174,7 @@ func Cone(base float64, points ...vector.Vector3) mesh.Mesh {
 			Point:       points[i],
 			Thickness:   (base * size),
 			UvThickness: size,
-			UvPoint:     vector.NewVector2(0, size*3),
+			UvPoint:     vector.NewVector2(0, size),
 		}
 	}
 
@@ -179,6 +187,7 @@ func Tree(height, base, percentageCovered float64, branchSnowNoise noise.Sampler
 	heightCovered := height * percentageCovered
 	heightBare := height * percentBare
 
+	// branchCount := 3
 	branchCount := 200 + int(rand.Float64()*300)
 	branchLength := height * 0.25 * (.8 + (.4 * rand.Float64()))
 
@@ -266,18 +275,105 @@ func Tree(height, base, percentageCovered float64, branchSnowNoise noise.Sampler
 		Translate(pos)
 }
 
+func TerrainTexture(textureSize int, mapSize, height float64, name string, colorNoise noise.Sampler2D, colors coloring.ColorStack) {
+	tex := image.NewRGBA(image.Rect(0, 0, textureSize, textureSize))
+
+	scaleFactor := mapSize / float64(textureSize)
+	for x := 0; x < textureSize; x++ {
+		for y := 0; y < textureSize; y++ {
+			samplePos := vector.NewVector2(float64(x), float64(y)).MultByConstant(scaleFactor)
+
+			sample := colorNoise(samplePos)
+			tex.Set(x, y, colors.LinearSample(sample/height))
+		}
+	}
+
+	texOut, err := os.Create(name)
+	if err != nil {
+		panic(err)
+	}
+	defer texOut.Close()
+
+	err = jpeg.Encode(texOut, tex, &jpeg.Options{Quality: 100})
+	if err != nil {
+		panic(err)
+	}
+}
+
+func randomVec2Radial() vector.Vector2 {
+	theta := rand.Float64() * 2 * math.Pi
+	return vector.
+		NewVector2(math.Cos(theta), math.Sin(theta)).
+		MultByConstant(math.Sqrt(rand.Float64()))
+}
+
+func Terrain(forestWidth float64, height noise.Sampler2D, texture string) mesh.Mesh {
+	n := 5000
+	mapRadius := forestWidth / 2
+	mapOffset := vector.NewVector2(mapRadius, mapRadius)
+	// waterLevel := 15.
+	points := make([]vector.Vector2, n)
+	for i := 0; i < n; i++ {
+		points[i] = randomVec2Radial().
+			MultByConstant(mapRadius).
+			Add(mapOffset)
+	}
+
+	heightFunc := noise.Sampler2D(func(v vector.Vector2) float64 {
+		return height(v)
+	})
+
+	return triangulation.
+		BowyerWatson(points).
+		ModifyVertices(func(v vector.Vector3) vector.Vector3 {
+			return v.SetY(heightFunc(v.XZ()))
+		}).
+		CalculateSmoothNormals().
+		ModifyUVs(func(v vector.Vector3, uv vector.Vector2) vector.Vector2 {
+			return vector.NewVector2(v.X(), -v.Z()).
+				DivByConstant(forestWidth)
+		}).
+		SetMaterial(mesh.Material{
+			Name:            "Terrain",
+			AmbientColor:    color.White,
+			DiffuseColor:    color.White,
+			ColorTextureURI: &texture,
+		})
+}
+
 func main() {
+	// terrainTexture := "terrain_color.png"
+	totalHeight := 200.
+	terrainHeight := noise.PerlinStack([]noise.Stack2DEntry{
+		{Scalar: 1 / 300., Amplitude: totalHeight / 2},
+		{Scalar: 1 / 150., Amplitude: totalHeight / 4},
+		{Scalar: 1 / 75., Amplitude: totalHeight / 8},
+		{Scalar: 1 / 37.5, Amplitude: totalHeight / 16},
+	})
+
 	numTree := 1
-	forestWidth := 100.
+	forestWidth := 400.
+	// forest := Terrain(forestWidth, terrainHeight.Value, terrainTexture)
 	forest := mesh.EmptyMesh()
+	// TerrainTexture(
+	// 	2048,
+	// 	forestWidth,
+	// 	totalHeight,
+	// 	terrainTexture,
+	// 	terrainHeight.Value,
+	// 	coloring.NewColorStack([]coloring.ColorStackEntry{
+	// 		coloring.NewColorStackEntry(1, 1, 1, color.RGBA{255, 255, 255, 255}),
+	// 		coloring.NewColorStackEntry(1, 1, 1, color.RGBA{235, 235, 235, 255}),
+	// 	}))
 
 	for i := 0; i < numTree; i++ {
 
-		treePos := vector.NewVector3(
-			rand.Float64()*forestWidth,
-			0,
-			rand.Float64()*forestWidth,
-		)
+		xz := randomVec2Radial().
+			MultByConstant((forestWidth / 2) * .8).
+			Add(vector.NewVector2(forestWidth/2, forestWidth/2))
+		y := terrainHeight.Value(xz) - 1
+
+		treePos := vector.NewVector3(xz.X(), y, xz.Y())
 
 		forest = forest.Append(
 			Tree(
@@ -303,7 +399,7 @@ func main() {
 	TrunkTexture(
 		1024,
 		coloring.NewColorStack([]coloring.ColorStackEntry{
-			coloring.NewColorStackEntry(1, 1, 1, color.RGBA{115, 87, 71, 255}),
+			// coloring.NewColorStackEntry(1, 1, 1, color.RGBA{115, 87, 71, 255}),
 			coloring.NewColorStackEntry(1, 1, 1, color.RGBA{97, 61, 41, 255}),
 			coloring.NewColorStackEntry(1, 1, 1, color.RGBA{102, 78, 44, 255}),
 		}),

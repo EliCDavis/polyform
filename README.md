@@ -108,7 +108,7 @@ Resources either directly contributing to the code here or interesting finds whi
 
 * Noise 
 	* [Perlin Noise](https://gpfault.net/posts/perlin-noise.txt.html)
-	* [Worley Noise](https://thebookofshaders.com/12/)
+	* [Worley/Cellular Noise](https://thebookofshaders.com/12/)
 	* [Simplex Noise](https://en.wikipedia.org/wiki/Simplex_noise)
 * Triangulation
 	* Delaunay
@@ -123,7 +123,12 @@ Resources either directly contributing to the code here or interesting finds whi
 	  * [Fast Polygon Triangulation Based on Seidel's Algorithm By Atul Narkhede and Dinesh Manocha](http://gamma.cs.unc.edu/SEIDEL/)
 	  * [Triangulating a Monotone Polygon
 ](http://homepages.math.uic.edu/~jan/mcs481/triangulating.pdf)
+* Texturing
+	* [Normal Map From Color Map](https://stackoverflow.com/questions/5281261/generating-a-normal-map-from-a-height-map)
 * Formats
 	* OBJ
 		* [jburkardt MTL](https://people.sc.fsu.edu/~jburkardt/data/mtl/mtl.html) 
 		* [Excerpt from FILE FORMATS, Version 4.2 October 1995 MTL](http://paulbourke.net/dataformats/mtl/)
+* Generative Techniques
+    * [Country Flags by vividfax](https://vividfax.notion.site/Generative-Flag-Design-e663bc26f5a54ab48fad1428bc32b610)
+	* [Snow by Ryan King](https://www.youtube.com/watch?v=UzJnsqIRbDw)
