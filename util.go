@@ -70,3 +70,7 @@ func CenterOfBoundingBoxOfShapes(shapes []Shape) vector.Vector2 {
 	height := (topRightY - bottomLeftY)
 	return vector.NewVector2(bottomLeftX+(width/2.0), bottomLeftY+(height/2.0))
 }
+
+func Clamp(v, min, max float64) float64 {
+	return math.Max(math.Min(v, max), min)
+}

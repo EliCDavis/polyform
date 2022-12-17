@@ -33,6 +33,8 @@ type Material struct {
 	ColorTextureURI *string
 
 	NormalTextureURI *string
+
+	SpecularTextureURI *string
 }
 
 func DefaultMaterial() Material {

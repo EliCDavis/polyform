@@ -89,20 +89,22 @@ func grad(p float64) float64 {
 	return -1.0
 }
 
-func grad2D(pDirty vector.Vector2) vector.Vector2 {
-	p := vector.NewVector2(math.Abs(pDirty.X()), math.Abs(pDirty.Y()))
-	width := float64(len(randvals))
-	xVal := randvals[int(math.Round(p.X()))%len(randvals)]
-	yVal := randvals[int(math.Round(p.Y()+(xVal*width)))%len(randvals)]
-	zVal := randvals[int(math.Round(yVal*width))]
-	wVal := randvals[int(math.Round(zVal*width))]
-	v := vector.NewVector2(
-		xVal,
-		wVal,
-	)
-	return v.MultByConstant(2).
-		Sub(vector.Vector2One()).
-		Normalized()
+func gradientOverValues(vals []float64) func(vector.Vector2) vector.Vector2 {
+	return func(pDirty vector.Vector2) vector.Vector2 {
+		p := vector.NewVector2(math.Abs(pDirty.X()), math.Abs(pDirty.Y()))
+		width := float64(len(vals))
+		xVal := vals[int(math.Round(p.X()))%len(vals)]
+		yVal := vals[int(math.Round(p.Y()+(xVal*width)))%len(vals)]
+		zVal := vals[int(math.Round(yVal*width))%len(vals)]
+		wVal := vals[int(math.Round(zVal*width))%len(vals)]
+		v := vector.NewVector2(
+			xVal,
+			wVal,
+		)
+		return v.MultByConstant(2).
+			Sub(vector.Vector2One()).
+			Normalized()
+	}
 }
 
 func noise2D(p vector.Vector2, f func(float64) float64, g func(vector.Vector2) vector.Vector2) float64 {
@@ -155,5 +157,5 @@ func Perlin1D(x float64) float64 {
 }
 
 func Perlin2D(v vector.Vector2) float64 {
-	return noise2D(v, fade, grad2D)
+	return noise2D(v, fade, gradientOverValues(randvals))
 }

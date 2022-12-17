@@ -78,6 +78,13 @@ func WriteMaterial(mat mesh.Material, out io.Writer) error {
 		}
 	}
 
+	if mat.SpecularTextureURI != nil {
+		_, err = fmt.Fprintf(out, "map_Ks %s\n", *mat.SpecularTextureURI)
+		if err != nil {
+			return err
+		}
+	}
+
 	_, err = fmt.Fprintln(out, "")
 	return err
 }

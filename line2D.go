@@ -2,6 +2,7 @@ package mesh
 
 import (
 	"errors"
+	"math"
 
 	"github.com/EliCDavis/vector"
 )
@@ -44,6 +45,21 @@ func (l Line2D) ScaleOutwards(amount float64) Line2D {
 		center.Add(dirAndMag.MultByConstant(amount)),
 		center.Add(dirAndMag.MultByConstant(-amount)),
 	)
+}
+
+func (l Line2D) ClosestPointOnLine(p vector.Vector2) vector.Vector2 {
+	l2 := math.Pow(l.p1.Distance(l.p2), 2)
+	if l2 == 0.0 {
+		return l.p1
+	}
+
+	// Consider the line extending the segment, parameterized as v + t (w - v).
+	// We find projection of point p onto the line.
+	// It falls where t = [(p-v) . (w-v)] / |w-v|^2
+	// We clamp t from [0,1] to handle points outside the segment vw.
+	t := math.Max(0, math.Min(1, p.Sub(l.p1).Dot(l.p2.Sub(l.p1))/l2))
+	projection := l.p1.Add(l.p2.Sub(l.p1).MultByConstant(t)) // Projection falls on the segment
+	return projection
 }
 
 // Intersection finds where two lines intersect

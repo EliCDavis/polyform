@@ -126,12 +126,11 @@ func polygon(sides int, points []ExtrusionPoint, closed bool) mesh.Mesh {
 			}
 		}
 		for sideIndex := 0; sideIndex < sides; sideIndex++ {
+			topRight := top + sideIndex
+			bottomRight := bottom + sideIndex
 
-			topLeft := top + sideIndex
-			bottomLeft := bottom + sideIndex
-
-			topRight := topLeft + 1
-			bottomRight := bottomLeft + 1
+			topLeft := topRight + 1
+			bottomLeft := bottomRight + 1
 
 			tris = append(
 				tris,

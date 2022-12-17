@@ -7,44 +7,6 @@ import (
 	"github.com/EliCDavis/vector"
 )
 
-//
-// [0][1][2]
-// [3][4][5]
-// [6][7][8]
-//
-//
-func Convolve(src image.Image, f func(x, y int, values []color.Color)) {
-	for xIndex := 0; xIndex < src.Bounds().Dx(); xIndex++ {
-		xLeft := xIndex - 1
-		if xIndex == 0 {
-			xLeft = xIndex + 1
-		}
-		xMid := xIndex
-		xRight := xIndex + 1
-		if xIndex == src.Bounds().Dx()-1 {
-			xRight = xIndex - 1
-		}
-
-		for yIndex := 0; yIndex < src.Bounds().Dy(); yIndex++ {
-			yBot := yIndex - 1
-			if yIndex == 0 {
-				yBot = yIndex + 1
-			}
-			yMid := yIndex
-			yTop := yIndex + 1
-			if yIndex == src.Bounds().Dx()-1 {
-				yTop = yIndex - 1
-			}
-
-			f(xIndex, yIndex, []color.Color{
-				src.At(xLeft, yTop), src.At(xMid, yTop), src.At(xRight, yTop),
-				src.At(xLeft, yMid), src.At(xMid, yMid), src.At(xRight, yMid),
-				src.At(xLeft, yBot), src.At(xMid, yBot), src.At(xRight, yBot),
-			})
-		}
-	}
-}
-
 func averageColorComponents(c color.Color) float64 {
 	r, g, b, _ := c.RGBA()
 	r8 := r >> 8
@@ -72,7 +34,6 @@ func ToNormal(src image.Image) image.Image {
 		n = n.SetX(scale * -((s2 - s0) + (2 * (s5 - s3)) + (s8 - s6)))
 		n = n.SetY(scale * -((s6 - s0) + (2 * (s7 - s1)) + (s8 - s2)))
 		n = n.Normalized()
-
 
 		dst.Set(x, y, color.RGBA{
 			R: uint8((0.5 + (n.X() / 2.)) * 255),
