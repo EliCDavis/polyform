@@ -98,46 +98,54 @@ func SnakeOut(x, amplitude, iterations, scale float64) float64 {
 func DrawTrail(
 	terrain mesh.Mesh,
 	textures *PBRTextures,
-	path []vector.Vector2,
+	trail Trail,
 	forestWidth float64,
 	terrainImageSize int,
 	snowColors coloring.ColorStack,
 ) mesh.Mesh {
 
-	if len(path) < 2 {
+	if len(trail.Segments) == 0 {
 		return terrain
 	}
 
-	pathWidth := 20.
-
 	pixelsPerMeter := float64(terrainImageSize) / forestWidth
-
 	dc := gg.NewContextForImage(textures.color)
-	for i := 1; i < len(path); i++ {
+
+	for _, seg := range trail.Segments {
 		dc.SetColor(color.RGBA{70, 75, 80, 80})
-		dc.SetLineWidth(pixelsPerMeter * pathWidth)
+		dc.SetLineWidth(pixelsPerMeter * seg.Width)
 		dc.DrawLine(
-			path[i-1].X()*pixelsPerMeter,
-			path[i-1].Y()*pixelsPerMeter,
-			path[i].X()*pixelsPerMeter,
-			path[i].Y()*pixelsPerMeter,
+			seg.StartX*pixelsPerMeter,
+			seg.StartY*pixelsPerMeter,
+			seg.EndX*pixelsPerMeter,
+			seg.EndY*pixelsPerMeter,
 		)
 		dc.Stroke()
 	}
+
 	textures.color = dc.Image()
 
 	return terrain.
 		ModifyVertices(func(v vector.Vector3) vector.Vector3 {
 			heightAdj := 0.
 
-			for i := 1; i < len(path); i++ {
-				line := mesh.NewLine2D(path[i], path[i-1])
+			for _, seg := range trail.Segments {
+				line := mesh.NewLine2D(
+					vector.NewVector2(
+						seg.StartX,
+						seg.StartY,
+					),
+					vector.NewVector2(
+						seg.EndX,
+						seg.EndY,
+					),
+				)
 				p := v.XZ()
 				dist := line.ClosestPointOnLine(p).Distance(p)
 				if dist > 30 {
 					continue
 				}
-				heightAdj += SnakeOut(dist, -10, 2, pathWidth)
+				heightAdj += SnakeOut(dist, -seg.Depth, 2, seg.Width)
 			}
 
 			return v.SetY(v.Y() + heightAdj)

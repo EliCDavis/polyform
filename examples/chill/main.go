@@ -1,8 +1,10 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"image/color"
+	"io/ioutil"
 	"log"
 	"math"
 	"math/rand"
@@ -25,7 +27,7 @@ func randomVec2Radial() vector.Vector2 {
 		MultByConstant(math.Sqrt(rand.Float64()))
 }
 
-func calcTreePositions(count int, forestWidth float64, terrainHeight noise.Sampler2D, path []vector.Vector2) []vector.Vector3 {
+func calcTreePositions(count int, forestWidth float64, terrainHeight noise.Sampler2D, path Trail) []vector.Vector3 {
 	positions := make([]vector.Vector3, 0)
 	for i := 0; i < count; i++ {
 		xz := randomVec2Radial().
@@ -34,10 +36,19 @@ func calcTreePositions(count int, forestWidth float64, terrainHeight noise.Sampl
 		y := terrainHeight(xz) - 1
 
 		invalid := false
-		for i := 1; i < len(path) && !invalid; i++ {
-			line := mesh.NewLine2D(path[i], path[i-1])
+		for _, seg := range path.Segments {
+			line := mesh.NewLine2D(
+				vector.NewVector2(
+					seg.StartX,
+					seg.StartY,
+				),
+				vector.NewVector2(
+					seg.EndX,
+					seg.EndY,
+				),
+			)
 			dist := line.ClosestPointOnLine(xz).Distance(xz)
-			if dist < 20 {
+			if dist < seg.Width {
 				invalid = true
 			}
 
@@ -102,16 +113,14 @@ func main() {
 					},
 
 					&cli.Float64Flag{
-						Name:        "min-snow",
-						Usage:       "Minimum percentage of snow to use on the branch textures",
-						DefaultText: "20%",
-						Value:       .4,
+						Name:  "min-snow",
+						Usage: "Minimum percentage of snow to use on the branch textures",
+						Value: .4,
 					},
 					&cli.Float64Flag{
-						Name:        "max-snow",
-						Usage:       "Maximum percentage of snow to use on the branch textures",
-						DefaultText: "90%",
-						Value:       .7,
+						Name:  "max-snow",
+						Usage: "Maximum percentage of snow to use on the branch textures",
+						Value: .7,
 					},
 
 					&cli.Int64Flag{
@@ -242,6 +251,10 @@ func main() {
 						Usage: "Number of trees the forest will contain",
 						Value: 200,
 					},
+					&cli.StringFlag{
+						Name:  "trail",
+						Usage: "Path to a JSON file containing trail data",
+					},
 
 					&cli.Float64Flag{
 						Name:  "min-tree-height",
@@ -286,16 +299,14 @@ func main() {
 					},
 
 					&cli.Float64Flag{
-						Name:        "min-snow",
-						Usage:       "Minimum percentage of snow to use on the branch textures",
-						DefaultText: "20%",
-						Value:       .2,
+						Name:  "min-snow",
+						Usage: "Minimum percentage of snow to use on the branch textures",
+						Value: .2,
 					},
 					&cli.Float64Flag{
-						Name:        "max-snow",
-						Usage:       "Maximum percentage of snow to use on the branch textures",
-						DefaultText: "90%",
-						Value:       .9,
+						Name:  "max-snow",
+						Usage: "Maximum percentage of snow to use on the branch textures",
+						Value: .9,
 					},
 
 					&cli.Int64Flag{
@@ -312,8 +323,8 @@ func main() {
 					&cli.StringFlag{
 						Name:        "name",
 						Usage:       "Name of the files that will be generated",
-						DefaultText: "tree",
-						Value:       "tree",
+						DefaultText: "forest",
+						Value:       "forest",
 					},
 				},
 				Action: func(ctx *cli.Context) error {
@@ -362,19 +373,28 @@ func main() {
 						terrainHeight.Value,
 					)
 
-					snowPath := []vector.Vector2{
-						vector.NewVector2(forestWidth/2, forestWidth/2),
-						vector.NewVector2(forestWidth, forestWidth),
-					}
+					var snowPath Trail
 
-					terrain = DrawTrail(
-						terrain,
-						&terrainPBR,
-						snowPath,
-						forestWidth,
-						terrainImageSize,
-						snowColors,
-					)
+					if ctx.IsSet("trail") {
+
+						trailFileData, err := ioutil.ReadFile(ctx.String("trail"))
+						if err != nil {
+							return err
+						}
+
+						if err := json.Unmarshal(trailFileData, &snowPath); err != nil {
+							return err
+						}
+
+						terrain = DrawTrail(
+							terrain,
+							&terrainPBR,
+							snowPath,
+							forestWidth,
+							terrainImageSize,
+							snowColors,
+						)
+					}
 
 					atlas := BranchTexture(coloring.NewColorStack([]coloring.ColorStackEntry{
 						coloring.NewColorStackEntry(1, 1, 1, color.RGBA{12, 89, 36, 255}),
@@ -422,7 +442,6 @@ func main() {
 					TrunkTexture(
 						1024,
 						coloring.NewColorStack([]coloring.ColorStackEntry{
-							// coloring.NewColorStackEntry(1, 1, 1, color.RGBA{115, 87, 71, 255}),
 							coloring.NewColorStackEntry(1, 1, 1, color.RGBA{71, 43, 6, 255}),
 							coloring.NewColorStackEntry(1, 1, 1, color.RGBA{94, 63, 21, 255}),
 						}),
@@ -449,6 +468,85 @@ func main() {
 						return err
 					}
 					return obj.Save(fmt.Sprintf("%s.obj", filePrefixes), terrain)
+				},
+			},
+			{
+				Name:        "word",
+				Description: "Writes out the word 'chill' in the trail segment format",
+				Action: func(ctx *cli.Context) error {
+					c := []vector.Vector2{
+						vector.NewVector2(1, 1),
+						vector.NewVector2(0, 0.5),
+						vector.NewVector2(1, 0),
+					}
+
+					h := []vector.Vector2{
+						vector.NewVector2(0, 0),
+						vector.NewVector2(0, 1),
+						vector.NewVector2(0, 0.5),
+						vector.NewVector2(1, 0.5),
+						vector.NewVector2(1, 1),
+						vector.NewVector2(1, 0),
+					}
+
+					i := []vector.Vector2{
+						vector.NewVector2(0.5, 0),
+						vector.NewVector2(0.5, 1),
+					}
+
+					l := []vector.Vector2{
+						vector.NewVector2(0, 0),
+						vector.NewVector2(0, 1),
+						vector.NewVector2(1, 1),
+					}
+
+					word := [][]vector.Vector2{c, h, i, l, l}
+
+					characterWidth := 35.
+					height := 90.
+					characterSpacing := 40.
+					terrainSize := 500.
+					offset := vector.NewVector2(terrainSize/2., terrainSize/2.).
+						Sub(vector.NewVector2((characterWidth+characterSpacing)*0.5*float64(len(word)), height/2))
+
+					trail := Trail{
+						Segments: make([]TrailSegment, 0),
+					}
+
+					for charIndex, character := range word {
+						characterOffset := vector.NewVector2(float64(charIndex)*(characterSpacing+characterWidth), 0)
+						for pIndex := 1; pIndex < len(character); pIndex++ {
+							start := vector.NewVector2(
+								character[pIndex-1].X()*characterWidth,
+								character[pIndex-1].Y()*height,
+							).
+								Add(characterOffset).
+								Add(offset)
+
+							end := vector.NewVector2(
+								character[pIndex].X()*characterWidth,
+								character[pIndex].Y()*height,
+							).
+								Add(characterOffset).
+								Add(offset)
+
+							trail.Segments = append(trail.Segments, TrailSegment{
+								Width:  30,
+								Depth:  15,
+								StartX: start.X(),
+								StartY: start.Y(),
+								EndX:   end.X(),
+								EndY:   end.Y(),
+							})
+						}
+					}
+
+					strB, err := json.Marshal(trail)
+					if err != nil {
+						return err
+					}
+					fmt.Fprint(ctx.App.Writer, string(strB))
+					return nil
 				},
 			},
 		},
