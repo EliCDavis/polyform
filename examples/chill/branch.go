@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"image/color"
 	"math/rand"
 
@@ -107,7 +108,15 @@ func Bristle(
 	}
 }
 
-func BranchTexture(colors coloring.ColorStack, textures *PBRTextures, imageSize float64) {
+func BranchTexture(
+	colors coloring.ColorStack,
+	textures *PBRTextures,
+	imageSize float64,
+	minSnow float64,
+	maxSnow float64,
+	numBranches int,
+	atlasSize int,
+) *Atlas {
 	colorContext := gg.NewContext(int(imageSize), int(imageSize))
 	colorContext.SetRGBA(0, 0, 0, 0)
 	colorContext.Clear()
@@ -116,16 +125,24 @@ func BranchTexture(colors coloring.ColorStack, textures *PBRTextures, imageSize 
 	specularContext.SetRGBA(0, 0, 0, 1)
 	specularContext.Clear()
 
-	numBranches := 2
 	branchImageSize := imageSize / float64(numBranches)
 	halfBranchImageSize := branchImageSize / 2
 
-	minSnow := .2
-	maxSnow := .9
 	snowInc := (maxSnow - minSnow) / float64(numBranches*numBranches)
 
-	for x := 0; x < numBranches; x++ {
-		for y := 0; y < numBranches; y++ {
+	workingAtlas := &Atlas{
+		Name:       "Branches 0",
+		BottomLeft: vector.Vector2Zero(),
+		TopRight:   vector.Vector2One(),
+		Entries:    make([]AtlasEntry, 0),
+	}
+
+	subAtlases := make([]*Atlas, 0)
+	entryCount := 0
+
+	for y := 0; y < numBranches; y++ {
+		for x := 0; x < numBranches; x++ {
+
 			start := vector.NewVector2(halfBranchImageSize, 0).
 				Add(vector.NewVector2(float64(x)*branchImageSize, float64(y)*branchImageSize))
 
@@ -139,10 +156,41 @@ func BranchTexture(colors coloring.ColorStack, textures *PBRTextures, imageSize 
 				colors,
 				4,
 			)
+
+			workingAtlas.Entries = append(workingAtlas.Entries, AtlasEntry{
+				BottomLeft: vector.NewVector2(float64(x)/float64(numBranches), float64(y)/float64(numBranches)),
+				TopRight:   vector.NewVector2(float64(x+1)/float64(numBranches), float64(y+1)/float64(numBranches)),
+			})
+
+			entryCount++
+			if entryCount == atlasSize {
+				entryCount = 0
+				subAtlases = append(subAtlases, workingAtlas)
+				workingAtlas = &Atlas{
+					Name:       fmt.Sprintf("Branches %d", len(subAtlases)),
+					BottomLeft: vector.Vector2Zero(),
+					TopRight:   vector.Vector2One(),
+					Entries:    make([]AtlasEntry, 0),
+				}
+			}
 		}
+	}
+
+	if len(workingAtlas.Entries) > 0 {
+		subAtlases = append(subAtlases, workingAtlas)
 	}
 
 	textures.color = colorContext.Image()
 	textures.normal = texturing.ToNormal(colorContext.Image())
 	textures.specular = specularContext.Image()
+
+	if len(subAtlases) > 1 {
+		return &Atlas{
+			Name:       "Branches",
+			SubAtlas:   subAtlases,
+			BottomLeft: vector.Vector2Zero(),
+			TopRight:   vector.Vector2One(),
+		}
+	}
+	return subAtlases[0]
 }

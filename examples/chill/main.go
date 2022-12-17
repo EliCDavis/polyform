@@ -1,10 +1,13 @@
 package main
 
 import (
+	"fmt"
 	"image/color"
 	"log"
 	"math"
 	"math/rand"
+	"os"
+	"path"
 	"time"
 
 	"github.com/EliCDavis/mesh"
@@ -12,6 +15,7 @@ import (
 	"github.com/EliCDavis/mesh/noise"
 	"github.com/EliCDavis/mesh/obj"
 	"github.com/EliCDavis/vector"
+	"github.com/urfave/cli/v2"
 )
 
 func randomVec2Radial() vector.Vector2 {
@@ -48,97 +52,410 @@ func calcTreePositions(count int, forestWidth float64, terrainHeight noise.Sampl
 	return positions
 }
 
+func initSeed(ctx *cli.Context) {
+	if ctx.IsSet("seed") {
+		rand.Seed(ctx.Int64("seed"))
+	} else {
+		seed := time.Now().UnixNano()
+		rand.Seed(seed)
+		log.Printf("Generating with Seed: %d\n", seed)
+	}
+}
+
 func main() {
-	seed := time.Now().UnixNano()
-	rand.Seed(seed)
-	log.Printf("Generating with Seed: %d\n", seed)
 
-	terrainPBR := PBRTextures{name: "terrain"}
-	branchPBR := PBRTextures{name: "branch"}
+	app := &cli.App{
+		Name: "chill",
+		Authors: []*cli.Author{
+			{
+				Name:  "Eli Davis",
+				Email: "eli@recolude.com",
+			},
+		},
+		Version:     "1.0.0",
+		Description: "ProcJam 2022 Submission",
+		Commands: []*cli.Command{
+			{
+				Name:        "tree",
+				Aliases:     []string{"t"},
+				Description: "Creates a single tree",
+				Flags: []cli.Flag{
+					&cli.Float64Flag{
+						Name:        "height",
+						Usage:       "The height of the tree",
+						DefaultText: "random value between 20 and 45",
+					},
+					&cli.Float64Flag{
+						Name:        "base",
+						Usage:       "The width of the tree trunk",
+						DefaultText: "random value between 0.5 and 2.5",
+					},
+					&cli.Float64Flag{
+						Name:        "covered",
+						Usage:       "Percent of the tree's trunk covered by it's branches",
+						DefaultText: "random value between 0.7 and 0.9",
+					},
+					&cli.IntFlag{
+						Name:        "branches",
+						Usage:       "Number of branches the tree will have",
+						DefaultText: "random value between 200 and 500",
+					},
 
-	totalHeight := 200.
-	terrainHeight := noise.PerlinStack([]noise.Stack2DEntry{
-		{Scalar: 1 / 300., Amplitude: totalHeight / 2},
-		{Scalar: 1 / 150., Amplitude: totalHeight / 8},
-		{Scalar: 1 / 75., Amplitude: totalHeight / 16},
-		{Scalar: 1 / 37.5, Amplitude: totalHeight / 32},
-	})
+					&cli.Float64Flag{
+						Name:        "min-snow",
+						Usage:       "Minimum percentage of snow to use on the branch textures",
+						DefaultText: "20%",
+						Value:       .4,
+					},
+					&cli.Float64Flag{
+						Name:        "max-snow",
+						Usage:       "Maximum percentage of snow to use on the branch textures",
+						DefaultText: "90%",
+						Value:       .7,
+					},
 
-	numTree := 200
-	forestWidth := 400.
-	terrain, maxTerrainValue := Terrain(forestWidth, terrainHeight.Value, &terrainPBR)
+					&cli.Int64Flag{
+						Name:        "seed",
+						Usage:       "The seed fpr the random number generator to use",
+						DefaultText: "clock time",
+					},
+					&cli.StringFlag{
+						Name:        "out",
+						Usage:       "Path to write the tree obj/mtl/pngs to",
+						DefaultText: ".",
+						Value:       ".",
+					},
+					&cli.StringFlag{
+						Name:        "name",
+						Usage:       "Name of the files that will be generated",
+						DefaultText: "tree",
+						Value:       "tree",
+					},
+				},
+				Action: func(ctx *cli.Context) error {
+					filePrefixes := path.Join(ctx.String("out"), ctx.String("name"))
 
-	snowColors := coloring.NewColorStack([]coloring.ColorStackEntry{
-		coloring.NewColorStackEntry(10, 1, 1, color.RGBA{255, 255, 255, 255}),
-		coloring.NewColorStackEntry(1, 1, 1, color.RGBA{245, 247, 255, 255}),
-	})
+					initSeed(ctx)
 
-	terrainImageSize := 1024
+					var treeHeight float64
+					if ctx.IsSet("height") {
+						treeHeight = ctx.Float64("height")
+					} else {
+						treeHeight = 20 + (25 * rand.Float64())
+					}
 
-	TerrainTexture(
-		terrainImageSize,
-		forestWidth,
-		&terrainPBR,
-		snowColors,
-		maxTerrainValue,
-		terrainHeight.Value,
-	)
+					var treeBase float64
+					if ctx.IsSet("base") {
+						treeBase = ctx.Float64("base")
+					} else {
+						treeBase = 0.5 + (rand.Float64() * 2)
+					}
 
-	snowPath := []vector.Vector2{
-		vector.NewVector2(forestWidth/2, forestWidth/2),
-		vector.NewVector2(forestWidth, forestWidth),
+					var treeCovered float64
+					if ctx.IsSet("covered") {
+						treeCovered = ctx.Float64("covered")
+					} else {
+						treeCovered = .7 + (.2 * rand.Float64())
+					}
+
+					var branches int
+					if ctx.IsSet("branches") {
+						branches = ctx.Int("branches")
+					} else {
+						branches = 200 + int(300*rand.Float64())
+					}
+
+					branchPBR := PBRTextures{
+						name: ctx.String("name") + "_branch",
+						path: ctx.String("out"),
+					}
+
+					barkPBR := PBRTextures{
+						name: ctx.String("name") + "_bark",
+						path: ctx.String("out"),
+					}
+
+					atlas := BranchTexture(coloring.NewColorStack([]coloring.ColorStackEntry{
+						coloring.NewColorStackEntry(1, 1, 1, color.RGBA{12, 89, 36, 255}),
+						coloring.NewColorStackEntry(1, 1, 1, color.RGBA{3, 191, 0, 255}),
+						coloring.NewColorStackEntry(1, 1, 1, color.RGBA{2, 69, 23, 255}),
+					}), &branchPBR, 2048, ctx.Float64("min-snow"), ctx.Float64("max-snow"), 2, 4)
+
+					tree := Tree(
+						treeHeight,
+						treeBase,
+						treeCovered,
+						branches,
+						vector.Vector3Zero(),
+						&branchPBR,
+						&barkPBR,
+						atlas,
+						ctx.String("name")+"_bark.png",
+					)
+
+					TrunkTexture(
+						1024,
+						coloring.NewColorStack([]coloring.ColorStackEntry{
+							// coloring.NewColorStackEntry(1, 1, 1, color.RGBA{115, 87, 71, 255}),
+							coloring.NewColorStackEntry(1, 1, 1, color.RGBA{71, 43, 6, 255}),
+							coloring.NewColorStackEntry(1, 1, 1, color.RGBA{94, 63, 21, 255}),
+						}),
+						noise.Sampler2D(noise.PerlinStack([]noise.Stack2DEntry{
+							{Scalar: 1 / 50., Amplitude: 1. / 2},
+							{Scalar: 1 / 25., Amplitude: 1. / 4},
+							{Scalar: 1 / 12.5, Amplitude: 1. / 8},
+							{Scalar: 1 / 7.25, Amplitude: 1. / 16},
+						}).Value),
+						&barkPBR,
+					)
+
+					err := branchPBR.Save()
+					if err != nil {
+						return err
+					}
+
+					err = barkPBR.Save()
+					if err != nil {
+						return err
+					}
+
+					return obj.Save(fmt.Sprintf("%s.obj", filePrefixes), tree)
+				},
+			},
+			{
+				Name:        "forest",
+				Aliases:     []string{"f"},
+				Description: "Creates a forest of trees",
+				Flags: []cli.Flag{
+					&cli.Float64Flag{
+						Name:  "max-height",
+						Usage: "Max height of the terrain",
+						Value: 200,
+					},
+					&cli.Float64Flag{
+						Name:  "forest-width",
+						Usage: "Diameter of forest",
+						Value: 400,
+					},
+					&cli.IntFlag{
+						Name:  "tree-count",
+						Usage: "Number of trees the forest will contain",
+						Value: 200,
+					},
+
+					&cli.Float64Flag{
+						Name:  "min-tree-height",
+						Usage: "The minimum height of a tree in the forest",
+						Value: 20,
+					},
+					&cli.Float64Flag{
+						Name:  "min-tree-base",
+						Usage: "The minimum width of a trunk of a tree in the forest",
+						Value: 0.5,
+					},
+					&cli.Float64Flag{
+						Name:  "min-tree-covered",
+						Usage: "The minimum percent of a tree's trunk covered by it's branches in the forest",
+						Value: 0.7,
+					},
+					&cli.IntFlag{
+						Name:  "min-tree-branches",
+						Usage: "The minimum number of branches a tree will have",
+						Value: 200,
+					},
+
+					&cli.Float64Flag{
+						Name:  "max-tree-height",
+						Usage: "The maximum height of a tree in the forest",
+						Value: 45,
+					},
+					&cli.Float64Flag{
+						Name:  "max-tree-base",
+						Usage: "The maximum width of a trunk of a tree in the forest",
+						Value: 2.5,
+					},
+					&cli.Float64Flag{
+						Name:  "max-tree-covered",
+						Usage: "The maximum percent of a tree's trunk covered by it's branches in the forest",
+						Value: 0.9,
+					},
+					&cli.IntFlag{
+						Name:  "max-tree-branches",
+						Usage: "The maximum number of branches a tree will have",
+						Value: 500,
+					},
+
+					&cli.Float64Flag{
+						Name:        "min-snow",
+						Usage:       "Minimum percentage of snow to use on the branch textures",
+						DefaultText: "20%",
+						Value:       .2,
+					},
+					&cli.Float64Flag{
+						Name:        "max-snow",
+						Usage:       "Maximum percentage of snow to use on the branch textures",
+						DefaultText: "90%",
+						Value:       .9,
+					},
+
+					&cli.Int64Flag{
+						Name:        "seed",
+						Usage:       "The seed fpr the random number generator to use",
+						DefaultText: "clock time",
+					},
+					&cli.StringFlag{
+						Name:        "out",
+						Usage:       "Path to write the tree obj/mtl/pngs to",
+						DefaultText: ".",
+						Value:       ".",
+					},
+					&cli.StringFlag{
+						Name:        "name",
+						Usage:       "Name of the files that will be generated",
+						DefaultText: "tree",
+						Value:       "tree",
+					},
+				},
+				Action: func(ctx *cli.Context) error {
+					filePrefixes := path.Join(ctx.String("out"), ctx.String("name"))
+
+					initSeed(ctx)
+
+					terrainPBR := PBRTextures{
+						name: ctx.String("name") + "terrain",
+						path: ctx.String("out"),
+					}
+					branchPBR := PBRTextures{
+						name: ctx.String("name") + "branch",
+						path: ctx.String("out"),
+					}
+					barkPBR := PBRTextures{
+						name: ctx.String("name") + "_bark",
+						path: ctx.String("out"),
+					}
+
+					totalHeight := ctx.Float64("max-height")
+					terrainHeight := noise.PerlinStack([]noise.Stack2DEntry{
+						{Scalar: 1 / 300., Amplitude: totalHeight / 2},
+						{Scalar: 1 / 150., Amplitude: totalHeight / 8},
+						{Scalar: 1 / 75., Amplitude: totalHeight / 16},
+						{Scalar: 1 / 37.5, Amplitude: totalHeight / 32},
+					})
+
+					numTree := ctx.Int("tree-count")
+					forestWidth := ctx.Float64("forest-width")
+					terrain, maxTerrainValue := Terrain(forestWidth, terrainHeight.Value, &terrainPBR)
+
+					snowColors := coloring.NewColorStack([]coloring.ColorStackEntry{
+						coloring.NewColorStackEntry(10, 1, 1, color.RGBA{255, 255, 255, 255}),
+						coloring.NewColorStackEntry(1, 1, 1, color.RGBA{245, 247, 255, 255}),
+					})
+
+					terrainImageSize := 1024
+
+					TerrainTexture(
+						terrainImageSize,
+						forestWidth,
+						&terrainPBR,
+						snowColors,
+						maxTerrainValue,
+						terrainHeight.Value,
+					)
+
+					snowPath := []vector.Vector2{
+						vector.NewVector2(forestWidth/2, forestWidth/2),
+						vector.NewVector2(forestWidth, forestWidth),
+					}
+
+					terrain = DrawTrail(
+						terrain,
+						&terrainPBR,
+						snowPath,
+						forestWidth,
+						terrainImageSize,
+						snowColors,
+					)
+
+					atlas := BranchTexture(coloring.NewColorStack([]coloring.ColorStackEntry{
+						coloring.NewColorStackEntry(1, 1, 1, color.RGBA{12, 89, 36, 255}),
+						coloring.NewColorStackEntry(1, 1, 1, color.RGBA{3, 191, 0, 255}),
+						coloring.NewColorStackEntry(1, 1, 1, color.RGBA{2, 69, 23, 255}),
+					}), &branchPBR, 2048, ctx.Float64("min-snow"), ctx.Float64("max-snow"), 4, 4)
+
+					treePositions := calcTreePositions(numTree, forestWidth, terrainHeight.Value, snowPath)
+
+					minTreeHeight := ctx.Float64("min-tree-height")
+					maxTreeHeight := ctx.Float64("max-tree-height")
+
+					minTreeBase := ctx.Float64("min-tree-base")
+					maxTreeBase := ctx.Float64("max-tree-base")
+
+					minTreeCovered := ctx.Float64("min-tree-covered")
+					maxTreeCovered := ctx.Float64("max-tree-covered")
+
+					minTreeBranches := ctx.Int("min-tree-branches")
+					maxTreeBranches := ctx.Int("max-tree-branches")
+
+					treeColorNoise := noise.Sampler2D(noise.PerlinStack([]noise.Stack2DEntry{
+						{Scalar: 1 / 150., Amplitude: 1. / 2},
+						{Scalar: 1 / 75., Amplitude: 1. / 4},
+						{Scalar: 1 / 37.5, Amplitude: 1. / 8},
+						{Scalar: 1 / 18., Amplitude: 1. / 16},
+					}).Value)
+
+					for _, pos := range treePositions {
+						terrain = terrain.Append(
+							Tree(
+								minTreeHeight+((maxTreeHeight-minTreeHeight)*rand.Float64()),
+								minTreeBase+((maxTreeBase-minTreeBase)*rand.Float64()),
+								minTreeCovered+((maxTreeCovered-minTreeCovered)*rand.Float64()),
+								minTreeBranches+int(float64(maxTreeBranches-minTreeBranches)*rand.Float64()),
+								pos,
+								&branchPBR,
+								&barkPBR,
+								atlas.SubAtlas[int(math.Floor(treeColorNoise(pos.XZ())*float64(len(atlas.SubAtlas))))],
+								ctx.String("name")+"_bark.png",
+							),
+						)
+					}
+
+					TrunkTexture(
+						1024,
+						coloring.NewColorStack([]coloring.ColorStackEntry{
+							// coloring.NewColorStackEntry(1, 1, 1, color.RGBA{115, 87, 71, 255}),
+							coloring.NewColorStackEntry(1, 1, 1, color.RGBA{71, 43, 6, 255}),
+							coloring.NewColorStackEntry(1, 1, 1, color.RGBA{94, 63, 21, 255}),
+						}),
+						noise.Sampler2D(noise.PerlinStack([]noise.Stack2DEntry{
+							{Scalar: 1 / 50., Amplitude: 1. / 2},
+							{Scalar: 1 / 25., Amplitude: 1. / 4},
+							{Scalar: 1 / 12.5, Amplitude: 1. / 8},
+							{Scalar: 1 / 7.25, Amplitude: 1. / 16},
+						}).Value),
+						&barkPBR,
+					)
+
+					err := terrainPBR.Save()
+					if err != nil {
+						return err
+					}
+					err = branchPBR.Save()
+					if err != nil {
+						return err
+					}
+
+					err = barkPBR.Save()
+					if err != nil {
+						return err
+					}
+					return obj.Save(fmt.Sprintf("%s.obj", filePrefixes), terrain)
+				},
+			},
+		},
 	}
 
-	terrain = DrawTrail(
-		terrain,
-		&terrainPBR,
-		snowPath,
-		forestWidth,
-		terrainImageSize,
-		snowColors,
-	)
-
-	treePositions := calcTreePositions(numTree, forestWidth, terrainHeight.Value, snowPath)
-	for _, pos := range treePositions {
-		terrain = terrain.Append(
-			Tree(
-				20+(25*rand.Float64()),
-				0.5+(rand.Float64()*2),
-				.7+(.2*rand.Float64()),
-				noise.Sampler2D(noise.PerlinStack([]noise.Stack2DEntry{
-					{Scalar: 1 / 150., Amplitude: 1. / 2},
-					{Scalar: 1 / 75., Amplitude: 1. / 4},
-					{Scalar: 1 / 37.5, Amplitude: 1. / 8},
-					{Scalar: 1 / 18., Amplitude: 1. / 16},
-				}).Value),
-				pos,
-				branchPBR,
-			),
-		)
+	if err := app.Run(os.Args); err != nil {
+		log.Fatal(err)
 	}
 
-	// BranchTexture(coloring.NewColorStack([]coloring.ColorStackEntry{
-	// 	coloring.NewColorStackEntry(1, 1, 1, color.RGBA{12, 89, 36, 255}),
-	// 	coloring.NewColorStackEntry(1, 1, 1, color.RGBA{3, 191, 0, 255}),
-	// 	coloring.NewColorStackEntry(1, 1, 1, color.RGBA{2, 69, 23, 255}),
-	// }), branchPBR, 2048)
-
-	// TrunkTexture(
-	// 	1024,
-	// 	coloring.NewColorStack([]coloring.ColorStackEntry{
-	// 		// coloring.NewColorStackEntry(1, 1, 1, color.RGBA{115, 87, 71, 255}),
-	// 		coloring.NewColorStackEntry(1, 1, 1, color.RGBA{97, 61, 41, 255}),
-	// 		coloring.NewColorStackEntry(1, 1, 1, color.RGBA{102, 78, 44, 255}),
-	// 	}),
-	// 	noise.Sampler2D(noise.PerlinStack([]noise.Stack2DEntry{
-	// 		{Scalar: 1 / 50., Amplitude: 1. / 2},
-	// 		{Scalar: 1 / 25., Amplitude: 1. / 4},
-	// 		{Scalar: 1 / 12.5, Amplitude: 1. / 8},
-	// 		{Scalar: 1 / 7.25, Amplitude: 1. / 16},
-	// 	}).Value),
-	// )
-
-	terrainPBR.Save()
-	branchPBR.Save()
-	obj.Save("chill.obj", terrain)
 }

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"image/color"
 	"math"
 	"math/rand"
 
@@ -9,6 +8,7 @@ import (
 	"github.com/EliCDavis/mesh/coloring"
 	"github.com/EliCDavis/mesh/extrude"
 	"github.com/EliCDavis/mesh/noise"
+	"github.com/EliCDavis/mesh/texturing"
 	"github.com/EliCDavis/vector"
 	"github.com/fogleman/gg"
 )
@@ -36,9 +36,12 @@ func Cone(base float64, points ...vector.Vector3) mesh.Mesh {
 
 func Tree(
 	height, base, percentageCovered float64,
-	branchSnowNoise noise.Sampler2D,
+	branchCount int,
 	pos vector.Vector3,
-	textures PBRTextures,
+	branchTextures *PBRTextures,
+	barkTextures *PBRTextures,
+	atlas *Atlas,
+	branchPath string,
 ) mesh.Mesh {
 	percentBare := 1 - percentageCovered
 
@@ -46,7 +49,6 @@ func Tree(
 	heightBare := height * percentBare
 
 	// branchCount := 3
-	branchCount := 200 + int(rand.Float64()*300)
 	branchLength := height * 0.25 * (.8 + (.4 * rand.Float64()))
 
 	branches := mesh.EmptyMesh()
@@ -63,13 +65,16 @@ func Tree(
 			Normalized().
 			MultByConstant(branchLength * trailOffGivenHeight)
 
-		branchIndex := int(math.Floor(4 * branchSnowNoise(pos.XZ().Add(dir.XZ()))))
-		xCordOfBranch := branchIndex % 2
-		yCordOfBranch := math.Floor(float64(branchIndex) / 2.)
+		branchAtlasEntry := atlas.RandomEntry()
 
-		branchUV := vector.NewVector2(0.25, 1).
-			Add(vector.NewVector2(float64(xCordOfBranch)*.5, -yCordOfBranch*.5))
-		branchUVLength := 0.5
+		// branchUV := vector.NewVector2(0.25, 1).
+		// 	Add(vector.NewVector2(float64(xCordOfBranch)*.5, -yCordOfBranch*.5))
+
+		branchUV := vector.NewVector2(
+			branchAtlasEntry.MinX()+(branchAtlasEntry.Width()/2),
+			branchAtlasEntry.MaxY(),
+		)
+		branchUVLength := branchAtlasEntry.Height()
 
 		branches = branches.Append(extrude.Line([]extrude.LinePoint{
 			{
@@ -107,9 +112,7 @@ func Tree(
 		}))
 	}
 
-	barkImage := "bark.png"
-
-	branches = branches.SetMaterial(textures.Material())
+	branches = branches.SetMaterial(branchTextures.Material())
 
 	return Cone(
 		base,
@@ -117,16 +120,12 @@ func Tree(
 		vector.NewVector3(0, height, 0),
 	).
 		CalculateSmoothNormals().
-		SetMaterial(mesh.Material{
-			Name:            "Trunk",
-			DiffuseColor:    color.RGBA{99, 62, 10, 255},
-			ColorTextureURI: &barkImage,
-		}).
+		SetMaterial(barkTextures.Material()).
 		Append(branches).
 		Translate(pos)
 }
 
-func TrunkTexture(imageSize int, colors coloring.ColorStack, barkNoise noise.Sampler2D) error {
+func TrunkTexture(imageSize int, colors coloring.ColorStack, barkNoise noise.Sampler2D, barkPBR *PBRTextures) {
 	dc := gg.NewContext(imageSize, imageSize)
 	dc.SetRGBA(0, 0, 0, 0)
 	dc.Clear()
@@ -144,5 +143,6 @@ func TrunkTexture(imageSize int, colors coloring.ColorStack, barkNoise noise.Sam
 		}
 	}
 
-	return dc.SavePNG("bark.png")
+	barkPBR.color = dc.Image()
+	barkPBR.normal = texturing.ToNormal(dc.Image())
 }

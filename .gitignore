@@ -1,3 +1,4 @@
 *.obj
 *.mtl
 *.ply
+tmp/*

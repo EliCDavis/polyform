@@ -5,12 +5,14 @@ import (
 	"image/color"
 	"image/png"
 	"os"
+	"path"
 
 	"github.com/EliCDavis/mesh"
 )
 
 type PBRTextures struct {
 	name     string
+	path     string
 	color    image.Image
 	normal   image.Image
 	specular image.Image
@@ -29,9 +31,9 @@ func writeTex(name string, tex image.Image) error {
 }
 
 func (pbrt PBRTextures) Material() mesh.Material {
-	colorPath := (pbrt.ColorPath())
-	normalPath := (pbrt.NormalPath())
-	specularPath := (pbrt.SpecularPath())
+	colorPath := pbrt.ColorPath()
+	normalPath := pbrt.NormalPath()
+	specularPath := pbrt.SpecularPath()
 	return mesh.Material{
 		Name:               pbrt.name,
 		AmbientColor:       color.White,
@@ -55,15 +57,15 @@ func (pbrt PBRTextures) SpecularPath() string {
 }
 
 func (pbrt PBRTextures) Save() error {
-	err := writeTex(pbrt.ColorPath(), pbrt.color)
+	err := writeTex(path.Join(pbrt.path, pbrt.ColorPath()), pbrt.color)
 	if err != nil {
 		return err
 	}
 
-	err = writeTex(pbrt.NormalPath(), pbrt.normal)
+	err = writeTex(path.Join(pbrt.path, pbrt.NormalPath()), pbrt.normal)
 	if err != nil {
 		return err
 	}
 
-	return writeTex(pbrt.SpecularPath(), pbrt.specular)
+	return writeTex(path.Join(pbrt.path, pbrt.SpecularPath()), pbrt.specular)
 }
