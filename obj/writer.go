@@ -6,6 +6,7 @@ import (
 	"image/color"
 	"io"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -92,7 +93,7 @@ func WriteMaterial(mat mesh.Material, out io.Writer) error {
 func WriteMaterials(m mesh.Mesh, out io.Writer) error {
 	defaultWritten := false
 
-	written := make(map[mesh.Material]bool)
+	written := make(map[*mesh.Material]bool)
 
 	for _, mat := range m.Materials() {
 
@@ -107,7 +108,7 @@ func WriteMaterials(m mesh.Mesh, out io.Writer) error {
 			continue
 		}
 
-		_, ok := written[*mat.Material]
+		_, ok := written[mat.Material]
 		if ok {
 			continue
 		}
@@ -115,7 +116,7 @@ func WriteMaterials(m mesh.Mesh, out io.Writer) error {
 		if err != nil {
 			return err
 		}
-		written[*mat.Material] = true
+		written[mat.Material] = true
 	}
 	return nil
 }
@@ -241,15 +242,15 @@ func WriteMesh(m mesh.Mesh, materialFile string, out io.Writer) error {
 
 // Save writes the mesh to the path specified in OBJ format, optionally writing
 // an additional MTL file with materials are found within the mesh.
-func Save(path string, meshToSave mesh.Mesh) error {
-	objFile, err := os.Create(path)
+func Save(objPath string, meshToSave mesh.Mesh) error {
+	objFile, err := os.Create(objPath)
 	if err != nil {
 		return err
 	}
 	defer objFile.Close()
 
-	extension := filepath.Ext(path)
-	mtlName := path[0:len(path)-len(extension)] + ".mtl"
+	extension := filepath.Ext(objPath)
+	mtlName := objPath[0:len(objPath)-len(extension)] + ".mtl"
 	if len(meshToSave.Materials()) > 0 {
 		mtlFile, err := os.Create(mtlName)
 		if err != nil {
@@ -264,7 +265,7 @@ func Save(path string, meshToSave mesh.Mesh) error {
 	}
 
 	out := bufio.NewWriter(objFile)
-	err = WriteMesh(meshToSave, mtlName, out)
+	err = WriteMesh(meshToSave, path.Base(mtlName), out)
 	if err != nil {
 		return err
 	}

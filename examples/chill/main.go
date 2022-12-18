@@ -190,17 +190,16 @@ func main() {
 						coloring.NewColorStackEntry(1, 1, 1, color.RGBA{2, 69, 23, 255}),
 					}), &branchPBR, 2048, ctx.Float64("min-snow"), ctx.Float64("max-snow"), 2, 4)
 
-					tree := Tree(
+					trunk, branch := Tree(
 						treeHeight,
 						treeBase,
 						treeCovered,
 						branches,
-						vector.Vector3Zero(),
-						&branchPBR,
-						&barkPBR,
 						atlas,
-						ctx.String("name")+"_bark.png",
 					)
+
+					tree := trunk.SetMaterial(barkPBR.Material()).
+						Append(branch.SetMaterial(branchPBR.Material()))
 
 					TrunkTexture(
 						1024,
@@ -362,7 +361,7 @@ func main() {
 						coloring.NewColorStackEntry(1, 1, 1, color.RGBA{245, 247, 255, 255}),
 					})
 
-					terrainImageSize := 1024
+					terrainImageSize := 1024 * 4
 
 					TerrainTexture(
 						terrainImageSize,
@@ -423,21 +422,23 @@ func main() {
 						{Scalar: 1 / 18., Amplitude: 1. / 16},
 					}).Value)
 
+					trunks := mesh.EmptyMesh()
+					branches := mesh.EmptyMesh()
+
 					for _, pos := range treePositions {
-						terrain = terrain.Append(
-							Tree(
-								minTreeHeight+((maxTreeHeight-minTreeHeight)*rand.Float64()),
-								minTreeBase+((maxTreeBase-minTreeBase)*rand.Float64()),
-								minTreeCovered+((maxTreeCovered-minTreeCovered)*rand.Float64()),
-								minTreeBranches+int(float64(maxTreeBranches-minTreeBranches)*rand.Float64()),
-								pos,
-								&branchPBR,
-								&barkPBR,
-								atlas.SubAtlas[int(math.Floor(treeColorNoise(pos.XZ())*float64(len(atlas.SubAtlas))))],
-								ctx.String("name")+"_bark.png",
-							),
+						trunk, branch := Tree(
+							minTreeHeight+((maxTreeHeight-minTreeHeight)*rand.Float64()),
+							minTreeBase+((maxTreeBase-minTreeBase)*rand.Float64()),
+							minTreeCovered+((maxTreeCovered-minTreeCovered)*rand.Float64()),
+							minTreeBranches+int(float64(maxTreeBranches-minTreeBranches)*rand.Float64()),
+							atlas.SubAtlas[int(math.Floor(treeColorNoise(pos.XZ())*float64(len(atlas.SubAtlas))))],
 						)
+						trunks = trunks.Append(trunk.Translate(pos))
+						branches = branches.Append(branch.Translate(pos))
 					}
+					terrain = terrain.
+						Append(trunks.SetMaterial(barkPBR.Material())).
+						Append(branches.SetMaterial(branchPBR.Material()))
 
 					TrunkTexture(
 						1024,

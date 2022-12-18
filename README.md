@@ -59,10 +59,21 @@ func main() {
 - [primitives](/repeat/) - Functionality pertaining to generating common geometry.
 - [noise](/noise/) - Utilities around noise functions for common usecases like stacking multiple samples of perlin noise from different frequencies.
 - [coloring](/coloring/) - Color utilities for blending multiple colors together using weights.
+- [texturing](/texturing/) - Image processing utilities like generating Normal maps or blurring images.
 
 ## Procedural Generation Examples
 
 You can at the different projects under the [cmd](/cmd/) folder for different examples on how to procedurally generate meshes.
+
+### Evergreen Trees
+
+This was my [submission for ProcJam 2022](https://elicdavis.itch.io/evergreen-tree-generation). Pretty much uses every bit of functionality available in this repository.
+
+[[Source Here](/examples/terrain/main.go)]
+
+![Evergreen Tree Demo](./examples/chill/tree-demo.png)
+
+![Evergreen Terrain Demo](./examples/chill/terrain-demo.png)
 
 ### Terrain
 
@@ -109,6 +120,7 @@ Resources either directly contributing to the code here or interesting finds whi
 * Noise 
 	* [Perlin Noise](https://gpfault.net/posts/perlin-noise.txt.html)
 	* [Worley/Cellular Noise](https://thebookofshaders.com/12/)
+	* [Book of Shaders on Noise](https://thebookofshaders.com/11/)
 	* [Simplex Noise](https://en.wikipedia.org/wiki/Simplex_noise)
 * Triangulation
 	* Delaunay

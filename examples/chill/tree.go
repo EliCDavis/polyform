@@ -37,12 +37,8 @@ func Cone(base float64, points ...vector.Vector3) mesh.Mesh {
 func Tree(
 	height, base, percentageCovered float64,
 	branchCount int,
-	pos vector.Vector3,
-	branchTextures *PBRTextures,
-	barkTextures *PBRTextures,
 	atlas *Atlas,
-	branchPath string,
-) mesh.Mesh {
+) (mesh.Mesh, mesh.Mesh) {
 	percentBare := 1 - percentageCovered
 
 	heightCovered := height * percentageCovered
@@ -112,17 +108,12 @@ func Tree(
 		}))
 	}
 
-	branches = branches.SetMaterial(branchTextures.Material())
-
 	return Cone(
 		base,
 		vector.NewVector3(0, 0, 0),
 		vector.NewVector3(0, height, 0),
 	).
-		CalculateSmoothNormals().
-		SetMaterial(barkTextures.Material()).
-		Append(branches).
-		Translate(pos)
+		CalculateSmoothNormals(), branches
 }
 
 func TrunkTexture(imageSize int, colors coloring.ColorStack, barkNoise noise.Sampler2D, barkPBR *PBRTextures) {
