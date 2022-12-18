@@ -63,7 +63,7 @@ func main() {
 
 ## Procedural Generation Examples
 
-You can at the different projects under the [cmd](/cmd/) folder for different examples on how to procedurally generate meshes.
+You can at the different projects under the [examples](/examples/) folder for different examples on how to procedurally generate meshes.
 
 ### Evergreen Trees
 
@@ -113,9 +113,9 @@ Things I want to implement eventually...
 - [ ] Slice By Octree
 - [ ] Poisson Reconstruction
 
-## Resources Used
+## Resources
 
-Resources either directly contributing to the code here or interesting finds while researching.
+Resources either directly contributing to the code here or are just interesting finds while researching.
 
 * Noise 
 	* [Perlin Noise](https://gpfault.net/posts/perlin-noise.txt.html)
@@ -138,7 +138,7 @@ Resources either directly contributing to the code here or interesting finds whi
 * Texturing
 	* [Normal Map From Color Map](https://stackoverflow.com/questions/5281261/generating-a-normal-map-from-a-height-map)
 * Formats
-	* OBJ
+	* OBJ/MTL
 		* [jburkardt MTL](https://people.sc.fsu.edu/~jburkardt/data/mtl/mtl.html) 
 		* [Excerpt from FILE FORMATS, Version 4.2 October 1995 MTL](http://paulbourke.net/dataformats/mtl/)
 * Generative Techniques
