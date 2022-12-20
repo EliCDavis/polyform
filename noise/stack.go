@@ -25,7 +25,7 @@ func PerlinStack(entries []Stack2DEntry) Stack2D {
 	}
 	return Stack2D{
 		f: func(v vector.Vector2) float64 {
-			return noise2D(v, fade, gradientOverValues(newVals))
+			return noise2D(v, QuinticInterpolation, gradientOverValues(newVals))
 		},
 		entries: entries,
 	}

@@ -3,11 +3,10 @@ package main
 import (
 	"image/color"
 	"math"
-	"os"
 
 	"github.com/EliCDavis/mesh"
 	"github.com/EliCDavis/mesh/extrude"
-	"github.com/EliCDavis/mesh/obj"
+	"github.com/EliCDavis/mesh/formats/obj"
 	"github.com/EliCDavis/mesh/primitives"
 	"github.com/EliCDavis/mesh/repeat"
 	"github.com/EliCDavis/vector"
@@ -188,16 +187,9 @@ func main() {
 		},
 	).SetMaterial(mat)
 
-	f, err := os.Create("fired-heater.obj")
+	err := obj.Save("fired-heater.obj", final)
+
 	if err != nil {
 		panic(err)
 	}
-
-	mtl, err := os.Create("fired-heater.mtl")
-	if err != nil {
-		panic(err)
-	}
-
-	obj.WriteMesh(final, "fired-heater.mtl", f)
-	obj.WriteMaterials(final, mtl)
 }

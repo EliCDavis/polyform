@@ -10,8 +10,8 @@ import (
 
 	"github.com/EliCDavis/mesh"
 	"github.com/EliCDavis/mesh/coloring"
+	"github.com/EliCDavis/mesh/formats/obj"
 	"github.com/EliCDavis/mesh/noise"
-	"github.com/EliCDavis/mesh/obj"
 	"github.com/EliCDavis/mesh/triangulation"
 	"github.com/EliCDavis/vector"
 )

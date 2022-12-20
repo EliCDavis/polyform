@@ -78,7 +78,13 @@ var randvals = []float64{
 	0.5188597230718879, 0.5656091134135179, 0.5737223060700867,
 }
 
-func fade(t float64) float64 {
+// Cubic Hermite Curve
+func CubicHermite(t float64) float64 {
+	return math.Pow(t, 2) * (3.0 - 2.0*t)
+}
+
+// Quintic interpolation curve
+func QuinticInterpolation(t float64) float64 {
 	return math.Pow(t, 3) * (t*(t*6-15) + 10)
 }
 
@@ -153,9 +159,9 @@ func noise1D(p float64, f, g func(float64) float64) float64 {
 }
 
 func Perlin1D(x float64) float64 {
-	return noise1D(x, fade, grad)
+	return noise1D(x, QuinticInterpolation, grad)
 }
 
 func Perlin2D(v vector.Vector2) float64 {
-	return noise2D(v, fade, gradientOverValues(randvals))
+	return noise2D(v, QuinticInterpolation, gradientOverValues(randvals))
 }

@@ -1,6 +1,6 @@
 *.obj
 *.mtl
 *.ply
-tmp/*
+tmp/
 
 *.exe

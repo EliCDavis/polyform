@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/EliCDavis/mesh/obj"
+	"github.com/EliCDavis/mesh/formats/obj"
 	"github.com/EliCDavis/vector"
 	"github.com/urfave/cli/v2"
 )

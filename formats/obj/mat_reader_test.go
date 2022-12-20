@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/EliCDavis/mesh/obj"
+	"github.com/EliCDavis/mesh/formats/obj"
 	"github.com/stretchr/testify/assert"
 )
 

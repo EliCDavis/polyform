@@ -7,7 +7,7 @@ import (
 
 	"github.com/EliCDavis/mesh"
 	"github.com/EliCDavis/mesh/extrude"
-	"github.com/EliCDavis/mesh/obj"
+	"github.com/EliCDavis/mesh/formats/obj"
 	"github.com/EliCDavis/mesh/primitives"
 	"github.com/EliCDavis/mesh/repeat"
 	"github.com/EliCDavis/vector"

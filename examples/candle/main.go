@@ -4,11 +4,10 @@ import (
 	"image"
 	"image/color"
 	"math"
-	"os"
 
 	"github.com/EliCDavis/mesh"
 	"github.com/EliCDavis/mesh/extrude"
-	"github.com/EliCDavis/mesh/obj"
+	"github.com/EliCDavis/mesh/formats/obj"
 	"github.com/EliCDavis/vector"
 	"github.com/fogleman/gg"
 	"golang.org/x/image/draw"
@@ -147,18 +146,8 @@ func main() {
 	final := candleBody(1, 0.5, 0.1, 0.9, 0.0125, 0.1).
 		SetMaterial(candleMat)
 
-	mtlFile, err := os.Create("candle.mtl")
+	err := obj.Save("candle.obj", final)
 	if err != nil {
 		panic(err)
 	}
-	defer mtlFile.Close()
-
-	objFile, err := os.Create("candle.obj")
-	if err != nil {
-		panic(err)
-	}
-	defer objFile.Close()
-
-	obj.WriteMesh(final, "candle.mtl", objFile)
-	obj.WriteMaterials(final, mtlFile)
 }

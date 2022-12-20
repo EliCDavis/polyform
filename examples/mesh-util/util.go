@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	"github.com/EliCDavis/mesh"
-	"github.com/EliCDavis/mesh/obj"
-	"github.com/EliCDavis/mesh/ply"
+	"github.com/EliCDavis/mesh/formats/obj"
+	"github.com/EliCDavis/mesh/formats/ply"
 )
 
 func readMesh(path string) (*mesh.Mesh, error) {

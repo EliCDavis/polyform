@@ -21,7 +21,7 @@ import (
 	"os"
 
 	"github.com/EliCDavis/mesh"
-	"github.com/EliCDavis/mesh/obj"
+	"github.com/EliCDavis/mesh/formats/obj"
 )
 
 func main() {
@@ -144,3 +144,5 @@ Resources either directly contributing to the code here or are just interesting 
 * Generative Techniques
     * [Country Flags by vividfax](https://vividfax.notion.site/Generative-Flag-Design-e663bc26f5a54ab48fad1428bc32b610)
 	* [Snow by Ryan King](https://www.youtube.com/watch?v=UzJnsqIRbDw)
+* Voronoi
+	* [Voronoi Edges by Inigo Quilez](https://iquilezles.org/articles/voronoilines/)

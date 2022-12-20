@@ -14,11 +14,31 @@ import (
 
 	"github.com/EliCDavis/mesh"
 	"github.com/EliCDavis/mesh/coloring"
+	"github.com/EliCDavis/mesh/formats/obj"
 	"github.com/EliCDavis/mesh/noise"
-	"github.com/EliCDavis/mesh/obj"
 	"github.com/EliCDavis/vector"
 	"github.com/urfave/cli/v2"
 )
+
+func branchColorPallettes() map[string]coloring.ColorStack {
+	return map[string]coloring.ColorStack{
+		"green": coloring.NewColorStack([]coloring.ColorStackEntry{
+			coloring.NewColorStackEntry(1, 1, 1, color.RGBA{12, 89, 36, 255}),
+			coloring.NewColorStackEntry(1, 1, 1, color.RGBA{3, 191, 0, 255}),
+			coloring.NewColorStackEntry(1, 1, 1, color.RGBA{2, 69, 23, 255}),
+		}),
+		"dead": coloring.NewColorStack([]coloring.ColorStackEntry{
+			coloring.NewColorStackEntry(1, 1, 1, color.RGBA{234, 226, 126, 255}),
+			coloring.NewColorStackEntry(1, 1, 1, color.RGBA{228, 179, 95, 255}),
+			coloring.NewColorStackEntry(1, 1, 1, color.RGBA{171, 120, 52, 255}),
+		}),
+		"red": coloring.NewColorStack([]coloring.ColorStackEntry{
+			coloring.NewColorStackEntry(1, 1, 1, color.RGBA{168, 50, 62, 255}),
+			coloring.NewColorStackEntry(1, 1, 1, color.RGBA{224, 94, 107, 255}),
+			coloring.NewColorStackEntry(1, 1, 1, color.RGBA{204, 22, 86, 255}),
+		}),
+	}
+}
 
 func randomVec2Radial() vector.Vector2 {
 	theta := rand.Float64() * 2 * math.Pi
@@ -111,6 +131,11 @@ func main() {
 						Usage:       "Number of branches the tree will have",
 						DefaultText: "random value between 200 and 500",
 					},
+					&cli.StringFlag{
+						Name:  "branch-pallette",
+						Usage: "The color pallette to use for coloring the tree",
+						Value: "green",
+					},
 
 					&cli.Float64Flag{
 						Name:  "min-snow",
@@ -184,11 +209,14 @@ func main() {
 						path: ctx.String("out"),
 					}
 
-					atlas := BranchTexture(coloring.NewColorStack([]coloring.ColorStackEntry{
-						coloring.NewColorStackEntry(1, 1, 1, color.RGBA{12, 89, 36, 255}),
-						coloring.NewColorStackEntry(1, 1, 1, color.RGBA{3, 191, 0, 255}),
-						coloring.NewColorStackEntry(1, 1, 1, color.RGBA{2, 69, 23, 255}),
-					}), &branchPBR, 2048, ctx.Float64("min-snow"), ctx.Float64("max-snow"), 2, 4)
+					atlas := BranchTexture(
+						branchColorPallettes()[ctx.String("branch-pallette")],
+						&branchPBR, 2048,
+						ctx.Float64("min-snow"),
+						ctx.Float64("max-snow"),
+						2,
+						4,
+					)
 
 					trunk, branch := Tree(
 						treeHeight,
@@ -296,6 +324,11 @@ func main() {
 						Usage: "The maximum number of branches a tree will have",
 						Value: 500,
 					},
+					&cli.StringFlag{
+						Name:  "branch-pallette",
+						Usage: "The color pallette to use for coloring the tree",
+						Value: "green",
+					},
 
 					&cli.Float64Flag{
 						Name:  "min-snow",
@@ -395,11 +428,15 @@ func main() {
 						)
 					}
 
-					atlas := BranchTexture(coloring.NewColorStack([]coloring.ColorStackEntry{
-						coloring.NewColorStackEntry(1, 1, 1, color.RGBA{12, 89, 36, 255}),
-						coloring.NewColorStackEntry(1, 1, 1, color.RGBA{3, 191, 0, 255}),
-						coloring.NewColorStackEntry(1, 1, 1, color.RGBA{2, 69, 23, 255}),
-					}), &branchPBR, 2048, ctx.Float64("min-snow"), ctx.Float64("max-snow"), 4, 4)
+					atlas := BranchTexture(
+						branchColorPallettes()[ctx.String("branch-pallette")],
+						&branchPBR,
+						2048,
+						ctx.Float64("min-snow"),
+						ctx.Float64("max-snow"),
+						4,
+						4,
+					)
 
 					treePositions := calcTreePositions(numTree, forestWidth, terrainHeight.Value, snowPath)
 
