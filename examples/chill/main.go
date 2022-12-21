@@ -215,6 +215,7 @@ func main() {
 						ctx.Float64("min-snow"),
 						ctx.Float64("max-snow"),
 						2,
+						1,
 						4,
 					)
 
@@ -435,6 +436,7 @@ func main() {
 						ctx.Float64("min-snow"),
 						ctx.Float64("max-snow"),
 						4,
+						1,
 						4,
 					)
 

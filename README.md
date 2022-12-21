@@ -89,7 +89,6 @@ Shows off how to use the repeat, primitives, and extrude utilities in this repos
 
 [[Source Here](/examples/ufo/main.go)]
 
-
 ![ufo](/examples/ufo/ufo.png)
 
 ### Candle
@@ -97,7 +96,6 @@ Shows off how to use the repeat, primitives, and extrude utilities in this repos
 Shows off how to use the primitives and extrude utilities in this repository.
 
 [[Source Here](/examples/candle/main.go)]
-
 
 ![candle](/examples/candle/candle.png)
 
@@ -117,32 +115,40 @@ Things I want to implement eventually...
 
 Resources either directly contributing to the code here or are just interesting finds while researching.
 
-* Noise 
-	* [Perlin Noise](https://gpfault.net/posts/perlin-noise.txt.html)
-	* [Worley/Cellular Noise](https://thebookofshaders.com/12/)
-	* [Book of Shaders on Noise](https://thebookofshaders.com/11/)
-	* [Simplex Noise](https://en.wikipedia.org/wiki/Simplex_noise)
-* Triangulation
-	* Delaunay
-		* Bowyer–Watson
-			* [A short video overview](https://www.youtube.com/watch?v=4ySSsESzw2Y)
-			* [General Algorithm Description](https://en.wikipedia.org/wiki/Bowyer%E2%80%93Watson_algorithm)
-		* Constraint/Refinement
-			* [Computing Constrained Delaunay Traingulations By Samuel Peterson](http://www.geom.uiuc.edu/~samuelp/del_project.html#implementation)
-			* [Chew's Second Algorithm](https://cccg.ca/proceedings/2011/papers/paper91.pdf)
-	* Polygons
-	  * [Wikipedia](https://en.wikipedia.org/wiki/Polygon_triangulation)
-	  * [Fast Polygon Triangulation Based on Seidel's Algorithm By Atul Narkhede and Dinesh Manocha](http://gamma.cs.unc.edu/SEIDEL/)
-	  * [Triangulating a Monotone Polygon
-](http://homepages.math.uic.edu/~jan/mcs481/triangulating.pdf)
-* Texturing
-	* [Normal Map From Color Map](https://stackoverflow.com/questions/5281261/generating-a-normal-map-from-a-height-map)
-* Formats
-	* OBJ/MTL
-		* [jburkardt MTL](https://people.sc.fsu.edu/~jburkardt/data/mtl/mtl.html) 
-		* [Excerpt from FILE FORMATS, Version 4.2 October 1995 MTL](http://paulbourke.net/dataformats/mtl/)
-* Generative Techniques
-    * [Country Flags by vividfax](https://vividfax.notion.site/Generative-Flag-Design-e663bc26f5a54ab48fad1428bc32b610)
-	* [Snow by Ryan King](https://www.youtube.com/watch?v=UzJnsqIRbDw)
-* Voronoi
-	* [Voronoi Edges by Inigo Quilez](https://iquilezles.org/articles/voronoilines/)
+- Noise
+  - [Perlin Noise](https://gpfault.net/posts/perlin-noise.txt.html)
+    - [Perlin Worms](https://libnoise.sourceforge.net/examples/worms/index.html)
+  - [Worley/Cellular Noise](https://thebookofshaders.com/12/)
+  - [Book of Shaders on Noise](https://thebookofshaders.com/11/)
+  - [Simplex Noise](https://en.wikipedia.org/wiki/Simplex_noise)
+- Triangulation
+  _ Delaunay
+  _ Bowyer–Watson
+  _ [A short video overview](https://www.youtube.com/watch?v=4ySSsESzw2Y)
+  _ [General Algorithm Description](https://en.wikipedia.org/wiki/Bowyer%E2%80%93Watson_algorithm)
+  _ Constraint/Refinement
+  _ [Computing Constrained Delaunay Traingulations By Samuel Peterson](http://www.geom.uiuc.edu/~samuelp/del_project.html#implementation)
+  _ [Chew's Second Algorithm](https://cccg.ca/proceedings/2011/papers/paper91.pdf)
+  _ Polygons
+  _ [Wikipedia](https://en.wikipedia.org/wiki/Polygon_triangulation)
+  _ [Fast Polygon Triangulation Based on Seidel's Algorithm By Atul Narkhede and Dinesh Manocha](http://gamma.cs.unc.edu/SEIDEL/) \* [Triangulating a Monotone Polygon
+  ](http://homepages.math.uic.edu/~jan/mcs481/triangulating.pdf)
+- Texturing
+  - [Normal Map From Color Map](https://stackoverflow.com/questions/5281261/generating-a-normal-map-from-a-height-map)
+- Formats
+  - OBJ/MTL
+    - [jburkardt MTL](https://people.sc.fsu.edu/~jburkardt/data/mtl/mtl.html)
+    - [Excerpt from FILE FORMATS, Version 4.2 October 1995 MTL](http://paulbourke.net/dataformats/mtl/)
+- Generative Techniques
+  - [Country Flags by vividfax](https://vividfax.notion.site/Generative-Flag-Design-e663bc26f5a54ab48fad1428bc32b610)
+  - [Snow by Ryan King](https://www.youtube.com/watch?v=UzJnsqIRbDw)
+  - Terrain
+    - [World Gen by Leather Bee](https://leatherbee.org/index.php/category/world-gen/)
+    - [Procedural Hydrology: Dynamic Lake and River Simulation By: Nicholas McDonald](https://nickmcd.me/2020/04/15/procedural-hydrology/)
+    - [The Canyons of Your Mind By JonathanCR](https://undiscoveredworlds.blogspot.com/2019/05/the-canyons-of-your-mind.html)
+    - [Simulating hydraulic erosion By Job Talle](https://jobtalle.com/simulating_hydraulic_erosion.html)
+    - [Coastal Landforms for Fantasy Mapping](https://www.youtube.com/watch?v=ztemzsxso0U)
+  - Planet
+    - [Planet Generation](https://archive.vn/kmVP4)
+- Voronoi
+  - [Voronoi Edges by Inigo Quilez](https://iquilezles.org/articles/voronoilines/)
