@@ -5,8 +5,8 @@ import (
 	"image/color"
 	"math/rand"
 
-	"github.com/EliCDavis/mesh/coloring"
-	"github.com/EliCDavis/mesh/texturing"
+	"github.com/EliCDavis/polyform/drawing/coloring"
+	"github.com/EliCDavis/polyform/drawing/texturing"
 	"github.com/EliCDavis/vector"
 	"github.com/fogleman/gg"
 )

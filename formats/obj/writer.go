@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/EliCDavis/mesh"
+	"github.com/EliCDavis/polyform/modeling"
 )
 
 func ColorString(color color.Color) string {
@@ -18,7 +18,7 @@ func ColorString(color color.Color) string {
 	return fmt.Sprintf("%f %f %f", float64(r)/0xffff, float64(g)/0xffff, float64(b)/0xffff)
 }
 
-func WriteMaterial(mat mesh.Material, out io.Writer) error {
+func WriteMaterial(mat modeling.Material, out io.Writer) error {
 	_, err := fmt.Fprintf(out, "newmtl %s\n", strings.Replace(mat.Name, " ", "", -1))
 	if err != nil {
 		return err
@@ -90,16 +90,16 @@ func WriteMaterial(mat mesh.Material, out io.Writer) error {
 	return err
 }
 
-func WriteMaterials(m mesh.Mesh, out io.Writer) error {
+func WriteMaterials(m modeling.Mesh, out io.Writer) error {
 	defaultWritten := false
 
-	written := make(map[*mesh.Material]bool)
+	written := make(map[*modeling.Material]bool)
 
 	for _, mat := range m.Materials() {
 
 		if mat.Material == nil {
 			if !defaultWritten {
-				err := WriteMaterial(mesh.DefaultMaterial(), out)
+				err := WriteMaterial(modeling.DefaultMaterial(), out)
 				if err != nil {
 					return err
 				}
@@ -121,7 +121,7 @@ func WriteMaterials(m mesh.Mesh, out io.Writer) error {
 	return nil
 }
 
-func writeUsingMaterial(mat *mesh.Material, out io.Writer) {
+func writeUsingMaterial(mat *modeling.Material, out io.Writer) {
 	if mat == nil {
 		fmt.Fprint(out, "usemtl DefaultDiffuse\n")
 	} else {
@@ -181,7 +181,7 @@ func writeFaceVertAndUvsAndNormals(tris []int, out io.Writer, start, end int) er
 	return nil
 }
 
-func WriteMesh(m mesh.Mesh, materialFile string, out io.Writer) error {
+func WriteMesh(m modeling.Mesh, materialFile string, out io.Writer) error {
 	if materialFile != "" {
 		fmt.Fprintf(out, "mtllib %s\no mesh\n", materialFile)
 	}
@@ -241,8 +241,8 @@ func WriteMesh(m mesh.Mesh, materialFile string, out io.Writer) error {
 }
 
 // Save writes the mesh to the path specified in OBJ format, optionally writing
-// an additional MTL file with materials are found within the mesh.
-func Save(objPath string, meshToSave mesh.Mesh) error {
+// an additional MTL file with materials are found within the modeling.
+func Save(objPath string, meshToSave modeling.Mesh) error {
 	objFile, err := os.Create(objPath)
 	if err != nil {
 		return err

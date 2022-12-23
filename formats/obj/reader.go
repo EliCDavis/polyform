@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/EliCDavis/mesh"
+	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/vector"
 )
 
@@ -108,7 +108,7 @@ func parseObjFaceComponent(component string) (v int, vt int, vn int, err error) 
 	return
 }
 
-func ReadMesh(in io.Reader) (*mesh.Mesh, []string, error) {
+func ReadMesh(in io.Reader) (*modeling.Mesh, []string, error) {
 	scanner := bufio.NewScanner(in)
 
 	tris := make([]int, 0)
@@ -121,8 +121,8 @@ func ReadMesh(in io.Reader) (*mesh.Mesh, []string, error) {
 	verts := make([]vector.Vector3, 0)
 	normals := make([]vector.Vector3, 0)
 	uvs := make([]vector.Vector2, 0)
-	meshMaterials := make([]mesh.MeshMaterial, 0)
-	meshNameToMaterial := make(map[string]*mesh.Material)
+	meshMaterials := make([]modeling.MeshMaterial, 0)
+	meshNameToMaterial := make(map[string]*modeling.Material)
 
 	trisSenseLastMat := 0
 
@@ -149,9 +149,9 @@ func ReadMesh(in io.Reader) (*mesh.Mesh, []string, error) {
 
 			if trisSenseLastMat > 0 {
 				if len(meshMaterials) == 0 {
-					meshMaterials = append(meshMaterials, mesh.MeshMaterial{
+					meshMaterials = append(meshMaterials, modeling.MeshMaterial{
 						NumOfTris: trisSenseLastMat,
-						Material: &mesh.Material{
+						Material: &modeling.Material{
 							Name: "Default",
 						},
 					})
@@ -162,18 +162,18 @@ func ReadMesh(in io.Reader) (*mesh.Mesh, []string, error) {
 
 			trisSenseLastMat = 0
 
-			var meshMat *mesh.Material = nil
+			var meshMat *modeling.Material = nil
 
 			if mat, ok := meshNameToMaterial[matToUse]; ok {
 				meshMat = mat
 			} else {
-				meshMat = &mesh.Material{
+				meshMat = &modeling.Material{
 					Name: matToUse,
 				}
 				meshNameToMaterial[matToUse] = meshMat
 			}
 
-			meshMaterials = append(meshMaterials, mesh.MeshMaterial{
+			meshMaterials = append(meshMaterials, modeling.MeshMaterial{
 				NumOfTris: 0,
 				Material:  meshMat,
 			})
@@ -283,7 +283,7 @@ func ReadMesh(in io.Reader) (*mesh.Mesh, []string, error) {
 		}
 	}
 
-	mesh := mesh.NewMeshWithMaterials(
+	mesh := modeling.NewMeshWithMaterials(
 		tris,
 		verts,
 		normals,

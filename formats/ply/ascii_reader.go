@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/EliCDavis/mesh"
+	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/vector"
 )
 
@@ -119,7 +119,7 @@ func (ar *AsciiReader) readFaceData(element Element) ([]int, error) {
 	return triData, nil
 }
 
-func (ar *AsciiReader) ReadMesh() (*mesh.Mesh, error) {
+func (ar *AsciiReader) ReadMesh() (*modeling.Mesh, error) {
 	var vertexData []vector.Vector3
 	var triData []int
 	for _, element := range ar.elements {
@@ -140,7 +140,7 @@ func (ar *AsciiReader) ReadMesh() (*mesh.Mesh, error) {
 		}
 	}
 
-	finalMesh := mesh.NewMesh(triData, vertexData, nil, nil)
+	finalMesh := modeling.NewMesh(triData, vertexData, nil, nil)
 
 	return &finalMesh, nil
 }

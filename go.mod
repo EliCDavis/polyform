@@ -1,4 +1,4 @@
-module github.com/EliCDavis/mesh
+module github.com/EliCDavis/polyform
 
 go 1.17
 

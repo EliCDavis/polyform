@@ -7,7 +7,7 @@ Took the prompt pretty literally because I'm boring, so cold stuff! Snow and stu
 ## Installation
 
 ```bash
-git clone github.com/EliCDavis/mesh
+git clone github.com/EliCDavis/modeling
 cd mesh
 go install ./examples/chill
 ```

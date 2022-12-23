@@ -5,11 +5,11 @@ import (
 	"image/color"
 	"math"
 
-	"github.com/EliCDavis/mesh"
-	"github.com/EliCDavis/mesh/coloring"
-	"github.com/EliCDavis/mesh/noise"
-	"github.com/EliCDavis/mesh/texturing"
-	"github.com/EliCDavis/mesh/triangulation"
+	"github.com/EliCDavis/polyform/drawing/coloring"
+	"github.com/EliCDavis/polyform/drawing/texturing"
+	"github.com/EliCDavis/polyform/math/noise"
+	"github.com/EliCDavis/polyform/modeling"
+	"github.com/EliCDavis/polyform/modeling/triangulation"
 	"github.com/EliCDavis/vector"
 	"github.com/fogleman/gg"
 )
@@ -57,7 +57,7 @@ func TerrainTexture(
 			pixel := vector.NewVector2(float64(x), float64(y))
 
 			colorSample := colorSampleFunc(pixel)
-			clampedSample := mesh.Clamp(colorSample/(float64(textureSize)/40.), 0, 1)
+			clampedSample := modeling.Clamp(colorSample/(float64(textureSize)/40.), 0, 1)
 			tex.Set(x, y, colors.LinearSample(clampedSample))
 
 			// worldSpacePos := pixel.MultByConstant(scaleFactor)
@@ -65,7 +65,7 @@ func TerrainTexture(
 
 			spec := uint8((reSample(1.-clampedSample, vector.NewVector2(0, 1), vector.NewVector2(0.5, 0.75)) * .65) * 255)
 
-			clampedSample = mesh.Clamp((colorSample+(df6.Sample(pixel)/2))/(float64(textureSize)/40.), 0, 1)
+			clampedSample = modeling.Clamp((colorSample+(df6.Sample(pixel)/2))/(float64(textureSize)/40.), 0, 1)
 			nrml := uint8((reSample(1.-clampedSample, vector.NewVector2(0, 1), vector.NewVector2(0.2, 0.75)) * .85) * 255)
 
 			specTex.Set(x, y, color.RGBA{
@@ -96,13 +96,13 @@ func SnakeOut(x, amplitude, iterations, scale float64) float64 {
 }
 
 func DrawTrail(
-	terrain mesh.Mesh,
+	terrain modeling.Mesh,
 	textures *PBRTextures,
 	trail Trail,
 	forestWidth float64,
 	terrainImageSize int,
 	snowColors coloring.ColorStack,
-) mesh.Mesh {
+) modeling.Mesh {
 
 	if len(trail.Segments) == 0 {
 		return terrain
@@ -130,7 +130,7 @@ func DrawTrail(
 			heightAdj := 0.
 
 			for _, seg := range trail.Segments {
-				line := mesh.NewLine2D(
+				line := modeling.NewLine2D(
 					vector.NewVector2(
 						seg.StartX,
 						seg.StartY,
@@ -153,7 +153,7 @@ func DrawTrail(
 		CalculateSmoothNormals()
 }
 
-func Terrain(forestWidth float64, height noise.Sampler2D, textures *PBRTextures) (mesh.Mesh, vector.Vector3) {
+func Terrain(forestWidth float64, height noise.Sampler2D, textures *PBRTextures) (modeling.Mesh, vector.Vector3) {
 	n := 10000
 	mapRadius := forestWidth / 2
 	mapOffset := vector.NewVector2(mapRadius, mapRadius)

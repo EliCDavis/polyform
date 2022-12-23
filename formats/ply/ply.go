@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/EliCDavis/mesh"
+	"github.com/EliCDavis/polyform/modeling"
 )
 
 type Format int64
@@ -139,7 +139,7 @@ func readPlyHeader(in io.Reader) (reader, error) {
 	return &AsciiReader{elements: elements, scanner: scanner}, nil
 }
 
-func ToMesh(in io.Reader) (*mesh.Mesh, error) {
+func ToMesh(in io.Reader) (*modeling.Mesh, error) {
 	reader, err := readPlyHeader(in)
 	if err != nil {
 		return nil, err

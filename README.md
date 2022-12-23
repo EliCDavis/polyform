@@ -1,14 +1,10 @@
-# Mesh
+# Polyform
 
-Library for editing and generating 3D geometry.
+Library for generating and editing 3D geometry and it's associated data.
 
 ❌ Doing one thing really well.
 
 ✔️ Doing everything terribly.
-
-```
-go get github.com/EliCDavis/mesh
-```
 
 ## Processing Example
 
@@ -18,48 +14,48 @@ Reads in a obj file and welds vertices, applies laplacian smoothing, and calcula
 package main
 
 import (
-	"os"
+  "os"
 
-	"github.com/EliCDavis/mesh"
-	"github.com/EliCDavis/mesh/formats/obj"
+  "github.com/EliCDavis/polyform/formats/obj"
 )
 
 func main() {
-	inFile, err := os.Open("dirty.obj")
-	if err != nil {
-		panic(err)
-	}
-	defer inFile.Close()
+  inFile, err := os.Open("dirty.obj")
+  if err != nil {
+    panic(err)
+  }
+  defer inFile.Close()
 
-	loadedMesh, _, err := obj.ReadMesh(inFile)
-	if err != nil {
-		panic(err)
-	}
+  loadedMesh, _, err := obj.ReadMesh(inFile)
+  if err != nil {
+    panic(err)
+  }
 
-	outFile, err := os.Create("smooth.obj")
-	if err != nil {
-		panic(err)
-	}
-	defer outFile.Close()
+  smoothedMesh := loadedMesh.
+    WeldByVertices(4).
+    SmoothLaplacian(5, 0.5).
+    CalculateSmoothNormals()
 
-	smoothedMesh := loadedMesh.
-		WeldByVertices(4).
-		SmoothLaplacian(5, 0.5).
-		CalculateSmoothNormals()
-
-	obj.WriteMesh(smoothedMesh, "", outFile)
+  err = obj.Save("smoothed.obj", smoothedMesh)
+  if err != nil {
+    panic(err)
+  }
 }
 
 ```
 
 ## Helpful Procedural Generation Sub Packages
 
-- [extrude](/extrude/) - Functionality for generating geometry from 2D shapes.
-- [repeat](/repeat/) - Functionality for copying geometry in common patterns.
-- [primitives](/repeat/) - Functionality pertaining to generating common geometry.
-- [noise](/noise/) - Utilities around noise functions for common usecases like stacking multiple samples of perlin noise from different frequencies.
-- [coloring](/coloring/) - Color utilities for blending multiple colors together using weights.
-- [texturing](/texturing/) - Image processing utilities like generating Normal maps or blurring images.
+- Modeling
+  - [extrude](/modeling/extrude/) - Functionality for generating geometry from 2D shapes.
+  - [repeat](/modeling/repeat/) - Functionality for copying geometry in common patterns.
+  - [primitives](/modeling/repeat/) - Functionality pertaining to generating common geometry.
+  - [triangulation](/modeling/triangulation/) - Generating meshes from a set of 2D points.
+- Drawing
+  - [coloring](/drawing/coloring/) - Color utilities for blending multiple colors together using weights.
+  - [texturing](/drawing/texturing/) - Image processing utilities like generating Normal maps or blurring images.
+- Math
+  - [noise](/math/noise/) - Utilities around noise functions for common usecases like stacking multiple samples of perlin noise from different frequencies.
 
 ## Procedural Generation Examples
 

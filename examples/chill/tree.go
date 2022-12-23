@@ -4,16 +4,16 @@ import (
 	"math"
 	"math/rand"
 
-	"github.com/EliCDavis/mesh"
-	"github.com/EliCDavis/mesh/coloring"
-	"github.com/EliCDavis/mesh/extrude"
-	"github.com/EliCDavis/mesh/noise"
-	"github.com/EliCDavis/mesh/texturing"
+	"github.com/EliCDavis/polyform/drawing/coloring"
+	"github.com/EliCDavis/polyform/drawing/texturing"
+	"github.com/EliCDavis/polyform/math/noise"
+	"github.com/EliCDavis/polyform/modeling"
+	"github.com/EliCDavis/polyform/modeling/extrude"
 	"github.com/EliCDavis/vector"
 	"github.com/fogleman/gg"
 )
 
-func Cone(base float64, points ...vector.Vector3) mesh.Mesh {
+func Cone(base float64, points ...vector.Vector3) modeling.Mesh {
 	length := vector.Vector3Array(points).Distance()
 	extrusionPoints := make([]extrude.ExtrusionPoint, len(points))
 
@@ -38,7 +38,7 @@ func Tree(
 	height, base, percentageCovered float64,
 	branchCount int,
 	atlas *Atlas,
-) (mesh.Mesh, mesh.Mesh) {
+) (modeling.Mesh, modeling.Mesh) {
 	percentBare := 1 - percentageCovered
 
 	heightCovered := height * percentageCovered
@@ -47,7 +47,7 @@ func Tree(
 	// branchCount := 3
 	branchLength := height * 0.25 * (.8 + (.4 * rand.Float64()))
 
-	branches := mesh.EmptyMesh()
+	branches := modeling.EmptyMesh()
 	for i := 0; i < branchCount; i++ {
 		branchHeight := (heightCovered * rand.Float64()) + heightBare
 

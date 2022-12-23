@@ -6,12 +6,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/EliCDavis/mesh"
-	"github.com/EliCDavis/mesh/formats/obj"
-	"github.com/EliCDavis/mesh/formats/ply"
+	"github.com/EliCDavis/polyform/formats/obj"
+	"github.com/EliCDavis/polyform/formats/ply"
+	"github.com/EliCDavis/polyform/modeling"
 )
 
-func readMesh(path string) (*mesh.Mesh, error) {
+func readMesh(path string) (*modeling.Mesh, error) {
 	ext := filepath.Ext(path)
 
 	inFile, err := os.Open(path)

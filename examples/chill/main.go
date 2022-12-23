@@ -12,10 +12,10 @@ import (
 	"path"
 	"time"
 
-	"github.com/EliCDavis/mesh"
-	"github.com/EliCDavis/mesh/coloring"
-	"github.com/EliCDavis/mesh/formats/obj"
-	"github.com/EliCDavis/mesh/noise"
+	"github.com/EliCDavis/polyform/drawing/coloring"
+	"github.com/EliCDavis/polyform/formats/obj"
+	"github.com/EliCDavis/polyform/math/noise"
+	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/vector"
 	"github.com/urfave/cli/v2"
 )
@@ -57,7 +57,7 @@ func calcTreePositions(count int, forestWidth float64, terrainHeight noise.Sampl
 
 		invalid := false
 		for _, seg := range path.Segments {
-			line := mesh.NewLine2D(
+			line := modeling.NewLine2D(
 				vector.NewVector2(
 					seg.StartX,
 					seg.StartY,
@@ -461,8 +461,8 @@ func main() {
 						{Scalar: 1 / 18., Amplitude: 1. / 16},
 					}).Value)
 
-					trunks := mesh.EmptyMesh()
-					branches := mesh.EmptyMesh()
+					trunks := modeling.EmptyMesh()
+					branches := modeling.EmptyMesh()
 
 					for _, pos := range treePositions {
 						trunk, branch := Tree(

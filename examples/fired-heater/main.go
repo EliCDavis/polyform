@@ -4,20 +4,20 @@ import (
 	"image/color"
 	"math"
 
-	"github.com/EliCDavis/mesh"
-	"github.com/EliCDavis/mesh/extrude"
-	"github.com/EliCDavis/mesh/formats/obj"
-	"github.com/EliCDavis/mesh/primitives"
-	"github.com/EliCDavis/mesh/repeat"
+	"github.com/EliCDavis/polyform/formats/obj"
+	"github.com/EliCDavis/polyform/modeling"
+	"github.com/EliCDavis/polyform/modeling/extrude"
+	"github.com/EliCDavis/polyform/modeling/primitives"
+	"github.com/EliCDavis/polyform/modeling/repeat"
 	"github.com/EliCDavis/vector"
 )
 
 type Segment struct {
-	mesh   mesh.Mesh
+	mesh   modeling.Mesh
 	height float64
 }
 
-func Chimney(funnelWidth, funnelHeight, taperHeight, shootWidth, shootHeight float64) mesh.Mesh {
+func Chimney(funnelWidth, funnelHeight, taperHeight, shootWidth, shootHeight float64) modeling.Mesh {
 	halfTotalHeight := (taperHeight + shootHeight + funnelHeight) / 2.
 	path := []vector.Vector3{
 		vector.NewVector3(0, -halfTotalHeight, 0),
@@ -28,7 +28,7 @@ func Chimney(funnelWidth, funnelHeight, taperHeight, shootWidth, shootHeight flo
 
 	rows := 4
 	rowSpacing := shootHeight / float64(rows)
-	allRows := mesh.EmptyMesh()
+	allRows := modeling.EmptyMesh()
 	for i := 0; i < rows; i++ {
 		pos := vector.NewVector3(0, rowSpacing*float64(i)-halfTotalHeight+funnelHeight+taperHeight, 0)
 		allRows = allRows.
@@ -48,7 +48,7 @@ func Chimney(funnelWidth, funnelHeight, taperHeight, shootWidth, shootHeight flo
 			Translate(vector.NewVector3(0, -halfTotalHeight+funnelHeight, 0)))
 }
 
-func Chasis(height, width float64) mesh.Mesh {
+func Chasis(height, width float64) modeling.Mesh {
 	chasis := primitives.Cylinder(20, height, width)
 
 	rows := 4
@@ -66,7 +66,7 @@ func Chasis(height, width float64) mesh.Mesh {
 	return chasis
 }
 
-func Legs(height, width float64, numLegs int) mesh.Mesh {
+func Legs(height, width float64, numLegs int) modeling.Mesh {
 	columnHeight := 1.
 	legHeight := height - columnHeight
 
@@ -80,7 +80,7 @@ func Legs(height, width float64, numLegs int) mesh.Mesh {
 		Append(repeat.Circle(leg, numLegs, width-2.))
 }
 
-func Floor(floorHeight, radius, walkWidth float64) mesh.Mesh {
+func Floor(floorHeight, radius, walkWidth float64) modeling.Mesh {
 	numLegs := int(math.Round(2*math.Pi*radius) / 4)
 	legHeight := 2.
 	post := primitives.Cube().
@@ -138,9 +138,9 @@ func PiShape(height, width float64) []vector.Vector2 {
 	}
 }
 
-func PutTogetherSegments(segments ...Segment) mesh.Mesh {
+func PutTogetherSegments(segments ...Segment) modeling.Mesh {
 	offset := 0.
-	finalMesh := mesh.EmptyMesh()
+	finalMesh := modeling.EmptyMesh()
 	for _, segment := range segments {
 		offset += segment.height / 2
 		finalMesh = finalMesh.Append(segment.mesh.Translate(vector.NewVector3(0, offset, 0)))
@@ -155,7 +155,7 @@ func main() {
 	floorHeight := 0.5
 	legsHeight := 5.
 
-	mat := mesh.Material{
+	mat := modeling.Material{
 		Name:              "Fired Heater Body",
 		DiffuseColor:      color.RGBA{128, 128, 128, 255},
 		AmbientColor:      color.RGBA{128, 128, 128, 255},

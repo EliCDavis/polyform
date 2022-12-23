@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/EliCDavis/mesh"
+	"github.com/EliCDavis/polyform/modeling"
 )
 
 func parseFloatLine(components []string) (float64, error) {
@@ -19,16 +19,16 @@ func parseFloatLine(components []string) (float64, error) {
 	return f, nil
 }
 
-func ReadMaterials(in io.Reader) ([]mesh.Material, error) {
+func ReadMaterials(in io.Reader) ([]modeling.Material, error) {
 	if in == nil {
 		panic(errors.New("cannot build obj materials from nil reader"))
 	}
 
 	scanner := bufio.NewScanner(in)
 
-	materials := make([]mesh.Material, 0)
+	materials := make([]modeling.Material, 0)
 
-	var workingMaterial *mesh.Material = nil
+	var workingMaterial *modeling.Material = nil
 
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -47,7 +47,7 @@ func ReadMaterials(in io.Reader) ([]mesh.Material, error) {
 				materials = append(materials, *workingMaterial)
 			}
 
-			workingMaterial = &mesh.Material{
+			workingMaterial = &modeling.Material{
 				Name: strings.Join(components[1:], " "),
 			}
 

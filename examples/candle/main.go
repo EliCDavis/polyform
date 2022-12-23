@@ -5,9 +5,9 @@ import (
 	"image/color"
 	"math"
 
-	"github.com/EliCDavis/mesh"
-	"github.com/EliCDavis/mesh/extrude"
-	"github.com/EliCDavis/mesh/formats/obj"
+	"github.com/EliCDavis/polyform/formats/obj"
+	"github.com/EliCDavis/polyform/modeling"
+	"github.com/EliCDavis/polyform/modeling/extrude"
 	"github.com/EliCDavis/vector"
 	"github.com/fogleman/gg"
 	"golang.org/x/image/draw"
@@ -41,7 +41,7 @@ func bevel(startWidth, startHeight, endWidth, endHeight, uvStart, uvEnd, uvThick
 	return points
 }
 
-func candleBody(height, width, rimWidth, percentUsed, wickWidth, wickHeight float64) mesh.Mesh {
+func candleBody(height, width, rimWidth, percentUsed, wickWidth, wickHeight float64) modeling.Mesh {
 	points := bevel(0, -.1, width, 0, 0, 0.1, 1, 10)
 
 	startDome := bevel(width, height, width-(rimWidth/2), height+.1, 0.7, 0.75, 1, 10)
@@ -136,7 +136,7 @@ func main() {
 		texturePath,
 	)
 
-	candleMat := mesh.Material{
+	candleMat := modeling.Material{
 		Name:            "Candle",
 		ColorTextureURI: &texturePath,
 		DiffuseColor:    color.White,

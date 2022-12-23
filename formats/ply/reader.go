@@ -1,7 +1,7 @@
 package ply
 
-import "github.com/EliCDavis/mesh"
+import "github.com/EliCDavis/polyform/modeling"
 
 type reader interface {
-	ReadMesh() (*mesh.Mesh, error)
+	ReadMesh() (*modeling.Mesh, error)
 }

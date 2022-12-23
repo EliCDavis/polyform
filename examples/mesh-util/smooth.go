@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/EliCDavis/mesh/formats/obj"
+	"github.com/EliCDavis/polyform/formats/obj"
 	"github.com/urfave/cli/v2"
 )
 

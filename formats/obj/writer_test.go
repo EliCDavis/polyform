@@ -5,15 +5,15 @@ import (
 	"image/color"
 	"testing"
 
-	"github.com/EliCDavis/mesh"
-	"github.com/EliCDavis/mesh/formats/obj"
+	"github.com/EliCDavis/polyform/formats/obj"
+	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/vector"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestWriteObj_EmptyMesh(t *testing.T) {
 	// ARRANGE ================================================================
-	m := mesh.MeshFromView(mesh.MeshView{
+	m := modeling.MeshFromView(modeling.MeshView{
 		Vertices:  []vector.Vector3{},
 		Triangles: []int{},
 	})
@@ -30,7 +30,7 @@ func TestWriteObj_EmptyMesh(t *testing.T) {
 
 func TestWriteObj_NoNormalsOrUVs(t *testing.T) {
 	// ARRANGE ================================================================
-	m := mesh.MeshFromView(mesh.MeshView{
+	m := modeling.MeshFromView(modeling.MeshView{
 		Vertices: []vector.Vector3{
 			vector.NewVector3(1, 2, 3),
 			vector.NewVector3(4, 5, 6),
@@ -58,7 +58,7 @@ f 1 2 3
 
 func TestWriteObj_NoUVs(t *testing.T) {
 	// ARRANGE ================================================================
-	m := mesh.MeshFromView(mesh.MeshView{
+	m := modeling.MeshFromView(modeling.MeshView{
 		Vertices: []vector.Vector3{
 			vector.NewVector3(1, 2, 3),
 			vector.NewVector3(4, 5, 6),
@@ -94,7 +94,7 @@ f 1//1 2//2 3//3
 
 func TestWriteObj_NoNormals(t *testing.T) {
 	// ARRANGE ================================================================
-	m := mesh.MeshFromView(mesh.MeshView{
+	m := modeling.MeshFromView(modeling.MeshView{
 		Vertices: []vector.Vector3{
 			vector.NewVector3(1, 2, 3),
 			vector.NewVector3(4, 5, 6),
@@ -132,7 +132,7 @@ f 1/1 2/2 3/3
 
 func TestWriteObj(t *testing.T) {
 	// ARRANGE ================================================================
-	m := mesh.MeshFromView(mesh.MeshView{
+	m := modeling.MeshFromView(modeling.MeshView{
 		Vertices: []vector.Vector3{
 			vector.NewVector3(1, 2, 3),
 			vector.NewVector3(4, 5, 6),
@@ -178,7 +178,7 @@ f 1/1/1 2/2/2 3/3/3
 
 func TestWriteObjWithSingleMaterial(t *testing.T) {
 	// ARRANGE ================================================================
-	m := mesh.NewMeshWithMaterials(
+	m := modeling.NewMeshWithMaterials(
 		[]int{
 			0, 1, 2,
 		},
@@ -199,10 +199,10 @@ func TestWriteObjWithSingleMaterial(t *testing.T) {
 				vector.NewVector2(0, 0),
 			},
 		},
-		[]mesh.MeshMaterial{
+		[]modeling.MeshMaterial{
 			{
 				NumOfTris: 1,
-				Material: &mesh.Material{
+				Material: &modeling.Material{
 					Name: "red",
 				},
 			},
@@ -233,7 +233,7 @@ f 1/1/1 2/2/2 3/3/3
 
 func TestWriteObjWithMultipleMaterials(t *testing.T) {
 	// ARRANGE ================================================================
-	m := mesh.NewMeshWithMaterials(
+	m := modeling.NewMeshWithMaterials(
 		[]int{
 			0, 1, 2,
 			3, 4, 5,
@@ -264,16 +264,16 @@ func TestWriteObjWithMultipleMaterials(t *testing.T) {
 				vector.NewVector2(0, 0),
 			},
 		},
-		[]mesh.MeshMaterial{
+		[]modeling.MeshMaterial{
 			{
 				NumOfTris: 1,
-				Material: &mesh.Material{
+				Material: &modeling.Material{
 					Name: "red",
 				},
 			},
 			{
 				NumOfTris: 1,
-				Material: &mesh.Material{
+				Material: &modeling.Material{
 					Name: "blue",
 				},
 			},
@@ -316,22 +316,22 @@ f 4/4/4 5/5/5 6/6/6
 func TestWriteMaterials(t *testing.T) {
 	// ARRANGE ================================================================
 	buf := bytes.Buffer{}
-	m := mesh.NewMeshWithMaterials(
+	m := modeling.NewMeshWithMaterials(
 		[]int{},
 		[]vector.Vector3{},
 		[]vector.Vector3{},
 		[][]vector.Vector2{},
-		[]mesh.MeshMaterial{
+		[]modeling.MeshMaterial{
 			{
 				NumOfTris: 1,
-				Material: &mesh.Material{
+				Material: &modeling.Material{
 					Name:         "red",
 					DiffuseColor: color.RGBA{1, 255, 3, 255},
 				},
 			},
 			{
 				NumOfTris: 1,
-				Material: &mesh.Material{
+				Material: &modeling.Material{
 					Name:          "blue",
 					AmbientColor:  color.RGBA{4, 5, 6, 255},
 					SpecularColor: color.RGBA{7, 8, 9, 255},

@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/EliCDavis/mesh/formats/ply"
+	"github.com/EliCDavis/polyform/formats/ply"
 	"github.com/stretchr/testify/assert"
 )
 

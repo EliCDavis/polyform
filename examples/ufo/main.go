@@ -5,15 +5,15 @@ import (
 	"math"
 	"os"
 
-	"github.com/EliCDavis/mesh"
-	"github.com/EliCDavis/mesh/extrude"
-	"github.com/EliCDavis/mesh/formats/obj"
-	"github.com/EliCDavis/mesh/primitives"
-	"github.com/EliCDavis/mesh/repeat"
+	"github.com/EliCDavis/polyform/formats/obj"
+	"github.com/EliCDavis/polyform/modeling"
+	"github.com/EliCDavis/polyform/modeling/extrude"
+	"github.com/EliCDavis/polyform/modeling/primitives"
+	"github.com/EliCDavis/polyform/modeling/repeat"
 	"github.com/EliCDavis/vector"
 )
 
-func AbductionRing(radius, baseThickness, magnitude float64) mesh.Mesh {
+func AbductionRing(radius, baseThickness, magnitude float64) modeling.Mesh {
 	pathSize := 120
 	path := make([]vector.Vector3, pathSize)
 	thickness := make([]float64, pathSize)
@@ -25,7 +25,7 @@ func AbductionRing(radius, baseThickness, magnitude float64) mesh.Mesh {
 		thickness[i] = (math.Sin(angle*8) * magnitude * 0.25) + baseThickness
 	}
 
-	mat := mesh.Material{
+	mat := modeling.Material{
 		Name:              "Abduction Ring",
 		DiffuseColor:      color.RGBA{0, 255, 0, 255},
 		AmbientColor:      color.RGBA{0, 255, 0, 255},
@@ -38,20 +38,20 @@ func AbductionRing(radius, baseThickness, magnitude float64) mesh.Mesh {
 		SetMaterial(mat)
 }
 
-func contour(positions []vector.Vector3, times int) mesh.Mesh {
+func contour(positions []vector.Vector3, times int) modeling.Mesh {
 	return repeat.Circle(extrude.CircleWithConstantThickness(7, .3, positions), times, 0)
 }
 
-func sideLights(numberOfLights int, radius float64) mesh.Mesh {
+func sideLights(numberOfLights int, radius float64) modeling.Mesh {
 	sides := 8
 	light := primitives.Cylinder(sides, 0.5, 0.5).
 		Append(primitives.Cylinder(sides, 0.25, 0.25).Translate(vector.NewVector3(0, .35, 0))).
-		Rotate(mesh.UnitQuaternionFromTheta(-math.Pi/2, vector.Vector3Forward()))
+		Rotate(modeling.UnitQuaternionFromTheta(-math.Pi/2, vector.Vector3Forward()))
 
 	return repeat.Circle(light, numberOfLights, radius)
 }
 
-func UfoBody(outerRadius float64, portalRadius float64, frameSections int) mesh.Mesh {
+func UfoBody(outerRadius float64, portalRadius float64, frameSections int) modeling.Mesh {
 	path := []vector.Vector3{
 		vector.Vector3Up().MultByConstant(-1),
 		vector.Vector3Up().MultByConstant(2),
@@ -96,7 +96,7 @@ func UfoBody(outerRadius float64, portalRadius float64, frameSections int) mesh.
 		domeThickness = append(domeThickness, (cosResult * domeStartWidth))
 	}
 
-	mat := mesh.Material{
+	mat := modeling.Material{
 		Name:              "UFO Body",
 		DiffuseColor:      color.RGBA{128, 128, 128, 255},
 		AmbientColor:      color.RGBA{128, 128, 128, 255},
@@ -105,7 +105,7 @@ func UfoBody(outerRadius float64, portalRadius float64, frameSections int) mesh.
 		OpticalDensity:    1,
 	}
 
-	domeMat := mesh.Material{
+	domeMat := modeling.Material{
 		Name:              "UFO Dome",
 		DiffuseColor:      color.RGBA{0, 0, 255, 255},
 		AmbientColor:      color.RGBA{0, 0, 255, 255},
@@ -141,11 +141,11 @@ func main() {
 		Append(ring.
 			Scale(vector.Vector3Zero(), vector.Vector3One().MultByConstant(.75)).
 			Translate(ringSpacing.MultByConstant(1)).
-			Rotate(mesh.UnitQuaternionFromTheta(0.3, vector.Vector3Down()))).
+			Rotate(modeling.UnitQuaternionFromTheta(0.3, vector.Vector3Down()))).
 		Append(ring.
 			Scale(vector.Vector3Zero(), vector.Vector3One().MultByConstant(.5)).
 			Translate(ringSpacing.MultByConstant(2)).
-			Rotate(mesh.UnitQuaternionFromTheta(0.5, vector.Vector3Down()))).
+			Rotate(modeling.UnitQuaternionFromTheta(0.5, vector.Vector3Down()))).
 		Append(UfoBody(ufoOuterRadius, ufoportalRadius, 8).Translate(ringSpacing.MultByConstant(2.5)))
 
 	mtlFile, err := os.Create("ufo.mtl")
