@@ -3,6 +3,7 @@ package extrude_test
 import (
 	"testing"
 
+	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/extrude"
 	"github.com/EliCDavis/vector"
 	"github.com/stretchr/testify/assert"
@@ -28,8 +29,8 @@ func TestSimplePolygonSpike(t *testing.T) {
 	view := m.View()
 
 	// ASSERT =================================================================
-	assert.Len(t, view.Normals, 8)
-	if assert.Len(t, view.Vertices, 8) {
-		assert.Equal(t, vector.Vector3Up(), view.Vertices[7])
+	assert.Len(t, view.Float3Data[modeling.NormalAttribute], 8)
+	if assert.Len(t, view.Float3Data[modeling.PositionAttribute], 8) {
+		assert.Equal(t, vector.Vector3Up(), view.Float3Data[modeling.PositionAttribute][7])
 	}
 }

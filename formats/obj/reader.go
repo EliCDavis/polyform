@@ -283,13 +283,16 @@ func ReadMesh(in io.Reader) (*modeling.Mesh, []string, error) {
 		}
 	}
 
-	mesh := modeling.NewMeshWithMaterials(
+	mesh := modeling.NewMesh(
 		tris,
-		verts,
-		normals,
-		[][]vector.Vector2{
-			uvs,
+		map[string][]vector.Vector3{
+			modeling.PositionAttribute: verts,
+			modeling.NormalAttribute:   normals,
 		},
+		map[string][]vector.Vector2{
+			modeling.TexCoordAttribute: uvs,
+		},
+		nil,
 		meshMaterials,
 	)
 

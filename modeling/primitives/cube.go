@@ -65,17 +65,12 @@ func Cube() modeling.Mesh {
 			5, 7, 3,
 			5, 3, 1,
 		},
-		verts,
-		[]vector.Vector3{
-			verts[0].Normalized(),
-			verts[1].Normalized(),
-			verts[2].Normalized(),
-			verts[3].Normalized(),
-			verts[4].Normalized(),
-			verts[5].Normalized(),
-			verts[6].Normalized(),
-			verts[7].Normalized(),
+		map[string][]vector.Vector3{
+			modeling.PositionAttribute: verts,
+			modeling.NormalAttribute:   vector.Vector3Array(verts).Normalized(),
 		},
+		nil,
+		nil,
 		nil,
 	)
 }

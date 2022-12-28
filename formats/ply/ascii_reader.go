@@ -140,7 +140,15 @@ func (ar *AsciiReader) ReadMesh() (*modeling.Mesh, error) {
 		}
 	}
 
-	finalMesh := modeling.NewMesh(triData, vertexData, nil, nil)
+	finalMesh := modeling.NewMesh(
+		triData,
+		map[string][]vector.Vector3{
+			modeling.PositionAttribute: vertexData,
+		},
+		nil,
+		nil,
+		nil,
+	)
 
 	return &finalMesh, nil
 }

@@ -126,7 +126,7 @@ func DrawTrail(
 	textures.color = dc.Image()
 
 	return terrain.
-		ModifyVertices(func(v vector.Vector3) vector.Vector3 {
+		ModifyFloat3Attribute(modeling.PositionAttribute, func(v vector.Vector3) vector.Vector3 {
 			heightAdj := 0.
 
 			for _, seg := range trail.Segments {
@@ -171,21 +171,24 @@ func Terrain(forestWidth float64, height noise.Sampler2D, textures *PBRTextures)
 
 	maxHeight := vector.NewVector3(0, -math.MaxFloat64, 0)
 
+	uvs := make([]vector.Vector2, 0, len(points))
+
 	terrain := triangulation.
 		BowyerWatson(points).
-		ModifyVertices(func(v vector.Vector3) vector.Vector3 {
+		ModifyFloat3Attribute(modeling.PositionAttribute, func(v vector.Vector3) vector.Vector3 {
 			height := heightFunc(v.XZ())
 			val := v.SetY(height)
 			if height > maxHeight.Y() {
 				maxHeight = val
 			}
+
+			uvs = append(uvs, vector.NewVector2(v.X(), -v.Z()).
+				DivByConstant(forestWidth))
+
 			return val
 		}).
 		CalculateSmoothNormals().
-		ModifyUVs(func(v vector.Vector3, uv vector.Vector2) vector.Vector2 {
-			return vector.NewVector2(v.X(), -v.Z()).
-				DivByConstant(forestWidth)
-		}).
+		SetFloat2Attribute(modeling.TexCoordAttribute, uvs).
 		SetMaterial(textures.Material())
 
 	return terrain, maxHeight

@@ -13,10 +13,7 @@ import (
 
 func TestWriteObj_EmptyMesh(t *testing.T) {
 	// ARRANGE ================================================================
-	m := modeling.MeshFromView(modeling.MeshView{
-		Vertices:  []vector.Vector3{},
-		Triangles: []int{},
-	})
+	m := modeling.EmptyMesh()
 	buf := bytes.Buffer{}
 
 	// ACT ====================================================================
@@ -30,16 +27,19 @@ func TestWriteObj_EmptyMesh(t *testing.T) {
 
 func TestWriteObj_NoNormalsOrUVs(t *testing.T) {
 	// ARRANGE ================================================================
-	m := modeling.MeshFromView(modeling.MeshView{
-		Vertices: []vector.Vector3{
-			vector.NewVector3(1, 2, 3),
-			vector.NewVector3(4, 5, 6),
-			vector.NewVector3(7, 8, 9),
-		},
-		Triangles: []int{
+	m := modeling.NewMesh(
+		[]int{
 			0, 1, 2,
 		},
-	})
+		map[string][]vector.Vector3{
+			modeling.PositionAttribute: []vector.Vector3{
+				vector.NewVector3(1, 2, 3),
+				vector.NewVector3(4, 5, 6),
+				vector.NewVector3(7, 8, 9),
+			},
+		},
+		nil, nil, nil,
+	)
 	buf := bytes.Buffer{}
 
 	// ACT ====================================================================
@@ -58,21 +58,26 @@ f 1 2 3
 
 func TestWriteObj_NoUVs(t *testing.T) {
 	// ARRANGE ================================================================
-	m := modeling.MeshFromView(modeling.MeshView{
-		Vertices: []vector.Vector3{
-			vector.NewVector3(1, 2, 3),
-			vector.NewVector3(4, 5, 6),
-			vector.NewVector3(7, 8, 9),
-		},
-		Triangles: []int{
+	m := modeling.NewMesh(
+		[]int{
 			0, 1, 2,
 		},
-		Normals: []vector.Vector3{
-			vector.NewVector3(0, 1, 0),
-			vector.NewVector3(0, 0, 1),
-			vector.NewVector3(1, 0, 0),
+		map[string][]vector.Vector3{
+			modeling.PositionAttribute: []vector.Vector3{
+				vector.NewVector3(1, 2, 3),
+				vector.NewVector3(4, 5, 6),
+				vector.NewVector3(7, 8, 9),
+			},
+			modeling.NormalAttribute: []vector.Vector3{
+				vector.NewVector3(0, 1, 0),
+				vector.NewVector3(0, 0, 1),
+				vector.NewVector3(1, 0, 0),
+			},
 		},
-	})
+		nil,
+		nil,
+		nil,
+	)
 	buf := bytes.Buffer{}
 
 	// ACT ====================================================================
@@ -94,23 +99,27 @@ f 1//1 2//2 3//3
 
 func TestWriteObj_NoNormals(t *testing.T) {
 	// ARRANGE ================================================================
-	m := modeling.MeshFromView(modeling.MeshView{
-		Vertices: []vector.Vector3{
-			vector.NewVector3(1, 2, 3),
-			vector.NewVector3(4, 5, 6),
-			vector.NewVector3(7, 8, 9),
-		},
-		Triangles: []int{
+	m := modeling.NewMesh(
+		[]int{
 			0, 1, 2,
 		},
-		UVs: [][]vector.Vector2{
-			{
+		map[string][]vector.Vector3{
+			modeling.PositionAttribute: []vector.Vector3{
+				vector.NewVector3(1, 2, 3),
+				vector.NewVector3(4, 5, 6),
+				vector.NewVector3(7, 8, 9),
+			},
+		},
+		map[string][]vector.Vector2{
+			modeling.TexCoordAttribute: []vector.Vector2{
 				vector.NewVector2(1, 0.5),
 				vector.NewVector2(0.5, 1),
 				vector.NewVector2(0, 0),
 			},
 		},
-	})
+		nil,
+		nil,
+	)
 	buf := bytes.Buffer{}
 
 	// ACT ====================================================================
@@ -132,28 +141,32 @@ f 1/1 2/2 3/3
 
 func TestWriteObj(t *testing.T) {
 	// ARRANGE ================================================================
-	m := modeling.MeshFromView(modeling.MeshView{
-		Vertices: []vector.Vector3{
-			vector.NewVector3(1, 2, 3),
-			vector.NewVector3(4, 5, 6),
-			vector.NewVector3(7, 8, 9),
-		},
-		Triangles: []int{
+	m := modeling.NewMesh(
+		[]int{
 			0, 1, 2,
 		},
-		Normals: []vector.Vector3{
-			vector.NewVector3(0, 1, 0),
-			vector.NewVector3(0, 0, 1),
-			vector.NewVector3(1, 0, 0),
+		map[string][]vector.Vector3{
+			modeling.PositionAttribute: []vector.Vector3{
+				vector.NewVector3(1, 2, 3),
+				vector.NewVector3(4, 5, 6),
+				vector.NewVector3(7, 8, 9),
+			},
+			modeling.NormalAttribute: []vector.Vector3{
+				vector.NewVector3(0, 1, 0),
+				vector.NewVector3(0, 0, 1),
+				vector.NewVector3(1, 0, 0),
+			},
 		},
-		UVs: [][]vector.Vector2{
-			{
+		map[string][]vector.Vector2{
+			modeling.TexCoordAttribute: []vector.Vector2{
 				vector.NewVector2(1, 0.5),
 				vector.NewVector2(0.5, 1),
 				vector.NewVector2(0, 0),
 			},
 		},
-	})
+		nil,
+		nil,
+	)
 	buf := bytes.Buffer{}
 
 	// ACT ====================================================================
@@ -178,27 +191,30 @@ f 1/1/1 2/2/2 3/3/3
 
 func TestWriteObjWithSingleMaterial(t *testing.T) {
 	// ARRANGE ================================================================
-	m := modeling.NewMeshWithMaterials(
+	m := modeling.NewMesh(
 		[]int{
 			0, 1, 2,
 		},
-		[]vector.Vector3{
-			vector.NewVector3(1, 2, 3),
-			vector.NewVector3(4, 5, 6),
-			vector.NewVector3(7, 8, 9),
+		map[string][]vector.Vector3{
+			modeling.PositionAttribute: []vector.Vector3{
+				vector.NewVector3(1, 2, 3),
+				vector.NewVector3(4, 5, 6),
+				vector.NewVector3(7, 8, 9),
+			},
+			modeling.NormalAttribute: []vector.Vector3{
+				vector.NewVector3(0, 1, 0),
+				vector.NewVector3(0, 0, 1),
+				vector.NewVector3(1, 0, 0),
+			},
 		},
-		[]vector.Vector3{
-			vector.NewVector3(0, 1, 0),
-			vector.NewVector3(0, 0, 1),
-			vector.NewVector3(1, 0, 0),
-		},
-		[][]vector.Vector2{
-			{
+		map[string][]vector.Vector2{
+			modeling.TexCoordAttribute: {
 				vector.NewVector2(1, 0.5),
 				vector.NewVector2(0.5, 1),
 				vector.NewVector2(0, 0),
 			},
 		},
+		nil,
 		[]modeling.MeshMaterial{
 			{
 				NumOfTris: 1,
@@ -233,29 +249,31 @@ f 1/1/1 2/2/2 3/3/3
 
 func TestWriteObjWithMultipleMaterials(t *testing.T) {
 	// ARRANGE ================================================================
-	m := modeling.NewMeshWithMaterials(
+	m := modeling.NewMesh(
 		[]int{
 			0, 1, 2,
 			3, 4, 5,
 		},
-		[]vector.Vector3{
-			vector.NewVector3(1, 2, 3),
-			vector.NewVector3(4, 5, 6),
-			vector.NewVector3(7, 8, 9),
-			vector.NewVector3(1, 2, 3),
-			vector.NewVector3(4, 5, 6),
-			vector.NewVector3(7, 8, 9),
+		map[string][]vector.Vector3{
+			modeling.PositionAttribute: []vector.Vector3{
+				vector.NewVector3(1, 2, 3),
+				vector.NewVector3(4, 5, 6),
+				vector.NewVector3(7, 8, 9),
+				vector.NewVector3(1, 2, 3),
+				vector.NewVector3(4, 5, 6),
+				vector.NewVector3(7, 8, 9),
+			},
+			modeling.NormalAttribute: []vector.Vector3{
+				vector.NewVector3(0, 1, 0),
+				vector.NewVector3(0, 0, 1),
+				vector.NewVector3(1, 0, 0),
+				vector.NewVector3(0, 1, 0),
+				vector.NewVector3(0, 0, 1),
+				vector.NewVector3(1, 0, 0),
+			},
 		},
-		[]vector.Vector3{
-			vector.NewVector3(0, 1, 0),
-			vector.NewVector3(0, 0, 1),
-			vector.NewVector3(1, 0, 0),
-			vector.NewVector3(0, 1, 0),
-			vector.NewVector3(0, 0, 1),
-			vector.NewVector3(1, 0, 0),
-		},
-		[][]vector.Vector2{
-			{
+		map[string][]vector.Vector2{
+			modeling.TexCoordAttribute: []vector.Vector2{
 				vector.NewVector2(1, 0.5),
 				vector.NewVector2(0.5, 1),
 				vector.NewVector2(0, 0),
@@ -264,6 +282,7 @@ func TestWriteObjWithMultipleMaterials(t *testing.T) {
 				vector.NewVector2(0, 0),
 			},
 		},
+		nil,
 		[]modeling.MeshMaterial{
 			{
 				NumOfTris: 1,
@@ -316,11 +335,9 @@ f 4/4/4 5/5/5 6/6/6
 func TestWriteMaterials(t *testing.T) {
 	// ARRANGE ================================================================
 	buf := bytes.Buffer{}
-	m := modeling.NewMeshWithMaterials(
+	m := modeling.NewMesh(
 		[]int{},
-		[]vector.Vector3{},
-		[]vector.Vector3{},
-		[][]vector.Vector2{},
+		nil, nil, nil,
 		[]modeling.MeshMaterial{
 			{
 				NumOfTris: 1,

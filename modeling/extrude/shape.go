@@ -81,7 +81,16 @@ func makeShape(shape []vector.Vector2, path []vector.Vector3, close bool) modeli
 		}
 	}
 
-	return modeling.NewMesh(tris, vertices, normals, nil)
+	return modeling.NewMesh(
+		tris,
+		map[string][]vector.Vector3{
+			modeling.PositionAttribute: vertices,
+			modeling.NormalAttribute:   normals,
+		},
+		nil,
+		nil,
+		nil,
+	)
 }
 
 func Shape(shape []vector.Vector2, path []vector.Vector3) modeling.Mesh {

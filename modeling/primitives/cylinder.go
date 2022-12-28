@@ -78,8 +78,12 @@ func Cylinder(sides int, height, radius float64) modeling.Mesh {
 
 	return modeling.NewMesh(
 		tris,
-		vertices,
-		normals,
+		map[string][]vector.Vector3{
+			modeling.PositionAttribute: vertices,
+			modeling.NormalAttribute:   normals,
+		},
+		nil,
+		nil,
 		nil,
 	)
 }

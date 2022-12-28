@@ -8,64 +8,68 @@ import (
 )
 
 type Mesh struct {
-	vertices  []vector.Vector3
+	v3Data    map[string][]vector.Vector3
+	v2Data    map[string][]vector.Vector2
+	v1Data    map[string][]float64
 	indices   []int
-	normals   []vector.Vector3
-	uv        [][]vector.Vector2
 	materials []MeshMaterial
 	topology  Topology
 }
 
+func NewMesh(
+	indices []int,
+	v3Data map[string][]vector.Vector3,
+	v2Data map[string][]vector.Vector2,
+	v1Data map[string][]float64,
+	materials []MeshMaterial) Mesh {
+	return Mesh{
+		indices:   indices,
+		materials: materials,
+		topology:  Triangle,
+		v3Data:    v3Data,
+		v2Data:    v2Data,
+		v1Data:    v1Data,
+	}
+}
+
+// Creates a new triangle mesh with no vertices or attribute data
 func EmptyMesh() Mesh {
 	return Mesh{
-		vertices:  make([]vector.Vector3, 0),
 		indices:   make([]int, 0),
-		normals:   make([]vector.Vector3, 0),
-		uv:        make([][]vector.Vector2, 0),
 		materials: make([]MeshMaterial, 0),
 		topology:  Triangle,
+		v3Data:    make(map[string][]vector.Vector3),
+		v2Data:    make(map[string][]vector.Vector2),
+		v1Data:    make(map[string][]float64),
 	}
 }
 
-func NewMesh(
+func NewTexturedMesh(
 	triangles []int,
 	vertices []vector.Vector3,
 	normals []vector.Vector3,
-	uvs [][]vector.Vector2,
+	uvs []vector.Vector2,
 ) Mesh {
 	return Mesh{
-		vertices:  vertices,
-		indices:   triangles,
-		normals:   normals,
-		uv:        uvs,
+		indices: triangles,
+		v3Data: map[string][]vector.Vector3{
+			PositionAttribute: vertices,
+			NormalAttribute:   normals,
+		},
+		v2Data: map[string][]vector.Vector2{
+			TexCoordAttribute: uvs,
+		},
 		materials: []MeshMaterial{{len(triangles) / 3, nil}},
-		topology:  Triangle,
-	}
-}
-
-func NewMeshWithMaterials(
-	triangles []int,
-	vertices []vector.Vector3,
-	normals []vector.Vector3,
-	uvs [][]vector.Vector2,
-	materials []MeshMaterial,
-) Mesh {
-	return Mesh{
-		vertices:  vertices,
-		indices:   triangles,
-		normals:   normals,
-		uv:        uvs,
-		materials: materials,
 		topology:  Triangle,
 	}
 }
 
 func MeshFromView(view MeshView) Mesh {
 	return Mesh{
-		vertices: view.Vertices,
-		indices:  view.Triangles,
-		normals:  view.Normals,
-		uv:       view.UVs,
+		indices:  view.Indices,
+		v3Data:   view.Float3Data,
+		v2Data:   view.Float2Data,
+		v1Data:   view.Float1Data,
 		topology: Triangle,
 	}
 }
@@ -80,10 +84,10 @@ func MeshFromView(view MeshView) Mesh {
 // mesh have just become garbage.
 func (m Mesh) View() MeshView {
 	return MeshView{
-		Vertices:  m.vertices,
-		Triangles: m.indices,
-		Normals:   m.normals,
-		UVs:       m.uv,
+		Float3Data: m.v3Data,
+		Float2Data: m.v2Data,
+		Float1Data: m.v1Data,
+		Indices:    m.indices,
 	}
 }
 
@@ -92,7 +96,7 @@ func (m Mesh) Materials() []MeshMaterial {
 }
 
 func (m Mesh) SetMaterial(mat Material) Mesh {
-	return NewMeshWithMaterials(m.indices, m.vertices, m.normals, m.uv, []MeshMaterial{{NumOfTris: len(m.indices) / 3, Material: &mat}})
+	return NewMesh(m.indices, m.v3Data, m.v2Data, m.v1Data, []MeshMaterial{{NumOfTris: len(m.indices) / 3, Material: &mat}})
 }
 
 func (m Mesh) Tri(i int) Tri {
@@ -107,126 +111,191 @@ func (m Mesh) TriCount() int {
 }
 
 func (m Mesh) hasUVs() bool {
-	return len(m.uv) > 0 && len(m.uv[0]) > 0
+	val, ok := m.v2Data[TexCoordAttribute]
+	if !ok {
+		return false
+	}
+	return len(val) > 0
 }
 
 func (m Mesh) Append(other Mesh) Mesh {
+
+	if m.topology != other.topology {
+		panic(fmt.Errorf("can not combine meshes with different topologies (%s != %s)", m.topology.String(), other.topology.String()))
+	}
+
 	finalTris := append(m.indices, other.indices...)
 	finalMaterials := append(m.materials, other.materials...)
 
-	vertexCountShift := len(m.vertices)
+	mAtrLength := m.AttributeLength()
+	oAtrLength := other.AttributeLength()
+
+	finalV3Data := make(map[string][]vector.Vector3)
+	for atr, data := range m.v3Data {
+		finalV3Data[atr] = data
+
+		if _, ok := other.v3Data[atr]; !ok {
+			for i := 0; i < oAtrLength; i++ {
+				finalV3Data[atr] = append(finalV3Data[atr], vector.Vector3Zero())
+			}
+		}
+	}
+
+	for atr, data := range other.v3Data {
+		if _, ok := finalV3Data[atr]; !ok {
+			for i := 0; i < mAtrLength; i++ {
+				finalV3Data[atr] = append(finalV3Data[atr], vector.Vector3Zero())
+			}
+		}
+		finalV3Data[atr] = append(finalV3Data[atr], data...)
+	}
+
+	finalV2Data := make(map[string][]vector.Vector2)
+	for atr, data := range m.v2Data {
+		finalV2Data[atr] = data
+
+		if _, ok := other.v3Data[atr]; !ok {
+			for i := 0; i < oAtrLength; i++ {
+				finalV2Data[atr] = append(finalV2Data[atr], vector.Vector2Zero())
+			}
+		}
+	}
+
+	for atr, data := range other.v2Data {
+		if _, ok := finalV2Data[atr]; !ok {
+			for i := 0; i < mAtrLength; i++ {
+				finalV2Data[atr] = append(finalV2Data[atr], vector.Vector2Zero())
+			}
+		}
+		finalV2Data[atr] = append(finalV2Data[atr], data...)
+	}
+
+	finalV1Data := make(map[string][]float64)
+	for atr, data := range m.v1Data {
+		finalV1Data[atr] = data
+
+		if _, ok := other.v3Data[atr]; !ok {
+			for i := 0; i < oAtrLength; i++ {
+				finalV1Data[atr] = append(finalV1Data[atr], 0)
+			}
+		}
+	}
+
+	for atr, data := range other.v1Data {
+		if _, ok := finalV1Data[atr]; !ok {
+			for i := 0; i < mAtrLength; i++ {
+				finalV1Data[atr] = append(finalV1Data[atr], 0)
+			}
+		}
+		finalV1Data[atr] = append(finalV1Data[atr], data...)
+	}
+
+	vertexCountShift := mAtrLength
 	for i := len(m.indices); i < len(finalTris); i++ {
 		finalTris[i] += vertexCountShift
 	}
-	finalVerts := append(m.vertices, other.vertices...)
 
-	finalNormals := make([]vector.Vector3, 0, len(finalVerts))
-
-	// Fill 2nd "half" of normals
-	if len(m.normals) != 0 && len(other.normals) == 0 {
-		finalNormals = append(finalNormals, m.normals...)
-		for i := 0; i < len(other.vertices); i++ {
-			finalNormals = append(finalNormals, vector.Vector3Zero())
-		}
-	} else if len(m.normals) == 0 && len(other.normals) != 0 {
-		for i := 0; i < len(m.vertices); i++ {
-			finalNormals = append(finalNormals, vector.Vector3Zero())
-		}
-		finalNormals = append(finalNormals, other.normals...)
-	} else {
-		finalNormals = append(finalNormals, m.normals...)
-		finalNormals = append(finalNormals, other.normals...)
-	}
-
-	finalUVs := make([]vector.Vector2, 0, len(finalVerts))
-
-	// Fill 2nd "half" of UVs
-	if m.hasUVs() && !other.hasUVs() {
-		finalUVs = append(finalUVs, m.uv[0]...)
-		for i := 0; i < len(other.vertices); i++ {
-			finalUVs = append(finalUVs, vector.Vector2Zero())
-		}
-	} else if !m.hasUVs() && other.hasUVs() {
-		for i := 0; i < len(m.vertices); i++ {
-			finalUVs = append(finalUVs, vector.Vector2Zero())
-		}
-		finalUVs = append(finalUVs, other.uv[0]...)
-	} else {
-		finalUVs = append(finalUVs, m.uv[0]...)
-		finalUVs = append(finalUVs, other.uv[0]...)
-	}
-
-	return NewMeshWithMaterials(finalTris, finalVerts, finalNormals, [][]vector.Vector2{finalUVs}, finalMaterials)
+	return NewMesh(finalTris, finalV3Data, finalV2Data, finalV1Data, finalMaterials)
 }
 
+// Translate(v) is shorthand for TranslateAttribute3D(V, "Position")
 func (m Mesh) Translate(v vector.Vector3) Mesh {
-	finalVerts := make([]vector.Vector3, len(m.vertices))
+	return m.TranslateAttribute3D(PositionAttribute, v)
+}
+
+func (m Mesh) TranslateAttribute3D(attribute string, v vector.Vector3) Mesh {
+	m.requireV3Attribute(attribute)
+	oldData := m.v3Data[attribute]
+	finalVerts := make([]vector.Vector3, len(oldData))
 	for i := 0; i < len(finalVerts); i++ {
-		finalVerts[i] = m.vertices[i].Add(v)
+		finalVerts[i] = oldData[i].Add(v)
 	}
-	return NewMeshWithMaterials(m.indices, finalVerts, m.normals, m.uv, m.materials)
+	return m.SetFloat3Attribute(attribute, finalVerts)
 }
 
 func (m Mesh) Rotate(q Quaternion) Mesh {
-	finalVerts := make([]vector.Vector3, len(m.vertices))
+	return m.
+		RotateAttribute3D(PositionAttribute, q).
+		RotateAttribute3D(NormalAttribute, q)
+}
+
+func (m Mesh) RotateAttribute3D(attribute string, q Quaternion) Mesh {
+	m.requireV3Attribute(attribute)
+
+	finalMesh := m
+	oldData := m.v3Data[attribute]
+	finalVerts := make([]vector.Vector3, len(oldData))
 	for i := 0; i < len(finalVerts); i++ {
-		finalVerts[i] = q.Rotate(m.vertices[i])
+		finalVerts[i] = q.Rotate(oldData[i])
 	}
 
-	finalNormals := make([]vector.Vector3, len(m.normals))
-	for i := 0; i < len(finalNormals); i++ {
-		finalNormals[i] = q.Rotate(m.normals[i])
-	}
-
-	return NewMeshWithMaterials(m.indices, finalVerts, finalNormals, m.uv, m.materials)
+	return finalMesh.SetFloat3Attribute(attribute, finalVerts)
 }
 
+// Scale(o, a) is shorthand for ScaleAttribute3D("Position", o, a)
 func (m Mesh) Scale(origin, amount vector.Vector3) Mesh {
-	scaledVerts := make([]vector.Vector3, len(m.vertices))
-
-	for i, v := range m.vertices {
-		scaledVerts[i] = origin.Add(v.Sub(origin).MultByVector(amount))
-	}
-
-	return NewMeshWithMaterials(m.indices, scaledVerts, m.normals, m.uv, m.materials)
+	return m.ScaleAttribute3D(PositionAttribute, origin, amount)
 }
 
-func (m Mesh) ModifyVertices(f func(v vector.Vector3) vector.Vector3) Mesh {
-	modified := make([]vector.Vector3, len(m.vertices))
+func (m Mesh) ScaleAttribute3D(attribute string, origin, amount vector.Vector3) Mesh {
+	return m.ModifyFloat3Attribute(attribute, func(v vector.Vector3) vector.Vector3 {
+		return origin.Add(v.Sub(origin).MultByVector(amount))
+	})
+}
 
-	for i, v := range m.vertices {
+func (m Mesh) ModifyFloat3Attribute(atr string, f func(v vector.Vector3) vector.Vector3) Mesh {
+	m.requireV3Attribute(atr)
+	oldData := m.v3Data[atr]
+	modified := make([]vector.Vector3, len(oldData))
+
+	for i, v := range oldData {
 		modified[i] = f(v)
 	}
 
-	return NewMeshWithMaterials(m.indices, modified, m.normals, m.uv, m.materials)
+	return m.SetFloat3Attribute(atr, modified)
 }
 
-func (m Mesh) ModifyUVs(f func(v vector.Vector3, uv vector.Vector2) vector.Vector2) Mesh {
-	modified := make([]vector.Vector2, len(m.uv[0]))
+func (m Mesh) ModifyFloat2Attribute(atr string, f func(v vector.Vector2) vector.Vector2) Mesh {
+	m.requireV2Attribute(atr)
+	oldData := m.v2Data[atr]
+	modified := make([]vector.Vector2, len(oldData))
 
-	for i, uv := range m.uv[0] {
-		modified[i] = f(m.vertices[i], uv)
+	for i, v := range oldData {
+		modified[i] = f(v)
 	}
 
-	return NewMeshWithMaterials(m.indices, m.vertices, m.normals, [][]vector.Vector2{modified}, m.materials)
+	return m.SetFloat2Attribute(atr, modified)
+}
+
+func (m Mesh) ModifyFloat1Attribute(atr string, f func(v float64) float64) Mesh {
+	m.requireV1Attribute(atr)
+	oldData := m.v1Data[atr]
+	modified := make([]float64, len(oldData))
+
+	for i, v := range oldData {
+		modified[i] = f(v)
+	}
+
+	return m.SetFloat1Attribute(atr, modified)
 }
 
 func (m Mesh) CalculateFlatNormals() Mesh {
 	m.requireTopology(Triangle)
+	m.requireV3Attribute(PositionAttribute)
 
-	normals := make([]vector.Vector3, len(m.vertices))
+	vertices := m.v3Data[PositionAttribute]
+	normals := make([]vector.Vector3, len(vertices))
 	for i := range normals {
 		normals[i] = vector.Vector3One()
 	}
 
-	verts := m.vertices
 	tris := m.indices
 	for triIndex := 0; triIndex < len(tris); triIndex += 3 {
 		p1 := tris[triIndex]
 		p2 := tris[triIndex+1]
 		p3 := tris[triIndex+2]
 		// normalize(cross(B-A, C-A))
-		normalized := verts[p2].Sub(verts[p1]).Cross(verts[p3].Sub(verts[p1])).Normalized()
+		normalized := vertices[p2].Sub(vertices[p1]).Cross(vertices[p3].Sub(vertices[p1])).Normalized()
 		normals[p1] = normalized
 		normals[p2] = normalized
 		normals[p3] = normalized
@@ -236,49 +305,13 @@ func (m Mesh) CalculateFlatNormals() Mesh {
 		normals[i] = n.Normalized()
 	}
 
-	return Mesh{
-		vertices:  m.vertices,
-		normals:   normals,
-		indices:   m.indices,
-		uv:        m.uv,
-		materials: m.materials,
-		topology:  m.topology,
-	}
+	return m.SetFloat3Attribute(NormalAttribute, normals)
 }
 
-func (m Mesh) RemoveDegenerateTriangles(sideLength float64) Mesh {
-	removedSomething := true
+func (m Mesh) WeldByFloat3Attribute(attribute string, decimalPlace int) Mesh {
+	m.requireV3Attribute(attribute)
+	m.requireTopology(Triangle)
 
-	finalMesh := m
-	for removedSomething {
-		removedSomething = false
-		cm := NewCollapsableMesh(finalMesh)
-
-		for triI := 0; triI < len(finalMesh.indices); triI += 3 {
-			if finalMesh.vertices[finalMesh.indices[triI]].Distance(finalMesh.vertices[finalMesh.indices[triI+1]]) < sideLength {
-				cm.CollapseTri(triI / 3)
-				removedSomething = true
-				continue
-			}
-			if finalMesh.vertices[finalMesh.indices[triI+1]].Distance(finalMesh.vertices[finalMesh.indices[triI+2]]) < sideLength {
-				cm.CollapseTri(triI / 3)
-				removedSomething = true
-				continue
-			}
-			if finalMesh.vertices[finalMesh.indices[triI+2]].Distance(finalMesh.vertices[finalMesh.indices[triI]]) < sideLength {
-				removedSomething = true
-				cm.CollapseTri(triI / 3)
-			}
-		}
-		if removedSomething {
-			finalMesh = cm.ToMesh()
-		}
-	}
-
-	return finalMesh
-}
-
-func (m Mesh) WeldByVertices(decimalPlace int) Mesh {
 	// =================== Finding unique vertices ============================
 	vertILU := make(map[VectorInt]int)
 	vertIToOriginalLU := make(map[int]int)
@@ -290,7 +323,8 @@ func (m Mesh) WeldByVertices(decimalPlace int) Mesh {
 	// count of unique vertices once rounded
 	uniqueVertCount := 0
 
-	for vi, v := range m.vertices {
+	data := m.v3Data[attribute]
+	for vi, v := range data {
 		vInt := Vector3ToInt(v, decimalPlace)
 
 		if _, ok := vertILU[vInt]; !ok {
@@ -304,9 +338,9 @@ func (m Mesh) WeldByVertices(decimalPlace int) Mesh {
 	// Building tris from unique vertices
 	newTris := make([]int, 0)
 	for triI := 0; triI < len(m.indices); triI += 3 {
-		v1 := Vector3ToInt(m.vertices[m.indices[triI+0]], decimalPlace)
-		v2 := Vector3ToInt(m.vertices[m.indices[triI+1]], decimalPlace)
-		v3 := Vector3ToInt(m.vertices[m.indices[triI+2]], decimalPlace)
+		v1 := Vector3ToInt(data[m.indices[triI+0]], decimalPlace)
+		v2 := Vector3ToInt(data[m.indices[triI+1]], decimalPlace)
+		v3 := Vector3ToInt(data[m.indices[triI+2]], decimalPlace)
 
 		if v1 == v2 {
 			continue
@@ -326,25 +360,41 @@ func (m Mesh) WeldByVertices(decimalPlace int) Mesh {
 		newTris = append(newTris, vertILU[v1], vertILU[v2], vertILU[v3])
 	}
 
-	finalVerts := make([]vector.Vector3, 0)
-	finalNormals := make([]vector.Vector3, 0)
-	finalUVs := make([]vector.Vector2, 0)
+	finalV3Data := make(map[string][]vector.Vector3)
+	for key := range m.v3Data {
+		finalV3Data[key] = make([]vector.Vector3, 0)
+	}
+
+	finalV2Data := make(map[string][]vector.Vector2)
+	for key := range m.v2Data {
+		finalV2Data[key] = make([]vector.Vector2, 0)
+	}
+
+	finalV1Data := make(map[string][]float64)
+	for key := range m.v1Data {
+		finalV1Data[key] = make([]float64, 0)
+	}
+
 	shiftBy := make([]int, uniqueVertCount)
 	curShift := 0
 	for vertIndex := 0; vertIndex < uniqueVertCount; vertIndex++ {
 
 		originalIndex := vertIToOriginalLU[vertIndex]
-		v := m.vertices[originalIndex]
+		v := data[originalIndex]
 		vi := Vector3ToInt(v, decimalPlace)
 		if vertLUUsed[vi] {
-			finalVerts = append(finalVerts, v)
-			if len(m.normals) > 0 {
-				finalNormals = append(finalNormals, m.normals[originalIndex])
+			for key, vals := range m.v3Data {
+				finalV3Data[key] = append(finalV3Data[key], vals[originalIndex])
 			}
 
-			if len(m.uv) > 0 && len(m.uv[0]) > 0 {
-				finalUVs = append(finalUVs, m.uv[0][originalIndex])
+			for key, vals := range m.v2Data {
+				finalV2Data[key] = append(finalV2Data[key], vals[originalIndex])
 			}
+
+			for key, vals := range m.v1Data {
+				finalV1Data[key] = append(finalV1Data[key], vals[originalIndex])
+			}
+
 		} else {
 			// Not used, need to shift triangles who's points point to vertices that come after this unsed one
 			curShift++
@@ -358,11 +408,12 @@ func (m Mesh) WeldByVertices(decimalPlace int) Mesh {
 	}
 
 	return Mesh{
-		indices:  newTris,
-		vertices: finalVerts,
-		normals:  finalNormals,
-		uv:       [][]vector.Vector2{finalUVs},
-		topology: m.topology,
+		indices:   newTris,
+		v3Data:    finalV3Data,
+		v2Data:    finalV2Data,
+		v1Data:    finalV1Data,
+		materials: nil, // TODO: Figure out the new tri counts for the materials. Util then clear em
+		topology:  m.topology,
 	}
 }
 
@@ -391,14 +442,124 @@ func (m Mesh) requireTopology(t Topology) {
 	}
 }
 
+func (m Mesh) SetFloat3Attribute(atr string, data []vector.Vector3) Mesh {
+	finalV3Data := make(map[string][]vector.Vector3)
+	for key, val := range m.v3Data {
+		finalV3Data[key] = val
+	}
+	finalV3Data[atr] = data
+	return NewMesh(
+		m.indices,
+		finalV3Data,
+		m.v2Data,
+		m.v1Data,
+		m.materials,
+	)
+}
+func (m Mesh) SetFloat2Attribute(atr string, data []vector.Vector2) Mesh {
+	finalV2Data := make(map[string][]vector.Vector2)
+	for key, val := range m.v2Data {
+		finalV2Data[key] = val
+	}
+	finalV2Data[atr] = data
+	return NewMesh(
+		m.indices,
+		m.v3Data,
+		finalV2Data,
+		m.v1Data,
+		m.materials,
+	)
+}
+
+func (m Mesh) SetFloat1Attribute(atr string, data []float64) Mesh {
+	finalV1Data := make(map[string][]float64)
+	for key, val := range m.v1Data {
+		finalV1Data[key] = val
+	}
+	finalV1Data[atr] = data
+	return NewMesh(
+		m.indices,
+		m.v3Data,
+		m.v2Data,
+		finalV1Data,
+		m.materials,
+	)
+}
+
+func (m Mesh) HasVertexAttribute(atr string) bool {
+	if m.HasFloat3Attribute(atr) {
+		return true
+	}
+
+	if m.HasFloat2Attribute(atr) {
+		return true
+	}
+
+	if m.HasFloat1Attribute(atr) {
+		return true
+	}
+
+	return false
+}
+
+func (m Mesh) HasFloat3Attribute(atr string) bool {
+	for v3Atr, _ := range m.v3Data {
+		if v3Atr == atr {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (m Mesh) HasFloat2Attribute(atr string) bool {
+	for v2Atr, _ := range m.v2Data {
+		if v2Atr == atr {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (m Mesh) HasFloat1Attribute(atr string) bool {
+	for v1Atr, _ := range m.v1Data {
+		if v1Atr == atr {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (m Mesh) requireV3Attribute(atr string) {
+	if !m.HasFloat3Attribute(atr) {
+		panic(fmt.Errorf("can not perform operation for a mesh without the attribute '%s'", atr))
+	}
+}
+
+func (m Mesh) requireV2Attribute(atr string) {
+	if !m.HasFloat2Attribute(atr) {
+		panic(fmt.Errorf("can not perform operation for a mesh without the attribute '%s'", atr))
+	}
+}
+
+func (m Mesh) requireV1Attribute(atr string) {
+	if !m.HasFloat1Attribute(atr) {
+		panic(fmt.Errorf("can not perform operation for a mesh without the attribute '%s'", atr))
+	}
+}
+
 func (m Mesh) SmoothLaplacian(iterations int, smoothingFactor float64) Mesh {
 	m.requireTopology(Triangle)
+	m.requireV3Attribute(PositionAttribute)
 
 	lut := m.VertexNeighborTable()
 
-	vertices := make([]vector.Vector3, len(m.vertices))
+	oldVertices := m.v3Data[PositionAttribute]
+	vertices := make([]vector.Vector3, len(oldVertices))
 	for i := range vertices {
-		vertices[i] = m.vertices[i]
+		vertices[i] = oldVertices[i]
 	}
 
 	for i := 0; i < iterations; i++ {
@@ -417,32 +578,26 @@ func (m Mesh) SmoothLaplacian(iterations int, smoothingFactor float64) Mesh {
 		}
 	}
 
-	return Mesh{
-		vertices:  vertices,
-		normals:   m.normals,
-		indices:   m.indices,
-		uv:        m.uv,
-		materials: m.materials,
-		topology:  m.topology,
-	}
+	return m.SetFloat3Attribute(PositionAttribute, vertices)
 }
 
 func (m Mesh) CalculateSmoothNormals() Mesh {
 	m.requireTopology(Triangle)
+	m.requireV3Attribute(PositionAttribute)
 
-	normals := make([]vector.Vector3, len(m.vertices))
+	vertices := m.v3Data[PositionAttribute]
+	normals := make([]vector.Vector3, len(vertices))
 	for i := range normals {
 		normals[i] = vector.Vector3Zero()
 	}
 
-	verts := m.vertices
 	tris := m.indices
 	for triIndex := 0; triIndex < len(tris); triIndex += 3 {
 		p1 := tris[triIndex]
 		p2 := tris[triIndex+1]
 		p3 := tris[triIndex+2]
 		// normalize(cross(B-A, C-A))
-		normalized := verts[p2].Sub(verts[p1]).Cross(verts[p3].Sub(verts[p1]))
+		normalized := vertices[p2].Sub(vertices[p1]).Cross(vertices[p3].Sub(vertices[p1]))
 
 		// This occurs whenever the given tri is actually just a line
 		if math.IsNaN(normalized.X()) {
@@ -458,52 +613,70 @@ func (m Mesh) CalculateSmoothNormals() Mesh {
 		normals[i] = n.Normalized()
 	}
 
-	return Mesh{
-		vertices:  m.vertices,
-		normals:   normals,
-		indices:   m.indices,
-		uv:        m.uv,
-		materials: m.materials,
-		topology:  m.topology,
+	return m.SetFloat3Attribute(NormalAttribute, normals)
+}
+
+func (m Mesh) AttributeLength() int {
+	for _, v := range m.v3Data {
+		return len(v)
 	}
+	for _, v := range m.v2Data {
+		return len(v)
+	}
+	for _, v := range m.v1Data {
+		return len(v)
+	}
+	return 0
 }
 
 func (m Mesh) RemoveUnusedIndices() Mesh {
 	finalTris := make([]int, len(m.indices))
-	finalVerts := make([]vector.Vector3, 0)
-	finalNormals := make([]vector.Vector3, 0)
-	finalUVs := make([]vector.Vector2, 0)
+	finalV3Data := make(map[string][]vector.Vector3)
+	finalV2Data := make(map[string][]vector.Vector2)
+	finalV1Data := make(map[string][]float64)
 
-	used := make([]bool, len(m.vertices))
+	used := make([]bool, m.AttributeLength())
 	for _, t := range m.indices {
 		used[t] = true
 	}
 
-	shiftBy := make([]int, len(m.vertices))
+	shiftBy := make([]int, m.AttributeLength())
 	skipped := 0
-	for i, v := range m.vertices {
-		if used[i] {
-			finalVerts = append(finalVerts, v)
-		} else {
+	for i, _ := range shiftBy {
+		if !used[i] {
 			skipped++
 		}
 		shiftBy[i] = skipped
 	}
 
-	if len(m.normals) > 0 {
-		for i, n := range m.normals {
+	for atr, vals := range m.v3Data {
+		finalAtrVals := make([]vector.Vector3, 0)
+		for i, v := range vals {
 			if used[i] {
-				finalNormals = append(finalNormals, n)
+				finalAtrVals = append(finalAtrVals, v)
 			}
 		}
+		finalV3Data[atr] = finalAtrVals
 	}
 
-	if len(m.uv) > 0 && len(m.uv[0]) > 0 {
-		for i, n := range m.uv[0] {
+	for atr, vals := range m.v2Data {
+		finalAtrVals := make([]vector.Vector2, 0)
+		for i, v := range vals {
 			if used[i] {
-				finalUVs = append(finalUVs, n)
+				finalAtrVals = append(finalAtrVals, v)
 			}
 		}
+		finalV2Data[atr] = finalAtrVals
+	}
+
+	for atr, vals := range m.v1Data {
+		finalAtrVals := make([]float64, 0)
+		for i, v := range vals {
+			if used[i] {
+				finalAtrVals = append(finalAtrVals, v)
+			}
+		}
+		finalV1Data[atr] = finalAtrVals
 	}
 
 	for triI := 0; triI < len(finalTris); triI++ {
@@ -512,9 +685,9 @@ func (m Mesh) RemoveUnusedIndices() Mesh {
 
 	return Mesh{
 		indices:   finalTris,
-		vertices:  finalVerts,
-		normals:   finalNormals,
-		uv:        [][]vector.Vector2{finalUVs},
+		v3Data:    finalV3Data,
+		v2Data:    finalV2Data,
+		v1Data:    finalV1Data,
 		materials: m.materials,
 		topology:  m.topology,
 	}
@@ -532,9 +705,9 @@ func (m Mesh) SplitOnUniqueMaterials() []Mesh {
 	trisFromOtherMats := 0
 
 	workingMeshes[m.materials[curMatIndex].Material] = &Mesh{
-		vertices: m.vertices,
-		normals:  m.normals,
-		uv:       m.uv,
+		v3Data: m.v3Data,
+		v2Data: m.v2Data,
+		v1Data: m.v1Data,
 		materials: []MeshMaterial{
 			{
 				NumOfTris: 0,
@@ -549,9 +722,9 @@ func (m Mesh) SplitOnUniqueMaterials() []Mesh {
 			curMatIndex++
 			if _, ok := workingMeshes[m.materials[curMatIndex].Material]; !ok {
 				workingMeshes[m.materials[curMatIndex].Material] = &Mesh{
-					vertices: m.vertices,
-					normals:  m.normals,
-					uv:       m.uv,
+					v3Data: m.v3Data,
+					v2Data: m.v2Data,
+					v1Data: m.v1Data,
 					materials: []MeshMaterial{
 						{
 							NumOfTris: 0,

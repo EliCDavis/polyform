@@ -4,7 +4,7 @@ Library for generating and editing 3D geometry and it's associated data.
 
 ❌ Doing one thing really well.
 
-✔️ Doing everything terribly.
+✔️ Doing everything mediocre.
 
 ## Processing Example
 
@@ -19,27 +19,26 @@ import (
   "github.com/EliCDavis/polyform/formats/obj"
 )
 
-func main() {
-  inFile, err := os.Open("dirty.obj")
+func check(err error) {
   if err != nil {
     panic(err)
   }
+}
+
+func main() {
+  inFile, err := os.Open("dirty.obj")
+  check(err)
   defer inFile.Close()
 
   loadedMesh, _, err := obj.ReadMesh(inFile)
-  if err != nil {
-    panic(err)
-  }
+  check(err)
 
   smoothedMesh := loadedMesh.
     WeldByVertices(4).
     SmoothLaplacian(5, 0.5).
     CalculateSmoothNormals()
 
-  err = obj.Save("smoothed.obj", smoothedMesh)
-  if err != nil {
-    panic(err)
-  }
+  check(obj.Save("smoothed.obj", smoothedMesh))
 }
 
 ```
@@ -118,17 +117,18 @@ Resources either directly contributing to the code here or are just interesting 
   - [Book of Shaders on Noise](https://thebookofshaders.com/11/)
   - [Simplex Noise](https://en.wikipedia.org/wiki/Simplex_noise)
 - Triangulation
-  _ Delaunay
-  _ Bowyer–Watson
-  _ [A short video overview](https://www.youtube.com/watch?v=4ySSsESzw2Y)
-  _ [General Algorithm Description](https://en.wikipedia.org/wiki/Bowyer%E2%80%93Watson_algorithm)
-  _ Constraint/Refinement
-  _ [Computing Constrained Delaunay Traingulations By Samuel Peterson](http://www.geom.uiuc.edu/~samuelp/del_project.html#implementation)
-  _ [Chew's Second Algorithm](https://cccg.ca/proceedings/2011/papers/paper91.pdf)
-  _ Polygons
-  _ [Wikipedia](https://en.wikipedia.org/wiki/Polygon_triangulation)
-  _ [Fast Polygon Triangulation Based on Seidel's Algorithm By Atul Narkhede and Dinesh Manocha](http://gamma.cs.unc.edu/SEIDEL/) \* [Triangulating a Monotone Polygon
-  ](http://homepages.math.uic.edu/~jan/mcs481/triangulating.pdf)
+  - Delaunay
+    - Bowyer–Watson
+      - [A short video overview](https://www.youtube.com/watch?v=4ySSsESzw2Y)
+      - [General Algorithm Description](https://en.wikipedia.org/wiki/Bowyer%E2%80%93Watson_algorithm)
+    - Constraint/Refinement
+      - [Computing Constrained Delaunay Traingulations By Samuel Peterson](http://www.geom.uiuc.edu/~samuelp/del_project.html#implementation)
+  - [Chew's Second Algorithm](https://cccg.ca/proceedings/2011/papers/paper91.pdf)
+  - Polygons
+    - [Wikipedia](https://en.wikipedia.org/wiki/Polygon_triangulation)
+    - [Fast Polygon Triangulation Based on Seidel's Algorithm By Atul Narkhede and Dinesh Manocha](http://gamma.cs.unc.edu/SEIDEL/)
+    - [Triangulating a Monotone Polygon
+      ](http://homepages.math.uic.edu/~jan/mcs481/triangulating.pdf)
 - Texturing
   - [Normal Map From Color Map](https://stackoverflow.com/questions/5281261/generating-a-normal-map-from-a-height-map)
 - Formats

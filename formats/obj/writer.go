@@ -187,15 +187,17 @@ func WriteMesh(m modeling.Mesh, materialFile string, out io.Writer) error {
 	}
 
 	view := m.View()
-	for _, v := range view.Vertices {
-		_, err := fmt.Fprintf(out, "v %f %f %f\n", v.X(), v.Y(), v.Z())
-		if err != nil {
-			return err
+	if vals, ok := view.Float3Data[modeling.PositionAttribute]; ok {
+		for _, v := range vals {
+			_, err := fmt.Fprintf(out, "v %f %f %f\n", v.X(), v.Y(), v.Z())
+			if err != nil {
+				return err
+			}
 		}
 	}
 
-	for _, uvChannel := range view.UVs {
-		for _, uv := range uvChannel {
+	if vals, ok := view.Float2Data[modeling.TexCoordAttribute]; ok {
+		for _, uv := range vals {
 			_, err := fmt.Fprintf(out, "vt %f %f\n", uv.X(), uv.Y())
 			if err != nil {
 				return err
@@ -203,20 +205,22 @@ func WriteMesh(m modeling.Mesh, materialFile string, out io.Writer) error {
 		}
 	}
 
-	for _, n := range view.Normals {
-		_, err := fmt.Fprintf(out, "vn %f %f %f\n", n.X(), n.Y(), n.Z())
-		if err != nil {
-			return err
+	if vals, ok := view.Float3Data[modeling.NormalAttribute]; ok {
+		for _, n := range vals {
+			_, err := fmt.Fprintf(out, "vn %f %f %f\n", n.X(), n.Y(), n.Z())
+			if err != nil {
+				return err
+			}
 		}
 	}
 
 	var faceWriter func(tris []int, out io.Writer, start, end int) error
 
-	if len(view.Normals) > 0 && len(view.UVs) > 0 && len(view.UVs[0]) > 0 {
+	if m.HasVertexAttribute(modeling.NormalAttribute) && m.HasVertexAttribute(modeling.TexCoordAttribute) {
 		faceWriter = writeFaceVertAndUvsAndNormals
-	} else if len(view.Normals) > 0 {
+	} else if m.HasVertexAttribute(modeling.NormalAttribute) {
 		faceWriter = writeFaceVertsAndNormals
-	} else if len(view.UVs) > 0 {
+	} else if m.HasVertexAttribute(modeling.TexCoordAttribute) {
 		faceWriter = writeFaceVertsAndUvs
 	} else {
 		faceWriter = writeFaceVerts
@@ -224,7 +228,7 @@ func WriteMesh(m modeling.Mesh, materialFile string, out io.Writer) error {
 
 	mats := m.Materials()
 	if len(mats) == 0 {
-		err := faceWriter(view.Triangles, out, 0, len(view.Triangles))
+		err := faceWriter(view.Indices, out, 0, len(view.Indices))
 		if err != nil {
 			return err
 		}
@@ -233,7 +237,7 @@ func WriteMesh(m modeling.Mesh, materialFile string, out io.Writer) error {
 		for _, mat := range mats {
 			writeUsingMaterial(mat.Material, out)
 			nextOffset := offset + (mat.NumOfTris * 3)
-			faceWriter(view.Triangles, out, offset, nextOffset)
+			faceWriter(view.Indices, out, offset, nextOffset)
 			offset = nextOffset
 		}
 	}

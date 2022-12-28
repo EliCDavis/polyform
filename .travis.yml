@@ -1,0 +1,15 @@
+language: go
+
+go:
+- 1.17.x
+os:
+  - linux
+  - osx
+dist: trusty
+sudo: false
+install: true
+script:
+  - ./test.sh
+
+after_success:
+  - bash <(curl -s https://codecov.io/bash)

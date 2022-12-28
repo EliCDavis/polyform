@@ -11,7 +11,7 @@ type CollapsableMesh struct {
 	vertices        []vector.Vector3
 	triangles       []int
 	normals         []vector.Vector3
-	uv              [][]vector.Vector2
+	uv              []vector.Vector2
 	verticesRemoved []int
 	trisRemoved     int
 
@@ -34,17 +34,29 @@ func NewCollapsableMesh(m Mesh) CollapsableMesh {
 		v2tLUT.AddLookup(m.indices[triI+2], triI+2)
 	}
 
-	verts := make([]vector.Vector3, len(m.vertices))
-	copy(verts, m.vertices)
+	meshVerts, ok := m.v3Data[PositionAttribute]
+	if !ok {
+		panic("expected float3 position attribute")
+	}
+	verts := make([]vector.Vector3, len(meshVerts))
+	copy(verts, meshVerts)
 
 	triangles := make([]int, len(m.indices))
 	copy(triangles, m.indices)
 
-	normals := make([]vector.Vector3, len(m.normals))
-	copy(normals, m.normals)
+	meshNormals, ok := m.v3Data[NormalAttribute]
+	if !ok {
+		panic("expected float3 normal attribute")
+	}
+	normals := make([]vector.Vector3, len(meshNormals))
+	copy(normals, meshNormals)
 
-	uvs := make([][]vector.Vector2, len(m.uv))
-	copy(uvs, m.uv)
+	meshUVs, ok := m.v2Data[TexCoordAttribute]
+	if !ok {
+		panic("expected float3 normal attribute")
+	}
+	uvs := make([]vector.Vector2, len(meshUVs))
+	copy(uvs, meshUVs)
 
 	return CollapsableMesh{
 		vertices:    verts,
@@ -66,7 +78,7 @@ func (cm CollapsableMesh) ToMesh() Mesh {
 	currentShift := 0
 	finalVerts := make([]vector.Vector3, 0)
 	finalNormals := make([]vector.Vector3, 0)
-	finalUVs := make([][]vector.Vector2, 0)
+	finalUVs := make([]vector.Vector2, 0)
 	for i := 0; i < len(cm.vertices); i++ {
 		if vertRemovedIndex < len(cm.verticesRemoved) {
 			if i == cm.verticesRemoved[vertRemovedIndex] {
@@ -77,11 +89,8 @@ func (cm CollapsableMesh) ToMesh() Mesh {
 				if len(cm.normals) > 0 {
 					finalNormals = append(finalNormals, cm.normals[i])
 				}
-				if len(cm.uv) > 0 && len(cm.uv[0]) > 0 {
-					if len(finalUVs) == 0 {
-						finalUVs = append(finalUVs, make([]vector.Vector2, 0))
-					}
-					finalUVs[0] = append(finalUVs[0], cm.uv[0][i])
+				if len(cm.uv) > 0 {
+					finalUVs = append(finalUVs, cm.uv[i])
 				}
 			}
 		}
@@ -99,7 +108,18 @@ func (cm CollapsableMesh) ToMesh() Mesh {
 		finalTriIndex += 3
 	}
 
-	return NewMesh(finalTris, finalVerts, finalNormals, finalUVs)
+	return NewMesh(
+		finalTris,
+		map[string][]vector.Vector3{
+			PositionAttribute: finalVerts,
+			NormalAttribute:   finalNormals,
+		},
+		map[string][]vector.Vector2{
+			TexCoordAttribute: finalUVs,
+		},
+		nil,
+		nil,
+	)
 }
 
 func (cm CollapsableMesh) validTri(triIndex int) bool {
@@ -168,10 +188,10 @@ func (cm *CollapsableMesh) CollapseTri(tri int) {
 				Add(cm.normals[cm.triangles[triIndex+2]]).
 				DivByConstant(3.0).Normalized())
 	}
-	if len(cm.uv) > 0 && len(cm.uv[0]) > 0 {
-		cm.uv[0] = append(cm.uv[0], cm.uv[0][cm.triangles[triIndex+0]].
-			Add(cm.uv[0][cm.triangles[triIndex+1]]).
-			Add(cm.uv[0][cm.triangles[triIndex+2]]).
+	if len(cm.uv) > 0 {
+		cm.uv = append(cm.uv, cm.uv[cm.triangles[triIndex+0]].
+			Add(cm.uv[cm.triangles[triIndex+1]]).
+			Add(cm.uv[cm.triangles[triIndex+2]]).
 			DivByConstant(3.0))
 	}
 

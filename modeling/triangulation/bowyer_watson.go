@@ -359,9 +359,14 @@ func ConstrainedBowyerWatson(pointsDirty []vector.Vector2, constraints []Constra
 
 	return modeling.NewMesh(
 		tris,
-		verts,
+		map[string][]vector.Vector3{
+			modeling.PositionAttribute: verts,
+		},
+		map[string][]vector.Vector2{
+			modeling.TexCoordAttribute: uvs,
+		},
 		nil,
-		[][]vector.Vector2{uvs},
+		nil,
 	)
 }
 
@@ -381,8 +386,13 @@ func BowyerWatson(pointsDirty []vector.Vector2) modeling.Mesh {
 
 	return modeling.NewMesh(
 		tris,
-		verts,
+		map[string][]vector.Vector3{
+			modeling.PositionAttribute: verts,
+		},
+		map[string][]vector.Vector2{
+			modeling.TexCoordAttribute: uvs,
+		},
 		nil,
-		[][]vector.Vector2{uvs},
+		nil,
 	)
 }

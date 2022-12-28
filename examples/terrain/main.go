@@ -110,15 +110,17 @@ func main() {
 		}),
 	)
 
+	uvs := make([]vector.Vector2, 0, len(points))
+
 	terrain := triangulation.
 		BowyerWatson(points).
-		ModifyVertices(func(v vector.Vector3) vector.Vector3 {
+		ModifyFloat3Attribute(modeling.PositionAttribute, func(v vector.Vector3) vector.Vector3 {
+			uvs = append(uvs, vector.NewVector2(v.X(), -v.Z()).
+				DivByConstant(mapSize))
+
 			return v.SetY(heightFunc(v.XZ()))
 		}).
-		ModifyUVs(func(v vector.Vector3, uv vector.Vector2) vector.Vector2 {
-			return vector.NewVector2(v.X(), -v.Z()).
-				DivByConstant(mapSize)
-		}).
+		SetFloat2Attribute(modeling.TexCoordAttribute, uvs).
 		SetMaterial(mat)
 
 	objFile, err := os.Create("terrain.obj")

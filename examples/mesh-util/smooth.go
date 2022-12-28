@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/EliCDavis/polyform/formats/obj"
+	"github.com/EliCDavis/polyform/modeling"
 	"github.com/urfave/cli/v2"
 )
 
@@ -55,7 +56,7 @@ func smoothCommand() *cli.Command {
 			}
 
 			smoothedMesh := loadedMesh.
-				WeldByVertices(c.Int("weld-precision")).
+				WeldByFloat3Attribute(modeling.PositionAttribute, c.Int("weld-precision")).
 				// RemoveDegenerateTriangles(0.001).
 				SmoothLaplacian(c.Int("iterations"), c.Float64("smoothing-weight")).
 				CalculateSmoothNormals()

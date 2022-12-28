@@ -30,7 +30,7 @@ func Line(linePoints []LinePoint) modeling.Mesh {
 	vertices := make([]vector.Vector3, 0)
 	normals := make([]vector.Vector3, 0)
 	directions := directionsOfLinePoints(linePoints)
-	uvs := [][]vector.Vector2{make([]vector.Vector2, 0)}
+	uvs := make([]vector.Vector2, 0)
 	for i, p := range linePoints {
 
 		low := p.Point.Add(p.Up.MultByConstant(p.Height))
@@ -71,8 +71,8 @@ func Line(linePoints []LinePoint) modeling.Mesh {
 			uvBPoint = linePoints[i].Uv
 		}
 		uvDir := uvBPoint.Sub(uvAPoint)
-		uvs[0] = append(
-			uvs[0],
+		uvs = append(
+			uvs,
 			linePoints[i].Uv,
 			linePoints[i].Uv.Add(uvDir.Perpendicular().Normalized().MultByConstant(linePoints[i].UvWidth/2)),
 			linePoints[i].Uv.Add(uvDir.Perpendicular().Normalized().MultByConstant(-linePoints[i].UvWidth/2)),
@@ -107,8 +107,14 @@ func Line(linePoints []LinePoint) modeling.Mesh {
 
 	return modeling.NewMesh(
 		tris,
-		vertices,
-		normals,
-		uvs,
+		map[string][]vector.Vector3{
+			modeling.PositionAttribute: vertices,
+			modeling.NormalAttribute:   normals,
+		},
+		map[string][]vector.Vector2{
+			modeling.TexCoordAttribute: uvs,
+		},
+		nil,
+		nil,
 	)
 }
