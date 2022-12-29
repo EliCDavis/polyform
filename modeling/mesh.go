@@ -124,9 +124,6 @@ func (m Mesh) Append(other Mesh) Mesh {
 		panic(fmt.Errorf("can not combine meshes with different topologies (%s != %s)", m.topology.String(), other.topology.String()))
 	}
 
-	finalTris := append(m.indices, other.indices...)
-	finalMaterials := append(m.materials, other.materials...)
-
 	mAtrLength := m.AttributeLength()
 	oAtrLength := other.AttributeLength()
 
@@ -154,7 +151,7 @@ func (m Mesh) Append(other Mesh) Mesh {
 	for atr, data := range m.v2Data {
 		finalV2Data[atr] = data
 
-		if _, ok := other.v3Data[atr]; !ok {
+		if _, ok := other.v2Data[atr]; !ok {
 			for i := 0; i < oAtrLength; i++ {
 				finalV2Data[atr] = append(finalV2Data[atr], vector.Vector2Zero())
 			}
@@ -174,7 +171,7 @@ func (m Mesh) Append(other Mesh) Mesh {
 	for atr, data := range m.v1Data {
 		finalV1Data[atr] = data
 
-		if _, ok := other.v3Data[atr]; !ok {
+		if _, ok := other.v1Data[atr]; !ok {
 			for i := 0; i < oAtrLength; i++ {
 				finalV1Data[atr] = append(finalV1Data[atr], 0)
 			}
@@ -190,9 +187,10 @@ func (m Mesh) Append(other Mesh) Mesh {
 		finalV1Data[atr] = append(finalV1Data[atr], data...)
 	}
 
-	vertexCountShift := mAtrLength
+	finalTris := append(m.indices, other.indices...)
+	finalMaterials := append(m.materials, other.materials...)
 	for i := len(m.indices); i < len(finalTris); i++ {
-		finalTris[i] += vertexCountShift
+		finalTris[i] += mAtrLength
 	}
 
 	return NewMesh(finalTris, finalV3Data, finalV2Data, finalV1Data, finalMaterials)
