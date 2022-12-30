@@ -3,10 +3,9 @@ package noise
 import (
 	"math/rand"
 
+	"github.com/EliCDavis/polyform/math/sample"
 	"github.com/EliCDavis/vector"
 )
-
-type Sampler2D func(vector.Vector2) float64
 
 type Stack2DEntry struct {
 	Scalar    float64
@@ -14,7 +13,7 @@ type Stack2DEntry struct {
 }
 
 type Stack2D struct {
-	f       Sampler2D
+	f       sample.Vec2ToFloat
 	entries []Stack2DEntry
 }
 

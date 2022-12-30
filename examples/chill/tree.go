@@ -7,6 +7,7 @@ import (
 	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/drawing/texturing"
 	"github.com/EliCDavis/polyform/math/noise"
+	"github.com/EliCDavis/polyform/math/sample"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/extrude"
 	"github.com/EliCDavis/vector"
@@ -116,7 +117,7 @@ func Tree(
 		CalculateSmoothNormals(), branches
 }
 
-func TrunkTexture(imageSize int, colors coloring.ColorStack, barkNoise noise.Sampler2D, barkPBR *PBRTextures) {
+func TrunkTexture(imageSize int, colors coloring.ColorStack, barkNoise sample.Vec2ToFloat, barkPBR *PBRTextures) {
 	dc := gg.NewContext(imageSize, imageSize)
 	dc.SetRGBA(0, 0, 0, 0)
 	dc.Clear()

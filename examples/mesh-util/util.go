@@ -23,8 +23,7 @@ func readMesh(path string) (*modeling.Mesh, error) {
 	switch strings.ToLower(ext) {
 
 	case ".obj":
-		mesh, _, err := obj.ReadMesh(inFile)
-		return mesh, err
+		return obj.Load(path)
 
 	case ".ply":
 		return ply.ToMesh(inFile)

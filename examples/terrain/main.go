@@ -11,6 +11,7 @@ import (
 	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/formats/obj"
 	"github.com/EliCDavis/polyform/math/noise"
+	"github.com/EliCDavis/polyform/math/sample"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/triangulation"
 	"github.com/EliCDavis/vector"
@@ -21,7 +22,7 @@ func sigmoid(xScale, x, xShift, yShift float64) float64 {
 	return (-1 / denominator) + yShift
 }
 
-func Texture(textureSize int, mapSize, height, waterLevel float64, name string, landNoise, waterNoise noise.Sampler2D, landColors, waterColors coloring.ColorStack) {
+func Texture(textureSize int, mapSize, height, waterLevel float64, name string, landNoise, waterNoise sample.Vec2ToFloat, landColors, waterColors coloring.ColorStack) {
 	tex := image.NewRGBA(image.Rect(0, 0, textureSize, textureSize))
 
 	scaleFactor := mapSize / float64(textureSize)
@@ -73,7 +74,7 @@ func main() {
 		{Scalar: 1 / 37.5, Amplitude: totalHeight / 16},
 	})
 
-	heightFunc := noise.Sampler2D(func(v vector.Vector2) float64 {
+	heightFunc := sample.Vec2ToFloat(func(v vector.Vector2) float64 {
 		rollOff := sigmoid(20, v.Sub(mapOffset).Length()/mapRadius, .5, 1)
 		return math.Max(perlinStack.Value(v)*rollOff, waterLevel)
 	})
@@ -91,7 +92,7 @@ func main() {
 		waterLevel,
 		textureName,
 		heightFunc,
-		noise.Sampler2D(noise.PerlinStack([]noise.Stack2DEntry{
+		sample.Vec2ToFloat(noise.PerlinStack([]noise.Stack2DEntry{
 			{Scalar: 1 / 300., Amplitude: 1. / 2},
 			{Scalar: 1 / 150., Amplitude: 1. / 4},
 			{Scalar: 1 / 75., Amplitude: 1. / 8},

@@ -8,6 +8,7 @@ import (
 	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/drawing/texturing"
 	"github.com/EliCDavis/polyform/math/noise"
+	"github.com/EliCDavis/polyform/math/sample"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/triangulation"
 	"github.com/EliCDavis/vector"
@@ -25,7 +26,7 @@ func TerrainTexture(
 	textures *PBRTextures,
 	colors coloring.ColorStack,
 	startPos vector.Vector3,
-	landNoise noise.Sampler2D,
+	landNoise sample.Vec2ToFloat,
 ) {
 	tex := image.NewRGBA(image.Rect(0, 0, textureSize, textureSize))
 	specTex := image.NewRGBA(image.Rect(0, 0, textureSize, textureSize))
@@ -153,7 +154,7 @@ func DrawTrail(
 		CalculateSmoothNormals()
 }
 
-func Terrain(forestWidth float64, height noise.Sampler2D, textures *PBRTextures) (modeling.Mesh, vector.Vector3) {
+func Terrain(forestWidth float64, height sample.Vec2ToFloat, textures *PBRTextures) (modeling.Mesh, vector.Vector3) {
 	n := 10000
 	mapRadius := forestWidth / 2
 	mapOffset := vector.NewVector2(mapRadius, mapRadius)
@@ -165,7 +166,7 @@ func Terrain(forestWidth float64, height noise.Sampler2D, textures *PBRTextures)
 			Add(mapOffset)
 	}
 
-	heightFunc := noise.Sampler2D(func(v vector.Vector2) float64 {
+	heightFunc := sample.Vec2ToFloat(func(v vector.Vector2) float64 {
 		return height(v)
 	})
 

@@ -15,6 +15,7 @@ import (
 	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/formats/obj"
 	"github.com/EliCDavis/polyform/math/noise"
+	"github.com/EliCDavis/polyform/math/sample"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/vector"
 	"github.com/urfave/cli/v2"
@@ -47,7 +48,7 @@ func randomVec2Radial() vector.Vector2 {
 		MultByConstant(math.Sqrt(rand.Float64()))
 }
 
-func calcTreePositions(count int, forestWidth float64, terrainHeight noise.Sampler2D, path Trail) []vector.Vector3 {
+func calcTreePositions(count int, forestWidth float64, terrainHeight sample.Vec2ToFloat, path Trail) []vector.Vector3 {
 	positions := make([]vector.Vector3, 0)
 	for i := 0; i < count; i++ {
 		xz := randomVec2Radial().
@@ -237,7 +238,7 @@ func main() {
 							coloring.NewColorStackEntry(1, 1, 1, color.RGBA{71, 43, 6, 255}),
 							coloring.NewColorStackEntry(1, 1, 1, color.RGBA{94, 63, 21, 255}),
 						}),
-						noise.Sampler2D(noise.PerlinStack([]noise.Stack2DEntry{
+						sample.Vec2ToFloat(noise.PerlinStack([]noise.Stack2DEntry{
 							{Scalar: 1 / 50., Amplitude: 1. / 2},
 							{Scalar: 1 / 25., Amplitude: 1. / 4},
 							{Scalar: 1 / 12.5, Amplitude: 1. / 8},
@@ -454,7 +455,7 @@ func main() {
 					minTreeBranches := ctx.Int("min-tree-branches")
 					maxTreeBranches := ctx.Int("max-tree-branches")
 
-					treeColorNoise := noise.Sampler2D(noise.PerlinStack([]noise.Stack2DEntry{
+					treeColorNoise := sample.Vec2ToFloat(noise.PerlinStack([]noise.Stack2DEntry{
 						{Scalar: 1 / 150., Amplitude: 1. / 2},
 						{Scalar: 1 / 75., Amplitude: 1. / 4},
 						{Scalar: 1 / 37.5, Amplitude: 1. / 8},
@@ -485,7 +486,7 @@ func main() {
 							coloring.NewColorStackEntry(1, 1, 1, color.RGBA{71, 43, 6, 255}),
 							coloring.NewColorStackEntry(1, 1, 1, color.RGBA{94, 63, 21, 255}),
 						}),
-						noise.Sampler2D(noise.PerlinStack([]noise.Stack2DEntry{
+						sample.Vec2ToFloat(noise.PerlinStack([]noise.Stack2DEntry{
 							{Scalar: 1 / 50., Amplitude: 1. / 2},
 							{Scalar: 1 / 25., Amplitude: 1. / 4},
 							{Scalar: 1 / 12.5, Amplitude: 1. / 8},

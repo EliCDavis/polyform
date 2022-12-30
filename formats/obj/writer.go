@@ -1,13 +1,9 @@
 package obj
 
 import (
-	"bufio"
 	"fmt"
 	"image/color"
 	"io"
-	"os"
-	"path"
-	"path/filepath"
 	"strings"
 
 	"github.com/EliCDavis/polyform/modeling"
@@ -242,36 +238,4 @@ func WriteMesh(m modeling.Mesh, materialFile string, out io.Writer) error {
 		}
 	}
 	return nil
-}
-
-// Save writes the mesh to the path specified in OBJ format, optionally writing
-// an additional MTL file with materials are found within the modeling.
-func Save(objPath string, meshToSave modeling.Mesh) error {
-	objFile, err := os.Create(objPath)
-	if err != nil {
-		return err
-	}
-	defer objFile.Close()
-
-	extension := filepath.Ext(objPath)
-	mtlName := objPath[0:len(objPath)-len(extension)] + ".mtl"
-	if len(meshToSave.Materials()) > 0 {
-		mtlFile, err := os.Create(mtlName)
-		if err != nil {
-			return err
-		}
-		defer mtlFile.Close()
-
-		err = WriteMaterials(meshToSave, mtlFile)
-		if err != nil {
-			return err
-		}
-	}
-
-	out := bufio.NewWriter(objFile)
-	err = WriteMesh(meshToSave, path.Base(mtlName), out)
-	if err != nil {
-		return err
-	}
-	return out.Flush()
 }

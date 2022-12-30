@@ -26,11 +26,7 @@ func check(err error) {
 }
 
 func main() {
-  inFile, err := os.Open("dirty.obj")
-  check(err)
-  defer inFile.Close()
-
-  loadedMesh, _, err := obj.ReadMesh(inFile)
+  loadedMesh, err := obj.Load("dirty.obj")
   check(err)
 
   smoothedMesh := loadedMesh.

@@ -32,6 +32,22 @@ func NewMesh(
 	}
 }
 
+func NewPointCloud(
+	indices []int,
+	v3Data map[string][]vector.Vector3,
+	v2Data map[string][]vector.Vector2,
+	v1Data map[string][]float64,
+	materials []MeshMaterial) Mesh {
+	return Mesh{
+		indices:   indices,
+		materials: materials,
+		topology:  Point,
+		v3Data:    v3Data,
+		v2Data:    v2Data,
+		v1Data:    v1Data,
+	}
+}
+
 // Creates a new triangle mesh with no vertices or attribute data
 func EmptyMesh() Mesh {
 	return Mesh{
@@ -108,14 +124,6 @@ func (m Mesh) Tri(i int) Tri {
 
 func (m Mesh) TriCount() int {
 	return len(m.indices) / 3
-}
-
-func (m Mesh) hasUVs() bool {
-	val, ok := m.v2Data[TexCoordAttribute]
-	if !ok {
-		return false
-	}
-	return len(val) > 0
 }
 
 func (m Mesh) Append(other Mesh) Mesh {

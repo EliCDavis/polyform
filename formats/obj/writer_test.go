@@ -63,12 +63,12 @@ func TestWriteObj_NoUVs(t *testing.T) {
 			0, 1, 2,
 		},
 		map[string][]vector.Vector3{
-			modeling.PositionAttribute: []vector.Vector3{
+			modeling.PositionAttribute: {
 				vector.NewVector3(1, 2, 3),
 				vector.NewVector3(4, 5, 6),
 				vector.NewVector3(7, 8, 9),
 			},
-			modeling.NormalAttribute: []vector.Vector3{
+			modeling.NormalAttribute: {
 				vector.NewVector3(0, 1, 0),
 				vector.NewVector3(0, 0, 1),
 				vector.NewVector3(1, 0, 0),

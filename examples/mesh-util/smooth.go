@@ -1,8 +1,6 @@
 package main
 
 import (
-	"os"
-
 	"github.com/EliCDavis/polyform/formats/obj"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/urfave/cli/v2"
@@ -50,18 +48,13 @@ func smoothCommand() *cli.Command {
 				return err
 			}
 
-			outFile, err := os.Create(c.String("out"))
-			if err != nil {
-				return err
-			}
-
 			smoothedMesh := loadedMesh.
 				WeldByFloat3Attribute(modeling.PositionAttribute, c.Int("weld-precision")).
 				// RemoveDegenerateTriangles(0.001).
 				SmoothLaplacian(c.Int("iterations"), c.Float64("smoothing-weight")).
 				CalculateSmoothNormals()
 
-			return obj.WriteMesh(smoothedMesh, "", outFile)
+			return obj.Save(c.String("out"), smoothedMesh)
 		},
 	}
 }
