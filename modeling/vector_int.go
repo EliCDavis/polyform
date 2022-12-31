@@ -1,6 +1,7 @@
 package modeling
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/EliCDavis/vector"
@@ -27,4 +28,8 @@ func (v VectorInt) ToRegularVector() vector.Vector3 {
 		float64(v.Y),
 		float64(v.Z),
 	)
+}
+
+func (v VectorInt) String() string {
+	return fmt.Sprintf("%d, %d, %d", v.X, v.Y, v.Z)
 }

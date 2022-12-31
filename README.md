@@ -17,6 +17,7 @@ import (
   "os"
 
   "github.com/EliCDavis/polyform/formats/obj"
+  "github.com/EliCDavis/polyform/modeling"
 )
 
 func check(err error) {
@@ -30,7 +31,7 @@ func main() {
   check(err)
 
   smoothedMesh := loadedMesh.
-    WeldByVertices(4).
+    WeldByFloat3Attribute(modeling.PositionAttribute, 4).
     SmoothLaplacian(5, 0.5).
     CalculateSmoothNormals()
 
@@ -94,8 +95,8 @@ Shows off how to use the primitives and extrude utilities in this repository.
 
 Things I want to implement eventually...
 
-- [ ] Cube Marching
-- [ ] Bezier Curves
+- [x] Cube Marching
+- [x] Bezier Curves
 - [ ] Constrained Delaunay Tesselation
 - [ ] 3D Tesselation
 - [ ] Slice By Plane
@@ -119,6 +120,7 @@ Resources either directly contributing to the code here or are just interesting 
       - [General Algorithm Description](https://en.wikipedia.org/wiki/Bowyer%E2%80%93Watson_algorithm)
     - Constraint/Refinement
       - [Computing Constrained Delaunay Traingulations By Samuel Peterson](http://www.geom.uiuc.edu/~samuelp/del_project.html#implementation)
+    - [3 Points To Create a Circle](https://kyndinfo.notion.site/Geometric-Drawings-2cefb8d81ced41d5af532dd7bdfdceee)
   - [Chew's Second Algorithm](https://cccg.ca/proceedings/2011/papers/paper91.pdf)
   - Polygons
     - [Wikipedia](https://en.wikipedia.org/wiki/Polygon_triangulation)
@@ -142,5 +144,12 @@ Resources either directly contributing to the code here or are just interesting 
     - [Coastal Landforms for Fantasy Mapping](https://www.youtube.com/watch?v=ztemzsxso0U)
   - Planet
     - [Planet Generation](https://archive.vn/kmVP4)
+  - [Taming Randomness](https://kyndinfo.notion.site/Taming-Randomness-e4351f08ec7c43a7ad47ef2d1dfe2ed8)
 - Voronoi
   - [Voronoi Edges by Inigo Quilez](https://iquilezles.org/articles/voronoilines/)
+- Functions / Curves / Animation Lines
+  - [Interpolation and Animation](https://kyndinfo.notion.site/Interpolation-and-Animation-44d00edd89bc41d686260d6bfd6a01d9)
+  - [Cubic Bézier by Maxime](https://blog.maximeheckel.com/posts/cubic-bezier-from-math-to-motion/)
+- Marching Cubes
+  - [LUT](http://paulbourke.net/geometry/polygonise/)
+  - [Coding Adventure: Marching Cubes By Sebastian Lague](https://www.youtube.com/watch?v=M3iI2l0ltbE)

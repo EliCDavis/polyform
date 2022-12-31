@@ -7,7 +7,7 @@ import (
 	"github.com/EliCDavis/vector"
 )
 
-func FibonacciSpherePoints(samples int, radius float64) []vector.Vector3 {
+func FibonacciSpherePoints(samples int, offsetRadius float64) []vector.Vector3 {
 
 	points := make([]vector.Vector3, samples)
 	phi := math.Pi * (3.0 - math.Sqrt(5.0)) // golden angle in radians
@@ -21,7 +21,7 @@ func FibonacciSpherePoints(samples int, radius float64) []vector.Vector3 {
 		var x = math.Cos(theta) * radius
 		var z = math.Sin(theta) * radius
 
-		points[i] = vector.NewVector3(x, y, z).MultByConstant(radius)
+		points[i] = vector.NewVector3(x, y, z).MultByConstant(offsetRadius)
 	}
 
 	return points

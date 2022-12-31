@@ -51,6 +51,11 @@ func Load(objPath string) (*modeling.Mesh, error) {
 // Save writes the mesh to the path specified in OBJ format, optionally writing
 // an additional MTL file with materials are found within the modeling.
 func Save(objPath string, meshToSave modeling.Mesh) error {
+	err := os.MkdirAll(path.Dir(objPath), os.ModeDir)
+	if err != nil {
+		return err
+	}
+
 	objFile, err := os.Create(objPath)
 	if err != nil {
 		return err
