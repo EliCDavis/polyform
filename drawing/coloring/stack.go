@@ -2,7 +2,11 @@ package coloring
 
 import (
 	"fmt"
+	"image"
 	"image/color"
+	"image/png"
+	"os"
+	"path"
 )
 
 type ColorStackEntry struct {
@@ -45,7 +49,7 @@ type ColorStack struct {
 	leftBlendValues  []float64
 }
 
-func NewColorStack(entries []ColorStackEntry) ColorStack {
+func NewColorStack(entries ...ColorStackEntry) ColorStack {
 	if len(entries) == 0 {
 		panic("can not create a color sampling stack without any entries")
 	}
@@ -74,6 +78,33 @@ func NewColorStack(entries []ColorStackEntry) ColorStack {
 		leftBlendValues:  leftBlendValues,
 		rightBlendValues: rightBlendValues,
 	}
+}
+
+func (cs ColorStack) Debug(imgPath string, width, height int) error {
+	err := os.MkdirAll(path.Dir(imgPath), os.ModeDir)
+	if err != nil {
+		return err
+	}
+	tex := image.NewRGBA(image.Rect(0, 0, width, height))
+
+	for x := 0; x < width; x++ {
+		val := cs.LinearSample(float64(x) / float64(width))
+		for y := 0; y < height; y++ {
+			tex.Set(x, y, val)
+		}
+	}
+
+	texOut, err := os.Create(imgPath)
+	if err != nil {
+		return err
+	}
+	defer texOut.Close()
+
+	err = png.Encode(texOut, tex)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (cs ColorStack) LinearSample(v float64) color.Color {

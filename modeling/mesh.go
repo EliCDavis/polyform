@@ -261,6 +261,36 @@ func (m Mesh) ModifyFloat3Attribute(atr string, f func(v vector.Vector3) vector.
 	return m.SetFloat3Attribute(atr, modified)
 }
 
+func (m Mesh) ScanFloat3Attribute(atr string, f func(v vector.Vector3)) Mesh {
+	m.requireV3Attribute(atr)
+
+	for _, v := range m.v3Data[atr] {
+		f(v)
+	}
+
+	return m
+}
+
+func (m Mesh) ScanFloat2Attribute(atr string, f func(v vector.Vector2)) Mesh {
+	m.requireV2Attribute(atr)
+
+	for _, v := range m.v2Data[atr] {
+		f(v)
+	}
+
+	return m
+}
+
+func (m Mesh) ScanFloat1Attribute(atr string, f func(v float64)) Mesh {
+	m.requireV1Attribute(atr)
+
+	for _, v := range m.v1Data[atr] {
+		f(v)
+	}
+
+	return m
+}
+
 func (m Mesh) ModifyFloat2Attribute(atr string, f func(v vector.Vector2) vector.Vector2) Mesh {
 	m.requireV2Attribute(atr)
 	oldData := m.v2Data[atr]

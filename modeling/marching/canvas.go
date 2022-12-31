@@ -2,6 +2,9 @@ package marching
 
 import (
 	"fmt"
+	"math"
+	"runtime"
+	"sync"
 
 	"github.com/EliCDavis/polyform/math/sample"
 	"github.com/EliCDavis/polyform/modeling"
@@ -72,48 +75,65 @@ func (d MarchingCanvas) AddValue(x, y, z int, val float64) {
 }
 
 func (d MarchingCanvas) AddField(field sample.Vec3ToFloat) {
-
-	for x := 0; x < d.width; x++ {
+	for z := 0; z < d.depth; z++ {
 		for y := 0; y < d.height; y++ {
-			for z := 0; z < d.depth; z++ {
+			for x := 0; x < d.width; x++ {
 				pos := vector.NewVector3(float64(x), float64(y), float64(z)).
-					MultByConstant(d.cubesPerUnit)
+					DivByConstant(d.cubesPerUnit)
 				d.AddValue(x, y, z, field(pos))
 			}
 		}
 	}
-
 }
 
-func (d MarchingCanvas) Sphere(pos vector.Vector3, radius float64) {
+// func (d MarchingCanvas) AddFieldInRange(field sample.Vec3ToFloat) {
+// 	for z := 0; z < d.depth; z++ {
+// 		for y := 0; y < d.height; y++ {
+// 			for x := 0; x < d.width; x++ {
+// 				pos := vector.NewVector3(float64(x), float64(y), float64(z)).
+// 					DivByConstant(d.cubesPerUnit)
+// 				d.AddValue(x, y, z, field(pos))
+// 			}
+// 		}
+// 	}
+// }
 
-	xResolution := 100
-	yResolution := 100
-	zResolution := 100
+func (d MarchingCanvas) Volume() int {
+	return d.width * d.height * d.depth
+}
 
-	for x := -xResolution / 2; x < xResolution/2; x++ {
-		for y := -yResolution / 2; y < yResolution/2; y++ {
-			for z := -zResolution / 2; z < zResolution/2; z++ {
-				if x == 0 && y == 0 && z == 0 {
-					continue
-				}
+func (d MarchingCanvas) AddFieldParallel(field sample.Vec3ToFloat) {
+	var wg sync.WaitGroup
 
-				cubePosition := vector.
-					NewVector3(float64(x), float64(y), float64(z)).
-					Normalized().
-					MultByConstant(radius).
-					Add(pos).
-					DivByConstant(d.cubesPerUnit) // Convert to cube space
+	workSize := int(math.Floor(float64(d.Volume()) / float64(runtime.NumCPU())))
+	for i := 0; i < runtime.NumCPU(); i++ {
+		wg.Add(1)
 
-				cubeFloor := cubePosition.Floor()
-				cubeDir := cubePosition.Sub(cubeFloor)
-				len := cubeDir.Length()
-				len += .1
+		jobSize := workSize
 
-				d.AddValue(int(cubeFloor.X()), int(cubeFloor.Y()), int(cubeFloor.Z()), len)
-			}
+		// Make sure to clean up potential last cell due to rounding error of
+		// division of number of CPUs
+		if i == runtime.NumCPU()-1 {
+			jobSize = d.Volume() - (workSize * i)
 		}
+
+		go func(start, size int) {
+			defer wg.Done()
+
+			for v := start; v < start+size; v++ {
+				z := int(math.Floor(float64(v) / float64(d.width*d.height)))
+				y := int(math.Floor(float64(v-(d.width*d.height*z)) / float64(d.width)))
+				x := v % d.width
+				pos := vector.NewVector3(float64(x), float64(y), float64(z)).
+					DivByConstant(d.cubesPerUnit)
+				d.AddValue(x, y, z, field(pos))
+			}
+
+		}(workSize*i, jobSize)
 	}
+
+	wg.Wait()
+
 }
 
 type workingData struct {
@@ -256,5 +276,5 @@ func (d MarchingCanvas) March(cutoff float64) modeling.Mesh {
 		},
 		nil,
 		nil,
-	)
+	).Scale(vector.Vector3Zero(), vector.Vector3One().DivByConstant(d.cubesPerUnit))
 }

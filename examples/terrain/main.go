@@ -98,17 +98,17 @@ func main() {
 			{Scalar: 1 / 75., Amplitude: 1. / 8},
 			{Scalar: 1 / 37.5, Amplitude: 1. / 16},
 		}).Value),
-		coloring.NewColorStack([]coloring.ColorStackEntry{
+		coloring.NewColorStack(
 			coloring.NewColorStackEntry(0.1, 0.5, 0.7, color.RGBA{199, 237, 255, 255}), // Water Foam
 			coloring.NewColorStackEntry(0.5, 0.5, 0.1, color.RGBA{209, 191, 138, 255}), // Sand
 			coloring.NewColorStackEntry(3, 0.1, 0.5, color.RGBA{59, 120, 65, 255}),     // Grass
 			coloring.NewColorStackEntry(2, 0.5, 0.5, color.RGBA{145, 145, 145, 255}),   // Stone
 			coloring.NewColorStackEntry(2, 0.5, 0.5, color.RGBA{224, 224, 224, 255}),   // Mountain Top Snow
-		}),
-		coloring.NewColorStack([]coloring.ColorStackEntry{
+		),
+		coloring.NewColorStack(
 			coloring.NewColorStackEntry(1, 0.8, 0.8, color.RGBA{0, 174, 255, 255}),
 			coloring.NewColorStackEntry(0.5, 0.8, 0.8, color.RGBA{84, 201, 255, 255}),
-		}),
+		),
 	)
 
 	uvs := make([]vector.Vector2, 0, len(points))
