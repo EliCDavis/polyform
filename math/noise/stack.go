@@ -17,7 +17,7 @@ type Stack2D struct {
 	entries []Stack2DEntry
 }
 
-func PerlinStack(entries []Stack2DEntry) Stack2D {
+func PerlinStack(entries ...Stack2DEntry) Stack2D {
 	newVals := make([]float64, 512)
 	for i := 0; i < len(newVals); i++ {
 		newVals[i] = rand.Float64()

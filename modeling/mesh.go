@@ -249,6 +249,31 @@ func (m Mesh) ScaleAttribute3D(attribute string, origin, amount vector.Vector3) 
 	})
 }
 
+func (m Mesh) CenterFloat3Attribute(atr string) Mesh {
+	m.requireV3Attribute(atr)
+	oldData := m.v3Data[atr]
+	modified := make([]vector.Vector3, len(oldData))
+
+	min := vector.NewVector3(math.Inf(1), math.Inf(1), math.Inf(1))
+	max := vector.NewVector3(math.Inf(-1), math.Inf(-1), math.Inf(-1))
+	for _, v := range oldData {
+		min = min.SetX(math.Min(v.X(), min.X()))
+		min = min.SetY(math.Min(v.Y(), min.Y()))
+		min = min.SetZ(math.Min(v.Z(), min.Z()))
+
+		max = max.SetX(math.Max(v.X(), max.X()))
+		max = max.SetY(math.Max(v.Y(), max.Y()))
+		max = max.SetZ(math.Max(v.Z(), max.Z()))
+	}
+
+	center := max.Sub(min).DivByConstant(2).Add(min)
+	for i, v := range oldData {
+		modified[i] = v.Sub(center)
+	}
+
+	return m.SetFloat3Attribute(atr, modified)
+}
+
 func (m Mesh) ModifyFloat3Attribute(atr string, f func(v vector.Vector3) vector.Vector3) Mesh {
 	m.requireV3Attribute(atr)
 	oldData := m.v3Data[atr]

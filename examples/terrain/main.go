@@ -67,12 +67,12 @@ func main() {
 			Add(mapOffset)
 	}
 
-	perlinStack := noise.PerlinStack([]noise.Stack2DEntry{
-		{Scalar: 1 / 300., Amplitude: totalHeight / 2},
-		{Scalar: 1 / 150., Amplitude: totalHeight / 4},
-		{Scalar: 1 / 75., Amplitude: totalHeight / 8},
-		{Scalar: 1 / 37.5, Amplitude: totalHeight / 16},
-	})
+	perlinStack := noise.PerlinStack(
+		noise.Stack2DEntry{Scalar: 1 / 300., Amplitude: totalHeight / 2},
+		noise.Stack2DEntry{Scalar: 1 / 150., Amplitude: totalHeight / 4},
+		noise.Stack2DEntry{Scalar: 1 / 75., Amplitude: totalHeight / 8},
+		noise.Stack2DEntry{Scalar: 1 / 37.5, Amplitude: totalHeight / 16},
+	)
 
 	heightFunc := sample.Vec2ToFloat(func(v vector.Vector2) float64 {
 		rollOff := sigmoid(20, v.Sub(mapOffset).Length()/mapRadius, .5, 1)
@@ -92,12 +92,12 @@ func main() {
 		waterLevel,
 		textureName,
 		heightFunc,
-		sample.Vec2ToFloat(noise.PerlinStack([]noise.Stack2DEntry{
-			{Scalar: 1 / 300., Amplitude: 1. / 2},
-			{Scalar: 1 / 150., Amplitude: 1. / 4},
-			{Scalar: 1 / 75., Amplitude: 1. / 8},
-			{Scalar: 1 / 37.5, Amplitude: 1. / 16},
-		}).Value),
+		sample.Vec2ToFloat(noise.PerlinStack(
+			noise.Stack2DEntry{Scalar: 1 / 300., Amplitude: 1. / 2},
+			noise.Stack2DEntry{Scalar: 1 / 150., Amplitude: 1. / 4},
+			noise.Stack2DEntry{Scalar: 1 / 75., Amplitude: 1. / 8},
+			noise.Stack2DEntry{Scalar: 1 / 37.5, Amplitude: 1. / 16},
+		).Value),
 		coloring.NewColorStack(
 			coloring.NewColorStackEntry(0.1, 0.5, 0.7, color.RGBA{199, 237, 255, 255}), // Water Foam
 			coloring.NewColorStackEntry(0.5, 0.5, 0.1, color.RGBA{209, 191, 138, 255}), // Sand

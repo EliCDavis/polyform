@@ -43,6 +43,7 @@ func main() {
 ## Helpful Procedural Generation Sub Packages
 
 - Modeling
+  - [marching](/modeling/marching/) - Multi-threaded Cube Marching algorithm and utilities.
   - [extrude](/modeling/extrude/) - Functionality for generating geometry from 2D shapes.
   - [repeat](/modeling/repeat/) - Functionality for copying geometry in common patterns.
   - [primitives](/modeling/repeat/) - Functionality pertaining to generating common geometry.
@@ -50,8 +51,10 @@ func main() {
 - Drawing
   - [coloring](/drawing/coloring/) - Color utilities for blending multiple colors together using weights.
   - [texturing](/drawing/texturing/) - Image processing utilities like generating Normal maps or blurring images.
-- Math
+- [Math](/math/README.md)
   - [noise](/math/noise/) - Utilities around noise functions for common usecases like stacking multiple samples of perlin noise from different frequencies.
+  - [sample](/math/sample/) - Serves as a group of definitions for defining a mapping from one numeric value to another
+  - [curves](/math/curves/) - Commonly curves used in animation like cubic bezier curves.
 
 ## Procedural Generation Examples
 
