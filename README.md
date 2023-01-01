@@ -156,3 +156,5 @@ Resources either directly contributing to the code here or are just interesting 
 - Marching Cubes
   - [LUT](http://paulbourke.net/geometry/polygonise/)
   - [Coding Adventure: Marching Cubes By Sebastian Lague](https://www.youtube.com/watch?v=M3iI2l0ltbE)
+- Collisions
+  - [Closest point on Triangle](https://gdbooks.gitbooks.io/3dcollisions/content/Chapter4/closest_point_to_triangle.html)

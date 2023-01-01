@@ -18,6 +18,10 @@ func NewAABB(center, size vector.Vector3) AABB {
 	}
 }
 
+func (aabb AABB) Center() vector.Vector3 {
+	return aabb.center
+}
+
 func (aabb AABB) Min() vector.Vector3 {
 	return aabb.center.Sub(aabb.extents)
 }
@@ -89,7 +93,23 @@ func (aabb *AABB) EncapsulatePoint(p vector.Vector3) {
 	)
 }
 
+func (aabb *AABB) EncapsulateTri(t Tri) {
+	aabb.EncapsulatePoint(t.P1Vec3Attr(PositionAttribute))
+	aabb.EncapsulatePoint(t.P2Vec3Attr(PositionAttribute))
+	aabb.EncapsulatePoint(t.P3Vec3Attr(PositionAttribute))
+}
+
 func (aabb *AABB) EncapsulateBounds(b AABB) {
 	aabb.EncapsulatePoint(b.center.Sub(b.extents))
 	aabb.EncapsulatePoint(b.center.Add(b.extents))
+}
+
+func (aabb AABB) ClosestPoint(v vector.Vector3) vector.Vector3 {
+	result := v
+	min := aabb.Min()
+	max := aabb.Max()
+	result = result.SetX(Clamp(v.X(), min.X(), max.X()))
+	result = result.SetY(Clamp(v.Y(), min.Y(), max.Y()))
+	result = result.SetZ(Clamp(v.Z(), min.Z(), max.Z()))
+	return result
 }

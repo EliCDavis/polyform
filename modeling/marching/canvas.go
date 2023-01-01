@@ -11,8 +11,8 @@ import (
 	"github.com/EliCDavis/vector"
 )
 
-func interpolateVerts(v1, v2 vector.Vector3, v1v, v2v, isoLevel float64) vector.Vector3 {
-	t := (isoLevel - v1v) / (v2v - v1v)
+func interpolateVerts(v1, v2 vector.Vector3, v1v, v2v, cutoff float64) vector.Vector3 {
+	t := (cutoff - v1v) / (v2v - v1v)
 
 	return v2.Sub(v1).MultByConstant(t).Add(v1)
 }
@@ -150,32 +150,9 @@ func (d MarchingCanvas) March(cutoff float64) modeling.Mesh {
 		vertLookup: make(map[string]int),
 	}
 
-	// Vector3[] jitter = new Vector3[] {
-	//     (new Vector3(Random.value, Random.value, Random.value) / 10f) -(Vector3.one * 0.1f),
-	//     (new Vector3(Random.value, Random.value, Random.value) / 10f) -(Vector3.one * 0.1f),
-	//     (new Vector3(Random.value, Random.value, Random.value) / 10f) -(Vector3.one * 0.1f),
-	//     (new Vector3(Random.value, Random.value, Random.value) / 10f) -(Vector3.one * 0.1f),
-	//     (new Vector3(Random.value, Random.value, Random.value) / 10f) -(Vector3.one * 0.1f),
-	//     (new Vector3(Random.value, Random.value, Random.value) / 10f) -(Vector3.one * 0.1f),
-	//     (new Vector3(Random.value, Random.value, Random.value) / 10f) -(Vector3.one * 0.1f),
-	//     (new Vector3(Random.value, Random.value, Random.value) / 10f) -(Vector3.one * 0.1f),
-	//     (new Vector3(Random.value, Random.value, Random.value) / 10f) -(Vector3.one * 0.1f),
-	//     (new Vector3(Random.value, Random.value, Random.value) / 10f) -(Vector3.one * 0.1f),
-	//     (new Vector3(Random.value, Random.value, Random.value) / 10f) -(Vector3.one * 0.1f),
-	//     (new Vector3(Random.value, Random.value, Random.value) / 10f) -(Vector3.one * 0.1f),
-	//     (new Vector3(Random.value, Random.value, Random.value) / 10f) -(Vector3.one * 0.1f),
-	//     (new Vector3(Random.value, Random.value, Random.value) / 10f) -(Vector3.one * 0.1f),
-	//     (new Vector3(Random.value, Random.value, Random.value) / 10f) -(Vector3.one * 0.1f),
-	//     (new Vector3(Random.value, Random.value, Random.value) / 10f) -(Vector3.one * 0.1f),
-	//     (new Vector3(Random.value, Random.value, Random.value) / 10f) -(Vector3.one * 0.1f),
-	//     (new Vector3(Random.value, Random.value, Random.value) / 10f) -(Vector3.one * 0.1f),
-	//     (new Vector3(Random.value, Random.value, Random.value) / 10f) -(Vector3.one * 0.1f),
-	//     (new Vector3(Random.value, Random.value, Random.value) / 10f) -(Vector3.one * 0.1f),
-	// };
-
-	for x := 0; x < d.width-1; x++ {
+	for z := 0; z < d.depth-1; z++ {
 		for y := 0; y < d.height-1; y++ {
-			for z := 0; z < d.depth-1; z++ {
+			for x := 0; x < d.width-1; x++ {
 				cubeCorners := []float64{
 					d.data[d.index(x, y, z)],
 					d.data[d.index(x+1, y, z)],
@@ -251,9 +228,9 @@ func (d MarchingCanvas) March(cutoff float64) modeling.Mesh {
 					a2 := cornerIndexAFromEdge[triangulation[lookupIndex][i+2]]
 					b2 := cornerIndexBFromEdge[triangulation[lookupIndex][i+2]]
 
-					v1 := interpolateVerts(cubeCornerPositions[a0], cubeCornerPositions[b0], cubeCorners[a0], cubeCorners[b0], cutoff /*jitter*/)
-					v2 := interpolateVerts(cubeCornerPositions[a1], cubeCornerPositions[b1], cubeCorners[a1], cubeCorners[b1], cutoff /*jitter*/)
-					v3 := interpolateVerts(cubeCornerPositions[a2], cubeCornerPositions[b2], cubeCorners[a2], cubeCorners[b2], cutoff /*jitter*/)
+					v1 := interpolateVerts(cubeCornerPositions[a0], cubeCornerPositions[b0], cubeCorners[a0], cubeCorners[b0], cutoff)
+					v2 := interpolateVerts(cubeCornerPositions[a1], cubeCornerPositions[b1], cubeCorners[a1], cubeCorners[b1], cutoff)
+					v3 := interpolateVerts(cubeCornerPositions[a2], cubeCornerPositions[b2], cubeCorners[a2], cubeCorners[b2], cutoff)
 
 					tris = append(
 						tris,
