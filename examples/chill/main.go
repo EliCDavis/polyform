@@ -23,21 +23,21 @@ import (
 
 func branchColorPallettes() map[string]coloring.ColorStack {
 	return map[string]coloring.ColorStack{
-		"green": coloring.NewColorStack([]coloring.ColorStackEntry{
+		"green": coloring.NewColorStack(
 			coloring.NewColorStackEntry(1, 1, 1, color.RGBA{12, 89, 36, 255}),
 			coloring.NewColorStackEntry(1, 1, 1, color.RGBA{3, 191, 0, 255}),
 			coloring.NewColorStackEntry(1, 1, 1, color.RGBA{2, 69, 23, 255}),
-		}),
-		"dead": coloring.NewColorStack([]coloring.ColorStackEntry{
+		),
+		"dead": coloring.NewColorStack(
 			coloring.NewColorStackEntry(1, 1, 1, color.RGBA{234, 226, 126, 255}),
 			coloring.NewColorStackEntry(1, 1, 1, color.RGBA{228, 179, 95, 255}),
 			coloring.NewColorStackEntry(1, 1, 1, color.RGBA{171, 120, 52, 255}),
-		}),
-		"red": coloring.NewColorStack([]coloring.ColorStackEntry{
+		),
+		"red": coloring.NewColorStack(
 			coloring.NewColorStackEntry(1, 1, 1, color.RGBA{168, 50, 62, 255}),
 			coloring.NewColorStackEntry(1, 1, 1, color.RGBA{224, 94, 107, 255}),
 			coloring.NewColorStackEntry(1, 1, 1, color.RGBA{204, 22, 86, 255}),
-		}),
+		),
 	}
 }
 
@@ -233,17 +233,17 @@ func main() {
 
 					TrunkTexture(
 						1024,
-						coloring.NewColorStack([]coloring.ColorStackEntry{
+						coloring.NewColorStack(
 							// coloring.NewColorStackEntry(1, 1, 1, color.RGBA{115, 87, 71, 255}),
 							coloring.NewColorStackEntry(1, 1, 1, color.RGBA{71, 43, 6, 255}),
 							coloring.NewColorStackEntry(1, 1, 1, color.RGBA{94, 63, 21, 255}),
-						}),
-						sample.Vec2ToFloat(noise.PerlinStack([]noise.Stack2DEntry{
-							{Scalar: 1 / 50., Amplitude: 1. / 2},
-							{Scalar: 1 / 25., Amplitude: 1. / 4},
-							{Scalar: 1 / 12.5, Amplitude: 1. / 8},
-							{Scalar: 1 / 7.25, Amplitude: 1. / 16},
-						}).Value),
+						),
+						sample.Vec2ToFloat(noise.PerlinStack(
+							noise.Stack2DEntry{Scalar: 1 / 50., Amplitude: 1. / 2},
+							noise.Stack2DEntry{Scalar: 1 / 25., Amplitude: 1. / 4},
+							noise.Stack2DEntry{Scalar: 1 / 12.5, Amplitude: 1. / 8},
+							noise.Stack2DEntry{Scalar: 1 / 7.25, Amplitude: 1. / 16},
+						).Value),
 						&barkPBR,
 					)
 
@@ -380,21 +380,21 @@ func main() {
 					}
 
 					totalHeight := ctx.Float64("max-height")
-					terrainHeight := noise.PerlinStack([]noise.Stack2DEntry{
-						{Scalar: 1 / 300., Amplitude: totalHeight / 2},
-						{Scalar: 1 / 150., Amplitude: totalHeight / 8},
-						{Scalar: 1 / 75., Amplitude: totalHeight / 16},
-						{Scalar: 1 / 37.5, Amplitude: totalHeight / 32},
-					})
+					terrainHeight := noise.PerlinStack(
+						noise.Stack2DEntry{Scalar: 1 / 300., Amplitude: totalHeight / 2},
+						noise.Stack2DEntry{Scalar: 1 / 150., Amplitude: totalHeight / 8},
+						noise.Stack2DEntry{Scalar: 1 / 75., Amplitude: totalHeight / 16},
+						noise.Stack2DEntry{Scalar: 1 / 37.5, Amplitude: totalHeight / 32},
+					)
 
 					numTree := ctx.Int("tree-count")
 					forestWidth := ctx.Float64("forest-width")
 					terrain, maxTerrainValue := Terrain(forestWidth, terrainHeight.Value, &terrainPBR)
 
-					snowColors := coloring.NewColorStack([]coloring.ColorStackEntry{
+					snowColors := coloring.NewColorStack(
 						coloring.NewColorStackEntry(10, 1, 1, color.RGBA{255, 255, 255, 255}),
 						coloring.NewColorStackEntry(1, 1, 1, color.RGBA{245, 247, 255, 255}),
-					})
+					)
 
 					terrainImageSize := 1024 * 4
 
@@ -455,12 +455,12 @@ func main() {
 					minTreeBranches := ctx.Int("min-tree-branches")
 					maxTreeBranches := ctx.Int("max-tree-branches")
 
-					treeColorNoise := sample.Vec2ToFloat(noise.PerlinStack([]noise.Stack2DEntry{
-						{Scalar: 1 / 150., Amplitude: 1. / 2},
-						{Scalar: 1 / 75., Amplitude: 1. / 4},
-						{Scalar: 1 / 37.5, Amplitude: 1. / 8},
-						{Scalar: 1 / 18., Amplitude: 1. / 16},
-					}).Value)
+					treeColorNoise := sample.Vec2ToFloat(noise.PerlinStack(
+						noise.Stack2DEntry{Scalar: 1 / 150., Amplitude: 1. / 2},
+						noise.Stack2DEntry{Scalar: 1 / 75., Amplitude: 1. / 4},
+						noise.Stack2DEntry{Scalar: 1 / 37.5, Amplitude: 1. / 8},
+						noise.Stack2DEntry{Scalar: 1 / 18., Amplitude: 1. / 16},
+					).Value)
 
 					trunks := modeling.EmptyMesh()
 					branches := modeling.EmptyMesh()
@@ -482,16 +482,16 @@ func main() {
 
 					TrunkTexture(
 						1024,
-						coloring.NewColorStack([]coloring.ColorStackEntry{
+						coloring.NewColorStack(
 							coloring.NewColorStackEntry(1, 1, 1, color.RGBA{71, 43, 6, 255}),
 							coloring.NewColorStackEntry(1, 1, 1, color.RGBA{94, 63, 21, 255}),
-						}),
-						sample.Vec2ToFloat(noise.PerlinStack([]noise.Stack2DEntry{
-							{Scalar: 1 / 50., Amplitude: 1. / 2},
-							{Scalar: 1 / 25., Amplitude: 1. / 4},
-							{Scalar: 1 / 12.5, Amplitude: 1. / 8},
-							{Scalar: 1 / 7.25, Amplitude: 1. / 16},
-						}).Value),
+						),
+						sample.Vec2ToFloat(noise.PerlinStack(
+							noise.Stack2DEntry{Scalar: 1 / 50., Amplitude: 1. / 2},
+							noise.Stack2DEntry{Scalar: 1 / 25., Amplitude: 1. / 4},
+							noise.Stack2DEntry{Scalar: 1 / 12.5, Amplitude: 1. / 8},
+							noise.Stack2DEntry{Scalar: 1 / 7.25, Amplitude: 1. / 16},
+						).Value),
 						&barkPBR,
 					)
 

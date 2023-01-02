@@ -585,7 +585,7 @@ func (m Mesh) HasVertexAttribute(atr string) bool {
 }
 
 func (m Mesh) HasFloat3Attribute(atr string) bool {
-	for v3Atr, _ := range m.v3Data {
+	for v3Atr := range m.v3Data {
 		if v3Atr == atr {
 			return true
 		}
@@ -595,7 +595,7 @@ func (m Mesh) HasFloat3Attribute(atr string) bool {
 }
 
 func (m Mesh) HasFloat2Attribute(atr string) bool {
-	for v2Atr, _ := range m.v2Data {
+	for v2Atr := range m.v2Data {
 		if v2Atr == atr {
 			return true
 		}
@@ -605,7 +605,7 @@ func (m Mesh) HasFloat2Attribute(atr string) bool {
 }
 
 func (m Mesh) HasFloat1Attribute(atr string) bool {
-	for v1Atr, _ := range m.v1Data {
+	for v1Atr := range m.v1Data {
 		if v1Atr == atr {
 			return true
 		}
@@ -724,7 +724,7 @@ func (m Mesh) RemoveUnusedIndices() Mesh {
 
 	shiftBy := make([]int, m.AttributeLength())
 	skipped := 0
-	for i, _ := range shiftBy {
+	for i := range shiftBy {
 		if !used[i] {
 			skipped++
 		}

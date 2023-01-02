@@ -171,11 +171,9 @@ func BranchTexture(
 	berryConfig := &BerryConfig{
 		relativeBerrySize: .5,
 		colorPalette: coloring.NewColorStack(
-			[]coloring.ColorStackEntry{
-				coloring.NewColorStackEntry(1, 1, 1, color.RGBA{235, 64, 52, 255}),
-				coloring.NewColorStackEntry(1, 1, 1, color.RGBA{235, 52, 98, 255}),
-				coloring.NewColorStackEntry(1, 1, 1, color.RGBA{255, 102, 140, 255}),
-			},
+			coloring.NewColorStackEntry(1, 1, 1, color.RGBA{235, 64, 52, 255}),
+			coloring.NewColorStackEntry(1, 1, 1, color.RGBA{235, 52, 98, 255}),
+			coloring.NewColorStackEntry(1, 1, 1, color.RGBA{255, 102, 140, 255}),
 		),
 		chanceOfBerry: .75,
 	}

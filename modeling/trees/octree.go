@@ -1,7 +1,6 @@
 package trees
 
 import (
-	"log"
 	"math"
 
 	"github.com/EliCDavis/polyform/modeling"
@@ -158,6 +157,5 @@ func logBase8(x float64) float64 {
 
 func FromMesh(m modeling.Mesh) *OctTree {
 	treeDepth := int(math.Max(1, math.Round(logBase8(float64(m.TriCount())))))
-	log.Printf("tree of depth: %d\n", treeDepth)
 	return FromMeshWithDepth(m, treeDepth)
 }

@@ -2,43 +2,52 @@
 
 Library for generating and editing 3D geometry and it's associated data.
 
-❌ Doing one thing really well.
-
-✔️ Doing everything mediocre.
-
 ## Processing Example
 
-Reads in a obj file and welds vertices, applies laplacian smoothing, and calculates smoothed normals.
+Reads in a obj and applies the cube marching algorithm over the meshes 3D SDF.
 
 ```go
 package main
 
 import (
-  "os"
-
-  "github.com/EliCDavis/polyform/formats/obj"
-  "github.com/EliCDavis/polyform/modeling"
+	"github.com/EliCDavis/polyform/formats/obj"
+	"github.com/EliCDavis/polyform/modeling"
+	"github.com/EliCDavis/polyform/modeling/marching"
+	"github.com/EliCDavis/vector"
 )
 
 func check(err error) {
-  if err != nil {
-    panic(err)
-  }
+	if err != nil {
+		panic(err)
+	}
 }
 
 func main() {
-  loadedMesh, err := obj.Load("dirty.obj")
-  check(err)
+	loadedMesh, err := obj.Load("test-models/stanford-bunny.obj")
+	check(err)
 
-  smoothedMesh := loadedMesh.
-    WeldByFloat3Attribute(modeling.PositionAttribute, 4).
-    SmoothLaplacian(5, 0.5).
-    CalculateSmoothNormals()
+	resolution := 100
+	cubesPerUnit := 10.
+	workingArea := float64(resolution) / cubesPerUnit
+	center := vector.Vector3One().MultByConstant(workingArea * 0.5)
 
-  check(obj.Save("smoothed.obj", smoothedMesh))
+	canvas := marching.NewMarchingCanvas(resolution, resolution, resolution, cubesPerUnit)
+
+	canvas.AddFieldParallel(marching.Mesh(
+		loadedMesh.
+			CenterFloat3Attribute(modeling.PositionAttribute).
+			Scale(vector.Vector3Zero(), vector.Vector3(vector.NewVector3(12, 12, 12))).
+			Translate(center),
+		.1,
+		10,
+	))
+	check(obj.Save("chunky-bunny.obj", canvas.March(.3)))
 }
-
 ```
+
+Results in:
+
+![Chunky Bunny](/examples/inflate/chunky-bunny.png)
 
 ## Helpful Procedural Generation Sub Packages
 

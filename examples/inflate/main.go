@@ -37,17 +37,17 @@ func main() {
 			&cli.Float64Flag{
 				Name:    "threshold",
 				Aliases: []string{"t"},
-				Value:   10.15,
+				Value:   .5,
 			},
 			&cli.Float64Flag{
 				Name:    "radius",
 				Aliases: []string{"r"},
-				Value:   .4,
+				Value:   .1,
 			},
 			&cli.Float64Flag{
 				Name:    "strength",
 				Aliases: []string{"s"},
-				Value:   40,
+				Value:   10,
 			},
 		},
 		Action: func(c *cli.Context) error {
@@ -75,6 +75,10 @@ func main() {
 				c.Float64("strength"),
 			))
 			log.Printf("Duration To add Field: %s\n", time.Now().Sub(startTime))
+
+			// for i := 0; i < 10; i++ {
+			// 	obj.Save(fmt.Sprintf("%d-%s", i, c.String("out")), canvas.March(float64(i)/10))
+			// }
 
 			return obj.Save(c.String("out"), canvas.March(c.Float64("threshold")))
 		},

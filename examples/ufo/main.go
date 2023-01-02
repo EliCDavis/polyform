@@ -125,7 +125,7 @@ func UfoBody(outerRadius float64, portalRadius float64, frameSections int) model
 		Append(primitives.
 			Cylinder(20, 1, outerRadius+1).
 			Translate(vector.NewVector3(0, 3.5, 0))).
-		Append(extrude.ClosedCircleWithConstantThickness(8, .25, repeat.Point(frameSections, portalRadius)).
+		Append(extrude.ClosedCircleWithConstantThickness(8, .25, repeat.CirclePoints(frameSections, portalRadius)).
 			Translate(vector.Vector3Up().MultByConstant(0.5))).
 		Append(sideLights(frameSections, outerRadius+1).Translate(vector.NewVector3(0, 3.5, 0))).
 		SetMaterial(mat).
