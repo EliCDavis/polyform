@@ -153,8 +153,9 @@ Resources either directly contributing to the code here or are just interesting 
 - Functions / Curves / Animation Lines
   - [Interpolation and Animation](https://kyndinfo.notion.site/Interpolation-and-Animation-44d00edd89bc41d686260d6bfd6a01d9)
   - [Cubic Bézier by Maxime](https://blog.maximeheckel.com/posts/cubic-bezier-from-math-to-motion/)
-- Marching Cubes
+- Marching Cubes / SDFs
   - [LUT](http://paulbourke.net/geometry/polygonise/)
   - [Coding Adventure: Marching Cubes By Sebastian Lague](https://www.youtube.com/watch?v=M3iI2l0ltbE)
+  - [SDFs](https://iquilezles.org/articles/distfunctions/)
 - Collisions
   - [Closest point on Triangle](https://gdbooks.gitbooks.io/3dcollisions/content/Chapter4/closest_point_to_triangle.html)

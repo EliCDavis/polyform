@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"os"
+	"time"
 
 	"github.com/EliCDavis/polyform/formats/obj"
 	"github.com/EliCDavis/polyform/modeling"
@@ -63,6 +64,8 @@ func main() {
 				MultByConstant(workingArea * 0.5)
 
 			canvas := marching.NewMarchingCanvas(resolution, resolution, resolution, cubesPerUnit)
+
+			startTime := time.Now()
 			canvas.AddFieldParallel(marching.Mesh(
 				loadedMesh.
 					CenterFloat3Attribute(modeling.PositionAttribute).
@@ -71,6 +74,7 @@ func main() {
 				c.Float64("radius"),
 				c.Float64("strength"),
 			))
+			log.Printf("Duration To add Field: %s\n", time.Now().Sub(startTime))
 
 			return obj.Save(c.String("out"), canvas.March(c.Float64("threshold")))
 		},

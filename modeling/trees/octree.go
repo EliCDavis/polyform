@@ -1,6 +1,7 @@
 package trees
 
 import (
+	"log"
 	"math"
 
 	"github.com/EliCDavis/polyform/modeling"
@@ -33,7 +34,7 @@ func (ot OctTree) ClosestPoint(v vector.Vector3) vector.Vector3 {
 		if ot.children[i] == nil {
 			continue
 		}
-		point := ot.children[i].ClosestPoint(v)
+		point := ot.children[i].bounds.ClosestPoint(v)
 		dist := point.Distance(v)
 		if dist < closestCellDist {
 			closestCellDist = dist
@@ -142,11 +143,21 @@ func fromMesh(tris []modeling.Tri, maxDepth int) *OctTree {
 	}
 }
 
-func FromMesh(m modeling.Mesh) *OctTree {
+func FromMeshWithDepth(m modeling.Mesh, depth int) *OctTree {
 	tris := make([]modeling.Tri, m.TriCount())
 	for i := 0; i < m.TriCount(); i++ {
 		tris[i] = m.Tri(i)
 	}
 
-	return fromMesh(tris, 6)
+	return fromMesh(tris, depth)
+}
+
+func logBase8(x float64) float64 {
+	return math.Log(x) / math.Log(8)
+}
+
+func FromMesh(m modeling.Mesh) *OctTree {
+	treeDepth := int(math.Max(1, math.Round(logBase8(float64(m.TriCount())))))
+	log.Printf("tree of depth: %d\n", treeDepth)
+	return FromMeshWithDepth(m, treeDepth)
 }

@@ -10,6 +10,7 @@ import (
 type Tri struct {
 	mesh          *Mesh
 	startingIndex int
+	plane         *Plane
 }
 
 // P1 is the first point on our triangle, which is an index to the vertices array of a mesh
@@ -37,6 +38,18 @@ func (t Tri) P2Vec3Attr(attr string) vector.Vector3 {
 
 func (t Tri) P3Vec3Attr(attr string) vector.Vector3 {
 	return t.mesh.v3Data[attr][t.P3()]
+}
+
+func (t Tri) Plane() Plane {
+	if t.plane == nil {
+		plane := NewPlaneFromPoints(
+			t.P1Vec3Attr(PositionAttribute),
+			t.P2Vec3Attr(PositionAttribute),
+			t.P3Vec3Attr(PositionAttribute),
+		)
+		t.plane = &plane
+	}
+	return *t.plane
 }
 
 // Valid determines whether or not the contains 3 unique vertices.
@@ -83,28 +96,20 @@ func (t Tri) PointInSide(p vector.Vector3) bool {
 
 	u := b.Cross(c)
 	v := c.Cross(a)
-	w := a.Cross(b)
 
 	// Test to see if the normals are facing
 	// the same direction, return false if not
 	if u.Dot(v) < 0. {
 		return false
 	}
-	if u.Dot(w) < 0. {
-		return false
-	}
 
-	// All normals facing the same way, return true
-	return true
+	w := a.Cross(b)
+	return u.Dot(w) >= 0.
 }
 
 func (t Tri) ClosestPoint(p vector.Vector3) vector.Vector3 {
-	plane := NewPlaneFromPoints(
-		t.P1Vec3Attr(PositionAttribute),
-		t.P2Vec3Attr(PositionAttribute),
-		t.P3Vec3Attr(PositionAttribute),
-	)
-	closestPoint := plane.ClosestPoint(p)
+
+	closestPoint := t.Plane().ClosestPoint(p)
 
 	if t.PointInSide(closestPoint) {
 		return closestPoint

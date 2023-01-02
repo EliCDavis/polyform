@@ -85,6 +85,13 @@ func (cs ColorStack) Debug(imgPath string, width, height int) error {
 	if err != nil {
 		return err
 	}
+
+	texOut, err := os.Create(imgPath)
+	if err != nil {
+		return err
+	}
+	defer texOut.Close()
+
 	tex := image.NewRGBA(image.Rect(0, 0, width, height))
 
 	for x := 0; x < width; x++ {
@@ -94,17 +101,7 @@ func (cs ColorStack) Debug(imgPath string, width, height int) error {
 		}
 	}
 
-	texOut, err := os.Create(imgPath)
-	if err != nil {
-		return err
-	}
-	defer texOut.Close()
-
-	err = png.Encode(texOut, tex)
-	if err != nil {
-		return err
-	}
-	return nil
+	return png.Encode(texOut, tex)
 }
 
 func (cs ColorStack) LinearSample(v float64) color.Color {

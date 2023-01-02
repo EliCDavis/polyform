@@ -27,7 +27,7 @@ func Mesh(mesh modeling.Mesh, radius, strength float64) sample.Vec3ToFloat {
 
 		closestDist := octree.ClosestPoint(v).Distance(v)
 
-		if closestDist <= radius {
+		if closestDist < radius {
 			return (radius - closestDist) * strength
 		}
 		return 0
