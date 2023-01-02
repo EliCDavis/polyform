@@ -44,7 +44,7 @@ func (ot OctTree) ClosestPoint(v vector.Vector3) vector.Vector3 {
 	if closestCell != nil && closestCellDist < closestTriDist {
 		subCellPoint := closestCell.ClosestPoint(v)
 		subCellDist := v.Distance(subCellPoint)
-		if subCellDist > closestTriDist {
+		if subCellDist < closestTriDist {
 			return subCellPoint
 		}
 	}
