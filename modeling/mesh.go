@@ -3,6 +3,8 @@ package modeling
 import (
 	"fmt"
 	"math"
+	"runtime"
+	"sync"
 
 	"github.com/EliCDavis/vector"
 )
@@ -244,7 +246,7 @@ func (m Mesh) Scale(origin, amount vector.Vector3) Mesh {
 }
 
 func (m Mesh) ScaleAttribute3D(attribute string, origin, amount vector.Vector3) Mesh {
-	return m.ModifyFloat3Attribute(attribute, func(v vector.Vector3) vector.Vector3 {
+	return m.ModifyFloat3Attribute(attribute, func(i int, v vector.Vector3) vector.Vector3 {
 		return origin.Add(v.Sub(origin).MultByVector(amount))
 	})
 }
@@ -295,68 +297,278 @@ func (m Mesh) CenterFloat3Attribute(atr string) Mesh {
 	return m.SetFloat3Attribute(atr, modified)
 }
 
-func (m Mesh) ModifyFloat3Attribute(atr string, f func(v vector.Vector3) vector.Vector3) Mesh {
+func (m Mesh) ScanFloat3Attribute(atr string, f func(i int, v vector.Vector3)) Mesh {
+	m.requireV3Attribute(atr)
+
+	for i, v := range m.v3Data[atr] {
+		f(i, v)
+	}
+
+	return m
+}
+
+func (m Mesh) ScanFloat3AttributeParallel(atr string, f func(i int, v vector.Vector3)) Mesh {
+	m.requireV3Attribute(atr)
+
+	if len(m.v3Data[atr]) <= runtime.NumCPU()*4 || runtime.NumCPU() == 1 {
+		return m.ScanFloat3Attribute(atr, f)
+	}
+
+	var wg sync.WaitGroup
+
+	workSize := int(math.Floor(float64(len(m.v3Data[atr])) / float64(runtime.NumCPU())))
+	for i := 0; i < runtime.NumCPU(); i++ {
+		wg.Add(1)
+
+		jobSize := workSize
+
+		// Make sure to clean up potential last cell due to rounding error of
+		// division of number of CPUs
+		if i == runtime.NumCPU()-1 {
+			jobSize = len(m.v3Data[atr]) - (workSize * i)
+		}
+
+		go func(start, size int) {
+			defer wg.Done()
+			for i := start; i < start+size; i++ {
+				f(i, m.v3Data[atr][i])
+			}
+		}(workSize*i, jobSize)
+	}
+
+	wg.Wait()
+
+	return m
+}
+
+func (m Mesh) ScanFloat2Attribute(atr string, f func(i int, v vector.Vector2)) Mesh {
+	m.requireV2Attribute(atr)
+
+	for i, v := range m.v2Data[atr] {
+		f(i, v)
+	}
+
+	return m
+}
+
+func (m Mesh) ScanFloat2AttributeParallel(atr string, f func(i int, v vector.Vector2)) Mesh {
+	m.requireV2Attribute(atr)
+
+	if len(m.v2Data[atr]) <= runtime.NumCPU()*4 || runtime.NumCPU() == 1 {
+		return m.ScanFloat2Attribute(atr, f)
+	}
+
+	var wg sync.WaitGroup
+
+	workSize := int(math.Floor(float64(len(m.v2Data[atr])) / float64(runtime.NumCPU())))
+	for i := 0; i < runtime.NumCPU(); i++ {
+		wg.Add(1)
+
+		jobSize := workSize
+
+		// Make sure to clean up potential last cell due to rounding error of
+		// division of number of CPUs
+		if i == runtime.NumCPU()-1 {
+			jobSize = len(m.v2Data[atr]) - (workSize * i)
+		}
+
+		go func(start, size int) {
+			defer wg.Done()
+			for i := start; i < start+size; i++ {
+				f(i, m.v2Data[atr][i])
+			}
+		}(workSize*i, jobSize)
+	}
+
+	wg.Wait()
+
+	return m
+}
+
+func (m Mesh) ScanFloat1Attribute(atr string, f func(i int, v float64)) Mesh {
+	m.requireV1Attribute(atr)
+
+	for i, v := range m.v1Data[atr] {
+		f(i, v)
+	}
+
+	return m
+}
+
+func (m Mesh) ScanFloat1AttributeParallel(atr string, f func(i int, v float64)) Mesh {
+	m.requireV1Attribute(atr)
+
+	if len(m.v1Data[atr]) <= runtime.NumCPU()*4 || runtime.NumCPU() == 1 {
+		return m.ScanFloat1Attribute(atr, f)
+	}
+
+	var wg sync.WaitGroup
+
+	workSize := int(math.Floor(float64(len(m.v1Data[atr])) / float64(runtime.NumCPU())))
+	for i := 0; i < runtime.NumCPU(); i++ {
+		wg.Add(1)
+
+		jobSize := workSize
+
+		// Make sure to clean up potential last cell due to rounding error of
+		// division of number of CPUs
+		if i == runtime.NumCPU()-1 {
+			jobSize = len(m.v1Data[atr]) - (workSize * i)
+		}
+
+		go func(start, size int) {
+			defer wg.Done()
+			for i := start; i < start+size; i++ {
+				f(i, m.v1Data[atr][i])
+			}
+		}(workSize*i, jobSize)
+	}
+
+	wg.Wait()
+
+	return m
+}
+
+func (m Mesh) ModifyFloat3Attribute(atr string, f func(i int, v vector.Vector3) vector.Vector3) Mesh {
 	m.requireV3Attribute(atr)
 	oldData := m.v3Data[atr]
 	modified := make([]vector.Vector3, len(oldData))
 
 	for i, v := range oldData {
-		modified[i] = f(v)
+		modified[i] = f(i, v)
 	}
 
 	return m.SetFloat3Attribute(atr, modified)
 }
 
-func (m Mesh) ScanFloat3Attribute(atr string, f func(v vector.Vector3)) Mesh {
+func (m Mesh) ModifyFloat3AttributeParallel(atr string, f func(i int, v vector.Vector3) vector.Vector3) Mesh {
 	m.requireV3Attribute(atr)
-
-	for _, v := range m.v3Data[atr] {
-		f(v)
+	if len(m.v3Data[atr]) < runtime.NumCPU() || runtime.NumCPU() == 1 {
+		return m.ModifyFloat3Attribute(atr, f)
 	}
 
-	return m
-}
+	oldData := m.v3Data[atr]
+	modified := make([]vector.Vector3, len(oldData))
 
-func (m Mesh) ScanFloat2Attribute(atr string, f func(v vector.Vector2)) Mesh {
-	m.requireV2Attribute(atr)
+	var wg sync.WaitGroup
 
-	for _, v := range m.v2Data[atr] {
-		f(v)
+	workSize := int(math.Floor(float64(len(m.v3Data[atr])) / float64(runtime.NumCPU())))
+	for i := 0; i < runtime.NumCPU(); i++ {
+		wg.Add(1)
+
+		jobSize := workSize
+
+		// Make sure to clean up potential last cell due to rounding error of
+		// division of number of CPUs
+		if i == runtime.NumCPU()-1 {
+			jobSize = len(m.v3Data[atr]) - (workSize * i)
+		}
+
+		go func(start, size int) {
+			defer wg.Done()
+			for i := start; i < start+size; i++ {
+				modified[i] = f(i, m.v3Data[atr][i])
+			}
+		}(workSize*i, jobSize)
 	}
 
-	return m
+	wg.Wait()
+
+	return m.SetFloat3Attribute(atr, modified)
 }
 
-func (m Mesh) ScanFloat1Attribute(atr string, f func(v float64)) Mesh {
-	m.requireV1Attribute(atr)
-
-	for _, v := range m.v1Data[atr] {
-		f(v)
-	}
-
-	return m
-}
-
-func (m Mesh) ModifyFloat2Attribute(atr string, f func(v vector.Vector2) vector.Vector2) Mesh {
+func (m Mesh) ModifyFloat2Attribute(atr string, f func(i int, v vector.Vector2) vector.Vector2) Mesh {
 	m.requireV2Attribute(atr)
 	oldData := m.v2Data[atr]
 	modified := make([]vector.Vector2, len(oldData))
 
 	for i, v := range oldData {
-		modified[i] = f(v)
+		modified[i] = f(i, v)
 	}
 
 	return m.SetFloat2Attribute(atr, modified)
 }
 
-func (m Mesh) ModifyFloat1Attribute(atr string, f func(v float64) float64) Mesh {
+func (m Mesh) ModifyFloat2AttributeParallel(atr string, f func(i int, v vector.Vector2) vector.Vector2) Mesh {
+	m.requireV2Attribute(atr)
+	if len(m.v2Data[atr]) < runtime.NumCPU() || runtime.NumCPU() == 1 {
+		return m.ModifyFloat2Attribute(atr, f)
+	}
+
+	oldData := m.v2Data[atr]
+	modified := make([]vector.Vector2, len(oldData))
+
+	var wg sync.WaitGroup
+
+	workSize := int(math.Floor(float64(len(m.v2Data[atr])) / float64(runtime.NumCPU())))
+	for i := 0; i < runtime.NumCPU(); i++ {
+		wg.Add(1)
+
+		jobSize := workSize
+
+		// Make sure to clean up potential last cell due to rounding error of
+		// division of number of CPUs
+		if i == runtime.NumCPU()-1 {
+			jobSize = len(m.v2Data[atr]) - (workSize * i)
+		}
+
+		go func(start, size int) {
+			defer wg.Done()
+			for i := start; i < start+size; i++ {
+				modified[i] = f(i, m.v2Data[atr][i])
+			}
+		}(workSize*i, jobSize)
+	}
+
+	wg.Wait()
+
+	return m.SetFloat2Attribute(atr, modified)
+}
+
+func (m Mesh) ModifyFloat1Attribute(atr string, f func(i int, v float64) float64) Mesh {
 	m.requireV1Attribute(atr)
 	oldData := m.v1Data[atr]
 	modified := make([]float64, len(oldData))
 
 	for i, v := range oldData {
-		modified[i] = f(v)
+		modified[i] = f(i, v)
 	}
+
+	return m.SetFloat1Attribute(atr, modified)
+}
+
+func (m Mesh) ModifyFloat1AttributeParallel(atr string, f func(i int, v float64) float64) Mesh {
+	m.requireV1Attribute(atr)
+	if len(m.v1Data[atr]) < runtime.NumCPU() || runtime.NumCPU() == 1 {
+		return m.ModifyFloat1Attribute(atr, f)
+	}
+
+	oldData := m.v1Data[atr]
+	modified := make([]float64, len(oldData))
+
+	var wg sync.WaitGroup
+
+	workSize := int(math.Floor(float64(len(m.v1Data[atr])) / float64(runtime.NumCPU())))
+	for i := 0; i < runtime.NumCPU(); i++ {
+		wg.Add(1)
+
+		jobSize := workSize
+
+		// Make sure to clean up potential last cell due to rounding error of
+		// division of number of CPUs
+		if i == runtime.NumCPU()-1 {
+			jobSize = len(m.v1Data[atr]) - (workSize * i)
+		}
+
+		go func(start, size int) {
+			defer wg.Done()
+			for i := start; i < start+size; i++ {
+				modified[i] = f(i, m.v1Data[atr][i])
+			}
+		}(workSize*i, jobSize)
+	}
+
+	wg.Wait()
 
 	return m.SetFloat1Attribute(atr, modified)
 }

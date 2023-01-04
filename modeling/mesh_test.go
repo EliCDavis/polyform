@@ -16,7 +16,7 @@ func Test_SplitOnUniqueMaterials_Simple(t *testing.T) {
 			3, 4, 5,
 		},
 		map[string][]vector.Vector3{
-			modeling.PositionAttribute: []vector.Vector3{
+			modeling.PositionAttribute: {
 				vector.NewVector3(0, 0, 0),
 				vector.NewVector3(0, 1, 0),
 				vector.NewVector3(1, 1, 0),
@@ -24,7 +24,7 @@ func Test_SplitOnUniqueMaterials_Simple(t *testing.T) {
 				vector.NewVector3(1, 1, 0),
 				vector.NewVector3(1, 0, 0),
 			},
-			modeling.NormalAttribute: []vector.Vector3{
+			modeling.NormalAttribute: {
 				vector.NewVector3(0, 0, 0),
 				vector.NewVector3(0, 1, 0),
 				vector.NewVector3(1, 1, 0),
@@ -34,7 +34,7 @@ func Test_SplitOnUniqueMaterials_Simple(t *testing.T) {
 			},
 		},
 		map[string][]vector.Vector2{
-			modeling.TexCoordAttribute: []vector.Vector2{
+			modeling.TexCoordAttribute: {
 				vector.NewVector2(0, 0),
 				vector.NewVector2(0, 1),
 				vector.NewVector2(1, 1),
@@ -108,5 +108,230 @@ func Test_SplitOnUniqueMaterials_Simple(t *testing.T) {
 		assert.Equal(t, vector.NewVector2(0, 0), v2UVs[0])
 		assert.Equal(t, vector.NewVector2(1, 1), v2UVs[1])
 		assert.Equal(t, vector.NewVector2(1, 0), v2UVs[2])
+	}
+}
+
+func TestScanFloat3AttributeParallel(t *testing.T) {
+	// ARRANGE ================================================================
+	count := 10000
+	indices := make([]int, count)
+	values := make([]vector.Vector3, count)
+	attribute := "random-atr"
+	for i := 0; i < count; i++ {
+		indices[i] = i
+		values[i] = vector.NewVector3(float64(i), float64(i), float64(i))
+	}
+	mesh := modeling.NewPointCloud(
+		indices,
+		map[string][]vector.Vector3{
+			attribute: values,
+		},
+		nil,
+		nil,
+		nil,
+	)
+
+	readValues := make([]vector.Vector3, count)
+
+	// ACT ====================================================================
+	mesh.ScanFloat3AttributeParallel(attribute, func(i int, v vector.Vector3) {
+		readValues[i] = v
+	})
+
+	// ASSERT =================================================================
+
+	for i := 0; i < count; i++ {
+		assert.Equal(t, values[i], readValues[i])
+	}
+}
+
+func TestScanFloat2AttributeParallel(t *testing.T) {
+	// ARRANGE ================================================================
+	count := 10000
+	indices := make([]int, count)
+	values := make([]vector.Vector2, count)
+	attribute := "random-atr"
+	for i := 0; i < count; i++ {
+		indices[i] = i
+		values[i] = vector.NewVector2(float64(i), float64(i))
+	}
+	mesh := modeling.NewPointCloud(
+		indices,
+		nil,
+		map[string][]vector.Vector2{
+			attribute: values,
+		},
+		nil,
+		nil,
+	)
+
+	readValues := make([]vector.Vector2, count)
+
+	// ACT ====================================================================
+	mesh.ScanFloat2AttributeParallel(attribute, func(i int, v vector.Vector2) {
+		readValues[i] = v
+	})
+
+	// ASSERT =================================================================
+
+	for i := 0; i < count; i++ {
+		assert.Equal(t, values[i], readValues[i])
+	}
+}
+
+func TestScanFloat1AttributeParallel(t *testing.T) {
+	// ARRANGE ================================================================
+	count := 10000
+	indices := make([]int, count)
+	values := make([]float64, count)
+	attribute := "random-atr"
+	for i := 0; i < count; i++ {
+		indices[i] = i
+		values[i] = float64(i)
+	}
+	mesh := modeling.NewPointCloud(
+		indices,
+		nil,
+		nil,
+		map[string][]float64{
+			attribute: values,
+		},
+		nil,
+	)
+
+	readValues := make([]float64, count)
+
+	// ACT ====================================================================
+	mesh.ScanFloat1AttributeParallel(attribute, func(i int, v float64) {
+		readValues[i] = v
+	})
+
+	// ASSERT =================================================================
+
+	for i := 0; i < count; i++ {
+		assert.Equal(t, values[i], readValues[i])
+	}
+}
+
+func TestModifyFloat3AttributeParallel(t *testing.T) {
+	// ARRANGE ================================================================
+	count := 1000
+	indices := make([]int, count)
+	values := make([]vector.Vector3, count)
+	attribute := "random-atr"
+	for i := 0; i < count; i++ {
+		indices[i] = i
+		values[i] = vector.NewVector3(float64(i), float64(i), float64(i))
+	}
+	mesh := modeling.NewPointCloud(
+		indices,
+		map[string][]vector.Vector3{
+			attribute: values,
+		},
+		nil,
+		nil,
+		nil,
+	)
+
+	readValues := make([]vector.Vector3, count)
+
+	// ACT ====================================================================
+	mesh.
+		ModifyFloat3AttributeParallel(attribute, func(i int, v vector.Vector3) vector.Vector3 {
+			return v.Add(vector.NewVector3(float64(i), float64(i), float64(i)))
+		}).
+		ScanFloat3AttributeParallel(attribute, func(i int, v vector.Vector3) {
+			readValues[i] = v
+		})
+
+	// ASSERT =================================================================
+	for i := 0; i < count; i++ {
+		assert.Equal(
+			t,
+			values[i].Add(vector.NewVector3(float64(i), float64(i), float64(i))),
+			readValues[i],
+		)
+	}
+}
+
+func TestModifyFloat2AttributeParallel(t *testing.T) {
+	// ARRANGE ================================================================
+	count := 1000
+	indices := make([]int, count)
+	values := make([]vector.Vector2, count)
+	attribute := "random-atr"
+	for i := 0; i < count; i++ {
+		indices[i] = i
+		values[i] = vector.NewVector2(float64(i), float64(i))
+	}
+	mesh := modeling.NewPointCloud(
+		indices,
+		nil,
+		map[string][]vector.Vector2{
+			attribute: values,
+		},
+		nil,
+		nil,
+	)
+
+	readValues := make([]vector.Vector2, count)
+
+	// ACT ====================================================================
+	mesh.
+		ModifyFloat2AttributeParallel(attribute, func(i int, v vector.Vector2) vector.Vector2 {
+			return v.Add(vector.NewVector2(float64(i), float64(i)))
+		}).
+		ScanFloat2AttributeParallel(attribute, func(i int, v vector.Vector2) {
+			readValues[i] = v
+		})
+
+	// ASSERT =================================================================
+	for i := 0; i < count; i++ {
+		assert.Equal(
+			t,
+			values[i].Add(vector.NewVector2(float64(i), float64(i))),
+			readValues[i],
+		)
+	}
+}
+
+func TestModifyFloat1AttributeParallel(t *testing.T) {
+	// ARRANGE ================================================================
+	count := 1000
+	indices := make([]int, count)
+	values := make([]float64, count)
+	attribute := "random-atr"
+	for i := 0; i < count; i++ {
+		indices[i] = i
+		values[i] = float64(i)
+	}
+	mesh := modeling.NewPointCloud(
+		indices,
+		nil,
+		nil,
+		map[string][]float64{
+			attribute: values,
+		},
+		nil,
+	)
+
+	readValues := make([]float64, count)
+
+	// ACT ====================================================================
+	mesh.
+		ModifyFloat1AttributeParallel(attribute, func(i int, v float64) float64 {
+			return v + float64(i)
+		}).
+		ScanFloat1AttributeParallel(attribute, func(i int, v float64) {
+			readValues[i] = v
+		})
+
+	// ASSERT =================================================================
+	for i := 0; i < count; i++ {
+		assert.Equal(
+			t,
+			values[i]+float64(i),
+			readValues[i],
+		)
 	}
 }

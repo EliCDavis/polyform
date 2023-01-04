@@ -89,7 +89,7 @@ func main() {
 	uvs := make([]vector.Vector2, 0)
 	mesh := canvas.March(.2).
 		CenterFloat3Attribute(modeling.PositionAttribute).
-		ScanFloat3Attribute(modeling.PositionAttribute, func(v vector.Vector3) {
+		ScanFloat3Attribute(modeling.PositionAttribute, func(i int, v vector.Vector3) {
 			x := (v.Length() - 1.5) / 2.1
 			uvs = append(uvs, vector.NewVector2(x, 0.5))
 		}).
