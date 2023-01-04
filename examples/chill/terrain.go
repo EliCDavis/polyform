@@ -127,7 +127,7 @@ func DrawTrail(
 	textures.color = dc.Image()
 
 	return terrain.
-		ModifyFloat3Attribute(modeling.PositionAttribute, func(v vector.Vector3) vector.Vector3 {
+		ModifyFloat3Attribute(modeling.PositionAttribute, func(i int, v vector.Vector3) vector.Vector3 {
 			heightAdj := 0.
 
 			for _, seg := range trail.Segments {
@@ -172,19 +172,19 @@ func Terrain(forestWidth float64, height sample.Vec2ToFloat, textures *PBRTextur
 
 	maxHeight := vector.NewVector3(0, -math.MaxFloat64, 0)
 
-	uvs := make([]vector.Vector2, 0, len(points))
+	uvs := make([]vector.Vector2, len(points))
 
 	terrain := triangulation.
 		BowyerWatson(points).
-		ModifyFloat3Attribute(modeling.PositionAttribute, func(v vector.Vector3) vector.Vector3 {
+		ModifyFloat3Attribute(modeling.PositionAttribute, func(i int, v vector.Vector3) vector.Vector3 {
 			height := heightFunc(v.XZ())
 			val := v.SetY(height)
 			if height > maxHeight.Y() {
 				maxHeight = val
 			}
 
-			uvs = append(uvs, vector.NewVector2(v.X(), -v.Z()).
-				DivByConstant(forestWidth))
+			uvs[i] = vector.NewVector2(v.X(), -v.Z()).
+				DivByConstant(forestWidth)
 
 			return val
 		}).

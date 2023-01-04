@@ -7,15 +7,21 @@ import "github.com/EliCDavis/vector"
 // ============================================================================
 type FloatToFloat func(float64) float64
 
-func (v1tov3 FloatToFloat) Add(other FloatToFloat) FloatToFloat {
+func (v1tov1 FloatToFloat) Add(other FloatToFloat) FloatToFloat {
 	return func(v float64) float64 {
-		return v1tov3(v) + other(v)
+		return v1tov1(v) + other(v)
 	}
 }
 
-func (v1tov3 FloatToFloat) Sub(other FloatToFloat) FloatToFloat {
+func (v1tov1 FloatToFloat) Sub(other FloatToFloat) FloatToFloat {
 	return func(v float64) float64 {
-		return v1tov3(v) - other(v)
+		return v1tov1(v) - other(v)
+	}
+}
+
+func (v1tov1 FloatToFloat) Multiply(other FloatToFloat) FloatToFloat {
+	return func(v float64) float64 {
+		return v1tov1(v) * other(v)
 	}
 }
 
@@ -64,6 +70,12 @@ func (v2tov1 Vec2ToFloat) Sub(other Vec2ToFloat) Vec2ToFloat {
 	}
 }
 
+func (v2tov1 Vec2ToFloat) Multiply(other Vec2ToFloat) Vec2ToFloat {
+	return func(v vector.Vector2) float64 {
+		return v2tov1(v) * other(v)
+	}
+}
+
 type Vec2ToVec2 func(vector.Vector2) vector.Vector2
 
 func (v2tov2 Vec2ToVec2) Add(other Vec2ToVec2) Vec2ToVec2 {
@@ -97,15 +109,21 @@ func (v2tov3 Vec2ToVec3) Sub(other Vec2ToVec3) Vec2ToVec3 {
 // ============================================================================
 type Vec3ToFloat func(vector.Vector3) float64
 
-func (v3tov3 Vec3ToFloat) Add(other Vec3ToFloat) Vec3ToFloat {
+func (v3tov1 Vec3ToFloat) Add(other Vec3ToFloat) Vec3ToFloat {
 	return func(v vector.Vector3) float64 {
-		return v3tov3(v) + other(v)
+		return v3tov1(v) + other(v)
 	}
 }
 
-func (v3tov3 Vec3ToFloat) Sub(other Vec3ToFloat) Vec3ToFloat {
+func (v3tov1 Vec3ToFloat) Sub(other Vec3ToFloat) Vec3ToFloat {
 	return func(v vector.Vector3) float64 {
-		return v3tov3(v) - other(v)
+		return v3tov1(v) - other(v)
+	}
+}
+
+func (v3tov1 Vec3ToFloat) Multiply(other Vec3ToFloat) Vec3ToFloat {
+	return func(v vector.Vector3) float64 {
+		return v3tov1(v) * other(v)
 	}
 }
 
