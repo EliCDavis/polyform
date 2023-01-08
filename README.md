@@ -26,22 +26,17 @@ func main() {
 	loadedMesh, err := obj.Load("test-models/stanford-bunny.obj")
 	check(err)
 
-	resolution := 100
-	cubesPerUnit := 10.
-	workingArea := float64(resolution) / cubesPerUnit
-	center := vector.Vector3One().MultByConstant(workingArea * 0.5)
-
-	canvas := marching.NewMarchingCanvas(resolution, resolution, resolution, cubesPerUnit)
+	resolution := 10.
+	canvas := marching.NewMarchingCanvas(resolution)
 
 	canvas.AddFieldParallel(marching.Mesh(
 		loadedMesh.
 			CenterFloat3Attribute(modeling.PositionAttribute).
-			Scale(vector.Vector3Zero(), vector.Vector3(vector.NewVector3(12, 12, 12))).
-			Translate(center),
+			Scale(vector.Vector3Zero(), vector.Vector3(vector.NewVector3(12, 12, 12))),
 		.1,
 		10,
 	))
-	check(obj.Save("chunky-bunny.obj", canvas.March(.3)))
+	check(obj.Save("chunky-bunny.obj", canvas.MarchParallel(.3)))
 }
 ```
 
