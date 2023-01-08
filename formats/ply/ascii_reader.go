@@ -10,31 +10,135 @@ import (
 	"github.com/EliCDavis/vector"
 )
 
+func isScalarPropWithType(prop Property, scalarType ScalarPropertyType) bool {
+	v, ok := prop.(ScalarProperty)
+	if !ok {
+		return false
+	}
+	return v.Type == scalarType
+}
+
+func parseVector3FromContents(xIndex, yIndex, zIndex int) func(contents []string) (vector.Vector3, error) {
+	return func(contents []string) (vector.Vector3, error) {
+		xParsed, err := strconv.ParseFloat(contents[xIndex], 32)
+		if err != nil {
+			return vector.Vector3Zero(), fmt.Errorf("unable to parse x component: %w", err)
+		}
+
+		yParsed, err := strconv.ParseFloat(contents[yIndex], 32)
+		if err != nil {
+			return vector.Vector3Zero(), fmt.Errorf("unable to parse y component: %w", err)
+		}
+
+		zParsed, err := strconv.ParseFloat(contents[zIndex], 32)
+		if err != nil {
+			return vector.Vector3Zero(), fmt.Errorf("unable to parse z component: %w", err)
+		}
+		return vector.NewVector3(xParsed, yParsed, zParsed), nil
+	}
+}
+
 type AsciiReader struct {
 	elements []Element
 	scanner  *bufio.Scanner
 }
 
-func (ar *AsciiReader) readVertexData(element Element) ([]vector.Vector3, error) {
+func (ar *AsciiReader) readVertexData(element Element) (map[string][]vector.Vector3, error) {
+	attributeReaders := make(map[string]func(contents []string) (vector.Vector3, error))
+	attributeData := make(map[string][]vector.Vector3)
+
 	xIndex := -1
 	yIndex := -1
 	zIndex := -1
 
+	nxIndex := -1
+	nyIndex := -1
+	nzIndex := -1
+
+	redIndex := -1
+	greenIndex := -1
+	blueIndex := -1
+
 	for propIndex, prop := range element.properties {
-		if prop.Name() == "x" {
+		if prop.Name() == "x" && isScalarPropWithType(prop, Float) {
 			xIndex = propIndex
+			continue
 		}
 
-		if prop.Name() == "y" {
+		if prop.Name() == "y" && isScalarPropWithType(prop, Float) {
 			yIndex = propIndex
+			continue
 		}
 
-		if prop.Name() == "z" {
+		if prop.Name() == "z" && isScalarPropWithType(prop, Float) {
 			zIndex = propIndex
+			continue
+		}
+
+		if prop.Name() == "nx" && isScalarPropWithType(prop, Float) {
+			nxIndex = propIndex
+			continue
+		}
+
+		if prop.Name() == "ny" && isScalarPropWithType(prop, Float) {
+			nyIndex = propIndex
+			continue
+		}
+
+		if prop.Name() == "nz" && isScalarPropWithType(prop, Float) {
+			nzIndex = propIndex
+			continue
+		}
+
+		if prop.Name() == "red" && isScalarPropWithType(prop, UChar) {
+			redIndex = propIndex
+			continue
+		}
+
+		if prop.Name() == "green" && isScalarPropWithType(prop, UChar) {
+			greenIndex = propIndex
+			continue
+		}
+
+		if prop.Name() == "blue" && isScalarPropWithType(prop, UChar) {
+			blueIndex = propIndex
+			continue
 		}
 	}
 
-	vertices := make([]vector.Vector3, element.count)
+	if xIndex != -1 && yIndex != -1 && zIndex != -1 {
+		attributeReaders[modeling.PositionAttribute] = parseVector3FromContents(xIndex, yIndex, zIndex)
+	}
+
+	if nxIndex != -1 && nyIndex != -1 && nzIndex != -1 {
+		attributeReaders[modeling.NormalAttribute] = parseVector3FromContents(nxIndex, nyIndex, nzIndex)
+	}
+
+	if redIndex != -1 && greenIndex != -1 && blueIndex != -1 {
+		attributeReaders[modeling.ColorAttribute] = func(contents []string) (vector.Vector3, error) {
+			xParsed, err := strconv.ParseInt(contents[xIndex], 10, 64)
+			if err != nil {
+				return vector.Vector3Zero(), fmt.Errorf("unable to parse x component: %w", err)
+			}
+
+			yParsed, err := strconv.ParseInt(contents[yIndex], 10, 64)
+			if err != nil {
+				return vector.Vector3Zero(), fmt.Errorf("unable to parse y component: %w", err)
+			}
+
+			zParsed, err := strconv.ParseInt(contents[zIndex], 10, 64)
+			if err != nil {
+				return vector.Vector3Zero(), fmt.Errorf("unable to parse z component: %w", err)
+			}
+
+			return vector.NewVector3(
+				float64(xParsed)/255.,
+				float64(yParsed)/255.,
+				float64(zParsed)/255.,
+			), nil
+		}
+	}
+
 	i := 0
 	for i < element.count {
 		ar.scanner.Scan()
@@ -46,26 +150,18 @@ func (ar *AsciiReader) readVertexData(element Element) ([]vector.Vector3, error)
 
 		contents := strings.Fields(text)
 
-		xParsed, err := strconv.ParseFloat(contents[xIndex], 32)
-		if err != nil {
-			return nil, fmt.Errorf("unable to parse x component: %w", err)
+		for attribute, reader := range attributeReaders {
+			v, err := reader(contents)
+			if err != nil {
+				return nil, err
+			}
+			attributeData[attribute] = append(attributeData[attribute], v)
 		}
 
-		yParsed, err := strconv.ParseFloat(contents[yIndex], 32)
-		if err != nil {
-			return nil, fmt.Errorf("unable to parse y component: %w", err)
-		}
-
-		zParsed, err := strconv.ParseFloat(contents[zIndex], 32)
-		if err != nil {
-			return nil, fmt.Errorf("unable to parse z component: %w", err)
-		}
-
-		vertices[i] = vector.NewVector3(xParsed, yParsed, zParsed)
 		i++
 	}
 
-	return vertices, nil
+	return attributeData, nil
 }
 
 func (ar *AsciiReader) readFaceData(element Element) ([]int, error) {
@@ -120,7 +216,7 @@ func (ar *AsciiReader) readFaceData(element Element) ([]int, error) {
 }
 
 func (ar *AsciiReader) ReadMesh() (*modeling.Mesh, error) {
-	var vertexData []vector.Vector3
+	var vertexData map[string][]vector.Vector3
 	var triData []int
 	for _, element := range ar.elements {
 		if element.name == "vertex" {
@@ -140,15 +236,24 @@ func (ar *AsciiReader) ReadMesh() (*modeling.Mesh, error) {
 		}
 	}
 
-	finalMesh := modeling.NewMesh(
-		triData,
-		map[string][]vector.Vector3{
-			modeling.PositionAttribute: vertexData,
-		},
-		nil,
-		nil,
-		nil,
-	)
+	var finalMesh modeling.Mesh
+
+	if len(triData) > 0 {
+		finalMesh = modeling.NewMesh(
+			triData,
+			vertexData,
+			nil,
+			nil,
+			nil,
+		)
+	} else {
+		finalMesh = modeling.NewPointCloud(
+			vertexData,
+			nil,
+			nil,
+			nil,
+		)
+	}
 
 	return &finalMesh, nil
 }

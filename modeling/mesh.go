@@ -35,11 +35,29 @@ func NewMesh(
 }
 
 func NewPointCloud(
-	indices []int,
 	v3Data map[string][]vector.Vector3,
 	v2Data map[string][]vector.Vector2,
 	v1Data map[string][]float64,
 	materials []MeshMaterial) Mesh {
+
+	attributeCount := 0
+	for _, d := range v3Data {
+		attributeCount = len(d)
+	}
+
+	for _, d := range v2Data {
+		attributeCount = len(d)
+	}
+
+	for _, d := range v1Data {
+		attributeCount = len(d)
+	}
+
+	indices := make([]int, attributeCount)
+	for i := 0; i < len(indices); i++ {
+		indices[i] = i
+	}
+
 	return Mesh{
 		indices:   indices,
 		materials: materials,
@@ -107,6 +125,40 @@ func (m Mesh) View() MeshView {
 		Float1Data: m.v1Data,
 		Indices:    m.indices,
 	}
+}
+
+func (m Mesh) Topology() Topology {
+	return m.topology
+}
+
+func (m Mesh) Float3Attributes() []string {
+	attributes := make([]string, 0, len(m.v3Data))
+
+	for atr := range m.v3Data {
+		attributes = append(attributes, atr)
+	}
+
+	return attributes
+}
+
+func (m Mesh) Float2Attributes() []string {
+	attributes := make([]string, 0, len(m.v2Data))
+
+	for atr := range m.v2Data {
+		attributes = append(attributes, atr)
+	}
+
+	return attributes
+}
+
+func (m Mesh) Float1Attributes() []string {
+	attributes := make([]string, 0, len(m.v1Data))
+
+	for atr := range m.v1Data {
+		attributes = append(attributes, atr)
+	}
+
+	return attributes
 }
 
 func (m Mesh) Materials() []MeshMaterial {

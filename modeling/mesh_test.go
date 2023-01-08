@@ -114,15 +114,12 @@ func Test_SplitOnUniqueMaterials_Simple(t *testing.T) {
 func TestScanFloat3AttributeParallel(t *testing.T) {
 	// ARRANGE ================================================================
 	count := 10000
-	indices := make([]int, count)
 	values := make([]vector.Vector3, count)
 	attribute := "random-atr"
 	for i := 0; i < count; i++ {
-		indices[i] = i
 		values[i] = vector.NewVector3(float64(i), float64(i), float64(i))
 	}
 	mesh := modeling.NewPointCloud(
-		indices,
 		map[string][]vector.Vector3{
 			attribute: values,
 		},
@@ -148,15 +145,12 @@ func TestScanFloat3AttributeParallel(t *testing.T) {
 func TestScanFloat2AttributeParallel(t *testing.T) {
 	// ARRANGE ================================================================
 	count := 10000
-	indices := make([]int, count)
 	values := make([]vector.Vector2, count)
 	attribute := "random-atr"
 	for i := 0; i < count; i++ {
-		indices[i] = i
 		values[i] = vector.NewVector2(float64(i), float64(i))
 	}
 	mesh := modeling.NewPointCloud(
-		indices,
 		nil,
 		map[string][]vector.Vector2{
 			attribute: values,
@@ -182,15 +176,12 @@ func TestScanFloat2AttributeParallel(t *testing.T) {
 func TestScanFloat1AttributeParallel(t *testing.T) {
 	// ARRANGE ================================================================
 	count := 10000
-	indices := make([]int, count)
 	values := make([]float64, count)
 	attribute := "random-atr"
 	for i := 0; i < count; i++ {
-		indices[i] = i
 		values[i] = float64(i)
 	}
 	mesh := modeling.NewPointCloud(
-		indices,
 		nil,
 		nil,
 		map[string][]float64{
@@ -216,15 +207,12 @@ func TestScanFloat1AttributeParallel(t *testing.T) {
 func TestModifyFloat3AttributeParallel(t *testing.T) {
 	// ARRANGE ================================================================
 	count := 1000
-	indices := make([]int, count)
 	values := make([]vector.Vector3, count)
 	attribute := "random-atr"
 	for i := 0; i < count; i++ {
-		indices[i] = i
 		values[i] = vector.NewVector3(float64(i), float64(i), float64(i))
 	}
 	mesh := modeling.NewPointCloud(
-		indices,
 		map[string][]vector.Vector3{
 			attribute: values,
 		},
@@ -257,15 +245,12 @@ func TestModifyFloat3AttributeParallel(t *testing.T) {
 func TestModifyFloat2AttributeParallel(t *testing.T) {
 	// ARRANGE ================================================================
 	count := 1000
-	indices := make([]int, count)
 	values := make([]vector.Vector2, count)
 	attribute := "random-atr"
 	for i := 0; i < count; i++ {
-		indices[i] = i
 		values[i] = vector.NewVector2(float64(i), float64(i))
 	}
 	mesh := modeling.NewPointCloud(
-		indices,
 		nil,
 		map[string][]vector.Vector2{
 			attribute: values,
@@ -298,15 +283,12 @@ func TestModifyFloat2AttributeParallel(t *testing.T) {
 func TestModifyFloat1AttributeParallel(t *testing.T) {
 	// ARRANGE ================================================================
 	count := 1000
-	indices := make([]int, count)
 	values := make([]float64, count)
 	attribute := "random-atr"
 	for i := 0; i < count; i++ {
-		indices[i] = i
 		values[i] = float64(i)
 	}
 	mesh := modeling.NewPointCloud(
-		indices,
 		nil,
 		nil,
 		map[string][]float64{

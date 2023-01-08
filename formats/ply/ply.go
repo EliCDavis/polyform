@@ -53,6 +53,32 @@ func readPlyHeaderFormat(scanner *bufio.Scanner) (Format, error) {
 	}
 }
 
+var scalarPropTypeNameToScalarPropertyType = map[string]ScalarPropertyType{
+	"char": Char,
+	"int8": Char,
+
+	"uchar": UChar,
+	"uint8": UChar,
+
+	"short": Short,
+	"int16": Short,
+
+	"ushort": Ushort,
+	"uint16": Ushort,
+
+	"int":   Int,
+	"int32": Int,
+
+	"uint":   Uint,
+	"uint32": Uint,
+
+	"float":   Float,
+	"float32": Float,
+
+	"double":  Double,
+	"float64": Double,
+}
+
 func readPlyProperty(contents []string) (Property, error) {
 	if contents[1] == "list" {
 		if len(contents) != 5 {
@@ -71,7 +97,7 @@ func readPlyProperty(contents []string) (Property, error) {
 
 	return ScalarProperty{
 		name: contents[2],
-		Type: ScalarPropertyType(contents[1]),
+		Type: scalarPropTypeNameToScalarPropertyType[strings.ToLower(contents[1])],
 	}, nil
 }
 
@@ -146,4 +172,118 @@ func ToMesh(in io.Reader) (*modeling.Mesh, error) {
 	}
 
 	return reader.ReadMesh()
+}
+
+func buildVertexElements(attributes []string, size int) Element {
+
+	vertexElement := Element{
+		name:       "vertex",
+		count:      size,
+		properties: make([]Property, 0),
+	}
+
+	for _, attribute := range attributes {
+		if attribute == modeling.PositionAttribute {
+			vertexElement.properties = append(vertexElement.properties,
+				&ScalarProperty{
+					name: "x",
+					Type: Float,
+				},
+				&ScalarProperty{
+					name: "y",
+					Type: Float,
+				},
+				&ScalarProperty{
+					name: "z",
+					Type: Float,
+				},
+			)
+			continue
+		}
+
+		if attribute == modeling.NormalAttribute {
+			vertexElement.properties = append(vertexElement.properties,
+				&ScalarProperty{
+					name: "nx",
+					Type: Float,
+				},
+				&ScalarProperty{
+					name: "ny",
+					Type: Float,
+				},
+				&ScalarProperty{
+					name: "nz",
+					Type: Float,
+				},
+			)
+			continue
+		}
+
+		if attribute == modeling.ColorAttribute {
+			vertexElement.properties = append(vertexElement.properties,
+				&ScalarProperty{
+					name: "red",
+					Type: UChar,
+				},
+				&ScalarProperty{
+					name: "green",
+					Type: UChar,
+				},
+				&ScalarProperty{
+					name: "blue",
+					Type: UChar,
+				},
+			)
+			continue
+		}
+	}
+
+	return vertexElement
+}
+
+func WriteASCII(out io.Writer, model modeling.Mesh) error {
+	fmt.Fprintln(out, "ply")
+	fmt.Fprintln(out, "format ascii 1.0")
+	fmt.Fprintln(out, "comment created by github.com/EliCDavis/polyform")
+
+	attributes := model.Float3Attributes()
+	vertexCount := model.AttributeLength()
+	vertexElement := buildVertexElements(attributes, vertexCount)
+	vertexElement.Write(out)
+
+	if model.Topology() != modeling.Point && model.Topology() != modeling.Triangle {
+		panic(fmt.Errorf("unimplemented ply topology export: %s", model.Topology().String()))
+	}
+
+	if model.Topology() == modeling.Triangle {
+		fmt.Fprintf(out, "element face %d\n", model.TriCount())
+		fmt.Fprintln(out, "property list uchar int vertex_indices")
+	}
+
+	fmt.Fprintln(out, "end_header")
+
+	view := model.View()
+
+	for i := 0; i < vertexCount; i++ {
+		for _, atr := range attributes {
+
+			v := view.Float3Data[atr][i]
+
+			if atr == modeling.ColorAttribute {
+				fmt.Fprintf(out, "%d %d %d ", int(v.X()*255), int(v.Y()*255), int(v.Z()*255))
+			} else {
+				fmt.Fprintf(out, "%f %f %f ", v.X(), v.Y(), v.Z())
+			}
+		}
+		fmt.Fprint(out, "\n")
+	}
+
+	if model.Topology() == modeling.Triangle {
+		for i := 0; i < model.TriCount(); i++ {
+			tri := model.Tri(i)
+			fmt.Fprintf(out, "3 %d %d %d\n", tri.P1(), tri.P2(), tri.P3())
+		}
+	}
+
+	return nil
 }
