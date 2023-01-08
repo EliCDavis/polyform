@@ -2,17 +2,21 @@ package marching
 
 import (
 	"github.com/EliCDavis/polyform/math/sample"
+	"github.com/EliCDavis/polyform/math/sdf"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/vector"
 )
 
-func BoundingBox(box modeling.AABB, strength float64) sample.Vec3ToFloat {
-	return func(v vector.Vector3) float64 {
-
-		if !box.Contains(v) {
-			return 0
-		}
-
-		return v.Distance(box.Center()) * strength
+func Box(pos vector.Vector3, size vector.Vector3, strength float64) Field {
+	domain := modeling.NewAABB(
+		pos,
+		size,
+	)
+	domain.Expand(strength)
+	return Field{
+		Domain: domain,
+		Float1Functions: map[string]sample.Vec3ToFloat{
+			modeling.PositionAttribute: sdf.Box(pos, size).Scale(strength),
+		},
 	}
 }

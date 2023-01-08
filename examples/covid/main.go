@@ -8,19 +8,16 @@ import (
 
 	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/formats/obj"
-	"github.com/EliCDavis/polyform/math/sample"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/marching"
 	"github.com/EliCDavis/polyform/modeling/repeat"
 	"github.com/EliCDavis/vector"
 )
 
-func tendrilField(start, direction vector.Vector3, radius, length float64, plumbs int) sample.Vec3ToFloat {
+func tendrilField(start, direction vector.Vector3, radius, length float64, plumbs int) marching.Field {
 
 	endPoint := start.Add(direction.MultByConstant(length))
-	fields := []sample.Vec3ToFloat{
-		marching.Line(start, endPoint, radius, 1),
-	}
+	fields := []marching.Field{}
 
 	angleIncrement := (math.Pi * 2) / float64(plumbs)
 	perpendicular := direction.Perpendicular().Normalized()
@@ -36,17 +33,15 @@ func tendrilField(start, direction vector.Vector3, radius, length float64, plumb
 		fields = append(fields, marching.Sphere(plumbSite, plumbRadius, 1))
 	}
 
-	return sample.SumVec3ToFloat(fields...)
+	return marching.Line(start, endPoint, radius, 1).Combine(fields...)
 }
 
-func virusField(center vector.Vector3, virusWidth float64) sample.Vec3ToFloat {
-	fields := []sample.Vec3ToFloat{
-		marching.Sphere(center, virusWidth, 1),
-	}
+func virusField(center vector.Vector3, virusWidth float64) marching.Field {
+	fields := []marching.Field{}
 
 	tendrilCount := 20 + int(math.Round(20*rand.Float64()))
 	tendrilRadius := .5 //.2 + (.4 * rand.Float64())
-	tendrilLength := .7 + (.4 * rand.Float64())
+	tendrilLength := .7 + (.2 * rand.Float64())
 	tendrilSites := repeat.FibonacciSpherePoints(tendrilCount, virusWidth)
 	for _, site := range tendrilSites {
 		direction := site.Normalized()
@@ -61,18 +56,15 @@ func virusField(center vector.Vector3, virusWidth float64) sample.Vec3ToFloat {
 		fields = append(fields, marching.Sphere(start, tendrilRadius*2.5, 1))
 	}
 
-	return sample.SumVec3ToFloat(fields...)
+	return marching.Sphere(center, virusWidth, 1).Combine(fields...)
 }
 
 func main() {
-	resolution := 100
 	cubesPerUnit := 10.
-	canvas := marching.NewMarchingCanvas(resolution, resolution, resolution, cubesPerUnit)
-
-	center := vector.Vector3One().MultByConstant((float64(resolution) / cubesPerUnit) / 2.)
+	canvas := marching.NewMarchingCanvas(cubesPerUnit)
 
 	virusRadius := 2.
-	canvas.AddFieldParallel(virusField(center, virusRadius))
+	canvas.AddFieldParallel(virusField(vector.Vector3Zero(), virusRadius))
 
 	virusColor := coloring.NewColorStack(
 		coloring.NewColorStackEntry(4, 1, 1, color.RGBA{199, 195, 195, 255}),
@@ -87,8 +79,7 @@ func main() {
 	}
 
 	uvs := make([]vector.Vector2, 0)
-	mesh := canvas.March(.2).
-		CenterFloat3Attribute(modeling.PositionAttribute).
+	mesh := canvas.MarchParallel(-0.1).
 		ScanFloat3Attribute(modeling.PositionAttribute, func(i int, v vector.Vector3) {
 			x := (v.Length() - 1.5) / 2.1
 			uvs = append(uvs, vector.NewVector2(x, 0.5))

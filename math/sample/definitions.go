@@ -25,6 +25,12 @@ func (v1tov1 FloatToFloat) Multiply(other FloatToFloat) FloatToFloat {
 	}
 }
 
+func (v1tov1 FloatToFloat) Scale(other float64) FloatToFloat {
+	return func(v float64) float64 {
+		return v1tov1(v) * other
+	}
+}
+
 type FloatToVec2 func(float64) vector.Vector2
 
 func (v1tov2 FloatToVec2) Add(other FloatToVec2) FloatToVec2 {
@@ -76,6 +82,12 @@ func (v2tov1 Vec2ToFloat) Multiply(other Vec2ToFloat) Vec2ToFloat {
 	}
 }
 
+func (v2tov1 Vec2ToFloat) Scale(other float64) Vec2ToFloat {
+	return func(v vector.Vector2) float64 {
+		return v2tov1(v) * other
+	}
+}
+
 type Vec2ToVec2 func(vector.Vector2) vector.Vector2
 
 func (v2tov2 Vec2ToVec2) Add(other Vec2ToVec2) Vec2ToVec2 {
@@ -124,6 +136,12 @@ func (v3tov1 Vec3ToFloat) Sub(other Vec3ToFloat) Vec3ToFloat {
 func (v3tov1 Vec3ToFloat) Multiply(other Vec3ToFloat) Vec3ToFloat {
 	return func(v vector.Vector3) float64 {
 		return v3tov1(v) * other(v)
+	}
+}
+
+func (v3tov1 Vec3ToFloat) Scale(other float64) Vec3ToFloat {
+	return func(v vector.Vector3) float64 {
+		return v3tov1(v) * other
 	}
 }
 

@@ -1,6 +1,8 @@
 github.com/BurntSushi/toml v1.2.1/go.mod h1:CxXYINrC8qIiEnFrOxCa7Jy5BFHlXnUU2pbicEuybxQ=
 github.com/EliCDavis/vector v0.0.0-20221214034925-f4542b232de4 h1:BESFECeGmQjUYpnbOjSA/WAHZcfg6VR/jvjLBPirL7k=
 github.com/EliCDavis/vector v0.0.0-20221214034925-f4542b232de4/go.mod h1:7JWED8HBcDj9JWyV8wKNjCefl+tbh213fX9dkNqIDPY=
+github.com/EliCDavis/vector v0.0.0-20230108032659-3cad4e91b77d h1:4Hu4E1NZrjt1gMv+TDslvWQOLBiA9+UCT8+TRBIQ2mM=
+github.com/EliCDavis/vector v0.0.0-20230108032659-3cad4e91b77d/go.mod h1:7JWED8HBcDj9JWyV8wKNjCefl+tbh213fX9dkNqIDPY=
 github.com/cpuguy83/go-md2man/v2 v2.0.2 h1:p1EgwI/C7NhT0JmVkwCD2ZBK8j4aeHQX2pMHHBfMQ6w=
 github.com/cpuguy83/go-md2man/v2 v2.0.2/go.mod h1:tgQtvFlXSQOSOSIRvRPT7W67SCa46tRHOmNcaadrF8o=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=

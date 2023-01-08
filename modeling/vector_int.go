@@ -22,6 +22,14 @@ func Vector3ToInt(v vector.Vector3, power int) VectorInt {
 	}
 }
 
+func (v VectorInt) Sub(other VectorInt) VectorInt {
+	return VectorInt{
+		X: v.X - other.X,
+		Y: v.Y - other.Y,
+		Z: v.Z - other.Z,
+	}
+}
+
 func (v VectorInt) ToRegularVector() vector.Vector3 {
 	return vector.NewVector3(
 		float64(v.X),

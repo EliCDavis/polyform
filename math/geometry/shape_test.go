@@ -1,13 +1,14 @@
-package modeling
+package geometry_test
 
 import (
 	"testing"
 
+	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/vector"
 )
 
 func TestPointInShape(t *testing.T) {
-	shape := Shape([]vector.Vector2{
+	shape := geometry.Shape([]vector.Vector2{
 		vector.NewVector2(0, 0),
 		vector.NewVector2(0, 1),
 		vector.NewVector2(1, 1),
@@ -21,7 +22,7 @@ func TestPointInShape(t *testing.T) {
 }
 
 func TestGetPointtInShape(t *testing.T) {
-	shape := Shape([]vector.Vector2{
+	shape := geometry.Shape([]vector.Vector2{
 		vector.NewVector2(0, 0),
 		vector.NewVector2(0, 1),
 		vector.NewVector2(1, 1),
@@ -35,7 +36,7 @@ func TestGetPointtInShape(t *testing.T) {
 }
 
 func TestSplit(t *testing.T) {
-	shape := Shape([]vector.Vector2{
+	shape := geometry.Shape([]vector.Vector2{
 		vector.NewVector2(0, 0),
 		vector.NewVector2(0, 1),
 		vector.NewVector2(1, 1),
@@ -73,7 +74,7 @@ func TestSplit(t *testing.T) {
 	}
 
 	// l 2 points, r 1 point
-	shape = Shape([]vector.Vector2{
+	shape = geometry.Shape([]vector.Vector2{
 		vector.NewVector2(0, 0),   // l
 		vector.NewVector2(.7, .5), // r
 		vector.NewVector2(0, 1),   // l

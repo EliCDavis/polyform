@@ -4,3 +4,5 @@ data/
 tmp/
 
 *.exe
+*.prof
+*.svg

@@ -56,21 +56,15 @@ func main() {
 				return err
 			}
 
-			resolution := 100
 			cubesPerUnit := 10.
-			workingArea := float64(resolution) / cubesPerUnit
-			center := vector.
-				Vector3One().
-				MultByConstant(workingArea * 0.5)
 
-			canvas := marching.NewMarchingCanvas(resolution, resolution, resolution, cubesPerUnit)
+			canvas := marching.NewMarchingCanvas(cubesPerUnit)
 
 			startTime := time.Now()
 			canvas.AddFieldParallel(marching.Mesh(
 				loadedMesh.
 					CenterFloat3Attribute(modeling.PositionAttribute).
-					Scale(vector.Vector3Zero(), vector.Vector3(vector.NewVector3(12, 12, 12))).
-					Translate(center),
+					Scale(vector.Vector3Zero(), vector.Vector3(vector.NewVector3(12, 12, 12))),
 				c.Float64("radius"),
 				c.Float64("strength"),
 			))
@@ -80,7 +74,7 @@ func main() {
 			// 	obj.Save(fmt.Sprintf("%d-%s", i, c.String("out")), canvas.March(float64(i)/10))
 			// }
 
-			return obj.Save(c.String("out"), canvas.March(c.Float64("threshold")))
+			return obj.Save(c.String("out"), canvas.MarchParallel(c.Float64("threshold")))
 		},
 	}
 

@@ -1,4 +1,4 @@
-package modeling
+package geometry
 
 import (
 	"math"

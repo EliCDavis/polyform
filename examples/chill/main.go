@@ -14,6 +14,7 @@ import (
 
 	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/formats/obj"
+	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/math/noise"
 	"github.com/EliCDavis/polyform/math/sample"
 	"github.com/EliCDavis/polyform/modeling"
@@ -58,7 +59,7 @@ func calcTreePositions(count int, forestWidth float64, terrainHeight sample.Vec2
 
 		invalid := false
 		for _, seg := range path.Segments {
-			line := modeling.NewLine2D(
+			line := geometry.NewLine2D(
 				vector.NewVector2(
 					seg.StartX,
 					seg.StartY,

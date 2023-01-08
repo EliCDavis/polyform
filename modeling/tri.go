@@ -3,6 +3,7 @@ package modeling
 import (
 	"math"
 
+	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/vector"
 )
 
@@ -115,9 +116,9 @@ func (t Tri) ClosestPoint(p vector.Vector3) vector.Vector3 {
 		return closestPoint
 	}
 
-	AB := NewLine3D(t.P1Vec3Attr(PositionAttribute), t.P2Vec3Attr(PositionAttribute))
-	BC := NewLine3D(t.P2Vec3Attr(PositionAttribute), t.P3Vec3Attr(PositionAttribute))
-	CA := NewLine3D(t.P3Vec3Attr(PositionAttribute), t.P1Vec3Attr(PositionAttribute))
+	AB := geometry.NewLine3D(t.P1Vec3Attr(PositionAttribute), t.P2Vec3Attr(PositionAttribute))
+	BC := geometry.NewLine3D(t.P2Vec3Attr(PositionAttribute), t.P3Vec3Attr(PositionAttribute))
+	CA := geometry.NewLine3D(t.P3Vec3Attr(PositionAttribute), t.P1Vec3Attr(PositionAttribute))
 
 	c1 := AB.ClosestPointOnLine(closestPoint)
 	c2 := BC.ClosestPointOnLine(closestPoint)

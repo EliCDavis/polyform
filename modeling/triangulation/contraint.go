@@ -1,12 +1,12 @@
 package triangulation
 
 import (
-	"github.com/EliCDavis/polyform/modeling"
+	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/vector"
 )
 
 type Constraint struct {
-	shape  modeling.Shape
+	shape  geometry.Shape
 	keepIn bool
 }
 

@@ -7,6 +7,7 @@ import (
 
 	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/drawing/texturing"
+	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/math/noise"
 	"github.com/EliCDavis/polyform/math/sample"
 	"github.com/EliCDavis/polyform/modeling"
@@ -131,7 +132,7 @@ func DrawTrail(
 			heightAdj := 0.
 
 			for _, seg := range trail.Segments {
-				line := modeling.NewLine2D(
+				line := geometry.NewLine2D(
 					vector.NewVector2(
 						seg.StartX,
 						seg.StartY,
