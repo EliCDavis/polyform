@@ -1,10 +1,42 @@
 package marching
 
 import (
+	"image/color"
+
 	"github.com/EliCDavis/polyform/math/sample"
 	"github.com/EliCDavis/polyform/math/sdf"
 	"github.com/EliCDavis/polyform/modeling"
+	"github.com/EliCDavis/vector"
 )
+
+func useValueOfSmallestFunc(indicators []sample.Vec3ToFloat, valuesToReturn []sample.Vec3ToVec3) sample.Vec3ToVec3 {
+
+	if len(indicators) == 0 {
+		panic("no functions to use")
+	}
+
+	if len(indicators) == len(valuesToReturn) {
+		panic("indicator count must match values count")
+	}
+
+	if len(indicators) == 1 {
+		return valuesToReturn[0]
+	}
+
+	return func(v vector.Vector3) vector.Vector3 {
+		minIndex := 0
+		minValue := indicators[0](v)
+		for i := 1; i < len(indicators); i++ {
+			val := indicators[i](v)
+			if val < minValue {
+				minValue = val
+				minIndex = i
+			}
+		}
+		return valuesToReturn[minIndex](v)
+	}
+
+}
 
 func CombineFields(fields ...Field) Field {
 	if len(fields) == 0 {
@@ -57,7 +89,7 @@ func CombineFields(fields ...Field) Field {
 
 	float3Final := make(map[string]sample.Vec3ToVec3)
 	for attribute, functions := range float3Aggregate {
-		float3Final[attribute] = sample.AverageVec3ToVec3(functions...)
+		float3Final[attribute] = useValueOfSmallestFunc(float1Aggregate[modeling.PositionAttribute], functions)
 	}
 
 	return Field{
@@ -90,5 +122,37 @@ func (f Field) Modify(attribute string, other Field, modifier func(a, b sample.V
 		Float1Functions: map[string]sample.Vec3ToFloat{
 			attribute: modifier(f.Float1Functions[attribute], other.Float1Functions[attribute]),
 		},
+	}
+}
+
+func (f Field) WithColor(c color.RGBA) Field {
+	float1Final := make(map[string]sample.Vec3ToFloat)
+	for attribute, functions := range f.Float1Functions {
+		float1Final[attribute] = functions
+	}
+
+	float2Final := make(map[string]sample.Vec3ToVec2)
+	for attribute, functions := range f.Float2Functions {
+		float2Final[attribute] = functions
+	}
+
+	float3Final := make(map[string]sample.Vec3ToVec3)
+	for attribute, functions := range f.Float3Functions {
+		float3Final[attribute] = functions
+	}
+	colorAsVector := vector.NewVector3(
+		float64(c.R)/255.,
+		float64(c.G)/255.,
+		float64(c.B)/255.,
+	)
+	float3Final[modeling.ColorAttribute] = func(v vector.Vector3) vector.Vector3 {
+		return colorAsVector
+	}
+
+	return Field{
+		Float1Functions: float1Final,
+		Float2Functions: float2Final,
+		Float3Functions: float3Final,
+		Domain:          modeling.NewAABB(f.Domain.Center(), f.Domain.Size()),
 	}
 }

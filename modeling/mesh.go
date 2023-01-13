@@ -360,23 +360,23 @@ func (m Mesh) ScanFloat3Attribute(atr string, f func(i int, v vector.Vector3)) M
 }
 
 func (m Mesh) ScanFloat3AttributeParallel(atr string, f func(i int, v vector.Vector3)) Mesh {
-	m.requireV3Attribute(atr)
+	return m.ScanFloat3AttributeParallelWithPoolSize(atr, runtime.NumCPU(), f)
+}
 
-	if len(m.v3Data[atr]) <= runtime.NumCPU()*4 || runtime.NumCPU() == 1 {
-		return m.ScanFloat3Attribute(atr, f)
-	}
+func (m Mesh) ScanFloat3AttributeParallelWithPoolSize(atr string, size int, f func(i int, v vector.Vector3)) Mesh {
+	m.requireV3Attribute(atr)
 
 	var wg sync.WaitGroup
 
-	workSize := int(math.Floor(float64(len(m.v3Data[atr])) / float64(runtime.NumCPU())))
-	for i := 0; i < runtime.NumCPU(); i++ {
+	workSize := int(math.Floor(float64(len(m.v3Data[atr])) / float64(size)))
+	for i := 0; i < size; i++ {
 		wg.Add(1)
 
 		jobSize := workSize
 
 		// Make sure to clean up potential last cell due to rounding error of
 		// division of number of CPUs
-		if i == runtime.NumCPU()-1 {
+		if i == size-1 {
 			jobSize = len(m.v3Data[atr]) - (workSize * i)
 		}
 
