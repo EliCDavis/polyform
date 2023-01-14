@@ -45,5 +45,5 @@ package modeling_test
 
 // 	// ASSERT =================================================================
 // 	assert.NoError(t, err)
-// 	assert.Equal(t, 10, finalMesh.TriCount())
+// 	assert.Equal(t, 10, finalMesh.PrimitiveCount())
 // }

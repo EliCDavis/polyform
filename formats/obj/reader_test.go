@@ -54,7 +54,7 @@ f  2//1  8//1  4//1
 	// ASSERT =================================================================
 	assert.NoError(t, err)
 	assert.Len(t, matReferences, 0)
-	assert.Equal(t, 12, square.TriCount())
+	assert.Equal(t, 12, square.PrimitiveCount())
 
 	assert.Equal(t, 0, squareView.Indices[0])
 	assert.Equal(t, 1, squareView.Indices[1])
@@ -84,7 +84,7 @@ f  2 3 4
 
 	// ASSERT =================================================================
 	assert.NoError(t, err)
-	assert.Equal(t, 2, square.TriCount())
+	assert.Equal(t, 2, square.PrimitiveCount())
 	assert.Len(t, matReferences, 0)
 
 	assert.Equal(t, 0, squareView.Indices[0])
@@ -140,7 +140,7 @@ f  1/1/1 2/2/2 3/3/3
 
 	// ASSERT =================================================================
 	assert.NoError(t, err)
-	assert.Equal(t, 3, square.TriCount())
+	assert.Equal(t, 3, square.PrimitiveCount())
 	if assert.Len(t, matReferences, 1) {
 		assert.Equal(t, "test.mtl", matReferences[0])
 	}

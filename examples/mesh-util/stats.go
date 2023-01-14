@@ -24,7 +24,7 @@ func statsCommand() *cli.Command {
 				return err
 			}
 
-			_, err = fmt.Fprintf(c.App.Writer, "tris: %d", loadedMesh.TriCount())
+			_, err = fmt.Fprintf(c.App.Writer, "tris: %d", loadedMesh.PrimitiveCount())
 
 			return err
 		},

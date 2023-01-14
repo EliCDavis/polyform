@@ -27,7 +27,7 @@ func NewMesh(
 	return Mesh{
 		indices:   indices,
 		materials: materials,
-		topology:  Triangle,
+		topology:  TriangleTopology,
 		v3Data:    v3Data,
 		v2Data:    v2Data,
 		v1Data:    v1Data,
@@ -61,7 +61,7 @@ func NewPointCloud(
 	return Mesh{
 		indices:   indices,
 		materials: materials,
-		topology:  Point,
+		topology:  PointTopology,
 		v3Data:    v3Data,
 		v2Data:    v2Data,
 		v1Data:    v1Data,
@@ -73,7 +73,7 @@ func EmptyMesh() Mesh {
 	return Mesh{
 		indices:   make([]int, 0),
 		materials: make([]MeshMaterial, 0),
-		topology:  Triangle,
+		topology:  TriangleTopology,
 		v3Data:    make(map[string][]vector.Vector3),
 		v2Data:    make(map[string][]vector.Vector2),
 		v1Data:    make(map[string][]float64),
@@ -96,7 +96,7 @@ func NewTexturedMesh(
 			TexCoordAttribute: uvs,
 		},
 		materials: []MeshMaterial{{len(triangles) / 3, nil}},
-		topology:  Triangle,
+		topology:  TriangleTopology,
 	}
 }
 
@@ -106,7 +106,7 @@ func MeshFromView(view MeshView) Mesh {
 		v3Data:   view.Float3Data,
 		v2Data:   view.Float2Data,
 		v1Data:   view.Float1Data,
-		topology: Triangle,
+		topology: TriangleTopology,
 	}
 }
 
@@ -176,8 +176,8 @@ func (m Mesh) Tri(i int) Tri {
 	}
 }
 
-func (m Mesh) TriCount() int {
-	return len(m.indices) / 3
+func (m Mesh) PrimitiveCount() int {
+	return len(m.indices) / m.topology.IndexSize()
 }
 
 func (m Mesh) Append(other Mesh) Mesh {
@@ -349,6 +349,63 @@ func (m Mesh) CenterFloat3Attribute(atr string) Mesh {
 	return m.SetFloat3Attribute(atr, modified)
 }
 
+func (m Mesh) scanTrisPrimitives(start, size int, f func(i int, p Primitive)) {
+	for i := start; i < size; i++ {
+		f(i, m.Tri(i))
+	}
+}
+
+func (m Mesh) ScanPrimitives(f func(i int, p Primitive)) Mesh {
+	switch m.topology {
+	case TriangleTopology:
+		m.scanTrisPrimitives(0, len(m.indices)/3, f)
+	}
+	return m
+}
+
+func (m Mesh) ScanPrimitivesParallelWithPoolSize(size int, f func(i int, p Primitive)) Mesh {
+
+	if size < 1 {
+		panic(fmt.Errorf("unable to scan primitives, invalid worker pool size: %d", size))
+	}
+
+	if size == 1 {
+		return m.ScanPrimitives(f)
+	}
+
+	var wg sync.WaitGroup
+
+	totalWork := 0
+	switch m.topology {
+	case TriangleTopology:
+		totalWork = len(m.indices) / 3
+	}
+	workSize := int(math.Floor(float64(totalWork) / float64(size)))
+	for i := 0; i < size; i++ {
+		wg.Add(1)
+
+		jobSize := workSize
+
+		// Make sure to clean up potential last cell due to rounding error of
+		// division of number of CPUs
+		if i == size-1 {
+			jobSize = totalWork - (workSize * i)
+		}
+
+		go func(start, size int) {
+			defer wg.Done()
+			switch m.topology {
+			case TriangleTopology:
+				m.scanTrisPrimitives(start, size, f)
+			}
+		}(workSize*i, jobSize)
+	}
+
+	wg.Wait()
+
+	return m
+}
+
 func (m Mesh) ScanFloat3Attribute(atr string, f func(i int, v vector.Vector3)) Mesh {
 	m.requireV3Attribute(atr)
 
@@ -365,6 +422,14 @@ func (m Mesh) ScanFloat3AttributeParallel(atr string, f func(i int, v vector.Vec
 
 func (m Mesh) ScanFloat3AttributeParallelWithPoolSize(atr string, size int, f func(i int, v vector.Vector3)) Mesh {
 	m.requireV3Attribute(atr)
+
+	if size < 1 {
+		panic(fmt.Errorf("unable to scan float3, invalid worker pool size: %d", size))
+	}
+
+	if size == 1 {
+		return m.ScanFloat3Attribute(atr, f)
+	}
 
 	var wg sync.WaitGroup
 
@@ -404,23 +469,31 @@ func (m Mesh) ScanFloat2Attribute(atr string, f func(i int, v vector.Vector2)) M
 }
 
 func (m Mesh) ScanFloat2AttributeParallel(atr string, f func(i int, v vector.Vector2)) Mesh {
+	return m.ScanFloat2AttributeParallelWithPoolSize(atr, runtime.NumCPU(), f)
+}
+
+func (m Mesh) ScanFloat2AttributeParallelWithPoolSize(atr string, size int, f func(i int, v vector.Vector2)) Mesh {
 	m.requireV2Attribute(atr)
 
-	if len(m.v2Data[atr]) <= runtime.NumCPU()*4 || runtime.NumCPU() == 1 {
+	if size < 1 {
+		panic(fmt.Errorf("unable to scan float2, invalid worker pool size: %d", size))
+	}
+
+	if size == 1 {
 		return m.ScanFloat2Attribute(atr, f)
 	}
 
 	var wg sync.WaitGroup
 
-	workSize := int(math.Floor(float64(len(m.v2Data[atr])) / float64(runtime.NumCPU())))
-	for i := 0; i < runtime.NumCPU(); i++ {
+	workSize := int(math.Floor(float64(len(m.v2Data[atr])) / float64(size)))
+	for i := 0; i < size; i++ {
 		wg.Add(1)
 
 		jobSize := workSize
 
 		// Make sure to clean up potential last cell due to rounding error of
 		// division of number of CPUs
-		if i == runtime.NumCPU()-1 {
+		if i == size-1 {
 			jobSize = len(m.v2Data[atr]) - (workSize * i)
 		}
 
@@ -448,23 +521,31 @@ func (m Mesh) ScanFloat1Attribute(atr string, f func(i int, v float64)) Mesh {
 }
 
 func (m Mesh) ScanFloat1AttributeParallel(atr string, f func(i int, v float64)) Mesh {
+	return m.ScanFloat1AttributeParallelWithPoolSize(atr, runtime.NumCPU(), f)
+}
+
+func (m Mesh) ScanFloat1AttributeParallelWithPoolSize(atr string, size int, f func(i int, v float64)) Mesh {
 	m.requireV1Attribute(atr)
 
-	if len(m.v1Data[atr]) <= runtime.NumCPU()*4 || runtime.NumCPU() == 1 {
+	if size < 1 {
+		panic(fmt.Errorf("unable to scan float1, invalid worker pool size: %d", size))
+	}
+
+	if size == 1 {
 		return m.ScanFloat1Attribute(atr, f)
 	}
 
 	var wg sync.WaitGroup
 
-	workSize := int(math.Floor(float64(len(m.v1Data[atr])) / float64(runtime.NumCPU())))
-	for i := 0; i < runtime.NumCPU(); i++ {
+	workSize := int(math.Floor(float64(len(m.v1Data[atr])) / float64(size)))
+	for i := 0; i < size; i++ {
 		wg.Add(1)
 
 		jobSize := workSize
 
 		// Make sure to clean up potential last cell due to rounding error of
 		// division of number of CPUs
-		if i == runtime.NumCPU()-1 {
+		if i == size-1 {
 			jobSize = len(m.v1Data[atr]) - (workSize * i)
 		}
 
@@ -494,8 +575,17 @@ func (m Mesh) ModifyFloat3Attribute(atr string, f func(i int, v vector.Vector3) 
 }
 
 func (m Mesh) ModifyFloat3AttributeParallel(atr string, f func(i int, v vector.Vector3) vector.Vector3) Mesh {
+	return m.ModifyFloat3AttributeParallelWithPoolSize(atr, runtime.NumCPU(), f)
+}
+
+func (m Mesh) ModifyFloat3AttributeParallelWithPoolSize(atr string, size int, f func(i int, v vector.Vector3) vector.Vector3) Mesh {
 	m.requireV3Attribute(atr)
-	if len(m.v3Data[atr]) < runtime.NumCPU() || runtime.NumCPU() == 1 {
+
+	if size < 1 {
+		panic(fmt.Errorf("unable to modify float3, invalid worker pool size: %d", size))
+	}
+
+	if size == 1 {
 		return m.ModifyFloat3Attribute(atr, f)
 	}
 
@@ -504,15 +594,15 @@ func (m Mesh) ModifyFloat3AttributeParallel(atr string, f func(i int, v vector.V
 
 	var wg sync.WaitGroup
 
-	workSize := int(math.Floor(float64(len(m.v3Data[atr])) / float64(runtime.NumCPU())))
-	for i := 0; i < runtime.NumCPU(); i++ {
+	workSize := int(math.Floor(float64(len(m.v3Data[atr])) / float64(size)))
+	for i := 0; i < size; i++ {
 		wg.Add(1)
 
 		jobSize := workSize
 
 		// Make sure to clean up potential last cell due to rounding error of
 		// division of number of CPUs
-		if i == runtime.NumCPU()-1 {
+		if i == size-1 {
 			jobSize = len(m.v3Data[atr]) - (workSize * i)
 		}
 
@@ -542,8 +632,17 @@ func (m Mesh) ModifyFloat2Attribute(atr string, f func(i int, v vector.Vector2) 
 }
 
 func (m Mesh) ModifyFloat2AttributeParallel(atr string, f func(i int, v vector.Vector2) vector.Vector2) Mesh {
+	return m.ModifyFloat2AttributeParallelWithPoolSize(atr, runtime.NumCPU(), f)
+}
+
+func (m Mesh) ModifyFloat2AttributeParallelWithPoolSize(atr string, size int, f func(i int, v vector.Vector2) vector.Vector2) Mesh {
 	m.requireV2Attribute(atr)
-	if len(m.v2Data[atr]) < runtime.NumCPU() || runtime.NumCPU() == 1 {
+
+	if size < 1 {
+		panic(fmt.Errorf("unable to modify float2, invalid worker pool size: %d", size))
+	}
+
+	if size == 1 {
 		return m.ModifyFloat2Attribute(atr, f)
 	}
 
@@ -552,15 +651,15 @@ func (m Mesh) ModifyFloat2AttributeParallel(atr string, f func(i int, v vector.V
 
 	var wg sync.WaitGroup
 
-	workSize := int(math.Floor(float64(len(m.v2Data[atr])) / float64(runtime.NumCPU())))
-	for i := 0; i < runtime.NumCPU(); i++ {
+	workSize := int(math.Floor(float64(len(m.v2Data[atr])) / float64(size)))
+	for i := 0; i < size; i++ {
 		wg.Add(1)
 
 		jobSize := workSize
 
 		// Make sure to clean up potential last cell due to rounding error of
 		// division of number of CPUs
-		if i == runtime.NumCPU()-1 {
+		if i == size-1 {
 			jobSize = len(m.v2Data[atr]) - (workSize * i)
 		}
 
@@ -590,8 +689,16 @@ func (m Mesh) ModifyFloat1Attribute(atr string, f func(i int, v float64) float64
 }
 
 func (m Mesh) ModifyFloat1AttributeParallel(atr string, f func(i int, v float64) float64) Mesh {
+	return m.ModifyFloat1AttributeParallelWithPoolSize(atr, runtime.NumCPU(), f)
+}
+
+func (m Mesh) ModifyFloat1AttributeParallelWithPoolSize(atr string, size int, f func(i int, v float64) float64) Mesh {
 	m.requireV1Attribute(atr)
-	if len(m.v1Data[atr]) < runtime.NumCPU() || runtime.NumCPU() == 1 {
+	if size < 1 {
+		panic(fmt.Errorf("unable to modify float1, invalid worker pool size: %d", size))
+	}
+
+	if size == 1 {
 		return m.ModifyFloat1Attribute(atr, f)
 	}
 
@@ -600,15 +707,15 @@ func (m Mesh) ModifyFloat1AttributeParallel(atr string, f func(i int, v float64)
 
 	var wg sync.WaitGroup
 
-	workSize := int(math.Floor(float64(len(m.v1Data[atr])) / float64(runtime.NumCPU())))
-	for i := 0; i < runtime.NumCPU(); i++ {
+	workSize := int(math.Floor(float64(len(m.v1Data[atr])) / float64(size)))
+	for i := 0; i < size; i++ {
 		wg.Add(1)
 
 		jobSize := workSize
 
 		// Make sure to clean up potential last cell due to rounding error of
 		// division of number of CPUs
-		if i == runtime.NumCPU()-1 {
+		if i == size-1 {
 			jobSize = len(m.v1Data[atr]) - (workSize * i)
 		}
 
@@ -626,7 +733,7 @@ func (m Mesh) ModifyFloat1AttributeParallel(atr string, f func(i int, v float64)
 }
 
 func (m Mesh) CalculateFlatNormals() Mesh {
-	m.requireTopology(Triangle)
+	m.requireTopology(TriangleTopology)
 	m.requireV3Attribute(PositionAttribute)
 
 	vertices := m.v3Data[PositionAttribute]
@@ -656,7 +763,7 @@ func (m Mesh) CalculateFlatNormals() Mesh {
 
 func (m Mesh) WeldByFloat3Attribute(attribute string, decimalPlace int) Mesh {
 	m.requireV3Attribute(attribute)
-	m.requireTopology(Triangle)
+	m.requireTopology(TriangleTopology)
 
 	// =================== Finding unique vertices ============================
 	vertILU := make(map[VectorInt]int)
@@ -897,7 +1004,7 @@ func (m Mesh) requireV1Attribute(atr string) {
 }
 
 func (m Mesh) SmoothLaplacian(iterations int, smoothingFactor float64) Mesh {
-	m.requireTopology(Triangle)
+	m.requireTopology(TriangleTopology)
 	m.requireV3Attribute(PositionAttribute)
 
 	lut := m.VertexNeighborTable()
@@ -928,7 +1035,7 @@ func (m Mesh) SmoothLaplacian(iterations int, smoothingFactor float64) Mesh {
 }
 
 func (m Mesh) CalculateSmoothNormals() Mesh {
-	m.requireTopology(Triangle)
+	m.requireTopology(TriangleTopology)
 	m.requireV3Attribute(PositionAttribute)
 
 	vertices := m.v3Data[PositionAttribute]

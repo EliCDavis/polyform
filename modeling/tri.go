@@ -108,7 +108,7 @@ func (t Tri) PointInSide(p vector.Vector3) bool {
 	return u.Dot(w) >= 0.
 }
 
-func (t Tri) ClosestPoint(p vector.Vector3) vector.Vector3 {
+func (t Tri) ClosestPoint(atr string, p vector.Vector3) vector.Vector3 {
 
 	closestPoint := t.Plane().ClosestPoint(p)
 
@@ -116,9 +116,9 @@ func (t Tri) ClosestPoint(p vector.Vector3) vector.Vector3 {
 		return closestPoint
 	}
 
-	AB := geometry.NewLine3D(t.P1Vec3Attr(PositionAttribute), t.P2Vec3Attr(PositionAttribute))
-	BC := geometry.NewLine3D(t.P2Vec3Attr(PositionAttribute), t.P3Vec3Attr(PositionAttribute))
-	CA := geometry.NewLine3D(t.P3Vec3Attr(PositionAttribute), t.P1Vec3Attr(PositionAttribute))
+	AB := geometry.NewLine3D(t.P1Vec3Attr(atr), t.P2Vec3Attr(atr))
+	BC := geometry.NewLine3D(t.P2Vec3Attr(atr), t.P3Vec3Attr(atr))
+	CA := geometry.NewLine3D(t.P3Vec3Attr(atr), t.P1Vec3Attr(atr))
 
 	c1 := AB.ClosestPointOnLine(closestPoint)
 	c2 := BC.ClosestPointOnLine(closestPoint)
@@ -137,4 +137,11 @@ func (t Tri) ClosestPoint(p vector.Vector3) vector.Vector3 {
 		return c2
 	}
 	return c3
+}
+
+func (t Tri) BoundingBox(atr string) AABB {
+	aabb := NewAABB(t.P1Vec3Attr(atr), vector.Vector3Zero())
+	aabb.EncapsulatePoint(t.P2Vec3Attr(atr))
+	aabb.EncapsulatePoint(t.P3Vec3Attr(atr))
+	return aabb
 }

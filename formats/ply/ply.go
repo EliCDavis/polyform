@@ -251,12 +251,12 @@ func WriteASCII(out io.Writer, model modeling.Mesh) error {
 	vertexElement := buildVertexElements(attributes, vertexCount)
 	vertexElement.Write(out)
 
-	if model.Topology() != modeling.Point && model.Topology() != modeling.Triangle {
+	if model.Topology() != modeling.PointTopology && model.Topology() != modeling.TriangleTopology {
 		panic(fmt.Errorf("unimplemented ply topology export: %s", model.Topology().String()))
 	}
 
-	if model.Topology() == modeling.Triangle {
-		fmt.Fprintf(out, "element face %d\n", model.TriCount())
+	if model.Topology() == modeling.TriangleTopology {
+		fmt.Fprintf(out, "element face %d\n", model.PrimitiveCount())
 		fmt.Fprintln(out, "property list uchar int vertex_indices")
 	}
 
@@ -278,8 +278,8 @@ func WriteASCII(out io.Writer, model modeling.Mesh) error {
 		fmt.Fprint(out, "\n")
 	}
 
-	if model.Topology() == modeling.Triangle {
-		for i := 0; i < model.TriCount(); i++ {
+	if model.Topology() == modeling.TriangleTopology {
+		for i := 0; i < model.PrimitiveCount(); i++ {
 			tri := model.Tri(i)
 			fmt.Fprintf(out, "3 %d %d %d\n", tri.P1(), tri.P2(), tri.P3())
 		}

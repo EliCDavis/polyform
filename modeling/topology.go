@@ -5,24 +5,24 @@ import "fmt"
 type Topology int
 
 const (
-	Triangle Topology = iota
-	Point
-	Line
-	Quad
+	TriangleTopology Topology = iota
+	PointTopology
+	LineTopology
+	QuadTopology
 )
 
 func (t Topology) String() string {
 	switch t {
-	case Triangle:
+	case TriangleTopology:
 		return "triangle"
 
-	case Point:
+	case PointTopology:
 		return "point"
 
-	case Line:
+	case LineTopology:
 		return "line"
 
-	case Quad:
+	case QuadTopology:
 		return "quad"
 	}
 
@@ -31,16 +31,16 @@ func (t Topology) String() string {
 
 func (t Topology) IndexSize() int {
 	switch t {
-	case Triangle:
+	case TriangleTopology:
 		return 3
 
-	case Point:
+	case PointTopology:
 		return 1
 
-	case Line:
+	case LineTopology:
 		return 2
 
-	case Quad:
+	case QuadTopology:
 		return 4
 	}
 
