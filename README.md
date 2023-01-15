@@ -134,6 +134,8 @@ Resources either directly contributing to the code here or are just interesting 
     - [Fast Polygon Triangulation Based on Seidel's Algorithm By Atul Narkhede and Dinesh Manocha](http://gamma.cs.unc.edu/SEIDEL/)
     - [Triangulating a Monotone Polygon
       ](http://homepages.math.uic.edu/~jan/mcs481/triangulating.pdf)
+  - Spheres
+    - [UV, Ico, Quad](https://www.danielsieger.com/blog/2021/03/27/generating-spheres.html)
 - Texturing
   - [Normal Map From Color Map](https://stackoverflow.com/questions/5281261/generating-a-normal-map-from-a-height-map)
 - Formats

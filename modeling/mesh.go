@@ -356,10 +356,25 @@ func (m Mesh) scanTrisPrimitives(start, size int, f func(i int, p Primitive)) {
 	}
 }
 
+func (m Mesh) scanPointPrimitives(start, size int, f func(i int, p Primitive)) {
+	for i := start; i < size; i++ {
+		f(i, &Point{
+			mesh:  &m,
+			index: i,
+		})
+	}
+}
+
 func (m Mesh) ScanPrimitives(f func(i int, p Primitive)) Mesh {
 	switch m.topology {
 	case TriangleTopology:
 		m.scanTrisPrimitives(0, len(m.indices)/3, f)
+
+	case PointTopology:
+		m.scanPointPrimitives(0, len(m.indices), f)
+
+	default:
+		panic(fmt.Errorf("unimplemented topology: %s", m.topology.String()))
 	}
 	return m
 }
@@ -380,11 +395,7 @@ func (m Mesh) ScanPrimitivesParallelWithPoolSize(size int, f func(i int, p Primi
 
 	var wg sync.WaitGroup
 
-	totalWork := 0
-	switch m.topology {
-	case TriangleTopology:
-		totalWork = len(m.indices) / 3
-	}
+	totalWork := len(m.indices) / m.topology.IndexSize()
 	workSize := int(math.Floor(float64(totalWork) / float64(size)))
 	for i := 0; i < size; i++ {
 		wg.Add(1)
@@ -402,6 +413,12 @@ func (m Mesh) ScanPrimitivesParallelWithPoolSize(size int, f func(i int, p Primi
 			switch m.topology {
 			case TriangleTopology:
 				m.scanTrisPrimitives(start, size, f)
+
+			case PointTopology:
+				m.scanPointPrimitives(start, size, f)
+
+			default:
+				panic(fmt.Errorf("unimplemented topology: %s", m.topology.String()))
 			}
 		}(workSize*i, jobSize)
 	}

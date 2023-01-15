@@ -62,10 +62,10 @@ func TestOctreeTwoTris(t *testing.T) {
 
 func TestOctreeSphere(t *testing.T) {
 	// ARRANGE ================================================================
-	mesh := primitives.UVSphere(1, 10, 10)
+	mesh := primitives.UVSphere(1, 100, 100)
 	tree := trees.FromMesh(mesh)
 
-	testPointCount := 30
+	testPointCount := 1000
 	testPoints := make([]vector.Vector3, testPointCount)
 	for i := 0; i < testPointCount; i++ {
 		testPoints[i] = vector.NewVector3(

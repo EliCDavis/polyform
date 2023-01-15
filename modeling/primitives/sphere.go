@@ -14,7 +14,7 @@ func UVSphere(radius float64, rows, columns int) modeling.Mesh {
 		panic(fmt.Errorf("invalid row count (%d) for uv sphere", rows))
 	}
 
-	if columns < 3 {
+	if columns < 2 {
 		panic(fmt.Errorf("invalid columns count (%d) for uv sphere", columns))
 	}
 
@@ -37,6 +37,7 @@ func UVSphere(radius float64, rows, columns int) modeling.Mesh {
 	}
 
 	// add bottom vertex
+	v1i := len(positions)
 	v1 := vector.NewVector3(0, -radius, 0)
 	positions = append(positions, v1)
 
@@ -49,7 +50,7 @@ func UVSphere(radius float64, rows, columns int) modeling.Mesh {
 
 		i0 = i + rows*(columns-2) + 1
 		i1 = (i+1)%rows + rows*(columns-2) + 1
-		tris = append(tris, 1, i0, i1)
+		tris = append(tris, v1i, i0, i1)
 	}
 
 	// add quads per stack / slice
