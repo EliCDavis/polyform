@@ -29,16 +29,16 @@ func (t Tri) P3() int {
 	return t.mesh.indices[t.startingIndex+2]
 }
 
-func (t Tri) P1Vec3Attr(attr string) vector.Vector3 {
-	return t.mesh.v3Data[attr][t.P1()]
+func (t Tri) P1Vec3Attr(atr string) vector.Vector3 {
+	return t.mesh.v3Data[atr][t.P1()]
 }
 
-func (t Tri) P2Vec3Attr(attr string) vector.Vector3 {
-	return t.mesh.v3Data[attr][t.P2()]
+func (t Tri) P2Vec3Attr(atr string) vector.Vector3 {
+	return t.mesh.v3Data[atr][t.P2()]
 }
 
-func (t Tri) P3Vec3Attr(attr string) vector.Vector3 {
-	return t.mesh.v3Data[attr][t.P3()]
+func (t Tri) P3Vec3Attr(atr string) vector.Vector3 {
+	return t.mesh.v3Data[atr][t.P3()]
 }
 
 func (t Tri) Plane() Plane {

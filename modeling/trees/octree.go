@@ -83,6 +83,7 @@ func fromMesh(primitives []modeling.Primitive, atr string, maxDepth int) *OctTre
 			bounds:     primitives[0].BoundingBox(atr),
 			primitives: []modeling.Primitive{primitives[0]},
 			children:   nil,
+			atr:        atr,
 		}
 	}
 
@@ -97,6 +98,7 @@ func fromMesh(primitives []modeling.Primitive, atr string, maxDepth int) *OctTre
 			bounds:     bounds,
 			primitives: primitives,
 			children:   nil,
+			atr:        atr,
 		}
 	}
 
@@ -140,10 +142,11 @@ func fromMesh(primitives []modeling.Primitive, atr string, maxDepth int) *OctTre
 			fromMesh(childrenNodes[6], atr, maxDepth-1),
 			fromMesh(childrenNodes[7], atr, maxDepth-1),
 		},
+		atr: atr,
 	}
 }
 
-func FromMesAttributeWithDepth(m modeling.Mesh, atr string, depth int) *OctTree {
+func FromMeshAttributeWithDepth(m modeling.Mesh, atr string, depth int) *OctTree {
 	primitives := make([]modeling.Primitive, m.PrimitiveCount())
 
 	m.ScanPrimitives(func(i int, p modeling.Primitive) {
@@ -154,7 +157,7 @@ func FromMesAttributeWithDepth(m modeling.Mesh, atr string, depth int) *OctTree 
 }
 
 func FromMeshWithDepth(m modeling.Mesh, depth int) *OctTree {
-	return FromMesAttributeWithDepth(m, modeling.PositionAttribute, depth)
+	return FromMeshAttributeWithDepth(m, modeling.PositionAttribute, depth)
 }
 
 func logBase8(x float64) float64 {
@@ -163,5 +166,5 @@ func logBase8(x float64) float64 {
 
 func FromMesh(m modeling.Mesh) *OctTree {
 	treeDepth := int(math.Max(1, math.Round(logBase8(float64(m.PrimitiveCount())))))
-	return FromMesAttributeWithDepth(m, modeling.PositionAttribute, treeDepth)
+	return FromMeshAttributeWithDepth(m, modeling.PositionAttribute, treeDepth)
 }

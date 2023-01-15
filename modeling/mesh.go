@@ -351,7 +351,8 @@ func (m Mesh) CenterFloat3Attribute(atr string) Mesh {
 
 func (m Mesh) scanTrisPrimitives(start, size int, f func(i int, p Primitive)) {
 	for i := start; i < size; i++ {
-		f(i, m.Tri(i))
+		tri := m.Tri(i)
+		f(i, &tri)
 	}
 }
 
@@ -361,6 +362,10 @@ func (m Mesh) ScanPrimitives(f func(i int, p Primitive)) Mesh {
 		m.scanTrisPrimitives(0, len(m.indices)/3, f)
 	}
 	return m
+}
+
+func (m Mesh) ScanPrimitivesParallel(f func(i int, p Primitive)) Mesh {
+	return m.ScanPrimitivesParallelWithPoolSize(runtime.NumCPU(), f)
 }
 
 func (m Mesh) ScanPrimitivesParallelWithPoolSize(size int, f func(i int, p Primitive)) Mesh {
