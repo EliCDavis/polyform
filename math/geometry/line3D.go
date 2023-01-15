@@ -89,3 +89,16 @@ func (l Line3D) ClosestPointOnLine(p vector.Vector3) vector.Vector3 {
 	projection := l.p1.Add(l.p2.Sub(l.p1).MultByConstant(t)) // Projection falls on the segment
 	return projection
 }
+
+func (l Line3D) Intersection(plane Plane) vector.Vector3 {
+	u := l.p2.Sub(l.p1)
+	dot := plane.Normal().Dot(u)
+	if math.Abs(dot) > 0 {
+		w := l.p1.Sub(plane.Origin())
+		fac := -plane.Normal().Dot(w) / dot
+		u = u.MultByConstant(fac)
+		return l.p1.MultByVector(u)
+	}
+
+	panic("line does not intersect plane")
+}

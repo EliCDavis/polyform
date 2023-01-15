@@ -1,6 +1,6 @@
 # Polyform
 
-Library for generating and editing 3D geometry and it's associated data.
+Library for generating and editing 3D geometry and it's associated data implemented in 100% golang.
 
 ## Processing Example
 
@@ -100,15 +100,33 @@ Shows off how to use the primitives and extrude utilities in this repository.
 
 ## Todo List
 
-Things I want to implement eventually...
+Progress towards V1...
 
 - [x] Cube Marching
 - [x] Bezier Curves
-- [ ] Constrained Delaunay Tesselation
-- [ ] 3D Tesselation
+- [ ] Scene Support
+- [ ] GLTF Support
 - [ ] Slice By Plane
+- [ ] Slice By Bounding Box
+- [ ] Constrained Delaunay Tesselation
+- [ ] Meshing Pipeline
+- [ ] Bones / Animations
+
+Things I want to implement eventually...
+
+- [ ] 3D Tesselation
 - [ ] Slice By Octree
 - [ ] Poisson Reconstruction
+- [ ] Buncha texture patterns
+- [ ] Noise...
+  - [ ] Simplex
+- [ ] Splines...
+  - [ ] Catmull
+  - [ ] B Spline
+- [ ] Spheres...
+  - [ ] Ico
+  - [ ] Quad
+
 
 ## Resources
 

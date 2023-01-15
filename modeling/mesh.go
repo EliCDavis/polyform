@@ -6,6 +6,7 @@ import (
 	"runtime"
 	"sync"
 
+	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/vector"
 )
 
@@ -783,6 +784,49 @@ func (m Mesh) CalculateFlatNormals() Mesh {
 	return m.SetFloat3Attribute(NormalAttribute, normals)
 }
 
+// Unweld duplicates all vertex data such that no two primitive indices share
+// any one vertex
+func (m Mesh) Unweld() Mesh {
+	indices := make([]int, len(m.indices))
+
+	unweldedV3Data := make(map[string][]vector.Vector3)
+	for atr := range m.v3Data {
+		unweldedV3Data[atr] = make([]vector.Vector3, 0)
+	}
+
+	unweldedV2Data := make(map[string][]vector.Vector2)
+	for atr := range m.v2Data {
+		unweldedV2Data[atr] = make([]vector.Vector2, 0)
+	}
+
+	unweldedV1Data := make(map[string][]float64)
+	for atr := range m.v1Data {
+		unweldedV1Data[atr] = make([]float64, 0)
+	}
+
+	for i := 0; i < len(indices); i++ {
+		indices[i] = i
+		for atr, data := range m.v3Data {
+			unweldedV3Data[atr] = append(unweldedV3Data[atr], data[m.indices[i]])
+		}
+		for atr, data := range m.v2Data {
+			unweldedV2Data[atr] = append(unweldedV2Data[atr], data[m.indices[i]])
+		}
+		for atr, data := range m.v1Data {
+			unweldedV1Data[atr] = append(unweldedV1Data[atr], data[m.indices[i]])
+		}
+	}
+
+	return Mesh{
+		topology:  m.topology,
+		indices:   indices,
+		v3Data:    unweldedV3Data,
+		v2Data:    unweldedV2Data,
+		v1Data:    unweldedV1Data,
+		materials: m.materials,
+	}
+}
+
 func (m Mesh) WeldByFloat3Attribute(attribute string, decimalPlace int) Mesh {
 	m.requireV3Attribute(attribute)
 	m.requireTopology(TriangleTopology)
@@ -1225,4 +1269,59 @@ func (m Mesh) SplitOnUniqueMaterials() []Mesh {
 		finalMeshes = append(finalMeshes, m.RemoveUnusedIndices())
 	}
 	return finalMeshes
+}
+
+func (m Mesh) SliceByPlaneWithAttribute(plane geometry.Plane, atr string) (Mesh, Mesh) {
+	m.requireTopology(TriangleTopology)
+
+	numFaces := len(m.indices) / 3
+
+	kept := Mesh{
+		v3Data:   m.v3Data,
+		v2Data:   m.v2Data,
+		v1Data:   m.v1Data,
+		indices:  make([]int, 0),
+		topology: m.topology,
+	}
+
+	clipped := Mesh{
+		v3Data:   m.v3Data,
+		v2Data:   m.v2Data,
+		v1Data:   m.v1Data,
+		indices:  make([]int, 0),
+		topology: m.topology,
+	}
+
+	// Mark which tris belong in retained or clipped
+	for t := 0; t < numFaces; t++ {
+		tri := m.Tri(t)
+
+		aClip := plane.Normal().Dot(tri.P1Vec3Attr(atr).Sub(plane.Origin())) < 0
+		bClip := plane.Normal().Dot(tri.P2Vec3Attr(atr).Sub(plane.Origin())) < 0
+		cClip := plane.Normal().Dot(tri.P3Vec3Attr(atr).Sub(plane.Origin())) < 0
+
+		if !aClip && !bClip && !cClip {
+			kept.indices = append(kept.indices, tri.P1(), tri.P2(), tri.P3())
+		} else if aClip && bClip && cClip {
+			clipped.indices = append(clipped.indices, tri.P1(), tri.P2(), tri.P3())
+		} else {
+			// lineIntersections := make([]geometry.Line3D, 0, 2)
+			// if (aClip && !bClip) || (!aClip && bClip) {
+			// 	lineIntersections = append(lineIntersections, tri.L1(atr))
+			// }
+
+			// if (bClip && !cClip) || (!bClip && cClip) {
+			// 	lineIntersections = append(lineIntersections, tri.L2(atr))
+			// }
+
+			// if (aClip && !cClip) || (!aClip && cClip) {
+			// 	lineIntersections = append(lineIntersections, tri.L3(atr))
+			// }
+
+			// intersectionA := lineIntersections[0].Intersection(plane)
+			// intersectionB := lineIntersections[1].Intersection(plane)
+		}
+	}
+
+	return kept.RemoveUnusedIndices(), clipped.RemoveUnusedIndices()
 }

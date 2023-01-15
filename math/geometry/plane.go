@@ -1,4 +1,4 @@
-package modeling
+package geometry
 
 import "github.com/EliCDavis/vector"
 
@@ -13,6 +13,14 @@ func NewPlaneFromPoints(a, b, c vector.Vector3) Plane {
 		normal:   normal,
 		distance: normal.Dot(a),
 	}
+}
+
+func (p Plane) Origin() vector.Vector3 {
+	return p.normal.MultByConstant(p.distance)
+}
+
+func (p Plane) Normal() vector.Vector3 {
+	return p.normal
 }
 
 func (p Plane) ClosestPoint(point vector.Vector3) vector.Vector3 {

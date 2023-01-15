@@ -1,6 +1,9 @@
 package modeling
 
-import "github.com/EliCDavis/vector"
+import (
+	"github.com/EliCDavis/polyform/math/geometry"
+	"github.com/EliCDavis/vector"
+)
 
 type Point struct {
 	mesh  *Mesh
@@ -13,4 +16,10 @@ func (p Point) BoundingBox(atr string) AABB {
 
 func (p Point) ClosestPoint(atr string, point vector.Vector3) vector.Vector3 {
 	return p.mesh.v3Data[atr][p.index]
+}
+
+func (p Point) Clips(plane geometry.Plane, atr string) bool {
+	dist := plane.Normal().Dot(p.mesh.v3Data[atr][p.index].Sub(plane.Origin()))
+
+	return dist < 0
 }

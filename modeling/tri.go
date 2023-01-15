@@ -11,7 +11,7 @@ import (
 type Tri struct {
 	mesh          *Mesh
 	startingIndex int
-	plane         *Plane
+	plane         *geometry.Plane
 }
 
 // P1 is the first point on our triangle, which is an index to the vertices array of a mesh
@@ -41,9 +41,30 @@ func (t Tri) P3Vec3Attr(atr string) vector.Vector3 {
 	return t.mesh.v3Data[atr][t.P3()]
 }
 
-func (t Tri) Plane() Plane {
+func (t Tri) L1(atr string) geometry.Line3D {
+	return geometry.NewLine3D(
+		t.P1Vec3Attr(atr),
+		t.P2Vec3Attr(atr),
+	)
+}
+
+func (t Tri) L2(atr string) geometry.Line3D {
+	return geometry.NewLine3D(
+		t.P2Vec3Attr(atr),
+		t.P3Vec3Attr(atr),
+	)
+}
+
+func (t Tri) L3(atr string) geometry.Line3D {
+	return geometry.NewLine3D(
+		t.P3Vec3Attr(atr),
+		t.P1Vec3Attr(atr),
+	)
+}
+
+func (t Tri) Plane() geometry.Plane {
 	if t.plane == nil {
-		plane := NewPlaneFromPoints(
+		plane := geometry.NewPlaneFromPoints(
 			t.P1Vec3Attr(PositionAttribute),
 			t.P2Vec3Attr(PositionAttribute),
 			t.P3Vec3Attr(PositionAttribute),

@@ -13,8 +13,9 @@ func main() {
 	err := obj.Save(
 		"tmp/plumbob/plumbob.obj",
 		primitives.
-			UVSphere(1, 8, 2).
+			UVSphere(1, 2, 8).
 			Scale(vector.Vector3Zero(), vector.NewVector3(1, 2, 1)).
+			Unweld().
 			CalculateFlatNormals().
 			SetMaterial(modeling.Material{
 				Name:              "Plumbob",

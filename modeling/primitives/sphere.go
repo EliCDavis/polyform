@@ -10,12 +10,12 @@ import (
 
 func UVSphere(radius float64, rows, columns int) modeling.Mesh {
 
-	if rows < 3 {
-		panic(fmt.Errorf("invalid row count (%d) for uv sphere", rows))
+	if columns < 3 {
+		panic(fmt.Errorf("invalid row count (%d) for uv sphere", columns))
 	}
 
-	if columns < 2 {
-		panic(fmt.Errorf("invalid columns count (%d) for uv sphere", columns))
+	if rows < 2 {
+		panic(fmt.Errorf("invalid columns count (%d) for uv sphere", rows))
 	}
 
 	positions := make([]vector.Vector3, 0)
@@ -25,10 +25,10 @@ func UVSphere(radius float64, rows, columns int) modeling.Mesh {
 	positions = append(positions, v0)
 
 	// generate vertices per stack / slice
-	for i := 0; i < columns-1; i++ {
-		phi := math.Pi * float64(i+1) / float64(columns)
-		for j := 0; j < rows; j++ {
-			theta := 2.0 * math.Pi * float64(j) / float64(rows)
+	for i := 0; i < rows-1; i++ {
+		phi := math.Pi * float64(i+1) / float64(rows)
+		for j := 0; j < columns; j++ {
+			theta := 2.0 * math.Pi * float64(j) / float64(columns)
 			x := math.Sin(phi) * math.Cos(theta)
 			y := math.Cos(phi)
 			z := math.Sin(phi) * math.Sin(theta)
@@ -43,24 +43,24 @@ func UVSphere(radius float64, rows, columns int) modeling.Mesh {
 
 	// add top / bottom triangles
 	tris := make([]int, 0)
-	for i := 0; i < rows; i++ {
+	for i := 0; i < columns; i++ {
 		i0 := i + 1
-		i1 := (i+1)%rows + 1
+		i1 := (i+1)%columns + 1
 		tris = append(tris, 0, i1, i0)
 
-		i0 = i + rows*(columns-2) + 1
-		i1 = (i+1)%rows + rows*(columns-2) + 1
+		i0 = i + columns*(rows-2) + 1
+		i1 = (i+1)%columns + columns*(rows-2) + 1
 		tris = append(tris, v1i, i0, i1)
 	}
 
 	// add quads per stack / slice
-	for j := 0; j < columns-2; j++ {
-		j0 := j*rows + 1
-		j1 := (j+1)*rows + 1
-		for i := 0; i < rows; i++ {
+	for j := 0; j < rows-2; j++ {
+		j0 := j*columns + 1
+		j1 := (j+1)*columns + 1
+		for i := 0; i < columns; i++ {
 			i0 := j0 + i
-			i1 := j0 + (i+1)%rows
-			i2 := j1 + (i+1)%rows
+			i1 := j0 + (i+1)%columns
+			i2 := j1 + (i+1)%columns
 			i3 := j1 + i
 			// mesh.add_quad(Vertex(i0), Vertex(i1),
 			// 	Vertex(i2), Vertex(i3))
