@@ -32,7 +32,7 @@ func main() {
 	canvas.AddFieldParallel(marching.Mesh(
 		loadedMesh.
 			CenterFloat3Attribute(modeling.PositionAttribute).
-			Scale(vector.Vector3Zero(), vector.Vector3(vector.NewVector3(12, 12, 12))),
+			Scale(vector.Vector3Zero(), vector.NewVector3(12, 12, 12)),
 		.1,
 		10,
 	))
@@ -74,29 +74,13 @@ This was my [submission for ProcJam 2022](https://elicdavis.itch.io/evergreen-tr
 
 ![Evergreen Terrain Demo](./examples/chill/terrain-demo.png)
 
-### Terrain
 
-This shows off how to use Delaunay triangulation, perlin noise, and the coloring utilities in this repository.
+### Other Examples
 
-[[Source Here](/examples/terrain/main.go)]
-
-![terrain](/examples/terrain/terrain.png)
-
-### UFO
-
-Shows off how to use the repeat, primitives, and extrude utilities in this repository.
-
-[[Source Here](/examples/ufo/main.go)]
-
-![ufo](/examples/ufo/ufo.png)
-
-### Candle
-
-Shows off how to use the primitives and extrude utilities in this repository.
-
-[[Source Here](/examples/candle/main.go)]
-
-![candle](/examples/candle/candle.png)
+|                                                                                      |                                                                                  |
+| ------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------- |
+| [[Source Here](/examples/ufo/main.go)] ![ufo](/examples/ufo/ufo.png)                 | [[Source Here](/examples/candle/main.go)] ![candle](/examples/candle/candle.png) |
+| [[Source Here](/examples/terrain/main.go)] ![terrain](/examples/terrain/terrain.png) |  [[Source Here](/examples/covid/main.go)] ![terrain](/examples/covid/covid.png) |
 
 ## Todo List
 
@@ -112,6 +96,8 @@ Progress towards V1...
 - [ ] Meshing Pipeline
 - [ ] Bones / Animations
 - [ ] Quadric Error Decimation
+- [ ] Proper Build Pipeline
+- [ ] Documentation Website
 
 Things I want to implement eventually...
 
@@ -127,7 +113,6 @@ Things I want to implement eventually...
 - [ ] Spheres...
   - [ ] Ico
   - [ ] Quad
-
 
 ## Resources
 
