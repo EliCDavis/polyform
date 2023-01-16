@@ -68,7 +68,7 @@ You can at the different projects under the [examples](/examples/) folder for di
 
 This was my [submission for ProcJam 2022](https://elicdavis.itch.io/evergreen-tree-generation). Pretty much uses every bit of functionality available in this repository.
 
-[[Source Here](/examples/terrain/main.go)]
+[[Source Here](/examples/chill/main.go)]
 
 ![Evergreen Tree Demo](./examples/chill/tree-demo.png)
 
@@ -111,6 +111,7 @@ Progress towards V1...
 - [ ] Constrained Delaunay Tesselation
 - [ ] Meshing Pipeline
 - [ ] Bones / Animations
+- [ ] Quadric Error Decimation
 
 Things I want to implement eventually...
 
@@ -160,6 +161,7 @@ Resources either directly contributing to the code here or are just interesting 
   - OBJ/MTL
     - [jburkardt MTL](https://people.sc.fsu.edu/~jburkardt/data/mtl/mtl.html)
     - [Excerpt from FILE FORMATS, Version 4.2 October 1995 MTL](http://paulbourke.net/dataformats/mtl/)
+  - [Just a ton of formats](https://people.sc.fsu.edu/~jburkardt/data/data.html)
 - Generative Techniques
   - [Country Flags by vividfax](https://vividfax.notion.site/Generative-Flag-Design-e663bc26f5a54ab48fad1428bc32b610)
   - [Snow by Ryan King](https://www.youtube.com/watch?v=UzJnsqIRbDw)

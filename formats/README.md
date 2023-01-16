@@ -4,6 +4,8 @@
 
 | Format | Reading    | Writing    |
 | ------ | ---------- | ---------- |
+| PTS    | ✔️         | ❌         |
+| PTX    | ❌         | ❌         |
 | PLY    | ASCII Only | ASCII Only |
 | OBJ    | ✔️         | ✔️         |
 | GLTF   | ❌         | ❌         |

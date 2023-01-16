@@ -1,16 +1,39 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
+	"path"
+	"strings"
 	"time"
 
 	"github.com/EliCDavis/polyform/formats/obj"
+	"github.com/EliCDavis/polyform/formats/pts"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/marching"
 	"github.com/EliCDavis/vector"
 	"github.com/urfave/cli/v2"
 )
+
+func loadMesh(meshPath string) (*modeling.Mesh, error) {
+	ext := strings.ToLower(path.Ext(meshPath))
+
+	switch ext {
+	case ".pts":
+		f, err := os.Open(meshPath)
+		if err != nil {
+			return nil, err
+		}
+		return pts.ReadPointCloud(f)
+
+	case ".obj":
+		return obj.Load(meshPath)
+
+	default:
+		return nil, fmt.Errorf("unimplemented format to load: %s", ext)
+	}
+}
 
 func main() {
 	app := &cli.App{
@@ -37,7 +60,7 @@ func main() {
 			&cli.Float64Flag{
 				Name:    "threshold",
 				Aliases: []string{"t"},
-				Value:   .5,
+				Value:   .1,
 			},
 			&cli.Float64Flag{
 				Name:    "radius",
@@ -45,13 +68,16 @@ func main() {
 				Value:   .1,
 			},
 			&cli.Float64Flag{
-				Name:    "strength",
-				Aliases: []string{"s"},
-				Value:   10,
+				Name:  "strength",
+				Value: 10,
+			},
+			&cli.Float64Flag{
+				Name:  "scale",
+				Value: 12,
 			},
 		},
 		Action: func(c *cli.Context) error {
-			loadedMesh, err := obj.Load(c.String("in"))
+			loadedMesh, err := loadMesh(c.String("in"))
 			if err != nil {
 				return err
 			}
@@ -64,7 +90,7 @@ func main() {
 			canvas.AddFieldParallel(marching.Mesh(
 				loadedMesh.
 					CenterFloat3Attribute(modeling.PositionAttribute).
-					Scale(vector.Vector3Zero(), vector.Vector3(vector.NewVector3(12, 12, 12))),
+					Scale(vector.Vector3Zero(), vector.Vector3One().MultByConstant(c.Float64("scale"))),
 				c.Float64("radius"),
 				c.Float64("strength"),
 			))
