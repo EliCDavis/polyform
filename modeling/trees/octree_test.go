@@ -6,6 +6,7 @@ import (
 
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/primitives"
+	"github.com/EliCDavis/polyform/modeling/repeat"
 	"github.com/EliCDavis/polyform/modeling/trees"
 	"github.com/EliCDavis/vector"
 	"github.com/stretchr/testify/assert"
@@ -83,5 +84,60 @@ func TestOctreeSphere(t *testing.T) {
 		assert.InDelta(t, testPoints[i].Z(), p.Z(), 0.05)
 
 	}
+}
 
+func TestOctreeLineSphere(t *testing.T) {
+	// ARRANGE ================================================================
+	mesh := modeling.NewLineStripMesh(
+		map[string][]vector.Vector3{
+			modeling.PositionAttribute: repeat.CirclePoints(100, 1),
+		},
+		nil,
+		nil,
+		nil,
+	)
+	tree := trees.FromMesh(mesh)
+
+	testPointCount := 100
+	testPoints := make([]vector.Vector3, testPointCount)
+	for i := 0; i < testPointCount; i++ {
+		testPoints[i] = vector.NewVector3(
+			-1+(rand.Float64()*2),
+			0,
+			-1+(rand.Float64()*2),
+		).Normalized()
+	}
+
+	// ACT / ASSERT ===========================================================
+	for i := 0; i < testPointCount; i++ {
+		p := tree.ClosestPoint(testPoints[i].MultByConstant(5))
+		assert.InDelta(t, testPoints[i].X(), p.X(), 0.05)
+		assert.InDelta(t, testPoints[i].Y(), p.Y(), 0.05)
+		assert.InDelta(t, testPoints[i].Z(), p.Z(), 0.05)
+	}
+}
+
+var result vector.Vector3
+
+func BenchmarkOctreeLineSphere(b *testing.B) {
+	var r vector.Vector3
+
+	mesh := modeling.NewLineStripMesh(
+		map[string][]vector.Vector3{
+			modeling.PositionAttribute: repeat.CirclePoints(10000, 1),
+		},
+		nil,
+		nil,
+		nil,
+	)
+	tree := trees.FromMesh(mesh)
+
+	for n := 0; n < b.N; n++ {
+		// always record the result of Fib to prevent
+		// the compiler eliminating the function call.
+		r = tree.ClosestPoint(vector.NewVector3(1, 0, 1))
+	}
+	// always store the result to a package level variable
+	// so the compiler cannot eliminate the Benchmark itself.
+	result = r
 }

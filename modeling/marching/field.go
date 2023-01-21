@@ -174,8 +174,12 @@ func (f Field) March(atr string, cubesPerUnit, cutoff float64) modeling.Mesh {
 	v2Data := make(map[string][]vector.Vector2)
 	v3Data := make(map[string][]vector.Vector3)
 
-	for atr := range f.Float1Functions {
-		v1Data[atr] = make([]float64, 0)
+	var atrFunc sample.Vec3ToFloat
+	for atrs, f1f := range f.Float1Functions {
+		v1Data[atrs] = make([]float64, 0)
+		if atrs == atr {
+			atrFunc = f1f
+		}
 	}
 
 	for atr := range f.Float2Functions {
@@ -184,13 +188,6 @@ func (f Field) March(atr string, cubesPerUnit, cutoff float64) modeling.Mesh {
 
 	for atr := range f.Float3Functions {
 		v3Data[atr] = make([]vector.Vector3, 0)
-	}
-
-	var atrFunc sample.Vec3ToFloat
-	for a, f := range f.Float1Functions {
-		if a == atr {
-			atrFunc = f
-		}
 	}
 
 	if atrFunc == nil {

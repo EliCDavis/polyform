@@ -130,7 +130,6 @@ func (t Tri) PointInSide(p vector.Vector3) bool {
 }
 
 func (t Tri) ClosestPoint(atr string, p vector.Vector3) vector.Vector3 {
-
 	closestPoint := t.Plane().ClosestPoint(p)
 
 	if t.PointInSide(closestPoint) {

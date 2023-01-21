@@ -35,7 +35,8 @@ func NewMesh(
 	}
 }
 
-func NewPointCloud(
+func newImpliedIndicesMesh(
+	topo Topology,
 	v3Data map[string][]vector.Vector3,
 	v2Data map[string][]vector.Vector2,
 	v1Data map[string][]float64,
@@ -54,6 +55,10 @@ func NewPointCloud(
 		attributeCount = len(d)
 	}
 
+	if topo == LineStripTopology && attributeCount == 1 {
+		panic(fmt.Errorf("invalid attribute count for line strip mesh"))
+	}
+
 	indices := make([]int, attributeCount)
 	for i := 0; i < len(indices); i++ {
 		indices[i] = i
@@ -62,11 +67,27 @@ func NewPointCloud(
 	return Mesh{
 		indices:   indices,
 		materials: materials,
-		topology:  PointTopology,
+		topology:  topo,
 		v3Data:    v3Data,
 		v2Data:    v2Data,
 		v1Data:    v1Data,
 	}
+}
+
+func NewLineStripMesh(
+	v3Data map[string][]vector.Vector3,
+	v2Data map[string][]vector.Vector2,
+	v1Data map[string][]float64,
+	materials []MeshMaterial) Mesh {
+	return newImpliedIndicesMesh(LineStripTopology, v3Data, v2Data, v1Data, materials)
+}
+
+func NewPointCloud(
+	v3Data map[string][]vector.Vector3,
+	v2Data map[string][]vector.Vector2,
+	v1Data map[string][]float64,
+	materials []MeshMaterial) Mesh {
+	return newImpliedIndicesMesh(PointTopology, v3Data, v2Data, v1Data, materials)
 }
 
 // Creates a new triangle mesh with no vertices or attribute data
@@ -177,8 +198,26 @@ func (m Mesh) Tri(i int) Tri {
 	}
 }
 
+func (m Mesh) LineStrip(i int) Line {
+	return Line{
+		mesh:          &m,
+		startingIndex: i,
+	}
+}
+
 func (m Mesh) PrimitiveCount() int {
-	return len(m.indices) / m.topology.IndexSize()
+	switch m.topology {
+	case QuadTopology, TriangleTopology:
+		return len(m.indices) / m.topology.IndexSize()
+
+	case PointTopology, LineLoopTopology:
+		return len(m.indices)
+
+	case LineTopology, LineStripTopology:
+		return len(m.indices) - 1
+	}
+
+	panic(fmt.Errorf("unimplemented topology: %s", m.topology.String()))
 }
 
 func (m Mesh) Append(other Mesh) Mesh {
@@ -306,23 +345,7 @@ func (m Mesh) ScaleAttribute3D(attribute string, origin, amount vector.Vector3) 
 
 func (m Mesh) BoundingBox(atr string) AABB {
 	m.requireV3Attribute(atr)
-	oldData := m.v3Data[atr]
-
-	min := vector.NewVector3(math.Inf(1), math.Inf(1), math.Inf(1))
-	max := vector.NewVector3(math.Inf(-1), math.Inf(-1), math.Inf(-1))
-	for _, v := range oldData {
-		min = min.SetX(math.Min(v.X(), min.X()))
-		min = min.SetY(math.Min(v.Y(), min.Y()))
-		min = min.SetZ(math.Min(v.Z(), min.Z()))
-
-		max = max.SetX(math.Max(v.X(), max.X()))
-		max = max.SetY(math.Max(v.Y(), max.Y()))
-		max = max.SetZ(math.Max(v.Z(), max.Z()))
-	}
-
-	center := max.Sub(min).DivByConstant(2).Add(min)
-
-	return NewAABB(center, max.Sub(min))
+	return NewAABBFromPoints(m.v3Data[atr]...)
 }
 
 func (m Mesh) CenterFloat3Attribute(atr string) Mesh {
@@ -366,13 +389,25 @@ func (m Mesh) scanPointPrimitives(start, size int, f func(i int, p Primitive)) {
 	}
 }
 
+func (m Mesh) scanLinePrimitives(start, size int, f func(i int, p Primitive)) {
+	for i := start; i < size; i++ {
+		f(i, &Line{
+			mesh:          &m,
+			startingIndex: i,
+		})
+	}
+}
+
 func (m Mesh) ScanPrimitives(f func(i int, p Primitive)) Mesh {
 	switch m.topology {
 	case TriangleTopology:
-		m.scanTrisPrimitives(0, len(m.indices)/3, f)
+		m.scanTrisPrimitives(0, m.PrimitiveCount(), f)
 
 	case PointTopology:
-		m.scanPointPrimitives(0, len(m.indices), f)
+		m.scanPointPrimitives(0, m.PrimitiveCount(), f)
+
+	case LineStripTopology:
+		m.scanLinePrimitives(0, m.PrimitiveCount(), f)
 
 	default:
 		panic(fmt.Errorf("unimplemented topology: %s", m.topology.String()))
@@ -396,7 +431,7 @@ func (m Mesh) ScanPrimitivesParallelWithPoolSize(size int, f func(i int, p Primi
 
 	var wg sync.WaitGroup
 
-	totalWork := len(m.indices) / m.topology.IndexSize()
+	totalWork := m.PrimitiveCount()
 	workSize := int(math.Floor(float64(totalWork) / float64(size)))
 	for i := 0; i < size; i++ {
 		wg.Add(1)
@@ -417,6 +452,9 @@ func (m Mesh) ScanPrimitivesParallelWithPoolSize(size int, f func(i int, p Primi
 
 			case PointTopology:
 				m.scanPointPrimitives(start, size, f)
+
+			case LineStripTopology:
+				m.scanLinePrimitives(start, size, f)
 
 			default:
 				panic(fmt.Errorf("unimplemented topology: %s", m.topology.String()))

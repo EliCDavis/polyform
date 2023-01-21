@@ -26,9 +26,7 @@ func MultiSegmentLine(line []vector.Vector3, radius, strength float64) Field {
 		panic("can not create a line segment field with less than 2 points")
 	}
 
-	// primitives := make([]int, 0)
-	// mesh := modeling.NewMesh(
-	// 	primitives,
+	// mesh := modeling.NewLineStripMesh(
 	// 	map[string][]vector.Vector3{
 	// 		modeling.PositionAttribute: line,
 	// 	},

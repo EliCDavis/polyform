@@ -18,6 +18,27 @@ func NewAABB(center, size vector.Vector3) AABB {
 	}
 }
 
+func NewAABBFromPoints(points ...vector.Vector3) AABB {
+	min := vector.NewVector3(math.Inf(1), math.Inf(1), math.Inf(1))
+	max := vector.NewVector3(math.Inf(-1), math.Inf(-1), math.Inf(-1))
+	for _, v := range points {
+		min = min.SetX(math.Min(v.X(), min.X()))
+		min = min.SetY(math.Min(v.Y(), min.Y()))
+		min = min.SetZ(math.Min(v.Z(), min.Z()))
+
+		max = max.SetX(math.Max(v.X(), max.X()))
+		max = max.SetY(math.Max(v.Y(), max.Y()))
+		max = max.SetZ(math.Max(v.Z(), max.Z()))
+	}
+
+	center := max.
+		Sub(min).
+		DivByConstant(2).
+		Add(min)
+
+	return NewAABB(center, max.Sub(min))
+}
+
 func (aabb AABB) Center() vector.Vector3 {
 	return aabb.center
 }

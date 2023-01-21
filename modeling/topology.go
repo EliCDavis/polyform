@@ -7,8 +7,10 @@ type Topology int
 const (
 	TriangleTopology Topology = iota
 	PointTopology
-	LineTopology
 	QuadTopology
+	LineTopology
+	LineStripTopology
+	LineLoopTopology
 )
 
 func (t Topology) String() string {
@@ -21,6 +23,12 @@ func (t Topology) String() string {
 
 	case LineTopology:
 		return "line"
+
+	case LineStripTopology:
+		return "line strip"
+
+	case LineLoopTopology:
+		return "line loop"
 
 	case QuadTopology:
 		return "quad"
@@ -37,7 +45,7 @@ func (t Topology) IndexSize() int {
 	case PointTopology:
 		return 1
 
-	case LineTopology:
+	case LineTopology, LineStripTopology, LineLoopTopology:
 		return 2
 
 	case QuadTopology:
