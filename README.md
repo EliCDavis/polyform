@@ -2,6 +2,17 @@
 
 Library for generating and editing 3D geometry and it's associated data implemented in 100% golang.
 
+If Polyform contributes to an academic publication, cite it as:
+
+```
+@misc{polyform,
+  title = {Polyform},
+  author = {Eli Davis},
+  note = {https://www.github.com/EliCDavis/polyform},
+  year = {2023}
+}
+```
+
 ## Processing Example
 
 Reads in a obj and applies the cube marching algorithm over the meshes 3D SDF.

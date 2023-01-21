@@ -5,6 +5,7 @@ import (
 	"math"
 
 	"github.com/EliCDavis/polyform/math/sample"
+	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/vector"
 )
 
@@ -23,18 +24,28 @@ func MirrorAxis(field Field, axisToMirror Axis) Field {
 
 	var newV sample.Vec3ToVec3
 
+	topRightFrontCorner := field.Domain.
+		Center().
+		Add(field.Domain.Size().DivByConstant(2))
+	bottomLeftBackCorner := field.Domain.
+		Center().
+		Sub(field.Domain.Size().DivByConstant(2))
+
 	if axisToMirror == XAxis {
 		newV = func(v vector.Vector3) vector.Vector3 {
 			return vector.NewVector3(math.Abs(v.X()), v.Y(), v.Z())
 		}
+		bottomLeftBackCorner = bottomLeftBackCorner.SetX(-math.Abs(topRightFrontCorner.X()))
 	} else if axisToMirror == YAxis {
 		newV = func(v vector.Vector3) vector.Vector3 {
 			return vector.NewVector3(v.X(), math.Abs(v.Y()), v.Z())
 		}
+		bottomLeftBackCorner = bottomLeftBackCorner.SetY(-math.Abs(topRightFrontCorner.Y()))
 	} else if axisToMirror == ZAxis {
 		newV = func(v vector.Vector3) vector.Vector3 {
 			return vector.NewVector3(v.X(), v.Y(), math.Abs(v.Z()))
 		}
+		bottomLeftBackCorner = bottomLeftBackCorner.SetZ(-math.Abs(topRightFrontCorner.Z()))
 	} else {
 		panic(fmt.Errorf("unimplemented Axis: %d", axisToMirror))
 	}
@@ -57,8 +68,10 @@ func MirrorAxis(field Field, axisToMirror Axis) Field {
 		}
 	}
 
+	newDomain := modeling.NewAABB(field.Domain.Center(), field.Domain.Size())
+	newDomain.EncapsulatePoint(bottomLeftBackCorner)
 	return Field{
-		Domain:          field.Domain,
+		Domain:          newDomain,
 		Float1Functions: float1Functions,
 		Float2Functions: float2Functions,
 		Float3Functions: float3Functions,

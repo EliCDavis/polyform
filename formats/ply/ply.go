@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"strconv"
 	"strings"
 
@@ -172,6 +173,17 @@ func ToMesh(in io.Reader) (*modeling.Mesh, error) {
 	}
 
 	return reader.ReadMesh()
+}
+
+func Load(filepath string) (*modeling.Mesh, error) {
+
+	in, err := os.Open(filepath)
+	if err != nil {
+		return nil, err
+	}
+	defer in.Close()
+
+	return ToMesh(in)
 }
 
 func buildVertexElements(attributes []string, size int) Element {

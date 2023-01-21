@@ -11,9 +11,24 @@ import (
 	"github.com/EliCDavis/vector"
 )
 
-func interpolateVerts(v1, v2 vector.Vector3, v1v, v2v, cutoff float64) vector.Vector3 {
-	t := (cutoff - v1v) / (v2v - v1v)
+func interpolationValueFromCutoff(v1v, v2v, cutoff float64) float64 {
+	return (cutoff - v1v) / (v2v - v1v)
+}
 
+func interpolateV3(v1, v2 vector.Vector3, t float64) vector.Vector3 {
+	return v2.Sub(v1).MultByConstant(t).Add(v1)
+}
+
+func interpolateV2(v1, v2 vector.Vector2, t float64) vector.Vector2 {
+	return v2.Sub(v1).MultByConstant(t).Add(v1)
+}
+
+func interpolateV1(v1, v2, t float64) float64 {
+	return ((v2 - v1) * t) + v1
+}
+
+func interpolateVerts(v1, v2 vector.Vector3, v1v, v2v, cutoff float64) vector.Vector3 {
+	t := interpolationValueFromCutoff(v1v, v2v, cutoff)
 	return v2.Sub(v1).MultByConstant(t).Add(v1)
 }
 
@@ -303,40 +318,6 @@ func (d *MarchingCanvas) AddFieldParallel(field Field) {
 		<-results
 	}
 }
-
-// func (d MarchingCanvas) AddFieldParallel(attribute string, field Field) {
-// 	var wg sync.WaitGroup
-
-// 	workSize := int(math.Floor(float64(d.Volume()) / float64(runtime.NumCPU())))
-// 	for i := 0; i < runtime.NumCPU(); i++ {
-// 		wg.Add(1)
-
-// 		jobSize := workSize
-
-// 		// Make sure to clean up potential last cell due to rounding error of
-// 		// division of number of CPUs
-// 		if i == runtime.NumCPU()-1 {
-// 			jobSize = d.Volume() - (workSize * i)
-// 		}
-
-// 		go func(start, size int) {
-// 			defer wg.Done()
-
-// 			for v := start; v < start+size; v++ {
-// 				z := int(math.Floor(float64(v) / float64(d.width*d.height)))
-// 				y := int(math.Floor(float64(v-(d.width*d.height*z)) / float64(d.width)))
-// 				x := v % d.width
-// 				pos := vector.NewVector3(float64(x), float64(y), float64(z)).
-// 					DivByConstant(d.cubesPerUnit)
-// 				d.AddValue(x, y, z, field(pos))
-// 			}
-
-// 		}(workSize*i, jobSize)
-// 	}
-
-// 	wg.Wait()
-
-// }
 
 type workingData struct {
 	tris       []int

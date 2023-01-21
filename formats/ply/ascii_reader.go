@@ -116,19 +116,19 @@ func (ar *AsciiReader) readVertexData(element Element) (map[string][]vector.Vect
 
 	if redIndex != -1 && greenIndex != -1 && blueIndex != -1 {
 		attributeReaders[modeling.ColorAttribute] = func(contents []string) (vector.Vector3, error) {
-			xParsed, err := strconv.ParseInt(contents[xIndex], 10, 64)
+			xParsed, err := strconv.ParseInt(contents[redIndex], 10, 64)
 			if err != nil {
-				return vector.Vector3Zero(), fmt.Errorf("unable to parse x component: %w", err)
+				return vector.Vector3Zero(), fmt.Errorf("unable to parse r component: %w", err)
 			}
 
-			yParsed, err := strconv.ParseInt(contents[yIndex], 10, 64)
+			yParsed, err := strconv.ParseInt(contents[greenIndex], 10, 64)
 			if err != nil {
-				return vector.Vector3Zero(), fmt.Errorf("unable to parse y component: %w", err)
+				return vector.Vector3Zero(), fmt.Errorf("unable to parse g component: %w", err)
 			}
 
-			zParsed, err := strconv.ParseInt(contents[zIndex], 10, 64)
+			zParsed, err := strconv.ParseInt(contents[blueIndex], 10, 64)
 			if err != nil {
-				return vector.Vector3Zero(), fmt.Errorf("unable to parse z component: %w", err)
+				return vector.Vector3Zero(), fmt.Errorf("unable to parse b component: %w", err)
 			}
 
 			return vector.NewVector3(

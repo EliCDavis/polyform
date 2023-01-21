@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/EliCDavis/polyform/formats/obj"
+	"github.com/EliCDavis/polyform/formats/ply"
 	"github.com/EliCDavis/polyform/formats/pts"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/marching"
@@ -26,6 +27,9 @@ func loadMesh(meshPath string) (*modeling.Mesh, error) {
 			return nil, err
 		}
 		return pts.ReadPointCloud(f)
+
+	case ".ply":
+		return ply.Load(meshPath)
 
 	case ".obj":
 		return obj.Load(meshPath)

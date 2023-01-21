@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/EliCDavis/polyform/formats/obj"
+	"github.com/EliCDavis/polyform/formats/ply"
 	"github.com/EliCDavis/polyform/math/sample"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/marching"
@@ -13,12 +13,14 @@ import (
 )
 
 func main() {
-	canvas := marching.NewMarchingCanvas(15)
 
 	start := time.Now()
 
 	// Colors
 	gopherBlue := color.RGBA{R: 90, G: 218, B: 255, A: 255}
+	gopherYellow := color.RGBA{R: 243, G: 245, B: 211, A: 255}
+	white := color.RGBA{R: 255, G: 255, B: 255, A: 255}
+	black := color.RGBA{R: 0, G: 0, B: 0, A: 255}
 
 	gopherBody := marching.MultiSegmentLine(
 		[]vector.Vector3{
@@ -31,43 +33,43 @@ func main() {
 	).WithColor(gopherBlue)
 
 	eyeWidth := 0.4
-	gopherEye := marching.Sphere(vector.NewVector3(eyeWidth, 1, 0.6), 0.4, 1)
-	gopherPupil := marching.Sphere(vector.NewVector3(eyeWidth+.1, 1, .9), 0.2, 2)
+	gopherEye := marching.Sphere(vector.NewVector3(eyeWidth, 1, 0.6), 0.4, 1).WithColor(white)
+	gopherPupil := marching.Sphere(vector.NewVector3(eyeWidth+.1, 1, .8), 0.2, 2).WithColor(black)
 
 	gopherTopLeg := marching.Line(
 		vector.NewVector3(0, 0.3, 0),
 		vector.NewVector3(.9, 0.6, 0.6),
-		0.15,
+		0.1,
 		1,
-	)
+	).WithColor(gopherYellow)
 
 	gopherBottomLeg := marching.Line(
 		vector.NewVector3(0, -0.1, 0),
 		vector.NewVector3(.7, -0.6, 0.4),
-		0.15,
+		0.1,
 		1,
-	)
+	).WithColor(gopherYellow)
 
 	gopherTail := marching.Line(
 		vector.NewVector3(0, -0.1, 0),
 		vector.NewVector3(0, -0.4, -.8),
 		0.15,
 		1,
-	)
+	).WithColor(gopherBlue)
 
 	gopherOuterEar := marching.Line(
 		vector.NewVector3(.3, 0.5, .2),
 		vector.NewVector3(.6, 1.7, 0),
 		0.2,
 		1,
-	)
+	).WithColor(gopherBlue)
 
 	gopherInnerEar := marching.Line(
 		vector.NewVector3(.3, 0.5, .2),
 		vector.NewVector3(.6, 1.7, .1),
 		0.07,
 		0.2,
-	)
+	).WithColor(gopherBlue)
 
 	gopherEar := gopherOuterEar.Modify(
 		modeling.PositionAttribute,
@@ -89,7 +91,7 @@ func main() {
 		vector.NewVector3(.10, 0.5, 1),
 		0.15,
 		2,
-	)
+	).WithColor(gopherYellow)
 
 	gopherTooth := marching.Box(
 		vector.NewVector3(.0, 0.35, .9),
@@ -109,9 +111,8 @@ func main() {
 		gopherJowel,
 		gopherTooth,
 	), marching.XAxis)
-	canvas.AddFieldParallel(gopher)
 
-	mesh := canvas.MarchParallel(.0).
+	mesh := gopher.March(modeling.PositionAttribute, 40, 0.).
 		WeldByFloat3Attribute(modeling.PositionAttribute, 3).
 		// SmoothLaplacian(10, .1).
 		CalculateSmoothNormals().
@@ -122,7 +123,7 @@ func main() {
 
 	log.Printf("time to compute: %s", time.Now().Sub(start))
 
-	err := obj.Save("tmp/gopher/gopher.obj", mesh)
+	err := ply.Save("tmp/gopher/gopher.ply", mesh)
 	if err != nil {
 		panic(err)
 	}
