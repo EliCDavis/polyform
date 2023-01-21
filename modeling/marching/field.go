@@ -127,7 +127,7 @@ func (f Field) Modify(attribute string, other Field, modifier func(a, b sample.V
 	}
 }
 
-func (f Field) WithColor(c color.RGBA) Field {
+func (f Field) SetFloat3Attribute(atr string, f3tf3 sample.Vec3ToVec3) Field {
 	float1Final := make(map[string]sample.Vec3ToFloat)
 	for attribute, functions := range f.Float1Functions {
 		float1Final[attribute] = functions
@@ -142,14 +142,8 @@ func (f Field) WithColor(c color.RGBA) Field {
 	for attribute, functions := range f.Float3Functions {
 		float3Final[attribute] = functions
 	}
-	colorAsVector := vector.NewVector3(
-		float64(c.R)/255.,
-		float64(c.G)/255.,
-		float64(c.B)/255.,
-	)
-	float3Final[modeling.ColorAttribute] = func(v vector.Vector3) vector.Vector3 {
-		return colorAsVector
-	}
+
+	float3Final[atr] = f3tf3
 
 	return Field{
 		Float1Functions: float1Final,
@@ -159,11 +153,26 @@ func (f Field) WithColor(c color.RGBA) Field {
 	}
 }
 
+func (f Field) WithColor(c color.RGBA) Field {
+	colorAsVector := vector.NewVector3(
+		float64(c.R)/255.,
+		float64(c.G)/255.,
+		float64(c.B)/255.,
+	)
+
+	return f.SetFloat3Attribute(
+		modeling.ColorAttribute,
+		func(v vector.Vector3) vector.Vector3 {
+			return colorAsVector
+		},
+	)
+}
+
 func (f Field) March(atr string, cubesPerUnit, cutoff float64) modeling.Mesh {
 
-	v1Data := make(map[string][]float64, 0)
-	v2Data := make(map[string][]vector.Vector2, 0)
-	v3Data := make(map[string][]vector.Vector3, 0)
+	v1Data := make(map[string][]float64)
+	v2Data := make(map[string][]vector.Vector2)
+	v3Data := make(map[string][]vector.Vector3)
 
 	for atr := range f.Float1Functions {
 		v1Data[atr] = make([]float64, 0)
@@ -331,5 +340,5 @@ func (f Field) March(atr string, cubesPerUnit, cutoff float64) modeling.Mesh {
 			}
 		}
 	}
-	return modeling.NewMesh(tris, v3Data, v2Data, v1Data, nil)
+	return modeling.NewMesh(tris, v3Data, v2Data, v1Data, nil).WeldByFloat3Attribute(modeling.PositionAttribute, 3)
 }

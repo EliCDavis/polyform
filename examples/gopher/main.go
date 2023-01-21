@@ -113,8 +113,7 @@ func main() {
 	), marching.XAxis)
 
 	mesh := gopher.March(modeling.PositionAttribute, 40, 0.).
-		WeldByFloat3Attribute(modeling.PositionAttribute, 3).
-		// SmoothLaplacian(10, .1).
+		SmoothLaplacian(10, .1).
 		CalculateSmoothNormals().
 		SetMaterial(modeling.Material{
 			Name:         "Gopher",

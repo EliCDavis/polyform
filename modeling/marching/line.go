@@ -26,6 +26,19 @@ func MultiSegmentLine(line []vector.Vector3, radius, strength float64) Field {
 		panic("can not create a line segment field with less than 2 points")
 	}
 
+	// primitives := make([]int, 0)
+	// mesh := modeling.NewMesh(
+	// 	primitives,
+	// 	map[string][]vector.Vector3{
+	// 		modeling.PositionAttribute: line,
+	// 	},
+	// 	nil,
+	// 	nil,
+	// 	nil,
+	// )
+
+	// return Mesh(mesh, radius, strength)
+
 	bounds := modeling.NewAABB(line[0], vector.Vector3Zero())
 	sdfs := make([]sample.Vec3ToFloat, 0, len(line)-1)
 	for i := 1; i < len(line); i++ {
