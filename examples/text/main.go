@@ -16,7 +16,7 @@ import (
 
 func run() error {
 	textToWrite := "Test"
-	fontByteData, err := ioutil.ReadFile("./Coiny-Regular.ttf")
+	fontByteData, err := ioutil.ReadFile("./FromCartoonBlocks.ttf")
 
 	if err != nil {
 		return err
@@ -45,7 +45,7 @@ func run() error {
 
 			if nextEndpoint < len(glyph.Ends) && i == glyph.Ends[nextEndpoint]-1 {
 				letterPoints = append(letterPoints, vector.NewVector3(float64(startPoint.X)+(float64(charIndex)*60.), 0, float64(startPoint.Y)))
-				characterFields = append(characterFields, marching.MultiSegmentLine(letterPoints, 1, 3))
+				characterFields = append(characterFields, marching.MultiSegmentLine(letterPoints, .5, 2))
 				letterPoints = make([]vector.Vector3, 0)
 				if nextEndpoint < len(glyph.Ends)-1 {
 					startPoint = glyph.Points[i+1]
@@ -55,16 +55,16 @@ func run() error {
 		}
 
 		if len(letterPoints) > 2 {
-			characterFields = append(characterFields, marching.MultiSegmentLine(letterPoints, 3, 3))
+			characterFields = append(characterFields, marching.MultiSegmentLine(letterPoints, .1, 3))
 		}
 	}
 
 	finalWords := marching.CombineFields(characterFields...)
 
 	start := time.Now()
-	mesh := finalWords.March(modeling.PositionAttribute, 2, .1).
+	mesh := finalWords.March(modeling.PositionAttribute, 1, .0).
 		Scale(vector.Vector3Zero(), vector.NewVector3(1, 5, 1)).
-		SmoothLaplacian(10, .1).
+		SmoothLaplacian(20, .1).
 		CalculateSmoothNormals().
 		SetMaterial(modeling.Material{
 			Name:         "Text",

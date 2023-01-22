@@ -19,7 +19,8 @@ func Mesh(mesh modeling.Mesh, radius, strength float64) Field {
 					return 0
 				}
 
-				closestDist := octree.ClosestPoint(v).Distance(v)
+				_, closestPoint := octree.ClosestPoint(v)
+				closestDist := closestPoint.Distance(v)
 
 				if closestDist < radius {
 					return (radius - closestDist) * strength

@@ -30,7 +30,7 @@ func TestOctreeSingleTri(t *testing.T) {
 	tree := trees.FromMesh(mesh)
 
 	// ACT ====================================================================
-	p := tree.ClosestPoint(vector.Vector3Zero())
+	_, p := tree.ClosestPoint(vector.Vector3Zero())
 
 	// ASSERT =================================================================
 	assert.Equal(t, p, vector.Vector3Zero())
@@ -55,7 +55,7 @@ func TestOctreeTwoTris(t *testing.T) {
 	tree := trees.FromMesh(mesh)
 
 	// ACT ====================================================================
-	p := tree.ClosestPoint(vector.Vector3Zero())
+	_, p := tree.ClosestPoint(vector.Vector3Zero())
 
 	// ASSERT =================================================================
 	assert.Equal(t, p, vector.Vector3Zero())
@@ -78,7 +78,7 @@ func TestOctreeSphere(t *testing.T) {
 
 	// ACT / ASSERT ===========================================================
 	for i := 0; i < testPointCount; i++ {
-		p := tree.ClosestPoint(testPoints[i])
+		_, p := tree.ClosestPoint(testPoints[i])
 		assert.InDelta(t, testPoints[i].X(), p.X(), 0.05)
 		assert.InDelta(t, testPoints[i].Y(), p.Y(), 0.05)
 		assert.InDelta(t, testPoints[i].Z(), p.Z(), 0.05)
@@ -110,7 +110,7 @@ func TestOctreeLineSphere(t *testing.T) {
 
 	// ACT / ASSERT ===========================================================
 	for i := 0; i < testPointCount; i++ {
-		p := tree.ClosestPoint(testPoints[i].MultByConstant(5))
+		_, p := tree.ClosestPoint(testPoints[i].MultByConstant(5))
 		assert.InDelta(t, testPoints[i].X(), p.X(), 0.05)
 		assert.InDelta(t, testPoints[i].Y(), p.Y(), 0.05)
 		assert.InDelta(t, testPoints[i].Z(), p.Z(), 0.05)
@@ -135,7 +135,7 @@ func BenchmarkOctreeLineSphere(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		// always record the result of Fib to prevent
 		// the compiler eliminating the function call.
-		r = tree.ClosestPoint(vector.NewVector3(1, 0, 1))
+		_, r = tree.ClosestPoint(vector.NewVector3(1, 0, 1))
 	}
 	// always store the result to a package level variable
 	// so the compiler cannot eliminate the Benchmark itself.
