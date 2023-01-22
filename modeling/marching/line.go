@@ -1,6 +1,8 @@
 package marching
 
 import (
+	"math"
+
 	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/math/sample"
 	"github.com/EliCDavis/polyform/math/sdf"
@@ -62,9 +64,15 @@ func MultiSegmentLine(linePoints []vector.Vector3, radius, strength float64) Fie
 					return 0
 				}
 
-				closestIndex, _ := octree.ClosestPoint(v)
+				lineIndexes := octree.Intersects(v)
 
-				return sdf.Line(linePoints[closestIndex], linePoints[closestIndex+1], radius).Scale(strength)(v)
+				min := math.MaxFloat64
+				for _, l := range lineIndexes {
+					val := sdf.Line(linePoints[l], linePoints[l+1], radius).Scale(strength)(v)
+					min = math.Min(min, val)
+				}
+				return min
+
 			},
 		},
 	}

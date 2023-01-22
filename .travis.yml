@@ -9,6 +9,7 @@ dist: trusty
 sudo: false
 install: true
 script:
+  - chmod u+x test.sh
   - ./test.sh
 
 after_success:

@@ -4,7 +4,9 @@ import (
 	"image/color"
 	"io/ioutil"
 	"log"
+	"math"
 	"time"
+	"unicode"
 
 	"github.com/EliCDavis/polyform/formats/obj"
 	"github.com/EliCDavis/polyform/modeling"
@@ -15,8 +17,13 @@ import (
 )
 
 func run() error {
-	textToWrite := "Test"
-	fontByteData, err := ioutil.ReadFile("./FromCartoonBlocks.ttf")
+	textToWrite := "Polyform"
+	characterSpacing := 10.
+	resolution := .5
+	lineRadius := 2.5
+	fontFile := "./Current-Black.ttf"
+
+	fontByteData, err := ioutil.ReadFile(fontFile)
 
 	if err != nil {
 		return err
@@ -32,20 +39,32 @@ func run() error {
 
 	glyph := truetype.GlyphBuf{}
 
-	for charIndex, char := range textToWrite {
+	totalWidth := 0.
+	for _, char := range textToWrite {
+
+		if unicode.IsSpace(char) {
+			totalWidth += 20 + characterSpacing
+			continue
+		}
 
 		glyph.Load(parsedFont, 100, parsedFont.Index(char), font.HintingNone)
 
 		startPoint := glyph.Points[0]
 		letterPoints := make([]vector.Vector3, 0)
 		nextEndpoint := 0
+		width := 0.
 		for i, p := range glyph.Points {
+			width = math.Max(width, float64(p.X))
 
-			letterPoints = append(letterPoints, vector.NewVector3(float64(p.X)+(float64(charIndex)*60.), 0, float64(p.Y)))
+			letterPoints = append(letterPoints, vector.NewVector3(float64(p.X), float64(p.Y), 0))
 
 			if nextEndpoint < len(glyph.Ends) && i == glyph.Ends[nextEndpoint]-1 {
-				letterPoints = append(letterPoints, vector.NewVector3(float64(startPoint.X)+(float64(charIndex)*60.), 0, float64(startPoint.Y)))
-				characterFields = append(characterFields, marching.MultiSegmentLine(letterPoints, .5, 2))
+				letterPoints = append(letterPoints, vector.NewVector3(float64(startPoint.X), float64(startPoint.Y), 0))
+				characterField := marching.
+					MultiSegmentLine(letterPoints, lineRadius, 2).
+					Translate(vector.NewVector3(totalWidth, 0, 0))
+
+				characterFields = append(characterFields, characterField)
 				letterPoints = make([]vector.Vector3, 0)
 				if nextEndpoint < len(glyph.Ends)-1 {
 					startPoint = glyph.Points[i+1]
@@ -54,16 +73,14 @@ func run() error {
 			}
 		}
 
-		if len(letterPoints) > 2 {
-			characterFields = append(characterFields, marching.MultiSegmentLine(letterPoints, .1, 3))
-		}
+		totalWidth += width + characterSpacing
 	}
 
 	finalWords := marching.CombineFields(characterFields...)
 
 	start := time.Now()
-	mesh := finalWords.March(modeling.PositionAttribute, 1, .0).
-		Scale(vector.Vector3Zero(), vector.NewVector3(1, 5, 1)).
+	mesh := finalWords.March(modeling.PositionAttribute, resolution, .0).
+		// Scale(vector.Vector3Zero(), vector.NewVector3(1, 5, 1)).
 		SmoothLaplacian(20, .1).
 		CalculateSmoothNormals().
 		SetMaterial(modeling.Material{

@@ -19,6 +19,23 @@ type OctTree struct {
 	atr        string
 }
 
+func (ot OctTree) Intersects(v vector.Vector3) []int {
+	intersections := make([]int, 0)
+
+	for i := 0; i < len(ot.primitives); i++ {
+		if ot.primitives[i].primitive.BoundingBox(ot.atr).Contains(v) {
+			intersections = append(intersections, i)
+		}
+	}
+
+	subTreeIndex := octreeIndex(ot.bounds.Center(), v)
+	for ot.children[subTreeIndex] != nil {
+		return append(intersections, ot.children[subTreeIndex].Intersects(v)...)
+	}
+
+	return intersections
+}
+
 func (ot OctTree) ClosestPoint(v vector.Vector3) (int, vector.Vector3) {
 	closestPrimDist := math.MaxFloat64
 	closestPrimPoint := vector.Vector3Zero()

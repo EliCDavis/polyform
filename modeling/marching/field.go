@@ -109,6 +109,42 @@ type Field struct {
 	Float3Functions map[string]sample.Vec3ToVec3
 }
 
+func translateV2(field sample.Vec3ToVec2, translation vector.Vector3) sample.Vec3ToVec2 {
+	return func(v vector.Vector3) vector.Vector2 {
+		return field(v.Sub(translation))
+	}
+}
+
+func translateV3(field sample.Vec3ToVec3, translation vector.Vector3) sample.Vec3ToVec3 {
+	return func(v vector.Vector3) vector.Vector3 {
+		return field(v.Sub(translation))
+	}
+}
+
+func (f Field) Translate(translation vector.Vector3) Field {
+	float1Final := make(map[string]sample.Vec3ToFloat)
+	for attribute, functions := range f.Float1Functions {
+		float1Final[attribute] = sdf.Translate(functions, translation)
+	}
+
+	float2Final := make(map[string]sample.Vec3ToVec2)
+	for attribute, functions := range f.Float2Functions {
+		float2Final[attribute] = translateV2(functions, translation)
+	}
+
+	float3Final := make(map[string]sample.Vec3ToVec3)
+	for attribute, functions := range f.Float3Functions {
+		float3Final[attribute] = translateV3(functions, translation)
+	}
+
+	return Field{
+		Float1Functions: float1Final,
+		Float2Functions: float2Final,
+		Float3Functions: float3Final,
+		Domain:          modeling.NewAABB(f.Domain.Center().Add(translation), f.Domain.Size()),
+	}
+}
+
 func (f Field) Combine(otherFields ...Field) Field {
 	if len(otherFields) == 0 {
 		return f
