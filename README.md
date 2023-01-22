@@ -1,4 +1,5 @@
 # Polyform
+![Coverage](https://img.shields.io/badge/Coverage-38.3%25-yellow)
 
 Library for generating and editing 3D geometry and it's associated data implemented in 100% golang.
 
