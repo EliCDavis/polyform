@@ -1,9 +1,10 @@
 name: Generate code coverage badge
 
 on:
+  push:
+    branches: [ $default-branch ]
   pull_request:
-    branches:
-      - main
+    branches: [ $default-branch ]
 
 jobs:
   test:
