@@ -976,20 +976,39 @@ func (m Mesh) WeldByFloat3Attribute(attribute string, decimalPlace int) Mesh {
 
 func (m Mesh) VertexNeighborTable() VertexLUT {
 	table := VertexLUT{}
-	for triI := 0; triI < len(m.indices); triI += 3 {
-		p1 := m.indices[triI]
-		p2 := m.indices[triI+1]
-		p3 := m.indices[triI+2]
 
-		table.AddLookup(p1, p2)
-		table.AddLookup(p1, p3)
+	switch m.topology {
+	case TriangleTopology:
+		for triI := 0; triI < len(m.indices); triI += 3 {
+			p1 := m.indices[triI]
+			p2 := m.indices[triI+1]
+			p3 := m.indices[triI+2]
 
-		table.AddLookup(p2, p1)
-		table.AddLookup(p2, p3)
+			table.Link(p1, p2)
+			table.Link(p2, p3)
+			table.Link(p1, p3)
+		}
 
-		table.AddLookup(p3, p1)
-		table.AddLookup(p3, p2)
+	case LineStripTopology:
+		for i := 1; i < len(m.indices); i++ {
+			table.Link(m.indices[i-1], m.indices[i])
+		}
+
+	case LineTopology:
+		for i := 1; i < len(m.indices); i += 2 {
+			table.Link(m.indices[i-1], m.indices[i])
+		}
+
+	case LineLoopTopology:
+		for i := 1; i < len(m.indices); i++ {
+			table.Link(m.indices[i-1], m.indices[i])
+		}
+		table.Link(m.indices[0], m.indices[len(m.indices)-1])
+
+	default:
+		panic(fmt.Errorf("unimplemented topology for vertex LUT: %s", m.topology.String()))
 	}
+
 	return table
 }
 
@@ -1108,7 +1127,6 @@ func (m Mesh) requireV1Attribute(atr string) {
 }
 
 func (m Mesh) SmoothLaplacian(iterations int, smoothingFactor float64) Mesh {
-	m.requireTopology(TriangleTopology)
 	m.requireV3Attribute(PositionAttribute)
 
 	lut := m.VertexNeighborTable()

@@ -21,7 +21,7 @@ func run() error {
 	characterSpacing := 10.
 	resolution := .5
 	lineRadius := 2.5
-	fontFile := "./Current-Black.ttf"
+	fontFile := "./data/fonts/Current-Black.ttf"
 
 	fontByteData, err := ioutil.ReadFile(fontFile)
 

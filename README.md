@@ -1,5 +1,5 @@
 # Polyform
-![Coverage](https://img.shields.io/badge/Coverage-38.3%25-yellow)
+![Coverage](https://img.shields.io/badge/Coverage-38.3%25-yellow) [![Go Report Card](https://goreportcard.com/badge/github.com/EliCDavis/polyform)](https://goreportcard.com/report/github.com/EliCDavis/polyform)
 
 Library for generating and editing 3D geometry and it's associated data implemented in 100% golang.
 
@@ -108,8 +108,8 @@ Progress towards V1...
 - [ ] Meshing Pipeline
 - [ ] Bones / Animations
 - [ ] Quadric Error Decimation
-- [ ] Proper Build Pipeline
-- [ ] Documentation Website
+- [x] Proper Build Pipeline
+- [x] Documentation Website
 
 Things I want to implement eventually...
 
