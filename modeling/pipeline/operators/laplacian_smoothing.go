@@ -3,7 +3,7 @@ package operators
 import (
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/pipeline"
-	"github.com/EliCDavis/vector"
+	"github.com/EliCDavis/vector/vector3"
 )
 
 func SmoothLaplacian(iterations int, smoothingFactor float64) pipeline.Command {
@@ -18,14 +18,14 @@ func SmoothLaplacian(iterations int, smoothingFactor float64) pipeline.Command {
 		func(v *pipeline.View) {
 			lut := v.VertexNeighborTable()
 
-			vertices := make([]vector.Vector3, v.AttributeLength())
-			v.ScanFloat3AttributeParallel(modeling.PositionAttribute, func(i int, v vector.Vector3) {
+			vertices := make([]vector3.Float64, v.AttributeLength())
+			v.ScanFloat3AttributeParallel(modeling.PositionAttribute, func(i int, v vector3.Float64) {
 				vertices[i] = v
 			})
 
 			for i := 0; i < iterations; i++ {
 				for vi, vertex := range vertices {
-					vs := vector.Vector3Zero()
+					vs := vector3.Zero[float64]()
 
 					for vn := range lut.Lookup(vi) {
 						vs = vs.Add(vertices[vn])

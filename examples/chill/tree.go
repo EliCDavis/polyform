@@ -10,12 +10,13 @@ import (
 	"github.com/EliCDavis/polyform/math/sample"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/extrude"
-	"github.com/EliCDavis/vector"
+	"github.com/EliCDavis/vector/vector2"
+	"github.com/EliCDavis/vector/vector3"
 	"github.com/fogleman/gg"
 )
 
-func Cone(base float64, points ...vector.Vector3) modeling.Mesh {
-	length := vector.Vector3Array(points).Distance()
+func Cone(base float64, points ...vector3.Float64) modeling.Mesh {
+	length := vector3.Array[float64](points).Distance()
 	extrusionPoints := make([]extrude.ExtrusionPoint, len(points))
 
 	dist := 0.0
@@ -28,7 +29,7 @@ func Cone(base float64, points ...vector.Vector3) modeling.Mesh {
 			Point:       points[i],
 			Thickness:   (base * size),
 			UvThickness: size,
-			UvPoint:     vector.NewVector2(0, size),
+			UvPoint:     vector2.New(0., size),
 		}
 	}
 
@@ -58,16 +59,16 @@ func Tree(
 
 		branchMaxWidth := (base) * 2 * trailOffGivenHeight * (1 + (.4 * rand.Float64()))
 
-		dir := vector.NewVector3(-1+(2*rand.Float64()), 0, -1+(2*rand.Float64())).
+		dir := vector3.New(-1+(2*rand.Float64()), 0, -1+(2*rand.Float64())).
 			Normalized().
 			MultByConstant(branchLength * trailOffGivenHeight)
 
 		branchAtlasEntry := atlas.RandomEntry()
 
-		// branchUV := vector.NewVector2(0.25, 1).
-		// 	Add(vector.NewVector2(float64(xCordOfBranch)*.5, -yCordOfBranch*.5))
+		// branchUV := vector2.New(0.25, 1).
+		// 	Add(vector2.New(float64(xCordOfBranch)*.5, -yCordOfBranch*.5))
 
-		branchUV := vector.NewVector2(
+		branchUV := vector2.New(
 			branchAtlasEntry.MinX()+(branchAtlasEntry.Width()/2),
 			branchAtlasEntry.MaxY(),
 		)
@@ -75,8 +76,8 @@ func Tree(
 
 		branches = branches.Append(extrude.Line([]extrude.LinePoint{
 			{
-				Point:   vector.NewVector3(0, branchHeight, 0),
-				Up:      vector.Vector3Up(),
+				Point:   vector3.New(0, branchHeight, 0),
+				Up:      vector3.Up[float64](),
 				Height:  -(height / 30),
 				Width:   branchMaxWidth * 0.45,
 				Uv:      branchUV,
@@ -84,26 +85,26 @@ func Tree(
 			},
 			{
 				Point:   dir.MultByConstant(.25).SetY(branchHeight - 1),
-				Up:      vector.Vector3Up(),
+				Up:      vector3.Up[float64](),
 				Height:  -(height / 30),
 				Width:   branchMaxWidth,
-				Uv:      branchUV.Add(vector.Vector2Down().MultByConstant(branchUVLength * .25)),
+				Uv:      branchUV.Add(vector2.Down[float64]().MultByConstant(branchUVLength * .25)),
 				UvWidth: .5,
 			},
 			{
 				Point:   dir.MultByConstant(.5).SetY(branchHeight - 1.5),
-				Up:      vector.Vector3Up(),
+				Up:      vector3.Up[float64](),
 				Height:  -(height / 30),
 				Width:   branchMaxWidth * 0.75,
-				Uv:      branchUV.Add(vector.Vector2Down().MultByConstant(branchUVLength * .5)),
+				Uv:      branchUV.Add(vector2.Down[float64]().MultByConstant(branchUVLength * .5)),
 				UvWidth: .5,
 			},
 			{
 				Point:   dir.SetY(branchHeight - 2),
-				Up:      vector.Vector3Up(),
+				Up:      vector3.Up[float64](),
 				Height:  0,
 				Width:   branchMaxWidth * 0.35,
-				Uv:      branchUV.Add(vector.Vector2Down().MultByConstant(branchUVLength)),
+				Uv:      branchUV.Add(vector2.Down[float64]().MultByConstant(branchUVLength)),
 				UvWidth: .25,
 			},
 		}))
@@ -111,8 +112,8 @@ func Tree(
 
 	return Cone(
 		base,
-		vector.NewVector3(0, 0, 0),
-		vector.NewVector3(0, height, 0),
+		vector3.New(0., 0., 0.),
+		vector3.New(0, height, 0),
 	).
 		CalculateSmoothNormals(), branches
 }
@@ -122,13 +123,13 @@ func TrunkTexture(imageSize int, colors coloring.ColorStack, barkNoise sample.Ve
 	dc.SetRGBA(0, 0, 0, 0)
 	dc.Clear()
 
-	df := noise.NewDistanceField(10, 10, vector.Vector2One().MultByConstant(float64(imageSize)))
+	df := noise.NewDistanceField(10, 10, vector2.One[float64]().MultByConstant(float64(imageSize)))
 
 	for x := 0; x < imageSize; x++ {
 		for y := 0; y < imageSize; y++ {
-			// sample := barkNoise(vector.NewVector2(float64(x), float64(y)))
+			// sample := barkNoise(vector2.New(float64(x), float64(y)))
 
-			sample := math.Min(df.Sample(vector.NewVector2(float64(x), float64(y)))/(float64(imageSize)/10.), 1)
+			sample := math.Min(df.Sample(vector2.New(float64(x), float64(y)))/(float64(imageSize)/10.), 1)
 
 			dc.SetColor(colors.LinearSample(sample))
 			dc.SetPixel(x, y)

@@ -2,20 +2,21 @@ package extrude
 
 import (
 	"github.com/EliCDavis/polyform/modeling"
-	"github.com/EliCDavis/vector"
+	"github.com/EliCDavis/vector/vector2"
+	"github.com/EliCDavis/vector/vector3"
 )
 
 type LinePoint struct {
-	Point   vector.Vector3
-	Up      vector.Vector3
+	Point   vector3.Float64
+	Up      vector3.Float64
 	Width   float64
 	Height  float64
-	Uv      vector.Vector2
+	Uv      vector2.Float64
 	UvWidth float64
 }
 
-func directionsOfLinePoints(points []LinePoint) []vector.Vector3 {
-	pointVec := make([]vector.Vector3, len(points))
+func directionsOfLinePoints(points []LinePoint) []vector3.Float64 {
+	pointVec := make([]vector3.Float64, len(points))
 	for i, point := range points {
 		pointVec[i] = point.Point
 	}
@@ -27,10 +28,10 @@ func Line(linePoints []LinePoint) modeling.Mesh {
 		panic("extruding a line requires 2 or more points")
 	}
 
-	vertices := make([]vector.Vector3, 0)
-	normals := make([]vector.Vector3, 0)
+	vertices := make([]vector3.Float64, 0)
+	normals := make([]vector3.Float64, 0)
 	directions := directionsOfLinePoints(linePoints)
-	uvs := make([]vector.Vector2, 0)
+	uvs := make([]vector2.Float64, 0)
 	for i, p := range linePoints {
 
 		low := p.Point.Add(p.Up.MultByConstant(p.Height))
@@ -61,8 +62,8 @@ func Line(linePoints []LinePoint) modeling.Mesh {
 			leftNormal,
 		)
 
-		var uvAPoint vector.Vector2
-		var uvBPoint vector.Vector2
+		var uvAPoint vector2.Float64
+		var uvBPoint vector2.Float64
 		if i == 0 {
 			uvAPoint = linePoints[0].Uv
 			uvBPoint = linePoints[1].Uv
@@ -107,11 +108,11 @@ func Line(linePoints []LinePoint) modeling.Mesh {
 
 	return modeling.NewMesh(
 		tris,
-		map[string][]vector.Vector3{
+		map[string][]vector3.Float64{
 			modeling.PositionAttribute: vertices,
 			modeling.NormalAttribute:   normals,
 		},
-		map[string][]vector.Vector2{
+		map[string][]vector2.Float64{
 			modeling.TexCoordAttribute: uvs,
 		},
 		nil,

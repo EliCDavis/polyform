@@ -3,7 +3,7 @@ package noise
 import (
 	"math"
 
-	"github.com/EliCDavis/vector"
+	"github.com/EliCDavis/vector/vector2"
 )
 
 /*
@@ -95,30 +95,30 @@ func grad(p float64) float64 {
 	return -1.0
 }
 
-func gradientOverValues(vals []float64) func(vector.Vector2) vector.Vector2 {
-	return func(pDirty vector.Vector2) vector.Vector2 {
-		p := vector.NewVector2(math.Abs(pDirty.X()), math.Abs(pDirty.Y()))
+func gradientOverValues(vals []float64) func(vector2.Float64) vector2.Float64 {
+	return func(pDirty vector2.Float64) vector2.Float64 {
+		p := vector2.New(math.Abs(pDirty.X()), math.Abs(pDirty.Y()))
 		width := float64(len(vals))
 		xVal := vals[int(math.Round(p.X()))%len(vals)]
 		yVal := vals[int(math.Round(p.Y()+(xVal*width)))%len(vals)]
 		zVal := vals[int(math.Round(yVal*width))%len(vals)]
 		wVal := vals[int(math.Round(zVal*width))%len(vals)]
-		v := vector.NewVector2(
+		v := vector2.New(
 			xVal,
 			wVal,
 		)
 		return v.MultByConstant(2).
-			Sub(vector.Vector2One()).
+			Sub(vector2.One[float64]()).
 			Normalized()
 	}
 }
 
-func noise2D(p vector.Vector2, f func(float64) float64, g func(vector.Vector2) vector.Vector2) float64 {
+func noise2D(p vector2.Float64, f func(float64) float64, g func(vector2.Float64) vector2.Float64) float64 {
 	/* Calculate lattice points. */
 	p0 := p.Floor()
-	p1 := p0.Add(vector.Vector2Right())
-	p2 := p0.Add(vector.Vector2Up())
-	p3 := p0.Add(vector.Vector2One())
+	p1 := p0.Add(vector2.Right[float64]())
+	p2 := p0.Add(vector2.Up[float64]())
+	p3 := p0.Add(vector2.One[float64]())
 
 	/* Look up gradients at lattice points. */
 	g0 := g(p0)
@@ -162,6 +162,6 @@ func Perlin1D(x float64) float64 {
 	return noise1D(x, QuinticInterpolation, grad)
 }
 
-func Perlin2D(v vector.Vector2) float64 {
+func Perlin2D(v vector2.Float64) float64 {
 	return noise2D(v, QuinticInterpolation, gradientOverValues(randvals))
 }

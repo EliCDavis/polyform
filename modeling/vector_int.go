@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/EliCDavis/vector"
+	"github.com/EliCDavis/vector/vector3"
 )
 
 type VectorInt struct {
@@ -13,7 +13,7 @@ type VectorInt struct {
 	Z int
 }
 
-func Vector3ToInt(v vector.Vector3, power int) VectorInt {
+func Vector3ToInt(v vector3.Float64, power int) VectorInt {
 	newPower := math.Pow10(power)
 	return VectorInt{
 		X: int(math.Round(v.X() * newPower)),
@@ -30,8 +30,8 @@ func (v VectorInt) Sub(other VectorInt) VectorInt {
 	}
 }
 
-func (v VectorInt) ToRegularVector() vector.Vector3 {
-	return vector.NewVector3(
+func (v VectorInt) ToRegularVector() vector3.Float64 {
+	return vector3.New(
 		float64(v.X),
 		float64(v.Y),
 		float64(v.Z),

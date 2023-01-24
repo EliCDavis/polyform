@@ -4,7 +4,8 @@ import (
 	"testing"
 
 	"github.com/EliCDavis/polyform/modeling"
-	"github.com/EliCDavis/vector"
+	"github.com/EliCDavis/vector/vector2"
+	"github.com/EliCDavis/vector/vector3"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -15,32 +16,32 @@ func Test_SplitOnUniqueMaterials_Simple(t *testing.T) {
 			0, 1, 2,
 			3, 4, 5,
 		},
-		map[string][]vector.Vector3{
+		map[string][]vector3.Float64{
 			modeling.PositionAttribute: {
-				vector.NewVector3(0, 0, 0),
-				vector.NewVector3(0, 1, 0),
-				vector.NewVector3(1, 1, 0),
-				vector.NewVector3(0, 0, 0),
-				vector.NewVector3(1, 1, 0),
-				vector.NewVector3(1, 0, 0),
+				vector3.New[float64](0., 0., 0.),
+				vector3.New[float64](0., 1., 0.),
+				vector3.New[float64](1., 1., 0.),
+				vector3.New[float64](0., 0., 0.),
+				vector3.New[float64](1., 1., 0.),
+				vector3.New[float64](1., 0., 0.),
 			},
 			modeling.NormalAttribute: {
-				vector.NewVector3(0, 0, 0),
-				vector.NewVector3(0, 1, 0),
-				vector.NewVector3(1, 1, 0),
-				vector.NewVector3(0, 0, 0),
-				vector.NewVector3(1, 1, 0),
-				vector.NewVector3(1, 0, 0),
+				vector3.New[float64](0., 0., 0.),
+				vector3.New[float64](0., 1., 0.),
+				vector3.New[float64](1., 1., 0.),
+				vector3.New[float64](0., 0., 0.),
+				vector3.New[float64](1., 1., 0.),
+				vector3.New[float64](1., 0., 0.),
 			},
 		},
-		map[string][]vector.Vector2{
+		map[string][]vector2.Float64{
 			modeling.TexCoordAttribute: {
-				vector.NewVector2(0, 0),
-				vector.NewVector2(0, 1),
-				vector.NewVector2(1, 1),
-				vector.NewVector2(0, 0),
-				vector.NewVector2(1, 1),
-				vector.NewVector2(1, 0),
+				vector2.New[float64](0., 0.),
+				vector2.New[float64](0., 1.),
+				vector2.New[float64](1., 1.),
+				vector2.New[float64](0., 0.),
+				vector2.New[float64](1., 1.),
+				vector2.New[float64](1., 0.),
 			},
 		},
 		nil,
@@ -77,16 +78,16 @@ func Test_SplitOnUniqueMaterials_Simple(t *testing.T) {
 
 	v1Verts := v1.Float3Data[modeling.PositionAttribute]
 	if assert.Len(t, v1Verts, 3) {
-		assert.Equal(t, vector.NewVector3(0, 0, 0), v1Verts[0])
-		assert.Equal(t, vector.NewVector3(0, 1, 0), v1Verts[1])
-		assert.Equal(t, vector.NewVector3(1, 1, 0), v1Verts[2])
+		assert.Equal(t, vector3.New[float64](0, 0, 0), v1Verts[0])
+		assert.Equal(t, vector3.New[float64](0, 1, 0), v1Verts[1])
+		assert.Equal(t, vector3.New[float64](1, 1, 0), v1Verts[2])
 	}
 
 	v1UVs := v1.Float2Data[modeling.TexCoordAttribute]
 	if assert.Len(t, v1UVs, 3) {
-		assert.Equal(t, vector.NewVector2(0, 0), v1UVs[0])
-		assert.Equal(t, vector.NewVector2(0, 1), v1UVs[1])
-		assert.Equal(t, vector.NewVector2(1, 1), v1UVs[2])
+		assert.Equal(t, vector2.New[float64](0, 0), v1UVs[0])
+		assert.Equal(t, vector2.New[float64](0, 1), v1UVs[1])
+		assert.Equal(t, vector2.New[float64](1, 1), v1UVs[2])
 	}
 
 	v2 := meshes[1].View()
@@ -98,29 +99,29 @@ func Test_SplitOnUniqueMaterials_Simple(t *testing.T) {
 
 	v2Verts := v2.Float3Data[modeling.PositionAttribute]
 	if assert.Len(t, v2Verts, 3) {
-		assert.Equal(t, vector.NewVector3(0, 0, 0), v2Verts[0])
-		assert.Equal(t, vector.NewVector3(1, 1, 0), v2Verts[1])
-		assert.Equal(t, vector.NewVector3(1, 0, 0), v2Verts[2])
+		assert.Equal(t, vector3.New[float64](0, 0, 0), v2Verts[0])
+		assert.Equal(t, vector3.New[float64](1, 1, 0), v2Verts[1])
+		assert.Equal(t, vector3.New[float64](1, 0, 0), v2Verts[2])
 	}
 
 	v2UVs := v2.Float2Data[modeling.TexCoordAttribute]
 	if assert.Len(t, v2UVs, 3) {
-		assert.Equal(t, vector.NewVector2(0, 0), v2UVs[0])
-		assert.Equal(t, vector.NewVector2(1, 1), v2UVs[1])
-		assert.Equal(t, vector.NewVector2(1, 0), v2UVs[2])
+		assert.Equal(t, vector2.New[float64](0, 0), v2UVs[0])
+		assert.Equal(t, vector2.New[float64](1, 1), v2UVs[1])
+		assert.Equal(t, vector2.New[float64](1, 0), v2UVs[2])
 	}
 }
 
 func TestScanFloat3AttributeParallel(t *testing.T) {
 	// ARRANGE ================================================================
 	count := 10000
-	values := make([]vector.Vector3, count)
+	values := make([]vector3.Float64, count)
 	attribute := "random-atr"
 	for i := 0; i < count; i++ {
-		values[i] = vector.NewVector3(float64(i), float64(i), float64(i))
+		values[i] = vector3.New[float64](float64(i), float64(i), float64(i))
 	}
 	mesh := modeling.NewPointCloud(
-		map[string][]vector.Vector3{
+		map[string][]vector3.Float64{
 			attribute: values,
 		},
 		nil,
@@ -128,10 +129,10 @@ func TestScanFloat3AttributeParallel(t *testing.T) {
 		nil,
 	)
 
-	readValues := make([]vector.Vector3, count)
+	readValues := make([]vector3.Float64, count)
 
 	// ACT ====================================================================
-	mesh.ScanFloat3AttributeParallel(attribute, func(i int, v vector.Vector3) {
+	mesh.ScanFloat3AttributeParallel(attribute, func(i int, v vector3.Float64) {
 		readValues[i] = v
 	})
 
@@ -145,24 +146,24 @@ func TestScanFloat3AttributeParallel(t *testing.T) {
 func TestScanFloat2AttributeParallel(t *testing.T) {
 	// ARRANGE ================================================================
 	count := 10000
-	values := make([]vector.Vector2, count)
+	values := make([]vector2.Float64, count)
 	attribute := "random-atr"
 	for i := 0; i < count; i++ {
-		values[i] = vector.NewVector2(float64(i), float64(i))
+		values[i] = vector2.New[float64](float64(i), float64(i))
 	}
 	mesh := modeling.NewPointCloud(
 		nil,
-		map[string][]vector.Vector2{
+		map[string][]vector2.Float64{
 			attribute: values,
 		},
 		nil,
 		nil,
 	)
 
-	readValues := make([]vector.Vector2, count)
+	readValues := make([]vector2.Float64, count)
 
 	// ACT ====================================================================
-	mesh.ScanFloat2AttributeParallel(attribute, func(i int, v vector.Vector2) {
+	mesh.ScanFloat2AttributeParallel(attribute, func(i int, v vector2.Float64) {
 		readValues[i] = v
 	})
 
@@ -207,13 +208,13 @@ func TestScanFloat1AttributeParallel(t *testing.T) {
 func TestModifyFloat3AttributeParallel(t *testing.T) {
 	// ARRANGE ================================================================
 	count := 1000
-	values := make([]vector.Vector3, count)
+	values := make([]vector3.Float64, count)
 	attribute := "random-atr"
 	for i := 0; i < count; i++ {
-		values[i] = vector.NewVector3(float64(i), float64(i), float64(i))
+		values[i] = vector3.New[float64](float64(i), float64(i), float64(i))
 	}
 	mesh := modeling.NewPointCloud(
-		map[string][]vector.Vector3{
+		map[string][]vector3.Float64{
 			attribute: values,
 		},
 		nil,
@@ -221,14 +222,14 @@ func TestModifyFloat3AttributeParallel(t *testing.T) {
 		nil,
 	)
 
-	readValues := make([]vector.Vector3, count)
+	readValues := make([]vector3.Float64, count)
 
 	// ACT ====================================================================
 	mesh.
-		ModifyFloat3AttributeParallel(attribute, func(i int, v vector.Vector3) vector.Vector3 {
-			return v.Add(vector.NewVector3(float64(i), float64(i), float64(i)))
+		ModifyFloat3AttributeParallel(attribute, func(i int, v vector3.Float64) vector3.Float64 {
+			return v.Add(vector3.New[float64](float64(i), float64(i), float64(i)))
 		}).
-		ScanFloat3AttributeParallel(attribute, func(i int, v vector.Vector3) {
+		ScanFloat3AttributeParallel(attribute, func(i int, v vector3.Float64) {
 			readValues[i] = v
 		})
 
@@ -236,7 +237,7 @@ func TestModifyFloat3AttributeParallel(t *testing.T) {
 	for i := 0; i < count; i++ {
 		assert.Equal(
 			t,
-			values[i].Add(vector.NewVector3(float64(i), float64(i), float64(i))),
+			values[i].Add(vector3.New[float64](float64(i), float64(i), float64(i))),
 			readValues[i],
 		)
 	}
@@ -245,28 +246,28 @@ func TestModifyFloat3AttributeParallel(t *testing.T) {
 func TestModifyFloat2AttributeParallel(t *testing.T) {
 	// ARRANGE ================================================================
 	count := 1000
-	values := make([]vector.Vector2, count)
+	values := make([]vector2.Float64, count)
 	attribute := "random-atr"
 	for i := 0; i < count; i++ {
-		values[i] = vector.NewVector2(float64(i), float64(i))
+		values[i] = vector2.New[float64](float64(i), float64(i))
 	}
 	mesh := modeling.NewPointCloud(
 		nil,
-		map[string][]vector.Vector2{
+		map[string][]vector2.Float64{
 			attribute: values,
 		},
 		nil,
 		nil,
 	)
 
-	readValues := make([]vector.Vector2, count)
+	readValues := make([]vector2.Float64, count)
 
 	// ACT ====================================================================
 	mesh.
-		ModifyFloat2AttributeParallel(attribute, func(i int, v vector.Vector2) vector.Vector2 {
-			return v.Add(vector.NewVector2(float64(i), float64(i)))
+		ModifyFloat2AttributeParallel(attribute, func(i int, v vector2.Float64) vector2.Float64 {
+			return v.Add(vector2.New[float64](float64(i), float64(i)))
 		}).
-		ScanFloat2AttributeParallel(attribute, func(i int, v vector.Vector2) {
+		ScanFloat2AttributeParallel(attribute, func(i int, v vector2.Float64) {
 			readValues[i] = v
 		})
 
@@ -274,7 +275,7 @@ func TestModifyFloat2AttributeParallel(t *testing.T) {
 	for i := 0; i < count; i++ {
 		assert.Equal(
 			t,
-			values[i].Add(vector.NewVector2(float64(i), float64(i))),
+			values[i].Add(vector2.New[float64](float64(i), float64(i))),
 			readValues[i],
 		)
 	}

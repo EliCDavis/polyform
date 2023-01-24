@@ -4,13 +4,13 @@ import (
 	"math"
 	"math/rand"
 
-	"github.com/EliCDavis/vector"
+	"github.com/EliCDavis/vector/vector2"
 )
 
 // Shape is a flat (2D) arrangement of points.
-type Shape []vector.Vector2
+type Shape []vector2.Float64
 
-func (s Shape) GetBounds() (vector.Vector2, vector.Vector2) {
+func (s Shape) GetBounds() (vector2.Float64, vector2.Float64) {
 	bottomLeftX := math.Inf(1)
 	bottomLeftY := math.Inf(1)
 
@@ -32,7 +32,7 @@ func (s Shape) GetBounds() (vector.Vector2, vector.Vector2) {
 		}
 	}
 
-	return vector.NewVector2(bottomLeftX, bottomLeftY), vector.NewVector2(topRightX, topRightY)
+	return vector2.New(bottomLeftX, bottomLeftY), vector2.New(topRightX, topRightY)
 }
 
 func (s Shape) GetBoundingBoxDimensions() (width, height float64) {
@@ -41,10 +41,10 @@ func (s Shape) GetBoundingBoxDimensions() (width, height float64) {
 }
 
 // RandomPointInShape returns a random point inside of the shape
-func (s Shape) RandomPointInShape() vector.Vector2 {
+func (s Shape) RandomPointInShape() vector2.Float64 {
 	bottomLeftBounds, topRightBounds := s.GetBounds()
 	for {
-		point := vector.NewVector2(
+		point := vector2.New(
 			bottomLeftBounds.X()+(rand.Float64()*(topRightBounds.X()-bottomLeftBounds.X())),
 			bottomLeftBounds.Y()+(rand.Float64()*(topRightBounds.Y()-bottomLeftBounds.Y())),
 		)
@@ -118,7 +118,7 @@ func (s Shape) shapesOnSide(vericalLineX float64, side int) []Shape {
 	type region struct {
 		highestPoint float64
 		lowestPoint  float64
-		points       []vector.Vector2
+		points       []vector2.Float64
 		started      bool
 	}
 
@@ -129,14 +129,14 @@ func (s Shape) shapesOnSide(vericalLineX float64, side int) []Shape {
 		pointBefore += len(s)
 	}
 
-	verticalLine := NewLine2D(vector.NewVector2(vericalLineX, -1000000), vector.NewVector2(vericalLineX, 1000000))
+	verticalLine := NewLine2D(vector2.New(vericalLineX, -1000000), vector2.New(vericalLineX, 1000000))
 	curLine := NewLine2D(s[startingPointIndex], s[pointBefore])
 	intersection, err := verticalLine.Intersection(curLine)
 	if err == ErrNoIntersection {
 		panic("Intersection is nil!")
 	}
 
-	regions := []region{{-100000, 100000, make([]vector.Vector2, 1), false}}
+	regions := []region{{-100000, 100000, make([]vector2.Float64, 1), false}}
 	regions[0].points[0] = intersection
 	regions[0].lowestPoint = intersection.Y()
 
@@ -197,7 +197,7 @@ func (s Shape) shapesOnSide(vericalLineX float64, side int) []Shape {
 
 				// If can't find one, create one.
 				if foundRegion == false {
-					regions = append(regions, region{-100000, 100000, make([]vector.Vector2, 0), false})
+					regions = append(regions, region{-100000, 100000, make([]vector2.Float64, 0), false})
 					currentRegion = len(regions) - 1
 					regions[currentRegion].lowestPoint = intersection.Y()
 				}
@@ -233,14 +233,14 @@ func (s Shape) shapesOnSide(vericalLineX float64, side int) []Shape {
 }
 
 // IsInside returns true if the point p lies inside the polygon[] with n vertices
-func (s Shape) IsInside(p vector.Vector2) bool {
+func (s Shape) IsInside(p vector2.Float64) bool {
 	// There must be at least 3 vertices in polygon[]
 	if len(s) < 3 {
 		return false
 	}
 
 	// Create a point for line segment from p to infinite
-	extreme := vector.NewVector2(math.MaxFloat64, p.Y())
+	extreme := vector2.New(math.MaxFloat64, p.Y())
 
 	// Count intersections of the above line with sides of polygon
 	count := 0
@@ -272,8 +272,8 @@ func (s Shape) IsInside(p vector.Vector2) bool {
 }
 
 // Translate Moves all points over by the specified amount
-func (s Shape) Translate(amount vector.Vector2) Shape {
-	newShapePonts := make([]vector.Vector2, len(s))
+func (s Shape) Translate(amount vector2.Float64) Shape {
+	newShapePonts := make([]vector2.Float64, len(s))
 	for i, point := range s {
 		newShapePonts[i] = point.Add(amount)
 	}
@@ -281,8 +281,8 @@ func (s Shape) Translate(amount vector.Vector2) Shape {
 }
 
 // Rotate will rotate all points in the shape around the pivot by the passed in amount
-func (s Shape) Rotate(amount float64, pivot vector.Vector2) Shape {
-	newPoints := make([]vector.Vector2, s.Len())
+func (s Shape) Rotate(amount float64, pivot vector2.Float64) Shape {
+	newPoints := make([]vector2.Float64, s.Len())
 
 	for p, point := range s {
 
@@ -293,7 +293,7 @@ func (s Shape) Rotate(amount float64, pivot vector.Vector2) Shape {
 
 		newRot := math.Atan2(directionWithMag.Y(), directionWithMag.X()) + amount
 
-		newPoints[p] = vector.NewVector2(
+		newPoints[p] = vector2.New(
 			math.Cos(newRot)*magnitude,
 			math.Sin(newRot)*magnitude,
 		).Add(pivot)
@@ -304,8 +304,8 @@ func (s Shape) Rotate(amount float64, pivot vector.Vector2) Shape {
 }
 
 // Scale shifts all points towards or away from the origin
-func (s Shape) Scale(amount float64, origin vector.Vector2) Shape {
-	newShapePonts := make([]vector.Vector2, len(s))
+func (s Shape) Scale(amount float64, origin vector2.Float64) Shape {
+	newShapePonts := make([]vector2.Float64, len(s))
 
 	for i, point := range s {
 		newShapePonts[i] = origin.Add(point.Sub(origin).Normalized().MultByConstant(amount * origin.Distance(point)))
@@ -325,7 +325,7 @@ func (s Shape) Swap(i, j int) {
 
 // Less determines which point is more oriented more clockwise from the center than the other
 func (s Shape) Less(i, j int) bool {
-	center := vector.Vector2Zero()
+	center := vector2.Zero[float64]()
 
 	a := s[i]
 	b := s[j]

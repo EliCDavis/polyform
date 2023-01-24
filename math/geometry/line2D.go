@@ -4,35 +4,35 @@ import (
 	"errors"
 	"math"
 
-	"github.com/EliCDavis/vector"
+	"github.com/EliCDavis/vector/vector2"
 )
 
 // Line2D represents a line segment
 type Line2D struct {
-	p1 vector.Vector2
-	p2 vector.Vector2
+	p1 vector2.Float64
+	p2 vector2.Float64
 }
 
 // ErrNoIntersection is thrown when Intersection() contains no intersection
 var ErrNoIntersection = errors.New("no intersection")
 
 // NewLine2D create a new line
-func NewLine2D(p1, p2 vector.Vector2) Line2D {
+func NewLine2D(p1, p2 vector2.Float64) Line2D {
 	return Line2D{p1, p2}
 }
 
 // GetStartPoint returns the starting point of the line segment
-func (l Line2D) GetStartPoint() vector.Vector2 {
+func (l Line2D) GetStartPoint() vector2.Float64 {
 	return l.p1
 }
 
 // GetEndPoint returns the end point of the line segment
-func (l Line2D) GetEndPoint() vector.Vector2 {
+func (l Line2D) GetEndPoint() vector2.Float64 {
 	return l.p2
 }
 
 // Dir is end point - starting point
-func (l Line2D) Dir() vector.Vector2 {
+func (l Line2D) Dir() vector2.Float64 {
 	return l.p2.Sub(l.p1)
 }
 
@@ -47,7 +47,7 @@ func (l Line2D) ScaleOutwards(amount float64) Line2D {
 	)
 }
 
-func (l Line2D) ClosestPointOnLine(p vector.Vector2) vector.Vector2 {
+func (l Line2D) ClosestPointOnLine(p vector2.Float64) vector2.Float64 {
 	l2 := math.Pow(l.p1.Distance(l.p2), 2)
 	if l2 == 0.0 {
 		return l.p1
@@ -64,7 +64,7 @@ func (l Line2D) ClosestPointOnLine(p vector.Vector2) vector.Vector2 {
 
 // Intersection finds where two lines intersect
 // https://stackoverflow.com/questions/563198/how-do-you-detect-where-two-line-segments-intersect
-func (l Line2D) Intersection(other Line2D) (vector.Vector2, error) {
+func (l Line2D) Intersection(other Line2D) (vector2.Float64, error) {
 	s1_x := l.p2.X() - l.p1.X()
 	s1_y := l.p2.Y() - l.p1.Y()
 
@@ -76,10 +76,10 @@ func (l Line2D) Intersection(other Line2D) (vector.Vector2, error) {
 	t := (s2_x*(l.p1.Y()-other.p1.Y()) - s2_y*(l.p1.X()-other.p1.X())) / div
 
 	if s >= 0 && s <= 1 && t >= 0 && t <= 1 {
-		return vector.NewVector2(l.p1.X()+(t*s1_x), l.p1.Y()+(t*s1_y)), nil
+		return vector2.New(l.p1.X()+(t*s1_x), l.p1.Y()+(t*s1_y)), nil
 	}
 
-	return vector.Vector2{}, ErrNoIntersection
+	return vector2.Float64{}, ErrNoIntersection
 }
 
 // Intersects determines whether two lines intersect eachother

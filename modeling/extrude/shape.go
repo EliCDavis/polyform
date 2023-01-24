@@ -2,21 +2,22 @@ package extrude
 
 import (
 	"github.com/EliCDavis/polyform/modeling"
-	"github.com/EliCDavis/vector"
+	"github.com/EliCDavis/vector/vector2"
+	"github.com/EliCDavis/vector/vector3"
 )
 
 // TODO: Pretty sure this breaks for paths that have multiple points in the
 // same direction.
-func makeShape(shape []vector.Vector2, path []vector.Vector3, close bool) modeling.Mesh {
+func makeShape(shape []vector2.Float64, path []vector3.Float64, close bool) modeling.Mesh {
 	if len(path) < 2 {
 		panic("Can not extrude a path with less than 2 points")
 	}
 
-	vertices := make([]vector.Vector3, 0, len(path)*len(shape))
-	normals := make([]vector.Vector3, 0, len(path)*len(shape))
+	vertices := make([]vector3.Float64, 0, len(path)*len(shape))
+	normals := make([]vector3.Float64, 0, len(path)*len(shape))
 	for i, p := range path {
-		var dir vector.Vector3
-		var per vector.Vector3
+		var dir vector3.Float64
+		var per vector3.Float64
 
 		if i == 0 {
 			dir = path[1].Sub(path[0])
@@ -83,7 +84,7 @@ func makeShape(shape []vector.Vector2, path []vector.Vector3, close bool) modeli
 
 	return modeling.NewMesh(
 		tris,
-		map[string][]vector.Vector3{
+		map[string][]vector3.Float64{
 			modeling.PositionAttribute: vertices,
 			modeling.NormalAttribute:   normals,
 		},
@@ -93,10 +94,10 @@ func makeShape(shape []vector.Vector2, path []vector.Vector3, close bool) modeli
 	)
 }
 
-func Shape(shape []vector.Vector2, path []vector.Vector3) modeling.Mesh {
+func Shape(shape []vector2.Float64, path []vector3.Float64) modeling.Mesh {
 	return makeShape(shape, path, false)
 }
 
-func ClosedShape(shape []vector.Vector2, path []vector.Vector3) modeling.Mesh {
+func ClosedShape(shape []vector2.Float64, path []vector3.Float64) modeling.Mesh {
 	return makeShape(shape, path, true)
 }

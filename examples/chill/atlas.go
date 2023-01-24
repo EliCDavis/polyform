@@ -4,13 +4,13 @@ import (
 	"math"
 	"math/rand"
 
-	"github.com/EliCDavis/vector"
+	"github.com/EliCDavis/vector/vector2"
 )
 
 type Atlas struct {
 	Name       string
-	BottomLeft vector.Vector2
-	TopRight   vector.Vector2
+	BottomLeft vector2.Float64
+	TopRight   vector2.Float64
 	SubAtlas   []*Atlas
 	Entries    []AtlasEntry
 }
@@ -20,8 +20,8 @@ func (atlas Atlas) RandomEntry() AtlasEntry {
 }
 
 type AtlasEntry struct {
-	BottomLeft vector.Vector2
-	TopRight   vector.Vector2
+	BottomLeft vector2.Float64
+	TopRight   vector2.Float64
 }
 
 func (ae AtlasEntry) Height() float64 {

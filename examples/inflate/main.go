@@ -13,7 +13,7 @@ import (
 	"github.com/EliCDavis/polyform/formats/pts"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/marching"
-	"github.com/EliCDavis/vector"
+	"github.com/EliCDavis/vector/vector3"
 	"github.com/urfave/cli/v2"
 )
 
@@ -94,7 +94,7 @@ func main() {
 			canvas.AddFieldParallel(marching.Mesh(
 				loadedMesh.
 					CenterFloat3Attribute(modeling.PositionAttribute).
-					Scale(vector.Vector3Zero(), vector.Vector3One().MultByConstant(c.Float64("scale"))),
+					Scale(vector3.Zero[float64](), vector3.One[float64]().MultByConstant(c.Float64("scale"))),
 				c.Float64("radius"),
 				c.Float64("strength"),
 			))

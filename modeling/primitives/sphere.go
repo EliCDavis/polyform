@@ -5,11 +5,10 @@ import (
 	"math"
 
 	"github.com/EliCDavis/polyform/modeling"
-	"github.com/EliCDavis/vector"
+	"github.com/EliCDavis/vector/vector3"
 )
 
 func UVSphere(radius float64, rows, columns int) modeling.Mesh {
-
 	if columns < 3 {
 		panic(fmt.Errorf("invalid row count (%d) for uv sphere", columns))
 	}
@@ -18,10 +17,10 @@ func UVSphere(radius float64, rows, columns int) modeling.Mesh {
 		panic(fmt.Errorf("invalid columns count (%d) for uv sphere", rows))
 	}
 
-	positions := make([]vector.Vector3, 0)
+	positions := make([]vector3.Float64, 0)
 
 	// add top vertex
-	v0 := vector.NewVector3(0, radius, 0)
+	v0 := vector3.New(0, radius, 0)
 	positions = append(positions, v0)
 
 	// generate vertices per stack / slice
@@ -32,13 +31,13 @@ func UVSphere(radius float64, rows, columns int) modeling.Mesh {
 			x := math.Sin(phi) * math.Cos(theta)
 			y := math.Cos(phi)
 			z := math.Sin(phi) * math.Sin(theta)
-			positions = append(positions, vector.NewVector3(x, y, z).MultByConstant(radius))
+			positions = append(positions, vector3.New(x, y, z).MultByConstant(radius))
 		}
 	}
 
 	// add bottom vertex
 	v1i := len(positions)
-	v1 := vector.NewVector3(0, -radius, 0)
+	v1 := vector3.New(0, -radius, 0)
 	positions = append(positions, v1)
 
 	// add top / bottom triangles
@@ -74,9 +73,9 @@ func UVSphere(radius float64, rows, columns int) modeling.Mesh {
 	}
 	return modeling.NewMesh(
 		tris,
-		map[string][]vector.Vector3{
+		map[string][]vector3.Float64{
 			modeling.PositionAttribute: positions,
-			modeling.NormalAttribute:   vector.Vector3Array(positions).Normalized(),
+			modeling.NormalAttribute:   vector3.Array[float64](positions).Normalized(),
 		},
 		nil,
 		nil,

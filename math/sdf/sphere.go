@@ -2,11 +2,11 @@ package sdf
 
 import (
 	"github.com/EliCDavis/polyform/math/sample"
-	"github.com/EliCDavis/vector"
+	"github.com/EliCDavis/vector/vector3"
 )
 
-func Sphere(pos vector.Vector3, radius float64) sample.Vec3ToFloat {
-	return func(v vector.Vector3) float64 {
+func Sphere(pos vector3.Float64, radius float64) sample.Vec3ToFloat {
+	return func(v vector3.Float64) float64 {
 		return v.Distance(pos) - radius
 	}
 }

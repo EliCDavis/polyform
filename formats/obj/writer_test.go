@@ -7,7 +7,8 @@ import (
 
 	"github.com/EliCDavis/polyform/formats/obj"
 	"github.com/EliCDavis/polyform/modeling"
-	"github.com/EliCDavis/vector"
+	"github.com/EliCDavis/vector/vector2"
+	"github.com/EliCDavis/vector/vector3"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -31,11 +32,11 @@ func TestWriteObj_NoNormalsOrUVs(t *testing.T) {
 		[]int{
 			0, 1, 2,
 		},
-		map[string][]vector.Vector3{
-			modeling.PositionAttribute: []vector.Vector3{
-				vector.NewVector3(1, 2, 3),
-				vector.NewVector3(4, 5, 6),
-				vector.NewVector3(7, 8, 9),
+		map[string][]vector3.Float64{
+			modeling.PositionAttribute: {
+				vector3.New[float64](1., 2., 3.),
+				vector3.New[float64](4., 5., 6.),
+				vector3.New[float64](7., 8., 9.),
 			},
 		},
 		nil, nil, nil,
@@ -62,16 +63,16 @@ func TestWriteObj_NoUVs(t *testing.T) {
 		[]int{
 			0, 1, 2,
 		},
-		map[string][]vector.Vector3{
+		map[string][]vector3.Float64{
 			modeling.PositionAttribute: {
-				vector.NewVector3(1, 2, 3),
-				vector.NewVector3(4, 5, 6),
-				vector.NewVector3(7, 8, 9),
+				vector3.New[float64](1, 2, 3),
+				vector3.New[float64](4, 5, 6),
+				vector3.New[float64](7, 8, 9),
 			},
 			modeling.NormalAttribute: {
-				vector.NewVector3(0, 1, 0),
-				vector.NewVector3(0, 0, 1),
-				vector.NewVector3(1, 0, 0),
+				vector3.New[float64](0, 1, 0),
+				vector3.New[float64](0, 0, 1),
+				vector3.New[float64](1, 0, 0),
 			},
 		},
 		nil,
@@ -103,18 +104,18 @@ func TestWriteObj_NoNormals(t *testing.T) {
 		[]int{
 			0, 1, 2,
 		},
-		map[string][]vector.Vector3{
-			modeling.PositionAttribute: []vector.Vector3{
-				vector.NewVector3(1, 2, 3),
-				vector.NewVector3(4, 5, 6),
-				vector.NewVector3(7, 8, 9),
+		map[string][]vector3.Float64{
+			modeling.PositionAttribute: {
+				vector3.New[float64](1, 2, 3),
+				vector3.New[float64](4, 5, 6),
+				vector3.New[float64](7, 8, 9),
 			},
 		},
-		map[string][]vector.Vector2{
-			modeling.TexCoordAttribute: []vector.Vector2{
-				vector.NewVector2(1, 0.5),
-				vector.NewVector2(0.5, 1),
-				vector.NewVector2(0, 0),
+		map[string][]vector2.Float64{
+			modeling.TexCoordAttribute: {
+				vector2.New[float64](1., 0.5),
+				vector2.New[float64](0.5, 1.),
+				vector2.New[float64](0., 0.),
 			},
 		},
 		nil,
@@ -145,23 +146,23 @@ func TestWriteObj(t *testing.T) {
 		[]int{
 			0, 1, 2,
 		},
-		map[string][]vector.Vector3{
-			modeling.PositionAttribute: []vector.Vector3{
-				vector.NewVector3(1, 2, 3),
-				vector.NewVector3(4, 5, 6),
-				vector.NewVector3(7, 8, 9),
+		map[string][]vector3.Float64{
+			modeling.PositionAttribute: {
+				vector3.New[float64](1, 2, 3),
+				vector3.New[float64](4, 5, 6),
+				vector3.New[float64](7, 8, 9),
 			},
-			modeling.NormalAttribute: []vector.Vector3{
-				vector.NewVector3(0, 1, 0),
-				vector.NewVector3(0, 0, 1),
-				vector.NewVector3(1, 0, 0),
+			modeling.NormalAttribute: {
+				vector3.New[float64](0, 1, 0),
+				vector3.New[float64](0, 0, 1),
+				vector3.New[float64](1, 0, 0),
 			},
 		},
-		map[string][]vector.Vector2{
-			modeling.TexCoordAttribute: []vector.Vector2{
-				vector.NewVector2(1, 0.5),
-				vector.NewVector2(0.5, 1),
-				vector.NewVector2(0, 0),
+		map[string][]vector2.Float64{
+			modeling.TexCoordAttribute: {
+				vector2.New[float64](1, 0.5),
+				vector2.New[float64](0.5, 1),
+				vector2.New[float64](0, 0),
 			},
 		},
 		nil,
@@ -195,23 +196,23 @@ func TestWriteObjWithSingleMaterial(t *testing.T) {
 		[]int{
 			0, 1, 2,
 		},
-		map[string][]vector.Vector3{
-			modeling.PositionAttribute: []vector.Vector3{
-				vector.NewVector3(1, 2, 3),
-				vector.NewVector3(4, 5, 6),
-				vector.NewVector3(7, 8, 9),
+		map[string][]vector3.Float64{
+			modeling.PositionAttribute: {
+				vector3.New[float64](1, 2, 3),
+				vector3.New[float64](4, 5, 6),
+				vector3.New[float64](7, 8, 9),
 			},
-			modeling.NormalAttribute: []vector.Vector3{
-				vector.NewVector3(0, 1, 0),
-				vector.NewVector3(0, 0, 1),
-				vector.NewVector3(1, 0, 0),
+			modeling.NormalAttribute: {
+				vector3.New[float64](0, 1, 0),
+				vector3.New[float64](0, 0, 1),
+				vector3.New[float64](1, 0, 0),
 			},
 		},
-		map[string][]vector.Vector2{
+		map[string][]vector2.Float64{
 			modeling.TexCoordAttribute: {
-				vector.NewVector2(1, 0.5),
-				vector.NewVector2(0.5, 1),
-				vector.NewVector2(0, 0),
+				vector2.New[float64](1, 0.5),
+				vector2.New[float64](0.5, 1),
+				vector2.New[float64](0, 0),
 			},
 		},
 		nil,
@@ -254,32 +255,32 @@ func TestWriteObjWithMultipleMaterials(t *testing.T) {
 			0, 1, 2,
 			3, 4, 5,
 		},
-		map[string][]vector.Vector3{
-			modeling.PositionAttribute: []vector.Vector3{
-				vector.NewVector3(1, 2, 3),
-				vector.NewVector3(4, 5, 6),
-				vector.NewVector3(7, 8, 9),
-				vector.NewVector3(1, 2, 3),
-				vector.NewVector3(4, 5, 6),
-				vector.NewVector3(7, 8, 9),
+		map[string][]vector3.Float64{
+			modeling.PositionAttribute: {
+				vector3.New[float64](1, 2, 3),
+				vector3.New[float64](4, 5, 6),
+				vector3.New[float64](7, 8, 9),
+				vector3.New[float64](1, 2, 3),
+				vector3.New[float64](4, 5, 6),
+				vector3.New[float64](7, 8, 9),
 			},
-			modeling.NormalAttribute: []vector.Vector3{
-				vector.NewVector3(0, 1, 0),
-				vector.NewVector3(0, 0, 1),
-				vector.NewVector3(1, 0, 0),
-				vector.NewVector3(0, 1, 0),
-				vector.NewVector3(0, 0, 1),
-				vector.NewVector3(1, 0, 0),
+			modeling.NormalAttribute: {
+				vector3.New[float64](0, 1, 0),
+				vector3.New[float64](0, 0, 1),
+				vector3.New[float64](1, 0, 0),
+				vector3.New[float64](0, 1, 0),
+				vector3.New[float64](0, 0, 1),
+				vector3.New[float64](1, 0, 0),
 			},
 		},
-		map[string][]vector.Vector2{
-			modeling.TexCoordAttribute: []vector.Vector2{
-				vector.NewVector2(1, 0.5),
-				vector.NewVector2(0.5, 1),
-				vector.NewVector2(0, 0),
-				vector.NewVector2(1, 0.5),
-				vector.NewVector2(0.5, 1),
-				vector.NewVector2(0, 0),
+		map[string][]vector2.Float64{
+			modeling.TexCoordAttribute: {
+				vector2.New[float64](1, 0.5),
+				vector2.New[float64](0.5, 1),
+				vector2.New[float64](0, 0),
+				vector2.New[float64](1, 0.5),
+				vector2.New[float64](0.5, 1),
+				vector2.New[float64](0, 0),
 			},
 		},
 		nil,

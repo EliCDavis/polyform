@@ -9,7 +9,7 @@ import (
 	"github.com/EliCDavis/polyform/math/sample"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/marching"
-	"github.com/EliCDavis/vector"
+	"github.com/EliCDavis/vector/vector3"
 )
 
 func main() {
@@ -17,12 +17,12 @@ func main() {
 
 	start := time.Now()
 	sphereCube := marching.
-		Sphere(vector.Vector3Zero(), 1.2, 1).
+		Sphere(vector3.Zero[float64](), 1.2, 1).
 		Modify(
 			modeling.PositionAttribute,
-			marching.Box(vector.Vector3Zero(), vector.Vector3One().MultByConstant(2), 1),
+			marching.Box(vector3.Zero[float64](), vector3.One[float64]().MultByConstant(2), 1),
 			func(a, b sample.Vec3ToFloat) sample.Vec3ToFloat {
-				return func(v vector.Vector3) float64 {
+				return func(v vector3.Float64) float64 {
 					return math.Max(a(v), b(v))
 				}
 			},
@@ -33,20 +33,20 @@ func main() {
 	pipeLength := .6
 	pipes := marching.CombineFields(
 		marching.Line(
-			vector.Vector3Right().MultByConstant(pipeLength),
-			vector.Vector3Left().MultByConstant(pipeLength),
+			vector3.Right[float64]().MultByConstant(pipeLength),
+			vector3.Left[float64]().MultByConstant(pipeLength),
 			pipeRadius,
 			pipeStrength,
 		),
 		marching.Line(
-			vector.Vector3Up().MultByConstant(pipeLength),
-			vector.Vector3Down().MultByConstant(pipeLength),
+			vector3.Up[float64]().MultByConstant(pipeLength),
+			vector3.Down[float64]().MultByConstant(pipeLength),
 			pipeRadius,
 			pipeStrength,
 		),
 		marching.Line(
-			vector.Vector3Forward().MultByConstant(pipeLength),
-			vector.Vector3Backwards().MultByConstant(pipeLength),
+			vector3.Forward[float64]().MultByConstant(pipeLength),
+			vector3.Backwards[float64]().MultByConstant(pipeLength),
 			pipeRadius,
 			pipeStrength,
 		),
@@ -56,7 +56,7 @@ func main() {
 		modeling.PositionAttribute,
 		pipes,
 		func(a, b sample.Vec3ToFloat) sample.Vec3ToFloat {
-			return func(v vector.Vector3) float64 {
+			return func(v vector3.Float64) float64 {
 				return a(v) * b(v)
 			}
 		},

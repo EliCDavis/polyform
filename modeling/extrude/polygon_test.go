@@ -5,23 +5,24 @@ import (
 
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/extrude"
-	"github.com/EliCDavis/vector"
+	"github.com/EliCDavis/vector/vector2"
+	"github.com/EliCDavis/vector/vector3"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestSimplePolygonSpike(t *testing.T) {
 	extrusionPoints := []extrude.ExtrusionPoint{
 		{
-			Point:       vector.Vector3Zero(),
+			Point:       vector3.Zero[float64](),
 			Thickness:   1,
 			UvThickness: 1,
-			UvPoint:     vector.NewVector2(0.5, 0),
+			UvPoint:     vector2.New(0.5, 0.),
 		},
 		{
-			Point:       vector.Vector3Up(),
+			Point:       vector3.Up[float64](),
 			Thickness:   0,
 			UvThickness: 1,
-			UvPoint:     vector.NewVector2(0.5, 1),
+			UvPoint:     vector2.New(0.5, 1.),
 		},
 	}
 	// ACT ====================================================================
@@ -31,6 +32,6 @@ func TestSimplePolygonSpike(t *testing.T) {
 	// ASSERT =================================================================
 	assert.Len(t, view.Float3Data[modeling.NormalAttribute], 8)
 	if assert.Len(t, view.Float3Data[modeling.PositionAttribute], 8) {
-		assert.Equal(t, vector.Vector3Up(), view.Float3Data[modeling.PositionAttribute][7])
+		assert.Equal(t, vector3.Up[float64](), view.Float3Data[modeling.PositionAttribute][7])
 	}
 }

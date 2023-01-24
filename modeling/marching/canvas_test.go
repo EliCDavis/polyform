@@ -5,7 +5,7 @@ import (
 
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/marching"
-	"github.com/EliCDavis/vector"
+	"github.com/EliCDavis/vector/vector3"
 )
 
 var meshResult modeling.Mesh
@@ -17,7 +17,7 @@ func BenchmarkSphere(b *testing.B) {
 		canvas := marching.NewMarchingCanvas(cubesPerUnit)
 
 		canvas.AddField(
-			marching.Sphere(vector.Vector3Zero(), 2., 1.),
+			marching.Sphere(vector3.Zero[float64](), 2., 1.),
 		)
 
 		mesh = canvas.March(0)

@@ -1,6 +1,9 @@
 package sample
 
-import "github.com/EliCDavis/vector"
+import (
+	"github.com/EliCDavis/vector/vector2"
+	"github.com/EliCDavis/vector/vector3"
+)
 
 func AverageVec3ToFloat(funcs ...Vec3ToFloat) Vec3ToFloat {
 	if len(funcs) == 0 {
@@ -11,7 +14,7 @@ func AverageVec3ToFloat(funcs ...Vec3ToFloat) Vec3ToFloat {
 		return funcs[0]
 	}
 
-	return func(v vector.Vector3) float64 {
+	return func(v vector3.Float64) float64 {
 		val := 0.
 
 		for _, f := range funcs {
@@ -31,8 +34,8 @@ func AverageVec3ToVec2(funcs ...Vec3ToVec2) Vec3ToVec2 {
 		return funcs[0]
 	}
 
-	return func(v vector.Vector3) vector.Vector2 {
-		val := vector.Vector2Zero()
+	return func(v vector3.Float64) vector2.Float64 {
+		val := vector2.Zero[float64]()
 
 		for _, f := range funcs {
 			val = val.Add(f(v))
@@ -51,8 +54,8 @@ func AverageVec3ToVec3(funcs ...Vec3ToVec3) Vec3ToVec3 {
 		return funcs[0]
 	}
 
-	return func(v vector.Vector3) vector.Vector3 {
-		val := vector.Vector3Zero()
+	return func(v vector3.Float64) vector3.Float64 {
+		val := vector3.Zero[float64]()
 
 		for _, f := range funcs {
 			val = val.Add(f(v))

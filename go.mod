@@ -1,9 +1,9 @@
 module github.com/EliCDavis/polyform
 
-go 1.17
+go 1.18
 
 require (
-	github.com/EliCDavis/vector v0.0.0-20230108032659-3cad4e91b77d
+	github.com/EliCDavis/vector v0.0.0-20230124005107-f6bf1e848676
 	github.com/stretchr/testify v1.8.1
 )
 

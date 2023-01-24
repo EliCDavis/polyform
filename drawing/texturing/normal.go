@@ -4,7 +4,7 @@ import (
 	"image"
 	"image/color"
 
-	"github.com/EliCDavis/vector"
+	"github.com/EliCDavis/vector/vector3"
 )
 
 func averageColorComponents(c color.Color) float64 {
@@ -21,7 +21,7 @@ func ToNormal(src image.Image) image.Image {
 	scale := 1.
 	Convolve(src, func(x, y int, vals []color.Color) {
 		// float s[9] contains above samples
-		n := vector.NewVector3(0, 0, scale)
+		n := vector3.New(0, 0, scale)
 		s0 := averageColorComponents(vals[0])
 		s1 := averageColorComponents(vals[1])
 		s2 := averageColorComponents(vals[2])

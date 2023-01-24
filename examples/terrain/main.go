@@ -14,7 +14,8 @@ import (
 	"github.com/EliCDavis/polyform/math/sample"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/triangulation"
-	"github.com/EliCDavis/vector"
+	"github.com/EliCDavis/vector/vector2"
+	"github.com/EliCDavis/vector/vector3"
 )
 
 func sigmoid(xScale, x, xShift, yShift float64) float64 {
@@ -28,7 +29,7 @@ func Texture(textureSize int, mapSize, height, waterLevel float64, name string, 
 	scaleFactor := mapSize / float64(textureSize)
 	for x := 0; x < textureSize; x++ {
 		for y := 0; y < textureSize; y++ {
-			samplePos := vector.NewVector2(float64(x), float64(y)).MultByConstant(scaleFactor)
+			samplePos := vector2.New(float64(x), float64(y)).MultByConstant(scaleFactor)
 
 			sample := landNoise(samplePos)
 			if sample <= waterLevel {
@@ -55,14 +56,14 @@ func main() {
 	n := 5000
 	mapSize := 3000.
 	mapRadius := mapSize / 2
-	mapOffset := vector.NewVector2(mapRadius, mapRadius)
+	mapOffset := vector2.New(mapRadius, mapRadius)
 	totalHeight := 200.
 	waterLevel := 15.
-	points := make([]vector.Vector2, n)
+	points := make([]vector2.Float64, n)
 	for i := 0; i < n; i++ {
 		theta := rand.Float64() * 2 * math.Pi
-		points[i] = vector.
-			NewVector2(math.Cos(theta), math.Sin(theta)).
+		points[i] = vector2.
+			New(math.Cos(theta), math.Sin(theta)).
 			MultByConstant(mapRadius * math.Sqrt(rand.Float64())).
 			Add(mapOffset)
 	}
@@ -74,7 +75,7 @@ func main() {
 		noise.Stack2DEntry{Scalar: 1 / 37.5, Amplitude: totalHeight / 16},
 	)
 
-	heightFunc := sample.Vec2ToFloat(func(v vector.Vector2) float64 {
+	heightFunc := sample.Vec2ToFloat(func(v vector2.Float64) float64 {
 		rollOff := sigmoid(20, v.Sub(mapOffset).Length()/mapRadius, .5, 1)
 		return math.Max(perlinStack.Value(v)*rollOff, waterLevel)
 	})
@@ -111,12 +112,12 @@ func main() {
 		),
 	)
 
-	uvs := make([]vector.Vector2, len(points))
+	uvs := make([]vector2.Float64, len(points))
 
 	terrain := triangulation.
 		BowyerWatson(points).
-		ModifyFloat3AttributeParallel(modeling.PositionAttribute, func(i int, v vector.Vector3) vector.Vector3 {
-			uvs[i] = vector.NewVector2(v.X(), -v.Z()).
+		ModifyFloat3AttributeParallel(modeling.PositionAttribute, func(i int, v vector3.Float64) vector3.Float64 {
+			uvs[i] = vector2.New(v.X(), -v.Z()).
 				DivByConstant(mapSize)
 
 			return v.SetY(heightFunc(v.XZ()))

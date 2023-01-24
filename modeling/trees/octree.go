@@ -4,7 +4,7 @@ import (
 	"math"
 
 	"github.com/EliCDavis/polyform/modeling"
-	"github.com/EliCDavis/vector"
+	"github.com/EliCDavis/vector/vector3"
 )
 
 type primitiveReference struct {
@@ -19,7 +19,7 @@ type OctTree struct {
 	atr        string
 }
 
-func (ot OctTree) Intersects(v vector.Vector3) []int {
+func (ot OctTree) Intersects(v vector3.Float64) []int {
 	intersections := make([]int, 0)
 
 	for i := 0; i < len(ot.primitives); i++ {
@@ -36,9 +36,9 @@ func (ot OctTree) Intersects(v vector.Vector3) []int {
 	return intersections
 }
 
-func (ot OctTree) ClosestPoint(v vector.Vector3) (int, vector.Vector3) {
+func (ot OctTree) ClosestPoint(v vector3.Float64) (int, vector3.Float64) {
 	closestPrimDist := math.MaxFloat64
-	closestPrimPoint := vector.Vector3Zero()
+	closestPrimPoint := vector3.Zero[float64]()
 	closestPointIndex := -1
 
 	for i := 0; i < len(ot.primitives); i++ {
@@ -77,7 +77,7 @@ func (ot OctTree) ClosestPoint(v vector.Vector3) (int, vector.Vector3) {
 	return closestPointIndex, closestPrimPoint
 }
 
-func octreeIndex(center, item vector.Vector3) int {
+func octreeIndex(center, item vector3.Float64) int {
 	left := 0
 	if item.X() < center.X() {
 		left = 1
@@ -97,7 +97,6 @@ func octreeIndex(center, item vector.Vector3) int {
 }
 
 func fromPrimitives(primitives []primitiveReference, atr string, maxDepth int) *OctTree {
-
 	if len(primitives) == 0 {
 		return nil
 	}
@@ -126,7 +125,7 @@ func fromPrimitives(primitives []primitiveReference, atr string, maxDepth int) *
 		}
 	}
 
-	var childrenNodes = [][]primitiveReference{
+	childrenNodes := [][]primitiveReference{
 		make([]primitiveReference, 0),
 		make([]primitiveReference, 0),
 		make([]primitiveReference, 0),
@@ -141,8 +140,8 @@ func fromPrimitives(primitives []primitiveReference, atr string, maxDepth int) *
 	leftOver := make([]primitiveReference, 0)
 	for _, item := range primitives {
 		primBounds := item.primitive.BoundingBox(atr)
-		var minIndex = octreeIndex(globalCenter, primBounds.Min())
-		var maxIndex = octreeIndex(globalCenter, primBounds.Max())
+		minIndex := octreeIndex(globalCenter, primBounds.Min())
+		maxIndex := octreeIndex(globalCenter, primBounds.Max())
 
 		if minIndex == maxIndex {
 			// child is contained completely within the division, pass it down.

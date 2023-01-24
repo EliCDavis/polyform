@@ -3,24 +3,24 @@ package modeling
 import (
 	"math"
 
-	"github.com/EliCDavis/vector"
+	"github.com/EliCDavis/vector/vector3"
 )
 
 type AABB struct {
-	center  vector.Vector3
-	extents vector.Vector3
+	center  vector3.Float64
+	extents vector3.Float64
 }
 
-func NewAABB(center, size vector.Vector3) AABB {
+func NewAABB(center, size vector3.Float64) AABB {
 	return AABB{
 		center:  center,
 		extents: size.MultByConstant(0.5),
 	}
 }
 
-func NewAABBFromPoints(points ...vector.Vector3) AABB {
-	min := vector.NewVector3(math.Inf(1), math.Inf(1), math.Inf(1))
-	max := vector.NewVector3(math.Inf(-1), math.Inf(-1), math.Inf(-1))
+func NewAABBFromPoints(points ...vector3.Float64) AABB {
+	min := vector3.New(math.Inf(1), math.Inf(1), math.Inf(1))
+	max := vector3.New(math.Inf(-1), math.Inf(-1), math.Inf(-1))
 	for _, v := range points {
 		min = min.SetX(math.Min(v.X(), min.X()))
 		min = min.SetY(math.Min(v.Y(), min.Y()))
@@ -39,28 +39,28 @@ func NewAABBFromPoints(points ...vector.Vector3) AABB {
 	return NewAABB(center, max.Sub(min))
 }
 
-func (aabb AABB) Center() vector.Vector3 {
+func (aabb AABB) Center() vector3.Float64 {
 	return aabb.center
 }
 
-func (aabb AABB) Min() vector.Vector3 {
+func (aabb AABB) Min() vector3.Float64 {
 	return aabb.center.Sub(aabb.extents)
 }
 
-func (aabb AABB) Max() vector.Vector3 {
+func (aabb AABB) Max() vector3.Float64 {
 	return aabb.center.Add(aabb.extents)
 }
 
-func (aabb AABB) Size() vector.Vector3 {
+func (aabb AABB) Size() vector3.Float64 {
 	return aabb.extents.MultByConstant(2)
 }
 
 func (aabb *AABB) Expand(amount float64) {
 	a := amount * 0.5
-	aabb.extents = aabb.extents.Add(vector.NewVector3(a, a, a))
+	aabb.extents = aabb.extents.Add(vector3.New(a, a, a))
 }
 
-func (aabb AABB) Contains(p vector.Vector3) bool {
+func (aabb AABB) Contains(p vector3.Float64) bool {
 	min := aabb.Min()
 	max := aabb.Max()
 
@@ -86,28 +86,28 @@ func (aabb AABB) Contains(p vector.Vector3) bool {
 	return true
 }
 
-func minVector(a, b vector.Vector3) vector.Vector3 {
-	return vector.NewVector3(
+func minVector(a, b vector3.Float64) vector3.Float64 {
+	return vector3.New(
 		math.Min(a.X(), b.X()),
 		math.Min(a.Y(), b.Y()),
 		math.Min(a.Z(), b.Z()),
 	)
 }
 
-func maxVector(a, b vector.Vector3) vector.Vector3 {
-	return vector.NewVector3(
+func maxVector(a, b vector3.Float64) vector3.Float64 {
+	return vector3.New(
 		math.Max(a.X(), b.X()),
 		math.Max(a.Y(), b.Y()),
 		math.Max(a.Z(), b.Z()),
 	)
 }
 
-func (aabb *AABB) SetMinMax(min, max vector.Vector3) {
+func (aabb *AABB) SetMinMax(min, max vector3.Float64) {
 	aabb.extents = max.Sub(min).MultByConstant(0.5)
 	aabb.center = min.Add(aabb.extents)
 }
 
-func (aabb *AABB) EncapsulatePoint(p vector.Vector3) {
+func (aabb *AABB) EncapsulatePoint(p vector3.Float64) {
 	aabb.SetMinMax(
 		minVector(aabb.Min(), p),
 		maxVector(aabb.Max(), p),
@@ -125,7 +125,7 @@ func (aabb *AABB) EncapsulateBounds(b AABB) {
 	aabb.EncapsulatePoint(b.center.Add(b.extents))
 }
 
-func (aabb AABB) ClosestPoint(v vector.Vector3) vector.Vector3 {
+func (aabb AABB) ClosestPoint(v vector3.Float64) vector3.Float64 {
 	result := v
 	min := aabb.Min()
 	max := aabb.Max()

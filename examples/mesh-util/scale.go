@@ -4,7 +4,7 @@ import (
 	"os"
 
 	"github.com/EliCDavis/polyform/formats/obj"
-	"github.com/EliCDavis/vector"
+	"github.com/EliCDavis/vector/vector3"
 	"github.com/urfave/cli/v2"
 )
 
@@ -58,8 +58,8 @@ func scaleCommand() *cli.Command {
 
 			scaledMesh := loadedMesh.
 				Scale(
-					vector.Vector3Zero(),
-					vector.NewVector3(c.Float64("x"), c.Float64("y"), c.Float64("z")),
+					vector3.Zero[float64](),
+					vector3.New(c.Float64("x"), c.Float64("y"), c.Float64("z")),
 				)
 
 			if c.IsSet("smooth-normals") && c.Bool("smooth-normals") {

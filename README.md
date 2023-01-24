@@ -1,5 +1,6 @@
 # Polyform
 ![Coverage](https://img.shields.io/badge/Coverage-38.2%25-yellow)
+[![Go Report Card](https://goreportcard.com/badge/github.com/EliCDavis/polyform)](https://goreportcard.com/report/github.com/EliCDavis/polyform)
 
 Library for generating and editing 3D geometry and it's associated data implemented in 100% golang.
 
@@ -44,7 +45,7 @@ func main() {
 	canvas.AddFieldParallel(marching.Mesh(
 		loadedMesh.
 			CenterFloat3Attribute(modeling.PositionAttribute).
-			Scale(vector.Vector3Zero(), vector.NewVector3(12, 12, 12)),
+			Scale(vector3.Zero[float64](), vector3.New(12, 12, 12)),
 		.1,
 		10,
 	))

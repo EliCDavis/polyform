@@ -4,82 +4,82 @@ import (
 	"testing"
 
 	"github.com/EliCDavis/polyform/modeling"
-	"github.com/EliCDavis/vector"
+	"github.com/EliCDavis/vector/vector3"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestAABBContains(t *testing.T) {
 	tests := map[string]struct {
-		center vector.Vector3
-		size   vector.Vector3
-		point  vector.Vector3
+		center vector3.Float64
+		size   vector3.Float64
+		point  vector3.Float64
 		result bool
 	}{
 		"simple": {
-			center: vector.Vector3Zero(),
-			size:   vector.Vector3One(),
-			point:  vector.Vector3Zero(),
+			center: vector3.Zero[float64](),
+			size:   vector3.One[float64](),
+			point:  vector3.Zero[float64](),
 			result: true,
 		},
 		"on corner": {
-			center: vector.Vector3Zero(),
-			size:   vector.Vector3One(),
-			point:  vector.NewVector3(0.5, 0.5, 0.5),
+			center: vector3.Zero[float64](),
+			size:   vector3.One[float64](),
+			point:  vector3.New(0.5, 0.5, 0.5),
 			result: true,
 		},
 		"on edge": {
-			center: vector.Vector3Zero(),
-			size:   vector.Vector3One(),
-			point:  vector.NewVector3(0, 0.5, 0.5),
+			center: vector3.Zero[float64](),
+			size:   vector3.One[float64](),
+			point:  vector3.New(0., 0.5, 0.5),
 			result: true,
 		},
 		"on face": {
-			center: vector.Vector3Zero(),
-			size:   vector.Vector3One(),
-			point:  vector.NewVector3(0, 0, 0.5),
+			center: vector3.Zero[float64](),
+			size:   vector3.One[float64](),
+			point:  vector3.New(0., 0., 0.5),
 			result: true,
 		},
 		"0 volume": {
-			center: vector.Vector3Zero(),
-			size:   vector.Vector3Zero(),
-			point:  vector.NewVector3(0, 0, 0),
+			center: vector3.Zero[float64](),
+			size:   vector3.Zero[float64](),
+			point:  vector3.New(0., 0., 0.),
 			result: true,
 		},
 		"outside corner": {
-			center: vector.Vector3Zero(),
-			size:   vector.Vector3One(),
-			point:  vector.NewVector3(0.500001, 0.500001, 0.500001),
+			center: vector3.Zero[float64](),
+			size:   vector3.One[float64](),
+			point:  vector3.New(0.500001, 0.500001, 0.500001),
 			result: false,
 		},
 		"outside edge": {
-			center: vector.Vector3Zero(),
-			size:   vector.Vector3One(),
-			point:  vector.NewVector3(0, 0.500001, 0.500001),
+			center: vector3.Zero[float64](),
+			size:   vector3.One[float64](),
+			point:  vector3.New(0., 0.500001, 0.500001),
 			result: false,
 		},
 		"outside face": {
-			center: vector.Vector3Zero(),
-			size:   vector.Vector3One(),
-			point:  vector.NewVector3(0, 0, 0.500001),
+			center: vector3.Zero[float64](),
+			size:   vector3.One[float64](),
+			point:  vector3.New(0., 0., 0.500001),
 			result: false,
 		},
 
 		"outside corner 2": {
-			center: vector.Vector3Zero(),
-			size:   vector.Vector3One(),
-			point:  vector.NewVector3(-0.500001, -0.500001, -0.500001),
+			center: vector3.Zero[float64](),
+			size:   vector3.One[float64](),
+			point:  vector3.New(-0.500001, -0.500001, -0.500001),
 			result: false,
 		},
 		"outside edge 2": {
-			center: vector.Vector3Zero(),
-			size:   vector.Vector3One(),
-			point:  vector.NewVector3(0, -0.500001, -0.500001),
+			center: vector3.Zero[float64](),
+			size:   vector3.One[float64](),
+			point:  vector3.New(0., -0.500001, -0.500001),
 			result: false,
 		},
 		"outside face 2": {
-			center: vector.Vector3Zero(),
-			size:   vector.Vector3One(),
-			point:  vector.NewVector3(0, 0, -0.500001),
+			center: vector3.Zero[float64](),
+			size:   vector3.One[float64](),
+			point:  vector3.New(0., 0., -0.500001),
 			result: false,
 		},
 	}
@@ -94,17 +94,17 @@ func TestAABBContains(t *testing.T) {
 
 func TestAABBEncapsulate(t *testing.T) {
 	// ARRANGE ================================================================
-	pts := []vector.Vector3{
-		vector.NewVector3(0.1, 0, 0),
-		vector.NewVector3(0.1, 0.1, 0),
-		vector.NewVector3(0.1, 0.1, 0.1),
-		vector.NewVector3(-0.1, 0, 0),
-		vector.NewVector3(0, -0.1, 0),
-		vector.NewVector3(0.1, -0.1, -0.1),
-		vector.NewVector3(0, 1, 0),
-		vector.NewVector3(0, -1, 0),
+	pts := []vector3.Float64{
+		vector3.New[float64](0.1, 0, 0),
+		vector3.New[float64](0.1, 0.1, 0),
+		vector3.New[float64](0.1, 0.1, 0.1),
+		vector3.New[float64](-0.1, 0, 0),
+		vector3.New[float64](0, -0.1, 0),
+		vector3.New[float64](0.1, -0.1, -0.1),
+		vector3.New[float64](0, 1, 0),
+		vector3.New[float64](0, -1, 0),
 	}
-	aabb := modeling.NewAABB(vector.Vector3Zero(), vector.Vector3Zero())
+	aabb := modeling.NewAABB(vector3.Zero[float64](), vector3.Zero[float64]())
 
 	// ACT/ASSERT =============================================================
 	for _, pt := range pts {
@@ -121,11 +121,11 @@ func TestAABBEncapsulate(t *testing.T) {
 
 func TestAABBExpand(t *testing.T) {
 	// ARRANGE ================================================================
-	aabb := modeling.NewAABB(vector.Vector3Zero(), vector.Vector3One())
+	aabb := modeling.NewAABB(vector3.Zero[float64](), vector3.One[float64]())
 
 	// ACT ====================================================================
 	aabb.Expand(2)
 
 	// ASSERT =================================================================
-	assert.Equal(t, vector.NewVector3(3, 3, 3), aabb.Size())
+	assert.Equal(t, vector3.New(3., 3., 3.), aabb.Size())
 }

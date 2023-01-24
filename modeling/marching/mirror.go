@@ -6,7 +6,8 @@ import (
 
 	"github.com/EliCDavis/polyform/math/sample"
 	"github.com/EliCDavis/polyform/modeling"
-	"github.com/EliCDavis/vector"
+	"github.com/EliCDavis/vector/vector2"
+	"github.com/EliCDavis/vector/vector3"
 )
 
 type Axis int
@@ -32,18 +33,18 @@ func MirrorAxis(field Field, axisToMirror Axis) Field {
 		Sub(field.Domain.Size().DivByConstant(2))
 
 	if axisToMirror == XAxis {
-		newV = func(v vector.Vector3) vector.Vector3 {
-			return vector.NewVector3(math.Abs(v.X()), v.Y(), v.Z())
+		newV = func(v vector3.Float64) vector3.Float64 {
+			return vector3.New(math.Abs(v.X()), v.Y(), v.Z())
 		}
 		bottomLeftBackCorner = bottomLeftBackCorner.SetX(-math.Abs(topRightFrontCorner.X()))
 	} else if axisToMirror == YAxis {
-		newV = func(v vector.Vector3) vector.Vector3 {
-			return vector.NewVector3(v.X(), math.Abs(v.Y()), v.Z())
+		newV = func(v vector3.Float64) vector3.Float64 {
+			return vector3.New(v.X(), math.Abs(v.Y()), v.Z())
 		}
 		bottomLeftBackCorner = bottomLeftBackCorner.SetY(-math.Abs(topRightFrontCorner.Y()))
 	} else if axisToMirror == ZAxis {
-		newV = func(v vector.Vector3) vector.Vector3 {
-			return vector.NewVector3(v.X(), v.Y(), math.Abs(v.Z()))
+		newV = func(v vector3.Float64) vector3.Float64 {
+			return vector3.New(v.X(), v.Y(), math.Abs(v.Z()))
 		}
 		bottomLeftBackCorner = bottomLeftBackCorner.SetZ(-math.Abs(topRightFrontCorner.Z()))
 	} else {
@@ -51,19 +52,19 @@ func MirrorAxis(field Field, axisToMirror Axis) Field {
 	}
 
 	for atr, f := range field.Float1Functions {
-		float1Functions[atr] = func(v vector.Vector3) float64 {
+		float1Functions[atr] = func(v vector3.Float64) float64 {
 			return f(newV(v))
 		}
 	}
 
 	for atr, f := range field.Float2Functions {
-		float2Functions[atr] = func(v vector.Vector3) vector.Vector2 {
+		float2Functions[atr] = func(v vector3.Float64) vector2.Float64 {
 			return f(newV(v))
 		}
 	}
 
 	for atr, f := range field.Float3Functions {
-		float3Functions[atr] = func(v vector.Vector3) vector.Vector3 {
+		float3Functions[atr] = func(v vector3.Float64) vector3.Float64 {
 			return f(newV(v))
 		}
 	}

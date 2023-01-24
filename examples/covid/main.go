@@ -11,11 +11,11 @@ import (
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/marching"
 	"github.com/EliCDavis/polyform/modeling/repeat"
-	"github.com/EliCDavis/vector"
+	"github.com/EliCDavis/vector/vector2"
+	"github.com/EliCDavis/vector/vector3"
 )
 
-func tendrilField(start, direction vector.Vector3, radius, length float64, plumbs int) marching.Field {
-
+func tendrilField(start, direction vector3.Float64, radius, length float64, plumbs int) marching.Field {
 	endPoint := start.Add(direction.MultByConstant(length))
 	fields := []marching.Field{}
 
@@ -36,7 +36,7 @@ func tendrilField(start, direction vector.Vector3, radius, length float64, plumb
 	return marching.Line(start, endPoint, radius, 1).Combine(fields...)
 }
 
-func virusField(center vector.Vector3, virusWidth float64) marching.Field {
+func virusField(center vector3.Float64, virusWidth float64) marching.Field {
 	fields := []marching.Field{}
 
 	tendrilCount := 20 + int(math.Round(20*rand.Float64()))
@@ -64,7 +64,7 @@ func main() {
 	canvas := marching.NewMarchingCanvas(cubesPerUnit)
 
 	virusRadius := 2.
-	canvas.AddFieldParallel(virusField(vector.Vector3Zero(), virusRadius))
+	canvas.AddFieldParallel(virusField(vector3.Zero[float64](), virusRadius))
 
 	virusColor := coloring.NewColorStack(
 		coloring.NewColorStackEntry(4, 1, 1, color.RGBA{199, 195, 195, 255}),
@@ -78,11 +78,11 @@ func main() {
 		panic(err)
 	}
 
-	uvs := make([]vector.Vector2, 0)
+	uvs := make([]vector2.Float64, 0)
 	mesh := canvas.MarchParallel(-0.1).
-		ScanFloat3Attribute(modeling.PositionAttribute, func(i int, v vector.Vector3) {
+		ScanFloat3Attribute(modeling.PositionAttribute, func(i int, v vector3.Float64) {
 			x := (v.Length() - 1.5) / 2.1
-			uvs = append(uvs, vector.NewVector2(x, 0.5))
+			uvs = append(uvs, vector2.New(x, 0.5))
 		}).
 		SetFloat2Attribute(modeling.TexCoordAttribute, uvs).
 		SmoothLaplacian(10, .1).

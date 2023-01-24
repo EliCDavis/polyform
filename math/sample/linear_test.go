@@ -4,7 +4,8 @@ import (
 	"testing"
 
 	"github.com/EliCDavis/polyform/math/sample"
-	"github.com/EliCDavis/vector"
+	"github.com/EliCDavis/vector/vector2"
+	"github.com/EliCDavis/vector/vector3"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -41,14 +42,14 @@ func TestLinearFloatMapping(t *testing.T) {
 func TestLinearVector2Mapping(t *testing.T) {
 	tests := map[string]struct {
 		fromMin, fromMax float64
-		toMin, toMax     vector.Vector2
+		toMin, toMax     vector2.Float64
 		input            float64
-		want             vector.Vector2
+		want             vector2.Float64
 	}{
 		"[0, 1] => [(0, 0), (1, 2)]; f(0.5) => (0.5, 1)": {
 			fromMin: 0, fromMax: 1,
-			toMin: vector.Vector2Zero(), toMax: vector.NewVector2(1, 2),
-			input: 0.5, want: vector.NewVector2(0.5, 1),
+			toMin: vector2.Zero[float64](), toMax: vector2.New(1., 2.),
+			input: 0.5, want: vector2.New(0.5, 1.),
 		},
 	}
 
@@ -66,14 +67,14 @@ func TestLinearVector2Mapping(t *testing.T) {
 func TestLinearVector33Mapping(t *testing.T) {
 	tests := map[string]struct {
 		fromMin, fromMax float64
-		toMin, toMax     vector.Vector3
+		toMin, toMax     vector3.Float64
 		input            float64
-		want             vector.Vector3
+		want             vector3.Float64
 	}{
 		"[0, 1] => [(0, 0, 0), (1, 2, 4)]; f(0.5) => (0.5, 1, 2)": {
 			fromMin: 0, fromMax: 1,
-			toMin: vector.Vector3Zero(), toMax: vector.NewVector3(1, 2, 4),
-			input: 0.5, want: vector.NewVector3(0.5, 1, 2),
+			toMin: vector3.Zero[float64](), toMax: vector3.New(1., 2., 4.),
+			input: 0.5, want: vector3.New(0.5, 1., 2.),
 		},
 	}
 

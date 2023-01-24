@@ -4,7 +4,7 @@ import (
 	"math/rand"
 
 	"github.com/EliCDavis/polyform/math/sample"
-	"github.com/EliCDavis/vector"
+	"github.com/EliCDavis/vector/vector2"
 )
 
 type Stack2DEntry struct {
@@ -23,14 +23,14 @@ func PerlinStack(entries ...Stack2DEntry) Stack2D {
 		newVals[i] = rand.Float64()
 	}
 	return Stack2D{
-		f: func(v vector.Vector2) float64 {
+		f: func(v vector2.Float64) float64 {
 			return noise2D(v, QuinticInterpolation, gradientOverValues(newVals))
 		},
 		entries: entries,
 	}
 }
 
-func (s2d Stack2D) Value(v vector.Vector2) float64 {
+func (s2d Stack2D) Value(v vector2.Float64) float64 {
 	sum := 0.
 	for _, entry := range s2d.entries {
 		sum += s2d.f(v.MultByConstant(entry.Scalar)) * entry.Amplitude

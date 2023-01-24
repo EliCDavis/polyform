@@ -8,11 +8,11 @@ import (
 	"github.com/EliCDavis/polyform/math/sample"
 	"github.com/EliCDavis/polyform/math/sdf"
 	"github.com/EliCDavis/polyform/modeling"
-	"github.com/EliCDavis/vector"
+	"github.com/EliCDavis/vector/vector2"
+	"github.com/EliCDavis/vector/vector3"
 )
 
 func useValueOfSmallestFunc(indicators []sample.Vec3ToFloat, valuesToReturn []sample.Vec3ToVec3) sample.Vec3ToVec3 {
-
 	if len(indicators) == 0 {
 		panic("no functions to use")
 	}
@@ -25,7 +25,7 @@ func useValueOfSmallestFunc(indicators []sample.Vec3ToFloat, valuesToReturn []sa
 		return valuesToReturn[0]
 	}
 
-	return func(v vector.Vector3) vector.Vector3 {
+	return func(v vector3.Float64) vector3.Float64 {
 		minIndex := 0
 		minValue := indicators[0](v)
 		for i := 1; i < len(indicators); i++ {
@@ -37,7 +37,6 @@ func useValueOfSmallestFunc(indicators []sample.Vec3ToFloat, valuesToReturn []sa
 		}
 		return valuesToReturn[minIndex](v)
 	}
-
 }
 
 func CombineFields(fields ...Field) Field {
@@ -109,19 +108,19 @@ type Field struct {
 	Float3Functions map[string]sample.Vec3ToVec3
 }
 
-func translateV2(field sample.Vec3ToVec2, translation vector.Vector3) sample.Vec3ToVec2 {
-	return func(v vector.Vector3) vector.Vector2 {
+func translateV2(field sample.Vec3ToVec2, translation vector3.Float64) sample.Vec3ToVec2 {
+	return func(v vector3.Float64) vector2.Float64 {
 		return field(v.Sub(translation))
 	}
 }
 
-func translateV3(field sample.Vec3ToVec3, translation vector.Vector3) sample.Vec3ToVec3 {
-	return func(v vector.Vector3) vector.Vector3 {
+func translateV3(field sample.Vec3ToVec3, translation vector3.Float64) sample.Vec3ToVec3 {
+	return func(v vector3.Float64) vector3.Float64 {
 		return field(v.Sub(translation))
 	}
 }
 
-func (f Field) Translate(translation vector.Vector3) Field {
+func (f Field) Translate(translation vector3.Float64) Field {
 	float1Final := make(map[string]sample.Vec3ToFloat)
 	for attribute, functions := range f.Float1Functions {
 		float1Final[attribute] = sdf.Translate(functions, translation)
@@ -190,7 +189,7 @@ func (f Field) SetFloat3Attribute(atr string, f3tf3 sample.Vec3ToVec3) Field {
 }
 
 func (f Field) WithColor(c color.RGBA) Field {
-	colorAsVector := vector.NewVector3(
+	colorAsVector := vector3.New(
 		float64(c.R)/255.,
 		float64(c.G)/255.,
 		float64(c.B)/255.,
@@ -198,17 +197,16 @@ func (f Field) WithColor(c color.RGBA) Field {
 
 	return f.SetFloat3Attribute(
 		modeling.ColorAttribute,
-		func(v vector.Vector3) vector.Vector3 {
+		func(v vector3.Float64) vector3.Float64 {
 			return colorAsVector
 		},
 	)
 }
 
 func (f Field) March(atr string, cubesPerUnit, cutoff float64) modeling.Mesh {
-
 	v1Data := make(map[string][]float64)
-	v2Data := make(map[string][]vector.Vector2)
-	v3Data := make(map[string][]vector.Vector3)
+	v2Data := make(map[string][]vector2.Float64)
+	v3Data := make(map[string][]vector3.Float64)
 
 	var atrFunc sample.Vec3ToFloat
 	for atrs, f1f := range f.Float1Functions {
@@ -219,11 +217,11 @@ func (f Field) March(atr string, cubesPerUnit, cutoff float64) modeling.Mesh {
 	}
 
 	for atr := range f.Float2Functions {
-		v2Data[atr] = make([]vector.Vector2, 0)
+		v2Data[atr] = make([]vector2.Float64, 0)
 	}
 
 	for atr := range f.Float3Functions {
-		v3Data[atr] = make([]vector.Vector3, 0)
+		v3Data[atr] = make([]vector3.Float64, 0)
 	}
 
 	if atrFunc == nil {
@@ -252,17 +250,17 @@ func (f Field) March(atr string, cubesPerUnit, cutoff float64) modeling.Mesh {
 	for x := minCanvas.X; x < maxCanvas.X-1; x++ {
 		for y := minCanvas.Y; y < maxCanvas.Y-1; y++ {
 			for z := minCanvas.Z; z < maxCanvas.Z-1; z++ {
-				v := vector.NewVector3(float64(x), float64(y), float64(z)).MultByConstant(cubesToUnit)
+				v := vector3.New(float64(x), float64(y), float64(z)).MultByConstant(cubesToUnit)
 
-				cubeCornerPositions := []vector.Vector3{
+				cubeCornerPositions := []vector3.Float64{
 					v,
-					v.Add(vector.NewVector3(cubesToUnit, 0, 0)),
-					v.Add(vector.NewVector3(cubesToUnit, 0, cubesToUnit)),
-					v.Add(vector.NewVector3(0, 0, cubesToUnit)),
-					v.Add(vector.NewVector3(0, cubesToUnit, 0)),
-					v.Add(vector.NewVector3(cubesToUnit, cubesToUnit, 0)),
-					v.Add(vector.NewVector3(cubesToUnit, cubesToUnit, cubesToUnit)),
-					v.Add(vector.NewVector3(0, cubesToUnit, cubesToUnit)),
+					v.Add(vector3.New(cubesToUnit, 0, 0)),
+					v.Add(vector3.New(cubesToUnit, 0, cubesToUnit)),
+					v.Add(vector3.New(0, 0, cubesToUnit)),
+					v.Add(vector3.New(0, cubesToUnit, 0)),
+					v.Add(vector3.New(cubesToUnit, cubesToUnit, 0)),
+					v.Add(vector3.New(cubesToUnit, cubesToUnit, cubesToUnit)),
+					v.Add(vector3.New(0, cubesToUnit, cubesToUnit)),
 				}
 
 				cubeCorners := []float64{
@@ -287,7 +285,7 @@ func (f Field) March(atr string, cubesPerUnit, cutoff float64) modeling.Mesh {
 					cubeCorners[7] < cutoff,
 				}
 
-				var lookupIndex = 0
+				lookupIndex := 0
 				if cubeCornersExistence[0] {
 					lookupIndex |= 1
 				}

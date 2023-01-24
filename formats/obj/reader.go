@@ -8,40 +8,41 @@ import (
 	"strings"
 
 	"github.com/EliCDavis/polyform/modeling"
-	"github.com/EliCDavis/vector"
+	"github.com/EliCDavis/vector/vector2"
+	"github.com/EliCDavis/vector/vector3"
 )
 
-func parseObjVectorLine(components []string) (vector.Vector3, error) {
+func parseObjVectorLine(components []string) (vector3.Float64, error) {
 	parsedX, err := strconv.ParseFloat(strings.TrimSpace(components[1]), 32)
 	if err != nil {
-		return vector.Vector3Zero(), fmt.Errorf("unable to parse x component '%s': %w", components[1], err)
+		return vector3.Zero[float64](), fmt.Errorf("unable to parse x component '%s': %w", components[1], err)
 	}
 
 	parsedY, err := strconv.ParseFloat(strings.TrimSpace(components[2]), 32)
 	if err != nil {
-		return vector.Vector3Zero(), fmt.Errorf("unable to parse y component '%s': %w", components[2], err)
+		return vector3.Zero[float64](), fmt.Errorf("unable to parse y component '%s': %w", components[2], err)
 	}
 
 	parsedZ, err := strconv.ParseFloat(strings.TrimSpace(components[3]), 32)
 	if err != nil {
-		return vector.Vector3Zero(), fmt.Errorf("unable to parse z component '%s': %w", components[3], err)
+		return vector3.Zero[float64](), fmt.Errorf("unable to parse z component '%s': %w", components[3], err)
 	}
 
-	return vector.NewVector3(parsedX, parsedY, parsedZ), nil
+	return vector3.New(parsedX, parsedY, parsedZ), nil
 }
 
-func parseObjTextureLine(components []string) (vector.Vector2, error) {
+func parseObjTextureLine(components []string) (vector2.Float64, error) {
 	parsedX, err := strconv.ParseFloat(strings.TrimSpace(components[1]), 32)
 	if err != nil {
-		return vector.Vector2Zero(), fmt.Errorf("unable to parse tex x: %w", err)
+		return vector2.Zero[float64](), fmt.Errorf("unable to parse tex x: %w", err)
 	}
 
 	parsedY, err := strconv.ParseFloat(strings.TrimSpace(components[2]), 32)
 	if err != nil {
-		return vector.Vector2Zero(), fmt.Errorf("unable to parse tex y: %w", err)
+		return vector2.Zero[float64](), fmt.Errorf("unable to parse tex y: %w", err)
 	}
 
-	return vector.NewVector2(parsedX, parsedY), nil
+	return vector2.New(parsedX, parsedY), nil
 }
 
 func parseMtllibLine(components []string) ([]string, error) {
@@ -112,15 +113,15 @@ func ReadMesh(in io.Reader) (*modeling.Mesh, []string, error) {
 	scanner := bufio.NewScanner(in)
 
 	tris := make([]int, 0)
-	readVerts := make([]vector.Vector3, 0)
-	readNormals := make([]vector.Vector3, 0)
-	readUVs := make([]vector.Vector2, 0)
+	readVerts := make([]vector3.Float64, 0)
+	readNormals := make([]vector3.Float64, 0)
+	readUVs := make([]vector2.Float64, 0)
 	readMaterialFiles := make([]string, 0)
 
 	pointHash := make(map[string]int)
-	verts := make([]vector.Vector3, 0)
-	normals := make([]vector.Vector3, 0)
-	uvs := make([]vector.Vector2, 0)
+	verts := make([]vector3.Float64, 0)
+	normals := make([]vector3.Float64, 0)
+	uvs := make([]vector2.Float64, 0)
 	meshMaterials := make([]modeling.MeshMaterial, 0)
 	meshNameToMaterial := make(map[string]*modeling.Material)
 
@@ -285,11 +286,11 @@ func ReadMesh(in io.Reader) (*modeling.Mesh, []string, error) {
 
 	mesh := modeling.NewMesh(
 		tris,
-		map[string][]vector.Vector3{
+		map[string][]vector3.Float64{
 			modeling.PositionAttribute: verts,
 			modeling.NormalAttribute:   normals,
 		},
-		map[string][]vector.Vector2{
+		map[string][]vector2.Float64{
 			modeling.TexCoordAttribute: uvs,
 		},
 		nil,

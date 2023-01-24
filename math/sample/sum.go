@@ -1,6 +1,6 @@
 package sample
 
-import "github.com/EliCDavis/vector"
+import "github.com/EliCDavis/vector/vector3"
 
 func SumVec3ToFloat(v32fs ...Vec3ToFloat) Vec3ToFloat {
 	if len(v32fs) == 0 {
@@ -11,7 +11,7 @@ func SumVec3ToFloat(v32fs ...Vec3ToFloat) Vec3ToFloat {
 		return v32fs[0]
 	}
 
-	return func(f vector.Vector3) float64 {
+	return func(f vector3.Float64) float64 {
 		result := v32fs[0](f)
 		for i := 1; i < len(v32fs); i++ {
 			result += v32fs[i](f)

@@ -1,8 +1,8 @@
 package modeling
 
-import "github.com/EliCDavis/vector"
+import "github.com/EliCDavis/vector/vector3"
 
 type Primitive interface {
 	BoundingBox(atr string) AABB
-	ClosestPoint(atr string, p vector.Vector3) vector.Vector3
+	ClosestPoint(atr string, p vector3.Float64) vector3.Float64
 }

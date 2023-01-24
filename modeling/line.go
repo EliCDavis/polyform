@@ -2,7 +2,7 @@ package modeling
 
 import (
 	"github.com/EliCDavis/polyform/math/geometry"
-	"github.com/EliCDavis/vector"
+	"github.com/EliCDavis/vector/vector3"
 )
 
 type Line struct {
@@ -17,7 +17,7 @@ func (l Line) BoundingBox(atr string) AABB {
 	)
 }
 
-func (l Line) ClosestPoint(atr string, point vector.Vector3) vector.Vector3 {
+func (l Line) ClosestPoint(atr string, point vector3.Float64) vector3.Float64 {
 	line3d := geometry.NewLine3D(
 		l.mesh.v3Data[atr][l.startingIndex],
 		l.mesh.v3Data[atr][l.startingIndex+1],

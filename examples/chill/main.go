@@ -18,7 +18,8 @@ import (
 	"github.com/EliCDavis/polyform/math/noise"
 	"github.com/EliCDavis/polyform/math/sample"
 	"github.com/EliCDavis/polyform/modeling"
-	"github.com/EliCDavis/vector"
+	"github.com/EliCDavis/vector/vector2"
+	"github.com/EliCDavis/vector/vector3"
 	"github.com/urfave/cli/v2"
 )
 
@@ -42,29 +43,29 @@ func branchColorPallettes() map[string]coloring.ColorStack {
 	}
 }
 
-func randomVec2Radial() vector.Vector2 {
+func randomVec2Radial() vector2.Float64 {
 	theta := rand.Float64() * 2 * math.Pi
-	return vector.
-		NewVector2(math.Cos(theta), math.Sin(theta)).
+	return vector2.
+		New(math.Cos(theta), math.Sin(theta)).
 		MultByConstant(math.Sqrt(rand.Float64()))
 }
 
-func calcTreePositions(count int, forestWidth float64, terrainHeight sample.Vec2ToFloat, path Trail) []vector.Vector3 {
-	positions := make([]vector.Vector3, 0)
+func calcTreePositions(count int, forestWidth float64, terrainHeight sample.Vec2ToFloat, path Trail) []vector3.Float64 {
+	positions := make([]vector3.Float64, 0)
 	for i := 0; i < count; i++ {
 		xz := randomVec2Radial().
 			MultByConstant((forestWidth / 2) * .8).
-			Add(vector.NewVector2(forestWidth/2, forestWidth/2))
+			Add(vector2.New(forestWidth/2, forestWidth/2))
 		y := terrainHeight(xz) - 1
 
 		invalid := false
 		for _, seg := range path.Segments {
 			line := geometry.NewLine2D(
-				vector.NewVector2(
+				vector2.New(
 					seg.StartX,
 					seg.StartY,
 				),
-				vector.NewVector2(
+				vector2.New(
 					seg.EndX,
 					seg.EndY,
 				),
@@ -77,8 +78,7 @@ func calcTreePositions(count int, forestWidth float64, terrainHeight sample.Vec2
 		}
 
 		if !invalid {
-			positions = append(positions, vector.NewVector3(xz.X(), y, xz.Y()))
-
+			positions = append(positions, vector3.New(xz.X(), y, xz.Y()))
 		}
 
 	}
@@ -96,7 +96,6 @@ func initSeed(ctx *cli.Context) {
 }
 
 func main() {
-
 	app := &cli.App{
 		Name: "chill",
 		Authors: []*cli.Author{
@@ -516,56 +515,56 @@ func main() {
 				Name:        "word",
 				Description: "Writes out the word 'chill' in the trail segment format",
 				Action: func(ctx *cli.Context) error {
-					c := []vector.Vector2{
-						vector.NewVector2(1, 1),
-						vector.NewVector2(0, 0.5),
-						vector.NewVector2(1, 0),
+					c := []vector2.Float64{
+						vector2.New[float64](1, 1),
+						vector2.New[float64](0, 0.5),
+						vector2.New[float64](1, 0),
 					}
 
-					h := []vector.Vector2{
-						vector.NewVector2(0, 0),
-						vector.NewVector2(0, 1),
-						vector.NewVector2(0, 0.5),
-						vector.NewVector2(1, 0.5),
-						vector.NewVector2(1, 1),
-						vector.NewVector2(1, 0),
+					h := []vector2.Float64{
+						vector2.New[float64](0, 0),
+						vector2.New[float64](0, 1),
+						vector2.New[float64](0, 0.5),
+						vector2.New[float64](1, 0.5),
+						vector2.New[float64](1, 1),
+						vector2.New[float64](1, 0),
 					}
 
-					i := []vector.Vector2{
-						vector.NewVector2(0.5, 0),
-						vector.NewVector2(0.5, 1),
+					i := []vector2.Float64{
+						vector2.New[float64](0.5, 0),
+						vector2.New[float64](0.5, 1),
 					}
 
-					l := []vector.Vector2{
-						vector.NewVector2(0, 0),
-						vector.NewVector2(0, 1),
-						vector.NewVector2(1, 1),
+					l := []vector2.Float64{
+						vector2.New[float64](0, 0),
+						vector2.New[float64](0, 1),
+						vector2.New[float64](1, 1),
 					}
 
-					word := [][]vector.Vector2{c, h, i, l, l}
+					word := [][]vector2.Float64{c, h, i, l, l}
 
 					characterWidth := 35.
 					height := 90.
 					characterSpacing := 40.
 					terrainSize := 500.
-					offset := vector.NewVector2(terrainSize/2., terrainSize/2.).
-						Sub(vector.NewVector2((characterWidth+characterSpacing)*0.5*float64(len(word)), height/2))
+					offset := vector2.New(terrainSize/2., terrainSize/2.).
+						Sub(vector2.New((characterWidth+characterSpacing)*0.5*float64(len(word)), height/2))
 
 					trail := Trail{
 						Segments: make([]TrailSegment, 0),
 					}
 
 					for charIndex, character := range word {
-						characterOffset := vector.NewVector2(float64(charIndex)*(characterSpacing+characterWidth), 0)
+						characterOffset := vector2.New(float64(charIndex)*(characterSpacing+characterWidth), 0)
 						for pIndex := 1; pIndex < len(character); pIndex++ {
-							start := vector.NewVector2(
+							start := vector2.New(
 								character[pIndex-1].X()*characterWidth,
 								character[pIndex-1].Y()*height,
 							).
 								Add(characterOffset).
 								Add(offset)
 
-							end := vector.NewVector2(
+							end := vector2.New(
 								character[pIndex].X()*characterWidth,
 								character[pIndex].Y()*height,
 							).
@@ -597,5 +596,4 @@ func main() {
 	if err := app.Run(os.Args); err != nil {
 		log.Fatal(err)
 	}
-
 }

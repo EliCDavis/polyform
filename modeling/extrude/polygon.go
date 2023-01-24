@@ -5,11 +5,12 @@ import (
 	"math"
 
 	"github.com/EliCDavis/polyform/modeling"
-	"github.com/EliCDavis/vector"
+	"github.com/EliCDavis/vector/vector2"
+	"github.com/EliCDavis/vector/vector3"
 )
 
-func directionOfPoints(points []vector.Vector3) []vector.Vector3 {
-	directions := make([]vector.Vector3, len(points))
+func directionOfPoints(points []vector3.Float64) []vector3.Float64 {
+	directions := make([]vector3.Float64, len(points))
 
 	for i, point := range points {
 		if i == 0 {
@@ -30,8 +31,8 @@ func directionOfPoints(points []vector.Vector3) []vector.Vector3 {
 	return directions
 }
 
-func directionsOfExtrusionPoints(points []ExtrusionPoint) []vector.Vector3 {
-	pointVec := make([]vector.Vector3, len(points))
+func directionsOfExtrusionPoints(points []ExtrusionPoint) []vector3.Float64 {
+	pointVec := make([]vector3.Float64, len(points))
 	for i, point := range points {
 		pointVec[i] = point.Point
 	}
@@ -46,18 +47,18 @@ func polygon(sides int, points []ExtrusionPoint, closed bool) modeling.Mesh {
 	}
 
 	vertCount := sides + 1
-	vertices := make([]vector.Vector3, 0, len(points)*vertCount)
-	uvs := make([]vector.Vector2, 0, len(points)*vertCount)
-	normals := make([]vector.Vector3, 0, len(points)*vertCount)
+	vertices := make([]vector3.Float64, 0, len(points)*vertCount)
+	uvs := make([]vector2.Float64, 0, len(points)*vertCount)
+	normals := make([]vector3.Float64, 0, len(points)*vertCount)
 
-	circlePoints := make([]vector.Vector3, vertCount)
-	circlePoints[0] = vector.Vector3Right()
+	circlePoints := make([]vector3.Float64, vertCount)
+	circlePoints[0] = vector3.Right[float64]()
 
 	angleIncrement := (math.Pi * 2) / float64(sides)
 
 	for i := 1; i < sides+1; i++ {
-		rot := modeling.UnitQuaternionFromTheta(angleIncrement*float64(i), vector.Vector3Up())
-		circlePoints[i] = rot.Rotate(vector.Vector3Right())
+		rot := modeling.UnitQuaternionFromTheta(angleIncrement*float64(i), vector3.Up[float64]())
+		circlePoints[i] = rot.Rotate(vector3.Right[float64]())
 	}
 
 	pointDirections := directionsOfExtrusionPoints(points)
@@ -71,9 +72,9 @@ func polygon(sides int, points []ExtrusionPoint, closed bool) modeling.Mesh {
 
 			point := circlePoints[sideIndex]
 
-			angleVector := dir.Cross(vector.Vector3Up())
-			if angleVector != vector.Vector3Zero() {
-				angleDot := dir.Angle(vector.Vector3Up())
+			angleVector := dir.Cross(vector3.Up[float64]())
+			if angleVector != vector3.Zero[float64]() {
+				angleDot := dir.Angle(vector3.Up[float64]())
 				// log.Print(angleVector, angleDot)
 				rot := modeling.UnitQuaternionFromTheta(angleDot, angleVector)
 				point = rot.Rotate(point)
@@ -88,8 +89,8 @@ func polygon(sides int, points []ExtrusionPoint, closed bool) modeling.Mesh {
 	// UVs ====================================================================
 	for i, p := range points {
 
-		var dirA vector.Vector2
-		var dirB vector.Vector2
+		var dirA vector2.Float64
+		var dirB vector2.Float64
 
 		if i == 0 {
 			dirA = points[0].UvPoint
@@ -100,7 +101,7 @@ func polygon(sides int, points []ExtrusionPoint, closed bool) modeling.Mesh {
 		}
 
 		dir := dirB.Sub(dirA).Normalized()
-		perp := vector.NewVector2(dir.Y(), -dir.X()).
+		perp := vector2.New(dir.Y(), -dir.X()).
 			MultByConstant(p.UvThickness / 2.)
 
 		// log.Print(perp)
@@ -148,11 +149,11 @@ func polygon(sides int, points []ExtrusionPoint, closed bool) modeling.Mesh {
 
 	return modeling.NewMesh(
 		tris,
-		map[string][]vector.Vector3{
+		map[string][]vector3.Float64{
 			modeling.PositionAttribute: vertices,
 			modeling.NormalAttribute:   normals,
 		},
-		map[string][]vector.Vector2{
+		map[string][]vector2.Float64{
 			modeling.TexCoordAttribute: uvs,
 		},
 		nil,
@@ -160,7 +161,7 @@ func polygon(sides int, points []ExtrusionPoint, closed bool) modeling.Mesh {
 	)
 }
 
-func ClosedCircleWithConstantThickness(sides int, thickness float64, path []vector.Vector3) modeling.Mesh {
+func ClosedCircleWithConstantThickness(sides int, thickness float64, path []vector3.Float64) modeling.Mesh {
 	points := make([]ExtrusionPoint, len(path))
 	for i, p := range path {
 		points[i] = ExtrusionPoint{
@@ -171,7 +172,7 @@ func ClosedCircleWithConstantThickness(sides int, thickness float64, path []vect
 	return polygon(sides, points, true)
 }
 
-func CircleWithConstantThickness(sides int, thickness float64, path []vector.Vector3) modeling.Mesh {
+func CircleWithConstantThickness(sides int, thickness float64, path []vector3.Float64) modeling.Mesh {
 	points := make([]ExtrusionPoint, len(path))
 	for i, p := range path {
 		points[i] = ExtrusionPoint{
@@ -182,7 +183,7 @@ func CircleWithConstantThickness(sides int, thickness float64, path []vector.Vec
 	return polygon(sides, points, false)
 }
 
-func CircleWithThickness(sides int, thickness []float64, path []vector.Vector3) modeling.Mesh {
+func CircleWithThickness(sides int, thickness []float64, path []vector3.Float64) modeling.Mesh {
 	points := make([]ExtrusionPoint, len(path))
 	for i, p := range path {
 		points[i] = ExtrusionPoint{
@@ -193,7 +194,7 @@ func CircleWithThickness(sides int, thickness []float64, path []vector.Vector3) 
 	return polygon(sides, points, false)
 }
 
-func ClosedCircleWithThickness(sides int, thickness []float64, path []vector.Vector3) modeling.Mesh {
+func ClosedCircleWithThickness(sides int, thickness []float64, path []vector3.Float64) modeling.Mesh {
 	points := make([]ExtrusionPoint, len(path))
 	for i, p := range path {
 		points[i] = ExtrusionPoint{

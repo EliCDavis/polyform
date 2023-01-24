@@ -8,7 +8,8 @@ import (
 	"github.com/EliCDavis/polyform/formats/obj"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/extrude"
-	"github.com/EliCDavis/vector"
+	"github.com/EliCDavis/vector/vector2"
+	"github.com/EliCDavis/vector/vector3"
 	"github.com/fogleman/gg"
 	"golang.org/x/image/draw"
 )
@@ -31,9 +32,9 @@ func bevel(startWidth, startHeight, endWidth, endHeight, uvStart, uvEnd, uvThick
 		height := sinResult * float64(heightDelta)
 
 		points = append(points, extrude.ExtrusionPoint{
-			Point:       vector.Vector3Up().MultByConstant(height + startHeight),
+			Point:       vector3.Up[float64]().MultByConstant(height + startHeight),
 			Thickness:   (cosResult * widthDelta) + endWidth,
-			UvPoint:     vector.NewVector2(0.5, uvStart+(uvDelta*sinResult)),
+			UvPoint:     vector2.New(0.5, uvStart+(uvDelta*sinResult)),
 			UvThickness: uvThickness,
 		})
 	}
@@ -55,28 +56,28 @@ func candleBody(height, width, rimWidth, percentUsed, wickWidth, wickHeight floa
 	points = append(
 		points,
 		extrude.ExtrusionPoint{
-			Point:       vector.Vector3Up().MultByConstant(heightToWax),
+			Point:       vector3.Up[float64]().MultByConstant(heightToWax),
 			Thickness:   width - rimWidth,
 			UvThickness: 1,
-			UvPoint:     vector.NewVector2(0.5, 0.9),
+			UvPoint:     vector2.New(0.5, 0.9),
 		},
 		extrude.ExtrusionPoint{
-			Point:       vector.Vector3Up().MultByConstant(heightToWax),
+			Point:       vector3.Up[float64]().MultByConstant(heightToWax),
 			Thickness:   wickWidth,
 			UvThickness: 1,
-			UvPoint:     vector.NewVector2(0.5, 0.95),
+			UvPoint:     vector2.New(0.5, 0.95),
 		},
 		extrude.ExtrusionPoint{
-			Point:       vector.Vector3Up().MultByConstant(heightToWax + wickHeight),
+			Point:       vector3.Up[float64]().MultByConstant(heightToWax + wickHeight),
 			Thickness:   wickWidth,
 			UvThickness: 1,
-			UvPoint:     vector.NewVector2(0.5, 0.975),
+			UvPoint:     vector2.New(0.5, 0.975),
 		},
 		extrude.ExtrusionPoint{
-			Point:       vector.Vector3Up().MultByConstant(heightToWax + wickHeight),
+			Point:       vector3.Up[float64]().MultByConstant(heightToWax + wickHeight),
 			Thickness:   0,
 			UvThickness: 1,
-			UvPoint:     vector.NewVector2(0.5, 1.0),
+			UvPoint:     vector2.New(0.5, 1.0),
 		},
 	)
 

@@ -6,7 +6,8 @@ import (
 
 	"github.com/EliCDavis/polyform/formats/obj"
 	"github.com/EliCDavis/polyform/modeling"
-	"github.com/EliCDavis/vector"
+	"github.com/EliCDavis/vector/vector2"
+	"github.com/EliCDavis/vector/vector3"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -97,10 +98,10 @@ f  2 3 4
 
 	vertices := squareView.Float3Data[modeling.PositionAttribute]
 	assert.Len(t, vertices, 4)
-	assert.Equal(t, vector.NewVector3(0.0, 0.0, 0.0), vertices[0])
-	assert.Equal(t, vector.NewVector3(0.0, 1.0, 0.0), vertices[1])
-	assert.Equal(t, vector.NewVector3(0.0, 1.0, 1.0), vertices[2])
-	assert.Equal(t, vector.NewVector3(0.0, 0.0, 1.0), vertices[3])
+	assert.Equal(t, vector3.New(0.0, 0.0, 0.0), vertices[0])
+	assert.Equal(t, vector3.New(0.0, 1.0, 0.0), vertices[1])
+	assert.Equal(t, vector3.New(0.0, 1.0, 1.0), vertices[2])
+	assert.Equal(t, vector3.New(0.0, 0.0, 1.0), vertices[3])
 }
 
 func Test_ReadOBJ_SimpleSquare(t *testing.T) {
@@ -155,24 +156,24 @@ f  1/1/1 2/2/2 3/3/3
 
 	vertices := squareView.Float3Data[modeling.PositionAttribute]
 	assert.Len(t, vertices, 4)
-	assert.Equal(t, vector.NewVector3(0.0, 0.0, 0.0), vertices[0])
-	assert.Equal(t, vector.NewVector3(0.0, 1.0, 0.0), vertices[1])
-	assert.Equal(t, vector.NewVector3(0.0, 1.0, 1.0), vertices[2])
-	assert.Equal(t, vector.NewVector3(0.0, 0.0, 1.0), vertices[3])
+	assert.Equal(t, vector3.New(0.0, 0.0, 0.0), vertices[0])
+	assert.Equal(t, vector3.New(0.0, 1.0, 0.0), vertices[1])
+	assert.Equal(t, vector3.New(0.0, 1.0, 1.0), vertices[2])
+	assert.Equal(t, vector3.New(0.0, 0.0, 1.0), vertices[3])
 
 	normals := squareView.Float3Data[modeling.NormalAttribute]
 	assert.Len(t, normals, 4)
-	assert.Equal(t, vector.NewVector3(0.0, 0.0, 0.0), normals[0])
-	assert.Equal(t, vector.NewVector3(0.0, 1.0, 0.0), normals[1])
-	assert.Equal(t, vector.NewVector3(0.0, 1.0, 1.0), normals[2])
-	assert.Equal(t, vector.NewVector3(0.0, 0.0, 1.0), normals[3])
+	assert.Equal(t, vector3.New(0.0, 0.0, 0.0), normals[0])
+	assert.Equal(t, vector3.New(0.0, 1.0, 0.0), normals[1])
+	assert.Equal(t, vector3.New(0.0, 1.0, 1.0), normals[2])
+	assert.Equal(t, vector3.New(0.0, 0.0, 1.0), normals[3])
 
 	uvs := squareView.Float2Data[modeling.TexCoordAttribute]
 	assert.Len(t, uvs, 4)
-	assert.Equal(t, vector.NewVector2(0.0, 0.0), uvs[0])
-	assert.Equal(t, vector.NewVector2(0.0, 1.0), uvs[1])
-	assert.Equal(t, vector.NewVector2(0.0, 1.0), uvs[2])
-	assert.Equal(t, vector.NewVector2(0.0, 0.0), uvs[3])
+	assert.Equal(t, vector2.New(0.0, 0.0), uvs[0])
+	assert.Equal(t, vector2.New(0.0, 1.0), uvs[1])
+	assert.Equal(t, vector2.New(0.0, 1.0), uvs[2])
+	assert.Equal(t, vector2.New(0.0, 0.0), uvs[3])
 
 	if assert.Len(t, square.Materials(), 3) {
 		assert.Equal(t, 1, square.Materials()[0].NumOfTris)

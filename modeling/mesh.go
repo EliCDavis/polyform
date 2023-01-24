@@ -7,12 +7,13 @@ import (
 	"sync"
 
 	"github.com/EliCDavis/polyform/math/geometry"
-	"github.com/EliCDavis/vector"
+	"github.com/EliCDavis/vector/vector2"
+	"github.com/EliCDavis/vector/vector3"
 )
 
 type Mesh struct {
-	v3Data    map[string][]vector.Vector3
-	v2Data    map[string][]vector.Vector2
+	v3Data    map[string][]vector3.Float64
+	v2Data    map[string][]vector2.Float64
 	v1Data    map[string][]float64
 	indices   []int
 	materials []MeshMaterial
@@ -21,10 +22,11 @@ type Mesh struct {
 
 func NewMesh(
 	indices []int,
-	v3Data map[string][]vector.Vector3,
-	v2Data map[string][]vector.Vector2,
+	v3Data map[string][]vector3.Float64,
+	v2Data map[string][]vector2.Float64,
 	v1Data map[string][]float64,
-	materials []MeshMaterial) Mesh {
+	materials []MeshMaterial,
+) Mesh {
 	return Mesh{
 		indices:   indices,
 		materials: materials,
@@ -37,11 +39,11 @@ func NewMesh(
 
 func newImpliedIndicesMesh(
 	topo Topology,
-	v3Data map[string][]vector.Vector3,
-	v2Data map[string][]vector.Vector2,
+	v3Data map[string][]vector3.Float64,
+	v2Data map[string][]vector2.Float64,
 	v1Data map[string][]float64,
-	materials []MeshMaterial) Mesh {
-
+	materials []MeshMaterial,
+) Mesh {
 	attributeCount := 0
 	for _, d := range v3Data {
 		attributeCount = len(d)
@@ -75,18 +77,20 @@ func newImpliedIndicesMesh(
 }
 
 func NewLineStripMesh(
-	v3Data map[string][]vector.Vector3,
-	v2Data map[string][]vector.Vector2,
+	v3Data map[string][]vector3.Float64,
+	v2Data map[string][]vector2.Float64,
 	v1Data map[string][]float64,
-	materials []MeshMaterial) Mesh {
+	materials []MeshMaterial,
+) Mesh {
 	return newImpliedIndicesMesh(LineStripTopology, v3Data, v2Data, v1Data, materials)
 }
 
 func NewPointCloud(
-	v3Data map[string][]vector.Vector3,
-	v2Data map[string][]vector.Vector2,
+	v3Data map[string][]vector3.Float64,
+	v2Data map[string][]vector2.Float64,
 	v1Data map[string][]float64,
-	materials []MeshMaterial) Mesh {
+	materials []MeshMaterial,
+) Mesh {
 	return newImpliedIndicesMesh(PointTopology, v3Data, v2Data, v1Data, materials)
 }
 
@@ -96,25 +100,25 @@ func EmptyMesh() Mesh {
 		indices:   make([]int, 0),
 		materials: make([]MeshMaterial, 0),
 		topology:  TriangleTopology,
-		v3Data:    make(map[string][]vector.Vector3),
-		v2Data:    make(map[string][]vector.Vector2),
+		v3Data:    make(map[string][]vector3.Float64),
+		v2Data:    make(map[string][]vector2.Float64),
 		v1Data:    make(map[string][]float64),
 	}
 }
 
 func NewTexturedMesh(
 	triangles []int,
-	vertices []vector.Vector3,
-	normals []vector.Vector3,
-	uvs []vector.Vector2,
+	vertices []vector3.Float64,
+	normals []vector3.Float64,
+	uvs []vector2.Float64,
 ) Mesh {
 	return Mesh{
 		indices: triangles,
-		v3Data: map[string][]vector.Vector3{
+		v3Data: map[string][]vector3.Float64{
 			PositionAttribute: vertices,
 			NormalAttribute:   normals,
 		},
-		v2Data: map[string][]vector.Vector2{
+		v2Data: map[string][]vector2.Float64{
 			TexCoordAttribute: uvs,
 		},
 		materials: []MeshMaterial{{len(triangles) / 3, nil}},
@@ -221,7 +225,6 @@ func (m Mesh) PrimitiveCount() int {
 }
 
 func (m Mesh) Append(other Mesh) Mesh {
-
 	if m.topology != other.topology {
 		panic(fmt.Errorf("can not combine meshes with different topologies (%s != %s)", m.topology.String(), other.topology.String()))
 	}
@@ -229,13 +232,13 @@ func (m Mesh) Append(other Mesh) Mesh {
 	mAtrLength := m.AttributeLength()
 	oAtrLength := other.AttributeLength()
 
-	finalV3Data := make(map[string][]vector.Vector3)
+	finalV3Data := make(map[string][]vector3.Float64)
 	for atr, data := range m.v3Data {
 		finalV3Data[atr] = data
 
 		if _, ok := other.v3Data[atr]; !ok {
 			for i := 0; i < oAtrLength; i++ {
-				finalV3Data[atr] = append(finalV3Data[atr], vector.Vector3Zero())
+				finalV3Data[atr] = append(finalV3Data[atr], vector3.Zero[float64]())
 			}
 		}
 	}
@@ -243,19 +246,19 @@ func (m Mesh) Append(other Mesh) Mesh {
 	for atr, data := range other.v3Data {
 		if _, ok := finalV3Data[atr]; !ok {
 			for i := 0; i < mAtrLength; i++ {
-				finalV3Data[atr] = append(finalV3Data[atr], vector.Vector3Zero())
+				finalV3Data[atr] = append(finalV3Data[atr], vector3.Zero[float64]())
 			}
 		}
 		finalV3Data[atr] = append(finalV3Data[atr], data...)
 	}
 
-	finalV2Data := make(map[string][]vector.Vector2)
+	finalV2Data := make(map[string][]vector2.Float64)
 	for atr, data := range m.v2Data {
 		finalV2Data[atr] = data
 
 		if _, ok := other.v2Data[atr]; !ok {
 			for i := 0; i < oAtrLength; i++ {
-				finalV2Data[atr] = append(finalV2Data[atr], vector.Vector2Zero())
+				finalV2Data[atr] = append(finalV2Data[atr], vector2.Zero[float64]())
 			}
 		}
 	}
@@ -263,7 +266,7 @@ func (m Mesh) Append(other Mesh) Mesh {
 	for atr, data := range other.v2Data {
 		if _, ok := finalV2Data[atr]; !ok {
 			for i := 0; i < mAtrLength; i++ {
-				finalV2Data[atr] = append(finalV2Data[atr], vector.Vector2Zero())
+				finalV2Data[atr] = append(finalV2Data[atr], vector2.Zero[float64]())
 			}
 		}
 		finalV2Data[atr] = append(finalV2Data[atr], data...)
@@ -299,14 +302,14 @@ func (m Mesh) Append(other Mesh) Mesh {
 }
 
 // Translate(v) is shorthand for TranslateAttribute3D(V, "Position")
-func (m Mesh) Translate(v vector.Vector3) Mesh {
+func (m Mesh) Translate(v vector3.Float64) Mesh {
 	return m.TranslateAttribute3D(PositionAttribute, v)
 }
 
-func (m Mesh) TranslateAttribute3D(attribute string, v vector.Vector3) Mesh {
+func (m Mesh) TranslateAttribute3D(attribute string, v vector3.Float64) Mesh {
 	m.requireV3Attribute(attribute)
 	oldData := m.v3Data[attribute]
-	finalVerts := make([]vector.Vector3, len(oldData))
+	finalVerts := make([]vector3.Float64, len(oldData))
 	for i := 0; i < len(finalVerts); i++ {
 		finalVerts[i] = oldData[i].Add(v)
 	}
@@ -324,7 +327,7 @@ func (m Mesh) RotateAttribute3D(attribute string, q Quaternion) Mesh {
 
 	finalMesh := m
 	oldData := m.v3Data[attribute]
-	finalVerts := make([]vector.Vector3, len(oldData))
+	finalVerts := make([]vector3.Float64, len(oldData))
 	for i := 0; i < len(finalVerts); i++ {
 		finalVerts[i] = q.Rotate(oldData[i])
 	}
@@ -333,12 +336,12 @@ func (m Mesh) RotateAttribute3D(attribute string, q Quaternion) Mesh {
 }
 
 // Scale(o, a) is shorthand for ScaleAttribute3D("Position", o, a)
-func (m Mesh) Scale(origin, amount vector.Vector3) Mesh {
+func (m Mesh) Scale(origin, amount vector3.Float64) Mesh {
 	return m.ScaleAttribute3D(PositionAttribute, origin, amount)
 }
 
-func (m Mesh) ScaleAttribute3D(attribute string, origin, amount vector.Vector3) Mesh {
-	return m.ModifyFloat3Attribute(attribute, func(i int, v vector.Vector3) vector.Vector3 {
+func (m Mesh) ScaleAttribute3D(attribute string, origin, amount vector3.Float64) Mesh {
+	return m.ModifyFloat3Attribute(attribute, func(i int, v vector3.Float64) vector3.Float64 {
 		return origin.Add(v.Sub(origin).MultByVector(amount))
 	})
 }
@@ -351,10 +354,10 @@ func (m Mesh) BoundingBox(atr string) AABB {
 func (m Mesh) CenterFloat3Attribute(atr string) Mesh {
 	m.requireV3Attribute(atr)
 	oldData := m.v3Data[atr]
-	modified := make([]vector.Vector3, len(oldData))
+	modified := make([]vector3.Float64, len(oldData))
 
-	min := vector.NewVector3(math.Inf(1), math.Inf(1), math.Inf(1))
-	max := vector.NewVector3(math.Inf(-1), math.Inf(-1), math.Inf(-1))
+	min := vector3.New(math.Inf(1), math.Inf(1), math.Inf(1))
+	max := vector3.New(math.Inf(-1), math.Inf(-1), math.Inf(-1))
 	for _, v := range oldData {
 		min = min.SetX(math.Min(v.X(), min.X()))
 		min = min.SetY(math.Min(v.Y(), min.Y()))
@@ -420,7 +423,6 @@ func (m Mesh) ScanPrimitivesParallel(f func(i int, p Primitive)) Mesh {
 }
 
 func (m Mesh) ScanPrimitivesParallelWithPoolSize(size int, f func(i int, p Primitive)) Mesh {
-
 	if size < 1 {
 		panic(fmt.Errorf("unable to scan primitives, invalid worker pool size: %d", size))
 	}
@@ -467,7 +469,7 @@ func (m Mesh) ScanPrimitivesParallelWithPoolSize(size int, f func(i int, p Primi
 	return m
 }
 
-func (m Mesh) ScanFloat3Attribute(atr string, f func(i int, v vector.Vector3)) Mesh {
+func (m Mesh) ScanFloat3Attribute(atr string, f func(i int, v vector3.Float64)) Mesh {
 	m.requireV3Attribute(atr)
 
 	for i, v := range m.v3Data[atr] {
@@ -477,11 +479,11 @@ func (m Mesh) ScanFloat3Attribute(atr string, f func(i int, v vector.Vector3)) M
 	return m
 }
 
-func (m Mesh) ScanFloat3AttributeParallel(atr string, f func(i int, v vector.Vector3)) Mesh {
+func (m Mesh) ScanFloat3AttributeParallel(atr string, f func(i int, v vector3.Float64)) Mesh {
 	return m.ScanFloat3AttributeParallelWithPoolSize(atr, runtime.NumCPU(), f)
 }
 
-func (m Mesh) ScanFloat3AttributeParallelWithPoolSize(atr string, size int, f func(i int, v vector.Vector3)) Mesh {
+func (m Mesh) ScanFloat3AttributeParallelWithPoolSize(atr string, size int, f func(i int, v vector3.Float64)) Mesh {
 	m.requireV3Attribute(atr)
 
 	if size < 1 {
@@ -519,7 +521,7 @@ func (m Mesh) ScanFloat3AttributeParallelWithPoolSize(atr string, size int, f fu
 	return m
 }
 
-func (m Mesh) ScanFloat2Attribute(atr string, f func(i int, v vector.Vector2)) Mesh {
+func (m Mesh) ScanFloat2Attribute(atr string, f func(i int, v vector2.Float64)) Mesh {
 	m.requireV2Attribute(atr)
 
 	for i, v := range m.v2Data[atr] {
@@ -529,11 +531,11 @@ func (m Mesh) ScanFloat2Attribute(atr string, f func(i int, v vector.Vector2)) M
 	return m
 }
 
-func (m Mesh) ScanFloat2AttributeParallel(atr string, f func(i int, v vector.Vector2)) Mesh {
+func (m Mesh) ScanFloat2AttributeParallel(atr string, f func(i int, v vector2.Float64)) Mesh {
 	return m.ScanFloat2AttributeParallelWithPoolSize(atr, runtime.NumCPU(), f)
 }
 
-func (m Mesh) ScanFloat2AttributeParallelWithPoolSize(atr string, size int, f func(i int, v vector.Vector2)) Mesh {
+func (m Mesh) ScanFloat2AttributeParallelWithPoolSize(atr string, size int, f func(i int, v vector2.Float64)) Mesh {
 	m.requireV2Attribute(atr)
 
 	if size < 1 {
@@ -623,10 +625,10 @@ func (m Mesh) ScanFloat1AttributeParallelWithPoolSize(atr string, size int, f fu
 	return m
 }
 
-func (m Mesh) ModifyFloat3Attribute(atr string, f func(i int, v vector.Vector3) vector.Vector3) Mesh {
+func (m Mesh) ModifyFloat3Attribute(atr string, f func(i int, v vector3.Float64) vector3.Float64) Mesh {
 	m.requireV3Attribute(atr)
 	oldData := m.v3Data[atr]
-	modified := make([]vector.Vector3, len(oldData))
+	modified := make([]vector3.Float64, len(oldData))
 
 	for i, v := range oldData {
 		modified[i] = f(i, v)
@@ -635,11 +637,11 @@ func (m Mesh) ModifyFloat3Attribute(atr string, f func(i int, v vector.Vector3) 
 	return m.SetFloat3Attribute(atr, modified)
 }
 
-func (m Mesh) ModifyFloat3AttributeParallel(atr string, f func(i int, v vector.Vector3) vector.Vector3) Mesh {
+func (m Mesh) ModifyFloat3AttributeParallel(atr string, f func(i int, v vector3.Float64) vector3.Float64) Mesh {
 	return m.ModifyFloat3AttributeParallelWithPoolSize(atr, runtime.NumCPU(), f)
 }
 
-func (m Mesh) ModifyFloat3AttributeParallelWithPoolSize(atr string, size int, f func(i int, v vector.Vector3) vector.Vector3) Mesh {
+func (m Mesh) ModifyFloat3AttributeParallelWithPoolSize(atr string, size int, f func(i int, v vector3.Float64) vector3.Float64) Mesh {
 	m.requireV3Attribute(atr)
 
 	if size < 1 {
@@ -651,7 +653,7 @@ func (m Mesh) ModifyFloat3AttributeParallelWithPoolSize(atr string, size int, f 
 	}
 
 	oldData := m.v3Data[atr]
-	modified := make([]vector.Vector3, len(oldData))
+	modified := make([]vector3.Float64, len(oldData))
 
 	var wg sync.WaitGroup
 
@@ -680,10 +682,10 @@ func (m Mesh) ModifyFloat3AttributeParallelWithPoolSize(atr string, size int, f 
 	return m.SetFloat3Attribute(atr, modified)
 }
 
-func (m Mesh) ModifyFloat2Attribute(atr string, f func(i int, v vector.Vector2) vector.Vector2) Mesh {
+func (m Mesh) ModifyFloat2Attribute(atr string, f func(i int, v vector2.Float64) vector2.Float64) Mesh {
 	m.requireV2Attribute(atr)
 	oldData := m.v2Data[atr]
-	modified := make([]vector.Vector2, len(oldData))
+	modified := make([]vector2.Float64, len(oldData))
 
 	for i, v := range oldData {
 		modified[i] = f(i, v)
@@ -692,11 +694,11 @@ func (m Mesh) ModifyFloat2Attribute(atr string, f func(i int, v vector.Vector2) 
 	return m.SetFloat2Attribute(atr, modified)
 }
 
-func (m Mesh) ModifyFloat2AttributeParallel(atr string, f func(i int, v vector.Vector2) vector.Vector2) Mesh {
+func (m Mesh) ModifyFloat2AttributeParallel(atr string, f func(i int, v vector2.Float64) vector2.Float64) Mesh {
 	return m.ModifyFloat2AttributeParallelWithPoolSize(atr, runtime.NumCPU(), f)
 }
 
-func (m Mesh) ModifyFloat2AttributeParallelWithPoolSize(atr string, size int, f func(i int, v vector.Vector2) vector.Vector2) Mesh {
+func (m Mesh) ModifyFloat2AttributeParallelWithPoolSize(atr string, size int, f func(i int, v vector2.Float64) vector2.Float64) Mesh {
 	m.requireV2Attribute(atr)
 
 	if size < 1 {
@@ -708,7 +710,7 @@ func (m Mesh) ModifyFloat2AttributeParallelWithPoolSize(atr string, size int, f 
 	}
 
 	oldData := m.v2Data[atr]
-	modified := make([]vector.Vector2, len(oldData))
+	modified := make([]vector2.Float64, len(oldData))
 
 	var wg sync.WaitGroup
 
@@ -798,9 +800,9 @@ func (m Mesh) CalculateFlatNormals() Mesh {
 	m.requireV3Attribute(PositionAttribute)
 
 	vertices := m.v3Data[PositionAttribute]
-	normals := make([]vector.Vector3, len(vertices))
+	normals := make([]vector3.Float64, len(vertices))
 	for i := range normals {
-		normals[i] = vector.Vector3One()
+		normals[i] = vector3.One[float64]()
 	}
 
 	tris := m.indices
@@ -827,14 +829,14 @@ func (m Mesh) CalculateFlatNormals() Mesh {
 func (m Mesh) Unweld() Mesh {
 	indices := make([]int, len(m.indices))
 
-	unweldedV3Data := make(map[string][]vector.Vector3)
+	unweldedV3Data := make(map[string][]vector3.Float64)
 	for atr := range m.v3Data {
-		unweldedV3Data[atr] = make([]vector.Vector3, 0)
+		unweldedV3Data[atr] = make([]vector3.Float64, 0)
 	}
 
-	unweldedV2Data := make(map[string][]vector.Vector2)
+	unweldedV2Data := make(map[string][]vector2.Float64)
 	for atr := range m.v2Data {
-		unweldedV2Data[atr] = make([]vector.Vector2, 0)
+		unweldedV2Data[atr] = make([]vector2.Float64, 0)
 	}
 
 	unweldedV1Data := make(map[string][]float64)
@@ -917,14 +919,14 @@ func (m Mesh) WeldByFloat3Attribute(attribute string, decimalPlace int) Mesh {
 		newTris = append(newTris, vertILU[v1], vertILU[v2], vertILU[v3])
 	}
 
-	finalV3Data := make(map[string][]vector.Vector3)
+	finalV3Data := make(map[string][]vector3.Float64)
 	for key := range m.v3Data {
-		finalV3Data[key] = make([]vector.Vector3, 0)
+		finalV3Data[key] = make([]vector3.Float64, 0)
 	}
 
-	finalV2Data := make(map[string][]vector.Vector2)
+	finalV2Data := make(map[string][]vector2.Float64)
 	for key := range m.v2Data {
-		finalV2Data[key] = make([]vector.Vector2, 0)
+		finalV2Data[key] = make([]vector2.Float64, 0)
 	}
 
 	finalV1Data := make(map[string][]float64)
@@ -1018,8 +1020,8 @@ func (m Mesh) requireTopology(t Topology) {
 	}
 }
 
-func (m Mesh) SetFloat3Attribute(atr string, data []vector.Vector3) Mesh {
-	finalV3Data := make(map[string][]vector.Vector3)
+func (m Mesh) SetFloat3Attribute(atr string, data []vector3.Float64) Mesh {
+	finalV3Data := make(map[string][]vector3.Float64)
 	for key, val := range m.v3Data {
 		finalV3Data[key] = val
 	}
@@ -1032,8 +1034,9 @@ func (m Mesh) SetFloat3Attribute(atr string, data []vector.Vector3) Mesh {
 		m.materials,
 	)
 }
-func (m Mesh) SetFloat2Attribute(atr string, data []vector.Vector2) Mesh {
-	finalV2Data := make(map[string][]vector.Vector2)
+
+func (m Mesh) SetFloat2Attribute(atr string, data []vector2.Float64) Mesh {
+	finalV2Data := make(map[string][]vector2.Float64)
 	for key, val := range m.v2Data {
 		finalV2Data[key] = val
 	}
@@ -1132,14 +1135,14 @@ func (m Mesh) SmoothLaplacian(iterations int, smoothingFactor float64) Mesh {
 	lut := m.VertexNeighborTable()
 
 	oldVertices := m.v3Data[PositionAttribute]
-	vertices := make([]vector.Vector3, len(oldVertices))
+	vertices := make([]vector3.Float64, len(oldVertices))
 	for i := range vertices {
 		vertices[i] = oldVertices[i]
 	}
 
 	for i := 0; i < iterations; i++ {
 		for vi, vertex := range vertices {
-			vs := vector.Vector3Zero()
+			vs := vector3.Zero[float64]()
 
 			for vn := range lut.Lookup(vi) {
 				vs = vs.Add(vertices[vn])
@@ -1161,9 +1164,9 @@ func (m Mesh) CalculateSmoothNormals() Mesh {
 	m.requireV3Attribute(PositionAttribute)
 
 	vertices := m.v3Data[PositionAttribute]
-	normals := make([]vector.Vector3, len(vertices))
+	normals := make([]vector3.Float64, len(vertices))
 	for i := range normals {
-		normals[i] = vector.Vector3Zero()
+		normals[i] = vector3.Zero[float64]()
 	}
 
 	tris := m.indices
@@ -1206,8 +1209,8 @@ func (m Mesh) AttributeLength() int {
 
 func (m Mesh) RemoveUnusedIndices() Mesh {
 	finalTris := make([]int, len(m.indices))
-	finalV3Data := make(map[string][]vector.Vector3)
-	finalV2Data := make(map[string][]vector.Vector2)
+	finalV3Data := make(map[string][]vector3.Float64)
+	finalV2Data := make(map[string][]vector2.Float64)
 	finalV1Data := make(map[string][]float64)
 
 	used := make([]bool, m.AttributeLength())
@@ -1225,7 +1228,7 @@ func (m Mesh) RemoveUnusedIndices() Mesh {
 	}
 
 	for atr, vals := range m.v3Data {
-		finalAtrVals := make([]vector.Vector3, 0)
+		finalAtrVals := make([]vector3.Float64, 0)
 		for i, v := range vals {
 			if used[i] {
 				finalAtrVals = append(finalAtrVals, v)
@@ -1235,7 +1238,7 @@ func (m Mesh) RemoveUnusedIndices() Mesh {
 	}
 
 	for atr, vals := range m.v2Data {
-		finalAtrVals := make([]vector.Vector2, 0)
+		finalAtrVals := make([]vector2.Float64, 0)
 		for i, v := range vals {
 			if used[i] {
 				finalAtrVals = append(finalAtrVals, v)

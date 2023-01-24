@@ -6,8 +6,38 @@ import (
 	"sync"
 
 	"github.com/EliCDavis/polyform/modeling"
-	"github.com/EliCDavis/vector"
+	"github.com/EliCDavis/vector/vector2"
+	"github.com/EliCDavis/vector/vector3"
 )
+
+type Buffer[T any] []T
+
+type DataAccessor[T any] interface{}
+
+// func (da *DataAccessor[T]) Set(newData []T) {
+// 	da.data = newData
+// }
+
+// func (da *DataAccessor[T]) Get() []T {
+// 	return da.data
+// }
+
+func get[T any](c Collection, str string) DataAccessor[T] {
+	d := c.data[str]
+	v, ok := d.(DataAccessor[T])
+	if !ok {
+		panic("Couldn't find data with type T")
+	}
+	return v
+}
+
+type Collection struct {
+	data map[string]DataAccessor[any]
+}
+
+func (c Collection) GetVector3(str string) DataAccessor[vector3.Float64] {
+	return get[vector3.Float64](c, str)
+}
 
 type View struct {
 	mesh             *modeling.Mesh
@@ -67,32 +97,32 @@ func (v View) requireV1WritePermission(attribute string) {
 	}
 }
 
-func (v View) ScanFloat3Attribute(attribute string, f func(i int, v vector.Vector3)) {
+func (v View) ScanFloat3Attribute(attribute string, f func(i int, v vector3.Float64)) {
 	v.requireV3ReadPermission(attribute)
 	v.mesh.ScanFloat3Attribute(attribute, f)
 }
 
-func (v View) ScanFloat3AttributeParallel(attribute string, f func(i int, v vector.Vector3)) {
+func (v View) ScanFloat3AttributeParallel(attribute string, f func(i int, v vector3.Float64)) {
 	v.requireV3ReadPermission(attribute)
 	v.mesh.ScanFloat3AttributeParallel(attribute, f)
 }
 
-func (v View) ScanFloat3AttributeParallelWithPoolSize(attribute string, size int, f func(i int, v vector.Vector3)) {
+func (v View) ScanFloat3AttributeParallelWithPoolSize(attribute string, size int, f func(i int, v vector3.Float64)) {
 	v.requireV3ReadPermission(attribute)
 	v.mesh.ScanFloat3AttributeParallelWithPoolSize(attribute, size, f)
 }
 
-func (v View) ScanFloat2Attribute(attribute string, f func(i int, v vector.Vector2)) {
+func (v View) ScanFloat2Attribute(attribute string, f func(i int, v vector2.Float64)) {
 	v.requireV2ReadPermission(attribute)
 	v.mesh.ScanFloat2Attribute(attribute, f)
 }
 
-func (v View) ScanFloat2AttributeParallel(attribute string, f func(i int, v vector.Vector2)) {
+func (v View) ScanFloat2AttributeParallel(attribute string, f func(i int, v vector2.Float64)) {
 	v.requireV2ReadPermission(attribute)
 	v.mesh.ScanFloat2AttributeParallel(attribute, f)
 }
 
-func (v View) ScanFloat2AttributeParallelWithPoolSize(attribute string, size int, f func(i int, v vector.Vector2)) {
+func (v View) ScanFloat2AttributeParallelWithPoolSize(attribute string, size int, f func(i int, v vector2.Float64)) {
 	v.requireV2ReadPermission(attribute)
 	v.mesh.ScanFloat2AttributeParallelWithPoolSize(attribute, size, f)
 }
@@ -112,7 +142,7 @@ func (v View) ScanFloat1AttributeParallelWithPoolSize(attribute string, size int
 	v.mesh.ScanFloat1AttributeParallelWithPoolSize(attribute, size, f)
 }
 
-func (v *View) SetFloat3Attribute(attribute string, data []vector.Vector3) {
+func (v *View) SetFloat3Attribute(attribute string, data []vector3.Float64) {
 	v.requireV3WritePermission(attribute)
 
 	mesh := v.mesh.SetFloat3Attribute(attribute, data)
@@ -121,7 +151,7 @@ func (v *View) SetFloat3Attribute(attribute string, data []vector.Vector3) {
 	v.meshMutex.Unlock()
 }
 
-func (v *View) SetFloat2Attribute(attribute string, data []vector.Vector2) {
+func (v *View) SetFloat2Attribute(attribute string, data []vector2.Float64) {
 	v.requireV2WritePermission(attribute)
 
 	mesh := v.mesh.SetFloat2Attribute(attribute, data)

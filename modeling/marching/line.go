@@ -8,11 +8,11 @@ import (
 	"github.com/EliCDavis/polyform/math/sdf"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/trees"
-	"github.com/EliCDavis/vector"
+	"github.com/EliCDavis/vector/vector3"
 )
 
 type thickLinePrimitive struct {
-	start, end vector.Vector3
+	start, end vector3.Float64
 	radius     float64
 }
 
@@ -22,13 +22,13 @@ func (l thickLinePrimitive) BoundingBox(atr string) modeling.AABB {
 	return aabb
 }
 
-func (l thickLinePrimitive) ClosestPoint(atr string, point vector.Vector3) vector.Vector3 {
+func (l thickLinePrimitive) ClosestPoint(atr string, point vector3.Float64) vector3.Float64 {
 	line3d := geometry.NewLine3D(l.start, l.end)
 	return line3d.ClosestPointOnLine(point)
 }
 
-func Line(start, end vector.Vector3, radius, strength float64) Field {
-	boundsSize := vector.Vector3One().MultByConstant(radius + strength)
+func Line(start, end vector3.Float64, radius, strength float64) Field {
+	boundsSize := vector3.One[float64]().MultByConstant(radius + strength)
 	bounds := modeling.NewAABB(start, boundsSize)
 	bounds.EncapsulateBounds(modeling.NewAABB(end, boundsSize))
 	return Field{
@@ -39,7 +39,7 @@ func Line(start, end vector.Vector3, radius, strength float64) Field {
 	}
 }
 
-func MultiSegmentLine(linePoints []vector.Vector3, radius, strength float64) Field {
+func MultiSegmentLine(linePoints []vector3.Float64, radius, strength float64) Field {
 	if len(linePoints) < 2 {
 		panic("can not create a line segment field with less than 2 points")
 	}
@@ -59,7 +59,7 @@ func MultiSegmentLine(linePoints []vector.Vector3, radius, strength float64) Fie
 	return Field{
 		Domain: bounds,
 		Float1Functions: map[string]sample.Vec3ToFloat{
-			modeling.PositionAttribute: func(v vector.Vector3) float64 {
+			modeling.PositionAttribute: func(v vector3.Float64) float64 {
 				if !bounds.Contains(v) {
 					return 0
 				}
@@ -72,20 +72,19 @@ func MultiSegmentLine(linePoints []vector.Vector3, radius, strength float64) Fie
 					min = math.Min(min, val)
 				}
 				return min
-
 			},
 		},
 	}
 
 	// ==============================================================
 
-	// bounds := modeling.NewAABB(line[0], vector.Vector3Zero())
+	// bounds := modeling.NewAABB(line[0], vector3.Zero[float64]())
 	// sdfs := make([]sample.Vec3ToFloat, 0, len(line)-1)
 	// for i := 1; i < len(line); i++ {
 	// 	start := line[i-1]
 	// 	end := line[i]
 
-	// 	boundsSize := vector.Vector3One().MultByConstant(radius + strength)
+	// 	boundsSize := vector3.One[float64]().MultByConstant(radius + strength)
 	// 	bounds.EncapsulateBounds(modeling.NewAABB(start, boundsSize))
 	// 	bounds.EncapsulateBounds(modeling.NewAABB(end, boundsSize))
 
@@ -95,7 +94,7 @@ func MultiSegmentLine(linePoints []vector.Vector3, radius, strength float64) Fie
 	// return Field{
 	// 	Domain: bounds,
 	// 	Float1Functions: map[string]sample.Vec3ToFloat{
-	// 		modeling.PositionAttribute: func(v vector.Vector3) float64 {
+	// 		modeling.PositionAttribute: func(v vector3.Float64) float64 {
 	// 			min := math.MaxFloat64
 	// 			for _, sdf := range sdfs {
 	// 				min = math.Min(min, sdf(v))

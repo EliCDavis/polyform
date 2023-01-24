@@ -2,7 +2,7 @@ package triangulation
 
 import (
 	"github.com/EliCDavis/polyform/math/geometry"
-	"github.com/EliCDavis/vector"
+	"github.com/EliCDavis/vector/vector2"
 )
 
 type Constraint struct {
@@ -10,7 +10,7 @@ type Constraint struct {
 	keepIn bool
 }
 
-func NewConstraint(shape []vector.Vector2) Constraint {
+func NewConstraint(shape []vector2.Float64) Constraint {
 	if len(shape) < 3 {
 		panic("constraint must contain 3 or more points to form a shape")
 	}
@@ -21,7 +21,7 @@ func NewConstraint(shape []vector.Vector2) Constraint {
 	}
 }
 
-func (c Constraint) contains(points ...vector.Vector2) int {
+func (c Constraint) contains(points ...vector2.Float64) int {
 	count := 0
 	for _, p := range points {
 		if c.shape.IsInside(p) {

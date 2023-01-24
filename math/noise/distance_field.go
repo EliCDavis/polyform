@@ -4,17 +4,17 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/EliCDavis/vector"
+	"github.com/EliCDavis/vector/vector2"
 )
 
 type DistanceField struct {
-	points         []vector.Vector2
+	points         []vector2.Float64
 	xCells, yCells int
-	size           vector.Vector2
-	spacing        vector.Vector2
+	size           vector2.Float64
+	spacing        vector2.Float64
 }
 
-func NewDistanceField(xCells, yCells int, size vector.Vector2) *DistanceField {
+func NewDistanceField(xCells, yCells int, size vector2.Float64) *DistanceField {
 	if xCells <= 0 {
 		panic(fmt.Errorf("invalid distance field x cell count: %d", xCells))
 	}
@@ -31,19 +31,19 @@ func NewDistanceField(xCells, yCells int, size vector.Vector2) *DistanceField {
 		panic(fmt.Errorf("invalid distance field height: %f", size.Y()))
 	}
 
-	spacing := vector.NewVector2(
+	spacing := vector2.New(
 		size.X()/float64(xCells),
 		size.Y()/float64(yCells),
 	)
 
-	points := make([]vector.Vector2, xCells*yCells)
+	points := make([]vector2.Float64, xCells*yCells)
 
 	for y := 0; y < yCells; y++ {
 		for x := 0; x < xCells; x++ {
-			points[(xCells*y)+x] = vector.
-				Vector2Rnd().
+			points[(xCells*y)+x] = vector2.
+				Rand().
 				MultByVector(spacing).
-				Add(spacing.MultByVector(vector.NewVector2(float64(x), float64(y))))
+				Add(spacing.MultByVector(vector2.New(float64(x), float64(y))))
 		}
 	}
 
@@ -56,8 +56,8 @@ func NewDistanceField(xCells, yCells int, size vector.Vector2) *DistanceField {
 	}
 }
 
-func (df DistanceField) point(x, y int) vector.Vector2 {
-	offset := vector.Vector2Zero()
+func (df DistanceField) point(x, y int) vector2.Float64 {
+	offset := vector2.Zero[float64]()
 
 	cleanX := x
 	if cleanX < 0 {
@@ -80,7 +80,7 @@ func (df DistanceField) point(x, y int) vector.Vector2 {
 	return df.points[(df.xCells*cleanY)+cleanX].Add(offset)
 }
 
-func (df DistanceField) Sample(in vector.Vector2) float64 {
+func (df DistanceField) Sample(in vector2.Float64) float64 {
 	cellX := int(math.Floor(in.X() / (df.size.X() / float64(df.xCells))))
 	cellY := int(math.Floor(in.Y() / (df.size.Y() / float64(df.yCells))))
 	minDist := math.MaxFloat64

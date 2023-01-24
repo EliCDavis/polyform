@@ -2,42 +2,41 @@ package primitives
 
 import (
 	"github.com/EliCDavis/polyform/modeling"
-	"github.com/EliCDavis/vector"
+	"github.com/EliCDavis/vector/vector3"
 )
 
 /*
 Builds a cube with no normals
 
-
 The Cube Indices:
 
-   3 ------- 7
- / |      /  |
+	  3 ------- 7
+	/ |      /  |
+
 2  |     6   |
 |  1     |   5
 | /      | /
 0 ------ 4
-
 */
 func Cube() modeling.Mesh {
-	verts := []vector.Vector3{
+	verts := []vector3.Float64{
 		// bottom, back, left
-		vector.NewVector3(-.5, -.5, -.5),
+		vector3.New(-.5, -.5, -.5),
 		// bottom, front, left
-		vector.NewVector3(-.5, -.5, .5),
+		vector3.New(-.5, -.5, .5),
 		// top, back, left
-		vector.NewVector3(-.5, .5, -.5),
+		vector3.New(-.5, .5, -.5),
 		// top, front, left
-		vector.NewVector3(-.5, .5, .5),
+		vector3.New(-.5, .5, .5),
 
 		// bottom, back, right
-		vector.NewVector3(.5, -.5, -.5),
+		vector3.New(.5, -.5, -.5),
 		// bottom, front, right
-		vector.NewVector3(.5, -.5, .5),
+		vector3.New(.5, -.5, .5),
 		// top, back, right
-		vector.NewVector3(.5, .5, -.5),
+		vector3.New(.5, .5, -.5),
 		// top, front, right
-		vector.NewVector3(.5, .5, .5),
+		vector3.New(.5, .5, .5),
 	}
 	return modeling.NewMesh(
 		[]int{
@@ -65,9 +64,9 @@ func Cube() modeling.Mesh {
 			5, 7, 3,
 			5, 3, 1,
 		},
-		map[string][]vector.Vector3{
+		map[string][]vector3.Float64{
 			modeling.PositionAttribute: verts,
-			modeling.NormalAttribute:   vector.Vector3Array(verts).Normalized(),
+			modeling.NormalAttribute:   vector3.Array[float64](verts).Normalized(),
 		},
 		nil,
 		nil,

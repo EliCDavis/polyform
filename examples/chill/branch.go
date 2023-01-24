@@ -7,7 +7,7 @@ import (
 
 	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/drawing/texturing"
-	"github.com/EliCDavis/vector"
+	"github.com/EliCDavis/vector/vector2"
 	"github.com/fogleman/gg"
 )
 
@@ -20,7 +20,7 @@ type BerryConfig struct {
 func Bristle(
 	colorContext *gg.Context,
 	specularContext *gg.Context,
-	start, end vector.Vector2,
+	start, end vector2.Float64,
 	branchWidth, chanceOfSnow float64,
 	colors coloring.ColorStack,
 	berry *BerryConfig,
@@ -140,7 +140,6 @@ func BranchTexture(
 	numOfBerryBranches int,
 	atlasSize int,
 ) *Atlas {
-
 	if numOfBerryBranches > numBranches {
 		panic(fmt.Errorf("berry branch count can't be greater than branch count (%d > %d)", numOfBerryBranches, numBranches))
 	}
@@ -160,8 +159,8 @@ func BranchTexture(
 
 	workingAtlas := &Atlas{
 		Name:       "Branches 0",
-		BottomLeft: vector.Vector2Zero(),
-		TopRight:   vector.Vector2One(),
+		BottomLeft: vector2.Zero[float64](),
+		TopRight:   vector2.One[float64](),
 		Entries:    make([]AtlasEntry, 0),
 	}
 
@@ -186,14 +185,14 @@ func BranchTexture(
 				berryConfigForBranch = berryConfig
 			}
 
-			start := vector.NewVector2(halfBranchImageSize, 0).
-				Add(vector.NewVector2(float64(x)*branchImageSize, float64(y)*branchImageSize))
+			start := vector2.New(halfBranchImageSize, 0).
+				Add(vector2.New(float64(x)*branchImageSize, float64(y)*branchImageSize))
 
 			Bristle(
 				colorContext,
 				specularContext,
 				start,
-				start.Add(vector.NewVector2(0, branchImageSize*.8)),
+				start.Add(vector2.New(0, branchImageSize*.8)),
 				20.,
 				minSnow+(snowInc*float64(x+(y*numBranches))),
 				colors,
@@ -202,8 +201,8 @@ func BranchTexture(
 			)
 
 			workingAtlas.Entries = append(workingAtlas.Entries, AtlasEntry{
-				BottomLeft: vector.NewVector2(float64(x)/float64(numBranches), float64(y)/float64(numBranches)),
-				TopRight:   vector.NewVector2(float64(x+1)/float64(numBranches), float64(y+1)/float64(numBranches)),
+				BottomLeft: vector2.New(float64(x)/float64(numBranches), float64(y)/float64(numBranches)),
+				TopRight:   vector2.New(float64(x+1)/float64(numBranches), float64(y+1)/float64(numBranches)),
 			})
 
 			entryCount++
@@ -212,8 +211,8 @@ func BranchTexture(
 				subAtlases = append(subAtlases, workingAtlas)
 				workingAtlas = &Atlas{
 					Name:       fmt.Sprintf("Branches %d", len(subAtlases)),
-					BottomLeft: vector.Vector2Zero(),
-					TopRight:   vector.Vector2One(),
+					BottomLeft: vector2.Zero[float64](),
+					TopRight:   vector2.One[float64](),
 					Entries:    make([]AtlasEntry, 0),
 				}
 			}
@@ -232,8 +231,8 @@ func BranchTexture(
 		return &Atlas{
 			Name:       "Branches",
 			SubAtlas:   subAtlases,
-			BottomLeft: vector.Vector2Zero(),
-			TopRight:   vector.Vector2One(),
+			BottomLeft: vector2.Zero[float64](),
+			TopRight:   vector2.One[float64](),
 		}
 	}
 	return subAtlases[0]

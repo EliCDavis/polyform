@@ -4,14 +4,15 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/EliCDavis/vector"
+	"github.com/EliCDavis/vector/vector2"
+	"github.com/EliCDavis/vector/vector3"
 )
 
 type CollapsableMesh struct {
-	vertices        []vector.Vector3
+	vertices        []vector3.Float64
 	triangles       []int
-	normals         []vector.Vector3
-	uv              []vector.Vector2
+	normals         []vector3.Float64
+	uv              []vector2.Float64
 	verticesRemoved []int
 	trisRemoved     int
 
@@ -38,7 +39,7 @@ func NewCollapsableMesh(m Mesh) CollapsableMesh {
 	if !ok {
 		panic("expected float3 position attribute")
 	}
-	verts := make([]vector.Vector3, len(meshVerts))
+	verts := make([]vector3.Float64, len(meshVerts))
 	copy(verts, meshVerts)
 
 	triangles := make([]int, len(m.indices))
@@ -48,14 +49,14 @@ func NewCollapsableMesh(m Mesh) CollapsableMesh {
 	if !ok {
 		panic("expected float3 normal attribute")
 	}
-	normals := make([]vector.Vector3, len(meshNormals))
+	normals := make([]vector3.Float64, len(meshNormals))
 	copy(normals, meshNormals)
 
 	meshUVs, ok := m.v2Data[TexCoordAttribute]
 	if !ok {
 		panic("expected float3 normal attribute")
 	}
-	uvs := make([]vector.Vector2, len(meshUVs))
+	uvs := make([]vector2.Float64, len(meshUVs))
 	copy(uvs, meshUVs)
 
 	return CollapsableMesh{
@@ -76,9 +77,9 @@ func (cm CollapsableMesh) ToMesh() Mesh {
 	vertRemovedIndex := 0
 	shift := make([]int, len(cm.vertices))
 	currentShift := 0
-	finalVerts := make([]vector.Vector3, 0)
-	finalNormals := make([]vector.Vector3, 0)
-	finalUVs := make([]vector.Vector2, 0)
+	finalVerts := make([]vector3.Float64, 0)
+	finalNormals := make([]vector3.Float64, 0)
+	finalUVs := make([]vector2.Float64, 0)
 	for i := 0; i < len(cm.vertices); i++ {
 		if vertRemovedIndex < len(cm.verticesRemoved) {
 			if i == cm.verticesRemoved[vertRemovedIndex] {
@@ -110,11 +111,11 @@ func (cm CollapsableMesh) ToMesh() Mesh {
 
 	return NewMesh(
 		finalTris,
-		map[string][]vector.Vector3{
+		map[string][]vector3.Float64{
 			PositionAttribute: finalVerts,
 			NormalAttribute:   finalNormals,
 		},
-		map[string][]vector.Vector2{
+		map[string][]vector2.Float64{
 			TexCoordAttribute: finalUVs,
 		},
 		nil,

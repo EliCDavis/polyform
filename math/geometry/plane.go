@@ -1,13 +1,13 @@
 package geometry
 
-import "github.com/EliCDavis/vector"
+import "github.com/EliCDavis/vector/vector3"
 
 type Plane struct {
-	normal   vector.Vector3
+	normal   vector3.Float64
 	distance float64
 }
 
-func NewPlaneFromPoints(a, b, c vector.Vector3) Plane {
+func NewPlaneFromPoints(a, b, c vector3.Float64) Plane {
 	normal := b.Sub(a).Cross(c.Sub(a)).Normalized()
 	return Plane{
 		normal:   normal,
@@ -15,15 +15,15 @@ func NewPlaneFromPoints(a, b, c vector.Vector3) Plane {
 	}
 }
 
-func (p Plane) Origin() vector.Vector3 {
+func (p Plane) Origin() vector3.Float64 {
 	return p.normal.MultByConstant(p.distance)
 }
 
-func (p Plane) Normal() vector.Vector3 {
+func (p Plane) Normal() vector3.Float64 {
 	return p.normal
 }
 
-func (p Plane) ClosestPoint(point vector.Vector3) vector.Vector3 {
+func (p Plane) ClosestPoint(point vector3.Float64) vector3.Float64 {
 	distance := p.normal.Dot(point) - p.distance
 	return point.Sub(p.normal.MultByConstant(distance))
 }

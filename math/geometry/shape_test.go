@@ -4,29 +4,29 @@ import (
 	"testing"
 
 	"github.com/EliCDavis/polyform/math/geometry"
-	"github.com/EliCDavis/vector"
+	"github.com/EliCDavis/vector/vector2"
 )
 
 func TestPointInShape(t *testing.T) {
-	shape := geometry.Shape([]vector.Vector2{
-		vector.NewVector2(0, 0),
-		vector.NewVector2(0, 1),
-		vector.NewVector2(1, 1),
-		vector.NewVector2(1, 0),
+	shape := geometry.Shape([]vector2.Float64{
+		vector2.New(0., 0.),
+		vector2.New(0., 1.),
+		vector2.New(1., 1.),
+		vector2.New(1., 0.),
 	})
 
-	point := vector.NewVector2(0.5, 0.5)
+	point := vector2.New(0.5, 0.5)
 	if shape.IsInside(point) == false {
 		t.Error("Point should be inside shape")
 	}
 }
 
 func TestGetPointtInShape(t *testing.T) {
-	shape := geometry.Shape([]vector.Vector2{
-		vector.NewVector2(0, 0),
-		vector.NewVector2(0, 1),
-		vector.NewVector2(1, 1),
-		vector.NewVector2(1, 0),
+	shape := geometry.Shape([]vector2.Float64{
+		vector2.New(0., 0.),
+		vector2.New(0., 1.),
+		vector2.New(1., 1.),
+		vector2.New(1., 0.),
 	})
 
 	point := shape.RandomPointInShape()
@@ -36,11 +36,11 @@ func TestGetPointtInShape(t *testing.T) {
 }
 
 func TestSplit(t *testing.T) {
-	shape := geometry.Shape([]vector.Vector2{
-		vector.NewVector2(0, 0),
-		vector.NewVector2(0, 1),
-		vector.NewVector2(1, 1),
-		vector.NewVector2(1, 0),
+	shape := geometry.Shape([]vector2.Float64{
+		vector2.New(0., 0.),
+		vector2.New(0., 1.),
+		vector2.New(1., 1.),
+		vector2.New(1., 0.),
 	})
 
 	left, right := shape.Split(.5)
@@ -74,13 +74,13 @@ func TestSplit(t *testing.T) {
 	}
 
 	// l 2 points, r 1 point
-	shape = geometry.Shape([]vector.Vector2{
-		vector.NewVector2(0, 0),   // l
-		vector.NewVector2(.7, .5), // r
-		vector.NewVector2(0, 1),   // l
-		vector.NewVector2(.3, 1),  // l
-		vector.NewVector2(.9, .5), // r
-		vector.NewVector2(.3, 0),  // l
+	shape = geometry.Shape([]vector2.Float64{
+		vector2.New(0., 0.), // l
+		vector2.New(.7, .5), // r
+		vector2.New(0., 1.), // l
+		vector2.New(.3, 1.), // l
+		vector2.New(.9, .5), // r
+		vector2.New(.3, 0.), // l
 	})
 
 	left, right = shape.Split(.5)

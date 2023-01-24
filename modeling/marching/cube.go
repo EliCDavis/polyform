@@ -4,10 +4,10 @@ import (
 	"github.com/EliCDavis/polyform/math/sample"
 	"github.com/EliCDavis/polyform/math/sdf"
 	"github.com/EliCDavis/polyform/modeling"
-	"github.com/EliCDavis/vector"
+	"github.com/EliCDavis/vector/vector3"
 )
 
-func Box(pos vector.Vector3, size vector.Vector3, strength float64) Field {
+func Box(pos vector3.Float64, size vector3.Float64, strength float64) Field {
 	domain := modeling.NewAABB(
 		pos,
 		size,

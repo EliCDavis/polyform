@@ -5,12 +5,13 @@ import (
 	"math"
 
 	"github.com/EliCDavis/polyform/modeling"
-	"github.com/EliCDavis/vector"
+	"github.com/EliCDavis/vector/vector2"
+	"github.com/EliCDavis/vector/vector3"
 )
 
 type Edge [2]int
 
-func (e Edge) Length(points []vector.Vector2) float64 {
+func (e Edge) Length(points []vector2.Float64) float64 {
 	return points[e[0]].Sub(points[e[1]]).Length()
 }
 
@@ -24,15 +25,15 @@ func (t Triangle) Edges() []Edge {
 	return []Edge{{t[0], t[1]}, {t[1], t[2]}, {t[2], t[0]}}
 }
 
-func (t Triangle) CounterClockwise(points []vector.Vector2) bool {
+func (t Triangle) CounterClockwise(points []vector2.Float64) bool {
 	a := points[t[0]]
 	b := points[t[1]]
 	c := points[t[2]]
 	return (b.X()-a.X())*(c.Y()-a.Y())-(c.X()-a.X())*(b.Y()-a.Y()) > 0
 }
 
-func (t Triangle) Intersects(points []vector.Vector2, start, end vector.Vector2) []vector.Vector2 {
-	intersections := make([]vector.Vector2, 0)
+func (t Triangle) Intersects(points []vector2.Float64, start, end vector2.Float64) []vector2.Float64 {
+	intersections := make([]vector2.Float64, 0)
 
 	intersects, point := intersection(points[t[0]], points[t[1]], start, end)
 	if intersects {
@@ -52,7 +53,7 @@ func (t Triangle) Intersects(points []vector.Vector2, start, end vector.Vector2)
 	return intersections
 }
 
-func (t Triangle) InsideCircumcircle(p vector.Vector2, points []vector.Vector2) bool {
+func (t Triangle) InsideCircumcircle(p vector2.Float64, points []vector2.Float64) bool {
 	// edges := t.Edges()
 	// a := edges[0].Length(points)
 	// b := edges[1].Length(points)
@@ -80,7 +81,7 @@ func (t Triangle) InsideCircumcircle(p vector.Vector2, points []vector.Vector2) 
 	return det < 0
 }
 
-func ccw(a, b, c vector.Vector2) bool {
+func ccw(a, b, c vector2.Float64) bool {
 	return (b.X()-a.X())*(c.Y()-a.Y())-(c.X()-a.X())*(b.Y()-a.Y()) > 0
 }
 
@@ -88,45 +89,45 @@ func ccw(a, b, c vector.Vector2) bool {
 //
 // TODO: This is just a guess. I've never really taken time to confirm this is
 // a valid construction
-func SuperTriangle(points []vector.Vector2) []vector.Vector2 {
-	min := vector.NewVector2(math.Inf(1), math.Inf(1))
-	max := vector.NewVector2(math.Inf(-1), math.Inf(-1))
+func SuperTriangle(points []vector2.Float64) []vector2.Float64 {
+	min := vector2.New(math.Inf(1), math.Inf(1))
+	max := vector2.New(math.Inf(-1), math.Inf(-1))
 
 	for _, v := range points {
-		min = vector.NewVector2(
+		min = vector2.New(
 			math.Min(v.X(), min.X()),
 			math.Min(v.Y(), min.Y()),
 		)
-		max = vector.NewVector2(
+		max = vector2.New(
 			math.Max(v.X(), max.X()),
 			math.Max(v.Y(), max.Y()),
 		)
 	}
 
 	height := max.Y() - min.Y()
-	min = vector.NewVector2(min.X(), min.Y()-2)
+	min = vector2.New(min.X(), min.Y()-2)
 
 	xMiddle := (min.X() + max.X()) / 2.
 	width := max.X() - min.X()
 
-	top := vector.NewVector2(
+	top := vector2.New(
 		xMiddle,
 		min.Y()+(height*20),
 	)
 
-	left := vector.NewVector2(
+	left := vector2.New(
 		xMiddle-(width*20),
 		min.Y(),
 	)
 
-	right := vector.NewVector2(
+	right := vector2.New(
 		xMiddle+(width*20),
 		min.Y(),
 	)
-	return []vector.Vector2{left, top, right}
+	return []vector2.Float64{left, top, right}
 }
 
-func containsSuperTriangleVertex(t Triangle, points []vector.Vector2) bool {
+func containsSuperTriangleVertex(t Triangle, points []vector2.Float64) bool {
 	superStart := len(points) - 3
 
 	if t[0] >= superStart {
@@ -141,13 +142,13 @@ func containsSuperTriangleVertex(t Triangle, points []vector.Vector2) bool {
 
 var exists = struct{}{}
 
-type SortByXComponent []vector.Vector2
+type SortByXComponent []vector2.Float64
 
 func (a SortByXComponent) Len() int           { return len(a) }
 func (a SortByXComponent) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a SortByXComponent) Less(i, j int) bool { return a[i].X() < a[j].X() }
 
-func fillHole(polygon []Edge, point int, triangulation map[Triangle]struct{}, points []vector.Vector2) {
+func fillHole(polygon []Edge, point int, triangulation map[Triangle]struct{}, points []vector2.Float64) {
 	for _, edge := range polygon {
 
 		if edge[0] == point || edge[1] == point {
@@ -165,7 +166,7 @@ func fillHole(polygon []Edge, point int, triangulation map[Triangle]struct{}, po
 	}
 }
 
-func bowyerWatson(pointsDirty []vector.Vector2) map[Triangle]struct{} {
+func bowyerWatson(pointsDirty []vector2.Float64) map[Triangle]struct{} {
 	if len(pointsDirty) < 3 {
 		panic("can not tesselate without at least 3 points")
 	}
@@ -251,7 +252,7 @@ func bowyerWatson(pointsDirty []vector.Vector2) map[Triangle]struct{} {
 	return triangulation
 }
 
-func ConstrainedBowyerWatson(pointsDirty []vector.Vector2, constraints []Constraint) modeling.Mesh {
+func ConstrainedBowyerWatson(pointsDirty []vector2.Float64, constraints []Constraint) modeling.Mesh {
 	finalPoints := pointsDirty
 	// finalPoints = append(finalPoints, constraints[0].shape...)
 	triangulation := bowyerWatson(finalPoints)
@@ -350,19 +351,19 @@ func ConstrainedBowyerWatson(pointsDirty []vector.Vector2, constraints []Constra
 		tris = append(tris, triangle[0], triangle[1], triangle[2])
 	}
 
-	verts := make([]vector.Vector3, len(finalPoints))
-	uvs := make([]vector.Vector2, len(finalPoints))
+	verts := make([]vector3.Float64, len(finalPoints))
+	uvs := make([]vector2.Float64, len(finalPoints))
 	for i, p := range finalPoints {
-		verts[i] = vector.NewVector3(p.X(), 0, p.Y())
-		uvs[i] = vector.Vector2Zero()
+		verts[i] = vector3.New(p.X(), 0, p.Y())
+		uvs[i] = vector2.Zero[float64]()
 	}
 
 	return modeling.NewMesh(
 		tris,
-		map[string][]vector.Vector3{
+		map[string][]vector3.Float64{
 			modeling.PositionAttribute: verts,
 		},
-		map[string][]vector.Vector2{
+		map[string][]vector2.Float64{
 			modeling.TexCoordAttribute: uvs,
 		},
 		nil,
@@ -370,26 +371,26 @@ func ConstrainedBowyerWatson(pointsDirty []vector.Vector2, constraints []Constra
 	)
 }
 
-func BowyerWatson(pointsDirty []vector.Vector2) modeling.Mesh {
+func BowyerWatson(pointsDirty []vector2.Float64) modeling.Mesh {
 	triangulation := bowyerWatson(pointsDirty)
 	tris := make([]int, 0, len(triangulation)*3)
 	for triangle := range triangulation {
 		tris = append(tris, triangle[0], triangle[1], triangle[2])
 	}
 
-	verts := make([]vector.Vector3, len(pointsDirty))
-	uvs := make([]vector.Vector2, len(pointsDirty))
+	verts := make([]vector3.Float64, len(pointsDirty))
+	uvs := make([]vector2.Float64, len(pointsDirty))
 	for i, p := range pointsDirty {
-		verts[i] = vector.NewVector3(p.X(), 0, p.Y())
-		uvs[i] = vector.Vector2Zero()
+		verts[i] = vector3.New(p.X(), 0, p.Y())
+		uvs[i] = vector2.Zero[float64]()
 	}
 
 	return modeling.NewMesh(
 		tris,
-		map[string][]vector.Vector3{
+		map[string][]vector3.Float64{
 			modeling.PositionAttribute: verts,
 		},
-		map[string][]vector.Vector2{
+		map[string][]vector2.Float64{
 			modeling.TexCoordAttribute: uvs,
 		},
 		nil,

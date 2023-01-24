@@ -3,7 +3,7 @@ package modeling
 import (
 	"math"
 
-	"github.com/EliCDavis/vector"
+	"github.com/EliCDavis/vector/vector3"
 )
 
 // https://stackoverflow.com/questions/1568568/how-to-convert-euler-angles-to-directional-vector
@@ -29,8 +29,8 @@ func Multiply3x3(m1, m2 Matrix) Matrix {
 	return m3
 }
 
-func Multiply3x3by3x1(m Matrix, v vector.Vector3) vector.Vector3 {
-	return vector.NewVector3(
+func Multiply3x3by3x1(m Matrix, v vector3.Float64) vector3.Float64 {
+	return vector3.New(
 		(m[0][0]*v.X())+(m[0][1]*v.Y())+(m[0][2]*v.Z()),
 		(m[1][0]*v.X())+(m[1][1]*v.Y())+(m[1][2]*v.Z()),
 		(m[2][0]*v.X())+(m[2][1]*v.Y())+(m[2][2]*v.Z()),
@@ -81,8 +81,8 @@ func RzT(theta float64) Matrix {
 	return Transpose(Rz(theta))
 }
 
-func ToNormal(inEulerAngle vector.Vector3) vector.Vector3 {
-	vectorToTransform := vector.Vector3Forward()
+func ToNormal(inEulerAngle vector3.Float64) vector3.Float64 {
+	vectorToTransform := vector3.Forward[float64]()
 
 	Sx := math.Sin(inEulerAngle.X() * (math.Pi / 180.))
 	Sy := math.Sin(inEulerAngle.Y() * (math.Pi / 180.))
@@ -106,7 +106,7 @@ func ToNormal(inEulerAngle vector.Vector3) vector.Vector3 {
 	Mx[2][1] = Sx
 	Mx[2][2] = Cx * Cy
 
-	return vector.NewVector3(
+	return vector3.New(
 		(Mx[0][0]*vectorToTransform.X())+(Mx[0][1]*vectorToTransform.Y())+(Mx[0][2]*vectorToTransform.Z()),
 		(Mx[1][0]*vectorToTransform.X())+(Mx[1][1]*vectorToTransform.Y())+(Mx[1][2]*vectorToTransform.Z()),
 		(Mx[2][0]*vectorToTransform.X())+(Mx[2][1]*vectorToTransform.Y())+(Mx[2][2]*vectorToTransform.Z()),

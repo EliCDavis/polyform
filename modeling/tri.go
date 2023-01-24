@@ -4,7 +4,7 @@ import (
 	"math"
 
 	"github.com/EliCDavis/polyform/math/geometry"
-	"github.com/EliCDavis/vector"
+	"github.com/EliCDavis/vector/vector3"
 )
 
 // Tri provides utility functions to a specific underlying mesh
@@ -29,15 +29,15 @@ func (t Tri) P3() int {
 	return t.mesh.indices[t.startingIndex+2]
 }
 
-func (t Tri) P1Vec3Attr(atr string) vector.Vector3 {
+func (t Tri) P1Vec3Attr(atr string) vector3.Float64 {
 	return t.mesh.v3Data[atr][t.P1()]
 }
 
-func (t Tri) P2Vec3Attr(atr string) vector.Vector3 {
+func (t Tri) P2Vec3Attr(atr string) vector3.Float64 {
 	return t.mesh.v3Data[atr][t.P2()]
 }
 
-func (t Tri) P3Vec3Attr(atr string) vector.Vector3 {
+func (t Tri) P3Vec3Attr(atr string) vector3.Float64 {
 	return t.mesh.v3Data[atr][t.P3()]
 }
 
@@ -89,13 +89,12 @@ func (t Tri) UniqueVertices() bool {
 }
 
 func (t Tri) Bounds() AABB {
-
 	center := t.P1Vec3Attr(PositionAttribute).
 		Add(t.P2Vec3Attr(PositionAttribute)).
 		Add(t.P3Vec3Attr(PositionAttribute)).
 		DivByConstant(3)
 
-	aabb := NewAABB(center, vector.Vector3Zero())
+	aabb := NewAABB(center, vector3.Zero[float64]())
 	aabb.EncapsulatePoint(t.P1Vec3Attr(PositionAttribute))
 	aabb.EncapsulatePoint(t.P2Vec3Attr(PositionAttribute))
 	aabb.EncapsulatePoint(t.P3Vec3Attr(PositionAttribute))
@@ -104,7 +103,7 @@ func (t Tri) Bounds() AABB {
 }
 
 // https://gdbooks.gitbooks.io/3dcollisions/content/Chapter4/point_in_triangle.html
-func (t Tri) PointInSide(p vector.Vector3) bool {
+func (t Tri) PointInSide(p vector3.Float64) bool {
 	// Move the triangle so that the point becomes the
 	// triangles origin
 	a := t.P1Vec3Attr(PositionAttribute).Sub(p)
@@ -129,7 +128,7 @@ func (t Tri) PointInSide(p vector.Vector3) bool {
 	return u.Dot(w) >= 0.
 }
 
-func (t Tri) ClosestPoint(atr string, p vector.Vector3) vector.Vector3 {
+func (t Tri) ClosestPoint(atr string, p vector3.Float64) vector3.Float64 {
 	closestPoint := t.Plane().ClosestPoint(p)
 
 	if t.PointInSide(closestPoint) {
@@ -160,7 +159,7 @@ func (t Tri) ClosestPoint(atr string, p vector.Vector3) vector.Vector3 {
 }
 
 func (t Tri) BoundingBox(atr string) AABB {
-	aabb := NewAABB(t.P1Vec3Attr(atr), vector.Vector3Zero())
+	aabb := NewAABB(t.P1Vec3Attr(atr), vector3.Zero[float64]())
 	aabb.EncapsulatePoint(t.P2Vec3Attr(atr))
 	aabb.EncapsulatePoint(t.P3Vec3Attr(atr))
 	return aabb

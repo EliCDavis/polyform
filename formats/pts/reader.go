@@ -8,26 +8,26 @@ import (
 	"strings"
 
 	"github.com/EliCDavis/polyform/modeling"
-	"github.com/EliCDavis/vector"
+	"github.com/EliCDavis/vector/vector3"
 )
 
-func ParseVec3(xTxt, yTxt, zTxt string) (vector.Vector3, error) {
+func ParseVec3(xTxt, yTxt, zTxt string) (vector3.Float64, error) {
 	x, err := strconv.ParseFloat(xTxt, 64)
 	if err != nil {
-		return vector.Vector3Zero(), err
+		return vector3.Zero[float64](), err
 	}
 
 	y, err := strconv.ParseFloat(yTxt, 64)
 	if err != nil {
-		return vector.Vector3Zero(), err
+		return vector3.Zero[float64](), err
 	}
 
 	z, err := strconv.ParseFloat(zTxt, 64)
 	if err != nil {
-		return vector.Vector3Zero(), err
+		return vector3.Zero[float64](), err
 	}
 
-	return vector.NewVector3(x, y, z), nil
+	return vector3.New(x, y, z), nil
 }
 
 func ReadPointCloud(in io.Reader) (*modeling.Mesh, error) {
@@ -40,8 +40,8 @@ func ReadPointCloud(in io.Reader) (*modeling.Mesh, error) {
 		return nil, err
 	}
 
-	readVerts := make([]vector.Vector3, parsedCount)
-	readColors := make([]vector.Vector3, parsedCount)
+	readVerts := make([]vector3.Float64, parsedCount)
+	readColors := make([]vector3.Float64, parsedCount)
 	intensity := make([]float64, parsedCount)
 
 	readIntensity := false
@@ -89,7 +89,7 @@ func ReadPointCloud(in io.Reader) (*modeling.Mesh, error) {
 		return nil, scanner.Err()
 	}
 
-	v3Data := make(map[string][]vector.Vector3)
+	v3Data := make(map[string][]vector3.Float64)
 
 	v3Data[modeling.PositionAttribute] = readVerts
 	if readColor {

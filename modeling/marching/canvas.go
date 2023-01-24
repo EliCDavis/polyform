@@ -8,18 +8,19 @@ import (
 
 	"github.com/EliCDavis/polyform/math/sample"
 	"github.com/EliCDavis/polyform/modeling"
-	"github.com/EliCDavis/vector"
+	"github.com/EliCDavis/vector/vector2"
+	"github.com/EliCDavis/vector/vector3"
 )
 
 func interpolationValueFromCutoff(v1v, v2v, cutoff float64) float64 {
 	return (cutoff - v1v) / (v2v - v1v)
 }
 
-func interpolateV3(v1, v2 vector.Vector3, t float64) vector.Vector3 {
+func interpolateV3(v1, v2 vector3.Float64, t float64) vector3.Float64 {
 	return v2.Sub(v1).MultByConstant(t).Add(v1)
 }
 
-func interpolateV2(v1, v2 vector.Vector2, t float64) vector.Vector2 {
+func interpolateV2(v1, v2 vector2.Float64, t float64) vector2.Float64 {
 	return v2.Sub(v1).MultByConstant(t).Add(v1)
 }
 
@@ -27,12 +28,12 @@ func interpolateV1(v1, v2, t float64) float64 {
 	return ((v2 - v1) * t) + v1
 }
 
-func interpolateVerts(v1, v2 vector.Vector3, v1v, v2v, cutoff float64) vector.Vector3 {
+func interpolateVerts(v1, v2 vector3.Float64, v1v, v2v, cutoff float64) vector3.Float64 {
 	t := interpolationValueFromCutoff(v1v, v2v, cutoff)
 	return v2.Sub(v1).MultByConstant(t).Add(v1)
 }
 
-func LookupOrAdd(data *workingData, vert vector.Vector3) int {
+func LookupOrAdd(data *workingData, vert vector3.Float64) int {
 	distritized := modeling.Vector3ToInt(vert, 4)
 
 	if foundIndex, ok := data.vertLookup[distritized]; ok {
@@ -54,17 +55,21 @@ const (
 	Float3
 )
 
-const marchingSectionSize = 100
-const marchingSectionSizeCubed = marchingSectionSize * marchingSectionSize * marchingSectionSize
+const (
+	marchingSectionSize      = 100
+	marchingSectionSizeCubed = marchingSectionSize * marchingSectionSize * marchingSectionSize
+)
 
 type marchingSection struct {
 	dataType  MarchingDataType
 	positions map[modeling.VectorInt]int
 }
 
-type float1MarchingSection []float64
-type float2MarchingSection []vector.Vector2
-type float3MarchingSection []vector.Vector3
+type (
+	float1MarchingSection []float64
+	float2MarchingSection []vector2.Float64
+	float3MarchingSection []vector3.Float64
+)
 
 type MarchingCanvas struct {
 	float1Data   []float1MarchingSection
@@ -184,8 +189,8 @@ func (d *MarchingCanvas) addFloat1Range(section *marchingSection, chunkPos, min,
 	for z := min.Z; z < max.Z; z++ {
 		for y := min.Y; y < max.Y; y++ {
 			for x := min.X; x < max.X; x++ {
-				pos := vector.
-					NewVector3(float64(x), float64(y), float64(z)).
+				pos := vector3.
+					New(float64(x), float64(y), float64(z)).
 					DivByConstant(d.cubesPerUnit)
 
 				shiftedPos := modeling.VectorInt{
@@ -262,7 +267,6 @@ func (d *MarchingCanvas) AddField(field Field) {
 }
 
 func (d *MarchingCanvas) AddFieldParallel(field Field) {
-
 	type job struct {
 		section                    *marchingSection
 		chunkPos, startPos, endPos modeling.VectorInt
@@ -321,8 +325,8 @@ func (d *MarchingCanvas) AddFieldParallel(field Field) {
 
 type workingData struct {
 	tris       []int
-	verts      []vector.Vector3
-	uvs        []vector.Vector2
+	verts      []vector3.Float64
+	uvs        []vector2.Float64
 	vertLookup map[modeling.VectorInt]int
 }
 
@@ -333,14 +337,14 @@ func (d MarchingCanvas) marchFloat1BlockPosition(
 ) modeling.Mesh {
 	marchingWorkingData := &workingData{
 		tris:       make([]int, 0),
-		verts:      make([]vector.Vector3, 0),
-		uvs:        make([]vector.Vector2, 0),
+		verts:      make([]vector3.Float64, 0),
+		uvs:        make([]vector2.Float64, 0),
 		vertLookup: make(map[modeling.VectorInt]int),
 	}
 	blockIndex := section.positions[blockPosition]
 
 	data := d.float1Data[blockIndex]
-	offset := vector.NewVector3(
+	offset := vector3.New(
 		float64(blockPosition.X)*marchingSectionSize,
 		float64(blockPosition.Y)*marchingSectionSize,
 		float64(blockPosition.Z)*marchingSectionSize,
@@ -481,18 +485,18 @@ func (d MarchingCanvas) marchFloat1BlockPosition(
 				yf := float64(y)
 				zf := float64(z)
 
-				cubeCornerPositions := []vector.Vector3{
-					vector.NewVector3(xf, yf, zf),
-					vector.NewVector3(xf+1, yf, zf),
-					vector.NewVector3(xf+1, yf, zf+1),
-					vector.NewVector3(xf, yf, zf+1),
-					vector.NewVector3(xf, yf+1, zf),
-					vector.NewVector3(xf+1, yf+1, zf),
-					vector.NewVector3(xf+1, yf+1, zf+1),
-					vector.NewVector3(xf, yf+1, zf+1),
+				cubeCornerPositions := []vector3.Float64{
+					vector3.New(xf, yf, zf),
+					vector3.New(xf+1, yf, zf),
+					vector3.New(xf+1, yf, zf+1),
+					vector3.New(xf, yf, zf+1),
+					vector3.New(xf, yf+1, zf),
+					vector3.New(xf+1, yf+1, zf),
+					vector3.New(xf+1, yf+1, zf+1),
+					vector3.New(xf, yf+1, zf+1),
 				}
 
-				var lookupIndex = 0
+				lookupIndex := 0
 				if cubeCornersExistence[0] {
 					lookupIndex |= 1
 				}
@@ -546,10 +550,10 @@ func (d MarchingCanvas) marchFloat1BlockPosition(
 	}
 	return modeling.NewMesh(
 		marchingWorkingData.tris,
-		map[string][]vector.Vector3{
+		map[string][]vector3.Float64{
 			modeling.PositionAttribute: marchingWorkingData.verts,
 		},
-		map[string][]vector.Vector2{
+		map[string][]vector2.Float64{
 			modeling.TexCoordAttribute: marchingWorkingData.uvs,
 		},
 		nil,
@@ -566,7 +570,6 @@ func (d MarchingCanvas) marchFloat1(cutoff float64, section *marchingSection) mo
 }
 
 func (d MarchingCanvas) marchFloat1Parallel(cutoff float64, section *marchingSection) modeling.Mesh {
-
 	workers := runtime.NumCPU()
 
 	numJobs := len(section.positions)
@@ -603,7 +606,7 @@ func (d MarchingCanvas) MarchOnAttribute(attribute string, cutoff float64) model
 	for sectionAttribute, section := range d.sections {
 		if section.dataType == Float1 && sectionAttribute == attribute {
 			return d.marchFloat1(cutoff, section).
-				Scale(vector.Vector3Zero(), vector.Vector3One().DivByConstant(d.cubesPerUnit)).
+				Scale(vector3.Zero[float64](), vector3.One[float64]().DivByConstant(d.cubesPerUnit)).
 				WeldByFloat3Attribute(attribute, 3)
 		}
 	}
@@ -618,7 +621,7 @@ func (d MarchingCanvas) MarchOnAttributeParallel(attribute string, cutoff float6
 	for sectionAttribute, section := range d.sections {
 		if section.dataType == Float1 && sectionAttribute == attribute {
 			return d.marchFloat1Parallel(cutoff, section).
-				Scale(vector.Vector3Zero(), vector.Vector3One().DivByConstant(d.cubesPerUnit)).
+				Scale(vector3.Zero[float64](), vector3.One[float64]().DivByConstant(d.cubesPerUnit)).
 				WeldByFloat3Attribute(attribute, 3)
 		}
 	}

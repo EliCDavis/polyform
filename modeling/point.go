@@ -2,7 +2,7 @@ package modeling
 
 import (
 	"github.com/EliCDavis/polyform/math/geometry"
-	"github.com/EliCDavis/vector"
+	"github.com/EliCDavis/vector/vector3"
 )
 
 type Point struct {
@@ -11,10 +11,10 @@ type Point struct {
 }
 
 func (p Point) BoundingBox(atr string) AABB {
-	return NewAABB(p.mesh.v3Data[atr][p.index], vector.Vector3Zero())
+	return NewAABB(p.mesh.v3Data[atr][p.index], vector3.Zero[float64]())
 }
 
-func (p Point) ClosestPoint(atr string, point vector.Vector3) vector.Vector3 {
+func (p Point) ClosestPoint(atr string, point vector3.Float64) vector3.Float64 {
 	return p.mesh.v3Data[atr][p.index]
 }
 

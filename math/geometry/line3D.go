@@ -3,40 +3,40 @@ package geometry
 import (
 	"math"
 
-	"github.com/EliCDavis/vector"
+	"github.com/EliCDavis/vector/vector3"
 )
 
 // Line3D is a series of ordered points that make up a line segment
 // through 3D space.
 type Line3D struct {
-	p1 vector.Vector3
-	p2 vector.Vector3
+	p1 vector3.Float64
+	p2 vector3.Float64
 }
 
 // NewLine3D create a new line
-func NewLine3D(p1, p2 vector.Vector3) Line3D {
+func NewLine3D(p1, p2 vector3.Float64) Line3D {
 	return Line3D{p1, p2}
 }
 
 // GetStartPoint returns the starting point of the line segment
-func (l Line3D) GetStartPoint() vector.Vector3 {
+func (l Line3D) GetStartPoint() vector3.Float64 {
 	return l.p1
 }
 
 // GetEndPoint returns the end point of the line segment
-func (l Line3D) GetEndPoint() vector.Vector3 {
+func (l Line3D) GetEndPoint() vector3.Float64 {
 	return l.p2
 }
 
-func (l Line3D) SetStartPoint(newStart vector.Vector3) Line3D {
+func (l Line3D) SetStartPoint(newStart vector3.Float64) Line3D {
 	return NewLine3D(newStart, l.GetEndPoint())
 }
 
-func (l Line3D) SetEndPoint(newEnd vector.Vector3) Line3D {
+func (l Line3D) SetEndPoint(newEnd vector3.Float64) Line3D {
 	return NewLine3D(l.GetStartPoint(), newEnd)
 }
 
-func (l Line3D) Translate(amt vector.Vector3) Line3D {
+func (l Line3D) Translate(amt vector3.Float64) Line3D {
 	return Line3D{
 		l.p1.Add(amt),
 		l.p2.Add(amt),
@@ -75,7 +75,7 @@ func (l Line3D) ScaleOutwards(amount float64) Line3D {
 	}
 }
 
-func (l Line3D) ClosestPointOnLine(p vector.Vector3) vector.Vector3 {
+func (l Line3D) ClosestPointOnLine(p vector3.Float64) vector3.Float64 {
 	p1p2Dist := l.p1.Distance(l.p2)
 	if p1p2Dist == 0.0 {
 		return l.p1
@@ -100,7 +100,7 @@ func (l Line3D) ClosestPointOnLine(p vector.Vector3) vector.Vector3 {
 	return projection
 }
 
-func (l Line3D) Intersection(plane Plane) vector.Vector3 {
+func (l Line3D) Intersection(plane Plane) vector3.Float64 {
 	u := l.p2.Sub(l.p1)
 	dot := plane.Normal().Dot(u)
 	if math.Abs(dot) > 0 {

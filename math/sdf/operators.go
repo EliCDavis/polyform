@@ -4,7 +4,7 @@ import (
 	"math"
 
 	"github.com/EliCDavis/polyform/math/sample"
-	"github.com/EliCDavis/vector"
+	"github.com/EliCDavis/vector/vector3"
 )
 
 func Union(fields ...sample.Vec3ToFloat) sample.Vec3ToFloat {
@@ -16,7 +16,7 @@ func Union(fields ...sample.Vec3ToFloat) sample.Vec3ToFloat {
 		return fields[0]
 	}
 
-	return func(v vector.Vector3) float64 {
+	return func(v vector3.Float64) float64 {
 		min := fields[0](v)
 		for i := 1; i < len(fields); i++ {
 			min = math.Min(min, fields[i](v))
@@ -34,7 +34,7 @@ func Intersect(fields ...sample.Vec3ToFloat) sample.Vec3ToFloat {
 		return fields[0]
 	}
 
-	return func(v vector.Vector3) float64 {
+	return func(v vector3.Float64) float64 {
 		max := fields[0](v)
 		for i := 1; i < len(fields); i++ {
 			max = math.Max(max, fields[i](v))
