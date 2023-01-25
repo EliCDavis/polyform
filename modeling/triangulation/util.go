@@ -17,7 +17,7 @@ func intersection(p0, p1, p2, p3 vector2.Float64) (bool, vector2.Float64) {
 	t := (s2.X()*(p0.Y()-p2.Y()) - s2.Y()*(p0.X()-p2.X())) / div
 
 	if s >= 0 && s <= 1 && t >= 0 && t <= 1 {
-		return true, p0.Add(s1.MultByConstant(t))
+		return true, p0.Add(s1.Scale(t))
 	}
 
 	return false, vector2.Zero[float64]()

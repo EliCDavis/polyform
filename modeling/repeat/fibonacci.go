@@ -20,7 +20,7 @@ func FibonacciSpherePoints(samples int, offsetRadius float64) []vector3.Float64 
 		x := math.Cos(theta) * radius
 		z := math.Sin(theta) * radius
 
-		points[i] = vector3.New(x, y, z).MultByConstant(offsetRadius)
+		points[i] = vector3.New(x, y, z).Scale(offsetRadius)
 	}
 
 	return points

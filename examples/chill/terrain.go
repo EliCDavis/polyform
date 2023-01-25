@@ -34,7 +34,7 @@ func TerrainTexture(
 	specTex := image.NewRGBA(image.Rect(0, 0, textureSize, textureSize))
 	normalSourceTex := image.NewRGBA(image.Rect(0, 0, textureSize, textureSize))
 
-	imageDimensions := vector2.One[float64]().MultByConstant(float64(textureSize))
+	imageDimensions := vector2.One[float64]().Scale(float64(textureSize))
 	df := noise.NewDistanceField(30, 30, imageDimensions)
 	df2 := noise.NewDistanceField(60, 60, imageDimensions)
 	df3 := noise.NewDistanceField(80, 80, imageDimensions)
@@ -63,7 +63,7 @@ func TerrainTexture(
 			clampedSample := modeling.Clamp(colorSample/(float64(textureSize)/40.), 0, 1)
 			tex.Set(x, y, colors.LinearSample(clampedSample))
 
-			// worldSpacePos := pixel.MultByConstant(scaleFactor)
+			// worldSpacePos := pixel.Scale(scaleFactor)
 			// height := landNoise(worldSpacePos)
 
 			spec := uint8((reSample(1.-clampedSample, vector2.New(.0, 1.), vector2.New(0.5, 0.75)) * .65) * 255)
@@ -162,7 +162,7 @@ func Terrain(forestWidth float64, height sample.Vec2ToFloat, textures *PBRTextur
 	points := make([]vector2.Float64, n)
 	for i := 0; i < n; i++ {
 		points[i] = randomVec2Radial().
-			MultByConstant(mapRadius).
+			Scale(mapRadius).
 			Add(mapOffset)
 	}
 

@@ -70,24 +70,22 @@ func (l Line3D) ScaleOutwards(amount float64) Line3D {
 	dirAndMag := l.p2.Sub(l.p1).DivByConstant(2.0)
 	center := dirAndMag.Add(l.p1)
 	return Line3D{
-		center.Add(dirAndMag.MultByConstant(amount)),
-		center.Add(dirAndMag.MultByConstant(-amount)),
+		center.Add(dirAndMag.Scale(amount)),
+		center.Add(dirAndMag.Scale(-amount)),
 	}
 }
 
 func (l Line3D) ClosestPointOnLine(p vector3.Float64) vector3.Float64 {
-	p1p2Dist := l.p1.Distance(l.p2)
+	p1p2Dist := l.p1.DistanceSquared(l.p2)
 	if p1p2Dist == 0.0 {
 		return l.p1
 	}
-
-	l2 := math.Pow(p1p2Dist, 2)
 
 	// Consider the line extending the segment, parameterized as v + t (w - v).
 	// We find projection of point p onto the line.
 	// It falls where t = [(p-v) . (w-v)] / |w-v|^2
 	// We clamp t from [0,1] to handle points outside the segment vw.
-	t := math.Max(0, math.Min(1, p.Sub(l.p1).Dot(l.p2.Sub(l.p1))/l2))
+	t := math.Max(0, math.Min(1, p.Sub(l.p1).Dot(l.p2.Sub(l.p1))/p1p2Dist))
 	if t == 1 {
 		return l.p2
 	}
@@ -96,7 +94,7 @@ func (l Line3D) ClosestPointOnLine(p vector3.Float64) vector3.Float64 {
 		return l.p1
 	}
 
-	projection := l.p1.Add(l.p2.Sub(l.p1).MultByConstant(t)) // Projection falls on the segment
+	projection := l.p1.Add(l.p2.Sub(l.p1).Scale(t)) // Projection falls on the segment
 	return projection
 }
 
@@ -106,7 +104,7 @@ func (l Line3D) Intersection(plane Plane) vector3.Float64 {
 	if math.Abs(dot) > 0 {
 		w := l.p1.Sub(plane.Origin())
 		fac := -plane.Normal().Dot(w) / dot
-		u = u.MultByConstant(fac)
+		u = u.Scale(fac)
 		return l.p1.MultByVector(u)
 	}
 

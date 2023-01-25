@@ -97,10 +97,10 @@ func TestAABBEncapsulate(t *testing.T) {
 	pts := []vector3.Float64{
 		vector3.New[float64](0.1, 0, 0),
 		vector3.New[float64](0.1, 0.1, 0),
-		vector3.New[float64](0.1, 0.1, 0.1),
+		vector3.New(0.1, 0.1, 0.1),
 		vector3.New[float64](-0.1, 0, 0),
 		vector3.New[float64](0, -0.1, 0),
-		vector3.New[float64](0.1, -0.1, -0.1),
+		vector3.New(0.1, -0.1, -0.1),
 		vector3.New[float64](0, 1, 0),
 		vector3.New[float64](0, -1, 0),
 	}

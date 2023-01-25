@@ -109,8 +109,8 @@ func Floor(floorHeight, radius, walkWidth float64) modeling.Mesh {
 
 	return extrude.ClosedShape(PiShape(floorHeight, walkWidth), shapePath).
 		Append(repeat.Circle(post, numLegs, postRadius-.2)).
-		Append(railing.Translate(vector3.Up[float64]().MultByConstant(legHeight))).
-		Append(railing.Translate(vector3.Up[float64]().MultByConstant(legHeight / 2)))
+		Append(railing.Translate(vector3.Up[float64]().Scale(legHeight))).
+		Append(railing.Translate(vector3.Up[float64]().Scale(legHeight / 2)))
 }
 
 func PiShape(height, width float64) []vector2.Float64 {

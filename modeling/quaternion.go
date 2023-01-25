@@ -28,9 +28,9 @@ func QuaternionZero() Quaternion {
 //
 //	https://gamedev.stackexchange.com/questions/28395
 func (q Quaternion) Rotate(v vector3.Float64) vector3.Float64 {
-	return q.v.MultByConstant(q.v.Dot(v) * 2.0).
-		Add(v.MultByConstant(math.Pow(q.w, 2.0) - q.v.Dot(q.v))).
-		Add(q.v.Cross(v).MultByConstant(2.0 * q.w))
+	return q.v.Scale(q.v.Dot(v) * 2.0).
+		Add(v.Scale(math.Pow(q.w, 2.0) - q.v.Dot(q.v))).
+		Add(q.v.Cross(v).Scale(2.0 * q.w))
 }
 
 // UnitQuaternionFromTheta takes a vector and angle and builds a unit
@@ -43,6 +43,6 @@ func (q Quaternion) Rotate(v vector3.Float64) vector3.Float64 {
 func UnitQuaternionFromTheta(theta float64, v vector3.Float64) Quaternion {
 	return Quaternion{
 		w: math.Cos(theta / 2.0),
-		v: v.Normalized().MultByConstant(math.Sin(theta / 2.0)),
+		v: v.Normalized().Scale(math.Sin(theta / 2.0)),
 	}
 }

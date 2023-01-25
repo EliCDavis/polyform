@@ -308,7 +308,7 @@ func (s Shape) Scale(amount float64, origin vector2.Float64) Shape {
 	newShapePonts := make([]vector2.Float64, len(s))
 
 	for i, point := range s {
-		newShapePonts[i] = origin.Add(point.Sub(origin).Normalized().MultByConstant(amount * origin.Distance(point)))
+		newShapePonts[i] = origin.Add(point.Sub(origin).Normalized().Scale(amount * origin.Distance(point)))
 	}
 	return newShapePonts
 }

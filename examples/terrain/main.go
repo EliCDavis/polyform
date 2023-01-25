@@ -29,7 +29,7 @@ func Texture(textureSize int, mapSize, height, waterLevel float64, name string, 
 	scaleFactor := mapSize / float64(textureSize)
 	for x := 0; x < textureSize; x++ {
 		for y := 0; y < textureSize; y++ {
-			samplePos := vector2.New(float64(x), float64(y)).MultByConstant(scaleFactor)
+			samplePos := vector2.New(float64(x), float64(y)).Scale(scaleFactor)
 
 			sample := landNoise(samplePos)
 			if sample <= waterLevel {
@@ -64,7 +64,7 @@ func main() {
 		theta := rand.Float64() * 2 * math.Pi
 		points[i] = vector2.
 			New(math.Cos(theta), math.Sin(theta)).
-			MultByConstant(mapRadius * math.Sqrt(rand.Float64())).
+			Scale(mapRadius * math.Sqrt(rand.Float64())).
 			Add(mapOffset)
 	}
 

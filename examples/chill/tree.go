@@ -61,7 +61,7 @@ func Tree(
 
 		dir := vector3.New(-1+(2*rand.Float64()), 0, -1+(2*rand.Float64())).
 			Normalized().
-			MultByConstant(branchLength * trailOffGivenHeight)
+			Scale(branchLength * trailOffGivenHeight)
 
 		branchAtlasEntry := atlas.RandomEntry()
 
@@ -84,19 +84,19 @@ func Tree(
 				UvWidth: .25,
 			},
 			{
-				Point:   dir.MultByConstant(.25).SetY(branchHeight - 1),
+				Point:   dir.Scale(.25).SetY(branchHeight - 1),
 				Up:      vector3.Up[float64](),
 				Height:  -(height / 30),
 				Width:   branchMaxWidth,
-				Uv:      branchUV.Add(vector2.Down[float64]().MultByConstant(branchUVLength * .25)),
+				Uv:      branchUV.Add(vector2.Down[float64]().Scale(branchUVLength * .25)),
 				UvWidth: .5,
 			},
 			{
-				Point:   dir.MultByConstant(.5).SetY(branchHeight - 1.5),
+				Point:   dir.Scale(.5).SetY(branchHeight - 1.5),
 				Up:      vector3.Up[float64](),
 				Height:  -(height / 30),
 				Width:   branchMaxWidth * 0.75,
-				Uv:      branchUV.Add(vector2.Down[float64]().MultByConstant(branchUVLength * .5)),
+				Uv:      branchUV.Add(vector2.Down[float64]().Scale(branchUVLength * .5)),
 				UvWidth: .5,
 			},
 			{
@@ -104,7 +104,7 @@ func Tree(
 				Up:      vector3.Up[float64](),
 				Height:  0,
 				Width:   branchMaxWidth * 0.35,
-				Uv:      branchUV.Add(vector2.Down[float64]().MultByConstant(branchUVLength)),
+				Uv:      branchUV.Add(vector2.Down[float64]().Scale(branchUVLength)),
 				UvWidth: .25,
 			},
 		}))
@@ -123,7 +123,7 @@ func TrunkTexture(imageSize int, colors coloring.ColorStack, barkNoise sample.Ve
 	dc.SetRGBA(0, 0, 0, 0)
 	dc.Clear()
 
-	df := noise.NewDistanceField(10, 10, vector2.One[float64]().MultByConstant(float64(imageSize)))
+	df := noise.NewDistanceField(10, 10, vector2.One[float64]().Scale(float64(imageSize)))
 
 	for x := 0; x < imageSize; x++ {
 		for y := 0; y < imageSize; y++ {

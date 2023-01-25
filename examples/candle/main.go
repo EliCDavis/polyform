@@ -32,7 +32,7 @@ func bevel(startWidth, startHeight, endWidth, endHeight, uvStart, uvEnd, uvThick
 		height := sinResult * float64(heightDelta)
 
 		points = append(points, extrude.ExtrusionPoint{
-			Point:       vector3.Up[float64]().MultByConstant(height + startHeight),
+			Point:       vector3.Up[float64]().Scale(height + startHeight),
 			Thickness:   (cosResult * widthDelta) + endWidth,
 			UvPoint:     vector2.New(0.5, uvStart+(uvDelta*sinResult)),
 			UvThickness: uvThickness,
@@ -56,25 +56,25 @@ func candleBody(height, width, rimWidth, percentUsed, wickWidth, wickHeight floa
 	points = append(
 		points,
 		extrude.ExtrusionPoint{
-			Point:       vector3.Up[float64]().MultByConstant(heightToWax),
+			Point:       vector3.Up[float64]().Scale(heightToWax),
 			Thickness:   width - rimWidth,
 			UvThickness: 1,
 			UvPoint:     vector2.New(0.5, 0.9),
 		},
 		extrude.ExtrusionPoint{
-			Point:       vector3.Up[float64]().MultByConstant(heightToWax),
+			Point:       vector3.Up[float64]().Scale(heightToWax),
 			Thickness:   wickWidth,
 			UvThickness: 1,
 			UvPoint:     vector2.New(0.5, 0.95),
 		},
 		extrude.ExtrusionPoint{
-			Point:       vector3.Up[float64]().MultByConstant(heightToWax + wickHeight),
+			Point:       vector3.Up[float64]().Scale(heightToWax + wickHeight),
 			Thickness:   wickWidth,
 			UvThickness: 1,
 			UvPoint:     vector2.New(0.5, 0.975),
 		},
 		extrude.ExtrusionPoint{
-			Point:       vector3.Up[float64]().MultByConstant(heightToWax + wickHeight),
+			Point:       vector3.Up[float64]().Scale(heightToWax + wickHeight),
 			Thickness:   0,
 			UvThickness: 1,
 			UvPoint:     vector2.New(0.5, 1.0),

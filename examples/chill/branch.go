@@ -40,7 +40,7 @@ func Bristle(
 	for i := 0; i < 300; i++ {
 		startPercentage := rand.Float64()
 		endPercentage := startPercentage + (.1 * (1 - startPercentage))
-		point := start.Add(dir.MultByConstant(startPercentage))
+		point := start.Add(dir.Scale(startPercentage))
 
 		side := 1
 		if rand.Float64() <= .5 {
@@ -49,8 +49,8 @@ func Bristle(
 
 		needleLength := .05 + (.1 * (1. - endPercentage))
 
-		endPoint := start.Add(dir.MultByConstant((endPercentage) + (rand.Float64() * .05))).
-			Add(right.MultByConstant(needleLength * float64(side)))
+		endPoint := start.Add(dir.Scale((endPercentage) + (rand.Float64() * .05))).
+			Add(right.Scale(needleLength * float64(side)))
 
 		if rand.Float64() <= chanceOfSnow {
 			colorContext.SetColor(color.RGBA{255, 255, 255, 255})
@@ -80,7 +80,7 @@ func Bristle(
 		for i := 0; i < subBristles; i++ {
 			startPercentage := currentStart + (rand.Float64() * halfSpacing * 0.25)
 			endPercentage := startPercentage + .2 + (rand.Float64() * .2)
-			point := start.Add(dir.MultByConstant(startPercentage))
+			point := start.Add(dir.Scale(startPercentage))
 
 			// Draw Berries
 			if berry != nil && rand.Float64() > berry.chanceOfBerry {
@@ -95,11 +95,11 @@ func Bristle(
 
 			generalSize := (1. - startPercentage) * .5
 
-			rightBristleEnd := start.Add(dir.MultByConstant(endPercentage)).
-				Add(right.MultByConstant(generalSize * (.8 + (rand.Float64() * .4))))
+			rightBristleEnd := start.Add(dir.Scale(endPercentage)).
+				Add(right.Scale(generalSize * (.8 + (rand.Float64() * .4))))
 
-			leftBristleEnd := start.Add(dir.MultByConstant(endPercentage)).
-				Sub(right.MultByConstant(generalSize * (.8 + (rand.Float64() * .4))))
+			leftBristleEnd := start.Add(dir.Scale(endPercentage)).
+				Sub(right.Scale(generalSize * (.8 + (rand.Float64() * .4))))
 
 			Bristle(
 				colorContext,

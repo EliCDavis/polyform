@@ -81,7 +81,7 @@ func polygon(sides int, points []ExtrusionPoint, closed bool) modeling.Mesh {
 			}
 
 			// rot := mesh.UnitQuaternionFromTheta(angleIncrement*float64(i), dir)
-			vertices = append(vertices, point.MultByConstant(p.Thickness).Add(p.Point))
+			vertices = append(vertices, point.Scale(p.Thickness).Add(p.Point))
 			normals = append(normals, point)
 		}
 	}
@@ -102,12 +102,12 @@ func polygon(sides int, points []ExtrusionPoint, closed bool) modeling.Mesh {
 
 		dir := dirB.Sub(dirA).Normalized()
 		perp := vector2.New(dir.Y(), -dir.X()).
-			MultByConstant(p.UvThickness / 2.)
+			Scale(p.UvThickness / 2.)
 
 		// log.Print(perp)
 		for sideIndex := 0; sideIndex < vertCount; sideIndex++ {
 			percentUsed := ((float64(sideIndex) / float64(sides)) * 2) - 1.
-			uvPoint := p.UvPoint.Add(perp.MultByConstant(percentUsed))
+			uvPoint := p.UvPoint.Add(perp.Scale(percentUsed))
 			// log.Print(percentUsed, uvPoint)
 			uvs = append(uvs, uvPoint)
 		}

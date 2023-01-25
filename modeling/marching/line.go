@@ -16,19 +16,19 @@ type thickLinePrimitive struct {
 	radius     float64
 }
 
-func (l thickLinePrimitive) BoundingBox(atr string) modeling.AABB {
+func (l thickLinePrimitive) BoundingBox() modeling.AABB {
 	aabb := modeling.NewAABBFromPoints(l.start, l.end)
 	aabb.Expand(l.radius)
 	return aabb
 }
 
-func (l thickLinePrimitive) ClosestPoint(atr string, point vector3.Float64) vector3.Float64 {
+func (l thickLinePrimitive) ClosestPoint(point vector3.Float64) vector3.Float64 {
 	line3d := geometry.NewLine3D(l.start, l.end)
 	return line3d.ClosestPointOnLine(point)
 }
 
 func Line(start, end vector3.Float64, radius, strength float64) Field {
-	boundsSize := vector3.One[float64]().MultByConstant(radius + strength)
+	boundsSize := vector3.One[float64]().Scale(radius + strength)
 	bounds := modeling.NewAABB(start, boundsSize)
 	bounds.EncapsulateBounds(modeling.NewAABB(end, boundsSize))
 	return Field{
@@ -44,7 +44,7 @@ func MultiSegmentLine(linePoints []vector3.Float64, radius, strength float64) Fi
 		panic("can not create a line segment field with less than 2 points")
 	}
 
-	thickLines := make([]modeling.Primitive, len(linePoints)-1)
+	thickLines := make([]modeling.ScopedPrimitive, len(linePoints)-1)
 	for i := 1; i < len(linePoints); i++ {
 		thickLines[i-1] = &thickLinePrimitive{
 			start:  linePoints[i-1],
@@ -84,7 +84,7 @@ func MultiSegmentLine(linePoints []vector3.Float64, radius, strength float64) Fi
 	// 	start := line[i-1]
 	// 	end := line[i]
 
-	// 	boundsSize := vector3.One[float64]().MultByConstant(radius + strength)
+	// 	boundsSize := vector3.One[float64]().Scale(radius + strength)
 	// 	bounds.EncapsulateBounds(modeling.NewAABB(start, boundsSize))
 	// 	bounds.EncapsulateBounds(modeling.NewAABB(end, boundsSize))
 

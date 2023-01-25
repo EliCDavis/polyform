@@ -42,8 +42,8 @@ func (l Line2D) ScaleOutwards(amount float64) Line2D {
 	dirAndMag := l.p2.Sub(l.p1).DivByConstant(2.0)
 	center := dirAndMag.Add(l.p1)
 	return NewLine2D(
-		center.Add(dirAndMag.MultByConstant(amount)),
-		center.Add(dirAndMag.MultByConstant(-amount)),
+		center.Add(dirAndMag.Scale(amount)),
+		center.Add(dirAndMag.Scale(-amount)),
 	)
 }
 
@@ -58,7 +58,7 @@ func (l Line2D) ClosestPointOnLine(p vector2.Float64) vector2.Float64 {
 	// It falls where t = [(p-v) . (w-v)] / |w-v|^2
 	// We clamp t from [0,1] to handle points outside the segment vw.
 	t := math.Max(0, math.Min(1, p.Sub(l.p1).Dot(l.p2.Sub(l.p1))/l2))
-	projection := l.p1.Add(l.p2.Sub(l.p1).MultByConstant(t)) // Projection falls on the segment
+	projection := l.p1.Add(l.p2.Sub(l.p1).Scale(t)) // Projection falls on the segment
 	return projection
 }
 

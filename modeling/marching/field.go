@@ -250,7 +250,7 @@ func (f Field) March(atr string, cubesPerUnit, cutoff float64) modeling.Mesh {
 	for x := minCanvas.X; x < maxCanvas.X-1; x++ {
 		for y := minCanvas.Y; y < maxCanvas.Y-1; y++ {
 			for z := minCanvas.Z; z < maxCanvas.Z-1; z++ {
-				v := vector3.New(float64(x), float64(y), float64(z)).MultByConstant(cubesToUnit)
+				v := vector3.New(float64(x), float64(y), float64(z)).Scale(cubesToUnit)
 
 				cubeCornerPositions := []vector3.Float64{
 					v,

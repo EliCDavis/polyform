@@ -34,8 +34,8 @@ func Line(linePoints []LinePoint) modeling.Mesh {
 	uvs := make([]vector2.Float64, 0)
 	for i, p := range linePoints {
 
-		low := p.Point.Add(p.Up.MultByConstant(p.Height))
-		outDir := directions[i].Cross(p.Up).MultByConstant(p.Width)
+		low := p.Point.Add(p.Up.Scale(p.Height))
+		outDir := directions[i].Cross(p.Up).Scale(p.Width)
 
 		rightPoint := low.Add(outDir)
 		leftPoint := low.Sub(outDir)
@@ -44,8 +44,8 @@ func Line(linePoints []LinePoint) modeling.Mesh {
 		leftNormal := p.Up
 
 		if p.Width != 0 {
-			rightNormal = rightPoint.Sub(p.Point).Normalized().Cross(directions[i]).MultByConstant(-1)
-			leftNormal = leftPoint.Sub(p.Point).Normalized().Cross(directions[i]).MultByConstant(-1)
+			rightNormal = rightPoint.Sub(p.Point).Normalized().Cross(directions[i]).Scale(-1)
+			leftNormal = leftPoint.Sub(p.Point).Normalized().Cross(directions[i]).Scale(-1)
 		}
 
 		vertices = append(
@@ -75,8 +75,8 @@ func Line(linePoints []LinePoint) modeling.Mesh {
 		uvs = append(
 			uvs,
 			linePoints[i].Uv,
-			linePoints[i].Uv.Add(uvDir.Perpendicular().Normalized().MultByConstant(linePoints[i].UvWidth/2)),
-			linePoints[i].Uv.Add(uvDir.Perpendicular().Normalized().MultByConstant(-linePoints[i].UvWidth/2)),
+			linePoints[i].Uv.Add(uvDir.Perpendicular().Normalized().Scale(linePoints[i].UvWidth/2)),
+			linePoints[i].Uv.Add(uvDir.Perpendicular().Normalized().Scale(-linePoints[i].UvWidth/2)),
 		)
 	}
 

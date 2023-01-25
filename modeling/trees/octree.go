@@ -8,7 +8,7 @@ import (
 )
 
 type primitiveReference struct {
-	primitive     modeling.Primitive
+	primitive     modeling.ScopedPrimitive
 	originalIndex int
 }
 
@@ -23,7 +23,7 @@ func (ot OctTree) Intersects(v vector3.Float64) []int {
 	intersections := make([]int, 0)
 
 	for i := 0; i < len(ot.primitives); i++ {
-		if ot.primitives[i].primitive.BoundingBox(ot.atr).Contains(v) {
+		if ot.primitives[i].primitive.BoundingBox().Contains(v) {
 			intersections = append(intersections, i)
 		}
 	}
@@ -42,8 +42,8 @@ func (ot OctTree) ClosestPoint(v vector3.Float64) (int, vector3.Float64) {
 	closestPointIndex := -1
 
 	for i := 0; i < len(ot.primitives); i++ {
-		point := ot.primitives[i].primitive.ClosestPoint(ot.atr, v)
-		dist := point.Distance(v)
+		point := ot.primitives[i].primitive.ClosestPoint(v)
+		dist := point.DistanceSquared(v)
 		if dist < closestPrimDist {
 			closestPrimDist = dist
 			closestPrimPoint = point
@@ -59,7 +59,7 @@ func (ot OctTree) ClosestPoint(v vector3.Float64) (int, vector3.Float64) {
 			continue
 		}
 		point := ot.children[i].bounds.ClosestPoint(v)
-		dist := point.Distance(v)
+		dist := point.DistanceSquared(v)
 		if dist < closestCellDist {
 			closestCellDist = dist
 			closestCell = ot.children[i]
@@ -68,7 +68,7 @@ func (ot OctTree) ClosestPoint(v vector3.Float64) (int, vector3.Float64) {
 
 	if closestCell != nil && closestCellDist < closestPrimDist {
 		cellIndex, subCellPoint := closestCell.ClosestPoint(v)
-		subCellDist := v.Distance(subCellPoint)
+		subCellDist := v.DistanceSquared(subCellPoint)
 		if subCellDist < closestPrimDist {
 			return cellIndex, subCellPoint
 		}
@@ -103,17 +103,17 @@ func fromPrimitives(primitives []primitiveReference, atr string, maxDepth int) *
 
 	if len(primitives) == 1 {
 		return &OctTree{
-			bounds:     primitives[0].primitive.BoundingBox(atr),
+			bounds:     primitives[0].primitive.BoundingBox(),
 			primitives: []primitiveReference{primitives[0]},
 			children:   nil,
 			atr:        atr,
 		}
 	}
 
-	bounds := primitives[0].primitive.BoundingBox(atr)
+	bounds := primitives[0].primitive.BoundingBox()
 
 	for _, item := range primitives {
-		bounds.EncapsulateBounds(item.primitive.BoundingBox(atr))
+		bounds.EncapsulateBounds(item.primitive.BoundingBox())
 	}
 
 	if maxDepth == 0 {
@@ -139,7 +139,7 @@ func fromPrimitives(primitives []primitiveReference, atr string, maxDepth int) *
 	globalCenter := bounds.Center()
 	leftOver := make([]primitiveReference, 0)
 	for _, item := range primitives {
-		primBounds := item.primitive.BoundingBox(atr)
+		primBounds := item.primitive.BoundingBox()
 		minIndex := octreeIndex(globalCenter, primBounds.Min())
 		maxIndex := octreeIndex(globalCenter, primBounds.Max())
 
@@ -169,7 +169,7 @@ func fromPrimitives(primitives []primitiveReference, atr string, maxDepth int) *
 	}
 }
 
-func FromPrimitivesWithDepth(primitives []modeling.Primitive, atr string, depth int) *OctTree {
+func FromPrimitivesWithDepth(primitives []modeling.ScopedPrimitive, atr string, depth int) *OctTree {
 	pr := make([]primitiveReference, len(primitives))
 	for i := 0; i < len(primitives); i++ {
 		pr[i] = primitiveReference{
@@ -180,7 +180,7 @@ func FromPrimitivesWithDepth(primitives []modeling.Primitive, atr string, depth 
 	return fromPrimitives(pr, atr, depth)
 }
 
-func FromPrimitives(primitives []modeling.Primitive, atr string) *OctTree {
+func FromPrimitives(primitives []modeling.ScopedPrimitive, atr string) *OctTree {
 	return FromPrimitivesWithDepth(primitives, atr, depthFromCount(len(primitives)))
 }
 
@@ -189,7 +189,7 @@ func FromMeshAttributeWithDepth(m modeling.Mesh, atr string, depth int) *OctTree
 
 	m.ScanPrimitives(func(i int, p modeling.Primitive) {
 		primitives[i] = primitiveReference{
-			primitive:     p,
+			primitive:     p.Scope(atr),
 			originalIndex: i,
 		}
 	})

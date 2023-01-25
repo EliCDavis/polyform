@@ -35,7 +35,7 @@ func SmoothLaplacian(iterations int, smoothingFactor float64) pipeline.Command {
 						vs.
 							DivByConstant(float64(lut.Count(vi))).
 							Sub(vertex).
-							MultByConstant(smoothingFactor))
+							Scale(smoothingFactor))
 				}
 			}
 

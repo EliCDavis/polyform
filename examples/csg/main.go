@@ -20,7 +20,7 @@ func main() {
 		Sphere(vector3.Zero[float64](), 1.2, 1).
 		Modify(
 			modeling.PositionAttribute,
-			marching.Box(vector3.Zero[float64](), vector3.One[float64]().MultByConstant(2), 1),
+			marching.Box(vector3.Zero[float64](), vector3.One[float64]().Scale(2), 1),
 			func(a, b sample.Vec3ToFloat) sample.Vec3ToFloat {
 				return func(v vector3.Float64) float64 {
 					return math.Max(a(v), b(v))
@@ -33,20 +33,20 @@ func main() {
 	pipeLength := .6
 	pipes := marching.CombineFields(
 		marching.Line(
-			vector3.Right[float64]().MultByConstant(pipeLength),
-			vector3.Left[float64]().MultByConstant(pipeLength),
+			vector3.Right[float64]().Scale(pipeLength),
+			vector3.Left[float64]().Scale(pipeLength),
 			pipeRadius,
 			pipeStrength,
 		),
 		marching.Line(
-			vector3.Up[float64]().MultByConstant(pipeLength),
-			vector3.Down[float64]().MultByConstant(pipeLength),
+			vector3.Up[float64]().Scale(pipeLength),
+			vector3.Down[float64]().Scale(pipeLength),
 			pipeRadius,
 			pipeStrength,
 		),
 		marching.Line(
-			vector3.Forward[float64]().MultByConstant(pipeLength),
-			vector3.Backwards[float64]().MultByConstant(pipeLength),
+			vector3.Forward[float64]().Scale(pipeLength),
+			vector3.Backwards[float64]().Scale(pipeLength),
 			pipeRadius,
 			pipeStrength,
 		),

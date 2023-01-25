@@ -105,12 +105,13 @@ func TestOctreeLineSphere(t *testing.T) {
 			-1+(rand.Float64()*2),
 			0,
 			-1+(rand.Float64()*2),
-		).Normalized()
+		)
+		testPoints[i] = testPoints[i].Normalized()
 	}
 
 	// ACT / ASSERT ===========================================================
 	for i := 0; i < testPointCount; i++ {
-		_, p := tree.ClosestPoint(testPoints[i].MultByConstant(5))
+		_, p := tree.ClosestPoint(testPoints[i].Scale(5))
 		assert.InDelta(t, testPoints[i].X(), p.X(), 0.05)
 		assert.InDelta(t, testPoints[i].Y(), p.Y(), 0.05)
 		assert.InDelta(t, testPoints[i].Z(), p.Z(), 0.05)

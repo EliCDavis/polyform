@@ -43,7 +43,7 @@ func GetPlaneOuterPoints(center, normal, perpendicular vector3.Float64, radius f
 	outerPoints := make([]vector3.Float64, sides)
 	outerNormals := make([]vector3.Float64, sides)
 
-	outerPoints[0] = perpendicular.MultByConstant(radius).Add(center)
+	outerPoints[0] = perpendicular.Scale(radius).Add(center)
 	outerNormals[0] = perpendicular
 
 	angleIncrement := (math.Pi * 2) / float64(sides)
@@ -51,7 +51,7 @@ func GetPlaneOuterPoints(center, normal, perpendicular vector3.Float64, radius f
 	for i := 1; i < sides; i++ {
 		rot := modeling.UnitQuaternionFromTheta(angleIncrement*float64(i), normal)
 		perp := rot.Rotate(perpendicular)
-		outerPoints[i] = perp.MultByConstant(radius).Add(center)
+		outerPoints[i] = perp.Scale(radius).Add(center)
 		outerNormals[i] = perp
 	}
 

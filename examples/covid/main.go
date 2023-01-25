@@ -16,7 +16,7 @@ import (
 )
 
 func tendrilField(start, direction vector3.Float64, radius, length float64, plumbs int) marching.Field {
-	endPoint := start.Add(direction.MultByConstant(length))
+	endPoint := start.Add(direction.Scale(length))
 	fields := []marching.Field{}
 
 	angleIncrement := (math.Pi * 2) / float64(plumbs)
@@ -28,8 +28,8 @@ func tendrilField(start, direction vector3.Float64, radius, length float64, plum
 
 		plumbSite := rot.
 			Rotate(perpendicular).
-			MultByConstant(0.5).
-			Add(start.Add(direction.MultByConstant(length * 1.2)))
+			Scale(0.5).
+			Add(start.Add(direction.Scale(length * 1.2)))
 		fields = append(fields, marching.Sphere(plumbSite, plumbRadius, 1))
 	}
 

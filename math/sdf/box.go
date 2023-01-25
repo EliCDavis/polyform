@@ -8,7 +8,7 @@ import (
 )
 
 func Box(pos vector3.Float64, bounds vector3.Float64) sample.Vec3ToFloat {
-	halfBounds := bounds.MultByConstant(0.5)
+	halfBounds := bounds.Scale(0.5)
 	// It's best to watch the video to understand
 	// https://www.youtube.com/watch?v=62-pRVZuS5c
 	return func(v vector3.Float64) float64 {

@@ -1152,7 +1152,7 @@ func (m Mesh) SmoothLaplacian(iterations int, smoothingFactor float64) Mesh {
 				vs.
 					DivByConstant(float64(lut.Count(vi))).
 					Sub(vertex).
-					MultByConstant(smoothingFactor))
+					Scale(smoothingFactor))
 		}
 	}
 

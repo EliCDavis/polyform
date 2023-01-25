@@ -33,7 +33,7 @@ func PerlinStack(entries ...Stack2DEntry) Stack2D {
 func (s2d Stack2D) Value(v vector2.Float64) float64 {
 	sum := 0.
 	for _, entry := range s2d.entries {
-		sum += s2d.f(v.MultByConstant(entry.Scalar)) * entry.Amplitude
+		sum += s2d.f(v.Scale(entry.Scalar)) * entry.Amplitude
 	}
 	return sum
 }

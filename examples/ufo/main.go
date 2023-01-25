@@ -53,16 +53,16 @@ func sideLights(numberOfLights int, radius float64) modeling.Mesh {
 
 func UfoBody(outerRadius float64, portalRadius float64, frameSections int) modeling.Mesh {
 	path := []vector3.Float64{
-		vector3.Up[float64]().MultByConstant(-1),
-		vector3.Up[float64]().MultByConstant(2),
+		vector3.Up[float64]().Scale(-1),
+		vector3.Up[float64]().Scale(2),
 
-		vector3.Up[float64]().MultByConstant(0.5),
-		vector3.Up[float64]().MultByConstant(3),
-		vector3.Up[float64]().MultByConstant(4),
-		vector3.Up[float64]().MultByConstant(5),
+		vector3.Up[float64]().Scale(0.5),
+		vector3.Up[float64]().Scale(3),
+		vector3.Up[float64]().Scale(4),
+		vector3.Up[float64]().Scale(5),
 
-		vector3.Up[float64]().MultByConstant(5.5),
-		vector3.Up[float64]().MultByConstant(5.5),
+		vector3.Up[float64]().Scale(5.5),
+		vector3.Up[float64]().Scale(5.5),
 	}
 	thickness := []float64{
 		0,
@@ -90,7 +90,7 @@ func UfoBody(outerRadius float64, portalRadius float64, frameSections int) model
 		percent := float64(i+1) / float64(domeResolution)
 
 		height := math.Sin(percent*halfPi) * float64(domeHight)
-		domePath = append(domePath, vector3.Up[float64]().MultByConstant(height+domeStartHeight))
+		domePath = append(domePath, vector3.Up[float64]().Scale(height+domeStartHeight))
 
 		cosResult := math.Cos(percent * halfPi)
 		domeThickness = append(domeThickness, (cosResult * domeStartWidth))
@@ -126,7 +126,7 @@ func UfoBody(outerRadius float64, portalRadius float64, frameSections int) model
 			Cylinder(20, 1, outerRadius+1).
 			Translate(vector3.New(0., 3.5, 0.))).
 		Append(extrude.ClosedCircleWithConstantThickness(8, .25, repeat.CirclePoints(frameSections, portalRadius)).
-			Translate(vector3.Up[float64]().MultByConstant(0.5))).
+			Translate(vector3.Up[float64]().Scale(0.5))).
 		Append(sideLights(frameSections, outerRadius+1).Translate(vector3.New(0., 3.5, 0.))).
 		SetMaterial(mat).
 		Append(extrude.CircleWithThickness(20, domeThickness, domePath).SetMaterial(domeMat))
@@ -139,14 +139,14 @@ func main() {
 	ringSpacing := vector3.New(0., 3., 0.)
 	final := ring.
 		Append(ring.
-			Scale(vector3.Zero[float64](), vector3.One[float64]().MultByConstant(.75)).
-			Translate(ringSpacing.MultByConstant(1)).
+			Scale(vector3.Zero[float64](), vector3.One[float64]().Scale(.75)).
+			Translate(ringSpacing.Scale(1)).
 			Rotate(modeling.UnitQuaternionFromTheta(0.3, vector3.Down[float64]()))).
 		Append(ring.
-			Scale(vector3.Zero[float64](), vector3.One[float64]().MultByConstant(.5)).
-			Translate(ringSpacing.MultByConstant(2)).
+			Scale(vector3.Zero[float64](), vector3.One[float64]().Scale(.5)).
+			Translate(ringSpacing.Scale(2)).
 			Rotate(modeling.UnitQuaternionFromTheta(0.5, vector3.Down[float64]()))).
-		Append(UfoBody(ufoOuterRadius, ufoportalRadius, 8).Translate(ringSpacing.MultByConstant(2.5)))
+		Append(UfoBody(ufoOuterRadius, ufoportalRadius, 8).Translate(ringSpacing.Scale(2.5)))
 
 	mtlFile, err := os.Create("ufo.mtl")
 	if err != nil {

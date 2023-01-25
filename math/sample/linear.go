@@ -19,7 +19,7 @@ func LinearVector2Mapping(fromMin, fromMax float64, toMin, toMax vector2.Float64
 	toDif := toMax.Sub(toMin)
 	return func(f float64) vector2.Float64 {
 		percentage := (f - fromMin) / fromDif
-		return toMin.Add(toDif.MultByConstant(percentage))
+		return toMin.Add(toDif.Scale(percentage))
 	}
 }
 
@@ -28,6 +28,6 @@ func LinearVector3Mapping(fromMin, fromMax float64, toMin, toMax vector3.Float64
 	toDif := toMax.Sub(toMin)
 	return func(f float64) vector3.Float64 {
 		percentage := (f - fromMin) / fromDif
-		return toMin.Add(toDif.MultByConstant(percentage))
+		return toMin.Add(toDif.Scale(percentage))
 	}
 }

@@ -17,11 +17,11 @@ func interpolationValueFromCutoff(v1v, v2v, cutoff float64) float64 {
 }
 
 func interpolateV3(v1, v2 vector3.Float64, t float64) vector3.Float64 {
-	return v2.Sub(v1).MultByConstant(t).Add(v1)
+	return v2.Sub(v1).Scale(t).Add(v1)
 }
 
 func interpolateV2(v1, v2 vector2.Float64, t float64) vector2.Float64 {
-	return v2.Sub(v1).MultByConstant(t).Add(v1)
+	return v2.Sub(v1).Scale(t).Add(v1)
 }
 
 func interpolateV1(v1, v2, t float64) float64 {
@@ -30,7 +30,7 @@ func interpolateV1(v1, v2, t float64) float64 {
 
 func interpolateVerts(v1, v2 vector3.Float64, v1v, v2v, cutoff float64) vector3.Float64 {
 	t := interpolationValueFromCutoff(v1v, v2v, cutoff)
-	return v2.Sub(v1).MultByConstant(t).Add(v1)
+	return v2.Sub(v1).Scale(t).Add(v1)
 }
 
 func LookupOrAdd(data *workingData, vert vector3.Float64) int {

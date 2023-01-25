@@ -14,7 +14,7 @@ type AABB struct {
 func NewAABB(center, size vector3.Float64) AABB {
 	return AABB{
 		center:  center,
-		extents: size.MultByConstant(0.5),
+		extents: size.Scale(0.5),
 	}
 }
 
@@ -52,7 +52,7 @@ func (aabb AABB) Max() vector3.Float64 {
 }
 
 func (aabb AABB) Size() vector3.Float64 {
-	return aabb.extents.MultByConstant(2)
+	return aabb.extents.Scale(2)
 }
 
 func (aabb *AABB) Expand(amount float64) {
@@ -103,7 +103,7 @@ func maxVector(a, b vector3.Float64) vector3.Float64 {
 }
 
 func (aabb *AABB) SetMinMax(min, max vector3.Float64) {
-	aabb.extents = max.Sub(min).MultByConstant(0.5)
+	aabb.extents = max.Sub(min).Scale(0.5)
 	aabb.center = min.Add(aabb.extents)
 }
 

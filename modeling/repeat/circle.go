@@ -15,7 +15,7 @@ func CirclePoints(times int, radius float64) []vector3.Float64 {
 	for i := 0; i < times; i++ {
 		angle := angleIncrement * float64(i)
 
-		final[i] = vector3.New(math.Cos(angle), 0, math.Sin(angle)).MultByConstant(radius)
+		final[i] = vector3.New(math.Cos(angle), 0, math.Sin(angle)).Scale(radius)
 
 	}
 
@@ -30,7 +30,7 @@ func Circle(in modeling.Mesh, times int, radius float64) modeling.Mesh {
 	for i := 0; i < times; i++ {
 		angle := angleIncrement * float64(i)
 
-		pos := vector3.New(math.Cos(angle), 0, math.Sin(angle)).MultByConstant(radius)
+		pos := vector3.New(math.Cos(angle), 0, math.Sin(angle)).Scale(radius)
 		rot := modeling.UnitQuaternionFromTheta(-angle, vector3.Up[float64]())
 
 		final = final.Append(in.Rotate(rot).Translate(pos))

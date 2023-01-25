@@ -94,7 +94,7 @@ func main() {
 			canvas.AddFieldParallel(marching.Mesh(
 				loadedMesh.
 					CenterFloat3Attribute(modeling.PositionAttribute).
-					Scale(vector3.Zero[float64](), vector3.One[float64]().MultByConstant(c.Float64("scale"))),
+					Scale(vector3.Zero[float64](), vector3.One[float64]().Scale(c.Float64("scale"))),
 				c.Float64("radius"),
 				c.Float64("strength"),
 			))

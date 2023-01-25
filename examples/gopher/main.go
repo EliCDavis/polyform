@@ -94,7 +94,7 @@ func main() {
 
 	gopherTooth := marching.Box(
 		vector3.New(.0, 0.35, .9),
-		vector3.One[float64]().MultByConstant(0.2),
+		vector3.One[float64]().Scale(0.2),
 		1,
 	).WithColor(color.RGBA{255, 255, 255, 255})
 

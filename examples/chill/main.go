@@ -47,14 +47,14 @@ func randomVec2Radial() vector2.Float64 {
 	theta := rand.Float64() * 2 * math.Pi
 	return vector2.
 		New(math.Cos(theta), math.Sin(theta)).
-		MultByConstant(math.Sqrt(rand.Float64()))
+		Scale(math.Sqrt(rand.Float64()))
 }
 
 func calcTreePositions(count int, forestWidth float64, terrainHeight sample.Vec2ToFloat, path Trail) []vector3.Float64 {
 	positions := make([]vector3.Float64, 0)
 	for i := 0; i < count; i++ {
 		xz := randomVec2Radial().
-			MultByConstant((forestWidth / 2) * .8).
+			Scale((forestWidth / 2) * .8).
 			Add(vector2.New(forestWidth/2, forestWidth/2))
 		y := terrainHeight(xz) - 1
 

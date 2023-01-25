@@ -107,7 +107,7 @@ func gradientOverValues(vals []float64) func(vector2.Float64) vector2.Float64 {
 			xVal,
 			wVal,
 		)
-		return v.MultByConstant(2).
+		return v.Scale(2).
 			Sub(vector2.One[float64]()).
 			Normalized()
 	}

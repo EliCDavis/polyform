@@ -31,7 +31,7 @@ func UVSphere(radius float64, rows, columns int) modeling.Mesh {
 			x := math.Sin(phi) * math.Cos(theta)
 			y := math.Cos(phi)
 			z := math.Sin(phi) * math.Sin(theta)
-			positions = append(positions, vector3.New(x, y, z).MultByConstant(radius))
+			positions = append(positions, vector3.New(x, y, z).Scale(radius))
 		}
 	}
 

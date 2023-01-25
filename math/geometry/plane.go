@@ -16,7 +16,7 @@ func NewPlaneFromPoints(a, b, c vector3.Float64) Plane {
 }
 
 func (p Plane) Origin() vector3.Float64 {
-	return p.normal.MultByConstant(p.distance)
+	return p.normal.Scale(p.distance)
 }
 
 func (p Plane) Normal() vector3.Float64 {
@@ -25,5 +25,5 @@ func (p Plane) Normal() vector3.Float64 {
 
 func (p Plane) ClosestPoint(point vector3.Float64) vector3.Float64 {
 	distance := p.normal.Dot(point) - p.distance
-	return point.Sub(p.normal.MultByConstant(distance))
+	return point.Sub(p.normal.Scale(distance))
 }
