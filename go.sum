@@ -1,14 +1,3 @@
-github.com/BurntSushi/toml v1.2.1/go.mod h1:CxXYINrC8qIiEnFrOxCa7Jy5BFHlXnUU2pbicEuybxQ=
-github.com/EliCDavis/vector v0.0.0-20230108032659-3cad4e91b77d h1:4Hu4E1NZrjt1gMv+TDslvWQOLBiA9+UCT8+TRBIQ2mM=
-github.com/EliCDavis/vector v0.0.0-20230108032659-3cad4e91b77d/go.mod h1:7JWED8HBcDj9JWyV8wKNjCefl+tbh213fX9dkNqIDPY=
-github.com/EliCDavis/vector v0.0.0-20230123060940-cf383c35b01f h1:DiMudUuKDZRbVgA4PGew6D7z826xhGBxm2zaMuK/M3Y=
-github.com/EliCDavis/vector v0.0.0-20230123060940-cf383c35b01f/go.mod h1:A+Zf8tDKfocwQa9md33HsE53KclL7uayR/cKjKHUFSA=
-github.com/EliCDavis/vector v0.0.0-20230124005107-f6bf1e848676 h1:NUo86I1znClpOUB0TbyO33nsIilpncPCZGpm+MQW9AQ=
-github.com/EliCDavis/vector v0.0.0-20230124005107-f6bf1e848676/go.mod h1:A+Zf8tDKfocwQa9md33HsE53KclL7uayR/cKjKHUFSA=
-github.com/EliCDavis/vector v0.0.0-20230124030637-b6855e2daf16 h1:olabdPorpQ5V9IKNWgmcniKgDelK6jxCBhSWpwiU7RM=
-github.com/EliCDavis/vector v0.0.0-20230124030637-b6855e2daf16/go.mod h1:A+Zf8tDKfocwQa9md33HsE53KclL7uayR/cKjKHUFSA=
-github.com/EliCDavis/vector v1.0.0 h1:QlBNGAeH3pdKSPLrzeDopOsEZYENpRfQ9rQZO2Nd1HE=
-github.com/EliCDavis/vector v1.0.0/go.mod h1:A+Zf8tDKfocwQa9md33HsE53KclL7uayR/cKjKHUFSA=
 github.com/EliCDavis/vector v1.0.1 h1:esYFQjwbBHC6fpjZJx72qDyqUgSHWXgKfVDk690lUqA=
 github.com/EliCDavis/vector v1.0.1/go.mod h1:A+Zf8tDKfocwQa9md33HsE53KclL7uayR/cKjKHUFSA=
 github.com/cpuguy83/go-md2man/v2 v2.0.2 h1:p1EgwI/C7NhT0JmVkwCD2ZBK8j4aeHQX2pMHHBfMQ6w=
@@ -26,14 +15,11 @@ github.com/russross/blackfriday/v2 v2.1.0 h1:JIOH55/0cWyOuilr9/qlrm0BSXldqnqwMsf
 github.com/russross/blackfriday/v2 v2.1.0/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQDYRxCVz55jmeOWTM=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/objx v0.4.0/go.mod h1:YvHI0jy2hoMjB+UWwv71VJQ9isScKT/TqJzVSSt89Yw=
-github.com/stretchr/objx v0.5.0 h1:1zr/of2m5FGMsad5YfcqgdqdWrIhu+EBEJRhR1U7z/c=
 github.com/stretchr/objx v0.5.0/go.mod h1:Yh+to48EsGEfYuaHDzXPcE3xhTkx73EhmCGUpEOglKo=
 github.com/stretchr/testify v1.7.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/stretchr/testify v1.8.0/go.mod h1:yNjHg4UonilssWZ8iaSj1OCr/vHnekPRkoO+kdMU+MU=
 github.com/stretchr/testify v1.8.1 h1:w7B6lhMri9wdJUVmEZPGGhZzrYTPvgJArz7wNPgYKsk=
 github.com/stretchr/testify v1.8.1/go.mod h1:w2LPCIKwWwSfY2zedu0+kehJoqGctiVI29o6fzry7u4=
-github.com/urfave/cli/v2 v2.23.7 h1:YHDQ46s3VghFHFf1DdF+Sh7H4RqhcM+t0TmZRJx4oJY=
-github.com/urfave/cli/v2 v2.23.7/go.mod h1:GHupkWPMM0M/sj1a2b4wUrWBPzazNrIjouW6fmdJLxc=
 github.com/urfave/cli/v2 v2.24.1 h1:/QYYr7g0EhwXEML8jO+8OYt5trPnLHS0p3mrgExJ5NU=
 github.com/urfave/cli/v2 v2.24.1/go.mod h1:GHupkWPMM0M/sj1a2b4wUrWBPzazNrIjouW6fmdJLxc=
 github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 h1:bAn7/zixMGCfxrRTfdpNzjtPYqr8smhKouy9mxVdGPU=
@@ -41,8 +27,6 @@ github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673/go.mod h1:N3UwUGtsr
 github.com/yuin/goldmark v1.4.13/go.mod h1:6yULJ656Px+3vBD8DxQVa3kxgyrAnzto9xy5taEt/CY=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
 golang.org/x/crypto v0.0.0-20210921155107-089bfa567519/go.mod h1:GvvjBRRGRdwPK5ydBHafDWAxML/pGHZbMvKqRZ5+Abc=
-golang.org/x/image v0.2.0 h1:/DcQ0w3VHKCC5p0/P2B0JpAZ9Z++V2KOo2fyU89CXBQ=
-golang.org/x/image v0.2.0/go.mod h1:la7oBXb9w3YFjBqaAwtynVioc1ZvOnNteUNrifGNmAI=
 golang.org/x/image v0.3.0 h1:HTDXbdK9bjfSWkPzDJIw89W8CAtfFGduujWs33NLLsg=
 golang.org/x/image v0.3.0/go.mod h1:fXd9211C/0VTlYuAcOhW8dY/RtEJqODXOWBDpmYBf+A=
 golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4/go.mod h1:jJ57K6gSWd91VN4djpZkiMVwK6gcyfeH4XE8wZrZaV4=
@@ -61,7 +45,6 @@ golang.org/x/term v0.0.0-20210927222741-03fcf44c2211/go.mod h1:jbD1KX2456YbFQfuX
 golang.org/x/text v0.3.0/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=
 golang.org/x/text v0.3.3/go.mod h1:5Zoc/QRtKVWzQhOtBMvqHzDpF6irO9z98xDceosuGiQ=
 golang.org/x/text v0.3.7/go.mod h1:u+2+/6zg+i71rQMx5EYifcz6MCKuco9NR6JIITiCfzQ=
-golang.org/x/text v0.5.0/go.mod h1:mrYo+phRRbMaCq/xk9113O4dZlRixOauAjOtrjsXDZ8=
 golang.org/x/text v0.6.0/go.mod h1:mrYo+phRRbMaCq/xk9113O4dZlRixOauAjOtrjsXDZ8=
 golang.org/x/tools v0.0.0-20180917221912-90fa682c2a6e/go.mod h1:n7NCudcB/nEzxVGmLbDWY5pfWTLqBcC2KZ6jyYvM4mQ=
 golang.org/x/tools v0.0.0-20191119224855-298f0cb1881e/go.mod h1:b+2E5dAYhXwXZwtnZ6UAqBI28+e2cm9otk0dWdXHAEo=
