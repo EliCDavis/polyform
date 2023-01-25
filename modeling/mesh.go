@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"runtime"
+	"sort"
 	"sync"
 
 	"github.com/EliCDavis/polyform/math/geometry"
@@ -164,6 +165,8 @@ func (m Mesh) Float3Attributes() []string {
 		attributes = append(attributes, atr)
 	}
 
+	sort.Strings(attributes)
+
 	return attributes
 }
 
@@ -174,6 +177,8 @@ func (m Mesh) Float2Attributes() []string {
 		attributes = append(attributes, atr)
 	}
 
+	sort.Strings(attributes)
+
 	return attributes
 }
 
@@ -183,6 +188,8 @@ func (m Mesh) Float1Attributes() []string {
 	for atr := range m.v1Data {
 		attributes = append(attributes, atr)
 	}
+
+	sort.Strings(attributes)
 
 	return attributes
 }

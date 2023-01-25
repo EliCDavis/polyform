@@ -176,7 +176,6 @@ func ToMesh(in io.Reader) (*modeling.Mesh, error) {
 }
 
 func Load(filepath string) (*modeling.Mesh, error) {
-
 	in, err := os.Open(filepath)
 	if err != nil {
 		return nil, err
@@ -187,7 +186,6 @@ func Load(filepath string) (*modeling.Mesh, error) {
 }
 
 func buildVertexElements(attributes []string, size int) Element {
-
 	vertexElement := Element{
 		name:       "vertex",
 		count:      size,
@@ -277,14 +275,17 @@ func WriteASCII(out io.Writer, model modeling.Mesh) error {
 	view := model.View()
 
 	for i := 0; i < vertexCount; i++ {
-		for _, atr := range attributes {
+		for atrI, atr := range attributes {
 
 			v := view.Float3Data[atr][i]
 
 			if atr == modeling.ColorAttribute {
-				fmt.Fprintf(out, "%d %d %d ", int(v.X()*255), int(v.Y()*255), int(v.Z()*255))
+				fmt.Fprintf(out, "%d %d %d", int(v.X()*255), int(v.Y()*255), int(v.Z()*255))
 			} else {
-				fmt.Fprintf(out, "%f %f %f ", v.X(), v.Y(), v.Z())
+				fmt.Fprintf(out, "%f %f %f", v.X(), v.Y(), v.Z())
+			}
+			if atrI < len(attributes)-1 {
+				fmt.Fprintf(out, " ")
 			}
 		}
 		fmt.Fprint(out, "\n")
