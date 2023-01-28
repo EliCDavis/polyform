@@ -6,21 +6,22 @@ import (
 )
 
 type scopedLine struct {
-	data          []vector3.Float64
-	startingIndex int
+	data []vector3.Float64
+	p1   int
+	p2   int
 }
 
 func (l scopedLine) BoundingBox() AABB {
 	return NewAABBFromPoints(
-		l.data[l.startingIndex],
-		l.data[l.startingIndex+1],
+		l.data[l.p1],
+		l.data[l.p2],
 	)
 }
 
 func (l scopedLine) ClosestPoint(point vector3.Float64) vector3.Float64 {
 	line3d := geometry.NewLine3D(
-		l.data[l.startingIndex],
-		l.data[l.startingIndex+1],
+		l.data[l.p1],
+		l.data[l.p2],
 	)
 	return line3d.ClosestPointOnLine(point)
 }
@@ -30,24 +31,35 @@ type Line struct {
 	startingIndex int
 }
 
+// P1 is the first point on our triangle, which is an index to the vertices array of a mesh
+func (l Line) P1() int {
+	return l.mesh.indices[l.startingIndex]
+}
+
+// P2 is the second point on our triangle, which is an index to the vertices array of a mesh
+func (l Line) P2() int {
+	return l.mesh.indices[l.startingIndex+1]
+}
+
 func (l Line) BoundingBox(atr string) AABB {
 	return NewAABBFromPoints(
-		l.mesh.v3Data[atr][l.startingIndex],
-		l.mesh.v3Data[atr][l.startingIndex+1],
+		l.mesh.v3Data[atr][l.P1()],
+		l.mesh.v3Data[atr][l.P2()],
 	)
 }
 
 func (l Line) ClosestPoint(atr string, point vector3.Float64) vector3.Float64 {
 	line3d := geometry.NewLine3D(
-		l.mesh.v3Data[atr][l.startingIndex],
-		l.mesh.v3Data[atr][l.startingIndex+1],
+		l.mesh.v3Data[atr][l.P1()],
+		l.mesh.v3Data[atr][l.P2()],
 	)
 	return line3d.ClosestPointOnLine(point)
 }
 
 func (l Line) Scope(attribute string) ScopedPrimitive {
 	return scopedLine{
-		data:          l.mesh.v3Data[attribute],
-		startingIndex: l.startingIndex,
+		data: l.mesh.v3Data[attribute],
+		p1:   l.P1(),
+		p2:   l.P2(),
 	}
 }

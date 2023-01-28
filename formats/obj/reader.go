@@ -151,13 +151,13 @@ func ReadMesh(in io.Reader) (*modeling.Mesh, []string, error) {
 			if trisSenseLastMat > 0 {
 				if len(meshMaterials) == 0 {
 					meshMaterials = append(meshMaterials, modeling.MeshMaterial{
-						NumOfTris: trisSenseLastMat,
+						PrimitiveCount: trisSenseLastMat,
 						Material: &modeling.Material{
 							Name: "Default",
 						},
 					})
 				} else {
-					meshMaterials[len(meshMaterials)-1].NumOfTris = trisSenseLastMat
+					meshMaterials[len(meshMaterials)-1].PrimitiveCount = trisSenseLastMat
 				}
 			}
 
@@ -175,8 +175,8 @@ func ReadMesh(in io.Reader) (*modeling.Mesh, []string, error) {
 			}
 
 			meshMaterials = append(meshMaterials, modeling.MeshMaterial{
-				NumOfTris: 0,
-				Material:  meshMat,
+				PrimitiveCount: 0,
+				Material:       meshMat,
 			})
 
 		case "v":
@@ -280,7 +280,7 @@ func ReadMesh(in io.Reader) (*modeling.Mesh, []string, error) {
 
 	if trisSenseLastMat > 0 {
 		if len(meshMaterials) > 0 {
-			meshMaterials[len(meshMaterials)-1].NumOfTris = trisSenseLastMat
+			meshMaterials[len(meshMaterials)-1].PrimitiveCount = trisSenseLastMat
 		}
 	}
 

@@ -232,7 +232,7 @@ func WriteMesh(m modeling.Mesh, materialFile string, out io.Writer) error {
 		offset := 0
 		for _, mat := range mats {
 			writeUsingMaterial(mat.Material, out)
-			nextOffset := offset + (mat.NumOfTris * 3)
+			nextOffset := offset + (mat.PrimitiveCount * 3)
 			faceWriter(view.Indices, out, offset, nextOffset)
 			offset = nextOffset
 		}

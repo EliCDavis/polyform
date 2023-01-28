@@ -199,7 +199,7 @@ func (m Mesh) Materials() []MeshMaterial {
 }
 
 func (m Mesh) SetMaterial(mat Material) Mesh {
-	return NewMesh(m.indices, m.v3Data, m.v2Data, m.v1Data, []MeshMaterial{{NumOfTris: len(m.indices) / 3, Material: &mat}})
+	return NewMesh(m.indices, m.v3Data, m.v2Data, m.v1Data, []MeshMaterial{{PrimitiveCount: len(m.indices) / 3, Material: &mat}})
 }
 
 func (m Mesh) Tri(i int) Tri {
@@ -479,7 +479,8 @@ func (m Mesh) ScanPrimitivesParallelWithPoolSize(size int, f func(i int, p Primi
 func (m Mesh) ScanFloat3Attribute(atr string, f func(i int, v vector3.Float64)) Mesh {
 	m.requireV3Attribute(atr)
 
-	for i, v := range m.v3Data[atr] {
+	data := m.v3Data[atr]
+	for i, v := range data {
 		f(i, v)
 	}
 
@@ -503,7 +504,8 @@ func (m Mesh) ScanFloat3AttributeParallelWithPoolSize(atr string, size int, f fu
 
 	var wg sync.WaitGroup
 
-	workSize := int(math.Floor(float64(len(m.v3Data[atr])) / float64(size)))
+	data := m.v3Data[atr]
+	workSize := int(math.Floor(float64(len(data)) / float64(size)))
 	for i := 0; i < size; i++ {
 		wg.Add(1)
 
@@ -512,13 +514,13 @@ func (m Mesh) ScanFloat3AttributeParallelWithPoolSize(atr string, size int, f fu
 		// Make sure to clean up potential last cell due to rounding error of
 		// division of number of CPUs
 		if i == size-1 {
-			jobSize = len(m.v3Data[atr]) - (workSize * i)
+			jobSize = len(data) - (workSize * i)
 		}
 
 		go func(start, size int) {
 			defer wg.Done()
 			for i := start; i < start+size; i++ {
-				f(i, m.v3Data[atr][i])
+				f(i, data[i])
 			}
 		}(workSize*i, jobSize)
 	}
@@ -531,7 +533,8 @@ func (m Mesh) ScanFloat3AttributeParallelWithPoolSize(atr string, size int, f fu
 func (m Mesh) ScanFloat2Attribute(atr string, f func(i int, v vector2.Float64)) Mesh {
 	m.requireV2Attribute(atr)
 
-	for i, v := range m.v2Data[atr] {
+	data := m.v2Data[atr]
+	for i, v := range data {
 		f(i, v)
 	}
 
@@ -555,7 +558,8 @@ func (m Mesh) ScanFloat2AttributeParallelWithPoolSize(atr string, size int, f fu
 
 	var wg sync.WaitGroup
 
-	workSize := int(math.Floor(float64(len(m.v2Data[atr])) / float64(size)))
+	data := m.v2Data[atr]
+	workSize := int(math.Floor(float64(len(data)) / float64(size)))
 	for i := 0; i < size; i++ {
 		wg.Add(1)
 
@@ -564,13 +568,13 @@ func (m Mesh) ScanFloat2AttributeParallelWithPoolSize(atr string, size int, f fu
 		// Make sure to clean up potential last cell due to rounding error of
 		// division of number of CPUs
 		if i == size-1 {
-			jobSize = len(m.v2Data[atr]) - (workSize * i)
+			jobSize = len(data) - (workSize * i)
 		}
 
 		go func(start, size int) {
 			defer wg.Done()
 			for i := start; i < start+size; i++ {
-				f(i, m.v2Data[atr][i])
+				f(i, data[i])
 			}
 		}(workSize*i, jobSize)
 	}
@@ -583,7 +587,8 @@ func (m Mesh) ScanFloat2AttributeParallelWithPoolSize(atr string, size int, f fu
 func (m Mesh) ScanFloat1Attribute(atr string, f func(i int, v float64)) Mesh {
 	m.requireV1Attribute(atr)
 
-	for i, v := range m.v1Data[atr] {
+	data := m.v1Data[atr]
+	for i, v := range data {
 		f(i, v)
 	}
 
@@ -607,7 +612,8 @@ func (m Mesh) ScanFloat1AttributeParallelWithPoolSize(atr string, size int, f fu
 
 	var wg sync.WaitGroup
 
-	workSize := int(math.Floor(float64(len(m.v1Data[atr])) / float64(size)))
+	data := m.v1Data[atr]
+	workSize := int(math.Floor(float64(len(data)) / float64(size)))
 	for i := 0; i < size; i++ {
 		wg.Add(1)
 
@@ -616,13 +622,13 @@ func (m Mesh) ScanFloat1AttributeParallelWithPoolSize(atr string, size int, f fu
 		// Make sure to clean up potential last cell due to rounding error of
 		// division of number of CPUs
 		if i == size-1 {
-			jobSize = len(m.v1Data[atr]) - (workSize * i)
+			jobSize = len(data) - (workSize * i)
 		}
 
 		go func(start, size int) {
 			defer wg.Done()
 			for i := start; i < start+size; i++ {
-				f(i, m.v1Data[atr][i])
+				f(i, data[i])
 			}
 		}(workSize*i, jobSize)
 	}
@@ -664,7 +670,7 @@ func (m Mesh) ModifyFloat3AttributeParallelWithPoolSize(atr string, size int, f 
 
 	var wg sync.WaitGroup
 
-	workSize := int(math.Floor(float64(len(m.v3Data[atr])) / float64(size)))
+	workSize := int(math.Floor(float64(len(oldData)) / float64(size)))
 	for i := 0; i < size; i++ {
 		wg.Add(1)
 
@@ -673,13 +679,13 @@ func (m Mesh) ModifyFloat3AttributeParallelWithPoolSize(atr string, size int, f 
 		// Make sure to clean up potential last cell due to rounding error of
 		// division of number of CPUs
 		if i == size-1 {
-			jobSize = len(m.v3Data[atr]) - (workSize * i)
+			jobSize = len(oldData) - (workSize * i)
 		}
 
 		go func(start, size int) {
 			defer wg.Done()
 			for i := start; i < start+size; i++ {
-				modified[i] = f(i, m.v3Data[atr][i])
+				modified[i] = f(i, oldData[i])
 			}
 		}(workSize*i, jobSize)
 	}
@@ -721,7 +727,7 @@ func (m Mesh) ModifyFloat2AttributeParallelWithPoolSize(atr string, size int, f 
 
 	var wg sync.WaitGroup
 
-	workSize := int(math.Floor(float64(len(m.v2Data[atr])) / float64(size)))
+	workSize := int(math.Floor(float64(len(oldData)) / float64(size)))
 	for i := 0; i < size; i++ {
 		wg.Add(1)
 
@@ -730,13 +736,13 @@ func (m Mesh) ModifyFloat2AttributeParallelWithPoolSize(atr string, size int, f 
 		// Make sure to clean up potential last cell due to rounding error of
 		// division of number of CPUs
 		if i == size-1 {
-			jobSize = len(m.v2Data[atr]) - (workSize * i)
+			jobSize = len(oldData) - (workSize * i)
 		}
 
 		go func(start, size int) {
 			defer wg.Done()
 			for i := start; i < start+size; i++ {
-				modified[i] = f(i, m.v2Data[atr][i])
+				modified[i] = f(i, oldData[i])
 			}
 		}(workSize*i, jobSize)
 	}
@@ -777,7 +783,7 @@ func (m Mesh) ModifyFloat1AttributeParallelWithPoolSize(atr string, size int, f 
 
 	var wg sync.WaitGroup
 
-	workSize := int(math.Floor(float64(len(m.v1Data[atr])) / float64(size)))
+	workSize := int(math.Floor(float64(len(oldData)) / float64(size)))
 	for i := 0; i < size; i++ {
 		wg.Add(1)
 
@@ -786,13 +792,13 @@ func (m Mesh) ModifyFloat1AttributeParallelWithPoolSize(atr string, size int, f 
 		// Make sure to clean up potential last cell due to rounding error of
 		// division of number of CPUs
 		if i == size-1 {
-			jobSize = len(m.v1Data[atr]) - (workSize * i)
+			jobSize = len(oldData) - (workSize * i)
 		}
 
 		go func(start, size int) {
 			defer wg.Done()
 			for i := start; i < start+size; i++ {
-				modified[i] = f(i, m.v1Data[atr][i])
+				modified[i] = f(i, oldData[i])
 			}
 		}(workSize*i, jobSize)
 	}
@@ -1285,6 +1291,7 @@ func (m Mesh) SplitOnUniqueMaterials() []Mesh {
 	}
 
 	workingMeshes := make(map[*Material]*Mesh)
+	orderInserted := make(map[*Material]int)
 
 	curMatIndex := 0
 	trisFromOtherMats := 0
@@ -1295,15 +1302,16 @@ func (m Mesh) SplitOnUniqueMaterials() []Mesh {
 		v1Data: m.v1Data,
 		materials: []MeshMaterial{
 			{
-				NumOfTris: 0,
-				Material:  m.materials[curMatIndex].Material,
+				PrimitiveCount: 0,
+				Material:       m.materials[curMatIndex].Material,
 			},
 		},
 	}
+	orderInserted[m.materials[curMatIndex].Material] = 0
 
 	for triStart := 0; triStart < len(m.indices); triStart += 3 {
-		if m.materials[curMatIndex].NumOfTris+trisFromOtherMats <= triStart/3 {
-			trisFromOtherMats += m.materials[curMatIndex].NumOfTris
+		if m.materials[curMatIndex].PrimitiveCount+trisFromOtherMats <= triStart/3 {
+			trisFromOtherMats += m.materials[curMatIndex].PrimitiveCount
 			curMatIndex++
 			if _, ok := workingMeshes[m.materials[curMatIndex].Material]; !ok {
 				workingMeshes[m.materials[curMatIndex].Material] = &Mesh{
@@ -1312,12 +1320,13 @@ func (m Mesh) SplitOnUniqueMaterials() []Mesh {
 					v1Data: m.v1Data,
 					materials: []MeshMaterial{
 						{
-							NumOfTris: 0,
-							Material:  m.materials[curMatIndex].Material,
+							PrimitiveCount: 0,
+							Material:       m.materials[curMatIndex].Material,
 						},
 					},
 					topology: m.topology,
 				}
+				orderInserted[m.materials[curMatIndex].Material] = len(orderInserted)
 			}
 		}
 		mesh := workingMeshes[m.materials[curMatIndex].Material]
@@ -1327,12 +1336,12 @@ func (m Mesh) SplitOnUniqueMaterials() []Mesh {
 			m.indices[triStart+1],
 			m.indices[triStart+2],
 		)
-		mesh.materials[0].NumOfTris += 1
+		mesh.materials[0].PrimitiveCount += 1
 	}
 
-	finalMeshes := make([]Mesh, 0, len(workingMeshes))
-	for _, m := range workingMeshes {
-		finalMeshes = append(finalMeshes, m.RemoveUnusedIndices())
+	finalMeshes := make([]Mesh, len(workingMeshes))
+	for mat, m := range workingMeshes {
+		finalMeshes[orderInserted[mat]] = m.RemoveUnusedIndices()
 	}
 	return finalMeshes
 }

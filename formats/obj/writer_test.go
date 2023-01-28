@@ -218,7 +218,7 @@ func TestWriteObjWithSingleMaterial(t *testing.T) {
 		nil,
 		[]modeling.MeshMaterial{
 			{
-				NumOfTris: 1,
+				PrimitiveCount: 1,
 				Material: &modeling.Material{
 					Name: "red",
 				},
@@ -286,13 +286,13 @@ func TestWriteObjWithMultipleMaterials(t *testing.T) {
 		nil,
 		[]modeling.MeshMaterial{
 			{
-				NumOfTris: 1,
+				PrimitiveCount: 1,
 				Material: &modeling.Material{
 					Name: "red",
 				},
 			},
 			{
-				NumOfTris: 1,
+				PrimitiveCount: 1,
 				Material: &modeling.Material{
 					Name: "blue",
 				},
@@ -341,14 +341,14 @@ func TestWriteMaterials(t *testing.T) {
 		nil, nil, nil,
 		[]modeling.MeshMaterial{
 			{
-				NumOfTris: 1,
+				PrimitiveCount: 1,
 				Material: &modeling.Material{
 					Name:         "red",
 					DiffuseColor: color.RGBA{1, 255, 3, 255},
 				},
 			},
 			{
-				NumOfTris: 1,
+				PrimitiveCount: 1,
 				Material: &modeling.Material{
 					Name:          "blue",
 					AmbientColor:  color.RGBA{4, 5, 6, 255},

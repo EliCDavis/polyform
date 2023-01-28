@@ -176,9 +176,9 @@ f  1/1/1 2/2/2 3/3/3
 	assert.Equal(t, vector2.New(0.0, 0.0), uvs[3])
 
 	if assert.Len(t, square.Materials(), 3) {
-		assert.Equal(t, 1, square.Materials()[0].NumOfTris)
-		assert.Equal(t, 1, square.Materials()[1].NumOfTris)
-		assert.Equal(t, 1, square.Materials()[2].NumOfTris)
+		assert.Equal(t, 1, square.Materials()[0].PrimitiveCount)
+		assert.Equal(t, 1, square.Materials()[1].PrimitiveCount)
+		assert.Equal(t, 1, square.Materials()[2].PrimitiveCount)
 
 		if assert.NotNil(t, square.Materials()[0].Material) {
 			assert.Equal(t, "red", square.Materials()[0].Material.Name)

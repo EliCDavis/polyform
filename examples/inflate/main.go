@@ -79,6 +79,10 @@ func main() {
 				Name:  "scale",
 				Value: 12,
 			},
+			&cli.Float64Flag{
+				Name:  "resolution",
+				Value: 20,
+			},
 		},
 		Action: func(c *cli.Context) error {
 			loadedMesh, err := loadMesh(c.String("in"))
@@ -86,9 +90,7 @@ func main() {
 				return err
 			}
 
-			cubesPerUnit := 10.
-
-			canvas := marching.NewMarchingCanvas(cubesPerUnit)
+			canvas := marching.NewMarchingCanvas(c.Float64("resolution"))
 
 			startTime := time.Now()
 			canvas.AddFieldParallel(marching.Mesh(

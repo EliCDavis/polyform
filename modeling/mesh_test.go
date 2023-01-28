@@ -21,6 +21,7 @@ func Test_SplitOnUniqueMaterials_Simple(t *testing.T) {
 				vector3.New[float64](0., 0., 0.),
 				vector3.New[float64](0., 1., 0.),
 				vector3.New[float64](1., 1., 0.),
+
 				vector3.New[float64](0., 0., 0.),
 				vector3.New[float64](1., 1., 0.),
 				vector3.New[float64](1., 0., 0.),
@@ -29,6 +30,7 @@ func Test_SplitOnUniqueMaterials_Simple(t *testing.T) {
 				vector3.New[float64](0., 0., 0.),
 				vector3.New[float64](0., 1., 0.),
 				vector3.New[float64](1., 1., 0.),
+
 				vector3.New[float64](0., 0., 0.),
 				vector3.New[float64](1., 1., 0.),
 				vector3.New[float64](1., 0., 0.),
@@ -39,6 +41,7 @@ func Test_SplitOnUniqueMaterials_Simple(t *testing.T) {
 				vector2.New[float64](0., 0.),
 				vector2.New[float64](0., 1.),
 				vector2.New[float64](1., 1.),
+
 				vector2.New[float64](0., 0.),
 				vector2.New[float64](1., 1.),
 				vector2.New[float64](1., 0.),
@@ -47,13 +50,13 @@ func Test_SplitOnUniqueMaterials_Simple(t *testing.T) {
 		nil,
 		[]modeling.MeshMaterial{
 			{
-				NumOfTris: 1,
+				PrimitiveCount: 1,
 				Material: &modeling.Material{
 					Name: "red",
 				},
 			},
 			{
-				NumOfTris: 1,
+				PrimitiveCount: 1,
 				Material: &modeling.Material{
 					Name: "blue",
 				},

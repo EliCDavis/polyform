@@ -1,6 +1,6 @@
 package modeling
 
 type MeshMaterial struct {
-	NumOfTris int
-	Material  *Material
+	PrimitiveCount int
+	Material       *Material
 }
