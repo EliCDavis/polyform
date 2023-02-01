@@ -15,10 +15,10 @@ type ScalarPropertyType string
 const (
 	Char   ScalarPropertyType = "char"
 	UChar  ScalarPropertyType = "uchar" //  uint8
-	Short  ScalarPropertyType = "Short"
-	Ushort ScalarPropertyType = "ushort"
+	Short  ScalarPropertyType = "short"
+	UShort ScalarPropertyType = "ushort"
 	Int    ScalarPropertyType = "int"
-	Uint   ScalarPropertyType = "uint"
+	UInt   ScalarPropertyType = "uint"
 	Float  ScalarPropertyType = "float"
 	Double ScalarPropertyType = "double"
 )
@@ -30,6 +30,25 @@ type ScalarProperty struct {
 
 func (sp ScalarProperty) Name() string {
 	return sp.name
+}
+
+func (sp ScalarProperty) Size() int {
+	switch sp.Type {
+	case Char, UChar:
+		return 1
+
+	case Short, UShort:
+		return 2
+
+	case Int, UInt, Float:
+		return 4
+
+	case Double:
+		return 8
+
+	default:
+		panic(fmt.Errorf("unimplemented byte size for scalar property type: %s", sp.Type))
+	}
 }
 
 func (sp ScalarProperty) Write(out io.Writer) (err error) {

@@ -26,7 +26,7 @@ func readMesh(path string) (*modeling.Mesh, error) {
 		return obj.Load(path)
 
 	case ".ply":
-		return ply.ToMesh(inFile)
+		return ply.ReadMesh(inFile)
 
 	default:
 		return nil, fmt.Errorf("unimplemented format: %s", ext)

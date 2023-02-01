@@ -2,6 +2,7 @@ package ply_test
 
 import (
 	"bytes"
+	"io/ioutil"
 	"strings"
 	"testing"
 
@@ -14,7 +15,7 @@ func TestToMeshThrowsWithBadMagicNumber(t *testing.T) {
 	plyData := `test
 format ascii 1.0
 `
-	ply, err := ply.ToMesh(strings.NewReader(plyData))
+	ply, err := ply.ReadMesh(strings.NewReader(plyData))
 
 	assert.EqualError(t, err, "unrecognized magic number: 'test' (expected 'ply')")
 	assert.Nil(t, ply)
@@ -24,7 +25,7 @@ func TestToMeshThrowsWithBadFormatLine(t *testing.T) {
 	plyData := `ply
 trash
 `
-	ply, err := ply.ToMesh(strings.NewReader(plyData))
+	ply, err := ply.ReadMesh(strings.NewReader(plyData))
 
 	assert.EqualError(t, err, "unrecognized format line")
 	assert.Nil(t, ply)
@@ -34,7 +35,7 @@ func TestToMeshThrowsWithBadFormatVersion(t *testing.T) {
 	plyData := `ply
 format ascii 1.2
 `
-	ply, err := ply.ToMesh(strings.NewReader(plyData))
+	ply, err := ply.ReadMesh(strings.NewReader(plyData))
 
 	assert.EqualError(t, err, "unrecognized version format: 1.2")
 	assert.Nil(t, ply)
@@ -44,7 +45,7 @@ func TestToMeshThrowsWithUnknownFormatType(t *testing.T) {
 	plyData := `ply
 format bad 1.0
 `
-	ply, err := ply.ToMesh(strings.NewReader(plyData))
+	ply, err := ply.ReadMesh(strings.NewReader(plyData))
 
 	assert.EqualError(t, err, "unrecognized format: bad")
 	assert.Nil(t, ply)
@@ -54,13 +55,13 @@ func TestToMeshThrowsNoFormatLine(t *testing.T) {
 	plyData := `ply
 bad ascii 1.0
 `
-	ply, err := ply.ToMesh(strings.NewReader(plyData))
+	ply, err := ply.ReadMesh(strings.NewReader(plyData))
 
 	assert.EqualError(t, err, "expected format line, received bad")
 	assert.Nil(t, ply)
 }
 
-func TestToMesh(t *testing.T) {
+func TestToMeshASCII(t *testing.T) {
 	plyData := `ply
 format ascii 1.0
 comment made by anonymous
@@ -87,16 +88,30 @@ end_header
 4 2 6 7 3
 4 3 7 4 0
 `
-	ply, err := ply.ToMesh(strings.NewReader(plyData))
+	ply, err := ply.ReadMesh(strings.NewReader(plyData))
 
 	assert.NoError(t, err)
 	assert.NotNil(t, ply)
 }
 
+func TestToMeshLittleEndian(t *testing.T) {
+	data, err := ioutil.ReadFile("../../test-models/stanford-bunny.ply")
+	if !assert.NoError(t, err) {
+		return
+	}
+
+	bunny, err := ply.ReadMesh(bytes.NewBuffer(data))
+
+	assert.NoError(t, err)
+	assert.NotNil(t, bunny)
+	assert.Equal(t, 69451, bunny.PrimitiveCount())
+	assert.Equal(t, 35947, bunny.AttributeLength())
+}
+
 func TestWriteASCII(t *testing.T) {
 	plyData := `ply
 format ascii 1.0
-comment created by github.com/EliCDavis/polyform
+comment Created with github.com/EliCDavis/polyform
 element vertex 8
 property float nx
 property float ny
@@ -134,6 +149,5 @@ end_header
 	err := ply.WriteASCII(&buf, cube)
 
 	assert.NoError(t, err)
-	print(buf.String())
 	assert.Equal(t, plyData, buf.String())
 }

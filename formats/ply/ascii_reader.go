@@ -10,15 +10,20 @@ import (
 	"github.com/EliCDavis/vector/vector3"
 )
 
-func isScalarPropWithType(prop Property, scalarType ScalarPropertyType) bool {
+func isScalarPropWithType(prop Property, scalarType ...ScalarPropertyType) bool {
 	v, ok := prop.(ScalarProperty)
 	if !ok {
 		return false
 	}
-	return v.Type == scalarType
+	for _, t := range scalarType {
+		if v.Type == t {
+			return true
+		}
+	}
+	return false
 }
 
-func parseVector3FromContents(xIndex, yIndex, zIndex int) func(contents []string) (vector3.Float64, error) {
+func parseVector3FromStringContents(xIndex, yIndex, zIndex int) func(contents []string) (vector3.Float64, error) {
 	return func(contents []string) (vector3.Float64, error) {
 		xParsed, err := strconv.ParseFloat(contents[xIndex], 32)
 		if err != nil {
@@ -60,32 +65,32 @@ func (ar *AsciiReader) readVertexData(element Element) (map[string][]vector3.Flo
 	blueIndex := -1
 
 	for propIndex, prop := range element.properties {
-		if prop.Name() == "x" && isScalarPropWithType(prop, Float) {
+		if prop.Name() == "x" && isScalarPropWithType(prop, Float, Double) {
 			xIndex = propIndex
 			continue
 		}
 
-		if prop.Name() == "y" && isScalarPropWithType(prop, Float) {
+		if prop.Name() == "y" && isScalarPropWithType(prop, Float, Double) {
 			yIndex = propIndex
 			continue
 		}
 
-		if prop.Name() == "z" && isScalarPropWithType(prop, Float) {
+		if prop.Name() == "z" && isScalarPropWithType(prop, Float, Double) {
 			zIndex = propIndex
 			continue
 		}
 
-		if prop.Name() == "nx" && isScalarPropWithType(prop, Float) {
+		if prop.Name() == "nx" && isScalarPropWithType(prop, Float, Double) {
 			nxIndex = propIndex
 			continue
 		}
 
-		if prop.Name() == "ny" && isScalarPropWithType(prop, Float) {
+		if prop.Name() == "ny" && isScalarPropWithType(prop, Float, Double) {
 			nyIndex = propIndex
 			continue
 		}
 
-		if prop.Name() == "nz" && isScalarPropWithType(prop, Float) {
+		if prop.Name() == "nz" && isScalarPropWithType(prop, Float, Double) {
 			nzIndex = propIndex
 			continue
 		}
@@ -107,11 +112,11 @@ func (ar *AsciiReader) readVertexData(element Element) (map[string][]vector3.Flo
 	}
 
 	if xIndex != -1 && yIndex != -1 && zIndex != -1 {
-		attributeReaders[modeling.PositionAttribute] = parseVector3FromContents(xIndex, yIndex, zIndex)
+		attributeReaders[modeling.PositionAttribute] = parseVector3FromStringContents(xIndex, yIndex, zIndex)
 	}
 
 	if nxIndex != -1 && nyIndex != -1 && nzIndex != -1 {
-		attributeReaders[modeling.NormalAttribute] = parseVector3FromContents(nxIndex, nyIndex, nzIndex)
+		attributeReaders[modeling.NormalAttribute] = parseVector3FromStringContents(nxIndex, nyIndex, nzIndex)
 	}
 
 	if redIndex != -1 && greenIndex != -1 && blueIndex != -1 {
@@ -189,23 +194,23 @@ func (ar *AsciiReader) readFaceData(element Element) ([]int, error) {
 		}
 		v1, err := strconv.Atoi(contents[1])
 		if err != nil {
-			return nil, fmt.Errorf("unable to index: %w", err)
+			return nil, fmt.Errorf("unable to parse index: %w", err)
 		}
 
 		v2, err := strconv.Atoi(contents[2])
 		if err != nil {
-			return nil, fmt.Errorf("unable to vert index: %w", err)
+			return nil, fmt.Errorf("unable to parse index: %w", err)
 		}
 
 		v3, err := strconv.Atoi(contents[3])
 		if err != nil {
-			return nil, fmt.Errorf("unable to index: %w", err)
+			return nil, fmt.Errorf("unable to parse index: %w", err)
 		}
 		triData = append(triData, v1, v2, v3)
 		if listSize == 4 {
 			v4, err := strconv.Atoi(contents[4])
 			if err != nil {
-				return nil, fmt.Errorf("unable to index: %w", err)
+				return nil, fmt.Errorf("unable to parse index: %w", err)
 			}
 			triData = append(triData, v1, v3, v4)
 		}

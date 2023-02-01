@@ -2,6 +2,7 @@ package ply
 
 import (
 	"bufio"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
@@ -16,21 +17,46 @@ type Format int64
 
 const (
 	ASCII Format = iota
-	Binary
+	BinaryBigEndian
+	BinaryLittleEndian
 )
 
-func scanToNextNonEmptyLine(scanner *bufio.Scanner) string {
-	for scanner.Scan() {
-		text := scanner.Text()
-		if strings.TrimSpace(text) != "" {
-			return text
+func readLine(in *bufio.Reader) (string, error) {
+	data := make([]byte, 0)
+
+	for {
+		b, err := in.ReadByte()
+		if err != nil {
+			return "", err
 		}
+
+		if b == '\n' {
+			return string(data), nil
+		}
+
+		data = append(data, b)
 	}
-	panic("end of scanner")
 }
 
-func readPlyHeaderFormat(scanner *bufio.Scanner) (Format, error) {
-	line := scanToNextNonEmptyLine(scanner)
+func scanToNextNonEmptyLine(reader *bufio.Reader) (string, error) {
+	for {
+		text, err := readLine(reader)
+		if err != nil {
+			return "", err
+		}
+
+		if strings.TrimSpace(text) != "" {
+			return text, nil
+		}
+	}
+}
+
+func readPlyHeaderFormat(reader *bufio.Reader) (Format, error) {
+	line, err := scanToNextNonEmptyLine(reader)
+	if err != nil {
+		return -1, err
+	}
+
 	contents := strings.Fields(line)
 
 	if len(contents) != 3 {
@@ -49,6 +75,12 @@ func readPlyHeaderFormat(scanner *bufio.Scanner) (Format, error) {
 	case "ascii":
 		return ASCII, nil
 
+	case "binary_little_endian":
+		return BinaryLittleEndian, nil
+
+	case "binary_big_endian":
+		return BinaryBigEndian, nil
+
 	default:
 		return -1, fmt.Errorf("unrecognized format: %s", contents[1])
 	}
@@ -64,14 +96,14 @@ var scalarPropTypeNameToScalarPropertyType = map[string]ScalarPropertyType{
 	"short": Short,
 	"int16": Short,
 
-	"ushort": Ushort,
-	"uint16": Ushort,
+	"ushort": UShort,
+	"uint16": UShort,
 
 	"int":   Int,
 	"int32": Int,
 
-	"uint":   Uint,
-	"uint32": Uint,
+	"uint":   UInt,
+	"uint32": UInt,
 
 	"float":   Float,
 	"float32": Float,
@@ -103,27 +135,29 @@ func readPlyProperty(contents []string) (Property, error) {
 }
 
 func readPlyHeader(in io.Reader) (reader, error) {
-	scanner := bufio.NewScanner(in)
-	scanner.Scan()
-	magicNumber := scanner.Text()
-	if magicNumber != "ply" {
-		return nil, fmt.Errorf("unrecognized magic number: '%s' (expected 'ply')", magicNumber)
-	}
-
-	format, err := readPlyHeaderFormat(scanner)
+	reader := bufio.NewReader(in)
+	magicNumber, err := readLine(reader)
 	if err != nil {
 		return nil, err
 	}
 
-	if format != ASCII {
-		return nil, fmt.Errorf("unimplemented format type: %d", format)
+	if magicNumber != "ply" {
+		return nil, fmt.Errorf("unrecognized magic number: '%s' (expected 'ply')", magicNumber)
+	}
+
+	format, err := readPlyHeaderFormat(reader)
+	if err != nil {
+		return nil, err
 	}
 
 	elements := make([]Element, 0)
 
 	for {
-		scanner.Scan()
-		line := scanner.Text()
+		line, err := readLine(reader)
+		if err != nil {
+			return nil, err
+		}
+
 		if strings.TrimSpace(line) == "" {
 			continue
 		}
@@ -163,10 +197,30 @@ func readPlyHeader(in io.Reader) (reader, error) {
 		}
 	}
 
-	return &AsciiReader{elements: elements, scanner: scanner}, nil
+	switch format {
+	case ASCII:
+		return &AsciiReader{elements: elements, scanner: bufio.NewScanner(reader)}, nil
+
+	case BinaryLittleEndian:
+		return &BinaryReader{
+			elements: elements,
+			order:    binary.LittleEndian,
+			reader:   reader,
+		}, nil
+
+	case BinaryBigEndian:
+		return &BinaryReader{
+			elements: elements,
+			order:    binary.BigEndian,
+			reader:   reader,
+		}, nil
+
+	default:
+		return nil, fmt.Errorf("unimplemented ply format: %d", format)
+	}
 }
 
-func ToMesh(in io.Reader) (*modeling.Mesh, error) {
+func ReadMesh(in io.Reader) (*modeling.Mesh, error) {
 	reader, err := readPlyHeader(in)
 	if err != nil {
 		return nil, err
@@ -182,7 +236,7 @@ func Load(filepath string) (*modeling.Mesh, error) {
 	}
 	defer in.Close()
 
-	return ToMesh(in)
+	return ReadMesh(in)
 }
 
 func buildVertexElements(attributes []string, size int) Element {
@@ -254,7 +308,7 @@ func buildVertexElements(attributes []string, size int) Element {
 func WriteASCII(out io.Writer, model modeling.Mesh) error {
 	fmt.Fprintln(out, "ply")
 	fmt.Fprintln(out, "format ascii 1.0")
-	fmt.Fprintln(out, "comment created by github.com/EliCDavis/polyform")
+	fmt.Fprintln(out, "comment Created with github.com/EliCDavis/polyform")
 
 	attributes := model.Float3Attributes()
 	vertexCount := model.AttributeLength()

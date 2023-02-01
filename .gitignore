@@ -1,6 +1,5 @@
 data/
 *.mtl
-*.ply
 tmp/
 
 *.exe

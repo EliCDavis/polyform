@@ -519,7 +519,8 @@ func (m Mesh) ScanFloat3AttributeParallelWithPoolSize(atr string, size int, f fu
 
 		go func(start, size int) {
 			defer wg.Done()
-			for i := start; i < start+size; i++ {
+			end := start + size
+			for i := start; i < end; i++ {
 				f(i, data[i])
 			}
 		}(workSize*i, jobSize)
@@ -573,7 +574,8 @@ func (m Mesh) ScanFloat2AttributeParallelWithPoolSize(atr string, size int, f fu
 
 		go func(start, size int) {
 			defer wg.Done()
-			for i := start; i < start+size; i++ {
+			end := start + size
+			for i := start; i < end; i++ {
 				f(i, data[i])
 			}
 		}(workSize*i, jobSize)
@@ -627,7 +629,8 @@ func (m Mesh) ScanFloat1AttributeParallelWithPoolSize(atr string, size int, f fu
 
 		go func(start, size int) {
 			defer wg.Done()
-			for i := start; i < start+size; i++ {
+			end := start + size
+			for i := start; i < end; i++ {
 				f(i, data[i])
 			}
 		}(workSize*i, jobSize)
@@ -684,7 +687,8 @@ func (m Mesh) ModifyFloat3AttributeParallelWithPoolSize(atr string, size int, f 
 
 		go func(start, size int) {
 			defer wg.Done()
-			for i := start; i < start+size; i++ {
+			end := start + size
+			for i := start; i < end; i++ {
 				modified[i] = f(i, oldData[i])
 			}
 		}(workSize*i, jobSize)
@@ -741,7 +745,8 @@ func (m Mesh) ModifyFloat2AttributeParallelWithPoolSize(atr string, size int, f 
 
 		go func(start, size int) {
 			defer wg.Done()
-			for i := start; i < start+size; i++ {
+			end := start + size
+			for i := start; i < end; i++ {
 				modified[i] = f(i, oldData[i])
 			}
 		}(workSize*i, jobSize)
@@ -797,7 +802,8 @@ func (m Mesh) ModifyFloat1AttributeParallelWithPoolSize(atr string, size int, f 
 
 		go func(start, size int) {
 			defer wg.Done()
-			for i := start; i < start+size; i++ {
+			end := start + size
+			for i := start; i < end; i++ {
 				modified[i] = f(i, oldData[i])
 			}
 		}(workSize*i, jobSize)

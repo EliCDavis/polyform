@@ -8,8 +8,7 @@ import (
 	"github.com/EliCDavis/polyform/modeling"
 )
 
-// Save writes the mesh to the path specified in OBJ format, optionally writing
-// an additional MTL file with materials are found within the modeling.
+// Save writes the mesh to the path specified in PLY format
 func Save(objPath string, meshToSave modeling.Mesh) error {
 	err := os.MkdirAll(path.Dir(objPath), os.ModeDir)
 	if err != nil {

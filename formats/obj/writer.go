@@ -87,6 +87,8 @@ func WriteMaterial(mat modeling.Material, out io.Writer) error {
 }
 
 func WriteMaterials(m modeling.Mesh, out io.Writer) error {
+	fmt.Fprintln(out, "# Created with github.com/EliCDavis/polyform")
+
 	defaultWritten := false
 
 	written := make(map[*modeling.Material]bool)
@@ -178,6 +180,7 @@ func writeFaceVertAndUvsAndNormals(tris []int, out io.Writer, start, end int) er
 }
 
 func WriteMesh(m modeling.Mesh, materialFile string, out io.Writer) error {
+	fmt.Fprintln(out, "# Created with github.com/EliCDavis/polyform")
 	if materialFile != "" {
 		fmt.Fprintf(out, "mtllib %s\no mesh\n", materialFile)
 	}
