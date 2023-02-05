@@ -2,7 +2,7 @@ package ply_test
 
 import (
 	"bytes"
-	"io/ioutil"
+	"os"
 	"strings"
 	"testing"
 
@@ -95,7 +95,7 @@ end_header
 }
 
 func TestToMeshLittleEndian(t *testing.T) {
-	data, err := ioutil.ReadFile("../../test-models/stanford-bunny.ply")
+	data, err := os.ReadFile("../../test-models/stanford-bunny.ply")
 	if !assert.NoError(t, err) {
 		return
 	}

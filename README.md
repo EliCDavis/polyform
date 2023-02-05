@@ -183,3 +183,5 @@ Resources either directly contributing to the code here or are just interesting 
   - [SDFs](https://iquilezles.org/articles/distfunctions/)
 - Collisions
   - [Closest point on Triangle](https://gdbooks.gitbooks.io/3dcollisions/content/Chapter4/closest_point_to_triangle.html)
+- Ray Tracing
+  - [Ray Tracing in One Weekend by Peter Shirley](https://raytracing.github.io/books/RayTracingInOneWeekend.html)
