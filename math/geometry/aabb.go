@@ -1,4 +1,4 @@
-package modeling
+package geometry
 
 import (
 	"math"
@@ -15,6 +15,13 @@ func NewAABB(center, size vector3.Float64) AABB {
 	return AABB{
 		center:  center,
 		extents: size.Scale(0.5),
+	}
+}
+
+func NewEmptyAABB() AABB {
+	return AABB{
+		center:  vector3.Zero[float64](),
+		extents: vector3.Zero[float64](),
 	}
 }
 
@@ -114,12 +121,6 @@ func (aabb *AABB) EncapsulatePoint(p vector3.Float64) {
 	)
 }
 
-func (aabb *AABB) EncapsulateTri(t Tri) {
-	aabb.EncapsulatePoint(t.P1Vec3Attr(PositionAttribute))
-	aabb.EncapsulatePoint(t.P2Vec3Attr(PositionAttribute))
-	aabb.EncapsulatePoint(t.P3Vec3Attr(PositionAttribute))
-}
-
 func (aabb *AABB) EncapsulateBounds(b AABB) {
 	aabb.EncapsulatePoint(b.center.Sub(b.extents))
 	aabb.EncapsulatePoint(b.center.Add(b.extents))
@@ -129,8 +130,55 @@ func (aabb AABB) ClosestPoint(v vector3.Float64) vector3.Float64 {
 	result := v
 	min := aabb.Min()
 	max := aabb.Max()
-	result = result.SetX(Clamp(v.X(), min.X(), max.X()))
-	result = result.SetY(Clamp(v.Y(), min.Y(), max.Y()))
-	result = result.SetZ(Clamp(v.Z(), min.Z(), max.Z()))
+	result = result.SetX(clamp(v.X(), min.X(), max.X()))
+	result = result.SetY(clamp(v.Y(), min.Y(), max.Y()))
+	result = result.SetZ(clamp(v.Z(), min.Z(), max.Z()))
 	return result
+}
+
+func clamp(v, min, max float64) float64 {
+	return math.Min(math.Max(v, min), max)
+}
+
+// IntersectsRayInRange determines whether or not a ray intersects the bounding
+// box with the range of the ray between min and max
+//
+// Intersection method by Andrew Kensler at Pixar, found in the book "Ray
+// Tracing The Next Week" by Peter Shirley
+func (aabb AABB) IntersectsRayInRange(ray Ray, min, max float64) bool {
+	boxMin := aabb.Min()
+	boxMax := aabb.Max()
+
+	if !aabb.intersectsRayInRangeComponent(ray.origin.X(), ray.direction.X(), min, max, boxMin.X(), boxMax.X()) {
+		return false
+	}
+
+	if !aabb.intersectsRayInRangeComponent(ray.origin.Y(), ray.direction.Y(), min, max, boxMin.Y(), boxMax.Y()) {
+		return false
+	}
+
+	if !aabb.intersectsRayInRangeComponent(ray.origin.Z(), ray.direction.Z(), min, max, boxMin.Z(), boxMax.Z()) {
+		return false
+	}
+	return true
+}
+
+func (aabb AABB) intersectsRayInRangeComponent(origin, dir, t_min, t_max, boxMin, boxMax float64) bool {
+	invD := 1.0 / dir
+	t0 := (boxMin - origin) * invD
+	t1 := (boxMax - origin) * invD
+	if invD < 0.0 {
+		// std::swap(t0, t1);
+		t1, t0 = t0, t1
+	}
+
+	if t0 > t_min {
+		t_min = t0
+	}
+
+	if t1 < t_max {
+		t_max = t1
+	}
+
+	return t_max > t_min
 }

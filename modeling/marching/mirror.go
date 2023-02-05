@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"math"
 
+	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/math/sample"
-	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
 )
@@ -69,7 +69,7 @@ func MirrorAxis(field Field, axisToMirror Axis) Field {
 		}
 	}
 
-	newDomain := modeling.NewAABB(field.Domain.Center(), field.Domain.Size())
+	newDomain := geometry.NewAABB(field.Domain.Center(), field.Domain.Size())
 	newDomain.EncapsulatePoint(bottomLeftBackCorner)
 	return Field{
 		Domain:          newDomain,

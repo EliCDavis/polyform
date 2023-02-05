@@ -1,10 +1,8 @@
-package main
+package rendering_test
 
 import (
-	"fmt"
-	"log"
 	"math/rand"
-	"time"
+	"testing"
 
 	"github.com/EliCDavis/polyform/rendering"
 	"github.com/EliCDavis/polyform/rendering/materials"
@@ -71,7 +69,7 @@ func randomScene() []rendering.Hittable {
 	return world
 }
 
-func main() {
+func BenchmarkRender(b *testing.B) {
 	origin := vector3.New(13., 2., 3.)
 	lookat := vector3.New(0., 0., 0.)
 	aperatre := 0.1
@@ -80,25 +78,12 @@ func main() {
 
 	camera := rendering.NewCamera(20., aspectRatio, aperatre, 10., origin, lookat, vector3.Up[float64](), 0, 1)
 
-	t1 := time.Now()
-
-	completion := make(chan float64, 1)
-
-	go func() {
-		err := rendering.Render(50, 50, 200, aspectRatio, randomScene(), camera, "example2.png", completion)
+	for n := 0; n < b.N; n++ {
+		// always record the result of Fib to prevent
+		// the compiler eliminating the function call.
+		err := rendering.Render(50, 50, 50, aspectRatio, randomScene(), camera, "example2.png", nil)
 		if err != nil {
-			log.Print(err)
 			panic(err)
 		}
-	}()
-
-	lastProgress := -1.
-	for progress := range completion {
-		if progress-lastProgress > .001 {
-			lastProgress = progress
-			log.Printf("Image Progress: %.2f%%\n", progress*100.)
-		}
 	}
-
-	fmt.Println(time.Since(t1))
 }

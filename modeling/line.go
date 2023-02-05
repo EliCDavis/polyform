@@ -2,6 +2,7 @@ package modeling
 
 import (
 	"github.com/EliCDavis/polyform/math/geometry"
+	"github.com/EliCDavis/polyform/trees"
 	"github.com/EliCDavis/vector/vector3"
 )
 
@@ -11,8 +12,8 @@ type scopedLine struct {
 	p2   int
 }
 
-func (l scopedLine) BoundingBox() AABB {
-	return NewAABBFromPoints(
+func (l scopedLine) BoundingBox() geometry.AABB {
+	return geometry.NewAABBFromPoints(
 		l.data[l.p1],
 		l.data[l.p2],
 	)
@@ -41,8 +42,8 @@ func (l Line) P2() int {
 	return l.mesh.indices[l.startingIndex+1]
 }
 
-func (l Line) BoundingBox(atr string) AABB {
-	return NewAABBFromPoints(
+func (l Line) BoundingBox(atr string) geometry.AABB {
+	return geometry.NewAABBFromPoints(
 		l.mesh.v3Data[atr][l.P1()],
 		l.mesh.v3Data[atr][l.P2()],
 	)
@@ -56,7 +57,7 @@ func (l Line) ClosestPoint(atr string, point vector3.Float64) vector3.Float64 {
 	return line3d.ClosestPointOnLine(point)
 }
 
-func (l Line) Scope(attribute string) ScopedPrimitive {
+func (l Line) Scope(attribute string) trees.Element {
 	return scopedLine{
 		data: l.mesh.v3Data[attribute],
 		p1:   l.P1(),

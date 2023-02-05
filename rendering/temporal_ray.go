@@ -15,6 +15,7 @@ func NewTemporalRay(origin vector3.Float64, direction vector3.Float64, time floa
 	return TemporalRay{
 		origin:    origin,
 		direction: direction.Normalized(),
+		time:      time,
 	}
 }
 

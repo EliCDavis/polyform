@@ -58,7 +58,8 @@ func Render(
 	imageHeight := int(float64(imageWidth) / aspectRatio)
 	img := image.NewRGBA(image.Rect(0, 0, imageWidth, imageHeight))
 
-	var world HitList = hittables
+	// var world HitList = hittables
+	bvh := NewBVH(hittables, camera.timeStart, camera.timeEnd)
 
 	totalPixels := float64(imageHeight * imageWidth)
 
@@ -70,7 +71,7 @@ func Render(
 			for s := 0; s < samplesPerPixel; s++ {
 				u := (float64(x) + rand.Float64()) / float64(imageWidth-1)
 				v := (float64(y) + rand.Float64()) / float64(imageHeight-1)
-				col = col.Add(colorFromRay(camera.GetRay(u, v), &world, maxRayBounce))
+				col = col.Add(colorFromRay(camera.GetRay(u, v), &bvh, maxRayBounce))
 			}
 
 			col = col.
@@ -86,13 +87,17 @@ func Render(
 				255,
 			})
 
-			completion <- float64((y*imageWidth)+x) / totalPixels
+			if completion != nil {
+				completion <- float64((y*imageWidth)+x) / totalPixels
+			}
 		}
 	}
 
 	err = png.Encode(f, img)
 
-	close(completion)
+	if completion != nil {
+		close(completion)
+	}
 
 	return err
 }

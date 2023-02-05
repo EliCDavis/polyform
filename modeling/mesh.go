@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/EliCDavis/polyform/math/geometry"
+	"github.com/EliCDavis/polyform/trees"
 	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
 )
@@ -353,9 +354,9 @@ func (m Mesh) ScaleAttribute3D(attribute string, origin, amount vector3.Float64)
 	})
 }
 
-func (m Mesh) BoundingBox(atr string) AABB {
+func (m Mesh) BoundingBox(atr string) geometry.AABB {
 	m.requireV3Attribute(atr)
-	return NewAABBFromPoints(m.v3Data[atr]...)
+	return geometry.NewAABBFromPoints(m.v3Data[atr]...)
 }
 
 func (m Mesh) CenterFloat3Attribute(atr string) Mesh {
@@ -1405,4 +1406,23 @@ func (m Mesh) SliceByPlaneWithAttribute(plane geometry.Plane, atr string) (Mesh,
 	}
 
 	return kept.RemoveUnusedIndices(), clipped.RemoveUnusedIndices()
+}
+
+func (m Mesh) OctTree() *trees.OctTree {
+	treeDepth := trees.OctreeDepthFromCount(m.PrimitiveCount())
+	return m.OctTreeWithAttributeAndDepth(PositionAttribute, treeDepth)
+}
+
+func (m Mesh) OctTreeDepth(depth int) *trees.OctTree {
+	return m.OctTreeWithAttributeAndDepth(PositionAttribute, depth)
+}
+
+func (m Mesh) OctTreeWithAttributeAndDepth(atr string, depth int) *trees.OctTree {
+	primitives := make([]trees.Element, m.PrimitiveCount())
+
+	m.ScanPrimitives(func(i int, p Primitive) {
+		primitives[i] = p.Scope(atr)
+	})
+
+	return trees.NewOctreeWithDepth(primitives, depth)
 }

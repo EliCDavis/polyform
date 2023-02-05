@@ -1,6 +1,7 @@
 package marching
 
 import (
+	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/math/sample"
 	"github.com/EliCDavis/polyform/math/sdf"
 	"github.com/EliCDavis/polyform/modeling"
@@ -8,7 +9,7 @@ import (
 )
 
 func Box(pos vector3.Float64, size vector3.Float64, strength float64) Field {
-	domain := modeling.NewAABB(
+	domain := geometry.NewAABB(
 		pos,
 		size,
 	)

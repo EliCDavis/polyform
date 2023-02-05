@@ -3,34 +3,55 @@ package trees
 import (
 	"math"
 
-	"github.com/EliCDavis/polyform/modeling"
+	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/vector/vector3"
 )
 
 type primitiveReference struct {
-	primitive     modeling.ScopedPrimitive
+	primitive     Element
 	originalIndex int
 }
 
 type OctTree struct {
 	children   []*OctTree
 	primitives []primitiveReference
-	bounds     modeling.AABB
-	atr        string
+	bounds     geometry.AABB
 }
 
-func (ot OctTree) Intersects(v vector3.Float64) []int {
+func (ot OctTree) BoundingBox() geometry.AABB {
+	return ot.bounds
+}
+
+func (ot OctTree) ElementsIntersectingRay(ray geometry.Ray, min, max float64) []int {
+	intersections := make([]int, 0)
+
+	for i := 0; i < len(ot.primitives); i++ {
+		if ot.primitives[i].primitive.BoundingBox().IntersectsRayInRange(ray, min, max) {
+			intersections = append(intersections, ot.primitives[i].originalIndex)
+		}
+	}
+
+	for _, subtree := range ot.children {
+		if subtree != nil && subtree.bounds.IntersectsRayInRange(ray, min, max) {
+			intersections = append(intersections, subtree.ElementsIntersectingRay(ray, min, max)...)
+		}
+	}
+
+	return intersections
+}
+
+func (ot OctTree) ElementsContainingPoint(v vector3.Float64) []int {
 	intersections := make([]int, 0)
 
 	for i := 0; i < len(ot.primitives); i++ {
 		if ot.primitives[i].primitive.BoundingBox().Contains(v) {
-			intersections = append(intersections, i)
+			intersections = append(intersections, ot.primitives[i].originalIndex)
 		}
 	}
 
 	subTreeIndex := octreeIndex(ot.bounds.Center(), v)
 	for ot.children[subTreeIndex] != nil {
-		return append(intersections, ot.children[subTreeIndex].Intersects(v)...)
+		return append(intersections, ot.children[subTreeIndex].ElementsContainingPoint(v)...)
 	}
 
 	return intersections
@@ -96,7 +117,7 @@ func octreeIndex(center, item vector3.Float64) int {
 	return left | bottom | back
 }
 
-func fromPrimitives(primitives []primitiveReference, atr string, maxDepth int) *OctTree {
+func newOctree(primitives []primitiveReference, maxDepth int) *OctTree {
 	if len(primitives) == 0 {
 		return nil
 	}
@@ -106,7 +127,6 @@ func fromPrimitives(primitives []primitiveReference, atr string, maxDepth int) *
 			bounds:     primitives[0].primitive.BoundingBox(),
 			primitives: []primitiveReference{primitives[0]},
 			children:   nil,
-			atr:        atr,
 		}
 	}
 
@@ -121,7 +141,6 @@ func fromPrimitives(primitives []primitiveReference, atr string, maxDepth int) *
 			bounds:     bounds,
 			primitives: primitives,
 			children:   nil,
-			atr:        atr,
 		}
 	}
 
@@ -156,60 +175,38 @@ func fromPrimitives(primitives []primitiveReference, atr string, maxDepth int) *
 		bounds:     bounds,
 		primitives: leftOver,
 		children: []*OctTree{
-			fromPrimitives(childrenNodes[0], atr, maxDepth-1),
-			fromPrimitives(childrenNodes[1], atr, maxDepth-1),
-			fromPrimitives(childrenNodes[2], atr, maxDepth-1),
-			fromPrimitives(childrenNodes[3], atr, maxDepth-1),
-			fromPrimitives(childrenNodes[4], atr, maxDepth-1),
-			fromPrimitives(childrenNodes[5], atr, maxDepth-1),
-			fromPrimitives(childrenNodes[6], atr, maxDepth-1),
-			fromPrimitives(childrenNodes[7], atr, maxDepth-1),
+			newOctree(childrenNodes[0], maxDepth-1),
+			newOctree(childrenNodes[1], maxDepth-1),
+			newOctree(childrenNodes[2], maxDepth-1),
+			newOctree(childrenNodes[3], maxDepth-1),
+			newOctree(childrenNodes[4], maxDepth-1),
+			newOctree(childrenNodes[5], maxDepth-1),
+			newOctree(childrenNodes[6], maxDepth-1),
+			newOctree(childrenNodes[7], maxDepth-1),
 		},
-		atr: atr,
 	}
-}
-
-func FromPrimitivesWithDepth(primitives []modeling.ScopedPrimitive, atr string, depth int) *OctTree {
-	pr := make([]primitiveReference, len(primitives))
-	for i := 0; i < len(primitives); i++ {
-		pr[i] = primitiveReference{
-			primitive:     primitives[i],
-			originalIndex: i,
-		}
-	}
-	return fromPrimitives(pr, atr, depth)
-}
-
-func FromPrimitives(primitives []modeling.ScopedPrimitive, atr string) *OctTree {
-	return FromPrimitivesWithDepth(primitives, atr, depthFromCount(len(primitives)))
-}
-
-func FromMeshAttributeWithDepth(m modeling.Mesh, atr string, depth int) *OctTree {
-	primitives := make([]primitiveReference, m.PrimitiveCount())
-
-	m.ScanPrimitives(func(i int, p modeling.Primitive) {
-		primitives[i] = primitiveReference{
-			primitive:     p.Scope(atr),
-			originalIndex: i,
-		}
-	})
-
-	return fromPrimitives(primitives, atr, depth)
-}
-
-func FromMeshWithDepth(m modeling.Mesh, depth int) *OctTree {
-	return FromMeshAttributeWithDepth(m, modeling.PositionAttribute, depth)
 }
 
 func logBase8(x float64) float64 {
 	return math.Log(x) / math.Log(8)
 }
 
-func depthFromCount(count int) int {
+func OctreeDepthFromCount(count int) int {
 	return int(math.Max(1, math.Round(logBase8(float64(count)))))
 }
 
-func FromMesh(m modeling.Mesh) *OctTree {
-	treeDepth := depthFromCount(m.PrimitiveCount())
-	return FromMeshAttributeWithDepth(m, modeling.PositionAttribute, treeDepth)
+func NewOctree(elements []Element) *OctTree {
+	treeDepth := OctreeDepthFromCount(len(elements))
+	return NewOctreeWithDepth(elements, treeDepth)
+}
+
+func NewOctreeWithDepth(elements []Element, maxDepth int) *OctTree {
+	primitives := make([]primitiveReference, len(elements))
+	for i, ele := range elements {
+		primitives[i] = primitiveReference{
+			primitive:     ele,
+			originalIndex: i,
+		}
+	}
+	return newOctree(primitives, maxDepth)
 }

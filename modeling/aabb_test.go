@@ -3,7 +3,7 @@ package modeling_test
 import (
 	"testing"
 
-	"github.com/EliCDavis/polyform/modeling"
+	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/vector/vector3"
 	"github.com/stretchr/testify/assert"
 )
@@ -86,7 +86,7 @@ func TestAABBContains(t *testing.T) {
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			aabb := modeling.NewAABB(tc.center, tc.size)
+			aabb := geometry.NewAABB(tc.center, tc.size)
 			assert.Equal(t, tc.result, aabb.Contains(tc.point))
 		})
 	}
@@ -104,7 +104,7 @@ func TestAABBEncapsulate(t *testing.T) {
 		vector3.New[float64](0, 1, 0),
 		vector3.New[float64](0, -1, 0),
 	}
-	aabb := modeling.NewAABB(vector3.Zero[float64](), vector3.Zero[float64]())
+	aabb := geometry.NewAABB(vector3.Zero[float64](), vector3.Zero[float64]())
 
 	// ACT/ASSERT =============================================================
 	for _, pt := range pts {
@@ -121,7 +121,7 @@ func TestAABBEncapsulate(t *testing.T) {
 
 func TestAABBExpand(t *testing.T) {
 	// ARRANGE ================================================================
-	aabb := modeling.NewAABB(vector3.Zero[float64](), vector3.One[float64]())
+	aabb := geometry.NewAABB(vector3.Zero[float64](), vector3.One[float64]())
 
 	// ACT ====================================================================
 	aabb.Expand(2)

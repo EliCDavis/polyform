@@ -4,6 +4,7 @@ import (
 	"math"
 
 	"github.com/EliCDavis/polyform/math/geometry"
+	"github.com/EliCDavis/polyform/trees"
 	"github.com/EliCDavis/vector/vector3"
 )
 
@@ -83,8 +84,8 @@ func (t scopedTri) ClosestPoint(p vector3.Float64) vector3.Float64 {
 	return c3
 }
 
-func (t scopedTri) BoundingBox() AABB {
-	aabb := NewAABB(t.data[t.p1], vector3.Zero[float64]())
+func (t scopedTri) BoundingBox() geometry.AABB {
+	aabb := geometry.NewAABB(t.data[t.p1], vector3.Zero[float64]())
 	aabb.EncapsulatePoint(t.data[t.p2])
 	aabb.EncapsulatePoint(t.data[t.p3])
 	return aabb
@@ -166,13 +167,13 @@ func (t Tri) UniqueVertices() bool {
 	return true
 }
 
-func (t Tri) Bounds() AABB {
+func (t Tri) Bounds() geometry.AABB {
 	center := t.P1Vec3Attr(PositionAttribute).
 		Add(t.P2Vec3Attr(PositionAttribute)).
 		Add(t.P3Vec3Attr(PositionAttribute)).
 		DivByConstant(3)
 
-	aabb := NewAABB(center, vector3.Zero[float64]())
+	aabb := geometry.NewAABB(center, vector3.Zero[float64]())
 	aabb.EncapsulatePoint(t.P1Vec3Attr(PositionAttribute))
 	aabb.EncapsulatePoint(t.P2Vec3Attr(PositionAttribute))
 	aabb.EncapsulatePoint(t.P3Vec3Attr(PositionAttribute))
@@ -236,14 +237,14 @@ func (t Tri) ClosestPoint(atr string, p vector3.Float64) vector3.Float64 {
 	return c3
 }
 
-func (t Tri) BoundingBox(atr string) AABB {
-	aabb := NewAABB(t.P1Vec3Attr(atr), vector3.Zero[float64]())
+func (t Tri) BoundingBox(atr string) geometry.AABB {
+	aabb := geometry.NewAABB(t.P1Vec3Attr(atr), vector3.Zero[float64]())
 	aabb.EncapsulatePoint(t.P2Vec3Attr(atr))
 	aabb.EncapsulatePoint(t.P3Vec3Attr(atr))
 	return aabb
 }
 
-func (t Tri) Scope(atr string) ScopedPrimitive {
+func (t Tri) Scope(atr string) trees.Element {
 	return &scopedTri{
 		data: t.mesh.v3Data[atr],
 		p1:   t.mesh.indices[t.startingIndex],

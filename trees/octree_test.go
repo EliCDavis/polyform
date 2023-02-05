@@ -7,7 +7,6 @@ import (
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/primitives"
 	"github.com/EliCDavis/polyform/modeling/repeat"
-	"github.com/EliCDavis/polyform/modeling/trees"
 	"github.com/EliCDavis/vector/vector3"
 	"github.com/stretchr/testify/assert"
 )
@@ -27,7 +26,7 @@ func TestOctreeSingleTri(t *testing.T) {
 		nil,
 		nil,
 	)
-	tree := trees.FromMesh(mesh)
+	tree := mesh.OctTree()
 
 	// ACT ====================================================================
 	_, p := tree.ClosestPoint(vector3.Zero[float64]())
@@ -52,7 +51,7 @@ func TestOctreeTwoTris(t *testing.T) {
 		nil,
 		nil,
 	)
-	tree := trees.FromMesh(mesh)
+	tree := mesh.OctTree()
 
 	// ACT ====================================================================
 	_, p := tree.ClosestPoint(vector3.Zero[float64]())
@@ -64,7 +63,7 @@ func TestOctreeTwoTris(t *testing.T) {
 func TestOctreeSphere(t *testing.T) {
 	// ARRANGE ================================================================
 	mesh := primitives.UVSphere(1, 100, 100)
-	tree := trees.FromMesh(mesh)
+	tree := mesh.OctTree()
 
 	testPointCount := 1000
 	testPoints := make([]vector3.Float64, testPointCount)
@@ -96,7 +95,7 @@ func TestOctreeLineSphere(t *testing.T) {
 		nil,
 		nil,
 	)
-	tree := trees.FromMesh(mesh)
+	tree := mesh.OctTree()
 
 	testPointCount := 100
 	testPoints := make([]vector3.Float64, testPointCount)
@@ -131,7 +130,7 @@ func BenchmarkOctreeLineSphere(b *testing.B) {
 		nil,
 		nil,
 	)
-	tree := trees.FromMesh(mesh)
+	tree := mesh.OctTree()
 
 	for n := 0; n < b.N; n++ {
 		// always record the result of Fib to prevent

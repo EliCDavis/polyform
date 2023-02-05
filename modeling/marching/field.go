@@ -5,6 +5,7 @@ import (
 	"image/color"
 	"math"
 
+	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/math/sample"
 	"github.com/EliCDavis/polyform/math/sdf"
 	"github.com/EliCDavis/polyform/modeling"
@@ -52,7 +53,7 @@ func CombineFields(fields ...Field) Field {
 	float2Aggregate := make(map[string][]sample.Vec3ToVec2)
 	float3Aggregate := make(map[string][]sample.Vec3ToVec3)
 
-	box := modeling.NewAABB(fields[0].Domain.Center(), fields[0].Domain.Size())
+	box := geometry.NewAABB(fields[0].Domain.Center(), fields[0].Domain.Size())
 	for _, otherF := range fields {
 		box.EncapsulateBounds(otherF.Domain)
 
@@ -102,7 +103,7 @@ func CombineFields(fields ...Field) Field {
 }
 
 type Field struct {
-	Domain          modeling.AABB
+	Domain          geometry.AABB
 	Float1Functions map[string]sample.Vec3ToFloat
 	Float2Functions map[string]sample.Vec3ToVec2
 	Float3Functions map[string]sample.Vec3ToVec3
@@ -140,7 +141,7 @@ func (f Field) Translate(translation vector3.Float64) Field {
 		Float1Functions: float1Final,
 		Float2Functions: float2Final,
 		Float3Functions: float3Final,
-		Domain:          modeling.NewAABB(f.Domain.Center().Add(translation), f.Domain.Size()),
+		Domain:          geometry.NewAABB(f.Domain.Center().Add(translation), f.Domain.Size()),
 	}
 }
 
@@ -152,7 +153,7 @@ func (f Field) Combine(otherFields ...Field) Field {
 }
 
 func (f Field) Modify(attribute string, other Field, modifier func(a, b sample.Vec3ToFloat) sample.Vec3ToFloat) Field {
-	newDomain := modeling.NewAABB(f.Domain.Center(), f.Domain.Size())
+	newDomain := geometry.NewAABB(f.Domain.Center(), f.Domain.Size())
 	newDomain.EncapsulateBounds(other.Domain)
 	return Field{
 		Domain: newDomain,
@@ -184,7 +185,7 @@ func (f Field) SetFloat3Attribute(atr string, f3tf3 sample.Vec3ToVec3) Field {
 		Float1Functions: float1Final,
 		Float2Functions: float2Final,
 		Float3Functions: float3Final,
-		Domain:          modeling.NewAABB(f.Domain.Center(), f.Domain.Size()),
+		Domain:          geometry.NewAABB(f.Domain.Center(), f.Domain.Size()),
 	}
 }
 

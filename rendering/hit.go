@@ -1,6 +1,7 @@
 package rendering
 
 import (
+	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/vector/vector3"
 )
 
@@ -23,8 +24,34 @@ func (h HitList) Hit(r *TemporalRay, min, max float64, hitRecord *HitRecord) boo
 	return hitAnything
 }
 
+func (h HitList) BoundingBox(startTime, endTime float64) *geometry.AABB {
+	if len(h) == 0 {
+		return nil
+	}
+
+	box := geometry.NewAABB(vector3.Zero[float64](), vector3.Zero[float64]())
+
+	hasBox := false
+
+	for _, item := range h {
+		itemBox := item.BoundingBox(startTime, endTime)
+		if itemBox == nil {
+			continue
+		}
+		box.EncapsulateBounds(*itemBox)
+		hasBox = true
+	}
+
+	if !hasBox {
+		return nil
+	}
+
+	return &box
+}
+
 type Hittable interface {
 	Hit(r *TemporalRay, min, max float64, hitRecord *HitRecord) bool
+	BoundingBox(startTime, endTime float64) *geometry.AABB
 }
 
 type HitRecord struct {
@@ -33,6 +60,7 @@ type HitRecord struct {
 	Normal    vector3.Float64
 	FrontFace bool
 	Material  Material
+	U, V      float64
 }
 
 func NewHitRecord() *HitRecord {
@@ -42,6 +70,8 @@ func NewHitRecord() *HitRecord {
 		vector3.Zero[float64](),
 		true,
 		nil,
+		0,
+		0,
 	}
 }
 

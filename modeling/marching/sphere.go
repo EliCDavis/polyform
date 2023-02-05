@@ -1,6 +1,7 @@
 package marching
 
 import (
+	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/math/sample"
 	"github.com/EliCDavis/polyform/math/sdf"
 	"github.com/EliCDavis/polyform/modeling"
@@ -10,7 +11,7 @@ import (
 func Sphere(pos vector3.Float64, radius, strength float64) Field {
 	domainRadius := strength * radius * 2
 	return Field{
-		Domain: modeling.NewAABB(
+		Domain: geometry.NewAABB(
 			pos,
 			vector3.New(domainRadius, domainRadius, domainRadius),
 		),

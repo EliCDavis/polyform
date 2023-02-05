@@ -7,7 +7,7 @@ import (
 	"github.com/EliCDavis/polyform/math/sample"
 	"github.com/EliCDavis/polyform/math/sdf"
 	"github.com/EliCDavis/polyform/modeling"
-	"github.com/EliCDavis/polyform/modeling/trees"
+	"github.com/EliCDavis/polyform/trees"
 	"github.com/EliCDavis/vector/vector3"
 )
 
@@ -16,8 +16,8 @@ type thickLinePrimitive struct {
 	radius     float64
 }
 
-func (l thickLinePrimitive) BoundingBox() modeling.AABB {
-	aabb := modeling.NewAABBFromPoints(l.start, l.end)
+func (l thickLinePrimitive) BoundingBox() geometry.AABB {
+	aabb := geometry.NewAABBFromPoints(l.start, l.end)
 	aabb.Expand(l.radius)
 	return aabb
 }
@@ -29,8 +29,8 @@ func (l thickLinePrimitive) ClosestPoint(point vector3.Float64) vector3.Float64 
 
 func Line(start, end vector3.Float64, radius, strength float64) Field {
 	boundsSize := vector3.One[float64]().Scale(radius + strength)
-	bounds := modeling.NewAABB(start, boundsSize)
-	bounds.EncapsulateBounds(modeling.NewAABB(end, boundsSize))
+	bounds := geometry.NewAABB(start, boundsSize)
+	bounds.EncapsulateBounds(geometry.NewAABB(end, boundsSize))
 	return Field{
 		Domain: bounds,
 		Float1Functions: map[string]sample.Vec3ToFloat{
@@ -44,7 +44,7 @@ func MultiSegmentLine(linePoints []vector3.Float64, radius, strength float64) Fi
 		panic("can not create a line segment field with less than 2 points")
 	}
 
-	thickLines := make([]modeling.ScopedPrimitive, len(linePoints)-1)
+	thickLines := make([]trees.Element, len(linePoints)-1)
 	for i := 1; i < len(linePoints); i++ {
 		thickLines[i-1] = &thickLinePrimitive{
 			start:  linePoints[i-1],
@@ -53,8 +53,8 @@ func MultiSegmentLine(linePoints []vector3.Float64, radius, strength float64) Fi
 		}
 	}
 
-	octree := trees.FromPrimitives(thickLines, modeling.PositionAttribute)
-	bounds := modeling.NewAABBFromPoints(linePoints...)
+	octree := trees.NewOctree(thickLines)
+	bounds := geometry.NewAABBFromPoints(linePoints...)
 	bounds.Expand(radius)
 	return Field{
 		Domain: bounds,
@@ -64,7 +64,7 @@ func MultiSegmentLine(linePoints []vector3.Float64, radius, strength float64) Fi
 					return 0
 				}
 
-				lineIndexes := octree.Intersects(v)
+				lineIndexes := octree.ElementsContainingPoint(v)
 
 				min := math.MaxFloat64
 				for _, l := range lineIndexes {
@@ -78,15 +78,15 @@ func MultiSegmentLine(linePoints []vector3.Float64, radius, strength float64) Fi
 
 	// ==============================================================
 
-	// bounds := modeling.NewAABB(line[0], vector3.Zero[float64]())
+	// bounds := geometry.NewAABB(line[0], vector3.Zero[float64]())
 	// sdfs := make([]sample.Vec3ToFloat, 0, len(line)-1)
 	// for i := 1; i < len(line); i++ {
 	// 	start := line[i-1]
 	// 	end := line[i]
 
 	// 	boundsSize := vector3.One[float64]().Scale(radius + strength)
-	// 	bounds.EncapsulateBounds(modeling.NewAABB(start, boundsSize))
-	// 	bounds.EncapsulateBounds(modeling.NewAABB(end, boundsSize))
+	// 	bounds.EncapsulateBounds(geometry.NewAABB(start, boundsSize))
+	// 	bounds.EncapsulateBounds(geometry.NewAABB(end, boundsSize))
 
 	// 	sdfs = append(sdfs, sdf.Line(start, end, radius).Scale(strength))
 	// }
