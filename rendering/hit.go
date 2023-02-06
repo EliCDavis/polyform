@@ -2,6 +2,7 @@ package rendering
 
 import (
 	"github.com/EliCDavis/polyform/math/geometry"
+	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
 )
 
@@ -60,7 +61,7 @@ type HitRecord struct {
 	Normal    vector3.Float64
 	FrontFace bool
 	Material  Material
-	U, V      float64
+	UV        vector2.Float64
 }
 
 func NewHitRecord() *HitRecord {
@@ -70,8 +71,7 @@ func NewHitRecord() *HitRecord {
 		vector3.Zero[float64](),
 		true,
 		nil,
-		0,
-		0,
+		vector2.Zero[float64](),
 	}
 }
 

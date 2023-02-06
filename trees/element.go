@@ -9,3 +9,8 @@ type Element interface {
 	BoundingBox() geometry.AABB
 	ClosestPoint(p vector3.Float64) vector3.Float64
 }
+
+type elementReference struct {
+	primitive     Element
+	originalIndex int
+}

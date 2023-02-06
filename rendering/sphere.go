@@ -5,6 +5,7 @@ import (
 
 	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/math/sample"
+	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
 )
 
@@ -37,6 +38,16 @@ func (s Sphere) GetMaterial() Material {
 	return s.mat
 }
 
+func (s Sphere) UV(p vector3.Float64) vector2.Float64 {
+	theta := math.Acos(-p.Y())
+	phi := math.Atan2(-p.Z(), p.X()) + math.Pi
+
+	return vector2.New(
+		phi/(2*math.Pi),
+		theta/math.Pi,
+	)
+}
+
 func (s Sphere) Hit(ray *TemporalRay, minDistance, maxDistance float64, hitRecord *HitRecord) bool {
 	center := s.animation(ray.time)
 
@@ -64,6 +75,7 @@ func (s Sphere) Hit(ray *TemporalRay, minDistance, maxDistance float64, hitRecor
 	hitRecord.Normal = hitRecord.Point.Sub(center).DivByConstant(s.radius)
 	hitRecord.Material = s.mat
 	hitRecord.SetFaceNormal(*ray, hitRecord.Normal)
+	hitRecord.UV = s.UV(hitRecord.Normal)
 
 	return true
 }

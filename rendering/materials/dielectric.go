@@ -6,6 +6,7 @@ import (
 
 	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/rendering"
+	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
 )
 
@@ -39,4 +40,8 @@ func (d Dielectric) Scatter(in geometry.Ray, rec *rendering.HitRecord, attenuati
 	*scattered = geometry.NewRay(rec.Point, direction)
 	*attenuation = vector3.New(1., 1., 1.)
 	return true
+}
+
+func (d Dielectric) Emitted(uv vector2.Float64, pont vector3.Float64) vector3.Float64 {
+	return vector3.Zero[float64]()
 }

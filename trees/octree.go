@@ -7,15 +7,10 @@ import (
 	"github.com/EliCDavis/vector/vector3"
 )
 
-type primitiveReference struct {
-	primitive     Element
-	originalIndex int
-}
-
 type OctTree struct {
-	children   []*OctTree
-	primitives []primitiveReference
-	bounds     geometry.AABB
+	children []*OctTree
+	elements []elementReference
+	bounds   geometry.AABB
 }
 
 func (ot OctTree) BoundingBox() geometry.AABB {
@@ -25,9 +20,13 @@ func (ot OctTree) BoundingBox() geometry.AABB {
 func (ot OctTree) ElementsIntersectingRay(ray geometry.Ray, min, max float64) []int {
 	intersections := make([]int, 0)
 
-	for i := 0; i < len(ot.primitives); i++ {
-		if ot.primitives[i].primitive.BoundingBox().IntersectsRayInRange(ray, min, max) {
-			intersections = append(intersections, ot.primitives[i].originalIndex)
+	// if !ot.bounds.IntersectsRayInRange(ray, min, max) {
+	// 	return nil
+	// }
+
+	for i := 0; i < len(ot.elements); i++ {
+		if ot.elements[i].primitive.BoundingBox().IntersectsRayInRange(ray, min, max) {
+			intersections = append(intersections, ot.elements[i].originalIndex)
 		}
 	}
 
@@ -43,9 +42,9 @@ func (ot OctTree) ElementsIntersectingRay(ray geometry.Ray, min, max float64) []
 func (ot OctTree) ElementsContainingPoint(v vector3.Float64) []int {
 	intersections := make([]int, 0)
 
-	for i := 0; i < len(ot.primitives); i++ {
-		if ot.primitives[i].primitive.BoundingBox().Contains(v) {
-			intersections = append(intersections, ot.primitives[i].originalIndex)
+	for i := 0; i < len(ot.elements); i++ {
+		if ot.elements[i].primitive.BoundingBox().Contains(v) {
+			intersections = append(intersections, ot.elements[i].originalIndex)
 		}
 	}
 
@@ -62,8 +61,8 @@ func (ot OctTree) ClosestPoint(v vector3.Float64) (int, vector3.Float64) {
 	closestPrimPoint := vector3.Zero[float64]()
 	closestPointIndex := -1
 
-	for i := 0; i < len(ot.primitives); i++ {
-		point := ot.primitives[i].primitive.ClosestPoint(v)
+	for i := 0; i < len(ot.elements); i++ {
+		point := ot.elements[i].primitive.ClosestPoint(v)
 		dist := point.DistanceSquared(v)
 		if dist < closestPrimDist {
 			closestPrimDist = dist
@@ -117,16 +116,16 @@ func octreeIndex(center, item vector3.Float64) int {
 	return left | bottom | back
 }
 
-func newOctree(primitives []primitiveReference, maxDepth int) *OctTree {
+func newOctree(primitives []elementReference, maxDepth int) *OctTree {
 	if len(primitives) == 0 {
 		return nil
 	}
 
 	if len(primitives) == 1 {
 		return &OctTree{
-			bounds:     primitives[0].primitive.BoundingBox(),
-			primitives: []primitiveReference{primitives[0]},
-			children:   nil,
+			bounds:   primitives[0].primitive.BoundingBox(),
+			elements: []elementReference{primitives[0]},
+			children: nil,
 		}
 	}
 
@@ -138,25 +137,25 @@ func newOctree(primitives []primitiveReference, maxDepth int) *OctTree {
 
 	if maxDepth == 0 {
 		return &OctTree{
-			bounds:     bounds,
-			primitives: primitives,
-			children:   nil,
+			bounds:   bounds,
+			elements: primitives,
+			children: nil,
 		}
 	}
 
-	childrenNodes := [][]primitiveReference{
-		make([]primitiveReference, 0),
-		make([]primitiveReference, 0),
-		make([]primitiveReference, 0),
-		make([]primitiveReference, 0),
-		make([]primitiveReference, 0),
-		make([]primitiveReference, 0),
-		make([]primitiveReference, 0),
-		make([]primitiveReference, 0),
+	childrenNodes := [][]elementReference{
+		make([]elementReference, 0),
+		make([]elementReference, 0),
+		make([]elementReference, 0),
+		make([]elementReference, 0),
+		make([]elementReference, 0),
+		make([]elementReference, 0),
+		make([]elementReference, 0),
+		make([]elementReference, 0),
 	}
 
 	globalCenter := bounds.Center()
-	leftOver := make([]primitiveReference, 0)
+	leftOver := make([]elementReference, 0)
 	for _, item := range primitives {
 		primBounds := item.primitive.BoundingBox()
 		minIndex := octreeIndex(globalCenter, primBounds.Min())
@@ -172,8 +171,8 @@ func newOctree(primitives []primitiveReference, maxDepth int) *OctTree {
 	}
 
 	return &OctTree{
-		bounds:     bounds,
-		primitives: leftOver,
+		bounds:   bounds,
+		elements: leftOver,
 		children: []*OctTree{
 			newOctree(childrenNodes[0], maxDepth-1),
 			newOctree(childrenNodes[1], maxDepth-1),
@@ -201,9 +200,9 @@ func NewOctree(elements []Element) *OctTree {
 }
 
 func NewOctreeWithDepth(elements []Element, maxDepth int) *OctTree {
-	primitives := make([]primitiveReference, len(elements))
+	primitives := make([]elementReference, len(elements))
 	for i, ele := range elements {
-		primitives[i] = primitiveReference{
+		primitives[i] = elementReference{
 			primitive:     ele,
 			originalIndex: i,
 		}

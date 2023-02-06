@@ -134,6 +134,7 @@ Resources either directly contributing to the code here or are just interesting 
 - Noise
   - [Perlin Noise](https://gpfault.net/posts/perlin-noise.txt.html)
     - [Perlin Worms](https://libnoise.sourceforge.net/examples/worms/index.html)
+    - [Perline Noise Chapter 5 from "Ray Tracing The Next Week by Peter Shirley](https://raytracing.github.io/books/RayTracingTheNextWeek.html#perlinnoise)
   - [Worley/Cellular Noise](https://thebookofshaders.com/12/)
   - [Book of Shaders on Noise](https://thebookofshaders.com/11/)
   - [Simplex Noise](https://en.wikipedia.org/wiki/Simplex_noise)

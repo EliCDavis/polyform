@@ -6,13 +6,14 @@ import (
 
 	"github.com/EliCDavis/polyform/rendering"
 	"github.com/EliCDavis/polyform/rendering/materials"
+	"github.com/EliCDavis/polyform/rendering/textures"
 	"github.com/EliCDavis/vector/vector3"
 )
 
 func randomScene() []rendering.Hittable {
 	world := make([]rendering.Hittable, 0)
 
-	ground_material := materials.NewLambertian(vector3.New(0.5, 0.5, 0.5))
+	ground_material := materials.NewLambertian(textures.NewSolidColorTexture(vector3.New(0.5, 0.5, 0.5)))
 	world = append(world, rendering.NewSphere(vector3.New(0., -1000., 0.), 1000, ground_material))
 
 	for a := -11; a < 11; a++ {
@@ -30,7 +31,7 @@ func randomScene() []rendering.Hittable {
 				if choose_mat < 0.8 {
 					// diffuse
 					albedo := vector3.Rand().MultByVector(vector3.Rand())
-					sphere_material = materials.NewLambertian(albedo)
+					sphere_material = materials.NewLambertian(textures.NewSolidColorTexture(albedo))
 					dir := vector3.RandNormal().Scale(rand.Float64())
 					world = append(
 						world,
@@ -60,7 +61,7 @@ func randomScene() []rendering.Hittable {
 	material1 := materials.NewDielectric(1.5)
 	world = append(world, rendering.NewSphere(vector3.New(0., 1., 0.), 1.0, material1))
 
-	material2 := materials.NewLambertian(vector3.New(0.4, 0.2, 0.1))
+	material2 := materials.NewLambertian(textures.NewSolidColorTexture(vector3.New(0.4, 0.2, 0.1)))
 	world = append(world, rendering.NewSphere(vector3.New(-4., 1., 0.), 1.0, material2))
 
 	material3 := materials.NewFuzzyMetal(vector3.New(0.7, 0.6, 0.5), 0.0)

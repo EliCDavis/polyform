@@ -3,15 +3,16 @@ package materials
 import (
 	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/rendering"
+	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
 )
 
 type Lambertian struct {
-	albedo vector3.Float64
+	tex rendering.Texture
 }
 
-func NewLambertian(color vector3.Float64) *Lambertian {
-	return &Lambertian{color}
+func NewLambertian(tex rendering.Texture) *Lambertian {
+	return &Lambertian{tex}
 }
 
 func (l Lambertian) Scatter(in geometry.Ray, rec *rendering.HitRecord, attenuation *vector3.Float64, scattered *geometry.Ray) bool {
@@ -20,6 +21,10 @@ func (l Lambertian) Scatter(in geometry.Ray, rec *rendering.HitRecord, attenuati
 		scatterDir = rec.Normal
 	}
 	*scattered = geometry.NewRay(rec.Point, scatterDir)
-	*attenuation = l.albedo
+	*attenuation = l.tex.Value(rec.UV, rec.Point)
 	return true
+}
+
+func (l Lambertian) Emitted(uv vector2.Float64, pont vector3.Float64) vector3.Float64 {
+	return vector3.Zero[float64]()
 }
