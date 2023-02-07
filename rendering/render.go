@@ -65,10 +65,6 @@ func Render(
 
 	totalPixels := float64(imageHeight * imageWidth)
 
-	background := func(v vector3.Float64) vector3.Float64 {
-		return vector3.Zero[float64]()
-	}
-
 	for y := 0; y < imageHeight; y++ {
 		for x := 0; x < imageWidth; x++ {
 
@@ -77,7 +73,7 @@ func Render(
 			for s := 0; s < samplesPerPixel; s++ {
 				u := (float64(x) + rand.Float64()) / float64(imageWidth-1)
 				v := (float64(y) + rand.Float64()) / float64(imageHeight-1)
-				col = col.Add(colorFromRay(camera.GetRay(u, v), &world, background, maxRayBounce))
+				col = col.Add(colorFromRay(camera.GetRay(u, v), &world, camera.background, maxRayBounce))
 			}
 
 			col = col.

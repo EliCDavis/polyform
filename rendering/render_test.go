@@ -77,7 +77,9 @@ func BenchmarkRender(b *testing.B) {
 
 	aspectRatio := 3. / 2.
 
-	camera := rendering.NewCamera(20., aspectRatio, aperatre, 10., origin, lookat, vector3.Up[float64](), 0, 1)
+	camera := rendering.NewCamera(20., aspectRatio, aperatre, 10., origin, lookat, vector3.Up[float64](), 0, 1, func(v vector3.Float64) vector3.Float64 {
+		return vector3.New(0., 0.5, 0.9)
+	})
 
 	for n := 0; n < b.N; n++ {
 		// always record the result of Fib to prevent

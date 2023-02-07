@@ -4,6 +4,7 @@ import (
 	"math"
 	"math/rand"
 
+	"github.com/EliCDavis/polyform/math/sample"
 	"github.com/EliCDavis/vector/vector3"
 )
 
@@ -15,12 +16,14 @@ type Camera struct {
 	u, v, w            vector3.Float64
 	lensRadius         float64
 	timeStart, timeEnd float64
+	background         sample.Vec3ToVec3
 }
 
 func NewCamera(
 	vfov, aspectRatio, aperture, focusDist float64,
 	origin, lookAt, up vector3.Float64,
 	timeStart, timeEnd float64,
+	background sample.Vec3ToVec3,
 ) Camera {
 	theta := vfov * (math.Pi / 180.)
 	h := math.Tan(theta / 2)
@@ -50,6 +53,7 @@ func NewCamera(
 		w:               w,
 		timeStart:       timeStart,
 		timeEnd:         timeEnd,
+		background:      background,
 	}
 }
 

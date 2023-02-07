@@ -181,6 +181,13 @@ func (t Tri) Bounds() geometry.AABB {
 	return aabb
 }
 
+func (t Tri) Average(attr string) vector3.Float64 {
+	return t.P1Vec3Attr(PositionAttribute).
+		Add(t.P2Vec3Attr(PositionAttribute)).
+		Add(t.P3Vec3Attr(PositionAttribute)).
+		Scale(1. / 3.)
+}
+
 // https://gdbooks.gitbooks.io/3dcollisions/content/Chapter4/point_in_triangle.html
 func (t Tri) PointInSide(p vector3.Float64) bool {
 	// Move the triangle so that the point becomes the
@@ -205,6 +212,15 @@ func (t Tri) PointInSide(p vector3.Float64) bool {
 
 	w := a.Cross(b)
 	return u.Dot(w) >= 0.
+}
+
+func (t Tri) LineIntersects(line geometry.Line3D) (vector3.Float64, bool) {
+	plane := t.Plane(PositionAttribute)
+	point := line.Intersection(plane)
+	if t.PointInSide(point) {
+		return point, true
+	}
+	return vector3.Zero[float64](), false
 }
 
 func (t Tri) ClosestPoint(atr string, p vector3.Float64) vector3.Float64 {

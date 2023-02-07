@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"math"
 	"math/rand"
 	"time"
 
@@ -93,35 +94,112 @@ func SimpleLightScene() []rendering.Hittable {
 	return world
 }
 
+func videoScene(spheres int, radius float64) []rendering.Hittable {
+	world := make([]rendering.Hittable, 0)
+
+	checkerPattern := textures.NewCheckerColorPattern(
+		vector3.New(0.2, 0.3, 0.1),
+		vector3.New(0.9, 0.9, 0.9),
+	)
+	ground_material := materials.NewLambertian(checkerPattern)
+	world = append(world, rendering.NewSphere(vector3.New(0., -1000., 0.), 1000, ground_material))
+
+	bigSphereCenter := vector3.New(0., 2., 0.)
+	world = append(world, rendering.NewSphere(bigSphereCenter, 2, materials.NewDielectric(1.5)))
+	world = append(world, rendering.NewSphere(bigSphereCenter.Scale(0.9), -2, materials.NewDielectric(1.5)))
+
+	angleInc := (math.Pi * 2.) / float64(spheres)
+	for i := 0; i < spheres; i++ {
+		matType := rand.Float64()
+
+		angle := angleInc * float64(i)
+
+		animationFunction := func(t float64) vector3.Float64 {
+			adjustedAngle := angle + (t * 0.5 * math.Pi * 2.)
+			return bigSphereCenter.Add(vector3.New(
+				math.Sin(adjustedAngle)*radius,
+				math.Sin(angle+(t*2*math.Pi*2.))*0.2,
+				math.Cos(adjustedAngle)*radius,
+			))
+		}
+
+		var sphereMaterial rendering.Material
+		if matType < 0.4 {
+			sphereMaterial = materials.NewLambertian(textures.NewCheckerPatternWithTilingRate(
+				textures.NewSolidColorTexture(vector3.Rand().MultByVector(vector3.Rand())),
+				textures.NewSolidColorTexture(vector3.Rand().MultByVector(vector3.Rand())),
+				30,
+			))
+		} else if matType < 0.8 {
+			albedo := vector3.Rand().Scale(0.5).Add(vector3.New(0.5, 0.5, 0.5))
+			sphereMaterial = materials.NewFuzzyMetal(albedo, (rand.Float64()*0.5)+0.3)
+		} else {
+			albedo := vector3.
+				Rand().
+				Scale(0.2).
+				Add(vector3.New(0.7, 0.7, 0.7)).
+				Scale(4)
+			sphereMaterial = materials.NewDiffuseLightWithColor(albedo)
+		}
+
+		world = append(world, rendering.NewAnimatedSphere(0.4, sphereMaterial, animationFunction))
+	}
+
+	// diffuseLight := materials.NewDiffuseLightWithColor(vector3.New(4., 4., 4.))
+	// world = append(world, rendering.NewXYRectangle(vector2.New(3., 1.), vector2.New(4., 3.), -2., diffuseLight))
+	return world
+}
+
 func main() {
 	// origin := vector3.New(13., 2., 3.)
-	origin := vector3.New(26., 3., 6.)
+	origin := vector3.New(26., 6., 6.)
 	lookat := vector3.New(0., 2., 0.)
 	aperatre := 0.1
 
 	aspectRatio := 3. / 2.
 
-	camera := rendering.NewCamera(20., aspectRatio, aperatre, 10., origin, lookat, vector3.Up[float64](), 0, 1)
+	background := func(v vector3.Float64) vector3.Float64 {
+		return vector3.New(0.5, 0.9, 0.7).Scale(0.05).Add(vector3.New(0.1, 0.1, 0.1))
+	}
 
 	t1 := time.Now()
 
-	completion := make(chan float64, 1)
+	fps := 24.
+	duration := 2.
+	timeInc := 1. / fps
 
-	go func() {
-		err := rendering.Render(50, 400, 800, aspectRatio, SimpleLightScene(), camera, "example2.png", completion)
-		if err != nil {
-			log.Print(err)
-			panic(err)
-		}
-	}()
+	totalFrames := int(fps * duration)
 
-	lastProgress := -1.
-	for progress := range completion {
-		if progress-lastProgress > .001 {
-			lastProgress = progress
-			log.Printf("Image Progress: %.2f%%\n", progress*100.)
+	scene := videoScene(15, 4.5)
+
+	for i := 0; i < totalFrames; i++ {
+		start := float64(i) * timeInc
+		end := start + (timeInc * .25)
+
+		camera := rendering.NewCamera(20., aspectRatio, aperatre, origin.Distance(lookat), origin, lookat, vector3.Up[float64](), start, end, background)
+
+		completion := make(chan float64, 1)
+
+		go func() {
+			err := rendering.Render(50, 500, 800, aspectRatio, scene, camera, fmt.Sprintf("video/frame_%d.png", i), completion)
+			if err != nil {
+				log.Print(err)
+				panic(err)
+			}
+		}()
+
+		lastProgress := -1.
+		for progress := range completion {
+			if progress-lastProgress > .001 {
+				lastProgress = progress
+				log.Printf("Image %d Progress: %.2f%%\n", i, progress*100.)
+			}
 		}
+
 	}
 
-	fmt.Println(time.Since(t1))
+	totalTime := time.Since(t1)
+	timePerFrame := time.Duration(int(totalTime) / totalFrames)
+
+	fmt.Printf("Total time: %s; With an average frame time of: %s", totalTime, timePerFrame)
 }
