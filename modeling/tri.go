@@ -85,10 +85,11 @@ func (t scopedTri) ClosestPoint(p vector3.Float64) vector3.Float64 {
 }
 
 func (t scopedTri) BoundingBox() geometry.AABB {
-	aabb := geometry.NewAABB(t.data[t.p1], vector3.Zero[float64]())
-	aabb.EncapsulatePoint(t.data[t.p2])
-	aabb.EncapsulatePoint(t.data[t.p3])
-	return aabb
+	return geometry.NewAABBFromPoints(
+		t.data[t.p1],
+		t.data[t.p2],
+		t.data[t.p3],
+	)
 }
 
 // Tri provides utility functions to a specific underlying mesh
@@ -182,10 +183,49 @@ func (t Tri) Bounds() geometry.AABB {
 }
 
 func (t Tri) Average(attr string) vector3.Float64 {
-	return t.P1Vec3Attr(PositionAttribute).
-		Add(t.P2Vec3Attr(PositionAttribute)).
-		Add(t.P3Vec3Attr(PositionAttribute)).
+	return t.P1Vec3Attr(attr).
+		Add(t.P2Vec3Attr(attr)).
+		Add(t.P3Vec3Attr(attr)).
 		Scale(1. / 3.)
+}
+
+// https://www.scratchapixel.com/lessons/3d-basic-rendering/ray-tracing-rendering-a-triangle/moller-trumbore-ray-triangle-intersection.html
+func (t Tri) RayIntersects(ray geometry.Ray) (vector3.Float64, bool) {
+	const kEpsilon = 0.00001
+
+	dir := ray.Direction()
+	orig := ray.Origin()
+	v0 := t.P1Vec3Attr(PositionAttribute)
+	v1 := t.P2Vec3Attr(PositionAttribute)
+	v2 := t.P3Vec3Attr(PositionAttribute)
+
+	v0v1 := v1.Sub(v0)
+	v0v2 := v2.Sub(v0)
+	pvec := dir.Cross(v0v2)
+	det := v0v1.Dot(pvec)
+
+	// ray and triangle are parallel if det is close to 0
+	if math.Abs(det) < kEpsilon {
+		return vector3.Zero[float64](), false
+	}
+
+	invDet := 1. / det
+
+	tvec := orig.Sub(v0)
+	u := tvec.Dot(pvec) * invDet
+	if u < 0 || u > 1 {
+		return vector3.Zero[float64](), false
+	}
+
+	qvec := tvec.Cross(v0v1)
+	v := dir.Dot(qvec) * invDet
+	if v < 0 || u+v > 1 {
+		return vector3.Zero[float64](), false
+	}
+
+	tVal := v0v2.Dot(qvec) * invDet
+
+	return ray.At(tVal), true
 }
 
 // https://gdbooks.gitbooks.io/3dcollisions/content/Chapter4/point_in_triangle.html
@@ -216,7 +256,10 @@ func (t Tri) PointInSide(p vector3.Float64) bool {
 
 func (t Tri) LineIntersects(line geometry.Line3D) (vector3.Float64, bool) {
 	plane := t.Plane(PositionAttribute)
-	point := line.Intersection(plane)
+	point, intersects := line.Intersection(plane)
+	if !intersects {
+		return vector3.Zero[float64](), false
+	}
 	if t.PointInSide(point) {
 		return point, true
 	}

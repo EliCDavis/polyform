@@ -8,42 +8,45 @@ import (
 )
 
 type OctTree struct {
-	children []*OctTree
-	elements []elementReference
-	bounds   geometry.AABB
+	children            []*OctTree
+	elements            []elementReference
+	bounds              geometry.AABB
+	intersectionsBuffer []int
 }
 
 func (ot OctTree) BoundingBox() geometry.AABB {
 	return ot.bounds
 }
 
-func (ot OctTree) ElementsIntersectingRay(ray geometry.Ray, min, max float64) []int {
-	intersections := make([]int, 0)
+func (ot *OctTree) ElementsIntersectingRay(ray geometry.Ray, min, max float64) []int {
+	if !ot.bounds.IntersectsRayInRange(ray, min, max) {
+		return nil
+	}
 
-	// if !ot.bounds.IntersectsRayInRange(ray, min, max) {
-	// 	return nil
-	// }
+	ot.intersectionsBuffer = ot.intersectionsBuffer[:0]
 
 	for i := 0; i < len(ot.elements); i++ {
-		if ot.elements[i].primitive.BoundingBox().IntersectsRayInRange(ray, min, max) {
-			intersections = append(intersections, ot.elements[i].originalIndex)
+		bounds := ot.elements[i].bounds
+		oi := ot.elements[i].originalIndex
+		if bounds.IntersectsRayInRange(ray, min, max) {
+			ot.intersectionsBuffer = append(ot.intersectionsBuffer, oi)
 		}
 	}
 
-	for _, subtree := range ot.children {
-		if subtree != nil && subtree.bounds.IntersectsRayInRange(ray, min, max) {
-			intersections = append(intersections, subtree.ElementsIntersectingRay(ray, min, max)...)
+	for i := 0; i < len(ot.children); i++ {
+		if ot.children[i] != nil {
+			ot.intersectionsBuffer = append(ot.intersectionsBuffer, ot.children[i].ElementsIntersectingRay(ray, min, max)...)
 		}
 	}
 
-	return intersections
+	return ot.intersectionsBuffer
 }
 
 func (ot OctTree) ElementsContainingPoint(v vector3.Float64) []int {
 	intersections := make([]int, 0)
 
 	for i := 0; i < len(ot.elements); i++ {
-		if ot.elements[i].primitive.BoundingBox().Contains(v) {
+		if ot.elements[i].bounds.Contains(v) {
 			intersections = append(intersections, ot.elements[i].originalIndex)
 		}
 	}
@@ -116,30 +119,32 @@ func octreeIndex(center, item vector3.Float64) int {
 	return left | bottom | back
 }
 
-func newOctree(primitives []elementReference, maxDepth int) *OctTree {
-	if len(primitives) == 0 {
+func newOctree(elements []elementReference, maxDepth int) *OctTree {
+	if len(elements) == 0 {
 		return nil
 	}
 
-	if len(primitives) == 1 {
+	if len(elements) == 1 {
 		return &OctTree{
-			bounds:   primitives[0].primitive.BoundingBox(),
-			elements: []elementReference{primitives[0]},
-			children: nil,
+			bounds:              elements[0].bounds,
+			elements:            []elementReference{elements[0]},
+			children:            nil,
+			intersectionsBuffer: make([]int, 0),
 		}
 	}
 
-	bounds := primitives[0].primitive.BoundingBox()
+	bounds := elements[0].primitive.BoundingBox()
 
-	for _, item := range primitives {
-		bounds.EncapsulateBounds(item.primitive.BoundingBox())
+	for _, item := range elements {
+		bounds.EncapsulateBounds(item.bounds)
 	}
 
 	if maxDepth == 0 {
 		return &OctTree{
-			bounds:   bounds,
-			elements: primitives,
-			children: nil,
+			bounds:              bounds,
+			elements:            elements,
+			children:            nil,
+			intersectionsBuffer: make([]int, 0),
 		}
 	}
 
@@ -156,33 +161,52 @@ func newOctree(primitives []elementReference, maxDepth int) *OctTree {
 
 	globalCenter := bounds.Center()
 	leftOver := make([]elementReference, 0)
-	for _, item := range primitives {
-		primBounds := item.primitive.BoundingBox()
+	for i := 0; i < len(elements); i++ {
+		primBounds := elements[i].bounds
 		minIndex := octreeIndex(globalCenter, primBounds.Min())
 		maxIndex := octreeIndex(globalCenter, primBounds.Max())
 
 		if minIndex == maxIndex {
 			// child is contained completely within the division, pass it down.
-			childrenNodes[minIndex] = append(childrenNodes[minIndex], item)
+			childrenNodes[minIndex] = append(childrenNodes[minIndex], elements[i])
 		} else {
 			// Doesn't fit within a single subdivision, stop recursing for this item.
-			leftOver = append(leftOver, item)
+			leftOver = append(leftOver, elements[i])
+		}
+	}
+
+	children := []*OctTree{
+		newOctree(childrenNodes[0], maxDepth-1),
+		newOctree(childrenNodes[1], maxDepth-1),
+		newOctree(childrenNodes[2], maxDepth-1),
+		newOctree(childrenNodes[3], maxDepth-1),
+		newOctree(childrenNodes[4], maxDepth-1),
+		newOctree(childrenNodes[5], maxDepth-1),
+		newOctree(childrenNodes[6], maxDepth-1),
+		newOctree(childrenNodes[7], maxDepth-1),
+	}
+
+	if len(leftOver) == 0 {
+		var goodChild *OctTree = nil
+		goodChildCount := 0
+		for _, child := range children {
+			if child != nil {
+				goodChild = child
+				goodChildCount++
+			}
+		}
+		// Prevents us from creating an octree node that's just a proxy to another
+		// node. Faster traversal!
+		if goodChildCount == 1 {
+			return goodChild
 		}
 	}
 
 	return &OctTree{
-		bounds:   bounds,
-		elements: leftOver,
-		children: []*OctTree{
-			newOctree(childrenNodes[0], maxDepth-1),
-			newOctree(childrenNodes[1], maxDepth-1),
-			newOctree(childrenNodes[2], maxDepth-1),
-			newOctree(childrenNodes[3], maxDepth-1),
-			newOctree(childrenNodes[4], maxDepth-1),
-			newOctree(childrenNodes[5], maxDepth-1),
-			newOctree(childrenNodes[6], maxDepth-1),
-			newOctree(childrenNodes[7], maxDepth-1),
-		},
+		bounds:              bounds,
+		elements:            leftOver,
+		children:            children,
+		intersectionsBuffer: make([]int, 0),
 	}
 }
 
@@ -201,10 +225,11 @@ func NewOctree(elements []Element) *OctTree {
 
 func NewOctreeWithDepth(elements []Element, maxDepth int) *OctTree {
 	primitives := make([]elementReference, len(elements))
-	for i, ele := range elements {
+	for i := 0; i < len(elements); i++ {
 		primitives[i] = elementReference{
-			primitive:     ele,
+			primitive:     elements[i],
 			originalIndex: i,
+			bounds:        elements[i].BoundingBox(),
 		}
 	}
 	return newOctree(primitives, maxDepth)

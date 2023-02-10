@@ -7,6 +7,8 @@ import (
 	"math/rand"
 	"time"
 
+	"github.com/EliCDavis/polyform/formats/obj"
+	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/rendering"
 	"github.com/EliCDavis/polyform/rendering/materials"
 	"github.com/EliCDavis/polyform/rendering/textures"
@@ -150,27 +152,75 @@ func videoScene(spheres int, radius float64) []rendering.Hittable {
 	return world
 }
 
+func simsScene() []rendering.Hittable {
+	world := make([]rendering.Hittable, 0)
+
+	var jewelMat rendering.Material = materials.NewFuzzyMetal(vector3.New(0., 0.9, 0.4), 0.1)
+	// jewelMat = materials.NewDielectric(1.5)
+
+	// world = append(world,
+	// 	rendering.NewMesh(
+	// 		primitives.
+	// 			UVSphere(1, 2, 8).
+	// 			Scale(vector3.Zero[float64](), vector3.New(1., 2., 1.)).
+	// 			Translate(vector3.Up[float64]().Scale(2)).
+	// 			Unweld().
+	// 			CalculateFlatNormals(),
+	// 		jewelMat,
+	// 	),
+	// )
+
+	bunny, err := obj.Load("test-models/stanford-bunny.obj")
+	if err != nil {
+		panic(err)
+	}
+
+	world = append(world,
+		rendering.NewMesh(
+			bunny.
+				CenterFloat3Attribute(modeling.PositionAttribute).
+				Scale(vector3.Zero[float64](), vector3.One[float64]().Scale(20)).
+				Translate(vector3.Up[float64]().Scale(2)).
+				CalculateSmoothNormals(),
+			jewelMat,
+		),
+	)
+
+	// diffuseLight := materials.NewDiffuseLightWithColor(vector3.New(4., 4., 4.))
+	// world = append(world, rendering.NewXYRectangle(vector2.New(3., 1.), vector2.New(4., 3.), -2., diffuseLight))
+
+	checkerPattern := textures.NewCheckerColorPattern(
+		vector3.New(0.2, 0.3, 0.1),
+		vector3.New(0.9, 0.9, 0.9),
+	)
+	ground_material := materials.NewLambertian(checkerPattern)
+	world = append(world, rendering.NewSphere(vector3.New(0., -1000., 0.), 1000, ground_material))
+	// world = append(world, rendering.NewSphere(vector3.New(0., 2., 4.), 2, jewelMat))
+
+	return world
+}
+
 func main() {
 	// origin := vector3.New(13., 2., 3.)
-	origin := vector3.New(26., 6., 6.)
+	origin := vector3.New(6., 6., 20.)
 	lookat := vector3.New(0., 2., 0.)
 	aperatre := 0.1
 
 	aspectRatio := 3. / 2.
 
 	background := func(v vector3.Float64) vector3.Float64 {
-		return vector3.New(0.5, 0.9, 0.7).Scale(0.05).Add(vector3.New(0.1, 0.1, 0.1))
+		return vector3.New(151./255., 178./255., 222./255.)
 	}
 
 	t1 := time.Now()
 
-	fps := 24.
-	duration := 2.
+	fps := 1.
+	duration := 1.
 	timeInc := 1. / fps
 
 	totalFrames := int(fps * duration)
 
-	scene := videoScene(15, 4.5)
+	scene := simsScene()
 
 	for i := 0; i < totalFrames; i++ {
 		start := float64(i) * timeInc
@@ -181,7 +231,7 @@ func main() {
 		completion := make(chan float64, 1)
 
 		go func() {
-			err := rendering.Render(50, 500, 800, aspectRatio, scene, camera, fmt.Sprintf("video/frame_%d.png", i), completion)
+			err := rendering.Render(20, 50, 1900, aspectRatio, scene, camera, fmt.Sprintf("frame_%d.png", i), completion)
 			if err != nil {
 				log.Print(err)
 				panic(err)

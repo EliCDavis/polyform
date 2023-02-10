@@ -4,6 +4,8 @@ import (
 	"math/rand"
 	"testing"
 
+	"github.com/EliCDavis/polyform/formats/obj"
+	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/rendering"
 	"github.com/EliCDavis/polyform/rendering/materials"
 	"github.com/EliCDavis/polyform/rendering/textures"
@@ -70,6 +72,41 @@ func randomScene() []rendering.Hittable {
 	return world
 }
 
+func bunnyScene() []rendering.Hittable {
+	world := make([]rendering.Hittable, 0)
+
+	var jewelMat rendering.Material = materials.NewFuzzyMetal(vector3.New(0., 0.9, 0.4), 0.1)
+
+	bunny, err := obj.Load("../test-models/stanford-bunny.obj")
+	if err != nil {
+		panic(err)
+	}
+
+	world = append(world,
+		rendering.NewMesh(
+			bunny.
+				CenterFloat3Attribute(modeling.PositionAttribute).
+				Scale(vector3.Zero[float64](), vector3.One[float64]().Scale(20)).
+				Translate(vector3.Up[float64]().Scale(2)).
+				CalculateSmoothNormals(),
+			jewelMat,
+		),
+	)
+
+	// diffuseLight := materials.NewDiffuseLightWithColor(vector3.New(4., 4., 4.))
+	// world = append(world, rendering.NewXYRectangle(vector2.New(3., 1.), vector2.New(4., 3.), -2., diffuseLight))
+
+	checkerPattern := textures.NewCheckerColorPattern(
+		vector3.New(0.2, 0.3, 0.1),
+		vector3.New(0.9, 0.9, 0.9),
+	)
+	ground_material := materials.NewLambertian(checkerPattern)
+	world = append(world, rendering.NewSphere(vector3.New(0., -1000., 0.), 1000, ground_material))
+	// world = append(world, rendering.NewSphere(vector3.New(0., 2., 4.), 2, jewelMat))
+
+	return world
+}
+
 func BenchmarkRender(b *testing.B) {
 	origin := vector3.New(13., 2., 3.)
 	lookat := vector3.New(0., 0., 0.)
@@ -85,6 +122,29 @@ func BenchmarkRender(b *testing.B) {
 		// always record the result of Fib to prevent
 		// the compiler eliminating the function call.
 		err := rendering.Render(50, 50, 50, aspectRatio, randomScene(), camera, "example2.png", nil)
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
+func BenchmarkBunnyRender(b *testing.B) {
+	origin := vector3.New(26., 6., 6.)
+	lookat := vector3.New(0., 2., 0.)
+	aperatre := 0.1
+
+	aspectRatio := 3. / 2.
+
+	camera := rendering.NewCamera(20., aspectRatio, aperatre, origin.Distance(lookat), origin, lookat, vector3.Up[float64](), 0, 1, func(v vector3.Float64) vector3.Float64 {
+		return vector3.New(0., 0.5, 0.9)
+	})
+
+	scene := bunnyScene()
+
+	for n := 0; n < b.N; n++ {
+		// always record the result of Fib to prevent
+		// the compiler eliminating the function call.
+		err := rendering.Render(10, 20, 10, aspectRatio, scene, camera, "example2.png", nil)
 		if err != nil {
 			panic(err)
 		}

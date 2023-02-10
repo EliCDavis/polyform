@@ -4,7 +4,6 @@ import (
 	"image"
 	"image/color"
 	"image/png"
-	"math"
 	"math/rand"
 	"os"
 
@@ -13,7 +12,7 @@ import (
 	"github.com/EliCDavis/vector/vector3"
 )
 
-var inf float64 = math.Inf(1)
+var inf float64 = 10000//math.Inf(1)
 
 func colorFromRay(tr TemporalRay, world Hittable, background sample.Vec3ToVec3, depth int) vector3.Float64 {
 	if depth < 0 {

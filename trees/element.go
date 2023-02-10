@@ -12,5 +12,6 @@ type Element interface {
 
 type elementReference struct {
 	primitive     Element
+	bounds        geometry.AABB
 	originalIndex int
 }

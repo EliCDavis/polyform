@@ -38,12 +38,14 @@ func NewAABBFromPoints(points ...vector3.Float64) AABB {
 		max = max.SetZ(math.Max(v.Z(), max.Z()))
 	}
 
-	center := max.
-		Sub(min).
-		DivByConstant(2).
+	area := max.
+		Sub(min)
+
+	center := area.
+		Scale(0.5).
 		Add(min)
 
-	return NewAABB(center, max.Sub(min))
+	return NewAABB(center, area)
 }
 
 func (aabb AABB) Center() vector3.Float64 {
@@ -149,36 +151,46 @@ func (aabb AABB) IntersectsRayInRange(ray Ray, min, max float64) bool {
 	boxMin := aabb.Min()
 	boxMax := aabb.Max()
 
-	if !aabb.intersectsRayInRangeComponent(ray.origin.X(), ray.direction.X(), min, max, boxMin.X(), boxMax.X()) {
+	rayMin := min
+	rayMax := max
+	if aabb.intersectsRayInRangeComponent(ray.origin.X(), ray.direction.X(), &rayMin, &rayMax, boxMin.X(), boxMax.X()) {
 		return false
 	}
 
-	if !aabb.intersectsRayInRangeComponent(ray.origin.Y(), ray.direction.Y(), min, max, boxMin.Y(), boxMax.Y()) {
+	if aabb.intersectsRayInRangeComponent(ray.origin.Y(), ray.direction.Y(), &rayMin, &rayMax, boxMin.Y(), boxMax.Y()) {
 		return false
 	}
 
-	if !aabb.intersectsRayInRangeComponent(ray.origin.Z(), ray.direction.Z(), min, max, boxMin.Z(), boxMax.Z()) {
+	if aabb.intersectsRayInRangeComponent(ray.origin.Z(), ray.direction.Z(), &rayMin, &rayMax, boxMin.Z(), boxMax.Z()) {
 		return false
 	}
 	return true
 }
 
-func (aabb AABB) intersectsRayInRangeComponent(origin, dir, t_min, t_max, boxMin, boxMax float64) bool {
+func (aabb AABB) intersectsRayInRangeComponent(origin, dir float64, t_min, t_max *float64, boxMin, boxMax float64) bool {
 	invD := 1.0 / dir
 	t0 := (boxMin - origin) * invD
 	t1 := (boxMax - origin) * invD
-	if invD < 0.0 {
+	if t1 < t0 {
 		// std::swap(t0, t1);
 		t1, t0 = t0, t1
 	}
 
-	if t0 > t_min {
-		t_min = t0
+	if t0 > *t_min {
+		*t_min = t0
 	}
 
-	if t1 < t_max {
-		t_max = t1
+	if t1 < *t_max {
+		*t_max = t1
 	}
 
-	return t_max > t_min
+	return *t_max <= *t_min
+}
+
+func (aabb AABB) intersectsRayInRangeComponent2(origin, dir, t_min, t_max, boxMin, boxMax float64) bool {
+	t0 := math.Min((boxMin-origin)/dir, (boxMax-origin)/dir)
+	t1 := math.Max((boxMin-origin)/dir, (boxMax-origin)/dir)
+	at_min := math.Max(t0, t_min)
+	at_max := math.Min(t1, t_max)
+	return at_max <= at_min
 }

@@ -1,9 +1,11 @@
 package trees_test
 
 import (
+	"fmt"
 	"math/rand"
 	"testing"
 
+	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/primitives"
 	"github.com/EliCDavis/polyform/modeling/repeat"
@@ -140,4 +142,27 @@ func BenchmarkOctreeLineSphere(b *testing.B) {
 	// always store the result to a package level variable
 	// so the compiler cannot eliminate the Benchmark itself.
 	result = r
+}
+
+var eleRes []int
+
+func BenchmarkOctreeRay(b *testing.B) {
+	var r []int
+
+	mesh := primitives.UVSphere(1, 2, 3)
+	mesh = primitives.Cube()
+	tree := mesh.OctTree()
+
+	ray := geometry.NewRay(vector3.New(-1.35, -1.5, -1.5), vector3.New(1., 1., 1.))
+	b.Run(fmt.Sprintf("input_size_%d", mesh.PrimitiveCount()), func(b *testing.B) {
+		for n := 0; n < b.N; n++ {
+			// always record the result of Fib to prevent
+			// the compiler eliminating the function call.
+			r = tree.ElementsIntersectingRay(ray, 0, 4)
+		}
+	})
+
+	// always store the result to a package level variable
+	// so the compiler cannot eliminate the Benchmark itself.
+	eleRes = r
 }
