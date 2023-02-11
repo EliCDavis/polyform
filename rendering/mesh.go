@@ -129,11 +129,37 @@ func triHit(tri intersectingTri, ray geometry.Ray, minDistance, maxDistance floa
 		return false
 	}
 
-	normal := tri.n1.Add(tri.n2).Add(tri.p3).Scale(1. / 3.).Normalized()
+	// compute the plane's normal
+	v0v1 := tri.p2.Sub(tri.p1)
+	v0v2 := tri.p3.Sub(tri.p1)
+	// no need to normalize
+	N := v0v1.Cross(v0v2) // N
+	denom := N.Dot(N)
+
+	edge1 := tri.p3.Sub(tri.p2)
+	vp1 := point.Sub(tri.p2)
+	C := edge1.Cross(vp1)
+	u := N.Dot(C)
+
+	edge2 := tri.p1.Sub(tri.p3)
+	vp2 := point.Sub(tri.p3)
+	C = edge2.Cross(vp2)
+	v := N.Dot(C)
+
+	u /= denom
+	v /= denom
+
+	w := 1. - u - v
+	normal := tri.n1.Scale(u).
+		Add(tri.n2.Scale(v)).
+		Add(tri.n3.Scale(w)).
+		Normalized()
 
 	hitRecord.Normal = normal
 	hitRecord.Distance = distFromOrig
 	hitRecord.Point = point
+	hitRecord.Float3Data["barycentric"] = vector3.New(u, v, w)
+
 	return true
 }
 

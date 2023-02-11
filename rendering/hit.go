@@ -56,22 +56,24 @@ type Hittable interface {
 }
 
 type HitRecord struct {
-	Distance  float64
-	Point     vector3.Float64
-	Normal    vector3.Float64
-	FrontFace bool
-	Material  Material
-	UV        vector2.Float64
+	Distance   float64
+	Point      vector3.Float64
+	Normal     vector3.Float64
+	FrontFace  bool
+	Material   Material
+	UV         vector2.Float64
+	Float3Data map[string]vector3.Float64
 }
 
 func NewHitRecord() *HitRecord {
 	return &HitRecord{
-		0,
-		vector3.Zero[float64](),
-		vector3.Zero[float64](),
-		true,
-		nil,
-		vector2.Zero[float64](),
+		Distance:   0,
+		Point:      vector3.Zero[float64](),
+		Normal:     vector3.Zero[float64](),
+		FrontFace:  true,
+		Material:   nil,
+		UV:         vector2.Zero[float64](),
+		Float3Data: make(map[string]vector3.Float64),
 	}
 }
 

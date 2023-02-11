@@ -156,7 +156,8 @@ func simsScene() []rendering.Hittable {
 	world := make([]rendering.Hittable, 0)
 
 	var jewelMat rendering.Material = materials.NewFuzzyMetal(vector3.New(0., 0.9, 0.4), 0.1)
-	// jewelMat = materials.NewDielectric(1.5)
+	jewelMat = materials.NewBarycentric()
+	jewelMat = materials.NewLambertian(textures.NewSolidColorTexture(vector3.New(0.7, 0.7, 0.7)))
 
 	// world = append(world,
 	// 	rendering.NewMesh(
@@ -185,6 +186,21 @@ func simsScene() []rendering.Hittable {
 			jewelMat,
 		),
 	)
+
+	// sphere := primitives.UVSphere(2, 10, 10).
+	// 	CenterFloat3Attribute(modeling.PositionAttribute).
+	// 	// Scale(vector3.Zero[float64](), vector3.One[float64]().Scale(20)).
+	// 	Translate(vector3.Up[float64]().Scale(2)).
+	// 	CalculateSmoothNormals()
+
+	// world = append(world,
+	// 	rendering.NewMesh(
+	// 		sphere,
+	// 		jewelMat,
+	// 	),
+	// )
+
+	// obj.Save("uvsphere.obj", sphere)
 
 	// diffuseLight := materials.NewDiffuseLightWithColor(vector3.New(4., 4., 4.))
 	// world = append(world, rendering.NewXYRectangle(vector2.New(3., 1.), vector2.New(4., 3.), -2., diffuseLight))
@@ -231,7 +247,7 @@ func main() {
 		completion := make(chan float64, 1)
 
 		go func() {
-			err := rendering.Render(20, 50, 1900, aspectRatio, scene, camera, fmt.Sprintf("frame_%d.png", i), completion)
+			err := rendering.Render(50, 200, 1000, aspectRatio, scene, camera, fmt.Sprintf("frame_%d.png", i), completion)
 			if err != nil {
 				log.Print(err)
 				panic(err)
