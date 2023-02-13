@@ -158,6 +158,7 @@ func simsScene() []rendering.Hittable {
 	var jewelMat rendering.Material = materials.NewFuzzyMetal(vector3.New(0., 0.9, 0.4), 0.1)
 	jewelMat = materials.NewBarycentric()
 	jewelMat = materials.NewLambertian(textures.NewSolidColorTexture(vector3.New(0.7, 0.7, 0.7)))
+	jewelMat = materials.NewDielectric(1.5)
 
 	// world = append(world,
 	// 	rendering.NewMesh(
@@ -176,16 +177,24 @@ func simsScene() []rendering.Hittable {
 		panic(err)
 	}
 
+	b1 := bunny.
+		CenterFloat3Attribute(modeling.PositionAttribute).
+		Scale(vector3.Zero[float64](), vector3.One[float64]().Scale(20)).
+		Translate(vector3.Up[float64]().Scale(2)).
+		CalculateSmoothNormals()
+
 	world = append(world,
 		rendering.NewMesh(
-			bunny.
-				CenterFloat3Attribute(modeling.PositionAttribute).
-				Scale(vector3.Zero[float64](), vector3.One[float64]().Scale(20)).
-				Translate(vector3.Up[float64]().Scale(2)).
-				CalculateSmoothNormals(),
+			b1,
 			jewelMat,
 		),
 	)
+	// world = append(world,
+	// 	rendering.NewMesh(
+	// 		b1.Scale(vector3.Zero[float64](), vector3.One[float64]().Scale(.95)),
+	// 		jewelMat,
+	// 	),
+	// )
 
 	// sphere := primitives.UVSphere(2, 10, 10).
 	// 	CenterFloat3Attribute(modeling.PositionAttribute).
@@ -218,7 +227,7 @@ func simsScene() []rendering.Hittable {
 
 func main() {
 	// origin := vector3.New(13., 2., 3.)
-	origin := vector3.New(6., 6., 20.)
+	origin := vector3.New(6., 6., 15.)
 	lookat := vector3.New(0., 2., 0.)
 	aperatre := 0.1
 
@@ -247,7 +256,7 @@ func main() {
 		completion := make(chan float64, 1)
 
 		go func() {
-			err := rendering.Render(50, 200, 1000, aspectRatio, scene, camera, fmt.Sprintf("frame_%d.png", i), completion)
+			err := rendering.Render(50, 200, 1500, aspectRatio, scene, camera, fmt.Sprintf("gframe_%d.png", i), completion)
 			if err != nil {
 				log.Print(err)
 				panic(err)

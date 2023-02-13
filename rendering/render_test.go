@@ -83,7 +83,7 @@ func bunnyScene() []rendering.Hittable {
 	}
 
 	world = append(world,
-		rendering.NewMesh(
+		rendering.NewBVHFromMesh(
 			bunny.
 				CenterFloat3Attribute(modeling.PositionAttribute).
 				Scale(vector3.Zero[float64](), vector3.One[float64]().Scale(20)).

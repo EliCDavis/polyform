@@ -148,20 +148,21 @@ func clamp(v, min, max float64) float64 {
 // Intersection method by Andrew Kensler at Pixar, found in the book "Ray
 // Tracing The Next Week" by Peter Shirley
 func (aabb AABB) IntersectsRayInRange(ray Ray, min, max float64) bool {
+	const kEpsilon = 0.0000000001
 	boxMin := aabb.Min()
 	boxMax := aabb.Max()
 
 	rayMin := min
 	rayMax := max
-	if aabb.intersectsRayInRangeComponent(ray.origin.X(), ray.direction.X(), &rayMin, &rayMax, boxMin.X(), boxMax.X()) {
+	if aabb.intersectsRayInRangeComponent(ray.origin.X(), ray.direction.X(), &rayMin, &rayMax, boxMin.X()-kEpsilon, boxMax.X()+kEpsilon) {
 		return false
 	}
 
-	if aabb.intersectsRayInRangeComponent(ray.origin.Y(), ray.direction.Y(), &rayMin, &rayMax, boxMin.Y(), boxMax.Y()) {
+	if aabb.intersectsRayInRangeComponent(ray.origin.Y(), ray.direction.Y(), &rayMin, &rayMax, boxMin.Y()-kEpsilon, boxMax.Y()+kEpsilon) {
 		return false
 	}
 
-	if aabb.intersectsRayInRangeComponent(ray.origin.Z(), ray.direction.Z(), &rayMin, &rayMax, boxMin.Z(), boxMax.Z()) {
+	if aabb.intersectsRayInRangeComponent(ray.origin.Z(), ray.direction.Z(), &rayMin, &rayMax, boxMin.Z()-kEpsilon, boxMax.Z()+kEpsilon) {
 		return false
 	}
 	return true

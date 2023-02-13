@@ -20,14 +20,14 @@ func (it intersectingTri) BoundingBox() geometry.AABB {
 }
 
 // https://www.scratchapixel.com/lessons/3d-basic-rendering/ray-tracing-rendering-a-triangle/moller-trumbore-ray-triangle-intersection.html
-func (it intersectingTri) RayIntersects(ray geometry.Ray) (vector3.Float64, bool) {
+func rayIntersectsTri(p1, p2, p3 vector3.Float64, ray TemporalRay) (vector3.Float64, bool) {
 	const kEpsilon = 0.00001
 
 	dir := ray.Direction()
 	orig := ray.Origin()
 
-	v0v1 := it.p2.Sub(it.p1)
-	v0v2 := it.p3.Sub(it.p1)
+	v0v1 := p2.Sub(p1)
+	v0v2 := p3.Sub(p1)
 	pvec := dir.Cross(v0v2)
 	det := v0v1.Dot(pvec)
 
@@ -38,7 +38,7 @@ func (it intersectingTri) RayIntersects(ray geometry.Ray) (vector3.Float64, bool
 
 	invDet := 1. / det
 
-	tvec := orig.Sub(it.p1)
+	tvec := orig.Sub(p1)
 	u := tvec.Dot(pvec) * invDet
 	if u < 0 || u > 1 {
 		return vector3.Zero[float64](), false
@@ -103,7 +103,7 @@ func (s Mesh) UV(p vector3.Float64) vector2.Float64 {
 	)
 }
 
-func triHit(tri intersectingTri, ray geometry.Ray, minDistance, maxDistance float64, hitRecord *HitRecord) bool {
+func triHit(tri intersectingTri, ray TemporalRay, minDistance, maxDistance float64, hitRecord *HitRecord) bool {
 	// point, interests := tri.LineIntersects(geometry.NewLine3D(ray.At(minDistance), ray.At(maxDistance)))
 	// if !interests {
 	// 	return false
@@ -113,7 +113,7 @@ func triHit(tri intersectingTri, ray geometry.Ray, minDistance, maxDistance floa
 	// 	return false
 	// }
 
-	point, intersects := tri.RayIntersects(ray)
+	point, intersects := rayIntersectsTri(tri.p1, tri.p2, tri.p3, ray)
 	if !intersects {
 		return false
 	}
@@ -173,11 +173,11 @@ func (s Mesh) Hit(ray *TemporalRay, minDistance, maxDistance float64, hitRecord 
 	hitAnything := false
 	closestSoFar := maxDistance
 
-	geoRay := geometry.NewRay(ray.At(minDistance), ray.Direction())
+	// geoRay := geometry.NewRay(ray.At(minDistance), ray.Direction())
 
 	for _, itemIndex := range intersections {
 		tri := s.mesh[itemIndex]
-		if triHit(tri, geoRay, minDistance, closestSoFar, tempRecord) {
+		if triHit(tri, *ray, minDistance, closestSoFar, tempRecord) {
 			hitAnything = true
 			closestSoFar = tempRecord.Distance
 		}

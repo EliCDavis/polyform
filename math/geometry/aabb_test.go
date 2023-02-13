@@ -150,7 +150,7 @@ func TestAABBIntersectsRayInRange(t *testing.T) {
 		},
 		"centered forward of origin skips over": {
 			ray:  geometry.NewRay(vector3.New(2., 3., 0.), vector3.New(0., 0., 1.)),
-			min:  5,
+			min:  6,
 			max:  10,
 			want: false,
 		},
