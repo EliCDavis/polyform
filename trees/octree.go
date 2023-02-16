@@ -42,6 +42,29 @@ func (ot *OctTree) ElementsIntersectingRay(ray geometry.Ray, min, max float64) [
 	return ot.intersectionsBuffer
 }
 
+func (ot OctTree) TraverseIntersectingRay(ray geometry.Ray, min, max float64, iterator func(i int, min, max *float64)) {
+	if !ot.bounds.IntersectsRayInRange(ray, min, max) {
+		return
+	}
+
+	tMin := min
+	tMax := max
+
+	for i := 0; i < len(ot.elements); i++ {
+		bounds := ot.elements[i].bounds
+		oi := ot.elements[i].originalIndex
+		if bounds.IntersectsRayInRange(ray, tMin, tMax) {
+			iterator(oi, &tMin, &tMax)
+		}
+	}
+
+	for i := 0; i < len(ot.children); i++ {
+		if ot.children[i] != nil {
+			ot.children[i].TraverseIntersectingRay(ray, tMin, tMax, iterator)
+		}
+	}
+}
+
 func (ot OctTree) ElementsContainingPoint(v vector3.Float64) []int {
 	intersections := make([]int, 0)
 
@@ -163,6 +186,19 @@ func newOctree(elements []elementReference, maxDepth int) *OctTree {
 	leftOver := make([]elementReference, 0)
 	for i := 0; i < len(elements); i++ {
 		primBounds := elements[i].bounds
+		// distMin := globalCenter.Distance(primBounds.Min())
+		// distMax := globalCenter.Distance(primBounds.Max())
+
+		// // Prioritize what will keep us furthest from the center to prevent as
+		// // much overlap as possible
+		// if distMin > distMax {
+		// 	minIndex := octreeIndex(globalCenter, primBounds.Min())
+		// 	childrenNodes[minIndex] = append(childrenNodes[minIndex], elements[i])
+		// } else {
+		// 	maxIndex := octreeIndex(globalCenter, primBounds.Max())
+		// 	childrenNodes[maxIndex] = append(childrenNodes[maxIndex], elements[i])
+		// }
+
 		minIndex := octreeIndex(globalCenter, primBounds.Min())
 		maxIndex := octreeIndex(globalCenter, primBounds.Max())
 

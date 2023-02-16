@@ -10,15 +10,12 @@ import (
 // barycentric
 type Barycentric struct{}
 
-func NewBarycentric() *Barycentric {
-	return &Barycentric{}
+func NewBarycentric() Barycentric {
+	return Barycentric{}
 }
 
 func (l Barycentric) Scatter(in geometry.Ray, rec *rendering.HitRecord, attenuation *vector3.Float64, scattered *geometry.Ray) bool {
-	scatterDir := rec.Normal.Add(vector3.RandNormal())
-	if scatterDir.NearZero() {
-		scatterDir = rec.Normal
-	}
+	scatterDir := rec.Normal
 	*scattered = geometry.NewRay(rec.Point, scatterDir)
 	*attenuation = rec.Float3Data["barycentric"]
 	return true

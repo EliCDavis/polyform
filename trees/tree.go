@@ -6,6 +6,7 @@ import (
 )
 
 type Tree interface {
+	TraverseIntersectingRay(ray geometry.Ray, min, max float64, iterator func(i int, min, max *float64))
 	ElementsContainingPoint(v vector3.Float64) []int
 	ClosestPoint(v vector3.Float64) (int, vector3.Float64)
 	ElementsIntersectingRay(ray geometry.Ray, min, max float64) []int

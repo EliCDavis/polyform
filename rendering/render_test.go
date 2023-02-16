@@ -76,6 +76,9 @@ func bunnyScene() []rendering.Hittable {
 	world := make([]rendering.Hittable, 0)
 
 	var jewelMat rendering.Material = materials.NewFuzzyMetal(vector3.New(0., 0.9, 0.4), 0.1)
+	jewelMat = materials.NewBarycentric()
+	// jewelMat = materials.NewLambertian(textures.NewSolidColorTexture(vector3.New(0.7, 0.7, 0.7)))
+	// jewelMat = materials.NewDielectric(1.5)
 
 	bunny, err := obj.Load("../test-models/stanford-bunny.obj")
 	if err != nil {
@@ -83,7 +86,7 @@ func bunnyScene() []rendering.Hittable {
 	}
 
 	world = append(world,
-		rendering.NewBVHFromMesh(
+		rendering.NewMesh(
 			bunny.
 				CenterFloat3Attribute(modeling.PositionAttribute).
 				Scale(vector3.Zero[float64](), vector3.One[float64]().Scale(20)).

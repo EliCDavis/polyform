@@ -17,52 +17,19 @@ func (tri Triangle) BoundingBox(start, stop float64) *geometry.AABB {
 }
 
 func (tri Triangle) Hit(ray *TemporalRay, minDistance, maxDistance float64, hitRecord *HitRecord) bool {
-	point, intersects := rayIntersectsTri(tri.p1, tri.p2, tri.p3, *ray)
+	intersects := rayIntersectsTri(intersectingTri{
+		p1: tri.p1,
+		p2: tri.p2,
+		p3: tri.p3,
+
+		n1: tri.n1,
+		n2: tri.n2,
+		n3: tri.n3,
+	}, ray.Ray(), minDistance, maxDistance, hitRecord)
 	if !intersects {
 		return false
 	}
 
-	distFromOrig := point.Distance(ray.Origin())
-
-	// Prevents us from bouncing around and dying inside the triangle itself
-	if distFromOrig < 0.001 {
-		return false
-	}
-
-	if distFromOrig > maxDistance {
-		return false
-	}
-
-	// compute the plane's normal
-	v0v1 := tri.p2.Sub(tri.p1)
-	v0v2 := tri.p3.Sub(tri.p1)
-	// no need to normalize
-	N := v0v1.Cross(v0v2) // N
-	denom := N.Dot(N)
-
-	edge1 := tri.p3.Sub(tri.p2)
-	vp1 := point.Sub(tri.p2)
-	C := edge1.Cross(vp1)
-	u := N.Dot(C)
-
-	edge2 := tri.p1.Sub(tri.p3)
-	vp2 := point.Sub(tri.p3)
-	C = edge2.Cross(vp2)
-	v := N.Dot(C)
-
-	u /= denom
-	v /= denom
-
-	w := 1. - u - v
-	normal := tri.n1.Scale(u).
-		Add(tri.n2.Scale(v)).
-		Add(tri.n3.Scale(w)).
-		Normalized()
-
-	hitRecord.Normal = normal
-	hitRecord.Distance = distFromOrig
-	hitRecord.Point = point
-	hitRecord.Float3Data["barycentric"] = vector3.New(u, v, w)
 	hitRecord.Material = tri.mat
 	hitRecord.SetFaceNormal(*ray, hitRecord.Normal)
 	// hitRecord.UV = s.UV(hitRecord.Normal)
