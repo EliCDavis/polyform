@@ -124,7 +124,7 @@ func BenchmarkRender(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		// always record the result of Fib to prevent
 		// the compiler eliminating the function call.
-		err := rendering.Render(50, 50, 50, aspectRatio, randomScene(), camera, "example2.png", nil)
+		err := rendering.RenderToFile(50, 50, 50, randomScene(), camera, "example2.png", nil)
 		if err != nil {
 			panic(err)
 		}
@@ -147,7 +147,7 @@ func BenchmarkBunnyRender(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		// always record the result of Fib to prevent
 		// the compiler eliminating the function call.
-		err := rendering.Render(10, 20, 100, aspectRatio, scene, camera, "example2.png", nil)
+		err := rendering.RenderToFile(10, 20, 100, scene, camera, "example2.png", nil)
 		if err != nil {
 			panic(err)
 		}

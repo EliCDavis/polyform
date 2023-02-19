@@ -188,7 +188,7 @@ func main() {
 		},
 	).SetMaterial(mat)
 
-	err := obj.Save("fired-heater.obj", final)
+	err := obj.Save("tmp/fired-heater/fired-heater.obj", final)
 	if err != nil {
 		panic(err)
 	}

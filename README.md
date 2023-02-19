@@ -1,4 +1,5 @@
 # Polyform
+
 ![Coverage](https://img.shields.io/badge/Coverage-36.1%25-yellow)
 [![Go Report Card](https://goreportcard.com/badge/github.com/EliCDavis/polyform)](https://goreportcard.com/report/github.com/EliCDavis/polyform)
 
@@ -87,13 +88,13 @@ This was my [submission for ProcJam 2022](https://elicdavis.itch.io/evergreen-tr
 
 ![Evergreen Terrain Demo](./examples/chill/terrain-demo.png)
 
-
 ### Other Examples
 
 |                                                                                      |                                                                                  |
 | ------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------- |
 | [[Source Here](/examples/ufo/main.go)] ![ufo](/examples/ufo/ufo.png)                 | [[Source Here](/examples/candle/main.go)] ![candle](/examples/candle/candle.png) |
-| [[Source Here](/examples/terrain/main.go)] ![terrain](/examples/terrain/terrain.png) |  [[Source Here](/examples/covid/main.go)] ![terrain](/examples/covid/covid.png) |
+| [[Source Here](/examples/terrain/main.go)] ![terrain](/examples/terrain/terrain.png) | [[Source Here](/examples/covid/main.go)] ![terrain](/examples/covid/covid.png)   |
+| [[Source Here](/examples/plumbob/main.go)] ![plumbob](/examples/plumbob/plumbob.png) |                                                                                  |
 
 ## Todo List
 
@@ -185,6 +186,7 @@ Resources either directly contributing to the code here or are just interesting 
 - Collisions
   - [Closest point on Triangle](https://gdbooks.gitbooks.io/3dcollisions/content/Chapter4/closest_point_to_triangle.html)
 - Ray Tracing
-  - [_Ray Tracing in One Weekend by Peter Shirley](https://raytracing.github.io/books/RayTracingInOneWeekend.html)
+  - [_Ray Tracing in One Weekend by Peter Shirley_](https://raytracing.github.io/books/RayTracingInOneWeekend.html)
   - [_Ray Tracing: The Next Week_](https://raytracing.github.io/books/RayTracingTheNextWeek.html)
-  - [Ray-Triangle Intersection](https://www.scratchapixel.com/lessons/3d-basic-rendering/ray-tracing-rendering-a-triangle/moller-trumbore-ray-triangle-intersection.html)
+  - [Möller-Trumbore Ray-Triangle Intersection](https://www.scratchapixel.com/lessons/3d-basic-rendering/ray-tracing-rendering-a-triangle/moller-trumbore-ray-triangle-intersection.html)
+  - [Simulating the Colors of The Sky](https://www.scratchapixel.com/lessons/procedural-generation-virtual-worlds/simulating-sky/simulating-colors-of-the-sky.html)

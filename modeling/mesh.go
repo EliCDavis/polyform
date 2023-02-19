@@ -843,6 +843,24 @@ func (m Mesh) CalculateFlatNormals() Mesh {
 	return m.SetFloat3Attribute(NormalAttribute, normals)
 }
 
+func (m Mesh) FlipTriWinding() Mesh {
+	m.requireTopology(TriangleTopology)
+
+	tris := m.indices
+	for triIndex := 0; triIndex < len(tris); triIndex += 3 {
+		tris[triIndex], tris[triIndex+1] = tris[triIndex+1], tris[triIndex]
+	}
+
+	return Mesh{
+		topology:  TriangleTopology,
+		indices:   tris,
+		v3Data:    m.v3Data,
+		v2Data:    m.v2Data,
+		v1Data:    m.v1Data,
+		materials: m.materials,
+	}
+}
+
 // Unweld duplicates all vertex data such that no two primitive indices share
 // any one vertex
 func (m Mesh) Unweld() Mesh {

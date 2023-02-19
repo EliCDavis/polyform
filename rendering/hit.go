@@ -63,6 +63,7 @@ type HitRecord struct {
 	Material   Material
 	UV         vector2.Float64
 	Float3Data map[string]vector3.Float64
+	Float2Data map[string]vector2.Float64
 }
 
 func NewHitRecord() *HitRecord {
@@ -74,6 +75,7 @@ func NewHitRecord() *HitRecord {
 		Material:   nil,
 		UV:         vector2.Zero[float64](),
 		Float3Data: make(map[string]vector3.Float64),
+		Float2Data: make(map[string]vector2.Float64),
 	}
 }
 

@@ -6,16 +6,28 @@ import (
 
 	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/rendering"
+	"github.com/EliCDavis/polyform/rendering/textures"
 	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
 )
 
 type Dielectric struct {
 	indexOfRefraction float64
+	tex               rendering.Texture
 }
 
 func NewDielectric(indexOfRefraction float64) Dielectric {
-	return Dielectric{indexOfRefraction}
+	return Dielectric{
+		indexOfRefraction: indexOfRefraction,
+		tex:               textures.NewSolidColorTexture(vector3.One[float64]()),
+	}
+}
+
+func NewDielectricWithColor(indexOfRefraction float64, color vector3.Float64) Dielectric {
+	return Dielectric{
+		indexOfRefraction: indexOfRefraction,
+		tex:               textures.NewSolidColorTexture(color),
+	}
 }
 
 func (d Dielectric) Scatter(in geometry.Ray, rec *rendering.HitRecord, attenuation *vector3.Float64, scattered *geometry.Ray) bool {
@@ -38,7 +50,9 @@ func (d Dielectric) Scatter(in geometry.Ray, rec *rendering.HitRecord, attenuati
 	}
 
 	*scattered = geometry.NewRay(rec.Point, direction)
-	*attenuation = vector3.New(1., 1., 1.)
+	// *attenuation = vector3.New(1., 1., 1.)
+	*attenuation = d.tex.Value(rec.UV, rec.Point)
+
 	return true
 }
 

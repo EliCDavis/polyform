@@ -5,6 +5,7 @@ import (
 
 	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/trees"
+	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
 )
 
@@ -123,6 +124,30 @@ func (t Tri) P2Vec3Attr(atr string) vector3.Float64 {
 
 func (t Tri) P3Vec3Attr(atr string) vector3.Float64 {
 	return t.mesh.v3Data[atr][t.P3()]
+}
+
+func (t Tri) P1Vec2Attr(atr string) vector2.Float64 {
+	return t.mesh.v2Data[atr][t.P1()]
+}
+
+func (t Tri) P2Vec2Attr(atr string) vector2.Float64 {
+	return t.mesh.v2Data[atr][t.P2()]
+}
+
+func (t Tri) P3Vec2Attr(atr string) vector2.Float64 {
+	return t.mesh.v2Data[atr][t.P3()]
+}
+
+func (t Tri) P1Vec1Attr(atr string) float64 {
+	return t.mesh.v1Data[atr][t.P1()]
+}
+
+func (t Tri) P2Vec1Attr(atr string) float64 {
+	return t.mesh.v1Data[atr][t.P2()]
+}
+
+func (t Tri) P3Vec1Attr(atr string) float64 {
+	return t.mesh.v1Data[atr][t.P3()]
 }
 
 func (t Tri) L1(atr string) geometry.Line3D {

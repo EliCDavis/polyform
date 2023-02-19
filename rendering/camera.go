@@ -17,6 +17,21 @@ type Camera struct {
 	lensRadius         float64
 	timeStart, timeEnd float64
 	background         sample.Vec3ToVec3
+	aspectRatio        float64
+}
+
+func NewDefaultCamera(
+	aspectRatio float64,
+	origin, lookAt vector3.Float64,
+	time, shutter float64,
+) Camera {
+	focusDist := origin.Distance(lookAt)
+	start := time - (shutter / 2.)
+	end := time + (shutter / 2.)
+	return NewCamera(90., aspectRatio, 0.1, focusDist, origin, lookAt, vector3.Up[float64](), start, end, func(v vector3.Float64) vector3.Float64 {
+		return vector3.One[float64]()
+		// return vector3.New(140./255., 200./255., 240./255.)
+	})
 }
 
 func NewCamera(
@@ -54,6 +69,7 @@ func NewCamera(
 		timeStart:       timeStart,
 		timeEnd:         timeEnd,
 		background:      background,
+		aspectRatio:     aspectRatio,
 	}
 }
 

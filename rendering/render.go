@@ -12,7 +12,7 @@ import (
 	"github.com/EliCDavis/vector/vector3"
 )
 
-var inf float64 = 10000//math.Inf(1)
+var inf float64 = 10000 // math.Inf(1)
 
 func colorFromRay(tr TemporalRay, world Hittable, background sample.Vec3ToVec3, depth int) vector3.Float64 {
 	if depth < 0 {
@@ -41,9 +41,8 @@ func colorFromRay(tr TemporalRay, world Hittable, background sample.Vec3ToVec3, 
 	).MultByVector(attenuation).Add(emitted)
 }
 
-func Render(
+func RenderToFile(
 	maxRayBounce, samplesPerPixel, imageWidth int,
-	aspectRatio float64,
 	hittables []Hittable,
 	camera Camera,
 	imgPath string,
@@ -56,7 +55,7 @@ func Render(
 
 	defer f.Close()
 
-	imageHeight := int(float64(imageWidth) / aspectRatio)
+	imageHeight := int(float64(imageWidth) / camera.aspectRatio)
 	img := image.NewRGBA(image.Rect(0, 0, imageWidth, imageHeight))
 
 	var world HitList = hittables

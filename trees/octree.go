@@ -186,29 +186,29 @@ func newOctree(elements []elementReference, maxDepth int) *OctTree {
 	leftOver := make([]elementReference, 0)
 	for i := 0; i < len(elements); i++ {
 		primBounds := elements[i].bounds
-		// distMin := globalCenter.Distance(primBounds.Min())
-		// distMax := globalCenter.Distance(primBounds.Max())
+		distMin := globalCenter.Distance(primBounds.Min())
+		distMax := globalCenter.Distance(primBounds.Max())
 
-		// // Prioritize what will keep us furthest from the center to prevent as
-		// // much overlap as possible
-		// if distMin > distMax {
-		// 	minIndex := octreeIndex(globalCenter, primBounds.Min())
-		// 	childrenNodes[minIndex] = append(childrenNodes[minIndex], elements[i])
-		// } else {
-		// 	maxIndex := octreeIndex(globalCenter, primBounds.Max())
-		// 	childrenNodes[maxIndex] = append(childrenNodes[maxIndex], elements[i])
-		// }
-
-		minIndex := octreeIndex(globalCenter, primBounds.Min())
-		maxIndex := octreeIndex(globalCenter, primBounds.Max())
-
-		if minIndex == maxIndex {
-			// child is contained completely within the division, pass it down.
+		// Prioritize what will keep us furthest from the center to prevent as
+		// much overlap as possible
+		if distMin > distMax {
+			minIndex := octreeIndex(globalCenter, primBounds.Min())
 			childrenNodes[minIndex] = append(childrenNodes[minIndex], elements[i])
 		} else {
-			// Doesn't fit within a single subdivision, stop recursing for this item.
-			leftOver = append(leftOver, elements[i])
+			maxIndex := octreeIndex(globalCenter, primBounds.Max())
+			childrenNodes[maxIndex] = append(childrenNodes[maxIndex], elements[i])
 		}
+
+		// minIndex := octreeIndex(globalCenter, primBounds.Min())
+		// maxIndex := octreeIndex(globalCenter, primBounds.Max())
+
+		// if minIndex == maxIndex {
+		// 	// child is contained completely within the division, pass it down.
+		// 	childrenNodes[minIndex] = append(childrenNodes[minIndex], elements[i])
+		// } else {
+		// 	// Doesn't fit within a single subdivision, stop recursing for this item.
+		// 	leftOver = append(leftOver, elements[i])
+		// }
 	}
 
 	children := []*OctTree{

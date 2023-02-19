@@ -54,31 +54,22 @@ func rayIntersectsTri(tri intersectingTri, ray geometry.Ray, minDistance, maxDis
 		return false
 	}
 
-	// u v w
-	// u w v
-	// v w u
-	// v u w
-	// w u v
-
 	w := 1. - u - v
-	normal := tri.n1.Scale(w).
-		Add(tri.n2.Scale(u)).
-		Add(tri.n3.Scale(v)).
-		Normalized()
-	// normal = tri.n1.Add(tri.n2).Add(tri.p3).Scale(1. / 3.).Normalized()
-	// normal = tri.p1.Sub(tri.p2).Cross(tri.p3.Sub(tri.p2)).Normalized()
+	// normal := tri.n1.Scale(w).
+	// 	Add(tri.n2.Scale(u)).
+	// 	Add(tri.n3.Scale(v)).
+	// 	Normalized()
 
-	hitRecord.Normal = normal
+	hitRecord.Normal = tri.p1.Sub(tri.p2).Cross(tri.p3.Sub(tri.p2)).Normalized()
 	hitRecord.Distance = tVal + minDistance
 	hitRecord.Point = ray.At(tVal + minDistance)
-	hitRecord.Float3Data["barycentric"] = vector3.New(u, v, w)
+	hitRecord.Float3Data["barycentric"] = vector3.New(w, u, v)
 
 	return true
 }
 
 type intersectingTri struct {
 	p1, p2, p3 vector3.Float64
-	n1, n2, n3 vector3.Float64
 }
 
 func (it intersectingTri) BoundingBox() geometry.AABB {
@@ -90,47 +81,87 @@ func (it intersectingTri) ClosestPoint(p vector3.Float64) vector3.Float64 {
 }
 
 type Mesh struct {
-	mesh []intersectingTri
-	mat  Material
-	tree trees.Tree
+	tris            []intersectingTri
+	ancillaryV3Data []map[string]vector3.Float64
+	ancillaryV2Data []map[string]vector2.Float64
+	mat             Material
+	tree            trees.Tree
+	v3Atr           []string
+	v2Atr           []string
 }
 
 func NewMesh(mesh modeling.Mesh, mat Material) Mesh {
+	v3Data := make([]string, 0)
+	v2Data := make([]string, 0)
+
+	if mesh.HasFloat3Attribute(modeling.NormalAttribute) {
+		v3Data = append(v3Data, modeling.NormalAttribute)
+	}
+
+	if mesh.HasFloat2Attribute(modeling.TexCoordAttribute) {
+		v2Data = append(v2Data, modeling.TexCoordAttribute)
+	}
+
+	return NewMeshWithAttributes(mesh, mat, v3Data, v2Data)
+}
+
+func NewMeshWithAttributes(mesh modeling.Mesh, mat Material, v3Data, v2Data []string) Mesh {
 	its := make([]intersectingTri, mesh.PrimitiveCount())
 	eles := make([]trees.Element, mesh.PrimitiveCount())
+
+	ancillaryV3Data := make([]map[string]vector3.Float64, 0)
+	ancillaryV2Data := make([]map[string]vector2.Float64, 0)
+
 	for i := 0; i < mesh.PrimitiveCount(); i++ {
 		tri := mesh.Tri(i)
 		its[i] = intersectingTri{
 			p1: tri.P1Vec3Attr(modeling.PositionAttribute),
 			p2: tri.P2Vec3Attr(modeling.PositionAttribute),
 			p3: tri.P3Vec3Attr(modeling.PositionAttribute),
-
-			n1: tri.P1Vec3Attr(modeling.NormalAttribute),
-			n2: tri.P2Vec3Attr(modeling.NormalAttribute),
-			n3: tri.P3Vec3Attr(modeling.NormalAttribute),
 		}
+
+		ancillaryV3Data = append(
+			ancillaryV3Data,
+			make(map[string]vector3.Vector[float64]),
+			make(map[string]vector3.Vector[float64]),
+			make(map[string]vector3.Vector[float64]),
+		)
+
+		ancillaryV2Data = append(
+			ancillaryV2Data,
+			make(map[string]vector2.Vector[float64]),
+			make(map[string]vector2.Vector[float64]),
+			make(map[string]vector2.Vector[float64]),
+		)
+
+		for _, keyword := range v3Data {
+			ancillaryV3Data[(i*3)+0][keyword] = tri.P1Vec3Attr(keyword)
+			ancillaryV3Data[(i*3)+1][keyword] = tri.P2Vec3Attr(keyword)
+			ancillaryV3Data[(i*3)+2][keyword] = tri.P3Vec3Attr(keyword)
+		}
+
+		for _, keyword := range v2Data {
+			ancillaryV2Data[(i*3)+0][keyword] = tri.P1Vec2Attr(keyword)
+			ancillaryV2Data[(i*3)+1][keyword] = tri.P2Vec2Attr(keyword)
+			ancillaryV2Data[(i*3)+2][keyword] = tri.P3Vec2Attr(keyword)
+		}
+
 		eles[i] = its[i]
 	}
 
 	return Mesh{
-		mesh: its,
-		mat:  mat,
-		tree: trees.NewOctree(eles),
+		tris:            its,
+		mat:             mat,
+		tree:            trees.NewOctree(eles),
+		ancillaryV3Data: ancillaryV3Data,
+		ancillaryV2Data: ancillaryV2Data,
+		v3Atr:           v3Data,
+		v2Atr:           v2Data,
 	}
 }
 
 func (s Mesh) GetMaterial() Material {
 	return s.mat
-}
-
-func (s Mesh) UV(p vector3.Float64) vector2.Float64 {
-	theta := math.Acos(-p.Y())
-	phi := math.Atan2(-p.Z(), p.X()) + math.Pi
-
-	return vector2.New(
-		phi/(2*math.Pi),
-		theta/math.Pi,
-	)
 }
 
 func (s Mesh) Hit2(ray *TemporalRay, minDistance, maxDistance float64, hitRecord *HitRecord) bool {
@@ -146,7 +177,7 @@ func (s Mesh) Hit2(ray *TemporalRay, minDistance, maxDistance float64, hitRecord
 	geoRay = ray.Ray()
 
 	for _, itemIndex := range intersections {
-		tri := s.mesh[itemIndex]
+		tri := s.tris[itemIndex]
 		if rayIntersectsTri(tri, geoRay, minDistance, closestSoFar, hitRecord) {
 			hitAnything = true
 			closestSoFar = hitRecord.Distance
@@ -162,7 +193,7 @@ func (s Mesh) Hit2(ray *TemporalRay, minDistance, maxDistance float64, hitRecord
 	// hitRecord.Normal = hitRecord.Point.Sub(center).DivByConstant(s.radius)
 	hitRecord.Material = s.mat
 	hitRecord.SetFaceNormal(*ray, hitRecord.Normal)
-	hitRecord.UV = s.UV(hitRecord.Normal)
+	// hitRecord.UV = s.UV(hitRecord.Normal)
 
 	return hitAnything
 }
@@ -171,26 +202,55 @@ func (s Mesh) Hit(ray *TemporalRay, minDistance, maxDistance float64, hitRecord 
 	minStartDistance := minDistance
 	maxStartDistance := maxDistance
 
-	hitAnything := false
 	// geoRay := geometry.NewRay(ray.At(minDistance), ray.Direction())
 	geoRay := ray.Ray()
+	closestTriIndex := -1
 	s.tree.TraverseIntersectingRay(geoRay, minStartDistance, maxStartDistance, func(i int, min, max *float64) {
-		tri := s.mesh[i]
+		tri := s.tris[i]
 		if rayIntersectsTri(tri, geoRay, minDistance, maxStartDistance, hitRecord) {
-			hitAnything = true
+			closestTriIndex = i
 			maxStartDistance = hitRecord.Distance
 		}
 	})
 
-	if !hitAnything {
+	if closestTriIndex == -1 {
 		return false
+	}
+
+	barycentric := hitRecord.Float3Data["barycentric"]
+
+	v3P1Data := s.ancillaryV3Data[(closestTriIndex*3)+0]
+	v3P2Data := s.ancillaryV3Data[(closestTriIndex*3)+1]
+	v3P3Data := s.ancillaryV3Data[(closestTriIndex*3)+2]
+	for _, keyword := range s.v3Atr {
+		hitRecord.Float3Data[keyword] = v3P1Data[keyword].Scale(barycentric.X()).
+			Add(v3P2Data[keyword].Scale(barycentric.Y())).
+			Add(v3P3Data[keyword].Scale(barycentric.Z())).
+			Normalized()
+
+		if keyword == modeling.NormalAttribute {
+			hitRecord.Normal = hitRecord.Float3Data[keyword]
+		}
+	}
+
+	v2P1Data := s.ancillaryV2Data[(closestTriIndex*3)+0]
+	v2P2Data := s.ancillaryV2Data[(closestTriIndex*3)+1]
+	v2P3Data := s.ancillaryV2Data[(closestTriIndex*3)+2]
+	for _, keyword := range s.v2Atr {
+		hitRecord.Float2Data[keyword] = v2P1Data[keyword].Scale(barycentric.X()).
+			Add(v2P2Data[keyword].Scale(barycentric.Y())).
+			Add(v2P3Data[keyword].Scale(barycentric.Z())).
+			Normalized()
+
+		if keyword == modeling.TexCoordAttribute {
+			hitRecord.UV = hitRecord.Float2Data[keyword]
+		}
 	}
 
 	hitRecord.Material = s.mat
 	hitRecord.SetFaceNormal(*ray, hitRecord.Normal)
-	hitRecord.UV = s.UV(hitRecord.Normal)
 
-	return hitAnything
+	return true
 }
 
 func (m Mesh) BoundingBox(startTime, endTime float64) *geometry.AABB {

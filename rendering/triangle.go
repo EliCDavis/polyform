@@ -21,10 +21,6 @@ func (tri Triangle) Hit(ray *TemporalRay, minDistance, maxDistance float64, hitR
 		p1: tri.p1,
 		p2: tri.p2,
 		p3: tri.p3,
-
-		n1: tri.n1,
-		n2: tri.n2,
-		n3: tri.n3,
 	}, ray.Ray(), minDistance, maxDistance, hitRecord)
 	if !intersects {
 		return false
