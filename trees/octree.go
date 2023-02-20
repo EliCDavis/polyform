@@ -85,7 +85,7 @@ func (ot OctTree) ElementsContainingPoint(v vector3.Float64) []int {
 func (ot OctTree) ClosestPoint(v vector3.Float64) (int, vector3.Float64) {
 	closestPrimDist := math.MaxFloat64
 	closestPrimPoint := vector3.Zero[float64]()
-	closestPointIndex := -1
+	closestPrimPointIndex := -1
 
 	for i := 0; i < len(ot.elements); i++ {
 		point := ot.elements[i].primitive.ClosestPoint(v)
@@ -93,34 +93,57 @@ func (ot OctTree) ClosestPoint(v vector3.Float64) (int, vector3.Float64) {
 		if dist < closestPrimDist {
 			closestPrimDist = dist
 			closestPrimPoint = point
-			closestPointIndex = i
+			closestPrimPointIndex = i
 		}
 	}
 
-	var closestCell *OctTree = nil
-	closestCellDist := math.MaxFloat64
+	var closestNonContainingCell *OctTree = nil
+	closestNonContainingCellDist := math.MaxFloat64
+
+	closestContainingCellIndex := -1
+	closestContainingCellDist := math.MaxFloat64
+	closestContainingCellPoint := vector3.Zero[float64]()
 
 	for i := 0; i < len(ot.children); i++ {
 		if ot.children[i] == nil {
 			continue
 		}
-		point := ot.children[i].bounds.ClosestPoint(v)
-		dist := point.DistanceSquared(v)
-		if dist < closestCellDist {
-			closestCellDist = dist
-			closestCell = ot.children[i]
+
+		if ot.children[i].bounds.Contains(v) {
+			elementIndex, subCellPoint := ot.children[i].ClosestPoint(v)
+			subCellDist := v.DistanceSquared(subCellPoint)
+			if subCellDist < closestContainingCellDist {
+				closestContainingCellDist = subCellDist
+				closestContainingCellIndex = elementIndex
+				closestContainingCellPoint = subCellPoint
+			}
+		} else {
+			point := ot.children[i].bounds.ClosestPoint(v)
+			dist := point.DistanceSquared(v)
+			if dist <= closestNonContainingCellDist {
+				closestNonContainingCellDist = dist
+				closestNonContainingCell = ot.children[i]
+			}
 		}
 	}
 
-	if closestCell != nil && closestCellDist < closestPrimDist {
-		cellIndex, subCellPoint := closestCell.ClosestPoint(v)
-		subCellDist := v.DistanceSquared(subCellPoint)
-		if subCellDist < closestPrimDist {
-			return cellIndex, subCellPoint
-		}
+	minNonContainingPoint := vector3.Zero[float64]()
+	minNonContainingDist := math.MaxFloat64
+	minNonContainingElement := -1
+	if closestNonContainingCell != nil && closestNonContainingCellDist < closestPrimDist {
+		minNonContainingElement, minNonContainingPoint = closestNonContainingCell.ClosestPoint(v)
+		minNonContainingDist = v.DistanceSquared(minNonContainingPoint)
 	}
 
-	return closestPointIndex, closestPrimPoint
+	if closestPrimPointIndex != -1 && closestPrimDist <= minNonContainingDist && closestPrimDist <= closestContainingCellDist {
+		return closestPrimPointIndex, closestPrimPoint
+	}
+
+	if minNonContainingElement != -1 && minNonContainingDist <= closestPrimDist && minNonContainingDist <= closestContainingCellDist {
+		return minNonContainingElement, minNonContainingPoint
+	}
+
+	return closestContainingCellIndex, closestContainingCellPoint
 }
 
 func octreeIndex(center, item vector3.Float64) int {

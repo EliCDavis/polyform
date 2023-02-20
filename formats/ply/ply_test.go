@@ -7,7 +7,10 @@ import (
 	"testing"
 
 	"github.com/EliCDavis/polyform/formats/ply"
+	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/primitives"
+	"github.com/EliCDavis/vector/vector2"
+	"github.com/EliCDavis/vector/vector3"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -92,6 +95,50 @@ end_header
 
 	assert.NoError(t, err)
 	assert.NotNil(t, ply)
+	assert.Equal(t, ply.PrimitiveCount(), 12)
+	assert.Equal(t, ply.AttributeLength(), 8)
+}
+
+func TestToMeshASCIIWithTextureCords(t *testing.T) {
+	plyData := `ply
+format ascii 1.0
+comment this file is a tesselated cube
+element vertex 8
+property float32 x
+property float32 y
+property float32 z
+element face 12
+property list uint8 int32 vertex_index
+property list uchar float texcoord
+end_header
+0 0 0
+0 0 1
+0 1 1
+0 1 0
+1 0 0
+1 0 1
+1 1 1
+1 1 0
+3 0 1 2 6 0.1 0.8 0.2 0.1 0.8 0.2
+3 1 2 3 6 0.1 0.8 0.2 0.1 0.8 0.2
+3 7 6 5 6 0.1 0.8 0.2 0.1 0.8 0.2
+3 6 5 4 6 0.1 0.8 0.2 0.1 0.8 0.2
+3 0 4 5 6 0.1 0.8 0.2 0.1 0.8 0.2
+3 4 5 1 6 0.1 0.8 0.2 0.1 0.8 0.2
+3 1 5 6 6 0.1 0.8 0.2 0.1 0.8 0.2
+3 5 6 2 6 0.1 0.8 0.2 0.1 0.8 0.2
+3 2 6 7 6 0.1 0.8 0.2 0.1 0.8 0.2
+3 6 7 3 6 0.1 0.8 0.2 0.1 0.8 0.2
+3 3 7 4 6 0.1 0.8 0.2 0.1 0.8 0.2
+3 7 4 0 6 0.1 0.8 0.2 0.1 0.8 0.2
+`
+	ply, err := ply.ReadMesh(strings.NewReader(plyData))
+
+	assert.NoError(t, err)
+	assert.NotNil(t, ply)
+	assert.Equal(t, 12, ply.PrimitiveCount())
+	assert.Equal(t, 36, ply.AttributeLength())
+	assert.True(t, ply.HasFloat2Attribute(modeling.TexCoordAttribute))
 }
 
 func TestToMeshLittleEndian(t *testing.T) {
@@ -147,6 +194,50 @@ end_header
 
 	buf := bytes.Buffer{}
 	err := ply.WriteASCII(&buf, cube)
+
+	assert.NoError(t, err)
+	assert.Equal(t, plyData, buf.String())
+}
+
+func TestWriteASCIIWithTextureData(t *testing.T) {
+	plyData := `ply
+format ascii 1.0
+comment Created with github.com/EliCDavis/polyform
+element vertex 3
+property float x
+property float y
+property float z
+element face 1
+property list uchar int vertex_indices
+property list uchar float texcoord
+end_header
+0.000000 0.000000 0.000000
+0.000000 1.000000 0.000000
+1.000000 1.000000 0.000000
+3 0 1 2 6 0.000000 0.000000 0.000000 1.000000 1.000000 1.000000
+`
+	tri := modeling.NewMesh(
+		[]int{0, 1, 2},
+		map[string][]vector3.Vector[float64]{
+			modeling.PositionAttribute: []vector3.Float64{
+				vector3.New(0., 0., 0.),
+				vector3.New(0., 1., 0.),
+				vector3.New(1., 1., 0.),
+			},
+		},
+		map[string][]vector2.Vector[float64]{
+			modeling.TexCoordAttribute: []vector2.Float64{
+				vector2.New(0., 0.),
+				vector2.New(0., 1.),
+				vector2.New(1., 1.),
+			},
+		},
+		nil,
+		nil,
+	)
+
+	buf := bytes.Buffer{}
+	err := ply.WriteASCII(&buf, tri)
 
 	assert.NoError(t, err)
 	assert.Equal(t, plyData, buf.String())

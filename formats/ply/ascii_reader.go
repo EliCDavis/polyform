@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/EliCDavis/polyform/modeling"
+	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
 )
 
@@ -169,60 +170,141 @@ func (ar *AsciiReader) readVertexData(element Element) (map[string][]vector3.Flo
 	return attributeData, nil
 }
 
-func (ar *AsciiReader) readFaceData(element Element) ([]int, error) {
-	if len(element.properties) != 1 {
-		return nil, fmt.Errorf("unimplemented case where face data contains %d properties", len(element.properties))
-	}
+type asciiListReader func(data []string, start int) (int, error)
 
-	name := element.properties[0].Name() // vertex_indices
-	if name != "vertex_index" && name != "vertex_indices" {
-		return nil, fmt.Errorf("unexpected face data property: %s", name)
-	}
+func (ar *AsciiReader) readFaceData(element Element) ([]int, []vector2.Float64, error) {
+	listReaders := make([]asciiListReader, len(element.properties))
 
 	triData := make([]int, 0)
+	uvCords := make([]vector2.Float64, 0)
+
+	for i, prop := range element.properties {
+		if prop.Name() == "vertex_index" || prop.Name() == "vertex_indices" {
+			listReaders[i] = func(data []string, start int) (int, error) {
+				listSize, err := strconv.Atoi(data[start])
+				if err != nil {
+					return -1, fmt.Errorf("unable to parse list size: %w", err)
+				}
+
+				if listSize < 3 || listSize > 4 {
+					return -1, fmt.Errorf("unimplemented tesselation scenario where face vertex data is of size: %d", listSize)
+				}
+				v1, err := strconv.Atoi(data[start+1])
+				if err != nil {
+					return -1, fmt.Errorf("unable to parse index: %w", err)
+				}
+
+				v2, err := strconv.Atoi(data[start+2])
+				if err != nil {
+					return -1, fmt.Errorf("unable to parse index: %w", err)
+				}
+
+				v3, err := strconv.Atoi(data[start+3])
+				if err != nil {
+					return -1, fmt.Errorf("unable to parse index: %w", err)
+				}
+				triData = append(triData, v1, v2, v3)
+				if listSize == 4 {
+					v4, err := strconv.Atoi(data[start+4])
+					if err != nil {
+						return -1, fmt.Errorf("unable to parse index: %w", err)
+					}
+					triData = append(triData, v1, v3, v4)
+				}
+				return listSize + 1, nil
+			}
+			continue
+		}
+
+		if prop.Name() == "texcoord" {
+			listReaders[i] = func(data []string, start int) (int, error) {
+				listSize, err := strconv.Atoi(data[start])
+				if err != nil {
+					return -1, fmt.Errorf("unable to parse list size: %w", err)
+				}
+
+				if listSize < 6 || listSize > 8 {
+					return -1, fmt.Errorf("unimplemented tesselation scenario where face texture data is of size: %d", listSize)
+				}
+
+				v1X, err := strconv.ParseFloat(data[start+1], 64)
+				if err != nil {
+					return -1, fmt.Errorf("unable to parse texcord: %w", err)
+				}
+				v1Y, err := strconv.ParseFloat(data[start+2], 64)
+				if err != nil {
+					return -1, fmt.Errorf("unable to parse texcord: %w", err)
+				}
+				uvCords = append(uvCords, vector2.New(v1X, v1Y))
+
+				v2X, err := strconv.ParseFloat(data[start+3], 64)
+				if err != nil {
+					return -1, fmt.Errorf("unable to parse texcord: %w", err)
+				}
+				v2Y, err := strconv.ParseFloat(data[start+4], 64)
+				if err != nil {
+					return -1, fmt.Errorf("unable to parse texcord: %w", err)
+				}
+				uvCords = append(uvCords, vector2.New(v2X, v2Y))
+
+				v3X, err := strconv.ParseFloat(data[start+5], 64)
+				if err != nil {
+					return -1, fmt.Errorf("unable to parse texcord: %w", err)
+				}
+				v3Y, err := strconv.ParseFloat(data[start+6], 64)
+				if err != nil {
+					return -1, fmt.Errorf("unable to parse texcord: %w", err)
+				}
+				uvCords = append(uvCords, vector2.New(v3X, v3Y))
+
+				if listSize == 8 {
+					v4X, err := strconv.ParseFloat(data[start+7], 64)
+					if err != nil {
+						return -1, fmt.Errorf("unable to parse texcord: %w", err)
+					}
+					v4Y, err := strconv.ParseFloat(data[start+8], 64)
+					if err != nil {
+						return -1, fmt.Errorf("unable to parse texcord: %w", err)
+					}
+					uvCords = append(uvCords, vector2.New(v1X, v1Y))
+					uvCords = append(uvCords, vector2.New(v3X, v3Y))
+					uvCords = append(uvCords, vector2.New(v4X, v4Y))
+				}
+				return listSize + 1, nil
+			}
+			continue
+		}
+
+		// Just eat the input if we don't know what it is.
+		listReaders[i] = func(data []string, start int) (int, error) {
+			listSize, err := strconv.Atoi(data[start])
+			if err != nil {
+				return -1, fmt.Errorf("unable to parse list size: %w", err)
+			}
+			return listSize + 1, nil
+		}
+	}
 
 	for i := 0; i < element.count; i++ {
 		ar.scanner.Scan()
 		contents := strings.Fields(ar.scanner.Text())
-		listSize, err := strconv.Atoi(contents[0])
-		if err != nil {
-			return nil, fmt.Errorf("unable to parse list size: %w", err)
-		}
-
-		if listSize < 3 || listSize > 4 {
-			return nil, fmt.Errorf("unimplemented tesselation scenario where face vertex data is of size: %d", listSize)
-		}
-		v1, err := strconv.Atoi(contents[1])
-		if err != nil {
-			return nil, fmt.Errorf("unable to parse index: %w", err)
-		}
-
-		v2, err := strconv.Atoi(contents[2])
-		if err != nil {
-			return nil, fmt.Errorf("unable to parse index: %w", err)
-		}
-
-		v3, err := strconv.Atoi(contents[3])
-		if err != nil {
-			return nil, fmt.Errorf("unable to parse index: %w", err)
-		}
-		triData = append(triData, v1, v2, v3)
-		if listSize == 4 {
-			v4, err := strconv.Atoi(contents[4])
+		offset := 0
+		for _, reader := range listReaders {
+			shift, err := reader(contents, offset)
 			if err != nil {
-				return nil, fmt.Errorf("unable to parse index: %w", err)
+				return nil, nil, err
 			}
-			triData = append(triData, v1, v3, v4)
+			offset += shift
 		}
-
 	}
 
-	return triData, nil
+	return triData, uvCords, nil
 }
 
 func (ar *AsciiReader) ReadMesh() (*modeling.Mesh, error) {
 	var vertexData map[string][]vector3.Float64
 	var triData []int
+	var uvData []vector2.Float64
 	for _, element := range ar.elements {
 		if element.name == "vertex" {
 			data, err := ar.readVertexData(element)
@@ -233,10 +315,11 @@ func (ar *AsciiReader) ReadMesh() (*modeling.Mesh, error) {
 		}
 
 		if element.name == "face" {
-			data, err := ar.readFaceData(element)
+			data, uvs, err := ar.readFaceData(element)
 			if err != nil {
 				return nil, err
 			}
+			uvData = uvs
 			triData = data
 		}
 	}
@@ -251,6 +334,11 @@ func (ar *AsciiReader) ReadMesh() (*modeling.Mesh, error) {
 			nil,
 			nil,
 		)
+		if len(uvData) == len(triData) {
+			finalMesh = finalMesh.
+				Unweld().
+				SetFloat2Attribute(modeling.TexCoordAttribute, uvData)
+		}
 	} else {
 		finalMesh = modeling.NewPointCloud(
 			vertexData,

@@ -322,6 +322,9 @@ func WriteASCII(out io.Writer, model modeling.Mesh) error {
 	if model.Topology() == modeling.TriangleTopology {
 		fmt.Fprintf(out, "element face %d\n", model.PrimitiveCount())
 		fmt.Fprintln(out, "property list uchar int vertex_indices")
+		if model.HasFloat2Attribute(modeling.TexCoordAttribute) {
+			fmt.Fprintln(out, "property list uchar float texcoord")
+		}
 	}
 
 	fmt.Fprintln(out, "end_header")
@@ -346,9 +349,28 @@ func WriteASCII(out io.Writer, model modeling.Mesh) error {
 	}
 
 	if model.Topology() == modeling.TriangleTopology {
-		for i := 0; i < model.PrimitiveCount(); i++ {
-			tri := model.Tri(i)
-			fmt.Fprintf(out, "3 %d %d %d\n", tri.P1(), tri.P2(), tri.P3())
+		if model.HasFloat2Attribute(modeling.TexCoordAttribute) {
+			for i := 0; i < model.PrimitiveCount(); i++ {
+				tri := model.Tri(i)
+				fmt.Fprintf(
+					out,
+					"3 %d %d %d 6 %f %f %f %f %f %f\n",
+					tri.P1(),
+					tri.P2(),
+					tri.P3(),
+					tri.P1Vec2Attr(modeling.TexCoordAttribute).X(),
+					tri.P1Vec2Attr(modeling.TexCoordAttribute).Y(),
+					tri.P2Vec2Attr(modeling.TexCoordAttribute).X(),
+					tri.P2Vec2Attr(modeling.TexCoordAttribute).Y(),
+					tri.P3Vec2Attr(modeling.TexCoordAttribute).X(),
+					tri.P3Vec2Attr(modeling.TexCoordAttribute).Y(),
+				)
+			}
+		} else {
+			for i := 0; i < model.PrimitiveCount(); i++ {
+				tri := model.Tri(i)
+				fmt.Fprintf(out, "3 %d %d %d\n", tri.P1(), tri.P2(), tri.P3())
+			}
 		}
 	}
 
