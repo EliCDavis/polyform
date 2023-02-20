@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"image/color"
 	"io"
 	"os"
 	"strconv"
@@ -113,12 +114,12 @@ var scalarPropTypeNameToScalarPropertyType = map[string]ScalarPropertyType{
 }
 
 func readPlyProperty(contents []string) (Property, error) {
-	if contents[1] == "list" {
+	if strings.ToLower(contents[1]) == "list" {
 		if len(contents) != 5 {
 			return nil, errors.New("ill-formatted list property")
 		}
 		return ListProperty{
-			name:      contents[4],
+			name:      strings.ToLower(contents[4]),
 			countType: ScalarPropertyType(contents[2]),
 			listType:  ScalarPropertyType(contents[3]),
 		}, nil
@@ -134,28 +135,30 @@ func readPlyProperty(contents []string) (Property, error) {
 	}, nil
 }
 
-func readPlyHeader(in io.Reader) (reader, error) {
+func readPlyHeader(in io.Reader) (reader, *modeling.Material, error) {
 	reader := bufio.NewReader(in)
 	magicNumber, err := readLine(reader)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if magicNumber != "ply" {
-		return nil, fmt.Errorf("unrecognized magic number: '%s' (expected 'ply')", magicNumber)
+		return nil, nil, fmt.Errorf("unrecognized magic number: '%s' (expected 'ply')", magicNumber)
 	}
 
 	format, err := readPlyHeaderFormat(reader)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	elements := make([]Element, 0)
 
+	var mats *modeling.Material
+
 	for {
 		line, err := readLine(reader)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		if strings.TrimSpace(line) == "" {
@@ -168,21 +171,31 @@ func readPlyHeader(in io.Reader) (reader, error) {
 
 		contents := strings.Fields(line)
 		if contents[0] == "comment" {
+
+			if strings.ToLower(contents[1]) == "texturefile" {
+				name := contents[2]
+				mats = &modeling.Material{
+					Name:            name,
+					DiffuseColor:    color.White,
+					ColorTextureURI: &name,
+				}
+			}
+
 			continue
 		}
 
 		if contents[0] == "element" {
 			if len(contents) != 3 {
-				return nil, errors.New("illegal element line in ply header")
+				return nil, nil, errors.New("illegal element line in ply header")
 			}
 
 			elementCount, err := strconv.Atoi(contents[2])
 			if err != nil {
-				return nil, fmt.Errorf("unable to parse element count: %w", err)
+				return nil, nil, fmt.Errorf("unable to parse element count: %w", err)
 			}
 
 			elements = append(elements, Element{
-				name:       contents[1],
+				name:       strings.ToLower(contents[1]),
 				count:      elementCount,
 				properties: make([]Property, 0),
 			})
@@ -191,7 +204,7 @@ func readPlyHeader(in io.Reader) (reader, error) {
 		if contents[0] == "property" {
 			property, err := readPlyProperty(contents)
 			if err != nil {
-				return nil, fmt.Errorf("unable to parse property: %w", err)
+				return nil, nil, fmt.Errorf("unable to parse property: %w", err)
 			}
 			elements[len(elements)-1].properties = append(elements[len(elements)-1].properties, property)
 		}
@@ -199,34 +212,44 @@ func readPlyHeader(in io.Reader) (reader, error) {
 
 	switch format {
 	case ASCII:
-		return &AsciiReader{elements: elements, scanner: bufio.NewScanner(reader)}, nil
+		return &AsciiReader{elements: elements, scanner: bufio.NewScanner(reader)}, mats, nil
 
 	case BinaryLittleEndian:
 		return &BinaryReader{
 			elements: elements,
 			order:    binary.LittleEndian,
 			reader:   reader,
-		}, nil
+		}, mats, nil
 
 	case BinaryBigEndian:
 		return &BinaryReader{
 			elements: elements,
 			order:    binary.BigEndian,
 			reader:   reader,
-		}, nil
+		}, mats, nil
 
 	default:
-		return nil, fmt.Errorf("unimplemented ply format: %d", format)
+		return nil, mats, fmt.Errorf("unimplemented ply format: %d", format)
 	}
 }
 
 func ReadMesh(in io.Reader) (*modeling.Mesh, error) {
-	reader, err := readPlyHeader(in)
+	reader, mat, err := readPlyHeader(in)
 	if err != nil {
 		return nil, err
 	}
 
-	return reader.ReadMesh()
+	mesh, err := reader.ReadMesh()
+	if err != nil {
+		return nil, err
+	}
+
+	if mat != nil {
+		matmesh := mesh.SetMaterial(*mat)
+		mesh = &matmesh
+	}
+
+	return mesh, nil
 }
 
 func Load(filepath string) (*modeling.Mesh, error) {
@@ -308,6 +331,14 @@ func buildVertexElements(attributes []string, size int) Element {
 func WriteASCII(out io.Writer, model modeling.Mesh) error {
 	fmt.Fprintln(out, "ply")
 	fmt.Fprintln(out, "format ascii 1.0")
+
+	if len(model.Materials()) > 0 && model.Materials()[0].Material != nil {
+		mat := model.Materials()[0].Material
+		if mat.ColorTextureURI != nil {
+			fmt.Fprintf(out, "comment TextureFile %s\n", *mat.ColorTextureURI)
+		}
+	}
+
 	fmt.Fprintln(out, "comment Created with github.com/EliCDavis/polyform")
 
 	attributes := model.Float3Attributes()

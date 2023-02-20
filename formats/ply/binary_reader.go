@@ -8,6 +8,7 @@ import (
 	"math"
 
 	"github.com/EliCDavis/polyform/modeling"
+	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
 )
 
@@ -161,88 +162,185 @@ func (le *BinaryReader) readVertexData(element Element) (map[string][]vector3.Fl
 	return attributeData, nil
 }
 
-func (le *BinaryReader) readFaceData(element Element) ([]int, error) {
-	if len(element.properties) != 1 {
-		return nil, fmt.Errorf("unimplemented case where face data contains %d properties", len(element.properties))
-	}
+func binReaderByteReader(r *bufio.Reader) (int, error) {
+	b, err := r.ReadByte()
+	return int(b), err
+}
 
-	name := element.properties[0].Name() // vertex_indices
-	if name != "vertex_index" && name != "vertex_indices" {
-		return nil, fmt.Errorf("unexpected face data property: %s", name)
+func binReaderIntReader(order binary.ByteOrder) func(r *bufio.Reader) (int32, error) {
+	return func(r *bufio.Reader) (int32, error) {
+		buf := make([]byte, 4)
+		_, err := io.ReadFull(r, buf)
+		return int32(order.Uint32(buf)), err
 	}
+}
 
-	listProp, ok := element.properties[0].(ListProperty)
-	if !ok {
-		return nil, fmt.Errorf("encountered non-list property type for face data: %s", element.properties[0].Name())
+func binReaderFloat32Reader(order binary.ByteOrder) func(r *bufio.Reader) (float32, error) {
+	return func(r *bufio.Reader) (float32, error) {
+		buf := make([]byte, 4)
+		_, err := io.ReadFull(r, buf)
+		return math.Float32frombits(order.Uint32(buf)), err
 	}
+}
 
-	var listCountReader func(*bufio.Reader) (int, error)
+func (le *BinaryReader) listCountReader(listProp ListProperty) (func(r *bufio.Reader) (int, error), error) {
 	switch listProp.countType {
 	case UChar:
-		listCountReader = func(r *bufio.Reader) (int, error) {
-			b, err := r.ReadByte()
-			return int(b), err
-		}
+		return binReaderByteReader, nil
 
 	default:
 		return nil, fmt.Errorf("unimplemented list count scalar-type: %s", listProp.countType)
 	}
+}
 
-	var listDataReader func(*bufio.Reader) (int32, error)
-	switch listProp.listType {
-	case Int:
-		listDataReader = func(r *bufio.Reader) (int32, error) {
-			buf := make([]byte, 4)
-			_, err := io.ReadFull(r, buf)
-			return int32(le.order.Uint32(buf)), err
-		}
+type binReaderListReader func(r *bufio.Reader) error
 
-	default:
-		return nil, fmt.Errorf("unimplemented list element scalar-type: %s", listProp.listType)
-	}
+func (le *BinaryReader) readFaceData(element Element) ([]int, []vector2.Float64, error) {
+	readers := make([]binReaderListReader, len(element.properties))
 
 	triData := make([]int, 0, element.count*3)
+	uvCords := make([]vector2.Float64, 0)
 
-	for i := 0; i < element.count; i++ {
-		listSize, err := listCountReader(le.reader)
+	for i, prop := range element.properties {
+		listProp, ok := prop.(ListProperty)
+		if !ok {
+			return nil, nil, fmt.Errorf("encountered non-list property type for face data: %s", prop.Name())
+		}
+
+		listCountReader, err := le.listCountReader(listProp)
 		if err != nil {
-			return nil, fmt.Errorf("unable to parse list size: %w", err)
+			return nil, nil, err
 		}
 
-		if listSize < 3 || listSize > 4 {
-			return nil, fmt.Errorf("unimplemented tesselation scenario where face vertex data is of size: %d", listSize)
-		}
+		if prop.Name() == "vertex_index" || prop.Name() == "vertex_indices" {
+			var listDataReader func(*bufio.Reader) (int32, error)
+			switch listProp.listType {
+			case Int:
+				listDataReader = binReaderIntReader(le.order)
 
-		v1, err := listDataReader(le.reader)
-		if err != nil {
-			return nil, fmt.Errorf("unable to parse index: %w", err)
-		}
-
-		v2, err := listDataReader(le.reader)
-		if err != nil {
-			return nil, fmt.Errorf("unable to parse index: %w", err)
-		}
-
-		v3, err := listDataReader(le.reader)
-		if err != nil {
-			return nil, fmt.Errorf("unable to parse index: %w", err)
-		}
-		triData = append(triData, int(v1), int(v2), int(v3))
-		if listSize == 4 {
-			v4, err := listDataReader(le.reader)
-			if err != nil {
-				return nil, fmt.Errorf("unable to parse index: %w", err)
+			default:
+				return nil, nil, fmt.Errorf("unimplemented list element scalar-type: %s", listProp.listType)
 			}
-			triData = append(triData, int(v1), int(v3), int(v4))
+
+			readers[i] = func(r *bufio.Reader) error {
+				listSize, err := listCountReader(le.reader)
+				if err != nil {
+					return fmt.Errorf("unable to parse list size: %w", err)
+				}
+
+				if listSize < 3 || listSize > 4 {
+					return fmt.Errorf("unimplemented tesselation scenario where face vertex data is of size: %d", listSize)
+				}
+
+				v1, err := listDataReader(le.reader)
+				if err != nil {
+					return fmt.Errorf("unable to parse index: %w", err)
+				}
+
+				v2, err := listDataReader(le.reader)
+				if err != nil {
+					return fmt.Errorf("unable to parse index: %w", err)
+				}
+
+				v3, err := listDataReader(le.reader)
+				if err != nil {
+					return fmt.Errorf("unable to parse index: %w", err)
+				}
+				triData = append(triData, int(v1), int(v2), int(v3))
+				if listSize == 4 {
+					v4, err := listDataReader(le.reader)
+					if err != nil {
+						return fmt.Errorf("unable to parse index: %w", err)
+					}
+					triData = append(triData, int(v1), int(v3), int(v4))
+				}
+				return nil
+			}
+			continue
+		}
+
+		if prop.Name() == "texcoord" {
+			var listDataReader func(*bufio.Reader) (float32, error)
+			switch listProp.listType {
+			case Float:
+				listDataReader = binReaderFloat32Reader(le.order)
+
+			default:
+				return nil, nil, fmt.Errorf("unimplemented list element scalar-type: %s", listProp.listType)
+			}
+
+			readers[i] = func(r *bufio.Reader) error {
+				listSize, err := listCountReader(le.reader)
+				if err != nil {
+					return fmt.Errorf("unable to parse list size: %w", err)
+				}
+
+				if listSize < 6 || listSize > 8 {
+					return fmt.Errorf("unimplemented tesselation scenario where face tex data is of size: %d", listSize)
+				}
+
+				v1X, err := listDataReader(le.reader)
+				if err != nil {
+					return fmt.Errorf("unable to parse texcord: %w", err)
+				}
+				v1Y, err := listDataReader(le.reader)
+				if err != nil {
+					return fmt.Errorf("unable to parse texcord: %w", err)
+				}
+				uvCords = append(uvCords, vector2.New(v1X, v1Y).ToFloat64())
+
+				v2X, err := listDataReader(le.reader)
+				if err != nil {
+					return fmt.Errorf("unable to parse texcord: %w", err)
+				}
+				v2Y, err := listDataReader(le.reader)
+				if err != nil {
+					return fmt.Errorf("unable to parse texcord: %w", err)
+				}
+				uvCords = append(uvCords, vector2.New(v2X, v2Y).ToFloat64())
+
+				v3X, err := listDataReader(le.reader)
+				if err != nil {
+					return fmt.Errorf("unable to parse texcord: %w", err)
+				}
+				v3Y, err := listDataReader(le.reader)
+				if err != nil {
+					return fmt.Errorf("unable to parse texcord: %w", err)
+				}
+				uvCords = append(uvCords, vector2.New(v3X, v3Y).ToFloat64())
+
+				if listSize == 4 {
+					v4X, err := listDataReader(le.reader)
+					if err != nil {
+						return fmt.Errorf("unable to parse texcord: %w", err)
+					}
+					v4Y, err := listDataReader(le.reader)
+					if err != nil {
+						return fmt.Errorf("unable to parse texcord: %w", err)
+					}
+					uvCords = append(uvCords, vector2.New(v1X, v1Y).ToFloat64())
+					uvCords = append(uvCords, vector2.New(v3X, v3Y).ToFloat64())
+					uvCords = append(uvCords, vector2.New(v4X, v4Y).ToFloat64())
+				}
+				return nil
+			}
+			continue
 		}
 	}
 
-	return triData, nil
+	for i := 0; i < element.count; i++ {
+		for _, reader := range readers {
+			reader(le.reader)
+		}
+	}
+
+	return triData, uvCords, nil
 }
 
 func (le *BinaryReader) ReadMesh() (*modeling.Mesh, error) {
 	var vertexData map[string][]vector3.Float64
 	var triData []int
+	var uvData []vector2.Float64
 	for _, element := range le.elements {
 		if element.name == "vertex" {
 			data, err := le.readVertexData(element)
@@ -253,10 +351,11 @@ func (le *BinaryReader) ReadMesh() (*modeling.Mesh, error) {
 		}
 
 		if element.name == "face" {
-			data, err := le.readFaceData(element)
+			data, uvs, err := le.readFaceData(element)
 			if err != nil {
 				return nil, err
 			}
+			uvData = uvs
 			triData = data
 		}
 	}
@@ -271,6 +370,11 @@ func (le *BinaryReader) ReadMesh() (*modeling.Mesh, error) {
 			nil,
 			nil,
 		)
+		if len(uvData) == len(triData) {
+			finalMesh = finalMesh.
+				Unweld().
+				SetFloat2Attribute(modeling.TexCoordAttribute, uvData)
+		}
 	} else {
 		finalMesh = modeling.NewPointCloud(
 			vertexData,

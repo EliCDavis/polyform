@@ -102,6 +102,7 @@ end_header
 func TestToMeshASCIIWithTextureCords(t *testing.T) {
 	plyData := `ply
 format ascii 1.0
+comment TextureFile tri.png
 comment this file is a tesselated cube
 element vertex 8
 property float32 x
@@ -139,6 +140,11 @@ end_header
 	assert.Equal(t, 12, ply.PrimitiveCount())
 	assert.Equal(t, 36, ply.AttributeLength())
 	assert.True(t, ply.HasFloat2Attribute(modeling.TexCoordAttribute))
+	if assert.Len(t, ply.Materials(), 1) && assert.NotNil(t, ply.Materials()[0].Material) {
+		if assert.NotNil(t, ply.Materials()[0].Material.ColorTextureURI) {
+			assert.Equal(t, "tri.png", *ply.Materials()[0].Material.ColorTextureURI)
+		}
+	}
 }
 
 func TestToMeshLittleEndian(t *testing.T) {
@@ -153,6 +159,21 @@ func TestToMeshLittleEndian(t *testing.T) {
 	assert.NotNil(t, bunny)
 	assert.Equal(t, 69451, bunny.PrimitiveCount())
 	assert.Equal(t, 35947, bunny.AttributeLength())
+}
+
+func TestToMeshLittleEndianTextured(t *testing.T) {
+	data, err := os.ReadFile("../../test-models/covid.ply")
+	if !assert.NoError(t, err) {
+		return
+	}
+
+	covid, err := ply.ReadMesh(bytes.NewBuffer(data))
+
+	assert.NoError(t, err)
+	assert.NotNil(t, covid)
+	assert.Equal(t, 67960, covid.PrimitiveCount())
+	assert.Equal(t, 203880, covid.AttributeLength())
+	assert.True(t, covid.HasFloat2Attribute(modeling.TexCoordAttribute))
 }
 
 func TestWriteASCII(t *testing.T) {
@@ -202,6 +223,7 @@ end_header
 func TestWriteASCIIWithTextureData(t *testing.T) {
 	plyData := `ply
 format ascii 1.0
+comment TextureFile tri.png
 comment Created with github.com/EliCDavis/polyform
 element vertex 3
 property float x
@@ -216,6 +238,8 @@ end_header
 1.000000 1.000000 0.000000
 3 0 1 2 6 0.000000 0.000000 0.000000 1.000000 1.000000 1.000000
 `
+
+	imgName := "tri.png"
 	tri := modeling.NewMesh(
 		[]int{0, 1, 2},
 		map[string][]vector3.Vector[float64]{
@@ -233,7 +257,15 @@ end_header
 			},
 		},
 		nil,
-		nil,
+		[]modeling.MeshMaterial{
+			{
+				PrimitiveCount: 1,
+				Material: &modeling.Material{
+					Name:            "example",
+					ColorTextureURI: &imgName,
+				},
+			},
+		},
 	)
 
 	buf := bytes.Buffer{}
