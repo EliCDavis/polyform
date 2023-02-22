@@ -284,15 +284,24 @@ func ReadMesh(in io.Reader) (*modeling.Mesh, []string, error) {
 		}
 	}
 
+	v3Data := map[string][]vector3.Float64{
+		modeling.PositionAttribute: verts,
+	}
+
+	if len(normals) > 0 {
+		v3Data[modeling.NormalAttribute] = normals
+	}
+
+	v2Data := make(map[string][]vector2.Float64)
+
+	if len(uvs) > 0 {
+		v2Data[modeling.TexCoordAttribute] = uvs
+	}
+
 	mesh := modeling.NewMesh(
 		tris,
-		map[string][]vector3.Float64{
-			modeling.PositionAttribute: verts,
-			modeling.NormalAttribute:   normals,
-		},
-		map[string][]vector2.Float64{
-			modeling.TexCoordAttribute: uvs,
-		},
+		v3Data,
+		v2Data,
 		nil,
 		meshMaterials,
 	)

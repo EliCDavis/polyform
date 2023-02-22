@@ -1062,7 +1062,7 @@ func (m Mesh) SetFloat3Attribute(atr string, data []vector3.Float64) Mesh {
 	for key, val := range m.v3Data {
 		finalV3Data[key] = val
 	}
-	finalV3Data[atr] = data
+
 	return NewMesh(
 		m.indices,
 		finalV3Data,

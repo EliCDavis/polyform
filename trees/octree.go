@@ -1,6 +1,7 @@
 package trees
 
 import (
+	"container/heap"
 	"math"
 
 	"github.com/EliCDavis/polyform/math/geometry"
@@ -82,68 +83,78 @@ func (ot OctTree) ElementsContainingPoint(v vector3.Float64) []int {
 	return intersections
 }
 
+type octDistItem struct {
+	dist    float64
+	cell    *OctTree
+	element *elementReference
+	point   vector3.Float64
+}
+
+type octItemPriorityQueue []octDistItem
+
+func (pq octItemPriorityQueue) Len() int { return len(pq) }
+
+func (pq octItemPriorityQueue) Less(i, j int) bool {
+	return pq[i].dist < pq[j].dist
+}
+
+func (pq octItemPriorityQueue) Swap(i, j int) {
+	pq[i], pq[j] = pq[j], pq[i]
+}
+
+func (pq *octItemPriorityQueue) Push(x any) {
+	item := x.(octDistItem)
+	*pq = append(*pq, item)
+}
+
+func (pq *octItemPriorityQueue) Pop() any {
+	old := *pq
+	n := len(old)
+	item := old[n-1]
+	*pq = old[0 : n-1]
+	return item
+}
+
 func (ot OctTree) ClosestPoint(v vector3.Float64) (int, vector3.Float64) {
-	closestPrimDist := math.MaxFloat64
-	closestPrimPoint := vector3.Zero[float64]()
-	closestPrimPointIndex := -1
-
-	for i := 0; i < len(ot.elements); i++ {
-		point := ot.elements[i].primitive.ClosestPoint(v)
-		dist := point.DistanceSquared(v)
-		if dist < closestPrimDist {
-			closestPrimDist = dist
-			closestPrimPoint = point
-			closestPrimPointIndex = i
-		}
+	pq := make(octItemPriorityQueue, 1)
+	pq[0] = octDistItem{
+		dist: ot.bounds.ClosestPoint(v).DistanceSquared(v),
+		cell: &ot,
 	}
 
-	var closestNonContainingCell *OctTree = nil
-	closestNonContainingCellDist := math.MaxFloat64
+	heap.Init(&pq)
 
-	closestContainingCellIndex := -1
-	closestContainingCellDist := math.MaxFloat64
-	closestContainingCellPoint := vector3.Zero[float64]()
+	for pq.Len() > 0 {
+		item := heap.Pop(&pq).(octDistItem)
 
-	for i := 0; i < len(ot.children); i++ {
-		if ot.children[i] == nil {
-			continue
+		if item.element != nil {
+			return item.element.originalIndex, item.point
 		}
 
-		if ot.children[i].bounds.Contains(v) {
-			elementIndex, subCellPoint := ot.children[i].ClosestPoint(v)
-			subCellDist := v.DistanceSquared(subCellPoint)
-			if subCellDist < closestContainingCellDist {
-				closestContainingCellDist = subCellDist
-				closestContainingCellIndex = elementIndex
-				closestContainingCellPoint = subCellPoint
+		if item.cell != nil {
+			for _, child := range item.cell.children {
+				if child == nil {
+					continue
+				}
+				heap.Push(&pq, octDistItem{
+					dist: child.bounds.ClosestPoint(v).DistanceSquared(v),
+					cell: child,
+				})
 			}
-		} else {
-			point := ot.children[i].bounds.ClosestPoint(v)
-			dist := point.DistanceSquared(v)
-			if dist <= closestNonContainingCellDist {
-				closestNonContainingCellDist = dist
-				closestNonContainingCell = ot.children[i]
+			for _, element := range item.cell.elements {
+				point := element.primitive.ClosestPoint(v)
+
+				heap.Push(&pq, octDistItem{
+					dist:    point.DistanceSquared(v),
+					element: &element,
+					point:   point,
+				})
 			}
 		}
+
 	}
 
-	minNonContainingPoint := vector3.Zero[float64]()
-	minNonContainingDist := math.MaxFloat64
-	minNonContainingElement := -1
-	if closestNonContainingCell != nil && closestNonContainingCellDist < closestPrimDist {
-		minNonContainingElement, minNonContainingPoint = closestNonContainingCell.ClosestPoint(v)
-		minNonContainingDist = v.DistanceSquared(minNonContainingPoint)
-	}
-
-	if closestPrimPointIndex != -1 && closestPrimDist <= minNonContainingDist && closestPrimDist <= closestContainingCellDist {
-		return closestPrimPointIndex, closestPrimPoint
-	}
-
-	if minNonContainingElement != -1 && minNonContainingDist <= closestPrimDist && minNonContainingDist <= closestContainingCellDist {
-		return minNonContainingElement, minNonContainingPoint
-	}
-
-	return closestContainingCellIndex, closestContainingCellPoint
+	return -1, vector3.Zero[float64]()
 }
 
 func octreeIndex(center, item vector3.Float64) int {

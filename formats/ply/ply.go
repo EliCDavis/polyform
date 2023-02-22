@@ -120,8 +120,8 @@ func readPlyProperty(contents []string) (Property, error) {
 		}
 		return ListProperty{
 			name:      strings.ToLower(contents[4]),
-			countType: ScalarPropertyType(contents[2]),
-			listType:  ScalarPropertyType(contents[3]),
+			countType: scalarPropTypeNameToScalarPropertyType[strings.ToLower(contents[2])],
+			listType:  scalarPropTypeNameToScalarPropertyType[strings.ToLower(contents[3])],
 		}, nil
 	}
 
@@ -171,7 +171,6 @@ func readPlyHeader(in io.Reader) (reader, *modeling.Material, error) {
 
 		contents := strings.Fields(line)
 		if contents[0] == "comment" {
-
 			if strings.ToLower(contents[1]) == "texturefile" {
 				name := contents[2]
 				mats = &modeling.Material{
@@ -180,7 +179,6 @@ func readPlyHeader(in io.Reader) (reader, *modeling.Material, error) {
 					ColorTextureURI: &name,
 				}
 			}
-
 			continue
 		}
 

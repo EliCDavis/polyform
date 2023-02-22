@@ -620,7 +620,11 @@ func (d MarchingCanvas) MarchParallel(cutoff float64) modeling.Mesh {
 func (d MarchingCanvas) MarchOnAttributeParallel(attribute string, cutoff float64) modeling.Mesh {
 	for sectionAttribute, section := range d.sections {
 		if section.dataType == Float1 && sectionAttribute == attribute {
-			return d.marchFloat1Parallel(cutoff, section).
+			marched := d.marchFloat1Parallel(cutoff, section)
+			if marched.PrimitiveCount() == 0 {
+				return marched
+			}
+			return marched.
 				Scale(vector3.Zero[float64](), vector3.One[float64]().DivByConstant(d.cubesPerUnit)).
 				WeldByFloat3Attribute(attribute, 3)
 		}

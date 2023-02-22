@@ -80,6 +80,19 @@ func NewColorStack(entries ...ColorStackEntry) ColorStack {
 	}
 }
 
+func (cs ColorStack) Image(width, height int) *image.RGBA {
+	tex := image.NewRGBA(image.Rect(0, 0, width, height))
+
+	for x := 0; x < width; x++ {
+		val := cs.LinearSample(float64(x) / float64(width))
+		for y := 0; y < height; y++ {
+			tex.Set(x, y, val)
+		}
+	}
+
+	return tex
+}
+
 func (cs ColorStack) Debug(imgPath string, width, height int) error {
 	err := os.MkdirAll(path.Dir(imgPath), os.ModeDir)
 	if err != nil {
@@ -92,16 +105,7 @@ func (cs ColorStack) Debug(imgPath string, width, height int) error {
 	}
 	defer texOut.Close()
 
-	tex := image.NewRGBA(image.Rect(0, 0, width, height))
-
-	for x := 0; x < width; x++ {
-		val := cs.LinearSample(float64(x) / float64(width))
-		for y := 0; y < height; y++ {
-			tex.Set(x, y, val)
-		}
-	}
-
-	return png.Encode(texOut, tex)
+	return png.Encode(texOut, cs.Image(width, height))
 }
 
 func (cs ColorStack) LinearSample(v float64) color.Color {

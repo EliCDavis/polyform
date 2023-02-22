@@ -109,6 +109,21 @@ func makeRenderFunction(name string, maxRayBounce, samplesPerPixel, imageWidth i
 				Aliases: []string{"p"},
 				Value:   true,
 			},
+			&cli.IntFlag{
+				Name:  "max-ray-bounce",
+				Usage: "Max number of times a single ray can bounce before it's terminated",
+				Value: maxRayBounce,
+			},
+			&cli.IntFlag{
+				Name:  "samples-per-pixel",
+				Usage: "Number of rays to send per pixel to average for a final color value",
+				Value: samplesPerPixel,
+			},
+			&cli.IntFlag{
+				Name:  "image-size",
+				Usage: "Number of pixels for image width/height",
+				Value: imageWidth,
+			},
 		},
 		Action: func(ctx *cli.Context) error {
 			modelPath := ctx.String("in")
@@ -154,7 +169,15 @@ func makeRenderFunction(name string, maxRayBounce, samplesPerPixel, imageWidth i
 				bar := progressbar.Default(100, "Rendering Image")
 				completion := make(chan float64, 1)
 				go func() {
-					err = rendering.RenderToFile(maxRayBounce, samplesPerPixel, imageWidth, scene, camera, ctx.String("out"), completion)
+					err = rendering.RenderToFile(
+						ctx.Int("max-ray-bounce"),
+						ctx.Int("samples-per-pixel"),
+						ctx.Int("image-size"),
+						scene,
+						camera,
+						ctx.String("out"),
+						completion,
+					)
 				}()
 
 				lastUpdate := time.Now()
@@ -170,7 +193,15 @@ func makeRenderFunction(name string, maxRayBounce, samplesPerPixel, imageWidth i
 				return err
 			}
 
-			return rendering.RenderToFile(maxRayBounce, samplesPerPixel, imageWidth, scene, camera, ctx.String("out"), nil)
+			return rendering.RenderToFile(
+				ctx.Int("max-ray-bounce"),
+				ctx.Int("samples-per-pixel"),
+				ctx.Int("image-size"),
+				scene,
+				camera,
+				ctx.String("out"),
+				nil,
+			)
 		},
 	}
 }

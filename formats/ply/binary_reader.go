@@ -215,7 +215,7 @@ func (le *BinaryReader) readFaceData(element Element) ([]int, []vector2.Float64,
 		if prop.Name() == "vertex_index" || prop.Name() == "vertex_indices" {
 			var listDataReader func(*bufio.Reader) (int32, error)
 			switch listProp.listType {
-			case Int:
+			case Int, UInt:
 				listDataReader = binReaderIntReader(le.order)
 
 			default:
