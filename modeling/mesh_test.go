@@ -214,7 +214,7 @@ func TestModifyFloat3AttributeParallel(t *testing.T) {
 	values := make([]vector3.Float64, count)
 	attribute := "random-atr"
 	for i := 0; i < count; i++ {
-		values[i] = vector3.New[float64](float64(i), float64(i), float64(i))
+		values[i] = vector3.New(float64(i), float64(i), float64(i))
 	}
 	mesh := modeling.NewPointCloud(
 		map[string][]vector3.Float64{
@@ -230,7 +230,7 @@ func TestModifyFloat3AttributeParallel(t *testing.T) {
 	// ACT ====================================================================
 	mesh.
 		ModifyFloat3AttributeParallel(attribute, func(i int, v vector3.Float64) vector3.Float64 {
-			return v.Add(vector3.New[float64](float64(i), float64(i), float64(i)))
+			return v.Add(vector3.New(float64(i), float64(i), float64(i)))
 		}).
 		ScanFloat3AttributeParallel(attribute, func(i int, v vector3.Float64) {
 			readValues[i] = v
@@ -240,7 +240,7 @@ func TestModifyFloat3AttributeParallel(t *testing.T) {
 	for i := 0; i < count; i++ {
 		assert.Equal(
 			t,
-			values[i].Add(vector3.New[float64](float64(i), float64(i), float64(i))),
+			values[i].Add(vector3.New(float64(i), float64(i), float64(i))),
 			readValues[i],
 		)
 	}
