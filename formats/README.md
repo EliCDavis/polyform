@@ -10,5 +10,5 @@ I'm not doing FBX. FBX is cursed and Autodesk can burn in hell.
 | PTX    | ❌      | ❌         |
 | PLY    | ✔️      | ASCII Only |
 | OBJ    | ✔️      | ✔️         |
-| GLTF   | ❌      | ❌         |
+| GLTF   | ❌      | ✔️         |
 | STL    | ❌      | ❌         |

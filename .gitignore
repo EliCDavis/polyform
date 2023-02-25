@@ -5,3 +5,4 @@ tmp/
 *.exe
 *.prof
 *.svg
+.vscode
