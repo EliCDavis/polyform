@@ -9,6 +9,7 @@ import (
 	"math"
 
 	"github.com/EliCDavis/polyform/modeling"
+	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
 )
 
@@ -49,7 +50,8 @@ func structureFromMesh(mesh modeling.Mesh) Gltf {
 	bin := &bytes.Buffer{}
 
 	bytesWritten := 0
-	for i, val := range mesh.Float3Attributes() {
+	attributesWritten := 0
+	for _, val := range mesh.Float3Attributes() {
 
 		min := vector3.New(math.MaxFloat64, math.MaxFloat64, math.MaxFloat64)
 		max := vector3.New(-math.MaxFloat64, -math.MaxFloat64, -math.MaxFloat64)
@@ -62,7 +64,7 @@ func structureFromMesh(mesh modeling.Mesh) Gltf {
 			binary.Write(bin, binary.LittleEndian, float32(v.Z()))
 		})
 
-		primitiveAttributes[polyformToGLTFAttribute(val)] = i
+		primitiveAttributes[polyformToGLTFAttribute(val)] = attributesWritten
 		accessors = append(accessors, Accessor{
 			BufferView:    ptrI(len(bufferViews)),
 			ComponentType: AccessorComponentType_FLOAT,
@@ -80,7 +82,44 @@ func structureFromMesh(mesh modeling.Mesh) Gltf {
 			ByteLength: datasize,
 			Target:     ARRAY_BUFFER,
 		})
+
 		bytesWritten += datasize
+		attributesWritten++
+	}
+
+	for _, val := range mesh.Float2Attributes() {
+
+		min := vector2.New(math.MaxFloat64, math.MaxFloat64)
+		max := vector2.New(-math.MaxFloat64, -math.MaxFloat64)
+
+		mesh.ScanFloat2Attribute(val, func(i int, v vector2.Float64) {
+			min = vector2.Min(min, v)
+			max = vector2.Max(max, v)
+			binary.Write(bin, binary.LittleEndian, float32(v.X()))
+			binary.Write(bin, binary.LittleEndian, float32(v.Y()))
+		})
+
+		primitiveAttributes[polyformToGLTFAttribute(val)] = attributesWritten
+		accessors = append(accessors, Accessor{
+			BufferView:    ptrI(len(bufferViews)),
+			ComponentType: AccessorComponentType_FLOAT,
+			Type:          AccessorType_VEC2,
+			Count:         mesh.AttributeLength(),
+			Min:           []float64{min.X(), min.Y()},
+			Max:           []float64{max.X(), max.Y()},
+		})
+
+		datasize := mesh.AttributeLength() * 2 * 4
+
+		bufferViews = append(bufferViews, BufferView{
+			Buffer:     0,
+			ByteOffset: bytesWritten,
+			ByteLength: datasize,
+			Target:     ARRAY_BUFFER,
+		})
+
+		bytesWritten += datasize
+		attributesWritten++
 	}
 
 	indiceSize := mesh.PrimitiveCount() * 3 * 4
@@ -161,7 +200,8 @@ func structureFromMesh(mesh modeling.Mesh) Gltf {
 }
 
 func WriteText(mesh modeling.Mesh, out io.Writer) error {
-	bolB, err := json.MarshalIndent(structureFromMesh(mesh), "", "    ")
+	outline := structureFromMesh(mesh)
+	bolB, err := json.MarshalIndent(outline, "", "    ")
 	if err != nil {
 		return err
 	}

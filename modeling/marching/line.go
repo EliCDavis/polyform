@@ -18,7 +18,7 @@ type thickLinePrimitive struct {
 
 func (l thickLinePrimitive) BoundingBox() geometry.AABB {
 	aabb := geometry.NewAABBFromPoints(l.start, l.end)
-	aabb.Expand(l.radius)
+	aabb.Expand(l.radius * math.Sqrt2 * 2)
 	return aabb
 }
 
@@ -28,9 +28,8 @@ func (l thickLinePrimitive) ClosestPoint(point vector3.Float64) vector3.Float64 
 }
 
 func Line(start, end vector3.Float64, radius, strength float64) Field {
-	boundsSize := vector3.One[float64]().Scale(radius + strength)
-	bounds := geometry.NewAABB(start, boundsSize)
-	bounds.EncapsulateBounds(geometry.NewAABB(end, boundsSize))
+	bounds := geometry.NewAABBFromPoints(start, end)
+	bounds.Expand(radius * 2)
 	return Field{
 		Domain: bounds,
 		Float1Functions: map[string]sample.Vec3ToFloat{
@@ -55,15 +54,11 @@ func MultiSegmentLine(linePoints []vector3.Float64, radius, strength float64) Fi
 
 	octree := trees.NewOctree(thickLines)
 	bounds := geometry.NewAABBFromPoints(linePoints...)
-	bounds.Expand(radius)
+	bounds.Expand(radius * math.Sqrt2 * 2)
 	return Field{
 		Domain: bounds,
 		Float1Functions: map[string]sample.Vec3ToFloat{
 			modeling.PositionAttribute: func(v vector3.Float64) float64 {
-				if !bounds.Contains(v) {
-					return 0
-				}
-
 				lineIndexes := octree.ElementsContainingPoint(v)
 
 				min := math.MaxFloat64

@@ -1225,7 +1225,12 @@ func (m Mesh) CalculateSmoothNormals() Mesh {
 		normals[p3] = normals[p3].Add(normalized)
 	}
 
+	zero := vector3.Zero[float64]()
 	for i, n := range normals {
+		if n == zero {
+			continue
+		}
+
 		normals[i] = n.Normalized()
 	}
 

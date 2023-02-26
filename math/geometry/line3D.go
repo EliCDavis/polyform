@@ -85,12 +85,12 @@ func (l Line3D) ClosestPointOnLine(p vector3.Float64) vector3.Float64 {
 	// We find projection of point p onto the line.
 	// It falls where t = [(p-v) . (w-v)] / |w-v|^2
 	// We clamp t from [0,1] to handle points outside the segment vw.
-	t := math.Max(0, math.Min(1, p.Sub(l.p1).Dot(l.p2.Sub(l.p1))/p1p2Dist))
-	if t == 1 {
+	t := p.Sub(l.p1).Dot(l.p2.Sub(l.p1)) / p1p2Dist
+	if t >= 1 {
 		return l.p2
 	}
 
-	if t == 0 {
+	if t <= 0 {
 		return l.p1
 	}
 

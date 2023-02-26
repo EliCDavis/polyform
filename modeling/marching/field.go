@@ -13,6 +13,94 @@ import (
 	"github.com/EliCDavis/vector/vector3"
 )
 
+func clamp01(t float64) float64 {
+	if t < 0 {
+		return 0
+	} else if t > 1 {
+		return 1
+	}
+
+	return t
+}
+
+const BLEND_SIZE = 0.05
+
+func getBlend(d1, d2 float64) float64 {
+	diff := -math.Abs(d1 - d2)
+	blend := diff / BLEND_SIZE
+	blend = clamp01((blend + 1.0) * 0.5)
+	return blend
+}
+
+func averageBasedOnDistFunc(indicators []sample.Vec3ToFloat, valuesToReturn []sample.Vec3ToVec3) sample.Vec3ToVec3 {
+	if len(indicators) == 0 {
+		panic("no functions to use")
+	}
+
+	if len(indicators) != len(valuesToReturn) {
+		panic(fmt.Errorf("indicator count must match values count: %d != %d", len(indicators), len(valuesToReturn)))
+	}
+
+	if len(indicators) == 1 {
+		return valuesToReturn[0]
+	}
+
+	return func(v vector3.Float64) vector3.Float64 {
+		// distances := make([]float64, len(indicators))
+		// maxDist := -math.MaxFloat64
+		// minDist := math.MaxFloat64
+		// for i := 0; i < len(indicators); i++ {
+		// 	distances[i] = indicators[i](v)
+		// 	maxDist = math.Max(maxDist, distances[i])
+		// 	minDist = math.Min(minDist, distances[i])
+		// }
+
+		// indRange := maxDist - minDist
+		// totalVal := 0.
+		// for i, d := range distances {
+		// 	t := (indRange - (d - minDist)) / indRange
+		// 	distances[i] = t
+		// 	// distances[i] = (1.0 - t) * 10
+		// 	// distances[i] = ((1. / ((t * t) + 0.5)) * 2) - 1.
+		// 	totalVal += distances[i]
+		// }
+
+		// totalColor := vector3.Zero[float64]()
+		// for i, f := range valuesToReturn {
+		// 	col := f(v)
+		// 	scaled := col.Scale(distances[i])
+		// 	totalColor = totalColor.Add(scaled)
+		// }
+
+		distances := make([]float64, len(indicators))
+		minDist := math.MaxFloat64
+		minIndex := -1
+		for i := 0; i < len(indicators); i++ {
+			distances[i] = indicators[i](v)
+			minDist = math.Min(minDist, distances[i])
+			if distances[i] == minDist {
+				minIndex = i
+			}
+		}
+
+		minDist2 := math.MaxFloat64
+		minIndex2 := -1
+		for i, d := range distances {
+			if i == minIndex {
+				continue
+			}
+			minDist2 = math.Min(minDist2, d)
+			if d == minDist2 {
+				minIndex2 = i
+			}
+		}
+
+		blendT := getBlend(minDist, minDist2)
+
+		return valuesToReturn[minIndex](v).Scale(1 - blendT).Add(valuesToReturn[minIndex2](v).Scale(blendT))
+	}
+}
+
 func useValueOfSmallestFunc(indicators []sample.Vec3ToFloat, valuesToReturn []sample.Vec3ToVec3) sample.Vec3ToVec3 {
 	if len(indicators) == 0 {
 		panic("no functions to use")
@@ -91,7 +179,7 @@ func CombineFields(fields ...Field) Field {
 
 	float3Final := make(map[string]sample.Vec3ToVec3)
 	for attribute, functions := range float3Aggregate {
-		float3Final[attribute] = useValueOfSmallestFunc(float1Aggregate[modeling.PositionAttribute], functions)
+		float3Final[attribute] = averageBasedOnDistFunc(float1Aggregate[modeling.PositionAttribute], functions)
 	}
 
 	return Field{

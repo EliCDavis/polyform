@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/EliCDavis/polyform/formats/ply"
+	"github.com/EliCDavis/polyform/formats/gltf"
 	"github.com/EliCDavis/polyform/math/sample"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/marching"
@@ -31,9 +31,16 @@ func main() {
 		1,
 	).WithColor(gopherBlue)
 
+	// gopherBody = marching.Line(
+	// 	vector3.New(0., 0., 0.),
+	// 	vector3.New(0., 1., 0.),
+	// 	.8,
+	// 	1,
+	// ).WithColor(gopherBlue)
+
 	eyeWidth := 0.4
 	gopherEye := marching.Sphere(vector3.New(eyeWidth, 1, 0.6), 0.4, 1).WithColor(white)
-	gopherPupil := marching.Sphere(vector3.New(eyeWidth+.1, 1, .8), 0.2, 2).WithColor(black)
+	gopherPupil := marching.Sphere(vector3.New(eyeWidth+.1, 1, .85), 0.2, 2).WithColor(black)
 
 	gopherTopLeg := marching.Line(
 		vector3.New(0., 0.3, 0.),
@@ -119,9 +126,9 @@ func main() {
 			DiffuseColor: color.RGBA{R: 90, G: 218, B: 255, A: 255},
 		})
 
-	log.Printf("time to compute: %s", time.Now().Sub(start))
+	log.Printf("time to compute: %s", time.Since(start))
 
-	err := ply.Save("tmp/gopher/gopher.ply", mesh)
+	err := gltf.SaveText("tmp/gopher/gopher.gltf", mesh)
 	if err != nil {
 		panic(err)
 	}

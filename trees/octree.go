@@ -35,9 +35,7 @@ func (ot *OctTree) ElementsIntersectingRay(ray geometry.Ray, min, max float64) [
 	}
 
 	for i := 0; i < len(ot.children); i++ {
-		if ot.children[i] != nil {
-			ot.intersectionsBuffer = append(ot.intersectionsBuffer, ot.children[i].ElementsIntersectingRay(ray, min, max)...)
-		}
+		ot.intersectionsBuffer = append(ot.intersectionsBuffer, ot.children[i].ElementsIntersectingRay(ray, min, max)...)
 	}
 
 	return ot.intersectionsBuffer
@@ -60,9 +58,7 @@ func (ot OctTree) TraverseIntersectingRay(ray geometry.Ray, min, max float64, it
 	}
 
 	for i := 0; i < len(ot.children); i++ {
-		if ot.children[i] != nil {
-			ot.children[i].TraverseIntersectingRay(ray, tMin, tMax, iterator)
-		}
+		ot.children[i].TraverseIntersectingRay(ray, tMin, tMax, iterator)
 	}
 }
 
@@ -75,9 +71,10 @@ func (ot OctTree) ElementsContainingPoint(v vector3.Float64) []int {
 		}
 	}
 
-	subTreeIndex := octreeIndex(ot.bounds.Center(), v)
-	for ot.children[subTreeIndex] != nil {
-		return append(intersections, ot.children[subTreeIndex].ElementsContainingPoint(v)...)
+	for _, child := range ot.children {
+		if child.bounds.Contains(v) {
+			intersections = append(intersections, child.ElementsContainingPoint(v)...)
+		}
 	}
 
 	return intersections
@@ -245,7 +242,7 @@ func newOctree(elements []elementReference, maxDepth int) *OctTree {
 		// }
 	}
 
-	children := []*OctTree{
+	potentialChildren := []*OctTree{
 		newOctree(childrenNodes[0], maxDepth-1),
 		newOctree(childrenNodes[1], maxDepth-1),
 		newOctree(childrenNodes[2], maxDepth-1),
@@ -256,20 +253,18 @@ func newOctree(elements []elementReference, maxDepth int) *OctTree {
 		newOctree(childrenNodes[7], maxDepth-1),
 	}
 
-	if len(leftOver) == 0 {
-		var goodChild *OctTree = nil
-		goodChildCount := 0
-		for _, child := range children {
-			if child != nil {
-				goodChild = child
-				goodChildCount++
-			}
+	children := make([]*OctTree, 0)
+	for _, child := range potentialChildren {
+		if child == nil {
+			continue
 		}
+		children = append(children, child)
+	}
+
+	if len(leftOver) == 0 && len(children) == 1 {
 		// Prevents us from creating an octree node that's just a proxy to another
 		// node. Faster traversal!
-		if goodChildCount == 1 {
-			return goodChild
-		}
+		return children[0]
 	}
 
 	return &OctTree{
