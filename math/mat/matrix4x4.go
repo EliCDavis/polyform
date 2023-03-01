@@ -9,6 +9,23 @@ type Matrix4x4 struct {
 	X30, X31, X32, X33 float64
 }
 
+func MatFromDirs(up, forward, offset vector3.Float64) Matrix4x4 {
+	// return Matrix4x4{
+	// 	1, 0, 0, -offset.X(),
+	// 	0, 1, 0, -offset.Y(),
+	// 	0, 0, 1, -offset.Z(),
+	// 	0, 0, 0, 1,
+	// }
+	left := up.Cross(forward).Normalized()
+	newFwd := left.Cross(up).Normalized()
+	return Matrix4x4{
+		left.X(), up.X(), newFwd.X(), offset.X(),
+		left.Y(), up.Y(), newFwd.Y(), offset.Y(),
+		left.Z(), up.Z(), newFwd.Z(), offset.Z(),
+		0, 0, 0, 1,
+	}
+}
+
 func (a Matrix4x4) Add(b Matrix4x4) Matrix4x4 {
 	return Matrix4x4{
 		a.X00 + b.X00, a.X10 + b.X10, a.X20 + b.X20, a.X30 + b.X30,

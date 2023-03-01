@@ -7,4 +7,6 @@ const (
 	TexCoordAttribute  = "TexCoord"
 	ClassAttribute     = "Class"
 	IntensityAttribute = "Intensity"
+	JointAttribute     = "Joint"
+	WeightAttribute    = "Weight"
 )

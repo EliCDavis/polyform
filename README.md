@@ -162,8 +162,10 @@ Resources either directly contributing to the code here or are just interesting 
     - [Excerpt from FILE FORMATS, Version 4.2 October 1995 MTL](http://paulbourke.net/dataformats/mtl/)
   - [Just a ton of formats](https://people.sc.fsu.edu/~jburkardt/data/data.html)
   - GLTF
-    - [2.0](https://github.com/KhronosGroup/glTF/blob/main/specification/2.0)
+    - [2.0 Repo](https://github.com/KhronosGroup/glTF/blob/main/specification/2.0)
     - [Animations](https://github.com/KhronosGroup/glTF-Tutorials/blob/master/gltfTutorial/gltfTutorial_007_Animations.md)
+    - [Full 2.0 Spec](https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html)
+    - [Viewer for Skeleton](https://gltf-viewer.donmccurdy.com/)
 - Generative Techniques
   - [Country Flags by vividfax](https://vividfax.notion.site/Generative-Flag-Design-e663bc26f5a54ab48fad1428bc32b610)
   - [Snow by Ryan King](https://www.youtube.com/watch?v=UzJnsqIRbDw)
@@ -193,3 +195,5 @@ Resources either directly contributing to the code here or are just interesting 
   - [_Ray Tracing: The Next Week_](https://raytracing.github.io/books/RayTracingTheNextWeek.html)
   - [Möller-Trumbore Ray-Triangle Intersection](https://www.scratchapixel.com/lessons/3d-basic-rendering/ray-tracing-rendering-a-triangle/moller-trumbore-ray-triangle-intersection.html)
   - [Simulating the Colors of The Sky](https://www.scratchapixel.com/lessons/procedural-generation-virtual-worlds/simulating-sky/simulating-colors-of-the-sky.html)
+- Math
+  - [Mat3x3 => Quaternion from Blender Source](https://github.com/blender/blender/blob/756538b4a117cb51a15e848fa6170143b6aafcd8/source/blender/blenlib/intern/math_rotation.c#L272) 

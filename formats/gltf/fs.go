@@ -6,11 +6,15 @@ import (
 	"path"
 
 	"github.com/EliCDavis/polyform/modeling"
+	"github.com/EliCDavis/polyform/modeling/animation"
 )
 
-// Save writes the mesh to the path specified in OBJ format, optionally writing
-// an additional MTL file with materials are found within the modeling.
+// Save writes the mesh to the path specified in GLTF format
 func SaveText(gltfPath string, meshToSave modeling.Mesh) error {
+	return SaveTextWithAnimations(gltfPath, meshToSave, nil, nil)
+}
+
+func SaveTextWithAnimations(gltfPath string, meshToSave modeling.Mesh, joints *animation.Joint, animations []animation.Sequence) error {
 	err := os.MkdirAll(path.Dir(gltfPath), os.ModeDir)
 	if err != nil {
 		return err
@@ -22,23 +26,8 @@ func SaveText(gltfPath string, meshToSave modeling.Mesh) error {
 	}
 	defer gltfFile.Close()
 
-	// extension := filepath.Ext(gltfPath)
-	// mtlName := gltfPath[0:len(gltfPath)-len(extension)] + ".bin"
-	// if len(meshToSave.Materials()) > 0 {
-	// 	mtlFile, err := os.Create(mtlName)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// 	defer mtlFile.Close()
-
-	// 	err = WriteMaterials(meshToSave, mtlFile)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// }
-
 	out := bufio.NewWriter(gltfFile)
-	err = WriteText(meshToSave, out)
+	err = WriteTextWithAnimations(meshToSave, out, joints, animations)
 	if err != nil {
 		return err
 	}
