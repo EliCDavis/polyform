@@ -1,12 +1,26 @@
 package obj_test
 
 import (
+	"image/color"
 	"strings"
 	"testing"
 
 	"github.com/EliCDavis/polyform/formats/obj"
 	"github.com/stretchr/testify/assert"
 )
+
+func assertColor(t *testing.T, expected color.RGBA, actual color.Color) {
+	if assert.NotNil(t, actual) == false {
+		return
+	}
+
+	r, g, b, a := actual.RGBA()
+
+	assert.Equal(t, expected.R, uint8(r))
+	assert.Equal(t, expected.G, uint8(g))
+	assert.Equal(t, expected.B, uint8(b))
+	assert.Equal(t, expected.A, uint8(a))
+}
 
 func Test_ReadMaterial_Simple(t *testing.T) {
 	// ARRANGE ================================================================
@@ -35,6 +49,7 @@ map_Kd something/other.jpg
 		if assert.NotNil(t, mats[0].ColorTextureURI) {
 			assert.Equal(t, "something/other.jpg", *mats[0].ColorTextureURI)
 			assert.InDelta(t, 100.2237, mats[0].SpecularHighlight, 0.0001)
+			assertColor(t, color.RGBA{151, 4, 0, 255}, mats[0].DiffuseColor)
 		}
 	}
 }

@@ -10,18 +10,21 @@ type Matrix4x4 struct {
 }
 
 func MatFromDirs(up, forward, offset vector3.Float64) Matrix4x4 {
-	// return Matrix4x4{
-	// 	1, 0, 0, -offset.X(),
-	// 	0, 1, 0, -offset.Y(),
-	// 	0, 0, 1, -offset.Z(),
-	// 	0, 0, 0, 1,
-	// }
 	left := up.Cross(forward).Normalized()
 	newFwd := left.Cross(up).Normalized()
 	return Matrix4x4{
 		left.X(), up.X(), newFwd.X(), offset.X(),
 		left.Y(), up.Y(), newFwd.Y(), offset.Y(),
 		left.Z(), up.Z(), newFwd.Z(), offset.Z(),
+		0, 0, 0, 1,
+	}
+}
+
+func Identity() Matrix4x4 {
+	return Matrix4x4{
+		1, 0, 0, 0,
+		0, 1, 0, 0,
+		0, 0, 1, 0,
 		0, 0, 0, 1,
 	}
 }
@@ -77,4 +80,28 @@ func (a Matrix4x4) Inverse() Matrix4x4 {
 	m.X32 = (a.X02*a.X11*a.X30 - a.X01*a.X12*a.X30 - a.X02*a.X10*a.X31 + a.X00*a.X12*a.X31 + a.X01*a.X10*a.X32 - a.X00*a.X11*a.X32) * r
 	m.X33 = (a.X01*a.X12*a.X20 - a.X02*a.X11*a.X20 + a.X02*a.X10*a.X21 - a.X00*a.X12*a.X21 - a.X01*a.X10*a.X22 + a.X00*a.X11*a.X22) * r
 	return m
+}
+
+func (a Matrix4x4) Multiply(b Matrix4x4) Matrix4x4 {
+	return Matrix4x4{
+		X00: (a.X00 * b.X00) + (a.X01 * b.X10) + (a.X02 * b.X20) + (a.X03 * b.X30),
+		X01: (a.X00 * b.X01) + (a.X01 * b.X11) + (a.X02 * b.X21) + (a.X03 * b.X31),
+		X02: (a.X00 * b.X02) + (a.X01 * b.X12) + (a.X02 * b.X22) + (a.X03 * b.X32),
+		X03: (a.X00 * b.X03) + (a.X01 * b.X13) + (a.X02 * b.X23) + (a.X03 * b.X33),
+
+		X10: (a.X10 * b.X00) + (a.X11 * b.X10) + (a.X12 * b.X20) + (a.X13 * b.X30),
+		X11: (a.X10 * b.X01) + (a.X11 * b.X11) + (a.X12 * b.X21) + (a.X13 * b.X31),
+		X12: (a.X10 * b.X02) + (a.X11 * b.X12) + (a.X12 * b.X22) + (a.X13 * b.X32),
+		X13: (a.X10 * b.X03) + (a.X11 * b.X13) + (a.X12 * b.X23) + (a.X13 * b.X33),
+
+		X20: (a.X20 * b.X00) + (a.X21 * b.X10) + (a.X22 * b.X20) + (a.X23 * b.X30),
+		X21: (a.X20 * b.X01) + (a.X21 * b.X11) + (a.X22 * b.X21) + (a.X23 * b.X31),
+		X22: (a.X20 * b.X02) + (a.X21 * b.X12) + (a.X22 * b.X22) + (a.X23 * b.X32),
+		X23: (a.X20 * b.X03) + (a.X21 * b.X13) + (a.X22 * b.X23) + (a.X23 * b.X33),
+
+		X30: (a.X30 * b.X00) + (a.X31 * b.X10) + (a.X32 * b.X20) + (a.X33 * b.X30),
+		X31: (a.X30 * b.X01) + (a.X31 * b.X11) + (a.X32 * b.X21) + (a.X33 * b.X31),
+		X32: (a.X30 * b.X02) + (a.X31 * b.X12) + (a.X32 * b.X22) + (a.X33 * b.X32),
+		X33: (a.X30 * b.X03) + (a.X31 * b.X13) + (a.X32 * b.X23) + (a.X33 * b.X33),
+	}
 }

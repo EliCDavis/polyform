@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"image/color"
 	"io"
 	"strconv"
 	"strings"
@@ -17,6 +18,16 @@ func parseFloatLine(components []string) (float64, error) {
 		return 0, fmt.Errorf("unable to parse component %s: %w", components[0], err)
 	}
 	return f, nil
+}
+
+func parseColorLine(components []string) (color.Color, error) {
+	r, err := strconv.ParseFloat(strings.TrimSpace(components[1]), 32)
+	g, err := strconv.ParseFloat(strings.TrimSpace(components[2]), 32)
+	b, err := strconv.ParseFloat(strings.TrimSpace(components[3]), 32)
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse component %s: %w", components[0], err)
+	}
+	return color.RGBA{uint8(r * 255), uint8(g * 255), uint8(b * 255), 255}, nil
 }
 
 func ReadMaterials(in io.Reader) ([]modeling.Material, error) {
@@ -70,6 +81,18 @@ func ReadMaterials(in io.Reader) ([]modeling.Material, error) {
 			}
 
 			workingMaterial.SpecularHighlight = f
+
+		case "Kd":
+			if workingMaterial == nil {
+				return nil, errors.New("received material parameters before newmtl declaration")
+			}
+
+			f, err := parseColorLine(components)
+			if err != nil {
+				return nil, err
+			}
+
+			workingMaterial.DiffuseColor = f
 		}
 
 	}

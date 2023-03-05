@@ -62,18 +62,20 @@ func ptrI(i int) *int {
 	return &i
 }
 
-func flattenSkeletonToNodes(offset int, skeleton animation.Joint, out *bytes.Buffer) []Node {
+func flattenSkeletonToNodes(offset int, skeleton animation.Skeleton, out *bytes.Buffer) []Node {
 	// pos := skeleton.RelativePosition()
 
-	childrenIndexes := make([]int, len(skeleton.Children()))
-	for i := range skeleton.Children() {
-		childrenIndexes[i] = i + offset + 1
-	}
+	nodes := make([]Node, 0)
 
-	relativeMatrix := skeleton.RelativeMatrix()
+	for i := 0; i < skeleton.JointCount(); i++ {
+		children := skeleton.Children(i)
+		for i, c := range children {
+			children[i] = c + offset
+		}
 
-	nodes := []Node{
-		{
+		relativeMatrix := skeleton.RelativeMatrix(i)
+
+		node := Node{
 			// Translation: &[3]float64{pos.X(), pos.Y(), pos.Z()},
 			Matrix: &[16]float64{
 				relativeMatrix.X00,
@@ -96,61 +98,57 @@ func flattenSkeletonToNodes(offset int, skeleton animation.Joint, out *bytes.Buf
 				relativeMatrix.X23,
 				relativeMatrix.X33,
 			},
-			Children: childrenIndexes,
-		},
+			Children: children,
+		}
+
+		mat := skeleton.InverseBindMatrix(i)
+		// binary.Write(out, binary.LittleEndian, float32(mat.X00))
+		// binary.Write(out, binary.LittleEndian, float32(mat.X01))
+		// binary.Write(out, binary.LittleEndian, float32(mat.X02))
+		// binary.Write(out, binary.LittleEndian, float32(mat.X03))
+
+		// binary.Write(out, binary.LittleEndian, float32(mat.X10))
+		// binary.Write(out, binary.LittleEndian, float32(mat.X11))
+		// binary.Write(out, binary.LittleEndian, float32(mat.X12))
+		// binary.Write(out, binary.LittleEndian, float32(mat.X13))
+
+		// binary.Write(out, binary.LittleEndian, float32(mat.X20))
+		// binary.Write(out, binary.LittleEndian, float32(mat.X21))
+		// binary.Write(out, binary.LittleEndian, float32(mat.X22))
+		// binary.Write(out, binary.LittleEndian, float32(mat.X23))
+
+		// binary.Write(out, binary.LittleEndian, float32(mat.X30))
+		// binary.Write(out, binary.LittleEndian, float32(mat.X31))
+		// binary.Write(out, binary.LittleEndian, float32(mat.X32))
+		// binary.Write(out, binary.LittleEndian, float32(mat.X33))
+
+		binary.Write(out, binary.LittleEndian, float32(mat.X00))
+		binary.Write(out, binary.LittleEndian, float32(mat.X10))
+		binary.Write(out, binary.LittleEndian, float32(mat.X20))
+		binary.Write(out, binary.LittleEndian, float32(mat.X30))
+
+		binary.Write(out, binary.LittleEndian, float32(mat.X01))
+		binary.Write(out, binary.LittleEndian, float32(mat.X11))
+		binary.Write(out, binary.LittleEndian, float32(mat.X21))
+		binary.Write(out, binary.LittleEndian, float32(mat.X31))
+
+		binary.Write(out, binary.LittleEndian, float32(mat.X02))
+		binary.Write(out, binary.LittleEndian, float32(mat.X12))
+		binary.Write(out, binary.LittleEndian, float32(mat.X22))
+		binary.Write(out, binary.LittleEndian, float32(mat.X32))
+
+		binary.Write(out, binary.LittleEndian, float32(mat.X03))
+		binary.Write(out, binary.LittleEndian, float32(mat.X13))
+		binary.Write(out, binary.LittleEndian, float32(mat.X23))
+		binary.Write(out, binary.LittleEndian, float32(mat.X33))
+
+		nodes = append(nodes, node)
 	}
 
-	mat := skeleton.InverseBindMatrix()
-	// binary.Write(out, binary.LittleEndian, float32(mat.X00))
-	// binary.Write(out, binary.LittleEndian, float32(mat.X01))
-	// binary.Write(out, binary.LittleEndian, float32(mat.X02))
-	// binary.Write(out, binary.LittleEndian, float32(mat.X03))
-
-	// binary.Write(out, binary.LittleEndian, float32(mat.X10))
-	// binary.Write(out, binary.LittleEndian, float32(mat.X11))
-	// binary.Write(out, binary.LittleEndian, float32(mat.X12))
-	// binary.Write(out, binary.LittleEndian, float32(mat.X13))
-
-	// binary.Write(out, binary.LittleEndian, float32(mat.X20))
-	// binary.Write(out, binary.LittleEndian, float32(mat.X21))
-	// binary.Write(out, binary.LittleEndian, float32(mat.X22))
-	// binary.Write(out, binary.LittleEndian, float32(mat.X23))
-
-	// binary.Write(out, binary.LittleEndian, float32(mat.X30))
-	// binary.Write(out, binary.LittleEndian, float32(mat.X31))
-	// binary.Write(out, binary.LittleEndian, float32(mat.X32))
-	// binary.Write(out, binary.LittleEndian, float32(mat.X33))
-
-	binary.Write(out, binary.LittleEndian, float32(mat.X00))
-	binary.Write(out, binary.LittleEndian, float32(mat.X10))
-	binary.Write(out, binary.LittleEndian, float32(mat.X20))
-	binary.Write(out, binary.LittleEndian, float32(mat.X30))
-
-	binary.Write(out, binary.LittleEndian, float32(mat.X01))
-	binary.Write(out, binary.LittleEndian, float32(mat.X11))
-	binary.Write(out, binary.LittleEndian, float32(mat.X21))
-	binary.Write(out, binary.LittleEndian, float32(mat.X31))
-
-	binary.Write(out, binary.LittleEndian, float32(mat.X02))
-	binary.Write(out, binary.LittleEndian, float32(mat.X12))
-	binary.Write(out, binary.LittleEndian, float32(mat.X22))
-	binary.Write(out, binary.LittleEndian, float32(mat.X32))
-
-	binary.Write(out, binary.LittleEndian, float32(mat.X03))
-	binary.Write(out, binary.LittleEndian, float32(mat.X13))
-	binary.Write(out, binary.LittleEndian, float32(mat.X23))
-	binary.Write(out, binary.LittleEndian, float32(mat.X33))
-
-	currentOffset := offset + len(skeleton.Children())
-	for _, c := range skeleton.Children() {
-		subChildren := flattenSkeletonToNodes(currentOffset, c, out)
-		currentOffset += len(subChildren)
-		nodes = append(nodes, subChildren...)
-	}
 	return nodes
 }
 
-func writeAnimations(animations []animation.Sequence, gltf *Gltf, bin *bytes.Buffer) []Animation {
+func writeAnimations(animations []animation.Sequence, skeleton animation.Skeleton, gltf *Gltf, bin *bytes.Buffer, skeletonNode int) []Animation {
 	gltfAnimations := make([]Animation, len(animations))
 	for i, animation := range animations {
 
@@ -237,7 +235,7 @@ func writeAnimations(animations []animation.Sequence, gltf *Gltf, bin *bytes.Buf
 				{
 					Target: AnimationChannelTarget{
 						Path: AnimationChannelTargetPath_TRANSLATION,
-						Node: animation.Joint(),
+						Node: skeleton.Lookup(animation.Joint()) + skeletonNode,
 					},
 					Sampler: i,
 				},
@@ -250,7 +248,7 @@ func writeAnimations(animations []animation.Sequence, gltf *Gltf, bin *bytes.Buf
 	return gltfAnimations
 }
 
-func structureFromMesh(mesh modeling.Mesh, skeleton *animation.Joint, animations []animation.Sequence) Gltf {
+func structureFromMesh(mesh modeling.Mesh, skeleton *animation.Skeleton, animations []animation.Sequence) Gltf {
 	primitiveAttributes := make(map[string]int)
 
 	bufferViews := make([]BufferView, 0)
@@ -481,7 +479,7 @@ func structureFromMesh(mesh modeling.Mesh, skeleton *animation.Joint, animations
 	}
 
 	if len(animations) > 0 {
-		writeAnimations(animations, &gltf, bin)
+		writeAnimations(animations, *skeleton, &gltf, bin, 1)
 	}
 
 	gltf.Buffers[0].URI = "data:application/octet-stream;base64," + base64.StdEncoding.EncodeToString(bin.Bytes())
@@ -493,7 +491,7 @@ func WriteText(mesh modeling.Mesh, out io.Writer) error {
 	return WriteTextWithAnimations(mesh, out, nil, nil)
 }
 
-func WriteTextWithAnimations(mesh modeling.Mesh, out io.Writer, skeleton *animation.Joint, animations []animation.Sequence) error {
+func WriteTextWithAnimations(mesh modeling.Mesh, out io.Writer, skeleton *animation.Skeleton, animations []animation.Sequence) error {
 	outline := structureFromMesh(mesh, skeleton, animations)
 	bolB, err := json.MarshalIndent(outline, "", "    ")
 	if err != nil {

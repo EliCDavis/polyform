@@ -22,6 +22,7 @@ type Mesh struct {
 	topology  Topology
 }
 
+// New Mesh creates a new mesh with all empty attribute data arrays stripped.
 func NewMesh(
 	indices []int,
 	v3Data map[string][]vector3.Float64,
@@ -29,13 +30,37 @@ func NewMesh(
 	v1Data map[string][]float64,
 	materials []MeshMaterial,
 ) Mesh {
+	cleanedV3Data := make(map[string][]vector3.Float64)
+	for key, vals := range v3Data {
+		if len(vals) == 0 {
+			continue
+		}
+		cleanedV3Data[key] = vals
+	}
+
+	cleanedV2Data := make(map[string][]vector2.Float64)
+	for key, vals := range v2Data {
+		if len(vals) == 0 {
+			continue
+		}
+		cleanedV2Data[key] = vals
+	}
+
+	cleanedV1Data := make(map[string][]float64)
+	for key, vals := range v1Data {
+		if len(vals) == 0 {
+			continue
+		}
+		cleanedV1Data[key] = vals
+	}
+
 	return Mesh{
 		indices:   indices,
 		materials: materials,
 		topology:  TriangleTopology,
-		v3Data:    v3Data,
-		v2Data:    v2Data,
-		v1Data:    v1Data,
+		v3Data:    cleanedV3Data,
+		v2Data:    cleanedV2Data,
+		v1Data:    cleanedV1Data,
 	}
 }
 
@@ -47,16 +72,32 @@ func newImpliedIndicesMesh(
 	materials []MeshMaterial,
 ) Mesh {
 	attributeCount := 0
-	for _, d := range v3Data {
-		attributeCount = len(d)
+
+	cleanedV3Data := make(map[string][]vector3.Float64)
+	for key, vals := range v3Data {
+		if len(vals) == 0 {
+			continue
+		}
+		cleanedV3Data[key] = vals
+		attributeCount = len(vals)
 	}
 
-	for _, d := range v2Data {
-		attributeCount = len(d)
+	cleanedV2Data := make(map[string][]vector2.Float64)
+	for key, vals := range v2Data {
+		if len(vals) == 0 {
+			continue
+		}
+		cleanedV2Data[key] = vals
+		attributeCount = len(vals)
 	}
 
-	for _, d := range v1Data {
-		attributeCount = len(d)
+	cleanedV1Data := make(map[string][]float64)
+	for key, vals := range v1Data {
+		if len(vals) == 0 {
+			continue
+		}
+		cleanedV1Data[key] = vals
+		attributeCount = len(vals)
 	}
 
 	if topo == LineStripTopology && attributeCount == 1 {
@@ -72,9 +113,9 @@ func newImpliedIndicesMesh(
 		indices:   indices,
 		materials: materials,
 		topology:  topo,
-		v3Data:    v3Data,
-		v2Data:    v2Data,
-		v1Data:    v1Data,
+		v3Data:    cleanedV3Data,
+		v2Data:    cleanedV2Data,
+		v1Data:    cleanedV1Data,
 	}
 }
 

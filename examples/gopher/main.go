@@ -134,29 +134,35 @@ func main() {
 	}
 	armDir := hand.Sub(topLegStart).Normalized()
 
-	jointTree := modeling.NewPointCloud(
-		map[string][]vector3.Vector[float64]{
-			modeling.PositionAttribute: jointPositions,
-		},
-		nil,
-		nil,
-		nil,
-	).OctTree()
+	// jointTree := modeling.NewPointCloud(
+	// 	map[string][]vector3.Vector[float64]{
+	// 		modeling.PositionAttribute: jointPositions,
+	// 	},
+	// 	nil,
+	// 	nil,
+	// 	nil,
+	// ).OctTree()
 
 	joinData := make([]vector3.Float64, mesh.AttributeLength())
 	weightData := make([]vector3.Float64, mesh.AttributeLength())
 	mesh.ScanFloat3Attribute(modeling.PositionAttribute, func(i int, v vector3.Float64) {
-		closestJointIndex, _ := jointTree.ClosestPoint(v)
-		joinData[i] = vector3.New(float64(closestJointIndex), 0., 0.)
-		weightData[i] = vector3.Right[float64]()
+		// closestJointIndex, p := jointTree.ClosestPoint(v)
+		// joinData[i] = vector3.New(float64(closestJointIndex), 0., 0.)
+		// weightData[i] = vector3.Right[float64]()
+
+		d1 := jointPositions[0].Distance(v)
+		d2 := jointPositions[1].Distance(v)
+		total := d1 + d2
+		joinData[i] = vector3.New(0., 1., 0.)
+		weightData[i] = vector3.New(d2/total, d1/total, 0.)
 	})
 
 	mesh = mesh.
 		SetFloat3Attribute(modeling.JointAttribute, joinData).
 		SetFloat3Attribute(modeling.WeightAttribute, weightData)
 
-	skeleton := animation.NewJoint(
-		headPosition,
+	skeleton := animation.NewSkeleton(animation.NewJoint(
+		"Head",
 		headPosition,
 		vector3.Up[float64](),
 		vector3.Forward[float64](),
@@ -167,16 +173,16 @@ func main() {
 		// 	vector3.Forward[float64](),
 		// 	animation.NewJoint(hand, hand.Sub(topLegStart), armDir, vector3.Forward[float64]()),
 		// ),
-		animation.NewJoint(hand, hand.Sub(headPosition), armDir, vector3.Forward[float64]()),
-	)
+		animation.NewJoint("Hand", hand, armDir, vector3.Forward[float64]()),
+	))
 
-	animationWave := animation.NewSequence(1, []animation.Frame{
+	animationWave := animation.NewSequence("Head/Hand", []animation.Frame{
 		// animation.NewFrame(0, hand),
 		// animation.NewFrame(1, hand.Add(vector3.Up[float64]())),
 		// animation.NewFrame(2, hand),
-		animation.NewFrame(0, vector3.Zero[float64]()),
-		animation.NewFrame(1, vector3.Up[float64]().Scale(0.5)),
-		animation.NewFrame(2, vector3.Zero[float64]()),
+		animation.NewFrame(0, vector3.Zero[float64]().Add(hand)),
+		animation.NewFrame(1, vector3.Up[float64]().Scale(0.5).Add(hand)),
+		animation.NewFrame(2, vector3.Zero[float64]().Add(hand)),
 	})
 
 	animations := []animation.Sequence{

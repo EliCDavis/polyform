@@ -23,7 +23,7 @@ func (s Frame) Val() vector3.Float64 {
 }
 
 type Sequence struct {
-	joint  int
+	joint  string
 	frames []Frame
 }
 
@@ -31,11 +31,11 @@ func (s Sequence) Frames() []Frame {
 	return s.frames
 }
 
-func (s Sequence) Joint() int {
+func (s Sequence) Joint() string {
 	return s.joint
 }
 
-func NewSequence(joint int, frames []Frame) Sequence {
+func NewSequence(joint string, frames []Frame) Sequence {
 	return Sequence{
 		joint:  joint,
 		frames: frames,

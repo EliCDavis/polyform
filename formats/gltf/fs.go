@@ -14,7 +14,7 @@ func SaveText(gltfPath string, meshToSave modeling.Mesh) error {
 	return SaveTextWithAnimations(gltfPath, meshToSave, nil, nil)
 }
 
-func SaveTextWithAnimations(gltfPath string, meshToSave modeling.Mesh, joints *animation.Joint, animations []animation.Sequence) error {
+func SaveTextWithAnimations(gltfPath string, meshToSave modeling.Mesh, joints *animation.Skeleton, animations []animation.Sequence) error {
 	err := os.MkdirAll(path.Dir(gltfPath), os.ModeDir)
 	if err != nil {
 		return err
