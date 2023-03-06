@@ -1098,50 +1098,67 @@ func (m Mesh) requireTopology(t Topology) {
 	}
 }
 
-func (m Mesh) SetFloat3Attribute(atr string, data []vector3.Float64) Mesh {
+func (m Mesh) SetFloat3Attribute(attr string, data []vector3.Float64) Mesh {
 	finalV3Data := make(map[string][]vector3.Float64)
 	for key, val := range m.v3Data {
 		finalV3Data[key] = val
 	}
-	finalV3Data[atr] = data
+	finalV3Data[attr] = data
 
-	return NewMesh(
-		m.indices,
-		finalV3Data,
-		m.v2Data,
-		m.v1Data,
-		m.materials,
-	)
+	if len(data) == 0 {
+		delete(finalV3Data, attr)
+	}
+
+	return Mesh{
+		v3Data:    finalV3Data,
+		v2Data:    m.v2Data,
+		v1Data:    m.v1Data,
+		indices:   m.indices,
+		materials: m.materials,
+		topology:  m.topology,
+	}
 }
 
-func (m Mesh) SetFloat2Attribute(atr string, data []vector2.Float64) Mesh {
+func (m Mesh) SetFloat2Attribute(attr string, data []vector2.Float64) Mesh {
 	finalV2Data := make(map[string][]vector2.Float64)
 	for key, val := range m.v2Data {
 		finalV2Data[key] = val
 	}
-	finalV2Data[atr] = data
-	return NewMesh(
-		m.indices,
-		m.v3Data,
-		finalV2Data,
-		m.v1Data,
-		m.materials,
-	)
+	finalV2Data[attr] = data
+
+	if len(data) == 0 {
+		delete(finalV2Data, attr)
+	}
+
+	return Mesh{
+		v3Data:    m.v3Data,
+		v2Data:    finalV2Data,
+		v1Data:    m.v1Data,
+		indices:   m.indices,
+		materials: m.materials,
+		topology:  m.topology,
+	}
 }
 
-func (m Mesh) SetFloat1Attribute(atr string, data []float64) Mesh {
+func (m Mesh) SetFloat1Attribute(attr string, data []float64) Mesh {
 	finalV1Data := make(map[string][]float64)
 	for key, val := range m.v1Data {
 		finalV1Data[key] = val
 	}
-	finalV1Data[atr] = data
-	return NewMesh(
-		m.indices,
-		m.v3Data,
-		m.v2Data,
-		finalV1Data,
-		m.materials,
-	)
+	finalV1Data[attr] = data
+
+	if len(data) == 0 {
+		delete(finalV1Data, attr)
+	}
+
+	return Mesh{
+		v3Data:    m.v3Data,
+		v2Data:    m.v2Data,
+		v1Data:    finalV1Data,
+		indices:   m.indices,
+		materials: m.materials,
+		topology:  m.topology,
+	}
 }
 
 func (m Mesh) HasVertexAttribute(atr string) bool {

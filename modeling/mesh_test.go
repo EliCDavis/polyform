@@ -9,6 +9,30 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestSetFloat3Attribute_EmptyArr_Clears(t *testing.T) {
+	// ARRANGE ================================================================
+	m := modeling.NewMesh(
+		[]int{
+			0, 0, 0,
+		},
+		map[string][]vector3.Float64{
+			modeling.PositionAttribute: {
+				vector3.New(0., 0., 0.),
+			},
+		},
+		nil,
+		nil,
+		nil,
+	)
+
+	// ACT ====================================================================
+	newMesh := m.SetFloat3Attribute(modeling.PositionAttribute, nil)
+
+	// ASSERT =================================================================
+	assert.True(t, m.HasFloat3Attribute(modeling.PositionAttribute))
+	assert.False(t, newMesh.HasFloat3Attribute(modeling.PositionAttribute))
+}
+
 func Test_SplitOnUniqueMaterials_Simple(t *testing.T) {
 	// ARRANGE ================================================================
 	m := modeling.NewMesh(

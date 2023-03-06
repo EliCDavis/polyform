@@ -1,6 +1,7 @@
 package animation
 
 import (
+	"container/heap"
 	"fmt"
 	"strings"
 
@@ -8,12 +9,43 @@ import (
 	"github.com/EliCDavis/vector/vector3"
 )
 
+type jointDistItem struct {
+	dist  float64
+	joint int
+	point vector3.Float64
+}
+
+type jointItemPriorityQueue []jointDistItem
+
+func (pq jointItemPriorityQueue) Len() int { return len(pq) }
+
+func (pq jointItemPriorityQueue) Less(i, j int) bool {
+	return pq[i].dist < pq[j].dist
+}
+
+func (pq jointItemPriorityQueue) Swap(i, j int) {
+	pq[i], pq[j] = pq[j], pq[i]
+}
+
+func (pq *jointItemPriorityQueue) Push(x any) {
+	item := x.(jointDistItem)
+	*pq = append(*pq, item)
+}
+
+func (pq *jointItemPriorityQueue) Pop() any {
+	old := *pq
+	n := len(old)
+	item := old[n-1]
+	*pq = old[0 : n-1]
+	return item
+}
+
 type skeletonJoint struct {
-	path                            string
-	relativePosition, worldPosition vector3.Float64
-	up, forward                     vector3.Float64
-	relativeMatrix                  mat.Matrix4x4
-	children                        []int
+	path           string
+	worldPosition  vector3.Float64
+	up, forward    vector3.Float64
+	relativeMatrix mat.Matrix4x4
+	children       []int
 }
 
 type Skeleton struct {
@@ -34,6 +66,23 @@ func (s Skeleton) Lookup(name string) int {
 
 func (s Skeleton) Children(index int) []int {
 	return s.joints[index].children
+}
+
+func (s Skeleton) ClosestJoints(point vector3.Float64) {
+	const maxPointsToConsider = 3
+
+	queue := make(jointItemPriorityQueue, 0)
+
+	for i, n := range s.joints {
+		dist := n.worldPosition.Distance(point)
+		if queue.Len() < maxPointsToConsider {
+			heap.Push(&queue, jointDistItem{
+				dist:  dist,
+				joint: i,
+				point: n.worldPosition,
+			})
+		}
+	}
 }
 
 func (s Skeleton) RelativeMatrix(index int) mat.Matrix4x4 {

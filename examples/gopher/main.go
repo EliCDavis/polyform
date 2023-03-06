@@ -22,12 +22,14 @@ func main() {
 	white := color.RGBA{R: 255, G: 255, B: 255, A: 255}
 	black := color.RGBA{R: 0, G: 0, B: 0, A: 255}
 
+	buttPosition := vector3.New(0., 0., 0.)
+	hipPosition := vector3.New(0., 0.3, 0.1)
 	headPosition := vector3.New(0., 1., 0.)
 
 	gopherBody := marching.MultiSegmentLine(
 		[]vector3.Float64{
-			vector3.New(0., 0., 0.),
-			vector3.New(0., 0.3, 0.1),
+			buttPosition,
+			hipPosition,
 			headPosition,
 		},
 		.8,
@@ -127,56 +129,45 @@ func main() {
 
 	log.Printf("time to mesh: %s", time.Since(start))
 
-	jointPositions := []vector3.Float64{
-		headPosition,
-		// topLegStart,
-		hand,
-	}
 	armDir := hand.Sub(topLegStart).Normalized()
-
-	// jointTree := modeling.NewPointCloud(
-	// 	map[string][]vector3.Vector[float64]{
-	// 		modeling.PositionAttribute: jointPositions,
-	// 	},
-	// 	nil,
-	// 	nil,
-	// 	nil,
-	// ).OctTree()
+	skeleton := animation.NewSkeleton(animation.NewJoint(
+		"Hip",
+		hipPosition,
+		vector3.Up[float64](),
+		vector3.Forward[float64](),
+		animation.NewJoint(
+			"Head",
+			headPosition,
+			vector3.Up[float64](),
+			vector3.Forward[float64](),
+		),
+		animation.NewJoint(
+			"Arm",
+			topLegStart,
+			armDir,
+			vector3.Forward[float64](),
+			animation.NewJoint("Hand", hand, armDir, vector3.Forward[float64]()),
+		),
+	))
 
 	joinData := make([]vector3.Float64, mesh.AttributeLength())
 	weightData := make([]vector3.Float64, mesh.AttributeLength())
 	mesh.ScanFloat3Attribute(modeling.PositionAttribute, func(i int, v vector3.Float64) {
-		// closestJointIndex, p := jointTree.ClosestPoint(v)
 		// joinData[i] = vector3.New(float64(closestJointIndex), 0., 0.)
 		// weightData[i] = vector3.Right[float64]()
 
-		d1 := jointPositions[0].Distance(v)
-		d2 := jointPositions[1].Distance(v)
-		total := d1 + d2
-		joinData[i] = vector3.New(0., 1., 0.)
-		weightData[i] = vector3.New(d2/total, d1/total, 0.)
+		// d1 := jointPositions[0].Distance(v)
+		// d2 := jointPositions[2].Distance(v)
+		// total := d1 + d2
+		// joinData[i] = vector3.New(0., 2., 0.)
+		// weightData[i] = vector3.New(d2/total, d1/total, 0.)
 	})
 
 	mesh = mesh.
 		SetFloat3Attribute(modeling.JointAttribute, joinData).
 		SetFloat3Attribute(modeling.WeightAttribute, weightData)
 
-	skeleton := animation.NewSkeleton(animation.NewJoint(
-		"Head",
-		headPosition,
-		vector3.Up[float64](),
-		vector3.Forward[float64](),
-		// animation.NewJoint(
-		// 	topLegStart,
-		// 	topLegStart.Sub(headPosition),
-		// 	armDir,
-		// 	vector3.Forward[float64](),
-		// 	animation.NewJoint(hand, hand.Sub(topLegStart), armDir, vector3.Forward[float64]()),
-		// ),
-		animation.NewJoint("Hand", hand, armDir, vector3.Forward[float64]()),
-	))
-
-	animationWave := animation.NewSequence("Head/Hand", []animation.Frame{
+	animationWave := animation.NewSequence("Hip/Arm/Hand", []animation.Frame{
 		// animation.NewFrame(0, hand),
 		// animation.NewFrame(1, hand.Add(vector3.Up[float64]())),
 		// animation.NewFrame(2, hand),
