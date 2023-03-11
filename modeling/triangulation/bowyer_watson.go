@@ -358,17 +358,9 @@ func ConstrainedBowyerWatson(pointsDirty []vector2.Float64, constraints []Constr
 		uvs[i] = vector2.Zero[float64]()
 	}
 
-	return modeling.NewMesh(
-		tris,
-		map[string][]vector3.Float64{
-			modeling.PositionAttribute: verts,
-		},
-		map[string][]vector2.Float64{
-			modeling.TexCoordAttribute: uvs,
-		},
-		nil,
-		nil,
-	)
+	return modeling.NewMesh(tris).
+		SetFloat3Attribute(modeling.PositionAttribute, verts).
+		SetFloat2Attribute(modeling.TexCoordAttribute, uvs)
 }
 
 func BowyerWatson(pointsDirty []vector2.Float64) modeling.Mesh {
@@ -385,15 +377,8 @@ func BowyerWatson(pointsDirty []vector2.Float64) modeling.Mesh {
 		uvs[i] = vector2.Zero[float64]()
 	}
 
-	return modeling.NewMesh(
-		tris,
-		map[string][]vector3.Float64{
-			modeling.PositionAttribute: verts,
-		},
-		map[string][]vector2.Float64{
-			modeling.TexCoordAttribute: uvs,
-		},
-		nil,
-		nil,
-	)
+	return modeling.
+		NewMesh(tris).
+		SetFloat3Attribute(modeling.PositionAttribute, verts).
+		SetFloat2Attribute(modeling.TexCoordAttribute, uvs)
 }

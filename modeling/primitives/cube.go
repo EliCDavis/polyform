@@ -64,12 +64,7 @@ func Cube() modeling.Mesh {
 			5, 7, 3,
 			5, 3, 1,
 		},
-		map[string][]vector3.Float64{
-			modeling.PositionAttribute: verts,
-			modeling.NormalAttribute:   vector3.Array[float64](verts).Normalized(),
-		},
-		nil,
-		nil,
-		nil,
-	)
+	).
+		SetFloat3Attribute(modeling.PositionAttribute, verts).
+		SetFloat3Attribute(modeling.NormalAttribute, vector3.Array[float64](verts).Normalized())
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/EliCDavis/polyform/modeling/animation"
 	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
+	"github.com/EliCDavis/vector/vector4"
 )
 
 func defaultAsset() Asset {
@@ -258,6 +259,55 @@ func structureFromMesh(mesh modeling.Mesh, skeleton *animation.Skeleton, animati
 
 	bytesWritten := 0
 	attributesWritten := 0
+
+	for _, val := range mesh.Float4Attributes() {
+
+		accessorType := AccessorType_VEC4
+		attributeType := attributeType(val)
+
+		min := vector4.New(math.MaxFloat64, math.MaxFloat64, math.MaxFloat64, math.MaxFloat64)
+		max := vector4.New(-math.MaxFloat64, -math.MaxFloat64, -math.MaxFloat64, -math.MaxFloat64)
+
+		mesh.ScanFloat4Attribute(val, func(i int, v vector4.Float64) {
+			min = vector4.Min(min, v)
+			max = vector4.Max(max, v)
+			if attributeType == AccessorComponentType_FLOAT {
+				binary.Write(bin, binary.LittleEndian, float32(v.X()))
+				binary.Write(bin, binary.LittleEndian, float32(v.Y()))
+				binary.Write(bin, binary.LittleEndian, float32(v.Z()))
+				binary.Write(bin, binary.LittleEndian, float32(v.W()))
+			} else if attributeType == AccessorComponentType_UNSIGNED_BYTE {
+				binary.Write(bin, binary.LittleEndian, uint8(v.X()))
+				binary.Write(bin, binary.LittleEndian, uint8(v.Y()))
+				binary.Write(bin, binary.LittleEndian, uint8(v.Z()))
+				binary.Write(bin, binary.LittleEndian, uint8(v.W()))
+			}
+		})
+
+		primitiveAttributes[polyformToGLTFAttribute(val)] = attributesWritten
+		minArr := []float64{min.X(), min.Y(), min.Z(), min.W()}
+		maxArr := []float64{max.X(), max.Y(), max.Z(), max.W()}
+		datasize := mesh.AttributeLength() * 4 * attributeType.Size()
+
+		accessors = append(accessors, Accessor{
+			BufferView:    ptrI(len(bufferViews)),
+			ComponentType: attributeType,
+			Type:          accessorType,
+			Count:         mesh.AttributeLength(),
+			Min:           minArr,
+			Max:           maxArr,
+		})
+		bufferViews = append(bufferViews, BufferView{
+			Buffer:     0,
+			ByteOffset: bytesWritten,
+			ByteLength: datasize,
+			Target:     ARRAY_BUFFER,
+		})
+
+		bytesWritten += datasize
+		attributesWritten++
+	}
+
 	for _, val := range mesh.Float3Attributes() {
 
 		accessorType := AccessorType_VEC3
@@ -299,9 +349,7 @@ func structureFromMesh(mesh modeling.Mesh, skeleton *animation.Skeleton, animati
 			datasize = mesh.AttributeLength() * 4
 		}
 
-		if attributeType == AccessorComponentType_FLOAT {
-			datasize *= 4
-		}
+		datasize *= attributeType.Size()
 
 		accessors = append(accessors, Accessor{
 			BufferView:    ptrI(len(bufferViews)),

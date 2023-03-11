@@ -363,13 +363,7 @@ func (le *BinaryReader) ReadMesh() (*modeling.Mesh, error) {
 	var finalMesh modeling.Mesh
 
 	if len(triData) > 0 {
-		finalMesh = modeling.NewMesh(
-			triData,
-			vertexData,
-			nil,
-			nil,
-			nil,
-		)
+		finalMesh = modeling.NewMesh(triData).SetFloat3Data(vertexData)
 		if len(uvData) == len(triData) {
 			finalMesh = finalMesh.
 				Unweld().

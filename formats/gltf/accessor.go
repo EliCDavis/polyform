@@ -1,5 +1,7 @@
 package gltf
 
+import "fmt"
+
 type AccessorComponentType int
 
 const (
@@ -10,6 +12,30 @@ const (
 	AccessorComponentType_UNSIGNED_INT   AccessorComponentType = 5125
 	AccessorComponentType_FLOAT          AccessorComponentType = 5126
 )
+
+func (act AccessorComponentType) Size() int {
+	switch act {
+	case AccessorComponentType_BYTE:
+		return 1
+
+	case AccessorComponentType_UNSIGNED_BYTE:
+		return 1
+
+	case AccessorComponentType_SHORT:
+		return 2
+
+	case AccessorComponentType_UNSIGNED_SHORT:
+		return 2
+
+	case AccessorComponentType_UNSIGNED_INT:
+		return 4
+
+	case AccessorComponentType_FLOAT:
+		return 4
+	}
+
+	panic(fmt.Errorf("unimplemented accessor component type: %d", act))
+}
 
 type AccessorType string
 

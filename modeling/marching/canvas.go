@@ -548,17 +548,13 @@ func (d MarchingCanvas) marchFloat1BlockPosition(
 			}
 		}
 	}
-	return modeling.NewMesh(
-		marchingWorkingData.tris,
-		map[string][]vector3.Float64{
+	return modeling.NewMesh(marchingWorkingData.tris).
+		SetFloat3Data(map[string][]vector3.Float64{
 			modeling.PositionAttribute: marchingWorkingData.verts,
-		},
-		map[string][]vector2.Float64{
+		}).
+		SetFloat2Data(map[string][]vector2.Float64{
 			modeling.TexCoordAttribute: marchingWorkingData.uvs,
-		},
-		nil,
-		nil,
-	)
+		})
 }
 
 func (d MarchingCanvas) marchFloat1(cutoff float64, section *marchingSection) modeling.Mesh {

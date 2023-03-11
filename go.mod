@@ -3,7 +3,7 @@ module github.com/EliCDavis/polyform
 go 1.18
 
 require (
-	github.com/EliCDavis/vector v1.0.4
+	github.com/EliCDavis/vector v1.0.5
 	github.com/schollz/progressbar/v3 v3.13.0
 	github.com/stretchr/testify v1.8.1
 )

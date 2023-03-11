@@ -11,9 +11,11 @@ import (
 	"github.com/EliCDavis/polyform/trees"
 	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
+	"github.com/EliCDavis/vector/vector4"
 )
 
 type Mesh struct {
+	v4Data    map[string][]vector4.Float64
 	v3Data    map[string][]vector3.Float64
 	v2Data    map[string][]vector2.Float64
 	v1Data    map[string][]float64
@@ -23,52 +25,24 @@ type Mesh struct {
 }
 
 // New Mesh creates a new mesh with all empty attribute data arrays stripped.
-func NewMesh(
-	indices []int,
-	v3Data map[string][]vector3.Float64,
-	v2Data map[string][]vector2.Float64,
-	v1Data map[string][]float64,
-	materials []MeshMaterial,
-) Mesh {
-	cleanedV3Data := make(map[string][]vector3.Float64)
-	for key, vals := range v3Data {
-		if len(vals) == 0 {
-			continue
-		}
-		cleanedV3Data[key] = vals
-	}
-
-	cleanedV2Data := make(map[string][]vector2.Float64)
-	for key, vals := range v2Data {
-		if len(vals) == 0 {
-			continue
-		}
-		cleanedV2Data[key] = vals
-	}
-
-	cleanedV1Data := make(map[string][]float64)
-	for key, vals := range v1Data {
-		if len(vals) == 0 {
-			continue
-		}
-		cleanedV1Data[key] = vals
-	}
-
+func NewMesh(indices []int) Mesh {
 	return Mesh{
 		indices:   indices,
-		materials: materials,
+		materials: nil,
 		topology:  TriangleTopology,
-		v3Data:    cleanedV3Data,
-		v2Data:    cleanedV2Data,
-		v1Data:    cleanedV1Data,
+		v1Data:    make(map[string][]float64),
+		v2Data:    make(map[string][]vector2.Float64),
+		v3Data:    make(map[string][]vector3.Float64),
+		v4Data:    make(map[string][]vector4.Float64),
 	}
 }
 
 func newImpliedIndicesMesh(
 	topo Topology,
-	v3Data map[string][]vector3.Float64,
-	v2Data map[string][]vector2.Float64,
 	v1Data map[string][]float64,
+	v2Data map[string][]vector2.Float64,
+	v3Data map[string][]vector3.Float64,
+	v4Data map[string][]vector4.Float64,
 	materials []MeshMaterial,
 ) Mesh {
 	attributeCount := 0
@@ -125,7 +99,7 @@ func NewLineStripMesh(
 	v1Data map[string][]float64,
 	materials []MeshMaterial,
 ) Mesh {
-	return newImpliedIndicesMesh(LineStripTopology, v3Data, v2Data, v1Data, materials)
+	return newImpliedIndicesMesh(LineStripTopology, v1Data, v2Data, v3Data, nil, materials)
 }
 
 func NewPointCloud(
@@ -134,7 +108,7 @@ func NewPointCloud(
 	v1Data map[string][]float64,
 	materials []MeshMaterial,
 ) Mesh {
-	return newImpliedIndicesMesh(PointTopology, v3Data, v2Data, v1Data, materials)
+	return newImpliedIndicesMesh(PointTopology, v1Data, v2Data, v3Data, nil, materials)
 }
 
 // Creates a new triangle mesh with no vertices or attribute data
@@ -200,6 +174,18 @@ func (m Mesh) Topology() Topology {
 	return m.topology
 }
 
+func (m Mesh) Float4Attributes() []string {
+	attributes := make([]string, 0, len(m.v4Data))
+
+	for atr := range m.v4Data {
+		attributes = append(attributes, atr)
+	}
+
+	sort.Strings(attributes)
+
+	return attributes
+}
+
 func (m Mesh) Float3Attributes() []string {
 	attributes := make([]string, 0, len(m.v3Data))
 
@@ -241,7 +227,27 @@ func (m Mesh) Materials() []MeshMaterial {
 }
 
 func (m Mesh) SetMaterial(mat Material) Mesh {
-	return NewMesh(m.indices, m.v3Data, m.v2Data, m.v1Data, []MeshMaterial{{PrimitiveCount: len(m.indices) / 3, Material: &mat}})
+	return Mesh{
+		v4Data:    m.v4Data,
+		v3Data:    m.v3Data,
+		v2Data:    m.v2Data,
+		v1Data:    m.v1Data,
+		indices:   m.indices,
+		materials: []MeshMaterial{{PrimitiveCount: len(m.indices) / 3, Material: &mat}},
+		topology:  m.topology,
+	}
+}
+
+func (m Mesh) SetMaterials(mat []MeshMaterial) Mesh {
+	return Mesh{
+		v4Data:    m.v4Data,
+		v3Data:    m.v3Data,
+		v2Data:    m.v2Data,
+		v1Data:    m.v1Data,
+		indices:   m.indices,
+		materials: mat,
+		topology:  m.topology,
+	}
 }
 
 func (m Mesh) Tri(i int) Tri {
@@ -273,6 +279,30 @@ func (m Mesh) PrimitiveCount() int {
 	panic(fmt.Errorf("unimplemented topology: %s", m.topology.String()))
 }
 
+func appendData[T any](a, b map[string][]T, aLen, bLen int, nilVal func() T) map[string][]T {
+	finalData := make(map[string][]T)
+
+	for atr, data := range a {
+		finalData[atr] = data
+
+		if _, ok := b[atr]; !ok {
+			for i := 0; i < bLen; i++ {
+				finalData[atr] = append(finalData[atr], nilVal())
+			}
+		}
+	}
+
+	for atr, data := range b {
+		if _, ok := finalData[atr]; !ok {
+			for i := 0; i < aLen; i++ {
+				finalData[atr] = append(finalData[atr], nilVal())
+			}
+		}
+		finalData[atr] = append(finalData[atr], data...)
+	}
+	return finalData
+}
+
 func (m Mesh) Append(other Mesh) Mesh {
 	if m.topology != other.topology {
 		panic(fmt.Errorf("can not combine meshes with different topologies (%s != %s)", m.topology.String(), other.topology.String()))
@@ -281,65 +311,10 @@ func (m Mesh) Append(other Mesh) Mesh {
 	mAtrLength := m.AttributeLength()
 	oAtrLength := other.AttributeLength()
 
-	finalV3Data := make(map[string][]vector3.Float64)
-	for atr, data := range m.v3Data {
-		finalV3Data[atr] = data
-
-		if _, ok := other.v3Data[atr]; !ok {
-			for i := 0; i < oAtrLength; i++ {
-				finalV3Data[atr] = append(finalV3Data[atr], vector3.Zero[float64]())
-			}
-		}
-	}
-
-	for atr, data := range other.v3Data {
-		if _, ok := finalV3Data[atr]; !ok {
-			for i := 0; i < mAtrLength; i++ {
-				finalV3Data[atr] = append(finalV3Data[atr], vector3.Zero[float64]())
-			}
-		}
-		finalV3Data[atr] = append(finalV3Data[atr], data...)
-	}
-
-	finalV2Data := make(map[string][]vector2.Float64)
-	for atr, data := range m.v2Data {
-		finalV2Data[atr] = data
-
-		if _, ok := other.v2Data[atr]; !ok {
-			for i := 0; i < oAtrLength; i++ {
-				finalV2Data[atr] = append(finalV2Data[atr], vector2.Zero[float64]())
-			}
-		}
-	}
-
-	for atr, data := range other.v2Data {
-		if _, ok := finalV2Data[atr]; !ok {
-			for i := 0; i < mAtrLength; i++ {
-				finalV2Data[atr] = append(finalV2Data[atr], vector2.Zero[float64]())
-			}
-		}
-		finalV2Data[atr] = append(finalV2Data[atr], data...)
-	}
-
-	finalV1Data := make(map[string][]float64)
-	for atr, data := range m.v1Data {
-		finalV1Data[atr] = data
-
-		if _, ok := other.v1Data[atr]; !ok {
-			for i := 0; i < oAtrLength; i++ {
-				finalV1Data[atr] = append(finalV1Data[atr], 0)
-			}
-		}
-	}
-
-	for atr, data := range other.v1Data {
-		if _, ok := finalV1Data[atr]; !ok {
-			for i := 0; i < mAtrLength; i++ {
-				finalV1Data[atr] = append(finalV1Data[atr], 0)
-			}
-		}
-		finalV1Data[atr] = append(finalV1Data[atr], data...)
-	}
+	finalV1Data := appendData(m.v1Data, other.v1Data, mAtrLength, oAtrLength, func() float64 { return 0 })
+	finalV2Data := appendData(m.v2Data, other.v2Data, mAtrLength, oAtrLength, func() vector2.Vector[float64] { return vector2.Zero[float64]() })
+	finalV3Data := appendData(m.v3Data, other.v3Data, mAtrLength, oAtrLength, func() vector3.Vector[float64] { return vector3.Zero[float64]() })
+	finalV4Data := appendData(m.v4Data, other.v4Data, mAtrLength, oAtrLength, func() vector4.Vector[float64] { return vector4.Zero[float64]() })
 
 	finalTris := append(m.indices, other.indices...)
 	finalMaterials := append(m.materials, other.materials...)
@@ -347,7 +322,15 @@ func (m Mesh) Append(other Mesh) Mesh {
 		finalTris[i] += mAtrLength
 	}
 
-	return NewMesh(finalTris, finalV3Data, finalV2Data, finalV1Data, finalMaterials)
+	return Mesh{
+		v1Data:    finalV1Data,
+		v2Data:    finalV2Data,
+		v3Data:    finalV3Data,
+		v4Data:    finalV4Data,
+		materials: finalMaterials,
+		indices:   finalTris,
+		topology:  m.topology,
+	}
 }
 
 // Translate(v) is shorthand for TranslateAttribute3D(V, "Position")
@@ -521,6 +504,17 @@ func (m Mesh) ScanFloat3Attribute(atr string, f func(i int, v vector3.Float64)) 
 	m.requireV3Attribute(atr)
 
 	data := m.v3Data[atr]
+	for i, v := range data {
+		f(i, v)
+	}
+
+	return m
+}
+
+func (m Mesh) ScanFloat4Attribute(atr string, f func(i int, v vector4.Float64)) Mesh {
+	m.requireV4Attribute(atr)
+
+	data := m.v4Data[atr]
 	for i, v := range data {
 		f(i, v)
 	}
@@ -1098,6 +1092,40 @@ func (m Mesh) requireTopology(t Topology) {
 	}
 }
 
+func (m Mesh) SetFloat4Attribute(attr string, data []vector4.Float64) Mesh {
+	finalV4Data := make(map[string][]vector4.Float64)
+	for key, val := range m.v4Data {
+		finalV4Data[key] = val
+	}
+	finalV4Data[attr] = data
+
+	if len(data) == 0 {
+		delete(finalV4Data, attr)
+	}
+
+	return Mesh{
+		v4Data:    finalV4Data,
+		v3Data:    m.v3Data,
+		v2Data:    m.v2Data,
+		v1Data:    m.v1Data,
+		indices:   m.indices,
+		materials: m.materials,
+		topology:  m.topology,
+	}
+}
+
+func (m Mesh) SetFloat4Data(data map[string][]vector4.Float64) Mesh {
+	return Mesh{
+		v1Data:    m.v1Data,
+		v2Data:    m.v2Data,
+		v3Data:    m.v3Data,
+		v4Data:    data,
+		indices:   m.indices,
+		materials: m.materials,
+		topology:  m.topology,
+	}
+}
+
 func (m Mesh) SetFloat3Attribute(attr string, data []vector3.Float64) Mesh {
 	finalV3Data := make(map[string][]vector3.Float64)
 	for key, val := range m.v3Data {
@@ -1113,6 +1141,18 @@ func (m Mesh) SetFloat3Attribute(attr string, data []vector3.Float64) Mesh {
 		v3Data:    finalV3Data,
 		v2Data:    m.v2Data,
 		v1Data:    m.v1Data,
+		indices:   m.indices,
+		materials: m.materials,
+		topology:  m.topology,
+	}
+}
+
+func (m Mesh) SetFloat3Data(data map[string][]vector3.Float64) Mesh {
+	return Mesh{
+		v1Data:    m.v1Data,
+		v2Data:    m.v2Data,
+		v3Data:    data,
+		v4Data:    m.v4Data,
 		indices:   m.indices,
 		materials: m.materials,
 		topology:  m.topology,
@@ -1140,6 +1180,18 @@ func (m Mesh) SetFloat2Attribute(attr string, data []vector2.Float64) Mesh {
 	}
 }
 
+func (m Mesh) SetFloat2Data(data map[string][]vector2.Float64) Mesh {
+	return Mesh{
+		v1Data:    m.v1Data,
+		v2Data:    data,
+		v3Data:    m.v3Data,
+		v4Data:    m.v4Data,
+		indices:   m.indices,
+		materials: m.materials,
+		topology:  m.topology,
+	}
+}
+
 func (m Mesh) SetFloat1Attribute(attr string, data []float64) Mesh {
 	finalV1Data := make(map[string][]float64)
 	for key, val := range m.v1Data {
@@ -1161,6 +1213,18 @@ func (m Mesh) SetFloat1Attribute(attr string, data []float64) Mesh {
 	}
 }
 
+func (m Mesh) SetFloat1Data(data map[string][]float64) Mesh {
+	return Mesh{
+		v1Data:    data,
+		v2Data:    m.v2Data,
+		v3Data:    m.v3Data,
+		v4Data:    m.v4Data,
+		indices:   m.indices,
+		materials: m.materials,
+		topology:  m.topology,
+	}
+}
+
 func (m Mesh) HasVertexAttribute(atr string) bool {
 	if m.HasFloat3Attribute(atr) {
 		return true
@@ -1172,6 +1236,16 @@ func (m Mesh) HasVertexAttribute(atr string) bool {
 
 	if m.HasFloat1Attribute(atr) {
 		return true
+	}
+
+	return false
+}
+
+func (m Mesh) HasFloat4Attribute(atr string) bool {
+	for v4Atr := range m.v4Data {
+		if v4Atr == atr {
+			return true
+		}
 	}
 
 	return false
@@ -1205,6 +1279,12 @@ func (m Mesh) HasFloat1Attribute(atr string) bool {
 	}
 
 	return false
+}
+
+func (m Mesh) requireV4Attribute(atr string) {
+	if !m.HasFloat4Attribute(atr) {
+		panic(fmt.Errorf("can not perform operation for a mesh without the attribute '%s'", atr))
+	}
 }
 
 func (m Mesh) requireV3Attribute(atr string) {

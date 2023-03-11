@@ -11,19 +11,9 @@ import (
 
 func TestSetFloat3Attribute_EmptyArr_Clears(t *testing.T) {
 	// ARRANGE ================================================================
-	m := modeling.NewMesh(
-		[]int{
-			0, 0, 0,
-		},
-		map[string][]vector3.Float64{
-			modeling.PositionAttribute: {
-				vector3.New(0., 0., 0.),
-			},
-		},
-		nil,
-		nil,
-		nil,
-	)
+
+	m := modeling.NewMesh([]int{0, 0, 0}).
+		SetFloat3Attribute(modeling.PositionAttribute, []vector3.Float64{vector3.New(0., 0., 0.)})
 
 	// ACT ====================================================================
 	newMesh := m.SetFloat3Attribute(modeling.PositionAttribute, nil)
@@ -40,53 +30,44 @@ func Test_SplitOnUniqueMaterials_Simple(t *testing.T) {
 			0, 1, 2,
 			3, 4, 5,
 		},
-		map[string][]vector3.Float64{
-			modeling.PositionAttribute: {
-				vector3.New[float64](0., 0., 0.),
-				vector3.New[float64](0., 1., 0.),
-				vector3.New[float64](1., 1., 0.),
+	).SetFloat3Attribute(modeling.PositionAttribute, []vector3.Float64{
+		vector3.New(0., 0., 0.),
+		vector3.New(0., 1., 0.),
+		vector3.New(1., 1., 0.),
 
-				vector3.New[float64](0., 0., 0.),
-				vector3.New[float64](1., 1., 0.),
-				vector3.New[float64](1., 0., 0.),
-			},
-			modeling.NormalAttribute: {
-				vector3.New[float64](0., 0., 0.),
-				vector3.New[float64](0., 1., 0.),
-				vector3.New[float64](1., 1., 0.),
+		vector3.New(0., 0., 0.),
+		vector3.New(1., 1., 0.),
+		vector3.New(1., 0., 0.),
+	}).SetFloat3Attribute(modeling.NormalAttribute, []vector3.Float64{
+		vector3.New(0., 0., 0.),
+		vector3.New(0., 1., 0.),
+		vector3.New(1., 1., 0.),
 
-				vector3.New[float64](0., 0., 0.),
-				vector3.New[float64](1., 1., 0.),
-				vector3.New[float64](1., 0., 0.),
+		vector3.New(0., 0., 0.),
+		vector3.New(1., 1., 0.),
+		vector3.New(1., 0., 0.),
+	}).SetFloat2Attribute(modeling.TexCoordAttribute, []vector2.Float64{
+		vector2.New(0., 0.),
+		vector2.New(0., 1.),
+		vector2.New(1., 1.),
+
+		vector2.New(0., 0.),
+		vector2.New(1., 1.),
+		vector2.New(1., 0.),
+	}).SetMaterials([]modeling.MeshMaterial{
+		{
+			PrimitiveCount: 1,
+			Material: &modeling.Material{
+				Name: "red",
 			},
 		},
-		map[string][]vector2.Float64{
-			modeling.TexCoordAttribute: {
-				vector2.New[float64](0., 0.),
-				vector2.New[float64](0., 1.),
-				vector2.New[float64](1., 1.),
-
-				vector2.New[float64](0., 0.),
-				vector2.New[float64](1., 1.),
-				vector2.New[float64](1., 0.),
+		{
+			PrimitiveCount: 1,
+			Material: &modeling.Material{
+				Name: "blue",
 			},
 		},
-		nil,
-		[]modeling.MeshMaterial{
-			{
-				PrimitiveCount: 1,
-				Material: &modeling.Material{
-					Name: "red",
-				},
-			},
-			{
-				PrimitiveCount: 1,
-				Material: &modeling.Material{
-					Name: "blue",
-				},
-			},
-		},
-	)
+	})
 
 	// ACT ====================================================================
 	meshes := m.SplitOnUniqueMaterials()

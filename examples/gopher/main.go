@@ -11,6 +11,7 @@ import (
 	"github.com/EliCDavis/polyform/modeling/animation"
 	"github.com/EliCDavis/polyform/modeling/marching"
 	"github.com/EliCDavis/vector/vector3"
+	"github.com/EliCDavis/vector/vector4"
 )
 
 func main() {
@@ -50,9 +51,11 @@ func main() {
 		1,
 	).WithColor(gopherYellow)
 
+	bottomLegStart := vector3.New(0., -0.1, 0.)
+	toesPos := vector3.New(.7, -0.6, 0.4)
 	gopherBottomLeg := marching.Line(
-		vector3.New(0., -0.1, 0.),
-		vector3.New(.7, -0.6, 0.4),
+		bottomLegStart,
+		toesPos,
 		0.1,
 		1,
 	).WithColor(gopherYellow)
@@ -130,6 +133,7 @@ func main() {
 	log.Printf("time to mesh: %s", time.Since(start))
 
 	armDir := hand.Sub(topLegStart).Normalized()
+	legDir := toesPos.Sub(bottomLegStart).Normalized()
 	skeleton := animation.NewSkeleton(animation.NewJoint(
 		"Hip",
 		hipPosition,
@@ -148,24 +152,47 @@ func main() {
 			vector3.Forward[float64](),
 			animation.NewJoint("Hand", hand, armDir, vector3.Forward[float64]()),
 		),
+		animation.NewJoint(
+			"Leg",
+			bottomLegStart,
+			legDir,
+			vector3.Forward[float64](),
+			animation.NewJoint("Toes", toesPos, legDir, vector3.Forward[float64]()),
+		),
 	))
 
-	joinData := make([]vector3.Float64, mesh.AttributeLength())
-	weightData := make([]vector3.Float64, mesh.AttributeLength())
+	joinData := make([]vector4.Float64, mesh.AttributeLength())
+	weightData := make([]vector4.Float64, mesh.AttributeLength())
 	mesh.ScanFloat3Attribute(modeling.PositionAttribute, func(i int, v vector3.Float64) {
+		joints := skeleton.ClosestJoints(v)
+		distances := make([]float64, len(joints))
+
+		total := 0.
+		for i, j := range joints {
+			distances[i] = skeleton.WorldPosition(j).Distance(v)
+			total += distances[i]
+		}
+
+		for i := range joints {
+			distances[i] = 1. - (distances[i] / total)
+		}
+
+		joint := vector4.New(float64(joints[0]), float64(joints[1]), float64(joints[2]), float64(joints[3]))
+		weight := vector4.New(distances[0], distances[1], distances[2], distances[3])
+
 		// joinData[i] = vector3.New(float64(closestJointIndex), 0., 0.)
 		// weightData[i] = vector3.Right[float64]()
 
 		// d1 := jointPositions[0].Distance(v)
 		// d2 := jointPositions[2].Distance(v)
 		// total := d1 + d2
-		// joinData[i] = vector3.New(0., 2., 0.)
-		// weightData[i] = vector3.New(d2/total, d1/total, 0.)
+		joinData[i] = joint
+		weightData[i] = weight
 	})
 
 	mesh = mesh.
-		SetFloat3Attribute(modeling.JointAttribute, joinData).
-		SetFloat3Attribute(modeling.WeightAttribute, weightData)
+		SetFloat4Attribute(modeling.JointAttribute, joinData).
+		SetFloat4Attribute(modeling.WeightAttribute, weightData)
 
 	animationWave := animation.NewSequence("Hip/Arm/Hand", []animation.Frame{
 		// animation.NewFrame(0, hand),

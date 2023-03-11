@@ -68,21 +68,37 @@ func (s Skeleton) Children(index int) []int {
 	return s.joints[index].children
 }
 
-func (s Skeleton) ClosestJoints(point vector3.Float64) {
-	const maxPointsToConsider = 3
+func (s Skeleton) ClosestJoints(point vector3.Float64) []int {
+	const maxPointsToConsider = 4
 
 	queue := make(jointItemPriorityQueue, 0)
 
 	for i, n := range s.joints {
-		dist := n.worldPosition.Distance(point)
-		if queue.Len() < maxPointsToConsider {
-			heap.Push(&queue, jointDistItem{
-				dist:  dist,
-				joint: i,
-				point: n.worldPosition,
-			})
-		}
+		dist := n.worldPosition.DistanceSquared(point)
+		// if queue.Len() < maxPointsToConsider {
+		heap.Push(&queue, jointDistItem{
+			dist:  dist,
+			joint: i,
+			point: n.worldPosition,
+		})
+		// }
 	}
+
+	size := maxPointsToConsider
+	if queue.Len() < maxPointsToConsider {
+		size = queue.Len()
+	}
+
+	joints := make([]int, size)
+	for i := 0; i < size; i++ {
+		item := heap.Pop(&queue).(jointDistItem)
+		joints[i] = item.joint
+	}
+	return joints
+}
+
+func (s Skeleton) WorldPosition(index int) vector3.Float64 {
+	return s.joints[index].worldPosition
 }
 
 func (s Skeleton) RelativeMatrix(index int) mat.Matrix4x4 {

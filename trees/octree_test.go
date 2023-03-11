@@ -15,19 +15,12 @@ import (
 
 func TestOctreeSingleTri(t *testing.T) {
 	// ARRANGE ================================================================
-	mesh := modeling.NewMesh(
-		[]int{0, 1, 2},
-		map[string][]vector3.Float64{
-			modeling.PositionAttribute: {
-				vector3.New(0., 0., 0.),
-				vector3.New(0., 1., 0.),
-				vector3.New(1., 1., 0.),
-			},
-		},
-		nil,
-		nil,
-		nil,
-	)
+	mesh := modeling.NewMesh([]int{0, 1, 2}).
+		SetFloat3Attribute(modeling.PositionAttribute, []vector3.Float64{
+			vector3.New(0., 0., 0.),
+			vector3.New(0., 1., 0.),
+			vector3.New(1., 1., 0.),
+		})
 	tree := mesh.OctTree()
 
 	// ACT ====================================================================
@@ -39,20 +32,14 @@ func TestOctreeSingleTri(t *testing.T) {
 
 func TestOctreeTwoTris(t *testing.T) {
 	// ARRANGE ================================================================
-	mesh := modeling.NewMesh(
-		[]int{0, 1, 2, 0, 2, 3},
-		map[string][]vector3.Float64{
-			modeling.PositionAttribute: {
-				vector3.New(0., 0., 0.),
-				vector3.New(0., 1., 0.),
-				vector3.New(1., 1., 0.),
-				vector3.New(1., 0., 0.),
-			},
-		},
-		nil,
-		nil,
-		nil,
-	)
+	mesh := modeling.NewMesh([]int{0, 1, 2, 0, 2, 3}).
+		SetFloat3Attribute(modeling.PositionAttribute, []vector3.Float64{
+			vector3.New(0., 0., 0.),
+			vector3.New(0., 1., 0.),
+			vector3.New(1., 1., 0.),
+			vector3.New(1., 0., 0.),
+		})
+
 	tree := mesh.OctTree()
 
 	// ACT ====================================================================

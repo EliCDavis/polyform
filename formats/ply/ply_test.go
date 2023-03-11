@@ -240,24 +240,22 @@ end_header
 `
 
 	imgName := "tri.png"
-	tri := modeling.NewMesh(
-		[]int{0, 1, 2},
-		map[string][]vector3.Vector[float64]{
+	tri := modeling.NewMesh([]int{0, 1, 2}).
+		SetFloat3Data(map[string][]vector3.Vector[float64]{
 			modeling.PositionAttribute: []vector3.Float64{
 				vector3.New(0., 0., 0.),
 				vector3.New(0., 1., 0.),
 				vector3.New(1., 1., 0.),
 			},
-		},
-		map[string][]vector2.Vector[float64]{
+		}).
+		SetFloat2Data(map[string][]vector2.Vector[float64]{
 			modeling.TexCoordAttribute: []vector2.Float64{
 				vector2.New(0., 0.),
 				vector2.New(0., 1.),
 				vector2.New(1., 1.),
 			},
-		},
-		nil,
-		[]modeling.MeshMaterial{
+		}).
+		SetMaterials([]modeling.MeshMaterial{
 			{
 				PrimitiveCount: 1,
 				Material: &modeling.Material{
@@ -265,8 +263,7 @@ end_header
 					ColorTextureURI: &imgName,
 				},
 			},
-		},
-	)
+		})
 
 	buf := bytes.Buffer{}
 	err := ply.WriteASCII(&buf, tri)

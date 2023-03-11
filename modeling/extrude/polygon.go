@@ -147,18 +147,14 @@ func polygon(sides int, points []ExtrusionPoint, closed bool) modeling.Mesh {
 		}
 	}
 
-	return modeling.NewMesh(
-		tris,
-		map[string][]vector3.Float64{
+	return modeling.NewMesh(tris).
+		SetFloat3Data(map[string][]vector3.Float64{
 			modeling.PositionAttribute: vertices,
 			modeling.NormalAttribute:   normals,
-		},
-		map[string][]vector2.Float64{
+		}).
+		SetFloat2Data(map[string][]vector2.Float64{
 			modeling.TexCoordAttribute: uvs,
-		},
-		nil,
-		nil,
-	)
+		})
 }
 
 func ClosedCircleWithConstantThickness(sides int, thickness float64, path []vector3.Float64) modeling.Mesh {

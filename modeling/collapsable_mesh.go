@@ -109,18 +109,10 @@ func (cm CollapsableMesh) ToMesh() Mesh {
 		finalTriIndex += 3
 	}
 
-	return NewMesh(
-		finalTris,
-		map[string][]vector3.Float64{
-			PositionAttribute: finalVerts,
-			NormalAttribute:   finalNormals,
-		},
-		map[string][]vector2.Float64{
-			TexCoordAttribute: finalUVs,
-		},
-		nil,
-		nil,
-	)
+	return NewMesh(finalTris).
+		SetFloat3Attribute(PositionAttribute, finalVerts).
+		SetFloat3Attribute(NormalAttribute, finalNormals).
+		SetFloat2Attribute(TexCoordAttribute, finalUVs)
 }
 
 func (cm CollapsableMesh) validTri(triIndex int) bool {

@@ -13,19 +13,14 @@ import (
 
 func TestWriteBasicTri(t *testing.T) {
 	// ARRANGE ================================================================
-	tri := modeling.NewMesh(
-		[]int{0, 1, 2},
-		map[string][]vector3.Vector[float64]{
-			modeling.PositionAttribute: []vector3.Float64{
+	tri := modeling.NewMesh([]int{0, 1, 2}).
+		SetFloat3Attribute(
+			modeling.PositionAttribute, []vector3.Float64{
 				vector3.New(0., 0., 0.),
 				vector3.New(0., 1., 0.),
 				vector3.New(1., 0., 0.),
 			},
-		},
-		nil,
-		nil,
-		nil,
-	)
+		)
 	buf := bytes.Buffer{}
 
 	// ACT ====================================================================
@@ -124,24 +119,22 @@ func TestWriteBasicTri(t *testing.T) {
 
 func TestWriteColorTri(t *testing.T) {
 	// ARRANGE ================================================================
-	tri := modeling.NewMesh(
-		[]int{0, 1, 2},
-		map[string][]vector3.Vector[float64]{
-			modeling.PositionAttribute: []vector3.Float64{
+	tri := modeling.NewMesh([]int{0, 1, 2}).
+		SetFloat3Attribute(
+			modeling.PositionAttribute, []vector3.Float64{
 				vector3.New(0., 0., 0.),
 				vector3.New(0., 1., 0.),
 				vector3.New(1., 0., 0.),
 			},
-			modeling.ColorAttribute: []vector3.Float64{
+		).
+		SetFloat3Attribute(
+			modeling.ColorAttribute, []vector3.Float64{
 				vector3.New(1., 0., 0.),
 				vector3.New(0., 1., 0.),
 				vector3.New(0., 0., 1.),
 			},
-		},
-		nil,
-		nil,
-		nil,
-	)
+		)
+
 	buf := bytes.Buffer{}
 
 	// ACT ====================================================================
@@ -263,30 +256,32 @@ func TestWriteColorTri(t *testing.T) {
 
 func TestWriteTexturedTri(t *testing.T) {
 	// ARRANGE ================================================================
-	tri := modeling.NewMesh(
-		[]int{0, 1, 2},
-		map[string][]vector3.Vector[float64]{
-			modeling.PositionAttribute: []vector3.Float64{
+	tri := modeling.NewMesh([]int{0, 1, 2}).
+		SetFloat3Attribute(
+			modeling.PositionAttribute,
+			[]vector3.Float64{
 				vector3.New(0., 0., 0.),
 				vector3.New(0., 1., 0.),
 				vector3.New(1., 0., 0.),
 			},
-			modeling.NormalAttribute: []vector3.Float64{
+		).
+		SetFloat3Attribute(
+			modeling.NormalAttribute,
+			[]vector3.Float64{
 				vector3.New(1., 0., 0.),
 				vector3.New(0., 1., 0.),
 				vector3.New(0., 0., 1.),
 			},
-		},
-		map[string][]vector2.Vector[float64]{
-			modeling.TexCoordAttribute: []vector2.Float64{
+		).
+		SetFloat2Attribute(
+			modeling.TexCoordAttribute,
+			[]vector2.Float64{
 				vector2.New(0., 0.),
 				vector2.New(0., 1.),
 				vector2.New(1., 0.),
 			},
-		},
-		nil,
-		nil,
-	)
+		)
+
 	buf := bytes.Buffer{}
 
 	// ACT ====================================================================

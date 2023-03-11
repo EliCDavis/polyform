@@ -1,5 +1,7 @@
 github.com/EliCDavis/vector v1.0.4 h1:FptiCqbcdV+oPIDmpxvn/xwDNiFelqzWicgjjGY1k5k=
 github.com/EliCDavis/vector v1.0.4/go.mod h1:A+Zf8tDKfocwQa9md33HsE53KclL7uayR/cKjKHUFSA=
+github.com/EliCDavis/vector v1.0.5 h1:Y+V1BHPpSvfTjTaU0x9FJcbv8VdpY0CLI5gtrROo6lo=
+github.com/EliCDavis/vector v1.0.5/go.mod h1:A+Zf8tDKfocwQa9md33HsE53KclL7uayR/cKjKHUFSA=
 github.com/cpuguy83/go-md2man/v2 v2.0.2 h1:p1EgwI/C7NhT0JmVkwCD2ZBK8j4aeHQX2pMHHBfMQ6w=
 github.com/cpuguy83/go-md2man/v2 v2.0.2/go.mod h1:tgQtvFlXSQOSOSIRvRPT7W67SCa46tRHOmNcaadrF8o=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=

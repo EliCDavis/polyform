@@ -71,14 +71,9 @@ func UVSphere(radius float64, rows, columns int) modeling.Mesh {
 			)
 		}
 	}
-	return modeling.NewMesh(
-		tris,
-		map[string][]vector3.Float64{
+	return modeling.NewMesh(tris).
+		SetFloat3Data(map[string][]vector3.Float64{
 			modeling.PositionAttribute: positions,
 			modeling.NormalAttribute:   vector3.Array[float64](positions).Normalized(),
-		},
-		nil,
-		nil,
-		nil,
-	)
+		})
 }

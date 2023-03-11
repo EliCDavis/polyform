@@ -460,5 +460,9 @@ func (f Field) March(atr string, cubesPerUnit, cutoff float64) modeling.Mesh {
 			}
 		}
 	}
-	return modeling.NewMesh(tris, v3Data, v2Data, v1Data, nil).WeldByFloat3Attribute(modeling.PositionAttribute, 3)
+	return modeling.NewMesh(tris).
+		SetFloat3Data(v3Data).
+		SetFloat2Data(v2Data).
+		SetFloat1Data(v1Data).
+		WeldByFloat3Attribute(modeling.PositionAttribute, 3)
 }

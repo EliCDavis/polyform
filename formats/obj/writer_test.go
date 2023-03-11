@@ -29,19 +29,14 @@ func TestWriteObj_EmptyMesh(t *testing.T) {
 
 func TestWriteObj_NoNormalsOrUVs(t *testing.T) {
 	// ARRANGE ================================================================
-	m := modeling.NewMesh(
-		[]int{
-			0, 1, 2,
-		},
-		map[string][]vector3.Float64{
+	m := modeling.NewMesh([]int{0, 1, 2}).
+		SetFloat3Data(map[string][]vector3.Float64{
 			modeling.PositionAttribute: {
 				vector3.New[float64](1., 2., 3.),
 				vector3.New[float64](4., 5., 6.),
 				vector3.New[float64](7., 8., 9.),
 			},
-		},
-		nil, nil, nil,
-	)
+		})
 	buf := bytes.Buffer{}
 
 	// ACT ====================================================================
@@ -61,11 +56,8 @@ f 1 2 3
 
 func TestWriteObj_NoUVs(t *testing.T) {
 	// ARRANGE ================================================================
-	m := modeling.NewMesh(
-		[]int{
-			0, 1, 2,
-		},
-		map[string][]vector3.Float64{
+	m := modeling.NewMesh([]int{0, 1, 2}).
+		SetFloat3Data(map[string][]vector3.Float64{
 			modeling.PositionAttribute: {
 				vector3.New[float64](1, 2, 3),
 				vector3.New[float64](4, 5, 6),
@@ -76,11 +68,7 @@ func TestWriteObj_NoUVs(t *testing.T) {
 				vector3.New[float64](0, 0, 1),
 				vector3.New[float64](1, 0, 0),
 			},
-		},
-		nil,
-		nil,
-		nil,
-	)
+		})
 	buf := bytes.Buffer{}
 
 	// ACT ====================================================================
@@ -103,27 +91,17 @@ f 1//1 2//2 3//3
 
 func TestWriteObj_NoNormals(t *testing.T) {
 	// ARRANGE ================================================================
-	m := modeling.NewMesh(
-		[]int{
-			0, 1, 2,
-		},
-		map[string][]vector3.Float64{
-			modeling.PositionAttribute: {
-				vector3.New[float64](1, 2, 3),
-				vector3.New[float64](4, 5, 6),
-				vector3.New[float64](7, 8, 9),
-			},
-		},
-		map[string][]vector2.Float64{
-			modeling.TexCoordAttribute: {
-				vector2.New[float64](1., 0.5),
-				vector2.New[float64](0.5, 1.),
-				vector2.New[float64](0., 0.),
-			},
-		},
-		nil,
-		nil,
-	)
+	m := modeling.NewMesh([]int{0, 1, 2}).
+		SetFloat3Attribute(modeling.PositionAttribute, []vector3.Float64{
+			vector3.New[float64](1, 2, 3),
+			vector3.New[float64](4, 5, 6),
+			vector3.New[float64](7, 8, 9),
+		}).
+		SetFloat2Attribute(modeling.TexCoordAttribute, []vector2.Float64{
+			vector2.New[float64](1., 0.5),
+			vector2.New[float64](0.5, 1.),
+			vector2.New[float64](0., 0.),
+		})
 	buf := bytes.Buffer{}
 
 	// ACT ====================================================================
@@ -146,11 +124,8 @@ f 1/1 2/2 3/3
 
 func TestWriteObj(t *testing.T) {
 	// ARRANGE ================================================================
-	m := modeling.NewMesh(
-		[]int{
-			0, 1, 2,
-		},
-		map[string][]vector3.Float64{
+	m := modeling.NewMesh([]int{0, 1, 2}).
+		SetFloat3Data(map[string][]vector3.Float64{
 			modeling.PositionAttribute: {
 				vector3.New[float64](1, 2, 3),
 				vector3.New[float64](4, 5, 6),
@@ -161,17 +136,16 @@ func TestWriteObj(t *testing.T) {
 				vector3.New[float64](0, 0, 1),
 				vector3.New[float64](1, 0, 0),
 			},
-		},
-		map[string][]vector2.Float64{
-			modeling.TexCoordAttribute: {
-				vector2.New[float64](1, 0.5),
-				vector2.New[float64](0.5, 1),
-				vector2.New[float64](0, 0),
+		}).
+		SetFloat2Data(
+			map[string][]vector2.Float64{
+				modeling.TexCoordAttribute: {
+					vector2.New[float64](1, 0.5),
+					vector2.New[float64](0.5, 1),
+					vector2.New[float64](0, 0),
+				},
 			},
-		},
-		nil,
-		nil,
-	)
+		)
 	buf := bytes.Buffer{}
 
 	// ACT ====================================================================
@@ -197,11 +171,8 @@ f 1/1/1 2/2/2 3/3/3
 
 func TestWriteObjWithSingleMaterial(t *testing.T) {
 	// ARRANGE ================================================================
-	m := modeling.NewMesh(
-		[]int{
-			0, 1, 2,
-		},
-		map[string][]vector3.Float64{
+	m := modeling.NewMesh([]int{0, 1, 2}).
+		SetFloat3Data(map[string][]vector3.Float64{
 			modeling.PositionAttribute: {
 				vector3.New[float64](1, 2, 3),
 				vector3.New[float64](4, 5, 6),
@@ -212,24 +183,22 @@ func TestWriteObjWithSingleMaterial(t *testing.T) {
 				vector3.New[float64](0, 0, 1),
 				vector3.New[float64](1, 0, 0),
 			},
-		},
-		map[string][]vector2.Float64{
+		}).
+		SetFloat2Data(map[string][]vector2.Float64{
 			modeling.TexCoordAttribute: {
 				vector2.New[float64](1, 0.5),
 				vector2.New[float64](0.5, 1),
 				vector2.New[float64](0, 0),
 			},
-		},
-		nil,
-		[]modeling.MeshMaterial{
+		}).
+		SetMaterials([]modeling.MeshMaterial{
 			{
 				PrimitiveCount: 1,
 				Material: &modeling.Material{
 					Name: "red",
 				},
 			},
-		},
-	)
+		})
 	buf := bytes.Buffer{}
 
 	// ACT ====================================================================
@@ -256,12 +225,8 @@ f 1/1/1 2/2/2 3/3/3
 
 func TestWriteObjWithMultipleMaterials(t *testing.T) {
 	// ARRANGE ================================================================
-	m := modeling.NewMesh(
-		[]int{
-			0, 1, 2,
-			3, 4, 5,
-		},
-		map[string][]vector3.Float64{
+	m := modeling.NewMesh([]int{0, 1, 2, 3, 4, 5}).
+		SetFloat3Data(map[string][]vector3.Float64{
 			modeling.PositionAttribute: {
 				vector3.New[float64](1, 2, 3),
 				vector3.New[float64](4, 5, 6),
@@ -278,8 +243,8 @@ func TestWriteObjWithMultipleMaterials(t *testing.T) {
 				vector3.New[float64](0, 0, 1),
 				vector3.New[float64](1, 0, 0),
 			},
-		},
-		map[string][]vector2.Float64{
+		}).
+		SetFloat2Data(map[string][]vector2.Float64{
 			modeling.TexCoordAttribute: {
 				vector2.New[float64](1, 0.5),
 				vector2.New[float64](0.5, 1),
@@ -288,9 +253,8 @@ func TestWriteObjWithMultipleMaterials(t *testing.T) {
 				vector2.New[float64](0.5, 1),
 				vector2.New[float64](0, 0),
 			},
-		},
-		nil,
-		[]modeling.MeshMaterial{
+		}).
+		SetMaterials([]modeling.MeshMaterial{
 			{
 				PrimitiveCount: 1,
 				Material: &modeling.Material{
@@ -303,8 +267,8 @@ func TestWriteObjWithMultipleMaterials(t *testing.T) {
 					Name: "blue",
 				},
 			},
-		},
-	)
+		})
+
 	buf := bytes.Buffer{}
 
 	// ACT ====================================================================
@@ -343,10 +307,8 @@ f 4/4/4 5/5/5 6/6/6
 func TestWriteMaterials(t *testing.T) {
 	// ARRANGE ================================================================
 	buf := bytes.Buffer{}
-	m := modeling.NewMesh(
-		[]int{},
-		nil, nil, nil,
-		[]modeling.MeshMaterial{
+	m := modeling.NewMesh(nil).
+		SetMaterials([]modeling.MeshMaterial{
 			{
 				PrimitiveCount: 1,
 				Material: &modeling.Material{
@@ -362,8 +324,7 @@ func TestWriteMaterials(t *testing.T) {
 					SpecularColor: color.RGBA{7, 8, 9, 255},
 				},
 			},
-		},
-	)
+		})
 
 	// ACT ====================================================================
 	err := obj.WriteMaterials(m, &buf)
