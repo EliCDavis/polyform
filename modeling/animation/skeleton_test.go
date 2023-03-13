@@ -13,6 +13,7 @@ func TestNewSkeleton_SingleJoint(t *testing.T) {
 	// ACT ====================================================================
 	skeleton := animation.NewSkeleton(animation.NewJoint(
 		"Head",
+		1,
 		vector3.Zero[float64](),
 		vector3.Up[float64](),
 		vector3.Forward[float64](),
@@ -29,17 +30,20 @@ func TestNewSkeleton_2Levels(t *testing.T) {
 	// ACT ====================================================================
 	skeleton := animation.NewSkeleton(animation.NewJoint(
 		"Head",
+		1,
 		vector3.Zero[float64](),
 		vector3.Up[float64](),
 		vector3.Forward[float64](),
 		animation.NewJoint(
 			"Left Hand",
+			1,
 			vector3.Left[float64](),
 			vector3.Up[float64](),
 			vector3.Forward[float64](),
 		),
 		animation.NewJoint(
 			"Right Hand",
+			1,
 			vector3.Right[float64](),
 			vector3.Up[float64](),
 			vector3.Forward[float64](),

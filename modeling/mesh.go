@@ -47,6 +47,15 @@ func newImpliedIndicesMesh(
 ) Mesh {
 	attributeCount := 0
 
+	cleanedV4Data := make(map[string][]vector4.Float64)
+	for key, vals := range v4Data {
+		if len(vals) == 0 {
+			continue
+		}
+		cleanedV4Data[key] = vals
+		attributeCount = len(vals)
+	}
+
 	cleanedV3Data := make(map[string][]vector3.Float64)
 	for key, vals := range v3Data {
 		if len(vals) == 0 {
@@ -87,6 +96,7 @@ func newImpliedIndicesMesh(
 		indices:   indices,
 		materials: materials,
 		topology:  topo,
+		v4Data:    cleanedV4Data,
 		v3Data:    cleanedV3Data,
 		v2Data:    cleanedV2Data,
 		v1Data:    cleanedV1Data,
@@ -117,6 +127,7 @@ func EmptyMesh() Mesh {
 		indices:   make([]int, 0),
 		materials: make([]MeshMaterial, 0),
 		topology:  TriangleTopology,
+		v4Data:    make(map[string][]vector4.Float64),
 		v3Data:    make(map[string][]vector3.Float64),
 		v2Data:    make(map[string][]vector2.Float64),
 		v1Data:    make(map[string][]float64),
@@ -889,6 +900,7 @@ func (m Mesh) FlipTriWinding() Mesh {
 	return Mesh{
 		topology:  TriangleTopology,
 		indices:   tris,
+		v4Data:    m.v4Data,
 		v3Data:    m.v3Data,
 		v2Data:    m.v2Data,
 		v1Data:    m.v1Data,
@@ -900,6 +912,11 @@ func (m Mesh) FlipTriWinding() Mesh {
 // any one vertex
 func (m Mesh) Unweld() Mesh {
 	indices := make([]int, len(m.indices))
+
+	unweldedV4Data := make(map[string][]vector4.Float64)
+	for atr := range m.v4Data {
+		unweldedV4Data[atr] = make([]vector4.Float64, 0)
+	}
 
 	unweldedV3Data := make(map[string][]vector3.Float64)
 	for atr := range m.v3Data {
@@ -918,6 +935,9 @@ func (m Mesh) Unweld() Mesh {
 
 	for i := 0; i < len(indices); i++ {
 		indices[i] = i
+		for atr, data := range m.v4Data {
+			unweldedV4Data[atr] = append(unweldedV4Data[atr], data[m.indices[i]])
+		}
 		for atr, data := range m.v3Data {
 			unweldedV3Data[atr] = append(unweldedV3Data[atr], data[m.indices[i]])
 		}
@@ -932,6 +952,7 @@ func (m Mesh) Unweld() Mesh {
 	return Mesh{
 		topology:  m.topology,
 		indices:   indices,
+		v4Data:    unweldedV4Data,
 		v3Data:    unweldedV3Data,
 		v2Data:    unweldedV2Data,
 		v1Data:    unweldedV1Data,
@@ -991,6 +1012,11 @@ func (m Mesh) WeldByFloat3Attribute(attribute string, decimalPlace int) Mesh {
 		newTris = append(newTris, vertILU[v1], vertILU[v2], vertILU[v3])
 	}
 
+	finalV4Data := make(map[string][]vector4.Float64)
+	for key := range m.v4Data {
+		finalV4Data[key] = make([]vector4.Float64, 0)
+	}
+
 	finalV3Data := make(map[string][]vector3.Float64)
 	for key := range m.v3Data {
 		finalV3Data[key] = make([]vector3.Float64, 0)
@@ -1014,6 +1040,10 @@ func (m Mesh) WeldByFloat3Attribute(attribute string, decimalPlace int) Mesh {
 		v := data[originalIndex]
 		vi := Vector3ToInt(v, decimalPlace)
 		if vertLUUsed[vi] {
+			for key, vals := range m.v4Data {
+				finalV4Data[key] = append(finalV4Data[key], vals[originalIndex])
+			}
+
 			for key, vals := range m.v3Data {
 				finalV3Data[key] = append(finalV3Data[key], vals[originalIndex])
 			}
@@ -1040,6 +1070,7 @@ func (m Mesh) WeldByFloat3Attribute(attribute string, decimalPlace int) Mesh {
 
 	return Mesh{
 		indices:   newTris,
+		v4Data:    finalV4Data,
 		v3Data:    finalV3Data,
 		v2Data:    finalV2Data,
 		v1Data:    finalV1Data,
@@ -1138,6 +1169,7 @@ func (m Mesh) SetFloat3Attribute(attr string, data []vector3.Float64) Mesh {
 	}
 
 	return Mesh{
+		v4Data:    m.v4Data,
 		v3Data:    finalV3Data,
 		v2Data:    m.v2Data,
 		v1Data:    m.v1Data,
@@ -1171,6 +1203,7 @@ func (m Mesh) SetFloat2Attribute(attr string, data []vector2.Float64) Mesh {
 	}
 
 	return Mesh{
+		v4Data:    m.v4Data,
 		v3Data:    m.v3Data,
 		v2Data:    finalV2Data,
 		v1Data:    m.v1Data,
@@ -1204,6 +1237,7 @@ func (m Mesh) SetFloat1Attribute(attr string, data []float64) Mesh {
 	}
 
 	return Mesh{
+		v4Data:    m.v4Data,
 		v3Data:    m.v3Data,
 		v2Data:    m.v2Data,
 		v1Data:    finalV1Data,
@@ -1390,6 +1424,7 @@ func (m Mesh) AttributeLength() int {
 
 func (m Mesh) RemoveUnusedIndices() Mesh {
 	finalTris := make([]int, len(m.indices))
+	finalV4Data := make(map[string][]vector4.Float64)
 	finalV3Data := make(map[string][]vector3.Float64)
 	finalV2Data := make(map[string][]vector2.Float64)
 	finalV1Data := make(map[string][]float64)
@@ -1406,6 +1441,16 @@ func (m Mesh) RemoveUnusedIndices() Mesh {
 			skipped++
 		}
 		shiftBy[i] = skipped
+	}
+
+	for atr, vals := range m.v4Data {
+		finalAtrVals := make([]vector4.Float64, 0)
+		for i, v := range vals {
+			if used[i] {
+				finalAtrVals = append(finalAtrVals, v)
+			}
+		}
+		finalV4Data[atr] = finalAtrVals
 	}
 
 	for atr, vals := range m.v3Data {
@@ -1444,6 +1489,7 @@ func (m Mesh) RemoveUnusedIndices() Mesh {
 
 	return Mesh{
 		indices:   finalTris,
+		v4Data:    finalV4Data,
 		v3Data:    finalV3Data,
 		v2Data:    finalV2Data,
 		v1Data:    finalV1Data,
@@ -1465,6 +1511,7 @@ func (m Mesh) SplitOnUniqueMaterials() []Mesh {
 	trisFromOtherMats := 0
 
 	workingMeshes[m.materials[curMatIndex].Material] = &Mesh{
+		v4Data: m.v4Data,
 		v3Data: m.v3Data,
 		v2Data: m.v2Data,
 		v1Data: m.v1Data,
@@ -1483,6 +1530,7 @@ func (m Mesh) SplitOnUniqueMaterials() []Mesh {
 			curMatIndex++
 			if _, ok := workingMeshes[m.materials[curMatIndex].Material]; !ok {
 				workingMeshes[m.materials[curMatIndex].Material] = &Mesh{
+					v4Data: m.v4Data,
 					v3Data: m.v3Data,
 					v2Data: m.v2Data,
 					v1Data: m.v1Data,
@@ -1520,6 +1568,7 @@ func (m Mesh) SliceByPlaneWithAttribute(plane geometry.Plane, atr string) (Mesh,
 	numFaces := len(m.indices) / 3
 
 	kept := Mesh{
+		v4Data:   m.v4Data,
 		v3Data:   m.v3Data,
 		v2Data:   m.v2Data,
 		v1Data:   m.v1Data,
@@ -1528,6 +1577,7 @@ func (m Mesh) SliceByPlaneWithAttribute(plane geometry.Plane, atr string) (Mesh,
 	}
 
 	clipped := Mesh{
+		v4Data:   m.v4Data,
 		v3Data:   m.v3Data,
 		v2Data:   m.v2Data,
 		v1Data:   m.v1Data,

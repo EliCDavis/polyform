@@ -5,9 +5,10 @@ import (
 	"github.com/EliCDavis/vector/vector3"
 )
 
-func NewJoint(name string, worldPosition, up, forward vector3.Float64, children ...Joint) Joint {
+func NewJoint(name string, weight float64, worldPosition, up, forward vector3.Float64, children ...Joint) Joint {
 	return Joint{
 		name:          name,
+		weight:        weight,
 		worldPosition: worldPosition,
 		up:            up,
 		forward:       forward,
@@ -17,6 +18,7 @@ func NewJoint(name string, worldPosition, up, forward vector3.Float64, children 
 
 type Joint struct {
 	name          string
+	weight        float64
 	worldPosition vector3.Float64
 	up, forward   vector3.Float64
 	children      []Joint

@@ -466,3 +466,48 @@ func (f Field) March(atr string, cubesPerUnit, cutoff float64) modeling.Mesh {
 		SetFloat1Data(v1Data).
 		WeldByFloat3Attribute(modeling.PositionAttribute, 3)
 }
+
+func (f Field) Voxelize(atr string, cubesPerUnit, cutoff float64) []vector3.Float64 {
+	var atrFunc sample.Vec3ToFloat
+	for atrs, f1f := range f.Float1Functions {
+		if atrs == atr {
+			atrFunc = f1f
+		}
+	}
+
+	if atrFunc == nil {
+		panic(fmt.Errorf("Field doesn't contain f1 function for attribute %s", atr))
+	}
+
+	min := f.Domain.Min()
+	max := f.Domain.Max()
+
+	minCanvas := modeling.VectorInt{
+		X: int(math.Floor(min.X()*cubesPerUnit)) - 1,
+		Y: int(math.Floor(min.Y()*cubesPerUnit)) - 1,
+		Z: int(math.Floor(min.Z()*cubesPerUnit)) - 1,
+	}
+
+	maxCanvas := modeling.VectorInt{
+		X: int(math.Ceil(max.X()*cubesPerUnit)) + 1,
+		Y: int(math.Ceil(max.Y()*cubesPerUnit)) + 1,
+		Z: int(math.Ceil(max.Z()*cubesPerUnit)) + 1,
+	}
+
+	cubesToUnit := 1. / cubesPerUnit
+
+	vals := make([]vector3.Float64, 0)
+
+	for x := minCanvas.X; x < maxCanvas.X; x++ {
+		for y := minCanvas.Y; y < maxCanvas.Y; y++ {
+			for z := minCanvas.Z; z < maxCanvas.Z; z++ {
+				v := vector3.New(float64(x), float64(y), float64(z)).Scale(cubesToUnit)
+				if atrFunc(v) < cutoff {
+					vals = append(vals, v)
+				}
+			}
+		}
+	}
+
+	return vals
+}

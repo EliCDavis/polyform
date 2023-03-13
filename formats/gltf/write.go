@@ -8,6 +8,7 @@ import (
 	"io"
 	"math"
 
+	"github.com/EliCDavis/polyform/math/mat"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/animation"
 	"github.com/EliCDavis/vector/vector2"
@@ -64,8 +65,6 @@ func ptrI(i int) *int {
 }
 
 func flattenSkeletonToNodes(offset int, skeleton animation.Skeleton, out *bytes.Buffer) []Node {
-	// pos := skeleton.RelativePosition()
-
 	nodes := make([]Node, 0)
 
 	for i := 0; i < skeleton.JointCount(); i++ {
@@ -74,35 +73,42 @@ func flattenSkeletonToNodes(offset int, skeleton animation.Skeleton, out *bytes.
 			children[i] = c + offset
 		}
 
-		relativeMatrix := skeleton.RelativeMatrix(i)
+		// relativeMatrix := skeleton.RelativeMatrix(i)
+
+		pos := skeleton.RelativePosition(i)
 
 		node := Node{
-			// Translation: &[3]float64{pos.X(), pos.Y(), pos.Z()},
-			Matrix: &[16]float64{
-				relativeMatrix.X00,
-				relativeMatrix.X10,
-				relativeMatrix.X20,
-				relativeMatrix.X30,
+			Translation: &[3]float64{pos.X(), pos.Y(), pos.Z()},
+			// Matrix: &[16]float64{
+			// 	relativeMatrix.X00,
+			// 	relativeMatrix.X10,
+			// 	relativeMatrix.X20,
+			// 	relativeMatrix.X30,
 
-				relativeMatrix.X01,
-				relativeMatrix.X11,
-				relativeMatrix.X21,
-				relativeMatrix.X31,
+			// 	relativeMatrix.X01,
+			// 	relativeMatrix.X11,
+			// 	relativeMatrix.X21,
+			// 	relativeMatrix.X31,
 
-				relativeMatrix.X02,
-				relativeMatrix.X12,
-				relativeMatrix.X22,
-				relativeMatrix.X32,
+			// 	relativeMatrix.X02,
+			// 	relativeMatrix.X12,
+			// 	relativeMatrix.X22,
+			// 	relativeMatrix.X32,
 
-				relativeMatrix.X03,
-				relativeMatrix.X13,
-				relativeMatrix.X23,
-				relativeMatrix.X33,
-			},
+			// 	relativeMatrix.X03,
+			// 	relativeMatrix.X13,
+			// 	relativeMatrix.X23,
+			// 	relativeMatrix.X33,
+			// },
 			Children: children,
 		}
 
-		mat := skeleton.InverseBindMatrix(i)
+		// mat := skeleton.InverseBindMatrix(i)
+		mat := mat.Identity()
+		worldPos := skeleton.WorldPosition(i)
+		mat.X03 = -worldPos.X()
+		mat.X13 = -worldPos.Y()
+		mat.X23 = -worldPos.Z()
 		// binary.Write(out, binary.LittleEndian, float32(mat.X00))
 		// binary.Write(out, binary.LittleEndian, float32(mat.X01))
 		// binary.Write(out, binary.LittleEndian, float32(mat.X02))

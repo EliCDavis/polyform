@@ -11,7 +11,6 @@ import (
 	"github.com/EliCDavis/polyform/modeling/animation"
 	"github.com/EliCDavis/polyform/modeling/marching"
 	"github.com/EliCDavis/vector/vector3"
-	"github.com/EliCDavis/vector/vector4"
 )
 
 func main() {
@@ -27,13 +26,20 @@ func main() {
 	hipPosition := vector3.New(0., 0.3, 0.1)
 	headPosition := vector3.New(0., 1., 0.)
 
+	armStart := vector3.New(0.7, 0.4, 0.45)
+	hand := vector3.New(.9, 0.6, 0.6)
+
+	legStart := vector3.New(.525, -0.5, 0.)
+	footPos := vector3.New(.7, -0.6, 0.4)
+
+	bodyRadius := .8
 	gopherBody := marching.MultiSegmentLine(
 		[]vector3.Float64{
 			buttPosition,
 			hipPosition,
 			headPosition,
 		},
-		.8,
+		bodyRadius,
 		1,
 	).WithColor(gopherBlue)
 
@@ -41,22 +47,19 @@ func main() {
 	gopherEye := marching.Sphere(vector3.New(eyeWidth, 1, 0.6), 0.4, 1).WithColor(white)
 	gopherPupil := marching.Sphere(vector3.New(eyeWidth+.1, 1, .85), 0.2, 2).WithColor(black)
 
-	topLegStart := vector3.New(0.7, 0.4, 0.45)
-	hand := vector3.New(.9, 0.6, 0.6)
+	armRadius := 0.1
 
-	gopherTopLeg := marching.Line(
-		topLegStart,
+	gopherArm := marching.Line(
+		armStart,
 		hand,
-		0.1,
+		armRadius,
 		1,
 	).WithColor(gopherYellow)
 
-	bottomLegStart := vector3.New(0., -0.1, 0.)
-	toesPos := vector3.New(.7, -0.6, 0.4)
-	gopherBottomLeg := marching.Line(
-		bottomLegStart,
-		toesPos,
-		0.1,
+	gopherLeg := marching.Line(
+		legStart,
+		footPos,
+		armRadius,
 		1,
 	).WithColor(gopherYellow)
 
@@ -113,8 +116,8 @@ func main() {
 		gopherBody,
 		gopherEye,
 		gopherPupil,
-		gopherTopLeg,
-		gopherBottomLeg,
+		gopherArm,
+		gopherLeg,
 		gopherTail,
 		gopherEar,
 		gopherNose,
@@ -132,75 +135,62 @@ func main() {
 
 	log.Printf("time to mesh: %s", time.Since(start))
 
-	armDir := hand.Sub(topLegStart).Normalized()
-	legDir := toesPos.Sub(bottomLegStart).Normalized()
+	handOffset := hand.Sub(armStart)
+	armDir := handOffset.Normalized()
+	legDir := footPos.Sub(legStart).Normalized()
 	skeleton := animation.NewSkeleton(animation.NewJoint(
 		"Hip",
+		bodyRadius,
 		hipPosition,
 		vector3.Up[float64](),
 		vector3.Forward[float64](),
 		animation.NewJoint(
 			"Head",
+			bodyRadius,
 			headPosition,
 			vector3.Up[float64](),
 			vector3.Forward[float64](),
 		),
 		animation.NewJoint(
-			"Arm",
-			topLegStart,
-			armDir,
+			"Butt",
+			bodyRadius,
+			buttPosition,
+			vector3.Up[float64](),
 			vector3.Forward[float64](),
-			animation.NewJoint("Hand", hand, armDir, vector3.Forward[float64]()),
+			animation.NewJoint(
+				"Leg",
+				armRadius,
+				legStart,
+				legDir,
+				vector3.Forward[float64](),
+				animation.NewJoint("Toes", armRadius, footPos, legDir, vector3.Forward[float64]()),
+			),
 		),
 		animation.NewJoint(
-			"Leg",
-			bottomLegStart,
-			legDir,
+			"Arm",
+			armRadius,
+			armStart,
+			armDir,
 			vector3.Forward[float64](),
-			animation.NewJoint("Toes", toesPos, legDir, vector3.Forward[float64]()),
+			animation.NewJoint("Hand", armRadius, hand, armDir, vector3.Forward[float64]()),
 		),
 	))
 
-	joinData := make([]vector4.Float64, mesh.AttributeLength())
-	weightData := make([]vector4.Float64, mesh.AttributeLength())
-	mesh.ScanFloat3Attribute(modeling.PositionAttribute, func(i int, v vector3.Float64) {
-		joints := skeleton.ClosestJoints(v)
-		distances := make([]float64, len(joints))
-
-		total := 0.
-		for i, j := range joints {
-			distances[i] = skeleton.WorldPosition(j).Distance(v)
-			total += distances[i]
-		}
-
-		for i := range joints {
-			distances[i] = 1. - (distances[i] / total)
-		}
-
-		joint := vector4.New(float64(joints[0]), float64(joints[1]), float64(joints[2]), float64(joints[3]))
-		weight := vector4.New(distances[0], distances[1], distances[2], distances[3])
-
-		// joinData[i] = vector3.New(float64(closestJointIndex), 0., 0.)
-		// weightData[i] = vector3.Right[float64]()
-
-		// d1 := jointPositions[0].Distance(v)
-		// d2 := jointPositions[2].Distance(v)
-		// total := d1 + d2
-		joinData[i] = joint
-		weightData[i] = weight
-	})
-
-	mesh = mesh.
-		SetFloat4Attribute(modeling.JointAttribute, joinData).
-		SetFloat4Attribute(modeling.WeightAttribute, weightData)
+	voxilization := gopher.Voxelize(modeling.PositionAttribute, 20, 0.05)
+	mesh = animation.WeightMeshWithHeatDiffusion(mesh, skeleton, voxilization, 0.05, 100)
 
 	animationWave := animation.NewSequence("Hip/Arm/Hand", []animation.Frame{
 		// animation.NewFrame(0, hand),
 		// animation.NewFrame(1, hand.Add(vector3.Up[float64]())),
 		// animation.NewFrame(2, hand),
-		animation.NewFrame(0, vector3.Zero[float64]().Add(hand)),
-		animation.NewFrame(1, vector3.Up[float64]().Scale(0.5).Add(hand)),
-		animation.NewFrame(2, vector3.Zero[float64]().Add(hand)),
+
+		// animation.NewFrame(0, vector3.Zero[float64]().Add(hand)),
+		// animation.NewFrame(1, vector3.Up[float64]().Scale(0.5).Add(hand)),
+		// animation.NewFrame(2, vector3.Zero[float64]().Add(hand)),
+
+		animation.NewFrame(0, handOffset),
+		animation.NewFrame(1, handOffset.Add(armDir.Scale(0.5))),
+		animation.NewFrame(2, handOffset),
 	})
 
 	animations := []animation.Sequence{
@@ -208,6 +198,7 @@ func main() {
 	}
 
 	err := gltf.SaveTextWithAnimations("tmp/gopher/gopher.gltf", mesh, &skeleton, animations)
+	// err := gltf.SaveTextWithAnimations("tmp/gopher/gopher.gltf", mesh, &skeleton, nil)
 	if err != nil {
 		panic(err)
 	}

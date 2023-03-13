@@ -9,43 +9,14 @@ import (
 	"github.com/EliCDavis/vector/vector3"
 )
 
-type jointDistItem struct {
-	dist  float64
-	joint int
-	point vector3.Float64
-}
-
-type jointItemPriorityQueue []jointDistItem
-
-func (pq jointItemPriorityQueue) Len() int { return len(pq) }
-
-func (pq jointItemPriorityQueue) Less(i, j int) bool {
-	return pq[i].dist < pq[j].dist
-}
-
-func (pq jointItemPriorityQueue) Swap(i, j int) {
-	pq[i], pq[j] = pq[j], pq[i]
-}
-
-func (pq *jointItemPriorityQueue) Push(x any) {
-	item := x.(jointDistItem)
-	*pq = append(*pq, item)
-}
-
-func (pq *jointItemPriorityQueue) Pop() any {
-	old := *pq
-	n := len(old)
-	item := old[n-1]
-	*pq = old[0 : n-1]
-	return item
-}
-
 type skeletonJoint struct {
-	path           string
-	worldPosition  vector3.Float64
-	up, forward    vector3.Float64
-	relativeMatrix mat.Matrix4x4
-	children       []int
+	path             string
+	weight           float64
+	worldPosition    vector3.Float64
+	relativePosition vector3.Float64
+	up, forward      vector3.Float64
+	relativeMatrix   mat.Matrix4x4
+	children         []int
 }
 
 type Skeleton struct {
@@ -68,30 +39,27 @@ func (s Skeleton) Children(index int) []int {
 	return s.joints[index].children
 }
 
-func (s Skeleton) ClosestJoints(point vector3.Float64) []int {
-	const maxPointsToConsider = 4
-
-	queue := make(jointItemPriorityQueue, 0)
+func (s Skeleton) ClosestJoints(point vector3.Float64, pointToConsider int) []int {
+	queue := make(minJointValPriorityQueue, 0)
 
 	for i, n := range s.joints {
 		dist := n.worldPosition.DistanceSquared(point)
 		// if queue.Len() < maxPointsToConsider {
-		heap.Push(&queue, jointDistItem{
-			dist:  dist,
+		heap.Push(&queue, jointValItem{
+			val:   dist,
 			joint: i,
-			point: n.worldPosition,
 		})
 		// }
 	}
 
-	size := maxPointsToConsider
-	if queue.Len() < maxPointsToConsider {
+	size := pointToConsider
+	if queue.Len() < pointToConsider {
 		size = queue.Len()
 	}
 
 	joints := make([]int, size)
 	for i := 0; i < size; i++ {
-		item := heap.Pop(&queue).(jointDistItem)
+		item := heap.Pop(&queue).(jointValItem)
 		joints[i] = item.joint
 	}
 	return joints
@@ -107,12 +75,20 @@ func (s Skeleton) RelativeMatrix(index int) mat.Matrix4x4 {
 	return s.joints[index].relativeMatrix
 }
 
+func (s Skeleton) RelativePosition(index int) vector3.Float64 {
+	return s.joints[index].relativePosition
+}
+
+func (s Skeleton) Heat(index int) float64 {
+	return s.joints[index].weight
+}
+
 func (s Skeleton) InverseBindMatrix(index int) mat.Matrix4x4 {
 	j := s.joints[index]
 	return mat.MatFromDirs(j.up, j.forward, j.worldPosition).Inverse()
 }
 
-func flattenJoints(index int, curPath string, root Joint, parentMat mat.Matrix4x4) []skeletonJoint {
+func flattenJoints(index int, curPath string, root Joint, parent *Joint) []skeletonJoint {
 	if root.name == "" {
 		panic("joint name can not be empty")
 	}
@@ -126,23 +102,33 @@ func flattenJoints(index int, curPath string, root Joint, parentMat mat.Matrix4x
 		combinedName = fmt.Sprintf("%s/%s", curPath, root.name)
 	}
 
+	parentMat := mat.Identity()
+	parentPos := vector3.Zero[float64]()
+	if parent != nil {
+		parentMat = parent.Matrix()
+		parentPos = parent.worldPosition
+	}
+
 	flattened := make([]skeletonJoint, 1)
+
 	flattened[0] = skeletonJoint{
 		path: combinedName,
 		// relativePosition: root.worldPosition.Sub(parentPos),
 		relativeMatrix: parentMat.
 			Inverse().
 			Multiply(root.Matrix()),
-		worldPosition: root.worldPosition,
-		up:            root.up,
-		forward:       root.forward,
-		children:      make([]int, 0),
+		worldPosition:    root.worldPosition,
+		relativePosition: root.worldPosition.Sub(parentPos),
+		up:               root.up,
+		forward:          root.forward,
+		children:         make([]int, 0),
+		weight:           root.weight,
 	}
 
 	offset := index + 1
 	for _, child := range root.children {
 		flattened[0].children = append(flattened[0].children, offset)
-		nodes := flattenJoints(offset, combinedName, child, root.Matrix())
+		nodes := flattenJoints(offset, combinedName, child, &root)
 		offset += len(nodes)
 		flattened = append(flattened, nodes...)
 	}
@@ -151,7 +137,7 @@ func flattenJoints(index int, curPath string, root Joint, parentMat mat.Matrix4x
 }
 
 func NewSkeleton(root Joint) Skeleton {
-	nodes := flattenJoints(0, "", root, mat.Identity())
+	nodes := flattenJoints(0, "", root, nil)
 
 	lut := make(map[string]int)
 	for i, n := range nodes {
