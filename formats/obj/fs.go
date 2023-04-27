@@ -23,7 +23,7 @@ func Load(objPath string) (*modeling.Mesh, error) {
 		return nil, err
 	}
 
-	loadedMaterials := make(map[string]modeling.Material)
+	loadedMaterials := make(map[string]*modeling.Material)
 	for _, matPath := range matPaths {
 		matFile, err := os.Open(path.Join(path.Dir(objPath), matPath))
 		if err != nil {
@@ -36,13 +36,12 @@ func Load(objPath string) (*modeling.Mesh, error) {
 			return nil, err
 		}
 		for _, mat := range materials {
-			loadedMaterials[mat.Name] = mat
+			loadedMaterials[mat.Name] = &mat
 		}
 	}
 
 	for i, mat := range mesh.Materials() {
-		loadedMat := loadedMaterials[mat.Material.Name]
-		mesh.Materials()[i].Material = &loadedMat
+		mesh.Materials()[i].Material = loadedMaterials[mat.Material.Name]
 	}
 
 	return mesh, nil
@@ -63,8 +62,9 @@ func Save(objPath string, meshToSave modeling.Mesh) error {
 	defer objFile.Close()
 
 	extension := filepath.Ext(objPath)
-	mtlName := objPath[0:len(objPath)-len(extension)] + ".mtl"
+	mtlPath := ""
 	if len(meshToSave.Materials()) > 0 {
+		mtlName := objPath[0:len(objPath)-len(extension)] + ".mtl"
 		mtlFile, err := os.Create(mtlName)
 		if err != nil {
 			return err
@@ -75,10 +75,11 @@ func Save(objPath string, meshToSave modeling.Mesh) error {
 		if err != nil {
 			return err
 		}
+		mtlPath = path.Base(mtlName)
 	}
 
 	out := bufio.NewWriter(objFile)
-	err = WriteMesh(meshToSave, path.Base(mtlName), out)
+	err = WriteMesh(meshToSave, mtlPath, out)
 	if err != nil {
 		return err
 	}

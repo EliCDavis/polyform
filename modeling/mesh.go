@@ -1562,7 +1562,7 @@ func (m Mesh) SplitOnUniqueMaterials() []Mesh {
 	return finalMeshes
 }
 
-func (m Mesh) SliceByPlaneWithAttribute(plane geometry.Plane, atr string) (Mesh, Mesh) {
+func (m Mesh) SliceByPlaneWithAttribute(plane geometry.Plane, attr string) (Mesh, Mesh) {
 	m.requireTopology(TriangleTopology)
 
 	numFaces := len(m.indices) / 3
@@ -1589,30 +1589,32 @@ func (m Mesh) SliceByPlaneWithAttribute(plane geometry.Plane, atr string) (Mesh,
 	for t := 0; t < numFaces; t++ {
 		tri := m.Tri(t)
 
-		aClip := plane.Normal().Dot(tri.P1Vec3Attr(atr).Sub(plane.Origin())) < 0
-		bClip := plane.Normal().Dot(tri.P2Vec3Attr(atr).Sub(plane.Origin())) < 0
-		cClip := plane.Normal().Dot(tri.P3Vec3Attr(atr).Sub(plane.Origin())) < 0
+		aClip := plane.Normal().Dot(tri.P1Vec3Attr(attr).Sub(plane.Origin())) < 0
+		bClip := plane.Normal().Dot(tri.P2Vec3Attr(attr).Sub(plane.Origin())) < 0
+		cClip := plane.Normal().Dot(tri.P3Vec3Attr(attr).Sub(plane.Origin())) < 0
 
 		if !aClip && !bClip && !cClip {
 			kept.indices = append(kept.indices, tri.P1(), tri.P2(), tri.P3())
 		} else if aClip && bClip && cClip {
 			clipped.indices = append(clipped.indices, tri.P1(), tri.P2(), tri.P3())
 		} else {
-			// lineIntersections := make([]geometry.Line3D, 0, 2)
-			// if (aClip && !bClip) || (!aClip && bClip) {
-			// 	lineIntersections = append(lineIntersections, tri.L1(atr))
-			// }
 
-			// if (bClip && !cClip) || (!bClip && cClip) {
-			// 	lineIntersections = append(lineIntersections, tri.L2(atr))
-			// }
+			lineIntersections := make([]geometry.Line3D, 0, 2)
+			if (aClip && !bClip) || (!aClip && bClip) {
+				lineIntersections = append(lineIntersections, tri.L1(attr))
+			}
 
-			// if (aClip && !cClip) || (!aClip && cClip) {
-			// 	lineIntersections = append(lineIntersections, tri.L3(atr))
-			// }
+			if (bClip && !cClip) || (!bClip && cClip) {
+				lineIntersections = append(lineIntersections, tri.L2(attr))
+			}
 
-			// intersectionA := lineIntersections[0].Intersection(plane)
-			// intersectionB := lineIntersections[1].Intersection(plane)
+			if (aClip && !cClip) || (!aClip && cClip) {
+				lineIntersections = append(lineIntersections, tri.L3(attr))
+			}
+
+			// intersectionA, _ := lineIntersections[0].IntersectionTimeOnPlane(plane)
+			// intersectionB, _ := lineIntersections[1].IntersectionTimeOnPlane(plane)
+
 		}
 	}
 

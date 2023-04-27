@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/EliCDavis/polyform/formats/gltf"
-	"github.com/EliCDavis/polyform/math/sample"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/animation"
 	"github.com/EliCDavis/polyform/modeling/marching"
@@ -48,51 +47,21 @@ func main() {
 	gopherPupil := marching.Sphere(vector3.New(eyeWidth+.1, 1, .85), 0.2, 2).WithColor(black)
 
 	armRadius := 0.1
+	gopherArm := marching.Line(armStart, hand, armRadius, 1).WithColor(gopherYellow)
+	gopherLeg := marching.Line(legStart, footPos, armRadius, 1).WithColor(gopherYellow)
 
-	gopherArm := marching.Line(
-		armStart,
-		hand,
-		armRadius,
-		1,
-	).WithColor(gopherYellow)
+	tailStart := vector3.New(0., -0.25, -.4)
+	tailEnd := vector3.New(0., -0.4, -.8)
+	tailOffset := tailEnd.Sub(tailStart)
+	tailRadius := 0.15
+	gopherTail := marching.Line(tailStart, tailEnd, tailRadius, 1).WithColor(gopherBlue)
 
-	gopherLeg := marching.Line(
-		legStart,
-		footPos,
-		armRadius,
-		1,
-	).WithColor(gopherYellow)
-
-	gopherTail := marching.Line(
-		vector3.New(0., -0.1, 0.),
-		vector3.New(0., -0.4, -.8),
-		0.15,
-		1,
-	).WithColor(gopherBlue)
-
-	gopherOuterEar := marching.Line(
+	gopherEar := marching.Line(
 		vector3.New(.3, 0.5, .2),
 		vector3.New(.6, 1.7, 0.),
 		0.2,
 		1,
 	).WithColor(gopherBlue)
-
-	gopherInnerEar := marching.Line(
-		vector3.New(.3, 0.5, .2),
-		vector3.New(.6, 1.7, .1),
-		0.07,
-		0.2,
-	).WithColor(gopherBlue)
-
-	gopherEar := gopherOuterEar.Modify(
-		modeling.PositionAttribute,
-		gopherInnerEar,
-		func(a, b sample.Vec3ToFloat) sample.Vec3ToFloat {
-			return func(v vector3.Float64) float64 {
-				return a(v)
-				// return a(v) * b(v)
-			}
-		}).WithColor(gopherBlue)
 
 	gopherNose := marching.Sphere(
 		vector3.New(0., 0.6, .9),
@@ -138,6 +107,25 @@ func main() {
 	handOffset := hand.Sub(armStart)
 	armDir := handOffset.Normalized()
 	legDir := footPos.Sub(legStart).Normalized()
+
+	rightArmJoint := animation.NewJoint(
+		"Right Arm",
+		armRadius,
+		armStart,
+		armDir,
+		vector3.Forward[float64](),
+		animation.NewJoint("Hand", armRadius, hand, armDir, vector3.Forward[float64]()),
+	)
+
+	rightLegJoint := animation.NewJoint(
+		"Right Leg",
+		armRadius,
+		legStart,
+		legDir,
+		vector3.Forward[float64](),
+		animation.NewJoint("Toes", armRadius, footPos, legDir, vector3.Forward[float64]()),
+	)
+
 	skeleton := animation.NewSkeleton(animation.NewJoint(
 		"Hip",
 		bodyRadius,
@@ -157,48 +145,43 @@ func main() {
 			buttPosition,
 			vector3.Up[float64](),
 			vector3.Forward[float64](),
+			rightLegJoint,
+			animation.MirrorJoint(rightLegJoint, "Left Leg", animation.XAxis),
 			animation.NewJoint(
-				"Leg",
-				armRadius,
-				legStart,
-				legDir,
+				"Tail",
+				tailRadius,
+				tailStart,
+				vector3.Up[float64](),
 				vector3.Forward[float64](),
-				animation.NewJoint("Toes", armRadius, footPos, legDir, vector3.Forward[float64]()),
+				animation.NewJoint(
+					"Tip",
+					tailRadius,
+					tailEnd,
+					vector3.Up[float64](),
+					vector3.Forward[float64](),
+				),
 			),
 		),
-		animation.NewJoint(
-			"Arm",
-			armRadius,
-			armStart,
-			armDir,
-			vector3.Forward[float64](),
-			animation.NewJoint("Hand", armRadius, hand, armDir, vector3.Forward[float64]()),
-		),
+		rightArmJoint,
+		animation.MirrorJoint(rightArmJoint, "Left Arm", animation.XAxis),
 	))
 
 	voxilization := gopher.Voxelize(modeling.PositionAttribute, 20, 0.05)
 	mesh = animation.WeightMeshWithHeatDiffusion(mesh, skeleton, voxilization, 0.05, 100)
 
-	animationWave := animation.NewSequence("Hip/Arm/Hand", []animation.Frame{
-		// animation.NewFrame(0, hand),
-		// animation.NewFrame(1, hand.Add(vector3.Up[float64]())),
-		// animation.NewFrame(2, hand),
-
-		// animation.NewFrame(0, vector3.Zero[float64]().Add(hand)),
-		// animation.NewFrame(1, vector3.Up[float64]().Scale(0.5).Add(hand)),
-		// animation.NewFrame(2, vector3.Zero[float64]().Add(hand)),
-
-		animation.NewFrame(0, handOffset),
-		animation.NewFrame(1, handOffset.Add(armDir.Scale(0.5))),
-		animation.NewFrame(2, handOffset),
+	tailWagAnimation := animation.NewSequence("Hip/Butt/Tail/Tip", []animation.Frame[vector3.Float64]{
+		animation.NewFrame(0.1, tailOffset.Add(vector3.Right[float64]().Scale(0.2))),
+		animation.NewFrame(0.2, tailOffset),
+		animation.NewFrame(0.3, tailOffset.Add(vector3.Left[float64]().Scale(0.2))),
+		animation.NewFrame(0.4, tailOffset),
+		animation.NewFrame(0.5, tailOffset.Add(vector3.Right[float64]().Scale(0.2))),
 	})
 
 	animations := []animation.Sequence{
-		animationWave,
+		tailWagAnimation,
 	}
 
 	err := gltf.SaveTextWithAnimations("tmp/gopher/gopher.gltf", mesh, &skeleton, animations)
-	// err := gltf.SaveTextWithAnimations("tmp/gopher/gopher.gltf", mesh, &skeleton, nil)
 	if err != nil {
 		panic(err)
 	}

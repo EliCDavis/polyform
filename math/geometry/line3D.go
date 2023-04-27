@@ -98,7 +98,7 @@ func (l Line3D) ClosestPointOnLine(p vector3.Float64) vector3.Float64 {
 	return projection
 }
 
-func (l Line3D) Intersection(plane Plane) (vector3.Float64, bool) {
+func (l Line3D) IntersectionPointOnPlane(plane Plane) (vector3.Float64, bool) {
 	u := l.p2.Sub(l.p1)
 	dot := plane.Normal().Dot(u)
 	if math.Abs(dot) > 0 {
@@ -107,6 +107,17 @@ func (l Line3D) Intersection(plane Plane) (vector3.Float64, bool) {
 		u = u.Scale(fac)
 		return l.p1.Add(u), true
 	}
-
 	return vector3.Zero[float64](), false
+}
+
+func (l Line3D) IntersectionTimeOnPlane(plane Plane) (float64, bool) {
+	u := l.p2.Sub(l.p1)
+	dot := plane.Normal().Dot(u)
+	if math.Abs(dot) > 0 {
+		w := l.p1.Sub(plane.Origin())
+		fac := -plane.Normal().Dot(w) / dot
+		u = u.Scale(fac)
+		return fac, true
+	}
+	return -1, false
 }

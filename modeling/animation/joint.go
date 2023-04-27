@@ -39,3 +39,40 @@ func (j Joint) Matrix() mat.Matrix4x4 {
 func (j Joint) InverseBindMatrix() mat.Matrix4x4 {
 	return j.Matrix().Inverse()
 }
+
+type Axis int
+
+const (
+	XAxis Axis = iota
+	YAxis
+	ZAxis
+)
+
+func MirrorJoint(joint Joint, name string, axis Axis) Joint {
+	newWorld := joint.worldPosition
+
+	switch axis {
+	case XAxis:
+		newWorld = newWorld.MultByVector(vector3.New(-1., 1., 1.))
+
+	case YAxis:
+		newWorld = newWorld.MultByVector(vector3.New(1., -1., 1.))
+
+	case ZAxis:
+		newWorld = newWorld.MultByVector(vector3.New(1., 1., -1.))
+	}
+
+	newChildren := make([]Joint, len(joint.children))
+	for i, j := range joint.children {
+		newChildren[i] = MirrorJoint(j, j.name, axis)
+	}
+
+	return NewJoint(
+		name,
+		joint.weight,
+		newWorld,
+		joint.up,
+		joint.forward,
+		newChildren...,
+	)
+}

@@ -30,9 +30,6 @@ func Surface(mesh modeling.Mesh, attribute string, voxelSize float64) []vector3.
 		b := curTri.b.DivByConstant(voxelSize).RoundToInt()
 		c := curTri.c.DivByConstant(voxelSize).RoundToInt()
 
-		// The triangle in question spans multiple voxels. In order to
-		// guarantee we get all values in between these voxels, we subdivide
-		// The triangle and try again.
 		abDist := a.Distance(b)
 		acDist := a.Distance(c)
 		bcDist := b.Distance(c)
@@ -40,6 +37,9 @@ func Surface(mesh modeling.Mesh, attribute string, voxelSize float64) []vector3.
 
 		// If the triangle spans too great a distance, divide it into 4 parts.
 		if longest > 1.7 { // Greater than sqrt(3); dist (0,0,0  1,1,1)
+			// The triangle in question spans multiple voxels. In order to
+			// guarantee we get all values in between these voxels, we subdivide
+			// The triangle and try again.
 			abMid := curTri.a.Midpoint(curTri.b)
 			acMid := curTri.a.Midpoint(curTri.c)
 			bcMid := curTri.b.Midpoint(curTri.c)

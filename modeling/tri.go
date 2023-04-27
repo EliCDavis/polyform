@@ -281,7 +281,7 @@ func (t Tri) PointInSide(p vector3.Float64) bool {
 
 func (t Tri) LineIntersects(line geometry.Line3D) (vector3.Float64, bool) {
 	plane := t.Plane(PositionAttribute)
-	point, intersects := line.Intersection(plane)
+	point, intersects := line.IntersectionPointOnPlane(plane)
 	if !intersects {
 		return vector3.Zero[float64](), false
 	}
