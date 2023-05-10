@@ -35,8 +35,8 @@ func Load(objPath string) (*modeling.Mesh, error) {
 		if err != nil {
 			return nil, err
 		}
-		for _, mat := range materials {
-			loadedMaterials[mat.Name] = &mat
+		for matI, mat := range materials {
+			loadedMaterials[mat.Name] = &materials[matI]
 		}
 	}
 

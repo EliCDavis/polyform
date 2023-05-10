@@ -360,9 +360,12 @@ func (m Mesh) TranslateAttribute3D(attribute string, v vector3.Float64) Mesh {
 }
 
 func (m Mesh) Rotate(q Quaternion) Mesh {
-	return m.
-		RotateAttribute3D(PositionAttribute, q).
-		RotateAttribute3D(NormalAttribute, q)
+	finalMesh := m.RotateAttribute3D(PositionAttribute, q)
+	if m.HasFloat3Attribute(NormalAttribute) {
+		finalMesh = finalMesh.
+			RotateAttribute3D(NormalAttribute, q)
+	}
+	return finalMesh
 }
 
 func (m Mesh) RotateAttribute3D(attribute string, q Quaternion) Mesh {
