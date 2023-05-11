@@ -106,8 +106,8 @@ type Image struct {
 // https://github.com/KhronosGroup/glTF/blob/main/specification/2.0/schema/texture.schema.json
 type Texture struct {
 	ChildOfRootProperty
-	Sampler GltfId `json:"sampler,omitempty"`
-	Source  GltfId `json:"source,omitempty"`
+	Sampler *GltfId `json:"sampler,omitempty"`
+	Source  *GltfId `json:"source,omitempty"`
 }
 
 // Joints and matrices defining a skin.

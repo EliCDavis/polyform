@@ -256,6 +256,10 @@ func writeAnimations(animations []animation.Sequence, skeleton animation.Skeleto
 }
 
 func structureFromMesh(mesh modeling.Mesh, skeleton *animation.Skeleton, animations []animation.Sequence) Gltf {
+	if len(mesh.Materials()) > 1 {
+		panic("unsuported export scenario where a single mesh contains multiple materials")
+	}
+
 	primitiveAttributes := make(map[string]int)
 
 	bufferViews := make([]BufferView, 0)
@@ -493,6 +497,33 @@ func structureFromMesh(mesh modeling.Mesh, skeleton *animation.Skeleton, animati
 		scene.Nodes = append(scene.Nodes, 1)
 	}
 
+	textures := make([]Texture, 0)
+	images := make([]Image, 0)
+	samplers := make([]Sampler, 0)
+	materials := []Material{
+		{
+			PbrMetallicRoughness: &PbrMetallicRoughness{
+				BaseColorFactor: &[4]float64{1, 1, 1, 1},
+			},
+		},
+	}
+
+	if len(mesh.Materials()) == 1 && mesh.Materials()[0].Material != nil {
+		mat := mesh.Materials()[0].Material
+		color := mat.ColorTextureURI
+		if color != nil {
+			images = append(images, Image{
+				URI: *color,
+			})
+			samplers = append(samplers, Sampler{})
+			textures = append(textures, Texture{
+				Sampler: ptrI(0),
+				Source:  ptrI(0),
+			})
+			materials[0].PbrMetallicRoughness.BaseColorTexture = &TextureInfo{Index: 0}
+		}
+	}
+
 	gltf := Gltf{
 		Asset: defaultAsset(),
 		Buffers: []Buffer{
@@ -523,13 +554,10 @@ func structureFromMesh(mesh modeling.Mesh, skeleton *animation.Skeleton, animati
 				},
 			},
 		},
-		Materials: []Material{
-			{
-				PbrMetallicRoughness: &PbrMetallicRoughness{
-					BaseColorFactor: &[4]float64{1, 1, 1, 1},
-				},
-			},
-		},
+		Materials: materials,
+		Textures:  textures,
+		Images:    images,
+		Samplers:  samplers,
 	}
 
 	if len(animations) > 0 {
