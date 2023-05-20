@@ -9,13 +9,13 @@ import (
 )
 
 // Save writes the mesh to the path specified in PLY format
-func Save(objPath string, meshToSave modeling.Mesh) error {
-	err := os.MkdirAll(path.Dir(objPath), os.ModeDir)
+func Save(plyPath string, meshToSave modeling.Mesh) error {
+	err := os.MkdirAll(path.Dir(plyPath), os.ModeDir)
 	if err != nil {
 		return err
 	}
 
-	plyFile, err := os.Create(objPath)
+	plyFile, err := os.Create(plyPath)
 	if err != nil {
 		return err
 	}
@@ -23,6 +23,26 @@ func Save(objPath string, meshToSave modeling.Mesh) error {
 
 	out := bufio.NewWriter(plyFile)
 	err = WriteASCII(out, meshToSave)
+	if err != nil {
+		return err
+	}
+	return out.Flush()
+}
+
+func SaveBinary(plyPath string, meshToSave modeling.Mesh) error {
+	err := os.MkdirAll(path.Dir(plyPath), os.ModeDir)
+	if err != nil {
+		return err
+	}
+
+	plyFile, err := os.Create(plyPath)
+	if err != nil {
+		return err
+	}
+	defer plyFile.Close()
+
+	out := bufio.NewWriter(plyFile)
+	err = WriteBinary(out, meshToSave)
 	if err != nil {
 		return err
 	}

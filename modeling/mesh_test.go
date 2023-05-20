@@ -6,6 +6,7 @@ import (
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
+	"github.com/EliCDavis/vector/vector4"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -21,6 +22,78 @@ func TestSetFloat3Attribute_EmptyArr_Clears(t *testing.T) {
 	// ASSERT =================================================================
 	assert.True(t, m.HasFloat3Attribute(modeling.PositionAttribute))
 	assert.False(t, newMesh.HasFloat3Attribute(modeling.PositionAttribute))
+}
+
+func TestCopyFloat4FromMesh(t *testing.T) {
+	// ARRANGE ================================================================
+
+	dest := modeling.NewMesh([]int{0, 0, 0})
+	src := modeling.NewMesh([]int{0, 0, 0}).
+		SetFloat4Attribute(modeling.JointAttribute, []vector4.Float64{
+			vector4.New(1., 2., 3., -1.),
+			vector4.New(4., 5., 6., -1.),
+			vector4.New(7., 8., 9., -1.),
+		})
+
+	// ACT ====================================================================
+	newMesh := dest.CopyFloat4Attribute(src, modeling.JointAttribute)
+
+	// ASSERT =================================================================
+	assert.True(t, newMesh.HasFloat4Attribute(modeling.JointAttribute))
+	assert.False(t, dest.HasFloat4Attribute(modeling.JointAttribute))
+}
+
+func TestCopyFloat3FromMesh(t *testing.T) {
+	// ARRANGE ================================================================
+
+	dest := modeling.NewMesh([]int{0, 0, 0})
+	src := modeling.NewMesh([]int{0, 0, 0}).
+		SetFloat3Attribute(modeling.PositionAttribute, []vector3.Float64{
+			vector3.New(1., 2., 3.),
+			vector3.New(4., 5., 6.),
+			vector3.New(7., 8., 9.),
+		})
+
+	// ACT ====================================================================
+	newMesh := dest.CopyFloat3Attribute(src, modeling.PositionAttribute)
+
+	// ASSERT =================================================================
+	assert.True(t, newMesh.HasFloat3Attribute(modeling.PositionAttribute))
+	assert.False(t, dest.HasFloat3Attribute(modeling.PositionAttribute))
+}
+
+func TestCopyFloat2FromMesh(t *testing.T) {
+	// ARRANGE ================================================================
+
+	dest := modeling.NewMesh([]int{0, 0, 0})
+	src := modeling.NewMesh([]int{0, 0, 0}).
+		SetFloat2Attribute(modeling.TexCoordAttribute, []vector2.Float64{
+			vector2.New(1., 2.),
+			vector2.New(4., 5.),
+			vector2.New(7., 8.),
+		})
+
+	// ACT ====================================================================
+	newMesh := dest.CopyFloat2Attribute(src, modeling.TexCoordAttribute)
+
+	// ASSERT =================================================================
+	assert.True(t, newMesh.HasFloat2Attribute(modeling.TexCoordAttribute))
+	assert.False(t, dest.HasFloat2Attribute(modeling.TexCoordAttribute))
+}
+
+func TestCopyFloat1FromMesh(t *testing.T) {
+	// ARRANGE ================================================================
+
+	dest := modeling.NewMesh([]int{0, 0, 0})
+	src := modeling.NewMesh([]int{0, 0, 0}).
+		SetFloat1Attribute(modeling.TexCoordAttribute, []float64{1, 2, 3})
+
+	// ACT ====================================================================
+	newMesh := dest.CopyFloat1Attribute(src, modeling.TexCoordAttribute)
+
+	// ASSERT =================================================================
+	assert.True(t, newMesh.HasFloat1Attribute(modeling.TexCoordAttribute))
+	assert.False(t, dest.HasFloat1Attribute(modeling.TexCoordAttribute))
 }
 
 func Test_SplitOnUniqueMaterials_Simple(t *testing.T) {

@@ -1194,6 +1194,22 @@ func (m Mesh) SetFloat3Data(data map[string][]vector3.Float64) Mesh {
 	}
 }
 
+func (m Mesh) CopyFloat4Attribute(src Mesh, attr string) Mesh {
+	return m.SetFloat4Attribute(attr, src.v4Data[attr])
+}
+
+func (m Mesh) CopyFloat3Attribute(src Mesh, attr string) Mesh {
+	return m.SetFloat3Attribute(attr, src.v3Data[attr])
+}
+
+func (m Mesh) CopyFloat2Attribute(src Mesh, attr string) Mesh {
+	return m.SetFloat2Attribute(attr, src.v2Data[attr])
+}
+
+func (m Mesh) CopyFloat1Attribute(src Mesh, attr string) Mesh {
+	return m.SetFloat1Attribute(attr, src.v1Data[attr])
+}
+
 func (m Mesh) SetFloat2Attribute(attr string, data []vector2.Float64) Mesh {
 	finalV2Data := make(map[string][]vector2.Float64)
 	for key, val := range m.v2Data {
