@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/EliCDavis/polyform/formats/obj"
+	"github.com/EliCDavis/polyform/modeling/meshops"
 	"github.com/EliCDavis/vector/vector3"
 	"github.com/urfave/cli/v2"
 )
@@ -63,7 +64,9 @@ func scaleCommand() *cli.Command {
 				)
 
 			if c.IsSet("smooth-normals") && c.Bool("smooth-normals") {
-				scaledMesh = scaledMesh.CalculateSmoothNormals()
+				scaledMesh = scaledMesh.Transform(
+					meshops.SmoothNormalsTransformer{},
+				)
 			}
 
 			return obj.WriteMesh(scaledMesh, "", outFile)

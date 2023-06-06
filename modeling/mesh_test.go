@@ -399,3 +399,152 @@ func TestModifyFloat1AttributeParallel(t *testing.T) {
 		)
 	}
 }
+
+func TestClearAttributeData(t *testing.T) {
+	originalMesh := modeling.NewMesh([]int{0, 1, 2}).
+		SetFloat1Attribute("attr-1", []float64{1, 1, 1}).
+		SetFloat2Attribute("attr-2", []vector2.Float64{vector2.One[float64](), vector2.One[float64](), vector2.One[float64]()}).
+		SetFloat3Attribute("attr-3", []vector3.Float64{vector3.One[float64](), vector3.One[float64](), vector3.One[float64]()}).
+		SetFloat4Attribute("attr-4", []vector4.Float64{vector4.One[float64](), vector4.One[float64](), vector4.One[float64]()})
+
+	newMesh := originalMesh.ClearAttributeData()
+
+	assert.False(t, newMesh.HasFloat1Attribute("attr-1"))
+	assert.False(t, newMesh.HasFloat2Attribute("attr-2"))
+	assert.False(t, newMesh.HasFloat3Attribute("attr-3"))
+	assert.False(t, newMesh.HasFloat4Attribute("attr-4"))
+}
+
+func TestHasAttribute(t *testing.T) {
+	v1Mesh := modeling.NewMesh([]int{0, 1, 2}).
+		SetFloat1Attribute("attr-1", []float64{1, 1, 1})
+	v2Mesh := modeling.NewMesh([]int{0, 1, 2}).
+		SetFloat2Attribute("attr-2", []vector2.Float64{vector2.One[float64](), vector2.One[float64](), vector2.One[float64]()})
+	v3Mesh := modeling.NewMesh([]int{0, 1, 2}).
+		SetFloat3Attribute("attr-3", []vector3.Float64{vector3.One[float64](), vector3.One[float64](), vector3.One[float64]()})
+	v4Mesh := modeling.NewMesh([]int{0, 1, 2}).
+		SetFloat4Attribute("attr-4", []vector4.Float64{vector4.One[float64](), vector4.One[float64](), vector4.One[float64]()})
+
+	assert.True(t, v1Mesh.HasVertexAttribute("attr-1"))
+	assert.False(t, v1Mesh.HasVertexAttribute("fake"))
+
+	assert.True(t, v2Mesh.HasVertexAttribute("attr-2"))
+	assert.False(t, v2Mesh.HasVertexAttribute("fake"))
+
+	assert.True(t, v3Mesh.HasVertexAttribute("attr-3"))
+	assert.False(t, v3Mesh.HasVertexAttribute("fake"))
+
+	assert.True(t, v4Mesh.HasVertexAttribute("attr-4"))
+	assert.False(t, v4Mesh.HasVertexAttribute("fake"))
+}
+
+func contains(m map[int]struct{}, i int) bool {
+	_, ok := m[i]
+	return ok
+}
+
+func TestVertexLUT_Triangle(t *testing.T) {
+	lut := modeling.NewMesh([]int{
+		0, 1, 2,
+		2, 3, 4,
+	}).VertexNeighborTable()
+
+	neighbor0 := lut.Lookup(0)
+	assert.True(t, contains(neighbor0, 1))
+	assert.True(t, contains(neighbor0, 2))
+	assert.False(t, contains(neighbor0, 3))
+	assert.False(t, contains(neighbor0, 4))
+
+	neighbor1 := lut.Lookup(1)
+	assert.True(t, contains(neighbor1, 0))
+	assert.True(t, contains(neighbor1, 2))
+	assert.False(t, contains(neighbor1, 3))
+	assert.False(t, contains(neighbor1, 4))
+
+	neighbor2 := lut.Lookup(2)
+	assert.True(t, contains(neighbor2, 0))
+	assert.True(t, contains(neighbor2, 1))
+	assert.True(t, contains(neighbor2, 3))
+	assert.True(t, contains(neighbor2, 4))
+
+	neighbor3 := lut.Lookup(3)
+	assert.False(t, contains(neighbor3, 0))
+	assert.False(t, contains(neighbor3, 1))
+	assert.True(t, contains(neighbor3, 2))
+	assert.True(t, contains(neighbor3, 4))
+
+	neighbor4 := lut.Lookup(4)
+	assert.False(t, contains(neighbor4, 0))
+	assert.False(t, contains(neighbor4, 1))
+	assert.True(t, contains(neighbor4, 2))
+	assert.True(t, contains(neighbor4, 3))
+}
+
+func TestFlipTriangleWinding(t *testing.T) {
+	indices := modeling.NewMesh([]int{
+		0, 1, 2,
+		2, 3, 4,
+	}).FlipTriWinding().Indices()
+
+	assert.Equal(t, 1, indices.At(0))
+	assert.Equal(t, 0, indices.At(1))
+	assert.Equal(t, 2, indices.At(2))
+
+	assert.Equal(t, 3, indices.At(3))
+	assert.Equal(t, 2, indices.At(4))
+	assert.Equal(t, 4, indices.At(5))
+}
+
+func TestUnweld(t *testing.T) {
+	unweldedMesh := modeling.NewMesh([]int{0, 1, 2, 0, 1, 3}).
+		SetFloat1Attribute("attr-1", []float64{
+			1, 2, 3, 4,
+		}).
+		SetFloat2Attribute("attr-2", []vector2.Float64{
+			vector2.New(0., 1.), vector2.New(0., 2.), vector2.New(0., 3.), vector2.New(0., 4.),
+		}).
+		SetFloat3Attribute("attr-3", []vector3.Float64{
+			vector3.New(0., 1., 0.), vector3.New(0., 2., 0.), vector3.New(0., 3., 0.), vector3.New(0., 4., 0.),
+		}).
+		SetFloat4Attribute("attr-4", []vector4.Float64{
+			vector4.New(0., 1., 0., 0.), vector4.New(0., 2., 0., 0.), vector4.New(0., 3., 0., 0.), vector4.New(0., 4., 0., 0.),
+		}).
+		Unweld()
+
+	attr1 := unweldedMesh.Float1Attribute("attr-1")
+	attr2 := unweldedMesh.Float2Attribute("attr-2")
+	attr3 := unweldedMesh.Float3Attribute("attr-3")
+	attr4 := unweldedMesh.Float4Attribute("attr-4")
+
+	assert.Equal(t, 6, attr1.Len())
+	assert.Equal(t, 1., attr1.At(0))
+	assert.Equal(t, 2., attr1.At(1))
+	assert.Equal(t, 3., attr1.At(2))
+	assert.Equal(t, 1., attr1.At(3))
+	assert.Equal(t, 2., attr1.At(4))
+	assert.Equal(t, 4., attr1.At(5))
+
+	assert.Equal(t, 6, attr2.Len())
+	assert.Equal(t, vector2.New(0., 1.), attr2.At(0))
+	assert.Equal(t, vector2.New(0., 2.), attr2.At(1))
+	assert.Equal(t, vector2.New(0., 3.), attr2.At(2))
+	assert.Equal(t, vector2.New(0., 1.), attr2.At(3))
+	assert.Equal(t, vector2.New(0., 2.), attr2.At(4))
+	assert.Equal(t, vector2.New(0., 4.), attr2.At(5))
+
+	assert.Equal(t, 6, attr3.Len())
+	assert.Equal(t, vector3.New(0., 1., 0.), attr3.At(0))
+	assert.Equal(t, vector3.New(0., 2., 0.), attr3.At(1))
+	assert.Equal(t, vector3.New(0., 3., 0.), attr3.At(2))
+	assert.Equal(t, vector3.New(0., 1., 0.), attr3.At(3))
+	assert.Equal(t, vector3.New(0., 2., 0.), attr3.At(4))
+	assert.Equal(t, vector3.New(0., 4., 0.), attr3.At(5))
+
+	assert.Equal(t, 6, attr4.Len())
+	assert.Equal(t, vector4.New(0., 1., 0., 0.), attr4.At(0))
+	assert.Equal(t, vector4.New(0., 2., 0., 0.), attr4.At(1))
+	assert.Equal(t, vector4.New(0., 3., 0., 0.), attr4.At(2))
+	assert.Equal(t, vector4.New(0., 1., 0., 0.), attr4.At(3))
+	assert.Equal(t, vector4.New(0., 2., 0., 0.), attr4.At(4))
+	assert.Equal(t, vector4.New(0., 4., 0., 0.), attr4.At(5))
+}

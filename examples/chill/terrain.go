@@ -11,6 +11,7 @@ import (
 	"github.com/EliCDavis/polyform/math/noise"
 	"github.com/EliCDavis/polyform/math/sample"
 	"github.com/EliCDavis/polyform/modeling"
+	"github.com/EliCDavis/polyform/modeling/meshops"
 	"github.com/EliCDavis/polyform/modeling/triangulation"
 	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
@@ -151,7 +152,9 @@ func DrawTrail(
 
 			return v.SetY(v.Y() + heightAdj)
 		}).
-		CalculateSmoothNormals()
+		Transform(
+			meshops.SmoothNormalsTransformer{},
+		)
 }
 
 func Terrain(forestWidth float64, height sample.Vec2ToFloat, textures *PBRTextures) (modeling.Mesh, vector3.Float64) {
@@ -188,7 +191,9 @@ func Terrain(forestWidth float64, height sample.Vec2ToFloat, textures *PBRTextur
 
 			return val
 		}).
-		CalculateSmoothNormals().
+		Transform(
+			meshops.SmoothNormalsTransformer{},
+		).
 		SetFloat2Attribute(modeling.TexCoordAttribute, uvs).
 		SetMaterial(textures.Material())
 

@@ -9,6 +9,7 @@ import (
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/animation"
 	"github.com/EliCDavis/polyform/modeling/marching"
+	"github.com/EliCDavis/polyform/modeling/meshops"
 	"github.com/EliCDavis/vector/vector3"
 )
 
@@ -95,8 +96,14 @@ func main() {
 	), marching.XAxis)
 
 	mesh := gopher.March(modeling.PositionAttribute, 40, 0.).
-		SmoothLaplacian(10, .1).
-		CalculateSmoothNormals().
+		Transform(
+			meshops.LaplacianSmoothTransformer{
+				Attribute:       modeling.PositionAttribute,
+				Iterations:      20,
+				SmoothingFactor: .1,
+			},
+			meshops.SmoothNormalsTransformer{},
+		).
 		SetMaterial(modeling.Material{
 			Name:         "Gopher",
 			DiffuseColor: color.RGBA{R: 90, G: 218, B: 255, A: 255},

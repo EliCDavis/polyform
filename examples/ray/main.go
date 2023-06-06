@@ -9,6 +9,7 @@ import (
 
 	"github.com/EliCDavis/polyform/formats/obj"
 	"github.com/EliCDavis/polyform/modeling"
+	"github.com/EliCDavis/polyform/modeling/meshops"
 	"github.com/EliCDavis/polyform/modeling/primitives"
 	"github.com/EliCDavis/polyform/rendering"
 	"github.com/EliCDavis/polyform/rendering/materials"
@@ -212,7 +213,9 @@ func bunnyScene() []rendering.Hittable {
 		CenterFloat3Attribute(modeling.PositionAttribute).
 		Scale(vector3.Zero[float64](), vector3.One[float64]().Scale(20)).
 		Translate(vector3.Up[float64]().Scale(2)).
-		CalculateSmoothNormals()
+		Transform(
+			meshops.SmoothNormalsTransformer{},
+		)
 
 	world = append(world,
 		rendering.NewMesh(

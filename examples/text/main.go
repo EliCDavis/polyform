@@ -11,6 +11,7 @@ import (
 	"github.com/EliCDavis/polyform/formats/obj"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/marching"
+	"github.com/EliCDavis/polyform/modeling/meshops"
 	"github.com/EliCDavis/vector/vector3"
 	"github.com/golang/freetype/truetype"
 	"golang.org/x/image/font"
@@ -79,13 +80,19 @@ func run() error {
 	start := time.Now()
 	mesh := finalWords.March(modeling.PositionAttribute, resolution, .0).
 		// Scale(vector3.Zero[float64](), vector3.New(1, 5, 1)).
-		SmoothLaplacian(20, .1).
-		CalculateSmoothNormals().
+		Transform(
+			meshops.LaplacianSmoothTransformer{
+				Attribute:       modeling.PositionAttribute,
+				Iterations:      20,
+				SmoothingFactor: .1,
+			},
+			meshops.SmoothNormalsTransformer{},
+		).
 		SetMaterial(modeling.Material{
 			Name:         "Text",
 			DiffuseColor: color.RGBA{R: 90, G: 218, B: 255, A: 255},
 		})
-	log.Printf("time to compute: %s", time.Now().Sub(start))
+	log.Printf("time to compute: %s", time.Since(start))
 
 	return obj.Save("tmp/text/text.obj", mesh)
 }

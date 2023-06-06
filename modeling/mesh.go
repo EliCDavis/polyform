@@ -7,6 +7,7 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/EliCDavis/iter"
 	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/trees"
 	"github.com/EliCDavis/vector/vector2"
@@ -183,6 +184,43 @@ func (m Mesh) View() MeshView {
 
 func (m Mesh) Topology() Topology {
 	return m.topology
+}
+
+func (m Mesh) ToPointCloud() Mesh {
+	if m.topology == PointTopology {
+		return m
+	}
+
+	indices := make([]int, m.AttributeLength())
+	for i := 0; i < len(indices); i++ {
+		indices[i] = i
+	}
+
+	return Mesh{
+		v4Data:    m.v4Data,
+		v3Data:    m.v3Data,
+		v2Data:    m.v2Data,
+		v1Data:    m.v1Data,
+		indices:   indices,
+		materials: m.materials,
+		topology:  PointTopology,
+	}
+}
+
+func (m Mesh) Indices() iter.ArrayIterator[int] {
+	return iter.Array(m.indices)
+}
+
+func (m Mesh) Transform(ops ...Transformer) Mesh {
+	final := m
+	for _, transformer := range ops {
+		next, err := transformer.Transform(final)
+		if err != nil {
+			panic(err)
+		}
+		final = next
+	}
+	return final
 }
 
 func (m Mesh) Float4Attributes() []string {
@@ -1126,6 +1164,11 @@ func (m Mesh) requireTopology(t Topology) {
 	}
 }
 
+func (m Mesh) Float4Attribute(attr string) iter.ArrayIterator[vector4.Float64] {
+	m.requireV4Attribute(attr)
+	return iter.Array(m.v4Data[attr])
+}
+
 func (m Mesh) SetFloat4Attribute(attr string, data []vector4.Float64) Mesh {
 	finalV4Data := make(map[string][]vector4.Float64)
 	for key, val := range m.v4Data {
@@ -1158,6 +1201,11 @@ func (m Mesh) SetFloat4Data(data map[string][]vector4.Float64) Mesh {
 		materials: m.materials,
 		topology:  m.topology,
 	}
+}
+
+func (m Mesh) Float3Attribute(attr string) iter.ArrayIterator[vector3.Float64] {
+	m.requireV3Attribute(attr)
+	return iter.Array(m.v3Data[attr])
 }
 
 func (m Mesh) SetFloat3Attribute(attr string, data []vector3.Float64) Mesh {
@@ -1210,6 +1258,11 @@ func (m Mesh) CopyFloat1Attribute(src Mesh, attr string) Mesh {
 	return m.SetFloat1Attribute(attr, src.v1Data[attr])
 }
 
+func (m Mesh) Float2Attribute(attr string) iter.ArrayIterator[vector2.Float64] {
+	m.requireV2Attribute(attr)
+	return iter.Array(m.v2Data[attr])
+}
+
 func (m Mesh) SetFloat2Attribute(attr string, data []vector2.Float64) Mesh {
 	finalV2Data := make(map[string][]vector2.Float64)
 	for key, val := range m.v2Data {
@@ -1242,6 +1295,11 @@ func (m Mesh) SetFloat2Data(data map[string][]vector2.Float64) Mesh {
 		materials: m.materials,
 		topology:  m.topology,
 	}
+}
+
+func (m Mesh) Float1Attribute(attr string) iter.ArrayIterator[float64] {
+	m.requireV1Attribute(attr)
+	return iter.Array(m.v1Data[attr])
 }
 
 func (m Mesh) SetFloat1Attribute(attr string, data []float64) Mesh {
@@ -1278,7 +1336,23 @@ func (m Mesh) SetFloat1Data(data map[string][]float64) Mesh {
 	}
 }
 
+func (m Mesh) ClearAttributeData() Mesh {
+	return Mesh{
+		v1Data:    nil,
+		v2Data:    nil,
+		v3Data:    nil,
+		v4Data:    nil,
+		indices:   m.indices,
+		materials: m.materials,
+		topology:  m.topology,
+	}
+}
+
 func (m Mesh) HasVertexAttribute(atr string) bool {
+	if m.HasFloat4Attribute(atr) {
+		return true
+	}
+
 	if m.HasFloat3Attribute(atr) {
 		return true
 	}
@@ -1356,76 +1430,6 @@ func (m Mesh) requireV1Attribute(atr string) {
 	if !m.HasFloat1Attribute(atr) {
 		panic(fmt.Errorf("can not perform operation for a mesh without the attribute '%s'", atr))
 	}
-}
-
-func (m Mesh) SmoothLaplacian(iterations int, smoothingFactor float64) Mesh {
-	m.requireV3Attribute(PositionAttribute)
-
-	lut := m.VertexNeighborTable()
-
-	oldVertices := m.v3Data[PositionAttribute]
-	vertices := make([]vector3.Float64, len(oldVertices))
-	for i := range vertices {
-		vertices[i] = oldVertices[i]
-	}
-
-	for i := 0; i < iterations; i++ {
-		for vi, vertex := range vertices {
-			vs := vector3.Zero[float64]()
-
-			for vn := range lut.Lookup(vi) {
-				vs = vs.Add(vertices[vn])
-			}
-
-			vertices[vi] = vertex.Add(
-				vs.
-					DivByConstant(float64(lut.Count(vi))).
-					Sub(vertex).
-					Scale(smoothingFactor))
-		}
-	}
-
-	return m.SetFloat3Attribute(PositionAttribute, vertices)
-}
-
-func (m Mesh) CalculateSmoothNormals() Mesh {
-	m.requireTopology(TriangleTopology)
-	m.requireV3Attribute(PositionAttribute)
-
-	vertices := m.v3Data[PositionAttribute]
-	normals := make([]vector3.Float64, len(vertices))
-	for i := range normals {
-		normals[i] = vector3.Zero[float64]()
-	}
-
-	tris := m.indices
-	for triIndex := 0; triIndex < len(tris); triIndex += 3 {
-		p1 := tris[triIndex]
-		p2 := tris[triIndex+1]
-		p3 := tris[triIndex+2]
-		// normalize(cross(B-A, C-A))
-		normalized := vertices[p2].Sub(vertices[p1]).Cross(vertices[p3].Sub(vertices[p1]))
-
-		// This occurs whenever the given tri is actually just a line
-		if math.IsNaN(normalized.X()) {
-			continue
-		}
-
-		normals[p1] = normals[p1].Add(normalized)
-		normals[p2] = normals[p2].Add(normalized)
-		normals[p3] = normals[p3].Add(normalized)
-	}
-
-	zero := vector3.Zero[float64]()
-	for i, n := range normals {
-		if n == zero {
-			continue
-		}
-
-		normals[i] = n.Normalized()
-	}
-
-	return m.SetFloat3Attribute(NormalAttribute, normals)
 }
 
 func (m Mesh) AttributeLength() int {

@@ -9,6 +9,7 @@ import (
 	"github.com/EliCDavis/polyform/math/sample"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/marching"
+	"github.com/EliCDavis/polyform/modeling/meshops"
 	"github.com/EliCDavis/vector/vector3"
 )
 
@@ -64,8 +65,14 @@ func main() {
 
 	mesh := canvas.MarchParallel(-.0).
 		WeldByFloat3Attribute(modeling.PositionAttribute, 3).
-		SmoothLaplacian(10, .2).
-		CalculateSmoothNormals()
+		Transform(
+			meshops.LaplacianSmoothTransformer{
+				Attribute:       modeling.PositionAttribute,
+				Iterations:      10,
+				SmoothingFactor: .2,
+			},
+			meshops.SmoothNormalsTransformer{},
+		)
 
 	log.Printf("time to compute: %s", time.Now().Sub(start))
 

@@ -10,6 +10,7 @@ import (
 	"github.com/EliCDavis/polyform/math/sample"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/extrude"
+	"github.com/EliCDavis/polyform/modeling/meshops"
 	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
 	"github.com/fogleman/gg"
@@ -115,7 +116,9 @@ func Tree(
 		vector3.New(0., 0., 0.),
 		vector3.New(0, height, 0),
 	).
-		CalculateSmoothNormals(), branches
+		Transform(
+			meshops.SmoothNormalsTransformer{},
+		), branches
 }
 
 func TrunkTexture(imageSize int, colors coloring.ColorStack, barkNoise sample.Vec2ToFloat, barkPBR *PBRTextures) {

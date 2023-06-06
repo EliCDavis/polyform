@@ -12,6 +12,7 @@ import (
 	"github.com/EliCDavis/polyform/formats/obj"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/marching"
+	"github.com/EliCDavis/polyform/modeling/meshops"
 	"github.com/EliCDavis/polyform/modeling/repeat"
 	"github.com/EliCDavis/polyform/rendering"
 	"github.com/EliCDavis/polyform/rendering/materials"
@@ -85,8 +86,14 @@ func covidMesh(textureMap string, time float64) modeling.Mesh {
 			uvs = append(uvs, vector2.New(x, 0.5))
 		}).
 		SetFloat2Attribute(modeling.TexCoordAttribute, uvs).
-		SmoothLaplacian(10, .1).
-		CalculateSmoothNormals().
+		Transform(
+			meshops.LaplacianSmoothTransformer{
+				Attribute:       modeling.PositionAttribute,
+				Iterations:      10,
+				SmoothingFactor: .1,
+			},
+			meshops.SmoothNormalsTransformer{},
+		).
 		SetMaterial(modeling.Material{
 			Name:            "COVID",
 			ColorTextureURI: &textureMap,
