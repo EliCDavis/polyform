@@ -59,7 +59,6 @@ func scaleCommand() *cli.Command {
 
 			scaledMesh := loadedMesh.
 				Scale(
-					vector3.Zero[float64](),
 					vector3.New(c.Float64("x"), c.Float64("y"), c.Float64("z")),
 				)
 

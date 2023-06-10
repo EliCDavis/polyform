@@ -16,9 +16,6 @@ func Box(pos vector3.Float64, bounds vector3.Float64) sample.Vec3ToFloat {
 		q := reorient.Abs().Sub(halfBounds)
 
 		inside := math.Min(math.Max(q.X(), math.Max(q.Y(), q.Z())), 0)
-		xLength := math.Pow(math.Max(0, q.X()), 2.)
-		yLength := math.Pow(math.Max(0, q.Y()), 2.)
-		zLength := math.Pow(math.Max(0, q.Z()), 2.)
-		return math.Sqrt(xLength+yLength+zLength) + inside
+		return vector3.Max(q, vector3.Zero[float64]()).Length() + inside
 	}
 }

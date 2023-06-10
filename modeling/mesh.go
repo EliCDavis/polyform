@@ -382,82 +382,29 @@ func (m Mesh) Append(other Mesh) Mesh {
 	}
 }
 
-// Translate(v) is shorthand for TranslateAttribute3D(V, "Position")
-func (m Mesh) Translate(v vector3.Float64) Mesh {
-	return m.TranslateAttribute3D(PositionAttribute, v)
-}
-
-func (m Mesh) TranslateAttribute3D(attribute string, v vector3.Float64) Mesh {
-	m.requireV3Attribute(attribute)
-	oldData := m.v3Data[attribute]
-	finalVerts := make([]vector3.Float64, len(oldData))
-	for i := 0; i < len(finalVerts); i++ {
-		finalVerts[i] = oldData[i].Add(v)
-	}
-	return m.SetFloat3Attribute(attribute, finalVerts)
-}
-
 func (m Mesh) Rotate(q Quaternion) Mesh {
-	finalMesh := m.RotateAttribute3D(PositionAttribute, q)
-	if m.HasFloat3Attribute(NormalAttribute) {
-		finalMesh = finalMesh.
-			RotateAttribute3D(NormalAttribute, q)
-	}
-	return finalMesh
-}
-
-func (m Mesh) RotateAttribute3D(attribute string, q Quaternion) Mesh {
-	m.requireV3Attribute(attribute)
+	m.requireV3Attribute(PositionAttribute)
 
 	finalMesh := m
-	oldData := m.v3Data[attribute]
+	oldData := m.v3Data[PositionAttribute]
 	finalVerts := make([]vector3.Float64, len(oldData))
 	for i := 0; i < len(finalVerts); i++ {
 		finalVerts[i] = q.Rotate(oldData[i])
 	}
 
-	return finalMesh.SetFloat3Attribute(attribute, finalVerts)
+	return finalMesh.SetFloat3Attribute(PositionAttribute, finalVerts)
 }
 
-// Scale(o, a) is shorthand for ScaleAttribute3D("Position", o, a)
-func (m Mesh) Scale(origin, amount vector3.Float64) Mesh {
-	return m.ScaleAttribute3D(PositionAttribute, origin, amount)
-}
-
-func (m Mesh) ScaleAttribute3D(attribute string, origin, amount vector3.Float64) Mesh {
-	return m.ModifyFloat3Attribute(attribute, func(i int, v vector3.Float64) vector3.Float64 {
-		return origin.Add(v.Sub(origin).MultByVector(amount))
+func (m Mesh) Scale(amount vector3.Float64) Mesh {
+	m.requireV3Attribute(PositionAttribute)
+	return m.ModifyFloat3Attribute(PositionAttribute, func(i int, v vector3.Float64) vector3.Float64 {
+		return v.MultByVector(amount)
 	})
 }
 
 func (m Mesh) BoundingBox(atr string) geometry.AABB {
 	m.requireV3Attribute(atr)
 	return geometry.NewAABBFromPoints(m.v3Data[atr]...)
-}
-
-func (m Mesh) CenterFloat3Attribute(atr string) Mesh {
-	m.requireV3Attribute(atr)
-	oldData := m.v3Data[atr]
-	modified := make([]vector3.Float64, len(oldData))
-
-	min := vector3.New(math.Inf(1), math.Inf(1), math.Inf(1))
-	max := vector3.New(math.Inf(-1), math.Inf(-1), math.Inf(-1))
-	for _, v := range oldData {
-		min = min.SetX(math.Min(v.X(), min.X()))
-		min = min.SetY(math.Min(v.Y(), min.Y()))
-		min = min.SetZ(math.Min(v.Z(), min.Z()))
-
-		max = max.SetX(math.Max(v.X(), max.X()))
-		max = max.SetY(math.Max(v.Y(), max.Y()))
-		max = max.SetZ(math.Max(v.Z(), max.Z()))
-	}
-
-	center := max.Sub(min).DivByConstant(2).Add(min)
-	for i, v := range oldData {
-		modified[i] = v.Sub(center)
-	}
-
-	return m.SetFloat3Attribute(atr, modified)
 }
 
 func (m Mesh) scanTrisPrimitives(start, size int, f func(i int, p Primitive)) {
@@ -1443,6 +1390,16 @@ func (m Mesh) AttributeLength() int {
 		return len(v)
 	}
 	return 0
+}
+
+func (m Mesh) Translate(v vector3.Float64) Mesh {
+	m.requireV3Attribute(PositionAttribute)
+	oldData := m.v3Data[PositionAttribute]
+	finalVerts := make([]vector3.Float64, len(oldData))
+	for i := 0; i < len(finalVerts); i++ {
+		finalVerts[i] = oldData[i].Add(v)
+	}
+	return m.SetFloat3Attribute(PositionAttribute, finalVerts)
 }
 
 func (m Mesh) RemoveUnusedIndices() Mesh {

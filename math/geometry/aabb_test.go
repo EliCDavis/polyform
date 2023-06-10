@@ -21,7 +21,7 @@ func TestAABB(t *testing.T) {
 
 func TestAABBClosesetPoint(t *testing.T) {
 	center := vector3.New(2., 3., 4.)
-	aabb := geometry.NewAABB(center, vector3.One[float64]().Scale(2))
+	aabb := geometry.NewAABB(center, vector3.Fill(2.))
 
 	tests := map[string]struct {
 		input vector3.Float64
@@ -48,7 +48,7 @@ func TestAABBClosesetPoint(t *testing.T) {
 
 func TestAABBIntersectsRayInRange(t *testing.T) {
 	center := vector3.New(2., 3., 4.)
-	aabb := geometry.NewAABB(center, vector3.One[float64]().Scale(2))
+	aabb := geometry.NewAABB(center, vector3.Fill(2.))
 
 	tests := map[string]struct {
 		ray      geometry.Ray
@@ -379,7 +379,7 @@ var final bool
 
 func BenchmarkAABBIntersectsRayInRange(b *testing.B) {
 	center := vector3.New(2., 3., 4.)
-	aabb := geometry.NewAABB(center, vector3.One[float64]().Scale(2))
+	aabb := geometry.NewAABB(center, vector3.Fill(2.))
 
 	ray := geometry.NewRay(vector3.New(2., 3., 0.), vector3.New(0., 0., 1.))
 	min := 0.

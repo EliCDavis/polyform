@@ -2,7 +2,6 @@ package meshops
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/vector/vector3"
@@ -14,17 +13,18 @@ type LaplacianSmoothTransformer struct {
 	SmoothingFactor float64
 }
 
-func (smt LaplacianSmoothTransformer) Transform(m modeling.Mesh) (results modeling.Mesh, err error) {
-	attribute := smt.Attribute
-	if strings.TrimSpace(attribute) == "" {
-		attribute = modeling.PositionAttribute
-	}
+func (lst LaplacianSmoothTransformer) attribute() string {
+	return lst.Attribute
+}
+
+func (lst LaplacianSmoothTransformer) Transform(m modeling.Mesh) (results modeling.Mesh, err error) {
+	attribute := getAttribute(lst, modeling.PositionAttribute)
 
 	if err = requireV3Attribute(m, attribute); err != nil {
 		return
 	}
 
-	return LaplacianSmooth(m, attribute, smt.Iterations, smt.SmoothingFactor), nil
+	return LaplacianSmooth(m, attribute, lst.Iterations, lst.SmoothingFactor), nil
 }
 
 func LaplacianSmooth(m modeling.Mesh, attribute string, iterations int, smoothingFactor float64) modeling.Mesh {

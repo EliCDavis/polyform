@@ -8,6 +8,7 @@ import (
 
 	"github.com/EliCDavis/polyform/math/sample"
 	"github.com/EliCDavis/polyform/modeling"
+	"github.com/EliCDavis/polyform/modeling/meshops"
 	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
 )
@@ -602,7 +603,11 @@ func (d MarchingCanvas) MarchOnAttribute(attribute string, cutoff float64) model
 	for sectionAttribute, section := range d.sections {
 		if section.dataType == Float1 && sectionAttribute == attribute {
 			return d.marchFloat1(cutoff, section).
-				Scale(vector3.Zero[float64](), vector3.One[float64]().DivByConstant(d.cubesPerUnit)).
+				Transform(
+					meshops.Scale3DTransformer{
+						Amount: vector3.One[float64]().DivByConstant(d.cubesPerUnit),
+					},
+				).
 				WeldByFloat3Attribute(attribute, 3)
 		}
 	}
@@ -621,7 +626,11 @@ func (d MarchingCanvas) MarchOnAttributeParallel(attribute string, cutoff float6
 				return marched
 			}
 			return marched.
-				Scale(vector3.Zero[float64](), vector3.One[float64]().DivByConstant(d.cubesPerUnit)).
+				Transform(
+					meshops.Scale3DTransformer{
+						Amount: vector3.One[float64]().DivByConstant(d.cubesPerUnit),
+					},
+				).
 				WeldByFloat3Attribute(attribute, 3)
 		}
 	}

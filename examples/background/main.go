@@ -6,9 +6,9 @@ import (
 
 	"github.com/EliCDavis/polyform/formats/obj"
 	"github.com/EliCDavis/polyform/modeling"
+	"github.com/EliCDavis/polyform/modeling/meshops"
 	"github.com/EliCDavis/polyform/modeling/triangulation"
 	"github.com/EliCDavis/vector/vector2"
-	"github.com/EliCDavis/vector/vector3"
 )
 
 func main() {
@@ -25,15 +25,21 @@ func main() {
 			Add(mapOffset)
 	}
 
-	uvs := make([]vector2.Float64, 0)
-
 	terrain := triangulation.
 		BowyerWatson(points).
-		CenterFloat3Attribute(modeling.PositionAttribute).
-		ScanFloat3Attribute(modeling.PositionAttribute, func(i int, v vector3.Float64) {
-			uvs = append(uvs, v.XZ().Scale(1./mapSize))
-		}).
-		SetFloat2Attribute(modeling.TexCoordAttribute, uvs)
+		Transform(
+			meshops.Center3DTransformer{},
+			meshops.CustomTransformer{
+				Func: func(m modeling.Mesh) (results modeling.Mesh, err error) {
+					pos := m.Float3Attribute(modeling.PositionAttribute)
+					uvs := make([]vector2.Float64, pos.Len())
+					for i := 0; i < pos.Len(); i++ {
+						uvs[i] = pos.At(i).XZ().Scale(1. / mapSize)
+					}
+					return m.SetFloat2Attribute(modeling.TexCoordAttribute, uvs), nil
+				},
+			},
+		)
 
 	obj.Save("tmp/background/background.obj", terrain)
 }

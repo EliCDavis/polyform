@@ -13,6 +13,7 @@ import (
 	"github.com/EliCDavis/polyform/formats/pts"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/marching"
+	"github.com/EliCDavis/polyform/modeling/meshops"
 	"github.com/EliCDavis/vector/vector3"
 	"github.com/urfave/cli/v2"
 )
@@ -94,13 +95,16 @@ func main() {
 
 			startTime := time.Now()
 			canvas.AddFieldParallel(marching.Mesh(
-				loadedMesh.
-					CenterFloat3Attribute(modeling.PositionAttribute).
-					Scale(vector3.Zero[float64](), vector3.One[float64]().Scale(c.Float64("scale"))),
+				loadedMesh.Transform(
+					meshops.Center3DTransformer{},
+					meshops.Scale3DTransformer{
+						Amount: vector3.Fill(c.Float64("scale")),
+					},
+				),
 				c.Float64("radius"),
 				c.Float64("strength"),
 			))
-			log.Printf("Duration To add Field: %s\n", time.Now().Sub(startTime))
+			log.Printf("Duration To add Field: %s\n", time.Since(startTime))
 
 			// for i := 0; i < 10; i++ {
 			// 	obj.Save(fmt.Sprintf("%d-%s", i, c.String("out")), canvas.March(float64(i)/10))

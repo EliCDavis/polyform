@@ -81,7 +81,7 @@ func (s Sphere) Hit(ray *TemporalRay, minDistance, maxDistance float64, hitRecor
 }
 
 func (s Sphere) BoundingBox(startTime, endTime float64) *geometry.AABB {
-	boxSize := vector3.One[float64]().Scale(s.radius)
+	boxSize := vector3.Fill(s.radius)
 	// TODO: Need a smarter method... This doesn't work for non-linear lines.
 	bs := geometry.NewAABB(s.animation(startTime), boxSize)
 	be := geometry.NewAABB(s.animation(endTime), boxSize)

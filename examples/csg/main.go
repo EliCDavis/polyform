@@ -21,7 +21,7 @@ func main() {
 		Sphere(vector3.Zero[float64](), 1.2, 1).
 		Modify(
 			modeling.PositionAttribute,
-			marching.Box(vector3.Zero[float64](), vector3.One[float64]().Scale(2), 1),
+			marching.Box(vector3.Zero[float64](), vector3.Fill(2.), 1),
 			func(a, b sample.Vec3ToFloat) sample.Vec3ToFloat {
 				return func(v vector3.Float64) float64 {
 					return math.Max(a(v), b(v))

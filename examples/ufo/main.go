@@ -8,6 +8,7 @@ import (
 	"github.com/EliCDavis/polyform/formats/obj"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/extrude"
+	"github.com/EliCDavis/polyform/modeling/meshops"
 	"github.com/EliCDavis/polyform/modeling/primitives"
 	"github.com/EliCDavis/polyform/modeling/repeat"
 	"github.com/EliCDavis/vector/vector3"
@@ -45,7 +46,11 @@ func contour(positions []vector3.Float64, times int) modeling.Mesh {
 func sideLights(numberOfLights int, radius float64) modeling.Mesh {
 	sides := 8
 	light := primitives.Cylinder(sides, 0.5, 0.5).
-		Append(primitives.Cylinder(sides, 0.25, 0.25).Translate(vector3.New(0., .35, 0.))).
+		Append(primitives.Cylinder(sides, 0.25, 0.25).Transform(
+			meshops.Translate3DTransformer{
+				Amount: vector3.New(0., .35, 0.),
+			},
+		)).
 		Rotate(modeling.UnitQuaternionFromTheta(-math.Pi/2, vector3.Forward[float64]()))
 
 	return repeat.Circle(light, numberOfLights, radius)
@@ -139,11 +144,11 @@ func main() {
 	ringSpacing := vector3.New(0., 3., 0.)
 	final := ring.
 		Append(ring.
-			Scale(vector3.Zero[float64](), vector3.One[float64]().Scale(.75)).
+			Scale(vector3.Fill(.75)).
 			Translate(ringSpacing.Scale(1)).
 			Rotate(modeling.UnitQuaternionFromTheta(0.3, vector3.Down[float64]()))).
 		Append(ring.
-			Scale(vector3.Zero[float64](), vector3.One[float64]().Scale(.5)).
+			Scale(vector3.Fill(.5)).
 			Translate(ringSpacing.Scale(2)).
 			Rotate(modeling.UnitQuaternionFromTheta(0.5, vector3.Down[float64]()))).
 		Append(UfoBody(ufoOuterRadius, ufoportalRadius, 8).Translate(ringSpacing.Scale(2.5)))

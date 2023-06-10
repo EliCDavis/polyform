@@ -52,7 +52,7 @@ func fileExits(filePath string) bool {
 }
 
 func inferRenderingMaterial(originalPath string, mat *modeling.Material) (rendering.Material, error) {
-	defaultMat := materials.NewLambertian(textures.NewSolidColorTexture(vector3.One[float64]().Scale(0.7)))
+	defaultMat := materials.NewLambertian(textures.NewSolidColorTexture(vector3.Fill(0.7)))
 	if mat == nil {
 		return defaultMat, nil
 	}
@@ -144,7 +144,7 @@ func makeRenderFunction(name string, maxRayBounce, samplesPerPixel, imageWidth i
 				}
 			}
 
-			var mats rendering.Material = materials.NewLambertian(textures.NewSolidColorTexture(vector3.One[float64]().Scale(0.7)))
+			var mats rendering.Material = materials.NewLambertian(textures.NewSolidColorTexture(vector3.Fill(0.7)))
 			if len(mesh.Materials()) > 0 {
 				mats, err = inferRenderingMaterial(modelPath, mesh.Materials()[0].Material)
 				if err != nil {
@@ -153,7 +153,7 @@ func makeRenderFunction(name string, maxRayBounce, samplesPerPixel, imageWidth i
 			}
 
 			box := mesh.BoundingBox(modeling.PositionAttribute)
-			centeredMesh := mesh.TranslateAttribute3D(modeling.PositionAttribute, box.Center().Scale(-1))
+			centeredMesh := mesh.Translate(box.Center().Scale(-1))
 
 			scene := []rendering.Hittable{
 				rendering.NewMesh(centeredMesh, mats),

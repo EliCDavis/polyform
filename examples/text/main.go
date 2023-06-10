@@ -79,7 +79,7 @@ func run() error {
 
 	start := time.Now()
 	mesh := finalWords.March(modeling.PositionAttribute, resolution, .0).
-		// Scale(vector3.Zero[float64](), vector3.New(1, 5, 1)).
+		// Scale(vector3.New(1, 5, 1)).
 		Transform(
 			meshops.LaplacianSmoothTransformer{
 				Attribute:       modeling.PositionAttribute,

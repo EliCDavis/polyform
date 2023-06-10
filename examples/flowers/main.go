@@ -119,8 +119,8 @@ func main() {
 	textureName := "flower.png"
 	texture(textureName)
 	singleFlower := flower(11, 0.25, 0.1).
-		Append(flower(8, 0.15, 0.3).Scale(vector3.Zero[float64](), vector3.One[float64]().Scale(0.9))).
-		Append(flower(5, 0.05, 0.6).Scale(vector3.Zero[float64](), vector3.One[float64]().Scale(0.8)))
+		Append(flower(8, 0.15, 0.3).Scale(vector3.Fill(0.9))).
+		Append(flower(5, 0.05, 0.6).Scale(vector3.Fill(0.8)))
 
 	flowerPos := points(3, 3, 3)
 
@@ -128,7 +128,7 @@ func main() {
 	for _, v := range flowerPos {
 		allFlowers = allFlowers.Append(singleFlower.
 			Translate(v).
-			Scale(vector3.Zero[float64](), vector3.One[float64]().Scale(0.5+(rand.Float64()*1))),
+			Scale(vector3.Fill(0.5 + (rand.Float64() * 1))),
 		)
 	}
 

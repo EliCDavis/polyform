@@ -60,7 +60,7 @@ func Chasis(height, width float64) modeling.Mesh {
 			Append(primitives.Cylinder(20, 0.5, width+.3).Translate(pos))
 	}
 
-	column := primitives.Cube().Scale(vector3.Zero[float64](), vector3.New(.2, height, .2))
+	column := primitives.Cube().Scale(vector3.New(.2, height, .2))
 	columns := repeat.Circle(column, 8, width)
 	chasis = chasis.Append(columns)
 
@@ -72,7 +72,7 @@ func Legs(height, width float64, numLegs int) modeling.Mesh {
 	legHeight := height - columnHeight
 
 	leg := primitives.Cube().
-		Scale(vector3.Zero[float64](), vector3.New(1, legHeight, 1)).
+		Scale(vector3.New(1, legHeight, 1)).
 		Translate(vector3.New(0, -(columnHeight / 2.), 0))
 
 	return primitives.
@@ -85,7 +85,7 @@ func Floor(floorHeight, radius, walkWidth float64) modeling.Mesh {
 	numLegs := int(math.Round(2*math.Pi*radius) / 4)
 	legHeight := 2.
 	post := primitives.Cube().
-		Scale(vector3.Zero[float64](), vector3.New(.1, legHeight, .1)).
+		Scale(vector3.New(.1, legHeight, .1)).
 		Translate(vector3.New(0, legHeight/2., 0))
 
 	pathPointCount := numLegs * 2

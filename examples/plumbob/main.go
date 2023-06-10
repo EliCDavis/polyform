@@ -14,7 +14,7 @@ import (
 func plumbob() modeling.Mesh {
 	return primitives.
 		UVSphere(1, 2, 8).
-		Scale(vector3.Zero[float64](), vector3.New(1., 2., 1.)).
+		Scale(vector3.New(1., 2., 1.)).
 		Unweld().
 		CalculateFlatNormals().
 		SetMaterial(modeling.Material{
@@ -37,7 +37,7 @@ func render() {
 		),
 		rendering.NewMesh(
 			plumbob().
-				Scale(vector3.Zero[float64](), vector3.One[float64]().Scale(0.9)).
+				Scale(vector3.Fill(0.9)).
 				FlipTriWinding(),
 			jewelMat,
 		),

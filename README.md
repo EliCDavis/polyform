@@ -1,4 +1,5 @@
 # Polyform
+
 ![Coverage](https://img.shields.io/badge/Coverage-36.5%25-yellow)
 [![Go Report Card](https://goreportcard.com/badge/github.com/EliCDavis/polyform)](https://goreportcard.com/report/github.com/EliCDavis/polyform)
 
@@ -23,33 +24,37 @@ Reads in a obj and applies the cube marching algorithm over the meshes 3D SDF.
 package main
 
 import (
-	"github.com/EliCDavis/polyform/formats/obj"
-	"github.com/EliCDavis/polyform/modeling"
-	"github.com/EliCDavis/polyform/modeling/marching"
-	"github.com/EliCDavis/vector"
+  "github.com/EliCDavis/polyform/formats/obj"
+  "github.com/EliCDavis/polyform/modeling"
+  "github.com/EliCDavis/polyform/modeling/marching"
+  "github.com/EliCDavis/polyform/modeling/meshops"
+  "github.com/EliCDavis/vector"
 )
 
 func check(err error) {
-	if err != nil {
-		panic(err)
-	}
+  if err != nil {
+    panic(err)
+  }
 }
 
 func main() {
-	loadedMesh, err := obj.Load("test-models/stanford-bunny.obj")
-	check(err)
+  loadedMesh, err := obj.Load("test-models/stanford-bunny.obj")
+  check(err)
 
-	resolution := 10.
-	canvas := marching.NewMarchingCanvas(resolution)
+  resolution := 10.
+  canvas := marching.NewMarchingCanvas(resolution)
 
-	canvas.AddFieldParallel(marching.Mesh(
-		loadedMesh.
-			CenterFloat3Attribute(modeling.PositionAttribute).
-			Scale(vector3.Zero[float64](), vector3.New(12, 12, 12)),
-		.1,
-		10,
-	))
-	check(obj.Save("chunky-bunny.obj", canvas.MarchParallel(.3)))
+  canvas.AddFieldParallel(marching.Mesh(
+    loadedMesh.Transform(
+      meshops.Center3DTransformer{},
+      meshops.Scale3DTransformer{
+        Amount: vector3.New(12, 12, 12),
+      },
+    ),
+    .1,
+    10,
+  ))
+  check(obj.Save("chunky-bunny.obj", canvas.MarchParallel(.3)))
 }
 ```
 
@@ -196,6 +201,6 @@ Resources either directly contributing to the code here or are just interesting 
   - [Möller-Trumbore Ray-Triangle Intersection](https://www.scratchapixel.com/lessons/3d-basic-rendering/ray-tracing-rendering-a-triangle/moller-trumbore-ray-triangle-intersection.html)
   - [Simulating the Colors of The Sky](https://www.scratchapixel.com/lessons/procedural-generation-virtual-worlds/simulating-sky/simulating-colors-of-the-sky.html)
 - Math
-  - [Mat3x3 => Quaternion from Blender Source](https://github.com/blender/blender/blob/756538b4a117cb51a15e848fa6170143b6aafcd8/source/blender/blenlib/intern/math_rotation.c#L272) 
+  - [Mat3x3 => Quaternion from Blender Source](https://github.com/blender/blender/blob/756538b4a117cb51a15e848fa6170143b6aafcd8/source/blender/blenlib/intern/math_rotation.c#L272)
 - Skinning
   [Volumetric Heat Diffusion Skinning by Wolfire Games](http://blog.wolfire.com/2009/11/volumetric-heat-diffusion-skinning/)

@@ -35,7 +35,7 @@ func TerrainTexture(
 	specTex := image.NewRGBA(image.Rect(0, 0, textureSize, textureSize))
 	normalSourceTex := image.NewRGBA(image.Rect(0, 0, textureSize, textureSize))
 
-	imageDimensions := vector2.One[float64]().Scale(float64(textureSize))
+	imageDimensions := vector2.Fill(float64(textureSize))
 	df := noise.NewDistanceField(30, 30, imageDimensions)
 	df2 := noise.NewDistanceField(60, 60, imageDimensions)
 	df3 := noise.NewDistanceField(80, 80, imageDimensions)

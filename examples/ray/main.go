@@ -165,7 +165,7 @@ func simsScene(time float64) []rendering.Hittable {
 
 	jewelGeometry := primitives.
 		UVSphere(1, 2, 8).
-		Scale(vector3.Zero[float64](), vector3.New(1., 2., 1.)).
+		Scale(vector3.New(1., 2., 1.)).
 		Translate(vector3.Up[float64]().Scale(2)).
 		Rotate(modeling.UnitQuaternionFromTheta(time*0.5, vector3.Down[float64]())).
 		Unweld().
@@ -180,7 +180,14 @@ func simsScene(time float64) []rendering.Hittable {
 
 	world = append(world,
 		rendering.NewMesh(
-			jewelGeometry.Scale(vector3.Up[float64]().Scale(2), vector3.One[float64]().Scale(0.9)).FlipTriWinding(),
+			jewelGeometry.
+				Transform(
+					meshops.Scale3DTransformer{
+						Origin: vector3.Up[float64]().Scale(2),
+						Amount: vector3.Fill(0.9),
+					},
+				).
+				FlipTriWinding(),
 			jewelMat,
 		),
 	)
@@ -210,10 +217,14 @@ func bunnyScene() []rendering.Hittable {
 	}
 
 	b1 := bunny.
-		CenterFloat3Attribute(modeling.PositionAttribute).
-		Scale(vector3.Zero[float64](), vector3.One[float64]().Scale(20)).
-		Translate(vector3.Up[float64]().Scale(2)).
 		Transform(
+			meshops.Center3DTransformer{},
+			meshops.Scale3DTransformer{
+				Amount: vector3.Fill(20.),
+			},
+			meshops.Translate3DTransformer{
+				Amount: vector3.Up[float64]().Scale(2),
+			},
 			meshops.SmoothNormalsTransformer{},
 		)
 
@@ -225,7 +236,7 @@ func bunnyScene() []rendering.Hittable {
 	)
 	// world = append(world,
 	// 	rendering.NewMesh(
-	// 		b1.Scale(vector3.Zero[float64](), vector3.One[float64]().Scale(.95)),
+	// 		b1.Scale(vector3.Fill(.95)),
 	// 		jewelMat,
 	// 	),
 	// )

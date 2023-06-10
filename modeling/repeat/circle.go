@@ -4,6 +4,7 @@ import (
 	"math"
 
 	"github.com/EliCDavis/polyform/modeling"
+	"github.com/EliCDavis/polyform/modeling/meshops"
 	"github.com/EliCDavis/vector/vector3"
 )
 
@@ -33,7 +34,14 @@ func Circle(in modeling.Mesh, times int, radius float64) modeling.Mesh {
 		pos := vector3.New(math.Cos(angle), 0, math.Sin(angle)).Scale(radius)
 		rot := modeling.UnitQuaternionFromTheta(angle-(math.Pi/2), vector3.Down[float64]())
 
-		final = final.Append(in.Rotate(rot).Translate(pos))
+		final = final.Append(
+			in.Rotate(rot).
+				Transform(
+					meshops.Translate3DTransformer{
+						Amount: pos,
+					},
+				),
+		)
 	}
 
 	return final

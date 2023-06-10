@@ -79,7 +79,7 @@ func MultiSegmentLine(linePoints []vector3.Float64, radius, strength float64) Fi
 	// 	start := line[i-1]
 	// 	end := line[i]
 
-	// 	boundsSize := vector3.One[float64]().Scale(radius + strength)
+	// 	boundsSize := vector3.Fill(radius + strength)
 	// 	bounds.EncapsulateBounds(geometry.NewAABB(start, boundsSize))
 	// 	bounds.EncapsulateBounds(geometry.NewAABB(end, boundsSize))
 

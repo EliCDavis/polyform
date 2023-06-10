@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/EliCDavis/polyform/formats/obj"
-	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/meshops"
 	"github.com/EliCDavis/polyform/rendering"
 	"github.com/EliCDavis/polyform/rendering/materials"
@@ -88,13 +87,16 @@ func bunnyScene() []rendering.Hittable {
 
 	world = append(world,
 		rendering.NewMesh(
-			bunny.
-				CenterFloat3Attribute(modeling.PositionAttribute).
-				Scale(vector3.Zero[float64](), vector3.One[float64]().Scale(20)).
-				Translate(vector3.Up[float64]().Scale(2)).
-				Transform(
-					meshops.SmoothNormalsTransformer{},
-				),
+			bunny.Transform(
+				meshops.Center3DTransformer{},
+				meshops.Scale3DTransformer{
+					Amount: vector3.Fill(20.),
+				},
+				meshops.Translate3DTransformer{
+					Amount: vector3.Up[float64]().Scale(2),
+				},
+				meshops.SmoothNormalsTransformer{},
+			),
 			jewelMat,
 		),
 	)

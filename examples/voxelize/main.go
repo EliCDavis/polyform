@@ -57,7 +57,7 @@ func main() {
 			voxelizedMesh := modeling.EmptyMesh()
 			for _, v := range voxels {
 				cube := primitives.Cube().
-					Scale(vector3.Zero[float64](), vector3.One[float64]().Scale(voxelSize)).
+					Scale(vector3.Fill(voxelSize)).
 					Translate(v)
 				voxelizedMesh = voxelizedMesh.Append(cube)
 			}
