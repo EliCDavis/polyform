@@ -38,7 +38,7 @@ func Cube() modeling.Mesh {
 		// top, front, right
 		vector3.New(.5, .5, .5),
 	}
-	return modeling.NewMesh(
+	return modeling.NewTriangleMesh(
 		[]int{
 			// Back
 			0, 2, 6,

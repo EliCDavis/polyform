@@ -25,8 +25,23 @@ type Mesh struct {
 	topology  Topology
 }
 
-// New Mesh creates a new mesh with all empty attribute data arrays stripped.
-func NewMesh(indices []int) Mesh {
+// New Mesh creates a new mesh with the specified topology with all empty
+// attribute data arrays stripped.
+func NewMesh(topo Topology, indices []int) Mesh {
+	return Mesh{
+		indices:   indices,
+		materials: nil,
+		topology:  topo,
+		v1Data:    make(map[string][]float64),
+		v2Data:    make(map[string][]vector2.Float64),
+		v3Data:    make(map[string][]vector3.Float64),
+		v4Data:    make(map[string][]vector4.Float64),
+	}
+}
+
+// NewTriangleMesh creates a new triangle mesh with all empty attribute data
+// arrays stripped.
+func NewTriangleMesh(indices []int) Mesh {
 	return Mesh{
 		indices:   indices,
 		materials: nil,
@@ -123,62 +138,15 @@ func NewPointCloud(
 }
 
 // Creates a new triangle mesh with no vertices or attribute data
-func EmptyMesh() Mesh {
+func EmptyMesh(topo Topology) Mesh {
 	return Mesh{
 		indices:   make([]int, 0),
 		materials: make([]MeshMaterial, 0),
-		topology:  TriangleTopology,
+		topology:  topo,
 		v4Data:    make(map[string][]vector4.Float64),
 		v3Data:    make(map[string][]vector3.Float64),
 		v2Data:    make(map[string][]vector2.Float64),
 		v1Data:    make(map[string][]float64),
-	}
-}
-
-func NewTexturedMesh(
-	triangles []int,
-	vertices []vector3.Float64,
-	normals []vector3.Float64,
-	uvs []vector2.Float64,
-) Mesh {
-	return Mesh{
-		indices: triangles,
-		v3Data: map[string][]vector3.Float64{
-			PositionAttribute: vertices,
-			NormalAttribute:   normals,
-		},
-		v2Data: map[string][]vector2.Float64{
-			TexCoordAttribute: uvs,
-		},
-		materials: []MeshMaterial{{len(triangles) / 3, nil}},
-		topology:  TriangleTopology,
-	}
-}
-
-func MeshFromView(view MeshView) Mesh {
-	return Mesh{
-		indices:  view.Indices,
-		v3Data:   view.Float3Data,
-		v2Data:   view.Float2Data,
-		v1Data:   view.Float1Data,
-		topology: TriangleTopology,
-	}
-}
-
-// View exposes the underlying data to be modified. Using this breaks the
-// immutable design of the system, but required for some mesh processing.
-//
-// Modifying the data stored in the mesh found here will directly update the
-// mesh, and side-steps any type of validation we could have done previously.
-//
-// If you make changes to this view, assume the mesh and all ancestors of said
-// mesh have just become garbage.
-func (m Mesh) View() MeshView {
-	return MeshView{
-		Float3Data: m.v3Data,
-		Float2Data: m.v2Data,
-		Float1Data: m.v1Data,
-		Indices:    m.indices,
 	}
 }
 
@@ -282,7 +250,7 @@ func (m Mesh) SetMaterial(mat Material) Mesh {
 		v2Data:    m.v2Data,
 		v1Data:    m.v1Data,
 		indices:   m.indices,
-		materials: []MeshMaterial{{PrimitiveCount: len(m.indices) / 3, Material: &mat}},
+		materials: []MeshMaterial{{PrimitiveCount: len(m.indices) / m.topology.IndexSize(), Material: &mat}},
 		topology:  m.topology,
 	}
 }
@@ -848,35 +816,6 @@ func (m Mesh) ModifyFloat1AttributeParallelWithPoolSize(atr string, size int, f 
 	return m.SetFloat1Attribute(atr, modified)
 }
 
-func (m Mesh) CalculateFlatNormals() Mesh {
-	m.requireTopology(TriangleTopology)
-	m.requireV3Attribute(PositionAttribute)
-
-	vertices := m.v3Data[PositionAttribute]
-	normals := make([]vector3.Float64, len(vertices))
-	for i := range normals {
-		normals[i] = vector3.One[float64]()
-	}
-
-	tris := m.indices
-	for triIndex := 0; triIndex < len(tris); triIndex += 3 {
-		p1 := tris[triIndex]
-		p2 := tris[triIndex+1]
-		p3 := tris[triIndex+2]
-		// normalize(cross(B-A, C-A))
-		normalized := vertices[p2].Sub(vertices[p1]).Cross(vertices[p3].Sub(vertices[p1])).Normalized()
-		normals[p1] = normalized
-		normals[p2] = normalized
-		normals[p3] = normalized
-	}
-
-	for i, n := range normals {
-		normals[i] = n.Normalized()
-	}
-
-	return m.SetFloat3Attribute(NormalAttribute, normals)
-}
-
 func (m Mesh) FlipTriWinding() Mesh {
 	m.requireTopology(TriangleTopology)
 
@@ -892,58 +831,6 @@ func (m Mesh) FlipTriWinding() Mesh {
 		v3Data:    m.v3Data,
 		v2Data:    m.v2Data,
 		v1Data:    m.v1Data,
-		materials: m.materials,
-	}
-}
-
-// Unweld duplicates all vertex data such that no two primitive indices share
-// any one vertex
-func (m Mesh) Unweld() Mesh {
-	indices := make([]int, len(m.indices))
-
-	unweldedV4Data := make(map[string][]vector4.Float64)
-	for atr := range m.v4Data {
-		unweldedV4Data[atr] = make([]vector4.Float64, 0)
-	}
-
-	unweldedV3Data := make(map[string][]vector3.Float64)
-	for atr := range m.v3Data {
-		unweldedV3Data[atr] = make([]vector3.Float64, 0)
-	}
-
-	unweldedV2Data := make(map[string][]vector2.Float64)
-	for atr := range m.v2Data {
-		unweldedV2Data[atr] = make([]vector2.Float64, 0)
-	}
-
-	unweldedV1Data := make(map[string][]float64)
-	for atr := range m.v1Data {
-		unweldedV1Data[atr] = make([]float64, 0)
-	}
-
-	for i := 0; i < len(indices); i++ {
-		indices[i] = i
-		for atr, data := range m.v4Data {
-			unweldedV4Data[atr] = append(unweldedV4Data[atr], data[m.indices[i]])
-		}
-		for atr, data := range m.v3Data {
-			unweldedV3Data[atr] = append(unweldedV3Data[atr], data[m.indices[i]])
-		}
-		for atr, data := range m.v2Data {
-			unweldedV2Data[atr] = append(unweldedV2Data[atr], data[m.indices[i]])
-		}
-		for atr, data := range m.v1Data {
-			unweldedV1Data[atr] = append(unweldedV1Data[atr], data[m.indices[i]])
-		}
-	}
-
-	return Mesh{
-		topology:  m.topology,
-		indices:   indices,
-		v4Data:    unweldedV4Data,
-		v3Data:    unweldedV3Data,
-		v2Data:    unweldedV2Data,
-		v1Data:    unweldedV1Data,
 		materials: m.materials,
 	}
 }

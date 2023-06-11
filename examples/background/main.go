@@ -28,7 +28,7 @@ func main() {
 	terrain := triangulation.
 		BowyerWatson(points).
 		Transform(
-			meshops.Center3DTransformer{},
+			meshops.CenterAttribute3DTransformer{},
 			meshops.CustomTransformer{
 				Func: func(m modeling.Mesh) (results modeling.Mesh, err error) {
 					pos := m.Float3Attribute(modeling.PositionAttribute)

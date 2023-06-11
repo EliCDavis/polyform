@@ -27,11 +27,10 @@ func TestSimplePolygonSpike(t *testing.T) {
 	}
 	// ACT ====================================================================
 	m := extrude.Polygon(3, extrusionPoints)
-	view := m.View()
 
 	// ASSERT =================================================================
-	assert.Len(t, view.Float3Data[modeling.NormalAttribute], 8)
-	if assert.Len(t, view.Float3Data[modeling.PositionAttribute], 8) {
-		assert.Equal(t, vector3.Up[float64](), view.Float3Data[modeling.PositionAttribute][7])
+	assert.Equal(t, 8, m.Float3Attribute(modeling.NormalAttribute).Len())
+	if assert.Equal(t, 8, m.Float3Attribute(modeling.PositionAttribute).Len()) {
+		assert.Equal(t, vector3.Up[float64](), m.Float3Attribute(modeling.PositionAttribute).At(7))
 	}
 }

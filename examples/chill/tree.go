@@ -50,7 +50,7 @@ func Tree(
 	// branchCount := 3
 	branchLength := height * 0.25 * (.8 + (.4 * rand.Float64()))
 
-	branches := modeling.EmptyMesh()
+	branches := modeling.EmptyMesh(modeling.TriangleTopology)
 	for i := 0; i < branchCount; i++ {
 		branchHeight := (heightCovered * rand.Float64()) + heightBare
 

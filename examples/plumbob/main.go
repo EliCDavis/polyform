@@ -5,6 +5,7 @@ import (
 
 	"github.com/EliCDavis/polyform/formats/obj"
 	"github.com/EliCDavis/polyform/modeling"
+	"github.com/EliCDavis/polyform/modeling/meshops"
 	"github.com/EliCDavis/polyform/modeling/primitives"
 	"github.com/EliCDavis/polyform/rendering"
 	"github.com/EliCDavis/polyform/rendering/materials"
@@ -14,9 +15,13 @@ import (
 func plumbob() modeling.Mesh {
 	return primitives.
 		UVSphere(1, 2, 8).
-		Scale(vector3.New(1., 2., 1.)).
-		Unweld().
-		CalculateFlatNormals().
+		Transform(
+			meshops.ScaleAttribute3DTransformer{
+				Amount: vector3.New(1., 2., 1.),
+			},
+			meshops.UnweldTransformer{},
+			meshops.FlatNormalsTransformer{},
+		).
 		SetMaterial(modeling.Material{
 			Name:              "Plumbob",
 			DiffuseColor:      color.RGBA{0, 255, 0, 255},

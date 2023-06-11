@@ -72,7 +72,7 @@ func pedal(baseWidth, midWidth, pedalLength, tipLength float64, arcVertCount int
 	}
 
 	return modeling.
-		NewMesh(faces).
+		NewTriangleMesh(faces).
 		SetFloat3Attribute(modeling.PositionAttribute, verts).
 		SetFloat3Attribute(modeling.NormalAttribute, normals).
 		SetFloat2Attribute(modeling.TexCoordAttribute, uvs)
@@ -124,7 +124,7 @@ func main() {
 
 	flowerPos := points(3, 3, 3)
 
-	allFlowers := modeling.EmptyMesh()
+	allFlowers := modeling.EmptyMesh(modeling.TriangleTopology)
 	for _, v := range flowerPos {
 		allFlowers = allFlowers.Append(singleFlower.
 			Translate(v).

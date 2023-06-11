@@ -5,17 +5,17 @@ import (
 	"github.com/EliCDavis/vector/vector3"
 )
 
-type Scale3DTransformer struct {
+type ScaleAttribute3DTransformer struct {
 	Attribute string
 	Origin    vector3.Float64
 	Amount    vector3.Float64
 }
 
-func (st Scale3DTransformer) attribute() string {
+func (st ScaleAttribute3DTransformer) attribute() string {
 	return st.Attribute
 }
 
-func (st Scale3DTransformer) Transform(m modeling.Mesh) (results modeling.Mesh, err error) {
+func (st ScaleAttribute3DTransformer) Transform(m modeling.Mesh) (results modeling.Mesh, err error) {
 	attribute := getAttribute(st, modeling.PositionAttribute)
 
 	if err = requireV3Attribute(m, attribute); err != nil {

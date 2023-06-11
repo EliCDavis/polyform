@@ -14,7 +14,7 @@ import (
 
 func TestWriteObj_EmptyMesh(t *testing.T) {
 	// ARRANGE ================================================================
-	m := modeling.EmptyMesh()
+	m := modeling.EmptyMesh(modeling.TriangleTopology)
 	buf := bytes.Buffer{}
 
 	// ACT ====================================================================
@@ -29,7 +29,7 @@ func TestWriteObj_EmptyMesh(t *testing.T) {
 
 func TestWriteObj_NoNormalsOrUVs(t *testing.T) {
 	// ARRANGE ================================================================
-	m := modeling.NewMesh([]int{0, 1, 2}).
+	m := modeling.NewTriangleMesh([]int{0, 1, 2}).
 		SetFloat3Data(map[string][]vector3.Float64{
 			modeling.PositionAttribute: {
 				vector3.New[float64](1., 2., 3.),
@@ -56,7 +56,7 @@ f 1 2 3
 
 func TestWriteObj_NoUVs(t *testing.T) {
 	// ARRANGE ================================================================
-	m := modeling.NewMesh([]int{0, 1, 2}).
+	m := modeling.NewTriangleMesh([]int{0, 1, 2}).
 		SetFloat3Data(map[string][]vector3.Float64{
 			modeling.PositionAttribute: {
 				vector3.New[float64](1, 2, 3),
@@ -91,7 +91,7 @@ f 1//1 2//2 3//3
 
 func TestWriteObj_NoNormals(t *testing.T) {
 	// ARRANGE ================================================================
-	m := modeling.NewMesh([]int{0, 1, 2}).
+	m := modeling.NewTriangleMesh([]int{0, 1, 2}).
 		SetFloat3Attribute(modeling.PositionAttribute, []vector3.Float64{
 			vector3.New[float64](1, 2, 3),
 			vector3.New[float64](4, 5, 6),
@@ -124,7 +124,7 @@ f 1/1 2/2 3/3
 
 func TestWriteObj(t *testing.T) {
 	// ARRANGE ================================================================
-	m := modeling.NewMesh([]int{0, 1, 2}).
+	m := modeling.NewTriangleMesh([]int{0, 1, 2}).
 		SetFloat3Data(map[string][]vector3.Float64{
 			modeling.PositionAttribute: {
 				vector3.New[float64](1, 2, 3),
@@ -171,7 +171,7 @@ f 1/1/1 2/2/2 3/3/3
 
 func TestWriteObjWithSingleMaterial(t *testing.T) {
 	// ARRANGE ================================================================
-	m := modeling.NewMesh([]int{0, 1, 2}).
+	m := modeling.NewTriangleMesh([]int{0, 1, 2}).
 		SetFloat3Data(map[string][]vector3.Float64{
 			modeling.PositionAttribute: {
 				vector3.New[float64](1, 2, 3),
@@ -225,7 +225,7 @@ f 1/1/1 2/2/2 3/3/3
 
 func TestWriteObjWithMultipleMaterials(t *testing.T) {
 	// ARRANGE ================================================================
-	m := modeling.NewMesh([]int{0, 1, 2, 3, 4, 5}).
+	m := modeling.NewTriangleMesh([]int{0, 1, 2, 3, 4, 5}).
 		SetFloat3Data(map[string][]vector3.Float64{
 			modeling.PositionAttribute: {
 				vector3.New[float64](1, 2, 3),
@@ -307,7 +307,7 @@ f 4/4/4 5/5/5 6/6/6
 func TestWriteMaterials(t *testing.T) {
 	// ARRANGE ================================================================
 	buf := bytes.Buffer{}
-	m := modeling.NewMesh(nil).
+	m := modeling.NewTriangleMesh(nil).
 		SetMaterials([]modeling.MeshMaterial{
 			{
 				PrimitiveCount: 1,

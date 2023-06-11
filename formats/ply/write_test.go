@@ -76,7 +76,7 @@ end_header
 `
 
 	imgName := "tri.png"
-	tri := modeling.NewMesh([]int{0, 1, 2}).
+	tri := modeling.NewTriangleMesh([]int{0, 1, 2}).
 		SetFloat3Data(map[string][]vector3.Vector[float64]{
 			modeling.PositionAttribute: []vector3.Float64{
 				vector3.New(0., 0., 0.),

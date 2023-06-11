@@ -54,7 +54,7 @@ func main() {
 			log.Printf("Time to voxelize: %s", time.Since(startVoxel))
 
 			startMesh := time.Now()
-			voxelizedMesh := modeling.EmptyMesh()
+			voxelizedMesh := modeling.EmptyMesh(modeling.TriangleTopology)
 			for _, v := range voxels {
 				cube := primitives.Cube().
 					Scale(vector3.Fill(voxelSize)).

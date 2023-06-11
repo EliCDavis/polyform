@@ -549,7 +549,7 @@ func (d MarchingCanvas) marchFloat1BlockPosition(
 			}
 		}
 	}
-	return modeling.NewMesh(marchingWorkingData.tris).
+	return modeling.NewTriangleMesh(marchingWorkingData.tris).
 		SetFloat3Data(map[string][]vector3.Float64{
 			modeling.PositionAttribute: marchingWorkingData.verts,
 		}).
@@ -559,7 +559,7 @@ func (d MarchingCanvas) marchFloat1BlockPosition(
 }
 
 func (d MarchingCanvas) marchFloat1(cutoff float64, section *marchingSection) modeling.Mesh {
-	finalMesh := modeling.EmptyMesh()
+	finalMesh := modeling.EmptyMesh(modeling.TriangleTopology)
 	for blockPosition := range section.positions {
 		finalMesh = finalMesh.Append(d.marchFloat1BlockPosition(cutoff, section, blockPosition))
 	}
@@ -586,7 +586,7 @@ func (d MarchingCanvas) marchFloat1Parallel(cutoff float64, section *marchingSec
 	}
 	close(jobs)
 
-	finalMesh := modeling.EmptyMesh()
+	finalMesh := modeling.EmptyMesh(modeling.TriangleTopology)
 	for i := 0; i < numJobs; i++ {
 		finalMesh = finalMesh.Append(<-results)
 	}
@@ -604,7 +604,7 @@ func (d MarchingCanvas) MarchOnAttribute(attribute string, cutoff float64) model
 		if section.dataType == Float1 && sectionAttribute == attribute {
 			return d.marchFloat1(cutoff, section).
 				Transform(
-					meshops.Scale3DTransformer{
+					meshops.ScaleAttribute3DTransformer{
 						Amount: vector3.One[float64]().DivByConstant(d.cubesPerUnit),
 					},
 				).
@@ -627,7 +627,7 @@ func (d MarchingCanvas) MarchOnAttributeParallel(attribute string, cutoff float6
 			}
 			return marched.
 				Transform(
-					meshops.Scale3DTransformer{
+					meshops.ScaleAttribute3DTransformer{
 						Amount: vector3.One[float64]().DivByConstant(d.cubesPerUnit),
 					},
 				).

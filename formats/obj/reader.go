@@ -284,7 +284,7 @@ func ReadMesh(in io.Reader) (*modeling.Mesh, []string, error) {
 		}
 	}
 
-	mesh := modeling.NewMesh(tris).
+	mesh := modeling.NewTriangleMesh(tris).
 		SetFloat3Attribute(modeling.PositionAttribute, verts).
 		SetMaterials(meshMaterials)
 

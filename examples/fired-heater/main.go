@@ -29,7 +29,7 @@ func Chimney(funnelWidth, funnelHeight, taperHeight, shootWidth, shootHeight flo
 
 	rows := 4
 	rowSpacing := shootHeight / float64(rows)
-	allRows := modeling.EmptyMesh()
+	allRows := modeling.EmptyMesh(modeling.TriangleTopology)
 	for i := 0; i < rows; i++ {
 		pos := vector3.New(0, rowSpacing*float64(i)-halfTotalHeight+funnelHeight+taperHeight, 0)
 		allRows = allRows.
@@ -141,7 +141,7 @@ func PiShape(height, width float64) []vector2.Float64 {
 
 func PutTogetherSegments(segments ...Segment) modeling.Mesh {
 	offset := 0.
-	finalMesh := modeling.EmptyMesh()
+	finalMesh := modeling.EmptyMesh(modeling.TriangleTopology)
 	for _, segment := range segments {
 		offset += segment.height / 2
 		finalMesh = finalMesh.Append(segment.mesh.Translate(vector3.New(0, offset, 0)))

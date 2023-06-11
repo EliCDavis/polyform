@@ -10,7 +10,7 @@ import (
 )
 
 func TestTri_PointInside(t *testing.T) {
-	mesh := modeling.NewMesh([]int{0, 1, 2}).
+	mesh := modeling.NewTriangleMesh([]int{0, 1, 2}).
 		SetFloat3Attribute(
 			modeling.PositionAttribute,
 			[]vector3.Float64{
@@ -28,7 +28,7 @@ func TestTri_PointInside(t *testing.T) {
 }
 
 func TestTri_LineIntersects(t *testing.T) {
-	mesh := modeling.NewMesh([]int{0, 1, 2}).
+	mesh := modeling.NewTriangleMesh([]int{0, 1, 2}).
 		SetFloat3Attribute(
 			modeling.PositionAttribute,
 			[]vector3.Float64{

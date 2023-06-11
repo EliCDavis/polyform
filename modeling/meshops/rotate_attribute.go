@@ -5,23 +5,23 @@ import (
 	"github.com/EliCDavis/vector/vector3"
 )
 
-type Rotate3DTransformer struct {
+type RotateAttribute3DTransformer struct {
 	Attribute string
 	Amount    modeling.Quaternion
 }
 
-func (st Rotate3DTransformer) attribute() string {
-	return st.Attribute
+func (rat RotateAttribute3DTransformer) attribute() string {
+	return rat.Attribute
 }
 
-func (st Rotate3DTransformer) Transform(m modeling.Mesh) (results modeling.Mesh, err error) {
-	attribute := getAttribute(st, modeling.PositionAttribute)
+func (rat RotateAttribute3DTransformer) Transform(m modeling.Mesh) (results modeling.Mesh, err error) {
+	attribute := getAttribute(rat, modeling.PositionAttribute)
 
 	if err = requireV3Attribute(m, attribute); err != nil {
 		return
 	}
 
-	return RotateAttribute3D(m, attribute, st.Amount), nil
+	return RotateAttribute3D(m, attribute, rat.Amount), nil
 }
 
 func RotateAttribute3D(m modeling.Mesh, attribute string, q modeling.Quaternion) modeling.Mesh {

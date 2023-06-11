@@ -29,11 +29,11 @@ func FibonacciSpherePoints(samples int, offsetRadius float64) []vector3.Float64 
 
 func FibonacciSphere(in modeling.Mesh, samples int, radius float64) modeling.Mesh {
 	points := FibonacciSpherePoints(samples, radius)
-	final := modeling.EmptyMesh()
+	final := modeling.EmptyMesh(in.Topology())
 	for _, p := range points {
 		rot := modeling.UnitQuaternionFromTheta(0, p.Normalized())
 		final = final.Append(in.Rotate(rot).Transform(
-			meshops.Translate3DTransformer{
+			meshops.TranslateAttribute3DTransformer{
 				Amount: p,
 			},
 		))

@@ -15,7 +15,7 @@ import (
 
 func TestOctreeSingleTri(t *testing.T) {
 	// ARRANGE ================================================================
-	mesh := modeling.NewMesh([]int{0, 1, 2}).
+	mesh := modeling.NewTriangleMesh([]int{0, 1, 2}).
 		SetFloat3Attribute(modeling.PositionAttribute, []vector3.Float64{
 			vector3.New(0., 0., 0.),
 			vector3.New(0., 1., 0.),
@@ -32,7 +32,7 @@ func TestOctreeSingleTri(t *testing.T) {
 
 func TestOctreeTwoTris(t *testing.T) {
 	// ARRANGE ================================================================
-	mesh := modeling.NewMesh([]int{0, 1, 2, 0, 2, 3}).
+	mesh := modeling.NewTriangleMesh([]int{0, 1, 2, 0, 2, 3}).
 		SetFloat3Attribute(modeling.PositionAttribute, []vector3.Float64{
 			vector3.New(0., 0., 0.),
 			vector3.New(0., 1., 0.),

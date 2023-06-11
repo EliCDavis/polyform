@@ -1,12 +1,29 @@
 package geometry_test
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/vector/vector3"
 	"github.com/stretchr/testify/assert"
 )
+
+func TestAABBToJSON(t *testing.T) {
+	center := vector3.New(1., 2., 3.)
+	size := vector3.New(4., 5., 6.)
+	in := geometry.NewAABB(center, size)
+	out := geometry.AABB{}
+
+	marshalledData, marshallErr := json.Marshal(in)
+	unmarshallErr := json.Unmarshal(marshalledData, &out)
+
+	assert.NoError(t, marshallErr)
+	assert.NoError(t, unmarshallErr)
+	assert.Equal(t, "{\"center\":{\"x\":1,\"y\":2,\"z\":3},\"extents\":{\"x\":2,\"y\":2.5,\"z\":3}}", string(marshalledData))
+	assert.Equal(t, center, out.Center())
+	assert.Equal(t, size, out.Size())
+}
 
 func TestAABB(t *testing.T) {
 	center := vector3.New(2., 3., 4.)

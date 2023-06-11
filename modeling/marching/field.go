@@ -460,7 +460,7 @@ func (f Field) March(atr string, cubesPerUnit, cutoff float64) modeling.Mesh {
 			}
 		}
 	}
-	return modeling.NewMesh(tris).
+	return modeling.NewTriangleMesh(tris).
 		SetFloat3Data(v3Data).
 		SetFloat2Data(v2Data).
 		SetFloat1Data(v1Data).

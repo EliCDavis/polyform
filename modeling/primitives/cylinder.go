@@ -76,7 +76,7 @@ func Cylinder(sides int, height, radius float64) modeling.Mesh {
 		1,
 	)
 
-	return modeling.NewMesh(tris).
+	return modeling.NewTriangleMesh(tris).
 		SetFloat3Data(map[string][]vector3.Float64{
 			modeling.PositionAttribute: vertices,
 			modeling.NormalAttribute:   normals,

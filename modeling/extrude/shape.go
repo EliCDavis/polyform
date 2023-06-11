@@ -82,7 +82,7 @@ func makeShape(shape []vector2.Float64, path []vector3.Float64, close bool) mode
 		}
 	}
 
-	return modeling.NewMesh(tris).
+	return modeling.NewTriangleMesh(tris).
 		SetFloat3Data(map[string][]vector3.Float64{
 			modeling.PositionAttribute: vertices,
 			modeling.NormalAttribute:   normals,

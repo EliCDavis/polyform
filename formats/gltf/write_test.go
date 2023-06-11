@@ -13,7 +13,7 @@ import (
 
 func TestWriteBasicTri(t *testing.T) {
 	// ARRANGE ================================================================
-	tri := modeling.NewMesh([]int{0, 1, 2}).
+	tri := modeling.NewTriangleMesh([]int{0, 1, 2}).
 		SetFloat3Attribute(
 			modeling.PositionAttribute, []vector3.Float64{
 				vector3.New(0., 0., 0.),
@@ -119,7 +119,7 @@ func TestWriteBasicTri(t *testing.T) {
 
 func TestWriteColorTri(t *testing.T) {
 	// ARRANGE ================================================================
-	tri := modeling.NewMesh([]int{0, 1, 2}).
+	tri := modeling.NewTriangleMesh([]int{0, 1, 2}).
 		SetFloat3Attribute(
 			modeling.PositionAttribute, []vector3.Float64{
 				vector3.New(0., 0., 0.),
@@ -256,7 +256,7 @@ func TestWriteColorTri(t *testing.T) {
 
 func TestWriteTexturedTri(t *testing.T) {
 	// ARRANGE ================================================================
-	tri := modeling.NewMesh([]int{0, 1, 2}).
+	tri := modeling.NewTriangleMesh([]int{0, 1, 2}).
 		SetFloat3Attribute(
 			modeling.PositionAttribute,
 			[]vector3.Float64{

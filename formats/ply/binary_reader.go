@@ -8,6 +8,7 @@ import (
 	"math"
 
 	"github.com/EliCDavis/polyform/modeling"
+	"github.com/EliCDavis/polyform/modeling/meshops"
 	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
 )
@@ -363,10 +364,10 @@ func (le *BinaryReader) ReadMesh() (*modeling.Mesh, error) {
 	var finalMesh modeling.Mesh
 
 	if len(triData) > 0 {
-		finalMesh = modeling.NewMesh(triData).SetFloat3Data(vertexData)
+		finalMesh = modeling.NewTriangleMesh(triData).SetFloat3Data(vertexData)
 		if len(uvData) == len(triData) {
 			finalMesh = finalMesh.
-				Unweld().
+				Transform(meshops.UnweldTransformer{}).
 				SetFloat2Attribute(modeling.TexCoordAttribute, uvData)
 		}
 	} else {

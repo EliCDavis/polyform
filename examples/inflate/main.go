@@ -96,8 +96,8 @@ func main() {
 			startTime := time.Now()
 			canvas.AddFieldParallel(marching.Mesh(
 				loadedMesh.Transform(
-					meshops.Center3DTransformer{},
-					meshops.Scale3DTransformer{
+					meshops.CenterAttribute3DTransformer{},
+					meshops.ScaleAttribute3DTransformer{
 						Amount: vector3.Fill(c.Float64("scale")),
 					},
 				),

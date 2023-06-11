@@ -49,11 +49,10 @@ func WriteASCII(out io.Writer, model modeling.Mesh) error {
 		return err
 	}
 
-	view := model.View()
 	for i := 0; i < vertexCount; i++ {
 		for atrI, atr := range attributes {
 
-			v := view.Float3Data[atr][i]
+			v := model.Float3Attribute(atr).At(i)
 
 			if atr == modeling.ColorAttribute {
 				fmt.Fprintf(out, "%d %d %d", int(v.X()*255), int(v.Y()*255), int(v.Z()*255))
@@ -108,11 +107,10 @@ func WriteBinary(out io.Writer, model modeling.Mesh) error {
 	}
 	writer := bitlib.NewWriter(out, binary.LittleEndian)
 
-	view := model.View()
 	for i := 0; i < vertexCount; i++ {
 		for _, atr := range attributes {
 
-			v := view.Float3Data[atr][i]
+			v := model.Float3Attribute(atr).At(i)
 
 			if atr == modeling.ColorAttribute {
 				writer.Byte(byte(v.X() * 255))

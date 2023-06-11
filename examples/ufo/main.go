@@ -47,7 +47,7 @@ func sideLights(numberOfLights int, radius float64) modeling.Mesh {
 	sides := 8
 	light := primitives.Cylinder(sides, 0.5, 0.5).
 		Append(primitives.Cylinder(sides, 0.25, 0.25).Transform(
-			meshops.Translate3DTransformer{
+			meshops.TranslateAttribute3DTransformer{
 				Amount: vector3.New(0., .35, 0.),
 			},
 		)).

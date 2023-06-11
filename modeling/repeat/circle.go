@@ -26,7 +26,7 @@ func CirclePoints(times int, radius float64) []vector3.Float64 {
 func Circle(in modeling.Mesh, times int, radius float64) modeling.Mesh {
 	angleIncrement := (1.0 / float64(times)) * 2.0 * math.Pi
 
-	final := modeling.EmptyMesh()
+	final := modeling.EmptyMesh(in.Topology())
 
 	for i := 0; i < times; i++ {
 		angle := angleIncrement * float64(i)
@@ -37,7 +37,7 @@ func Circle(in modeling.Mesh, times int, radius float64) modeling.Mesh {
 		final = final.Append(
 			in.Rotate(rot).
 				Transform(
-					meshops.Translate3DTransformer{
+					meshops.TranslateAttribute3DTransformer{
 						Amount: pos,
 					},
 				),

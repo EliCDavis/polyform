@@ -5,23 +5,23 @@ import (
 	"github.com/EliCDavis/vector/vector3"
 )
 
-type Translate3DTransformer struct {
+type TranslateAttribute3DTransformer struct {
 	Attribute string
 	Amount    vector3.Float64
 }
 
-func (st Translate3DTransformer) attribute() string {
-	return st.Attribute
+func (tat TranslateAttribute3DTransformer) attribute() string {
+	return tat.Attribute
 }
 
-func (st Translate3DTransformer) Transform(m modeling.Mesh) (results modeling.Mesh, err error) {
-	attribute := getAttribute(st, modeling.PositionAttribute)
+func (tat TranslateAttribute3DTransformer) Transform(m modeling.Mesh) (results modeling.Mesh, err error) {
+	attribute := getAttribute(tat, modeling.PositionAttribute)
 
 	if err = requireV3Attribute(m, attribute); err != nil {
 		return
 	}
 
-	return TranslateAttribute3D(m, attribute, st.Amount), nil
+	return TranslateAttribute3D(m, attribute, tat.Amount), nil
 }
 
 func TranslateAttribute3D(m modeling.Mesh, attribute string, amount vector3.Float64) modeling.Mesh {

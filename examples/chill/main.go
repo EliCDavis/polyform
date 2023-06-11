@@ -462,8 +462,8 @@ func main() {
 						noise.Stack2DEntry{Scalar: 1 / 18., Amplitude: 1. / 16},
 					).Value)
 
-					trunks := modeling.EmptyMesh()
-					branches := modeling.EmptyMesh()
+					trunks := modeling.EmptyMesh(modeling.TriangleTopology)
+					branches := modeling.EmptyMesh(modeling.TriangleTopology)
 
 					for _, pos := range treePositions {
 						trunk, branch := Tree(

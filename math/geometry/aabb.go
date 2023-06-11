@@ -1,6 +1,7 @@
 package geometry
 
 import (
+	"encoding/json"
 	"math"
 
 	"github.com/EliCDavis/vector/vector3"
@@ -9,6 +10,29 @@ import (
 type AABB struct {
 	center  vector3.Float64
 	extents vector3.Float64
+}
+
+func (aabb AABB) MarshalJSON() ([]byte, error) {
+	return json.Marshal(&struct {
+		Center  vector3.Float64 `json:"center"`
+		Extents vector3.Float64 `json:"extents"`
+	}{
+		Center:  aabb.center,
+		Extents: aabb.extents,
+	})
+}
+
+func (aabb *AABB) UnmarshalJSON(data []byte) error {
+	aux := &struct {
+		Center  vector3.Float64 `json:"center"`
+		Extents vector3.Float64 `json:"extents"`
+	}{}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	aabb.center = aux.Center
+	aabb.extents = aux.Extents
+	return nil
 }
 
 func NewAABB(center, size vector3.Float64) AABB {
@@ -186,12 +210,4 @@ func (aabb AABB) intersectsRayInRangeComponent(origin, dir float64, t_min, t_max
 	}
 
 	return *t_max <= *t_min
-}
-
-func (aabb AABB) intersectsRayInRangeComponent2(origin, dir, t_min, t_max, boxMin, boxMax float64) bool {
-	t0 := math.Min((boxMin-origin)/dir, (boxMax-origin)/dir)
-	t1 := math.Max((boxMin-origin)/dir, (boxMax-origin)/dir)
-	at_min := math.Max(t0, t_min)
-	at_max := math.Min(t1, t_max)
-	return at_max <= at_min
 }

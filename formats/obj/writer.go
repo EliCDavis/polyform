@@ -6,6 +6,7 @@ import (
 	"io"
 	"strings"
 
+	"github.com/EliCDavis/iter"
 	"github.com/EliCDavis/polyform/modeling"
 )
 
@@ -127,11 +128,11 @@ func writeUsingMaterial(mat *modeling.Material, out io.Writer) {
 	}
 }
 
-func writeFaceVerts(tris []int, out io.Writer, start, end int) error {
+func writeFaceVerts(tris iter.ArrayIterator[int], out io.Writer, start, end int) error {
 	for triIndex := start; triIndex < end; triIndex += 3 {
-		p1 := tris[triIndex] + 1
-		p2 := tris[triIndex+1] + 1
-		p3 := tris[triIndex+2] + 1
+		p1 := tris.At(triIndex) + 1
+		p2 := tris.At(triIndex+1) + 1
+		p3 := tris.At(triIndex+2) + 1
 		_, err := fmt.Fprintf(out, "f %d %d %d\n", p1, p2, p3)
 		if err != nil {
 			return err
@@ -140,11 +141,11 @@ func writeFaceVerts(tris []int, out io.Writer, start, end int) error {
 	return nil
 }
 
-func writeFaceVertsAndUvs(tris []int, out io.Writer, start, end int) error {
+func writeFaceVertsAndUvs(tris iter.ArrayIterator[int], out io.Writer, start, end int) error {
 	for triIndex := start; triIndex < end; triIndex += 3 {
-		p1 := tris[triIndex] + 1
-		p2 := tris[triIndex+1] + 1
-		p3 := tris[triIndex+2] + 1
+		p1 := tris.At(triIndex) + 1
+		p2 := tris.At(triIndex+1) + 1
+		p3 := tris.At(triIndex+2) + 1
 		_, err := fmt.Fprintf(out, "f %d/%d %d/%d %d/%d\n", p1, p1, p2, p2, p3, p3)
 		if err != nil {
 			return err
@@ -153,11 +154,11 @@ func writeFaceVertsAndUvs(tris []int, out io.Writer, start, end int) error {
 	return nil
 }
 
-func writeFaceVertsAndNormals(tris []int, out io.Writer, start, end int) error {
+func writeFaceVertsAndNormals(tris iter.ArrayIterator[int], out io.Writer, start, end int) error {
 	for triIndex := start; triIndex < end; triIndex += 3 {
-		p1 := tris[triIndex] + 1
-		p2 := tris[triIndex+1] + 1
-		p3 := tris[triIndex+2] + 1
+		p1 := tris.At(triIndex) + 1
+		p2 := tris.At(triIndex+1) + 1
+		p3 := tris.At(triIndex+2) + 1
 		_, err := fmt.Fprintf(out, "f %d//%d %d//%d %d//%d\n", p1, p1, p2, p2, p3, p3)
 		if err != nil {
 			return err
@@ -166,11 +167,11 @@ func writeFaceVertsAndNormals(tris []int, out io.Writer, start, end int) error {
 	return nil
 }
 
-func writeFaceVertAndUvsAndNormals(tris []int, out io.Writer, start, end int) error {
+func writeFaceVertAndUvsAndNormals(tris iter.ArrayIterator[int], out io.Writer, start, end int) error {
 	for triIndex := start; triIndex < end; triIndex += 3 {
-		p1 := tris[triIndex] + 1
-		p2 := tris[triIndex+1] + 1
-		p3 := tris[triIndex+2] + 1
+		p1 := tris.At(triIndex) + 1
+		p2 := tris.At(triIndex+1) + 1
+		p3 := tris.At(triIndex+2) + 1
 		_, err := fmt.Fprintf(out, "f %d/%d/%d %d/%d/%d %d/%d/%d\n", p1, p1, p1, p2, p2, p2, p3, p3, p3)
 		if err != nil {
 			return err
@@ -185,9 +186,10 @@ func WriteMesh(m modeling.Mesh, materialFile string, out io.Writer) error {
 		fmt.Fprintf(out, "mtllib %s\no mesh\n", materialFile)
 	}
 
-	view := m.View()
-	if vals, ok := view.Float3Data[modeling.PositionAttribute]; ok {
-		for _, v := range vals {
+	if m.HasFloat3Attribute(modeling.PositionAttribute) {
+		posData := m.Float3Attribute(modeling.PositionAttribute)
+		for i := 0; i < posData.Len(); i++ {
+			v := posData.At(i)
 			_, err := fmt.Fprintf(out, "v %f %f %f\n", v.X(), v.Y(), v.Z())
 			if err != nil {
 				return err
@@ -195,8 +197,10 @@ func WriteMesh(m modeling.Mesh, materialFile string, out io.Writer) error {
 		}
 	}
 
-	if vals, ok := view.Float2Data[modeling.TexCoordAttribute]; ok {
-		for _, uv := range vals {
+	if m.HasFloat2Attribute(modeling.TexCoordAttribute) {
+		uvData := m.Float2Attribute(modeling.TexCoordAttribute)
+		for i := 0; i < uvData.Len(); i++ {
+			uv := uvData.At(i)
 			_, err := fmt.Fprintf(out, "vt %f %f\n", uv.X(), uv.Y())
 			if err != nil {
 				return err
@@ -204,8 +208,10 @@ func WriteMesh(m modeling.Mesh, materialFile string, out io.Writer) error {
 		}
 	}
 
-	if vals, ok := view.Float3Data[modeling.NormalAttribute]; ok {
-		for _, n := range vals {
+	if m.HasFloat3Attribute(modeling.NormalAttribute) {
+		normalData := m.Float3Attribute(modeling.NormalAttribute)
+		for i := 0; i < normalData.Len(); i++ {
+			n := normalData.At(i)
 			_, err := fmt.Fprintf(out, "vn %f %f %f\n", n.X(), n.Y(), n.Z())
 			if err != nil {
 				return err
@@ -213,7 +219,7 @@ func WriteMesh(m modeling.Mesh, materialFile string, out io.Writer) error {
 		}
 	}
 
-	var faceWriter func(tris []int, out io.Writer, start, end int) error
+	var faceWriter func(tris iter.ArrayIterator[int], out io.Writer, start, end int) error
 
 	if m.HasVertexAttribute(modeling.NormalAttribute) && m.HasVertexAttribute(modeling.TexCoordAttribute) {
 		faceWriter = writeFaceVertAndUvsAndNormals
@@ -226,8 +232,9 @@ func WriteMesh(m modeling.Mesh, materialFile string, out io.Writer) error {
 	}
 
 	mats := m.Materials()
+	indices := m.Indices()
 	if len(mats) == 0 {
-		err := faceWriter(view.Indices, out, 0, len(view.Indices))
+		err := faceWriter(indices, out, 0, indices.Len())
 		if err != nil {
 			return err
 		}
@@ -236,7 +243,7 @@ func WriteMesh(m modeling.Mesh, materialFile string, out io.Writer) error {
 		for _, mat := range mats {
 			writeUsingMaterial(mat.Material, out)
 			nextOffset := offset + (mat.PrimitiveCount * 3)
-			faceWriter(view.Indices, out, offset, nextOffset)
+			faceWriter(indices, out, offset, nextOffset)
 			offset = nextOffset
 		}
 	}

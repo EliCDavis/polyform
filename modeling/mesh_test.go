@@ -13,7 +13,7 @@ import (
 func TestSetFloat3Attribute_EmptyArr_Clears(t *testing.T) {
 	// ARRANGE ================================================================
 
-	m := modeling.NewMesh([]int{0, 0, 0}).
+	m := modeling.NewTriangleMesh([]int{0, 0, 0}).
 		SetFloat3Attribute(modeling.PositionAttribute, []vector3.Float64{vector3.New(0., 0., 0.)})
 
 	// ACT ====================================================================
@@ -27,8 +27,8 @@ func TestSetFloat3Attribute_EmptyArr_Clears(t *testing.T) {
 func TestCopyFloat4FromMesh(t *testing.T) {
 	// ARRANGE ================================================================
 
-	dest := modeling.NewMesh([]int{0, 0, 0})
-	src := modeling.NewMesh([]int{0, 0, 0}).
+	dest := modeling.NewTriangleMesh([]int{0, 0, 0})
+	src := modeling.NewTriangleMesh([]int{0, 0, 0}).
 		SetFloat4Attribute(modeling.JointAttribute, []vector4.Float64{
 			vector4.New(1., 2., 3., -1.),
 			vector4.New(4., 5., 6., -1.),
@@ -46,8 +46,8 @@ func TestCopyFloat4FromMesh(t *testing.T) {
 func TestCopyFloat3FromMesh(t *testing.T) {
 	// ARRANGE ================================================================
 
-	dest := modeling.NewMesh([]int{0, 0, 0})
-	src := modeling.NewMesh([]int{0, 0, 0}).
+	dest := modeling.NewTriangleMesh([]int{0, 0, 0})
+	src := modeling.NewTriangleMesh([]int{0, 0, 0}).
 		SetFloat3Attribute(modeling.PositionAttribute, []vector3.Float64{
 			vector3.New(1., 2., 3.),
 			vector3.New(4., 5., 6.),
@@ -65,8 +65,8 @@ func TestCopyFloat3FromMesh(t *testing.T) {
 func TestCopyFloat2FromMesh(t *testing.T) {
 	// ARRANGE ================================================================
 
-	dest := modeling.NewMesh([]int{0, 0, 0})
-	src := modeling.NewMesh([]int{0, 0, 0}).
+	dest := modeling.NewTriangleMesh([]int{0, 0, 0})
+	src := modeling.NewTriangleMesh([]int{0, 0, 0}).
 		SetFloat2Attribute(modeling.TexCoordAttribute, []vector2.Float64{
 			vector2.New(1., 2.),
 			vector2.New(4., 5.),
@@ -84,8 +84,8 @@ func TestCopyFloat2FromMesh(t *testing.T) {
 func TestCopyFloat1FromMesh(t *testing.T) {
 	// ARRANGE ================================================================
 
-	dest := modeling.NewMesh([]int{0, 0, 0})
-	src := modeling.NewMesh([]int{0, 0, 0}).
+	dest := modeling.NewTriangleMesh([]int{0, 0, 0})
+	src := modeling.NewTriangleMesh([]int{0, 0, 0}).
 		SetFloat1Attribute(modeling.TexCoordAttribute, []float64{1, 2, 3})
 
 	// ACT ====================================================================
@@ -98,7 +98,7 @@ func TestCopyFloat1FromMesh(t *testing.T) {
 
 func Test_SplitOnUniqueMaterials_Simple(t *testing.T) {
 	// ARRANGE ================================================================
-	m := modeling.NewMesh(
+	m := modeling.NewTriangleMesh(
 		[]int{
 			0, 1, 2,
 			3, 4, 5,
@@ -150,46 +150,48 @@ func Test_SplitOnUniqueMaterials_Simple(t *testing.T) {
 		return
 	}
 
-	v1 := meshes[0].View()
-	if assert.Len(t, v1.Indices, 3) {
-		assert.Equal(t, 1, v1.Indices[1])
-		assert.Equal(t, 0, v1.Indices[0])
-		assert.Equal(t, 2, v1.Indices[2])
+	mesh1 := meshes[0]
+	mesh1Indices := mesh1.Indices()
+	if assert.Equal(t, 3, mesh1Indices.Len()) {
+		assert.Equal(t, 1, mesh1Indices.At(1))
+		assert.Equal(t, 0, mesh1Indices.At(0))
+		assert.Equal(t, 2, mesh1Indices.At(2))
 	}
 
-	v1Verts := v1.Float3Data[modeling.PositionAttribute]
-	if assert.Len(t, v1Verts, 3) {
-		assert.Equal(t, vector3.New[float64](0, 0, 0), v1Verts[0])
-		assert.Equal(t, vector3.New[float64](0, 1, 0), v1Verts[1])
-		assert.Equal(t, vector3.New[float64](1, 1, 0), v1Verts[2])
+	v1Verts := mesh1.Float3Attribute(modeling.PositionAttribute)
+	if assert.Equal(t, v1Verts.Len(), 3) {
+		assert.Equal(t, vector3.New[float64](0, 0, 0), v1Verts.At(0))
+		assert.Equal(t, vector3.New[float64](0, 1, 0), v1Verts.At(1))
+		assert.Equal(t, vector3.New[float64](1, 1, 0), v1Verts.At(2))
 	}
 
-	v1UVs := v1.Float2Data[modeling.TexCoordAttribute]
-	if assert.Len(t, v1UVs, 3) {
-		assert.Equal(t, vector2.New[float64](0, 0), v1UVs[0])
-		assert.Equal(t, vector2.New[float64](0, 1), v1UVs[1])
-		assert.Equal(t, vector2.New[float64](1, 1), v1UVs[2])
+	v1UVs := mesh1.Float2Attribute(modeling.TexCoordAttribute)
+	if assert.Equal(t, v1UVs.Len(), 3) {
+		assert.Equal(t, vector2.New[float64](0, 0), v1UVs.At(0))
+		assert.Equal(t, vector2.New[float64](0, 1), v1UVs.At(1))
+		assert.Equal(t, vector2.New[float64](1, 1), v1UVs.At(2))
 	}
 
-	v2 := meshes[1].View()
-	if assert.Len(t, v2.Indices, 3) {
-		assert.Equal(t, 0, v2.Indices[0])
-		assert.Equal(t, 1, v2.Indices[1])
-		assert.Equal(t, 2, v2.Indices[2])
+	mesh2 := meshes[1]
+	mesh2Indices := mesh1.Indices()
+	if assert.Equal(t, mesh2Indices.Len(), 3) {
+		assert.Equal(t, 0, mesh2Indices.At(0))
+		assert.Equal(t, 1, mesh2Indices.At(1))
+		assert.Equal(t, 2, mesh2Indices.At(2))
 	}
 
-	v2Verts := v2.Float3Data[modeling.PositionAttribute]
-	if assert.Len(t, v2Verts, 3) {
-		assert.Equal(t, vector3.New[float64](0, 0, 0), v2Verts[0])
-		assert.Equal(t, vector3.New[float64](1, 1, 0), v2Verts[1])
-		assert.Equal(t, vector3.New[float64](1, 0, 0), v2Verts[2])
+	v2Verts := mesh2.Float3Attribute(modeling.PositionAttribute)
+	if assert.Equal(t, v2Verts.Len(), 3) {
+		assert.Equal(t, vector3.New[float64](0, 0, 0), v2Verts.At(0))
+		assert.Equal(t, vector3.New[float64](1, 1, 0), v2Verts.At(1))
+		assert.Equal(t, vector3.New[float64](1, 0, 0), v2Verts.At(2))
 	}
 
-	v2UVs := v2.Float2Data[modeling.TexCoordAttribute]
-	if assert.Len(t, v2UVs, 3) {
-		assert.Equal(t, vector2.New[float64](0, 0), v2UVs[0])
-		assert.Equal(t, vector2.New[float64](1, 1), v2UVs[1])
-		assert.Equal(t, vector2.New[float64](1, 0), v2UVs[2])
+	v2UVs := mesh2.Float2Attribute(modeling.TexCoordAttribute)
+	if assert.Equal(t, v2UVs.Len(), 3) {
+		assert.Equal(t, vector2.New[float64](0, 0), v2UVs.At(0))
+		assert.Equal(t, vector2.New[float64](1, 1), v2UVs.At(1))
+		assert.Equal(t, vector2.New[float64](1, 0), v2UVs.At(2))
 	}
 }
 
@@ -401,7 +403,7 @@ func TestModifyFloat1AttributeParallel(t *testing.T) {
 }
 
 func TestClearAttributeData(t *testing.T) {
-	originalMesh := modeling.NewMesh([]int{0, 1, 2}).
+	originalMesh := modeling.NewTriangleMesh([]int{0, 1, 2}).
 		SetFloat1Attribute("attr-1", []float64{1, 1, 1}).
 		SetFloat2Attribute("attr-2", []vector2.Float64{vector2.One[float64](), vector2.One[float64](), vector2.One[float64]()}).
 		SetFloat3Attribute("attr-3", []vector3.Float64{vector3.One[float64](), vector3.One[float64](), vector3.One[float64]()}).
@@ -416,13 +418,13 @@ func TestClearAttributeData(t *testing.T) {
 }
 
 func TestHasAttribute(t *testing.T) {
-	v1Mesh := modeling.NewMesh([]int{0, 1, 2}).
+	v1Mesh := modeling.NewTriangleMesh([]int{0, 1, 2}).
 		SetFloat1Attribute("attr-1", []float64{1, 1, 1})
-	v2Mesh := modeling.NewMesh([]int{0, 1, 2}).
+	v2Mesh := modeling.NewTriangleMesh([]int{0, 1, 2}).
 		SetFloat2Attribute("attr-2", []vector2.Float64{vector2.One[float64](), vector2.One[float64](), vector2.One[float64]()})
-	v3Mesh := modeling.NewMesh([]int{0, 1, 2}).
+	v3Mesh := modeling.NewTriangleMesh([]int{0, 1, 2}).
 		SetFloat3Attribute("attr-3", []vector3.Float64{vector3.One[float64](), vector3.One[float64](), vector3.One[float64]()})
-	v4Mesh := modeling.NewMesh([]int{0, 1, 2}).
+	v4Mesh := modeling.NewTriangleMesh([]int{0, 1, 2}).
 		SetFloat4Attribute("attr-4", []vector4.Float64{vector4.One[float64](), vector4.One[float64](), vector4.One[float64]()})
 
 	assert.True(t, v1Mesh.HasVertexAttribute("attr-1"))
@@ -444,7 +446,7 @@ func contains(m map[int]struct{}, i int) bool {
 }
 
 func TestVertexLUT_Triangle(t *testing.T) {
-	lut := modeling.NewMesh([]int{
+	lut := modeling.NewTriangleMesh([]int{
 		0, 1, 2,
 		2, 3, 4,
 	}).VertexNeighborTable()
@@ -481,7 +483,7 @@ func TestVertexLUT_Triangle(t *testing.T) {
 }
 
 func TestFlipTriangleWinding(t *testing.T) {
-	indices := modeling.NewMesh([]int{
+	indices := modeling.NewTriangleMesh([]int{
 		0, 1, 2,
 		2, 3, 4,
 	}).FlipTriWinding().Indices()
@@ -493,58 +495,4 @@ func TestFlipTriangleWinding(t *testing.T) {
 	assert.Equal(t, 3, indices.At(3))
 	assert.Equal(t, 2, indices.At(4))
 	assert.Equal(t, 4, indices.At(5))
-}
-
-func TestUnweld(t *testing.T) {
-	unweldedMesh := modeling.NewMesh([]int{0, 1, 2, 0, 1, 3}).
-		SetFloat1Attribute("attr-1", []float64{
-			1, 2, 3, 4,
-		}).
-		SetFloat2Attribute("attr-2", []vector2.Float64{
-			vector2.New(0., 1.), vector2.New(0., 2.), vector2.New(0., 3.), vector2.New(0., 4.),
-		}).
-		SetFloat3Attribute("attr-3", []vector3.Float64{
-			vector3.New(0., 1., 0.), vector3.New(0., 2., 0.), vector3.New(0., 3., 0.), vector3.New(0., 4., 0.),
-		}).
-		SetFloat4Attribute("attr-4", []vector4.Float64{
-			vector4.New(0., 1., 0., 0.), vector4.New(0., 2., 0., 0.), vector4.New(0., 3., 0., 0.), vector4.New(0., 4., 0., 0.),
-		}).
-		Unweld()
-
-	attr1 := unweldedMesh.Float1Attribute("attr-1")
-	attr2 := unweldedMesh.Float2Attribute("attr-2")
-	attr3 := unweldedMesh.Float3Attribute("attr-3")
-	attr4 := unweldedMesh.Float4Attribute("attr-4")
-
-	assert.Equal(t, 6, attr1.Len())
-	assert.Equal(t, 1., attr1.At(0))
-	assert.Equal(t, 2., attr1.At(1))
-	assert.Equal(t, 3., attr1.At(2))
-	assert.Equal(t, 1., attr1.At(3))
-	assert.Equal(t, 2., attr1.At(4))
-	assert.Equal(t, 4., attr1.At(5))
-
-	assert.Equal(t, 6, attr2.Len())
-	assert.Equal(t, vector2.New(0., 1.), attr2.At(0))
-	assert.Equal(t, vector2.New(0., 2.), attr2.At(1))
-	assert.Equal(t, vector2.New(0., 3.), attr2.At(2))
-	assert.Equal(t, vector2.New(0., 1.), attr2.At(3))
-	assert.Equal(t, vector2.New(0., 2.), attr2.At(4))
-	assert.Equal(t, vector2.New(0., 4.), attr2.At(5))
-
-	assert.Equal(t, 6, attr3.Len())
-	assert.Equal(t, vector3.New(0., 1., 0.), attr3.At(0))
-	assert.Equal(t, vector3.New(0., 2., 0.), attr3.At(1))
-	assert.Equal(t, vector3.New(0., 3., 0.), attr3.At(2))
-	assert.Equal(t, vector3.New(0., 1., 0.), attr3.At(3))
-	assert.Equal(t, vector3.New(0., 2., 0.), attr3.At(4))
-	assert.Equal(t, vector3.New(0., 4., 0.), attr3.At(5))
-
-	assert.Equal(t, 6, attr4.Len())
-	assert.Equal(t, vector4.New(0., 1., 0., 0.), attr4.At(0))
-	assert.Equal(t, vector4.New(0., 2., 0., 0.), attr4.At(1))
-	assert.Equal(t, vector4.New(0., 3., 0., 0.), attr4.At(2))
-	assert.Equal(t, vector4.New(0., 1., 0., 0.), attr4.At(3))
-	assert.Equal(t, vector4.New(0., 2., 0., 0.), attr4.At(4))
-	assert.Equal(t, vector4.New(0., 4., 0., 0.), attr4.At(5))
 }

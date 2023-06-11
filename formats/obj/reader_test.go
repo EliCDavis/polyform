@@ -50,20 +50,20 @@ f  2//1  8//1  4//1
 
 	// ACT ====================================================================
 	square, matReferences, err := obj.ReadMesh(strings.NewReader(objString))
-	squareView := square.View()
 
 	// ASSERT =================================================================
 	assert.NoError(t, err)
 	assert.Len(t, matReferences, 0)
 	assert.Equal(t, 12, square.PrimitiveCount())
 
-	assert.Equal(t, 0, squareView.Indices[0])
-	assert.Equal(t, 1, squareView.Indices[1])
-	assert.Equal(t, 2, squareView.Indices[2])
+	squareIndices := square.Indices()
+	assert.Equal(t, 0, squareIndices.At(0))
+	assert.Equal(t, 1, squareIndices.At(1))
+	assert.Equal(t, 2, squareIndices.At(2))
 
-	assert.Equal(t, 0, squareView.Indices[3])
-	assert.Equal(t, 3, squareView.Indices[4])
-	assert.Equal(t, 1, squareView.Indices[5])
+	assert.Equal(t, 0, squareIndices.At(3))
+	assert.Equal(t, 3, squareIndices.At(4))
+	assert.Equal(t, 1, squareIndices.At(5))
 }
 
 func Test_ReadOBJ_SimpleSquare_NoNormalOrTextures(t *testing.T) {
@@ -81,27 +81,27 @@ f  2 3 4
 
 	// ACT ====================================================================
 	square, matReferences, err := obj.ReadMesh(strings.NewReader(objString))
-	squareView := square.View()
 
 	// ASSERT =================================================================
 	assert.NoError(t, err)
 	assert.Equal(t, 2, square.PrimitiveCount())
 	assert.Len(t, matReferences, 0)
 
-	assert.Equal(t, 0, squareView.Indices[0])
-	assert.Equal(t, 1, squareView.Indices[1])
-	assert.Equal(t, 2, squareView.Indices[2])
+	squareIndices := square.Indices()
+	assert.Equal(t, 0, squareIndices.At(0))
+	assert.Equal(t, 1, squareIndices.At(1))
+	assert.Equal(t, 2, squareIndices.At(2))
 
-	assert.Equal(t, 1, squareView.Indices[3])
-	assert.Equal(t, 2, squareView.Indices[4])
-	assert.Equal(t, 3, squareView.Indices[5])
+	assert.Equal(t, 1, squareIndices.At(3))
+	assert.Equal(t, 2, squareIndices.At(4))
+	assert.Equal(t, 3, squareIndices.At(5))
 
-	vertices := squareView.Float3Data[modeling.PositionAttribute]
-	assert.Len(t, vertices, 4)
-	assert.Equal(t, vector3.New(0.0, 0.0, 0.0), vertices[0])
-	assert.Equal(t, vector3.New(0.0, 1.0, 0.0), vertices[1])
-	assert.Equal(t, vector3.New(0.0, 1.0, 1.0), vertices[2])
-	assert.Equal(t, vector3.New(0.0, 0.0, 1.0), vertices[3])
+	vertices := square.Float3Attribute(modeling.PositionAttribute)
+	assert.Equal(t, vertices.Len(), 4)
+	assert.Equal(t, vector3.New(0.0, 0.0, 0.0), vertices.At(0))
+	assert.Equal(t, vector3.New(0.0, 1.0, 0.0), vertices.At(1))
+	assert.Equal(t, vector3.New(0.0, 1.0, 1.0), vertices.At(2))
+	assert.Equal(t, vector3.New(0.0, 0.0, 1.0), vertices.At(3))
 }
 
 func Test_ReadOBJ_SimpleSquare(t *testing.T) {
@@ -137,7 +137,6 @@ f  1/1/1 2/2/2 3/3/3
 
 	// ACT ====================================================================
 	square, matReferences, err := obj.ReadMesh(strings.NewReader(objString))
-	squareView := square.View()
 
 	// ASSERT =================================================================
 	assert.NoError(t, err)
@@ -146,34 +145,35 @@ f  1/1/1 2/2/2 3/3/3
 		assert.Equal(t, "test.mtl", matReferences[0])
 	}
 
-	assert.Equal(t, 0, squareView.Indices[0])
-	assert.Equal(t, 1, squareView.Indices[1])
-	assert.Equal(t, 2, squareView.Indices[2])
+	squareIndices := square.Indices()
+	assert.Equal(t, 0, squareIndices.At(0))
+	assert.Equal(t, 1, squareIndices.At(1))
+	assert.Equal(t, 2, squareIndices.At(2))
 
-	assert.Equal(t, 1, squareView.Indices[3])
-	assert.Equal(t, 2, squareView.Indices[4])
-	assert.Equal(t, 3, squareView.Indices[5])
+	assert.Equal(t, 1, squareIndices.At(3))
+	assert.Equal(t, 2, squareIndices.At(4))
+	assert.Equal(t, 3, squareIndices.At(5))
 
-	vertices := squareView.Float3Data[modeling.PositionAttribute]
-	assert.Len(t, vertices, 4)
-	assert.Equal(t, vector3.New(0.0, 0.0, 0.0), vertices[0])
-	assert.Equal(t, vector3.New(0.0, 1.0, 0.0), vertices[1])
-	assert.Equal(t, vector3.New(0.0, 1.0, 1.0), vertices[2])
-	assert.Equal(t, vector3.New(0.0, 0.0, 1.0), vertices[3])
+	vertices := square.Float3Attribute(modeling.PositionAttribute)
+	assert.Equal(t, vertices.Len(), 4)
+	assert.Equal(t, vector3.New(0.0, 0.0, 0.0), vertices.At(0))
+	assert.Equal(t, vector3.New(0.0, 1.0, 0.0), vertices.At(1))
+	assert.Equal(t, vector3.New(0.0, 1.0, 1.0), vertices.At(2))
+	assert.Equal(t, vector3.New(0.0, 0.0, 1.0), vertices.At(3))
 
-	normals := squareView.Float3Data[modeling.NormalAttribute]
-	assert.Len(t, normals, 4)
-	assert.Equal(t, vector3.New(0.0, 0.0, 0.0), normals[0])
-	assert.Equal(t, vector3.New(0.0, 1.0, 0.0), normals[1])
-	assert.Equal(t, vector3.New(0.0, 1.0, 1.0), normals[2])
-	assert.Equal(t, vector3.New(0.0, 0.0, 1.0), normals[3])
+	normals := square.Float3Attribute(modeling.NormalAttribute)
+	assert.Equal(t, normals.Len(), 4)
+	assert.Equal(t, vector3.New(0.0, 0.0, 0.0), normals.At(0))
+	assert.Equal(t, vector3.New(0.0, 1.0, 0.0), normals.At(1))
+	assert.Equal(t, vector3.New(0.0, 1.0, 1.0), normals.At(2))
+	assert.Equal(t, vector3.New(0.0, 0.0, 1.0), normals.At(3))
 
-	uvs := squareView.Float2Data[modeling.TexCoordAttribute]
-	assert.Len(t, uvs, 4)
-	assert.Equal(t, vector2.New(0.0, 0.0), uvs[0])
-	assert.Equal(t, vector2.New(0.0, 1.0), uvs[1])
-	assert.Equal(t, vector2.New(0.0, 1.0), uvs[2])
-	assert.Equal(t, vector2.New(0.0, 0.0), uvs[3])
+	uvs := square.Float2Attribute(modeling.TexCoordAttribute)
+	assert.Equal(t, uvs.Len(), 4)
+	assert.Equal(t, vector2.New(0.0, 0.0), uvs.At(0))
+	assert.Equal(t, vector2.New(0.0, 1.0), uvs.At(1))
+	assert.Equal(t, vector2.New(0.0, 1.0), uvs.At(2))
+	assert.Equal(t, vector2.New(0.0, 0.0), uvs.At(3))
 
 	if assert.Len(t, square.Materials(), 3) {
 		assert.Equal(t, 1, square.Materials()[0].PrimitiveCount)

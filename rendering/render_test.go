@@ -88,11 +88,11 @@ func bunnyScene() []rendering.Hittable {
 	world = append(world,
 		rendering.NewMesh(
 			bunny.Transform(
-				meshops.Center3DTransformer{},
-				meshops.Scale3DTransformer{
+				meshops.CenterAttribute3DTransformer{},
+				meshops.ScaleAttribute3DTransformer{
 					Amount: vector3.Fill(20.),
 				},
-				meshops.Translate3DTransformer{
+				meshops.TranslateAttribute3DTransformer{
 					Amount: vector3.Up[float64]().Scale(2),
 				},
 				meshops.SmoothNormalsTransformer{},
