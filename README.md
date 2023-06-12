@@ -64,6 +64,7 @@ Results in:
 ## Helpful Procedural Generation Sub Packages
 
 - Modeling
+  - [meshops](/modeling/meshops/) - All currently implemented algorithms for transforming meshes. 
   - [marching](/modeling/marching/) - Multi-threaded Cube Marching algorithm and utilities.
   - [extrude](/modeling/extrude/) - Functionality for generating geometry from 2D shapes.
   - [repeat](/modeling/repeat/) - Functionality for copying geometry in common patterns.

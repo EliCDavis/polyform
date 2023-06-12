@@ -194,8 +194,8 @@ func simsScene(time float64) []rendering.Hittable {
 						Origin: vector3.Up[float64]().Scale(2),
 						Amount: vector3.Fill(0.9),
 					},
-				).
-				FlipTriWinding(),
+					meshops.FlipTriangleWindingTransformer{},
+				),
 			jewelMat,
 		),
 	)

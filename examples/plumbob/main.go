@@ -41,9 +41,12 @@ func render() {
 			jewelMat,
 		),
 		rendering.NewMesh(
-			plumbob().
-				Scale(vector3.Fill(0.9)).
-				FlipTriWinding(),
+			plumbob().Transform(
+				meshops.ScaleAttribute3DTransformer{
+					Amount: vector3.Fill(0.9),
+				},
+				meshops.FlipTriangleWindingTransformer{},
+			),
 			jewelMat,
 		),
 	}

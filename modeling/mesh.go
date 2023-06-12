@@ -175,6 +175,18 @@ func (m Mesh) ToPointCloud() Mesh {
 	}
 }
 
+func (m Mesh) SetIndices(indices []int) Mesh {
+	return Mesh{
+		v4Data:    m.v4Data,
+		v3Data:    m.v3Data,
+		v2Data:    m.v2Data,
+		v1Data:    m.v1Data,
+		indices:   indices,
+		materials: m.materials,
+		topology:  m.topology,
+	}
+}
+
 func (m Mesh) Indices() iter.ArrayIterator[int] {
 	return iter.Array(m.indices)
 }
@@ -816,25 +828,6 @@ func (m Mesh) ModifyFloat1AttributeParallelWithPoolSize(atr string, size int, f 
 	return m.SetFloat1Attribute(atr, modified)
 }
 
-func (m Mesh) FlipTriWinding() Mesh {
-	m.requireTopology(TriangleTopology)
-
-	tris := m.indices
-	for triIndex := 0; triIndex < len(tris); triIndex += 3 {
-		tris[triIndex], tris[triIndex+1] = tris[triIndex+1], tris[triIndex]
-	}
-
-	return Mesh{
-		topology:  TriangleTopology,
-		indices:   tris,
-		v4Data:    m.v4Data,
-		v3Data:    m.v3Data,
-		v2Data:    m.v2Data,
-		v1Data:    m.v1Data,
-		materials: m.materials,
-	}
-}
-
 func (m Mesh) WeldByFloat3Attribute(attribute string, decimalPlace int) Mesh {
 	m.requireV3Attribute(attribute)
 	m.requireTopology(TriangleTopology)
@@ -1287,205 +1280,6 @@ func (m Mesh) Translate(v vector3.Float64) Mesh {
 		finalVerts[i] = oldData[i].Add(v)
 	}
 	return m.SetFloat3Attribute(PositionAttribute, finalVerts)
-}
-
-func (m Mesh) RemoveUnusedIndices() Mesh {
-	finalTris := make([]int, len(m.indices))
-	finalV4Data := make(map[string][]vector4.Float64)
-	finalV3Data := make(map[string][]vector3.Float64)
-	finalV2Data := make(map[string][]vector2.Float64)
-	finalV1Data := make(map[string][]float64)
-
-	used := make([]bool, m.AttributeLength())
-	for _, t := range m.indices {
-		used[t] = true
-	}
-
-	shiftBy := make([]int, m.AttributeLength())
-	skipped := 0
-	for i := range shiftBy {
-		if !used[i] {
-			skipped++
-		}
-		shiftBy[i] = skipped
-	}
-
-	for atr, vals := range m.v4Data {
-		finalAtrVals := make([]vector4.Float64, 0)
-		for i, v := range vals {
-			if used[i] {
-				finalAtrVals = append(finalAtrVals, v)
-			}
-		}
-		finalV4Data[atr] = finalAtrVals
-	}
-
-	for atr, vals := range m.v3Data {
-		finalAtrVals := make([]vector3.Float64, 0)
-		for i, v := range vals {
-			if used[i] {
-				finalAtrVals = append(finalAtrVals, v)
-			}
-		}
-		finalV3Data[atr] = finalAtrVals
-	}
-
-	for atr, vals := range m.v2Data {
-		finalAtrVals := make([]vector2.Float64, 0)
-		for i, v := range vals {
-			if used[i] {
-				finalAtrVals = append(finalAtrVals, v)
-			}
-		}
-		finalV2Data[atr] = finalAtrVals
-	}
-
-	for atr, vals := range m.v1Data {
-		finalAtrVals := make([]float64, 0)
-		for i, v := range vals {
-			if used[i] {
-				finalAtrVals = append(finalAtrVals, v)
-			}
-		}
-		finalV1Data[atr] = finalAtrVals
-	}
-
-	for triI := 0; triI < len(finalTris); triI++ {
-		finalTris[triI] = m.indices[triI] - shiftBy[m.indices[triI]]
-	}
-
-	return Mesh{
-		indices:   finalTris,
-		v4Data:    finalV4Data,
-		v3Data:    finalV3Data,
-		v2Data:    finalV2Data,
-		v1Data:    finalV1Data,
-		materials: m.materials,
-		topology:  m.topology,
-	}
-}
-
-// SplitOnUniqueMaterials generates a mesh per material,
-func (m Mesh) SplitOnUniqueMaterials() []Mesh {
-	if len(m.materials) < 2 {
-		return []Mesh{m}
-	}
-
-	workingMeshes := make(map[*Material]*Mesh)
-	orderInserted := make(map[*Material]int)
-
-	curMatIndex := 0
-	trisFromOtherMats := 0
-
-	workingMeshes[m.materials[curMatIndex].Material] = &Mesh{
-		v4Data: m.v4Data,
-		v3Data: m.v3Data,
-		v2Data: m.v2Data,
-		v1Data: m.v1Data,
-		materials: []MeshMaterial{
-			{
-				PrimitiveCount: 0,
-				Material:       m.materials[curMatIndex].Material,
-			},
-		},
-	}
-	orderInserted[m.materials[curMatIndex].Material] = 0
-
-	for triStart := 0; triStart < len(m.indices); triStart += 3 {
-		if m.materials[curMatIndex].PrimitiveCount+trisFromOtherMats <= triStart/3 {
-			trisFromOtherMats += m.materials[curMatIndex].PrimitiveCount
-			curMatIndex++
-			if _, ok := workingMeshes[m.materials[curMatIndex].Material]; !ok {
-				workingMeshes[m.materials[curMatIndex].Material] = &Mesh{
-					v4Data: m.v4Data,
-					v3Data: m.v3Data,
-					v2Data: m.v2Data,
-					v1Data: m.v1Data,
-					materials: []MeshMaterial{
-						{
-							PrimitiveCount: 0,
-							Material:       m.materials[curMatIndex].Material,
-						},
-					},
-					topology: m.topology,
-				}
-				orderInserted[m.materials[curMatIndex].Material] = len(orderInserted)
-			}
-		}
-		mesh := workingMeshes[m.materials[curMatIndex].Material]
-		mesh.indices = append(
-			mesh.indices,
-			m.indices[triStart],
-			m.indices[triStart+1],
-			m.indices[triStart+2],
-		)
-		mesh.materials[0].PrimitiveCount += 1
-	}
-
-	finalMeshes := make([]Mesh, len(workingMeshes))
-	for mat, m := range workingMeshes {
-		finalMeshes[orderInserted[mat]] = m.RemoveUnusedIndices()
-	}
-	return finalMeshes
-}
-
-func (m Mesh) SliceByPlaneWithAttribute(plane geometry.Plane, attr string) (Mesh, Mesh) {
-	m.requireTopology(TriangleTopology)
-
-	numFaces := len(m.indices) / 3
-
-	kept := Mesh{
-		v4Data:   m.v4Data,
-		v3Data:   m.v3Data,
-		v2Data:   m.v2Data,
-		v1Data:   m.v1Data,
-		indices:  make([]int, 0),
-		topology: m.topology,
-	}
-
-	clipped := Mesh{
-		v4Data:   m.v4Data,
-		v3Data:   m.v3Data,
-		v2Data:   m.v2Data,
-		v1Data:   m.v1Data,
-		indices:  make([]int, 0),
-		topology: m.topology,
-	}
-
-	// Mark which tris belong in retained or clipped
-	for t := 0; t < numFaces; t++ {
-		tri := m.Tri(t)
-
-		aClip := plane.Normal().Dot(tri.P1Vec3Attr(attr).Sub(plane.Origin())) < 0
-		bClip := plane.Normal().Dot(tri.P2Vec3Attr(attr).Sub(plane.Origin())) < 0
-		cClip := plane.Normal().Dot(tri.P3Vec3Attr(attr).Sub(plane.Origin())) < 0
-
-		if !aClip && !bClip && !cClip {
-			kept.indices = append(kept.indices, tri.P1(), tri.P2(), tri.P3())
-		} else if aClip && bClip && cClip {
-			clipped.indices = append(clipped.indices, tri.P1(), tri.P2(), tri.P3())
-		} else {
-
-			lineIntersections := make([]geometry.Line3D, 0, 2)
-			if (aClip && !bClip) || (!aClip && bClip) {
-				lineIntersections = append(lineIntersections, tri.L1(attr))
-			}
-
-			if (bClip && !cClip) || (!bClip && cClip) {
-				lineIntersections = append(lineIntersections, tri.L2(attr))
-			}
-
-			if (aClip && !cClip) || (!aClip && cClip) {
-				lineIntersections = append(lineIntersections, tri.L3(attr))
-			}
-
-			// intersectionA, _ := lineIntersections[0].IntersectionTimeOnPlane(plane)
-			// intersectionB, _ := lineIntersections[1].IntersectionTimeOnPlane(plane)
-
-		}
-	}
-
-	return kept.RemoveUnusedIndices(), clipped.RemoveUnusedIndices()
 }
 
 func (m Mesh) OctTree() *trees.OctTree {
