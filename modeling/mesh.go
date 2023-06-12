@@ -1195,44 +1195,24 @@ func (m Mesh) HasVertexAttribute(atr string) bool {
 	return false
 }
 
-func (m Mesh) HasFloat4Attribute(atr string) bool {
-	for v4Atr := range m.v4Data {
-		if v4Atr == atr {
-			return true
-		}
-	}
-
-	return false
+func (m Mesh) HasFloat4Attribute(attribute string) bool {
+	_, ok := m.v4Data[attribute]
+	return ok
 }
 
-func (m Mesh) HasFloat3Attribute(atr string) bool {
-	for v3Atr := range m.v3Data {
-		if v3Atr == atr {
-			return true
-		}
-	}
-
-	return false
+func (m Mesh) HasFloat3Attribute(attribute string) bool {
+	_, ok := m.v3Data[attribute]
+	return ok
 }
 
-func (m Mesh) HasFloat2Attribute(atr string) bool {
-	for v2Atr := range m.v2Data {
-		if v2Atr == atr {
-			return true
-		}
-	}
-
-	return false
+func (m Mesh) HasFloat2Attribute(attribute string) bool {
+	_, ok := m.v2Data[attribute]
+	return ok
 }
 
-func (m Mesh) HasFloat1Attribute(atr string) bool {
-	for v1Atr := range m.v1Data {
-		if v1Atr == atr {
-			return true
-		}
-	}
-
-	return false
+func (m Mesh) HasFloat1Attribute(attribute string) bool {
+	_, ok := m.v1Data[attribute]
+	return ok
 }
 
 func (m Mesh) requireV4Attribute(atr string) {

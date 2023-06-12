@@ -382,3 +382,88 @@ func TestVertexLUT_Triangle(t *testing.T) {
 	assert.True(t, contains(neighbor4, 2))
 	assert.True(t, contains(neighbor4, 3))
 }
+
+func TestMeshAppend(t *testing.T) {
+	// ARRANGE ================================================================
+	meshA := modeling.NewTriangleMesh([]int{0, 1, 2}).
+		SetFloat1Attribute("attr-1", []float64{0, 1, 2}).
+		SetFloat3Attribute("attr-3", []vector3.Float64{
+			vector3.New(0., 1., 0.),
+			vector3.New(0., 2., 0.),
+			vector3.New(0., 3., 0.),
+		}).
+		SetFloat4Attribute("attr-4", []vector4.Float64{
+			vector4.New(0., 1., 0., 0.),
+			vector4.New(0., 2., 0., 0.),
+			vector4.New(0., 3., 0., 0.),
+		})
+
+	meshB := modeling.NewTriangleMesh([]int{0, 1, 2}).
+		SetFloat1Attribute("attr-1", []float64{3, 4, 5}).
+		SetFloat2Attribute("attr-2", []vector2.Float64{
+			vector2.New(0., 1.),
+			vector2.New(0., 2.),
+			vector2.New(0., 3.),
+		}).
+		SetFloat4Attribute("attr-4", []vector4.Float64{
+			vector4.New(0., 1., 0., 0.),
+			vector4.New(0., 2., 0., 0.),
+			vector4.New(0., 3., 0., 0.),
+		})
+
+	// ACT ====================================================================
+	newMesh := meshA.Append(meshB)
+
+	// ASSERT =================================================================
+	assert.Equal(t, 2, newMesh.PrimitiveCount())
+	assert.Equal(t, modeling.TriangleTopology, newMesh.Topology())
+	assert.Equal(t, []string{"attr-1"}, newMesh.Float1Attributes())
+	assert.Equal(t, []string{"attr-2"}, newMesh.Float2Attributes())
+	assert.Equal(t, []string{"attr-3"}, newMesh.Float3Attributes())
+	assert.Equal(t, []string{"attr-4"}, newMesh.Float4Attributes())
+
+	indices := newMesh.Indices()
+	assert.Equal(t, 6, indices.Len())
+	assert.Equal(t, 0, indices.At(0))
+	assert.Equal(t, 1, indices.At(1))
+	assert.Equal(t, 2, indices.At(2))
+	assert.Equal(t, 3, indices.At(3))
+	assert.Equal(t, 4, indices.At(4))
+	assert.Equal(t, 5, indices.At(5))
+
+	attr1 := newMesh.Float1Attribute("attr-1")
+	assert.Equal(t, 6, attr1.Len())
+	assert.Equal(t, 0., attr1.At(0))
+	assert.Equal(t, 1., attr1.At(1))
+	assert.Equal(t, 2., attr1.At(2))
+	assert.Equal(t, 3., attr1.At(3))
+	assert.Equal(t, 4., attr1.At(4))
+	assert.Equal(t, 5., attr1.At(5))
+
+	attr2 := newMesh.Float2Attribute("attr-2")
+	assert.Equal(t, 6, attr1.Len())
+	assert.Equal(t, vector2.New(0., 0.), attr2.At(0))
+	assert.Equal(t, vector2.New(0., 0.), attr2.At(1))
+	assert.Equal(t, vector2.New(0., 0.), attr2.At(2))
+	assert.Equal(t, vector2.New(0., 1.), attr2.At(3))
+	assert.Equal(t, vector2.New(0., 2.), attr2.At(4))
+	assert.Equal(t, vector2.New(0., 3.), attr2.At(5))
+
+	attr3 := newMesh.Float3Attribute("attr-3")
+	assert.Equal(t, 6, attr1.Len())
+	assert.Equal(t, vector3.New(0., 1., 0.), attr3.At(0))
+	assert.Equal(t, vector3.New(0., 2., 0.), attr3.At(1))
+	assert.Equal(t, vector3.New(0., 3., 0.), attr3.At(2))
+	assert.Equal(t, vector3.New(0., 0., 0.), attr3.At(3))
+	assert.Equal(t, vector3.New(0., 0., 0.), attr3.At(4))
+	assert.Equal(t, vector3.New(0., 0., 0.), attr3.At(5))
+
+	attr4 := newMesh.Float4Attribute("attr-4")
+	assert.Equal(t, 6, attr1.Len())
+	assert.Equal(t, vector4.New(0., 1., 0., 0.), attr4.At(0))
+	assert.Equal(t, vector4.New(0., 2., 0., 0.), attr4.At(1))
+	assert.Equal(t, vector4.New(0., 3., 0., 0.), attr4.At(2))
+	assert.Equal(t, vector4.New(0., 1., 0., 0.), attr4.At(3))
+	assert.Equal(t, vector4.New(0., 2., 0., 0.), attr4.At(4))
+	assert.Equal(t, vector4.New(0., 3., 0., 0.), attr4.At(5))
+}
