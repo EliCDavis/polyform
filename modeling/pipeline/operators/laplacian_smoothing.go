@@ -1,45 +1,61 @@
 package operators
 
 import (
-	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/pipeline"
 	"github.com/EliCDavis/vector/vector3"
 )
 
-func SmoothLaplacian(iterations int, smoothingFactor float64) pipeline.Command {
-	return pipeline.NewCommand(
-		pipeline.PermissionForResources(
-			pipeline.RequireMeshPrimitive(),
-			pipeline.RequireMeshFloat3Attribute(modeling.PositionAttribute),
-		),
-		pipeline.PermissionForResources(
-			pipeline.RequireMeshFloat3Attribute(modeling.PositionAttribute),
-		),
-		func(v *pipeline.View) {
-			lut := v.VertexNeighborTable()
+type SmoothLaplacianCommand struct {
+	readPermission  pipeline.MeshReadPermission
+	writePermission pipeline.MeshWritePermission
+	attribute       string
+	iterations      int
+	smoothingFactor float64
+}
 
-			vertices := make([]vector3.Float64, v.AttributeLength())
-			v.ScanFloat3AttributeParallel(modeling.PositionAttribute, func(i int, v vector3.Float64) {
-				vertices[i] = v
-			})
+func NewSmoothLaplacianCommand(attribute string) SmoothLaplacianCommand {
+	return SmoothLaplacianCommand{
+		attribute: attribute,
+		readPermission: pipeline.MeshReadPermission{
+			Indices: &pipeline.ReadIndicesPermission{},
+		},
+		writePermission: pipeline.MeshWritePermission{
+			V3Permissions: map[string]pipeline.WriteArrayPermission[vector3.Float64]{
+				attribute: {},
+			},
+		},
+	}
+}
 
-			for i := 0; i < iterations; i++ {
-				for vi, vertex := range vertices {
-					vs := vector3.Zero[float64]()
+func (slc SmoothLaplacianCommand) ReadPermissions() pipeline.MeshReadPermission {
+	return slc.readPermission
+}
 
-					for vn := range lut.Lookup(vi) {
-						vs = vs.Add(vertices[vn])
-					}
+func (slc SmoothLaplacianCommand) WritePermissions() pipeline.MeshWritePermission {
+	return slc.writePermission
+}
 
-					vertices[vi] = vertex.Add(
-						vs.
-							DivByConstant(float64(lut.Count(vi))).
-							Sub(vertex).
-							Scale(smoothingFactor))
-				}
+func (slc SmoothLaplacianCommand) Run() {
+	attributeData := slc.writePermission.V3Permissions[slc.attribute].Data()
+	if len(attributeData) == 0 {
+		return
+	}
+
+	lut := slc.readPermission.Indices.VertexNeighborTable()
+
+	for i := 0; i < slc.iterations; i++ {
+		for vi, vertex := range attributeData {
+			vs := vector3.Zero[float64]()
+
+			for vn := range lut.Lookup(vi) {
+				vs = vs.Add(attributeData[vn])
 			}
 
-			v.SetFloat3Attribute(modeling.PositionAttribute, vertices)
-		},
-	)
+			attributeData[vi] = vertex.Add(
+				vs.
+					DivByConstant(float64(lut.Count(vi))).
+					Sub(vertex).
+					Scale(slc.smoothingFactor))
+		}
+	}
 }

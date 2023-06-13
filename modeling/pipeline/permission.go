@@ -1,99 +1,76 @@
 package pipeline
 
-import "fmt"
+import (
+	"github.com/EliCDavis/iter"
+	"github.com/EliCDavis/polyform/modeling"
+	"github.com/EliCDavis/vector/vector2"
+	"github.com/EliCDavis/vector/vector3"
+	"github.com/EliCDavis/vector/vector4"
+)
 
-type Permission interface {
-	HasPrimitivePermission() bool
-	HasAttributePermission() bool
-	HasMaterialPermission() bool
-
-	HasFloat3Permission(attr string) bool
-	HasFloat2Permission(attr string) bool
-	HasFloat1Permission(attr string) bool
+type ReadArrayPermission[T any] struct {
+	data []T
 }
 
-type Resource struct {
-	key string
+func (rdep ReadArrayPermission[T]) Data() iter.ArrayIterator[T] {
+	return iter.Array[T](rdep.data)
 }
 
-func RequireMeshPrimitive() Resource {
-	return Resource{
-		key: "primitive",
-	}
+type ReadIndicesPermission struct {
+	ReadArrayPermission[int]
+	m *modeling.Mesh
 }
 
-func RequireMeshFloat3Attribute(attribute string) Resource {
-	return Resource{
-		key: fmt.Sprintf("v3.%s", attribute),
-	}
+func (ip ReadIndicesPermission) VertexNeighborTable() modeling.VertexLUT {
+	return ip.m.VertexNeighborTable()
 }
 
-func RequireMeshFloat2Attribute(attribute string) Resource {
-	return Resource{
-		key: fmt.Sprintf("v2.%s", attribute),
-	}
+type ReadPermission[T any] struct {
+	data T
 }
 
-func RequireMeshFloat1Attribute(attribute string) Resource {
-	return Resource{
-		key: fmt.Sprintf("v1.%s", attribute),
-	}
+func (rdep ReadPermission[T]) Data() T {
+	return rdep.data
 }
 
-func PermissionForResources(resources ...Resource) Permission {
-	return resourcePermission{}
+type MeshReadPermission struct {
+	Everything    *ReadPermission[modeling.Mesh]
+	Indices       *ReadIndicesPermission
+	Materials     *ReadArrayPermission[modeling.MeshMaterial]
+	V1Permissions map[string]ReadArrayPermission[float64]
+	V2Permissions map[string]ReadArrayPermission[vector2.Float64]
+	V3Permissions map[string]ReadArrayPermission[vector3.Float64]
+	V4Permissions map[string]ReadArrayPermission[vector4.Float64]
 }
 
-type resourcePermission struct {
+type WriteArrayPermission[T any] struct {
+	data []T
 }
 
-func (resourcePermission) HasAttributePermission() bool {
-	return true
+func (wap WriteArrayPermission[T]) Data() []T {
+	return wap.data
 }
 
-func (resourcePermission) HasFloat3Permission(attr string) bool {
-	return true
+type WritePermission[T any] struct {
+	data    T
+	written bool
 }
 
-func (resourcePermission) HasFloat2Permission(attr string) bool {
-	return true
+func (wp WritePermission[T]) Data() T {
+	return wp.data
 }
 
-func (resourcePermission) HasFloat1Permission(attr string) bool {
-	return true
+func (wp *WritePermission[T]) Write(val T) {
+	wp.data = val
+	wp.written = true
 }
 
-func (resourcePermission) HasPrimitivePermission() bool {
-	return true
-}
-
-func (resourcePermission) HasMaterialPermission() bool {
-	return true
-}
-
-type everythingPermission struct {
-}
-
-func (everythingPermission) HasAttributePermission() bool {
-	return true
-}
-
-func (everythingPermission) HasFloat3Permission(attr string) bool {
-	return true
-}
-
-func (everythingPermission) HasFloat2Permission(attr string) bool {
-	return true
-}
-
-func (everythingPermission) HasFloat1Permission(attr string) bool {
-	return true
-}
-
-func (everythingPermission) HasPrimitivePermission() bool {
-	return true
-}
-
-func (everythingPermission) HasMaterialPermission() bool {
-	return true
+type MeshWritePermission struct {
+	Everything    *WritePermission[modeling.Mesh]
+	Indices       *WriteArrayPermission[int]
+	Materials     *WriteArrayPermission[modeling.MeshMaterial]
+	V1Permissions map[string]WriteArrayPermission[float64]
+	V2Permissions map[string]WriteArrayPermission[vector2.Float64]
+	V3Permissions map[string]WriteArrayPermission[vector3.Float64]
+	V4Permissions map[string]WriteArrayPermission[vector4.Float64]
 }
