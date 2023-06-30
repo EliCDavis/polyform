@@ -3,6 +3,7 @@ package rendering_test
 import (
 	"math/rand"
 	"testing"
+	"time"
 
 	"github.com/EliCDavis/polyform/formats/obj"
 	"github.com/EliCDavis/polyform/modeling/meshops"
@@ -17,6 +18,7 @@ func randomScene() []rendering.Hittable {
 
 	ground_material := materials.NewLambertian(textures.NewSolidColorTexture(vector3.New(0.5, 0.5, 0.5)))
 	world = append(world, rendering.NewSphere(vector3.New(0., -1000., 0.), 1000, ground_material))
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	for a := -11; a < 11; a++ {
 		for b := -11; b < 11; b++ {
@@ -32,9 +34,9 @@ func randomScene() []rendering.Hittable {
 
 				if choose_mat < 0.8 {
 					// diffuse
-					albedo := vector3.Rand().MultByVector(vector3.Rand())
+					albedo := vector3.Rand(r).MultByVector(vector3.Rand(r))
 					sphere_material = materials.NewLambertian(textures.NewSolidColorTexture(albedo))
-					dir := vector3.RandNormal().Scale(rand.Float64())
+					dir := vector3.RandNormal(r).Scale(rand.Float64())
 					world = append(
 						world,
 						rendering.NewAnimatedSphere(
@@ -46,7 +48,7 @@ func randomScene() []rendering.Hittable {
 						))
 				} else if choose_mat < 0.95 {
 					// metal
-					albedo := vector3.RandRange(0.4, 1.)
+					albedo := vector3.RandRange(r, 0.4, 1.)
 					fuzz := rand.Float64() * 0.5
 					sphere_material = materials.NewFuzzyMetal(albedo, fuzz)
 					world = append(world, rendering.NewSphere(center, 0.2, sphere_material))

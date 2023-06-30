@@ -1,6 +1,9 @@
 package materials
 
 import (
+	"math/rand"
+	"time"
+
 	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/rendering"
 	"github.com/EliCDavis/vector/vector2"
@@ -9,14 +12,18 @@ import (
 
 type Lambertian struct {
 	tex rendering.Texture
+	r   *rand.Rand
 }
 
 func NewLambertian(tex rendering.Texture) *Lambertian {
-	return &Lambertian{tex}
+	return &Lambertian{
+		tex: tex,
+		r:   rand.New(rand.NewSource(time.Now().UnixNano())),
+	}
 }
 
 func (l Lambertian) Scatter(in geometry.Ray, rec *rendering.HitRecord, attenuation *vector3.Float64, scattered *geometry.Ray) bool {
-	scatterDir := rec.Normal.Add(vector3.RandNormal())
+	scatterDir := rec.Normal.Add(vector3.RandNormal(l.r))
 	if scatterDir.NearZero() {
 		scatterDir = rec.Normal
 	}

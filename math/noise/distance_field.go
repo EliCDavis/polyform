@@ -3,6 +3,8 @@ package noise
 import (
 	"fmt"
 	"math"
+	"math/rand"
+	"time"
 
 	"github.com/EliCDavis/vector/vector2"
 )
@@ -38,10 +40,11 @@ func NewDistanceField(xCells, yCells int, size vector2.Float64) *DistanceField {
 
 	points := make([]vector2.Float64, xCells*yCells)
 
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	for y := 0; y < yCells; y++ {
 		for x := 0; x < xCells; x++ {
 			points[(xCells*y)+x] = vector2.
-				Rand().
+				Rand(r).
 				MultByVector(spacing).
 				Add(spacing.MultByVector(vector2.New(float64(x), float64(y))))
 		}

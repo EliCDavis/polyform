@@ -6,6 +6,7 @@ import (
 	"image/png"
 	"math/rand"
 	"os"
+	"time"
 
 	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/math/sample"
@@ -62,7 +63,7 @@ func RenderToFile(
 	// bvh := NewBVH(hittables, camera.timeStart, camera.timeEnd)
 
 	totalPixels := float64(imageHeight * imageWidth)
-
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	for y := 0; y < imageHeight; y++ {
 		for x := 0; x < imageWidth; x++ {
 
@@ -71,7 +72,7 @@ func RenderToFile(
 			for s := 0; s < samplesPerPixel; s++ {
 				u := (float64(x) + rand.Float64()) / float64(imageWidth-1)
 				v := (float64(y) + rand.Float64()) / float64(imageHeight-1)
-				col = col.Add(colorFromRay(camera.GetRay(u, v), &world, camera.background, maxRayBounce))
+				col = col.Add(colorFromRay(camera.GetRay(r, u, v), &world, camera.background, maxRayBounce))
 			}
 
 			col = col.

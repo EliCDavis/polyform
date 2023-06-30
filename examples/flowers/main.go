@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"os"
 	"path"
+	"time"
 
 	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/formats/gltf"
@@ -107,10 +108,10 @@ func texture(textureName string) error {
 	return ctx.SavePNG(imgPath)
 }
 
-func points(width, height float64, count int) []vector3.Float64 {
+func points(r *rand.Rand, width, height float64, count int) []vector3.Float64 {
 	pts := make([]vector3.Float64, count)
 	for i := 0; i < count; i++ {
-		pts[i] = vector3.Rand().MultByVector(vector3.New(width, 0, height))
+		pts[i] = vector3.Rand(r).MultByVector(vector3.New(width, 0, height))
 	}
 	return pts
 }
@@ -122,7 +123,8 @@ func main() {
 		Append(flower(8, 0.15, 0.3).Scale(vector3.Fill(0.9))).
 		Append(flower(5, 0.05, 0.6).Scale(vector3.Fill(0.8)))
 
-	flowerPos := points(3, 3, 3)
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	flowerPos := points(r, 3, 3, 3)
 
 	allFlowers := modeling.EmptyMesh(modeling.TriangleTopology)
 	for _, v := range flowerPos {

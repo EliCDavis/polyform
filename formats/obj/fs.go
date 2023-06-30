@@ -18,7 +18,8 @@ func Load(objPath string) (*modeling.Mesh, error) {
 	}
 	defer inFile.Close()
 
-	mesh, matPaths, err := ReadMesh(inFile)
+	buf := bufio.NewReader(inFile)
+	mesh, matPaths, err := ReadMesh(buf)
 	if err != nil {
 		return nil, err
 	}

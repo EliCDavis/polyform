@@ -21,6 +21,8 @@ import (
 func randomBallsScene() []rendering.Hittable {
 	world := make([]rendering.Hittable, 0)
 
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+
 	checkerPattern := textures.NewCheckerColorPattern(
 		vector3.New(0.2, 0.3, 0.1),
 		vector3.New(0.9, 0.9, 0.9),
@@ -42,9 +44,9 @@ func randomBallsScene() []rendering.Hittable {
 
 				if choose_mat < 0.8 {
 					// diffuse
-					albedo := vector3.Rand().MultByVector(vector3.Rand())
+					albedo := vector3.Rand(r).MultByVector(vector3.Rand(r))
 					sphere_material = materials.NewLambertian(textures.NewSolidColorTexture(albedo))
-					dir := vector3.RandNormal().Scale(rand.Float64())
+					dir := vector3.RandNormal(r).Scale(rand.Float64())
 					world = append(
 						world,
 						rendering.NewAnimatedSphere(
@@ -56,7 +58,7 @@ func randomBallsScene() []rendering.Hittable {
 						))
 				} else if choose_mat < 0.95 {
 					// metal
-					albedo := vector3.RandRange(0.4, 1.)
+					albedo := vector3.RandRange(r, 0.4, 1.)
 					fuzz := rand.Float64() * 0.5
 					sphere_material = materials.NewFuzzyMetal(albedo, fuzz)
 					world = append(world, rendering.NewSphere(center, 0.2, sphere_material))
@@ -113,6 +115,9 @@ func videoScene(spheres int, radius float64) []rendering.Hittable {
 	world = append(world, rendering.NewSphere(bigSphereCenter.Scale(0.9), -2, materials.NewDielectric(1.5)))
 
 	angleInc := (math.Pi * 2.) / float64(spheres)
+
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+
 	for i := 0; i < spheres; i++ {
 		matType := rand.Float64()
 
@@ -130,16 +135,16 @@ func videoScene(spheres int, radius float64) []rendering.Hittable {
 		var sphereMaterial rendering.Material
 		if matType < 0.4 {
 			sphereMaterial = materials.NewLambertian(textures.NewCheckerPatternWithTilingRate(
-				textures.NewSolidColorTexture(vector3.Rand().MultByVector(vector3.Rand())),
-				textures.NewSolidColorTexture(vector3.Rand().MultByVector(vector3.Rand())),
+				textures.NewSolidColorTexture(vector3.Rand(r).MultByVector(vector3.Rand(r))),
+				textures.NewSolidColorTexture(vector3.Rand(r).MultByVector(vector3.Rand(r))),
 				30,
 			))
 		} else if matType < 0.8 {
-			albedo := vector3.Rand().Scale(0.5).Add(vector3.New(0.5, 0.5, 0.5))
+			albedo := vector3.Rand(r).Scale(0.5).Add(vector3.New(0.5, 0.5, 0.5))
 			sphereMaterial = materials.NewFuzzyMetal(albedo, (rand.Float64()*0.5)+0.3)
 		} else {
 			albedo := vector3.
-				Rand().
+				Rand(r).
 				Scale(0.2).
 				Add(vector3.New(0.7, 0.7, 0.7)).
 				Scale(4)

@@ -73,8 +73,8 @@ func NewCamera(
 	}
 }
 
-func (c Camera) GetRay(s, t float64) TemporalRay {
-	rd := randUnitDisk().Scale(c.lensRadius)
+func (c Camera) GetRay(r *rand.Rand, s, t float64) TemporalRay {
+	rd := randUnitDisk(r).Scale(c.lensRadius)
 	offset := c.u.Scale(rd.X()).Add(c.v.Scale(rd.Y()))
 
 	dir := c.lowerLeftCorner.
@@ -92,9 +92,9 @@ func (c Camera) GetRay(s, t float64) TemporalRay {
 	)
 }
 
-func randUnitDisk() vector3.Float64 {
+func randUnitDisk(r *rand.Rand) vector3.Float64 {
 	for {
-		p := vector3.RandRange[float64](-1, 1).SetZ(0)
+		p := vector3.RandRange[float64](r, -1, 1).SetZ(0)
 		if p.LengthSquared() < 1 {
 			return p
 		}
