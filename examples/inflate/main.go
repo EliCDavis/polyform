@@ -33,7 +33,12 @@ func loadMesh(meshPath string) (*modeling.Mesh, error) {
 		return ply.Load(meshPath)
 
 	case ".obj":
-		return obj.Load(meshPath)
+		meshes, err := obj.Load(meshPath)
+		mesh := modeling.EmptyMesh(modeling.TriangleTopology)
+		for _, m := range meshes {
+			mesh = mesh.Append(m.Mesh)
+		}
+		return &mesh, err
 
 	default:
 		return nil, fmt.Errorf("unimplemented format to load: %s", ext)

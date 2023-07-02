@@ -22,10 +22,10 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-func readMesh(path string) (*modeling.Mesh, error) {
-	ext := filepath.Ext(path)
+func readMesh(meshPath string) (*modeling.Mesh, error) {
+	ext := filepath.Ext(meshPath)
 
-	inFile, err := os.Open(path)
+	inFile, err := os.Open(meshPath)
 	if err != nil {
 		return nil, err
 	}
@@ -34,7 +34,12 @@ func readMesh(path string) (*modeling.Mesh, error) {
 	switch strings.ToLower(ext) {
 
 	case ".obj":
-		return obj.Load(path)
+		meshes, err := obj.Load(meshPath)
+		mesh := modeling.EmptyMesh(modeling.TriangleTopology)
+		for _, m := range meshes {
+			mesh = mesh.Append(m.Mesh)
+		}
+		return &mesh, err
 
 	case ".ply":
 		return ply.ReadMesh(inFile)

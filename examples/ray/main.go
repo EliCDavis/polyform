@@ -229,7 +229,7 @@ func bunnyScene() []rendering.Hittable {
 		panic(err)
 	}
 
-	b1 := bunny.
+	b1 := bunny[0].Mesh.
 		Transform(
 			meshops.CenterAttribute3DTransformer{},
 			meshops.ScaleAttribute3DTransformer{

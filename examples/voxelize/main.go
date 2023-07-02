@@ -42,15 +42,20 @@ func main() {
 			},
 		},
 		Action: func(ctx *cli.Context) error {
-			mesh, err := obj.Load(ctx.String(inFlag))
+			meshes, err := obj.Load(ctx.String(inFlag))
 			if err != nil {
 				return err
+			}
+
+			mesh := modeling.EmptyMesh(modeling.TriangleTopology)
+			for _, m := range meshes {
+				mesh = mesh.Append(m.Mesh)
 			}
 
 			voxelSize := ctx.Float64(voxelSizeFlag)
 
 			startVoxel := time.Now()
-			voxels := voxelize.Surface(*mesh, modeling.PositionAttribute, voxelSize)
+			voxels := voxelize.Surface(mesh, modeling.PositionAttribute, voxelSize)
 			log.Printf("Time to voxelize: %s", time.Since(startVoxel))
 
 			startMesh := time.Now()

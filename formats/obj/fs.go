@@ -11,7 +11,7 @@ import (
 
 // Load reads an obj file from the path specified, and optionally loads all
 // associated metadata files the obj file might reference.
-func Load(objPath string) (*modeling.Mesh, error) {
+func Load(objPath string) ([]ObjMesh, error) {
 	inFile, err := os.Open(objPath)
 	if err != nil {
 		return nil, err
@@ -19,7 +19,7 @@ func Load(objPath string) (*modeling.Mesh, error) {
 	defer inFile.Close()
 
 	buf := bufio.NewReader(inFile)
-	mesh, matPaths, err := ReadMesh(buf)
+	meshes, matPaths, err := ReadMesh(buf)
 	if err != nil {
 		return nil, err
 	}
@@ -41,11 +41,13 @@ func Load(objPath string) (*modeling.Mesh, error) {
 		}
 	}
 
-	for i, mat := range mesh.Materials() {
-		mesh.Materials()[i].Material = loadedMaterials[mat.Material.Name]
+	for meshI, mesh := range meshes {
+		for matI, mat := range mesh.Mesh.Materials() {
+			meshes[meshI].Mesh.Materials()[matI].Material = loadedMaterials[mat.Material.Name]
+		}
 	}
 
-	return mesh, nil
+	return meshes, nil
 }
 
 // Save writes the mesh to the path specified in OBJ format, optionally writing

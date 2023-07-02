@@ -66,6 +66,14 @@ func parseUsemtlLine(components []string) (string, error) {
 	return strings.Join(components[1:], " "), nil
 }
 
+func parseGroupLine(components []string) (string, error) {
+	if len(components) == 1 {
+		return "", fmt.Errorf("g line is empty")
+	}
+
+	return strings.Join(components[1:], " "), nil
+}
+
 func parseObjFaceComponent(component string) (v int, vt int, vn int, err error) {
 	v = -1
 	vt = -1
@@ -109,23 +117,64 @@ func parseObjFaceComponent(component string) (v int, vt int, vn int, err error) 
 	return
 }
 
-func ReadMesh(in io.Reader) (*modeling.Mesh, []string, error) {
+type objMeshReading struct {
+	name      string
+	pointHash map[string]int
+	tris      []int
+	verts     []vector3.Float64
+	normals   []vector3.Float64
+	uvs       []vector2.Float64
+	meshMats  []modeling.MeshMaterial
+}
+
+func newObjMeshReading() objMeshReading {
+	return objMeshReading{
+		name:      "",
+		pointHash: make(map[string]int),
+		tris:      make([]int, 0),
+		verts:     make([]vector3.Float64, 0),
+		normals:   make([]vector3.Float64, 0),
+		uvs:       make([]vector2.Float64, 0),
+		meshMats:  make([]modeling.MeshMaterial, 0),
+	}
+}
+
+func (omr objMeshReading) empty() bool {
+	return len(omr.tris) == 0
+}
+
+func (omr objMeshReading) toMesh() ObjMesh {
+	mesh := modeling.NewTriangleMesh(omr.tris).
+		SetFloat3Attribute(modeling.PositionAttribute, omr.verts).
+		SetMaterials(omr.meshMats)
+
+	if len(omr.normals) > 0 {
+		mesh = mesh.SetFloat3Attribute(modeling.NormalAttribute, omr.normals)
+	}
+
+	if len(omr.uvs) > 0 {
+		mesh = mesh.SetFloat2Attribute(modeling.TexCoordAttribute, omr.uvs)
+	}
+	return ObjMesh{
+		Name: omr.name,
+		Mesh: mesh,
+	}
+}
+
+func ReadMesh(in io.Reader) ([]ObjMesh, []string, error) {
 	scanner := bufio.NewScanner(in)
 
-	tris := make([]int, 0)
 	readVerts := make([]vector3.Float64, 0)
 	readNormals := make([]vector3.Float64, 0)
 	readUVs := make([]vector2.Float64, 0)
 	readMaterialFiles := make([]string, 0)
 
-	pointHash := make(map[string]int)
-	verts := make([]vector3.Float64, 0)
-	normals := make([]vector3.Float64, 0)
-	uvs := make([]vector2.Float64, 0)
-	meshMaterials := make([]modeling.MeshMaterial, 0)
 	meshNameToMaterial := make(map[string]*modeling.Material)
 
 	trisSenseLastMat := 0
+
+	geoms := make([]ObjMesh, 0)
+	workingGeom := newObjMeshReading()
 
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -149,15 +198,15 @@ func ReadMesh(in io.Reader) (*modeling.Mesh, []string, error) {
 			}
 
 			if trisSenseLastMat > 0 {
-				if len(meshMaterials) == 0 {
-					meshMaterials = append(meshMaterials, modeling.MeshMaterial{
+				if len(workingGeom.meshMats) == 0 {
+					workingGeom.meshMats = append(workingGeom.meshMats, modeling.MeshMaterial{
 						PrimitiveCount: trisSenseLastMat,
 						Material: &modeling.Material{
 							Name: "Default",
 						},
 					})
 				} else {
-					meshMaterials[len(meshMaterials)-1].PrimitiveCount = trisSenseLastMat
+					workingGeom.meshMats[len(workingGeom.meshMats)-1].PrimitiveCount = trisSenseLastMat
 				}
 			}
 
@@ -174,7 +223,7 @@ func ReadMesh(in io.Reader) (*modeling.Mesh, []string, error) {
 				meshNameToMaterial[matToUse] = meshMat
 			}
 
-			meshMaterials = append(meshMaterials, modeling.MeshMaterial{
+			workingGeom.meshMats = append(workingGeom.meshMats, modeling.MeshMaterial{
 				PrimitiveCount: 0,
 				Material:       meshMat,
 			})
@@ -200,77 +249,89 @@ func ReadMesh(in io.Reader) (*modeling.Mesh, []string, error) {
 			}
 			readUVs = append(readUVs, vt)
 
+		case "g":
+			groupName, err := parseGroupLine(components)
+			if err != nil {
+				return nil, nil, fmt.Errorf("unable to parse g line '%s': %w", line, err)
+			}
+
+			if !workingGeom.empty() {
+				geoms = append(geoms, workingGeom.toMesh())
+				workingGeom = newObjMeshReading()
+			}
+			workingGeom.name = groupName
+
 		case "f":
 
 			trisSenseLastMat++
 
 			var p1 int
-			if val, ok := pointHash[components[1]]; ok {
+			if val, ok := workingGeom.pointHash[components[1]]; ok {
 				p1 = val
 			} else {
 				v, vt, vn, err := parseObjFaceComponent(components[1])
 				if err != nil {
 					return nil, nil, err
 				}
-				p1 = len(pointHash)
-				pointHash[components[1]] = p1
+				p1 = len(workingGeom.pointHash)
+				workingGeom.pointHash[components[1]] = p1
 
-				verts = append(verts, readVerts[v])
+				workingGeom.verts = append(workingGeom.verts, readVerts[v])
 
 				if vn != -1 {
-					normals = append(normals, readNormals[vn])
+					workingGeom.normals = append(workingGeom.normals, readNormals[vn])
 				}
 
 				if vt != -1 {
-					uvs = append(uvs, readUVs[vt])
+					workingGeom.uvs = append(workingGeom.uvs, readUVs[vt])
 				}
 			}
 
 			var p2 int
-			if val, ok := pointHash[components[2]]; ok {
+			if val, ok := workingGeom.pointHash[components[2]]; ok {
 				p2 = val
 			} else {
 				v, vt, vn, err := parseObjFaceComponent(components[2])
 				if err != nil {
 					return nil, nil, err
 				}
-				p2 = len(pointHash)
-				pointHash[components[2]] = p2
+				p2 = len(workingGeom.pointHash)
+				workingGeom.pointHash[components[2]] = p2
 
-				verts = append(verts, readVerts[v])
+				workingGeom.verts = append(workingGeom.verts, readVerts[v])
 
 				if vn != -1 {
-					normals = append(normals, readNormals[vn])
+					workingGeom.normals = append(workingGeom.normals, readNormals[vn])
 				}
 
 				if vt != -1 {
-					uvs = append(uvs, readUVs[vt])
+					workingGeom.uvs = append(workingGeom.uvs, readUVs[vt])
 				}
 			}
 
 			var p3 int
-			if val, ok := pointHash[components[3]]; ok {
+			if val, ok := workingGeom.pointHash[components[3]]; ok {
 				p3 = val
 			} else {
 				v, vt, vn, err := parseObjFaceComponent(components[3])
 				if err != nil {
 					return nil, nil, err
 				}
-				p3 = len(pointHash)
-				pointHash[components[3]] = p3
+				p3 = len(workingGeom.pointHash)
+				workingGeom.pointHash[components[3]] = p3
 
-				verts = append(verts, readVerts[v])
+				workingGeom.verts = append(workingGeom.verts, readVerts[v])
 
 				if vn != -1 {
-					normals = append(normals, readNormals[vn])
+					workingGeom.normals = append(workingGeom.normals, readNormals[vn])
 				}
 
 				if vt != -1 {
-					uvs = append(uvs, readUVs[vt])
+					workingGeom.uvs = append(workingGeom.uvs, readUVs[vt])
 				}
 			}
 
-			tris = append(tris, p1, p2, p3)
+			workingGeom.tris = append(workingGeom.tris, p1, p2, p3)
 		}
 	}
 
@@ -278,23 +339,12 @@ func ReadMesh(in io.Reader) (*modeling.Mesh, []string, error) {
 		return nil, nil, err
 	}
 
+	geoms = append(geoms, workingGeom.toMesh())
 	if trisSenseLastMat > 0 {
-		if len(meshMaterials) > 0 {
-			meshMaterials[len(meshMaterials)-1].PrimitiveCount = trisSenseLastMat
+		if len(workingGeom.meshMats) > 0 {
+			workingGeom.meshMats[len(workingGeom.meshMats)-1].PrimitiveCount = trisSenseLastMat
 		}
 	}
 
-	mesh := modeling.NewTriangleMesh(tris).
-		SetFloat3Attribute(modeling.PositionAttribute, verts).
-		SetMaterials(meshMaterials)
-
-	if len(normals) > 0 {
-		mesh = mesh.SetFloat3Attribute(modeling.NormalAttribute, normals)
-	}
-
-	if len(uvs) > 0 {
-		mesh = mesh.SetFloat2Attribute(modeling.TexCoordAttribute, uvs)
-	}
-
-	return &mesh, readMaterialFiles, nil
+	return geoms, readMaterialFiles, nil
 }

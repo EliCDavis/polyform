@@ -23,7 +23,12 @@ func readMesh(path string) (*modeling.Mesh, error) {
 	switch strings.ToLower(ext) {
 
 	case ".obj":
-		return obj.Load(path)
+		meshes, err := obj.Load(path)
+		mesh := modeling.EmptyMesh(modeling.TriangleTopology)
+		for _, m := range meshes {
+			mesh = mesh.Append(m.Mesh)
+		}
+		return &mesh, err
 
 	case ".ply":
 		return ply.ReadMesh(inFile)
