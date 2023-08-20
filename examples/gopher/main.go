@@ -188,7 +188,16 @@ func main() {
 		tailWagAnimation,
 	}
 
-	err := gltf.SaveTextWithAnimations("tmp/gopher/gopher.gltf", mesh, &skeleton, animations)
+	err := gltf.SaveBinary("tmp/gopher/gopher.glb", gltf.PolyformScene{
+		Models: []gltf.PolyformModel{
+			{
+				Name:       "Gopher",
+				Mesh:       mesh,
+				Skeleton:   &skeleton,
+				Animations: animations,
+			},
+		},
+	})
 	if err != nil {
 		panic(err)
 	}

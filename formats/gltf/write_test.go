@@ -2,6 +2,7 @@ package gltf_test
 
 import (
 	"bytes"
+	"image/color"
 	"testing"
 
 	"github.com/EliCDavis/polyform/formats/gltf"
@@ -24,7 +25,19 @@ func TestWriteBasicTri(t *testing.T) {
 	buf := bytes.Buffer{}
 
 	// ACT ====================================================================
-	err := gltf.WriteText(tri, &buf)
+	err := gltf.WriteText(gltf.PolyformScene{
+		Models: []gltf.PolyformModel{
+			{
+				Name: "mesh",
+				Mesh: tri,
+				Material: &gltf.PolyformMaterial{
+					PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
+						BaseColorFactor: color.White,
+					},
+				},
+			},
+		},
+	}, &buf)
 
 	// ASSERT =================================================================
 	assert.NoError(t, err)
@@ -48,7 +61,7 @@ func TestWriteBasicTri(t *testing.T) {
         },
         {
             "bufferView": 1,
-            "componentType": 5125,
+            "componentType": 5123,
             "type": "SCALAR",
             "count": 3
         }
@@ -59,8 +72,8 @@ func TestWriteBasicTri(t *testing.T) {
     },
     "buffers": [
         {
-            "byteLength": 48,
-            "uri": "data:application/octet-stream;base64,AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAAAAAAAAAAEAAAACAAAA"
+            "byteLength": 42,
+            "uri": "data:application/octet-stream;base64,AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAAAAAAABAAIA"
         }
     ],
     "bufferViews": [
@@ -72,7 +85,7 @@ func TestWriteBasicTri(t *testing.T) {
         {
             "buffer": 0,
             "byteOffset": 36,
-            "byteLength": 12,
+            "byteLength": 6,
             "target": 34963
         }
     ],
@@ -138,7 +151,14 @@ func TestWriteColorTri(t *testing.T) {
 	buf := bytes.Buffer{}
 
 	// ACT ====================================================================
-	err := gltf.WriteText(tri, &buf)
+	err := gltf.WriteText(gltf.PolyformScene{
+		[]gltf.PolyformModel{
+			gltf.PolyformModel{
+				Name: "mesh",
+				Mesh: tri,
+			},
+		},
+	}, &buf)
 
 	// ASSERT =================================================================
 	assert.NoError(t, err)
@@ -178,7 +198,7 @@ func TestWriteColorTri(t *testing.T) {
         },
         {
             "bufferView": 2,
-            "componentType": 5125,
+            "componentType": 5123,
             "type": "SCALAR",
             "count": 3
         }
@@ -189,8 +209,8 @@ func TestWriteColorTri(t *testing.T) {
     },
     "buffers": [
         {
-            "byteLength": 84,
-            "uri": "data:application/octet-stream;base64,AACAPwAAAAAAAAAAAAAAAAAAgD8AAAAAAAAAAAAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAAAAAAAAAAEAAAACAAAA"
+            "byteLength": 78,
+            "uri": "data:application/octet-stream;base64,AACAPwAAAAAAAAAAAAAAAAAAgD8AAAAAAAAAAAAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAAAAAAABAAIA"
         }
     ],
     "bufferViews": [
@@ -208,20 +228,8 @@ func TestWriteColorTri(t *testing.T) {
         {
             "buffer": 0,
             "byteOffset": 72,
-            "byteLength": 12,
+            "byteLength": 6,
             "target": 34963
-        }
-    ],
-    "materials": [
-        {
-            "pbrMetallicRoughness": {
-                "baseColorFactor": [
-                    1,
-                    1,
-                    1,
-                    1
-                ]
-            }
         }
     ],
     "meshes": [
@@ -233,8 +241,7 @@ func TestWriteColorTri(t *testing.T) {
                         "COLOR_0": 0,
                         "POSITION": 1
                     },
-                    "indices": 2,
-                    "material": 0
+                    "indices": 2
                 }
             ]
         }
@@ -254,7 +261,7 @@ func TestWriteColorTri(t *testing.T) {
 }`, buf.String())
 }
 
-func TestWriteTexturedTri(t *testing.T) {
+func TestWriteTexturedTriWithMaterialWithColor(t *testing.T) {
 	// ARRANGE ================================================================
 	tri := modeling.NewTriangleMesh([]int{0, 1, 2}).
 		SetFloat3Attribute(
@@ -285,7 +292,20 @@ func TestWriteTexturedTri(t *testing.T) {
 	buf := bytes.Buffer{}
 
 	// ACT ====================================================================
-	err := gltf.WriteText(tri, &buf)
+	err := gltf.WriteText(gltf.PolyformScene{
+		[]gltf.PolyformModel{
+			{
+				Name: "mesh",
+				Mesh: tri,
+				Material: &gltf.PolyformMaterial{
+					Name: "My Material",
+					PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
+						BaseColorFactor: color.RGBA{255, 100, 80, 255},
+					},
+				},
+			},
+		},
+	}, &buf)
 
 	// ASSERT =================================================================
 	assert.NoError(t, err)
@@ -339,7 +359,7 @@ func TestWriteTexturedTri(t *testing.T) {
         },
         {
             "bufferView": 3,
-            "componentType": 5125,
+            "componentType": 5123,
             "type": "SCALAR",
             "count": 3
         }
@@ -350,8 +370,8 @@ func TestWriteTexturedTri(t *testing.T) {
     },
     "buffers": [
         {
-            "byteLength": 108,
-            "uri": "data:application/octet-stream;base64,AACAPwAAAAAAAAAAAAAAAAAAgD8AAAAAAAAAAAAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAAAAAAAAAAAAAAAAAAAAAACAPwAAgD8AAAAAAAAAAAEAAAACAAAA"
+            "byteLength": 102,
+            "uri": "data:application/octet-stream;base64,AACAPwAAAAAAAAAAAAAAAAAAgD8AAAAAAAAAAAAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAAAAAAAAAAAAAAAAAAAAAACAPwAAgD8AAAAAAAABAAIA"
         }
     ],
     "bufferViews": [
@@ -375,17 +395,18 @@ func TestWriteTexturedTri(t *testing.T) {
         {
             "buffer": 0,
             "byteOffset": 96,
-            "byteLength": 12,
+            "byteLength": 6,
             "target": 34963
         }
     ],
     "materials": [
         {
+            "name": "My Material",
             "pbrMetallicRoughness": {
                 "baseColorFactor": [
                     1,
-                    1,
-                    1,
+                    0.39215686274509803,
+                    0.3137254901960784,
                     1
                 ]
             }

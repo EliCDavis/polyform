@@ -138,5 +138,17 @@ func main() {
 		ColorTextureURI: &textureName,
 	})
 
-	gltf.SaveText("tmp/flowers/flowers.gltf", allFlowers)
+	gltf.SaveText("tmp/flowers/flowers.gltf", gltf.PolyformScene{
+		Models: []gltf.PolyformModel{
+			{
+				Name: "Flowers",
+				Mesh: allFlowers,
+				Material: &gltf.PolyformMaterial{
+					PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
+						BaseColorFactor: color.White,
+					},
+				},
+			},
+		},
+	})
 }

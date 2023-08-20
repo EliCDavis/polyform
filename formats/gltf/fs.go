@@ -2,19 +2,12 @@ package gltf
 
 import (
 	"bufio"
+	"io"
 	"os"
 	"path"
-
-	"github.com/EliCDavis/polyform/modeling"
-	"github.com/EliCDavis/polyform/modeling/animation"
 )
 
-// Save writes the mesh to the path specified in GLTF format
-func SaveText(gltfPath string, meshToSave modeling.Mesh) error {
-	return SaveTextWithAnimations(gltfPath, meshToSave, nil, nil)
-}
-
-func SaveTextWithAnimations(gltfPath string, meshToSave modeling.Mesh, joints *animation.Skeleton, animations []animation.Sequence) error {
+func save(gltfPath string, scene PolyformScene, saveFunc func(scene PolyformScene, out io.Writer) error) error {
 	err := os.MkdirAll(path.Dir(gltfPath), os.ModeDir)
 	if err != nil {
 		return err
@@ -27,9 +20,19 @@ func SaveTextWithAnimations(gltfPath string, meshToSave modeling.Mesh, joints *a
 	defer gltfFile.Close()
 
 	out := bufio.NewWriter(gltfFile)
-	err = WriteTextWithAnimations(meshToSave, out, joints, animations)
+	err = saveFunc(scene, out)
 	if err != nil {
 		return err
 	}
 	return out.Flush()
+}
+
+// Save writes the mesh to the path specified in GLTF format
+func SaveText(gltfPath string, scene PolyformScene) error {
+	return save(gltfPath, scene, WriteText)
+}
+
+// Save writes the mesh to the path specified in GLB format
+func SaveBinary(gltfPath string, scene PolyformScene) error {
+	return save(gltfPath, scene, WriteBinary)
 }

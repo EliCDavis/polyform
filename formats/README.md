@@ -8,7 +8,7 @@ I'm not doing FBX. FBX is cursed and Autodesk can burn in hell.
 | ------ | ------- | ---------- |
 | PTS    | ✔️      | ❌         |
 | PTX    | ❌      | ❌         |
-| PLY    | ✔️      | ASCII Only |
+| PLY    | ✔️      | ✔️         |
 | OBJ    | ✔️      | ✔️         |
 | GLTF   | ❌      | ✔️         |
 | STL    | ❌      | ❌         |

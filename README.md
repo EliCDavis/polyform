@@ -112,10 +112,17 @@ Progress towards V1...
 - [ ] Slice By Bounding Box
 - [ ] Constrained Delaunay Tesselation
 - [ ] Meshing Pipeline
-- [ ] Bones / Animations
+- [x] Bones / Animations
 - [ ] Quadric Error Decimation
 - [x] Proper Build Pipeline
 - [x] Documentation Website
+- [ ] Primitives
+  - [x] Cube
+  - [x] Sphere
+  - [x] Cylinder
+  - [ ] Cone
+  - [ ] Capsule
+  - [ ] Hemisphere
 
 Things I want to implement eventually...
 
