@@ -1,6 +1,8 @@
 # Polyform
 ![Coverage](https://img.shields.io/badge/Coverage-40.5%25-yellow)
 [![Go Report Card](https://goreportcard.com/badge/github.com/EliCDavis/polyform)](https://goreportcard.com/report/github.com/EliCDavis/polyform)
+[![CITATION.cff](https://github.com/EliCDavis/polyform/actions/workflows/cff-validator.yml/badge.svg)](https://github.com/EliCDavis/polyform/actions/workflows/cff-validator.yml)
+
 
 Library for generating and editing 3D geometry and it's associated data implemented in 100% golang.
 
