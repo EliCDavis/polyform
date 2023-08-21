@@ -1,0 +1,16 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: Polyform
+message: Immutable mesh generation library
+type: software
+authors:
+  - given-names: Elijah
+    family-names: Davis
+repository-code: 'https://github.com/EliCDavis/polyform'
+keywords:
+  - sdf
+  - marching-cubes
+license: MIT
+version: v0.8.0
