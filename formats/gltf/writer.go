@@ -567,12 +567,12 @@ func (w Writer) WriteGLB(out io.Writer) error {
 		return err
 	}
 	jsonByteLen := len(jsonBytes)
-	jsonPadding := jsonByteLen % 4
+	jsonPadding := (4 - (jsonByteLen % 4)) % 4
 	jsonByteLen += jsonPadding
 
 	binBytes := w.buf.Bytes()
 	binByteLen := len(binBytes)
-	binPadding := binByteLen % 4
+	binPadding := (4 - (binByteLen % 4)) % 4
 	binByteLen += binPadding
 
 	bitWriter := bitlib.NewWriter(out, binary.LittleEndian)

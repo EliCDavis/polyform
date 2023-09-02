@@ -460,11 +460,17 @@ func (f Field) March(atr string, cubesPerUnit, cutoff float64) modeling.Mesh {
 			}
 		}
 	}
-	return modeling.NewTriangleMesh(tris).
+
+	mesh := modeling.NewTriangleMesh(tris).
 		SetFloat3Data(v3Data).
 		SetFloat2Data(v2Data).
-		SetFloat1Data(v1Data).
-		WeldByFloat3Attribute(modeling.PositionAttribute, 3)
+		SetFloat1Data(v1Data)
+
+	if mesh.HasFloat3Attribute(modeling.PositionAttribute) {
+		return mesh.WeldByFloat3Attribute(modeling.PositionAttribute, 3)
+	}
+
+	return mesh
 }
 
 func (f Field) Voxelize(atr string, cubesPerUnit, cutoff float64) []vector3.Float64 {

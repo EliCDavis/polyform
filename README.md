@@ -76,9 +76,10 @@ Results in:
   - [coloring](/drawing/coloring/) - Color utilities for blending multiple colors together using weights.
   - [texturing](/drawing/texturing/) - Image processing utilities like generating Normal maps or blurring images.
 - [Math](/math/README.md)
+  - [curves](/math/curves/) - Commonly curves used in animation like cubic bezier curves.
   - [noise](/math/noise/) - Utilities around noise functions for common usecases like stacking multiple samples of perlin noise from different frequencies.
   - [sample](/math/sample/) - Serves as a group of definitions for defining a mapping from one numeric value to another
-  - [curves](/math/curves/) - Commonly curves used in animation like cubic bezier curves.
+  - [sdf](/math/sdf/) - SDF implementations of different geometry primitives, along with common math functions
 
 ## Procedural Generation Examples
 
@@ -96,11 +97,11 @@ This was my [submission for ProcJam 2022](https://elicdavis.itch.io/evergreen-tr
 
 ### Other Examples
 
-|                                                                                      |                                                                                  |
-| ------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------- |
-| [[Source Here](/examples/ufo/main.go)] ![ufo](/examples/ufo/ufo.png)                 | [[Source Here](/examples/candle/main.go)] ![candle](/examples/candle/candle.png) |
-| [[Source Here](/examples/terrain/main.go)] ![terrain](/examples/terrain/terrain.png) | [[Source Here](/examples/covid/main.go)] ![terrain](/examples/covid/covid.png)   |
-| [[Source Here](/examples/plumbob/main.go)] ![plumbob](/examples/plumbob/plumbob.png) |                                                                                  |
+|                                                                                      |                                                                                     |
+| ------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------- |
+| [[Source Here](/examples/ufo/main.go)] ![ufo](/examples/ufo/ufo.png)                 | [[Source Here](/examples/candle/main.go)] ![candle](/examples/candle/candle.png)    |
+| [[Source Here](/examples/terrain/main.go)] ![terrain](/examples/terrain/terrain.png) | [[Source Here](/examples/covid/main.go)] ![terrain](/examples/covid/covid.png)      |
+| [[Source Here](/examples/plumbob/main.go)] ![plumbob](/examples/plumbob/plumbob.png) | [[Source Here](/examples/oreo/main.go)] ![oreo](/examples/oreo/oreo.png)            |
 
 ## Todo List
 
@@ -118,13 +119,26 @@ Progress towards V1...
 - [ ] Quadric Error Decimation
 - [x] Proper Build Pipeline
 - [x] Documentation Website
-- [ ] Primitives
+- [ ] Primitive Meshes
   - [x] Cube
   - [x] Sphere
   - [x] Cylinder
   - [ ] Cone
   - [ ] Capsule
   - [ ] Hemisphere
+- [ ] SDFs
+  - [x] Box
+  - [x] Line
+  - [x] Plane
+  - [x] Sphere
+  - [x] Rounded Cylinder
+  - [ ] Rounded Box
+  - [ ] Torus
+  - [ ] Box Frame
+  - [ ] Cone
+  - [ ] Rounded Cone
+  - [ ] Elipsoid
+  - [ ] Triangle
 
 Things I want to implement eventually...
 
@@ -202,6 +216,7 @@ Resources either directly contributing to the code here or are just interesting 
   - [LUT](http://paulbourke.net/geometry/polygonise/)
   - [Coding Adventure: Marching Cubes By Sebastian Lague](https://www.youtube.com/watch?v=M3iI2l0ltbE)
   - [SDFs](https://iquilezles.org/articles/distfunctions/)
+  - [Fast 2D SDF](https://stackoverflow.com/questions/68178747/fast-2d-signed-distance)
 - Collisions
   - [Closest point on Triangle](https://gdbooks.gitbooks.io/3dcollisions/content/Chapter4/closest_point_to_triangle.html)
 - Ray Tracing
