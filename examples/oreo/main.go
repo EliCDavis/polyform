@@ -10,6 +10,7 @@ import (
 	"github.com/EliCDavis/polyform/drawing/texturing"
 	"github.com/EliCDavis/polyform/formats/gltf"
 	"github.com/EliCDavis/polyform/math/geometry"
+	"github.com/EliCDavis/polyform/math/noise"
 	"github.com/EliCDavis/polyform/math/sample"
 	"github.com/EliCDavis/polyform/math/sdf"
 	"github.com/EliCDavis/polyform/modeling"
@@ -85,7 +86,7 @@ func debugPropegation(data [][]float64, filename string) error {
 		for y := 0; y < len(row); y++ {
 			val := row[y] / delta
 			if val > 0 {
-				dst.SetRGBA(x, y, color.RGBA{R: byte(val * 255), G: 0, B: 0, A: 255})
+				dst.SetRGBA(x, y, color.RGBA{R: byte(val * 255 * delta), G: 0, B: 0, A: 255})
 			} else {
 				dst.SetRGBA(x, y, color.RGBA{R: 0, G: byte(val * -255), B: 0, A: 255})
 			}
@@ -142,15 +143,112 @@ func main() {
 		},
 	}
 
-	oreo := cookieField.March(modeling.PositionAttribute, 0.25, 0).
+	// Colors I color picked from images of oreos
+	colorA := vector3.New(0x60/255., 0x53/255., 0x4a/255.)
+	colorB := vector3.New(0x69/255., 0x59/255., 0x4b/255.)
+
+	// High contrast colors to help debug the noise.
+	// colorA = vector3.New(1., 0., 0.)
+	// colorB = vector3.New(0., 1., 0.)
+
+	colorDif := colorB.Sub(colorA)
+	vertexColors := make([]vector3.Float64, 0)
+
+	oreoCookieTop := cookieField.March(modeling.PositionAttribute, 0.25, 0).
+		ModifyFloat3Attribute(
+			modeling.PositionAttribute,
+			func(i int, v vector3.Float64) vector3.Float64 {
+				vertNoise := vector3.New(
+					noise.Perlin1D(v.X()),
+					noise.Perlin1D(v.Y()),
+					noise.Perlin1D(v.Z()),
+				).Scale(30)
+
+				// Compute a vertex color using perlin noise
+				colorTime := (noise.Perlin3D(v.DivByConstant(10)) * 0.5) + 0.5
+				colorNoise := colorA.Add(colorDif.Scale(colorTime))
+				vertexColors = append(vertexColors, colorNoise)
+
+				return v.Add(vertNoise)
+			},
+		).
+		SetFloat3Attribute(modeling.ColorAttribute, vertexColors).
 		Transform(
 			meshops.LaplacianSmoothTransformer{
 				Attribute:       modeling.PositionAttribute,
-				Iterations:      40,
+				Iterations:      30,
 				SmoothingFactor: .1,
 			},
 			meshops.SmoothNormalsTransformer{},
+			meshops.VertexColorSpaceTransformer{},
+			meshops.CenterAttribute3DTransformer{},
 		)
 
-	gltf.SaveBinary("oreo.glb", gltf.PolyformScene{Models: []gltf.PolyformModel{{Mesh: oreo}}})
+	flipRotation := modeling.UnitQuaternionFromTheta(math.Pi, vector3.Right[float64]())
+	oreoCookieBottom := oreoCookieTop.
+		Transform(
+			meshops.RotateAttribute3DTransformer{
+				Attribute: modeling.PositionAttribute,
+				Amount:    flipRotation,
+			},
+			meshops.RotateAttribute3DTransformer{
+				Attribute: modeling.NormalAttribute,
+				Amount:    flipRotation,
+			},
+		).
+		Translate(vector3.New(0., -150., 0.))
+
+	icingField := marching.Field{
+		Domain: geometry.NewAABBFromPoints(
+			vector3.New(0., -40., 0.),
+			vector3.New(1300., 40., 1300.),
+		), Float1Functions: map[string]sample.Vec3ToFloat{
+			modeling.PositionAttribute: sdf.RoundedCylinder(vector3.New(640., 0., 640.), 290, 1, 50),
+		},
+	}
+
+	icing := icingField.March(modeling.PositionAttribute, 0.25, 0).
+		ModifyFloat3Attribute(
+			modeling.PositionAttribute,
+			func(i int, v vector3.Float64) vector3.Float64 {
+				vertNoise := vector3.New(
+					noise.Perlin1D(v.X()/10),
+					noise.Perlin1D(v.Y()/10),
+					noise.Perlin1D(v.Z()/10),
+				).Scale(10)
+				return v.Add(vertNoise)
+			},
+		).
+		Transform(
+			meshops.LaplacianSmoothTransformer{
+				Attribute:       modeling.PositionAttribute,
+				Iterations:      30,
+				SmoothingFactor: .1,
+			},
+			meshops.SmoothNormalsTransformer{},
+			meshops.CenterAttribute3DTransformer{},
+		).
+		Translate(vector3.New(0., -70., 0.))
+
+	gltf.SaveBinary(
+		"oreo.glb",
+		gltf.PolyformScene{
+			Models: []gltf.PolyformModel{
+				{Mesh: oreoCookieTop},
+				{Mesh: icing,
+					Material: &gltf.PolyformMaterial{
+						PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
+							BaseColorFactor: color.RGBA{
+								R: uint8(0xf8),
+								G: uint8(0xf6),
+								B: uint8(0xf7),
+								A: 255,
+							},
+						},
+					},
+				},
+				{Mesh: oreoCookieBottom},
+			},
+		},
+	)
 }

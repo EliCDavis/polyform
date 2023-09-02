@@ -76,7 +76,7 @@ Results in:
   - [coloring](/drawing/coloring/) - Color utilities for blending multiple colors together using weights.
   - [texturing](/drawing/texturing/) - Image processing utilities like generating Normal maps or blurring images.
 - [Math](/math/README.md)
-  - [curves](/math/curves/) - Commonly curves used in animation like cubic bezier curves.
+  - [curves](/math/curves/) - Common curves used in animation like cubic bezier curves.
   - [noise](/math/noise/) - Utilities around noise functions for common usecases like stacking multiple samples of perlin noise from different frequencies.
   - [sample](/math/sample/) - Serves as a group of definitions for defining a mapping from one numeric value to another
   - [sdf](/math/sdf/) - SDF implementations of different geometry primitives, along with common math functions
@@ -163,6 +163,9 @@ Resources either directly contributing to the code here or are just interesting 
   - [Perlin Noise](https://gpfault.net/posts/perlin-noise.txt.html)
     - [Perlin Worms](https://libnoise.sourceforge.net/examples/worms/index.html)
     - [Perline Noise Chapter 5 from "Ray Tracing The Next Week by Peter Shirley](https://raytracing.github.io/books/RayTracingTheNextWeek.html#perlinnoise)
+    - [Improving Noise By Ken Perlin](https://mrl.cs.nyu.edu/~perlin/paper445.pdf)
+      - [Java Implementation](https://mrl.cs.nyu.edu/~perlin/noise/)
+      - [C# Implementation by Keijiro](https://github.com/keijiro/PerlinNoise/blob/master/Assets/Perlin.cs)
   - [Worley/Cellular Noise](https://thebookofshaders.com/12/)
   - [Book of Shaders on Noise](https://thebookofshaders.com/11/)
   - [Simplex Noise](https://en.wikipedia.org/wiki/Simplex_noise)
