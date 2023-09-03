@@ -1,4 +1,4 @@
-package texturing
+package colors
 
 import (
 	"image/color"

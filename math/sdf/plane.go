@@ -6,8 +6,8 @@ import (
 )
 
 // https://iquilezles.org/articles/distfunctions/
-func Plane(pos, normal vector3.Float64, height float64) sample.Vec3ToFloat {
+func Plane(position, normal vector3.Float64, height float64) sample.Vec3ToFloat {
 	return func(v vector3.Float64) float64 {
-		return v.Sub(pos).Dot(normal) + height
+		return v.Sub(position).Dot(normal) + height
 	}
 }

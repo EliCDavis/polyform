@@ -7,7 +7,7 @@ import (
 	"github.com/EliCDavis/vector/vector3"
 )
 
-func Box(position, bounds vector3.Float64) sample.Vec3ToFloat {
+func RoundedBox(position, bounds vector3.Float64, roundness float64) sample.Vec3ToFloat {
 	halfBounds := bounds.Scale(0.5)
 	// It's best to watch the video to understand
 	// https://www.youtube.com/watch?v=62-pRVZuS5c
@@ -16,6 +16,6 @@ func Box(position, bounds vector3.Float64) sample.Vec3ToFloat {
 		q := reorient.Abs().Sub(halfBounds)
 
 		inside := math.Min(q.MaxComponent(), 0)
-		return vector3.Max(q, vector3.Zero[float64]()).Length() + inside
+		return vector3.Max(q, vector3.Zero[float64]()).Length() + inside - roundness
 	}
 }

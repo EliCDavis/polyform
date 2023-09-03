@@ -132,7 +132,7 @@ Progress towards V1...
   - [x] Plane
   - [x] Sphere
   - [x] Rounded Cylinder
-  - [ ] Rounded Box
+  - [x] Rounded Box
   - [ ] Torus
   - [ ] Box Frame
   - [ ] Cone
@@ -231,3 +231,6 @@ Resources either directly contributing to the code here or are just interesting 
   - [Mat3x3 => Quaternion from Blender Source](https://github.com/blender/blender/blob/756538b4a117cb51a15e848fa6170143b6aafcd8/source/blender/blenlib/intern/math_rotation.c#L272)
 - Skinning
   [Volumetric Heat Diffusion Skinning by Wolfire Games](http://blog.wolfire.com/2009/11/volumetric-heat-diffusion-skinning/)
+- Color Space
+  - [Threejs on Color Management](https://threejs.org/docs/#manual/en/introduction/Color-management)
+  - [Threejs Colorspace conversion](https://github.com/mrdoob/three.js/blob/e6f7c4e677cb8869502739da2640791d020d8d2f/src/math/ColorManagement.js#L5)
