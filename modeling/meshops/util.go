@@ -50,6 +50,13 @@ func requireV3Attribute(m modeling.Mesh, attr string) error {
 	return fmt.Errorf("mesh is required to have the vector3 attribute: '%s'", attr)
 }
 
+func requireV2Attribute(m modeling.Mesh, attr string) error {
+	if m.HasFloat2Attribute(attr) {
+		return nil
+	}
+	return fmt.Errorf("mesh is required to have the vector3 attribute: '%s'", attr)
+}
+
 func readAllFloatXData[T any](attrs []string, reader func(string) iter.ArrayIterator[T]) map[string][]T {
 	data := make(map[string][]T)
 	for _, attr := range attrs {
