@@ -1,5 +1,13 @@
 package generator
 
+import (
+	"encoding/json"
+	"flag"
+)
+
 type Parameter interface {
-	IsSet() bool
+	DisplayName() string
+	Schema() ParameterSchema
+	initializeForCLI(set *flag.FlagSet)
+	ApplyJsonMessage(msg json.RawMessage) error
 }

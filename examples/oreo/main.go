@@ -9,6 +9,7 @@ import (
 
 	"github.com/EliCDavis/polyform/drawing/texturing"
 	"github.com/EliCDavis/polyform/formats/gltf"
+	"github.com/EliCDavis/polyform/math/colors"
 	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/math/noise"
 	"github.com/EliCDavis/polyform/math/sample"
@@ -19,25 +20,22 @@ import (
 	"github.com/EliCDavis/vector/vector3"
 )
 
-func imageToEdgeData(src image.Image, boundaryValue float64) [][]float64 {
+func imageToEdgeData(src image.Image, fillValue float64) [][]float64 {
 	imageData := make([][]float64, src.Bounds().Dx())
 	for i := 0; i < len(imageData); i++ {
 		imageData[i] = make([]float64, src.Bounds().Dy())
 	}
 
-	texturing.Convolve(src, func(x, y int, values []color.Color) {
-		for i := 0; i < 9; i++ {
-			if values[4] != values[i] {
-				imageData[x][y] = 0
-				return
-			}
+	texturing.Convolve(src, func(x, y int, kernel []color.Color) {
+		if texturing.SimpleEdgeTest(kernel) {
+			imageData[x][y] = 0
+			return
 		}
 
-		_, _, _, a := values[4].RGBA()
-		if a&255 == 255 {
-			imageData[x][y] = -boundaryValue
+		if colors.AlphaEqual(kernel[4], 255) {
+			imageData[x][y] = -fillValue
 		} else {
-			imageData[x][y] = boundaryValue
+			imageData[x][y] = fillValue
 		}
 	})
 
@@ -54,16 +52,32 @@ func loadImage(imageName string) (image.Image, error) {
 	return png.Decode(logoFile)
 }
 
-func heatPropegate(data [][]float64, iterations int, decay float64) {
+func heatPropegate(data [][]float64, iterations int, decay float64) [][]float64 {
+	tempData := make([][]float64, len(data))
+	for r := 0; r < len(tempData); r++ {
+		tempData[r] = make([]float64, len(data[r]))
+	}
+
 	for i := 0; i < iterations; i++ {
-		texturing.ConvolveArray[float64](data, func(x, y int, values []float64) {
-			if data[x][y] == 0 {
+		toConvole := data
+		toStore := tempData
+		if i%2 == 1 {
+			toConvole = tempData
+			toStore = data
+		}
+		texturing.ConvolveArray[float64](toConvole, func(x, y int, kernel []float64) {
+			if toConvole[x][y] == 0 {
 				return
 			}
-			total := values[0] + values[1] + values[2] + values[3] + values[5] + values[6] + values[7] + values[8]
-			data[x][y] = (total / 8) * decay
+			total := kernel[0] + kernel[1] + kernel[2] + kernel[3] + kernel[5] + kernel[6] + kernel[7] + kernel[8]
+			toStore[x][y] = (total / 8) * decay
 		})
 	}
+
+	if iterations%2 == 1 {
+		return tempData
+	}
+	return data
 }
 
 func debugPropegation(data [][]float64, filename string) error {
@@ -86,7 +100,7 @@ func debugPropegation(data [][]float64, filename string) error {
 		for y := 0; y < len(row); y++ {
 			val := row[y] / delta
 			if val > 0 {
-				dst.SetRGBA(x, y, color.RGBA{R: byte(val * 255 * delta), G: 0, B: 0, A: 255})
+				dst.SetRGBA(x, y, color.RGBA{R: byte(val * 255), G: 0, B: 0, A: 255})
 			} else {
 				dst.SetRGBA(x, y, color.RGBA{R: 0, G: byte(val * -255), B: 0, A: 255})
 			}
@@ -113,7 +127,7 @@ func main() {
 	img, err := loadImage(logoFileName)
 	check(err)
 	imgData := imageToEdgeData(img, maxHeat)
-	heatPropegate(imgData, 250, 0.9999)
+	imgData = heatPropegate(imgData, 125, 0.9999)
 	check(debugPropegation(imgData, "debug.png"))
 
 	top := sdf.RoundedCylinder(vector3.New(600., 11., 600.), 600, 1, 15)
@@ -145,7 +159,7 @@ func main() {
 
 	// Colors I color picked from images of oreos
 	colorA := vector3.New(0x60/255., 0x53/255., 0x4a/255.)
-	colorB := vector3.New(0x69/255., 0x59/255., 0x4b/255.)
+	colorB := vector3.New(0x70/255., 0x63/255., 0x5b/255.)
 
 	// High contrast colors to help debug the noise.
 	// colorA = vector3.New(1., 0., 0.)
@@ -180,6 +194,21 @@ func main() {
 				SmoothingFactor: .1,
 			},
 			meshops.SmoothNormalsTransformer{},
+			meshops.CustomTransformer{
+				Func: func(m modeling.Mesh) (results modeling.Mesh, err error) {
+					return m.ModifyFloat3Attribute(
+						modeling.NormalAttribute,
+						func(i int, normal vector3.Float64) vector3.Float64 {
+							jitter := vector3.New(
+								noise.Perlin1D(normal.X()*10),
+								noise.Perlin1D(normal.Y()*10),
+								noise.Perlin1D(normal.Z()*10),
+							).Scale(0.5)
+							return normal.Add(jitter).Normalized()
+						},
+					), nil
+				},
+			},
 			meshops.VertexColorSpaceTransformer{},
 			meshops.CenterAttribute3DTransformer{},
 		)

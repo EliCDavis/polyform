@@ -9,6 +9,7 @@ import (
 // [3][4][5]
 // [6][7][8]
 func Convolve(src image.Image, f func(x, y int, values []color.Color)) {
+	kernel := make([]color.Color, 9)
 	for xIndex := 0; xIndex < src.Bounds().Dx(); xIndex++ {
 		xLeft := xIndex - 1
 		if xIndex == 0 {
@@ -31,16 +32,22 @@ func Convolve(src image.Image, f func(x, y int, values []color.Color)) {
 				yTop = yIndex - 1
 			}
 
-			f(xIndex, yIndex, []color.Color{
-				src.At(xLeft, yTop), src.At(xMid, yTop), src.At(xRight, yTop),
-				src.At(xLeft, yMid), src.At(xMid, yMid), src.At(xRight, yMid),
-				src.At(xLeft, yBot), src.At(xMid, yBot), src.At(xRight, yBot),
-			})
+			kernel[0] = src.At(xLeft, yTop)
+			kernel[1] = src.At(xMid, yTop)
+			kernel[2] = src.At(xRight, yTop)
+			kernel[3] = src.At(xLeft, yMid)
+			kernel[4] = src.At(xMid, yMid)
+			kernel[5] = src.At(xRight, yMid)
+			kernel[6] = src.At(xLeft, yBot)
+			kernel[7] = src.At(xMid, yBot)
+			kernel[8] = src.At(xRight, yBot)
+
+			f(xIndex, yIndex, kernel)
 		}
 	}
 }
 
-func ConvolveArray[T any](arr [][]T, f func(x, y int, values []T)) {
+func ConvolveArray[T any](arr [][]T, f func(x, y int, kernel []T)) {
 	dx := len(arr)
 	dy := len(arr[0])
 

@@ -1,39 +1,66 @@
 package generator
 
 import (
-	"fmt"
-	"math/rand"
+	"encoding/json"
+	"flag"
 )
 
-func NewIntParameter(min, max int) IntParameter {
-	return IntParameter{
-		minInclusive: min,
-		maxInclusive: max,
-	}
+type IntCliParameterConfig struct {
+	FlagName string
+	Usage    string
+	value    *int
 }
 
 type IntParameter struct {
-	minInclusive int
-	maxInclusive int
-	set          bool
-	setValue     int
+	Name           string
+	DefaultValue   int
+	appliedProfile *int
+	CLI            *IntCliParameterConfig
+}
+
+func (ip *IntParameter) ApplyJsonMessage(msg json.RawMessage) error {
+	num := 0
+	err := json.Unmarshal(msg, &num)
+	if err != nil {
+		return err
+	}
+	ip.appliedProfile = &num
+	return nil
+}
+
+func (ip IntParameter) Schema() ParameterSchema {
+	return IntParameterSchema{
+		ParameterSchemaBase: ParameterSchemaBase{
+			Name: ip.Name,
+			Type: "Int",
+		},
+		DefaultValue: ip.DefaultValue,
+	}
+}
+
+func (ip IntParameter) DisplayName() string {
+	return ip.Name
 }
 
 func (ip IntParameter) Value() int {
-	if ip.set {
-		return ip.setValue
+	if ip.appliedProfile != nil {
+		return *ip.appliedProfile
 	}
-	return ip.minInclusive + rand.Intn(ip.maxInclusive-ip.minInclusive+1)
+
+	if ip.CLI != nil && ip.CLI.value != nil {
+		return *ip.CLI.value
+	}
+	return ip.DefaultValue
 }
 
-func (ip IntParameter) IsSet() bool {
-	return ip.set
-}
-
-func (ip *IntParameter) Set(value int) {
-	if value < ip.minInclusive || value > ip.maxInclusive {
-		panic(fmt.Errorf("invalid int parameter value %d is not in range [%d, %d]", value, ip.minInclusive, ip.maxInclusive))
+func (ip IntParameter) initializeForCLI(set *flag.FlagSet) {
+	if ip.CLI == nil {
+		return
 	}
-	ip.set = true
-	ip.setValue = value
+
+	ip.CLI.value = set.Int(
+		ip.CLI.FlagName,
+		ip.DefaultValue,
+		ip.CLI.Usage,
+	)
 }

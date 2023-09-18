@@ -40,3 +40,23 @@ func AddRGB(colors ...color.Color) color.Color {
 		A: uint8(255),
 	}
 }
+
+func RedEqual(c color.Color, val byte) bool {
+	r, _, _, _ := c.RGBA()
+	return byte(r>>8) == val
+}
+
+func GreenEqual(c color.Color, val byte) bool {
+	_, g, _, _ := c.RGBA()
+	return byte(g>>8) == val
+}
+
+func BlueEqual(c color.Color, val byte) bool {
+	_, _, b, _ := c.RGBA()
+	return byte(b>>8) == val
+}
+
+func AlphaEqual(c color.Color, val byte) bool {
+	_, _, _, a := c.RGBA()
+	return byte(a>>8) == val
+}

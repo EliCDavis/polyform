@@ -1,40 +1,66 @@
 package generator
 
 import (
-	"fmt"
-	"math/rand"
+	"encoding/json"
+	"flag"
 )
 
-func NewFloatParameter(min, max float64) FloatParameter {
-	return FloatParameter{
-		minInclusive: min,
-		maxInclusive: max,
-		set:          false,
-	}
+type FloatCliParameterConfig struct {
+	FlagName string
+	Usage    string
+	value    *float64
 }
 
 type FloatParameter struct {
-	minInclusive float64
-	maxInclusive float64
-	set          bool
-	setValue     float64
+	Name           string
+	DefaultValue   float64
+	appliedProfile *float64
+	CLI            *FloatCliParameterConfig
+}
+
+func (fp *FloatParameter) ApplyJsonMessage(msg json.RawMessage) error {
+	num := 0.
+	err := json.Unmarshal(msg, &num)
+	if err != nil {
+		return err
+	}
+	fp.appliedProfile = &num
+	return nil
+}
+
+func (fp FloatParameter) Schema() ParameterSchema {
+	return FloatParameterSchema{
+		ParameterSchemaBase: ParameterSchemaBase{
+			Name: fp.Name,
+			Type: "Float",
+		},
+		DefaultValue: fp.DefaultValue,
+	}
+}
+
+func (fp FloatParameter) DisplayName() string {
+	return fp.Name
 }
 
 func (fp FloatParameter) Value() float64 {
-	if fp.set {
-		return fp.setValue
+	if fp.appliedProfile != nil {
+		return *fp.appliedProfile
 	}
-	return fp.minInclusive + (rand.Float64() * (fp.maxInclusive - fp.minInclusive))
+
+	if fp.CLI != nil && fp.CLI.value != nil {
+		return *fp.CLI.value
+	}
+	return fp.DefaultValue
 }
 
-func (fp FloatParameter) IsSet() bool {
-	return fp.set
-}
-
-func (fp *FloatParameter) Set(value float64) {
-	if value < fp.minInclusive || value > fp.maxInclusive {
-		panic(fmt.Errorf("invalid float parameter value %f is not in range [%f, %f]", value, fp.minInclusive, fp.maxInclusive))
+func (fp FloatParameter) initializeForCLI(set *flag.FlagSet) {
+	if fp.CLI == nil {
+		return
 	}
-	fp.set = true
-	fp.setValue = value
+
+	fp.CLI.value = set.Float64(
+		fp.CLI.FlagName,
+		fp.DefaultValue,
+		fp.CLI.Usage,
+	)
 }
