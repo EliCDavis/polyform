@@ -1,18 +1,13 @@
 package generator
 
 import (
-	"encoding/json"
 	"flag"
-	"fmt"
 	"image"
 	"image/png"
 	"io"
-	"net/http"
 	"os"
 	"path"
 	"strings"
-
-	_ "embed"
 
 	"github.com/EliCDavis/polyform/formats/gltf"
 )
@@ -108,9 +103,6 @@ func (g Generator) run(outputPath string) error {
 	return nil
 }
 
-//go:embed server.html
-var indexData []byte
-
 func (g Generator) ApplyProfile(profile Profile) error {
 	for gen, profile := range profile.SubGenerators {
 		err := g.SubGenerators[gen].ApplyProfile(profile)
@@ -120,101 +112,6 @@ func (g Generator) ApplyProfile(profile Profile) error {
 	}
 
 	return g.Parameters.ApplyJsonMessage(profile.Parameters)
-}
-
-func (g Generator) Serve(port string) error {
-
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		// d, err := os.ReadFile("generator/server.html")
-		// if err != nil {
-		// 	panic(err)
-		// }
-		// w.Write(d)
-		w.Write(indexData)
-	})
-
-	http.HandleFunc("/schema", func(w http.ResponseWriter, r *http.Request) {
-		data, err := json.Marshal(g.Schema())
-		if err != nil {
-			panic(err)
-		}
-		w.Write(data)
-	})
-
-	http.HandleFunc("/profile", func(w http.ResponseWriter, r *http.Request) {
-		body, _ := io.ReadAll(r.Body)
-
-		profile := Profile{}
-		if err := json.Unmarshal(body, &profile); err != nil {
-			panic(err)
-		}
-		err := g.ApplyProfile(profile)
-		if err != nil {
-			panic(err)
-		}
-		w.Write([]byte("{}"))
-	})
-
-	http.HandleFunc("/producer/", func(w http.ResponseWriter, r *http.Request) {
-		// params, _ := url.ParseQuery(r.URL.RawQuery)
-
-		generatorToUse := g
-		components := strings.Split(r.URL.Path, "/")
-		for i := 2; i < len(components)-1; i++ {
-			newGen, ok := generatorToUse.SubGenerators[components[i]]
-			if !ok {
-				panic(fmt.Errorf("no sub generator exists: %s", components[i]))
-			}
-			generatorToUse = newGen
-		}
-
-		producerToLoad := path.Base(r.URL.Path)
-
-		producer, ok := generatorToUse.Producers[producerToLoad]
-		if !ok {
-			panic(fmt.Errorf("No producer registered for: %s", producerToLoad))
-		}
-		artifact, err := producer(&Context{
-			Parameters: generatorToUse.Parameters,
-		})
-		if err != nil {
-			panic(err)
-		}
-		artifact.Write(w)
-	})
-
-	fmt.Printf("Serving over: http://localhost:%s\n", port)
-	return http.ListenAndServe(fmt.Sprintf(":%s", port), nil)
-}
-
-func (g Generator) Run() error {
-
-	argsWithoutProg := os.Args[1:]
-
-	switch strings.ToLower(argsWithoutProg[0]) {
-	case "generate":
-		generateCmd := flag.NewFlagSet("generate", flag.ExitOnError)
-		g.initialize(generateCmd)
-		folderFlag := generateCmd.String("folder", ".", "folder to save generated contents to")
-		if err := generateCmd.Parse(os.Args[2:]); err != nil {
-			return err
-		}
-		return g.run(*folderFlag)
-
-	case "serve":
-		serveCmd := flag.NewFlagSet("serve", flag.ExitOnError)
-		g.initialize(serveCmd)
-		portFlag := serveCmd.String("port", "8080", "port to serve over")
-		if err := serveCmd.Parse(os.Args[2:]); err != nil {
-			return err
-		}
-		return g.Serve(*portFlag)
-
-	default:
-		fmt.Fprintf(os.Stdout, "unrecognized command %s", argsWithoutProg[0])
-	}
-
-	return nil
 }
 
 type Context struct {

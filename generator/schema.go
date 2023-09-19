@@ -39,8 +39,17 @@ type GroupParameterSchema struct {
 type FloatParameterSchema struct {
 	ParameterSchemaBase
 	DefaultValue float64 `json:"defaultValue"`
+	CurrentValue float64 `json:"currentValue"`
 }
+
 type IntParameterSchema struct {
 	ParameterSchemaBase
 	DefaultValue int `json:"defaultValue"`
+	CurrentValue int `json:"currentValue"`
+}
+
+type ColorParameterSchema struct {
+	ParameterSchemaBase
+	DefaultValue string `json:"defaultValue"`
+	CurrentValue string `json:"currentValue"`
 }

@@ -18,6 +18,10 @@ type FloatParameter struct {
 	CLI            *FloatCliParameterConfig
 }
 
+func (fp *FloatParameter) Reset() {
+	fp.appliedProfile = nil
+}
+
 func (fp *FloatParameter) ApplyJsonMessage(msg json.RawMessage) error {
 	num := 0.
 	err := json.Unmarshal(msg, &num)
@@ -35,6 +39,7 @@ func (fp FloatParameter) Schema() ParameterSchema {
 			Type: "Float",
 		},
 		DefaultValue: fp.DefaultValue,
+		CurrentValue: fp.Value(),
 	}
 }
 

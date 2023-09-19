@@ -55,10 +55,7 @@ func SpikeRing(spikes int, ringRadius, spikeHeight, spikeRadius float64, spikeSi
 	return repeat.Circle(cone, spikes, ringRadius)
 }
 
-func CollarAlbedoTexture() image.Image {
-	baseColor := color.RGBA{46, 46, 46, 255}
-	stitchColor := color.RGBA{10, 10, 10, 255}
-
+func CollarAlbedoTexture(baseColor, stitchColor color.RGBA) image.Image {
 	ctx := gg.NewContext(256, 256)
 	ctx.SetColor(baseColor)
 	ctx.DrawRectangle(0, 0, 256, 256)
@@ -102,121 +99,148 @@ func main() {
 	mrTex := "collar_mr.png"
 	collarAlbedo := "collar_albedo.png"
 
-	app := generator.Generator{
-		SubGenerators: map[string]generator.Generator{
-			"images": {
-				Producers: map[string]generator.Producer{
-					collarAlbedo: func(c *generator.Context) (generator.Artifact, error) {
-						return generator.ImageArtifact{Image: CollarAlbedoTexture()}, nil
-					},
-					mrTex: func(c *generator.Context) (generator.Artifact, error) {
-						return generator.ImageArtifact{Image: texture()}, nil
+	app := generator.App{
+		Name:        "Spiked Collar Demo",
+		Version:     "0.0.1",
+		Description: "Small demo that let's you edit a spiked collar",
+		Authors: []generator.Author{
+			{
+				Name: "Eli Davis",
+				ContactInfo: []generator.AuthorContact{
+					{
+						Medium: "twitter",
+						Value:  "@EliCDavis",
 					},
 				},
 			},
 		},
-		Parameters: &generator.GroupParameter{
-			Parameters: []generator.Parameter{
-				generator.GroupParameter{
-					Name: "Collar",
-					Parameters: []generator.Parameter{
-						&generator.FloatParameter{Name: "Radius", DefaultValue: 1},
-						&generator.FloatParameter{Name: "Height", DefaultValue: 0.2},
-						&generator.FloatParameter{Name: "Thickness", DefaultValue: 0.1},
-						&generator.IntParameter{Name: "Resolution", DefaultValue: 1},
+		Generator: generator.Generator{
+			SubGenerators: map[string]generator.Generator{
+				"images": {
+					Parameters: &generator.GroupParameter{
+						Name: "Colors",
+						Parameters: []generator.Parameter{
+							&generator.ColorParameter{Name: "Base Color", DefaultValue: color.RGBA{46, 46, 46, 255}},
+							&generator.ColorParameter{Name: "Stitch Color", DefaultValue: color.RGBA{10, 10, 10, 255}},
+						},
+					},
+					Producers: map[string]generator.Producer{
+						collarAlbedo: func(c *generator.Context) (generator.Artifact, error) {
+							return generator.ImageArtifact{
+								Image: CollarAlbedoTexture(c.Parameters.Color("Base Color"), c.Parameters.Color("Stitch Color")),
+							}, nil
+						},
+						mrTex: func(c *generator.Context) (generator.Artifact, error) {
+							return generator.ImageArtifact{Image: texture()}, nil
+						},
 					},
 				},
+			},
+			Parameters: &generator.GroupParameter{
+				Parameters: []generator.Parameter{
+					&generator.GroupParameter{
+						Name: "Collar",
+						Parameters: []generator.Parameter{
+							&generator.FloatParameter{Name: "Radius", DefaultValue: 1},
+							&generator.FloatParameter{Name: "Height", DefaultValue: 0.2},
+							&generator.FloatParameter{Name: "Thickness", DefaultValue: 0.1},
+							&generator.IntParameter{Name: "Resolution", DefaultValue: 30},
+						},
+					},
 
-				generator.GroupParameter{
-					Name: "Spike",
-					Parameters: []generator.Parameter{
-						&generator.IntParameter{
-							Name:         "Count",
-							DefaultValue: 20,
-							CLI: &generator.IntCliParameterConfig{
-								FlagName: "spikes",
-								Usage:    "Number of spikes the collar will contain",
+					&generator.GroupParameter{
+						Name: "Spike",
+						Parameters: []generator.Parameter{
+							&generator.IntParameter{
+								Name:         "Count",
+								DefaultValue: 20,
+								CLI: &generator.IntCliParameterConfig{
+									FlagName: "spikes",
+									Usage:    "Number of spikes the collar will contain",
+								},
 							},
-						},
 
-						&generator.FloatParameter{
-							Name:         "Height",
-							DefaultValue: 0.2,
+							&generator.FloatParameter{
+								Name:         "Height",
+								DefaultValue: 0.2,
+							},
+
+							&generator.ColorParameter{Name: "Base Color", DefaultValue: color.RGBA{244, 244, 244, 255}},
 						},
 					},
 				},
 			},
-		},
-		Producers: map[string]generator.Producer{
-			"collar.glb": func(c *generator.Context) (generator.Artifact, error) {
-				params := c.Parameters
+			Producers: map[string]generator.Producer{
+				"collar.glb": func(c *generator.Context) (generator.Artifact, error) {
+					params := c.Parameters
 
-				collarParams := params.Group("Collar")
-				collarRadius := collarParams.Float64("Radius")
-				collarHeight := collarParams.Float64("Height")
-				collarThickness := collarParams.Float64("Thickness")
+					collarParams := params.Group("Collar")
+					collarRadius := collarParams.Float64("Radius")
+					collarHeight := collarParams.Float64("Height")
+					collarThickness := collarParams.Float64("Thickness")
 
-				spikeParams := params.Group("Spike")
-				spikeCount := spikeParams.Int("Count")
-				spikeHeight := spikeParams.Float64("Height")
+					spikeParams := params.Group("Spike")
+					spikeCount := spikeParams.Int("Count")
+					spikeHeight := spikeParams.Float64("Height")
 
-				collarResolution := repeat.CirclePoints(30, collarRadius)
+					collarResolution := repeat.CirclePoints(collarParams.Int("Resolution"), collarRadius)
 
-				collarUVs := make([]vector2.Float64, 0)
-				collar := extrude.ClosedShape(SquarePoints(collarThickness, collarHeight), collarResolution).
-					Transform(
-						meshops.SmoothNormalsTransformer{},
-					).
-					ScanFloat3Attribute(modeling.PositionAttribute, func(i int, v vector3.Float64) {
-						xy := v.XZ().Normalized()
-						angle := math.Atan2(xy.Y(), xy.X()) * 4
-						height := (v.Y() + (collarHeight / 2)) / collarHeight
-						collarUVs = append(collarUVs, vector2.New(angle, height))
-					}).
-					SetFloat2Attribute(modeling.TexCoordAttribute, collarUVs)
+					collarUVs := make([]vector2.Float64, 0)
+					collar := extrude.ClosedShape(SquarePoints(collarThickness, collarHeight), collarResolution).
+						Transform(
+							meshops.SmoothNormalsTransformer{},
+						).
+						ScanFloat3Attribute(modeling.PositionAttribute, func(i int, v vector3.Float64) {
+							xy := v.XZ().Normalized()
+							angle := math.Atan2(xy.Y(), xy.X()) * 4
+							height := (v.Y() + (collarHeight / 2)) / collarHeight
+							collarUVs = append(collarUVs, vector2.New(angle, height))
+						}).
+						SetFloat2Attribute(modeling.TexCoordAttribute, collarUVs)
 
-				scene := gltf.PolyformScene{
-					Models: []gltf.PolyformModel{
-						{
-							Name: "Collar",
-							Mesh: collar,
-							Material: &gltf.PolyformMaterial{
+					scene := gltf.PolyformScene{
+						Models: []gltf.PolyformModel{
+							{
 								Name: "Collar",
-								PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
-									BaseColorTexture: &gltf.PolyformTexture{
-										URI: "images/" + collarAlbedo,
+								Mesh: collar,
+								Material: &gltf.PolyformMaterial{
+									Name: "Collar",
+									PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
+										BaseColorTexture: &gltf.PolyformTexture{
+											URI: "images/" + collarAlbedo,
+										},
 									},
 								},
 							},
-						},
-						{
-							Name: "Spikes",
-							Mesh: SpikeRing(
-								spikeCount,
-								collarRadius+(collarThickness/2.)-0.02, // -0.02 to set it in to the collar
-								spikeHeight,
-								0.05,
-								20,
-							).Transform(
-								meshops.SmoothNormalsTransformer{},
-							),
-							Material: &gltf.PolyformMaterial{
+							{
 								Name: "Spikes",
-								PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
-									BaseColorFactor: color.RGBA{220, 220, 200, 255},
-									MetallicFactor:  1,
-									MetallicRoughnessTexture: &gltf.PolyformTexture{
-										URI: "images/" + mrTex,
+								Mesh: SpikeRing(
+									spikeCount,
+									collarRadius+(collarThickness/2.)-0.02, // -0.02 to set it in to the collar
+									spikeHeight,
+									0.05,
+									20,
+								).Transform(
+									meshops.SmoothNormalsTransformer{},
+								),
+								Material: &gltf.PolyformMaterial{
+									Name: "Spikes",
+									PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
+										BaseColorFactor: spikeParams.Color("Base Color"),
+										MetallicFactor:  1,
+										MetallicRoughnessTexture: &gltf.PolyformTexture{
+											URI: "images/" + mrTex,
+										},
 									},
 								},
 							},
 						},
-					},
-				}
+					}
 
-				return generator.GltfArtifact{
-					Scene: scene,
-				}, nil
+					return generator.GltfArtifact{
+						Scene: scene,
+					}, nil
+				},
 			},
 		},
 	}

@@ -18,6 +18,10 @@ type IntParameter struct {
 	CLI            *IntCliParameterConfig
 }
 
+func (fp *IntParameter) Reset() {
+	fp.appliedProfile = nil
+}
+
 func (ip *IntParameter) ApplyJsonMessage(msg json.RawMessage) error {
 	num := 0
 	err := json.Unmarshal(msg, &num)
@@ -34,6 +38,7 @@ func (ip IntParameter) Schema() ParameterSchema {
 			Name: ip.Name,
 			Type: "Int",
 		},
+		CurrentValue: ip.Value(),
 		DefaultValue: ip.DefaultValue,
 	}
 }

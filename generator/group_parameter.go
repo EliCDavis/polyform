@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"image/color"
 )
 
 func findParam[T Parameter](params []Parameter, parameterName string) T {
@@ -22,6 +23,12 @@ func findParam[T Parameter](params []Parameter, parameterName string) T {
 type GroupParameter struct {
 	Name       string      `json:"name"`
 	Parameters []Parameter `json:"parameters"`
+}
+
+func (gp *GroupParameter) Reset() {
+	for _, p := range gp.Parameters {
+		p.Reset()
+	}
 }
 
 func (gp GroupParameter) ApplyJsonMessage(msg json.RawMessage) error {
@@ -79,8 +86,8 @@ func (gp GroupParameter) initializeForCLI(set *flag.FlagSet) {
 
 }
 
-func (gp GroupParameter) Group(parameterName string) GroupParameter {
-	return findParam[GroupParameter](gp.Parameters, parameterName)
+func (gp GroupParameter) Group(parameterName string) *GroupParameter {
+	return findParam[*GroupParameter](gp.Parameters, parameterName)
 }
 
 func (gp GroupParameter) Float64(parameterName string) float64 {
@@ -89,4 +96,8 @@ func (gp GroupParameter) Float64(parameterName string) float64 {
 
 func (gp GroupParameter) Int(parameterName string) int {
 	return findParam[*IntParameter](gp.Parameters, parameterName).Value()
+}
+
+func (gp GroupParameter) Color(parameterName string) color.RGBA {
+	return findParam[*ColorParameter](gp.Parameters, parameterName).Value()
 }
