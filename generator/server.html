@@ -61,24 +61,6 @@
             pointer-events: auto;
         }
 
-        /* 
-        .lil-gui {
-            z-index: 2 !important;
-            /* TODO Solve this in HTML */
-        }
-
-        */
-        /* @media all and (max-width: 640px) {
-            .lil-gui.root {
-                right: auto;
-                top: auto;
-                max-height: 50%;
-                max-width: 80%;
-                bottom: 0;
-                left: 0;
-            }
-        } */
-
         #overlay {
             position: absolute;
             font-size: 16px;
@@ -123,6 +105,8 @@
     </div>
 
     <script type="module">
+        let clientID = null;
+
 
         function fetch(theUrl, callback) {
             var xmlHttp = new XMLHttpRequest();
@@ -145,6 +129,7 @@
             xmlHttp.send(JSON.stringify(body));
         }
 
+
         // https://threejs.org/examples/?q=Directional#webgl_lights_hemisphere
         // https://threejs.org/examples/#webgl_geometry_spline_editor
 
@@ -156,23 +141,35 @@
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
         import Stats from 'three/addons/libs/stats.module.js';
         import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
+        import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+
 
         const viewportSettings = {
             renderWireframe: false,
+            fog: {
+                color: 0xa0a0a0,
+                near: 10,
+                far: 50,
+            },
+            background: 0xa0a0a0,
+            lighting: 0xffffff,
+            ground: 0xcbcbcb
         }
+
+        const clock = new THREE.Clock();
 
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         camera.position.set(0, 2, 3);
 
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0xa0a0a0);
-        scene.fog = new THREE.Fog(0xa0a0a0, 10, 50);
+        scene.background = new THREE.Color(viewportSettings.background);
+        scene.fog = new THREE.Fog(viewportSettings.fog.color, viewportSettings.fog.near, viewportSettings.fog.far);
 
-        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x8d8d8d, 3);
+        const hemiLight = new THREE.HemisphereLight(viewportSettings.lighting, 0x8d8d8d, 3);
         hemiLight.position.set(0, 20, 0);
         scene.add(hemiLight);
 
-        const dirLight = new THREE.DirectionalLight(0xffffff, 3);
+        const dirLight = new THREE.DirectionalLight(viewportSettings.lighting, 3);
         dirLight.position.set(3, 10, 10);
         dirLight.castShadow = true;
         dirLight.shadow.camera.top = 2;
@@ -185,16 +182,16 @@
 
         // ground
 
-        const mesh = new THREE.Mesh(new THREE.PlaneGeometry(100, 100), new THREE.MeshPhongMaterial({ color: 0xcbcbcb, depthWrite: false }));
-        mesh.rotation.x = - Math.PI / 2;
-        mesh.receiveShadow = true;
-        scene.add(mesh);
+        const groundMat = new THREE.MeshPhongMaterial({ color: viewportSettings.ground, depthWrite: false });
+        const groundMesh = new THREE.Mesh(new THREE.PlaneGeometry(100, 100), groundMat);
+        groundMesh.rotation.x = - Math.PI / 2;
+        groundMesh.receiveShadow = true;
+        scene.add(groundMesh);
 
         const panel = new GUI({ width: 310 });
 
         const updateProfile = () => {
             post("/profile", profile, () => {
-                console.log("woo")
                 RefreshProducerOutput();
             })
         }
@@ -233,21 +230,18 @@
                 switch (param.type.toLowerCase()) {
                     case "float":
                         folderToAddTo.add(folderSettings, param.name).listen().onChange((weight) => {
-                            console.log(profile);
                             updateProfile();
                         });
                         break;
 
                     case "int":
                         folderToAddTo.add(folderSettings, param.name).step(1).listen().onChange((weight) => {
-                            console.log(profile)
                             updateProfile();
                         });
                         break;
 
                     case "color":
                         folderToAddTo.addColor(folderSettings, param.name).listen().onChange((weight) => {
-                            console.log(profile)
                             updateProfile();
                         });
                         break;
@@ -316,6 +310,8 @@
                                     object.material.wireframe = viewportSettings.renderWireframe;
                                 }
                             });
+
+                            console.log(renderer.info)
                         });
                         break;
                 }
@@ -339,6 +335,52 @@
                 });
             });
 
+        viewportSettingsFolder
+            .addColor(viewportSettings, "background")
+            .name("Background")
+            .listen()
+            .onChange((weight) => {
+                scene.background = new THREE.Color(viewportSettings.background);
+            });
+
+        viewportSettingsFolder
+            .addColor(viewportSettings, "lighting")
+            .name("Lighting")
+            .listen()
+            .onChange((weight) => {
+                dirLight.color = new THREE.Color(viewportSettings.lighting);
+                hemiLight.color = new THREE.Color(viewportSettings.lighting);
+            });
+
+        viewportSettingsFolder
+            .addColor(viewportSettings, "ground")
+            .name("Ground")
+            .listen()
+            .onChange((weight) => {
+                groundMat.color = new THREE.Color(viewportSettings.ground);
+            });
+
+
+        const fogSettingsFolder = viewportSettingsFolder.addFolder("Fog");
+        fogSettingsFolder.close();
+        fogSettingsFolder.addColor(viewportSettings.fog, "color")
+            .listen()
+            .onChange((_) => {
+                scene.fog.color = new THREE.Color(viewportSettings.fog.color);
+            })
+
+        fogSettingsFolder.add(viewportSettings.fog, "near")
+            .listen()
+            .onChange((_) => {
+                scene.fog.near = viewportSettings.fog.near;
+            })
+
+        fogSettingsFolder.add(viewportSettings.fog, "far")
+            .listen()
+            .onChange((_) => {
+                scene.fog.far = viewportSettings.fog.far;
+            })
+
         let profile = {};
 
         fetch("/schema", (generatorSchema) => {
@@ -354,6 +396,13 @@
         // renderer.toneMapping = THREE.ACESFilmicToneMapping;
         // renderer.toneMappingExposure = 1;
         container.appendChild(renderer.domElement);
+
+        const labelRenderer = new CSS2DRenderer();
+        labelRenderer.setSize(window.innerWidth, window.innerHeight);
+        labelRenderer.domElement.style.position = 'absolute';
+        labelRenderer.domElement.style.top = '0px';
+        labelRenderer.domElement.style.pointerEvents = 'none';
+        container.appendChild(labelRenderer.domElement);
 
         const controls = new OrbitControls(camera, renderer.domElement);
         // controls.addEventListener('change', render); // use if there is no animation loop
@@ -372,18 +421,194 @@
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
+            labelRenderer.setSize(window.innerWidth, window.innerHeight);
         }
 
         window.addEventListener('resize', onWindowResize);
 
+        const connectedPlayers = {}
+
+        const playerGeometry = new THREE.SphereGeometry(1, 32, 16);
+        const playerMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+        const playerEyeMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
+
+        if (window["WebSocket"]) {
+            const conn = new WebSocket("ws://" + document.location.host + "/live");
+            conn.onclose = function (evt) {
+                console.log("connection closed", evt)
+            };
+            conn.onmessage = function (evt) {
+                const message = JSON.parse(evt.data);
+                // console.log("on message", message)
+
+                switch (message.type) {
+                    case "Server-SetClientID":
+                        clientID = message.data;
+                        break;
+
+                    case "Server-RoomStateUpdate":
+
+                        const playersUpdated = {}
+                        for (const [key, value] of Object.entries(connectedPlayers)) {
+                            playersUpdated[key] = false;
+                        }
+
+                        for (const [key, value] of Object.entries(message.data.Players)) {
+                            if (value == null) {
+                                continue;
+                            }
+
+                            // We don't want to create a representation of ourselves
+                            if (key == clientID) {
+                                continue;
+                            }
+
+                            playersUpdated[key] = true;
+
+                            if (key in connectedPlayers) {
+                                // Update the player we've already instantiated
+                                connectedPlayers[key].desiredPosition.x = value.position.x;
+                                connectedPlayers[key].desiredPosition.y = value.position.y;
+                                connectedPlayers[key].desiredPosition.z = value.position.z;
+
+                                connectedPlayers[key].desiredRotation.x = value.rotation.x;
+                                connectedPlayers[key].desiredRotation.y = value.rotation.y;
+                                connectedPlayers[key].desiredRotation.z = value.rotation.z;
+                                connectedPlayers[key].desiredRotation.w = value.rotation.w;
+                            } else {
+                                // Create a new Player!
+                                const newPlayer = new THREE.Group();
+
+                                const sphere = new THREE.Mesh(playerGeometry, playerMaterial);
+                                sphere.position.z += 0.5;
+                                newPlayer.add(sphere);
+
+
+                                const eyeSize = 0.15;
+                                const eyeSpacing = 0.3;
+
+                                const leftEye = new THREE.Mesh(playerGeometry, playerEyeMaterial);
+                                leftEye.scale.x = eyeSize;
+                                leftEye.scale.y = eyeSize;
+                                leftEye.scale.z = eyeSize;
+                                leftEye.position.x = eyeSpacing;
+                                leftEye.position.z = - 0.5;
+                                leftEye.position.y = + 0.25;
+                                newPlayer.add(leftEye);
+
+                                const rightEye = new THREE.Mesh(playerGeometry, playerEyeMaterial);
+                                rightEye.scale.x = eyeSize;
+                                rightEye.scale.y = eyeSize;
+                                rightEye.scale.z = eyeSize;
+                                rightEye.position.x = - eyeSpacing;
+                                rightEye.position.z = - 0.5;
+                                rightEye.position.y = + 0.25;
+                                newPlayer.add(rightEye);
+
+                                const text = document.createElement('div');
+                                text.className = 'label';
+                                text.style.color = '#000000';
+                                text.textContent = value.name;
+                                text.style.fontSize = "30px";
+
+                                const label = new CSS2DObject(text);
+                                label.position.y += 0.75;
+                                newPlayer.add(label);
+
+                                connectedPlayers[key] = {
+                                    obj: newPlayer,
+                                    desiredPosition: value.position,
+                                    desiredRotation: value.rotation,
+                                    label: label
+                                };
+
+                                newPlayer.position.x = value.position.x;
+                                newPlayer.position.y = value.position.y;
+                                newPlayer.position.z = value.position.z;
+                                scene.add(newPlayer);
+                            }
+                        }
+
+                        // Remove all players that weren't contained within the update
+                        for (const [playerID, updated] of Object.entries(playersUpdated)) {
+                            if (updated) {
+                                continue;
+                            }
+
+                            // We need to explicitly call remove on the label 
+                            // so it cleans up the DOM
+                            connectedPlayers[playerID].obj.remove(connectedPlayers[playerID].label);
+
+                            scene.remove(connectedPlayers[playerID].obj);
+                            delete connectedPlayers[playerID];
+                        }
+
+                        break;
+
+                    case "Server-RefreshGenerator":
+                        break;
+
+                    case "Server-Broadcast":
+                        break;
+                }
+
+            };
+
+            setInterval(() => {
+                // console.log(camera.position)
+                conn.send(JSON.stringify({
+                    "type": "Client-SetOrientation",
+                    "data": {
+                        "position": {
+                            "x": camera.position.x,
+                            "y": camera.position.y,
+                            "z": camera.position.z,
+                        },
+                        "rotation": {
+                            "x": camera.rotation.x,
+                            "y": camera.rotation.y,
+                            "z": camera.rotation.z,
+                            "w": camera.rotation.w,
+                        }
+                    }
+                }));
+            }, 300);
+        } else {
+            console.error("web browser does not support web sockets")
+        }
+
+
 
         function animate() {
+
+            const delta = clock.getDelta();
+
+            for (const [key, player] of Object.entries(connectedPlayers)) {
+                const pr = player.obj.rotation;
+                const dr = player.desiredRotation;
+
+                pr.x = pr.x + ((dr.x - pr.x) * delta * 2)
+                pr.y = pr.y + ((dr.y - pr.y) * delta * 2)
+                pr.z = pr.z + ((dr.z - pr.z) * delta * 2)
+                pr.w = pr.w + ((dr.w - pr.w) * delta * 2)
+
+
+                const pp = player.obj.position;
+                const dp = player.desiredPosition;
+
+                pp.x = pp.x + ((dp.x - pp.x) * delta * 2)
+                pp.y = pp.y + ((dp.y - pp.y) * delta * 2)
+                pp.z = pp.z + ((dp.z - pp.z) * delta * 2)
+            }
+
             requestAnimationFrame(animate);
             renderer.render(scene, camera);
+            labelRenderer.render(scene, camera);
 
             stats.update();
         }
         animate();
+
     </script>
 </body>
 

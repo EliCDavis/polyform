@@ -11,6 +11,8 @@ import (
 	"path"
 	"strings"
 
+	"github.com/EliCDavis/polyform/generator/room"
+
 	_ "embed"
 )
 
@@ -40,13 +42,14 @@ func (a App) Serve(port string) error {
 	}
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		// d, err := os.ReadFile("generator/server.html")
-		// if err != nil {
-		// 	panic(err)
-		// }
+		d, err := os.ReadFile("generator/server.html")
+		if err != nil {
+			panic(err)
+		}
 
 		t := template.New("")
-		_, err := t.Parse(string(indexData))
+		_, err = t.Parse(string(d))
+		// _, err := t.Parse(string(indexData))
 		if err != nil {
 			panic(err)
 		}
@@ -103,6 +106,13 @@ func (a App) Serve(port string) error {
 		}
 		artifact.Write(w)
 	})
+
+	hub := room.NewHub()
+	go hub.Run()
+
+	http.Handle("/live", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hub.ServeWs(w, r)
+	}))
 
 	fmt.Printf("Serving over: http://localhost:%s\n", port)
 	return http.ListenAndServe(fmt.Sprintf(":%s", port), nil)

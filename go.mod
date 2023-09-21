@@ -8,6 +8,8 @@ require (
 	github.com/stretchr/testify v1.8.4
 )
 
+require github.com/gorilla/websocket v1.5.0 // indirect
+
 require (
 	github.com/EliCDavis/bitlib v1.0.0
 	github.com/EliCDavis/iter v1.0.1
