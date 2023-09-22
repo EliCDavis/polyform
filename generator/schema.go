@@ -1,6 +1,10 @@
 package generator
 
-import "encoding/json"
+import (
+	"encoding/json"
+
+	"github.com/EliCDavis/polyform/drawing/coloring"
+)
 
 type Profile struct {
 	Parameters    json.RawMessage    `json:"parameters"`
@@ -50,6 +54,6 @@ type IntParameterSchema struct {
 
 type ColorParameterSchema struct {
 	ParameterSchemaBase
-	DefaultValue string `json:"defaultValue"`
-	CurrentValue string `json:"currentValue"`
+	DefaultValue coloring.WebColor `json:"defaultValue"`
+	CurrentValue coloring.WebColor `json:"currentValue"`
 }

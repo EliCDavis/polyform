@@ -50,7 +50,9 @@ type Player struct {
 }
 
 type RoomState struct {
-	Players map[string]*Player
+	Players      map[string]*Player
+	WebScene     *WebScene
+	ModelVersion int
 }
 
 type clientUpdate struct {
@@ -78,9 +80,11 @@ type Hub struct {
 	sceneUpdate chan time.Time
 
 	state RoomState
+
+	modelVersion *int
 }
 
-func NewHub() *Hub {
+func NewHub(webScene *WebScene, modelVersion *int) *Hub {
 	return &Hub{
 		broadcast:     make(chan []byte),
 		register:      make(chan *Client),
@@ -89,8 +93,10 @@ func NewHub() *Hub {
 		clientUpdates: make(chan clientUpdate),
 		sceneUpdate:   make(chan time.Time),
 		state: RoomState{
-			Players: map[string]*Player{},
+			Players:  map[string]*Player{},
+			WebScene: webScene,
 		},
+		modelVersion: modelVersion,
 	}
 }
 
@@ -146,14 +152,22 @@ func (h *Hub) Run() {
 			case ClientSetOrientationMessageType:
 				orientation, err := update.ClientSetOrientationData()
 				if err != nil {
-					panic(fmt.Errorf("unable to deseriale set orientation data: %w", err))
+					panic(fmt.Errorf("unable to set orientation data: %w", err))
 				}
 
 				h.state.Players[clientID].Position = orientation.Position
 				h.state.Players[clientID].Rotation = orientation.Rotation
+			case ClientSetSceneMessageType:
+				scene, err := update.ClientSetSceneData()
+				if err != nil {
+					panic(fmt.Errorf("unable to set scene data: %w", err))
+				}
+
+				h.state.WebScene = &scene
 			}
 
 		case <-h.sceneUpdate:
+			h.state.ModelVersion = *h.modelVersion
 			message, err := json.Marshal(h.state)
 			if err != nil {
 				panic(err)

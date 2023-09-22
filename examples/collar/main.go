@@ -5,6 +5,7 @@ import (
 	"image/color"
 	"math"
 
+	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/formats/gltf"
 	"github.com/EliCDavis/polyform/generator"
 	"github.com/EliCDavis/polyform/modeling"
@@ -120,8 +121,8 @@ func main() {
 					Parameters: &generator.GroupParameter{
 						Name: "Colors",
 						Parameters: []generator.Parameter{
-							&generator.ColorParameter{Name: "Base Color", DefaultValue: color.RGBA{46, 46, 46, 255}},
-							&generator.ColorParameter{Name: "Stitch Color", DefaultValue: color.RGBA{10, 10, 10, 255}},
+							&generator.ColorParameter{Name: "Base Color", DefaultValue: coloring.WebColor{46, 46, 46, 255}},
+							&generator.ColorParameter{Name: "Stitch Color", DefaultValue: coloring.WebColor{10, 10, 10, 255}},
 						},
 					},
 					Producers: map[string]generator.Producer{
@@ -165,7 +166,7 @@ func main() {
 								DefaultValue: 0.2,
 							},
 
-							&generator.ColorParameter{Name: "Base Color", DefaultValue: color.RGBA{244, 244, 244, 255}},
+							&generator.ColorParameter{Name: "Base Color", DefaultValue: coloring.WebColor{244, 244, 244, 255}},
 						},
 					},
 				},

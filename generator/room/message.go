@@ -19,6 +19,7 @@ const (
 	ClientSetDisplayNameMessageType MessageType = "Client-SetDisplayName"
 	ClientSetPointerMessageType     MessageType = "Client-SetPointer"
 	ClientRemovePointerMessageType  MessageType = "Client-RemovePointer"
+	ClientSetSceneMessageType       MessageType = "Client-SetScene"
 
 	ServerSetClientIDMessageType       MessageType = "Server-SetClientID"
 	ServerRoomStateUpdateMessageType   MessageType = "Server-RoomStateUpdate"
@@ -37,6 +38,12 @@ func (m Message) ClientSetDisplayNameData() string {
 
 func (m Message) ClientSetOrientationData() (ClientSetOrientationMessage, error) {
 	msg := ClientSetOrientationMessage{}
+	err := json.Unmarshal(m.Data, &msg)
+	return msg, err
+}
+
+func (m Message) ClientSetSceneData() (WebScene, error) {
+	msg := WebScene{}
 	err := json.Unmarshal(m.Data, &msg)
 	return msg, err
 }

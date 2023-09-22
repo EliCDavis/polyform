@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"image/color"
 	"strconv"
+
+	"github.com/EliCDavis/polyform/drawing/coloring"
 )
 
 type ColorCliParameterConfig struct {
@@ -16,8 +18,8 @@ type ColorCliParameterConfig struct {
 
 type ColorParameter struct {
 	Name           string
-	DefaultValue   color.RGBA
-	appliedProfile *color.RGBA
+	DefaultValue   coloring.WebColor
+	appliedProfile *coloring.WebColor
 	CLI            *ColorCliParameterConfig
 }
 
@@ -36,7 +38,7 @@ func (fp *ColorParameter) ApplyJsonMessage(msg json.RawMessage) error {
 	return nil
 }
 
-func rgbToHex(v color.RGBA) string {
+func rgbToHex(v coloring.WebColor) string {
 	return fmt.Sprintf(
 		"#%02x%02x%02x",
 		v.R,
@@ -45,11 +47,11 @@ func rgbToHex(v color.RGBA) string {
 	)
 }
 
-func hexToRGBA(hex string) color.RGBA {
+func hexToRGBA(hex string) coloring.WebColor {
 	r, _ := strconv.ParseInt(hex[1:3], 16, 64)
 	g, _ := strconv.ParseInt(hex[3:5], 16, 64)
 	b, _ := strconv.ParseInt(hex[5:7], 16, 64)
-	return color.RGBA{
+	return coloring.WebColor{
 		R: byte(r),
 		G: byte(g),
 		B: byte(b),
@@ -63,8 +65,8 @@ func (cp ColorParameter) Schema() ParameterSchema {
 			Name: cp.Name,
 			Type: "Color",
 		},
-		DefaultValue: rgbToHex(cp.DefaultValue),
-		CurrentValue: rgbToHex(cp.Value()),
+		DefaultValue: cp.DefaultValue,
+		CurrentValue: cp.WebValue(),
 	}
 }
 
@@ -72,15 +74,19 @@ func (fp ColorParameter) DisplayName() string {
 	return fp.Name
 }
 
-func (fp ColorParameter) Value() color.RGBA {
+func (fp ColorParameter) WebValue() coloring.WebColor {
 	if fp.appliedProfile != nil {
-		return *fp.appliedProfile
+		return (*fp.appliedProfile)
 	}
 
 	if fp.CLI != nil && fp.CLI.value != nil {
 		return hexToRGBA(*fp.CLI.value)
 	}
 	return fp.DefaultValue
+}
+
+func (fp ColorParameter) Value() color.RGBA {
+	return fp.WebValue().RGBA()
 }
 
 func (fp ColorParameter) initializeForCLI(set *flag.FlagSet) {

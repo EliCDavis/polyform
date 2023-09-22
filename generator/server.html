@@ -111,8 +111,10 @@
         function fetch(theUrl, callback) {
             var xmlHttp = new XMLHttpRequest();
             xmlHttp.onreadystatechange = function () {
-                if (xmlHttp.readyState == 4 && xmlHttp.status == 200)
+                if (xmlHttp.readyState == 4 && xmlHttp.status == 200) {
+                    console.log(xmlHttp.responseText)
                     callback(JSON.parse(xmlHttp.responseText));
+                }
             }
             xmlHttp.open("GET", theUrl, true); // true for asynchronous 
             xmlHttp.send(null);
@@ -144,16 +146,17 @@
         import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 
 
+        let viewportSettingsChanged = false;
         const viewportSettings = {
             renderWireframe: false,
             fog: {
-                color: 0xa0a0a0,
+                color: "0xa0a0a0",
                 near: 10,
                 far: 50,
             },
-            background: 0xa0a0a0,
-            lighting: 0xffffff,
-            ground: 0xcbcbcb
+            background: "0xa0a0a0",
+            lighting: "0xffffff",
+            ground: "0xcbcbcb"
         }
 
         const clock = new THREE.Clock();
@@ -196,10 +199,10 @@
             })
         }
 
+        const allMeshGUISettings = [];
         const parseGroupParameters = (folderToAddTo, groupParameters) => {
             const folderSettings = {};
 
-            console.log(groupParameters)
             groupParameters.parameters.forEach((param) => {
                 switch (param.type.toLowerCase()) {
                     case "group":
@@ -227,24 +230,28 @@
             })
 
             groupParameters.parameters.forEach((param) => {
+                let setting = null;
                 switch (param.type.toLowerCase()) {
                     case "float":
-                        folderToAddTo.add(folderSettings, param.name).listen().onChange((weight) => {
+                        setting = folderToAddTo.add(folderSettings, param.name).listen().onChange((weight) => {
                             updateProfile();
                         });
                         break;
 
                     case "int":
-                        folderToAddTo.add(folderSettings, param.name).step(1).listen().onChange((weight) => {
+                        setting = folderToAddTo.add(folderSettings, param.name).step(1).listen().onChange((weight) => {
                             updateProfile();
                         });
                         break;
 
                     case "color":
-                        folderToAddTo.addColor(folderSettings, param.name).listen().onChange((weight) => {
+                        setting = folderToAddTo.addColor(folderSettings, param.name).listen().onChange((weight) => {
                             updateProfile();
                         });
                         break;
+                }
+                if (setting != null) {
+                    allMeshGUISettings.push(setting);
                 }
             });
 
@@ -300,8 +307,14 @@
 
                             const aabb = new THREE.Box3();
                             aabb.setFromObject(gltf.scene);
+                            console.log(aabb)
                             const height = (aabb.max.y - aabb.min.y) / 2
-                            gltf.scene.position.set(0, height, 0)
+                            const mid = (aabb.max.y + aabb.min.y) / 2
+                            const y = gltf.scene.position.y;
+
+                            // We have to do this weird thing because the pivot of the scene
+                            // Isn't always the center of the AABB
+                            gltf.scene.position.set(0, y - (mid - y)+height, 0)
 
                             gltf.scene.traverse(function (object) {
                                 if (object.isMesh) {
@@ -311,7 +324,6 @@
                                 }
                             });
 
-                            console.log(renderer.info)
                         });
                         break;
                 }
@@ -320,66 +332,127 @@
         }
 
         const viewportSettingsFolder = panel.addFolder("Render Settings");
-        viewportSettingsFolder
-            .add(viewportSettings, "renderWireframe")
-            .name("Render Wireframe")
-            .listen()
-            .onChange((weight) => {
-                if (producerScene == null) {
-                    return;
+        const viewportManager = {}
+
+        const wireFrameUpdater = () => {
+            if (producerScene == null) {
+                return;
+            }
+            producerScene.traverse((object) => {
+                if (object.isMesh) {
+                    object.material.wireframe = viewportSettings.renderWireframe;
                 }
-                producerScene.traverse((object) => {
-                    if (object.isMesh) {
-                        object.material.wireframe = viewportSettings.renderWireframe;
-                    }
-                });
             });
+        }
+        viewportManager["renderWireframe"] = {
+            setting: viewportSettingsFolder
+                .add(viewportSettings, "renderWireframe")
+                .name("Render Wireframe")
+                .listen()
+                .onChange((weight) => {
+                    viewportSettingsChanged = true;
+                    wireFrameUpdater();
+                }),
+            updater: wireFrameUpdater
+        }
 
-        viewportSettingsFolder
-            .addColor(viewportSettings, "background")
-            .name("Background")
-            .listen()
-            .onChange((weight) => {
-                scene.background = new THREE.Color(viewportSettings.background);
-            });
+        const backgroundUpdater = () => {
+            scene.background = new THREE.Color(viewportSettings.background);
+        }
 
-        viewportSettingsFolder
-            .addColor(viewportSettings, "lighting")
-            .name("Lighting")
-            .listen()
-            .onChange((weight) => {
-                dirLight.color = new THREE.Color(viewportSettings.lighting);
-                hemiLight.color = new THREE.Color(viewportSettings.lighting);
-            });
+        viewportManager["background"] = {
+            setting: viewportSettingsFolder
+                .addColor(viewportSettings, "background")
+                .name("Background")
+                .listen()
+                .onChange((weight) => {
+                    viewportSettingsChanged = true;
+                    backgroundUpdater();
+                }),
+            updater: backgroundUpdater
+        }
 
-        viewportSettingsFolder
-            .addColor(viewportSettings, "ground")
-            .name("Ground")
-            .listen()
-            .onChange((weight) => {
-                groundMat.color = new THREE.Color(viewportSettings.ground);
-            });
 
+        const lightingUpdater = () => {
+            dirLight.color = new THREE.Color(viewportSettings.lighting);
+            hemiLight.color = new THREE.Color(viewportSettings.lighting);
+        }
+
+        viewportManager["lighting"] = {
+            setting: viewportSettingsFolder
+                .addColor(viewportSettings, "lighting")
+                .name("Lighting")
+                .listen()
+                .onChange((weight) => {
+                    viewportSettingsChanged = true;
+                    lightingUpdater();
+                }),
+            updater: lightingUpdater
+        }
+
+        const groundUpdater = () => {
+            groundMat.color = new THREE.Color(viewportSettings.ground);
+        }
+
+        viewportManager["ground"] = {
+            setting: viewportSettingsFolder
+                .addColor(viewportSettings, "ground")
+                .name("Ground")
+                .listen()
+                .onChange((weight) => {
+                    viewportSettingsChanged = true;
+                    groundUpdater();
+                }),
+            updater: groundUpdater
+        }
+
+        const fogSettingsManager = {}
 
         const fogSettingsFolder = viewportSettingsFolder.addFolder("Fog");
         fogSettingsFolder.close();
-        fogSettingsFolder.addColor(viewportSettings.fog, "color")
-            .listen()
-            .onChange((_) => {
-                scene.fog.color = new THREE.Color(viewportSettings.fog.color);
-            })
 
-        fogSettingsFolder.add(viewportSettings.fog, "near")
-            .listen()
-            .onChange((_) => {
-                scene.fog.near = viewportSettings.fog.near;
-            })
 
-        fogSettingsFolder.add(viewportSettings.fog, "far")
-            .listen()
-            .onChange((_) => {
-                scene.fog.far = viewportSettings.fog.far;
-            })
+        const fogColorUpdater = () => {
+            scene.fog.color = new THREE.Color(viewportSettings.fog.color);
+        }
+        fogSettingsManager["color"] = {
+            setting: fogSettingsFolder.addColor(viewportSettings.fog, "color")
+                .listen()
+                .onChange((_) => {
+                    viewportSettingsChanged = true;
+                    fogColorUpdater();
+                }),
+            updater: fogColorUpdater
+        }
+
+
+        const fogNearUpdater = () => {
+            scene.fog.near = viewportSettings.fog.near;
+        }
+        fogSettingsManager["near"] = {
+            setting: fogSettingsFolder.add(viewportSettings.fog, "near")
+                .listen()
+                .onChange((_) => {
+                    viewportSettingsChanged = true;
+                    fogNearUpdater();
+                }),
+            updater: fogNearUpdater
+        }
+
+
+        const fogFarUpdater = () => {
+            scene.fog.far = viewportSettings.fog.far;
+        }
+        fogSettingsManager["far"] = {
+            setting: fogSettingsFolder.add(viewportSettings.fog, "far")
+                .listen()
+                .onChange((_) => {
+                    viewportSettingsChanged = true;
+                    fogFarUpdater();
+                }),
+            updater: fogFarUpdater
+        }
+
 
         let profile = {};
 
@@ -388,6 +461,40 @@
             RefreshProducerOutput();
             profile = parseSchemaParameters(panel.addFolder("Mesh Generation"), generatorSchema)
         })
+
+        const updateProfileParametersWithNewSchema = (prof, newSchema) => {
+            newSchema.parameters.forEach(schemaParam => {
+
+                switch (schemaParam.type) {
+                    case "Group":
+                        updateProfileParametersWithNewSchema(prof[schemaParam.name], schemaParam)
+                        break;
+
+                    default:
+                        prof[schemaParam.name] = schemaParam.currentValue;
+                        break;
+                }
+            });
+        }
+
+        const updateProfileWithNewSchema = (prof, newSchema) => {
+            for (const [key, gen] of Object.entries(prof.subGenerators)) {
+                updateProfileWithNewSchema(gen, newSchema.subGenerators[key])
+            }
+            console.log(prof)
+            updateProfileParametersWithNewSchema(prof.Parameters, newSchema.parameters);
+        }
+
+        const featchandApplyLatestSchemaToControls = () => {
+            fetch("/schema", (generatorSchema) => {
+                schema = generatorSchema;
+                RefreshProducerOutput();
+                updateProfileWithNewSchema(profile, generatorSchema)
+                allMeshGUISettings.forEach(setting => {
+                    setting.updateDisplay();
+                });
+            })
+        }
 
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setPixelRatio(window.devicePixelRatio);
@@ -429,9 +536,10 @@
         const connectedPlayers = {}
 
         const playerGeometry = new THREE.SphereGeometry(1, 32, 16);
-        const playerMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+        const playerMaterial = new THREE.MeshPhongMaterial({ color: 0xffff00 });
         const playerEyeMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
 
+        let lastUpdatedModel = -1;
         if (window["WebSocket"]) {
             const conn = new WebSocket("ws://" + document.location.host + "/live");
             conn.onclose = function (evt) {
@@ -447,6 +555,33 @@
                         break;
 
                     case "Server-RoomStateUpdate":
+                        if (lastUpdatedModel !== message.data.ModelVersion) {
+                            lastUpdatedModel = message.data.ModelVersion;
+                            featchandApplyLatestSchemaToControls();
+                        }
+
+                        if (viewportSettingsChanged === false) {
+                            const webScene = message.data.WebScene;
+                            // console.log(webScene)
+
+                            for (const [setting, data] of Object.entries(viewportManager)) {
+                                if (viewportSettings[setting] !== webScene[setting]) {
+                                    viewportSettings[setting] = webScene[setting];
+                                    console.log(setting)
+                                    data.setting.updateDisplay();
+                                    data.updater();
+                                }
+                            }
+
+                            for (const [setting, data] of Object.entries(fogSettingsManager)) {
+                                if (viewportSettings.fog[setting] !== webScene.fog[setting]) {
+                                    viewportSettings.fog[setting] = webScene.fog[setting];
+                                    console.log(setting)
+                                    data.setting.updateDisplay();
+                                    data.updater();
+                                }
+                            }
+                        }
 
                         const playersUpdated = {}
                         for (const [key, value] of Object.entries(connectedPlayers)) {
@@ -572,7 +707,20 @@
                         }
                     }
                 }));
-            }, 300);
+            }, 200);
+
+            setInterval(() => {
+                if (viewportSettingsChanged === false) {
+                    return;
+                }
+                console.log("updating...")
+                viewportSettingsChanged = false;
+                // console.log(camera.position)
+                conn.send(JSON.stringify({
+                    "type": "Client-SetScene",
+                    "data": viewportSettings
+                }));
+            }, 200);
         } else {
             console.error("web browser does not support web sockets")
         }
@@ -608,6 +756,21 @@
             stats.update();
         }
         animate();
+
+
+
+        let initID = null
+        setInterval(() => {
+            fetch("/started", (payload) => {
+                if (initID === null) {
+                    initID = payload.time;
+                }
+
+                if (initID !== payload.time) {
+                    location.reload();
+                }
+            })
+        }, 2000);
 
     </script>
 </body>
