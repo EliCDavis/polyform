@@ -123,9 +123,12 @@ Progress towards V1...
   - [x] Cube
   - [x] Sphere
   - [x] Cylinder
+  - [x] Quad
+  - [x] Circle
   - [ ] Cone
   - [ ] Capsule
   - [ ] Hemisphere
+  - [ ] Rounded Cube
 - [ ] SDFs
   - [x] Box
   - [x] Line

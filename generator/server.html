@@ -144,7 +144,8 @@
         import Stats from 'three/addons/libs/stats.module.js';
         import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
         import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
-
+        // import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+        import { ProgressiveLightMap } from 'three/addons/misc/ProgressiveLightMap.js';
 
         let viewportSettingsChanged = false;
         const viewportSettings = {
@@ -159,14 +160,43 @@
             ground: "0xcbcbcb"
         }
 
+        const shadowMapRes = 512, lightMapRes = 1024, lightCount = 8;
+
         const clock = new THREE.Clock();
 
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         camera.position.set(0, 2, 3);
 
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(viewportSettings.background);
+        // scene.background = new THREE.Color(viewportSettings.background);
+
+        const textureLoader = new THREE.TextureLoader();
+        const textureEquirec = textureLoader.load('https://i.imgur.com/FFkjGWG_d.png?maxwidth=1520&fidelity=grand');
+        textureEquirec.mapping = THREE.EquirectangularReflectionMapping;
+        textureEquirec.colorSpace = THREE.SRGBColorSpace;
+
+        // scene.background = textureEquirec;
         scene.fog = new THREE.Fog(viewportSettings.fog.color, viewportSettings.fog.near, viewportSettings.fog.far);
+
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap; // default THREE.PCFShadowMap
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1;
+
+        container.appendChild(renderer.domElement);
+        // progressive lightmap
+        const progressiveSurfacemap = new ProgressiveLightMap(renderer, lightMapRes);
+
+        const labelRenderer = new CSS2DRenderer();
+        labelRenderer.setSize(window.innerWidth, window.innerHeight);
+        labelRenderer.domElement.style.position = 'absolute';
+        labelRenderer.domElement.style.top = '0px';
+        labelRenderer.domElement.style.pointerEvents = 'none';
+        container.appendChild(labelRenderer.domElement);
 
         const hemiLight = new THREE.HemisphereLight(viewportSettings.lighting, 0x8d8d8d, 3);
         hemiLight.position.set(0, 20, 0);
@@ -175,21 +205,25 @@
         const dirLight = new THREE.DirectionalLight(viewportSettings.lighting, 3);
         dirLight.position.set(3, 10, 10);
         dirLight.castShadow = true;
-        dirLight.shadow.camera.top = 2;
-        dirLight.shadow.camera.bottom = - 2;
-        dirLight.shadow.camera.left = - 2;
-        dirLight.shadow.camera.right = 2;
+        // dirLight.shadow.camera.top = 2;
+        // dirLight.shadow.camera.bottom = - 2;
+        // dirLight.shadow.camera.left = - 2;
+        // dirLight.shadow.camera.right = 2;
+        // dirLight.shadow.camera.far = 40;
         dirLight.shadow.camera.near = 0.1;
-        dirLight.shadow.camera.far = 40;
+        dirLight.shadow.mapSize.width = shadowMapRes;
+        dirLight.shadow.mapSize.height = shadowMapRes;
+        progressiveSurfacemap.addObjectsToLightMap([dirLight])
         scene.add(dirLight);
 
-        // ground
 
-        const groundMat = new THREE.MeshPhongMaterial({ color: viewportSettings.ground, depthWrite: false });
+        // ground
+        const groundMat = new THREE.MeshPhongMaterial({ color: viewportSettings.ground, depthWrite: true });
         const groundMesh = new THREE.Mesh(new THREE.PlaneGeometry(100, 100), groundMat);
         groundMesh.rotation.x = - Math.PI / 2;
         groundMesh.receiveShadow = true;
         scene.add(groundMesh);
+        progressiveSurfacemap.addObjectsToLightMap([groundMesh])
 
         const panel = new GUI({ width: 310 });
 
@@ -307,26 +341,56 @@
 
                             const aabb = new THREE.Box3();
                             aabb.setFromObject(gltf.scene);
-                            console.log(aabb)
                             const height = (aabb.max.y - aabb.min.y) / 2
                             const mid = (aabb.max.y + aabb.min.y) / 2
-                            const y = gltf.scene.position.y;
 
                             // We have to do this weird thing because the pivot of the scene
                             // Isn't always the center of the AABB
-                            gltf.scene.position.set(0, y - (mid - y)+height, 0)
+                            gltf.scene.position.set(0, - mid + height, 0)
+
+                            const objects = [];
 
                             gltf.scene.traverse(function (object) {
                                 if (object.isMesh) {
                                     object.castShadow = true;
                                     object.receiveShadow = true;
+
+                                    const prevMaterial = object.material;
+
+                                    if (object.material.userData && object.material.userData["threejs-material"] === "phong") {
+                                        object.material = new THREE.MeshPhongMaterial();
+
+                                    } else {
+                                        object.material = new THREE.MeshPhysicalMaterial();
+                                    }
+
+                                    // THREE.MeshBasicMaterial.prototype.copy.call( object.material, prevMaterial );
+
+                                    // Copying what I want...
+                                    object.material.color = prevMaterial.color;
+                                    object.materialroughness = prevMaterial.roughness;
+                                    object.materialroughnessMap = prevMaterial.roughnessMap;
+                                    object.materialmetalness = prevMaterial.metalness;
+                                    object.materialmetalnessMap = prevMaterial.metalnessMap;
+
                                     object.material.wireframe = viewportSettings.renderWireframe;
+                                    object.material.envMap = textureEquirec;
+                                    object.material.needsUpdate = true;
+
+                                    console.log(prevMaterial)
+                                    console.log(object.material)
+                                    objects.push(object)
                                 }
                             });
+
+                            progressiveSurfacemap.addObjectsToLightMap(objects);
+
 
                         });
                         break;
                 }
+
+
 
             });
         }
@@ -496,20 +560,11 @@
             })
         }
 
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setPixelRatio(window.devicePixelRatio);
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.shadowMap.enabled = true;
-        // renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        // renderer.toneMappingExposure = 1;
-        container.appendChild(renderer.domElement);
 
-        const labelRenderer = new CSS2DRenderer();
-        labelRenderer.setSize(window.innerWidth, window.innerHeight);
-        labelRenderer.domElement.style.position = 'absolute';
-        labelRenderer.domElement.style.top = '0px';
-        labelRenderer.domElement.style.pointerEvents = 'none';
-        container.appendChild(labelRenderer.domElement);
+
+        // const environment = new RoomEnvironment(renderer);
+        // const pmremGenerator = new THREE.PMREMGenerator(renderer);
+        // scene.environment = pmremGenerator.fromScene( environment ).texture;
 
         const controls = new OrbitControls(camera, renderer.domElement);
         // controls.addEventListener('change', render); // use if there is no animation loop

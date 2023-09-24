@@ -320,6 +320,9 @@ func (w *Writer) AddMaterial(mat PolyformMaterial) *int {
 	w.materials = append(w.materials, Material{
 		ChildOfRootProperty: ChildOfRootProperty{
 			Name: mat.Name,
+			Property: Property{
+				Extras: mat.Extras,
+			},
 		},
 		PbrMetallicRoughness: pbr,
 	})

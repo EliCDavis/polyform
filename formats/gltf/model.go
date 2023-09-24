@@ -24,6 +24,7 @@ type PolyformModel struct {
 
 type PolyformMaterial struct {
 	Name                 string
+	Extras               map[string]any
 	PbrMetallicRoughness *PolyformPbrMetallicRoughness
 }
 
