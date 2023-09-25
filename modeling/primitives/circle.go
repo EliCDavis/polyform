@@ -33,7 +33,7 @@ func (c Circle) ToMesh() modeling.Mesh {
 	}
 
 	topMiddleVert := c.Sides
-	vertices[topMiddleVert] = vector3.New(0, 0., 0)
+	vertices[topMiddleVert] = vector3.Zero[float64]()
 	normals[topMiddleVert] = vector3.New(0., 1., 0.)
 
 	tris := make([]int, 0, c.Sides*3)

@@ -26,7 +26,7 @@ func DefaultCubeUVs() *CubeUVs {
 	oneThird := 1. / 3.
 	return &CubeUVs{
 		Top: &StripUVs{
-			Start: vector2.New(0, 0.5),
+			Start: vector2.New(0., 0.5),
 			End:   vector2.New(0.25, 0.5),
 			Width: oneThird,
 		},
@@ -47,12 +47,12 @@ func DefaultCubeUVs() *CubeUVs {
 		},
 		Left: &StripUVs{
 			Start: vector2.New(0.375, oneThird*2),
-			End:   vector2.New(0.375, 1),
+			End:   vector2.New(0.375, 1.),
 			Width: 0.25,
 		},
 		Right: &StripUVs{
 			Start: vector2.New(0.375, oneThird),
-			End:   vector2.New(0.375, 0),
+			End:   vector2.New(0.375, 0.),
 			Width: 0.25,
 		},
 	}
@@ -98,6 +98,14 @@ type Cube struct {
 	Width  float64
 	Depth  float64
 	UVs    *CubeUVs
+}
+
+func UnitCube() modeling.Mesh {
+	return Cube{
+		Height: 1,
+		Width:  1,
+		Depth:  1,
+	}.Welded()
 }
 
 /*

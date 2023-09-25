@@ -137,7 +137,7 @@ func BenchmarkOctreeRay(b *testing.B) {
 	var r []int
 
 	mesh := primitives.UVSphere(1, 2, 3)
-	mesh = primitives.Cube()
+	mesh = primitives.UnitCube()
 	tree := mesh.OctTree()
 
 	ray := geometry.NewRay(vector3.New(-1.35, -1.5, -1.5), vector3.New(1., 1., 1.))

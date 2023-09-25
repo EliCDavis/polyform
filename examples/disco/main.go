@@ -193,7 +193,10 @@ func Chair(params generator.GroupParameter) modeling.Mesh {
 			vector3.New(0, chairHeight+halfBackHeight+(backSupportPegHeight/2), 0),
 		)).
 		Append(backSupport.Translate(
-			vector3.New(0, chairHeight+(halfBackHeight*0.7), halfLength-legRadiusAndInset),
+			vector3.New(0, chairHeight+(halfBackHeight*0.8), halfLength-legRadiusAndInset),
+		)).
+		Append(backSupport.Translate(
+			vector3.New(0, chairHeight+(halfBackHeight*0.55), halfLength-legRadiusAndInset),
 		))
 
 }
@@ -511,7 +514,7 @@ func main() {
 
 							&generator.FloatParameter{
 								Name:         "Height",
-								DefaultValue: 1.5,
+								DefaultValue: 1.6,
 							},
 
 							&generator.FloatParameter{

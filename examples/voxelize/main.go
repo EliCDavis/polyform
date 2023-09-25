@@ -61,7 +61,7 @@ func main() {
 			startMesh := time.Now()
 			voxelizedMesh := modeling.EmptyMesh(modeling.TriangleTopology)
 			for _, v := range voxels {
-				cube := primitives.Cube().
+				cube := primitives.UnitCube().
 					Scale(vector3.Fill(voxelSize)).
 					Translate(v)
 				voxelizedMesh = voxelizedMesh.Append(cube)

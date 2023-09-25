@@ -47,7 +47,11 @@ end_header
 3 5 7 3
 3 5 3 1
 `
-	cube := primitives.Cube()
+	cube := primitives.Cube{
+		Height: 1,
+		Width:  1,
+		Depth:  1,
+	}.Welded()
 
 	buf := bytes.Buffer{}
 	err := ply.WriteASCII(&buf, cube)

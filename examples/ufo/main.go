@@ -45,8 +45,8 @@ func contour(positions []vector3.Float64, times int) modeling.Mesh {
 
 func sideLights(numberOfLights int, radius float64) modeling.Mesh {
 	sides := 8
-	light := primitives.Cylinder(sides, 0.5, 0.5).
-		Append(primitives.Cylinder(sides, 0.25, 0.25).Transform(
+	light := primitives.Cylinder{Sides: sides, Height: 0.5, Radius: 0.5}.ToMesh().
+		Append(primitives.Cylinder{Sides: sides, Height: 0.25, Radius: 0.25}.ToMesh().Transform(
 			meshops.TranslateAttribute3DTransformer{
 				Amount: vector3.New(0., .35, 0.),
 			},
@@ -128,7 +128,11 @@ func UfoBody(outerRadius float64, portalRadius float64, frameSections int) model
 			vector3.New(thickness[5], path[5].Y(), 0),
 		}, frameSections)).
 		Append(primitives.
-			Cylinder(20, 1, outerRadius+1).
+			Cylinder{
+			Sides:  20,
+			Height: 1,
+			Radius: outerRadius + 1,
+		}.ToMesh().
 			Translate(vector3.New(0., 3.5, 0.))).
 		Append(extrude.ClosedCircleWithConstantThickness(8, .25, repeat.CirclePoints(frameSections, portalRadius)).
 			Translate(vector3.Up[float64]().Scale(0.5))).

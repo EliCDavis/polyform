@@ -33,7 +33,7 @@ func Chimney(funnelWidth, funnelHeight, taperHeight, shootWidth, shootHeight flo
 	for i := 0; i < rows; i++ {
 		pos := vector3.New(0, rowSpacing*float64(i)-halfTotalHeight+funnelHeight+taperHeight, 0)
 		allRows = allRows.
-			Append(primitives.Cylinder(20, 0.3, shootWidth+.3).Translate(pos))
+			Append(primitives.Cylinder{Sides: 20, Height: 0.3, Radius: shootWidth + .3}.ToMesh().Translate(pos))
 	}
 
 	widths := []float64{
@@ -45,22 +45,22 @@ func Chimney(funnelWidth, funnelHeight, taperHeight, shootWidth, shootHeight flo
 
 	return extrude.CircleWithThickness(20, widths, path).
 		Append(allRows).
-		Append(primitives.Cylinder(20, 0.3, funnelWidth+.3).
+		Append(primitives.Cylinder{Sides: 20, Height: 0.3, Radius: funnelWidth + .3}.ToMesh().
 			Translate(vector3.New(0, -halfTotalHeight+funnelHeight, 0)))
 }
 
 func Chasis(height, width float64) modeling.Mesh {
-	chasis := primitives.Cylinder(20, height, width)
+	chasis := primitives.Cylinder{Sides: 20, Height: height, Radius: width}.ToMesh()
 
 	rows := 4
 	rowSpacing := height / float64(rows+1)
 	for i := 1; i <= rows; i++ {
 		pos := vector3.New(0, rowSpacing*float64(i)-(height/2.), 0)
 		chasis = chasis.
-			Append(primitives.Cylinder(20, 0.5, width+.3).Translate(pos))
+			Append(primitives.Cylinder{Sides: 20, Height: 0.5, Radius: width + .3}.ToMesh().Translate(pos))
 	}
 
-	column := primitives.Cube().Scale(vector3.New(.2, height, .2))
+	column := primitives.UnitCube().Scale(vector3.New(.2, height, .2))
 	columns := repeat.Circle(column, 8, width)
 	chasis = chasis.Append(columns)
 
@@ -71,12 +71,12 @@ func Legs(height, width float64, numLegs int) modeling.Mesh {
 	columnHeight := 1.
 	legHeight := height - columnHeight
 
-	leg := primitives.Cube().
+	leg := primitives.UnitCube().
 		Scale(vector3.New(1, legHeight, 1)).
 		Translate(vector3.New(0, -(columnHeight / 2.), 0))
 
 	return primitives.
-		Cylinder(20, columnHeight, width).
+		Cylinder{Sides: 20, Height: columnHeight, Radius: width}.ToMesh().
 		Translate(vector3.New(0, (height/2.)-(columnHeight/2.), 0)).
 		Append(repeat.Circle(leg, numLegs, width-2.))
 }
@@ -84,7 +84,7 @@ func Legs(height, width float64, numLegs int) modeling.Mesh {
 func Floor(floorHeight, radius, walkWidth float64) modeling.Mesh {
 	numLegs := int(math.Round(2*math.Pi*radius) / 4)
 	legHeight := 2.
-	post := primitives.Cube().
+	post := primitives.UnitCube().
 		Scale(vector3.New(.1, legHeight, .1)).
 		Translate(vector3.New(0, legHeight/2., 0))
 
