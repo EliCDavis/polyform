@@ -245,8 +245,8 @@ func DiscoScene(c *generator.Context) (generator.Artifact, error) {
 					Radius: 0.5,
 				},
 				Side: &primitives.StripUVs{
-					Start: vector2.New(0.5, 0),
-					End:   vector2.New(0.5, 1),
+					Start: vector2.New(0.5, 0.),
+					End:   vector2.New(0.5, 1.),
 					Width: 0.5,
 				},
 			},
@@ -269,13 +269,13 @@ func DiscoScene(c *generator.Context) (generator.Artifact, error) {
 						Radius: 0.5,
 					},
 					Side: &primitives.StripUVs{
-						Start: vector2.New(0.5, 0),
-						End:   vector2.New(0.5, 1),
+						Start: vector2.New(0.5, 0.),
+						End:   vector2.New(0.5, 1.),
 						Width: 0.5,
 					},
 				},
 			}.ToMesh().
-				Translate(vector3.New(0, discoballRadius+ballParams.Float64("panel offset")+1.5, 0)),
+				Translate(vector3.New(0., discoballRadius+ballParams.Float64("panel offset")+1.5, 0.)),
 			).
 			Translate(discoBallHeight)
 
@@ -377,8 +377,8 @@ func DiscoScene(c *generator.Context) (generator.Artifact, error) {
 								Radius: 0.5,
 							},
 							Side: &primitives.StripUVs{
-								Start: vector2.New(0.5, 0),
-								End:   vector2.New(0.5, 1),
+								Start: vector2.New(0.5, 0.),
+								End:   vector2.New(0.5, 1.),
 								Width: 0.5,
 							},
 						},
@@ -399,8 +399,8 @@ func DiscoScene(c *generator.Context) (generator.Artifact, error) {
 									Radius: 0.5,
 								},
 								Side: &primitives.StripUVs{
-									Start: vector2.New(0.5, 0),
-									End:   vector2.New(0.5, 1),
+									Start: vector2.New(0.5, 0.),
+									End:   vector2.New(0.5, 1.),
 									Width: 0.5,
 								},
 							},
