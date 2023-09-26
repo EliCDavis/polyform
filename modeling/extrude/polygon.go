@@ -48,7 +48,6 @@ func polygon(sides int, points []ExtrusionPoint, closed bool) modeling.Mesh {
 
 	vertCount := sides + 1
 	vertices := make([]vector3.Float64, 0, len(points)*vertCount)
-	uvs := make([]vector2.Float64, 0, len(points)*vertCount)
 	normals := make([]vector3.Float64, 0, len(points)*vertCount)
 
 	circlePoints := make([]vector3.Float64, vertCount)
@@ -62,6 +61,8 @@ func polygon(sides int, points []ExtrusionPoint, closed bool) modeling.Mesh {
 	}
 
 	pointDirections := directionsOfExtrusionPoints(points)
+
+	float2Data := map[string][]vector2.Float64{}
 
 	// Vertices and normals ===================================================
 	for i, p := range points {
@@ -87,34 +88,46 @@ func polygon(sides int, points []ExtrusionPoint, closed bool) modeling.Mesh {
 	}
 
 	// UVs ====================================================================
-	for i, p := range points {
-
-		var dirA vector2.Float64
-		var dirB vector2.Float64
-
-		if i == 0 {
-			dirA = points[0].UvPoint
-			dirB = points[1].UvPoint
-		} else {
-			dirA = points[i-1].UvPoint
-			dirB = p.UvPoint
-		}
-
-		dir := dirB.Sub(dirA).Normalized()
-		perp := vector2.New(dir.Y(), -dir.X()).
-			Scale(p.UvThickness / 2.)
-
-		// log.Print(perp)
-		for sideIndex := 0; sideIndex < vertCount; sideIndex++ {
-			percentUsed := ((float64(sideIndex) / float64(sides)) * 2) - 1.
-			uvPoint := p.UvPoint.Add(perp.Scale(percentUsed))
-			// log.Print(percentUsed, uvPoint)
-			uvs = append(uvs, uvPoint)
+	validUVs := true
+	for _, p := range points {
+		if p.UV == nil {
+			validUVs = false
+			break
 		}
 	}
 
+	if validUVs {
+		uvs := make([]vector2.Float64, 0, len(points)*vertCount)
+		for i, p := range points {
+
+			var dirA vector2.Float64
+			var dirB vector2.Float64
+
+			if i == 0 {
+				dirA = points[0].UV.Point
+				dirB = points[1].UV.Point
+			} else {
+				dirA = points[i-1].UV.Point
+				dirB = p.UV.Point
+			}
+
+			dir := dirB.Sub(dirA).Normalized()
+			perp := vector2.New(dir.Y(), -dir.X()).
+				Scale(p.UV.Thickness / 2.)
+
+			// log.Print(perp)
+			for sideIndex := 0; sideIndex < vertCount; sideIndex++ {
+				percentUsed := ((float64(sideIndex) / float64(sides)) * 2) - 1.
+				uvPoint := p.UV.Point.Add(perp.Scale(percentUsed))
+				// log.Print(percentUsed, uvPoint)
+				uvs = append(uvs, uvPoint)
+			}
+		}
+		float2Data[modeling.TexCoordAttribute] = uvs
+	}
+
 	// Triangles ==============================================================
-	tris := make([]int, 0)
+	tris := make([]int, 0, sides*2*3)
 
 	for pathIndex := range points {
 		bottom := pathIndex * vertCount
@@ -152,9 +165,7 @@ func polygon(sides int, points []ExtrusionPoint, closed bool) modeling.Mesh {
 			modeling.PositionAttribute: vertices,
 			modeling.NormalAttribute:   normals,
 		}).
-		SetFloat2Data(map[string][]vector2.Float64{
-			modeling.TexCoordAttribute: uvs,
-		})
+		SetFloat2Data(float2Data)
 }
 
 func ClosedCircleWithConstantThickness(sides int, thickness float64, path []vector3.Float64) modeling.Mesh {

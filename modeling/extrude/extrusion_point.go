@@ -6,8 +6,12 @@ import (
 )
 
 type ExtrusionPoint struct {
-	Point       vector3.Float64
-	Thickness   float64
-	UvPoint     vector2.Float64
-	UvThickness float64
+	Point     vector3.Float64
+	Thickness float64
+	UV        *ExtrusionPointUV
+}
+
+type ExtrusionPointUV struct {
+	Point     vector2.Float64
+	Thickness float64
 }

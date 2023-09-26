@@ -13,16 +13,20 @@ import (
 func TestSimplePolygonSpike(t *testing.T) {
 	extrusionPoints := []extrude.ExtrusionPoint{
 		{
-			Point:       vector3.Zero[float64](),
-			Thickness:   1,
-			UvThickness: 1,
-			UvPoint:     vector2.New(0.5, 0.),
+			Point:     vector3.Zero[float64](),
+			Thickness: 1,
+			UV: &extrude.ExtrusionPointUV{
+				Thickness: 1,
+				Point:     vector2.New(0.5, 0.),
+			},
 		},
 		{
-			Point:       vector3.Up[float64](),
-			Thickness:   0,
-			UvThickness: 1,
-			UvPoint:     vector2.New(0.5, 1.),
+			Point:     vector3.Up[float64](),
+			Thickness: 0,
+			UV: &extrude.ExtrusionPointUV{
+				Thickness: 1,
+				Point:     vector2.New(0.5, 1.),
+			},
 		},
 	}
 	// ACT ====================================================================

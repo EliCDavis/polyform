@@ -32,10 +32,12 @@ func bevel(startWidth, startHeight, endWidth, endHeight, uvStart, uvEnd, uvThick
 		height := sinResult * float64(heightDelta)
 
 		points = append(points, extrude.ExtrusionPoint{
-			Point:       vector3.Up[float64]().Scale(height + startHeight),
-			Thickness:   (cosResult * widthDelta) + endWidth,
-			UvPoint:     vector2.New(0.5, uvStart+(uvDelta*sinResult)),
-			UvThickness: uvThickness,
+			Point:     vector3.Up[float64]().Scale(height + startHeight),
+			Thickness: (cosResult * widthDelta) + endWidth,
+			UV: &extrude.ExtrusionPointUV{
+				Point:     vector2.New(0.5, uvStart+(uvDelta*sinResult)),
+				Thickness: uvThickness,
+			},
 		})
 	}
 
@@ -56,28 +58,36 @@ func candleBody(height, width, rimWidth, percentUsed, wickWidth, wickHeight floa
 	points = append(
 		points,
 		extrude.ExtrusionPoint{
-			Point:       vector3.Up[float64]().Scale(heightToWax),
-			Thickness:   width - rimWidth,
-			UvThickness: 1,
-			UvPoint:     vector2.New(0.5, 0.9),
+			Point:     vector3.Up[float64]().Scale(heightToWax),
+			Thickness: width - rimWidth,
+			UV: &extrude.ExtrusionPointUV{
+				Thickness: 1,
+				Point:     vector2.New(0.5, 0.9),
+			},
 		},
 		extrude.ExtrusionPoint{
-			Point:       vector3.Up[float64]().Scale(heightToWax),
-			Thickness:   wickWidth,
-			UvThickness: 1,
-			UvPoint:     vector2.New(0.5, 0.95),
+			Point:     vector3.Up[float64]().Scale(heightToWax),
+			Thickness: wickWidth,
+			UV: &extrude.ExtrusionPointUV{
+				Thickness: 1,
+				Point:     vector2.New(0.5, 0.95),
+			},
 		},
 		extrude.ExtrusionPoint{
-			Point:       vector3.Up[float64]().Scale(heightToWax + wickHeight),
-			Thickness:   wickWidth,
-			UvThickness: 1,
-			UvPoint:     vector2.New(0.5, 0.975),
+			Point:     vector3.Up[float64]().Scale(heightToWax + wickHeight),
+			Thickness: wickWidth,
+			UV: &extrude.ExtrusionPointUV{
+				Thickness: 1,
+				Point:     vector2.New(0.5, 0.975),
+			},
 		},
 		extrude.ExtrusionPoint{
-			Point:       vector3.Up[float64]().Scale(heightToWax + wickHeight),
-			Thickness:   0,
-			UvThickness: 1,
-			UvPoint:     vector2.New(0.5, 1.0),
+			Point:     vector3.Up[float64]().Scale(heightToWax + wickHeight),
+			Thickness: 0,
+			UV: &extrude.ExtrusionPointUV{
+				Thickness: 1,
+				Point:     vector2.New(0.5, 1.0),
+			},
 		},
 	)
 

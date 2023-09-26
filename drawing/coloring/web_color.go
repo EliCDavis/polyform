@@ -6,6 +6,7 @@ import (
 	"strconv"
 )
 
+// Like color.RGBA but we can be serialized to JSON!
 type WebColor struct {
 	R byte
 	G byte
@@ -13,42 +14,54 @@ type WebColor struct {
 	A byte
 }
 
-func (v WebColor) MarshalJSON() ([]byte, error) {
+func (c WebColor) MarshalJSON() ([]byte, error) {
 	return []byte(fmt.Sprintf(
 		"\"#%02x%02x%02x\"",
-		v.R,
-		v.G,
-		v.B,
+		c.R,
+		c.G,
+		c.B,
 	)), nil
 }
 
-func (v WebColor) RGBA() color.RGBA {
+func (c WebColor) RGBA() (r, g, b, a uint32) {
+	r = uint32(c.R)
+	r |= r << 8
+	g = uint32(c.G)
+	g |= g << 8
+	b = uint32(c.B)
+	b |= b << 8
+	a = uint32(c.A)
+	a |= a << 8
+	return
+}
+
+func (c WebColor) RGBA8() color.RGBA {
 	return color.RGBA{
-		R: v.R,
-		G: v.G,
-		B: v.B,
-		A: v.A,
+		R: c.R,
+		G: c.G,
+		B: c.B,
+		A: c.A,
 	}
 }
 
-func (v *WebColor) UnmarshalJSON(data []byte) error {
+func (c *WebColor) UnmarshalJSON(data []byte) error {
 	hex := string(data)
-	r, err := strconv.ParseInt(hex[1:3], 16, 64)
+	r, err := strconv.ParseInt(hex[2:4], 16, 64)
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to parse r component of color '%s': %w", hex, err)
 	}
-	g, err := strconv.ParseInt(hex[3:5], 16, 64)
+	g, err := strconv.ParseInt(hex[4:6], 16, 64)
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to parse g component of color '%s': %w", hex, err)
 	}
-	b, err := strconv.ParseInt(hex[5:7], 16, 64)
+	b, err := strconv.ParseInt(hex[6:8], 16, 64)
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to parse b component of color '%s': %w", hex, err)
 	}
 
-	v.R = byte(r)
-	v.G = byte(g)
-	v.B = byte(b)
-	v.A = 255
+	c.R = byte(r)
+	c.G = byte(g)
+	c.B = byte(b)
+	c.A = 255
 	return nil
 }

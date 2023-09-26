@@ -27,10 +27,12 @@ func Cone(base float64, points ...vector3.Float64) modeling.Mesh {
 		}
 		size := (1. - (dist / length))
 		extrusionPoints[i] = extrude.ExtrusionPoint{
-			Point:       points[i],
-			Thickness:   (base * size),
-			UvThickness: size,
-			UvPoint:     vector2.New(0., size),
+			Point:     points[i],
+			Thickness: (base * size),
+			UV: &extrude.ExtrusionPointUV{
+				Point:     vector2.New(0., size),
+				Thickness: size,
+			},
 		}
 	}
 

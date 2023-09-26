@@ -53,14 +53,14 @@ func (a App) Serve(host, port string) error {
 	movelVersion := 0
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		d, err := os.ReadFile("generator/server.html")
-		if err != nil {
-			panic(err)
-		}
+		// d, err := os.ReadFile("generator/server.html")
+		// if err != nil {
+		// 	panic(err)
+		// }
 
 		t := template.New("")
-		_, err = t.Parse(string(d))
-		// _, err := t.Parse(string(indexData))
+		// _, err = t.Parse(string(d))
+		_, err := t.Parse(string(indexData))
 		if err != nil {
 			panic(err)
 		}

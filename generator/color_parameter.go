@@ -86,7 +86,7 @@ func (fp ColorParameter) WebValue() coloring.WebColor {
 }
 
 func (fp ColorParameter) Value() color.RGBA {
-	return fp.WebValue().RGBA()
+	return fp.WebValue().RGBA8()
 }
 
 func (fp ColorParameter) initializeForCLI(set *flag.FlagSet) {

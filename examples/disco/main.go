@@ -33,6 +33,14 @@ func texture(metal float64, roughness float64) image.Image {
 	return ctx.Image()
 }
 
+func Plate(params generator.GroupParameter) modeling.Mesh {
+	return primitives.Cylinder{
+		Sides:  params.Int("Resolution"),
+		Height: params.Float64("Thickness"),
+		Radius: params.Float64("Radius"),
+	}.ToMesh()
+}
+
 func Chair(params generator.GroupParameter) modeling.Mesh {
 
 	chairHeight := params.Float64("Height")
@@ -304,6 +312,13 @@ func DiscoScene(c *generator.Context) (generator.Artifact, error) {
 		tableParams.Float64("Radius")+chairParams.Float64("Table Spacing"),
 	)
 
+	plateParams := c.Parameters.Group("Plate")
+	plates := repeat.Circle(
+		Plate(*plateParams),
+		c.Parameters.Int("People"),
+		tableParams.Float64("Radius")-plateParams.Float64("Table Inset")-plateParams.Float64("Radius"),
+	)
+
 	return generator.GltfArtifact{
 		Scene: gltf.PolyformScene{
 			Models: []gltf.PolyformModel{
@@ -358,6 +373,22 @@ func DiscoScene(c *generator.Context) (generator.Artifact, error) {
 							MetallicFactor:  0,
 							RoughnessFactor: 1,
 							BaseColorFactor: cushionColor,
+						},
+					},
+				},
+				{
+					Name: "Plates",
+					Mesh: plates.Translate(vector3.New(
+						0.,
+						tableParams.Float64("Height")+
+							(tableParams.Float64("Thickness")/2)+
+							(plateParams.Float64("Thickness")/2),
+						0.,
+					)),
+					Material: &gltf.PolyformMaterial{
+						Name: "Plate Mat",
+						PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
+							BaseColorFactor: plateParams.Color("Color"),
 						},
 					},
 				},
@@ -498,6 +529,36 @@ func main() {
 									R: 0xd1,
 									G: 0xd1,
 									B: 0xd1,
+									A: 255,
+								},
+							},
+						},
+					},
+					&generator.GroupParameter{
+						Name: "Plate",
+						Parameters: []generator.Parameter{
+							&generator.FloatParameter{
+								Name:         "Radius",
+								DefaultValue: .5,
+							},
+							&generator.FloatParameter{
+								Name:         "Thickness",
+								DefaultValue: 0.03,
+							},
+							&generator.FloatParameter{
+								Name:         "Table Inset",
+								DefaultValue: .45,
+							},
+							&generator.IntParameter{
+								Name:         "Resolution",
+								DefaultValue: 30,
+							},
+							&generator.ColorParameter{
+								Name: "Color",
+								DefaultValue: coloring.WebColor{
+									R: 0x8a,
+									G: 0x8a,
+									B: 0x8a,
 									A: 255,
 								},
 							},

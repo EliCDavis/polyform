@@ -160,7 +160,7 @@
             ground: "0xcbcbcb"
         }
 
-        const shadowMapRes = 512, lightMapRes = 1024, lightCount = 8;
+        const shadowMapRes = 4098, lightMapRes = 4098, lightCount = 8;
 
         const clock = new THREE.Clock();
 
@@ -203,12 +203,12 @@
         scene.add(hemiLight);
 
         const dirLight = new THREE.DirectionalLight(viewportSettings.lighting, 3);
-        dirLight.position.set(3, 10, 10);
+        dirLight.position.set(100, 100, 100);
         dirLight.castShadow = true;
-        // dirLight.shadow.camera.top = 2;
-        // dirLight.shadow.camera.bottom = - 2;
-        // dirLight.shadow.camera.left = - 2;
-        // dirLight.shadow.camera.right = 2;
+        dirLight.shadow.camera.top = 100;
+        dirLight.shadow.camera.bottom = -100;
+        dirLight.shadow.camera.left = - 100;
+        dirLight.shadow.camera.right = 100;
         // dirLight.shadow.camera.far = 40;
         dirLight.shadow.camera.near = 0.1;
         dirLight.shadow.mapSize.width = shadowMapRes;
@@ -770,7 +770,7 @@
                 }
                 console.log("updating...")
                 viewportSettingsChanged = false;
-                // console.log(camera.position)
+                console.log(viewportSettings)
                 conn.send(JSON.stringify({
                     "type": "Client-SetScene",
                     "data": viewportSettings
