@@ -9,6 +9,7 @@ import (
 	"github.com/EliCDavis/polyform/formats/gltf"
 	"github.com/EliCDavis/polyform/generator"
 	"github.com/EliCDavis/polyform/modeling"
+	"github.com/EliCDavis/polyform/modeling/extrude"
 	"github.com/EliCDavis/polyform/modeling/meshops"
 	"github.com/EliCDavis/polyform/modeling/primitives"
 	"github.com/EliCDavis/polyform/modeling/repeat"
@@ -38,7 +39,56 @@ func Plate(params generator.GroupParameter) modeling.Mesh {
 		Sides:  params.Int("Resolution"),
 		Height: params.Float64("Thickness"),
 		Radius: params.Float64("Radius"),
+		UVs: &primitives.CylinderUVs{
+			Top: &primitives.CircleUVs{
+				Center: vector2.New(0.5, 0.5),
+				Radius: 0.5,
+			},
+			Bottom: &primitives.CircleUVs{
+				Center: vector2.New(0.5, 0.5),
+				Radius: 0.5,
+			},
+			Side: &primitives.StripUVs{
+				Start: vector2.New(0.5, 0.),
+				End:   vector2.New(0.5, 1.),
+				Width: 0.5,
+			},
+		},
 	}.ToMesh()
+}
+
+func Cup(params generator.GroupParameter) modeling.Mesh {
+
+	h := params.Float64("Thickness") * 30
+	lip := 0.1
+	radius := 1.
+
+	points := []extrude.ExtrusionPoint{
+		{
+			Point:     vector3.New(0., 0., 0.),
+			Thickness: 0,
+		},
+		{
+			Point:     vector3.New(0., 0.01, 0.),
+			Thickness: radius,
+		},
+		{
+			Point:     vector3.New(0., h, 0.),
+			Thickness: radius,
+		},
+		{
+			Point:     vector3.New(0., h+0.1, 0.),
+			Thickness: radius - lip,
+		},
+		{
+			Point:     vector3.New(0., h-0.2, 0.),
+			Thickness: radius - lip - lip,
+		},
+	}
+
+	return extrude.Polygon(params.Int("Resolution"), points).Transform(
+		meshops.SmoothNormalsTransformer{},
+	)
 }
 
 func Chair(params generator.GroupParameter) modeling.Mesh {
@@ -319,6 +369,12 @@ func DiscoScene(c *generator.Context) (generator.Artifact, error) {
 		tableParams.Float64("Radius")-plateParams.Float64("Table Inset")-plateParams.Float64("Radius"),
 	)
 
+	cups := repeat.Circle(
+		Cup(*plateParams),
+		c.Parameters.Int("People"),
+		tableParams.Float64("Radius")-plateParams.Float64("Table Inset")-plateParams.Float64("Radius"),
+	)
+
 	return generator.GltfArtifact{
 		Scene: gltf.PolyformScene{
 			Models: []gltf.PolyformModel{
@@ -327,15 +383,22 @@ func DiscoScene(c *generator.Context) (generator.Artifact, error) {
 					Mesh: discoball,
 					Material: &gltf.PolyformMaterial{
 						Name: "Disco Ball",
-						Extras: map[string]any{
-							"threejs-material": "phong",
-						},
+						// Extras: map[string]any{
+						// 	"threejs-material": "phong",
+						// },
 						PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
 							MetallicFactor:  1,
 							RoughnessFactor: 0,
 							BaseColorFactor: ballParams.Color("Color"),
 							MetallicRoughnessTexture: &gltf.PolyformTexture{
 								URI: "metal.png",
+							},
+						},
+						Extensions: []gltf.MaterialExtension{
+							&gltf.PolyformPbrSpecularGlossiness{
+								GlossinessFactor: 1,
+								DiffuseFactor:    ballParams.Color("Color"),
+								SpecularFactor:   color.RGBA{R: 255, G: 255, B: 255, A: 255},
 							},
 						},
 					},
@@ -390,6 +453,55 @@ func DiscoScene(c *generator.Context) (generator.Artifact, error) {
 						PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
 							BaseColorFactor: plateParams.Color("Color"),
 						},
+						// PbrSpecularGlossiness: &gltf.PolyformPbrSpecularGlossiness{
+						// 	GlossinessFactor: 1,
+						// 	DiffuseFactor:    color.RGBA{R: 0, G: 0, B: 0, A: 125},
+						// 	SpecularFactor:   color.RGBA{R: 0, G: 0, B: 0, A: 125},
+						// },
+						Extensions: []gltf.MaterialExtension{
+							&gltf.PolyformTransmission{
+								TransmissionFactor: .8,
+							},
+						},
+					},
+				},
+				{
+					Name: "Cups",
+					Mesh: cups.Translate(vector3.New(
+						0.,
+						tableParams.Float64("Height")+
+							(tableParams.Float64("Thickness")/2)+
+							(plateParams.Float64("Thickness")),
+						0.,
+					)),
+					Material: &gltf.PolyformMaterial{
+						Name: "Cup Mat",
+						PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
+							// BaseColorFactor: plateParams.Color("Color"),
+							BaseColorFactor: color.RGBA{
+								R: 200,
+								G: 200,
+								B: 200,
+								// A: 10,
+								A: 255,
+							},
+							RoughnessFactor: 1,
+							MetallicFactor:  1,
+						},
+						// Extensions: []gltf.MaterialExtension{
+						// 	&gltf.PolyformSpecular{
+						// 		SpecularFactor: 1,
+						// 	},
+						// 	&gltf.PolyformTransmission{
+						// 		TransmissionFactor: 0.8,
+						// 	},
+						// 	&gltf.PolyformVolume{
+						// 		ThicknessFactor: 0.1,
+						// 	},
+						// 	&gltf.PolyformIndexOfRefraction{
+						// 		IOR: 1.5,
+						// 	},
+						// },
 					},
 				},
 				{

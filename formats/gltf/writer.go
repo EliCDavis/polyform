@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/binary"
 	"encoding/json"
+	"image/color"
 	"io"
 	"math"
 
@@ -35,6 +36,8 @@ type Writer struct {
 	samplers     []Sampler
 	textureInfos []TextureInfo
 	scene        []int
+
+	extensions map[string]bool
 }
 
 func NewWriter() *Writer {
@@ -49,6 +52,8 @@ func NewWriter() *Writer {
 		materials:   make([]Material, 0),
 		skins:       make([]Skin, 0),
 		animations:  make([]Animation, 0),
+
+		extensions: make(map[string]bool),
 	}
 }
 
@@ -144,18 +149,28 @@ func (w *Writer) WriteVector3(accessorComponentType AccessorComponentType, data 
 	if accessorComponentType == AccessorComponentType_FLOAT {
 		for i := 0; i < data.Len(); i++ {
 			v := data.At(i)
+			w.WriteVector3AsFloat32(v)
+
+			// Don't contaminate min/max with NaNs
+			if v.ContainsNaN() {
+				continue
+			}
 			min = vector3.Min(min, v)
 			max = vector3.Max(max, v)
-			w.WriteVector3AsFloat32(v)
 		}
 	}
 
 	if accessorComponentType == AccessorComponentType_UNSIGNED_BYTE {
 		for i := 0; i < data.Len(); i++ {
 			v := data.At(i)
+			w.WriteVector3AsByte(v)
+
+			// Don't contaminate min/max with NaNs
+			if v.ContainsNaN() {
+				continue
+			}
 			min = vector3.Min(min, v)
 			max = vector3.Max(max, v)
-			w.WriteVector3AsByte(v)
 		}
 	}
 
@@ -191,18 +206,28 @@ func (w *Writer) WriteVector2(accessorComponentType AccessorComponentType, data 
 	if accessorComponentType == AccessorComponentType_FLOAT {
 		for i := 0; i < data.Len(); i++ {
 			v := data.At(i)
+			w.WriteVector2AsFloat32(v)
+
+			// Don't contaminate min/max with NaNs
+			if v.ContainsNaN() {
+				continue
+			}
 			min = vector2.Min(min, v)
 			max = vector2.Max(max, v)
-			w.WriteVector2AsFloat32(v)
 		}
 	}
 
 	if accessorComponentType == AccessorComponentType_UNSIGNED_BYTE {
 		for i := 0; i < data.Len(); i++ {
 			v := data.At(i)
+			w.WriteVector2AsByte(v)
+
+			// Don't contaminate min/max with NaNs
+			if v.ContainsNaN() {
+				continue
+			}
 			min = vector2.Min(min, v)
 			max = vector2.Max(max, v)
-			w.WriteVector2AsByte(v)
 		}
 	}
 
@@ -264,12 +289,46 @@ func (w *Writer) WriteIndices(indices iter.ArrayIterator[int], attributeSize int
 	w.bytesWritten += indiceSize
 }
 
-func (w *Writer) AddMaterial(mat PolyformMaterial) *int {
-	var pbr *PbrMetallicRoughness
+func rgbaToFloatArr(c color.Color) [4]float64 {
+	r, g, b, a := c.RGBA()
+	return [4]float64{
+		float64(r) / math.MaxUint16,
+		float64(g) / math.MaxUint16,
+		float64(b) / math.MaxUint16,
+		float64(a) / math.MaxUint16,
+	}
+}
 
-	pbr = &PbrMetallicRoughness{
+func rgbToFloatArr(c color.Color) [3]float64 {
+	r, g, b, _ := c.RGBA()
+	return [3]float64{
+		float64(r) / math.MaxUint16,
+		float64(g) / math.MaxUint16,
+		float64(b) / math.MaxUint16,
+	}
+}
+
+func (w *Writer) AddTexture(mat PolyformTexture) *TextureInfo {
+	newTex := &TextureInfo{Index: len(w.textures)}
+
+	w.textures = append(w.textures, Texture{
+		Sampler: ptrI(len(w.samplers)),
+		Source:  ptrI(len(w.images)),
+	})
+
+	w.images = append(w.images, Image{
+		URI: mat.URI,
+	})
+	w.samplers = append(w.samplers, Sampler{})
+	return newTex
+}
+
+func (w *Writer) AddMaterial(mat PolyformMaterial) *int {
+	var pbr *PbrMetallicRoughness = &PbrMetallicRoughness{
 		BaseColorFactor: &[4]float64{1, 1, 1, 1},
 	}
+
+	extensions := make(map[string]any)
 
 	if mat.PbrMetallicRoughness != nil {
 		polyPBR := mat.PbrMetallicRoughness
@@ -278,50 +337,31 @@ func (w *Writer) AddMaterial(mat PolyformMaterial) *int {
 		pbr.RoughnessFactor = polyPBR.RoughnessFactor
 
 		if polyPBR.BaseColorFactor != nil {
-			r, g, b, a := polyPBR.BaseColorFactor.RGBA()
-			// polyPBR.BaseColorFactor.
-			pbr.BaseColorFactor = &[4]float64{
-				float64(r) / math.MaxUint16,
-				float64(g) / math.MaxUint16,
-				float64(b) / math.MaxUint16,
-				float64(a) / math.MaxUint16,
-			}
+			factor := rgbaToFloatArr(polyPBR.BaseColorFactor)
+			pbr.BaseColorFactor = &factor
 		}
 
 		if polyPBR.BaseColorTexture != nil {
-			pbr.BaseColorTexture = &TextureInfo{Index: len(w.textures)}
-
-			w.textures = append(w.textures, Texture{
-				Sampler: ptrI(len(w.samplers)),
-				Source:  ptrI(len(w.images)),
-			})
-
-			w.images = append(w.images, Image{
-				URI: polyPBR.BaseColorTexture.URI,
-			})
-			w.samplers = append(w.samplers, Sampler{})
+			pbr.BaseColorTexture = w.AddTexture(*polyPBR.BaseColorTexture)
 		}
 
 		if polyPBR.MetallicRoughnessTexture != nil {
-			pbr.MetallicRoughnessTexture = &TextureInfo{Index: len(w.textures)}
-
-			w.textures = append(w.textures, Texture{
-				Sampler: ptrI(len(w.samplers)),
-				Source:  ptrI(len(w.images)),
-			})
-
-			w.images = append(w.images, Image{
-				URI: polyPBR.MetallicRoughnessTexture.URI,
-			})
-			w.samplers = append(w.samplers, Sampler{})
+			pbr.MetallicRoughnessTexture = w.AddTexture(*polyPBR.MetallicRoughnessTexture)
 		}
+	}
+
+	for _, ext := range mat.Extensions {
+		id := ext.ExtensionID()
+		extensions[id] = ext.ToExtensionData(w)
+		w.extensions[id] = true
 	}
 
 	w.materials = append(w.materials, Material{
 		ChildOfRootProperty: ChildOfRootProperty{
 			Name: mat.Name,
 			Property: Property{
-				Extras: mat.Extras,
+				Extras:     mat.Extras,
+				Extensions: extensions,
 			},
 		},
 		PbrMetallicRoughness: pbr,
@@ -538,6 +578,11 @@ func (w Writer) ToGLTF(embeddingStrategy BufferEmbeddingStrategy) Gltf {
 		buffer.URI = "data:application/octet-stream;base64," + base64.StdEncoding.EncodeToString(w.buf.Bytes())
 	}
 
+	exnesionsArr := make([]string, 0, len(w.extensions))
+	for ext := range w.extensions {
+		exnesionsArr = append(exnesionsArr, ext)
+	}
+
 	return Gltf{
 		Asset:       defaultAsset(),
 		Buffers:     []Buffer{buffer},
@@ -561,6 +606,8 @@ func (w Writer) ToGLTF(embeddingStrategy BufferEmbeddingStrategy) Gltf {
 		Textures:  w.textures,
 		Images:    w.images,
 		Samplers:  w.samplers,
+
+		ExtensionsUsed: exnesionsArr,
 	}
 }
 

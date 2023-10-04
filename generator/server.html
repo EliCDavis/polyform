@@ -54,6 +54,22 @@
             /* TODO Solve this in HTML */
         }
 
+        #watermark {
+            position: absolute;
+            right: 0px;
+            bottom: 0px;
+            padding: 10px;
+            box-sizing: border-box;
+            text-align: center;
+            -moz-user-select: none;
+            -webkit-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            pointer-events: none;
+            z-index: 1;
+            /* TODO Solve this in HTML */
+        }
+
         a,
         button,
         input,
@@ -101,7 +117,10 @@
     <div id="info">
         {{.Title}} - {{.Version}}<br />
         {{.Description}}
+    </div>
 
+    <div id="watermark">
+        <a href="https://github.com/EliCDavis/polyform">Polyform</a>
     </div>
 
     <script type="module">
@@ -130,6 +149,19 @@
             xmlHttp.open("POST", theUrl, true); // true for asynchronous 
             xmlHttp.send(JSON.stringify(body));
         }
+
+        let initID = null
+        setInterval(() => {
+            fetch("/started", (payload) => {
+                if (initID === null) {
+                    initID = payload.time;
+                }
+
+                if (initID !== payload.time) {
+                    location.reload();
+                }
+            })
+        }, 1000);
 
 
         // https://threejs.org/examples/?q=Directional#webgl_lights_hemisphere
@@ -320,6 +352,8 @@
 
         let schema = {}
 
+        let firstTimeLoadingScene = true;
+
         const loader = new GLTFLoader().setPath('producer/');
         let producerScene = null;
         const RefreshProducerOutput = () => {
@@ -341,12 +375,15 @@
 
                             const aabb = new THREE.Box3();
                             aabb.setFromObject(gltf.scene);
-                            const height = (aabb.max.y - aabb.min.y) / 2
+                            const aabbDepth = (aabb.max.z - aabb.min.z) 
+                            const aabbWidth = (aabb.max.x - aabb.min.x) 
+                            const aabbHeight = (aabb.max.y - aabb.min.y) 
+                            const aabbHalfHeight = aabbHeight / 2
                             const mid = (aabb.max.y + aabb.min.y) / 2
 
                             // We have to do this weird thing because the pivot of the scene
                             // Isn't always the center of the AABB
-                            gltf.scene.position.set(0, - mid + height, 0)
+                            gltf.scene.position.set(0, - mid + aabbHalfHeight, 0)
 
                             const objects = [];
 
@@ -357,34 +394,47 @@
 
                                     const prevMaterial = object.material;
 
-                                    if (object.material.userData && object.material.userData["threejs-material"] === "phong") {
-                                        object.material = new THREE.MeshPhongMaterial();
+                                    // if (object.material.userData && object.material.userData["threejs-material"] === "phong") {
+                                    //     object.material = new THREE.MeshPhongMaterial();
 
-                                    } else {
-                                        object.material = new THREE.MeshPhysicalMaterial();
-                                    }
+                                    // } else {
+                                    // object.material = new THREE.MeshPhysicalMaterial();
+                                    // }
 
                                     // THREE.MeshBasicMaterial.prototype.copy.call( object.material, prevMaterial );
 
-                                    // Copying what I want...
-                                    object.material.color = prevMaterial.color;
-                                    object.materialroughness = prevMaterial.roughness;
-                                    object.materialroughnessMap = prevMaterial.roughnessMap;
-                                    object.materialmetalness = prevMaterial.metalness;
-                                    object.materialmetalnessMap = prevMaterial.metalnessMap;
+                                    // // Copying what I want...
+                                    // object.material.color = prevMaterial.color;
+                                    // object.materialroughness = prevMaterial.roughness;
+                                    // object.materialroughnessMap = prevMaterial.roughnessMap;
+                                    // object.materialmetalness = prevMaterial.metalness;
+                                    // object.materialmetalnessMap = prevMaterial.metalnessMap;
 
                                     object.material.wireframe = viewportSettings.renderWireframe;
                                     object.material.envMap = textureEquirec;
                                     object.material.needsUpdate = true;
+                                    object.material.transparent = true;
 
                                     console.log(prevMaterial)
-                                    console.log(object.material)
                                     objects.push(object)
                                 }
                             });
 
                             progressiveSurfacemap.addObjectsToLightMap(objects);
 
+                            if (firstTimeLoadingScene) {
+                                firstTimeLoadingScene = false;
+
+                                camera.position.y = mid * (3 / 2);
+                                camera.position.z = Math.sqrt(
+                                    (aabbWidth*aabbWidth) +
+                                    (aabbDepth*aabbDepth) +
+                                    (aabbHeight*aabbHeight)
+                                ) / 2;
+
+                                controls.target.set(0, mid, 0);
+                                controls.update();
+                            }
 
                         });
                         break;
@@ -559,7 +609,6 @@
                 });
             })
         }
-
 
 
         // const environment = new RoomEnvironment(renderer);
@@ -781,7 +830,6 @@
         }
 
 
-
         function animate() {
 
             const delta = clock.getDelta();
@@ -811,21 +859,6 @@
             stats.update();
         }
         animate();
-
-
-
-        let initID = null
-        setInterval(() => {
-            fetch("/started", (payload) => {
-                if (initID === null) {
-                    initID = payload.time;
-                }
-
-                if (initID !== payload.time) {
-                    location.reload();
-                }
-            })
-        }, 2000);
 
     </script>
 </body>

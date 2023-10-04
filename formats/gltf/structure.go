@@ -4,10 +4,7 @@ type GltfId = int
 
 // JSON object with extension-specific objects.
 // https://github.com/KhronosGroup/glTF/blob/main/specification/2.0/schema/extension.schema.json
-type Extension struct {
-	Properties           map[string]any `json:"properties"`
-	AdditionalProperties map[string]any `json:"additionalProperties"`
-}
+type Extensions = map[string]any
 
 // Although `extras` **MAY** have any type, it is common for applications to
 // store and access custom data as key/value pairs. Therefore, `extras`
@@ -17,8 +14,8 @@ type Extra = map[string]any
 
 // https://github.com/KhronosGroup/glTF/blob/main/specification/2.0/schema/glTFProperty.schema.json
 type Property struct {
-	Extensions map[string]Extension `json:"extensions,omitempty"`
-	Extras     Extra                `json:"extras,omitempty"`
+	Extensions Extensions `json:"extensions,omitempty"`
+	Extras     Extra      `json:"extras,omitempty"`
 }
 
 // https://github.com/KhronosGroup/glTF/blob/main/specification/2.0/schema/glTFChildOfRootProperty.schema.json

@@ -210,7 +210,6 @@ func PutTogetherSegments(segments ...Segment) []gltf.PolyformModel {
 }
 
 func main() {
-
 	app := generator.App{
 		Name:        "Fired Heater",
 		Version:     "1.0.0",

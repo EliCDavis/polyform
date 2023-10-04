@@ -10,6 +10,17 @@ import (
 )
 
 func directionOfPoints(points []vector3.Float64) []vector3.Float64 {
+
+	if len(points) == 0 {
+		return nil
+	}
+
+	if len(points) == 1 {
+		return []vector3.Vector[float64]{
+			vector3.Up[float64](),
+		}
+	}
+
 	directions := make([]vector3.Float64, len(points))
 
 	for i, point := range points {
@@ -29,14 +40,6 @@ func directionOfPoints(points []vector3.Float64) []vector3.Float64 {
 	}
 
 	return directions
-}
-
-func directionsOfExtrusionPoints(points []ExtrusionPoint) []vector3.Float64 {
-	pointVec := make([]vector3.Float64, len(points))
-	for i, point := range points {
-		pointVec[i] = point.Point
-	}
-	return directionOfPoints(pointVec)
 }
 
 // TODO: Pretty sure this breaks for paths that have multiple points in the
