@@ -23,7 +23,7 @@ func pumpkinSegmentField(maxWidth, topDip float64) marching.Field {
 		},
 
 		{
-			Point:  vector3.New(0, 0.5, maxWidth),
+			Point:  vector3.New(0., 0.5, maxWidth),
 			Radius: 0.3,
 		},
 
@@ -41,7 +41,7 @@ func pumpkinSegmentField(maxWidth, topDip float64) marching.Field {
 func pumpkinStem(maxWidth, minWidth, length, tipOffset float64) marching.Field {
 	return marching.VarryingThicknessLine([]marching.LinePoint{
 		{
-			Point:  vector3.New(0., 0, 0.),
+			Point:  vector3.New(0., 0., 0.),
 			Radius: maxWidth,
 		},
 
