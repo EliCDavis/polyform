@@ -152,7 +152,7 @@ func TestWriteColorTri(t *testing.T) {
 
 	// ACT ====================================================================
 	err := gltf.WriteText(gltf.PolyformScene{
-		[]gltf.PolyformModel{
+		Models: []gltf.PolyformModel{
 			gltf.PolyformModel{
 				Name: "mesh",
 				Mesh: tri,
@@ -293,7 +293,7 @@ func TestWriteTexturedTriWithMaterialWithColor(t *testing.T) {
 
 	// ACT ====================================================================
 	err := gltf.WriteText(gltf.PolyformScene{
-		[]gltf.PolyformModel{
+		Models: []gltf.PolyformModel{
 			{
 				Name: "mesh",
 				Mesh: tri,

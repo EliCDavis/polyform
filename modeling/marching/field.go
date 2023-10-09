@@ -9,6 +9,7 @@ import (
 	"github.com/EliCDavis/polyform/math/sample"
 	"github.com/EliCDavis/polyform/math/sdf"
 	"github.com/EliCDavis/polyform/modeling"
+	"github.com/EliCDavis/polyform/trees"
 	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
 )
@@ -138,6 +139,7 @@ func CombineFields(fields ...Field) Field {
 	}
 
 	float1Aggregate := make(map[string][]sample.Vec3ToFloat)
+	float1Fields := make(map[string][]trees.Element)
 	float2Aggregate := make(map[string][]sample.Vec3ToVec2)
 	float3Aggregate := make(map[string][]sample.Vec3ToVec3)
 
@@ -148,8 +150,10 @@ func CombineFields(fields ...Field) Field {
 		for attribute, function := range otherF.Float1Functions {
 			if _, ok := float1Aggregate[attribute]; !ok {
 				float1Aggregate[attribute] = make([]sample.Vec3ToFloat, 0)
+				float1Fields[attribute] = make([]trees.Element, 0)
 			}
 			float1Aggregate[attribute] = append(float1Aggregate[attribute], function)
+			float1Fields[attribute] = append(float1Fields[attribute], trees.BoundingBoxElement(otherF.Domain))
 		}
 
 		for attribute, function := range otherF.Float2Functions {
@@ -169,7 +173,27 @@ func CombineFields(fields ...Field) Field {
 
 	float1Final := make(map[string]sample.Vec3ToFloat)
 	for attribute, functions := range float1Aggregate {
-		float1Final[attribute] = sdf.Union(functions...)
+
+		tree := trees.NewOctree(float1Fields[attribute])
+
+		float1Final[attribute] = func(f vector3.Float64) float64 {
+			elements := tree.ElementsContainingPoint(f)
+			if len(elements) == 0 {
+				return 10.
+			}
+
+			if len(elements) == 1 {
+				return functions[elements[0]](f)
+			}
+
+			min := functions[elements[0]](f)
+			for i := 1; i < len(elements); i++ {
+				min = math.Min(min, functions[elements[i]](f))
+			}
+			return min
+		}
+
+		// float1Final[attribute] = sdf.Union(functions...)
 	}
 
 	float2Final := make(map[string]sample.Vec3ToVec2)

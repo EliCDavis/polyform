@@ -150,11 +150,21 @@ func flattenSkeletonToNodes(offset int, skeleton animation.Skeleton, out *bytes.
 	return nodes
 }
 
-func WriteText(scene PolyformScene, out io.Writer) error {
+func writerFromScene(scene PolyformScene) *Writer {
 	writer := NewWriter()
 	for _, m := range scene.Models {
 		writer.AddMesh(m)
 	}
+
+	for _, l := range scene.Lights {
+		writer.AddLight(l)
+	}
+
+	return writer
+}
+
+func WriteText(scene PolyformScene, out io.Writer) error {
+	writer := writerFromScene(scene)
 
 	outline := writer.ToGLTF(BufferEmbeddingStrategy_Base64Encode)
 	bolB, err := json.MarshalIndent(outline, "", "    ")
@@ -167,10 +177,6 @@ func WriteText(scene PolyformScene, out io.Writer) error {
 }
 
 func WriteBinary(scene PolyformScene, out io.Writer) error {
-	writer := NewWriter()
-	for _, m := range scene.Models {
-		writer.AddMesh(m)
-	}
-
+	writer := writerFromScene(scene)
 	return writer.WriteGLB(out)
 }

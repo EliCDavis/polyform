@@ -9,6 +9,7 @@ import (
 
 type PolyformScene struct {
 	Models []PolyformModel
+	Lights []KHR_LightsPunctual
 }
 
 // PolyformModel is a utility structure for reading/writing to GLTF format within

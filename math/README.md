@@ -27,3 +27,7 @@ Curves builds off of the sample package. The one restriction it makes is that th
 ## Noise
 
 Different noise algorithms commonly used in procedural generation.
+
+## SDF
+
+SDF implementations of different geometry primitives, along with common math functions. Basically slowly picking through [Inigo Quilez's Distfunction](https://iquilezles.org/articles/distfunctions/) article as I need them in my different projects.

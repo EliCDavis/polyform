@@ -3,20 +3,7 @@ package rendering
 import (
 	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/trees"
-	"github.com/EliCDavis/vector/vector3"
 )
-
-type boxElement struct {
-	box geometry.AABB
-}
-
-func (be boxElement) BoundingBox() geometry.AABB {
-	return be.box
-}
-
-func (be boxElement) ClosestPoint(p vector3.Float64) vector3.Float64 {
-	return be.box.ClosestPoint(p)
-}
 
 type Tree struct {
 	tree  trees.Tree
@@ -26,7 +13,7 @@ type Tree struct {
 func NewBVH(items []Hittable, startTime, endTime float64) Tree {
 	boxElements := make([]trees.Element, len(items))
 	for i, h := range items {
-		boxElements[i] = boxElement{*h.BoundingBox(startTime, endTime)}
+		boxElements[i] = trees.BoundingBoxElement(*h.BoundingBox(startTime, endTime))
 	}
 	return Tree{
 		tree:  trees.NewOctree(boxElements),

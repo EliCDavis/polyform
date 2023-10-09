@@ -72,18 +72,12 @@ func MultiSegmentLine(linePoints []vector3.Float64, radius, strength float64) Fi
 	}
 }
 
-type LinePoint struct {
-	Point  vector3.Float64
-	Radius float64
-}
-
-func VarryingThicknessLine(linePoints []LinePoint, strength float64) Field {
+func VarryingThicknessLine(linePoints []sdf.LinePoint, strength float64) Field {
 	if len(linePoints) < 2 {
 		panic("can not create a line segment field with less than 2 points")
 	}
 
 	bounds := geometry.NewAABB(linePoints[0].Point, vector3.Zero[float64]())
-	sdfs := make([]sample.Vec3ToFloat, 0, len(linePoints)-1)
 	for i := 1; i < len(linePoints); i++ {
 		start := linePoints[i-1]
 		end := linePoints[i]
@@ -92,19 +86,12 @@ func VarryingThicknessLine(linePoints []LinePoint, strength float64) Field {
 		bounds.EncapsulateBounds(geometry.NewAABB(start.Point, boundsSize))
 		bounds.EncapsulateBounds(geometry.NewAABB(end.Point, boundsSize))
 
-		sdfs = append(sdfs, sdf.RoundedCone(start.Point, end.Point, start.Radius, end.Radius).Scale(strength))
 	}
 
 	return Field{
 		Domain: bounds,
 		Float1Functions: map[string]sample.Vec3ToFloat{
-			modeling.PositionAttribute: func(v vector3.Float64) float64 {
-				min := math.MaxFloat64
-				for _, sdf := range sdfs {
-					min = math.Min(min, sdf(v))
-				}
-				return min
-			},
+			modeling.PositionAttribute: sdf.VarryingThicknessLine(linePoints).Scale(strength),
 		},
 	}
 }

@@ -23,6 +23,7 @@ func sign(f float64) float64 {
 }
 
 // https://iquilezles.org/articles/distfunctions/
+// https://www.shadertoy.com/view/tdXGWr
 // Round Cone - exact
 func RoundedCone(a, b vector3.Float64, r1, r2 float64) sample.Vec3ToFloat {
 
@@ -30,7 +31,9 @@ func RoundedCone(a, b vector3.Float64, r1, r2 float64) sample.Vec3ToFloat {
 	ba := b.Sub(a)
 	l2 := ba.Dot(ba)
 	rr := r1 - r2
-	a2 := l2 - rr*rr
+	rrr := rr * rr
+	signRRR := sign(rr) * rrr
+	a2 := l2 - rrr
 	il2 := 1.0 / l2
 
 	return func(v vector3.Float64) float64 {
@@ -43,7 +46,7 @@ func RoundedCone(a, b vector3.Float64, r1, r2 float64) sample.Vec3ToFloat {
 		z2 := z * z * l2
 
 		// single square root!
-		k := sign(rr) * rr * rr * x2
+		k := signRRR * x2
 		if sign(z)*a2*z2 > k {
 			return math.Sqrt(x2+z2)*il2 - r2
 		}
@@ -52,5 +55,4 @@ func RoundedCone(a, b vector3.Float64, r1, r2 float64) sample.Vec3ToFloat {
 		}
 		return (math.Sqrt(x2*a2*il2)+y*rr)*il2 - r1
 	}
-
 }

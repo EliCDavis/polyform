@@ -46,9 +46,49 @@ func RedEqual(c color.Color, val byte) bool {
 	return byte(r>>8) == val
 }
 
+func RedGreaterThan(c color.Color, val byte) bool {
+	r, _, _, _ := c.RGBA()
+	return byte(r>>8) > val
+}
+
+func RedGreaterThanOrEqual(c color.Color, val byte) bool {
+	r, _, _, _ := c.RGBA()
+	return byte(r>>8) >= val
+}
+
+func RedLessThan(c color.Color, val byte) bool {
+	r, _, _, _ := c.RGBA()
+	return byte(r>>8) < val
+}
+
+func RedLessThanOrEqual(c color.Color, val byte) bool {
+	r, _, _, _ := c.RGBA()
+	return byte(r>>8) <= val
+}
+
 func GreenEqual(c color.Color, val byte) bool {
 	_, g, _, _ := c.RGBA()
 	return byte(g>>8) == val
+}
+
+func GreenGreaterThan(c color.Color, val byte) bool {
+	_, g, _, _ := c.RGBA()
+	return byte(g>>8) > val
+}
+
+func GreenGreaterThanOrEqual(c color.Color, val byte) bool {
+	_, g, _, _ := c.RGBA()
+	return byte(g>>8) >= val
+}
+
+func GreenLessThan(c color.Color, val byte) bool {
+	_, g, _, _ := c.RGBA()
+	return byte(g>>8) < val
+}
+
+func GreenLessThanOrEqual(c color.Color, val byte) bool {
+	_, g, _, _ := c.RGBA()
+	return byte(g>>8) <= val
 }
 
 func BlueEqual(c color.Color, val byte) bool {
@@ -56,7 +96,47 @@ func BlueEqual(c color.Color, val byte) bool {
 	return byte(b>>8) == val
 }
 
+func BlueGreaterThan(c color.Color, val byte) bool {
+	_, _, b, _ := c.RGBA()
+	return byte(b>>8) > val
+}
+
+func BlueGreaterThanOrEqual(c color.Color, val byte) bool {
+	_, _, b, _ := c.RGBA()
+	return byte(b>>8) >= val
+}
+
+func BlueLessThan(c color.Color, val byte) bool {
+	_, _, b, _ := c.RGBA()
+	return byte(b>>8) < val
+}
+
+func BlueLessThanOrEqual(c color.Color, val byte) bool {
+	_, _, b, _ := c.RGBA()
+	return byte(b>>8) <= val
+}
+
 func AlphaEqual(c color.Color, val byte) bool {
 	_, _, _, a := c.RGBA()
 	return byte(a>>8) == val
+}
+
+func AlphaGreaterThan(c color.Color, val byte) bool {
+	_, _, _, a := c.RGBA()
+	return byte(a>>8) > val
+}
+
+func AlphaGreaterThanOrEqual(c color.Color, val byte) bool {
+	_, _, _, a := c.RGBA()
+	return byte(a>>8) >= val
+}
+
+func AlphaLessThan(c color.Color, val byte) bool {
+	_, _, _, a := c.RGBA()
+	return byte(a>>8) < val
+}
+
+func AlphaLessThanOrEqual(c color.Color, val byte) bool {
+	_, _, _, a := c.RGBA()
+	return byte(a>>8) <= val
 }

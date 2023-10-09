@@ -32,15 +32,8 @@ import (
   "github.com/EliCDavis/vector"
 )
 
-func check(err error) {
-  if err != nil {
-    panic(err)
-  }
-}
-
 func main() {
-  loadedMesh, err := obj.Load("test-models/stanford-bunny.obj")
-  check(err)
+  loadedMesh, _ := obj.Load("test-models/stanford-bunny.obj")
 
   resolution := 10.
   canvas := marching.NewMarchingCanvas(resolution)
@@ -55,7 +48,8 @@ func main() {
     .1,
     10,
   ))
-  check(obj.Save("chunky-bunny.obj", canvas.MarchParallel(.3)))
+  
+  obj.Save("chunky-bunny.obj", canvas.MarchParallel(.3))
 }
 ```
 
@@ -79,7 +73,7 @@ Results in:
   - [curves](/math/curves/) - Common curves used in animation like cubic bezier curves.
   - [noise](/math/noise/) - Utilities around noise functions for common usecases like stacking multiple samples of perlin noise from different frequencies.
   - [sample](/math/sample/) - Serves as a group of definitions for defining a mapping from one numeric value to another
-  - [sdf](/math/sdf/) - SDF implementations of different geometry primitives, along with common math functions
+  - [sdf](/math/sdf/) - SDF implementations of different geometry primitives, along with common math functions. Basically slowly picking through [Inigo Quilez's Distfunction](https://iquilezles.org/articles/distfunctions/) article as I need them in my different projects.
 
 ## Procedural Generation Examples
 
@@ -160,7 +154,7 @@ Things I want to implement eventually...
 
 ## Resources
 
-Resources either directly contributing to the code here or are just interesting finds while researching.
+Resources either directly contributing to the code, or are just interesting finds while researching.
 
 - Noise
   - [Perlin Noise](https://gpfault.net/posts/perlin-noise.txt.html)
@@ -223,6 +217,7 @@ Resources either directly contributing to the code here or are just interesting 
   - [Coding Adventure: Marching Cubes By Sebastian Lague](https://www.youtube.com/watch?v=M3iI2l0ltbE)
   - [SDFs](https://iquilezles.org/articles/distfunctions/)
   - [Fast 2D SDF](https://stackoverflow.com/questions/68178747/fast-2d-signed-distance)
+  - [Got Subtraction from Here](https://www.ronja-tutorials.com/post/035-2d-sdf-combination/)
 - Collisions
   - [Closest point on Triangle](https://gdbooks.gitbooks.io/3dcollisions/content/Chapter4/closest_point_to_triangle.html)
 - Ray Tracing
@@ -238,3 +233,22 @@ Resources either directly contributing to the code here or are just interesting 
   - [Threejs on Color Management](https://threejs.org/docs/#manual/en/introduction/Color-management)
   - [Threejs Colorspace conversion](https://github.com/mrdoob/three.js/blob/e6f7c4e677cb8869502739da2640791d020d8d2f/src/math/ColorManagement.js#L5)
   - [Bartosz Ciechanowski on Color Spaces](https://ciechanow.ski/color-spaces/)
+- WFC
+  - ["The Wavefunction Collapse Algorithm explained very clearly" - Robert Heaton](https://robertheaton.com/2018/12/17/wavefunction-collapse-algorithm/)
+
+
+## Developing
+
+If you so happen to want to build a configurator example, my preferred workflow is:
+
+Set up the example to use the [`generator`](./generator/) package that allows you to quickly spin up a web viewer to visualize the geoemetry of your program.
+
+Use [air](https://github.com/cosmtrek/air) to live reload the examples as you build them out.
+Set `cmd = "go build -o ./tmp/main.exe ./examples/MY_EXAMPLE"`
+
+```bash
+air serve --port 8080
+```
+
+ As you hit save on your go code, the webserver will restart, and the web page will automatically refresh itself.
+

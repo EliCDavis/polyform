@@ -37,7 +37,10 @@ type Writer struct {
 	textureInfos []TextureInfo
 	scene        []int
 
-	extensions map[string]bool
+	// Extension Stuff
+	lights []KHR_LightsPunctual
+
+	extensionsUsed map[string]bool
 }
 
 func NewWriter() *Writer {
@@ -53,7 +56,10 @@ func NewWriter() *Writer {
 		skins:       make([]Skin, 0),
 		animations:  make([]Animation, 0),
 
-		extensions: make(map[string]bool),
+		// Extensions
+		lights: make([]KHR_LightsPunctual, 0),
+
+		extensionsUsed: make(map[string]bool),
 	}
 }
 
@@ -353,7 +359,7 @@ func (w *Writer) AddMaterial(mat PolyformMaterial) *int {
 	for _, ext := range mat.Extensions {
 		id := ext.ExtensionID()
 		extensions[id] = ext.ToExtensionData(w)
-		w.extensions[id] = true
+		w.extensionsUsed[id] = true
 	}
 
 	w.materials = append(w.materials, Material{
@@ -501,6 +507,34 @@ func (w *Writer) AddAnimations(animations []animation.Sequence, skeleton animati
 	}
 }
 
+func (w *Writer) AddLight(light KHR_LightsPunctual) {
+	nodeIndex := len(w.nodes)
+	w.scene = append(w.scene, nodeIndex)
+
+	lightIndex := len(w.lights)
+	w.lights = append(w.lights, light)
+
+	var translation = [3]float64{
+		light.Position.X(),
+		light.Position.Y(),
+		light.Position.Z(),
+	}
+
+	w.nodes = append(w.nodes, Node{
+		ChildOfRootProperty: ChildOfRootProperty{
+			Property: Property{
+				Extensions: map[string]any{
+					"KHR_lights_punctual": map[string]any{
+						"light": lightIndex,
+					},
+				},
+			},
+		},
+		Translation: &translation,
+	})
+	w.extensionsUsed["KHR_lights_punctual"] = true
+}
+
 func (w *Writer) AddMesh(model PolyformModel) {
 	primitiveAttributes := make(map[string]int)
 
@@ -578,9 +612,22 @@ func (w Writer) ToGLTF(embeddingStrategy BufferEmbeddingStrategy) Gltf {
 		buffer.URI = "data:application/octet-stream;base64," + base64.StdEncoding.EncodeToString(w.buf.Bytes())
 	}
 
-	exnesionsArr := make([]string, 0, len(w.extensions))
-	for ext := range w.extensions {
+	exnesionsArr := make([]string, 0, len(w.extensionsUsed))
+	for ext := range w.extensionsUsed {
 		exnesionsArr = append(exnesionsArr, ext)
+	}
+
+	extensions := make(map[string]any)
+	if len(w.lights) > 0 {
+		arr := make([]map[string]any, 0)
+
+		for _, l := range w.lights {
+			arr = append(arr, l.ToExtension())
+		}
+
+		extensions["KHR_lights_punctual"] = map[string]any{
+			"lights": arr,
+		}
 	}
 
 	return Gltf{
@@ -608,6 +655,9 @@ func (w Writer) ToGLTF(embeddingStrategy BufferEmbeddingStrategy) Gltf {
 		Samplers:  w.samplers,
 
 		ExtensionsUsed: exnesionsArr,
+		Property: Property{
+			Extensions: extensions,
+		},
 	}
 }
 
