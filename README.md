@@ -166,6 +166,7 @@ Resources either directly contributing to the code, or are just interesting find
   - [Worley/Cellular Noise](https://thebookofshaders.com/12/)
   - [Book of Shaders on Noise](https://thebookofshaders.com/11/)
   - [Simplex Noise](https://en.wikipedia.org/wiki/Simplex_noise)
+  - [_Stable Fiddusion: Frequency-domain blue noise generator_ by Steven Wittens](https://acko.net/blog/stable-fiddusion/)
 - Triangulation
   - Delaunay
     - Bowyer–Watson

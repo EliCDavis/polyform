@@ -24,6 +24,11 @@ func removedUnreferenced[T any](used []bool, attributes []string, retriever func
 				finalAtrVals = append(finalAtrVals, data.At(i))
 			}
 		}
+
+		if len(finalAtrVals) == 0 {
+			continue
+		}
+
 		finalData[attribute] = finalAtrVals
 	}
 	return finalData

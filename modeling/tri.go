@@ -114,60 +114,60 @@ func (t Tri) P3() int {
 	return t.mesh.indices[t.startingIndex+2]
 }
 
-func (t Tri) P1Vec3Attr(atr string) vector3.Float64 {
-	return t.mesh.v3Data[atr][t.P1()]
+func (t Tri) P1Vec3Attr(attr string) vector3.Float64 {
+	return t.mesh.v3Data[attr][t.P1()]
 }
 
-func (t Tri) P2Vec3Attr(atr string) vector3.Float64 {
-	return t.mesh.v3Data[atr][t.P2()]
+func (t Tri) P2Vec3Attr(attr string) vector3.Float64 {
+	return t.mesh.v3Data[attr][t.P2()]
 }
 
-func (t Tri) P3Vec3Attr(atr string) vector3.Float64 {
-	return t.mesh.v3Data[atr][t.P3()]
+func (t Tri) P3Vec3Attr(attr string) vector3.Float64 {
+	return t.mesh.v3Data[attr][t.P3()]
 }
 
-func (t Tri) P1Vec2Attr(atr string) vector2.Float64 {
-	return t.mesh.v2Data[atr][t.P1()]
+func (t Tri) P1Vec2Attr(attr string) vector2.Float64 {
+	return t.mesh.v2Data[attr][t.P1()]
 }
 
-func (t Tri) P2Vec2Attr(atr string) vector2.Float64 {
-	return t.mesh.v2Data[atr][t.P2()]
+func (t Tri) P2Vec2Attr(attr string) vector2.Float64 {
+	return t.mesh.v2Data[attr][t.P2()]
 }
 
-func (t Tri) P3Vec2Attr(atr string) vector2.Float64 {
-	return t.mesh.v2Data[atr][t.P3()]
+func (t Tri) P3Vec2Attr(attr string) vector2.Float64 {
+	return t.mesh.v2Data[attr][t.P3()]
 }
 
-func (t Tri) P1Vec1Attr(atr string) float64 {
-	return t.mesh.v1Data[atr][t.P1()]
+func (t Tri) P1Vec1Attr(attr string) float64 {
+	return t.mesh.v1Data[attr][t.P1()]
 }
 
-func (t Tri) P2Vec1Attr(atr string) float64 {
-	return t.mesh.v1Data[atr][t.P2()]
+func (t Tri) P2Vec1Attr(attr string) float64 {
+	return t.mesh.v1Data[attr][t.P2()]
 }
 
-func (t Tri) P3Vec1Attr(atr string) float64 {
-	return t.mesh.v1Data[atr][t.P3()]
+func (t Tri) P3Vec1Attr(attr string) float64 {
+	return t.mesh.v1Data[attr][t.P3()]
 }
 
-func (t Tri) L1(atr string) geometry.Line3D {
+func (t Tri) L1(attr string) geometry.Line3D {
 	return geometry.NewLine3D(
-		t.P1Vec3Attr(atr),
-		t.P2Vec3Attr(atr),
+		t.P1Vec3Attr(attr),
+		t.P2Vec3Attr(attr),
 	)
 }
 
-func (t Tri) L2(atr string) geometry.Line3D {
+func (t Tri) L2(attr string) geometry.Line3D {
 	return geometry.NewLine3D(
-		t.P2Vec3Attr(atr),
-		t.P3Vec3Attr(atr),
+		t.P2Vec3Attr(attr),
+		t.P3Vec3Attr(attr),
 	)
 }
 
-func (t Tri) L3(atr string) geometry.Line3D {
+func (t Tri) L3(attr string) geometry.Line3D {
 	return geometry.NewLine3D(
-		t.P3Vec3Attr(atr),
-		t.P1Vec3Attr(atr),
+		t.P3Vec3Attr(attr),
+		t.P1Vec3Attr(attr),
 	)
 }
 
@@ -291,16 +291,16 @@ func (t Tri) LineIntersects(line geometry.Line3D) (vector3.Float64, bool) {
 	return vector3.Zero[float64](), false
 }
 
-func (t Tri) ClosestPoint(atr string, p vector3.Float64) vector3.Float64 {
-	closestPoint := t.Plane(atr).ClosestPoint(p)
+func (t Tri) ClosestPoint(attr string, p vector3.Float64) vector3.Float64 {
+	closestPoint := t.Plane(attr).ClosestPoint(p)
 
 	if t.PointInSide(closestPoint) {
 		return closestPoint
 	}
 
-	AB := geometry.NewLine3D(t.P1Vec3Attr(atr), t.P2Vec3Attr(atr))
-	BC := geometry.NewLine3D(t.P2Vec3Attr(atr), t.P3Vec3Attr(atr))
-	CA := geometry.NewLine3D(t.P3Vec3Attr(atr), t.P1Vec3Attr(atr))
+	AB := geometry.NewLine3D(t.P1Vec3Attr(attr), t.P2Vec3Attr(attr))
+	BC := geometry.NewLine3D(t.P2Vec3Attr(attr), t.P3Vec3Attr(attr))
+	CA := geometry.NewLine3D(t.P3Vec3Attr(attr), t.P1Vec3Attr(attr))
 
 	c1 := AB.ClosestPointOnLine(closestPoint)
 	c2 := BC.ClosestPointOnLine(closestPoint)
@@ -321,16 +321,24 @@ func (t Tri) ClosestPoint(atr string, p vector3.Float64) vector3.Float64 {
 	return c3
 }
 
-func (t Tri) BoundingBox(atr string) geometry.AABB {
-	aabb := geometry.NewAABB(t.P1Vec3Attr(atr), vector3.Zero[float64]())
-	aabb.EncapsulatePoint(t.P2Vec3Attr(atr))
-	aabb.EncapsulatePoint(t.P3Vec3Attr(atr))
+func (t Tri) BoundingBox(attr string) geometry.AABB {
+	aabb := geometry.NewAABB(t.P1Vec3Attr(attr), vector3.Zero[float64]())
+	aabb.EncapsulatePoint(t.P2Vec3Attr(attr))
+	aabb.EncapsulatePoint(t.P3Vec3Attr(attr))
 	return aabb
 }
 
-func (t Tri) Scope(atr string) trees.Element {
+func (t Tri) Area3D(attr string) float64 {
+	p1 := t.P1Vec3Attr(attr)
+	p2 := t.P2Vec3Attr(attr)
+	p3 := t.P3Vec3Attr(attr)
+
+	return p2.Sub(p1).Cross(p3.Sub(p1)).Length() / 2
+}
+
+func (t Tri) Scope(attr string) trees.Element {
 	return &scopedTri{
-		data: t.mesh.v3Data[atr],
+		data: t.mesh.v3Data[attr],
 		p1:   t.mesh.indices[t.startingIndex],
 		p2:   t.mesh.indices[t.startingIndex+1],
 		p3:   t.mesh.indices[t.startingIndex+2],
