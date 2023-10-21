@@ -1,20 +1,20 @@
 package generator
 
 import (
+	"embed"
 	"encoding/json"
 	"flag"
 	"fmt"
-	"html/template"
 	"io"
 	"net/http"
 	"os"
 	"path"
 	"strings"
+	"sync"
+	"text/template"
 	"time"
 
 	"github.com/EliCDavis/polyform/generator/room"
-
-	_ "embed"
 )
 
 type App struct {
@@ -23,27 +23,25 @@ type App struct {
 	Description string
 	WebScene    *room.WebScene
 	Authors     []Author
-	Generator   Generator
+	Generator   *Generator
 }
 
 type pageData struct {
 	Title       string
 	Version     string
 	Description string
+	Scripting   string
 }
 
-//go:embed server.html
-var indexData []byte
+//go:embed html/*
+var htmlFs embed.FS
 
 func (a App) Serve(host, port string) error {
 
-	serverStarted := time.Now()
+	producerCache := make(map[*Generator]map[string]Artifact)
+	producerLock := &sync.Mutex{}
 
-	pageToServe := pageData{
-		Title:       a.Name,
-		Version:     a.Version,
-		Description: a.Description,
-	}
+	serverStarted := time.Now()
 
 	webscene := a.WebScene
 	if webscene == nil {
@@ -52,7 +50,25 @@ func (a App) Serve(host, port string) error {
 
 	movelVersion := 0
 
+	htmlData, err := htmlFs.ReadFile("html/server.html")
+	if err != nil {
+		return err
+	}
+
+	javascriptData, err := htmlFs.ReadFile("html/index.js")
+	if err != nil {
+		return err
+	}
+
+	pageToServe := pageData{
+		Title:       a.Name,
+		Version:     a.Version,
+		Description: a.Description,
+		Scripting:   " <script type=\"module\">" + string(javascriptData) + "</script>",
+	}
+
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+
 		// d, err := os.ReadFile("generator/server.html")
 		// if err != nil {
 		// 	panic(err)
@@ -60,7 +76,7 @@ func (a App) Serve(host, port string) error {
 
 		t := template.New("")
 		// _, err = t.Parse(string(d))
-		_, err := t.Parse(string(indexData))
+		_, err := t.Parse(string(htmlData))
 		if err != nil {
 			panic(err)
 		}
@@ -90,21 +106,31 @@ func (a App) Serve(host, port string) error {
 	})
 
 	http.HandleFunc("/profile", func(w http.ResponseWriter, r *http.Request) {
+		producerLock.Lock()
+		defer producerLock.Unlock()
+
 		body, _ := io.ReadAll(r.Body)
 
 		profile := Profile{}
 		if err := json.Unmarshal(body, &profile); err != nil {
 			panic(err)
 		}
-		err := a.Generator.ApplyProfile(profile)
+		generatorsEffected, err := a.Generator.ApplyProfile(profile)
 		if err != nil {
 			panic(err)
 		}
+
+		for _, g := range generatorsEffected {
+			producerCache[g] = make(map[string]Artifact)
+		}
+
 		movelVersion++
 		w.Write([]byte("{}"))
 	})
 
 	http.HandleFunc("/producer/", func(w http.ResponseWriter, r *http.Request) {
+		producerLock.Lock()
+		defer producerLock.Unlock()
 		// params, _ := url.ParseQuery(r.URL.RawQuery)
 
 		generatorToUse := a.Generator
@@ -123,13 +149,28 @@ func (a App) Serve(host, port string) error {
 		if !ok {
 			panic(fmt.Errorf("no producer registered for: %s", producerToLoad))
 		}
+
+		if _, ok := producerCache[generatorToUse]; !ok {
+			producerCache[generatorToUse] = make(map[string]Artifact)
+		}
+
+		if artifact, ok := producerCache[generatorToUse][producerToLoad]; ok && artifact != nil {
+			artifact.Write(w)
+			return
+		}
+
 		artifact, err := producer(&Context{
 			Parameters: generatorToUse.Parameters,
 		})
 		if err != nil {
 			panic(err)
 		}
-		artifact.Write(w)
+		err = artifact.Write(w)
+		if err != nil {
+			panic(err)
+		}
+
+		producerCache[generatorToUse][producerToLoad] = artifact
 	})
 
 	hub := room.NewHub(webscene, &movelVersion)

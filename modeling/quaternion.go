@@ -33,6 +33,14 @@ func (q Quaternion) Rotate(v vector3.Float64) vector3.Float64 {
 		Add(q.v.Cross(v).Scale(2.0 * q.w))
 }
 
+func (q Quaternion) RotateArray(arr []vector3.Float64) []vector3.Float64 {
+	results := make([]vector3.Float64, len(arr))
+	for i, v := range arr {
+		results[i] = q.Rotate(v)
+	}
+	return results
+}
+
 // UnitQuaternionFromTheta takes a vector and angle and builds a unit
 // quaternion in the form (cos(theta/2.0), sin(theta/2.0))
 //

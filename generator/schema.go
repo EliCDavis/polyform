@@ -52,6 +52,18 @@ type IntParameterSchema struct {
 	CurrentValue int `json:"currentValue"`
 }
 
+type BoolParameterSchema struct {
+	ParameterSchemaBase
+	DefaultValue bool `json:"defaultValue"`
+	CurrentValue bool `json:"currentValue"`
+}
+
+type StringParameterSchema struct {
+	ParameterSchemaBase
+	DefaultValue string `json:"defaultValue"`
+	CurrentValue string `json:"currentValue"`
+}
+
 type ColorParameterSchema struct {
 	ParameterSchemaBase
 	DefaultValue coloring.WebColor `json:"defaultValue"`

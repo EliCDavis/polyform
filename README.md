@@ -97,6 +97,24 @@ This was my [submission for ProcJam 2022](https://elicdavis.itch.io/evergreen-tr
 | [[Source Here](/examples/terrain/main.go)] ![terrain](/examples/terrain/terrain.png) | [[Source Here](/examples/covid/main.go)] ![terrain](/examples/covid/covid.png)      |
 | [[Source Here](/examples/plumbob/main.go)] ![plumbob](/examples/plumbob/plumbob.png) | [[Source Here](/examples/oreo/main.go)] ![oreo](/examples/oreo/oreo.png)            |
 
+
+## Developing
+
+If you so happen to want to build a configurator example, my preferred workflow is:
+
+Set up the example to use the [`generator`](./generator/) package that allows you to quickly spin up a web viewer to visualize the geoemetry of your program.
+
+Use [air](https://github.com/cosmtrek/air) to live reload the examples as you build them out.
+Set `cmd = "go build -o ./tmp/main.exe ./examples/MY_EXAMPLE"`.
+Set `include_ext = ["go", "tpl", "tmpl", "html", "js"]`.
+
+```bash
+air serve --port 8080
+```
+
+ As you hit save on your go code, the webserver will restart, and the web page will automatically refresh itself.
+
+
 ## Todo List
 
 Progress towards V1...
@@ -236,20 +254,14 @@ Resources either directly contributing to the code, or are just interesting find
   - [Bartosz Ciechanowski on Color Spaces](https://ciechanow.ski/color-spaces/)
 - WFC
   - ["The Wavefunction Collapse Algorithm explained very clearly" - Robert Heaton](https://robertheaton.com/2018/12/17/wavefunction-collapse-algorithm/)
-
-
-## Developing
-
-If you so happen to want to build a configurator example, my preferred workflow is:
-
-Set up the example to use the [`generator`](./generator/) package that allows you to quickly spin up a web viewer to visualize the geoemetry of your program.
-
-Use [air](https://github.com/cosmtrek/air) to live reload the examples as you build them out.
-Set `cmd = "go build -o ./tmp/main.exe ./examples/MY_EXAMPLE"`
-
-```bash
-air serve --port 8080
-```
-
- As you hit save on your go code, the webserver will restart, and the web page will automatically refresh itself.
-
+- UV Unwrapping
+  - [_"ABF++ : Fast and Robust Angle Based Flattening"_ Alla Sheffer  Bruno Levy   Maxim Mogilnitsky  Alexander Bogomyakov](https://www.cs.ubc.ca/~sheffa/papers/abf_plus_plus.pdf)
+  - OptCuts: Joint Optimization of Surface Cuts and Parameterization
+    - [Source Code](https://github.com/liminchen/OptCuts)
+    - [Paper](https://www.cs.ubc.ca/labs/imager/tr/2018/OptCuts/doc/OptCuts_small.pdf)
+  - _"Variational Surface Cutting"_ by Sharp & Crane, SIGGRAPH 2018
+    - [Source Code](https://github.com/nmwsharp/variational-surface-cutting)
+    - [Paper](https://www.cs.cmu.edu/~kmcrane/Projects/VariationalCuts/paper.pdf)
+  - _Boundary First Flattening_ by <a href="http://rohansawhney.io">Rohan Sawhney</a> and <a href="http://www.cs.cmu.edu/~kmcrane/">Keenan Crane</a>.
+    - [Source Code](https://github.com/GeometryCollective/boundary-first-flattening)
+    - [Paper](https://www.cs.cmu.edu/~kmcrane/Projects/BoundaryFirstFlattening/paper.pdf)

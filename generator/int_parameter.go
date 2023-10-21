@@ -22,14 +22,19 @@ func (fp *IntParameter) Reset() {
 	fp.appliedProfile = nil
 }
 
-func (ip *IntParameter) ApplyJsonMessage(msg json.RawMessage) error {
+func (ip *IntParameter) ApplyJsonMessage(msg json.RawMessage) (bool, error) {
 	num := 0
 	err := json.Unmarshal(msg, &num)
 	if err != nil {
-		return err
+		return false, err
 	}
+
+	if ip.appliedProfile != nil && *ip.appliedProfile == num {
+		return false, nil
+	}
+
 	ip.appliedProfile = &num
-	return nil
+	return true, nil
 }
 
 func (ip IntParameter) Schema() ParameterSchema {

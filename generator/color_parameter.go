@@ -27,15 +27,19 @@ func (fp *ColorParameter) Reset() {
 	fp.appliedProfile = nil
 }
 
-func (fp *ColorParameter) ApplyJsonMessage(msg json.RawMessage) error {
+func (fp *ColorParameter) ApplyJsonMessage(msg json.RawMessage) (bool, error) {
 	colorStr := ""
 	err := json.Unmarshal(msg, &colorStr)
 	if err != nil {
-		return err
+		return false, err
 	}
 	color := hexToRGBA(colorStr)
+	if fp.appliedProfile != nil && *fp.appliedProfile == color {
+		return false, nil
+	}
+
 	fp.appliedProfile = &color
-	return nil
+	return true, nil
 }
 
 func rgbToHex(v coloring.WebColor) string {

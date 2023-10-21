@@ -14,11 +14,11 @@ import (
 
 type Generator struct {
 	Parameters    *GroupParameter
-	SubGenerators map[string]Generator
+	SubGenerators map[string]*Generator
 	Producers     map[string]Producer
 }
 
-func (g Generator) Lookup(path string) Generator {
+func (g *Generator) Lookup(path string) *Generator {
 	if path == "" {
 		return g
 	}
@@ -103,15 +103,22 @@ func (g Generator) run(outputPath string) error {
 	return nil
 }
 
-func (g Generator) ApplyProfile(profile Profile) error {
-	for gen, profile := range profile.SubGenerators {
-		err := g.SubGenerators[gen].ApplyProfile(profile)
+func (g *Generator) ApplyProfile(profile Profile) ([]*Generator, error) {
+	effected := make([]*Generator, 0)
+	for genKey, profile := range profile.SubGenerators {
+		gen := g.SubGenerators[genKey]
+		subsChanged, err := gen.ApplyProfile(profile)
 		if err != nil {
-			return err
+			return nil, err
 		}
+		effected = append(effected, subsChanged...)
 	}
 
-	return g.Parameters.ApplyJsonMessage(profile.Parameters)
+	genChanged, err := g.Parameters.ApplyJsonMessage(profile.Parameters)
+	if len(effected) > 0 || genChanged {
+		effected = append(effected, g)
+	}
+	return effected, err
 }
 
 type Context struct {

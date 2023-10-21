@@ -569,7 +569,7 @@ func main() {
 		Name:        "Woodland Disco Romance",
 		Version:     "1.0.0",
 		Description: "Applying color pallettes to a sample room",
-		Generator: generator.Generator{
+		Generator: &generator.Generator{
 			Parameters: &generator.GroupParameter{
 				Name: "Disco",
 				Parameters: []generator.Parameter{

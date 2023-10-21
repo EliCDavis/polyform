@@ -23,6 +23,10 @@ func (l Line3D) GetStartPoint() vector3.Float64 {
 	return l.p1
 }
 
+func (l Line3D) Length() float64 {
+	return l.p2.Distance(l.p1)
+}
+
 // GetEndPoint returns the end point of the line segment
 func (l Line3D) GetEndPoint() vector3.Float64 {
 	return l.p2
@@ -75,10 +79,10 @@ func (l Line3D) ScaleOutwards(amount float64) Line3D {
 	}
 }
 
-func (l Line3D) ClosestPointOnLine(p vector3.Float64) vector3.Float64 {
+func (l Line3D) ClosestTimeOnLine(p vector3.Float64) float64 {
 	p1p2Dist := l.p1.DistanceSquared(l.p2)
 	if p1p2Dist == 0.0 {
-		return l.p1
+		return 0
 	}
 
 	// Consider the line extending the segment, parameterized as v + t (w - v).
@@ -86,6 +90,35 @@ func (l Line3D) ClosestPointOnLine(p vector3.Float64) vector3.Float64 {
 	// It falls where t = [(p-v) . (w-v)] / |w-v|^2
 	// We clamp t from [0,1] to handle points outside the segment vw.
 	t := p.Sub(l.p1).Dot(l.p2.Sub(l.p1)) / p1p2Dist
+	if t >= 1 {
+		return 1
+	}
+
+	if t <= 0 {
+		return 0
+	}
+
+	return t
+}
+
+func (l Line3D) ClosestPointOnLine(p vector3.Float64) vector3.Float64 {
+	// p1p2Dist := l.p1.DistanceSquared(l.p2)
+	// if p1p2Dist == 0.0 {
+	// return l.p1
+	// }
+
+	// Consider the line extending the segment, parameterized as v + t (w - v).
+	// We find projection of point p onto the line.
+	// It falls where t = [(p-v) . (w-v)] / |w-v|^2
+	// We clamp t from [0,1] to handle points outside the segment vw.
+	// t := p.Sub(l.p1).Dot(l.p2.Sub(l.p1)) / p1p2Dist
+
+	heading := l.p2.Sub(l.p1)
+	magnigutdeMax := heading.Length()
+	heading = heading.Normalized()
+	lhs := p.Sub(l.p1)
+	t := lhs.Dot(heading) / magnigutdeMax
+
 	if t >= 1 {
 		return l.p2
 	}

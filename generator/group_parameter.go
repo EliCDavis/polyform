@@ -31,27 +31,31 @@ func (gp *GroupParameter) Reset() {
 	}
 }
 
-func (gp GroupParameter) ApplyJsonMessage(msg json.RawMessage) error {
+func (gp GroupParameter) ApplyJsonMessage(msg json.RawMessage) (bool, error) {
 	subData := make(map[string]json.RawMessage)
 
 	err := json.Unmarshal(msg, &subData)
 	if err != nil {
-		return err
+		return false, err
 	}
 
+	anythingChanged := false
 	for key, data := range subData {
 		for _, param := range gp.Parameters {
 			if param.DisplayName() != key {
 				continue
 			}
-			err := param.ApplyJsonMessage(data)
+			changed, err := param.ApplyJsonMessage(data)
 			if err != nil {
-				return err
+				return false, err
+			}
+			if changed {
+				anythingChanged = true
 			}
 		}
 	}
 
-	return nil
+	return anythingChanged, nil
 }
 
 func (gp GroupParameter) GroupParameterSchema() GroupParameterSchema {
@@ -100,4 +104,12 @@ func (gp GroupParameter) Int(parameterName string) int {
 
 func (gp GroupParameter) Color(parameterName string) color.RGBA {
 	return findParam[*ColorParameter](gp.Parameters, parameterName).Value()
+}
+
+func (gp GroupParameter) Bool(parameterName string) bool {
+	return findParam[*BoolParameter](gp.Parameters, parameterName).Value()
+}
+
+func (gp GroupParameter) String(parameterName string) string {
+	return findParam[*StringParameter](gp.Parameters, parameterName).Value()
 }

@@ -22,14 +22,19 @@ func (fp *FloatParameter) Reset() {
 	fp.appliedProfile = nil
 }
 
-func (fp *FloatParameter) ApplyJsonMessage(msg json.RawMessage) error {
+func (fp *FloatParameter) ApplyJsonMessage(msg json.RawMessage) (bool, error) {
 	num := 0.
 	err := json.Unmarshal(msg, &num)
 	if err != nil {
-		return err
+		return false, err
 	}
+
+	if fp.appliedProfile != nil && *fp.appliedProfile == num {
+		return false, nil
+	}
+
 	fp.appliedProfile = &num
-	return nil
+	return true, nil
 }
 
 func (fp FloatParameter) Schema() ParameterSchema {

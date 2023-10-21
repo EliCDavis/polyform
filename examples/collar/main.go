@@ -115,8 +115,8 @@ func main() {
 				},
 			},
 		},
-		Generator: generator.Generator{
-			SubGenerators: map[string]generator.Generator{
+		Generator: &generator.Generator{
+			SubGenerators: map[string]*generator.Generator{
 				"images": {
 					Parameters: &generator.GroupParameter{
 						Name: "Colors",

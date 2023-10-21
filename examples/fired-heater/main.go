@@ -229,7 +229,7 @@ func main() {
 			Lighting:   coloring.WebColor{R: 0xff, G: 0xfd, B: 0xd1},
 			Ground:     coloring.WebColor{R: 0x87, G: 0x82, B: 0x78},
 		},
-		Generator: generator.Generator{
+		Generator: &generator.Generator{
 			Parameters: &generator.GroupParameter{
 				Parameters: []generator.Parameter{
 					&generator.ColorParameter{

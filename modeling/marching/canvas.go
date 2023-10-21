@@ -44,7 +44,6 @@ func LookupOrAdd(data *workingData, vert vector3.Float64) int {
 	index := len(data.verts)
 	data.vertLookup[distritized] = index
 	data.verts = append(data.verts, vert)
-	data.uvs = append(data.uvs, vert.XZ())
 	return index
 }
 
@@ -57,8 +56,9 @@ const (
 )
 
 const (
-	marchingSectionSize      = 100
-	marchingSectionSizeCubed = marchingSectionSize * marchingSectionSize * marchingSectionSize
+	marchingSectionSize        = 100
+	marchingSectionSizeSquared = marchingSectionSize * marchingSectionSize
+	marchingSectionSizeCubed   = marchingSectionSize * marchingSectionSize * marchingSectionSize
 )
 
 type marchingSection struct {
@@ -66,11 +66,9 @@ type marchingSection struct {
 	positions map[modeling.VectorInt]int
 }
 
-type (
-	float1MarchingSection []float64
-	float2MarchingSection []vector2.Float64
-	float3MarchingSection []vector3.Float64
-)
+type float1MarchingSection = []float64
+type float2MarchingSection = []vector2.Float64
+type float3MarchingSection = []vector3.Float64
 
 type MarchingCanvas struct {
 	float1Data   []float1MarchingSection
@@ -78,6 +76,7 @@ type MarchingCanvas struct {
 	float3Data   []float3MarchingSection
 	sections     map[string]*marchingSection
 	cubesPerUnit float64
+	chunkMutex   *sync.Mutex
 }
 
 func NewMarchingCanvas(cubesPerUnit float64) *MarchingCanvas {
@@ -87,17 +86,17 @@ func NewMarchingCanvas(cubesPerUnit float64) *MarchingCanvas {
 		float3Data:   make([]float3MarchingSection, 0),
 		sections:     make(map[string]*marchingSection),
 		cubesPerUnit: cubesPerUnit,
+		chunkMutex:   &sync.Mutex{},
 	}
 }
 
 func (d MarchingCanvas) index(x, y, z int) int {
-	return (z * marchingSectionSize * marchingSectionSize) + (y * marchingSectionSize) + x
+	return (z * marchingSectionSizeSquared) + (y * marchingSectionSize) + x
 }
 
-var chunkMutex sync.Mutex
-
-func (d *MarchingCanvas) chunkIndex(section *marchingSection, vec modeling.VectorInt) int {
-	chunkMutex.Lock()
+func (d *MarchingCanvas) chunkIndex_atomic(section *marchingSection, vec modeling.VectorInt) int {
+	d.chunkMutex.Lock()
+	defer d.chunkMutex.Unlock()
 	chunkIndex, ok := section.positions[vec]
 	if !ok {
 		switch section.dataType {
@@ -115,7 +114,6 @@ func (d *MarchingCanvas) chunkIndex(section *marchingSection, vec modeling.Vecto
 		}
 		section.positions[vec] = chunkIndex
 	}
-	chunkMutex.Unlock()
 	return chunkIndex
 }
 
@@ -127,23 +125,23 @@ func (d MarchingCanvas) canvasPosToChunkPos(x, y, z int) modeling.VectorInt {
 	}
 }
 
-func (d *MarchingCanvas) addFloat1Value(section *marchingSection, x, y, z int, val float64) {
-	if section.dataType != Float1 {
-		panic(fmt.Errorf("cant add float1 to section with type of: %d", section.dataType))
-	}
+// func (d *MarchingCanvas) addFloat1Value(section *marchingSection, x, y, z int, val float64) {
+// 	if section.dataType != Float1 {
+// 		panic(fmt.Errorf("cant add float1 to section with type of: %d", section.dataType))
+// 	}
 
-	chunkPos := d.canvasPosToChunkPos(x, y, z)
+// 	chunkPos := d.canvasPosToChunkPos(x, y, z)
 
-	index := d.chunkIndex(section, chunkPos)
+// 	index := d.chunkIndex_atomic(section, chunkPos)
 
-	shiftedPos := modeling.VectorInt{
-		X: x - (chunkPos.X * marchingSectionSize),
-		Y: y - (chunkPos.Y * marchingSectionSize),
-		Z: z - (chunkPos.Z * marchingSectionSize),
-	}
+// 	shiftedPos := modeling.VectorInt{
+// 		X: x - (chunkPos.X * marchingSectionSize),
+// 		Y: y - (chunkPos.Y * marchingSectionSize),
+// 		Z: z - (chunkPos.Z * marchingSectionSize),
+// 	}
 
-	d.float1Data[index][d.index(shiftedPos.X, shiftedPos.Y, shiftedPos.Z)] += val
-}
+// 	d.float1Data[index][d.index(shiftedPos.X, shiftedPos.Y, shiftedPos.Z)] += val
+// }
 
 func (d MarchingCanvas) fieldBounds(f Field) (modeling.VectorInt, modeling.VectorInt) {
 	min := f.Domain.Min()
@@ -185,7 +183,7 @@ func (d *MarchingCanvas) addFloat1Range(section *marchingSection, chunkPos, min,
 		panic(fmt.Errorf("cant add float1 to section with type of: %d", section.dataType))
 	}
 
-	index := d.chunkIndex(section, chunkPos)
+	data := d.float1Data[d.chunkIndex_atomic(section, chunkPos)]
 
 	for z := min.Z; z < max.Z; z++ {
 		for y := min.Y; y < max.Y; y++ {
@@ -200,10 +198,31 @@ func (d *MarchingCanvas) addFloat1Range(section *marchingSection, chunkPos, min,
 					Z: z - (chunkPos.Z * marchingSectionSize),
 				}
 
-				d.float1Data[index][d.index(shiftedPos.X, shiftedPos.Y, shiftedPos.Z)] += function(pos)
+				data[d.index(shiftedPos.X, shiftedPos.Y, shiftedPos.Z)] += function(pos)
 			}
 		}
 	}
+}
+
+func (d *MarchingCanvas) calcFloat1Range(min, max modeling.VectorInt, function sample.Vec3ToFloat) []float64 {
+	bounds := max.Sub(min)
+	arr := make([]float64, bounds.X*bounds.Y*bounds.Z)
+
+	i := 0
+
+	for z := min.Z; z < max.Z; z++ {
+		zF := float64(z) / d.cubesPerUnit
+		for y := min.Y; y < max.Y; y++ {
+			yF := float64(y) / d.cubesPerUnit
+			for x := min.X; x < max.X; x++ {
+				xF := float64(x) / d.cubesPerUnit
+				arr[i] = function(vector3.New(zF, yF, xF))
+				i++
+			}
+		}
+	}
+	return arr
+
 }
 
 func (d MarchingCanvas) chunkSectionsInRange(min, max modeling.VectorInt) []modeling.VectorInt {
@@ -324,22 +343,118 @@ func (d *MarchingCanvas) AddFieldParallel(field Field) {
 	}
 }
 
+func (d *MarchingCanvas) AddFieldParallel2(field Field) {
+	type job struct {
+		section                    *marchingSection
+		chunkPos, startPos, endPos modeling.VectorInt
+		function                   sample.Vec3ToFloat
+		data                       []float64
+	}
+
+	min, max := d.fieldBounds(field)
+	chunkSections := d.chunkSectionsInRange(min, max)
+
+	workers := runtime.NumCPU()
+	numJobs := len(chunkSections)
+	jobs := make(chan job, numJobs)
+	results := make(chan job, numJobs)
+
+	for w := 0; w < workers; w++ {
+		go func(jobs <-chan job, results chan<- job) {
+			for j := range jobs {
+				j.data = d.calcFloat1Range(j.startPos, j.endPos, j.function)
+				results <- j
+			}
+		}(jobs, results)
+	}
+
+	for attribute, function := range field.Float1Functions {
+		section := d.getSection(attribute, Float1)
+		for _, chunkPos := range chunkSections {
+			canvasSpaceChunkPos := modeling.VectorInt{
+				X: maxInt(chunkPos.X*marchingSectionSize, min.X),
+				Y: maxInt(chunkPos.Y*marchingSectionSize, min.Y),
+				Z: maxInt(chunkPos.Z*marchingSectionSize, min.Z),
+			}
+			endPos := modeling.VectorInt{
+				X: minInt((chunkPos.X*marchingSectionSize)+marchingSectionSize, max.X),
+				Y: minInt((chunkPos.Y*marchingSectionSize)+marchingSectionSize, max.Y),
+				Z: minInt((chunkPos.Z*marchingSectionSize)+marchingSectionSize, max.Z),
+			}
+			jobs <- job{
+				section:  section,
+				chunkPos: chunkPos,
+				startPos: canvasSpaceChunkPos,
+				endPos:   endPos,
+				function: function,
+			}
+
+		}
+	}
+
+	close(jobs)
+
+	for j := 0; j < numJobs; j++ {
+
+		result := <-results
+		i := 0
+		chunkPos := result.chunkPos
+		data := d.float1Data[d.chunkIndex_atomic(result.section, chunkPos)]
+		resultData := result.data
+		for z := result.startPos.Z; z < result.endPos.Z; z++ {
+			for y := result.startPos.Y; y < result.endPos.Y; y++ {
+				for x := result.startPos.X; x < result.endPos.X; x++ {
+
+					shiftedPos := modeling.VectorInt{
+						X: x - (chunkPos.X * marchingSectionSize),
+						Y: y - (chunkPos.Y * marchingSectionSize),
+						Z: z - (chunkPos.Z * marchingSectionSize),
+					}
+
+					data[d.index(shiftedPos.X, shiftedPos.Y, shiftedPos.Z)] += resultData[i]
+					i++
+				}
+			}
+		}
+	}
+}
+
 type workingData struct {
 	tris       []int
 	verts      []vector3.Float64
-	uvs        []vector2.Float64
 	vertLookup map[modeling.VectorInt]int
 }
 
-func (d MarchingCanvas) marchFloat1BlockPosition(
+func (d *MarchingCanvas) marchFloat1BlockPosition(
 	cutoff float64,
 	section *marchingSection,
 	blockPosition modeling.VectorInt,
 ) modeling.Mesh {
+
+	cubeDataIndexIncrements := []modeling.VectorInt{
+		{X: 0, Y: 0, Z: 0},
+		{X: 1, Y: 0, Z: 0},
+		{X: 1, Y: 0, Z: 1},
+		{X: 0, Y: 0, Z: 1},
+		{X: 0, Y: 1, Z: 0},
+		{X: 1, Y: 1, Z: 0},
+		{X: 1, Y: 1, Z: 1},
+		{X: 0, Y: 1, Z: 1},
+	}
+
+	cubeData := make([]float1MarchingSection, 8)
+	cubeDataIndexes := make([]int, 8)
+	cubeCorners := make([]float64, 8)
+	cubeCornersExistence := make([]bool, 8)
+
+	// var cubeData [8]float1MarchingSection
+	// var cubeDataIndexes [8]int
+	// var cubeCorners [8]float64
+	// var cubeCornersExistence [8]bool
+
 	marchingWorkingData := &workingData{
 		tris:       make([]int, 0),
 		verts:      make([]vector3.Float64, 0),
-		uvs:        make([]vector2.Float64, 0),
 		vertLookup: make(map[modeling.VectorInt]int),
 	}
 	blockIndex := section.positions[blockPosition]
@@ -397,37 +512,23 @@ func (d MarchingCanvas) marchFloat1BlockPosition(
 					{X: blockPosition.X, Y: yBlockPosition, Z: zBlockPosition},
 				}
 
-				cubeData := []float1MarchingSection{
-					data,
-					data,
-					data,
-					data,
-					data,
-					data,
-					data,
-					data,
-				}
+				cubeData[0] = data
+				cubeData[1] = data
+				cubeData[2] = data
+				cubeData[3] = data
+				cubeData[4] = data
+				cubeData[5] = data
+				cubeData[6] = data
+				cubeData[7] = data
 
-				cubeDataIndexIncrements := []modeling.VectorInt{
-					{X: 0, Y: 0, Z: 0},
-					{X: 1, Y: 0, Z: 0},
-					{X: 1, Y: 0, Z: 1},
-					{X: 0, Y: 0, Z: 1},
-					{X: 0, Y: 1, Z: 0},
-					{X: 1, Y: 1, Z: 0},
-					{X: 1, Y: 1, Z: 1},
-					{X: 0, Y: 1, Z: 1},
-				}
-				cubeDataIndexes := []int{
-					d.index(x, y, z),
-					d.index(x+1, y, z),
-					d.index(x+1, y, z+1),
-					d.index(x, y, z+1),
-					d.index(x, y+1, z),
-					d.index(x+1, y+1, z),
-					d.index(x+1, y+1, z+1),
-					d.index(x, y+1, z+1),
-				}
+				cubeDataIndexes[0] = d.index(x, y, z)
+				cubeDataIndexes[1] = d.index(x+1, y, z)
+				cubeDataIndexes[2] = d.index(x+1, y, z+1)
+				cubeDataIndexes[3] = d.index(x, y, z+1)
+				cubeDataIndexes[4] = d.index(x, y+1, z)
+				cubeDataIndexes[5] = d.index(x+1, y+1, z)
+				cubeDataIndexes[6] = d.index(x+1, y+1, z+1)
+				cubeDataIndexes[7] = d.index(x, y+1, z+1)
 
 				allValid := true
 				for i, pos := range cubeDataBlockPositions {
@@ -460,27 +561,23 @@ func (d MarchingCanvas) marchFloat1BlockPosition(
 					continue
 				}
 
-				cubeCorners := []float64{
-					cubeData[0][cubeDataIndexes[0]],
-					cubeData[1][cubeDataIndexes[1]],
-					cubeData[2][cubeDataIndexes[2]],
-					cubeData[3][cubeDataIndexes[3]],
-					cubeData[4][cubeDataIndexes[4]],
-					cubeData[5][cubeDataIndexes[5]],
-					cubeData[6][cubeDataIndexes[6]],
-					cubeData[7][cubeDataIndexes[7]],
-				}
+				cubeCorners[0] = cubeData[0][cubeDataIndexes[0]]
+				cubeCorners[1] = cubeData[1][cubeDataIndexes[1]]
+				cubeCorners[2] = cubeData[2][cubeDataIndexes[2]]
+				cubeCorners[3] = cubeData[3][cubeDataIndexes[3]]
+				cubeCorners[4] = cubeData[4][cubeDataIndexes[4]]
+				cubeCorners[5] = cubeData[5][cubeDataIndexes[5]]
+				cubeCorners[6] = cubeData[6][cubeDataIndexes[6]]
+				cubeCorners[7] = cubeData[7][cubeDataIndexes[7]]
 
-				cubeCornersExistence := []bool{
-					cubeCorners[0] < cutoff,
-					cubeCorners[1] < cutoff,
-					cubeCorners[2] < cutoff,
-					cubeCorners[3] < cutoff,
-					cubeCorners[4] < cutoff,
-					cubeCorners[5] < cutoff,
-					cubeCorners[6] < cutoff,
-					cubeCorners[7] < cutoff,
-				}
+				cubeCornersExistence[0] = cubeCorners[0] < cutoff
+				cubeCornersExistence[1] = cubeCorners[1] < cutoff
+				cubeCornersExistence[2] = cubeCorners[2] < cutoff
+				cubeCornersExistence[3] = cubeCorners[3] < cutoff
+				cubeCornersExistence[4] = cubeCorners[4] < cutoff
+				cubeCornersExistence[5] = cubeCorners[5] < cutoff
+				cubeCornersExistence[6] = cubeCorners[6] < cutoff
+				cubeCornersExistence[7] = cubeCorners[7] < cutoff
 
 				xf := float64(x)
 				yf := float64(y)
@@ -552,9 +649,6 @@ func (d MarchingCanvas) marchFloat1BlockPosition(
 	return modeling.NewTriangleMesh(marchingWorkingData.tris).
 		SetFloat3Data(map[string][]vector3.Float64{
 			modeling.PositionAttribute: marchingWorkingData.verts,
-		}).
-		SetFloat2Data(map[string][]vector2.Float64{
-			modeling.TexCoordAttribute: marchingWorkingData.uvs,
 		})
 }
 
