@@ -2,6 +2,7 @@ package obj
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"strconv"
@@ -47,7 +48,7 @@ func parseObjTextureLine(components []string) (vector2.Float64, error) {
 
 func parseMtllibLine(components []string) ([]string, error) {
 	if len(components) == 1 {
-		return nil, fmt.Errorf("mtllib line is empty")
+		return nil, errors.New("mtllib line is empty")
 	}
 
 	files := make([]string, len(components)-1)
@@ -60,7 +61,7 @@ func parseMtllibLine(components []string) ([]string, error) {
 
 func parseUsemtlLine(components []string) (string, error) {
 	if len(components) == 1 {
-		return "", fmt.Errorf("usemtl line is empty")
+		return "", errors.New("usemtl line is empty")
 	}
 
 	return strings.Join(components[1:], " "), nil
@@ -68,7 +69,7 @@ func parseUsemtlLine(components []string) (string, error) {
 
 func parseGroupLine(components []string) (string, error) {
 	if len(components) == 1 {
-		return "", fmt.Errorf("g line is empty")
+		return "", errors.New("g line is empty")
 	}
 
 	return strings.Join(components[1:], " "), nil

@@ -139,6 +139,7 @@ func newPumpkinMesh(
 	log.Printf("time to add field: %s", time.Since(addFieldStart))
 
 	marchStart := time.Now()
+	log.Println("starting march...")
 	mesh := canvas.MarchParallel(0)
 	log.Printf("time to march: %s", time.Since(marchStart))
 
@@ -318,13 +319,13 @@ var debugUVImageData []byte
 
 func main() {
 
-	maxHeat := 100.
-	logoFileName := "face.jpg"
-	img, err := loadImage(logoFileName)
-	check(err)
-	imgData := imageToEdgeData(img, maxHeat)
-	imgData = heatPropegate(imgData, 250, 0.9999)
-	check(debugPropegation(imgData, "debug.png"))
+	// maxHeat := 100.
+	// logoFileName := "face.jpg"
+	// img, err := loadImage(logoFileName)
+	// check(err)
+	// imgData := imageToEdgeData(img, maxHeat)
+	// imgData = heatPropegate(imgData, 250, 0.9999)
+	// check(debugPropegation(imgData, "debug.png"))
 
 	app := generator.App{
 		Name:        "Pumpkin",
@@ -477,7 +478,7 @@ func main() {
 						c.Parameters.Float64("Wedge Spacing"),
 						c.Parameters.Float64("Wedge Radius"),
 						c.Parameters.Int("Wedges"),
-						imgData,
+						nil, //imgData,
 						c.Parameters.Bool("Carve"),
 					)
 

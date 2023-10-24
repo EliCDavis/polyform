@@ -1,11 +1,13 @@
 package generator
 
 import (
+	"archive/zip"
 	"embed"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"path"
@@ -31,6 +33,60 @@ type pageData struct {
 	Version     string
 	Description string
 	Scripting   string
+}
+
+func writeGeneratorToZip(path string, generator *Generator, zw *zip.Writer) error {
+	if generator == nil {
+		panic("can't write nil generator")
+	}
+
+	if zw == nil {
+		panic("can't write to nil zip writer")
+	}
+
+	ctx := &Context{
+		Parameters: generator.Parameters,
+	}
+
+	for file, producer := range generator.Producers {
+		filePath := path + file
+		log.Println(filePath)
+		f, err := zw.Create(filePath)
+		if err != nil {
+			return err
+		}
+
+		artifact, err := producer(ctx)
+		if err != nil {
+			return err
+		}
+
+		err = artifact.Write(f)
+		if err != nil {
+			return err
+		}
+		log.Printf("wrote %s", filePath)
+	}
+
+	for name, gen := range generator.SubGenerators {
+		err := writeGeneratorToZip(fmt.Sprintf("%s%s/", path, name), gen, zw)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (a App) WriteZip(out io.Writer) error {
+	z := zip.NewWriter(out)
+
+	err := writeGeneratorToZip("", a.Generator, z)
+	if err != nil {
+		return err
+	}
+
+	return z.Close()
 }
 
 //go:embed html/*
@@ -129,6 +185,8 @@ func (a App) Serve(host, port string) error {
 	})
 
 	http.HandleFunc("/producer/", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("Cache-Control", "no-cache")
+
 		producerLock.Lock()
 		defer producerLock.Unlock()
 		// params, _ := url.ParseQuery(r.URL.RawQuery)
@@ -173,6 +231,14 @@ func (a App) Serve(host, port string) error {
 		producerCache[generatorToUse][producerToLoad] = artifact
 	})
 
+	http.HandleFunc("/zip", func(w http.ResponseWriter, r *http.Request) {
+		err := a.WriteZip(w)
+		w.Header().Add("Content-Type", "application/zip")
+		if err != nil {
+			panic(err)
+		}
+	})
+
 	hub := room.NewHub(webscene, &movelVersion)
 	go hub.Run()
 
@@ -186,6 +252,8 @@ func (a App) Serve(host, port string) error {
 }
 
 func (a App) Run() error {
+
+	os_setup(&a)
 
 	argsWithoutProg := os.Args[1:]
 

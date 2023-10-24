@@ -2,6 +2,7 @@ package marching
 
 import (
 	"fmt"
+	"log"
 	"math"
 	"runtime"
 	"sync"
@@ -183,7 +184,10 @@ func (d *MarchingCanvas) addFloat1Range(section *marchingSection, chunkPos, min,
 		panic(fmt.Errorf("cant add float1 to section with type of: %d", section.dataType))
 	}
 
-	data := d.float1Data[d.chunkIndex_atomic(section, chunkPos)]
+	index := d.chunkIndex_atomic(section, chunkPos)
+	log.Print(index)
+	log.Print(max.Sub(min).Area())
+	data := d.float1Data[index]
 
 	for z := min.Z; z < max.Z; z++ {
 		for y := min.Y; y < max.Y; y++ {
@@ -287,6 +291,12 @@ func (d *MarchingCanvas) AddField(field Field) {
 }
 
 func (d *MarchingCanvas) AddFieldParallel(field Field) {
+	workers := runtime.NumCPU()
+	if workers == 1 {
+		d.AddField(field)
+		return
+	}
+
 	type job struct {
 		section                    *marchingSection
 		chunkPos, startPos, endPos modeling.VectorInt
@@ -296,7 +306,6 @@ func (d *MarchingCanvas) AddFieldParallel(field Field) {
 	min, max := d.fieldBounds(field)
 	chunkSections := d.chunkSectionsInRange(min, max)
 
-	workers := runtime.NumCPU()
 	numJobs := len(chunkSections)
 	jobs := make(chan job, numJobs)
 	results := make(chan int, workers)
@@ -662,6 +671,10 @@ func (d MarchingCanvas) marchFloat1(cutoff float64, section *marchingSection) mo
 
 func (d MarchingCanvas) marchFloat1Parallel(cutoff float64, section *marchingSection) modeling.Mesh {
 	workers := runtime.NumCPU()
+
+	if workers == 1 {
+		return d.marchFloat1(cutoff, section)
+	}
 
 	numJobs := len(section.positions)
 	jobs := make(chan modeling.VectorInt, numJobs)

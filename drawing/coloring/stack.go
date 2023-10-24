@@ -1,6 +1,7 @@
 package coloring
 
 import (
+	"errors"
 	"fmt"
 	"image"
 	"image/color"
@@ -150,7 +151,7 @@ func (cs ColorStack) LinearSample(v float64) color.Color {
 	}
 
 	if indexA == -1 {
-		panic(fmt.Errorf("unimplemented situation: linear color sample could not find appropriate colors to sample"))
+		panic(errors.New("unimplemented situation: linear color sample could not find appropriate colors to sample"))
 	}
 
 	adjustedStart := scaledV - cs.rightBlendValues[indexA]

@@ -13,6 +13,19 @@ function fetch(theUrl, callback) {
     xmlHttp.send(null);
 }
 
+function download(theUrl, callback) {
+    var xmlHttp = new XMLHttpRequest();
+    xmlHttp.responseType = 'blob';
+    xmlHttp.onreadystatechange = function () {
+        if (xmlHttp.readyState == 4 && xmlHttp.status == 200) {
+            console.log(xmlHttp)
+            callback(xmlHttp.response);
+        }
+    }
+    xmlHttp.open("GET", theUrl, true); // true for asynchronous 
+    xmlHttp.send(null);
+}
+
 
 function post(theUrl, body, callback) {
     var xmlHttp = new XMLHttpRequest();
@@ -378,14 +391,26 @@ const fileControls = {
         }
 
         input.click();
+    },
+    saveModel: () => {
+        download("/zip", (data) => {
+            const a = document.createElement('a');
+            a.download = 'model.zip';
+            const url = window.URL.createObjectURL(data);
+            a.href = url;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        })
     }
 }
 const fileSettingsFolder = panel.addFolder("File");
 fileSettingsFolder.add(fileControls, "saveProfile").name("Save Profile")
 fileSettingsFolder.add(fileControls, "loadProfile").name("Load Profile")
+fileSettingsFolder.add(fileControls, "saveModel").name("Download Model")
+fileSettingsFolder.close();
 
-
-const viewportSettingsFolder = panel.addFolder("Render Settings");
+const viewportSettingsFolder = panel.addFolder("Rendering");
+viewportSettingsFolder.close();
 const viewportManager = {}
 
 const wireFrameUpdater = () => {

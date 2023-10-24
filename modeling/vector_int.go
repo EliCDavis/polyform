@@ -38,6 +38,10 @@ func (v VectorInt) ToRegularVector() vector3.Float64 {
 	)
 }
 
+func (v VectorInt) Area() int {
+	return (v.X * v.Y * v.Z)
+}
+
 func (v VectorInt) String() string {
 	return fmt.Sprintf("%d, %d, %d", v.X, v.Y, v.Z)
 }

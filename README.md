@@ -112,8 +112,23 @@ Set `include_ext = ["go", "tpl", "tmpl", "html", "js"]`.
 air serve --port 8080
 ```
 
- As you hit save on your go code, the webserver will restart, and the web page will automatically refresh itself.
+As you hit save on your go code, the webserver will restart, and the web page will automatically refresh itself.
 
+## WASM Dev
+
+Install [tinygo](https://github.com/WebAssembly/binaryen) and [binaryren](https://github.com/WebAssembly/binaryen)
+
+Compile the `polywasm` app
+
+```bash
+go install ./cmd/polywasm
+```
+
+Then build your example app
+
+```bash
+polywasm build --app-path ./examples/MY_EXAMPLE
+```
 
 ## Todo List
 
