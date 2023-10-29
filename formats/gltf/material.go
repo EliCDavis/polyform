@@ -21,7 +21,7 @@ type TextureInfo struct {
 
 type NormalTexture struct {
 	TextureInfo
-	Scale float64 `json:"scale,omitempty"` // The scalar parameter applied to each normal vector of the texture. This value scales the normal vector in X and Y directions using the formula: `scaledNormal =  normalize((<sampled normal texture value> * 2.0 - 1.0) * vec3(<normal scale>, <normal scale>, 1.0))`.
+	Scale *float64 `json:"scale,omitempty"` // The scalar parameter applied to each normal vector of the texture. This value scales the normal vector in X and Y directions using the formula: `scaledNormal =  normalize((<sampled normal texture value> * 2.0 - 1.0) * vec3(<normal scale>, <normal scale>, 1.0))`.
 }
 
 type OcclusionTexture struct {

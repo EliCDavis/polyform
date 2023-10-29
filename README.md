@@ -280,3 +280,7 @@ Resources either directly contributing to the code, or are just interesting find
   - _Boundary First Flattening_ by <a href="http://rohansawhney.io">Rohan Sawhney</a> and <a href="http://www.cs.cmu.edu/~kmcrane/">Keenan Crane</a>.
     - [Source Code](https://github.com/GeometryCollective/boundary-first-flattening)
     - [Paper](https://www.cs.cmu.edu/~kmcrane/Projects/BoundaryFirstFlattening/paper.pdf)
+- Drawing a Line
+  - Did not expect to need to look that up
+  - [Bresenham's line algorithm (Aliased)](https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm)
+  - [Xiaolin Wu's line algorithm (Anti-Aliased)](https://en.wikipedia.org/wiki/Xiaolin_Wu's_line_algorithm)

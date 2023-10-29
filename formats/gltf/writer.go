@@ -362,7 +362,7 @@ func (w *Writer) AddMaterial(mat PolyformMaterial) *int {
 		w.extensionsUsed[id] = true
 	}
 
-	w.materials = append(w.materials, Material{
+	m := Material{
 		ChildOfRootProperty: ChildOfRootProperty{
 			Name: mat.Name,
 			Property: Property{
@@ -371,7 +371,16 @@ func (w *Writer) AddMaterial(mat PolyformMaterial) *int {
 			},
 		},
 		PbrMetallicRoughness: pbr,
-	})
+	}
+
+	if mat.NormalTexture != nil {
+		m.NormalTexture = &NormalTexture{
+			TextureInfo: *w.AddTexture(mat.NormalTexture.PolyformTexture),
+			Scale:       mat.NormalTexture.Scale,
+		}
+	}
+
+	w.materials = append(w.materials, m)
 
 	return ptrI(len(w.materials) - 1)
 }

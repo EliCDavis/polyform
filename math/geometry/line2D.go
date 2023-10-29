@@ -47,6 +47,16 @@ func (l Line2D) ScaleOutwards(amount float64) Line2D {
 	)
 }
 
+func (l Line2D) ExtendEnd(amount float64) Line2D {
+	dirAndMag := l.p2.Sub(l.p1).Normalized().Scale(amount)
+	return NewLine2D(l.p1, l.p2.Add(dirAndMag))
+}
+
+func (l Line2D) ExtendStart(amount float64) Line2D {
+	dirAndMag := l.p1.Sub(l.p2).Normalized().Scale(amount)
+	return NewLine2D(l.p1.Add(dirAndMag), l.p2)
+}
+
 func (l Line2D) ClosestPointOnLine(p vector2.Float64) vector2.Float64 {
 	l2 := math.Pow(l.p1.Distance(l.p2), 2)
 	if l2 == 0.0 {

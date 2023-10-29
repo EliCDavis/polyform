@@ -2,7 +2,6 @@ package marching
 
 import (
 	"fmt"
-	"log"
 	"math"
 	"runtime"
 	"sync"
@@ -185,8 +184,8 @@ func (d *MarchingCanvas) addFloat1Range(section *marchingSection, chunkPos, min,
 	}
 
 	index := d.chunkIndex_atomic(section, chunkPos)
-	log.Print(index)
-	log.Print(max.Sub(min).Area())
+	// log.Print(index)
+	// log.Print(max.Sub(min).Area())
 	data := d.float1Data[index]
 
 	for z := min.Z; z < max.Z; z++ {

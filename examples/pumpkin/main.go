@@ -5,7 +5,7 @@ import (
 	_ "embed"
 	"image"
 	"image/color"
-	"image/jpeg"
+	"image/draw"
 	"image/png"
 	"log"
 	"math"
@@ -14,6 +14,7 @@ import (
 
 	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/drawing/texturing"
+	"github.com/EliCDavis/polyform/drawing/texturing/normals"
 	"github.com/EliCDavis/polyform/formats/gltf"
 	"github.com/EliCDavis/polyform/generator"
 	"github.com/EliCDavis/polyform/generator/room"
@@ -151,56 +152,35 @@ func newPumpkinMesh(
 		meshops.SmoothNormalsTransformer{},
 	)
 
-	pumpkinVerts := mesh.Float3Attribute(modeling.PositionAttribute)
-	newUVs := make([]vector2.Float64, pumpkinVerts.Len())
-	totalLength := vector3.Array[float64](outerPoints).Distance()
-
-	newColors := make([]vector3.Float64, pumpkinVerts.Len())
-	for i := 0; i < pumpkinVerts.Len(); i++ {
-		vert := pumpkinVerts.At(i)
-		xzTheta := math.Atan2(vert.Z(), vert.X())
-		if math.IsNaN(xzTheta) {
-			// xzTheta += math.Pi*2
-			continue
-		}
-
-		rot := modeling.UnitQuaternionFromTheta(xzTheta, vector3.Up[float64]())
-		rotatedLine := rot.RotateArray(outerPoints)
-
-		y := closestTimeOnMultiLineSegment(vert, rotatedLine, totalLength)
-		if y < 0 || y > 1.001 {
-			panic(y)
-		}
-
-		newUVs[i] = vector2.New(-xzTheta/(math.Pi*2), y)
-		newUVs[i] = vector2.New(-xzTheta/(math.Pi*2), vert.Y())
-		y = xzTheta / (math.Pi * 2)
-		// secondHalf := 0.
-		// if y > 0.5 {
-		// 	secondHalf = (y - 0.5) * 2
-		// 	y = 1
-		// } else {
-		// 	y *= 2
-		// }
-		newColors[i] = vector3.New(y, 0, 0.)
-	}
-
 	// METHOD 1 ===============================================================
 	// Works okay, issues from the dip of the top of the pumpkin causing the
 	// texture to reverse directions
 	// pumpkinVerts := mesh.Float3Attribute(modeling.PositionAttribute)
 	// newUVs := make([]vector2.Float64, pumpkinVerts.Len())
-
 	// for i := 0; i < pumpkinVerts.Len(); i++ {
-	// 	  vert := pumpkinVerts.At(i)
-	// 	  xzPos := vert.XZ()
-	// 	  xzTheta := math.Atan2(xzPos.Y(), xzPos.X())
-	// 	  newUVs[i] = vector2.New(xzTheta/(math.Pi*2), vert.Y())
+	// 	vert := pumpkinVerts.At(i)
+	// 	xzPos := vert.XZ()
+	// 	xzTheta := math.Atan2(xzPos.Y(), xzPos.X())
+	// 	newUVs[i] = vector2.New(xzTheta/(math.Pi*2), vert.Y())
 	// }
 
-	mesh = mesh.SetFloat2Attribute(modeling.TexCoordAttribute, newUVs) //.SetFloat3Attribute(modeling.ColorAttribute, newColors)
+	// METHOD 2 ===============================================================
+	pumpkinVerts := mesh.Float3Attribute(modeling.PositionAttribute)
+	newUVs := make([]vector2.Float64, pumpkinVerts.Len())
+	center := vector3.New(0., 0.5, 0.)
+	up := vector3.Up[float64]()
+	for i := 0; i < pumpkinVerts.Len(); i++ {
+		vert := pumpkinVerts.At(i)
 
-	return mesh
+		xzTheta := math.Atan2(vert.Z(), vert.X()) * 2
+		xzTheta = math.Abs(xzTheta) // Avoid the UV seam
+
+		dir := vert.Sub(center)
+		angle := math.Acos(dir.Dot(up) / (dir.Length() * up.Length()))
+
+		newUVs[i] = vector2.New(xzTheta/(math.Pi*2), angle)
+	}
+	return mesh.SetFloat2Attribute(modeling.TexCoordAttribute, newUVs)
 }
 
 func pumpkinStem(maxWidth, minWidth, length, tipOffset float64) marching.Field {
@@ -233,7 +213,7 @@ func imageToEdgeData(src image.Image, fillValue float64) [][]float64 {
 	return imageData
 }
 
-func loadImage(imageName string) (image.Image, error) {
+func loadImageFromPath(imageName string) (image.Image, error) {
 	logoFile, err := os.Open(imageName)
 	if err != nil {
 		return nil, err
@@ -242,6 +222,12 @@ func loadImage(imageName string) (image.Image, error) {
 
 	img, _, err := image.Decode(logoFile)
 
+	return img, err
+}
+
+func loadImage(imageData []byte) (image.Image, error) {
+	imgBuf := bytes.NewBuffer(imageData)
+	img, _, err := image.Decode(imgBuf)
 	return img, err
 }
 
@@ -314,18 +300,17 @@ func check(err error) {
 	}
 }
 
-//go:embed uv.jpg
-var debugUVImageData []byte
+//go:embed face.png
+var facePNG []byte
 
 func main() {
 
-	// maxHeat := 100.
-	// logoFileName := "face.jpg"
-	// img, err := loadImage(logoFileName)
-	// check(err)
-	// imgData := imageToEdgeData(img, maxHeat)
-	// imgData = heatPropegate(imgData, 250, 0.9999)
-	// check(debugPropegation(imgData, "debug.png"))
+	maxHeat := 100.
+	img, err := loadImage(facePNG)
+	check(err)
+	imgData := imageToEdgeData(img, maxHeat)
+	imgData = heatPropegate(imgData, 250, 0.9999)
+	check(debugPropegation(imgData, "debug.png"))
 
 	app := generator.App{
 		Name:        "Pumpkin",
@@ -464,10 +449,43 @@ func main() {
 				},
 			},
 			Producers: map[string]generator.Producer{
+				"normal.png": func(c *generator.Context) (generator.Artifact, error) {
+					img := image.NewRGBA(image.Rect(0, 0, 1024, 1024))
+					blue := color.RGBA{128, 128, 255, 255}
+					// blue = color.RGBA{255, 255, 255, 255}
+					draw.Draw(img, img.Bounds(), &image.Uniform{blue}, image.Point{}, draw.Src)
+					lineThickness := 30.
+					for i := 0; i < 10; i++ {
+						normals.Line{
+							Start:           vector2.New(60.+float64(i*100), 20.),
+							End:             vector2.New(60.+float64(i*100), 1000.),
+							Width:           lineThickness,
+							NormalDirection: normals.Additive,
+						}.Round(img)
 
+						normals.Line{
+							Start:           vector2.New(20., 60.+float64(i*100)),
+							End:             vector2.New(1000., 60.+float64(i*100)),
+							Width:           lineThickness,
+							NormalDirection: normals.Subtractive,
+						}.Round(img)
+					}
+					normals.Sphere{Center: vector2.New(712., 512.), Radius: 100., Direction: normals.Additive}.Draw(img)
+					normals.Sphere{Center: vector2.New(312., 512.), Radius: 100., Direction: normals.Subtractive}.Draw(img)
+
+					return &generator.ImageArtifact{Image: img}, nil
+				},
 				"uvMap.png": func(c *generator.Context) (generator.Artifact, error) {
-					img, err := jpeg.Decode(bytes.NewReader(debugUVImageData))
-					return &generator.ImageArtifact{Image: img}, err
+					img := texturing.DebugUVTexture{
+						ImageResolution:      1024,
+						BoardResolution:      10,
+						NegativeCheckerColor: color.RGBA{0, 0, 0, 255},
+
+						PositiveCheckerColor: color.RGBA{255, 0, 0, 255},
+						XColorScale:          color.RGBA{0, 255, 0, 255},
+						YColorScale:          color.RGBA{0, 0, 255, 255},
+					}.Image()
+					return &generator.ImageArtifact{Image: img}, nil
 				},
 				"pumpkin.glb": func(c *generator.Context) (generator.Artifact, error) {
 
@@ -478,7 +496,7 @@ func main() {
 						c.Parameters.Float64("Wedge Spacing"),
 						c.Parameters.Float64("Wedge Radius"),
 						c.Parameters.Int("Wedges"),
-						nil, //imgData,
+						imgData,
 						c.Parameters.Bool("Carve"),
 					)
 
@@ -513,7 +531,8 @@ func main() {
 									Material: &gltf.PolyformMaterial{
 										PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
 											BaseColorTexture: &gltf.PolyformTexture{
-												URI: "Texturing/pumpkin.png", //"uvMap.png",
+												// URI: "Texturing/pumpkin.png", //"uvMap.png",
+												URI: "uvMap.png", //"uvMap.png",
 												Sampler: &gltf.Sampler{
 													WrapS: gltf.SamplerWrap_REPEAT,
 													WrapT: gltf.SamplerWrap_REPEAT,
@@ -522,6 +541,11 @@ func main() {
 											// BaseColorFactor: texturingParams.Color("Base Color"),
 											// MetallicFactor:  1,
 											// RoughnessFactor: 0,
+										},
+										NormalTexture: &gltf.PolyformNormal{
+											PolyformTexture: gltf.PolyformTexture{
+												URI: "normal.png",
+											},
 										},
 										Extensions: []gltf.MaterialExtension{
 											// gltf.PolyformMaterialsUnlit{},

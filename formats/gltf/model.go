@@ -28,6 +28,7 @@ type PolyformMaterial struct {
 	Extras               map[string]any
 	PbrMetallicRoughness *PolyformPbrMetallicRoughness
 	Extensions           []MaterialExtension
+	NormalTexture        *PolyformNormal
 }
 
 type PolyformPbrMetallicRoughness struct {
@@ -36,6 +37,11 @@ type PolyformPbrMetallicRoughness struct {
 	MetallicFactor           float64
 	RoughnessFactor          float64
 	MetallicRoughnessTexture *PolyformTexture
+}
+
+type PolyformNormal struct {
+	PolyformTexture
+	Scale *float64
 }
 
 type PolyformTexture struct {

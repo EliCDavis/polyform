@@ -33,6 +33,6 @@ func wasmZip(this js.Value, cb []js.Value) interface{} { //
 }
 
 func os_setup(a *App) {
-	js.Global().Set("runner", js.FuncOf(wasmZip))
+	js.Global().Set("zipGeometry", js.FuncOf(wasmZip))
 	globalApp = a
 }
