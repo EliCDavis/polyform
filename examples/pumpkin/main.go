@@ -5,10 +5,10 @@ import (
 	_ "embed"
 	"image"
 	"image/color"
-	"image/draw"
 	"image/png"
 	"log"
 	"math"
+	"math/rand"
 	"os"
 	"time"
 
@@ -20,6 +20,7 @@ import (
 	"github.com/EliCDavis/polyform/generator/room"
 	"github.com/EliCDavis/polyform/math/colors"
 	"github.com/EliCDavis/polyform/math/geometry"
+	"github.com/EliCDavis/polyform/math/noise"
 	"github.com/EliCDavis/polyform/math/sample"
 	"github.com/EliCDavis/polyform/math/sdf"
 	"github.com/EliCDavis/polyform/modeling"
@@ -53,6 +54,79 @@ func closestTimeOnMultiLineSegment(point vector3.Float64, multiLine []vector3.Fl
 	return closestTime
 }
 
+func normalImage() image.Image {
+	dim := 1024
+	img := image.NewRGBA(image.Rect(0, 0, dim, dim))
+	normals.Fill(img)
+	numLines := 20
+
+	spacing := float64(dim) / float64(numLines)
+	halfSpacing := float64(spacing) / 2.
+
+	segments := 8
+	yInc := float64(dim) / float64(segments)
+	halfYInc := yInc / 2.
+
+	for i := 0; i < numLines; i++ {
+		dir := normals.Subtractive
+		if rand.Float64() > 0.5 {
+			dir = normals.Additive
+		}
+
+		startX := (float64(i) * spacing) + (spacing / 2)
+		width := 2 + (rand.Float64() * 7)
+
+		start := vector2.New(startX, 0)
+		for seg := 0; seg < segments-1; seg++ {
+			end := vector2.New(
+				startX-(halfSpacing/2)+(rand.Float64()*halfSpacing),
+				start.Y()+halfYInc+(yInc*rand.Float64()),
+			)
+			normals.Line{
+				Start:           start,
+				End:             end,
+				Width:           width,
+				NormalDirection: dir,
+			}.Round(img)
+			start = end
+		}
+
+		normals.Line{
+			Start:           start,
+			End:             vector2.New(startX, float64(dim)),
+			Width:           width,
+			NormalDirection: dir,
+		}.Round(img)
+
+	}
+
+	numWarts := 50
+	wartSizeRange := vector2.New(8., 20.)
+	for i := 0; i < numWarts; i++ {
+		normals.Sphere{
+			Center: vector2.New(
+				float64(dim)*rand.Float64(),
+				float64(dim)*rand.Float64(),
+			),
+			Radius: ((wartSizeRange.Y() - wartSizeRange.X()) * rand.Float64()) + wartSizeRange.X(),
+		}.Draw(img)
+	}
+
+	// return img
+	return texturing.BoxBlurNTimes(img, 10)
+}
+
+func jitterPositions(pos []vector3.Float64, amplitude, frequency float64) []vector3.Float64 {
+	return vector3.Array[float64](pos).
+		Modify(func(v vector3.Float64) vector3.Float64 {
+			return vector3.New(
+				noise.Perlin1D((v.X()*frequency)+0),
+				noise.Perlin1D((v.Y()*frequency)+100),
+				noise.Perlin1D((v.Z()*frequency)+200),
+			).Scale(amplitude).Add(v)
+		})
+}
+
 func newPumpkinMesh(
 	cubersPerUnit float64,
 	maxWidth, topDip, distanceFromCenter, wedgeLineRadius float64,
@@ -82,12 +156,14 @@ func newPumpkinMesh(
 	for i := 0; i < sides; i++ {
 		rot := modeling.UnitQuaternionFromTheta(angleInc*float64(i), vector3.Up[float64]())
 
+		rotatedOuterPoints := jitterPositions(rot.RotateArray(outerPoints), .05, 10)
+
 		outer := []sdf.LinePoint{
-			{Point: rot.Rotate(outerPoints[0]), Radius: 0.33 * wedgeLineRadius},
-			{Point: rot.Rotate(outerPoints[1]), Radius: 0.33 * wedgeLineRadius},
-			{Point: rot.Rotate(outerPoints[2]), Radius: 1.00 * wedgeLineRadius},
-			{Point: rot.Rotate(outerPoints[3]), Radius: 0.66 * wedgeLineRadius},
-			{Point: rot.Rotate(outerPoints[4]), Radius: 0.33 * wedgeLineRadius},
+			{Point: rotatedOuterPoints[0], Radius: 0.33 * wedgeLineRadius * (.9 + (rand.Float64() * 0.2))},
+			{Point: rotatedOuterPoints[1], Radius: 0.33 * wedgeLineRadius * (.9 + (rand.Float64() * 0.2))},
+			{Point: rotatedOuterPoints[2], Radius: 1.00 * wedgeLineRadius * (.9 + (rand.Float64() * 0.2))},
+			{Point: rotatedOuterPoints[3], Radius: 0.66 * wedgeLineRadius * (.9 + (rand.Float64() * 0.2))},
+			{Point: rotatedOuterPoints[4], Radius: 0.33 * wedgeLineRadius * (.9 + (rand.Float64() * 0.2))},
 		}
 
 		inner := []sdf.LinePoint{
@@ -97,7 +173,13 @@ func newPumpkinMesh(
 			{Point: rot.Rotate(innerPoints[3]), Radius: 0.66 * wedgeLineRadius},
 			{Point: rot.Rotate(innerPoints[4]), Radius: 0.33 * wedgeLineRadius},
 		}
-		fields = append(fields, marching.Subtract(marching.VarryingThicknessLine(outer, 1), marching.VarryingThicknessLine(inner, 2)))
+
+		if useImageField {
+			fields = append(fields, marching.Subtract(marching.VarryingThicknessLine(outer, 1), marching.VarryingThicknessLine(inner, 2)))
+
+		} else {
+			fields = append(fields, marching.VarryingThicknessLine(outer, 1))
+		}
 	}
 
 	allFields := marching.CombineFields(fields...)
@@ -172,7 +254,7 @@ func newPumpkinMesh(
 	for i := 0; i < pumpkinVerts.Len(); i++ {
 		vert := pumpkinVerts.At(i)
 
-		xzTheta := math.Atan2(vert.Z(), vert.X()) * 2
+		xzTheta := math.Atan2(vert.Z(), vert.X()) * 4
 		xzTheta = math.Abs(xzTheta) // Avoid the UV seam
 
 		dir := vert.Sub(center)
@@ -203,7 +285,7 @@ func imageToEdgeData(src image.Image, fillValue float64) [][]float64 {
 			return
 		}
 
-		if colors.RedEqual(kernel[4], 255) {
+		if colors.AlphaEqual(kernel[4], 0) {
 			imageData[x][y] = -fillValue
 		} else {
 			imageData[x][y] = fillValue
@@ -300,7 +382,7 @@ func check(err error) {
 	}
 }
 
-//go:embed face.png
+//go:embed unity.png
 var facePNG []byte
 
 func main() {
@@ -360,16 +442,16 @@ func main() {
 							ctx.DrawRectangle(0, 0, texDimension, texDimension)
 							ctx.Fill()
 
-							lines := c.Parameters.Int("Lines")
+							// lines := c.Parameters.Int("Lines")
 
-							ctx.SetColor(c.Parameters.Color("Line Color"))
-							ctx.SetLineWidth(2)
-							spacing := texDimension / (lines)
-							for i := 0; i < lines; i++ {
-								xDim := float64((spacing / 2) + (spacing * i))
-								ctx.DrawLine(xDim, 0, xDim, texDimension)
-								ctx.Stroke()
-							}
+							// ctx.SetColor(c.Parameters.Color("Line Color"))
+							// ctx.SetLineWidth(2)
+							// spacing := texDimension / (lines)
+							// for i := 0; i < lines; i++ {
+							// 	xDim := float64((spacing / 2) + (spacing * i))
+							// 	ctx.DrawLine(xDim, 0, xDim, texDimension)
+							// 	ctx.Stroke()
+							// }
 
 							return generator.ImageArtifact{
 								Image: ctx.Image(),
@@ -449,31 +531,24 @@ func main() {
 				},
 			},
 			Producers: map[string]generator.Producer{
-				"normal.png": func(c *generator.Context) (generator.Artifact, error) {
-					img := image.NewRGBA(image.Rect(0, 0, 1024, 1024))
-					blue := color.RGBA{128, 128, 255, 255}
-					// blue = color.RGBA{255, 255, 255, 255}
-					draw.Draw(img, img.Bounds(), &image.Uniform{blue}, image.Point{}, draw.Src)
-					lineThickness := 30.
-					for i := 0; i < 10; i++ {
-						normals.Line{
-							Start:           vector2.New(60.+float64(i*100), 20.),
-							End:             vector2.New(60.+float64(i*100), 1000.),
-							Width:           lineThickness,
-							NormalDirection: normals.Additive,
-						}.Round(img)
-
-						normals.Line{
-							Start:           vector2.New(20., 60.+float64(i*100)),
-							End:             vector2.New(1000., 60.+float64(i*100)),
-							Width:           lineThickness,
-							NormalDirection: normals.Subtractive,
-						}.Round(img)
+				"perlin.png": func(c *generator.Context) (generator.Artifact, error) {
+					dim := 1024
+					img := image.NewRGBA(image.Rect(0, 0, dim, dim))
+					for x := 0; x < dim; x++ {
+						for y := 0; y < dim; y++ {
+							p := noise.Perlin3D(vector3.New(x, y, 0).ToFloat64().Scale(1./128.).Scale(4)) * 255
+							img.Set(x, y, color.RGBA{
+								R: byte(p),
+								G: byte(p),
+								B: byte(p),
+								A: 255,
+							})
+						}
 					}
-					normals.Sphere{Center: vector2.New(712., 512.), Radius: 100., Direction: normals.Additive}.Draw(img)
-					normals.Sphere{Center: vector2.New(312., 512.), Radius: 100., Direction: normals.Subtractive}.Draw(img)
-
 					return &generator.ImageArtifact{Image: img}, nil
+				},
+				"normal.png": func(c *generator.Context) (generator.Artifact, error) {
+					return &generator.ImageArtifact{Image: normalImage()}, nil
 				},
 				"uvMap.png": func(c *generator.Context) (generator.Artifact, error) {
 					img := texturing.DebugUVTexture{
@@ -531,8 +606,8 @@ func main() {
 									Material: &gltf.PolyformMaterial{
 										PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
 											BaseColorTexture: &gltf.PolyformTexture{
-												// URI: "Texturing/pumpkin.png", //"uvMap.png",
-												URI: "uvMap.png", //"uvMap.png",
+												URI: "Texturing/pumpkin.png", //"uvMap.png",
+												// URI: "uvMap.png", //"uvMap.png",
 												Sampler: &gltf.Sampler{
 													WrapS: gltf.SamplerWrap_REPEAT,
 													WrapT: gltf.SamplerWrap_REPEAT,

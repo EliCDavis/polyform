@@ -1,8 +1,8 @@
 package normals
 
 import (
-	"image"
 	"image/color"
+	"image/draw"
 	"math"
 
 	"github.com/EliCDavis/vector/vector2"
@@ -16,7 +16,7 @@ type Line struct {
 	NormalDirection Direction
 }
 
-func (l Line) normalLine(src *image.RGBA, start, end vector2.Float64) {
+func (l Line) normalLine(src draw.Image, start, end vector2.Float64) {
 	line := end.Sub(start)
 	len := line.Length()
 	dir := line.Normalized()
@@ -68,7 +68,7 @@ func (l Line) Dir() vector2.Float64 {
 	return l.End.Sub(l.Start)
 }
 
-func (l Line) Round(src *image.RGBA) {
+func (l Line) Round(src draw.Image) {
 	dir := l.Dir()
 	n := dir.Normalized()
 	perp := n.Perpendicular().Scale(l.Width / 2)

@@ -1,8 +1,8 @@
 package normals
 
 import (
-	"image"
 	"image/color"
+	"image/draw"
 	"math"
 
 	"github.com/EliCDavis/vector/vector2"
@@ -15,7 +15,7 @@ type Sphere struct {
 	Direction Direction
 }
 
-func (s Sphere) Draw(src *image.RGBA) {
+func (s Sphere) Draw(src draw.Image) {
 
 	center3 := vector3.New(s.Center.X(), 0, s.Center.Y())
 
