@@ -69,12 +69,12 @@ func normalImage() image.Image {
 
 	for i := 0; i < numLines; i++ {
 		dir := normals.Subtractive
-		if rand.Float64() > 0.5 {
+		if rand.Float64() > 0.75 {
 			dir = normals.Additive
 		}
 
 		startX := (float64(i) * spacing) + (spacing / 2)
-		width := 2 + (rand.Float64() * 7)
+		width := 4 + (rand.Float64() * 10)
 
 		start := vector2.New(startX, 0)
 		for seg := 0; seg < segments-1; seg++ {
@@ -285,7 +285,7 @@ func imageToEdgeData(src image.Image, fillValue float64) [][]float64 {
 			return
 		}
 
-		if colors.AlphaEqual(kernel[4], 0) {
+		if colors.RedEqual(kernel[4], 255) {
 			imageData[x][y] = -fillValue
 		} else {
 			imageData[x][y] = fillValue
@@ -382,7 +382,43 @@ func check(err error) {
 	}
 }
 
-//go:embed unity.png
+// Returns +-1
+func signNotZero(v vector2.Float64) vector2.Float64 {
+	x := 1.0
+	if v.X() < 0.0 {
+		x = -1.0
+	}
+
+	y := 1.0
+	if v.Y() < 0.0 {
+		y = -1.0
+	}
+
+	return vector2.New(x, y)
+}
+
+func multVect(a, b vector2.Float64) vector2.Float64 {
+	return vector2.New(
+		a.X()*b.X(),
+		a.Y()*b.Y(),
+	)
+}
+
+// FromOctUV converts a 2D octahedron UV coordinate to a point on a 3D sphere.
+func FromOctUV(e vector2.Float64) vector3.Float64 {
+	// vec3 v = vec3(e.xy, 1.0 - abs(e.x) - abs(e.y));
+	v := vector3.New(e.X(), e.Y(), 1.0-math.Abs(e.X())-math.Abs(e.Y()))
+
+	// if (v.z < 0) v.xy = (1.0 - abs(v.yx)) * signNotZero(v.xy);
+	if v.Z() < 0 {
+		n := multVect(vector2.New(1.0-math.Abs(v.Y()), 1.0-math.Abs(v.X())), signNotZero(vector2.New(v.X(), v.Y())))
+		v = v.SetX(n.X()).SetY(n.Y())
+	}
+
+	return v.Normalized()
+}
+
+//go:embed face.png
 var facePNG []byte
 
 func main() {
@@ -535,10 +571,64 @@ func main() {
 					dim := 1024
 					img := image.NewRGBA(image.Rect(0, 0, dim, dim))
 					for x := 0; x < dim; x++ {
+						xDim := (float64(x) / float64(dim)) * 3
+						xRot := xDim * math.Pi * 2.
+
 						for y := 0; y < dim; y++ {
-							p := noise.Perlin3D(vector3.New(x, y, 0).ToFloat64().Scale(1./128.).Scale(4)) * 255
+							yDim := (float64(y) / float64(dim)) * 3
+							yRot := yDim * math.Pi * 2.
+
+							// p := noise.Perlin3D(vector3.New(x, y, 0).ToFloat64().Scale(1./128.).Scale(4)) * 255
+
+							// A regular doughnut
+							// xDir := vector3.New(math.Cos(xRot), math.Sin(xRot), 0).
+							// 	Scale(2).
+							// 	Add(vector3.New(1., 0., 0.).Scale(4))
+							// final := modeling.UnitQuaternionFromTheta(yRot, vector3.Up[float64]()).
+							// 	Rotate(xDir)
+
+							// A regular sphere
+							// rot1 := modeling.UnitQuaternionFromTheta(yRot, vector3.Up[float64]())
+							// rot2 := modeling.UnitQuaternionFromTheta(xRot, vector3.Forward[float64]())
+							// final := rot1.Rotate(rot2.Rotate(vector3.Right[float64]()))
+
+							// Normal Mapping method - FAILURE
+							// if xDim >= 1 {
+							// 	xDim -= 1
+							// }
+							// if yDim >= 1 {
+							// 	yDim -= 1
+							// }
+							// final := FromOctUV(vector2.New((xDim*2)-1, (yDim*2)-1))
+
+							// A wiggly donut
+							xDir := vector3.New(math.Cos(xRot), math.Sin(xRot), 0).
+								Scale(1).
+								Add(vector3.New(1., 0., 0.).Scale(2))
+
+							len := (xDir.X() - 1) / 2
+							xDir = xDir.SetY(xDir.Y() + (1 - math.Pow((1-(len)), 4)*math.Cos(yRot)*3.6))
+							final := modeling.UnitQuaternionFromTheta(yRot, vector3.Up[float64]()).
+								Rotate(xDir)
+
+							// A dumb Doughnut
+							// xDir := vector3.New(math.Cos(yRot), math.Sin(xRot), 0).
+							// 	Scale(5).
+							// 	Add(vector3.New(1., 0., 0.).Scale(7))
+							// final := vector3.New(math.Cos(xRot), math.Sin(yRot), 0).
+							// 	Add(xDir)
+
+							// A spinny doughnut
+							// rot := modeling.UnitQuaternionFromTheta(yRot, vector3.Up[float64]())
+							// xDir := rot.Rotate(vector3.New(math.Cos(xRot), math.Sin(xRot), 0).
+							// 	Scale(1)).
+							// 	Add(vector3.New(1., 0., 0.).Scale(1))
+							// final := rot.Rotate(xDir)
+
+							p := noise.Perlin3D(final.Scale(2)) * 255
+
 							img.Set(x, y, color.RGBA{
-								R: byte(p),
+								R: byte(p), // byte(len * 255),
 								G: byte(p),
 								B: byte(p),
 								A: 255,
