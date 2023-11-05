@@ -165,3 +165,11 @@ func TestMultiplyRGBByConstant(t *testing.T) {
 	assert.True(t, colors.BlueEqual(scaled, 75))
 	assert.True(t, colors.AlphaEqual(scaled, 200))
 }
+
+func TestSingleComponents(t *testing.T) {
+	c := color.RGBA{R: 2, G: 100, B: 150, A: 200}
+	assert.Equal(t, byte(2), colors.Red(c))
+	assert.Equal(t, byte(100), colors.Green(c))
+	assert.Equal(t, byte(150), colors.Blue(c))
+	assert.Equal(t, byte(200), colors.Alpha(c))
+}

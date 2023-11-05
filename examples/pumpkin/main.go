@@ -31,6 +31,71 @@ import (
 	"github.com/fogleman/gg"
 )
 
+// perm = range(256)
+// random.shuffle(perm)
+// perm += perm
+// dirs = [(math.cos(a * 2.0 * math.pi / 256),
+//          math.sin(a * 2.0 * math.pi / 256))
+//          for a in range(256)]
+
+type TilingNoise struct {
+	dirs []vector2.Float64
+	perm []int
+}
+
+func (tn *TilingNoise) init() {
+	size := 256
+
+	tn.perm = make([]int, size)
+	for i := 0; i < size; i++ {
+		tn.perm[i] = i
+	}
+	rand.Shuffle(len(tn.perm), func(i, j int) { tn.perm[i], tn.perm[j] = tn.perm[j], tn.perm[i] })
+	tn.perm = append(tn.perm, tn.perm...)
+
+	tn.dirs = make([]vector2.Float64, size)
+	for i := 0; i < size; i++ {
+		a := float64(i)
+		tn.dirs[i] = vector2.New(
+			math.Cos((a*2.*math.Pi)/float64(size)),
+			math.Sin((a*2.*math.Pi)/float64(size)),
+		)
+	}
+}
+
+// def noise(x, y, per):
+//     def surflet(gridX, gridY):
+//         distX, distY = abs(x-gridX), abs(y-gridY)
+//         polyX = 1 - 6*distX**5 + 15*distX**4 - 10*distX**3
+//         polyY = 1 - 6*distY**5 + 15*distY**4 - 10*distY**3
+//         hashed = perm[perm[int(gridX)%per] + int(gridY)%per]
+//         grad = (x-gridX)*dirs[hashed][0] + (y-gridY)*dirs[hashed][1]
+//         return polyX * polyY * grad
+//     intX, intY = int(x), int(y)
+//     return (surflet(intX+0, intY+0) + surflet(intX+1, intY+0) +
+//             surflet(intX+0, intY+1) + surflet(intX+1, intY+1))
+
+// https://gamedev.stackexchange.com/questions/23625/how-do-you-generate-tileable-perlin-noise
+func (tn *TilingNoise) surflet(v vector2.Float64, g vector2.Int, per int) float64 {
+	dist := v.Sub(g.ToFloat64()).Abs()
+	polyX := 1 - (6 * math.Pow(dist.X(), 5)) + (15 * math.Pow(dist.X(), 4)) - (10 * math.Pow(dist.X(), 3))
+	polyY := 1 - (6 * math.Pow(dist.Y(), 5)) + (15 * math.Pow(dist.Y(), 4)) - (10 * math.Pow(dist.Y(), 3))
+
+	hashed := tn.perm[tn.perm[g.X()%per]+(g.Y()%per)]
+
+	hashedDir := tn.dirs[hashed]
+	grad := ((v.X() - float64(g.X())) * hashedDir.X()) + ((v.Y() - float64(g.Y())) * hashedDir.Y())
+	return polyX * polyY * grad
+}
+
+func (tn *TilingNoise) Noise(v vector2.Float64, per int) float64 {
+	i := v.FloorToInt()
+	return tn.surflet(v, i, per) +
+		tn.surflet(v, i.Add(vector2.Right[int]()), per) +
+		tn.surflet(v, i.Add(vector2.Up[int]()), per) +
+		tn.surflet(v, i.Add(vector2.One[int]()), per)
+}
+
 func closestTimeOnMultiLineSegment(point vector3.Float64, multiLine []vector3.Float64, totalLength float64) float64 {
 	if len(multiLine) < 2 {
 		panic("line segment required 2 or more points")
@@ -54,10 +119,82 @@ func closestTimeOnMultiLineSegment(point vector3.Float64, multiLine []vector3.Fl
 	return closestTime
 }
 
+func metalRoughness() image.Image {
+	dim := 1024
+	img := image.NewRGBA(image.Rect(0, 0, dim, dim))
+	// normals.Fill(img)
+
+	n := &TilingNoise{}
+	n.init()
+
+	for x := 0; x < dim; x++ {
+		for y := 0; y < dim; y++ {
+			val := 0.
+			freq := 1. / 64.
+			for o := 0; o < 5; o++ {
+				op2 := math.Pow(2, float64(o))
+				n := n.Noise(
+					vector2.New(
+						(float64(x)*freq)*op2,
+						(float64(y)*freq)*op2,
+					),
+					int(float64(dim)*freq)*int(op2),
+				)
+				val += math.Pow(0.5, float64(o)) * n
+			}
+			// p := n.Noise(vector2.New(xDim*10, yDim*10), 100)
+			p := (val * 128) + 128
+
+			p = 255 - (p * 0.75)
+
+			img.Set(x, y, color.RGBA{
+				R: 0, // byte(len * 255),
+				G: byte(p),
+				B: 0,
+				A: 255,
+			})
+		}
+	}
+	return img
+}
+
 func normalImage() image.Image {
 	dim := 1024
 	img := image.NewRGBA(image.Rect(0, 0, dim, dim))
-	normals.Fill(img)
+	// normals.Fill(img)
+
+	n := &TilingNoise{}
+	n.init()
+
+	for x := 0; x < dim; x++ {
+		for y := 0; y < dim; y++ {
+			val := 0.
+			freq := 1. / 64.
+			for o := 0; o < 5; o++ {
+				op2 := math.Pow(2, float64(o))
+				n := n.Noise(
+					vector2.New(
+						(float64(x)*freq)*op2,
+						(float64(y)*freq)*op2,
+					),
+					int(float64(dim)*freq)*int(op2),
+				)
+				val += math.Pow(0.5, float64(o)) * n
+			}
+			// p := n.Noise(vector2.New(xDim*10, yDim*10), 100)
+			p := (val * 128) + 128
+
+			img.Set(x, y, color.RGBA{
+				R: byte(p), // byte(len * 255),
+				G: byte(p),
+				B: byte(p),
+				A: 255,
+			})
+		}
+	}
+
+	img = texturing.ToNormal(img)
+
 	numLines := 20
 
 	spacing := float64(dim) / float64(numLines)
@@ -568,22 +705,27 @@ func main() {
 			},
 			Producers: map[string]generator.Producer{
 				"perlin.png": func(c *generator.Context) (generator.Artifact, error) {
+					// dim := 128
 					dim := 1024
 					img := image.NewRGBA(image.Rect(0, 0, dim, dim))
+
+					n := &TilingNoise{}
+					n.init()
+
 					for x := 0; x < dim; x++ {
-						xDim := (float64(x) / float64(dim)) * 3
-						xRot := xDim * math.Pi * 2.
+						// xDim := (float64(x) / float64(dim)) * 2
+						// xRot := xDim * math.Pi * 2.
 
 						for y := 0; y < dim; y++ {
-							yDim := (float64(y) / float64(dim)) * 3
-							yRot := yDim * math.Pi * 2.
+							// yDim := (float64(y) / float64(dim)) * 2
+							// yRot := yDim * math.Pi * 2.
 
 							// p := noise.Perlin3D(vector3.New(x, y, 0).ToFloat64().Scale(1./128.).Scale(4)) * 255
 
 							// A regular doughnut
 							// xDir := vector3.New(math.Cos(xRot), math.Sin(xRot), 0).
 							// 	Scale(2).
-							// 	Add(vector3.New(1., 0., 0.).Scale(4))
+							// 	Add(vector3.New(1., 0., 0.).Scale(8))
 							// final := modeling.UnitQuaternionFromTheta(yRot, vector3.Up[float64]()).
 							// 	Rotate(xDir)
 
@@ -602,14 +744,14 @@ func main() {
 							// final := FromOctUV(vector2.New((xDim*2)-1, (yDim*2)-1))
 
 							// A wiggly donut
-							xDir := vector3.New(math.Cos(xRot), math.Sin(xRot), 0).
-								Scale(1).
-								Add(vector3.New(1., 0., 0.).Scale(2))
+							// xDir := vector3.New(math.Cos(xRot), math.Sin(xRot), 0).
+							// 	Scale(1).
+							// 	Add(vector3.New(1., 0., 0.).Scale(2))
 
-							len := (xDir.X() - 1) / 2
-							xDir = xDir.SetY(xDir.Y() + (1 - math.Pow((1-(len)), 4)*math.Cos(yRot)*3.6))
-							final := modeling.UnitQuaternionFromTheta(yRot, vector3.Up[float64]()).
-								Rotate(xDir)
+							// len := (xDir.X() - 1) / 2
+							// xDir = xDir.SetY(xDir.Y() + (1 - math.Pow((1-(len)), 4)*math.Cos(yRot)*3.6))
+							// final := modeling.UnitQuaternionFromTheta(yRot, vector3.Up[float64]()).
+							// 	Rotate(xDir)
 
 							// A dumb Doughnut
 							// xDir := vector3.New(math.Cos(yRot), math.Sin(xRot), 0).
@@ -625,7 +767,23 @@ func main() {
 							// 	Add(vector3.New(1., 0., 0.).Scale(1))
 							// final := rot.Rotate(xDir)
 
-							p := noise.Perlin3D(final.Scale(2)) * 255
+							// p := noise.Perlin3D(final.Scale(.8)) * 255
+
+							val := 0.
+							freq := 1. / 64.
+							for o := 0; o < 5; o++ {
+								op2 := math.Pow(2, float64(o))
+								n := n.Noise(
+									vector2.New(
+										(float64(x)*freq)*op2,
+										(float64(y)*freq)*op2,
+									),
+									int(float64(dim)*freq)*int(op2),
+								)
+								val += math.Pow(0.5, float64(o)) * n
+							}
+							// p := n.Noise(vector2.New(xDim*10, yDim*10), 100)
+							p := (val * 128) + 128
 
 							img.Set(x, y, color.RGBA{
 								R: byte(p), // byte(len * 255),
@@ -635,10 +793,16 @@ func main() {
 							})
 						}
 					}
-					return &generator.ImageArtifact{Image: img}, nil
+
+					// normals.FromHeightmap(img)
+					// return &generator.ImageArtifact{Image: img}, nil
+					return &generator.ImageArtifact{Image: texturing.ToNormal(img)}, nil
 				},
 				"normal.png": func(c *generator.Context) (generator.Artifact, error) {
 					return &generator.ImageArtifact{Image: normalImage()}, nil
+				},
+				"roughness.png": func(c *generator.Context) (generator.Artifact, error) {
+					return &generator.ImageArtifact{Image: metalRoughness()}, nil
 				},
 				"uvMap.png": func(c *generator.Context) (generator.Artifact, error) {
 					img := texturing.DebugUVTexture{
@@ -702,6 +866,9 @@ func main() {
 													WrapS: gltf.SamplerWrap_REPEAT,
 													WrapT: gltf.SamplerWrap_REPEAT,
 												},
+											},
+											MetallicRoughnessTexture: &gltf.PolyformTexture{
+												URI: "roughness.png",
 											},
 											// BaseColorFactor: texturingParams.Color("Base Color"),
 											// MetallicFactor:  1,

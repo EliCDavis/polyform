@@ -57,6 +57,26 @@ func AddRGB(colors ...color.Color) color.Color {
 	}
 }
 
+func Red(c color.Color) byte {
+	r, _, _, _ := c.RGBA()
+	return byte(r >> 8)
+}
+
+func Green(c color.Color) byte {
+	_, g, _, _ := c.RGBA()
+	return byte(g >> 8)
+}
+
+func Blue(c color.Color) byte {
+	_, _, b, _ := c.RGBA()
+	return byte(b >> 8)
+}
+
+func Alpha(c color.Color) byte {
+	_, _, _, a := c.RGBA()
+	return byte(a >> 8)
+}
+
 func RedEqual(c color.Color, val byte) bool {
 	r, _, _, _ := c.RGBA()
 	return byte(r>>8) == val

@@ -200,6 +200,9 @@ Resources either directly contributing to the code, or are just interesting find
   - [Book of Shaders on Noise](https://thebookofshaders.com/11/)
   - [Simplex Noise](https://en.wikipedia.org/wiki/Simplex_noise)
   - [_Stable Fiddusion: Frequency-domain blue noise generator_ by Steven Wittens](https://acko.net/blog/stable-fiddusion/)
+  - Tiling Noise
+    - [ _Tiling Noise_ by Ronja](https://www.ronja-tutorials.com/post/029-tiling-noise/)
+    - [gamedev.stackexchange _How do you generate tileable Perlin noise?_](https://gamedev.stackexchange.com/questions/23625/how-do-you-generate-tileable-perlin-noise)
 - Triangulation
   - Delaunay
     - Bowyer–Watson
@@ -284,3 +287,5 @@ Resources either directly contributing to the code, or are just interesting find
   - Did not expect to need to look that up
   - [Bresenham's line algorithm (Aliased)](https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm)
   - [Xiaolin Wu's line algorithm (Anti-Aliased)](https://en.wikipedia.org/wiki/Xiaolin_Wu's_line_algorithm)
+- Materials
+  - [The PBR Guide Part 2](https://creativecloud.adobe.com/learn/substance-3d-designer/web/the-pbr-guide-part-2)

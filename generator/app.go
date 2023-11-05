@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"embed"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -256,6 +257,10 @@ func (a App) Run() error {
 	os_setup(&a)
 
 	argsWithoutProg := os.Args[1:]
+
+	if len(argsWithoutProg) == 0 {
+		return errors.New("Please specify a command [generate, serve]")
+	}
 
 	switch strings.ToLower(argsWithoutProg[0]) {
 	case "generate":

@@ -119,7 +119,7 @@ func main() {
 				"sphere.glb": func(c *generator.Context) (generator.Artifact, error) {
 					sphereParams := c.Parameters.Group("Sphere")
 
-					sphere := primitives.UVSphere(
+					sphere := primitives.UVSphereUnwelded(
 						sphereParams.Float64("Radius"),
 						sphereParams.Int("Rows"),
 						sphereParams.Int("Columns"),
@@ -131,13 +131,19 @@ func main() {
 						v := verts.At(i)
 
 						xz := v.XZ().Normalized()
+						if xz.ContainsNaN() {
+							xz = vector2.Right[float64]()
+						}
 						xzTheta := math.Atan2(xz.Y(), xz.X())
 
 						xy := v.XY().Normalized()
+						if xy.ContainsNaN() {
+							xy = vector2.Up[float64]()
+						}
 						xyTheta := math.Atan2(xy.Y(), xy.X())
 
 						uvs[i] = vector2.New(xzTheta, xyTheta).
-							Scale(1. / (2. * math.Pi)).
+							Scale(1. / (2 * math.Pi)).
 							Add(vector2.One[float64]()).
 							Scale(0.5)
 					}

@@ -16,7 +16,8 @@ func averageColorComponents(c color.Color) float64 {
 	return (float64(r8+g8+b8) / 3.) / 255.
 }
 
-func ToNormal(src image.Image) image.Image {
+// https://stackoverflow.com/questions/5281261/generating-a-normal-map-from-a-height-map
+func ToNormal(src image.Image) *image.RGBA {
 	dst := image.NewRGBA(src.Bounds())
 	scale := 1.
 	Convolve(src, func(x, y int, vals []color.Color) {
