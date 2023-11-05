@@ -1,0 +1,10 @@
+{{ .Name }} - {{ .Version }}
+    {{ .Description }}
+
+AUTHOR:
+    {{range .Authors}}{{.Name}} 
+    {{end}}
+COMMANDS:
+    {{range .Commands }}{{.Name}}: {{range .Aliases}}{{.}} {{end}}
+        {{.Description}} 
+    {{ end }}

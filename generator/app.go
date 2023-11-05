@@ -4,7 +4,6 @@ import (
 	"archive/zip"
 	"embed"
 	"encoding/json"
-	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -92,6 +91,17 @@ func (a App) WriteZip(out io.Writer) error {
 
 //go:embed html/*
 var htmlFs embed.FS
+
+//go:embed cli.tmpl
+var cliTemplate string
+
+type appCLI struct {
+	Name        string
+	Version     string
+	Description string
+	Authors     []Author
+	Commands    []*command
+}
 
 func (a App) Serve(host, port string) error {
 
@@ -253,39 +263,128 @@ func (a App) Serve(host, port string) error {
 }
 
 func (a App) Run() error {
-
 	os_setup(&a)
+
+	commandMap := make(map[string]*command)
+
+	var commands []*command
+	commands = []*command{
+		{
+			Name:        "Generate",
+			Description: "Runs all producers the app has defined and saves it to the file system",
+			Aliases:     []string{"generate", "gen"},
+			Run: func() error {
+				generateCmd := flag.NewFlagSet("generate", flag.ExitOnError)
+				a.Generator.initialize(generateCmd)
+				folderFlag := generateCmd.String("folder", ".", "folder to save generated contents to")
+				if err := generateCmd.Parse(os.Args[2:]); err != nil {
+					return err
+				}
+				return a.Generator.run(*folderFlag)
+			},
+		},
+		{
+			Name:        "Serve",
+			Description: "Starts an http server and hosts a webplayer for configuring the models produced from this app",
+			Aliases:     []string{"serve"},
+			Run: func() error {
+				serveCmd := flag.NewFlagSet("serve", flag.ExitOnError)
+				a.Generator.initialize(serveCmd)
+				portFlag := serveCmd.String("port", "8080", "port to serve over")
+				hostFlag := serveCmd.String("host", "localhost", "interface to bind to")
+
+				if err := serveCmd.Parse(os.Args[2:]); err != nil {
+					return err
+				}
+				return a.Serve(*hostFlag, *portFlag)
+			},
+		},
+		{
+			Name:        "Outline",
+			Description: "Enumerates all generators, parameters, and producers in a heirarchial fashion formatted in JSON",
+			Aliases:     []string{"outline"},
+			Run: func() error {
+				outlineCmd := flag.NewFlagSet("outline", flag.ExitOnError)
+				a.Generator.initialize(outlineCmd)
+
+				if err := outlineCmd.Parse(os.Args[2:]); err != nil {
+					return err
+				}
+
+				data, err := json.MarshalIndent(a.Generator.Schema(), "", "    ")
+				if err != nil {
+					panic(err)
+				}
+				os.Stdout.Write(data)
+
+				return nil
+			},
+		},
+		{
+			Name:        "Zip",
+			Description: "Runs all producers defined and writes it to a zip file",
+			Aliases:     []string{"zip", "z"},
+			Run: func() error {
+				zipCmd := flag.NewFlagSet("zip", flag.ExitOnError)
+				a.Generator.initialize(zipCmd)
+				fileFlag := zipCmd.String("file-name", "out.zip", "file to write the contents of the zip too")
+
+				if err := zipCmd.Parse(os.Args[2:]); err != nil {
+					return err
+				}
+
+				f, err := os.Create(*fileFlag)
+				if err != nil {
+					return err
+				}
+				defer f.Close()
+
+				return a.WriteZip(f)
+			},
+		},
+		{
+			Name:        "Help",
+			Description: "",
+			Aliases:     []string{"help", "h"},
+			Run: func() error {
+
+				cliDetails := appCLI{
+					Name:        a.Name,
+					Version:     a.Version,
+					Commands:    commands,
+					Authors:     a.Authors,
+					Description: a.Description,
+				}
+
+				if cliDetails.Version == "" {
+					cliDetails.Version = "(no version)"
+				}
+
+				tmpl, err := template.New("CLI App").Parse(cliTemplate)
+				if err != nil {
+					return err
+				}
+				return tmpl.Execute(os.Stdout, cliDetails)
+			},
+		},
+	}
+
+	for _, cmd := range commands {
+		for _, alias := range cmd.Aliases {
+			commandMap[alias] = cmd
+		}
+	}
 
 	argsWithoutProg := os.Args[1:]
 
 	if len(argsWithoutProg) == 0 {
-		return errors.New("Please specify a command [generate, serve]")
+		return commandMap["help"].Run()
 	}
 
-	switch strings.ToLower(argsWithoutProg[0]) {
-	case "generate":
-		generateCmd := flag.NewFlagSet("generate", flag.ExitOnError)
-		a.Generator.initialize(generateCmd)
-		folderFlag := generateCmd.String("folder", ".", "folder to save generated contents to")
-		if err := generateCmd.Parse(os.Args[2:]); err != nil {
-			return err
-		}
-		return a.Generator.run(*folderFlag)
-
-	case "serve":
-		serveCmd := flag.NewFlagSet("serve", flag.ExitOnError)
-		a.Generator.initialize(serveCmd)
-		portFlag := serveCmd.String("port", "8080", "port to serve over")
-		hostFlag := serveCmd.String("host", "localhost", "interface to bind to")
-
-		if err := serveCmd.Parse(os.Args[2:]); err != nil {
-			return err
-		}
-		return a.Serve(*hostFlag, *portFlag)
-
-	default:
-		fmt.Fprintf(os.Stdout, "unrecognized command %s", argsWithoutProg[0])
+	if cmd, ok := commandMap[argsWithoutProg[0]]; ok {
+		return cmd.Run()
 	}
 
+	fmt.Fprintf(os.Stdout, "unrecognized command %s", argsWithoutProg[0])
 	return nil
 }
