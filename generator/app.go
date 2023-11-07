@@ -7,7 +7,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"path"
@@ -19,6 +18,27 @@ import (
 	"github.com/EliCDavis/polyform/generator/room"
 )
 
+type producerCache map[*Generator]map[string]Artifact
+
+func (pc *producerCache) Lookup(generator *Generator, producer string) Artifact {
+	if pc == nil {
+		return nil
+	}
+
+	var generatorCache map[string]Artifact
+	if data, ok := (*pc)[generator]; ok {
+		generatorCache = data
+	} else {
+		return nil
+	}
+
+	if artifact, ok := generatorCache[producer]; ok {
+		return artifact
+	}
+
+	return nil
+}
+
 type App struct {
 	Name        string
 	Version     string
@@ -26,6 +46,9 @@ type App struct {
 	WebScene    *room.WebScene
 	Authors     []Author
 	Generator   *Generator
+
+	// Runtime data
+	producerCache producerCache
 }
 
 type pageData struct {
@@ -35,7 +58,7 @@ type pageData struct {
 	Scripting   string
 }
 
-func writeGeneratorToZip(path string, generator *Generator, zw *zip.Writer) error {
+func writeGeneratorToZip(path string, generator *Generator, zw *zip.Writer, cache producerCache) error {
 	if generator == nil {
 		panic("can't write nil generator")
 	}
@@ -50,26 +73,29 @@ func writeGeneratorToZip(path string, generator *Generator, zw *zip.Writer) erro
 
 	for file, producer := range generator.Producers {
 		filePath := path + file
-		log.Println(filePath)
+		// log.Println(filePath)
 		f, err := zw.Create(filePath)
 		if err != nil {
 			return err
 		}
 
-		artifact, err := producer(ctx)
-		if err != nil {
-			return err
+		artifact := cache.Lookup(generator, file)
+		if artifact == nil {
+			artifact, err = producer(ctx)
+			if err != nil {
+				return err
+			}
 		}
 
 		err = artifact.Write(f)
 		if err != nil {
 			return err
 		}
-		log.Printf("wrote %s", filePath)
+		// log.Printf("wrote %s", filePath)
 	}
 
 	for name, gen := range generator.SubGenerators {
-		err := writeGeneratorToZip(fmt.Sprintf("%s%s/", path, name), gen, zw)
+		err := writeGeneratorToZip(fmt.Sprintf("%s%s/", path, name), gen, zw, cache)
 		if err != nil {
 			return err
 		}
@@ -81,7 +107,7 @@ func writeGeneratorToZip(path string, generator *Generator, zw *zip.Writer) erro
 func (a App) WriteZip(out io.Writer) error {
 	z := zip.NewWriter(out)
 
-	err := writeGeneratorToZip("", a.Generator, z)
+	err := writeGeneratorToZip("", a.Generator, z, a.producerCache)
 	if err != nil {
 		return err
 	}
@@ -100,12 +126,12 @@ type appCLI struct {
 	Version     string
 	Description string
 	Authors     []Author
-	Commands    []*command
+	Commands    []*cliCommand
 }
 
-func (a App) Serve(host, port string) error {
+func (a *App) Serve(host, port string) error {
 
-	producerCache := make(map[*Generator]map[string]Artifact)
+	a.producerCache = make(map[*Generator]map[string]Artifact)
 	producerLock := &sync.Mutex{}
 
 	serverStarted := time.Now()
@@ -188,7 +214,7 @@ func (a App) Serve(host, port string) error {
 		}
 
 		for _, g := range generatorsEffected {
-			producerCache[g] = make(map[string]Artifact)
+			a.producerCache[g] = make(map[string]Artifact)
 		}
 
 		movelVersion++
@@ -219,11 +245,11 @@ func (a App) Serve(host, port string) error {
 			panic(fmt.Errorf("no producer registered for: %s", producerToLoad))
 		}
 
-		if _, ok := producerCache[generatorToUse]; !ok {
-			producerCache[generatorToUse] = make(map[string]Artifact)
+		if _, ok := a.producerCache[generatorToUse]; !ok {
+			a.producerCache[generatorToUse] = make(map[string]Artifact)
 		}
 
-		if artifact, ok := producerCache[generatorToUse][producerToLoad]; ok && artifact != nil {
+		if artifact, ok := a.producerCache[generatorToUse][producerToLoad]; ok && artifact != nil {
 			artifact.Write(w)
 			return
 		}
@@ -239,7 +265,7 @@ func (a App) Serve(host, port string) error {
 			panic(err)
 		}
 
-		producerCache[generatorToUse][producerToLoad] = artifact
+		a.producerCache[generatorToUse][producerToLoad] = artifact
 	})
 
 	http.HandleFunc("/zip", func(w http.ResponseWriter, r *http.Request) {
@@ -265,10 +291,10 @@ func (a App) Serve(host, port string) error {
 func (a App) Run() error {
 	os_setup(&a)
 
-	commandMap := make(map[string]*command)
+	commandMap := make(map[string]*cliCommand)
 
-	var commands []*command
-	commands = []*command{
+	var commands []*cliCommand
+	commands = []*cliCommand{
 		{
 			Name:        "Generate",
 			Description: "Runs all producers the app has defined and saves it to the file system",

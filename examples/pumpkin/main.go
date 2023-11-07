@@ -28,7 +28,6 @@ import (
 	"github.com/EliCDavis/polyform/modeling/meshops"
 	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
-	"github.com/fogleman/gg"
 )
 
 // perm = range(256)
@@ -155,6 +154,136 @@ func metalRoughness() image.Image {
 			})
 		}
 	}
+	return img
+}
+
+func albedo(positiveColor, negativeColor color.Color) image.Image {
+	dim := 1024
+	img := image.NewRGBA(image.Rect(0, 0, dim, dim))
+	// normals.Fill(img)
+
+	n := &TilingNoise{}
+	n.init()
+
+	nR, nG, nB, _ := negativeColor.RGBA()
+	pR, pG, pB, _ := positiveColor.RGBA()
+
+	rRange := float64(pR>>8) - float64(nR>>8)
+	gRange := float64(pG>>8) - float64(nG>>8)
+	bRange := float64(pB>>8) - float64(nB>>8)
+
+	for x := 0; x < dim; x++ {
+		for y := 0; y < dim; y++ {
+			val := 0.
+			freq := 1. / 64.
+			for o := 0; o < 5; o++ {
+				op2 := math.Pow(2, float64(o))
+				n := n.Noise(
+					vector2.New(
+						(float64(x)*freq)*op2,
+						(float64(y)*freq)*op2,
+					),
+					int(float64(dim)*freq)*int(op2),
+				)
+				val += math.Pow(0.5, float64(o)) * n
+			}
+			// p := n.Noise(vector2.New(xDim*10, yDim*10), 100)
+			p := (val * 0.5) + 0.5
+
+			r := uint32(float64(nR) + (rRange * p))
+			g := uint32(float64(nG) + (gRange * p))
+			b := uint32(float64(nB) + (bRange * p))
+
+			img.Set(x, y, color.RGBA{
+				R: byte(r), // byte(len * 255),
+				G: byte(g),
+				B: byte(b),
+				A: 255,
+			})
+		}
+	}
+	return img
+}
+
+func stemNormalImage() image.Image {
+	dim := 1024
+	img := image.NewRGBA(image.Rect(0, 0, dim, dim))
+	// normals.Fill(img)
+
+	n := &TilingNoise{}
+	n.init()
+
+	for x := 0; x < dim; x++ {
+		for y := 0; y < dim; y++ {
+			val := 0.
+			freq := 1. / 64.
+			for o := 0; o < 5; o++ {
+				op2 := math.Pow(2, float64(o))
+				n := n.Noise(
+					vector2.New(
+						(float64(x)*freq)*op2,
+						(float64(y)*freq)*op2,
+					),
+					int(float64(dim)*freq)*int(op2),
+				)
+				val += math.Pow(0.5, float64(o)) * n
+			}
+			// p := n.Noise(vector2.New(xDim*10, yDim*10), 100)
+			p := (val * 128) + 128
+
+			img.Set(x, y, color.RGBA{
+				R: byte(p), // byte(len * 255),
+				G: byte(p),
+				B: byte(p),
+				A: 255,
+			})
+		}
+	}
+
+	img = texturing.ToNormal(img)
+
+	numLines := 30
+
+	spacing := float64(dim) / float64(numLines)
+	halfSpacing := float64(spacing) / 2.
+
+	segments := 8
+	yInc := float64(dim) / float64(segments)
+	halfYInc := yInc / 2.
+
+	for i := 0; i < numLines; i++ {
+		dir := normals.Subtractive
+		if rand.Float64() > 0.5 {
+			dir = normals.Additive
+		}
+
+		startX := (float64(i) * spacing) + (spacing / 2)
+		width := 10 + (rand.Float64() * 20)
+
+		start := vector2.New(startX, 0)
+		for seg := 0; seg < segments-1; seg++ {
+			end := vector2.New(
+				startX-(halfSpacing/2)+(rand.Float64()*halfSpacing),
+				start.Y()+halfYInc+(yInc*rand.Float64()),
+			)
+			normals.Line{
+				Start:           start,
+				End:             end,
+				Width:           width,
+				NormalDirection: dir,
+			}.Round(img)
+			start = end
+		}
+
+		normals.Line{
+			Start:           start,
+			End:             vector2.New(startX, float64(dim)),
+			Width:           width,
+			NormalDirection: dir,
+		}.Round(img)
+
+	}
+
 	return img
 }
 
@@ -355,7 +484,7 @@ func newPumpkinMesh(
 	}
 
 	addFieldStart := time.Now()
-	canvas.AddField(pumpkinField)
+	canvas.AddFieldParallel(pumpkinField)
 	log.Printf("time to add field: %s", time.Since(addFieldStart))
 
 	marchStart := time.Now()
@@ -402,12 +531,118 @@ func newPumpkinMesh(
 	return mesh.SetFloat2Attribute(modeling.TexCoordAttribute, newUVs)
 }
 
-func pumpkinStem(maxWidth, minWidth, length, tipOffset float64) marching.Field {
-	return marching.VarryingThicknessLine([]sdf.LinePoint{
-		{Point: vector3.New(0., 0., 0.), Radius: maxWidth},
-		{Point: vector3.New(0., length*.8, 0.), Radius: minWidth},
-		{Point: vector3.New(tipOffset, length, 0.), Radius: minWidth},
-	}, 1)
+func pumpkinStemMesh(stemParams *generator.GroupParameter, topDip float64) gltf.PolyformModel {
+	// maxWidth := stemParams.Float64("Base Width")
+	// minWidth := stemParams.Float64("Tip Width")
+	// length := stemParams.Float64("Length")
+	// tipOffset := stemParams.Float64("Tip Offset")
+
+	stemCanvas := marching.NewMarchingCanvas(stemParams.Float64("Cubes Per Unit"))
+
+	// stemCanvas.AddFieldParallel(marching.VarryingThicknessLine([]sdf.LinePoint{
+	// 	{Point: vector3.New(0., 0., 0.), Radius: maxWidth},
+	// 	{Point: vector3.New(0., length*.8, 0.), Radius: minWidth},
+	// 	{Point: vector3.New(tipOffset, length, 0.), Radius: minWidth},
+	// }, 1))
+
+	sides := 6
+
+	fields := make([]marching.Field, 0)
+	angleInc := (math.Pi * 2.) / float64(sides)
+
+	topPoint := 0.2
+
+	fields = append(fields, marching.Line(
+		vector3.New(0., 0.05, 0.),
+		vector3.New(0., topPoint*.95, 0.),
+		0.02,
+		1,
+	))
+
+	for i := 0; i < sides; i++ {
+		rot := modeling.UnitQuaternionFromTheta(angleInc*float64(i), vector3.Up[float64]())
+
+		rotatedPoints := rot.RotateArray([]vector3.Float64{
+			vector3.New(.15, 0.08, -.025+(rand.Float64()*.05)),
+			vector3.New(.05, 0.05, 0.),
+			vector3.New(.03, topPoint, 0.),
+		})
+
+		fields = append(
+			fields,
+			marching.VarryingThicknessLine(
+				[]sdf.LinePoint{
+					{
+						Point:  rotatedPoints[0],
+						Radius: 0.01 + (rand.Float64() * 0.005),
+					},
+					{
+						Point:  rotatedPoints[1],
+						Radius: 0.02 + (rand.Float64() * 0.02),
+					},
+					{
+						Point:  rotatedPoints[2],
+						Radius: 0.02 + (rand.Float64() * 0.01),
+					},
+				},
+				1,
+			// start,
+			// start.Add(vector3.Up[float64]().Scale(0.2)),
+			// 0.03,
+			// 1,
+			),
+		)
+	}
+	stemCanvas.AddFieldParallel(marching.CombineFields(fields...))
+
+	mesh := stemCanvas.
+		MarchParallel(0).
+		Transform(
+			meshops.LaplacianSmoothTransformer{
+				Iterations:      20,
+				SmoothingFactor: 0.1,
+			},
+			meshops.TranslateAttribute3DTransformer{
+				Amount: vector3.New(0., 1-topDip+0.055, 0.),
+			},
+			meshops.SmoothNormalsTransformer{},
+		)
+
+	pumpkinVerts := mesh.Float3Attribute(modeling.PositionAttribute)
+	newUVs := make([]vector2.Float64, pumpkinVerts.Len())
+	center := vector3.New(0., 0.5, 0.)
+	up := vector3.Up[float64]()
+	for i := 0; i < pumpkinVerts.Len(); i++ {
+		vert := pumpkinVerts.At(i)
+
+		xzTheta := math.Atan2(vert.Z(), vert.X())
+		xzTheta = math.Abs(xzTheta) // Avoid the UV seam
+
+		dir := vert.Sub(center)
+		angle := math.Acos(dir.Dot(up) / (dir.Length() * up.Length()))
+
+		newUVs[i] = vector2.New(xzTheta/(math.Pi*2), angle)
+	}
+
+	return gltf.PolyformModel{
+		Name: "Stem",
+		Mesh: mesh.SetFloat2Attribute(modeling.TexCoordAttribute, newUVs),
+		Material: &gltf.PolyformMaterial{
+			PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
+				BaseColorTexture: &gltf.PolyformTexture{
+					URI: "Texturing/stem.png",
+				},
+				MetallicRoughnessTexture: &gltf.PolyformTexture{
+					URI: "Texturing/stem-roughness.png",
+				},
+			},
+			NormalTexture: &gltf.PolyformNormal{
+				PolyformTexture: gltf.PolyformTexture{
+					URI: "Texturing/stem-normal.png",
+				},
+			},
+		},
+	}
 }
 
 func imageToEdgeData(src image.Image, fillValue float64) [][]float64 {
@@ -430,18 +665,6 @@ func imageToEdgeData(src image.Image, fillValue float64) [][]float64 {
 	})
 
 	return imageData
-}
-
-func loadImageFromPath(imageName string) (image.Image, error) {
-	logoFile, err := os.Open(imageName)
-	if err != nil {
-		return nil, err
-	}
-	defer logoFile.Close()
-
-	img, _, err := image.Decode(logoFile)
-
-	return img, err
 }
 
 func loadImage(imageData []byte) (image.Image, error) {
@@ -569,11 +792,17 @@ func main() {
 
 	app := generator.App{
 		Name:        "Pumpkin",
-		Version:     "0.0.1",
+		Version:     "1.0.0",
 		Description: "Making a pumpkin for Haloween",
 		Authors: []generator.Author{
 			{
 				Name: "Eli C Davis",
+				ContactInfo: []generator.AuthorContact{
+					{
+						Medium: "Twitter",
+						Value:  "@EliCDavis",
+					},
+				},
 			},
 		},
 		WebScene: &room.WebScene{
@@ -596,39 +825,63 @@ func main() {
 								DefaultValue: coloring.WebColor{R: 0xf9, G: 0x81, B: 0x1f, A: 255},
 							},
 							&generator.ColorParameter{
-								Name:         "Line Color",
-								DefaultValue: coloring.WebColor{R: 0, G: 0x81, B: 0x1f, A: 255},
+								Name:         "Negative Color",
+								DefaultValue: coloring.WebColor{R: 0xf7, G: 0x71, B: 0x02, A: 255},
 							},
-							&generator.IntParameter{
-								Name:         "Lines",
-								DefaultValue: 8,
+
+							&generator.ColorParameter{
+								Name:         "Stem Base Color",
+								DefaultValue: coloring.WebColor{R: 0xce, G: 0xa2, B: 0x7e, A: 255},
+							},
+							&generator.ColorParameter{
+								Name:         "Stem Negative Color",
+								DefaultValue: coloring.WebColor{R: 0x7d, G: 0x53, B: 0x2c, A: 255},
 							},
 						},
 					},
 					Producers: map[string]generator.Producer{
 						"pumpkin.png": func(c *generator.Context) (generator.Artifact, error) {
-							const texDimension = 1024
-
-							ctx := gg.NewContext(texDimension, texDimension)
-							ctx.SetColor(c.Parameters.Color("Base Color"))
-
-							ctx.DrawRectangle(0, 0, texDimension, texDimension)
-							ctx.Fill()
-
-							// lines := c.Parameters.Int("Lines")
-
-							// ctx.SetColor(c.Parameters.Color("Line Color"))
-							// ctx.SetLineWidth(2)
-							// spacing := texDimension / (lines)
-							// for i := 0; i < lines; i++ {
-							// 	xDim := float64((spacing / 2) + (spacing * i))
-							// 	ctx.DrawLine(xDim, 0, xDim, texDimension)
-							// 	ctx.Stroke()
-							// }
-
 							return generator.ImageArtifact{
-								Image: ctx.Image(),
+								Image: albedo(
+									c.Parameters.Color("Base Color"),
+									c.Parameters.Color("Negative Color"),
+								),
 							}, nil
+						},
+						"stem.png": func(c *generator.Context) (generator.Artifact, error) {
+							return generator.ImageArtifact{
+								Image: albedo(
+									c.Parameters.Color("Stem Base Color"),
+									c.Parameters.Color("Stem Negative Color"),
+								),
+							}, nil
+						},
+						"normal.png": func(c *generator.Context) (generator.Artifact, error) {
+							return &generator.ImageArtifact{Image: normalImage()}, nil
+						},
+						"stem-normal.png": func(c *generator.Context) (generator.Artifact, error) {
+							return &generator.ImageArtifact{Image: stemNormalImage()}, nil
+						},
+						"roughness.png": func(c *generator.Context) (generator.Artifact, error) {
+							return &generator.ImageArtifact{Image: metalRoughness()}, nil
+						},
+						"stem-roughness.png": func(c *generator.Context) (generator.Artifact, error) {
+							dim := 1024
+							img := image.NewRGBA(image.Rect(0, 0, dim, dim))
+							// normals.Fill(img)
+
+							for x := 0; x < dim; x++ {
+								for y := 0; y < dim; y++ {
+									img.Set(x, y, color.RGBA{
+										R: 0, // byte(len * 255),
+										G: byte(200),
+										B: 0,
+										A: 255,
+									})
+								}
+							}
+
+							return &generator.ImageArtifact{Image: img}, nil
 						},
 					},
 				},
@@ -637,8 +890,8 @@ func main() {
 				Name: "Pumpkin",
 				Parameters: []generator.Parameter{
 					&generator.FloatParameter{
-						Name:         "Cubes Per Unit",
-						DefaultValue: 40,
+						Name:         "Pumpkin Cubes Per Unit",
+						DefaultValue: 80,
 					},
 
 					&generator.IntParameter{
@@ -698,6 +951,10 @@ func main() {
 							&generator.FloatParameter{
 								Name:         "Tip Offset",
 								DefaultValue: 0.1,
+							},
+							&generator.FloatParameter{
+								Name:         "Cubes Per Unit",
+								DefaultValue: 100,
 							},
 						},
 					},
@@ -798,12 +1055,7 @@ func main() {
 					// return &generator.ImageArtifact{Image: img}, nil
 					return &generator.ImageArtifact{Image: texturing.ToNormal(img)}, nil
 				},
-				"normal.png": func(c *generator.Context) (generator.Artifact, error) {
-					return &generator.ImageArtifact{Image: normalImage()}, nil
-				},
-				"roughness.png": func(c *generator.Context) (generator.Artifact, error) {
-					return &generator.ImageArtifact{Image: metalRoughness()}, nil
-				},
+
 				"uvMap.png": func(c *generator.Context) (generator.Artifact, error) {
 					img := texturing.DebugUVTexture{
 						ImageResolution:      1024,
@@ -819,7 +1071,7 @@ func main() {
 				"pumpkin.glb": func(c *generator.Context) (generator.Artifact, error) {
 
 					pumpkinMesh := newPumpkinMesh(
-						c.Parameters.Float64("Cubes Per Unit"),
+						c.Parameters.Float64("Pumpkin Cubes Per Unit"),
 						c.Parameters.Float64("Max Width"),
 						c.Parameters.Float64("Top Dip"),
 						c.Parameters.Float64("Wedge Spacing"),
@@ -829,25 +1081,7 @@ func main() {
 						c.Parameters.Bool("Carve"),
 					)
 
-					stemParams := c.Parameters.Group("Stem")
-					stemCanvas := marching.NewMarchingCanvas(c.Parameters.Float64("Cubes Per Unit"))
-					stemCanvas.AddFieldParallel(pumpkinStem(
-						stemParams.Float64("Base Width"),
-						stemParams.Float64("Tip Width"),
-						stemParams.Float64("Length"),
-						stemParams.Float64("Tip Offset"),
-					))
-					stem := stemCanvas.
-						MarchParallel(0).
-						Transform(
-							meshops.LaplacianSmoothTransformer{
-								Iterations:      20,
-								SmoothingFactor: 0.1,
-							},
-							meshops.TranslateAttribute3DTransformer{
-								Amount: vector3.New(0., 1-c.Parameters.Float64("Top Dip"), 0.),
-							},
-						)
+					stem := pumpkinStemMesh(c.Parameters.Group("Stem"), c.Parameters.Float64("Top Dip"))
 
 					// texturingParams := c.Parameters.Group("Texturing")
 
@@ -868,7 +1102,7 @@ func main() {
 												},
 											},
 											MetallicRoughnessTexture: &gltf.PolyformTexture{
-												URI: "roughness.png",
+												URI: "Texturing/roughness.png",
 											},
 											// BaseColorFactor: texturingParams.Color("Base Color"),
 											// MetallicFactor:  1,
@@ -876,7 +1110,7 @@ func main() {
 										},
 										NormalTexture: &gltf.PolyformNormal{
 											PolyformTexture: gltf.PolyformTexture{
-												URI: "normal.png",
+												URI: "Texturing/normal.png",
 											},
 										},
 										Extensions: []gltf.MaterialExtension{
@@ -884,15 +1118,7 @@ func main() {
 										},
 									},
 								},
-								{
-									Name: "Stem",
-									Mesh: stem,
-									Material: &gltf.PolyformMaterial{
-										PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
-											BaseColorFactor: stemParams.Color("Color"),
-										},
-									},
-								},
+								stem,
 							},
 							Lights: []gltf.KHR_LightsPunctual{
 								{
