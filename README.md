@@ -1,11 +1,10 @@
 ![Polyform Banner](./docs/polyformbanner.png)
-
 ![Coverage](https://img.shields.io/badge/Coverage-39.6%25-yellow)
 [![Go Report Card](https://goreportcard.com/badge/github.com/EliCDavis/polyform)](https://goreportcard.com/report/github.com/EliCDavis/polyform)
 [![CITATION.cff](https://github.com/EliCDavis/polyform/actions/workflows/cff-validator-complete.yml/badge.svg)](https://github.com/EliCDavis/polyform/actions/workflows/cff-validator-complete.yml)
 
 
-Polyform for generating and editing 3D geometry and it's associated data (textures).
+Polyform is for loading, generating, editing, and exporting 3D geometry and it's associated data.
 
 
 ## Overview
