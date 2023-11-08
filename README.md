@@ -1,64 +1,19 @@
-# Polyform
+![Polyform Banner](./docs/polyformbanner.png)
+
 ![Coverage](https://img.shields.io/badge/Coverage-39.6%25-yellow)
 [![Go Report Card](https://goreportcard.com/badge/github.com/EliCDavis/polyform)](https://goreportcard.com/report/github.com/EliCDavis/polyform)
 [![CITATION.cff](https://github.com/EliCDavis/polyform/actions/workflows/cff-validator-complete.yml/badge.svg)](https://github.com/EliCDavis/polyform/actions/workflows/cff-validator-complete.yml)
 
 
-Library for generating and editing 3D geometry and it's associated data implemented in 100% golang.
+Polyform for generating and editing 3D geometry and it's associated data (textures).
 
-If Polyform contributes to an academic publication, cite it as:
 
-```
-@misc{polyform,
-  title = {Polyform},
-  author = {Eli Davis},
-  note = {https://www.github.com/EliCDavis/polyform},
-  year = {2023}
-}
-```
+## Overview
 
-## Processing Example
-
-Reads in a obj and applies the cube marching algorithm over the meshes 3D SDF.
-
-```go
-package main
-
-import (
-  "github.com/EliCDavis/polyform/formats/obj"
-  "github.com/EliCDavis/polyform/modeling"
-  "github.com/EliCDavis/polyform/modeling/marching"
-  "github.com/EliCDavis/polyform/modeling/meshops"
-  "github.com/EliCDavis/vector"
-)
-
-func main() {
-  loadedMesh, _ := obj.Load("test-models/stanford-bunny.obj")
-
-  resolution := 10.
-  canvas := marching.NewMarchingCanvas(resolution)
-
-  canvas.AddFieldParallel(marching.Mesh(
-    loadedMesh.Transform(
-      meshops.Center3DTransformer{},
-      meshops.Scale3DTransformer{
-        Amount: vector3.New(12, 12, 12),
-      },
-    ),
-    .1,
-    10,
-  ))
-  
-  obj.Save("chunky-bunny.obj", canvas.MarchParallel(.3))
-}
-```
-
-Results in:
-
-![Chunky Bunny](/examples/inflate/chunky-bunny.png)
-
-## Helpful Procedural Generation Sub Packages
-
+- Formats
+  - [gltf](/formats/gltf/) - GLTF file format
+  - [obj](/formats/obj/) - OBJ file format
+  - [ply](/formats/ply/) - PLY file format
 - Modeling
   - [meshops](/modeling/meshops/) - All currently implemented algorithms for transforming meshes. 
   - [marching](/modeling/marching/) - Multi-threaded Cube Marching algorithm and utilities.
@@ -68,12 +23,17 @@ Results in:
   - [triangulation](/modeling/triangulation/) - Generating meshes from a set of 2D points.
 - Drawing
   - [coloring](/drawing/coloring/) - Color utilities for blending multiple colors together using weights.
-  - [texturing](/drawing/texturing/) - Image processing utilities like generating Normal maps or blurring images.
+  - [texturing](/drawing/texturing/) - Traditional image processing utilities (common convolution kernels).
+    - [normals](/drawing//texturing/normals/) - Utilities for generating and editing normal maps. 
 - [Math](/math/README.md)
+  - [colors](/math/colors/) - Making working with golang colors not suck as much.
   - [curves](/math/curves/) - Common curves used in animation like cubic bezier curves.
+  - [geometry](/math/geometry/) - AABB, Line2D, Line3D, Plane, and Rays.
   - [noise](/math/noise/) - Utilities around noise functions for common usecases like stacking multiple samples of perlin noise from different frequencies.
   - [sample](/math/sample/) - Serves as a group of definitions for defining a mapping from one numeric value to another
   - [sdf](/math/sdf/) - SDF implementations of different geometry primitives, along with common math functions. Basically slowly picking through [Inigo Quilez's Distfunction](https://iquilezles.org/articles/distfunctions/) article as I need them in my different projects.
+- [Generator](/generator/) - Application scaffolding for editing and creating meshes
+- [Trees](/trees/) - Implementation of common spatial partitioning trees.
 
 ## Procedural Generation Examples
 
@@ -129,6 +89,45 @@ Then build your example app
 ```bash
 polywasm build --app-path ./examples/MY_EXAMPLE
 ```
+
+## Processing Example
+
+Reads in a obj and applies the cube marching algorithm over the meshes 3D SDF.
+
+```go
+package main
+
+import (
+  "github.com/EliCDavis/polyform/formats/obj"
+  "github.com/EliCDavis/polyform/modeling"
+  "github.com/EliCDavis/polyform/modeling/marching"
+  "github.com/EliCDavis/polyform/modeling/meshops"
+  "github.com/EliCDavis/vector"
+)
+
+func main() {
+  loadedMesh, _ := obj.Load("test-models/stanford-bunny.obj")
+
+  resolution := 10.
+  scale := 12.
+
+  transformedMesh := loadedMesh.Transform(
+    meshops.Center3DTransformer{},
+    meshops.Scale3DTransformer{Amount: vector3.Fill(scale)},
+  )
+
+  canvas := marching.NewMarchingCanvas(resolution)
+  meshSDF := marching.Mesh(transformedMesh, .1, 10)
+  canvas.AddFieldParallel(meshSDF)
+  
+  obj.Save("chunky-bunny.obj", canvas.MarchParallel(.3))
+}
+```
+
+Results in:
+
+![Chunky Bunny](/examples/inflate/chunky-bunny.png)
+
 
 ## Todo List
 
@@ -289,3 +288,16 @@ Resources either directly contributing to the code, or are just interesting find
   - [Xiaolin Wu's line algorithm (Anti-Aliased)](https://en.wikipedia.org/wiki/Xiaolin_Wu's_line_algorithm)
 - Materials
   - [The PBR Guide Part 2](https://creativecloud.adobe.com/learn/substance-3d-designer/web/the-pbr-guide-part-2)
+
+## Citiation
+
+If Polyform contributes to an academic publication, cite it as:
+
+```
+@misc{polyform,
+  title = {Polyform},
+  author = {Eli Davis},
+  note = {https://www.github.com/EliCDavis/polyform},
+  year = {2023}
+}
+```
