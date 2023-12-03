@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/EliCDavis/polyform/formats/obj"
-	"github.com/EliCDavis/polyform/modeling"
+	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/polyform/modeling/meshops"
 	"github.com/EliCDavis/polyform/modeling/primitives"
 	"github.com/EliCDavis/polyform/rendering"
@@ -178,7 +178,7 @@ func simsScene(time float64) []rendering.Hittable {
 				Amount: vector3.Up[float64]().Scale(2),
 			},
 			meshops.RotateAttribute3DTransformer{
-				Amount: modeling.UnitQuaternionFromTheta(time*0.5, vector3.Down[float64]()),
+				Amount: quaternion.FromTheta(time*0.5, vector3.Down[float64]()),
 			},
 			meshops.UnweldTransformer{},
 			meshops.FlatNormalsTransformer{},

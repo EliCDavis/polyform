@@ -1,13 +1,14 @@
 package meshops
 
 import (
+	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/vector/vector3"
 )
 
 type RotateAttribute3DTransformer struct {
 	Attribute string
-	Amount    modeling.Quaternion
+	Amount    quaternion.Quaternion
 }
 
 func (rat RotateAttribute3DTransformer) attribute() string {
@@ -24,7 +25,7 @@ func (rat RotateAttribute3DTransformer) Transform(m modeling.Mesh) (results mode
 	return RotateAttribute3D(m, attribute, rat.Amount), nil
 }
 
-func RotateAttribute3D(m modeling.Mesh, attribute string, q modeling.Quaternion) modeling.Mesh {
+func RotateAttribute3D(m modeling.Mesh, attribute string, q quaternion.Quaternion) modeling.Mesh {
 	if err := requireV3Attribute(m, attribute); err != nil {
 		panic(err)
 	}

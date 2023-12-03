@@ -57,27 +57,27 @@ func requireV2Attribute(m modeling.Mesh, attr string) error {
 	return fmt.Errorf("mesh is required to have the vector3 attribute: '%s'", attr)
 }
 
-func readAllFloatXData[T any](attrs []string, reader func(string) iter.ArrayIterator[T]) map[string][]T {
+func readAllFloatXData[T any](attrs []string, reader func(string) *iter.ArrayIterator[T]) map[string][]T {
 	data := make(map[string][]T)
 	for _, attr := range attrs {
 		attrData := reader(attr)
-		data[attr] = iter.ReadFull[T](&attrData)
+		data[attr] = iter.ReadFull[T](attrData)
 	}
 	return data
 }
 
 func readAllFloat4Data(m modeling.Mesh) map[string][]vector4.Float64 {
-	return readAllFloatXData(m.Float4Attributes(), func(s string) iter.ArrayIterator[vector4.Float64] { return m.Float4Attribute(s) })
+	return readAllFloatXData(m.Float4Attributes(), func(s string) *iter.ArrayIterator[vector4.Float64] { return m.Float4Attribute(s) })
 }
 
 func readAllFloat3Data(m modeling.Mesh) map[string][]vector3.Float64 {
-	return readAllFloatXData(m.Float3Attributes(), func(s string) iter.ArrayIterator[vector3.Float64] { return m.Float3Attribute(s) })
+	return readAllFloatXData(m.Float3Attributes(), func(s string) *iter.ArrayIterator[vector3.Float64] { return m.Float3Attribute(s) })
 }
 
 func readAllFloat2Data(m modeling.Mesh) map[string][]vector2.Float64 {
-	return readAllFloatXData(m.Float2Attributes(), func(s string) iter.ArrayIterator[vector2.Float64] { return m.Float2Attribute(s) })
+	return readAllFloatXData(m.Float2Attributes(), func(s string) *iter.ArrayIterator[vector2.Float64] { return m.Float2Attribute(s) })
 }
 
 func readAllFloat1Data(m modeling.Mesh) map[string][]float64 {
-	return readAllFloatXData(m.Float1Attributes(), func(s string) iter.ArrayIterator[float64] { return m.Float1Attribute(s) })
+	return readAllFloatXData(m.Float1Attributes(), func(s string) *iter.ArrayIterator[float64] { return m.Float1Attribute(s) })
 }

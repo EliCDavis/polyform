@@ -8,6 +8,7 @@ import (
 	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/formats/gltf"
 	"github.com/EliCDavis/polyform/generator"
+	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/extrude"
 	"github.com/EliCDavis/polyform/modeling/meshops"
@@ -52,7 +53,7 @@ func Cone(height, radius float64, sides int) modeling.Mesh {
 
 func SpikeRing(spikes int, ringRadius, spikeHeight, spikeRadius float64, spikeSides int) modeling.Mesh {
 	cone := Cone(spikeHeight, spikeRadius, spikeSides).
-		Rotate(modeling.UnitQuaternionFromTheta(math.Pi/2, vector3.Right[float64]()))
+		Rotate(quaternion.FromTheta(math.Pi/2, vector3.Right[float64]()))
 	return repeat.Circle(cone, spikes, ringRadius)
 }
 

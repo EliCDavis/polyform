@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"embed"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -289,6 +290,10 @@ func (a *App) Serve(host, port string) error {
 }
 
 func (a App) Run() error {
+	if a.Generator == nil {
+		return errors.New("application has not defined any generators")
+	}
+
 	os_setup(&a)
 
 	commandMap := make(map[string]*cliCommand)

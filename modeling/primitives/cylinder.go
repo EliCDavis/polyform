@@ -3,6 +3,7 @@ package primitives
 import (
 	"math"
 
+	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/meshops"
 	"github.com/EliCDavis/vector/vector2"
@@ -98,11 +99,11 @@ func (c Cylinder) ToMesh() modeling.Mesh {
 			Transform(
 				meshops.RotateAttribute3DTransformer{
 					Attribute: modeling.PositionAttribute,
-					Amount:    modeling.UnitQuaternionFromTheta(math.Pi, vector3.New(1., 0., 0.)),
+					Amount:    quaternion.FromTheta(math.Pi, vector3.New(1., 0., 0.)),
 				},
 				meshops.RotateAttribute3DTransformer{
 					Attribute: modeling.NormalAttribute,
-					Amount:    modeling.UnitQuaternionFromTheta(math.Pi, vector3.New(1., 0., 0.)),
+					Amount:    quaternion.FromTheta(math.Pi, vector3.New(1., 0., 0.)),
 				},
 			).
 			Translate(vector3.New(0, -halfHeight, 0)),

@@ -40,27 +40,27 @@ func directionsOfExtrusionPoints(points []ExtrusionPoint) []vector3.Float64 {
 
 	directions := make([]vector3.Float64, len(points))
 
-	// leftPoints := make([]vector3.Float64, len(points))
-	// rightPoints := make([]vector3.Float64, len(points))
-	// for i, point := range points {
+	for i, point := range points {
 
-	// }
+		if point.Direction != nil {
+			directions[i] = point.Direction.Direction
+			continue
+		}
 
-	// for i, point := range points {
-	// 	if i == 0 {
-	// 		directions[i] = points[1].Point.Sub(point.Point).Normalized()
-	// 		continue
-	// 	}
+		if i == 0 {
+			directions[i] = points[1].Point.Sub(point.Point).Normalized()
+			continue
+		}
 
-	// 	if i == len(points)-1 {
-	// 		directions[i] = point.Point.Sub(points[i-1].Point).Normalized()
-	// 		continue
-	// 	}
+		if i == len(points)-1 {
+			directions[i] = point.Point.Sub(points[i-1].Point).Normalized()
+			continue
+		}
 
-	// 	dirA := point.Point.Sub(points[i-1].Point).Normalized()
-	// 	dirB := points[i+1].Point.Sub(point.Point).Normalized()
-	// 	directions[i] = dirA.Add(dirB).Normalized()
-	// }
+		dirA := point.Point.Sub(points[i-1].Point).Normalized()
+		dirB := points[i+1].Point.Sub(point.Point).Normalized()
+		directions[i] = dirA.Add(dirB).Normalized()
+	}
 
 	return directions
 }

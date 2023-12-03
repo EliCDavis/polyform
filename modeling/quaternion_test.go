@@ -4,7 +4,7 @@ import (
 	"math"
 	"testing"
 
-	"github.com/EliCDavis/polyform/modeling"
+	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/vector/vector3"
 	"github.com/stretchr/testify/assert"
 )
@@ -29,7 +29,7 @@ func TestQuaternion_Rotate(t *testing.T) {
 	// ACT / ASSERT
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			rot := modeling.UnitQuaternionFromTheta(tc.theta, tc.dir)
+			rot := quaternion.FromTheta(tc.theta, tc.dir)
 			rotated := rot.Rotate(tc.v)
 			assert.InDelta(t, tc.want.X(), rotated.X(), 0.00000001)
 			assert.InDelta(t, tc.want.Y(), rotated.Y(), 0.00000001)

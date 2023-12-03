@@ -184,8 +184,6 @@ func (d *MarchingCanvas) addFloat1Range(section *marchingSection, chunkPos, min,
 	}
 
 	index := d.chunkIndex_atomic(section, chunkPos)
-	// log.Print(index)
-	// log.Print(max.Sub(min).Area())
 	data := d.float1Data[index]
 
 	for z := min.Z; z < max.Z; z++ {
@@ -273,6 +271,7 @@ func (d *MarchingCanvas) AddField(field Field) {
 
 	for attribute, function := range field.Float1Functions {
 		section := d.getSection(attribute, Float1)
+
 		for _, chunkPos := range chunkSections {
 			canvasSpaceChunkPos := modeling.VectorInt{
 				X: maxInt(chunkPos.X*marchingSectionSize, min.X),
@@ -286,6 +285,7 @@ func (d *MarchingCanvas) AddField(field Field) {
 			}
 			d.addFloat1Range(section, chunkPos, canvasSpaceChunkPos, endPos, function)
 		}
+
 	}
 }
 
@@ -340,7 +340,6 @@ func (d *MarchingCanvas) AddFieldParallel(field Field) {
 				endPos:   endPos,
 				function: function,
 			}
-
 		}
 	}
 
@@ -364,11 +363,11 @@ func (d *MarchingCanvas) AddFieldParallel2(field Field) {
 
 	workers := runtime.NumCPU()
 	numJobs := len(chunkSections)
-	jobs := make(chan job, numJobs)
-	results := make(chan job, numJobs)
+	jobs := make(chan *job, numJobs)
+	results := make(chan *job, numJobs)
 
 	for w := 0; w < workers; w++ {
-		go func(jobs <-chan job, results chan<- job) {
+		go func(jobs <-chan *job, results chan<- *job) {
 			for j := range jobs {
 				j.data = d.calcFloat1Range(j.startPos, j.endPos, j.function)
 				results <- j
@@ -389,7 +388,7 @@ func (d *MarchingCanvas) AddFieldParallel2(field Field) {
 				Y: minInt((chunkPos.Y*marchingSectionSize)+marchingSectionSize, max.Y),
 				Z: minInt((chunkPos.Z*marchingSectionSize)+marchingSectionSize, max.Z),
 			}
-			jobs <- job{
+			jobs <- &job{
 				section:  section,
 				chunkPos: chunkPos,
 				startPos: canvasSpaceChunkPos,
@@ -435,6 +434,7 @@ type workingData struct {
 
 func (d *MarchingCanvas) marchFloat1BlockPosition(
 	cutoff float64,
+	meshAttribute string,
 	section *marchingSection,
 	blockPosition modeling.VectorInt,
 ) modeling.Mesh {
@@ -654,25 +654,26 @@ func (d *MarchingCanvas) marchFloat1BlockPosition(
 			}
 		}
 	}
+
 	return modeling.NewTriangleMesh(marchingWorkingData.tris).
 		SetFloat3Data(map[string][]vector3.Float64{
-			modeling.PositionAttribute: marchingWorkingData.verts,
+			meshAttribute: marchingWorkingData.verts,
 		})
 }
 
-func (d MarchingCanvas) marchFloat1(cutoff float64, section *marchingSection) modeling.Mesh {
+func (d MarchingCanvas) marchFloat1(cutoff float64, meshAttribute string, section *marchingSection) modeling.Mesh {
 	finalMesh := modeling.EmptyMesh(modeling.TriangleTopology)
 	for blockPosition := range section.positions {
-		finalMesh = finalMesh.Append(d.marchFloat1BlockPosition(cutoff, section, blockPosition))
+		finalMesh = finalMesh.Append(d.marchFloat1BlockPosition(cutoff, meshAttribute, section, blockPosition))
 	}
 	return finalMesh
 }
 
-func (d MarchingCanvas) marchFloat1Parallel(cutoff float64, section *marchingSection) modeling.Mesh {
+func (d MarchingCanvas) marchFloat1Parallel(cutoff float64, meshAttribute string, section *marchingSection) modeling.Mesh {
 	workers := runtime.NumCPU()
 
 	if workers == 1 {
-		return d.marchFloat1(cutoff, section)
+		return d.marchFloat1(cutoff, meshAttribute, section)
 	}
 
 	numJobs := len(section.positions)
@@ -682,7 +683,7 @@ func (d MarchingCanvas) marchFloat1Parallel(cutoff float64, section *marchingSec
 	for w := 0; w < workers; w++ {
 		go func(jobs <-chan modeling.VectorInt, results chan<- modeling.Mesh) {
 			for j := range jobs {
-				results <- d.marchFloat1BlockPosition(cutoff, section, j)
+				results <- d.marchFloat1BlockPosition(cutoff, meshAttribute, section, j)
 			}
 		}(jobs, results)
 	}
@@ -708,7 +709,7 @@ func (d MarchingCanvas) March(cutoff float64) modeling.Mesh {
 func (d MarchingCanvas) MarchOnAttribute(attribute string, cutoff float64) modeling.Mesh {
 	for sectionAttribute, section := range d.sections {
 		if section.dataType == Float1 && sectionAttribute == attribute {
-			return d.marchFloat1(cutoff, section).
+			return d.marchFloat1(cutoff, sectionAttribute, section).
 				Transform(
 					meshops.ScaleAttribute3DTransformer{
 						Amount: vector3.One[float64]().DivByConstant(d.cubesPerUnit),
@@ -727,7 +728,7 @@ func (d MarchingCanvas) MarchParallel(cutoff float64) modeling.Mesh {
 func (d MarchingCanvas) MarchOnAttributeParallel(attribute string, cutoff float64) modeling.Mesh {
 	for sectionAttribute, section := range d.sections {
 		if section.dataType == Float1 && sectionAttribute == attribute {
-			marched := d.marchFloat1Parallel(cutoff, section)
+			marched := d.marchFloat1Parallel(cutoff, sectionAttribute, section)
 			if marched.PrimitiveCount() == 0 {
 				return marched
 			}

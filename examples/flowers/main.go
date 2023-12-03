@@ -10,6 +10,7 @@ import (
 
 	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/formats/gltf"
+	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/repeat"
 	"github.com/EliCDavis/vector/vector2"
@@ -80,7 +81,7 @@ func pedal(baseWidth, midWidth, pedalLength, tipLength float64, arcVertCount int
 }
 
 func flower(numPedals int, radius, pitch float64) modeling.Mesh {
-	q := modeling.UnitQuaternionFromTheta(pitch, vector3.Left[float64]())
+	q := quaternion.FromTheta(pitch, vector3.Left[float64]())
 	return repeat.Circle(pedal(0.2, 0.4, 0.4, 0.1, 10, marigoldTip).Rotate(q), numPedals, radius)
 }
 

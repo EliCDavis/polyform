@@ -128,7 +128,7 @@ func writeUsingMaterial(mat *modeling.Material, out io.Writer) {
 	}
 }
 
-func writeFaceVerts(tris iter.ArrayIterator[int], out io.Writer, start, end, offset int) error {
+func writeFaceVerts(tris *iter.ArrayIterator[int], out io.Writer, start, end, offset int) error {
 	for triIndex := start; triIndex < end; triIndex += 3 {
 		p1 := tris.At(triIndex) + 1 + offset
 		p2 := tris.At(triIndex+1) + 1 + offset
@@ -141,7 +141,7 @@ func writeFaceVerts(tris iter.ArrayIterator[int], out io.Writer, start, end, off
 	return nil
 }
 
-func writeFaceVertsAndUvs(tris iter.ArrayIterator[int], out io.Writer, start, end, offset int) error {
+func writeFaceVertsAndUvs(tris *iter.ArrayIterator[int], out io.Writer, start, end, offset int) error {
 	for triIndex := start; triIndex < end; triIndex += 3 {
 		p1 := tris.At(triIndex) + 1 + offset
 		p2 := tris.At(triIndex+1) + 1 + offset
@@ -154,7 +154,7 @@ func writeFaceVertsAndUvs(tris iter.ArrayIterator[int], out io.Writer, start, en
 	return nil
 }
 
-func writeFaceVertsAndNormals(tris iter.ArrayIterator[int], out io.Writer, start, end, offset int) error {
+func writeFaceVertsAndNormals(tris *iter.ArrayIterator[int], out io.Writer, start, end, offset int) error {
 	for triIndex := start; triIndex < end; triIndex += 3 {
 		p1 := tris.At(triIndex) + 1 + offset
 		p2 := tris.At(triIndex+1) + 1 + offset
@@ -167,7 +167,7 @@ func writeFaceVertsAndNormals(tris iter.ArrayIterator[int], out io.Writer, start
 	return nil
 }
 
-func writeFaceVertAndUvsAndNormals(tris iter.ArrayIterator[int], out io.Writer, start, end, offset int) error {
+func writeFaceVertAndUvsAndNormals(tris *iter.ArrayIterator[int], out io.Writer, start, end, offset int) error {
 	for triIndex := start; triIndex < end; triIndex += 3 {
 		p1 := tris.At(triIndex) + 1 + offset
 		p2 := tris.At(triIndex+1) + 1 + offset
@@ -226,7 +226,7 @@ func WriteMeshes(meshes []ObjMesh, materialFile string, out io.Writer) error {
 		}
 	}
 
-	var faceWriter func(tris iter.ArrayIterator[int], out io.Writer, start, end, offset int) error
+	var faceWriter func(tris *iter.ArrayIterator[int], out io.Writer, start, end, offset int) error
 
 	indexOffset := 0
 	for _, objMesh := range meshes {

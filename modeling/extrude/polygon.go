@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 
+	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
@@ -59,7 +60,7 @@ func polygon(sides int, points []ExtrusionPoint, closed bool) modeling.Mesh {
 	angleIncrement := (math.Pi * 2) / float64(sides)
 
 	for i := 1; i < sides+1; i++ {
-		rot := modeling.UnitQuaternionFromTheta(angleIncrement*float64(i), vector3.Up[float64]())
+		rot := quaternion.FromTheta(angleIncrement*float64(i), vector3.Up[float64]())
 		circlePoints[i] = rot.Rotate(vector3.Right[float64]())
 	}
 
@@ -67,27 +68,30 @@ func polygon(sides int, points []ExtrusionPoint, closed bool) modeling.Mesh {
 
 	float2Data := map[string][]vector2.Float64{}
 
+	lastDir := vector3.Up[float64]()
+	lastRot := quaternion.New(vector3.Zero[float64](), 1)
+
 	// Vertices and normals ===================================================
 	for i, p := range points {
-
 		dir := pointDirections[i]
 
+		rot := quaternion.RotationTo(lastDir, dir)
+		// rot := quaternion.New(vector3.Zero[float64](), 1)
+		// if dir.Dot(vector3.Down[float64]()) < 0.9999999 {
+		// 	rot = quaternion.RotationTo(vector3.Up[float64](), dir)
+		// }
+
 		for sideIndex := 0; sideIndex < vertCount; sideIndex++ {
-
 			point := circlePoints[sideIndex]
+			point = lastRot.Rotate(point)
+			point = rot.Rotate(point)
 
-			angleVector := dir.Cross(vector3.Up[float64]())
-			if angleVector != vector3.Zero[float64]() {
-				angleDot := dir.Angle(vector3.Up[float64]())
-				// log.Print(angleVector, angleDot)
-				rot := modeling.UnitQuaternionFromTheta(angleDot, angleVector)
-				point = rot.Rotate(point)
-			}
-
-			// rot := mesh.UnitQuaternionFromTheta(angleIncrement*float64(i), dir)
 			vertices = append(vertices, point.Scale(p.Thickness).Add(p.Point))
 			normals = append(normals, point)
 		}
+
+		lastRot = lastRot.Multiply(rot)
+		lastDir = dir
 	}
 
 	// UVs ====================================================================
@@ -132,7 +136,7 @@ func polygon(sides int, points []ExtrusionPoint, closed bool) modeling.Mesh {
 	// Triangles ==============================================================
 	tris := make([]int, 0, sides*2*3)
 
-	for pathIndex := range points {
+	for pathIndex, pathPoint := range points {
 		bottom := pathIndex * vertCount
 		top := (pathIndex + 1) * vertCount
 		if pathIndex == len(points)-1 {
@@ -149,16 +153,34 @@ func polygon(sides int, points []ExtrusionPoint, closed bool) modeling.Mesh {
 			topLeft := topRight + 1
 			bottomLeft := bottomRight + 1
 
+			// Figure out the normal of the triangle we're about to make, and
+			// whether or not we need to flip it to point away from the center
+			// of the extrusion
+			dir := vertices[bottomLeft].Sub(vertices[topLeft]).
+				Cross(vertices[topLeft].Sub(vertices[topRight]))
+
+			a1 := topLeft
+			a2 := topRight
+
+			b1 := topRight
+			b2 := bottomRight
+
+			// we need to flip the windings...
+			if dir.Dot(vertices[bottomLeft].Sub(pathPoint.Point)) < 0 {
+				a1, a2 = a2, a1
+				b1, b2 = b2, b1
+			}
+
 			tris = append(
 				tris,
 
 				bottomLeft,
-				topLeft,
-				topRight,
+				a1,
+				a2,
 
 				bottomLeft,
-				topRight,
-				bottomRight,
+				b1,
+				b2,
 			)
 		}
 	}

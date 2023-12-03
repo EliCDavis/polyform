@@ -14,7 +14,7 @@ func (fnt RemovedUnreferencedVerticesTransformer) Transform(m modeling.Mesh) (re
 	return RemovedUnreferencedVertices(m), nil
 }
 
-func removedUnreferenced[T any](used []bool, attributes []string, retriever func(string) iter.ArrayIterator[T]) map[string][]T {
+func removedUnreferenced[T any](used []bool, attributes []string, retriever func(string) *iter.ArrayIterator[T]) map[string][]T {
 	finalData := make(map[string][]T)
 	for _, attribute := range attributes {
 		data := retriever(attribute)
@@ -51,10 +51,10 @@ func RemovedUnreferencedVertices(m modeling.Mesh) modeling.Mesh {
 		shiftBy[i] = skipped
 	}
 
-	finalV4Data := removedUnreferenced(used, m.Float4Attributes(), func(s string) iter.ArrayIterator[vector4.Float64] { return m.Float4Attribute(s) })
-	finalV3Data := removedUnreferenced(used, m.Float3Attributes(), func(s string) iter.ArrayIterator[vector3.Float64] { return m.Float3Attribute(s) })
-	finalV2Data := removedUnreferenced(used, m.Float2Attributes(), func(s string) iter.ArrayIterator[vector2.Float64] { return m.Float2Attribute(s) })
-	finalV1Data := removedUnreferenced(used, m.Float1Attributes(), func(s string) iter.ArrayIterator[float64] { return m.Float1Attribute(s) })
+	finalV4Data := removedUnreferenced(used, m.Float4Attributes(), func(s string) *iter.ArrayIterator[vector4.Float64] { return m.Float4Attribute(s) })
+	finalV3Data := removedUnreferenced(used, m.Float3Attributes(), func(s string) *iter.ArrayIterator[vector3.Float64] { return m.Float3Attribute(s) })
+	finalV2Data := removedUnreferenced(used, m.Float2Attributes(), func(s string) *iter.ArrayIterator[vector2.Float64] { return m.Float2Attribute(s) })
+	finalV1Data := removedUnreferenced(used, m.Float1Attributes(), func(s string) *iter.ArrayIterator[float64] { return m.Float1Attribute(s) })
 
 	finalIndices := make([]int, originalIndices.Len())
 	for triI := 0; triI < len(finalIndices); triI++ {

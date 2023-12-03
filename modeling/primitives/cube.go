@@ -3,13 +3,14 @@ package primitives
 import (
 	"math"
 
+	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/meshops"
 	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
 )
 
-func rotate(m modeling.Mesh, q modeling.Quaternion) modeling.Mesh {
+func rotate(m modeling.Mesh, q quaternion.Quaternion) modeling.Mesh {
 	return m.Transform(
 		meshops.RotateAttribute3DTransformer{
 			Attribute: modeling.PositionAttribute,
@@ -143,27 +144,27 @@ func (c Cube) UnweldedQuads() modeling.Mesh {
 
 	bottom := rotate(
 		Quad{UVs: bottomUV, Width: c.Width, Depth: c.Depth}.ToMesh(),
-		modeling.UnitQuaternionFromTheta(math.Pi, vector3.Forward[float64]()),
+		quaternion.FromTheta(math.Pi, vector3.Forward[float64]()),
 	).Translate(vector3.New(0., -halfH, 0.))
 
 	left := rotate(
 		Quad{UVs: leftUV, Width: c.Height, Depth: c.Depth}.ToMesh(),
-		modeling.UnitQuaternionFromTheta(math.Pi/2, vector3.Forward[float64]()),
+		quaternion.FromTheta(math.Pi/2, vector3.Forward[float64]()),
 	).Translate(vector3.New(-halfW, 0., 0.))
 
 	right := rotate(
 		Quad{UVs: rightUV, Width: c.Height, Depth: c.Depth}.ToMesh(),
-		modeling.UnitQuaternionFromTheta(math.Pi*(3./2.), vector3.Forward[float64]()),
+		quaternion.FromTheta(math.Pi*(3./2.), vector3.Forward[float64]()),
 	).Translate(vector3.New(halfW, 0, 0.))
 
 	front := rotate(
 		Quad{UVs: frontUV, Width: c.Width, Depth: c.Height}.ToMesh(),
-		modeling.UnitQuaternionFromTheta(math.Pi*(3./2.), vector3.Left[float64]()),
+		quaternion.FromTheta(math.Pi*(3./2.), vector3.Left[float64]()),
 	).Translate(vector3.New(0., 0., halfD))
 
 	back := rotate(
 		Quad{UVs: backUV, Width: c.Width, Depth: c.Height}.ToMesh(),
-		modeling.UnitQuaternionFromTheta(math.Pi*(1./2.), vector3.Left[float64]()),
+		quaternion.FromTheta(math.Pi*(1./2.), vector3.Left[float64]()),
 	).Translate(vector3.New(0., 0., -halfD))
 
 	return top.Append(bottom).Append(left).Append(right).Append(front).Append(back)

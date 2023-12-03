@@ -12,6 +12,7 @@ import (
 	"github.com/EliCDavis/polyform/math/colors"
 	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/math/noise"
+	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/polyform/math/sample"
 	"github.com/EliCDavis/polyform/math/sdf"
 	"github.com/EliCDavis/polyform/modeling"
@@ -213,7 +214,7 @@ func main() {
 			meshops.CenterAttribute3DTransformer{},
 		)
 
-	flipRotation := modeling.UnitQuaternionFromTheta(math.Pi, vector3.Right[float64]())
+	flipRotation := quaternion.FromTheta(math.Pi, vector3.Right[float64]())
 	oreoCookieBottom := oreoCookieTop.
 		Transform(
 			meshops.RotateAttribute3DTransformer{

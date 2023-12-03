@@ -12,7 +12,7 @@ type ReadArrayPermission[T any] struct {
 	data []T
 }
 
-func (rdep ReadArrayPermission[T]) Data() iter.ArrayIterator[T] {
+func (rdep ReadArrayPermission[T]) Data() *iter.ArrayIterator[T] {
 	return iter.Array[T](rdep.data)
 }
 

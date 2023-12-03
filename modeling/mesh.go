@@ -9,6 +9,7 @@ import (
 
 	"github.com/EliCDavis/iter"
 	"github.com/EliCDavis/polyform/math/geometry"
+	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/polyform/trees"
 	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
@@ -187,7 +188,7 @@ func (m Mesh) SetIndices(indices []int) Mesh {
 	}
 }
 
-func (m Mesh) Indices() iter.ArrayIterator[int] {
+func (m Mesh) Indices() *iter.ArrayIterator[int] {
 	return iter.Array(m.indices)
 }
 
@@ -362,7 +363,7 @@ func (m Mesh) Append(other Mesh) Mesh {
 	}
 }
 
-func (m Mesh) Rotate(q Quaternion) Mesh {
+func (m Mesh) Rotate(q quaternion.Quaternion) Mesh {
 	m.requireV3Attribute(PositionAttribute)
 
 	finalMesh := m
@@ -991,7 +992,7 @@ func (m Mesh) requireTopology(t Topology) {
 	}
 }
 
-func (m Mesh) Float4Attribute(attr string) iter.ArrayIterator[vector4.Float64] {
+func (m Mesh) Float4Attribute(attr string) *iter.ArrayIterator[vector4.Float64] {
 	m.requireV4Attribute(attr)
 	return iter.Array(m.v4Data[attr])
 }
@@ -1030,7 +1031,7 @@ func (m Mesh) SetFloat4Data(data map[string][]vector4.Float64) Mesh {
 	}
 }
 
-func (m Mesh) Float3Attribute(attr string) iter.ArrayIterator[vector3.Float64] {
+func (m Mesh) Float3Attribute(attr string) *iter.ArrayIterator[vector3.Float64] {
 	m.requireV3Attribute(attr)
 	return iter.Array(m.v3Data[attr])
 }
@@ -1085,7 +1086,7 @@ func (m Mesh) CopyFloat1Attribute(src Mesh, attr string) Mesh {
 	return m.SetFloat1Attribute(attr, src.v1Data[attr])
 }
 
-func (m Mesh) Float2Attribute(attr string) iter.ArrayIterator[vector2.Float64] {
+func (m Mesh) Float2Attribute(attr string) *iter.ArrayIterator[vector2.Float64] {
 	m.requireV2Attribute(attr)
 	return iter.Array(m.v2Data[attr])
 }
@@ -1124,7 +1125,7 @@ func (m Mesh) SetFloat2Data(data map[string][]vector2.Float64) Mesh {
 	}
 }
 
-func (m Mesh) Float1Attribute(attr string) iter.ArrayIterator[float64] {
+func (m Mesh) Float1Attribute(attr string) *iter.ArrayIterator[float64] {
 	m.requireV1Attribute(attr)
 	return iter.Array(m.v1Data[attr])
 }

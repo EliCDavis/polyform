@@ -21,6 +21,7 @@ import (
 	"github.com/EliCDavis/polyform/math/colors"
 	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/math/noise"
+	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/polyform/math/sample"
 	"github.com/EliCDavis/polyform/math/sdf"
 	"github.com/EliCDavis/polyform/modeling"
@@ -420,7 +421,7 @@ func newPumpkinMesh(
 	fields := make([]marching.Field, 0)
 	angleInc := (math.Pi * 2.) / float64(sides)
 	for i := 0; i < sides; i++ {
-		rot := modeling.UnitQuaternionFromTheta(angleInc*float64(i), vector3.Up[float64]())
+		rot := quaternion.FromTheta(angleInc*float64(i), vector3.Up[float64]())
 
 		rotatedOuterPoints := jitterPositions(rot.RotateArray(outerPoints), .05, 10)
 
@@ -484,12 +485,15 @@ func newPumpkinMesh(
 	}
 
 	addFieldStart := time.Now()
-	canvas.AddFieldParallel(pumpkinField)
+	canvas.AddField(pumpkinField)
+	// canvas.AddFieldParallel(pumpkinField)
 	log.Printf("time to add field: %s", time.Since(addFieldStart))
 
 	marchStart := time.Now()
 	log.Println("starting march...")
-	mesh := canvas.MarchParallel(0)
+	// mesh := canvas.MarchParallel(0)
+	mesh := canvas.March(0)
+	// mesh := pumpkinField.March(modeling.PositionAttribute, cubersPerUnit, 0)
 	log.Printf("time to march: %s", time.Since(marchStart))
 
 	mesh = mesh.Transform(
@@ -560,7 +564,7 @@ func pumpkinStemMesh(stemParams *generator.GroupParameter, topDip float64) gltf.
 	))
 
 	for i := 0; i < sides; i++ {
-		rot := modeling.UnitQuaternionFromTheta(angleInc*float64(i), vector3.Up[float64]())
+		rot := quaternion.FromTheta(angleInc*float64(i), vector3.Up[float64]())
 
 		rotatedPoints := rot.RotateArray([]vector3.Float64{
 			vector3.New(.15, 0.08, -.025+(rand.Float64()*.05)),
@@ -891,7 +895,7 @@ func main() {
 				Parameters: []generator.Parameter{
 					&generator.FloatParameter{
 						Name:         "Pumpkin Cubes Per Unit",
-						DefaultValue: 80,
+						DefaultValue: 20,
 					},
 
 					&generator.IntParameter{
@@ -983,12 +987,12 @@ func main() {
 							// xDir := vector3.New(math.Cos(xRot), math.Sin(xRot), 0).
 							// 	Scale(2).
 							// 	Add(vector3.New(1., 0., 0.).Scale(8))
-							// final := modeling.UnitQuaternionFromTheta(yRot, vector3.Up[float64]()).
+							// final := quaternion.FromTheta(yRot, vector3.Up[float64]()).
 							// 	Rotate(xDir)
 
 							// A regular sphere
-							// rot1 := modeling.UnitQuaternionFromTheta(yRot, vector3.Up[float64]())
-							// rot2 := modeling.UnitQuaternionFromTheta(xRot, vector3.Forward[float64]())
+							// rot1 := quaternion.FromTheta(yRot, vector3.Up[float64]())
+							// rot2 := quaternion.FromTheta(xRot, vector3.Forward[float64]())
 							// final := rot1.Rotate(rot2.Rotate(vector3.Right[float64]()))
 
 							// Normal Mapping method - FAILURE
@@ -1007,7 +1011,7 @@ func main() {
 
 							// len := (xDir.X() - 1) / 2
 							// xDir = xDir.SetY(xDir.Y() + (1 - math.Pow((1-(len)), 4)*math.Cos(yRot)*3.6))
-							// final := modeling.UnitQuaternionFromTheta(yRot, vector3.Up[float64]()).
+							// final := quaternion.FromTheta(yRot, vector3.Up[float64]()).
 							// 	Rotate(xDir)
 
 							// A dumb Doughnut
@@ -1018,7 +1022,7 @@ func main() {
 							// 	Add(xDir)
 
 							// A spinny doughnut
-							// rot := modeling.UnitQuaternionFromTheta(yRot, vector3.Up[float64]())
+							// rot := quaternion.FromTheta(yRot, vector3.Up[float64]())
 							// xDir := rot.Rotate(vector3.New(math.Cos(xRot), math.Sin(xRot), 0).
 							// 	Scale(1)).
 							// 	Add(vector3.New(1., 0., 0.).Scale(1))
@@ -1085,6 +1089,14 @@ func main() {
 
 					// texturingParams := c.Parameters.Group("Texturing")
 
+					// outerIndices := make([]int, 0)
+					// innerIndices := make([]int, 0)
+					// pumpkinMesh.ScanFloat1Attribute(modeling.PositionAttribute+"-winner", func(i int, v vector3.Float64) {
+					// 	if v == -1 {
+
+					// 	}
+					// })
+
 					return generator.GltfArtifact{
 						Scene: gltf.PolyformScene{
 							Models: []gltf.PolyformModel{
@@ -1092,27 +1104,27 @@ func main() {
 									Name: "Pumpkin",
 									Mesh: pumpkinMesh,
 									Material: &gltf.PolyformMaterial{
-										PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
-											BaseColorTexture: &gltf.PolyformTexture{
-												URI: "Texturing/pumpkin.png", //"uvMap.png",
-												// URI: "uvMap.png", //"uvMap.png",
-												Sampler: &gltf.Sampler{
-													WrapS: gltf.SamplerWrap_REPEAT,
-													WrapT: gltf.SamplerWrap_REPEAT,
-												},
-											},
-											MetallicRoughnessTexture: &gltf.PolyformTexture{
-												URI: "Texturing/roughness.png",
-											},
-											// BaseColorFactor: texturingParams.Color("Base Color"),
-											// MetallicFactor:  1,
-											// RoughnessFactor: 0,
-										},
-										NormalTexture: &gltf.PolyformNormal{
-											PolyformTexture: gltf.PolyformTexture{
-												URI: "Texturing/normal.png",
-											},
-										},
+										// PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
+										// 	BaseColorTexture: &gltf.PolyformTexture{
+										// 		URI: "Texturing/pumpkin.png", //"uvMap.png",
+										// 		// URI: "uvMap.png", //"uvMap.png",
+										// 		Sampler: &gltf.Sampler{
+										// 			WrapS: gltf.SamplerWrap_REPEAT,
+										// 			WrapT: gltf.SamplerWrap_REPEAT,
+										// 		},
+										// 	},
+										// 	MetallicRoughnessTexture: &gltf.PolyformTexture{
+										// 		URI: "Texturing/roughness.png",
+										// 	},
+										// 	// BaseColorFactor: texturingParams.Color("Base Color"),
+										// 	// MetallicFactor:  1,
+										// 	// RoughnessFactor: 0,
+										// },
+										// NormalTexture: &gltf.PolyformNormal{
+										// 	PolyformTexture: gltf.PolyformTexture{
+										// 		URI: "Texturing/normal.png",
+										// 	},
+										// },
 										Extensions: []gltf.MaterialExtension{
 											// gltf.PolyformMaterialsUnlit{},
 										},

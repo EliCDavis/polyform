@@ -9,6 +9,7 @@ import (
 	"github.com/EliCDavis/polyform/formats/gltf"
 	"github.com/EliCDavis/polyform/generator"
 	"github.com/EliCDavis/polyform/math/noise"
+	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/primitives"
 	"github.com/EliCDavis/vector/vector2"
@@ -96,8 +97,8 @@ func main() {
 							yRot := yDim * math.Pi * 2.
 
 							// A regular sphere
-							rot1 := modeling.UnitQuaternionFromTheta(yRot, vector3.Up[float64]())
-							rot2 := modeling.UnitQuaternionFromTheta(xRot, vector3.Forward[float64]())
+							rot1 := quaternion.FromTheta(yRot, vector3.Up[float64]())
+							rot2 := quaternion.FromTheta(xRot, vector3.Forward[float64]())
 							final := rot1.Rotate(rot2.Rotate(vector3.Right[float64]()))
 
 							p := noise.Perlin3D(final.Scale(frequency))

@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/EliCDavis/polyform/formats/obj"
+	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/extrude"
 	"github.com/EliCDavis/polyform/modeling/meshops"
@@ -51,7 +52,7 @@ func sideLights(numberOfLights int, radius float64) modeling.Mesh {
 				Amount: vector3.New(0., .35, 0.),
 			},
 		)).
-		Rotate(modeling.UnitQuaternionFromTheta(-math.Pi/2, vector3.Forward[float64]()))
+		Rotate(quaternion.FromTheta(-math.Pi/2, vector3.Forward[float64]()))
 
 	return repeat.Circle(light, numberOfLights, radius)
 }
@@ -150,11 +151,11 @@ func main() {
 		Append(ring.
 			Scale(vector3.Fill(.75)).
 			Translate(ringSpacing.Scale(1)).
-			Rotate(modeling.UnitQuaternionFromTheta(0.3, vector3.Down[float64]()))).
+			Rotate(quaternion.FromTheta(0.3, vector3.Down[float64]()))).
 		Append(ring.
 			Scale(vector3.Fill(.5)).
 			Translate(ringSpacing.Scale(2)).
-			Rotate(modeling.UnitQuaternionFromTheta(0.5, vector3.Down[float64]()))).
+			Rotate(quaternion.FromTheta(0.5, vector3.Down[float64]()))).
 		Append(UfoBody(ufoOuterRadius, ufoportalRadius, 8).Translate(ringSpacing.Scale(2.5)))
 
 	mtlFile, err := os.Create("ufo.mtl")

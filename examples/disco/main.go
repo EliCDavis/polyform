@@ -8,6 +8,7 @@ import (
 	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/formats/gltf"
 	"github.com/EliCDavis/polyform/generator"
+	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/extrude"
 	"github.com/EliCDavis/polyform/modeling/meshops"
@@ -115,7 +116,7 @@ func Chair(params generator.GroupParameter) modeling.Mesh {
 
 	legRadiusAndInset := legRadius + legInset
 
-	legSupportFrontBackRotation := modeling.UnitQuaternionFromTheta(math.Pi/2, vector3.Forward[float64]())
+	legSupportFrontBackRotation := quaternion.FromTheta(math.Pi/2, vector3.Forward[float64]())
 	legFrontBackSupport := primitives.Cylinder{
 		Sides:  8,
 		Height: chairWidth - (legRadiusAndInset * 2),
@@ -131,7 +132,7 @@ func Chair(params generator.GroupParameter) modeling.Mesh {
 		},
 	)
 
-	legSupportLeftRightRotation := modeling.UnitQuaternionFromTheta(math.Pi/2, vector3.Right[float64]())
+	legSupportLeftRightRotation := quaternion.FromTheta(math.Pi/2, vector3.Right[float64]())
 	legLeftRightSupport := primitives.Cylinder{
 		Sides:  8,
 		Height: chairLength - (legRadiusAndInset * 2),
@@ -159,7 +160,7 @@ func Chair(params generator.GroupParameter) modeling.Mesh {
 		Radius: legRadius,
 	}.ToMesh()
 
-	backSupportRotation := modeling.UnitQuaternionFromTheta(math.Pi/2, vector3.Forward[float64]())
+	backSupportRotation := quaternion.FromTheta(math.Pi/2, vector3.Forward[float64]())
 	backSupport := primitives.Cylinder{
 		Sides:  8,
 		Height: chairWidth - (legRadiusAndInset * 2),

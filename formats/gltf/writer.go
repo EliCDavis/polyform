@@ -99,7 +99,7 @@ func (w Writer) WriteVector2AsByte(v vector2.Float64) {
 	w.bitW.Byte(uint8(v.Y()))
 }
 
-func (w *Writer) WriteVector4(accessorComponentType AccessorComponentType, data iter.ArrayIterator[vector4.Float64]) {
+func (w *Writer) WriteVector4(accessorComponentType AccessorComponentType, data *iter.ArrayIterator[vector4.Float64]) {
 	accessorType := AccessorType_VEC4
 
 	min := vector4.Fill(math.MaxFloat64)
@@ -146,7 +146,7 @@ func (w *Writer) WriteVector4(accessorComponentType AccessorComponentType, data 
 	w.bytesWritten += datasize
 }
 
-func (w *Writer) WriteVector3(accessorComponentType AccessorComponentType, data iter.ArrayIterator[vector3.Float64]) {
+func (w *Writer) WriteVector3(accessorComponentType AccessorComponentType, data *iter.ArrayIterator[vector3.Float64]) {
 	accessorType := AccessorType_VEC3
 
 	min := vector3.Fill(math.MaxFloat64)
@@ -203,7 +203,7 @@ func (w *Writer) WriteVector3(accessorComponentType AccessorComponentType, data 
 	w.bytesWritten += datasize
 }
 
-func (w *Writer) WriteVector2(accessorComponentType AccessorComponentType, data iter.ArrayIterator[vector2.Float64]) {
+func (w *Writer) WriteVector2(accessorComponentType AccessorComponentType, data *iter.ArrayIterator[vector2.Float64]) {
 	accessorType := AccessorType_VEC2
 
 	min := vector2.Fill(math.MaxFloat64)
@@ -260,7 +260,7 @@ func (w *Writer) WriteVector2(accessorComponentType AccessorComponentType, data 
 	w.bytesWritten += datasize
 }
 
-func (w *Writer) WriteIndices(indices iter.ArrayIterator[int], attributeSize int) {
+func (w *Writer) WriteIndices(indices *iter.ArrayIterator[int], attributeSize int) {
 	indiceSize := indices.Len()
 
 	componentType := AccessorComponentType_UNSIGNED_INT

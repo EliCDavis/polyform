@@ -10,6 +10,7 @@ import (
 
 	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/formats/obj"
+	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/marching"
 	"github.com/EliCDavis/polyform/modeling/meshops"
@@ -28,7 +29,7 @@ func tendrilField(start, direction vector3.Float64, radius, length float64, plum
 	angleIncrement := (math.Pi * 2) / float64(plumbs)
 	perpendicular := direction.Perpendicular().Normalized()
 	for i := 0; i < plumbs; i++ {
-		rot := modeling.UnitQuaternionFromTheta(float64(i)*angleIncrement, direction)
+		rot := quaternion.FromTheta(float64(i)*angleIncrement, direction)
 
 		plumbRadius := radius * (.7 + (rand.Float64() * .2))
 
@@ -137,7 +138,7 @@ func main() {
 		scene := []rendering.Hittable{}
 
 		if mesh.PrimitiveCount() > 0 {
-			rot := modeling.UnitQuaternionFromTheta((float64(i)*growInc)*math.Pi, vector3.Up[float64]())
+			rot := quaternion.FromTheta((float64(i)*growInc)*math.Pi, vector3.Up[float64]())
 			scene = append(scene, rendering.NewMesh(mesh.Rotate(rot), renderingMat))
 		}
 

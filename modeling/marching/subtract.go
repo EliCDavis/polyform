@@ -1,6 +1,7 @@
 package marching
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/EliCDavis/polyform/math/geometry"
@@ -17,23 +18,18 @@ func Subtract(base, subtraction Field) Field {
 	newDomain.EncapsulateBounds(base.Domain)
 	newDomain.EncapsulateBounds(subtraction.Domain)
 
-	for atr, f := range subtraction.Float1Functions {
-		baseFun := base.Float1Functions[atr]
-		float1Functions[atr] = func(v vector3.Float64) float64 {
+	for attr, f := range subtraction.Float1Functions {
+		baseFun := base.Float1Functions[attr]
+		float1Functions[attr] = func(v vector3.Float64) float64 {
 			return math.Max(baseFun(v), -f(v))
+		}
 
-			// inBase := base.Domain.Contains(v)
-			// inSub := subtraction.Domain.Contains(v)
-
-			// if inBase && inSub {
-			// return math.Max(baseFun(v), -f(v))
-			// }
-
-			// if inSub {
-			// return -f(v)
-			// }
-
-			// return baseFun(v)
+		winner := fmt.Sprintf("%s-winner", attr)
+		float1Functions[winner] = func(v vector3.Float64) float64 {
+			if baseFun(v) > -f(v) {
+				return -1
+			}
+			return 1
 		}
 	}
 

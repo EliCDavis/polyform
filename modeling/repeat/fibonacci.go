@@ -3,6 +3,7 @@ package repeat
 import (
 	"math"
 
+	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/meshops"
 	"github.com/EliCDavis/vector/vector3"
@@ -31,7 +32,7 @@ func FibonacciSphere(in modeling.Mesh, samples int, radius float64) modeling.Mes
 	points := FibonacciSpherePoints(samples, radius)
 	final := modeling.EmptyMesh(in.Topology())
 	for _, p := range points {
-		rot := modeling.UnitQuaternionFromTheta(0, p.Normalized())
+		rot := quaternion.FromTheta(0, p.Normalized())
 		final = final.Append(in.Rotate(rot).Transform(
 			meshops.TranslateAttribute3DTransformer{
 				Amount: p,

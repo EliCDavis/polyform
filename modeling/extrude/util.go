@@ -3,6 +3,7 @@ package extrude
 import (
 	"math"
 
+	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
@@ -49,7 +50,7 @@ func GetPlaneOuterPoints(center, normal, perpendicular vector3.Float64, radius f
 	angleIncrement := (math.Pi * 2) / float64(sides)
 
 	for i := 1; i < sides; i++ {
-		rot := modeling.UnitQuaternionFromTheta(angleIncrement*float64(i), normal)
+		rot := quaternion.FromTheta(angleIncrement*float64(i), normal)
 		perp := rot.Rotate(perpendicular)
 		outerPoints[i] = perp.Scale(radius).Add(center)
 		outerNormals[i] = perp
