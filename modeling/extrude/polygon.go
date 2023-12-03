@@ -76,10 +76,6 @@ func polygon(sides int, points []ExtrusionPoint, closed bool) modeling.Mesh {
 		dir := pointDirections[i]
 
 		rot := quaternion.RotationTo(lastDir, dir)
-		// rot := quaternion.New(vector3.Zero[float64](), 1)
-		// if dir.Dot(vector3.Down[float64]()) < 0.9999999 {
-		// 	rot = quaternion.RotationTo(vector3.Up[float64](), dir)
-		// }
 
 		for sideIndex := 0; sideIndex < vertCount; sideIndex++ {
 			point := circlePoints[sideIndex]
@@ -90,7 +86,7 @@ func polygon(sides int, points []ExtrusionPoint, closed bool) modeling.Mesh {
 			normals = append(normals, point)
 		}
 
-		lastRot = lastRot.Multiply(rot)
+		lastRot = rot.Multiply(lastRot)
 		lastDir = dir
 	}
 

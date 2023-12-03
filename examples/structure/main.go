@@ -5,49 +5,72 @@ import (
 	"github.com/EliCDavis/polyform/formats/gltf"
 	"github.com/EliCDavis/polyform/generator"
 	"github.com/EliCDavis/polyform/generator/room"
+	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/extrude"
+	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
 )
+
+func TranslateExtrusion(points []extrude.ExtrusionPoint, amount vector3.Float64) []extrude.ExtrusionPoint {
+	finalPoints := make([]extrude.ExtrusionPoint, len(points))
+
+	for i, p := range points {
+		finalPoints[i] = p
+		finalPoints[i].Point = finalPoints[i].Point.Add(amount)
+	}
+
+	return finalPoints
+}
+
+func NewExtrusionPath(path []vector3.Float64, radius float64) []extrude.ExtrusionPoint {
+	allPoints := make([]extrude.ExtrusionPoint, len(path))
+	for i, p := range path {
+		allPoints[i] = extrude.ExtrusionPoint{
+			Point:     p,
+			Thickness: radius,
+		}
+	}
+	return allPoints
+}
 
 func Pipe(params generator.GroupParameter) gltf.PolyformModel {
 
 	height := params.Float64("Height")
 	radius := params.Float64("Radius")
 
-	base := extrude.Polygon(params.Int("Sides"), []extrude.ExtrusionPoint{
-		{
-			Point:     vector3.Zero[float64](),
-			Thickness: radius,
+	masterPath := []vector3.Float64{
+		vector3.Zero[float64](),
+		vector3.New(0, height, 0),
+		vector3.New(height, height, 0),
+		vector3.New(height, height*2, 0),
+		vector3.New(0, height*2, 0),
+		// vector3.New(0, height*2, height*2),
+		// vector3.New(0, height, height*2),
+		// vector3.New(0, height, height),
+	}
+
+	subPaths := extrude.PathPoints(
+		[]vector2.Vector[float64]{
+			vector2.New(0.0, 0.0),
+			vector2.New(0.0, 0.5),
+			vector2.New(0.0, 1.0),
+
+			vector2.New(0.5, 0.0),
+			vector2.New(0.5, 0.5),
+			vector2.New(0.5, 1.0),
+
+			vector2.New(1.0, 0.0),
+			vector2.New(1.0, 0.5),
+			vector2.New(1.0, 1.0),
 		},
-		{
-			Point:     vector3.New(0, height, 0),
-			Thickness: radius,
-		},
-		{
-			Point:     vector3.New(height, height, 0),
-			Thickness: radius,
-		},
-		{
-			Point:     vector3.New(height, height*2, 0),
-			Thickness: radius,
-		},
-		{
-			Point:     vector3.New(0, height*2, 0),
-			Thickness: radius,
-		},
-		{
-			Point:     vector3.New(0, height*2, height*2),
-			Thickness: radius,
-		},
-		{
-			Point:     vector3.New(0, height, height*2),
-			Thickness: radius,
-		},
-		{
-			Point:     vector3.New(0, height, height),
-			Thickness: radius,
-		},
-	})
+		masterPath,
+	)
+
+	base := modeling.EmptyMesh(modeling.TriangleTopology)
+
+	for _, p := range subPaths {
+		base = base.Append(extrude.Polygon(params.Int("Sides"), NewExtrusionPath(p, radius)))
+	}
 
 	return gltf.PolyformModel{
 		Name: "Pipe",
