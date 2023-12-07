@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 
 	"github.com/EliCDavis/polyform/drawing/coloring"
+	"github.com/EliCDavis/vector/vector3"
 )
 
 type Profile struct {
@@ -68,4 +69,10 @@ type ColorParameterSchema struct {
 	ParameterSchemaBase
 	DefaultValue coloring.WebColor `json:"defaultValue"`
 	CurrentValue coloring.WebColor `json:"currentValue"`
+}
+
+type VectorArrayParameterSchema struct {
+	ParameterSchemaBase
+	DefaultValue []vector3.Float64 `json:"defaultValue"`
+	CurrentValue []vector3.Float64 `json:"currentValue"`
 }

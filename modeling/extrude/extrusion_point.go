@@ -65,7 +65,7 @@ func directionsOfExtrusionPoints(points []ExtrusionPoint) []vector3.Float64 {
 	return directions
 }
 
-func directionsOfPoints(points []vector3.Float64) []vector3.Float64 {
+func DirectionsOfPoints(points []vector3.Float64) []vector3.Float64 {
 	if len(points) == 0 {
 		return nil
 	}

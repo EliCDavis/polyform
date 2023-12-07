@@ -5,6 +5,8 @@ import (
 	"flag"
 	"fmt"
 	"image/color"
+
+	"github.com/EliCDavis/vector/vector3"
 )
 
 func findParam[T Parameter](params []Parameter, parameterName string) T {
@@ -112,4 +114,8 @@ func (gp GroupParameter) Bool(parameterName string) bool {
 
 func (gp GroupParameter) String(parameterName string) string {
 	return findParam[*StringParameter](gp.Parameters, parameterName).Value()
+}
+
+func (gp GroupParameter) Vector3Array(parameterName string) []vector3.Float64 {
+	return findParam[*VectorArrayParameter](gp.Parameters, parameterName).Value()
 }

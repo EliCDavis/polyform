@@ -67,6 +67,8 @@ import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer
 // import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { ProgressiveLightMap } from 'three/addons/misc/ProgressiveLightMap.js';
 
+import { TransformControls } from 'three/addons/controls/TransformControls.js';
+
 let viewportSettingsChanged = false;
 const viewportSettings = {
     renderWireframe: false,
@@ -145,6 +147,19 @@ groundMesh.receiveShadow = true;
 scene.add(groundMesh);
 progressiveSurfacemap.addObjectsToLightMap([groundMesh])
 
+// const environment = new RoomEnvironment(renderer);
+// const pmremGenerator = new THREE.PMREMGenerator(renderer);
+// scene.environment = pmremGenerator.fromScene( environment ).texture;
+
+const orbitControls = new OrbitControls(camera, renderer.domElement);
+// controls.addEventListener('change', render); // use if there is no animation loop
+orbitControls.minDistance = 0;
+orbitControls.maxDistance = 100;
+orbitControls.target.set(0, 0, 0);
+orbitControls.update();
+
+camera.position.z = 5;
+
 const panel = new GUI({ width: 310 });
 
 const updateProfile = (cb) => {
@@ -154,6 +169,41 @@ const updateProfile = (cb) => {
             cb();
         }
     })
+}
+
+
+const newPositionControl = (setting, name, position, index) => {
+    const control = new TransformControls(camera, renderer.domElement);
+    control.setMode('translate');
+
+    const mesh = new THREE.Group();
+    mesh.position.x = position.x;
+    mesh.position.y = position.y;
+    mesh.position.z = position.z;
+
+    // control.addEventListener('change', () => {
+    // });
+
+    control.addEventListener('dragging-changed', (event) => {
+        orbitControls.enabled = !event.value;
+
+        if (orbitControls.enabled) {
+
+            console.log(setting[name])
+            console.log(name)
+            setting[name][index].x = mesh.position.x;
+            setting[name][index].y = mesh.position.y;
+            setting[name][index].z = mesh.position.z;
+
+            updateProfile();
+            console.log(setting)
+        }
+    });
+
+    scene.add(mesh);
+    control.attach(mesh);
+
+    scene.add(control)
 }
 
 const allMeshGUISettings = [];
@@ -187,6 +237,25 @@ const parseGroupParameters = (folderToAddTo, groupParameters) => {
 
             case "string":
                 folderSettings[param.name] = param.currentValue;
+                break;
+
+            case "vectorarray":
+                folderSettings[param.name] = param.currentValue;
+                folderSettings[param.name + " button"] = () => {
+
+                    const oldEle = folderSettings[param.name][folderSettings[param.name].length - 1]
+                    const newEle = {
+                        x: oldEle.x + 1,
+                        y: oldEle.y,
+                        z: oldEle.z,
+                    }
+
+                    folderSettings[param.name].push(newEle)
+
+                    const lastEle = folderSettings[param.name].length - 1
+                    newPositionControl(folderSettings, param.name, folderSettings[param.name][lastEle], lastEle);
+                    updateProfile();
+                }
                 break;
 
             default:
@@ -225,6 +294,13 @@ const parseGroupParameters = (folderToAddTo, groupParameters) => {
                 setting = folderToAddTo.addColor(folderSettings, param.name).listen().onChange((weight) => {
                     updateProfile();
                 });
+                break;
+
+            case "vectorarray":
+                folderSettings[param.name].forEach((position, index) => {
+                    newPositionControl(folderSettings, param.name, position, index);
+                })
+                setting = folderToAddTo.add(folderSettings, param.name + " button").name("Add to " + param.name).listen()
                 break;
         }
         if (setting != null) {
@@ -343,8 +419,8 @@ const RefreshProducerOutput = () => {
                             (aabbHeight * aabbHeight)
                         ) / 2;
 
-                        controls.target.set(0, mid, 0);
-                        controls.update();
+                        orbitControls.target.set(0, mid, 0);
+                        orbitControls.update();
                     }
 
                 });
@@ -576,18 +652,7 @@ const featchandApplyLatestSchemaToControls = () => {
 }
 
 
-// const environment = new RoomEnvironment(renderer);
-// const pmremGenerator = new THREE.PMREMGenerator(renderer);
-// scene.environment = pmremGenerator.fromScene( environment ).texture;
 
-const controls = new OrbitControls(camera, renderer.domElement);
-// controls.addEventListener('change', render); // use if there is no animation loop
-controls.minDistance = 0;
-controls.maxDistance = 100;
-controls.target.set(0, 0, 0);
-controls.update();
-
-camera.position.z = 5;
 
 const stats = new Stats();
 container.appendChild(stats.dom);
