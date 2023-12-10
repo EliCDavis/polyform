@@ -71,8 +71,15 @@ func polygon(sides int, points []ExtrusionPoint, closed bool) modeling.Mesh {
 	lastDir := vector3.Up[float64]()
 	lastRot := quaternion.New(vector3.Zero[float64](), 1)
 
+	validUVs := true
+
 	// Vertices and normals ===================================================
 	for i, p := range points {
+		if p.UV == nil {
+			validUVs = false
+			break
+		}
+
 		dir := pointDirections[i]
 
 		rot := quaternion.RotationTo(lastDir, dir)
@@ -91,14 +98,6 @@ func polygon(sides int, points []ExtrusionPoint, closed bool) modeling.Mesh {
 	}
 
 	// UVs ====================================================================
-	validUVs := true
-	for _, p := range points {
-		if p.UV == nil {
-			validUVs = false
-			break
-		}
-	}
-
 	if validUVs {
 		uvs := make([]vector2.Float64, 0, len(points)*vertCount)
 		for i, p := range points {

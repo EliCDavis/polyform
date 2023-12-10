@@ -63,18 +63,6 @@ func (tn *TilingNoise) init() {
 	}
 }
 
-// def noise(x, y, per):
-//     def surflet(gridX, gridY):
-//         distX, distY = abs(x-gridX), abs(y-gridY)
-//         polyX = 1 - 6*distX**5 + 15*distX**4 - 10*distX**3
-//         polyY = 1 - 6*distY**5 + 15*distY**4 - 10*distY**3
-//         hashed = perm[perm[int(gridX)%per] + int(gridY)%per]
-//         grad = (x-gridX)*dirs[hashed][0] + (y-gridY)*dirs[hashed][1]
-//         return polyX * polyY * grad
-//     intX, intY = int(x), int(y)
-//     return (surflet(intX+0, intY+0) + surflet(intX+1, intY+0) +
-//             surflet(intX+0, intY+1) + surflet(intX+1, intY+1))
-
 // https://gamedev.stackexchange.com/questions/23625/how-do-you-generate-tileable-perlin-noise
 func (tn *TilingNoise) surflet(v vector2.Float64, g vector2.Int, per int) float64 {
 	dist := v.Sub(g.ToFloat64()).Abs()

@@ -171,6 +171,14 @@ const updateProfile = (cb) => {
     })
 }
 
+let allPositionControls = [];
+
+const clearPositionControls = () => {
+    allPositionControls.forEach((v) => {
+        scene.remove(v);
+    })
+    allPositionControls = [];
+}
 
 const newPositionControl = (setting, name, position, index) => {
     const control = new TransformControls(camera, renderer.domElement);
@@ -202,6 +210,7 @@ const newPositionControl = (setting, name, position, index) => {
 
     scene.add(mesh);
     control.attach(mesh);
+    allPositionControls.push(control);
 
     scene.add(control)
 }
@@ -625,6 +634,8 @@ const updateProfileParametersWithNewSchema = (prof, newSchema) => {
                 updateProfileParametersWithNewSchema(prof[schemaParam.name], schemaParam)
                 break;
 
+            // case ballsCachePositionsOrSomething
+
             default:
                 prof[schemaParam.name] = schemaParam.currentValue;
                 break;
@@ -650,8 +661,6 @@ const featchandApplyLatestSchemaToControls = () => {
         });
     })
 }
-
-
 
 
 const stats = new Stats();
