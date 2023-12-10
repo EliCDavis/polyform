@@ -437,10 +437,10 @@ func main() {
 							&generator.VectorArrayParameter{
 								Name: "Positions",
 								DefaultValue: []vector3.Vector[float64]{
-									vector3.New(4*0, 0., 0.),
-									vector3.New(4*1, 0., 0.),
-									vector3.New(4*2, 0., 4),
-									vector3.New(4*3, 0., 4),
+									vector3.New(4*0., 0., 0.),
+									vector3.New(4*1., 0., 0.),
+									vector3.New(4*2., 0., 4.),
+									vector3.New(4*3., 0., 4.),
 								},
 							},
 						},

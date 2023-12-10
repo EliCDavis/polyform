@@ -31,59 +31,6 @@ import (
 	"github.com/EliCDavis/vector/vector3"
 )
 
-// perm = range(256)
-// random.shuffle(perm)
-// perm += perm
-// dirs = [(math.cos(a * 2.0 * math.pi / 256),
-//          math.sin(a * 2.0 * math.pi / 256))
-//          for a in range(256)]
-
-type TilingNoise struct {
-	dirs []vector2.Float64
-	perm []int
-}
-
-func (tn *TilingNoise) init() {
-	size := 256
-
-	tn.perm = make([]int, size)
-	for i := 0; i < size; i++ {
-		tn.perm[i] = i
-	}
-	rand.Shuffle(len(tn.perm), func(i, j int) { tn.perm[i], tn.perm[j] = tn.perm[j], tn.perm[i] })
-	tn.perm = append(tn.perm, tn.perm...)
-
-	tn.dirs = make([]vector2.Float64, size)
-	for i := 0; i < size; i++ {
-		a := float64(i)
-		tn.dirs[i] = vector2.New(
-			math.Cos((a*2.*math.Pi)/float64(size)),
-			math.Sin((a*2.*math.Pi)/float64(size)),
-		)
-	}
-}
-
-// https://gamedev.stackexchange.com/questions/23625/how-do-you-generate-tileable-perlin-noise
-func (tn *TilingNoise) surflet(v vector2.Float64, g vector2.Int, per int) float64 {
-	dist := v.Sub(g.ToFloat64()).Abs()
-	polyX := 1 - (6 * math.Pow(dist.X(), 5)) + (15 * math.Pow(dist.X(), 4)) - (10 * math.Pow(dist.X(), 3))
-	polyY := 1 - (6 * math.Pow(dist.Y(), 5)) + (15 * math.Pow(dist.Y(), 4)) - (10 * math.Pow(dist.Y(), 3))
-
-	hashed := tn.perm[tn.perm[g.X()%per]+(g.Y()%per)]
-
-	hashedDir := tn.dirs[hashed]
-	grad := ((v.X() - float64(g.X())) * hashedDir.X()) + ((v.Y() - float64(g.Y())) * hashedDir.Y())
-	return polyX * polyY * grad
-}
-
-func (tn *TilingNoise) Noise(v vector2.Float64, per int) float64 {
-	i := v.FloorToInt()
-	return tn.surflet(v, i, per) +
-		tn.surflet(v, i.Add(vector2.Right[int]()), per) +
-		tn.surflet(v, i.Add(vector2.Up[int]()), per) +
-		tn.surflet(v, i.Add(vector2.One[int]()), per)
-}
-
 func closestTimeOnMultiLineSegment(point vector3.Float64, multiLine []vector3.Float64, totalLength float64) float64 {
 	if len(multiLine) < 2 {
 		panic("line segment required 2 or more points")
@@ -112,25 +59,11 @@ func metalRoughness() image.Image {
 	img := image.NewRGBA(image.Rect(0, 0, dim, dim))
 	// normals.Fill(img)
 
-	n := &TilingNoise{}
-	n.init()
+	n := noise.NewTilingNoise(dim, 1/64., 5)
 
 	for x := 0; x < dim; x++ {
 		for y := 0; y < dim; y++ {
-			val := 0.
-			freq := 1. / 64.
-			for o := 0; o < 5; o++ {
-				op2 := math.Pow(2, float64(o))
-				n := n.Noise(
-					vector2.New(
-						(float64(x)*freq)*op2,
-						(float64(y)*freq)*op2,
-					),
-					int(float64(dim)*freq)*int(op2),
-				)
-				val += math.Pow(0.5, float64(o)) * n
-			}
-			// p := n.Noise(vector2.New(xDim*10, yDim*10), 100)
+			val := n.Noise(x, y)
 			p := (val * 128) + 128
 
 			p = 255 - (p * 0.75)
@@ -151,8 +84,7 @@ func albedo(positiveColor, negativeColor color.Color) image.Image {
 	img := image.NewRGBA(image.Rect(0, 0, dim, dim))
 	// normals.Fill(img)
 
-	n := &TilingNoise{}
-	n.init()
+	n := noise.NewTilingNoise(dim, 1/64., 5)
 
 	nR, nG, nB, _ := negativeColor.RGBA()
 	pR, pG, pB, _ := positiveColor.RGBA()
@@ -163,20 +95,7 @@ func albedo(positiveColor, negativeColor color.Color) image.Image {
 
 	for x := 0; x < dim; x++ {
 		for y := 0; y < dim; y++ {
-			val := 0.
-			freq := 1. / 64.
-			for o := 0; o < 5; o++ {
-				op2 := math.Pow(2, float64(o))
-				n := n.Noise(
-					vector2.New(
-						(float64(x)*freq)*op2,
-						(float64(y)*freq)*op2,
-					),
-					int(float64(dim)*freq)*int(op2),
-				)
-				val += math.Pow(0.5, float64(o)) * n
-			}
-			// p := n.Noise(vector2.New(xDim*10, yDim*10), 100)
+			val := n.Noise(x, y)
 			p := (val * 0.5) + 0.5
 
 			r := uint32(float64(nR) + (rRange * p))
@@ -199,24 +118,11 @@ func stemNormalImage() image.Image {
 	img := image.NewRGBA(image.Rect(0, 0, dim, dim))
 	// normals.Fill(img)
 
-	n := &TilingNoise{}
-	n.init()
+	n := noise.NewTilingNoise(dim, 1/64., 5)
 
 	for x := 0; x < dim; x++ {
 		for y := 0; y < dim; y++ {
-			val := 0.
-			freq := 1. / 64.
-			for o := 0; o < 5; o++ {
-				op2 := math.Pow(2, float64(o))
-				n := n.Noise(
-					vector2.New(
-						(float64(x)*freq)*op2,
-						(float64(y)*freq)*op2,
-					),
-					int(float64(dim)*freq)*int(op2),
-				)
-				val += math.Pow(0.5, float64(o)) * n
-			}
+			val := n.Noise(x, y)
 			// p := n.Noise(vector2.New(xDim*10, yDim*10), 100)
 			p := (val * 128) + 128
 
@@ -281,24 +187,11 @@ func normalImage() image.Image {
 	img := image.NewRGBA(image.Rect(0, 0, dim, dim))
 	// normals.Fill(img)
 
-	n := &TilingNoise{}
-	n.init()
+	n := noise.NewTilingNoise(dim, 1/64., 5)
 
 	for x := 0; x < dim; x++ {
 		for y := 0; y < dim; y++ {
-			val := 0.
-			freq := 1. / 64.
-			for o := 0; o < 5; o++ {
-				op2 := math.Pow(2, float64(o))
-				n := n.Noise(
-					vector2.New(
-						(float64(x)*freq)*op2,
-						(float64(y)*freq)*op2,
-					),
-					int(float64(dim)*freq)*int(op2),
-				)
-				val += math.Pow(0.5, float64(o)) * n
-			}
+			val := n.Noise(x, y)
 			// p := n.Noise(vector2.New(xDim*10, yDim*10), 100)
 			p := (val * 128) + 128
 
@@ -958,8 +851,7 @@ func main() {
 					dim := 1024
 					img := image.NewRGBA(image.Rect(0, 0, dim, dim))
 
-					n := &TilingNoise{}
-					n.init()
+					n := noise.NewTilingNoise(dim, 1/64., 5)
 
 					for x := 0; x < dim; x++ {
 						// xDim := (float64(x) / float64(dim)) * 2
@@ -1018,19 +910,7 @@ func main() {
 
 							// p := noise.Perlin3D(final.Scale(.8)) * 255
 
-							val := 0.
-							freq := 1. / 64.
-							for o := 0; o < 5; o++ {
-								op2 := math.Pow(2, float64(o))
-								n := n.Noise(
-									vector2.New(
-										(float64(x)*freq)*op2,
-										(float64(y)*freq)*op2,
-									),
-									int(float64(dim)*freq)*int(op2),
-								)
-								val += math.Pow(0.5, float64(o)) * n
-							}
+							val := n.Noise(x, y)
 							// p := n.Noise(vector2.New(xDim*10, yDim*10), 100)
 							p := (val * 128) + 128
 

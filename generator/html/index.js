@@ -2,7 +2,7 @@ let clientID = null;
 
 
 function fetch(theUrl, callback) {
-    var xmlHttp = new XMLHttpRequest();
+    const xmlHttp = new XMLHttpRequest();
     xmlHttp.onreadystatechange = function () {
         if (xmlHttp.readyState == 4 && xmlHttp.status == 200) {
             console.log(xmlHttp.responseText)
@@ -14,7 +14,7 @@ function fetch(theUrl, callback) {
 }
 
 function download(theUrl, callback) {
-    var xmlHttp = new XMLHttpRequest();
+    const xmlHttp = new XMLHttpRequest();
     xmlHttp.responseType = 'blob';
     xmlHttp.onreadystatechange = function () {
         if (xmlHttp.readyState == 4 && xmlHttp.status == 200) {
@@ -28,7 +28,7 @@ function download(theUrl, callback) {
 
 
 function post(theUrl, body, callback) {
-    var xmlHttp = new XMLHttpRequest();
+    const xmlHttp = new XMLHttpRequest();
     xmlHttp.onreadystatechange = function () {
         if (xmlHttp.readyState == 4 && xmlHttp.status == 200) {
             callback(JSON.parse(xmlHttp.responseText));
@@ -634,7 +634,19 @@ const updateProfileParametersWithNewSchema = (prof, newSchema) => {
                 updateProfileParametersWithNewSchema(prof[schemaParam.name], schemaParam)
                 break;
 
-            // case ballsCachePositionsOrSomething
+            case "VectorArray":
+                while (prof[schemaParam.name].length > 0) {
+                    prof[schemaParam.name].pop();
+                }
+                schemaParam.currentValue.forEach((position) => {
+                    prof[schemaParam.name].push(position)
+                })
+
+                prof[schemaParam.name].forEach((position, index) => {
+                    newPositionControl(prof, schemaParam.name, position, index);
+                })
+                break;
+
 
             default:
                 prof[schemaParam.name] = schemaParam.currentValue;
@@ -647,7 +659,6 @@ const updateProfileWithNewSchema = (prof, newSchema) => {
     for (const [key, gen] of Object.entries(prof.subGenerators)) {
         updateProfileWithNewSchema(gen, newSchema.subGenerators[key])
     }
-    console.log(prof)
     updateProfileParametersWithNewSchema(prof.Parameters, newSchema.parameters);
 }
 
@@ -655,6 +666,7 @@ const featchandApplyLatestSchemaToControls = () => {
     fetch("/schema", (generatorSchema) => {
         schema = generatorSchema;
         RefreshProducerOutput();
+        clearPositionControls();
         updateProfileWithNewSchema(profile, generatorSchema)
         allMeshGUISettings.forEach(setting => {
             setting.updateDisplay();
