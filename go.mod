@@ -1,6 +1,6 @@
 module github.com/EliCDavis/polyform
 
-go 1.18
+go 1.21.0
 
 require (
 	github.com/EliCDavis/vector v1.5.0
@@ -11,6 +11,7 @@ require (
 require github.com/gorilla/websocket v1.5.1
 
 require (
+	github.com/EliCDavis/sfm v1.0.0 // indirect
 	github.com/stretchr/objx v0.5.1 // indirect
 	golang.org/x/net v0.19.0 // indirect
 )

@@ -3,7 +3,6 @@ package main
 import (
 	"image"
 	"image/color"
-	"log"
 	"math"
 	"math/rand"
 	"time"
@@ -89,13 +88,6 @@ func (rl RackLeg) Mesh(extraHeight float64) modeling.Mesh {
 		UVs:    primitives.DefaultCubeUVs(),
 	}.UnweldedQuads().Translate(vector3.New(0, rl.FoundationHeight/2, 0))
 
-	// leg := primitives.
-	// 	Cube{
-	// 	Height: rl.Height,
-	// 	Width:  rl.Width,
-	// 	Depth:  rl.Width,
-	// }.UnweldedQuads().Translate(vector3.New(0, (rl.Height/2)+rl.FoundationHeight, 0))
-
 	finalHeight := extraHeight + rl.Height
 
 	leg := IBeam{
@@ -154,27 +146,6 @@ func (r Rack) Mesh() modeling.Mesh {
 		rack = rack.Append(legs.Rotate(rot).Translate(pos.SetY(0)))
 	}
 
-	for i := 0; i < len(r.LegPositions)-1; i++ {
-
-		// dir := r.LegPositions[i+1].Sub(r.LegPositions[i])
-		// len := dir.Length()
-
-		// shelfing := modeling.EmptyMesh(modeling.TriangleTopology)
-		// for _, height := range r.Shelfs {
-		// 	shelf := IBeam{Thickness: 0.1}.
-		// 		Mesh().
-		// 		Scale(vector3.New(r.ShelfWidth, len, r.ShelfWidth)).
-		// 		Rotate(quaternion.FromTheta(math.Pi/2, vector3.Forward[float64]()))
-
-		// 	shelfing = shelfing.
-		// 		Append(shelf.Translate(vector3.New(len/2, height, r.LegSpacing/2))).
-		// 		Append(shelf.Translate(vector3.New(len/2, height, -r.LegSpacing/2)))
-		// }
-
-		// rot := quaternion.RotationTo(vector3.Right[float64](), dir.Normalized())
-		// rack = rack.Append(shelfing.Rotate(rot).Translate(r.LegPositions[i]))
-	}
-
 	return rack
 }
 
@@ -202,10 +173,7 @@ var pipeMrTexture = &gltf.PolyformTexture{
 }
 
 func PipeMaterial(seed *rand.Rand) *gltf.PolyformMaterial {
-
-	sd := seed.Float64()
-	log.Println(sd)
-	painted := sd > 0.5
+	painted := seed.Float64() > 0.5
 
 	if painted {
 		return &gltf.PolyformMaterial{
@@ -457,14 +425,13 @@ func main() {
 				},
 				"pipe-mr.png": func(c *generator.Context) (generator.Artifact, error) {
 					dim := 256
-					n := noise.NewTilingNoise(dim, 1/64., 3)
+					n := noise.NewTilingNoise(dim, 1/64., 2)
 					img := image.NewRGBA(image.Rect(0, 0, dim, dim))
 
 					for x := 0; x < dim; x++ {
 						for y := 0; y < dim; y++ {
 							val := n.Noise(x, y)
 							p := (val * 128) + 128
-
 							p = 255 - (p * 0.75)
 
 							img.Set(x, y, color.RGBA{

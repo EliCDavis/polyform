@@ -13,6 +13,8 @@ Polyform is for loading, generating, editing, and exporting 3D geometry and it's
   - [gltf](/formats/gltf/) - GLTF file format
   - [obj](/formats/obj/) - OBJ file format
   - [ply](/formats/ply/) - PLY file format
+  - [colmap](/formats/colmap/) - Utilities for loading COLMAP reconstruction data
+  - [opensfm](/formats/opensfm/) - Utilities for loading OpenSFM reconstruction data
 - Modeling
   - [meshops](/modeling/meshops/) - All currently implemented algorithms for transforming meshes. 
   - [marching](/modeling/marching/) - Multi-threaded Cube Marching algorithm and utilities.
