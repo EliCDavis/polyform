@@ -25,13 +25,17 @@ func TestReconstructionToPointcloud(t *testing.T) {
 
 	// ASSERT =================================================================
 	assert.Equal(t, modeling.PointTopology, pointcloud.Topology())
-	assert.True(t, pointcloud.HasFloat3Attribute(modeling.PositionAttribute))
-	assert.True(t, pointcloud.HasFloat3Attribute(modeling.ColorAttribute))
 
+	indexData := pointcloud.Indices()
+	assert.Equal(t, 1, indexData.Len())
+	assert.Equal(t, 0, indexData.At(0))
+
+	assert.True(t, pointcloud.HasFloat3Attribute(modeling.PositionAttribute))
 	positionData := pointcloud.Float3Attribute(modeling.PositionAttribute)
 	assert.Equal(t, 1, positionData.Len())
 	assert.Equal(t, vector3.New(1., 2., 3.), positionData.At(0))
 
+	assert.True(t, pointcloud.HasFloat3Attribute(modeling.ColorAttribute))
 	colorData := pointcloud.Float3Attribute(modeling.ColorAttribute)
 	assert.Equal(t, 1, colorData.Len())
 	assert.Equal(t, 1., colorData.At(0).X())

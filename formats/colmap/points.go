@@ -14,12 +14,10 @@ func PointDataToPointCloud(points []colmap.Point3D) modeling.Mesh {
 		colorData[i] = vector3.FromColor(p.Color)
 	}
 
-	return modeling.
-		EmptyMesh(modeling.PointTopology).
-		SetFloat3Data(map[string][]vector3.Vector[float64]{
-			modeling.PositionAttribute: positionData,
-			modeling.ColorAttribute:    colorData,
-		})
+	return modeling.NewPointCloud(map[string][]vector3.Vector[float64]{
+		modeling.PositionAttribute: positionData,
+		modeling.ColorAttribute:    colorData,
+	}, nil, nil, nil)
 }
 
 // Loads the feature match point data into a Pointcloud mesh

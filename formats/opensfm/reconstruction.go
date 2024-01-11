@@ -17,12 +17,10 @@ func ReconstructionToPointcloud(reconstruction opensfm.ReconstructionSchema) mod
 		i++
 	}
 
-	return modeling.
-		EmptyMesh(modeling.PointTopology).
-		SetFloat3Data(map[string][]vector3.Vector[float64]{
-			modeling.PositionAttribute: positionData,
-			modeling.ColorAttribute:    colorData,
-		})
+	return modeling.NewPointCloud(map[string][]vector3.Vector[float64]{
+		modeling.PositionAttribute: positionData,
+		modeling.ColorAttribute:    colorData,
+	}, nil, nil, nil)
 }
 
 // Loads the feature match point data into a Pointcloud mesh

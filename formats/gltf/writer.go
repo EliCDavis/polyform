@@ -11,6 +11,7 @@ import (
 
 	"github.com/EliCDavis/bitlib"
 	"github.com/EliCDavis/iter"
+	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/animation"
 	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
@@ -591,6 +592,12 @@ func (w *Writer) AddMesh(model PolyformModel) {
 		materialIndex = w.AddMaterial(*model.Material)
 	}
 
+	var mode *PrimitiveMode = nil
+	if model.Mesh.Topology() == modeling.PointTopology {
+		p := PrimitiveMode_POINTS
+		mode = &p
+	}
+
 	w.meshes = append(w.meshes, Mesh{
 		ChildOfRootProperty: ChildOfRootProperty{
 			Name: model.Name,
@@ -600,6 +607,7 @@ func (w *Writer) AddMesh(model PolyformModel) {
 				Indices:    &indiceIndex,
 				Attributes: primitiveAttributes,
 				Material:   materialIndex,
+				Mode:       mode,
 			},
 		},
 	})
