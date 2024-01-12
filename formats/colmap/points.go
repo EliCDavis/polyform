@@ -22,7 +22,7 @@ func PointDataToPointCloud(points []colmap.Point3D) modeling.Mesh {
 
 // Loads the feature match point data into a Pointcloud mesh
 func LoadSparsePointData(filename string) (modeling.Mesh, error) {
-	points, err := colmap.ReadPoints3DBinary(filename)
+	points, err := colmap.LoadPoints3DBinary(filename)
 	if err != nil {
 		return modeling.EmptyMesh(modeling.PointTopology), err
 	}
