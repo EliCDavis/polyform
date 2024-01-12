@@ -17,7 +17,7 @@ func ReconstructionToPointcloud(reconstruction opensfm.ReconstructionSchema) mod
 		i++
 	}
 
-	return modeling.NewPointCloud(map[string][]vector3.Vector[float64]{
+	return modeling.NewPointCloud(nil, map[string][]vector3.Vector[float64]{
 		modeling.PositionAttribute: positionData,
 		modeling.ColorAttribute:    colorData,
 	}, nil, nil, nil)

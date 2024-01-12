@@ -336,6 +336,7 @@ func (ar *AsciiReader) ReadMesh() (*modeling.Mesh, error) {
 		}
 	} else {
 		finalMesh = modeling.NewPointCloud(
+			nil,
 			vertexData,
 			nil,
 			nil,

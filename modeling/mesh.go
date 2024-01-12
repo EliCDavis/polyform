@@ -130,12 +130,13 @@ func NewLineStripMesh(
 }
 
 func NewPointCloud(
+	v4Data map[string][]vector4.Float64,
 	v3Data map[string][]vector3.Float64,
 	v2Data map[string][]vector2.Float64,
 	v1Data map[string][]float64,
 	materials []MeshMaterial,
 ) Mesh {
-	return newImpliedIndicesMesh(PointTopology, v1Data, v2Data, v3Data, nil, materials)
+	return newImpliedIndicesMesh(PointTopology, v1Data, v2Data, v3Data, v4Data, materials)
 }
 
 // Creates a new triangle mesh with no vertices or attribute data

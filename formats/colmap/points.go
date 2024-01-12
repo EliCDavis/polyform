@@ -14,7 +14,7 @@ func PointDataToPointCloud(points []colmap.Point3D) modeling.Mesh {
 		colorData[i] = vector3.FromColor(p.Color)
 	}
 
-	return modeling.NewPointCloud(map[string][]vector3.Vector[float64]{
+	return modeling.NewPointCloud(nil, map[string][]vector3.Vector[float64]{
 		modeling.PositionAttribute: positionData,
 		modeling.ColorAttribute:    colorData,
 	}, nil, nil, nil)

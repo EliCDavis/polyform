@@ -1,5 +1,21 @@
-let clientID = null;
+// ERROR MESSAGE ============================================================== 
 
+const ErrorManager = {
+    ShowError: (message) => {
+        const content = document.getElementById("errorMessage");
+        content.style.display = "block";
+        content.innerText = message;
+    },
+
+    ClearError: () => {
+        const content = document.getElementById("errorMessage");
+        content.style.display = "none";
+    }
+}
+
+// ============================================================================
+
+let clientID = null;
 
 function fetch(theUrl, callback) {
     const xmlHttp = new XMLHttpRequest();
@@ -354,6 +370,8 @@ const loader = new GLTFLoader().setPath('producer/');
 let producerScene = null;
 const RefreshProducerOutput = () => {
 
+    ErrorManager.ClearError();
+
     if (producerScene != null) {
         scene.remove(producerScene)
     }
@@ -366,7 +384,7 @@ const RefreshProducerOutput = () => {
         switch (fileExt) {
             case "gltf":
             case "glb":
-                loader.load(producer, function (gltf) {
+                loader.load(producer, (gltf) => {
                     producerScene.add(gltf.scene);
 
                     const aabb = new THREE.Box3();
@@ -383,7 +401,8 @@ const RefreshProducerOutput = () => {
 
                     const objects = [];
 
-                    gltf.scene.traverse(function (object) {
+                    gltf.scene.traverse((object) => {
+                        console.log(object)
                         if (object.isMesh) {
                             object.castShadow = true;
                             object.receiveShadow = true;
@@ -413,6 +432,8 @@ const RefreshProducerOutput = () => {
 
                             console.log(prevMaterial)
                             objects.push(object)
+                        } else if (object.isPoints) {
+                            object.material.size = 2;
                         }
                     });
 
@@ -432,12 +453,15 @@ const RefreshProducerOutput = () => {
                         orbitControls.update();
                     }
 
-                });
+                },
+                    undefined,
+                    (error) => {
+                        error.response.json().then(x => {
+                            ErrorManager.ShowError(x.error);
+                        })
+                    });
                 break;
         }
-
-
-
     });
 }
 

@@ -372,6 +372,7 @@ func (le *BinaryReader) ReadMesh() (*modeling.Mesh, error) {
 		}
 	} else {
 		finalMesh = modeling.NewPointCloud(
+			nil,
 			vertexData,
 			nil,
 			nil,

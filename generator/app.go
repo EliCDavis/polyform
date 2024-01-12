@@ -8,6 +8,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"path"
@@ -57,6 +58,23 @@ type pageData struct {
 	Version     string
 	Description string
 	Scripting   string
+}
+
+func writeJSONError(out io.Writer, err error) error {
+	var d struct {
+		Error string `json:"error"`
+	} = struct {
+		Error string `json:"error"`
+	}{
+		Error: err.Error(),
+	}
+	data, err := json.Marshal(d)
+	if err != nil {
+		return err
+	}
+
+	_, err = out.Write(data)
+	return err
 }
 
 func writeGeneratorToZip(path string, generator *Generator, zw *zip.Writer, cache producerCache) error {
@@ -258,9 +276,18 @@ func (a *App) Serve(host, port string) error {
 		artifact, err := producer(&Context{
 			Parameters: generatorToUse.Parameters,
 		})
+
 		if err != nil {
-			panic(err)
+			log.Printf(err.Error())
+			w.Header().Add("Content-Type", "application/json")
+			w.WriteHeader(http.StatusInternalServerError)
+			err := writeJSONError(w, err)
+			if err != nil {
+				panic(err)
+			}
+			return
 		}
+
 		err = artifact.Write(w)
 		if err != nil {
 			panic(err)

@@ -105,6 +105,7 @@ func TestScanFloat3AttributeParallel(t *testing.T) {
 		values[i] = vector3.New[float64](float64(i), float64(i), float64(i))
 	}
 	mesh := modeling.NewPointCloud(
+		nil,
 		map[string][]vector3.Float64{
 			attribute: values,
 		},
@@ -136,6 +137,7 @@ func TestScanFloat2AttributeParallel(t *testing.T) {
 		values[i] = vector2.New[float64](float64(i), float64(i))
 	}
 	mesh := modeling.NewPointCloud(
+		nil,
 		nil,
 		map[string][]vector2.Float64{
 			attribute: values,
@@ -169,6 +171,7 @@ func TestScanFloat1AttributeParallel(t *testing.T) {
 	mesh := modeling.NewPointCloud(
 		nil,
 		nil,
+		nil,
 		map[string][]float64{
 			attribute: values,
 		},
@@ -198,6 +201,7 @@ func TestModifyFloat3AttributeParallel(t *testing.T) {
 		values[i] = vector3.New(float64(i), float64(i), float64(i))
 	}
 	mesh := modeling.NewPointCloud(
+		nil,
 		map[string][]vector3.Float64{
 			attribute: values,
 		},
@@ -237,6 +241,7 @@ func TestModifyFloat2AttributeParallel(t *testing.T) {
 	}
 	mesh := modeling.NewPointCloud(
 		nil,
+		nil,
 		map[string][]vector2.Float64{
 			attribute: values,
 		},
@@ -274,6 +279,7 @@ func TestModifyFloat1AttributeParallel(t *testing.T) {
 		values[i] = float64(i)
 	}
 	mesh := modeling.NewPointCloud(
+		nil,
 		nil,
 		nil,
 		map[string][]float64{

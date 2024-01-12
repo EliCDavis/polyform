@@ -70,6 +70,21 @@
             /* TODO Solve this in HTML */
         }
 
+        #errorMessage {
+            position: absolute;
+            left: 0px;
+            bottom: 0px;
+            margin: 6px;
+            padding: 4px;
+            box-sizing: border-box;
+            text-align: center;
+            z-index: 1;
+            background-color: red;
+            /* TODO Solve this in HTML */
+
+            display: none;
+        }
+
         a,
         button,
         input,
@@ -121,6 +136,9 @@
 
     <div id="watermark">
         <a href="https://github.com/EliCDavis/polyform">Polyform</a>
+    </div>
+
+    <div id="errorMessage">
     </div>
 
     {{.Scripting}}
