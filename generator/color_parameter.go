@@ -52,9 +52,9 @@ func rgbToHex(v coloring.WebColor) string {
 }
 
 func hexToRGBA(hex string) coloring.WebColor {
-	r, _ := strconv.ParseInt(hex[1:3], 16, 64)
-	g, _ := strconv.ParseInt(hex[3:5], 16, 64)
-	b, _ := strconv.ParseInt(hex[5:7], 16, 64)
+	r, _ := strconv.ParseUint(hex[1:3], 16, 8)
+	g, _ := strconv.ParseUint(hex[3:5], 16, 8)
+	b, _ := strconv.ParseUint(hex[5:7], 16, 8)
 	return coloring.WebColor{
 		R: byte(r),
 		G: byte(g),

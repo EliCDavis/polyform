@@ -245,6 +245,10 @@ Resources either directly contributing to the code, or are just interesting find
     - [Planet Generation](https://archive.vn/kmVP4)
     - [Procedural Gas Giant Planet Textures](https://smcameron.github.io/space-nerds-in-space/gaseous-giganticus-slides/slideshow.html)
   - [Taming Randomness](https://kyndinfo.notion.site/Taming-Randomness-e4351f08ec7c43a7ad47ef2d1dfe2ed8)
+  - Plants
+    - [_L-System User Notes_ Written by Paul Bourke](https://paulbourke.net/fractals/lsys/)
+    - [L System On Wikipedia](https://en.wikipedia.org/wiki/L-system)
+    - [_An Introduction to Lindenmayer Systems_ by Gabriela Ochoa](https://www1.biologie.uni-hamburg.de/b-online/e28_3/lsys.html)
 - Voronoi
   - [Voronoi Edges by Inigo Quilez](https://iquilezles.org/articles/voronoilines/)
 - Functions / Curves / Animation Lines
@@ -273,6 +277,7 @@ Resources either directly contributing to the code, or are just interesting find
   - [Bartosz Ciechanowski on Color Spaces](https://ciechanow.ski/color-spaces/)
 - WFC
   - ["The Wavefunction Collapse Algorithm explained very clearly" - Robert Heaton](https://robertheaton.com/2018/12/17/wavefunction-collapse-algorithm/)
+  - [Source code for "The Wavefunction Collapse Algorithm explained very clearly"](https://github.com/robert/wavefunction-collapse)
 - UV Unwrapping
   - [_"ABF++ : Fast and Robust Angle Based Flattening"_ Alla Sheffer  Bruno Levy   Maxim Mogilnitsky  Alexander Bogomyakov](https://www.cs.ubc.ca/~sheffa/papers/abf_plus_plus.pdf)
   - OptCuts: Joint Optimization of Surface Cuts and Parameterization
