@@ -246,6 +246,9 @@ Resources either directly contributing to the code, or are just interesting find
     - [Procedural Gas Giant Planet Textures](https://smcameron.github.io/space-nerds-in-space/gaseous-giganticus-slides/slideshow.html)
   - [Taming Randomness](https://kyndinfo.notion.site/Taming-Randomness-e4351f08ec7c43a7ad47ef2d1dfe2ed8)
   - Plants
+    - [Algorithmic Botany](http://algorithmicbotany.org/papers/#abop)
+      - [_A common developmental program can produce diverse leaf shapes_ by Adam Runions1, Miltos Tsiantis and Przemyslaw Prusinkiewicz](http://algorithmicbotany.org/papers/leaves.nph.2017.pdf)
+      - [_L-SYSTEMS: FROM THE THEORYTO VISUAL MODELS OF PLANTS_ by Przemyslaw Prusinkiewiczy, Mark Hammely, Jim Hananz, and Radomir Mechy](http://algorithmicbotany.org/papers/l-sys.csiro96.pdf)
     - [_L-System User Notes_ Written by Paul Bourke](https://paulbourke.net/fractals/lsys/)
     - [L System On Wikipedia](https://en.wikipedia.org/wiki/L-system)
     - [_An Introduction to Lindenmayer Systems_ by Gabriela Ochoa](https://www1.biologie.uni-hamburg.de/b-online/e28_3/lsys.html)
