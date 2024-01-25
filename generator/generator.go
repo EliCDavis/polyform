@@ -10,12 +10,12 @@ import (
 	"strings"
 
 	"github.com/EliCDavis/polyform/formats/gltf"
+	"github.com/EliCDavis/polyform/generator/nodes"
 )
 
 type Generator struct {
-	Parameters    *GroupParameter
 	SubGenerators map[string]*Generator
-	Producers     map[string]Producer
+	Producers     map[string]nodes.Node[Artifact]
 }
 
 func (g *Generator) Lookup(path string) *Generator {
@@ -59,9 +59,9 @@ func (g Generator) initialize(set *flag.FlagSet) {
 		g.initialize(set)
 	}
 
-	if g.Parameters != nil {
-		g.Parameters.initializeForCLI(set)
-	}
+	// if g.Parameters != nil {
+	// 	g.Parameters.initializeForCLI(set)
+	// }
 }
 
 func (g Generator) run(outputPath string) error {
@@ -75,13 +75,18 @@ func (g Generator) run(outputPath string) error {
 	}
 
 	// Initialize Context
-	ctx := &Context{
-		Parameters: g.Parameters,
-	}
+	// ctx := &Context{
+	// 	Parameters: g.Parameters,
+	// }
 
 	err := os.MkdirAll(outputPath, os.ModeDir)
 	if err != nil {
 		return err
+	}
+
+	processManager := nodes.NewProcessManager()
+	for _, p := range g.Producers {
+		processManager.AddProcessNode(p)
 	}
 
 	// Run Producers
