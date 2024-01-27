@@ -27,12 +27,6 @@ type GroupParameter struct {
 	Parameters []Parameter `json:"parameters"`
 }
 
-func (gp *GroupParameter) Reset() {
-	for _, p := range gp.Parameters {
-		p.Reset()
-	}
-}
-
 func (gp GroupParameter) ApplyJsonMessage(msg json.RawMessage) (bool, error) {
 	subData := make(map[string]json.RawMessage)
 

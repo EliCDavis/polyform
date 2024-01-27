@@ -6,10 +6,6 @@ type Dependency interface {
 	Subscribable
 }
 
-type Staleable interface {
-	MarkStale()
-}
-
 // STATE ======================================================================
 
 type Stateful interface {
@@ -32,4 +28,10 @@ type Subscribable interface {
 
 type Alertable interface {
 	Alert(version int, state NodeState)
+}
+
+// Dependent ==================================================================
+
+type Dependent interface {
+	Dependencies() []Dependency
 }

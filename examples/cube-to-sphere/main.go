@@ -8,69 +8,126 @@ import (
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/marching"
 	"github.com/EliCDavis/polyform/modeling/meshops"
+	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/vector/vector3"
 )
 
+type LaplacianSmoothTransformerParams struct {
+	Attribute       nodes.Node[string]
+	Iterations      nodes.Node[int]
+	SmoothingFactor nodes.Node[float64]
+	Mesh            nodes.Node[modeling.Mesh]
+}
+
+func LaplacianSmoothingNode(
+	mesh nodes.Node[modeling.Mesh],
+	iterations nodes.Node[int],
+	factor nodes.Node[float64],
+) *nodes.TransformerNode[LaplacianSmoothTransformerParams, modeling.Mesh] {
+	return nodes.Transformer(
+		LaplacianSmoothTransformerParams{
+			Attribute:       nodes.Input[string](modeling.PositionAttribute),
+			Iterations:      iterations,
+			SmoothingFactor: factor,
+			Mesh:            mesh,
+		},
+		func(in LaplacianSmoothTransformerParams) (modeling.Mesh, error) {
+			return meshops.LaplacianSmooth(
+				in.Mesh.Data(),
+				in.Attribute.Data(),
+				in.Iterations.Data(),
+				in.SmoothingFactor.Data(),
+			), nil
+		},
+	)
+}
+
+type MeshNodeParams struct {
+	Mesh nodes.Node[modeling.Mesh]
+}
+
+func SmoothNormalsNode(
+	mesh nodes.Node[modeling.Mesh],
+) *nodes.TransformerNode[MeshNodeParams, modeling.Mesh] {
+	return nodes.Transformer(
+		MeshNodeParams{
+			Mesh: mesh,
+		},
+		func(in MeshNodeParams) (modeling.Mesh, error) {
+			return meshops.SmoothNormals(
+				in.Mesh.Data(),
+			), nil
+		},
+	)
+}
+
+func GltfArtifactNode(mesh nodes.Node[modeling.Mesh]) *nodes.TransformerNode[MeshNodeParams, generator.Artifact] {
+	return nodes.Transformer[MeshNodeParams, generator.Artifact](
+		MeshNodeParams{Mesh: mesh},
+		func(in MeshNodeParams) (generator.Artifact, error) {
+			return &generator.GltfArtifact{
+				Scene: gltf.PolyformScene{
+					Models: []gltf.PolyformModel{
+						{
+							Name: "Mesh",
+							Mesh: in.Mesh.Data(),
+						},
+					},
+				},
+			}, nil
+		},
+	)
+}
+
 func main() {
+	type CubeToSphereParams struct {
+		Time       nodes.Node[float64]
+		Resolution nodes.Node[float64]
+	}
+
+	params := CubeToSphereParams{
+		Time: &generator.ParameterNode[float64]{
+			Name:         "Time",
+			DefaultValue: 0.,
+		},
+		Resolution: &generator.ParameterNode[float64]{
+			Name:         "Mesh Resolution",
+			DefaultValue: 30,
+		},
+	}
+
+	cubeToSphereNode := nodes.Transformer(params, func(in CubeToSphereParams) (modeling.Mesh, error) {
+		time := math.Max(math.Min(in.Time.Data(), 1), 0)
+
+		box := marching.Box(vector3.Float64{}, vector3.New(0.7, 0.5, 0.5), 1)
+		sphere := marching.Sphere(vector3.Float64{}, 0.5*time, 1)
+
+		return marching.
+			CombineFields(box, sphere).
+			March(modeling.PositionAttribute, in.Resolution.Data(), 0), nil
+	})
+
+	smoothedMeshNode := SmoothNormalsNode(
+		LaplacianSmoothingNode(
+			cubeToSphereNode,
+			&generator.ParameterNode[int]{
+				Name:         "Smoothing Iterations",
+				DefaultValue: 20,
+			},
+			&generator.ParameterNode[float64]{
+				Name:         "Smoothing Factor",
+				DefaultValue: .1,
+			},
+		),
+	)
 
 	app := generator.App{
 		Name:        "Cube to Sphere",
 		Description: "Smoothly blend a cube into a sphere",
 		Version:     "1.0.0",
 		Generator: &generator.Generator{
-			Parameters: &generator.GroupParameter{
-				Parameters: []generator.Parameter{
-					&generator.FloatParameter{
-						Name: "Time",
-						CLI: &generator.FloatCliParameterConfig{
-							FlagName: "time",
-							Usage:    "Percentage through the transition from cube to sphere, clamped between 0 and 1",
-						},
-					},
-					&generator.IntParameter{
-						Name:         "Resolution",
-						DefaultValue: 30,
-						CLI: &generator.IntCliParameterConfig{
-							FlagName: "resolution",
-							Usage:    "The resolution of the marching cubes algorithm, roughly translating to number of voxels per unit",
-						},
-					},
-				},
-			},
-			Producers: map[string]generator.Producer{
-				"mesh.glb": func(c *generator.Context) (generator.Artifact, error) {
-					time := math.Max(math.Min(c.Parameters.Float64("Time"), 1), 0)
-
-					box := marching.Box(
-						vector3.Zero[float64](),
-						vector3.New(0.7, 0.5, 0.5), //.Scale(time), // Box size
-						1,
-					)
-
-					sphere := marching.Sphere(
-						vector3.Zero[float64](),
-						0.5*time, // Sphere radius
-						1,
-					)
-
-					field := marching.CombineFields(box, sphere).March(modeling.PositionAttribute, 30, 0)
-
-					smoothedMesh := field.Transform(
-						meshops.LaplacianSmoothTransformer{Iterations: 10, SmoothingFactor: 0.1},
-						meshops.SmoothNormalsTransformer{},
-					)
-
-					return generator.GltfArtifact{
-						Scene: gltf.PolyformScene{
-							Models: []gltf.PolyformModel{
-								{
-									Name: "Mesh",
-									Mesh: smoothedMesh,
-								},
-							},
-						},
-					}, nil
-				},
+			Producers: map[string]nodes.Node[generator.Artifact]{
+				"mesh.glb": GltfArtifactNode(smoothedMeshNode),
 			},
 		},
 	}

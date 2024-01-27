@@ -10,12 +10,56 @@ import (
 	"strings"
 
 	"github.com/EliCDavis/polyform/formats/gltf"
-	"github.com/EliCDavis/polyform/generator/nodes"
+	"github.com/EliCDavis/polyform/nodes"
 )
 
 type Generator struct {
 	SubGenerators map[string]*Generator
 	Producers     map[string]nodes.Node[Artifact]
+	parameters    *GroupParameter
+}
+
+func recurseDependenciesType[T any](dependent nodes.Dependent) []T {
+	allDependencies := make([]T, 0)
+	for _, dep := range dependent.Dependencies() {
+		subDependent, ok := dep.(nodes.Dependent)
+		if ok {
+			subDependencies := recurseDependenciesType[T](subDependent)
+			allDependencies = append(allDependencies, subDependencies...)
+		}
+
+		ofT, ok := dep.(T)
+		if ok {
+			allDependencies = append(allDependencies, ofT)
+		}
+	}
+
+	return allDependencies
+}
+
+func (g *Generator) getParameters() *GroupParameter {
+	if g.parameters == nil {
+
+		parameterSet := make(map[Parameter]struct{})
+		for _, n := range g.Producers {
+			params := recurseDependenciesType[Parameter](n)
+			for _, p := range params {
+				parameterSet[p] = struct{}{}
+			}
+		}
+
+		uniqueParams := make([]Parameter, 0, len(parameterSet))
+		for p := range parameterSet {
+			uniqueParams = append(uniqueParams, p)
+		}
+
+		g.parameters = &GroupParameter{
+			Name:       "Group",
+			Parameters: uniqueParams,
+		}
+	}
+
+	return g.parameters
 }
 
 func (g *Generator) Lookup(path string) *Generator {
@@ -39,8 +83,8 @@ func (g Generator) Schema() GeneratorSchema {
 		SubGenerators: make(map[string]GeneratorSchema),
 	}
 
-	if g.Parameters != nil {
-		schema.Parameters = g.Parameters.GroupParameterSchema()
+	if g.getParameters() != nil {
+		schema.Parameters = g.getParameters().GroupParameterSchema()
 	}
 
 	for key := range g.Producers {
@@ -84,17 +128,13 @@ func (g Generator) run(outputPath string) error {
 		return err
 	}
 
-	processManager := nodes.NewProcessManager()
-	for _, p := range g.Producers {
-		processManager.AddProcessNode(p)
-	}
-
 	// Run Producers
 	for name, p := range g.Producers {
-		arifact, err := p(ctx)
-		if err != nil {
-			return err
-		}
+		arifact := p.Data()
+		// arifact, err := p.Data()
+		// if err != nil {
+		// 	return err
+		// }
 		f, err := os.Create(path.Join(outputPath, name))
 		if err != nil {
 			return err
@@ -119,7 +159,7 @@ func (g *Generator) ApplyProfile(profile Profile) ([]*Generator, error) {
 		effected = append(effected, subsChanged...)
 	}
 
-	genChanged, err := g.Parameters.ApplyJsonMessage(profile.Parameters)
+	genChanged, err := g.getParameters().ApplyJsonMessage(profile.Parameters)
 	if len(effected) > 0 || genChanged {
 		effected = append(effected, g)
 	}

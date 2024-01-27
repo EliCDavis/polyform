@@ -3,15 +3,15 @@ package nodes
 type InputNode[T any] struct {
 	VersionData
 	subs  []Alertable
-	Value T
+	value T
 }
 
 func (in InputNode[T]) Data() T {
-	return in.Value
+	return in.value
 }
 
 func (in *InputNode[T]) Set(value T) {
-	in.Value = value
+	in.value = value
 	in.version++
 	in.alertSubscribers()
 }
@@ -34,7 +34,7 @@ func (v *InputNode[T]) State() NodeState {
 
 func Input[T any](startingValue T) *InputNode[T] {
 	return &InputNode[T]{
-		Value: startingValue,
+		value: startingValue,
 	}
 }
 

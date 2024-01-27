@@ -10,5 +10,4 @@ type Parameter interface {
 	Schema() ParameterSchema
 	initializeForCLI(set *flag.FlagSet)
 	ApplyJsonMessage(msg json.RawMessage) (bool, error)
-	Reset()
 }

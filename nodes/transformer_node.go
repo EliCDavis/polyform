@@ -1,0 +1,76 @@
+package nodes
+
+import "github.com/EliCDavis/polyform/refutil"
+
+type TransformerNode[Tin any, Tout any] struct {
+	nodeData
+
+	value       Tout
+	err         error
+	depVersions []int
+
+	in        Tin
+	transform func(in Tin) (Tout, error)
+}
+
+func (tn TransformerNode[Tin, Tout]) Outdated() bool {
+
+	// Nil versions means we've never processed before
+	if tn.depVersions == nil {
+		return true
+	}
+
+	deps := tn.Dependencies()
+
+	// No dependencies, we can never be outdated
+	if len(deps) == 0 {
+		return false
+	}
+
+	for i, dep := range deps {
+		if dep.Version() != tn.depVersions[i] {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (tn *TransformerNode[Tin, Tout]) updateUsedDependencyVersions() {
+	deps := tn.Dependencies()
+	tn.depVersions = make([]int, len(deps))
+	for i, dep := range deps {
+		tn.depVersions[i] = dep.Version()
+	}
+}
+
+func (tn TransformerNode[Tin, Tout]) Dependencies() []Dependency {
+	return refutil.FieldValuesOfType[Dependency](tn.in)
+}
+
+func (tn TransformerNode[Tin, Tout]) Data() Tout {
+	if tn.Outdated() {
+		tn.process()
+	}
+	return tn.value
+}
+
+func (tn *TransformerNode[Tin, Tout]) process() {
+	tn.value, tn.err = tn.transform(tn.in)
+	tn.version++
+	tn.state = Processed
+	tn.updateUsedDependencyVersions()
+}
+
+func Transformer[Tin any, Tout any](in Tin, trasnformer func(in Tin) (Tout, error)) *TransformerNode[Tin, Tout] {
+	return &TransformerNode[Tin, Tout]{
+		nodeData: nodeData{
+			version: 0,
+			state:   Stale,
+			subs:    make([]Alertable, 0),
+		},
+		in:          in,
+		transform:   trasnformer,
+		depVersions: nil,
+	}
+}

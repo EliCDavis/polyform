@@ -3,10 +3,10 @@ package nodes_test
 import (
 	"testing"
 
-	"github.com/EliCDavis/polyform/generator/nodes"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/primitives"
 	"github.com/EliCDavis/polyform/modeling/repeat"
+	"github.com/EliCDavis/polyform/nodes"
 )
 
 type RepeatNodeParameters struct {
@@ -44,14 +44,10 @@ func TestNodes(t *testing.T) {
 		}),
 	})
 
-	g := nodes.NewProcessManager()
-	g.AddProcessNode(repeat)
-
 	// Stage changes
-	times.Set(3)
+	times.Set(13)
 
-	// Kick off
-	g.Process()
+	repeat.Data()
 
 	// obj.Save("test.obj", repeat.Data())
 }

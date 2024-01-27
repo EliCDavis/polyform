@@ -8,7 +8,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"path"
@@ -86,13 +85,8 @@ func writeGeneratorToZip(path string, generator *Generator, zw *zip.Writer, cach
 		panic("can't write to nil zip writer")
 	}
 
-	ctx := &Context{
-		Parameters: generator.Parameters,
-	}
-
 	for file, producer := range generator.Producers {
 		filePath := path + file
-		// log.Println(filePath)
 		f, err := zw.Create(filePath)
 		if err != nil {
 			return err
@@ -100,10 +94,11 @@ func writeGeneratorToZip(path string, generator *Generator, zw *zip.Writer, cach
 
 		artifact := cache.Lookup(generator, file)
 		if artifact == nil {
-			artifact, err = producer(ctx)
-			if err != nil {
-				return err
-			}
+			artifact = producer.Data()
+			// artifact, err = producer.Data()
+			// if err != nil {
+			// return err
+			// }
 		}
 
 		err = artifact.Write(f)
@@ -273,20 +268,19 @@ func (a *App) Serve(host, port string) error {
 			return
 		}
 
-		artifact, err := producer(&Context{
-			Parameters: generatorToUse.Parameters,
-		})
+		artifact := producer.Data()
 
-		if err != nil {
-			log.Printf(err.Error())
-			w.Header().Add("Content-Type", "application/json")
-			w.WriteHeader(http.StatusInternalServerError)
-			err := writeJSONError(w, err)
-			if err != nil {
-				panic(err)
-			}
-			return
-		}
+		// artifact, err := producer.Data()
+		// if err != nil {
+		// 	log.Printf(err.Error())
+		// 	w.Header().Add("Content-Type", "application/json")
+		// 	w.WriteHeader(http.StatusInternalServerError)
+		// 	err := writeJSONError(w, err)
+		// 	if err != nil {
+		// 		panic(err)
+		// 	}
+		// 	return
+		// }
 
 		err = artifact.Write(w)
 		if err != nil {
