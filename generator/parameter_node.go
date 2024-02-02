@@ -85,7 +85,7 @@ func (pn *ParameterNode[T]) AddSubscription(a nodes.Alertable) {
 	pn.subs = append(pn.subs, a)
 }
 
-func (pn *ParameterNode[T]) Dependencies() []nodes.Dependency {
+func (pn *ParameterNode[T]) Dependencies() []nodes.NodeDependency {
 	return nil
 }
 

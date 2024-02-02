@@ -1,9 +1,25 @@
 package nodes
 
+// Dependency =================================================================
+
 type Dependency interface {
 	Versioned
 	Stateful
 	Subscribable
+	Dependent
+}
+
+// Dependent ==================================================================
+
+type Dependent interface {
+	Dependencies() []NodeDependency
+}
+
+// Node Dependency ============================================================
+
+type NodeDependency interface {
+	Named
+	Dependency() Dependency
 }
 
 // STATE ======================================================================
@@ -30,8 +46,8 @@ type Alertable interface {
 	Alert(version int, state NodeState)
 }
 
-// Dependent ==================================================================
+// Named ======================================================================
 
-type Dependent interface {
-	Dependencies() []Dependency
+type Named interface {
+	Name() string
 }

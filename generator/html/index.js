@@ -245,9 +245,6 @@ const parseGroupParameters = (folderToAddTo, groupParameters) => {
                 break;
 
             case "float64":
-                folderSettings[param.name] = param.currentValue;
-                break;
-
             case "float32":
                 folderSettings[param.name] = param.currentValue;
                 break;
@@ -296,11 +293,6 @@ const parseGroupParameters = (folderToAddTo, groupParameters) => {
         let setting = null;
         switch (param.type.toLowerCase()) {
             case "float64":
-                setting = folderToAddTo.add(folderSettings, param.name).listen().onChange((weight) => {
-                    updateProfile();
-                });
-                break;
-
             case "float32":
                 setting = folderToAddTo.add(folderSettings, param.name).listen().onChange((weight) => {
                     updateProfile();

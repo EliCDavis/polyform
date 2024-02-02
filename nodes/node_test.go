@@ -9,35 +9,28 @@ import (
 	"github.com/EliCDavis/polyform/nodes"
 )
 
-type RepeatNodeParameters struct {
+type Repeat struct {
 	Mesh   nodes.Node[modeling.Mesh]
 	Radius nodes.Node[float64]
 	Times  nodes.Node[int]
 }
 
-type RepeatNode = *nodes.TransformerNode[RepeatNodeParameters, modeling.Mesh]
-
-func Repeat(parameters RepeatNodeParameters) RepeatNode {
-	return nodes.Transformer(
-		parameters,
-		func(in RepeatNodeParameters) (modeling.Mesh, error) {
-			return repeat.Circle(
-				in.Mesh.Data(),
-				in.Times.Data(),
-				in.Radius.Data(),
-			), nil
-		},
-	)
+func (r Repeat) Process() (modeling.Mesh, error) {
+	return repeat.Circle(
+		r.Mesh.Data(),
+		r.Times.Data(),
+		r.Radius.Data(),
+	), nil
 }
 
 func TestNodes(t *testing.T) {
 
 	times := nodes.Input(5)
 
-	repeat := Repeat(RepeatNodeParameters{
+	repeat := nodes.Struct(Repeat{
 		Radius: nodes.Input(15.),
 		Times:  nodes.Input(5),
-		Mesh: Repeat(RepeatNodeParameters{
+		Mesh: nodes.Struct(Repeat{
 			Radius: nodes.Input(5.),
 			Times:  times,
 			Mesh:   nodes.Input(primitives.UVSphere(1, 10, 10)),
@@ -48,6 +41,7 @@ func TestNodes(t *testing.T) {
 	times.Set(13)
 
 	repeat.Data()
+	repeat.Dependencies()
 
 	// obj.Save("test.obj", repeat.Data())
 }

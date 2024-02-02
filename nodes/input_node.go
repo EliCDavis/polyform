@@ -1,9 +1,32 @@
 package nodes
 
+import "fmt"
+
 type InputNode[T any] struct {
 	VersionData
 	subs  []Alertable
 	value T
+}
+
+func Input[T any](startingValue T) *InputNode[T] {
+	return &InputNode[T]{
+		value: startingValue,
+	}
+}
+
+func InputFromFunc[T any](f func() T) *InputNode[T] {
+	return &InputNode[T]{
+		value: f(),
+	}
+}
+
+func (in InputNode[T]) Name() string {
+	switch any(in.value).(type) {
+	case int, string, float32, float64:
+		return fmt.Sprintf("%v", in.value)
+	default:
+		return "Input"
+	}
 }
 
 func (in InputNode[T]) Data() T {
@@ -32,12 +55,6 @@ func (v *InputNode[T]) State() NodeState {
 	return Processed
 }
 
-func Input[T any](startingValue T) *InputNode[T] {
-	return &InputNode[T]{
-		value: startingValue,
-	}
-}
-
-func (v *InputNode[T]) Dependencies() []Dependency {
+func (v *InputNode[T]) Dependencies() []NodeDependency {
 	return nil
 }

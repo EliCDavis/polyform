@@ -11,29 +11,23 @@ import (
 	"net/http"
 	"os"
 	"path"
-	"strings"
+	"path/filepath"
 	"sync"
 	"text/template"
 	"time"
 
 	"github.com/EliCDavis/polyform/generator/room"
+	"github.com/EliCDavis/polyform/nodes"
 )
 
-type producerCache map[*Generator]map[string]Artifact
+type producerCache map[string]Artifact
 
-func (pc *producerCache) Lookup(generator *Generator, producer string) Artifact {
+func (pc producerCache) Lookup(producer string) Artifact {
 	if pc == nil {
 		return nil
 	}
 
-	var generatorCache map[string]Artifact
-	if data, ok := (*pc)[generator]; ok {
-		generatorCache = data
-	} else {
-		return nil
-	}
-
-	if artifact, ok := generatorCache[producer]; ok {
+	if artifact, ok := pc[producer]; ok {
 		return artifact
 	}
 
@@ -46,7 +40,7 @@ type App struct {
 	Description string
 	WebScene    *room.WebScene
 	Authors     []Author
-	Generator   *Generator
+	Producers   map[string]nodes.Node[Artifact]
 
 	// Runtime data
 	producerCache producerCache
@@ -76,23 +70,23 @@ func writeJSONError(out io.Writer, err error) error {
 	return err
 }
 
-func writeGeneratorToZip(path string, generator *Generator, zw *zip.Writer, cache producerCache) error {
-	if generator == nil {
-		panic("can't write nil generator")
+func writeProducersToZip(path string, producers map[string]nodes.Node[Artifact], zw *zip.Writer, cache producerCache) error {
+	if producers == nil {
+		panic("can't write nil producers")
 	}
 
 	if zw == nil {
 		panic("can't write to nil zip writer")
 	}
 
-	for file, producer := range generator.Producers {
+	for file, producer := range producers {
 		filePath := path + file
 		f, err := zw.Create(filePath)
 		if err != nil {
 			return err
 		}
 
-		artifact := cache.Lookup(generator, file)
+		artifact := cache.Lookup(file)
 		if artifact == nil {
 			artifact = producer.Data()
 			// artifact, err = producer.Data()
@@ -108,25 +102,94 @@ func writeGeneratorToZip(path string, generator *Generator, zw *zip.Writer, cach
 		// log.Printf("wrote %s", filePath)
 	}
 
-	for name, gen := range generator.SubGenerators {
-		err := writeGeneratorToZip(fmt.Sprintf("%s%s/", path, name), gen, zw, cache)
-		if err != nil {
-			return err
+	return nil
+}
+
+func (a App) getParameters() []Parameter {
+	if a.Producers == nil {
+		return nil
+	}
+
+	parameterSet := make(map[Parameter]struct{})
+	for _, n := range a.Producers {
+		params := recurseDependenciesType[Parameter](n)
+		for _, p := range params {
+			parameterSet[p] = struct{}{}
 		}
 	}
 
-	return nil
+	uniqueParams := make([]Parameter, 0, len(parameterSet))
+	for p := range parameterSet {
+		uniqueParams = append(uniqueParams, p)
+	}
+	return uniqueParams
+}
+
+func recurseDependenciesType[T any](dependent nodes.Dependent) []T {
+	allDependencies := make([]T, 0)
+	for _, dep := range dependent.Dependencies() {
+		subDependent, ok := dep.(nodes.Dependent)
+		if ok {
+			subDependencies := recurseDependenciesType[T](subDependent)
+			allDependencies = append(allDependencies, subDependencies...)
+		}
+
+		ofT, ok := dep.(T)
+		if ok {
+			allDependencies = append(allDependencies, ofT)
+		}
+	}
+
+	return allDependencies
+}
+
+func (a App) initialize(set *flag.FlagSet) {
+	for _, p := range a.getParameters() {
+		p.initializeForCLI(set)
+	}
 }
 
 func (a App) WriteZip(out io.Writer) error {
 	z := zip.NewWriter(out)
 
-	err := writeGeneratorToZip("", a.Generator, z, a.producerCache)
+	err := writeProducersToZip("", a.Producers, z, a.producerCache)
 	if err != nil {
 		return err
 	}
 
 	return z.Close()
+}
+
+func (a App) WriteMermaid(out io.Writer) error {
+
+	schema := a.Schema()
+
+	fmt.Fprintf(out, "---\ntitle: %s\n---\n\nflowchart LR\n", a.Name)
+
+	for id, n := range schema.Nodes {
+
+		if len(n.Dependencies) > 0 {
+			fmt.Fprintf(out, "\tsubgraph %s[%s]\n\tdirection TB\n", id, n.Name)
+		} else {
+			fmt.Fprintf(out, "\t%s[%s]\n", id, n.Name)
+		}
+
+		for depIndex, dep := range n.Dependencies {
+			fmt.Fprintf(out, "\t%s-%d([%s])\n", id, depIndex, dep.Name)
+		}
+
+		if len(n.Dependencies) > 0 {
+			fmt.Fprint(out, "\tend\n")
+		}
+	}
+
+	for id, n := range schema.Nodes {
+		for depIndex, d := range n.Dependencies {
+			fmt.Fprintf(out, "\t%s --> %s-%d\n", d.DependencyID, id, depIndex)
+		}
+	}
+
+	return nil
 }
 
 //go:embed html/*
@@ -143,9 +206,85 @@ type appCLI struct {
 	Commands    []*cliCommand
 }
 
+func buildSchemaForNode(dependency nodes.Dependency, currentSchema map[string]NodeSchema, idMapping map[nodes.Dependency]string) {
+
+	if _, ok := idMapping[dependency]; ok {
+		return
+	}
+
+	schema := NodeSchema{
+		Name:         "Unamed",
+		Dependencies: make([]NodeDependencySchema, 0),
+		Version:      dependency.Version(),
+	}
+
+	for _, subDependency := range dependency.Dependencies() {
+		buildSchemaForNode(subDependency.Dependency(), currentSchema, idMapping)
+		schema.Dependencies = append(schema.Dependencies, NodeDependencySchema{
+			DependencyID: idMapping[subDependency.Dependency()],
+			Name:         subDependency.Name(),
+		})
+	}
+
+	if param, ok := dependency.(Parameter); ok {
+		schema.Name = param.DisplayName()
+	} else {
+		named, ok := dependency.(nodes.Named)
+		if ok {
+			schema.Name = named.Name()
+		}
+	}
+
+	id := fmt.Sprintf("Node-%d", len(currentSchema))
+	idMapping[dependency] = id
+	currentSchema[id] = schema
+}
+
+func (a *App) Schema() AppSchema {
+	schema := AppSchema{
+		Producers: make([]string, 0, len(a.Producers)),
+	}
+
+	nodeSchema := make(map[string]NodeSchema)
+	tempIDData := make(map[nodes.Dependency]string)
+
+	for key, producer := range a.Producers {
+		schema.Producers = append(schema.Producers, key)
+		buildSchemaForNode(producer, nodeSchema, tempIDData)
+
+		node := nodeSchema[tempIDData[producer]]
+		node.Name = key
+		nodeSchema[tempIDData[producer]] = node
+	}
+
+	schema.Nodes = nodeSchema
+
+	return schema
+}
+
+func (a *App) ApplyProfile(profile Profile) (bool, error) {
+
+	params := a.getParameters()
+
+	changed := false
+
+	for _, p := range params {
+		paramChanged, err := p.ApplyJsonMessage(profile.Parameters)
+		if err != nil {
+			return changed, err
+		}
+
+		if paramChanged {
+			changed = true
+		}
+	}
+
+	return changed, nil
+}
+
 func (a *App) Serve(host, port string) error {
 
-	a.producerCache = make(map[*Generator]map[string]Artifact)
+	a.producerCache = make(map[string]Artifact)
 	producerLock := &sync.Mutex{}
 
 	serverStarted := time.Now()
@@ -192,7 +331,7 @@ func (a *App) Serve(host, port string) error {
 	})
 
 	http.HandleFunc("/schema", func(w http.ResponseWriter, r *http.Request) {
-		data, err := json.Marshal(a.Generator.Schema())
+		data, err := json.Marshal(a.Schema())
 		if err != nil {
 			panic(err)
 		}
@@ -222,13 +361,10 @@ func (a *App) Serve(host, port string) error {
 		if err := json.Unmarshal(body, &profile); err != nil {
 			panic(err)
 		}
-		generatorsEffected, err := a.Generator.ApplyProfile(profile)
+
+		_, err := a.ApplyProfile(profile)
 		if err != nil {
 			panic(err)
-		}
-
-		for _, g := range generatorsEffected {
-			a.producerCache[g] = make(map[string]Artifact)
 		}
 
 		movelVersion++
@@ -242,28 +378,14 @@ func (a *App) Serve(host, port string) error {
 		defer producerLock.Unlock()
 		// params, _ := url.ParseQuery(r.URL.RawQuery)
 
-		generatorToUse := a.Generator
-		components := strings.Split(r.URL.Path, "/")
-		for i := 2; i < len(components)-1; i++ {
-			newGen, ok := generatorToUse.SubGenerators[components[i]]
-			if !ok {
-				panic(fmt.Errorf("no sub generator exists: %s", components[i]))
-			}
-			generatorToUse = newGen
-		}
-
 		producerToLoad := path.Base(r.URL.Path)
 
-		producer, ok := generatorToUse.Producers[producerToLoad]
+		producer, ok := a.Producers[producerToLoad]
 		if !ok {
 			panic(fmt.Errorf("no producer registered for: %s", producerToLoad))
 		}
 
-		if _, ok := a.producerCache[generatorToUse]; !ok {
-			a.producerCache[generatorToUse] = make(map[string]Artifact)
-		}
-
-		if artifact, ok := a.producerCache[generatorToUse][producerToLoad]; ok && artifact != nil {
+		if artifact, ok := a.producerCache[producerToLoad]; ok && artifact != nil {
 			artifact.Write(w)
 			return
 		}
@@ -287,7 +409,7 @@ func (a *App) Serve(host, port string) error {
 			panic(err)
 		}
 
-		a.producerCache[generatorToUse][producerToLoad] = artifact
+		a.producerCache[producerToLoad] = artifact
 	})
 
 	http.HandleFunc("/zip", func(w http.ResponseWriter, r *http.Request) {
@@ -310,9 +432,38 @@ func (a *App) Serve(host, port string) error {
 	return http.ListenAndServe(connection, nil)
 }
 
+func (a App) Generate(outputPath string) error {
+	for name, p := range a.Producers {
+		fp := path.Join(outputPath, name)
+
+		// Producer names are paths which can contain subfolders, so be sure
+		// the subfolders exist before creating the file
+		err := os.MkdirAll(filepath.Dir(fp), os.ModeDir)
+		if err != nil {
+			return err
+		}
+
+		// Create the File
+		f, err := os.Create(fp)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+
+		// Write data to file
+		arifact := p.Data()
+		err = arifact.Write(f)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (a App) Run() error {
-	if a.Generator == nil {
-		return errors.New("application has not defined any generators")
+	if a.Producers == nil || len(a.Producers) == 0 {
+		return errors.New("application has not defined any producers")
 	}
 
 	os_setup(&a)
@@ -327,12 +478,12 @@ func (a App) Run() error {
 			Aliases:     []string{"generate", "gen"},
 			Run: func() error {
 				generateCmd := flag.NewFlagSet("generate", flag.ExitOnError)
-				a.Generator.initialize(generateCmd)
+				a.initialize(generateCmd)
 				folderFlag := generateCmd.String("folder", ".", "folder to save generated contents to")
 				if err := generateCmd.Parse(os.Args[2:]); err != nil {
 					return err
 				}
-				return a.Generator.run(*folderFlag)
+				return a.Generate(*folderFlag)
 			},
 		},
 		{
@@ -341,7 +492,7 @@ func (a App) Run() error {
 			Aliases:     []string{"serve"},
 			Run: func() error {
 				serveCmd := flag.NewFlagSet("serve", flag.ExitOnError)
-				a.Generator.initialize(serveCmd)
+				a.initialize(serveCmd)
 				portFlag := serveCmd.String("port", "8080", "port to serve over")
 				hostFlag := serveCmd.String("host", "localhost", "interface to bind to")
 
@@ -357,13 +508,13 @@ func (a App) Run() error {
 			Aliases:     []string{"outline"},
 			Run: func() error {
 				outlineCmd := flag.NewFlagSet("outline", flag.ExitOnError)
-				a.Generator.initialize(outlineCmd)
+				a.initialize(outlineCmd)
 
 				if err := outlineCmd.Parse(os.Args[2:]); err != nil {
 					return err
 				}
 
-				data, err := json.MarshalIndent(a.Generator.Schema(), "", "    ")
+				data, err := json.MarshalIndent(a.Schema(), "", "    ")
 				if err != nil {
 					panic(err)
 				}
@@ -378,7 +529,7 @@ func (a App) Run() error {
 			Aliases:     []string{"zip", "z"},
 			Run: func() error {
 				zipCmd := flag.NewFlagSet("zip", flag.ExitOnError)
-				a.Generator.initialize(zipCmd)
+				a.initialize(zipCmd)
 				fileFlag := zipCmd.String("file-name", "out.zip", "file to write the contents of the zip too")
 
 				if err := zipCmd.Parse(os.Args[2:]); err != nil {
@@ -395,11 +546,37 @@ func (a App) Run() error {
 			},
 		},
 		{
+			Name:        "Mermaid",
+			Description: "Create a mermaid flow chart for a specific producer",
+			Aliases:     []string{"mermaid"},
+			Run: func() error {
+				mermaidCmd := flag.NewFlagSet("mermaid", flag.ExitOnError)
+				a.initialize(mermaidCmd)
+				fileFlag := mermaidCmd.String("file-name", "", "Optional path to file to write content to")
+
+				if err := mermaidCmd.Parse(os.Args[2:]); err != nil {
+					return err
+				}
+
+				var out io.Writer = os.Stdout
+
+				if fileFlag != nil && *fileFlag != "" {
+					f, err := os.Create(*fileFlag)
+					if err != nil {
+						return err
+					}
+					defer f.Close()
+					out = f
+				}
+
+				return a.WriteMermaid(out)
+			},
+		},
+		{
 			Name:        "Help",
 			Description: "",
 			Aliases:     []string{"help", "h"},
 			Run: func() error {
-
 				cliDetails := appCLI{
 					Name:        a.Name,
 					Version:     a.Version,

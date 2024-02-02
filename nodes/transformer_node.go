@@ -9,6 +9,7 @@ type TransformerNode[Tin any, Tout any] struct {
 	err         error
 	depVersions []int
 
+	name      string
 	in        Tin
 	transform func(in Tin) (Tout, error)
 }
@@ -28,7 +29,7 @@ func (tn TransformerNode[Tin, Tout]) Outdated() bool {
 	}
 
 	for i, dep := range deps {
-		if dep.Version() != tn.depVersions[i] {
+		if dep.Dependency().Version() != tn.depVersions[i] {
 			return true
 		}
 	}
@@ -40,12 +41,46 @@ func (tn *TransformerNode[Tin, Tout]) updateUsedDependencyVersions() {
 	deps := tn.Dependencies()
 	tn.depVersions = make([]int, len(deps))
 	for i, dep := range deps {
-		tn.depVersions[i] = dep.Version()
+		tn.depVersions[i] = dep.Dependency().Version()
 	}
 }
 
-func (tn TransformerNode[Tin, Tout]) Dependencies() []Dependency {
-	return refutil.FieldValuesOfType[Dependency](tn.in)
+type transformerNodeDependency struct {
+	name string
+	dep  Dependency
+}
+
+func (tnd transformerNodeDependency) Name() string {
+	return tnd.name
+}
+
+func (tnd transformerNodeDependency) Dependency() Dependency {
+	return tnd.dep
+}
+
+func (tn TransformerNode[Tin, Tout]) Dependencies() []NodeDependency {
+
+	// The input for the transformer is a node itself,
+	if dep, ok := any(tn.in).(Dependency); ok {
+		return []NodeDependency{
+			transformerNodeDependency{
+				name: "Input",
+				dep:  dep,
+			},
+		}
+	}
+
+	data := refutil.FieldValuesOfType[Dependency](tn.in)
+
+	output := make([]NodeDependency, 0)
+	for key, val := range data {
+		output = append(output, transformerNodeDependency{
+			name: key,
+			dep:  val,
+		})
+	}
+	return output
+	// return refutil.FieldValuesOfType[Dependency](tn.in)
 }
 
 func (tn TransformerNode[Tin, Tout]) Data() Tout {
@@ -62,13 +97,18 @@ func (tn *TransformerNode[Tin, Tout]) process() {
 	tn.updateUsedDependencyVersions()
 }
 
-func Transformer[Tin any, Tout any](in Tin, trasnformer func(in Tin) (Tout, error)) *TransformerNode[Tin, Tout] {
+func (tn *TransformerNode[Tin, Tout]) Name() string {
+	return tn.name
+}
+
+func Transformer[Tin any, Tout any](name string, in Tin, trasnformer func(in Tin) (Tout, error)) *TransformerNode[Tin, Tout] {
 	return &TransformerNode[Tin, Tout]{
 		nodeData: nodeData{
 			version: 0,
 			state:   Stale,
 			subs:    make([]Alertable, 0),
 		},
+		name:        name,
 		in:          in,
 		transform:   trasnformer,
 		depVersions: nil,

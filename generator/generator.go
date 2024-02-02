@@ -19,24 +19,6 @@ type Generator struct {
 	parameters    *GroupParameter
 }
 
-func recurseDependenciesType[T any](dependent nodes.Dependent) []T {
-	allDependencies := make([]T, 0)
-	for _, dep := range dependent.Dependencies() {
-		subDependent, ok := dep.(nodes.Dependent)
-		if ok {
-			subDependencies := recurseDependenciesType[T](subDependent)
-			allDependencies = append(allDependencies, subDependencies...)
-		}
-
-		ofT, ok := dep.(T)
-		if ok {
-			allDependencies = append(allDependencies, ofT)
-		}
-	}
-
-	return allDependencies
-}
-
 func (g *Generator) getParameters() *GroupParameter {
 	if g.parameters == nil {
 

@@ -13,6 +13,7 @@ require github.com/gorilla/websocket v1.5.1
 require (
 	github.com/EliCDavis/sfm v1.0.1 // indirect
 	github.com/stretchr/objx v0.5.1 // indirect
+	golang.org/x/mod v0.14.0 // indirect
 	golang.org/x/net v0.20.0 // indirect
 )
 
@@ -40,4 +41,5 @@ require (
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/xrash/smetrics v0.0.0-20231213231151-1d8dd44e695e // indirect
 	golang.org/x/image v0.15.0
+	golang.org/x/tools v0.17.0
 )
