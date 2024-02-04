@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/EliCDavis/polyform/modeling"
+	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/vector/vector3"
 )
 
@@ -92,4 +93,25 @@ func LaplacianSmoothAlongAxis(m modeling.Mesh, attribute string, iterations int,
 	}
 
 	return m.SetFloat3Attribute(attribute, vertices)
+}
+
+type LaplacianSmoothNode struct {
+	Mesh            nodes.Node[modeling.Mesh]
+	Attribute       nodes.Node[string]
+	Iterations      nodes.Node[int]
+	SmoothingFactor nodes.Node[float64]
+}
+
+func (lp LaplacianSmoothNode) Process() (modeling.Mesh, error) {
+	atrr := modeling.PositionAttribute
+	if lp.Attribute != nil {
+		atrr = lp.Attribute.Data()
+	}
+
+	return LaplacianSmooth(
+		lp.Mesh.Data(),
+		atrr,
+		lp.Iterations.Data(),
+		lp.SmoothingFactor.Data(),
+	), nil
 }

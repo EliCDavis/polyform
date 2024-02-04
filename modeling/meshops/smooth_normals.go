@@ -4,6 +4,7 @@ import (
 	"math"
 
 	"github.com/EliCDavis/polyform/modeling"
+	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/vector/vector3"
 )
 
@@ -58,4 +59,12 @@ func SmoothNormals(m modeling.Mesh) modeling.Mesh {
 	}
 
 	return m.SetFloat3Attribute(modeling.NormalAttribute, normals)
+}
+
+type SmoothNormalsNode struct {
+	Mesh nodes.Node[modeling.Mesh]
+}
+
+func (snn SmoothNormalsNode) Process() (modeling.Mesh, error) {
+	return SmoothNormals(snn.Mesh.Data()), nil
 }

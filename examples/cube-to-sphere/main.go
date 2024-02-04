@@ -89,7 +89,7 @@ func LaplacianSmoothingNode(
 	return nodes.Transformer(
 		"Laplacian Smoothing",
 		LaplacianSmoothTransformerParams{
-			Attribute:       nodes.Input[string](modeling.PositionAttribute),
+			Attribute:       nodes.Value[string](modeling.PositionAttribute),
 			Iterations:      iterations,
 			SmoothingFactor: factor,
 			Mesh:            mesh,

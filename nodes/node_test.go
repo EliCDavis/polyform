@@ -25,15 +25,15 @@ func (r Repeat) Process() (modeling.Mesh, error) {
 
 func TestNodes(t *testing.T) {
 
-	times := nodes.Input(5)
+	times := nodes.Value(5)
 
 	repeat := nodes.Struct(Repeat{
-		Radius: nodes.Input(15.),
-		Times:  nodes.Input(5),
+		Radius: nodes.Value(15.),
+		Times:  nodes.Value(5),
 		Mesh: nodes.Struct(Repeat{
-			Radius: nodes.Input(5.),
+			Radius: nodes.Value(5.),
 			Times:  times,
-			Mesh:   nodes.Input(primitives.UVSphere(1, 10, 10)),
+			Mesh:   nodes.Value(primitives.UVSphere(1, 10, 10)),
 		}),
 	})
 

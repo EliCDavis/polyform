@@ -47,6 +47,13 @@ func FieldValuesOfType[T any](in any) map[string]T {
 		viewFieldValueKind := viewFieldValue.Kind()
 		if viewFieldValue.CanInterface() && viewFieldValueKind == reflect.Interface {
 			i := viewFieldValue.Interface()
+
+			// Skip nodes that have not been set....
+			// TODO: Is this really what we want to do here?
+			if viewFieldValue.IsNil() {
+				continue
+			}
+
 			perm, ok := i.(T)
 			if !ok {
 				panic(fmt.Errorf("view field '%s' is an interface but not a permission which is not allowed", structField.Name))
