@@ -169,8 +169,8 @@ func (a App) WriteMermaid(out io.Writer) error {
 	for id, n := range schema.Nodes {
 
 		if len(n.Dependencies) > 0 {
-			fmt.Fprintf(out, "\tsubgraph %s[%s]\n\tdirection TB\n", id, n.Name)
-			fmt.Fprintf(out, "\tsubgraph %s-I[%s]\n\tdirection TB\n", id, "Input")
+			fmt.Fprintf(out, "\tsubgraph %s[%s]\n\tdirection LR\n", id, n.Name)
+			fmt.Fprintf(out, "\tsubgraph %s-In[%s]\n\tdirection TB\n", id, "Input")
 		} else {
 			fmt.Fprintf(out, "\t%s[%s]\n", id, n.Name)
 		}

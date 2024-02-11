@@ -173,8 +173,9 @@ func (ph PropogateHeat) Process() ([][]float64, error) {
 	data := make([][]float64, len(originalData))
 	tempData := make([][]float64, len(data))
 	for r := 0; r < len(tempData); r++ {
-		data[r] = make([]float64, len(data[r]))
+		data[r] = make([]float64, len(originalData[r]))
 		copy(data[r], originalData[r])
+
 		tempData[r] = make([]float64, len(data[r]))
 	}
 
@@ -268,7 +269,7 @@ func main() {
 			DefaultValue: 0.9999,
 		},
 	}
-	// check(debugPropegation(imgData, "debug.png"))
+	check(debugPropegation(imgData.ImageData().Data(), "debug.png"))
 
 	topDip := &generator.ParameterNode[float64]{
 		Name:         "Top Dip",
@@ -300,25 +301,25 @@ func main() {
 		ImageField: imgData.ImageData(),
 	}
 
-	pumpkinMesh := meshops.SmoothNormalsNode{
-		Mesh: (&meshops.LaplacianSmoothNode{
-			Mesh: (&SphericalUVMapping{
+	pumpkinMesh := &SphericalUVMapping{
+		Mesh: (&meshops.SmoothNormalsNode{
+			Mesh: (&meshops.LaplacianSmoothNode{
 				Mesh: (&MarchingCubes{
 					Field: pumpkinField.Field(),
 					CubersPerUnit: &generator.ParameterNode[float64]{
 						Name:         "Pumpkin Resolution",
-						DefaultValue: 20,
+						DefaultValue: 60,
 					},
 				}).Mesh(),
-			}).SphericalMesh(),
-			Iterations: &generator.ParameterNode[int]{
-				Name:         "Smoothing Iterations",
-				DefaultValue: 20,
-			},
-			SmoothingFactor: &generator.ParameterNode[float64]{
-				Name:         "Smoothing Factor",
-				DefaultValue: .1,
-			},
+				Iterations: &generator.ParameterNode[int]{
+					Name:         "Smoothing Iterations",
+					DefaultValue: 20,
+				},
+				SmoothingFactor: &generator.ParameterNode[float64]{
+					Name:         "Smoothing Factor",
+					DefaultValue: .1,
+				},
+			}).SmoothedMesh(),
 		}).SmoothedMesh(),
 	}
 
@@ -354,7 +355,7 @@ func main() {
 		},
 		Producers: map[string]nodes.NodeOutput[generator.Artifact]{
 			"pumpkin.glb": (&PumpkinGLBArtifact{
-				PumpkinBody: pumpkinMesh.SmoothedMesh(),
+				PumpkinBody: pumpkinMesh.SphericalMesh(),
 				LightColor: &generator.ParameterNode[color.Color]{
 					Name:         "Light Color",
 					DefaultValue: coloring.WebColor{R: 0xf4, G: 0xf5, B: 0xad, A: 255},

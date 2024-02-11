@@ -1,7 +1,6 @@
 package marching
 
 import (
-	"fmt"
 	"math"
 
 	"github.com/EliCDavis/polyform/math/geometry"
@@ -24,13 +23,13 @@ func Subtract(base, subtraction Field) Field {
 			return math.Max(baseFun(v), -f(v))
 		}
 
-		winner := fmt.Sprintf("%s-winner", attr)
-		float1Functions[winner] = func(v vector3.Float64) float64 {
-			if baseFun(v) > -f(v) {
-				return -1
-			}
-			return 1
-		}
+		// winner := fmt.Sprintf("%s-winner", attr)
+		// float1Functions[winner] = func(v vector3.Float64) float64 {
+		// 	if baseFun(v) > -f(v) {
+		// 		return -1
+		// 	}
+		// 	return 1
+		// }
 	}
 
 	// for atr, f := range field.Float2Functions {

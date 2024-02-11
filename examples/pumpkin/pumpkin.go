@@ -173,7 +173,7 @@ func (pf PumpkinField) Process() (marching.Field, error) {
 		}
 
 		if useImageField {
-			fields = append(fields, marching.Subtract(marching.VarryingThicknessLine(outer, 1), marching.VarryingThicknessLine(inner, 2)))
+			fields = append(fields, marching.Subtract(marching.VarryingThicknessLine(outer, 1), marching.VarryingThicknessLine(inner, 1)))
 
 		} else {
 			fields = append(fields, marching.VarryingThicknessLine(outer, 1))
