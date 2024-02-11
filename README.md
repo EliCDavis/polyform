@@ -37,6 +37,14 @@ Polyform is for loading, generating, editing, and exporting 3D geometry and it's
 - [Generator](/generator/) - Application scaffolding for editing and creating meshes
 - [Trees](/trees/) - Implementation of common spatial partitioning trees.
 
+Packages that have spawned from polyform's undertaking and have since been refactored into their own repositories:
+
+- [vector](https://github.com/EliCDavis/vector) - Immutable vector math library
+- [iter](https://github.com/EliCDavis/iter) - Iterator and utilities. Some inspiration from ReactiveX
+- [quill](https://github.com/EliCDavis/quill) - Scheduler of operations on in-memory data
+- [sfm](https://github.com/EliCDavis/sfm) - Utilities for interacting with reconstruction data from different SFM programs
+- [bitlib](https://github.com/EliCDavis/bitlib) - Utilities for reading and writing binary data
+
 ## Procedural Generation Examples
 
 You can at the different projects under the [examples](/examples/) folder for different examples on how to procedurally generate meshes.
@@ -298,6 +306,16 @@ Resources either directly contributing to the code, or are just interesting find
   - [Xiaolin Wu's line algorithm (Anti-Aliased)](https://en.wikipedia.org/wiki/Xiaolin_Wu's_line_algorithm)
 - Materials
   - [The PBR Guide Part 2](https://creativecloud.adobe.com/learn/substance-3d-designer/web/the-pbr-guide-part-2)
+- Flow Based Programming
+  - [Wikipedia Article]()
+  - Repositories
+    - [Scipipe](https://github.com/scipipe/scipipe)
+    - [Flowbase](https://github.com/flowbase/flowbase)
+    - [Goflow](https://github.com/trustmaster/goflow)
+    - [Gofbp](https://github.com/jpaulm/gofbp)
+    - [flow-based-programming](https://github.com/egonelbre/flow-based-programming)
+  - Articles
+    - [_Flow-based Programming_ by J Paul Rodker Morrison](https://jpaulm.github.io/fbp/index.html)
 
 ## Citiation
 

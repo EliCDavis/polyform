@@ -28,8 +28,8 @@ func (ia ImageArtifact) Write(w io.Writer) error {
 	return png.Encode(w, ia.Image)
 }
 
-func ImageArtifactNode(imageNode nodes.Node[image.Image]) nodes.Node[Artifact] {
-	return nodes.Transformer("Image Artifact", imageNode, func(i nodes.Node[image.Image]) (Artifact, error) {
+func ImageArtifactNode(imageNode nodes.NodeOutput[image.Image]) nodes.NodeOutput[Artifact] {
+	return nodes.Transformer("Image Artifact", imageNode, func(i nodes.NodeOutput[image.Image]) (Artifact, error) {
 		return &ImageArtifact{Image: i.Data()}, nil
 	})
 }

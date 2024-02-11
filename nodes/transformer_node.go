@@ -47,21 +47,25 @@ func (tn *TransformerNode[Tin, Tout]) updateUsedDependencyVersions() {
 
 type transformerNodeDependency struct {
 	name string
-	dep  Dependency
+	dep  Node
 }
 
 func (tnd transformerNodeDependency) Name() string {
 	return tnd.name
 }
 
-func (tnd transformerNodeDependency) Dependency() Dependency {
+func (tnd transformerNodeDependency) Dependency() Node {
 	return tnd.dep
+}
+
+func (in *TransformerNode[Tin, Tout]) Node() Node {
+	return in
 }
 
 func (tn TransformerNode[Tin, Tout]) Dependencies() []NodeDependency {
 
 	// The input for the transformer is a node itself,
-	if dep, ok := any(tn.in).(Dependency); ok {
+	if dep, ok := any(tn.in).(Node); ok {
 		return []NodeDependency{
 			transformerNodeDependency{
 				name: "Input",
@@ -70,7 +74,7 @@ func (tn TransformerNode[Tin, Tout]) Dependencies() []NodeDependency {
 		}
 	}
 
-	data := refutil.FieldValuesOfType[Dependency](tn.in)
+	data := refutil.FieldValuesOfType[Node](tn.in)
 
 	output := make([]NodeDependency, 0)
 	for key, val := range data {

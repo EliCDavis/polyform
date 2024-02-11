@@ -25,8 +25,10 @@ import (
 )
 
 type Albedo struct {
-	Positive nodes.Node[color.Color]
-	Negative nodes.Node[color.Color]
+	nodes.StructData[image.Image]
+
+	Positive nodes.NodeOutput[color.Color]
+	Negative nodes.NodeOutput[color.Color]
 }
 
 func (an *Albedo) Process() (image.Image, error) {
@@ -63,6 +65,12 @@ func (an *Albedo) Process() (image.Image, error) {
 	return img, nil
 }
 
+func (a *Albedo) Image() nodes.NodeOutput[image.Image] {
+	return &nodes.StructNodeOutput[image.Image]{
+		Definition: a,
+	}
+}
+
 func jitterPositions(pos []vector3.Float64, amplitude, frequency float64) []vector3.Float64 {
 	return vector3.Array[float64](pos).
 		Modify(func(v vector3.Float64) vector3.Float64 {
@@ -75,8 +83,16 @@ func jitterPositions(pos []vector3.Float64, amplitude, frequency float64) []vect
 }
 
 type MarchingCubes struct {
-	Field         nodes.Node[marching.Field]
-	CubersPerUnit nodes.Node[float64]
+	nodes.StructData[modeling.Mesh]
+
+	Field         nodes.NodeOutput[marching.Field]
+	CubersPerUnit nodes.NodeOutput[float64]
+}
+
+func (mc *MarchingCubes) Mesh() nodes.NodeOutput[modeling.Mesh] {
+	return nodes.StructNodeOutput[modeling.Mesh]{
+		Definition: mc,
+	}
 }
 
 func (mc MarchingCubes) Process() (modeling.Mesh, error) {
@@ -93,8 +109,10 @@ func (mc MarchingCubes) Process() (modeling.Mesh, error) {
 }
 
 type EdgeDetection struct {
-	SrcImage  nodes.Node[image.Image]
-	FillValue nodes.Node[float64]
+	nodes.StructData[[][]float64]
+
+	SrcImage  nodes.NodeOutput[image.Image]
+	FillValue nodes.NodeOutput[float64]
 }
 
 func (ed EdgeDetection) Process() ([][]float64, error) {
@@ -121,6 +139,12 @@ func (ed EdgeDetection) Process() ([][]float64, error) {
 	return imageData, nil
 }
 
+func (ed *EdgeDetection) ImageData() nodes.NodeOutput[[][]float64] {
+	return nodes.StructNodeOutput[[][]float64]{
+		Definition: ed,
+	}
+}
+
 func loadImage(imageData []byte) (image.Image, error) {
 	imgBuf := bytes.NewBuffer(imageData)
 	img, _, err := image.Decode(imgBuf)
@@ -128,13 +152,20 @@ func loadImage(imageData []byte) (image.Image, error) {
 }
 
 type PropogateHeat struct {
-	Data       nodes.Node[[][]float64]
-	Iterations nodes.Node[int]
-	Decay      nodes.Node[float64]
+	nodes.StructData[[][]float64]
+
+	Data       nodes.NodeOutput[[][]float64]
+	Iterations nodes.NodeOutput[int]
+	Decay      nodes.NodeOutput[float64]
+}
+
+func (ph *PropogateHeat) ImageData() nodes.NodeOutput[[][]float64] {
+	return nodes.StructNodeOutput[[][]float64]{
+		Definition: ph,
+	}
 }
 
 func (ph PropogateHeat) Process() ([][]float64, error) {
-
 	originalData := ph.Data.Data()
 	iterations := ph.Iterations.Data()
 	decay := ph.Decay.Data()
@@ -167,7 +198,6 @@ func (ph PropogateHeat) Process() ([][]float64, error) {
 		return tempData, nil
 	}
 	return data, nil
-
 }
 
 func debugPropegation(data [][]float64, filename string) error {
@@ -222,11 +252,13 @@ func main() {
 	img, err := loadImage(facePNG)
 	check(err)
 
+	edgeDetection := &EdgeDetection{
+		SrcImage:  nodes.Value(img),
+		FillValue: maxHeatNode,
+	}
+
 	imgData := PropogateHeat{
-		Data: nodes.Struct(EdgeDetection{
-			SrcImage:  nodes.Value(img),
-			FillValue: maxHeatNode,
-		}),
+		Data: edgeDetection.ImageData(),
 		Iterations: &generator.ParameterNode[int]{
 			Name:         "Iterations",
 			DefaultValue: 250,
@@ -265,20 +297,20 @@ func main() {
 			Name:         "Carve",
 			DefaultValue: true,
 		},
-		ImageField: nodes.Struct(imgData),
+		ImageField: imgData.ImageData(),
 	}
 
-	pumpkinMesh := nodes.Struct(meshops.SmoothNormalsNode{
-		Mesh: nodes.Struct(meshops.LaplacianSmoothNode{
-			Mesh: nodes.Struct(SphericalUVMapping{
-				Mesh: nodes.Struct(MarchingCubes{
-					Field: nodes.Struct(pumpkinField),
+	pumpkinMesh := meshops.SmoothNormalsNode{
+		Mesh: (&meshops.LaplacianSmoothNode{
+			Mesh: (&SphericalUVMapping{
+				Mesh: (&MarchingCubes{
+					Field: pumpkinField.Field(),
 					CubersPerUnit: &generator.ParameterNode[float64]{
 						Name:         "Pumpkin Resolution",
 						DefaultValue: 20,
 					},
-				}),
-			}),
+				}).Mesh(),
+			}).SphericalMesh(),
 			Iterations: &generator.ParameterNode[int]{
 				Name:         "Smoothing Iterations",
 				DefaultValue: 20,
@@ -287,8 +319,8 @@ func main() {
 				Name:         "Smoothing Factor",
 				DefaultValue: .1,
 			},
-		}),
-	})
+		}).SmoothedMesh(),
+	}
 
 	textureDimensions := &generator.ParameterNode[int]{
 		Name:         "Texture Dimension",
@@ -320,22 +352,22 @@ func main() {
 			Background: coloring.WebColor{R: 0x13, G: 0x0b, B: 0x3c, A: 255},
 			Lighting:   coloring.WebColor{R: 0xff, G: 0xd8, B: 0x94, A: 255},
 		},
-		Producers: map[string]nodes.Node[generator.Artifact]{
-			"pumpkin.glb": nodes.Struct(&PumpkinGLBArtifact{
-				PumpkinBody: pumpkinMesh,
+		Producers: map[string]nodes.NodeOutput[generator.Artifact]{
+			"pumpkin.glb": (&PumpkinGLBArtifact{
+				PumpkinBody: pumpkinMesh.SmoothedMesh(),
 				LightColor: &generator.ParameterNode[color.Color]{
 					Name:         "Light Color",
 					DefaultValue: coloring.WebColor{R: 0xf4, G: 0xf5, B: 0xad, A: 255},
 				},
-				PumpkinStem: nodes.Struct(&StemMesh{
+				PumpkinStem: (&StemMesh{
 					StemResolution: &generator.ParameterNode[float64]{
 						Name:         "Stem Resolution",
 						DefaultValue: 100,
 					},
 					TopDip: topDip,
-				}),
-			}),
-			"Texturing/pumpkin.png": generator.ImageArtifactNode(nodes.Struct(&Albedo{
+				}).Mesh(),
+			}).Artifact(),
+			"Texturing/pumpkin.png": generator.ImageArtifactNode((&Albedo{
 				Positive: &generator.ParameterNode[color.Color]{
 					Name:         "Base Color",
 					DefaultValue: coloring.WebColor{R: 0xf9, G: 0x81, B: 0x1f, A: 255},
@@ -344,8 +376,8 @@ func main() {
 					Name:         "Negative Color",
 					DefaultValue: coloring.WebColor{R: 0xf7, G: 0x71, B: 0x02, A: 255},
 				},
-			})),
-			"Texturing/stem.png": generator.ImageArtifactNode(nodes.Struct(&Albedo{
+			}).Image()),
+			"Texturing/stem.png": generator.ImageArtifactNode((&Albedo{
 				Positive: &generator.ParameterNode[color.Color]{
 					Name:         "Stem Base Color",
 					DefaultValue: coloring.WebColor{R: 0xce, G: 0xa2, B: 0x7e, A: 255},
@@ -354,8 +386,8 @@ func main() {
 					Name:         "Stem Negative Color",
 					DefaultValue: coloring.WebColor{R: 0x7d, G: 0x53, B: 0x2c, A: 255},
 				},
-			})),
-			"Texturing/normal.png": nodes.Struct(&NormalImage{
+			}).Image()),
+			"Texturing/normal.png": (&NormalImage{
 				NumberOfLines: &generator.ParameterNode[int]{
 					Name:         "Number of Lines",
 					DefaultValue: 20,
@@ -364,23 +396,23 @@ func main() {
 					Name:         "Number of Warts",
 					DefaultValue: 50,
 				},
-			}),
-			"Texturing/stem-normal.png": nodes.Struct(&StemNormalImage{
+			}).Image(),
+			"Texturing/stem-normal.png": (&StemNormalImage{
 				NumberOfLines: &generator.ParameterNode[int]{
 					Name:         "Stem Normal Line Count",
 					DefaultValue: 30,
 				},
-			}),
-			"Texturing/roughness.png": nodes.Struct(MetalRoughness{
+			}).Image(),
+			"Texturing/roughness.png": (&MetalRoughness{
 				Roughness: &generator.ParameterNode[float64]{
 					Name:         "Pumpkin Roughness",
 					DefaultValue: 0.75,
 				},
-			}),
-			"Texturing/stem-roughness.png": nodes.Struct(StemRoughness{
+			}).Image(),
+			"Texturing/stem-roughness.png": (&StemRoughness{
 				Dimensions: textureDimensions,
 				Roughness:  nodes.Value(0.78),
-			}),
+			}).Image(),
 			// "uvMap.png": nodes.InputFromFunc(func() generator.Artifact {
 			// 	img := texturing.DebugUVTexture{
 			// 		ImageResolution:      1024,

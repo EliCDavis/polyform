@@ -96,10 +96,12 @@ func LaplacianSmoothAlongAxis(m modeling.Mesh, attribute string, iterations int,
 }
 
 type LaplacianSmoothNode struct {
-	Mesh            nodes.Node[modeling.Mesh]
-	Attribute       nodes.Node[string]
-	Iterations      nodes.Node[int]
-	SmoothingFactor nodes.Node[float64]
+	nodes.StructData[modeling.Mesh]
+
+	Mesh            nodes.NodeOutput[modeling.Mesh]
+	Attribute       nodes.NodeOutput[string]
+	Iterations      nodes.NodeOutput[int]
+	SmoothingFactor nodes.NodeOutput[float64]
 }
 
 func (lp LaplacianSmoothNode) Process() (modeling.Mesh, error) {
@@ -114,4 +116,10 @@ func (lp LaplacianSmoothNode) Process() (modeling.Mesh, error) {
 		lp.Iterations.Data(),
 		lp.SmoothingFactor.Data(),
 	), nil
+}
+
+func (lp *LaplacianSmoothNode) SmoothedMesh() nodes.NodeOutput[modeling.Mesh] {
+	return &nodes.StructNodeOutput[modeling.Mesh]{
+		Definition: lp,
+	}
 }

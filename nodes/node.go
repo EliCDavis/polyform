@@ -8,12 +8,11 @@ const (
 	Error
 )
 
-type Node[T any] interface {
+type Node interface {
 	Versioned
 	Stateful
 	Subscribable
 	Dependent
-	Data() T
 }
 
 // AHHHHHHHHHHHHH =============================================================

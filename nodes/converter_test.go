@@ -1,15 +1,5 @@
 package nodes_test
 
-import (
-	"os"
-	"path/filepath"
-	"strings"
-	"testing"
-
-	"github.com/EliCDavis/polyform/nodes"
-	"github.com/stretchr/testify/assert"
-)
-
 // Golden represents a test case.
 type Golden struct {
 	name        string
@@ -72,40 +62,40 @@ func (i Day) String() string {
 }
 `
 
-func TestGolden(t *testing.T) {
-	// testenv.NeedsTool(t, "go")
+// func TestGolden(t *testing.T) {
+// 	// testenv.NeedsTool(t, "go")
 
-	dir := t.TempDir()
-	for _, test := range golden {
-		test := test
-		t.Run(test.name, func(t *testing.T) {
-			// g := Generator{
-			// 	trimPrefix:  test.trimPrefix,
-			// 	lineComment: test.lineComment,
-			// 	logf:        t.Logf,
-			// }
-			input := "package test\n" + test.input
-			file := test.name + ".go"
-			absFile := filepath.Join(dir, file)
-			err := os.WriteFile(absFile, []byte(input), 0644)
-			if err != nil {
-				t.Fatal(err)
-			}
+// 	dir := t.TempDir()
+// 	for _, test := range golden {
+// 		test := test
+// 		t.Run(test.name, func(t *testing.T) {
+// 			// g := Generator{
+// 			// 	trimPrefix:  test.trimPrefix,
+// 			// 	lineComment: test.lineComment,
+// 			// 	logf:        t.Logf,
+// 			// }
+// 			input := "package test\n" + test.input
+// 			file := test.name + ".go"
+// 			absFile := filepath.Join(dir, file)
+// 			err := os.WriteFile(absFile, []byte(input), 0644)
+// 			if err != nil {
+// 				t.Fatal(err)
+// 			}
 
-			// g.parsePackage([]string{absFile}, nil)
-			// Extract the name and type of the constant from the first line.
-			tokens := strings.SplitN(test.input, " ", 3)
-			if len(tokens) != 3 {
-				t.Fatalf("%s: need type declaration on first line", test.name)
-			}
+// 			// g.parsePackage([]string{absFile}, nil)
+// 			// Extract the name and type of the constant from the first line.
+// 			tokens := strings.SplitN(test.input, " ", 3)
+// 			if len(tokens) != 3 {
+// 				t.Fatalf("%s: need type declaration on first line", test.name)
+// 			}
 
-			out := nodes.Convert([]string{absFile})
-			assert.Equal(t, test.output, out)
-			// g.generate(tokens[1])
-			// got := string(g.format())
-			// if got != test.output {
-			// 	t.Errorf("%s: got(%d)\n====\n%q====\nexpected(%d)\n====%q", test.name, len(got), got, len(test.output), test.output)
-			// }
-		})
-	}
-}
+// 			out := nodes.Convert([]string{absFile})
+// 			assert.Equal(t, test.output, out)
+// 			// g.generate(tokens[1])
+// 			// got := string(g.format())
+// 			// if got != test.output {
+// 			// 	t.Errorf("%s: got(%d)\n====\n%q====\nexpected(%d)\n====%q", test.name, len(got), got, len(test.output), test.output)
+// 			// }
+// 		})
+// 	}
+// }

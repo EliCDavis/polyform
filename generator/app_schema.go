@@ -1,8 +1,13 @@
 package generator
 
+type NodeOutput struct {
+	Name string
+}
+
 type NodeSchema struct {
 	Name         string
 	Dependencies []NodeDependencySchema
+	Outputs      []NodeOutput
 	Parameter    ParameterSchema
 	Version      int
 }

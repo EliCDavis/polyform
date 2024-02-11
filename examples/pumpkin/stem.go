@@ -22,8 +22,16 @@ import (
 )
 
 type StemMesh struct {
-	StemResolution nodes.Node[float64]
-	TopDip         nodes.Node[float64]
+	nodes.StructData[gltf.PolyformModel]
+
+	StemResolution nodes.NodeOutput[float64]
+	TopDip         nodes.NodeOutput[float64]
+}
+
+func (sm *StemMesh) Mesh() nodes.NodeOutput[gltf.PolyformModel] {
+	return nodes.StructNodeOutput[gltf.PolyformModel]{
+		Definition: sm,
+	}
 }
 
 func (sm StemMesh) Process() (gltf.PolyformModel, error) {
@@ -126,7 +134,15 @@ func (sm StemMesh) Process() (gltf.PolyformModel, error) {
 }
 
 type StemNormalImage struct {
-	NumberOfLines nodes.Node[int]
+	nodes.StructData[generator.Artifact]
+
+	NumberOfLines nodes.NodeOutput[int]
+}
+
+func (sr *StemNormalImage) Image() nodes.NodeOutput[generator.Artifact] {
+	return nodes.StructNodeOutput[generator.Artifact]{
+		Definition: sr,
+	}
 }
 
 func (sni StemNormalImage) Process() (generator.Artifact, error) {
@@ -199,8 +215,16 @@ func (sni StemNormalImage) Process() (generator.Artifact, error) {
 }
 
 type StemRoughness struct {
-	Dimensions nodes.Node[int]
-	Roughness  nodes.Node[float64]
+	nodes.StructData[generator.Artifact]
+
+	Dimensions nodes.NodeOutput[int]
+	Roughness  nodes.NodeOutput[float64]
+}
+
+func (sr *StemRoughness) Image() nodes.NodeOutput[generator.Artifact] {
+	return nodes.StructNodeOutput[generator.Artifact]{
+		Definition: sr,
+	}
 }
 
 func (sr StemRoughness) Process() (generator.Artifact, error) {

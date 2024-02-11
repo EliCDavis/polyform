@@ -62,9 +62,17 @@ func SmoothNormals(m modeling.Mesh) modeling.Mesh {
 }
 
 type SmoothNormalsNode struct {
-	Mesh nodes.Node[modeling.Mesh]
+	nodes.StructData[modeling.Mesh]
+
+	Mesh nodes.NodeOutput[modeling.Mesh]
 }
 
 func (snn SmoothNormalsNode) Process() (modeling.Mesh, error) {
 	return SmoothNormals(snn.Mesh.Data()), nil
+}
+
+func (snn *SmoothNormalsNode) SmoothedMesh() nodes.NodeOutput[modeling.Mesh] {
+	return &nodes.StructNodeOutput[modeling.Mesh]{
+		Definition: snn,
+	}
 }

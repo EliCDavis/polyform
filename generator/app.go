@@ -40,7 +40,7 @@ type App struct {
 	Description string
 	WebScene    *room.WebScene
 	Authors     []Author
-	Producers   map[string]nodes.Node[Artifact]
+	Producers   map[string]nodes.NodeOutput[Artifact]
 
 	// Runtime data
 	producerCache producerCache
@@ -70,7 +70,7 @@ func writeJSONError(out io.Writer, err error) error {
 	return err
 }
 
-func writeProducersToZip(path string, producers map[string]nodes.Node[Artifact], zw *zip.Writer, cache producerCache) error {
+func writeProducersToZip(path string, producers map[string]nodes.NodeOutput[Artifact], zw *zip.Writer, cache producerCache) error {
 	if producers == nil {
 		panic("can't write nil producers")
 	}
@@ -112,7 +112,7 @@ func (a App) getParameters() []Parameter {
 
 	parameterSet := make(map[Parameter]struct{})
 	for _, n := range a.Producers {
-		params := recurseDependenciesType[Parameter](n)
+		params := recurseDependenciesType[Parameter](n.Node())
 		for _, p := range params {
 			parameterSet[p] = struct{}{}
 		}
@@ -170,6 +170,7 @@ func (a App) WriteMermaid(out io.Writer) error {
 
 		if len(n.Dependencies) > 0 {
 			fmt.Fprintf(out, "\tsubgraph %s[%s]\n\tdirection TB\n", id, n.Name)
+			fmt.Fprintf(out, "\tsubgraph %s-I[%s]\n\tdirection TB\n", id, "Input")
 		} else {
 			fmt.Fprintf(out, "\t%s[%s]\n", id, n.Name)
 		}
@@ -179,6 +180,7 @@ func (a App) WriteMermaid(out io.Writer) error {
 		}
 
 		if len(n.Dependencies) > 0 {
+			fmt.Fprint(out, "\tend\n")
 			fmt.Fprint(out, "\tend\n")
 		}
 	}
@@ -206,7 +208,7 @@ type appCLI struct {
 	Commands    []*cliCommand
 }
 
-func buildSchemaForNode(dependency nodes.Dependency, currentSchema map[string]NodeSchema, idMapping map[nodes.Dependency]string) {
+func buildSchemaForNode(dependency nodes.Node, currentSchema map[string]NodeSchema, idMapping map[nodes.Node]string) {
 
 	if _, ok := idMapping[dependency]; ok {
 		return
@@ -246,15 +248,15 @@ func (a *App) Schema() AppSchema {
 	}
 
 	nodeSchema := make(map[string]NodeSchema)
-	tempIDData := make(map[nodes.Dependency]string)
+	tempIDData := make(map[nodes.Node]string)
 
 	for key, producer := range a.Producers {
 		schema.Producers = append(schema.Producers, key)
-		buildSchemaForNode(producer, nodeSchema, tempIDData)
+		buildSchemaForNode(producer.Node(), nodeSchema, tempIDData)
 
-		node := nodeSchema[tempIDData[producer]]
+		node := nodeSchema[tempIDData[producer.Node()]]
 		node.Name = key
-		nodeSchema[tempIDData[producer]] = node
+		nodeSchema[tempIDData[producer.Node()]] = node
 	}
 
 	schema.Nodes = nodeSchema

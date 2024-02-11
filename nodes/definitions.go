@@ -1,12 +1,7 @@
 package nodes
 
-// Dependency =================================================================
-
-type Dependency interface {
-	Versioned
-	Stateful
-	Subscribable
-	Dependent
+type ReferencesNode interface {
+	Node() Node
 }
 
 // Dependent ==================================================================
@@ -19,7 +14,7 @@ type Dependent interface {
 
 type NodeDependency interface {
 	Named
-	Dependency() Dependency
+	Dependency() Node
 }
 
 // STATE ======================================================================

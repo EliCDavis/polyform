@@ -14,7 +14,7 @@ func Value[T any](startingValue T) *ValueNode[T] {
 	}
 }
 
-func InputFromFunc[T any](f func() T) *ValueNode[T] {
+func FuncValue[T any](f func() T) *ValueNode[T] {
 	return &ValueNode[T]{
 		value: f(),
 	}
@@ -27,6 +27,10 @@ func (in ValueNode[T]) Name() string {
 	default:
 		return "Value"
 	}
+}
+
+func (in *ValueNode[T]) Node() Node {
+	return in
 }
 
 func (in ValueNode[T]) Data() T {

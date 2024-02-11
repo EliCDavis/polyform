@@ -4,6 +4,45 @@ import (
 	"github.com/EliCDavis/polyform/refutil"
 )
 
+// ============================================================================
+
+type StructNodeOutputDefinition[T any] interface {
+	StructNodeProcesor[T]
+	IStructData[T]
+}
+
+type StructNodeOutput[T any] struct {
+	Definition StructNodeOutputDefinition[T]
+}
+
+func (sno StructNodeOutput[T]) Data() T {
+	return sno.Definition.node(sno.Definition).Data()
+}
+
+func (sno StructNodeOutput[T]) Node() Node {
+	return sno.Definition.node(sno.Definition)
+}
+
+// ============================================================================
+
+type IStructData[T any] interface {
+	node(p StructNodeProcesor[T]) *StructNode[T]
+}
+
+type StructData[T any] struct {
+	n *StructNode[T]
+}
+
+func (bd *StructData[T]) node(p StructNodeProcesor[T]) *StructNode[T] {
+	if bd.n == nil {
+		bd.n = Struct(p)
+	}
+
+	return bd.n
+}
+
+// ============================================================================
+
 type StructNodeProcesor[T any] interface {
 	Process() (T, error)
 }
@@ -51,25 +90,25 @@ func (tn *StructNode[T]) updateUsedDependencyVersions() {
 
 type StructNodeDependency struct {
 	name string
-	dep  Dependency
+	dep  Node
 }
 
 func (tnd StructNodeDependency) Name() string {
 	return tnd.name
 }
 
-func (tnd StructNodeDependency) Dependency() Dependency {
+func (tnd StructNodeDependency) Dependency() Node {
 	return tnd.dep
 }
 
 func (tn StructNode[T]) Dependencies() []NodeDependency {
-	data := refutil.FieldValuesOfType[Dependency](tn.processir)
+	data := refutil.FieldValuesOfType[ReferencesNode](tn.processir)
 
 	output := make([]NodeDependency, 0)
 	for key, val := range data {
 		output = append(output, StructNodeDependency{
 			name: key,
-			dep:  val,
+			dep:  val.Node(),
 		})
 	}
 	return output

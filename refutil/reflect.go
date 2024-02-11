@@ -56,7 +56,8 @@ func FieldValuesOfType[T any](in any) map[string]T {
 
 			perm, ok := i.(T)
 			if !ok {
-				panic(fmt.Errorf("view field '%s' is an interface but not a permission which is not allowed", structField.Name))
+				// panic(fmt.Errorf("view field '%s' is an interface but not a permission which is not allowed", structField.Name))
+				continue
 			}
 			out[structField.Name] = perm
 			continue

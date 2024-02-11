@@ -7,12 +7,15 @@ import (
 	"github.com/EliCDavis/polyform/modeling/primitives"
 	"github.com/EliCDavis/polyform/modeling/repeat"
 	"github.com/EliCDavis/polyform/nodes"
+	"github.com/stretchr/testify/assert"
 )
 
 type Repeat struct {
-	Mesh   nodes.Node[modeling.Mesh]
-	Radius nodes.Node[float64]
-	Times  nodes.Node[int]
+	nodes.StructData[modeling.Mesh]
+
+	Mesh   nodes.NodeOutput[modeling.Mesh]
+	Radius nodes.NodeOutput[float64]
+	Times  nodes.NodeOutput[int]
 }
 
 func (r Repeat) Process() (modeling.Mesh, error) {
@@ -23,25 +26,30 @@ func (r Repeat) Process() (modeling.Mesh, error) {
 	), nil
 }
 
+func (r *Repeat) Out() nodes.NodeOutput[modeling.Mesh] {
+	return &nodes.StructNodeOutput[modeling.Mesh]{r}
+}
+
 func TestNodes(t *testing.T) {
 
 	times := nodes.Value(5)
 
-	repeat := nodes.Struct(Repeat{
+	repeat := Repeat{
 		Radius: nodes.Value(15.),
 		Times:  nodes.Value(5),
-		Mesh: nodes.Struct(Repeat{
+		Mesh: (&Repeat{
 			Radius: nodes.Value(5.),
 			Times:  times,
 			Mesh:   nodes.Value(primitives.UVSphere(1, 10, 10)),
-		}),
-	})
+		}).Out(),
+	}
 
 	// Stage changes
 	times.Set(13)
 
-	repeat.Data()
-	repeat.Dependencies()
-
+	out := repeat.Out()
+	out.Data()
+	deps := out.Node().Dependencies()
+	assert.Len(t, deps, 3)
 	// obj.Save("test.obj", repeat.Data())
 }

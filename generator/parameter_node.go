@@ -30,6 +30,10 @@ type ParameterNode[T comparable] struct {
 	appliedProfile *T
 }
 
+func (in *ParameterNode[T]) Node() nodes.Node {
+	return in
+}
+
 func (pn *ParameterNode[T]) DisplayName() string {
 	return pn.Name
 }

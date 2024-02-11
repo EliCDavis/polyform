@@ -22,8 +22,16 @@ import (
 )
 
 type NormalImage struct {
-	NumberOfLines nodes.Node[int]
-	NumberOfWarts nodes.Node[int]
+	nodes.StructData[generator.Artifact]
+
+	NumberOfLines nodes.NodeOutput[int]
+	NumberOfWarts nodes.NodeOutput[int]
+}
+
+func (ni *NormalImage) Image() nodes.NodeOutput[generator.Artifact] {
+	return nodes.StructNodeOutput[generator.Artifact]{
+		Definition: ni,
+	}
 }
 
 func (ni NormalImage) Process() (generator.Artifact, error) {
@@ -109,10 +117,12 @@ func (ni NormalImage) Process() (generator.Artifact, error) {
 }
 
 type PumpkinField struct {
-	MaxWidth, TopDip, DistanceFromCenter, WedgeLineRadius nodes.Node[float64]
-	Sides                                                 nodes.Node[int]
-	ImageField                                            nodes.Node[[][]float64]
-	UseImageField                                         nodes.Node[bool]
+	nodes.StructData[marching.Field]
+
+	MaxWidth, TopDip, DistanceFromCenter, WedgeLineRadius nodes.NodeOutput[float64]
+	Sides                                                 nodes.NodeOutput[int]
+	ImageField                                            nodes.NodeOutput[[][]float64]
+	UseImageField                                         nodes.NodeOutput[bool]
 }
 
 func (pf PumpkinField) Process() (marching.Field, error) {
@@ -208,8 +218,22 @@ func (pf PumpkinField) Process() (marching.Field, error) {
 	return pumpkinField, nil
 }
 
+func (pf *PumpkinField) Field() nodes.NodeOutput[marching.Field] {
+	return nodes.StructNodeOutput[marching.Field]{
+		Definition: pf,
+	}
+}
+
 type SphericalUVMapping struct {
-	Mesh nodes.Node[modeling.Mesh]
+	nodes.StructData[modeling.Mesh]
+
+	Mesh nodes.NodeOutput[modeling.Mesh]
+}
+
+func (sm *SphericalUVMapping) SphericalMesh() nodes.NodeOutput[modeling.Mesh] {
+	return nodes.StructNodeOutput[modeling.Mesh]{
+		Definition: sm,
+	}
 }
 
 func (sm SphericalUVMapping) Process() (modeling.Mesh, error) {
@@ -233,9 +257,11 @@ func (sm SphericalUVMapping) Process() (modeling.Mesh, error) {
 }
 
 type PumpkinGLBArtifact struct {
-	PumpkinBody nodes.Node[modeling.Mesh]
-	PumpkinStem nodes.Node[gltf.PolyformModel]
-	LightColor  nodes.Node[color.Color]
+	nodes.StructData[generator.Artifact]
+
+	PumpkinBody nodes.NodeOutput[modeling.Mesh]
+	PumpkinStem nodes.NodeOutput[gltf.PolyformModel]
+	LightColor  nodes.NodeOutput[color.Color]
 }
 
 func (pga PumpkinGLBArtifact) Process() (generator.Artifact, error) {
@@ -285,8 +311,22 @@ func (pga PumpkinGLBArtifact) Process() (generator.Artifact, error) {
 	}, nil
 }
 
+func (pga *PumpkinGLBArtifact) Artifact() nodes.NodeOutput[generator.Artifact] {
+	return nodes.StructNodeOutput[generator.Artifact]{
+		Definition: pga,
+	}
+}
+
 type MetalRoughness struct {
-	Roughness nodes.Node[float64]
+	nodes.StructData[generator.Artifact]
+
+	Roughness nodes.NodeOutput[float64]
+}
+
+func (mr *MetalRoughness) Image() nodes.NodeOutput[generator.Artifact] {
+	return nodes.StructNodeOutput[generator.Artifact]{
+		Definition: mr,
+	}
 }
 
 func (mr MetalRoughness) Process() (generator.Artifact, error) {
