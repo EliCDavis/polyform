@@ -74,13 +74,22 @@ func (tn TransformerNode[Tin, Tout]) Dependencies() []NodeDependency {
 		}
 	}
 
-	data := refutil.FieldValuesOfType[Node](tn.in)
+	if dep, ok := any(tn.in).(ReferencesNode); ok {
+		return []NodeDependency{
+			transformerNodeDependency{
+				name: "Input",
+				dep:  dep.Node(),
+			},
+		}
+	}
+
+	data := refutil.FieldValuesOfType[ReferencesNode](tn.in)
 
 	output := make([]NodeDependency, 0)
 	for key, val := range data {
 		output = append(output, transformerNodeDependency{
 			name: key,
-			dep:  val,
+			dep:  val.Node(),
 		})
 	}
 	return output
