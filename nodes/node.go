@@ -23,6 +23,10 @@ type nodeData struct {
 	subs    []Alertable
 }
 
+func (nd *nodeData) incVersion() {
+	nd.version++
+}
+
 func (s nodeData) State() NodeState {
 	return s.state
 }

@@ -1,16 +1,9 @@
 package generator
 
 import (
-	"encoding/json"
-
 	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/vector/vector3"
 )
-
-type Profile struct {
-	Parameters    json.RawMessage    `json:"parameters"`
-	SubGenerators map[string]Profile `json:"subGenerators"`
-}
 
 type GeneratorSchema struct {
 	Parameters    GroupParameterSchema       `json:"parameters"`

@@ -1,6 +1,8 @@
 package nodes
 
 import (
+	"log"
+
 	"github.com/EliCDavis/polyform/refutil"
 )
 
@@ -48,13 +50,14 @@ type StructNodeProcesor[T any] interface {
 }
 
 type StructNode[T any] struct {
-	nodeData
-
 	processir StructNodeProcesor[T]
 
 	value       T
 	err         error
 	depVersions []int
+
+	version int
+	subs    []Alertable
 }
 
 func (tn StructNode[T]) Outdated() bool {
@@ -71,8 +74,9 @@ func (tn StructNode[T]) Outdated() bool {
 		return false
 	}
 
-	for i, dep := range deps {
-		if dep.Dependency().Version() != tn.depVersions[i] {
+	for i, nodeDep := range deps {
+		dep := nodeDep.Dependency()
+		if dep.Version() != tn.depVersions[i] || dep.State() != Processed {
 			return true
 		}
 	}
@@ -101,6 +105,10 @@ func (tnd StructNodeDependency) Dependency() Node {
 	return tnd.dep
 }
 
+func (tn StructNode[T]) Version() int {
+	return tn.version
+}
+
 func (tn StructNode[T]) Dependencies() []NodeDependency {
 	data := refutil.FieldValuesOfType[ReferencesNode](tn.processir)
 
@@ -114,7 +122,7 @@ func (tn StructNode[T]) Dependencies() []NodeDependency {
 	return output
 }
 
-func (tn StructNode[T]) Data() T {
+func (tn *StructNode[T]) Data() T {
 	if tn.Outdated() {
 		tn.process()
 	}
@@ -125,7 +133,7 @@ func (tn *StructNode[T]) process() {
 	// tn.value, tn.err = tn.transform(tn.in)
 	tn.value, tn.err = tn.processir.Process()
 	tn.version++
-	tn.state = Processed
+	log.Printf("[%p] %s: %d", tn, tn.Name(), tn.version)
 	tn.updateUsedDependencyVersions()
 }
 
@@ -133,13 +141,24 @@ func (tn *StructNode[T]) Name() string {
 	return refutil.GetName(tn.processir)
 }
 
+func (tn *StructNode[T]) State() NodeState {
+	if tn.Outdated() {
+		return Stale
+	}
+	return Processed
+}
+
+func (tn *StructNode[T]) AddSubscription(a Alertable) {
+	if a == nil {
+		panic("attempting to subribe with nil alertable")
+	}
+	tn.subs = append(tn.subs, a)
+}
+
 func Struct[T any](p StructNodeProcesor[T]) *StructNode[T] {
 	return &StructNode[T]{
-		nodeData: nodeData{
-			version: 0,
-			state:   Stale,
-			subs:    make([]Alertable, 0),
-		},
+		version:     0,
+		subs:        make([]Alertable, 0),
 		processir:   p,
 		depVersions: nil,
 	}

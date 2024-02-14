@@ -45,10 +45,12 @@ func TestNodes(t *testing.T) {
 	}
 
 	// Stage changes
-	times.Set(13)
-
 	out := repeat.Out()
+
 	out.Data()
+	times.Set(13)
+	out.Data()
+
 	deps := out.Node().Dependencies()
 	assert.Len(t, deps, 3)
 	// obj.Save("test.obj", repeat.Data())

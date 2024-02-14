@@ -2,19 +2,16 @@ package generator
 
 import (
 	"archive/zip"
-	"embed"
+	_ "embed"
 	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
 	"io"
-	"net/http"
 	"os"
 	"path"
 	"path/filepath"
-	"sync"
 	"text/template"
-	"time"
 
 	"github.com/EliCDavis/polyform/generator/room"
 	"github.com/EliCDavis/polyform/nodes"
@@ -43,14 +40,7 @@ type App struct {
 	Producers   map[string]nodes.NodeOutput[Artifact]
 
 	// Runtime data
-	producerCache producerCache
-}
-
-type pageData struct {
-	Title       string
-	Version     string
-	Description string
-	Scripting   string
+	nodeIDs map[nodes.Node]string
 }
 
 func writeJSONError(out io.Writer, err error) error {
@@ -70,7 +60,7 @@ func writeJSONError(out io.Writer, err error) error {
 	return err
 }
 
-func writeProducersToZip(path string, producers map[string]nodes.NodeOutput[Artifact], zw *zip.Writer, cache producerCache) error {
+func writeProducersToZip(path string, producers map[string]nodes.NodeOutput[Artifact], zw *zip.Writer) error {
 	if producers == nil {
 		panic("can't write nil producers")
 	}
@@ -85,16 +75,7 @@ func writeProducersToZip(path string, producers map[string]nodes.NodeOutput[Arti
 		if err != nil {
 			return err
 		}
-
-		artifact := cache.Lookup(file)
-		if artifact == nil {
-			artifact = producer.Data()
-			// artifact, err = producer.Data()
-			// if err != nil {
-			// return err
-			// }
-		}
-
+		artifact := producer.Data()
 		err = artifact.Write(f)
 		if err != nil {
 			return err
@@ -152,50 +133,13 @@ func (a App) initialize(set *flag.FlagSet) {
 func (a App) WriteZip(out io.Writer) error {
 	z := zip.NewWriter(out)
 
-	err := writeProducersToZip("", a.Producers, z, a.producerCache)
+	err := writeProducersToZip("", a.Producers, z)
 	if err != nil {
 		return err
 	}
 
 	return z.Close()
 }
-
-func (a App) WriteMermaid(out io.Writer) error {
-
-	schema := a.Schema()
-
-	fmt.Fprintf(out, "---\ntitle: %s\n---\n\nflowchart LR\n", a.Name)
-
-	for id, n := range schema.Nodes {
-
-		if len(n.Dependencies) > 0 {
-			fmt.Fprintf(out, "\tsubgraph %s[%s]\n\tdirection LR\n", id, n.Name)
-			fmt.Fprintf(out, "\tsubgraph %s-In[%s]\n\tdirection TB\n", id, "Input")
-		} else {
-			fmt.Fprintf(out, "\t%s[%s]\n", id, n.Name)
-		}
-
-		for depIndex, dep := range n.Dependencies {
-			fmt.Fprintf(out, "\t%s-%d([%s])\n", id, depIndex, dep.Name)
-		}
-
-		if len(n.Dependencies) > 0 {
-			fmt.Fprint(out, "\tend\n")
-			fmt.Fprint(out, "\tend\n")
-		}
-	}
-
-	for id, n := range schema.Nodes {
-		for depIndex, d := range n.Dependencies {
-			fmt.Fprintf(out, "\t%s --> %s-%d\n", d.DependencyID, id, depIndex)
-		}
-	}
-
-	return nil
-}
-
-//go:embed html/*
-var htmlFs embed.FS
 
 //go:embed cli.tmpl
 var cliTemplate string
@@ -208,9 +152,13 @@ type appCLI struct {
 	Commands    []*cliCommand
 }
 
-func buildSchemaForNode(dependency nodes.Node, currentSchema map[string]NodeSchema, idMapping map[nodes.Node]string) {
+func (a App) buildSchemaForNode(dependency nodes.Node, currentSchema map[string]NodeSchema) {
+	id, ok := a.nodeIDs[dependency]
+	if !ok {
+		panic(fmt.Errorf("node %v has not had an ID generated for it", dependency))
+	}
 
-	if _, ok := idMapping[dependency]; ok {
+	if _, ok := currentSchema[id]; ok {
 		return
 	}
 
@@ -221,15 +169,19 @@ func buildSchemaForNode(dependency nodes.Node, currentSchema map[string]NodeSche
 	}
 
 	for _, subDependency := range dependency.Dependencies() {
-		buildSchemaForNode(subDependency.Dependency(), currentSchema, idMapping)
+		a.buildSchemaForNode(subDependency.Dependency(), currentSchema)
 		schema.Dependencies = append(schema.Dependencies, NodeDependencySchema{
-			DependencyID: idMapping[subDependency.Dependency()],
+			DependencyID: a.nodeIDs[subDependency.Dependency()],
 			Name:         subDependency.Name(),
 		})
 	}
 
 	if param, ok := dependency.(Parameter); ok {
 		schema.Name = param.DisplayName()
+		schema.parameter = param
+		schema.Parameter = param.Schema()
+		// param.ApplyJsonMessage(schema.Fuck)
+		// param.ApplyJsonMessage(schema.Parameter)
 	} else {
 		named, ok := dependency.(nodes.Named)
 		if ok {
@@ -237,201 +189,64 @@ func buildSchemaForNode(dependency nodes.Node, currentSchema map[string]NodeSche
 		}
 	}
 
-	id := fmt.Sprintf("Node-%d", len(currentSchema))
-	idMapping[dependency] = id
 	currentSchema[id] = schema
 }
 
+func (a *App) buildIDsForNode(dep nodes.Node) {
+	if a.nodeIDs == nil {
+		a.nodeIDs = make(map[nodes.Node]string)
+	}
+
+	// IDs for this node has already been built.
+	if _, ok := a.nodeIDs[dep]; ok {
+		return
+	}
+
+	for _, subDependency := range dep.Dependencies() {
+		a.buildIDsForNode(subDependency.Dependency())
+	}
+
+	id := fmt.Sprintf("Node-%d", len(a.nodeIDs))
+	a.nodeIDs[dep] = id
+}
+
 func (a *App) Schema() AppSchema {
+	if a.nodeIDs == nil {
+		for _, producer := range a.Producers {
+			a.buildIDsForNode(producer.Node())
+		}
+	}
+
 	schema := AppSchema{
 		Producers: make([]string, 0, len(a.Producers)),
 	}
 
-	nodeSchema := make(map[string]NodeSchema)
-	tempIDData := make(map[nodes.Node]string)
+	appNodeSchema := make(map[string]NodeSchema)
 
 	for key, producer := range a.Producers {
 		schema.Producers = append(schema.Producers, key)
-		buildSchemaForNode(producer.Node(), nodeSchema, tempIDData)
+		a.buildSchemaForNode(producer.Node(), appNodeSchema)
 
-		node := nodeSchema[tempIDData[producer.Node()]]
+		id := a.nodeIDs[producer.Node()]
+		node := appNodeSchema[id]
 		node.Name = key
-		nodeSchema[tempIDData[producer.Node()]] = node
+		appNodeSchema[id] = node
 	}
 
-	schema.Nodes = nodeSchema
+	schema.Nodes = appNodeSchema
 
 	return schema
 }
 
-func (a *App) ApplyProfile(profile Profile) (bool, error) {
-
-	params := a.getParameters()
-
-	changed := false
-
-	for _, p := range params {
-		paramChanged, err := p.ApplyJsonMessage(profile.Parameters)
-		if err != nil {
-			return changed, err
-		}
-
-		if paramChanged {
-			changed = true
-		}
-	}
-
-	return changed, nil
-}
-
 func (a *App) Serve(host, port string) error {
-
-	a.producerCache = make(map[string]Artifact)
-	producerLock := &sync.Mutex{}
-
-	serverStarted := time.Now()
-
-	webscene := a.WebScene
-	if webscene == nil {
-		webscene = room.DefaultWebScene()
+	server := AppServer{
+		app:      a,
+		host:     host,
+		port:     port,
+		webscene: a.WebScene,
 	}
 
-	movelVersion := 0
-
-	htmlData, err := htmlFs.ReadFile("html/server.html")
-	if err != nil {
-		return err
-	}
-
-	javascriptData, err := htmlFs.ReadFile("html/index.js")
-	if err != nil {
-		return err
-	}
-
-	pageToServe := pageData{
-		Title:       a.Name,
-		Version:     a.Version,
-		Description: a.Description,
-		Scripting:   " <script type=\"module\">" + string(javascriptData) + "</script>",
-	}
-
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-
-		// d, err := os.ReadFile("generator/server.html")
-		// if err != nil {
-		// 	panic(err)
-		// }
-
-		t := template.New("")
-		// _, err = t.Parse(string(d))
-		_, err := t.Parse(string(htmlData))
-		if err != nil {
-			panic(err)
-		}
-		t.Execute(w, pageToServe)
-		// w.Write(indexData)
-	})
-
-	http.HandleFunc("/schema", func(w http.ResponseWriter, r *http.Request) {
-		data, err := json.Marshal(a.Schema())
-		if err != nil {
-			panic(err)
-		}
-		w.Write(data)
-	})
-
-	http.HandleFunc("/scene", func(w http.ResponseWriter, r *http.Request) {
-		data, err := json.Marshal(webscene)
-		if err != nil {
-			panic(err)
-		}
-		w.Write(data)
-	})
-
-	http.HandleFunc("/started", func(w http.ResponseWriter, r *http.Request) {
-		time := serverStarted.Format("2006-01-02 15:04:05")
-		w.Write([]byte(fmt.Sprintf("{ \"time\": \"%s\" }", time)))
-	})
-
-	http.HandleFunc("/profile", func(w http.ResponseWriter, r *http.Request) {
-		producerLock.Lock()
-		defer producerLock.Unlock()
-
-		body, _ := io.ReadAll(r.Body)
-
-		profile := Profile{}
-		if err := json.Unmarshal(body, &profile); err != nil {
-			panic(err)
-		}
-
-		_, err := a.ApplyProfile(profile)
-		if err != nil {
-			panic(err)
-		}
-
-		movelVersion++
-		w.Write([]byte("{}"))
-	})
-
-	http.HandleFunc("/producer/", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Add("Cache-Control", "no-cache")
-
-		producerLock.Lock()
-		defer producerLock.Unlock()
-		// params, _ := url.ParseQuery(r.URL.RawQuery)
-
-		producerToLoad := path.Base(r.URL.Path)
-
-		producer, ok := a.Producers[producerToLoad]
-		if !ok {
-			panic(fmt.Errorf("no producer registered for: %s", producerToLoad))
-		}
-
-		if artifact, ok := a.producerCache[producerToLoad]; ok && artifact != nil {
-			artifact.Write(w)
-			return
-		}
-
-		artifact := producer.Data()
-
-		// artifact, err := producer.Data()
-		// if err != nil {
-		// 	log.Printf(err.Error())
-		// 	w.Header().Add("Content-Type", "application/json")
-		// 	w.WriteHeader(http.StatusInternalServerError)
-		// 	err := writeJSONError(w, err)
-		// 	if err != nil {
-		// 		panic(err)
-		// 	}
-		// 	return
-		// }
-
-		err = artifact.Write(w)
-		if err != nil {
-			panic(err)
-		}
-
-		a.producerCache[producerToLoad] = artifact
-	})
-
-	http.HandleFunc("/zip", func(w http.ResponseWriter, r *http.Request) {
-		err := a.WriteZip(w)
-		w.Header().Add("Content-Type", "application/zip")
-		if err != nil {
-			panic(err)
-		}
-	})
-
-	hub := room.NewHub(webscene, &movelVersion)
-	go hub.Run()
-
-	http.Handle("/live", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		hub.ServeWs(w, r)
-	}))
-
-	connection := fmt.Sprintf("%s:%s", host, port)
-	fmt.Printf("Serving over: http://%s\n", connection)
-	return http.ListenAndServe(connection, nil)
+	return server.Serve()
 }
 
 func (a App) Generate(outputPath string) error {
@@ -571,7 +386,7 @@ func (a App) Run() error {
 					out = f
 				}
 
-				return a.WriteMermaid(out)
+				return WriteMermaid(a, out)
 			},
 		},
 		{

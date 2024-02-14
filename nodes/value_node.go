@@ -39,7 +39,7 @@ func (in ValueNode[T]) Data() T {
 
 func (in *ValueNode[T]) Set(value T) {
 	in.value = value
-	in.version++
+	in.Increment()
 	in.alertSubscribers()
 }
 

@@ -1,62 +1,14 @@
-// ERROR MESSAGE ============================================================== 
+const panel = new GUI({ width: 310 });
 
-const ErrorManager = {
-    ShowError: (message) => {
-        const content = document.getElementById("errorMessage");
-        content.style.display = "block";
-        content.innerText = message;
-    },
-
-    ClearError: () => {
-        const content = document.getElementById("errorMessage");
-        content.style.display = "none";
-    }
-}
-
-// ============================================================================
+const requestManager = new RequestManager();
+const nodeManager = new NodeManager(panel.addFolder("Mesh Generation"));
+const schemaManager = new SchemaManager(requestManager, nodeManager);
 
 let clientID = null;
 
-function fetch(theUrl, callback) {
-    const xmlHttp = new XMLHttpRequest();
-    xmlHttp.onreadystatechange = function () {
-        if (xmlHttp.readyState == 4 && xmlHttp.status == 200) {
-            console.log(xmlHttp.responseText)
-            callback(JSON.parse(xmlHttp.responseText));
-        }
-    }
-    xmlHttp.open("GET", theUrl, true); // true for asynchronous 
-    xmlHttp.send(null);
-}
-
-function download(theUrl, callback) {
-    const xmlHttp = new XMLHttpRequest();
-    xmlHttp.responseType = 'blob';
-    xmlHttp.onreadystatechange = function () {
-        if (xmlHttp.readyState == 4 && xmlHttp.status == 200) {
-            console.log(xmlHttp)
-            callback(xmlHttp.response);
-        }
-    }
-    xmlHttp.open("GET", theUrl, true); // true for asynchronous 
-    xmlHttp.send(null);
-}
-
-
-function post(theUrl, body, callback) {
-    const xmlHttp = new XMLHttpRequest();
-    xmlHttp.onreadystatechange = function () {
-        if (xmlHttp.readyState == 4 && xmlHttp.status == 200) {
-            callback(JSON.parse(xmlHttp.responseText));
-        }
-    }
-    xmlHttp.open("POST", theUrl, true); // true for asynchronous 
-    xmlHttp.send(JSON.stringify(body));
-}
-
 let initID = null
 setInterval(() => {
-    fetch("/started", (payload) => {
+    requestManager.getStartedTime((payload) => {
         if (initID === null) {
             initID = payload.time;
         }
@@ -84,6 +36,7 @@ import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer
 import { ProgressiveLightMap } from 'three/addons/misc/ProgressiveLightMap.js';
 
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
+
 
 let viewportSettingsChanged = false;
 const viewportSettings = {
@@ -136,6 +89,9 @@ labelRenderer.domElement.style.top = '0px';
 labelRenderer.domElement.style.pointerEvents = 'none';
 container.appendChild(labelRenderer.domElement);
 
+const stats = new Stats();
+container.appendChild(stats.dom);
+
 const hemiLight = new THREE.HemisphereLight(viewportSettings.lighting, 0x8d8d8d, 3);
 hemiLight.position.set(0, 20, 0);
 scene.add(hemiLight);
@@ -176,16 +132,15 @@ orbitControls.update();
 
 camera.position.z = 5;
 
-const panel = new GUI({ width: 310 });
 
-const updateProfile = (cb) => {
-    return post("/profile", profile, () => {
-        RefreshProducerOutput();
-        if (cb) {
-            cb();
-        }
-    })
-}
+nodeManager.subscribeToParameterChange((param) => {
+    console.log(param)
+    schemaManager.setProfileKey(param.id, param.data);
+    schemaManager.submitProfile();
+    // post("/profile", profile, () => {
+    //     RefreshProducerOutput();
+    // })
+});
 
 let allPositionControls = [];
 
@@ -205,8 +160,6 @@ const newPositionControl = (setting, name, position, index) => {
     mesh.position.y = position.y;
     mesh.position.z = position.z;
 
-    // control.addEventListener('change', () => {
-    // });
 
     control.addEventListener('dragging-changed', (event) => {
         orbitControls.enabled = !event.value;
@@ -231,148 +184,12 @@ const newPositionControl = (setting, name, position, index) => {
     scene.add(control)
 }
 
-const allMeshGUISettings = [];
-const parseGroupParameters = (folderToAddTo, groupParameters) => {
-    const folderSettings = {};
-
-    groupParameters.parameters.forEach((param) => {
-        switch (param.type.toLowerCase()) {
-            case "group":
-                const subFold = parseGroupParameters(folderToAddTo.addFolder(param.name), param);
-                if (Object.keys(subFold).length != 0) {
-                    folderSettings[param.name] = subFold;
-                }
-                break;
-
-            case "float64":
-            case "float32":
-                folderSettings[param.name] = param.currentValue;
-                break;
-
-            case "int":
-                folderSettings[param.name] = param.currentValue;
-                break;
-
-            case "color":
-                folderSettings[param.name] = param.currentValue;
-                break;
-
-            case "bool":
-                folderSettings[param.name] = param.currentValue;
-                break;
-
-            case "string":
-                folderSettings[param.name] = param.currentValue;
-                break;
-
-            case "vectorarray":
-                folderSettings[param.name] = param.currentValue;
-                folderSettings[param.name + " button"] = () => {
-
-                    const oldEle = folderSettings[param.name][folderSettings[param.name].length - 1]
-                    const newEle = {
-                        x: oldEle.x + 1,
-                        y: oldEle.y,
-                        z: oldEle.z,
-                    }
-
-                    folderSettings[param.name].push(newEle)
-
-                    const lastEle = folderSettings[param.name].length - 1
-                    newPositionControl(folderSettings, param.name, folderSettings[param.name][lastEle], lastEle);
-                    updateProfile();
-                }
-                break;
-
-            default:
-                console.warn("unrecognized param type", param.type, "ignoring", param.name)
-        }
-    })
-
-    groupParameters.parameters.forEach((param) => {
-        let setting = null;
-        switch (param.type.toLowerCase()) {
-            case "float64":
-            case "float32":
-                setting = folderToAddTo.add(folderSettings, param.name).listen().onChange((weight) => {
-                    updateProfile();
-                });
-                break;
-
-
-            case "int":
-                setting = folderToAddTo.add(folderSettings, param.name).step(1).listen().onChange((weight) => {
-                    updateProfile();
-                });
-                break;
-
-            case "string":
-                setting = folderToAddTo.add(folderSettings, param.name).step(1).listen().onChange((weight) => {
-                    updateProfile();
-                });
-                break;
-
-            case "bool":
-                setting = folderToAddTo.add(folderSettings, param.name).step(1).listen().onChange((weight) => {
-                    updateProfile();
-                });
-                break;
-
-            case "color":
-                setting = folderToAddTo.addColor(folderSettings, param.name).listen().onChange((weight) => {
-                    updateProfile();
-                });
-                break;
-
-            case "vectorarray":
-                folderSettings[param.name].forEach((position, index) => {
-                    newPositionControl(folderSettings, param.name, position, index);
-                })
-                setting = folderToAddTo.add(folderSettings, param.name + " button").name("Add to " + param.name).listen()
-                break;
-        }
-        if (setting != null) {
-            allMeshGUISettings.push(setting);
-        }
-    });
-
-    return folderSettings;
-}
-
-const parseSchemaParameters = (folderToAddTo, curSchema) => {
-
-    const folderSettings = {};
-
-    const subFold = parseGroupParameters(folderToAddTo, curSchema.parameters);
-    if (Object.keys(subFold).length != 0) {
-        folderSettings["Parameters"] = subFold;
-    }
-
-    folderSettings["subGenerators"] = {}
-
-    for (let key of Object.keys(curSchema.subGenerators)) {
-        const subFolderToAddTo = folderToAddTo.addFolder(key)
-        const subFoldData = parseSchemaParameters(subFolderToAddTo, curSchema.subGenerators[key]);
-        if (Object.keys(subFold).length != 0) {
-            folderSettings["subGenerators"][key] = subFoldData;
-        }
-    }
-
-    if (Object.keys(folderSettings).length == 0) {
-        return;
-    }
-
-    return folderSettings;
-}
-
-let schema = {}
-
 let firstTimeLoadingScene = true;
 
 const loader = new GLTFLoader().setPath('producer/');
 let producerScene = null;
-const RefreshProducerOutput = () => {
 
+schemaManager.subscribe((schema) => {
     ErrorManager.ClearError();
 
     if (producerScene != null) {
@@ -466,7 +283,8 @@ const RefreshProducerOutput = () => {
                 break;
         }
     });
-}
+})
+
 
 const fileControls = {
     saveProfile: () => {
@@ -515,6 +333,7 @@ const fileControls = {
         })
     }
 }
+
 const fileSettingsFolder = panel.addFolder("File");
 fileSettingsFolder.add(fileControls, "saveProfile").name("Save Profile")
 fileSettingsFolder.add(fileControls, "loadProfile").name("Load Profile")
@@ -644,68 +463,6 @@ fogSettingsManager["far"] = {
     updater: fogFarUpdater
 }
 
-
-let profile = {};
-
-fetch("/schema", (generatorSchema) => {
-    schema = generatorSchema;
-    RefreshProducerOutput();
-    profile = parseSchemaParameters(panel.addFolder("Mesh Generation"), generatorSchema)
-})
-
-const updateProfileParametersWithNewSchema = (prof, newSchema) => {
-    newSchema.parameters.forEach(schemaParam => {
-
-        switch (schemaParam.type) {
-            case "Group":
-                updateProfileParametersWithNewSchema(prof[schemaParam.name], schemaParam)
-                break;
-
-            case "VectorArray":
-                while (prof[schemaParam.name].length > 0) {
-                    prof[schemaParam.name].pop();
-                }
-                schemaParam.currentValue.forEach((position) => {
-                    prof[schemaParam.name].push(position)
-                })
-
-                prof[schemaParam.name].forEach((position, index) => {
-                    newPositionControl(prof, schemaParam.name, position, index);
-                })
-                break;
-
-
-            default:
-                prof[schemaParam.name] = schemaParam.currentValue;
-                break;
-        }
-    });
-}
-
-const updateProfileWithNewSchema = (prof, newSchema) => {
-    for (const [key, gen] of Object.entries(prof.subGenerators)) {
-        updateProfileWithNewSchema(gen, newSchema.subGenerators[key])
-    }
-    updateProfileParametersWithNewSchema(prof.Parameters, newSchema.parameters);
-}
-
-const featchandApplyLatestSchemaToControls = () => {
-    fetch("/schema", (generatorSchema) => {
-        schema = generatorSchema;
-        RefreshProducerOutput();
-        clearPositionControls();
-        updateProfileWithNewSchema(profile, generatorSchema)
-        allMeshGUISettings.forEach(setting => {
-            setting.updateDisplay();
-        });
-    })
-}
-
-
-const stats = new Stats();
-container.appendChild(stats.dom);
-
-
 function onWindowResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
@@ -739,7 +496,8 @@ if (window["WebSocket"]) {
             case "Server-RoomStateUpdate":
                 if (lastUpdatedModel !== message.data.ModelVersion) {
                     lastUpdatedModel = message.data.ModelVersion;
-                    featchandApplyLatestSchemaToControls();
+                    schemaManager.refreshSchema();
+                    // featchandApplyLatestSchemaToControls();
                 }
 
                 if (viewportSettingsChanged === false) {
