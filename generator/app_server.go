@@ -78,6 +78,7 @@ func (as *AppServer) Serve() error {
 	http.HandleFunc("/zip", as.ZipEndpoint)
 	http.HandleFunc("/started", as.StartedEndpoint)
 	http.HandleFunc("/profile", as.ProfileEndpoint)
+	http.HandleFunc("/mermaid", as.MermaidEndpoint)
 	http.HandleFunc("/producer/", as.ProducerEndpoint)
 
 	hub := room.NewHub(as.webscene, &as.movelVersion)
@@ -178,6 +179,13 @@ func (as *AppServer) StartedEndpoint(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	time := as.serverStarted.Format("2006-01-02 15:04:05")
 	w.Write([]byte(fmt.Sprintf("{ \"time\": \"%s\" }", time)))
+}
+
+func (as *AppServer) MermaidEndpoint(w http.ResponseWriter, r *http.Request) {
+	err := WriteMermaid(*as.app, w)
+	if err != nil {
+		log.Println(err.Error())
+	}
 }
 
 func (as *AppServer) ZipEndpoint(w http.ResponseWriter, r *http.Request) {

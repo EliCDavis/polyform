@@ -331,6 +331,19 @@ const fileControls = {
             a.click();
             window.URL.revokeObjectURL(url);
         })
+    },
+    viewProgram: () => {
+        requestManager.fetchText("/mermaid", (data) => {
+            const mermaidConfig = {
+                "code": data,
+                "mermaid": {
+                    "securityLevel": "strict"
+                }
+            }
+
+            const mermaidURL = "https://mermaid.live/edit#" + btoa(JSON.stringify(mermaidConfig));
+            window.open(mermaidURL, '_blank').focus();
+        })
     }
 }
 
@@ -338,6 +351,7 @@ const fileSettingsFolder = panel.addFolder("File");
 fileSettingsFolder.add(fileControls, "saveProfile").name("Save Profile")
 fileSettingsFolder.add(fileControls, "loadProfile").name("Load Profile")
 fileSettingsFolder.add(fileControls, "saveModel").name("Download Model")
+fileSettingsFolder.add(fileControls, "viewProgram").name("View Program")
 fileSettingsFolder.close();
 
 const viewportSettingsFolder = panel.addFolder("Rendering");

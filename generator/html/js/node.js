@@ -1,11 +1,26 @@
 class NodeBasicParameter {
     constructor(nodeManager, id, parameterData, guiFolder, guiFolderData) {
+        this.id = id;
+        this.guiFolder = guiFolder;
+        this.guiFolderData = guiFolderData;
+
         guiFolderData[id] = parameterData.currentValue;
 
-        console.log(guiFolderData)
+        let setting = null;
 
-        this.setting = guiFolder.add(guiFolderData, id)
-            .name(parameterData.name)
+        if (parameterData.type === "coloring.WebColor") {
+            setting = guiFolder.addColor(guiFolderData, id)
+        } else {
+            setting = guiFolder.add(guiFolderData, id)
+        }
+
+        setting = setting.name(parameterData.name);
+
+        if (parameterData.type === "int") {
+            setting = setting.step(1)
+        }
+
+        this.setting = setting
             .listen()
             .onChange((newData) => {
                 nodeManager.nodeParameterChanged({
@@ -16,21 +31,21 @@ class NodeBasicParameter {
     }
 
     update(parameterData) {
-
+        this.guiFolderData[this.id] = parameterData.currentValue;
     }
 }
 
 function BuildParameter(nodeManager, id, parameterData, guiFolder, guiFolderData) {
-    switch (parameterData.type.toLowerCase()) {
+    switch (parameterData.type) {
         case "float64":
         case "float32":
         case "int":
         case "bool":
-        case "color":
+        case "coloring.WebColor":
             return new NodeBasicParameter(nodeManager, id, parameterData, guiFolder, guiFolderData);
 
         default:
-            throw new Error("unimplemented type: " + param.type)
+            throw new Error("unimplemented type: " + parameterData.type)
     }
 }
 
