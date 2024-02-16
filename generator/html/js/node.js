@@ -1,3 +1,7 @@
+import * as THREE from 'three';
+import { TransformControls } from 'three/addons/controls/TransformControls.js';
+
+
 class NodeBasicParameter {
     constructor(nodeManager, id, parameterData, guiFolder, guiFolderData) {
         this.id = id;
@@ -35,7 +39,49 @@ class NodeBasicParameter {
     }
 }
 
-function BuildParameter(nodeManager, id, parameterData, guiFolder, guiFolderData) {
+class NodeVector3Parameter {
+    constructor(nodeManager, id, parameterData, app) {
+        const control = new TransformControls(app.Camera, app.Renderer.domElement);
+        control.setMode('translate');
+
+        this.mesh = new THREE.Group();
+        this.mesh.position.x = parameterData.currentValue.x;
+        this.mesh.position.y = parameterData.currentValue.y;
+        this.mesh.position.z = parameterData.currentValue.z;
+
+        // control.addEventListener('change', () => {
+        // });
+
+        control.addEventListener('dragging-changed', (event) => {
+            app.OrbitControls.enabled = !event.value;
+
+            if (app.OrbitControls.enabled) {
+
+                const newData = {
+                    x: this.mesh.position.x,
+                    y: this.mesh.position.y,
+                    z: this.mesh.position.z,
+                }
+                nodeManager.nodeParameterChanged({
+                    id: id,
+                    data: newData
+                });
+            }
+        });
+
+        app.Scene.add(this.mesh);
+        control.attach(this.mesh);
+        app.Scene.add(control)
+    }
+
+    update(parameterData) {
+        this.mesh.position.x = parameterData.currentValue.x;
+        this.mesh.position.y = parameterData.currentValue.y;
+        this.mesh.position.z = parameterData.currentValue.z;
+    }
+}
+
+function BuildParameter(nodeManager, id, parameterData, app, guiFolderData) {
     switch (parameterData.type) {
         case "float64":
         case "float32":
@@ -43,16 +89,20 @@ function BuildParameter(nodeManager, id, parameterData, guiFolder, guiFolderData
         case "bool":
         case "string":
         case "coloring.WebColor":
-            return new NodeBasicParameter(nodeManager, id, parameterData, guiFolder, guiFolderData);
+            return new NodeBasicParameter(nodeManager, id, parameterData, app.MeshGenFolder, guiFolderData);
+
+        case "vector3.Vector[float64]":
+        case "vector3.Vector[float32]":
+            return new NodeVector3Parameter(nodeManager, id, parameterData, app);
 
         default:
             throw new Error("unimplemented type: " + parameterData.type)
     }
 }
 
-class PolyNode {
-    constructor(nodeManager, id, nodeData, guiFolder, guiFolderData) {
-        this.guiFolder = guiFolder;
+export class PolyNode {
+    constructor(nodeManager, id, nodeData, app, guiFolderData) {
+        this.app = app;
         this.guiFolderData = guiFolderData;
         this.nodeManager = nodeManager;
 
@@ -74,7 +124,7 @@ class PolyNode {
 
         if (nodeData.parameter) {
             if (!this.parameter) {
-                this.parameter = BuildParameter(this.nodeManager, this.id, nodeData.parameter, this.guiFolder, this.guiFolderData);
+                this.parameter = BuildParameter(this.nodeManager, this.id, nodeData.parameter, this.app, this.guiFolderData);
             } else {
                 this.parameter.update(nodeData.parameter)
             }

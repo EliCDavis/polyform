@@ -1,6 +1,8 @@
-class NodeManager {
-    constructor(guiFolder) {
-        this.guiFolder = guiFolder;
+import { PolyNode } from "./node.js";
+
+export class NodeManager {
+    constructor(app) {
+        this.app = app;
         this.guiFolderData = {};
         this.nodes = new Map();
         this.subscribers = [];
@@ -14,7 +16,7 @@ class NodeManager {
                 const nodeToUpdate = this.nodes.get(nodeID);
                 nodeToUpdate.update(nodeData);
             } else {
-                this.nodes.set(nodeID, new PolyNode(this, nodeID, nodeData, this.guiFolder, this.guiFolderData));
+                this.nodes.set(nodeID, new PolyNode(this, nodeID, nodeData, this.app, this.guiFolderData));
             }
         }
     }

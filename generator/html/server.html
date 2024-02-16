@@ -10,14 +10,16 @@
           "imports": {
             "three": "https://unpkg.com/three@0.160.1/build/three.module.js",
             "three/addons/": "https://unpkg.com/three@0.160.1/examples/jsm/",
-            "@mkkellogg/gaussian-splats-3d": "/js/gaussian-splats-3d.module.js"
+            "@mkkellogg/gaussian-splats-3d": "/js/gaussian-splats-3d.module.js",
+            "node": "/js/node.js",
+            "node_manager": "/js/node_manager.js"
           }
         }
     </script>
     <script src="js/error_manager.js"></script>
     <script src="js/requests.js"></script>
-    <script src="js/node.js"></script>
-    <script src="js/node_manager.js"></script>
+    <script type="module" src="js/node.js"></script>
+    <script type="module" src="js/node_manager.js"></script>
     <script src="js/schema_manager.js"></script>
     <style>
         body {

@@ -1,10 +1,6 @@
 const panel = new GUI({ width: 310 });
 
-const requestManager = new RequestManager();
-const nodeManager = new NodeManager(panel.addFolder("Mesh Generation"));
-const schemaManager = new SchemaManager(requestManager, nodeManager);
 import * as GaussianSplats3D from '@mkkellogg/gaussian-splats-3d';
-console.log(GaussianSplats3D)
 
 let clientID = null;
 
@@ -29,6 +25,7 @@ const container = document.createElement('div');
 document.body.appendChild(container);
 
 import * as THREE from 'three';
+import { NodeManager } from "./node_manager.js";
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import Stats from 'three/addons/libs/stats.module.js';
@@ -134,6 +131,18 @@ orbitControls.update();
 
 camera.position.z = 5;
 
+const App = {
+    Camera: camera,
+    Renderer: renderer,
+    MeshGenFolder: panel.addFolder("Mesh Generation"),
+    Scene: scene,
+    OrbitControls: orbitControls
+}
+
+const requestManager = new RequestManager();
+const nodeManager = new NodeManager(App);
+const schemaManager = new SchemaManager(requestManager, nodeManager);
+
 
 nodeManager.subscribeToParameterChange((param) => {
     console.log(param)
@@ -141,14 +150,6 @@ nodeManager.subscribeToParameterChange((param) => {
     schemaManager.submitProfile();
 });
 
-let allPositionControls = [];
-
-const clearPositionControls = () => {
-    allPositionControls.forEach((v) => {
-        scene.remove(v);
-    })
-    allPositionControls = [];
-}
 
 const newPositionControl = (setting, name, position, index) => {
     const control = new TransformControls(camera, renderer.domElement);

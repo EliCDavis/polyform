@@ -5,8 +5,10 @@ import (
 	"math"
 	"os"
 
+	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/formats/ply"
 	"github.com/EliCDavis/polyform/generator"
+	"github.com/EliCDavis/polyform/generator/room"
 	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/polyform/modeling"
@@ -97,6 +99,50 @@ func (bbn BoundingBoxNode) Process() (geometry.AABB, error) {
 	), nil
 }
 
+type BaloonNode struct {
+	nodes.StructData[modeling.Mesh]
+
+	Mesh     nodes.NodeOutput[modeling.Mesh]
+	Strength nodes.NodeOutput[float64]
+	Radius   nodes.NodeOutput[float64]
+	Position nodes.NodeOutput[vector3.Float64]
+}
+
+func (bn *BaloonNode) Out() nodes.NodeOutput[modeling.Mesh] {
+	return &nodes.StructNodeOutput[modeling.Mesh]{Definition: bn}
+}
+
+func (bn BaloonNode) Process() (modeling.Mesh, error) {
+	return bn.Mesh.
+		Data().
+		Transform(meshops.CustomTransformer{
+			Func: func(m modeling.Mesh) (results modeling.Mesh, err error) {
+				posData := m.Float3Attribute(modeling.PositionAttribute)
+				count := posData.Len()
+
+				newPos := make([]vector3.Float64, count)
+
+				baloonPos := bn.Position.Data()
+				baloonRadius := bn.Radius.Data()
+				baloonStrength := bn.Strength.Data()
+
+				for i := 0; i < count; i++ {
+					curPos := posData.At(i)
+					dir := curPos.Sub(baloonPos)
+					len := dir.Length()
+
+					if len <= baloonRadius {
+						newPos[i] = baloonPos.Add(dir.Scale(baloonStrength))
+					} else {
+						newPos[i] = curPos
+					}
+				}
+
+				return m.SetFloat3Attribute(modeling.PositionAttribute, newPos), nil
+			},
+		}), nil
+}
+
 func main() {
 	croppedCloud := meshops.CropAttribute3DNode{
 		Mesh: (&PointcloudNode{
@@ -115,13 +161,31 @@ func main() {
 		}).Out(),
 	}
 
+	baloonNode := BaloonNode{
+		Mesh:     croppedCloud.Out(),
+		Strength: &generator.ParameterNode[float64]{Name: "Baloon Strength", DefaultValue: .7},
+		Radius:   &generator.ParameterNode[float64]{Name: "Baloon Radius", DefaultValue: .7},
+		Position: &generator.ParameterNode[vector3.Float64]{
+			Name:         "Baloon Position",
+			DefaultValue: vector3.New(-0.344, 0.402, 5.363),
+		},
+	}
+
 	app := generator.App{
-		Name:        "Crop Gaussian Splat",
+		Name:        "Edit Gaussian Splats",
 		Version:     "1.0.0",
-		Description: "Crop Gaussian Splat data",
+		Description: "Crop and Scale portions of Gaussian Splat data",
 		Authors:     []generator.Author{{Name: "Eli C Davis"}},
+		WebScene: &room.WebScene{
+			Background: coloring.WebColor{0, 0, 0, 255},
+			Fog: room.WebSceneFog{
+				Color: coloring.WebColor{0, 0, 0, 255},
+				Near:  5,
+				Far:   25,
+			},
+		},
 		Producers: map[string]nodes.NodeOutput[generator.Artifact]{
-			"mesh.splat": generator.SplatArtifactNode(croppedCloud.Out()),
+			"mesh.splat": generator.SplatArtifactNode(baloonNode.Out()),
 		},
 	}
 
