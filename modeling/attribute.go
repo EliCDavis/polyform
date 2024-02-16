@@ -9,4 +9,8 @@ const (
 	IntensityAttribute = "Intensity"
 	JointAttribute     = "Joint"
 	WeightAttribute    = "Weight"
+	ScaleAttribute     = "Scale"
+	RotationAttribute  = "Rotation"
+	OpacityAttribute   = "Opacity"
+	FDCAttribute       = "FDC"
 )

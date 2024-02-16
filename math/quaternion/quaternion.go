@@ -23,6 +23,14 @@ func Zero() Quaternion {
 	return Quaternion{vector3.Zero[float64](), 0}
 }
 
+func (q Quaternion) Dir() vector3.Float64 {
+	return q.v
+}
+
+func (q Quaternion) W() float64 {
+	return q.w
+}
+
 // Rotate takes a given vector and rotates it with by this quaternion.
 //
 // Resources Used:

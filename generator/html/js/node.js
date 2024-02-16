@@ -41,6 +41,7 @@ function BuildParameter(nodeManager, id, parameterData, guiFolder, guiFolderData
         case "float32":
         case "int":
         case "bool":
+        case "string":
         case "coloring.WebColor":
             return new NodeBasicParameter(nodeManager, id, parameterData, guiFolder, guiFolderData);
 

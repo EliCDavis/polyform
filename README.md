@@ -15,6 +15,7 @@ Polyform is for loading, generating, editing, and exporting 3D geometry and it's
   - [ply](/formats/ply/) - PLY file format
   - [colmap](/formats/colmap/) - Utilities for loading COLMAP reconstruction data
   - [opensfm](/formats/opensfm/) - Utilities for loading OpenSFM reconstruction data
+  - [splat](/formats/splat/) - Guassian splatting's SPLAT format
 - Modeling
   - [meshops](/modeling/meshops/) - All currently implemented algorithms for transforming meshes. 
   - [marching](/modeling/marching/) - Multi-threaded Cube Marching algorithm and utilities.
@@ -316,6 +317,9 @@ Resources either directly contributing to the code, or are just interesting find
     - [flow-based-programming](https://github.com/egonelbre/flow-based-programming)
   - Articles
     - [_Flow-based Programming_ by J Paul Rodker Morrison](https://jpaulm.github.io/fbp/index.html)
+- Guassian Splatting
+  - [https://github.com/antimatter15/splat](https://github.com/antimatter15/splat)
+  - [https://github.com/mkkellogg/GaussianSplats3D](https://github.com/mkkellogg/GaussianSplats3D)
 
 ## Citiation
 

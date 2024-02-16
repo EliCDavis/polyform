@@ -6,14 +6,14 @@ import (
 )
 
 type Element struct {
-	name       string
-	count      int
-	properties []Property
+	Name       string     `json:"name"`
+	Count      int        `json:"count"`
+	Properties []Property `json:"properties"`
 }
 
 func (e Element) Write(out io.Writer) error {
-	fmt.Fprintf(out, "element %s %d\n", e.name, e.count)
-	for _, prop := range e.properties {
+	fmt.Fprintf(out, "element %s %d\n", e.Name, e.Count)
+	for _, prop := range e.Properties {
 		err := prop.Write(out)
 		if err != nil {
 			return err

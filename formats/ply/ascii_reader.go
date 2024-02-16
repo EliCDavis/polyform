@@ -50,7 +50,7 @@ type AsciiReader struct {
 	scanner  *bufio.Scanner
 }
 
-func (ar *AsciiReader) readVertexData(element Element) (map[string][]vector3.Float64, error) {
+func (ar *AsciiReader) readVertexData(element Element, approvedData map[string]bool) (map[string][]vector3.Float64, error) {
 	attributeReaders := make(map[string]func(contents []string) (vector3.Float64, error))
 	attributeData := make(map[string][]vector3.Float64)
 
@@ -66,7 +66,13 @@ func (ar *AsciiReader) readVertexData(element Element) (map[string][]vector3.Flo
 	greenIndex := -1
 	blueIndex := -1
 
-	for propIndex, prop := range element.properties {
+	for propIndex, prop := range element.Properties {
+		if approvedData != nil {
+			if !approvedData[prop.Name()] {
+				continue
+			}
+		}
+
 		if prop.Name() == "x" && isScalarPropWithType(prop, Float, Double) {
 			xIndex = propIndex
 			continue
@@ -147,7 +153,7 @@ func (ar *AsciiReader) readVertexData(element Element) (map[string][]vector3.Flo
 	}
 
 	i := 0
-	for i < element.count {
+	for i < element.Count {
 		ar.scanner.Scan()
 
 		text := ar.scanner.Text()
@@ -174,12 +180,12 @@ func (ar *AsciiReader) readVertexData(element Element) (map[string][]vector3.Flo
 type asciiListReader func(data []string, start int) (int, error)
 
 func (ar *AsciiReader) readFaceData(element Element) ([]int, []vector2.Float64, error) {
-	listReaders := make([]asciiListReader, len(element.properties))
+	listReaders := make([]asciiListReader, len(element.Properties))
 
 	triData := make([]int, 0)
 	uvCords := make([]vector2.Float64, 0)
 
-	for i, prop := range element.properties {
+	for i, prop := range element.Properties {
 		if prop.Name() == "vertex_index" || prop.Name() == "vertex_indices" {
 			listReaders[i] = func(data []string, start int) (int, error) {
 				listSize, err := strconv.Atoi(data[start])
@@ -286,7 +292,7 @@ func (ar *AsciiReader) readFaceData(element Element) ([]int, []vector2.Float64, 
 		}
 	}
 
-	for i := 0; i < element.count; i++ {
+	for i := 0; i < element.Count; i++ {
 		ar.scanner.Scan()
 		contents := strings.Fields(ar.scanner.Text())
 		offset := 0
@@ -302,20 +308,20 @@ func (ar *AsciiReader) readFaceData(element Element) ([]int, []vector2.Float64, 
 	return triData, uvCords, nil
 }
 
-func (ar *AsciiReader) ReadMesh() (*modeling.Mesh, error) {
+func (ar *AsciiReader) ReadMesh(vertexAttributes map[string]bool) (*modeling.Mesh, error) {
 	var vertexData map[string][]vector3.Float64
 	var triData []int
 	var uvData []vector2.Float64
 	for _, element := range ar.elements {
-		if element.name == "vertex" {
-			data, err := ar.readVertexData(element)
+		if element.Name == "vertex" {
+			data, err := ar.readVertexData(element, vertexAttributes)
 			if err != nil {
 				return nil, err
 			}
 			vertexData = data
 		}
 
-		if element.name == "face" {
+		if element.Name == "face" {
 			data, uvs, err := ar.readFaceData(element)
 			if err != nil {
 				return nil, err

@@ -3,6 +3,8 @@ const panel = new GUI({ width: 310 });
 const requestManager = new RequestManager();
 const nodeManager = new NodeManager(panel.addFolder("Mesh Generation"));
 const schemaManager = new SchemaManager(requestManager, nodeManager);
+import * as GaussianSplats3D from '@mkkellogg/gaussian-splats-3d';
+console.log(GaussianSplats3D)
 
 let clientID = null;
 
@@ -137,9 +139,6 @@ nodeManager.subscribeToParameterChange((param) => {
     console.log(param)
     schemaManager.setProfileKey(param.id, param.data);
     schemaManager.submitProfile();
-    // post("/profile", profile, () => {
-    //     RefreshProducerOutput();
-    // })
 });
 
 let allPositionControls = [];
@@ -188,6 +187,8 @@ let firstTimeLoadingScene = true;
 
 const loader = new GLTFLoader().setPath('producer/');
 let producerScene = null;
+
+let guassianSplatViewer = null;
 
 schemaManager.subscribe((schema) => {
     ErrorManager.ClearError();
@@ -280,6 +281,67 @@ schemaManager.subscribe((schema) => {
                             ErrorManager.ShowError(x.error);
                         })
                     });
+                break;
+
+            case "splat":
+
+                if (guassianSplatViewer) {
+                    guassianSplatViewer.dispose();
+                }
+
+                // https://github.com/mkkellogg/GaussianSplats3D/blob/main/src/Viewer.js
+                const splatViewerOptions = {
+                    selfDrivenMode: false,
+                    useBuiltInControls: false,
+                    rootElement: renderer.domElement.parentElement,
+                    renderer: renderer,
+                    threeScene: scene,
+                    camera: camera,
+                    dynamicScene: true,
+                    cameraUp: [0, -1, -.17],
+                    initialCameraPosition: [-5, -1, -1],
+                    initialCameraLookAt: [1, 1, 0]
+                }
+
+                guassianSplatViewer = new GaussianSplats3D.Viewer(splatViewerOptions);
+
+                console.log(guassianSplatViewer);
+                // getSplatCenter
+                guassianSplatViewer.addSplatScene("producer/" + producer).then(() => {
+
+                    const aabb = new THREE.Box3();
+                    const tree = guassianSplatViewer.splatMesh.splatTree.subTrees[0]
+                    aabb.setFromPoints([tree.sceneMin, tree.sceneMax]);
+                    console.log(aabb)
+                    const aabbDepth = (aabb.max.z - aabb.min.z)
+                    const aabbWidth = (aabb.max.x - aabb.min.x)
+                    const aabbHeight = (aabb.max.y - aabb.min.y)
+                    const aabbHalfHeight = aabbHeight / 2
+                    const mid = (aabb.max.y + aabb.min.y) / 2
+
+                    // We have to do this weird thing because the pivot of the scene
+                    // Isn't always the center of the AABB
+                    guassianSplatViewer.splatMesh.position.set(0, - mid + aabbHalfHeight, 0)
+
+                    // let v = new THREE.Vector3()
+                    // guassianSplatViewer.splatMesh.getSplatCenter(0, v)
+                    // console.log(v);
+
+                    if (firstTimeLoadingScene) {
+                        firstTimeLoadingScene = false;
+
+                        camera.position.y = mid * (3 / 2);
+                        camera.position.z = Math.sqrt(
+                            (aabbWidth * aabbWidth) +
+                            (aabbDepth * aabbDepth) +
+                            (aabbHeight * aabbHeight)
+                        ) / 2;
+
+                        orbitControls.target.set(0, mid, 0);
+                        orbitControls.update();
+                    }
+
+                })
                 break;
         }
     });
@@ -703,8 +765,13 @@ function animate() {
 
     requestAnimationFrame(animate);
     renderer.render(scene, camera);
-    labelRenderer.render(scene, camera);
 
+    if (guassianSplatViewer) {
+        guassianSplatViewer.update();
+        guassianSplatViewer.render();
+    }
+
+    labelRenderer.render(scene, camera);
     stats.update();
 }
 animate();

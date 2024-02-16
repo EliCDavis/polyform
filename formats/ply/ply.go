@@ -1,8 +1,6 @@
 package ply
 
 import (
-	"bufio"
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"image/color"
@@ -22,15 +20,18 @@ const (
 	BinaryLittleEndian
 )
 
-func readLine(in *bufio.Reader) (string, error) {
+func readLine(in io.Reader) (string, error) {
 	data := make([]byte, 0)
 
+	buf := make([]byte, 1)
+	var err error = nil
 	for {
-		b, err := in.ReadByte()
+		_, err = io.ReadFull(in, buf)
 		if err != nil {
 			return "", err
 		}
 
+		b := buf[0]
 		if b == '\n' {
 			return string(data), nil
 		}
@@ -39,7 +40,7 @@ func readLine(in *bufio.Reader) (string, error) {
 	}
 }
 
-func scanToNextNonEmptyLine(reader *bufio.Reader) (string, error) {
+func scanToNextNonEmptyLine(reader io.Reader) (string, error) {
 	for {
 		text, err := readLine(reader)
 		if err != nil {
@@ -52,7 +53,7 @@ func scanToNextNonEmptyLine(reader *bufio.Reader) (string, error) {
 	}
 }
 
-func readPlyHeaderFormat(reader *bufio.Reader) (Format, error) {
+func readPlyHeaderFormat(reader io.Reader) (Format, error) {
 	line, err := scanToNextNonEmptyLine(reader)
 	if err != nil {
 		return -1, err
@@ -130,35 +131,35 @@ func readPlyProperty(contents []string) (Property, error) {
 	}
 
 	return ScalarProperty{
-		name: contents[2],
-		Type: scalarPropTypeNameToScalarPropertyType[strings.ToLower(contents[1])],
+		PropertyName: contents[2],
+		Type:         scalarPropTypeNameToScalarPropertyType[strings.ToLower(contents[1])],
 	}, nil
 }
 
-func readPlyHeader(in io.Reader) (reader, *modeling.Material, error) {
-	reader := bufio.NewReader(in)
-	magicNumber, err := readLine(reader)
+func ReadHeader(in io.Reader) (Header, error) {
+	header := Header{
+		Elements: make([]Element, 0),
+	}
+
+	magicNumber, err := readLine(in)
 	if err != nil {
-		return nil, nil, err
+		return header, err
 	}
 
 	if magicNumber != "ply" {
-		return nil, nil, fmt.Errorf("unrecognized magic number: '%s' (expected 'ply')", magicNumber)
+		return header, fmt.Errorf("unrecognized magic number: '%s' (expected 'ply')", magicNumber)
 	}
 
-	format, err := readPlyHeaderFormat(reader)
+	format, err := readPlyHeaderFormat(in)
 	if err != nil {
-		return nil, nil, err
+		return header, err
 	}
-
-	elements := make([]Element, 0)
-
-	var mats *modeling.Material
+	header.Format = format
 
 	for {
-		line, err := readLine(reader)
+		line, err := readLine(in)
 		if err != nil {
-			return nil, nil, err
+			return header, err
 		}
 
 		if strings.TrimSpace(line) == "" {
@@ -173,71 +174,66 @@ func readPlyHeader(in io.Reader) (reader, *modeling.Material, error) {
 		if contents[0] == "comment" {
 			if strings.ToLower(contents[1]) == "texturefile" {
 				name := contents[2]
-				mats = &modeling.Material{
-					Name:            name,
-					DiffuseColor:    color.White,
-					ColorTextureURI: &name,
-				}
+				header.TextureFile = &name
 			}
 			continue
 		}
 
 		if contents[0] == "element" {
 			if len(contents) != 3 {
-				return nil, nil, errors.New("illegal element line in ply header")
+				return header, errors.New("illegal element line in ply header")
 			}
 
 			elementCount, err := strconv.Atoi(contents[2])
 			if err != nil {
-				return nil, nil, fmt.Errorf("unable to parse element count: %w", err)
+				return header, fmt.Errorf("unable to parse element count: %w", err)
 			}
 
-			elements = append(elements, Element{
-				name:       strings.ToLower(contents[1]),
-				count:      elementCount,
-				properties: make([]Property, 0),
+			header.Elements = append(header.Elements, Element{
+				Name:       strings.ToLower(contents[1]),
+				Count:      elementCount,
+				Properties: make([]Property, 0),
 			})
 		}
 
 		if contents[0] == "property" {
 			property, err := readPlyProperty(contents)
 			if err != nil {
-				return nil, nil, fmt.Errorf("unable to parse property: %w", err)
+				return header, fmt.Errorf("unable to parse property: %w", err)
 			}
-			elements[len(elements)-1].properties = append(elements[len(elements)-1].properties, property)
+			lastEle := header.Elements[len(header.Elements)-1]
+			lastEle.Properties = append(lastEle.Properties, property)
+			header.Elements[len(header.Elements)-1] = lastEle
 		}
 	}
 
-	switch format {
-	case ASCII:
-		return &AsciiReader{elements: elements, scanner: bufio.NewScanner(reader)}, mats, nil
+	return header, nil
+}
 
-	case BinaryLittleEndian:
-		return &BinaryReader{
-			elements: elements,
-			order:    binary.LittleEndian,
-			reader:   reader,
-		}, mats, nil
-
-	case BinaryBigEndian:
-		return &BinaryReader{
-			elements: elements,
-			order:    binary.BigEndian,
-			reader:   reader,
-		}, mats, nil
-
-	default:
-		return nil, mats, fmt.Errorf("unimplemented ply format: %d", format)
+func buildReader(in io.Reader) (BodyReader, *modeling.Material, error) {
+	header, err := ReadHeader(in)
+	if err != nil {
+		return nil, nil, err
 	}
+
+	var mat *modeling.Material = nil
+	if header.TextureFile != nil {
+		mat = &modeling.Material{
+			Name:            *header.TextureFile,
+			DiffuseColor:    color.White,
+			ColorTextureURI: header.TextureFile,
+		}
+	}
+	return header.BuildReader(in), mat, nil
 }
 
 func ReadMesh(in io.Reader) (*modeling.Mesh, error) {
-	reader, mat, err := readPlyHeader(in)
+	reader, mat, err := buildReader(in)
 	if err != nil {
 		return nil, err
 	}
 
-	mesh, err := reader.ReadMesh()
+	mesh, err := reader.ReadMesh(nil)
 	if err != nil {
 		return nil, err
 	}
@@ -262,61 +258,61 @@ func Load(filepath string) (*modeling.Mesh, error) {
 
 func buildVertexElements(attributes []string, size int) Element {
 	vertexElement := Element{
-		name:       "vertex",
-		count:      size,
-		properties: make([]Property, 0),
+		Name:       "vertex",
+		Count:      size,
+		Properties: make([]Property, 0),
 	}
 
 	for _, attribute := range attributes {
 		if attribute == modeling.PositionAttribute {
-			vertexElement.properties = append(vertexElement.properties,
+			vertexElement.Properties = append(vertexElement.Properties,
 				&ScalarProperty{
-					name: "x",
-					Type: Float,
+					PropertyName: "x",
+					Type:         Float,
 				},
 				&ScalarProperty{
-					name: "y",
-					Type: Float,
+					PropertyName: "y",
+					Type:         Float,
 				},
 				&ScalarProperty{
-					name: "z",
-					Type: Float,
+					PropertyName: "z",
+					Type:         Float,
 				},
 			)
 			continue
 		}
 
 		if attribute == modeling.NormalAttribute {
-			vertexElement.properties = append(vertexElement.properties,
+			vertexElement.Properties = append(vertexElement.Properties,
 				&ScalarProperty{
-					name: "nx",
-					Type: Float,
+					PropertyName: "nx",
+					Type:         Float,
 				},
 				&ScalarProperty{
-					name: "ny",
-					Type: Float,
+					PropertyName: "ny",
+					Type:         Float,
 				},
 				&ScalarProperty{
-					name: "nz",
-					Type: Float,
+					PropertyName: "nz",
+					Type:         Float,
 				},
 			)
 			continue
 		}
 
 		if attribute == modeling.ColorAttribute {
-			vertexElement.properties = append(vertexElement.properties,
+			vertexElement.Properties = append(vertexElement.Properties,
 				&ScalarProperty{
-					name: "red",
-					Type: UChar,
+					PropertyName: "red",
+					Type:         UChar,
 				},
 				&ScalarProperty{
-					name: "green",
-					Type: UChar,
+					PropertyName: "green",
+					Type:         UChar,
 				},
 				&ScalarProperty{
-					name: "blue",
-					Type: UChar,
+					PropertyName: "blue",
+					Type:         UChar,
 				},
 			)
 			continue

@@ -1,7 +1,6 @@
 package ply
 
 import (
-	"bufio"
 	"encoding/binary"
 	"fmt"
 	"io"
@@ -11,12 +10,13 @@ import (
 	"github.com/EliCDavis/polyform/modeling/meshops"
 	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
+	"github.com/EliCDavis/vector/vector4"
 )
 
 type BinaryReader struct {
 	elements []Element
 	order    binary.ByteOrder
-	reader   *bufio.Reader
+	reader   io.Reader
 }
 
 type (
@@ -52,9 +52,30 @@ func parseVector3FromByteContents(xIndex, yIndex, zIndex floatParser) func(conte
 	}
 }
 
-func (le *BinaryReader) readVertexData(element Element) (map[string][]vector3.Float64, error) {
-	attributeReaders := make(map[string]func(contents []byte) (vector3.Float64, error))
-	attributeData := make(map[string][]vector3.Float64)
+func parseVector4FromByteContents(xIndex, yIndex, zIndex, wIndex floatParser) func(contents []byte) (vector4.Float64, error) {
+	return func(contents []byte) (vector4.Float64, error) {
+		return vector4.New(xIndex(contents), yIndex(contents), zIndex(contents), wIndex(contents)), nil
+	}
+}
+
+type vertexData struct {
+	F1 map[string][]float64
+	F2 map[string][]vector2.Float64
+	F3 map[string][]vector3.Float64
+	F4 map[string][]vector4.Float64
+}
+
+func (le *BinaryReader) readVertexData(element Element, approvedData map[string]bool) (vertexData, error) {
+	data := vertexData{
+		F1: make(map[string][]float64),
+		F2: make(map[string][]vector2.Vector[float64]),
+		F3: make(map[string][]vector3.Vector[float64]),
+		F4: make(map[string][]vector4.Vector[float64]),
+	}
+
+	float1AttributeReaders := make(map[string]func(contents []byte) (float64, error))
+	float3AttributeReaders := make(map[string]func(contents []byte) (vector3.Float64, error))
+	float4AttributeReaders := make(map[string]func(contents []byte) (vector4.Float64, error))
 
 	var xParser floatParser = nil
 	var yParser floatParser = nil
@@ -68,15 +89,36 @@ func (le *BinaryReader) readVertexData(element Element) (map[string][]vector3.Fl
 	var greenParser byteParser = nil
 	var blueParser byteParser = nil
 
+	// Found in guassian splats >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+	var scale0Parser floatParser = nil
+	var scale1Parser floatParser = nil
+	var scale2Parser floatParser = nil
+
+	var fDc0Parser floatParser = nil
+	var fDc1Parser floatParser = nil
+	var fDc2Parser floatParser = nil
+
+	var rot0Parser floatParser = nil
+	var rot1Parser floatParser = nil
+	var rot2Parser floatParser = nil
+	var rot3Parser floatParser = nil
+	// <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
 	offset := 0
 	nextOffset := 0
-	for _, prop := range element.properties {
+	for _, prop := range element.Properties {
 		scalarProp, ok := prop.(ScalarProperty)
 		if !ok {
-			return nil, fmt.Errorf("encountered non-scalar property type in vertex data: %s", prop.Name())
+			return data, fmt.Errorf("encountered non-scalar property type in vertex data: %s", prop.Name())
 		}
 		offset = nextOffset
 		nextOffset = offset + scalarProp.Size()
+
+		if approvedData != nil {
+			if !approvedData[prop.Name()] {
+				continue
+			}
+		}
 
 		if prop.Name() == "x" && isScalarPropWithType(prop, Float, Double) {
 			xParser = newFloatParser(le.order, scalarProp.Type, offset)
@@ -122,18 +164,87 @@ func (le *BinaryReader) readVertexData(element Element) (map[string][]vector3.Fl
 			blueParser = newByteParser(offset)
 			continue
 		}
+
+		if prop.Name() == "scale_0" && isScalarPropWithType(prop, Float) {
+			scale0Parser = newFloatParser(le.order, scalarProp.Type, offset)
+			continue
+		}
+
+		if prop.Name() == "scale_1" && isScalarPropWithType(prop, Float) {
+			scale1Parser = newFloatParser(le.order, scalarProp.Type, offset)
+			continue
+		}
+
+		if prop.Name() == "scale_2" && isScalarPropWithType(prop, Float) {
+			scale2Parser = newFloatParser(le.order, scalarProp.Type, offset)
+			continue
+		}
+
+		if prop.Name() == "rot_0" && isScalarPropWithType(prop, Float) {
+			rot0Parser = newFloatParser(le.order, scalarProp.Type, offset)
+			continue
+		}
+
+		if prop.Name() == "rot_1" && isScalarPropWithType(prop, Float) {
+			rot1Parser = newFloatParser(le.order, scalarProp.Type, offset)
+			continue
+		}
+
+		if prop.Name() == "rot_2" && isScalarPropWithType(prop, Float) {
+			rot2Parser = newFloatParser(le.order, scalarProp.Type, offset)
+			continue
+		}
+
+		if prop.Name() == "rot_3" && isScalarPropWithType(prop, Float) {
+			rot3Parser = newFloatParser(le.order, scalarProp.Type, offset)
+			continue
+		}
+
+		if prop.Name() == "f_dc_0" && isScalarPropWithType(prop, Float) {
+			fDc0Parser = newFloatParser(le.order, scalarProp.Type, offset)
+			continue
+		}
+
+		if prop.Name() == "f_dc_1" && isScalarPropWithType(prop, Float) {
+			fDc1Parser = newFloatParser(le.order, scalarProp.Type, offset)
+			continue
+		}
+
+		if prop.Name() == "f_dc_2" && isScalarPropWithType(prop, Float) {
+			fDc2Parser = newFloatParser(le.order, scalarProp.Type, offset)
+			continue
+		}
+
+		if isScalarPropWithType(prop, Float) {
+			p := newFloatParser(le.order, scalarProp.Type, offset)
+			float1AttributeReaders[prop.Name()] = func(contents []byte) (float64, error) {
+				return p(contents), nil
+			}
+		}
 	}
 
 	if xParser != nil && yParser != nil && zParser != nil {
-		attributeReaders[modeling.PositionAttribute] = parseVector3FromByteContents(xParser, yParser, zParser)
+		float3AttributeReaders[modeling.PositionAttribute] = parseVector3FromByteContents(xParser, yParser, zParser)
 	}
 
 	if nxParser != nil && nyParser != nil && nzParser != nil {
-		attributeReaders[modeling.NormalAttribute] = parseVector3FromByteContents(nxParser, nyParser, nzParser)
+		float3AttributeReaders[modeling.NormalAttribute] = parseVector3FromByteContents(nxParser, nyParser, nzParser)
+	}
+
+	if scale0Parser != nil && scale1Parser != nil && scale2Parser != nil {
+		float3AttributeReaders[modeling.ScaleAttribute] = parseVector3FromByteContents(scale0Parser, scale1Parser, scale2Parser)
+	}
+
+	if fDc0Parser != nil && fDc1Parser != nil && fDc2Parser != nil {
+		float3AttributeReaders[modeling.FDCAttribute] = parseVector3FromByteContents(fDc0Parser, fDc1Parser, fDc2Parser)
+	}
+
+	if rot0Parser != nil && rot1Parser != nil && rot2Parser != nil && rot3Parser != nil {
+		float4AttributeReaders[modeling.RotationAttribute] = parseVector4FromByteContents(rot0Parser, rot1Parser, rot2Parser, rot3Parser)
 	}
 
 	if redParser != nil && greenParser != nil && blueParser != nil {
-		attributeReaders[modeling.ColorAttribute] = func(contents []byte) (vector3.Float64, error) {
+		float3AttributeReaders[modeling.ColorAttribute] = func(contents []byte) (vector3.Float64, error) {
 			return vector3.New(
 				float64(redParser(contents))/255.,
 				float64(greenParser(contents))/255.,
@@ -144,47 +255,63 @@ func (le *BinaryReader) readVertexData(element Element) (map[string][]vector3.Fl
 
 	i := 0
 	buf := make([]byte, nextOffset)
-	for i < element.count {
+	for i < element.Count {
 		_, err := io.ReadFull(le.reader, buf)
 		if err != nil {
-			return nil, err
+			return data, err
 		}
 
-		for attribute, reader := range attributeReaders {
+		for attribute, reader := range float1AttributeReaders {
 			v, err := reader(buf)
 			if err != nil {
-				return nil, err
+				return data, err
 			}
-			attributeData[attribute] = append(attributeData[attribute], v)
+			data.F1[attribute] = append(data.F1[attribute], v)
+		}
+
+		for attribute, reader := range float3AttributeReaders {
+			v, err := reader(buf)
+			if err != nil {
+				return data, err
+			}
+			data.F3[attribute] = append(data.F3[attribute], v)
+		}
+
+		for attribute, reader := range float4AttributeReaders {
+			v, err := reader(buf)
+			if err != nil {
+				return data, err
+			}
+			data.F4[attribute] = append(data.F4[attribute], v)
 		}
 		i++
 	}
 
-	return attributeData, nil
+	return data, nil
 }
 
-func binReaderByteReader(r *bufio.Reader) (int, error) {
-	b, err := r.ReadByte()
+func binReaderByteReader(r io.Reader) (int, error) {
+	b, err := readByte(r)
 	return int(b), err
 }
 
-func binReaderIntReader(order binary.ByteOrder) func(r *bufio.Reader) (int32, error) {
-	return func(r *bufio.Reader) (int32, error) {
+func binReaderIntReader(order binary.ByteOrder) func(r io.Reader) (int32, error) {
+	return func(r io.Reader) (int32, error) {
 		buf := make([]byte, 4)
 		_, err := io.ReadFull(r, buf)
 		return int32(order.Uint32(buf)), err
 	}
 }
 
-func binReaderFloat32Reader(order binary.ByteOrder) func(r *bufio.Reader) (float32, error) {
-	return func(r *bufio.Reader) (float32, error) {
+func binReaderFloat32Reader(order binary.ByteOrder) func(r io.Reader) (float32, error) {
+	return func(r io.Reader) (float32, error) {
 		buf := make([]byte, 4)
 		_, err := io.ReadFull(r, buf)
 		return math.Float32frombits(order.Uint32(buf)), err
 	}
 }
 
-func (le *BinaryReader) listCountReader(listProp ListProperty) (func(r *bufio.Reader) (int, error), error) {
+func (le *BinaryReader) listCountReader(listProp ListProperty) (func(r io.Reader) (int, error), error) {
 	switch listProp.countType {
 	case UChar:
 		return binReaderByteReader, nil
@@ -194,15 +321,15 @@ func (le *BinaryReader) listCountReader(listProp ListProperty) (func(r *bufio.Re
 	}
 }
 
-type binReaderListReader func(r *bufio.Reader) error
+type binReaderListReader func(r io.Reader) error
 
 func (le *BinaryReader) readFaceData(element Element) ([]int, []vector2.Float64, error) {
-	readers := make([]binReaderListReader, len(element.properties))
+	readers := make([]binReaderListReader, len(element.Properties))
 
-	triData := make([]int, 0, element.count*3)
+	triData := make([]int, 0, element.Count*3)
 	uvCords := make([]vector2.Float64, 0)
 
-	for i, prop := range element.properties {
+	for i, prop := range element.Properties {
 		listProp, ok := prop.(ListProperty)
 		if !ok {
 			return nil, nil, fmt.Errorf("encountered non-list property type for face data: %s", prop.Name())
@@ -214,7 +341,7 @@ func (le *BinaryReader) readFaceData(element Element) ([]int, []vector2.Float64,
 		}
 
 		if prop.Name() == "vertex_index" || prop.Name() == "vertex_indices" {
-			var listDataReader func(*bufio.Reader) (int32, error)
+			var listDataReader func(io.Reader) (int32, error)
 			switch listProp.listType {
 			case Int, UInt:
 				listDataReader = binReaderIntReader(le.order)
@@ -223,7 +350,7 @@ func (le *BinaryReader) readFaceData(element Element) ([]int, []vector2.Float64,
 				return nil, nil, fmt.Errorf("unimplemented list element scalar-type: %s", listProp.listType)
 			}
 
-			readers[i] = func(r *bufio.Reader) error {
+			readers[i] = func(r io.Reader) error {
 				listSize, err := listCountReader(le.reader)
 				if err != nil {
 					return fmt.Errorf("unable to parse list size: %w", err)
@@ -261,7 +388,7 @@ func (le *BinaryReader) readFaceData(element Element) ([]int, []vector2.Float64,
 		}
 
 		if prop.Name() == "texcoord" {
-			var listDataReader func(*bufio.Reader) (float32, error)
+			var listDataReader func(io.Reader) (float32, error)
 			switch listProp.listType {
 			case Float:
 				listDataReader = binReaderFloat32Reader(le.order)
@@ -270,7 +397,7 @@ func (le *BinaryReader) readFaceData(element Element) ([]int, []vector2.Float64,
 				return nil, nil, fmt.Errorf("unimplemented list element scalar-type: %s", listProp.listType)
 			}
 
-			readers[i] = func(r *bufio.Reader) error {
+			readers[i] = func(r io.Reader) error {
 				listSize, err := listCountReader(le.reader)
 				if err != nil {
 					return fmt.Errorf("unable to parse list size: %w", err)
@@ -329,7 +456,7 @@ func (le *BinaryReader) readFaceData(element Element) ([]int, []vector2.Float64,
 		}
 	}
 
-	for i := 0; i < element.count; i++ {
+	for i := 0; i < element.Count; i++ {
 		for _, reader := range readers {
 			reader(le.reader)
 		}
@@ -338,20 +465,20 @@ func (le *BinaryReader) readFaceData(element Element) ([]int, []vector2.Float64,
 	return triData, uvCords, nil
 }
 
-func (le *BinaryReader) ReadMesh() (*modeling.Mesh, error) {
-	var vertexData map[string][]vector3.Float64
+func (le *BinaryReader) ReadMesh(vertexAttributes map[string]bool) (*modeling.Mesh, error) {
+	var vertexData vertexData
 	var triData []int
 	var uvData []vector2.Float64
 	for _, element := range le.elements {
-		if element.name == "vertex" {
-			data, err := le.readVertexData(element)
+		if element.Name == "vertex" {
+			data, err := le.readVertexData(element, vertexAttributes)
 			if err != nil {
 				return nil, err
 			}
 			vertexData = data
 		}
 
-		if element.name == "face" {
+		if element.Name == "face" {
 			data, uvs, err := le.readFaceData(element)
 			if err != nil {
 				return nil, err
@@ -364,7 +491,13 @@ func (le *BinaryReader) ReadMesh() (*modeling.Mesh, error) {
 	var finalMesh modeling.Mesh
 
 	if len(triData) > 0 {
-		finalMesh = modeling.NewTriangleMesh(triData).SetFloat3Data(vertexData)
+		finalMesh = modeling.
+			NewTriangleMesh(triData).
+			SetFloat1Data(vertexData.F1).
+			SetFloat2Data(vertexData.F2).
+			SetFloat3Data(vertexData.F3).
+			SetFloat4Data(vertexData.F4)
+
 		if len(uvData) == len(triData) {
 			finalMesh = finalMesh.
 				Transform(meshops.UnweldTransformer{}).
@@ -372,10 +505,10 @@ func (le *BinaryReader) ReadMesh() (*modeling.Mesh, error) {
 		}
 	} else {
 		finalMesh = modeling.NewPointCloud(
-			nil,
-			vertexData,
-			nil,
-			nil,
+			vertexData.F4,
+			vertexData.F3,
+			vertexData.F2,
+			vertexData.F1,
 			nil,
 		)
 	}

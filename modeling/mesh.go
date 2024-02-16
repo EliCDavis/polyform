@@ -1177,20 +1177,20 @@ func (m Mesh) ClearAttributeData() Mesh {
 	}
 }
 
-func (m Mesh) HasVertexAttribute(atr string) bool {
-	if m.HasFloat4Attribute(atr) {
+func (m Mesh) HasVertexAttribute(attribute string) bool {
+	if m.HasFloat4Attribute(attribute) {
 		return true
 	}
 
-	if m.HasFloat3Attribute(atr) {
+	if m.HasFloat3Attribute(attribute) {
 		return true
 	}
 
-	if m.HasFloat2Attribute(atr) {
+	if m.HasFloat2Attribute(attribute) {
 		return true
 	}
 
-	if m.HasFloat1Attribute(atr) {
+	if m.HasFloat1Attribute(attribute) {
 		return true
 	}
 

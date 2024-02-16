@@ -24,12 +24,12 @@ const (
 )
 
 type ScalarProperty struct {
-	name string
-	Type ScalarPropertyType
+	PropertyName string             `json:"name"`
+	Type         ScalarPropertyType `json:"type"`
 }
 
 func (sp ScalarProperty) Name() string {
-	return sp.name
+	return sp.PropertyName
 }
 
 func (sp ScalarProperty) Size() int {
@@ -52,7 +52,7 @@ func (sp ScalarProperty) Size() int {
 }
 
 func (sp ScalarProperty) Write(out io.Writer) (err error) {
-	_, err = fmt.Fprintf(out, "property %s %s\n", sp.Type, sp.name)
+	_, err = fmt.Fprintf(out, "property %s %s\n", sp.Type, sp.PropertyName)
 	return
 }
 

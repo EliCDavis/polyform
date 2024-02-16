@@ -1,6 +1,7 @@
 package generator
 
 import (
+	"bufio"
 	"embed"
 	"encoding/json"
 	"fmt"
@@ -58,6 +59,10 @@ func (as *AppServer) Serve() error {
 	}
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("Cross-Origin-Opener-Policy", "same-origin")
+		w.Header().Add("Cross-Origin-Resource-Policy", "cross-origin")
+		w.Header().Add("Cross-Origin-Embedder-Policy", "require-corp")
+
 		t := template.New("")
 		_, err := t.Parse(string(htmlData))
 		if err != nil {
@@ -104,6 +109,9 @@ func (as *AppServer) SchemaEndpoint(w http.ResponseWriter, r *http.Request) {
 
 func (as *AppServer) ProducerEndpoint(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Cache-Control", "no-cache")
+	w.Header().Add("Cross-Origin-Opener-Policy", "same-origin")
+	w.Header().Add("Cross-Origin-Resource-Policy", "cross-origin")
+	w.Header().Add("Cross-Origin-Embedder-Policy", "require-corp")
 
 	as.producerLock.Lock()
 	defer as.producerLock.Unlock()
@@ -118,11 +126,13 @@ func (as *AppServer) ProducerEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	artifact := producer.Data()
 
-	err := artifact.Write(w)
+	bufWr := bufio.NewWriter(w)
+	err := artifact.Write(bufWr)
 	if err != nil {
+		log.Println(err.Error())
 		panic(err)
 	}
-
+	bufWr.Flush()
 }
 
 func (as *AppServer) ApplyProfile(profile Profile) (bool, error) {

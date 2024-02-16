@@ -18,7 +18,7 @@ class SchemaManager {
 
     submitProfile() {
         this.requestManager.updateProfile(this.profile, () => {
-            this.refreshSchema();
+            // this.refreshSchema();
         })
     }
 

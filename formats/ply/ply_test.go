@@ -92,8 +92,8 @@ end_header
 
 	assert.NoError(t, err)
 	assert.NotNil(t, ply)
-	assert.Equal(t, ply.PrimitiveCount(), 12)
-	assert.Equal(t, ply.AttributeLength(), 8)
+	assert.Equal(t, 12, ply.PrimitiveCount())
+	assert.Equal(t, 8, ply.AttributeLength())
 }
 
 func TestToMeshASCIIWithTextureCords(t *testing.T) {
