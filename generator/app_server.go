@@ -21,6 +21,7 @@ type pageData struct {
 	Title       string
 	Version     string
 	Description string
+	AntiAlias   bool
 }
 
 type Profile map[string]json.RawMessage
@@ -56,6 +57,7 @@ func (as *AppServer) Serve() error {
 		Title:       as.app.Name,
 		Version:     as.app.Version,
 		Description: as.app.Description,
+		AntiAlias:   as.webscene.AntiAlias,
 	}
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {

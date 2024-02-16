@@ -69,7 +69,7 @@ textureEquirec.colorSpace = THREE.SRGBColorSpace;
 scene.fog = new THREE.Fog(viewportSettings.fog.color, viewportSettings.fog.near, viewportSettings.fog.far);
 
 
-const renderer = new THREE.WebGLRenderer({ antialias: true });
+const renderer = new THREE.WebGLRenderer({ antialias: RenderingConfiguration.AntiAlias });
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
@@ -290,6 +290,8 @@ schemaManager.subscribe((schema) => {
                     guassianSplatViewer.dispose();
                 }
 
+                renderer.setPixelRatio(1);
+
                 // https://github.com/mkkellogg/GaussianSplats3D/blob/main/src/Viewer.js
                 const splatViewerOptions = {
                     selfDrivenMode: false,
@@ -298,11 +300,13 @@ schemaManager.subscribe((schema) => {
                     renderer: renderer,
                     threeScene: scene,
                     camera: camera,
-                    dynamicScene: true,
-                    cameraUp: [0, -1, -.17],
-                    initialCameraPosition: [-5, -1, -1],
-                    initialCameraLookAt: [1, 1, 0]
+                    gpuAcceleratedSort: true,
+                    // dynamicScene: true,
+                    // cameraUp: [0, -1, -.17],
+                    // initialCameraPosition: [-5, -1, -1],
+                    // initialCameraLookAt: [1, 1, 0]
                 }
+
 
                 guassianSplatViewer = new GaussianSplats3D.Viewer(splatViewerOptions);
 

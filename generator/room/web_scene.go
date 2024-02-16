@@ -10,6 +10,7 @@ type WebSceneFog struct {
 
 type WebScene struct {
 	RenderWireframe bool              `json:"renderWireframe"`
+	AntiAlias       bool              `json:"antiAlias"`
 	Fog             WebSceneFog       `json:"fog"`
 	Background      coloring.WebColor `json:"background"`
 	Lighting        coloring.WebColor `json:"lighting"`
@@ -19,6 +20,7 @@ type WebScene struct {
 func DefaultWebScene() *WebScene {
 	return &WebScene{
 		RenderWireframe: false,
+		AntiAlias:       true,
 		Fog: WebSceneFog{
 			Color: coloring.WebColor{R: 0xa0, G: 0xa0, B: 0xa0},
 			Near:  10,
