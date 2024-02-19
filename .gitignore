@@ -9,3 +9,6 @@ tmp/
 *.svg
 .vscode
 *.wasm
+
+cert.pem
+key.pem

@@ -180,8 +180,6 @@ func (a App) buildSchemaForNode(dependency nodes.Node, currentSchema map[string]
 		schema.Name = param.DisplayName()
 		schema.parameter = param
 		schema.Parameter = param.Schema()
-		// param.ApplyJsonMessage(schema.Fuck)
-		// param.ApplyJsonMessage(schema.Parameter)
 	} else {
 		named, ok := dependency.(nodes.Named)
 		if ok {
@@ -238,17 +236,6 @@ func (a *App) Schema() AppSchema {
 	return schema
 }
 
-func (a *App) Serve(host, port string) error {
-	server := AppServer{
-		app:      a,
-		host:     host,
-		port:     port,
-		webscene: a.WebScene,
-	}
-
-	return server.Serve()
-}
-
 func (a App) Generate(outputPath string) error {
 	for name, p := range a.Producers {
 		fp := path.Join(outputPath, name)
@@ -278,12 +265,12 @@ func (a App) Generate(outputPath string) error {
 	return nil
 }
 
-func (a App) Run() error {
+func (a *App) Run() error {
 	if a.Producers == nil || len(a.Producers) == 0 {
 		return errors.New("application has not defined any producers")
 	}
 
-	os_setup(&a)
+	os_setup(a)
 
 	commandMap := make(map[string]*cliCommand)
 
@@ -309,14 +296,29 @@ func (a App) Run() error {
 			Aliases:     []string{"serve"},
 			Run: func() error {
 				serveCmd := flag.NewFlagSet("serve", flag.ExitOnError)
-				a.initialize(serveCmd)
-				portFlag := serveCmd.String("port", "8080", "port to serve over")
+				// a.initialize(serveCmd)
 				hostFlag := serveCmd.String("host", "localhost", "interface to bind to")
+				portFlag := serveCmd.String("port", "8080", "port to serve over")
+
+				sslFlag := serveCmd.Bool("ssl", false, "Whether or not to use SSL")
+				certFlag := serveCmd.String("cert", "cert.pem", "Path to cert file")
+				keyFlag := serveCmd.String("key", "key.pem", "Path to key file")
 
 				if err := serveCmd.Parse(os.Args[2:]); err != nil {
 					return err
 				}
-				return a.Serve(*hostFlag, *portFlag)
+
+				server := AppServer{
+					app:      a,
+					host:     *hostFlag,
+					port:     *portFlag,
+					webscene: a.WebScene,
+
+					tls:      *sslFlag,
+					certPath: *certFlag,
+					keyPath:  *keyFlag,
+				}
+				return server.Serve()
 			},
 		},
 		{
@@ -386,7 +388,7 @@ func (a App) Run() error {
 					out = f
 				}
 
-				return WriteMermaid(a, out)
+				return WriteMermaid(*a, out)
 			},
 		},
 		{

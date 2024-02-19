@@ -22,6 +22,7 @@ type pageData struct {
 	Version     string
 	Description string
 	AntiAlias   bool
+	XrEnabled   bool
 }
 
 type Profile map[string]json.RawMessage
@@ -32,6 +33,9 @@ var htmlFs embed.FS
 type AppServer struct {
 	app        *App
 	host, port string
+	tls        bool
+	certPath   string
+	keyPath    string
 
 	webscene *room.WebScene
 
@@ -58,9 +62,12 @@ func (as *AppServer) Serve() error {
 		Version:     as.app.Version,
 		Description: as.app.Description,
 		AntiAlias:   as.webscene.AntiAlias,
+		XrEnabled:   as.webscene.XrEnabled,
 	}
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+
+		// Required for sharedMemoryForWorkers to work
 		w.Header().Add("Cross-Origin-Opener-Policy", "same-origin")
 		w.Header().Add("Cross-Origin-Resource-Policy", "cross-origin")
 		w.Header().Add("Cross-Origin-Embedder-Policy", "require-corp")
@@ -96,8 +103,14 @@ func (as *AppServer) Serve() error {
 	}))
 
 	connection := fmt.Sprintf("%s:%s", as.host, as.port)
-	fmt.Printf("Serving over: http://%s\n", connection)
-	return http.ListenAndServe(connection, nil)
+	if as.tls {
+		fmt.Printf("Serving over: https://%s\n", connection)
+		return http.ListenAndServeTLS(connection, as.certPath, as.keyPath, nil)
+
+	} else {
+		fmt.Printf("Serving over: http://%s\n", connection)
+		return http.ListenAndServe(connection, nil)
+	}
 }
 
 func (as *AppServer) SchemaEndpoint(w http.ResponseWriter, r *http.Request) {
@@ -111,6 +124,8 @@ func (as *AppServer) SchemaEndpoint(w http.ResponseWriter, r *http.Request) {
 
 func (as *AppServer) ProducerEndpoint(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Cache-Control", "no-cache")
+
+	// Required for sharedMemoryForWorkers to work
 	w.Header().Add("Cross-Origin-Opener-Policy", "same-origin")
 	w.Header().Add("Cross-Origin-Resource-Policy", "cross-origin")
 	w.Header().Add("Cross-Origin-Embedder-Policy", "require-corp")

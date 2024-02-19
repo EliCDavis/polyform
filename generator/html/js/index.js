@@ -35,7 +35,7 @@ import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer
 import { ProgressiveLightMap } from 'three/addons/misc/ProgressiveLightMap.js';
 
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
-
+import { InitXR } from './xr.js';
 
 let viewportSettingsChanged = false;
 const viewportSettings = {
@@ -58,7 +58,7 @@ const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerH
 camera.position.set(0, 2, 3);
 
 const scene = new THREE.Scene();
-// scene.background = new THREE.Color(viewportSettings.background);
+scene.background = new THREE.Color(viewportSettings.background);
 
 const textureLoader = new THREE.TextureLoader();
 const textureEquirec = textureLoader.load('https://i.imgur.com/FFkjGWG_d.png?maxwidth=1520&fidelity=grand');
@@ -76,6 +76,8 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap; // default THREE.PCFShadowMap
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1;
+renderer.xr.enabled = RenderingConfiguration.XrEnabled;
+renderer.setAnimationLoop(animate)
 
 container.appendChild(renderer.domElement);
 // progressive lightmap
@@ -143,6 +145,9 @@ const requestManager = new RequestManager();
 const nodeManager = new NodeManager(App);
 const schemaManager = new SchemaManager(requestManager, nodeManager);
 
+if (RenderingConfiguration.XrEnabled) {
+    InitXR(scene, renderer);
+}
 
 nodeManager.subscribeToParameterChange((param) => {
     console.log(param)
@@ -151,38 +156,6 @@ nodeManager.subscribeToParameterChange((param) => {
 });
 
 
-const newPositionControl = (setting, name, position, index) => {
-    const control = new TransformControls(camera, renderer.domElement);
-    control.setMode('translate');
-
-    const mesh = new THREE.Group();
-    mesh.position.x = position.x;
-    mesh.position.y = position.y;
-    mesh.position.z = position.z;
-
-
-    control.addEventListener('dragging-changed', (event) => {
-        orbitControls.enabled = !event.value;
-
-        if (orbitControls.enabled) {
-
-            console.log(setting[name])
-            console.log(name)
-            setting[name][index].x = mesh.position.x;
-            setting[name][index].y = mesh.position.y;
-            setting[name][index].z = mesh.position.z;
-
-            updateProfile();
-            console.log(setting)
-        }
-    });
-
-    scene.add(mesh);
-    control.attach(mesh);
-    allPositionControls.push(control);
-
-    scene.add(control)
-}
 
 let firstTimeLoadingScene = true;
 
@@ -300,11 +273,9 @@ schemaManager.subscribe((schema) => {
                     renderer: renderer,
                     threeScene: scene,
                     camera: camera,
-                    gpuAcceleratedSort: true,
-                    // dynamicScene: true,
-                    // cameraUp: [0, -1, -.17],
-                    // initialCameraPosition: [-5, -1, -1],
-                    // initialCameraLookAt: [1, 1, 0]
+                    gpuAcceleratedSort: false,
+                    sharedMemoryForWebWorkers: false
+                    // webXRMode: 1 // 0 - None, 1 - VR, 2 - AR
                 }
 
 
@@ -312,7 +283,9 @@ schemaManager.subscribe((schema) => {
 
                 console.log(guassianSplatViewer);
                 // getSplatCenter
-                guassianSplatViewer.addSplatScene("producer/" + producer).then(() => {
+                guassianSplatViewer.addSplatScene("producer/" + producer, {
+                    'scale': [0.25, 0.25, 0.25],
+                }).then(() => {
 
                     const aabb = new THREE.Box3();
                     const tree = guassianSplatViewer.splatMesh.splatTree.subTrees[0]
@@ -345,7 +318,6 @@ schemaManager.subscribe((schema) => {
                         orbitControls.target.set(0, mid, 0);
                         orbitControls.update();
                     }
-
                 })
                 break;
         }
@@ -561,7 +533,13 @@ const playerEyeMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
 
 let lastUpdatedModel = -1;
 if (window["WebSocket"]) {
-    const conn = new WebSocket("ws://" + document.location.host + "/live");
+    let websocketProtocol = "ws://";
+    if (location.protocol === 'https:') {
+        websocketProtocol = "wss://";
+    }
+    console.log(location.protocol)
+
+    const conn = new WebSocket(websocketProtocol + document.location.host + "/live");
     conn.onclose = function (evt) {
         console.log("connection closed", evt)
     };
@@ -768,7 +746,7 @@ function animate() {
         pp.z = pp.z + ((dp.z - pp.z) * delta * 2)
     }
 
-    requestAnimationFrame(animate);
+    // requestAnimationFrame(animate);
     renderer.render(scene, camera);
 
     if (guassianSplatViewer) {
@@ -779,4 +757,3 @@ function animate() {
     labelRenderer.render(scene, camera);
     stats.update();
 }
-animate();

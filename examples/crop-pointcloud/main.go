@@ -21,7 +21,9 @@ import (
 type PointcloudNode struct {
 	nodes.StructData[modeling.Mesh]
 
-	Path nodes.NodeOutput[string]
+	Path       nodes.NodeOutput[string]
+	MinOpacity nodes.NodeOutput[float64]
+	MinScale   nodes.NodeOutput[float64]
 }
 
 func (pn *PointcloudNode) Out() nodes.NodeOutput[modeling.Mesh] {
@@ -49,6 +51,25 @@ func (pn PointcloudNode) Process() (modeling.Mesh, error) {
 	}
 
 	return plyMesh.Transform(
+		meshops.CustomTransformer{
+			Func: func(m modeling.Mesh) (results modeling.Mesh, err error) {
+				minOpacity := pn.MinOpacity.Data()
+				minScale := pn.MinScale.Data()
+
+				opacity := m.Float1Attribute(modeling.OpacityAttribute)
+				scale := m.Float3Attribute(modeling.ScaleAttribute)
+
+				indicesKept := make([]int, 0)
+				for i := 0; i < opacity.Len(); i++ {
+					if opacity.At(i) >= minOpacity && scale.At(i).LengthSquared() >= minScale {
+						indicesKept = append(indicesKept, i)
+					}
+				}
+
+				return m.SetIndices(indicesKept), nil
+			},
+		},
+		meshops.RemovedUnreferencedVerticesTransformer{},
 		meshops.RotateAttribute3DTransformer{
 			Amount: quaternion.FromTheta(math.Pi, vector3.Forward[float64]()),
 		},
@@ -59,8 +80,8 @@ func (pn PointcloudNode) Process() (modeling.Mesh, error) {
 				rotatedData := make([]vector4.Float64, oldData.Len())
 				for i := 0; i < oldData.Len(); i++ {
 					old := oldData.At(i)
-					rot := q.Multiply(quaternion.New(vector3.New(old.X(), old.Y(), old.Z()), old.W()))
-					rotatedData[i] = vector4.New(rot.Dir().X(), rot.Dir().Y(), rot.Dir().Z(), rot.W())
+					rot := q.Multiply(quaternion.New(vector3.New(old.Y(), old.Z(), old.W()), old.X()))
+					rotatedData[i] = vector4.New(rot.W(), rot.Dir().X(), rot.Dir().Y(), rot.Dir().Z())
 				}
 
 				return m.SetFloat4Attribute(modeling.RotationAttribute, rotatedData), nil
@@ -150,14 +171,22 @@ func main() {
 				Name:         "Pointcloud Path",
 				DefaultValue: "C:/dev/projects/sfm/gaussian-splatting/output/84e0f0cd-f/point_cloud/iteration_30000/point_cloud.ply",
 			}),
+			MinOpacity: &generator.ParameterNode[float64]{
+				Name:         "Minimum Opacity",
+				DefaultValue: 0.,
+			},
+			MinScale: &generator.ParameterNode[float64]{
+				Name:         "Minimum Scale",
+				DefaultValue: 0.,
+			},
 		}).Out(),
 		AABB: (&BoundingBoxNode{
-			LeftCutoff:    &generator.ParameterNode[float64]{Name: "Left Cutoff", DefaultValue: -10},
-			DownCutoff:    &generator.ParameterNode[float64]{Name: "Bottom Cutoff", DefaultValue: -10},
-			BackCutoff:    &generator.ParameterNode[float64]{Name: "Back Cutoff", DefaultValue: -10},
-			RightCutoff:   &generator.ParameterNode[float64]{Name: "Right Cutoff", DefaultValue: 10},
-			UpCutoff:      &generator.ParameterNode[float64]{Name: "Top Cutoff", DefaultValue: 10},
-			ForwardCutoff: &generator.ParameterNode[float64]{Name: "Forward Cutoff", DefaultValue: 10},
+			LeftCutoff:    &generator.ParameterNode[float64]{Name: "Left Cutoff", DefaultValue: -6}, // -6
+			DownCutoff:    &generator.ParameterNode[float64]{Name: "Bottom Cutoff", DefaultValue: -5.6},
+			BackCutoff:    &generator.ParameterNode[float64]{Name: "Back Cutoff", DefaultValue: 4},
+			RightCutoff:   &generator.ParameterNode[float64]{Name: "Right Cutoff", DefaultValue: 3.5},
+			UpCutoff:      &generator.ParameterNode[float64]{Name: "Top Cutoff", DefaultValue: 3},
+			ForwardCutoff: &generator.ParameterNode[float64]{Name: "Forward Cutoff", DefaultValue: 14}, // 14
 		}).Out(),
 	}
 
@@ -183,6 +212,8 @@ func main() {
 				Near:  5,
 				Far:   25,
 			},
+			AntiAlias: false,
+			XrEnabled: true,
 		},
 		Producers: map[string]nodes.NodeOutput[generator.Artifact]{
 			"mesh.splat": generator.SplatArtifactNode(baloonNode.Out()),

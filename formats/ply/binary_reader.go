@@ -217,7 +217,13 @@ func (le *BinaryReader) readVertexData(element Element, approvedData map[string]
 
 		if isScalarPropWithType(prop, Float) {
 			p := newFloatParser(le.order, scalarProp.Type, offset)
-			float1AttributeReaders[prop.Name()] = func(contents []byte) (float64, error) {
+
+			name := prop.Name()
+			if name == "opacity" {
+				name = "Opacity"
+			}
+
+			float1AttributeReaders[name] = func(contents []byte) (float64, error) {
 				return p(contents), nil
 			}
 		}

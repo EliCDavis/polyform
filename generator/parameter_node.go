@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"log"
 
 	"github.com/EliCDavis/polyform/nodes"
 )
@@ -40,8 +39,6 @@ func (pn *ParameterNode[T]) DisplayName() string {
 }
 
 func (pn *ParameterNode[T]) ApplyJsonMessage(msg json.RawMessage) (bool, error) {
-	log.Printf("fuck")
-
 	var val T
 	err := json.Unmarshal(msg, &val)
 	if err != nil {
@@ -54,9 +51,6 @@ func (pn *ParameterNode[T]) ApplyJsonMessage(msg json.RawMessage) (bool, error) 
 
 	pn.version++
 	pn.appliedProfile = &val
-
-	log.Printf("AHHHHH: %v", *pn.appliedProfile)
-	log.Printf("AHHHHH: %v", pn.version)
 
 	for _, s := range pn.subs {
 		s.Alert(pn.version, nodes.Processed)

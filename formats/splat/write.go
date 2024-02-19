@@ -4,12 +4,15 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"log"
 	"math"
 
 	"github.com/EliCDavis/bitlib"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/vector/vector3"
 )
+
+const SH_C0 = 0.28209479177387814
 
 // https://github.com/antimatter15/splat/blob/main/convert.py#L10
 func Write(out io.Writer, mesh modeling.Mesh) error {
@@ -18,9 +21,12 @@ func Write(out io.Writer, mesh modeling.Mesh) error {
 		modeling.PositionAttribute,
 		modeling.ScaleAttribute,
 		modeling.FDCAttribute,
-		// modeling.OpacityAttribute,
-		"opacity",
+		modeling.OpacityAttribute,
 		modeling.RotationAttribute,
+	}
+
+	if mesh.Topology() != modeling.PointTopology {
+		return fmt.Errorf("mesh must be point topology, was instead %s", mesh.Topology())
 	}
 
 	for _, attr := range requiredAttributes {
@@ -29,21 +35,16 @@ func Write(out io.Writer, mesh modeling.Mesh) error {
 		}
 	}
 
-	if mesh.Topology() != modeling.PointTopology {
-		return fmt.Errorf("mesh must be point topology, was instead %s", mesh.Topology())
-	}
-
 	count := mesh.PrimitiveCount()
+	log.Println(count)
 
 	posData := mesh.Float3Attribute(modeling.PositionAttribute)
 	scaleData := mesh.Float3Attribute(modeling.ScaleAttribute)
 	fdcData := mesh.Float3Attribute(modeling.FDCAttribute)
-	opacityData := mesh.Float1Attribute("opacity")
+	opacityData := mesh.Float1Attribute(modeling.OpacityAttribute)
 	rotationData := mesh.Float4Attribute(modeling.RotationAttribute)
 
 	writer := bitlib.NewWriter(out, binary.LittleEndian)
-
-	const SH_C0 = 0.28209479177387814
 
 	for i := 0; i < count; i++ {
 		pos := posData.At(i)

@@ -85,6 +85,15 @@ air serve --port 8080
 
 As you hit save on your go code, the webserver will restart, and the web page will automatically refresh itself.
 
+If you want to mess with modern web browser features and need a https, I recomend taking a look at https://github.com/FiloSottile/mkcert
+
+
+```
+mkcert -install
+mkcert -key-file key.pem -cert-file cert.pem localhost
+air serve --port 8080 --ssl
+```
+
 ## WASM Dev
 
 Install [tinygo](https://github.com/WebAssembly/binaryen) and [binaryren](https://github.com/WebAssembly/binaryen)
@@ -320,6 +329,7 @@ Resources either directly contributing to the code, or are just interesting find
 - Guassian Splatting
   - [https://github.com/antimatter15/splat](https://github.com/antimatter15/splat)
   - [https://github.com/mkkellogg/GaussianSplats3D](https://github.com/mkkellogg/GaussianSplats3D)
+  - [https://github.com/shg8/VulkanSplatting](https://github.com/shg8/VulkanSplatting)
 
 ## Citiation
 

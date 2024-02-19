@@ -1,7 +1,6 @@
 package main
 
 import (
-	"image/color"
 	"math"
 
 	"github.com/EliCDavis/polyform/drawing/coloring"
@@ -11,6 +10,7 @@ import (
 	"github.com/EliCDavis/polyform/modeling/extrude"
 	"github.com/EliCDavis/polyform/modeling/primitives"
 	"github.com/EliCDavis/polyform/modeling/repeat"
+	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
 )
@@ -20,7 +20,27 @@ type Segment struct {
 	height float64
 }
 
-func Chimney(funnelWidth, funnelHeight, taperHeight, shootWidth, shootHeight float64, rows int, color color.RGBA) []gltf.PolyformModel {
+type ChimneyNode struct {
+	nodes.StructData[Segment]
+
+	FunnelWidth, FunnelHeight, TaperHeight, ShootWidth, ShootHeight nodes.NodeOutput[float64]
+	Rows                                                            nodes.NodeOutput[int]
+	Color                                                           nodes.NodeOutput[coloring.WebColor]
+}
+
+func (cn *ChimneyNode) Out() nodes.NodeOutput[Segment] {
+	return &nodes.StructNodeOutput[Segment]{Definition: cn}
+}
+
+func (cn ChimneyNode) Process() (Segment, error) {
+	taperHeight := cn.TaperHeight.Data()
+	shootHeight := cn.ShootHeight.Data()
+	funnelHeight := cn.FunnelHeight.Data()
+	shootWidth := cn.ShootWidth.Data()
+	funnelWidth := cn.FunnelWidth.Data()
+	rows := cn.Rows.Data()
+	color := cn.Color.Data()
+
 	halfTotalHeight := (taperHeight + shootHeight + funnelHeight) / 2.
 	path := []vector3.Float64{
 		vector3.New(0, -halfTotalHeight, 0),
@@ -43,23 +63,43 @@ func Chimney(funnelWidth, funnelHeight, taperHeight, shootWidth, shootHeight flo
 		shootWidth,
 	}
 
-	return []gltf.PolyformModel{
-		{
-			Mesh: extrude.CircleWithThickness(20, widths, path).
-				Append(allRows).
-				Append(primitives.Cylinder{Sides: 20, Height: 0.3, Radius: funnelWidth + .3}.ToMesh().
-					Translate(vector3.New(0, -halfTotalHeight+funnelHeight, 0))),
-			Material: &gltf.PolyformMaterial{
-				PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
-					BaseColorFactor: color,
+	return Segment{
+		mesh: []gltf.PolyformModel{
+			{
+				Mesh: extrude.CircleWithThickness(20, widths, path).
+					Append(allRows).
+					Append(primitives.Cylinder{Sides: 20, Height: 0.3, Radius: funnelWidth + .3}.ToMesh().
+						Translate(vector3.New(0, -halfTotalHeight+funnelHeight, 0))),
+				Material: &gltf.PolyformMaterial{
+					PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
+						BaseColorFactor: color,
+					},
 				},
 			},
 		},
-	}
-
+		height: funnelHeight + taperHeight + shootHeight,
+	}, nil
 }
 
-func Chasis(height, width float64, rows, columns int, color color.RGBA) []gltf.PolyformModel {
+type ChasisNode struct {
+	nodes.StructData[Segment]
+
+	Height, Width nodes.NodeOutput[float64]
+	Rows, Columns nodes.NodeOutput[int]
+	Color         nodes.NodeOutput[coloring.WebColor]
+}
+
+func (cn *ChasisNode) Out() nodes.NodeOutput[Segment] {
+	return &nodes.StructNodeOutput[Segment]{Definition: cn}
+}
+
+func (cn ChasisNode) Process() (Segment, error) {
+	height := cn.Height.Data()
+	width := cn.Width.Data()
+	rows := cn.Rows.Data()
+	columns := cn.Columns.Data()
+	color := cn.Color.Data()
+
 	chasis := primitives.Cylinder{Sides: 20, Height: height, Radius: width}.ToMesh()
 
 	rowSpacing := height / float64(rows+1)
@@ -73,19 +113,39 @@ func Chasis(height, width float64, rows, columns int, color color.RGBA) []gltf.P
 	columnsMesh := repeat.Circle(column, columns, width)
 	chasis = chasis.Append(columnsMesh)
 
-	return []gltf.PolyformModel{
-		{
-			Mesh: chasis,
-			Material: &gltf.PolyformMaterial{
-				PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
-					BaseColorFactor: color,
+	return Segment{
+		mesh: []gltf.PolyformModel{
+			{
+				Mesh: chasis,
+				Material: &gltf.PolyformMaterial{
+					PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
+						BaseColorFactor: color,
+					},
 				},
 			},
 		},
-	}
+		height: height,
+	}, nil
 }
 
-func Legs(height, width float64, numLegs int, legColor color.RGBA) []gltf.PolyformModel {
+type LegsNode struct {
+	nodes.StructData[Segment]
+
+	Height, Width nodes.NodeOutput[float64]
+	NumLegs       nodes.NodeOutput[int]
+	LegColor      nodes.NodeOutput[coloring.WebColor]
+}
+
+func (ln *LegsNode) Out() nodes.NodeOutput[Segment] {
+	return &nodes.StructNodeOutput[Segment]{Definition: ln}
+}
+
+func (ln LegsNode) Process() (Segment, error) {
+	height := ln.Height.Data()
+	width := ln.Width.Data()
+	numLegs := ln.NumLegs.Data()
+	legColor := ln.LegColor.Data()
+
 	columnHeight := 1.
 	legHeight := height - columnHeight
 
@@ -93,25 +153,46 @@ func Legs(height, width float64, numLegs int, legColor color.RGBA) []gltf.Polyfo
 		UnweldedQuads().
 		Translate(vector3.New(0, -(columnHeight / 2.), 0))
 
-	return []gltf.PolyformModel{
-		{
-			Name: "Legs",
+	return Segment{
+		mesh: []gltf.PolyformModel{
+			{
+				Name: "Legs",
 
-			Mesh: primitives.
-				Cylinder{Sides: 20, Height: columnHeight, Radius: width}.ToMesh().
-				Translate(vector3.New(0, (height/2.)-(columnHeight/2.), 0)).
-				Append(repeat.Circle(leg, numLegs, width-2.)),
+				Mesh: primitives.
+					Cylinder{Sides: 20, Height: columnHeight, Radius: width}.ToMesh().
+					Translate(vector3.New(0, (height/2.)-(columnHeight/2.), 0)).
+					Append(repeat.Circle(leg, numLegs, width-2.)),
 
-			Material: &gltf.PolyformMaterial{
-				PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
-					BaseColorFactor: legColor,
+				Material: &gltf.PolyformMaterial{
+					PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
+						BaseColorFactor: legColor,
+					},
 				},
 			},
 		},
-	}
+		height: height,
+	}, nil
 }
 
-func Floor(floorHeight, radius, walkWidth float64, floorColor, railingColor color.RGBA) []gltf.PolyformModel {
+type FloorNode struct {
+	nodes.StructData[Segment]
+
+	FloorHeight, Radius, WalkWidth nodes.NodeOutput[float64]
+	FloorColor, RailingColor       nodes.NodeOutput[coloring.WebColor]
+}
+
+func (fn *FloorNode) Out() nodes.NodeOutput[Segment] {
+	return &nodes.StructNodeOutput[Segment]{Definition: fn}
+}
+
+func (fn FloorNode) Process() (Segment, error) {
+
+	floorColor := fn.FloorColor.Data()
+	railingColor := fn.RailingColor.Data()
+	floorHeight := fn.FloorHeight.Data()
+	radius := fn.Radius.Data()
+	walkWidth := fn.WalkWidth.Data()
+
 	numLegs := int(math.Round(2*math.Pi*radius) / 4)
 	legHeight := 2.
 	post := primitives.UnitCube().
@@ -137,28 +218,31 @@ func Floor(floorHeight, radius, walkWidth float64, floorColor, railingColor colo
 		shapePath[i] = vector3.New(math.Cos(angle)*offset, 0, math.Sin(angle)*offset)
 	}
 
-	return []gltf.PolyformModel{
-		{
-			Name: "Railing",
-			Mesh: repeat.Circle(post, numLegs, postRadius-.2).
-				Append(railing.Translate(vector3.Up[float64]().Scale(legHeight))).
-				Append(railing.Translate(vector3.Up[float64]().Scale(legHeight / 2))),
-			Material: &gltf.PolyformMaterial{
-				PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
-					BaseColorFactor: railingColor,
+	return Segment{
+		mesh: []gltf.PolyformModel{
+			{
+				Name: "Railing",
+				Mesh: repeat.Circle(post, numLegs, postRadius-.2).
+					Append(railing.Translate(vector3.Up[float64]().Scale(legHeight))).
+					Append(railing.Translate(vector3.Up[float64]().Scale(legHeight / 2))),
+				Material: &gltf.PolyformMaterial{
+					PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
+						BaseColorFactor: railingColor,
+					},
+				},
+			},
+			{
+				Name: "Floor",
+				Mesh: extrude.ClosedShape(flip(PiShape(floorHeight, walkWidth)), shapePath),
+				Material: &gltf.PolyformMaterial{
+					PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
+						BaseColorFactor: floorColor,
+					},
 				},
 			},
 		},
-		{
-			Name: "Floor",
-			Mesh: extrude.ClosedShape(flip(PiShape(floorHeight, walkWidth)), shapePath),
-			Material: &gltf.PolyformMaterial{
-				PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
-					BaseColorFactor: floorColor,
-				},
-			},
-		},
-	}
+		height: floorHeight,
+	}, nil
 }
 
 func flip[T any](arr []T) []T {
@@ -195,21 +279,167 @@ func PiShape(height, width float64) []vector2.Float64 {
 	}
 }
 
-func PutTogetherSegments(segments ...Segment) []gltf.PolyformModel {
+type CombineSegmentsNode struct {
+	nodes.StructData[generator.Artifact]
+
+	Segments []nodes.NodeOutput[Segment]
+}
+
+func (bn *CombineSegmentsNode) Out() nodes.NodeOutput[generator.Artifact] {
+	return &nodes.StructNodeOutput[generator.Artifact]{Definition: bn}
+}
+
+func (csn CombineSegmentsNode) Process() (generator.Artifact, error) {
 	offset := 0.
 	final := make([]gltf.PolyformModel, 0)
-	for _, segment := range segments {
+	for _, segmentNode := range csn.Segments {
+		segment := segmentNode.Data()
 		offset += segment.height / 2
 		for i, m := range segment.mesh {
-			segment.mesh[i].Mesh = m.Mesh.Translate(vector3.New(0, offset, 0))
-			final = append(final, segment.mesh[i])
+			final = append(final, gltf.PolyformModel{
+				Name:     segment.mesh[i].Name,
+				Material: segment.mesh[i].Material,
+				Mesh:     m.Mesh.Translate(vector3.New(0, offset, 0)),
+			})
 		}
 		offset += segment.height / 2
 	}
-	return final
+	return generator.GltfArtifact{
+		Scene: gltf.PolyformScene{
+			Models: final,
+		},
+	}, nil
 }
 
 func main() {
+	baseColor := &generator.ParameterNode[coloring.WebColor]{
+		Name: "Base Color",
+		DefaultValue: coloring.WebColor{
+			R: 128,
+			G: 128,
+			B: 128,
+			A: 255,
+		},
+	}
+
+	chasisWidth := &generator.ParameterNode[float64]{
+		Name:         "Chasis Width",
+		DefaultValue: 7,
+	}
+
+	railingColor := &generator.ParameterNode[coloring.WebColor]{
+		Name: "Floor/Railing Color",
+		DefaultValue: coloring.WebColor{
+			R: 0xff,
+			G: 0xf7,
+			B: 0x00,
+			A: 255,
+		},
+	}
+
+	floorColor := &generator.ParameterNode[coloring.WebColor]{
+		Name: "Floor/Color",
+		DefaultValue: coloring.WebColor{
+			R: 0x30,
+			G: 0x3b,
+			B: 0x45,
+			A: 255,
+		},
+	}
+
+	floorHeight := &generator.ParameterNode[float64]{
+		Name:         "Floor/Height",
+		DefaultValue: .5,
+	}
+
+	firedheaterNode := CombineSegmentsNode{
+		Segments: []nodes.NodeOutput[Segment]{
+			(&LegsNode{
+				Height: &generator.ParameterNode[float64]{
+					Name:         "Leg/Length",
+					DefaultValue: 5.,
+				},
+				NumLegs: &generator.ParameterNode[int]{
+					Name:         "Leg/Count",
+					DefaultValue: 5,
+				},
+				LegColor: &generator.ParameterNode[coloring.WebColor]{
+					Name: "Leg/Color",
+					DefaultValue: coloring.WebColor{
+						R: 0x5f,
+						G: 0x59,
+						B: 0x54,
+						A: 255,
+					},
+				},
+				Width: &generator.ParameterNode[float64]{
+					Name:         "Leg/Width",
+					DefaultValue: 8.,
+				},
+			}).Out(),
+			(&FloorNode{
+				FloorHeight: floorHeight,
+				Radius:      chasisWidth,
+				WalkWidth: &generator.ParameterNode[float64]{
+					Name:         "Floor/Lower Walkway Width",
+					DefaultValue: 4.,
+				},
+				FloorColor:   floorColor,
+				RailingColor: railingColor,
+			}).Out(),
+			(&ChasisNode{
+				Height: &generator.ParameterNode[float64]{
+					Name:         "Chasis/Height",
+					DefaultValue: 20.,
+				},
+				Width: chasisWidth,
+				Rows: &generator.ParameterNode[int]{
+					Name:         "Chasis/Rows",
+					DefaultValue: 4,
+				},
+				Columns: &generator.ParameterNode[int]{
+					Name:         "Chasis/Columns",
+					DefaultValue: 7,
+				},
+				Color: baseColor,
+			}).Out(),
+			(&FloorNode{
+				FloorHeight: floorHeight,
+				Radius:      chasisWidth,
+				WalkWidth: &generator.ParameterNode[float64]{
+					Name:         "Floor/Upper Walkway Width",
+					DefaultValue: 3.,
+				},
+				FloorColor:   floorColor,
+				RailingColor: railingColor,
+			}).Out(),
+			(&ChimneyNode{
+				FunnelWidth: chasisWidth,
+				ShootWidth: &generator.ParameterNode[float64]{
+					Name:         "Shoot Width",
+					DefaultValue: 1,
+				},
+				FunnelHeight: &generator.ParameterNode[float64]{
+					Name:         "Chimney/Base Height",
+					DefaultValue: 4,
+				},
+				TaperHeight: &generator.ParameterNode[float64]{
+					Name:         "Chimney/Taper Height",
+					DefaultValue: 5,
+				},
+				ShootHeight: &generator.ParameterNode[float64]{
+					Name:         "Chimney/Shoot Height",
+					DefaultValue: 10,
+				},
+				Rows: &generator.ParameterNode[int]{
+					Name:         "Chimney/Rows",
+					DefaultValue: 4,
+				},
+				Color: baseColor,
+			}).Out(),
+		},
+	}
+
 	app := generator.App{
 		Name:        "Fired Heater",
 		Version:     "1.0.0",
@@ -223,206 +453,14 @@ func main() {
 			Fog: room.WebSceneFog{
 				Far:   150,
 				Near:  10,
-				Color: coloring.WebColor{R: 0xa0, G: 0xa0, B: 0xa0},
+				Color: coloring.WebColor{R: 0xa0, G: 0xa0, B: 0xa0, A: 255},
 			},
-			Background: coloring.WebColor{R: 0x95, G: 0xcb, B: 0xf3},
-			Lighting:   coloring.WebColor{R: 0xff, G: 0xfd, B: 0xd1},
-			Ground:     coloring.WebColor{R: 0x87, G: 0x82, B: 0x78},
+			Background: coloring.WebColor{R: 0x95, G: 0xcb, B: 0xf3, A: 255},
+			Lighting:   coloring.WebColor{R: 0xff, G: 0xfd, B: 0xd1, A: 255},
+			Ground:     coloring.WebColor{R: 0x87, G: 0x82, B: 0x78, A: 255},
 		},
-		Generator: &generator.Generator{
-			Parameters: &generator.GroupParameter{
-				Parameters: []generator.Parameter{
-					&generator.ColorParameter{
-						Name:         "Color",
-						DefaultValue: coloring.WebColor{R: 128, G: 128, B: 128, A: 255},
-					},
-
-					&generator.GroupParameter{
-						Name: "Leg",
-						Parameters: []generator.Parameter{
-							&generator.FloatParameter{
-								Name:         "Length",
-								DefaultValue: 5.,
-							},
-							&generator.ColorParameter{
-								Name: "Color",
-								DefaultValue: coloring.WebColor{
-									R: 0x5f,
-									G: 0x59,
-									B: 0x54,
-									A: 255,
-								},
-							},
-							&generator.IntParameter{
-								Name:         "Count",
-								DefaultValue: 8,
-							},
-						},
-					},
-
-					&generator.GroupParameter{
-						Name: "Floor",
-						Parameters: []generator.Parameter{
-							&generator.FloatParameter{
-								Name:         "Height",
-								DefaultValue: .5,
-							},
-							&generator.ColorParameter{
-								Name: "Floor Color",
-								DefaultValue: coloring.WebColor{
-									R: 0x30,
-									G: 0x3b,
-									B: 0x45,
-									A: 255,
-								},
-							},
-							&generator.ColorParameter{
-								Name: "Railing Color",
-								DefaultValue: coloring.WebColor{
-									R: 0xff,
-									G: 0xf7,
-									B: 0x00,
-									A: 255,
-								},
-							},
-
-							&generator.FloatParameter{
-								Name:         "Lower Walkway Width",
-								DefaultValue: 4.,
-							},
-
-							&generator.FloatParameter{
-								Name:         "Upper Walkway Width",
-								DefaultValue: 3.,
-							},
-						},
-					},
-
-					&generator.GroupParameter{
-						Name: "Chasis",
-						Parameters: []generator.Parameter{
-							&generator.FloatParameter{
-								Name:         "Height",
-								DefaultValue: 20,
-							},
-							&generator.FloatParameter{
-								Name:         "Width",
-								DefaultValue: 7,
-							},
-							&generator.IntParameter{
-								Name:         "Rows",
-								DefaultValue: 4,
-							},
-							&generator.IntParameter{
-								Name:         "Columns",
-								DefaultValue: 7,
-							},
-						},
-					},
-
-					&generator.GroupParameter{
-						Name: "Chimney",
-						Parameters: []generator.Parameter{
-							&generator.FloatParameter{
-								Name:         "Base Height",
-								DefaultValue: 4.,
-							},
-							&generator.FloatParameter{
-								Name:         "Taper Height",
-								DefaultValue: 5.,
-							},
-							&generator.FloatParameter{
-								Name:         "Shoot Height",
-								DefaultValue: 10.,
-							},
-							&generator.IntParameter{
-								Name:         "Rows",
-								DefaultValue: 4.,
-							},
-						},
-					},
-				},
-			},
-			Producers: map[string]generator.Producer{
-				"firedheater.glb": func(c *generator.Context) (generator.Artifact, error) {
-
-					baseColor := c.Parameters.Color("Color")
-
-					legParams := c.Parameters.Group("Leg")
-					legsHeight := legParams.Float64("Length")
-
-					floorParams := c.Parameters.Group("Floor")
-					floorHeight := floorParams.Float64("Height")
-
-					chasisParams := c.Parameters.Group("Chasis")
-					chasisWidth := chasisParams.Float64("Width")
-					chasisHeight := chasisParams.Float64("Height")
-
-					chimneyParams := c.Parameters.Group("Chimney")
-
-					firedheater := PutTogetherSegments(
-						Segment{
-							mesh: Legs(
-								legsHeight,
-								8.,
-								legParams.Int("Count"),
-								legParams.Color("Color"),
-							),
-							height: legsHeight,
-						},
-						Segment{
-							mesh: Floor(
-								floorHeight,
-								chasisWidth,
-								floorParams.Float64("Lower Walkway Width"),
-								floorParams.Color("Floor Color"),
-								floorParams.Color("Railing Color"),
-							),
-							height: floorHeight,
-						},
-						Segment{
-							mesh: Chasis(
-								chasisHeight,
-								chasisWidth,
-								chasisParams.Int("Rows"),
-								chasisParams.Int("Columns"),
-								baseColor,
-							),
-							height: chasisHeight,
-						},
-						Segment{
-							mesh: Floor(
-								floorHeight,
-								chasisWidth,
-								floorParams.Float64("Upper Walkway Width"),
-								floorParams.Color("Floor Color"),
-								floorParams.Color("Railing Color"),
-							),
-							height: floorHeight,
-						},
-						Segment{
-							mesh: Chimney(
-								chasisWidth,
-								chimneyParams.Float64("Base Height"),
-								chimneyParams.Float64("Taper Height"),
-								chasisWidth/6,
-								chimneyParams.Float64("Shoot Height"),
-								chimneyParams.Int("Rows"),
-								baseColor,
-							),
-							height: chimneyParams.Float64("Base Height") +
-								chimneyParams.Float64("Taper Height") +
-								chimneyParams.Float64("Shoot Height"),
-						},
-					)
-
-					return generator.GltfArtifact{
-						Scene: gltf.PolyformScene{
-							Models: firedheater,
-						},
-					}, nil
-				},
-			},
+		Producers: map[string]nodes.NodeOutput[generator.Artifact]{
+			"firedheater.glb": firedheaterNode.Out(),
 		},
 	}
 

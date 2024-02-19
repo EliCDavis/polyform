@@ -50,6 +50,10 @@ func polygon(sides int, points []ExtrusionPoint, closed bool) modeling.Mesh {
 		panic(fmt.Errorf("can not extrude polygon with %d points", len(points)))
 	}
 
+	if sides < 3 {
+		panic(fmt.Errorf("can not extrude polygon with %d sides", sides))
+	}
+
 	vertCount := sides + 1
 	vertices := make([]vector3.Float64, 0, len(points)*vertCount)
 	normals := make([]vector3.Float64, 0, len(points)*vertCount)
@@ -77,7 +81,6 @@ func polygon(sides int, points []ExtrusionPoint, closed bool) modeling.Mesh {
 	for i, p := range points {
 		if p.UV == nil {
 			validUVs = false
-			break
 		}
 
 		dir := pointDirections[i]

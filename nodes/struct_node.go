@@ -1,7 +1,7 @@
 package nodes
 
 import (
-	"log"
+	"fmt"
 
 	"github.com/EliCDavis/polyform/refutil"
 )
@@ -110,14 +110,28 @@ func (tn StructNode[T]) Version() int {
 }
 
 func (tn StructNode[T]) Dependencies() []NodeDependency {
-	data := refutil.FieldValuesOfType[ReferencesNode](tn.processir)
-
 	output := make([]NodeDependency, 0)
-	for key, val := range data {
+
+	basicData := refutil.FieldValuesOfType[ReferencesNode](tn.processir)
+	for key, val := range basicData {
 		output = append(output, StructNodeDependency{
 			name: key,
 			dep:  val.Node(),
 		})
+	}
+
+	arrayData := refutil.FieldValuesOfTypeInArray[ReferencesNode](tn.processir)
+	for key, field := range arrayData {
+		for i, e := range field {
+			if e == nil {
+				continue
+			}
+
+			output = append(output, StructNodeDependency{
+				name: fmt.Sprintf("%s.%d", key, i),
+				dep:  e.Node(),
+			})
+		}
 	}
 	return output
 }
@@ -133,7 +147,6 @@ func (tn *StructNode[T]) process() {
 	// tn.value, tn.err = tn.transform(tn.in)
 	tn.value, tn.err = tn.processir.Process()
 	tn.version++
-	log.Printf("[%p] %s: %d", tn, tn.Name(), tn.version)
 	tn.updateUsedDependencyVersions()
 }
 
