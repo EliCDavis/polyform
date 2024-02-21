@@ -20,7 +20,7 @@ type CliParameterNodeConfig[T any] struct {
 	value    *T
 }
 
-type ParameterNode[T comparable] struct {
+type ParameterNode[T any] struct {
 	Name         string
 	DefaultValue T
 	CLI          *CliParameterNodeConfig[T]
@@ -45,9 +45,9 @@ func (pn *ParameterNode[T]) ApplyJsonMessage(msg json.RawMessage) (bool, error) 
 		return false, err
 	}
 
-	if pn.appliedProfile != nil && val == *pn.appliedProfile {
-		return false, nil
-	}
+	// if pn.appliedProfile != nil && val == *pn.appliedProfile {
+	// 	return false, nil
+	// }
 
 	pn.version++
 	pn.appliedProfile = &val

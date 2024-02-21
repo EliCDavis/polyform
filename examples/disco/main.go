@@ -157,7 +157,7 @@ func main() {
 
 	cushionInset := &generator.ParameterNode[float64]{
 		Name:         "Cushion/Inset",
-		DefaultValue: .1,
+		DefaultValue: .05,
 	}
 
 	tableHeight := &generator.ParameterNode[float64]{
@@ -174,7 +174,7 @@ func main() {
 
 	cushionThickness := &generator.ParameterNode[float64]{
 		Name:         "Cushion/Thickness",
-		DefaultValue: .2,
+		DefaultValue: .1,
 	}
 
 	cushion := meshops.TranslateAttribute3DNode{
@@ -320,7 +320,7 @@ func main() {
 			},
 			Columns: &generator.ParameterNode[int]{
 				Name:         "Ball/Columns",
-				DefaultValue: 14,
+				DefaultValue: 24,
 			},
 			Color: &generator.ParameterNode[coloring.WebColor]{
 				Name:         "Ball/Color",

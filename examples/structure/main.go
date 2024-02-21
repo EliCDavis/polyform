@@ -1,25 +1,22 @@
 package main
 
 import (
-	"image"
 	"image/color"
 	"math"
 	"math/rand"
 	"time"
 
 	"github.com/EliCDavis/polyform/drawing/coloring"
-	"github.com/EliCDavis/polyform/drawing/texturing"
-	"github.com/EliCDavis/polyform/drawing/texturing/normals"
 	"github.com/EliCDavis/polyform/formats/gltf"
 	"github.com/EliCDavis/polyform/generator"
 	"github.com/EliCDavis/polyform/generator/room"
 	"github.com/EliCDavis/polyform/math/chance"
-	"github.com/EliCDavis/polyform/math/noise"
 	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/extrude"
 	"github.com/EliCDavis/polyform/modeling/meshops"
 	"github.com/EliCDavis/polyform/modeling/primitives"
+	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
 )
@@ -199,21 +196,40 @@ func PipeMaterial(seed *rand.Rand) *gltf.PolyformMaterial {
 	}
 }
 
-func Pipe(params generator.GroupParameter) []gltf.PolyformModel {
+type PipeNode struct {
+	nodes.StructData[generator.Artifact]
 
+	Positions nodes.NodeOutput[[]vector3.Float64]
+
+	NumberOfShelfs nodes.NodeOutput[int]
+	ShelfSpacing   nodes.NodeOutput[float64]
+	ShelfWidth     nodes.NodeOutput[float64]
+	LegSpacing     nodes.NodeOutput[float64]
+
+	PipeResolution    nodes.NodeOutput[int]
+	PipeMinimumRadius nodes.NodeOutput[float64]
+	PipeMaximumRadius nodes.NodeOutput[float64]
+
+	LegWidth         nodes.NodeOutput[float64]
+	LegHeight        nodes.NodeOutput[float64]
+	FoundationWidth  nodes.NodeOutput[float64]
+	FoundationHeight nodes.NodeOutput[float64]
+}
+
+func (p *PipeNode) Out() nodes.NodeOutput[generator.Artifact] {
+	return nodes.StructNodeOutput[generator.Artifact]{Definition: p}
+}
+
+func (p PipeNode) Process() (generator.Artifact, error) {
 	gltfModels := make([]gltf.PolyformModel, 0)
 
-	pipeParams := params.Group("Pipes")
-	rackParams := params.Group("Rack")
-	legParams := rackParams.Group("Leg")
-
-	pipeSides := pipeParams.Int("Sides")
-	legWidth := legParams.Float64("Width")
+	pipeSides := p.PipeResolution.Data()
+	legWidth := p.LegWidth.Data()
 
 	randSeed := rand.New(rand.NewSource(time.Now().Unix()))
 	radius := chance.NewRange1D(
-		pipeParams.Float64("Min Radius"),
-		pipeParams.Float64("Max Radius"),
+		p.PipeMinimumRadius.Data(),
+		p.PipeMaximumRadius.Data(),
 		randSeed,
 	)
 
@@ -223,19 +239,19 @@ func Pipe(params generator.GroupParameter) []gltf.PolyformModel {
 		randSeed,
 	)
 
-	path := rackParams.Vector3Array("Positions")
+	path := p.Positions.Data()
 
-	legHeight := legParams.Float64("Height")
-	numShelfs := rackParams.Int("Number of Shelfs")
-	shelfSpacing := rackParams.Float64("Shelf Spacing")
+	legHeight := p.LegHeight.Data()
+	numShelfs := p.NumberOfShelfs.Data()
+	shelfSpacing := p.ShelfSpacing.Data()
 
 	shelfHeights := make([]float64, numShelfs)
 	for i := 0; i < numShelfs; i++ {
 		shelfHeights[i] = legHeight - 0.5 - (float64(i) * shelfSpacing)
 	}
 
-	legSpacing := rackParams.Float64("Leg Spacing")
-	shelfWidth := rackParams.Float64("Shelf Width")
+	legSpacing := p.LegSpacing.Data()
+	shelfWidth := p.ShelfWidth.Data()
 
 	innerRackWidth := legSpacing - legWidth
 
@@ -277,8 +293,8 @@ func Pipe(params generator.GroupParameter) []gltf.PolyformModel {
 
 	rack := Rack{
 		Leg: RackLeg{
-			FoundationHeight: legParams.Float64("Foundation Height"),
-			FoundationWidth:  legParams.Float64("Foundation Width"),
+			FoundationHeight: p.FoundationHeight.Data(),
+			FoundationWidth:  p.FoundationWidth.Data(),
 
 			Height: legHeight,
 			Width:  legWidth,
@@ -310,7 +326,11 @@ func Pipe(params generator.GroupParameter) []gltf.PolyformModel {
 		},
 	})
 
-	return gltfModels
+	return generator.GltfArtifact{
+		Scene: gltf.PolyformScene{
+			Models: gltfModels,
+		},
+	}, nil
 }
 
 func main() {
@@ -335,154 +355,123 @@ func main() {
 			Background: coloring.WebColor{R: 0x9f, G: 0xb0, B: 0xc1, A: 255},
 			Lighting:   coloring.WebColor{R: 0xff, G: 0xd8, B: 0x94, A: 255},
 		},
-		Generator: &generator.Generator{
-			Parameters: &generator.GroupParameter{
-				Parameters: []generator.Parameter{
-					&generator.GroupParameter{
-						Name: "Pipes",
-						Parameters: []generator.Parameter{
-							&generator.FloatParameter{
-								Name:         "Min Radius",
-								DefaultValue: 0.05,
-							},
+		Producers: map[string]nodes.NodeOutput[generator.Artifact]{
+			"pipe-normal.png": generator.ImageArtifactNode((&PipeNormalsNode{
+				BlurIterations: &generator.ParameterNode[int]{
+					Name:         "Pipe Normal/Blur Iterations",
+					DefaultValue: 7,
+				},
 
-							&generator.FloatParameter{
-								Name:         "Max Radius",
-								DefaultValue: 0.15,
-							},
-
-							&generator.IntParameter{
-								Name:         "Sides",
-								DefaultValue: 16,
-							},
-						},
+				LineCount: &generator.ParameterNode[int]{
+					Name:         "Pipe Normal/Line Count",
+					DefaultValue: 3,
+				},
+				LineWidth: &generator.ParameterNode[float64]{
+					Name:         "Pipe Normal/Line Width",
+					DefaultValue: 7,
+				},
+				BoltCount: &generator.ParameterNode[int]{
+					Name:         "Pipe Normal/Bolt Count",
+					DefaultValue: 7,
+				},
+				BoltRadius: &generator.ParameterNode[float64]{
+					Name:         "Pipe Normal/Bolt Radius",
+					DefaultValue: 6.,
+				},
+			}).Out()),
+			"pipe-mr.png": (&MetallicRoughnessNode{
+				Octaves: &generator.ParameterNode[int]{
+					Name:         "Pipe Metallic/Noise Octaves",
+					DefaultValue: 3,
+				},
+				MinimumRoughness: &generator.ParameterNode[float64]{
+					Name:         "Pipe Metallic/Minimum Roughness",
+					DefaultValue: 0.2,
+				},
+				MaximumRoughness: &generator.ParameterNode[float64]{
+					Name:         "Pipe Metallic/Maximum Roughness",
+					DefaultValue: 0.5,
+				},
+			}).Out(),
+			"ibeam-mr.png": (&MetallicRoughnessNode{
+				Octaves: &generator.ParameterNode[int]{
+					Name:         "Pipe Metallic/Noise Octaves",
+					DefaultValue: 3,
+				},
+				MinimumRoughness: &generator.ParameterNode[float64]{
+					Name:         "Pipe Metallic/Minimum Roughness",
+					DefaultValue: 0.4,
+				},
+				MaximumRoughness: &generator.ParameterNode[float64]{
+					Name:         "Pipe Metallic/Maximum Roughness",
+					DefaultValue: 0.7,
+				},
+			}).Out(),
+			"ibeam-normal.png": generator.ImageArtifactNode((&PerlinNoiseNormalsNode{
+				Octaves: &generator.ParameterNode[int]{
+					Name:         "IBeam Normal/Noise Octaves",
+					DefaultValue: 3,
+				},
+				BlurIterations: &generator.ParameterNode[int]{
+					Name:         "IBeam Normal/Blur Iterations",
+					DefaultValue: 5,
+				},
+			}).Out()),
+			"structure.glb": (&PipeNode{
+				PipeMinimumRadius: &generator.ParameterNode[float64]{
+					Name:         "Pipe/Minimum Radius",
+					DefaultValue: 0.05,
+				},
+				PipeMaximumRadius: &generator.ParameterNode[float64]{
+					Name:         "Pipe/Maximum Radius",
+					DefaultValue: 0.15,
+				},
+				PipeResolution: &generator.ParameterNode[int]{
+					Name:         "Pipe/Sides",
+					DefaultValue: 16,
+				},
+				LegHeight: &generator.ParameterNode[float64]{
+					Name:         "Leg/Height",
+					DefaultValue: 8,
+				},
+				LegWidth: &generator.ParameterNode[float64]{
+					Name:         "Leg Width",
+					DefaultValue: 0.5,
+				},
+				FoundationHeight: &generator.ParameterNode[float64]{
+					Name:         "Leg/Foundation Height",
+					DefaultValue: 0.1,
+				},
+				FoundationWidth: &generator.ParameterNode[float64]{
+					Name:         "Leg/Foundation Width",
+					DefaultValue: 1,
+				},
+				LegSpacing: &generator.ParameterNode[float64]{
+					Name:         "Rack/Leg Spacing",
+					DefaultValue: 2.,
+				},
+				NumberOfShelfs: &generator.ParameterNode[int]{
+					Name:         "Rack/Number of Shelfs",
+					DefaultValue: 3,
+				},
+				ShelfWidth: &generator.ParameterNode[float64]{
+					Name:         "Rack/Shelf Width",
+					DefaultValue: .2,
+				},
+				ShelfSpacing: &generator.ParameterNode[float64]{
+					Name:         "Rack/Shelf Spacing",
+					DefaultValue: 0.5,
+				},
+				Positions: &generator.ParameterNode[[]vector3.Float64]{
+					Name: "Positions",
+					DefaultValue: []vector3.Vector[float64]{
+						vector3.New(4*0., 0., 0.),
+						vector3.New(4*1., 0., 0.),
+						vector3.New(4*2., 0., 4.),
+						vector3.New(4*3., 0., 4.),
 					},
-					&generator.GroupParameter{
-						Name: "Rack",
-						Parameters: []generator.Parameter{
-							&generator.GroupParameter{
-								Name: "Leg",
-								Parameters: []generator.Parameter{
-									&generator.FloatParameter{
-										Name:         "Height",
-										DefaultValue: 8,
-									},
-									&generator.FloatParameter{
-										Name:         "Width",
-										DefaultValue: 0.5,
-									},
-
-									&generator.FloatParameter{
-										Name:         "Foundation Height",
-										DefaultValue: 0.1,
-									},
-									&generator.FloatParameter{
-										Name:         "Foundation Width",
-										DefaultValue: 1.0,
-									},
-								},
-							},
-
-							&generator.FloatParameter{
-								Name:         "Leg Spacing",
-								DefaultValue: 2.,
-							},
-
-							&generator.IntParameter{
-								Name:         "Number of Shelfs",
-								DefaultValue: 3,
-							},
-
-							&generator.FloatParameter{
-								Name:         "Shelf Width",
-								DefaultValue: 0.2,
-							},
-
-							&generator.FloatParameter{
-								Name:         "Shelf Spacing",
-								DefaultValue: 0.5,
-							},
-							&generator.VectorArrayParameter{
-								Name: "Positions",
-								DefaultValue: []vector3.Vector[float64]{
-									vector3.New(4*0., 0., 0.),
-									vector3.New(4*1., 0., 0.),
-									vector3.New(4*2., 0., 4.),
-									vector3.New(4*3., 0., 4.),
-								},
-							},
-						},
-					},
 				},
-			},
-			Producers: map[string]generator.Producer{
-				"structure.glb": func(c *generator.Context) (generator.Artifact, error) {
-					return generator.GltfArtifact{
-						Scene: gltf.PolyformScene{
-							Models: Pipe(*c.Parameters),
-						},
-					}, nil
-				},
-				"pipe-mr.png": func(c *generator.Context) (generator.Artifact, error) {
-					dim := 256
-					n := noise.NewTilingNoise(dim, 1/64., 2)
-					img := image.NewRGBA(image.Rect(0, 0, dim, dim))
-
-					for x := 0; x < dim; x++ {
-						for y := 0; y < dim; y++ {
-							val := n.Noise(x, y)
-							p := (val * 128) + 128
-							p = 255 - (p * 0.75)
-
-							img.Set(x, y, color.RGBA{
-								R: 0,
-								G: 50 + byte(p/2.), //roughness (0-smooth, 1-rough)
-								B: 255,             //metallness
-								A: 255,
-							})
-						}
-					}
-
-					return generator.ImageArtifact{
-						Image: img,
-					}, nil
-				},
-				"ibeam-normal.png": func(c *generator.Context) (generator.Artifact, error) {
-					return generator.ImageArtifact{
-						Image: ibeamNormalImage(),
-					}, nil
-				},
-				"pipe-normal.png": func(c *generator.Context) (generator.Artifact, error) {
-					return generator.ImageArtifact{
-						Image: pipeNormalImage(),
-					}, nil
-				},
-				"ibeam-mr.png": func(c *generator.Context) (generator.Artifact, error) {
-					dim := 256
-					n := noise.NewTilingNoise(dim, 1/64., 3)
-					img := image.NewRGBA(image.Rect(0, 0, dim, dim))
-
-					for x := 0; x < dim; x++ {
-						for y := 0; y < dim; y++ {
-							val := n.Noise(x, y)
-							p := (val * 128) + 128
-
-							p = 255 - (p * 0.75)
-
-							img.Set(x, y, color.RGBA{
-								R: 0,
-								G: 70 + byte(p/3.), //roughness (0-smooth, 1-rough)
-								B: 255,             //metallness
-								A: 255,
-							})
-						}
-					}
-
-					return generator.ImageArtifact{
-						Image: img,
-					}, nil
-				},
-			},
+			}).Out(),
 		},
 	}
 
@@ -490,83 +479,4 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-}
-
-func ibeamNormalImage() image.Image {
-	dim := 256
-	img := image.NewRGBA(image.Rect(0, 0, dim, dim))
-	// normals.Fill(img)
-
-	n := noise.NewTilingNoise(256, 1/64., 3)
-
-	for x := 0; x < dim; x++ {
-		for y := 0; y < dim; y++ {
-			val := n.Noise(x, y)
-			p := (val * 128) + 128
-
-			img.Set(x, y, color.RGBA{
-				R: byte(p), // byte(len * 255),
-				G: byte(p),
-				B: byte(p),
-				A: 255,
-			})
-		}
-	}
-
-	return texturing.BoxBlurNTimes(texturing.ToNormal(img), 5)
-}
-
-func pipeNormalImage() image.Image {
-	dim := 256
-	img := image.NewRGBA(image.Rect(0, 0, dim, dim))
-	// normals.Fill(img)
-
-	n := noise.NewTilingNoise(256, 1/64., 3)
-
-	for x := 0; x < dim; x++ {
-		for y := 0; y < dim; y++ {
-			val := n.Noise(x, y)
-			p := (val * 128) + 128
-
-			img.Set(x, y, color.RGBA{
-				R: byte(p), // byte(len * 255),
-				G: byte(p),
-				B: byte(p),
-				A: 255,
-			})
-		}
-	}
-
-	img = texturing.ToNormal(img)
-
-	bolts := 7
-	boltRadius := 6.
-	boltInc := float64(dim) / float64(bolts)
-	halfBoltInc := boltInc / 2
-
-	lines := 3
-	lineWidth := 7.
-	lineInc := float64(dim) / float64(lines)
-	halfLineInc := lineInc / 2
-	for lineIndex := 0; lineIndex < lines; lineIndex++ {
-		l := (lineInc * float64(lineIndex)) + halfLineInc
-		normals.Line{
-			Start:           vector2.New(0., l),
-			End:             vector2.New(float64(dim), l),
-			Width:           lineWidth,
-			NormalDirection: normals.Additive,
-		}.Round(img)
-
-		for boltIndex := 0; boltIndex < bolts; boltIndex++ {
-			b := (boltInc * float64(boltIndex)) + halfBoltInc
-
-			normals.Sphere{
-				Center:    vector2.New(b, l-lineWidth-boltRadius-(boltRadius)),
-				Radius:    boltRadius,
-				Direction: normals.Additive,
-			}.Draw(img)
-		}
-	}
-
-	return texturing.BoxBlurNTimes(img, 5)
 }
