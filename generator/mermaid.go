@@ -3,7 +3,12 @@ package generator
 import (
 	"fmt"
 	"io"
+	"strings"
 )
+
+func sanitizeMermaidName(in string) string {
+	return strings.ReplaceAll(strings.ReplaceAll(in, "[", "."), "]", "")
+}
 
 func WriteMermaid(a App, out io.Writer) error {
 
@@ -14,14 +19,14 @@ func WriteMermaid(a App, out io.Writer) error {
 	for id, n := range schema.Nodes {
 
 		if len(n.Dependencies) > 0 {
-			fmt.Fprintf(out, "\tsubgraph %s[%s]\n\tdirection LR\n", id, n.Name)
+			fmt.Fprintf(out, "\tsubgraph %s[%s]\n\tdirection LR\n", id, sanitizeMermaidName(n.Name))
 			fmt.Fprintf(out, "\tsubgraph %s-In[%s]\n\tdirection TB\n", id, "Input")
 		} else {
-			fmt.Fprintf(out, "\t%s[%s]\n", id, n.Name)
+			fmt.Fprintf(out, "\t%s[%s]\n", id, sanitizeMermaidName(n.Name))
 		}
 
 		for depIndex, dep := range n.Dependencies {
-			fmt.Fprintf(out, "\t%s-%d([%s])\n", id, depIndex, dep.Name)
+			fmt.Fprintf(out, "\t%s-%d([%s])\n", id, depIndex, sanitizeMermaidName(dep.Name))
 		}
 
 		if len(n.Dependencies) > 0 {

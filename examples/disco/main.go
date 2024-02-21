@@ -3,18 +3,15 @@ package main
 import (
 	"image"
 	"image/color"
-	"math"
 
 	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/formats/gltf"
 	"github.com/EliCDavis/polyform/generator"
-	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/polyform/modeling"
-	"github.com/EliCDavis/polyform/modeling/extrude"
 	"github.com/EliCDavis/polyform/modeling/meshops"
-	"github.com/EliCDavis/polyform/modeling/primitives"
 	"github.com/EliCDavis/polyform/modeling/repeat"
-	"github.com/EliCDavis/vector/vector2"
+	"github.com/EliCDavis/polyform/nodes"
+	"github.com/EliCDavis/polyform/nodes/vectorn/vector3n"
 	"github.com/EliCDavis/vector/vector3"
 	"github.com/fogleman/gg"
 )
@@ -35,754 +32,327 @@ func texture(metal float64, roughness float64) image.Image {
 	return ctx.Image()
 }
 
-func Plate(params generator.GroupParameter) modeling.Mesh {
-	return primitives.Cylinder{
-		Sides:  params.Int("Resolution"),
-		Height: params.Float64("Thickness"),
-		Radius: params.Float64("Radius"),
-		UVs: &primitives.CylinderUVs{
-			Top: &primitives.CircleUVs{
-				Center: vector2.New(0.5, 0.5),
-				Radius: 0.5,
-			},
-			Bottom: &primitives.CircleUVs{
-				Center: vector2.New(0.5, 0.5),
-				Radius: 0.5,
-			},
-			Side: &primitives.StripUVs{
-				Start: vector2.New(0.5, 0.),
-				End:   vector2.New(0.5, 1.),
-				Width: 0.5,
-			},
-		},
-	}.ToMesh()
+type DiscoSceneNode struct {
+	nodes.StructData[generator.Artifact]
+
+	People nodes.NodeOutput[int]
+
+	DiscoBall nodes.NodeOutput[[]gltf.PolyformModel]
+
+	Table          nodes.NodeOutput[gltf.PolyformModel]
+	TableHeight    nodes.NodeOutput[float64]
+	TableRadius    nodes.NodeOutput[float64]
+	TableThickness nodes.NodeOutput[float64]
+
+	Chairs     nodes.NodeOutput[modeling.Mesh]
+	ChairColor nodes.NodeOutput[coloring.WebColor]
+
+	Cushion      nodes.NodeOutput[modeling.Mesh]
+	CushionColor nodes.NodeOutput[coloring.WebColor]
+
+	Plates         nodes.NodeOutput[modeling.Mesh]
+	PlateColor     nodes.NodeOutput[coloring.WebColor]
+	PlateThickness nodes.NodeOutput[float64]
 }
 
-func Cup(params generator.GroupParameter) modeling.Mesh {
+func (cn *DiscoSceneNode) Out() nodes.NodeOutput[generator.Artifact] {
+	return &nodes.StructNodeOutput[generator.Artifact]{Definition: cn}
+}
 
-	h := params.Float64("Thickness") * 30
-	lip := 0.1
-	radius := 1.
+func (dsn DiscoSceneNode) Process() (generator.Artifact, error) {
+	chairs := dsn.Chairs.Data()
 
-	points := []extrude.ExtrusionPoint{
+	models := []gltf.PolyformModel{
+		dsn.Table.Data(),
 		{
-			Point:     vector3.New(0., 0., 0.),
-			Thickness: 0,
+			Name: "Chair Frames",
+			Mesh: chairs,
+			Material: &gltf.PolyformMaterial{
+				PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
+					MetallicFactor:  0,
+					RoughnessFactor: 1,
+					BaseColorFactor: dsn.ChairColor.Data(),
+				},
+			},
 		},
 		{
-			Point:     vector3.New(0., 0.01, 0.),
-			Thickness: radius,
+			Name: "Chair Cushions",
+			Mesh: dsn.Cushion.Data(),
+			Material: &gltf.PolyformMaterial{
+				PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
+					MetallicFactor:  0,
+					RoughnessFactor: 1,
+					BaseColorFactor: dsn.CushionColor.Data(),
+				},
+			},
 		},
 		{
-			Point:     vector3.New(0., h, 0.),
-			Thickness: radius,
-		},
-		{
-			Point:     vector3.New(0., h+0.1, 0.),
-			Thickness: radius - lip,
-		},
-		{
-			Point:     vector3.New(0., h-0.2, 0.),
-			Thickness: radius - lip - lip,
+			Name: "Plates",
+			Mesh: dsn.Plates.Data().Translate(vector3.New(
+				0.,
+				dsn.TableHeight.Data()+
+					(dsn.TableThickness.Data()/2)+
+					(dsn.PlateThickness.Data()/2),
+				0.,
+			)),
+			Material: &gltf.PolyformMaterial{
+				Name: "Plate Mat",
+				PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
+					BaseColorFactor: dsn.PlateColor.Data(),
+				},
+				// PbrSpecularGlossiness: &gltf.PolyformPbrSpecularGlossiness{
+				// 	GlossinessFactor: 1,
+				// 	DiffuseFactor:    color.RGBA{R: 0, G: 0, B: 0, A: 125},
+				// 	SpecularFactor:   color.RGBA{R: 0, G: 0, B: 0, A: 125},
+				// },
+				Extensions: []gltf.MaterialExtension{
+					&gltf.PolyformTransmission{
+						TransmissionFactor: .8,
+					},
+				},
+			},
 		},
 	}
 
-	return extrude.Polygon(params.Int("Resolution"), points).Transform(
-		meshops.SmoothNormalsTransformer{},
-	)
-}
-
-func Chair(params generator.GroupParameter) modeling.Mesh {
-
-	chairHeight := params.Float64("Height")
-	chairWidth := params.Float64("Width")
-	chairLength := params.Float64("Length")
-
-	halfHeight := chairHeight / 2
-	halfWidth := chairWidth / 2
-	halfLength := params.Float64("Length") / 2
-
-	// LEGS ===================================================================
-
-	legParams := params.Group("Leg")
-	legRadius := legParams.Float64("Radius")
-	legInset := legParams.Float64("Inset")
-
-	leg := primitives.Cylinder{
-		Sides:  8,
-		Height: params.Float64("Height"),
-		Radius: legRadius,
-	}.ToMesh()
-
-	legRadiusAndInset := legRadius + legInset
-
-	legSupportFrontBackRotation := quaternion.FromTheta(math.Pi/2, vector3.Forward[float64]())
-	legFrontBackSupport := primitives.Cylinder{
-		Sides:  8,
-		Height: chairWidth - (legRadiusAndInset * 2),
-		Radius: legRadius / 2,
-	}.ToMesh().Transform(
-		meshops.RotateAttribute3DTransformer{
-			Attribute: modeling.PositionAttribute,
-			Amount:    legSupportFrontBackRotation,
-		},
-		meshops.RotateAttribute3DTransformer{
-			Attribute: modeling.NormalAttribute,
-			Amount:    legSupportFrontBackRotation,
-		},
-	)
-
-	legSupportLeftRightRotation := quaternion.FromTheta(math.Pi/2, vector3.Right[float64]())
-	legLeftRightSupport := primitives.Cylinder{
-		Sides:  8,
-		Height: chairLength - (legRadiusAndInset * 2),
-		Radius: legRadius / 2,
-	}.ToMesh().Transform(
-		meshops.RotateAttribute3DTransformer{
-			Attribute: modeling.PositionAttribute,
-			Amount:    legSupportLeftRightRotation,
-		},
-		meshops.RotateAttribute3DTransformer{
-			Attribute: modeling.NormalAttribute,
-			Amount:    legSupportLeftRightRotation,
-		},
-	)
-
-	// BACK ===================================================================
-
-	backParams := params.Group("Back")
-	backHeight := backParams.Float64("Height")
-	halfBackHeight := backHeight / 2
-
-	backPeg := primitives.Cylinder{
-		Sides:  8,
-		Height: backHeight,
-		Radius: legRadius,
-	}.ToMesh()
-
-	backSupportRotation := quaternion.FromTheta(math.Pi/2, vector3.Forward[float64]())
-	backSupport := primitives.Cylinder{
-		Sides:  8,
-		Height: chairWidth - (legRadiusAndInset * 2),
-		Radius: legRadius / 1.1,
-	}.ToMesh().Transform(
-		meshops.RotateAttribute3DTransformer{
-			Attribute: modeling.PositionAttribute,
-			Amount:    backSupportRotation,
-		},
-		meshops.RotateAttribute3DTransformer{
-			Attribute: modeling.NormalAttribute,
-			Amount:    backSupportRotation,
-		},
-	)
-
-	backSupportPegHeight := backHeight * backParams.Float64("Backing Piece Height")
-	backSupportPeg := primitives.Cylinder{
-		Sides:  8,
-		Height: backSupportPegHeight,
-		Radius: legRadius / 1.4,
-	}.ToMesh()
-
-	backSupportPegs := repeat.LineExlusive(
-		backSupportPeg,
-		vector3.New(halfWidth-legRadiusAndInset, 0, halfLength-legRadiusAndInset),
-		vector3.New(-halfWidth+legRadiusAndInset, 0, halfLength-legRadiusAndInset),
-		backParams.Int("Backing Piece Pegs"),
-	)
-
-	return primitives.Cube{
-		Height: params.Float64("Thickness"),
-		Width:  chairWidth,
-		Depth:  params.Float64("Length"),
-		UVs:    primitives.DefaultCubeUVs(),
-	}.
-		UnweldedQuads().
-		Translate(vector3.New(0, chairHeight, 0)).
-		// LEGS ===============================================================
-		Append(leg.Translate(
-			vector3.New(-halfWidth+legRadiusAndInset, halfHeight, -halfLength+legRadiusAndInset),
-		)).
-		Append(leg.Translate(
-			vector3.New(-halfWidth+legRadiusAndInset, halfHeight, halfLength-legRadiusAndInset),
-		)).
-		Append(leg.Translate(
-			vector3.New(halfWidth-legRadiusAndInset, halfHeight, -halfLength+legRadiusAndInset),
-		)).
-		Append(leg.Translate(
-			vector3.New(halfWidth-legRadiusAndInset, halfHeight, halfLength-legRadiusAndInset),
-		)).
-
-		// LEG SUPPORT ========================================================
-		Append(legFrontBackSupport.Translate(
-			vector3.New(0, chairHeight*0.85, halfLength-legRadiusAndInset),
-		)).
-		Append(legFrontBackSupport.Translate(
-			vector3.New(0, chairHeight*0.6, -halfLength+legRadiusAndInset),
-		)).
-		Append(legFrontBackSupport.Translate(
-			vector3.New(0, chairHeight*0.3, -halfLength+legRadiusAndInset),
-		)).
-		Append(legLeftRightSupport.Translate(
-			vector3.New(-halfWidth+legRadiusAndInset, chairHeight*0.45, 0),
-		)).
-		Append(legLeftRightSupport.Translate(
-			vector3.New(-halfWidth+legRadiusAndInset, chairHeight*0.7, 0),
-		)).
-		Append(legLeftRightSupport.Translate(
-			vector3.New(halfWidth-legRadiusAndInset, chairHeight*0.45, 0),
-		)).
-		Append(legLeftRightSupport.Translate(
-			vector3.New(halfWidth-legRadiusAndInset, chairHeight*0.7, 0),
-		)).
-
-		// BACK ===============================================================
-		Append(backPeg.Translate(
-			vector3.New(halfWidth-legRadiusAndInset, chairHeight+halfBackHeight, halfLength-legRadiusAndInset),
-		)).
-		Append(backPeg.Translate(
-			vector3.New(-halfWidth+legRadiusAndInset, chairHeight+halfBackHeight, halfLength-legRadiusAndInset),
-		)).
-		Append(backSupport.Translate(
-			vector3.New(0, chairHeight+halfBackHeight, halfLength-legRadiusAndInset),
-		)).
-		Append(backSupport.Translate(
-			vector3.New(0, chairHeight+halfBackHeight+backSupportPegHeight, halfLength-legRadiusAndInset),
-		)).
-		Append(backSupportPegs.Translate(
-			vector3.New(0, chairHeight+halfBackHeight+(backSupportPegHeight/2), 0),
-		)).
-		Append(backSupport.Translate(
-			vector3.New(0, chairHeight+(halfBackHeight*0.8), halfLength-legRadiusAndInset),
-		)).
-		Append(backSupport.Translate(
-			vector3.New(0, chairHeight+(halfBackHeight*0.55), halfLength-legRadiusAndInset),
-		))
-
-}
-
-func DiscoScene(c *generator.Context) (generator.Artifact, error) {
-	ballParams := c.Parameters.Group("Disco Ball")
-	discoballRadius := ballParams.Float64("radius")
-
-	tableParams := c.Parameters.Group("Table")
-
-	discoball := primitives.
-		UVSphereUnwelded(
-			discoballRadius,
-			ballParams.Int("rows"),
-			ballParams.Int("column"),
-		).Transform(meshops.FlatNormalsTransformer{})
-
-	discoBallHeight := vector3.Up[float64]().Scale(ballParams.Float64("height"))
-	discoNormals := discoball.Float3Attribute(modeling.NormalAttribute)
-
-	discoball = discoball.ModifyFloat3Attribute(
-		modeling.PositionAttribute,
-		func(i int, v vector3.Float64) vector3.Float64 {
-			return v.Add(discoNormals.At(i).Scale(ballParams.Float64("panel offset")))
-		}).
-		Append(primitives.UVSphere(
-			discoballRadius+(ballParams.Float64("panel offset")/2),
-			ballParams.Int("rows"),
-			ballParams.Int("column"),
-		)).
-		Translate(discoBallHeight)
-
-	discoballAttachment := // Base connecting ball to the rod
-		primitives.
-			Cylinder{
-			Sides:  15,
-			Height: 0.1,
-			Radius: 0.2,
-			UVs: &primitives.CylinderUVs{
-				Top: &primitives.CircleUVs{
-					Center: vector2.New(0.5, 0.5),
-					Radius: 0.5,
-				},
-				Bottom: &primitives.CircleUVs{
-					Center: vector2.New(0.5, 0.5),
-					Radius: 0.5,
-				},
-				Side: &primitives.StripUVs{
-					Start: vector2.New(0.5, 0.),
-					End:   vector2.New(0.5, 1.),
-					Width: 0.5,
-				},
-			},
-		}.ToMesh().
-			Translate(vector3.New(0, discoballRadius+ballParams.Float64("panel offset"), 0)).
-
-			// Rod that the ball is hanging from
-			Append(primitives.
-				Cylinder{
-				Sides:  4,
-				Height: 3,
-				Radius: 0.025,
-				UVs: &primitives.CylinderUVs{
-					Top: &primitives.CircleUVs{
-						Center: vector2.New(0.5, 0.5),
-						Radius: 0.5,
-					},
-					Bottom: &primitives.CircleUVs{
-						Center: vector2.New(0.5, 0.5),
-						Radius: 0.5,
-					},
-					Side: &primitives.StripUVs{
-						Start: vector2.New(0.5, 0.),
-						End:   vector2.New(0.5, 1.),
-						Width: 0.5,
-					},
-				},
-			}.ToMesh().
-				Translate(vector3.New(0., discoballRadius+ballParams.Float64("panel offset")+1.5, 0.)),
-			).
-			Translate(discoBallHeight)
-
-	chairParams := c.Parameters.Group("Chair")
-	chairs := repeat.Circle(
-		Chair(*chairParams),
-		c.Parameters.Int("People"),
-		tableParams.Float64("Radius")+chairParams.Float64("Table Spacing"),
-	)
-
-	cushionParams := chairParams.Group("Cushion")
-	cushionThickness := cushionParams.Float64("Thickness")
-	cushionColor := cushionParams.Color("Color")
-	cushionInset := cushionParams.Float64("Inset")
-
-	cushion := primitives.Cube{
-		Height: cushionThickness,
-		Width:  chairParams.Float64("Width") - cushionInset,
-		Depth:  chairParams.Float64("Length") - cushionInset,
-		UVs:    primitives.DefaultCubeUVs(),
-	}.UnweldedQuads().Translate(vector3.New(0., chairParams.Float64("Height")+(cushionThickness/2), 0.))
-
-	chairCushions := repeat.Circle(
-		cushion,
-		c.Parameters.Int("People"),
-		tableParams.Float64("Radius")+chairParams.Float64("Table Spacing"),
-	)
-
-	plateParams := c.Parameters.Group("Plate")
-	plates := repeat.Circle(
-		Plate(*plateParams),
-		c.Parameters.Int("People"),
-		tableParams.Float64("Radius")-plateParams.Float64("Table Inset")-plateParams.Float64("Radius"),
-	)
-
-	cups := repeat.Circle(
-		Cup(*plateParams),
-		c.Parameters.Int("People"),
-		tableParams.Float64("Radius")-plateParams.Float64("Table Inset")-plateParams.Float64("Radius"),
-	)
+	models = append(models, dsn.DiscoBall.Data()...)
 
 	return generator.GltfArtifact{
 		Scene: gltf.PolyformScene{
-			Models: []gltf.PolyformModel{
-				{
-					Name: "Disco Ball",
-					Mesh: discoball,
-					Material: &gltf.PolyformMaterial{
-						Name: "Disco Ball",
-						// Extras: map[string]any{
-						// 	"threejs-material": "phong",
-						// },
-						PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
-							MetallicFactor:  1,
-							RoughnessFactor: 0,
-							BaseColorFactor: ballParams.Color("Color"),
-							MetallicRoughnessTexture: &gltf.PolyformTexture{
-								URI: "metal.png",
-							},
-						},
-						Extensions: []gltf.MaterialExtension{
-							&gltf.PolyformPbrSpecularGlossiness{
-								GlossinessFactor: 1,
-								DiffuseFactor:    ballParams.Color("Color"),
-								SpecularFactor:   color.RGBA{R: 255, G: 255, B: 255, A: 255},
-							},
-						},
-					},
-				},
-				{
-					Name: "Disco Ball Attachment",
-					Mesh: discoballAttachment,
-					Material: &gltf.PolyformMaterial{
-						PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
-							MetallicFactor:  1,
-							RoughnessFactor: 0,
-							BaseColorFactor: color.Black,
-							MetallicRoughnessTexture: &gltf.PolyformTexture{
-								URI: "metal.png",
-							},
-						},
-					},
-				},
-				{
-					Name: "Chair Frames",
-					Mesh: chairs,
-					Material: &gltf.PolyformMaterial{
-						PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
-							MetallicFactor:  0,
-							RoughnessFactor: 1,
-							BaseColorFactor: chairParams.Color("Color"),
-						},
-					},
-				},
-				{
-					Name: "Chair Cushions",
-					Mesh: chairCushions,
-					Material: &gltf.PolyformMaterial{
-						PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
-							MetallicFactor:  0,
-							RoughnessFactor: 1,
-							BaseColorFactor: cushionColor,
-						},
-					},
-				},
-				{
-					Name: "Plates",
-					Mesh: plates.Translate(vector3.New(
-						0.,
-						tableParams.Float64("Height")+
-							(tableParams.Float64("Thickness")/2)+
-							(plateParams.Float64("Thickness")/2),
-						0.,
-					)),
-					Material: &gltf.PolyformMaterial{
-						Name: "Plate Mat",
-						PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
-							BaseColorFactor: plateParams.Color("Color"),
-						},
-						// PbrSpecularGlossiness: &gltf.PolyformPbrSpecularGlossiness{
-						// 	GlossinessFactor: 1,
-						// 	DiffuseFactor:    color.RGBA{R: 0, G: 0, B: 0, A: 125},
-						// 	SpecularFactor:   color.RGBA{R: 0, G: 0, B: 0, A: 125},
-						// },
-						Extensions: []gltf.MaterialExtension{
-							&gltf.PolyformTransmission{
-								TransmissionFactor: .8,
-							},
-						},
-					},
-				},
-				{
-					Name: "Cups",
-					Mesh: cups.Translate(vector3.New(
-						0.,
-						tableParams.Float64("Height")+
-							(tableParams.Float64("Thickness")/2)+
-							(plateParams.Float64("Thickness")),
-						0.,
-					)),
-					Material: &gltf.PolyformMaterial{
-						Name: "Cup Mat",
-						PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
-							// BaseColorFactor: plateParams.Color("Color"),
-							BaseColorFactor: color.RGBA{
-								R: 200,
-								G: 200,
-								B: 200,
-								// A: 10,
-								A: 255,
-							},
-							RoughnessFactor: 1,
-							MetallicFactor:  1,
-						},
-						// Extensions: []gltf.MaterialExtension{
-						// 	&gltf.PolyformSpecular{
-						// 		SpecularFactor: 1,
-						// 	},
-						// 	&gltf.PolyformTransmission{
-						// 		TransmissionFactor: 0.8,
-						// 	},
-						// 	&gltf.PolyformVolume{
-						// 		ThicknessFactor: 0.1,
-						// 	},
-						// 	&gltf.PolyformIndexOfRefraction{
-						// 		IOR: 1.5,
-						// 	},
-						// },
-					},
-				},
-				{
-					Name: "Table",
-					Mesh: primitives.Cylinder{
-						Sides:  tableParams.Int("Resolution"),
-						Height: tableParams.Float64("Thickness"),
-						Radius: tableParams.Float64("Radius"),
-						UVs: &primitives.CylinderUVs{
-							Top: &primitives.CircleUVs{
-								Center: vector2.New(0.5, 0.5),
-								Radius: 0.5,
-							},
-							Bottom: &primitives.CircleUVs{
-								Center: vector2.New(0.5, 0.5),
-								Radius: 0.5,
-							},
-							Side: &primitives.StripUVs{
-								Start: vector2.New(0.5, 0.),
-								End:   vector2.New(0.5, 1.),
-								Width: 0.5,
-							},
-						},
-					}.
-						ToMesh().
-						Translate(vector3.New(0., tableParams.Float64("Height"), 0.)).
-						Append(primitives.Cylinder{
-							Sides:  tableParams.Int("Resolution"),
-							Height: tableParams.Float64("Height"),
-							Radius: tableParams.Float64("Radius") / 8,
-							UVs: &primitives.CylinderUVs{
-								Top: &primitives.CircleUVs{
-									Center: vector2.New(0.5, 0.5),
-									Radius: 0.5,
-								},
-								Bottom: &primitives.CircleUVs{
-									Center: vector2.New(0.5, 0.5),
-									Radius: 0.5,
-								},
-								Side: &primitives.StripUVs{
-									Start: vector2.New(0.5, 0.),
-									End:   vector2.New(0.5, 1.),
-									Width: 0.5,
-								},
-							},
-						}.ToMesh().Translate(vector3.New(0., tableParams.Float64("Height")/2, 0.))),
-
-					Material: &gltf.PolyformMaterial{
-						PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
-							BaseColorFactor: tableParams.Color("Color"),
-							RoughnessFactor: 1,
-							MetallicRoughnessTexture: &gltf.PolyformTexture{
-								URI: "rough.png",
-							},
-						},
-					},
-				},
-			},
+			Models: models,
 		},
 	}, nil
 }
 
 func main() {
+
+	personCount := &generator.ParameterNode[int]{
+		Name:         "People",
+		DefaultValue: 6,
+	}
+
+	tableRadius := &generator.ParameterNode[float64]{
+		Name:         "Table/Radius",
+		DefaultValue: 3,
+	}
+
+	chairHeight := &generator.ParameterNode[float64]{
+		Name:         "Chair/Height",
+		DefaultValue: 1,
+	}
+
+	chairTableSpacing := &generator.ParameterNode[float64]{
+		Name:         "Table/Spacing From Table",
+		DefaultValue: .1,
+	}
+
+	chairWidth := &generator.ParameterNode[float64]{
+		Name:         "Chair/Width",
+		DefaultValue: 1.3,
+	}
+
+	chairLength := &generator.ParameterNode[float64]{
+		Name:         "Chair/Length",
+		DefaultValue: 1,
+	}
+
+	cushionInset := &generator.ParameterNode[float64]{
+		Name:         "Cushion/Inset",
+		DefaultValue: .1,
+	}
+
+	tableHeight := &generator.ParameterNode[float64]{
+		Name:         "Table/Height",
+		DefaultValue: 1.75,
+	}
+
+	chairPosition := (&nodes.Sum[float64]{
+		Values: []nodes.NodeOutput[float64]{
+			tableRadius,
+			chairTableSpacing,
+		},
+	}).Out()
+
+	cushionThickness := &generator.ParameterNode[float64]{
+		Name:         "Cushion/Thickness",
+		DefaultValue: .2,
+	}
+
+	cushion := meshops.TranslateAttribute3DNode{
+		Mesh: (&repeat.CircleNode{
+			Mesh: (&CushionNode{
+				Thickness: cushionThickness,
+				Width: (&nodes.Difference[float64]{
+					A: chairWidth,
+					B: cushionInset,
+				}).Out(),
+				Length: (&nodes.Difference[float64]{
+					A: chairLength,
+					B: cushionInset,
+				}).Out(),
+			}).Out(),
+			Times:  personCount,
+			Radius: chairPosition,
+		}).Out(),
+		Amount: (&vector3n.New[float64]{
+			Y: (&nodes.Sum[float64]{
+				Values: []nodes.NodeOutput[float64]{
+					chairHeight,
+					(&nodes.Divide[float64]{
+						Dividend: cushionThickness,
+						Divisor:  nodes.Value[float64](2),
+					}).Out(),
+				},
+			}).Out(),
+		}).Out(),
+	}
+
+	chairs := repeat.CircleNode{
+		Mesh: (&ChairNode{
+			Height: chairHeight,
+			Width:  chairWidth,
+			Length: chairLength,
+			Thickness: &generator.ParameterNode[float64]{
+				Name:         "Chair/Thickness",
+				DefaultValue: .1,
+			},
+			BackHeight: &generator.ParameterNode[float64]{
+				Name:         "Chair/BackHeight",
+				DefaultValue: 2,
+			},
+			BackingPieceHeight: &generator.ParameterNode[float64]{
+				Name:         "Chair/BackingPiece Hieght",
+				DefaultValue: .4,
+			},
+			BackingPieceHeightPegs: &generator.ParameterNode[int]{
+				Name:         "Chair/Backing Piece Height Pegs",
+				DefaultValue: 4,
+			},
+			LegRadius: &generator.ParameterNode[float64]{
+				Name:         "Chair/Leg Radius",
+				DefaultValue: .05,
+			},
+			LegInset: &generator.ParameterNode[float64]{
+				Name:         "Chair/Leg Inset",
+				DefaultValue: .1,
+			},
+		}).Out(),
+		Radius: chairPosition,
+		Times:  personCount,
+	}
+
+	plateRadius := &generator.ParameterNode[float64]{
+		Name:         "Plate/Radius",
+		DefaultValue: .3,
+	}
+
+	plateThickenss := &generator.ParameterNode[float64]{
+		Name:         "Plate/Thickness",
+		DefaultValue: .01,
+	}
+
+	plates := repeat.CircleNode{
+		Times: personCount,
+		Mesh: (&PlateNode{
+			Thickness: plateThickenss,
+			Radius:    plateRadius,
+			Resolution: &generator.ParameterNode[int]{
+				Name:         "Plate/Resolution",
+				DefaultValue: 20,
+			},
+		}).Out(),
+		Radius: (&nodes.Difference[float64]{
+			A: tableRadius,
+			B: (&nodes.Sum[float64]{
+				Values: []nodes.NodeOutput[float64]{
+					&generator.ParameterNode[float64]{
+						Name:         "Plate/Table Inset",
+						DefaultValue: 0.1,
+					},
+					plateRadius,
+				},
+			}).Out(),
+		}).Out(),
+	}
+
+	discoScene := DiscoSceneNode{
+		Plates:         plates.Out(),
+		PlateThickness: plateThickenss,
+		PlateColor: &generator.ParameterNode[coloring.WebColor]{
+			Name:         "Plate Color",
+			DefaultValue: coloring.WebColor{R: 225, G: 225, B: 225, A: 255},
+		},
+
+		TableRadius: tableRadius,
+		TableHeight: tableHeight,
+		TableThickness: &generator.ParameterNode[float64]{
+			Name:         "Table/Thickness",
+			DefaultValue: .1,
+		},
+
+		Chairs: chairs.Out(),
+		ChairColor: &generator.ParameterNode[coloring.WebColor]{
+			Name:         "Chair Color",
+			DefaultValue: coloring.WebColor{R: 0x21, G: 0x21, B: 0x21, A: 255},
+		},
+
+		Cushion: cushion.Out(),
+		CushionColor: &generator.ParameterNode[coloring.WebColor]{
+			Name:         "Cushion Color",
+			DefaultValue: coloring.WebColor{R: 225, G: 225, B: 225, A: 255},
+		},
+		People: personCount,
+		DiscoBall: (&DiscoBallNode{
+			Radius: &generator.ParameterNode[float64]{
+				Name:         "Ball/Radius",
+				DefaultValue: 1,
+			},
+			PanelOffset: &generator.ParameterNode[float64]{
+				Name:         "Ball/Offset",
+				DefaultValue: .1,
+			},
+			Height: &generator.ParameterNode[float64]{
+				Name:         "Ball/Height",
+				DefaultValue: 6,
+			},
+			Rows: &generator.ParameterNode[int]{
+				Name:         "Ball/Rows",
+				DefaultValue: 20,
+			},
+			Columns: &generator.ParameterNode[int]{
+				Name:         "Ball/Columns",
+				DefaultValue: 14,
+			},
+			Color: &generator.ParameterNode[coloring.WebColor]{
+				Name:         "Ball/Color",
+				DefaultValue: coloring.WebColor{R: 127, G: 127, B: 127, A: 255},
+			},
+		}).Out(),
+		Table: (&TableNode{
+			Radius: tableRadius,
+			Thickness: &generator.ParameterNode[float64]{
+				Name:         "Table/Thickness",
+				DefaultValue: .1,
+			},
+			Height: tableHeight,
+			Resolution: &generator.ParameterNode[int]{
+				Name:         "Table/Resolution",
+				DefaultValue: 20,
+			},
+			Color: &generator.ParameterNode[coloring.WebColor]{
+				Name:         "Table/Color",
+				DefaultValue: coloring.WebColor{R: 0xea, G: 0xba, B: 0x76, A: 255},
+			},
+		}).Out(),
+	}
+
 	app := generator.App{
 		Name:        "Woodland Disco Romance",
 		Version:     "1.0.0",
 		Description: "Applying color pallettes to a sample room",
-		Generator: &generator.Generator{
-			Parameters: &generator.GroupParameter{
-				Name: "Disco",
-				Parameters: []generator.Parameter{
-					&generator.IntParameter{
-						Name:         "People",
-						DefaultValue: 5,
-					},
-					&generator.GroupParameter{
-						Name: "Disco Ball",
-						Parameters: []generator.Parameter{
-							&generator.IntParameter{
-								Name:         "rows",
-								DefaultValue: 30,
-							},
-
-							&generator.IntParameter{
-								Name:         "column",
-								DefaultValue: 45,
-							},
-
-							&generator.FloatParameter{
-								Name:         "radius",
-								DefaultValue: 1,
-							},
-
-							&generator.FloatParameter{
-								Name:         "panel offset",
-								DefaultValue: 0.1,
-							},
-
-							&generator.FloatParameter{
-								Name:         "height",
-								DefaultValue: 7.5,
-							},
-
-							&generator.ColorParameter{
-								Name: "Color",
-								DefaultValue: coloring.WebColor{
-									R: 0xea,
-									G: 0xff,
-									B: 0xe0,
-									A: 255,
-								},
-							},
-						},
-					},
-					&generator.GroupParameter{
-						Name: "Table",
-						Parameters: []generator.Parameter{
-							&generator.FloatParameter{
-								Name:         "Radius",
-								DefaultValue: 4,
-							},
-							&generator.FloatParameter{
-								Name:         "Thickness",
-								DefaultValue: 0.1,
-							},
-							&generator.FloatParameter{
-								Name:         "Height",
-								DefaultValue: 3,
-							},
-							&generator.IntParameter{
-								Name:         "Resolution",
-								DefaultValue: 30,
-							},
-							&generator.ColorParameter{
-								Name: "Color",
-								DefaultValue: coloring.WebColor{
-									R: 0xd1,
-									G: 0xd1,
-									B: 0xd1,
-									A: 255,
-								},
-							},
-						},
-					},
-					&generator.GroupParameter{
-						Name: "Plate",
-						Parameters: []generator.Parameter{
-							&generator.FloatParameter{
-								Name:         "Radius",
-								DefaultValue: .5,
-							},
-							&generator.FloatParameter{
-								Name:         "Thickness",
-								DefaultValue: 0.03,
-							},
-							&generator.FloatParameter{
-								Name:         "Table Inset",
-								DefaultValue: .45,
-							},
-							&generator.IntParameter{
-								Name:         "Resolution",
-								DefaultValue: 30,
-							},
-							&generator.ColorParameter{
-								Name: "Color",
-								DefaultValue: coloring.WebColor{
-									R: 0x8a,
-									G: 0x8a,
-									B: 0x8a,
-									A: 255,
-								},
-							},
-						},
-					},
-					&generator.GroupParameter{
-						Name: "Chair",
-						Parameters: []generator.Parameter{
-
-							&generator.FloatParameter{
-								Name:         "Thickness",
-								DefaultValue: 0.1,
-							},
-
-							&generator.FloatParameter{
-								Name:         "Height",
-								DefaultValue: 1.6,
-							},
-
-							&generator.FloatParameter{
-								Name:         "Table Spacing",
-								DefaultValue: 0.5,
-							},
-
-							&generator.FloatParameter{
-								Name:         "Width",
-								DefaultValue: 1.5,
-							},
-
-							&generator.FloatParameter{
-								Name:         "Length",
-								DefaultValue: 1.2,
-							},
-
-							&generator.ColorParameter{
-								Name: "Color",
-								DefaultValue: coloring.WebColor{
-									R: 0x21,
-									G: 0x21,
-									B: 0x21,
-									A: 255,
-								},
-							},
-
-							&generator.GroupParameter{
-								Name: "Leg",
-								Parameters: []generator.Parameter{
-									&generator.FloatParameter{
-										Name:         "Radius",
-										DefaultValue: 0.05,
-									},
-									&generator.FloatParameter{
-										Name:         "Inset",
-										DefaultValue: 0.05,
-									},
-								},
-							},
-
-							&generator.GroupParameter{
-								Name: "Back",
-								Parameters: []generator.Parameter{
-									&generator.FloatParameter{
-										Name:         "Height",
-										DefaultValue: 2,
-									},
-									&generator.FloatParameter{
-										Name:         "Backing Piece Height",
-										DefaultValue: 0.4,
-									},
-
-									&generator.IntParameter{
-										Name:         "Backing Piece Pegs",
-										DefaultValue: 5,
-									},
-								},
-							},
-
-							&generator.GroupParameter{
-								Name: "Cushion",
-								Parameters: []generator.Parameter{
-									&generator.FloatParameter{
-										Name:         "Thickness",
-										DefaultValue: .2,
-									},
-									&generator.FloatParameter{
-										Name:         "Inset",
-										DefaultValue: .05,
-									},
-									&generator.ColorParameter{
-										Name:         "Color",
-										DefaultValue: coloring.WebColor{R: 255, G: 255, B: 255, A: 255},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-			Producers: map[string]generator.Producer{
-				"disco.glb": DiscoScene,
-				"metal.png": func(c *generator.Context) (generator.Artifact, error) {
-					return generator.ImageArtifact{
-						Image: texture(1, 0),
-					}, nil
-				},
-				"rough.png": func(c *generator.Context) (generator.Artifact, error) {
-					return generator.ImageArtifact{
-						Image: texture(0, 1),
-					}, nil
-				},
-			},
+		Producers: map[string]nodes.NodeOutput[generator.Artifact]{
+			"disco.glb": discoScene.Out(),
+			"metal.png": generator.ImageArtifactNode(nodes.Value[image.Image](texture(1, 0))),
+			"rough.png": generator.ImageArtifactNode(nodes.Value[image.Image](texture(0, 1))),
 		},
 	}
 	err := app.Run()
