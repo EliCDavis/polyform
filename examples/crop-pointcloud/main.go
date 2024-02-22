@@ -14,6 +14,7 @@ import (
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/meshops"
 	"github.com/EliCDavis/polyform/nodes"
+	"github.com/EliCDavis/polyform/nodes/vecn/vecn3"
 	"github.com/EliCDavis/vector/vector3"
 	"github.com/EliCDavis/vector/vector4"
 )
@@ -24,6 +25,7 @@ type PointcloudNode struct {
 	Path       nodes.NodeOutput[string]
 	MinOpacity nodes.NodeOutput[float64]
 	MinScale   nodes.NodeOutput[float64]
+	Scale      nodes.NodeOutput[float64]
 }
 
 func (pn *PointcloudNode) Out() nodes.NodeOutput[modeling.Mesh] {
@@ -51,6 +53,8 @@ func (pn PointcloudNode) Process() (modeling.Mesh, error) {
 	}
 
 	return plyMesh.Transform(
+
+		// Filter out points that don't meet the opacity or scale criteria
 		meshops.CustomTransformer{
 			Func: func(m modeling.Mesh) (results modeling.Mesh, err error) {
 				minOpacity := pn.MinOpacity.Data()
@@ -70,9 +74,13 @@ func (pn PointcloudNode) Process() (modeling.Mesh, error) {
 			},
 		},
 		meshops.RemovedUnreferencedVerticesTransformer{},
+
 		meshops.RotateAttribute3DTransformer{
 			Amount: quaternion.FromTheta(math.Pi, vector3.Forward[float64]()),
 		},
+
+		// Gaussian splat has rotational data on a per vertex basis that needs
+		// to be individually rotated
 		meshops.CustomTransformer{
 			Func: func(m modeling.Mesh) (results modeling.Mesh, err error) {
 				q := quaternion.FromTheta(math.Pi, vector3.Forward[float64]())
@@ -86,6 +94,11 @@ func (pn PointcloudNode) Process() (modeling.Mesh, error) {
 
 				return m.SetFloat4Attribute(modeling.RotationAttribute, rotatedData), nil
 			},
+		},
+
+		// Scale the vertex data to meet their new positioning
+		meshops.ModifyGaussianSplatScaleTransformer{
+			Scale: vector3.Fill(pn.Scale.Data()),
 		},
 	), nil
 }
@@ -165,6 +178,11 @@ func (bn BaloonNode) Process() (modeling.Mesh, error) {
 }
 
 func main() {
+	scale := &generator.ParameterNode[float64]{
+		Name:         "Scale",
+		DefaultValue: 1.,
+	}
+
 	croppedCloud := meshops.CropAttribute3DNode{
 		Mesh: (&PointcloudNode{
 			Path: (&generator.ParameterNode[string]{
@@ -179,6 +197,7 @@ func main() {
 				Name:         "Minimum Scale",
 				DefaultValue: 0.,
 			},
+			Scale: scale,
 		}).Out(),
 		AABB: (&BoundingBoxNode{
 			LeftCutoff:    &generator.ParameterNode[float64]{Name: "Left Cutoff", DefaultValue: -6}, // -6
@@ -200,6 +219,15 @@ func main() {
 		},
 	}
 
+	scaleNode := meshops.ScaleAttribute3DNode{
+		Mesh: baloonNode.Out(),
+		Amount: (&vecn3.New[float64]{
+			X: scale,
+			Y: scale,
+			Z: scale,
+		}).Out(),
+	}
+
 	app := generator.App{
 		Name:        "Edit Gaussian Splats",
 		Version:     "1.0.0",
@@ -216,7 +244,7 @@ func main() {
 			XrEnabled: true,
 		},
 		Producers: map[string]nodes.NodeOutput[generator.Artifact]{
-			"mesh.splat": generator.SplatArtifactNode(baloonNode.Out()),
+			"mesh.splat": generator.SplatArtifactNode(scaleNode.Out()),
 		},
 	}
 

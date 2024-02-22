@@ -153,21 +153,29 @@ Results in:
 
 Progress towards V1...
 
+- [ ] Finalize Material Definition (or remove and defer to file format specifications)
+- [ ] Finalize Node error propogation flow
+- [ ] Finalize package organization for node equivalent functionality (ie vector3 => vecn3)
+- [ ] Proper WASM Deployment  
+
+Things I want to implement eventually...
+
 - [x] Cube Marching
 - [x] Bezier Curves
-- [ ] Scene Support
-- [ ] GLTF Support
 - [ ] Slice By Plane
 - [ ] Slice By Bounding Box
 - [ ] Constrained Delaunay Tesselation
-- [ ] Meshing Pipeline
+- [x] Meshing Pipeline
 - [x] Bones / Animations
 - [ ] Quadric Error Decimation
 - [x] Proper Build Pipeline
 - [x] Documentation Website
 - [ ] Primitive Meshes
   - [x] Cube
-  - [x] Sphere
+  - [ ] Sphere
+    - [x] UV
+    - [ ] Ico
+    - [ ] Quad
   - [x] Cylinder
   - [x] Quad
   - [x] Circle
@@ -188,9 +196,6 @@ Progress towards V1...
   - [ ] Rounded Cone
   - [ ] Elipsoid
   - [ ] Triangle
-
-Things I want to implement eventually...
-
 - [ ] 3D Tesselation
 - [ ] Slice By Octree
 - [ ] Poisson Reconstruction
@@ -200,9 +205,6 @@ Things I want to implement eventually...
 - [ ] Splines...
   - [ ] Catmull
   - [ ] B Spline
-- [ ] Spheres...
-  - [ ] Ico
-  - [ ] Quad
 
 ## Resources
 
@@ -317,7 +319,7 @@ Resources either directly contributing to the code, or are just interesting find
 - Materials
   - [The PBR Guide Part 2](https://creativecloud.adobe.com/learn/substance-3d-designer/web/the-pbr-guide-part-2)
 - Flow Based Programming
-  - [Wikipedia Article]()
+  - [Wikipedia Article](https://en.wikipedia.org/wiki/Flow-based_programming)
   - Repositories
     - [Scipipe](https://github.com/scipipe/scipipe)
     - [Flowbase](https://github.com/flowbase/flowbase)
@@ -330,6 +332,8 @@ Resources either directly contributing to the code, or are just interesting find
   - [https://github.com/antimatter15/splat](https://github.com/antimatter15/splat)
   - [https://github.com/mkkellogg/GaussianSplats3D](https://github.com/mkkellogg/GaussianSplats3D)
   - [https://github.com/shg8/VulkanSplatting](https://github.com/shg8/VulkanSplatting)
+  - [Making Gaussian Splats Smaller](https://aras-p.info/blog/2023/09/13/Making-Gaussian-Splats-smaller/) by [Aras Pranckevičius](https://aras-p.info/)
+  - [Gaussian Explosion](https://aras-p.info/blog/2023/12/08/Gaussian-explosion/) by [Aras Pranckevičius](https://aras-p.info/)
 
 ## Citiation
 

@@ -11,7 +11,7 @@ import (
 	"github.com/EliCDavis/polyform/modeling/meshops"
 	"github.com/EliCDavis/polyform/modeling/repeat"
 	"github.com/EliCDavis/polyform/nodes"
-	"github.com/EliCDavis/polyform/nodes/vectorn/vector3n"
+	"github.com/EliCDavis/polyform/nodes/vecn/vecn3"
 	"github.com/EliCDavis/vector/vector3"
 	"github.com/fogleman/gg"
 )
@@ -193,7 +193,7 @@ func main() {
 			Times:  personCount,
 			Radius: chairPosition,
 		}).Out(),
-		Amount: (&vector3n.New[float64]{
+		Amount: (&vecn3.New[float64]{
 			Y: (&nodes.Sum[float64]{
 				Values: []nodes.NodeOutput[float64]{
 					chairHeight,

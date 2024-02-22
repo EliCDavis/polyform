@@ -1,4 +1,4 @@
-package vector3n
+package vecn3
 
 import (
 	"github.com/EliCDavis/polyform/nodes"

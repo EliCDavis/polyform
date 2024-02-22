@@ -273,9 +273,8 @@ schemaManager.subscribe((schema) => {
                     renderer: renderer,
                     threeScene: scene,
                     camera: camera,
-                    gpuAcceleratedSort: false,
-                    sharedMemoryForWebWorkers: false
-                    // webXRMode: 1 // 0 - None, 1 - VR, 2 - AR
+                    gpuAcceleratedSort: true,
+                    sharedMemoryForWebWorkers: true
                 }
 
 
@@ -284,7 +283,7 @@ schemaManager.subscribe((schema) => {
                 console.log(guassianSplatViewer);
                 // getSplatCenter
                 guassianSplatViewer.addSplatScene("producer/" + producer, {
-                    'scale': [0.25, 0.25, 0.25],
+                    // 'scale': [0.25, 0.25, 0.25],
                 }).then(() => {
 
                     const aabb = new THREE.Box3();
