@@ -17,6 +17,23 @@ import (
 	"github.com/EliCDavis/polyform/generator/room"
 )
 
+func writeJSONError(out io.Writer, err error) error {
+	var d struct {
+		Error string `json:"error"`
+	} = struct {
+		Error string `json:"error"`
+	}{
+		Error: err.Error(),
+	}
+	data, err := json.Marshal(d)
+	if err != nil {
+		return err
+	}
+
+	_, err = out.Write(data)
+	return err
+}
+
 type pageData struct {
 	Title       string
 	Version     string

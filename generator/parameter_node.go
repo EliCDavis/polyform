@@ -105,6 +105,24 @@ func (pn ParameterNode[T]) initializeForCLI(set *flag.FlagSet) {
 	if pn.CLI == nil {
 		return
 	}
+	switch cli := any(pn.CLI).(type) {
+	case *CliParameterNodeConfig[string]:
+		cli.value = set.String(cli.FlagName, (any(pn.DefaultValue)).(string), cli.Usage)
 
-	panic("parameter node initializeForCLI is unimplemented")
+	case *CliParameterNodeConfig[float64]:
+		cli.value = set.Float64(cli.FlagName, (any(pn.DefaultValue)).(float64), cli.Usage)
+
+	case *CliParameterNodeConfig[bool]:
+		cli.value = set.Bool(cli.FlagName, (any(pn.DefaultValue)).(bool), cli.Usage)
+
+	case *CliParameterNodeConfig[int]:
+		cli.value = set.Int(cli.FlagName, (any(pn.DefaultValue)).(int), cli.Usage)
+
+	case *CliParameterNodeConfig[int64]:
+		cli.value = set.Int64(cli.FlagName, (any(pn.DefaultValue)).(int64), cli.Usage)
+	default:
+		panic(fmt.Errorf("parameter node %s has a type that can not be initialized on the command line. Please up a issue on github.com/EliCDavis/polyform", pn.DisplayName()))
+
+	}
+
 }

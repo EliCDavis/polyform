@@ -43,11 +43,10 @@ class NodeVector3Parameter {
     constructor(nodeManager, id, parameterData, app) {
         const control = new TransformControls(app.Camera, app.Renderer.domElement);
         control.setMode('translate');
+        control.setSpace("local");
 
         this.mesh = new THREE.Group();
-        this.mesh.position.x = parameterData.currentValue.x;
-        this.mesh.position.y = parameterData.currentValue.y;
-        this.mesh.position.z = parameterData.currentValue.z;
+      
 
         // control.addEventListener('change', () => {
         // });
@@ -69,9 +68,13 @@ class NodeVector3Parameter {
             }
         });
 
-        app.Scene.add(this.mesh);
+        app.ViewerScene.add(this.mesh);
         control.attach(this.mesh);
-        app.Scene.add(control)
+        app.ViewerScene.add(control)
+
+        this.mesh.position.x = parameterData.currentValue.x;
+        this.mesh.position.y = parameterData.currentValue.y;
+        this.mesh.position.z = parameterData.currentValue.z;
     }
 
     update(parameterData) {
@@ -88,7 +91,7 @@ class NodeVector3ArryParameter {
         this.guiFolder = app.MeshGenFolder;
         this.guiFolderData = guiFolderData;
         this.app = app;
-        this.scene = app.Scene;
+        this.scene = app.ViewerScene;
         this.allPositionControls = [];
         this.allPositionControlsMeshes = [];
 
@@ -138,6 +141,7 @@ class NodeVector3ArryParameter {
     newPositionControl(pos) {
         const control = new TransformControls(this.app.Camera, this.app.Renderer.domElement);
         control.setMode('translate');
+        control.space = "local";
 
         const mesh = new THREE.Group();
         mesh.position.x = pos.x;

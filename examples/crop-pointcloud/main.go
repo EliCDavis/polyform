@@ -152,9 +152,11 @@ func (bn BaloonNode) Process() (modeling.Mesh, error) {
 		Transform(meshops.CustomTransformer{
 			Func: func(m modeling.Mesh) (results modeling.Mesh, err error) {
 				posData := m.Float3Attribute(modeling.PositionAttribute)
+				scaleData := m.Float3Attribute(modeling.ScaleAttribute)
 				count := posData.Len()
 
 				newPos := make([]vector3.Float64, count)
+				newScale := make([]vector3.Float64, count)
 
 				baloonPos := bn.Position.Data()
 				baloonRadius := bn.Radius.Data()
@@ -162,17 +164,22 @@ func (bn BaloonNode) Process() (modeling.Mesh, error) {
 
 				for i := 0; i < count; i++ {
 					curPos := posData.At(i)
+					curScale := scaleData.At(i)
 					dir := curPos.Sub(baloonPos)
 					len := dir.Length()
 
 					if len <= baloonRadius {
 						newPos[i] = baloonPos.Add(dir.Scale(baloonStrength))
+						newScale[i] = curScale.Exp().Scale(baloonStrength).Log()
 					} else {
 						newPos[i] = curPos
+						newScale[i] = curScale
 					}
 				}
 
-				return m.SetFloat3Attribute(modeling.PositionAttribute, newPos), nil
+				return m.
+					SetFloat3Attribute(modeling.PositionAttribute, newPos).
+					SetFloat3Attribute(modeling.ScaleAttribute, newScale), nil
 			},
 		}), nil
 }
@@ -187,7 +194,11 @@ func main() {
 		Mesh: (&PointcloudNode{
 			Path: (&generator.ParameterNode[string]{
 				Name:         "Pointcloud Path",
-				DefaultValue: "C:/dev/projects/sfm/gaussian-splatting/output/84e0f0cd-f/point_cloud/iteration_30000/point_cloud.ply",
+				DefaultValue: "./point_cloud/iteration_30000/point_cloud.ply",
+				CLI: &generator.CliParameterNodeConfig[string]{
+					FlagName: "splat",
+					Usage:    "Path to the guassian splat to load (PLY file)",
+				},
 			}),
 			MinOpacity: &generator.ParameterNode[float64]{
 				Name:         "Minimum Opacity",
@@ -234,9 +245,9 @@ func main() {
 		Description: "Crop and Scale portions of Gaussian Splat data",
 		Authors:     []generator.Author{{Name: "Eli C Davis"}},
 		WebScene: &room.WebScene{
-			Background: coloring.WebColor{0, 0, 0, 255},
+			Background: coloring.Black(),
 			Fog: room.WebSceneFog{
-				Color: coloring.WebColor{0, 0, 0, 255},
+				Color: coloring.Black(),
 				Near:  5,
 				Far:   25,
 			},

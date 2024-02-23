@@ -68,6 +68,8 @@ textureEquirec.colorSpace = THREE.SRGBColorSpace;
 // scene.background = textureEquirec;
 scene.fog = new THREE.Fog(viewportSettings.fog.color, viewportSettings.fog.near, viewportSettings.fog.far);
 
+const viewerContainer = new THREE.Group();
+scene.add(viewerContainer);
 
 const renderer = new THREE.WebGLRenderer({ antialias: RenderingConfiguration.AntiAlias });
 renderer.setPixelRatio(window.devicePixelRatio);
@@ -138,7 +140,8 @@ const App = {
     Renderer: renderer,
     MeshGenFolder: panel.addFolder("Mesh Generation"),
     Scene: scene,
-    OrbitControls: orbitControls
+    OrbitControls: orbitControls,
+    ViewerScene: viewerContainer
 }
 
 const requestManager = new RequestManager();
@@ -168,11 +171,11 @@ schemaManager.subscribe((schema) => {
     ErrorManager.ClearError();
 
     if (producerScene != null) {
-        scene.remove(producerScene)
+        viewerContainer.remove(producerScene)
     }
 
     producerScene = new THREE.Group();
-    scene.add(producerScene);
+    viewerContainer.add(producerScene);
     schema.producers.forEach(producer => {
         const fileExt = producer.split('.').pop().toLowerCase();
 
@@ -192,7 +195,7 @@ schemaManager.subscribe((schema) => {
 
                     // We have to do this weird thing because the pivot of the scene
                     // Isn't always the center of the AABB
-                    gltf.scene.position.set(0, - mid + aabbHalfHeight, 0)
+                    producerScene.position.set(0, - mid + aabbHalfHeight, 0)
 
                     const objects = [];
 
@@ -299,7 +302,7 @@ schemaManager.subscribe((schema) => {
                     // We have to do this weird thing because the pivot of the scene
                     // Isn't always the center of the AABB
                     guassianSplatViewer.splatMesh.position.set(0, - mid + aabbHalfHeight, 0)
-
+                    producerScene.position.set(0, - mid + aabbHalfHeight, 0)
                     // let v = new THREE.Vector3()
                     // guassianSplatViewer.splatMesh.getSplatCenter(0, v)
                     // console.log(v);

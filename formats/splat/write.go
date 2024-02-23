@@ -4,7 +4,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
-	"log"
 	"math"
 
 	"github.com/EliCDavis/bitlib"
@@ -36,7 +35,6 @@ func Write(out io.Writer, mesh modeling.Mesh) error {
 	}
 
 	count := mesh.PrimitiveCount()
-	log.Println(count)
 
 	posData := mesh.Float3Attribute(modeling.PositionAttribute)
 	scaleData := mesh.Float3Attribute(modeling.ScaleAttribute)

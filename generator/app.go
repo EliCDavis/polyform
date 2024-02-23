@@ -8,6 +8,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"path"
 	"path/filepath"
@@ -16,20 +17,6 @@ import (
 	"github.com/EliCDavis/polyform/generator/room"
 	"github.com/EliCDavis/polyform/nodes"
 )
-
-type producerCache map[string]Artifact
-
-func (pc producerCache) Lookup(producer string) Artifact {
-	if pc == nil {
-		return nil
-	}
-
-	if artifact, ok := pc[producer]; ok {
-		return artifact
-	}
-
-	return nil
-}
 
 type App struct {
 	Name        string
@@ -41,23 +28,6 @@ type App struct {
 
 	// Runtime data
 	nodeIDs map[nodes.Node]string
-}
-
-func writeJSONError(out io.Writer, err error) error {
-	var d struct {
-		Error string `json:"error"`
-	} = struct {
-		Error string `json:"error"`
-	}{
-		Error: err.Error(),
-	}
-	data, err := json.Marshal(d)
-	if err != nil {
-		return err
-	}
-
-	_, err = out.Write(data)
-	return err
 }
 
 func writeProducersToZip(path string, producers map[string]nodes.NodeOutput[Artifact], zw *zip.Writer) error {
@@ -103,19 +73,19 @@ func (a App) getParameters() []Parameter {
 	for p := range parameterSet {
 		uniqueParams = append(uniqueParams, p)
 	}
+
+	log.Printf("Params found %v", uniqueParams)
 	return uniqueParams
 }
 
 func recurseDependenciesType[T any](dependent nodes.Dependent) []T {
 	allDependencies := make([]T, 0)
 	for _, dep := range dependent.Dependencies() {
-		subDependent, ok := dep.(nodes.Dependent)
-		if ok {
-			subDependencies := recurseDependenciesType[T](subDependent)
-			allDependencies = append(allDependencies, subDependencies...)
-		}
+		subDependent := dep.Dependency()
+		subDependencies := recurseDependenciesType[T](subDependent)
+		allDependencies = append(allDependencies, subDependencies...)
 
-		ofT, ok := dep.(T)
+		ofT, ok := subDependent.(T)
 		if ok {
 			allDependencies = append(allDependencies, ofT)
 		}
@@ -296,7 +266,7 @@ func (a *App) Run() error {
 			Aliases:     []string{"serve"},
 			Run: func() error {
 				serveCmd := flag.NewFlagSet("serve", flag.ExitOnError)
-				// a.initialize(serveCmd)
+				a.initialize(serveCmd)
 				hostFlag := serveCmd.String("host", "localhost", "interface to bind to")
 				portFlag := serveCmd.String("port", "8080", "port to serve over")
 
