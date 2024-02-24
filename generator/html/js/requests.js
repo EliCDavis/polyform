@@ -32,7 +32,7 @@ class RequestManager {
         const xmlHttp = new XMLHttpRequest();
         xmlHttp.onreadystatechange = () => {
             if (xmlHttp.readyState == 4 && xmlHttp.status == 200) {
-                console.log(xmlHttp.responseText)
+                // console.log(xmlHttp.responseText)
                 callback(JSON.parse(xmlHttp.responseText));
             }
         }

@@ -195,7 +195,7 @@ schemaManager.subscribe((schema) => {
 
                     // We have to do this weird thing because the pivot of the scene
                     // Isn't always the center of the AABB
-                    producerScene.position.set(0, - mid + aabbHalfHeight, 0)
+                    viewerContainer.position.set(0, - mid + aabbHalfHeight, 0)
 
                     const objects = [];
 
@@ -299,13 +299,9 @@ schemaManager.subscribe((schema) => {
                     const aabbHalfHeight = aabbHeight / 2
                     const mid = (aabb.max.y + aabb.min.y) / 2
 
-                    // We have to do this weird thing because the pivot of the scene
-                    // Isn't always the center of the AABB
-                    guassianSplatViewer.splatMesh.position.set(0, - mid + aabbHalfHeight, 0)
-                    producerScene.position.set(0, - mid + aabbHalfHeight, 0)
-                    // let v = new THREE.Vector3()
-                    // guassianSplatViewer.splatMesh.getSplatCenter(0, v)
-                    // console.log(v);
+                    const shiftY =  - mid + aabbHalfHeight
+                    guassianSplatViewer.splatMesh.position.set(0, shiftY, 0)
+                    viewerContainer.position.set(0, shiftY, 0)
 
                     if (firstTimeLoadingScene) {
                         firstTimeLoadingScene = false;

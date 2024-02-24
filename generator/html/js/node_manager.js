@@ -24,7 +24,6 @@ export class NodeManager {
         for (let node of sortable) {
             const nodeID = node[0];
             const nodeData = node[1];
-            console.log(nodeID)
 
             if (this.nodes.has(nodeID)) {
                 const nodeToUpdate = this.nodes.get(nodeID);

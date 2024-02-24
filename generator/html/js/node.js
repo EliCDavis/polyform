@@ -47,10 +47,6 @@ class NodeVector3Parameter {
 
         this.mesh = new THREE.Group();
       
-
-        // control.addEventListener('change', () => {
-        // });
-
         control.addEventListener('dragging-changed', (event) => {
             app.OrbitControls.enabled = !event.value;
 
@@ -68,19 +64,22 @@ class NodeVector3Parameter {
             }
         });
 
-        app.ViewerScene.add(this.mesh);
-        control.attach(this.mesh);
-        app.ViewerScene.add(control)
 
-        this.mesh.position.x = parameterData.currentValue.x;
-        this.mesh.position.y = parameterData.currentValue.y;
-        this.mesh.position.z = parameterData.currentValue.z;
+        app.ViewerScene.add(this.mesh);
+
+        const curVal = parameterData.currentValue;
+        this.mesh.position.set(curVal.x, curVal.y, curVal.z);
+
+        app.Scene.add(control)
+        control.attach(this.mesh);
+
+        console.log(app.ViewerScene.position)
+        console.log(this.mesh.position)
     }
 
     update(parameterData) {
-        this.mesh.position.x = parameterData.currentValue.x;
-        this.mesh.position.y = parameterData.currentValue.y;
-        this.mesh.position.z = parameterData.currentValue.z;
+        const curVal = parameterData.currentValue;
+        this.mesh.position.set(curVal.x, curVal.y, curVal.z)
     }
 }
 
@@ -144,9 +143,6 @@ class NodeVector3ArryParameter {
         control.space = "local";
 
         const mesh = new THREE.Group();
-        mesh.position.x = pos.x;
-        mesh.position.y = pos.y;
-        mesh.position.z = pos.z;
 
         control.addEventListener('dragging-changed', (event) => {
             this.app.OrbitControls.enabled = !event.value;
@@ -162,13 +158,17 @@ class NodeVector3ArryParameter {
         this.allPositionControls.push(control);
         this.allPositionControlsMeshes.push(mesh);
 
-        control.attach(mesh);
         this.scene.add(mesh);
-        this.scene.add(control)
+        this.app.Scene.add(control);
+        mesh.position.set(pos.x, pos.y, pos.z);
+        control.attach(mesh);
     }
 
     clearPositionControls() {
         this.allPositionControls.forEach((v) => {
+            this.app.Scene.remove(v);
+        });
+        this.allPositionControlsMeshes.forEach((v) => {
             this.scene.remove(v);
         })
         this.allPositionControls = [];

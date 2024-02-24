@@ -8,7 +8,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"path"
 	"path/filepath"
@@ -74,7 +73,6 @@ func (a App) getParameters() []Parameter {
 		uniqueParams = append(uniqueParams, p)
 	}
 
-	log.Printf("Params found %v", uniqueParams)
 	return uniqueParams
 }
 
