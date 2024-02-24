@@ -17,6 +17,7 @@
           }
         }
     </script>
+    <script src="js/info_manager.js"></script>
     <script src="js/error_manager.js"></script>
     <script src="js/requests.js"></script>
     <script type="module" src="js/node.js"></script>
@@ -95,6 +96,22 @@
             display: none;
         }
 
+        
+        #infoMessage {
+            position: absolute;
+            left: 0px;
+            bottom: 0px;
+            margin: 6px;
+            padding: 8px;
+            box-sizing: border-box;
+            text-align: center;
+            z-index: 1;
+            background-color: rgba(0, 0, 0, 0.496);
+            color: white;
+            border-radius: 12px;
+            display: none;
+        }
+
         a,
         button,
         input,
@@ -157,6 +174,9 @@
     </div>
 
     <div id="errorMessage">
+    </div>
+
+    <div id="infoMessage">
     </div>
 
     <script type="module" src="js/index.js"></script>

@@ -169,6 +169,7 @@ let guassianSplatViewer = null;
 
 schemaManager.subscribe((schema) => {
     ErrorManager.ClearError();
+    InfoManager.ClearInfo();
 
     if (producerScene != null) {
         viewerContainer.remove(producerScene)
@@ -180,6 +181,12 @@ schemaManager.subscribe((schema) => {
         const fileExt = producer.split('.').pop().toLowerCase();
 
         switch (fileExt) {
+            case "txt":
+                requestManager.fetchText('producer/' + producer, (data) => {
+                    InfoManager.ShowInfo(data);
+                });
+                break;
+
             case "gltf":
             case "glb":
                 loader.load(producer, (gltf) => {
@@ -299,7 +306,7 @@ schemaManager.subscribe((schema) => {
                     const aabbHalfHeight = aabbHeight / 2
                     const mid = (aabb.max.y + aabb.min.y) / 2
 
-                    const shiftY =  - mid + aabbHalfHeight
+                    const shiftY = - mid + aabbHalfHeight
                     guassianSplatViewer.splatMesh.position.set(0, shiftY, 0)
                     viewerContainer.position.set(0, shiftY, 0)
 

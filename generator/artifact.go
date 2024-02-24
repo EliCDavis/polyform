@@ -65,6 +65,23 @@ func BinaryArtifactNode(imageNode nodes.NodeOutput[[]byte]) nodes.NodeOutput[Art
 
 // ============================================================================
 
+type TextArtifact struct {
+	Data string
+}
+
+func (ga TextArtifact) Write(w io.Writer) error {
+	_, err := w.Write([]byte(ga.Data))
+	return err
+}
+
+func TextArtifactNode(imageNode nodes.NodeOutput[string]) nodes.NodeOutput[Artifact] {
+	return nodes.Transformer("Text Artifact", imageNode, func(i nodes.NodeOutput[string]) (Artifact, error) {
+		return &TextArtifact{Data: i.Data()}, nil
+	})
+}
+
+// ============================================================================
+
 type SplatArtifact struct {
 	Mesh modeling.Mesh
 }

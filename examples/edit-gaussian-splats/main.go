@@ -19,20 +19,17 @@ import (
 	"github.com/EliCDavis/vector/vector4"
 )
 
-type PointcloudNode struct {
+type PointcloudLoaderNode struct {
 	nodes.StructData[modeling.Mesh]
 
-	Path       nodes.NodeOutput[string]
-	MinOpacity nodes.NodeOutput[float64]
-	MinScale   nodes.NodeOutput[float64]
-	Scale      nodes.NodeOutput[float64]
+	Path nodes.NodeOutput[string]
 }
 
-func (pn *PointcloudNode) Out() nodes.NodeOutput[modeling.Mesh] {
+func (pn *PointcloudLoaderNode) Out() nodes.NodeOutput[modeling.Mesh] {
 	return &nodes.StructNodeOutput[modeling.Mesh]{Definition: pn}
 }
 
-func (pn PointcloudNode) Process() (modeling.Mesh, error) {
+func (pn PointcloudLoaderNode) Process() (modeling.Mesh, error) {
 	f, err := os.Open(pn.Path.Data())
 	if err != nil {
 		return modeling.EmptyMesh(modeling.PointTopology), err
@@ -51,8 +48,24 @@ func (pn PointcloudNode) Process() (modeling.Mesh, error) {
 	if err != nil {
 		return modeling.EmptyMesh(modeling.PointTopology), err
 	}
+	return *plyMesh, err
+}
 
-	return plyMesh.Transform(
+type SplatEditNode struct {
+	nodes.StructData[modeling.Mesh]
+
+	SplatData  nodes.NodeOutput[modeling.Mesh]
+	MinOpacity nodes.NodeOutput[float64]
+	MinScale   nodes.NodeOutput[float64]
+	Scale      nodes.NodeOutput[float64]
+}
+
+func (pn *SplatEditNode) Out() nodes.NodeOutput[modeling.Mesh] {
+	return &nodes.StructNodeOutput[modeling.Mesh]{Definition: pn}
+}
+
+func (pn SplatEditNode) Process() (modeling.Mesh, error) {
+	return pn.SplatData.Data().Transform(
 
 		// Filter out points that don't meet the opacity or scale criteria
 		meshops.CustomTransformer{
@@ -190,16 +203,20 @@ func main() {
 		DefaultValue: 1.,
 	}
 
+	pointcloud := &PointcloudLoaderNode{
+		Path: (&generator.ParameterNode[string]{
+			Name:         "Pointcloud Path",
+			DefaultValue: "./point_cloud/iteration_30000/point_cloud.ply",
+			CLI: &generator.CliParameterNodeConfig[string]{
+				FlagName: "splat",
+				Usage:    "Path to the guassian splat to load (PLY file)",
+			},
+		}),
+	}
+
 	croppedCloud := meshops.CropAttribute3DNode{
-		Mesh: (&PointcloudNode{
-			Path: (&generator.ParameterNode[string]{
-				Name:         "Pointcloud Path",
-				DefaultValue: "./point_cloud/iteration_30000/point_cloud.ply",
-				CLI: &generator.CliParameterNodeConfig[string]{
-					FlagName: "splat",
-					Usage:    "Path to the guassian splat to load (PLY file)",
-				},
-			}),
+		Mesh: (&SplatEditNode{
+			SplatData: pointcloud.Out(),
 			MinOpacity: &generator.ParameterNode[float64]{
 				Name:         "Minimum Opacity",
 				DefaultValue: 0.,
@@ -256,6 +273,10 @@ func main() {
 		},
 		Producers: map[string]nodes.NodeOutput[generator.Artifact]{
 			"mesh.splat": generator.SplatArtifactNode(scaleNode.Out()),
+			"info.txt": generator.TextArtifactNode((&InfoNode{
+				Original: pointcloud.Out(),
+				Final:    scaleNode.Out(),
+			}).Out()),
 		},
 	}
 
