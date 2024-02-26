@@ -42,11 +42,16 @@ var defaultDisplayNames = []string{
 	"Bella",
 }
 
+type PlayerRepresentation struct {
+	Type     string          `json:"type"`
+	Position vector3.Float64 `json:"position"`
+	Rotation vector4.Float64 `json:"rotation"`
+}
+
 type Player struct {
-	Name     string           `json:"name"`
-	Position vector3.Float64  `json:"position"`
-	Rotation vector4.Float64  `json:"rotation"`
-	Pointer  *vector3.Float64 `json:"pointer,omitempty"`
+	Name           string                 `json:"name"`
+	Representation []PlayerRepresentation `json:"representation"`
+	Pointer        *vector3.Float64       `json:"pointer,omitempty"`
 }
 
 type RoomState struct {
@@ -155,8 +160,7 @@ func (h *Hub) Run() {
 					panic(fmt.Errorf("unable to set orientation data: %w", err))
 				}
 
-				h.state.Players[clientID].Position = orientation.Position
-				h.state.Players[clientID].Rotation = orientation.Rotation
+				h.state.Players[clientID].Representation = orientation.Representation
 			case ClientSetSceneMessageType:
 				scene, err := update.ClientSetSceneData()
 				if err != nil {

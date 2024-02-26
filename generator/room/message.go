@@ -2,14 +2,10 @@ package room
 
 import (
 	"encoding/json"
-
-	"github.com/EliCDavis/vector/vector3"
-	"github.com/EliCDavis/vector/vector4"
 )
 
 type ClientSetOrientationMessage struct {
-	Position vector3.Float64 `json:"position"`
-	Rotation vector4.Float64 `json:"rotation"`
+	Representation []PlayerRepresentation `json:"representation"`
 }
 
 type MessageType string

@@ -11,11 +11,11 @@ let INTERSECTION;
 const tempMatrix = new THREE.Matrix4();
 
 
-export const InitXR = (scene, renderer) => {
-
+export const InitXR = (scene, renderer, updateManager) => {
 
     raycaster = new THREE.Raycaster();
 
+    console.log(renderer.xr)
     renderer.xr.addEventListener('sessionstart', () => {
         baseReferenceSpace = renderer.xr.getReferenceSpace();
 
@@ -26,6 +26,13 @@ export const InitXR = (scene, renderer) => {
             );
             scene.add(marker);
         }
+        updateManager.addToUpdate(render);
+    });
+
+    renderer.xr.addEventListener('sessionend', () => {
+        updateManager.removeFromUpdate(render);
+        scene.remove(marker);
+        marker = null;
     });
 
     document.body.appendChild(VRButton.createButton(renderer));
@@ -40,7 +47,6 @@ export const InitXR = (scene, renderer) => {
         this.userData.isSelecting = false;
 
         if (INTERSECTION) {
-
             const offsetPosition = { x: - INTERSECTION.x, y: - INTERSECTION.y, z: - INTERSECTION.z, w: 1 };
             const offsetRotation = new THREE.Quaternion();
             const transform = new XRRigidTransform(offsetPosition, offsetRotation);
@@ -85,6 +91,7 @@ export const InitXR = (scene, renderer) => {
     controllerGrip2 = renderer.xr.getControllerGrip(1);
     controllerGrip2.add(controllerModelFactory.createControllerModel(controllerGrip2));
     scene.add(controllerGrip2);
+
 }
 
 function buildController(data) {
@@ -138,6 +145,4 @@ function render() {
     if (INTERSECTION) marker.position.copy(INTERSECTION);
 
     marker.visible = INTERSECTION !== undefined;
-
-    renderer.render(scene, camera);
 }

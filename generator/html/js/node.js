@@ -72,9 +72,6 @@ class NodeVector3Parameter {
 
         app.Scene.add(control)
         control.attach(this.mesh);
-
-        console.log(app.ViewerScene.position)
-        console.log(this.mesh.position)
     }
 
     update(parameterData) {
