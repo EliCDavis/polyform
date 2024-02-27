@@ -85,13 +85,16 @@ air serve --port 8080
 
 As you hit save on your go code, the webserver will restart, and the web page will automatically refresh itself.
 
-If you want to mess with modern web browser features and need a https, I recomend taking a look at https://github.com/FiloSottile/mkcert
+If you want to mess with modern web browser features and need https, I recommend taking a look at https://github.com/FiloSottile/mkcert
 
 
-```
+```bash
 mkcert -install
 mkcert -key-file key.pem -cert-file cert.pem localhost
 air serve --port 8080 --ssl
+
+# And if you want to connect with your headset
+air serve --port 8080 --ssl --host 0.0.0.0
 ```
 
 ## WASM Dev
