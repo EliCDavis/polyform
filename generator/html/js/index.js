@@ -48,6 +48,7 @@ const viewportSettings = {
     ground: "0xcbcbcb"
 }
 
+const representationManager = new WebSocketRepresentationManager();
 const viewportManager = new ViewportManager(viewportSettings);
 const updateLoop = new UpdateManager();
 
@@ -57,6 +58,8 @@ const clock = new THREE.Clock();
 
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 camera.position.set(0, 2, 3);
+
+representationManager.AddRepresentation("player", camera)
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(viewportSettings.background);
@@ -150,7 +153,7 @@ const nodeManager = new NodeManager(App);
 const schemaManager = new SchemaManager(requestManager, nodeManager);
 
 if (RenderingConfiguration.XrEnabled) {
-    InitXR(scene, renderer);
+    InitXR(scene, renderer, updateLoop, representationManager, groundMesh);
 }
 
 nodeManager.subscribeToParameterChange((param) => {
@@ -517,8 +520,7 @@ function onWindowResize() {
 window.addEventListener('resize', onWindowResize);
 
 
-const representationManager = new WebSocketRepresentationManager();
-representationManager.addRepresentation("player", camera)
+
 
 const websocketManager = new WebSocketManager(
     representationManager,

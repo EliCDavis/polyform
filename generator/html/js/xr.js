@@ -11,26 +11,27 @@ let INTERSECTION;
 const tempMatrix = new THREE.Matrix4();
 
 
-export const InitXR = (scene, renderer, updateManager) => {
+export const InitXR = (scene, renderer, updateManager, representationManager, ground) => {
 
+    floor = ground;
     raycaster = new THREE.Raycaster();
 
     console.log(renderer.xr)
     renderer.xr.addEventListener('sessionstart', () => {
         baseReferenceSpace = renderer.xr.getReferenceSpace();
 
-        if(!marker) {
+        if (!marker) {
             marker = new THREE.Mesh(
                 new THREE.CircleGeometry(0.25, 32).rotateX(- Math.PI / 2),
                 new THREE.MeshBasicMaterial({ color: 0xbcbcbc })
             );
             scene.add(marker);
         }
-        updateManager.addToUpdate(render);
+        updateManager.addToUpdate(intersectionUpdate);
     });
 
     renderer.xr.addEventListener('sessionend', () => {
-        updateManager.removeFromUpdate(render);
+        updateManager.removeFromUpdate(intersectionUpdate);
         scene.remove(marker);
         marker = null;
     });
@@ -59,22 +60,28 @@ export const InitXR = (scene, renderer, updateManager) => {
     controller1 = renderer.xr.getController(0);
     controller1.addEventListener('selectstart', onSelectStart);
     controller1.addEventListener('selectend', onSelectEnd);
-    controller1.addEventListener('connected', function (event) {
-        this.add(buildController(event.data));
+    controller1.addEventListener('connected', (event) => {
+        const rep = buildController(event.data);
+        representationManager.AddRepresentation("left-hand", controller1);
+        controller1.add(rep);
     });
-    controller1.addEventListener('disconnected', function () {
-        this.remove(this.children[0]);
+    controller1.addEventListener('disconnected', () => {
+        representationManager.RemoveRepresentation("left-hand", controller1);
+        controller1.remove(controller1.children[0]);
     });
     scene.add(controller1);
 
     controller2 = renderer.xr.getController(1);
     controller2.addEventListener('selectstart', onSelectStart);
     controller2.addEventListener('selectend', onSelectEnd);
-    controller2.addEventListener('connected', function (event) {
-        this.add(buildController(event.data));
+    controller2.addEventListener('connected', (event) => {
+        const rep = buildController(event.data);
+        representationManager.AddRepresentation("right-hand", controller2);
+        controller2.add(rep);
     });
-    controller2.addEventListener('disconnected', function () {
-        this.remove(this.children[0]);
+    controller2.addEventListener('disconnected', () => {
+        representationManager.RemoveRepresentation("right-hand", controller2);
+        controller2.remove(controller2.children[0]);
     });
     scene.add(controller2);
 
@@ -97,6 +104,7 @@ export const InitXR = (scene, renderer, updateManager) => {
 function buildController(data) {
     let geometry, material;
 
+    console.log(data)
     switch (data.targetRayMode) {
         case 'tracked-pointer':
             geometry = new THREE.BufferGeometry();
@@ -111,10 +119,14 @@ function buildController(data) {
             geometry = new THREE.RingGeometry(0.02, 0.04, 32).translate(0, 0, - 1);
             material = new THREE.MeshBasicMaterial({ opacity: 0.5, transparent: true });
             return new THREE.Mesh(geometry, material);
+
+        default:
+            console.warn("unrecognized target ray mode: " + data.targetRayMode);
+            return new THREE.Group();
     }
 }
 
-function render() {
+function intersectionUpdate() {
     INTERSECTION = undefined;
 
     if (controller1.userData.isSelecting === true) {

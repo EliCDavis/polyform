@@ -6,37 +6,68 @@ export class WebSocketRepresentationManager {
         this.rerpresentations = new Map();
     }
 
-    addRepresentation(key, threeObj) {
+    AddRepresentation(key, threeObj) {
         if (this.rerpresentations.has(key)) {
-            throw new Error("representation manager already has a rep for key: " + key)
+            console.warn("representation manager already has a rep for key: " + key)
+            // throw new Error("representation manager already has a rep for key: " + key)
         }
         this.rerpresentations.set(key, threeObj)
     }
 
-    removeRepresentation(key, threeObj) {
-        if (this.rerpresentations.has(key)) {
-            throw new Error("representation manager already has a rep for key: " + key)
+    RemoveRepresentation(key, threeObj) {
+        if (!this.rerpresentations.has(key)) {
+            throw new Error("representation manager does not have a rep for key: " + key)
         }
         this.rerpresentations.set(key, threeObj)
     }
 
-    toMessage() {
+    ToMessage() {
         const message = [];
+
+        let pos = new THREE.Vector3();
+        let rot = new THREE.Quaternion();
+
         this.rerpresentations.forEach((threeObj, key) => {
-            message.push({
-                type: key,
-                "position": {
-                    "x": threeObj.position.x,
-                    "y": threeObj.position.y,
-                    "z": threeObj.position.z,
-                },
-                "rotation": {
-                    "x": threeObj.quaternion.x,
-                    "y": threeObj.quaternion.y,
-                    "z": threeObj.quaternion.z,
-                    "w": threeObj.quaternion.w,
+            if (!threeObj) {
+                return;
+            }
+
+            if (!threeObj.matrixWorld) {
+                return;
+            }
+
+            // Somethings wrong with the matrix world, let's not include this
+            // representation
+            const eles = threeObj.matrixWorld.elements;
+            for(let i = 0; i < eles.length; i ++) {
+                if (isNaN(eles[i]) || !isFinite(eles[i])) {
+                    return;
                 }
-            })
+            }
+
+            try {
+                const worldMatrix = threeObj.matrixWorld;
+                pos.setFromMatrixPosition(worldMatrix)
+                rot.setFromRotationMatrix(worldMatrix)
+                message.push({
+                    type: key,
+                    "position": {
+                        "x": pos.x,
+                        "y": pos.y,
+                        "z": pos.z,
+                    },
+                    "rotation": {
+                        "x": rot.x,
+                        "y": rot.y,
+                        "z": rot.z,
+                        "w": rot.w,
+                    }
+                })
+            } catch (error) {
+                console.error(error);
+                // Expected output: ReferenceError: nonExistentFunction is not defined
+                // (Note: the exact output may be browser-dependent)
+            }
         });
         return message;
     }
@@ -103,6 +134,7 @@ export class WebSocketManager {
 
     createPlayerObject(name, playerData) {
         const newPlayer = new THREE.Group();
+        newPlayer.name = "player";
 
         const sphere = new THREE.Mesh(
             this.playerConfiguration.playerGeometry,
@@ -152,6 +184,8 @@ export class WebSocketManager {
         newPlayer.position.x = playerData.position.x;
         newPlayer.position.y = playerData.position.y;
         newPlayer.position.z = playerData.position.z;
+
+        newPlayer.scale.set(0.25, 0.25, 0.25)
         this.scene.add(newPlayer);
 
         return {
@@ -165,16 +199,51 @@ export class WebSocketManager {
         };
     }
 
+    createHandObject(handData) {
+        console.log("creating hand")
+        const hand = new THREE.Group();
+        hand.name = "hand";
+
+        const sphere = new THREE.Mesh(
+            this.playerConfiguration.playerGeometry,
+            this.playerConfiguration.playerMaterial
+        );
+        sphere.scale.set(0.1, 0.1, 0.1)
+        hand.add(sphere);
+
+        hand.position.x = handData.position.x;
+        hand.position.y = handData.position.y;
+        hand.position.z = handData.position.z;
+
+        this.scene.add(hand);
+
+        return {
+            desiredPosition: handData.position,
+            desiredRotation: handData.rotation,
+            obj: hand,
+            cleanup: () => {
+                this.scene.remove(hand);
+            }
+        };
+    }
+
+
     setupPlayer(key, playerData) {
         const resps = []
-
-        console.log(playerData);
 
         if (playerData.representation) {
             playerData.representation.forEach((rep) => {
                 switch (rep.type) {
                     case "player":
                         resps.push(this.createPlayerObject(playerData.name, rep))
+                        break;
+
+                    case "left-hand":
+                        resps.push(this.createHandObject(rep));
+                        break;
+
+                    case "right-hand":
+                        resps.push(this.createHandObject(rep));
                         break;
 
                     default:
@@ -203,7 +272,7 @@ export class WebSocketManager {
 
                 const q = new THREE.Quaternion(dr.x, dr.y, dr.z, dr.w);
                 if (!rep.obj.quaternion.equals(q)) {
-                    rep.obj.quaternion.rotateTowards(q, delta *2);
+                    rep.obj.quaternion.rotateTowards(q, delta * 2);
                 }
 
                 const pp = rep.obj.position;
@@ -260,9 +329,9 @@ export class WebSocketManager {
             playersUpdated[playerID] = true;
 
             if (playerID in this.connectedPlayers && this.connectedPlayers[playerID].representation.length === serverPlayer.representation.length) {
-                console.log("updating...")
                 const player = this.connectedPlayers[playerID];
                 for (let i = 0; i < player.representation.length; i++) {
+                    console.log("updating " + serverPlayer.representation[i].type)
                     player.representation[i].desiredPosition.x = serverPlayer.representation[i].position.x;
                     player.representation[i].desiredPosition.y = serverPlayer.representation[i].position.y;
                     player.representation[i].desiredPosition.z = serverPlayer.representation[i].position.z;
@@ -274,6 +343,10 @@ export class WebSocketManager {
                 }
 
             } else {
+                if (playerID in this.connectedPlayers) {
+                    this.removePlayer(playerID);
+                }
+
                 // Create a new Player!
                 this.setupPlayer(playerID, serverPlayer);
             }
@@ -284,10 +357,13 @@ export class WebSocketManager {
             if (updated) {
                 continue;
             }
-
-            this.connectedPlayers[playerID].representation.forEach(rep => rep.cleanup());
-            delete this.connectedPlayers[playerID];
+            this.removePlayer(playerID);
         }
+    }
+
+    removePlayer(playerID) {
+        this.connectedPlayers[playerID].representation.forEach(rep => rep.cleanup());
+        delete this.connectedPlayers[playerID];
     }
 
     onMessage(evt) {
@@ -317,7 +393,7 @@ export class WebSocketManager {
         this.conn.send(JSON.stringify({
             "type": "Client-SetOrientation",
             "data": {
-                "representation": this.representationManager.toMessage(),
+                "representation": this.representationManager.ToMessage(),
             }
         }));
     }
