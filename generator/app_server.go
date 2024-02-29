@@ -59,6 +59,8 @@ type AppServer struct {
 	serverStarted time.Time
 	movelVersion  int
 	producerLock  sync.Mutex
+
+	clientConfig *room.ClientConfig
 }
 
 func (as *AppServer) Serve() error {
@@ -116,7 +118,11 @@ func (as *AppServer) Serve() error {
 	go hub.Run()
 
 	http.Handle("/live", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		hub.ServeWs(w, r)
+		conf := as.clientConfig
+		if conf == nil {
+			conf = room.DefaultClientConfig()
+		}
+		hub.ServeWs(w, r, conf)
 	}))
 
 	connection := fmt.Sprintf("%s:%s", as.host, as.port)

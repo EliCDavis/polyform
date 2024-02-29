@@ -68,6 +68,8 @@ type clientUpdate struct {
 // Hub maintains the set of active clients and broadcasts messages to the
 // clients.
 type Hub struct {
+	ClientConfig *ClientConfig
+
 	// Registered clients.
 	clients map[*Client]string
 
@@ -193,13 +195,18 @@ func (h *Hub) Run() {
 }
 
 // serveWs handles websocket requests from the peer.
-func (hub *Hub) ServeWs(w http.ResponseWriter, r *http.Request) {
+func (hub *Hub) ServeWs(w http.ResponseWriter, r *http.Request, clientConfig *ClientConfig) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println(err)
 		return
 	}
-	client := &Client{hub: hub, conn: conn, send: make(chan Message, 256)}
+	client := &Client{
+		hub:    hub,
+		conn:   conn,
+		send:   make(chan Message, 256),
+		Config: clientConfig,
+	}
 	client.hub.register <- client
 
 	// Allow collection of memory referenced by the caller by doing all work in

@@ -12,6 +12,7 @@ import (
 	"path"
 	"path/filepath"
 	"text/template"
+	"time"
 
 	"github.com/EliCDavis/polyform/generator/room"
 	"github.com/EliCDavis/polyform/nodes"
@@ -269,8 +270,33 @@ func (a *App) Run() error {
 				portFlag := serveCmd.String("port", "8080", "port to serve over")
 
 				sslFlag := serveCmd.Bool("ssl", false, "Whether or not to use SSL")
-				certFlag := serveCmd.String("cert", "cert.pem", "Path to cert file")
-				keyFlag := serveCmd.String("key", "key.pem", "Path to key file")
+				certFlag := serveCmd.String("ssl.cert", "cert.pem", "Path to cert file")
+				keyFlag := serveCmd.String("ssl.key", "key.pem", "Path to key file")
+
+				// Websocket
+				maxMessageSizeFlag := serveCmd.Int64(
+					"max-message-size",
+					1024*2,
+					"Maximum message size allowed from peer over websocketed connection",
+				)
+
+				pingPeriodFlag := serveCmd.Duration(
+					"ping-period",
+					time.Second*54,
+					"Send pings to peer with this period over websocketed connection. Must be less than pongWait.",
+				)
+
+				pongWaitFlag := serveCmd.Duration(
+					"pong-wait",
+					time.Second*60,
+					"Time allowed to read the next pong message from the peer over a websocketed connection.",
+				)
+
+				writeWaitFlag := serveCmd.Duration(
+					"write-wait",
+					time.Second*10,
+					"Time allowed to write a message to the peer over a websocketed connection.",
+				)
 
 				if err := serveCmd.Parse(os.Args[2:]); err != nil {
 					return err
@@ -285,6 +311,13 @@ func (a *App) Run() error {
 					tls:      *sslFlag,
 					certPath: *certFlag,
 					keyPath:  *keyFlag,
+
+					clientConfig: &room.ClientConfig{
+						MaxMessageSize: *maxMessageSizeFlag,
+						PingPeriod:     *pingPeriodFlag,
+						PongWait:       *pongWaitFlag,
+						WriteWait:      *writeWaitFlag,
+					},
 				}
 				return server.Serve()
 			},

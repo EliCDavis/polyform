@@ -169,167 +169,236 @@ let producerScene = null;
 
 let guassianSplatViewer = null;
 
-schemaManager.subscribe((schema) => {
-    ErrorManager.ClearError();
-    InfoManager.ClearInfo();
 
-    if (producerScene != null) {
-        viewerContainer.remove(producerScene)
+class SchemaRefreshManager {
+    constructor() {
+        this.loadingCount = 0;
+        this.cachedSchema = null;
     }
 
-    producerScene = new THREE.Group();
-    viewerContainer.add(producerScene);
-    schema.producers.forEach(producer => {
-        const fileExt = producer.split('.').pop().toLowerCase();
+    AddLoading() {
+        console.log("add")
+        this.loadingCount += 1;
+    }
 
-        switch (fileExt) {
-            case "txt":
-                requestManager.fetchText('producer/' + producer, (data) => {
-                    InfoManager.ShowInfo(data);
-                });
-                break;
-
-            case "gltf":
-            case "glb":
-                loader.load(producer, (gltf) => {
-                    producerScene.add(gltf.scene);
-
-                    const aabb = new THREE.Box3();
-                    aabb.setFromObject(gltf.scene);
-                    const aabbDepth = (aabb.max.z - aabb.min.z)
-                    const aabbWidth = (aabb.max.x - aabb.min.x)
-                    const aabbHeight = (aabb.max.y - aabb.min.y)
-                    const aabbHalfHeight = aabbHeight / 2
-                    const mid = (aabb.max.y + aabb.min.y) / 2
-
-                    // We have to do this weird thing because the pivot of the scene
-                    // Isn't always the center of the AABB
-                    viewerContainer.position.set(0, - mid + aabbHalfHeight, 0)
-
-                    const objects = [];
-
-                    gltf.scene.traverse((object) => {
-                        console.log(object)
-                        if (object.isMesh) {
-                            object.castShadow = true;
-                            object.receiveShadow = true;
-
-                            const prevMaterial = object.material;
-
-                            // if (object.material.userData && object.material.userData["threejs-material"] === "phong") {
-                            //     object.material = new THREE.MeshPhongMaterial();
-
-                            // } else {
-                            // object.material = new THREE.MeshPhysicalMaterial();
-                            // }
-
-                            // THREE.MeshBasicMaterial.prototype.copy.call( object.material, prevMaterial );
-
-                            // // Copying what I want...
-                            // object.material.color = prevMaterial.color;
-                            // object.materialroughness = prevMaterial.roughness;
-                            // object.materialroughnessMap = prevMaterial.roughnessMap;
-                            // object.materialmetalness = prevMaterial.metalness;
-                            // object.materialmetalnessMap = prevMaterial.metalnessMap;
-
-                            object.material.wireframe = viewportSettings.renderWireframe;
-                            object.material.envMap = textureEquirec;
-                            object.material.needsUpdate = true;
-                            object.material.transparent = true;
-
-                            console.log(prevMaterial)
-                            objects.push(object)
-                        } else if (object.isPoints) {
-                            object.material.size = 2;
-                        }
-                    });
-
-                    progressiveSurfacemap.addObjectsToLightMap(objects);
-
-                    if (firstTimeLoadingScene) {
-                        firstTimeLoadingScene = false;
-
-                        camera.position.y = mid * (3 / 2);
-                        camera.position.z = Math.sqrt(
-                            (aabbWidth * aabbWidth) +
-                            (aabbDepth * aabbDepth) +
-                            (aabbHeight * aabbHeight)
-                        ) / 2;
-
-                        orbitControls.target.set(0, mid, 0);
-                        orbitControls.update();
-                    }
-
-                },
-                    undefined,
-                    (error) => {
-                        error.response.json().then(x => {
-                            ErrorManager.ShowError(x.error);
-                        })
-                    });
-                break;
-
-            case "splat":
-
-                if (guassianSplatViewer) {
-                    guassianSplatViewer.dispose();
-                }
-
-                renderer.setPixelRatio(1);
-
-                // https://github.com/mkkellogg/GaussianSplats3D/blob/main/src/Viewer.js
-                const splatViewerOptions = {
-                    selfDrivenMode: false,
-                    useBuiltInControls: false,
-                    rootElement: renderer.domElement.parentElement,
-                    renderer: renderer,
-                    threeScene: scene,
-                    camera: camera,
-                    gpuAcceleratedSort: true,
-                    sharedMemoryForWebWorkers: true
-                }
-
-
-                guassianSplatViewer = new GaussianSplats3D.Viewer(splatViewerOptions);
-
-                console.log(guassianSplatViewer);
-                // getSplatCenter
-                guassianSplatViewer.addSplatScene("producer/" + producer, {
-                    // 'scale': [0.25, 0.25, 0.25],
-                }).then(() => {
-
-                    const aabb = new THREE.Box3();
-                    const tree = guassianSplatViewer.splatMesh.splatTree.subTrees[0]
-                    aabb.setFromPoints([tree.sceneMin, tree.sceneMax]);
-                    console.log(aabb)
-                    const aabbDepth = (aabb.max.z - aabb.min.z)
-                    const aabbWidth = (aabb.max.x - aabb.min.x)
-                    const aabbHeight = (aabb.max.y - aabb.min.y)
-                    const aabbHalfHeight = aabbHeight / 2
-                    const mid = (aabb.max.y + aabb.min.y) / 2
-
-                    const shiftY = - mid + aabbHalfHeight
-                    guassianSplatViewer.splatMesh.position.set(0, shiftY, 0)
-                    viewerContainer.position.set(0, shiftY, 0)
-
-                    if (firstTimeLoadingScene) {
-                        firstTimeLoadingScene = false;
-
-                        camera.position.y = mid * (3 / 2);
-                        camera.position.z = Math.sqrt(
-                            (aabbWidth * aabbWidth) +
-                            (aabbDepth * aabbDepth) +
-                            (aabbHeight * aabbHeight)
-                        ) / 2;
-
-                        orbitControls.target.set(0, mid, 0);
-                        orbitControls.update();
-                    }
-                })
-                break;
+    RemoveLoading() {
+        console.log("remove")
+        if (this.loadingCount === 0) {
+            throw new Error("loading count already 0");
         }
-    });
-})
+        this.loadingCount -= 1;
+
+        if (this.loadingCount === 0 && this.cachedSchema) {
+            this.Refresh(this.cachedSchema)
+            this.cachedSchema = null;
+        }
+    }
+
+    CurrentlyLoading() {
+        return this.loadingCount > 0;
+    }
+
+    NewSchema(schema) {
+        if (this.CurrentlyLoading()) {
+            this.cachedSchema = schema;
+            return;
+        }
+        this.Refresh(schema);
+    }
+
+    loadText(producerURL) {
+        this.AddLoading();
+        requestManager.fetchText(
+            producerURL,
+            (data) => {
+                InfoManager.ShowInfo(data);
+                this.RemoveLoading();
+            },
+            (error) => {
+                this.RemoveLoading();
+            }
+        );
+    }
+
+    loadGltf(producerURL) {
+        this.AddLoading();
+        loader.load(producerURL, (gltf) => {
+
+            const aabb = new THREE.Box3();
+            aabb.setFromObject(gltf.scene);
+            const aabbDepth = (aabb.max.z - aabb.min.z)
+            const aabbWidth = (aabb.max.x - aabb.min.x)
+            const aabbHeight = (aabb.max.y - aabb.min.y)
+            const aabbHalfHeight = aabbHeight / 2
+            const mid = (aabb.max.y + aabb.min.y) / 2
+
+            producerScene.add(gltf.scene);
+
+            // We have to do this weird thing because the pivot of the scene
+            // Isn't always the center of the AABB
+            viewerContainer.position.set(0, - mid + aabbHalfHeight, 0)
+
+            const objects = [];
+
+            gltf.scene.traverse((object) => {
+                console.log(object)
+                if (object.isMesh) {
+                    object.castShadow = true;
+                    object.receiveShadow = true;
+
+                    const prevMaterial = object.material;
+
+                    // if (object.material.userData && object.material.userData["threejs-material"] === "phong") {
+                    //     object.material = new THREE.MeshPhongMaterial();
+
+                    // } else {
+                    // object.material = new THREE.MeshPhysicalMaterial();
+                    // }
+
+                    // THREE.MeshBasicMaterial.prototype.copy.call( object.material, prevMaterial );
+
+                    // // Copying what I want...
+                    // object.material.color = prevMaterial.color;
+                    // object.materialroughness = prevMaterial.roughness;
+                    // object.materialroughnessMap = prevMaterial.roughnessMap;
+                    // object.materialmetalness = prevMaterial.metalness;
+                    // object.materialmetalnessMap = prevMaterial.metalnessMap;
+
+                    object.material.wireframe = viewportSettings.renderWireframe;
+                    object.material.envMap = textureEquirec;
+                    object.material.needsUpdate = true;
+                    object.material.transparent = true;
+
+                    console.log(prevMaterial)
+                    objects.push(object)
+                } else if (object.isPoints) {
+                    object.material.size = 2;
+                }
+            });
+
+            progressiveSurfacemap.addObjectsToLightMap(objects);
+
+            if (firstTimeLoadingScene) {
+                firstTimeLoadingScene = false;
+
+                camera.position.y = mid * (3 / 2);
+                camera.position.z = Math.sqrt(
+                    (aabbWidth * aabbWidth) +
+                    (aabbDepth * aabbDepth) +
+                    (aabbHeight * aabbHeight)
+                ) / 2;
+
+                orbitControls.target.set(0, mid, 0);
+                orbitControls.update();
+            }
+            this.RemoveLoading();
+        },
+            undefined,
+            (error) => {
+                this.RemoveLoading();
+                error.response.json().then(x => {
+                    ErrorManager.ShowError(x.error);
+                })
+            });
+    }
+
+    loadSplat(producerURL) {
+        this.AddLoading();
+        if (guassianSplatViewer) {
+            guassianSplatViewer.dispose();
+        }
+
+        renderer.setPixelRatio(1);
+
+        // https://github.com/mkkellogg/GaussianSplats3D/blob/main/src/Viewer.js
+        const splatViewerOptions = {
+            selfDrivenMode: false,
+            useBuiltInControls: false,
+            rootElement: renderer.domElement.parentElement,
+            renderer: renderer,
+            threeScene: scene,
+            camera: camera,
+            gpuAcceleratedSort: true,
+            sharedMemoryForWebWorkers: true
+        }
+
+        guassianSplatViewer = new GaussianSplats3D.Viewer(splatViewerOptions);
+
+        console.log(guassianSplatViewer);
+        // getSplatCenter
+        guassianSplatViewer.addSplatScene(producerURL, {
+            // 'scale': [0.25, 0.25, 0.25],
+        }).then(() => {
+
+            const aabb = new THREE.Box3();
+            const tree = guassianSplatViewer.splatMesh.splatTree.subTrees[0]
+            aabb.setFromPoints([tree.sceneMin, tree.sceneMax]);
+            console.log(aabb)
+            const aabbDepth = (aabb.max.z - aabb.min.z)
+            const aabbWidth = (aabb.max.x - aabb.min.x)
+            const aabbHeight = (aabb.max.y - aabb.min.y)
+            const aabbHalfHeight = aabbHeight / 2
+            const mid = (aabb.max.y + aabb.min.y) / 2
+
+            const shiftY = - mid + aabbHalfHeight
+            guassianSplatViewer.splatMesh.position.set(0, shiftY, 0)
+            viewerContainer.position.set(0, shiftY, 0)
+
+            if (firstTimeLoadingScene) {
+                firstTimeLoadingScene = false;
+
+                camera.position.y = mid * (3 / 2);
+                camera.position.z = Math.sqrt(
+                    (aabbWidth * aabbWidth) +
+                    (aabbDepth * aabbDepth) +
+                    (aabbHeight * aabbHeight)
+                ) / 2;
+
+                orbitControls.target.set(0, mid, 0);
+                orbitControls.update();
+            }
+            this.RemoveLoading();
+        }).catch(x => {
+            console.error(x)
+            this.RemoveLoading();
+        })
+    }
+
+    Refresh(schema) {
+        ErrorManager.ClearError();
+        InfoManager.ClearInfo();
+
+        if (producerScene != null) {
+            viewerContainer.remove(producerScene)
+        }
+
+        producerScene = new THREE.Group();
+        viewerContainer.add(producerScene);
+        schema.producers.forEach(producer => {
+            const fileExt = producer.split('.').pop().toLowerCase();
+
+            switch (fileExt) {
+                case "txt":
+                    this.loadText('producer/' + producer);
+                    break;
+
+                case "gltf":
+                case "glb":
+                    this.loadGltf(producer);
+                    break;
+
+                case "splat":
+                    this.loadSplat('producer/' + producer)
+                    break;
+            }
+        });
+    }
+}
+
+const schemaRefreshManager = new SchemaRefreshManager();
+
+schemaManager.subscribe(schemaRefreshManager.NewSchema.bind(schemaRefreshManager));
+
 
 
 const fileControls = {

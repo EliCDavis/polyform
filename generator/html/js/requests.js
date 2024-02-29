@@ -17,11 +17,15 @@ class RequestManager {
     constructor() {
     }
 
-    fetchText(theUrl, callback) {
+    fetchText(theUrl, successCallback, errorCallback) {
         const xmlHttp = new XMLHttpRequest();
         xmlHttp.onreadystatechange = () => {
-            if (xmlHttp.readyState == 4 && xmlHttp.status == 200) {
-                callback(xmlHttp.responseText);
+            if (xmlHttp.readyState == 4) {
+                if (xmlHttp.status == 200) {
+                    successCallback(xmlHttp.responseText);
+                } else if (errorCallback) {
+                    errorCallback(xmlHttp.responseText);
+                }
             }
         }
         xmlHttp.open("GET", theUrl, true); // true for asynchronous 
