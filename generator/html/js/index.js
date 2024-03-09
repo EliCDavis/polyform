@@ -59,7 +59,7 @@ const clock = new THREE.Clock();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 camera.position.set(0, 2, 3);
 
-representationManager.AddRepresentation("player", camera)
+representationManager.AddRepresentation(0, camera)
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(viewportSettings.background);

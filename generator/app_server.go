@@ -57,7 +57,7 @@ type AppServer struct {
 	webscene *room.WebScene
 
 	serverStarted time.Time
-	movelVersion  int
+	movelVersion  uint32
 	producerLock  sync.Mutex
 
 	clientConfig *room.ClientConfig

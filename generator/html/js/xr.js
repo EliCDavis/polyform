@@ -1,6 +1,7 @@
 import { VRButton } from 'three/addons/webxr/VRButton.js';
 import { XRControllerModelFactory } from 'three/addons/webxr/XRControllerModelFactory.js';
 import * as THREE from 'three';
+import { RepresentationType } from "./websocket.js";
 
 let controller1, controller2;
 let controllerGrip1, controllerGrip2;
@@ -62,11 +63,11 @@ export const InitXR = (scene, renderer, updateManager, representationManager, gr
     controller1.addEventListener('selectend', onSelectEnd);
     controller1.addEventListener('connected', (event) => {
         const rep = buildController(event.data);
-        representationManager.AddRepresentation("left-hand", controller1);
+        representationManager.AddRepresentation(RepresentationType.LeftHand, controller1);
         controller1.add(rep);
     });
     controller1.addEventListener('disconnected', () => {
-        representationManager.RemoveRepresentation("left-hand", controller1);
+        representationManager.RemoveRepresentation(RepresentationType.LeftHand, controller1);
         controller1.remove(controller1.children[0]);
     });
     scene.add(controller1);
@@ -76,11 +77,11 @@ export const InitXR = (scene, renderer, updateManager, representationManager, gr
     controller2.addEventListener('selectend', onSelectEnd);
     controller2.addEventListener('connected', (event) => {
         const rep = buildController(event.data);
-        representationManager.AddRepresentation("right-hand", controller2);
+        representationManager.AddRepresentation(RepresentationType.RightHand, controller2);
         controller2.add(rep);
     });
     controller2.addEventListener('disconnected', () => {
-        representationManager.RemoveRepresentation("right-hand", controller2);
+        representationManager.RemoveRepresentation(RepresentationType.RightHand, controller2);
         controller2.remove(controller2.children[0]);
     });
     scene.add(controller2);

@@ -268,6 +268,8 @@ func main() {
 				Near:  5,
 				Far:   25,
 			},
+			Lighting:  coloring.White(),
+			Ground:    coloring.White(),
 			AntiAlias: false,
 			XrEnabled: true,
 		},

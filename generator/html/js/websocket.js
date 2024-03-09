@@ -1,5 +1,29 @@
 import * as THREE from 'three';
 import { CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+import { BinaryReader } from './binary_reader.js';
+import { BinaryWriter } from './binary_writer.js';
+
+export const RepresentationType = {
+    Player: 0,
+    LeftHand: 1,
+    RightHand: 2
+}
+
+export const ServerMessageType = {
+    SetClientIDMessage: 0 + 128,
+    RoomStateUpdateMessage: 1 + 128,
+    RefrershGeneratorMessage: 2 + 128,
+    BroadcastMessage: 3 + 128,
+}
+
+
+export const ClientMessageType = {
+    SetOrientationMessage: 0,
+    SetDisplayNameMessage: 1,
+    SetSceneMessage: 2,
+    SetPointerMessage: 3,
+    RemovePointerMessage: 4,
+}
 
 export class WebSocketRepresentationManager {
     constructor() {
@@ -22,7 +46,8 @@ export class WebSocketRepresentationManager {
     }
 
     ToMessage() {
-        const message = [];
+        const writer = new BinaryWriter(true);
+        writer.byte(ClientMessageType.SetOrientationMessage);
 
         let pos = new THREE.Vector3();
         let rot = new THREE.Quaternion();
@@ -39,7 +64,7 @@ export class WebSocketRepresentationManager {
             // Somethings wrong with the matrix world, let's not include this
             // representation
             const eles = threeObj.matrixWorld.elements;
-            for(let i = 0; i < eles.length; i ++) {
+            for (let i = 0; i < eles.length; i++) {
                 if (isNaN(eles[i]) || !isFinite(eles[i])) {
                     return;
                 }
@@ -49,27 +74,22 @@ export class WebSocketRepresentationManager {
                 const worldMatrix = threeObj.matrixWorld;
                 pos.setFromMatrixPosition(worldMatrix)
                 rot.setFromRotationMatrix(worldMatrix)
-                message.push({
-                    type: key,
-                    "position": {
-                        "x": pos.x,
-                        "y": pos.y,
-                        "z": pos.z,
-                    },
-                    "rotation": {
-                        "x": rot.x,
-                        "y": rot.y,
-                        "z": rot.z,
-                        "w": rot.w,
-                    }
-                })
+
+                writer.byte(key);
+                writer.float32(pos.x);
+                writer.float32(pos.y);
+                writer.float32(pos.z);
+                writer.float32(rot.x);
+                writer.float32(rot.y);
+                writer.float32(rot.z);
+                writer.float32(rot.w);
             } catch (error) {
                 console.error(error);
                 // Expected output: ReferenceError: nonExistentFunction is not defined
                 // (Note: the exact output may be browser-dependent)
             }
         });
-        return message;
+        return writer.buffer();
     }
 }
 
@@ -108,6 +128,7 @@ export class WebSocketManager {
         }
 
         this.conn = new WebSocket(websocketProtocol + document.location.host + "/live");
+        this.conn.binaryType = "arraybuffer";
         this.conn.onclose = this.onClose.bind(this);
         this.conn.onmessage = this.onMessage.bind(this);
 
@@ -120,10 +141,42 @@ export class WebSocketManager {
             return;
         }
 
-        this.conn.send(JSON.stringify({
-            "type": "Client-SetScene",
-            "data": this.viewportSettings.GetFolder()
-        }));
+        const settings = this.viewportSettings.GetFolder();
+
+        const writer = new BinaryWriter(true);
+        writer.byte(ClientMessageType.SetSceneMessage);
+        writer.bool(settings.renderWireframe);
+        writer.bool(settings.antiAlias);
+        writer.bool(settings.xrEnabled);
+
+        const color = new THREE.Color();
+        color.set(settings.fog.color);
+        writer.byte(color.r * 255);
+        writer.byte(color.g * 255);
+        writer.byte(color.b * 255);
+        writer.byte(color.a * 255);
+        writer.float32(settings.fog.near);
+        writer.float32(settings.fog.far);
+
+        color.set(settings.background);
+        writer.byte(color.r * 255);
+        writer.byte(color.g * 255);
+        writer.byte(color.b * 255);
+        writer.byte(color.a * 255);
+
+        color.set(settings.lighting);
+        writer.byte(color.r * 255);
+        writer.byte(color.g * 255);
+        writer.byte(color.b * 255);
+        writer.byte(color.a * 255);
+
+        color.set(settings.ground);
+        writer.byte(color.r * 255);
+        writer.byte(color.g * 255);
+        writer.byte(color.b * 255);
+        writer.byte(color.a * 255);
+
+        this.conn.send(writer.buffer());
 
         this.viewportSettings.ResetSettingsHaveChanged();
     }
@@ -234,15 +287,15 @@ export class WebSocketManager {
         if (playerData.representation) {
             playerData.representation.forEach((rep) => {
                 switch (rep.type) {
-                    case "player":
+                    case RepresentationType.Player:
                         resps.push(this.createPlayerObject(playerData.name, rep))
                         break;
 
-                    case "left-hand":
+                    case RepresentationType.LeftHand:
                         resps.push(this.createHandObject(rep));
                         break;
 
-                    case "right-hand":
+                    case RepresentationType.RightHand:
                         resps.push(this.createHandObject(rep));
                         break;
 
@@ -286,6 +339,7 @@ export class WebSocketManager {
     }
 
     onSetClientID(messageData) {
+        console.log(messageData, "test");
         this.clientID = messageData;
     }
 
@@ -367,21 +421,116 @@ export class WebSocketManager {
     }
 
     onMessage(evt) {
-        const message = JSON.parse(evt.data);
+        const dataView = new DataView(evt.data);
+        dataView.byteLength
+        const reader = new BinaryReader(dataView);
 
-        switch (message.type) {
-            case "Server-SetClientID":
-                this.onSetClientID(message.data)
+        const messageType = reader.Byte();
+        switch (messageType) {
+            case ServerMessageType.SetClientIDMessage:
+                this.onSetClientID(reader.String(reader.RemainingLength()));
                 break;
 
-            case "Server-RoomStateUpdate":
-                this.onRoomStateUpdate(message.data);
+            case ServerMessageType.RoomStateUpdateMessage:
+                const room = {
+                    ModelVersion: 0,
+                    WebScene: {
+                        renderWireframe: false,
+                        antiAlias: false,
+                        xrEnabled: false,
+                        fog: {
+                            color: "",
+                            near: 5,
+                            far: 25
+                        },
+                        background: "",
+                        lighting: "",
+                        ground: "",
+                    },
+                    Players: {}
+                }
+
+                room.ModelVersion = reader.UInt32();
+                room.WebScene.renderWireframe = reader.Bool();
+                room.WebScene.antiAlias = reader.Bool();
+                room.WebScene.xrEnabled = reader.Bool();
+
+                const color = new THREE.Color();
+
+                color.r = reader.Byte() / 255;
+                color.g = reader.Byte() / 255;
+                color.b = reader.Byte() / 255;
+                color.a = reader.Byte() / 255;
+                room.WebScene.fog.color = "#" + color.getHexString();
+                room.WebScene.fog.near = reader.Float32();
+                room.WebScene.fog.far = reader.Float32();
+
+                color.r = reader.Byte() / 255;
+                color.g = reader.Byte() / 255;
+                color.b = reader.Byte() / 255;
+                color.a = reader.Byte() / 255;
+                room.WebScene.background = "#" + color.getHexString();
+
+                color.r = reader.Byte() / 255;
+                color.g = reader.Byte() / 255;
+                color.b = reader.Byte() / 255;
+                color.a = reader.Byte() / 255;
+                room.WebScene.lighting = "#" + color.getHexString();
+
+                color.r = reader.Byte() / 255;
+                color.g = reader.Byte() / 255;
+                color.b = reader.Byte() / 255;
+                color.a = reader.Byte() / 255;
+                room.WebScene.ground = "#" + color.getHexString();
+
+                const numPlayers = reader.Byte();
+                for (let playerIndex = 0; playerIndex < numPlayers; playerIndex++) {
+                    const id = reader.String(reader.Byte());
+                    const name = reader.String(reader.Byte());
+
+                    const representations = [];
+                    const repLen = reader.Byte();
+                    for (let repI = 0; repI < repLen; repI++) {
+                        const rep = {
+                            type: 0,
+                            position: {
+                                x: 0,
+                                y: 0,
+                                z: 0
+                            },
+                            rotation: {
+                                x: 0,
+                                y: 0,
+                                z: 0,
+                                w: 0
+                            }
+                        }
+
+                        rep.type = reader.Byte();
+                        rep.position.x = reader.Float32();
+                        rep.position.y = reader.Float32();
+                        rep.position.z = reader.Float32();
+                        rep.rotation.x = reader.Float32();
+                        rep.rotation.y = reader.Float32();
+                        rep.rotation.z = reader.Float32();
+                        rep.rotation.w = reader.Float32();
+
+                        representations.push(rep);
+                    }
+
+                    room.Players[id] = {
+                        name: name,
+                        representation: representations
+                    }
+                }
+
+                this.onRoomStateUpdate(room);
                 break;
 
-            case "Server-RefreshGenerator":
+            case ServerMessageType.RefrershGeneratorMessage:
                 break;
 
-            case "Server-Broadcast":
+            case ServerMessageType.BroadcastMessage:
                 break;
         }
     };
@@ -390,11 +539,6 @@ export class WebSocketManager {
         if (this.conn.readyState !== this.conn.OPEN) {
             return;
         }
-        this.conn.send(JSON.stringify({
-            "type": "Client-SetOrientation",
-            "data": {
-                "representation": this.representationManager.ToMessage(),
-            }
-        }));
+        this.conn.send(this.representationManager.ToMessage());
     }
 }

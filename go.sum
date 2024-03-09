@@ -1,5 +1,7 @@
 github.com/EliCDavis/bitlib v1.0.0 h1:iMWUThiBzXnEQTAG3C5Mtjzfna8cpFhrmQylhWSJINM=
 github.com/EliCDavis/bitlib v1.0.0/go.mod h1:B/mBEBsbOKSL85ELpHDmN1ncf1gO14Nrum184HWHcPQ=
+github.com/EliCDavis/bitlib v1.1.0 h1:MX1szmrW/qrq/4RG2waKlIVNReWeV9hBLdUnyf5/dUk=
+github.com/EliCDavis/bitlib v1.1.0/go.mod h1:B/mBEBsbOKSL85ELpHDmN1ncf1gO14Nrum184HWHcPQ=
 github.com/EliCDavis/iter v1.0.1 h1:3Sd5SI+rTrYFbGIuVkcVddt7Y9b7FnEg6L2k0FfYspQ=
 github.com/EliCDavis/iter v1.0.1/go.mod h1:xZy1nTKVrfMY0J6Bj+bBO77JUEtwOK+kuhb8npwVHwE=
 github.com/EliCDavis/iter v1.0.2 h1:17An/C4iRWYr9e5sOcgUF2zbpflote2a+JUaNmOLSgA=

@@ -4,8 +4,8 @@ import "github.com/EliCDavis/polyform/drawing/coloring"
 
 type WebSceneFog struct {
 	Color coloring.WebColor `json:"color"`
-	Near  float64           `json:"near"`
-	Far   float64           `json:"far"`
+	Near  float32           `json:"near"`
+	Far   float32           `json:"far"`
 }
 
 type WebScene struct {
@@ -24,12 +24,12 @@ func DefaultWebScene() *WebScene {
 		AntiAlias:       true,
 		XrEnabled:       false,
 		Fog: WebSceneFog{
-			Color: coloring.WebColor{R: 0xa0, G: 0xa0, B: 0xa0},
+			Color: coloring.WebColor{R: 0xa0, G: 0xa0, B: 0xa0, A: 255},
 			Near:  10,
 			Far:   50,
 		},
-		Background: coloring.WebColor{R: 0xa0, G: 0xa0, B: 0xa0},
-		Lighting:   coloring.WebColor{R: 255, G: 255, B: 255},
-		Ground:     coloring.WebColor{R: 0xcb, G: 0xcb, B: 0xcb},
+		Background: coloring.WebColor{R: 0xa0, G: 0xa0, B: 0xa0, A: 255},
+		Lighting:   coloring.White(),
+		Ground:     coloring.WebColor{R: 0xcb, G: 0xcb, B: 0xcb, A: 255},
 	}
 }

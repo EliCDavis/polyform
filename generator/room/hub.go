@@ -5,15 +5,11 @@
 package room
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"math/rand"
 	"net/http"
 	"time"
-
-	"github.com/EliCDavis/vector/vector3"
-	"github.com/EliCDavis/vector/vector4"
 )
 
 var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
@@ -43,21 +39,20 @@ var defaultDisplayNames = []string{
 }
 
 type PlayerRepresentation struct {
-	Type     string          `json:"type"`
-	Position vector3.Float64 `json:"position"`
-	Rotation vector4.Float64 `json:"rotation"`
+	Type     byte          `json:"type"`
+	Position Vec3[float32] `json:"position"`
+	Rotation Vec4[float32] `json:"rotation"`
 }
 
 type Player struct {
 	Name           string                 `json:"name"`
 	Representation []PlayerRepresentation `json:"representation"`
-	Pointer        *vector3.Float64       `json:"pointer,omitempty"`
 }
 
 type RoomState struct {
-	Players      map[string]*Player
+	ModelVersion uint32
 	WebScene     *WebScene
-	ModelVersion int
+	Players      map[string]*Player
 }
 
 type clientUpdate struct {
@@ -88,10 +83,10 @@ type Hub struct {
 
 	state RoomState
 
-	modelVersion *int
+	modelVersion *uint32
 }
 
-func NewHub(webScene *WebScene, modelVersion *int) *Hub {
+func NewHub(webScene *WebScene, modelVersion *uint32) *Hub {
 	return &Hub{
 		broadcast:     make(chan []byte),
 		register:      make(chan *Client),
@@ -124,10 +119,7 @@ func (h *Hub) Run() {
 			h.state.Players[clientID] = &Player{
 				Name: defaultDisplayNames[rand.Intn(len(defaultDisplayNames))],
 			}
-			client.send <- Message{
-				Type: ServerSetClientIDMessageType,
-				Data: []byte(fmt.Sprintf("\"%s\"", clientID)),
-			}
+			client.send <- SeverSetClientIDMessage(clientID)
 
 		case client := <-h.unregister:
 			if id, ok := h.clients[client]; ok {
@@ -154,43 +146,31 @@ func (h *Hub) Run() {
 			update := clientUpdate.update
 			switch update.Type {
 			case ClientSetDisplayNameMessageType:
-				h.state.Players[clientID].Name = update.ClientSetDisplayNameData()
+				h.state.Players[clientID].Name = update.ClientSetDisplayName()
 
 			case ClientSetOrientationMessageType:
-				orientation, err := update.ClientSetOrientationData()
+				orientation, err := update.ClientSetOrientation()
 				if err != nil {
 					panic(fmt.Errorf("unable to set orientation data: %w", err))
 				}
 
-				h.state.Players[clientID].Representation = orientation.Representation
+				h.state.Players[clientID].Representation = orientation.Objects
 			case ClientSetSceneMessageType:
-				scene, err := update.ClientSetSceneData()
-				if err != nil {
-					panic(fmt.Errorf("unable to set scene data: %w", err))
-				}
-
+				scene := update.ClientSetSceneData()
 				h.state.WebScene = &scene
 			}
 
 		case <-h.sceneUpdate:
 			h.state.ModelVersion = *h.modelVersion
-			message, err := json.Marshal(h.state)
-			if err != nil {
-				panic(err)
-			}
 			for client := range h.clients {
 				select {
-				case client.send <- Message{
-					Type: ServerRoomStateUpdateMessageType,
-					Data: message,
-				}:
+				case client.send <- ServerRoomStateUpdate(h.state):
 				default:
 					close(client.send)
 					delete(h.clients, client)
 				}
 			}
 		}
-
 	}
 }
 

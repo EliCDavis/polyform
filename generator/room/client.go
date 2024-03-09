@@ -1,7 +1,6 @@
 package room
 
 import (
-	"encoding/json"
 	"log"
 	"time"
 
@@ -73,15 +72,9 @@ func (c *Client) readPump() {
 			}
 			break
 		}
-		parsedMessage := Message{}
-		parseErr := json.Unmarshal(message, &parsedMessage)
-		if parseErr != nil {
-			log.Printf("unable to parse message '%s': %s", string(message), parseErr.Error())
-			continue
-		}
 		c.hub.clientUpdates <- clientUpdate{
 			client: c,
-			update: parsedMessage,
+			update: MessageFromClient(message),
 		}
 	}
 }
@@ -100,11 +93,6 @@ func (c *Client) writePump() {
 	for {
 		select {
 		case message, ok := <-c.send:
-			data, err := json.Marshal(message)
-			if err != nil {
-				log.Printf("unable to serialize message: %v; %s", message, err.Error())
-				return
-			}
 
 			c.conn.SetWriteDeadline(time.Now().Add(c.Config.WriteWait))
 			if !ok {
@@ -113,11 +101,13 @@ func (c *Client) writePump() {
 				return
 			}
 
-			w, err := c.conn.NextWriter(websocket.TextMessage)
+			w, err := c.conn.NextWriter(websocket.BinaryMessage)
 			if err != nil {
 				return
 			}
-			w.Write(data)
+			if err := message.Write(w); err != nil {
+				panic(err)
+			}
 
 			// Add queued chat messages to the current websocket message.
 			// n := len(c.send)

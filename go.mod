@@ -18,7 +18,7 @@ require (
 )
 
 require (
-	github.com/EliCDavis/bitlib v1.0.0
+	github.com/EliCDavis/bitlib v1.1.0
 	github.com/EliCDavis/iter v1.0.2
 	github.com/mattn/go-runewidth v0.0.15 // indirect
 	github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db // indirect
