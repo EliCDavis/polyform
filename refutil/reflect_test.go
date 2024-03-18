@@ -61,6 +61,10 @@ func TestGetTypeWithPackage(t *testing.T) {
 		input any
 		want  string
 	}{
+		"nil": {
+			input: nil,
+			want:  "nil",
+		},
 		"string": {
 			input: "test",
 			want:  "string",
