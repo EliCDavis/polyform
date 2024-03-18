@@ -1,8 +1,6 @@
 package nodes
 
 import (
-	"fmt"
-
 	"github.com/EliCDavis/polyform/refutil"
 )
 
@@ -69,15 +67,16 @@ func (in *TransformerNode[Tin, Tout]) Node() Node {
 func (tn TransformerNode[Tin, Tout]) Inputs() []Input {
 	return []Input{{
 		Name: "In",
-		Type: fmt.Sprintf("%T", *new(Tin)),
+		Type: refutil.GetTypeWithPackage(*new(Tin)),
 	}}
 }
 
 func (tn TransformerNode[Tin, Tout]) Outputs() []Output {
+	var t Tout
 	return []Output{
 		{
 			Name: "Data",
-			Type: fmt.Sprintf("%T", *new(Tout)),
+			Type: refutil.GetTypeWithPackage(t),
 		},
 	}
 }

@@ -8,6 +8,10 @@ import (
 )
 
 func GetTypeWithPackage(v any) string {
+	vType := reflect.TypeOf(v)
+	if vType == nil {
+		return "nil"
+	}
 	pkgPath := reflect.TypeOf(v).PkgPath()
 	if !strings.Contains(pkgPath, "/") {
 		return reflect.TypeOf(v).String()

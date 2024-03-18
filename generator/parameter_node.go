@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/EliCDavis/polyform/nodes"
+	"github.com/EliCDavis/polyform/refutil"
 )
 
 type ParameterNodeSchema[T any] struct {
@@ -101,7 +102,7 @@ func (tn ParameterNode[T]) Outputs() []nodes.Output {
 	return []nodes.Output{
 		{
 			Name: "Data",
-			Type: fmt.Sprintf("%T", *new(T)),
+			Type: refutil.GetTypeWithPackage(*new(T)),
 		},
 	}
 }
