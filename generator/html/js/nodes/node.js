@@ -1,84 +1,9 @@
 import * as THREE from 'three';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
+import { NodeBasicParameter } from './basic_parameter.js';
+import { NodeVector3Parameter } from './vector3_parameter.js';
 
 
-class NodeBasicParameter {
-    constructor(nodeManager, id, parameterData, guiFolder, guiFolderData) {
-        this.id = id;
-        this.guiFolder = guiFolder;
-        this.guiFolderData = guiFolderData;
-
-        guiFolderData[id] = parameterData.currentValue;
-
-        let setting = null;
-
-        if (parameterData.type === "coloring.WebColor") {
-            setting = guiFolder.addColor(guiFolderData, id)
-        } else {
-            setting = guiFolder.add(guiFolderData, id)
-        }
-
-        setting = setting.name(parameterData.name);
-
-        if (parameterData.type === "int") {
-            setting = setting.step(1)
-        }
-
-        this.setting = setting
-            .listen()
-            .onChange((newData) => {
-                nodeManager.nodeParameterChanged({
-                    id: id,
-                    data: newData
-                });
-            });
-    }
-
-    update(parameterData) {
-        this.guiFolderData[this.id] = parameterData.currentValue;
-    }
-}
-
-class NodeVector3Parameter {
-    constructor(nodeManager, id, parameterData, app) {
-        const control = new TransformControls(app.Camera, app.Renderer.domElement);
-        control.setMode('translate');
-        control.setSpace("local");
-
-        this.mesh = new THREE.Group();
-      
-        control.addEventListener('dragging-changed', (event) => {
-            app.OrbitControls.enabled = !event.value;
-
-            if (app.OrbitControls.enabled) {
-
-                const newData = {
-                    x: this.mesh.position.x,
-                    y: this.mesh.position.y,
-                    z: this.mesh.position.z,
-                }
-                nodeManager.nodeParameterChanged({
-                    id: id,
-                    data: newData
-                });
-            }
-        });
-
-
-        app.ViewerScene.add(this.mesh);
-
-        const curVal = parameterData.currentValue;
-        this.mesh.position.set(curVal.x, curVal.y, curVal.z);
-
-        app.Scene.add(control)
-        control.attach(this.mesh);
-    }
-
-    update(parameterData) {
-        const curVal = parameterData.currentValue;
-        this.mesh.position.set(curVal.x, curVal.y, curVal.z)
-    }
-}
 
 class NodeVector3ArryParameter {
     constructor(nodeManager, id, parameterData, app, guiFolderData) {
@@ -188,7 +113,7 @@ function BuildParameter(nodeManager, id, parameterData, app, guiFolderData) {
         case "bool":
         case "string":
         case "coloring.WebColor":
-            return new NodeBasicParameter(nodeManager, id, parameterData, app.MeshGenFolder, guiFolderData);
+            return new NodeBasicParameter(app, nodeManager, id, parameterData, app.MeshGenFolder, guiFolderData);
 
         case "vector3.Vector[float64]":
         case "vector3.Vector[float32]":
@@ -203,6 +128,29 @@ function BuildParameter(nodeManager, id, parameterData, app, guiFolderData) {
     }
 }
 
+function BuildCustomNode(app, nodeData) {
+    function CustomNode() {
+        nodeData.inputs.forEach((i) => {
+            this.addInput(i.name, i.type);
+        })
+
+        nodeData.outputs.forEach((o) => {
+            this.addOutput(o.name, o.type);
+        })
+        // this.properties = { precision: 1 };
+    }
+    CustomNode.title = nodeData.name;
+
+    const nodeName = "polyform/" + nodeData.name;
+    LiteGraph.registerNodeType(nodeName, CustomNode);
+
+    const node = LiteGraph.createNode(nodeName);
+    console.log(node)
+    // node.pos = [200, app.LightGraph._nodes.length * 100];
+    app.LightGraph.add(node);
+    return node;
+}
+
 export class PolyNode {
     constructor(nodeManager, id, nodeData, app, guiFolderData) {
         this.app = app;
@@ -214,7 +162,9 @@ export class PolyNode {
         this.outputs = [];
         this.version = 0;
         this.dependencies = [];
+        
         this.parameter = null;
+        this.lightNode = null;
 
         this.update(nodeData);
     }
@@ -228,9 +178,16 @@ export class PolyNode {
         if (nodeData.parameter) {
             if (!this.parameter) {
                 this.parameter = BuildParameter(this.nodeManager, this.id, nodeData.parameter, this.app, this.guiFolderData);
+                this.lightNode = this.parameter.lightNode;
             } else {
                 this.parameter.update(nodeData.parameter)
             }
+        } else if(!this.lightNode) {
+            this.lightNode = BuildCustomNode(this.app, nodeData)
         }
+    }
+
+    updateConnections() {
+
     }
 }

@@ -134,6 +134,7 @@ func (a App) buildSchemaForNode(dependency nodes.Node, currentSchema map[string]
 	schema := NodeSchema{
 		Name:         "Unamed",
 		Dependencies: make([]NodeDependencySchema, 0),
+		Outputs:      make([]NodeOutput, 0),
 		Version:      dependency.Version(),
 	}
 
@@ -142,6 +143,22 @@ func (a App) buildSchemaForNode(dependency nodes.Node, currentSchema map[string]
 		schema.Dependencies = append(schema.Dependencies, NodeDependencySchema{
 			DependencyID: a.nodeIDs[subDependency.Dependency()],
 			Name:         subDependency.Name(),
+		})
+	}
+
+	outputs := dependency.Outputs()
+	for _, o := range outputs {
+		schema.Outputs = append(schema.Outputs, NodeOutput{
+			Name: o.Name,
+			Type: o.Type,
+		})
+	}
+
+	inputs := dependency.Inputs()
+	for _, o := range inputs {
+		schema.Inputs = append(schema.Inputs, NodeInput{
+			Name: o.Name,
+			Type: o.Type,
 		})
 	}
 

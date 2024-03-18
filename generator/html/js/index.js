@@ -20,8 +20,7 @@ setInterval(() => {
 // https://threejs.org/examples/?q=Directional#webgl_lights_hemisphere
 // https://threejs.org/examples/#webgl_geometry_spline_editor
 
-const container = document.createElement('div');
-document.body.appendChild(container);
+const container = document.getElementById('three-viewer-container');
 
 import * as THREE from 'three';
 import { NodeManager } from "./node_manager.js";
@@ -75,9 +74,13 @@ scene.fog = new THREE.Fog(viewportSettings.fog.color, viewportSettings.fog.near,
 const viewerContainer = new THREE.Group();
 scene.add(viewerContainer);
 
-const renderer = new THREE.WebGLRenderer({ antialias: RenderingConfiguration.AntiAlias });
+const threeCanvas = document.getElementById("three-canvas");
+const renderer = new THREE.WebGLRenderer({ 
+    canvas: threeCanvas,
+    antialias: RenderingConfiguration.AntiAlias 
+});
 renderer.setPixelRatio(window.devicePixelRatio);
-renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setSize(threeCanvas.clientWidth, threeCanvas.clientHeight, false);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap; // default THREE.PCFShadowMap
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -85,12 +88,12 @@ renderer.toneMappingExposure = 1;
 renderer.xr.enabled = RenderingConfiguration.XrEnabled;
 renderer.setAnimationLoop(updateLoop.run.bind(updateLoop))
 
-container.appendChild(renderer.domElement);
+// container.appendChild(renderer.domElement);
 // progressive lightmap
 const progressiveSurfacemap = new ProgressiveLightMap(renderer, lightMapRes);
 
 const labelRenderer = new CSS2DRenderer();
-labelRenderer.setSize(window.innerWidth, window.innerHeight);
+labelRenderer.setSize(threeCanvas.clientWidth, threeCanvas.clientHeight, false);
 labelRenderer.domElement.style.position = 'absolute';
 labelRenderer.domElement.style.top = '0px';
 labelRenderer.domElement.style.pointerEvents = 'none';
@@ -145,7 +148,8 @@ const App = {
     MeshGenFolder: panel.addFolder("Mesh Generation"),
     Scene: scene,
     OrbitControls: orbitControls,
-    ViewerScene: viewerContainer
+    ViewerScene: viewerContainer,
+    LightGraph: lgraphInstance
 }
 
 const requestManager = new RequestManager();
@@ -324,7 +328,6 @@ class SchemaRefreshManager {
 
         guassianSplatViewer = new GaussianSplats3D.Viewer(splatViewerOptions);
 
-        console.log(guassianSplatViewer);
         // getSplatCenter
         guassianSplatViewer.addSplatScene(producerURL, {
             // 'scale': [0.25, 0.25, 0.25],
@@ -333,7 +336,6 @@ class SchemaRefreshManager {
             const aabb = new THREE.Box3();
             const tree = guassianSplatViewer.splatMesh.splatTree.subTrees[0]
             aabb.setFromPoints([tree.sceneMin, tree.sceneMax]);
-            console.log(aabb)
             const aabbDepth = (aabb.max.z - aabb.min.z)
             const aabbWidth = (aabb.max.x - aabb.min.x)
             const aabbHeight = (aabb.max.y - aabb.min.y)
@@ -426,7 +428,6 @@ const fileControls = {
             // here we tell the reader what to do when it's done reading...
             reader.onload = readerEvent => {
                 const content = readerEvent.target.result; // this is the content!
-                console.log(content);
                 profile = JSON.parse(content)
                 updateProfile(() => {
                     location.reload();
@@ -579,17 +580,18 @@ viewportManager.AddSetting(
 );
 
 
-function onWindowResize() {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    labelRenderer.setSize(window.innerWidth, window.innerHeight);
+function resize() {
+    const w = renderer.domElement.clientWidth;
+    const h = renderer.domElement.clientHeight
+    
+    if (renderer.domElement.width !== w || renderer.domElement.height !== h) {
+        renderer.setSize(w, h, false);
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+        lightCanvas.resize(lightCanvasCanvas.clientWidth, lightCanvasCanvas.clientHeight, false)
+        labelRenderer.setSize(w, h);
+    }
 }
-
-window.addEventListener('resize', onWindowResize);
-
-
-
 
 const websocketManager = new WebSocketManager(
     representationManager,
@@ -611,6 +613,7 @@ if (websocketManager.canConnect()) {
 }
 
 updateLoop.addToUpdate(() => {
+    resize();
     renderer.render(scene, camera);
 
     if (guassianSplatViewer) {

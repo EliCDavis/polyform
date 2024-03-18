@@ -104,7 +104,9 @@ func (as *AppServer) Serve() error {
 		return err
 	}
 
-	http.Handle("/js/", http.FileServer(http.FS(fSys)))
+	fs := http.FileServer(http.FS(fSys))
+	http.Handle("/js/", fs)
+	http.Handle("/css/", fs)
 
 	http.HandleFunc("/schema", as.SchemaEndpoint)
 	http.HandleFunc("/scene", as.SceneEndpoint)

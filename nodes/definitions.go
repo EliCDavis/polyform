@@ -4,6 +4,22 @@ type ReferencesNode interface {
 	Node() Node
 }
 
+// Producer ===================================================================
+
+type Output struct {
+	Name string
+	Type string
+}
+
+type Input struct {
+	Name string
+	Type string
+}
+
+// type Producer interface {
+// 	Outputs() []Output
+// }
+
 // Dependent ==================================================================
 
 type Dependent interface {

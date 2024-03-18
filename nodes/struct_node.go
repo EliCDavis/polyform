@@ -109,6 +109,32 @@ func (tn StructNode[T]) Version() int {
 	return tn.version
 }
 
+func (tn StructNode[T]) Outputs() []Output {
+	outputs := refutil.FuncValuesOfType[ReferencesNode](tn.processir)
+
+	outs := make([]Output, len(outputs))
+	// TODO: This is wrong for nodes with more than one output
+	var v T
+	for i, o := range outputs {
+		outs[i] = Output{
+			Name: o,
+			// Type: fmt.Sprintf("%T", *new(T)),
+			Type: refutil.GetTypeWithPackage(v),
+		}
+	}
+	return outs
+}
+
+func (tn StructNode[T]) Inputs() []Input {
+	inputs := refutil.GenericFieldValues("nodes.NodeOutput", tn.processir)
+
+	input := make([]Input, 0, len(inputs))
+	for name, inputType := range inputs {
+		input = append(input, Input{Name: name, Type: inputType})
+	}
+	return input
+}
+
 func (tn StructNode[T]) Dependencies() []NodeDependency {
 	output := make([]NodeDependency, 0)
 
@@ -163,7 +189,7 @@ func (tn *StructNode[T]) State() NodeState {
 
 func (tn *StructNode[T]) AddSubscription(a Alertable) {
 	if a == nil {
-		panic("attempting to subribe with nil alertable")
+		panic("attempting to subscribe with nil alertable")
 	}
 	tn.subs = append(tn.subs, a)
 }

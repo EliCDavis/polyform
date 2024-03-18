@@ -20,6 +20,8 @@
           }
         }
     </script>
+    <link rel="stylesheet" type="text/css" href="css/litegraph.css">
+    <script type="text/javascript" src="js/litegraph.js"></script>
     <script src="js/update-manager.js"></script>
     <script src="js/info_manager.js"></script>
     <script src="js/error_manager.js"></script>
@@ -28,12 +30,19 @@
     <script type="module" src="js/binary_reader.js"></script>
     <script type="module" src="js/binary_writer.js"></script>
     <script type="module" src="js/websocket.js"></script>
-    <script type="module" src="js/node.js"></script>
+    <script type="module" src="js/nodes/basic_parameter.js"></script>
+    <script type="module" src="js/nodes/vector3_parameter.js"></script>
+    <script type="module" src="js/nodes/node.js"></script>
     <script type="module" src="js/node_manager.js"></script>
     <script type="module" src="js/xr.js"></script>
     <script src="js/schema_manager.js"></script>
     <style>
+        html {
+            height: 100%;
+        }
+
         body {
+            height: 100%;
             margin: 0;
             background-color: #000;
             color: #fff;
@@ -104,7 +113,7 @@
             display: none;
         }
 
-        
+
         #infoMessage {
             position: absolute;
             left: 0px;
@@ -160,6 +169,47 @@
             margin-top: 20px;
             padding: 10px;
         }
+
+        #main-content {
+            flex-direction: column;
+            display: flex;
+            flex: 1;
+
+            /* overflow: hidden; */
+            height: 100%;
+            width: 100%;
+        }
+
+        #three-viewer-container {
+            display: flex;
+            height: 70%;
+            min-height: 0;
+        }
+
+        #light-canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        #light-container {
+            display: flex;
+            flex: 1;
+            min-height: 0;
+        }
+
+        .resizer[data-direction='horizontal'] {
+            background-color: #5e5e5e;
+            cursor: ew-resize;
+            height: 100%;
+            width: 2px;
+        }
+
+        .resizer[data-direction='vertical'] {
+            background-color: #5e5e5e;
+            cursor: ns-resize;
+            height: 2px;
+            width: 100%;
+        }
     </style>
 </head>
 
@@ -171,8 +221,8 @@
 
     <script>
         const RenderingConfiguration = {
-            AntiAlias: {{.AntiAlias}},
-            XrEnabled: {{.XrEnabled}}
+            AntiAlias: {{.AntiAlias }},
+            XrEnabled: {{.XrEnabled }}
         }
     </script>
 
@@ -187,7 +237,116 @@
     <div id="infoMessage">
     </div>
 
+
     <script type="module" src="js/index.js"></script>
+
+    <div id="main-content">
+        <div id="three-viewer-container">
+            <canvas style="width: 100%; height: 100%;" id="three-canvas"></canvas>
+        </div>
+
+        <div class="resizer" data-direction="vertical"></div>
+
+        <div id="light-container">
+            <canvas id="light-canvas"></canvas>
+        </div>
+    </div>
+
+
+    <script>
+        // https://phuoc.ng/collection/html-dom/create-resizable-split-views/
+        document.addEventListener('DOMContentLoaded', function () {
+            const resizable =  (resizer) => {
+                const direction = resizer.getAttribute('data-direction') || 'horizontal';
+                const prevSibling = resizer.previousElementSibling;
+                const nextSibling = resizer.nextElementSibling;
+
+                // The current position of mouse
+                let x = 0;
+                let y = 0;
+                let prevSiblingHeight = 0;
+                let prevSiblingWidth = 0;
+
+                // Handle the mousedown event
+                // that's triggered when user drags the resizer
+                const mouseDownHandler = function (e) {
+                    // Get the current mouse position
+                    x = e.clientX;
+                    y = e.clientY;
+                    const rect = prevSibling.getBoundingClientRect();
+                    prevSiblingHeight = rect.height;
+                    prevSiblingWidth = rect.width;
+
+                    // Attach the listeners to document
+                    document.addEventListener('mousemove', mouseMoveHandler);
+                    document.addEventListener('mouseup', mouseUpHandler);
+                };
+
+                const mouseMoveHandler = function (e) {
+                    // How far the mouse has been moved
+                    const dx = e.clientX - x;
+                    const dy = e.clientY - y;
+
+                    switch (direction) {
+                        case 'vertical':
+                            const h =
+                                ((prevSiblingHeight + dy) * 100) /
+                                resizer.parentNode.getBoundingClientRect().height;
+                            prevSibling.style.height = h + '%';
+                            break;
+                        case 'horizontal':
+                        default:
+                            const w =
+                                ((prevSiblingWidth + dx) * 100) / resizer.parentNode.getBoundingClientRect().width;
+                            prevSibling.style.width = w + '%';
+                            break;
+                    }
+
+                    const cursor = direction === 'horizontal' ? 'col-resize' : 'row-resize';
+                    resizer.style.cursor = cursor;
+                    document.body.style.cursor = cursor;
+
+                    prevSibling.style.userSelect = 'none';
+                    prevSibling.style.pointerEvents = 'none';
+
+                    nextSibling.style.userSelect = 'none';
+                    nextSibling.style.pointerEvents = 'none';
+                };
+
+                const mouseUpHandler = function () {
+                    resizer.style.removeProperty('cursor');
+                    document.body.style.removeProperty('cursor');
+
+                    prevSibling.style.removeProperty('user-select');
+                    prevSibling.style.removeProperty('pointer-events');
+
+                    nextSibling.style.removeProperty('user-select');
+                    nextSibling.style.removeProperty('pointer-events');
+
+                    // Remove the handlers of mousemove and mouseup
+                    document.removeEventListener('mousemove', mouseMoveHandler);
+                    document.removeEventListener('mouseup', mouseUpHandler);
+                };
+
+                // Attach the handler
+                resizer.addEventListener('mousedown', mouseDownHandler);
+            };
+
+            // Query all resizers
+            document.querySelectorAll('.resizer').forEach(function (ele) {
+                resizable(ele);
+            });
+        });
+    </script>
+
+    <script>
+        const lgraphInstance = new LGraph();
+
+        const lightCanvasCanvas = document.getElementById("light-canvas")
+        const lightCanvas = new LGraphCanvas("#light-canvas", lgraphInstance);
+
+        lgraphInstance.start()
+    </script>
 
 </body>
 

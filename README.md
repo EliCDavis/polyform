@@ -158,6 +158,7 @@ Progress towards V1...
 
 - [ ] Finalize Material Definition (or remove and defer to file format specifications)
 - [ ] Finalize Node error propogation flow
+- [ ] Cleanup Node interface
 - [ ] Finalize package organization for node equivalent functionality (ie vector3 => vecn3)
 - [ ] Proper WASM Deployment  
 
@@ -338,6 +339,15 @@ Resources either directly contributing to the code, or are just interesting find
   - [Making Gaussian Splats Smaller](https://aras-p.info/blog/2023/09/13/Making-Gaussian-Splats-smaller/) by [Aras Pranckevičius](https://aras-p.info/)
   - [Gaussian Explosion](https://aras-p.info/blog/2023/12/08/Gaussian-explosion/) by [Aras Pranckevičius](https://aras-p.info/)
 
+## Web Libraries
+
+Libraries the Webviewer depends on in some capacity
+
+* [three.js](https://github.com/mrdoob/three.js)
+* [litegraph.js](https://github.com/jagenjo/litegraph.js)
+* [GaussianSplats3D](https://github.com/mkkellogg/GaussianSplats3D)
+* [dat.gui](https://github.com/dataarts/dat.gui)
+
 ## Citiation
 
 If Polyform contributes to an academic publication, cite it as:
@@ -347,6 +357,6 @@ If Polyform contributes to an academic publication, cite it as:
   title = {Polyform},
   author = {Eli Davis},
   note = {https://www.github.com/EliCDavis/polyform},
-  year = {2023}
+  year = {2024}
 }
 ```

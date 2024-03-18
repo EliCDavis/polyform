@@ -1,6 +1,10 @@
 package nodes
 
-import "github.com/EliCDavis/polyform/refutil"
+import (
+	"fmt"
+
+	"github.com/EliCDavis/polyform/refutil"
+)
 
 type TransformerNode[Tin any, Tout any] struct {
 	nodeData
@@ -60,6 +64,22 @@ func (tnd transformerNodeDependency) Dependency() Node {
 
 func (in *TransformerNode[Tin, Tout]) Node() Node {
 	return in
+}
+
+func (tn TransformerNode[Tin, Tout]) Inputs() []Input {
+	return []Input{{
+		Name: "In",
+		Type: fmt.Sprintf("%T", *new(Tin)),
+	}}
+}
+
+func (tn TransformerNode[Tin, Tout]) Outputs() []Output {
+	return []Output{
+		{
+			Name: "Data",
+			Type: fmt.Sprintf("%T", *new(Tout)),
+		},
+	}
 }
 
 func (tn TransformerNode[Tin, Tout]) Dependencies() []NodeDependency {

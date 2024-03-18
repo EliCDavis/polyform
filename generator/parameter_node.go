@@ -97,6 +97,19 @@ func (pn *ParameterNode[T]) State() nodes.NodeState {
 	return nodes.Processed
 }
 
+func (tn ParameterNode[T]) Outputs() []nodes.Output {
+	return []nodes.Output{
+		{
+			Name: "Data",
+			Type: fmt.Sprintf("%T", *new(T)),
+		},
+	}
+}
+
+func (tn ParameterNode[T]) Inputs() []nodes.Input {
+	return []nodes.Input{}
+}
+
 func (pn ParameterNode[T]) Version() int {
 	return pn.version
 }

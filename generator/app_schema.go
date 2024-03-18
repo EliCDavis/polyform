@@ -2,6 +2,12 @@ package generator
 
 type NodeOutput struct {
 	Name string `json:"name"`
+	Type string `json:"type"`
+}
+
+type NodeInput struct {
+	Name string `json:"name"`
+	Type string `json:"type"`
 }
 
 type NodeSchema struct {
@@ -9,6 +15,7 @@ type NodeSchema struct {
 	Version      int                    `json:"version"`
 	Dependencies []NodeDependencySchema `json:"dependencies"`
 	Outputs      []NodeOutput           `json:"outputs"`
+	Inputs       []NodeInput            `json:"inputs"`
 	Parameter    ParameterSchema        `json:"parameter,omitempty"`
 
 	// node      nodes.Node

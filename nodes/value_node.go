@@ -1,6 +1,10 @@
 package nodes
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/EliCDavis/polyform/refutil"
+)
 
 type ValueNode[T any] struct {
 	VersionData
@@ -31,6 +35,19 @@ func (in ValueNode[T]) Name() string {
 
 func (in *ValueNode[T]) Node() Node {
 	return in
+}
+
+func (tn ValueNode[T]) Inputs() []Input {
+	return []Input{}
+}
+
+func (tn ValueNode[T]) Outputs() []Output {
+	return []Output{
+		{
+			Name: "Data",
+			Type: refutil.GetTypeWithPackage(*new(T)),
+		},
+	}
 }
 
 func (in ValueNode[T]) Data() T {

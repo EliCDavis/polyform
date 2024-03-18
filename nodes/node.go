@@ -13,9 +13,10 @@ type Node interface {
 	Stateful
 	Subscribable
 	Dependent
+	// Producer
+	Outputs() []Output
+	Inputs() []Input
 }
-
-// AHHHHHHHHHHHHH =============================================================
 
 type nodeData struct {
 	version int
@@ -50,13 +51,3 @@ func (v *nodeData) alertSubscribers() {
 		}
 	}
 }
-
-//
-// N --\
-//      x -- N -- \
-// N --/           \
-//                  x -- N
-// N --\           /
-//      x -- N -- /
-// N --/
-//
