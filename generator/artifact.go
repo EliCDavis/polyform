@@ -30,10 +30,21 @@ func (ia ImageArtifact) Write(w io.Writer) error {
 	return png.Encode(w, ia.Image)
 }
 
-func ImageArtifactNode(imageNode nodes.NodeOutput[image.Image]) nodes.NodeOutput[Artifact] {
-	return nodes.Transformer("Image Artifact", imageNode, func(i nodes.NodeOutput[image.Image]) (Artifact, error) {
-		return &ImageArtifact{Image: i.Data()}, nil
-	})
+type ImageArtifactNode struct {
+	nodes.StructData[Artifact]
+	In nodes.NodeOutput[image.Image]
+}
+
+func (pn *ImageArtifactNode) Out() nodes.NodeOutput[Artifact] {
+	return &nodes.StructNodeOutput[Artifact]{Definition: pn}
+}
+
+func (pn ImageArtifactNode) Process() (Artifact, error) {
+	return ImageArtifact{Image: pn.In.Data()}, nil
+}
+
+func NewImageArtifactNode(imageNode nodes.NodeOutput[image.Image]) nodes.NodeOutput[Artifact] {
+	return (&ImageArtifactNode{In: imageNode}).Out()
 }
 
 // ============================================================================
@@ -57,10 +68,22 @@ func (ga BinaryArtifact) Write(w io.Writer) error {
 	return err
 }
 
-func BinaryArtifactNode(imageNode nodes.NodeOutput[[]byte]) nodes.NodeOutput[Artifact] {
-	return nodes.Transformer("Binary Artifact", imageNode, func(i nodes.NodeOutput[[]byte]) (Artifact, error) {
-		return &BinaryArtifact{Data: i.Data()}, nil
-	})
+type BinaryArtifactNode struct {
+	nodes.StructData[Artifact]
+	In nodes.NodeOutput[[]byte]
+}
+
+func (pn *BinaryArtifactNode) Out() nodes.NodeOutput[Artifact] {
+	return &nodes.StructNodeOutput[Artifact]{Definition: pn}
+}
+
+func (pn BinaryArtifactNode) Process() (Artifact, error) {
+	return BinaryArtifact{Data: pn.In.Data()}, nil
+}
+
+func NewBinaryArtifactNode(bytesNode nodes.NodeOutput[[]byte]) nodes.NodeOutput[Artifact] {
+	return (&BinaryArtifactNode{In: bytesNode}).Out()
+
 }
 
 // ============================================================================
@@ -74,10 +97,21 @@ func (ga TextArtifact) Write(w io.Writer) error {
 	return err
 }
 
-func TextArtifactNode(imageNode nodes.NodeOutput[string]) nodes.NodeOutput[Artifact] {
-	return nodes.Transformer("Text Artifact", imageNode, func(i nodes.NodeOutput[string]) (Artifact, error) {
-		return &TextArtifact{Data: i.Data()}, nil
-	})
+type TextArtifactNode struct {
+	nodes.StructData[Artifact]
+	In nodes.NodeOutput[string]
+}
+
+func (pn *TextArtifactNode) Out() nodes.NodeOutput[Artifact] {
+	return &nodes.StructNodeOutput[Artifact]{Definition: pn}
+}
+
+func (pn TextArtifactNode) Process() (Artifact, error) {
+	return TextArtifact{Data: pn.In.Data()}, nil
+}
+
+func NewTextArtifactNode(textNode nodes.NodeOutput[string]) nodes.NodeOutput[Artifact] {
+	return (&TextArtifactNode{In: textNode}).Out()
 }
 
 // ============================================================================
@@ -90,10 +124,21 @@ func (sa SplatArtifact) Write(w io.Writer) error {
 	return splat.Write(w, sa.Mesh)
 }
 
-func SplatArtifactNode(meshNode nodes.NodeOutput[modeling.Mesh]) nodes.NodeOutput[Artifact] {
-	return nodes.Transformer("Splat Artifact", meshNode, func(i nodes.NodeOutput[modeling.Mesh]) (Artifact, error) {
-		return &SplatArtifact{Mesh: i.Data()}, nil
-	})
+type SplatArtifactNode struct {
+	nodes.StructData[Artifact]
+	In nodes.NodeOutput[modeling.Mesh]
+}
+
+func (pn *SplatArtifactNode) Out() nodes.NodeOutput[Artifact] {
+	return &nodes.StructNodeOutput[Artifact]{Definition: pn}
+}
+
+func (pn SplatArtifactNode) Process() (Artifact, error) {
+	return SplatArtifact{Mesh: pn.In.Data()}, nil
+}
+
+func NewSplatArtifactNode(meshNode nodes.NodeOutput[modeling.Mesh]) nodes.NodeOutput[Artifact] {
+	return (&SplatArtifactNode{In: meshNode}).Out()
 }
 
 // ============================================================================
@@ -107,8 +152,20 @@ func (ga IOArtifact) Write(w io.Writer) error {
 	return err
 }
 
-func IOArtifactNode(imageNode nodes.NodeOutput[io.Reader]) nodes.NodeOutput[Artifact] {
-	return nodes.Transformer("IO Artifact", imageNode, func(i nodes.NodeOutput[io.Reader]) (Artifact, error) {
-		return &IOArtifact{Reader: i.Data()}, nil
-	})
+type IOArtifactNode struct {
+	nodes.StructData[Artifact]
+	In nodes.NodeOutput[io.Reader]
+}
+
+func (pn *IOArtifactNode) Out() nodes.NodeOutput[Artifact] {
+	return &nodes.StructNodeOutput[Artifact]{Definition: pn}
+}
+
+func (pn IOArtifactNode) Process() (Artifact, error) {
+	return IOArtifact{Reader: pn.In.Data()}, nil
+}
+
+func NewIOArtifactNode(readerNode nodes.NodeOutput[io.Reader]) nodes.NodeOutput[Artifact] {
+	return (&IOArtifactNode{In: readerNode}).Out()
+
 }

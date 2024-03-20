@@ -351,8 +351,8 @@ func main() {
 		Description: "Applying color pallettes to a sample room",
 		Producers: map[string]nodes.NodeOutput[generator.Artifact]{
 			"disco.glb": discoScene.Out(),
-			"metal.png": generator.ImageArtifactNode(nodes.Value[image.Image](texture(1, 0))),
-			"rough.png": generator.ImageArtifactNode(nodes.Value[image.Image](texture(0, 1))),
+			"metal.png": generator.NewImageArtifactNode(nodes.Value[image.Image](texture(1, 0))),
+			"rough.png": generator.NewImageArtifactNode(nodes.Value[image.Image](texture(0, 1))),
 		},
 	}
 	err := app.Run()

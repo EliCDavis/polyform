@@ -27,6 +27,14 @@ func (ts TestStruct) XYZ() int {
 	return 1
 }
 
+type genericTestStruct[T any] struct {
+}
+
+func (t genericTestStruct[T]) TypeWithPackage() string {
+	var v T
+	return refutil.GetTypeWithPackage(v)
+}
+
 func TestFuncValuesOfType(t *testing.T) {
 	ts := TestStruct{}
 	v := refutil.FuncValuesOfType[error](ts)
@@ -56,6 +64,12 @@ func TestGenericFieldValuesOfType(t *testing.T) {
 	assert.Equal(t, "float64", v["C"])
 }
 
+func TestGetTypeWithPackageGeneric(t *testing.T) {
+	assert.Equal(t, "int", genericTestStruct[int]{}.TypeWithPackage())
+	assert.Equal(t, "github.com/EliCDavis/vector/vector3.Array[float64]", genericTestStruct[vector3.Array[float64]]{}.TypeWithPackage())
+	assert.Equal(t, "github.com/EliCDavis/vector/vector3.Array[float64]", genericTestStruct[*vector3.Array[float64]]{}.TypeWithPackage())
+}
+
 func TestGetTypeWithPackage(t *testing.T) {
 	tests := map[string]struct {
 		input any
@@ -76,6 +90,10 @@ func TestGetTypeWithPackage(t *testing.T) {
 		"external lib": {
 			input: vector3.New(1, 2, 3),
 			want:  "github.com/EliCDavis/vector/vector3.Vector[int]",
+		},
+		"pointer external lib": {
+			input: &vector3.Vector[float64]{},
+			want:  "github.com/EliCDavis/vector/vector3.Vector[float64]",
 		},
 	}
 

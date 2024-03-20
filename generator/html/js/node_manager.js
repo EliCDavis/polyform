@@ -5,8 +5,21 @@ export class NodeManager {
         this.app = app;
         this.guiFolderData = {};
         this.nodeIdToNode = new Map();
-        // this.nodeId = new Map();
         this.subscribers = [];
+
+        this.registerPolyformNodes();
+    }
+
+    registerPolyformNodes() {
+        function Vector3ParameterNode() {
+            //     this.addInput(inputName, nodeData.inputs[inputName].type);
+            this.addOutput("Value", "github.com/EliCDavis/vector/vector3.Vector[float64]");
+            // this.properties = { precision: 1 };
+            this.title = "Vector3";
+            this.color = "#233";
+            this.bgcolor = "#355";
+        }
+        LiteGraph.registerNodeType("polyform/vector3", Vector3ParameterNode);
     }
 
     sortNodesByName(nodesToSort) {
@@ -23,8 +36,8 @@ export class NodeManager {
         return sortable;
     }
 
-    updateNodes(newNodes) {
-        const sortedNodes = this.sortNodesByName(newNodes);
+    updateNodes(newSchema) {
+        const sortedNodes = this.sortNodesByName(newSchema.nodes);
 
         for (let node of sortedNodes) {
             const nodeID = node[0];
@@ -35,6 +48,11 @@ export class NodeManager {
                 nodeToUpdate.update(nodeData);
             } else {
                 this.nodeIdToNode.set(nodeID, new PolyNode(this, nodeID, nodeData, this.app, this.guiFolderData));
+                if (newSchema.producers.includes(nodeData.name)) {
+                    const ln = this.nodeIdToNode.get(nodeID).lightNode;
+                    ln.color = "#232";
+                    ln.bgcolor = "#353";
+                }
             }
         }
 
@@ -42,12 +60,20 @@ export class NodeManager {
             const nodeID = node[0];
             const nodeData = node[1];
             const source = this.nodeIdToNode.get(nodeID);
-            
-            for (let i = 0; i < nodeData.dependencies.length; i ++) {
+
+            for (let i = 0; i < nodeData.dependencies.length; i++) {
                 const dep = nodeData.dependencies[i];
                 const target = this.nodeIdToNode.get(dep.dependencyID);
 
-                target.lightNode.connect(0, source.lightNode, i)
+                let sourceInput = -1;
+                for (let sourceInputIndex = 0; sourceInputIndex < source.lightNode.inputs.length; sourceInputIndex++) {
+                    if (source.lightNode.inputs[sourceInputIndex].name === dep.name) {
+                        sourceInput = sourceInputIndex;
+                    }
+                }
+
+                // TODO: This only works for nodes with one output
+                target.lightNode.connect(0, source.lightNode, sourceInput)
                 // source.lightNode.connect(i, target.lightNode, 0);
             }
         }

@@ -34,6 +34,7 @@ import { CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
 import { ProgressiveLightMap } from 'three/addons/misc/ProgressiveLightMap.js';
 
 import { InitXR } from './xr.js';
+import { UpdateManager } from './update-manager.js';
 
 const viewportSettings = {
     renderWireframe: false,
@@ -52,8 +53,6 @@ const viewportManager = new ViewportManager(viewportSettings);
 const updateLoop = new UpdateManager();
 
 const shadowMapRes = 4098, lightMapRes = 4098, lightCount = 8;
-
-const clock = new THREE.Clock();
 
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 camera.position.set(0, 2, 3);
@@ -601,7 +600,6 @@ const websocketManager = new WebSocketManager(
         playerMaterial: new THREE.MeshPhongMaterial({ color: 0xffff00 }),
         playerEyeMaterial: new THREE.MeshBasicMaterial({ color: 0x000000 }),
     },
-    clock,
     viewportManager,
     schemaManager
 );
@@ -614,6 +612,7 @@ if (websocketManager.canConnect()) {
 
 updateLoop.addToUpdate(() => {
     resize();
+    
     renderer.render(scene, camera);
 
     if (guassianSplatViewer) {

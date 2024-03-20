@@ -1,5 +1,8 @@
-class UpdateManager {
+import * as THREE from 'three';
+
+export class UpdateManager {
     constructor() {
+        this.clock = new THREE.Clock();
         this.funcs = [];
     }
 
@@ -15,6 +18,7 @@ class UpdateManager {
     }
 
     run() {
-        this.funcs.forEach(f => f());
+        const delta = this.clock.getDelta();
+        this.funcs.forEach(f => f(delta));
     }
 }

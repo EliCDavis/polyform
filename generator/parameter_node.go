@@ -136,7 +136,5 @@ func (pn ParameterNode[T]) initializeForCLI(set *flag.FlagSet) {
 		cli.value = set.Int64(cli.FlagName, (any(pn.DefaultValue)).(int64), cli.Usage)
 	default:
 		panic(fmt.Errorf("parameter node %s has a type that can not be initialized on the command line. Please up a issue on github.com/EliCDavis/polyform", pn.DisplayName()))
-
 	}
-
 }

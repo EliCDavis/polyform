@@ -12,11 +12,20 @@ func GetTypeWithPackage(v any) string {
 	if vType == nil {
 		return "nil"
 	}
-	pkgPath := reflect.TypeOf(v).PkgPath()
-	if !strings.Contains(pkgPath, "/") {
-		return reflect.TypeOf(v).String()
+
+	viewKind := vType.Kind()
+	// ptr := ""
+	for viewKind == reflect.Ptr {
+		vType = vType.Elem()
+		viewKind = vType.Kind()
+		// ptr += "*"
 	}
-	return path.Dir(pkgPath) + "/" + reflect.TypeOf(v).String()
+
+	pkgPath := vType.PkgPath()
+	if !strings.Contains(pkgPath, "/") {
+		return vType.String()
+	}
+	return path.Dir(pkgPath) + "/" + vType.String()
 }
 
 func GetName(in any) string {

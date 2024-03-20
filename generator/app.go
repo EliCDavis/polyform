@@ -135,6 +135,7 @@ func (a App) buildSchemaForNode(dependency nodes.Node, currentSchema map[string]
 		Name:         "Unamed",
 		Dependencies: make([]NodeDependencySchema, 0),
 		Outputs:      make([]NodeOutput, 0),
+		Inputs:       make(map[string]NodeInput),
 		Version:      dependency.Version(),
 	}
 
@@ -156,10 +157,9 @@ func (a App) buildSchemaForNode(dependency nodes.Node, currentSchema map[string]
 
 	inputs := dependency.Inputs()
 	for _, o := range inputs {
-		schema.Inputs = append(schema.Inputs, NodeInput{
-			Name: o.Name,
+		schema.Inputs[o.Name] = NodeInput{
 			Type: o.Type,
-		})
+		}
 	}
 
 	if param, ok := dependency.(Parameter); ok {

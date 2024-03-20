@@ -356,7 +356,7 @@ func main() {
 			Lighting:   coloring.WebColor{R: 0xff, G: 0xd8, B: 0x94, A: 255},
 		},
 		Producers: map[string]nodes.NodeOutput[generator.Artifact]{
-			"pipe-normal.png": generator.ImageArtifactNode((&PipeNormalsNode{
+			"pipe-normal.png": generator.NewImageArtifactNode((&PipeNormalsNode{
 				BlurIterations: &generator.ParameterNode[int]{
 					Name:         "Pipe Normal/Blur Iterations",
 					DefaultValue: 7,
@@ -407,7 +407,7 @@ func main() {
 					DefaultValue: 0.7,
 				},
 			}).Out(),
-			"ibeam-normal.png": generator.ImageArtifactNode((&PerlinNoiseNormalsNode{
+			"ibeam-normal.png": generator.NewImageArtifactNode((&PerlinNoiseNormalsNode{
 				Octaves: &generator.ParameterNode[int]{
 					Name:         "IBeam Normal/Noise Octaves",
 					DefaultValue: 3,

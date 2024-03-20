@@ -368,7 +368,7 @@ func main() {
 					TopDip: topDip,
 				}).Mesh(),
 			}).Artifact(),
-			"Texturing/pumpkin.png": generator.ImageArtifactNode((&Albedo{
+			"Texturing/pumpkin.png": generator.NewImageArtifactNode((&Albedo{
 				Positive: &generator.ParameterNode[color.Color]{
 					Name:         "Base Color",
 					DefaultValue: coloring.WebColor{R: 0xf9, G: 0x81, B: 0x1f, A: 255},
@@ -378,7 +378,7 @@ func main() {
 					DefaultValue: coloring.WebColor{R: 0xf7, G: 0x71, B: 0x02, A: 255},
 				},
 			}).Image()),
-			"Texturing/stem.png": generator.ImageArtifactNode((&Albedo{
+			"Texturing/stem.png": generator.NewImageArtifactNode((&Albedo{
 				Positive: &generator.ParameterNode[color.Color]{
 					Name:         "Stem Base Color",
 					DefaultValue: coloring.WebColor{R: 0xce, G: 0xa2, B: 0x7e, A: 255},

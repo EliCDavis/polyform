@@ -98,7 +98,6 @@ export class WebSocketManager {
         representationManager,
         scene,
         playerConfiguration,
-        clock,
         viewportSettings,
         schemaManager
     ) {
@@ -106,7 +105,6 @@ export class WebSocketManager {
         this.scene = scene;
         this.playerConfiguration = playerConfiguration;
         this.viewportSettings = viewportSettings;
-        this.clock = clock;
         this.schemaManager = schemaManager;
 
         this.lastUpdatedModel = -1;
@@ -311,9 +309,7 @@ export class WebSocketManager {
         };
     }
 
-    update() {
-        const delta = this.clock.getDelta();
-
+    update(delta) {
         for (const [key, player] of Object.entries(this.connectedPlayers)) {
             if (!player.representation) {
                 continue;

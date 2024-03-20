@@ -1,109 +1,8 @@
 import * as THREE from 'three';
-import { TransformControls } from 'three/addons/controls/TransformControls.js';
 import { NodeBasicParameter } from './basic_parameter.js';
 import { NodeVector3Parameter } from './vector3_parameter.js';
+import { NodeVector3ArryParameter } from './vector3_array_parameter.js';
 
-
-
-class NodeVector3ArryParameter {
-    constructor(nodeManager, id, parameterData, app, guiFolderData) {
-        this.id = id;
-        this.nodeManager = nodeManager;
-        this.guiFolder = app.MeshGenFolder;
-        this.guiFolderData = guiFolderData;
-        this.app = app;
-        this.scene = app.ViewerScene;
-        this.allPositionControls = [];
-        this.allPositionControlsMeshes = [];
-
-        parameterData.currentValue.forEach((ele) => {
-            this.newPositionControl(ele);
-        })
-
-        this.guiFolderData[this.id] = () => {
-
-            const paramData = this.buildParameterData();
-
-            const oldEle = paramData[paramData.length - 1]
-            const newEle = {
-                x: oldEle.x + 1,
-                y: oldEle.y,
-                z: oldEle.z,
-            }
-
-            paramData.push(newEle)
-
-            this.nodeManager.nodeParameterChanged({
-                id: this.id,
-                data: paramData,
-            });
-        }
-
-        this.setting = this.guiFolder.
-            add(this.guiFolderData, this.id).
-            name("Add to " + parameterData.name).
-            listen()
-    }
-
-    buildParameterData() {
-        const data = [];
-
-        this.allPositionControlsMeshes.forEach((ele) => {
-            data.push({
-                x: ele.position.x,
-                y: ele.position.y,
-                z: ele.position.z,
-            })
-        })
-
-        return data
-    }
-
-    newPositionControl(pos) {
-        const control = new TransformControls(this.app.Camera, this.app.Renderer.domElement);
-        control.setMode('translate');
-        control.space = "local";
-
-        const mesh = new THREE.Group();
-
-        control.addEventListener('dragging-changed', (event) => {
-            this.app.OrbitControls.enabled = !event.value;
-
-            if (this.app.OrbitControls.enabled) {
-                this.nodeManager.nodeParameterChanged({
-                    id: this.id,
-                    data: this.buildParameterData()
-                });
-            }
-        });
-
-        this.allPositionControls.push(control);
-        this.allPositionControlsMeshes.push(mesh);
-
-        this.scene.add(mesh);
-        this.app.Scene.add(control);
-        mesh.position.set(pos.x, pos.y, pos.z);
-        control.attach(mesh);
-    }
-
-    clearPositionControls() {
-        this.allPositionControls.forEach((v) => {
-            this.app.Scene.remove(v);
-        });
-        this.allPositionControlsMeshes.forEach((v) => {
-            this.scene.remove(v);
-        })
-        this.allPositionControls = [];
-        this.allPositionControlsMeshes = [];
-    }
-
-    update(parameterData) {
-        this.clearPositionControls();
-        parameterData.currentValue.forEach((ele) => {
-            this.newPositionControl(ele);
-        })
-    }
-}
 
 function BuildParameter(nodeManager, id, parameterData, app, guiFolderData) {
     switch (parameterData.type) {
@@ -128,12 +27,33 @@ function BuildParameter(nodeManager, id, parameterData, app, guiFolderData) {
     }
 }
 
+// https://stackoverflow.com/a/35953318/4974261
+function camelCaseToWords(str) {
+    var result = str                         
+        .replace(/(_)+/g, ' ')                              
+        .replace(/([a-z])([A-Z][a-z])/g, "$1 $2")           
+        .replace(/([A-Z][a-z])([A-Z])/g, "$1 $2")           
+        .replace(/([a-z])([A-Z]+[a-z])/g, "$1 $2")          
+        .replace(/([A-Z]+)([A-Z][a-z][a-z])/g, "$1 $2")     
+        .replace(/([a-z]+)([A-Z0-9]+)/g, "$1 $2")           
+        .replace(/([A-Z]+)([A-Z][a-rt-z][a-z]*)/g, "$1 $2") 
+        .replace(/([0-9])([A-Z][a-z]+)/g, "$1 $2")          
+        .replace(/([A-Z]{2,})([0-9]{2,})/g, "$1 $2")        
+        .replace(/([0-9]{2,})([A-Z]{2,})/g, "$1 $2")        
+        .trim();                                             
+
+    let title = result.charAt(0).toUpperCase() + result.slice(1);
+    if (title.endsWith(" Node")) {
+        title = title.substring(0, title.length - 5);
+    }
+    return title;
+}
+
 function BuildCustomNode(app, nodeData) {
     function CustomNode() {
-        nodeData.inputs.forEach((i) => {
-            this.addInput(i.name, i.type);
-        })
-
+        for (var inputName in nodeData.inputs) {
+            this.addInput(inputName, nodeData.inputs[inputName].type);
+        }
         nodeData.outputs.forEach((o) => {
             this.addOutput(o.name, o.type);
         })
@@ -145,6 +65,7 @@ function BuildCustomNode(app, nodeData) {
     LiteGraph.registerNodeType(nodeName, CustomNode);
 
     const node = LiteGraph.createNode(nodeName);
+    node.title = camelCaseToWords(nodeData.name);
     console.log(node)
     // node.pos = [200, app.LightGraph._nodes.length * 100];
     app.LightGraph.add(node);
@@ -162,7 +83,7 @@ export class PolyNode {
         this.outputs = [];
         this.version = 0;
         this.dependencies = [];
-        
+
         this.parameter = null;
         this.lightNode = null;
 
@@ -182,7 +103,7 @@ export class PolyNode {
             } else {
                 this.parameter.update(nodeData.parameter)
             }
-        } else if(!this.lightNode) {
+        } else if (!this.lightNode) {
             this.lightNode = BuildCustomNode(this.app, nodeData)
         }
     }

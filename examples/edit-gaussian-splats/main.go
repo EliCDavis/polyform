@@ -274,8 +274,8 @@ func main() {
 			XrEnabled: true,
 		},
 		Producers: map[string]nodes.NodeOutput[generator.Artifact]{
-			"mesh.splat": generator.SplatArtifactNode(scaleNode.Out()),
-			"info.txt": generator.TextArtifactNode((&InfoNode{
+			"mesh.splat": generator.NewSplatArtifactNode(scaleNode.Out()),
+			"info.txt": generator.NewTextArtifactNode((&InfoNode{
 				Original: pointcloud.Out(),
 				Final:    scaleNode.Out(),
 			}).Out()),

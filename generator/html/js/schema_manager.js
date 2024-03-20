@@ -29,7 +29,7 @@ class SchemaManager {
                 sub(this.schema);
             });
 
-            this.nodeManager.updateNodes(this.schema.nodes)
+            this.nodeManager.updateNodes(this.schema)
         })
     }
 }

@@ -62,6 +62,7 @@ export class NodeBasicParameter {
         this.lightNode.setValue(parameterData.currentValue);
 
         this.lightNode.onPropertyChanged = (property, value) => {
+            console.log(property, value);
             if (property !== "value") {
                 return;
             }

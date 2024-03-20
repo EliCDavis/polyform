@@ -1,6 +1,12 @@
 import * as THREE from 'three';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
 
+function BuildVector3ParameterNode(app) {
+    const node = LiteGraph.createNode("polyform/vector3");
+    console.log(node)
+    app.LightGraph.add(node);
+    return node;
+}
 
 export class NodeVector3Parameter {
     constructor(nodeManager, id, parameterData, app) {
@@ -35,22 +41,35 @@ export class NodeVector3Parameter {
         app.Scene.add(control)
         control.attach(this.mesh);
 
-        this.lightNode = LiteGraph.createNode("math3d/xyz-to-vec3");
+        this.lightNode = BuildVector3ParameterNode(app);
         this.lightNode.title = parameterData.name;
         app.LightGraph.add(this.lightNode);
 
-        this.lightNode.onPropertyChanged = (property, value) => {
-            const newData = {
-                x: this.mesh.position.x,
-                y: this.mesh.position.y,
-                z: this.mesh.position.z,
-            }
-            newData[property] = value;
-            nodeManager.nodeParameterChanged({
-                id: id,
-                data: newData
-            });
+        control.visible = false;
+
+        this.lightNode.onSelected = (obj) => {
+            console.log("selected", obj);
+            console.log(control)
+            control.visible = true;
         }
+        
+        this.lightNode.onDeselected = (obj) => {
+            console.log("de-selected", obj)
+            control.visible = false;
+        }
+
+        // this.lightNode.onPropertyChanged = (property, value) => {
+        //     const newData = {
+        //         x: this.mesh.position.x,
+        //         y: this.mesh.position.y,
+        //         z: this.mesh.position.z,
+        //     }
+        //     newData[property] = value;
+        //     nodeManager.nodeParameterChanged({
+        //         id: id,
+        //         data: newData
+        //     });
+        // }
     }
 
     update(parameterData) {

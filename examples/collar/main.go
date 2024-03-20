@@ -253,8 +253,8 @@ func main() {
 		},
 		Producers: map[string]nodes.NodeOutput[generator.Artifact]{
 			"mesh.glb":    gltfNode.Out(),
-			mrTexturePath: generator.ImageArtifactNode(nodes.FuncValue(mrTexture)),
-			collarAlbedoPath: generator.ImageArtifactNode((&CollarAlbedoTextureNode{
+			mrTexturePath: generator.NewImageArtifactNode(nodes.FuncValue(mrTexture)),
+			collarAlbedoPath: generator.NewImageArtifactNode((&CollarAlbedoTextureNode{
 				BaseColor: &generator.ParameterNode[coloring.WebColor]{
 					Name:         "Collar/Base Color",
 					DefaultValue: coloring.WebColor{46, 46, 46, 255},
