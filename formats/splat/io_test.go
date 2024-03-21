@@ -12,13 +12,26 @@ import (
 )
 
 func TestWrite_ErrorOnNonPointcloud(t *testing.T) {
-	err := splat.Write(nil, modeling.EmptyMesh(modeling.TriangleTopology))
+	in := modeling.
+		NewTriangleMesh([]int{1, 2, 3}).
+		SetFloat1Attribute("blah", []float64{1, 2, 3})
+	err := splat.Write(nil, in)
 	assert.EqualError(t, err, "mesh must be point topology, was instead triangle")
 }
 
 func TestWrite_ErrorOnMissingAttributes(t *testing.T) {
-	err := splat.Write(nil, modeling.EmptyMesh(modeling.PointTopology))
+	in := modeling.
+		NewMesh(modeling.PointTopology, []int{1}).
+		SetFloat1Attribute("blah", []float64{1})
+	err := splat.Write(nil, in)
 	assert.EqualError(t, err, "required attribute not present on mesh: Position")
+}
+
+func TestWrite_EmptyCloudWritesNothing(t *testing.T) {
+	buf := &bytes.Buffer{}
+	err := splat.Write(buf, modeling.EmptyMesh(modeling.PointTopology))
+	assert.NoError(t, err)
+	assert.Len(t, buf.Bytes(), 0)
 }
 
 func vector3InDelta(t *testing.T, a, b vector3.Float64, delta float64) {

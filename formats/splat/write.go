@@ -16,6 +16,10 @@ const SH_C0 = 0.28209479177387814
 // https://github.com/antimatter15/splat/blob/main/convert.py#L10
 func Write(out io.Writer, mesh modeling.Mesh) error {
 
+	if mesh.AttributeLength() == 0 {
+		return nil
+	}
+
 	requiredAttributes := []string{
 		modeling.PositionAttribute,
 		modeling.ScaleAttribute,

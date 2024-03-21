@@ -36,27 +36,8 @@ export class NodeManager {
         return sortable;
     }
 
-    updateNodes(newSchema) {
-        const sortedNodes = this.sortNodesByName(newSchema.nodes);
-
-        for (let node of sortedNodes) {
-            const nodeID = node[0];
-            const nodeData = node[1];
-
-            if (this.nodeIdToNode.has(nodeID)) {
-                const nodeToUpdate = this.nodeIdToNode.get(nodeID);
-                nodeToUpdate.update(nodeData);
-            } else {
-                this.nodeIdToNode.set(nodeID, new PolyNode(this, nodeID, nodeData, this.app, this.guiFolderData));
-                if (newSchema.producers.includes(nodeData.name)) {
-                    const ln = this.nodeIdToNode.get(nodeID).lightNode;
-                    ln.color = "#232";
-                    ln.bgcolor = "#353";
-                }
-            }
-        }
-
-        for (let node of sortedNodes) {
+    updateNodeConnections(nodes) {
+        for (let node of nodes) {
             const nodeID = node[0];
             const nodeData = node[1];
             const source = this.nodeIdToNode.get(nodeID);
@@ -77,8 +58,31 @@ export class NodeManager {
                 // source.lightNode.connect(i, target.lightNode, 0);
             }
         }
+    }
 
-        lgraphInstance.arrange();
+    updateNodes(newSchema) {
+        const sortedNodes = this.sortNodesByName(newSchema.nodes);
+
+        let nodeAdded = false;
+        for (let node of sortedNodes) {
+            const nodeID = node[0];
+            const nodeData = node[1];
+
+            if (this.nodeIdToNode.has(nodeID)) {
+                const nodeToUpdate = this.nodeIdToNode.get(nodeID);
+                nodeToUpdate.update(nodeData);
+            } else {
+                const isProducer = newSchema.producers.includes(nodeData.name);
+                this.nodeIdToNode.set(nodeID, new PolyNode(this, nodeID, nodeData, this.app, this.guiFolderData, isProducer));
+                nodeAdded = true;
+            }
+        }
+
+        this.updateNodeConnections(sortedNodes);
+
+        if (nodeAdded) {
+            lgraphInstance.arrange();
+        }
     }
 
     subscribeToParameterChange(subscriber) {

@@ -101,7 +101,7 @@ func (pn SplatEditNode) Process() (modeling.Mesh, error) {
 				rotatedData := make([]vector4.Float64, oldData.Len())
 				for i := 0; i < oldData.Len(); i++ {
 					old := oldData.At(i)
-					rot := q.Multiply(quaternion.New(vector3.New(old.Y(), old.Z(), old.W()), old.X()))
+					rot := q.Multiply(quaternion.New(vector3.New(old.Y(), old.Z(), old.W()), old.X())).Normalize()
 					rotatedData[i] = vector4.New(rot.W(), rot.Dir().X(), rot.Dir().Y(), rot.Dir().Z())
 				}
 

@@ -322,6 +322,7 @@ class SchemaRefreshManager {
             threeScene: scene,
             camera: camera,
             gpuAcceleratedSort: true,
+            // 'sceneRevealMode': GaussianSplats3D.SceneRevealMode.Instant,
             sharedMemoryForWebWorkers: true
         }
 
@@ -329,35 +330,39 @@ class SchemaRefreshManager {
 
         // getSplatCenter
         guassianSplatViewer.addSplatScene(producerURL, {
+            // streamView: false
             // 'scale': [0.25, 0.25, 0.25],
         }).then(() => {
 
-            const aabb = new THREE.Box3();
-            const tree = guassianSplatViewer.splatMesh.splatTree.subTrees[0]
-            aabb.setFromPoints([tree.sceneMin, tree.sceneMax]);
-            const aabbDepth = (aabb.max.z - aabb.min.z)
-            const aabbWidth = (aabb.max.x - aabb.min.x)
-            const aabbHeight = (aabb.max.y - aabb.min.y)
-            const aabbHalfHeight = aabbHeight / 2
-            const mid = (aabb.max.y + aabb.min.y) / 2
+            guassianSplatViewer.splatMesh.onSplatTreeReady((splatTree) => {
+                const tree = splatTree.subTrees[0]
+                const aabb = new THREE.Box3();
+                aabb.setFromPoints([tree.sceneMin, tree.sceneMax]);
+                const aabbDepth = (aabb.max.z - aabb.min.z)
+                const aabbWidth = (aabb.max.x - aabb.min.x)
+                const aabbHeight = (aabb.max.y - aabb.min.y)
+                const aabbHalfHeight = aabbHeight / 2
+                const mid = (aabb.max.y + aabb.min.y) / 2
+    
+                const shiftY = - mid + aabbHalfHeight
+                guassianSplatViewer.splatMesh.position.set(0, shiftY, 0)
+                viewerContainer.position.set(0, shiftY, 0)
+    
+                if (firstTimeLoadingScene) {
+                    firstTimeLoadingScene = false;
+    
+                    camera.position.y = mid * (3 / 2);
+                    camera.position.z = Math.sqrt(
+                        (aabbWidth * aabbWidth) +
+                        (aabbDepth * aabbDepth) +
+                        (aabbHeight * aabbHeight)
+                    ) / 2;
+    
+                    orbitControls.target.set(0, mid, 0);
+                    orbitControls.update();
+                }
+           });
 
-            const shiftY = - mid + aabbHalfHeight
-            guassianSplatViewer.splatMesh.position.set(0, shiftY, 0)
-            viewerContainer.position.set(0, shiftY, 0)
-
-            if (firstTimeLoadingScene) {
-                firstTimeLoadingScene = false;
-
-                camera.position.y = mid * (3 / 2);
-                camera.position.z = Math.sqrt(
-                    (aabbWidth * aabbWidth) +
-                    (aabbDepth * aabbDepth) +
-                    (aabbHeight * aabbHeight)
-                ) / 2;
-
-                orbitControls.target.set(0, mid, 0);
-                orbitControls.update();
-            }
             this.RemoveLoading();
         }).catch(x => {
             console.error(x)

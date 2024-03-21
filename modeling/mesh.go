@@ -1242,6 +1242,9 @@ func (m Mesh) requireV1Attribute(atr string) {
 }
 
 func (m Mesh) AttributeLength() int {
+	for _, v := range m.v4Data {
+		return len(v)
+	}
 	for _, v := range m.v3Data {
 		return len(v)
 	}

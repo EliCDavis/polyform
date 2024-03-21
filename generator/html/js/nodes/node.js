@@ -29,18 +29,18 @@ function BuildParameter(nodeManager, id, parameterData, app, guiFolderData) {
 
 // https://stackoverflow.com/a/35953318/4974261
 function camelCaseToWords(str) {
-    var result = str                         
-        .replace(/(_)+/g, ' ')                              
-        .replace(/([a-z])([A-Z][a-z])/g, "$1 $2")           
-        .replace(/([A-Z][a-z])([A-Z])/g, "$1 $2")           
-        .replace(/([a-z])([A-Z]+[a-z])/g, "$1 $2")          
-        .replace(/([A-Z]+)([A-Z][a-z][a-z])/g, "$1 $2")     
-        .replace(/([a-z]+)([A-Z0-9]+)/g, "$1 $2")           
-        .replace(/([A-Z]+)([A-Z][a-rt-z][a-z]*)/g, "$1 $2") 
-        .replace(/([0-9])([A-Z][a-z]+)/g, "$1 $2")          
-        .replace(/([A-Z]{2,})([0-9]{2,})/g, "$1 $2")        
-        .replace(/([0-9]{2,})([A-Z]{2,})/g, "$1 $2")        
-        .trim();                                             
+    var result = str
+        .replace(/(_)+/g, ' ')
+        .replace(/([a-z])([A-Z][a-z])/g, "$1 $2")
+        .replace(/([A-Z][a-z])([A-Z])/g, "$1 $2")
+        .replace(/([a-z])([A-Z]+[a-z])/g, "$1 $2")
+        .replace(/([A-Z]+)([A-Z][a-z][a-z])/g, "$1 $2")
+        .replace(/([a-z]+)([A-Z0-9]+)/g, "$1 $2")
+        .replace(/([A-Z]+)([A-Z][a-rt-z][a-z]*)/g, "$1 $2")
+        .replace(/([0-9])([A-Z][a-z]+)/g, "$1 $2")
+        .replace(/([A-Z]{2,})([0-9]{2,})/g, "$1 $2")
+        .replace(/([0-9]{2,})([A-Z]{2,})/g, "$1 $2")
+        .trim();
 
     let title = result.charAt(0).toUpperCase() + result.slice(1);
     if (title.endsWith(" Node")) {
@@ -49,23 +49,40 @@ function camelCaseToWords(str) {
     return title;
 }
 
-function BuildCustomNode(app, nodeData) {
+/**
+ * 
+ * @param {*} app 
+ * @param {*} nodeData 
+ * @param {bool} isProducer 
+ * @returns 
+ */
+function BuildCustomNode(app, nodeData, isProducer) {
     function CustomNode() {
         for (var inputName in nodeData.inputs) {
             this.addInput(inputName, nodeData.inputs[inputName].type);
         }
-        nodeData.outputs.forEach((o) => {
-            this.addOutput(o.name, o.type);
-        })
+
+        if (!isProducer) {
+            nodeData.outputs.forEach((o) => {
+                this.addOutput(o.name, o.type);
+            })
+        } else {
+            this.color = "#232";
+            this.bgcolor = "#353";
+            this.addWidget("button", "Download", null, () => {
+                console.log("presed");
+                saveFileToDisk("/producer/" + nodeData.name, nodeData.name);
+            })
+        }
+        this.title = camelCaseToWords(nodeData.name);
+
         // this.properties = { precision: 1 };
     }
-    CustomNode.title = nodeData.name;
 
     const nodeName = "polyform/" + nodeData.name;
     LiteGraph.registerNodeType(nodeName, CustomNode);
 
     const node = LiteGraph.createNode(nodeName);
-    node.title = camelCaseToWords(nodeData.name);
     console.log(node)
     // node.pos = [200, app.LightGraph._nodes.length * 100];
     app.LightGraph.add(node);
@@ -73,10 +90,11 @@ function BuildCustomNode(app, nodeData) {
 }
 
 export class PolyNode {
-    constructor(nodeManager, id, nodeData, app, guiFolderData) {
+    constructor(nodeManager, id, nodeData, app, guiFolderData, isProducer) {
         this.app = app;
         this.guiFolderData = guiFolderData;
         this.nodeManager = nodeManager;
+        this.isProducer = isProducer;
 
         this.id = id;
         this.name = "";
@@ -104,7 +122,7 @@ export class PolyNode {
                 this.parameter.update(nodeData.parameter)
             }
         } else if (!this.lightNode) {
-            this.lightNode = BuildCustomNode(this.app, nodeData)
+            this.lightNode = BuildCustomNode(this.app, nodeData, this.isProducer)
         }
     }
 

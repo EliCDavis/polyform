@@ -46,16 +46,19 @@ export class NodeVector3Parameter {
         app.LightGraph.add(this.lightNode);
 
         control.visible = false;
+        control.enabled = false;
 
         this.lightNode.onSelected = (obj) => {
             console.log("selected", obj);
             console.log(control)
             control.visible = true;
+            control.enabled = true;
         }
         
         this.lightNode.onDeselected = (obj) => {
             console.log("de-selected", obj)
             control.visible = false;
+            control.enabled = false;
         }
 
         // this.lightNode.onPropertyChanged = (property, value) => {

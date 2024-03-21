@@ -12,6 +12,16 @@ function download(theUrl, callback) {
     xmlHttp.send(null);
 }
 
+function saveFileToDisk(theUrl, fileName) {
+    download(theUrl, (data) => {
+        const a = document.createElement('a');
+        a.download = fileName;
+        const url = window.URL.createObjectURL(data);
+        a.href = url;
+        a.click();
+        window.URL.revokeObjectURL(url);
+    })
+}
 
 class RequestManager {
     constructor() {
