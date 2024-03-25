@@ -18,7 +18,7 @@ func (cat CenterAttribute3DTransformer) attribute() string {
 func (cat CenterAttribute3DTransformer) Transform(m modeling.Mesh) (results modeling.Mesh, err error) {
 	attribute := getAttribute(cat, modeling.PositionAttribute)
 
-	if err = requireV3Attribute(m, attribute); err != nil {
+	if err = RequireV3Attribute(m, attribute); err != nil {
 		return
 	}
 
@@ -26,9 +26,7 @@ func (cat CenterAttribute3DTransformer) Transform(m modeling.Mesh) (results mode
 }
 
 func CenterFloat3Attribute(m modeling.Mesh, attr string) modeling.Mesh {
-	if err := requireV3Attribute(m, attr); err != nil {
-		panic(err)
-	}
+	check(RequireV3Attribute(m, attr))
 	oldData := m.Float3Attribute(attr)
 	modified := make([]vector3.Float64, oldData.Len())
 

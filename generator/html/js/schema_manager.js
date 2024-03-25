@@ -4,7 +4,6 @@ class SchemaManager {
         this.nodeManager = nodeManager;
 
         this.schema = null;
-        this.profile = {}
         this.subscribers = [];
     }
 
@@ -13,13 +12,13 @@ class SchemaManager {
     }
 
     setProfileKey(key, data) {
-        this.profile[key] = data;
-    }
-
-    submitProfile() {
-        this.requestManager.updateProfile(this.profile, () => {
-            // this.refreshSchema();
-        })
+        this.requestManager.updateProfile(
+            key,
+            data,
+            () => {
+                // this.refreshSchema();
+            }
+        )
     }
 
     refreshSchema() {

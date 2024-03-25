@@ -18,7 +18,7 @@ func (rat RotateAttribute3DTransformer) attribute() string {
 func (rat RotateAttribute3DTransformer) Transform(m modeling.Mesh) (results modeling.Mesh, err error) {
 	attribute := getAttribute(rat, modeling.PositionAttribute)
 
-	if err = requireV3Attribute(m, attribute); err != nil {
+	if err = RequireV3Attribute(m, attribute); err != nil {
 		return
 	}
 
@@ -26,7 +26,7 @@ func (rat RotateAttribute3DTransformer) Transform(m modeling.Mesh) (results mode
 }
 
 func RotateAttribute3D(m modeling.Mesh, attribute string, q quaternion.Quaternion) modeling.Mesh {
-	if err := requireV3Attribute(m, attribute); err != nil {
+	if err := RequireV3Attribute(m, attribute); err != nil {
 		panic(err)
 	}
 

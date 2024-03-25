@@ -18,11 +18,11 @@ func (rnft RemoveNullFaces3DTransformer) attribute() string {
 func (rnft RemoveNullFaces3DTransformer) Transform(m modeling.Mesh) (results modeling.Mesh, err error) {
 	attribute := getAttribute(rnft, modeling.PositionAttribute)
 
-	if err = requireV3Attribute(m, attribute); err != nil {
+	if err = RequireV3Attribute(m, attribute); err != nil {
 		return
 	}
 
-	if err = requireTopology(m, modeling.TriangleTopology); err != nil {
+	if err = RequireTopology(m, modeling.TriangleTopology); err != nil {
 		return
 	}
 
@@ -30,11 +30,11 @@ func (rnft RemoveNullFaces3DTransformer) Transform(m modeling.Mesh) (results mod
 }
 
 func RemoveNullFaces3D(m modeling.Mesh, attribute string, minArea float64) modeling.Mesh {
-	if err := requireTopology(m, modeling.TriangleTopology); err != nil {
+	if err := RequireTopology(m, modeling.TriangleTopology); err != nil {
 		panic(err)
 	}
 
-	if err := requireV3Attribute(m, attribute); err != nil {
+	if err := RequireV3Attribute(m, attribute); err != nil {
 		panic(err)
 	}
 

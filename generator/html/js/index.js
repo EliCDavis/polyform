@@ -161,8 +161,7 @@ if (RenderingConfiguration.XrEnabled) {
 
 nodeManager.subscribeToParameterChange((param) => {
     console.log(param)
-    schemaManager.setProfileKey(param.id, param.data);
-    schemaManager.submitProfile();
+    schemaManager.setProfileKey(param.id, param.data, param.binary);
 });
 
 let firstTimeLoadingScene = true;

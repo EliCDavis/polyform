@@ -24,7 +24,7 @@ var (
 	ErrRequireDifferentTopology = errors.New("mesh does not have required topology")
 )
 
-func requireTopology(m modeling.Mesh, topo modeling.Topology) error {
+func RequireTopology(m modeling.Mesh, topo modeling.Topology) error {
 	if m.Topology() == topo {
 		return nil
 	}
@@ -43,14 +43,14 @@ func requireTopology(m modeling.Mesh, topo modeling.Topology) error {
 	return ErrRequireDifferentTopology
 }
 
-func requireV3Attribute(m modeling.Mesh, attr string) error {
+func RequireV3Attribute(m modeling.Mesh, attr string) error {
 	if m.HasFloat3Attribute(attr) {
 		return nil
 	}
 	return fmt.Errorf("mesh is required to have the vector3 attribute: '%s'", attr)
 }
 
-func requireV2Attribute(m modeling.Mesh, attr string) error {
+func RequireV2Attribute(m modeling.Mesh, attr string) error {
 	if m.HasFloat2Attribute(attr) {
 		return nil
 	}

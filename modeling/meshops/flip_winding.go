@@ -9,7 +9,7 @@ type FlipTriangleWindingTransformer struct {
 }
 
 func (cat FlipTriangleWindingTransformer) Transform(m modeling.Mesh) (results modeling.Mesh, err error) {
-	if err = requireTopology(m, modeling.TriangleTopology); err != nil {
+	if err = RequireTopology(m, modeling.TriangleTopology); err != nil {
 		return
 	}
 
@@ -17,7 +17,7 @@ func (cat FlipTriangleWindingTransformer) Transform(m modeling.Mesh) (results mo
 }
 
 func FlipTriangleWinding(m modeling.Mesh) modeling.Mesh {
-	if err := requireTopology(m, modeling.TriangleTopology); err != nil {
+	if err := RequireTopology(m, modeling.TriangleTopology); err != nil {
 		panic(err)
 	}
 

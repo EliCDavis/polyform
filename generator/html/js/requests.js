@@ -57,12 +57,23 @@ class RequestManager {
     post(theUrl, body, callback) {
         const xmlHttp = new XMLHttpRequest();
         xmlHttp.onreadystatechange = function () {
-            if (xmlHttp.readyState == 4 && xmlHttp.status == 200) {
+            if (xmlHttp.readyState == 4 && xmlHttp.status == 200 && callback) {
                 callback(JSON.parse(xmlHttp.responseText));
             }
         }
         xmlHttp.open("POST", theUrl, true); // true for asynchronous 
         xmlHttp.send(JSON.stringify(body));
+    }
+
+    postBinary(theUrl, body, callback) {
+        const xmlHttp = new XMLHttpRequest();
+        xmlHttp.onreadystatechange = function () {
+            if (xmlHttp.readyState == 4 && xmlHttp.status == 200 && callback) {
+                callback(JSON.parse(xmlHttp.responseText));
+            }
+        }
+        xmlHttp.open("POST", theUrl, true); // true for asynchronous 
+        xmlHttp.send(body);
     }
 
     getStartedTime(callback) {
@@ -73,7 +84,11 @@ class RequestManager {
         this.fetch("/schema", callback);
     }
 
-    updateProfile(data, callback) {
-        this.post("/profile", data, callback);
+    updateProfile(key, data, binary, callback) {
+        if (binary) {
+            this.postBinary("/profile/" + key, data, callback);
+        } else {
+            this.post("/profile/" + key, data, callback);
+        }
     }
 }

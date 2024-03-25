@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"image"
 	"math"
 	"os"
 
@@ -13,11 +14,31 @@ import (
 	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/meshops"
+	"github.com/EliCDavis/polyform/modeling/meshops/gausops"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/nodes/vecn/vecn3"
 	"github.com/EliCDavis/vector/vector3"
 	"github.com/EliCDavis/vector/vector4"
 )
+
+type ImageLoaderNode struct {
+	nodes.StructData[image.Image]
+
+	Path nodes.NodeOutput[string]
+}
+
+func (pn *ImageLoaderNode) Out() nodes.NodeOutput[image.Image] {
+	return &nodes.StructNodeOutput[image.Image]{Definition: pn}
+}
+
+func (pn ImageLoaderNode) Process() (image.Image, error) {
+	f, err := os.Open(pn.Path.Data())
+	if err != nil {
+		return nil, err
+	}
+	img, _, err := image.Decode(f)
+	return img, err
+}
 
 type PointcloudLoaderNode struct {
 	nodes.StructData[modeling.Mesh]
@@ -88,6 +109,49 @@ func (pn SplatEditNode) Process() (modeling.Mesh, error) {
 		},
 		meshops.RemovedUnreferencedVerticesTransformer{},
 
+		// gausops.ColorGradingLutTransformer{
+		// 	LUT: pn.LUT.Data(),
+		// },
+
+		// meshops.CustomTransformer{
+		// 	Func: func(m modeling.Mesh) (results modeling.Mesh, err error) {
+		// 		cols := m.Float3Attribute(modeling.FDCAttribute)
+
+		// 		newCols := make([]vector3.Float64, cols.Len())
+		// 		for i := 0; i < len(newCols); i++ {
+		// 			newCols[i] = cols.At(i).
+		// 				Scale(splat.SH_C0).
+		// 				Add(vector3.Fill(0.5)).
+		// 				Clamp(0, 1)
+		// 		}
+
+		// 		return m.SetFloat3Attribute(modeling.FDCAttribute, newCols), nil
+		// 	},
+		// },
+
+		// meshops.ColorGradingLutTransformer{
+		// 	LUT:       pn.LUT.Data(),
+		// 	Attribute: modeling.FDCAttribute,
+		// },
+
+		// meshops.CustomTransformer{
+		// 	Func: func(m modeling.Mesh) (results modeling.Mesh, err error) {
+		// 		cols := m.Float3Attribute(modeling.FDCAttribute)
+
+		// 		newCols := make([]vector3.Float64, cols.Len())
+		// 		for i := 0; i < len(newCols); i++ {
+		// 			col := cols.At(i)
+		// 			newCols[i] = vector3.New[float64](
+		// 				(col.X()-0.5)/splat.SH_C0,
+		// 				(col.Y()-0.5)/splat.SH_C0,
+		// 				(col.Z()-0.5)/splat.SH_C0,
+		// 			).ToFloat64()
+		// 		}
+
+		// 		return m.SetFloat3Attribute(modeling.FDCAttribute, newCols), nil
+		// 	},
+		// },
+
 		meshops.RotateAttribute3DTransformer{
 			Amount: quaternion.FromTheta(math.Pi, vector3.Forward[float64]()),
 		},
@@ -110,7 +174,7 @@ func (pn SplatEditNode) Process() (modeling.Mesh, error) {
 		},
 
 		// Scale the vertex data to meet their new positioning
-		meshops.ModifyGaussianSplatScaleTransformer{
+		gausops.ScaleTransformer{
 			Scale: vector3.Fill(pn.Scale.Data()),
 		},
 	), nil
@@ -256,6 +320,17 @@ func main() {
 		}).Out(),
 	}
 
+	colorGraded := gausops.ColorGradingLutNode{
+		Mesh: scaleNode.Out(),
+		LUT: &generator.ImageParameterNode{
+			Name: "LUT",
+			CLI: &generator.CliParameterNodeConfig[string]{
+				FlagName: "lut",
+				Usage:    "Path to the color grading LUT",
+			},
+		},
+	}
+
 	app := generator.App{
 		Name:        "Edit Gaussian Splats",
 		Version:     "1.0.0",
@@ -274,10 +349,10 @@ func main() {
 			XrEnabled: true,
 		},
 		Producers: map[string]nodes.NodeOutput[generator.Artifact]{
-			"mesh.splat": generator.NewSplatArtifactNode(scaleNode.Out()),
+			"mesh.splat": generator.NewSplatArtifactNode(colorGraded.Out()),
 			"info.txt": generator.NewTextArtifactNode((&InfoNode{
 				Original: pointcloud.Out(),
-				Final:    scaleNode.Out(),
+				Final:    colorGraded.Out(),
 			}).Out()),
 		},
 	}

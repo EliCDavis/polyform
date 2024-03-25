@@ -42,8 +42,6 @@ type pageData struct {
 	XrEnabled   bool
 }
 
-type Profile map[string]json.RawMessage
-
 //go:embed html/*
 var htmlFs embed.FS
 
@@ -112,7 +110,7 @@ func (as *AppServer) Serve() error {
 	http.HandleFunc("/scene", as.SceneEndpoint)
 	http.HandleFunc("/zip", as.ZipEndpoint)
 	http.HandleFunc("/started", as.StartedEndpoint)
-	http.HandleFunc("/profile", as.ProfileEndpoint)
+	http.HandleFunc("/profile/", as.ProfileEndpoint)
 	http.HandleFunc("/mermaid", as.MermaidEndpoint)
 	http.HandleFunc("/producer/", as.ProducerEndpoint)
 
@@ -177,12 +175,11 @@ func (as *AppServer) ProducerEndpoint(w http.ResponseWriter, r *http.Request) {
 	bufWr.Flush()
 }
 
-func (as *AppServer) ApplyProfile(profile Profile) (bool, error) {
+func (as *AppServer) ApplyMessage(key string, msg []byte) (bool, error) {
 	log.Println("applying...")
 	params := as.app.Schema()
 	// nodes := a.Schema().Nodes
 
-	changed := false
 	// for _, p := range params.Nodes {
 	// 	paramChanged, err := p.ApplyJsonMessage(profile.Parameters)
 	// 	if err != nil {
@@ -194,16 +191,11 @@ func (as *AppServer) ApplyProfile(profile Profile) (bool, error) {
 	// 	}
 	// }
 
-	for key, msg := range profile {
-		n := params.Nodes[key]
-		_, err := n.parameter.ApplyJsonMessage(msg)
-		if err != nil {
-			return false, err
-		}
-		params.Nodes[key] = n
-	}
+	n := params.Nodes[key]
+	changed, err := n.parameter.ApplyMessage(msg)
+	params.Nodes[key] = n
 
-	return changed, nil
+	return changed, err
 }
 
 func (as *AppServer) ProfileEndpoint(w http.ResponseWriter, r *http.Request) {
@@ -211,14 +203,12 @@ func (as *AppServer) ProfileEndpoint(w http.ResponseWriter, r *http.Request) {
 	as.producerLock.Lock()
 	defer as.producerLock.Unlock()
 
-	body, _ := io.ReadAll(r.Body)
-
-	profile := Profile{}
-	if err := json.Unmarshal(body, &profile); err != nil {
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
 		panic(err)
 	}
 
-	_, err := as.ApplyProfile(profile)
+	_, err = as.ApplyMessage(path.Base(r.URL.Path), body)
 	if err != nil {
 		panic(err)
 	}

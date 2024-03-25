@@ -4,6 +4,41 @@ import { NodeVector3Parameter } from './vector3_parameter.js';
 import { NodeVector3ArryParameter } from './vector3_array_parameter.js';
 
 
+function BuildImageParameterNode(app) {
+    const node = LiteGraph.createNode("polyform/Image");
+    console.log(node)
+    app.LightGraph.add(node);
+    return node;
+}
+
+class ImageParameterNode {
+
+    constructor(nodeManager, id, parameterData, app) {
+        this.lightNode = BuildImageParameterNode(app);
+        this.lightNode.title = parameterData.name;
+        app.LightGraph.add(this.lightNode);
+
+        this.lightNode.onDropFile = (file) => {
+            // console.log(file)
+            var reader = new FileReader();
+            reader.onload = (evt) => {
+                console.log(evt.target.result)
+                nodeManager.nodeParameterChanged({
+                    id: id,
+                    data: evt.target.result,
+                    binary: true
+                });
+            }
+            reader.readAsArrayBuffer(file);
+        }
+    }
+
+    update(parameterData) {
+        const curVal = parameterData.currentValue;
+    }
+
+}
+
 function BuildParameter(nodeManager, id, parameterData, app, guiFolderData) {
     switch (parameterData.type) {
         case "float64":
@@ -22,8 +57,11 @@ function BuildParameter(nodeManager, id, parameterData, app, guiFolderData) {
         case "[]vector3.Vector[float32]":
             return new NodeVector3ArryParameter(nodeManager, id, parameterData, app, guiFolderData);
 
+        case "image.Image":
+            return new ImageParameterNode(nodeManager, id, parameterData, app);
+
         default:
-            throw new Error("unimplemented type: " + parameterData.type)
+            throw new Error("build parameter: unimplemented parameter type: " + parameterData.type)
     }
 }
 

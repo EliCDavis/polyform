@@ -71,6 +71,7 @@ func TestGetTypeWithPackageGeneric(t *testing.T) {
 }
 
 func TestGetTypeWithPackage(t *testing.T) {
+	// var reader io.Reader
 	tests := map[string]struct {
 		input any
 		want  string
@@ -87,6 +88,10 @@ func TestGetTypeWithPackage(t *testing.T) {
 			input: io.Discard,
 			want:  "io.discard",
 		},
+		// "interface": {
+		// 	input: reader,
+		// 	want:  "io.Reader",
+		// },
 		"external lib": {
 			input: vector3.New(1, 2, 3),
 			want:  "github.com/EliCDavis/vector/vector3.Vector[int]",

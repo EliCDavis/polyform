@@ -11,11 +11,11 @@ import (
 type SmoothNormalsTransformer struct{}
 
 func (smt SmoothNormalsTransformer) Transform(m modeling.Mesh) (results modeling.Mesh, err error) {
-	if err = requireTopology(m, modeling.TriangleTopology); err != nil {
+	if err = RequireTopology(m, modeling.TriangleTopology); err != nil {
 		return
 	}
 
-	if err = requireV3Attribute(m, modeling.PositionAttribute); err != nil {
+	if err = RequireV3Attribute(m, modeling.PositionAttribute); err != nil {
 		return
 	}
 
@@ -23,8 +23,8 @@ func (smt SmoothNormalsTransformer) Transform(m modeling.Mesh) (results modeling
 }
 
 func SmoothNormals(m modeling.Mesh) modeling.Mesh {
-	check(requireTopology(m, modeling.TriangleTopology))
-	check(requireV3Attribute(m, modeling.PositionAttribute))
+	check(RequireTopology(m, modeling.TriangleTopology))
+	check(RequireV3Attribute(m, modeling.PositionAttribute))
 
 	vertices := m.Float3Attribute(modeling.PositionAttribute)
 	normals := make([]vector3.Float64, vertices.Len())

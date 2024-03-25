@@ -22,7 +22,7 @@ func (cat CropAttribute3DTransformer) attribute() string {
 func (cat CropAttribute3DTransformer) Transform(m modeling.Mesh) (results modeling.Mesh, err error) {
 	attribute := getAttribute(cat, modeling.PositionAttribute)
 
-	if err = requireV3Attribute(m, attribute); err != nil {
+	if err = RequireV3Attribute(m, attribute); err != nil {
 		return
 	}
 
@@ -32,9 +32,7 @@ func (cat CropAttribute3DTransformer) Transform(m modeling.Mesh) (results modeli
 func CropFloat3Attribute(m modeling.Mesh, attr string, boundingBox geometry.AABB) modeling.Mesh {
 
 	// Right now we only support point topology
-	if err := requireTopology(m, modeling.PointTopology); err != nil {
-		panic(err)
-	}
+	check(RequireTopology(m, modeling.PointTopology))
 
 	oldV4 := make(map[string]*iter.ArrayIterator[vector4.Float64])
 	v4 := make(map[string][]vector4.Float64)

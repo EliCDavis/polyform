@@ -25,7 +25,7 @@ func (vcst VertexColorSpaceTransformer) attribute() string {
 func (vcst VertexColorSpaceTransformer) Transform(m modeling.Mesh) (results modeling.Mesh, err error) {
 	attribute := getAttribute(vcst, modeling.ColorAttribute)
 
-	if err = requireV3Attribute(m, attribute); err != nil {
+	if err = RequireV3Attribute(m, attribute); err != nil {
 		return
 	}
 
@@ -33,7 +33,7 @@ func (vcst VertexColorSpaceTransformer) Transform(m modeling.Mesh) (results mode
 }
 
 func VertexColorSpace(m modeling.Mesh, attribute string, transformation VertexColorSpaceTransformation) modeling.Mesh {
-	if err := requireV3Attribute(m, attribute); err != nil {
+	if err := RequireV3Attribute(m, attribute); err != nil {
 		panic(err)
 	}
 

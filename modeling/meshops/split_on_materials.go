@@ -12,7 +12,7 @@ func SplitOnUniqueMaterials(m modeling.Mesh) []modeling.Mesh {
 
 	// Right now we only support triangle meshes
 	// (https://github.com/EliCDavis/polyform/issues/10)
-	err := requireTopology(m, modeling.TriangleTopology)
+	err := RequireTopology(m, modeling.TriangleTopology)
 	if err != nil {
 		panic(err)
 	}

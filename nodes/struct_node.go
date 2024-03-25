@@ -114,7 +114,7 @@ func (tn StructNode[T]) Outputs() []Output {
 
 	outs := make([]Output, len(outputs))
 	// TODO: This is wrong for nodes with more than one output
-	var v T
+	var v *T = new(T)
 	for i, o := range outputs {
 		outs[i] = Output{
 			Name: o,

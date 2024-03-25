@@ -20,6 +20,16 @@ export class NodeManager {
             this.bgcolor = "#355";
         }
         LiteGraph.registerNodeType("polyform/vector3", Vector3ParameterNode);
+
+        function ImageParameterNode() {
+            //     this.addInput(inputName, nodeData.inputs[inputName].type);
+            this.addOutput("Value", "image.Image");
+            // this.properties = { precision: 1 };
+            this.title = "Image";
+            this.color = "#233";
+            this.bgcolor = "#355";
+        }
+        LiteGraph.registerNodeType("polyform/Image", ImageParameterNode);
     }
 
     sortNodesByName(nodesToSort) {

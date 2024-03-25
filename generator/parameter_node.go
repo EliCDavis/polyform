@@ -39,7 +39,7 @@ func (pn *ParameterNode[T]) DisplayName() string {
 	return pn.Name
 }
 
-func (pn *ParameterNode[T]) ApplyJsonMessage(msg json.RawMessage) (bool, error) {
+func (pn *ParameterNode[T]) ApplyMessage(msg []byte) (bool, error) {
 	var val T
 	err := json.Unmarshal(msg, &val)
 	if err != nil {

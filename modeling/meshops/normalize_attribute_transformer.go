@@ -21,7 +21,7 @@ func (st NormalizeAttribute3DTransformer) attribute() string {
 func (st NormalizeAttribute3DTransformer) Transform(m modeling.Mesh) (results modeling.Mesh, err error) {
 	attribute := getAttribute(st, modeling.PositionAttribute)
 
-	if err = requireV3Attribute(m, attribute); err != nil {
+	if err = RequireV3Attribute(m, attribute); err != nil {
 		return
 	}
 
@@ -29,7 +29,7 @@ func (st NormalizeAttribute3DTransformer) Transform(m modeling.Mesh) (results mo
 }
 
 func NormalizeAttribute3D(m modeling.Mesh, attribute string) modeling.Mesh {
-	if err := requireV3Attribute(m, attribute); err != nil {
+	if err := RequireV3Attribute(m, attribute); err != nil {
 		panic(err)
 	}
 
@@ -56,7 +56,7 @@ func (st NormalizeAttribute2DTransformer) attribute() string {
 }
 
 func (st NormalizeAttribute2DTransformer) Transform(m modeling.Mesh) (results modeling.Mesh, err error) {
-	if err = requireV2Attribute(m, st.Attribute); err != nil {
+	if err = RequireV2Attribute(m, st.Attribute); err != nil {
 		return
 	}
 
@@ -64,7 +64,7 @@ func (st NormalizeAttribute2DTransformer) Transform(m modeling.Mesh) (results mo
 }
 
 func NormalizeAttribute2D(m modeling.Mesh, attribute string) modeling.Mesh {
-	if err := requireV2Attribute(m, attribute); err != nil {
+	if err := RequireV2Attribute(m, attribute); err != nil {
 		panic(err)
 	}
 

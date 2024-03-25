@@ -20,7 +20,7 @@ func (st ScaleAttribute3DTransformer) attribute() string {
 func (st ScaleAttribute3DTransformer) Transform(m modeling.Mesh) (results modeling.Mesh, err error) {
 	attribute := getAttribute(st, modeling.PositionAttribute)
 
-	if err = requireV3Attribute(m, attribute); err != nil {
+	if err = RequireV3Attribute(m, attribute); err != nil {
 		return
 	}
 
@@ -28,7 +28,7 @@ func (st ScaleAttribute3DTransformer) Transform(m modeling.Mesh) (results modeli
 }
 
 func ScaleAttribute3D(m modeling.Mesh, attribute string, origin, amount vector3.Float64) modeling.Mesh {
-	if err := requireV3Attribute(m, attribute); err != nil {
+	if err := RequireV3Attribute(m, attribute); err != nil {
 		panic(err)
 	}
 
@@ -54,7 +54,7 @@ func (st ScaleAttribute2DTransformer) attribute() string {
 func (st ScaleAttribute2DTransformer) Transform(m modeling.Mesh) (results modeling.Mesh, err error) {
 	attribute := getAttribute(st, modeling.TexCoordAttribute)
 
-	if err = requireV2Attribute(m, attribute); err != nil {
+	if err = RequireV2Attribute(m, attribute); err != nil {
 		return
 	}
 
@@ -62,7 +62,7 @@ func (st ScaleAttribute2DTransformer) Transform(m modeling.Mesh) (results modeli
 }
 
 func ScaleAttribute2D(m modeling.Mesh, attribute string, origin, amount vector2.Float64) modeling.Mesh {
-	if err := requireV2Attribute(m, attribute); err != nil {
+	if err := RequireV2Attribute(m, attribute); err != nil {
 		panic(err)
 	}
 

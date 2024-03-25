@@ -10,6 +10,16 @@ import (
 func GetTypeWithPackage(v any) string {
 	vType := reflect.TypeOf(v)
 	if vType == nil {
+
+		// e := reflect.TypeOf((&v)).Elem()
+
+		// return e.String()
+		// if e.Name() == "" {
+		// 	return "nil"
+		// }
+
+		// return name
+
 		return "nil"
 	}
 

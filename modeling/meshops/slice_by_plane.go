@@ -25,7 +25,7 @@ func (sbpt SliceByPlaneTransformer) attribute() string {
 func (sbpt SliceByPlaneTransformer) Transform(m modeling.Mesh) (results modeling.Mesh, err error) {
 	attribute := getAttribute(sbpt, modeling.PositionAttribute)
 
-	if err = requireV3Attribute(m, attribute); err != nil {
+	if err = RequireV3Attribute(m, attribute); err != nil {
 		return
 	}
 
@@ -37,7 +37,7 @@ func (sbpt SliceByPlaneTransformer) Transform(m modeling.Mesh) (results modeling
 }
 
 func SliceByPlaneWithAttribute(m modeling.Mesh, plane geometry.Plane, attribute string) (modeling.Mesh, modeling.Mesh) {
-	requireTopology(m, modeling.TriangleTopology)
+	RequireTopology(m, modeling.TriangleTopology)
 
 	originalIndices := m.Indices()
 	numFaces := originalIndices.Len() / 3

@@ -21,7 +21,7 @@ func (lst LaplacianSmoothTransformer) attribute() string {
 func (lst LaplacianSmoothTransformer) Transform(m modeling.Mesh) (results modeling.Mesh, err error) {
 	attribute := getAttribute(lst, modeling.PositionAttribute)
 
-	if err = requireV3Attribute(m, attribute); err != nil {
+	if err = RequireV3Attribute(m, attribute); err != nil {
 		return
 	}
 
