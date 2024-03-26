@@ -84,5 +84,10 @@ func (ca3dn ColorGradingLutNode) Process() (modeling.Mesh, error) {
 		return ca3dn.Mesh.Data(), nil
 	}
 
+	img := lut.Data()
+	if img == nil {
+		return ca3dn.Mesh.Data(), nil
+	}
+
 	return ColorGradingLut(ca3dn.Mesh.Data(), lut.Data(), attr), nil
 }
