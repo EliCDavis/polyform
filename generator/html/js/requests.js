@@ -54,20 +54,13 @@ class RequestManager {
         xmlHttp.send(null);
     }
 
-    post(theUrl, body, callback) {
-        const xmlHttp = new XMLHttpRequest();
-        xmlHttp.onreadystatechange = function () {
-            if (xmlHttp.readyState == 4 && xmlHttp.status == 200 && callback) {
-                callback(JSON.parse(xmlHttp.responseText));
-            }
-        }
-        xmlHttp.open("POST", theUrl, true); // true for asynchronous 
-        xmlHttp.send(JSON.stringify(body));
+    postJson(theUrl, body, callback) {
+        this.postBinary(theUrl, JSON.stringify(body), callback)
     }
 
     postBinary(theUrl, body, callback) {
         const xmlHttp = new XMLHttpRequest();
-        xmlHttp.onreadystatechange = function () {
+        xmlHttp.onreadystatechange = () => {
             if (xmlHttp.readyState == 4 && xmlHttp.status == 200 && callback) {
                 callback(JSON.parse(xmlHttp.responseText));
             }
@@ -85,10 +78,11 @@ class RequestManager {
     }
 
     updateProfile(key, data, binary, callback) {
+        const url = "/profile/" + key;
         if (binary) {
-            this.postBinary("/profile/" + key, data, callback);
+            this.postBinary(url, data, callback);
         } else {
-            this.post("/profile/" + key, data, callback);
+            this.postJson(url, data, callback);
         }
     }
 }

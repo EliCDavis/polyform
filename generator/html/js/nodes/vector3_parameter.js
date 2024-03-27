@@ -27,7 +27,8 @@ export class NodeVector3Parameter {
                 }
                 nodeManager.nodeParameterChanged({
                     id: id,
-                    data: newData
+                    data: newData,
+                    binary: false
                 });
             }
         });
@@ -43,7 +44,7 @@ export class NodeVector3Parameter {
 
         this.lightNode = BuildVector3ParameterNode(app);
         this.lightNode.title = parameterData.name;
-        app.LightGraph.add(this.lightNode);
+        // app.LightGraph.add(this.lightNode);
 
         control.visible = false;
         control.enabled = false;

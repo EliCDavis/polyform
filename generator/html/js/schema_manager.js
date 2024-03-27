@@ -11,10 +11,11 @@ class SchemaManager {
         this.subscribers.push(subscriber);
     }
 
-    setProfileKey(key, data) {
+    setProfileKey(key, data, binary) {
         this.requestManager.updateProfile(
             key,
             data,
+            binary,
             () => {
                 // this.refreshSchema();
             }

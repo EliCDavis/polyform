@@ -16,7 +16,6 @@ class ImageParameterNode {
     constructor(nodeManager, id, parameterData, app) {
         this.lightNode = BuildImageParameterNode(app);
         this.lightNode.title = parameterData.name;
-        app.LightGraph.add(this.lightNode);
 
         this.lightNode.onDropFile = (file) => {
             // console.log(file)
