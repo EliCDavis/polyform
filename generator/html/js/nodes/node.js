@@ -2,41 +2,9 @@ import * as THREE from 'three';
 import { NodeBasicParameter } from './basic_parameter.js';
 import { NodeVector3Parameter } from './vector3_parameter.js';
 import { NodeVector3ArryParameter } from './vector3_array_parameter.js';
+import { ImageParameterNode } from './image_parameter.js';
+import { NodeAABBParameter } from './aabb_parameter.js';
 
-
-function BuildImageParameterNode(app) {
-    const node = LiteGraph.createNode("polyform/Image");
-    console.log(node)
-    app.LightGraph.add(node);
-    return node;
-}
-
-class ImageParameterNode {
-
-    constructor(nodeManager, id, parameterData, app) {
-        this.lightNode = BuildImageParameterNode(app);
-        this.lightNode.title = parameterData.name;
-
-        this.lightNode.onDropFile = (file) => {
-            // console.log(file)
-            var reader = new FileReader();
-            reader.onload = (evt) => {
-                console.log(evt.target.result)
-                nodeManager.nodeParameterChanged({
-                    id: id,
-                    data: evt.target.result,
-                    binary: true
-                });
-            }
-            reader.readAsArrayBuffer(file);
-        }
-    }
-
-    update(parameterData) {
-        const curVal = parameterData.currentValue;
-    }
-
-}
 
 function BuildParameter(nodeManager, id, parameterData, app, guiFolderData) {
     switch (parameterData.type) {
@@ -58,6 +26,9 @@ function BuildParameter(nodeManager, id, parameterData, app, guiFolderData) {
 
         case "image.Image":
             return new ImageParameterNode(nodeManager, id, parameterData, app);
+
+        case "geometry.AABB":
+            return new NodeAABBParameter(nodeManager, id, parameterData, app);
 
         default:
             throw new Error("build parameter: unimplemented parameter type: " + parameterData.type)
@@ -120,7 +91,6 @@ function BuildCustomNode(app, nodeData, isProducer) {
     LiteGraph.registerNodeType(nodeName, CustomNode);
 
     const node = LiteGraph.createNode(nodeName);
-    console.log(node)
     // node.pos = [200, app.LightGraph._nodes.length * 100];
     app.LightGraph.add(node);
     return node;

@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"image"
 	"math"
 	"os"
 
@@ -20,25 +19,6 @@ import (
 	"github.com/EliCDavis/vector/vector3"
 	"github.com/EliCDavis/vector/vector4"
 )
-
-type ImageLoaderNode struct {
-	nodes.StructData[image.Image]
-
-	Path nodes.NodeOutput[string]
-}
-
-func (pn *ImageLoaderNode) Out() nodes.NodeOutput[image.Image] {
-	return &nodes.StructNodeOutput[image.Image]{Definition: pn}
-}
-
-func (pn ImageLoaderNode) Process() (image.Image, error) {
-	f, err := os.Open(pn.Path.Data())
-	if err != nil {
-		return nil, err
-	}
-	img, _, err := image.Decode(f)
-	return img, err
-}
 
 type PointcloudLoaderNode struct {
 	nodes.StructData[modeling.Mesh]
@@ -109,49 +89,6 @@ func (pn SplatEditNode) Process() (modeling.Mesh, error) {
 		},
 		meshops.RemovedUnreferencedVerticesTransformer{},
 
-		// gausops.ColorGradingLutTransformer{
-		// 	LUT: pn.LUT.Data(),
-		// },
-
-		// meshops.CustomTransformer{
-		// 	Func: func(m modeling.Mesh) (results modeling.Mesh, err error) {
-		// 		cols := m.Float3Attribute(modeling.FDCAttribute)
-
-		// 		newCols := make([]vector3.Float64, cols.Len())
-		// 		for i := 0; i < len(newCols); i++ {
-		// 			newCols[i] = cols.At(i).
-		// 				Scale(splat.SH_C0).
-		// 				Add(vector3.Fill(0.5)).
-		// 				Clamp(0, 1)
-		// 		}
-
-		// 		return m.SetFloat3Attribute(modeling.FDCAttribute, newCols), nil
-		// 	},
-		// },
-
-		// meshops.ColorGradingLutTransformer{
-		// 	LUT:       pn.LUT.Data(),
-		// 	Attribute: modeling.FDCAttribute,
-		// },
-
-		// meshops.CustomTransformer{
-		// 	Func: func(m modeling.Mesh) (results modeling.Mesh, err error) {
-		// 		cols := m.Float3Attribute(modeling.FDCAttribute)
-
-		// 		newCols := make([]vector3.Float64, cols.Len())
-		// 		for i := 0; i < len(newCols); i++ {
-		// 			col := cols.At(i)
-		// 			newCols[i] = vector3.New[float64](
-		// 				(col.X()-0.5)/splat.SH_C0,
-		// 				(col.Y()-0.5)/splat.SH_C0,
-		// 				(col.Z()-0.5)/splat.SH_C0,
-		// 			).ToFloat64()
-		// 		}
-
-		// 		return m.SetFloat3Attribute(modeling.FDCAttribute, newCols), nil
-		// 	},
-		// },
-
 		meshops.RotateAttribute3DTransformer{
 			Amount: quaternion.FromTheta(math.Pi, vector3.Forward[float64]()),
 		},
@@ -177,36 +114,6 @@ func (pn SplatEditNode) Process() (modeling.Mesh, error) {
 		gausops.ScaleTransformer{
 			Scale: vector3.Fill(pn.Scale.Data()),
 		},
-	), nil
-}
-
-type BoundingBoxNode struct {
-	nodes.StructData[geometry.AABB]
-
-	LeftCutoff    nodes.NodeOutput[float64]
-	DownCutoff    nodes.NodeOutput[float64]
-	BackCutoff    nodes.NodeOutput[float64]
-	RightCutoff   nodes.NodeOutput[float64]
-	UpCutoff      nodes.NodeOutput[float64]
-	ForwardCutoff nodes.NodeOutput[float64]
-}
-
-func (bbn *BoundingBoxNode) Out() nodes.NodeOutput[geometry.AABB] {
-	return &nodes.StructNodeOutput[geometry.AABB]{Definition: bbn}
-}
-
-func (bbn BoundingBoxNode) Process() (geometry.AABB, error) {
-	return geometry.NewAABBFromPoints(
-		vector3.New[float64](
-			bbn.LeftCutoff.Data(),
-			bbn.DownCutoff.Data(),
-			bbn.BackCutoff.Data(),
-		),
-		vector3.New[float64](
-			bbn.RightCutoff.Data(),
-			bbn.UpCutoff.Data(),
-			bbn.ForwardCutoff.Data(),
-		),
 	), nil
 }
 
@@ -291,14 +198,13 @@ func main() {
 			},
 			Scale: scale,
 		}).Out(),
-		AABB: (&BoundingBoxNode{
-			LeftCutoff:    &generator.ParameterNode[float64]{Name: "Left Cutoff", DefaultValue: -6}, // -6
-			DownCutoff:    &generator.ParameterNode[float64]{Name: "Bottom Cutoff", DefaultValue: -5.6},
-			BackCutoff:    &generator.ParameterNode[float64]{Name: "Back Cutoff", DefaultValue: 4},
-			RightCutoff:   &generator.ParameterNode[float64]{Name: "Right Cutoff", DefaultValue: 3.5},
-			UpCutoff:      &generator.ParameterNode[float64]{Name: "Top Cutoff", DefaultValue: 3},
-			ForwardCutoff: &generator.ParameterNode[float64]{Name: "Forward Cutoff", DefaultValue: 14}, // 14
-		}).Out(),
+		AABB: &generator.ParameterNode[geometry.AABB]{
+			Name: "Keep Bounds",
+			DefaultValue: geometry.NewAABBFromPoints(
+				vector3.New(-10., -10., -10.),
+				vector3.New(10., 10., 10.),
+			),
+		},
 	}
 
 	baloonNode := BaloonNode{

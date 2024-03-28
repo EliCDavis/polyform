@@ -57,12 +57,10 @@ export class NodeBasicParameter {
         // this.lightNode.pos = [200, app.LightGraph._nodes.length * 100];
         this.lightNode.title = parameterData.name;
         app.LightGraph.add(this.lightNode);
-        console.log(this.lightNode)
         this.lightNode.outputs[0].type = parameterData.type;
         this.lightNode.setValue(parameterData.currentValue);
 
         this.lightNode.onPropertyChanged = (property, value) => {
-            console.log(property, value);
             if (property !== "value") {
                 return;
             }

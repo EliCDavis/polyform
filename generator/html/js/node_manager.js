@@ -8,53 +8,36 @@ function ImageParameterNode() {
     this.color = "#233";
     this.bgcolor = "#355";
 
-    // const w = this.addWidget("image", "Image", true, { property: "surname" }); //this will modify the node.properties
-    // w.draw = (ctx, node, widget_width, y, H) => {
+    const H = LiteGraph.NODE_WIDGET_HEIGHT;
 
-    //     // const H = LiteGraph.NODE_WIDGET_HEIGHT;
-    //     var show_text = lightCanvas.ds.scale > 0.5;
-    //     // ctx.save();
-    //     // ctx.globalAlpha = this.editor_alpha;
-    //     const outline_color = LiteGraph.WIDGET_OUTLINE_COLOR;
-    //     const background_color = LiteGraph.WIDGET_BGCOLOR;
-    //     const text_color = LiteGraph.WIDGET_TEXT_COLOR;
-    //     const secondary_text_color = LiteGraph.WIDGET_SECONDARY_TEXT_COLOR;
-    //     const margin = 15;
+    const imgWidget = this.addWidget("image", "Image", true, { property: "surname" }); //this will modify the node.properties
+    this.imgWidget = imgWidget;
+    const margin = 15;
+    this.imgWidget.draw = (ctx, node, widget_width, y, H) => {
+        if (!imgWidget.image) {
+            return;
+        }
+        
+        const adjustedWidth = widget_width - margin * 2
+        ctx.drawImage(
+            imgWidget.image, 
+            margin, 
+            y, 
+            adjustedWidth, 
+            (adjustedWidth / imgWidget.image.width) * imgWidget.image.height
+        );
+    }
 
-    //     ctx.textAlign = "left";
-    //     ctx.strokeStyle = outline_color;
-    //     ctx.fillStyle = background_color;
-    //     ctx.beginPath();
-    //     if (show_text)
-    //         ctx.roundRect(margin, y, widget_width - margin * 2, H, [H * 0.5]);
-    //     else
-    //         ctx.rect(margin, y, widget_width - margin * 2, H);
-    //     ctx.fill();
-    //     if (show_text && !w.disabled)
-    //         ctx.stroke();
-    //     ctx.fillStyle = w.value ? "#89A" : "#333";
-    //     ctx.beginPath();
-    //     ctx.arc(widget_width - margin * 2, y + H * 0.5, H * 0.36, 0, Math.PI * 2);
-    //     ctx.fill();
-    //     if (show_text) {
-    //         ctx.fillStyle = secondary_text_color;
-    //         const label = w.label || w.name;
-    //         if (label != null) {
-    //             ctx.fillText(label, margin * 2, y + H * 0.7);
-    //         }
-    //         ctx.fillStyle = w.value ? text_color : secondary_text_color;
-    //         ctx.textAlign = "right";
-    //         ctx.fillText(
-    //             w.value
-    //                 ? w.options.on || "true"
-    //                 : w.options.off || "false",
-    //             widget_width - 40,
-    //             y + H * 0.7
-    //         );
-    //     }
-    // }
+    this.imgWidget.computeSize = (width) => {
+        if (!!imgWidget.image) {
+            const adjustedWidth = width - margin * 2
+            const newH = (adjustedWidth / imgWidget.image.width) * imgWidget.image.height;
+            return [width, newH]
+        }
+        return [width, 0];
+    }
 
-    // w.mouse = (event, pos, node) => {
+    // this.imgWidget.mouse = (event, pos, node) => {
     //     if (event.type == LiteGraph.pointerevents_method + "down") {
     //         w.value = !w.value;
     //         setTimeout(function () {
@@ -84,6 +67,17 @@ export class NodeManager {
             this.bgcolor = "#355";
         }
 
+        function AABBParameterNode() {
+            //     this.addInput(inputName, nodeData.inputs[inputName].type);
+            this.addOutput("Value", "github.com/EliCDavis/polyform/math/geometry.AABB");
+            // this.properties = { precision: 1 };
+            this.title = "AABB";
+            this.color = "#233";
+            this.bgcolor = "#355";
+        }
+
+
+        LiteGraph.registerNodeType("polyform/aabb", AABBParameterNode);
         LiteGraph.registerNodeType("polyform/vector3", Vector3ParameterNode);
         LiteGraph.registerNodeType("polyform/Image", ImageParameterNode);
     }
