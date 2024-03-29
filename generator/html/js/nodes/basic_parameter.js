@@ -1,35 +1,11 @@
 
 
 export class NodeBasicParameter {
-    constructor(app, nodeManager, id, parameterData, guiFolder, guiFolderData) {
+    constructor(app, nodeManager, id, parameterData) {
         this.id = id;
-        this.guiFolder = guiFolder;
-        this.guiFolderData = guiFolderData;
 
-        guiFolderData[id] = parameterData.currentValue;
 
         let setting = null;
-
-        if (parameterData.type === "coloring.WebColor") {
-            setting = guiFolder.addColor(guiFolderData, id)
-        } else {
-            setting = guiFolder.add(guiFolderData, id)
-        }
-
-        setting = setting.name(parameterData.name);
-
-        if (parameterData.type === "int") {
-            setting = setting.step(1)
-        }
-
-        this.setting = setting
-            .listen()
-            .onChange((newData) => {
-                nodeManager.nodeParameterChanged({
-                    id: id,
-                    data: newData
-                });
-            });
 
         // https://github.com/jagenjo/litegraph.js/tree/master/guides
         switch (parameterData.type) {
@@ -59,6 +35,8 @@ export class NodeBasicParameter {
         app.LightGraph.add(this.lightNode);
         this.lightNode.outputs[0].type = parameterData.type;
         this.lightNode.setValue(parameterData.currentValue);
+        this.lightNode.setSize(this.lightNode.computeSize());
+
 
         this.lightNode.onPropertyChanged = (property, value) => {
             if (property !== "value") {
@@ -69,6 +47,6 @@ export class NodeBasicParameter {
     }
 
     update(parameterData) {
-        this.guiFolderData[this.id] = parameterData.currentValue;
+        // this.guiFolderData[this.id] = parameterData.currentValue;
     }
 }

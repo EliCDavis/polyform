@@ -1,22 +1,30 @@
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
+import * as THREE from 'three';
+
+function BuildVector3ParameterNode(app) {
+    const node = LiteGraph.createNode("polyform/vector3[]");
+    app.LightGraph.add(node);
+    return node;
+}
+
 
 export class NodeVector3ArryParameter {
-    constructor(nodeManager, id, parameterData, app, guiFolderData) {
+    constructor(nodeManager, id, parameterData, app) {
         this.id = id;
         this.nodeManager = nodeManager;
-        this.guiFolder = app.MeshGenFolder;
-        this.guiFolderData = guiFolderData;
         this.app = app;
         this.scene = app.ViewerScene;
         this.allPositionControls = [];
         this.allPositionControlsMeshes = [];
+        this.renderControls = false;
 
         parameterData.currentValue.forEach((ele) => {
             this.newPositionControl(ele);
         })
 
-        this.guiFolderData[this.id] = () => {
-
+        this.lightNode = BuildVector3ParameterNode(app);
+        this.lightNode.title = parameterData.name;
+        this.lightNode.addWidget("button", "Add Point", "", () => {
             const paramData = this.buildParameterData();
 
             const oldEle = paramData[paramData.length - 1]
@@ -32,12 +40,26 @@ export class NodeVector3ArryParameter {
                 id: this.id,
                 data: paramData,
             });
+        });
+
+        console.log(this.lightNode)
+
+        this.lightNode.onSelected = (obj) => {
+            this.renderControls = true;
+            this.updateControlRendering();
         }
 
-        this.setting = this.guiFolder.
-            add(this.guiFolderData, this.id).
-            name("Add to " + parameterData.name).
-            listen()
+        this.lightNode.onDeselected = (obj) => {
+            this.renderControls = false;
+            this.updateControlRendering();
+        }
+    }
+
+    updateControlRendering() {
+        this.allPositionControls.forEach((v) => {
+            v.visible = this.renderControls;
+            v.enabled = this.renderControls;
+        });
     }
 
     buildParameterData() {
@@ -57,7 +79,8 @@ export class NodeVector3ArryParameter {
     newPositionControl(pos) {
         const control = new TransformControls(this.app.Camera, this.app.Renderer.domElement);
         control.setMode('translate');
-        control.space = "local";
+        control.setSpace("local");
+
 
         const mesh = new THREE.Group();
 
@@ -79,6 +102,9 @@ export class NodeVector3ArryParameter {
         this.app.Scene.add(control);
         mesh.position.set(pos.x, pos.y, pos.z);
         control.attach(mesh);
+
+        control.visible = this.renderControls;
+        control.enabled = this.renderControls;
     }
 
     clearPositionControls() {

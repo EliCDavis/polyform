@@ -144,7 +144,7 @@ camera.position.z = 5;
 const App = {
     Camera: camera,
     Renderer: renderer,
-    MeshGenFolder: panel.addFolder("Mesh Generation"),
+    // MeshGenFolder: panel.addFolder("Mesh Generation"),
     Scene: scene,
     OrbitControls: orbitControls,
     ViewerScene: viewerContainer,

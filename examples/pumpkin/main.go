@@ -27,8 +27,8 @@ import (
 type Albedo struct {
 	nodes.StructData[image.Image]
 
-	Positive nodes.NodeOutput[color.Color]
-	Negative nodes.NodeOutput[color.Color]
+	Positive nodes.NodeOutput[coloring.WebColor]
+	Negative nodes.NodeOutput[coloring.WebColor]
 }
 
 func (an *Albedo) Process() (image.Image, error) {
@@ -308,7 +308,7 @@ func main() {
 					Field: pumpkinField.Field(),
 					CubersPerUnit: &generator.ParameterNode[float64]{
 						Name:         "Pumpkin Resolution",
-						DefaultValue: 60,
+						DefaultValue: 20,
 					},
 				}).Mesh(),
 				Iterations: &generator.ParameterNode[int]{
@@ -356,7 +356,7 @@ func main() {
 		Producers: map[string]nodes.NodeOutput[generator.Artifact]{
 			"pumpkin.glb": (&PumpkinGLBArtifact{
 				PumpkinBody: pumpkinMesh.SphericalMesh(),
-				LightColor: &generator.ParameterNode[color.Color]{
+				LightColor: &generator.ParameterNode[coloring.WebColor]{
 					Name:         "Light Color",
 					DefaultValue: coloring.WebColor{R: 0xf4, G: 0xf5, B: 0xad, A: 255},
 				},
@@ -368,27 +368,27 @@ func main() {
 					TopDip: topDip,
 				}).Mesh(),
 			}).Artifact(),
-			"Texturing/pumpkin.png": generator.NewImageArtifactNode((&Albedo{
-				Positive: &generator.ParameterNode[color.Color]{
+			"pumpkin.png": generator.NewImageArtifactNode((&Albedo{
+				Positive: &generator.ParameterNode[coloring.WebColor]{
 					Name:         "Base Color",
 					DefaultValue: coloring.WebColor{R: 0xf9, G: 0x81, B: 0x1f, A: 255},
 				},
-				Negative: &generator.ParameterNode[color.Color]{
+				Negative: &generator.ParameterNode[coloring.WebColor]{
 					Name:         "Negative Color",
 					DefaultValue: coloring.WebColor{R: 0xf7, G: 0x71, B: 0x02, A: 255},
 				},
 			}).Image()),
-			"Texturing/stem.png": generator.NewImageArtifactNode((&Albedo{
-				Positive: &generator.ParameterNode[color.Color]{
+			"stem.png": generator.NewImageArtifactNode((&Albedo{
+				Positive: &generator.ParameterNode[coloring.WebColor]{
 					Name:         "Stem Base Color",
 					DefaultValue: coloring.WebColor{R: 0xce, G: 0xa2, B: 0x7e, A: 255},
 				},
-				Negative: &generator.ParameterNode[color.Color]{
+				Negative: &generator.ParameterNode[coloring.WebColor]{
 					Name:         "Stem Negative Color",
 					DefaultValue: coloring.WebColor{R: 0x7d, G: 0x53, B: 0x2c, A: 255},
 				},
 			}).Image()),
-			"Texturing/normal.png": (&NormalImage{
+			"normal.png": (&NormalImage{
 				NumberOfLines: &generator.ParameterNode[int]{
 					Name:         "Number of Lines",
 					DefaultValue: 20,
@@ -398,19 +398,19 @@ func main() {
 					DefaultValue: 50,
 				},
 			}).Image(),
-			"Texturing/stem-normal.png": (&StemNormalImage{
+			"stem-normal.png": (&StemNormalImage{
 				NumberOfLines: &generator.ParameterNode[int]{
 					Name:         "Stem Normal Line Count",
 					DefaultValue: 30,
 				},
 			}).Image(),
-			"Texturing/roughness.png": (&MetalRoughness{
+			"roughness.png": (&MetalRoughness{
 				Roughness: &generator.ParameterNode[float64]{
 					Name:         "Pumpkin Roughness",
 					DefaultValue: 0.75,
 				},
 			}).Image(),
-			"Texturing/stem-roughness.png": (&StemRoughness{
+			"stem-roughness.png": (&StemRoughness{
 				Dimensions: textureDimensions,
 				Roughness:  nodes.Value(0.78),
 			}).Image(),

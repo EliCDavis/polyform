@@ -203,18 +203,29 @@ func (as *AppServer) ProfileEndpoint(w http.ResponseWriter, r *http.Request) {
 	as.producerLock.Lock()
 	defer as.producerLock.Unlock()
 
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		panic(err)
-	}
+	profileID := path.Base(r.URL.Path)
 
-	_, err = as.ApplyMessage(path.Base(r.URL.Path), body)
-	if err != nil {
-		panic(err)
-	}
+	switch r.Method {
+	case "GET", "":
+		n := as.app.Schema().Nodes[profileID]
 
-	as.movelVersion++
-	w.Write([]byte("{}"))
+		w.Write(n.parameter.ToMessage())
+		break
+
+	case "POST":
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			panic(err)
+		}
+
+		_, err = as.ApplyMessage(profileID, body)
+		if err != nil {
+			panic(err)
+		}
+
+		as.movelVersion++
+		w.Write([]byte("{}"))
+	}
 }
 
 func (as *AppServer) StartedEndpoint(w http.ResponseWriter, r *http.Request) {

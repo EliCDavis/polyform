@@ -4,6 +4,7 @@ import { NodeVector3Parameter } from './vector3_parameter.js';
 import { NodeVector3ArryParameter } from './vector3_array_parameter.js';
 import { ImageParameterNode } from './image_parameter.js';
 import { NodeAABBParameter } from './aabb_parameter.js';
+import { ColorParameter } from './color_parameter.js';
 
 
 function BuildParameter(nodeManager, id, parameterData, app, guiFolderData) {
@@ -13,8 +14,10 @@ function BuildParameter(nodeManager, id, parameterData, app, guiFolderData) {
         case "int":
         case "bool":
         case "string":
+            return new NodeBasicParameter(app, nodeManager, id, parameterData);
+
         case "coloring.WebColor":
-            return new NodeBasicParameter(app, nodeManager, id, parameterData, app.MeshGenFolder, guiFolderData);
+            return new ColorParameter(nodeManager, id, parameterData, app);
 
         case "vector3.Vector[float64]":
         case "vector3.Vector[float32]":
@@ -22,7 +25,7 @@ function BuildParameter(nodeManager, id, parameterData, app, guiFolderData) {
 
         case "[]vector3.Vector[float64]":
         case "[]vector3.Vector[float32]":
-            return new NodeVector3ArryParameter(nodeManager, id, parameterData, app, guiFolderData);
+            return new NodeVector3ArryParameter(nodeManager, id, parameterData, app);
 
         case "image.Image":
             return new ImageParameterNode(nodeManager, id, parameterData, app);
@@ -91,6 +94,8 @@ function BuildCustomNode(app, nodeData, isProducer) {
     LiteGraph.registerNodeType(nodeName, CustomNode);
 
     const node = LiteGraph.createNode(nodeName);
+    node.setSize(node.computeSize());
+
     // node.pos = [200, app.LightGraph._nodes.length * 100];
     app.LightGraph.add(node);
     return node;

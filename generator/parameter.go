@@ -9,4 +9,5 @@ type Parameter interface {
 	Schema() ParameterSchema
 	initializeForCLI(set *flag.FlagSet)
 	ApplyMessage(msg []byte) (bool, error)
+	ToMessage() []byte
 }

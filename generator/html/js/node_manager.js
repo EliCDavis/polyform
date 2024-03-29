@@ -17,13 +17,13 @@ function ImageParameterNode() {
         if (!imgWidget.image) {
             return;
         }
-        
+
         const adjustedWidth = widget_width - margin * 2
         ctx.drawImage(
-            imgWidget.image, 
-            margin, 
-            y, 
-            adjustedWidth, 
+            imgWidget.image,
+            margin,
+            y,
+            adjustedWidth,
             (adjustedWidth / imgWidget.image.width) * imgWidget.image.height
         );
     }
@@ -35,6 +35,36 @@ function ImageParameterNode() {
             return [width, newH]
         }
         return [width, 0];
+    }
+
+    // this.imgWidget.mouse = (event, pos, node) => {
+    //     if (event.type == LiteGraph.pointerevents_method + "down") {
+    //         w.value = !w.value;
+    //         setTimeout(function () {
+    //             inner_value_change(w, w.value);
+    //         }, 20);
+    //     }
+    // }
+}
+
+function ColorParameterNode() {
+    //     this.addInput(inputName, nodeData.inputs[inputName].type);
+    this.addOutput("Value", "github.com/EliCDavis/polyform/drawing/coloring.WebColor");
+    // this.properties = { precision: 1 };
+    this.title = "Image";
+    this.color = "#233";
+    this.bgcolor = "#355";
+
+
+    const imgWidget = this.addWidget("color", "Color", "#00FF00", { color: "surname" }); //this will modify the node.properties
+    this.imgWidget = imgWidget;
+    const margin = 15;
+    this.imgWidget.draw = (ctx, node, widget_width, y, H) => {
+        const adjustedWidth = widget_width - margin * 2
+        ctx.beginPath(); // Start a new path
+        ctx.rect(margin, y, adjustedWidth, H); // Add a rectangle to the current path
+        ctx.fillStyle = this.imgWidget.value;
+        ctx.fill(); // Render the path
     }
 
     // this.imgWidget.mouse = (event, pos, node) => {
@@ -67,6 +97,16 @@ export class NodeManager {
             this.bgcolor = "#355";
         }
 
+        function Vector3ArrayParameterNode() {
+            //     this.addInput(inputName, nodeData.inputs[inputName].type);
+            this.addOutput("Value", "[]github.com/EliCDavis/vector/vector3.Vector[float64]");
+            // this.properties = { precision: 1 };
+            this.title = "Vector3 Array";
+            this.color = "#233";
+            this.bgcolor = "#355";
+        }
+
+
         function AABBParameterNode() {
             //     this.addInput(inputName, nodeData.inputs[inputName].type);
             this.addOutput("Value", "github.com/EliCDavis/polyform/math/geometry.AABB");
@@ -79,6 +119,8 @@ export class NodeManager {
 
         LiteGraph.registerNodeType("polyform/aabb", AABBParameterNode);
         LiteGraph.registerNodeType("polyform/vector3", Vector3ParameterNode);
+        LiteGraph.registerNodeType("polyform/vector3[]", Vector3ArrayParameterNode);
+        LiteGraph.registerNodeType("polyform/color", ColorParameterNode);
         LiteGraph.registerNodeType("polyform/Image", ImageParameterNode);
     }
 

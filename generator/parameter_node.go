@@ -60,6 +60,14 @@ func (pn *ParameterNode[T]) ApplyMessage(msg []byte) (bool, error) {
 	return true, nil
 }
 
+func (pn ParameterNode[T]) ToMessage() []byte {
+	data, err := json.Marshal(pn.Data())
+	if err != nil {
+		panic(err)
+	}
+	return data
+}
+
 func (pn *ParameterNode[T]) Data() T {
 	if pn.appliedProfile != nil {
 		return *pn.appliedProfile
@@ -102,7 +110,7 @@ func (tn ParameterNode[T]) Outputs() []nodes.Output {
 	return []nodes.Output{
 		{
 			Name: "Data",
-			Type: refutil.GetTypeWithPackage(*new(T)),
+			Type: refutil.GetTypeWithPackage(new(T)),
 		},
 	}
 }

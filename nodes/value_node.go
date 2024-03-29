@@ -45,7 +45,7 @@ func (tn ValueNode[T]) Outputs() []Output {
 	return []Output{
 		{
 			Name: "Data",
-			Type: refutil.GetTypeWithPackage(*new(T)),
+			Type: refutil.GetTypeWithPackage(new(T)),
 		},
 	}
 }

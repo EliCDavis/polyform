@@ -44,36 +44,20 @@ export class NodeVector3Parameter {
 
         this.lightNode = BuildVector3ParameterNode(app);
         this.lightNode.title = parameterData.name;
-        // app.LightGraph.add(this.lightNode);
 
         control.visible = false;
         control.enabled = false;
 
         this.lightNode.onSelected = (obj) => {
-            console.log("selected", obj);
-            console.log(control)
             control.visible = true;
             control.enabled = true;
         }
         
         this.lightNode.onDeselected = (obj) => {
-            console.log("de-selected", obj)
             control.visible = false;
             control.enabled = false;
         }
 
-        // this.lightNode.onPropertyChanged = (property, value) => {
-        //     const newData = {
-        //         x: this.mesh.position.x,
-        //         y: this.mesh.position.y,
-        //         z: this.mesh.position.z,
-        //     }
-        //     newData[property] = value;
-        //     nodeManager.nodeParameterChanged({
-        //         id: id,
-        //         data: newData
-        //     });
-        // }
     }
 
     update(parameterData) {

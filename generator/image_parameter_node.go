@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"flag"
 	"image"
+	"image/png"
 	"os"
 
 	"github.com/EliCDavis/polyform/nodes"
@@ -41,6 +42,19 @@ func (pn *ImageParameterNode) ApplyMessage(msg []byte) (bool, error) {
 	}
 
 	return true, nil
+}
+
+func (pn *ImageParameterNode) ToMessage() []byte {
+	img := pn.Data()
+	if img == nil {
+		return nil
+	}
+	buf := bytes.Buffer{}
+	err := png.Encode(&buf, img)
+	if err != nil {
+		panic(err)
+	}
+	return buf.Bytes()
 }
 
 func (pn *ImageParameterNode) Data() image.Image {

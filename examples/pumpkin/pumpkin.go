@@ -6,6 +6,7 @@ import (
 	"math"
 	"math/rand"
 
+	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/drawing/texturing"
 	"github.com/EliCDavis/polyform/drawing/texturing/normals"
 	"github.com/EliCDavis/polyform/formats/gltf"
@@ -261,7 +262,7 @@ type PumpkinGLBArtifact struct {
 
 	PumpkinBody nodes.NodeOutput[modeling.Mesh]
 	PumpkinStem nodes.NodeOutput[gltf.PolyformModel]
-	LightColor  nodes.NodeOutput[color.Color]
+	LightColor  nodes.NodeOutput[coloring.WebColor]
 }
 
 func (pga PumpkinGLBArtifact) Process() (generator.Artifact, error) {
@@ -274,7 +275,7 @@ func (pga PumpkinGLBArtifact) Process() (generator.Artifact, error) {
 					Material: &gltf.PolyformMaterial{
 						PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
 							BaseColorTexture: &gltf.PolyformTexture{
-								URI: "Texturing/pumpkin.png", //"uvMap.png",
+								URI: "pumpkin.png", //"uvMap.png",
 								// URI: "uvMap.png", //"uvMap.png",
 								Sampler: &gltf.Sampler{
 									WrapS: gltf.SamplerWrap_REPEAT,
@@ -282,7 +283,7 @@ func (pga PumpkinGLBArtifact) Process() (generator.Artifact, error) {
 								},
 							},
 							MetallicRoughnessTexture: &gltf.PolyformTexture{
-								URI: "Texturing/roughness.png",
+								URI: "roughness.png",
 							},
 							// BaseColorFactor: texturingParams.Color("Base Color"),
 							// MetallicFactor:  1,
@@ -290,7 +291,7 @@ func (pga PumpkinGLBArtifact) Process() (generator.Artifact, error) {
 						},
 						NormalTexture: &gltf.PolyformNormal{
 							PolyformTexture: gltf.PolyformTexture{
-								URI: "Texturing/normal.png",
+								URI: "normal.png",
 							},
 						},
 						Extensions: []gltf.MaterialExtension{
