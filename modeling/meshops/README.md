@@ -33,3 +33,13 @@ We set each vertices normal to be equal to the face's normal. If the vertice is 
 ### Unweld
 
 ### Vertex Color Space
+
+### Color Grading LUT
+
+### Filter Float 1
+
+### Filter Float 2
+
+### Filter Float 3
+
+### Filter Float 4

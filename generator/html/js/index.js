@@ -35,6 +35,7 @@ import { ProgressiveLightMap } from 'three/addons/misc/ProgressiveLightMap.js';
 
 import { InitXR } from './xr.js';
 import { UpdateManager } from './update-manager.js';
+import { ColorSelector } from './color_selector.js';
 
 const viewportSettings = {
     renderWireframe: false,
@@ -148,7 +149,8 @@ const App = {
     Scene: scene,
     OrbitControls: orbitControls,
     ViewerScene: viewerContainer,
-    LightGraph: lgraphInstance
+    LightGraph: lgraphInstance,
+    ColorSelector: new ColorSelector("colorSelectorContainer"),
 }
 
 const requestManager = new RequestManager();

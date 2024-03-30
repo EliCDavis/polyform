@@ -28,6 +28,7 @@
     <script src="js/error_manager.js"></script>
     <script src="js/requests.js"></script>
     <script src="js/viewport-manager.js"></script>
+    <script type="module" src="js/color_selector.js"></script>
     <script type="module" src="js/binary_reader.js"></script>
     <script type="module" src="js/binary_writer.js"></script>
     <script type="module" src="js/websocket.js"></script>
@@ -132,6 +133,23 @@
             color: white;
             border-radius: 12px;
             display: none;
+        }
+
+        #colorSelectorContainer {
+            position: absolute;
+            width: 100%;
+            display: flex;
+            height: 100%;
+            justify-content: center;
+            align-items: center;
+            background-color: #00000050;
+        }
+
+        #colorSelector {
+            background-color: #000;
+            color: white;
+            border-radius: 8px;
+            padding: 16px;
         }
 
         a,
@@ -242,6 +260,25 @@
     <div id="infoMessage">
     </div>
 
+    <div style="position: absolute; display: flex;">
+    </div>
+
+    <div id="colorSelectorContainer">
+        <div id="colorSelector">
+            <h2 style="margin-top: 0">Select Color</h2>
+            <div>
+                <input id="colorSelectorInput" type="color" name="color" value="#e66465" />
+                <label for="color">Color</label>
+            </div>
+
+            <div
+                style="margin-top: 16px; justify-content: space-around; align-items: center; flex-direction: row; display: flex;">
+                <button id="colorSelectorOK" style="flex-grow: 1; margin-right: 8px;">OK</button>
+                <button id="colorSelectorCancel" style="flex-grow: 1; margin-left: 8px;">Cancel</button>
+            </div>
+
+        </div>
+    </div>
 
     <script type="module" src="js/index.js"></script>
 
@@ -261,7 +298,7 @@
     <script>
         // https://phuoc.ng/collection/html-dom/create-resizable-split-views/
         document.addEventListener('DOMContentLoaded', function () {
-            const resizable =  (resizer) => {
+            const resizable = (resizer) => {
                 const direction = resizer.getAttribute('data-direction') || 'horizontal';
                 const prevSibling = resizer.previousElementSibling;
                 const nextSibling = resizer.nextElementSibling;

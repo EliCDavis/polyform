@@ -43,6 +43,13 @@ func RequireTopology(m modeling.Mesh, topo modeling.Topology) error {
 	return ErrRequireDifferentTopology
 }
 
+func RequireV4Attribute(m modeling.Mesh, attr string) error {
+	if m.HasFloat4Attribute(attr) {
+		return nil
+	}
+	return fmt.Errorf("mesh is required to have the vector4 attribute: '%s'", attr)
+}
+
 func RequireV3Attribute(m modeling.Mesh, attr string) error {
 	if m.HasFloat3Attribute(attr) {
 		return nil
@@ -54,7 +61,14 @@ func RequireV2Attribute(m modeling.Mesh, attr string) error {
 	if m.HasFloat2Attribute(attr) {
 		return nil
 	}
-	return fmt.Errorf("mesh is required to have the vector3 attribute: '%s'", attr)
+	return fmt.Errorf("mesh is required to have the vector2 attribute: '%s'", attr)
+}
+
+func RequireV1Attribute(m modeling.Mesh, attr string) error {
+	if m.HasFloat1Attribute(attr) {
+		return nil
+	}
+	return fmt.Errorf("mesh is required to have the vector1 attribute: '%s'", attr)
 }
 
 func readAllFloatXData[T any](attrs []string, reader func(string) *iter.ArrayIterator[T]) map[string][]T {
