@@ -4,51 +4,41 @@ import (
 	"github.com/EliCDavis/vector"
 )
 
-type Sum[T vector.Number] struct {
-	StructData[T]
+// ============================================================================
+type SumNode = StructNode[float64, SumData[float64]]
 
+type SumData[T vector.Number] struct {
 	Values []NodeOutput[T]
 }
 
-func (cn *Sum[T]) Out() NodeOutput[T] {
-	return &StructNodeOutput[T]{Definition: cn}
-}
-
-func (cn Sum[T]) Process() (T, error) {
+func (cn SumData[T]) Process() (T, error) {
 	var total T
 	for _, v := range cn.Values {
-		total += v.Data()
+		total += v.Value()
 	}
 	return total, nil
 }
 
 // ============================================================================
-type Difference[T vector.Number] struct {
-	StructData[T]
+type DifferenceNode = StructNode[float64, DifferenceData[float64]]
 
+type DifferenceData[T vector.Number] struct {
 	A NodeOutput[T]
 	B NodeOutput[T]
 }
 
-func (cn *Difference[T]) Out() NodeOutput[T] {
-	return &StructNodeOutput[T]{Definition: cn}
+func (cn DifferenceData[T]) Process() (T, error) {
+	return cn.A.Value() - cn.B.Value(), nil
 }
 
-func (cn Difference[T]) Process() (T, error) {
-	return cn.A.Data() - cn.B.Data(), nil
-}
+// ============================================================================
+type DivideNode = StructNode[float64, DivideData[float64]]
 
-type Divide[T vector.Number] struct {
-	StructData[T]
-
+type DivideData[T vector.Number] struct {
 	Dividend NodeOutput[T]
 	Divisor  NodeOutput[T]
 }
 
-func (cn *Divide[T]) Out() NodeOutput[T] {
-	return &StructNodeOutput[T]{Definition: cn}
-}
-
-func (cn Divide[T]) Process() (T, error) {
-	return cn.Dividend.Data() / cn.Divisor.Data(), nil
+func (cn DivideData[T]) Process() (T, error) {
+	return cn.Dividend.Value() / cn.Divisor.Value(), nil
 }

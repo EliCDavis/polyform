@@ -11,9 +11,9 @@ import (
 	"github.com/EliCDavis/vector/vector2"
 )
 
-type PipeNormalsNode struct {
-	nodes.StructData[image.Image]
+type PipeNormalsNode = nodes.StructNode[image.Image, PipeNormalsNodeData]
 
+type PipeNormalsNodeData struct {
 	LineCount nodes.NodeOutput[int]
 	LineWidth nodes.NodeOutput[float64]
 
@@ -23,11 +23,7 @@ type PipeNormalsNode struct {
 	BlurIterations nodes.NodeOutput[int]
 }
 
-func (pnn *PipeNormalsNode) Out() nodes.NodeOutput[image.Image] {
-	return nodes.StructNodeOutput[image.Image]{Definition: pnn}
-}
-
-func (pnn PipeNormalsNode) Process() (image.Image, error) {
+func (pnn PipeNormalsNodeData) Process() (image.Image, error) {
 	dim := 256
 	img := image.NewRGBA(image.Rect(0, 0, dim, dim))
 	// normals.Fill(img)
@@ -50,13 +46,13 @@ func (pnn PipeNormalsNode) Process() (image.Image, error) {
 
 	img = texturing.ToNormal(img)
 
-	bolts := pnn.BoltCount.Data()
-	boltRadius := pnn.BoltRadius.Data()
+	bolts := pnn.BoltCount.Value()
+	boltRadius := pnn.BoltRadius.Value()
 	boltInc := float64(dim) / float64(bolts)
 	halfBoltInc := boltInc / 2
 
-	lines := pnn.LineCount.Data()
-	lineWidth := pnn.LineWidth.Data()
+	lines := pnn.LineCount.Value()
+	lineWidth := pnn.LineWidth.Value()
 	lineInc := float64(dim) / float64(lines)
 	halfLineInc := lineInc / 2
 	for lineIndex := 0; lineIndex < lines; lineIndex++ {
@@ -79,5 +75,5 @@ func (pnn PipeNormalsNode) Process() (image.Image, error) {
 		}
 	}
 
-	return texturing.BoxBlurNTimes(img, pnn.BlurIterations.Data()), nil
+	return texturing.BoxBlurNTimes(img, pnn.BlurIterations.Value()), nil
 }

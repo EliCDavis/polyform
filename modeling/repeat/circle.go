@@ -46,22 +46,14 @@ func Circle(in modeling.Mesh, times int, radius float64) modeling.Mesh {
 	return final
 }
 
-type CircleNode struct {
-	nodes.StructData[modeling.Mesh]
+type CircleNode = nodes.StructNode[modeling.Mesh, CircleNodeData]
 
+type CircleNodeData struct {
 	Mesh   nodes.NodeOutput[modeling.Mesh]
 	Radius nodes.NodeOutput[float64]
 	Times  nodes.NodeOutput[int]
 }
 
-func (r CircleNode) Process() (modeling.Mesh, error) {
-	return Circle(
-		r.Mesh.Data(),
-		r.Times.Data(),
-		r.Radius.Data(),
-	), nil
-}
-
-func (r *CircleNode) Out() nodes.NodeOutput[modeling.Mesh] {
-	return &nodes.StructNodeOutput[modeling.Mesh]{Definition: r}
+func (r CircleNodeData) Process() (modeling.Mesh, error) {
+	return Circle(r.Mesh.Value(), r.Times.Value(), r.Radius.Value()), nil
 }

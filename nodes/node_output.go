@@ -2,5 +2,9 @@ package nodes
 
 type NodeOutput[T any] interface {
 	ReferencesNode
-	Data() T
+	Value() T
+}
+
+type Processor[T any] interface {
+	Process() (T, error)
 }

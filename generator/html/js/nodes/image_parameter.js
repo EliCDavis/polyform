@@ -28,26 +28,31 @@ export class ImageParameterNode {
             // this.loadImage(this._url, function (img) {
             //     that.size[1] = (img.height / img.width) * that.size[0];
             // });
-            const img = document.createElement("img");
-            img.src = url;
-            img.onload = () => {
-                // if (callback) {
-                // callback(this);
-                // }
-                // console.log("Image loaded, size: " + img.width + "x" + img.height);
-                // this.dirty = true;
-                // that.boxcolor = "#9F9";
-                // that.setDirtyCanvas(true);
-                this.lightNode.widgets[0].image = img
-                this.lightNode.setSize(this.lightNode.computeSize());
-            };
-            img.onerror = () => {
-                console.log("error loading the image:" + url);
-            }
+            this.loadImgFromURL(url);
+        }
+    }
+
+    loadImgFromURL() {
+        const img = document.createElement("img");
+        img.src = url;
+        img.onload = () => {
+            // if (callback) {
+            // callback(this);
+            // }
+            // console.log("Image loaded, size: " + img.width + "x" + img.height);
+            // this.dirty = true;
+            // that.boxcolor = "#9F9";f
+            // that.setDirtyCanvas(true);
+            this.lightNode.widgets[0].image = img
+            this.lightNode.setSize(this.lightNode.computeSize());
+        };
+        img.onerror = () => {
+            console.log("error loading the image:" + url);
         }
     }
 
     update(parameterData) {
+        console.log("image parameter", parameterData)
         const curVal = parameterData.currentValue;
     }
 

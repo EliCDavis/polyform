@@ -2,46 +2,47 @@ package nodes
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/EliCDavis/polyform/refutil"
 )
 
 // ============================================================================
 
-type StructNodeOutputDefinition[T any] interface {
-	StructNodeProcesor[T]
-	IStructData[T]
+// type StructNodeOutputDefinition[T any] interface {
+// 	StructNodeProcesor[T]
+// 	IStructData[T]
+// }
+
+type StructNodeOutput[T any, G StructNodeProcesor[T]] struct {
+	Struct *StructNode[T, G]
 }
 
-type StructNodeOutput[T any] struct {
-	Definition StructNodeOutputDefinition[T]
+func (sno StructNodeOutput[T, G]) Value() T {
+	return sno.Struct.Value()
 }
 
-func (sno StructNodeOutput[T]) Data() T {
-	return sno.Definition.node(sno.Definition).Data()
-}
-
-func (sno StructNodeOutput[T]) Node() Node {
-	return sno.Definition.node(sno.Definition)
+func (sno StructNodeOutput[T, G]) Node() Node {
+	return sno.Struct
 }
 
 // ============================================================================
 
-type IStructData[T any] interface {
-	node(p StructNodeProcesor[T]) *StructNode[T]
-}
+// type IStructData[T any] interface {
+// 	node(p StructNodeProcesor[T]) *StructNode[T]
+// }
 
-type StructData[T any] struct {
-	n *StructNode[T]
-}
+// type StructData[T any] struct {
+// 	n *StructNode[T]
+// }
 
-func (bd *StructData[T]) node(p StructNodeProcesor[T]) *StructNode[T] {
-	if bd.n == nil {
-		bd.n = Struct(p)
-	}
+// func (bd *StructData[T]) node(p StructNodeProcesor[T]) *StructNode[T] {
+// 	if bd.n == nil {
+// 		bd.n = Struct(p)
+// 	}
 
-	return bd.n
-}
+// 	return bd.n
+// }
 
 // ============================================================================
 
@@ -49,8 +50,8 @@ type StructNodeProcesor[T any] interface {
 	Process() (T, error)
 }
 
-type StructNode[T any] struct {
-	processir StructNodeProcesor[T]
+type StructNode[T any, G StructNodeProcesor[T]] struct {
+	Data G
 
 	value       T
 	err         error
@@ -60,14 +61,18 @@ type StructNode[T any] struct {
 	subs    []Alertable
 }
 
-func (tn StructNode[T]) Outdated() bool {
+func (sn *StructNode[T, G]) SetInput(input string, output Output) {
+	refutil.SetStructField(&sn.Data, input, output.NodeOutput)
+}
+
+func (sn StructNode[T, G]) Outdated() bool {
 
 	// Nil versions means we've never processed before
-	if tn.depVersions == nil {
+	if sn.depVersions == nil {
 		return true
 	}
 
-	deps := tn.Dependencies()
+	deps := sn.Dependencies()
 
 	// No dependencies, we can never be outdated
 	if len(deps) == 0 {
@@ -76,7 +81,7 @@ func (tn StructNode[T]) Outdated() bool {
 
 	for i, nodeDep := range deps {
 		dep := nodeDep.Dependency()
-		if dep.Version() != tn.depVersions[i] || dep.State() != Processed {
+		if dep.Version() != sn.depVersions[i] || dep.State() != Processed {
 			return true
 		}
 	}
@@ -84,11 +89,11 @@ func (tn StructNode[T]) Outdated() bool {
 	return false
 }
 
-func (tn *StructNode[T]) updateUsedDependencyVersions() {
-	deps := tn.Dependencies()
-	tn.depVersions = make([]int, len(deps))
+func (sn *StructNode[T, G]) updateUsedDependencyVersions() {
+	deps := sn.Dependencies()
+	sn.depVersions = make([]int, len(deps))
 	for i, dep := range deps {
-		tn.depVersions[i] = dep.Dependency().Version()
+		sn.depVersions[i] = dep.Dependency().Version()
 	}
 }
 
@@ -97,36 +102,47 @@ type StructNodeDependency struct {
 	dep  Node
 }
 
-func (tnd StructNodeDependency) Name() string {
-	return tnd.name
+func (snd StructNodeDependency) Name() string {
+	return snd.name
 }
 
-func (tnd StructNodeDependency) Dependency() Node {
-	return tnd.dep
+func (snd StructNodeDependency) Dependency() Node {
+	return snd.dep
 }
 
-func (tn StructNode[T]) Version() int {
-	return tn.version
+func (sn StructNode[T, G]) Version() int {
+	return sn.version
 }
 
-func (tn StructNode[T]) Outputs() []Output {
-	outputs := refutil.FuncValuesOfType[ReferencesNode](tn.processir)
+func (sn *StructNode[T, G]) Out() StructNodeOutput[T, G] {
+	return StructNodeOutput[T, G]{Struct: sn}
+}
 
-	outs := make([]Output, len(outputs))
-	// TODO: This is wrong for nodes with more than one output
-	var v *T = new(T)
-	for i, o := range outputs {
-		outs[i] = Output{
-			Name: o,
-			// Type: fmt.Sprintf("%T", *new(T)),
-			Type: refutil.GetTypeWithPackage(v),
-		}
+func (sn StructNode[T, G]) Outputs() []Output {
+	// outputs := refutil.FuncValuesOfType[ReferencesNode](tn.Data)
+
+	// outs := make([]Output, len(outputs))
+	// // TODO: This is wrong for nodes with more than one output
+	// var v *T = new(T)
+	// for i, o := range outputs {
+	// 	outs[i] = Output{
+	// 		Name: o,
+	// 		// Type: fmt.Sprintf("%T", *new(T)),
+	// 		Type: refutil.GetTypeWithPackage(v),
+	// 	}
+	// }
+	// return outs
+
+	return []Output{
+		{
+			Type: refutil.GetTypeWithPackage(new(T)),
+			Name: "Out",
+		},
 	}
-	return outs
 }
 
-func (tn StructNode[T]) Inputs() []Input {
-	inputs := refutil.GenericFieldValues("nodes.NodeOutput", tn.processir)
+func (sn StructNode[T, G]) Inputs() []Input {
+	inputs := refutil.GenericFieldValues("nodes.NodeOutput", sn.Data)
 
 	input := make([]Input, 0, len(inputs))
 	for name, inputType := range inputs {
@@ -135,10 +151,10 @@ func (tn StructNode[T]) Inputs() []Input {
 	return input
 }
 
-func (tn StructNode[T]) Dependencies() []NodeDependency {
+func (sn StructNode[T, G]) Dependencies() []NodeDependency {
 	output := make([]NodeDependency, 0)
 
-	basicData := refutil.FieldValuesOfType[ReferencesNode](tn.processir)
+	basicData := refutil.FieldValuesOfType[ReferencesNode](sn.Data)
 	for key, val := range basicData {
 		output = append(output, StructNodeDependency{
 			name: key,
@@ -146,7 +162,7 @@ func (tn StructNode[T]) Dependencies() []NodeDependency {
 		})
 	}
 
-	arrayData := refutil.FieldValuesOfTypeInArray[ReferencesNode](tn.processir)
+	arrayData := refutil.FieldValuesOfTypeInArray[ReferencesNode](sn.Data)
 	for key, field := range arrayData {
 		for i, e := range field {
 			if e == nil {
@@ -162,43 +178,69 @@ func (tn StructNode[T]) Dependencies() []NodeDependency {
 	return output
 }
 
-func (tn *StructNode[T]) Data() T {
-	if tn.Outdated() {
-		tn.process()
+func (sn *StructNode[T, G]) Value() T {
+	if sn.Outdated() {
+		sn.process()
 	}
-	return tn.value
+	return sn.value
 }
 
-func (tn *StructNode[T]) process() {
+func (sn *StructNode[T, G]) Node() Node {
+	return sn
+}
+
+func (sn *StructNode[T, G]) process() {
 	// tn.value, tn.err = tn.transform(tn.in)
-	tn.value, tn.err = tn.processir.Process()
-	tn.version++
-	tn.updateUsedDependencyVersions()
+	sn.value, sn.err = sn.Data.Process()
+	sn.version++
+	sn.updateUsedDependencyVersions()
 }
 
-func (tn *StructNode[T]) Name() string {
-	return refutil.GetName(tn.processir)
+func (sn StructNode[T, G]) Name() string {
+	return refutil.GetTypeNameWithoutPackage(sn.Data)
 }
 
-func (tn *StructNode[T]) State() NodeState {
-	if tn.Outdated() {
+func (sn StructNode[T, G]) Type() string {
+	return refutil.GetTypeNameWithoutPackage(sn.Data)
+}
+
+func (sn StructNode[T, G]) Path() string {
+	packagePath := refutil.GetPackagePath(sn.Data)
+	if !strings.Contains(packagePath, "/") {
+		return packagePath
+	}
+
+	path := strings.Split(packagePath, "/")
+	path = path[1:]
+	if path[0] == "EliCDavis" {
+		path = path[1:]
+	}
+
+	if path[0] == "polyform" {
+		path = path[1:]
+	}
+	return strings.Join(path, "/")
+}
+
+func (sn *StructNode[T, G]) State() NodeState {
+	if sn.Outdated() {
 		return Stale
 	}
 	return Processed
 }
 
-func (tn *StructNode[T]) AddSubscription(a Alertable) {
+func (sn *StructNode[T, G]) AddSubscription(a Alertable) {
 	if a == nil {
 		panic("attempting to subscribe with nil alertable")
 	}
-	tn.subs = append(tn.subs, a)
+	sn.subs = append(sn.subs, a)
 }
 
-func Struct[T any](p StructNodeProcesor[T]) *StructNode[T] {
-	return &StructNode[T]{
+func Struct[T StructNodeProcesor[G], G any](p T) *StructNode[G, T] {
+	return &StructNode[G, T]{
+		Data:        p,
 		version:     0,
 		subs:        make([]Alertable, 0),
-		processir:   p,
 		depVersions: nil,
 	}
 }

@@ -60,34 +60,30 @@ func ColorGradingLut(m modeling.Mesh, lut image.Image, attr string) modeling.Mes
 	return m.SetFloat3Attribute(attr, newColor)
 }
 
-type ColorGradingLutNode struct {
-	nodes.StructData[modeling.Mesh]
+type ColorGradingLutNode = nodes.StructNode[modeling.Mesh, ColorGradingLutNodeData]
 
+type ColorGradingLutNodeData struct {
 	Mesh      nodes.NodeOutput[modeling.Mesh]
 	Attribute nodes.NodeOutput[string]
 	LUT       nodes.NodeOutput[image.Image]
 }
 
-func (ca3dn *ColorGradingLutNode) Out() nodes.NodeOutput[modeling.Mesh] {
-	return &nodes.StructNodeOutput[modeling.Mesh]{Definition: ca3dn}
-}
-
-func (ca3dn ColorGradingLutNode) Process() (modeling.Mesh, error) {
+func (ca3dn ColorGradingLutNodeData) Process() (modeling.Mesh, error) {
 	attr := modeling.FDCAttribute
 
 	if ca3dn.Attribute != nil {
-		attr = ca3dn.Attribute.Data()
+		attr = ca3dn.Attribute.Value()
 	}
 
 	lut := ca3dn.LUT
 	if lut == nil {
-		return ca3dn.Mesh.Data(), nil
+		return ca3dn.Mesh.Value(), nil
 	}
 
-	img := lut.Data()
+	img := lut.Value()
 	if img == nil {
-		return ca3dn.Mesh.Data(), nil
+		return ca3dn.Mesh.Value(), nil
 	}
 
-	return ColorGradingLut(ca3dn.Mesh.Data(), lut.Data(), attr), nil
+	return ColorGradingLut(ca3dn.Mesh.Value(), lut.Value(), attr), nil
 }

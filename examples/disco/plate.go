@@ -7,23 +7,19 @@ import (
 	"github.com/EliCDavis/vector/vector2"
 )
 
-type PlateNode struct {
-	nodes.StructData[modeling.Mesh]
+type PlateNode = nodes.StructNode[modeling.Mesh, PlateNodeData]
 
+type PlateNodeData struct {
 	Thickness  nodes.NodeOutput[float64]
 	Radius     nodes.NodeOutput[float64]
 	Resolution nodes.NodeOutput[int]
 }
 
-func (cn *PlateNode) Out() nodes.NodeOutput[modeling.Mesh] {
-	return &nodes.StructNodeOutput[modeling.Mesh]{Definition: cn}
-}
-
-func (cn PlateNode) Process() (modeling.Mesh, error) {
+func (cn PlateNodeData) Process() (modeling.Mesh, error) {
 	return primitives.Cylinder{
-		Sides:  cn.Resolution.Data(),
-		Height: cn.Thickness.Data(),
-		Radius: cn.Radius.Data(),
+		Sides:  cn.Resolution.Value(),
+		Height: cn.Thickness.Value(),
+		Radius: cn.Radius.Value(),
 		UVs: &primitives.CylinderUVs{
 			Top: &primitives.CircleUVs{
 				Center: vector2.New(0.5, 0.5),

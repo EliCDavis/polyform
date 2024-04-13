@@ -196,9 +196,9 @@ func PipeMaterial(seed *rand.Rand) *gltf.PolyformMaterial {
 	}
 }
 
-type PipeNode struct {
-	nodes.StructData[generator.Artifact]
+type PipeNode = nodes.StructNode[generator.Artifact, PipeNodeData]
 
+type PipeNodeData struct {
 	Positions nodes.NodeOutput[[]vector3.Float64]
 
 	NumberOfShelfs nodes.NodeOutput[int]
@@ -216,20 +216,16 @@ type PipeNode struct {
 	FoundationHeight nodes.NodeOutput[float64]
 }
 
-func (p *PipeNode) Out() nodes.NodeOutput[generator.Artifact] {
-	return nodes.StructNodeOutput[generator.Artifact]{Definition: p}
-}
-
-func (p PipeNode) Process() (generator.Artifact, error) {
+func (p PipeNodeData) Process() (generator.Artifact, error) {
 	gltfModels := make([]gltf.PolyformModel, 0)
 
-	pipeSides := p.PipeResolution.Data()
-	legWidth := p.LegWidth.Data()
+	pipeSides := p.PipeResolution.Value()
+	legWidth := p.LegWidth.Value()
 
 	randSeed := rand.New(rand.NewSource(time.Now().Unix()))
 	radius := chance.NewRange1D(
-		p.PipeMinimumRadius.Data(),
-		p.PipeMaximumRadius.Data(),
+		p.PipeMinimumRadius.Value(),
+		p.PipeMaximumRadius.Value(),
 		randSeed,
 	)
 
@@ -239,19 +235,19 @@ func (p PipeNode) Process() (generator.Artifact, error) {
 		randSeed,
 	)
 
-	path := p.Positions.Data()
+	path := p.Positions.Value()
 
-	legHeight := p.LegHeight.Data()
-	numShelfs := p.NumberOfShelfs.Data()
-	shelfSpacing := p.ShelfSpacing.Data()
+	legHeight := p.LegHeight.Value()
+	numShelfs := p.NumberOfShelfs.Value()
+	shelfSpacing := p.ShelfSpacing.Value()
 
 	shelfHeights := make([]float64, numShelfs)
 	for i := 0; i < numShelfs; i++ {
 		shelfHeights[i] = legHeight - 0.5 - (float64(i) * shelfSpacing)
 	}
 
-	legSpacing := p.LegSpacing.Data()
-	shelfWidth := p.ShelfWidth.Data()
+	legSpacing := p.LegSpacing.Value()
+	shelfWidth := p.ShelfWidth.Value()
 
 	innerRackWidth := legSpacing - legWidth
 
@@ -293,8 +289,8 @@ func (p PipeNode) Process() (generator.Artifact, error) {
 
 	rack := Rack{
 		Leg: RackLeg{
-			FoundationHeight: p.FoundationHeight.Data(),
-			FoundationWidth:  p.FoundationWidth.Data(),
+			FoundationHeight: p.FoundationHeight.Value(),
+			FoundationWidth:  p.FoundationWidth.Value(),
 
 			Height: legHeight,
 			Width:  legWidth,
@@ -357,121 +353,131 @@ func main() {
 		},
 		Producers: map[string]nodes.NodeOutput[generator.Artifact]{
 			"pipe-normal.png": generator.NewImageArtifactNode((&PipeNormalsNode{
-				BlurIterations: &generator.ParameterNode[int]{
-					Name:         "Pipe Normal/Blur Iterations",
-					DefaultValue: 7,
-				},
+				Data: PipeNormalsNodeData{
+					BlurIterations: &generator.ParameterNode[int]{
+						Name:         "Pipe Normal/Blur Iterations",
+						DefaultValue: 7,
+					},
 
-				LineCount: &generator.ParameterNode[int]{
-					Name:         "Pipe Normal/Line Count",
-					DefaultValue: 3,
-				},
-				LineWidth: &generator.ParameterNode[float64]{
-					Name:         "Pipe Normal/Line Width",
-					DefaultValue: 7,
-				},
-				BoltCount: &generator.ParameterNode[int]{
-					Name:         "Pipe Normal/Bolt Count",
-					DefaultValue: 7,
-				},
-				BoltRadius: &generator.ParameterNode[float64]{
-					Name:         "Pipe Normal/Bolt Radius",
-					DefaultValue: 6.,
-				},
-			}).Out()),
-			"pipe-mr.png": (&MetallicRoughnessNode{
-				Octaves: &generator.ParameterNode[int]{
-					Name:         "Pipe Metallic/Noise Octaves",
-					DefaultValue: 3,
-				},
-				MinimumRoughness: &generator.ParameterNode[float64]{
-					Name:         "Pipe Metallic/Minimum Roughness",
-					DefaultValue: 0.2,
-				},
-				MaximumRoughness: &generator.ParameterNode[float64]{
-					Name:         "Pipe Metallic/Maximum Roughness",
-					DefaultValue: 0.5,
-				},
-			}).Out(),
-			"ibeam-mr.png": (&MetallicRoughnessNode{
-				Octaves: &generator.ParameterNode[int]{
-					Name:         "Pipe Metallic/Noise Octaves",
-					DefaultValue: 3,
-				},
-				MinimumRoughness: &generator.ParameterNode[float64]{
-					Name:         "Pipe Metallic/Minimum Roughness",
-					DefaultValue: 0.4,
-				},
-				MaximumRoughness: &generator.ParameterNode[float64]{
-					Name:         "Pipe Metallic/Maximum Roughness",
-					DefaultValue: 0.7,
-				},
-			}).Out(),
-			"ibeam-normal.png": generator.NewImageArtifactNode((&PerlinNoiseNormalsNode{
-				Octaves: &generator.ParameterNode[int]{
-					Name:         "IBeam Normal/Noise Octaves",
-					DefaultValue: 3,
-				},
-				BlurIterations: &generator.ParameterNode[int]{
-					Name:         "IBeam Normal/Blur Iterations",
-					DefaultValue: 5,
-				},
-			}).Out()),
-			"structure.glb": (&PipeNode{
-				PipeMinimumRadius: &generator.ParameterNode[float64]{
-					Name:         "Pipe/Minimum Radius",
-					DefaultValue: 0.05,
-				},
-				PipeMaximumRadius: &generator.ParameterNode[float64]{
-					Name:         "Pipe/Maximum Radius",
-					DefaultValue: 0.15,
-				},
-				PipeResolution: &generator.ParameterNode[int]{
-					Name:         "Pipe/Sides",
-					DefaultValue: 16,
-				},
-				LegHeight: &generator.ParameterNode[float64]{
-					Name:         "Leg/Height",
-					DefaultValue: 8,
-				},
-				LegWidth: &generator.ParameterNode[float64]{
-					Name:         "Leg Width",
-					DefaultValue: 0.5,
-				},
-				FoundationHeight: &generator.ParameterNode[float64]{
-					Name:         "Leg/Foundation Height",
-					DefaultValue: 0.1,
-				},
-				FoundationWidth: &generator.ParameterNode[float64]{
-					Name:         "Leg/Foundation Width",
-					DefaultValue: 1,
-				},
-				LegSpacing: &generator.ParameterNode[float64]{
-					Name:         "Rack/Leg Spacing",
-					DefaultValue: 2.,
-				},
-				NumberOfShelfs: &generator.ParameterNode[int]{
-					Name:         "Rack/Number of Shelfs",
-					DefaultValue: 3,
-				},
-				ShelfWidth: &generator.ParameterNode[float64]{
-					Name:         "Rack/Shelf Width",
-					DefaultValue: .2,
-				},
-				ShelfSpacing: &generator.ParameterNode[float64]{
-					Name:         "Rack/Shelf Spacing",
-					DefaultValue: 0.5,
-				},
-				Positions: &generator.ParameterNode[[]vector3.Float64]{
-					Name: "Positions",
-					DefaultValue: []vector3.Vector[float64]{
-						vector3.New(4*0., 0., 0.),
-						vector3.New(4*1., 0., 0.),
-						vector3.New(4*2., 0., 4.),
-						vector3.New(4*3., 0., 4.),
+					LineCount: &generator.ParameterNode[int]{
+						Name:         "Pipe Normal/Line Count",
+						DefaultValue: 3,
+					},
+					LineWidth: &generator.ParameterNode[float64]{
+						Name:         "Pipe Normal/Line Width",
+						DefaultValue: 7,
+					},
+					BoltCount: &generator.ParameterNode[int]{
+						Name:         "Pipe Normal/Bolt Count",
+						DefaultValue: 7,
+					},
+					BoltRadius: &generator.ParameterNode[float64]{
+						Name:         "Pipe Normal/Bolt Radius",
+						DefaultValue: 6.,
 					},
 				},
-			}).Out(),
+			}).Out()),
+			"pipe-mr.png": &MetallicRoughnessNode{
+				Data: MetallicRoughnessNodeData{
+					Octaves: &generator.ParameterNode[int]{
+						Name:         "Pipe Metallic/Noise Octaves",
+						DefaultValue: 3,
+					},
+					MinimumRoughness: &generator.ParameterNode[float64]{
+						Name:         "Pipe Metallic/Minimum Roughness",
+						DefaultValue: 0.2,
+					},
+					MaximumRoughness: &generator.ParameterNode[float64]{
+						Name:         "Pipe Metallic/Maximum Roughness",
+						DefaultValue: 0.5,
+					},
+				},
+			},
+			"ibeam-mr.png": &MetallicRoughnessNode{
+				Data: MetallicRoughnessNodeData{
+					Octaves: &generator.ParameterNode[int]{
+						Name:         "Pipe Metallic/Noise Octaves",
+						DefaultValue: 3,
+					},
+					MinimumRoughness: &generator.ParameterNode[float64]{
+						Name:         "Pipe Metallic/Minimum Roughness",
+						DefaultValue: 0.4,
+					},
+					MaximumRoughness: &generator.ParameterNode[float64]{
+						Name:         "Pipe Metallic/Maximum Roughness",
+						DefaultValue: 0.7,
+					},
+				},
+			},
+			"ibeam-normal.png": generator.NewImageArtifactNode(&PerlinNoiseNormalsNode{
+				Data: PerlinNoiseNormalsNodeData{
+					Octaves: &generator.ParameterNode[int]{
+						Name:         "IBeam Normal/Noise Octaves",
+						DefaultValue: 3,
+					},
+					BlurIterations: &generator.ParameterNode[int]{
+						Name:         "IBeam Normal/Blur Iterations",
+						DefaultValue: 5,
+					},
+				},
+			}),
+			"structure.glb": &PipeNode{
+				Data: PipeNodeData{
+					PipeMinimumRadius: &generator.ParameterNode[float64]{
+						Name:         "Pipe/Minimum Radius",
+						DefaultValue: 0.05,
+					},
+					PipeMaximumRadius: &generator.ParameterNode[float64]{
+						Name:         "Pipe/Maximum Radius",
+						DefaultValue: 0.15,
+					},
+					PipeResolution: &generator.ParameterNode[int]{
+						Name:         "Pipe/Sides",
+						DefaultValue: 16,
+					},
+					LegHeight: &generator.ParameterNode[float64]{
+						Name:         "Leg/Height",
+						DefaultValue: 8,
+					},
+					LegWidth: &generator.ParameterNode[float64]{
+						Name:         "Leg Width",
+						DefaultValue: 0.5,
+					},
+					FoundationHeight: &generator.ParameterNode[float64]{
+						Name:         "Leg/Foundation Height",
+						DefaultValue: 0.1,
+					},
+					FoundationWidth: &generator.ParameterNode[float64]{
+						Name:         "Leg/Foundation Width",
+						DefaultValue: 1,
+					},
+					LegSpacing: &generator.ParameterNode[float64]{
+						Name:         "Rack/Leg Spacing",
+						DefaultValue: 2.,
+					},
+					NumberOfShelfs: &generator.ParameterNode[int]{
+						Name:         "Rack/Number of Shelfs",
+						DefaultValue: 3,
+					},
+					ShelfWidth: &generator.ParameterNode[float64]{
+						Name:         "Rack/Shelf Width",
+						DefaultValue: .2,
+					},
+					ShelfSpacing: &generator.ParameterNode[float64]{
+						Name:         "Rack/Shelf Spacing",
+						DefaultValue: 0.5,
+					},
+					Positions: &generator.ParameterNode[[]vector3.Float64]{
+						Name: "Positions",
+						DefaultValue: []vector3.Vector[float64]{
+							vector3.New(4*0., 0., 0.),
+							vector3.New(4*1., 0., 0.),
+							vector3.New(4*2., 0., 4.),
+							vector3.New(4*3., 0., 4.),
+						},
+					},
+				},
+			},
 		},
 	}
 

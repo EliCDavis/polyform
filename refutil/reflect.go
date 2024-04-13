@@ -7,6 +7,19 @@ import (
 	"strings"
 )
 
+func GetPackagePath(v any) string {
+	vType := reflect.TypeOf(v)
+	if vType == nil {
+		return ""
+	}
+	viewKind := vType.Kind()
+	for viewKind == reflect.Ptr {
+		vType = vType.Elem()
+		viewKind = vType.Kind()
+	}
+	return vType.PkgPath()
+}
+
 func GetTypeWithPackage(v any) string {
 	vType := reflect.TypeOf(v)
 	if vType == nil {
@@ -38,37 +51,50 @@ func GetTypeWithPackage(v any) string {
 	return path.Dir(pkgPath) + "/" + vType.String()
 }
 
-func GetName(in any) string {
-	viewPointerValue := reflect.ValueOf(in)
+// GetTypeName returns the name of the type of the variable provided
+func GetTypeName(in any) string {
+	view := reflect.TypeOf(in)
+	if view == nil {
+		return "nil"
+	}
 
-	view := viewPointerValue
+	// Dereference pointer
 	viewKind := view.Kind()
-	if viewKind == reflect.Ptr {
+	for viewKind == reflect.Ptr {
 		view = view.Elem()
 		viewKind = view.Kind()
 	}
-	if viewKind != reflect.Struct {
-		panic(fmt.Errorf("views of type: '%s' can not evaluate name", viewKind.String()))
+
+	return view.String()
+}
+
+func GetTypeNameWithoutPackage(in any) string {
+	view := reflect.TypeOf(in)
+	if view == nil {
+		return "nil"
 	}
-	viewType := view.Type()
-	return viewType.Name()
+
+	// Dereference pointer
+	viewKind := view.Kind()
+	for viewKind == reflect.Ptr {
+		view = view.Elem()
+		viewKind = view.Kind()
+	}
+
+	str := view.String()
+	if !strings.Contains(str, ".") {
+		return str
+	}
+
+	parts := strings.Split(str, ".")
+
+	return parts[len(parts)-1]
 }
 
 func FuncValuesOfType[T any](in any) []string {
 	viewPointerValue := reflect.ValueOf(in)
 
 	view := viewPointerValue
-
-	// Dereference pointer
-	// for viewKind == reflect.Ptr {
-	// 	view = view.Elem()
-	// 	viewKind = view.Kind()
-	// }
-
-	// if viewKind != reflect.Struct {
-	// 	panic(fmt.Errorf("views of type: '%s' can not be evaluated", viewKind.String()))
-	// }
-
 	out := make([]string, 0)
 
 	viewType := view.Type()
@@ -139,6 +165,46 @@ func FieldValuesOfType[T any](in any) map[string]T {
 	}
 
 	return out
+}
+
+func SetStructField(structToSet any, field string, val any) {
+	viewPointerValue := reflect.ValueOf(structToSet)
+
+	view := viewPointerValue
+	viewKind := view.Kind()
+
+	// Dereference pointer
+	for viewKind == reflect.Ptr {
+		view = view.Elem()
+		viewKind = view.Kind()
+	}
+
+	if viewKind != reflect.Struct {
+		panic(fmt.Errorf("value of type: '%s' has no field '%s' to set", viewKind.String(), field))
+	}
+
+	viewType := view.Type()
+
+	for i := 0; i < viewType.NumField(); i++ {
+		structField := viewType.Field(i)
+
+		// Not our field, continue
+		if structField.Name != field {
+			continue
+		}
+
+		viewFieldValue := view.Field(i)
+
+		// Can't be set
+		if !viewFieldValue.CanSet() {
+			panic(fmt.Errorf("field '%s' was found but can not be set", field))
+		}
+
+		viewFieldValue.Set(reflect.ValueOf(val))
+		return
+	}
+
+	panic(fmt.Errorf("field '%s' was not found on struct", field))
 }
 
 func GenericFieldValues(genericType string, in any) map[string]string {

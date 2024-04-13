@@ -34,6 +34,15 @@ func writeJSONError(out io.Writer, err error) error {
 	return err
 }
 
+func readJSON[T any](body io.Reader) (T, error) {
+	var v T
+	data, err := io.ReadAll(body)
+	if err != nil {
+		return v, err
+	}
+	return v, json.Unmarshal(data, &v)
+}
+
 type pageData struct {
 	Title       string
 	Version     string
@@ -109,6 +118,8 @@ func (as *AppServer) Serve() error {
 	http.HandleFunc("/schema", as.SchemaEndpoint)
 	http.HandleFunc("/scene", as.SceneEndpoint)
 	http.HandleFunc("/zip", as.ZipEndpoint)
+	http.HandleFunc("/node", as.NodeEndpoint)
+	http.HandleFunc("/node/connection", as.NodeConnectionEndpoint)
 	http.HandleFunc("/started", as.StartedEndpoint)
 	http.HandleFunc("/profile/", as.ProfileEndpoint)
 	http.HandleFunc("/mermaid", as.MermaidEndpoint)
@@ -134,6 +145,67 @@ func (as *AppServer) Serve() error {
 		fmt.Printf("Serving over: http://%s\n", connection)
 		return http.ListenAndServe(connection, nil)
 	}
+}
+
+type CreateNodeRequest struct {
+	FactoryID string
+}
+
+type CreateNodeResponse struct {
+	NodeID string
+}
+
+type DeleteNodeMessage struct {
+	NodeID string
+}
+
+func (as *AppServer) NodeEndpoint(w http.ResponseWriter, r *http.Request) {
+
+	var response any
+
+	switch r.Method {
+	case "POST":
+		createRequest, err := readJSON[CreateNodeRequest](r.Body)
+		if err != nil {
+			panic(err)
+		}
+
+		if factory, ok := as.app.AvailableNodes[createRequest.FactoryID]; ok {
+			node := factory()
+			as.app.buildIDsForNode(node)
+			response = CreateNodeResponse{
+				NodeID: as.app.nodeIDs[node],
+			}
+		} else {
+			writeJSONError(w, fmt.Errorf("no factory registered with ID %s", createRequest.FactoryID))
+		}
+
+	case "DELETE":
+		deleteRequest, err := readJSON[CreateNodeResponse](r.Body)
+		if err != nil {
+			panic(err)
+		}
+		delete(as.app.AvailableNodes, deleteRequest.NodeID)
+
+	default:
+		panic(fmt.Errorf("node endpoint has not implemented HTTP method: '%s'", r.Method))
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	data, err := json.Marshal(response)
+	if err != nil {
+		panic(err)
+	}
+	w.Write(data)
+}
+
+func (as *AppServer) NodeConnectionEndpoint(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	data, err := json.Marshal(as.app.Schema())
+	if err != nil {
+		panic(err)
+	}
+	w.Write(data)
 }
 
 func (as *AppServer) SchemaEndpoint(w http.ResponseWriter, r *http.Request) {
@@ -164,7 +236,7 @@ func (as *AppServer) ProducerEndpoint(w http.ResponseWriter, r *http.Request) {
 		panic(fmt.Errorf("no producer registered for: %s", producerToLoad))
 	}
 
-	artifact := producer.Data()
+	artifact := producer.Value()
 
 	bufWr := bufio.NewWriter(w)
 	err := artifact.Write(bufWr)
@@ -210,7 +282,6 @@ func (as *AppServer) ProfileEndpoint(w http.ResponseWriter, r *http.Request) {
 		n := as.app.Schema().Nodes[profileID]
 
 		w.Write(n.parameter.ToMessage())
-		break
 
 	case "POST":
 		body, err := io.ReadAll(r.Body)

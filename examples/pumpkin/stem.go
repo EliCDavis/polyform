@@ -21,21 +21,15 @@ import (
 	"github.com/EliCDavis/vector/vector3"
 )
 
-type StemMesh struct {
-	nodes.StructData[gltf.PolyformModel]
+type StemMesh = nodes.StructNode[gltf.PolyformModel, StemMeshData]
 
+type StemMeshData struct {
 	StemResolution nodes.NodeOutput[float64]
 	TopDip         nodes.NodeOutput[float64]
 }
 
-func (sm *StemMesh) Mesh() nodes.NodeOutput[gltf.PolyformModel] {
-	return nodes.StructNodeOutput[gltf.PolyformModel]{
-		Definition: sm,
-	}
-}
-
-func (sm StemMesh) Process() (gltf.PolyformModel, error) {
-	stemCanvas := marching.NewMarchingCanvas(sm.StemResolution.Data())
+func (sm StemMeshData) Process() (gltf.PolyformModel, error) {
+	stemCanvas := marching.NewMarchingCanvas(sm.StemResolution.Value())
 
 	sides := 6
 
@@ -91,7 +85,7 @@ func (sm StemMesh) Process() (gltf.PolyformModel, error) {
 				SmoothingFactor: 0.1,
 			},
 			meshops.TranslateAttribute3DTransformer{
-				Amount: vector3.New(0., 1-sm.TopDip.Data()+0.055, 0.),
+				Amount: vector3.New(0., 1-sm.TopDip.Value()+0.055, 0.),
 			},
 			meshops.SmoothNormalsTransformer{},
 		)
@@ -133,19 +127,13 @@ func (sm StemMesh) Process() (gltf.PolyformModel, error) {
 	}, nil
 }
 
-type StemNormalImage struct {
-	nodes.StructData[generator.Artifact]
+type StemNormalImage = nodes.StructNode[generator.Artifact, StemNormalImageData]
 
+type StemNormalImageData struct {
 	NumberOfLines nodes.NodeOutput[int]
 }
 
-func (sr *StemNormalImage) Image() nodes.NodeOutput[generator.Artifact] {
-	return nodes.StructNodeOutput[generator.Artifact]{
-		Definition: sr,
-	}
-}
-
-func (sni StemNormalImage) Process() (generator.Artifact, error) {
+func (sni StemNormalImageData) Process() (generator.Artifact, error) {
 	dim := 1024
 	img := image.NewRGBA(image.Rect(0, 0, dim, dim))
 	// normals.Fill(img)
@@ -169,7 +157,7 @@ func (sni StemNormalImage) Process() (generator.Artifact, error) {
 
 	img = texturing.ToNormal(img)
 
-	numLines := sni.NumberOfLines.Data()
+	numLines := sni.NumberOfLines.Value()
 
 	spacing := float64(dim) / float64(numLines)
 	halfSpacing := float64(spacing) / 2.
@@ -214,28 +202,22 @@ func (sni StemNormalImage) Process() (generator.Artifact, error) {
 	return &generator.ImageArtifact{Image: img}, nil
 }
 
-type StemRoughness struct {
-	nodes.StructData[generator.Artifact]
+type StemRoughness = nodes.StructNode[generator.Artifact, StemRoughnessData]
 
+type StemRoughnessData struct {
 	Dimensions nodes.NodeOutput[int]
 	Roughness  nodes.NodeOutput[float64]
 }
 
-func (sr *StemRoughness) Image() nodes.NodeOutput[generator.Artifact] {
-	return nodes.StructNodeOutput[generator.Artifact]{
-		Definition: sr,
-	}
-}
-
-func (sr StemRoughness) Process() (generator.Artifact, error) {
-	dim := sr.Dimensions.Data()
+func (sr StemRoughnessData) Process() (generator.Artifact, error) {
+	dim := sr.Dimensions.Value()
 	stemRoughnessImage := image.NewRGBA(image.Rect(0, 0, dim, dim))
 
 	for x := 0; x < dim; x++ {
 		for y := 0; y < dim; y++ {
 			stemRoughnessImage.Set(x, y, color.RGBA{
 				R: 0, // byte(len * 255),
-				G: byte(255 * sr.Roughness.Data()),
+				G: byte(255 * sr.Roughness.Value()),
 				B: 0,
 				A: 255,
 			})

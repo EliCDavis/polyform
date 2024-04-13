@@ -20,18 +20,14 @@ import (
 	"github.com/EliCDavis/vector/vector4"
 )
 
-type PointcloudLoaderNode struct {
-	nodes.StructData[modeling.Mesh]
+type PointcloudLoaderNode = nodes.StructNode[modeling.Mesh, PointcloudLoaderNodeData]
 
+type PointcloudLoaderNodeData struct {
 	Path nodes.NodeOutput[string]
 }
 
-func (pn *PointcloudLoaderNode) Out() nodes.NodeOutput[modeling.Mesh] {
-	return &nodes.StructNodeOutput[modeling.Mesh]{Definition: pn}
-}
-
-func (pn PointcloudLoaderNode) Process() (modeling.Mesh, error) {
-	f, err := os.Open(pn.Path.Data())
+func (pn PointcloudLoaderNodeData) Process() (modeling.Mesh, error) {
+	f, err := os.Open(pn.Path.Value())
 	if err != nil {
 		return modeling.EmptyMesh(modeling.PointTopology), err
 	}
@@ -52,36 +48,43 @@ func (pn PointcloudLoaderNode) Process() (modeling.Mesh, error) {
 	return *plyMesh, err
 }
 
-type SplatEditNode struct {
-	nodes.StructData[modeling.Mesh]
+type SplatEditNode = nodes.StructNode[modeling.Mesh, SplatEditNodeData]
 
+type SplatEditNodeData struct {
 	SplatData  nodes.NodeOutput[modeling.Mesh]
 	MinOpacity nodes.NodeOutput[float64]
 	MinScale   nodes.NodeOutput[float64]
+	MaxScale   nodes.NodeOutput[float64]
 	Scale      nodes.NodeOutput[float64]
 }
 
-func (pn *SplatEditNode) Out() nodes.NodeOutput[modeling.Mesh] {
-	return &nodes.StructNodeOutput[modeling.Mesh]{Definition: pn}
-}
-
-func (pn SplatEditNode) Process() (modeling.Mesh, error) {
-	return pn.SplatData.Data().Transform(
+func (pn SplatEditNodeData) Process() (modeling.Mesh, error) {
+	return pn.SplatData.Value().Transform(
 
 		// Filter out points that don't meet the opacity or scale criteria
 		meshops.CustomTransformer{
 			Func: func(m modeling.Mesh) (results modeling.Mesh, err error) {
-				minOpacity := pn.MinOpacity.Data()
-				minScale := pn.MinScale.Data()
+				minOpacity := pn.MinOpacity.Value()
+				minScale := pn.MinScale.Value()
+				maxScale := math.Inf(0)
+				if pn.MaxScale != nil {
+					maxScale = pn.MaxScale.Value()
+				}
 
 				opacity := m.Float1Attribute(modeling.OpacityAttribute)
 				scale := m.Float3Attribute(modeling.ScaleAttribute)
 
 				indicesKept := make([]int, 0)
 				for i := 0; i < opacity.Len(); i++ {
-					if opacity.At(i) >= minOpacity && scale.At(i).LengthSquared() >= minScale {
-						indicesKept = append(indicesKept, i)
+					if opacity.At(i) < minOpacity {
+						continue
 					}
+
+					length := scale.At(i).Exp().LengthSquared()
+					if length < minScale || length > maxScale {
+						continue
+					}
+					indicesKept = append(indicesKept, i)
 				}
 
 				return m.SetIndices(indicesKept), nil
@@ -112,27 +115,23 @@ func (pn SplatEditNode) Process() (modeling.Mesh, error) {
 
 		// Scale the vertex data to meet their new positioning
 		gausops.ScaleTransformer{
-			Scale: vector3.Fill(pn.Scale.Data()),
+			Scale: vector3.Fill(pn.Scale.Value()),
 		},
 	), nil
 }
 
-type BaloonNode struct {
-	nodes.StructData[modeling.Mesh]
+type BaloonNode = nodes.StructNode[modeling.Mesh, BaloonNodeData]
 
+type BaloonNodeData struct {
 	Mesh     nodes.NodeOutput[modeling.Mesh]
 	Strength nodes.NodeOutput[float64]
 	Radius   nodes.NodeOutput[float64]
 	Position nodes.NodeOutput[vector3.Float64]
 }
 
-func (bn *BaloonNode) Out() nodes.NodeOutput[modeling.Mesh] {
-	return &nodes.StructNodeOutput[modeling.Mesh]{Definition: bn}
-}
-
-func (bn BaloonNode) Process() (modeling.Mesh, error) {
+func (bn BaloonNodeData) Process() (modeling.Mesh, error) {
 	return bn.Mesh.
-		Data().
+		Value().
 		Transform(meshops.CustomTransformer{
 			Func: func(m modeling.Mesh) (results modeling.Mesh, err error) {
 				posData := m.Float3Attribute(modeling.PositionAttribute)
@@ -142,9 +141,9 @@ func (bn BaloonNode) Process() (modeling.Mesh, error) {
 				newPos := make([]vector3.Float64, count)
 				newScale := make([]vector3.Float64, count)
 
-				baloonPos := bn.Position.Data()
-				baloonRadius := bn.Radius.Data()
-				baloonStrength := bn.Strength.Data()
+				baloonPos := bn.Position.Value()
+				baloonRadius := bn.Radius.Value()
+				baloonStrength := bn.Strength.Value()
 
 				for i := 0; i < count; i++ {
 					curPos := posData.At(i)
@@ -175,64 +174,84 @@ func main() {
 	}
 
 	pointcloud := &PointcloudLoaderNode{
-		Path: (&generator.ParameterNode[string]{
-			Name:         "Pointcloud Path",
-			DefaultValue: "./point_cloud/iteration_30000/point_cloud.ply",
-			CLI: &generator.CliParameterNodeConfig[string]{
-				FlagName: "splat",
-				Usage:    "Path to the guassian splat to load (PLY file)",
+		Data: PointcloudLoaderNodeData{
+			Path: &generator.ParameterNode[string]{
+				Name:         "Pointcloud Path",
+				DefaultValue: "./point_cloud/iteration_30000/point_cloud.ply",
+				CLI: &generator.CliParameterNodeConfig[string]{
+					FlagName: "splat",
+					Usage:    "Path to the guassian splat to load (PLY file)",
+				},
 			},
-		}),
+		},
 	}
 
 	croppedCloud := meshops.CropAttribute3DNode{
-		Mesh: (&SplatEditNode{
-			SplatData: pointcloud.Out(),
-			MinOpacity: &generator.ParameterNode[float64]{
-				Name:         "Minimum Opacity",
-				DefaultValue: 0.,
+		Data: meshops.CropAttribute3DNodeData{
+			Mesh: &SplatEditNode{
+				Data: SplatEditNodeData{
+					SplatData: pointcloud.Out(),
+					MinOpacity: &generator.ParameterNode[float64]{
+						Name:         "Minimum Opacity",
+						DefaultValue: 0.,
+					},
+					MinScale: &generator.ParameterNode[float64]{
+						Name:         "Minimum Scale",
+						DefaultValue: 0.,
+					},
+					MaxScale: &generator.ParameterNode[float64]{
+						Name:         "Maximum Scale",
+						DefaultValue: 1000.,
+					},
+					Scale: scale,
+				},
 			},
-			MinScale: &generator.ParameterNode[float64]{
-				Name:         "Minimum Scale",
-				DefaultValue: 0.,
+			AABB: &generator.ParameterNode[geometry.AABB]{
+				Name: "Keep Bounds",
+				DefaultValue: geometry.NewAABBFromPoints(
+					vector3.New(-10., -10., -10.),
+					vector3.New(10., 10., 10.),
+				),
 			},
-			Scale: scale,
-		}).Out(),
-		AABB: &generator.ParameterNode[geometry.AABB]{
-			Name: "Keep Bounds",
-			DefaultValue: geometry.NewAABBFromPoints(
-				vector3.New(-10., -10., -10.),
-				vector3.New(10., 10., 10.),
-			),
 		},
 	}
 
 	baloonNode := BaloonNode{
-		Mesh:     croppedCloud.Out(),
-		Strength: &generator.ParameterNode[float64]{Name: "Baloon Strength", DefaultValue: .7},
-		Radius:   &generator.ParameterNode[float64]{Name: "Baloon Radius", DefaultValue: .7},
-		Position: &generator.ParameterNode[vector3.Float64]{
-			Name:         "Baloon Position",
-			DefaultValue: vector3.New(-0.344, 0.402, 5.363),
+		Data: BaloonNodeData{
+			Mesh:     croppedCloud.Out(),
+			Strength: &generator.ParameterNode[float64]{Name: "Baloon Strength", DefaultValue: .7},
+			Radius:   &generator.ParameterNode[float64]{Name: "Baloon Radius", DefaultValue: .7},
+			Position: &generator.ParameterNode[vector3.Float64]{
+				Name:         "Baloon Position",
+				DefaultValue: vector3.New(-0.344, 0.402, 5.363),
+			},
+		},
+	}
+
+	x := &vecn3.New{
+		Data: vecn3.NewData[float64]{
+			X: scale,
+			Y: scale,
+			Z: scale,
 		},
 	}
 
 	scaleNode := meshops.ScaleAttribute3DNode{
-		Mesh: baloonNode.Out(),
-		Amount: (&vecn3.New[float64]{
-			X: scale,
-			Y: scale,
-			Z: scale,
-		}).Out(),
+		Data: meshops.ScaleAttribute3DNodeData{
+			Mesh:   baloonNode.Out(),
+			Amount: x.Out(),
+		},
 	}
 
 	colorGraded := gausops.ColorGradingLutNode{
-		Mesh: scaleNode.Out(),
-		LUT: &generator.ImageParameterNode{
-			Name: "LUT",
-			CLI: &generator.CliParameterNodeConfig[string]{
-				FlagName: "lut",
-				Usage:    "Path to the color grading LUT",
+		Data: gausops.ColorGradingLutNodeData{
+			Mesh: scaleNode.Out(),
+			LUT: &generator.ImageParameterNode{
+				Name: "LUT",
+				CLI: &generator.CliParameterNodeConfig[string]{
+					FlagName: "lut",
+					Usage:    "Path to the color grading LUT",
+				},
 			},
 		},
 	}
@@ -256,10 +275,17 @@ func main() {
 		},
 		Producers: map[string]nodes.NodeOutput[generator.Artifact]{
 			"mesh.splat": generator.NewSplatArtifactNode(colorGraded.Out()),
-			"info.txt": generator.NewTextArtifactNode((&InfoNode{
-				Original: pointcloud.Out(),
-				Final:    colorGraded.Out(),
-			}).Out()),
+			"info.txt": generator.NewTextArtifactNode(&InfoNode{
+				Data: InfoNodeData{
+					Original: pointcloud.Out(),
+					Final:    colorGraded.Out(),
+				},
+			}),
+		},
+		AvailableNodes: map[string]generator.NodeBuilder{
+			"polyform/test": func() nodes.Node {
+				return &generator.ParameterNode[float64]{Name: "Created Node", DefaultValue: 666}
+			},
 		},
 	}
 

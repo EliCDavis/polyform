@@ -95,8 +95,6 @@ func (aabb *AABB) Expand(amount float64) {
 
 func (aabb AABB) Contains(p vector3.Float64) bool {
 	min := aabb.Min()
-	max := aabb.Max()
-
 	if p.X() < min.X() {
 		return false
 	}
@@ -106,6 +104,8 @@ func (aabb AABB) Contains(p vector3.Float64) bool {
 	if p.Z() < min.Z() {
 		return false
 	}
+
+	max := aabb.Max()
 	if p.X() > max.X() {
 		return false
 	}

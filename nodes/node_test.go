@@ -10,21 +10,17 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type CombineNode struct {
-	nodes.StructData[modeling.Mesh]
+type CombineNode = nodes.StructNode[modeling.Mesh, CombineData]
 
+type CombineData struct {
 	Meshes []nodes.NodeOutput[modeling.Mesh]
 }
 
-func (cn *CombineNode) Out() nodes.NodeOutput[modeling.Mesh] {
-	return nodes.StructNodeOutput[modeling.Mesh]{Definition: cn}
-}
-
-func (cn CombineNode) Process() (modeling.Mesh, error) {
+func (cn CombineData) Process() (modeling.Mesh, error) {
 	finalMesh := modeling.EmptyMesh(modeling.TriangleTopology)
 
 	for _, n := range cn.Meshes {
-		finalMesh = finalMesh.Append(n.Data())
+		finalMesh = finalMesh.Append(n.Value())
 	}
 
 	return finalMesh, nil
@@ -35,23 +31,33 @@ func TestNodes(t *testing.T) {
 	times := nodes.Value(5)
 
 	repeated := &repeat.CircleNode{
-		Radius: nodes.Value(15.),
-		Times:  nodes.Value(5),
-		Mesh: (&repeat.CircleNode{
-			Radius: nodes.Value(5.),
-			Times:  times,
-			Mesh:   nodes.Value(primitives.UVSphere(1, 10, 10)),
-		}).Out(),
+		Data: repeat.CircleNodeData{
+			Radius: nodes.Value(15.),
+			Times:  nodes.Value(5),
+			Mesh: (&repeat.CircleNode{
+				Data: repeat.CircleNodeData{
+					Radius: nodes.Value(5.),
+					Times:  times,
+					Mesh:   nodes.Value(primitives.UVSphere(1, 10, 10)),
+				},
+			}).Out(),
+		},
 	}
 
+	repeated.Out().Node().SetInput("Times", nodes.Output{NodeOutput: nodes.Value(30)})
+
 	combined := CombineNode{
-		Meshes: []nodes.NodeOutput[modeling.Mesh]{
-			repeated.Out(),
-			(&repeat.CircleNode{
-				Radius: nodes.Value(5.),
-				Times:  times,
-				Mesh:   nodes.Value(primitives.UVSphere(1, 10, 10)),
-			}).Out(),
+		Data: CombineData{
+			Meshes: []nodes.NodeOutput[modeling.Mesh]{
+				repeated.Out(),
+				(&repeat.CircleNode{
+					Data: repeat.CircleNodeData{
+						Radius: nodes.Value(5.),
+						Times:  times,
+						Mesh:   nodes.Value(primitives.UVSphere(1, 10, 10)),
+					},
+				}).Out(),
+			},
 		},
 	}
 
@@ -61,9 +67,9 @@ func TestNodes(t *testing.T) {
 	// Stage changes
 	out := combined.Out()
 
-	out.Data()
+	out.Value()
 	times.Set(13)
-	out.Data()
+	out.Value()
 
 	deps := repeated.Out().Node().Dependencies()
 	assert.Len(t, deps, 3)
@@ -71,5 +77,8 @@ func TestNodes(t *testing.T) {
 		Name: "Out",
 		Type: "github.com/EliCDavis/polyform/modeling.Mesh",
 	}}, combined.Out().Node().Outputs())
-	// obj.Save("test.obj", repeat.Data())
+
+	assert.Equal(t, "nodes_test", combined.Path())
+	assert.Equal(t, "modeling/repeat", repeated.Path())
+	// obj.Save("test.obj", repeat.Value())
 }

@@ -12,9 +12,9 @@ import (
 	"github.com/EliCDavis/vector/vector3"
 )
 
-type ChairNode struct {
-	nodes.StructData[modeling.Mesh]
+type ChairNode = nodes.StructNode[modeling.Mesh, ChairNodeData]
 
+type ChairNodeData struct {
 	Height    nodes.NodeOutput[float64]
 	Width     nodes.NodeOutput[float64]
 	Length    nodes.NodeOutput[float64]
@@ -28,14 +28,10 @@ type ChairNode struct {
 	LegInset  nodes.NodeOutput[float64]
 }
 
-func (cn *ChairNode) Out() nodes.NodeOutput[modeling.Mesh] {
-	return &nodes.StructNodeOutput[modeling.Mesh]{Definition: cn}
-}
-
-func (cn ChairNode) Process() (modeling.Mesh, error) {
-	chairHeight := cn.Height.Data()
-	chairWidth := cn.Width.Data()
-	chairLength := cn.Length.Data()
+func (cn ChairNodeData) Process() (modeling.Mesh, error) {
+	chairHeight := cn.Height.Value()
+	chairWidth := cn.Width.Value()
+	chairLength := cn.Length.Value()
 
 	halfHeight := chairHeight / 2
 	halfWidth := chairWidth / 2
@@ -43,8 +39,8 @@ func (cn ChairNode) Process() (modeling.Mesh, error) {
 
 	// LEGS ===================================================================
 
-	legRadius := cn.LegRadius.Data()
-	legInset := cn.LegInset.Data()
+	legRadius := cn.LegRadius.Value()
+	legInset := cn.LegInset.Value()
 
 	leg := primitives.Cylinder{
 		Sides:  8,
@@ -88,7 +84,7 @@ func (cn ChairNode) Process() (modeling.Mesh, error) {
 
 	// BACK ===================================================================
 
-	backHeight := cn.BackHeight.Data()
+	backHeight := cn.BackHeight.Value()
 	halfBackHeight := backHeight / 2
 
 	backPeg := primitives.Cylinder{
@@ -113,7 +109,7 @@ func (cn ChairNode) Process() (modeling.Mesh, error) {
 		},
 	)
 
-	backSupportPegHeight := backHeight * cn.BackingPieceHeight.Data()
+	backSupportPegHeight := backHeight * cn.BackingPieceHeight.Value()
 	backSupportPeg := primitives.Cylinder{
 		Sides:  8,
 		Height: backSupportPegHeight,
@@ -124,11 +120,11 @@ func (cn ChairNode) Process() (modeling.Mesh, error) {
 		backSupportPeg,
 		vector3.New(halfWidth-legRadiusAndInset, 0., halfLength-legRadiusAndInset),
 		vector3.New(-halfWidth+legRadiusAndInset, 0., halfLength-legRadiusAndInset),
-		cn.BackingPieceHeightPegs.Data(),
+		cn.BackingPieceHeightPegs.Value(),
 	)
 
 	return primitives.Cube{
-		Height: cn.Thickness.Data(),
+		Height: cn.Thickness.Value(),
 		Width:  chairWidth,
 		Depth:  chairLength,
 		UVs:    primitives.DefaultCubeUVs(),
@@ -196,23 +192,19 @@ func (cn ChairNode) Process() (modeling.Mesh, error) {
 		)), nil
 }
 
-type CushionNode struct {
-	nodes.StructData[modeling.Mesh]
+type CushionNode = nodes.StructNode[modeling.Mesh, CushionNodeData]
 
+type CushionNodeData struct {
 	Thickness nodes.NodeOutput[float64]
 	Width     nodes.NodeOutput[float64]
 	Length    nodes.NodeOutput[float64]
 }
 
-func (cn *CushionNode) Out() nodes.NodeOutput[modeling.Mesh] {
-	return &nodes.StructNodeOutput[modeling.Mesh]{Definition: cn}
-}
-
-func (cn CushionNode) Process() (modeling.Mesh, error) {
+func (cn CushionNodeData) Process() (modeling.Mesh, error) {
 	return primitives.Cube{
-		Height: cn.Thickness.Data(),
-		Width:  cn.Width.Data(),
-		Depth:  cn.Length.Data(),
+		Height: cn.Thickness.Value(),
+		Width:  cn.Width.Value(),
+		Depth:  cn.Length.Value(),
 		UVs:    primitives.DefaultCubeUVs(),
 	}.UnweldedQuads(), nil
 }

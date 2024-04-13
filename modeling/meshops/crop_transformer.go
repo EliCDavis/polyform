@@ -88,24 +88,20 @@ func CropFloat3Attribute(m modeling.Mesh, attr string, boundingBox geometry.AABB
 	return modeling.NewPointCloud(v4, v3, v2, v1, m.Materials())
 }
 
-type CropAttribute3DNode struct {
-	nodes.StructData[modeling.Mesh]
+type CropAttribute3DNode = nodes.StructNode[modeling.Mesh, CropAttribute3DNodeData]
 
+type CropAttribute3DNodeData struct {
 	Attribute nodes.NodeOutput[string]
 	Mesh      nodes.NodeOutput[modeling.Mesh]
 	AABB      nodes.NodeOutput[geometry.AABB]
 }
 
-func (ca3dn *CropAttribute3DNode) Out() nodes.NodeOutput[modeling.Mesh] {
-	return &nodes.StructNodeOutput[modeling.Mesh]{Definition: ca3dn}
-}
-
-func (ca3dn CropAttribute3DNode) Process() (modeling.Mesh, error) {
+func (ca3dn CropAttribute3DNodeData) Process() (modeling.Mesh, error) {
 	attr := modeling.PositionAttribute
 
 	if ca3dn.Attribute != nil {
-		attr = ca3dn.Attribute.Data()
+		attr = ca3dn.Attribute.Value()
 	}
 
-	return CropFloat3Attribute(ca3dn.Mesh.Data(), attr, ca3dn.AABB.Data()), nil
+	return CropFloat3Attribute(ca3dn.Mesh.Value(), attr, ca3dn.AABB.Value()), nil
 }

@@ -1,4 +1,4 @@
-import { PolyNode } from "./nodes/node.js";
+import { PolyNode, camelCaseToWords } from "./nodes/node.js";
 
 function ImageParameterNode() {
     //     this.addInput(inputName, nodeData.inputs[inputName].type);
@@ -56,7 +56,7 @@ function ColorParameterNode() {
     this.bgcolor = "#355";
 
 
-    const imgWidget = this.addWidget("color", "Color", "#00FF00", { color: "surname" }); //this will modify the node.properties
+    const imgWidget = this.addWidget("color", "Color", "#00FF00", {}); //this will modify the node.properties
     this.imgWidget = imgWidget;
     const margin = 15;
     this.imgWidget.draw = (ctx, node, widget_width, y, H) => {
@@ -83,11 +83,11 @@ export class NodeManager {
         this.guiFolderData = {};
         this.nodeIdToNode = new Map();
         this.subscribers = [];
-
-        this.registerPolyformNodes();
+        this.initializedNodeTypes = false
+        this.registerSpecialParameterPolyformNodes();
     }
 
-    registerPolyformNodes() {
+    registerSpecialParameterPolyformNodes() {
         function Vector3ParameterNode() {
             //     this.addInput(inputName, nodeData.inputs[inputName].type);
             this.addOutput("Value", "github.com/EliCDavis/vector/vector3.Vector[float64]");
@@ -162,7 +162,50 @@ export class NodeManager {
         }
     }
 
+    buildCustomNodeType(typeData) {
+        function CustomNode() {
+            for (var inputName in typeData.inputs) {
+                this.addInput(inputName, typeData.inputs[inputName].type);
+            }
+
+            if (typeData.outputs) {
+                typeData.outputs.forEach((o) => {
+                    this.addOutput(o.name, o.type);
+                })
+            }
+
+            // if (producers.includes(nodeData.name)) {
+            //     this.color = "#232";
+            //     this.bgcolor = "#353";
+            //     this.addWidget("button", "Download", null, () => {
+            //         console.log("presed");
+            //         saveFileToDisk("/producer/" + typeData.displayName, typeData.displayName);
+            //     })
+            // }
+            this.title = camelCaseToWords(typeData.displayName);
+
+            // this.properties = { precision: 1 };
+        }
+
+        // const nodeName = "polyform/" + typeData.displayName;
+        // LiteGraph.registerNodeType(nodeName, CustomNode);
+
+        LiteGraph.registerNodeType(typeData.type, CustomNode);
+
+        // const node = LiteGraph.createNode(nodeName);
+        // node.setSize(node.computeSize());
+
+        // app.LightGraph.add(node);
+    }
+
     updateNodes(newSchema) {
+        if (this.initializedNodeTypes === false) {
+            this.initializedNodeTypes = true;
+            newSchema.types.forEach(type => {
+                this.buildCustomNodeType(type)
+            })
+        }
+
         const sortedNodes = this.sortNodesByName(newSchema.nodes);
 
         let nodeAdded = false;
@@ -174,7 +217,12 @@ export class NodeManager {
                 const nodeToUpdate = this.nodeIdToNode.get(nodeID);
                 nodeToUpdate.update(nodeData);
             } else {
-                const isProducer = newSchema.producers.includes(nodeData.name);
+                let isProducer = false;
+                for (const [key, value] of Object.entries(newSchema.producers)) {
+                    if (value.nodeID === nodeID) {
+                        isProducer = true;
+                    }
+                }
                 this.nodeIdToNode.set(nodeID, new PolyNode(this, nodeID, nodeData, this.app, this.guiFolderData, isProducer));
                 nodeAdded = true;
             }

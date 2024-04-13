@@ -9,12 +9,11 @@ type NodeInput struct {
 	Type string `json:"type"`
 }
 
-type NodeSchema struct {
+type NodeInstanceSchema struct {
+	Type         string                 `json:"type"`
 	Name         string                 `json:"name"`
 	Version      int                    `json:"version"`
 	Dependencies []NodeDependencySchema `json:"dependencies"`
-	Outputs      []NodeOutput           `json:"outputs"`
-	Inputs       map[string]NodeInput   `json:"inputs"`
 	Parameter    ParameterSchema        `json:"parameter,omitempty"`
 
 	// node      nodes.Node
@@ -26,7 +25,21 @@ type NodeDependencySchema struct {
 	Name         string `json:"name"`
 }
 
+type NodeTypeSchema struct {
+	DisplayName string               `json:"displayName"`
+	Type        string               `json:"type"`
+	Path        string               `json:"path"`
+	Outputs     []NodeOutput         `json:"outputs,omitempty"`
+	Inputs      map[string]NodeInput `json:"inputs,omitempty"`
+	Parameter   ParameterSchema      `json:"parameter,omitempty"`
+}
+
+type ProducerSchema struct {
+	NodeID string `json:"nodeID"`
+}
+
 type AppSchema struct {
-	Producers []string              `json:"producers"`
-	Nodes     map[string]NodeSchema `json:"nodes"`
+	Producers map[string]ProducerSchema     `json:"producers"`
+	Nodes     map[string]NodeInstanceSchema `json:"nodes"`
+	Types     []NodeTypeSchema              `json:"types"`
 }

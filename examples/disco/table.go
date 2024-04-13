@@ -9,9 +9,9 @@ import (
 	"github.com/EliCDavis/vector/vector3"
 )
 
-type TableNode struct {
-	nodes.StructData[gltf.PolyformModel]
+type TableNode = nodes.StructNode[gltf.PolyformModel, TableNodeData]
 
+type TableNodeData struct {
 	Color      nodes.NodeOutput[coloring.WebColor]
 	Radius     nodes.NodeOutput[float64]
 	Height     nodes.NodeOutput[float64]
@@ -19,18 +19,14 @@ type TableNode struct {
 	Resolution nodes.NodeOutput[int]
 }
 
-func (tn *TableNode) Out() nodes.NodeOutput[gltf.PolyformModel] {
-	return &nodes.StructNodeOutput[gltf.PolyformModel]{Definition: tn}
-}
-
-func (tn TableNode) Process() (gltf.PolyformModel, error) {
-	tableHeight := tn.Height.Data()
+func (tn TableNodeData) Process() (gltf.PolyformModel, error) {
+	tableHeight := tn.Height.Value()
 	return gltf.PolyformModel{
 		Name: "Table",
 		Mesh: primitives.Cylinder{
-			Sides:  tn.Resolution.Data(),
-			Height: tn.Thickness.Data(),
-			Radius: tn.Radius.Data(),
+			Sides:  tn.Resolution.Value(),
+			Height: tn.Thickness.Value(),
+			Radius: tn.Radius.Value(),
 			UVs: &primitives.CylinderUVs{
 				Top: &primitives.CircleUVs{
 					Center: vector2.New(0.5, 0.5),
@@ -50,9 +46,9 @@ func (tn TableNode) Process() (gltf.PolyformModel, error) {
 			ToMesh().
 			Translate(vector3.New(0., tableHeight, 0.)).
 			Append(primitives.Cylinder{
-				Sides:  tn.Resolution.Data(),
+				Sides:  tn.Resolution.Value(),
 				Height: tableHeight,
-				Radius: tn.Radius.Data() / 8,
+				Radius: tn.Radius.Value() / 8,
 				UVs: &primitives.CylinderUVs{
 					Top: &primitives.CircleUVs{
 						Center: vector2.New(0.5, 0.5),
@@ -72,7 +68,7 @@ func (tn TableNode) Process() (gltf.PolyformModel, error) {
 
 		Material: &gltf.PolyformMaterial{
 			PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
-				BaseColorFactor: tn.Color.Data(),
+				BaseColorFactor: tn.Color.Value(),
 				RoughnessFactor: 1,
 				MetallicRoughnessTexture: &gltf.PolyformTexture{
 					URI: "rough.png",

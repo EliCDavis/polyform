@@ -13,9 +13,9 @@ import (
 	"github.com/EliCDavis/vector/vector3"
 )
 
-type DiscoBallNode struct {
-	nodes.StructData[[]gltf.PolyformModel]
+type DiscoBallNode = nodes.StructNode[[]gltf.PolyformModel, DiscoBallNodeData]
 
+type DiscoBallNodeData struct {
 	Color       nodes.NodeOutput[coloring.WebColor]
 	Radius      nodes.NodeOutput[float64]
 	PanelOffset nodes.NodeOutput[float64]
@@ -24,25 +24,21 @@ type DiscoBallNode struct {
 	Columns     nodes.NodeOutput[int]
 }
 
-func (cn *DiscoBallNode) Out() nodes.NodeOutput[[]gltf.PolyformModel] {
-	return &nodes.StructNodeOutput[[]gltf.PolyformModel]{Definition: cn}
-}
-
-func (cn DiscoBallNode) Process() ([]gltf.PolyformModel, error) {
-	ballColor := cn.Color.Data()
-	discoballRadius := cn.Radius.Data()
+func (cn DiscoBallNodeData) Process() ([]gltf.PolyformModel, error) {
+	ballColor := cn.Color.Value()
+	discoballRadius := cn.Radius.Value()
 
 	discoball := primitives.
 		UVSphereUnwelded(
 			discoballRadius,
-			cn.Rows.Data(),
-			cn.Columns.Data(),
+			cn.Rows.Value(),
+			cn.Columns.Value(),
 		).Transform(meshops.FlatNormalsTransformer{})
 
-	discoBallHeight := vector3.Up[float64]().Scale(cn.Height.Data())
+	discoBallHeight := vector3.Up[float64]().Scale(cn.Height.Value())
 	discoNormals := discoball.Float3Attribute(modeling.NormalAttribute)
 
-	panelOffset := cn.PanelOffset.Data()
+	panelOffset := cn.PanelOffset.Value()
 
 	discoball = discoball.ModifyFloat3Attribute(
 		modeling.PositionAttribute,
@@ -51,8 +47,8 @@ func (cn DiscoBallNode) Process() ([]gltf.PolyformModel, error) {
 		}).
 		Append(primitives.UVSphere(
 			discoballRadius+(panelOffset/2),
-			cn.Rows.Data(),
-			cn.Columns.Data(),
+			cn.Rows.Value(),
+			cn.Columns.Value(),
 		)).
 		Translate(discoBallHeight)
 

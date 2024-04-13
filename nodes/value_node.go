@@ -37,6 +37,10 @@ func (in *ValueNode[T]) Node() Node {
 	return in
 }
 
+func (vn ValueNode[T]) SetInput(input string, output Output) {
+	panic("input can not be set")
+}
+
 func (tn ValueNode[T]) Inputs() []Input {
 	return []Input{}
 }
@@ -44,13 +48,13 @@ func (tn ValueNode[T]) Inputs() []Input {
 func (tn ValueNode[T]) Outputs() []Output {
 	return []Output{
 		{
-			Name: "Data",
+			Name: "Value",
 			Type: refutil.GetTypeWithPackage(new(T)),
 		},
 	}
 }
 
-func (in ValueNode[T]) Data() T {
+func (in ValueNode[T]) Value() T {
 	return in.value
 }
 

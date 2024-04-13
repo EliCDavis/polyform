@@ -11,12 +11,16 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 	"text/template"
 	"time"
 
 	"github.com/EliCDavis/polyform/generator/room"
 	"github.com/EliCDavis/polyform/nodes"
+	"github.com/EliCDavis/polyform/refutil"
 )
+
+type NodeBuilder func() nodes.Node
 
 type App struct {
 	Name        string
@@ -26,8 +30,11 @@ type App struct {
 	Authors     []Author
 	Producers   map[string]nodes.NodeOutput[Artifact]
 
+	AvailableNodes map[string]NodeBuilder
+
 	// Runtime data
 	nodeIDs map[nodes.Node]string
+	types   *refutil.TypeFactory
 }
 
 func writeProducersToZip(path string, producers map[string]nodes.NodeOutput[Artifact], zw *zip.Writer) error {
@@ -45,7 +52,7 @@ func writeProducersToZip(path string, producers map[string]nodes.NodeOutput[Arti
 		if err != nil {
 			return err
 		}
-		artifact := producer.Data()
+		artifact := producer.Value()
 		err = artifact.Write(f)
 		if err != nil {
 			return err
@@ -54,6 +61,13 @@ func writeProducersToZip(path string, producers map[string]nodes.NodeOutput[Arti
 	}
 
 	return nil
+}
+
+func (a *App) addType(v any) {
+	if a.types == nil {
+		a.types = &refutil.TypeFactory{}
+	}
+	a.types.RegisterType(v)
 }
 
 func (a App) getParameters() []Parameter {
@@ -121,53 +135,95 @@ type appCLI struct {
 	Commands    []*cliCommand
 }
 
-func (a App) buildSchemaForNode(dependency nodes.Node, currentSchema map[string]NodeSchema) {
-	id, ok := a.nodeIDs[dependency]
+func BuildNodeTypeSchema(node nodes.Node) NodeTypeSchema {
+
+	typeSchema := NodeTypeSchema{
+		DisplayName: "Untyped",
+		Outputs:     make([]NodeOutput, 0),
+		Inputs:      make(map[string]NodeInput),
+	}
+
+	outputs := node.Outputs()
+	for _, o := range outputs {
+		typeSchema.Outputs = append(typeSchema.Outputs, NodeOutput{
+			Name: o.Name,
+			Type: o.Type,
+		})
+	}
+
+	inputs := node.Inputs()
+	for _, o := range inputs {
+		typeSchema.Inputs[o.Name] = NodeInput{
+			Type: o.Type,
+		}
+	}
+
+	if param, ok := node.(Parameter); ok {
+		typeSchema.Parameter = param.Schema()
+	}
+
+	if typed, ok := node.(nodes.Typed); ok {
+		typeSchema.DisplayName = typed.Type()
+	} else {
+		// typeSchema.DisplayName = refutil.GetTypeName(node)
+	}
+
+	if pathed, ok := node.(nodes.Pathed); ok {
+		typeSchema.Path = pathed.Path()
+	} else {
+
+		packagePath := refutil.GetPackagePath(node)
+		if strings.Contains(packagePath, "/") {
+			path := strings.Split(packagePath, "/")
+			path = path[1:]
+			if path[0] == "EliCDavis" {
+				path = path[1:]
+			}
+
+			if path[0] == "polyform" {
+				path = path[1:]
+			}
+			typeSchema.Path = strings.Join(path, "/")
+		} else {
+			typeSchema.Path = packagePath
+		}
+
+	}
+
+	return typeSchema
+}
+
+func (a App) buildSchemaForNode(node nodes.Node, currentSchema map[string]NodeInstanceSchema) {
+	id, ok := a.nodeIDs[node]
 	if !ok {
-		panic(fmt.Errorf("node %v has not had an ID generated for it", dependency))
+		panic(fmt.Errorf("node %v has not had an ID generated for it", node))
 	}
 
 	if _, ok := currentSchema[id]; ok {
 		return
 	}
 
-	schema := NodeSchema{
+	schema := NodeInstanceSchema{
 		Name:         "Unamed",
+		Type:         refutil.GetTypeWithPackage(node),
 		Dependencies: make([]NodeDependencySchema, 0),
-		Outputs:      make([]NodeOutput, 0),
-		Inputs:       make(map[string]NodeInput),
-		Version:      dependency.Version(),
+		Version:      node.Version(),
 	}
 
-	for _, subDependency := range dependency.Dependencies() {
-		a.buildSchemaForNode(subDependency.Dependency(), currentSchema)
+	for _, subDependency := range node.Dependencies() {
+		//a.buildSchemaForNode(subDependency.Dependency(), currentSchema)
 		schema.Dependencies = append(schema.Dependencies, NodeDependencySchema{
 			DependencyID: a.nodeIDs[subDependency.Dependency()],
 			Name:         subDependency.Name(),
 		})
 	}
 
-	outputs := dependency.Outputs()
-	for _, o := range outputs {
-		schema.Outputs = append(schema.Outputs, NodeOutput{
-			Name: o.Name,
-			Type: o.Type,
-		})
-	}
-
-	inputs := dependency.Inputs()
-	for _, o := range inputs {
-		schema.Inputs[o.Name] = NodeInput{
-			Type: o.Type,
-		}
-	}
-
-	if param, ok := dependency.(Parameter); ok {
+	if param, ok := node.(Parameter); ok {
 		schema.Name = param.DisplayName()
 		schema.parameter = param
 		schema.Parameter = param.Schema()
 	} else {
-		named, ok := dependency.(nodes.Named)
+		named, ok := node.(nodes.Named)
 		if ok {
 			schema.Name = named.Name()
 		}
@@ -186,6 +242,8 @@ func (a *App) buildIDsForNode(dep nodes.Node) {
 		return
 	}
 
+	a.addType(dep)
+
 	for _, subDependency := range dep.Dependencies() {
 		a.buildIDsForNode(subDependency.Dependency())
 	}
@@ -202,22 +260,45 @@ func (a *App) Schema() AppSchema {
 	}
 
 	schema := AppSchema{
-		Producers: make([]string, 0, len(a.Producers)),
+		Producers: make(map[string]ProducerSchema),
 	}
 
-	appNodeSchema := make(map[string]NodeSchema)
+	appNodeSchema := make(map[string]NodeInstanceSchema)
+
+	for node := range a.nodeIDs {
+		a.buildSchemaForNode(node, appNodeSchema)
+	}
 
 	for key, producer := range a.Producers {
-		schema.Producers = append(schema.Producers, key)
-		a.buildSchemaForNode(producer.Node(), appNodeSchema)
-
+		// a.buildSchemaForNode(producer.Node(), appNodeSchema)
 		id := a.nodeIDs[producer.Node()]
 		node := appNodeSchema[id]
 		node.Name = key
 		appNodeSchema[id] = node
+
+		schema.Producers[key] = ProducerSchema{
+			NodeID: id,
+		}
 	}
 
 	schema.Nodes = appNodeSchema
+
+	registeredTypes := a.types.Types()
+	nodeTypes := make([]NodeTypeSchema, 0, len(registeredTypes))
+	for _, registeredType := range registeredTypes {
+		nodeInstance, ok := a.types.New(registeredType).(nodes.Node)
+		if !ok {
+			panic("Registered type is somehow not a node. Not sure how we got here :/")
+		}
+		if nodeInstance == nil {
+			panic("New registered type")
+		}
+		// log.Printf("%T: %+v\n", nodeInstance, nodeInstance)
+		b := BuildNodeTypeSchema(nodeInstance)
+		b.Type = registeredType
+		nodeTypes = append(nodeTypes, b)
+	}
+	schema.Types = nodeTypes
 
 	return schema
 }
@@ -241,7 +322,7 @@ func (a App) Generate(outputPath string) error {
 		defer f.Close()
 
 		// Write data to file
-		arifact := p.Data()
+		arifact := p.Value()
 		err = arifact.Write(f)
 		if err != nil {
 			return err

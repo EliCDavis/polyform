@@ -6,20 +6,16 @@ import (
 	"github.com/EliCDavis/vector/vector3"
 )
 
-type Sum[T vector.Number] struct {
-	nodes.StructData[vector3.Vector[T]]
+type SumNode = nodes.StructNode[vector3.Float64, SumData[float64]]
 
+type SumData[T vector.Number] struct {
 	Values []nodes.NodeOutput[vector3.Vector[T]]
 }
 
-func (cn *Sum[T]) Out() nodes.NodeOutput[vector3.Vector[T]] {
-	return &nodes.StructNodeOutput[vector3.Vector[T]]{Definition: cn}
-}
-
-func (cn Sum[T]) Process() (vector3.Vector[T], error) {
+func (cn SumData[T]) Process() (vector3.Vector[T], error) {
 	var total vector3.Vector[T]
 	for _, v := range cn.Values {
-		total = total.Add(v.Data())
+		total = total.Add(v.Value())
 	}
 	return total, nil
 }

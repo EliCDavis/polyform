@@ -22,20 +22,14 @@ import (
 	"github.com/EliCDavis/vector/vector3"
 )
 
-type NormalImage struct {
-	nodes.StructData[generator.Artifact]
+type NormalImage = nodes.StructNode[generator.Artifact, NormalImageData]
 
+type NormalImageData struct {
 	NumberOfLines nodes.NodeOutput[int]
 	NumberOfWarts nodes.NodeOutput[int]
 }
 
-func (ni *NormalImage) Image() nodes.NodeOutput[generator.Artifact] {
-	return nodes.StructNodeOutput[generator.Artifact]{
-		Definition: ni,
-	}
-}
-
-func (ni NormalImage) Process() (generator.Artifact, error) {
+func (ni NormalImageData) Process() (generator.Artifact, error) {
 	dim := 1024
 	img := image.NewRGBA(image.Rect(0, 0, dim, dim))
 	// normals.Fill(img)
@@ -59,7 +53,7 @@ func (ni NormalImage) Process() (generator.Artifact, error) {
 
 	img = texturing.ToNormal(img)
 
-	numLines := ni.NumberOfLines.Data()
+	numLines := ni.NumberOfLines.Value()
 
 	spacing := float64(dim) / float64(numLines)
 	halfSpacing := float64(spacing) / 2.
@@ -101,7 +95,7 @@ func (ni NormalImage) Process() (generator.Artifact, error) {
 
 	}
 
-	numWarts := ni.NumberOfWarts.Data()
+	numWarts := ni.NumberOfWarts.Value()
 	wartSizeRange := vector2.New(8., 20.)
 	for i := 0; i < numWarts; i++ {
 		normals.Sphere{
@@ -117,23 +111,23 @@ func (ni NormalImage) Process() (generator.Artifact, error) {
 	return generator.ImageArtifact{Image: texturing.BoxBlurNTimes(img, 10)}, nil
 }
 
-type PumpkinField struct {
-	nodes.StructData[marching.Field]
+type PumpkinField = nodes.StructNode[marching.Field, PumpkinFieldData]
 
+type PumpkinFieldData struct {
 	MaxWidth, TopDip, DistanceFromCenter, WedgeLineRadius nodes.NodeOutput[float64]
 	Sides                                                 nodes.NodeOutput[int]
 	ImageField                                            nodes.NodeOutput[[][]float64]
 	UseImageField                                         nodes.NodeOutput[bool]
 }
 
-func (pf PumpkinField) Process() (marching.Field, error) {
-	distanceFromCenter := pf.DistanceFromCenter.Data()
-	maxWidth := pf.MaxWidth.Data()
-	topDip := pf.TopDip.Data()
-	wedgeLineRadius := pf.WedgeLineRadius.Data()
-	sides := pf.Sides.Data()
-	useImageField := pf.UseImageField.Data()
-	imageField := pf.ImageField.Data()
+func (pf PumpkinFieldData) Process() (marching.Field, error) {
+	distanceFromCenter := pf.DistanceFromCenter.Value()
+	maxWidth := pf.MaxWidth.Value()
+	topDip := pf.TopDip.Value()
+	wedgeLineRadius := pf.WedgeLineRadius.Value()
+	sides := pf.Sides.Value()
+	useImageField := pf.UseImageField.Value()
+	imageField := pf.ImageField.Value()
 
 	outerPoints := []vector3.Float64{
 		vector3.New(0., .3, distanceFromCenter),
@@ -219,26 +213,14 @@ func (pf PumpkinField) Process() (marching.Field, error) {
 	return pumpkinField, nil
 }
 
-func (pf *PumpkinField) Field() nodes.NodeOutput[marching.Field] {
-	return nodes.StructNodeOutput[marching.Field]{
-		Definition: pf,
-	}
-}
+type SphericalUVMapping = nodes.StructNode[modeling.Mesh, SphericalUVMappingData]
 
-type SphericalUVMapping struct {
-	nodes.StructData[modeling.Mesh]
-
+type SphericalUVMappingData struct {
 	Mesh nodes.NodeOutput[modeling.Mesh]
 }
 
-func (sm *SphericalUVMapping) SphericalMesh() nodes.NodeOutput[modeling.Mesh] {
-	return nodes.StructNodeOutput[modeling.Mesh]{
-		Definition: sm,
-	}
-}
-
-func (sm SphericalUVMapping) Process() (modeling.Mesh, error) {
-	mesh := sm.Mesh.Data()
+func (sm SphericalUVMappingData) Process() (modeling.Mesh, error) {
+	mesh := sm.Mesh.Value()
 	pumpkinVerts := mesh.Float3Attribute(modeling.PositionAttribute)
 	newUVs := make([]vector2.Float64, pumpkinVerts.Len())
 	center := vector3.New(0., 0.5, 0.)
@@ -257,21 +239,21 @@ func (sm SphericalUVMapping) Process() (modeling.Mesh, error) {
 	return mesh.SetFloat2Attribute(modeling.TexCoordAttribute, newUVs), nil
 }
 
-type PumpkinGLBArtifact struct {
-	nodes.StructData[generator.Artifact]
+type PumpkinGLBArtifact = nodes.StructNode[generator.Artifact, PumpkinGLBArtifactData]
 
+type PumpkinGLBArtifactData struct {
 	PumpkinBody nodes.NodeOutput[modeling.Mesh]
 	PumpkinStem nodes.NodeOutput[gltf.PolyformModel]
 	LightColor  nodes.NodeOutput[coloring.WebColor]
 }
 
-func (pga PumpkinGLBArtifact) Process() (generator.Artifact, error) {
+func (pga PumpkinGLBArtifactData) Process() (generator.Artifact, error) {
 	return &generator.GltfArtifact{
 		Scene: gltf.PolyformScene{
 			Models: []gltf.PolyformModel{
 				{
 					Name: "Pumpkin",
-					Mesh: pga.PumpkinBody.Data(),
+					Mesh: pga.PumpkinBody.Value(),
 					Material: &gltf.PolyformMaterial{
 						PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
 							BaseColorTexture: &gltf.PolyformTexture{
@@ -299,38 +281,26 @@ func (pga PumpkinGLBArtifact) Process() (generator.Artifact, error) {
 						},
 					},
 				},
-				pga.PumpkinStem.Data(),
+				pga.PumpkinStem.Value(),
 			},
 			Lights: []gltf.KHR_LightsPunctual{
 				{
 					Type:     gltf.KHR_LightsPunctualType_Point,
 					Position: vector3.New(0., 0.5, 0.),
-					Color:    pga.LightColor.Data(),
+					Color:    pga.LightColor.Value(),
 				},
 			},
 		},
 	}, nil
 }
 
-func (pga *PumpkinGLBArtifact) Artifact() nodes.NodeOutput[generator.Artifact] {
-	return nodes.StructNodeOutput[generator.Artifact]{
-		Definition: pga,
-	}
-}
+type MetalRoughness = nodes.StructNode[generator.Artifact, MetalRoughnessData]
 
-type MetalRoughness struct {
-	nodes.StructData[generator.Artifact]
-
+type MetalRoughnessData struct {
 	Roughness nodes.NodeOutput[float64]
 }
 
-func (mr *MetalRoughness) Image() nodes.NodeOutput[generator.Artifact] {
-	return nodes.StructNodeOutput[generator.Artifact]{
-		Definition: mr,
-	}
-}
-
-func (mr MetalRoughness) Process() (generator.Artifact, error) {
+func (mr MetalRoughnessData) Process() (generator.Artifact, error) {
 	dim := 1024
 	img := image.NewRGBA(image.Rect(0, 0, dim, dim))
 	// normals.Fill(img)
@@ -342,7 +312,7 @@ func (mr MetalRoughness) Process() (generator.Artifact, error) {
 			val := n.Noise(x, y)
 			p := (val * 128) + 128
 
-			p = 255 - (p * mr.Roughness.Data())
+			p = 255 - (p * mr.Roughness.Value())
 
 			img.Set(x, y, color.RGBA{
 				R: 0, // byte(len * 255),

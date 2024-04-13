@@ -24,6 +24,10 @@ func (in *ImageParameterNode) Node() nodes.Node {
 	return in
 }
 
+func (vn ImageParameterNode) SetInput(input string, output nodes.Output) {
+	panic("input can not be set")
+}
+
 func (pn *ImageParameterNode) DisplayName() string {
 	return pn.Name
 }
@@ -45,7 +49,7 @@ func (pn *ImageParameterNode) ApplyMessage(msg []byte) (bool, error) {
 }
 
 func (pn *ImageParameterNode) ToMessage() []byte {
-	img := pn.Data()
+	img := pn.Value()
 	if img == nil {
 		return nil
 	}
@@ -57,7 +61,7 @@ func (pn *ImageParameterNode) ToMessage() []byte {
 	return buf.Bytes()
 }
 
-func (pn *ImageParameterNode) Data() image.Image {
+func (pn *ImageParameterNode) Value() image.Image {
 	if pn.appliedProfile != nil {
 		return pn.appliedProfile
 	}

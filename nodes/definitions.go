@@ -7,8 +7,9 @@ type ReferencesNode interface {
 // Producer ===================================================================
 
 type Output struct {
-	Name string
-	Type string
+	Name       string
+	Type       string
+	NodeOutput ReferencesNode
 }
 
 type Input struct {
@@ -61,4 +62,16 @@ type Alertable interface {
 
 type Named interface {
 	Name() string
+}
+
+// Typed ======================================================================
+
+type Typed interface {
+	Type() string
+}
+
+// Pathed ======================================================================
+
+type Pathed interface {
+	Path() string
 }

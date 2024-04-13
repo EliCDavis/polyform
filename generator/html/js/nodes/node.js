@@ -39,7 +39,7 @@ function BuildParameter(nodeManager, id, parameterData, app, guiFolderData) {
 }
 
 // https://stackoverflow.com/a/35953318/4974261
-function camelCaseToWords(str) {
+export function camelCaseToWords(str) {
     var result = str
         .replace(/(_)+/g, ' ')
         .replace(/([a-z])([A-Z][a-z])/g, "$1 $2")
@@ -57,6 +57,9 @@ function camelCaseToWords(str) {
     if (title.endsWith(" Node")) {
         title = title.substring(0, title.length - 5);
     }
+    if (title.endsWith(" Node Data")) {
+        title = title.substring(0, title.length - 10);
+    }
     return title;
 }
 
@@ -67,39 +70,39 @@ function camelCaseToWords(str) {
  * @param {bool} isProducer 
  * @returns 
  */
-function BuildCustomNode(app, nodeData, isProducer) {
-    function CustomNode() {
-        for (var inputName in nodeData.inputs) {
-            this.addInput(inputName, nodeData.inputs[inputName].type);
-        }
+// function BuildCustomNodeType(app, nodeData, isProducer) {
+//     function CustomNode() {
+//         for (var inputName in nodeData.inputs) {
+//             this.addInput(inputName, nodeData.inputs[inputName].type);
+//         }
 
-        if (!isProducer) {
-            nodeData.outputs.forEach((o) => {
-                this.addOutput(o.name, o.type);
-            })
-        } else {
-            this.color = "#232";
-            this.bgcolor = "#353";
-            this.addWidget("button", "Download", null, () => {
-                console.log("presed");
-                saveFileToDisk("/producer/" + nodeData.name, nodeData.name);
-            })
-        }
-        this.title = camelCaseToWords(nodeData.name);
+//         if (!isProducer) {
+//             nodeData.outputs.forEach((o) => {
+//                 this.addOutput(o.name, o.type);
+//             })
+//         } else {
+//             this.color = "#232";
+//             this.bgcolor = "#353";
+//             this.addWidget("button", "Download", null, () => {
+//                 console.log("presed");
+//                 saveFileToDisk("/producer/" + nodeData.name, nodeData.name);
+//             })
+//         }
+//         this.title = camelCaseToWords(nodeData.name);
 
-        // this.properties = { precision: 1 };
-    }
+//         // this.properties = { precision: 1 };
+//     }
 
-    const nodeName = "polyform/" + nodeData.name;
-    LiteGraph.registerNodeType(nodeName, CustomNode);
+//     const nodeName = "polyform/" + nodeData.name;
+//     LiteGraph.registerNodeType(nodeName, CustomNode);
 
-    const node = LiteGraph.createNode(nodeName);
-    node.setSize(node.computeSize());
+//     const node = LiteGraph.createNode(nodeName);
+//     node.setSize(node.computeSize());
 
-    // node.pos = [200, app.LightGraph._nodes.length * 100];
-    app.LightGraph.add(node);
-    return node;
-}
+//     // node.pos = [200, app.LightGraph._nodes.length * 100];
+//     app.LightGraph.add(node);
+//     return node;
+// }
 
 export class PolyNode {
     constructor(nodeManager, id, nodeData, app, guiFolderData, isProducer) {
@@ -134,7 +137,23 @@ export class PolyNode {
                 this.parameter.update(nodeData.parameter)
             }
         } else if (!this.lightNode) {
-            this.lightNode = BuildCustomNode(this.app, nodeData, this.isProducer)
+            // this.lightNode = BuildCustomNodeType(this.app, nodeData, this.isProducer)
+            const node = LiteGraph.createNode(nodeData.type);
+            node.setSize(node.computeSize());
+
+            if (this.isProducer) {
+                node.color = "#232";
+                node.bgcolor = "#353";
+                node.addWidget("button", "Download", null, () => {
+                    console.log("presed");
+                    saveFileToDisk("/producer/" + this.name, this.name);
+                })
+            }
+
+            // node.pos = [200, app.LightGraph._nodes.length * 100];
+            this.app.LightGraph.add(node);
+
+            this.lightNode = node;
         }
     }
 

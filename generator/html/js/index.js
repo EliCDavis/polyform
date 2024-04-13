@@ -381,7 +381,8 @@ class SchemaRefreshManager {
 
         producerScene = new THREE.Group();
         viewerContainer.add(producerScene);
-        schema.producers.forEach(producer => {
+
+        for (const [producer, producerData] of Object.entries(schema.producers)) {
             const fileExt = producer.split('.').pop().toLowerCase();
 
             switch (fileExt) {
@@ -398,7 +399,7 @@ class SchemaRefreshManager {
                     this.loadSplat('producer/' + producer)
                     break;
             }
-        });
+        }
     }
 }
 

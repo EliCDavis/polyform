@@ -9,24 +9,20 @@ import (
 	"github.com/EliCDavis/polyform/nodes"
 )
 
-type PerlinNoiseNormalsNode struct {
-	nodes.StructData[image.Image]
+type PerlinNoiseNormalsNode = nodes.StructNode[image.Image, PerlinNoiseNormalsNodeData]
 
+type PerlinNoiseNormalsNodeData struct {
 	Octaves        nodes.NodeOutput[int]
 	BlurIterations nodes.NodeOutput[int]
 }
 
-func (pnn *PerlinNoiseNormalsNode) Out() nodes.NodeOutput[image.Image] {
-	return nodes.StructNodeOutput[image.Image]{Definition: pnn}
-}
-
-func (pnn PerlinNoiseNormalsNode) Process() (image.Image, error) {
+func (pnn PerlinNoiseNormalsNodeData) Process() (image.Image, error) {
 	dim := 256
 	img := image.NewRGBA(image.Rect(0, 0, dim, dim))
 
 	octaves := 3
 	if pnn.Octaves != nil {
-		octaves = pnn.Octaves.Data()
+		octaves = pnn.Octaves.Value()
 	}
 
 	n := noise.NewTilingNoise(256, 1/64., octaves)
@@ -47,7 +43,7 @@ func (pnn PerlinNoiseNormalsNode) Process() (image.Image, error) {
 
 	blurIterations := 5
 	if pnn.BlurIterations != nil {
-		blurIterations = pnn.BlurIterations.Data()
+		blurIterations = pnn.BlurIterations.Value()
 	}
 
 	return texturing.BoxBlurNTimes(texturing.ToNormal(img), blurIterations), nil

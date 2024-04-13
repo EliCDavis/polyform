@@ -13,41 +13,8 @@ type Node interface {
 	Stateful
 	Subscribable
 	Dependent
-	// Producer
+
+	SetInput(input string, output Output)
 	Outputs() []Output
 	Inputs() []Input
-}
-
-type nodeData struct {
-	version int
-	state   NodeState
-	subs    []Alertable
-}
-
-func (nd *nodeData) incVersion() {
-	nd.version++
-}
-
-func (s nodeData) State() NodeState {
-	return s.state
-}
-
-func (v nodeData) Version() int {
-	return v.version
-}
-
-func (v *nodeData) MarkStale() {
-	v.state = Stale
-}
-
-func (v *nodeData) AddSubscription(a Alertable) {
-	v.subs = append(v.subs, a)
-}
-
-func (v *nodeData) alertSubscribers() {
-	for _, a := range v.subs {
-		if a != nil {
-			a.Alert(v.version, v.state)
-		}
-	}
 }

@@ -61,18 +61,12 @@ func SmoothNormals(m modeling.Mesh) modeling.Mesh {
 	return m.SetFloat3Attribute(modeling.NormalAttribute, normals)
 }
 
-type SmoothNormalsNode struct {
-	nodes.StructData[modeling.Mesh]
+type SmoothNormalsNode = nodes.StructNode[modeling.Mesh, SmoothNormalsNodeData]
 
+type SmoothNormalsNodeData struct {
 	Mesh nodes.NodeOutput[modeling.Mesh]
 }
 
-func (snn SmoothNormalsNode) Process() (modeling.Mesh, error) {
-	return SmoothNormals(snn.Mesh.Data()), nil
-}
-
-func (snn *SmoothNormalsNode) SmoothedMesh() nodes.NodeOutput[modeling.Mesh] {
-	return &nodes.StructNodeOutput[modeling.Mesh]{
-		Definition: snn,
-	}
+func (snn SmoothNormalsNodeData) Process() (modeling.Mesh, error) {
+	return SmoothNormals(snn.Mesh.Value()), nil
 }

@@ -35,6 +35,10 @@ func (in *ParameterNode[T]) Node() nodes.Node {
 	return in
 }
 
+func (vn ParameterNode[T]) SetInput(input string, output nodes.Output) {
+	panic("input can not be set")
+}
+
 func (pn *ParameterNode[T]) DisplayName() string {
 	return pn.Name
 }
@@ -61,14 +65,14 @@ func (pn *ParameterNode[T]) ApplyMessage(msg []byte) (bool, error) {
 }
 
 func (pn ParameterNode[T]) ToMessage() []byte {
-	data, err := json.Marshal(pn.Data())
+	data, err := json.Marshal(pn.Value())
 	if err != nil {
 		panic(err)
 	}
 	return data
 }
 
-func (pn *ParameterNode[T]) Data() T {
+func (pn *ParameterNode[T]) Value() T {
 	if pn.appliedProfile != nil {
 		return *pn.appliedProfile
 	}
@@ -86,7 +90,7 @@ func (pn *ParameterNode[T]) Schema() ParameterSchema {
 			Type: fmt.Sprintf("%T", *new(T)),
 		},
 		DefaultValue: pn.DefaultValue,
-		CurrentValue: pn.Data(),
+		CurrentValue: pn.Value(),
 	}
 }
 

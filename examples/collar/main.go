@@ -33,22 +33,22 @@ func SquarePoints(width, height float64) []vector2.Float64 {
 	}
 }
 
-type ConeNode struct {
-	nodes.StructData[modeling.Mesh]
+type ConeNode = nodes.StructNode[modeling.Mesh, ConeNodeData]
 
+type ConeNodeData struct {
 	Height nodes.NodeOutput[float64]
 	Radius nodes.NodeOutput[float64]
 	Sides  nodes.NodeOutput[int]
 }
 
-func (r ConeNode) Process() (modeling.Mesh, error) {
-	sides := r.Sides.Data()
+func (r ConeNodeData) Process() (modeling.Mesh, error) {
+	sides := r.Sides.Value()
 	if sides < 3 {
 		panic("can not make cone with less that 3 sides")
 	}
 
-	radius := r.Radius.Data()
-	height := r.Height.Data()
+	radius := r.Radius.Value()
+	height := r.Height.Value()
 
 	verts := repeat.CirclePoints(sides, radius)
 	lastVert := len(verts)
@@ -68,24 +68,20 @@ func (r ConeNode) Process() (modeling.Mesh, error) {
 		Rotate(quaternion.FromTheta(math.Pi/2, vector3.Right[float64]())), nil
 }
 
-func (r *ConeNode) Out() nodes.NodeOutput[modeling.Mesh] {
-	return &nodes.StructNodeOutput[modeling.Mesh]{Definition: r}
-}
+type CollarNode = nodes.StructNode[modeling.Mesh, CollarNodeData]
 
-type CollarNode struct {
-	nodes.StructData[modeling.Mesh]
-
+type CollarNodeData struct {
 	Height     nodes.NodeOutput[float64]
 	Thickness  nodes.NodeOutput[float64]
 	Resolution nodes.NodeOutput[int]
 	Radius     nodes.NodeOutput[float64]
 }
 
-func (cn CollarNode) Process() (modeling.Mesh, error) {
-	collarHeight := cn.Height.Data()
-	collarThickness := cn.Thickness.Data()
-	collarRadius := cn.Radius.Data()
-	collarResolution := repeat.CirclePoints(cn.Resolution.Data(), collarRadius)
+func (cn CollarNodeData) Process() (modeling.Mesh, error) {
+	collarHeight := cn.Height.Value()
+	collarThickness := cn.Thickness.Value()
+	collarRadius := cn.Radius.Value()
+	collarResolution := repeat.CirclePoints(cn.Resolution.Value(), collarRadius)
 
 	collarUVs := make([]vector2.Float64, 0)
 	return extrude.ClosedShape(SquarePoints(collarThickness, collarHeight), collarResolution).
@@ -101,28 +97,20 @@ func (cn CollarNode) Process() (modeling.Mesh, error) {
 		SetFloat2Attribute(modeling.TexCoordAttribute, collarUVs), nil
 }
 
-func (cn *CollarNode) Out() nodes.NodeOutput[modeling.Mesh] {
-	return &nodes.StructNodeOutput[modeling.Mesh]{Definition: cn}
-}
+type GlbArtifactNode = nodes.StructNode[generator.Artifact, GlbArtifactNodeData]
 
-type GlbArtifactNode struct {
-	nodes.StructData[generator.Artifact]
-
+type GlbArtifactNodeData struct {
 	Collar     nodes.NodeOutput[modeling.Mesh]
 	Spikes     nodes.NodeOutput[modeling.Mesh]
 	SpikeColor nodes.NodeOutput[coloring.WebColor]
 }
 
-func (gan *GlbArtifactNode) Out() nodes.NodeOutput[generator.Artifact] {
-	return &nodes.StructNodeOutput[generator.Artifact]{Definition: gan}
-}
-
-func (gan GlbArtifactNode) Process() (generator.Artifact, error) {
+func (gan GlbArtifactNodeData) Process() (generator.Artifact, error) {
 	scene := gltf.PolyformScene{
 		Models: []gltf.PolyformModel{
 			{
 				Name: "Collar",
-				Mesh: gan.Collar.Data(),
+				Mesh: gan.Collar.Value(),
 				Material: &gltf.PolyformMaterial{
 					Name: "Collar",
 					PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
@@ -134,11 +122,11 @@ func (gan GlbArtifactNode) Process() (generator.Artifact, error) {
 			},
 			{
 				Name: "Spikes",
-				Mesh: gan.Spikes.Data(),
+				Mesh: gan.Spikes.Value(),
 				Material: &gltf.PolyformMaterial{
 					Name: "Spikes",
 					PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
-						BaseColorFactor: gan.SpikeColor.Data(),
+						BaseColorFactor: gan.SpikeColor.Value(),
 						MetallicFactor:  1,
 						MetallicRoughnessTexture: &gltf.PolyformTexture{
 							URI: mrTexturePath,
@@ -154,24 +142,20 @@ func (gan GlbArtifactNode) Process() (generator.Artifact, error) {
 	}, nil
 }
 
-type CollarAlbedoTextureNode struct {
-	nodes.StructData[image.Image]
+type CollarAlbedoTextureNode = nodes.StructNode[image.Image, CollarAlbedoTextureNodeData]
 
+type CollarAlbedoTextureNodeData struct {
 	BaseColor   nodes.NodeOutput[coloring.WebColor]
 	StitchColor nodes.NodeOutput[coloring.WebColor]
 }
 
-func (catn *CollarAlbedoTextureNode) Out() nodes.NodeOutput[image.Image] {
-	return &nodes.StructNodeOutput[image.Image]{Definition: catn}
-}
-
-func (catn CollarAlbedoTextureNode) Process() (image.Image, error) {
+func (catn CollarAlbedoTextureNodeData) Process() (image.Image, error) {
 	ctx := gg.NewContext(256, 256)
-	ctx.SetColor(catn.BaseColor.Data())
+	ctx.SetColor(catn.BaseColor.Value())
 	ctx.DrawRectangle(0, 0, 256, 256)
 	ctx.Fill()
 
-	ctx.SetColor(catn.StitchColor.Data())
+	ctx.SetColor(catn.StitchColor.Value())
 	ctx.SetLineWidth(8)
 	lineLength := 20
 	lineGap := 12
@@ -205,34 +189,43 @@ func mrTexture() image.Image {
 }
 
 func main() {
-
 	collarRadius := &generator.ParameterNode[float64]{Name: "Collar/Radius", DefaultValue: 1}
 
 	spikeRing := repeat.CircleNode{
-		Mesh: (&meshops.SmoothNormalsNode{
-			Mesh: (&ConeNode{
-				Height: &generator.ParameterNode[float64]{Name: "Spike/Height", DefaultValue: .2},
-				Radius: &generator.ParameterNode[float64]{Name: "Spike/Radius", DefaultValue: .1},
-				Sides:  &generator.ParameterNode[int]{Name: "Spike/Resolution", DefaultValue: 30},
-			}).Out(),
-		}).SmoothedMesh(),
-		Radius: collarRadius,
-		Times:  &generator.ParameterNode[int]{Name: "Spike/Count", DefaultValue: 20},
+		Data: repeat.CircleNodeData{
+			Mesh: &meshops.SmoothNormalsNode{
+				Data: meshops.SmoothNormalsNodeData{
+					Mesh: &ConeNode{
+						Data: ConeNodeData{
+							Height: &generator.ParameterNode[float64]{Name: "Spike/Height", DefaultValue: .2},
+							Radius: &generator.ParameterNode[float64]{Name: "Spike/Radius", DefaultValue: .1},
+							Sides:  &generator.ParameterNode[int]{Name: "Spike/Resolution", DefaultValue: 30},
+						},
+					},
+				},
+			},
+			Radius: collarRadius,
+			Times:  &generator.ParameterNode[int]{Name: "Spike/Count", DefaultValue: 20},
+		},
 	}
 
-	collar := CollarNode{
-		Height:     &generator.ParameterNode[float64]{Name: "Collar/Height", DefaultValue: .2},
-		Thickness:  &generator.ParameterNode[float64]{Name: "Collar/Thickness", DefaultValue: .1},
-		Resolution: &generator.ParameterNode[int]{Name: "Collar/Resolution", DefaultValue: 30},
-		Radius:     collarRadius,
+	collar := &CollarNode{
+		Data: CollarNodeData{
+			Height:     &generator.ParameterNode[float64]{Name: "Collar/Height", DefaultValue: .2},
+			Thickness:  &generator.ParameterNode[float64]{Name: "Collar/Thickness", DefaultValue: .1},
+			Resolution: &generator.ParameterNode[int]{Name: "Collar/Resolution", DefaultValue: 30},
+			Radius:     collarRadius,
+		},
 	}
 
-	gltfNode := GlbArtifactNode{
-		Collar: collar.Out(),
-		Spikes: spikeRing.Out(),
-		SpikeColor: &generator.ParameterNode[coloring.WebColor]{
-			Name:         "Spike/Color",
-			DefaultValue: coloring.WebColor{244, 244, 244, 255},
+	gltfNode := &GlbArtifactNode{
+		Data: GlbArtifactNodeData{
+			Collar: collar.Out(),
+			Spikes: spikeRing.Out(),
+			SpikeColor: &generator.ParameterNode[coloring.WebColor]{
+				Name:         "Spike/Color",
+				DefaultValue: coloring.WebColor{244, 244, 244, 255},
+			},
 		},
 	}
 
@@ -254,16 +247,18 @@ func main() {
 		Producers: map[string]nodes.NodeOutput[generator.Artifact]{
 			"mesh.glb":    gltfNode.Out(),
 			mrTexturePath: generator.NewImageArtifactNode(nodes.FuncValue(mrTexture)),
-			collarAlbedoPath: generator.NewImageArtifactNode((&CollarAlbedoTextureNode{
-				BaseColor: &generator.ParameterNode[coloring.WebColor]{
-					Name:         "Collar/Base Color",
-					DefaultValue: coloring.WebColor{46, 46, 46, 255},
+			collarAlbedoPath: generator.NewImageArtifactNode(&CollarAlbedoTextureNode{
+				Data: CollarAlbedoTextureNodeData{
+					BaseColor: &generator.ParameterNode[coloring.WebColor]{
+						Name:         "Collar/Base Color",
+						DefaultValue: coloring.WebColor{46, 46, 46, 255},
+					},
+					StitchColor: &generator.ParameterNode[coloring.WebColor]{
+						Name:         "Collar/Stitch Color",
+						DefaultValue: coloring.WebColor{10, 10, 10, 255},
+					},
 				},
-				StitchColor: &generator.ParameterNode[coloring.WebColor]{
-					Name:         "Collar/Stitch Color",
-					DefaultValue: coloring.WebColor{10, 10, 10, 255},
-				},
-			}).Out()),
+			}),
 		},
 	}
 
