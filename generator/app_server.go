@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/EliCDavis/polyform/generator/room"
+	"github.com/EliCDavis/polyform/nodes"
 )
 
 func writeJSONError(out io.Writer, err error) error {
@@ -148,18 +149,19 @@ func (as *AppServer) Serve() error {
 }
 
 type CreateNodeRequest struct {
-	FactoryID string
+	FactoryID string `json:"factoryID"`
 }
 
 type CreateNodeResponse struct {
-	NodeID string
+	NodeID string `json:"nodeID"`
 }
 
-type DeleteNodeMessage struct {
-	NodeID string
+type DeleteNodeRequest struct {
+	NodeID string `json:"nodeID"`
 }
 
 func (as *AppServer) NodeEndpoint(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
 
 	var response any
 
@@ -170,38 +172,41 @@ func (as *AppServer) NodeEndpoint(w http.ResponseWriter, r *http.Request) {
 			panic(err)
 		}
 
-		if factory, ok := as.app.AvailableNodes[createRequest.FactoryID]; ok {
-			node := factory()
-			as.app.buildIDsForNode(node)
+		if as.app.types.KeyRegistered(createRequest.FactoryID) {
+			newNode := as.app.types.New(createRequest.FactoryID)
+			casted, ok := newNode.(nodes.Node)
+			if !ok {
+				panic(fmt.Errorf("what the fuck: %s", createRequest.FactoryID))
+			}
+			as.app.buildIDsForNode(casted)
 			response = CreateNodeResponse{
-				NodeID: as.app.nodeIDs[node],
+				NodeID: as.app.nodeIDs[casted],
 			}
 		} else {
 			writeJSONError(w, fmt.Errorf("no factory registered with ID %s", createRequest.FactoryID))
+			return
 		}
 
 	case "DELETE":
-		deleteRequest, err := readJSON[CreateNodeResponse](r.Body)
+		deleteRequest, err := readJSON[DeleteNodeRequest](r.Body)
 		if err != nil {
 			panic(err)
 		}
-		delete(as.app.AvailableNodes, deleteRequest.NodeID)
+
+		var nodeToDelete nodes.Node
+		for n, id := range as.app.nodeIDs {
+			if id == deleteRequest.NodeID {
+				nodeToDelete = n
+			}
+		}
+
+		delete(as.app.nodeIDs, nodeToDelete)
 
 	default:
 		panic(fmt.Errorf("node endpoint has not implemented HTTP method: '%s'", r.Method))
 	}
 
-	w.Header().Set("Content-Type", "application/json")
 	data, err := json.Marshal(response)
-	if err != nil {
-		panic(err)
-	}
-	w.Write(data)
-}
-
-func (as *AppServer) NodeConnectionEndpoint(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	data, err := json.Marshal(as.app.Schema())
 	if err != nil {
 		panic(err)
 	}

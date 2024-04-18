@@ -15,6 +15,22 @@ type TypeFactory struct {
 	types map[string]typeEntry
 }
 
+// type TypeFactoryEntry interface {
+// 	pkg() string
+// }
+
+// type TypeEntry[T any] struct {
+// 	Builder func()
+// }
+
+// func (TypeEntry[T]) pkg() string {
+// 	return ""
+// }
+
+// func NewTypeFactory(entries ...TypeFactoryEntry) {
+
+// }
+
 func (tf TypeFactory) Types() []string {
 	t := make([]string, 0, len(tf.types))
 	for key := range tf.types {
@@ -23,6 +39,22 @@ func (tf TypeFactory) Types() []string {
 	slices.Sort(t)
 
 	return t
+}
+
+func (tf TypeFactory) KeyRegistered(key string) bool {
+	if tf.types == nil {
+		return false
+	}
+	_, ok := tf.types[key]
+	return ok
+}
+
+func (tf TypeFactory) TypeRegistered(v any) bool {
+	if tf.types == nil {
+		return false
+	}
+	_, ok := tf.types[GetTypeWithPackage(v)]
+	return ok
 }
 
 func (tf TypeFactory) New(key string) any {
@@ -53,6 +85,28 @@ func (factory *TypeFactory) RegisterType(v any) {
 	}
 }
 
+func (factory TypeFactory) Combine(others ...*TypeFactory) *TypeFactory {
+	newFactory := make(map[string]typeEntry)
+
+	for key, val := range factory.types {
+		newFactory[key] = val
+	}
+
+	for _, f := range others {
+		for key, val := range f.types {
+			if _, ok := newFactory[key]; ok {
+				panic(fmt.Errorf("combining type factories led to a collision: '%s'", key))
+			}
+
+			newFactory[key] = val
+		}
+	}
+
+	return &TypeFactory{
+		types: newFactory,
+	}
+}
+
 func RegisterType[T any](factory *TypeFactory) {
 	if factory.types == nil {
 		factory.types = make(map[string]typeEntry)
@@ -65,4 +119,30 @@ func RegisterType[T any](factory *TypeFactory) {
 			return &v
 		},
 	}
+}
+
+func RegisterTypeWithBuilder[T any](factory *TypeFactory, builder func() T) {
+	if factory.types == nil {
+		factory.types = make(map[string]typeEntry)
+	}
+
+	factory.types[GetTypeWithPackage(new(T))] = typeEntry{
+		pkg: GetPackagePath(new(T)),
+		builder: func() any {
+			v := builder()
+			return &v
+		},
+	}
+}
+
+func BuildType[T any](factory *TypeFactory) *T {
+	typeName := GetTypeWithPackage(new(T))
+	built := factory.New(typeName)
+	cast, ok := built.(*T)
+
+	if !ok {
+		panic(fmt.Errorf("unable to construct type %s, instead constructed %v", typeName, built))
+	}
+
+	return cast
 }

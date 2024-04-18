@@ -30,8 +30,6 @@ type App struct {
 	Authors     []Author
 	Producers   map[string]nodes.NodeOutput[Artifact]
 
-	AvailableNodes map[string]NodeBuilder
-
 	// Runtime data
 	nodeIDs map[nodes.Node]string
 	types   *refutil.TypeFactory
@@ -63,9 +61,18 @@ func writeProducersToZip(path string, producers map[string]nodes.NodeOutput[Arti
 	return nil
 }
 
+func (a *App) nodeFromID(id string) nodes.Node {
+	for node, nodeID := range a.nodeIDs {
+		if nodeID == id {
+			return node
+		}
+	}
+	panic(fmt.Sprintf("no node with id '%s' found", id))
+}
+
 func (a *App) addType(v any) {
 	if a.types == nil {
-		a.types = &refutil.TypeFactory{}
+		a.types = Nodes()
 	}
 	a.types.RegisterType(v)
 }
@@ -165,7 +172,7 @@ func BuildNodeTypeSchema(node nodes.Node) NodeTypeSchema {
 	if typed, ok := node.(nodes.Typed); ok {
 		typeSchema.DisplayName = typed.Type()
 	} else {
-		// typeSchema.DisplayName = refutil.GetTypeName(node)
+		typeSchema.DisplayName = refutil.GetTypeName(node)
 	}
 
 	if pathed, ok := node.(nodes.Pathed); ok {
@@ -191,6 +198,13 @@ func BuildNodeTypeSchema(node nodes.Node) NodeTypeSchema {
 	}
 
 	return typeSchema
+}
+
+func (a *App) recursivelyRegisterNodeTypes(node nodes.Node) {
+	a.addType(node)
+	for _, subDependency := range node.Dependencies() {
+		a.recursivelyRegisterNodeTypes(subDependency.Dependency())
+	}
 }
 
 func (a App) buildSchemaForNode(node nodes.Node, currentSchema map[string]NodeInstanceSchema) {
@@ -338,6 +352,10 @@ func (a *App) Run() error {
 	}
 
 	os_setup(a)
+
+	for _, p := range a.Producers {
+		a.recursivelyRegisterNodeTypes(p.Node())
+	}
 
 	commandMap := make(map[string]*cliCommand)
 

@@ -3,6 +3,7 @@ package gausops
 import (
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/meshops"
+	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/vector/vector3"
 )
 
@@ -32,4 +33,21 @@ func Scale(m modeling.Mesh, scaleAttr string, amount vector3.Float64) modeling.M
 		scaledData[i] = oldData.At(i).Exp().MultByVector(amount).Log()
 	}
 	return m.SetFloat3Attribute(modeling.ScaleAttribute, scaledData)
+}
+
+type ScaleNode = nodes.StructNode[modeling.Mesh, ScaleNodeData]
+
+type ScaleNodeData struct {
+	Attribute nodes.NodeOutput[string]
+	Mesh      nodes.NodeOutput[modeling.Mesh]
+	Amount    nodes.NodeOutput[vector3.Float64]
+}
+
+func (sa3dn ScaleNodeData) Process() (modeling.Mesh, error) {
+	attr := modeling.ScaleAttribute
+	if sa3dn.Attribute != nil {
+		attr = sa3dn.Attribute.Value()
+	}
+
+	return Scale(sa3dn.Mesh.Value(), attr, sa3dn.Amount.Value()), nil
 }

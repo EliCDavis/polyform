@@ -142,6 +142,8 @@ orbitControls.update();
 
 camera.position.z = 5;
 
+const requestManager = new RequestManager();
+
 const App = {
     Camera: camera,
     Renderer: renderer,
@@ -151,9 +153,10 @@ const App = {
     ViewerScene: viewerContainer,
     LightGraph: lgraphInstance,
     ColorSelector: new ColorSelector("colorSelectorContainer"),
+    RequestManager: requestManager,
+    ServerUpdatingNodeConnections: false,
 }
 
-const requestManager = new RequestManager();
 const nodeManager = new NodeManager(App);
 const schemaManager = new SchemaManager(requestManager, nodeManager);
 

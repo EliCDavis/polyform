@@ -69,6 +69,17 @@ class RequestManager {
         xmlHttp.send(body);
     }
 
+    delete(theUrl, body, callback) {
+        const xmlHttp = new XMLHttpRequest();
+        xmlHttp.onreadystatechange = () => {
+            if (xmlHttp.readyState == 4 && xmlHttp.status == 200 && callback) {
+                callback(JSON.parse(xmlHttp.responseText));
+            }
+        }
+        xmlHttp.open("DELETE", theUrl, true); // true for asynchronous 
+        xmlHttp.send(body);
+    }
+
     getStartedTime(callback) {
         this.fetch("/started", callback);
     }
@@ -84,5 +95,21 @@ class RequestManager {
         } else {
             this.postJson(url, data, callback);
         }
+    }
+
+    deleteNodeInput(nodeID, inputPortName, callback) {
+        this.delete("node/connection", JSON.stringify({
+            "nodeId": nodeID,
+            "inPortName": inputPortName
+        }), callback)
+    }
+
+    setNodeInputConnection(inNodeID, inputPortName, outNodeID, outPortName, callback) {
+        this.postJson("node/connection", {
+            "nodeOutId": outNodeID,
+            "outPortName": outPortName,
+            "nodeInId": inNodeID,
+            "inPortName": inputPortName
+        }, callback)
     }
 }

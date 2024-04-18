@@ -63,13 +63,6 @@ export function camelCaseToWords(str) {
     return title;
 }
 
-/**
- * 
- * @param {*} app 
- * @param {*} nodeData 
- * @param {bool} isProducer 
- * @returns 
- */
 // function BuildCustomNodeType(app, nodeData, isProducer) {
 //     function CustomNode() {
 //         for (var inputName in nodeData.inputs) {
@@ -129,10 +122,13 @@ export class PolyNode {
         this.version = nodeData.version;
         this.dependencies = nodeData.dependencies;
 
+        let created = false;
+
         if (nodeData.parameter) {
             if (!this.parameter) {
                 this.parameter = BuildParameter(this.nodeManager, this.id, nodeData.parameter, this.app, this.guiFolderData);
                 this.lightNode = this.parameter.lightNode;
+                created = true;
             } else {
                 this.parameter.update(nodeData.parameter)
             }
@@ -154,6 +150,54 @@ export class PolyNode {
             this.app.LightGraph.add(node);
 
             this.lightNode = node;
+            created = true;
+        }
+
+        if (created) {
+            this.lightNode.nodeInstanceID = this.id;
+            this.lightNode.onConnectInput = (a, b, c, d, e, f, g) => {
+                console.log("onConnectInput", a, b, c, d, e, f, g)
+            }
+
+            this.lightNode.onConnectionsChange = (inOrOut, slot /* string or number */, connected, linkInfo, inputInfo) => {
+                if (this.app.ServerUpdatingNodeConnections) {
+                    return;
+                }
+
+                const input = inOrOut === LiteGraph.INPUT;
+                const output = inOrOut === LiteGraph.OUTPUT;
+
+                console.log("onConnectionsChange", {
+                    "input": input,
+                    "slot": slot,
+                    "connected": connected,
+                    "linkInfo": linkInfo,
+                    "inputInfo": inputInfo
+                })
+
+                if (input && !connected) {
+                    this.app.RequestManager.deleteNodeInput(this.id, inputInfo.name)
+                }
+
+                if(input && connected) {
+                    console.log(LiteGraph)
+                    console.log(lgraphInstance)
+
+                    const link = lgraphInstance.links[linkInfo.id];
+                    const outNode = lgraphInstance.getNodeById(link.origin_id);
+                    const inNode = lgraphInstance.getNodeById(link.target_id);
+                    console.log(link)
+                    console.log("out?", outNode)
+                    console.log("in?", inNode)
+
+                    this.app.RequestManager.setNodeInputConnection(
+                        inNode.nodeInstanceID,
+                        inNode.inputs[link.target_slot].name,
+                        outNode.nodeInstanceID,
+                        outNode.outputs[link.origin_slot].name,
+                    )
+                }
+            }
         }
     }
 

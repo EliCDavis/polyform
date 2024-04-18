@@ -113,9 +113,27 @@ func (pn *ParameterNode[T]) State() nodes.NodeState {
 func (tn ParameterNode[T]) Outputs() []nodes.Output {
 	return []nodes.Output{
 		{
-			Name: "Data",
+			Name: "Out",
 			Type: refutil.GetTypeWithPackage(new(T)),
 		},
+	}
+}
+
+type ParameterNodeOutput[T any] struct {
+	parameter *ParameterNode[T]
+}
+
+func (sno ParameterNodeOutput[T]) Value() T {
+	return sno.parameter.Value()
+}
+
+func (sno ParameterNodeOutput[T]) Node() nodes.Node {
+	return sno.parameter
+}
+
+func (tn *ParameterNode[T]) Out() nodes.NodeOutput[T] {
+	return ParameterNodeOutput[T]{
+		parameter: tn,
 	}
 }
 

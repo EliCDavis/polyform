@@ -118,6 +118,26 @@ func FuncValuesOfType[T any](in any) []string {
 	return out
 }
 
+func CallFuncValuesOfType(in any, methodName string, args ...any) []any {
+	method := reflect.ValueOf(in).MethodByName(methodName)
+	bitch := reflect.Value{}
+	if method == bitch {
+		panic(fmt.Errorf("no method %s found on %v", methodName, in))
+	}
+
+	argVals := make([]reflect.Value, len(args))
+	for i, arg := range argVals {
+		argVals[i] = reflect.ValueOf(arg)
+	}
+	vals := method.Call(argVals)
+
+	returnVals := make([]any, len(vals))
+	for i, v := range vals {
+		returnVals[i] = v.Interface()
+	}
+	return returnVals
+}
+
 func FieldValuesOfType[T any](in any) map[string]T {
 	viewPointerValue := reflect.ValueOf(in)
 
@@ -185,6 +205,7 @@ func SetStructField(structToSet any, field string, val any) {
 
 	viewType := view.Type()
 
+	// viewType.FieldByName(field)
 	for i := 0; i < viewType.NumField(); i++ {
 		structField := viewType.Field(i)
 
@@ -200,7 +221,13 @@ func SetStructField(structToSet any, field string, val any) {
 			panic(fmt.Errorf("field '%s' was found but can not be set", field))
 		}
 
-		viewFieldValue.Set(reflect.ValueOf(val))
+		if val == nil {
+			viewFieldValue.Set(reflect.Zero(structField.Type))
+
+		} else {
+			viewFieldValue.Set(reflect.ValueOf(val))
+		}
+
 		return
 	}
 

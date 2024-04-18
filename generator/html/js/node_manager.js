@@ -139,6 +139,7 @@ export class NodeManager {
     }
 
     updateNodeConnections(nodes) {
+        this.app.ServerUpdatingNodeConnections = true;
         for (let node of nodes) {
             const nodeID = node[0];
             const nodeData = node[1];
@@ -160,6 +161,7 @@ export class NodeManager {
                 // source.lightNode.connect(i, target.lightNode, 0);
             }
         }
+        this.app.ServerUpdatingNodeConnections = false;
     }
 
     buildCustomNodeType(typeData) {

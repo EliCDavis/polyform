@@ -13,6 +13,7 @@ type TestStruct struct {
 	A int
 	B bool
 	C vector3.Float64
+	D *vector3.Float64
 }
 
 func (ts TestStruct) Read(b []byte) (int, error) {
@@ -225,22 +226,26 @@ func TestGetTypeNameWithoutPackage(t *testing.T) {
 }
 
 func TestSetStructField(t *testing.T) {
+	v := vector3.New(1., 2., 3.)
 	ts := &TestStruct{
 		A: 6,
 		B: true,
 		C: vector3.New(1., 2., 3.),
+		D: &v,
 	}
 
 	refutil.SetStructField(ts, "A", 4)
 	refutil.SetStructField(ts, "B", false)
 	refutil.SetStructField(ts, "C", vector3.New(4., 5., 6.))
+	refutil.SetStructField(ts, "D", nil)
 
 	assert.Equal(t, 4, ts.A)
 	assert.Equal(t, false, ts.B)
 	assert.Equal(t, vector3.New(4., 5., 6.), ts.C)
+	assert.Nil(t, ts.D)
 
-	assert.PanicsWithError(t, "field 'D' was not found on struct", func() {
-		refutil.SetStructField(ts, "D", 5)
+	assert.PanicsWithError(t, "field 'FAIL' was not found on struct", func() {
+		refutil.SetStructField(ts, "FAIL", 5)
 	})
 
 	assert.PanicsWithError(t, "value of type: 'int' has no field 'D' to set", func() {

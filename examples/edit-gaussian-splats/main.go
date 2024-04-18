@@ -282,11 +282,7 @@ func main() {
 				},
 			}),
 		},
-		AvailableNodes: map[string]generator.NodeBuilder{
-			"polyform/test": func() nodes.Node {
-				return &generator.ParameterNode[float64]{Name: "Created Node", DefaultValue: 666}
-			},
-		},
+		// AvailableNodes: generator.Nodes(),
 	}
 
 	if err := app.Run(); err != nil {

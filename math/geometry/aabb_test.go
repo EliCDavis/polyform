@@ -362,20 +362,123 @@ func TestAABBExpand(t *testing.T) {
 	assert.Equal(t, vector3.New(3., 3., 3.), aabb.Size())
 }
 
-func TestAABBEncapsulatePoints(t *testing.T) {
-	aabb := geometry.NewEmptyAABB()
+func TestAABBEncapsulatePoint(t *testing.T) {
+	tests := map[string]struct {
+		points []vector3.Float64
+		size   vector3.Float64
+		center vector3.Float64
+	}{
+		"0,0,0": {
+			center: vector3.Zero[float64](),
+			size:   vector3.Zero[float64](),
+			points: []vector3.Float64{
+				vector3.New(0., 0., 0),
+			},
+		},
+		"1,1,1": {
+			center: vector3.Fill(0.5),
+			size:   vector3.One[float64](),
+			points: []vector3.Float64{
+				vector3.New(1., 1., 1),
+			},
+		},
+		"0,1,0": {
+			center: vector3.New(0., 0.5, 0.),
+			size:   vector3.New(0., 1., 0.),
+			points: []vector3.Float64{
+				vector3.New(0., 1., 0.),
+			},
+		},
+		"-1,-1,-1": {
+			center: vector3.Fill(-0.5),
+			size:   vector3.One[float64](),
+			points: []vector3.Float64{
+				vector3.New(-1., -1., -1),
+			},
+		},
+		"cube": {
+			center: vector3.Zero[float64](),
+			size:   vector3.One[float64](),
+			points: []vector3.Float64{
+				vector3.New(-0.5, 0., 0.),
+				vector3.New(0.5, 0., 0.),
+				vector3.New(0., 0.5, 0.),
+				vector3.New(0., -0.5, 0.),
+				vector3.New(0., 0., 0.5),
+				vector3.New(0., 0., -0.5),
+			},
+		},
+	}
 
-	aabb.EncapsulatePoint(vector3.New(-0.5, 0., 0.))
-	aabb.EncapsulatePoint(vector3.New(0.5, 0., 0.))
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			aabb := geometry.NewEmptyAABB()
+			for _, p := range tc.points {
+				aabb.EncapsulatePoint(p)
+			}
+			assert.Equal(t, tc.size, aabb.Size(), "Size mismatch")
+			assert.Equal(t, tc.center, aabb.Center(), "center mismatch")
+		})
+	}
+}
 
-	aabb.EncapsulatePoint(vector3.New(0., 0.5, 0.))
-	aabb.EncapsulatePoint(vector3.New(0., -0.5, 0.))
+func TestAABBEncapsulateBounds(t *testing.T) {
+	tests := map[string]struct {
+		start  geometry.AABB
+		bounds geometry.AABB
+		want   geometry.AABB
+	}{
+		"nothing encapsulating nothing gives you nothing": {},
+		"no overlap": {
+			start: geometry.NewAABB(
+				vector3.New(0, 0.5, 0),
+				vector3.One[float64](),
+			),
+			bounds: geometry.NewAABB(
+				vector3.New(0, -0.5, 0),
+				vector3.One[float64](),
+			),
+			want: geometry.NewAABB(
+				vector3.Zero[float64](),
+				vector3.New(1., 2., 1.),
+			),
+		},
+		"some overlap": {
+			start: geometry.NewAABB(
+				vector3.Zero[float64](),
+				vector3.One[float64](),
+			),
+			bounds: geometry.NewAABB(
+				vector3.New(0, 0.5, 0),
+				vector3.One[float64](),
+			),
+			want: geometry.NewAABB(
+				vector3.New(0., .25, 0.),
+				vector3.New(1., 1.5, 1.),
+			),
+		},
+		"100% overlap": {
+			start: geometry.NewAABB(
+				vector3.Zero[float64](),
+				vector3.One[float64](),
+			),
+			bounds: geometry.NewAABB(
+				vector3.Zero[float64](),
+				vector3.One[float64](),
+			),
+			want: geometry.NewAABB(
+				vector3.Zero[float64](),
+				vector3.One[float64](),
+			),
+		},
+	}
 
-	aabb.EncapsulatePoint(vector3.New(0., 0., 0.5))
-	aabb.EncapsulatePoint(vector3.New(0., 0., -0.5))
-
-	assert.Equal(t, vector3.Zero[float64](), aabb.Center())
-	assert.Equal(t, vector3.One[float64](), aabb.Size())
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			tc.start.EncapsulateBounds(tc.bounds)
+			assert.Equal(t, tc.want, tc.start)
+		})
+	}
 }
 
 func TestAABBFromPoints(t *testing.T) {
