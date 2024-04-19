@@ -8,23 +8,20 @@ require (
 	github.com/stretchr/testify v1.8.4
 )
 
-require github.com/gorilla/websocket v1.5.1
-
 require (
-	github.com/EliCDavis/sfm v1.0.1 // indirect
-	github.com/stretchr/objx v0.5.1 // indirect
-	golang.org/x/mod v0.15.0 // indirect
-	golang.org/x/net v0.21.0 // indirect
+	github.com/EliCDavis/sfm v1.0.1
+	github.com/gorilla/websocket v1.5.1
 )
+
+require golang.org/x/net v0.23.0 // indirect
 
 require (
 	github.com/EliCDavis/bitlib v1.1.0
 	github.com/EliCDavis/iter v1.0.2
-	github.com/mattn/go-runewidth v0.0.15 // indirect
 	github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
-	golang.org/x/sys v0.17.0 // indirect
-	golang.org/x/term v0.17.0 // indirect
+	golang.org/x/sys v0.18.0 // indirect
+	golang.org/x/term v0.18.0 // indirect
 )
 
 require (
@@ -41,5 +38,4 @@ require (
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/xrash/smetrics v0.0.0-20231213231151-1d8dd44e695e // indirect
 	golang.org/x/image v0.15.0
-	golang.org/x/tools v0.18.0
 )
