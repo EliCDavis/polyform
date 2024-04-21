@@ -382,12 +382,13 @@
     </script>
 
     <script>
+        // LiteGraph.clearRegisteredTypes();
         const lgraphInstance = new LGraph();
 
         const lightCanvasCanvas = document.getElementById("light-canvas")
         const lightCanvas = new LGraphCanvas("#light-canvas", lgraphInstance);
 
-        lgraphInstance.start()
+        lgraphInstance.start();
     </script>
 
 </body>

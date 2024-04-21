@@ -5,6 +5,7 @@ import { NodeVector3ArryParameter } from './vector3_array_parameter.js';
 import { ImageParameterNode } from './image_parameter.js';
 import { NodeAABBParameter } from './aabb_parameter.js';
 import { ColorParameter } from './color_parameter.js';
+import { NodeManager } from '../node_manager.js';
 
 
 function BuildParameter(nodeManager, id, parameterData, app, guiFolderData) {
@@ -98,6 +99,16 @@ export function camelCaseToWords(str) {
 // }
 
 export class PolyNode {
+
+    /**
+     * 
+     * @param {NodeManager} nodeManager 
+     * @param {*} id 
+     * @param {*} nodeData 
+     * @param {*} app 
+     * @param {*} guiFolderData 
+     * @param {*} isProducer 
+     */
     constructor(nodeManager, id, nodeData, app, guiFolderData, isProducer) {
         this.app = app;
         this.guiFolderData = guiFolderData;
@@ -134,7 +145,8 @@ export class PolyNode {
             }
         } else if (!this.lightNode) {
             // this.lightNode = BuildCustomNodeType(this.app, nodeData, this.isProducer)
-            const node = LiteGraph.createNode(nodeData.type);
+            const nodeIdentifier = this.nodeManager.nodeTypeToLitePath.get(nodeData.type)
+            const node = LiteGraph.createNode(nodeIdentifier);
             node.setSize(node.computeSize());
 
             if (this.isProducer) {
@@ -155,9 +167,9 @@ export class PolyNode {
 
         if (created) {
             this.lightNode.nodeInstanceID = this.id;
-            this.lightNode.onConnectInput = (a, b, c, d, e, f, g) => {
-                console.log("onConnectInput", a, b, c, d, e, f, g)
-            }
+            // this.lightNode.onConnectInput = (a, b, c, d, e, f, g) => {
+            //     console.log("onConnectInput", a, b, c, d, e, f, g)
+            // }
 
             this.lightNode.onConnectionsChange = (inOrOut, slot /* string or number */, connected, linkInfo, inputInfo) => {
                 if (this.app.ServerUpdatingNodeConnections) {
@@ -180,15 +192,15 @@ export class PolyNode {
                 }
 
                 if(input && connected) {
-                    console.log(LiteGraph)
-                    console.log(lgraphInstance)
+                    // console.log(LiteGraph)
+                    // console.log(lgraphInstance)
 
                     const link = lgraphInstance.links[linkInfo.id];
                     const outNode = lgraphInstance.getNodeById(link.origin_id);
                     const inNode = lgraphInstance.getNodeById(link.target_id);
-                    console.log(link)
-                    console.log("out?", outNode)
-                    console.log("in?", inNode)
+                    // console.log(link)
+                    // console.log("out?", outNode)
+                    // console.log("in?", inNode)
 
                     this.app.RequestManager.setNodeInputConnection(
                         inNode.nodeInstanceID,
@@ -198,6 +210,16 @@ export class PolyNode {
                     )
                 }
             }
+
+            // this.lightNode.onNodeCreated = () => {
+            //     if (this.app.ServerUpdatingNodeConnections) {
+            //         return;
+            //     }
+            //     console.log("node created: ", typeData.type)
+            //     this.app.RequestManager.createNode(typeData.type, (data) => {
+            //         this.lightNode.nodeInstanceID = data.nodeID;
+            //     })
+            // }
         }
     }
 

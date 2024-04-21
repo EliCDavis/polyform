@@ -112,4 +112,10 @@ class RequestManager {
             "inPortName": inputPortName
         }, callback)
     }
+
+    createNode(nodeType, callback) {
+        this.postJson("node", {
+            "nodeType": nodeType,
+        }, callback)
+    }
 }

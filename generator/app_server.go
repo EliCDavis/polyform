@@ -149,7 +149,7 @@ func (as *AppServer) Serve() error {
 }
 
 type CreateNodeRequest struct {
-	FactoryID string `json:"factoryID"`
+	NodeType string `json:"nodeType"`
 }
 
 type CreateNodeResponse struct {
@@ -172,18 +172,18 @@ func (as *AppServer) NodeEndpoint(w http.ResponseWriter, r *http.Request) {
 			panic(err)
 		}
 
-		if as.app.types.KeyRegistered(createRequest.FactoryID) {
-			newNode := as.app.types.New(createRequest.FactoryID)
+		if as.app.types.KeyRegistered(createRequest.NodeType) {
+			newNode := as.app.types.New(createRequest.NodeType)
 			casted, ok := newNode.(nodes.Node)
 			if !ok {
-				panic(fmt.Errorf("what the fuck: %s", createRequest.FactoryID))
+				panic(fmt.Errorf("what the fuck: %s", createRequest.NodeType))
 			}
 			as.app.buildIDsForNode(casted)
 			response = CreateNodeResponse{
 				NodeID: as.app.nodeIDs[casted],
 			}
 		} else {
-			writeJSONError(w, fmt.Errorf("no factory registered with ID %s", createRequest.FactoryID))
+			writeJSONError(w, fmt.Errorf("no factory registered with ID %s", createRequest.NodeType))
 			return
 		}
 

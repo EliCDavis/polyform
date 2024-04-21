@@ -1,121 +1,138 @@
 import { PolyNode, camelCaseToWords } from "./nodes/node.js";
 
-function ImageParameterNode() {
-    //     this.addInput(inputName, nodeData.inputs[inputName].type);
-    this.addOutput("Value", "image.Image");
-    // this.properties = { precision: 1 };
-    this.title = "Image";
-    this.color = "#233";
-    this.bgcolor = "#355";
 
-    const H = LiteGraph.NODE_WIDGET_HEIGHT;
+const ParameterNodeOutputPortName = "Out";
+const ParameterNodeColor = "#233";
+const ParameterNodeBackgroundColor = "#355";
 
-    const imgWidget = this.addWidget("image", "Image", true, { property: "surname" }); //this will modify the node.properties
-    this.imgWidget = imgWidget;
-    const margin = 15;
-    this.imgWidget.draw = (ctx, node, widget_width, y, H) => {
-        if (!imgWidget.image) {
+/**
+ * 
+ * @param {string} dataType 
+ * @returns {string}
+ */
+function ParameterNodeType(dataType) {
+    return "github.com/EliCDavis/polyform/generator.ParameterNode[" + dataType + "]";
+}
+
+function OnNodeCreateCallback(app, nodeType) {
+    return () => {
+        if (app.ServerUpdatingNodeConnections) {
             return;
         }
-
-        const adjustedWidth = widget_width - margin * 2
-        ctx.drawImage(
-            imgWidget.image,
-            margin,
-            y,
-            adjustedWidth,
-            (adjustedWidth / imgWidget.image.width) * imgWidget.image.height
-        );
+        app.RequestManager.createNode(ParameterNodeType(nodeType))
     }
-
-    this.imgWidget.computeSize = (width) => {
-        if (!!imgWidget.image) {
-            const adjustedWidth = width - margin * 2
-            const newH = (adjustedWidth / imgWidget.image.width) * imgWidget.image.height;
-            return [width, newH]
-        }
-        return [width, 0];
-    }
-
-    // this.imgWidget.mouse = (event, pos, node) => {
-    //     if (event.type == LiteGraph.pointerevents_method + "down") {
-    //         w.value = !w.value;
-    //         setTimeout(function () {
-    //             inner_value_change(w, w.value);
-    //         }, 20);
-    //     }
-    // }
 }
 
-function ColorParameterNode() {
-    //     this.addInput(inputName, nodeData.inputs[inputName].type);
-    this.addOutput("Value", "github.com/EliCDavis/polyform/drawing/coloring.WebColor");
-    // this.properties = { precision: 1 };
-    this.title = "Image";
-    this.color = "#233";
-    this.bgcolor = "#355";
-
-
-    const imgWidget = this.addWidget("color", "Color", "#00FF00", {}); //this will modify the node.properties
-    this.imgWidget = imgWidget;
-    const margin = 15;
-    this.imgWidget.draw = (ctx, node, widget_width, y, H) => {
-        const adjustedWidth = widget_width - margin * 2
-        ctx.beginPath(); // Start a new path
-        ctx.rect(margin, y, adjustedWidth, H); // Add a rectangle to the current path
-        ctx.fillStyle = this.imgWidget.value;
-        ctx.fill(); // Render the path
-    }
-
-    // this.imgWidget.mouse = (event, pos, node) => {
-    //     if (event.type == LiteGraph.pointerevents_method + "down") {
-    //         w.value = !w.value;
-    //         setTimeout(function () {
-    //             inner_value_change(w, w.value);
-    //         }, 20);
-    //     }
-    // }
-}
 
 export class NodeManager {
     constructor(app) {
         this.app = app;
         this.guiFolderData = {};
         this.nodeIdToNode = new Map();
+        this.nodeTypeToLitePath = new Map();
         this.subscribers = [];
         this.initializedNodeTypes = false
         this.registerSpecialParameterPolyformNodes();
     }
 
+
     registerSpecialParameterPolyformNodes() {
+        const nm = this;
+        function ImageParameterNode() {
+            const nodeDataType = "image.Image";
+            this.addOutput(ParameterNodeOutputPortName, nodeDataType);
+            this.title = "Image";
+            this.color = ParameterNodeColor;
+            this.bgcolor = ParameterNodeBackgroundColor;
+            this.onNodeCreated = OnNodeCreateCallback(nm.app, nodeDataType);
+
+            const H = LiteGraph.NODE_WIDGET_HEIGHT;
+
+            const imgWidget = this.addWidget("image", "Image", true, { property: "surname" }); //this will modify the node.properties
+            this.imgWidget = imgWidget;
+            const margin = 15;
+            this.imgWidget.draw = (ctx, node, widget_width, y, H) => {
+                if (!imgWidget.image) {
+                    return;
+                }
+
+                const adjustedWidth = widget_width - margin * 2
+                ctx.drawImage(
+                    imgWidget.image,
+                    margin,
+                    y,
+                    adjustedWidth,
+                    (adjustedWidth / imgWidget.image.width) * imgWidget.image.height
+                );
+            }
+
+            this.imgWidget.computeSize = (width) => {
+                if (!!imgWidget.image) {
+                    const adjustedWidth = width - margin * 2
+                    const newH = (adjustedWidth / imgWidget.image.width) * imgWidget.image.height;
+                    return [width, newH]
+                }
+                return [width, 0];
+            }
+        }
+
+        function ColorParameterNode() {
+            const nodeDataType = "github.com/EliCDavis/polyform/drawing/coloring.WebColor";
+            this.addOutput(ParameterNodeOutputPortName, nodeDataType);
+            this.title = "Color";
+            this.color = ParameterNodeColor;
+            this.bgcolor = ParameterNodeBackgroundColor;
+            this.onNodeCreated = OnNodeCreateCallback(nm.app, nodeDataType);
+
+
+            const imgWidget = this.addWidget("color", "Color", "#00FF00", {}); //this will modify the node.properties
+            this.imgWidget = imgWidget;
+            const margin = 15;
+            this.imgWidget.draw = (ctx, node, widget_width, y, H) => {
+                const adjustedWidth = widget_width - margin * 2
+                ctx.beginPath(); // Start a new path
+                ctx.rect(margin, y, adjustedWidth, H); // Add a rectangle to the current path
+                ctx.fillStyle = this.imgWidget.value;
+                ctx.fill(); // Render the path
+            }
+
+            // this.imgWidget.mouse = (event, pos, node) => {
+            //     if (event.type == LiteGraph.pointerevents_method + "down") {
+            //         w.value = !w.value;
+            //         setTimeout(function () {
+            //             inner_value_change(w, w.value);
+            //         }, 20);
+            //     }
+            // }
+        }
+
         function Vector3ParameterNode() {
-            //     this.addInput(inputName, nodeData.inputs[inputName].type);
-            this.addOutput("Value", "github.com/EliCDavis/vector/vector3.Vector[float64]");
-            // this.properties = { precision: 1 };
+            const nodeDataType = "github.com/EliCDavis/vector/vector3.Vector[float64]";
+            this.addOutput(ParameterNodeOutputPortName, nodeDataType);
             this.title = "Vector3";
-            this.color = "#233";
-            this.bgcolor = "#355";
+            this.color = ParameterNodeColor;
+            this.bgcolor = ParameterNodeBackgroundColor;
+            this.onNodeCreated = OnNodeCreateCallback(nm.app, nodeDataType);
         }
 
         function Vector3ArrayParameterNode() {
-            //     this.addInput(inputName, nodeData.inputs[inputName].type);
-            this.addOutput("Value", "[]github.com/EliCDavis/vector/vector3.Vector[float64]");
-            // this.properties = { precision: 1 };
+            const nodeDataType = "[]github.com/EliCDavis/vector/vector3.Vector[float64]";
+            this.addOutput(ParameterNodeOutputPortName, nodeDataType);
             this.title = "Vector3 Array";
-            this.color = "#233";
-            this.bgcolor = "#355";
+            this.color = ParameterNodeColor;
+            this.bgcolor = ParameterNodeBackgroundColor;
+            this.onNodeCreated = OnNodeCreateCallback(nm.app, nodeDataType);
         }
 
 
         function AABBParameterNode() {
-            //     this.addInput(inputName, nodeData.inputs[inputName].type);
-            this.addOutput("Value", "github.com/EliCDavis/polyform/math/geometry.AABB");
-            // this.properties = { precision: 1 };
+            const nodeDataType = "github.com/EliCDavis/polyform/math/geometry.AABB";
+            this.addOutput(ParameterNodeOutputPortName, nodeDataType);
             this.title = "AABB";
-            this.color = "#233";
-            this.bgcolor = "#355";
+            this.color = ParameterNodeColor;
+            this.bgcolor = ParameterNodeBackgroundColor;
+            this.onNodeCreated = OnNodeCreateCallback(nm.app, nodeDataType);
         }
-
 
         LiteGraph.registerNodeType("polyform/aabb", AABBParameterNode);
         LiteGraph.registerNodeType("polyform/vector3", Vector3ParameterNode);
@@ -139,7 +156,6 @@ export class NodeManager {
     }
 
     updateNodeConnections(nodes) {
-        this.app.ServerUpdatingNodeConnections = true;
         for (let node of nodes) {
             const nodeID = node[0];
             const nodeData = node[1];
@@ -161,11 +177,11 @@ export class NodeManager {
                 // source.lightNode.connect(i, target.lightNode, 0);
             }
         }
-        this.app.ServerUpdatingNodeConnections = false;
     }
 
     buildCustomNodeType(typeData) {
-        function CustomNode() {
+        const nm = this;
+        function FuckYou() {
             for (var inputName in typeData.inputs) {
                 this.addInput(inputName, typeData.inputs[inputName].type);
             }
@@ -186,13 +202,20 @@ export class NodeManager {
             // }
             this.title = camelCaseToWords(typeData.displayName);
 
-            // this.properties = { precision: 1 };
+            this.onNodeCreated = () => {
+                if (nm.app.ServerUpdatingNodeConnections) {
+                    return;
+                }
+                nm.app.RequestManager.createNode(typeData.type)
+                console.log("node created: ", typeData.type)
+            }
         }
 
-        // const nodeName = "polyform/" + typeData.displayName;
-        // LiteGraph.registerNodeType(nodeName, CustomNode);
+        Object.defineProperty(FuckYou, "name", { value: typeData.displayName });
 
-        LiteGraph.registerNodeType(typeData.type, CustomNode);
+        const category = typeData.path + "/" + typeData.displayName;
+        LiteGraph.registerNodeType(category, FuckYou);
+        this.nodeTypeToLitePath.set(typeData.type, category);
 
         // const node = LiteGraph.createNode(nodeName);
         // node.setSize(node.computeSize());
@@ -201,14 +224,22 @@ export class NodeManager {
     }
 
     updateNodes(newSchema) {
+        // Only need to do this once, since types are set at compile time. If
+        // that ever changes, god.
         if (this.initializedNodeTypes === false) {
             this.initializedNodeTypes = true;
             newSchema.types.forEach(type => {
+                // We should have custom nodes already defined for parameters
+                if (type.parameter) {
+                    return;
+                }
                 this.buildCustomNodeType(type)
             })
         }
 
         const sortedNodes = this.sortNodesByName(newSchema.nodes);
+
+        this.app.ServerUpdatingNodeConnections = true;
 
         let nodeAdded = false;
         for (let node of sortedNodes) {
@@ -235,6 +266,7 @@ export class NodeManager {
         if (nodeAdded) {
             lgraphInstance.arrange();
         }
+        this.app.ServerUpdatingNodeConnections = false;
     }
 
     subscribeToParameterChange(subscriber) {

@@ -37,6 +37,7 @@ func (as *AppServer) NodeConnectionEndpoint(w http.ResponseWriter, r *http.Reque
 	case "POST":
 		createRequest, castErr := readJSON[CreateNodeConnectionRequest](r.Body)
 		if castErr != nil {
+			w.WriteHeader(http.StatusInternalServerError)
 			writeJSONError(w, castErr)
 			return
 		}
@@ -45,6 +46,7 @@ func (as *AppServer) NodeConnectionEndpoint(w http.ResponseWriter, r *http.Reque
 	case "DELETE":
 		createRequest, castErr := readJSON[DeleteNodeConnectionRequest](r.Body)
 		if castErr != nil {
+			w.WriteHeader(http.StatusInternalServerError)
 			writeJSONError(w, castErr)
 			return
 		}
@@ -52,6 +54,7 @@ func (as *AppServer) NodeConnectionEndpoint(w http.ResponseWriter, r *http.Reque
 	}
 
 	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
 		writeJSONError(w, err)
 	} else {
 		data, err := json.Marshal(response)
@@ -71,8 +74,12 @@ func (as *AppServer) nodeConnectionEndpoint_post(req CreateNodeConnectionRequest
 
 	inNode := as.app.nodeFromID(req.NodeInId)
 	outNode := as.app.nodeFromID(req.NodeOutId)
+	outPortVals := refutil.CallFuncValuesOfType(outNode, req.OutPortName)
+	// log.Printf("%#v", inNode)
+	// log.Printf("%#v", outNode)
+	// log.Printf("%#v", outPortVals)
 
-	ref := refutil.CallFuncValuesOfType(outNode, req.OutPortName)[0].(nodes.ReferencesNode)
+	ref := outPortVals[0].(nodes.ReferencesNode)
 	inNode.SetInput(
 		req.InPortName,
 		nodes.Output{

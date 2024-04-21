@@ -1,5 +1,4 @@
 
-
 export class NodeBasicParameter {
     constructor(app, nodeManager, id, parameterData) {
         this.id = id;
