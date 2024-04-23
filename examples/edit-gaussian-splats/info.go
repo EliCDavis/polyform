@@ -15,6 +15,10 @@ type InfoNodeData struct {
 }
 
 func (in InfoNodeData) Process() (string, error) {
+	if in.Original == nil || in.Final == nil {
+		return "", nil
+	}
+
 	original := in.Original.Value().AttributeLength()
 	final := in.Final.Value().AttributeLength()
 

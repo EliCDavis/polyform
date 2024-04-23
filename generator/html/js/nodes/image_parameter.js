@@ -1,14 +1,8 @@
-function BuildImageParameterNode(app) {
-    const node = LiteGraph.createNode("polyform/Image");
-    console.log(node)
-    app.LightGraph.add(node);
-    return node;
-}
 
 export class ImageParameterNode {
 
-    constructor(nodeManager, id, parameterData, app) {
-        this.lightNode = BuildImageParameterNode(app);
+    constructor(lightNode, nodeManager, id, parameterData, app) {
+        this.lightNode = lightNode;
         this.lightNode.title = parameterData.name;
 
         this.lightNode.onDropFile = (file) => {

@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/EliCDavis/polyform/generator/room"
-	"github.com/EliCDavis/polyform/nodes"
 )
 
 func writeJSONError(out io.Writer, err error) error {
@@ -148,71 +147,6 @@ func (as *AppServer) Serve() error {
 	}
 }
 
-type CreateNodeRequest struct {
-	NodeType string `json:"nodeType"`
-}
-
-type CreateNodeResponse struct {
-	NodeID string `json:"nodeID"`
-}
-
-type DeleteNodeRequest struct {
-	NodeID string `json:"nodeID"`
-}
-
-func (as *AppServer) NodeEndpoint(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
-	var response any
-
-	switch r.Method {
-	case "POST":
-		createRequest, err := readJSON[CreateNodeRequest](r.Body)
-		if err != nil {
-			panic(err)
-		}
-
-		if as.app.types.KeyRegistered(createRequest.NodeType) {
-			newNode := as.app.types.New(createRequest.NodeType)
-			casted, ok := newNode.(nodes.Node)
-			if !ok {
-				panic(fmt.Errorf("what the fuck: %s", createRequest.NodeType))
-			}
-			as.app.buildIDsForNode(casted)
-			response = CreateNodeResponse{
-				NodeID: as.app.nodeIDs[casted],
-			}
-		} else {
-			writeJSONError(w, fmt.Errorf("no factory registered with ID %s", createRequest.NodeType))
-			return
-		}
-
-	case "DELETE":
-		deleteRequest, err := readJSON[DeleteNodeRequest](r.Body)
-		if err != nil {
-			panic(err)
-		}
-
-		var nodeToDelete nodes.Node
-		for n, id := range as.app.nodeIDs {
-			if id == deleteRequest.NodeID {
-				nodeToDelete = n
-			}
-		}
-
-		delete(as.app.nodeIDs, nodeToDelete)
-
-	default:
-		panic(fmt.Errorf("node endpoint has not implemented HTTP method: '%s'", r.Method))
-	}
-
-	data, err := json.Marshal(response)
-	if err != nil {
-		panic(err)
-	}
-	w.Write(data)
-}
-
 func (as *AppServer) SchemaEndpoint(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	data, err := json.Marshal(as.app.Schema())
@@ -275,6 +209,11 @@ func (as *AppServer) ApplyMessage(key string, msg []byte) (bool, error) {
 	return changed, err
 }
 
+func (as *AppServer) incModelVersion() {
+	// TODO: Make thread safe
+	as.movelVersion++
+}
+
 func (as *AppServer) ProfileEndpoint(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	as.producerLock.Lock()
@@ -298,8 +237,7 @@ func (as *AppServer) ProfileEndpoint(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			panic(err)
 		}
-
-		as.movelVersion++
+		as.incModelVersion()
 		w.Write([]byte("{}"))
 	}
 }

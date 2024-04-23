@@ -87,6 +87,7 @@ func (as *AppServer) nodeConnectionEndpoint_post(req CreateNodeConnectionRequest
 			Name:       req.OutPortName,
 		},
 	)
+	as.incModelVersion()
 
 	return CreateNodeConnectionResponse{}, nil
 }
@@ -107,6 +108,7 @@ func (as *AppServer) nodeConnectionEndpoint_delete(req DeleteNodeConnectionReque
 			Name:       "",
 		},
 	)
+	as.incModelVersion()
 
 	return DeleteNodeConnectionResponse{}, nil
 }

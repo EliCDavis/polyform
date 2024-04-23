@@ -1,15 +1,7 @@
-
-function BuildColorParameterNode(app) {
-    const node = LiteGraph.createNode("polyform/color");
-    console.log(node)
-    app.LightGraph.add(node);
-    return node;
-}
-
 export class ColorParameter {
 
-    constructor(nodeManager, id, parameterData, app) {
-        this.lightNode = BuildColorParameterNode(app);
+    constructor(lightNode, nodeManager, id, parameterData, app) {
+        this.lightNode = lightNode;
         this.lightNode.title = parameterData.name;
 
         this.lightNode.widgets[0].value = parameterData.currentValue;

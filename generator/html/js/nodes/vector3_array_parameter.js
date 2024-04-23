@@ -1,15 +1,9 @@
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
 import * as THREE from 'three';
 
-function BuildVector3ParameterNode(app) {
-    const node = LiteGraph.createNode("polyform/vector3[]");
-    app.LightGraph.add(node);
-    return node;
-}
-
 
 export class NodeVector3ArryParameter {
-    constructor(nodeManager, id, parameterData, app) {
+    constructor(lightNode, nodeManager, id, parameterData, app) {
         this.id = id;
         this.nodeManager = nodeManager;
         this.app = app;
@@ -22,7 +16,7 @@ export class NodeVector3ArryParameter {
             this.newPositionControl(ele);
         })
 
-        this.lightNode = BuildVector3ParameterNode(app);
+        this.lightNode = lightNode;
         this.lightNode.title = parameterData.name;
         this.lightNode.addWidget("button", "Add Point", "", () => {
             const paramData = this.buildParameterData();

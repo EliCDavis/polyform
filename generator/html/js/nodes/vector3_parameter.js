@@ -1,15 +1,8 @@
 import * as THREE from 'three';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
 
-function BuildVector3ParameterNode(app) {
-    const node = LiteGraph.createNode("polyform/vector3");
-    console.log(node)
-    app.LightGraph.add(node);
-    return node;
-}
-
 export class NodeVector3Parameter {
-    constructor(nodeManager, id, parameterData, app) {
+    constructor(lightNode, nodeManager, id, parameterData, app) {
         const control = new TransformControls(app.Camera, app.Renderer.domElement);
         control.setMode('translate');
         control.setSpace("local");
@@ -42,7 +35,7 @@ export class NodeVector3Parameter {
         app.Scene.add(control)
         control.attach(this.mesh);
 
-        this.lightNode = BuildVector3ParameterNode(app);
+        this.lightNode = lightNode;
         this.lightNode.title = parameterData.name;
 
         control.visible = false;

@@ -8,31 +8,31 @@ import { ColorParameter } from './color_parameter.js';
 import { NodeManager } from '../node_manager.js';
 
 
-function BuildParameter(nodeManager, id, parameterData, app, guiFolderData) {
+function BuildParameter(liteNode, nodeManager, id, parameterData, app) {
     switch (parameterData.type) {
         case "float64":
         case "float32":
         case "int":
         case "bool":
         case "string":
-            return new NodeBasicParameter(app, nodeManager, id, parameterData);
+            return new NodeBasicParameter(liteNode, nodeManager, id, parameterData);
 
         case "coloring.WebColor":
-            return new ColorParameter(nodeManager, id, parameterData, app);
+            return new ColorParameter(liteNode, nodeManager, id, parameterData, app);
 
         case "vector3.Vector[float64]":
         case "vector3.Vector[float32]":
-            return new NodeVector3Parameter(nodeManager, id, parameterData, app);
+            return new NodeVector3Parameter(liteNode, nodeManager, id, parameterData, app);
 
         case "[]vector3.Vector[float64]":
         case "[]vector3.Vector[float32]":
-            return new NodeVector3ArryParameter(nodeManager, id, parameterData, app);
+            return new NodeVector3ArryParameter(liteNode, nodeManager, id, parameterData, app);
 
         case "image.Image":
-            return new ImageParameterNode(nodeManager, id, parameterData, app);
+            return new ImageParameterNode(liteNode, nodeManager, id, parameterData, app);
 
         case "geometry.AABB":
-            return new NodeAABBParameter(nodeManager, id, parameterData, app);
+            return new NodeAABBParameter(liteNode, nodeManager, id, parameterData, app);
 
         default:
             throw new Error("build parameter: unimplemented parameter type: " + parameterData.type)
@@ -64,67 +64,97 @@ export function camelCaseToWords(str) {
     return title;
 }
 
-// function BuildCustomNodeType(app, nodeData, isProducer) {
-//     function CustomNode() {
-//         for (var inputName in nodeData.inputs) {
-//             this.addInput(inputName, nodeData.inputs[inputName].type);
-//         }
-
-//         if (!isProducer) {
-//             nodeData.outputs.forEach((o) => {
-//                 this.addOutput(o.name, o.type);
-//             })
-//         } else {
-//             this.color = "#232";
-//             this.bgcolor = "#353";
-//             this.addWidget("button", "Download", null, () => {
-//                 console.log("presed");
-//                 saveFileToDisk("/producer/" + nodeData.name, nodeData.name);
-//             })
-//         }
-//         this.title = camelCaseToWords(nodeData.name);
-
-//         // this.properties = { precision: 1 };
-//     }
-
-//     const nodeName = "polyform/" + nodeData.name;
-//     LiteGraph.registerNodeType(nodeName, CustomNode);
-
-//     const node = LiteGraph.createNode(nodeName);
-//     node.setSize(node.computeSize());
-
-//     // node.pos = [200, app.LightGraph._nodes.length * 100];
-//     app.LightGraph.add(node);
-//     return node;
-// }
-
 export class PolyNode {
 
     /**
      * 
+     * @param {*} liteNode 
      * @param {NodeManager} nodeManager 
-     * @param {*} id 
+     * @param {string} id 
      * @param {*} nodeData 
      * @param {*} app 
-     * @param {*} guiFolderData 
-     * @param {*} isProducer 
+     * @param {boolean} isProducer 
      */
-    constructor(nodeManager, id, nodeData, app, guiFolderData, isProducer) {
+    constructor(liteNode, nodeManager, id, nodeData, app, isProducer) {
+        console.log(liteNode)
+        this.liteNode = liteNode;
+        this.id = id;
         this.app = app;
-        this.guiFolderData = guiFolderData;
         this.nodeManager = nodeManager;
         this.isProducer = isProducer;
 
-        this.id = id;
         this.name = "";
         this.outputs = [];
         this.version = 0;
         this.dependencies = [];
 
         this.parameter = null;
-        this.lightNode = null;
+
+        if (nodeData.parameter) {
+            this.parameter = BuildParameter(liteNode, this.nodeManager, this.id, nodeData.parameter, this.app);
+        }
+
+        if (this.isProducer) {
+            this.liteNode.color = "#232";
+            this.liteNode.bgcolor = "#353";
+            this.liteNode.addWidget("button", "Download", null, () => {
+                console.log("presed");
+                saveFileToDisk("/producer/" + this.name, this.name);
+            })
+        }
+
+        this.liteNode.onConnectionsChange = this.onConnectionChange.bind(this);
 
         this.update(nodeData);
+    }
+
+    /**
+     * 
+     * @param {number} inOrOut 
+     * @param {string|number} slot 
+     * @param {boolean} connected 
+     * @param {*} linkInfo 
+     * @param {*} inputInfo 
+     * @returns {void} 
+     */
+    onConnectionChange(inOrOut, slot /* string or number */, connected, linkInfo, inputInfo) {
+        if (this.app.ServerUpdatingNodeConnections) {
+            return;
+        }
+
+        const input = inOrOut === LiteGraph.INPUT;
+        const output = inOrOut === LiteGraph.OUTPUT;
+
+        console.log("onConnectionsChange", {
+            "input": input,
+            "slot": slot,
+            "connected": connected,
+            "linkInfo": linkInfo,
+            "inputInfo": inputInfo
+        })
+
+        if (input && !connected) {
+            this.app.RequestManager.deleteNodeInput(this.id, inputInfo.name)
+        }
+
+        if (input && connected) {
+            // console.log(LiteGraph)
+            // console.log(lgraphInstance)
+
+            const link = lgraphInstance.links[linkInfo.id];
+            const outNode = lgraphInstance.getNodeById(link.origin_id);
+            const inNode = lgraphInstance.getNodeById(link.target_id);
+            // console.log(link)
+            // console.log("out?", outNode)
+            // console.log("in?", inNode)
+
+            this.app.RequestManager.setNodeInputConnection(
+                inNode.nodeInstanceID,
+                inNode.inputs[link.target_slot].name,
+                outNode.nodeInstanceID,
+                outNode.outputs[link.origin_slot].name,
+            )
+        }
     }
 
     update(nodeData) {
@@ -133,93 +163,8 @@ export class PolyNode {
         this.version = nodeData.version;
         this.dependencies = nodeData.dependencies;
 
-        let created = false;
-
         if (nodeData.parameter) {
-            if (!this.parameter) {
-                this.parameter = BuildParameter(this.nodeManager, this.id, nodeData.parameter, this.app, this.guiFolderData);
-                this.lightNode = this.parameter.lightNode;
-                created = true;
-            } else {
-                this.parameter.update(nodeData.parameter)
-            }
-        } else if (!this.lightNode) {
-            // this.lightNode = BuildCustomNodeType(this.app, nodeData, this.isProducer)
-            const nodeIdentifier = this.nodeManager.nodeTypeToLitePath.get(nodeData.type)
-            const node = LiteGraph.createNode(nodeIdentifier);
-            node.setSize(node.computeSize());
-
-            if (this.isProducer) {
-                node.color = "#232";
-                node.bgcolor = "#353";
-                node.addWidget("button", "Download", null, () => {
-                    console.log("presed");
-                    saveFileToDisk("/producer/" + this.name, this.name);
-                })
-            }
-
-            // node.pos = [200, app.LightGraph._nodes.length * 100];
-            this.app.LightGraph.add(node);
-
-            this.lightNode = node;
-            created = true;
-        }
-
-        if (created) {
-            this.lightNode.nodeInstanceID = this.id;
-            // this.lightNode.onConnectInput = (a, b, c, d, e, f, g) => {
-            //     console.log("onConnectInput", a, b, c, d, e, f, g)
-            // }
-
-            this.lightNode.onConnectionsChange = (inOrOut, slot /* string or number */, connected, linkInfo, inputInfo) => {
-                if (this.app.ServerUpdatingNodeConnections) {
-                    return;
-                }
-
-                const input = inOrOut === LiteGraph.INPUT;
-                const output = inOrOut === LiteGraph.OUTPUT;
-
-                console.log("onConnectionsChange", {
-                    "input": input,
-                    "slot": slot,
-                    "connected": connected,
-                    "linkInfo": linkInfo,
-                    "inputInfo": inputInfo
-                })
-
-                if (input && !connected) {
-                    this.app.RequestManager.deleteNodeInput(this.id, inputInfo.name)
-                }
-
-                if(input && connected) {
-                    // console.log(LiteGraph)
-                    // console.log(lgraphInstance)
-
-                    const link = lgraphInstance.links[linkInfo.id];
-                    const outNode = lgraphInstance.getNodeById(link.origin_id);
-                    const inNode = lgraphInstance.getNodeById(link.target_id);
-                    // console.log(link)
-                    // console.log("out?", outNode)
-                    // console.log("in?", inNode)
-
-                    this.app.RequestManager.setNodeInputConnection(
-                        inNode.nodeInstanceID,
-                        inNode.inputs[link.target_slot].name,
-                        outNode.nodeInstanceID,
-                        outNode.outputs[link.origin_slot].name,
-                    )
-                }
-            }
-
-            // this.lightNode.onNodeCreated = () => {
-            //     if (this.app.ServerUpdatingNodeConnections) {
-            //         return;
-            //     }
-            //     console.log("node created: ", typeData.type)
-            //     this.app.RequestManager.createNode(typeData.type, (data) => {
-            //         this.lightNode.nodeInstanceID = data.nodeID;
-            //     })
-            // }
+            this.parameter.update(nodeData.parameter)
         }
     }
 

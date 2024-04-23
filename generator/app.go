@@ -74,7 +74,9 @@ func (a *App) addType(v any) {
 	if a.types == nil {
 		a.types = Nodes()
 	}
-	a.types.RegisterType(v)
+	if !a.types.TypeRegistered(v) {
+		a.types.RegisterType(v)
+	}
 }
 
 func (a App) getParameters() []Parameter {
@@ -207,15 +209,7 @@ func (a *App) recursivelyRegisterNodeTypes(node nodes.Node) {
 	}
 }
 
-func (a App) buildSchemaForNode(node nodes.Node, currentSchema map[string]NodeInstanceSchema) {
-	id, ok := a.nodeIDs[node]
-	if !ok {
-		panic(fmt.Errorf("node %v has not had an ID generated for it", node))
-	}
-
-	if _, ok := currentSchema[id]; ok {
-		return
-	}
+func (a App) buildNodeInstanceSchema(node nodes.Node) NodeInstanceSchema {
 
 	schema := NodeInstanceSchema{
 		Name:         "Unamed",
@@ -225,7 +219,6 @@ func (a App) buildSchemaForNode(node nodes.Node, currentSchema map[string]NodeIn
 	}
 
 	for _, subDependency := range node.Dependencies() {
-		//a.buildSchemaForNode(subDependency.Dependency(), currentSchema)
 		schema.Dependencies = append(schema.Dependencies, NodeDependencySchema{
 			DependencyID: a.nodeIDs[subDependency.Dependency()],
 			Name:         subDependency.Name(),
@@ -243,7 +236,7 @@ func (a App) buildSchemaForNode(node nodes.Node, currentSchema map[string]NodeIn
 		}
 	}
 
-	currentSchema[id] = schema
+	return schema
 }
 
 func (a *App) buildIDsForNode(dep nodes.Node) {
@@ -280,7 +273,16 @@ func (a *App) Schema() AppSchema {
 	appNodeSchema := make(map[string]NodeInstanceSchema)
 
 	for node := range a.nodeIDs {
-		a.buildSchemaForNode(node, appNodeSchema)
+		id, ok := a.nodeIDs[node]
+		if !ok {
+			panic(fmt.Errorf("node %v has not had an ID generated for it", node))
+		}
+
+		if _, ok := appNodeSchema[id]; ok {
+			panic("not sure how this happened")
+		}
+
+		appNodeSchema[id] = a.buildNodeInstanceSchema(node)
 	}
 
 	for key, producer := range a.Producers {

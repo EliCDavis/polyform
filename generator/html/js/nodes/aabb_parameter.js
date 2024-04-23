@@ -2,13 +2,6 @@ import * as THREE from 'three';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
 import { BoxHelper } from '../box.js';
 
-function BuildAABBParameterNode(app) {
-    const node = LiteGraph.createNode("polyform/aabb");
-    console.log(node)
-    app.LightGraph.add(node);
-    return node;
-}
-
 export class NodeAABBParameter {
 
     addControl(nodeManager, id, parameterData, app, pos, showX, showY, showZ) {
@@ -65,7 +58,7 @@ export class NodeAABBParameter {
         });
     }
 
-    constructor(nodeManager, id, parameterData, app) {
+    constructor(lightNode, nodeManager, id, parameterData, app) {
         // const centerControl = new TransformControls(app.Camera, app.Renderer.domElement);
         // centerControl.setMode('translate');
         // centerControl.setSpace("local");
@@ -114,7 +107,7 @@ export class NodeAABBParameter {
         // app.Scene.add(centerControl)
         // centerControl.attach(this.controlMesh);
 
-        this.lightNode = BuildAABBParameterNode(app);
+        this.lightNode = lightNode;
         this.lightNode.title = parameterData.name;
 
         // centerControl.visible = false;
