@@ -17,7 +17,7 @@ func isStruct(v any) bool {
 	return value.Kind() == reflect.Struct
 }
 
-func buildBufferView(buf *bytes.Buffer, currentStructure map[string]any, v any, f *format) error {
+func buildBufferView(buf *bytes.Buffer, currentStructure, jsonInterprettedData map[string]any, v any, views []BufferView, bufferIndex int) ([]BufferView, error) {
 	value := reflect.ValueOf(v)
 
 	for value.Kind() == reflect.Pointer {
@@ -25,8 +25,10 @@ func buildBufferView(buf *bytes.Buffer, currentStructure map[string]any, v any, 
 	}
 
 	if value.Kind() != reflect.Struct {
-		return nil
+		return views, nil
 	}
+
+	var err error
 
 	valueType := value.Type()
 	for i := 0; i < valueType.NumField(); i++ {
@@ -36,9 +38,30 @@ func buildBufferView(buf *bytes.Buffer, currentStructure map[string]any, v any, 
 		if viewFieldValue.CanInterface() {
 
 			i := viewFieldValue.Interface()
-			perm, ok := i.(PgtfSerializable)
-			if !ok {
-				currentStructure[structField.Name] = i
+			perm, isSerializable := i.(Serializable)
+			if !isSerializable {
+				jsonTagName := jsonNameTag(structField)
+
+				// Golang's own JSON package didn't serialize it. The only case
+				// I can think of this occuring is that the 'omitempty' is
+				// present and we had the 0 value present.
+				nestedInterprettedData, ok := jsonInterprettedData[jsonTagName]
+				if !ok {
+					continue
+				}
+
+				nestedInterprettedDataAsStruct, nestedJsonIsStruct := nestedInterprettedData.(map[string]any)
+
+				if isStruct(i) && nestedJsonIsStruct {
+					m := make(map[string]any)
+					currentStructure[jsonTagName] = m
+					views, err = buildBufferView(buf, m, nestedInterprettedDataAsStruct, i, views, bufferIndex)
+					if err != nil {
+						return views, err
+					}
+				} else {
+					currentStructure[jsonTagName] = i
+				}
 				continue
 			}
 
@@ -49,13 +72,13 @@ func buildBufferView(buf *bytes.Buffer, currentStructure map[string]any, v any, 
 			start := buf.Len()
 			err := perm.Serialize(buf)
 			if err != nil {
-				return err
+				return views, err
 			}
 
-			currentStructure["$"+structField.Name] = len(f.BufferViews)
+			currentStructure["$"+structField.Name] = len(views)
 
-			f.BufferViews = append(f.BufferViews, bufferView{
-				Buffer:     0,
+			views = append(views, BufferView{
+				Buffer:     bufferIndex,
 				ByteOffset: start,
 				ByteLength: buf.Len() - start,
 			})
@@ -64,30 +87,51 @@ func buildBufferView(buf *bytes.Buffer, currentStructure map[string]any, v any, 
 		}
 	}
 
-	return nil
+	return views, nil
+}
+
+func toJsonMap(v any) (map[string]any, error) {
+	jsonData, err := json.Marshal(v)
+	if err != nil {
+		return nil, err
+	}
+
+	jsonInterprettedData := make(map[string]any)
+	err = json.Unmarshal(jsonData, &jsonInterprettedData)
+	if err != nil {
+		return nil, err
+	}
+
+	return jsonInterprettedData, nil
 }
 
 func Marshal(v any) ([]byte, error) {
-	structure := &format{
+	structure := &schema{
 		Data:        v,
-		Buffers:     make([]buffer, 0),
-		BufferViews: make([]bufferView, 0),
+		Buffers:     make([]Buffer, 0),
+		BufferViews: make([]BufferView, 0),
 	}
 
 	buf := &bytes.Buffer{}
 
 	if isStruct(v) {
-		data := make(map[string]any)
-		err := buildBufferView(buf, data, v, structure)
+		jsonInterprettedData, err := toJsonMap(v)
 		if err != nil {
 			return nil, err
 		}
-		structure.Data = data
+
+		builtDataView := make(map[string]any)
+		views, err := buildBufferView(buf, builtDataView, jsonInterprettedData, v, nil, 0)
+		if err != nil {
+			return nil, err
+		}
+		structure.Data = builtDataView
+		structure.BufferViews = views
 	}
 
 	if len(structure.BufferViews) > 0 {
 		bufData := buf.Bytes()
-		structure.Buffers = append(structure.Buffers, buffer{
+		structure.Buffers = append(structure.Buffers, Buffer{
 			ByteLength: len(bufData),
 			URI:        "data:application/octet-stream;base64," + base64.StdEncoding.EncodeToString(bufData),
 		})

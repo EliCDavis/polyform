@@ -97,6 +97,10 @@ type CropAttribute3DNodeData struct {
 }
 
 func (ca3dn CropAttribute3DNodeData) Process() (modeling.Mesh, error) {
+	if ca3dn.AABB == nil {
+		return ca3dn.Mesh.Value(), nil
+	}
+
 	attr := modeling.PositionAttribute
 
 	if ca3dn.Attribute != nil {

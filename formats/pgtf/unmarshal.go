@@ -10,6 +10,29 @@ import (
 	"strings"
 )
 
+func jsonNameTag(v reflect.StructField) string {
+	name := v.Name
+	if altName, ok := v.Tag.Lookup("json"); ok {
+		elements := strings.Split(altName, ",")
+		name = elements[0]
+	}
+	return name
+}
+
+func jsonOmitTag(v reflect.StructField) bool {
+	if altName, ok := v.Tag.Lookup("json"); ok {
+		elements := strings.Split(altName, ",")
+		if len(elements) < 2 {
+			return false
+		}
+		if len(elements) != 2 {
+			panic(fmt.Errorf("unimplemented json tag situation: %s", altName))
+		}
+		return elements[1] == "omitempty"
+	}
+	return false
+}
+
 func IsNilish(val any) bool {
 	if val == nil {
 		return true
@@ -26,7 +49,7 @@ func IsNilish(val any) bool {
 	return false
 }
 
-func BuildBuffer(buf buffer) *bytes.Reader {
+func BuildBuffer(buf Buffer) *bytes.Reader {
 	const dataUriIdentifier = "data:application/octet-stream;base64,"
 	if strings.Index(buf.URI, dataUriIdentifier) == 0 {
 		dataString := buf.URI[len(dataUriIdentifier):]
@@ -39,7 +62,7 @@ func BuildBuffer(buf buffer) *bytes.Reader {
 	panic(fmt.Errorf("don't know how to interpret buffer: %+v", buf))
 }
 
-func rebuildBuffers(bufs []buffer) []*bytes.Reader {
+func rebuildBuffers(bufs []Buffer) []*bytes.Reader {
 	vals := make([]*bytes.Reader, len(bufs))
 	for i, v := range bufs {
 		vals[i] = BuildBuffer(v)
@@ -47,8 +70,7 @@ func rebuildBuffers(bufs []buffer) []*bytes.Reader {
 	return vals
 }
 
-func interpretBufferView[T any](v *T, f *typedFormat[T], rawData map[string]any) error {
-	value := reflect.ValueOf(v)
+func interpretBufferView(value reflect.Value, rawData map[string]any, bufferViews []BufferView, buffers []*bytes.Reader) error {
 
 	for value.Kind() == reflect.Pointer {
 		value = value.Elem()
@@ -58,8 +80,6 @@ func interpretBufferView[T any](v *T, f *typedFormat[T], rawData map[string]any)
 		return nil
 	}
 
-	allBuffers := rebuildBuffers(f.Buffers)
-
 	valueType := value.Type()
 	for fieldIndex := 0; fieldIndex < valueType.NumField(); fieldIndex++ {
 		viewFieldValue := value.Field(fieldIndex)
@@ -67,23 +87,35 @@ func interpretBufferView[T any](v *T, f *typedFormat[T], rawData map[string]any)
 
 		if viewFieldValue.CanInterface() {
 			i := viewFieldValue.Interface()
-			_, ok := i.(PgtfSerializable)
-			if !ok {
+			_, isSerializable := i.(Serializable)
+			if !isSerializable {
+				if isStruct(i) {
+					ahh, ok := rawData[structField.Name].(map[string]any)
+					if ok {
+						err := interpretBufferView(viewFieldValue, ahh, bufferViews, buffers)
+						if err != nil {
+							return err
+						}
+					}
+				}
 				continue
 			}
 
 			bufIndexKey := "$" + structField.Name
 			bufIndexRaw := rawData[bufIndexKey]
 
-			bufIndex, ok := bufIndexRaw.(float64)
-			if !ok {
-				panic("fuck")
+			bufIndex, isSerializable := bufIndexRaw.(float64)
+			if !isSerializable {
+				panic(fmt.Errorf("buffer index '%s' was not a number", bufIndexKey))
 			}
 
-			bufView := f.BufferViews[int(bufIndex)]
+			bufView := bufferViews[int(bufIndex)]
 
-			buf := allBuffers[bufView.Buffer]
-			buf.Seek(int64(bufView.ByteOffset), io.SeekStart)
+			buf := buffers[bufView.Buffer]
+			_, err := buf.Seek(int64(bufView.ByteOffset), io.SeekStart)
+			if err != nil {
+				return err
+			}
 
 			typeEle := viewFieldValue.Type()
 			for typeEle.Kind() == reflect.Pointer {
@@ -92,12 +124,12 @@ func interpretBufferView[T any](v *T, f *typedFormat[T], rawData map[string]any)
 
 			refNew := reflect.New(typeEle)
 			instantiatedType := refNew.Interface()
-			serializable, ok := instantiatedType.(PgtfSerializable)
-			if !ok {
-				panic("fuck")
+			serializable, isSerializable := instantiatedType.(Serializable)
+			if !isSerializable {
+				panic("instantiated type is not serializable")
 			}
 
-			err := serializable.Deserialize(buf)
+			err = serializable.Deserialize(buf)
 			if err != nil {
 				return err
 			}
@@ -114,8 +146,26 @@ func interpretBufferView[T any](v *T, f *typedFormat[T], rawData map[string]any)
 	return nil
 }
 
+func ParseJsonUsingBuffers[T any](buffers []Buffer, bufferViews []BufferView, data []byte) (T, error) {
+	allBuffers := rebuildBuffers(buffers)
+
+	var thingToParse T
+	err := json.Unmarshal(data, &thingToParse)
+	if err != nil {
+		return thingToParse, err
+	}
+
+	rawData := make(map[string]any)
+	err = json.Unmarshal(data, &rawData)
+	if err != nil {
+		return thingToParse, err
+	}
+
+	return thingToParse, interpretBufferView(reflect.ValueOf(&thingToParse), rawData, bufferViews, allBuffers)
+}
+
 func Unmarshal[T any](data []byte) (T, error) {
-	format := &typedFormat[T]{}
+	format := &Schema[T]{}
 	err := json.Unmarshal(data, format)
 	if err != nil {
 		return format.Data, err
@@ -132,5 +182,7 @@ func Unmarshal[T any](data []byte) (T, error) {
 		rawData = specificData
 	}
 
-	return format.Data, interpretBufferView(&format.Data, format, specificData)
+	allBuffers := rebuildBuffers(format.Buffers)
+
+	return format.Data, interpretBufferView(reflect.ValueOf(&format.Data), specificData, format.BufferViews, allBuffers)
 }

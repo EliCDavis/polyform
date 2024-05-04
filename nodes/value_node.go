@@ -6,6 +6,22 @@ import (
 	"github.com/EliCDavis/polyform/refutil"
 )
 
+type ValueNodeOutput[T any] struct {
+	Val *ValueNode[T]
+}
+
+func (sno ValueNodeOutput[T]) Value() T {
+	return sno.Val.Value()
+}
+
+func (sno ValueNodeOutput[T]) Node() Node {
+	return sno.Val
+}
+
+func (sno ValueNodeOutput[T]) Port() string {
+	return "Out"
+}
+
 type ValueNode[T any] struct {
 	VersionData
 	subs  []Alertable
@@ -37,6 +53,14 @@ func (in *ValueNode[T]) Node() Node {
 	return in
 }
 
+func (in *ValueNode[T]) Port() string {
+	return "Out"
+}
+
+func (in *ValueNode[T]) Out() ValueNodeOutput[T] {
+	return ValueNodeOutput[T]{Val: in}
+}
+
 func (vn ValueNode[T]) SetInput(input string, output Output) {
 	panic("input can not be set")
 }
@@ -45,11 +69,11 @@ func (tn ValueNode[T]) Inputs() []Input {
 	return []Input{}
 }
 
-func (tn ValueNode[T]) Outputs() []Output {
+func (tn *ValueNode[T]) Outputs() []Output {
 	return []Output{
 		{
-			Name: "Value",
-			Type: refutil.GetTypeWithPackage(new(T)),
+			Type:       refutil.GetTypeWithPackage(new(T)),
+			NodeOutput: ValueNodeOutput[T]{Val: tn},
 		},
 	}
 }

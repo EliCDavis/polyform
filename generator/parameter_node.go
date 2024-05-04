@@ -5,9 +5,30 @@ import (
 	"flag"
 	"fmt"
 
+	"github.com/EliCDavis/polyform/formats/pgtf"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
 )
+
+// ============================================================================
+
+type ParameterNodeOutput[T any] struct {
+	Val *ParameterNode[T]
+}
+
+func (sno ParameterNodeOutput[T]) Value() T {
+	return sno.Val.Value()
+}
+
+func (sno ParameterNodeOutput[T]) Node() nodes.Node {
+	return sno.Val
+}
+
+func (sno ParameterNodeOutput[T]) Port() string {
+	return "Out"
+}
+
+// ============================================================================
 
 type ParameterNodeSchema[T any] struct {
 	ParameterSchemaBase
@@ -15,24 +36,37 @@ type ParameterNodeSchema[T any] struct {
 	CurrentValue T `json:"currentValue"`
 }
 
+// ============================================================================
+
 type CliParameterNodeConfig[T any] struct {
-	FlagName string
-	Usage    string
+	FlagName string `json:"flagName"`
+	Usage    string `json:"usage"`
 	value    *T
 }
 
+// ============================================================================
+
+type parameterNodeGraphSchema[T any] struct {
+	Name         string                     `json:"name"`
+	CurrentValue T                          `json:"currentValue"`
+	DefaultValue T                          `json:"defaultValue"`
+	CLI          *CliParameterNodeConfig[T] `json:"cli"`
+}
+
+// ============================================================================
+
 type ParameterNode[T any] struct {
-	Name         string
-	DefaultValue T
-	CLI          *CliParameterNodeConfig[T]
+	Name         string                     `json:"name"`
+	DefaultValue T                          `json:"defaultValue"`
+	CLI          *CliParameterNodeConfig[T] `json:"cli"`
 
 	subs           []nodes.Alertable
 	version        int
 	appliedProfile *T
 }
 
-func (in *ParameterNode[T]) Node() nodes.Node {
-	return in
+func (in *ParameterNode[T]) Port() string {
+	return "Out"
 }
 
 func (vn ParameterNode[T]) SetInput(input string, output nodes.Output) {
@@ -83,6 +117,29 @@ func (pn *ParameterNode[T]) Value() T {
 	return pn.DefaultValue
 }
 
+func (pn *ParameterNode[T]) ToJSON(encoder *pgtf.Encoder) ([]byte, error) {
+	return json.Marshal(parameterNodeGraphSchema[T]{
+		Name:         pn.Name,
+		CurrentValue: pn.Value(),
+		DefaultValue: pn.DefaultValue,
+		CLI:          pn.CLI,
+	})
+}
+
+func (pn *ParameterNode[T]) FromJSON(decoder pgtf.Decoder, body []byte) (err error) {
+	gn := parameterNodeGraphSchema[T]{}
+	err = json.Unmarshal(body, &gn)
+	if err != nil {
+		return
+	}
+
+	pn.Name = gn.Name
+	pn.DefaultValue = gn.DefaultValue
+	pn.CLI = gn.CLI
+	pn.appliedProfile = &gn.CurrentValue
+	return
+}
+
 func (pn *ParameterNode[T]) Schema() ParameterSchema {
 	return ParameterNodeSchema[T]{
 		ParameterSchemaBase: ParameterSchemaBase{
@@ -110,31 +167,26 @@ func (pn *ParameterNode[T]) State() nodes.NodeState {
 	return nodes.Processed
 }
 
-func (tn ParameterNode[T]) Outputs() []nodes.Output {
+func (tn *ParameterNode[T]) Outputs() []nodes.Output {
 	return []nodes.Output{
 		{
-			Name: "Out",
+			// Name: "Out",
 			Type: refutil.GetTypeWithPackage(new(T)),
+			NodeOutput: ParameterNodeOutput[T]{
+				Val: tn,
+			},
 		},
 	}
 }
 
-type ParameterNodeOutput[T any] struct {
-	parameter *ParameterNode[T]
-}
-
-func (sno ParameterNodeOutput[T]) Value() T {
-	return sno.parameter.Value()
-}
-
-func (sno ParameterNodeOutput[T]) Node() nodes.Node {
-	return sno.parameter
-}
-
 func (tn *ParameterNode[T]) Out() nodes.NodeOutput[T] {
 	return ParameterNodeOutput[T]{
-		parameter: tn,
+		Val: tn,
 	}
+}
+
+func (in *ParameterNode[T]) Node() nodes.Node {
+	return in
 }
 
 func (tn ParameterNode[T]) Inputs() []nodes.Input {

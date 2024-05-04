@@ -1,15 +1,15 @@
 package nodes
 
-type ReferencesNode interface {
+type NodeOutputReference interface {
 	Node() Node
+	Port() string
 }
 
 // Producer ===================================================================
 
 type Output struct {
-	Name       string
 	Type       string
-	NodeOutput ReferencesNode
+	NodeOutput NodeOutputReference
 }
 
 type Input struct {
@@ -32,6 +32,7 @@ type Dependent interface {
 type NodeDependency interface {
 	Named
 	Dependency() Node
+	DependencyPort() string
 }
 
 // STATE ======================================================================

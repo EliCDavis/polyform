@@ -1,7 +1,7 @@
 package nodes
 
 type NodeOutput[T any] interface {
-	ReferencesNode
+	NodeOutputReference
 	Value() T
 }
 

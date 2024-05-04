@@ -2,12 +2,31 @@ package pgtf_test
 
 import (
 	"encoding/binary"
+	"fmt"
 	"io"
 	"testing"
 
 	"github.com/EliCDavis/polyform/formats/pgtf"
 	"github.com/stretchr/testify/assert"
 )
+
+type jsonSerializableStruct struct {
+	data string
+}
+
+func (jss jsonSerializableStruct) MarshalJSON() ([]byte, error) {
+	return []byte(fmt.Sprintf("\"%s\"", jss.data)), nil
+}
+
+func (jss *jsonSerializableStruct) UnmarshalJSON(b []byte) error {
+	jss.data = string(b[1 : len(b)-1])
+	return nil
+}
+
+type embeddedJsonSerializableStruct struct {
+	Jss jsonSerializableStruct `json:"jss"`
+	Ugh string                 `json:"god,omitempty"`
+}
 
 type basicStruct struct {
 	A int
@@ -43,6 +62,12 @@ type multipleEmbeddedBinaryStruct struct {
 	Basic         basicStruct
 	SerializableA *pgtfSerializableStruct
 	SerializableB *pgtfSerializableStruct
+}
+
+type nesstedEmbeddedBinaryStruct struct {
+	A    int
+	B    float64
+	Nest embeddedBinaryStruct
 }
 
 // TESTING ====================================================================
@@ -163,6 +188,68 @@ func TestMarshal(t *testing.T) {
 			"B": true,
 			"C": "yee haw"
 		}
+	}
+}`,
+		},
+		"nested binary": typedTestCase[nesstedEmbeddedBinaryStruct]{
+			input: nesstedEmbeddedBinaryStruct{
+				A: 1,
+				B: 12.1,
+				Nest: embeddedBinaryStruct{
+					Basic:        basicStruct{A: 123, B: true, C: "yee haw"},
+					Serializable: &pgtfSerializableStruct{data: 12345},
+				},
+			},
+			want: `{
+	"buffers": [
+		{
+			"byteLength": 4,
+			"uri": "data:application/octet-stream;base64,OTAAAA=="
+		}
+	],
+	"bufferViews": [
+		{
+			"buffer": 0,
+			"byteLength": 4
+		}
+	],
+	"data": {
+		"A": 1,
+		"B": 12.1,
+		"Nest": {
+			"$Serializable": 0,
+			"Basic": {
+				"A": 123,
+				"B": true,
+				"C": "yee haw"
+			}
+		}
+	}
+}`,
+		},
+		"embedded serializable json": typedTestCase[embeddedJsonSerializableStruct]{
+			input: embeddedJsonSerializableStruct{
+				Jss: jsonSerializableStruct{
+					data: "yooooo",
+				},
+				Ugh: "jeez",
+			},
+			want: `{
+	"data": {
+		"god": "jeez",
+		"jss": "yooooo"
+	}
+}`,
+		},
+		"embedded serializable json omitempty": typedTestCase[embeddedJsonSerializableStruct]{
+			input: embeddedJsonSerializableStruct{
+				Jss: jsonSerializableStruct{
+					data: "yooooo",
+				},
+			},
+			want: `{
+	"data": {
+		"jss": "yooooo"
 	}
 }`,
 		},

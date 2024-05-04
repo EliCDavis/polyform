@@ -75,9 +75,9 @@ const viewerContainer = new THREE.Group();
 scene.add(viewerContainer);
 
 const threeCanvas = document.getElementById("three-canvas");
-const renderer = new THREE.WebGLRenderer({ 
+const renderer = new THREE.WebGLRenderer({
     canvas: threeCanvas,
-    antialias: RenderingConfiguration.AntiAlias 
+    antialias: RenderingConfiguration.AntiAlias
 });
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(threeCanvas.clientWidth, threeCanvas.clientHeight, false);
@@ -347,25 +347,25 @@ class SchemaRefreshManager {
                 const aabbHeight = (aabb.max.y - aabb.min.y)
                 const aabbHalfHeight = aabbHeight / 2
                 const mid = (aabb.max.y + aabb.min.y) / 2
-    
+
                 const shiftY = - mid + aabbHalfHeight
                 guassianSplatViewer.splatMesh.position.set(0, shiftY, 0)
                 viewerContainer.position.set(0, shiftY, 0)
-    
+
                 if (firstTimeLoadingScene) {
                     firstTimeLoadingScene = false;
-    
+
                     camera.position.y = mid * (3 / 2);
                     camera.position.z = Math.sqrt(
                         (aabbWidth * aabbWidth) +
                         (aabbDepth * aabbDepth) +
                         (aabbHeight * aabbHeight)
                     ) / 2;
-    
+
                     orbitControls.target.set(0, mid, 0);
                     orbitControls.update();
                 }
-           });
+            });
 
             this.RemoveLoading();
         }).catch(x => {
@@ -413,13 +413,15 @@ schemaManager.subscribe(schemaRefreshManager.NewSchema.bind(schemaRefreshManager
 
 
 const fileControls = {
-    saveProfile: () => {
-        const fileContent = JSON.stringify(profile);
-        const bb = new Blob([fileContent], { type: 'application/json' });
-        const a = document.createElement('a');
-        a.download = 'profile.json';
-        a.href = window.URL.createObjectURL(bb);
-        a.click();
+    saveGraph: () => {
+        requestManager.getGraph((graph) => {
+            const fileContent = JSON.stringify(graph);
+            const bb = new Blob([fileContent], { type: 'application/json' });
+            const a = document.createElement('a');
+            a.download = 'graph.json';
+            a.href = window.URL.createObjectURL(bb);
+            a.click();
+        })
     },
     loadProfile: () => {
         const input = document.createElement('input');
@@ -437,8 +439,7 @@ const fileControls = {
             // here we tell the reader what to do when it's done reading...
             reader.onload = readerEvent => {
                 const content = readerEvent.target.result; // this is the content!
-                profile = JSON.parse(content)
-                updateProfile(() => {
+                requestManager.setGraph(JSON.parse(content), () => {
                     location.reload();
                 })
             }
@@ -473,8 +474,8 @@ const fileControls = {
 }
 
 const fileSettingsFolder = panel.addFolder("File");
-fileSettingsFolder.add(fileControls, "saveProfile").name("Save Profile")
-fileSettingsFolder.add(fileControls, "loadProfile").name("Load Profile")
+fileSettingsFolder.add(fileControls, "saveGraph").name("Save Graph")
+fileSettingsFolder.add(fileControls, "loadProfile").name("Load Graph")
 fileSettingsFolder.add(fileControls, "saveModel").name("Download Model")
 fileSettingsFolder.add(fileControls, "viewProgram").name("View Program")
 fileSettingsFolder.close();
@@ -592,7 +593,7 @@ viewportManager.AddSetting(
 function resize() {
     const w = renderer.domElement.clientWidth;
     const h = renderer.domElement.clientHeight
-    
+
     if (renderer.domElement.width !== w || renderer.domElement.height !== h) {
         renderer.setSize(w, h, false);
         camera.aspect = w / h;
@@ -622,7 +623,7 @@ if (websocketManager.canConnect()) {
 
 updateLoop.addToUpdate(() => {
     resize();
-    
+
     renderer.render(scene, camera);
 
     if (guassianSplatViewer) {

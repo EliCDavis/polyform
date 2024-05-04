@@ -79,12 +79,11 @@ func (as *AppServer) nodeConnectionEndpoint_post(req CreateNodeConnectionRequest
 	// log.Printf("%#v", outNode)
 	// log.Printf("%#v", outPortVals)
 
-	ref := outPortVals[0].(nodes.ReferencesNode)
+	ref := outPortVals[0].(nodes.NodeOutputReference)
 	inNode.SetInput(
 		req.InPortName,
 		nodes.Output{
 			NodeOutput: ref,
-			Name:       req.OutPortName,
 		},
 	)
 	as.incModelVersion()
@@ -105,7 +104,6 @@ func (as *AppServer) nodeConnectionEndpoint_delete(req DeleteNodeConnectionReque
 		req.InPortName,
 		nodes.Output{
 			NodeOutput: nil,
-			Name:       "",
 		},
 	)
 	as.incModelVersion()

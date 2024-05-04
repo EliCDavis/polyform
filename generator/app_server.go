@@ -34,6 +34,16 @@ func writeJSONError(out io.Writer, err error) error {
 	return err
 }
 
+func writeJSON(out io.Writer, v any) error {
+	data, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	_, err = out.Write(data)
+	return err
+}
+
 func readJSON[T any](body io.Reader) (T, error) {
 	var v T
 	data, err := io.ReadAll(body)
@@ -83,15 +93,14 @@ func (as *AppServer) Serve() error {
 		return err
 	}
 
-	pageToServe := pageData{
-		Title:       as.app.Name,
-		Version:     as.app.Version,
-		Description: as.app.Description,
-		AntiAlias:   as.webscene.AntiAlias,
-		XrEnabled:   as.webscene.XrEnabled,
-	}
-
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		pageToServe := pageData{
+			Title:       as.app.Name,
+			Version:     as.app.Version,
+			Description: as.app.Description,
+			AntiAlias:   as.webscene.AntiAlias,
+			XrEnabled:   as.webscene.XrEnabled,
+		}
 
 		// Required for sharedMemoryForWorkers to work
 		w.Header().Add("Cross-Origin-Opener-Policy", "same-origin")
@@ -121,6 +130,7 @@ func (as *AppServer) Serve() error {
 	http.HandleFunc("/node", as.NodeEndpoint)
 	http.HandleFunc("/node/connection", as.NodeConnectionEndpoint)
 	http.HandleFunc("/started", as.StartedEndpoint)
+	http.HandleFunc("/graph", as.GraphEndpoint)
 	http.HandleFunc("/profile/", as.ProfileEndpoint)
 	http.HandleFunc("/mermaid", as.MermaidEndpoint)
 	http.HandleFunc("/producer/", as.ProducerEndpoint)
@@ -166,24 +176,35 @@ func (as *AppServer) ProducerEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	as.producerLock.Lock()
 	defer as.producerLock.Unlock()
+
 	// params, _ := url.ParseQuery(r.URL.RawQuery)
+	err := as.writeProducerDataToRequest(path.Base(r.URL.Path), w)
+	if err != nil {
+		log.Print(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		writeJSONError(w, err)
+	}
+}
 
-	producerToLoad := path.Base(r.URL.Path)
-
+func (as *AppServer) writeProducerDataToRequest(producerToLoad string, w http.ResponseWriter) (err error) {
+	defer func() {
+		if recErr := recover(); recErr != nil {
+			err = fmt.Errorf("panic recover: %v", recErr)
+		}
+	}()
 	producer, ok := as.app.Producers[producerToLoad]
 	if !ok {
-		panic(fmt.Errorf("no producer registered for: %s", producerToLoad))
+		return fmt.Errorf("no producer registered for: %s", producerToLoad)
 	}
 
 	artifact := producer.Value()
 
 	bufWr := bufio.NewWriter(w)
-	err := artifact.Write(bufWr)
+	err = artifact.Write(bufWr)
 	if err != nil {
-		log.Println(err.Error())
-		panic(err)
+		return
 	}
-	bufWr.Flush()
+	return bufWr.Flush()
 }
 
 func (as *AppServer) ApplyMessage(key string, msg []byte) (bool, error) {

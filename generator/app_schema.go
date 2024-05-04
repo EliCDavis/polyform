@@ -21,8 +21,9 @@ type NodeInstanceSchema struct {
 }
 
 type NodeDependencySchema struct {
-	DependencyID string `json:"dependencyID"`
-	Name         string `json:"name"`
+	DependencyID   string `json:"dependencyID"`
+	DependencyPort string `json:"dependencyPort"`
+	Name           string `json:"name"`
 }
 
 type NodeTypeSchema struct {
@@ -36,6 +37,7 @@ type NodeTypeSchema struct {
 
 type ProducerSchema struct {
 	NodeID string `json:"nodeID"`
+	Port   string `json:"port"` // Name of node out port
 }
 
 type AppSchema struct {

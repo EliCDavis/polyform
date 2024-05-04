@@ -118,4 +118,12 @@ class RequestManager {
             "nodeType": nodeType,
         }, callback)
     }
+
+    getGraph(callback) {
+        this.fetch("/graph", callback)
+    }
+
+    setGraph(newGraph, callback) {
+        this.postJson("/graph", newGraph, callback)
+    }
 }

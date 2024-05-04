@@ -64,7 +64,7 @@ func (tf TypeFactory) New(key string) any {
 		}
 	}
 
-	panic(fmt.Errorf("type factory has no type registered for key %s", key))
+	panic(fmt.Errorf("type factory has no type registered for key '%s'", key))
 }
 
 func (factory *TypeFactory) RegisterType(v any) {

@@ -1,6 +1,7 @@
 package generator_test
 
 import (
+	"bytes"
 	"testing"
 
 	"github.com/EliCDavis/polyform/generator"
@@ -32,4 +33,41 @@ func TestBuildNodeTypeSchema(t *testing.T) {
 	assert.Len(t, schema.Outputs, 1)
 	assert.Equal(t, "float64", schema.Outputs[0].Type)
 	assert.Equal(t, "Out", schema.Outputs[0].Name)
+}
+
+func TestGetAndApplyGraph(t *testing.T) {
+	appName := "Test Graph"
+	appVersion := "Test Graph"
+	appDescription := "Test Graph"
+	producerFileName := "test.txt"
+	app := generator.App{
+		Name:        appName,
+		Version:     appVersion,
+		Description: appDescription,
+		Producers: map[string]nodes.NodeOutput[generator.Artifact]{
+			producerFileName: generator.NewTextArtifactNode(&generator.ParameterNode[string]{
+				Name:         "Welp",
+				DefaultValue: "yee",
+			}),
+		},
+	}
+
+	app.SetupProducers()
+
+	// ACT ====================================================================
+	graphData := app.Graph()
+	err := app.ApplyGraph(graphData)
+	graphAgain := app.Graph()
+
+	// ASSERT =================================================================
+	assert.NoError(t, err)
+	assert.Equal(t, appName, app.Name)
+	assert.Equal(t, appVersion, app.Version)
+	assert.Equal(t, appDescription, app.Description)
+	assert.Equal(t, string(graphData), string(graphAgain))
+	b := &bytes.Buffer{}
+	art := app.Producers[producerFileName].Value()
+	err = art.Write(b)
+	assert.NoError(t, err)
+	assert.Equal(t, "yee", b.String())
 }

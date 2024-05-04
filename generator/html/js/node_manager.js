@@ -275,7 +275,7 @@ export class NodeManager {
 
     buildCustomNodeType(typeData) {
         const nm = this;
-        function FuckYou() {
+        function CustomNodeFunc() {
             for (var inputName in typeData.inputs) {
                 this.addInput(inputName, typeData.inputs[inputName].type);
             }
@@ -306,10 +306,10 @@ export class NodeManager {
             nm.onNodeCreateCallback(this, typeData.type);
         }
 
-        Object.defineProperty(FuckYou, "name", { value: typeData.displayName });
+        Object.defineProperty(CustomNodeFunc, "name", { value: typeData.displayName });
 
         const category = typeData.path + "/" + typeData.displayName;
-        LiteGraph.registerNodeType(category, FuckYou);
+        LiteGraph.registerNodeType(category, CustomNodeFunc);
         this.nodeTypeToLitePath.set(typeData.type, category);
     }
 

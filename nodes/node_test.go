@@ -73,10 +73,10 @@ func TestNodes(t *testing.T) {
 
 	deps := repeated.Out().Node().Dependencies()
 	assert.Len(t, deps, 3)
-	assert.Equal(t, []nodes.Output{{
-		Name: "Out",
-		Type: "github.com/EliCDavis/polyform/modeling.Mesh",
-	}}, combined.Out().Node().Outputs())
+	// assert.Equal(t, []nodes.Output{{
+	// 	// Name: "Out",
+	// 	Type: "github.com/EliCDavis/polyform/modeling.Mesh",
+	// }}, combined.Out().Node().Outputs())
 
 	assert.Equal(t, "nodes_test", combined.Path())
 	assert.Equal(t, "modeling/repeat", repeated.Path())

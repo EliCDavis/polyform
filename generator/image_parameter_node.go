@@ -24,6 +24,10 @@ func (in *ImageParameterNode) Node() nodes.Node {
 	return in
 }
 
+func (in ImageParameterNode) Port() string {
+	return "Out"
+}
+
 func (vn ImageParameterNode) SetInput(input string, output nodes.Output) {
 	panic("input can not be set")
 }
@@ -105,12 +109,36 @@ func (pn *ImageParameterNode) State() nodes.NodeState {
 	return nodes.Processed
 }
 
-func (tn ImageParameterNode) Outputs() []nodes.Output {
+type ImageNodeOutput struct {
+	Val *ImageParameterNode
+}
+
+func (sno ImageNodeOutput) Value() image.Image {
+	return sno.Val.Value()
+}
+
+func (sno ImageNodeOutput) Node() nodes.Node {
+	return sno.Val
+}
+
+func (sno ImageNodeOutput) Port() string {
+	return "Out"
+}
+
+func (tn *ImageParameterNode) Outputs() []nodes.Output {
 	return []nodes.Output{
 		{
-			Name: "Data",
 			Type: "image.Image",
+			NodeOutput: ImageNodeOutput{
+				Val: tn,
+			},
 		},
+	}
+}
+
+func (tn *ImageParameterNode) Out() ImageNodeOutput {
+	return ImageNodeOutput{
+		Val: tn,
 	}
 }
 

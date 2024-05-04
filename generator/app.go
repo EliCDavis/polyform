@@ -8,6 +8,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"path"
 	"path/filepath"
@@ -15,6 +16,7 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/EliCDavis/polyform/formats/pgtf"
 	"github.com/EliCDavis/polyform/generator/room"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
@@ -33,6 +35,140 @@ type App struct {
 	// Runtime data
 	nodeIDs map[nodes.Node]string
 	types   *refutil.TypeFactory
+}
+
+func (a *App) ApplyGraph(jsonPayload []byte) error {
+
+	graph, err := pgtf.Unmarshal[Graph](jsonPayload)
+	if err != nil {
+		return fmt.Errorf("unable to parse graph as a pgtf: %w", err)
+	}
+
+	decoder, err := pgtf.NewDecoder(jsonPayload)
+	if err != nil {
+		return fmt.Errorf("unable to build a pgtf decoder: %w", err)
+	}
+
+	log.Println(graph.Name)
+
+	if graph.Name != "" {
+		a.Name = graph.Name
+	}
+
+	if graph.Version != "" {
+		a.Version = graph.Version
+	}
+
+	if graph.Description != "" {
+		a.Description = graph.Description
+	}
+
+	if graph.WebScene != nil {
+		a.WebScene = graph.WebScene
+	}
+
+	a.nodeIDs = make(map[nodes.Node]string)
+	createdNodes := make(map[string]nodes.Node)
+
+	// Create the Nodes
+	for nodeID, instanceDetails := range graph.Nodes {
+		if nodeID == "" {
+			panic("attempting to create a node without an ID")
+		}
+		newNode := a.types.New(instanceDetails.Type)
+		casted, ok := newNode.(nodes.Node)
+		if !ok {
+			panic(fmt.Errorf("graph definition contained type that instantiated a non node: %s", instanceDetails.Type))
+		}
+		createdNodes[nodeID] = casted
+		a.nodeIDs[casted] = nodeID
+	}
+
+	// Connect the nodes we just created
+	for nodeID, instanceDetails := range graph.Nodes {
+		node := createdNodes[nodeID]
+		for _, dependency := range instanceDetails.Dependencies {
+
+			outNode := createdNodes[dependency.DependencyID]
+			outPortVals := refutil.CallFuncValuesOfType(outNode, dependency.DependencyPort)
+			ref := outPortVals[0].(nodes.NodeOutputReference)
+
+			node.SetInput(dependency.Name, nodes.Output{
+				NodeOutput: ref,
+			})
+		}
+	}
+
+	// Set the Producers
+	for fileName, producerDetails := range graph.Producers {
+		producerNode := createdNodes[producerDetails.NodeID]
+		outPortVals := refutil.CallFuncValuesOfType(producerNode, producerDetails.Port)
+		ref := outPortVals[0].(nodes.NodeOutput[Artifact])
+		if ref == nil {
+			panic(fmt.Errorf("REF IS NIL FOR FILE %s (node id: %s) and port %s", fileName, producerDetails.NodeID, producerDetails.Port))
+		}
+		a.Producers[fileName] = ref
+	}
+
+	// Set Parameters
+	for nodeID, instanceDetails := range graph.Nodes {
+		nodeI := createdNodes[nodeID]
+		if p, ok := nodeI.(CustomGraphSerialization); ok {
+			err := p.FromJSON(decoder, instanceDetails.Data)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func (a *App) Graph() []byte {
+	g := Graph{
+		Name:        a.Name,
+		Version:     a.Version,
+		Description: a.Description,
+		WebScene:    a.WebScene,
+		Producers:   make(map[string]ProducerSchema),
+	}
+
+	appNodeSchema := make(map[string]GraphNodeInstance)
+
+	encoder := &pgtf.Encoder{}
+
+	for node := range a.nodeIDs {
+		id, ok := a.nodeIDs[node]
+		if !ok {
+			panic(fmt.Errorf("node %v has not had an ID generated for it", node))
+		}
+
+		if _, ok := appNodeSchema[id]; ok {
+			panic("not sure how this happened")
+		}
+
+		appNodeSchema[id] = a.buildNodeGraphInstanceSchema(node, encoder)
+	}
+
+	for key, producer := range a.Producers {
+		// a.buildSchemaForNode(producer.Node(), appNodeSchema)
+		id := a.nodeIDs[producer.Node()]
+		node := appNodeSchema[id]
+		appNodeSchema[id] = node
+
+		g.Producers[key] = ProducerSchema{
+			NodeID: id,
+			Port:   producer.Port(),
+		}
+	}
+
+	g.Nodes = appNodeSchema
+
+	data, err := encoder.ToPgtf(g)
+	if err != nil {
+		panic(err)
+	}
+	return data
 }
 
 func writeProducersToZip(path string, producers map[string]nodes.NodeOutput[Artifact], zw *zip.Writer) error {
@@ -155,7 +291,7 @@ func BuildNodeTypeSchema(node nodes.Node) NodeTypeSchema {
 	outputs := node.Outputs()
 	for _, o := range outputs {
 		typeSchema.Outputs = append(typeSchema.Outputs, NodeOutput{
-			Name: o.Name,
+			Name: o.NodeOutput.Port(),
 			Type: o.Type,
 		})
 	}
@@ -209,6 +345,32 @@ func (a *App) recursivelyRegisterNodeTypes(node nodes.Node) {
 	}
 }
 
+func (a App) buildNodeGraphInstanceSchema(node nodes.Node, encoder *pgtf.Encoder) GraphNodeInstance {
+
+	schema := GraphNodeInstance{
+		Type:         refutil.GetTypeWithPackage(node),
+		Dependencies: make([]NodeDependencySchema, 0),
+	}
+
+	for _, subDependency := range node.Dependencies() {
+		schema.Dependencies = append(schema.Dependencies, NodeDependencySchema{
+			DependencyID:   a.nodeIDs[subDependency.Dependency()],
+			DependencyPort: subDependency.DependencyPort(),
+			Name:           subDependency.Name(),
+		})
+	}
+
+	if param, ok := node.(CustomGraphSerialization); ok {
+		data, err := param.ToJSON(encoder)
+		if err != nil {
+			panic(err)
+		}
+		schema.Data = data
+	}
+
+	return schema
+}
+
 func (a App) buildNodeInstanceSchema(node nodes.Node) NodeInstanceSchema {
 
 	schema := NodeInstanceSchema{
@@ -220,8 +382,9 @@ func (a App) buildNodeInstanceSchema(node nodes.Node) NodeInstanceSchema {
 
 	for _, subDependency := range node.Dependencies() {
 		schema.Dependencies = append(schema.Dependencies, NodeDependencySchema{
-			DependencyID: a.nodeIDs[subDependency.Dependency()],
-			Name:         subDependency.Name(),
+			DependencyID:   a.nodeIDs[subDependency.Dependency()],
+			DependencyPort: subDependency.DependencyPort(),
+			Name:           subDependency.Name(),
 		})
 	}
 
@@ -260,11 +423,7 @@ func (a *App) buildIDsForNode(dep nodes.Node) {
 }
 
 func (a *App) Schema() AppSchema {
-	if a.nodeIDs == nil {
-		for _, producer := range a.Producers {
-			a.buildIDsForNode(producer.Node())
-		}
-	}
+	a.SetupProducers()
 
 	schema := AppSchema{
 		Producers: make(map[string]ProducerSchema),
@@ -294,6 +453,7 @@ func (a *App) Schema() AppSchema {
 
 		schema.Producers[key] = ProducerSchema{
 			NodeID: id,
+			Port:   producer.Port(),
 		}
 	}
 
@@ -348,6 +508,18 @@ func (a App) Generate(outputPath string) error {
 	return nil
 }
 
+func (a *App) SetupProducers() {
+	for _, p := range a.Producers {
+		a.recursivelyRegisterNodeTypes(p.Node())
+	}
+
+	if a.nodeIDs == nil {
+		for _, producer := range a.Producers {
+			a.buildIDsForNode(producer.Node())
+		}
+	}
+}
+
 func (a *App) Run() error {
 	if a.Producers == nil || len(a.Producers) == 0 {
 		return errors.New("application has not defined any producers")
@@ -355,9 +527,7 @@ func (a *App) Run() error {
 
 	os_setup(a)
 
-	for _, p := range a.Producers {
-		a.recursivelyRegisterNodeTypes(p.Node())
-	}
+	a.SetupProducers()
 
 	commandMap := make(map[string]*cliCommand)
 

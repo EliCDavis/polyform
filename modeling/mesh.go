@@ -1217,27 +1217,27 @@ func (m Mesh) HasFloat1Attribute(attribute string) bool {
 	return ok
 }
 
-func (m Mesh) requireV4Attribute(atr string) {
-	if !m.HasFloat4Attribute(atr) {
-		panic(fmt.Errorf("can not perform operation for a mesh without the attribute '%s'", atr))
+func (m Mesh) requireV4Attribute(attr string) {
+	if !m.HasFloat4Attribute(attr) {
+		panic(fmt.Errorf("can not perform operation for a mesh without the attribute '%s'", attr))
 	}
 }
 
-func (m Mesh) requireV3Attribute(atr string) {
-	if !m.HasFloat3Attribute(atr) {
-		panic(fmt.Errorf("can not perform operation for a mesh without the attribute '%s'", atr))
+func (m Mesh) requireV3Attribute(attr string) {
+	if !m.HasFloat3Attribute(attr) {
+		panic(fmt.Errorf("can not perform operation for a mesh without the attribute '%s'", attr))
 	}
 }
 
-func (m Mesh) requireV2Attribute(atr string) {
-	if !m.HasFloat2Attribute(atr) {
-		panic(fmt.Errorf("can not perform operation for a mesh without the attribute '%s'", atr))
+func (m Mesh) requireV2Attribute(attr string) {
+	if !m.HasFloat2Attribute(attr) {
+		panic(fmt.Errorf("can not perform operation for a mesh without the attribute '%s'", attr))
 	}
 }
 
-func (m Mesh) requireV1Attribute(atr string) {
-	if !m.HasFloat1Attribute(atr) {
-		panic(fmt.Errorf("can not perform operation for a mesh without the attribute '%s'", atr))
+func (m Mesh) requireV1Attribute(attr string) {
+	if !m.HasFloat1Attribute(attr) {
+		panic(fmt.Errorf("can not perform operation for a mesh without the attribute '%s'", attr))
 	}
 }
 

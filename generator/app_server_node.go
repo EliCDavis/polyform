@@ -82,7 +82,7 @@ func (as *AppServer) nodeEncpoint_Post(req CreateNodeRequest) (resp CreateNodeRe
 		newNode := as.app.types.New(req.NodeType)
 		casted, ok := newNode.(nodes.Node)
 		if !ok {
-			panic(fmt.Errorf("what the fuck: %s", req.NodeType))
+			panic(fmt.Errorf("Regiestered type did not create a node. How'd ya manage that: %s", req.NodeType))
 		}
 		as.app.buildIDsForNode(casted)
 

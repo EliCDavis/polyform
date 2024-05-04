@@ -16,6 +16,7 @@ import (
 
 type StructNodeOutput[T any, G StructNodeProcesor[T]] struct {
 	Struct *StructNode[T, G]
+	Name   string
 }
 
 func (sno StructNodeOutput[T, G]) Value() T {
@@ -24,6 +25,10 @@ func (sno StructNodeOutput[T, G]) Value() T {
 
 func (sno StructNodeOutput[T, G]) Node() Node {
 	return sno.Struct
+}
+
+func (sno StructNodeOutput[T, G]) Port() string {
+	return sno.Name
 }
 
 // ============================================================================
@@ -98,8 +103,9 @@ func (sn *StructNode[T, G]) updateUsedDependencyVersions() {
 }
 
 type StructNodeDependency struct {
-	name string
-	dep  Node
+	name           string
+	dep            Node
+	dependencyPort string
 }
 
 func (snd StructNodeDependency) Name() string {
@@ -110,19 +116,25 @@ func (snd StructNodeDependency) Dependency() Node {
 	return snd.dep
 }
 
+func (snd StructNodeDependency) DependencyPort() string {
+	return snd.dependencyPort
+}
+
 func (sn StructNode[T, G]) Version() int {
 	return sn.version
 }
 
 func (sn *StructNode[T, G]) Out() StructNodeOutput[T, G] {
-	return StructNodeOutput[T, G]{Struct: sn}
+	return StructNodeOutput[T, G]{
+		Struct: sn,
+		Name:   "Out",
+	}
 }
 
-func (sn StructNode[T, G]) Outputs() []Output {
+func (sn *StructNode[T, G]) Outputs() []Output {
 	// outputs := refutil.FuncValuesOfType[ReferencesNode](tn.Data)
 
 	// outs := make([]Output, len(outputs))
-	// // TODO: This is wrong for nodes with more than one output
 	// var v *T = new(T)
 	// for i, o := range outputs {
 	// 	outs[i] = Output{
@@ -133,10 +145,14 @@ func (sn StructNode[T, G]) Outputs() []Output {
 	// }
 	// return outs
 
+	// TODO: This is wrong for nodes with more than one output
 	return []Output{
 		{
 			Type: refutil.GetTypeWithPackage(new(T)),
-			Name: "Out",
+			NodeOutput: StructNodeOutput[T, G]{
+				Name:   "Out",
+				Struct: sn,
+			},
 		},
 	}
 }
@@ -154,15 +170,16 @@ func (sn StructNode[T, G]) Inputs() []Input {
 func (sn StructNode[T, G]) Dependencies() []NodeDependency {
 	output := make([]NodeDependency, 0)
 
-	basicData := refutil.FieldValuesOfType[ReferencesNode](sn.Data)
+	basicData := refutil.FieldValuesOfType[NodeOutputReference](sn.Data)
 	for key, val := range basicData {
 		output = append(output, StructNodeDependency{
-			name: key,
-			dep:  val.Node(),
+			name:           key,
+			dep:            val.Node(),
+			dependencyPort: val.Port(),
 		})
 	}
 
-	arrayData := refutil.FieldValuesOfTypeInArray[ReferencesNode](sn.Data)
+	arrayData := refutil.FieldValuesOfTypeInArray[NodeOutputReference](sn.Data)
 	for key, field := range arrayData {
 		for i, e := range field {
 			if e == nil {
@@ -170,8 +187,9 @@ func (sn StructNode[T, G]) Dependencies() []NodeDependency {
 			}
 
 			output = append(output, StructNodeDependency{
-				name: fmt.Sprintf("%s.%d", key, i),
-				dep:  e.Node(),
+				name:           fmt.Sprintf("%s.%d", key, i),
+				dep:            e.Node(),
+				dependencyPort: e.Port(),
 			})
 		}
 	}
@@ -187,6 +205,10 @@ func (sn *StructNode[T, G]) Value() T {
 
 func (sn *StructNode[T, G]) Node() Node {
 	return sn
+}
+
+func (sn *StructNode[T, G]) Port() string {
+	return "Out"
 }
 
 func (sn *StructNode[T, G]) process() {
