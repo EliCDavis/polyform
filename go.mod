@@ -5,7 +5,7 @@ go 1.21.0
 require (
 	github.com/EliCDavis/vector v1.6.0
 	github.com/schollz/progressbar/v3 v3.14.1
-	github.com/stretchr/testify v1.8.4
+	github.com/stretchr/testify v1.9.0
 )
 
 require (
@@ -13,7 +13,10 @@ require (
 	github.com/gorilla/websocket v1.5.1
 )
 
-require golang.org/x/net v0.23.0 // indirect
+require (
+	github.com/EliCDavis/jbtf v0.1.0 // indirect
+	golang.org/x/net v0.23.0 // indirect
+)
 
 require (
 	github.com/EliCDavis/bitlib v1.1.0

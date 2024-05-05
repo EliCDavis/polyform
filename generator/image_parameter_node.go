@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"flag"
 	"image"
+	_ "image/jpeg"
 	"image/png"
 	"os"
 
+	"github.com/EliCDavis/jbtf"
 	"github.com/EliCDavis/polyform/nodes"
 )
 
@@ -155,4 +157,52 @@ func (pn ImageParameterNode) initializeForCLI(set *flag.FlagSet) {
 		return
 	}
 	pn.CLI.value = set.String(pn.CLI.FlagName, "", pn.CLI.Usage)
+}
+
+// CUSTOM JTF Serialization ===================================================
+
+type imageNodeGraphSchema struct {
+	Name         string                          `json:"name"`
+	CurrentValue *jbtf.Png                       `json:"currentValue"`
+	DefaultValue *jbtf.Png                       `json:"defaultValue"`
+	CLI          *CliParameterNodeConfig[string] `json:"cli"`
+}
+
+func (pn *ImageParameterNode) ToJSON(encoder *jbtf.Encoder) ([]byte, error) {
+	schema := imageNodeGraphSchema{
+		Name: pn.Name,
+		CLI:  pn.CLI,
+	}
+
+	if pn.Value() != nil {
+		schema.CurrentValue = &jbtf.Png{
+			Image: pn.Value(),
+		}
+	}
+
+	if schema.DefaultValue != nil {
+		schema.DefaultValue = &jbtf.Png{
+			Image: pn.DefaultValue,
+		}
+	}
+
+	return encoder.Marshal(schema)
+}
+
+func (pn *ImageParameterNode) FromJSON(decoder jbtf.Decoder, body []byte) (err error) {
+	gn, err := jbtf.Decode[imageNodeGraphSchema](decoder, body)
+	if err != nil {
+		return
+	}
+
+	pn.Name = gn.Name
+	pn.CLI = gn.CLI
+
+	if gn.DefaultValue != nil {
+		pn.DefaultValue = gn.DefaultValue.Image
+	}
+	if gn.CurrentValue != nil {
+		pn.appliedProfile = gn.CurrentValue.Image
+	}
+	return
 }

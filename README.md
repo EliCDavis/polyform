@@ -41,6 +41,7 @@ Polyform is for loading, generating, editing, and exporting 3D geometry and it's
 Packages that have spawned from polyform's undertaking and have since been refactored into their own repositories:
 
 - [vector](https://github.com/EliCDavis/vector) - Immutable vector math library
+- [jbtf](https://github.com/EliCDavis/jbtf) - GLTF-inspired JSON schema for embedding arbitrary binaries
 - [iter](https://github.com/EliCDavis/iter) - Iterator and utilities. Some inspiration from ReactiveX
 - [quill](https://github.com/EliCDavis/quill) - Scheduler of operations on in-memory data
 - [sfm](https://github.com/EliCDavis/sfm) - Utilities for interacting with reconstruction data from different SFM programs

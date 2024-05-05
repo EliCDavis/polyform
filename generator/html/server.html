@@ -101,30 +101,26 @@
             user-select: none;
             pointer-events: none;
             z-index: 1;
-            /* TODO Solve this in HTML */
         }
 
-        #errorMessage {
+        #messageContainer {
             position: absolute;
             left: 0px;
             bottom: 0px;
             margin: 6px;
-            padding: 4px;
+            z-index: 1;
+        }
+
+        .errorMessage {
             box-sizing: border-box;
             text-align: center;
-            z-index: 1;
             background-color: red;
-            /* TODO Solve this in HTML */
-
-            display: none;
+            margin-bottom: 6px;
+            padding: 4px;
         }
 
 
         #infoMessage {
-            position: absolute;
-            left: 0px;
-            bottom: 0px;
-            margin: 6px;
             padding: 8px;
             box-sizing: border-box;
             text-align: center;
@@ -254,10 +250,9 @@
         <a href="https://github.com/EliCDavis/polyform">Polyform</a>
     </div>
 
-    <div id="errorMessage">
-    </div>
-
-    <div id="infoMessage">
+    <div id="messageContainer">
+        <div id="infoMessage">
+        </div>
     </div>
 
     <div style="position: absolute; display: flex;">

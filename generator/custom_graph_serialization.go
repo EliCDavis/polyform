@@ -1,8 +1,8 @@
 package generator
 
-import "github.com/EliCDavis/polyform/formats/pgtf"
+import "github.com/EliCDavis/jbtf"
 
 type CustomGraphSerialization interface {
-	ToJSON(encoder *pgtf.Encoder) ([]byte, error)
-	FromJSON(decoder pgtf.Decoder, body []byte) error
+	ToJSON(encoder *jbtf.Encoder) ([]byte, error)
+	FromJSON(decoder jbtf.Decoder, body []byte) error
 }

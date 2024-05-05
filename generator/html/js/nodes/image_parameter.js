@@ -26,7 +26,7 @@ export class ImageParameterNode {
         }
     }
 
-    loadImgFromURL() {
+    loadImgFromURL(url) {
         const img = document.createElement("img");
         img.src = url;
         img.onload = () => {

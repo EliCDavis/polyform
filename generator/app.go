@@ -16,7 +16,7 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/EliCDavis/polyform/formats/pgtf"
+	"github.com/EliCDavis/jbtf"
 	"github.com/EliCDavis/polyform/generator/room"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
@@ -39,14 +39,14 @@ type App struct {
 
 func (a *App) ApplyGraph(jsonPayload []byte) error {
 
-	graph, err := pgtf.Unmarshal[Graph](jsonPayload)
+	graph, err := jbtf.Unmarshal[Graph](jsonPayload)
 	if err != nil {
-		return fmt.Errorf("unable to parse graph as a pgtf: %w", err)
+		return fmt.Errorf("unable to parse graph as a jbtf: %w", err)
 	}
 
-	decoder, err := pgtf.NewDecoder(jsonPayload)
+	decoder, err := jbtf.NewDecoder(jsonPayload)
 	if err != nil {
-		return fmt.Errorf("unable to build a pgtf decoder: %w", err)
+		return fmt.Errorf("unable to build a jbtf decoder: %w", err)
 	}
 
 	log.Println(graph.Name)
@@ -135,7 +135,7 @@ func (a *App) Graph() []byte {
 
 	appNodeSchema := make(map[string]GraphNodeInstance)
 
-	encoder := &pgtf.Encoder{}
+	encoder := &jbtf.Encoder{}
 
 	for node := range a.nodeIDs {
 		id, ok := a.nodeIDs[node]
@@ -345,7 +345,7 @@ func (a *App) recursivelyRegisterNodeTypes(node nodes.Node) {
 	}
 }
 
-func (a App) buildNodeGraphInstanceSchema(node nodes.Node, encoder *pgtf.Encoder) GraphNodeInstance {
+func (a App) buildNodeGraphInstanceSchema(node nodes.Node, encoder *jbtf.Encoder) GraphNodeInstance {
 
 	schema := GraphNodeInstance{
 		Type:         refutil.GetTypeWithPackage(node),

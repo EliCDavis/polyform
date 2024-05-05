@@ -2,6 +2,8 @@ github.com/EliCDavis/bitlib v1.1.0 h1:MX1szmrW/qrq/4RG2waKlIVNReWeV9hBLdUnyf5/dU
 github.com/EliCDavis/bitlib v1.1.0/go.mod h1:B/mBEBsbOKSL85ELpHDmN1ncf1gO14Nrum184HWHcPQ=
 github.com/EliCDavis/iter v1.0.2 h1:17An/C4iRWYr9e5sOcgUF2zbpflote2a+JUaNmOLSgA=
 github.com/EliCDavis/iter v1.0.2/go.mod h1:xZy1nTKVrfMY0J6Bj+bBO77JUEtwOK+kuhb8npwVHwE=
+github.com/EliCDavis/jbtf v0.1.0 h1:uHV/HLpDYQ98s2bCG5OrM+u9X2soGaOpNaVfzg/4A7E=
+github.com/EliCDavis/jbtf v0.1.0/go.mod h1:t1DMMeEnt1FJSsm15/DSNkBzGmVXsHHR0Yd6OkuUpY4=
 github.com/EliCDavis/sfm v1.0.1 h1:gWFVI/xsQ/EVWfA6Q3EvhZW+f5Cx0cYcu7VgvV0pDUI=
 github.com/EliCDavis/sfm v1.0.1/go.mod h1:EF4abKPzvnyf5Ave+KcdpyG58yeE5pPtFv2pRaJv0bg=
 github.com/EliCDavis/vector v1.6.0 h1:L77+jE4GWBaI1sFa9Zo/gub0ea4CC+IS6U4XZl/4PLA=
@@ -34,6 +36,8 @@ github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+
 github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UVUgZn+9EI=
 github.com/stretchr/testify v1.8.4 h1:CcVxjf3Q8PM0mHUKJCdn+eZZtm5yQwehR5yeSVQQcUk=
 github.com/stretchr/testify v1.8.4/go.mod h1:sz/lmYIOXD/1dqDmKjjqLyZ2RngseejIcXlSw2iwfAo=
+github.com/stretchr/testify v1.9.0 h1:HtqpIVDClZ4nwg75+f6Lvsy/wHu+3BoSGCbBAcpTsTg=
+github.com/stretchr/testify v1.9.0/go.mod h1:r2ic/lqez/lEtzL7wO/rwa5dbSLXVDPFyf8C91i36aY=
 github.com/urfave/cli/v2 v2.27.1 h1:8xSQ6szndafKVRmfyeUMxkNUJQMjL1F2zmsZ+qHpfho=
 github.com/urfave/cli/v2 v2.27.1/go.mod h1:8qnjx1vcq5s2/wpsqoZFndg2CE5tNFyrTvS6SinrnYQ=
 github.com/xrash/smetrics v0.0.0-20231213231151-1d8dd44e695e h1:+SOyEddqYF09QP7vr7CgJ1eti3pY9Fn3LHO1M1r/0sI=

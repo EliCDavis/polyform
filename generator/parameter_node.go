@@ -5,7 +5,7 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/EliCDavis/polyform/formats/pgtf"
+	"github.com/EliCDavis/jbtf"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
 )
@@ -117,7 +117,9 @@ func (pn *ParameterNode[T]) Value() T {
 	return pn.DefaultValue
 }
 
-func (pn *ParameterNode[T]) ToJSON(encoder *pgtf.Encoder) ([]byte, error) {
+// CUSTOM JTF Serialization ===================================================
+
+func (pn *ParameterNode[T]) ToJSON(encoder *jbtf.Encoder) ([]byte, error) {
 	return json.Marshal(parameterNodeGraphSchema[T]{
 		Name:         pn.Name,
 		CurrentValue: pn.Value(),
@@ -126,7 +128,7 @@ func (pn *ParameterNode[T]) ToJSON(encoder *pgtf.Encoder) ([]byte, error) {
 	})
 }
 
-func (pn *ParameterNode[T]) FromJSON(decoder pgtf.Decoder, body []byte) (err error) {
+func (pn *ParameterNode[T]) FromJSON(decoder jbtf.Decoder, body []byte) (err error) {
 	gn := parameterNodeGraphSchema[T]{}
 	err = json.Unmarshal(body, &gn)
 	if err != nil {
@@ -139,6 +141,8 @@ func (pn *ParameterNode[T]) FromJSON(decoder pgtf.Decoder, body []byte) (err err
 	pn.appliedProfile = &gn.CurrentValue
 	return
 }
+
+// ============================================================================
 
 func (pn *ParameterNode[T]) Schema() ParameterSchema {
 	return ParameterNodeSchema[T]{

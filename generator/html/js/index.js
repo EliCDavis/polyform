@@ -223,11 +223,13 @@ class SchemaRefreshManager {
             },
             (error) => {
                 this.RemoveLoading();
+                console.error("unable to load text", producerURL, error);
+                ErrorManager.ShowError(producerURL, JSON.parse(error).error);
             }
         );
     }
 
-    loadGltf(producerURL) {
+    loadGltf(key, producerURL) {
         this.AddLoading();
         loader.load(producerURL, (gltf) => {
 
@@ -304,12 +306,12 @@ class SchemaRefreshManager {
             (error) => {
                 this.RemoveLoading();
                 error.response.json().then(x => {
-                    ErrorManager.ShowError(x.error);
+                    ErrorManager.ShowError(key, x.error);
                 })
             });
     }
 
-    loadSplat(producerURL) {
+    loadSplat(key, producerURL) {
         this.AddLoading();
         if (guassianSplatViewer) {
             guassianSplatViewer.dispose();
@@ -371,11 +373,11 @@ class SchemaRefreshManager {
         }).catch(x => {
             console.error(x)
             this.RemoveLoading();
+            ErrorManager.ShowError(key, x.error);
         })
     }
 
     Refresh(schema) {
-        ErrorManager.ClearError();
         InfoManager.ClearInfo();
 
         if (producerScene != null) {
@@ -386,6 +388,7 @@ class SchemaRefreshManager {
         viewerContainer.add(producerScene);
 
         for (const [producer, producerData] of Object.entries(schema.producers)) {
+            ErrorManager.ClearError(producer);
             const fileExt = producer.split('.').pop().toLowerCase();
 
             switch (fileExt) {
@@ -395,11 +398,11 @@ class SchemaRefreshManager {
 
                 case "gltf":
                 case "glb":
-                    this.loadGltf(producer);
+                    this.loadGltf(producer, producer);
                     break;
 
                 case "splat":
-                    this.loadSplat('producer/' + producer)
+                    this.loadSplat(producer, 'producer/' + producer)
                     break;
             }
         }
