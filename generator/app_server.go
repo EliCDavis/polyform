@@ -235,34 +235,6 @@ func (as *AppServer) incModelVersion() {
 	as.movelVersion++
 }
 
-func (as *AppServer) ProfileEndpoint(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	as.producerLock.Lock()
-	defer as.producerLock.Unlock()
-
-	profileID := path.Base(r.URL.Path)
-
-	switch r.Method {
-	case "GET", "":
-		n := as.app.Schema().Nodes[profileID]
-
-		w.Write(n.parameter.ToMessage())
-
-	case "POST":
-		body, err := io.ReadAll(r.Body)
-		if err != nil {
-			panic(err)
-		}
-
-		_, err = as.ApplyMessage(profileID, body)
-		if err != nil {
-			panic(err)
-		}
-		as.incModelVersion()
-		w.Write([]byte("{}"))
-	}
-}
-
 func (as *AppServer) StartedEndpoint(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	time := as.serverStarted.Format("2006-01-02 15:04:05")

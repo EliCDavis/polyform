@@ -15,10 +15,10 @@ func (as *AppServer) GraphEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case "GET", "":
-		err = as.GraphEndpoint_Get(w)
+		err = as.graphEndpoint_Get(w)
 
 	case "POST":
-		err = as.GraphEndpoint_Post(w, r)
+		err = as.graphEndpoint_Post(w, r)
 	}
 
 	if err != nil {
@@ -27,7 +27,7 @@ func (as *AppServer) GraphEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (as *AppServer) GraphEndpoint_Get(w http.ResponseWriter) (err error) {
+func (as *AppServer) graphEndpoint_Get(w http.ResponseWriter) (err error) {
 	defer func() {
 		if recErr := recover(); recErr != nil {
 			err = fmt.Errorf("panic recover: %v", recErr)
@@ -37,7 +37,7 @@ func (as *AppServer) GraphEndpoint_Get(w http.ResponseWriter) (err error) {
 	return err
 }
 
-func (as *AppServer) GraphEndpoint_Post(w http.ResponseWriter, r *http.Request) (err error) {
+func (as *AppServer) graphEndpoint_Post(w http.ResponseWriter, r *http.Request) (err error) {
 	defer func() {
 		if recErr := recover(); recErr != nil {
 			err = fmt.Errorf("panic recover: %v", recErr)
@@ -47,5 +47,10 @@ func (as *AppServer) GraphEndpoint_Post(w http.ResponseWriter, r *http.Request) 
 	if err != nil {
 		return
 	}
-	return as.app.ApplyGraph(data)
+	err = as.app.ApplyGraph(data)
+	if err != nil {
+		return
+	}
+	_, err = w.Write([]byte("{}"))
+	return
 }

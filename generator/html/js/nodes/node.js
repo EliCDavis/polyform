@@ -76,7 +76,7 @@ export class PolyNode {
      * @param {boolean} isProducer 
      */
     constructor(liteNode, nodeManager, id, nodeData, app, isProducer) {
-        console.log(liteNode)
+        // console.log(liteNode)
         this.liteNode = liteNode;
         this.id = id;
         this.app = app;

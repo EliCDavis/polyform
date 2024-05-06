@@ -3,6 +3,8 @@ export class ImageParameterNode {
 
     constructor(lightNode, nodeManager, id, parameterData, app) {
         this.lightNode = lightNode;
+        this.id = id;
+        this.app = app;
         this.lightNode.title = parameterData.name;
 
         this.lightNode.onDropFile = (file) => {
@@ -48,6 +50,10 @@ export class ImageParameterNode {
     update(parameterData) {
         console.log("image parameter", parameterData)
         const curVal = parameterData.currentValue;
+        this.app.RequestManager.getParameterValue(this.id, (response) => {
+            const url = URL.createObjectURL(response);
+            this.loadImgFromURL(url)
+        })
     }
 
 }

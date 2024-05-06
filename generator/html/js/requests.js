@@ -42,12 +42,26 @@ class RequestManager {
         xmlHttp.send(null);
     }
 
-    fetch(theUrl, callback) {
+    fetchJSON(theUrl, callback) {
         const xmlHttp = new XMLHttpRequest();
         xmlHttp.onreadystatechange = () => {
             if (xmlHttp.readyState == 4 && xmlHttp.status == 200) {
                 // console.log(xmlHttp.responseText)
                 callback(JSON.parse(xmlHttp.responseText));
+            }
+        }
+        xmlHttp.open("GET", theUrl, true); // true for asynchronous 
+        xmlHttp.send(null);
+    }
+
+    fetchRaw(theUrl, callback) {
+        const xmlHttp = new XMLHttpRequest();
+        xmlHttp.responseType = 'blob';
+
+        xmlHttp.onreadystatechange = () => {
+            if (xmlHttp.readyState == 4 && xmlHttp.status == 200) {
+                // console.log(xmlHttp.responseText)
+                callback(xmlHttp.response);
             }
         }
         xmlHttp.open("GET", theUrl, true); // true for asynchronous 
@@ -81,11 +95,11 @@ class RequestManager {
     }
 
     getStartedTime(callback) {
-        this.fetch("/started", callback);
+        this.fetchJSON("/started", callback);
     }
 
     getSchema(callback) {
-        this.fetch("/schema", callback);
+        this.fetchJSON("/schema", callback);
     }
 
     updateProfile(key, data, binary, callback) {
@@ -95,6 +109,10 @@ class RequestManager {
         } else {
             this.postJson(url, data, callback);
         }
+    }
+
+    getParameterValue(key, callback) {
+        this.fetchRaw("/profile/" + key, callback);
     }
 
     deleteNodeInput(nodeID, inputPortName, callback) {
@@ -120,7 +138,7 @@ class RequestManager {
     }
 
     getGraph(callback) {
-        this.fetch("/graph", callback)
+        this.fetchJSON("/graph", callback)
     }
 
     setGraph(newGraph, callback) {

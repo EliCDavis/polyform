@@ -184,12 +184,10 @@ class SchemaRefreshManager {
     }
 
     AddLoading() {
-        console.log("add")
         this.loadingCount += 1;
     }
 
     RemoveLoading() {
-        console.log("remove")
         if (this.loadingCount === 0) {
             throw new Error("loading count already 0");
         }
@@ -442,7 +440,7 @@ const fileControls = {
             // here we tell the reader what to do when it's done reading...
             reader.onload = readerEvent => {
                 const content = readerEvent.target.result; // this is the content!
-                requestManager.setGraph(JSON.parse(content), () => {
+                requestManager.setGraph(JSON.parse(content), (_) => {
                     location.reload();
                 })
             }
