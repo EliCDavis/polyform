@@ -48,3 +48,13 @@ func SaveBinary(plyPath string, meshToSave modeling.Mesh) error {
 	}
 	return out.Flush()
 }
+
+func Load(filepath string) (*modeling.Mesh, error) {
+	in, err := os.Open(filepath)
+	if err != nil {
+		return nil, err
+	}
+	defer in.Close()
+
+	return ReadMesh(bufio.NewReader(in))
+}

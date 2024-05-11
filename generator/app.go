@@ -537,56 +537,56 @@ func (a *App) Run() error {
 			Name:        "Generate",
 			Description: "Runs all producers the app has defined and saves it to the file system",
 			Aliases:     []string{"generate", "gen"},
-			Run: func() error {
+			Run: func(args []string) error {
 				generateCmd := flag.NewFlagSet("generate", flag.ExitOnError)
 				a.initialize(generateCmd)
 				folderFlag := generateCmd.String("folder", ".", "folder to save generated contents to")
-				if err := generateCmd.Parse(os.Args[2:]); err != nil {
+				if err := generateCmd.Parse(args); err != nil {
 					return err
 				}
 				return a.Generate(*folderFlag)
 			},
 		},
 		{
-			Name:        "Serve",
-			Description: "Starts an http server and hosts a webplayer for configuring the models produced from this app",
-			Aliases:     []string{"serve"},
-			Run: func() error {
-				serveCmd := flag.NewFlagSet("serve", flag.ExitOnError)
-				a.initialize(serveCmd)
-				hostFlag := serveCmd.String("host", "localhost", "interface to bind to")
-				portFlag := serveCmd.String("port", "8080", "port to serve over")
+			Name:        "Edit",
+			Description: "Starts an http server and hosts a webplayer for editing the execution graph",
+			Aliases:     []string{"edit"},
+			Run: func(args []string) error {
+				editCmd := flag.NewFlagSet("edit", flag.ExitOnError)
+				a.initialize(editCmd)
+				hostFlag := editCmd.String("host", "localhost", "interface to bind to")
+				portFlag := editCmd.String("port", "8080", "port to serve over")
 
-				sslFlag := serveCmd.Bool("ssl", false, "Whether or not to use SSL")
-				certFlag := serveCmd.String("ssl.cert", "cert.pem", "Path to cert file")
-				keyFlag := serveCmd.String("ssl.key", "key.pem", "Path to key file")
+				sslFlag := editCmd.Bool("ssl", false, "Whether or not to use SSL")
+				certFlag := editCmd.String("ssl.cert", "cert.pem", "Path to cert file")
+				keyFlag := editCmd.String("ssl.key", "key.pem", "Path to key file")
 
 				// Websocket
-				maxMessageSizeFlag := serveCmd.Int64(
+				maxMessageSizeFlag := editCmd.Int64(
 					"max-message-size",
 					1024*2,
 					"Maximum message size allowed from peer over websocketed connection",
 				)
 
-				pingPeriodFlag := serveCmd.Duration(
+				pingPeriodFlag := editCmd.Duration(
 					"ping-period",
 					time.Second*54,
 					"Send pings to peer with this period over websocketed connection. Must be less than pongWait.",
 				)
 
-				pongWaitFlag := serveCmd.Duration(
+				pongWaitFlag := editCmd.Duration(
 					"pong-wait",
 					time.Second*60,
 					"Time allowed to read the next pong message from the peer over a websocketed connection.",
 				)
 
-				writeWaitFlag := serveCmd.Duration(
+				writeWaitFlag := editCmd.Duration(
 					"write-wait",
 					time.Second*10,
 					"Time allowed to write a message to the peer over a websocketed connection.",
 				)
 
-				if err := serveCmd.Parse(os.Args[2:]); err != nil {
+				if err := editCmd.Parse(args); err != nil {
 					return err
 				}
 
@@ -614,11 +614,11 @@ func (a *App) Run() error {
 			Name:        "Outline",
 			Description: "Enumerates all generators, parameters, and producers in a heirarchial fashion formatted in JSON",
 			Aliases:     []string{"outline"},
-			Run: func() error {
+			Run: func(args []string) error {
 				outlineCmd := flag.NewFlagSet("outline", flag.ExitOnError)
 				a.initialize(outlineCmd)
 
-				if err := outlineCmd.Parse(os.Args[2:]); err != nil {
+				if err := outlineCmd.Parse(args); err != nil {
 					return err
 				}
 
@@ -635,12 +635,12 @@ func (a *App) Run() error {
 			Name:        "Zip",
 			Description: "Runs all producers defined and writes it to a zip file",
 			Aliases:     []string{"zip", "z"},
-			Run: func() error {
+			Run: func(args []string) error {
 				zipCmd := flag.NewFlagSet("zip", flag.ExitOnError)
 				a.initialize(zipCmd)
 				fileFlag := zipCmd.String("file-name", "out.zip", "file to write the contents of the zip too")
 
-				if err := zipCmd.Parse(os.Args[2:]); err != nil {
+				if err := zipCmd.Parse(args); err != nil {
 					return err
 				}
 
@@ -657,12 +657,12 @@ func (a *App) Run() error {
 			Name:        "Mermaid",
 			Description: "Create a mermaid flow chart for a specific producer",
 			Aliases:     []string{"mermaid"},
-			Run: func() error {
+			Run: func(args []string) error {
 				mermaidCmd := flag.NewFlagSet("mermaid", flag.ExitOnError)
 				a.initialize(mermaidCmd)
 				fileFlag := mermaidCmd.String("file-name", "", "Optional path to file to write content to")
 
-				if err := mermaidCmd.Parse(os.Args[2:]); err != nil {
+				if err := mermaidCmd.Parse(args); err != nil {
 					return err
 				}
 
@@ -684,7 +684,7 @@ func (a *App) Run() error {
 			Name:        "Help",
 			Description: "",
 			Aliases:     []string{"help", "h"},
-			Run: func() error {
+			Run: func(args []string) error {
 				cliDetails := appCLI{
 					Name:        a.Name,
 					Version:     a.Version,
@@ -715,11 +715,19 @@ func (a *App) Run() error {
 	argsWithoutProg := os.Args[1:]
 
 	if len(argsWithoutProg) == 0 {
-		return commandMap["help"].Run()
+		return commandMap["help"].Run(nil)
 	}
 
+	// appConfigFlags := flag.NewFlagSet("app", flag.ExitOnError)
+	// graphFlag := appConfigFlags.String("graph", "", "Graph to load")
+	// err := appConfigFlags.Parse(os.Args[1:])
+	// if err != nil {
+	// 	return err
+	// }
+	// appConfigFlags.Arg()
+
 	if cmd, ok := commandMap[argsWithoutProg[0]]; ok {
-		return cmd.Run()
+		return cmd.Run(os.Args[2:])
 	}
 
 	fmt.Fprintf(os.Stdout, "unrecognized command %s", argsWithoutProg[0])

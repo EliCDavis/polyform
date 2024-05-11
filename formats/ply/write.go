@@ -9,45 +9,64 @@ import (
 	"github.com/EliCDavis/polyform/modeling"
 )
 
-func writeHeader(out io.Writer, model modeling.Mesh, attributes []string, vertexCount int) error {
-	if len(model.Materials()) > 0 && model.Materials()[0].Material != nil {
-		mat := model.Materials()[0].Material
-		if mat.ColorTextureURI != nil {
-			fmt.Fprintf(out, "comment TextureFile %s\n", *mat.ColorTextureURI)
-		}
-	}
-
-	fmt.Fprintln(out, "comment Created with github.com/EliCDavis/polyform")
-
-	vertexElement := buildVertexElements(attributes, vertexCount)
-	vertexElement.Write(out)
-
+func BuildHeaderFromModel(model modeling.Mesh, format Format) Header {
 	if model.Topology() != modeling.PointTopology && model.Topology() != modeling.TriangleTopology {
 		panic(fmt.Errorf("unimplemented ply topology export: %s", model.Topology().String()))
 	}
 
-	if model.Topology() == modeling.TriangleTopology {
-		fmt.Fprintf(out, "element face %d\n", model.PrimitiveCount())
-		fmt.Fprintln(out, "property list uchar int vertex_indices")
-		if model.HasFloat2Attribute(modeling.TexCoordAttribute) {
-			fmt.Fprintln(out, "property list uchar float texcoord")
+	header := Header{
+		Format: format,
+		Elements: []Element{
+			buildVertexElements(model.Float3Attributes(), model.AttributeLength()),
+		},
+	}
+
+	// Pull a texture file if relevant.
+	if len(model.Materials()) > 0 && model.Materials()[0].Material != nil {
+		mat := model.Materials()[0].Material
+		if mat.ColorTextureURI != nil {
+			header.TextureFile = mat.ColorTextureURI
 		}
 	}
 
-	_, err := fmt.Fprintln(out, "end_header")
-	return err
+	// Optionally build face element
+	if model.Topology() == modeling.TriangleTopology {
+		faceProperties := []Property{
+			ListProperty{
+				name:      "vertex_indices",
+				countType: UChar,
+				listType:  Int,
+			},
+		}
+
+		if model.HasFloat2Attribute(modeling.TexCoordAttribute) {
+			faceProperties = append(faceProperties, ListProperty{
+				name:      "texcoord",
+				countType: UChar,
+				listType:  Float,
+			})
+		}
+
+		header.Elements = append(header.Elements, Element{
+			Name:       "face",
+			Count:      model.PrimitiveCount(),
+			Properties: faceProperties,
+		})
+	}
+
+	return header
 }
 
 func WriteASCII(out io.Writer, model modeling.Mesh) error {
-	fmt.Fprintln(out, "ply")
-	fmt.Fprintln(out, "format ascii 1.0")
+
+	header := BuildHeaderFromModel(model, ASCII)
+	err := header.Write(out)
+	if err != nil {
+		return err
+	}
 
 	attributes := model.Float3Attributes()
 	vertexCount := model.AttributeLength()
-
-	if err := writeHeader(out, model, attributes, vertexCount); err != nil {
-		return err
-	}
 
 	for i := 0; i < vertexCount; i++ {
 		for atrI, atr := range attributes {
@@ -96,15 +115,16 @@ func WriteASCII(out io.Writer, model modeling.Mesh) error {
 }
 
 func WriteBinary(out io.Writer, model modeling.Mesh) error {
-	fmt.Fprintln(out, "ply")
-	fmt.Fprintln(out, "format binary_little_endian 1.0")
+
+	header := BuildHeaderFromModel(model, BinaryLittleEndian)
+	err := header.Write(out)
+	if err != nil {
+		return err
+	}
 
 	attributes := model.Float3Attributes()
 	vertexCount := model.AttributeLength()
 
-	if err := writeHeader(out, model, attributes, vertexCount); err != nil {
-		return err
-	}
 	writer := bitlib.NewWriter(out, binary.LittleEndian)
 
 	for i := 0; i < vertexCount; i++ {
@@ -126,27 +146,34 @@ func WriteBinary(out io.Writer, model modeling.Mesh) error {
 
 	if model.Topology() == modeling.TriangleTopology {
 		if model.HasFloat2Attribute(modeling.TexCoordAttribute) {
-			for i := 0; i < model.PrimitiveCount(); i++ {
-				tri := model.Tri(i)
+			indices := model.Indices()
+			texData := model.Float2Attribute(modeling.TexCoordAttribute)
+			for i := 0; i < indices.Len(); i += 3 {
 				writer.Byte(3)
-				writer.Int32(int32(tri.P1()))
-				writer.Int32(int32(tri.P2()))
-				writer.Int32(int32(tri.P3()))
+				writer.Int32(int32(indices.At(i)))
+				writer.Int32(int32(indices.At(i + 1)))
+				writer.Int32(int32(indices.At(i + 2)))
 				writer.Byte(6)
-				writer.Float32(float32(tri.P1Vec2Attr(modeling.TexCoordAttribute).X()))
-				writer.Float32(float32(tri.P1Vec2Attr(modeling.TexCoordAttribute).Y()))
-				writer.Float32(float32(tri.P2Vec2Attr(modeling.TexCoordAttribute).X()))
-				writer.Float32(float32(tri.P2Vec2Attr(modeling.TexCoordAttribute).Y()))
-				writer.Float32(float32(tri.P3Vec2Attr(modeling.TexCoordAttribute).X()))
-				writer.Float32(float32(tri.P3Vec2Attr(modeling.TexCoordAttribute).Y()))
+
+				p1 := texData.At(i)
+				writer.Float32(float32(p1.X()))
+				writer.Float32(float32(p1.Y()))
+
+				p2 := texData.At(i + 1)
+				writer.Float32(float32(p2.X()))
+				writer.Float32(float32(p2.Y()))
+
+				p3 := texData.At(i + 2)
+				writer.Float32(float32(p3.X()))
+				writer.Float32(float32(p3.Y()))
 			}
 		} else {
-			for i := 0; i < model.PrimitiveCount(); i++ {
-				tri := model.Tri(i)
+			indices := model.Indices()
+			for i := 0; i < indices.Len(); i += 3 {
 				writer.Byte(3)
-				writer.Int32(int32(tri.P1()))
-				writer.Int32(int32(tri.P2()))
-				writer.Int32(int32(tri.P3()))
+				writer.Int32(int32(indices.At(i)))
+				writer.Int32(int32(indices.At(i + 1)))
+				writer.Int32(int32(indices.At(i + 2)))
 			}
 		}
 	}
