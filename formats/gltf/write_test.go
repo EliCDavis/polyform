@@ -442,3 +442,31 @@ func TestWriteTexturedTriWithMaterialWithColor(t *testing.T) {
     ]
 }`, buf.String())
 }
+
+func TestWriteEmptyMesh(t *testing.T) {
+	// ARRANGE ================================================================
+	tri := modeling.EmptyMesh(modeling.TriangleTopology)
+	buf := bytes.Buffer{}
+
+	// ACT ====================================================================
+	err := gltf.WriteText(gltf.PolyformScene{
+		Models: []gltf.PolyformModel{
+			{
+				Name: "mesh",
+				Mesh: tri,
+			},
+		},
+	}, &buf)
+
+	// ASSERT =================================================================
+	assert.NoError(t, err)
+	assert.Equal(t, `{
+    "asset": {
+        "version": "2.0",
+        "generator": "https://github.com/EliCDavis/polyform"
+    },
+    "scenes": [
+        {}
+    ]
+}`, buf.String())
+}

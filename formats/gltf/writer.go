@@ -546,6 +546,18 @@ func (w *Writer) AddLight(light KHR_LightsPunctual) {
 }
 
 func (w *Writer) AddMesh(model PolyformModel) {
+
+	// It's invalid to have empty attributes on a primitive. And it's invalid
+	// to have a model with an empty primitives array, so we can't write this
+	// model.
+	//
+	// TODO: This changes if our API changes to support multiple primitives in
+	// a single model. So if anyone ever actually requests that we need to
+	// rethink this code block
+	if model.Mesh.PrimitiveCount() == 0 {
+		return
+	}
+
 	primitiveAttributes := make(map[string]int)
 
 	for _, val := range model.Mesh.Float4Attributes() {
@@ -621,12 +633,17 @@ const (
 )
 
 func (w Writer) ToGLTF(embeddingStrategy BufferEmbeddingStrategy) Gltf {
-	buffer := Buffer{
-		ByteLength: w.bytesWritten,
-	}
+	buffers := []Buffer{}
+	if w.bytesWritten > 0 {
+		buffer := Buffer{
+			ByteLength: w.bytesWritten,
+		}
 
-	if embeddingStrategy == BufferEmbeddingStrategy_Base64Encode {
-		buffer.URI = "data:application/octet-stream;base64," + base64.StdEncoding.EncodeToString(w.buf.Bytes())
+		if embeddingStrategy == BufferEmbeddingStrategy_Base64Encode {
+			buffer.URI = "data:application/octet-stream;base64," + base64.StdEncoding.EncodeToString(w.buf.Bytes())
+		}
+
+		buffers = append(buffers, buffer)
 	}
 
 	exnesionsArr := make([]string, 0, len(w.extensionsUsed))
@@ -649,7 +666,7 @@ func (w Writer) ToGLTF(embeddingStrategy BufferEmbeddingStrategy) Gltf {
 
 	return Gltf{
 		Asset:       defaultAsset(),
-		Buffers:     []Buffer{buffer},
+		Buffers:     buffers,
 		BufferViews: w.bufferViews,
 		Accessors:   w.accessors,
 

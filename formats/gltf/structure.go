@@ -31,7 +31,7 @@ type ChildOfRootProperty struct {
 // https://github.com/KhronosGroup/glTF/blob/main/specification/2.0/schema/scene.schema.json
 type Scene struct {
 	ChildOfRootProperty
-	Nodes []GltfId `json:"nodes"` // The indices of each root node.
+	Nodes []GltfId `json:"nodes,omitempty"` // The indices of each root node.
 }
 
 // A buffer points to binary geometry, animation, or skins.
