@@ -141,6 +141,10 @@ class RequestManager {
         this.fetchJSON("/graph", callback)
     }
 
+    getSwagger(callback) {
+        this.fetchJSON("/swagger", callback)
+    }
+
     setGraph(newGraph, callback) {
         this.postJson("/graph", newGraph, callback)
     }

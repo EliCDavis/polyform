@@ -4,10 +4,14 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"time"
 
 	"github.com/EliCDavis/jbtf"
+	"github.com/EliCDavis/polyform/formats/swagger"
+	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
+	"github.com/EliCDavis/vector/vector3"
 )
 
 // ============================================================================
@@ -57,6 +61,7 @@ type parameterNodeGraphSchema[T any] struct {
 
 type ParameterNode[T any] struct {
 	Name         string                     `json:"name"`
+	Description  string                     `json:"description"`
 	DefaultValue T                          `json:"defaultValue"`
 	CLI          *CliParameterNodeConfig[T] `json:"cli"`
 
@@ -221,6 +226,52 @@ func (pn ParameterNode[T]) initializeForCLI(set *flag.FlagSet) {
 	case *CliParameterNodeConfig[int64]:
 		cli.value = set.Int64(cli.FlagName, (any(pn.DefaultValue)).(int64), cli.Usage)
 	default:
-		panic(fmt.Errorf("parameter node %s has a type that can not be initialized on the command line. Please up a issue on github.com/EliCDavis/polyform", pn.DisplayName()))
+		panic(fmt.Errorf("parameter node %s has a type that can not be initialized on the command line. Please open up a issue on github.com/EliCDavis/polyform", pn.DisplayName()))
 	}
+}
+
+func (pn ParameterNode[T]) SwaggerProperty() swagger.Property {
+	prop := swagger.Property{
+		Description: pn.Description,
+	}
+	switch any(pn).(type) {
+	case ParameterNode[string]:
+		prop.Type = swagger.StringPropertyType
+
+	case ParameterNode[time.Time]:
+		prop.Type = swagger.StringPropertyType
+		prop.Format = swagger.DateTimePropertyFormat
+
+	case ParameterNode[float64]:
+		prop.Type = swagger.NumberPropertyType
+		prop.Format = swagger.DoublePropertyFormat
+
+	case ParameterNode[float32]:
+		prop.Type = swagger.NumberPropertyType
+		prop.Format = swagger.FloatPropertyFormat
+
+	case ParameterNode[bool]:
+		prop.Type = swagger.BooleanPropertyType
+
+	case ParameterNode[int]:
+		prop.Type = swagger.IntegerPropertyType
+
+	case ParameterNode[int64]:
+		prop.Type = swagger.IntegerPropertyType
+		prop.Format = swagger.Int64PropertyFormat
+
+	case ParameterNode[int32]:
+		prop.Type = swagger.IntegerPropertyType
+		prop.Format = swagger.Int32PropertyFormat
+
+	case ParameterNode[vector3.Float64]:
+		prop.Ref = "#/definitions/Vector3"
+
+	case ParameterNode[geometry.AABB]:
+		prop.Ref = "#/definitions/AABB"
+
+	default:
+		panic(fmt.Errorf("parameter node %s has a type that can not be converted to a swagger property. Please open up a issue on github.com/EliCDavis/polyform", pn.DisplayName()))
+	}
+	return prop
 }

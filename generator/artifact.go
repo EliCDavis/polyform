@@ -13,6 +13,7 @@ import (
 
 type Artifact interface {
 	Write(io.Writer) error
+	Mime() string
 }
 
 type PolyformArtifact[T any] interface {
@@ -26,6 +27,10 @@ type ImageArtifactNode = nodes.StructNode[Artifact, ImageArtifactNodeData]
 
 type ImageArtifact struct {
 	Image image.Image
+}
+
+func (im ImageArtifact) Mime() string {
+	return "iamge/png"
 }
 
 func (ia ImageArtifact) Write(w io.Writer) error {
@@ -50,12 +55,34 @@ func NewImageArtifactNode(imageNode nodes.NodeOutput[image.Image]) nodes.NodeOut
 
 // ============================================================================
 
+type GltfArtifactNode = nodes.StructNode[Artifact, GltfArtifactNodeData]
+
 type GltfArtifact struct {
 	Scene gltf.PolyformScene
 }
 
+func (GltfArtifact) Mime() string {
+	return "model/gltf-binary"
+}
+
 func (ga GltfArtifact) Write(w io.Writer) error {
 	return gltf.WriteBinary(ga.Scene, w)
+}
+
+type GltfArtifactNodeData struct {
+	In nodes.NodeOutput[gltf.PolyformScene]
+}
+
+func (pn GltfArtifactNodeData) Process() (Artifact, error) {
+	return GltfArtifact{Scene: pn.In.Value()}, nil
+}
+
+func NewGltfArtifactNodeData(bytesNode nodes.NodeOutput[gltf.PolyformScene]) nodes.NodeOutput[Artifact] {
+	return (&GltfArtifactNode{
+		Data: GltfArtifactNodeData{
+			In: bytesNode,
+		},
+	}).Out()
 }
 
 // ============================================================================
@@ -66,9 +93,13 @@ type BinaryArtifact struct {
 	Data []byte
 }
 
-func (ga BinaryArtifact) Write(w io.Writer) error {
-	_, err := w.Write(ga.Data)
+func (ba BinaryArtifact) Write(w io.Writer) error {
+	_, err := w.Write(ba.Data)
 	return err
+}
+
+func (BinaryArtifact) Mime() string {
+	return "application/octet-stream"
 }
 
 type BinaryArtifactNodeData struct {
@@ -95,17 +126,21 @@ type TextArtifact struct {
 	Data string
 }
 
-func (ga TextArtifact) Write(w io.Writer) error {
-	_, err := w.Write([]byte(ga.Data))
+func (ta TextArtifact) Write(w io.Writer) error {
+	_, err := w.Write([]byte(ta.Data))
 	return err
+}
+
+func (TextArtifact) Mime() string {
+	return "text/plain"
 }
 
 type TextArtifactNodeData struct {
 	In nodes.NodeOutput[string]
 }
 
-func (pn TextArtifactNodeData) Process() (Artifact, error) {
-	return TextArtifact{Data: pn.In.Value()}, nil
+func (tand TextArtifactNodeData) Process() (Artifact, error) {
+	return TextArtifact{Data: tand.In.Value()}, nil
 }
 
 func NewTextArtifactNode(textNode nodes.NodeOutput[string]) nodes.NodeOutput[Artifact] {
@@ -126,6 +161,10 @@ type SplatArtifact struct {
 
 func (sa SplatArtifact) Write(w io.Writer) error {
 	return splat.Write(w, sa.Mesh)
+}
+
+func (SplatArtifact) Mime() string {
+	return "application/octet-stream"
 }
 
 type SplatArtifactNodeData struct {
@@ -155,6 +194,10 @@ type IOArtifact struct {
 func (ga IOArtifact) Write(w io.Writer) error {
 	_, err := io.Copy(w, ga.Reader)
 	return err
+}
+
+func (IOArtifact) Mime() string {
+	return "application/octet-stream"
 }
 
 type IOArtifactNodeData struct {

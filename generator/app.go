@@ -526,7 +526,6 @@ func (a *App) Run() error {
 	}
 
 	os_setup(a)
-
 	a.SetupProducers()
 
 	commandMap := make(map[string]*cliCommand)
@@ -681,6 +680,33 @@ func (a *App) Run() error {
 			},
 		},
 		{
+			Name:        "Swagger",
+			Description: "Create a swagger 2.0 file",
+			Aliases:     []string{"swagger"},
+			Run: func(args []string) error {
+				swaggerCmd := flag.NewFlagSet("swagger", flag.ExitOnError)
+				a.initialize(swaggerCmd)
+				fileFlag := swaggerCmd.String("file-name", "", "Optional path to file to write content to")
+
+				if err := swaggerCmd.Parse(args); err != nil {
+					return err
+				}
+
+				var out io.Writer = os.Stdout
+
+				if fileFlag != nil && *fileFlag != "" {
+					f, err := os.Create(*fileFlag)
+					if err != nil {
+						return err
+					}
+					defer f.Close()
+					out = f
+				}
+
+				return a.WriteSwagger(out)
+			},
+		},
+		{
 			Name:        "Help",
 			Description: "",
 			Aliases:     []string{"help", "h"},
@@ -726,10 +752,45 @@ func (a *App) Run() error {
 	// }
 	// appConfigFlags.Arg()
 
-	if cmd, ok := commandMap[argsWithoutProg[0]]; ok {
+	firstArg := argsWithoutProg[0]
+	if cmd, ok := commandMap[firstArg]; ok {
 		return cmd.Run(os.Args[2:])
 	}
 
-	fmt.Fprintf(os.Stdout, "unrecognized command %s", argsWithoutProg[0])
-	return nil
+	if !fileExists(firstArg) {
+		return fmt.Errorf("unrecognized command %s", firstArg)
+	}
+
+	fileData, err := os.ReadFile(firstArg)
+	if err != nil {
+		return err
+	}
+
+	err = a.ApplyGraph(fileData)
+	if err != nil {
+		return err
+	}
+
+	a.SetupProducers()
+
+	argsWithoutGraph := argsWithoutProg[1:]
+	if len(argsWithoutGraph) == 0 {
+		return commandMap["help"].Run(nil)
+	}
+
+	firstArg = argsWithoutGraph[1]
+	if cmd, ok := commandMap[firstArg]; ok {
+		return cmd.Run(os.Args[3:])
+	}
+
+	return fmt.Errorf("unrecognized command %s", firstArg)
+}
+
+func fileExists(fp string) bool {
+	if _, err := os.Stat(fp); err == nil {
+		return true
+	} else if errors.Is(err, os.ErrNotExist) {
+		return false
+	}
+	return false
 }

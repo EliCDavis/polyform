@@ -414,6 +414,16 @@ schemaManager.subscribe(schemaRefreshManager.NewSchema.bind(schemaRefreshManager
 
 
 const fileControls = {
+    saveSwagger: () => {
+        requestManager.getSwagger((swagger) => {
+            const fileContent = JSON.stringify(swagger);
+            const bb = new Blob([fileContent], { type: 'application/json' });
+            const a = document.createElement('a');
+            a.download = 'swagger.json';
+            a.href = window.URL.createObjectURL(bb);
+            a.click();
+        })
+    },
     saveGraph: () => {
         requestManager.getGraph((graph) => {
             const fileContent = JSON.stringify(graph);
@@ -479,6 +489,7 @@ fileSettingsFolder.add(fileControls, "saveGraph").name("Save Graph")
 fileSettingsFolder.add(fileControls, "loadProfile").name("Load Graph")
 fileSettingsFolder.add(fileControls, "saveModel").name("Download Model")
 fileSettingsFolder.add(fileControls, "viewProgram").name("View Program")
+fileSettingsFolder.add(fileControls, "saveSwagger").name("Swagger 2.0")
 fileSettingsFolder.close();
 
 const viewportSettingsFolder = panel.addFolder("Rendering");

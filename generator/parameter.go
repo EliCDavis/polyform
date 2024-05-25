@@ -2,6 +2,8 @@ package generator
 
 import (
 	"flag"
+
+	"github.com/EliCDavis/polyform/formats/swagger"
 )
 
 type Parameter interface {
@@ -11,4 +13,10 @@ type Parameter interface {
 
 	ApplyMessage(msg []byte) (bool, error)
 	ToMessage() []byte
+}
+
+type SwaggerParameter interface {
+	Parameter
+
+	SwaggerProperty() swagger.Property
 }

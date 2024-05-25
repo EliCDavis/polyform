@@ -133,6 +133,7 @@ func (as *AppServer) Serve() error {
 	http.HandleFunc("/graph", as.GraphEndpoint)
 	http.HandleFunc("/profile/", as.ProfileEndpoint)
 	http.HandleFunc("/mermaid", as.MermaidEndpoint)
+	http.HandleFunc("/swagger", as.SwaggerEndpoint)
 	http.HandleFunc("/producer/", as.ProducerEndpoint)
 
 	hub := room.NewHub(as.webscene, &as.movelVersion)
@@ -199,6 +200,8 @@ func (as *AppServer) writeProducerDataToRequest(producerToLoad string, w http.Re
 
 	artifact := producer.Value()
 
+	w.Header().Set("Content-Type", artifact.Mime())
+
 	bufWr := bufio.NewWriter(w)
 	err = artifact.Write(bufWr)
 	if err != nil {
@@ -243,6 +246,13 @@ func (as *AppServer) StartedEndpoint(w http.ResponseWriter, r *http.Request) {
 
 func (as *AppServer) MermaidEndpoint(w http.ResponseWriter, r *http.Request) {
 	err := WriteMermaid(*as.app, w)
+	if err != nil {
+		log.Println(err.Error())
+	}
+}
+
+func (as *AppServer) SwaggerEndpoint(w http.ResponseWriter, r *http.Request) {
+	err := as.app.WriteSwagger(w)
 	if err != nil {
 		log.Println(err.Error())
 	}

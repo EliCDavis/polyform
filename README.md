@@ -81,7 +81,7 @@ Set `cmd = "go build -o ./tmp/main.exe ./examples/MY_EXAMPLE"`.
 Set `include_ext = ["go", "tpl", "tmpl", "html", "js"]`.
 
 ```bash
-air serve --port 8080
+air edit --port 8080
 ```
 
 As you hit save on your go code, the webserver will restart, and the web page will automatically refresh itself.
@@ -92,10 +92,10 @@ If you want to mess with modern web browser features and need https, I recommend
 ```bash
 mkcert -install
 mkcert -key-file key.pem -cert-file cert.pem localhost
-air serve --port 8080 --ssl
+air edit --port 8080 --ssl
 
 # And if you want to connect with your headset
-air serve --port 8080 --ssl --host 0.0.0.0
+air edit --port 8080 --ssl --host 0.0.0.0
 ```
 
 ## WASM Dev
