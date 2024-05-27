@@ -55,4 +55,7 @@ type Property struct {
 	Ref         any `json:"$ref,omitempty"`
 	Description any `json:"description,omitempty"`
 	Items       any `json:"items,omitempty"`
+
+	// If type is object
+	Properties []Property `json:"properties,omitempty"`
 }

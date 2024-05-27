@@ -51,6 +51,29 @@ func (a App) WriteSwagger(out io.Writer) error {
 	return err
 }
 
+func recursivelyFindCommonSwaggerProperties(allDefs map[string]swagger.Definition, prop swagger.Property) {
+	switch prop.Ref {
+	case "#/definitions/AABB":
+		allDefs[swagger.AABBDefinitionName] = swagger.AABBDefinition
+
+	case "#/definitions/Vector2":
+		allDefs[swagger.Vector2DefinitionName] = swagger.Vector2Definition
+
+	case "#/definitions/Vector3":
+		allDefs[swagger.Vector3DefinitionName] = swagger.Vector3Definition
+
+	case "#/definitions/Vector4":
+		allDefs[swagger.Vector4DefinitionName] = swagger.Vector4Definition
+	}
+
+	for _, p := range prop.Properties {
+		if p.Type == swagger.ObjectPropertyType {
+			recursivelyFindCommonSwaggerProperties(allDefs, p)
+		}
+	}
+
+}
+
 func (a App) SwaggerSpec() swagger.Spec {
 	jsonApplication := "application/json"
 
@@ -93,21 +116,7 @@ func (a App) SwaggerSpec() swagger.Spec {
 
 	for _, def := range definitions {
 		for _, p := range def.Properties {
-			switch p.Ref {
-			case "#/definitions/AABB":
-				definitions[swagger.AABBDefinitionName] = swagger.AABBDefinition
-				definitions[swagger.Vector3DefinitionName] = swagger.Vector3Definition
-
-			case "#/definitions/Vector2":
-				definitions[swagger.Vector2DefinitionName] = swagger.Vector2Definition
-
-			case "#/definitions/Vector3":
-				definitions[swagger.Vector3DefinitionName] = swagger.Vector3Definition
-
-			case "#/definitions/Vector4":
-				definitions[swagger.Vector4DefinitionName] = swagger.Vector4Definition
-
-			}
+			recursivelyFindCommonSwaggerProperties(definitions, p)
 		}
 	}
 

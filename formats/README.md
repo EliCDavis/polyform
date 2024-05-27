@@ -4,14 +4,19 @@
 
 I'm not doing FBX. FBX is cursed and Autodesk can burn in hell.
 
-| Format  | Reading | Writing     |
-| ------- | ------- | ----------- |
-| PTS     | ✔️      | ❌         |
-| PTX     | ❌      | ❌         |
-| PLY     | ✔️      | ✔️         |
-| OBJ     | ✔️      | ✔️         |
-| GLTF    | ❌      | ✔️         |
-| STL     | ❌      | ❌         |
-| COLMAP  | ✔️      | ❌         |
-| OpenSFM | ✔️      | ❌         |
-| Splat   | ✔️      | ✔️         |
+* ✔️ = Implemented
+* ❌ = Planned
+* ➖ = Not Planned
+
+| Format     | Reading | Writing     |
+| ---------- | ------- | ----------- |
+| PTS        | ✔️      | ❌         |
+| PTX        | ❌      | ❌         |
+| PLY        | ✔️      | ✔️         |
+| OBJ        | ✔️      | ✔️         |
+| GLTF       | ❌      | ✔️         |
+| STL        | ❌      | ❌         |
+| COLMAP     | ✔️      | ❌         |
+| OpenSFM    | ✔️      | ❌         |
+| Splat      | ✔️      | ✔️         |
+| Potree 2.0 | ✔️      | ➖         |
