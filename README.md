@@ -16,6 +16,7 @@ Polyform is for loading, generating, editing, and exporting 3D geometry and it's
   - [colmap](/formats/colmap/) - Utilities for loading COLMAP reconstruction data
   - [opensfm](/formats/opensfm/) - Utilities for loading OpenSFM reconstruction data
   - [splat](/formats/splat/) - Guassian splatting's SPLAT format
+  - [potree](/formats/potree/) - Potree V2 file format
 - Modeling
   - [meshops](/modeling/meshops/) - All currently implemented algorithms for transforming meshes. 
   - [marching](/modeling/marching/) - Multi-threaded Cube Marching algorithm and utilities.
