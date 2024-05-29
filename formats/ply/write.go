@@ -17,7 +17,7 @@ func BuildHeaderFromModel(model modeling.Mesh, format Format) Header {
 	header := Header{
 		Format: format,
 		Elements: []Element{
-			buildVertexElements(model.Float3Attributes(), model.AttributeLength()),
+			buildVertexElements(model.Float3Attributes(), int64(model.AttributeLength())),
 		},
 	}
 
@@ -49,7 +49,7 @@ func BuildHeaderFromModel(model modeling.Mesh, format Format) Header {
 
 		header.Elements = append(header.Elements, Element{
 			Name:       "face",
-			Count:      model.PrimitiveCount(),
+			Count:      int64(model.PrimitiveCount()),
 			Properties: faceProperties,
 		})
 	}

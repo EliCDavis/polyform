@@ -48,5 +48,5 @@ func openOctreeFile(ctx *cli.Context) (*os.File, error) {
 		octreePath = filepath.Join(filepath.Dir(metadataPath), "octree.bin")
 	}
 
-	return os.Open(octreePath)
+	return os.OpenFile(octreePath, os.O_RDONLY, 0)
 }

@@ -7,7 +7,7 @@ import (
 
 type Element struct {
 	Name       string     `json:"name"`
-	Count      int        `json:"count"`
+	Count      int64      `json:"count"`
 	Properties []Property `json:"properties"`
 }
 

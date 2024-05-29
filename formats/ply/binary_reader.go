@@ -259,7 +259,7 @@ func (le *BinaryReader) readVertexData(element Element, approvedData map[string]
 		}
 	}
 
-	i := 0
+	var i int64 = 0
 	buf := make([]byte, nextOffset)
 	for i < element.Count {
 		_, err := io.ReadFull(le.reader, buf)
@@ -462,7 +462,7 @@ func (le *BinaryReader) readFaceData(element Element) ([]int, []vector2.Float64,
 		}
 	}
 
-	for i := 0; i < element.Count; i++ {
+	for i := int64(0); i < element.Count; i++ {
 		for _, reader := range readers {
 			reader(le.reader)
 		}
@@ -476,7 +476,7 @@ func (le *BinaryReader) ReadMesh(vertexAttributes map[string]bool) (*modeling.Me
 	var triData []int
 	var uvData []vector2.Float64
 	for _, element := range le.elements {
-		if element.Name == "vertex" {
+		if element.Name == VertexElementName {
 			data, err := le.readVertexData(element, vertexAttributes)
 			if err != nil {
 				return nil, err

@@ -196,7 +196,7 @@ func ReadHeader(in io.Reader) (Header, error) {
 				return header, errors.New("illegal element line in ply header")
 			}
 
-			elementCount, err := strconv.Atoi(contents[2])
+			elementCount, err := strconv.ParseInt(contents[2], 10, 64)
 			if err != nil {
 				return header, fmt.Errorf("unable to parse element count: %w", err)
 			}
@@ -258,9 +258,9 @@ func ReadMesh(in io.Reader) (*modeling.Mesh, error) {
 	return mesh, nil
 }
 
-func buildVertexElements(attributes []string, size int) Element {
+func buildVertexElements(attributes []string, size int64) Element {
 	vertexElement := Element{
-		Name:       "vertex",
+		Name:       VertexElementName,
 		Count:      size,
 		Properties: make([]Property, 0),
 	}

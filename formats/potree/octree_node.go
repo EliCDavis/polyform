@@ -26,6 +26,13 @@ type OctreeNode struct {
 	HierarchyByteSize   uint64
 }
 
+func (on *OctreeNode) Walk(f func(o *OctreeNode)) {
+	f(on)
+	for _, c := range on.Children {
+		c.Walk(f)
+	}
+}
+
 func (on OctreeNode) Height() int {
 	if len(on.Children) == 0 {
 		return 0

@@ -7,3 +7,5 @@ const (
 	BinaryBigEndian
 	BinaryLittleEndian
 )
+
+const VertexElementName = "vertex"

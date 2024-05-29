@@ -152,7 +152,7 @@ func (ar *AsciiReader) readVertexData(element Element, approvedData map[string]b
 		}
 	}
 
-	i := 0
+	var i int64 = 0
 	for i < element.Count {
 		ar.scanner.Scan()
 
@@ -292,7 +292,7 @@ func (ar *AsciiReader) readFaceData(element Element) ([]int, []vector2.Float64, 
 		}
 	}
 
-	for i := 0; i < element.Count; i++ {
+	for i := int64(0); i < element.Count; i++ {
 		ar.scanner.Scan()
 		contents := strings.Fields(ar.scanner.Text())
 		offset := 0
@@ -313,7 +313,7 @@ func (ar *AsciiReader) ReadMesh(vertexAttributes map[string]bool) (*modeling.Mes
 	var triData []int
 	var uvData []vector2.Float64
 	for _, element := range ar.elements {
-		if element.Name == "vertex" {
+		if element.Name == VertexElementName {
 			data, err := ar.readVertexData(element, vertexAttributes)
 			if err != nil {
 				return nil, err
