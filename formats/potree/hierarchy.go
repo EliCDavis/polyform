@@ -8,7 +8,7 @@ import (
 	"github.com/EliCDavis/polyform/math/geometry"
 )
 
-type octreeNodeHeader struct {
+type HierarchyNodeEntry struct {
 	Type       uint8
 	ChildMask  uint8
 	NumPoints  uint32
@@ -55,7 +55,7 @@ func ParseHierarchy(node *OctreeNode, buf []byte) error {
 	nodes[0] = node
 	nodePos := 1
 	for _, current := range nodes {
-		header := octreeNodeHeader{}
+		header := HierarchyNodeEntry{}
 		err := binary.Read(veiw, binary.LittleEndian, &header)
 		if err != nil {
 			return err

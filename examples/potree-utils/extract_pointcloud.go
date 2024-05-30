@@ -1,7 +1,7 @@
 package main
 
 import (
-	"bufio"
+	"bytes"
 	"encoding/binary"
 	"fmt"
 	"io"
@@ -10,22 +10,29 @@ import (
 	"os"
 	"runtime"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/EliCDavis/polyform/formats/ply"
 	"github.com/EliCDavis/polyform/formats/potree"
 	"github.com/EliCDavis/polyform/modeling"
+	"github.com/EliCDavis/vector/vector3"
 	"github.com/urfave/cli/v2"
 )
 
+type builldModelJob struct {
+	ByteSize   uint64
+	ByteOffset uint64
+	NumPoints  uint32
+	PlyStart   int64
+}
+
 func buildModelWorker(
 	ctx *cli.Context,
-	nodes <-chan *potree.OctreeNode,
+	jobs <-chan *builldModelJob,
 	metadata *potree.Metadata,
 	largestPointCount int,
-	plyOut io.Writer,
-	mutex *sync.Mutex,
+	plyFilename string,
+	plyHeaderOffset int,
 	out chan<- int,
 ) {
 	octreeFile, err := openOctreeFile(ctx)
@@ -33,52 +40,62 @@ func buildModelWorker(
 		panic(err)
 	}
 	defer octreeFile.Close()
+
 	pointsProcessed := 0
 	potreeBuf := make([]byte, largestPointCount*metadata.BytesPerPoint())
-	plyBuf := make([]byte, 27)
-	for node := range nodes {
-		_, err := octreeFile.Seek(int64(node.ByteOffset), 0)
-		if err != nil {
-			panic(err)
-		}
+	positionBuf := make([]vector3.Float64, largestPointCount)
+	colorBuf := make([]vector3.Float64, largestPointCount)
+	plyBuf := make([]byte, largestPointCount*27)
 
-		_, err = io.ReadFull(octreeFile, potreeBuf[:node.ByteSize])
-		if err != nil {
-			panic(err)
-		}
+	plyFile, err := os.OpenFile(plyFilename, os.O_WRONLY, 0)
+	if err != nil {
+		panic(err)
+	}
+	defer plyFile.Close()
 
-		cloud := potree.LoadNode(*node, *metadata, potreeBuf[:node.ByteSize])
-		count := cloud.PrimitiveCount()
+	for job := range jobs {
+		count := int(job.NumPoints)
 		if count == 0 {
 			continue
 		}
-		positions := cloud.Float3Attribute(modeling.PositionAttribute)
-		colors := cloud.Float3Attribute(modeling.ColorAttribute)
 
-		mutex.Lock()
-
-		endien := binary.LittleEndian
-		for i := 0; i < count; i++ {
-			p := positions.At(i)
-			bits := math.Float64bits(p.X())
-			endien.PutUint64(plyBuf, bits)
-			bits = math.Float64bits(p.Y())
-			endien.PutUint64(plyBuf[8:], bits)
-			bits = math.Float64bits(p.Z())
-			endien.PutUint64(plyBuf[16:], bits)
-
-			c := colors.At(i).Scale(255)
-			plyBuf[24] = byte(c.X())
-			plyBuf[25] = byte(c.Y())
-			plyBuf[26] = byte(c.Z())
-
-			_, err = plyOut.Write(plyBuf)
-			if err != nil {
-				panic(err)
-			}
+		_, err := octreeFile.Seek(int64(job.ByteOffset), 0)
+		if err != nil {
+			panic(err)
 		}
 
-		mutex.Unlock()
+		_, err = io.ReadFull(octreeFile, potreeBuf[:job.ByteSize])
+		if err != nil {
+			panic(err)
+		}
+
+		potree.LoadNodePositionDataIntoArray(metadata, potreeBuf[:job.ByteSize], positionBuf[:job.NumPoints])
+		potree.LoadNodeColorDataIntoArray(metadata, potreeBuf[:job.ByteSize], colorBuf[:job.NumPoints])
+		endien := binary.LittleEndian
+
+		offset := 0
+		for i := 0; i < count; i++ {
+			p := positionBuf[i]
+			endien.PutUint64(plyBuf[offset:], math.Float64bits(p.X()))
+			endien.PutUint64(plyBuf[offset+8:], math.Float64bits(p.Y()))
+			endien.PutUint64(plyBuf[offset+16:], math.Float64bits(p.Z()))
+
+			c := colorBuf[i].Scale(255)
+			plyBuf[offset+24] = byte(c.X())
+			plyBuf[offset+25] = byte(c.Y())
+			plyBuf[offset+26] = byte(c.Z())
+
+			offset += 27
+		}
+
+		_, err = plyFile.Seek(int64(plyHeaderOffset)+(job.PlyStart*27), 0)
+		if err != nil {
+			panic(err)
+		}
+		_, err = plyFile.Write(plyBuf[:count*27])
+		if err != nil {
+			panic(err)
+		}
 
 		pointsProcessed += count
 	}
@@ -87,12 +104,12 @@ func buildModelWorker(
 }
 
 func buildModelWithChildren(ctx *cli.Context, root *potree.OctreeNode, metadata *potree.Metadata) error {
-
-	f, err := os.Create(ctx.String("out"))
+	plyFilename := ctx.String("out")
+	plyFile, err := os.Create(plyFilename)
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer plyFile.Close()
 
 	largestPointCount := 0
 	root.Walk(func(o *potree.OctreeNode) {
@@ -119,29 +136,47 @@ func buildModelWithChildren(ctx *cli.Context, root *potree.OctreeNode, metadata 
 		},
 	}
 
-	bufWriter := bufio.NewWriter(f)
-	err = header.Write(bufWriter)
+	buf := &bytes.Buffer{}
+	err = header.Write(buf)
+	if err != nil {
+		return err
+	}
+	headerOffset := buf.Len()
+	_, err = plyFile.Write(buf.Bytes())
 	if err != nil {
 		return err
 	}
 
-	workerCount := runtime.NumCPU()
-	jobs := make(chan *potree.OctreeNode, workerCount)
-	meshes := make(chan int, workerCount)
-
-	mutex := &sync.Mutex{}
-	for i := 0; i < workerCount; i++ {
-		go buildModelWorker(ctx, jobs, metadata, largestPointCount, bufWriter, mutex, meshes)
+	err = plyFile.Truncate(int64(headerOffset) + int64(27*root.PointCount()))
+	if err != nil {
+		return err
 	}
 
-	root.Walk(func(o *potree.OctreeNode) { jobs <- o })
+	workerCount := runtime.NumCPU() * 2
+	jobs := make(chan *builldModelJob, workerCount)
+	meshes := make(chan int, workerCount)
+
+	for i := 0; i < workerCount; i++ {
+		go buildModelWorker(ctx, jobs, metadata, largestPointCount, plyFilename, headerOffset, meshes)
+	}
+
+	var plyStart int64
+	root.Walk(func(o *potree.OctreeNode) {
+		jobs <- &builldModelJob{
+			ByteSize:   o.ByteSize,
+			ByteOffset: o.ByteOffset,
+			NumPoints:  o.NumPoints,
+			PlyStart:   plyStart,
+		}
+		plyStart += int64(o.NumPoints)
+	})
 	close(jobs)
 
 	for i := 0; i < workerCount; i++ {
 		<-meshes
 	}
 
-	return bufWriter.Flush()
+	return nil
 }
 
 func buildModel(ctx *cli.Context, node *potree.OctreeNode, metadata *potree.Metadata) (*modeling.Mesh, error) {
@@ -162,7 +197,7 @@ func buildModel(ctx *cli.Context, node *potree.OctreeNode, metadata *potree.Meta
 		return nil, err
 	}
 
-	mesh := potree.LoadNode(*node, *metadata, buf)
+	mesh := potree.LoadNode(node, metadata, buf)
 	return &mesh, nil
 }
 
