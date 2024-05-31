@@ -58,8 +58,8 @@ func (sp ScalarProperty) Write(out io.Writer) (err error) {
 
 type ListProperty struct {
 	name      string
-	countType ScalarPropertyType
-	listType  ScalarPropertyType
+	CountType ScalarPropertyType
+	ListType  ScalarPropertyType
 }
 
 func (lp ListProperty) Name() string {
@@ -67,6 +67,6 @@ func (lp ListProperty) Name() string {
 }
 
 func (lp ListProperty) Write(out io.Writer) (err error) {
-	_, err = fmt.Fprintf(out, "property list %s %s %s\n", lp.countType, lp.listType, lp.name)
+	_, err = fmt.Fprintf(out, "property list %s %s %s\n", lp.CountType, lp.ListType, lp.name)
 	return
 }

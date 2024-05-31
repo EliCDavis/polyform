@@ -133,8 +133,8 @@ func readPlyProperty(contents []string) (Property, error) {
 		}
 		return ListProperty{
 			name:      strings.ToLower(contents[4]),
-			countType: scalarPropTypeNameToScalarPropertyType[strings.ToLower(contents[2])],
-			listType:  scalarPropTypeNameToScalarPropertyType[strings.ToLower(contents[3])],
+			CountType: scalarPropTypeNameToScalarPropertyType[strings.ToLower(contents[2])],
+			ListType:  scalarPropTypeNameToScalarPropertyType[strings.ToLower(contents[3])],
 		}, nil
 	}
 

@@ -34,16 +34,16 @@ func BuildHeaderFromModel(model modeling.Mesh, format Format) Header {
 		faceProperties := []Property{
 			ListProperty{
 				name:      "vertex_indices",
-				countType: UChar,
-				listType:  Int,
+				CountType: UChar,
+				ListType:  Int,
 			},
 		}
 
 		if model.HasFloat2Attribute(modeling.TexCoordAttribute) {
 			faceProperties = append(faceProperties, ListProperty{
 				name:      "texcoord",
-				countType: UChar,
-				listType:  Float,
+				CountType: UChar,
+				ListType:  Float,
 			})
 		}
 

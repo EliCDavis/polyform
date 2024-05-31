@@ -318,12 +318,12 @@ func binReaderFloat32Reader(order binary.ByteOrder) func(r io.Reader) (float32, 
 }
 
 func (le *BinaryReader) listCountReader(listProp ListProperty) (func(r io.Reader) (int, error), error) {
-	switch listProp.countType {
+	switch listProp.CountType {
 	case UChar:
 		return binReaderByteReader, nil
 
 	default:
-		return nil, fmt.Errorf("unimplemented list count scalar-type: %s", listProp.countType)
+		return nil, fmt.Errorf("unimplemented list count scalar-type: %s", listProp.CountType)
 	}
 }
 
@@ -348,12 +348,12 @@ func (le *BinaryReader) readFaceData(element Element) ([]int, []vector2.Float64,
 
 		if prop.Name() == "vertex_index" || prop.Name() == "vertex_indices" {
 			var listDataReader func(io.Reader) (int32, error)
-			switch listProp.listType {
+			switch listProp.ListType {
 			case Int, UInt:
 				listDataReader = binReaderIntReader(le.order)
 
 			default:
-				return nil, nil, fmt.Errorf("unimplemented list element scalar-type: %s", listProp.listType)
+				return nil, nil, fmt.Errorf("unimplemented list element scalar-type: %s", listProp.ListType)
 			}
 
 			readers[i] = func(r io.Reader) error {
@@ -395,12 +395,12 @@ func (le *BinaryReader) readFaceData(element Element) ([]int, []vector2.Float64,
 
 		if prop.Name() == "texcoord" {
 			var listDataReader func(io.Reader) (float32, error)
-			switch listProp.listType {
+			switch listProp.ListType {
 			case Float:
 				listDataReader = binReaderFloat32Reader(le.order)
 
 			default:
-				return nil, nil, fmt.Errorf("unimplemented list element scalar-type: %s", listProp.listType)
+				return nil, nil, fmt.Errorf("unimplemented list element scalar-type: %s", listProp.ListType)
 			}
 
 			readers[i] = func(r io.Reader) error {
