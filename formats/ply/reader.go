@@ -36,7 +36,7 @@ func readLine(in io.Reader) (string, error) {
 	data := make([]byte, 0)
 
 	buf := make([]byte, 1)
-	var err error = nil
+	var err error
 	for {
 		_, err = io.ReadFull(in, buf)
 		if err != nil {
@@ -68,21 +68,21 @@ func scanToNextNonEmptyLine(reader io.Reader) (string, error) {
 func readPlyHeaderFormat(reader io.Reader) (Format, error) {
 	line, err := scanToNextNonEmptyLine(reader)
 	if err != nil {
-		return -1, err
+		return "", err
 	}
 
 	contents := strings.Fields(line)
 
 	if len(contents) != 3 {
-		return -1, fmt.Errorf("unrecognized format line")
+		return "", fmt.Errorf("unrecognized format line")
 	}
 
 	if contents[0] != "format" {
-		return -1, fmt.Errorf("expected format line, received %s", contents[0])
+		return "", fmt.Errorf("expected format line, received %s", contents[0])
 	}
 
 	if contents[2] != "1.0" {
-		return -1, fmt.Errorf("unrecognized version format: %s", contents[2])
+		return "", fmt.Errorf("unrecognized version format: %s", contents[2])
 	}
 
 	switch contents[1] {
@@ -96,7 +96,7 @@ func readPlyHeaderFormat(reader io.Reader) (Format, error) {
 		return BinaryBigEndian, nil
 
 	default:
-		return -1, fmt.Errorf("unrecognized format: %s", contents[1])
+		return "", fmt.Errorf("unrecognized format: %s", contents[1])
 	}
 }
 
@@ -126,6 +126,14 @@ var scalarPropTypeNameToScalarPropertyType = map[string]ScalarPropertyType{
 	"float64": Double,
 }
 
+func ParseScalarPropertyType(str string) ScalarPropertyType {
+	cleaned := strings.ToLower(strings.TrimSpace(str))
+	if t, ok := scalarPropTypeNameToScalarPropertyType[cleaned]; ok {
+		return t
+	}
+	panic(fmt.Errorf("unrecognized type %s", str))
+}
+
 func readPlyProperty(contents []string) (Property, error) {
 	if strings.ToLower(contents[1]) == "list" {
 		if len(contents) != 5 {
@@ -133,8 +141,8 @@ func readPlyProperty(contents []string) (Property, error) {
 		}
 		return ListProperty{
 			name:      strings.ToLower(contents[4]),
-			CountType: scalarPropTypeNameToScalarPropertyType[strings.ToLower(contents[2])],
-			ListType:  scalarPropTypeNameToScalarPropertyType[strings.ToLower(contents[3])],
+			CountType: ParseScalarPropertyType(contents[2]),
+			ListType:  ParseScalarPropertyType(contents[3]),
 		}, nil
 	}
 
@@ -144,7 +152,7 @@ func readPlyProperty(contents []string) (Property, error) {
 
 	return ScalarProperty{
 		PropertyName: contents[2],
-		Type:         scalarPropTypeNameToScalarPropertyType[strings.ToLower(contents[1])],
+		Type:         ParseScalarPropertyType(contents[1]),
 	}, nil
 }
 

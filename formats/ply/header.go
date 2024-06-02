@@ -2,6 +2,7 @@ package ply
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/binary"
 	"fmt"
 	"io"
@@ -11,6 +12,12 @@ type Header struct {
 	Format      Format    `json:"format"`
 	Elements    []Element `json:"elements"`
 	TextureFile *string   `json:"texture,omitempty"`
+}
+
+func (h Header) Bytes() []byte {
+	buf := &bytes.Buffer{}
+	h.Write(buf)
+	return buf.Bytes()
 }
 
 func (h Header) Write(out io.Writer) (err error) {
@@ -72,6 +79,6 @@ func (h Header) BuildReader(in io.Reader) BodyReader {
 		}
 
 	default:
-		panic(fmt.Errorf("unimplemented ply format: %d", h.Format))
+		panic(fmt.Errorf("unimplemented ply format: %s", h.Format))
 	}
 }

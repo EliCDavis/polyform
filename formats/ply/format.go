@@ -1,8 +1,10 @@
 package ply
 
-import "fmt"
+import (
+	"errors"
+)
 
-type Format int64
+type Format string
 
 func (f Format) String() string {
 	switch f {
@@ -16,13 +18,13 @@ func (f Format) String() string {
 		return "Binary Little Endian"
 
 	}
-	panic(fmt.Errorf("unrecognized format %d", f))
+	panic(errors.New("unrecognized format " + string(f)))
 }
 
 const (
-	ASCII Format = iota
-	BinaryBigEndian
-	BinaryLittleEndian
+	ASCII              Format = "ascii"
+	BinaryBigEndian    Format = "binary_little_endian"
+	BinaryLittleEndian Format = "binary_big_endian"
 )
 
 const VertexElementName = "vertex"
