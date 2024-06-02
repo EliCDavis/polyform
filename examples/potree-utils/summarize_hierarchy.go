@@ -1,11 +1,13 @@
 package main
 
 import (
+	"encoding/csv"
 	"encoding/json"
 	"fmt"
 	"io"
 	"math"
 	"os"
+	"strconv"
 
 	"github.com/EliCDavis/polyform/formats/potree"
 	"github.com/urfave/cli/v2"
@@ -19,6 +21,34 @@ type levelSummary struct {
 	Total   int     `json:"total"`
 	Volume  float64 `json:"volume"`
 	Spacing float64 `json:"spacing"`
+}
+
+func writeSummaryAsCSV(out io.Writer, summaries []levelSummary) {
+	writer := csv.NewWriter(out)
+	writer.Write([]string{
+		"Level",
+		"Nodes",
+		"Average",
+		"Min",
+		"Max",
+		"Total",
+		"Volume",
+		"Spacing",
+	})
+
+	for i, summary := range summaries {
+		writer.Write([]string{
+			strconv.Itoa(i),
+			strconv.Itoa(summary.Nodes),
+			strconv.FormatFloat(summary.Average, 'f', -1, 64),
+			strconv.Itoa(summary.Min),
+			strconv.Itoa(summary.Max),
+			strconv.Itoa(summary.Total),
+			strconv.FormatFloat(summary.Volume, 'f', -1, 64),
+			strconv.FormatFloat(summary.Spacing, 'f', -1, 64),
+		})
+	}
+	writer.Flush()
 }
 
 func writeSummaryAsMarkdown(out io.Writer, summaries []levelSummary) {
@@ -59,7 +89,7 @@ var SummarizeHierarchyCommand = &cli.Command{
 		hierarchyFlag,
 		&cli.StringFlag{
 			Name:  "format",
-			Usage: "format to write summary data too (markdown, json)",
+			Usage: "format to write summary data too (markdown, json, csv)",
 			Value: "markdown",
 		},
 		&cli.StringFlag{
@@ -139,6 +169,9 @@ var SummarizeHierarchyCommand = &cli.Command{
 			}
 			_, err = out.Write(data)
 			return err
+
+		case "csv":
+			writeSummaryAsCSV(out, summaries)
 
 		default:
 			return fmt.Errorf("unrecognized format %s", format)
