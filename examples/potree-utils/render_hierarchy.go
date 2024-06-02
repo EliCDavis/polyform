@@ -26,7 +26,8 @@ func GetPointCounts(depth int, node *potree.OctreeNode, out map[int][]int) {
 }
 
 var RenderHierarchyCommand = &cli.Command{
-	Name: "render-hierarchy",
+	Name:  "render",
+	Usage: "Renders the hierarchy point count data to an image",
 	Flags: []cli.Flag{
 		metadataFlag,
 		hierarchyFlag,
@@ -49,6 +50,13 @@ var RenderHierarchyCommand = &cli.Command{
 		}
 		counts := make(map[int][]int)
 		GetPointCounts(0, hierarchy, counts)
+
+		maxPoints := 0
+		hierarchy.Walk(func(o *potree.OctreeNode) {
+			if int(o.NumPoints) > maxPoints {
+				maxPoints = int(o.NumPoints)
+			}
+		})
 
 		rows := ctx.Int("row-count")
 		numNodes := hierarchy.DescendentCount() + 1
@@ -80,7 +88,7 @@ var RenderHierarchyCommand = &cli.Command{
 			y := (i % rows) - offset
 			x := int(math.Floor(float64(i)/float64(rows))) + (depth * 2)
 
-			v := byte((float64(counts[depth][count]) / 20000.) * 255)
+			v := byte((float64(counts[depth][count]) / float64(maxPoints)) * 255)
 			img.Set(x, y, color.RGBA{
 				R: v,
 				A: 255,

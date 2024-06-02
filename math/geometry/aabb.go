@@ -88,6 +88,11 @@ func (aabb AABB) Size() vector3.Float64 {
 	return aabb.extents.Scale(2)
 }
 
+func (aabb AABB) Volume() float64 {
+	size := aabb.Size()
+	return size.X() * size.Y() * size.Z()
+}
+
 func (aabb *AABB) Expand(amount float64) {
 	a := amount * 0.5
 	aabb.extents = aabb.extents.Add(vector3.New(a, a, a))

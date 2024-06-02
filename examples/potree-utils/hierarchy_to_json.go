@@ -8,7 +8,8 @@ import (
 )
 
 var HierarhcyToJsonCommand = &cli.Command{
-	Name: "hierarchy-to-json",
+	Name:  "to-json",
+	Usage: "Writes all hierarchy data to json",
 	Flags: []cli.Flag{
 		metadataFlag,
 		hierarchyFlag,

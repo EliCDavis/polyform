@@ -9,16 +9,22 @@ import (
 func main() {
 
 	cmd := cli.App{
-		Name:    "Potree Utils",
+		Name:    "potree-utils",
 		Version: "0.0.1",
 		Authors: []*cli.Author{
 			{Name: "Eli Davis"},
 		},
 		Description: "Different utilities for inspecting potree files",
 		Commands: []*cli.Command{
-			RenderHierarchyCommand,
+			{
+				Name: "hierarchy",
+				Subcommands: []*cli.Command{
+					RenderHierarchyCommand,
+					HierarhcyToJsonCommand,
+					SummarizeHierarchyCommand,
+				},
+			},
 			ExtractPointcloudCommand,
-			HierarhcyToJsonCommand,
 		},
 	}
 
