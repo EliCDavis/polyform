@@ -2,6 +2,7 @@ package potree
 
 import (
 	"encoding/binary"
+	"io"
 
 	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/modeling"
@@ -26,8 +27,10 @@ type OctreeNode struct {
 	HierarchyByteSize   uint64
 }
 
-func (on *OctreeNode) Walk(f func(o *OctreeNode)) {
-	f(on)
+func (on *OctreeNode) Walk(f func(o *OctreeNode) bool) {
+	if traverseChildren := f(on); !traverseChildren {
+		return
+	}
 	for _, c := range on.Children {
 		c.Walk(f)
 	}
@@ -63,6 +66,15 @@ func (on OctreeNode) DescendentCount() int {
 		count += c.DescendentCount()
 	}
 	return count
+}
+
+func (on OctreeNode) Read(in io.ReadSeeker, buf []byte) (int, error) {
+	_, err := in.Seek(int64(on.ByteOffset), io.SeekStart)
+	if err != nil {
+		return 0, err
+	}
+
+	return io.ReadFull(in, buf[:on.ByteSize])
 }
 
 func LoadNodePositionDataIntoArray(m *Metadata, buf []byte, positions []vector3.Float64) {

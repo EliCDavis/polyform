@@ -112,10 +112,11 @@ func buildModelWithChildren(ctx *cli.Context, root *potree.OctreeNode, metadata 
 	defer plyFile.Close()
 
 	largestPointCount := 0
-	root.Walk(func(o *potree.OctreeNode) {
+	root.Walk(func(o *potree.OctreeNode) bool {
 		if o.NumPoints > uint32(largestPointCount) {
 			largestPointCount = int(o.NumPoints)
 		}
+		return true
 	})
 
 	header := ply.Header{
@@ -161,7 +162,7 @@ func buildModelWithChildren(ctx *cli.Context, root *potree.OctreeNode, metadata 
 	}
 
 	var plyStart int64
-	root.Walk(func(o *potree.OctreeNode) {
+	root.Walk(func(o *potree.OctreeNode) bool {
 		jobs <- &builldModelJob{
 			ByteSize:   o.ByteSize,
 			ByteOffset: o.ByteOffset,
@@ -169,6 +170,7 @@ func buildModelWithChildren(ctx *cli.Context, root *potree.OctreeNode, metadata 
 			PlyStart:   plyStart,
 		}
 		plyStart += int64(o.NumPoints)
+		return true
 	})
 	close(jobs)
 

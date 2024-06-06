@@ -23,9 +23,9 @@ type levelSummary struct {
 	Spacing float64 `json:"spacing"`
 }
 
-func writeSummaryAsCSV(out io.Writer, summaries []levelSummary) {
+func writeSummaryAsCSV(out io.Writer, summaries []levelSummary) error {
 	writer := csv.NewWriter(out)
-	writer.Write([]string{
+	err := writer.Write([]string{
 		"Level",
 		"Nodes",
 		"Average",
@@ -35,9 +35,12 @@ func writeSummaryAsCSV(out io.Writer, summaries []levelSummary) {
 		"Volume",
 		"Spacing",
 	})
+	if err != nil {
+		return err
+	}
 
 	for i, summary := range summaries {
-		writer.Write([]string{
+		err = writer.Write([]string{
 			strconv.Itoa(i),
 			strconv.Itoa(summary.Nodes),
 			strconv.FormatFloat(summary.Average, 'f', -1, 64),
@@ -47,12 +50,16 @@ func writeSummaryAsCSV(out io.Writer, summaries []levelSummary) {
 			strconv.FormatFloat(summary.Volume, 'f', -1, 64),
 			strconv.FormatFloat(summary.Spacing, 'f', -1, 64),
 		})
+		if err != nil {
+			return err
+		}
 	}
 	writer.Flush()
+	return nil
 }
 
-func writeSummaryAsMarkdown(out io.Writer, summaries []levelSummary) {
-	fmt.Fprintf(
+func writeSummaryAsMarkdown(out io.Writer, summaries []levelSummary) error {
+	_, err := fmt.Fprintf(
 		out,
 		"| %6s | %8s | %8s | %8s | %8s | %12s | %15s | %12s |\n",
 		"Level",
@@ -64,11 +71,19 @@ func writeSummaryAsMarkdown(out io.Writer, summaries []levelSummary) {
 		"Volume",
 		"Spacing",
 	)
-	fmt.Fprintln(out, "|--------|----------|----------|----------|----------|--------------|-----------------|--------------|")
+	if err != nil {
+		return err
+	}
+
+	_, err = fmt.Fprintln(out, "|--------|----------|----------|----------|----------|--------------|-----------------|--------------|")
+	if err != nil {
+		return err
+	}
+
 	for i, summary := range summaries {
-		fmt.Fprintf(
+		_, err = fmt.Fprintf(
 			out,
-			"| %6d | %8d | %8d | %8d | %8d | %12d | %15.2f | %12.7f |\n",
+			"| %6d | %8d | %8d | %8d | %8d | %12d | %15.4f | %12.7f |\n",
 			i,
 			summary.Nodes,
 			int(summary.Average),
@@ -78,7 +93,11 @@ func writeSummaryAsMarkdown(out io.Writer, summaries []levelSummary) {
 			summary.Volume,
 			summary.Spacing,
 		)
+		if err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 var SummarizeHierarchyCommand = &cli.Command{
@@ -96,6 +115,11 @@ var SummarizeHierarchyCommand = &cli.Command{
 			Name:  "out",
 			Usage: "path to file to write output too",
 		},
+		&cli.BoolFlag{
+			Name:  "include-zero-point-nodes",
+			Usage: "Whether or not to include nodes that have 0 points in our calculations",
+			Value: false,
+		},
 	},
 	Action: func(ctx *cli.Context) error {
 		_, hierarchy, err := loadHierarchy(ctx)
@@ -107,7 +131,12 @@ var SummarizeHierarchyCommand = &cli.Command{
 		totalPoints := make(map[int]int)
 		volume := make(map[int]float64)
 		spacing := make(map[int]float64)
-		hierarchy.Walk(func(o *potree.OctreeNode) {
+		ignoreZero := !ctx.Bool("include-zero-point-nodes")
+		hierarchy.Walk(func(o *potree.OctreeNode) bool {
+			if ignoreZero && o.NumPoints == 0 {
+				return true
+			}
+
 			if _, ok := pointCountsPerLevel[o.Level]; !ok {
 				pointCountsPerLevel[o.Level] = make([]int, 0, 1)
 				volume[o.Level] = o.BoundingBox.Volume()
@@ -115,6 +144,7 @@ var SummarizeHierarchyCommand = &cli.Command{
 			}
 			pointCountsPerLevel[o.Level] = append(pointCountsPerLevel[o.Level], int(o.NumPoints))
 			totalPoints[o.Level] += int(o.NumPoints)
+			return true
 		})
 
 		averagePoints := make(map[int]float64)
@@ -160,7 +190,10 @@ var SummarizeHierarchyCommand = &cli.Command{
 		format := ctx.String("format")
 		switch format {
 		case "markdown":
-			writeSummaryAsMarkdown(out, summaries)
+			return writeSummaryAsMarkdown(out, summaries)
+
+		case "csv":
+			return writeSummaryAsCSV(out, summaries)
 
 		case "json":
 			data, err := json.MarshalIndent(summaries, "", "    ")
@@ -170,13 +203,8 @@ var SummarizeHierarchyCommand = &cli.Command{
 			_, err = out.Write(data)
 			return err
 
-		case "csv":
-			writeSummaryAsCSV(out, summaries)
-
 		default:
 			return fmt.Errorf("unrecognized format %s", format)
 		}
-
-		return nil
 	},
 }

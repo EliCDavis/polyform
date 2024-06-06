@@ -9,11 +9,15 @@ import (
 	"math"
 	"os"
 
+	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/formats/potree"
 	"github.com/urfave/cli/v2"
 )
 
 func GetPointCounts(depth int, node *potree.OctreeNode, out map[int][]int) {
+	if node.NumPoints == 0 {
+		return
+	}
 	if _, ok := out[depth]; !ok {
 		out[depth] = make([]int, 0, 1)
 	}
@@ -51,15 +55,23 @@ var RenderHierarchyCommand = &cli.Command{
 		counts := make(map[int][]int)
 		GetPointCounts(0, hierarchy, counts)
 
+		minPoints := math.MaxInt
 		maxPoints := 0
-		hierarchy.Walk(func(o *potree.OctreeNode) {
+		numNodes := 0
+		hierarchy.Walk(func(o *potree.OctreeNode) bool {
+			if o.NumPoints == 0 {
+				return true
+			}
 			if int(o.NumPoints) > maxPoints {
 				maxPoints = int(o.NumPoints)
 			}
+			minPoints = min(minPoints, int(o.NumPoints))
+			numNodes++
+			return true
 		})
+		pointRange := maxPoints - minPoints
 
 		rows := ctx.Int("row-count")
-		numNodes := hierarchy.DescendentCount() + 1
 		columns := numNodes / rows
 
 		columns += (len(counts) - 1) * 2 // Add spacing
@@ -81,6 +93,14 @@ var RenderHierarchyCommand = &cli.Command{
 		}
 		defer f.Close()
 
+		stack := coloring.NewColorStack(
+			coloring.NewColorStackEntry(1, 0.5, 0.5, color.RGBA{0, 0, 255, 255}),
+			coloring.NewColorStackEntry(1, 0.5, 0.5, color.RGBA{0, 255, 255, 255}),
+			coloring.NewColorStackEntry(1, 0.5, 0.5, color.RGBA{0, 255, 0, 255}),
+			coloring.NewColorStackEntry(1, 0.5, 0.5, color.RGBA{255, 255, 0, 255}),
+			coloring.NewColorStackEntry(1, 0.5, 0.5, color.RGBA{255, 0, 0, 255}),
+		)
+
 		depth := 0
 		count := 0
 		offset := 0
@@ -88,11 +108,8 @@ var RenderHierarchyCommand = &cli.Command{
 			y := (i % rows) - offset
 			x := int(math.Floor(float64(i)/float64(rows))) + (depth * 2)
 
-			v := byte((float64(counts[depth][count]) / float64(maxPoints)) * 255)
-			img.Set(x, y, color.RGBA{
-				R: v,
-				A: 255,
-			})
+			v := float64(counts[depth][count]-minPoints) / float64(pointRange)
+			img.Set(x, y, stack.LinearSample(v))
 
 			count++
 
