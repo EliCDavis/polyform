@@ -63,12 +63,27 @@ func ReadMetadata(in io.Reader) (*Metadata, error) {
 	return m, json.Unmarshal(data, m)
 }
 
+func (m Metadata) OffsetF() vector3.Float64 {
+	return vector3.New(m.Offset[0], m.Offset[1], m.Offset[2])
+}
+
 func (m Metadata) BytesPerPoint() int {
 	count := 0
 	for _, attr := range m.Attributes {
 		count += attr.Size
 	}
 	return count
+}
+
+func (m Metadata) AttributeOffset(attribute string) int {
+	count := 0
+	for _, attr := range m.Attributes {
+		if attr.Name == attribute {
+			return count
+		}
+		count += attr.Size
+	}
+	return -1
 }
 
 func (m Metadata) LoadHierarchy(filepath string) (*OctreeNode, error) {
@@ -82,11 +97,12 @@ func (m Metadata) LoadHierarchy(filepath string) (*OctreeNode, error) {
 }
 
 func (m Metadata) ReadHierarchy(in io.Reader) (*OctreeNode, error) {
+	offset := m.OffsetF()
 	root := &OctreeNode{
 		Name: "r",
 		BoundingBox: geometry.NewAABBFromPoints(
-			m.BoundingBox.MinF(),
-			m.BoundingBox.MaxF(),
+			m.BoundingBox.MinF().Sub(offset),
+			m.BoundingBox.MaxF().Sub(offset),
 		),
 		Level:               0,
 		NodeType:            2,

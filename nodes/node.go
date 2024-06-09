@@ -11,7 +11,6 @@ const (
 type Node interface {
 	Versioned
 	Stateful
-	Subscribable
 	Dependent
 
 	SetInput(input string, output Output)

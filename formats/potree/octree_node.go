@@ -56,6 +56,14 @@ func (on OctreeNode) PointCount() uint64 {
 	return count
 }
 
+func (on OctreeNode) MaxPointCount() int {
+	count := int(on.NumPoints)
+	for _, c := range on.Children {
+		count = max(count, c.MaxPointCount())
+	}
+	return count
+}
+
 func (on OctreeNode) DescendentCount() int {
 	if len(on.Children) == 0 {
 		return 0
@@ -74,90 +82,36 @@ func (on OctreeNode) Read(in io.ReadSeeker, buf []byte) (int, error) {
 		return 0, err
 	}
 
-	return io.ReadFull(in, buf[:on.ByteSize])
+	return io.ReadFull(in, buf[:min(on.ByteSize, uint64(len(buf)))])
 }
 
-func LoadNodePositionDataIntoArray(m *Metadata, buf []byte, positions []vector3.Float64) {
-	attributeOffset := 0
-
-	for _, attribute := range m.Attributes {
-		if attribute.IsPosition() {
-
-			endian := binary.LittleEndian
-			bytesPerPoint := m.BytesPerPoint()
-			scale := vector3.New(m.Scale[0], m.Scale[1], m.Scale[2])
-			shift := vector3.New(m.Offset[0], m.Offset[1], m.Offset[2]).
-				Sub(m.BoundingBox.MinF())
-
-			pointOffset := attributeOffset
-			for i := 0; i < len(positions); i++ {
-				positions[i] = vector3.
-					New(
-						int(endian.Uint32(buf[pointOffset:])),
-						int(endian.Uint32(buf[pointOffset+4:])),
-						int(endian.Uint32(buf[pointOffset+8:])),
-					).
-					ToFloat64().
-					MultByVector(scale).
-					Add(shift)
-				pointOffset += bytesPerPoint
-			}
-			return
-		}
-		attributeOffset += attribute.Size
+func (on OctreeNode) Write(out io.WriteSeeker, buf []byte) (int, error) {
+	_, err := out.Seek(int64(on.ByteOffset), io.SeekStart)
+	if err != nil {
+		return 0, err
 	}
-}
 
-func LoadNodeColorDataIntoArray(m *Metadata, buf []byte, colors []vector3.Float64) {
-	attributeOffset := 0
-
-	for _, attribute := range m.Attributes {
-		if attribute.IsColor() {
-			endian := binary.LittleEndian
-			bytesPerPoint := m.BytesPerPoint()
-
-			pointOffset := attributeOffset
-			for i := 0; i < len(colors); i++ {
-				col := vector3.
-					New(
-						int(endian.Uint16(buf[pointOffset:])),
-						int(endian.Uint16(buf[pointOffset+2:])),
-						int(endian.Uint16(buf[pointOffset+4:])),
-					).
-					ToFloat64()
-
-				if col.X() > 255 || col.Y() > 255 || col.Z() > 255 {
-					col = col.DivByConstant(256)
-				}
-
-				colors[i] = col.DivByConstant(255)
-				pointOffset += bytesPerPoint
-			}
-			return
-		}
-		attributeOffset += attribute.Size
-	}
+	return out.Write(buf[:min(on.ByteSize, uint64(len(buf)))])
 }
 
 // https://github.com/potree/potree/blob/785e7a95aac3c44112c5488ee16c970fb8eeb923/src/modules/loader/2.0/DecoderWorker.js#L21
 
-func LoadNode(on *OctreeNode, m *Metadata, buf []byte) modeling.Mesh {
+func LoadNode(on *OctreeNode, metadata *Metadata, buf []byte) modeling.Mesh {
 
 	numPoints := on.NumPoints
-	bytesPerPoint := m.BytesPerPoint()
+	bytesPerPoint := metadata.BytesPerPoint()
 
 	attributeOffset := 0
 	endian := binary.LittleEndian
 
 	pointcloudData := make(map[string][]vector3.Float64)
 
-	for _, attribute := range m.Attributes {
+	for _, attribute := range metadata.Attributes {
 		if attribute.IsPosition() {
 			positionData := make([]vector3.Float64, numPoints)
 
-			scale := vector3.New(m.Scale[0], m.Scale[1], m.Scale[2])
-			shift := vector3.New(m.Offset[0], m.Offset[1], m.Offset[2]).
-				Sub(m.BoundingBox.MinF())
+			scale := vector3.New(metadata.Scale[0], metadata.Scale[1], metadata.Scale[2])
+			shift := metadata.OffsetF().Sub(metadata.BoundingBox.MinF())
 
 			for i := 0; i < int(numPoints); i++ {
 				pointOffset := (i * bytesPerPoint) + attributeOffset

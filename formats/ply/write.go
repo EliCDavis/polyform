@@ -19,15 +19,18 @@ func BuildHeaderFromModel(model modeling.Mesh, format Format) Header {
 		Elements: []Element{
 			buildVertexElements(model.Float3Attributes(), int64(model.AttributeLength())),
 		},
+		Comments: []string{},
 	}
 
 	// Pull a texture file if relevant.
 	if len(model.Materials()) > 0 && model.Materials()[0].Material != nil {
 		mat := model.Materials()[0].Material
 		if mat.ColorTextureURI != nil {
-			header.TextureFile = mat.ColorTextureURI
+			header.Comments = append(header.Comments, fmt.Sprintf("TextureFile %s", *mat.ColorTextureURI))
 		}
 	}
+
+	header.Comments = append(header.Comments, "Created with github.com/EliCDavis/polyform")
 
 	// Optionally build face element
 	if model.Topology() == modeling.TriangleTopology {

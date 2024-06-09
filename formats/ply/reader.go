@@ -159,6 +159,7 @@ func readPlyProperty(contents []string) (Property, error) {
 func ReadHeader(in io.Reader) (Header, error) {
 	header := Header{
 		Elements: make([]Element, 0),
+		Comments: make([]string, 0),
 	}
 
 	magicNumber, err := readLine(in)
@@ -192,10 +193,8 @@ func ReadHeader(in io.Reader) (Header, error) {
 
 		contents := strings.Fields(line)
 		if contents[0] == "comment" {
-			if strings.ToLower(contents[1]) == "texturefile" {
-				name := contents[2]
-				header.TextureFile = &name
-			}
+			start := strings.Index(line, "comment")
+			header.Comments = append(header.Comments, strings.TrimSpace(line[7+start:]))
 			continue
 		}
 
@@ -237,13 +236,16 @@ func buildReader(in io.Reader) (BodyReader, *modeling.Material, error) {
 	}
 
 	var mat *modeling.Material = nil
-	if header.TextureFile != nil {
+	textures := header.TextureFiles()
+	if len(textures) > 0 {
+		tex := textures[0]
 		mat = &modeling.Material{
-			Name:            *header.TextureFile,
+			Name:            tex,
 			DiffuseColor:    color.White,
-			ColorTextureURI: header.TextureFile,
+			ColorTextureURI: &tex,
 		}
 	}
+
 	return header.BuildReader(in), mat, nil
 }
 

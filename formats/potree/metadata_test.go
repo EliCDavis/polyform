@@ -136,6 +136,10 @@ func TestReadMetadata(t *testing.T) {
 
 	// Attributes
 	assert.Len(t, metadata.Attributes, 9)
+	assert.Equal(t, 27, metadata.BytesPerPoint())
+	assert.Equal(t, 0, metadata.AttributeOffset("position"))
+	assert.Equal(t, 12, metadata.AttributeOffset("intensity"))
+	assert.Equal(t, -1, metadata.AttributeOffset("blah"))
 }
 
 func TestMetadataReadHierarchy(t *testing.T) {
@@ -152,4 +156,5 @@ func TestMetadataReadHierarchy(t *testing.T) {
 	assert.Equal(t, 7, tree.Height())
 	assert.Equal(t, 8881, tree.DescendentCount())
 	assert.Equal(t, uint64(25836417), tree.PointCount())
+	assert.Equal(t, 20640, tree.MaxPointCount())
 }

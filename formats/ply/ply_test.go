@@ -66,6 +66,7 @@ func TestToMeshASCII(t *testing.T) {
 format ascii 1.0
 comment made by anonymous
 comment this file is a cube
+obj_info bs stuff 
 element vertex 8
 property float32 x
 property float32 y

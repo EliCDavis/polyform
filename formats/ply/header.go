@@ -6,18 +6,48 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"strings"
 )
 
 type Header struct {
-	Format      Format    `json:"format"`
-	Elements    []Element `json:"elements"`
-	TextureFile *string   `json:"texture,omitempty"`
+	Format   Format    `json:"format"`
+	Elements []Element `json:"elements"`
+	Comments []string  `json:"comments"`
+	// TextureFile *string   `json:"texture,omitempty"`
+
+	// Object information (arbitrary text)
+	ObjInfo []string `json:"objInfo"`
 }
 
 func (h Header) Bytes() []byte {
 	buf := &bytes.Buffer{}
 	h.Write(buf)
 	return buf.Bytes()
+}
+
+func (h Header) TextureFiles() []string {
+	textures := make([]string, 0)
+	for _, c := range h.Comments {
+		contents := strings.Fields(c)
+		if len(contents) == 0 {
+			continue
+		}
+
+		if len(contents) < 2 {
+			continue
+		}
+
+		if strings.ToLower(contents[0]) != "texturefile" {
+			continue
+		}
+
+		start := strings.Index(strings.ToLower(c), "texturefile")
+
+		// len("texturefile") == 11
+
+		textures = append(textures, strings.TrimSpace(c[start+11:]))
+	}
+	return textures
 }
 
 func (h Header) Write(out io.Writer) (err error) {
@@ -36,16 +66,15 @@ func (h Header) Write(out io.Writer) (err error) {
 		return
 	}
 
-	if h.TextureFile != nil {
-		_, err = fmt.Fprintf(out, "comment TextureFile %s\n", *h.TextureFile)
+	for _, info := range h.Comments {
+		_, err = fmt.Fprintf(out, "comment %s\n", info)
 		if err != nil {
 			return
 		}
 	}
 
-	_, err = out.Write([]byte("comment Created with github.com/EliCDavis/polyform\n"))
-	if err != nil {
-		return
+	for _, info := range h.ObjInfo {
+		fmt.Fprintf(out, "obj_info %s\n", info)
 	}
 
 	for _, element := range h.Elements {

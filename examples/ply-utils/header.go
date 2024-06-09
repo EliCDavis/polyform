@@ -12,22 +12,21 @@ import (
 )
 
 func writeHeaderAsPlaintext(header ply.Header, out io.Writer) error {
-	fmt.Fprintf(out, "%-14s %s\n", "Format:", header.Format.String())
+	fmt.Fprintf(out, "Format: %s\n", header.Format.String())
 
-	texFile := "(none)"
-	if header.TextureFile != nil {
-		texFile = *header.TextureFile
+	textures := header.TextureFiles()
+	fmt.Fprintf(out, "Texture Files: %d\n", len(textures))
+	for _, tex := range textures {
+		fmt.Fprintf(out, "%20s\n", tex)
 	}
-	fmt.Fprintf(out, "%-14s %s\n", "Texture File:", texFile)
 
-	// fmt.Fprintln(out, "Elements")
 	for _, ele := range header.Elements {
-		fmt.Fprintf(out, "%-14s %d entries\n", ele.Name+":", ele.Count)
+		fmt.Fprintf(out, "%s %d entries\n", ele.Name+":", ele.Count)
 		for _, prop := range ele.Properties {
 			if scalar, ok := prop.(ply.ScalarProperty); ok {
-				fmt.Fprintf(out, "%20s (%s)\n", prop.Name(), scalar.Type)
+				fmt.Fprintf(out, "\t%-14s (%s)\n", prop.Name(), scalar.Type)
 			} else if arr, ok := prop.(ply.ListProperty); ok {
-				fmt.Fprintf(out, "\t\t%s (count type: %s, list type: %s)\n", prop.Name(), arr.CountType, arr.ListType)
+				fmt.Fprintf(out, "\t%-14s (count type: %s, list type: %s)\n", prop.Name(), arr.CountType, arr.ListType)
 			}
 		}
 	}
