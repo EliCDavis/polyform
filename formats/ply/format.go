@@ -4,8 +4,10 @@ import (
 	"errors"
 )
 
+// Format of the data contained within the body of the PLY file
 type Format string
 
+// Human readable string representing the format value
 func (f Format) String() string {
 	switch f {
 	case ASCII:

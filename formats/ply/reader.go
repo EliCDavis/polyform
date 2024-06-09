@@ -126,6 +126,8 @@ var scalarPropTypeNameToScalarPropertyType = map[string]ScalarPropertyType{
 	"float64": Double,
 }
 
+// Attempts to interpret the string as some scalar property type, and panics
+// if it can't.
 func ParseScalarPropertyType(str string) ScalarPropertyType {
 	cleaned := strings.ToLower(strings.TrimSpace(str))
 	if t, ok := scalarPropTypeNameToScalarPropertyType[cleaned]; ok {
@@ -140,9 +142,9 @@ func readPlyProperty(contents []string) (Property, error) {
 			return nil, errors.New("ill-formatted list property")
 		}
 		return ListProperty{
-			name:      strings.ToLower(contents[4]),
-			CountType: ParseScalarPropertyType(contents[2]),
-			ListType:  ParseScalarPropertyType(contents[3]),
+			PropertyName: strings.ToLower(contents[4]),
+			CountType:    ParseScalarPropertyType(contents[2]),
+			ListType:     ParseScalarPropertyType(contents[3]),
 		}, nil
 	}
 
@@ -156,6 +158,8 @@ func readPlyProperty(contents []string) (Property, error) {
 	}, nil
 }
 
+// Builds a header from the contents of the reader passed in. Reading from the
+// reader passed in stops once we recieve the "end_header" token
 func ReadHeader(in io.Reader) (Header, error) {
 	header := Header{
 		Elements: make([]Element, 0),

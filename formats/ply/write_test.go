@@ -54,7 +54,7 @@ end_header
 	}.Welded()
 
 	buf := bytes.Buffer{}
-	err := ply.WriteASCII(&buf, cube)
+	err := ply.Write(&buf, cube, ply.ASCII)
 
 	assert.NoError(t, err)
 	assert.Equal(t, plyData, buf.String())
@@ -106,7 +106,7 @@ end_header
 		})
 
 	buf := bytes.Buffer{}
-	err := ply.WriteASCII(&buf, tri)
+	err := ply.Write(&buf, tri, ply.ASCII)
 
 	assert.NoError(t, err)
 	assert.Equal(t, plyData, buf.String())

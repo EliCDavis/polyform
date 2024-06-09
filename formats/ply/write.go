@@ -36,17 +36,17 @@ func BuildHeaderFromModel(model modeling.Mesh, format Format) Header {
 	if model.Topology() == modeling.TriangleTopology {
 		faceProperties := []Property{
 			ListProperty{
-				name:      "vertex_indices",
-				CountType: UChar,
-				ListType:  Int,
+				PropertyName: "vertex_indices",
+				CountType:    UChar,
+				ListType:     Int,
 			},
 		}
 
 		if model.HasFloat2Attribute(modeling.TexCoordAttribute) {
 			faceProperties = append(faceProperties, ListProperty{
-				name:      "texcoord",
-				CountType: UChar,
-				ListType:  Float,
+				PropertyName: "texcoord",
+				CountType:    UChar,
+				ListType:     Float,
 			})
 		}
 
@@ -60,7 +60,20 @@ func BuildHeaderFromModel(model modeling.Mesh, format Format) Header {
 	return header
 }
 
-func WriteASCII(out io.Writer, model modeling.Mesh) error {
+func Write(out io.Writer, model modeling.Mesh, format Format) error {
+	switch format {
+	case ASCII:
+		return writeASCII(out, model)
+
+	case BinaryLittleEndian, BinaryBigEndian:
+		return writeBinary(out, model, format)
+
+	default:
+		panic(fmt.Errorf("unrecognized format %s", format))
+	}
+}
+
+func writeASCII(out io.Writer, model modeling.Mesh) error {
 
 	header := BuildHeaderFromModel(model, ASCII)
 	err := header.Write(out)
@@ -117,9 +130,9 @@ func WriteASCII(out io.Writer, model modeling.Mesh) error {
 	return nil
 }
 
-func WriteBinary(out io.Writer, model modeling.Mesh) error {
+func writeBinary(out io.Writer, model modeling.Mesh, format Format) error {
 
-	header := BuildHeaderFromModel(model, BinaryLittleEndian)
+	header := BuildHeaderFromModel(model, format)
 	err := header.Write(out)
 	if err != nil {
 		return err
@@ -128,7 +141,12 @@ func WriteBinary(out io.Writer, model modeling.Mesh) error {
 	attributes := model.Float3Attributes()
 	vertexCount := model.AttributeLength()
 
-	writer := bitlib.NewWriter(out, binary.LittleEndian)
+	var endian binary.ByteOrder = binary.LittleEndian
+	if format == BinaryBigEndian {
+		endian = binary.BigEndian
+	}
+
+	writer := bitlib.NewWriter(out, endian)
 
 	for i := 0; i < vertexCount; i++ {
 		for _, atr := range attributes {

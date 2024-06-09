@@ -9,22 +9,23 @@ import (
 	"strings"
 )
 
+// A PLY Header dictates how to interpret the rest of the file's contents, as
+// well as containing any extra information stored in the comments and obj info
 type Header struct {
 	Format   Format    `json:"format"`
 	Elements []Element `json:"elements"`
-	Comments []string  `json:"comments"`
-	// TextureFile *string   `json:"texture,omitempty"`
-
-	// Object information (arbitrary text)
-	ObjInfo []string `json:"objInfo"`
+	Comments []string  `json:"comments"` // Provide informal descriptive and contextual metadata/information
+	ObjInfo  []string  `json:"objInfo"`  // Object information (arbitrary text)
 }
 
+// Builds a byte array containing the header information in PLY format.
 func (h Header) Bytes() []byte {
 	buf := &bytes.Buffer{}
 	h.Write(buf)
 	return buf.Bytes()
 }
 
+// All texture files found within the comments section of the header
 func (h Header) TextureFiles() []string {
 	textures := make([]string, 0)
 	for _, c := range h.Comments {
@@ -50,6 +51,7 @@ func (h Header) TextureFiles() []string {
 	return textures
 }
 
+// Writes the contents of the header out in PLY format to the writer provided.
 func (h Header) Write(out io.Writer) (err error) {
 	switch h.Format {
 	case ASCII:
@@ -88,6 +90,8 @@ func (h Header) Write(out io.Writer) (err error) {
 	return
 }
 
+// Builds a reader to interpret the contents of the body of the PLY format,
+// based on the elements and format of this header.
 func (h Header) BuildReader(in io.Reader) BodyReader {
 	switch h.Format {
 	case ASCII:
