@@ -263,6 +263,6 @@ var ExtractPointcloudCommand = &cli.Command{
 			return err
 		}
 		fmt.Fprintf(ctx.App.Writer, "Writing pointcloud with %d points to %s", mesh.Indices().Len(), ctx.String("out"))
-		return ply.SaveBinary(ctx.String("out"), *mesh)
+		return ply.Save(ctx.String("out"), *mesh, ply.BinaryLittleEndian)
 	},
 }
