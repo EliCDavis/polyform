@@ -14,21 +14,6 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-func GetPointCounts(depth int, node *potree.OctreeNode, out map[int][]int) {
-	if node.NumPoints == 0 {
-		return
-	}
-	if _, ok := out[depth]; !ok {
-		out[depth] = make([]int, 0, 1)
-	}
-
-	out[depth] = append(out[depth], int(node.NumPoints))
-
-	for _, c := range node.Children {
-		GetPointCounts(depth+1, c, out)
-	}
-}
-
 var RenderHierarchyCommand = &cli.Command{
 	Name:  "render",
 	Usage: "Renders the hierarchy point count data to an image",
@@ -46,18 +31,24 @@ var RenderHierarchyCommand = &cli.Command{
 			Name:  "out",
 			Value: "image.png",
 		},
+
+		&cli.StringFlag{
+			Name:  "type",
+			Value: "point-count",
+			Usage: "[point-count, file-position]",
+		},
 	},
 	Action: func(ctx *cli.Context) error {
 		_, hierarchy, err := loadHierarchy(ctx)
 		if err != nil {
 			return err
 		}
-		counts := make(map[int][]int)
-		GetPointCounts(0, hierarchy, counts)
+		organizedNodes := make(map[int][]*potree.OctreeNode)
 
 		minPoints := math.MaxInt
 		maxPoints := 0
 		numNodes := 0
+		var largestFileStart uint64 = 0
 		hierarchy.Walk(func(o *potree.OctreeNode) bool {
 			if o.NumPoints == 0 {
 				return true
@@ -65,6 +56,13 @@ var RenderHierarchyCommand = &cli.Command{
 			if int(o.NumPoints) > maxPoints {
 				maxPoints = int(o.NumPoints)
 			}
+
+			if _, ok := organizedNodes[o.Level]; !ok {
+				organizedNodes[o.Level] = make([]*potree.OctreeNode, 0, 1)
+			}
+			organizedNodes[o.Level] = append(organizedNodes[o.Level], o)
+
+			largestFileStart = max(largestFileStart, o.ByteOffset)
 			minPoints = min(minPoints, int(o.NumPoints))
 			numNodes++
 			return true
@@ -74,7 +72,7 @@ var RenderHierarchyCommand = &cli.Command{
 		rows := ctx.Int("row-count")
 		columns := numNodes / rows
 
-		columns += (len(counts) - 1) * 2 // Add spacing
+		columns += (len(organizedNodes) - 1) * 2 // Add spacing
 
 		fmt.Fprintf(ctx.App.Writer, "Column Count: %d", columns)
 
@@ -94,12 +92,14 @@ var RenderHierarchyCommand = &cli.Command{
 		defer f.Close()
 
 		stack := coloring.NewColorStack(
-			coloring.NewColorStackEntry(1, 0.5, 0.5, color.RGBA{0, 0, 255, 255}),
-			coloring.NewColorStackEntry(1, 0.5, 0.5, color.RGBA{0, 255, 255, 255}),
-			coloring.NewColorStackEntry(1, 0.5, 0.5, color.RGBA{0, 255, 0, 255}),
-			coloring.NewColorStackEntry(1, 0.5, 0.5, color.RGBA{255, 255, 0, 255}),
-			coloring.NewColorStackEntry(1, 0.5, 0.5, color.RGBA{255, 0, 0, 255}),
+			coloring.NewColorStackEntry(1, 1, 1, color.RGBA{0, 0, 255, 255}),
+			coloring.NewColorStackEntry(1, 1, 1, color.RGBA{0, 255, 255, 255}),
+			coloring.NewColorStackEntry(1, 1, 1, color.RGBA{0, 255, 0, 255}),
+			coloring.NewColorStackEntry(1, 1, 1, color.RGBA{255, 255, 0, 255}),
+			coloring.NewColorStackEntry(1, 1, 1, color.RGBA{255, 0, 0, 255}),
 		)
+
+		renderType := ctx.String("type")
 
 		depth := 0
 		count := 0
@@ -108,12 +108,22 @@ var RenderHierarchyCommand = &cli.Command{
 			y := (i % rows) - offset
 			x := int(math.Floor(float64(i)/float64(rows))) + (depth * 2)
 
-			v := float64(counts[depth][count]-minPoints) / float64(pointRange)
+			var v float64
+
+			switch renderType {
+			case "point-count":
+				v = float64(int(organizedNodes[depth][count].NumPoints)-minPoints) / float64(pointRange)
+
+			case "file-position":
+				v = float64(organizedNodes[depth][count].ByteOffset) / float64(largestFileStart)
+
+			}
+
 			img.Set(x, y, stack.LinearSample(v))
 
 			count++
 
-			if count == len(counts[depth]) {
+			if count == len(organizedNodes[depth]) {
 				count = 0
 				depth++
 				// offset = rows - (y + rows)

@@ -12,10 +12,9 @@ import (
     "github.com/EliCDavis/vector/vector3"
 )
 
-
 func ExampleReadWrite() {
     mesh, _ := ply.Load("model.ply")
     scaledMesh := mesh.Scale(vector3.New(2., 2., 2.))
-    ply.Save(out, scaledMesh, ply.ASCII)
+    ply.Save("scaled.ply", scaledMesh, ply.ASCII)
 }
 ```
