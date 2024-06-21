@@ -6,6 +6,7 @@ import { ImageParameterNode } from './image_parameter.js';
 import { NodeAABBParameter } from './aabb_parameter.js';
 import { ColorParameter } from './color_parameter.js';
 import { NodeManager } from '../node_manager.js';
+import { FileParameterNode } from './file_parameter.js';
 
 
 function BuildParameter(liteNode, nodeManager, id, parameterData, app) {
@@ -30,6 +31,9 @@ function BuildParameter(liteNode, nodeManager, id, parameterData, app) {
 
         case "image.Image":
             return new ImageParameterNode(liteNode, nodeManager, id, parameterData, app);
+
+        case "[]uint8":
+            return new FileParameterNode(liteNode, nodeManager, id, parameterData, app);
 
         case "geometry.AABB":
             return new NodeAABBParameter(liteNode, nodeManager, id, parameterData, app);

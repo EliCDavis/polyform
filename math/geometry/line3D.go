@@ -56,12 +56,12 @@ func (l Line3D) YIntersection(x float64, z float64) float64 {
 	// have to figure out where we are on the line using the z axis.
 	if math.IsNaN(t) {
 		t = (z - l.p1.Z()) / v.Z()
-	}
 
-	// Well then uh... return y slope I guess? Maybe I should throw NaN?
-	// Ima throw a NaN
-	if math.IsNaN(t) {
-		return math.NaN()
+		// Well then uh... return y slope I guess? Maybe I should throw NaN?
+		// Ima throw a NaN
+		if math.IsNaN(t) {
+			return math.NaN()
+		}
 	}
 
 	return l.p1.Y() + (v.Y() * t)

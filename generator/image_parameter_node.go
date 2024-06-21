@@ -77,6 +77,7 @@ func (pn *ImageParameterNode) Value() image.Image {
 		if err != nil {
 			return nil
 		}
+		defer f.Close()
 
 		pn.appliedProfile, _, err = image.Decode(f)
 		if err != nil {

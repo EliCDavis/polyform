@@ -481,6 +481,62 @@ func TestAABBEncapsulateBounds(t *testing.T) {
 	}
 }
 
+func TestAABBVolume(t *testing.T) {
+	tests := map[string]struct {
+		aabb geometry.AABB
+		want float64
+	}{
+		"empty aabb == 0": {},
+		"box of volume 1": {
+			aabb: geometry.NewAABB(vector3.Zero[float64](), vector3.One[float64]()),
+			want: 1,
+		},
+		"box of volume 8": {
+			aabb: geometry.NewAABB(vector3.Zero[float64](), vector3.Fill(2.)),
+			want: 8.,
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			assert.Equal(t, tc.want, tc.aabb.Volume())
+		})
+	}
+}
+
+func TestAABBIntersects(t *testing.T) {
+	tests := map[string]struct {
+		a    geometry.AABB
+		b    geometry.AABB
+		want bool
+	}{
+		"empty intersects emtpy": {
+			want: true,
+		},
+		"no intersection": {
+			a:    geometry.NewAABB(vector3.Float64{}, vector3.One[float64]()),
+			b:    geometry.NewAABB(vector3.Fill(3.), vector3.One[float64]()),
+			want: false,
+		},
+		"intersection": {
+			a:    geometry.NewAABB(vector3.Float64{}, vector3.One[float64]()),
+			b:    geometry.NewAABB(vector3.Fill(1.), vector3.One[float64]()),
+			want: true,
+		},
+		"barely no intersection": {
+			a:    geometry.NewAABB(vector3.Float64{}, vector3.One[float64]()),
+			b:    geometry.NewAABB(vector3.Fill(1.000001), vector3.One[float64]()),
+			want: false,
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			assert.Equal(t, tc.want, tc.a.Intersects(tc.b))
+		})
+	}
+}
+
 func TestAABBFromPoints(t *testing.T) {
 	aabb := geometry.NewAABBFromPoints(
 		vector3.New(-0.5, 0., 0.),

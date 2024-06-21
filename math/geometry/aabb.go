@@ -93,6 +93,16 @@ func (aabb AABB) Volume() float64 {
 	return size.X() * size.Y() * size.Z()
 }
 
+func (aabb AABB) Intersects(other AABB) bool {
+	aMin := aabb.Min()
+	aMax := aabb.Max()
+	bMin := other.Min()
+	bMax := other.Max()
+	return (aMin.X() <= bMax.X()) && (aMax.X() >= bMin.X()) &&
+		(aMin.Y() <= bMax.Y()) && (aMax.Y() >= bMin.Y()) &&
+		(aMin.Z() <= bMax.Z()) && (aMax.Z() >= bMin.Z())
+}
+
 func (aabb *AABB) Expand(amount float64) {
 	a := amount * 0.5
 	aabb.extents = aabb.extents.Add(vector3.New(a, a, a))

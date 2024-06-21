@@ -45,7 +45,8 @@ type ParameterNodeSchema[T any] struct {
 type CliParameterNodeConfig[T any] struct {
 	FlagName string `json:"flagName"`
 	Usage    string `json:"usage"`
-	value    *T
+	// Default  T      `json:"default"`
+	value *T
 }
 
 // ============================================================================

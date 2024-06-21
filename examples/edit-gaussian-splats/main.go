@@ -3,10 +3,7 @@ package main
 import (
 	"bufio"
 	"bytes"
-	"errors"
-	"io"
 	"math"
-	"os"
 
 	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/formats/ply"
@@ -22,26 +19,6 @@ import (
 	"github.com/EliCDavis/vector/vector3"
 	"github.com/EliCDavis/vector/vector4"
 )
-
-type FileNode = nodes.StructNode[[]byte, FileNodeData]
-
-type FileNodeData struct {
-	Path nodes.NodeOutput[string]
-}
-
-func (fnd FileNodeData) Process() ([]byte, error) {
-	if fnd.Path == nil {
-		return nil, errors.New("no path specified")
-	}
-
-	f, err := os.Open(fnd.Path.Value())
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-
-	return io.ReadAll(f)
-}
 
 type PointcloudLoaderNode = nodes.StructNode[modeling.Mesh, PointcloudLoaderNodeData]
 
@@ -192,16 +169,24 @@ func main() {
 
 	pointcloud := &PointcloudLoaderNode{
 		Data: PointcloudLoaderNodeData{
-			Data: &FileNode{
-				Data: FileNodeData{
-					Path: &generator.ParameterNode[string]{
-						Name:         "Pointcloud Path",
-						DefaultValue: "./point_cloud/iteration_30000/point_cloud.ply",
-						CLI: &generator.CliParameterNodeConfig[string]{
-							FlagName: "splat",
-							Usage:    "Path to the guassian splat to load (PLY file)",
-						},
-					},
+			// Data: &FileNode{
+			// 	Data: FileNodeData{
+			// 		Path: &generator.ParameterNode[string]{
+			// 			Name:         "Pointcloud Path",
+			// 			DefaultValue: "./point_cloud/iteration_30000/point_cloud.ply",
+			// 			CLI: &generator.CliParameterNodeConfig[string]{
+			// 				FlagName: "splat",
+			// 				Usage:    "Path to the guassian splat to load (PLY file)",
+			// 			},
+			// 		},
+			// 	},
+			// },
+			Data: &generator.FileParameterNode{
+				Name: "Splat File",
+				CLI: &generator.CliParameterNodeConfig[string]{
+					FlagName: "splat",
+					Usage:    "Path to the guassian splat to load (PLY file)",
+					// Default:  "./point_cloud/iteration_30000/point_cloud.ply",
 				},
 			},
 		},

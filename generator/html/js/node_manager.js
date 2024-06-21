@@ -122,6 +122,16 @@ export class NodeManager {
             nm.onNodeCreateCallback(this, ParameterNodeType(nodeDataType));
         }
 
+        function FileParameterNode() {
+            const nodeDataType = "[]uint8";
+            // const nodeDataType = "github.com/EliCDavis/polyform/generator.FileParameterNode";
+            this.addOutput(ParameterNodeOutputPortName, nodeDataType);
+            this.title = "File";
+            this.color = ParameterNodeColor;
+            this.bgcolor = ParameterNodeBackgroundColor;
+            nm.onNodeCreateCallback(this, ParameterNodeType(nodeDataType));
+        }
+
         function Vector3ParameterNode() {
             const nodeDataType = "github.com/EliCDavis/vector/vector3.Vector[float64]";
             this.addOutput(ParameterNodeOutputPortName, nodeDataType);
@@ -233,6 +243,7 @@ export class NodeManager {
         LiteGraph.registerNodeType(ParameterNamespace("vector3[]"), Vector3ArrayParameterNode);
         LiteGraph.registerNodeType(ParameterNamespace("color"), ColorParameterNode);
         LiteGraph.registerNodeType(ParameterNamespace("image"), ImageParameterNode);
+        LiteGraph.registerNodeType(ParameterNamespace("file"), FileParameterNode);
     }
 
     sortNodesByName(nodesToSort) {
@@ -347,6 +358,9 @@ export class NodeManager {
 
             case "image.Image":
                 return LiteGraph.createNode(ParameterNamespace("image"));
+
+            case "[]uint8":
+                return LiteGraph.createNode(ParameterNamespace("file"));
 
             default:
                 throw new Error("unimplemented parameter type: " + parameterType);
