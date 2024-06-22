@@ -139,7 +139,8 @@ func NewPointCloud(
 	return newImpliedIndicesMesh(PointTopology, v1Data, v2Data, v3Data, v4Data, materials)
 }
 
-// Creates a new triangle mesh with no vertices or attribute data
+// Creates a new mesh with the specified topology that has no vertices or
+// attribute data
 func EmptyMesh(topo Topology) Mesh {
 	return Mesh{
 		indices:   make([]int, 0),
@@ -152,10 +153,20 @@ func EmptyMesh(topo Topology) Mesh {
 	}
 }
 
+// Creates a new mesh with point topology that has no vertices or
+// attribute data
+func EmptyPointcloud() Mesh {
+	return EmptyMesh(PointTopology)
+}
+
+// Returns the topology of the mesh
 func (m Mesh) Topology() Topology {
 	return m.topology
 }
 
+// Transforms the mesh into having a point topology. All original indice
+// information is dropped and is replaced by a flat reference to all attribute
+// data previously defined
 func (m Mesh) ToPointCloud() Mesh {
 	if m.topology == PointTopology {
 		return m

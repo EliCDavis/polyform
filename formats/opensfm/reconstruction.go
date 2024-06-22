@@ -26,7 +26,7 @@ func ReconstructionToPointcloud(reconstruction opensfm.ReconstructionSchema) mod
 // Loads the feature match point data into a Pointcloud mesh
 func LoadReconstructiontData(filename string) (modeling.Mesh, error) {
 	reconstructions, err := opensfm.LoadReconstruction(filename)
-	mesh := modeling.EmptyMesh(modeling.PointTopology)
+	mesh := modeling.EmptyPointcloud()
 	if err != nil {
 		return mesh, err
 	}

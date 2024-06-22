@@ -24,7 +24,7 @@ func PointDataToPointCloud(points []colmap.Point3D) modeling.Mesh {
 func LoadSparsePointData(filename string) (modeling.Mesh, error) {
 	points, err := colmap.LoadPoints3DBinary(filename)
 	if err != nil {
-		return modeling.EmptyMesh(modeling.PointTopology), err
+		return modeling.EmptyPointcloud(), err
 	}
 
 	return PointDataToPointCloud(points), nil

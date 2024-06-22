@@ -1,118 +1,20 @@
 package main
 
 import (
-	"bufio"
-	"bytes"
 	"math"
 
 	"github.com/EliCDavis/polyform/drawing/coloring"
-	"github.com/EliCDavis/polyform/formats/ply"
 	"github.com/EliCDavis/polyform/generator"
 	"github.com/EliCDavis/polyform/generator/room"
 	"github.com/EliCDavis/polyform/math/geometry"
-	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/meshops"
 	"github.com/EliCDavis/polyform/modeling/meshops/gausops"
 	"github.com/EliCDavis/polyform/nodes"
+	"github.com/EliCDavis/polyform/nodes/quatn"
 	"github.com/EliCDavis/polyform/nodes/vecn/vecn3"
 	"github.com/EliCDavis/vector/vector3"
-	"github.com/EliCDavis/vector/vector4"
 )
-
-type PointcloudLoaderNode = nodes.StructNode[modeling.Mesh, PointcloudLoaderNodeData]
-
-type PointcloudLoaderNodeData struct {
-	Data nodes.NodeOutput[[]byte]
-}
-
-func (pn PointcloudLoaderNodeData) Process() (modeling.Mesh, error) {
-	bufReader := bufio.NewReader(bytes.NewReader(pn.Data.Value()))
-
-	header, err := ply.ReadHeader(bufReader)
-	if err != nil {
-		return modeling.EmptyMesh(modeling.PointTopology), err
-	}
-
-	reader := header.BuildReader(bufReader)
-	plyMesh, err := reader.ReadMesh(ply.GuassianSplatVertexAttributes)
-	if err != nil {
-		return modeling.EmptyMesh(modeling.PointTopology), err
-	}
-	return *plyMesh, err
-}
-
-type SplatEditNode = nodes.StructNode[modeling.Mesh, SplatEditNodeData]
-
-type SplatEditNodeData struct {
-	SplatData  nodes.NodeOutput[modeling.Mesh]
-	MinOpacity nodes.NodeOutput[float64]
-	MinScale   nodes.NodeOutput[float64]
-	MaxScale   nodes.NodeOutput[float64]
-	Scale      nodes.NodeOutput[float64]
-}
-
-func (pn SplatEditNodeData) Process() (modeling.Mesh, error) {
-	return pn.SplatData.Value().Transform(
-
-		// Filter out points that don't meet the opacity or scale criteria
-		meshops.CustomTransformer{
-			Func: func(m modeling.Mesh) (results modeling.Mesh, err error) {
-				minOpacity := pn.MinOpacity.Value()
-				minScale := pn.MinScale.Value()
-				maxScale := math.Inf(0)
-				if pn.MaxScale != nil {
-					maxScale = pn.MaxScale.Value()
-				}
-
-				opacity := m.Float1Attribute(modeling.OpacityAttribute)
-				scale := m.Float3Attribute(modeling.ScaleAttribute)
-
-				indicesKept := make([]int, 0)
-				for i := 0; i < opacity.Len(); i++ {
-					if opacity.At(i) < minOpacity {
-						continue
-					}
-
-					length := scale.At(i).Exp().LengthSquared()
-					if length < minScale || length > maxScale {
-						continue
-					}
-					indicesKept = append(indicesKept, i)
-				}
-
-				return m.SetIndices(indicesKept), nil
-			},
-		},
-		meshops.RemovedUnreferencedVerticesTransformer{},
-
-		meshops.RotateAttribute3DTransformer{
-			Amount: quaternion.FromTheta(math.Pi, vector3.Forward[float64]()),
-		},
-
-		// Gaussian splat has rotational data on a per vertex basis that needs
-		// to be individually rotated
-		meshops.CustomTransformer{
-			Func: func(m modeling.Mesh) (results modeling.Mesh, err error) {
-				q := quaternion.FromTheta(math.Pi, vector3.Forward[float64]())
-				oldData := m.Float4Attribute(modeling.RotationAttribute)
-				rotatedData := make([]vector4.Float64, oldData.Len())
-				for i := 0; i < oldData.Len(); i++ {
-					old := oldData.At(i)
-					rot := q.Multiply(quaternion.New(vector3.New(old.Y(), old.Z(), old.W()), old.X())).Normalize()
-					rotatedData[i] = vector4.New(rot.W(), rot.Dir().X(), rot.Dir().Y(), rot.Dir().Z())
-				}
-
-				return m.SetFloat4Attribute(modeling.RotationAttribute, rotatedData), nil
-			},
-		},
-
-		// Scale the vertex data to meet their new positioning
-		gausops.ScaleTransformer{
-			Scale: vector3.Fill(pn.Scale.Value()),
-		},
-	), nil
-}
 
 type BaloonNode = nodes.StructNode[modeling.Mesh, BaloonNodeData]
 
@@ -167,20 +69,8 @@ func main() {
 		DefaultValue: 1.,
 	}
 
-	pointcloud := &PointcloudLoaderNode{
-		Data: PointcloudLoaderNodeData{
-			// Data: &FileNode{
-			// 	Data: FileNodeData{
-			// 		Path: &generator.ParameterNode[string]{
-			// 			Name:         "Pointcloud Path",
-			// 			DefaultValue: "./point_cloud/iteration_30000/point_cloud.ply",
-			// 			CLI: &generator.CliParameterNodeConfig[string]{
-			// 				FlagName: "splat",
-			// 				Usage:    "Path to the guassian splat to load (PLY file)",
-			// 			},
-			// 		},
-			// 	},
-			// },
+	pointcloud := &gausops.LoaderNode{
+		Data: gausops.LoaderNodeData{
 			Data: &generator.FileParameterNode{
 				Name: "Splat File",
 				CLI: &generator.CliParameterNodeConfig[string]{
@@ -192,26 +82,65 @@ func main() {
 		},
 	}
 
-	croppedCloud := meshops.CropAttribute3DNode{
-		Data: meshops.CropAttribute3DNodeData{
-			Mesh: &SplatEditNode{
-				Data: SplatEditNodeData{
-					SplatData: pointcloud.Out(),
-					MinOpacity: &generator.ParameterNode[float64]{
-						Name:         "Minimum Opacity",
-						DefaultValue: 0.,
+	filteredCloud := &gausops.FilterNode{
+		Data: gausops.FilterNodeData{
+			Splat: pointcloud.Out(),
+			MinOpacity: &generator.ParameterNode[float64]{
+				Name:         "Minimum Opacity",
+				DefaultValue: 0.,
+			},
+			MinVolume: &generator.ParameterNode[float64]{
+				Name:         "Minimum Scale",
+				DefaultValue: 0.,
+			},
+			MaxVolume: &generator.ParameterNode[float64]{
+				Name:         "Maximum Scale",
+				DefaultValue: 1000.,
+			},
+		},
+	}
+
+	rotateAmount := &quatn.FromTheta{
+		Data: quatn.FromThetaData{
+			Theta: &generator.ParameterNode[float64]{
+				Name:         "Rotation",
+				Description:  "How much to rotate the pointcloud by",
+				DefaultValue: math.Pi,
+			},
+			Direction: &vecn3.New{
+				Data: vecn3.NewData[float64]{
+					X: &generator.ParameterNode[float64]{
+						Name:         "Rotation Direction X",
+						DefaultValue: 0,
 					},
-					MinScale: &generator.ParameterNode[float64]{
-						Name:         "Minimum Scale",
-						DefaultValue: 0.,
+					Y: &generator.ParameterNode[float64]{
+						Name:         "Rotation Direction Y",
+						DefaultValue: 0,
 					},
-					MaxScale: &generator.ParameterNode[float64]{
-						Name:         "Maximum Scale",
-						DefaultValue: 1000.,
+					Z: &generator.ParameterNode[float64]{
+						Name:         "Rotation Direction Z",
+						DefaultValue: 1,
 					},
-					Scale: scale,
 				},
 			},
+		},
+	}
+
+	rotatedCloud := &gausops.RotateAttributeNode{
+		Data: gausops.RotateAttributeNodeData{
+			Mesh: &meshops.RotateAttribute3DNode{
+				Data: meshops.RotateAttribute3DNodeData{
+					Mesh:   filteredCloud.Out(),
+					Amount: rotateAmount,
+				},
+			},
+			Amount: rotateAmount,
+		},
+	}
+
+	croppedCloud := meshops.CropAttribute3DNode{
+		Data: meshops.CropAttribute3DNodeData{
+			Mesh: rotatedCloud,
 			AABB: &generator.ParameterNode[geometry.AABB]{
 				Name: "Keep Bounds",
 				DefaultValue: geometry.NewAABBFromPoints(
@@ -244,7 +173,12 @@ func main() {
 
 	scaleNode := meshops.ScaleAttribute3DNode{
 		Data: meshops.ScaleAttribute3DNodeData{
-			Mesh:   baloonNode.Out(),
+			Mesh: &gausops.ScaleNode{
+				Data: gausops.ScaleNodeData{
+					Mesh:   baloonNode.Out(),
+					Amount: x.Out(),
+				},
+			},
 			Amount: x.Out(),
 		},
 	}

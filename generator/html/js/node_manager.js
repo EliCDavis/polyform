@@ -129,7 +129,8 @@ export class NodeManager {
             this.title = "File";
             this.color = ParameterNodeColor;
             this.bgcolor = ParameterNodeBackgroundColor;
-            nm.onNodeCreateCallback(this, ParameterNodeType(nodeDataType));
+            // nm.onNodeCreateCallback(this, ParameterNodeType(nodeDataType));
+            nm.onNodeCreateCallback(this, "github.com/EliCDavis/polyform/generator.FileParameterNode");
         }
 
         function Vector3ParameterNode() {

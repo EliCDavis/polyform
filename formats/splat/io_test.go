@@ -29,7 +29,7 @@ func TestWrite_ErrorOnMissingAttributes(t *testing.T) {
 
 func TestWrite_EmptyCloudWritesNothing(t *testing.T) {
 	buf := &bytes.Buffer{}
-	err := splat.Write(buf, modeling.EmptyMesh(modeling.PointTopology))
+	err := splat.Write(buf, modeling.EmptyPointcloud())
 	assert.NoError(t, err)
 	assert.Len(t, buf.Bytes(), 0)
 }

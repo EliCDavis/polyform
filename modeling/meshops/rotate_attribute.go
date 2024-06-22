@@ -3,6 +3,7 @@ package meshops
 import (
 	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/polyform/modeling"
+	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/vector/vector3"
 )
 
@@ -37,4 +38,25 @@ func RotateAttribute3D(m modeling.Mesh, attribute string, q quaternion.Quaternio
 	}
 
 	return m.SetFloat3Attribute(attribute, scaledData)
+}
+
+type RotateAttribute3DNode = nodes.StructNode[modeling.Mesh, RotateAttribute3DNodeData]
+
+type RotateAttribute3DNodeData struct {
+	Attribute nodes.NodeOutput[string]
+	Mesh      nodes.NodeOutput[modeling.Mesh]
+	Amount    nodes.NodeOutput[quaternion.Quaternion]
+}
+
+func (ra3dn RotateAttribute3DNodeData) Process() (modeling.Mesh, error) {
+	if ra3dn.Mesh == nil {
+		return modeling.EmptyMesh(modeling.TriangleTopology), nil
+	}
+
+	attr := modeling.PositionAttribute
+	if ra3dn.Attribute != nil {
+		attr = ra3dn.Attribute.Value()
+	}
+
+	return RotateAttribute3D(ra3dn.Mesh.Value(), attr, ra3dn.Amount.Value()), nil
 }
