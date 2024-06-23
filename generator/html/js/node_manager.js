@@ -11,7 +11,7 @@ const ParameterNodeBackgroundColor = "#355";
  * @returns {string}
  */
 function ParameterNodeType(dataType) {
-    return "github.com/EliCDavis/polyform/generator.ParameterNode[" + dataType + "]";
+    return "github.com/EliCDavis/polyform/parameter.Value[" + dataType + "]";
 }
 
 

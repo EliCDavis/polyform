@@ -6,6 +6,7 @@ import (
 
 	"github.com/EliCDavis/polyform/formats/swagger"
 	"github.com/EliCDavis/polyform/generator"
+	"github.com/EliCDavis/polyform/generator/parameter"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -16,41 +17,41 @@ func TestParameterNodeSwaggerProperty(t *testing.T) {
 		propFormat swagger.PropertyFormat
 	}{
 		"basic string parameter": {
-			input:      &generator.ParameterNode[string]{},
+			input:      &parameter.Value[string]{},
 			propType:   swagger.StringPropertyType,
 			propFormat: "",
 		},
 		"date string parameter": {
-			input:      &generator.ParameterNode[time.Time]{},
+			input:      &parameter.Value[time.Time]{},
 			propType:   swagger.StringPropertyType,
 			propFormat: swagger.DateTimePropertyFormat,
 		},
 		"float64 parameter": {
-			input:      &generator.ParameterNode[float64]{},
+			input:      &parameter.Float64{},
 			propType:   swagger.NumberPropertyType,
 			propFormat: swagger.DoublePropertyFormat,
 		},
 		"float32 parameter": {
-			input:      &generator.ParameterNode[float32]{},
+			input:      &parameter.Value[float32]{},
 			propType:   swagger.NumberPropertyType,
 			propFormat: swagger.FloatPropertyFormat,
 		},
 		"int parameter": {
-			input:    &generator.ParameterNode[int]{},
+			input:    &parameter.Int{},
 			propType: swagger.IntegerPropertyType,
 		},
 		"int32 parameter": {
-			input:      &generator.ParameterNode[int32]{},
+			input:      &parameter.Value[int32]{},
 			propType:   swagger.IntegerPropertyType,
 			propFormat: swagger.Int32PropertyFormat,
 		},
 		"int64 parameter": {
-			input:      &generator.ParameterNode[int64]{},
+			input:      &parameter.Value[int64]{},
 			propType:   swagger.IntegerPropertyType,
 			propFormat: swagger.Int64PropertyFormat,
 		},
 		"bool parameter": {
-			input:    &generator.ParameterNode[bool]{},
+			input:    &parameter.Bool{},
 			propType: swagger.BooleanPropertyType,
 		},
 	}

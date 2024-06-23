@@ -1,4 +1,4 @@
-package generator
+package parameter
 
 import (
 	"flag"
@@ -6,45 +6,46 @@ import (
 	"os"
 
 	"github.com/EliCDavis/jbtf"
+	"github.com/EliCDavis/polyform/generator"
 	"github.com/EliCDavis/polyform/nodes"
 )
 
-type FileParameterNode struct {
+type File struct {
 	Name         string
 	DefaultValue []byte
-	CLI          *CliParameterNodeConfig[string]
+	CLI          *CliConfig[string]
 
 	version        int
 	appliedProfile []byte
 }
 
-func (in *FileParameterNode) Node() nodes.Node {
+func (in *File) Node() nodes.Node {
 	return in
 }
 
-func (in FileParameterNode) Port() string {
+func (in File) Port() string {
 	return "Out"
 }
 
-func (vn FileParameterNode) SetInput(input string, output nodes.Output) {
+func (vn File) SetInput(input string, output nodes.Output) {
 	panic("input can not be set")
 }
 
-func (pn *FileParameterNode) DisplayName() string {
+func (pn *File) DisplayName() string {
 	return pn.Name
 }
 
-func (pn *FileParameterNode) ApplyMessage(msg []byte) (bool, error) {
+func (pn *File) ApplyMessage(msg []byte) (bool, error) {
 	pn.version++
 	pn.appliedProfile = msg
 	return true, nil
 }
 
-func (pn *FileParameterNode) ToMessage() []byte {
+func (pn *File) ToMessage() []byte {
 	return pn.Value()
 }
 
-func (pn *FileParameterNode) Value() []byte {
+func (pn *File) Value() []byte {
 	if pn.appliedProfile != nil {
 		return pn.appliedProfile
 	}
@@ -66,23 +67,23 @@ func (pn *FileParameterNode) Value() []byte {
 	return pn.DefaultValue
 }
 
-func (pn *FileParameterNode) Schema() ParameterSchema {
-	return ParameterSchemaBase{
+func (pn *File) Schema() generator.ParameterSchema {
+	return generator.ParameterSchemaBase{
 		Name: pn.Name,
 		Type: "[]uint8",
 	}
 }
 
-func (pn *FileParameterNode) Dependencies() []nodes.NodeDependency {
+func (pn *File) Dependencies() []nodes.NodeDependency {
 	return nil
 }
 
-func (pn *FileParameterNode) State() nodes.NodeState {
+func (pn *File) State() nodes.NodeState {
 	return nodes.Processed
 }
 
 type FileNodeOutput struct {
-	Val *FileParameterNode
+	Val *File
 }
 
 func (sno FileNodeOutput) Value() []byte {
@@ -97,7 +98,7 @@ func (sno FileNodeOutput) Port() string {
 	return "Out"
 }
 
-func (tn *FileParameterNode) Outputs() []nodes.Output {
+func (tn *File) Outputs() []nodes.Output {
 	return []nodes.Output{
 		{
 			Type: "[]uint8",
@@ -108,21 +109,21 @@ func (tn *FileParameterNode) Outputs() []nodes.Output {
 	}
 }
 
-func (tn *FileParameterNode) Out() FileNodeOutput {
+func (tn *File) Out() FileNodeOutput {
 	return FileNodeOutput{
 		Val: tn,
 	}
 }
 
-func (tn FileParameterNode) Inputs() []nodes.Input {
+func (tn File) Inputs() []nodes.Input {
 	return []nodes.Input{}
 }
 
-func (pn FileParameterNode) Version() int {
+func (pn File) Version() int {
 	return pn.version
 }
 
-func (pn FileParameterNode) initializeForCLI(set *flag.FlagSet) {
+func (pn File) InitializeForCLI(set *flag.FlagSet) {
 	if pn.CLI == nil {
 		return
 	}
@@ -132,13 +133,13 @@ func (pn FileParameterNode) initializeForCLI(set *flag.FlagSet) {
 // CUSTOM JTF Serialization ===================================================
 
 type fileNodeGraphSchema struct {
-	Name         string                          `json:"name"`
-	CurrentValue *jbtf.Bytes                     `json:"currentValue"`
-	DefaultValue *jbtf.Bytes                     `json:"defaultValue"`
-	CLI          *CliParameterNodeConfig[string] `json:"cli"`
+	Name         string             `json:"name"`
+	CurrentValue *jbtf.Bytes        `json:"currentValue"`
+	DefaultValue *jbtf.Bytes        `json:"defaultValue"`
+	CLI          *CliConfig[string] `json:"cli"`
 }
 
-func (pn *FileParameterNode) ToJSON(encoder *jbtf.Encoder) ([]byte, error) {
+func (pn *File) ToJSON(encoder *jbtf.Encoder) ([]byte, error) {
 	schema := fileNodeGraphSchema{
 		Name: pn.Name,
 		CLI:  pn.CLI,
@@ -159,7 +160,7 @@ func (pn *FileParameterNode) ToJSON(encoder *jbtf.Encoder) ([]byte, error) {
 	return encoder.Marshal(schema)
 }
 
-func (pn *FileParameterNode) FromJSON(decoder jbtf.Decoder, body []byte) (err error) {
+func (pn *File) FromJSON(decoder jbtf.Decoder, body []byte) (err error) {
 	gn, err := jbtf.Decode[fileNodeGraphSchema](decoder, body)
 	if err != nil {
 		return

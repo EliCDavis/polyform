@@ -254,7 +254,7 @@ func recurseDependenciesType[T any](dependent nodes.Dependent) []T {
 
 func (a App) initialize(set *flag.FlagSet) {
 	for _, p := range a.getParameters() {
-		p.initializeForCLI(set)
+		p.InitializeForCLI(set)
 	}
 }
 

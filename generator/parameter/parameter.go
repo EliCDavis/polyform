@@ -1,4 +1,4 @@
-package generator
+package parameter
 
 import (
 	"encoding/json"
@@ -7,7 +7,9 @@ import (
 	"time"
 
 	"github.com/EliCDavis/jbtf"
+	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/formats/swagger"
+	"github.com/EliCDavis/polyform/generator"
 	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
@@ -17,7 +19,7 @@ import (
 // ============================================================================
 
 type ParameterNodeOutput[T any] struct {
-	Val *ParameterNode[T]
+	Val *Value[T]
 }
 
 func (sno ParameterNodeOutput[T]) Value() T {
@@ -34,15 +36,15 @@ func (sno ParameterNodeOutput[T]) Port() string {
 
 // ============================================================================
 
-type ParameterNodeSchema[T any] struct {
-	ParameterSchemaBase
+type ValueSchema[T any] struct {
+	generator.ParameterSchemaBase
 	DefaultValue T `json:"defaultValue"`
 	CurrentValue T `json:"currentValue"`
 }
 
 // ============================================================================
 
-type CliParameterNodeConfig[T any] struct {
+type CliConfig[T any] struct {
 	FlagName string `json:"flagName"`
 	Usage    string `json:"usage"`
 	// Default  T      `json:"default"`
@@ -52,38 +54,48 @@ type CliParameterNodeConfig[T any] struct {
 // ============================================================================
 
 type parameterNodeGraphSchema[T any] struct {
-	Name         string                     `json:"name"`
-	CurrentValue T                          `json:"currentValue"`
-	DefaultValue T                          `json:"defaultValue"`
-	CLI          *CliParameterNodeConfig[T] `json:"cli"`
+	Name         string        `json:"name"`
+	CurrentValue T             `json:"currentValue"`
+	DefaultValue T             `json:"defaultValue"`
+	CLI          *CliConfig[T] `json:"cli"`
 }
 
 // ============================================================================
 
-type ParameterNode[T any] struct {
-	Name         string                     `json:"name"`
-	Description  string                     `json:"description"`
-	DefaultValue T                          `json:"defaultValue"`
-	CLI          *CliParameterNodeConfig[T] `json:"cli"`
+// Common types for shorthand purposes
+type Float64 = Value[float64]
+type Float32 = Value[float32]
+type Int = Value[int]
+type String = Value[string]
+type Bool = Value[bool]
+type Vector3 = Value[vector3.Float64]
+type AABB = Value[geometry.AABB]
+type Color = Value[coloring.WebColor]
+
+type Value[T any] struct {
+	Name         string        `json:"name"`
+	Description  string        `json:"description"`
+	DefaultValue T             `json:"defaultValue"`
+	CLI          *CliConfig[T] `json:"cli"`
 
 	subs           []nodes.Alertable
 	version        int
 	appliedProfile *T
 }
 
-func (in *ParameterNode[T]) Port() string {
+func (in *Value[T]) Port() string {
 	return "Out"
 }
 
-func (vn ParameterNode[T]) SetInput(input string, output nodes.Output) {
+func (vn Value[T]) SetInput(input string, output nodes.Output) {
 	panic("input can not be set")
 }
 
-func (pn *ParameterNode[T]) DisplayName() string {
+func (pn *Value[T]) DisplayName() string {
 	return pn.Name
 }
 
-func (pn *ParameterNode[T]) ApplyMessage(msg []byte) (bool, error) {
+func (pn *Value[T]) ApplyMessage(msg []byte) (bool, error) {
 	var val T
 	err := json.Unmarshal(msg, &val)
 	if err != nil {
@@ -104,7 +116,7 @@ func (pn *ParameterNode[T]) ApplyMessage(msg []byte) (bool, error) {
 	return true, nil
 }
 
-func (pn ParameterNode[T]) ToMessage() []byte {
+func (pn Value[T]) ToMessage() []byte {
 	data, err := json.Marshal(pn.Value())
 	if err != nil {
 		panic(err)
@@ -112,7 +124,7 @@ func (pn ParameterNode[T]) ToMessage() []byte {
 	return data
 }
 
-func (pn *ParameterNode[T]) Value() T {
+func (pn *Value[T]) Value() T {
 	if pn.appliedProfile != nil {
 		return *pn.appliedProfile
 	}
@@ -125,7 +137,7 @@ func (pn *ParameterNode[T]) Value() T {
 
 // CUSTOM JTF Serialization ===================================================
 
-func (pn *ParameterNode[T]) ToJSON(encoder *jbtf.Encoder) ([]byte, error) {
+func (pn *Value[T]) ToJSON(encoder *jbtf.Encoder) ([]byte, error) {
 	return json.Marshal(parameterNodeGraphSchema[T]{
 		Name:         pn.Name,
 		CurrentValue: pn.Value(),
@@ -134,7 +146,7 @@ func (pn *ParameterNode[T]) ToJSON(encoder *jbtf.Encoder) ([]byte, error) {
 	})
 }
 
-func (pn *ParameterNode[T]) FromJSON(decoder jbtf.Decoder, body []byte) (err error) {
+func (pn *Value[T]) FromJSON(decoder jbtf.Decoder, body []byte) (err error) {
 	gn := parameterNodeGraphSchema[T]{}
 	err = json.Unmarshal(body, &gn)
 	if err != nil {
@@ -150,9 +162,9 @@ func (pn *ParameterNode[T]) FromJSON(decoder jbtf.Decoder, body []byte) (err err
 
 // ============================================================================
 
-func (pn *ParameterNode[T]) Schema() ParameterSchema {
-	return ParameterNodeSchema[T]{
-		ParameterSchemaBase: ParameterSchemaBase{
+func (pn *Value[T]) Schema() generator.ParameterSchema {
+	return ValueSchema[T]{
+		ParameterSchemaBase: generator.ParameterSchemaBase{
 			Name: pn.Name,
 			Type: fmt.Sprintf("%T", *new(T)),
 		},
@@ -161,7 +173,7 @@ func (pn *ParameterNode[T]) Schema() ParameterSchema {
 	}
 }
 
-func (pn *ParameterNode[T]) AddSubscription(a nodes.Alertable) {
+func (pn *Value[T]) AddSubscription(a nodes.Alertable) {
 	if pn.subs == nil {
 		pn.subs = make([]nodes.Alertable, 0, 1)
 	}
@@ -169,15 +181,15 @@ func (pn *ParameterNode[T]) AddSubscription(a nodes.Alertable) {
 	pn.subs = append(pn.subs, a)
 }
 
-func (pn *ParameterNode[T]) Dependencies() []nodes.NodeDependency {
+func (pn *Value[T]) Dependencies() []nodes.NodeDependency {
 	return nil
 }
 
-func (pn *ParameterNode[T]) State() nodes.NodeState {
+func (pn *Value[T]) State() nodes.NodeState {
 	return nodes.Processed
 }
 
-func (tn *ParameterNode[T]) Outputs() []nodes.Output {
+func (tn *Value[T]) Outputs() []nodes.Output {
 	return []nodes.Output{
 		{
 			// Name: "Out",
@@ -189,86 +201,86 @@ func (tn *ParameterNode[T]) Outputs() []nodes.Output {
 	}
 }
 
-func (tn *ParameterNode[T]) Out() nodes.NodeOutput[T] {
+func (tn *Value[T]) Out() nodes.NodeOutput[T] {
 	return ParameterNodeOutput[T]{
 		Val: tn,
 	}
 }
 
-func (in *ParameterNode[T]) Node() nodes.Node {
+func (in *Value[T]) Node() nodes.Node {
 	return in
 }
 
-func (tn ParameterNode[T]) Inputs() []nodes.Input {
+func (tn Value[T]) Inputs() []nodes.Input {
 	return []nodes.Input{}
 }
 
-func (pn ParameterNode[T]) Version() int {
+func (pn Value[T]) Version() int {
 	return pn.version
 }
 
-func (pn ParameterNode[T]) initializeForCLI(set *flag.FlagSet) {
+func (pn Value[T]) InitializeForCLI(set *flag.FlagSet) {
 	if pn.CLI == nil {
 		return
 	}
 	switch cli := any(pn.CLI).(type) {
-	case *CliParameterNodeConfig[string]:
+	case *CliConfig[string]:
 		cli.value = set.String(cli.FlagName, (any(pn.DefaultValue)).(string), cli.Usage)
 
-	case *CliParameterNodeConfig[float64]:
+	case *CliConfig[float64]:
 		cli.value = set.Float64(cli.FlagName, (any(pn.DefaultValue)).(float64), cli.Usage)
 
-	case *CliParameterNodeConfig[bool]:
+	case *CliConfig[bool]:
 		cli.value = set.Bool(cli.FlagName, (any(pn.DefaultValue)).(bool), cli.Usage)
 
-	case *CliParameterNodeConfig[int]:
+	case *CliConfig[int]:
 		cli.value = set.Int(cli.FlagName, (any(pn.DefaultValue)).(int), cli.Usage)
 
-	case *CliParameterNodeConfig[int64]:
+	case *CliConfig[int64]:
 		cli.value = set.Int64(cli.FlagName, (any(pn.DefaultValue)).(int64), cli.Usage)
 	default:
 		panic(fmt.Errorf("parameter node %s has a type that can not be initialized on the command line. Please open up a issue on github.com/EliCDavis/polyform", pn.DisplayName()))
 	}
 }
 
-func (pn ParameterNode[T]) SwaggerProperty() swagger.Property {
+func (pn Value[T]) SwaggerProperty() swagger.Property {
 	prop := swagger.Property{
 		Description: pn.Description,
 	}
 	switch any(pn).(type) {
-	case ParameterNode[string]:
+	case Value[string]:
 		prop.Type = swagger.StringPropertyType
 
-	case ParameterNode[time.Time]:
+	case Value[time.Time]:
 		prop.Type = swagger.StringPropertyType
 		prop.Format = swagger.DateTimePropertyFormat
 
-	case ParameterNode[float64]:
+	case Value[float64]:
 		prop.Type = swagger.NumberPropertyType
 		prop.Format = swagger.DoublePropertyFormat
 
-	case ParameterNode[float32]:
+	case Value[float32]:
 		prop.Type = swagger.NumberPropertyType
 		prop.Format = swagger.FloatPropertyFormat
 
-	case ParameterNode[bool]:
+	case Value[bool]:
 		prop.Type = swagger.BooleanPropertyType
 
-	case ParameterNode[int]:
+	case Value[int]:
 		prop.Type = swagger.IntegerPropertyType
 
-	case ParameterNode[int64]:
+	case Value[int64]:
 		prop.Type = swagger.IntegerPropertyType
 		prop.Format = swagger.Int64PropertyFormat
 
-	case ParameterNode[int32]:
+	case Value[int32]:
 		prop.Type = swagger.IntegerPropertyType
 		prop.Format = swagger.Int32PropertyFormat
 
-	case ParameterNode[vector3.Float64]:
+	case Value[vector3.Float64]:
 		prop.Ref = "#/definitions/Vector3"
 
-	case ParameterNode[geometry.AABB]:
+	case Value[geometry.AABB]:
 		prop.Ref = "#/definitions/AABB"
 
 	default:

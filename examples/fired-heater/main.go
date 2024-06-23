@@ -7,6 +7,7 @@ import (
 	"github.com/EliCDavis/polyform/formats/gltf"
 	"github.com/EliCDavis/polyform/generator"
 	"github.com/EliCDavis/polyform/generator/artifact"
+	"github.com/EliCDavis/polyform/generator/parameter"
 	"github.com/EliCDavis/polyform/generator/room"
 	"github.com/EliCDavis/polyform/modeling/extrude"
 	"github.com/EliCDavis/polyform/modeling/primitives"
@@ -293,7 +294,7 @@ func (csn CombineSegmentsNodeData) Process() (generator.Artifact, error) {
 }
 
 func main() {
-	baseColor := &generator.ParameterNode[coloring.WebColor]{
+	baseColor := &parameter.Color{
 		Name: "Base Color",
 		DefaultValue: coloring.WebColor{
 			R: 128,
@@ -303,12 +304,12 @@ func main() {
 		},
 	}
 
-	chasisWidth := &generator.ParameterNode[float64]{
+	chasisWidth := &parameter.Float64{
 		Name:         "Chasis Width",
 		DefaultValue: 7,
 	}
 
-	railingColor := &generator.ParameterNode[coloring.WebColor]{
+	railingColor := &parameter.Color{
 		Name: "Floor/Railing Color",
 		DefaultValue: coloring.WebColor{
 			R: 0xff,
@@ -318,7 +319,7 @@ func main() {
 		},
 	}
 
-	floorColor := &generator.ParameterNode[coloring.WebColor]{
+	floorColor := &parameter.Color{
 		Name: "Floor/Color",
 		DefaultValue: coloring.WebColor{
 			R: 0x30,
@@ -328,7 +329,7 @@ func main() {
 		},
 	}
 
-	floorHeight := &generator.ParameterNode[float64]{
+	floorHeight := &parameter.Float64{
 		Name:         "Floor/Height",
 		DefaultValue: .5,
 	}
@@ -338,15 +339,15 @@ func main() {
 			Segments: []nodes.NodeOutput[Segment]{
 				&LegsNode{
 					Data: LegsNodeData{
-						Height: &generator.ParameterNode[float64]{
+						Height: &parameter.Float64{
 							Name:         "Leg/Length",
 							DefaultValue: 5.,
 						},
-						NumLegs: &generator.ParameterNode[int]{
+						NumLegs: &parameter.Int{
 							Name:         "Leg/Count",
 							DefaultValue: 5,
 						},
-						LegColor: &generator.ParameterNode[coloring.WebColor]{
+						LegColor: &parameter.Color{
 							Name: "Leg/Color",
 							DefaultValue: coloring.WebColor{
 								R: 0x5f,
@@ -355,7 +356,7 @@ func main() {
 								A: 255,
 							},
 						},
-						Width: &generator.ParameterNode[float64]{
+						Width: &parameter.Float64{
 							Name:         "Leg/Width",
 							DefaultValue: 8.,
 						},
@@ -365,7 +366,7 @@ func main() {
 					Data: FloorNodeData{
 						FloorHeight: floorHeight,
 						Radius:      chasisWidth,
-						WalkWidth: &generator.ParameterNode[float64]{
+						WalkWidth: &parameter.Float64{
 							Name:         "Floor/Lower Walkway Width",
 							DefaultValue: 4.,
 						},
@@ -375,16 +376,16 @@ func main() {
 				},
 				&ChasisNode{
 					Data: ChasisNodeData{
-						Height: &generator.ParameterNode[float64]{
+						Height: &parameter.Float64{
 							Name:         "Chasis/Height",
 							DefaultValue: 20.,
 						},
 						Width: chasisWidth,
-						Rows: &generator.ParameterNode[int]{
+						Rows: &parameter.Int{
 							Name:         "Chasis/Rows",
 							DefaultValue: 4,
 						},
-						Columns: &generator.ParameterNode[int]{
+						Columns: &parameter.Int{
 							Name:         "Chasis/Columns",
 							DefaultValue: 7,
 						},
@@ -395,7 +396,7 @@ func main() {
 					Data: FloorNodeData{
 						FloorHeight: floorHeight,
 						Radius:      chasisWidth,
-						WalkWidth: &generator.ParameterNode[float64]{
+						WalkWidth: &parameter.Float64{
 							Name:         "Floor/Upper Walkway Width",
 							DefaultValue: 3.,
 						},
@@ -406,23 +407,23 @@ func main() {
 				&ChimneyNode{
 					Data: ChimneyNodeData{
 						FunnelWidth: chasisWidth,
-						ShootWidth: &generator.ParameterNode[float64]{
+						ShootWidth: &parameter.Float64{
 							Name:         "Shoot Width",
 							DefaultValue: 1,
 						},
-						FunnelHeight: &generator.ParameterNode[float64]{
+						FunnelHeight: &parameter.Float64{
 							Name:         "Chimney/Base Height",
 							DefaultValue: 4,
 						},
-						TaperHeight: &generator.ParameterNode[float64]{
+						TaperHeight: &parameter.Float64{
 							Name:         "Chimney/Taper Height",
 							DefaultValue: 5,
 						},
-						ShootHeight: &generator.ParameterNode[float64]{
+						ShootHeight: &parameter.Float64{
 							Name:         "Chimney/Shoot Height",
 							DefaultValue: 10,
 						},
-						Rows: &generator.ParameterNode[int]{
+						Rows: &parameter.Int{
 							Name:         "Chimney/Rows",
 							DefaultValue: 4,
 						},

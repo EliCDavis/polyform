@@ -1,4 +1,4 @@
-package generator
+package parameter
 
 import (
 	"bytes"
@@ -9,36 +9,37 @@ import (
 	"os"
 
 	"github.com/EliCDavis/jbtf"
+	"github.com/EliCDavis/polyform/generator"
 	"github.com/EliCDavis/polyform/nodes"
 )
 
-type ImageParameterNode struct {
+type Image struct {
 	Name         string
 	DefaultValue image.Image
-	CLI          *CliParameterNodeConfig[string]
+	CLI          *CliConfig[string]
 
 	subs           []nodes.Alertable
 	version        int
 	appliedProfile image.Image
 }
 
-func (in *ImageParameterNode) Node() nodes.Node {
+func (in *Image) Node() nodes.Node {
 	return in
 }
 
-func (in ImageParameterNode) Port() string {
+func (in Image) Port() string {
 	return "Out"
 }
 
-func (vn ImageParameterNode) SetInput(input string, output nodes.Output) {
+func (vn Image) SetInput(input string, output nodes.Output) {
 	panic("input can not be set")
 }
 
-func (pn *ImageParameterNode) DisplayName() string {
+func (pn *Image) DisplayName() string {
 	return pn.Name
 }
 
-func (pn *ImageParameterNode) ApplyMessage(msg []byte) (bool, error) {
+func (pn *Image) ApplyMessage(msg []byte) (bool, error) {
 	val, _, err := image.Decode(bytes.NewBuffer(msg))
 	if err != nil {
 		return false, err
@@ -54,7 +55,7 @@ func (pn *ImageParameterNode) ApplyMessage(msg []byte) (bool, error) {
 	return true, nil
 }
 
-func (pn *ImageParameterNode) ToMessage() []byte {
+func (pn *Image) ToMessage() []byte {
 	img := pn.Value()
 	if img == nil {
 		return nil
@@ -67,7 +68,7 @@ func (pn *ImageParameterNode) ToMessage() []byte {
 	return buf.Bytes()
 }
 
-func (pn *ImageParameterNode) Value() image.Image {
+func (pn *Image) Value() image.Image {
 	if pn.appliedProfile != nil {
 		return pn.appliedProfile
 	}
@@ -89,14 +90,14 @@ func (pn *ImageParameterNode) Value() image.Image {
 	return pn.DefaultValue
 }
 
-func (pn *ImageParameterNode) Schema() ParameterSchema {
-	return ParameterSchemaBase{
+func (pn *Image) Schema() generator.ParameterSchema {
+	return generator.ParameterSchemaBase{
 		Name: pn.Name,
 		Type: "image.Image",
 	}
 }
 
-func (pn *ImageParameterNode) AddSubscription(a nodes.Alertable) {
+func (pn *Image) AddSubscription(a nodes.Alertable) {
 	if pn.subs == nil {
 		pn.subs = make([]nodes.Alertable, 0, 1)
 	}
@@ -104,16 +105,16 @@ func (pn *ImageParameterNode) AddSubscription(a nodes.Alertable) {
 	pn.subs = append(pn.subs, a)
 }
 
-func (pn *ImageParameterNode) Dependencies() []nodes.NodeDependency {
+func (pn *Image) Dependencies() []nodes.NodeDependency {
 	return nil
 }
 
-func (pn *ImageParameterNode) State() nodes.NodeState {
+func (pn *Image) State() nodes.NodeState {
 	return nodes.Processed
 }
 
 type ImageNodeOutput struct {
-	Val *ImageParameterNode
+	Val *Image
 }
 
 func (sno ImageNodeOutput) Value() image.Image {
@@ -128,7 +129,7 @@ func (sno ImageNodeOutput) Port() string {
 	return "Out"
 }
 
-func (tn *ImageParameterNode) Outputs() []nodes.Output {
+func (tn *Image) Outputs() []nodes.Output {
 	return []nodes.Output{
 		{
 			Type: "image.Image",
@@ -139,21 +140,21 @@ func (tn *ImageParameterNode) Outputs() []nodes.Output {
 	}
 }
 
-func (tn *ImageParameterNode) Out() ImageNodeOutput {
+func (tn *Image) Out() ImageNodeOutput {
 	return ImageNodeOutput{
 		Val: tn,
 	}
 }
 
-func (tn ImageParameterNode) Inputs() []nodes.Input {
+func (tn Image) Inputs() []nodes.Input {
 	return []nodes.Input{}
 }
 
-func (pn ImageParameterNode) Version() int {
+func (pn Image) Version() int {
 	return pn.version
 }
 
-func (pn ImageParameterNode) initializeForCLI(set *flag.FlagSet) {
+func (pn Image) InitializeForCLI(set *flag.FlagSet) {
 	if pn.CLI == nil {
 		return
 	}
@@ -163,13 +164,13 @@ func (pn ImageParameterNode) initializeForCLI(set *flag.FlagSet) {
 // CUSTOM JTF Serialization ===================================================
 
 type imageNodeGraphSchema struct {
-	Name         string                          `json:"name"`
-	CurrentValue *jbtf.Png                       `json:"currentValue"`
-	DefaultValue *jbtf.Png                       `json:"defaultValue"`
-	CLI          *CliParameterNodeConfig[string] `json:"cli"`
+	Name         string             `json:"name"`
+	CurrentValue *jbtf.Png          `json:"currentValue"`
+	DefaultValue *jbtf.Png          `json:"defaultValue"`
+	CLI          *CliConfig[string] `json:"cli"`
 }
 
-func (pn *ImageParameterNode) ToJSON(encoder *jbtf.Encoder) ([]byte, error) {
+func (pn *Image) ToJSON(encoder *jbtf.Encoder) ([]byte, error) {
 	schema := imageNodeGraphSchema{
 		Name: pn.Name,
 		CLI:  pn.CLI,
@@ -190,7 +191,7 @@ func (pn *ImageParameterNode) ToJSON(encoder *jbtf.Encoder) ([]byte, error) {
 	return encoder.Marshal(schema)
 }
 
-func (pn *ImageParameterNode) FromJSON(decoder jbtf.Decoder, body []byte) (err error) {
+func (pn *Image) FromJSON(decoder jbtf.Decoder, body []byte) (err error) {
 	gn, err := jbtf.Decode[imageNodeGraphSchema](decoder, body)
 	if err != nil {
 		return

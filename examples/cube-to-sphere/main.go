@@ -6,6 +6,7 @@ import (
 	"github.com/EliCDavis/polyform/formats/gltf"
 	"github.com/EliCDavis/polyform/generator"
 	"github.com/EliCDavis/polyform/generator/artifact"
+	"github.com/EliCDavis/polyform/generator/parameter"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/marching"
 	"github.com/EliCDavis/polyform/modeling/meshops"
@@ -35,11 +36,11 @@ func main() {
 
 	animation := CubeToSphereAnimation{
 		Data: CubeToSphereAnimationData{
-			Time: &generator.ParameterNode[float64]{
+			Time: &parameter.Float64{
 				Name:         "Time",
 				DefaultValue: 0.,
 			},
-			Resolution: &generator.ParameterNode[float64]{
+			Resolution: &parameter.Float64{
 				Name:         "Mesh Resolution",
 				DefaultValue: 30,
 			},
@@ -51,11 +52,11 @@ func main() {
 			Mesh: &meshops.LaplacianSmoothNode{
 				Data: meshops.LaplacianSmoothNodeData{
 					Mesh: animation.Out(),
-					Iterations: &generator.ParameterNode[int]{
+					Iterations: &parameter.Int{
 						Name:         "Smoothing Iterations",
 						DefaultValue: 20,
 					},
-					SmoothingFactor: &generator.ParameterNode[float64]{
+					SmoothingFactor: &parameter.Float64{
 						Name:         "Smoothing Factor",
 						DefaultValue: .1,
 					},

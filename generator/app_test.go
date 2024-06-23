@@ -6,6 +6,7 @@ import (
 
 	"github.com/EliCDavis/polyform/generator"
 	"github.com/EliCDavis/polyform/generator/artifact"
+	"github.com/EliCDavis/polyform/generator/parameter"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/stretchr/testify/assert"
 )
@@ -46,7 +47,7 @@ func TestGetAndApplyGraph(t *testing.T) {
 		Version:     appVersion,
 		Description: appDescription,
 		Producers: map[string]nodes.NodeOutput[generator.Artifact]{
-			producerFileName: artifact.NewTextNode(&generator.ParameterNode[string]{
+			producerFileName: artifact.NewTextNode(&parameter.String{
 				Name:         "Welp",
 				DefaultValue: "yee",
 			}),

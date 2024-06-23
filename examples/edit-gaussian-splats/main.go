@@ -6,6 +6,7 @@ import (
 	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/generator"
 	"github.com/EliCDavis/polyform/generator/artifact"
+	"github.com/EliCDavis/polyform/generator/parameter"
 	"github.com/EliCDavis/polyform/generator/room"
 	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/modeling/meshops"
@@ -17,16 +18,13 @@ import (
 )
 
 func main() {
-	scale := &generator.ParameterNode[float64]{
-		Name:         "Scale",
-		DefaultValue: 1.,
-	}
+	scale := &parameter.Float64{Name: "Scale", DefaultValue: 1}
 
 	pointcloud := &gausops.LoaderNode{
 		Data: gausops.LoaderNodeData{
-			Data: &generator.FileParameterNode{
+			Data: &parameter.File{
 				Name: "Splat File",
-				CLI: &generator.CliParameterNodeConfig[string]{
+				CLI: &parameter.CliConfig[string]{
 					FlagName: "splat",
 					Usage:    "Path to the guassian splat to load (PLY file)",
 					// Default:  "./point_cloud/iteration_30000/point_cloud.ply",
@@ -37,16 +35,10 @@ func main() {
 
 	filteredCloud := &gausops.FilterNode{
 		Data: gausops.FilterNodeData{
-			Splat: pointcloud.Out(),
-			MinOpacity: &generator.ParameterNode[float64]{
-				Name:         "Minimum Opacity",
-				DefaultValue: 0.,
-			},
-			MinVolume: &generator.ParameterNode[float64]{
-				Name:         "Minimum Scale",
-				DefaultValue: 0.,
-			},
-			MaxVolume: &generator.ParameterNode[float64]{
+			Splat:      pointcloud.Out(),
+			MinOpacity: &parameter.Float64{Name: "Minimum Opacity"},
+			MinVolume:  &parameter.Float64{Name: "Minimum Scale"},
+			MaxVolume: &parameter.Float64{
 				Name:         "Maximum Scale",
 				DefaultValue: 1000.,
 			},
@@ -55,20 +47,20 @@ func main() {
 
 	rotateAmount := &quatn.FromTheta{
 		Data: quatn.FromThetaData{
-			Theta: &generator.ParameterNode[float64]{
+			Theta: &parameter.Float64{
 				Name:         "Rotation",
 				Description:  "How much to rotate the pointcloud by",
 				DefaultValue: math.Pi,
 			},
 			Direction: &vecn3.New{
 				Data: vecn3.NewData[float64]{
-					X: &generator.ParameterNode[float64]{
+					X: &parameter.Float64{
 						Name: "Rotation Direction X",
 					},
-					Y: &generator.ParameterNode[float64]{
+					Y: &parameter.Float64{
 						Name: "Rotation Direction Y",
 					},
-					Z: &generator.ParameterNode[float64]{
+					Z: &parameter.Float64{
 						Name:         "Rotation Direction Z",
 						DefaultValue: 1,
 					},
@@ -92,7 +84,7 @@ func main() {
 	croppedCloud := meshops.CropAttribute3DNode{
 		Data: meshops.CropAttribute3DNodeData{
 			Mesh: rotatedCloud,
-			AABB: &generator.ParameterNode[geometry.AABB]{
+			AABB: &parameter.AABB{
 				Name: "Keep Bounds",
 				DefaultValue: geometry.NewAABBFromPoints(
 					vector3.New(-10., -10., -10.),
@@ -105,9 +97,9 @@ func main() {
 	baloonNode := &gausops.ScaleWithinRegionNode{
 		Data: gausops.ScaleWithinRegionNodeData{
 			Mesh:   croppedCloud.Out(),
-			Scale:  &generator.ParameterNode[float64]{Name: "Baloon Strength", DefaultValue: .7},
-			Radius: &generator.ParameterNode[float64]{Name: "Baloon Radius", DefaultValue: .7},
-			Position: &generator.ParameterNode[vector3.Float64]{
+			Scale:  &parameter.Float64{Name: "Baloon Strength", DefaultValue: .7},
+			Radius: &parameter.Float64{Name: "Baloon Radius", DefaultValue: .7},
+			Position: &parameter.Vector3{
 				Name:         "Baloon Position",
 				DefaultValue: vector3.New(-0.344, 0.402, 5.363),
 			},
@@ -137,9 +129,9 @@ func main() {
 	colorGraded := gausops.ColorGradingLutNode{
 		Data: gausops.ColorGradingLutNodeData{
 			Mesh: scaleNode.Out(),
-			LUT: &generator.ImageParameterNode{
+			LUT: &parameter.Image{
 				Name: "LUT",
-				CLI: &generator.CliParameterNodeConfig[string]{
+				CLI: &parameter.CliConfig[string]{
 					FlagName: "lut",
 					Usage:    "Path to the color grading LUT",
 				},

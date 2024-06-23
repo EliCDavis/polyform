@@ -6,10 +6,9 @@ import (
 	"github.com/EliCDavis/polyform/formats/swagger"
 	"github.com/EliCDavis/polyform/generator"
 	"github.com/EliCDavis/polyform/generator/artifact"
-	"github.com/EliCDavis/polyform/math/geometry"
+	"github.com/EliCDavis/polyform/generator/parameter"
 	"github.com/EliCDavis/polyform/modeling/meshops"
 	"github.com/EliCDavis/polyform/nodes"
-	"github.com/EliCDavis/vector/vector3"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -24,7 +23,7 @@ func TestSwaggerFromGraph_SingleParameterSingleProducer(t *testing.T) {
 		Version:     appVersion,
 		Description: appDescription,
 		Producers: map[string]nodes.NodeOutput[generator.Artifact]{
-			producerFileName: artifact.NewTextNode(&generator.ParameterNode[string]{
+			producerFileName: artifact.NewTextNode(&parameter.Value[string]{
 				Name:         "Welp",
 				DefaultValue: "yee",
 			}),
@@ -109,13 +108,13 @@ func TestSwaggerFromGraph_MultipleParametersSingleProducer(t *testing.T) {
 			"example.glb": artifact.NewSplatNode(
 				&meshops.CropAttribute3DNode{
 					Data: meshops.CropAttribute3DNodeData{
-						AABB: &generator.ParameterNode[geometry.AABB]{
+						AABB: &parameter.AABB{
 							Name:        "Bounding Box",
 							Description: "Box to crop gaussian splat by",
 						},
 						Mesh: &meshops.TranslateAttribute3DNode{
 							Data: meshops.TranslateAttribute3DNodeData{
-								Amount: &generator.ParameterNode[vector3.Float64]{
+								Amount: &parameter.Vector3{
 									Name:        "Translation",
 									Description: "Amount to shift the mesh by",
 								},

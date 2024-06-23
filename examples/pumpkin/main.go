@@ -15,6 +15,7 @@ import (
 	"github.com/EliCDavis/polyform/drawing/texturing"
 	"github.com/EliCDavis/polyform/generator"
 	"github.com/EliCDavis/polyform/generator/artifact"
+	"github.com/EliCDavis/polyform/generator/parameter"
 	"github.com/EliCDavis/polyform/generator/room"
 	"github.com/EliCDavis/polyform/math/colors"
 	"github.com/EliCDavis/polyform/math/noise"
@@ -223,7 +224,7 @@ func check(err error) {
 var facePNG []byte
 
 func main() {
-	maxHeatNode := &generator.ParameterNode[float64]{
+	maxHeatNode := &parameter.Float64{
 		Name:         "Max Heat",
 		DefaultValue: 100.,
 	}
@@ -240,11 +241,11 @@ func main() {
 	imgData := &PropogateHeat{
 		Data: PropogateHeatData{
 			Data: edgeDetection,
-			Iterations: &generator.ParameterNode[int]{
+			Iterations: &parameter.Int{
 				Name:         "Iterations",
 				DefaultValue: 250,
 			},
-			Decay: &generator.ParameterNode[float64]{
+			Decay: &parameter.Float64{
 				Name:         "Decay",
 				DefaultValue: 0.9999,
 			},
@@ -252,31 +253,31 @@ func main() {
 	}
 	check(debugPropegation(imgData.Value(), "debug.png"))
 
-	topDip := &generator.ParameterNode[float64]{
+	topDip := &parameter.Float64{
 		Name:         "Top Dip",
 		DefaultValue: .2,
 	}
 
 	pumpkinField := &PumpkinField{
 		Data: PumpkinFieldData{
-			MaxWidth: &generator.ParameterNode[float64]{
+			MaxWidth: &parameter.Float64{
 				Name:         "Max Width",
 				DefaultValue: .3,
 			},
 			TopDip: topDip,
-			DistanceFromCenter: &generator.ParameterNode[float64]{
+			DistanceFromCenter: &parameter.Float64{
 				Name:         "Wedge Spacing",
 				DefaultValue: .1,
 			},
-			WedgeLineRadius: &generator.ParameterNode[float64]{
+			WedgeLineRadius: &parameter.Float64{
 				Name:         "Wedge Radius",
 				DefaultValue: .3,
 			},
-			Sides: &generator.ParameterNode[int]{
+			Sides: &parameter.Int{
 				Name:         "Wedges",
 				DefaultValue: 10,
 			},
-			UseImageField: &generator.ParameterNode[bool]{
+			UseImageField: &parameter.Bool{
 				Name:         "Carve",
 				DefaultValue: true,
 			},
@@ -293,17 +294,17 @@ func main() {
 							Mesh: &MarchingCubes{
 								Data: MarchingCubesData{
 									Field: pumpkinField,
-									CubersPerUnit: &generator.ParameterNode[float64]{
+									CubersPerUnit: &parameter.Float64{
 										Name:         "Pumpkin Resolution",
 										DefaultValue: 20,
 									},
 								},
 							},
-							Iterations: &generator.ParameterNode[int]{
+							Iterations: &parameter.Int{
 								Name:         "Smoothing Iterations",
 								DefaultValue: 20,
 							},
-							SmoothingFactor: &generator.ParameterNode[float64]{
+							SmoothingFactor: &parameter.Float64{
 								Name:         "Smoothing Factor",
 								DefaultValue: .1,
 							},
@@ -314,7 +315,7 @@ func main() {
 		},
 	}
 
-	textureDimensions := &generator.ParameterNode[int]{
+	textureDimensions := &parameter.Int{
 		Name:         "Texture Dimension",
 		DefaultValue: 1024,
 	}
@@ -348,13 +349,13 @@ func main() {
 			"pumpkin.glb": &PumpkinGLBArtifact{
 				Data: PumpkinGLBArtifactData{
 					PumpkinBody: pumpkinMesh,
-					LightColor: &generator.ParameterNode[coloring.WebColor]{
+					LightColor: &parameter.Color{
 						Name:         "Light Color",
 						DefaultValue: coloring.WebColor{R: 0xf4, G: 0xf5, B: 0xad, A: 255},
 					},
 					PumpkinStem: &StemMesh{
 						Data: StemMeshData{
-							StemResolution: &generator.ParameterNode[float64]{
+							StemResolution: &parameter.Float64{
 								Name:         "Stem Resolution",
 								DefaultValue: 100,
 							},
@@ -365,11 +366,11 @@ func main() {
 			},
 			"pumpkin.png": artifact.NewImageNode(&Albedo{
 				Data: AlbedoData{
-					Positive: &generator.ParameterNode[coloring.WebColor]{
+					Positive: &parameter.Color{
 						Name:         "Base Color",
 						DefaultValue: coloring.WebColor{R: 0xf9, G: 0x81, B: 0x1f, A: 255},
 					},
-					Negative: &generator.ParameterNode[coloring.WebColor]{
+					Negative: &parameter.Color{
 						Name:         "Negative Color",
 						DefaultValue: coloring.WebColor{R: 0xf7, G: 0x71, B: 0x02, A: 255},
 					},
@@ -377,11 +378,11 @@ func main() {
 			}),
 			"stem.png": artifact.NewImageNode(&Albedo{
 				Data: AlbedoData{
-					Positive: &generator.ParameterNode[coloring.WebColor]{
+					Positive: &parameter.Color{
 						Name:         "Stem Base Color",
 						DefaultValue: coloring.WebColor{R: 0xce, G: 0xa2, B: 0x7e, A: 255},
 					},
-					Negative: &generator.ParameterNode[coloring.WebColor]{
+					Negative: &parameter.Color{
 						Name:         "Stem Negative Color",
 						DefaultValue: coloring.WebColor{R: 0x7d, G: 0x53, B: 0x2c, A: 255},
 					},
@@ -389,11 +390,11 @@ func main() {
 			}),
 			"normal.png": &NormalImage{
 				Data: NormalImageData{
-					NumberOfLines: &generator.ParameterNode[int]{
+					NumberOfLines: &parameter.Int{
 						Name:         "Number of Lines",
 						DefaultValue: 20,
 					},
-					NumberOfWarts: &generator.ParameterNode[int]{
+					NumberOfWarts: &parameter.Int{
 						Name:         "Number of Warts",
 						DefaultValue: 50,
 					},
@@ -401,7 +402,7 @@ func main() {
 			},
 			"stem-normal.png": &StemNormalImage{
 				Data: StemNormalImageData{
-					NumberOfLines: &generator.ParameterNode[int]{
+					NumberOfLines: &parameter.Int{
 						Name:         "Stem Normal Line Count",
 						DefaultValue: 30,
 					},
@@ -409,7 +410,7 @@ func main() {
 			},
 			"roughness.png": &MetalRoughness{
 				Data: MetalRoughnessData{
-					Roughness: &generator.ParameterNode[float64]{
+					Roughness: &parameter.Float64{
 						Name:         "Pumpkin Roughness",
 						DefaultValue: 0.75,
 					},

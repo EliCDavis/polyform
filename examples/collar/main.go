@@ -9,6 +9,7 @@ import (
 	"github.com/EliCDavis/polyform/formats/gltf"
 	"github.com/EliCDavis/polyform/generator"
 	"github.com/EliCDavis/polyform/generator/artifact"
+	"github.com/EliCDavis/polyform/generator/parameter"
 	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/extrude"
@@ -190,7 +191,7 @@ func mrTexture() image.Image {
 }
 
 func main() {
-	collarRadius := &generator.ParameterNode[float64]{Name: "Collar/Radius", DefaultValue: 1}
+	collarRadius := &parameter.Float64{Name: "Collar/Radius", DefaultValue: 1}
 
 	spikeRing := repeat.CircleNode{
 		Data: repeat.CircleNodeData{
@@ -198,23 +199,23 @@ func main() {
 				Data: meshops.SmoothNormalsNodeData{
 					Mesh: &ConeNode{
 						Data: ConeNodeData{
-							Height: &generator.ParameterNode[float64]{Name: "Spike/Height", DefaultValue: .2},
-							Radius: &generator.ParameterNode[float64]{Name: "Spike/Radius", DefaultValue: .1},
-							Sides:  &generator.ParameterNode[int]{Name: "Spike/Resolution", DefaultValue: 30},
+							Height: &parameter.Float64{Name: "Spike/Height", DefaultValue: .2},
+							Radius: &parameter.Float64{Name: "Spike/Radius", DefaultValue: .1},
+							Sides:  &parameter.Int{Name: "Spike/Resolution", DefaultValue: 30},
 						},
 					},
 				},
 			},
 			Radius: collarRadius,
-			Times:  &generator.ParameterNode[int]{Name: "Spike/Count", DefaultValue: 20},
+			Times:  &parameter.Int{Name: "Spike/Count", DefaultValue: 20},
 		},
 	}
 
 	collar := &CollarNode{
 		Data: CollarNodeData{
-			Height:     &generator.ParameterNode[float64]{Name: "Collar/Height", DefaultValue: .2},
-			Thickness:  &generator.ParameterNode[float64]{Name: "Collar/Thickness", DefaultValue: .1},
-			Resolution: &generator.ParameterNode[int]{Name: "Collar/Resolution", DefaultValue: 30},
+			Height:     &parameter.Float64{Name: "Collar/Height", DefaultValue: .2},
+			Thickness:  &parameter.Float64{Name: "Collar/Thickness", DefaultValue: .1},
+			Resolution: &parameter.Int{Name: "Collar/Resolution", DefaultValue: 30},
 			Radius:     collarRadius,
 		},
 	}
@@ -223,7 +224,7 @@ func main() {
 		Data: GlbArtifactNodeData{
 			Collar: collar.Out(),
 			Spikes: spikeRing.Out(),
-			SpikeColor: &generator.ParameterNode[coloring.WebColor]{
+			SpikeColor: &parameter.Color{
 				Name:         "Spike/Color",
 				DefaultValue: coloring.WebColor{244, 244, 244, 255},
 			},
@@ -250,11 +251,11 @@ func main() {
 			mrTexturePath: artifact.NewImageNode(nodes.FuncValue(mrTexture)),
 			collarAlbedoPath: artifact.NewImageNode(&CollarAlbedoTextureNode{
 				Data: CollarAlbedoTextureNodeData{
-					BaseColor: &generator.ParameterNode[coloring.WebColor]{
+					BaseColor: &parameter.Color{
 						Name:         "Collar/Base Color",
 						DefaultValue: coloring.WebColor{46, 46, 46, 255},
 					},
-					StitchColor: &generator.ParameterNode[coloring.WebColor]{
+					StitchColor: &parameter.Color{
 						Name:         "Collar/Stitch Color",
 						DefaultValue: coloring.WebColor{10, 10, 10, 255},
 					},

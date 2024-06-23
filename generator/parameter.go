@@ -9,7 +9,7 @@ import (
 type Parameter interface {
 	DisplayName() string
 	Schema() ParameterSchema
-	initializeForCLI(set *flag.FlagSet)
+	InitializeForCLI(set *flag.FlagSet)
 
 	ApplyMessage(msg []byte) (bool, error)
 	ToMessage() []byte
