@@ -5,9 +5,9 @@ import (
 
 	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/generator"
+	"github.com/EliCDavis/polyform/generator/artifact"
 	"github.com/EliCDavis/polyform/generator/room"
 	"github.com/EliCDavis/polyform/math/geometry"
-	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/meshops"
 	"github.com/EliCDavis/polyform/modeling/meshops/gausops"
 	"github.com/EliCDavis/polyform/nodes"
@@ -15,53 +15,6 @@ import (
 	"github.com/EliCDavis/polyform/nodes/vecn/vecn3"
 	"github.com/EliCDavis/vector/vector3"
 )
-
-type BaloonNode = nodes.StructNode[modeling.Mesh, BaloonNodeData]
-
-type BaloonNodeData struct {
-	Mesh     nodes.NodeOutput[modeling.Mesh]
-	Strength nodes.NodeOutput[float64]
-	Radius   nodes.NodeOutput[float64]
-	Position nodes.NodeOutput[vector3.Float64]
-}
-
-func (bn BaloonNodeData) Process() (modeling.Mesh, error) {
-	return bn.Mesh.
-		Value().
-		Transform(meshops.CustomTransformer{
-			Func: func(m modeling.Mesh) (results modeling.Mesh, err error) {
-				posData := m.Float3Attribute(modeling.PositionAttribute)
-				scaleData := m.Float3Attribute(modeling.ScaleAttribute)
-				count := posData.Len()
-
-				newPos := make([]vector3.Float64, count)
-				newScale := make([]vector3.Float64, count)
-
-				baloonPos := bn.Position.Value()
-				baloonRadius := bn.Radius.Value()
-				baloonStrength := bn.Strength.Value()
-
-				for i := 0; i < count; i++ {
-					curPos := posData.At(i)
-					curScale := scaleData.At(i)
-					dir := curPos.Sub(baloonPos)
-					len := dir.Length()
-
-					if len <= baloonRadius {
-						newPos[i] = baloonPos.Add(dir.Scale(baloonStrength))
-						newScale[i] = curScale.Exp().Scale(baloonStrength).Log()
-					} else {
-						newPos[i] = curPos
-						newScale[i] = curScale
-					}
-				}
-
-				return m.
-					SetFloat3Attribute(modeling.PositionAttribute, newPos).
-					SetFloat3Attribute(modeling.ScaleAttribute, newScale), nil
-			},
-		}), nil
-}
 
 func main() {
 	scale := &generator.ParameterNode[float64]{
@@ -110,12 +63,10 @@ func main() {
 			Direction: &vecn3.New{
 				Data: vecn3.NewData[float64]{
 					X: &generator.ParameterNode[float64]{
-						Name:         "Rotation Direction X",
-						DefaultValue: 0,
+						Name: "Rotation Direction X",
 					},
 					Y: &generator.ParameterNode[float64]{
-						Name:         "Rotation Direction Y",
-						DefaultValue: 0,
+						Name: "Rotation Direction Y",
 					},
 					Z: &generator.ParameterNode[float64]{
 						Name:         "Rotation Direction Z",
@@ -151,11 +102,11 @@ func main() {
 		},
 	}
 
-	baloonNode := BaloonNode{
-		Data: BaloonNodeData{
-			Mesh:     croppedCloud.Out(),
-			Strength: &generator.ParameterNode[float64]{Name: "Baloon Strength", DefaultValue: .7},
-			Radius:   &generator.ParameterNode[float64]{Name: "Baloon Radius", DefaultValue: .7},
+	baloonNode := &gausops.ScaleWithinRegionNode{
+		Data: gausops.ScaleWithinRegionNodeData{
+			Mesh:   croppedCloud.Out(),
+			Scale:  &generator.ParameterNode[float64]{Name: "Baloon Strength", DefaultValue: .7},
+			Radius: &generator.ParameterNode[float64]{Name: "Baloon Radius", DefaultValue: .7},
 			Position: &generator.ParameterNode[vector3.Float64]{
 				Name:         "Baloon Position",
 				DefaultValue: vector3.New(-0.344, 0.402, 5.363),
@@ -214,8 +165,8 @@ func main() {
 			XrEnabled: true,
 		},
 		Producers: map[string]nodes.NodeOutput[generator.Artifact]{
-			"mesh.splat": generator.NewSplatArtifactNode(colorGraded.Out()),
-			"info.txt": generator.NewTextArtifactNode(&InfoNode{
+			"mesh.splat": artifact.NewSplatNode(colorGraded.Out()),
+			"info.txt": artifact.NewTextNode(&InfoNode{
 				Data: InfoNodeData{
 					Original: pointcloud.Out(),
 					Final:    colorGraded.Out(),

@@ -9,6 +9,7 @@ import (
 	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/formats/gltf"
 	"github.com/EliCDavis/polyform/generator"
+	"github.com/EliCDavis/polyform/generator/artifact"
 	"github.com/EliCDavis/polyform/generator/room"
 	"github.com/EliCDavis/polyform/math/chance"
 	"github.com/EliCDavis/polyform/math/quaternion"
@@ -322,7 +323,7 @@ func (p PipeNodeData) Process() (generator.Artifact, error) {
 		},
 	})
 
-	return generator.GltfArtifact{
+	return artifact.Gltf{
 		Scene: gltf.PolyformScene{
 			Models: gltfModels,
 		},
@@ -352,7 +353,7 @@ func main() {
 			Lighting:   coloring.WebColor{R: 0xff, G: 0xd8, B: 0x94, A: 255},
 		},
 		Producers: map[string]nodes.NodeOutput[generator.Artifact]{
-			"pipe-normal.png": generator.NewImageArtifactNode((&PipeNormalsNode{
+			"pipe-normal.png": artifact.NewImageNode((&PipeNormalsNode{
 				Data: PipeNormalsNodeData{
 					BlurIterations: &generator.ParameterNode[int]{
 						Name:         "Pipe Normal/Blur Iterations",
@@ -409,7 +410,7 @@ func main() {
 					},
 				},
 			},
-			"ibeam-normal.png": generator.NewImageArtifactNode(&PerlinNoiseNormalsNode{
+			"ibeam-normal.png": artifact.NewImageNode(&PerlinNoiseNormalsNode{
 				Data: PerlinNoiseNormalsNodeData{
 					Octaves: &generator.ParameterNode[int]{
 						Name:         "IBeam Normal/Noise Octaves",

@@ -38,8 +38,8 @@ func Scale(m modeling.Mesh, scaleAttr string, amount vector3.Float64) modeling.M
 type ScaleNode = nodes.StructNode[modeling.Mesh, ScaleNodeData]
 
 type ScaleNodeData struct {
-	Attribute nodes.NodeOutput[string]
 	Mesh      nodes.NodeOutput[modeling.Mesh]
+	Attribute nodes.NodeOutput[string]
 	Amount    nodes.NodeOutput[vector3.Float64]
 }
 

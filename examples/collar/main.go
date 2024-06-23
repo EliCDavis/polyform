@@ -8,6 +8,7 @@ import (
 	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/formats/gltf"
 	"github.com/EliCDavis/polyform/generator"
+	"github.com/EliCDavis/polyform/generator/artifact"
 	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/extrude"
@@ -137,7 +138,7 @@ func (gan GlbArtifactNodeData) Process() (generator.Artifact, error) {
 		},
 	}
 
-	return generator.GltfArtifact{
+	return artifact.Gltf{
 		Scene: scene,
 	}, nil
 }
@@ -246,8 +247,8 @@ func main() {
 		},
 		Producers: map[string]nodes.NodeOutput[generator.Artifact]{
 			"mesh.glb":    gltfNode.Out(),
-			mrTexturePath: generator.NewImageArtifactNode(nodes.FuncValue(mrTexture)),
-			collarAlbedoPath: generator.NewImageArtifactNode(&CollarAlbedoTextureNode{
+			mrTexturePath: artifact.NewImageNode(nodes.FuncValue(mrTexture)),
+			collarAlbedoPath: artifact.NewImageNode(&CollarAlbedoTextureNode{
 				Data: CollarAlbedoTextureNodeData{
 					BaseColor: &generator.ParameterNode[coloring.WebColor]{
 						Name:         "Collar/Base Color",

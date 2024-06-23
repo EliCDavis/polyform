@@ -7,6 +7,7 @@ import (
 	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/formats/gltf"
 	"github.com/EliCDavis/polyform/generator"
+	"github.com/EliCDavis/polyform/generator/artifact"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/meshops"
 	"github.com/EliCDavis/polyform/modeling/repeat"
@@ -112,7 +113,7 @@ func (dsn DiscoSceneNodeData) Process() (generator.Artifact, error) {
 
 	models = append(models, dsn.DiscoBall.Value()...)
 
-	return generator.GltfArtifact{
+	return artifact.Gltf{
 		Scene: gltf.PolyformScene{
 			Models: models,
 		},
@@ -383,8 +384,8 @@ func main() {
 		Description: "Applying color pallettes to a sample room",
 		Producers: map[string]nodes.NodeOutput[generator.Artifact]{
 			"disco.glb": discoScene.Out(),
-			"metal.png": generator.NewImageArtifactNode(nodes.Value(texture(1, 0))),
-			"rough.png": generator.NewImageArtifactNode(nodes.Value(texture(0, 1))),
+			"metal.png": artifact.NewImageNode(nodes.Value(texture(1, 0))),
+			"rough.png": artifact.NewImageNode(nodes.Value(texture(0, 1))),
 		},
 	}
 	err := app.Run()

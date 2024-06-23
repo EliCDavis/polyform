@@ -6,6 +6,7 @@ import (
 	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/formats/gltf"
 	"github.com/EliCDavis/polyform/generator"
+	"github.com/EliCDavis/polyform/generator/artifact"
 	"github.com/EliCDavis/polyform/generator/room"
 	"github.com/EliCDavis/polyform/modeling/extrude"
 	"github.com/EliCDavis/polyform/modeling/primitives"
@@ -284,7 +285,7 @@ func (csn CombineSegmentsNodeData) Process() (generator.Artifact, error) {
 		}
 		offset += segment.height / 2
 	}
-	return generator.GltfArtifact{
+	return artifact.Gltf{
 		Scene: gltf.PolyformScene{
 			Models: final,
 		},

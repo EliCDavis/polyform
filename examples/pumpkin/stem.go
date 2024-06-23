@@ -10,6 +10,7 @@ import (
 	"github.com/EliCDavis/polyform/drawing/texturing/normals"
 	"github.com/EliCDavis/polyform/formats/gltf"
 	"github.com/EliCDavis/polyform/generator"
+	"github.com/EliCDavis/polyform/generator/artifact"
 	"github.com/EliCDavis/polyform/math/noise"
 	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/polyform/math/sdf"
@@ -199,7 +200,7 @@ func (sni StemNormalImageData) Process() (generator.Artifact, error) {
 
 	}
 
-	return &generator.ImageArtifact{Image: img}, nil
+	return &artifact.Image{Image: img}, nil
 }
 
 type StemRoughness = nodes.StructNode[generator.Artifact, StemRoughnessData]
@@ -224,5 +225,5 @@ func (sr StemRoughnessData) Process() (generator.Artifact, error) {
 		}
 	}
 
-	return &generator.ImageArtifact{Image: stemRoughnessImage}, nil
+	return &artifact.Image{Image: stemRoughnessImage}, nil
 }

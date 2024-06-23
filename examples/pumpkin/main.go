@@ -14,6 +14,7 @@ import (
 	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/drawing/texturing"
 	"github.com/EliCDavis/polyform/generator"
+	"github.com/EliCDavis/polyform/generator/artifact"
 	"github.com/EliCDavis/polyform/generator/room"
 	"github.com/EliCDavis/polyform/math/colors"
 	"github.com/EliCDavis/polyform/math/noise"
@@ -362,7 +363,7 @@ func main() {
 					},
 				},
 			},
-			"pumpkin.png": generator.NewImageArtifactNode(&Albedo{
+			"pumpkin.png": artifact.NewImageNode(&Albedo{
 				Data: AlbedoData{
 					Positive: &generator.ParameterNode[coloring.WebColor]{
 						Name:         "Base Color",
@@ -374,7 +375,7 @@ func main() {
 					},
 				},
 			}),
-			"stem.png": generator.NewImageArtifactNode(&Albedo{
+			"stem.png": artifact.NewImageNode(&Albedo{
 				Data: AlbedoData{
 					Positive: &generator.ParameterNode[coloring.WebColor]{
 						Name:         "Stem Base Color",

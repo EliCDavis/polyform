@@ -5,6 +5,7 @@ import (
 
 	"github.com/EliCDavis/polyform/formats/gltf"
 	"github.com/EliCDavis/polyform/generator"
+	"github.com/EliCDavis/polyform/generator/artifact"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/marching"
 	"github.com/EliCDavis/polyform/modeling/meshops"
@@ -90,7 +91,7 @@ type GltfArtifactData struct {
 }
 
 func (csa GltfArtifactData) Process() (generator.Artifact, error) {
-	return &generator.GltfArtifact{
+	return &artifact.Gltf{
 		Scene: gltf.PolyformScene{
 			Models: []gltf.PolyformModel{
 				{

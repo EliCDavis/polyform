@@ -5,6 +5,7 @@ import (
 
 	"github.com/EliCDavis/polyform/formats/swagger"
 	"github.com/EliCDavis/polyform/generator"
+	"github.com/EliCDavis/polyform/generator/artifact"
 	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/modeling/meshops"
 	"github.com/EliCDavis/polyform/nodes"
@@ -23,7 +24,7 @@ func TestSwaggerFromGraph_SingleParameterSingleProducer(t *testing.T) {
 		Version:     appVersion,
 		Description: appDescription,
 		Producers: map[string]nodes.NodeOutput[generator.Artifact]{
-			producerFileName: generator.NewTextArtifactNode(&generator.ParameterNode[string]{
+			producerFileName: artifact.NewTextNode(&generator.ParameterNode[string]{
 				Name:         "Welp",
 				DefaultValue: "yee",
 			}),
@@ -105,7 +106,7 @@ func TestSwaggerFromGraph_MultipleParametersSingleProducer(t *testing.T) {
 		Version:     "1.0.0",
 		Description: "Example graph that contains multiple parameters",
 		Producers: map[string]nodes.NodeOutput[generator.Artifact]{
-			"example.glb": generator.NewSplatArtifactNode(
+			"example.glb": artifact.NewSplatNode(
 				&meshops.CropAttribute3DNode{
 					Data: meshops.CropAttribute3DNodeData{
 						AABB: &generator.ParameterNode[geometry.AABB]{
