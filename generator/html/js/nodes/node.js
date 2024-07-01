@@ -1,12 +1,13 @@
 import * as THREE from 'three';
-import { NodeBasicParameter } from './basic_parameter.js';
-import { NodeVector3Parameter } from './vector3_parameter.js';
-import { NodeVector3ArryParameter } from './vector3_array_parameter.js';
-import { ImageParameterNode } from './image_parameter.js';
-import { NodeAABBParameter } from './aabb_parameter.js';
-import { ColorParameter } from './color_parameter.js';
+import { BasicParameterNodeController } from './basic_parameter.js';
+import { Vector3ParameterNodeController } from './vector3_parameter.js';
+import { Vector3ArrayParameterNodeController } from './vector3_array_parameter.js';
+import { ImageParameterNodeController } from './image_parameter.js';
+import { AABBParameterNodeController } from './aabb_parameter.js';
+import { ColorParameterNodeController } from './color_parameter.js';
 import { NodeManager } from '../node_manager.js';
-import { FileParameterNode } from './file_parameter.js';
+import { FileParameterNodeController } from './file_parameter.js';
+import { addRenderableImageWidget, getFileExtension, getLastSegmentOfURL } from '../utils.js';
 
 
 function BuildParameter(liteNode, nodeManager, id, parameterData, app) {
@@ -16,27 +17,27 @@ function BuildParameter(liteNode, nodeManager, id, parameterData, app) {
         case "int":
         case "bool":
         case "string":
-            return new NodeBasicParameter(liteNode, nodeManager, id, parameterData);
+            return new BasicParameterNodeController(liteNode, nodeManager, id, parameterData);
 
         case "coloring.WebColor":
-            return new ColorParameter(liteNode, nodeManager, id, parameterData, app);
+            return new ColorParameterNodeController(liteNode, nodeManager, id, parameterData, app);
 
         case "vector3.Vector[float64]":
         case "vector3.Vector[float32]":
-            return new NodeVector3Parameter(liteNode, nodeManager, id, parameterData, app);
+            return new Vector3ParameterNodeController(liteNode, nodeManager, id, parameterData, app);
 
         case "[]vector3.Vector[float64]":
         case "[]vector3.Vector[float32]":
-            return new NodeVector3ArryParameter(liteNode, nodeManager, id, parameterData, app);
+            return new Vector3ArrayParameterNodeController(liteNode, nodeManager, id, parameterData, app);
 
         case "image.Image":
-            return new ImageParameterNode(liteNode, nodeManager, id, parameterData, app);
+            return new ImageParameterNodeController(liteNode, nodeManager, id, parameterData, app);
 
         case "[]uint8":
-            return new FileParameterNode(liteNode, nodeManager, id, parameterData, app);
+            return new FileParameterNodeController(liteNode, nodeManager, id, parameterData, app);
 
         case "geometry.AABB":
-            return new NodeAABBParameter(liteNode, nodeManager, id, parameterData, app);
+            return new AABBParameterNodeController(liteNode, nodeManager, id, parameterData, app);
 
         default:
             throw new Error("build parameter: unimplemented parameter type: " + parameterData.type)
@@ -68,7 +69,7 @@ export function camelCaseToWords(str) {
     return title;
 }
 
-export class PolyNode {
+export class PolyNodeController {
 
     /**
      * 
@@ -99,10 +100,23 @@ export class PolyNode {
         }
 
         if (this.isProducer) {
+            console.log(nodeData);
+            const ext = getFileExtension(nodeData.name);
+            console.log(ext);
+            if (ext == "png") {
+                addRenderableImageWidget(liteNode);
+                app.SchemaRefreshManager.Subscribe((url, image) => {
+                    console.log(nodeData.name, getLastSegmentOfURL(url), image);
+                    if (getLastSegmentOfURL(url) == nodeData.name) {
+                        liteNode.widgets[0].image = image
+                        liteNode.setSize(liteNode.computeSize());
+                    }
+                })
+            }
+
             this.liteNode.color = "#232";
             this.liteNode.bgcolor = "#353";
             this.liteNode.addWidget("button", "Download", null, () => {
-                console.log("presed");
                 saveFileToDisk("/producer/" + this.name, this.name);
             })
         }

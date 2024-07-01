@@ -1,4 +1,4 @@
-export class ColorParameter {
+export class ColorParameterNodeController {
 
     constructor(lightNode, nodeManager, id, parameterData, app) {
         this.lightNode = lightNode;

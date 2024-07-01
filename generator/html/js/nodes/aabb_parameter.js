@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
 import { BoxHelper } from '../box.js';
 
-export class NodeAABBParameter {
+export class AABBParameterNodeController {
 
     addControl(nodeManager, id, parameterData, app, pos, showX, showY, showZ) {
         const control = new TransformControls(app.Camera, app.Renderer.domElement);

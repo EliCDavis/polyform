@@ -1,5 +1,5 @@
 
-export class FileParameterNode {
+export class FileParameterNodeController {
 
     constructor(lightNode, nodeManager, id, parameterData, app) {
         this.lightNode = lightNode;

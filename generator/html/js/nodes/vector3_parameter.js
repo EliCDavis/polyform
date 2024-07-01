@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
 
-export class NodeVector3Parameter {
+export class Vector3ParameterNodeController {
     constructor(lightNode, nodeManager, id, parameterData, app) {
         const control = new TransformControls(app.Camera, app.Renderer.domElement);
         control.setMode('translate');

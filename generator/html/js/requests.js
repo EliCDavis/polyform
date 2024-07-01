@@ -27,6 +27,18 @@ class RequestManager {
     constructor() {
     }
 
+    fetchImage(imgUrl, successCallback, errorCallback) {
+        const img = document.createElement("img");
+        // ? + perfoance.now() is to break browswer cache
+        img.src = imgUrl + "?" + performance.now();
+        img.onload = () => {
+            successCallback(img);
+        };
+        img.onerror = (event) => {
+            errorCallback(event)
+        }
+    }
+
     fetchText(theUrl, successCallback, errorCallback) {
         const xmlHttp = new XMLHttpRequest();
         xmlHttp.onreadystatechange = () => {

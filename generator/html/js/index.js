@@ -36,6 +36,7 @@ import { ProgressiveLightMap } from 'three/addons/misc/ProgressiveLightMap.js';
 import { InitXR } from './xr.js';
 import { UpdateManager } from './update-manager.js';
 import { ColorSelector } from './color_selector.js';
+import { getFileExtension } from './utils.js';
 
 const viewportSettings = {
     renderWireframe: false,
@@ -155,6 +156,7 @@ const App = {
     ColorSelector: new ColorSelector("colorSelectorContainer"),
     RequestManager: requestManager,
     ServerUpdatingNodeConnections: false,
+    SchemaRefreshManager: null,
 }
 
 const nodeManager = new NodeManager(App);
@@ -181,6 +183,11 @@ class SchemaRefreshManager {
     constructor() {
         this.loadingCount = 0;
         this.cachedSchema = null;
+        this.subscribers = [];
+    }
+
+    Subscribe(callback) {
+        this.subscribers.push(callback);
     }
 
     AddLoading() {
@@ -218,10 +225,27 @@ class SchemaRefreshManager {
             (data) => {
                 InfoManager.ShowInfo(data);
                 this.RemoveLoading();
+                this.UpdateSubscribers(producerURL, data);
             },
             (error) => {
                 this.RemoveLoading();
                 console.error("unable to load text", producerURL, error);
+                ErrorManager.ShowError(producerURL, JSON.parse(error).error);
+            }
+        );
+    }
+
+    loadImage(producerURL) {
+        this.AddLoading();
+        requestManager.fetchImage(
+            producerURL,
+            (data) => {
+                this.RemoveLoading();
+                this.UpdateSubscribers(producerURL, data);
+            },
+            (error) => {
+                this.RemoveLoading();
+                console.error("unable to load image", producerURL, error);
                 ErrorManager.ShowError(producerURL, JSON.parse(error).error);
             }
         );
@@ -298,6 +322,9 @@ class SchemaRefreshManager {
                 orbitControls.target.set(0, mid, 0);
                 orbitControls.update();
             }
+
+            this.UpdateSubscribers(producerURL, gltf);
+
             this.RemoveLoading();
         },
             undefined,
@@ -366,8 +393,10 @@ class SchemaRefreshManager {
                     orbitControls.update();
                 }
             });
-
+            
             this.RemoveLoading();
+            this.UpdateSubscribers(producerURL, gltf);
+
         }).catch(x => {
             console.error(x)
             this.RemoveLoading();
@@ -387,7 +416,7 @@ class SchemaRefreshManager {
 
         for (const [producer, producerData] of Object.entries(schema.producers)) {
             ErrorManager.ClearError(producer);
-            const fileExt = producer.split('.').pop().toLowerCase();
+            const fileExt = getFileExtension(producer);
 
             switch (fileExt) {
                 case "txt":
@@ -402,13 +431,26 @@ class SchemaRefreshManager {
                 case "splat":
                     this.loadSplat(producer, 'producer/' + producer)
                     break;
+
+                case "png":
+                    this.loadImage('producer/' + producer);
+                    break;
             }
         }
+    }
+
+    UpdateSubscribers(url, thing) {
+        this.subscribers.forEach(sub => {
+            if (sub == null) {
+                return;
+            }
+            sub(url, thing);
+        })
     }
 }
 
 const schemaRefreshManager = new SchemaRefreshManager();
-
+App.SchemaRefreshManager = schemaRefreshManager;
 schemaManager.subscribe(schemaRefreshManager.NewSchema.bind(schemaRefreshManager));
 
 

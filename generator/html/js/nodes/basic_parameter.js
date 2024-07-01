@@ -43,7 +43,7 @@
 // }
 
 
-export class NodeBasicParameter {
+export class BasicParameterNodeController {
     constructor(lightNode, nodeManager, id, parameterData) {
         this.id = id;
         this.lightNode = lightNode;

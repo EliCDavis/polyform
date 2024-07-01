@@ -1,4 +1,5 @@
-import { PolyNode, camelCaseToWords } from "./nodes/node.js";
+import { PolyNodeController, camelCaseToWords } from "./nodes/node.js";
+import { addRenderableImageWidget } from "./utils.js";
 
 
 const ParameterNodeOutputPortName = "Out";
@@ -46,7 +47,7 @@ export class NodeManager {
             const nodeID = resp.nodeID
             const nodeData = resp.data;
             liteNode.nodeInstanceID = nodeID;
-            this.nodeIdToNode.set(nodeID, new PolyNode(liteNode, this, nodeID, nodeData, this.app, isProducer));
+            this.nodeIdToNode.set(nodeID, new PolyNodeController(liteNode, this, nodeID, nodeData, this.app, isProducer));
         })
     }
 
@@ -60,34 +61,7 @@ export class NodeManager {
             this.color = ParameterNodeColor;
             this.bgcolor = ParameterNodeBackgroundColor;
 
-            const H = LiteGraph.NODE_WIDGET_HEIGHT;
-
-            const imgWidget = this.addWidget("image", "Image", true, { property: "surname" }); //this will modify the node.properties
-            this.imgWidget = imgWidget;
-            const margin = 15;
-            this.imgWidget.draw = (ctx, node, widget_width, y, H) => {
-                if (!imgWidget.image) {
-                    return;
-                }
-
-                const adjustedWidth = widget_width - margin * 2
-                ctx.drawImage(
-                    imgWidget.image,
-                    margin,
-                    y,
-                    adjustedWidth,
-                    (adjustedWidth / imgWidget.image.width) * imgWidget.image.height
-                );
-            }
-
-            this.imgWidget.computeSize = (width) => {
-                if (!!imgWidget.image) {
-                    const adjustedWidth = width - margin * 2
-                    const newH = (adjustedWidth / imgWidget.image.width) * imgWidget.image.height;
-                    return [width, newH]
-                }
-                return [width, 0];
-            }
+           addRenderableImageWidget(this);
 
             nm.onNodeCreateCallback(this, "github.com/EliCDavis/polyform/generator.ImageParameterNode");
         }
@@ -194,6 +168,39 @@ export class NodeManager {
             nm.onNodeCreateCallback(this, ParameterNodeType("float64"));
         }
 
+        function IntParameter() {
+            this.addOutput("value", "int");
+            this.addProperty("value", 1.0);
+            this.widget = this.addWidget("number", "value", 1,  "value", {step: 10});
+            this.widgets_up = true;
+            this.size = [180, 30];
+            this.title = "Const Int";
+            this.desc = "Constant Int";
+            this.color = ParameterNodeColor;
+            this.bgcolor = ParameterNodeBackgroundColor;
+
+            this.onExecute = () => {
+                this.setOutputData(0, parseFloat(this.properties["value"]));
+            };
+
+            this.getTitle = () => {
+                if (this.flags.collapsed) {
+                    return this.properties.value;
+                }
+                return this.title;
+            };
+
+            this.setValue = (v) => {
+                this.setProperty("value", v);
+            }
+
+            this.onDrawBackground = function (ctx) {
+                this.outputs[0].label = Math.round(this.properties["value"]);
+            };
+
+            nm.onNodeCreateCallback(this, ParameterNodeType("int"));
+        }
+
         function StringParameter() {
             this.addOutput("string", "string");
             this.addProperty("value", "");
@@ -203,11 +210,8 @@ export class NodeManager {
             this.color = ParameterNodeColor;
             this.bgcolor = ParameterNodeBackgroundColor;
 
-            console.log("bitch im alive!!!")
-
             this.title = "Const String";
             this.desc = "Constant string";
-
 
             this.getTitle = () => {
                 if (this.flags.collapsed) {
@@ -239,6 +243,7 @@ export class NodeManager {
 
         LiteGraph.registerNodeType(ParameterNamespace("string"), StringParameter);
         LiteGraph.registerNodeType(ParameterNamespace("float64"), Float64Parameter);
+        LiteGraph.registerNodeType(ParameterNamespace("int"), IntParameter);
         LiteGraph.registerNodeType(ParameterNamespace("aabb"), AABBParameterNode);
         LiteGraph.registerNodeType(ParameterNamespace("vector3"), Vector3ParameterNode);
         LiteGraph.registerNodeType(ParameterNamespace("vector3[]"), Vector3ArrayParameterNode);
@@ -340,6 +345,9 @@ export class NodeManager {
             case "float64":
                 return LiteGraph.createNode(ParameterNamespace("float64"));
 
+            case "int":
+                return LiteGraph.createNode(ParameterNamespace("int"));
+
             case "string":
                 return LiteGraph.createNode(ParameterNamespace("string"));
 
@@ -408,7 +416,7 @@ export class NodeManager {
                 liteNode.setSize(liteNode.computeSize());
                 liteNode.nodeInstanceID = nodeID;
 
-                this.nodeIdToNode.set(nodeID, new PolyNode(liteNode, this, nodeID, nodeData, this.app, isProducer));
+                this.nodeIdToNode.set(nodeID, new PolyNodeController(liteNode, this, nodeID, nodeData, this.app, isProducer));
                 nodeAdded = true;
             }
         }

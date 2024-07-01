@@ -2,7 +2,7 @@ import { TransformControls } from 'three/addons/controls/TransformControls.js';
 import * as THREE from 'three';
 
 
-export class NodeVector3ArryParameter {
+export class Vector3ArrayParameterNodeController {
     constructor(lightNode, nodeManager, id, parameterData, app) {
         this.id = id;
         this.nodeManager = nodeManager;

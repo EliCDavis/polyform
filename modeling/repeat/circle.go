@@ -10,6 +10,28 @@ import (
 	"github.com/EliCDavis/vector/vector3"
 )
 
+type CirclePointsNode = nodes.StructNode[[]vector3.Float64, CirclePointsNodeData]
+
+type CirclePointsNodeData struct {
+	Count  nodes.NodeOutput[int]
+	Radius nodes.NodeOutput[float64]
+}
+
+func (cpnd CirclePointsNodeData) Process() ([]vector3.Float64, error) {
+	count := 0
+	radius := 1.
+
+	if cpnd.Count != nil {
+		count = cpnd.Count.Value()
+	}
+
+	if cpnd.Radius != nil {
+		radius = cpnd.Radius.Value()
+	}
+
+	return CirclePoints(count, radius), nil
+}
+
 func CirclePoints(count int, radius float64) []vector3.Float64 {
 	angleIncrement := (1.0 / float64(count)) * 2.0 * math.Pi
 	final := make([]vector3.Float64, count)

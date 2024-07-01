@@ -1,5 +1,6 @@
 
-export class ImageParameterNode {
+
+export class ImageParameterNodeController {
 
     constructor(lightNode, nodeManager, id, parameterData, app) {
         this.lightNode = lightNode;
