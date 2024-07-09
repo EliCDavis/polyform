@@ -9,6 +9,7 @@ import (
 	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func Test_ReadOBJ_NoTexture(t *testing.T) {
@@ -148,10 +149,10 @@ f  2 3 4
 
 	// ACT ====================================================================
 	contents, matReferences, err := obj.ReadMesh(strings.NewReader(objString))
+	require.NoError(t, err)
 	square := contents[0].Mesh
 
 	// ASSERT =================================================================
-	assert.NoError(t, err)
 	assert.Equal(t, 2, square.PrimitiveCount())
 	assert.Len(t, matReferences, 0)
 	assert.Equal(t, "", contents[0].Name)

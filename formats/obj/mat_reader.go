@@ -12,10 +12,9 @@ import (
 	"github.com/EliCDavis/polyform/modeling"
 )
 
-func parseFloatLine(components []string) (float64, error) {
-	f, err := strconv.ParseFloat(strings.TrimSpace(components[1]), 32)
-	if err != nil {
-		return 0, fmt.Errorf("unable to parse component %s: %w", components[0], err)
+func parseFloatLine(components []string) (f float64, err error) {
+	if f, err = strconv.ParseFloat(strings.TrimSpace(components[1]), 32); err != nil {
+		return 0, fmt.Errorf("unable to parse component[0] %q: %w", components[0], err)
 	}
 	return f, nil
 }
@@ -25,7 +24,7 @@ func parseColorLine(components []string) (color.Color, error) {
 	g, err := strconv.ParseFloat(strings.TrimSpace(components[2]), 32)
 	b, err := strconv.ParseFloat(strings.TrimSpace(components[3]), 32)
 	if err != nil {
-		return nil, fmt.Errorf("unable to parse component %s: %w", components[0], err)
+		return nil, fmt.Errorf("unable to parse component %q: %w", components[0], err)
 	}
 	return color.RGBA{uint8(r * 255), uint8(g * 255), uint8(b * 255), 255}, nil
 }
@@ -77,7 +76,7 @@ func ReadMaterials(in io.Reader) ([]modeling.Material, error) {
 
 			f, err := parseFloatLine(components)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("failed to parse float line: %w", err)
 			}
 
 			workingMaterial.SpecularHighlight = f
@@ -89,7 +88,7 @@ func ReadMaterials(in io.Reader) ([]modeling.Material, error) {
 
 			f, err := parseColorLine(components)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("failed to parse color line: %w", err)
 			}
 
 			workingMaterial.DiffuseColor = f
