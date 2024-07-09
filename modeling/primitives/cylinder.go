@@ -17,10 +17,11 @@ type CylinderUVs struct {
 }
 
 type Cylinder struct {
-	Sides  int
-	Height float64
-	Radius float64
-	UVs    *CylinderUVs
+	Sides           int
+	Height          float64
+	Radius          float64
+	NoTop, NoBottom bool // Optionally turn off generation of top and/or bottom and turn the cylinder into pipe
+	UVs             *CylinderUVs
 }
 
 func (c Cylinder) ToMesh() modeling.Mesh {
@@ -88,14 +89,18 @@ func (c Cylinder) ToMesh() modeling.Mesh {
 		}
 	}
 
-	return modeling.NewTriangleMesh(tris).
+	cylinderMesh := modeling.NewTriangleMesh(tris).
 		SetFloat3Data(map[string][]vector3.Float64{
 			modeling.PositionAttribute: vertices,
 			modeling.NormalAttribute:   normals,
 		}).
-		SetFloat2Data(float2Data).
-		Append(top.ToMesh().Translate(vector3.New(0, halfHeight, 0))).
-		Append(bottom.ToMesh().
+		SetFloat2Data(float2Data)
+
+	if !c.NoTop {
+		cylinderMesh = cylinderMesh.Append(top.ToMesh().Translate(vector3.New(0, halfHeight, 0)))
+	}
+	if !c.NoBottom {
+		cylinderMesh = cylinderMesh.Append(bottom.ToMesh().
 			Transform(
 				meshops.RotateAttribute3DTransformer{
 					Attribute: modeling.PositionAttribute,
@@ -108,4 +113,7 @@ func (c Cylinder) ToMesh() modeling.Mesh {
 			).
 			Translate(vector3.New(0, -halfHeight, 0)),
 		)
+	}
+
+	return cylinderMesh
 }
