@@ -16,17 +16,17 @@ import (
 func parseObjVectorLine(components []string) (vector3.Float64, error) {
 	parsedX, err := strconv.ParseFloat(strings.TrimSpace(components[1]), 32)
 	if err != nil {
-		return vector3.Zero[float64](), fmt.Errorf("unable to parse x component '%s': %w", components[1], err)
+		return vector3.Zero[float64](), fmt.Errorf("unable to parse x component %q: %w", components[1], err)
 	}
 
 	parsedY, err := strconv.ParseFloat(strings.TrimSpace(components[2]), 32)
 	if err != nil {
-		return vector3.Zero[float64](), fmt.Errorf("unable to parse y component '%s': %w", components[2], err)
+		return vector3.Zero[float64](), fmt.Errorf("unable to parse y component %q: %w", components[2], err)
 	}
 
 	parsedZ, err := strconv.ParseFloat(strings.TrimSpace(components[3]), 32)
 	if err != nil {
-		return vector3.Zero[float64](), fmt.Errorf("unable to parse z component '%s': %w", components[3], err)
+		return vector3.Zero[float64](), fmt.Errorf("unable to parse z component %q: %w", components[3], err)
 	}
 
 	return vector3.New(parsedX, parsedY, parsedZ), nil
@@ -83,7 +83,7 @@ func parseObjFaceComponent(component string) (v int, vt int, vn int, err error) 
 	if !strings.Contains(component, "/") {
 		v, err = strconv.Atoi(component)
 		v -= 1
-		return
+		return v, vt, vn, fmt.Errorf("failed to convert component to int: %w", err)
 	}
 
 	if strings.Contains(component, "//") {
@@ -91,31 +91,38 @@ func parseObjFaceComponent(component string) (v int, vt int, vn int, err error) 
 		v, err = strconv.Atoi(components[0])
 		v -= 1
 		if err != nil {
-			return
+			return v, vt, vn, fmt.Errorf("failed to convert //component[0] %q to int: %w", components[0], err)
 		}
 		vn, err = strconv.Atoi(components[1])
 		vn -= 1
-		return
+		if err != nil {
+			return v, vt, vn, fmt.Errorf("failed to convert //component[1] %q to int: %w", components[1], err)
+		}
+
+		return v, vt, vn, nil
 	}
 
 	components := strings.Split(component, "/")
 	v, err = strconv.Atoi(components[0])
 	v -= 1
 	if err != nil {
-		return
+		return v, vt, vn, fmt.Errorf("failed to convert /component[0] %q to int: %w", components[0], err)
 	}
 
 	vt, err = strconv.Atoi(components[1])
 	vt -= 1
 	if err != nil {
-		return
+		return v, vt, vn, fmt.Errorf("failed to convert /component[1] %q to int: %w", components[1], err)
 	}
 
 	if len(components) == 3 {
 		vn, err = strconv.Atoi(components[2])
 		vn -= 1
+		if err != nil {
+			return v, vt, vn, fmt.Errorf("failed to convert /component[2] %q to int: %w", components[2], err)
+		}
 	}
-	return
+	return v, vt, vn, nil
 }
 
 type objMeshReading struct {
@@ -188,14 +195,14 @@ func ReadMesh(in io.Reader) ([]ObjMesh, []string, error) {
 		case "mtllib":
 			materialFiles, err := parseMtllibLine(components)
 			if err != nil {
-				return nil, nil, fmt.Errorf("unable to parse mtllib line '%s': %w", line, err)
+				return nil, nil, fmt.Errorf("failed to parse 'mtllib' line %q: %w", line, err)
 			}
 			readMaterialFiles = append(readMaterialFiles, materialFiles...)
 
 		case "usemtl":
 			matToUse, err := parseUsemtlLine(components)
 			if err != nil {
-				return nil, nil, fmt.Errorf("unable to parse usemtl line '%s': %w", line, err)
+				return nil, nil, fmt.Errorf("failed to parse 'usemtl' line %q: %w", line, err)
 			}
 
 			if trisSenseLastMat > 0 {
@@ -232,28 +239,28 @@ func ReadMesh(in io.Reader) ([]ObjMesh, []string, error) {
 		case "v":
 			v, err := parseObjVectorLine(components)
 			if err != nil {
-				return nil, nil, fmt.Errorf("unable to parse vertex line '%s': %w", line, err)
+				return nil, nil, fmt.Errorf("failed to parse 'v' line %q: %w", line, err)
 			}
 			readVerts = append(readVerts, v)
 
 		case "vn":
 			vn, err := parseObjVectorLine(components)
 			if err != nil {
-				return nil, nil, err
+				return nil, nil, fmt.Errorf("failed to parse 'vn' line %q: %w", line, err)
 			}
 			readNormals = append(readNormals, vn)
 
 		case "vt":
 			vt, err := parseObjTextureLine(components)
 			if err != nil {
-				return nil, nil, err
+				return nil, nil, fmt.Errorf("failed to parse 'vt' line %q: %w", line, err)
 			}
 			readUVs = append(readUVs, vt)
 
 		case "g":
 			groupName, err := parseGroupLine(components)
 			if err != nil {
-				return nil, nil, fmt.Errorf("unable to parse g line '%s': %w", line, err)
+				return nil, nil, fmt.Errorf("failed to parse 'g' line %q: %w", line, err)
 			}
 
 			if !workingGeom.empty() {
@@ -272,7 +279,7 @@ func ReadMesh(in io.Reader) ([]ObjMesh, []string, error) {
 			} else {
 				v, vt, vn, err := parseObjFaceComponent(components[1])
 				if err != nil {
-					return nil, nil, err
+					return nil, nil, fmt.Errorf("failed to parse 'f' line component[1] %q: %w", line, err)
 				}
 				p1 = len(workingGeom.pointHash)
 				workingGeom.pointHash[components[1]] = p1
@@ -294,7 +301,7 @@ func ReadMesh(in io.Reader) ([]ObjMesh, []string, error) {
 			} else {
 				v, vt, vn, err := parseObjFaceComponent(components[2])
 				if err != nil {
-					return nil, nil, err
+					return nil, nil, fmt.Errorf("failed to parse 'f' line component[2] %q: %w", line, err)
 				}
 				p2 = len(workingGeom.pointHash)
 				workingGeom.pointHash[components[2]] = p2
@@ -316,7 +323,7 @@ func ReadMesh(in io.Reader) ([]ObjMesh, []string, error) {
 			} else {
 				v, vt, vn, err := parseObjFaceComponent(components[3])
 				if err != nil {
-					return nil, nil, err
+					return nil, nil, fmt.Errorf("failed to parse 'f' line component[3] %q: %w", line, err)
 				}
 				p3 = len(workingGeom.pointHash)
 				workingGeom.pointHash[components[3]] = p3
@@ -337,7 +344,7 @@ func ReadMesh(in io.Reader) ([]ObjMesh, []string, error) {
 	}
 
 	if err := scanner.Err(); err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("failed to run scanner: %w", err)
 	}
 
 	geoms = append(geoms, workingGeom.toMesh())

@@ -2,6 +2,7 @@ package obj
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 	"path"
 	"path/filepath"
@@ -21,20 +22,21 @@ func Load(objPath string) ([]ObjMesh, error) {
 	buf := bufio.NewReader(inFile)
 	meshes, matPaths, err := ReadMesh(buf)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to read mesh: %w", err)
 	}
 
 	loadedMaterials := make(map[string]*modeling.Material)
 	for _, matPath := range matPaths {
-		matFile, err := os.Open(path.Join(path.Dir(objPath), matPath))
+		matFilePath := path.Join(path.Dir(objPath), matPath)
+		matFile, err := os.Open(matFilePath)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to open material file %q: %w", matFilePath, err)
 		}
 		defer matFile.Close()
 
 		materials, err := ReadMaterials(matFile)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to read materials: %w", err)
 		}
 		for matI, mat := range materials {
 			loadedMaterials[mat.Name] = &materials[matI]
@@ -53,14 +55,13 @@ func Load(objPath string) ([]ObjMesh, error) {
 // Save writes the mesh to the path specified in OBJ format, optionally writing
 // an additional MTL file with materials are found within the modeling.
 func Save(objPath string, meshToSave modeling.Mesh) error {
-	err := os.MkdirAll(path.Dir(objPath), os.ModeDir)
-	if err != nil {
-		return err
+	if err := os.MkdirAll(path.Dir(objPath), os.ModeDir); err != nil {
+		return fmt.Errorf("failed to create all dirs for path %q: %w", objPath, err)
 	}
 
 	objFile, err := os.Create(objPath)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create object file %q: %w", objPath, err)
 	}
 	defer objFile.Close()
 
@@ -70,21 +71,24 @@ func Save(objPath string, meshToSave modeling.Mesh) error {
 		mtlName := objPath[0:len(objPath)-len(extension)] + ".mtl"
 		mtlFile, err := os.Create(mtlName)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to create material file %q: %w", mtlName, err)
 		}
 		defer mtlFile.Close()
 
-		err = WriteMaterials(meshToSave, mtlFile)
-		if err != nil {
-			return err
+		if err = WriteMaterials(meshToSave, mtlFile); err != nil {
+			return fmt.Errorf("failed to write materials: %w", err)
 		}
 		mtlPath = path.Base(mtlName)
 	}
 
 	out := bufio.NewWriter(objFile)
-	err = WriteMesh(meshToSave, mtlPath, out)
-	if err != nil {
-		return err
+	if err = WriteMesh(meshToSave, mtlPath, out); err != nil {
+		return fmt.Errorf("failed to write mesh: %w", err)
 	}
-	return out.Flush()
+
+	if err = out.Flush(); err != nil {
+		return fmt.Errorf("failed to flush buffer: %w", err)
+	}
+
+	return nil
 }
