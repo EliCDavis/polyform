@@ -83,7 +83,10 @@ func parseObjFaceComponent(component string) (v int, vt int, vn int, err error) 
 	if !strings.Contains(component, "/") {
 		v, err = strconv.Atoi(component)
 		v -= 1
-		return v, vt, vn, fmt.Errorf("failed to convert component %q to int: %w", component, err)
+		if err != nil {
+			return v, vt, vn, fmt.Errorf("failed to convert component %q to int: %w", component, err)
+		}
+		return v, vt, vn, nil
 	}
 
 	if strings.Contains(component, "//") {
