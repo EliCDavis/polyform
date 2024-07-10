@@ -35,9 +35,9 @@ vn  0.0 -1.0  0.0
 vn  1.0  0.0  0.0
 vn -1.0  0.0  0.0
 	
-f  1//2  7//2  5//2
-f  1//2  3//2  7//2 
-f  1//6  4//6  3//6 
+f  1//  7//  5//
+f  1//  3//  7// 
+f  1//  4//  3// 
 f  1//6  2//6  4//6 
 f  3//3  8//3  7//3 
 f  3//3  4//3  8//3 
@@ -54,7 +54,7 @@ f  2//1  8//1  4//1
 	square := contents[0].Mesh
 
 	// ASSERT =================================================================
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Len(t, contents, 1)
 	assert.Equal(t, "cube", contents[0].Name)
 	assert.Len(t, matReferences, 0)
@@ -93,8 +93,8 @@ vn  1.0  0.0  0.0
 vn -1.0  0.0  0.0
 
 g side 1
-f  1//2  7//2  5//2
-f  1//2  3//2  7//2 
+f  1//  7//  5//
+f  1//  3//  7// 
 g side 2
 f  1//6  4//6  3//6 
 f  1//6  2//6  4//6 
@@ -116,7 +116,7 @@ f  2//1  8//1  4//1
 	contents, matReferences, err := obj.ReadMesh(strings.NewReader(objString))
 
 	// ASSERT =================================================================
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Len(t, matReferences, 0)
 	assert.Len(t, contents, 6)
 	assert.Equal(t, "side 1", contents[0].Name)
@@ -149,10 +149,10 @@ f  2 3 4
 
 	// ACT ====================================================================
 	contents, matReferences, err := obj.ReadMesh(strings.NewReader(objString))
-	require.NoError(t, err)
-	square := contents[0].Mesh
 
 	// ASSERT =================================================================
+	require.NoError(t, err)
+	square := contents[0].Mesh
 	assert.Equal(t, 2, square.PrimitiveCount())
 	assert.Len(t, matReferences, 0)
 	assert.Equal(t, "", contents[0].Name)
@@ -208,14 +208,14 @@ f  1/1/1 2/2/2 3/3/3
 
 	// ACT ====================================================================
 	contents, matReferences, err := obj.ReadMesh(strings.NewReader(objString))
-	square := contents[0].Mesh
 
 	// ASSERT =================================================================
-	assert.NoError(t, err)
+	require.NoError(t, err)
+	square := contents[0].Mesh
 	assert.Equal(t, 3, square.PrimitiveCount())
-	if assert.Len(t, matReferences, 1) {
-		assert.Equal(t, "test.mtl", matReferences[0])
-	}
+	require.Len(t, matReferences, 1)
+	assert.Equal(t, "test.mtl", matReferences[0])
+
 	assert.Equal(t, "", contents[0].Name)
 	assert.Len(t, contents, 1)
 
@@ -254,17 +254,14 @@ f  1/1/1 2/2/2 3/3/3
 		assert.Equal(t, 1, square.Materials()[1].PrimitiveCount)
 		assert.Equal(t, 1, square.Materials()[2].PrimitiveCount)
 
-		if assert.NotNil(t, square.Materials()[0].Material) {
-			assert.Equal(t, "red", square.Materials()[0].Material.Name)
-		}
+		require.NotNil(t, square.Materials()[0].Material)
+		assert.Equal(t, "red", square.Materials()[0].Material.Name)
 
-		if assert.NotNil(t, square.Materials()[1].Material) {
-			assert.Equal(t, "green", square.Materials()[1].Material.Name)
-		}
+		require.NotNil(t, square.Materials()[1].Material)
+		assert.Equal(t, "green", square.Materials()[1].Material.Name)
 
-		if assert.NotNil(t, square.Materials()[2].Material) {
-			assert.Equal(t, "red", square.Materials()[2].Material.Name)
-		}
+		require.NotNil(t, square.Materials()[2].Material)
+		assert.Equal(t, "red", square.Materials()[2].Material.Name)
 
 		if square.Materials()[0].Material != square.Materials()[2].Material {
 			t.Error("mesh materials don't reference same underlying material")
