@@ -13,6 +13,7 @@ func TestWriter(t *testing.T) {
 	b := &bytes.Buffer{}
 	writer := txt.NewWriter(b)
 
+	writer.StartEntry()
 	writer.String("testing")
 	writer.Space()
 	writer.Int(1)
@@ -22,11 +23,12 @@ func TestWriter(t *testing.T) {
 	writer.Int(3)
 	writer.NewLine()
 	writer.Tab()
-	writer.String("...?")
+	writer.Append([]byte("...?"))
 	writer.Space()
 	writer.Float64(3.14159)
 	writer.Space()
 	writer.Float64MaxFigs(3.14159, 2)
+	writer.FinishEntry()
 
 	assert.Equal(t, `testing 1 2 3
 	...? 3.14159 3.14`, b.String())
@@ -51,6 +53,7 @@ func BenchmarkFormat_TextWriter(b *testing.B) {
 	buf := &bytes.Buffer{}
 	writer := txt.NewWriter(buf)
 	for n := 0; n < b.N; n++ {
+		writer.StartEntry()
 		writer.String("testing")
 		writer.Space()
 		writer.Int(1)
@@ -63,6 +66,36 @@ func BenchmarkFormat_TextWriter(b *testing.B) {
 		writer.String("...?")
 		writer.Space()
 		writer.Float64(3.14)
+		writer.FinishEntry()
+	}
+	r = buf.String()
+	result = r
+}
+
+func BenchmarkFormat_ObjVert_Fprintf(b *testing.B) {
+	var r string
+	buf := &bytes.Buffer{}
+	for n := 0; n < b.N; n++ {
+		fmt.Fprintf(buf, "v %f %f %f\n", 1.234567, 1.234567, 1.234567)
+	}
+	r = buf.String()
+	result = r
+}
+
+func BenchmarkFormat_ObjVert_TextWriter(b *testing.B) {
+	var r string
+	buf := &bytes.Buffer{}
+	writer := txt.NewWriter(buf)
+	for n := 0; n < b.N; n++ {
+		writer.StartEntry()
+		writer.String("v ")
+		writer.Float64(1.234567)
+		writer.Space()
+		writer.Float64(1.234567)
+		writer.Space()
+		writer.Float64(1.234567)
+		writer.NewLine()
+		writer.FinishEntry()
 	}
 	r = buf.String()
 	result = r

@@ -15,6 +15,7 @@ func writeMaterialColor(colorType string, color color.Color, writer *txt.Writer)
 	if color == nil {
 		return nil
 	}
+	writer.StartEntry()
 	writer.String(colorType)
 	writer.Space()
 
@@ -26,19 +27,20 @@ func writeMaterialColor(colorType string, color color.Color, writer *txt.Writer)
 	writer.Float64MaxFigs(float64(b)/0xffff, 3)
 
 	writer.NewLine()
-	if err := writer.Error(); err != nil {
+	if _, err := writer.FinishEntry(); err != nil {
 		return fmt.Errorf("failed to write %s: %w", colorType, err)
 	}
 	return nil
 }
 
 func writeMaterialFloat(floatType string, f float64, writer *txt.Writer) error {
+	writer.StartEntry()
 	writer.String(floatType)
 	writer.Space()
 	writer.Float64(f)
 	writer.NewLine()
 
-	if err := writer.Error(); err != nil {
+	if _, err := writer.FinishEntry(); err != nil {
 		return fmt.Errorf("failed to write %s: %w", floatType, err)
 	}
 	return nil
@@ -49,12 +51,14 @@ func writeMaterialTexture(texType string, tex *string, writer *txt.Writer) error
 		return nil
 	}
 
+	writer.StartEntry()
+
 	writer.String(texType)
 	writer.Space()
 	writer.String(*tex)
 	writer.NewLine()
 
-	if err := writer.Error(); err != nil {
+	if _, err := writer.FinishEntry(); err != nil {
 		return fmt.Errorf("failed to write %s: %w", texType, err)
 	}
 	return nil
@@ -64,10 +68,11 @@ func WriteMaterial(mat modeling.Material, out io.Writer) (err error) {
 
 	writer := txt.NewWriter(out)
 
+	writer.StartEntry()
 	writer.String("newmtl ")
 	writer.String(strings.Replace(mat.Name, " ", "", -1))
 	writer.NewLine()
-	if err = writer.Error(); err != nil {
+	if _, err = writer.FinishEntry(); err != nil {
 		return fmt.Errorf("failed to write newmtl: %w", err)
 	}
 
@@ -111,7 +116,9 @@ func WriteMaterial(mat modeling.Material, out io.Writer) (err error) {
 		return err
 	}
 
+	writer.StartEntry()
 	writer.NewLine()
+	writer.FinishEntry()
 
 	if err = writer.Error(); err != nil {
 		return fmt.Errorf("failed to write out: %w", err)
@@ -150,17 +157,22 @@ func WriteMaterials(m modeling.Mesh, out io.Writer) error {
 
 func writeUsingMaterial(mat *modeling.Material, out *txt.Writer) {
 	if mat == nil {
+		out.StartEntry()
 		out.String("usemtl DefaultDiffuse\n")
+		out.FinishEntry()
 	} else {
+		out.StartEntry()
 		out.String("usemtl ")
 		out.String(strings.Replace(mat.Name, " ", "", -1))
 		out.NewLine()
+		out.FinishEntry()
 	}
 }
 
 func writeFaceVerts(tris *iter.ArrayIterator[int], out *txt.Writer, start, end, offset int) {
 	shift := 1 + offset
 	for triIndex := start; triIndex < end; triIndex += 3 {
+		out.StartEntry()
 		out.String("f ")
 		out.Int(tris.At(triIndex) + shift)
 		out.Space()
@@ -168,6 +180,7 @@ func writeFaceVerts(tris *iter.ArrayIterator[int], out *txt.Writer, start, end, 
 		out.Space()
 		out.Int(tris.At(triIndex+2) + shift)
 		out.NewLine()
+		out.FinishEntry()
 	}
 }
 
@@ -178,6 +191,7 @@ func writeFaceVertsAndUvs(tris *iter.ArrayIterator[int], out *txt.Writer, start,
 		p2 := tris.At(triIndex+1) + shift
 		p3 := tris.At(triIndex+2) + shift
 
+		out.StartEntry()
 		out.String("f ")
 
 		out.Int(p1)
@@ -194,6 +208,7 @@ func writeFaceVertsAndUvs(tris *iter.ArrayIterator[int], out *txt.Writer, start,
 		out.String("/")
 		out.Int(p3)
 		out.NewLine()
+		out.FinishEntry()
 	}
 }
 
@@ -204,6 +219,7 @@ func writeFaceVertsAndNormals(tris *iter.ArrayIterator[int], out *txt.Writer, st
 		p2 := tris.At(triIndex+1) + shift
 		p3 := tris.At(triIndex+2) + shift
 
+		out.StartEntry()
 		out.String("f ")
 
 		out.Int(p1)
@@ -220,6 +236,7 @@ func writeFaceVertsAndNormals(tris *iter.ArrayIterator[int], out *txt.Writer, st
 		out.String("//")
 		out.Int(p3)
 		out.NewLine()
+		out.FinishEntry()
 	}
 }
 
@@ -230,6 +247,7 @@ func writeFaceVertAndUvsAndNormals(tris *iter.ArrayIterator[int], out *txt.Write
 		p2 := tris.At(triIndex+1) + shift
 		p3 := tris.At(triIndex+2) + shift
 
+		out.StartEntry()
 		out.String("f ")
 
 		out.Int(p1)
@@ -252,6 +270,7 @@ func writeFaceVertAndUvsAndNormals(tris *iter.ArrayIterator[int], out *txt.Write
 		out.String("/")
 		out.Int(p3)
 		out.NewLine()
+		out.FinishEntry()
 	}
 }
 
@@ -279,13 +298,15 @@ func WriteMeshes(meshes []ObjMesh, materialFile string, out io.Writer) error {
 			vtxt := []byte("v ")
 			for i := 0; i < posData.Len(); i++ {
 				v := posData.At(i)
-				writer.Write(vtxt)
+				writer.StartEntry()
+				writer.Append(vtxt)
 				writer.Float64(v.X())
 				writer.Space()
 				writer.Float64(v.Y())
 				writer.Space()
 				writer.Float64(v.Z())
 				writer.NewLine()
+				writer.FinishEntry()
 			}
 
 			if err := writer.Error(); err != nil {
@@ -298,11 +319,13 @@ func WriteMeshes(meshes []ObjMesh, materialFile string, out io.Writer) error {
 			vt := []byte("vt ")
 			for i := 0; i < uvData.Len(); i++ {
 				uv := uvData.At(i)
-				writer.Write(vt)
+				writer.StartEntry()
+				writer.Append(vt)
 				writer.Float64(uv.X())
 				writer.Space()
 				writer.Float64(uv.Y())
 				writer.NewLine()
+				writer.FinishEntry()
 			}
 			if err := writer.Error(); err != nil {
 				return fmt.Errorf("failed to write UV attr: %w", err)
@@ -314,13 +337,15 @@ func WriteMeshes(meshes []ObjMesh, materialFile string, out io.Writer) error {
 			vn := []byte("vn ")
 			for i := 0; i < normalData.Len(); i++ {
 				n := normalData.At(i)
-				writer.Write(vn)
+				writer.StartEntry()
+				writer.Append(vn)
 				writer.Float64(n.X())
 				writer.Space()
 				writer.Float64(n.Y())
 				writer.Space()
 				writer.Float64(n.Z())
 				writer.NewLine()
+				writer.FinishEntry()
 			}
 
 			if err := writer.Error(); err != nil {
