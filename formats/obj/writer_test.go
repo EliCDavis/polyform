@@ -47,9 +47,9 @@ func TestWriteObj_NoNormalsOrUVs(t *testing.T) {
 
 	assert.Equal(t,
 		`# Created with github.com/EliCDavis/polyform
-v 1.000000 2.000000 3.000000
-v 4.000000 5.000000 6.000000
-v 7.000000 8.000000 9.000000
+v 1 2 3
+v 4 5 6
+v 7 8 9
 f 1 2 3
 `, buf.String())
 }
@@ -79,12 +79,12 @@ func TestWriteObj_NoUVs(t *testing.T) {
 
 	assert.Equal(t,
 		`# Created with github.com/EliCDavis/polyform
-v 1.000000 2.000000 3.000000
-v 4.000000 5.000000 6.000000
-v 7.000000 8.000000 9.000000
-vn 0.000000 1.000000 0.000000
-vn 0.000000 0.000000 1.000000
-vn 1.000000 0.000000 0.000000
+v 1 2 3
+v 4 5 6
+v 7 8 9
+vn 0 1 0
+vn 0 0 1
+vn 1 0 0
 f 1//1 2//2 3//3
 `, buf.String())
 }
@@ -112,12 +112,12 @@ func TestWriteObj_NoNormals(t *testing.T) {
 
 	assert.Equal(t,
 		`# Created with github.com/EliCDavis/polyform
-v 1.000000 2.000000 3.000000
-v 4.000000 5.000000 6.000000
-v 7.000000 8.000000 9.000000
-vt 1.000000 0.500000
-vt 0.500000 1.000000
-vt 0.000000 0.000000
+v 1 2 3
+v 4 5 6
+v 7 8 9
+vt 1 0.5
+vt 0.5 1
+vt 0 0
 f 1/1 2/2 3/3
 `, buf.String())
 }
@@ -156,15 +156,15 @@ func TestWriteObj(t *testing.T) {
 
 	assert.Equal(t,
 		`# Created with github.com/EliCDavis/polyform
-v 1.000000 2.000000 3.000000
-v 4.000000 5.000000 6.000000
-v 7.000000 8.000000 9.000000
-vt 1.000000 0.500000
-vt 0.500000 1.000000
-vt 0.000000 0.000000
-vn 0.000000 1.000000 0.000000
-vn 0.000000 0.000000 1.000000
-vn 1.000000 0.000000 0.000000
+v 1 2 3
+v 4 5 6
+v 7 8 9
+vt 1 0.5
+vt 0.5 1
+vt 0 0
+vn 0 1 0
+vn 0 0 1
+vn 1 0 0
 f 1/1/1 2/2/2 3/3/3
 `, buf.String())
 }
@@ -209,15 +209,15 @@ func TestWriteObjWithSingleMaterial(t *testing.T) {
 
 	assert.Equal(t,
 		`# Created with github.com/EliCDavis/polyform
-v 1.000000 2.000000 3.000000
-v 4.000000 5.000000 6.000000
-v 7.000000 8.000000 9.000000
-vt 1.000000 0.500000
-vt 0.500000 1.000000
-vt 0.000000 0.000000
-vn 0.000000 1.000000 0.000000
-vn 0.000000 0.000000 1.000000
-vn 1.000000 0.000000 0.000000
+v 1 2 3
+v 4 5 6
+v 7 8 9
+vt 1 0.5
+vt 0.5 1
+vt 0 0
+vn 0 1 0
+vn 0 0 1
+vn 1 0 0
 usemtl red
 f 1/1/1 2/2/2 3/3/3
 `, buf.String())
@@ -279,24 +279,24 @@ func TestWriteObjWithMultipleMaterials(t *testing.T) {
 
 	assert.Equal(t,
 		`# Created with github.com/EliCDavis/polyform
-v 1.000000 2.000000 3.000000
-v 4.000000 5.000000 6.000000
-v 7.000000 8.000000 9.000000
-v 1.000000 2.000000 3.000000
-v 4.000000 5.000000 6.000000
-v 7.000000 8.000000 9.000000
-vt 1.000000 0.500000
-vt 0.500000 1.000000
-vt 0.000000 0.000000
-vt 1.000000 0.500000
-vt 0.500000 1.000000
-vt 0.000000 0.000000
-vn 0.000000 1.000000 0.000000
-vn 0.000000 0.000000 1.000000
-vn 1.000000 0.000000 0.000000
-vn 0.000000 1.000000 0.000000
-vn 0.000000 0.000000 1.000000
-vn 1.000000 0.000000 0.000000
+v 1 2 3
+v 4 5 6
+v 7 8 9
+v 1 2 3
+v 4 5 6
+v 7 8 9
+vt 1 0.5
+vt 0.5 1
+vt 0 0
+vt 1 0.5
+vt 0.5 1
+vt 0 0
+vn 0 1 0
+vn 0 0 1
+vn 1 0 0
+vn 0 1 0
+vn 0 0 1
+vn 1 0 0
 usemtl red
 f 1/1/1 2/2/2 3/3/3
 usemtl blue
@@ -334,17 +334,17 @@ func TestWriteMaterials(t *testing.T) {
 	assert.Equal(t,
 		`# Created with github.com/EliCDavis/polyform
 newmtl red
-Kd 0.003922 1.000000 0.011765
-Ns 0.000000
-Ni 0.000000
-d 1.000000
+Kd 0.004 1 0.012
+Ns 0
+Ni 0
+d 1
 
 newmtl blue
-Ka 0.015686 0.019608 0.023529
-Ks 0.027451 0.031373 0.035294
-Ns 0.000000
-Ni 0.000000
-d 1.000000
+Ka 0.016 0.02 0.024
+Ks 0.027 0.031 0.035
+Ns 0
+Ni 0
+d 1
 
 `, buf.String())
 }

@@ -68,8 +68,8 @@ func (h Header) Write(out io.Writer) (err error) {
 		return
 	}
 
-	for _, info := range h.Comments {
-		_, err = fmt.Fprintf(out, "comment %s\n", info)
+	for _, comment := range h.Comments {
+		_, err = fmt.Fprintf(out, "comment %s\n", comment)
 		if err != nil {
 			return
 		}
