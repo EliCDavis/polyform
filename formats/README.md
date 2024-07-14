@@ -8,15 +8,15 @@ I'm not doing FBX. FBX is cursed and Autodesk can burn in hell.
 * ❌ = Planned
 * ➖ = Not Planned
 
-| Format     | Reading | Writing     |
-| ---------- | ------- | ----------- |
-| PTS        | ✔️      | ❌         |
-| PTX        | ❌      | ❌         |
-| PLY        | ✔️      | ✔️         |
-| OBJ        | ✔️      | ✔️         |
-| GLTF       | ❌      | ✔️         |
-| STL        | ❌      | ❌         |
-| COLMAP     | ✔️      | ❌         |
-| OpenSFM    | ✔️      | ❌         |
-| Splat      | ✔️      | ✔️         |
-| Potree 2.0 | ✔️      | ➖         |
+| Format     | Reading     | Writing      |
+| ---------- | ----------- | ------------ |
+| PTS        | ✔️          | ❌          |
+| PTX        | ❌          | ❌          |
+| PLY        | ✔️          | ✔️          |
+| OBJ        | ✔️          | ✔️          |
+| GLTF       | ❌          | ✔️          |
+| STL        | ✔️ (Binary) | ✔️ (Binary) |
+| COLMAP     | ✔️          | ❌          |
+| OpenSFM    | ✔️          | ❌          |
+| Splat      | ✔️          | ✔️          |
+| Potree 2.0 | ✔️          | ➖          |

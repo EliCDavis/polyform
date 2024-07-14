@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -8,6 +9,7 @@ import (
 
 	"github.com/EliCDavis/polyform/formats/obj"
 	"github.com/EliCDavis/polyform/formats/ply"
+	"github.com/EliCDavis/polyform/formats/stl"
 	"github.com/EliCDavis/polyform/modeling"
 )
 
@@ -31,7 +33,10 @@ func readMesh(path string) (*modeling.Mesh, error) {
 		return &mesh, err
 
 	case ".ply":
-		return ply.ReadMesh(inFile)
+		return ply.ReadMesh(bufio.NewReader(inFile))
+
+	case ".stl":
+		return stl.ReadMesh(bufio.NewReader(inFile))
 
 	default:
 		return nil, fmt.Errorf("unimplemented format: %s", ext)

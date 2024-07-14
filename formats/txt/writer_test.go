@@ -48,6 +48,16 @@ func BenchmarkFormat_Fprintf(b *testing.B) {
 	result = r
 }
 
+func BenchmarkFormat_Fprint(b *testing.B) {
+	var r string
+	buf := &bytes.Buffer{}
+	for n := 0; n < b.N; n++ {
+		fmt.Fprint(buf, "testing ", 1, 2, 3, "\n\t...? ", 3.14)
+	}
+	r = buf.String()
+	result = r
+}
+
 func BenchmarkFormat_TextWriter(b *testing.B) {
 	var r string
 	buf := &bytes.Buffer{}
@@ -67,6 +77,16 @@ func BenchmarkFormat_TextWriter(b *testing.B) {
 		writer.Space()
 		writer.Float64(3.14)
 		writer.FinishEntry()
+	}
+	r = buf.String()
+	result = r
+}
+
+func BenchmarkFormat_ObjVert_Fprint(b *testing.B) {
+	var r string
+	buf := &bytes.Buffer{}
+	for n := 0; n < b.N; n++ {
+		fmt.Fprint(buf, "v ", 1.234567, 1.234567, 1.234567, "\n")
 	}
 	r = buf.String()
 	result = r
