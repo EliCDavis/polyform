@@ -37,8 +37,13 @@ func GetTypeWithPackage(v any) string {
 	}
 
 	viewKind := vType.Kind()
+
+	arrayStr := ""
 	// ptr := ""
-	for viewKind == reflect.Ptr {
+	for viewKind == reflect.Ptr || (viewKind == reflect.Slice && vType.Name() == "") {
+		if viewKind == reflect.Slice {
+			arrayStr += "[]"
+		}
 		vType = vType.Elem()
 		viewKind = vType.Kind()
 		// ptr += "*"
@@ -46,9 +51,9 @@ func GetTypeWithPackage(v any) string {
 
 	pkgPath := vType.PkgPath()
 	if !strings.Contains(pkgPath, "/") {
-		return vType.String()
+		return arrayStr + vType.String()
 	}
-	return path.Dir(pkgPath) + "/" + vType.String()
+	return arrayStr + path.Dir(pkgPath) + "/" + vType.String()
 }
 
 // GetTypeName returns the name of the type of the variable provided

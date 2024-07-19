@@ -168,6 +168,39 @@ export class NodeManager {
             nm.onNodeCreateCallback(this, ParameterNodeType("float64"));
         }
 
+        function BoolParameter() {
+            this.addOutput("value", "bool");
+            this.addProperty("bool", false);
+            this.widget = this.addWidget("toggle", "value", false, "value");
+            this.widgets_up = true;
+            this.size = [180, 30];
+            this.title = "Const Bool";
+            this.desc = "Constant Bool";
+            this.color = ParameterNodeColor;
+            this.bgcolor = ParameterNodeBackgroundColor;
+
+            this.onExecute = () => {
+                this.setOutputData(0, this.properties["value"] === "true");
+            };
+
+            this.getTitle = () => {
+                if (this.flags.collapsed) {
+                    return this.properties.value;
+                }
+                return this.title;
+            };
+
+            this.setValue = (v) => {
+                this.setProperty("value", v);
+            }
+
+            this.onDrawBackground = function (ctx) {
+                this.outputs[0].label = this.properties["value"];
+            };
+
+            nm.onNodeCreateCallback(this, ParameterNodeType("bool"));
+        }
+
         function IntParameter() {
             this.addOutput("value", "int");
             this.addProperty("value", 1.0);
@@ -243,6 +276,7 @@ export class NodeManager {
 
         LiteGraph.registerNodeType(ParameterNamespace("string"), StringParameter);
         LiteGraph.registerNodeType(ParameterNamespace("float64"), Float64Parameter);
+        LiteGraph.registerNodeType(ParameterNamespace("bool"), BoolParameter);
         LiteGraph.registerNodeType(ParameterNamespace("int"), IntParameter);
         LiteGraph.registerNodeType(ParameterNamespace("aabb"), AABBParameterNode);
         LiteGraph.registerNodeType(ParameterNamespace("vector3"), Vector3ParameterNode);
@@ -347,6 +381,9 @@ export class NodeManager {
 
             case "int":
                 return LiteGraph.createNode(ParameterNamespace("int"));
+
+            case "bool":
+                return LiteGraph.createNode(ParameterNamespace("bool"));
 
             case "string":
                 return LiteGraph.createNode(ParameterNamespace("string"));
