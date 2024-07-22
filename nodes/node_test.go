@@ -44,7 +44,10 @@ func TestNodes(t *testing.T) {
 		},
 	}
 
-	repeated.Out().Node().SetInput("Times", nodes.Output{NodeOutput: nodes.Value(30)})
+	repeated.
+		Out().
+		Node().
+		SetInput("Times", nodes.Output{NodeOutput: nodes.Value(30)})
 
 	combined := CombineNode{
 		Data: CombineData{
@@ -60,6 +63,10 @@ func TestNodes(t *testing.T) {
 			},
 		},
 	}
+
+	combinedInputs := combined.Inputs()
+	assert.Len(t, combinedInputs, 1)
+	assert.Equal(t, "[]github.com/EliCDavis/polyform/modeling.Mesh", combinedInputs[0].Type)
 
 	combinedDeps := combined.Out().Node().Dependencies()
 	assert.Len(t, combinedDeps, 2)
