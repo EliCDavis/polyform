@@ -79,36 +79,11 @@ func WriteMaterial(mat modeling.Material, out io.Writer) (err error) {
 }
 
 func WriteMaterialsFromMesh(m modeling.Mesh, out io.Writer) error {
-	fmt.Fprintln(out, "# Created with github.com/EliCDavis/polyform")
-
-	defaultWritten := false
-
-	written := make(map[*modeling.Material]bool)
-
-	for _, mat := range m.Materials() {
-		if mat.Material == nil {
-			if !defaultWritten {
-				if err := WriteMaterial(modeling.DefaultMaterial(), out); err != nil {
-					return fmt.Errorf("failed to write default material: %w", err)
-				}
-				defaultWritten = true
-			}
-			continue
-		}
-
-		if _, ok := written[mat.Material]; ok {
-			continue
-		}
-		if err := WriteMaterial(*mat.Material, out); err != nil {
-			return fmt.Errorf("failed to write material %s: %w", mat.Material.Name, err)
-		}
-		written[mat.Material] = true
-	}
-	return nil
+	return WriteMaterials(m.Materials(), out)
 }
 
 func WriteMaterials(ms []modeling.MeshMaterial, out io.Writer) error {
-	fmt.Fprintln(out, "# Created with github.com/EliCDavis/polyform")
+	_, _ = fmt.Fprintln(out, "# Created with github.com/EliCDavis/polyform")
 
 	defaultWritten := false
 
