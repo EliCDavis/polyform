@@ -53,7 +53,7 @@ func Load(objPath string) ([]ObjMesh, error) {
 }
 
 // Save writes the mesh to the path specified in OBJ format, optionally writing
-// an additional MTL file with materials are found within the modeling.
+// an additional MTL file with all materials that are found within the modeling.
 func Save(objPath string, meshToSave modeling.Mesh) error {
 	if err := os.MkdirAll(path.Dir(objPath), os.ModeDir); err != nil {
 		return fmt.Errorf("failed to create all dirs for path %q: %w", objPath, err)
@@ -94,7 +94,7 @@ func Save(objPath string, meshToSave modeling.Mesh) error {
 }
 
 // SaveAll writes all provided meshes to the path specified in OBJ format, optionally writing
-// an additional MTL file with materials are found within the modeling.
+// an additional MTL file with all materials that are found across all meshes.
 func SaveAll(objPath string, meshesToSave map[string]modeling.Mesh) error {
 	if err := os.MkdirAll(path.Dir(objPath), os.ModeDir); err != nil {
 		return fmt.Errorf("failed to create all dirs for path %q: %w", objPath, err)
