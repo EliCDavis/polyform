@@ -171,5 +171,5 @@ func main() {
 	defer objFile.Close()
 
 	obj.WriteMesh(final, "ufo.mtl", objFile)
-	obj.WriteMaterials(final, mtlFile)
+	obj.WriteMaterialsFromMesh(final, mtlFile)
 }
