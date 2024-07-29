@@ -334,17 +334,17 @@ func TestWriteMaterials(t *testing.T) {
 	assert.Equal(t,
 		`# Created with github.com/EliCDavis/polyform
 newmtl red
-Kd 0.003922 1.000000 0.011765
-Ns 0.000000
-Ni 0.000000
-d 1.000000
+Kd 0.004 1. 0.012
+Ns 0
+Ni 0
+d 1
 
 newmtl blue
-Ka 0.015686 0.019608 0.023529
-Ks 0.027451 0.031373 0.035294
-Ns 0.000000
-Ni 0.000000
-d 1.000000
+Ka 0.016 0.02 0.024
+Ks 0.027 0.031 0.035
+Ns 0
+Ni 0
+d 1
 
 `, buf.String())
 }
