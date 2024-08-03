@@ -77,5 +77,21 @@ type CircleNodeData struct {
 }
 
 func (r CircleNodeData) Process() (modeling.Mesh, error) {
-	return Circle(r.Mesh.Value(), r.Times.Value(), r.Radius.Value()), nil
+	if r.Mesh == nil {
+		return modeling.EmptyMesh(modeling.TriangleTopology), nil
+	}
+
+	mesh := r.Mesh.Value()
+	times := 0
+	radius := 0.
+
+	if r.Times != nil {
+		times = r.Times.Value()
+	}
+
+	if r.Radius != nil {
+		radius = r.Radius.Value()
+	}
+
+	return Circle(mesh, times, radius), nil
 }

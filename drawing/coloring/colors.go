@@ -4,6 +4,10 @@ func Black() WebColor {
 	return WebColor{0, 0, 0, 255}
 }
 
+func Grey(b byte) WebColor {
+	return WebColor{b, b, b, 255}
+}
+
 func White() WebColor {
 	return WebColor{255, 255, 255, 255}
 }

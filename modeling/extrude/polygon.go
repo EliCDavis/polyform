@@ -243,10 +243,11 @@ func Polygon(sides int, points []ExtrusionPoint) modeling.Mesh {
 type PolygonNode = nodes.StructNode[modeling.Mesh, PolygonNodeData]
 
 type PolygonNodeData struct {
-	Closed    nodes.NodeOutput[bool]
-	Sides     nodes.NodeOutput[int]
-	Thickness nodes.NodeOutput[[]float64]
-	Path      nodes.NodeOutput[[]vector3.Float64]
+	Closed         nodes.NodeOutput[bool]
+	Sides          nodes.NodeOutput[int]
+	ThicknessScale nodes.NodeOutput[float64]
+	Thickness      nodes.NodeOutput[[]float64]
+	Path           nodes.NodeOutput[[]vector3.Float64]
 }
 
 func (pnd PolygonNodeData) Process() (modeling.Mesh, error) {
@@ -254,12 +255,17 @@ func (pnd PolygonNodeData) Process() (modeling.Mesh, error) {
 		return modeling.EmptyMesh(modeling.TriangleTopology), nil
 	}
 
+	thicknessScale := 1.0
+	if pnd.ThicknessScale != nil {
+		thicknessScale = pnd.ThicknessScale.Value()
+	}
+
 	path := pnd.Path.Value()
 	points := make([]ExtrusionPoint, len(path))
 	for i, p := range path {
 		points[i] = ExtrusionPoint{
 			Point:     p,
-			Thickness: 1,
+			Thickness: thicknessScale,
 		}
 	}
 
@@ -267,7 +273,7 @@ func (pnd PolygonNodeData) Process() (modeling.Mesh, error) {
 		thickness := pnd.Thickness.Value()
 		if len(thickness) == len(path) {
 			for i, p := range thickness {
-				points[i].Thickness = p
+				points[i].Thickness = p * thicknessScale
 			}
 		}
 	}

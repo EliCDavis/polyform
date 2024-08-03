@@ -33,6 +33,11 @@ import { CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
 // import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { ProgressiveLightMap } from 'three/addons/misc/ProgressiveLightMap.js';
 
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
 import { InitXR } from './xr.js';
 import { UpdateManager } from './update-manager.js';
 import { ColorSelector } from './color_selector.js';
@@ -89,6 +94,21 @@ renderer.toneMappingExposure = 1;
 renderer.xr.enabled = RenderingConfiguration.XrEnabled;
 renderer.setAnimationLoop(updateLoop.run.bind(updateLoop))
 
+const renderScene = new RenderPass(scene, camera);
+
+// constructor( resolution, strength, radius, threshold )
+const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), .3, 0., 1.01);
+// bloomPass.threshold = params.threshold;
+// bloomPass.strength = params.strength;
+// bloomPass.radius = params.radius;
+
+const outputPass = new OutputPass();
+
+const composer = new EffectComposer(renderer);
+composer.addPass(renderScene);
+composer.addPass(bloomPass);
+composer.addPass(outputPass);
+
 // container.appendChild(renderer.domElement);
 // progressive lightmap
 const progressiveSurfacemap = new ProgressiveLightMap(renderer, lightMapRes);
@@ -103,11 +123,11 @@ container.appendChild(labelRenderer.domElement);
 const stats = new Stats();
 container.appendChild(stats.dom);
 
-const hemiLight = new THREE.HemisphereLight(viewportSettings.lighting, 0x8d8d8d, 3);
+const hemiLight = new THREE.HemisphereLight(viewportSettings.lighting, 0x8d8d8d, 1);
 hemiLight.position.set(0, 20, 0);
 scene.add(hemiLight);
 
-const dirLight = new THREE.DirectionalLight(viewportSettings.lighting, 3);
+const dirLight = new THREE.DirectionalLight(viewportSettings.lighting, 1);
 dirLight.position.set(100, 100, 100);
 dirLight.castShadow = true;
 dirLight.shadow.camera.top = 100;
@@ -124,7 +144,7 @@ scene.add(dirLight);
 
 // ground
 const groundMat = new THREE.MeshPhongMaterial({ color: viewportSettings.ground, depthWrite: true });
-const groundMesh = new THREE.Mesh(new THREE.PlaneGeometry(100, 100), groundMat);
+const groundMesh = new THREE.Mesh(new THREE.PlaneGeometry(1000, 1000), groundMat);
 groundMesh.rotation.x = - Math.PI / 2;
 groundMesh.receiveShadow = true;
 scene.add(groundMesh);
@@ -274,8 +294,8 @@ class SchemaRefreshManager {
             gltf.scene.traverse((object) => {
                 console.log(object)
                 if (object.isMesh) {
-                    object.castShadow = true;
-                    object.receiveShadow = true;
+                    // object.castShadow = true;
+                    // object.receiveShadow = true;
 
                     const prevMaterial = object.material;
 
@@ -298,7 +318,7 @@ class SchemaRefreshManager {
                     object.material.wireframe = viewportSettings.renderWireframe;
                     object.material.envMap = textureEquirec;
                     object.material.needsUpdate = true;
-                    object.material.transparent = true;
+                    // object.material.transparent = true;
 
                     console.log(prevMaterial)
                     objects.push(object)
@@ -393,7 +413,7 @@ class SchemaRefreshManager {
                     orbitControls.update();
                 }
             });
-            
+
             this.RemoveLoading();
             this.UpdateSubscribers(producerURL, gltf);
 
@@ -650,6 +670,7 @@ function resize() {
 
     if (renderer.domElement.width !== w || renderer.domElement.height !== h) {
         renderer.setSize(w, h, false);
+        composer.setSize(w, h);
         camera.aspect = w / h;
         camera.updateProjectionMatrix();
         lightCanvas.resize(lightCanvasCanvas.clientWidth, lightCanvasCanvas.clientHeight, false)
@@ -678,7 +699,7 @@ if (websocketManager.canConnect()) {
 updateLoop.addToUpdate(() => {
     resize();
 
-    renderer.render(scene, camera);
+    composer.render(scene, camera);
 
     if (guassianSplatViewer) {
         guassianSplatViewer.update();

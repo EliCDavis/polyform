@@ -273,7 +273,6 @@ export class NodeManager {
             nm.onNodeCreateCallback(this, ParameterNodeType("string"));
         }
 
-
         LiteGraph.registerNodeType(ParameterNamespace("string"), StringParameter);
         LiteGraph.registerNodeType(ParameterNamespace("float64"), Float64Parameter);
         LiteGraph.registerNodeType(ParameterNamespace("bool"), BoolParameter);
@@ -311,6 +310,7 @@ export class NodeManager {
                 const target = this.nodeIdToNode.get(dep.dependencyID);
 
                 let sourceInput = -1;
+                // console.log(source.liteNode)
                 for (let sourceInputIndex = 0; sourceInputIndex < source.liteNode.inputs.length; sourceInputIndex++) {
                     if (source.liteNode.inputs[sourceInputIndex].name === dep.name) {
                         sourceInput = sourceInputIndex;
@@ -327,6 +327,7 @@ export class NodeManager {
     buildCustomNodeType(typeData) {
         const nm = this;
         function CustomNodeFunc() {
+            // console.log(typeData)
             for (var inputName in typeData.inputs) {
                 this.addInput(inputName, typeData.inputs[inputName].type);
             }

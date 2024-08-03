@@ -102,6 +102,9 @@ func (cn DiscoBallNodeData) Process() ([]gltf.PolyformModel, error) {
 			).
 			Translate(discoBallHeight)
 
+	smooth := 0.
+
+	gloss := 1.0
 	return []gltf.PolyformModel{
 		{
 			Name: "Disco Ball",
@@ -112,8 +115,7 @@ func (cn DiscoBallNodeData) Process() ([]gltf.PolyformModel, error) {
 				// 	"threejs-material": "phong",
 				// },
 				PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
-					MetallicFactor:  1,
-					RoughnessFactor: 0,
+					RoughnessFactor: &smooth,
 					BaseColorFactor: ballColor,
 					MetallicRoughnessTexture: &gltf.PolyformTexture{
 						URI: "metal.png",
@@ -121,7 +123,7 @@ func (cn DiscoBallNodeData) Process() ([]gltf.PolyformModel, error) {
 				},
 				Extensions: []gltf.MaterialExtension{
 					&gltf.PolyformPbrSpecularGlossiness{
-						GlossinessFactor: 1,
+						GlossinessFactor: &gloss,
 						DiffuseFactor:    ballColor,
 						SpecularFactor:   color.RGBA{R: 255, G: 255, B: 255, A: 255},
 					},
@@ -133,8 +135,7 @@ func (cn DiscoBallNodeData) Process() ([]gltf.PolyformModel, error) {
 			Mesh: discoballAttachment,
 			Material: &gltf.PolyformMaterial{
 				PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
-					MetallicFactor:  1,
-					RoughnessFactor: 0,
+					RoughnessFactor: &smooth,
 					BaseColorFactor: color.Black,
 					MetallicRoughnessTexture: &gltf.PolyformTexture{
 						URI: "metal.png",

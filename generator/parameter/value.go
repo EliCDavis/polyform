@@ -69,6 +69,7 @@ type Int = Value[int]
 type String = Value[string]
 type Bool = Value[bool]
 type Vector3 = Value[vector3.Float64]
+type Vector3Array = Value[[]vector3.Float64]
 type AABB = Value[geometry.AABB]
 type Color = Value[coloring.WebColor]
 

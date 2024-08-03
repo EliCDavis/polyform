@@ -129,7 +129,6 @@ func (gan GlbArtifactNodeData) Process() (generator.Artifact, error) {
 					Name: "Spikes",
 					PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
 						BaseColorFactor: gan.SpikeColor.Value(),
-						MetallicFactor:  1,
 						MetallicRoughnessTexture: &gltf.PolyformTexture{
 							URI: mrTexturePath,
 						},

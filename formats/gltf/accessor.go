@@ -15,22 +15,13 @@ const (
 
 func (act AccessorComponentType) Size() int {
 	switch act {
-	case AccessorComponentType_BYTE:
+	case AccessorComponentType_UNSIGNED_BYTE, AccessorComponentType_BYTE:
 		return 1
 
-	case AccessorComponentType_UNSIGNED_BYTE:
-		return 1
-
-	case AccessorComponentType_SHORT:
+	case AccessorComponentType_UNSIGNED_SHORT, AccessorComponentType_SHORT:
 		return 2
 
-	case AccessorComponentType_UNSIGNED_SHORT:
-		return 2
-
-	case AccessorComponentType_UNSIGNED_INT:
-		return 4
-
-	case AccessorComponentType_FLOAT:
+	case AccessorComponentType_FLOAT, AccessorComponentType_UNSIGNED_INT:
 		return 4
 	}
 

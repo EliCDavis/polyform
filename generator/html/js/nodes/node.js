@@ -66,6 +66,9 @@ export function camelCaseToWords(str) {
     if (title.endsWith(" Node Data")) {
         title = title.substring(0, title.length - 10);
     }
+    if (title.endsWith("NodeData")) {
+        title = title.substring(0, title.length - 8);
+    }
     return title;
 }
 

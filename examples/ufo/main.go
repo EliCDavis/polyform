@@ -5,13 +5,19 @@ import (
 	"math"
 	"os"
 
+	"github.com/EliCDavis/polyform/drawing/coloring"
+	"github.com/EliCDavis/polyform/formats/gltf"
 	"github.com/EliCDavis/polyform/formats/obj"
+	"github.com/EliCDavis/polyform/generator"
+	"github.com/EliCDavis/polyform/generator/parameter"
+	"github.com/EliCDavis/polyform/generator/room"
 	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/extrude"
 	"github.com/EliCDavis/polyform/modeling/meshops"
 	"github.com/EliCDavis/polyform/modeling/primitives"
 	"github.com/EliCDavis/polyform/modeling/repeat"
+	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/vector/vector3"
 )
 
@@ -38,6 +44,89 @@ func AbductionRing(radius, baseThickness, magnitude float64) modeling.Mesh {
 	return extrude.
 		ClosedCircleWithThickness(20, thickness, path).
 		SetMaterial(mat)
+}
+
+func AbductionRing2() nodes.NodeOutput[modeling.Mesh] {
+	radius := &parameter.Float64{
+		Name:         "Abduction Ring Radius",
+		DefaultValue: 4.,
+	}
+
+	resolution := &parameter.Int{
+		Name:         "Abduction Ring Path Resolution",
+		DefaultValue: 120,
+	}
+
+	sample := &SampleNode{
+		Data: SampleNodeData{
+			Samples: resolution,
+			End: &parameter.Float64{
+				Name:         "2Pi",
+				DefaultValue: math.Pi * 2,
+			},
+		},
+	}
+
+	path := &VectorArrayNode{
+		Data: VectoryArrayNodeData{
+			X: &CosNode{Data: CosNodeData{Input: sample, Scale: radius}},
+			Z: &SinNode{Data: SinNodeData{Input: sample, Scale: radius}},
+			Y: &SinNode{Data: SinNodeData{
+				Input: &SampleNode{
+					Data: SampleNodeData{
+						Samples: resolution,
+						End: &parameter.Float64{
+							Name:         "Abduction Ring Frequency",
+							DefaultValue: math.Pi * 4 * 2,
+						},
+					},
+				},
+				Scale: &parameter.Float64{
+					Name:         "Abduction Ring Amplitude",
+					DefaultValue: .5,
+				},
+			}},
+		},
+	}
+
+	return &extrude.PolygonNode{
+		Data: extrude.PolygonNodeData{
+			Sides: &parameter.Int{
+				Name:         "Abduction Ring Resolution",
+				DefaultValue: 20,
+			},
+			Thickness: &ShiftNode{
+				Data: ShiftNodeData{
+					In: &CosNode{
+						Data: CosNodeData{
+							Input: &SampleNode{
+								Data: SampleNodeData{
+									Samples: resolution,
+									End: &parameter.Float64{
+										Name:         "Abduction Ring Thickness Frequency",
+										DefaultValue: math.Pi * 2 * 2 * 3,
+									},
+								},
+							},
+							Scale: &parameter.Float64{
+								Name:         "Thickness Scale",
+								DefaultValue: 0.25,
+							},
+						},
+					},
+					Shift: &parameter.Float64{
+						Name:         "Thickness Shift",
+						DefaultValue: .5,
+					},
+				},
+			},
+			Path: path,
+			Closed: &parameter.Bool{
+				Name:         "Closed",
+				DefaultValue: true,
+			},
+		},
+	}
 }
 
 func contour(positions []vector3.Float64, times int) modeling.Mesh {
@@ -142,7 +231,7 @@ func UfoBody(outerRadius float64, portalRadius float64, frameSections int) model
 		Append(extrude.CircleWithThickness(20, domeThickness, domePath).SetMaterial(domeMat))
 }
 
-func main() {
+func main2() {
 	ufoOuterRadius := 10.
 	ufoportalRadius := 4.
 	ring := AbductionRing(ufoportalRadius, 0.5, 0.5)
@@ -172,4 +261,276 @@ func main() {
 
 	obj.WriteMesh(final, "ufo.mtl", objFile)
 	obj.WriteMaterials(final, mtlFile)
+}
+
+func main() {
+	ringCount := &parameter.Int{
+		Name:         "Ring Count",
+		DefaultValue: 3,
+	}
+
+	scaleSample := &SampleNode{
+		Data: SampleNodeData{
+			Start: &parameter.Float64{
+				Name:         "Start Ring Scale",
+				DefaultValue: 1,
+			},
+			End: &parameter.Float64{
+				Name:         "End Ring Scale",
+				DefaultValue: .3,
+			},
+			Samples: ringCount,
+		},
+	}
+
+	portalRadius := 4.
+	ufoOuterRadius := 10.
+
+	ufoOutline := &parameter.Vector3Array{
+		Name: "UFO Outline",
+		DefaultValue: []vector3.Vector[float64]{
+			vector3.New(0., -1., 0.),
+			vector3.New(portalRadius-1, 2., 0.),
+
+			vector3.New(portalRadius, 0.5, 0.),
+			vector3.New(ufoOuterRadius, 3., 0.),
+			vector3.New(ufoOuterRadius, 4., 0.),
+			vector3.New(portalRadius, 5., 0.),
+
+			vector3.New(portalRadius, 5.5, 0.),
+			vector3.New(0, 5.5, 0.),
+		},
+	}
+
+	contour := &repeat.CircleNode{
+		Data: repeat.CircleNodeData{
+			Mesh: &extrude.PolygonNode{
+				Data: extrude.PolygonNodeData{
+					Path: ufoOutline,
+					Sides: &parameter.Value[int]{
+						Name:         "Contour Sides",
+						DefaultValue: 20,
+					},
+					ThicknessScale: &parameter.Float64{
+						Name:         "Contour Thickness",
+						DefaultValue: .2,
+					},
+				},
+			},
+			Times: &parameter.Int{
+				Name:         "Countour Repeat Times",
+				DefaultValue: 10,
+			},
+		},
+	}
+
+	allRings := &repeat.Node{
+		Data: repeat.NodeData{
+			Mesh: AbductionRing2(),
+			Position: &VectorArrayNode{
+				Data: VectoryArrayNodeData{
+					Y: &SampleNode{
+						Data: SampleNodeData{
+							Start: &parameter.Float64{
+								Name:         "Ring Start Position",
+								DefaultValue: -10,
+							},
+							End: &parameter.Float64{
+								Name:         "Ring End Position",
+								DefaultValue: -3,
+							},
+							Samples: ringCount,
+						},
+					},
+				},
+			},
+			Scale: &VectorArrayNode{
+				Data: VectoryArrayNodeData{
+					X: scaleSample,
+					Y: scaleSample,
+					Z: scaleSample,
+				},
+			},
+		},
+	}
+
+	body := &extrude.ScrewNode{
+		Data: extrude.ScrewNodeData{
+			Line: ufoOutline,
+			Segments: &parameter.Int{
+				Name:         "UFO Resolution",
+				DefaultValue: 40,
+			},
+			Distance: &parameter.Value[float64]{
+				Name: "Height",
+			},
+			Revolutions: &parameter.Value[float64]{
+				Name:         "Revolutions",
+				DefaultValue: 1,
+			},
+		},
+	}
+
+	smoothedBody := &meshops.SmoothNormalsNode{
+		Data: meshops.SmoothNormalsNodeData{
+			Mesh: body,
+		},
+	}
+
+	ufoBodyMaterial := &GltfMaterialNode{
+		Data: GltfMaterialNodeData{
+			Color: &parameter.Color{
+				Name:         "UFO Color",
+				DefaultValue: coloring.WebColor{R: 225, G: 225, B: 225, A: 255},
+			},
+			MetallicFactor: &parameter.Float64{
+				Name:         "UFO Metallic",
+				DefaultValue: 1,
+			},
+			RoughnessFactor: &parameter.Float64{
+				Name:         "UFO Roughness",
+				DefaultValue: .4,
+			},
+			Clearcoat: &GltfMaterialClearcoatExtensionNode{
+				Data: GltfMaterialClearcoatExtensionNodeData{
+					ClearcoatFactor: &parameter.Float64{
+						Name:         "UFO ClearcoatFactor",
+						DefaultValue: .25,
+					},
+					ClearcoatRoughnessFactor: &parameter.Float64{
+						Name:         "UFO ClearcoatRoughnessFactor",
+						DefaultValue: .15,
+					},
+				},
+			},
+		},
+	}
+
+	abductionRingColor := &parameter.Color{
+		Name:         "Abduction Ring Color",
+		DefaultValue: coloring.Green(),
+	}
+
+	backgroundColor := coloring.WebColor{R: 0x26, G: 0x22, B: 0x69, A: 255}
+	app := generator.App{
+		Name:        "UFO",
+		Version:     "1.0.0",
+		Description: "Demo for different GLTF material extensions",
+		WebScene: &room.WebScene{
+			Background: backgroundColor,
+			Fog: room.WebSceneFog{
+				Color: backgroundColor,
+				Near:  10,
+				Far:   150,
+			},
+			Ground:   coloring.WebColor{R: 0x2e, G: 0x47, B: 0x2e, A: 255},
+			Lighting: coloring.White(),
+		},
+		Producers: map[string]nodes.NodeOutput[generator.Artifact]{
+			"ufo.glb": &GltfArtifact{
+				Data: GltfArtifactData{
+					Models: []nodes.NodeOutput[gltf.PolyformModel]{
+						&GltfModel{
+							Data: GltfModelData{
+								Mesh:     smoothedBody,
+								Material: ufoBodyMaterial,
+							},
+						},
+						&GltfModel{
+							Data: GltfModelData{
+								Mesh: allRings,
+								Material: &GltfMaterialNode{
+									Data: GltfMaterialNodeData{
+										Color:          abductionRingColor,
+										EmissiveFactor: abductionRingColor,
+										EmissiveStrength: &parameter.Float64{
+											Name:         "Abduction Ring Emissive Strength",
+											DefaultValue: 3,
+										},
+									},
+								},
+							},
+						},
+						&GltfModel{
+							Data: GltfModelData{
+								Mesh: &meshops.TranslateAttribute3DNode{
+									Data: meshops.TranslateAttribute3DNodeData{
+										Amount: &parameter.Vector3{
+											Name:         "Dome Position",
+											DefaultValue: vector3.New(0., 5., 0.),
+										},
+										Mesh: &meshops.SmoothNormalsNode{
+											Data: meshops.SmoothNormalsNodeData{Mesh: &primitives.HemisphereNode{
+												Data: primitives.HemisphereNodeData{
+													Radius: &parameter.Float64{
+														Name:         "Hemisphere Radius",
+														DefaultValue: 3.1,
+													},
+													Rows: &parameter.Int{
+														Name:         "UFO Dome Rows",
+														DefaultValue: 40,
+													},
+													Columns: &parameter.Int{
+														Name:         "UFO Dome Columns",
+														DefaultValue: 40,
+													},
+												},
+											},
+											},
+										},
+									},
+								},
+								Material: &GltfMaterialNode{
+									Data: GltfMaterialNodeData{
+										Color: &parameter.Color{
+											Name:         "Dome Color",
+											DefaultValue: coloring.Grey(200),
+										},
+										MetallicFactor: &parameter.Float64{
+											Name:         "Dome Metalic",
+											DefaultValue: 0,
+										},
+										Transmission: &GltfMaterialTransmissionExtensionNode{
+											Data: GltfMaterialTransmissionExtensionNodeData{
+												TransmissionFactor: &parameter.Float64{
+													Name:         "Dome Transmission",
+													DefaultValue: .9,
+												},
+											},
+										},
+										Volume: &GltfMaterialVolumeExtensionNode{
+											Data: GltfMaterialVolumeExtensionNodeData{
+												ThicknessFactor: &parameter.Float64{
+													Name:         "Dome Thickness",
+													DefaultValue: .5,
+												},
+											},
+										},
+										RoughnessFactor: &parameter.Float64{
+											Name:         "Dome Roughness",
+											DefaultValue: .2,
+										},
+										IndexOfRefraction: &parameter.Float64{
+											Name:         "Dome IOR",
+											DefaultValue: 1.52,
+										},
+									},
+								},
+							},
+						},
+						&GltfModel{
+							Data: GltfModelData{
+								Mesh:     contour,
+								Material: ufoBodyMaterial,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	if err := app.Run(); err != nil {
+		panic(err)
+	}
 }

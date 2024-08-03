@@ -30,7 +30,7 @@ type PolyformPbrSpecularGlossiness struct {
 	// means the material has no glossiness or is perfectly rough. This value
 	// is linear.
 	// Default value is 1.0
-	GlossinessFactor float64
+	GlossinessFactor *float64
 
 	// The specular-glossiness texture is a RGBA texture, containing the
 	// specular color (RGB) in sRGB space and the glossiness value (A) in
@@ -56,7 +56,9 @@ func (sg PolyformPbrSpecularGlossiness) ToExtensionData(w *Writer) map[string]an
 		metadata["specularFactor"] = rgbToFloatArr(sg.SpecularFactor)
 	}
 
-	metadata["glossinessFactor"] = sg.GlossinessFactor
+	if sg.GlossinessFactor != nil {
+		metadata["glossinessFactor"] = *sg.GlossinessFactor
+	}
 
 	if sg.SpecularGlossinessTexture != nil {
 		metadata["specularGlossinessTexture"] = w.AddTexture(*sg.SpecularGlossinessTexture)
@@ -69,11 +71,11 @@ type PolyformTransmission struct {
 
 	// The base percentage of light that is transmitted through the surface.
 	// Default: 0.0
-	TransmissionFactor float64
+	Factor float64
 
 	// A texture that defines the transmission percentage of the surface,
 	// stored in the R channel. This will be multiplied by transmissionFactor.
-	TransmissionTexture *PolyformTexture
+	Texture *PolyformTexture
 }
 
 func (tr PolyformTransmission) ExtensionID() string {
@@ -83,10 +85,10 @@ func (tr PolyformTransmission) ExtensionID() string {
 func (tr PolyformTransmission) ToExtensionData(w *Writer) map[string]any {
 	metadata := make(map[string]any)
 
-	metadata["transmissionFactor"] = tr.TransmissionFactor
+	metadata["transmissionFactor"] = tr.Factor
 
-	if tr.TransmissionTexture != nil {
-		metadata["transmissionTexture"] = w.AddTexture(*tr.TransmissionTexture)
+	if tr.Texture != nil {
+		metadata["transmissionTexture"] = w.AddTexture(*tr.Texture)
 	}
 
 	return metadata
@@ -141,6 +143,8 @@ func (v PolyformVolume) ToExtensionData(w *Writer) map[string]any {
 	return metadata
 }
 
+// KHR_materials_ior ==========================================================
+
 // https://github.com/KhronosGroup/glTF/blob/main/extensions/2.0/Khronos/KHR_materials_ior/README.md
 type PolyformIndexOfRefraction struct {
 	// The index of refraction
@@ -150,7 +154,7 @@ type PolyformIndexOfRefraction struct {
 	// Window Glass	   1.52
 	// Sapphire	       1.76
 	// Diamond	       2.42
-	IOR float64
+	IOR *float64
 }
 
 func (sg PolyformIndexOfRefraction) ExtensionID() string {
@@ -158,28 +162,33 @@ func (sg PolyformIndexOfRefraction) ExtensionID() string {
 }
 
 func (sg PolyformIndexOfRefraction) ToExtensionData(w *Writer) map[string]any {
+	if sg.IOR == nil {
+		return map[string]any{}
+	}
 	return map[string]any{
-		"ior": sg.IOR,
+		"ior": *sg.IOR,
 	}
 }
+
+// KHR_materials_specular =====================================================
 
 // https://github.com/KhronosGroup/glTF/blob/main/extensions/2.0/Khronos/KHR_materials_specular/README.md
 type PolyformSpecular struct {
 	// The strength of the specular reflection.
 	// Default: 1.0
-	SpecularFactor float64
+	Factor *float64
 
 	// A texture that defines the strength of the specular reflection, stored
 	// in the alpha (A) channel. This will be multiplied by specularFactor.
-	SpecularTexture *PolyformTexture
+	Texture *PolyformTexture
 
 	// The F0 color of the specular reflection (linear RGB).
-	SpecularColorFactor color.Color
+	ColorFactor color.Color
 
 	// 	A texture that defines the F0 color of the specular reflection, stored
 	// in the RGB channels and encoded in sRGB. This texture will be multiplied
 	// by specularColorFactor.
-	SpecularColorTexture *PolyformTexture
+	ColorTexture *PolyformTexture
 }
 
 func (ps PolyformSpecular) ExtensionID() string {
@@ -189,30 +198,257 @@ func (ps PolyformSpecular) ExtensionID() string {
 func (ps PolyformSpecular) ToExtensionData(w *Writer) map[string]any {
 	metadata := make(map[string]any)
 
-	metadata["specularFactor"] = ps.SpecularFactor
-
-	if ps.SpecularTexture != nil {
-		metadata["specularTexture"] = w.AddTexture(*ps.SpecularTexture)
+	if ps.Factor != nil {
+		metadata["specularFactor"] = *ps.Factor
 	}
 
-	if ps.SpecularColorFactor != nil {
-		metadata["specularColorFactor"] = rgbToFloatArr(ps.SpecularColorFactor)
+	if ps.Texture != nil {
+		metadata["specularTexture"] = w.AddTexture(*ps.Texture)
 	}
 
-	if ps.SpecularColorTexture != nil {
-		metadata["specularColorTexture"] = w.AddTexture(*ps.SpecularColorTexture)
+	if ps.ColorFactor != nil {
+		metadata["specularColorFactor"] = rgbToFloatArr(ps.ColorFactor)
+	}
+
+	if ps.ColorTexture != nil {
+		metadata["specularColorTexture"] = w.AddTexture(*ps.ColorTexture)
 	}
 
 	return metadata
 }
 
-type PolyformMaterialsUnlit struct {
+type PolyformUnlit struct {
 }
 
-func (ps PolyformMaterialsUnlit) ExtensionID() string {
+func (ps PolyformUnlit) ExtensionID() string {
 	return "KHR_materials_unlit"
 }
 
-func (ps PolyformMaterialsUnlit) ToExtensionData(w *Writer) map[string]any {
+func (ps PolyformUnlit) ToExtensionData(w *Writer) map[string]any {
 	return make(map[string]any)
+}
+
+// KHR_materials_clearcoat ====================================================
+
+type PolyformClearcoat struct {
+	ClearcoatFactor           float64
+	ClearcoatTexture          *PolyformTexture
+	ClearcoatRoughnessFactor  float64
+	ClearcoatRoughnessTexture *PolyformTexture
+	ClearcoatNormalTexture    *PolyformNormal
+}
+
+func (pmc PolyformClearcoat) ExtensionID() string {
+	return "KHR_materials_clearcoat"
+}
+
+func (pmc PolyformClearcoat) ToExtensionData(w *Writer) map[string]any {
+	metadata := make(map[string]any)
+
+	metadata["clearcoatFactor"] = pmc.ClearcoatFactor
+	if pmc.ClearcoatTexture != nil {
+		metadata["clearcoatTexture"] = w.AddTexture(*pmc.ClearcoatTexture)
+	}
+
+	metadata["clearcoatRoughnessFactor"] = pmc.ClearcoatRoughnessFactor
+	if pmc.ClearcoatRoughnessTexture != nil {
+		metadata["clearcoatRoughnessTexture"] = w.AddTexture(*pmc.ClearcoatRoughnessTexture)
+	}
+
+	// if pmc.ClearcoatNormalTexture != nil {
+	// 	metadata["clearcoatNormalTexture"] = w.AddTexture(*pmc.ClearcoatNormalTexture)
+	// }
+
+	return metadata
+}
+
+// KHR_materials_emissive_strength ============================================
+
+// glTF extension that adjusts the strength of emissive material properties.
+type PolyformEmissiveStrength struct {
+	// The strength adjustment to be multiplied with the material's emissive value.
+	EmissiveStrength *float64
+}
+
+func (pmes PolyformEmissiveStrength) ExtensionID() string {
+	return "KHR_materials_emissive_strength"
+}
+
+func (pmes PolyformEmissiveStrength) ToExtensionData(w *Writer) map[string]any {
+	metadata := make(map[string]any)
+
+	if pmes.EmissiveStrength != nil {
+		metadata["emissiveStrength"] = *pmes.EmissiveStrength
+	}
+
+	return metadata
+}
+
+// KHR_materials_iridescence ==================================================
+
+// glTF extension that defines an iridescence effect
+type PolyformIridescence struct {
+	// The iridescence intensity factor
+	IridescenceFactor float64
+
+	// The iridescence intensity texture. The values are sampled from the R
+	// channel. These values are linear. If a texture is not given, a value
+	// of `1.0` **MUST** be assumed. If other channels are present (GBA), they
+	// are ignored for iridescence intensity calculations
+	IridescenceTexture *PolyformTexture
+
+	// The index of refraction of the dielectric thin-film layer.
+	IridescenceIor *float64
+
+	// The minimum thickness of the thin-film layer given in nanometers. The
+	// value **MUST** be less than or equal to the value of
+	// `iridescenceThicknessMaximum`.
+	IridescenceThicknessMinimum *float64
+
+	// The maximum thickness of the thin-film layer given in nanometers. The
+	// value **MUST** be greater than or equal to the value of
+	// `iridescenceThicknessMinimum`.
+	IridescenceThicknessMaximum *float64
+
+	// The thickness texture of the thin-film layer to linearly interpolate
+	// between the minimum and maximum thickness given by the corresponding
+	// properties, where a sampled value of `0.0` represents the minimum
+	// thickness and a sampled value of `1.0` represents the maximum thickness.
+	// The values are sampled from the G channel. These values are linear. If a
+	// texture is not given, the maximum thickness **MUST** be assumed. If
+	// other channels are present (RBA), they are ignored for thickness
+	// calculations.
+	IridescenceThicknessTexture *PolyformTexture
+}
+
+func (pmi PolyformIridescence) ExtensionID() string {
+	return "KHR_materials_iridescence"
+}
+
+func (pmi PolyformIridescence) ToExtensionData(w *Writer) map[string]any {
+	metadata := make(map[string]any)
+
+	metadata["iridescenceFactor"] = pmi.IridescenceFactor
+
+	if pmi.IridescenceTexture != nil {
+		metadata["iridescenceTexture"] = w.AddTexture(*pmi.IridescenceTexture)
+	}
+
+	if pmi.IridescenceIor != nil {
+		metadata["iridescenceIor"] = *pmi.IridescenceIor
+	}
+
+	if pmi.IridescenceThicknessMinimum != nil {
+		metadata["iridescenceThicknessMinimum"] = *pmi.IridescenceThicknessMinimum
+	}
+
+	if pmi.IridescenceThicknessMaximum != nil {
+		metadata["iridescenceThicknessMaximum"] = *pmi.IridescenceThicknessMaximum
+	}
+
+	if pmi.IridescenceThicknessTexture != nil {
+		metadata["iridescenceThicknessTexture"] = w.AddTexture(*pmi.IridescenceThicknessTexture)
+	}
+
+	return metadata
+}
+
+// KHR_materials_sheen ========================================================
+
+// glTF extension that defines the sheen material model.
+type PolyformSheen struct {
+	// Color of the sheen layer (in linear space).
+	SheenColorFactor color.Color
+
+	// The sheen color (RGB) texture. Stored in channel RGB, the sheen color is
+	// in sRGB transfer function.
+	SheenColorTexture *PolyformTexture
+
+	// The sheen layer roughness of the material.
+	SheenRoughnessFactor float64
+
+	// The sheen roughness (Alpha) texture. Stored in alpha channel, the
+	// roughness value is in linear space.
+	SheenRoughnessTexture *PolyformTexture
+}
+
+func (ps PolyformSheen) ExtensionID() string {
+	return "KHR_materials_sheen"
+}
+
+func (ps PolyformSheen) ToExtensionData(w *Writer) map[string]any {
+	metadata := make(map[string]any)
+
+	if ps.SheenColorFactor != nil {
+		metadata["sheenColorFactor"] = rgbToFloatArr(ps.SheenColorFactor)
+	}
+
+	if ps.SheenColorTexture != nil {
+		metadata["sheenColorTexture"] = w.AddTexture(*ps.SheenColorTexture)
+	}
+
+	metadata["sheenRoughnessFactor"] = ps.SheenRoughnessFactor
+
+	if ps.SheenRoughnessTexture != nil {
+		metadata["sheenRoughnessTexture"] = w.AddTexture(*ps.SheenRoughnessTexture)
+	}
+
+	return metadata
+}
+
+// KHR_materials_anisotropy ===================================================
+
+// glTF extension that defines anisotropy
+type PolyformAnisotropy struct {
+	// The anisotropy strength. When the anisotropy texture is present, this
+	// value is multiplied by the texture's blue channel.
+	AnisotropyStrength float64
+
+	// The rotation of the anisotropy in tangent, bitangent space, measured in
+	// radians counter-clockwise from the tangent. When the anisotropy texture
+	// is present, this value provides additional rotation to the vectors in
+	// the texture.
+	AnisotropyRotation float64
+
+	// The anisotropy texture. Red and green channels represent the anisotropy
+	// direction in $[-1, 1]$ tangent, bitangent space, to be rotated by the
+	// anisotropy rotation. The blue channel contains strength as $[0, 1]$ to
+	// be multiplied by the anisotropy strength.
+	AnisotropyTexture *PolyformTexture
+}
+
+func (pa PolyformAnisotropy) ExtensionID() string {
+	return "KHR_materials_anisotropy"
+}
+
+func (pa PolyformAnisotropy) ToExtensionData(w *Writer) map[string]any {
+	metadata := make(map[string]any)
+
+	metadata["anisotropyStrength"] = pa.AnisotropyStrength
+	metadata["anisotropyRotation"] = pa.AnisotropyRotation
+
+	if pa.AnisotropyTexture != nil {
+		metadata["anisotropyTexture"] = w.AddTexture(*pa.AnisotropyTexture)
+	}
+
+	return metadata
+}
+
+// KHR_materials_dispersion ===================================================
+
+// glTF extension that defines the strength of dispersion.
+type PolyformDispersion struct {
+	// This parameter defines dispersion in terms of the 20/Abbe number
+	// formulation.
+	Dispersion float64
+}
+
+func (pd PolyformDispersion) ExtensionID() string {
+	return "KHR_materials_dispersion"
+}
+
+func (pd PolyformDispersion) ToExtensionData(w *Writer) map[string]any {
+	metadata := make(map[string]any)
+	metadata["dispersion"] = pd.Dispersion
+	return metadata
 }
