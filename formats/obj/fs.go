@@ -53,7 +53,7 @@ func Load(objPath string) ([]ObjMesh, error) {
 }
 
 // Save writes the mesh to the path specified in OBJ format, optionally writing
-// an additional MTL file with materials are found within the modeling.
+// an additional MTL file with all materials that are found within the modeling.
 func Save(objPath string, meshToSave modeling.Mesh) error {
 	if err := os.MkdirAll(path.Dir(objPath), os.ModeDir); err != nil {
 		return fmt.Errorf("failed to create all dirs for path %q: %w", objPath, err)
@@ -75,7 +75,7 @@ func Save(objPath string, meshToSave modeling.Mesh) error {
 		}
 		defer mtlFile.Close()
 
-		if err = WriteMaterials(meshToSave, mtlFile); err != nil {
+		if err = WriteMaterialsFromMesh(meshToSave, mtlFile); err != nil {
 			return fmt.Errorf("failed to write materials: %w", err)
 		}
 		mtlPath = path.Base(mtlName)
@@ -83,6 +83,57 @@ func Save(objPath string, meshToSave modeling.Mesh) error {
 
 	out := bufio.NewWriter(objFile)
 	if err = WriteMesh(meshToSave, mtlPath, out); err != nil {
+		return fmt.Errorf("failed to write mesh: %w", err)
+	}
+
+	if err = out.Flush(); err != nil {
+		return fmt.Errorf("failed to flush buffer: %w", err)
+	}
+
+	return nil
+}
+
+// SaveAll writes all provided meshes to the path specified in OBJ format, optionally writing
+// an additional MTL file with all materials that are found across all meshes.
+func SaveAll(objPath string, meshesToSave map[string]modeling.Mesh) error {
+	if err := os.MkdirAll(path.Dir(objPath), os.ModeDir); err != nil {
+		return fmt.Errorf("failed to create all dirs for path %q: %w", objPath, err)
+	}
+
+	objFile, err := os.Create(objPath)
+	if err != nil {
+		return fmt.Errorf("failed to create object file %q: %w", objPath, err)
+	}
+	defer objFile.Close()
+
+	extension := filepath.Ext(objPath)
+	var materials []modeling.MeshMaterial
+	var objMeshes []ObjMesh
+	for name, mesh := range meshesToSave {
+		materials = append(materials, mesh.Materials()...)
+		objMeshes = append(objMeshes, ObjMesh{
+			Name: name, Mesh: mesh,
+		})
+	}
+
+	mtlPath := ""
+	if len(materials) > 0 {
+		mtlName := objPath[0:len(objPath)-len(extension)] + ".mtl"
+		mtlFile, err := os.Create(mtlName)
+		if err != nil {
+			return fmt.Errorf("failed to create material file %q: %w", mtlName, err)
+		}
+		defer mtlFile.Close()
+
+		if err = WriteMaterials(materials, mtlFile); err != nil {
+			return fmt.Errorf("failed to write materials: %w", err)
+		}
+		mtlPath = path.Base(mtlName)
+	}
+
+	out := bufio.NewWriter(objFile)
+
+	if err = WriteMeshes(objMeshes, mtlPath, out); err != nil {
 		return fmt.Errorf("failed to write mesh: %w", err)
 	}
 

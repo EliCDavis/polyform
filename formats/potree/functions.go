@@ -15,8 +15,7 @@ func LoadNodePositionDataIntoArray(m *Metadata, buf []byte, positions []vector3.
 			endian := binary.LittleEndian
 			bytesPerPoint := m.BytesPerPoint()
 			scale := vector3.New(m.Scale[0], m.Scale[1], m.Scale[2])
-			shift := vector3.New(m.Offset[0], m.Offset[1], m.Offset[2]).
-				Sub(m.BoundingBox.MinF())
+			shift := vector3.New(m.Offset[0], m.Offset[1], m.Offset[2])
 
 			pointOffset := attributeOffset
 			for i := 0; i < len(positions); i++ {

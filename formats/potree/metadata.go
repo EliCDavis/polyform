@@ -97,12 +97,12 @@ func (m Metadata) LoadHierarchy(filepath string) (*OctreeNode, error) {
 }
 
 func (m Metadata) ReadHierarchy(in io.Reader) (*OctreeNode, error) {
-	offset := m.OffsetF()
+	// offset := m.OffsetF()
 	root := &OctreeNode{
 		Name: "r",
 		BoundingBox: geometry.NewAABBFromPoints(
-			m.BoundingBox.MinF().Sub(offset),
-			m.BoundingBox.MaxF().Sub(offset),
+			m.BoundingBox.MinF(),
+			m.BoundingBox.MaxF(),
 		),
 		Level:               0,
 		NodeType:            2,

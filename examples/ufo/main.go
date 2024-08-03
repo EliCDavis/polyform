@@ -260,7 +260,7 @@ func main2() {
 	defer objFile.Close()
 
 	obj.WriteMesh(final, "ufo.mtl", objFile)
-	obj.WriteMaterials(final, mtlFile)
+	obj.WriteMaterialsFromMesh(final, mtlFile)
 }
 
 func main() {

@@ -126,14 +126,18 @@ func WriteMaterial(mat modeling.Material, out io.Writer) (err error) {
 	return nil
 }
 
-func WriteMaterials(m modeling.Mesh, out io.Writer) error {
-	fmt.Fprintln(out, "# Created with github.com/EliCDavis/polyform")
+func WriteMaterialsFromMesh(m modeling.Mesh, out io.Writer) error {
+	return WriteMaterials(m.Materials(), out)
+}
+
+func WriteMaterials(ms []modeling.MeshMaterial, out io.Writer) error {
+	_, _ = fmt.Fprintln(out, "# Created with github.com/EliCDavis/polyform")
 
 	defaultWritten := false
 
 	written := make(map[*modeling.Material]bool)
 
-	for _, mat := range m.Materials() {
+	for _, mat := range ms {
 		if mat.Material == nil {
 			if !defaultWritten {
 				if err := WriteMaterial(modeling.DefaultMaterial(), out); err != nil {
