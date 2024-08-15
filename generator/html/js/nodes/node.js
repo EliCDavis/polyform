@@ -16,6 +16,7 @@ function BuildParameter(liteNode, nodeManager, id, parameterData, app) {
         case "float32":
         case "int":
         case "bool":
+        case "vector2.Vector[float64]":
         case "string":
             return new BasicParameterNodeController(liteNode, nodeManager, id, parameterData);
 

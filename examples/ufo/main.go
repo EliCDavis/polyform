@@ -6,9 +6,11 @@ import (
 	"os"
 
 	"github.com/EliCDavis/polyform/drawing/coloring"
+	"github.com/EliCDavis/polyform/drawing/texturing"
 	"github.com/EliCDavis/polyform/formats/gltf"
 	"github.com/EliCDavis/polyform/formats/obj"
 	"github.com/EliCDavis/polyform/generator"
+	"github.com/EliCDavis/polyform/generator/artifact"
 	"github.com/EliCDavis/polyform/generator/parameter"
 	"github.com/EliCDavis/polyform/generator/room"
 	"github.com/EliCDavis/polyform/math/quaternion"
@@ -18,6 +20,7 @@ import (
 	"github.com/EliCDavis/polyform/modeling/primitives"
 	"github.com/EliCDavis/polyform/modeling/repeat"
 	"github.com/EliCDavis/polyform/nodes"
+	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
 )
 
@@ -368,12 +371,28 @@ func main() {
 				Name:         "Revolutions",
 				DefaultValue: 1,
 			},
+			UVs: &primitives.StripUVsNode{
+				Data: primitives.StripUVsNodeData{
+					Start: &parameter.Vector2{
+						Name:         "UV Start",
+						DefaultValue: vector2.New(0., 0.5),
+					},
+					End: &parameter.Vector2{
+						Name:         "UV End",
+						DefaultValue: vector2.New(20, 0.5),
+					},
+				},
+			},
 		},
 	}
 
-	smoothedBody := &meshops.SmoothNormalsNode{
-		Data: meshops.SmoothNormalsNodeData{
+	smoothedBody := &meshops.SmoothNormalsImplicitWeldNode{
+		Data: meshops.SmoothNormalsImplicitWeldNodeData{
 			Mesh: body,
+			Distance: &parameter.Float64{
+				Name:         "Weld Dist",
+				DefaultValue: 0.0001,
+			},
 		},
 	}
 
@@ -381,7 +400,7 @@ func main() {
 		Data: GltfMaterialNodeData{
 			Color: &parameter.Color{
 				Name:         "UFO Color",
-				DefaultValue: coloring.WebColor{R: 225, G: 225, B: 225, A: 255},
+				DefaultValue: coloring.White(),
 			},
 			MetallicFactor: &parameter.Float64{
 				Name:         "UFO Metallic",
@@ -389,7 +408,15 @@ func main() {
 			},
 			RoughnessFactor: &parameter.Float64{
 				Name:         "UFO Roughness",
-				DefaultValue: .4,
+				DefaultValue: .3,
+			},
+			ColorTexture: &parameter.String{
+				Name:         "Color Tex URI",
+				DefaultValue: "brushed.png",
+			},
+			MetallicRoughnessTexture: &parameter.String{
+				Name:         "Metalic Tex URI",
+				DefaultValue: "rough.png",
 			},
 			Clearcoat: &GltfMaterialClearcoatExtensionNode{
 				Data: GltfMaterialClearcoatExtensionNodeData{
@@ -423,7 +450,7 @@ func main() {
 				Near:  10,
 				Far:   150,
 			},
-			Ground:   coloring.WebColor{R: 0x2e, G: 0x47, B: 0x2e, A: 255},
+			Ground:   coloring.WebColor{R: 0x51, G: 0x6e, B: 0x51, A: 255},
 			Lighting: coloring.White(),
 		},
 		Producers: map[string]nodes.NodeOutput[generator.Artifact]{
@@ -527,6 +554,56 @@ func main() {
 					},
 				},
 			},
+			// "brushed.png": artifact.NewImageNode(&BrushedMetalNode{
+			// 	Data: BrushedMetalNodeNodeData{
+			// 		Dimensions: &parameter.Int{
+			// 			Name:         "Tex Dimensions",
+			// 			DefaultValue: 512,
+			// 		},
+			// 		Count: &parameter.Int{
+			// 			Name:         "Brush Count",
+			// 			DefaultValue: 50,
+			// 		},
+			// 		BrushSize: &parameter.Float64{
+			// 			Name:         "Brush Size",
+			// 			DefaultValue: 10,
+			// 		},
+			// 	},
+			// }),
+			"brushed.png": artifact.NewImageNode(&texturing.SeamlessPerlinNode{
+				Data: texturing.SeamlessPerlinNodeData{
+					Positive: &parameter.Color{
+						Name:         "Positive",
+						DefaultValue: coloring.Grey(222),
+					},
+					Negative: &parameter.Color{
+						Name:         "Negative",
+						DefaultValue: coloring.Grey(202),
+					},
+				},
+			}),
+			"rough.png": artifact.NewImageNode(&texturing.SeamlessPerlinNode{
+				Data: texturing.SeamlessPerlinNodeData{
+					Positive: &parameter.Color{
+						Name: "Positive",
+						DefaultValue: coloring.WebColor{
+							R: 0,
+							G: 70,  // Perfectly reflective
+							B: 255, // Always metalic
+							A: 255,
+						},
+					},
+					Negative: &parameter.Color{
+						Name: "Negative",
+						DefaultValue: coloring.WebColor{
+							R: 0,
+							G: 200, // Somewhat reflective
+							B: 255, // Always metalic
+							A: 255,
+						},
+					},
+				},
+			}),
 		},
 	}
 

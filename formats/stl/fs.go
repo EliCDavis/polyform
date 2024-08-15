@@ -14,7 +14,12 @@ func Save(fp string, m modeling.Mesh) error {
 	}
 	defer f.Close()
 
-	return WriteMesh(bufio.NewWriter(f), m)
+	writer := bufio.NewWriter(f)
+	if err := WriteMesh(writer, m); err != nil {
+		return err
+	}
+
+	return writer.Flush()
 }
 
 func Load(fp string) (*modeling.Mesh, error) {

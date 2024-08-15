@@ -70,7 +70,7 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(viewportSettings.background);
 
 const textureLoader = new THREE.TextureLoader();
-const textureEquirec = textureLoader.load('https://i.imgur.com/FFkjGWG_d.png?maxwidth=1520&fidelity=grand');
+const textureEquirec = textureLoader.load('https://i.imgur.com/Ev4X4yY_d.webp?maxwidth=1520&fidelity=grand');
 textureEquirec.mapping = THREE.EquirectangularReflectionMapping;
 textureEquirec.colorSpace = THREE.SRGBColorSpace;
 
@@ -111,7 +111,7 @@ composer.addPass(outputPass);
 
 // container.appendChild(renderer.domElement);
 // progressive lightmap
-const progressiveSurfacemap = new ProgressiveLightMap(renderer, lightMapRes);
+// const progressiveSurfacemap = new ProgressiveLightMap(renderer, lightMapRes);
 
 const labelRenderer = new CSS2DRenderer();
 labelRenderer.setSize(threeCanvas.clientWidth, threeCanvas.clientHeight, false);
@@ -138,7 +138,7 @@ dirLight.shadow.camera.right = 100;
 dirLight.shadow.camera.near = 0.1;
 dirLight.shadow.mapSize.width = shadowMapRes;
 dirLight.shadow.mapSize.height = shadowMapRes;
-progressiveSurfacemap.addObjectsToLightMap([dirLight])
+// progressiveSurfacemap.addObjectsToLightMap([dirLight])
 scene.add(dirLight);
 
 
@@ -148,7 +148,7 @@ const groundMesh = new THREE.Mesh(new THREE.PlaneGeometry(1000, 1000), groundMat
 groundMesh.rotation.x = - Math.PI / 2;
 groundMesh.receiveShadow = true;
 scene.add(groundMesh);
-progressiveSurfacemap.addObjectsToLightMap([groundMesh])
+// progressiveSurfacemap.addObjectsToLightMap([groundMesh])
 
 // const environment = new RoomEnvironment(renderer);
 // const pmremGenerator = new THREE.PMREMGenerator(renderer);
@@ -327,19 +327,19 @@ class SchemaRefreshManager {
                 }
             });
 
-            progressiveSurfacemap.addObjectsToLightMap(objects);
+            // progressiveSurfacemap.addObjectsToLightMap(objects);
 
             if (firstTimeLoadingScene) {
                 firstTimeLoadingScene = false;
 
-                camera.position.y = mid * (3 / 2);
+                camera.position.y = (- mid + aabbHalfHeight) * (3 / 2);
                 camera.position.z = Math.sqrt(
                     (aabbWidth * aabbWidth) +
                     (aabbDepth * aabbDepth) +
                     (aabbHeight * aabbHeight)
                 ) / 2;
 
-                orbitControls.target.set(0, mid, 0);
+                orbitControls.target.set(0, - mid + aabbHalfHeight, 0);
                 orbitControls.update();
             }
 

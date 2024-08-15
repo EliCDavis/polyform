@@ -55,10 +55,12 @@ func (gad GltfModelData) Process() (gltf.PolyformModel, error) {
 type GltfMaterialNode = nodes.StructNode[gltf.PolyformMaterial, GltfMaterialNodeData]
 
 type GltfMaterialNodeData struct {
-	Color           nodes.NodeOutput[coloring.WebColor]
-	MetallicFactor  nodes.NodeOutput[float64]
-	RoughnessFactor nodes.NodeOutput[float64]
-	EmissiveFactor  nodes.NodeOutput[coloring.WebColor]
+	Color                    nodes.NodeOutput[coloring.WebColor]
+	ColorTexture             nodes.NodeOutput[string]
+	MetallicFactor           nodes.NodeOutput[float64]
+	RoughnessFactor          nodes.NodeOutput[float64]
+	MetallicRoughnessTexture nodes.NodeOutput[string]
+	EmissiveFactor           nodes.NodeOutput[coloring.WebColor]
 
 	// Extensions
 	IndexOfRefraction nodes.NodeOutput[float64]
@@ -75,6 +77,24 @@ func (gmnd GltfMaterialNodeData) Process() (gltf.PolyformMaterial, error) {
 	if gmnd.Color != nil {
 		pbr = &gltf.PolyformPbrMetallicRoughness{}
 		pbr.BaseColorFactor = gmnd.Color.Value()
+	}
+
+	if gmnd.ColorTexture != nil {
+		if pbr == nil {
+			pbr = &gltf.PolyformPbrMetallicRoughness{}
+		}
+		pbr.BaseColorTexture = &gltf.PolyformTexture{
+			URI: gmnd.ColorTexture.Value(),
+		}
+	}
+
+	if gmnd.MetallicRoughnessTexture != nil {
+		if pbr == nil {
+			pbr = &gltf.PolyformPbrMetallicRoughness{}
+		}
+		pbr.MetallicRoughnessTexture = &gltf.PolyformTexture{
+			URI: gmnd.MetallicRoughnessTexture.Value(),
+		}
 	}
 
 	if gmnd.MetallicFactor != nil {

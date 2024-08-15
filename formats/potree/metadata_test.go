@@ -138,6 +138,8 @@ func TestReadMetadata(t *testing.T) {
 	assert.Len(t, metadata.Attributes, 9)
 	assert.Equal(t, 27, metadata.BytesPerPoint())
 	assert.Equal(t, 0, metadata.AttributeOffset("position"))
+	assert.Equal(t, 0, metadata.PositionAttributeOffset())
+	assert.Equal(t, 21, metadata.ColorAttributeOffset())
 	assert.Equal(t, 12, metadata.AttributeOffset("intensity"))
 	assert.Equal(t, -1, metadata.AttributeOffset("blah"))
 }

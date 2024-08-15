@@ -61,7 +61,7 @@ export class NodeManager {
             this.color = ParameterNodeColor;
             this.bgcolor = ParameterNodeBackgroundColor;
 
-           addRenderableImageWidget(this);
+            addRenderableImageWidget(this);
 
             nm.onNodeCreateCallback(this, "github.com/EliCDavis/polyform/generator.ImageParameterNode");
         }
@@ -114,6 +114,25 @@ export class NodeManager {
             this.color = ParameterNodeColor;
             this.bgcolor = ParameterNodeBackgroundColor;
             nm.onNodeCreateCallback(this, ParameterNodeType(nodeDataType));
+        }
+
+        function Vector2ParameterNode() {
+            const nodeDataType = "github.com/EliCDavis/vector/vector2.Vector[float64]";
+            this.addOutput(ParameterNodeOutputPortName, nodeDataType);
+            this.title = "Vector2";
+            this.color = ParameterNodeColor;
+            this.bgcolor = ParameterNodeBackgroundColor;
+            nm.onNodeCreateCallback(this, ParameterNodeType(nodeDataType));
+
+            this.widget = this.addWidget("number", "x", 1, "value");
+            this.widget = this.addWidget("number", "y", 1, "value");
+            this.addProperty("x", 1.0);
+            this.addProperty("y", 1.0);
+            this.setValue = (v) => {
+                console.log("vector 2 set value: ", v)
+                this.setProperty("x", v.x);
+                this.setProperty("y", v.y);
+            }
         }
 
         function Vector3ArrayParameterNode() {
@@ -204,7 +223,7 @@ export class NodeManager {
         function IntParameter() {
             this.addOutput("value", "int");
             this.addProperty("value", 1.0);
-            this.widget = this.addWidget("number", "value", 1,  "value", {step: 10});
+            this.widget = this.addWidget("number", "value", 1, "value", { step: 10 });
             this.widgets_up = true;
             this.size = [180, 30];
             this.title = "Const Int";
@@ -227,7 +246,7 @@ export class NodeManager {
                 this.setProperty("value", v);
             }
 
-            this.onDrawBackground = function (ctx) {
+            this.onDrawBackground = (ctx) => {
                 this.outputs[0].label = Math.round(this.properties["value"]);
             };
 
@@ -253,7 +272,7 @@ export class NodeManager {
                 return this.title;
             };
 
-            this.onExecute = function () {
+            this.onExecute = () => {
                 this.setOutputData(0, this.properties["value"]);
             };
 
@@ -279,6 +298,7 @@ export class NodeManager {
         LiteGraph.registerNodeType(ParameterNamespace("int"), IntParameter);
         LiteGraph.registerNodeType(ParameterNamespace("aabb"), AABBParameterNode);
         LiteGraph.registerNodeType(ParameterNamespace("vector3"), Vector3ParameterNode);
+        LiteGraph.registerNodeType(ParameterNamespace("vector2"), Vector2ParameterNode);
         LiteGraph.registerNodeType(ParameterNamespace("vector3[]"), Vector3ArrayParameterNode);
         LiteGraph.registerNodeType(ParameterNamespace("color"), ColorParameterNode);
         LiteGraph.registerNodeType(ParameterNamespace("image"), ImageParameterNode);
@@ -395,6 +415,10 @@ export class NodeManager {
             case "vector3.Vector[float64]":
             case "vector3.Vector[float32]":
                 return LiteGraph.createNode(ParameterNamespace("vector3"));
+
+            case "vector2.Vector[float64]":
+            case "vector2.Vector[float32]":
+                return LiteGraph.createNode(ParameterNamespace("vector2"));
 
             case "[]vector3.Vector[float64]":
             case "[]vector3.Vector[float32]":
