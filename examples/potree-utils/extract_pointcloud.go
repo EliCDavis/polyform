@@ -33,6 +33,7 @@ func buildModelWorker(
 	largestPointCount int,
 	plyFilename string,
 	plyHeaderOffset int,
+	plyPointSize int,
 	out chan<- int,
 ) {
 	octreeFile, err := openOctreeFile(ctx)
@@ -42,10 +43,11 @@ func buildModelWorker(
 	defer octreeFile.Close()
 
 	pointsProcessed := 0
-	potreeBuf := make([]byte, largestPointCount*metadata.BytesPerPoint())
+	potreePointSize := metadata.BytesPerPoint()
+	potreeBuf := make([]byte, largestPointCount*potreePointSize)
 	positionBuf := make([]vector3.Float64, largestPointCount)
 	colorBuf := make([]vector3.Float64, largestPointCount)
-	plyBuf := make([]byte, largestPointCount*27)
+	plyBuf := make([]byte, largestPointCount*plyPointSize)
 
 	plyFile, err := os.OpenFile(plyFilename, os.O_WRONLY, 0)
 	if err != nil {
@@ -85,14 +87,24 @@ func buildModelWorker(
 			plyBuf[offset+25] = byte(c.Y())
 			plyBuf[offset+26] = byte(c.Z())
 
-			offset += 27
+			curPlyOffset := 27
+			curPotreeOffset := potreePointSize * i
+			for _, attr := range metadata.Attributes {
+				if !attr.IsColor() && !attr.IsPosition() {
+					copy(plyBuf[offset+curPlyOffset:], potreeBuf[curPotreeOffset:curPotreeOffset+attr.Size])
+					curPlyOffset += attr.Size
+				}
+				curPotreeOffset += attr.Size
+			}
+
+			offset += plyPointSize
 		}
 
-		_, err = plyFile.Seek(int64(plyHeaderOffset)+(job.PlyStart*27), 0)
+		_, err = plyFile.Seek(int64(plyHeaderOffset)+(job.PlyStart*int64(plyPointSize)), 0)
 		if err != nil {
 			panic(err)
 		}
-		_, err = plyFile.Write(plyBuf[:count*27])
+		_, err = plyFile.Write(plyBuf[:count*plyPointSize])
 		if err != nil {
 			panic(err)
 		}
@@ -119,20 +131,53 @@ func buildModelWithChildren(ctx *cli.Context, root *potree.OctreeNode, metadata 
 		return true
 	})
 
+	propertyTypeMapping := map[potree.AttributeType]ply.ScalarPropertyType{
+		potree.DoubleAttributeType: ply.Double,
+		potree.FloatAttributeType:  ply.Float,
+
+		potree.UInt8AttributeType: ply.UChar,
+		potree.Int8AttributeType:  ply.Char,
+
+		potree.Int16AttributeType:  ply.Short,
+		potree.UInt16AttributeType: ply.UShort,
+
+		potree.Int32AttributeType:  ply.Int,
+		potree.UInt32AttributeType: ply.UInt,
+	}
+
+	plyPointSize := 27
+	elementProperties := []ply.Property{
+		&ply.ScalarProperty{PropertyName: "x", Type: ply.Double},
+		&ply.ScalarProperty{PropertyName: "y", Type: ply.Double},
+		&ply.ScalarProperty{PropertyName: "z", Type: ply.Double},
+		&ply.ScalarProperty{PropertyName: "red", Type: ply.UChar},
+		&ply.ScalarProperty{PropertyName: "green", Type: ply.UChar},
+		&ply.ScalarProperty{PropertyName: "blue", Type: ply.UChar},
+	}
+
+	for _, attr := range metadata.Attributes {
+		if attr.IsColor() || attr.IsPosition() {
+			continue
+		}
+
+		if attr.Type == potree.UInt64AttributeType || attr.Type == potree.Int64AttributeType {
+			return fmt.Errorf("can't convert attribute type to ply: %s", attr.Type)
+		}
+
+		elementProperties = append(elementProperties, ply.ScalarProperty{
+			PropertyName: attr.Name,
+			Type:         propertyTypeMapping[attr.Type],
+		})
+		plyPointSize += attr.Size
+	}
+
 	header := ply.Header{
 		Format: ply.BinaryLittleEndian,
 		Elements: []ply.Element{
 			{
-				Name:  ply.VertexElementName,
-				Count: int64(root.PointCount()),
-				Properties: []ply.Property{
-					&ply.ScalarProperty{PropertyName: "x", Type: ply.Double},
-					&ply.ScalarProperty{PropertyName: "y", Type: ply.Double},
-					&ply.ScalarProperty{PropertyName: "z", Type: ply.Double},
-					&ply.ScalarProperty{PropertyName: "red", Type: ply.UChar},
-					&ply.ScalarProperty{PropertyName: "green", Type: ply.UChar},
-					&ply.ScalarProperty{PropertyName: "blue", Type: ply.UChar},
-				},
+				Name:       ply.VertexElementName,
+				Count:      int64(root.PointCount()),
+				Properties: elementProperties,
 			},
 		},
 	}
@@ -148,7 +193,7 @@ func buildModelWithChildren(ctx *cli.Context, root *potree.OctreeNode, metadata 
 		return err
 	}
 
-	err = plyFile.Truncate(int64(headerOffset) + int64(27*root.PointCount()))
+	err = plyFile.Truncate(int64(headerOffset) + int64(uint64(plyPointSize)*root.PointCount()))
 	if err != nil {
 		return err
 	}
@@ -158,7 +203,7 @@ func buildModelWithChildren(ctx *cli.Context, root *potree.OctreeNode, metadata 
 	meshes := make(chan int, workerCount)
 
 	for i := 0; i < workerCount; i++ {
-		go buildModelWorker(ctx, jobs, metadata, largestPointCount, plyFilename, headerOffset, meshes)
+		go buildModelWorker(ctx, jobs, metadata, largestPointCount, plyFilename, headerOffset, plyPointSize, meshes)
 	}
 
 	var plyStart int64
