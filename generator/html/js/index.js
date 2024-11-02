@@ -1,15 +1,12 @@
 const panel = new GUI({ width: 310 });
 
-import * as GaussianSplats3D from '@mkkellogg/gaussian-splats-3d';
-
-
 let initID = null
 setInterval(() => {
     requestManager.getStartedTime((payload) => {
         if (initID === null) {
             initID = payload.time;
         }
-
+        
         if (initID !== payload.time) {
             location.reload();
         }
@@ -19,6 +16,7 @@ setInterval(() => {
 
 // https://threejs.org/examples/?q=Directional#webgl_lights_hemisphere
 // https://threejs.org/examples/#webgl_geometry_spline_editor
+import * as GaussianSplats3D from '@mkkellogg/gaussian-splats-3d';
 
 const container = document.getElementById('three-viewer-container');
 
@@ -40,7 +38,6 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 import { InitXR } from './xr.js';
 import { UpdateManager } from './update-manager.js';
-import { ColorSelector } from './color_selector.js';
 import { getFileExtension } from './utils.js';
 
 const viewportSettings = {
@@ -172,8 +169,7 @@ const App = {
     Scene: scene,
     OrbitControls: orbitControls,
     ViewerScene: viewerContainer,
-    LightGraph: lgraphInstance,
-    ColorSelector: new ColorSelector("colorSelectorContainer"),
+    NodeFlowGraph: nodeFlowGraph,
     RequestManager: requestManager,
     ServerUpdatingNodeConnections: false,
     SchemaRefreshManager: null,
@@ -292,35 +288,14 @@ class SchemaRefreshManager {
             const objects = [];
 
             gltf.scene.traverse((object) => {
-                console.log(object)
                 if (object.isMesh) {
                     // object.castShadow = true;
                     // object.receiveShadow = true;
-
-                    const prevMaterial = object.material;
-
-                    // if (object.material.userData && object.material.userData["threejs-material"] === "phong") {
-                    //     object.material = new THREE.MeshPhongMaterial();
-
-                    // } else {
-                    // object.material = new THREE.MeshPhysicalMaterial();
-                    // }
-
-                    // THREE.MeshBasicMaterial.prototype.copy.call( object.material, prevMaterial );
-
-                    // // Copying what I want...
-                    // object.material.color = prevMaterial.color;
-                    // object.materialroughness = prevMaterial.roughness;
-                    // object.materialroughnessMap = prevMaterial.roughnessMap;
-                    // object.materialmetalness = prevMaterial.metalness;
-                    // object.materialmetalnessMap = prevMaterial.metalnessMap;
-
                     object.material.wireframe = viewportSettings.renderWireframe;
                     object.material.envMap = textureEquirec;
                     object.material.needsUpdate = true;
                     // object.material.transparent = true;
 
-                    console.log(prevMaterial)
                     objects.push(object)
                 } else if (object.isPoints) {
                     object.material.size = 2;
@@ -415,7 +390,7 @@ class SchemaRefreshManager {
             });
 
             this.RemoveLoading();
-            this.UpdateSubscribers(producerURL, gltf);
+            this.UpdateSubscribers(producerURL, guassianSplatViewer.splatMesh);
 
         }).catch(x => {
             console.error(x)
@@ -673,7 +648,7 @@ function resize() {
         composer.setSize(w, h);
         camera.aspect = w / h;
         camera.updateProjectionMatrix();
-        lightCanvas.resize(lightCanvasCanvas.clientWidth, lightCanvasCanvas.clientHeight, false)
+        // nodeCanvas.resize(nodeCanvas.clientWidth, nodeCanvas.clientHeight, false)
         labelRenderer.setSize(w, h);
     }
 }

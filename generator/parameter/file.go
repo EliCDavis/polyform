@@ -53,6 +53,7 @@ func (pn *File) Value() []byte {
 	if pn.CLI != nil && pn.CLI.value != nil && *pn.CLI.value != "" {
 		f, err := os.Open(*pn.CLI.value)
 		if err != nil {
+			panic(err)
 			return nil
 		}
 		defer f.Close()

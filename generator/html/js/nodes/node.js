@@ -4,10 +4,10 @@ import { Vector3ParameterNodeController } from './vector3_parameter.js';
 import { Vector3ArrayParameterNodeController } from './vector3_array_parameter.js';
 import { ImageParameterNodeController } from './image_parameter.js';
 import { AABBParameterNodeController } from './aabb_parameter.js';
-import { ColorParameterNodeController } from './color_parameter.js';
 import { NodeManager } from '../node_manager.js';
 import { FileParameterNodeController } from './file_parameter.js';
-import { addRenderableImageWidget, getFileExtension, getLastSegmentOfURL } from '../utils.js';
+import { getFileExtension, getLastSegmentOfURL } from '../utils.js';
+import { Vector2ParameterNodeController } from './vector2_parameter.js';
 
 
 function BuildParameter(liteNode, nodeManager, id, parameterData, app) {
@@ -16,12 +16,13 @@ function BuildParameter(liteNode, nodeManager, id, parameterData, app) {
         case "float32":
         case "int":
         case "bool":
-        case "vector2.Vector[float64]":
         case "string":
+        case "coloring.WebColor":
             return new BasicParameterNodeController(liteNode, nodeManager, id, parameterData);
 
-        case "coloring.WebColor":
-            return new ColorParameterNodeController(liteNode, nodeManager, id, parameterData, app);
+        case "vector2.Vector[float64]":
+        case "vector2.Vector[float32]":
+            return new Vector2ParameterNodeController(liteNode, nodeManager, id, parameterData, app);
 
         case "vector3.Vector[float64]":
         case "vector3.Vector[float32]":
@@ -104,25 +105,29 @@ export class PolyNodeController {
         }
 
         if (this.isProducer) {
-            console.log(nodeData);
             const ext = getFileExtension(nodeData.name);
-            console.log(ext);
             if (ext == "png") {
-                addRenderableImageWidget(liteNode);
+                const imageWidget = GlobalWidgetFactory.create(liteNode, "image", {});
+                liteNode.addWidget(imageWidget);
                 app.SchemaRefreshManager.Subscribe((url, image) => {
-                    console.log(nodeData.name, getLastSegmentOfURL(url), image);
-                    if (getLastSegmentOfURL(url) == nodeData.name) {
-                        liteNode.widgets[0].image = image
-                        liteNode.setSize(liteNode.computeSize());
+                    // console.log(url, image)
+                    // imageWidget.SetBlob(image);
+                    // console.log(nodeData.name, getLastSegmentOfURL(url), image);
+                    if (getLastSegmentOfURL(url) === nodeData.name) {
+                        imageWidget.SetUrl(url)
                     }
-                })
+                });
             }
 
             this.liteNode.color = "#232";
             this.liteNode.bgcolor = "#353";
-            this.liteNode.addWidget("button", "Download", null, () => {
-                saveFileToDisk("/producer/" + this.name, this.name);
+            const downloadButton = GlobalWidgetFactory.create(liteNode, "button", {
+                text: "Download",
+                callback: () => {
+                    saveFileToDisk("/producer/" + this.name, this.name);
+                }
             })
+            this.liteNode.addWidget(downloadButton);
         }
 
         this.liteNode.onConnectionsChange = this.onConnectionChange.bind(this);

@@ -5,7 +5,7 @@ export class FileParameterNodeController {
         this.lightNode = lightNode;
         this.id = id;
         this.app = app;
-        this.lightNode.title = parameterData.name;
+        this.lightNode.setTitle(parameterData.name);
 
         this.lightNode.onDropFile = (file) => {
             // console.log(file)

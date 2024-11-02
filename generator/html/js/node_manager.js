@@ -1,5 +1,4 @@
 import { PolyNodeController, camelCaseToWords } from "./nodes/node.js";
-import { addRenderableImageWidget } from "./utils.js";
 
 
 const ParameterNodeOutputPortName = "Out";
@@ -34,7 +33,7 @@ export class NodeManager {
         this.nodeTypeToLitePath = new Map();
         this.subscribers = [];
         this.initializedNodeTypes = false
-        this.registerSpecialParameterPolyformNodes();
+        // this.registerSpecialParameterPolyformNodes();
     }
 
     onNodeCreateCallback(liteNode, nodeType) {
@@ -52,7 +51,8 @@ export class NodeManager {
     }
 
 
-    registerSpecialParameterPolyformNodes() {
+
+    registerSpecialParameterPolyformNodes_OLDWAY() {
         const nm = this;
         function ImageParameterNode() {
             const nodeDataType = "image.Image";
@@ -61,7 +61,7 @@ export class NodeManager {
             this.color = ParameterNodeColor;
             this.bgcolor = ParameterNodeBackgroundColor;
 
-            addRenderableImageWidget(this);
+            // addRenderableImageWidget(this);
 
             nm.onNodeCreateCallback(this, "github.com/EliCDavis/polyform/generator.ImageParameterNode");
         }
@@ -331,20 +331,61 @@ export class NodeManager {
 
                 let sourceInput = -1;
                 // console.log(source.liteNode)
-                for (let sourceInputIndex = 0; sourceInputIndex < source.liteNode.inputs.length; sourceInputIndex++) {
-                    if (source.liteNode.inputs[sourceInputIndex].name === dep.name) {
+                for (let sourceInputIndex = 0; sourceInputIndex < source.liteNode.inputs(); sourceInputIndex++) {
+                    if (source.liteNode.inputPort(sourceInputIndex).getDisplayName() === dep.name) {
                         sourceInput = sourceInputIndex;
                     }
                 }
 
+                // connectNodes(nodeOut: FlowNode, outPort: number, nodeIn: FlowNode, inPort): Connection | undefined {
+
+                if (sourceInput === -1) {
+                    console.error("failed to find source")
+                    continue;
+                }
+
                 // TODO: This only works for nodes with one output
-                target.liteNode.connect(0, source.liteNode, sourceInput)
+                this.app.NodeFlowGraph.connectNodes(
+                    target.liteNode, 0,
+                    source.liteNode, sourceInput,
+                )
+                // target.liteNode.connect(0, source.liteNode, sourceInput)
                 // source.lightNode.connect(i, target.lightNode, 0);
             }
         }
     }
 
+
     buildCustomNodeType(typeData) {
+        const nodeConfig = {
+            title: camelCaseToWords(typeData.displayName),
+            inputs: [],
+            outputs:[]
+        }
+
+        for (var inputName in typeData.inputs) {
+            nodeConfig.inputs.push({
+                name: inputName, 
+                type: typeData.inputs[inputName].type
+            });
+        }
+
+        if (typeData.outputs) {
+            typeData.outputs.forEach((o) => {
+                nodeConfig.outputs.push({
+                    name: o.name, 
+                    type: o.type
+                });
+            })
+        }
+        // nm.onNodeCreateCallback(this, typeData.type);
+        
+        const category = typeData.path + "/" + typeData.displayName;
+        this.nodeTypeToLitePath.set(typeData.type, category);
+        PolyformNodesPublisher.register(category, nodeConfig);
+    }
+
+    buildCustomNodeType_OLD(typeData) {
         const nm = this;
         function CustomNodeFunc() {
             // console.log(typeData)
@@ -386,6 +427,25 @@ export class NodeManager {
     }
 
     newLiteNode(nodeData) {
+        const isParameter = !!nodeData.parameter;
+
+        // Not a parameter, just create a node that adhere's to the server's 
+        // reflection.
+        // if (!isParameter) {
+        //     const nodeIdentifier = this.nodeTypeToLitePath.get(nodeData.type)
+        //     return LiteGraph.createNode(nodeIdentifier);
+        // }
+
+        if (!isParameter) {
+            const nodeIdentifier = this.nodeTypeToLitePath.get(nodeData.type)
+            return PolyformNodesPublisher.create(nodeIdentifier);
+        }
+
+        const parameterType = nodeData.parameter.type;
+        return PolyformNodesPublisher.create("parameters/" + parameterType);
+    }
+
+    newLiteNode_OLD(nodeData) {
         const isParameter = !!nodeData.parameter;
 
         // Not a parameter, just create a node that adhere's to the server's 
@@ -474,8 +534,8 @@ export class NodeManager {
                 }
 
                 const liteNode = this.newLiteNode(nodeData);
-                this.app.LightGraph.add(liteNode);
-                liteNode.setSize(liteNode.computeSize());
+                this.app.NodeFlowGraph.addNode(liteNode);
+                // liteNode.setSize(liteNode.computeSize());
                 liteNode.nodeInstanceID = nodeID;
 
                 this.nodeIdToNode.set(nodeID, new PolyNodeController(liteNode, this, nodeID, nodeData, this.app, isProducer));
@@ -486,7 +546,7 @@ export class NodeManager {
         this.updateNodeConnections(sortedNodes);
 
         if (nodeAdded) {
-            lgraphInstance.arrange();
+            nodeFlowGraph.organize();
         }
         this.app.ServerUpdatingNodeConnections = false;
     }

@@ -42,6 +42,7 @@ Polyform is for loading, generating, editing, and exporting 3D geometry and it's
 
 Packages that have spawned from polyform's undertaking and have since been refactored into their own repositories:
 
+- [Node Flow](https://github.com/EliCDavis/node-flow) - Another Flow-based Node Graph Library
 - [vector](https://github.com/EliCDavis/vector) - Immutable vector math library
 - [jbtf](https://github.com/EliCDavis/jbtf) - GLTF-inspired JSON schema for embedding arbitrary binaries
 - [iter](https://github.com/EliCDavis/iter) - Iterator and utilities. Some inspiration from ReactiveX
@@ -352,7 +353,6 @@ Resources either directly contributing to the code, or are just interesting find
 Libraries the Webviewer depends on in some capacity
 
 * [three.js](https://github.com/mrdoob/three.js)
-* [litegraph.js](https://github.com/jagenjo/litegraph.js)
 * [GaussianSplats3D](https://github.com/mkkellogg/GaussianSplats3D)
 * [dat.gui](https://github.com/dataarts/dat.gui)
 

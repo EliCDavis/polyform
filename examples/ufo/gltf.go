@@ -31,25 +31,26 @@ func (gad GltfArtifactData) Process() (generator.Artifact, error) {
 	}, nil
 }
 
-type GltfModel = nodes.StructNode[gltf.PolyformModel, GltfModelData]
+type GltfModel = nodes.StructNode[gltf.PolyformModel, GltfModelNodeData]
 
-type GltfModelData struct {
+type GltfModelNodeData struct {
 	Mesh     nodes.NodeOutput[modeling.Mesh]
 	Material nodes.NodeOutput[gltf.PolyformMaterial]
 }
 
-func (gad GltfModelData) Process() (gltf.PolyformModel, error) {
-	var mat *gltf.PolyformMaterial
-	if gad.Material != nil {
-		v := gad.Material.Value()
-		mat = &v
+func (gmnd GltfModelNodeData) Process() (gltf.PolyformModel, error) {
+	model := gltf.PolyformModel{Name: "Mesh"}
+
+	if gmnd.Material != nil {
+		v := gmnd.Material.Value()
+		model.Material = &v
 	}
 
-	return gltf.PolyformModel{
-		Name:     "Mesh",
-		Mesh:     gad.Mesh.Value(),
-		Material: mat,
-	}, nil
+	if gmnd.Mesh != nil {
+		model.Mesh = gmnd.Mesh.Value()
+	}
+
+	return model, nil
 }
 
 type GltfMaterialNode = nodes.StructNode[gltf.PolyformMaterial, GltfMaterialNodeData]
