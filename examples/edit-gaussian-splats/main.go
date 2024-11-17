@@ -1,8 +1,6 @@
 package main
 
 import (
-	"math"
-
 	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/generator"
 	"github.com/EliCDavis/polyform/generator/artifact"
@@ -20,8 +18,8 @@ import (
 func main() {
 	scale := &parameter.Float64{Name: "Scale", DefaultValue: 1}
 
-	pointcloud := &gausops.LoaderNode{
-		Data: gausops.LoaderNodeData{
+	pointcloud := &gausops.SpzLoaderNode{
+		Data: gausops.SpzLoaderNodeData{
 			Data: &parameter.File{
 				Name: "Splat File",
 				CLI: &parameter.CliConfig[string]{
@@ -48,9 +46,9 @@ func main() {
 	rotateAmount := &quatn.FromTheta{
 		Data: quatn.FromThetaData{
 			Theta: &parameter.Float64{
-				Name:         "Rotation",
-				Description:  "How much to rotate the pointcloud by",
-				DefaultValue: math.Pi,
+				Name:        "Rotation",
+				Description: "How much to rotate the pointcloud by",
+				// DefaultValue: math.Pi,
 			},
 			Direction: &vecn3.New{
 				Data: vecn3.NewData[float64]{

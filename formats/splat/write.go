@@ -72,10 +72,10 @@ func Write(out io.Writer, mesh modeling.Mesh) error {
 		writer.Byte(byte(alpha * 255))
 
 		rot := rotationData.At(i)
-		writer.Byte(byte(rot.X()*128) + 128)
-		writer.Byte(byte(rot.Y()*128) + 128)
-		writer.Byte(byte(rot.Z()*128) + 128)
-		writer.Byte(byte(rot.W()*128) + 128)
+		writer.Byte(byte((rot.X() * 128) + 128))
+		writer.Byte(byte((rot.Y() * 128) + 128))
+		writer.Byte(byte((rot.Z() * 128) + 128))
+		writer.Byte(byte((rot.W() * 128) + 128))
 
 		if writer.Error() != nil {
 			return writer.Error()

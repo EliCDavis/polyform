@@ -5,6 +5,7 @@ import (
 	"bytes"
 
 	"github.com/EliCDavis/polyform/formats/ply"
+	"github.com/EliCDavis/polyform/formats/spz"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/nodes"
 )
@@ -29,4 +30,22 @@ func (pn LoaderNodeData) Process() (modeling.Mesh, error) {
 		return modeling.EmptyPointcloud(), err
 	}
 	return *plyMesh, err
+}
+
+type SpzLoaderNode = nodes.StructNode[modeling.Mesh, SpzLoaderNodeData]
+
+type SpzLoaderNodeData struct {
+	Data nodes.NodeOutput[[]byte]
+}
+
+func (pn SpzLoaderNodeData) Process() (modeling.Mesh, error) {
+	bufReader := bufio.NewReader(bytes.NewReader(pn.Data.Value()))
+
+	header, err := spz.Read(bufReader)
+	if err != nil {
+		// panic(err)
+		return modeling.EmptyPointcloud(), err
+	}
+
+	return header.Mesh, err
 }
