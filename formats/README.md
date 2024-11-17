@@ -19,4 +19,5 @@ I'm not doing FBX. FBX is cursed and Autodesk can burn in hell.
 | COLMAP     | ✔️          | ❌          |
 | OpenSFM    | ✔️          | ❌          |
 | Splat      | ✔️          | ✔️          |
+| SPZ        | ✔️          | ➖          |
 | Potree 2.0 | ✔️          | ➖          |
