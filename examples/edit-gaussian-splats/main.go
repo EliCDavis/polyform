@@ -18,16 +18,18 @@ import (
 func main() {
 	scale := &parameter.Float64{Name: "Scale", DefaultValue: 1}
 
+	fileNode := &parameter.File{
+		Name: "Splat File",
+		CLI: &parameter.CliConfig[string]{
+			FlagName: "splat",
+			Usage:    "Path to the guassian splat to load (PLY file)",
+			// Default:  "./point_cloud/iteration_30000/point_cloud.ply",
+		},
+	}
+
 	pointcloud := &gausops.SpzLoaderNode{
 		Data: gausops.SpzLoaderNodeData{
-			Data: &parameter.File{
-				Name: "Splat File",
-				CLI: &parameter.CliConfig[string]{
-					FlagName: "splat",
-					Usage:    "Path to the guassian splat to load (PLY file)",
-					// Default:  "./point_cloud/iteration_30000/point_cloud.ply",
-				},
-			},
+			Data: fileNode,
 		},
 	}
 

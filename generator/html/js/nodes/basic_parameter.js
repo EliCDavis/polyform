@@ -7,9 +7,11 @@ export class BasicParameterNodeController {
         this.updating = false;
 
         this.lightNode.subscribeToProperty("value", (oldVal, newVal) => {
-            if (!this.updating) {
-                nodeManager.nodeParameterChanged({ id: id, data: newVal });
+            if (this.updating) {
+                return;
             }
+            console.log("Value", newVal)
+            nodeManager.nodeParameterChanged({ id: id, data: newVal });
         });
     }
 

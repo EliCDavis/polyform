@@ -106,7 +106,7 @@ export class PolyNodeController {
 
         if (this.isProducer) {
             const ext = getFileExtension(nodeData.name);
-            if (ext == "png") {
+            if (ext === "png") {
                 const imageWidget = GlobalWidgetFactory.create(liteNode, "image", {});
                 liteNode.addWidget(imageWidget);
                 app.SchemaRefreshManager.Subscribe((url, image) => {

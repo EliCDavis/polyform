@@ -50,8 +50,6 @@ export class NodeManager {
         })
     }
 
-
-
     registerSpecialParameterPolyformNodes_OLDWAY() {
         const nm = this;
         function ImageParameterNode() {
@@ -535,7 +533,6 @@ export class NodeManager {
 
                 const liteNode = this.newLiteNode(nodeData);
                 this.app.NodeFlowGraph.addNode(liteNode);
-                // liteNode.setSize(liteNode.computeSize());
                 liteNode.nodeInstanceID = nodeID;
 
                 this.nodeIdToNode.set(nodeID, new PolyNodeController(liteNode, this, nodeID, nodeData, this.app, isProducer));

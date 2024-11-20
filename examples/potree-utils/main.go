@@ -24,7 +24,7 @@ func main() {
 					SummarizeHierarchyCommand,
 				},
 			},
-			ExtractPointcloudCommand,
+			ToPlyCommand,
 		},
 	}
 

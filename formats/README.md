@@ -13,6 +13,8 @@ I'm not doing FBX. FBX is cursed and Autodesk can burn in hell.
 | PTS        | ✔️          | ❌          |
 | PTX        | ❌          | ❌          |
 | PLY        | ✔️          | ✔️          |
+| LAS        | ❌          | ❌          |
+| E57        | ❌          | ❌          |
 | OBJ        | ✔️          | ✔️          |
 | GLTF       | ❌          | ✔️          |
 | STL        | ✔️ (Binary) | ✔️ (Binary) |

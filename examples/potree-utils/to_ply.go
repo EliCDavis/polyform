@@ -263,8 +263,8 @@ func findNode(name string, node *potree.OctreeNode) (*potree.OctreeNode, error) 
 	return nil, fmt.Errorf("%s can't find child node with name %s", node.Name, name)
 }
 
-var ExtractPointcloudCommand = &cli.Command{
-	Name: "extract-pointcloud",
+var ToPlyCommand = &cli.Command{
+	Name: "to-ply",
 	Flags: []cli.Flag{
 		metadataFlag,
 		hierarchyFlag,
