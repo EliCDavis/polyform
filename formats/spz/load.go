@@ -124,6 +124,20 @@ func shadeSH(splat []vector3.Float64, dir vector3.Float64, shOrder int, col floa
 	return math.Max(res, 0)
 }
 
+func ReadHeader(in io.Reader) (*Header, error) {
+	reader, err := gzip.NewReader(in)
+	if err != nil {
+		return nil, err
+	}
+
+	var header Header
+	if err := binary.Read(reader, binary.LittleEndian, &header); err != nil {
+		return nil, err
+	}
+
+	return &header, header.Validate()
+}
+
 // Deserialize a gaussian splat from the input reader.
 func Read(inUncompressed io.Reader) (*Cloud, error) {
 	in, err := gzip.NewReader(inUncompressed)

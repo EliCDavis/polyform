@@ -11,13 +11,13 @@ import (
 )
 
 type Header struct {
-	Magic          uint32 // Must be 0x5053474e (NGSP = Niantic gaussian splat)
-	Version        uint32 // Must be 2
-	NumPoints      uint32 // Cant be greater than 10000000
-	ShDegree       uint8  // Must be between 0 and 3
-	FractionalBits uint8
-	Flags          uint8
-	Reserved       uint8 // Must be 0
+	Magic          uint32 `json:"magic"`     // Must be 0x5053474e (NGSP = Niantic gaussian splat)
+	Version        uint32 `json:"version"`   // Must be 2
+	NumPoints      uint32 `json:"numPoints"` // Cant be greater than 10000000
+	ShDegree       uint8  `json:"shDegree"`  // Must be between 0 and 3
+	FractionalBits uint8  `json:"fractionalBits"`
+	Flags          uint8  `json:"flags"`
+	Reserved       uint8  `json:"reserved"` // Must be 0
 }
 
 func (pgh Header) Validate() error {

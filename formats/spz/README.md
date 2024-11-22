@@ -19,3 +19,11 @@ Opens the file located at the `filePath` and deserializes a gaussian splat.
 ```go
 spz.Load(filePath string) (*spz.Cloud, error)
 ```
+
+### Read Header
+
+Deserialize a gaussian splat from the input reader.
+
+```go
+spz.ReadHeader(in io.Reader) (*spz.Header, error)
+```
