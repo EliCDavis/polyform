@@ -331,7 +331,7 @@ func (w *Writer) AddTexture(mat PolyformTexture) *TextureInfo {
 }
 
 func (w *Writer) AddMaterial(mat PolyformMaterial) *int {
-	var pbr = &PbrMetallicRoughness{
+	var pbr *PbrMetallicRoughness = &PbrMetallicRoughness{
 		BaseColorFactor: &[4]float64{1, 1, 1, 1},
 	}
 
