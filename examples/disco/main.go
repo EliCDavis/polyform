@@ -60,6 +60,7 @@ type DiscoSceneNodeData struct {
 func (dsn DiscoSceneNodeData) Process() (generator.Artifact, error) {
 	chairs := dsn.Chairs.Value()
 
+	noMetal := 0.
 	models := []gltf.PolyformModel{
 		dsn.Table.Value(),
 		{
@@ -67,8 +68,7 @@ func (dsn DiscoSceneNodeData) Process() (generator.Artifact, error) {
 			Mesh: chairs,
 			Material: &gltf.PolyformMaterial{
 				PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
-					MetallicFactor:  0,
-					RoughnessFactor: 1,
+					MetallicFactor:  &noMetal,
 					BaseColorFactor: dsn.ChairColor.Value(),
 				},
 			},
@@ -78,8 +78,7 @@ func (dsn DiscoSceneNodeData) Process() (generator.Artifact, error) {
 			Mesh: dsn.Cushion.Value(),
 			Material: &gltf.PolyformMaterial{
 				PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
-					MetallicFactor:  0,
-					RoughnessFactor: 1,
+					MetallicFactor:  &noMetal,
 					BaseColorFactor: dsn.CushionColor.Value(),
 				},
 			},
@@ -105,7 +104,7 @@ func (dsn DiscoSceneNodeData) Process() (generator.Artifact, error) {
 				// },
 				Extensions: []gltf.MaterialExtension{
 					&gltf.PolyformTransmission{
-						TransmissionFactor: .8,
+						Factor: .8,
 					},
 				},
 			},

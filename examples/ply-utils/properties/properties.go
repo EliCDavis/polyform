@@ -8,5 +8,6 @@ var PropertiesCommand = &cli.Command{
 	Subcommands: []*cli.Command{
 		removePropertiesCommand,
 		addPropertiesCommand,
+		analyzePropertiesCommand,
 	},
 }

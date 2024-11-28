@@ -6,6 +6,7 @@ import (
 
 	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/polyform/modeling"
+	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
 )
@@ -237,4 +238,57 @@ func ClosedCircleWithThickness(sides int, thickness []float64, path []vector3.Fl
 
 func Polygon(sides int, points []ExtrusionPoint) modeling.Mesh {
 	return polygon(sides, points, false)
+}
+
+type PolygonNode = nodes.StructNode[modeling.Mesh, PolygonNodeData]
+
+type PolygonNodeData struct {
+	Closed         nodes.NodeOutput[bool]
+	Sides          nodes.NodeOutput[int]
+	ThicknessScale nodes.NodeOutput[float64]
+	Thickness      nodes.NodeOutput[[]float64]
+	Path           nodes.NodeOutput[[]vector3.Float64]
+}
+
+func (pnd PolygonNodeData) Process() (modeling.Mesh, error) {
+	if pnd.Path == nil {
+		return modeling.EmptyMesh(modeling.TriangleTopology), nil
+	}
+
+	thicknessScale := 1.0
+	if pnd.ThicknessScale != nil {
+		thicknessScale = pnd.ThicknessScale.Value()
+	}
+
+	path := pnd.Path.Value()
+	points := make([]ExtrusionPoint, len(path))
+	for i, p := range path {
+		points[i] = ExtrusionPoint{
+			Point:     p,
+			Thickness: thicknessScale,
+		}
+	}
+
+	if pnd.Thickness != nil {
+		thickness := pnd.Thickness.Value()
+		if len(thickness) == len(path) {
+			for i, p := range thickness {
+				points[i].Thickness = p * thicknessScale
+			}
+		}
+	}
+
+	sides := 3
+	closed := false
+
+	if pnd.Sides != nil {
+		sides = max(3, pnd.Sides.Value())
+	}
+
+	if pnd.Closed != nil {
+		closed = pnd.Closed.Value()
+	}
+
+	return polygon(sides, points, closed), nil
+
 }

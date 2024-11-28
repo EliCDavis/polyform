@@ -1,5 +1,5 @@
 ![Polyform Banner](./docs/polyformbanner.png)
-![Coverage](https://img.shields.io/badge/Coverage-39.0%25-yellow)
+![Coverage](https://img.shields.io/badge/Coverage-41.2%25-yellow)
 [![Go Report Card](https://goreportcard.com/badge/github.com/EliCDavis/polyform)](https://goreportcard.com/report/github.com/EliCDavis/polyform)
 [![CITATION.cff](https://github.com/EliCDavis/polyform/actions/workflows/cff-validator-complete.yml/badge.svg)](https://github.com/EliCDavis/polyform/actions/workflows/cff-validator-complete.yml)
 
@@ -13,9 +13,11 @@ Polyform is for loading, generating, editing, and exporting 3D geometry and it's
   - [gltf](/formats/gltf/) - GLTF file format
   - [obj](/formats/obj/) - OBJ file format
   - [ply](/formats/ply/) - PLY file format
+  - [stl](/formats/stl/) - STL file format
   - [colmap](/formats/colmap/) - Utilities for loading COLMAP reconstruction data
   - [opensfm](/formats/opensfm/) - Utilities for loading OpenSFM reconstruction data
   - [splat](/formats/splat/) - Guassian splatting's SPLAT format
+  - [spz](/formats/spz/) - Niantic Scaniverse's [SPZ format](https://scaniverse.com/news/spz-gaussian-splat-open-source-file-format)
   - [potree](/formats/potree/) - Potree V2 file format
 - Modeling
   - [meshops](/modeling/meshops/) - All currently implemented algorithms for transforming meshes. 
@@ -41,6 +43,7 @@ Polyform is for loading, generating, editing, and exporting 3D geometry and it's
 
 Packages that have spawned from polyform's undertaking and have since been refactored into their own repositories:
 
+- [Node Flow](https://github.com/EliCDavis/node-flow) - Another Flow-based Node Graph Library
 - [vector](https://github.com/EliCDavis/vector) - Immutable vector math library
 - [jbtf](https://github.com/EliCDavis/jbtf) - GLTF-inspired JSON schema for embedding arbitrary binaries
 - [iter](https://github.com/EliCDavis/iter) - Iterator and utilities. Some inspiration from ReactiveX
@@ -351,7 +354,6 @@ Resources either directly contributing to the code, or are just interesting find
 Libraries the Webviewer depends on in some capacity
 
 * [three.js](https://github.com/mrdoob/three.js)
-* [litegraph.js](https://github.com/jagenjo/litegraph.js)
 * [GaussianSplats3D](https://github.com/mkkellogg/GaussianSplats3D)
 * [dat.gui](https://github.com/dataarts/dat.gui)
 

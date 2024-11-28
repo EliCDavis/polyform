@@ -13,6 +13,7 @@ import (
 	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
+	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
 )
 
@@ -68,7 +69,9 @@ type Float32 = Value[float32]
 type Int = Value[int]
 type String = Value[string]
 type Bool = Value[bool]
+type Vector2 = Value[vector2.Float64]
 type Vector3 = Value[vector3.Float64]
+type Vector3Array = Value[[]vector3.Float64]
 type AABB = Value[geometry.AABB]
 type Color = Value[coloring.WebColor]
 

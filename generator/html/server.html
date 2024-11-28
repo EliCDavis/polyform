@@ -8,8 +8,8 @@
     <script type="importmap">
         {
           "imports": {
-            "three": "https://unpkg.com/three@0.161.0/build/three.module.js",
-            "three/addons/": "https://unpkg.com/three@0.161.0/examples/jsm/",
+            "three": "https://unpkg.com/three@0.167.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.167.0/examples/jsm/",
             "@mkkellogg/gaussian-splats-3d": "/js/gaussian-splats-3d.module.min.js",
             "node": "/js/node.js",
             "xr": "/js/xr.js",
@@ -20,22 +20,20 @@
           }
         }
     </script>
-    <link rel="stylesheet" type="text/css" href="css/litegraph.css">
     <script type="module" src="js/box.js"></script>
-    <script type="text/javascript" src="js/litegraph.js"></script>
+    <script type="text/javascript" src="js/nodeFlow.js"></script>
     <script type="module" src="js/update-manager.js"></script>
     <script src="js/utils.js"></script>
     <script src="js/info_manager.js"></script>
     <script src="js/error_manager.js"></script>
     <script src="js/requests.js"></script>
     <script src="js/viewport-manager.js"></script>
-    <script type="module" src="js/color_selector.js"></script>
     <script type="module" src="js/binary_reader.js"></script>
     <script type="module" src="js/binary_writer.js"></script>
     <script type="module" src="js/websocket.js"></script>
     <script type="module" src="js/nodes/basic_parameter.js"></script>
+    <script type="module" src="js/nodes/vector2_parameter.js"></script>
     <script type="module" src="js/nodes/vector3_parameter.js"></script>
-    <script type="module" src="js/nodes/color_parameter.js"></script>
     <script type="module" src="js/nodes/vector3_array_parameter.js"></script>
     <script type="module" src="js/nodes/image_parameter.js"></script>
     <script type="module" src="js/nodes/file_parameter.js"></script>
@@ -133,22 +131,6 @@
             display: none;
         }
 
-        #colorSelectorContainer {
-            display: none;
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            justify-content: center;
-            align-items: center;
-            background-color: #00000050;
-        }
-
-        #colorSelector {
-            background-color: #000;
-            color: white;
-            border-radius: 8px;
-            padding: 16px;
-        }
 
         a,
         button,
@@ -243,7 +225,7 @@
     <script>
         const RenderingConfiguration = {
             AntiAlias: {{.AntiAlias }},
-            XrEnabled: {{.XrEnabled }}
+            XrEnabled:  {{ .XrEnabled }}
         }
     </script>
 
@@ -258,23 +240,6 @@
     </div>
 
     <div style="position: absolute; display: flex;">
-    </div>
-
-    <div id="colorSelectorContainer">
-        <div id="colorSelector">
-            <h2 style="margin-top: 0">Select Color</h2>
-            <div>
-                <input id="colorSelectorInput" type="color" name="color" value="#e66465" />
-                <label for="color">Color</label>
-            </div>
-
-            <div
-                style="margin-top: 16px; justify-content: space-around; align-items: center; flex-direction: row; display: flex;">
-                <button id="colorSelectorOK" style="flex-grow: 1; margin-right: 8px;">OK</button>
-                <button id="colorSelectorCancel" style="flex-grow: 1; margin-left: 8px;">Cancel</button>
-            </div>
-
-        </div>
     </div>
 
     <script type="module" src="js/index.js"></script>
@@ -379,13 +344,262 @@
     </script>
 
     <script>
-        LiteGraph.clearRegisteredTypes();
-        const lgraphInstance = new LGraph();
+        // LiteGraph.clearRegisteredTypes();
+        // const lgraphInstance = new LGraph();
 
-        const lightCanvasCanvas = document.getElementById("light-canvas")
-        const lightCanvas = new LGraphCanvas("#light-canvas", lgraphInstance);
+        const nodeCanvas = document.getElementById("light-canvas")
+        // const lightCanvas = new LGraphCanvas("#light-canvas", lgraphInstance);
 
-        lgraphInstance.start();
+        const PolyformNodesPublisher = new NodePublisher({
+            name: "Polyform",
+            version: "1.0.0",
+            nodes: {
+                "parameters/int": {
+                    title: "Int Parameter",
+                    outputs: [
+                        {
+                            name: "out",
+                            type: "int"
+                        }
+                    ],
+                    widgets: [
+                        {
+                            type: "number",
+                            config: {
+                                property: "value"
+                            }
+                        }
+                    ]
+                },
+                "parameters/float64": {
+                    title: "Float64 Parameter",
+                    outputs: [
+                        {
+                            name: "out",
+                            type: "float64"
+                        }
+                    ],
+                    widgets: [
+                        {
+                            type: "number",
+                            config: {
+                                property: "value"
+                            }
+                        }
+                    ]
+                },
+                "parameters/geometry.AABB": {
+                    title: "AABB Parameter",
+                    outputs: [
+                        {
+                            name: "out",
+                            type: "github.com/EliCDavis/polyform/math/geometry.AABB"
+                        }
+                    ],
+                    widgets: [
+                        {
+                            type: "text",
+                            config: {
+                                value: "min"
+                            }
+                        },
+                        {
+                            type: "number",
+                            config: {
+                                property: "min-x"
+                            }
+                        },
+                        {
+                            type: "number",
+                            config: {
+                                property: "min-y"
+                            }
+                        },
+                        {
+                            type: "number",
+                            config: {
+                                property: "min-z"
+                            }
+                        },
+                        {
+                            type: "text",
+                            config: {
+                                value: "max"
+                            }
+                        },
+                        {
+                            type: "number",
+                            config: {
+                                property: "max-x"
+                            }
+                        },
+                        {
+                            type: "number",
+                            config: {
+                                property: "max-y"
+                            }
+                        },
+                        {
+                            type: "number",
+                            config: {
+                                property: "max-z"
+                            }
+                        }
+                    ]
+                },
+                "parameters/image.Image": {
+                    title: "Image Parameter",
+                    outputs: [
+                        {
+                            name: "out",
+                            type: "image.Image"
+                        }
+                    ],
+                    widgets: [
+                        {
+                            type: "image",
+                            config: {
+                            }
+                        }
+                    ]
+                },
+                "parameters/[]uint8": {
+                    title: "[]uint8 Parameter",
+                    outputs: [
+                        {
+                            name: "out",
+                            type: "[]uint8"
+                        }
+                    ],
+                    widgets: [
+                        {
+                            type: "image",
+                            config: {
+                            }
+                        }
+                    ]
+                },
+                "parameters/coloring.WebColor": {
+                    title: "Color Parameter",
+                    outputs: [
+                        {
+                            name: "out",
+                            type: "github.com/EliCDavis/polyform/drawing/coloring.WebColor"
+                        }
+                    ],
+                    widgets: [
+                        {
+                            type: "color",
+                            config: {
+                                property: "value"
+                            }
+                        }
+                    ]
+                },
+                "parameters/vector3.Vector[float64]": {
+                    title: "Vector3 Parameter",
+                    outputs: [
+                        {
+                            name: "out",
+                            type: "github.com/EliCDavis/vector/vector3.Vector[float64]"
+                        }
+                    ],
+                    widgets: [
+                        {
+                            type: "number",
+                            config: {
+                                property: "x"
+                            }
+                        },
+                        {
+                            type: "number",
+                            config: {
+                                property: "y"
+                            }
+                        },
+                        {
+                            type: "number",
+                            config: {
+                                property: "z"
+                            }
+                        }
+                    ]
+                },
+                "parameters/[]vector3.Vector[float64]": {
+                    title: "Vector3 Array Parameter",
+                    outputs: [
+                        {
+                            name: "out",
+                            type: "[]github.com/EliCDavis/vector/vector3.Vector[float64]"
+                        }
+                    ],
+                },
+                "parameters/vector2.Vector[float64]": {
+                    title: "Vector2 Parameter",
+                    outputs: [
+                        {
+                            name: "out",
+                            type: "github.com/EliCDavis/vector/vector2.Vector[float64]"
+                        }
+                    ],
+                    widgets: [
+                        {
+                            type: "number",
+                            config: {
+                                property: "x"
+                            }
+                        },
+                        {
+                            type: "number",
+                            config: {
+                                property: "y"
+                            }
+                        }
+                    ]
+                },
+                "parameters/bool": {
+                    title: "Bool Parameter",
+                    outputs: [
+                        {
+                            name: "out",
+                            type: "bool"
+                        }
+                    ],
+                    widgets: [
+                        {
+                            type: "toggle",
+                            config: {
+                                property: "value"
+                            }
+                        },
+                    ]
+                },
+                "parameters/string": {
+                    title: "String Parameter",
+                    outputs: [
+                        {
+                            name: "out",
+                            type: "string"
+                        }
+                    ],
+                    widgets: [
+                        {
+                            type: "string",
+                            config: {
+                                property: "value"
+                            }
+                        },
+                    ]
+                },
+            },
+        });
+
+        const nodeFlowGraph = new NodeFlowGraph(nodeCanvas, {
+        });
+
+        nodeFlowGraph.addPublisher("polyform", PolyformNodesPublisher);
+
+        // lgraphInstance.start();
     </script>
 
 </body>

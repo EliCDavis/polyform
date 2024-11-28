@@ -69,6 +69,7 @@ func TestGetTypeWithPackageGeneric(t *testing.T) {
 	assert.Equal(t, "int", genericTestStruct[int]{}.TypeWithPackage())
 	assert.Equal(t, "github.com/EliCDavis/vector/vector3.Array[float64]", genericTestStruct[vector3.Array[float64]]{}.TypeWithPackage())
 	assert.Equal(t, "github.com/EliCDavis/vector/vector3.Array[float64]", genericTestStruct[*vector3.Array[float64]]{}.TypeWithPackage())
+	assert.Equal(t, "[]float64", genericTestStruct[[]float64]{}.TypeWithPackage())
 }
 
 func TestGetPackagePath(t *testing.T) {
@@ -132,6 +133,10 @@ func TestGetTypeWithPackage(t *testing.T) {
 		"pointer external lib": {
 			input: &vector3.Vector[float64]{},
 			want:  "github.com/EliCDavis/vector/vector3.Vector[float64]",
+		},
+		"array external lib": {
+			input: []vector3.Vector[float64]{},
+			want:  "[]github.com/EliCDavis/vector/vector3.Vector[float64]",
 		},
 	}
 

@@ -30,13 +30,14 @@ type PolyformMaterial struct {
 	PbrMetallicRoughness *PolyformPbrMetallicRoughness
 	Extensions           []MaterialExtension
 	NormalTexture        *PolyformNormal
+	EmissiveFactor       color.Color
 }
 
 type PolyformPbrMetallicRoughness struct {
 	BaseColorFactor          color.Color
 	BaseColorTexture         *PolyformTexture
-	MetallicFactor           float64
-	RoughnessFactor          float64
+	MetallicFactor           *float64
+	RoughnessFactor          *float64
 	MetallicRoughnessTexture *PolyformTexture
 }
 

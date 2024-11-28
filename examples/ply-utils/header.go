@@ -11,6 +11,18 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
+func calculateSize(ele ply.Element) int {
+	size := 0
+	for _, prop := range ele.Properties {
+		if scalar, ok := prop.(ply.ScalarProperty); ok {
+			size += scalar.Size()
+		} else if _, ok := prop.(ply.ListProperty); ok {
+			return -1
+		}
+	}
+	return size
+}
+
 func writeHeaderAsPlaintext(header ply.Header, out io.Writer) error {
 	fmt.Fprintf(out, "Format: %s\n", header.Format.String())
 
@@ -21,7 +33,11 @@ func writeHeaderAsPlaintext(header ply.Header, out io.Writer) error {
 	}
 
 	for _, ele := range header.Elements {
-		fmt.Fprintf(out, "%s %d entries\n", ele.Name+":", ele.Count)
+		eleSize := ""
+		if size := calculateSize(ele); size != -1 {
+			eleSize = fmt.Sprintf(" - %d bytes per element - %d bytes total", size, size*int(ele.Count))
+		}
+		fmt.Fprintf(out, "%s %d entries%s\n", ele.Name+":", ele.Count, eleSize)
 		for _, prop := range ele.Properties {
 			if scalar, ok := prop.(ply.ScalarProperty); ok {
 				fmt.Fprintf(out, "\t%-14s (%s)\n", prop.Name(), scalar.Type)

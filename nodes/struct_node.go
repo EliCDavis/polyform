@@ -158,13 +158,19 @@ func (sn *StructNode[T, G]) Outputs() []Output {
 }
 
 func (sn StructNode[T, G]) Inputs() []Input {
-	inputs := refutil.GenericFieldValues("nodes.NodeOutput", sn.Data)
+	nodeInputs := make([]Input, 0)
 
-	input := make([]Input, 0, len(inputs))
-	for name, inputType := range inputs {
-		input = append(input, Input{Name: name, Type: inputType})
+	refInput := refutil.GenericFieldValues("nodes.NodeOutput", sn.Data)
+	for name, inputType := range refInput {
+		nodeInputs = append(nodeInputs, Input{Name: name, Type: inputType})
 	}
-	return input
+
+	refArrInput := refutil.GenericFieldValues("[]nodes.NodeOutput", sn.Data)
+	for name, inputType := range refArrInput {
+		nodeInputs = append(nodeInputs, Input{Name: name, Type: "[]" + inputType})
+	}
+
+	return nodeInputs
 }
 
 func (sn StructNode[T, G]) Dependencies() []NodeDependency {

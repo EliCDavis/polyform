@@ -18,9 +18,13 @@ func New(v vector3.Float64, w float64) Quaternion {
 	return Quaternion{v, w}
 }
 
-// QuaternionZero returns a quaternion with 0 for all it's components
+// Zero returns a quaternion with 0 for all it's components
 func Zero() Quaternion {
 	return Quaternion{vector3.Zero[float64](), 0}
+}
+
+func Identity() Quaternion {
+	return Quaternion{vector3.Zero[float64](), 1}
 }
 
 func (q Quaternion) Dir() vector3.Float64 {

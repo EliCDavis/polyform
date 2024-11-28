@@ -4,7 +4,7 @@ import { BoxHelper } from '../box.js';
 
 export class AABBParameterNodeController {
 
-    addControl(nodeManager, id, parameterData, app, pos, showX, showY, showZ) {
+    addControl(parameterData, app, pos, showX, showY, showZ) {
         const control = new TransformControls(app.Camera, app.Renderer.domElement);
         control.setMode('translate');
         control.setSpace("local");
@@ -27,7 +27,7 @@ export class AABBParameterNodeController {
             app.OrbitControls.enabled = !event.value;
 
             if (app.OrbitControls.enabled) {
-                this.recalcBounds(nodeManager, id);
+                this.recalcBounds();
             }
         });
 
@@ -37,7 +37,7 @@ export class AABBParameterNodeController {
         };
     }
 
-    recalcBounds(nodeManager, id) {
+    recalcBounds() {
         const extents = {
             x: Math.abs(this.right.mesh.position.x - this.left.mesh.position.x) / 2,
             y: Math.abs(this.up.mesh.position.y - this.down.mesh.position.y) / 2,
@@ -51,36 +51,19 @@ export class AABBParameterNodeController {
                 z: this.backward.mesh.position.z + extents.z,
             }
         }
-        nodeManager.nodeParameterChanged({
-            id: id,
+        this.nodeManager.nodeParameterChanged({
+            id: this.id,
             data: newData,
             binary: false
         });
     }
 
     constructor(lightNode, nodeManager, id, parameterData, app) {
-        // const centerControl = new TransformControls(app.Camera, app.Renderer.domElement);
-        // centerControl.setMode('translate');
-        // centerControl.setSpace("local");
-
-        // this.controlMesh = new THREE.Group();
-
-        // centerControl.addEventListener('dragging-changed', (event) => {
-        //     app.OrbitControls.enabled = !event.value;
-
-        //     if (app.OrbitControls.enabled) {
-        //         const newData = {
-        //             x: this.controlMesh.position.x,
-        //             y: this.controlMesh.position.y,
-        //             z: this.controlMesh.position.z,
-        //         }
-        //         nodeManager.nodeParameterChanged({
-        //             id: id,
-        //             data: newData,
-        //             binary: false
-        //         });
-        //     }
-        // });
+        this.lightNode = lightNode;
+        this.lightNode.setTitle(parameterData.name);      // const centerControl = new TransformControls(app.Camera, app.Renderer.domElement);
+        this.updating = false;
+        this.nodeManager = nodeManager;
+        this.id = id;
 
         const curVal = parameterData.currentValue;
         this.box = new BoxHelper(this.controlMesh);
@@ -96,54 +79,51 @@ export class AABBParameterNodeController {
                 z: curVal.center.z + curVal.extents.z,
             }
         )
-        console.log(this.box)
+        this.lightNode.setProperty("min-x", curVal.center.x - curVal.extents.x);
+        this.lightNode.setProperty("min-y", curVal.center.y - curVal.extents.y);
+        this.lightNode.setProperty("min-z", curVal.center.z - curVal.extents.z);
+        this.lightNode.setProperty("max-x", curVal.center.x + curVal.extents.x);
+        this.lightNode.setProperty("max-y", curVal.center.y + curVal.extents.y);
+        this.lightNode.setProperty("max-z", curVal.center.z + curVal.extents.z);
+        this.lightNode.subscribeToProperty("min-x", this.propertyChange.bind(this));
+        this.lightNode.subscribeToProperty("min-y", this.propertyChange.bind(this));
+        this.lightNode.subscribeToProperty("min-z", this.propertyChange.bind(this));
+        this.lightNode.subscribeToProperty("max-x", this.propertyChange.bind(this));
+        this.lightNode.subscribeToProperty("max-y", this.propertyChange.bind(this));
+        this.lightNode.subscribeToProperty("max-z", this.propertyChange.bind(this));
         app.ViewerScene.add(this.box);
-        // app.ViewerScene.add(this.controlMesh);
 
-        console.log(parameterData.currentValue)
-
-        // this.controlMesh.position.set(curVal.center.x, curVal.center.y, curVal.center.z);
-
-        // app.Scene.add(centerControl)
-        // centerControl.attach(this.controlMesh);
-
-        this.lightNode = lightNode;
-        this.lightNode.title = parameterData.name;
-
-        // centerControl.visible = false;
-        // centerControl.enabled = false;
-
-        this.up = this.addControl(nodeManager, id, parameterData, app, {
+        this.up = this.addControl(parameterData, app, {
             x: curVal.center.x,
             y: curVal.center.y + curVal.extents.y,
             z: curVal.center.z
         }, false, true, false);
 
-        this.down = this.addControl(nodeManager, id, parameterData, app, {
+        this.down = this.addControl(parameterData, app, {
             x: curVal.center.x,
             y: curVal.center.y - curVal.extents.y,
             z: curVal.center.z
         }, false, true, false);
 
-        this.left = this.addControl(nodeManager, id, parameterData, app, {
+        this.left = this.addControl(parameterData, app, {
             x: curVal.center.x - curVal.extents.x,
             y: curVal.center.y,
             z: curVal.center.z
         }, true, false, false);
 
-        this.right = this.addControl(nodeManager, id, parameterData, app, {
+        this.right = this.addControl(parameterData, app, {
             x: curVal.center.x + curVal.extents.x,
             y: curVal.center.y,
             z: curVal.center.z
         }, true, false, false);
 
-        this.forward = this.addControl(nodeManager, id, parameterData, app, {
+        this.forward = this.addControl(parameterData, app, {
             x: curVal.center.x,
             y: curVal.center.y,
             z: curVal.center.z + curVal.extents.z
         }, false, false, true);
 
-        this.backward = this.addControl(nodeManager, id, parameterData, app, {
+        this.backward = this.addControl(parameterData, app, {
             x: curVal.center.x,
             y: curVal.center.y,
             z: curVal.center.z - curVal.extents.z
@@ -163,10 +143,7 @@ export class AABBParameterNodeController {
         this.backward.control.enabled = false;
         this.box.visible = false;
 
-        this.lightNode.onSelected = (obj) => {
-            // centerControl.visible = true;
-            // centerControl.enabled = true;
-
+        this.lightNode.addSelectListener(() => {
             this.box.visible = true;
             this.up.control.visible = true;
             this.up.control.enabled = true;
@@ -180,12 +157,9 @@ export class AABBParameterNodeController {
             this.forward.control.enabled = true;
             this.backward.control.visible = true;
             this.backward.control.enabled = true;
-        }
+        });
 
-        this.lightNode.onDeselected = (obj) => {
-            // centerControl.visible = false;
-            // centerControl.enabled = false;
-
+        this.lightNode.addUnselectListener(() => {
             this.box.visible = false;
             this.up.control.visible = false;
             this.up.control.enabled = false;
@@ -199,12 +173,25 @@ export class AABBParameterNodeController {
             this.forward.control.enabled = false;
             this.backward.control.visible = false;
             this.backward.control.enabled = false;
+        });
+    }
+
+    propertyChange() {
+        if (this.updating) {
+            return
         }
+        this.right.mesh.position.setX(this.lightNode.getProperty("max-x"));
+        this.left.mesh.position.setX(this.lightNode.getProperty("min-x"));
+        this.up.mesh.position.setY(this.lightNode.getProperty("max-y"));
+        this.down.mesh.position.setY(this.lightNode.getProperty("min-y"));
+        this.forward.mesh.position.setZ(this.lightNode.getProperty("max-z"));
+        this.backward.mesh.position.setZ(this.lightNode.getProperty("min-z"));
+        this.recalcBounds();
     }
 
     update(parameterData) {
+        this.updating = true;
         const curVal = parameterData.currentValue;
-        // this.controlMesh.position.set(curVal.center.x, curVal.center.y, curVal.center.z);
 
         this.up.mesh.position.set(
             curVal.center.x,
@@ -242,7 +229,9 @@ export class AABBParameterNodeController {
             curVal.center.z - curVal.extents.z
         );
 
-        this.updateBox(curVal.center, curVal.extents)
+        this.updateBox(curVal.center, curVal.extents);
+        
+        this.updating = false;
     }
 
     updateBox(center, extents) {
@@ -258,5 +247,12 @@ export class AABBParameterNodeController {
                 z: center.z + extents.z,
             }
         )
+
+        this.lightNode.setProperty("min-x", center.x - extents.x);
+        this.lightNode.setProperty("min-y", center.y - extents.y);
+        this.lightNode.setProperty("min-z", center.z - extents.z);
+        this.lightNode.setProperty("max-x", center.x + extents.x);
+        this.lightNode.setProperty("max-y", center.y + extents.y);
+        this.lightNode.setProperty("max-z", center.z + extents.z);
     }
 }     

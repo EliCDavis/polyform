@@ -26,47 +26,6 @@ import (
 	"github.com/EliCDavis/vector/vector3"
 )
 
-type Albedo = nodes.StructNode[image.Image, AlbedoData]
-
-type AlbedoData struct {
-	Positive nodes.NodeOutput[coloring.WebColor]
-	Negative nodes.NodeOutput[coloring.WebColor]
-}
-
-func (an AlbedoData) Process() (image.Image, error) {
-	dim := 1024
-	img := image.NewRGBA(image.Rect(0, 0, dim, dim))
-	// normals.Fill(img)
-
-	n := noise.NewTilingNoise(dim, 1/64., 5)
-
-	nR, nG, nB, _ := an.Negative.Value().RGBA()
-	pR, pG, pB, _ := an.Positive.Value().RGBA()
-
-	rRange := float64(pR>>8) - float64(nR>>8)
-	gRange := float64(pG>>8) - float64(nG>>8)
-	bRange := float64(pB>>8) - float64(nB>>8)
-
-	for x := 0; x < dim; x++ {
-		for y := 0; y < dim; y++ {
-			val := n.Noise(x, y)
-			p := (val * 0.5) + 0.5
-
-			r := uint32(float64(nR) + (rRange * p))
-			g := uint32(float64(nG) + (gRange * p))
-			b := uint32(float64(nB) + (bRange * p))
-
-			img.Set(x, y, color.RGBA{
-				R: byte(r), // byte(len * 255),
-				G: byte(g),
-				B: byte(b),
-				A: 255,
-			})
-		}
-	}
-	return img, nil
-}
-
 func jitterPositions(pos []vector3.Float64, amplitude, frequency float64) []vector3.Float64 {
 	return vector3.Array[float64](pos).
 		Modify(func(v vector3.Float64) vector3.Float64 {
@@ -364,8 +323,8 @@ func main() {
 					},
 				},
 			},
-			"pumpkin.png": artifact.NewImageNode(&Albedo{
-				Data: AlbedoData{
+			"pumpkin.png": artifact.NewImageNode(&texturing.SeamlessPerlinNode{
+				Data: texturing.SeamlessPerlinNodeData{
 					Positive: &parameter.Color{
 						Name:         "Base Color",
 						DefaultValue: coloring.WebColor{R: 0xf9, G: 0x81, B: 0x1f, A: 255},
@@ -376,8 +335,8 @@ func main() {
 					},
 				},
 			}),
-			"stem.png": artifact.NewImageNode(&Albedo{
-				Data: AlbedoData{
+			"stem.png": artifact.NewImageNode(&texturing.SeamlessPerlinNode{
+				Data: texturing.SeamlessPerlinNodeData{
 					Positive: &parameter.Color{
 						Name:         "Stem Base Color",
 						DefaultValue: coloring.WebColor{R: 0xce, G: 0xa2, B: 0x7e, A: 255},

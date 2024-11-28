@@ -175,23 +175,27 @@ func PipeMaterial(seed *rand.Rand) *gltf.PolyformMaterial {
 	painted := seed.Float64() > 0.5
 
 	if painted {
+		metalic := chance.NewRange1D(.5, 1, seed).Value()
+		rough := chance.NewRange1D(0, 1, seed).Value()
 		return &gltf.PolyformMaterial{
 			PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
 				BaseColorFactor:          pipeColor(),
 				MetallicRoughnessTexture: pipeMrTexture,
-				MetallicFactor:           chance.NewRange1D(.5, 1, seed).Value(),
-				RoughnessFactor:          chance.NewRange1D(0, 1, seed).Value(),
+				MetallicFactor:           &metalic,
+				RoughnessFactor:          &rough,
 			},
 			NormalTexture: pipeNormalTexture,
 		}
 	} else {
 		grey := byte(127 + (128 * rand.Float64()))
+		metalic := chance.NewRange1D(.9, 1, seed).Value()
+		rough := chance.NewRange1D(0, .25, seed).Value()
 		return &gltf.PolyformMaterial{
 			PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
 				BaseColorFactor:          color.RGBA{grey, grey, grey, 255},
 				MetallicRoughnessTexture: pipeMrTexture,
-				MetallicFactor:           chance.NewRange1D(.9, 1, seed).Value(),
-				RoughnessFactor:          chance.NewRange1D(0, .25, seed).Value(),
+				MetallicFactor:           &metalic,
+				RoughnessFactor:          &rough,
 			},
 			NormalTexture: pipeNormalTexture,
 		}
@@ -303,6 +307,7 @@ func (p PipeNodeData) Process() (generator.Artifact, error) {
 		ShelfWidth:   shelfWidth,
 	}
 
+	roughness := 0.
 	gltfModels = append(gltfModels, gltf.PolyformModel{
 		Name: "Rack",
 		Mesh: base.Append(rack.Mesh()),
@@ -313,8 +318,7 @@ func (p PipeNodeData) Process() (generator.Artifact, error) {
 				MetallicRoughnessTexture: &gltf.PolyformTexture{
 					URI: "ibeam-mr.png",
 				},
-				MetallicFactor:  1,
-				RoughnessFactor: 0,
+				RoughnessFactor: &roughness,
 			},
 			NormalTexture: &gltf.PolyformNormal{
 				PolyformTexture: gltf.PolyformTexture{

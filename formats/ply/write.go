@@ -6,7 +6,10 @@ import (
 	"io"
 
 	"github.com/EliCDavis/bitlib"
+	"github.com/EliCDavis/iter"
+	"github.com/EliCDavis/polyform/formats/txt"
 	"github.com/EliCDavis/polyform/modeling"
+	"github.com/EliCDavis/vector/vector3"
 )
 
 func BuildHeaderFromModel(model modeling.Mesh, format Format) Header {
@@ -84,45 +87,84 @@ func writeASCII(out io.Writer, model modeling.Mesh) error {
 	attributes := model.Float3Attributes()
 	vertexCount := model.AttributeLength()
 
-	for i := 0; i < vertexCount; i++ {
-		for atrI, atr := range attributes {
+	allAttrs := make([]*iter.ArrayIterator[vector3.Float64], len(attributes))
+	for atrI, atr := range attributes {
+		allAttrs[atrI] = model.Float3Attribute(atr)
+	}
 
-			v := model.Float3Attribute(atr).At(i)
+	writer := txt.NewWriter(out)
+
+	for i := 0; i < vertexCount; i++ {
+		writer.StartEntry()
+		for atrI, atr := range attributes {
+			v := allAttrs[atrI].At(i)
 
 			if atr == modeling.ColorAttribute {
-				fmt.Fprintf(out, "%d %d %d", int(v.X()*255), int(v.Y()*255), int(v.Z()*255))
+				writer.Int(int(v.X() * 255))
+				writer.Space()
+				writer.Int(int(v.Y() * 255))
+				writer.Space()
+				writer.Int(int(v.Z() * 255))
 			} else {
-				fmt.Fprintf(out, "%f %f %f", v.X(), v.Y(), v.Z())
+				writer.Float64(v.X())
+				writer.Space()
+				writer.Float64(v.Y())
+				writer.Space()
+				writer.Float64(v.Z())
 			}
 			if atrI < len(attributes)-1 {
-				fmt.Fprintf(out, " ")
+				writer.Space()
 			}
 		}
-		fmt.Fprint(out, "\n")
+		writer.NewLine()
+		writer.FinishEntry()
 	}
 
 	if model.Topology() == modeling.TriangleTopology {
 		if model.HasFloat2Attribute(modeling.TexCoordAttribute) {
 			for i := 0; i < model.PrimitiveCount(); i++ {
+				writer.StartEntry()
+				writer.String("3 ")
+
 				tri := model.Tri(i)
-				fmt.Fprintf(
-					out,
-					"3 %d %d %d 6 %f %f %f %f %f %f\n",
-					tri.P1(),
-					tri.P2(),
-					tri.P3(),
-					tri.P1Vec2Attr(modeling.TexCoordAttribute).X(),
-					tri.P1Vec2Attr(modeling.TexCoordAttribute).Y(),
-					tri.P2Vec2Attr(modeling.TexCoordAttribute).X(),
-					tri.P2Vec2Attr(modeling.TexCoordAttribute).Y(),
-					tri.P3Vec2Attr(modeling.TexCoordAttribute).X(),
-					tri.P3Vec2Attr(modeling.TexCoordAttribute).Y(),
-				)
+
+				writer.Int(tri.P1())
+				writer.Space()
+				writer.Int(tri.P2())
+				writer.Space()
+				writer.Int(tri.P3())
+
+				writer.String(" 6 ")
+
+				writer.Float64(tri.P1Vec2Attr(modeling.TexCoordAttribute).X())
+				writer.Space()
+				writer.Float64(tri.P1Vec2Attr(modeling.TexCoordAttribute).Y())
+				writer.Space()
+				writer.Float64(tri.P2Vec2Attr(modeling.TexCoordAttribute).X())
+				writer.Space()
+				writer.Float64(tri.P2Vec2Attr(modeling.TexCoordAttribute).Y())
+				writer.Space()
+				writer.Float64(tri.P3Vec2Attr(modeling.TexCoordAttribute).X())
+				writer.Space()
+				writer.Float64(tri.P3Vec2Attr(modeling.TexCoordAttribute).Y())
+				writer.NewLine()
+				writer.FinishEntry()
 			}
 		} else {
 			for i := 0; i < model.PrimitiveCount(); i++ {
+				writer.StartEntry()
+				writer.String("3 ")
+
 				tri := model.Tri(i)
-				fmt.Fprintf(out, "3 %d %d %d\n", tri.P1(), tri.P2(), tri.P3())
+
+				writer.Int(tri.P1())
+				writer.Space()
+				writer.Int(tri.P2())
+				writer.Space()
+				writer.Int(tri.P3())
+				writer.NewLine()
+
+				writer.FinishEntry()
 			}
 		}
 	}

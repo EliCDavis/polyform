@@ -1,8 +1,6 @@
 package main
 
 import (
-	"os"
-
 	"github.com/EliCDavis/polyform/formats/obj"
 	"github.com/EliCDavis/polyform/modeling/meshops"
 	"github.com/EliCDavis/vector/vector3"
@@ -52,23 +50,16 @@ func scaleCommand() *cli.Command {
 				return err
 			}
 
-			outFile, err := os.Create(c.String("out"))
-			if err != nil {
-				return err
-			}
-
 			scaledMesh := loadedMesh.
-				Scale(
-					vector3.New(c.Float64("x"), c.Float64("y"), c.Float64("z")),
-				)
+				Scale(vector3.New(c.Float64("x"), c.Float64("y"), c.Float64("z")))
 
-			if c.IsSet("smooth-normals") && c.Bool("smooth-normals") {
+			if c.Bool("smooth-normals") {
 				scaledMesh = scaledMesh.Transform(
 					meshops.SmoothNormalsTransformer{},
 				)
 			}
 
-			return obj.WriteMesh(scaledMesh, "", outFile)
+			return obj.Save(c.String("out"), scaledMesh)
 		},
 	}
 }

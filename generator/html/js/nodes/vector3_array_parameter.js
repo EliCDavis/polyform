@@ -17,36 +17,41 @@ export class Vector3ArrayParameterNodeController {
         })
 
         this.lightNode = lightNode;
-        this.lightNode.title = parameterData.name;
-        this.lightNode.addWidget("button", "Add Point", "", () => {
-            const paramData = this.buildParameterData();
+        this.lightNode.setTitle(parameterData.name);
+        const addPointButton = GlobalWidgetFactory.create(this.lightNode, "button", {
+            text: "Add Point",
+            callback: () => {
+                const paramData = this.buildParameterData();
 
-            const oldEle = paramData[paramData.length - 1]
-            const newEle = {
-                x: oldEle.x + 1,
-                y: oldEle.y,
-                z: oldEle.z,
+                const oldEle = paramData[paramData.length - 1]
+                const newEle = {
+                    x: oldEle.x + 1,
+                    y: oldEle.y,
+                    z: oldEle.z,
+                }
+
+                paramData.push(newEle)
+
+                this.nodeManager.nodeParameterChanged({
+                    id: this.id,
+                    data: paramData,
+                });
             }
+        })
 
-            paramData.push(newEle)
-
-            this.nodeManager.nodeParameterChanged({
-                id: this.id,
-                data: paramData,
-            });
-        });
+        this.lightNode.addWidget(addPointButton);
 
         console.log(this.lightNode)
 
-        this.lightNode.onSelected = (obj) => {
+        this.lightNode.addSelectListener((obj) => {
             this.renderControls = true;
             this.updateControlRendering();
-        }
+        });
 
-        this.lightNode.onDeselected = (obj) => {
+        this.lightNode.addUnselectListener((obj) => {
             this.renderControls = false;
             this.updateControlRendering();
-        }
+        });
     }
 
     updateControlRendering() {

@@ -2,26 +2,19 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/EliCDavis/polyform/formats/obj"
 	"github.com/EliCDavis/polyform/formats/ply"
+	"github.com/EliCDavis/polyform/formats/stl"
 	"github.com/EliCDavis/polyform/modeling"
 )
 
 func readMesh(path string) (*modeling.Mesh, error) {
 	ext := filepath.Ext(path)
 
-	inFile, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-	defer inFile.Close()
-
 	switch strings.ToLower(ext) {
-
 	case ".obj":
 		meshes, err := obj.Load(path)
 		mesh := modeling.EmptyMesh(modeling.TriangleTopology)
@@ -31,7 +24,10 @@ func readMesh(path string) (*modeling.Mesh, error) {
 		return &mesh, err
 
 	case ".ply":
-		return ply.ReadMesh(inFile)
+		return ply.Load(path)
+
+	case ".stl":
+		return stl.Load(path)
 
 	default:
 		return nil, fmt.Errorf("unimplemented format: %s", ext)

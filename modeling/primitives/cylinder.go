@@ -6,6 +6,7 @@ import (
 	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/meshops"
+	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
 )
@@ -116,4 +117,51 @@ func (c Cylinder) ToMesh() modeling.Mesh {
 	}
 
 	return cylinderMesh
+}
+
+type CylinderNode = nodes.StructNode[modeling.Mesh, CylinderNodeData]
+
+type CylinderNodeData struct {
+	Sides  nodes.NodeOutput[int]
+	Height nodes.NodeOutput[float64]
+	Radius nodes.NodeOutput[float64]
+	Top    nodes.NodeOutput[bool]
+	Bottom nodes.NodeOutput[bool]
+}
+
+func (hnd CylinderNodeData) Process() (modeling.Mesh, error) {
+	radius := 1.
+	if hnd.Radius != nil {
+		radius = hnd.Radius.Value()
+	}
+
+	height := 1.
+	if hnd.Height != nil {
+		height = hnd.Height.Value()
+	}
+
+	top := true
+	if hnd.Top != nil {
+		top = hnd.Top.Value()
+	}
+
+	bottom := true
+	if hnd.Bottom != nil {
+		bottom = hnd.Bottom.Value()
+	}
+
+	sides := 20
+	if hnd.Sides != nil {
+		sides = hnd.Sides.Value()
+	}
+
+	hemi := Cylinder{
+		Radius:   radius,
+		Height:   height,
+		Sides:    sides,
+		NoTop:    !top,
+		NoBottom: !bottom,
+	}
+
+	return hemi.ToMesh(), nil
 }

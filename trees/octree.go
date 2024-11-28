@@ -80,6 +80,27 @@ func (ot OctTree) ElementsContainingPoint(v vector3.Float64) []int {
 	return intersections
 }
 
+func (ot OctTree) ElementsWithinRange(position vector3.Float64, distance float64) []int {
+
+	if ot.bounds.ClosestPoint(position).Distance(position) > distance {
+		return nil
+	}
+
+	points := make([]int, 0)
+
+	for _, ele := range ot.elements {
+		if ele.bounds.ClosestPoint(position).Distance(position) <= distance {
+			points = append(points, ele.originalIndex)
+		}
+	}
+
+	for _, child := range ot.children {
+		points = append(points, child.ElementsWithinRange(position, distance)...)
+	}
+
+	return points
+}
+
 type octDistItem struct {
 	dist    float64
 	cell    *OctTree

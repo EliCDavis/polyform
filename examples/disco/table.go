@@ -69,7 +69,6 @@ func (tn TableNodeData) Process() (gltf.PolyformModel, error) {
 		Material: &gltf.PolyformMaterial{
 			PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
 				BaseColorFactor: tn.Color.Value(),
-				RoughnessFactor: 1,
 				MetallicRoughnessTexture: &gltf.PolyformTexture{
 					URI: "rough.png",
 				},

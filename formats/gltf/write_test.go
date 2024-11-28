@@ -292,6 +292,7 @@ func TestWriteTexturedTriWithMaterialWithColor(t *testing.T) {
 	buf := bytes.Buffer{}
 
 	// ACT ====================================================================
+	roughness := 0.
 	err := gltf.WriteText(gltf.PolyformScene{
 		Models: []gltf.PolyformModel{
 			{
@@ -301,6 +302,7 @@ func TestWriteTexturedTriWithMaterialWithColor(t *testing.T) {
 					Name: "My Material",
 					PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
 						BaseColorFactor: color.RGBA{255, 100, 80, 255},
+						RoughnessFactor: &roughness,
 					},
 				},
 			},
@@ -408,7 +410,8 @@ func TestWriteTexturedTriWithMaterialWithColor(t *testing.T) {
                     0.39215686274509803,
                     0.3137254901960784,
                     1
-                ]
+                ],
+                "roughnessFactor": 0
             }
         }
     ],

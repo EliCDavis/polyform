@@ -122,7 +122,7 @@ func (as *AppServer) Serve() error {
 
 	fs := http.FileServer(http.FS(fSys))
 	http.Handle("/js/", fs)
-	http.Handle("/css/", fs)
+	// http.Handle("/css/", fs)
 
 	http.HandleFunc("/schema", as.SchemaEndpoint)
 	http.HandleFunc("/scene", as.SceneEndpoint)

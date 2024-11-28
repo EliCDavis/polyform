@@ -1,5 +1,4 @@
 import { PolyNodeController, camelCaseToWords } from "./nodes/node.js";
-import { addRenderableImageWidget } from "./utils.js";
 
 
 const ParameterNodeOutputPortName = "Out";
@@ -34,7 +33,7 @@ export class NodeManager {
         this.nodeTypeToLitePath = new Map();
         this.subscribers = [];
         this.initializedNodeTypes = false
-        this.registerSpecialParameterPolyformNodes();
+        // this.registerSpecialParameterPolyformNodes();
     }
 
     onNodeCreateCallback(liteNode, nodeType) {
@@ -51,8 +50,7 @@ export class NodeManager {
         })
     }
 
-
-    registerSpecialParameterPolyformNodes() {
+    registerSpecialParameterPolyformNodes_OLDWAY() {
         const nm = this;
         function ImageParameterNode() {
             const nodeDataType = "image.Image";
@@ -61,7 +59,7 @@ export class NodeManager {
             this.color = ParameterNodeColor;
             this.bgcolor = ParameterNodeBackgroundColor;
 
-           addRenderableImageWidget(this);
+            // addRenderableImageWidget(this);
 
             nm.onNodeCreateCallback(this, "github.com/EliCDavis/polyform/generator.ImageParameterNode");
         }
@@ -116,6 +114,25 @@ export class NodeManager {
             nm.onNodeCreateCallback(this, ParameterNodeType(nodeDataType));
         }
 
+        function Vector2ParameterNode() {
+            const nodeDataType = "github.com/EliCDavis/vector/vector2.Vector[float64]";
+            this.addOutput(ParameterNodeOutputPortName, nodeDataType);
+            this.title = "Vector2";
+            this.color = ParameterNodeColor;
+            this.bgcolor = ParameterNodeBackgroundColor;
+            nm.onNodeCreateCallback(this, ParameterNodeType(nodeDataType));
+
+            this.widget = this.addWidget("number", "x", 1, "value");
+            this.widget = this.addWidget("number", "y", 1, "value");
+            this.addProperty("x", 1.0);
+            this.addProperty("y", 1.0);
+            this.setValue = (v) => {
+                console.log("vector 2 set value: ", v)
+                this.setProperty("x", v.x);
+                this.setProperty("y", v.y);
+            }
+        }
+
         function Vector3ArrayParameterNode() {
             const nodeDataType = "[]github.com/EliCDavis/vector/vector3.Vector[float64]";
             this.addOutput(ParameterNodeOutputPortName, nodeDataType);
@@ -168,10 +185,43 @@ export class NodeManager {
             nm.onNodeCreateCallback(this, ParameterNodeType("float64"));
         }
 
+        function BoolParameter() {
+            this.addOutput("value", "bool");
+            this.addProperty("bool", false);
+            this.widget = this.addWidget("toggle", "value", false, "value");
+            this.widgets_up = true;
+            this.size = [180, 30];
+            this.title = "Const Bool";
+            this.desc = "Constant Bool";
+            this.color = ParameterNodeColor;
+            this.bgcolor = ParameterNodeBackgroundColor;
+
+            this.onExecute = () => {
+                this.setOutputData(0, this.properties["value"] === "true");
+            };
+
+            this.getTitle = () => {
+                if (this.flags.collapsed) {
+                    return this.properties.value;
+                }
+                return this.title;
+            };
+
+            this.setValue = (v) => {
+                this.setProperty("value", v);
+            }
+
+            this.onDrawBackground = function (ctx) {
+                this.outputs[0].label = this.properties["value"];
+            };
+
+            nm.onNodeCreateCallback(this, ParameterNodeType("bool"));
+        }
+
         function IntParameter() {
             this.addOutput("value", "int");
             this.addProperty("value", 1.0);
-            this.widget = this.addWidget("number", "value", 1,  "value", {step: 10});
+            this.widget = this.addWidget("number", "value", 1, "value", { step: 10 });
             this.widgets_up = true;
             this.size = [180, 30];
             this.title = "Const Int";
@@ -194,7 +244,7 @@ export class NodeManager {
                 this.setProperty("value", v);
             }
 
-            this.onDrawBackground = function (ctx) {
+            this.onDrawBackground = (ctx) => {
                 this.outputs[0].label = Math.round(this.properties["value"]);
             };
 
@@ -220,7 +270,7 @@ export class NodeManager {
                 return this.title;
             };
 
-            this.onExecute = function () {
+            this.onExecute = () => {
                 this.setOutputData(0, this.properties["value"]);
             };
 
@@ -240,12 +290,13 @@ export class NodeManager {
             nm.onNodeCreateCallback(this, ParameterNodeType("string"));
         }
 
-
         LiteGraph.registerNodeType(ParameterNamespace("string"), StringParameter);
         LiteGraph.registerNodeType(ParameterNamespace("float64"), Float64Parameter);
+        LiteGraph.registerNodeType(ParameterNamespace("bool"), BoolParameter);
         LiteGraph.registerNodeType(ParameterNamespace("int"), IntParameter);
         LiteGraph.registerNodeType(ParameterNamespace("aabb"), AABBParameterNode);
         LiteGraph.registerNodeType(ParameterNamespace("vector3"), Vector3ParameterNode);
+        LiteGraph.registerNodeType(ParameterNamespace("vector2"), Vector2ParameterNode);
         LiteGraph.registerNodeType(ParameterNamespace("vector3[]"), Vector3ArrayParameterNode);
         LiteGraph.registerNodeType(ParameterNamespace("color"), ColorParameterNode);
         LiteGraph.registerNodeType(ParameterNamespace("image"), ImageParameterNode);
@@ -277,22 +328,65 @@ export class NodeManager {
                 const target = this.nodeIdToNode.get(dep.dependencyID);
 
                 let sourceInput = -1;
-                for (let sourceInputIndex = 0; sourceInputIndex < source.liteNode.inputs.length; sourceInputIndex++) {
-                    if (source.liteNode.inputs[sourceInputIndex].name === dep.name) {
+                // console.log(source.liteNode)
+                for (let sourceInputIndex = 0; sourceInputIndex < source.liteNode.inputs(); sourceInputIndex++) {
+                    if (source.liteNode.inputPort(sourceInputIndex).getDisplayName() === dep.name) {
                         sourceInput = sourceInputIndex;
                     }
                 }
 
+                // connectNodes(nodeOut: FlowNode, outPort: number, nodeIn: FlowNode, inPort): Connection | undefined {
+
+                if (sourceInput === -1) {
+                    console.error("failed to find source")
+                    continue;
+                }
+
                 // TODO: This only works for nodes with one output
-                target.liteNode.connect(0, source.liteNode, sourceInput)
+                this.app.NodeFlowGraph.connectNodes(
+                    target.liteNode, 0,
+                    source.liteNode, sourceInput,
+                )
+                // target.liteNode.connect(0, source.liteNode, sourceInput)
                 // source.lightNode.connect(i, target.lightNode, 0);
             }
         }
     }
 
+
     buildCustomNodeType(typeData) {
+        const nodeConfig = {
+            title: camelCaseToWords(typeData.displayName),
+            inputs: [],
+            outputs:[]
+        }
+
+        for (var inputName in typeData.inputs) {
+            nodeConfig.inputs.push({
+                name: inputName, 
+                type: typeData.inputs[inputName].type
+            });
+        }
+
+        if (typeData.outputs) {
+            typeData.outputs.forEach((o) => {
+                nodeConfig.outputs.push({
+                    name: o.name, 
+                    type: o.type
+                });
+            })
+        }
+        // nm.onNodeCreateCallback(this, typeData.type);
+        
+        const category = typeData.path + "/" + typeData.displayName;
+        this.nodeTypeToLitePath.set(typeData.type, category);
+        PolyformNodesPublisher.register(category, nodeConfig);
+    }
+
+    buildCustomNodeType_OLD(typeData) {
         const nm = this;
         function CustomNodeFunc() {
+            // console.log(typeData)
             for (var inputName in typeData.inputs) {
                 this.addInput(inputName, typeData.inputs[inputName].type);
             }
@@ -335,6 +429,25 @@ export class NodeManager {
 
         // Not a parameter, just create a node that adhere's to the server's 
         // reflection.
+        // if (!isParameter) {
+        //     const nodeIdentifier = this.nodeTypeToLitePath.get(nodeData.type)
+        //     return LiteGraph.createNode(nodeIdentifier);
+        // }
+
+        if (!isParameter) {
+            const nodeIdentifier = this.nodeTypeToLitePath.get(nodeData.type)
+            return PolyformNodesPublisher.create(nodeIdentifier);
+        }
+
+        const parameterType = nodeData.parameter.type;
+        return PolyformNodesPublisher.create("parameters/" + parameterType);
+    }
+
+    newLiteNode_OLD(nodeData) {
+        const isParameter = !!nodeData.parameter;
+
+        // Not a parameter, just create a node that adhere's to the server's 
+        // reflection.
         if (!isParameter) {
             const nodeIdentifier = this.nodeTypeToLitePath.get(nodeData.type)
             return LiteGraph.createNode(nodeIdentifier);
@@ -348,6 +461,9 @@ export class NodeManager {
             case "int":
                 return LiteGraph.createNode(ParameterNamespace("int"));
 
+            case "bool":
+                return LiteGraph.createNode(ParameterNamespace("bool"));
+
             case "string":
                 return LiteGraph.createNode(ParameterNamespace("string"));
 
@@ -357,6 +473,10 @@ export class NodeManager {
             case "vector3.Vector[float64]":
             case "vector3.Vector[float32]":
                 return LiteGraph.createNode(ParameterNamespace("vector3"));
+
+            case "vector2.Vector[float64]":
+            case "vector2.Vector[float32]":
+                return LiteGraph.createNode(ParameterNamespace("vector2"));
 
             case "[]vector3.Vector[float64]":
             case "[]vector3.Vector[float32]":
@@ -412,8 +532,7 @@ export class NodeManager {
                 }
 
                 const liteNode = this.newLiteNode(nodeData);
-                this.app.LightGraph.add(liteNode);
-                liteNode.setSize(liteNode.computeSize());
+                this.app.NodeFlowGraph.addNode(liteNode);
                 liteNode.nodeInstanceID = nodeID;
 
                 this.nodeIdToNode.set(nodeID, new PolyNodeController(liteNode, this, nodeID, nodeData, this.app, isProducer));
@@ -424,7 +543,7 @@ export class NodeManager {
         this.updateNodeConnections(sortedNodes);
 
         if (nodeAdded) {
-            lgraphInstance.arrange();
+            nodeFlowGraph.organize();
         }
         this.app.ServerUpdatingNodeConnections = false;
     }

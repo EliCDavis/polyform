@@ -363,6 +363,12 @@ func (w *Writer) AddMaterial(mat PolyformMaterial) *int {
 		w.extensionsUsed[id] = true
 	}
 
+	var emissiveFactor *[3]float64
+	if mat.EmissiveFactor != nil {
+		factor := rgbToFloatArr(mat.EmissiveFactor)
+		emissiveFactor = &factor
+	}
+
 	m := Material{
 		ChildOfRootProperty: ChildOfRootProperty{
 			Name: mat.Name,
@@ -373,6 +379,7 @@ func (w *Writer) AddMaterial(mat PolyformMaterial) *int {
 		},
 		AlphaMode:            &mat.AlphaMode,
 		PbrMetallicRoughness: pbr,
+		EmissiveFactor:       emissiveFactor,
 	}
 
 	if mat.NormalTexture != nil {
