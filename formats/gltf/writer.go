@@ -377,7 +377,7 @@ func (w *Writer) AddMaterial(mat PolyformMaterial) *int {
 				Extensions: extensions,
 			},
 		},
-		AlphaMode:            &mat.AlphaMode,
+		AlphaMode:            mat.AlphaMode,
 		PbrMetallicRoughness: pbr,
 		EmissiveFactor:       emissiveFactor,
 	}
