@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/json"
+	"fmt"
 	"io"
 
 	"github.com/EliCDavis/polyform/math/mat"
@@ -150,33 +151,47 @@ func flattenSkeletonToNodes(offset int, skeleton animation.Skeleton, out *bytes.
 	return nodes
 }
 
-func writerFromScene(scene PolyformScene) *Writer {
+func writerFromScene(scene PolyformScene) (*Writer, error) {
 	writer := NewWriter()
 	for _, m := range scene.Models {
-		writer.AddMesh(m)
+		if err := writer.AddMesh(m); err != nil {
+			return nil, fmt.Errorf("failed to add mesh %q: %w", m.Name, err)
+		}
 	}
 
 	for _, l := range scene.Lights {
 		writer.AddLight(l)
 	}
 
-	return writer
+	return writer, nil
 }
 
 func WriteText(scene PolyformScene, out io.Writer) error {
-	writer := writerFromScene(scene)
+	writer, err := writerFromScene(scene)
+	if err != nil {
+		return fmt.Errorf("failed to create writer from scene: %w", err)
+	}
 
 	outline := writer.ToGLTF(BufferEmbeddingStrategy_Base64Encode)
 	bolB, err := json.MarshalIndent(outline, "", "    ")
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to marshal JSON: %w", err)
 	}
 
-	_, err = out.Write(bolB)
-	return err
+	if _, err = out.Write(bolB); err != nil {
+		return fmt.Errorf("failed to write JSON: %w", err)
+	}
+	return nil
 }
 
 func WriteBinary(scene PolyformScene, out io.Writer) error {
-	writer := writerFromScene(scene)
-	return writer.WriteGLB(out)
+	writer, err := writerFromScene(scene)
+	if err != nil {
+		return fmt.Errorf("failed to create writer from scene: %w", err)
+	}
+	if err := writer.WriteGLB(out); err != nil {
+		return fmt.Errorf("failed to write GLB: %w", err)
+	}
+
+	return nil
 }

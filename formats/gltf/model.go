@@ -26,6 +26,8 @@ type PolyformModel struct {
 type PolyformMaterial struct {
 	Name                 string
 	Extras               map[string]any
+	AlphaMode            *MaterialAlphaMode
+	AlphaCutoff          *float64
 	PbrMetallicRoughness *PolyformPbrMetallicRoughness
 	Extensions           []MaterialExtension
 	NormalTexture        *PolyformNormal
