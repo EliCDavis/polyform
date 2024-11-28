@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/binary"
 	"encoding/json"
+	"fmt"
 	"image/color"
 	"io"
 	"math"
@@ -330,7 +331,7 @@ func (w *Writer) AddTexture(mat PolyformTexture) *TextureInfo {
 	return newTex
 }
 
-func (w *Writer) AddMaterial(mat PolyformMaterial) *int {
+func (w *Writer) AddMaterial(mat PolyformMaterial) (*int, error) {
 	var pbr = &PbrMetallicRoughness{
 		BaseColorFactor: &[4]float64{1, 1, 1, 1},
 	}
@@ -369,9 +370,14 @@ func (w *Writer) AddMaterial(mat PolyformMaterial) *int {
 		emissiveFactor = &factor
 	}
 
-	var alphaCutOff *float64
-	if mat.AlphaMode != nil {
-		alphaCutOff = mat.AlphaCutoff // alphaCutOff should only be set if the alphaMode is set
+	if mat.AlphaCutoff != nil && (mat.AlphaMode == nil || *mat.AlphaMode != MaterialAlphaMode_MASK) {
+		if mat.AlphaMode == nil {
+			return nil, fmt.Errorf("invalid maaterial %q: "+
+				"alphaCutOff can only be set when the alphaMode == MASK: got nil", mat.Name)
+		}
+
+		return nil, fmt.Errorf("invalid maaterial %q: "+
+			"alphaCutOff can only be set when the alphaMode == MASK: got %q", mat.Name, *mat.AlphaMode)
 	}
 
 	m := Material{
@@ -383,7 +389,7 @@ func (w *Writer) AddMaterial(mat PolyformMaterial) *int {
 			},
 		},
 		AlphaMode:            mat.AlphaMode,
-		AlphaCutoff:          alphaCutOff,
+		AlphaCutoff:          mat.AlphaCutoff,
 		PbrMetallicRoughness: pbr,
 		EmissiveFactor:       emissiveFactor,
 	}
@@ -397,7 +403,7 @@ func (w *Writer) AddMaterial(mat PolyformMaterial) *int {
 
 	w.materials = append(w.materials, m)
 
-	return ptrI(len(w.materials) - 1)
+	return ptrI(len(w.materials) - 1), nil
 }
 
 func (w *Writer) AddSkin(skeleton animation.Skeleton) (*int, int) {
@@ -559,7 +565,7 @@ func (w *Writer) AddLight(light KHR_LightsPunctual) {
 	w.extensionsUsed["KHR_lights_punctual"] = true
 }
 
-func (w *Writer) AddMesh(model PolyformModel) {
+func (w *Writer) AddMesh(model PolyformModel) error {
 
 	// It's invalid to have empty attributes on a primitive. And it's invalid
 	// to have a model with an empty primitives array, so we can't write this
@@ -569,7 +575,7 @@ func (w *Writer) AddMesh(model PolyformModel) {
 	// a single model. So if anyone ever actually requests that we need to
 	// rethink this code block
 	if model.Mesh.PrimitiveCount() == 0 {
-		return
+		return nil
 	}
 
 	primitiveAttributes := make(map[string]int)
@@ -614,8 +620,12 @@ func (w *Writer) AddMesh(model PolyformModel) {
 	}
 
 	var materialIndex *int
+	var err error
 	if model.Material != nil {
-		materialIndex = w.AddMaterial(*model.Material)
+		materialIndex, err = w.AddMaterial(*model.Material)
+		if err != nil {
+			return fmt.Errorf("failed to add material %q from model %q: %w", model.Material.Name, model.Name, err)
+		}
 	}
 
 	var mode *PrimitiveMode = nil
@@ -637,6 +647,8 @@ func (w *Writer) AddMesh(model PolyformModel) {
 			},
 		},
 	})
+
+	return nil
 }
 
 type BufferEmbeddingStrategy int
