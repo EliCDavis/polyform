@@ -29,10 +29,12 @@ type OcclusionTexture struct {
 	Strength float64 `json:"strength,omitempty"` // A scalar parameter controlling the amount of occlusion applied. A value of `0.0` means no occlusion. A value of `1.0` means full occlusion. This value affects the final occlusion value as: `1.0 + strength * (<sampled occlusion texture value> - 1.0)`.
 }
 
+// The alpha rendering mode of the material
+// https://github.com/KhronosGroup/glTF/blob/0890b76c62cc762ce82d4010df9bfebb1634839b/specification/2.0/schema/material.schema.json#L43
 type MaterialAlphaMode string
 
 const (
-	MaterialAlphaMode_OPAQUE MaterialAlphaMode = "OPAQUE" // The alpha value is ignored, and the rendered output is fully opaque.
+	MaterialAlphaMode_OPAQUE MaterialAlphaMode = "OPAQUE" // The alpha value is ignored, and the rendered output is fully opaque. Default behaviour if alphaMode is not explicitly set.
 	MaterialAlphaMode_MASK   MaterialAlphaMode = "MASK"   // The rendered output is either fully opaque or fully transparent depending on the alpha value and the specified `alphaCutoff` value; the exact appearance of the edges **MAY** be subject to implementation-specific techniques such as \"`Alpha-to-Coverage`\".
 	MaterialAlphaMode_BLEND  MaterialAlphaMode = "BLEND"  // The alpha value is used to composite the source and destination areas. The rendered output is combined with the background using the normal painting operation (i.e. the Porter and Duff over operator).
 )
