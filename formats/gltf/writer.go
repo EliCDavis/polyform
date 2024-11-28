@@ -331,7 +331,7 @@ func (w *Writer) AddTexture(mat PolyformTexture) *TextureInfo {
 }
 
 func (w *Writer) AddMaterial(mat PolyformMaterial) *int {
-	var pbr *PbrMetallicRoughness = &PbrMetallicRoughness{
+	var pbr = &PbrMetallicRoughness{
 		BaseColorFactor: &[4]float64{1, 1, 1, 1},
 	}
 
@@ -369,6 +369,11 @@ func (w *Writer) AddMaterial(mat PolyformMaterial) *int {
 		emissiveFactor = &factor
 	}
 
+	var alphaCutOff *float64
+	if mat.AlphaMode != nil {
+		alphaCutOff = mat.AlphaCutoff // alphaCutOff should only be set if the alphaMode is set
+	}
+
 	m := Material{
 		ChildOfRootProperty: ChildOfRootProperty{
 			Name: mat.Name,
@@ -378,6 +383,7 @@ func (w *Writer) AddMaterial(mat PolyformMaterial) *int {
 			},
 		},
 		AlphaMode:            mat.AlphaMode,
+		AlphaCutoff:          alphaCutOff,
 		PbrMetallicRoughness: pbr,
 		EmissiveFactor:       emissiveFactor,
 	}
