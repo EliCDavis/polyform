@@ -35,6 +35,10 @@ func (q Quaternion) W() float64 {
 	return q.w
 }
 
+func (q Quaternion) ToArr() [4]float64 {
+	return [4]float64{q.v.X(), q.v.Y(), q.v.Z(), q.w}
+}
+
 // Rotate takes a given vector and rotates it with by this quaternion.
 //
 // Resources Used:

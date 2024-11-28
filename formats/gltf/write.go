@@ -151,23 +151,9 @@ func flattenSkeletonToNodes(offset int, skeleton animation.Skeleton, out *bytes.
 	return nodes
 }
 
-func writerFromScene(scene PolyformScene) (*Writer, error) {
-	writer := NewWriter()
-	for _, m := range scene.Models {
-		if err := writer.AddMesh(m); err != nil {
-			return nil, fmt.Errorf("failed to add mesh %q: %w", m.Name, err)
-		}
-	}
-
-	for _, l := range scene.Lights {
-		writer.AddLight(l)
-	}
-
-	return writer, nil
-}
-
 func WriteText(scene PolyformScene, out io.Writer) error {
-	writer, err := writerFromScene(scene)
+	writer, err := NewWriterFromScene(scene)
+	//writer, err := NewWriterFromSceneNaive(scene)
 	if err != nil {
 		return fmt.Errorf("failed to create writer from scene: %w", err)
 	}
@@ -185,7 +171,8 @@ func WriteText(scene PolyformScene, out io.Writer) error {
 }
 
 func WriteBinary(scene PolyformScene, out io.Writer) error {
-	writer, err := writerFromScene(scene)
+	//writer, err := NewWriterFromScene(scene)
+	writer, err := NewWriterFromSceneNaive(scene)
 	if err != nil {
 		return fmt.Errorf("failed to create writer from scene: %w", err)
 	}
