@@ -2,9 +2,8 @@ package gltf
 
 // materialEntry tracks a unique material and its corresponding GLTF material index
 type materialEntry struct {
-	polyMaterial PolyformMaterial
-	gltfMaterial Material
-	index        int
+	material PolyformMaterial
+	index    int
 }
 
 // materialTracker handles deduplication of GLTF materials
