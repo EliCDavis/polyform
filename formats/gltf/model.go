@@ -76,7 +76,7 @@ func (pm PolyformMaterial) equal(other PolyformMaterial) bool {
 		return false
 	}
 	for i, ext := range pm.Extensions {
-		if i >= len(other.Extensions) || ext != other.Extensions[i] {
+		if ext != other.Extensions[i] {
 			return false
 		}
 	}
