@@ -332,7 +332,7 @@ func (w *Writer) AddTexture(mat PolyformTexture) *TextureInfo {
 	return newTex
 }
 
-func (w *Writer) AddMaterial(mat PolyformMaterial) (*int, error) {
+func (w *Writer) AddMaterial(mat *PolyformMaterial) (*int, error) {
 	// Check if material already exists
 	if existingId, ok := w.matTracker.findExistingMaterialID(mat); ok {
 		return existingId, nil
@@ -412,7 +412,6 @@ func (w *Writer) AddMaterial(mat PolyformMaterial) (*int, error) {
 	// Add to material tracker
 	w.matTracker.entries = append(w.matTracker.entries, materialEntry{
 		polyMaterial: mat,
-		gltfMaterial: m,
 		index:        index,
 	})
 
@@ -635,7 +634,7 @@ func (w *Writer) AddMesh(model PolyformModel) error {
 	var materialIndex *int
 	var err error
 	if model.Material != nil {
-		materialIndex, err = w.AddMaterial(*model.Material)
+		materialIndex, err = w.AddMaterial(model.Material)
 		if err != nil {
 			return fmt.Errorf("failed to add material %q from model %q: %w", model.Material.Name, model.Name, err)
 		}
