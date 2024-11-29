@@ -22,11 +22,27 @@ func writeHeaderAsJSON(header *spz.Header, out io.Writer) error {
 }
 
 func writeHeaderAsPlaintext(header *spz.Header, out io.Writer) error {
-	fmt.Fprintf(out, "Version:          %d\n", header.Version)
-	fmt.Fprintf(out, "Points:           %d\n", header.NumPoints)
-	fmt.Fprintf(out, "SH Degree:        %d\n", header.ShDegree)
-	fmt.Fprintf(out, "Fractional Bits:  %08b\n", header.FractionalBits)
-	_, err := fmt.Fprintf(out, "Flags:            %08b\n", header.Flags)
+	_, err := fmt.Fprintf(out, "Version:          %d\n", header.Version)
+	if err != nil {
+		return err
+	}
+
+	_, err = fmt.Fprintf(out, "Points:           %d\n", header.NumPoints)
+	if err != nil {
+		return err
+	}
+
+	_, err = fmt.Fprintf(out, "SH Degree:        %d\n", header.ShDegree)
+	if err != nil {
+		return err
+	}
+
+	_, err = fmt.Fprintf(out, "Fractional Bits:  %08b\n", header.FractionalBits)
+	if err != nil {
+		return err
+	}
+
+	_, err = fmt.Fprintf(out, "Flags:            %08b\n", header.Flags)
 	return err
 }
 

@@ -372,11 +372,11 @@ func (w *Writer) AddMaterial(mat PolyformMaterial) (*int, error) {
 
 	if mat.AlphaCutoff != nil && (mat.AlphaMode == nil || *mat.AlphaMode != MaterialAlphaMode_MASK) {
 		if mat.AlphaMode == nil {
-			return nil, fmt.Errorf("invalid maaterial %q: "+
+			return nil, fmt.Errorf("invalid material %q: "+
 				"alphaCutOff can only be set when the alphaMode == MASK: got nil", mat.Name)
 		}
 
-		return nil, fmt.Errorf("invalid maaterial %q: "+
+		return nil, fmt.Errorf("invalid material %q: "+
 			"alphaCutOff can only be set when the alphaMode == MASK: got %q", mat.Name, *mat.AlphaMode)
 	}
 

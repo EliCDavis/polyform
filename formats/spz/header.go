@@ -67,8 +67,23 @@ func unquantizeSH(x uint8) float64 {
 	return (float64(x) - 128.0) / 128.0
 }
 
+func (pgh Header) ShDimensions() (int, error) {
+	switch pgh.ShDegree {
+	case 0:
+		return 0, nil
+	case 1:
+		return 3, nil
+	case 2:
+		return 8, nil
+	case 3:
+		return 15, nil
+	default:
+		return 0, fmt.Errorf("unsupported SH degree: %d", pgh.ShDegree)
+	}
+}
+
 func (pgh Header) readSh(in io.Reader) ([][]vector3.Float64, error) {
-	shDim, err := dimForDegree(int(pgh.ShDegree))
+	shDim, err := pgh.ShDimensions()
 	if err != nil {
 		return nil, err
 	}

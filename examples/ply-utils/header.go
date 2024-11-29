@@ -35,7 +35,7 @@ func writeHeaderAsPlaintext(header ply.Header, out io.Writer) error {
 	for _, ele := range header.Elements {
 		eleSize := ""
 		if size := calculateSize(ele); size != -1 {
-			eleSize = fmt.Sprintf(" - %d bytes per element - %d bytes total", size, size*int(ele.Count))
+			eleSize = fmt.Sprintf(" - %d bytes per element - %d bytes total", size, int64(size)*ele.Count)
 		}
 		fmt.Fprintf(out, "%s %d entries%s\n", ele.Name+":", ele.Count, eleSize)
 		for _, prop := range ele.Properties {

@@ -30,21 +30,6 @@ func degreeForDim(dim int) int {
 	return 3
 }
 
-func dimForDegree(degree int) (int, error) {
-	switch degree {
-	case 0:
-		return 0, nil
-	case 1:
-		return 3, nil
-	case 2:
-		return 8, nil
-	case 3:
-		return 15, nil
-	default:
-		return 0, fmt.Errorf("unsupported SH degree: %d", degree)
-	}
-}
-
 // https://github.com/aras-p/UnityGaussianSplatting/blob/main/package/Shaders/GaussianSplatting.hlsl#L139
 /*
 half3 ShadeSH(SplatSHData splat, half3 dir, int shOrder, bool onlySH)
