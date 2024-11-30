@@ -29,6 +29,7 @@ type Writer struct {
 	meshes      []Mesh
 	nodes       []Node
 	materials   []Material
+	matTracker  materialTracker
 
 	skins      []Skin
 	animations []Animation
@@ -331,7 +332,11 @@ func (w *Writer) AddTexture(mat PolyformTexture) *TextureInfo {
 	return newTex
 }
 
-func (w *Writer) AddMaterial(mat PolyformMaterial) (*int, error) {
+func (w *Writer) AddMaterial(mat *PolyformMaterial) (*int, error) {
+	// Check if material already exists
+	if existingId, ok := w.matTracker.findExistingMaterialID(mat); ok {
+		return existingId, nil
+	}
 	var pbr = &PbrMetallicRoughness{
 		BaseColorFactor: &[4]float64{1, 1, 1, 1},
 	}
@@ -371,13 +376,13 @@ func (w *Writer) AddMaterial(mat PolyformMaterial) (*int, error) {
 	}
 
 	if mat.AlphaCutoff != nil && (mat.AlphaMode == nil || *mat.AlphaMode != MaterialAlphaMode_MASK) {
-		if mat.AlphaMode == nil {
-			return nil, fmt.Errorf("invalid material %q: "+
-				"alphaCutOff can only be set when the alphaMode == MASK: got nil", mat.Name)
+		alphaModeStr := "nil"
+		if mat.AlphaMode != nil {
+			alphaModeStr = string(*mat.AlphaMode)
 		}
 
 		return nil, fmt.Errorf("invalid material %q: "+
-			"alphaCutOff can only be set when the alphaMode == MASK: got %q", mat.Name, *mat.AlphaMode)
+			"alphaCutOff can only be set when the alphaMode == MASK: got %q", mat.Name, alphaModeStr)
 	}
 
 	m := Material{
@@ -402,8 +407,15 @@ func (w *Writer) AddMaterial(mat PolyformMaterial) (*int, error) {
 	}
 
 	w.materials = append(w.materials, m)
+	index := len(w.materials) - 1
 
-	return ptrI(len(w.materials) - 1), nil
+	// Add to material tracker
+	w.matTracker.entries = append(w.matTracker.entries, materialEntry{
+		polyMaterial: mat,
+		index:        index,
+	})
+
+	return &index, nil
 }
 
 func (w *Writer) AddSkin(skeleton animation.Skeleton) (*int, int) {
@@ -622,7 +634,7 @@ func (w *Writer) AddMesh(model PolyformModel) error {
 	var materialIndex *int
 	var err error
 	if model.Material != nil {
-		materialIndex, err = w.AddMaterial(*model.Material)
+		materialIndex, err = w.AddMaterial(model.Material)
 		if err != nil {
 			return fmt.Errorf("failed to add material %q from model %q: %w", model.Material.Name, model.Name, err)
 		}
