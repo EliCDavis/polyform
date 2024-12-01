@@ -19,3 +19,28 @@ func (cn SumData[T]) Process() (vector3.Vector[T], error) {
 	}
 	return total, nil
 }
+
+type ShiftArrayNode = nodes.StructNode[[]vector3.Float64, ShiftArrayNodeData[float64]]
+
+type ShiftArrayNodeData[T vector.Number] struct {
+	Array  nodes.NodeOutput[[]vector3.Vector[T]]
+	Amount nodes.NodeOutput[vector3.Vector[T]]
+}
+
+func (cn ShiftArrayNodeData[T]) Process() ([]vector3.Vector[T], error) {
+	if cn.Array == nil {
+		return nil, nil
+	}
+
+	if cn.Amount == nil {
+		return cn.Array.Value(), nil
+	}
+
+	original := cn.Array.Value()
+	amount := cn.Amount.Value()
+	total := make([]vector3.Vector[T], len(original))
+	for i, v := range original {
+		total[i] = v.Add(amount)
+	}
+	return total, nil
+}

@@ -1,6 +1,8 @@
 package nodes
 
 import (
+	"math"
+
 	"github.com/EliCDavis/vector"
 )
 
@@ -41,4 +43,30 @@ type DivideData[T vector.Number] struct {
 
 func (cn DivideData[T]) Process() (T, error) {
 	return cn.Dividend.Value() / cn.Divisor.Value(), nil
+}
+
+// ============================================================================
+type Multiply = StructNode[float64, MultiplyData[float64]]
+
+type MultiplyData[T vector.Number] struct {
+	A NodeOutput[T]
+	B NodeOutput[T]
+}
+
+func (cn MultiplyData[T]) Process() (T, error) {
+	return cn.A.Value() * cn.B.Value(), nil
+}
+
+// ============================================================================
+type Round = StructNode[int, RoundData[float64]]
+
+type RoundData[T vector.Number] struct {
+	A NodeOutput[T]
+}
+
+func (cn RoundData[T]) Process() (int, error) {
+	if cn.A == nil {
+		return 0, nil
+	}
+	return int(math.Round(float64(cn.A.Value()))), nil
 }

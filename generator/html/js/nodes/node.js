@@ -130,6 +130,7 @@ export class PolyNodeController {
             this.liteNode.addWidget(downloadButton);
         }
 
+        // TODO: FOIXM AEJPRGEAIPGNREAGI
         this.liteNode.onConnectionsChange = this.onConnectionChange.bind(this);
 
         this.update(nodeData);

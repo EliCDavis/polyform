@@ -6,6 +6,7 @@ import (
 	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/meshops"
+	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
 )
@@ -272,4 +273,34 @@ func (c Cube) calcUVs() []vector2.Float64 {
 	}
 
 	return uvs
+}
+
+type CubeNode = nodes.StructNode[modeling.Mesh, CubeNodeData]
+
+type CubeNodeData struct {
+	Width  nodes.NodeOutput[float64]
+	Height nodes.NodeOutput[float64]
+	Depth  nodes.NodeOutput[float64]
+}
+
+func (c CubeNodeData) Process() (modeling.Mesh, error) {
+	cube := Cube{
+		Height: 1,
+		Width:  1,
+		Depth:  1,
+	}
+
+	if c.Height != nil {
+		cube.Height = c.Height.Value()
+	}
+
+	if c.Width != nil {
+		cube.Width = c.Width.Value()
+	}
+
+	if c.Depth != nil {
+		cube.Depth = c.Depth.Value()
+	}
+
+	return cube.UnweldedQuads(), nil
 }

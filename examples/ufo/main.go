@@ -16,6 +16,7 @@ import (
 	"github.com/EliCDavis/polyform/modeling/primitives"
 	"github.com/EliCDavis/polyform/modeling/repeat"
 	"github.com/EliCDavis/polyform/nodes"
+	"github.com/EliCDavis/polyform/nodes/basics"
 	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
 )
@@ -31,8 +32,8 @@ func AbductionRing() nodes.NodeOutput[modeling.Mesh] {
 		DefaultValue: 120,
 	}
 
-	sample := &SampleNode{
-		Data: SampleNodeData{
+	sample := &basics.SampleNode{
+		Data: basics.SampleNodeData{
 			Samples: resolution,
 			End: &parameter.Float64{
 				Name:         "2Pi",
@@ -46,8 +47,8 @@ func AbductionRing() nodes.NodeOutput[modeling.Mesh] {
 			X: &CosNode{Data: CosNodeData{Input: sample, Scale: radius}},
 			Z: &SinNode{Data: SinNodeData{Input: sample, Scale: radius}},
 			Y: &SinNode{Data: SinNodeData{
-				Input: &SampleNode{
-					Data: SampleNodeData{
+				Input: &basics.SampleNode{
+					Data: basics.SampleNodeData{
 						Samples: resolution,
 						End: &parameter.Float64{
 							Name:         "Abduction Ring Frequency",
@@ -63,18 +64,18 @@ func AbductionRing() nodes.NodeOutput[modeling.Mesh] {
 		},
 	}
 
-	return &extrude.PolygonNode{
-		Data: extrude.PolygonNodeData{
-			Sides: &parameter.Int{
+	return &extrude.CircleNode{
+		Data: extrude.CircleNodeData{
+			Resolution: &parameter.Int{
 				Name:         "Abduction Ring Resolution",
 				DefaultValue: 20,
 			},
-			Thickness: &ShiftNode{
+			Radii: &ShiftNode{
 				Data: ShiftNodeData{
 					In: &CosNode{
 						Data: CosNodeData{
-							Input: &SampleNode{
-								Data: SampleNodeData{
+							Input: &basics.SampleNode{
+								Data: basics.SampleNodeData{
 									Samples: resolution,
 									End: &parameter.Float64{
 										Name:         "Abduction Ring Thickness Frequency",
@@ -109,8 +110,8 @@ func main() {
 		DefaultValue: 3,
 	}
 
-	scaleSample := &SampleNode{
-		Data: SampleNodeData{
+	scaleSample := &basics.SampleNode{
+		Data: basics.SampleNodeData{
 			Start: &parameter.Float64{
 				Name:         "Start Ring Scale",
 				DefaultValue: 1,
@@ -144,14 +145,14 @@ func main() {
 
 	contour := &repeat.CircleNode{
 		Data: repeat.CircleNodeData{
-			Mesh: &extrude.PolygonNode{
-				Data: extrude.PolygonNodeData{
+			Mesh: &extrude.CircleNode{
+				Data: extrude.CircleNodeData{
 					Path: ufoOutline,
-					Sides: &parameter.Value[int]{
+					Resolution: &parameter.Value[int]{
 						Name:         "Contour Sides",
 						DefaultValue: 20,
 					},
-					ThicknessScale: &parameter.Float64{
+					Radius: &parameter.Float64{
 						Name:         "Contour Thickness",
 						DefaultValue: .2,
 					},
@@ -169,8 +170,8 @@ func main() {
 			Mesh: AbductionRing(),
 			Position: &VectorArrayNode{
 				Data: VectoryArrayNodeData{
-					Y: &SampleNode{
-						Data: SampleNodeData{
+					Y: &basics.SampleNode{
+						Data: basics.SampleNodeData{
 							Start: &parameter.Float64{
 								Name:         "Ring Start Position",
 								DefaultValue: -10,

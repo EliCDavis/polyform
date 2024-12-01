@@ -289,8 +289,8 @@ class SchemaRefreshManager {
 
             gltf.scene.traverse((object) => {
                 if (object.isMesh) {
-                    // object.castShadow = true;
-                    // object.receiveShadow = true;
+                    object.castShadow = true;
+                    object.receiveShadow = true;
                     object.material.wireframe = viewportSettings.renderWireframe;
                     object.material.envMap = textureEquirec;
                     object.material.needsUpdate = true;

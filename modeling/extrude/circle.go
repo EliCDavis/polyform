@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 
+	"github.com/EliCDavis/polyform/math/curves"
 	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/nodes"
@@ -192,103 +193,147 @@ func polygon(sides int, points []ExtrusionPoint, closed bool) modeling.Mesh {
 		SetFloat2Data(float2Data)
 }
 
-func ClosedCircleWithConstantThickness(sides int, thickness float64, path []vector3.Float64) modeling.Mesh {
-	points := make([]ExtrusionPoint, len(path))
-	for i, p := range path {
-		points[i] = ExtrusionPoint{
-			Point:     p,
-			Thickness: thickness,
-		}
-	}
-	return polygon(sides, points, true)
-}
-
-func CircleWithConstantThickness(sides int, thickness float64, path []vector3.Float64) modeling.Mesh {
-	points := make([]ExtrusionPoint, len(path))
-	for i, p := range path {
-		points[i] = ExtrusionPoint{
-			Point:     p,
-			Thickness: thickness,
-		}
-	}
-	return polygon(sides, points, false)
-}
-
-func CircleWithThickness(sides int, thickness []float64, path []vector3.Float64) modeling.Mesh {
-	points := make([]ExtrusionPoint, len(path))
-	for i, p := range path {
-		points[i] = ExtrusionPoint{
-			Point:     p,
-			Thickness: thickness[i],
-		}
-	}
-	return polygon(sides, points, false)
-}
-
-func ClosedCircleWithThickness(sides int, thickness []float64, path []vector3.Float64) modeling.Mesh {
-	points := make([]ExtrusionPoint, len(path))
-	for i, p := range path {
-		points[i] = ExtrusionPoint{
-			Point:     p,
-			Thickness: thickness[i],
-		}
-	}
-	return polygon(sides, points, true)
-}
-
 func Polygon(sides int, points []ExtrusionPoint) modeling.Mesh {
 	return polygon(sides, points, false)
 }
 
-type PolygonNode = nodes.StructNode[modeling.Mesh, PolygonNodeData]
-
-type PolygonNodeData struct {
-	Closed         nodes.NodeOutput[bool]
-	Sides          nodes.NodeOutput[int]
-	ThicknessScale nodes.NodeOutput[float64]
-	Thickness      nodes.NodeOutput[[]float64]
-	Path           nodes.NodeOutput[[]vector3.Float64]
+type Circle struct {
+	Resolution int
+	Radius     float64
+	Radii      []float64
+	ClosePath  bool
+	Path       []vector3.Float64
 }
 
-func (pnd PolygonNodeData) Process() (modeling.Mesh, error) {
+func (c Circle) Extrude() modeling.Mesh {
+	points := make([]ExtrusionPoint, len(c.Path))
+	varrying := len(c.Radii) == len(c.Path)
+	r := c.Radius
+	for i, p := range c.Path {
+		if varrying {
+			r = c.Radii[i]
+		}
+		points[i] = ExtrusionPoint{
+			Point:     p,
+			Thickness: r,
+		}
+	}
+	return polygon(c.Resolution, points, false)
+}
+
+type CircleAlongSpline struct {
+	CircleResolution int
+	Radius           float64
+	Radii            []float64
+	ClosePath        bool
+
+	Spline           curves.Spline
+	SplineResolution int
+}
+
+func (c CircleAlongSpline) Extrude() modeling.Mesh {
+	points := make([]ExtrusionPoint, c.SplineResolution)
+	varrying := len(c.Radii) == c.SplineResolution
+	r := c.Radius
+	length := c.Spline.Length() / float64(c.SplineResolution-1)
+	for i := 0; i < c.SplineResolution; i++ {
+		if varrying {
+			r = c.Radii[i]
+		}
+		points[i] = ExtrusionPoint{
+			Point:     c.Spline.At(length * float64(i)),
+			Thickness: r,
+		}
+	}
+	return polygon(c.CircleResolution, points, false)
+}
+
+type CircleNode = nodes.StructNode[modeling.Mesh, CircleNodeData]
+
+type CircleNodeData struct {
+	Closed     nodes.NodeOutput[bool]
+	Resolution nodes.NodeOutput[int]
+	Radius     nodes.NodeOutput[float64]
+	Radii      nodes.NodeOutput[[]float64]
+	Path       nodes.NodeOutput[[]vector3.Float64]
+}
+
+func (pnd CircleNodeData) Process() (modeling.Mesh, error) {
 	if pnd.Path == nil {
 		return modeling.EmptyMesh(modeling.TriangleTopology), nil
 	}
 
-	thicknessScale := 1.0
-	if pnd.ThicknessScale != nil {
-		thicknessScale = pnd.ThicknessScale.Value()
+	circle := Circle{
+		Radius:     1.0,
+		Resolution: 3,
+		ClosePath:  false,
+		Path:       pnd.Path.Value(),
 	}
 
-	path := pnd.Path.Value()
-	points := make([]ExtrusionPoint, len(path))
-	for i, p := range path {
-		points[i] = ExtrusionPoint{
-			Point:     p,
-			Thickness: thicknessScale,
-		}
+	if pnd.Radius != nil {
+		circle.Radius = pnd.Radius.Value()
 	}
 
-	if pnd.Thickness != nil {
-		thickness := pnd.Thickness.Value()
-		if len(thickness) == len(path) {
-			for i, p := range thickness {
-				points[i].Thickness = p * thicknessScale
-			}
-		}
+	if pnd.Radii != nil {
+		circle.Radii = pnd.Radii.Value()
 	}
 
-	sides := 3
-	closed := false
-
-	if pnd.Sides != nil {
-		sides = max(3, pnd.Sides.Value())
+	if pnd.Resolution != nil {
+		circle.Resolution = max(3, pnd.Resolution.Value())
 	}
 
 	if pnd.Closed != nil {
-		closed = pnd.Closed.Value()
+		circle.ClosePath = pnd.Closed.Value()
 	}
 
-	return polygon(sides, points, closed), nil
+	return circle.Extrude(), nil
+
+}
+
+type CircleAlongSplineNode = nodes.StructNode[modeling.Mesh, CircleAlongSplineNodeData]
+
+type CircleAlongSplineNodeData struct {
+	Closed           nodes.NodeOutput[bool]
+	CircleResolution nodes.NodeOutput[int]
+	Radius           nodes.NodeOutput[float64]
+	Radii            nodes.NodeOutput[[]float64]
+	Spline           nodes.NodeOutput[curves.Spline]
+	SplineResolution nodes.NodeOutput[int]
+}
+
+func (pnd CircleAlongSplineNodeData) Process() (modeling.Mesh, error) {
+	if pnd.Spline == nil {
+		return modeling.EmptyMesh(modeling.TriangleTopology), nil
+	}
+
+	circle := CircleAlongSpline{
+		Radius:           1.0,
+		CircleResolution: 3,
+		ClosePath:        false,
+		Spline:           pnd.Spline.Value(),
+		SplineResolution: 3,
+	}
+
+	if pnd.Radius != nil {
+		circle.Radius = pnd.Radius.Value()
+	}
+
+	if pnd.Radii != nil {
+		circle.Radii = pnd.Radii.Value()
+	}
+
+	if pnd.CircleResolution != nil {
+		circle.CircleResolution = max(3, pnd.CircleResolution.Value())
+	}
+
+	if pnd.SplineResolution != nil {
+		circle.SplineResolution = max(3, pnd.SplineResolution.Value())
+	}
+
+	if pnd.Closed != nil {
+		circle.ClosePath = pnd.Closed.Value()
+	}
+
+	return circle.Extrude(), nil
 
 }

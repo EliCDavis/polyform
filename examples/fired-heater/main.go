@@ -64,7 +64,8 @@ func (cn ChimneyNodeData) Process() (Segment, error) {
 	return Segment{
 		mesh: []gltf.PolyformModel{
 			{
-				Mesh: extrude.CircleWithThickness(20, widths, path).
+				Mesh: extrude.Circle{Resolution: 20, Radii: widths, Path: path}.
+					Extrude().
 					Append(allRows).
 					Append(primitives.Cylinder{Sides: 20, Height: 0.3, Radius: funnelWidth + .3}.ToMesh().
 						Translate(vector3.New(0, -halfTotalHeight+funnelHeight, 0))),
@@ -193,7 +194,13 @@ func (fn FloorNodeData) Process() (Segment, error) {
 		angle := angleIncrement * float64(i)
 		path[i] = vector3.New(math.Cos(angle)*postRadius, 0, math.Sin(angle)*postRadius)
 	}
-	railing := extrude.ClosedCircleWithConstantThickness(12, .05, flip(path))
+
+	railing := extrude.Circle{
+		Resolution: 12,
+		Radius:     0.05,
+		ClosePath:  true,
+		Path:       flip(path),
+	}.Extrude()
 
 	sides := 20
 	angleIncrement = (1.0 / float64(sides)) * 2.0 * math.Pi
