@@ -74,22 +74,6 @@ func NewWriterFromScene(scene PolyformScene) (*Writer, error) {
 	return writer, nil
 }
 
-func NewWriterFromSceneNaive(scene PolyformScene) (*Writer, error) {
-	writer := NewWriter()
-
-	for _, m := range scene.Models {
-		if err := writer.AddMesh(m); err != nil {
-			return nil, fmt.Errorf("failed to add mesh %q: %w", m.Name, err)
-		}
-	}
-
-	for _, l := range scene.Lights {
-		writer.AddLight(l)
-	}
-
-	return writer, nil
-}
-
 func (w Writer) WriteVector4AsFloat32(v vector4.Float64) {
 	w.bitW.Float32(float32(v.X()))
 	w.bitW.Float32(float32(v.Y()))
