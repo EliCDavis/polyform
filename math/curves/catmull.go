@@ -118,11 +118,11 @@ func (crc CatmullRomCurve) Time(t float64) vector3.Float64 {
 func (crc *CatmullRomCurve) Distance(distance float64) vector3.Float64 {
 	crc.populateHelperData()
 
-	if distance < 0 {
+	if distance <= 0 {
 		return crc.segments[0].point
 	}
 
-	if distance > *crc.distance {
+	if distance >= *crc.distance {
 		return crc.segments[len(crc.segments)-1].point
 	}
 
@@ -176,10 +176,64 @@ type CatmullRomSplineParameters struct {
 	Epsilon float64
 }
 
-func (crcp CatmullRomSplineParameters) Curve() CatmullRomSpline {
+func (crcp CatmullRomSplineParameters) Spline() CatmullRomSpline {
 	epsilon := defaultEpsilon
 	if crcp.Epsilon > 0 {
 		epsilon = crcp.Epsilon
+	}
+
+	if len(crcp.Points) == 0 {
+		return CatmullRomSpline{
+			alpha: crcp.Alpha,
+			curves: []*CatmullRomCurve{{
+				alpha:   crcp.Alpha,
+				epsilon: epsilon,
+			}},
+		}
+	}
+
+	if len(crcp.Points) == 1 {
+		return CatmullRomSpline{
+			alpha: crcp.Alpha,
+			curves: []*CatmullRomCurve{{
+				alpha:   crcp.Alpha,
+				epsilon: epsilon,
+				p0:      crcp.Points[0],
+				p1:      crcp.Points[0],
+				p2:      crcp.Points[0],
+				p3:      crcp.Points[0],
+			}},
+		}
+	}
+
+	if len(crcp.Points) == 2 {
+		return CatmullRomSpline{
+			alpha: crcp.Alpha,
+			curves: []*CatmullRomCurve{{
+				alpha:   crcp.Alpha,
+				epsilon: epsilon,
+				p0:      crcp.Points[0],
+				p1:      crcp.Points[0],
+				p2:      crcp.Points[1],
+				p3:      crcp.Points[1],
+			}},
+		}
+	}
+
+	// One of the least satisfying arbitrary decisions I've made in this
+	// library
+	if len(crcp.Points) == 3 {
+		return CatmullRomSpline{
+			alpha: crcp.Alpha,
+			curves: []*CatmullRomCurve{{
+				alpha:   crcp.Alpha,
+				epsilon: epsilon,
+				p0:      crcp.Points[0],
+				p1:      crcp.Points[1],
+				p2:      crcp.Points[2],
+				p3:      crcp.Points[2],
+			}},
+		}
 	}
 
 	curves := make([]*CatmullRomCurve, len(crcp.Points)-3)
@@ -275,7 +329,7 @@ func (r CatmullRomSplineNodeData) Process() (Spline, error) {
 	spline := CatmullRomSplineParameters{
 		Points: points,
 		Alpha:  alpha,
-	}.Curve()
+	}.Spline()
 
 	// UGGO: Force a calculation to fill all the temp data
 	// Prevents two threads calling length at the same time,

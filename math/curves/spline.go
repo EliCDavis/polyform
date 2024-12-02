@@ -22,7 +22,6 @@ type LengthNodeData struct {
 }
 
 func (r LengthNodeData) Process() (float64, error) {
-
 	if r.Spline == nil {
 		return 0, nil
 	}
