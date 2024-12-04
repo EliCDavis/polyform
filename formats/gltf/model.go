@@ -10,61 +10,23 @@ import (
 )
 
 type PolyformScene struct {
-	Models    []PolyformModel
-	Instances []PolyformModelInstance
-	Lights    []KHR_LightsPunctual
+	Models []PolyformModel
+	Lights []KHR_LightsPunctual
 }
 
 // PolyformModel is a utility structure for reading/writing to GLTF format within
 // polyform, and not an actual concept found within the GLTF format.
 type PolyformModel struct {
 	Name     string
-	Mesh     modeling.Mesh
+	Mesh     *modeling.Mesh
 	Material *PolyformMaterial
+
+	Translation *vector3.Float64
+	Scale       *vector3.Float64
+	Quaternion  *quaternion.Quaternion
 
 	Skeleton   *animation.Skeleton
 	Animations []animation.Sequence
-}
-
-// PolyformModelInstance represents a single instance of a model in the scene,
-// adding transform data to position the model instance in the scene.
-type PolyformModelInstance struct {
-	Model       *PolyformModel         // Reference to the actual model definition
-	Translation *vector3.Float64       // Optional translation, nil means [0,0,0]
-	Scale       *vector3.Float64       // Optional scale, nil means [1,1,1]
-	Quaternion  *quaternion.Quaternion // Optional rotation quaternion [x,y,z,w], nil means no rotation
-}
-
-// NewModelInstance creates a simple model instance with default transforms
-func NewModelInstance(model *PolyformModel) PolyformModelInstance {
-	return PolyformModelInstance{
-		Model: model,
-	}
-}
-
-// WithTranslation sets the translation for this model instance using vector3
-func (mi PolyformModelInstance) WithTranslation(v vector3.Float64) PolyformModelInstance {
-	mi.Translation = &v
-	return mi
-}
-
-// WithRotationQuat sets quaternion rotation using vector3 for xyz and separate w component
-func (mi PolyformModelInstance) WithRotationQuat(q quaternion.Quaternion) PolyformModelInstance {
-	mi.Quaternion = &q
-	return mi
-}
-
-// WithScale sets uniform scale for this model instance
-func (mi PolyformModelInstance) WithScale(s float64) PolyformModelInstance {
-	sss := vector3.New[float64](s, s, s)
-	mi.Scale = &sss
-	return mi
-}
-
-// WithNonUniformScale sets non-uniform scale using vector3
-func (mi PolyformModelInstance) WithNonUniformScale(v vector3.Float64) PolyformModelInstance {
-	mi.Scale = &v
-	return mi
 }
 
 type PolyformMaterial struct {

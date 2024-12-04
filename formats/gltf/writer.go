@@ -326,131 +326,101 @@ func rgbToFloatArr(c color.Color) [3]float64 {
 }
 
 func (w *Writer) AddScene(scene PolyformScene) error {
-	// If there are no instances specified - use old naive approach
-	if len(scene.Instances) == 0 {
-		return w.addSceneNaive(scene)
-	}
-	return w.addSceneWithInstancing(scene)
-}
+	// Map to track unique meshes and their indices
+	meshIndices := make(map[*modeling.Mesh]int)
 
-func (w *Writer) addSceneNaive(scene PolyformScene) error {
-	// Existing non-instanced logic - each model gets its own mesh
-	for _, m := range scene.Models {
-		if err := w.AddMesh(m); err != nil {
-			return fmt.Errorf("failed to add mesh %q: %w", m.Name, err)
-		}
-	}
-
-	// Add lights
-	for _, light := range scene.Lights {
-		w.AddLight(light)
-	}
-
-	return nil
-}
-
-func (w *Writer) addSceneWithInstancing(scene PolyformScene) error {
-	// Map to track unique models and their mesh indices
-	modelIndices := make(map[*PolyformModel]int)
-
-	// First add all unique models
 	for _, model := range scene.Models {
-		// Add mesh and record its index
-		meshIndex := len(w.meshes)
-		modelIndices[&model] = meshIndex
+		// Get or create mesh index
+		meshIndex := -1
+		if existingIndex, exists := meshIndices[model.Mesh]; exists {
+			meshIndex = existingIndex
+		} else {
+			meshIndex = len(w.meshes)
+			meshIndices[model.Mesh] = meshIndex
 
-		// Create the mesh - process geometry, materials etc
-		primitiveAttributes := make(map[string]int)
+			// Create the mesh - process geometry, materials etc
+			primitiveAttributes := make(map[string]int)
 
-		for _, val := range model.Mesh.Float4Attributes() {
-			primitiveAttributes[polyformToGLTFAttribute(val)] = len(w.accessors)
-			w.WriteVector4(attributeType(val), model.Mesh.Float4Attribute(val))
-		}
-
-		for _, val := range model.Mesh.Float3Attributes() {
-			primitiveAttributes[polyformToGLTFAttribute(val)] = len(w.accessors)
-			w.WriteVector3(attributeType(val), model.Mesh.Float3Attribute(val))
-		}
-
-		for _, val := range model.Mesh.Float2Attributes() {
-			primitiveAttributes[polyformToGLTFAttribute(val)] = len(w.accessors)
-			w.WriteVector2(attributeType(val), model.Mesh.Float2Attribute(val))
-		}
-
-		indicesIndex := len(w.accessors)
-		w.WriteIndices(model.Mesh.Indices(), model.Mesh.AttributeLength())
-
-		var materialIndex *int
-		var err error
-		if model.Material != nil {
-			materialIndex, err = w.AddMaterial(model.Material)
-			if err != nil {
-				return fmt.Errorf("failed to add material %q: %w", model.Material.Name, err)
+			for _, val := range model.Mesh.Float4Attributes() {
+				primitiveAttributes[polyformToGLTFAttribute(val)] = len(w.accessors)
+				w.WriteVector4(attributeType(val), model.Mesh.Float4Attribute(val))
 			}
-		}
 
-		var mode *PrimitiveMode = nil
-		if model.Mesh.Topology() == modeling.PointTopology {
-			p := PrimitiveMode_POINTS
-			mode = &p
-		}
+			for _, val := range model.Mesh.Float3Attributes() {
+				primitiveAttributes[polyformToGLTFAttribute(val)] = len(w.accessors)
+				w.WriteVector3(attributeType(val), model.Mesh.Float3Attribute(val))
+			}
 
-		w.meshes = append(w.meshes, Mesh{
-			ChildOfRootProperty: ChildOfRootProperty{
-				Name: model.Name,
-			},
-			Primitives: []Primitive{
-				{
-					Indices:    &indicesIndex,
-					Attributes: primitiveAttributes,
-					Material:   materialIndex,
-					Mode:       mode,
+			for _, val := range model.Mesh.Float2Attributes() {
+				primitiveAttributes[polyformToGLTFAttribute(val)] = len(w.accessors)
+				w.WriteVector2(attributeType(val), model.Mesh.Float2Attribute(val))
+			}
+
+			indicesIndex := len(w.accessors)
+			w.WriteIndices(model.Mesh.Indices(), model.Mesh.AttributeLength())
+
+			var materialIndex *int
+			var err error
+			if model.Material != nil {
+				materialIndex, err = w.AddMaterial(model.Material)
+				if err != nil {
+					return fmt.Errorf("failed to add material %q: %w", model.Material.Name, err)
+				}
+			}
+
+			var mode *PrimitiveMode = nil
+			if model.Mesh.Topology() == modeling.PointTopology {
+				p := PrimitiveMode_POINTS
+				mode = &p
+			}
+
+			w.meshes = append(w.meshes, Mesh{
+				ChildOfRootProperty: ChildOfRootProperty{
+					Name: model.Name,
 				},
-			},
-		})
-
-		// Handle any skeleton/animation data
-		if model.Skeleton != nil {
-			var skinIndex *int
-			skinIndex, _ = w.AddSkin(*model.Skeleton)
-			nodeIndex := len(w.nodes)
-			w.nodes = append(w.nodes, Node{
-				Mesh: &meshIndex,
-				Skin: skinIndex,
+				Primitives: []Primitive{
+					{
+						Indices:    &indicesIndex,
+						Attributes: primitiveAttributes,
+						Material:   materialIndex,
+						Mode:       mode,
+					},
+				},
 			})
-			w.scene = append(w.scene, nodeIndex)
-
-			if len(model.Animations) > 0 {
-				w.AddAnimations(model.Animations, *model.Skeleton, nodeIndex)
-			}
 		}
-	}
 
-	// Then create nodes for all instances
-	for _, instance := range scene.Instances {
-		meshIndex := modelIndices[instance.Model]
-
-		// Create node referencing the mesh with instance transform
+		// Create node with transforms for this model
 		nodeIndex := len(w.nodes)
 		newNode := Node{Mesh: &meshIndex}
 
-		if instance.Translation != nil {
-			arr := [3]float64{instance.Translation.X(), instance.Translation.Y(), instance.Translation.Z()}
+		if model.Translation != nil {
+			arr := model.Translation.ToFixedArr()
 			newNode.Translation = &arr
 		}
 
-		if instance.Quaternion != nil {
-			arr := instance.Quaternion.ToArr()
+		if model.Quaternion != nil {
+			arr := model.Quaternion.ToArr()
 			newNode.Rotation = &arr
 		}
 
-		if instance.Scale != nil {
-			arr := [3]float64{instance.Scale.X(), instance.Scale.Y(), instance.Scale.Z()}
+		if model.Scale != nil {
+			arr := model.Scale.ToFixedArr()
 			newNode.Scale = &arr
 		}
 
 		w.nodes = append(w.nodes, newNode)
 		w.scene = append(w.scene, nodeIndex)
+
+		// Handle any skeleton/animation data
+		if model.Skeleton != nil {
+			var skinIndex *int
+			skinIndex, _ = w.AddSkin(*model.Skeleton)
+			w.nodes[nodeIndex].Skin = skinIndex
+
+			if len(model.Animations) > 0 {
+				w.AddAnimations(model.Animations, *model.Skeleton, nodeIndex)
+			}
+		}
 	}
 
 	// Add lights
