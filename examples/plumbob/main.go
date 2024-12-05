@@ -1,14 +1,14 @@
 package main
 
 import (
+	"fmt"
 	"image/color"
 
-	"github.com/EliCDavis/polyform/formats/obj"
+	"github.com/EliCDavis/polyform/formats/gltf"
+	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/meshops"
 	"github.com/EliCDavis/polyform/modeling/primitives"
-	"github.com/EliCDavis/polyform/rendering"
-	"github.com/EliCDavis/polyform/rendering/materials"
 	"github.com/EliCDavis/vector/vector3"
 )
 
@@ -21,53 +21,67 @@ func plumbob() modeling.Mesh {
 			},
 			meshops.UnweldTransformer{},
 			meshops.FlatNormalsTransformer{},
-		).
-		SetMaterial(modeling.Material{
-			Name:              "Plumbob",
-			DiffuseColor:      color.RGBA{0, 255, 0, 255},
-			Transparency:      .1,
-			SpecularHighlight: 50,
-			SpecularColor:     color.RGBA{0, 255, 0, 255},
-		})
-}
-
-func render() {
-	jewelColor := vector3.New(0., 0.9, 0.4)
-	jewelMat := materials.NewDielectricWithColor(1.5, jewelColor)
-
-	scene := []rendering.Hittable{
-		rendering.NewMesh(
-			plumbob(),
-			jewelMat,
-		),
-		rendering.NewMesh(
-			plumbob().Transform(
-				meshops.ScaleAttribute3DTransformer{
-					Amount: vector3.Fill(0.9),
-				},
-				meshops.FlipTriangleWindingTransformer{},
-			),
-			jewelMat,
-		),
-	}
-
-	origin := vector3.New(2.1, 0.5, 2.1)
-	lookat := vector3.Zero[float64]()
-	camera := rendering.NewDefaultCamera(1, origin, lookat, 0, 0)
-
-	err := rendering.RenderToFile(50, 200, 500, scene, camera, "tmp/plumbob/preview.png", nil)
-	if err != nil {
-		panic(err)
-	}
+			meshops.ScaleAttribute3DTransformer{
+				Amount: vector3.Fill(10.0),
+			},
+		)
 }
 
 func main() {
-	err := obj.Save(
-		"tmp/plumbob/plumbob.obj",
-		plumbob(),
-	)
-	if err != nil {
-		panic(err)
+	plumbobMesh := plumbob()
+
+	backColor := color.RGBA{80, 80, 80, 0}
+
+	backMetallicF := 0.8
+	backMoughnessF := 1.0
+
+	meshMat := &gltf.PolyformMaterial{
+		Name: "plumbobBlack",
+		PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
+			MetallicFactor:  &backMetallicF,
+			RoughnessFactor: &backMoughnessF,
+			BaseColorFactor: backColor,
+		},
 	}
-	render()
+
+	closeV := vector3.New[float64](0, 0, 20)
+	farV := vector3.New[float64](0, 0, -20)
+	rightV := vector3.New[float64](20, 0, 0)
+	leftV := vector3.New[float64](-20, 0, -0)
+
+	scaleUniform15 := vector3.New[float64](1.5, 1.5, 1.5)
+	scaleDistort := vector3.New[float64](0.5, 2.5, 0.5)
+	scaleUniform05 := vector3.New[float64](0.5, 0.5, 0.5)
+	rotQuat := quaternion.New(vector3.New[float64](1, 0, 0), -0.5)
+
+	closeMesh := plumbobMesh.Translate(closeV).Scale(scaleUniform15)
+	farMesh := plumbobMesh.Translate(farV).Scale(scaleDistort)
+	rightMesh := plumbobMesh.Translate(rightV)
+	leftMesh := plumbobMesh.Translate(leftV).Scale(scaleUniform05).Rotate(rotQuat)
+
+	modelNaive := []gltf.PolyformModel{
+		{Name: "scaled", Mesh: &closeMesh, Material: meshMat},
+		{Name: "distorted", Mesh: &farMesh, Material: meshMat},
+		{Name: "simple", Mesh: &rightMesh, Material: meshMat},
+		{Name: "rotated", Mesh: &leftMesh, Material: meshMat},
+	}
+
+	sceneNaive := gltf.PolyformScene{Models: modelNaive}
+
+	if err := gltf.SaveText("./plumbob_naive.gltf", sceneNaive); err != nil {
+		panic(fmt.Errorf("failed to save GLTF: %w", err))
+	}
+
+	sceneOptimised := gltf.PolyformScene{
+		Models: []gltf.PolyformModel{
+			{Name: "scaled", Mesh: &plumbobMesh, Material: meshMat, Translation: &closeV, Scale: &scaleUniform15},
+			{Name: "distorted", Mesh: &plumbobMesh, Material: meshMat, Translation: &farV, Scale: &scaleDistort},
+			{Name: "simple", Mesh: &plumbobMesh, Material: meshMat, Translation: &rightV},
+			{Name: "rotated", Mesh: &plumbobMesh, Material: meshMat, Translation: &leftV, Scale: &scaleUniform05, Quaternion: &rotQuat},
+		},
+	}
+
+	if err := gltf.SaveText("./plumbob_optimised.gltf", sceneOptimised); err != nil {
+		panic(fmt.Errorf("failed to save GLTF: %w", err))
+	}
 }

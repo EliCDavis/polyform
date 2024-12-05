@@ -29,7 +29,9 @@ type Writer struct {
 	meshes      []Mesh
 	nodes       []Node
 	materials   []Material
-	matTracker  materialTracker
+
+	matIndices  materialIndices // Tracks and deduplicates unique materials added
+	meshIndices meshIndices     // Tracks and deduplicates unique meshes&materials and their indices
 
 	skins      []Skin
 	animations []Animation
@@ -58,6 +60,8 @@ func NewWriter() *Writer {
 		materials:   make([]Material, 0),
 		skins:       make([]Skin, 0),
 		animations:  make([]Animation, 0),
+
+		meshIndices: make(meshIndices),
 
 		// Extensions
 		lights: make([]KHR_LightsPunctual, 0),
@@ -326,72 +330,18 @@ func rgbToFloatArr(c color.Color) [3]float64 {
 }
 
 func (w *Writer) AddScene(scene PolyformScene) error {
-	// Map to track unique meshes and their indices
-	meshIndices := make(map[*modeling.Mesh]int)
-
 	for _, model := range scene.Models {
-		// Get or create mesh index
-		meshIndex := -1
-		if existingIndex, exists := meshIndices[model.Mesh]; exists {
-			meshIndex = existingIndex
-		} else {
-			meshIndex = len(w.meshes)
-			meshIndices[model.Mesh] = meshIndex
-
-			// Create the mesh - process geometry, materials etc
-			primitiveAttributes := make(map[string]int)
-
-			for _, val := range model.Mesh.Float4Attributes() {
-				primitiveAttributes[polyformToGLTFAttribute(val)] = len(w.accessors)
-				w.WriteVector4(attributeType(val), model.Mesh.Float4Attribute(val))
-			}
-
-			for _, val := range model.Mesh.Float3Attributes() {
-				primitiveAttributes[polyformToGLTFAttribute(val)] = len(w.accessors)
-				w.WriteVector3(attributeType(val), model.Mesh.Float3Attribute(val))
-			}
-
-			for _, val := range model.Mesh.Float2Attributes() {
-				primitiveAttributes[polyformToGLTFAttribute(val)] = len(w.accessors)
-				w.WriteVector2(attributeType(val), model.Mesh.Float2Attribute(val))
-			}
-
-			indicesIndex := len(w.accessors)
-			w.WriteIndices(model.Mesh.Indices(), model.Mesh.AttributeLength())
-
-			var materialIndex *int
-			var err error
-			if model.Material != nil {
-				materialIndex, err = w.AddMaterial(model.Material)
-				if err != nil {
-					return fmt.Errorf("failed to add material %q: %w", model.Material.Name, err)
-				}
-			}
-
-			var mode *PrimitiveMode = nil
-			if model.Mesh.Topology() == modeling.PointTopology {
-				p := PrimitiveMode_POINTS
-				mode = &p
-			}
-
-			w.meshes = append(w.meshes, Mesh{
-				ChildOfRootProperty: ChildOfRootProperty{
-					Name: model.Name,
-				},
-				Primitives: []Primitive{
-					{
-						Indices:    &indicesIndex,
-						Attributes: primitiveAttributes,
-						Material:   materialIndex,
-						Mode:       mode,
-					},
-				},
-			})
+		meshIndex, err := w.AddMesh(model)
+		if err != nil {
+			return fmt.Errorf("failed to add model %q: %w", model.Name, err)
 		}
 
 		// Create node with transforms for this model
 		nodeIndex := len(w.nodes)
-		newNode := Node{Mesh: &meshIndex}
+		newNode := Node{
+			Mesh: &meshIndex,
+			Name: model.Name,
+		}
 
 		if model.Translation != nil {
 			arr := model.Translation.ToFixedArr()
@@ -411,15 +361,16 @@ func (w *Writer) AddScene(scene PolyformScene) error {
 		w.nodes = append(w.nodes, newNode)
 		w.scene = append(w.scene, nodeIndex)
 
+		skinNode := nodeIndex
 		// Handle any skeleton/animation data
 		if model.Skeleton != nil {
 			var skinIndex *int
-			skinIndex, _ = w.AddSkin(*model.Skeleton)
+			skinIndex, skinNode = w.AddSkin(*model.Skeleton)
 			w.nodes[nodeIndex].Skin = skinIndex
+		}
 
-			if len(model.Animations) > 0 {
-				w.AddAnimations(model.Animations, *model.Skeleton, nodeIndex)
-			}
+		if len(model.Animations) > 0 {
+			w.AddAnimations(model.Animations, *model.Skeleton, skinNode)
 		}
 	}
 
@@ -429,6 +380,81 @@ func (w *Writer) AddScene(scene PolyformScene) error {
 	}
 
 	return nil
+}
+
+func (w *Writer) AddMesh(model PolyformModel) (_ int, err error) {
+	if model.Mesh == nil {
+		return -1, fmt.Errorf("nil mesh in model %q", model.Name)
+	}
+
+	// Check for empty mesh
+	if model.Mesh.PrimitiveCount() == 0 {
+		return -1, fmt.Errorf("empty mesh in model %q", model.Name)
+	}
+
+	var matIndex *int
+	if model.Material != nil {
+		matIndex, err = w.AddMaterial(model.Material)
+		if err != nil {
+			return -1, fmt.Errorf("failed to add material %q from model %q: %w",
+				model.Material.Name, model.Name, err)
+		}
+	}
+
+	uniqueMesh := meshEntry{model.Mesh, -1}
+	if matIndex != nil {
+		uniqueMesh.materialIndex = *matIndex
+	}
+
+	// Check if mesh already exists
+	if existingIndex, exists := w.meshIndices[uniqueMesh]; exists {
+		return existingIndex, nil
+	}
+
+	// Create new mesh
+	meshIndex := len(w.meshes)
+	w.meshIndices[uniqueMesh] = meshIndex
+
+	// Create the mesh - process geometry, materials etc
+	primitiveAttributes := make(map[string]int)
+
+	for _, val := range model.Mesh.Float4Attributes() {
+		primitiveAttributes[polyformToGLTFAttribute(val)] = len(w.accessors)
+		w.WriteVector4(attributeType(val), model.Mesh.Float4Attribute(val))
+	}
+
+	for _, val := range model.Mesh.Float3Attributes() {
+		primitiveAttributes[polyformToGLTFAttribute(val)] = len(w.accessors)
+		w.WriteVector3(attributeType(val), model.Mesh.Float3Attribute(val))
+	}
+
+	for _, val := range model.Mesh.Float2Attributes() {
+		primitiveAttributes[polyformToGLTFAttribute(val)] = len(w.accessors)
+		w.WriteVector2(attributeType(val), model.Mesh.Float2Attribute(val))
+	}
+
+	indicesIndex := len(w.accessors)
+	w.WriteIndices(model.Mesh.Indices(), model.Mesh.AttributeLength())
+
+	var mode *PrimitiveMode = nil
+	if model.Mesh.Topology() == modeling.PointTopology {
+		p := PrimitiveMode_POINTS
+		mode = &p
+	}
+
+	w.meshes = append(w.meshes, Mesh{
+		ChildOfRootProperty: ChildOfRootProperty{Name: model.Name},
+		Primitives: []Primitive{
+			{
+				Indices:    &indicesIndex,
+				Attributes: primitiveAttributes,
+				Material:   matIndex,
+				Mode:       mode,
+			},
+		},
+	})
+
+	return meshIndex, nil
 }
 
 func (w *Writer) AddTexture(mat PolyformTexture) *TextureInfo {
@@ -448,7 +474,7 @@ func (w *Writer) AddTexture(mat PolyformTexture) *TextureInfo {
 
 func (w *Writer) AddMaterial(mat *PolyformMaterial) (*int, error) {
 	// Check if material already exists
-	if existingId, ok := w.matTracker.findExistingMaterialID(mat); ok {
+	if existingId, ok := w.matIndices.findExistingMaterialID(mat); ok {
 		return existingId, nil
 	}
 	var pbr = &PbrMetallicRoughness{
@@ -524,7 +550,7 @@ func (w *Writer) AddMaterial(mat *PolyformMaterial) (*int, error) {
 	index := len(w.materials) - 1
 
 	// Add to material tracker
-	w.matTracker.entries = append(w.matTracker.entries, materialEntry{
+	w.matIndices = append(w.matIndices, materialEntry{
 		polyMaterial: mat,
 		index:        index,
 	})
@@ -689,92 +715,6 @@ func (w *Writer) AddLight(light KHR_LightsPunctual) {
 		Translation: &translation,
 	})
 	w.extensionsUsed["KHR_lights_punctual"] = true
-}
-
-func (w *Writer) AddMesh(model PolyformModel) error {
-
-	// It's invalid to have empty attributes on a primitive. And it's invalid
-	// to have a model with an empty primitives array, so we can't write this
-	// model.
-	//
-	// TODO: This changes if our API changes to support multiple primitives in
-	// a single model. So if anyone ever actually requests that we need to
-	// rethink this code block
-	if model.Mesh.PrimitiveCount() == 0 {
-		return nil
-	}
-
-	primitiveAttributes := make(map[string]int)
-
-	for _, val := range model.Mesh.Float4Attributes() {
-		primitiveAttributes[polyformToGLTFAttribute(val)] = len(w.accessors)
-		w.WriteVector4(attributeType(val), model.Mesh.Float4Attribute(val))
-	}
-
-	for _, val := range model.Mesh.Float3Attributes() {
-		primitiveAttributes[polyformToGLTFAttribute(val)] = len(w.accessors)
-		w.WriteVector3(attributeType(val), model.Mesh.Float3Attribute(val))
-	}
-
-	for _, val := range model.Mesh.Float2Attributes() {
-		primitiveAttributes[polyformToGLTFAttribute(val)] = len(w.accessors)
-		w.WriteVector2(attributeType(val), model.Mesh.Float2Attribute(val))
-	}
-
-	indiceIndex := len(w.accessors)
-	w.WriteIndices(model.Mesh.Indices(), model.Mesh.AttributeLength())
-
-	meshIndex := len(w.meshes)
-
-	nodeIndex := len(w.nodes)
-	w.scene = append(w.scene, nodeIndex)
-	w.nodes = append(w.nodes, Node{
-		Mesh: &meshIndex,
-	})
-
-	var skinNode = 0
-	// Skins nodes in the scene always have to come after the mesh itself, the
-	// mesh node must act as the root node for the skinning to work
-	if model.Skeleton != nil {
-		var skinIndex *int
-		skinIndex, skinNode = w.AddSkin(*model.Skeleton)
-		w.nodes[nodeIndex].Skin = skinIndex
-	}
-
-	if len(model.Animations) > 0 {
-		w.AddAnimations(model.Animations, *model.Skeleton, skinNode)
-	}
-
-	var materialIndex *int
-	var err error
-	if model.Material != nil {
-		materialIndex, err = w.AddMaterial(model.Material)
-		if err != nil {
-			return fmt.Errorf("failed to add material %q from model %q: %w", model.Material.Name, model.Name, err)
-		}
-	}
-
-	var mode *PrimitiveMode = nil
-	if model.Mesh.Topology() == modeling.PointTopology {
-		p := PrimitiveMode_POINTS
-		mode = &p
-	}
-
-	w.meshes = append(w.meshes, Mesh{
-		ChildOfRootProperty: ChildOfRootProperty{
-			Name: model.Name,
-		},
-		Primitives: []Primitive{
-			{
-				Indices:    &indiceIndex,
-				Attributes: primitiveAttributes,
-				Material:   materialIndex,
-				Mode:       mode,
-			},
-		},
-	})
-
-	return nil
 }
 
 type BufferEmbeddingStrategy int
