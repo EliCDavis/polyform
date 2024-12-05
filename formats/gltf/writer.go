@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/binary"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"image/color"
 	"io"
@@ -18,6 +19,8 @@ import (
 	"github.com/EliCDavis/vector/vector3"
 	"github.com/EliCDavis/vector/vector4"
 )
+
+var ErrInvalidInput = errors.New("invalid input")
 
 type Writer struct {
 	buf          *bytes.Buffer
@@ -334,6 +337,8 @@ func (w *Writer) AddScene(scene PolyformScene) error {
 		meshIndex, err := w.AddMesh(model)
 		if err != nil {
 			return fmt.Errorf("failed to add model %q: %w", model.Name, err)
+		} else if meshIndex == -1 {
+			continue // mesh was not added to scene, ignore and continue
 		}
 
 		// Create node with transforms for this model
@@ -384,12 +389,12 @@ func (w *Writer) AddScene(scene PolyformScene) error {
 
 func (w *Writer) AddMesh(model PolyformModel) (_ int, err error) {
 	if model.Mesh == nil {
-		return -1, fmt.Errorf("nil mesh in model %q", model.Name)
+		return -1, fmt.Errorf("%w: nil mesh in model %q", ErrInvalidInput, model.Name)
 	}
 
 	// Check for empty mesh
 	if model.Mesh.PrimitiveCount() == 0 {
-		return -1, fmt.Errorf("empty mesh in model %q", model.Name)
+		return -1, nil // return -1 to signal that mesh was not added, but do not error out
 	}
 
 	var matIndex *int
@@ -521,8 +526,8 @@ func (w *Writer) AddMaterial(mat *PolyformMaterial) (*int, error) {
 			alphaModeStr = string(*mat.AlphaMode)
 		}
 
-		return nil, fmt.Errorf("invalid material %q: "+
-			"alphaCutOff can only be set when the alphaMode == MASK: got %q", mat.Name, alphaModeStr)
+		return nil, fmt.Errorf("%w: invalid material %q: "+
+			"alphaCutOff can only be set when the alphaMode == MASK: got %q", ErrInvalidInput, mat.Name, alphaModeStr)
 	}
 
 	m := Material{
