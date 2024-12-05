@@ -33,8 +33,8 @@ type Writer struct {
 	nodes       []Node
 	materials   []Material
 
-	matIndices  materialIndices // Tracks and deduplicates unique materials added
-	meshIndices meshIndices     // Tracks and deduplicates unique meshes&materials and their indices
+	matIndices  materialIndices // Tracks and deduplicates unique materials
+	meshIndices meshIndices     // Tracks and deduplicates unique meshes&materials
 
 	skins      []Skin
 	animations []Animation

@@ -27,7 +27,7 @@ func (mt materialIndices) findExistingMaterialID(mat *PolyformMaterial) (*int, b
 // materialEntry tracks a unique material and its corresponding GLTF material index
 type meshEntry struct {
 	polyMesh      *modeling.Mesh
-	materialIndex int
+	materialIndex int // -1 is a valid value for absence of material
 }
 
 // materialIndices handle deduplication of GLTF materials
