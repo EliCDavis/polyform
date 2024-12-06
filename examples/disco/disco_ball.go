@@ -107,7 +107,7 @@ func (cn DiscoBallNodeData) Process() ([]gltf.PolyformModel, error) {
 	return []gltf.PolyformModel{
 		{
 			Name: "Disco Ball",
-			Mesh: discoball,
+			Mesh: &discoball,
 			Material: &gltf.PolyformMaterial{
 				Name: "Disco Ball",
 				PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
@@ -122,7 +122,7 @@ func (cn DiscoBallNodeData) Process() ([]gltf.PolyformModel, error) {
 		},
 		{
 			Name: "Disco Ball Attachment",
-			Mesh: discoballAttachment,
+			Mesh: &discoballAttachment,
 			Material: &gltf.PolyformMaterial{
 				PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
 					RoughnessFactor: &rough,

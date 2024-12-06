@@ -61,14 +61,16 @@ func (cn ChimneyNodeData) Process() (Segment, error) {
 		shootWidth,
 	}
 
+	chimney := extrude.Circle{Resolution: 20, Radii: widths, Path: path}.
+		Extrude().
+		Append(allRows).
+		Append(primitives.Cylinder{Sides: 20, Height: 0.3, Radius: funnelWidth + .3}.ToMesh().
+			Translate(vector3.New(0, -halfTotalHeight+funnelHeight, 0)))
+
 	return Segment{
 		mesh: []gltf.PolyformModel{
 			{
-				Mesh: extrude.Circle{Resolution: 20, Radii: widths, Path: path}.
-					Extrude().
-					Append(allRows).
-					Append(primitives.Cylinder{Sides: 20, Height: 0.3, Radius: funnelWidth + .3}.ToMesh().
-						Translate(vector3.New(0, -halfTotalHeight+funnelHeight, 0))),
+				Mesh: &chimney,
 				Material: &gltf.PolyformMaterial{
 					PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
 						BaseColorFactor: color,
@@ -111,7 +113,7 @@ func (cn ChasisNodeData) Process() (Segment, error) {
 	return Segment{
 		mesh: []gltf.PolyformModel{
 			{
-				Mesh: chasis,
+				Mesh: &chasis,
 				Material: &gltf.PolyformMaterial{
 					PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
 						BaseColorFactor: color,
@@ -144,15 +146,17 @@ func (ln LegsNodeData) Process() (Segment, error) {
 		UnweldedQuads().
 		Translate(vector3.New(0, -(columnHeight / 2.), 0))
 
+	legs := primitives.
+		Cylinder{Sides: 20, Height: columnHeight, Radius: width}.ToMesh().
+		Translate(vector3.New(0, (height/2.)-(columnHeight/2.), 0)).
+		Append(repeat.Circle(leg, numLegs, width-2.))
+
 	return Segment{
 		mesh: []gltf.PolyformModel{
 			{
 				Name: "Legs",
 
-				Mesh: primitives.
-					Cylinder{Sides: 20, Height: columnHeight, Radius: width}.ToMesh().
-					Translate(vector3.New(0, (height/2.)-(columnHeight/2.), 0)).
-					Append(repeat.Circle(leg, numLegs, width-2.)),
+				Mesh: &legs,
 
 				Material: &gltf.PolyformMaterial{
 					PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
@@ -211,13 +215,17 @@ func (fn FloorNodeData) Process() (Segment, error) {
 		shapePath[i] = vector3.New(math.Cos(angle)*offset, 0, math.Sin(angle)*offset)
 	}
 
+	railingMesh := repeat.Circle(post, numLegs, postRadius-.2).
+		Append(railing.Translate(vector3.Up[float64]().Scale(legHeight))).
+		Append(railing.Translate(vector3.Up[float64]().Scale(legHeight / 2)))
+
+	floorMesh := extrude.ClosedShape(flip(PiShape(floorHeight, walkWidth)), shapePath)
+
 	return Segment{
 		mesh: []gltf.PolyformModel{
 			{
 				Name: "Railing",
-				Mesh: repeat.Circle(post, numLegs, postRadius-.2).
-					Append(railing.Translate(vector3.Up[float64]().Scale(legHeight))).
-					Append(railing.Translate(vector3.Up[float64]().Scale(legHeight / 2))),
+				Mesh: &railingMesh,
 				Material: &gltf.PolyformMaterial{
 					PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
 						BaseColorFactor: railingColor,
@@ -226,7 +234,7 @@ func (fn FloorNodeData) Process() (Segment, error) {
 			},
 			{
 				Name: "Floor",
-				Mesh: extrude.ClosedShape(flip(PiShape(floorHeight, walkWidth)), shapePath),
+				Mesh: &floorMesh,
 				Material: &gltf.PolyformMaterial{
 					PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
 						BaseColorFactor: floorColor,
@@ -285,10 +293,11 @@ func (csn CombineSegmentsNodeData) Process() (generator.Artifact, error) {
 		segment := segmentNode.Value()
 		offset += segment.height / 2
 		for i, m := range segment.mesh {
+			mesh := m.Mesh.Translate(vector3.New(0, offset, 0))
 			final = append(final, gltf.PolyformModel{
 				Name:     segment.mesh[i].Name,
 				Material: segment.mesh[i].Material,
-				Mesh:     m.Mesh.Translate(vector3.New(0, offset, 0)),
+				Mesh:     &mesh,
 			})
 		}
 		offset += segment.height / 2

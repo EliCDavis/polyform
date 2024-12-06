@@ -47,7 +47,8 @@ func (gmnd GltfModelNodeData) Process() (gltf.PolyformModel, error) {
 	}
 
 	if gmnd.Mesh != nil {
-		model.Mesh = gmnd.Mesh.Value()
+		mesh := gmnd.Mesh.Value()
+		model.Mesh = &mesh
 	}
 
 	return model, nil

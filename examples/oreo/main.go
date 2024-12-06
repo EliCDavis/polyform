@@ -264,8 +264,8 @@ func main() {
 		"oreo.glb",
 		gltf.PolyformScene{
 			Models: []gltf.PolyformModel{
-				{Mesh: oreoCookieTop},
-				{Mesh: icing,
+				{Mesh: &oreoCookieTop},
+				{Mesh: &icing,
 					Material: &gltf.PolyformMaterial{
 						PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
 							BaseColorFactor: color.RGBA{
@@ -277,7 +277,7 @@ func main() {
 						},
 					},
 				},
-				{Mesh: oreoCookieBottom},
+				{Mesh: &oreoCookieBottom},
 			},
 		},
 	)

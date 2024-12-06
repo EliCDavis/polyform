@@ -59,13 +59,21 @@ type DiscoSceneNodeData struct {
 
 func (dsn DiscoSceneNodeData) Process() (generator.Artifact, error) {
 	chairs := dsn.Chairs.Value()
+	cushions := dsn.Cushion.Value()
+	plates := dsn.Plates.Value().Translate(vector3.New(
+		0.,
+		dsn.TableHeight.Value()+
+			(dsn.TableThickness.Value()/2)+
+			(dsn.PlateThickness.Value()/2),
+		0.,
+	))
 
 	noMetal := 0.
 	models := []gltf.PolyformModel{
 		dsn.Table.Value(),
 		{
 			Name: "Chair Frames",
-			Mesh: chairs,
+			Mesh: &chairs,
 			Material: &gltf.PolyformMaterial{
 				PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
 					MetallicFactor:  &noMetal,
@@ -75,7 +83,7 @@ func (dsn DiscoSceneNodeData) Process() (generator.Artifact, error) {
 		},
 		{
 			Name: "Chair Cushions",
-			Mesh: dsn.Cushion.Value(),
+			Mesh: &cushions,
 			Material: &gltf.PolyformMaterial{
 				PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
 					MetallicFactor:  &noMetal,
@@ -85,13 +93,7 @@ func (dsn DiscoSceneNodeData) Process() (generator.Artifact, error) {
 		},
 		{
 			Name: "Plates",
-			Mesh: dsn.Plates.Value().Translate(vector3.New(
-				0.,
-				dsn.TableHeight.Value()+
-					(dsn.TableThickness.Value()/2)+
-					(dsn.PlateThickness.Value()/2),
-				0.,
-			)),
+			Mesh: &plates,
 			Material: &gltf.PolyformMaterial{
 				Name: "Plate Mat",
 				PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{

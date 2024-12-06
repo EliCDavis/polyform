@@ -92,12 +92,13 @@ type GltfArtifactData struct {
 }
 
 func (csa GltfArtifactData) Process() (generator.Artifact, error) {
+	mesh := csa.Mesh.Value()
 	return &artifact.Gltf{
 		Scene: gltf.PolyformScene{
 			Models: []gltf.PolyformModel{
 				{
 					Name: "Mesh",
-					Mesh: csa.Mesh.Value(),
+					Mesh: &mesh,
 				},
 			},
 		},

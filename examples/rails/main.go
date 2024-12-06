@@ -30,11 +30,13 @@ func (gan GlbArtifactNodeData) Process() (generator.Artifact, error) {
 	railMetal := 1.
 	railRough := 0.4
 	plankMetal := 0.
+	planks := gan.Planks.Value()
+	rails := gan.Rail.Value().Append(gan.Rail2.Value())
 	scene := gltf.PolyformScene{
 		Models: []gltf.PolyformModel{
 			{
 				Name: "Planks",
-				Mesh: gan.Planks.Value(),
+				Mesh: &planks,
 				Material: &gltf.PolyformMaterial{
 					Name: "Planks",
 					PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
@@ -45,7 +47,7 @@ func (gan GlbArtifactNodeData) Process() (generator.Artifact, error) {
 			},
 			{
 				Name: "Rails",
-				Mesh: gan.Rail.Value().Append(gan.Rail2.Value()),
+				Mesh: &rails,
 				Material: &gltf.PolyformMaterial{
 					Name: "Rails",
 					PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{

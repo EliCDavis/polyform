@@ -288,7 +288,7 @@ func (p PipeNodeData) Process() (generator.Artifact, error) {
 
 		gltfModels = append(gltfModels, gltf.PolyformModel{
 			Name:     "Pipes",
-			Mesh:     pipes,
+			Mesh:     &pipes,
 			Material: PipeMaterial(randSeed),
 		})
 	}
@@ -308,9 +308,10 @@ func (p PipeNodeData) Process() (generator.Artifact, error) {
 	}
 
 	roughness := 0.
+	rackMesh := base.Append(rack.Mesh())
 	gltfModels = append(gltfModels, gltf.PolyformModel{
 		Name: "Rack",
-		Mesh: base.Append(rack.Mesh()),
+		Mesh: &rackMesh,
 		Material: &gltf.PolyformMaterial{
 			Name: "Rack",
 			PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{

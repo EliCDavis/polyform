@@ -192,7 +192,7 @@ func main() {
 		Models: []gltf.PolyformModel{
 			{
 				Name:       "Gopher",
-				Mesh:       mesh,
+				Mesh:       &mesh,
 				Skeleton:   &skeleton,
 				Animations: animations,
 			},

@@ -143,7 +143,7 @@ func main() {
 		Models: []gltf.PolyformModel{
 			{
 				Name: "Flowers",
-				Mesh: allFlowers,
+				Mesh: &allFlowers,
 				Material: &gltf.PolyformMaterial{
 					PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
 						BaseColorFactor: color.White,

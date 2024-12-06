@@ -249,12 +249,13 @@ type PumpkinGLBArtifactData struct {
 }
 
 func (pga PumpkinGLBArtifactData) Process() (generator.Artifact, error) {
+	pumpkin := pga.PumpkinBody.Value()
 	return &artifact.Gltf{
 		Scene: gltf.PolyformScene{
 			Models: []gltf.PolyformModel{
 				{
 					Name: "Pumpkin",
-					Mesh: pga.PumpkinBody.Value(),
+					Mesh: &pumpkin,
 					Material: &gltf.PolyformMaterial{
 						PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
 							BaseColorTexture: &gltf.PolyformTexture{

@@ -107,9 +107,10 @@ func (sm StemMeshData) Process() (gltf.PolyformModel, error) {
 		newUVs[i] = vector2.New(xzTheta/(math.Pi*2), angle)
 	}
 
+	stem := mesh.SetFloat2Attribute(modeling.TexCoordAttribute, newUVs)
 	return gltf.PolyformModel{
 		Name: "Stem",
-		Mesh: mesh.SetFloat2Attribute(modeling.TexCoordAttribute, newUVs),
+		Mesh: &stem,
 		Material: &gltf.PolyformMaterial{
 			PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
 				BaseColorTexture: &gltf.PolyformTexture{

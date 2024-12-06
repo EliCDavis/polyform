@@ -108,11 +108,13 @@ type GlbArtifactNodeData struct {
 }
 
 func (gan GlbArtifactNodeData) Process() (generator.Artifact, error) {
+	collar := gan.Collar.Value()
+	spikes := gan.Spikes.Value()
 	scene := gltf.PolyformScene{
 		Models: []gltf.PolyformModel{
 			{
 				Name: "Collar",
-				Mesh: gan.Collar.Value(),
+				Mesh: &collar,
 				Material: &gltf.PolyformMaterial{
 					Name: "Collar",
 					PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
@@ -124,7 +126,7 @@ func (gan GlbArtifactNodeData) Process() (generator.Artifact, error) {
 			},
 			{
 				Name: "Spikes",
-				Mesh: gan.Spikes.Value(),
+				Mesh: &spikes,
 				Material: &gltf.PolyformMaterial{
 					Name: "Spikes",
 					PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
