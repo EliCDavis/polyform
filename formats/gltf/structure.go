@@ -81,6 +81,7 @@ type Node struct {
 	Scale       *[3]float64  `json:"scale,omitempty"`       // The node's non-uniform scale, given as the scaling factors along the x, y, and z axes.
 	Translation *[3]float64  `json:"translation,omitempty"` // The node's translation along the x, y, and z axes.
 	Weights     []float64    `json:"weights,omitempty"`     // The weights of the instantiated morph target. The number of array elements **MUST** match the number of morph targets of the referenced mesh. When defined, `mesh` **MUST** also be defined.
+	Name        string       `json:"name,omitempty"`
 }
 
 type ImageMimeType string

@@ -3,8 +3,10 @@ package gltf
 import (
 	"image/color"
 
+	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/animation"
+	"github.com/EliCDavis/vector/vector3"
 )
 
 type PolyformScene struct {
@@ -16,8 +18,12 @@ type PolyformScene struct {
 // polyform, and not an actual concept found within the GLTF format.
 type PolyformModel struct {
 	Name     string
-	Mesh     modeling.Mesh
+	Mesh     *modeling.Mesh
 	Material *PolyformMaterial
+
+	Translation *vector3.Float64
+	Scale       *vector3.Float64
+	Quaternion  *quaternion.Quaternion
 
 	Skeleton   *animation.Skeleton
 	Animations []animation.Sequence
