@@ -316,19 +316,19 @@ func (w *Writer) WriteIndices(indices *iter.ArrayIterator[int], attributeSize in
 func rgbaToFloatArr(c color.Color) [4]float64 {
 	r, g, b, a := c.RGBA()
 	return [4]float64{
-		float64(r) / math.MaxUint16,
-		float64(g) / math.MaxUint16,
-		float64(b) / math.MaxUint16,
-		float64(a) / math.MaxUint16,
+		roundFloat(float64(r)/math.MaxUint16, 3),
+		roundFloat(float64(g)/math.MaxUint16, 3),
+		roundFloat(float64(b)/math.MaxUint16, 3),
+		roundFloat(float64(a)/math.MaxUint16, 3),
 	}
 }
 
 func rgbToFloatArr(c color.Color) [3]float64 {
 	r, g, b, _ := c.RGBA()
 	return [3]float64{
-		float64(r) / math.MaxUint16,
-		float64(g) / math.MaxUint16,
-		float64(b) / math.MaxUint16,
+		roundFloat(float64(r)/math.MaxUint16, 3),
+		roundFloat(float64(g)/math.MaxUint16, 3),
+		roundFloat(float64(b)/math.MaxUint16, 3),
 	}
 }
 
@@ -861,4 +861,17 @@ func (w Writer) WriteGLB(out io.Writer) error {
 	}
 
 	return bitWriter.Error()
+}
+
+// Microvalue, anything below this is assumed to be floating point precision noise and will be discarded.
+const epsilon = 1e-8
+
+func roundFloat(val float64, precision uint) float64 {
+	ratio := math.Pow(10, float64(precision))
+	result := math.Round(val*ratio) / ratio
+	if math.Abs(result) < epsilon {
+		result = 0.0 // remove "-0.0" results
+	}
+
+	return result
 }

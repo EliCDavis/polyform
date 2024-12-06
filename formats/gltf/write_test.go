@@ -412,8 +412,8 @@ func TestWriteTexturedTriWithMaterialWithColor(t *testing.T) {
             "pbrMetallicRoughness": {
                 "baseColorFactor": [
                     1,
-                    0.39215686274509803,
-                    0.3137254901960784,
+                    0.392,
+                    0.314,
                     1
                 ],
                 "roughnessFactor": 0
@@ -600,8 +600,8 @@ func TestWrite_MaterialAlphaMode(t *testing.T) {
             "pbrMetallicRoughness": {
                 "baseColorFactor": [
                     1,
-                    0.39215686274509803,
-                    0.3137254901960784,
+                    0.392,
+                    0.314,
                     1
                 ],
                 "roughnessFactor": 0
@@ -791,8 +791,8 @@ func TestWrite_MaterialAlphaModeWithCutOff(t *testing.T) {
             "pbrMetallicRoughness": {
                 "baseColorFactor": [
                     1,
-                    0.39215686274509803,
-                    0.3137254901960784,
+                    0.392,
+                    0.314,
                     1
                 ],
                 "roughnessFactor": 0
@@ -1135,8 +1135,8 @@ func TestWrite_MaterialsDeduplicated(t *testing.T) {
             "pbrMetallicRoughness": {
                 "baseColorFactor": [
                     1,
-                    0.39215686274509803,
-                    0.3137254901960784,
+                    0.392,
+                    0.314,
                     1
                 ],
                 "roughnessFactor": 0
@@ -1346,8 +1346,8 @@ func TestWrite_MeshesDeduplicated(t *testing.T) {
             "pbrMetallicRoughness": {
                 "baseColorFactor": [
                     1,
-                    0.39215686274509803,
-                    0.3137254901960784,
+                    0.392,
+                    0.314,
                     1
                 ],
                 "roughnessFactor": 0
@@ -1653,8 +1653,8 @@ func TestWrite_MeshesDifferentMatsPreserved(t *testing.T) {
             "pbrMetallicRoughness": {
                 "baseColorFactor": [
                     1,
-                    0.39215686274509803,
-                    0.3137254901960784,
+                    0.392,
+                    0.314,
                     1
                 ],
                 "roughnessFactor": 0
@@ -1664,9 +1664,9 @@ func TestWrite_MeshesDifferentMatsPreserved(t *testing.T) {
             "name": "Material Right",
             "pbrMetallicRoughness": {
                 "baseColorFactor": [
-                    0.39215686274509803,
+                    0.392,
                     1,
-                    0.3137254901960784,
+                    0.314,
                     1
                 ],
                 "roughnessFactor": 0
