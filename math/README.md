@@ -31,3 +31,7 @@ Different noise algorithms commonly used in procedural generation.
 ## SDF
 
 SDF implementations of different geometry primitives, along with common math functions. Basically slowly picking through [Inigo Quilez's Distfunction](https://iquilezles.org/articles/distfunctions/) article as I need them in my different projects.
+
+## TRS
+
+Math around Translation / Rotation / Scale Matrices

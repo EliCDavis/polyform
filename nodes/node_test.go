@@ -30,21 +30,31 @@ func TestNodes(t *testing.T) {
 
 	times := nodes.Value(5)
 
-	repeated := &repeat.CircleNode{
+	transforms := &repeat.CircleNode{
 		Data: repeat.CircleNodeData{
 			Radius: nodes.Value(15.),
 			Times:  nodes.Value(5),
-			Mesh: (&repeat.CircleNode{
-				Data: repeat.CircleNodeData{
-					Radius: nodes.Value(5.),
-					Times:  times,
-					Mesh:   nodes.Value(primitives.UVSphere(1, 10, 10)),
-				},
-			}).Out(),
 		},
 	}
 
-	repeated.
+	repeated := &repeat.MeshNode{
+		Data: repeat.MeshNodeData{
+			Mesh: &repeat.MeshNode{
+				Data: repeat.MeshNodeData{
+					Mesh: nodes.Value(primitives.UVSphere(1, 10, 10)),
+					Transforms: &repeat.CircleNode{
+						Data: repeat.CircleNodeData{
+							Radius: nodes.Value(5.),
+							Times:  times,
+						},
+					},
+				},
+			},
+			Transforms: transforms,
+		},
+	}
+
+	transforms.
 		Out().
 		Node().
 		SetInput("Times", nodes.Output{NodeOutput: nodes.Value(30)})
@@ -53,11 +63,15 @@ func TestNodes(t *testing.T) {
 		Data: CombineData{
 			Meshes: []nodes.NodeOutput[modeling.Mesh]{
 				repeated.Out(),
-				(&repeat.CircleNode{
-					Data: repeat.CircleNodeData{
-						Radius: nodes.Value(5.),
-						Times:  times,
-						Mesh:   nodes.Value(primitives.UVSphere(1, 10, 10)),
+				(&repeat.MeshNode{
+					Data: repeat.MeshNodeData{
+						Mesh: nodes.Value(primitives.UVSphere(1, 10, 10)),
+						Transforms: &repeat.CircleNode{
+							Data: repeat.CircleNodeData{
+								Radius: nodes.Value(5.),
+								Times:  times,
+							},
+						},
 					},
 				}).Out(),
 			},
@@ -79,7 +93,7 @@ func TestNodes(t *testing.T) {
 	out.Value()
 
 	deps := repeated.Out().Node().Dependencies()
-	assert.Len(t, deps, 3)
+	assert.Len(t, deps, 2)
 	// assert.Equal(t, []nodes.Output{{
 	// 	// Name: "Out",
 	// 	Type: "github.com/EliCDavis/polyform/modeling.Mesh",
