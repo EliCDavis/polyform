@@ -27,6 +27,10 @@ func Identity() Quaternion {
 	return Quaternion{vector3.Zero[float64](), 1}
 }
 
+func (q Quaternion) Vector4() vector4.Float64 {
+	return vector4.New(q.v.X(), q.v.Y(), q.v.Z(), q.w)
+}
+
 func (q Quaternion) Dir() vector3.Float64 {
 	return q.v
 }

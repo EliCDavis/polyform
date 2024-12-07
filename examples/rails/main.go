@@ -8,6 +8,7 @@ import (
 	"github.com/EliCDavis/polyform/generator/parameter"
 	"github.com/EliCDavis/polyform/generator/room"
 	"github.com/EliCDavis/polyform/math/curves"
+	"github.com/EliCDavis/polyform/math/trs"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/extrude"
 	"github.com/EliCDavis/polyform/modeling/primitives"
@@ -20,23 +21,25 @@ import (
 type GlbArtifactNode = nodes.StructNode[generator.Artifact, GlbArtifactNodeData]
 
 type GlbArtifactNodeData struct {
-	Planks     nodes.NodeOutput[modeling.Mesh]
-	PlankColor nodes.NodeOutput[coloring.WebColor]
-	Rail       nodes.NodeOutput[modeling.Mesh]
-	Rail2      nodes.NodeOutput[modeling.Mesh]
+	Plank          nodes.NodeOutput[modeling.Mesh]
+	PlankPositions nodes.NodeOutput[[]trs.TRS]
+	PlankColor     nodes.NodeOutput[coloring.WebColor]
+	Rail           nodes.NodeOutput[modeling.Mesh]
+	Rail2          nodes.NodeOutput[modeling.Mesh]
 }
 
 func (gan GlbArtifactNodeData) Process() (generator.Artifact, error) {
 	railMetal := 1.
 	railRough := 0.4
 	plankMetal := 0.
-	planks := gan.Planks.Value()
+	planks := gan.Plank.Value()
 	rails := gan.Rail.Value().Append(gan.Rail2.Value())
 	scene := gltf.PolyformScene{
 		Models: []gltf.PolyformModel{
 			{
-				Name: "Planks",
-				Mesh: &planks,
+				Name:         "Planks",
+				Mesh:         &planks,
+				GpuInstances: gan.PlankPositions.Value(),
 				Material: &gltf.PolyformMaterial{
 					Name: "Planks",
 					PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
@@ -158,24 +161,22 @@ func main() {
 		},
 	}
 
-	planks := &repeat.SplineNode{
-		Data: repeat.SplineNodeData{
-			Mesh:  plank,
-			Curve: pathSpline,
-			Times: &nodes.Round{
-				Data: nodes.RoundData[float64]{
-					A: numPlanks,
-				},
-			},
-		},
-	}
-
 	gltfNode := &GlbArtifactNode{
 		Data: GlbArtifactNodeData{
-			Planks: planks,
+			Plank: plank,
 			PlankColor: &parameter.Color{
 				Name:         "Plank Color",
 				DefaultValue: coloring.WebColor{R: 70, G: 46, B: 37, A: 255},
+			},
+			PlankPositions: &repeat.SplineNode{
+				Data: repeat.SplineNodeData{
+					Curve: pathSpline,
+					Times: &nodes.Round{
+						Data: nodes.RoundData[float64]{
+							A: numPlanks,
+						},
+					},
+				},
 			},
 			Rail: rail,
 			Rail2: &extrude.CircleAlongSplineNode{
@@ -230,20 +231,7 @@ func main() {
 			},
 		},
 		Producers: map[string]nodes.NodeOutput[generator.Artifact]{
-			"mesh.glb": gltfNode.Out(),
-			// mrTexturePath: artifact.NewImageNode(nodes.FuncValue(mrTexture)),
-			// collarAlbedoPath: artifact.NewImageNode(&CollarAlbedoTextureNode{
-			// 	Data: CollarAlbedoTextureNodeData{
-			// 		BaseColor: &parameter.Color{
-			// 			Name:         "Collar/Base Color",
-			// 			DefaultValue: coloring.WebColor{46, 46, 46, 255},
-			// 		},
-			// 		StitchColor: &parameter.Color{
-			// 			Name:         "Collar/Stitch Color",
-			// 			DefaultValue: coloring.WebColor{10, 10, 10, 255},
-			// 		},
-			// 	},
-			// }),
+			"rails.glb": gltfNode.Out(),
 		},
 	}
 

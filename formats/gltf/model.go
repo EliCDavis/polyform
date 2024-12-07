@@ -4,6 +4,7 @@ import (
 	"image/color"
 
 	"github.com/EliCDavis/polyform/math/quaternion"
+	"github.com/EliCDavis/polyform/math/trs"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/animation"
 	"github.com/EliCDavis/vector/vector3"
@@ -24,6 +25,10 @@ type PolyformModel struct {
 	Translation *vector3.Float64
 	Scale       *vector3.Float64
 	Quaternion  *quaternion.Quaternion
+
+	// Utilizes the EXT_mesh_gpu_instancing extension to duplicate the model
+	// without increasing the mesh data footprint on the GPU
+	GpuInstances []trs.TRS
 
 	Skeleton   *animation.Skeleton
 	Animations []animation.Sequence

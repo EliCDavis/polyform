@@ -82,7 +82,10 @@ func pedal(baseWidth, midWidth, pedalLength, tipLength float64, arcVertCount int
 
 func flower(numPedals int, radius, pitch float64) modeling.Mesh {
 	q := quaternion.FromTheta(pitch, vector3.Left[float64]())
-	return repeat.Circle(pedal(0.2, 0.4, 0.4, 0.1, 10, marigoldTip).Rotate(q), numPedals, radius)
+	return repeat.Mesh(
+		pedal(0.2, 0.4, 0.4, 0.1, 10, marigoldTip).Rotate(q),
+		repeat.Circle(numPedals, radius),
+	)
 }
 
 func texture(textureName string) error {

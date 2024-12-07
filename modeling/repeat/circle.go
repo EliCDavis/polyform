@@ -4,8 +4,7 @@ import (
 	"math"
 
 	"github.com/EliCDavis/polyform/math/quaternion"
-	"github.com/EliCDavis/polyform/modeling"
-	"github.com/EliCDavis/polyform/modeling/meshops"
+	"github.com/EliCDavis/polyform/math/trs"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/vector/vector3"
 )
@@ -44,10 +43,10 @@ func CirclePoints(count int, radius float64) []vector3.Float64 {
 	return final
 }
 
-func Circle(in modeling.Mesh, times int, radius float64) modeling.Mesh {
+func Circle(times int, radius float64) []trs.TRS {
 	angleIncrement := (1.0 / float64(times)) * 2.0 * math.Pi
 
-	final := modeling.EmptyMesh(in.Topology())
+	transforms := make([]trs.TRS, times)
 
 	for i := 0; i < times; i++ {
 		angle := angleIncrement * float64(i)
@@ -55,33 +54,20 @@ func Circle(in modeling.Mesh, times int, radius float64) modeling.Mesh {
 		pos := vector3.New(math.Cos(angle), 0, math.Sin(angle)).Scale(radius)
 		rot := quaternion.FromTheta(angle-(math.Pi/2), vector3.Down[float64]())
 
-		final = final.Append(
-			in.Rotate(rot).
-				Transform(
-					meshops.TranslateAttribute3DTransformer{
-						Amount: pos,
-					},
-				),
-		)
+		transforms[i] = trs.New(pos, rot, vector3.One[float64]())
 	}
 
-	return final
+	return transforms
 }
 
-type CircleNode = nodes.StructNode[modeling.Mesh, CircleNodeData]
+type CircleNode = nodes.StructNode[[]trs.TRS, CircleNodeData]
 
 type CircleNodeData struct {
-	Mesh   nodes.NodeOutput[modeling.Mesh]
 	Radius nodes.NodeOutput[float64]
 	Times  nodes.NodeOutput[int]
 }
 
-func (r CircleNodeData) Process() (modeling.Mesh, error) {
-	if r.Mesh == nil {
-		return modeling.EmptyMesh(modeling.TriangleTopology), nil
-	}
-
-	mesh := r.Mesh.Value()
+func (r CircleNodeData) Process() ([]trs.TRS, error) {
 	times := 0
 	radius := 0.
 
@@ -93,5 +79,5 @@ func (r CircleNodeData) Process() (modeling.Mesh, error) {
 		radius = r.Radius.Value()
 	}
 
-	return Circle(mesh, times, radius), nil
+	return Circle(times, radius), nil
 }

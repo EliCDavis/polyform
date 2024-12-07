@@ -1,54 +1,36 @@
 package repeat
 
 import (
-	"github.com/EliCDavis/polyform/math/quaternion"
+	"github.com/EliCDavis/polyform/math/trs"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/nodes"
-	"github.com/EliCDavis/vector/vector3"
 )
 
-type Node = nodes.StructNode[modeling.Mesh, NodeData]
-
-type NodeData struct {
-	Mesh     nodes.NodeOutput[modeling.Mesh]
-	Position nodes.NodeOutput[[]vector3.Float64]
-	Rotation nodes.NodeOutput[[]quaternion.Quaternion]
-	Scale    nodes.NodeOutput[[]vector3.Float64]
+func Mesh(mesh modeling.Mesh, transforms []trs.TRS) modeling.Mesh {
+	result := modeling.EmptyMesh(mesh.Topology())
+	for _, transform := range transforms {
+		result = result.Append(mesh.ApplyTRS(transform))
+	}
+	return result
 }
 
-func (rnd NodeData) Process() (modeling.Mesh, error) {
-	if rnd.Mesh == nil || rnd.Position == nil {
+type MeshNode = nodes.StructNode[modeling.Mesh, MeshNodeData]
+
+type MeshNodeData struct {
+	Mesh       nodes.NodeOutput[modeling.Mesh]
+	Transforms nodes.NodeOutput[[]trs.TRS]
+}
+
+func (rnd MeshNodeData) Process() (modeling.Mesh, error) {
+	if rnd.Mesh == nil {
 		return modeling.EmptyMesh(modeling.TriangleTopology), nil
 	}
-
 	mesh := rnd.Mesh.Value()
-	positions := rnd.Position.Value()
-	var rotations []quaternion.Quaternion
-	var scales []vector3.Float64
 
-	if rnd.Rotation != nil {
-		rotations = rnd.Rotation.Value()
+	if rnd.Transforms == nil {
+		return modeling.EmptyMesh(mesh.Topology()), nil
 	}
+	transforms := rnd.Transforms.Value()
 
-	if rnd.Scale != nil {
-		scales = rnd.Scale.Value()
-	}
-
-	result := modeling.EmptyMesh(modeling.TriangleTopology)
-	for i, p := range positions {
-		s := vector3.One[float64]()
-		r := quaternion.Identity()
-
-		if i < len(rotations) {
-			r = rotations[i]
-		}
-
-		if i < len(scales) {
-			s = scales[i]
-		}
-
-		result = result.Append(mesh.Scale(s).Rotate(r).Translate(p))
-	}
-
-	return result, nil
+	return Mesh(mesh, transforms), nil
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/EliCDavis/polyform/generator"
 	"github.com/EliCDavis/polyform/generator/artifact"
 	"github.com/EliCDavis/polyform/generator/parameter"
+	"github.com/EliCDavis/polyform/math/trs"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/meshops"
 	"github.com/EliCDavis/polyform/modeling/repeat"
@@ -46,21 +47,24 @@ type DiscoSceneNodeData struct {
 	TableRadius    nodes.NodeOutput[float64]
 	TableThickness nodes.NodeOutput[float64]
 
-	Chairs     nodes.NodeOutput[modeling.Mesh]
-	ChairColor nodes.NodeOutput[coloring.WebColor]
+	Chair          nodes.NodeOutput[modeling.Mesh]
+	ChairPositions nodes.NodeOutput[[]trs.TRS]
+	ChairColor     nodes.NodeOutput[coloring.WebColor]
 
-	Cushion      nodes.NodeOutput[modeling.Mesh]
-	CushionColor nodes.NodeOutput[coloring.WebColor]
+	Cushion          nodes.NodeOutput[modeling.Mesh]
+	CushionPositions nodes.NodeOutput[[]trs.TRS]
+	CushionColor     nodes.NodeOutput[coloring.WebColor]
 
-	Plates         nodes.NodeOutput[modeling.Mesh]
+	Plate          nodes.NodeOutput[modeling.Mesh]
+	PlatePositions nodes.NodeOutput[[]trs.TRS]
 	PlateColor     nodes.NodeOutput[coloring.WebColor]
 	PlateThickness nodes.NodeOutput[float64]
 }
 
 func (dsn DiscoSceneNodeData) Process() (generator.Artifact, error) {
-	chairs := dsn.Chairs.Value()
+	chairs := dsn.Chair.Value()
 	cushions := dsn.Cushion.Value()
-	plates := dsn.Plates.Value().Translate(vector3.New(
+	plates := dsn.Plate.Value().Translate(vector3.New(
 		0.,
 		dsn.TableHeight.Value()+
 			(dsn.TableThickness.Value()/2)+
@@ -72,8 +76,9 @@ func (dsn DiscoSceneNodeData) Process() (generator.Artifact, error) {
 	models := []gltf.PolyformModel{
 		dsn.Table.Value(),
 		{
-			Name: "Chair Frames",
-			Mesh: &chairs,
+			Name:         "Chair Frames",
+			Mesh:         &chairs,
+			GpuInstances: dsn.ChairPositions.Value(),
 			Material: &gltf.PolyformMaterial{
 				PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
 					MetallicFactor:  &noMetal,
@@ -82,8 +87,9 @@ func (dsn DiscoSceneNodeData) Process() (generator.Artifact, error) {
 			},
 		},
 		{
-			Name: "Chair Cushions",
-			Mesh: &cushions,
+			Name:         "Chair Cushions",
+			Mesh:         &cushions,
+			GpuInstances: dsn.CushionPositions.Value(),
 			Material: &gltf.PolyformMaterial{
 				PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
 					MetallicFactor:  &noMetal,
@@ -92,8 +98,9 @@ func (dsn DiscoSceneNodeData) Process() (generator.Artifact, error) {
 			},
 		},
 		{
-			Name: "Plates",
-			Mesh: &plates,
+			Name:         "Plates",
+			Mesh:         &plates,
+			GpuInstances: dsn.PlatePositions.Value(),
 			Material: &gltf.PolyformMaterial{
 				Name: "Plate Mat",
 				PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
@@ -178,29 +185,30 @@ func main() {
 		DefaultValue: .1,
 	}
 
+	cusionPositions := &repeat.CircleNode{
+		Data: repeat.CircleNodeData{
+			Times:  personCount,
+			Radius: chairPosition,
+		},
+	}
+
 	cushion := meshops.TranslateAttribute3DNode{
 		Data: meshops.TranslateAttribute3DNodeData{
-			Mesh: &repeat.CircleNode{
-				Data: repeat.CircleNodeData{
-					Mesh: &CushionNode{
-						Data: CushionNodeData{
-							Thickness: cushionThickness,
-							Width: &nodes.DifferenceNode{
-								Data: nodes.DifferenceData[float64]{
-									A: chairWidth,
-									B: cushionInset,
-								},
-							},
-							Length: &nodes.DifferenceNode{
-								Data: nodes.DifferenceData[float64]{
-									A: chairLength,
-									B: cushionInset,
-								},
-							},
+			Mesh: &CushionNode{
+				Data: CushionNodeData{
+					Thickness: cushionThickness,
+					Width: &nodes.DifferenceNode{
+						Data: nodes.DifferenceData[float64]{
+							A: chairWidth,
+							B: cushionInset,
 						},
 					},
-					Times:  personCount,
-					Radius: chairPosition,
+					Length: &nodes.DifferenceNode{
+						Data: nodes.DifferenceData[float64]{
+							A: chairLength,
+							B: cushionInset,
+						},
+					},
 				},
 			},
 			Amount: &vecn3.New{
@@ -223,41 +231,35 @@ func main() {
 		},
 	}
 
-	chairs := &repeat.CircleNode{
-		Data: repeat.CircleNodeData{
-			Mesh: &ChairNode{
-				Data: ChairNodeData{
-					Height: chairHeight,
-					Width:  chairWidth,
-					Length: chairLength,
-					Thickness: &parameter.Float64{
-						Name:         "Chair/Thickness",
-						DefaultValue: .1,
-					},
-					BackHeight: &parameter.Float64{
-						Name:         "Chair/BackHeight",
-						DefaultValue: 2,
-					},
-					BackingPieceHeight: &parameter.Float64{
-						Name:         "Chair/BackingPiece Hieght",
-						DefaultValue: .4,
-					},
-					BackingPieceHeightPegs: &parameter.Int{
-						Name:         "Chair/Backing Piece Height Pegs",
-						DefaultValue: 4,
-					},
-					LegRadius: &parameter.Float64{
-						Name:         "Chair/Leg Radius",
-						DefaultValue: .05,
-					},
-					LegInset: &parameter.Float64{
-						Name:         "Chair/Leg Inset",
-						DefaultValue: .1,
-					},
-				},
+	chairs := &ChairNode{
+		Data: ChairNodeData{
+			Height: chairHeight,
+			Width:  chairWidth,
+			Length: chairLength,
+			Thickness: &parameter.Float64{
+				Name:         "Chair/Thickness",
+				DefaultValue: .1,
 			},
-			Radius: chairPosition,
-			Times:  personCount,
+			BackHeight: &parameter.Float64{
+				Name:         "Chair/BackHeight",
+				DefaultValue: 2,
+			},
+			BackingPieceHeight: &parameter.Float64{
+				Name:         "Chair/BackingPiece Hieght",
+				DefaultValue: .4,
+			},
+			BackingPieceHeightPegs: &parameter.Int{
+				Name:         "Chair/Backing Piece Height Pegs",
+				DefaultValue: 4,
+			},
+			LegRadius: &parameter.Float64{
+				Name:         "Chair/Leg Radius",
+				DefaultValue: .05,
+			},
+			LegInset: &parameter.Float64{
+				Name:         "Chair/Leg Inset",
+				DefaultValue: .1,
+			},
 		},
 	}
 
@@ -271,19 +273,20 @@ func main() {
 		DefaultValue: .01,
 	}
 
-	plates := &repeat.CircleNode{
+	plate := &PlateNode{
+		Data: PlateNodeData{
+			Thickness: plateThickenss,
+			Radius:    plateRadius,
+			Resolution: &parameter.Int{
+				Name:         "Plate/Resolution",
+				DefaultValue: 20,
+			},
+		},
+	}
+
+	platePositions := &repeat.CircleNode{
 		Data: repeat.CircleNodeData{
 			Times: personCount,
-			Mesh: &PlateNode{
-				Data: PlateNodeData{
-					Thickness: plateThickenss,
-					Radius:    plateRadius,
-					Resolution: &parameter.Int{
-						Name:         "Plate/Resolution",
-						DefaultValue: 20,
-					},
-				},
-			},
 			Radius: &nodes.DifferenceNode{
 				Data: nodes.DifferenceData[float64]{
 					A: tableRadius,
@@ -305,7 +308,8 @@ func main() {
 
 	discoScene := &DiscoSceneNode{
 		Data: DiscoSceneNodeData{
-			Plates:         plates,
+			Plate:          plate,
+			PlatePositions: platePositions,
 			PlateThickness: plateThickenss,
 			PlateColor: &parameter.Color{
 				Name:         "Plate Color",
@@ -319,13 +323,20 @@ func main() {
 				DefaultValue: .1,
 			},
 
-			Chairs: chairs.Out(),
+			Chair: chairs.Out(),
+			ChairPositions: &repeat.CircleNode{
+				Data: repeat.CircleNodeData{
+					Radius: chairPosition,
+					Times:  personCount,
+				},
+			},
 			ChairColor: &parameter.Color{
 				Name:         "Chair Color",
 				DefaultValue: coloring.WebColor{R: 0x21, G: 0x21, B: 0x21, A: 255},
 			},
 
-			Cushion: cushion.Out(),
+			Cushion:          cushion.Out(),
+			CushionPositions: cusionPositions,
 			CushionColor: &parameter.Color{
 				Name:         "Cushion Color",
 				DefaultValue: coloring.WebColor{R: 225, G: 225, B: 225, A: 255},

@@ -4,8 +4,7 @@ import (
 	"math"
 
 	"github.com/EliCDavis/polyform/math/quaternion"
-	"github.com/EliCDavis/polyform/modeling"
-	"github.com/EliCDavis/polyform/modeling/meshops"
+	"github.com/EliCDavis/polyform/math/trs"
 	"github.com/EliCDavis/vector/vector3"
 )
 
@@ -28,17 +27,16 @@ func FibonacciSpherePoints(samples int, offsetRadius float64) []vector3.Float64 
 	return points
 }
 
-func FibonacciSphere(in modeling.Mesh, samples int, radius float64) modeling.Mesh {
+func FibonacciSphere(samples int, radius float64) []trs.TRS {
 	points := FibonacciSpherePoints(samples, radius)
-	final := modeling.EmptyMesh(in.Topology())
-	for _, p := range points {
-		rot := quaternion.FromTheta(0, p.Normalized())
-		final = final.Append(in.Rotate(rot).Transform(
-			meshops.TranslateAttribute3DTransformer{
-				Amount: p,
-			},
-		))
+	transforms := make([]trs.TRS, len(points))
+	for i, p := range points {
+		transforms[i] = trs.New(
+			p,
+			quaternion.FromTheta(0, p.Normalized()),
+			vector3.One[float64](),
+		)
 	}
 
-	return final
+	return transforms
 }

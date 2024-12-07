@@ -47,11 +47,13 @@ func (cn ChimneyNodeData) Process() (Segment, error) {
 		vector3.New(.0, halfTotalHeight, 0),
 	}
 
-	allRows := repeat.Line(
+	allRows := repeat.Mesh(
 		primitives.Cylinder{Sides: 20, Height: 0.3, Radius: shootWidth + .3}.ToMesh(),
-		vector3.New(0, -halfTotalHeight+funnelHeight+taperHeight, 0),
-		vector3.New(0, (shootHeight*(float64(rows)/float64(rows+1)))-halfTotalHeight+funnelHeight+taperHeight, 0),
-		rows-2,
+		repeat.Line(
+			vector3.New(0, -halfTotalHeight+funnelHeight+taperHeight, 0),
+			vector3.New(0, (shootHeight*(float64(rows)/float64(rows+1)))-halfTotalHeight+funnelHeight+taperHeight, 0),
+			rows-2,
+		),
 	)
 
 	widths := []float64{
@@ -107,7 +109,7 @@ func (cn ChasisNodeData) Process() (Segment, error) {
 	}
 
 	column := primitives.UnitCube().Scale(vector3.New(.2, height, .2))
-	columnsMesh := repeat.Circle(column, columns, width)
+	columnsMesh := repeat.Mesh(column, repeat.Circle(columns, width))
 	chasis = chasis.Append(columnsMesh)
 
 	return Segment{
@@ -149,7 +151,7 @@ func (ln LegsNodeData) Process() (Segment, error) {
 	legs := primitives.
 		Cylinder{Sides: 20, Height: columnHeight, Radius: width}.ToMesh().
 		Translate(vector3.New(0, (height/2.)-(columnHeight/2.), 0)).
-		Append(repeat.Circle(leg, numLegs, width-2.))
+		Append(repeat.Mesh(leg, repeat.Circle(numLegs, width-2.)))
 
 	return Segment{
 		mesh: []gltf.PolyformModel{
@@ -215,7 +217,7 @@ func (fn FloorNodeData) Process() (Segment, error) {
 		shapePath[i] = vector3.New(math.Cos(angle)*offset, 0, math.Sin(angle)*offset)
 	}
 
-	railingMesh := repeat.Circle(post, numLegs, postRadius-.2).
+	railingMesh := repeat.Mesh(post, repeat.Circle(numLegs, postRadius-.2)).
 		Append(railing.Translate(vector3.Up[float64]().Scale(legHeight))).
 		Append(railing.Translate(vector3.Up[float64]().Scale(legHeight / 2)))
 

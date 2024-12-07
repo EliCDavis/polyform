@@ -116,11 +116,13 @@ func (cn ChairNodeData) Process() (modeling.Mesh, error) {
 		Radius: legRadius / 1.4,
 	}.ToMesh()
 
-	backSupportPegs := repeat.LineExlusive(
+	backSupportPegs := repeat.Mesh(
 		backSupportPeg,
-		vector3.New(halfWidth-legRadiusAndInset, 0., halfLength-legRadiusAndInset),
-		vector3.New(-halfWidth+legRadiusAndInset, 0., halfLength-legRadiusAndInset),
-		cn.BackingPieceHeightPegs.Value(),
+		repeat.LineExlusive(
+			vector3.New(halfWidth-legRadiusAndInset, 0., halfLength-legRadiusAndInset),
+			vector3.New(-halfWidth+legRadiusAndInset, 0., halfLength-legRadiusAndInset),
+			cn.BackingPieceHeightPegs.Value(),
+		),
 	)
 
 	return primitives.Cube{

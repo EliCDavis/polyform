@@ -363,6 +363,37 @@ func (w *Writer) AddScene(scene PolyformScene) error {
 			newNode.Scale = &arr
 		}
 
+		if len(model.GpuInstances) > 0 {
+			if newNode.Extensions == nil {
+				newNode.Extensions = make(map[string]any)
+			}
+			w.extensionsUsed[extGpuInstancingID] = true
+
+			instances := ExtGpuInstancing{
+				Attributes: make(map[string]int),
+			}
+
+			positions := make([]vector3.Float64, len(model.GpuInstances))
+			rotations := make([]vector4.Float64, len(model.GpuInstances))
+			scales := make([]vector3.Float64, len(model.GpuInstances))
+			for i, t := range model.GpuInstances {
+				positions[i] = t.Position()
+				rotations[i] = t.Rotation().Vector4()
+				scales[i] = t.Scale()
+			}
+
+			instances.Attributes["TRANSLATION"] = len(w.accessors)
+			w.WriteVector3(AccessorComponentType_FLOAT, iter.Array(positions))
+
+			instances.Attributes["SCALE"] = len(w.accessors)
+			w.WriteVector3(AccessorComponentType_FLOAT, iter.Array(scales))
+
+			instances.Attributes["ROTATION"] = len(w.accessors)
+			w.WriteVector4(AccessorComponentType_FLOAT, iter.Array(rotations))
+
+			newNode.Extensions[extGpuInstancingID] = instances
+		}
+
 		w.nodes = append(w.nodes, newNode)
 		w.scene = append(w.scene, nodeIndex)
 

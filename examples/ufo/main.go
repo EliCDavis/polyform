@@ -143,8 +143,8 @@ func main() {
 		},
 	}
 
-	contour := &repeat.CircleNode{
-		Data: repeat.CircleNodeData{
+	contour := &repeat.MeshNode{
+		Data: repeat.MeshNodeData{
 			Mesh: &extrude.CircleNode{
 				Data: extrude.CircleNodeData{
 					Path: ufoOutline,
@@ -158,38 +158,46 @@ func main() {
 					},
 				},
 			},
-			Times: &parameter.Int{
-				Name:         "Countour Repeat Times",
-				DefaultValue: 10,
+			Transforms: &repeat.CircleNode{
+				Data: repeat.CircleNodeData{
+					Times: &parameter.Int{
+						Name:         "Countour Repeat Times",
+						DefaultValue: 10,
+					},
+				},
 			},
 		},
 	}
 
-	allRings := &repeat.Node{
-		Data: repeat.NodeData{
+	allRings := &repeat.MeshNode{
+		Data: repeat.MeshNodeData{
 			Mesh: AbductionRing(),
-			Position: &VectorArrayNode{
-				Data: VectoryArrayNodeData{
-					Y: &basics.SampleNode{
-						Data: basics.SampleNodeData{
-							Start: &parameter.Float64{
-								Name:         "Ring Start Position",
-								DefaultValue: -10,
+			Transforms: &TRSNode{
+				Data: TRSNodeData{
+					Position: &VectorArrayNode{
+						Data: VectoryArrayNodeData{
+							Y: &basics.SampleNode{
+								Data: basics.SampleNodeData{
+									Start: &parameter.Float64{
+										Name:         "Ring Start Position",
+										DefaultValue: -10,
+									},
+									End: &parameter.Float64{
+										Name:         "Ring End Position",
+										DefaultValue: -3,
+									},
+									Samples: ringCount,
+								},
 							},
-							End: &parameter.Float64{
-								Name:         "Ring End Position",
-								DefaultValue: -3,
-							},
-							Samples: ringCount,
 						},
 					},
-				},
-			},
-			Scale: &VectorArrayNode{
-				Data: VectoryArrayNodeData{
-					X: scaleSample,
-					Y: scaleSample,
-					Z: scaleSample,
+					Scale: &VectorArrayNode{
+						Data: VectoryArrayNodeData{
+							X: scaleSample,
+							Y: scaleSample,
+							Z: scaleSample,
+						},
+					},
 				},
 			},
 		},

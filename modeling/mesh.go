@@ -10,6 +10,7 @@ import (
 	"github.com/EliCDavis/iter"
 	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/math/quaternion"
+	"github.com/EliCDavis/polyform/math/trs"
 	"github.com/EliCDavis/polyform/trees"
 	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
@@ -386,6 +387,14 @@ func (m Mesh) Rotate(q quaternion.Quaternion) Mesh {
 	}
 
 	return finalMesh.SetFloat3Attribute(PositionAttribute, finalVerts)
+}
+
+func (m Mesh) ApplyTRS(transform trs.TRS) Mesh {
+	m.requireV3Attribute(PositionAttribute)
+
+	oldData := m.v3Data[PositionAttribute]
+
+	return m.SetFloat3Attribute(PositionAttribute, transform.TransformArray(oldData))
 }
 
 func (m Mesh) Scale(amount vector3.Float64) Mesh {

@@ -11,6 +11,7 @@ import (
 	"github.com/EliCDavis/polyform/generator/artifact"
 	"github.com/EliCDavis/polyform/generator/parameter"
 	"github.com/EliCDavis/polyform/math/quaternion"
+	"github.com/EliCDavis/polyform/math/trs"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/extrude"
 	"github.com/EliCDavis/polyform/modeling/meshops"
@@ -102,14 +103,15 @@ func (cn CollarNodeData) Process() (modeling.Mesh, error) {
 type GlbArtifactNode = nodes.StructNode[generator.Artifact, GlbArtifactNodeData]
 
 type GlbArtifactNodeData struct {
-	Collar     nodes.NodeOutput[modeling.Mesh]
-	Spikes     nodes.NodeOutput[modeling.Mesh]
-	SpikeColor nodes.NodeOutput[coloring.WebColor]
+	Collar         nodes.NodeOutput[modeling.Mesh]
+	Spike          nodes.NodeOutput[modeling.Mesh]
+	SpikePositions nodes.NodeOutput[[]trs.TRS]
+	SpikeColor     nodes.NodeOutput[coloring.WebColor]
 }
 
 func (gan GlbArtifactNodeData) Process() (generator.Artifact, error) {
 	collar := gan.Collar.Value()
-	spikes := gan.Spikes.Value()
+	spikes := gan.Spike.Value()
 	scene := gltf.PolyformScene{
 		Models: []gltf.PolyformModel{
 			{
@@ -125,8 +127,9 @@ func (gan GlbArtifactNodeData) Process() (generator.Artifact, error) {
 				},
 			},
 			{
-				Name: "Spikes",
-				Mesh: &spikes,
+				Name:         "Spikes",
+				Mesh:         &spikes,
+				GpuInstances: gan.SpikePositions.Value(),
 				Material: &gltf.PolyformMaterial{
 					Name: "Spikes",
 					PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
@@ -194,21 +197,15 @@ func mrTexture() image.Image {
 func main() {
 	collarRadius := &parameter.Float64{Name: "Collar/Radius", DefaultValue: 1}
 
-	spikeRing := repeat.CircleNode{
-		Data: repeat.CircleNodeData{
-			Mesh: &meshops.SmoothNormalsNode{
-				Data: meshops.SmoothNormalsNodeData{
-					Mesh: &ConeNode{
-						Data: ConeNodeData{
-							Height: &parameter.Float64{Name: "Spike/Height", DefaultValue: .2},
-							Radius: &parameter.Float64{Name: "Spike/Radius", DefaultValue: .1},
-							Sides:  &parameter.Int{Name: "Spike/Resolution", DefaultValue: 30},
-						},
-					},
+	spike := &meshops.SmoothNormalsNode{
+		Data: meshops.SmoothNormalsNodeData{
+			Mesh: &ConeNode{
+				Data: ConeNodeData{
+					Height: &parameter.Float64{Name: "Spike/Height", DefaultValue: .2},
+					Radius: &parameter.Float64{Name: "Spike/Radius", DefaultValue: .1},
+					Sides:  &parameter.Int{Name: "Spike/Resolution", DefaultValue: 30},
 				},
 			},
-			Radius: collarRadius,
-			Times:  &parameter.Int{Name: "Spike/Count", DefaultValue: 20},
 		},
 	}
 
@@ -224,7 +221,13 @@ func main() {
 	gltfNode := &GlbArtifactNode{
 		Data: GlbArtifactNodeData{
 			Collar: collar.Out(),
-			Spikes: spikeRing.Out(),
+			Spike:  spike,
+			SpikePositions: &repeat.CircleNode{
+				Data: repeat.CircleNodeData{
+					Radius: collarRadius,
+					Times:  &parameter.Int{Name: "Spike/Count", DefaultValue: 20},
+				},
+			},
 			SpikeColor: &parameter.Color{
 				Name:         "Spike/Color",
 				DefaultValue: coloring.WebColor{244, 244, 244, 255},
