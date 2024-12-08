@@ -58,3 +58,24 @@ func TestTransformInPlace(t *testing.T) {
 	assert.InDelta(t, 9., points[1].Z(), 0.0000001)
 
 }
+
+func TestTranslate(t *testing.T) {
+
+	// ARRANGE ================================================================
+	transform := trs.New(
+		vector3.New(1., 2., 3.),
+		quaternion.FromTheta(math.Pi, vector3.Forward[float64]()),
+		vector3.New(4., 5., 6.),
+	)
+	point := vector3.One[float64]()
+
+	// ACT ====================================================================
+	translated := transform.Translate(point)
+	newPosition := translated.Position()
+
+	// ASSERT =================================================================
+	assert.InDelta(t, 2., newPosition.X(), 0.0000001)
+	assert.InDelta(t, 3., newPosition.Y(), 0.0000001)
+	assert.InDelta(t, 4., newPosition.Z(), 0.0000001)
+
+}

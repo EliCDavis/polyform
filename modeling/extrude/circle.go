@@ -235,13 +235,13 @@ func (c CircleAlongSpline) Extrude() modeling.Mesh {
 	points := make([]ExtrusionPoint, c.SplineResolution)
 	varrying := len(c.Radii) == c.SplineResolution
 	r := c.Radius
-	length := c.Spline.Length() / float64(c.SplineResolution-1)
+	inc := c.Spline.Length() / float64(c.SplineResolution-1)
 	for i := 0; i < c.SplineResolution; i++ {
 		if varrying {
 			r = c.Radii[i]
 		}
 		points[i] = ExtrusionPoint{
-			Point:     c.Spline.At(length * float64(i)),
+			Point:     c.Spline.At(inc * float64(i)),
 			Thickness: r,
 		}
 	}

@@ -107,9 +107,10 @@ func main() {
 		DefaultValue: []vector3.Vector[float64]{
 			vector3.New(0., 0., 0.),
 			vector3.New(0., 0., 3.),
-			vector3.New(0., 1., 6.),
+			vector3.New(0., -1, 6.),
 			vector3.New(0., 0., 9.),
 			vector3.New(0., 0., 12.),
+			// vector3.New(0., 0., 12.),
 			// vector3.New(0., 0., 15.),
 		},
 	}

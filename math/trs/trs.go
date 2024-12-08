@@ -31,6 +31,15 @@ func (trs TRS) Transform(in vector3.Float64) vector3.Float64 {
 	return trs.rotation.Rotate(trs.scale.MultByVector(in)).Add(trs.position)
 }
 
+// Create a new TRS with the position translated by "in"
+func (trs TRS) Translate(in vector3.Float64) TRS {
+	return TRS{
+		position: trs.position.Add(in),
+		scale:    trs.scale,
+		rotation: trs.rotation,
+	}
+}
+
 // Transform an array of points by the TRS
 func (trs TRS) TransformArray(in []vector3.Float64) []vector3.Float64 {
 	out := make([]vector3.Float64, len(in))

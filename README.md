@@ -36,6 +36,7 @@ Polyform is for loading, generating, editing, and exporting 3D geometry and it's
   - [geometry](/math/geometry/) - AABB, Line2D, Line3D, Plane, and Rays.
   - [noise](/math/noise/) - Utilities around noise functions for common usecases like stacking multiple samples of perlin noise from different frequencies.
   - [quaternion](/math/quaternion/) - Quaternion math and helper functions
+  - [trs](/math/trs/) - Math and utilities around TRS transformations
   - [sample](/math/sample/) - Serves as a group of definitions for defining a mapping from one numeric value to another
   - [sdf](/math/sdf/) - SDF implementations of different geometry primitives, along with common math functions. Basically slowly picking through [Inigo Quilez's Distfunction](https://iquilezles.org/articles/distfunctions/) article as I need them in my different projects.
 - [Generator](/generator/) - Application scaffolding for editing and creating meshes

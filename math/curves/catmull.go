@@ -1,6 +1,7 @@
 package curves
 
 import (
+	"fmt"
 	"math"
 	"sort"
 
@@ -58,7 +59,11 @@ func (crc *CatmullRomCurve) calcLength(a, b float64) float64 {
 
 	dist := end.Distance(start)
 	if dist > crc.epsilon {
-		half := a + ((b - a) / 2)
+		// a + ((b - a) / 2
+		// a + b/2 - a/2
+		// a/2 + b/2
+		// (a + b)/2
+		half := (a + b) / 2
 		return crc.calcLength(a, half) + crc.calcLength(half, b)
 	}
 
@@ -68,11 +73,17 @@ func (crc *CatmullRomCurve) calcLength(a, b float64) float64 {
 			time:  a,
 			point: start,
 		},
-		catmullRomCurveDistSegment{
-			time:  b,
-			point: end,
-		},
 	)
+
+	if b == 1. {
+		crc.segments = append(
+			crc.segments,
+			catmullRomCurveDistSegment{
+				time:  b,
+				point: end,
+			},
+		)
+	}
 
 	return dist
 }
@@ -82,8 +93,7 @@ func (crc *CatmullRomCurve) populateHelperData() {
 		return
 	}
 
-	dist := crc.calcLength(0, 1)
-	crc.distance = &dist
+	crc.calcLength(0, 1)
 	sort.Sort(sortByTime(crc.segments))
 	for i := 1; i < len(crc.segments); i++ {
 		previous := crc.segments[i-1]
@@ -91,6 +101,7 @@ func (crc *CatmullRomCurve) populateHelperData() {
 		seg.distance = previous.distance + seg.point.Distance(previous.point)
 		crc.segments[i] = seg
 	}
+	crc.distance = &crc.segments[len(crc.segments)-1].distance
 }
 
 func (crc *CatmullRomCurve) Length() float64 {
@@ -133,18 +144,12 @@ func (crc *CatmullRomCurve) Distance(distance float64) vector3.Float64 {
 
 		// value is in interval from previous to current element
 		if distance >= crc.segments[mid-1].distance && distance <= crc.segments[mid].distance {
-			a, b := crc.segments[mid].distance, crc.segments[mid-1].distance
+			a, b := crc.segments[mid-1].distance, crc.segments[mid].distance
 
 			t := (distance - a) / (b - a)
 
-			aPoint, bPoint := crc.segments[mid].point, crc.segments[mid-1].point
+			aPoint, bPoint := crc.segments[mid-1].point, crc.segments[mid].point
 			return vector3.Lerp(aPoint, bPoint, t)
-
-			// if math.Abs(distance-crc.segments[mid-1].distance) < math.Abs(distance-crc.segments[mid].distance) {
-			// 	return crc.segments[mid-1].point
-			// } else {
-			// 	return crc.segments[mid].point
-			// }
 		} else {
 			if crc.segments[mid].distance < distance {
 				start = mid + 1
@@ -154,7 +159,13 @@ func (crc *CatmullRomCurve) Distance(distance float64) vector3.Float64 {
 		}
 	}
 
-	panic("uhhh")
+	// fmt.Printf("%g\n", distance)
+	// fmt.Printf("%g\n", crc.Length())
+	// fmt.Printf("%g\n", crc.segments[end-1].distance)
+	// fmt.Printf("%g\n", crc.segments[end].distance)
+
+	// fmt.Printf("start: %d; end %d; len: %d\n", start, end, len(crc.segments))
+	panic(fmt.Errorf("Couldn't calculate point for distance %g (length %g)", distance, crc.Length()))
 }
 
 func (crc CatmullRomCurve) getKnotInterval(a, b vector3.Float64) float64 {
@@ -293,11 +304,15 @@ func (crc *CatmullRomSpline) At(distance float64) vector3.Float64 {
 	remainingDistance := distance
 	var curveToEvaluation *CatmullRomCurve = nil
 	for _, curve := range crc.curves {
-		if curve.Length() > remainingDistance {
+		if curve.Length() >= remainingDistance {
 			curveToEvaluation = curve
 			break
 		}
 		remainingDistance -= curve.Length()
+	}
+
+	if curveToEvaluation == nil {
+		panic("we got a nil curve!!!")
 	}
 
 	return curveToEvaluation.Distance(remainingDistance)
@@ -325,6 +340,11 @@ func (r CatmullRomSplineNodeData) Process() (Spline, error) {
 	if len(points) < 4 {
 		return nil, nil
 	}
+
+	// for _, p := range points {
+	// 	fmt.Print(p.Format("%g, %g, %g\n"))
+	// }
+	// fmt.Printf("%g\n", alpha)
 
 	spline := CatmullRomSplineParameters{
 		Points: points,
