@@ -101,7 +101,12 @@ func (crc *CatmullRomCurve) populateHelperData() {
 		seg.distance = previous.distance + seg.point.Distance(previous.point)
 		crc.segments[i] = seg
 	}
-	crc.distance = &crc.segments[len(crc.segments)-1].distance
+	if len(crc.segments) == 0 {
+		zero := 0.
+		crc.distance = &zero
+	} else {
+		crc.distance = &crc.segments[len(crc.segments)-1].distance
+	}
 }
 
 func (crc *CatmullRomCurve) Length() float64 {
@@ -137,27 +142,37 @@ func (crc *CatmullRomCurve) Distance(distance float64) vector3.Float64 {
 		return crc.segments[len(crc.segments)-1].point
 	}
 
-	start := 0
-	end := len(crc.segments) - 1
-	for start <= end {
-		mid := int(math.Floor(float64(end+start) / 2.))
+	low := 0
+	high := len(crc.segments) - 1
 
-		// value is in interval from previous to current element
-		if distance >= crc.segments[mid-1].distance && distance <= crc.segments[mid].distance {
-			a, b := crc.segments[mid-1].distance, crc.segments[mid].distance
+	for low <= high {
+		mid := int(math.Round(float64(low+high) / 2.))
 
-			t := (distance - a) / (b - a)
+		if crc.segments[mid].distance == distance {
+			return crc.segments[mid].point
+		}
 
-			aPoint, bPoint := crc.segments[mid-1].point, crc.segments[mid].point
-			return vector3.Lerp(aPoint, bPoint, t)
+		if crc.segments[mid].distance < distance {
+			low = mid + 1
 		} else {
-			if crc.segments[mid].distance < distance {
-				start = mid + 1
-			} else {
-				end = mid - 1
-			}
+			high = mid - 1
 		}
 	}
+
+	if low == len(crc.segments) {
+		return crc.segments[high].point
+	}
+
+	if high == -1 {
+		return crc.segments[low].point
+	}
+
+	a, b := crc.segments[high].distance, crc.segments[low].distance
+
+	t := (distance - a) / (b - a)
+
+	aPoint, bPoint := crc.segments[high].point, crc.segments[low].point
+	return vector3.Lerp(aPoint, bPoint, t)
 
 	// fmt.Printf("%g\n", distance)
 	// fmt.Printf("%g\n", crc.Length())

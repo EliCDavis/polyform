@@ -54,14 +54,14 @@ func TestCatmullSplineDistance(t *testing.T) {
 		// 		},
 		// 	},
 		// },
-		// "2 point line": {
-		// 	curve: curves.CatmullRomSplineParameters{
-		// 		Points: []vector3.Float64{
-		// 			vector3.New(0., 0., 0.),
-		// 			vector3.New(0., 0., 1.),
-		// 		},
-		// 	},
-		// },
+		"2 point line": {
+			curve: curves.CatmullRomSplineParameters{
+				Points: []vector3.Float64{
+					vector3.New(0., 0., 0.),
+					vector3.New(0., 0., 1.),
+				},
+			},
+		},
 		// "3 point line": {
 		// 	curve: curves.CatmullRomSplineParameters{
 		// 		Points: []vector3.Float64{
@@ -81,30 +81,30 @@ func TestCatmullSplineDistance(t *testing.T) {
 		// 		},
 		// 	},
 		// },
-		"little dip": {
-			curve: curves.CatmullRomSplineParameters{
-				Points: []vector3.Float64{
-					vector3.New(0., 0., 0.),
-					vector3.New(0., 0., 3.),
-					vector3.New(0., -1.1791153159954555, 6.),
-					vector3.New(0., 0., 9.),
-					vector3.New(0., 0., 12.),
-				},
-				Alpha: 0.5,
-			},
-		},
-		"little dip shift": {
-			curve: curves.CatmullRomSplineParameters{
-				Points: []vector3.Float64{
-					vector3.New(0.3, 0.1, 0.),
-					vector3.New(0.3, 0.1, 3.),
-					vector3.New(0.3, -1.0791153159954554, 6.),
-					vector3.New(0.3, 0.1, 9.),
-					vector3.New(0.3, 0.1, 12.),
-				},
-				Alpha: 0.5,
-			},
-		},
+		// "little dip": {
+		// 	curve: curves.CatmullRomSplineParameters{
+		// 		Points: []vector3.Float64{
+		// 			vector3.New(0., 0., 0.),
+		// 			vector3.New(0., 0., 3.),
+		// 			vector3.New(0., -1.1791153159954555, 6.),
+		// 			vector3.New(0., 0., 9.),
+		// 			vector3.New(0., 0., 12.),
+		// 		},
+		// 		Alpha: 0.5,
+		// 	},
+		// },
+		// "little dip shift": {
+		// 	curve: curves.CatmullRomSplineParameters{
+		// 		Points: []vector3.Float64{
+		// 			vector3.New(0.3, 0.1, 0.),
+		// 			vector3.New(0.3, 0.1, 3.),
+		// 			vector3.New(0.3, -1.0791153159954554, 6.),
+		// 			vector3.New(0.3, 0.1, 9.),
+		// 			vector3.New(0.3, 0.1, 12.),
+		// 		},
+		// 		Alpha: 0.5,
+		// 	},
+		// },
 	}
 
 	for name, tc := range tests {
