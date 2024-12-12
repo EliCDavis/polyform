@@ -59,8 +59,9 @@ type PolyformNormal struct {
 }
 
 type PolyformTexture struct {
-	URI     string
-	Sampler *Sampler
+	URI        string
+	Sampler    *Sampler
+	Extensions []TextureExtension
 }
 
 func (pm *PolyformMaterial) equal(other *PolyformMaterial) bool {

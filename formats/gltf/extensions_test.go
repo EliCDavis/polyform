@@ -8,11 +8,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Pointer[T any](v T) *T {
+func pointer[T any](v T) *T {
 	return &v
 }
 
-func TestExtensionsID(t *testing.T) {
+func TestMaterialExtensionsID(t *testing.T) {
 	tests := map[string]struct {
 		extension gltf.MaterialExtension
 		want      string
@@ -69,7 +69,25 @@ func TestExtensionsID(t *testing.T) {
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			assert.Equal(t, tc.want, tc.extension.ExtensionID())
+			assert.Equal(t, tc.want, tc.extension.MaterialExtensionID())
+		})
+	}
+}
+
+func TestTextureExtensionsID(t *testing.T) {
+	tests := map[string]struct {
+		extension gltf.TextureExtension
+		want      string
+	}{
+		"transform": {
+			extension: gltf.PolyformTextureTransform{},
+			want:      "KHR_texture_transform",
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			assert.Equal(t, tc.want, tc.extension.TextureExtensionID())
 		})
 	}
 }
@@ -117,7 +135,7 @@ func TestMaterialExtension_ToExtensionData(t *testing.T) {
 		},
 		"SpecularGlossiness/glossinessFactor": {
 			extension: gltf.PolyformPbrSpecularGlossiness{
-				GlossinessFactor: Pointer(1.),
+				GlossinessFactor: pointer(1.),
 			},
 			want: map[string]any{
 				"glossinessFactor": 1.,
@@ -136,7 +154,7 @@ func TestMaterialExtension_ToExtensionData(t *testing.T) {
 				DiffuseFactor:             color.Black,
 				SpecularFactor:            color.White,
 				DiffuseTexture:            &gltf.PolyformTexture{},
-				GlossinessFactor:          Pointer(.5),
+				GlossinessFactor:          pointer(.5),
 				SpecularGlossinessTexture: &gltf.PolyformTexture{},
 			},
 			want: map[string]any{
@@ -182,7 +200,7 @@ func TestMaterialExtension_ToExtensionData(t *testing.T) {
 		},
 		"Iridescence/iridescenceIor": {
 			extension: gltf.PolyformIridescence{
-				IridescenceIor: Pointer(1.),
+				IridescenceIor: pointer(1.),
 			},
 			want: map[string]any{
 				"iridescenceFactor": 0.,
@@ -191,7 +209,7 @@ func TestMaterialExtension_ToExtensionData(t *testing.T) {
 		},
 		"Iridescence/iridescenceThicknessMinimum": {
 			extension: gltf.PolyformIridescence{
-				IridescenceThicknessMinimum: Pointer(1.),
+				IridescenceThicknessMinimum: pointer(1.),
 			},
 			want: map[string]any{
 				"iridescenceFactor":           0.,
@@ -200,7 +218,7 @@ func TestMaterialExtension_ToExtensionData(t *testing.T) {
 		},
 		"Iridescence/iridescenceThicknessMaximum": {
 			extension: gltf.PolyformIridescence{
-				IridescenceThicknessMaximum: Pointer(1.),
+				IridescenceThicknessMaximum: pointer(1.),
 			},
 			want: map[string]any{
 				"iridescenceFactor":           0.,
@@ -220,9 +238,9 @@ func TestMaterialExtension_ToExtensionData(t *testing.T) {
 			extension: gltf.PolyformIridescence{
 				IridescenceFactor:           1,
 				IridescenceTexture:          &gltf.PolyformTexture{},
-				IridescenceIor:              Pointer(1.),
-				IridescenceThicknessMinimum: Pointer(1.),
-				IridescenceThicknessMaximum: Pointer(1.),
+				IridescenceIor:              pointer(1.),
+				IridescenceThicknessMinimum: pointer(1.),
+				IridescenceThicknessMaximum: pointer(1.),
 				IridescenceThicknessTexture: &gltf.PolyformTexture{},
 			},
 			want: map[string]any{
@@ -324,7 +342,7 @@ func TestMaterialExtension_ToExtensionData(t *testing.T) {
 		},
 		"EmissiveStrength/everything": {
 			extension: gltf.PolyformEmissiveStrength{
-				EmissiveStrength: Pointer(1.0),
+				EmissiveStrength: pointer(1.0),
 			},
 			want: map[string]any{
 				"emissiveStrength": 1.,
@@ -336,7 +354,7 @@ func TestMaterialExtension_ToExtensionData(t *testing.T) {
 		},
 		"IndexOfRefraction/everything": {
 			extension: gltf.PolyformIndexOfRefraction{
-				IOR: Pointer(1.0),
+				IOR: pointer(1.0),
 			},
 			want: map[string]any{
 				"ior": 1.,
@@ -359,7 +377,7 @@ func TestMaterialExtension_ToExtensionData(t *testing.T) {
 		},
 		"Volume/attenuationDistance": {
 			extension: gltf.PolyformVolume{
-				AttenuationDistance: Pointer(1.),
+				AttenuationDistance: pointer(1.),
 			},
 			want: map[string]any{
 				"thicknessFactor":     0.,
@@ -379,7 +397,7 @@ func TestMaterialExtension_ToExtensionData(t *testing.T) {
 			extension: gltf.PolyformVolume{
 				ThicknessFactor:     1.,
 				ThicknessTexture:    &gltf.PolyformTexture{},
-				AttenuationDistance: Pointer(1.),
+				AttenuationDistance: pointer(1.),
 				AttenuationColor:    color.White,
 			},
 			want: map[string]any{
@@ -395,7 +413,7 @@ func TestMaterialExtension_ToExtensionData(t *testing.T) {
 		},
 		"Specular/specularFactor": {
 			extension: gltf.PolyformSpecular{
-				Factor: Pointer(1.),
+				Factor: pointer(1.),
 			},
 			want: map[string]any{
 				"specularFactor": 1.0,
@@ -427,7 +445,7 @@ func TestMaterialExtension_ToExtensionData(t *testing.T) {
 		},
 		"Specular/everything": {
 			extension: gltf.PolyformSpecular{
-				Factor:       Pointer(1.),
+				Factor:       pointer(1.),
 				Texture:      &gltf.PolyformTexture{},
 				ColorFactor:  color.White,
 				ColorTexture: &gltf.PolyformTexture{},
@@ -437,6 +455,79 @@ func TestMaterialExtension_ToExtensionData(t *testing.T) {
 				"specularTexture":      &gltf.TextureInfo{},
 				"specularColorFactor":  [3]float64{1., 1., 1.},
 				"specularColorTexture": &gltf.TextureInfo{Index: 1},
+			},
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			writer := gltf.NewWriter()
+			data := tc.extension.ToExtensionData(writer)
+
+			if !assert.Len(t, data, len(tc.want)) {
+				return
+			}
+
+			for k, v := range tc.want {
+				assert.Equal(t, v, data[k])
+			}
+		})
+	}
+}
+
+func TestTextureExtension_IsInfo(t *testing.T) {
+	tests := []struct {
+		name      string
+		extension gltf.TextureExtension
+		want      bool
+	}{
+		{
+			name:      "TextureTransform",
+			extension: gltf.PolyformTextureTransform{},
+			want:      true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.extension.IsInfo(), tc.want)
+		})
+	}
+}
+
+func TestTextureExtension_ToExtensionData(t *testing.T) {
+	tests := map[string]struct {
+		extension gltf.TextureExtension
+		want      map[string]any
+	}{
+		"TextureTransform/scale": {
+			extension: gltf.PolyformTextureTransform{Scale: pointer([2]float64{1.0, 0.0})},
+			want:      map[string]any{"scale": [2]float64{1.0, 0.0}},
+		},
+		"TextureTransform/offset": {
+			extension: gltf.PolyformTextureTransform{Offset: pointer([2]float64{1.0, 0.0})},
+			want:      map[string]any{"offset": [2]float64{1.0, 0.0}},
+		},
+		"TextureTransform/rotation": {
+			extension: gltf.PolyformTextureTransform{Rotation: pointer(1.0)},
+			want:      map[string]any{"rotation": 1.0},
+		},
+		"TextureTransform/texCoord": {
+			extension: gltf.PolyformTextureTransform{TexCoord: pointer(1)},
+			want:      map[string]any{"texCoord": 1},
+		},
+		"TextureTransform/altogether": {
+			extension: gltf.PolyformTextureTransform{
+				Offset:   pointer([2]float64{1.0, 0.0}),
+				Scale:    pointer([2]float64{1.0, 0.0}),
+				Rotation: pointer(1.0),
+				TexCoord: pointer(1),
+			},
+			want: map[string]any{
+				"scale":    [2]float64{1.0, 0.0},
+				"offset":   [2]float64{1.0, 0.0},
+				"rotation": 1.0,
+				"texCoord": 1,
 			},
 		},
 	}

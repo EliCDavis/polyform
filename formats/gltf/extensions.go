@@ -3,8 +3,16 @@ package gltf
 import "image/color"
 
 type MaterialExtension interface {
-	ExtensionID() string
+	MaterialExtensionID() string
 	ToExtensionData(w *Writer) map[string]any
+}
+
+type TextureExtension interface {
+	TextureExtensionID() string
+	ToExtensionData(w *Writer) map[string]any
+
+	// indicates if the extension should be applied to Texture or TextureInfo object
+	IsInfo() bool
 }
 
 // https://kcoley.github.io/glTF/extensions/2.0/Khronos/KHR_materials_pbrSpecularGlossiness/
@@ -38,7 +46,7 @@ type PolyformPbrSpecularGlossiness struct {
 	SpecularGlossinessTexture *PolyformTexture
 }
 
-func (ppsg PolyformPbrSpecularGlossiness) ExtensionID() string {
+func (ppsg PolyformPbrSpecularGlossiness) MaterialExtensionID() string {
 	return "KHR_materials_pbrSpecularGlossiness"
 }
 
@@ -78,7 +86,7 @@ type PolyformTransmission struct {
 	Texture *PolyformTexture
 }
 
-func (tr PolyformTransmission) ExtensionID() string {
+func (tr PolyformTransmission) MaterialExtensionID() string {
 	return "KHR_materials_transmission"
 }
 
@@ -119,7 +127,7 @@ type PolyformVolume struct {
 	AttenuationColor color.Color
 }
 
-func (v PolyformVolume) ExtensionID() string {
+func (v PolyformVolume) MaterialExtensionID() string {
 	return "KHR_materials_volume"
 }
 
@@ -157,7 +165,7 @@ type PolyformIndexOfRefraction struct {
 	IOR *float64
 }
 
-func (sg PolyformIndexOfRefraction) ExtensionID() string {
+func (sg PolyformIndexOfRefraction) MaterialExtensionID() string {
 	return "KHR_materials_ior"
 }
 
@@ -191,7 +199,7 @@ type PolyformSpecular struct {
 	ColorTexture *PolyformTexture
 }
 
-func (ps PolyformSpecular) ExtensionID() string {
+func (ps PolyformSpecular) MaterialExtensionID() string {
 	return "KHR_materials_specular"
 }
 
@@ -220,7 +228,7 @@ func (ps PolyformSpecular) ToExtensionData(w *Writer) map[string]any {
 type PolyformUnlit struct {
 }
 
-func (ps PolyformUnlit) ExtensionID() string {
+func (ps PolyformUnlit) MaterialExtensionID() string {
 	return "KHR_materials_unlit"
 }
 
@@ -238,7 +246,7 @@ type PolyformClearcoat struct {
 	ClearcoatNormalTexture    *PolyformNormal
 }
 
-func (pmc PolyformClearcoat) ExtensionID() string {
+func (pmc PolyformClearcoat) MaterialExtensionID() string {
 	return "KHR_materials_clearcoat"
 }
 
@@ -270,7 +278,7 @@ type PolyformEmissiveStrength struct {
 	EmissiveStrength *float64
 }
 
-func (pmes PolyformEmissiveStrength) ExtensionID() string {
+func (pmes PolyformEmissiveStrength) MaterialExtensionID() string {
 	return "KHR_materials_emissive_strength"
 }
 
@@ -321,7 +329,7 @@ type PolyformIridescence struct {
 	IridescenceThicknessTexture *PolyformTexture
 }
 
-func (pmi PolyformIridescence) ExtensionID() string {
+func (pmi PolyformIridescence) MaterialExtensionID() string {
 	return "KHR_materials_iridescence"
 }
 
@@ -372,7 +380,7 @@ type PolyformSheen struct {
 	SheenRoughnessTexture *PolyformTexture
 }
 
-func (ps PolyformSheen) ExtensionID() string {
+func (ps PolyformSheen) MaterialExtensionID() string {
 	return "KHR_materials_sheen"
 }
 
@@ -417,7 +425,7 @@ type PolyformAnisotropy struct {
 	AnisotropyTexture *PolyformTexture
 }
 
-func (pa PolyformAnisotropy) ExtensionID() string {
+func (pa PolyformAnisotropy) MaterialExtensionID() string {
 	return "KHR_materials_anisotropy"
 }
 
@@ -443,12 +451,46 @@ type PolyformDispersion struct {
 	Dispersion float64
 }
 
-func (pd PolyformDispersion) ExtensionID() string {
+func (pd PolyformDispersion) MaterialExtensionID() string {
 	return "KHR_materials_dispersion"
 }
 
 func (pd PolyformDispersion) ToExtensionData(w *Writer) map[string]any {
 	metadata := make(map[string]any)
 	metadata["dispersion"] = pd.Dispersion
+	return metadata
+}
+
+// KHR_texture_transform ===================================================
+// https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_texture_transform
+
+// PolyformTextureTransform is a glTF extension that defines texture transformations.
+type PolyformTextureTransform struct {
+	Offset   *[2]float64 // The offset of the UV coordinate origin as a factor of the texture dimensions.
+	Rotation *float64    // Rotate the UVs by this many radians counter-clockwise around the origin. This is equivalent to a similar rotation of the image clockwise.
+	Scale    *[2]float64 // The scale factor applied to the components of the UV coordinates.
+	TexCoord *int        // Overrides the textureInfo texCoord value if supplied, and if this extension is supported.
+}
+
+func (ptt PolyformTextureTransform) TextureExtensionID() string {
+	return "KHR_texture_transform"
+}
+
+func (ptt PolyformTextureTransform) IsInfo() bool { return true }
+
+func (ptt PolyformTextureTransform) ToExtensionData(w *Writer) map[string]any {
+	metadata := make(map[string]any)
+	if ptt.Offset != nil {
+		metadata["offset"] = *ptt.Offset
+	}
+	if ptt.Rotation != nil {
+		metadata["rotation"] = *ptt.Rotation
+	}
+	if ptt.Scale != nil {
+		metadata["scale"] = *ptt.Scale
+	}
+	if ptt.TexCoord != nil {
+		metadata["texCoord"] = *ptt.TexCoord
+	}
 	return metadata
 }

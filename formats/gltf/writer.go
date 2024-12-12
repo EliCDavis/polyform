@@ -493,24 +493,46 @@ func (w *Writer) AddMesh(model PolyformModel) (_ int, err error) {
 	return meshIndex, nil
 }
 
-func (w *Writer) AddTexture(mat PolyformTexture) *TextureInfo {
-	newTex := &TextureInfo{Index: len(w.textures)}
+func (w *Writer) AddTexture(polyTex PolyformTexture) *TextureInfo {
+	newTexInfo := &TextureInfo{Index: len(w.textures)}
 
-	w.textures = append(w.textures, Texture{
+	newTex := Texture{
 		Sampler: ptrI(len(w.samplers)),
 		Source:  ptrI(len(w.images)),
-	})
+	}
+
+	texInfoExt := make(map[string]any)
+	texExt := make(map[string]any)
+	for _, ext := range polyTex.Extensions {
+		id := ext.TextureExtensionID()
+		if ext.IsInfo() {
+			texInfoExt[id] = ext.ToExtensionData(w)
+		} else {
+			texExt[id] = ext.ToExtensionData(w)
+		}
+
+		w.extensionsUsed[id] = true
+	}
+
+	if len(texInfoExt) > 0 {
+		newTexInfo.Extensions = texInfoExt
+	}
+	if len(texExt) > 0 {
+		newTex.Extensions = texExt
+	}
+
+	w.textures = append(w.textures, newTex)
 
 	w.images = append(w.images, Image{
-		URI: mat.URI,
+		URI: polyTex.URI,
 	})
 	var sampler Sampler{}
-	if mat.Sampler != nil {
-		sampler = *mat.Sampler
+	if polyTex.Sampler != nil {
+		sampler = *polyTex.Sampler
 	}
 	w.samplers = append(w.samplers, sampler)
 
-	return newTex
+	return newTexInfo
 }
 
 func (w *Writer) AddMaterial(mat *PolyformMaterial) (*int, error) {
@@ -545,7 +567,7 @@ func (w *Writer) AddMaterial(mat *PolyformMaterial) (*int, error) {
 	}
 
 	for _, ext := range mat.Extensions {
-		id := ext.ExtensionID()
+		id := ext.MaterialExtensionID()
 		extensions[id] = ext.ToExtensionData(w)
 		w.extensionsUsed[id] = true
 	}
