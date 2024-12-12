@@ -1,11 +1,11 @@
 package gltf_test
 
 import (
-	"github.com/EliCDavis/vector/vector2"
 	"image/color"
 	"testing"
 
 	"github.com/EliCDavis/polyform/formats/gltf"
+	"github.com/EliCDavis/vector/vector2"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -3,12 +3,12 @@ package gltf_test
 import (
 	"bytes"
 	"errors"
-	"github.com/EliCDavis/polyform/math/quaternion"
 	"image/color"
 	"math"
 	"testing"
 
 	"github.com/EliCDavis/polyform/formats/gltf"
+	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"

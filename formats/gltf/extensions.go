@@ -1,8 +1,9 @@
 package gltf
 
 import (
-	"github.com/EliCDavis/vector/vector2"
 	"image/color"
+
+	"github.com/EliCDavis/vector/vector2"
 )
 
 type MaterialExtension interface {
