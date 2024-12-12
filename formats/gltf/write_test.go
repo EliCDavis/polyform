@@ -266,7 +266,7 @@ func TestWriteColorTri(t *testing.T) {
 }`, buf.String())
 }
 
-func TestWriteTexturedTriWithMaterialWithColor(t *testing.T) {
+func TestWrite_TexturedTriWithMaterialWithColor(t *testing.T) {
 	// ARRANGE ================================================================
 	tri := modeling.NewTriangleMesh([]int{0, 1, 2}).
 		SetFloat3Attribute(
@@ -308,6 +308,15 @@ func TestWriteTexturedTriWithMaterialWithColor(t *testing.T) {
 					PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
 						BaseColorFactor: color.RGBA{255, 100, 80, 255},
 						RoughnessFactor: &roughness,
+						BaseColorTexture: &gltf.PolyformTexture{
+							URI: "this_is_a_test.png",
+							Sampler: &gltf.Sampler{
+								WrapS:     gltf.SamplerWrap_REPEAT,
+								WrapT:     gltf.SamplerWrap_REPEAT,
+								MinFilter: gltf.SamplerMinFilter_LINEAR_MIPMAP_LINEAR,
+								MagFilter: gltf.SamplerMagFilter_LINEAR,
+							},
+						},
 					},
 				},
 			},
@@ -406,6 +415,11 @@ func TestWriteTexturedTriWithMaterialWithColor(t *testing.T) {
             "target": 34963
         }
     ],
+    "images": [
+        {
+            "uri": "this_is_a_test.png"
+        }
+    ],
     "materials": [
         {
             "name": "My Material",
@@ -416,6 +430,9 @@ func TestWriteTexturedTriWithMaterialWithColor(t *testing.T) {
                     0.314,
                     1
                 ],
+                "baseColorTexture": {
+                    "index": 0
+                },
                 "roughnessFactor": 0
             }
         }
@@ -442,11 +459,25 @@ func TestWriteTexturedTriWithMaterialWithColor(t *testing.T) {
             "name": "mesh"
         }
     ],
+    "samplers": [
+        {
+            "magFilter": 9729,
+            "minFilter": 9987,
+            "wrapS": 10497,
+            "wrapT": 10497
+        }
+    ],
     "scenes": [
         {
             "nodes": [
                 0
             ]
+        }
+    ],
+    "textures": [
+        {
+            "sampler": 0,
+            "source": 0
         }
     ]
 }`, buf.String())
@@ -462,24 +493,7 @@ func TestWrite_MaterialAlphaMode(t *testing.T) {
 				vector3.New(0., 1., 0.),
 				vector3.New(1., 0., 0.),
 			},
-		).
-		SetFloat3Attribute(
-			modeling.NormalAttribute,
-			[]vector3.Float64{
-				vector3.New(1., 0., 0.),
-				vector3.New(0., 1., 0.),
-				vector3.New(0., 0., 1.),
-			},
-		).
-		SetFloat2Attribute(
-			modeling.TexCoordAttribute,
-			[]vector2.Float64{
-				vector2.New(0., 0.),
-				vector2.New(0., 1.),
-				vector2.New(1., 0.),
-			},
 		)
-
 	buf := bytes.Buffer{}
 
 	// ACT ====================================================================
@@ -514,7 +528,7 @@ func TestWrite_MaterialAlphaMode(t *testing.T) {
             "max": [
                 1,
                 1,
-                1
+                0
             ],
             "min": [
                 0,
@@ -524,36 +538,6 @@ func TestWrite_MaterialAlphaMode(t *testing.T) {
         },
         {
             "bufferView": 1,
-            "componentType": 5126,
-            "type": "VEC3",
-            "count": 3,
-            "max": [
-                1,
-                1,
-                0
-            ],
-            "min": [
-                0,
-                0,
-                0
-            ]
-        },
-        {
-            "bufferView": 2,
-            "componentType": 5126,
-            "type": "VEC2",
-            "count": 3,
-            "max": [
-                1,
-                1
-            ],
-            "min": [
-                0,
-                0
-            ]
-        },
-        {
-            "bufferView": 3,
             "componentType": 5123,
             "type": "SCALAR",
             "count": 3
@@ -565,8 +549,8 @@ func TestWrite_MaterialAlphaMode(t *testing.T) {
     },
     "buffers": [
         {
-            "byteLength": 102,
-            "uri": "data:application/octet-stream;base64,AACAPwAAAAAAAAAAAAAAAAAAgD8AAAAAAAAAAAAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAAAAAAAAAAAAAAAAAAAAAACAPwAAgD8AAAAAAAABAAIA"
+            "byteLength": 42,
+            "uri": "data:application/octet-stream;base64,AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAAAAAAABAAIA"
         }
     ],
     "bufferViews": [
@@ -578,18 +562,6 @@ func TestWrite_MaterialAlphaMode(t *testing.T) {
         {
             "buffer": 0,
             "byteOffset": 36,
-            "byteLength": 36,
-            "target": 34962
-        },
-        {
-            "buffer": 0,
-            "byteOffset": 72,
-            "byteLength": 24,
-            "target": 34962
-        },
-        {
-            "buffer": 0,
-            "byteOffset": 96,
             "byteLength": 6,
             "target": 34963
         }
@@ -615,11 +587,9 @@ func TestWrite_MaterialAlphaMode(t *testing.T) {
             "primitives": [
                 {
                     "attributes": {
-                        "NORMAL": 0,
-                        "POSITION": 1,
-                        "TEXCOORD_0": 2
+                        "POSITION": 0
                     },
-                    "indices": 3,
+                    "indices": 1,
                     "material": 0
                 }
             ]
@@ -650,22 +620,6 @@ func TestWrite_MaterialAlphaModeWithCutOff(t *testing.T) {
 				vector3.New(0., 0., 0.),
 				vector3.New(0., 1., 0.),
 				vector3.New(1., 0., 0.),
-			},
-		).
-		SetFloat3Attribute(
-			modeling.NormalAttribute,
-			[]vector3.Float64{
-				vector3.New(1., 0., 0.),
-				vector3.New(0., 1., 0.),
-				vector3.New(0., 0., 1.),
-			},
-		).
-		SetFloat2Attribute(
-			modeling.TexCoordAttribute,
-			[]vector2.Float64{
-				vector2.New(0., 0.),
-				vector2.New(0., 1.),
-				vector2.New(1., 0.),
 			},
 		)
 
@@ -705,7 +659,7 @@ func TestWrite_MaterialAlphaModeWithCutOff(t *testing.T) {
             "max": [
                 1,
                 1,
-                1
+                0
             ],
             "min": [
                 0,
@@ -715,36 +669,6 @@ func TestWrite_MaterialAlphaModeWithCutOff(t *testing.T) {
         },
         {
             "bufferView": 1,
-            "componentType": 5126,
-            "type": "VEC3",
-            "count": 3,
-            "max": [
-                1,
-                1,
-                0
-            ],
-            "min": [
-                0,
-                0,
-                0
-            ]
-        },
-        {
-            "bufferView": 2,
-            "componentType": 5126,
-            "type": "VEC2",
-            "count": 3,
-            "max": [
-                1,
-                1
-            ],
-            "min": [
-                0,
-                0
-            ]
-        },
-        {
-            "bufferView": 3,
             "componentType": 5123,
             "type": "SCALAR",
             "count": 3
@@ -756,8 +680,8 @@ func TestWrite_MaterialAlphaModeWithCutOff(t *testing.T) {
     },
     "buffers": [
         {
-            "byteLength": 102,
-            "uri": "data:application/octet-stream;base64,AACAPwAAAAAAAAAAAAAAAAAAgD8AAAAAAAAAAAAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAAAAAAAAAAAAAAAAAAAAAACAPwAAgD8AAAAAAAABAAIA"
+            "byteLength": 42,
+            "uri": "data:application/octet-stream;base64,AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAAAAAAABAAIA"
         }
     ],
     "bufferViews": [
@@ -769,18 +693,6 @@ func TestWrite_MaterialAlphaModeWithCutOff(t *testing.T) {
         {
             "buffer": 0,
             "byteOffset": 36,
-            "byteLength": 36,
-            "target": 34962
-        },
-        {
-            "buffer": 0,
-            "byteOffset": 72,
-            "byteLength": 24,
-            "target": 34962
-        },
-        {
-            "buffer": 0,
-            "byteOffset": 96,
             "byteLength": 6,
             "target": 34963
         }
@@ -807,11 +719,9 @@ func TestWrite_MaterialAlphaModeWithCutOff(t *testing.T) {
             "primitives": [
                 {
                     "attributes": {
-                        "NORMAL": 0,
-                        "POSITION": 1,
-                        "TEXCOORD_0": 2
+                        "POSITION": 0
                     },
-                    "indices": 3,
+                    "indices": 1,
                     "material": 0
                 }
             ]
@@ -831,6 +741,7 @@ func TestWrite_MaterialAlphaModeWithCutOff(t *testing.T) {
         }
     ]
 }`, buf.String())
+
 }
 
 func TestWrite_MaterialAlphaCutOffError(t *testing.T) {
@@ -897,22 +808,6 @@ func TestWrite_MaterialsDeduplicated(t *testing.T) {
 				vector3.New(0., 1., 0.),
 				vector3.New(1., 0., 0.),
 			},
-		).
-		SetFloat3Attribute(
-			modeling.NormalAttribute,
-			[]vector3.Float64{
-				vector3.New(1., 0., 0.),
-				vector3.New(0., 1., 0.),
-				vector3.New(0., 0., 1.),
-			},
-		).
-		SetFloat2Attribute(
-			modeling.TexCoordAttribute,
-			[]vector2.Float64{
-				vector2.New(0., 0.),
-				vector2.New(0., 1.),
-				vector2.New(1., 0.),
-			},
 		)
 
 	tri1 := modeling.NewTriangleMesh([]int{0, 1, 2}).
@@ -922,22 +817,6 @@ func TestWrite_MaterialsDeduplicated(t *testing.T) {
 				vector3.New(0., 0., 0.),
 				vector3.New(0., 1., 0.),
 				vector3.New(1., 0., 0.),
-			},
-		).
-		SetFloat3Attribute(
-			modeling.NormalAttribute,
-			[]vector3.Float64{
-				vector3.New(1., 0., 0.),
-				vector3.New(0., 1., 0.),
-				vector3.New(0., 0., 1.),
-			},
-		).
-		SetFloat2Attribute(
-			modeling.TexCoordAttribute,
-			[]vector2.Float64{
-				vector2.New(0., 0.),
-				vector2.New(0., 1.),
-				vector2.New(1., 0.),
 			},
 		)
 
@@ -961,8 +840,6 @@ func TestWrite_MaterialsDeduplicated(t *testing.T) {
 
 	// ASSERT =================================================================
 	assert.NoError(t, err)
-	stringVal := buf.String()
-
 	assert.Equal(t, `{
     "accessors": [
         {
@@ -973,7 +850,7 @@ func TestWrite_MaterialsDeduplicated(t *testing.T) {
             "max": [
                 1,
                 1,
-                1
+                0
             ],
             "min": [
                 0,
@@ -983,6 +860,12 @@ func TestWrite_MaterialsDeduplicated(t *testing.T) {
         },
         {
             "bufferView": 1,
+            "componentType": 5123,
+            "type": "SCALAR",
+            "count": 3
+        },
+        {
+            "bufferView": 2,
             "componentType": 5126,
             "type": "VEC3",
             "count": 3,
@@ -993,78 +876,12 @@ func TestWrite_MaterialsDeduplicated(t *testing.T) {
             ],
             "min": [
                 0,
-                0,
-                0
-            ]
-        },
-        {
-            "bufferView": 2,
-            "componentType": 5126,
-            "type": "VEC2",
-            "count": 3,
-            "max": [
-                1,
-                1
-            ],
-            "min": [
                 0,
                 0
             ]
         },
         {
             "bufferView": 3,
-            "componentType": 5123,
-            "type": "SCALAR",
-            "count": 3
-        },
-        {
-            "bufferView": 4,
-            "componentType": 5126,
-            "type": "VEC3",
-            "count": 3,
-            "max": [
-                1,
-                1,
-                1
-            ],
-            "min": [
-                0,
-                0,
-                0
-            ]
-        },
-        {
-            "bufferView": 5,
-            "componentType": 5126,
-            "type": "VEC3",
-            "count": 3,
-            "max": [
-                1,
-                1,
-                0
-            ],
-            "min": [
-                0,
-                0,
-                0
-            ]
-        },
-        {
-            "bufferView": 6,
-            "componentType": 5126,
-            "type": "VEC2",
-            "count": 3,
-            "max": [
-                1,
-                1
-            ],
-            "min": [
-                0,
-                0
-            ]
-        },
-        {
-            "bufferView": 7,
             "componentType": 5123,
             "type": "SCALAR",
             "count": 3
@@ -1076,8 +893,8 @@ func TestWrite_MaterialsDeduplicated(t *testing.T) {
     },
     "buffers": [
         {
-            "byteLength": 204,
-            "uri": "data:application/octet-stream;base64,AACAPwAAAAAAAAAAAAAAAAAAgD8AAAAAAAAAAAAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAAAAAAAAAAAAAAAAAAAAAACAPwAAgD8AAAAAAAABAAIAAACAPwAAAAAAAAAAAAAAAAAAgD8AAAAAAAAAAAAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAAAAAAAAAAAAAAAAAAAAAACAPwAAgD8AAAAAAAABAAIA"
+            "byteLength": 84,
+            "uri": "data:application/octet-stream;base64,AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAAAAAAABAAIAAAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAAAAAAABAAIA"
         }
     ],
     "bufferViews": [
@@ -1089,42 +906,18 @@ func TestWrite_MaterialsDeduplicated(t *testing.T) {
         {
             "buffer": 0,
             "byteOffset": 36,
-            "byteLength": 36,
-            "target": 34962
-        },
-        {
-            "buffer": 0,
-            "byteOffset": 72,
-            "byteLength": 24,
-            "target": 34962
-        },
-        {
-            "buffer": 0,
-            "byteOffset": 96,
             "byteLength": 6,
             "target": 34963
         },
         {
             "buffer": 0,
-            "byteOffset": 102,
+            "byteOffset": 42,
             "byteLength": 36,
             "target": 34962
         },
         {
             "buffer": 0,
-            "byteOffset": 138,
-            "byteLength": 36,
-            "target": 34962
-        },
-        {
-            "buffer": 0,
-            "byteOffset": 174,
-            "byteLength": 24,
-            "target": 34962
-        },
-        {
-            "buffer": 0,
-            "byteOffset": 198,
+            "byteOffset": 78,
             "byteLength": 6,
             "target": 34963
         }
@@ -1149,11 +942,9 @@ func TestWrite_MaterialsDeduplicated(t *testing.T) {
             "primitives": [
                 {
                     "attributes": {
-                        "NORMAL": 0,
-                        "POSITION": 1,
-                        "TEXCOORD_0": 2
+                        "POSITION": 0
                     },
-                    "indices": 3,
+                    "indices": 1,
                     "material": 0
                 }
             ]
@@ -1163,11 +954,9 @@ func TestWrite_MaterialsDeduplicated(t *testing.T) {
             "primitives": [
                 {
                     "attributes": {
-                        "NORMAL": 4,
-                        "POSITION": 5,
-                        "TEXCOORD_0": 6
+                        "POSITION": 2
                     },
-                    "indices": 7,
+                    "indices": 3,
                     "material": 0
                 }
             ]
@@ -1191,7 +980,7 @@ func TestWrite_MaterialsDeduplicated(t *testing.T) {
             ]
         }
     ]
-}`, stringVal)
+}`, buf.String())
 }
 
 func TestWrite_MeshesDeduplicated(t *testing.T) {
@@ -1203,22 +992,6 @@ func TestWrite_MeshesDeduplicated(t *testing.T) {
 				vector3.New(0., 0., 0.),
 				vector3.New(0., 1., 0.),
 				vector3.New(1., 0., 0.),
-			},
-		).
-		SetFloat3Attribute(
-			modeling.NormalAttribute,
-			[]vector3.Float64{
-				vector3.New(1., 0., 0.),
-				vector3.New(0., 1., 0.),
-				vector3.New(0., 0., 1.),
-			},
-		).
-		SetFloat2Attribute(
-			modeling.TexCoordAttribute,
-			[]vector2.Float64{
-				vector2.New(0., 0.),
-				vector2.New(0., 1.),
-				vector2.New(1., 0.),
 			},
 		)
 
@@ -1248,8 +1021,6 @@ func TestWrite_MeshesDeduplicated(t *testing.T) {
 
 	// ASSERT =================================================================
 	assert.NoError(t, err)
-	stringVal := buf.String()
-
 	assert.Equal(t, `{
     "accessors": [
         {
@@ -1260,7 +1031,7 @@ func TestWrite_MeshesDeduplicated(t *testing.T) {
             "max": [
                 1,
                 1,
-                1
+                0
             ],
             "min": [
                 0,
@@ -1270,36 +1041,6 @@ func TestWrite_MeshesDeduplicated(t *testing.T) {
         },
         {
             "bufferView": 1,
-            "componentType": 5126,
-            "type": "VEC3",
-            "count": 3,
-            "max": [
-                1,
-                1,
-                0
-            ],
-            "min": [
-                0,
-                0,
-                0
-            ]
-        },
-        {
-            "bufferView": 2,
-            "componentType": 5126,
-            "type": "VEC2",
-            "count": 3,
-            "max": [
-                1,
-                1
-            ],
-            "min": [
-                0,
-                0
-            ]
-        },
-        {
-            "bufferView": 3,
             "componentType": 5123,
             "type": "SCALAR",
             "count": 3
@@ -1311,8 +1052,8 @@ func TestWrite_MeshesDeduplicated(t *testing.T) {
     },
     "buffers": [
         {
-            "byteLength": 102,
-            "uri": "data:application/octet-stream;base64,AACAPwAAAAAAAAAAAAAAAAAAgD8AAAAAAAAAAAAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAAAAAAAAAAAAAAAAAAAAAACAPwAAgD8AAAAAAAABAAIA"
+            "byteLength": 42,
+            "uri": "data:application/octet-stream;base64,AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAAAAAAABAAIA"
         }
     ],
     "bufferViews": [
@@ -1324,18 +1065,6 @@ func TestWrite_MeshesDeduplicated(t *testing.T) {
         {
             "buffer": 0,
             "byteOffset": 36,
-            "byteLength": 36,
-            "target": 34962
-        },
-        {
-            "buffer": 0,
-            "byteOffset": 72,
-            "byteLength": 24,
-            "target": 34962
-        },
-        {
-            "buffer": 0,
-            "byteOffset": 96,
             "byteLength": 6,
             "target": 34963
         }
@@ -1360,11 +1089,9 @@ func TestWrite_MeshesDeduplicated(t *testing.T) {
             "primitives": [
                 {
                     "attributes": {
-                        "NORMAL": 0,
-                        "POSITION": 1,
-                        "TEXCOORD_0": 2
+                        "POSITION": 0
                     },
-                    "indices": 3,
+                    "indices": 1,
                     "material": 0
                 }
             ]
@@ -1414,7 +1141,7 @@ func TestWrite_MeshesDeduplicated(t *testing.T) {
             ]
         }
     ]
-}`, stringVal)
+}`, buf.String())
 }
 
 func TestWrite_MeshesDifferentMatsPreserved(t *testing.T) {
@@ -1426,22 +1153,6 @@ func TestWrite_MeshesDifferentMatsPreserved(t *testing.T) {
 				vector3.New(0., 0., 0.),
 				vector3.New(0., 1., 0.),
 				vector3.New(1., 0., 0.),
-			},
-		).
-		SetFloat3Attribute(
-			modeling.NormalAttribute,
-			[]vector3.Float64{
-				vector3.New(1., 0., 0.),
-				vector3.New(0., 1., 0.),
-				vector3.New(0., 0., 1.),
-			},
-		).
-		SetFloat2Attribute(
-			modeling.TexCoordAttribute,
-			[]vector2.Float64{
-				vector2.New(0., 0.),
-				vector2.New(0., 1.),
-				vector2.New(1., 0.),
 			},
 		)
 
@@ -1479,8 +1190,6 @@ func TestWrite_MeshesDifferentMatsPreserved(t *testing.T) {
 
 	// ASSERT =================================================================
 	assert.NoError(t, err)
-	stringVal := buf.String()
-
 	assert.Equal(t, `{
     "accessors": [
         {
@@ -1491,7 +1200,7 @@ func TestWrite_MeshesDifferentMatsPreserved(t *testing.T) {
             "max": [
                 1,
                 1,
-                1
+                0
             ],
             "min": [
                 0,
@@ -1501,6 +1210,12 @@ func TestWrite_MeshesDifferentMatsPreserved(t *testing.T) {
         },
         {
             "bufferView": 1,
+            "componentType": 5123,
+            "type": "SCALAR",
+            "count": 3
+        },
+        {
+            "bufferView": 2,
             "componentType": 5126,
             "type": "VEC3",
             "count": 3,
@@ -1511,78 +1226,12 @@ func TestWrite_MeshesDifferentMatsPreserved(t *testing.T) {
             ],
             "min": [
                 0,
-                0,
-                0
-            ]
-        },
-        {
-            "bufferView": 2,
-            "componentType": 5126,
-            "type": "VEC2",
-            "count": 3,
-            "max": [
-                1,
-                1
-            ],
-            "min": [
                 0,
                 0
             ]
         },
         {
             "bufferView": 3,
-            "componentType": 5123,
-            "type": "SCALAR",
-            "count": 3
-        },
-        {
-            "bufferView": 4,
-            "componentType": 5126,
-            "type": "VEC3",
-            "count": 3,
-            "max": [
-                1,
-                1,
-                1
-            ],
-            "min": [
-                0,
-                0,
-                0
-            ]
-        },
-        {
-            "bufferView": 5,
-            "componentType": 5126,
-            "type": "VEC3",
-            "count": 3,
-            "max": [
-                1,
-                1,
-                0
-            ],
-            "min": [
-                0,
-                0,
-                0
-            ]
-        },
-        {
-            "bufferView": 6,
-            "componentType": 5126,
-            "type": "VEC2",
-            "count": 3,
-            "max": [
-                1,
-                1
-            ],
-            "min": [
-                0,
-                0
-            ]
-        },
-        {
-            "bufferView": 7,
             "componentType": 5123,
             "type": "SCALAR",
             "count": 3
@@ -1594,8 +1243,8 @@ func TestWrite_MeshesDifferentMatsPreserved(t *testing.T) {
     },
     "buffers": [
         {
-            "byteLength": 204,
-            "uri": "data:application/octet-stream;base64,AACAPwAAAAAAAAAAAAAAAAAAgD8AAAAAAAAAAAAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAAAAAAAAAAAAAAAAAAAAAACAPwAAgD8AAAAAAAABAAIAAACAPwAAAAAAAAAAAAAAAAAAgD8AAAAAAAAAAAAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAAAAAAAAAAAAAAAAAAAAAACAPwAAgD8AAAAAAAABAAIA"
+            "byteLength": 84,
+            "uri": "data:application/octet-stream;base64,AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAAAAAAABAAIAAAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAAAAAAABAAIA"
         }
     ],
     "bufferViews": [
@@ -1607,42 +1256,18 @@ func TestWrite_MeshesDifferentMatsPreserved(t *testing.T) {
         {
             "buffer": 0,
             "byteOffset": 36,
-            "byteLength": 36,
-            "target": 34962
-        },
-        {
-            "buffer": 0,
-            "byteOffset": 72,
-            "byteLength": 24,
-            "target": 34962
-        },
-        {
-            "buffer": 0,
-            "byteOffset": 96,
             "byteLength": 6,
             "target": 34963
         },
         {
             "buffer": 0,
-            "byteOffset": 102,
+            "byteOffset": 42,
             "byteLength": 36,
             "target": 34962
         },
         {
             "buffer": 0,
-            "byteOffset": 138,
-            "byteLength": 36,
-            "target": 34962
-        },
-        {
-            "buffer": 0,
-            "byteOffset": 174,
-            "byteLength": 24,
-            "target": 34962
-        },
-        {
-            "buffer": 0,
-            "byteOffset": 198,
+            "byteOffset": 78,
             "byteLength": 6,
             "target": 34963
         }
@@ -1679,11 +1304,9 @@ func TestWrite_MeshesDifferentMatsPreserved(t *testing.T) {
             "primitives": [
                 {
                     "attributes": {
-                        "NORMAL": 0,
-                        "POSITION": 1,
-                        "TEXCOORD_0": 2
+                        "POSITION": 0
                     },
-                    "indices": 3,
+                    "indices": 1,
                     "material": 0
                 }
             ]
@@ -1693,11 +1316,9 @@ func TestWrite_MeshesDifferentMatsPreserved(t *testing.T) {
             "primitives": [
                 {
                     "attributes": {
-                        "NORMAL": 4,
-                        "POSITION": 5,
-                        "TEXCOORD_0": 6
+                        "POSITION": 2
                     },
-                    "indices": 7,
+                    "indices": 3,
                     "material": 1
                 }
             ]
@@ -1747,7 +1368,7 @@ func TestWrite_MeshesDifferentMatsPreserved(t *testing.T) {
             ]
         }
     ]
-}`, stringVal)
+}`, buf.String())
 }
 
 func TestWrite_NilMeshError(t *testing.T) {
