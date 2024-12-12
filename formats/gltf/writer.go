@@ -526,7 +526,7 @@ func (w *Writer) AddTexture(polyTex PolyformTexture) *TextureInfo {
 	w.images = append(w.images, Image{
 		URI: polyTex.URI,
 	})
-	var sampler Sampler{}
+	var sampler Sampler
 	if polyTex.Sampler != nil {
 		sampler = *polyTex.Sampler
 	}
