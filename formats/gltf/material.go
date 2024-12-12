@@ -15,8 +15,9 @@ type PbrMetallicRoughness struct {
 // https://github.com/KhronosGroup/glTF/blob/main/specification/2.0/schema/textureInfo.schema.json
 type TextureInfo struct {
 	Property
-	Index    GltfId `json:"index"`              // The index of the texture.
-	TexCoord int    `json:"texCoord,omitempty"` // "This integer value is used to construct a string in the format `TEXCOORD_<set index>` which is a reference to a key in `mesh.primitives.attributes` (e.g. a value of `0` corresponds to `TEXCOORD_0`). A mesh primitive **MUST** have the corresponding texture coordinate attributes for the material to be applicable to it.
+	Index      GltfId     `json:"index"`              // The index of the texture.
+	TexCoord   int        `json:"texCoord,omitempty"` // "This integer value is used to construct a string in the format `TEXCOORD_<set index>` which is a reference to a key in `mesh.primitives.attributes` (e.g. a value of `0` corresponds to `TEXCOORD_0`). A mesh primitive **MUST** have the corresponding texture coordinate attributes for the material to be applicable to it.
+	Extensions Extensions `json:"extensions,omitempty"`
 }
 
 type NormalTexture struct {

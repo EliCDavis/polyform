@@ -48,7 +48,8 @@ type Writer struct {
 	// Extension Stuff
 	lights []KHR_LightsPunctual
 
-	extensionsUsed map[string]bool
+	extensionsUsed     map[string]bool
+	extensionsRequired map[string]bool
 }
 
 func NewWriter() *Writer {
@@ -69,7 +70,8 @@ func NewWriter() *Writer {
 		// Extensions
 		lights: make([]KHR_LightsPunctual, 0),
 
-		extensionsUsed: make(map[string]bool),
+		extensionsUsed:     make(map[string]bool),
+		extensionsRequired: make(map[string]bool),
 	}
 }
 
@@ -493,24 +495,49 @@ func (w *Writer) AddMesh(model PolyformModel) (_ int, err error) {
 	return meshIndex, nil
 }
 
-func (w *Writer) AddTexture(mat PolyformTexture) *TextureInfo {
-	newTex := &TextureInfo{Index: len(w.textures)}
+func (w *Writer) AddTexture(polyTex PolyformTexture) *TextureInfo {
+	newTexInfo := &TextureInfo{Index: len(w.textures)}
 
-	w.textures = append(w.textures, Texture{
+	newTex := Texture{
 		Sampler: ptrI(len(w.samplers)),
 		Source:  ptrI(len(w.images)),
-	})
+	}
+
+	texInfoExt := make(map[string]any)
+	texExt := make(map[string]any)
+	for _, ext := range polyTex.Extensions {
+		id := ext.ExtensionID()
+		if ext.IsInfo() {
+			texInfoExt[id] = ext.ToTextureExtensionData(w)
+		} else {
+			texExt[id] = ext.ToTextureExtensionData(w)
+		}
+
+		w.extensionsUsed[id] = true
+		if ext.IsRequired() {
+			w.extensionsRequired[id] = true
+		}
+	}
+
+	if len(texInfoExt) > 0 {
+		newTexInfo.Extensions = texInfoExt
+	}
+	if len(texExt) > 0 {
+		newTex.Extensions = texExt
+	}
+
+	w.textures = append(w.textures, newTex)
 
 	w.images = append(w.images, Image{
-		URI: mat.URI,
+		URI: polyTex.URI,
 	})
-	var sampler Sampler{}
-	if mat.Sampler != nil {
-		sampler = *mat.Sampler
+	var sampler Sampler
+	if polyTex.Sampler != nil {
+		sampler = *polyTex.Sampler
 	}
 	w.samplers = append(w.samplers, sampler)
 
-	return newTex
+	return newTexInfo
 }
 
 func (w *Writer) AddMaterial(mat *PolyformMaterial) (*int, error) {
@@ -546,7 +573,7 @@ func (w *Writer) AddMaterial(mat *PolyformMaterial) (*int, error) {
 
 	for _, ext := range mat.Extensions {
 		id := ext.ExtensionID()
-		extensions[id] = ext.ToExtensionData(w)
+		extensions[id] = ext.ToMaterialExtensionData(w)
 		w.extensionsUsed[id] = true
 	}
 
@@ -779,9 +806,14 @@ func (w Writer) ToGLTF(embeddingStrategy BufferEmbeddingStrategy) Gltf {
 		buffers = append(buffers, buffer)
 	}
 
-	exnesionsArr := make([]string, 0, len(w.extensionsUsed))
+	extensionsUsedArr := make([]string, 0, len(w.extensionsUsed))
 	for ext := range w.extensionsUsed {
-		exnesionsArr = append(exnesionsArr, ext)
+		extensionsUsedArr = append(extensionsUsedArr, ext)
+	}
+
+	extensionsRequiredArr := make([]string, 0, len(w.extensionsRequired))
+	for ext := range w.extensionsRequired {
+		extensionsRequiredArr = append(extensionsRequiredArr, ext)
 	}
 
 	extensions := make(map[string]any)
@@ -821,7 +853,8 @@ func (w Writer) ToGLTF(embeddingStrategy BufferEmbeddingStrategy) Gltf {
 		Images:    w.images,
 		Samplers:  w.samplers,
 
-		ExtensionsUsed: exnesionsArr,
+		ExtensionsUsed:     extensionsUsedArr,
+		ExtensionsRequired: extensionsRequiredArr,
 		Property: Property{
 			Extensions: extensions,
 		},
