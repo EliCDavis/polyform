@@ -1,6 +1,9 @@
 package gltf
 
-import "image/color"
+import (
+	"github.com/EliCDavis/vector/vector2"
+	"image/color"
+)
 
 type MaterialExtension interface {
 	ExtensionID() string
@@ -473,10 +476,10 @@ type PolyformTextureTransform struct {
 	// If set - extension will be added to `extensionsRequired` list at the GLTF file top level.
 	Required bool
 
-	Offset   *[2]float64 // The offset of the UV coordinate origin as a factor of the texture dimensions.
-	Rotation *float64    // Rotate the UVs by this many radians counter-clockwise around the origin. This is equivalent to a similar rotation of the image clockwise.
-	Scale    *[2]float64 // The scale factor applied to the components of the UV coordinates.
-	TexCoord *int        // Overrides the textureInfo texCoord value if supplied, and if this extension is supported.
+	Offset   *vector2.Float64 // The offset of the UV coordinate origin as a factor of the texture dimensions.
+	Rotation *float64         // Rotate the UVs by this many radians counter-clockwise around the origin. This is equivalent to a similar rotation of the image clockwise.
+	Scale    *vector2.Float64 // The scale factor applied to the components of the UV coordinates.
+	TexCoord *int             // Overrides the textureInfo texCoord value if supplied, and if this extension is supported.
 }
 
 func (ptt PolyformTextureTransform) ExtensionID() string {
@@ -489,13 +492,13 @@ func (ptt PolyformTextureTransform) IsInfo() bool     { return true }
 func (ptt PolyformTextureTransform) ToTextureExtensionData(w *Writer) map[string]any {
 	metadata := make(map[string]any)
 	if ptt.Offset != nil {
-		metadata["offset"] = *ptt.Offset
+		metadata["offset"] = ptt.Offset.ToFixedArr()
 	}
 	if ptt.Rotation != nil {
 		metadata["rotation"] = *ptt.Rotation
 	}
 	if ptt.Scale != nil {
-		metadata["scale"] = *ptt.Scale
+		metadata["scale"] = ptt.Scale.ToFixedArr()
 	}
 	if ptt.TexCoord != nil {
 		metadata["texCoord"] = *ptt.TexCoord

@@ -515,7 +515,7 @@ func TestWrite_TexturedTriWithTexExtension(t *testing.T) {
 
 	// ACT ====================================================================
 	roughness := 0.
-	textureOffset := [2]float64{1.1, 0.1}
+	textureOffset := vector2.New[float64](1.1, 0.1)
 	err := gltf.WriteText(gltf.PolyformScene{
 		Models: []gltf.PolyformModel{
 			{
@@ -747,7 +747,7 @@ func TestWrite_TexturedTriWithTexExtension_Required(t *testing.T) {
 
 	// ACT ====================================================================
 	roughness := 0.
-	textureOffset := [2]float64{1.1, 0.1}
+	textureOffset := vector2.New[float64](1.1, 0.1)
 	err := gltf.WriteText(gltf.PolyformScene{
 		Models: []gltf.PolyformModel{
 			{

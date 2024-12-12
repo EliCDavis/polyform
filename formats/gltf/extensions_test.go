@@ -1,6 +1,7 @@
 package gltf_test
 
 import (
+	"github.com/EliCDavis/vector/vector2"
 	"image/color"
 	"testing"
 
@@ -501,11 +502,11 @@ func TestTextureExtension_ToExtensionData(t *testing.T) {
 		want      map[string]any
 	}{
 		"TextureTransform/scale": {
-			extension: gltf.PolyformTextureTransform{Scale: pointer([2]float64{1.0, 0.0})},
+			extension: gltf.PolyformTextureTransform{Scale: pointer(vector2.New[float64](1.0, 0.0))},
 			want:      map[string]any{"scale": [2]float64{1.0, 0.0}},
 		},
 		"TextureTransform/offset": {
-			extension: gltf.PolyformTextureTransform{Offset: pointer([2]float64{1.0, 0.0})},
+			extension: gltf.PolyformTextureTransform{Offset: pointer(vector2.New[float64](1.0, 0.0))},
 			want:      map[string]any{"offset": [2]float64{1.0, 0.0}},
 		},
 		"TextureTransform/rotation": {
@@ -518,8 +519,8 @@ func TestTextureExtension_ToExtensionData(t *testing.T) {
 		},
 		"TextureTransform/altogether": {
 			extension: gltf.PolyformTextureTransform{
-				Offset:   pointer([2]float64{1.0, 0.0}),
-				Scale:    pointer([2]float64{1.0, 0.0}),
+				Offset:   pointer(vector2.New[float64](1.0, 0.0)),
+				Scale:    pointer(vector2.New[float64](1.0, 0.0)),
 				Rotation: pointer(1.0),
 				TexCoord: pointer(1),
 			},
