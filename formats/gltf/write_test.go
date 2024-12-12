@@ -715,6 +715,242 @@ func TestWrite_TexturedTriWithTexExtension(t *testing.T) {
 }`, buf.String())
 }
 
+func TestWrite_TexturedTriWithTexExtension_Required(t *testing.T) {
+	// ARRANGE ================================================================
+	tri := modeling.NewTriangleMesh([]int{0, 1, 2}).
+		SetFloat3Attribute(
+			modeling.PositionAttribute,
+			[]vector3.Float64{
+				vector3.New(0., 0., 0.),
+				vector3.New(0., 1., 0.),
+				vector3.New(1., 0., 0.),
+			},
+		).
+		SetFloat3Attribute(
+			modeling.NormalAttribute,
+			[]vector3.Float64{
+				vector3.New(1., 0., 0.),
+				vector3.New(0., 1., 0.),
+				vector3.New(0., 0., 1.),
+			},
+		).
+		SetFloat2Attribute(
+			modeling.TexCoordAttribute,
+			[]vector2.Float64{
+				vector2.New(0., 0.),
+				vector2.New(0., 1.),
+				vector2.New(1., 0.),
+			},
+		)
+
+	buf := bytes.Buffer{}
+
+	// ACT ====================================================================
+	roughness := 0.
+	textureOffset := [2]float64{1.1, 0.1}
+	err := gltf.WriteText(gltf.PolyformScene{
+		Models: []gltf.PolyformModel{
+			{
+				Name: "mesh",
+				Mesh: &tri,
+				Material: &gltf.PolyformMaterial{
+					Name: "My Material",
+					PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
+						BaseColorFactor: color.RGBA{255, 100, 80, 255},
+						RoughnessFactor: &roughness,
+						BaseColorTexture: &gltf.PolyformTexture{
+							URI: "this_is_a_test.png",
+							Sampler: &gltf.Sampler{
+								WrapS:     gltf.SamplerWrap_REPEAT,
+								WrapT:     gltf.SamplerWrap_REPEAT,
+								MinFilter: gltf.SamplerMinFilter_LINEAR_MIPMAP_LINEAR,
+								MagFilter: gltf.SamplerMagFilter_LINEAR,
+							},
+							Extensions: []gltf.TextureExtension{gltf.PolyformTextureTransform{
+								Required: true,
+								Offset:   &textureOffset,
+							}},
+						},
+					},
+				},
+			},
+		},
+	}, &buf)
+
+	// ASSERT =================================================================
+	assert.NoError(t, err)
+	assert.Equal(t, `{
+    "extensionsUsed": [
+        "KHR_texture_transform"
+    ],
+    "extensionsRequired": [
+        "KHR_texture_transform"
+    ],
+    "accessors": [
+        {
+            "bufferView": 0,
+            "componentType": 5126,
+            "type": "VEC3",
+            "count": 3,
+            "max": [
+                1,
+                1,
+                1
+            ],
+            "min": [
+                0,
+                0,
+                0
+            ]
+        },
+        {
+            "bufferView": 1,
+            "componentType": 5126,
+            "type": "VEC3",
+            "count": 3,
+            "max": [
+                1,
+                1,
+                0
+            ],
+            "min": [
+                0,
+                0,
+                0
+            ]
+        },
+        {
+            "bufferView": 2,
+            "componentType": 5126,
+            "type": "VEC2",
+            "count": 3,
+            "max": [
+                1,
+                1
+            ],
+            "min": [
+                0,
+                0
+            ]
+        },
+        {
+            "bufferView": 3,
+            "componentType": 5123,
+            "type": "SCALAR",
+            "count": 3
+        }
+    ],
+    "asset": {
+        "version": "2.0",
+        "generator": "https://github.com/EliCDavis/polyform"
+    },
+    "buffers": [
+        {
+            "byteLength": 102,
+            "uri": "data:application/octet-stream;base64,AACAPwAAAAAAAAAAAAAAAAAAgD8AAAAAAAAAAAAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAAAAAAAAAAAAAAAAAAAAAACAPwAAgD8AAAAAAAABAAIA"
+        }
+    ],
+    "bufferViews": [
+        {
+            "buffer": 0,
+            "byteLength": 36,
+            "target": 34962
+        },
+        {
+            "buffer": 0,
+            "byteOffset": 36,
+            "byteLength": 36,
+            "target": 34962
+        },
+        {
+            "buffer": 0,
+            "byteOffset": 72,
+            "byteLength": 24,
+            "target": 34962
+        },
+        {
+            "buffer": 0,
+            "byteOffset": 96,
+            "byteLength": 6,
+            "target": 34963
+        }
+    ],
+    "images": [
+        {
+            "uri": "this_is_a_test.png"
+        }
+    ],
+    "materials": [
+        {
+            "name": "My Material",
+            "pbrMetallicRoughness": {
+                "baseColorFactor": [
+                    1,
+                    0.392,
+                    0.314,
+                    1
+                ],
+                "baseColorTexture": {
+                    "index": 0,
+                    "extensions": {
+                        "KHR_texture_transform": {
+                            "offset": [
+                                1.1,
+                                0.1
+                            ]
+                        }
+                    }
+                },
+                "roughnessFactor": 0
+            }
+        }
+    ],
+    "meshes": [
+        {
+            "name": "mesh",
+            "primitives": [
+                {
+                    "attributes": {
+                        "NORMAL": 0,
+                        "POSITION": 1,
+                        "TEXCOORD_0": 2
+                    },
+                    "indices": 3,
+                    "material": 0
+                }
+            ]
+        }
+    ],
+    "nodes": [
+        {
+            "mesh": 0,
+            "name": "mesh"
+        }
+    ],
+    "samplers": [
+        {
+            "magFilter": 9729,
+            "minFilter": 9987,
+            "wrapS": 10497,
+            "wrapT": 10497
+        }
+    ],
+    "scenes": [
+        {
+            "nodes": [
+                0
+            ]
+        }
+    ],
+    "textures": [
+        {
+            "sampler": 0,
+            "source": 0
+        }
+    ]
+}`, buf.String())
+}
+
 func TestWrite_MaterialAlphaMode(t *testing.T) {
 	// ARRANGE ================================================================
 	tri := modeling.NewTriangleMesh([]int{0, 1, 2}).

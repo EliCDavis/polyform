@@ -3,13 +3,14 @@ package gltf
 import "image/color"
 
 type MaterialExtension interface {
-	MaterialExtensionID() string
-	ToExtensionData(w *Writer) map[string]any
+	ExtensionID() string
+	ToMaterialExtensionData(w *Writer) map[string]any
 }
 
 type TextureExtension interface {
-	TextureExtensionID() string
-	ToExtensionData(w *Writer) map[string]any
+	ExtensionID() string
+	ToTextureExtensionData(w *Writer) map[string]any
+	IsRequired() bool
 
 	// indicates if the extension should be applied to Texture or TextureInfo object
 	IsInfo() bool
@@ -46,11 +47,11 @@ type PolyformPbrSpecularGlossiness struct {
 	SpecularGlossinessTexture *PolyformTexture
 }
 
-func (ppsg PolyformPbrSpecularGlossiness) MaterialExtensionID() string {
+func (ppsg PolyformPbrSpecularGlossiness) ExtensionID() string {
 	return "KHR_materials_pbrSpecularGlossiness"
 }
 
-func (sg PolyformPbrSpecularGlossiness) ToExtensionData(w *Writer) map[string]any {
+func (sg PolyformPbrSpecularGlossiness) ToMaterialExtensionData(w *Writer) map[string]any {
 	metadata := make(map[string]any)
 	if sg.DiffuseFactor != nil {
 		metadata["diffuseFactor"] = rgbaToFloatArr(sg.DiffuseFactor)
@@ -86,11 +87,11 @@ type PolyformTransmission struct {
 	Texture *PolyformTexture
 }
 
-func (tr PolyformTransmission) MaterialExtensionID() string {
+func (tr PolyformTransmission) ExtensionID() string {
 	return "KHR_materials_transmission"
 }
 
-func (tr PolyformTransmission) ToExtensionData(w *Writer) map[string]any {
+func (tr PolyformTransmission) ToMaterialExtensionData(w *Writer) map[string]any {
 	metadata := make(map[string]any)
 
 	metadata["transmissionFactor"] = tr.Factor
@@ -127,11 +128,11 @@ type PolyformVolume struct {
 	AttenuationColor color.Color
 }
 
-func (v PolyformVolume) MaterialExtensionID() string {
+func (v PolyformVolume) ExtensionID() string {
 	return "KHR_materials_volume"
 }
 
-func (v PolyformVolume) ToExtensionData(w *Writer) map[string]any {
+func (v PolyformVolume) ToMaterialExtensionData(w *Writer) map[string]any {
 	metadata := make(map[string]any)
 
 	metadata["thicknessFactor"] = v.ThicknessFactor
@@ -165,11 +166,11 @@ type PolyformIndexOfRefraction struct {
 	IOR *float64
 }
 
-func (sg PolyformIndexOfRefraction) MaterialExtensionID() string {
+func (sg PolyformIndexOfRefraction) ExtensionID() string {
 	return "KHR_materials_ior"
 }
 
-func (sg PolyformIndexOfRefraction) ToExtensionData(w *Writer) map[string]any {
+func (sg PolyformIndexOfRefraction) ToMaterialExtensionData(w *Writer) map[string]any {
 	if sg.IOR == nil {
 		return map[string]any{}
 	}
@@ -199,11 +200,11 @@ type PolyformSpecular struct {
 	ColorTexture *PolyformTexture
 }
 
-func (ps PolyformSpecular) MaterialExtensionID() string {
+func (ps PolyformSpecular) ExtensionID() string {
 	return "KHR_materials_specular"
 }
 
-func (ps PolyformSpecular) ToExtensionData(w *Writer) map[string]any {
+func (ps PolyformSpecular) ToMaterialExtensionData(w *Writer) map[string]any {
 	metadata := make(map[string]any)
 
 	if ps.Factor != nil {
@@ -228,11 +229,11 @@ func (ps PolyformSpecular) ToExtensionData(w *Writer) map[string]any {
 type PolyformUnlit struct {
 }
 
-func (ps PolyformUnlit) MaterialExtensionID() string {
+func (ps PolyformUnlit) ExtensionID() string {
 	return "KHR_materials_unlit"
 }
 
-func (ps PolyformUnlit) ToExtensionData(w *Writer) map[string]any {
+func (ps PolyformUnlit) ToMaterialExtensionData(w *Writer) map[string]any {
 	return make(map[string]any)
 }
 
@@ -246,11 +247,11 @@ type PolyformClearcoat struct {
 	ClearcoatNormalTexture    *PolyformNormal
 }
 
-func (pmc PolyformClearcoat) MaterialExtensionID() string {
+func (pmc PolyformClearcoat) ExtensionID() string {
 	return "KHR_materials_clearcoat"
 }
 
-func (pmc PolyformClearcoat) ToExtensionData(w *Writer) map[string]any {
+func (pmc PolyformClearcoat) ToMaterialExtensionData(w *Writer) map[string]any {
 	metadata := make(map[string]any)
 
 	metadata["clearcoatFactor"] = pmc.ClearcoatFactor
@@ -278,11 +279,11 @@ type PolyformEmissiveStrength struct {
 	EmissiveStrength *float64
 }
 
-func (pmes PolyformEmissiveStrength) MaterialExtensionID() string {
+func (pmes PolyformEmissiveStrength) ExtensionID() string {
 	return "KHR_materials_emissive_strength"
 }
 
-func (pmes PolyformEmissiveStrength) ToExtensionData(w *Writer) map[string]any {
+func (pmes PolyformEmissiveStrength) ToMaterialExtensionData(w *Writer) map[string]any {
 	metadata := make(map[string]any)
 
 	if pmes.EmissiveStrength != nil {
@@ -329,11 +330,11 @@ type PolyformIridescence struct {
 	IridescenceThicknessTexture *PolyformTexture
 }
 
-func (pmi PolyformIridescence) MaterialExtensionID() string {
+func (pmi PolyformIridescence) ExtensionID() string {
 	return "KHR_materials_iridescence"
 }
 
-func (pmi PolyformIridescence) ToExtensionData(w *Writer) map[string]any {
+func (pmi PolyformIridescence) ToMaterialExtensionData(w *Writer) map[string]any {
 	metadata := make(map[string]any)
 
 	metadata["iridescenceFactor"] = pmi.IridescenceFactor
@@ -380,11 +381,11 @@ type PolyformSheen struct {
 	SheenRoughnessTexture *PolyformTexture
 }
 
-func (ps PolyformSheen) MaterialExtensionID() string {
+func (ps PolyformSheen) ExtensionID() string {
 	return "KHR_materials_sheen"
 }
 
-func (ps PolyformSheen) ToExtensionData(w *Writer) map[string]any {
+func (ps PolyformSheen) ToMaterialExtensionData(w *Writer) map[string]any {
 	metadata := make(map[string]any)
 
 	if ps.SheenColorFactor != nil {
@@ -425,11 +426,11 @@ type PolyformAnisotropy struct {
 	AnisotropyTexture *PolyformTexture
 }
 
-func (pa PolyformAnisotropy) MaterialExtensionID() string {
+func (pa PolyformAnisotropy) ExtensionID() string {
 	return "KHR_materials_anisotropy"
 }
 
-func (pa PolyformAnisotropy) ToExtensionData(w *Writer) map[string]any {
+func (pa PolyformAnisotropy) ToMaterialExtensionData(w *Writer) map[string]any {
 	metadata := make(map[string]any)
 
 	metadata["anisotropyStrength"] = pa.AnisotropyStrength
@@ -451,11 +452,11 @@ type PolyformDispersion struct {
 	Dispersion float64
 }
 
-func (pd PolyformDispersion) MaterialExtensionID() string {
+func (pd PolyformDispersion) ExtensionID() string {
 	return "KHR_materials_dispersion"
 }
 
-func (pd PolyformDispersion) ToExtensionData(w *Writer) map[string]any {
+func (pd PolyformDispersion) ToMaterialExtensionData(w *Writer) map[string]any {
 	metadata := make(map[string]any)
 	metadata["dispersion"] = pd.Dispersion
 	return metadata
@@ -464,21 +465,28 @@ func (pd PolyformDispersion) ToExtensionData(w *Writer) map[string]any {
 // KHR_texture_transform ===================================================
 // https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_texture_transform
 
+var _ TextureExtension = PolyformTextureTransform{}
+
 // PolyformTextureTransform is a glTF extension that defines texture transformations.
 type PolyformTextureTransform struct {
+	// Whether to make this extension required for the given model.
+	// If set - extension will be added to `extensionsRequired` list at the GLTF file top level.
+	Required bool
+
 	Offset   *[2]float64 // The offset of the UV coordinate origin as a factor of the texture dimensions.
 	Rotation *float64    // Rotate the UVs by this many radians counter-clockwise around the origin. This is equivalent to a similar rotation of the image clockwise.
 	Scale    *[2]float64 // The scale factor applied to the components of the UV coordinates.
 	TexCoord *int        // Overrides the textureInfo texCoord value if supplied, and if this extension is supported.
 }
 
-func (ptt PolyformTextureTransform) TextureExtensionID() string {
+func (ptt PolyformTextureTransform) ExtensionID() string {
 	return "KHR_texture_transform"
 }
 
-func (ptt PolyformTextureTransform) IsInfo() bool { return true }
+func (ptt PolyformTextureTransform) IsRequired() bool { return ptt.Required }
+func (ptt PolyformTextureTransform) IsInfo() bool     { return true }
 
-func (ptt PolyformTextureTransform) ToExtensionData(w *Writer) map[string]any {
+func (ptt PolyformTextureTransform) ToTextureExtensionData(w *Writer) map[string]any {
 	metadata := make(map[string]any)
 	if ptt.Offset != nil {
 		metadata["offset"] = *ptt.Offset

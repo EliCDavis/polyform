@@ -69,7 +69,7 @@ func TestMaterialExtensionsID(t *testing.T) {
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			assert.Equal(t, tc.want, tc.extension.MaterialExtensionID())
+			assert.Equal(t, tc.want, tc.extension.ExtensionID())
 		})
 	}
 }
@@ -87,7 +87,7 @@ func TestTextureExtensionsID(t *testing.T) {
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			assert.Equal(t, tc.want, tc.extension.TextureExtensionID())
+			assert.Equal(t, tc.want, tc.extension.ExtensionID())
 		})
 	}
 }
@@ -462,7 +462,7 @@ func TestMaterialExtension_ToExtensionData(t *testing.T) {
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			writer := gltf.NewWriter()
-			data := tc.extension.ToExtensionData(writer)
+			data := tc.extension.ToMaterialExtensionData(writer)
 
 			if !assert.Len(t, data, len(tc.want)) {
 				return
@@ -535,7 +535,7 @@ func TestTextureExtension_ToExtensionData(t *testing.T) {
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			writer := gltf.NewWriter()
-			data := tc.extension.ToExtensionData(writer)
+			data := tc.extension.ToTextureExtensionData(writer)
 
 			if !assert.Len(t, data, len(tc.want)) {
 				return
