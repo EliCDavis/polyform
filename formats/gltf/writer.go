@@ -504,7 +504,12 @@ func (w *Writer) AddTexture(mat PolyformTexture) *TextureInfo {
 	w.images = append(w.images, Image{
 		URI: mat.URI,
 	})
-	w.samplers = append(w.samplers, Sampler{})
+	var sampler Sampler{}
+	if mat.Sampler != nil {
+		sampler = *mat.Sampler
+	}
+	w.samplers = append(w.samplers, sampler)
+
 	return newTex
 }
 
