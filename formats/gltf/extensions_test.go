@@ -1,6 +1,8 @@
 package gltf_test
 
 import (
+	"bytes"
+	"encoding/json"
 	"image/color"
 	"testing"
 
@@ -289,8 +291,8 @@ func TestMaterialExtension_ToExtensionData(t *testing.T) {
 		"Sheen/everything": {
 			extension: gltf.PolyformSheen{
 				SheenRoughnessFactor:  1,
-				SheenRoughnessTexture: &gltf.PolyformTexture{},
-				SheenColorTexture:     &gltf.PolyformTexture{},
+				SheenRoughnessTexture: &gltf.PolyformTexture{URI: "SheenRoughnessTexture.png"},
+				SheenColorTexture:     &gltf.PolyformTexture{URI: "SheenColorTexture.png"},
 				SheenColorFactor:      color.White,
 			},
 			want: map[string]any{
@@ -469,8 +471,15 @@ func TestMaterialExtension_ToExtensionData(t *testing.T) {
 				return
 			}
 
+			buf := bytes.Buffer{}
+
+			outline := writer.ToGLTF(gltf.BufferEmbeddingStrategy_Base64Encode)
+			bolB, _ := json.MarshalIndent(outline, "", "    ")
+			buf.Write(bolB)
+			println(buf.String())
+
 			for k, v := range tc.want {
-				assert.Equal(t, v, data[k])
+				assert.Equal(t, v, data[k], "key %s not matching", k)
 			}
 		})
 	}

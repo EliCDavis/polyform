@@ -496,11 +496,43 @@ func (w *Writer) AddMesh(model PolyformModel) (_ int, err error) {
 }
 
 func (w *Writer) AddTexture(polyTex PolyformTexture) *TextureInfo {
-	newTexInfo := &TextureInfo{Index: len(w.textures)}
+	var imageIndex, samplerIndex int
+	{
+		imageIndex = len(w.images)
+		var imageFound bool
+		for i, im := range w.images {
+			if im.URI == polyTex.URI {
+				imageIndex = i
+				imageFound = true
+				break
+			}
+		}
+		if !imageFound {
+			w.images = append(w.images, Image{URI: polyTex.URI})
+		}
+	}
 
-	newTex := Texture{
-		Sampler: ptrI(len(w.samplers)),
-		Source:  ptrI(len(w.images)),
+	{
+		var texSampler Sampler
+		if polyTex.Sampler != nil {
+			texSampler = *polyTex.Sampler
+		}
+
+		samplerIndex = len(w.samplers)
+		var samplerFound bool
+		for i, sam := range w.samplers {
+			if sam.MagFilter == texSampler.MagFilter &&
+				sam.MinFilter == texSampler.MinFilter &&
+				sam.WrapS == texSampler.WrapS &&
+				sam.WrapT == texSampler.WrapT {
+				samplerIndex = i
+				samplerFound = true
+				break
+			}
+		}
+		if !samplerFound {
+			w.samplers = append(w.samplers, texSampler)
+		}
 	}
 
 	texInfoExt := make(map[string]any)
@@ -519,6 +551,11 @@ func (w *Writer) AddTexture(polyTex PolyformTexture) *TextureInfo {
 		}
 	}
 
+	newTex := Texture{
+		Sampler: ptrI(samplerIndex),
+		Source:  ptrI(imageIndex),
+	}
+	newTexInfo := &TextureInfo{}
 	if len(texInfoExt) > 0 {
 		newTexInfo.Extensions = texInfoExt
 	}
@@ -526,16 +563,32 @@ func (w *Writer) AddTexture(polyTex PolyformTexture) *TextureInfo {
 		newTex.Extensions = texExt
 	}
 
-	w.textures = append(w.textures, newTex)
+	texIndex := len(w.textures)
+	var texFound bool
+texCompare:
+	for i, tex := range w.textures {
+		if !ptrIEqual(tex.Source, newTex.Source) && !ptrIEqual(tex.Sampler, newTex.Sampler) {
+			continue
+		}
+		if len(tex.Extensions) != len(newTex.Extensions) {
+			continue
+		}
 
-	w.images = append(w.images, Image{
-		URI: polyTex.URI,
-	})
-	var sampler Sampler
-	if polyTex.Sampler != nil {
-		sampler = *polyTex.Sampler
+		for key, val := range tex.Extensions {
+			if newTex.Extensions[key] != val {
+				continue texCompare
+			}
+		}
+
+		texIndex = i
+		texFound = true
+		break
 	}
-	w.samplers = append(w.samplers, sampler)
+	if !texFound {
+		w.textures = append(w.textures, newTex)
+	}
+
+	newTexInfo.Index = texIndex
 
 	return newTexInfo
 }
