@@ -1,8 +1,6 @@
 package gltf_test
 
 import (
-	"bytes"
-	"encoding/json"
 	"image/color"
 	"testing"
 
@@ -156,9 +154,9 @@ func TestMaterialExtension_ToExtensionData(t *testing.T) {
 			extension: gltf.PolyformPbrSpecularGlossiness{
 				DiffuseFactor:             color.Black,
 				SpecularFactor:            color.White,
-				DiffuseTexture:            &gltf.PolyformTexture{},
+				DiffuseTexture:            &gltf.PolyformTexture{URI: "DiffuseTexture.png"},
 				GlossinessFactor:          pointer(.5),
-				SpecularGlossinessTexture: &gltf.PolyformTexture{},
+				SpecularGlossinessTexture: &gltf.PolyformTexture{URI: "SpecularGlossinessTexture.png"},
 			},
 			want: map[string]any{
 				"diffuseFactor":    [4]float64{0., 0., 0., 1.},
@@ -240,11 +238,11 @@ func TestMaterialExtension_ToExtensionData(t *testing.T) {
 		"Iridescence/everything": {
 			extension: gltf.PolyformIridescence{
 				IridescenceFactor:           1,
-				IridescenceTexture:          &gltf.PolyformTexture{},
+				IridescenceTexture:          &gltf.PolyformTexture{URI: "IridescenceTexture.png"},
 				IridescenceIor:              pointer(1.),
 				IridescenceThicknessMinimum: pointer(1.),
 				IridescenceThicknessMaximum: pointer(1.),
-				IridescenceThicknessTexture: &gltf.PolyformTexture{},
+				IridescenceThicknessTexture: &gltf.PolyformTexture{URI: "IridescenceThicknessTexture.png"},
 			},
 			want: map[string]any{
 				"iridescenceFactor":           1.,
@@ -449,9 +447,9 @@ func TestMaterialExtension_ToExtensionData(t *testing.T) {
 		"Specular/everything": {
 			extension: gltf.PolyformSpecular{
 				Factor:       pointer(1.),
-				Texture:      &gltf.PolyformTexture{},
+				Texture:      &gltf.PolyformTexture{URI: "Texture.png"},
 				ColorFactor:  color.White,
-				ColorTexture: &gltf.PolyformTexture{},
+				ColorTexture: &gltf.PolyformTexture{URI: "ColorTexture.png"},
 			},
 			want: map[string]any{
 				"specularFactor":       1.0,
@@ -470,13 +468,6 @@ func TestMaterialExtension_ToExtensionData(t *testing.T) {
 			if !assert.Len(t, data, len(tc.want)) {
 				return
 			}
-
-			buf := bytes.Buffer{}
-
-			outline := writer.ToGLTF(gltf.BufferEmbeddingStrategy_Base64Encode)
-			bolB, _ := json.MarshalIndent(outline, "", "    ")
-			buf.Write(bolB)
-			println(buf.String())
 
 			for k, v := range tc.want {
 				assert.Equal(t, v, data[k], "key %s not matching", k)

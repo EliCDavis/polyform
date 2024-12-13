@@ -567,7 +567,7 @@ func (w *Writer) AddTexture(polyTex PolyformTexture) *TextureInfo {
 	var texFound bool
 texCompare:
 	for i, tex := range w.textures {
-		if !ptrIEqual(tex.Source, newTex.Source) && !ptrIEqual(tex.Sampler, newTex.Sampler) {
+		if !ptrIEqual(tex.Source, newTex.Source) || !ptrIEqual(tex.Sampler, newTex.Sampler) {
 			continue
 		}
 		if len(tex.Extensions) != len(newTex.Extensions) {
