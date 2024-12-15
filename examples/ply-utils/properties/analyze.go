@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"sort"
 
 	"github.com/EliCDavis/polyform/formats/ply"
 	"github.com/urfave/cli/v2"
@@ -13,10 +14,10 @@ import (
 
 type Analyzer interface {
 	Analyze(buf []byte, endian binary.ByteOrder)
-	Print(out io.Writer)
+	Print(out io.Writer, printHistogram bool)
 }
 
-type PropertyAnalyzer[T comparable] struct {
+type PropertyAnalyzer[T Number] struct {
 	Name   string
 	Offset int
 	End    int
@@ -25,8 +26,41 @@ type PropertyAnalyzer[T comparable] struct {
 	Counts map[T]int
 }
 
-func (pa *PropertyAnalyzer[T]) Print(out io.Writer) {
+type Number interface {
+	int64 | float64 | int8 | byte | int16 | uint16 | int32 | uint32 | float32
+}
+
+type histogramEntry[T Number] struct {
+	key   T
+	count int
+}
+
+type SortByHistogramKey[T Number] []histogramEntry[T]
+
+func (a SortByHistogramKey[T]) Len() int           { return len(a) }
+func (a SortByHistogramKey[T]) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a SortByHistogramKey[T]) Less(i, j int) bool { return a[i].key < a[j].key }
+
+func (pa *PropertyAnalyzer[T]) Print(out io.Writer, printHistogram bool) {
 	fmt.Printf("[%s] min: %v; max: %v\n", pa.Name, pa.Min, pa.Max)
+
+	if !printHistogram {
+		return
+	}
+
+	entries := make([]histogramEntry[T], 0, len(pa.Counts))
+	for key, count := range pa.Counts {
+		entries = append(entries, histogramEntry[T]{
+			key:   key,
+			count: count,
+		})
+	}
+
+	sort.Sort(SortByHistogramKey[T](entries))
+
+	for _, entry := range entries {
+		fmt.Fprintf(out, "%v: %d\n", entry.key, entry.count)
+	}
 }
 
 func (pa *PropertyAnalyzer[T]) Analyze(buf []byte, endian binary.ByteOrder) {
@@ -180,6 +214,9 @@ var analyzePropertiesCommand = &cli.Command{
 			Name:    "out",
 			Aliases: []string{"o"},
 		},
+		&cli.BoolFlag{
+			Name: "histogram",
+		},
 	},
 	Action: func(ctx *cli.Context) error {
 		f, err := openPlyFile(ctx)
@@ -239,7 +276,7 @@ var analyzePropertiesCommand = &cli.Command{
 		}
 
 		for _, a := range analyzers {
-			a.Print(ctx.App.Writer)
+			a.Print(ctx.App.Writer, ctx.Bool("histogram"))
 		}
 
 		return nil
