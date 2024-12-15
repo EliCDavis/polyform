@@ -12,3 +12,9 @@ tmp/
 
 cert.pem
 key.pem
+
+# nix
+/result/
+/result-.*/
+
+dist/
