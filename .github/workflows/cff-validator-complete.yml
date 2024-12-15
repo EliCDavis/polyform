@@ -7,7 +7,12 @@ on:
 name: CITATION.cff
 jobs:
   Validate-CITATION-cff:
-    runs-on: ubuntu-latest
+
+    # R isn't pre-installed anymore. This should be removed once this issue is
+    # resolved:
+    # https://github.com/dieghernan/cff-validator/issues/16
+    runs-on: ubuntu-22.04
+    
     name: Validate CITATION.cff
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
