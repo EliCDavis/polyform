@@ -60,7 +60,7 @@ type PolyformNormal struct {
 }
 
 type PolyformOcclusion struct {
-	PolyformTexture
+	*PolyformTexture
 	Strength *float64
 }
 
