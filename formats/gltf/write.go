@@ -60,10 +60,6 @@ func ptrI(i int) *int {
 	return &i
 }
 
-func ptrIEqual(i, j *int) bool {
-	return (i == nil && j == nil) || (i != nil && j != nil && *i == *j)
-}
-
 func flattenSkeletonToNodes(offset int, skeleton animation.Skeleton, out *bytes.Buffer) []Node {
 	nodes := make([]Node, 0)
 
