@@ -46,14 +46,14 @@ func TestCatmullSplineDistance(t *testing.T) {
 	tests := map[string]struct {
 		curve curves.CatmullRomSplineParameters
 	}{
-		// "empty": {curve: curves.CatmullRomSplineParameters{}},
-		// "sinlge point line": {
-		// 	curve: curves.CatmullRomSplineParameters{
-		// 		Points: []vector3.Float64{
-		// 			vector3.New(0., 0., 0.),
-		// 		},
-		// 	},
-		// },
+		"empty": {curve: curves.CatmullRomSplineParameters{}},
+		"sinlge point line": {
+			curve: curves.CatmullRomSplineParameters{
+				Points: []vector3.Float64{
+					vector3.New(0., 0., 0.),
+				},
+			},
+		},
 		"2 point line": {
 			curve: curves.CatmullRomSplineParameters{
 				Points: []vector3.Float64{
@@ -62,56 +62,53 @@ func TestCatmullSplineDistance(t *testing.T) {
 				},
 			},
 		},
-		// "3 point line": {
-		// 	curve: curves.CatmullRomSplineParameters{
-		// 		Points: []vector3.Float64{
-		// 			vector3.New(0., 0., 0.),
-		// 			vector3.New(0., 0., 1.),
-		// 			vector3.New(0., 0., 2.),
-		// 		},
-		// 	},
-		// },
-		// "straight line": {
-		// 	curve: curves.CatmullRomSplineParameters{
-		// 		Points: []vector3.Float64{
-		// 			vector3.New(0., 0., 0.),
-		// 			vector3.New(0., 0., 1.),
-		// 			vector3.New(0., 0., 2.),
-		// 			vector3.New(0., 0., 3.),
-		// 		},
-		// 	},
-		// },
-		// "little dip": {
-		// 	curve: curves.CatmullRomSplineParameters{
-		// 		Points: []vector3.Float64{
-		// 			vector3.New(0., 0., 0.),
-		// 			vector3.New(0., 0., 3.),
-		// 			vector3.New(0., -1.1791153159954555, 6.),
-		// 			vector3.New(0., 0., 9.),
-		// 			vector3.New(0., 0., 12.),
-		// 		},
-		// 		Alpha: 0.5,
-		// 	},
-		// },
-		// "little dip shift": {
-		// 	curve: curves.CatmullRomSplineParameters{
-		// 		Points: []vector3.Float64{
-		// 			vector3.New(0.3, 0.1, 0.),
-		// 			vector3.New(0.3, 0.1, 3.),
-		// 			vector3.New(0.3, -1.0791153159954554, 6.),
-		// 			vector3.New(0.3, 0.1, 9.),
-		// 			vector3.New(0.3, 0.1, 12.),
-		// 		},
-		// 		Alpha: 0.5,
-		// 	},
-		// },
+		"3 point line": {
+			curve: curves.CatmullRomSplineParameters{
+				Points: []vector3.Float64{
+					vector3.New(0., 0., 0.),
+					vector3.New(0., 0., 1.),
+					vector3.New(0., 0., 2.),
+				},
+			},
+		},
+		"straight line": {
+			curve: curves.CatmullRomSplineParameters{
+				Points: []vector3.Float64{
+					vector3.New(0., 0., 0.),
+					vector3.New(0., 0., 1.),
+					vector3.New(0., 0., 2.),
+					vector3.New(0., 0., 3.),
+				},
+			},
+		},
+		"little dip": {
+			curve: curves.CatmullRomSplineParameters{
+				Points: []vector3.Float64{
+					vector3.New(0., 0., 0.),
+					vector3.New(0., 0., 3.),
+					vector3.New(0., -1.1791153159954555, 6.),
+					vector3.New(0., 0., 9.),
+					vector3.New(0., 0., 12.),
+				},
+				Alpha: 0.5,
+			},
+		},
+		"little dip shift": {
+			curve: curves.CatmullRomSplineParameters{
+				Points: []vector3.Float64{
+					vector3.New(0.3, 0.1, 0.),
+					vector3.New(0.3, 0.1, 3.),
+					vector3.New(0.3, -1.0791153159954554, 6.),
+					vector3.New(0.3, 0.1, 9.),
+					vector3.New(0.3, 0.1, 12.),
+				},
+				Alpha: 0.5,
+			},
+		},
 	}
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			for i, p := range tc.curve.Points {
-				tc.curve.Points[i] = p.Add(vector3.New(0.3, 0.1, 0.))
-			}
 			curve := tc.curve.Spline()
 
 			count := 10000
@@ -128,8 +125,6 @@ func TestCatmullSplineDistance(t *testing.T) {
 				last = cur
 			}
 			assert.InDelta(t, curve.Length(), dist, inc/2)
-
-			curve.At(3.2495779217738914)
 		})
 	}
 }

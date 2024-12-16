@@ -1,7 +1,6 @@
 package curves
 
 import (
-	"fmt"
 	"math"
 	"sort"
 
@@ -173,14 +172,6 @@ func (crc *CatmullRomCurve) Distance(distance float64) vector3.Float64 {
 
 	aPoint, bPoint := crc.segments[high].point, crc.segments[low].point
 	return vector3.Lerp(aPoint, bPoint, t)
-
-	// fmt.Printf("%g\n", distance)
-	// fmt.Printf("%g\n", crc.Length())
-	// fmt.Printf("%g\n", crc.segments[end-1].distance)
-	// fmt.Printf("%g\n", crc.segments[end].distance)
-
-	// fmt.Printf("start: %d; end %d; len: %d\n", start, end, len(crc.segments))
-	panic(fmt.Errorf("Couldn't calculate point for distance %g (length %g)", distance, crc.Length()))
 }
 
 func (crc CatmullRomCurve) getKnotInterval(a, b vector3.Float64) float64 {

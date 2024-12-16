@@ -15,7 +15,7 @@ type BodyReader interface {
 	ReadMesh(vertexAttributes map[string]bool) (*modeling.Mesh, error)
 }
 
-var GuassianSplatVertexAttributes map[string]bool = map[string]bool{
+var GuassianSplatVertexAttributesNoHarmonics map[string]bool = map[string]bool{
 	"x":       true,
 	"y":       true,
 	"z":       true,
@@ -270,70 +270,4 @@ func ReadMesh(in io.Reader) (*modeling.Mesh, error) {
 	}
 
 	return mesh, nil
-}
-
-func buildVertexElements(attributes []string, size int64) Element {
-	vertexElement := Element{
-		Name:       VertexElementName,
-		Count:      size,
-		Properties: make([]Property, 0),
-	}
-
-	for _, attribute := range attributes {
-		if attribute == modeling.PositionAttribute {
-			vertexElement.Properties = append(vertexElement.Properties,
-				&ScalarProperty{
-					PropertyName: "x",
-					Type:         Float,
-				},
-				&ScalarProperty{
-					PropertyName: "y",
-					Type:         Float,
-				},
-				&ScalarProperty{
-					PropertyName: "z",
-					Type:         Float,
-				},
-			)
-			continue
-		}
-
-		if attribute == modeling.NormalAttribute {
-			vertexElement.Properties = append(vertexElement.Properties,
-				&ScalarProperty{
-					PropertyName: "nx",
-					Type:         Float,
-				},
-				&ScalarProperty{
-					PropertyName: "ny",
-					Type:         Float,
-				},
-				&ScalarProperty{
-					PropertyName: "nz",
-					Type:         Float,
-				},
-			)
-			continue
-		}
-
-		if attribute == modeling.ColorAttribute {
-			vertexElement.Properties = append(vertexElement.Properties,
-				&ScalarProperty{
-					PropertyName: "red",
-					Type:         UChar,
-				},
-				&ScalarProperty{
-					PropertyName: "green",
-					Type:         UChar,
-				},
-				&ScalarProperty{
-					PropertyName: "blue",
-					Type:         UChar,
-				},
-			)
-			continue
-		}
-	}
-
-	return vertexElement
 }

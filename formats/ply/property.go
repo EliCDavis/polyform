@@ -23,19 +23,8 @@ const (
 	Double ScalarPropertyType = "double"
 )
 
-type ScalarProperty struct {
-	PropertyName string             `json:"name"` // Name of the property
-	Type         ScalarPropertyType `json:"type"` // Property type
-}
-
-// Name of the property as found in the PLY header
-func (sp ScalarProperty) Name() string {
-	return sp.PropertyName
-}
-
-// Size of the property on a per point basis when serialized to binary format
-func (sp ScalarProperty) Size() int {
-	switch sp.Type {
+func (spt ScalarPropertyType) Size() int {
+	switch spt {
 	case Char, UChar:
 		return 1
 
@@ -49,8 +38,23 @@ func (sp ScalarProperty) Size() int {
 		return 8
 
 	default:
-		panic(fmt.Errorf("unimplemented byte size for scalar property type: %s", sp.Type))
+		panic(fmt.Errorf("unimplemented byte size for scalar property type: %s", spt))
 	}
+}
+
+type ScalarProperty struct {
+	PropertyName string             `json:"name"` // Name of the property
+	Type         ScalarPropertyType `json:"type"` // Property type
+}
+
+// Name of the property as found in the PLY header
+func (sp ScalarProperty) Name() string {
+	return sp.PropertyName
+}
+
+// Size of the property on a per point basis when serialized to binary format
+func (sp ScalarProperty) Size() int {
+	return sp.Type.Size()
 }
 
 // Writes out the definition of the property in PLY format
