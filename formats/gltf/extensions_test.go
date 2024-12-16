@@ -470,7 +470,7 @@ func TestMaterialExtension_ToExtensionData(t *testing.T) {
 			}
 
 			for k, v := range tc.want {
-				assert.Equal(t, v, data[k])
+				assert.Equal(t, v, data[k], "key %s not matching", k)
 			}
 		})
 	}

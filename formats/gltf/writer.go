@@ -33,8 +33,10 @@ type Writer struct {
 	nodes       []Node
 	materials   []Material
 
-	matIndices  materialIndices // Tracks and deduplicates unique materials
-	meshIndices meshIndices     // Tracks and deduplicates unique meshes&materials
+	matIndices     materialIndices // Tracks and deduplicates unique materials
+	meshIndices    meshIndices     // Tracks and deduplicates unique meshes&materials
+	samplerIndices samplerIndices  // Tracks and deduplicates unique samplers
+	textureIndices textureIndices  // Tracks and deduplicates unique textures
 
 	skins      []Skin
 	animations []Animation
@@ -65,7 +67,9 @@ func NewWriter() *Writer {
 		skins:       make([]Skin, 0),
 		animations:  make([]Animation, 0),
 
-		meshIndices: make(meshIndices),
+		meshIndices:    make(meshIndices),
+		samplerIndices: make(samplerIndices),
+		textureIndices: make(textureIndices),
 
 		// Extensions
 		lights: make([]KHR_LightsPunctual, 0),
@@ -495,21 +499,22 @@ func (w *Writer) AddMesh(model PolyformModel) (_ int, err error) {
 	return meshIndex, nil
 }
 
-func (w *Writer) AddTexture(polyTex PolyformTexture) *TextureInfo {
-	newTexInfo := &TextureInfo{Index: len(w.textures)}
-
-	newTex := Texture{
-		Sampler: ptrI(len(w.samplers)),
-		Source:  ptrI(len(w.images)),
-	}
-
-	texInfoExt := make(map[string]any)
-	texExt := make(map[string]any)
+func (w *Writer) AddTexture(polyTex *PolyformTexture) *TextureInfo {
+	var texInfoExt map[string]any
+	var texExt map[string]any
 	for _, ext := range polyTex.Extensions {
 		id := ext.ExtensionID()
 		if ext.IsInfo() {
+			if texInfoExt == nil {
+				texInfoExt = make(map[string]any)
+			}
+
 			texInfoExt[id] = ext.ToTextureExtensionData(w)
 		} else {
+			if texExt == nil {
+				texExt = make(map[string]any)
+			}
+
 			texExt[id] = ext.ToTextureExtensionData(w)
 		}
 
@@ -518,25 +523,61 @@ func (w *Writer) AddTexture(polyTex PolyformTexture) *TextureInfo {
 			w.extensionsRequired[id] = true
 		}
 	}
+	newTexInfo := &TextureInfo{Extensions: texInfoExt}
 
-	if len(texInfoExt) > 0 {
-		newTexInfo.Extensions = texInfoExt
+	texIndex := -1
+	var texFound bool
+	for texPtr, index := range w.textureIndices {
+		if texPtr == polyTex {
+			texIndex = index
+			texFound = true
+			break
+		}
 	}
-	if len(texExt) > 0 {
-		newTex.Extensions = texExt
+	if texFound { // This texture already exists, reference it and return early
+		newTexInfo.Index = texIndex
+		return newTexInfo
 	}
 
-	w.textures = append(w.textures, newTex)
+	// If we're here - new texture needs to be made, but it can still have reusable parts
+	newTex := Texture{Extensions: texExt}
+	{
+		imageIndex := len(w.images)
+		var imageFound bool
+		for i, im := range w.images {
+			if im.URI == polyTex.URI {
+				imageIndex = i
+				imageFound = true
+				break
+			}
+		}
+		if !imageFound {
+			w.images = append(w.images, Image{URI: polyTex.URI})
+		}
+		newTex.Source = ptrI(imageIndex)
+	}
 
-	w.images = append(w.images, Image{
-		URI: polyTex.URI,
-	})
-	var sampler Sampler
 	if polyTex.Sampler != nil {
-		sampler = *polyTex.Sampler
+		samplerIndex := len(w.samplers)
+		var samplerFound bool
+		for samPtr, samIndex := range w.samplerIndices {
+			if samPtr == polyTex.Sampler {
+				samplerIndex = samIndex
+				samplerFound = true
+				break
+			}
+		}
+		if !samplerFound {
+			w.samplerIndices[polyTex.Sampler] = samplerIndex
+			w.samplers = append(w.samplers, *polyTex.Sampler)
+		}
+		newTex.Sampler = ptrI(samplerIndex)
 	}
-	w.samplers = append(w.samplers, sampler)
 
+	texIndex = len(w.textures)
+	newTexInfo.Index = texIndex
+	w.textureIndices[polyTex] = texIndex
+	w.textures = append(w.textures, newTex)
 	return newTexInfo
 }
 
@@ -563,11 +604,11 @@ func (w *Writer) AddMaterial(mat *PolyformMaterial) (*int, error) {
 		}
 
 		if polyPBR.BaseColorTexture != nil {
-			pbr.BaseColorTexture = w.AddTexture(*polyPBR.BaseColorTexture)
+			pbr.BaseColorTexture = w.AddTexture(polyPBR.BaseColorTexture)
 		}
 
 		if polyPBR.MetallicRoughnessTexture != nil {
-			pbr.MetallicRoughnessTexture = w.AddTexture(*polyPBR.MetallicRoughnessTexture)
+			pbr.MetallicRoughnessTexture = w.AddTexture(polyPBR.MetallicRoughnessTexture)
 		}
 	}
 

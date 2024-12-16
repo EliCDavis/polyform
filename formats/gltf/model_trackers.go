@@ -32,3 +32,9 @@ type meshEntry struct {
 
 // materialIndices handle deduplication of GLTF materials
 type meshIndices map[meshEntry]int
+
+// samplerIndices handle deduplication of texture samplers
+type samplerIndices map[*Sampler]int
+
+// textureIndices handle deduplication of textures
+type textureIndices map[*PolyformTexture]int
