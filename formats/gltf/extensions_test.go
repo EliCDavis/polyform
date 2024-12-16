@@ -154,9 +154,9 @@ func TestMaterialExtension_ToExtensionData(t *testing.T) {
 			extension: gltf.PolyformPbrSpecularGlossiness{
 				DiffuseFactor:             color.Black,
 				SpecularFactor:            color.White,
-				DiffuseTexture:            &gltf.PolyformTexture{URI: "DiffuseTexture.png"},
+				DiffuseTexture:            &gltf.PolyformTexture{},
 				GlossinessFactor:          pointer(.5),
-				SpecularGlossinessTexture: &gltf.PolyformTexture{URI: "SpecularGlossinessTexture.png"},
+				SpecularGlossinessTexture: &gltf.PolyformTexture{},
 			},
 			want: map[string]any{
 				"diffuseFactor":    [4]float64{0., 0., 0., 1.},
@@ -238,11 +238,11 @@ func TestMaterialExtension_ToExtensionData(t *testing.T) {
 		"Iridescence/everything": {
 			extension: gltf.PolyformIridescence{
 				IridescenceFactor:           1,
-				IridescenceTexture:          &gltf.PolyformTexture{URI: "IridescenceTexture.png"},
+				IridescenceTexture:          &gltf.PolyformTexture{},
 				IridescenceIor:              pointer(1.),
 				IridescenceThicknessMinimum: pointer(1.),
 				IridescenceThicknessMaximum: pointer(1.),
-				IridescenceThicknessTexture: &gltf.PolyformTexture{URI: "IridescenceThicknessTexture.png"},
+				IridescenceThicknessTexture: &gltf.PolyformTexture{},
 			},
 			want: map[string]any{
 				"iridescenceFactor":           1.,
@@ -289,8 +289,8 @@ func TestMaterialExtension_ToExtensionData(t *testing.T) {
 		"Sheen/everything": {
 			extension: gltf.PolyformSheen{
 				SheenRoughnessFactor:  1,
-				SheenRoughnessTexture: &gltf.PolyformTexture{URI: "SheenRoughnessTexture.png"},
-				SheenColorTexture:     &gltf.PolyformTexture{URI: "SheenColorTexture.png"},
+				SheenRoughnessTexture: &gltf.PolyformTexture{},
+				SheenColorTexture:     &gltf.PolyformTexture{},
 				SheenColorFactor:      color.White,
 			},
 			want: map[string]any{
@@ -447,9 +447,9 @@ func TestMaterialExtension_ToExtensionData(t *testing.T) {
 		"Specular/everything": {
 			extension: gltf.PolyformSpecular{
 				Factor:       pointer(1.),
-				Texture:      &gltf.PolyformTexture{URI: "Texture.png"},
+				Texture:      &gltf.PolyformTexture{},
 				ColorFactor:  color.White,
-				ColorTexture: &gltf.PolyformTexture{URI: "ColorTexture.png"},
+				ColorTexture: &gltf.PolyformTexture{},
 			},
 			want: map[string]any{
 				"specularFactor":       1.0,
