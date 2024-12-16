@@ -19,17 +19,24 @@ type LoaderNodeData struct {
 func (pn LoaderNodeData) Process() (modeling.Mesh, error) {
 	bufReader := bufio.NewReader(bytes.NewReader(pn.Data.Value()))
 
-	header, err := ply.ReadHeader(bufReader)
+	splat, err := ply.ReadMesh(bufReader)
 	if err != nil {
 		return modeling.EmptyPointcloud(), err
 	}
 
-	reader := header.BuildReader(bufReader)
-	plyMesh, err := reader.ReadMesh(ply.GuassianSplatVertexAttributes)
-	if err != nil {
-		return modeling.EmptyPointcloud(), err
-	}
-	return *plyMesh, err
+	return *splat, nil
+
+	// header, err := ply.ReadHeader(bufReader)
+	// if err != nil {
+	// 	return modeling.EmptyPointcloud(), err
+	// }
+
+	// reader := header.BuildReader(bufReader)
+	// plyMesh, err := reader.ReadMesh(ply.GuassianSplatVertexAttributesNoHarmonics)
+	// if err != nil {
+	// 	return modeling.EmptyPointcloud(), err
+	// }
+	// return *plyMesh, err
 }
 
 type SpzLoaderNode = nodes.StructNode[modeling.Mesh, SpzLoaderNodeData]

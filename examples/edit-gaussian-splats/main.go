@@ -1,6 +1,8 @@
 package main
 
 import (
+	"math"
+
 	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/generator"
 	"github.com/EliCDavis/polyform/generator/artifact"
@@ -27,8 +29,8 @@ func main() {
 		},
 	}
 
-	pointcloud := &gausops.SpzLoaderNode{
-		Data: gausops.SpzLoaderNodeData{
+	pointcloud := &gausops.LoaderNode{
+		Data: gausops.LoaderNodeData{
 			Data: fileNode,
 		},
 	}
@@ -48,9 +50,9 @@ func main() {
 	rotateAmount := &quatn.FromTheta{
 		Data: quatn.FromThetaData{
 			Theta: &parameter.Float64{
-				Name:        "Rotation",
-				Description: "How much to rotate the pointcloud by",
-				// DefaultValue: math.Pi,
+				Name:         "Rotation",
+				Description:  "How much to rotate the pointcloud by",
+				DefaultValue: math.Pi,
 			},
 			Direction: &vecn3.New{
 				Data: vecn3.NewData[float64]{
@@ -157,7 +159,7 @@ func main() {
 			XrEnabled: true,
 		},
 		Producers: map[string]nodes.NodeOutput[generator.Artifact]{
-			"mesh.splat": artifact.NewSplatNode(colorGraded.Out()),
+			"mesh.ply": artifact.NewSplatPlyNode(colorGraded.Out()),
 			"info.txt": artifact.NewTextNode(&InfoNode{
 				Data: InfoNodeData{
 					Original: pointcloud.Out(),
