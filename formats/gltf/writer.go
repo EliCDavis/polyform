@@ -654,6 +654,12 @@ func (w *Writer) AddMaterial(mat *PolyformMaterial) (*int, error) {
 			Scale:       mat.NormalTexture.Scale,
 		}
 	}
+	if mat.OcclusionTexture != nil {
+		m.OcclusionTexture = &OcclusionTexture{
+			TextureInfo: *w.AddTexture(mat.OcclusionTexture.PolyformTexture),
+			Strength:    mat.OcclusionTexture.Strength,
+		}
+	}
 
 	w.materials = append(w.materials, m)
 	index := len(w.materials) - 1

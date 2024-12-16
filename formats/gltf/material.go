@@ -27,7 +27,7 @@ type NormalTexture struct {
 
 type OcclusionTexture struct {
 	TextureInfo
-	Strength float64 `json:"strength,omitempty"` // A scalar parameter controlling the amount of occlusion applied. A value of `0.0` means no occlusion. A value of `1.0` means full occlusion. This value affects the final occlusion value as: `1.0 + strength * (<sampled occlusion texture value> - 1.0)`.
+	Strength *float64 `json:"strength,omitempty"` // A scalar parameter controlling the amount of occlusion applied. A value of `0.0` means no occlusion. A value of `1.0` means full occlusion. This value affects the final occlusion value as: `1.0 + strength * (<sampled occlusion texture value> - 1.0)`.
 }
 
 // The alpha rendering mode of the material

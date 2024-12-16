@@ -42,6 +42,7 @@ type PolyformMaterial struct {
 	PbrMetallicRoughness *PolyformPbrMetallicRoughness
 	Extensions           []MaterialExtension
 	NormalTexture        *PolyformNormal
+	OcclusionTexture     *PolyformOcclusion
 	EmissiveFactor       color.Color
 }
 
@@ -56,6 +57,11 @@ type PolyformPbrMetallicRoughness struct {
 type PolyformNormal struct {
 	*PolyformTexture
 	Scale *float64
+}
+
+type PolyformOcclusion struct {
+	*PolyformTexture
+	Strength *float64
 }
 
 type PolyformTexture struct {
