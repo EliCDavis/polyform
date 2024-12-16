@@ -54,7 +54,7 @@ type PolyformPbrMetallicRoughness struct {
 }
 
 type PolyformNormal struct {
-	PolyformTexture
+	*PolyformTexture
 	Scale *float64
 }
 
@@ -125,7 +125,7 @@ func (pt *PolyformTexture) equal(other *PolyformTexture) bool {
 }
 
 func (pt *PolyformNormal) equal(other *PolyformNormal) bool {
-	if !pt.PolyformTexture.equal(&other.PolyformTexture) {
+	if !pt.PolyformTexture.equal(other.PolyformTexture) {
 		return false
 	}
 	return float64PtrsEqual(pt.Scale, other.Scale)

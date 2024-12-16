@@ -33,8 +33,10 @@ type Writer struct {
 	nodes       []Node
 	materials   []Material
 
-	matIndices  materialIndices // Tracks and deduplicates unique materials
-	meshIndices meshIndices     // Tracks and deduplicates unique meshes&materials
+	matIndices     materialIndices // Tracks and deduplicates unique materials
+	meshIndices    meshIndices     // Tracks and deduplicates unique meshes&materials
+	samplerIndices samplerIndices  // Tracks and deduplicates unique samplers
+	textureIndices textureIndices  // Tracks and deduplicates unique textures
 
 	skins      []Skin
 	animations []Animation
@@ -65,7 +67,9 @@ func NewWriter() *Writer {
 		skins:       make([]Skin, 0),
 		animations:  make([]Animation, 0),
 
-		meshIndices: make(meshIndices),
+		meshIndices:    make(meshIndices),
+		samplerIndices: make(samplerIndices),
+		textureIndices: make(textureIndices),
 
 		// Extensions
 		lights: make([]KHR_LightsPunctual, 0),
@@ -495,10 +499,50 @@ func (w *Writer) AddMesh(model PolyformModel) (_ int, err error) {
 	return meshIndex, nil
 }
 
-func (w *Writer) AddTexture(polyTex PolyformTexture) *TextureInfo {
-	var imageIndex, samplerIndex int
+func (w *Writer) AddTexture(polyTex *PolyformTexture) *TextureInfo {
+	var texInfoExt map[string]any
+	var texExt map[string]any
+	for _, ext := range polyTex.Extensions {
+		id := ext.ExtensionID()
+		if ext.IsInfo() {
+			if texInfoExt == nil {
+				texInfoExt = make(map[string]any)
+			}
+
+			texInfoExt[id] = ext.ToTextureExtensionData(w)
+		} else {
+			if texExt == nil {
+				texExt = make(map[string]any)
+			}
+
+			texExt[id] = ext.ToTextureExtensionData(w)
+		}
+
+		w.extensionsUsed[id] = true
+		if ext.IsRequired() {
+			w.extensionsRequired[id] = true
+		}
+	}
+	newTexInfo := &TextureInfo{Extensions: texInfoExt}
+
+	texIndex := -1
+	var texFound bool
+	for texPtr, index := range w.textureIndices {
+		if texPtr == polyTex {
+			texIndex = index
+			texFound = true
+			break
+		}
+	}
+	if texFound { // This texture already exists, reference it and return early
+		newTexInfo.Index = texIndex
+		return newTexInfo
+	}
+
+	// If we're here - new texture needs to be made, but it can still have reusable parts
+	newTex := Texture{Extensions: texExt}
 	{
-		imageIndex = len(w.images)
+		imageIndex := len(w.images)
 		var imageFound bool
 		for i, im := range w.images {
 			if im.URI == polyTex.URI {
@@ -510,86 +554,30 @@ func (w *Writer) AddTexture(polyTex PolyformTexture) *TextureInfo {
 		if !imageFound {
 			w.images = append(w.images, Image{URI: polyTex.URI})
 		}
+		newTex.Source = ptrI(imageIndex)
 	}
 
-	{
-		var texSampler Sampler
-		if polyTex.Sampler != nil {
-			texSampler = *polyTex.Sampler
-		}
-
-		samplerIndex = len(w.samplers)
+	if polyTex.Sampler != nil {
+		samplerIndex := len(w.samplers)
 		var samplerFound bool
-		for i, sam := range w.samplers {
-			if sam.MagFilter == texSampler.MagFilter &&
-				sam.MinFilter == texSampler.MinFilter &&
-				sam.WrapS == texSampler.WrapS &&
-				sam.WrapT == texSampler.WrapT {
-				samplerIndex = i
+		for samPtr, samIndex := range w.samplerIndices {
+			if samPtr == polyTex.Sampler {
+				samplerIndex = samIndex
 				samplerFound = true
 				break
 			}
 		}
 		if !samplerFound {
-			w.samplers = append(w.samplers, texSampler)
+			w.samplerIndices[polyTex.Sampler] = samplerIndex
+			w.samplers = append(w.samplers, *polyTex.Sampler)
 		}
+		newTex.Sampler = ptrI(samplerIndex)
 	}
 
-	texInfoExt := make(map[string]any)
-	texExt := make(map[string]any)
-	for _, ext := range polyTex.Extensions {
-		id := ext.ExtensionID()
-		if ext.IsInfo() {
-			texInfoExt[id] = ext.ToTextureExtensionData(w)
-		} else {
-			texExt[id] = ext.ToTextureExtensionData(w)
-		}
-
-		w.extensionsUsed[id] = true
-		if ext.IsRequired() {
-			w.extensionsRequired[id] = true
-		}
-	}
-
-	newTex := Texture{
-		Sampler: ptrI(samplerIndex),
-		Source:  ptrI(imageIndex),
-	}
-	newTexInfo := &TextureInfo{}
-	if len(texInfoExt) > 0 {
-		newTexInfo.Extensions = texInfoExt
-	}
-	if len(texExt) > 0 {
-		newTex.Extensions = texExt
-	}
-
-	texIndex := len(w.textures)
-	var texFound bool
-texCompare:
-	for i, tex := range w.textures {
-		if !ptrIEqual(tex.Source, newTex.Source) || !ptrIEqual(tex.Sampler, newTex.Sampler) {
-			continue
-		}
-		if len(tex.Extensions) != len(newTex.Extensions) {
-			continue
-		}
-
-		for key, val := range tex.Extensions {
-			if newTex.Extensions[key] != val {
-				continue texCompare
-			}
-		}
-
-		texIndex = i
-		texFound = true
-		break
-	}
-	if !texFound {
-		w.textures = append(w.textures, newTex)
-	}
-
+	texIndex = len(w.textures)
 	newTexInfo.Index = texIndex
-
+	w.textureIndices[polyTex] = texIndex
+	w.textures = append(w.textures, newTex)
 	return newTexInfo
 }
 
@@ -616,11 +604,11 @@ func (w *Writer) AddMaterial(mat *PolyformMaterial) (*int, error) {
 		}
 
 		if polyPBR.BaseColorTexture != nil {
-			pbr.BaseColorTexture = w.AddTexture(*polyPBR.BaseColorTexture)
+			pbr.BaseColorTexture = w.AddTexture(polyPBR.BaseColorTexture)
 		}
 
 		if polyPBR.MetallicRoughnessTexture != nil {
-			pbr.MetallicRoughnessTexture = w.AddTexture(*polyPBR.MetallicRoughnessTexture)
+			pbr.MetallicRoughnessTexture = w.AddTexture(polyPBR.MetallicRoughnessTexture)
 		}
 	}
 

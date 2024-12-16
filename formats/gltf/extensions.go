@@ -62,7 +62,7 @@ func (sg PolyformPbrSpecularGlossiness) ToMaterialExtensionData(w *Writer) map[s
 	}
 
 	if sg.DiffuseTexture != nil {
-		metadata["diffuseTexture"] = w.AddTexture(*sg.DiffuseTexture)
+		metadata["diffuseTexture"] = w.AddTexture(sg.DiffuseTexture)
 	}
 
 	if sg.SpecularFactor != nil {
@@ -74,7 +74,7 @@ func (sg PolyformPbrSpecularGlossiness) ToMaterialExtensionData(w *Writer) map[s
 	}
 
 	if sg.SpecularGlossinessTexture != nil {
-		metadata["specularGlossinessTexture"] = w.AddTexture(*sg.SpecularGlossinessTexture)
+		metadata["specularGlossinessTexture"] = w.AddTexture(sg.SpecularGlossinessTexture)
 	}
 	return metadata
 }
@@ -101,7 +101,7 @@ func (tr PolyformTransmission) ToMaterialExtensionData(w *Writer) map[string]any
 	metadata["transmissionFactor"] = tr.Factor
 
 	if tr.Texture != nil {
-		metadata["transmissionTexture"] = w.AddTexture(*tr.Texture)
+		metadata["transmissionTexture"] = w.AddTexture(tr.Texture)
 	}
 
 	return metadata
@@ -142,7 +142,7 @@ func (v PolyformVolume) ToMaterialExtensionData(w *Writer) map[string]any {
 	metadata["thicknessFactor"] = v.ThicknessFactor
 
 	if v.ThicknessTexture != nil {
-		metadata["thicknessTexture"] = w.AddTexture(*v.ThicknessTexture)
+		metadata["thicknessTexture"] = w.AddTexture(v.ThicknessTexture)
 	}
 
 	if v.AttenuationDistance != nil {
@@ -216,7 +216,7 @@ func (ps PolyformSpecular) ToMaterialExtensionData(w *Writer) map[string]any {
 	}
 
 	if ps.Texture != nil {
-		metadata["specularTexture"] = w.AddTexture(*ps.Texture)
+		metadata["specularTexture"] = w.AddTexture(ps.Texture)
 	}
 
 	if ps.ColorFactor != nil {
@@ -224,7 +224,7 @@ func (ps PolyformSpecular) ToMaterialExtensionData(w *Writer) map[string]any {
 	}
 
 	if ps.ColorTexture != nil {
-		metadata["specularColorTexture"] = w.AddTexture(*ps.ColorTexture)
+		metadata["specularColorTexture"] = w.AddTexture(ps.ColorTexture)
 	}
 
 	return metadata
@@ -260,12 +260,12 @@ func (pmc PolyformClearcoat) ToMaterialExtensionData(w *Writer) map[string]any {
 
 	metadata["clearcoatFactor"] = pmc.ClearcoatFactor
 	if pmc.ClearcoatTexture != nil {
-		metadata["clearcoatTexture"] = w.AddTexture(*pmc.ClearcoatTexture)
+		metadata["clearcoatTexture"] = w.AddTexture(pmc.ClearcoatTexture)
 	}
 
 	metadata["clearcoatRoughnessFactor"] = pmc.ClearcoatRoughnessFactor
 	if pmc.ClearcoatRoughnessTexture != nil {
-		metadata["clearcoatRoughnessTexture"] = w.AddTexture(*pmc.ClearcoatRoughnessTexture)
+		metadata["clearcoatRoughnessTexture"] = w.AddTexture(pmc.ClearcoatRoughnessTexture)
 	}
 
 	// if pmc.ClearcoatNormalTexture != nil {
@@ -344,7 +344,7 @@ func (pmi PolyformIridescence) ToMaterialExtensionData(w *Writer) map[string]any
 	metadata["iridescenceFactor"] = pmi.IridescenceFactor
 
 	if pmi.IridescenceTexture != nil {
-		metadata["iridescenceTexture"] = w.AddTexture(*pmi.IridescenceTexture)
+		metadata["iridescenceTexture"] = w.AddTexture(pmi.IridescenceTexture)
 	}
 
 	if pmi.IridescenceIor != nil {
@@ -360,7 +360,7 @@ func (pmi PolyformIridescence) ToMaterialExtensionData(w *Writer) map[string]any
 	}
 
 	if pmi.IridescenceThicknessTexture != nil {
-		metadata["iridescenceThicknessTexture"] = w.AddTexture(*pmi.IridescenceThicknessTexture)
+		metadata["iridescenceThicknessTexture"] = w.AddTexture(pmi.IridescenceThicknessTexture)
 	}
 
 	return metadata
@@ -397,13 +397,13 @@ func (ps PolyformSheen) ToMaterialExtensionData(w *Writer) map[string]any {
 	}
 
 	if ps.SheenColorTexture != nil {
-		metadata["sheenColorTexture"] = w.AddTexture(*ps.SheenColorTexture)
+		metadata["sheenColorTexture"] = w.AddTexture(ps.SheenColorTexture)
 	}
 
 	metadata["sheenRoughnessFactor"] = ps.SheenRoughnessFactor
 
 	if ps.SheenRoughnessTexture != nil {
-		metadata["sheenRoughnessTexture"] = w.AddTexture(*ps.SheenRoughnessTexture)
+		metadata["sheenRoughnessTexture"] = w.AddTexture(ps.SheenRoughnessTexture)
 	}
 
 	return metadata
@@ -441,7 +441,7 @@ func (pa PolyformAnisotropy) ToMaterialExtensionData(w *Writer) map[string]any {
 	metadata["anisotropyRotation"] = pa.AnisotropyRotation
 
 	if pa.AnisotropyTexture != nil {
-		metadata["anisotropyTexture"] = w.AddTexture(*pa.AnisotropyTexture)
+		metadata["anisotropyTexture"] = w.AddTexture(pa.AnisotropyTexture)
 	}
 
 	return metadata
