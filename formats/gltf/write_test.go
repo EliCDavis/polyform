@@ -306,17 +306,9 @@ func TestWrite_TexturedTriWithMaterialWithColor(t *testing.T) {
 				Material: &gltf.PolyformMaterial{
 					Name: "My Material",
 					PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
-						BaseColorFactor: color.RGBA{255, 100, 80, 255},
-						RoughnessFactor: &roughness,
-						BaseColorTexture: &gltf.PolyformTexture{
-							URI: "this_is_a_test.png",
-							Sampler: &gltf.Sampler{
-								WrapS:     gltf.SamplerWrap_REPEAT,
-								WrapT:     gltf.SamplerWrap_REPEAT,
-								MinFilter: gltf.SamplerMinFilter_LINEAR_MIPMAP_LINEAR,
-								MagFilter: gltf.SamplerMagFilter_LINEAR,
-							},
-						},
+						BaseColorFactor:  color.RGBA{255, 100, 80, 255},
+						RoughnessFactor:  &roughness,
+						BaseColorTexture: &gltf.PolyformTexture{URI: "this_is_a_test.png"},
 					},
 				},
 			},
@@ -459,14 +451,6 @@ func TestWrite_TexturedTriWithMaterialWithColor(t *testing.T) {
             "name": "mesh"
         }
     ],
-    "samplers": [
-        {
-            "magFilter": 9729,
-            "minFilter": 9987,
-            "wrapS": 10497,
-            "wrapT": 10497
-        }
-    ],
     "scenes": [
         {
             "nodes": [
@@ -476,7 +460,6 @@ func TestWrite_TexturedTriWithMaterialWithColor(t *testing.T) {
     ],
     "textures": [
         {
-            "sampler": 0,
             "source": 0
         }
     ]
