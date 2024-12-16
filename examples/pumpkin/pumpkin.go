@@ -274,7 +274,7 @@ func (pga PumpkinGLBArtifactData) Process() (generator.Artifact, error) {
 							// RoughnessFactor: 0,
 						},
 						NormalTexture: &gltf.PolyformNormal{
-							PolyformTexture: gltf.PolyformTexture{
+							PolyformTexture: &gltf.PolyformTexture{
 								URI: "normal.png",
 							},
 						},

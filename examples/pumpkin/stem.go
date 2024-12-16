@@ -121,7 +121,7 @@ func (sm StemMeshData) Process() (gltf.PolyformModel, error) {
 				},
 			},
 			NormalTexture: &gltf.PolyformNormal{
-				PolyformTexture: gltf.PolyformTexture{
+				PolyformTexture: &gltf.PolyformTexture{
 					URI: "Texturing/stem-normal.png",
 				},
 			},

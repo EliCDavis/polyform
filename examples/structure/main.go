@@ -162,7 +162,7 @@ func pipeColor() color.RGBA {
 }
 
 var pipeNormalTexture = &gltf.PolyformNormal{
-	PolyformTexture: gltf.PolyformTexture{
+	PolyformTexture: &gltf.PolyformTexture{
 		URI: "pipe-normal.png",
 	},
 }
@@ -322,7 +322,7 @@ func (p PipeNodeData) Process() (generator.Artifact, error) {
 				RoughnessFactor: &roughness,
 			},
 			NormalTexture: &gltf.PolyformNormal{
-				PolyformTexture: gltf.PolyformTexture{
+				PolyformTexture: &gltf.PolyformTexture{
 					URI: "ibeam-normal.png",
 				},
 			},
