@@ -27,6 +27,26 @@ type ChildOfRootProperty struct {
 	Name string `json:"name,omitempty"`
 }
 
+func (s ChildOfRootProperty) equal(other ChildOfRootProperty) bool {
+	if s.Name != other.Name || len(s.Extensions) != len(other.Extensions) || len(s.Extras) != len(other.Extras) {
+		return false
+	}
+
+	for key, val := range s.Extensions {
+		if other.Extensions[key] != val {
+			return false
+		}
+	}
+
+	for key, val := range s.Extras {
+		if other.Extras[key] != val {
+			return false
+		}
+	}
+
+	return true
+}
+
 // The root nodes of a scene.
 // https://github.com/KhronosGroup/glTF/blob/main/specification/2.0/schema/scene.schema.json
 type Scene struct {
@@ -143,4 +163,25 @@ type Gltf struct {
 	Scenes      []Scene      `json:"scenes,omitempty"`      // An array of scenes.
 	Skins       []Skin       `json:"skins,omitempty"`       // An array of skins.  A skin is defined by joints and matrices.
 	Textures    []Texture    `json:"textures,omitempty"`    // An array of textures
+}
+
+func (t Texture) equal(other Texture) bool {
+	if !ptrIEqual(t.Source, other.Source) || !ptrIEqual(t.Sampler, other.Sampler) {
+		return false
+	}
+	if len(t.Extensions) != len(other.Extensions) {
+		return false
+	}
+
+	for key, val := range t.Extensions {
+		if other.Extensions[key] != val {
+			return false
+		}
+	}
+
+	if !t.ChildOfRootProperty.equal(other.ChildOfRootProperty) {
+		return false
+	}
+
+	return true
 }

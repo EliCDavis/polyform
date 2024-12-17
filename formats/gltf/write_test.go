@@ -15,6 +15,21 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+type mockTextureExtension struct{}
+
+func (m mockTextureExtension) ExtensionID() string {
+	return "mocXtension"
+}
+func (m mockTextureExtension) ToTextureExtensionData(w *gltf.Writer) map[string]any {
+	return nil
+}
+func (m mockTextureExtension) IsRequired() bool {
+	return false
+}
+func (m mockTextureExtension) IsInfo() bool {
+	return false
+}
+
 func TestWriteBasicTri(t *testing.T) {
 	// ARRANGE ================================================================
 	tri := modeling.NewTriangleMesh([]int{0, 1, 2}).
@@ -555,8 +570,9 @@ func TestWrite_TexturedTriWithMaterialWithColor_ImageSampleDedupe(t *testing.T) 
 						BaseColorFactor: color.RGBA{255, 100, 80, 255},
 						RoughnessFactor: &roughness,
 						BaseColorTexture: &gltf.PolyformTexture{
-							URI:     "this_is_a_test.png",
-							Sampler: sampler,
+							URI:        "this_is_a_test.png",
+							Sampler:    sampler,
+							Extensions: []gltf.TextureExtension{&mockTextureExtension{}},
 						},
 					},
 				},
@@ -567,6 +583,9 @@ func TestWrite_TexturedTriWithMaterialWithColor_ImageSampleDedupe(t *testing.T) 
 	// ASSERT =================================================================
 	assert.NoError(t, err)
 	assert.Equal(t, `{
+    "extensionsUsed": [
+        "mocXtension"
+    ],
     "accessors": [
         {
             "bufferView": 0,
@@ -832,13 +851,16 @@ func TestWrite_TexturedTriWithMaterialWithColor_ImageSampleDedupe(t *testing.T) 
         },
         {
             "sampler": 0,
-            "source": 0
+            "source": 0,
+            "extensions": {
+                "mocXtension": null
+            }
         }
     ]
 }`, buf.String())
 }
 
-func TestWrite_TexturedTriWithMaterialWithColor_TextureDedupe(t *testing.T) {
+func TestWrite_TexturedTriWithMaterialWithColor_TextureValueDedupe(t *testing.T) {
 	// ARRANGE ================================================================
 	tri1 := modeling.NewTriangleMesh([]int{0, 1, 2}).
 		SetFloat3Attribute(
@@ -895,16 +917,6 @@ func TestWrite_TexturedTriWithMaterialWithColor_TextureDedupe(t *testing.T) {
 
 	// ACT ====================================================================
 	roughness := 0.
-	texture := &gltf.PolyformTexture{
-		URI: "this_is_a_test.png",
-		Sampler: &gltf.Sampler{
-			WrapS:     gltf.SamplerWrap_REPEAT,
-			WrapT:     gltf.SamplerWrap_REPEAT,
-			MinFilter: gltf.SamplerMinFilter_LINEAR_MIPMAP_LINEAR,
-			MagFilter: gltf.SamplerMagFilter_LINEAR,
-		},
-	}
-
 	err := gltf.WriteText(gltf.PolyformScene{
 		Models: []gltf.PolyformModel{
 			{
@@ -913,9 +925,17 @@ func TestWrite_TexturedTriWithMaterialWithColor_TextureDedupe(t *testing.T) {
 				Material: &gltf.PolyformMaterial{
 					Name: "My Material1",
 					PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
-						BaseColorFactor:  color.RGBA{255, 100, 80, 255},
-						RoughnessFactor:  &roughness,
-						BaseColorTexture: texture,
+						BaseColorFactor: color.RGBA{255, 100, 80, 255},
+						RoughnessFactor: &roughness,
+						BaseColorTexture: &gltf.PolyformTexture{
+							URI: "this_is_a_test.png",
+							Sampler: &gltf.Sampler{
+								WrapS:     gltf.SamplerWrap_REPEAT,
+								WrapT:     gltf.SamplerWrap_REPEAT,
+								MinFilter: gltf.SamplerMinFilter_LINEAR_MIPMAP_LINEAR,
+								MagFilter: gltf.SamplerMagFilter_LINEAR,
+							},
+						},
 					},
 				},
 			},
@@ -925,9 +945,17 @@ func TestWrite_TexturedTriWithMaterialWithColor_TextureDedupe(t *testing.T) {
 				Material: &gltf.PolyformMaterial{
 					Name: "My Material2",
 					PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
-						BaseColorFactor:  color.RGBA{255, 100, 80, 255},
-						RoughnessFactor:  &roughness,
-						BaseColorTexture: texture,
+						BaseColorFactor: color.RGBA{255, 100, 80, 255},
+						RoughnessFactor: &roughness,
+						BaseColorTexture: &gltf.PolyformTexture{
+							URI: "this_is_a_test.png",
+							Sampler: &gltf.Sampler{
+								WrapS:     gltf.SamplerWrap_REPEAT,
+								WrapT:     gltf.SamplerWrap_REPEAT,
+								MinFilter: gltf.SamplerMinFilter_LINEAR_MIPMAP_LINEAR,
+								MagFilter: gltf.SamplerMagFilter_LINEAR,
+							},
+						},
 					},
 				},
 			},
