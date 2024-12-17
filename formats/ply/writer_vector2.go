@@ -95,32 +95,29 @@ type asciiVector2PropertyWriter struct {
 	buf    []byte
 }
 
-func (av4pw *asciiVector2PropertyWriter) Write(out io.Writer, i int) (err error) {
+func (av2pw *asciiVector2PropertyWriter) Write(out io.Writer, i int) (err error) {
+	v2 := av2pw.arr.At(i)
 
-	switch av4pw.format {
+	switch av2pw.format {
 	case UChar:
-		v4 := av4pw.arr.At(i).Scale(255).RoundToInt()
-		av4pw.buf = strconv.AppendInt(av4pw.buf, int64(v4.X()), 10)
-		av4pw.buf = append(av4pw.buf, ' ')
-		av4pw.buf = strconv.AppendInt(av4pw.buf, int64(v4.Y()), 10)
+		v2 = av2pw.arr.At(i).Clamp(0, 1).Scale(255).Round()
+		fallthrough
 
 	case Int, UInt, Short, UShort:
-		v4 := av4pw.arr.At(i)
-		av4pw.buf = strconv.AppendInt(av4pw.buf, int64(v4.X()), 10)
-		av4pw.buf = append(av4pw.buf, ' ')
-		av4pw.buf = strconv.AppendInt(av4pw.buf, int64(v4.Y()), 10)
+		av2pw.buf = strconv.AppendInt(av2pw.buf, int64(v2.X()), 10)
+		av2pw.buf = append(av2pw.buf, ' ')
+		av2pw.buf = strconv.AppendInt(av2pw.buf, int64(v2.Y()), 10)
 
 	case Double, Float:
-		v4 := av4pw.arr.At(i)
-		av4pw.buf = strconv.AppendFloat(av4pw.buf, v4.X(), 'f', -1, 64)
-		av4pw.buf = append(av4pw.buf, ' ')
-		av4pw.buf = strconv.AppendFloat(av4pw.buf, v4.Y(), 'f', -1, 64)
+		av2pw.buf = strconv.AppendFloat(av2pw.buf, v2.X(), 'f', -1, 64)
+		av2pw.buf = append(av2pw.buf, ' ')
+		av2pw.buf = strconv.AppendFloat(av2pw.buf, v2.Y(), 'f', -1, 64)
 
 	default:
-		panic(fmt.Errorf("unimplemented %s", av4pw.format))
+		panic(fmt.Errorf("unimplemented %s", av2pw.format))
 	}
 
-	_, err = out.Write(av4pw.buf)
-	av4pw.buf = av4pw.buf[:0]
+	_, err = out.Write(av2pw.buf)
+	av2pw.buf = av2pw.buf[:0]
 	return
 }

@@ -105,30 +105,26 @@ type asciiVector3PropertyWriter struct {
 
 func (av4pw *asciiVector3PropertyWriter) Write(out io.Writer, i int) (err error) {
 
+	v3 := av4pw.arr.At(i)
+
 	switch av4pw.format {
 	case UChar:
-		v4 := av4pw.arr.At(i).Scale(255).RoundToInt()
-		av4pw.buf = strconv.AppendInt(av4pw.buf, int64(v4.X()), 10)
-		av4pw.buf = append(av4pw.buf, ' ')
-		av4pw.buf = strconv.AppendInt(av4pw.buf, int64(v4.Y()), 10)
-		av4pw.buf = append(av4pw.buf, ' ')
-		av4pw.buf = strconv.AppendInt(av4pw.buf, int64(v4.Z()), 10)
+		v3 = av4pw.arr.At(i).Clamp(0, 1).Scale(255).Round()
+		fallthrough
 
 	case Int, UInt, Short, UShort:
-		v4 := av4pw.arr.At(i)
-		av4pw.buf = strconv.AppendInt(av4pw.buf, int64(v4.X()), 10)
+		av4pw.buf = strconv.AppendInt(av4pw.buf, int64(v3.X()), 10)
 		av4pw.buf = append(av4pw.buf, ' ')
-		av4pw.buf = strconv.AppendInt(av4pw.buf, int64(v4.Y()), 10)
+		av4pw.buf = strconv.AppendInt(av4pw.buf, int64(v3.Y()), 10)
 		av4pw.buf = append(av4pw.buf, ' ')
-		av4pw.buf = strconv.AppendInt(av4pw.buf, int64(v4.Z()), 10)
+		av4pw.buf = strconv.AppendInt(av4pw.buf, int64(v3.Z()), 10)
 
 	case Double, Float:
-		v4 := av4pw.arr.At(i)
-		av4pw.buf = strconv.AppendFloat(av4pw.buf, v4.X(), 'f', -1, 64)
+		av4pw.buf = strconv.AppendFloat(av4pw.buf, v3.X(), 'f', -1, 64)
 		av4pw.buf = append(av4pw.buf, ' ')
-		av4pw.buf = strconv.AppendFloat(av4pw.buf, v4.Y(), 'f', -1, 64)
+		av4pw.buf = strconv.AppendFloat(av4pw.buf, v3.Y(), 'f', -1, 64)
 		av4pw.buf = append(av4pw.buf, ' ')
-		av4pw.buf = strconv.AppendFloat(av4pw.buf, v4.Z(), 'f', -1, 64)
+		av4pw.buf = strconv.AppendFloat(av4pw.buf, v3.Z(), 'f', -1, 64)
 
 	default:
 		panic(fmt.Errorf("unimplemented %s", av4pw.format))

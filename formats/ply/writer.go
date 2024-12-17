@@ -145,7 +145,7 @@ func writeBinaryTriTopo(out io.Writer, model modeling.Mesh, format Format) error
 
 	if model.HasFloat2Attribute(modeling.TexCoordAttribute) {
 		texData := model.Float2Attribute(modeling.TexCoordAttribute)
-		buf := make([]byte, 1+(3*4)+(2*4*3))
+		buf := make([]byte, 1+(3*4)+1+(2*4*3))
 		buf[0] = 3
 		buf[13] = 6
 
