@@ -33,13 +33,15 @@ func (s ChildOfRootProperty) equal(other ChildOfRootProperty) bool {
 	}
 
 	for key, val := range s.Extensions {
-		if other.Extensions[key] != val {
+		otherVal, exists := other.Extensions[key]
+		if !exists || otherVal != val {
 			return false
 		}
 	}
 
 	for key, val := range s.Extras {
-		if other.Extras[key] != val {
+		otherVal, exists := other.Extras[key]
+		if !exists || otherVal != val {
 			return false
 		}
 	}
@@ -174,7 +176,8 @@ func (t Texture) equal(other Texture) bool {
 	}
 
 	for key, val := range t.Extensions {
-		if other.Extensions[key] != val {
+		otherVal, exists := other.Extensions[key]
+		if !exists || otherVal != val {
 			return false
 		}
 	}
