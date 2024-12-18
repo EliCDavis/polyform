@@ -70,6 +70,35 @@ type PolyformTexture struct {
 	Extensions []TextureExtension
 }
 
+func (pm *PolyformTexture) prepareExtensions(w *Writer) (map[string]any, map[string]any) {
+	var texInfoExt map[string]any
+	var texExt map[string]any
+
+	for _, ext := range pm.Extensions {
+		id := ext.ExtensionID()
+		if ext.IsInfo() {
+			if texInfoExt == nil {
+				texInfoExt = make(map[string]any)
+			}
+
+			texInfoExt[id] = ext.ToTextureExtensionData(w)
+		} else {
+			if texExt == nil {
+				texExt = make(map[string]any)
+			}
+
+			texExt[id] = ext.ToTextureExtensionData(w)
+		}
+
+		w.extensionsUsed[id] = true
+		if ext.IsRequired() {
+			w.extensionsRequired[id] = true
+		}
+	}
+
+	return texExt, texInfoExt
+}
+
 func (pm *PolyformMaterial) equal(other *PolyformMaterial) bool {
 	if pm == other {
 		return true

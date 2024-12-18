@@ -35,7 +35,6 @@ type Writer struct {
 
 	matIndices     materialIndices // Tracks and deduplicates unique materials
 	meshIndices    meshIndices     // Tracks and deduplicates unique meshes&materials
-	samplerIndices samplerIndices  // Tracks and deduplicates unique samplers
 	textureIndices textureIndices  // Tracks and deduplicates unique textures
 
 	skins      []Skin
@@ -68,7 +67,6 @@ func NewWriter() *Writer {
 		animations:  make([]Animation, 0),
 
 		meshIndices:    make(meshIndices),
-		samplerIndices: make(samplerIndices),
 		textureIndices: make(textureIndices),
 
 		// Extensions
@@ -500,29 +498,8 @@ func (w *Writer) AddMesh(model PolyformModel) (_ int, err error) {
 }
 
 func (w *Writer) AddTexture(polyTex *PolyformTexture) *TextureInfo {
-	var texInfoExt map[string]any
-	var texExt map[string]any
-	for _, ext := range polyTex.Extensions {
-		id := ext.ExtensionID()
-		if ext.IsInfo() {
-			if texInfoExt == nil {
-				texInfoExt = make(map[string]any)
-			}
+	texExt, texInfoExt := polyTex.prepareExtensions(w)
 
-			texInfoExt[id] = ext.ToTextureExtensionData(w)
-		} else {
-			if texExt == nil {
-				texExt = make(map[string]any)
-			}
-
-			texExt[id] = ext.ToTextureExtensionData(w)
-		}
-
-		w.extensionsUsed[id] = true
-		if ext.IsRequired() {
-			w.extensionsRequired[id] = true
-		}
-	}
 	newTexInfo := &TextureInfo{Extensions: texInfoExt}
 
 	texIndex := -1
@@ -534,14 +511,16 @@ func (w *Writer) AddTexture(polyTex *PolyformTexture) *TextureInfo {
 			break
 		}
 	}
-	if texFound { // This texture already exists, reference it and return early
+
+	if texFound { // This is exactly same texture object as was already added, reference it and return early
 		newTexInfo.Index = texIndex
 		return newTexInfo
 	}
 
-	// If we're here - new texture needs to be made, but it can still have reusable parts
+	// New texture may need to be created, but it still may be the same as existing one.
 	newTex := Texture{Extensions: texExt}
-	{
+
+	{ // check if an image with this URI was already added before
 		imageIndex := len(w.images)
 		var imageFound bool
 		for i, im := range w.images {
@@ -557,27 +536,38 @@ func (w *Writer) AddTexture(polyTex *PolyformTexture) *TextureInfo {
 		newTex.Source = ptrI(imageIndex)
 	}
 
+	// Check if a sampler like existing was already aded
 	if polyTex.Sampler != nil {
 		samplerIndex := len(w.samplers)
 		var samplerFound bool
-		for samPtr, samIndex := range w.samplerIndices {
-			if samPtr == polyTex.Sampler {
-				samplerIndex = samIndex
+		for i, sampler := range w.samplers {
+			if polyTex.Sampler.equal(&sampler) {
+				samplerIndex = i
 				samplerFound = true
 				break
 			}
 		}
 		if !samplerFound {
-			w.samplerIndices[polyTex.Sampler] = samplerIndex
 			w.samplers = append(w.samplers, *polyTex.Sampler)
 		}
 		newTex.Sampler = ptrI(samplerIndex)
 	}
 
+	// Check if the newly built texture is exactly the same as existing, if so - reuse existing.
 	texIndex = len(w.textures)
+	for i, tex := range w.textures {
+		if newTex.equal(tex) {
+			texIndex = i
+			texFound = true
+			break
+		}
+	}
+
 	newTexInfo.Index = texIndex
-	w.textureIndices[polyTex] = texIndex
-	w.textures = append(w.textures, newTex)
+	if !texFound {
+		w.textureIndices[polyTex] = texIndex
+		w.textures = append(w.textures, newTex)
+	}
 	return newTexInfo
 }
 
