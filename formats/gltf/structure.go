@@ -4,7 +4,7 @@ type GltfId = int
 
 // JSON object with extension-specific objects.
 // https://github.com/KhronosGroup/glTF/blob/main/specification/2.0/schema/extension.schema.json
-type Extensions = map[string]any
+type Extensions = map[ExtensionID]Extension
 
 // Although `extras` **MAY** have any type, it is common for applications to
 // store and access custom data as key/value pairs. Therefore, `extras`
@@ -177,7 +177,7 @@ func (t Texture) equal(other Texture) bool {
 
 	for key, val := range t.Extensions {
 		otherVal, exists := other.Extensions[key]
-		if !exists || otherVal != val {
+		if !exists || !otherVal.Equal(val) {
 			return false
 		}
 	}

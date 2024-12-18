@@ -7,7 +7,8 @@ import (
 )
 
 type MaterialExtension interface {
-	ExtensionID() string
+	Extension
+	
 	ToMaterialExtensionData(w *Writer) map[string]any
 }
 
@@ -51,8 +52,29 @@ type PolyformPbrSpecularGlossiness struct {
 	SpecularGlossinessTexture *PolyformTexture
 }
 
-func (ppsg PolyformPbrSpecularGlossiness) ExtensionID() string {
-	return "KHR_materials_pbrSpecularGlossiness"
+func (ppsg PolyformPbrSpecularGlossiness) ExtensionID() ExtensionID {
+	return KHRMaterialsPbrSpecularGlossiness
+}
+
+func (ppsg PolyformPbrSpecularGlossiness) Equal(otherExt Extension) bool {
+	other, ok := otherExt.(PolyformPbrSpecularGlossiness)
+	if !ok {
+		return false
+	}
+
+	if !ptrF64Equal(ppsg.GlossinessFactor, other.GlossinessFactor) {
+		return false
+	}
+
+	if ppsg.DiffuseFactor != other.DiffuseFactor || ppsg.SpecularFactor != other.SpecularFactor {
+		return false
+	}
+
+	if !ppsg.DiffuseTexture.equal(other.DiffuseTexture) || !ppsg.SpecularGlossinessTexture.equal(other.SpecularGlossinessTexture) {
+		return false
+	}
+
+	return true
 }
 
 func (sg PolyformPbrSpecularGlossiness) ToMaterialExtensionData(w *Writer) map[string]any {
