@@ -59,9 +59,9 @@ export class Vector3ParameterNodeController {
             control.enabled = false;
         });
 
-        this.lightNode.subscribeToProperty("x", this.propertyChange.bind(this));
-        this.lightNode.subscribeToProperty("y", this.propertyChange.bind(this));
-        this.lightNode.subscribeToProperty("z", this.propertyChange.bind(this));
+        this.lightNode.addPropertyChangeListener("x", this.propertyChange.bind(this));
+        this.lightNode.addPropertyChangeListener("y", this.propertyChange.bind(this));
+        this.lightNode.addPropertyChangeListener("z", this.propertyChange.bind(this));
     }
 
     propertyChange() {

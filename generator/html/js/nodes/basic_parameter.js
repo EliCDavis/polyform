@@ -6,7 +6,7 @@ export class BasicParameterNodeController {
         this.lightNode.setProperty("value", parameterData.currentValue);
         this.updating = false;
 
-        this.lightNode.subscribeToProperty("value", (oldVal, newVal) => {
+        this.lightNode.addPropertyChangeListener("value", (oldVal, newVal) => {
             if (this.updating) {
                 return;
             }

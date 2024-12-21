@@ -63,7 +63,6 @@ type builtVector3PropertyWriter struct {
 }
 
 func (bv3pw builtVector3PropertyWriter) Write(out io.Writer, i int) (err error) {
-
 	switch bv3pw.format {
 	case UChar:
 		v3 := bv3pw.arr.At(i).Scale(255).RoundToInt()

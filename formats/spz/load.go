@@ -80,7 +80,7 @@ const sh_C1 = 0.4886025
 var sh_C2 = []float64{1.0925484, -1.0925484, 0.3153916, -1.0925484, 0.5462742}
 var sh_C3 = []float64{-0.5900436, 2.8906114, -0.4570458, 0.3731763, -0.4570458, 1.4453057, -0.5900436}
 
-func shadeSH(splat []vector3.Float64, dir vector3.Float64, shOrder int, col float64, component int) float64 {
+func shadeSH(splat []vector3.Float64, dir vector3.Float64, shOrder int, col float64, c int) float64 {
 	x := dir.X() * -1
 	y := dir.Y() * -1
 	z := dir.Z() * -1
@@ -88,7 +88,7 @@ func shadeSH(splat []vector3.Float64, dir vector3.Float64, shOrder int, col floa
 	res := col
 
 	if shOrder >= 1 {
-		res += sh_C1 * (-splat[0].Component(component)*y + splat[1].Component(component)*z - splat[2].Component(component)*x)
+		res += sh_C1 * (-splat[0].Component(c)*y + splat[1].Component(c)*z - splat[2].Component(c)*x)
 		return math.Max(res, 0)
 	}
 
@@ -99,11 +99,22 @@ func shadeSH(splat []vector3.Float64, dir vector3.Float64, shOrder int, col floa
 		xy := x * y
 		yz := y * z
 		xz := x * z
-		res += (sh_C2[0]*xy)*splat[3].Component(component) +
-			(sh_C2[1]*yz)*splat[4].Component(component) +
-			(sh_C2[2]*(2*zz-xx-yy))*splat[5].Component(component) +
-			(sh_C2[3]*xz)*splat[6].Component(component) +
-			(sh_C2[4]*(xx-yy))*splat[7].Component(component)
+		res += (sh_C2[0]*xy)*splat[3].Component(c) +
+			(sh_C2[1]*yz)*splat[4].Component(c) +
+			(sh_C2[2]*(2*zz-xx-yy))*splat[5].Component(c) +
+			(sh_C2[3]*xz)*splat[6].Component(c) +
+			(sh_C2[4]*(xx-yy))*splat[7].Component(c)
+
+		if shOrder >= 3 {
+			res +=
+				(sh_C3[0]*y*(3*xx-yy))*splat[8].Component(c) +
+					(sh_C3[1]*xy*z)*splat[9].Component(c) +
+					(sh_C3[2]*y*(4*zz-xx-yy))*splat[10].Component(c) +
+					(sh_C3[3]*z*(2*zz-3*xx-3*yy))*splat[11].Component(c) +
+					(sh_C3[4]*x*(4*zz-xx-yy))*splat[12].Component(c) +
+					(sh_C3[5]*z*(xx-yy))*splat[13].Component(c) +
+					(sh_C3[6]*x*(xx-3*yy))*splat[14].Component(c)
+		}
 	}
 
 	return math.Max(res, 0)

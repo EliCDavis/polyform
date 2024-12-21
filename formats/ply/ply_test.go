@@ -151,7 +151,7 @@ func TestToMeshLittleEndian(t *testing.T) {
 		return
 	}
 
-	bunny, err := ply.ReadMesh(bytes.NewBuffer(data))
+	bunny, err := ply.ReadMesh2(bytes.NewBuffer(data))
 
 	assert.NoError(t, err)
 	assert.NotNil(t, bunny)
@@ -165,7 +165,7 @@ func TestToMeshLittleEndianTextured(t *testing.T) {
 		return
 	}
 
-	covid, err := ply.ReadMesh(bytes.NewBuffer(data))
+	covid, err := ply.ReadMesh2(bytes.NewBuffer(data))
 
 	assert.NoError(t, err)
 	assert.NotNil(t, covid)

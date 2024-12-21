@@ -35,17 +35,17 @@ func main() {
 		},
 	}
 
-	filteredCloud := &gausops.FilterNode{
-		Data: gausops.FilterNodeData{
-			Splat:      pointcloud.Out(),
-			MinOpacity: &parameter.Float64{Name: "Minimum Opacity"},
-			MinVolume:  &parameter.Float64{Name: "Minimum Scale"},
-			MaxVolume: &parameter.Float64{
-				Name:         "Maximum Scale",
-				DefaultValue: 1000.,
-			},
-		},
-	}
+	// filteredCloud := &gausops.FilterNode{
+	// 	Data: gausops.FilterNodeData{
+	// 		Splat:      pointcloud.Out(),
+	// 		MinOpacity: &parameter.Float64{Name: "Minimum Opacity"},
+	// 		MinVolume:  &parameter.Float64{Name: "Minimum Scale"},
+	// 		MaxVolume: &parameter.Float64{
+	// 			Name:         "Maximum Scale",
+	// 			DefaultValue: 1000.,
+	// 		},
+	// 	},
+	// }
 
 	rotateAmount := &quatn.FromTheta{
 		Data: quatn.FromThetaData{
@@ -75,7 +75,7 @@ func main() {
 		Data: gausops.RotateAttributeNodeData{
 			Mesh: &meshops.RotateAttribute3DNode{
 				Data: meshops.RotateAttribute3DNodeData{
-					Mesh:   filteredCloud.Out(),
+					Mesh:   pointcloud.Out(),
 					Amount: rotateAmount,
 				},
 			},
@@ -159,7 +159,7 @@ func main() {
 			XrEnabled: true,
 		},
 		Producers: map[string]nodes.NodeOutput[generator.Artifact]{
-			"mesh.ply": artifact.NewSplatPlyNode(colorGraded.Out()),
+			"mesh.ply": artifact.NewSplatPlyNode(pointcloud.Out()),
 			"info.txt": artifact.NewTextNode(&InfoNode{
 				Data: InfoNodeData{
 					Original: pointcloud.Out(),

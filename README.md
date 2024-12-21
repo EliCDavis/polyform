@@ -344,6 +344,9 @@ Resources either directly contributing to the code, or are just interesting find
   - [https://github.com/shg8/VulkanSplatting](https://github.com/shg8/VulkanSplatting)
   - [Making Gaussian Splats Smaller](https://aras-p.info/blog/2023/09/13/Making-Gaussian-Splats-smaller/) by [Aras Pranckevičius](https://aras-p.info/)
   - [Gaussian Explosion](https://aras-p.info/blog/2023/12/08/Gaussian-explosion/) by [Aras Pranckevičius](https://aras-p.info/)
+  - Rotating
+    - [Thread on Rotating](https://github.com/graphdeco-inria/gaussian-splatting/issues/176)
+    - [Winger D Matrix Wikipedia Article](https://en.wikipedia.org/wiki/Wigner_D-matrix) (required for rotating spherical harmonics)
 - Coloring Stuff
   - Color Grading LUT
     - [_3D Game Shaders For Beginners - Lookup Table (LUT)_ by David Lettier](https://lettier.github.io/3d-game-shaders-for-beginners/lookup-table.html)

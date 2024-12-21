@@ -12,8 +12,8 @@ export class Vector2ParameterNodeController {
         this.lightNode.setProperty("x", curVal.x);
         this.lightNode.setProperty("y", curVal.y);
 
-        this.lightNode.subscribeToProperty("x", this.propertyChange.bind(this));
-        this.lightNode.subscribeToProperty("y", this.propertyChange.bind(this));
+        this.lightNode.addPropertyChangeListener("x", this.propertyChange.bind(this));
+        this.lightNode.addPropertyChangeListener("y", this.propertyChange.bind(this));
        
     }
 

@@ -6,7 +6,7 @@ setInterval(() => {
         if (initID === null) {
             initID = payload.time;
         }
-        
+
         if (initID !== payload.time) {
             location.reload();
         }
@@ -342,6 +342,8 @@ class SchemaRefreshManager {
         // https://github.com/mkkellogg/GaussianSplats3D/blob/main/src/Viewer.js
         const splatViewerOptions = {
             selfDrivenMode: false,
+            // 'cameraUp': [0, -1, 0],
+            sphericalHarmonicsDegree: 2,
             useBuiltInControls: false,
             rootElement: renderer.domElement.parentElement,
             renderer: renderer,
@@ -353,9 +355,11 @@ class SchemaRefreshManager {
         }
 
         guassianSplatViewer = new GaussianSplats3D.Viewer(splatViewerOptions);
-
+        
         // getSplatCenter
         guassianSplatViewer.addSplatScene(producerURL, {
+            // rotation: [1, 0, 0, 0],
+            // scale: [-1, -1, 1, 0],
             // streamView: false
             // 'scale': [0.25, 0.25, 0.25],
         }).then(() => {
@@ -424,6 +428,10 @@ class SchemaRefreshManager {
                     break;
 
                 case "splat":
+                    this.loadSplat(producer, 'producer/' + producer)
+                    break;
+
+                case "ply":
                     this.loadSplat(producer, 'producer/' + producer)
                     break;
 

@@ -1,14 +1,19 @@
 package ply
 
 import (
+	"bufio"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"image/color"
 	"io"
+	"os"
 	"strconv"
 	"strings"
 
 	"github.com/EliCDavis/polyform/modeling"
+	"github.com/EliCDavis/polyform/modeling/meshops"
+	"github.com/EliCDavis/vector/vector2"
 )
 
 type BodyReader interface {
@@ -270,4 +275,328 @@ func ReadMesh(in io.Reader) (*modeling.Mesh, error) {
 	}
 
 	return mesh, nil
+}
+
+// https://bsky.app/profile/elicdavis.bsky.social/post/3lcxkpsvgbs24
+var defaultReader MeshReader = MeshReader{
+	AttributeElement: VertexElementName,
+	Properties: []PropertyReader{
+		&Vector3PropertyReader{
+			ModelAttribute: modeling.PositionAttribute,
+			PlyPropertyX:   "x",
+			PlyPropertyY:   "y",
+			PlyPropertyZ:   "z",
+		},
+		&Vector3PropertyReader{
+			ModelAttribute: modeling.PositionAttribute,
+			PlyPropertyX:   "px",
+			PlyPropertyY:   "py",
+			PlyPropertyZ:   "pz",
+		},
+		&Vector3PropertyReader{
+			ModelAttribute: modeling.PositionAttribute,
+			PlyPropertyX:   "posx",
+			PlyPropertyY:   "posy",
+			PlyPropertyZ:   "posz",
+		},
+		&Vector3PropertyReader{
+			ModelAttribute: modeling.NormalAttribute,
+			PlyPropertyX:   "nx",
+			PlyPropertyY:   "ny",
+			PlyPropertyZ:   "nz",
+		},
+		&Vector3PropertyReader{
+			ModelAttribute: modeling.NormalAttribute,
+			PlyPropertyX:   "normalx",
+			PlyPropertyY:   "normaly",
+			PlyPropertyZ:   "normalz",
+		},
+		&Vector4PropertyReader{
+			ModelAttribute: modeling.ColorAttribute,
+			PlyPropertyX:   "red",
+			PlyPropertyY:   "green",
+			PlyPropertyZ:   "blue",
+			PlyPropertyW:   "alpha",
+		},
+		&Vector4PropertyReader{
+			ModelAttribute: modeling.ColorAttribute,
+			PlyPropertyX:   "r",
+			PlyPropertyY:   "g",
+			PlyPropertyZ:   "b",
+			PlyPropertyW:   "a",
+		},
+		&Vector4PropertyReader{
+			ModelAttribute: modeling.ColorAttribute,
+			PlyPropertyX:   "diffuse_red",
+			PlyPropertyY:   "diffuse_green",
+			PlyPropertyZ:   "diffuse_blue",
+			PlyPropertyW:   "diffuse_alpha",
+		},
+		&Vector2PropertyReader{
+			ModelAttribute: modeling.TexCoordAttribute,
+			PlyPropertyX:   "s",
+			PlyPropertyY:   "t",
+		},
+
+		// Gaussian Splatting >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+		&Vector3PropertyReader{
+			ModelAttribute: modeling.FDCAttribute,
+			PlyPropertyX:   "f_dc_0",
+			PlyPropertyY:   "f_dc_1",
+			PlyPropertyZ:   "f_dc_2",
+		},
+		&Vector1PropertyReader{
+			ModelAttribute: modeling.OpacityAttribute,
+			PlyProperty:    "opacity",
+		},
+		&Vector3PropertyReader{
+			ModelAttribute: modeling.ScaleAttribute,
+			PlyPropertyX:   "scale_0",
+			PlyPropertyY:   "scale_1",
+			PlyPropertyZ:   "scale_2",
+		},
+		&Vector4PropertyReader{
+			ModelAttribute: modeling.RotationAttribute,
+			PlyPropertyX:   "rot_0",
+			PlyPropertyY:   "rot_1",
+			PlyPropertyZ:   "rot_2",
+			PlyPropertyW:   "rot_3",
+		},
+		// <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+	},
+}
+
+func ReadMesh2(reader io.Reader) (*modeling.Mesh, error) {
+	return defaultReader.Read(reader)
+}
+
+type PropertyReader interface {
+	buildBinary(element Element, endian binary.ByteOrder) binaryPropertyReader
+}
+
+type builtPropertyReader interface {
+	UpdateMesh(m modeling.Mesh) modeling.Mesh
+}
+
+type asciiPropertyReader interface {
+	builtPropertyReader
+	Read(buf []byte, i int64)
+}
+
+type binaryPropertyReader interface {
+	builtPropertyReader
+	Read(buf []byte, i int64)
+}
+
+// Builds a modeling.Mesh from PLY data
+type MeshReader struct {
+	// PLY Element containing the mesh attribute data on a per vertex basis
+	//
+	// example: "vertex"
+	AttributeElement string
+
+	// All defined translations from PLY data to mesh attributes
+	Properties []PropertyReader
+}
+
+func (mr MeshReader) Load(file string) (*modeling.Mesh, error) {
+	f, err := os.Open(file)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	return mr.Read(bufio.NewReader(f))
+}
+
+func (mr MeshReader) Read(reader io.Reader) (*modeling.Mesh, error) {
+	header, err := ReadHeader(reader)
+	if err != nil {
+		return nil, err
+	}
+
+	var vertexElement *Element
+	var facesElement *Element
+	for i, element := range header.Elements {
+		if element.Name == "face" {
+			facesElement = &header.Elements[i]
+		}
+
+		if element.Name != mr.AttributeElement {
+			continue
+		}
+		vertexElement = &header.Elements[i]
+	}
+
+	if vertexElement == nil {
+		return nil, fmt.Errorf("ply missing '%s' element", mr.AttributeElement)
+	}
+
+	totalSize := 0
+	for _, prop := range vertexElement.Properties {
+		scalar, ok := prop.(ScalarProperty)
+		if !ok {
+			return nil, fmt.Errorf("unimplemented scenario: '%s.%s' is an array property type", mr.AttributeElement, prop.Name())
+		}
+		totalSize += scalar.Size()
+	}
+
+	builtReaders := make([]builtPropertyReader, 0)
+
+	var indices []int
+	var uvs []vector2.Float64
+	var topo modeling.Topology
+
+	if facesElement == nil {
+		topo = modeling.PointTopology
+		indices = make([]int, vertexElement.Count)
+		for i := 0; i < int(vertexElement.Count); i++ {
+			indices[i] = i
+		}
+	}
+
+	if header.Format == ASCII {
+
+	} else {
+		var endian binary.ByteOrder = binary.LittleEndian
+		if header.Format == BinaryBigEndian {
+			endian = binary.BigEndian
+		}
+
+		// Build all readers
+		binReaders := make([]binaryPropertyReader, 0)
+		for _, reader := range mr.Properties {
+			builtReader := reader.buildBinary(*vertexElement, endian)
+			if builtReader == nil {
+				continue
+			}
+			builtReaders = append(builtReaders, builtReader)
+			binReaders = append(binReaders, builtReader)
+		}
+
+		// Read vertex buffers
+		vertexBuf := make([]byte, totalSize)
+		for i := int64(0); i < vertexElement.Count; i++ {
+			_, err := io.ReadFull(reader, vertexBuf)
+			if err != nil {
+				return nil, fmt.Errorf("can't read %q element %w", mr.AttributeElement, err)
+			}
+
+			for _, reader := range binReaders {
+				reader.Read(vertexBuf, i)
+			}
+		}
+
+		// Read face data if present
+		if facesElement != nil {
+			topo = modeling.TriangleTopology
+			indices, uvs, err = readBinaryFaceElement(*facesElement, endian, reader)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	mesh := modeling.NewMesh(topo, indices)
+	for _, reader := range builtReaders {
+		mesh = reader.UpdateMesh(mesh)
+	}
+
+	if len(uvs) == len(indices) {
+		mesh = mesh.
+			Transform(meshops.UnweldTransformer{}).
+			SetFloat2Attribute(modeling.TexCoordAttribute, uvs)
+	}
+
+	return &mesh, nil
+}
+
+func readBinaryFaceElement(element Element, endian binary.ByteOrder, in io.Reader) ([]int, []vector2.Float64, error) {
+	indicesProp := -1
+	texCordProp := -1
+
+	readers := make([]*listPropertyReader, 0)
+
+	for i, prop := range element.Properties {
+		arrayProp, ok := prop.(ListProperty)
+		if !ok {
+			return nil, nil, fmt.Errorf("unimplemented scenario: %q element contains non list property %q", element.Name, prop.Name())
+		}
+
+		if prop.Name() == "vertex_index" || prop.Name() == "vertex_indices" {
+			indicesProp = i
+		}
+
+		if prop.Name() == "texcoord" {
+			texCordProp = i
+		}
+
+		readers = append(readers, &listPropertyReader{
+			property:         arrayProp,
+			endian:           endian,
+			buf:              make([]byte, arrayProp.CountType.Size()),
+			lastReadListSize: -1,
+		})
+	}
+
+	if indicesProp == -1 {
+		return nil, nil, fmt.Errorf("%q did not contain indices property", element.Name)
+	}
+
+	indices := make([]int, 0)
+	uvs := make([]vector2.Float64, 0)
+
+	indicesBuf := make([]int, 4)
+	texBuf := make([]float64, 8)
+
+	for i := 0; i < int(element.Count); i++ {
+		// Read everything
+		for readerIndex, reader := range readers {
+			err := reader.Read(in)
+			if err != nil {
+				return nil, nil, err
+			}
+			if readerIndex == indicesProp {
+				reader.Int(in, indicesBuf)
+			}
+
+			if readerIndex == texCordProp {
+				reader.Float64(in, texBuf)
+			}
+		}
+
+		// Interpret read data ================================================
+		points := readers[indicesProp].lastReadListSize
+
+		if points < 3 || points > 4 {
+			return nil, nil, fmt.Errorf("face contained indices entry of sie %d", points)
+		}
+
+		indices = append(indices, indicesBuf[:3]...)
+
+		// Tesselate the quad
+		if points == 4 {
+			indices = append(indices, indicesBuf[0], indicesBuf[2], indicesBuf[3])
+		}
+
+		if texCordProp > -1 {
+			uvs = append(
+				uvs,
+				vector2.New(texBuf[0], texBuf[1]),
+				vector2.New(texBuf[2], texBuf[3]),
+				vector2.New(texBuf[4], texBuf[5]),
+			)
+
+			// Tesselate the quad
+			if points == 4 {
+				uvs = append(
+					uvs,
+					vector2.New(texBuf[0], texBuf[1]),
+					vector2.New(texBuf[4], texBuf[5]),
+					vector2.New(texBuf[6], texBuf[7]),
+				)
+			}
+		}
+	}
+
+	return indices, uvs, nil
 }

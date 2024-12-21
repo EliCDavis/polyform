@@ -85,12 +85,12 @@ export class AABBParameterNodeController {
         this.lightNode.setProperty("max-x", curVal.center.x + curVal.extents.x);
         this.lightNode.setProperty("max-y", curVal.center.y + curVal.extents.y);
         this.lightNode.setProperty("max-z", curVal.center.z + curVal.extents.z);
-        this.lightNode.subscribeToProperty("min-x", this.propertyChange.bind(this));
-        this.lightNode.subscribeToProperty("min-y", this.propertyChange.bind(this));
-        this.lightNode.subscribeToProperty("min-z", this.propertyChange.bind(this));
-        this.lightNode.subscribeToProperty("max-x", this.propertyChange.bind(this));
-        this.lightNode.subscribeToProperty("max-y", this.propertyChange.bind(this));
-        this.lightNode.subscribeToProperty("max-z", this.propertyChange.bind(this));
+        this.lightNode.addPropertyChangeListener("min-x", this.propertyChange.bind(this));
+        this.lightNode.addPropertyChangeListener("min-y", this.propertyChange.bind(this));
+        this.lightNode.addPropertyChangeListener("min-z", this.propertyChange.bind(this));
+        this.lightNode.addPropertyChangeListener("max-x", this.propertyChange.bind(this));
+        this.lightNode.addPropertyChangeListener("max-y", this.propertyChange.bind(this));
+        this.lightNode.addPropertyChangeListener("max-z", this.propertyChange.bind(this));
         app.ViewerScene.add(this.box);
 
         this.up = this.addControl(parameterData, app, {
