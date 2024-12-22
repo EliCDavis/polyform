@@ -369,6 +369,64 @@ func TestWriteBinary_PointCloud(t *testing.T) {
 	assert.Equal(t, float32(3.3), pt.Float4Z)
 	assert.Equal(t, float32(4.4), pt.Float4W)
 }
+func TestWrite_IncludeAllUnspecied(t *testing.T) {
+	// ARRANGE ================================================================
+	writer := ply.MeshWriter{
+		Format:                     ply.BinaryLittleEndian,
+		WriteUnspecifiedProperties: true,
+	}
+
+	mesh := modeling.NewPointCloud(
+		map[string][]vector4.Float64{
+			"4-uchar": {vector4.New(1/255., 2/255., 3/255., 4/255.)},
+			"4-float": {vector4.New(1.1, 2.2, 3.3, 4.4)},
+		},
+		map[string][]vector3.Float64{
+			"3-uchar": {vector3.New(5/255., 6/255., 7/255.)},
+			"3-float": {vector3.New(5.5, 6.6, 7.7)},
+		},
+		map[string][]vector2.Float64{
+			"2-uchar": {vector2.New(8/255., 9/255.)},
+			"2-float": {vector2.New(8.8, 9.9)},
+		},
+		map[string][]float64{
+			"1-uchar": {10 / 255.},
+			"1-float": {10.1},
+		},
+		nil,
+	)
+
+	// ACT ====================================================================
+	buf := &bytes.Buffer{}
+	err := writer.Write(mesh, buf)
+	buf = bytes.NewBuffer(buf.Bytes())
+	meshBack, readErr := ply.ReadMesh(buf)
+
+	// ASSERT =================================================================
+	assert.NoError(t, err)
+	assert.NoError(t, readErr)
+
+	assert.True(t, meshBack.HasFloat1Attribute("4-uchar_0"), "mesh should have 4-uchar_0")
+	assert.True(t, meshBack.HasFloat1Attribute("4-uchar_1"), "mesh should have 4-uchar_1")
+	assert.True(t, meshBack.HasFloat1Attribute("4-uchar_2"), "mesh should have 4-uchar_2")
+	assert.True(t, meshBack.HasFloat1Attribute("4-uchar_3"), "mesh should have 4-uchar_3")
+	assert.True(t, meshBack.HasFloat1Attribute("4-float_0"), "mesh should have 4-float_0")
+	assert.True(t, meshBack.HasFloat1Attribute("4-float_1"), "mesh should have 4-float_1")
+	assert.True(t, meshBack.HasFloat1Attribute("4-float_2"), "mesh should have 4-float_2")
+	assert.True(t, meshBack.HasFloat1Attribute("4-float_3"), "mesh should have 4-float_3")
+	assert.True(t, meshBack.HasFloat1Attribute("3-uchar_0"), "mesh should have 3-uchar_0")
+	assert.True(t, meshBack.HasFloat1Attribute("3-uchar_1"), "mesh should have 3-uchar_1")
+	assert.True(t, meshBack.HasFloat1Attribute("3-uchar_2"), "mesh should have 3-uchar_2")
+	assert.True(t, meshBack.HasFloat1Attribute("3-float_0"), "mesh should have 3-float_0")
+	assert.True(t, meshBack.HasFloat1Attribute("3-float_1"), "mesh should have 3-float_1")
+	assert.True(t, meshBack.HasFloat1Attribute("3-float_2"), "mesh should have 3-float_2")
+	assert.True(t, meshBack.HasFloat1Attribute("2-uchar_0"), "mesh should have 2-uchar_0")
+	assert.True(t, meshBack.HasFloat1Attribute("2-uchar_1"), "mesh should have 2-uchar_1")
+	assert.True(t, meshBack.HasFloat1Attribute("2-float_0"), "mesh should have 2-float_0")
+	assert.True(t, meshBack.HasFloat1Attribute("2-float_1"), "mesh should have 2-float_1")
+	assert.True(t, meshBack.HasFloat1Attribute("1-uchar"), "mesh should have 1-uchar")
+	assert.True(t, meshBack.HasFloat1Attribute("1-float"), "mesh should have 1-float")
+}
 
 func TestWriteBinary_Tri(t *testing.T) {
 	// ARRANGE ================================================================

@@ -7,7 +7,8 @@ import (
 )
 
 var defaultWriter = MeshWriter{
-	Format: BinaryLittleEndian,
+	Format:                     BinaryLittleEndian,
+	WriteUnspecifiedProperties: true,
 	Properties: []PropertyWriter{
 		Vector3PropertyWriter{
 			ModelAttribute: modeling.PositionAttribute,
@@ -30,6 +31,36 @@ var defaultWriter = MeshWriter{
 			PlyPropertyY:   "green",
 			PlyPropertyZ:   "blue",
 		},
+
+		// Gaussian Splatting >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+		&Vector3PropertyWriter{
+			ModelAttribute: modeling.FDCAttribute,
+			Type:           Float,
+			PlyPropertyX:   "f_dc_0",
+			PlyPropertyY:   "f_dc_1",
+			PlyPropertyZ:   "f_dc_2",
+		},
+		&Vector1PropertyWriter{
+			ModelAttribute: modeling.OpacityAttribute,
+			Type:           Float,
+			PlyProperty:    "opacity",
+		},
+		&Vector3PropertyWriter{
+			ModelAttribute: modeling.ScaleAttribute,
+			Type:           Float,
+			PlyPropertyX:   "scale_0",
+			PlyPropertyY:   "scale_1",
+			PlyPropertyZ:   "scale_2",
+		},
+		&Vector4PropertyWriter{
+			ModelAttribute: modeling.RotationAttribute,
+			Type:           Float,
+			PlyPropertyX:   "rot_0",
+			PlyPropertyY:   "rot_1",
+			PlyPropertyZ:   "rot_2",
+			PlyPropertyW:   "rot_3",
+		},
+		// <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 	},
 }
 

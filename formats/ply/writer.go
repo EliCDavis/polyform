@@ -27,19 +27,107 @@ type builtPropertyWriter interface {
 type MeshWriter struct {
 	Format     Format
 	Properties []PropertyWriter
+
+	// Whether or not to save extra ply data that wasn't defined by the
+	// property writers
+	WriteUnspecifiedProperties bool
 }
 
 func (mw MeshWriter) Write(mesh modeling.Mesh, writer io.Writer) error {
 
+	writers := make([]PropertyWriter, 0)
 	properties := make([]Property, 0)
-	filteredProps := make([]builtPropertyWriter, 0)
+	builtWriters := make([]builtPropertyWriter, 0)
+
+	claimedV1 := make(map[string]bool)
+	claimedV2 := make(map[string]bool)
+	claimedV3 := make(map[string]bool)
+	claimedV4 := make(map[string]bool)
 
 	for _, prop := range mw.Properties {
 		if !prop.MeshQualifies(mesh) {
 			continue
 		}
-		filteredProps = append(filteredProps, prop.build(mesh, mw.Format))
+		writers = append(writers, prop)
+		switch v := prop.(type) {
+		case Vector4PropertyWriter:
+			claimedV4[v.ModelAttribute] = true
+		case Vector3PropertyWriter:
+			claimedV3[v.ModelAttribute] = true
+		case Vector2PropertyWriter:
+			claimedV2[v.ModelAttribute] = true
+		case Vector1PropertyWriter:
+			claimedV1[v.ModelAttribute] = true
+		default:
+			panic("what is this type")
+		}
+	}
+
+	if mw.WriteUnspecifiedProperties {
+		for _, p := range mesh.Float4Attributes() {
+			if claimedV4[p] {
+				continue
+			}
+			writers = append(writers, Vector4PropertyWriter{
+				ModelAttribute: p,
+				Type:           Float,
+				PlyPropertyX:   fmt.Sprintf("%s_0", p),
+				PlyPropertyY:   fmt.Sprintf("%s_1", p),
+				PlyPropertyZ:   fmt.Sprintf("%s_2", p),
+				PlyPropertyW:   fmt.Sprintf("%s_3", p),
+			})
+		}
+		for _, p := range mesh.Float3Attributes() {
+			if claimedV3[p] {
+				continue
+			}
+			writers = append(writers, Vector3PropertyWriter{
+				ModelAttribute: p,
+				Type:           Float,
+				PlyPropertyX:   fmt.Sprintf("%s_0", p),
+				PlyPropertyY:   fmt.Sprintf("%s_1", p),
+				PlyPropertyZ:   fmt.Sprintf("%s_2", p),
+			})
+		}
+		for _, p := range mesh.Float2Attributes() {
+			if claimedV2[p] || p == modeling.TexCoordAttribute {
+				continue
+			}
+			writers = append(writers, Vector2PropertyWriter{
+				ModelAttribute: p,
+				Type:           Float,
+				PlyPropertyX:   fmt.Sprintf("%s_0", p),
+				PlyPropertyY:   fmt.Sprintf("%s_1", p),
+			})
+		}
+		for _, p := range mesh.Float1Attributes() {
+			if claimedV1[p] {
+				continue
+			}
+			writers = append(writers, Vector1PropertyWriter{
+				ModelAttribute: p,
+				Type:           Float,
+				PlyProperty:    p,
+			})
+		}
+	}
+
+	for _, prop := range writers {
+		builtWriters = append(builtWriters, prop.build(mesh, mw.Format))
 		properties = append(properties, prop.Properties()...)
+
+		switch v := prop.(type) {
+		case Vector4PropertyWriter:
+			claimedV4[v.ModelAttribute] = true
+		case Vector3PropertyWriter:
+			claimedV3[v.ModelAttribute] = true
+		case Vector2PropertyWriter:
+			claimedV2[v.ModelAttribute] = true
+		case Vector1PropertyWriter:
+			claimedV1[v.ModelAttribute] = true
+		default:
+			panic("what is this type")
+		}
 	}
 
 	attributeLength := mesh.AttributeLength()
@@ -99,14 +187,14 @@ func (mw MeshWriter) Write(mesh modeling.Mesh, writer io.Writer) error {
 	newLineByte := []byte{'\n'}
 
 	for i := 0; i < attributeLength; i++ {
-		for propI, prop := range filteredProps {
+		for propI, prop := range builtWriters {
 			err = prop.Write(writer, i)
 			if err != nil {
 				return err
 			}
 
 			if mw.Format == ASCII {
-				if propI < len(filteredProps)-1 {
+				if propI < len(builtWriters)-1 {
 					writer.Write(spaceByte)
 				} else {
 					writer.Write(newLineByte)
