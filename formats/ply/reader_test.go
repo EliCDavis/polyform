@@ -3,6 +3,7 @@ package ply_test
 import (
 	"bytes"
 	"encoding/binary"
+	"strings"
 	"testing"
 
 	"github.com/EliCDavis/polyform/formats/ply"
@@ -12,6 +13,154 @@ import (
 	"github.com/EliCDavis/vector/vector4"
 	"github.com/stretchr/testify/assert"
 )
+
+func TestToMeshThrowsWithBadMagicNumber(t *testing.T) {
+	plyData := `test
+format ascii 1.0
+`
+	ply, err := ply.ReadMesh(strings.NewReader(plyData))
+
+	assert.EqualError(t, err, "unrecognized magic number: 'test' (expected 'ply')")
+	assert.Nil(t, ply)
+}
+
+func TestToMeshThrowsWithBadFormatLine(t *testing.T) {
+	plyData := `ply
+trash
+`
+	ply, err := ply.ReadMesh(strings.NewReader(plyData))
+
+	assert.EqualError(t, err, "unrecognized format line")
+	assert.Nil(t, ply)
+}
+
+func TestToMeshThrowsWithBadFormatVersion(t *testing.T) {
+	plyData := `ply
+format ascii 1.2
+`
+	ply, err := ply.ReadMesh(strings.NewReader(plyData))
+
+	assert.EqualError(t, err, "unrecognized version format: 1.2")
+	assert.Nil(t, ply)
+}
+
+func TestToMeshThrowsWithUnknownFormatType(t *testing.T) {
+	plyData := `ply
+format bad 1.0
+`
+	ply, err := ply.ReadMesh(strings.NewReader(plyData))
+
+	assert.EqualError(t, err, "unrecognized format: bad")
+	assert.Nil(t, ply)
+}
+
+func TestToMeshThrowsNoFormatLine(t *testing.T) {
+	plyData := `ply
+bad ascii 1.0
+`
+	ply, err := ply.ReadMesh(strings.NewReader(plyData))
+
+	assert.EqualError(t, err, "expected format line, received bad")
+	assert.Nil(t, ply)
+}
+
+func TestToMeshASCII(t *testing.T) {
+	plyData := `ply
+format ascii 1.0
+comment made by anonymous
+comment this file is a cube
+obj_info bs stuff 
+element vertex 8
+property float32 x
+property float32 y
+property float32 z
+element face 6
+property list uint8 int32 vertex_index
+end_header
+0 0 0
+0 0 1
+0 1 1
+0 1 0
+1 0 0
+1 0 1
+1 1 1
+1 1 0
+4 0 1 2 3
+4 7 6 5 4
+4 0 4 5 1
+4 1 5 6 2
+4 2 6 7 3
+4 3 7 4 0
+`
+	ply, err := ply.ReadMesh(strings.NewReader(plyData))
+
+	assert.NoError(t, err)
+	assert.NotNil(t, ply)
+	assert.Equal(t, 12, ply.PrimitiveCount())
+	assert.Equal(t, 8, ply.AttributeLength())
+}
+
+func TestToMeshASCIIWithTextureCords(t *testing.T) {
+	plyData := `ply
+format ascii 1.0
+comment TextureFile tri.png
+comment this file is a tesselated cube
+element vertex 8
+property float32 x
+property float32 y
+property float32 z
+element face 12
+property list uint8 int32 vertex_index
+property list uchar float texcoord
+end_header
+0 0 0
+0 0 1
+0 1 1
+0 1 0
+1 0 0
+1 0 1
+1 1 1
+1 1 0
+3 0 1 2 6 0.1 0.8 0.2 0.1 0.8 0.2
+3 1 2 3 6 0.1 0.8 0.2 0.1 0.8 0.2
+3 7 6 5 6 0.1 0.8 0.2 0.1 0.8 0.2
+3 6 5 4 6 0.1 0.8 0.2 0.1 0.8 0.2
+3 0 4 5 6 0.1 0.8 0.2 0.1 0.8 0.2
+3 4 5 1 6 0.1 0.8 0.2 0.1 0.8 0.2
+3 1 5 6 6 0.1 0.8 0.2 0.1 0.8 0.2
+3 5 6 2 6 0.1 0.8 0.2 0.1 0.8 0.2
+3 2 6 7 6 0.1 0.8 0.2 0.1 0.8 0.2
+3 6 7 3 6 0.1 0.8 0.2 0.1 0.8 0.2
+3 3 7 4 6 0.1 0.8 0.2 0.1 0.8 0.2
+3 7 4 0 6 0.1 0.8 0.2 0.1 0.8 0.2
+`
+	ply, err := ply.ReadMesh(strings.NewReader(plyData))
+
+	assert.NoError(t, err)
+	assert.NotNil(t, ply)
+	assert.Equal(t, 12, ply.PrimitiveCount())
+	assert.Equal(t, 36, ply.AttributeLength())
+	assert.True(t, ply.HasFloat2Attribute(modeling.TexCoordAttribute))
+}
+
+func TestToMeshLittleEndian(t *testing.T) {
+	bunny, err := ply.Load("../../test-models/stanford-bunny.ply")
+
+	assert.NoError(t, err)
+	assert.NotNil(t, bunny)
+	assert.Equal(t, 69451, bunny.PrimitiveCount())
+	assert.Equal(t, 35947, bunny.AttributeLength())
+}
+
+func TestToMeshLittleEndianTextured(t *testing.T) {
+	covid, err := ply.Load("../../test-models/covid.ply")
+
+	assert.NoError(t, err)
+	assert.NotNil(t, covid)
+	assert.Equal(t, 67960, covid.PrimitiveCount())
+	assert.Equal(t, 203880, covid.AttributeLength())
+	assert.True(t, covid.HasFloat2Attribute(modeling.TexCoordAttribute))
+}
 
 func TestMeshReader_Binary_SimplePointCloud(t *testing.T) {
 	// ARRANGE ================================================================
@@ -115,7 +264,67 @@ func TestMeshReader_Binary_EverythingPointCloud(t *testing.T) {
 	binary.Write(buf, binary.BigEndian, inputData)
 
 	// ACT ====================================================================
-	mesh, err := ply.ReadMesh2(buf)
+	mesh, err := ply.ReadMesh(buf)
+
+	// ASSERT =================================================================
+	assert.NoError(t, err)
+	assert.True(t, mesh.HasFloat3Attribute(modeling.PositionAttribute), "mesh should have position attribute")
+	assert.True(t, mesh.HasFloat3Attribute(modeling.NormalAttribute), "mesh should have normal attribute")
+	assert.True(t, mesh.HasFloat4Attribute(modeling.ColorAttribute), "mesh should have color attribute")
+	assert.True(t, mesh.HasFloat2Attribute(modeling.TexCoordAttribute), "mesh should have texcoord attribute")
+	assert.True(t, mesh.HasFloat1Attribute(modeling.OpacityAttribute), "mesh should have opacity attribute")
+
+	positionData := mesh.Float3Attribute(modeling.PositionAttribute)
+	assert.Equal(t, 2, positionData.Len())
+	assert.Equal(t, vector3.New(1., 2., 3.), positionData.At(0))
+	assert.Equal(t, vector3.New(4., 5., 6.), positionData.At(1))
+
+	normalData := mesh.Float3Attribute(modeling.NormalAttribute)
+	assert.Equal(t, 2, normalData.Len())
+	assert.Equal(t, vector3.New(1., 2., 3.), normalData.At(0))
+	assert.Equal(t, vector3.New(4., 5., 6.), normalData.At(1))
+
+	colorData := mesh.Float4Attribute(modeling.ColorAttribute)
+	assert.Equal(t, 2, colorData.Len())
+	assert.Equal(t, vector4.New(1./255., 2./255., 3./255., 1.), colorData.At(0))
+	assert.Equal(t, vector4.New(4./255., 5./255., 6./255., 1.), colorData.At(1))
+
+	texData := mesh.Float2Attribute(modeling.TexCoordAttribute)
+	assert.Equal(t, 2, texData.Len())
+	assert.Equal(t, vector2.New(10., 20.), texData.At(0))
+	assert.Equal(t, vector2.New(30., 40.), texData.At(1))
+
+	opacityData := mesh.Float1Attribute(modeling.OpacityAttribute)
+	assert.Equal(t, 2, opacityData.Len())
+	assert.Equal(t, 10., opacityData.At(0))
+	assert.Equal(t, 20., opacityData.At(1))
+}
+
+func TestMeshReader_ASCII_EverythingPointCloud(t *testing.T) {
+	// ARRANGE ================================================================
+	plyFile := `ply
+format ascii 1.0
+element vertex 2
+property double x
+property float32 nx
+property uchar r
+property double y
+property float32 ny
+property uchar g
+property double z
+property float32 nz
+property uchar b
+property uchar a
+property float32 s
+property float32 t
+property uchar opacity
+end_header
+1 1 1 2 2 2 3 3 3 255 10 20 10
+4 4 4 5 5 5 6 6 6 255 30 40 20
+`
+
+	// ACT ====================================================================
+	mesh, err := ply.ReadMesh(strings.NewReader(plyFile))
 
 	// ASSERT =================================================================
 	assert.NoError(t, err)

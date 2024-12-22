@@ -5,7 +5,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"image/color"
 	"io"
 	"os"
 	"strconv"
@@ -15,27 +14,6 @@ import (
 	"github.com/EliCDavis/polyform/modeling/meshops"
 	"github.com/EliCDavis/vector/vector2"
 )
-
-type BodyReader interface {
-	ReadMesh(vertexAttributes map[string]bool) (*modeling.Mesh, error)
-}
-
-var GuassianSplatVertexAttributesNoHarmonics map[string]bool = map[string]bool{
-	"x":       true,
-	"y":       true,
-	"z":       true,
-	"scale_0": true,
-	"scale_1": true,
-	"scale_2": true,
-	"rot_0":   true,
-	"rot_1":   true,
-	"rot_2":   true,
-	"rot_3":   true,
-	"f_dc_0":  true,
-	"f_dc_1":  true,
-	"f_dc_2":  true,
-	"opacity": true,
-}
 
 func readLine(in io.Reader) (string, error) {
 	data := make([]byte, 0)
@@ -238,45 +216,6 @@ func ReadHeader(in io.Reader) (Header, error) {
 	return header, nil
 }
 
-func buildReader(in io.Reader) (BodyReader, *modeling.Material, error) {
-	header, err := ReadHeader(in)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	var mat *modeling.Material = nil
-	textures := header.TextureFiles()
-	if len(textures) > 0 {
-		tex := textures[0]
-		mat = &modeling.Material{
-			Name:            tex,
-			DiffuseColor:    color.White,
-			ColorTextureURI: &tex,
-		}
-	}
-
-	return header.BuildReader(in), mat, nil
-}
-
-func ReadMesh(in io.Reader) (*modeling.Mesh, error) {
-	reader, mat, err := buildReader(in)
-	if err != nil {
-		return nil, err
-	}
-
-	mesh, err := reader.ReadMesh(nil)
-	if err != nil {
-		return nil, err
-	}
-
-	if mat != nil {
-		matmesh := mesh.SetMaterial(*mat)
-		mesh = &matmesh
-	}
-
-	return mesh, nil
-}
-
 // https://bsky.app/profile/elicdavis.bsky.social/post/3lcxkpsvgbs24
 var defaultReader MeshReader = MeshReader{
 	AttributeElement: VertexElementName,
@@ -366,12 +305,13 @@ var defaultReader MeshReader = MeshReader{
 	},
 }
 
-func ReadMesh2(reader io.Reader) (*modeling.Mesh, error) {
+func ReadMesh(reader io.Reader) (*modeling.Mesh, error) {
 	return defaultReader.Read(reader)
 }
 
 type PropertyReader interface {
 	buildBinary(element Element, endian binary.ByteOrder) binaryPropertyReader
+	buildAscii(element Element) asciiPropertyReader
 }
 
 type builtPropertyReader interface {
@@ -380,7 +320,7 @@ type builtPropertyReader interface {
 
 type asciiPropertyReader interface {
 	builtPropertyReader
-	Read(buf []byte, i int64)
+	Read(buf []string, i int64) error
 }
 
 type binaryPropertyReader interface {
@@ -455,7 +395,46 @@ func (mr MeshReader) Read(reader io.Reader) (*modeling.Mesh, error) {
 	}
 
 	if header.Format == ASCII {
+		// Build all readers
+		asciiReaders := make([]asciiPropertyReader, 0)
+		for _, reader := range mr.Properties {
+			builtReader := reader.buildAscii(*vertexElement)
+			if builtReader == nil {
+				continue
+			}
+			builtReaders = append(builtReaders, builtReader)
+			asciiReaders = append(asciiReaders, builtReader)
+		}
 
+		// Read data
+		scanner := bufio.NewScanner(reader)
+		for i := int64(0); i < vertexElement.Count; i++ {
+			scanner.Scan()
+
+			text := scanner.Text()
+			if text == "" {
+				continue
+			}
+
+			contents := strings.Fields(text)
+
+			for _, reader := range asciiReaders {
+				err = reader.Read(contents, i)
+				if err != nil {
+					return nil, err
+				}
+			}
+
+		}
+
+		// Read face data if present
+		if facesElement != nil {
+			topo = modeling.TriangleTopology
+			indices, uvs, err = readAsciiFaceElement(*facesElement, scanner)
+			if err != nil {
+				return nil, err
+			}
+		}
 	} else {
 		var endian binary.ByteOrder = binary.LittleEndian
 		if header.Format == BinaryBigEndian {
@@ -510,11 +489,11 @@ func (mr MeshReader) Read(reader io.Reader) (*modeling.Mesh, error) {
 	return &mesh, nil
 }
 
-func readBinaryFaceElement(element Element, endian binary.ByteOrder, in io.Reader) ([]int, []vector2.Float64, error) {
+func readAsciiFaceElement(element Element, scanner *bufio.Scanner) ([]int, []vector2.Float64, error) {
 	indicesProp := -1
 	texCordProp := -1
 
-	readers := make([]*listPropertyReader, 0)
+	readers := make([]*listAsciiPropertyReader, 0)
 
 	for i, prop := range element.Properties {
 		arrayProp, ok := prop.(ListProperty)
@@ -530,7 +509,117 @@ func readBinaryFaceElement(element Element, endian binary.ByteOrder, in io.Reade
 			texCordProp = i
 		}
 
-		readers = append(readers, &listPropertyReader{
+		readers = append(readers, &listAsciiPropertyReader{
+			property:         arrayProp,
+			lastReadListSize: -1,
+		})
+	}
+
+	if indicesProp == -1 {
+		return nil, nil, fmt.Errorf("%q did not contain indices property", element.Name)
+	}
+
+	indices := make([]int, 0)
+	uvs := make([]vector2.Float64, 0)
+
+	indicesBuf := make([]int, 4)
+	texBuf := make([]float64, 8)
+
+	var i int
+	for i < int(element.Count) {
+		scanner.Scan()
+		line := scanner.Text()
+
+		if line == "" {
+			continue
+		}
+
+		contents := strings.Fields(line)
+
+		// Read everything
+		currentOffset := 0
+		for readerIndex, reader := range readers {
+			off, err := reader.Read(contents[currentOffset:])
+			if err != nil {
+				return nil, nil, err
+			}
+			currentOffset += off
+
+			if readerIndex == indicesProp {
+				err = reader.Int(indicesBuf)
+				if err != nil {
+					return nil, nil, err
+				}
+			}
+
+			if readerIndex == texCordProp {
+				err = reader.Float64(texBuf)
+				if err != nil {
+					return nil, nil, err
+				}
+			}
+		}
+
+		// Interpret read data ================================================
+		points := readers[indicesProp].lastReadListSize
+
+		if points < 3 || points > 4 {
+			return nil, nil, fmt.Errorf("face contained indices entry of size %d", points)
+		}
+
+		indices = append(indices, indicesBuf[:3]...)
+
+		// Tesselate the quad
+		if points == 4 {
+			indices = append(indices, indicesBuf[0], indicesBuf[2], indicesBuf[3])
+		}
+
+		if texCordProp > -1 {
+			uvs = append(
+				uvs,
+				vector2.New(texBuf[0], texBuf[1]),
+				vector2.New(texBuf[2], texBuf[3]),
+				vector2.New(texBuf[4], texBuf[5]),
+			)
+
+			// Tesselate the quad
+			if points == 4 {
+				uvs = append(
+					uvs,
+					vector2.New(texBuf[0], texBuf[1]),
+					vector2.New(texBuf[4], texBuf[5]),
+					vector2.New(texBuf[6], texBuf[7]),
+				)
+			}
+		}
+
+		i++
+	}
+
+	return indices, uvs, nil
+}
+
+func readBinaryFaceElement(element Element, endian binary.ByteOrder, in io.Reader) ([]int, []vector2.Float64, error) {
+	indicesProp := -1
+	texCordProp := -1
+
+	readers := make([]*listBinaryPropertyReader, 0)
+
+	for i, prop := range element.Properties {
+		arrayProp, ok := prop.(ListProperty)
+		if !ok {
+			return nil, nil, fmt.Errorf("unimplemented scenario: %q element contains non list property %q", element.Name, prop.Name())
+		}
+
+		if prop.Name() == "vertex_index" || prop.Name() == "vertex_indices" {
+			indicesProp = i
+		}
+
+		if prop.Name() == "texcoord" {
+			texCordProp = i
+		}
+
+		readers = append(readers, &listBinaryPropertyReader{
 			property:         arrayProp,
 			endian:           endian,
 			buf:              make([]byte, arrayProp.CountType.Size()),
@@ -556,11 +645,11 @@ func readBinaryFaceElement(element Element, endian binary.ByteOrder, in io.Reade
 				return nil, nil, err
 			}
 			if readerIndex == indicesProp {
-				reader.Int(in, indicesBuf)
+				reader.Int(indicesBuf)
 			}
 
 			if readerIndex == texCordProp {
-				reader.Float64(in, texBuf)
+				reader.Float64(texBuf)
 			}
 		}
 
@@ -568,7 +657,7 @@ func readBinaryFaceElement(element Element, endian binary.ByteOrder, in io.Reade
 		points := readers[indicesProp].lastReadListSize
 
 		if points < 3 || points > 4 {
-			return nil, nil, fmt.Errorf("face contained indices entry of sie %d", points)
+			return nil, nil, fmt.Errorf("face contained indices entry of size %d", points)
 		}
 
 		indices = append(indices, indicesBuf[:3]...)

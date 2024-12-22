@@ -8,14 +8,14 @@ import (
 	"math"
 )
 
-type listPropertyReader struct {
+type listBinaryPropertyReader struct {
 	property         ListProperty
 	endian           binary.ByteOrder
 	buf              []byte
 	lastReadListSize int32
 }
 
-func (lpr listPropertyReader) Count(in io.Reader) (int32, error) {
+func (lpr listBinaryPropertyReader) Count(in io.Reader) (int32, error) {
 	switch lpr.property.CountType {
 	case UChar:
 		_, err := io.ReadFull(in, lpr.buf[:1])
@@ -28,7 +28,7 @@ func (lpr listPropertyReader) Count(in io.Reader) (int32, error) {
 	return -1, fmt.Errorf("unimplemented list property count type: %s", lpr.property.CountType)
 }
 
-func (lpr *listPropertyReader) Read(in io.Reader) (err error) {
+func (lpr *listBinaryPropertyReader) Read(in io.Reader) (err error) {
 	lpr.lastReadListSize, err = lpr.Count(in)
 	if err != nil {
 		return err
@@ -43,7 +43,7 @@ func (lpr *listPropertyReader) Read(in io.Reader) (err error) {
 	return err
 }
 
-func (lpr listPropertyReader) Int(in io.Reader, out []int) error {
+func (lpr listBinaryPropertyReader) Int(out []int) error {
 	if int32(len(out)) < lpr.lastReadListSize {
 		return errors.New("can't fit property reader data in provided out slice")
 	}
@@ -62,7 +62,7 @@ func (lpr listPropertyReader) Int(in io.Reader, out []int) error {
 	return nil
 }
 
-func (lpr listPropertyReader) Float64(in io.Reader, out []float64) error {
+func (lpr listBinaryPropertyReader) Float64(out []float64) error {
 	if int32(len(out)) < lpr.lastReadListSize {
 		return errors.New("can't fit property reader data in provided out slice")
 	}

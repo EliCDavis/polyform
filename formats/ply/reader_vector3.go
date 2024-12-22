@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"math"
+	"strconv"
 
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/vector/vector3"
@@ -39,7 +40,6 @@ func (v3pr Vector3PropertyReader) buildBinary(element Element, endian binary.Byt
 
 		if scalar.PropertyName == v3pr.PlyPropertyY {
 			yOffset = totalSize
-			scalarType = scalar.Type
 
 			if string(scalarType) == "" {
 				scalarType = scalar.Type
@@ -53,7 +53,6 @@ func (v3pr Vector3PropertyReader) buildBinary(element Element, endian binary.Byt
 
 		if scalar.PropertyName == v3pr.PlyPropertyZ {
 			zOffset = totalSize
-			scalarType = scalar.Type
 
 			if string(scalarType) == "" {
 				scalarType = scalar.Type
@@ -69,7 +68,7 @@ func (v3pr Vector3PropertyReader) buildBinary(element Element, endian binary.Byt
 	}
 
 	if xOffset > -1 && yOffset > -1 && zOffset > -1 {
-		return &builtVector3PropertyReader{
+		return &builtBinaryVector3PropertyReader{
 			arr:            make([]vector3.Float64, element.Count),
 			xOffset:        xOffset,
 			yOffset:        yOffset,
@@ -83,7 +82,107 @@ func (v3pr Vector3PropertyReader) buildBinary(element Element, endian binary.Byt
 	return nil
 }
 
-type builtVector3PropertyReader struct {
+func (v3pr Vector3PropertyReader) buildAscii(element Element) asciiPropertyReader {
+	xOffset := -1
+	yOffset := -1
+	zOffset := -1
+	var scalarType ScalarPropertyType
+	for i, prop := range element.Properties {
+		scalar := prop.(ScalarProperty)
+
+		if scalar.PropertyName == v3pr.PlyPropertyX {
+			xOffset = i
+			if string(scalarType) == "" {
+				scalarType = scalar.Type
+			}
+
+			// At the moment, there's no support for mix/matching type
+			if scalarType != scalar.Type {
+				xOffset = -1
+			}
+		}
+
+		if scalar.PropertyName == v3pr.PlyPropertyY {
+			yOffset = i
+
+			if string(scalarType) == "" {
+				scalarType = scalar.Type
+			}
+
+			// At the moment, there's no support for mix/matching type
+			if scalarType != scalar.Type {
+				yOffset = -1
+			}
+		}
+
+		if scalar.PropertyName == v3pr.PlyPropertyZ {
+			zOffset = i
+
+			if string(scalarType) == "" {
+				scalarType = scalar.Type
+			}
+
+			// At the moment, there's no support for mix/matching type
+			if scalarType != scalar.Type {
+				zOffset = -1
+			}
+		}
+
+	}
+
+	if xOffset > -1 && yOffset > -1 && zOffset > -1 {
+		return &builtAsciiVector3PropertyReader{
+			arr:            make([]vector3.Float64, element.Count),
+			xOffset:        xOffset,
+			yOffset:        yOffset,
+			zOffset:        zOffset,
+			modelAttribute: v3pr.ModelAttribute,
+			scalarType:     scalarType,
+		}
+	}
+
+	return nil
+}
+
+type builtAsciiVector3PropertyReader struct {
+	arr            []vector3.Float64
+	scalarType     ScalarPropertyType
+	modelAttribute string
+	xOffset        int
+	yOffset        int
+	zOffset        int
+}
+
+func (bav3pr builtAsciiVector3PropertyReader) Read(buf []string, i int64) error {
+	xParsed, err := strconv.ParseFloat(buf[bav3pr.xOffset], 32)
+	if err != nil {
+		return err
+	}
+
+	yParsed, err := strconv.ParseFloat(buf[bav3pr.yOffset], 32)
+	if err != nil {
+		return err
+	}
+
+	zParsed, err := strconv.ParseFloat(buf[bav3pr.zOffset], 32)
+	if err != nil {
+		return err
+	}
+
+	v := vector3.New(xParsed, yParsed, zParsed)
+	if bav3pr.scalarType == UChar {
+		v = v.DivByConstant(255.)
+	}
+
+	bav3pr.arr[i] = v
+	return nil
+}
+
+func (bv3pr *builtAsciiVector3PropertyReader) UpdateMesh(m modeling.Mesh) modeling.Mesh {
+	return m.SetFloat3Attribute(bv3pr.modelAttribute, bv3pr.arr)
+}
+
+type builtBinaryVector3PropertyReader struct {
 	arr            []vector3.Float64
 	scalarType     ScalarPropertyType
 	endian         binary.ByteOrder
@@ -93,7 +192,7 @@ type builtVector3PropertyReader struct {
 	zOffset        int
 }
 
-func (bv3pr *builtVector3PropertyReader) Read(buf []byte, i int64) {
+func (bv3pr *builtBinaryVector3PropertyReader) Read(buf []byte, i int64) {
 
 	var v vector3.Float64
 	switch bv3pr.scalarType {
@@ -132,6 +231,6 @@ func (bv3pr *builtVector3PropertyReader) Read(buf []byte, i int64) {
 	bv3pr.arr[i] = v
 }
 
-func (bv3pr *builtVector3PropertyReader) UpdateMesh(m modeling.Mesh) modeling.Mesh {
+func (bv3pr *builtBinaryVector3PropertyReader) UpdateMesh(m modeling.Mesh) modeling.Mesh {
 	return m.SetFloat3Attribute(bv3pr.modelAttribute, bv3pr.arr)
 }

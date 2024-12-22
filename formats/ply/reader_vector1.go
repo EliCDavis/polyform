@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"math"
+	"strconv"
 
 	"github.com/EliCDavis/polyform/modeling"
 )
@@ -32,6 +33,50 @@ func (v1pr Vector1PropertyReader) buildBinary(element Element, endian binary.Byt
 	}
 
 	return nil
+}
+
+func (v1pr Vector1PropertyReader) buildAscii(element Element) asciiPropertyReader {
+	var scalarType ScalarPropertyType
+	for i, prop := range element.Properties {
+		scalar := prop.(ScalarProperty)
+
+		if scalar.PropertyName == v1pr.PlyProperty {
+			return &builtAsciiVector1PropertyReader{
+				arr:            make([]float64, element.Count),
+				offset:         i,
+				modelAttribute: v1pr.ModelAttribute,
+				scalarType:     scalarType,
+			}
+		}
+
+	}
+
+	return nil
+}
+
+type builtAsciiVector1PropertyReader struct {
+	arr            []float64
+	scalarType     ScalarPropertyType
+	modelAttribute string
+	offset         int
+}
+
+func (bav3pr builtAsciiVector1PropertyReader) Read(buf []string, i int64) error {
+	v, err := strconv.ParseFloat(buf[bav3pr.offset], 32)
+	if err != nil {
+		return err
+	}
+
+	if bav3pr.scalarType == UChar {
+		v /= 255.
+	}
+
+	bav3pr.arr[i] = v
+	return nil
+}
+
+func (bv3pr *builtAsciiVector1PropertyReader) UpdateMesh(m modeling.Mesh) modeling.Mesh {
+	return m.SetFloat1Attribute(bv3pr.modelAttribute, bv3pr.arr)
 }
 
 type builtVector1PropertyReader struct {

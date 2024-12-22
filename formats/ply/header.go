@@ -1,9 +1,7 @@
 package ply
 
 import (
-	"bufio"
 	"bytes"
-	"encoding/binary"
 	"fmt"
 	"io"
 	"strings"
@@ -88,30 +86,4 @@ func (h Header) Write(out io.Writer) (err error) {
 
 	_, err = out.Write([]byte("end_header\n"))
 	return
-}
-
-// Builds a reader to interpret the contents of the body of the PLY format,
-// based on the elements and format of this header.
-func (h Header) BuildReader(in io.Reader) BodyReader {
-	switch h.Format {
-	case ASCII:
-		return &AsciiReader{elements: h.Elements, scanner: bufio.NewScanner(in)}
-
-	case BinaryLittleEndian:
-		return &BinaryReader{
-			elements: h.Elements,
-			order:    binary.LittleEndian,
-			reader:   in,
-		}
-
-	case BinaryBigEndian:
-		return &BinaryReader{
-			elements: h.Elements,
-			order:    binary.BigEndian,
-			reader:   in,
-		}
-
-	default:
-		panic(fmt.Errorf("unimplemented ply format: %s", h.Format))
-	}
 }

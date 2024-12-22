@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"math"
+	"strconv"
 
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/vector/vector4"
@@ -41,7 +42,6 @@ func (v3pr Vector4PropertyReader) buildBinary(element Element, endian binary.Byt
 
 		if scalar.PropertyName == v3pr.PlyPropertyY {
 			yOffset = totalSize
-			scalarType = scalar.Type
 
 			if string(scalarType) == "" {
 				scalarType = scalar.Type
@@ -55,7 +55,6 @@ func (v3pr Vector4PropertyReader) buildBinary(element Element, endian binary.Byt
 
 		if scalar.PropertyName == v3pr.PlyPropertyZ {
 			zOffset = totalSize
-			scalarType = scalar.Type
 
 			if string(scalarType) == "" {
 				scalarType = scalar.Type
@@ -98,6 +97,126 @@ func (v3pr Vector4PropertyReader) buildBinary(element Element, endian binary.Byt
 	}
 
 	return nil
+}
+
+func (v3pr Vector4PropertyReader) buildAscii(element Element) asciiPropertyReader {
+	xOffset := -1
+	yOffset := -1
+	zOffset := -1
+	wOffset := -1
+	var scalarType ScalarPropertyType
+	for i, prop := range element.Properties {
+		scalar := prop.(ScalarProperty)
+
+		if scalar.PropertyName == v3pr.PlyPropertyX {
+			xOffset = i
+			if string(scalarType) == "" {
+				scalarType = scalar.Type
+			}
+
+			// At the moment, there's no support for mix/matching type
+			if scalarType != scalar.Type {
+				xOffset = -1
+			}
+		}
+
+		if scalar.PropertyName == v3pr.PlyPropertyY {
+			yOffset = i
+
+			if string(scalarType) == "" {
+				scalarType = scalar.Type
+			}
+
+			// At the moment, there's no support for mix/matching type
+			if scalarType != scalar.Type {
+				yOffset = -1
+			}
+		}
+
+		if scalar.PropertyName == v3pr.PlyPropertyZ {
+			zOffset = i
+
+			if string(scalarType) == "" {
+				scalarType = scalar.Type
+			}
+
+			// At the moment, there's no support for mix/matching type
+			if scalarType != scalar.Type {
+				zOffset = -1
+			}
+		}
+
+		if scalar.PropertyName == v3pr.PlyPropertyW {
+			wOffset = i
+
+			if string(scalarType) == "" {
+				scalarType = scalar.Type
+			}
+
+			// At the moment, there's no support for mix/matching type
+			if scalarType != scalar.Type {
+				wOffset = -1
+			}
+		}
+	}
+
+	if xOffset > -1 && yOffset > -1 && zOffset > -1 {
+		return &builtAsciiVector4PropertyReader{
+			arr:            make([]vector4.Float64, element.Count),
+			xOffset:        xOffset,
+			yOffset:        yOffset,
+			zOffset:        zOffset,
+			wOffset:        wOffset,
+			modelAttribute: v3pr.ModelAttribute,
+			scalarType:     scalarType,
+		}
+	}
+
+	return nil
+}
+
+type builtAsciiVector4PropertyReader struct {
+	arr            []vector4.Float64
+	scalarType     ScalarPropertyType
+	modelAttribute string
+	xOffset        int
+	yOffset        int
+	zOffset        int
+	wOffset        int
+}
+
+func (bav3pr builtAsciiVector4PropertyReader) Read(buf []string, i int64) error {
+	xParsed, err := strconv.ParseFloat(buf[bav3pr.xOffset], 32)
+	if err != nil {
+		return err
+	}
+
+	yParsed, err := strconv.ParseFloat(buf[bav3pr.yOffset], 32)
+	if err != nil {
+		return err
+	}
+
+	zParsed, err := strconv.ParseFloat(buf[bav3pr.zOffset], 32)
+	if err != nil {
+		return err
+	}
+
+	wParsed, err := strconv.ParseFloat(buf[bav3pr.wOffset], 32)
+	if err != nil {
+		return err
+	}
+
+	v := vector4.New(xParsed, yParsed, zParsed, wParsed)
+	if bav3pr.scalarType == UChar {
+		v = v.DivByConstant(255.)
+	}
+
+	bav3pr.arr[i] = v
+	return nil
+}
+
+func (bv3pr *builtAsciiVector4PropertyReader) UpdateMesh(m modeling.Mesh) modeling.Mesh {
+	return m.SetFloat4Attribute(bv3pr.modelAttribute, bv3pr.arr)
 }
 
 type builtVector4PropertyReader struct {
