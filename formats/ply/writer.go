@@ -58,6 +58,14 @@ func (mw MeshWriter) Write(mesh modeling.Mesh, writer io.Writer) error {
 			claimedV2[v.ModelAttribute] = true
 		case Vector1PropertyWriter:
 			claimedV1[v.ModelAttribute] = true
+		case *Vector4PropertyWriter:
+			claimedV4[v.ModelAttribute] = true
+		case *Vector3PropertyWriter:
+			claimedV3[v.ModelAttribute] = true
+		case *Vector2PropertyWriter:
+			claimedV2[v.ModelAttribute] = true
+		case *Vector1PropertyWriter:
+			claimedV1[v.ModelAttribute] = true
 		default:
 			panic("what is this type")
 		}
@@ -115,19 +123,6 @@ func (mw MeshWriter) Write(mesh modeling.Mesh, writer io.Writer) error {
 	for _, prop := range writers {
 		builtWriters = append(builtWriters, prop.build(mesh, mw.Format))
 		properties = append(properties, prop.Properties()...)
-
-		switch v := prop.(type) {
-		case Vector4PropertyWriter:
-			claimedV4[v.ModelAttribute] = true
-		case Vector3PropertyWriter:
-			claimedV3[v.ModelAttribute] = true
-		case Vector2PropertyWriter:
-			claimedV2[v.ModelAttribute] = true
-		case Vector1PropertyWriter:
-			claimedV1[v.ModelAttribute] = true
-		default:
-			panic("what is this type")
-		}
 	}
 
 	attributeLength := mesh.AttributeLength()
