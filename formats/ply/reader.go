@@ -252,6 +252,7 @@ var defaultReader MeshReader = MeshReader{
 		},
 		&Vector4PropertyReader{
 			ModelAttribute: modeling.ColorAttribute,
+			IgnorableW:     true,
 			PlyPropertyX:   "red",
 			PlyPropertyY:   "green",
 			PlyPropertyZ:   "blue",
@@ -259,6 +260,7 @@ var defaultReader MeshReader = MeshReader{
 		},
 		&Vector4PropertyReader{
 			ModelAttribute: modeling.ColorAttribute,
+			IgnorableW:     true,
 			PlyPropertyX:   "r",
 			PlyPropertyY:   "g",
 			PlyPropertyZ:   "b",
@@ -266,6 +268,7 @@ var defaultReader MeshReader = MeshReader{
 		},
 		&Vector4PropertyReader{
 			ModelAttribute: modeling.ColorAttribute,
+			IgnorableW:     true,
 			PlyPropertyX:   "diffuse_red",
 			PlyPropertyY:   "diffuse_green",
 			PlyPropertyZ:   "diffuse_blue",

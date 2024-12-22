@@ -359,3 +359,73 @@ end_header
 	assert.Equal(t, 10., opacityData.At(0))
 	assert.Equal(t, 20., opacityData.At(1))
 }
+
+func TestMeshReader_ASCII_Vector4FallsbackToVector3WhenWMissing(t *testing.T) {
+	// ARRANGE ================================================================
+	plyFile := `ply
+format ascii 1.0
+element vertex 2
+property uchar r
+property uchar g
+property uchar b
+end_header
+1 2 3
+4 5 6
+`
+
+	// ACT ====================================================================
+	mesh, err := ply.ReadMesh(strings.NewReader(plyFile))
+
+	// ASSERT =================================================================
+	assert.NoError(t, err)
+	assert.True(t, mesh.HasFloat3Attribute(modeling.ColorAttribute), "mesh should have color attribute")
+
+	colorData := mesh.Float3Attribute(modeling.ColorAttribute)
+	assert.Equal(t, 2, colorData.Len())
+	assert.Equal(t, vector3.New(1./255., 2./255., 3./255.), colorData.At(0))
+	assert.Equal(t, vector3.New(4./255., 5./255., 6./255.), colorData.At(1))
+
+}
+
+func TestMeshReader_Binary_Vector4FallsbackToVector3WhenWMissing(t *testing.T) {
+	// ARRANGE ================================================================
+	header := ply.Header{
+		Format: ply.BinaryBigEndian,
+		Elements: []ply.Element{{
+			Name:  ply.VertexElementName,
+			Count: 2,
+			Properties: []ply.Property{
+				ply.ScalarProperty{PropertyName: "r", Type: ply.UChar},
+				ply.ScalarProperty{PropertyName: "g", Type: ply.UChar},
+				ply.ScalarProperty{PropertyName: "b", Type: ply.UChar},
+			},
+		}},
+	}
+
+	type Point struct {
+		r byte
+		g byte
+		b byte
+	}
+
+	inputData := []Point{
+		{r: 1, g: 2, b: 3},
+		{r: 4, g: 5, b: 6},
+	}
+
+	buf := &bytes.Buffer{}
+	header.Write(buf)
+	binary.Write(buf, binary.BigEndian, inputData)
+
+	// ACT ====================================================================
+	mesh, err := ply.ReadMesh(buf)
+
+	// ASSERT =================================================================
+	assert.NoError(t, err)
+	assert.True(t, mesh.HasFloat3Attribute(modeling.ColorAttribute), "mesh should have color attribute")
+
+	colorData := mesh.Float3Attribute(modeling.ColorAttribute)
+	assert.Equal(t, 2, colorData.Len())
+	assert.Equal(t, vector3.New(1./255., 2./255., 3./255.), colorData.At(0))
+	assert.Equal(t, vector3.New(4./255., 5./255., 6./255.), colorData.At(1))
+}

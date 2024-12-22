@@ -16,9 +16,10 @@ type Vector4PropertyReader struct {
 	PlyPropertyY   string
 	PlyPropertyZ   string
 	PlyPropertyW   string
+	IgnorableW     bool
 }
 
-func (v3pr Vector4PropertyReader) buildBinary(element Element, endian binary.ByteOrder) binaryPropertyReader {
+func (v4pr Vector4PropertyReader) buildBinary(element Element, endian binary.ByteOrder) binaryPropertyReader {
 	totalSize := 0
 	xOffset := -1
 	yOffset := -1
@@ -28,7 +29,7 @@ func (v3pr Vector4PropertyReader) buildBinary(element Element, endian binary.Byt
 	for _, prop := range element.Properties {
 		scalar := prop.(ScalarProperty)
 
-		if scalar.PropertyName == v3pr.PlyPropertyX {
+		if scalar.PropertyName == v4pr.PlyPropertyX {
 			xOffset = totalSize
 			if string(scalarType) == "" {
 				scalarType = scalar.Type
@@ -40,7 +41,7 @@ func (v3pr Vector4PropertyReader) buildBinary(element Element, endian binary.Byt
 			}
 		}
 
-		if scalar.PropertyName == v3pr.PlyPropertyY {
+		if scalar.PropertyName == v4pr.PlyPropertyY {
 			yOffset = totalSize
 
 			if string(scalarType) == "" {
@@ -53,7 +54,7 @@ func (v3pr Vector4PropertyReader) buildBinary(element Element, endian binary.Byt
 			}
 		}
 
-		if scalar.PropertyName == v3pr.PlyPropertyZ {
+		if scalar.PropertyName == v4pr.PlyPropertyZ {
 			zOffset = totalSize
 
 			if string(scalarType) == "" {
@@ -66,7 +67,7 @@ func (v3pr Vector4PropertyReader) buildBinary(element Element, endian binary.Byt
 			}
 		}
 
-		if scalar.PropertyName == v3pr.PlyPropertyW {
+		if scalar.PropertyName == v4pr.PlyPropertyW {
 			wOffset = totalSize
 			scalarType = scalar.Type
 
@@ -83,23 +84,32 @@ func (v3pr Vector4PropertyReader) buildBinary(element Element, endian binary.Byt
 		totalSize += scalar.Size()
 	}
 
-	if xOffset > -1 && yOffset > -1 && zOffset > -1 {
+	if xOffset > -1 && yOffset > -1 && zOffset > -1 && wOffset > -1 {
 		return &builtVector4PropertyReader{
 			arr:            make([]vector4.Float64, element.Count),
 			xOffset:        xOffset,
 			yOffset:        yOffset,
 			zOffset:        zOffset,
 			wOffset:        wOffset,
-			modelAttribute: v3pr.ModelAttribute,
+			modelAttribute: v4pr.ModelAttribute,
 			scalarType:     scalarType,
 			endian:         endian,
 		}
 	}
 
+	if xOffset > -1 && yOffset > -1 && zOffset > -1 && v4pr.IgnorableW {
+		return Vector3PropertyReader{
+			ModelAttribute: v4pr.ModelAttribute,
+			PlyPropertyX:   v4pr.PlyPropertyX,
+			PlyPropertyY:   v4pr.PlyPropertyY,
+			PlyPropertyZ:   v4pr.PlyPropertyZ,
+		}.buildBinary(element, endian)
+	}
+
 	return nil
 }
 
-func (v3pr Vector4PropertyReader) buildAscii(element Element) asciiPropertyReader {
+func (v4pr Vector4PropertyReader) buildAscii(element Element) asciiPropertyReader {
 	xOffset := -1
 	yOffset := -1
 	zOffset := -1
@@ -108,7 +118,7 @@ func (v3pr Vector4PropertyReader) buildAscii(element Element) asciiPropertyReade
 	for i, prop := range element.Properties {
 		scalar := prop.(ScalarProperty)
 
-		if scalar.PropertyName == v3pr.PlyPropertyX {
+		if scalar.PropertyName == v4pr.PlyPropertyX {
 			xOffset = i
 			if string(scalarType) == "" {
 				scalarType = scalar.Type
@@ -120,7 +130,7 @@ func (v3pr Vector4PropertyReader) buildAscii(element Element) asciiPropertyReade
 			}
 		}
 
-		if scalar.PropertyName == v3pr.PlyPropertyY {
+		if scalar.PropertyName == v4pr.PlyPropertyY {
 			yOffset = i
 
 			if string(scalarType) == "" {
@@ -133,7 +143,7 @@ func (v3pr Vector4PropertyReader) buildAscii(element Element) asciiPropertyReade
 			}
 		}
 
-		if scalar.PropertyName == v3pr.PlyPropertyZ {
+		if scalar.PropertyName == v4pr.PlyPropertyZ {
 			zOffset = i
 
 			if string(scalarType) == "" {
@@ -146,7 +156,7 @@ func (v3pr Vector4PropertyReader) buildAscii(element Element) asciiPropertyReade
 			}
 		}
 
-		if scalar.PropertyName == v3pr.PlyPropertyW {
+		if scalar.PropertyName == v4pr.PlyPropertyW {
 			wOffset = i
 
 			if string(scalarType) == "" {
@@ -160,16 +170,25 @@ func (v3pr Vector4PropertyReader) buildAscii(element Element) asciiPropertyReade
 		}
 	}
 
-	if xOffset > -1 && yOffset > -1 && zOffset > -1 {
+	if xOffset > -1 && yOffset > -1 && zOffset > -1 && wOffset > -1 {
 		return &builtAsciiVector4PropertyReader{
 			arr:            make([]vector4.Float64, element.Count),
 			xOffset:        xOffset,
 			yOffset:        yOffset,
 			zOffset:        zOffset,
 			wOffset:        wOffset,
-			modelAttribute: v3pr.ModelAttribute,
+			modelAttribute: v4pr.ModelAttribute,
 			scalarType:     scalarType,
 		}
+	}
+
+	if xOffset > -1 && yOffset > -1 && zOffset > -1 && v4pr.IgnorableW {
+		return Vector3PropertyReader{
+			ModelAttribute: v4pr.ModelAttribute,
+			PlyPropertyX:   v4pr.PlyPropertyX,
+			PlyPropertyY:   v4pr.PlyPropertyY,
+			PlyPropertyZ:   v4pr.PlyPropertyZ,
+		}.buildAscii(element)
 	}
 
 	return nil
