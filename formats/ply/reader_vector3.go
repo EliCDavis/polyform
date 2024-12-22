@@ -73,6 +73,9 @@ func (v3pr Vector3PropertyReader) buildBinary(element Element, endian binary.Byt
 			xOffset:        xOffset,
 			yOffset:        yOffset,
 			zOffset:        zOffset,
+			plyPropertyX:   v3pr.PlyPropertyX,
+			plyPropertyY:   v3pr.PlyPropertyY,
+			plyPropertyZ:   v3pr.PlyPropertyZ,
 			modelAttribute: v3pr.ModelAttribute,
 			scalarType:     scalarType,
 			endian:         endian,
@@ -136,6 +139,9 @@ func (v3pr Vector3PropertyReader) buildAscii(element Element) asciiPropertyReade
 			xOffset:        xOffset,
 			yOffset:        yOffset,
 			zOffset:        zOffset,
+			plyPropertyX:   v3pr.PlyPropertyX,
+			plyPropertyY:   v3pr.PlyPropertyY,
+			plyPropertyZ:   v3pr.PlyPropertyZ,
 			modelAttribute: v3pr.ModelAttribute,
 			scalarType:     scalarType,
 		}
@@ -151,6 +157,25 @@ type builtAsciiVector3PropertyReader struct {
 	xOffset        int
 	yOffset        int
 	zOffset        int
+	plyPropertyX   string
+	plyPropertyY   string
+	plyPropertyZ   string
+}
+
+func (bav3pr builtAsciiVector3PropertyReader) ClaimsProperty(prop Property) bool {
+	if prop.Name() == bav3pr.plyPropertyX {
+		return true
+	}
+
+	if prop.Name() == bav3pr.plyPropertyY {
+		return true
+	}
+
+	if prop.Name() == bav3pr.plyPropertyZ {
+		return true
+	}
+
+	return false
 }
 
 func (bav3pr builtAsciiVector3PropertyReader) Read(buf []string, i int64) error {
@@ -190,6 +215,25 @@ type builtBinaryVector3PropertyReader struct {
 	xOffset        int
 	yOffset        int
 	zOffset        int
+	plyPropertyX   string
+	plyPropertyY   string
+	plyPropertyZ   string
+}
+
+func (bav3pr builtBinaryVector3PropertyReader) ClaimsProperty(prop Property) bool {
+	if prop.Name() == bav3pr.plyPropertyX {
+		return true
+	}
+
+	if prop.Name() == bav3pr.plyPropertyY {
+		return true
+	}
+
+	if prop.Name() == bav3pr.plyPropertyZ {
+		return true
+	}
+
+	return false
 }
 
 func (bv3pr *builtBinaryVector3PropertyReader) Read(buf []byte, i int64) {

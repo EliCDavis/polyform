@@ -26,6 +26,7 @@ func (v1pr Vector1PropertyReader) buildBinary(element Element, endian binary.Byt
 				modelAttribute: v1pr.ModelAttribute,
 				scalarType:     scalar.Type,
 				endian:         endian,
+				plyProperty:    v1pr.PlyProperty,
 			}
 		}
 
@@ -46,6 +47,7 @@ func (v1pr Vector1PropertyReader) buildAscii(element Element) asciiPropertyReade
 				offset:         i,
 				modelAttribute: v1pr.ModelAttribute,
 				scalarType:     scalarType,
+				plyProperty:    v1pr.PlyProperty,
 			}
 		}
 
@@ -59,6 +61,7 @@ type builtAsciiVector1PropertyReader struct {
 	scalarType     ScalarPropertyType
 	modelAttribute string
 	offset         int
+	plyProperty    string
 }
 
 func (bav3pr builtAsciiVector1PropertyReader) Read(buf []string, i int64) error {
@@ -79,12 +82,17 @@ func (bv3pr *builtAsciiVector1PropertyReader) UpdateMesh(m modeling.Mesh) modeli
 	return m.SetFloat1Attribute(bv3pr.modelAttribute, bv3pr.arr)
 }
 
+func (bav3pr builtAsciiVector1PropertyReader) ClaimsProperty(prop Property) bool {
+	return prop.Name() == bav3pr.plyProperty
+}
+
 type builtVector1PropertyReader struct {
 	arr            []float64
 	scalarType     ScalarPropertyType
 	endian         binary.ByteOrder
 	modelAttribute string
 	offset         int
+	plyProperty    string
 }
 
 func (bv1pr *builtVector1PropertyReader) Read(buf []byte, i int64) {
@@ -112,4 +120,8 @@ func (bv1pr *builtVector1PropertyReader) Read(buf []byte, i int64) {
 
 func (bv1pr *builtVector1PropertyReader) UpdateMesh(m modeling.Mesh) modeling.Mesh {
 	return m.SetFloat1Attribute(bv1pr.modelAttribute, bv1pr.arr)
+}
+
+func (bav3pr builtVector1PropertyReader) ClaimsProperty(prop Property) bool {
+	return prop.Name() == bav3pr.plyProperty
 }

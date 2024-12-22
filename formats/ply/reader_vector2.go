@@ -57,6 +57,8 @@ func (v2pr Vector2PropertyReader) buildBinary(element Element, endian binary.Byt
 			arr:            make([]vector2.Float64, element.Count),
 			xOffset:        xOffset,
 			yOffset:        yOffset,
+			plyPropertyX:   v2pr.PlyPropertyX,
+			plyPropertyY:   v2pr.PlyPropertyY,
 			modelAttribute: v2pr.ModelAttribute,
 			scalarType:     scalarType,
 			endian:         endian,
@@ -66,14 +68,14 @@ func (v2pr Vector2PropertyReader) buildBinary(element Element, endian binary.Byt
 	return nil
 }
 
-func (v3pr Vector2PropertyReader) buildAscii(element Element) asciiPropertyReader {
+func (v2pr Vector2PropertyReader) buildAscii(element Element) asciiPropertyReader {
 	xOffset := -1
 	yOffset := -1
 	var scalarType ScalarPropertyType
 	for i, prop := range element.Properties {
 		scalar := prop.(ScalarProperty)
 
-		if scalar.PropertyName == v3pr.PlyPropertyX {
+		if scalar.PropertyName == v2pr.PlyPropertyX {
 			xOffset = i
 			if string(scalarType) == "" {
 				scalarType = scalar.Type
@@ -85,7 +87,7 @@ func (v3pr Vector2PropertyReader) buildAscii(element Element) asciiPropertyReade
 			}
 		}
 
-		if scalar.PropertyName == v3pr.PlyPropertyY {
+		if scalar.PropertyName == v2pr.PlyPropertyY {
 			yOffset = i
 
 			if string(scalarType) == "" {
@@ -104,7 +106,9 @@ func (v3pr Vector2PropertyReader) buildAscii(element Element) asciiPropertyReade
 			arr:            make([]vector2.Float64, element.Count),
 			xOffset:        xOffset,
 			yOffset:        yOffset,
-			modelAttribute: v3pr.ModelAttribute,
+			plyPropertyX:   v2pr.PlyPropertyX,
+			plyPropertyY:   v2pr.PlyPropertyY,
+			modelAttribute: v2pr.ModelAttribute,
 			scalarType:     scalarType,
 		}
 	}
@@ -118,6 +122,20 @@ type builtAsciiVector2PropertyReader struct {
 	modelAttribute string
 	xOffset        int
 	yOffset        int
+	plyPropertyX   string
+	plyPropertyY   string
+}
+
+func (bav3pr builtAsciiVector2PropertyReader) ClaimsProperty(prop Property) bool {
+	if prop.Name() == bav3pr.plyPropertyX {
+		return true
+	}
+
+	if prop.Name() == bav3pr.plyPropertyY {
+		return true
+	}
+
+	return false
 }
 
 func (bav3pr builtAsciiVector2PropertyReader) Read(buf []string, i int64) error {
@@ -151,6 +169,20 @@ type builtVector2PropertyReader struct {
 	modelAttribute string
 	xOffset        int
 	yOffset        int
+	plyPropertyX   string
+	plyPropertyY   string
+}
+
+func (bav3pr builtVector2PropertyReader) ClaimsProperty(prop Property) bool {
+	if prop.Name() == bav3pr.plyPropertyX {
+		return true
+	}
+
+	if prop.Name() == bav3pr.plyPropertyY {
+		return true
+	}
+
+	return false
 }
 
 func (bv2pr *builtVector2PropertyReader) Read(buf []byte, i int64) {

@@ -91,6 +91,10 @@ func (v4pr Vector4PropertyReader) buildBinary(element Element, endian binary.Byt
 			yOffset:        yOffset,
 			zOffset:        zOffset,
 			wOffset:        wOffset,
+			plyPropertyX:   v4pr.PlyPropertyX,
+			plyPropertyY:   v4pr.PlyPropertyY,
+			plyPropertyZ:   v4pr.PlyPropertyZ,
+			plyPropertyW:   v4pr.PlyPropertyW,
 			modelAttribute: v4pr.ModelAttribute,
 			scalarType:     scalarType,
 			endian:         endian,
@@ -177,6 +181,10 @@ func (v4pr Vector4PropertyReader) buildAscii(element Element) asciiPropertyReade
 			yOffset:        yOffset,
 			zOffset:        zOffset,
 			wOffset:        wOffset,
+			plyPropertyX:   v4pr.PlyPropertyX,
+			plyPropertyY:   v4pr.PlyPropertyY,
+			plyPropertyZ:   v4pr.PlyPropertyZ,
+			plyPropertyW:   v4pr.PlyPropertyW,
 			modelAttribute: v4pr.ModelAttribute,
 			scalarType:     scalarType,
 		}
@@ -202,6 +210,30 @@ type builtAsciiVector4PropertyReader struct {
 	yOffset        int
 	zOffset        int
 	wOffset        int
+	plyPropertyX   string
+	plyPropertyY   string
+	plyPropertyZ   string
+	plyPropertyW   string
+}
+
+func (bav3pr builtAsciiVector4PropertyReader) ClaimsProperty(prop Property) bool {
+	if prop.Name() == bav3pr.plyPropertyX {
+		return true
+	}
+
+	if prop.Name() == bav3pr.plyPropertyY {
+		return true
+	}
+
+	if prop.Name() == bav3pr.plyPropertyZ {
+		return true
+	}
+
+	if prop.Name() == bav3pr.plyPropertyW {
+		return true
+	}
+
+	return false
 }
 
 func (bav3pr builtAsciiVector4PropertyReader) Read(buf []string, i int64) error {
@@ -247,6 +279,30 @@ type builtVector4PropertyReader struct {
 	yOffset        int
 	zOffset        int
 	wOffset        int
+	plyPropertyX   string
+	plyPropertyY   string
+	plyPropertyZ   string
+	plyPropertyW   string
+}
+
+func (bav3pr builtVector4PropertyReader) ClaimsProperty(prop Property) bool {
+	if prop.Name() == bav3pr.plyPropertyX {
+		return true
+	}
+
+	if prop.Name() == bav3pr.plyPropertyY {
+		return true
+	}
+
+	if prop.Name() == bav3pr.plyPropertyZ {
+		return true
+	}
+
+	if prop.Name() == bav3pr.plyPropertyW {
+		return true
+	}
+
+	return false
 }
 
 func (bv3pr *builtVector4PropertyReader) Read(buf []byte, i int64) {

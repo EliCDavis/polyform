@@ -218,7 +218,8 @@ func ReadHeader(in io.Reader) (Header, error) {
 
 // https://bsky.app/profile/elicdavis.bsky.social/post/3lcxkpsvgbs24
 var defaultReader MeshReader = MeshReader{
-	AttributeElement: VertexElementName,
+	AttributeElement:          VertexElementName,
+	LoadUnspecifiedProperties: true,
 	Properties: []PropertyReader{
 		&Vector3PropertyReader{
 			ModelAttribute: modeling.PositionAttribute,
@@ -319,6 +320,7 @@ type PropertyReader interface {
 
 type builtPropertyReader interface {
 	UpdateMesh(m modeling.Mesh) modeling.Mesh
+	ClaimsProperty(prop Property) bool
 }
 
 type asciiPropertyReader interface {
@@ -340,6 +342,10 @@ type MeshReader struct {
 
 	// All defined translations from PLY data to mesh attributes
 	Properties []PropertyReader
+
+	// Whether or not to load extra ply data that wasn't defined by the
+	// property readers
+	LoadUnspecifiedProperties bool
 }
 
 func (mr MeshReader) Load(file string) (*modeling.Mesh, error) {
@@ -409,6 +415,26 @@ func (mr MeshReader) Read(reader io.Reader) (*modeling.Mesh, error) {
 			asciiReaders = append(asciiReaders, builtReader)
 		}
 
+		if mr.LoadUnspecifiedProperties {
+			for _, prop := range vertexElement.Properties {
+				claimed := false
+				for _, reader := range asciiReaders {
+					if reader.ClaimsProperty(prop) {
+						claimed = true
+					}
+				}
+
+				if !claimed {
+					reader := Vector1PropertyReader{
+						ModelAttribute: prop.Name(),
+						PlyProperty:    prop.Name(),
+					}.buildAscii(*vertexElement)
+					builtReaders = append(builtReaders, reader)
+					asciiReaders = append(asciiReaders, reader)
+				}
+			}
+		}
+
 		// Read data
 		scanner := bufio.NewScanner(reader)
 		for i := int64(0); i < vertexElement.Count; i++ {
@@ -453,6 +479,26 @@ func (mr MeshReader) Read(reader io.Reader) (*modeling.Mesh, error) {
 			}
 			builtReaders = append(builtReaders, builtReader)
 			binReaders = append(binReaders, builtReader)
+		}
+
+		if mr.LoadUnspecifiedProperties {
+			for _, prop := range vertexElement.Properties {
+				claimed := false
+				for _, reader := range binReaders {
+					if reader.ClaimsProperty(prop) {
+						claimed = true
+					}
+				}
+
+				if !claimed {
+					reader := Vector1PropertyReader{
+						ModelAttribute: prop.Name(),
+						PlyProperty:    prop.Name(),
+					}.buildBinary(*vertexElement, endian)
+					builtReaders = append(builtReaders, reader)
+					binReaders = append(binReaders, reader)
+				}
+			}
 		}
 
 		// Read vertex buffers

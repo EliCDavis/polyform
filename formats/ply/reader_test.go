@@ -234,6 +234,7 @@ func TestMeshReader_Binary_EverythingPointCloud(t *testing.T) {
 				ply.ScalarProperty{PropertyName: "s", Type: ply.Float},
 				ply.ScalarProperty{PropertyName: "t", Type: ply.Float},
 				ply.ScalarProperty{PropertyName: "opacity", Type: ply.Float},
+				ply.ScalarProperty{PropertyName: "unknown", Type: ply.Float},
 			},
 		}},
 	}
@@ -252,11 +253,12 @@ func TestMeshReader_Binary_EverythingPointCloud(t *testing.T) {
 		s       float32
 		t       float32
 		opacity float32
+		unknown float32
 	}
 
 	inputData := []Point{
-		{x: 1, y: 2, z: 3, nx: 1, ny: 2, nz: 3, r: 1, g: 2, b: 3, a: 255, s: 10, t: 20, opacity: 10},
-		{x: 4, y: 5, z: 6, nx: 4, ny: 5, nz: 6, r: 4, g: 5, b: 6, a: 255, s: 30, t: 40, opacity: 20},
+		{x: 1, y: 2, z: 3, nx: 1, ny: 2, nz: 3, r: 1, g: 2, b: 3, a: 255, s: 10, t: 20, opacity: 10, unknown: 70},
+		{x: 4, y: 5, z: 6, nx: 4, ny: 5, nz: 6, r: 4, g: 5, b: 6, a: 255, s: 30, t: 40, opacity: 20, unknown: 80},
 	}
 
 	buf := &bytes.Buffer{}
@@ -273,6 +275,7 @@ func TestMeshReader_Binary_EverythingPointCloud(t *testing.T) {
 	assert.True(t, mesh.HasFloat4Attribute(modeling.ColorAttribute), "mesh should have color attribute")
 	assert.True(t, mesh.HasFloat2Attribute(modeling.TexCoordAttribute), "mesh should have texcoord attribute")
 	assert.True(t, mesh.HasFloat1Attribute(modeling.OpacityAttribute), "mesh should have opacity attribute")
+	assert.True(t, mesh.HasFloat1Attribute("unknown"), "mesh should have unknown attribute")
 
 	positionData := mesh.Float3Attribute(modeling.PositionAttribute)
 	assert.Equal(t, 2, positionData.Len())
@@ -298,6 +301,11 @@ func TestMeshReader_Binary_EverythingPointCloud(t *testing.T) {
 	assert.Equal(t, 2, opacityData.Len())
 	assert.Equal(t, 10., opacityData.At(0))
 	assert.Equal(t, 20., opacityData.At(1))
+
+	unkownData := mesh.Float1Attribute("unknown")
+	assert.Equal(t, 2, unkownData.Len())
+	assert.Equal(t, 70., unkownData.At(0))
+	assert.Equal(t, 80., unkownData.At(1))
 }
 
 func TestMeshReader_ASCII_EverythingPointCloud(t *testing.T) {
@@ -318,9 +326,10 @@ property uchar a
 property float32 s
 property float32 t
 property uchar opacity
+property float32 unknown
 end_header
-1 1 1 2 2 2 3 3 3 255 10 20 10
-4 4 4 5 5 5 6 6 6 255 30 40 20
+1 1 1 2 2 2 3 3 3 255 10 20 10 70
+4 4 4 5 5 5 6 6 6 255 30 40 20 80
 `
 
 	// ACT ====================================================================
@@ -333,6 +342,7 @@ end_header
 	assert.True(t, mesh.HasFloat4Attribute(modeling.ColorAttribute), "mesh should have color attribute")
 	assert.True(t, mesh.HasFloat2Attribute(modeling.TexCoordAttribute), "mesh should have texcoord attribute")
 	assert.True(t, mesh.HasFloat1Attribute(modeling.OpacityAttribute), "mesh should have opacity attribute")
+	assert.True(t, mesh.HasFloat1Attribute("unknown"), "mesh should have unknown attribute")
 
 	positionData := mesh.Float3Attribute(modeling.PositionAttribute)
 	assert.Equal(t, 2, positionData.Len())
@@ -358,6 +368,11 @@ end_header
 	assert.Equal(t, 2, opacityData.Len())
 	assert.Equal(t, 10., opacityData.At(0))
 	assert.Equal(t, 20., opacityData.At(1))
+
+	unkownData := mesh.Float1Attribute("unknown")
+	assert.Equal(t, 2, unkownData.Len())
+	assert.Equal(t, 70., unkownData.At(0))
+	assert.Equal(t, 80., unkownData.At(1))
 }
 
 func TestMeshReader_ASCII_Vector4FallsbackToVector3WhenWMissing(t *testing.T) {
