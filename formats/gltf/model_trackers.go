@@ -35,3 +35,10 @@ type meshIndices map[meshEntry]int
 
 // textureIndices handle deduplication of textures
 type textureIndices map[*PolyformTexture]int
+
+type writtenMeshData struct {
+	attribute map[string]GltfId
+	indices   *GltfId
+}
+
+type attributeIndices map[*modeling.Mesh]writtenMeshData

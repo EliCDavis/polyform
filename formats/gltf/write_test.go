@@ -2661,28 +2661,6 @@ func TestWrite_MeshesDifferentMatsPreserved(t *testing.T) {
             "componentType": 5123,
             "type": "SCALAR",
             "count": 3
-        },
-        {
-            "bufferView": 2,
-            "componentType": 5126,
-            "type": "VEC3",
-            "count": 3,
-            "max": [
-                1,
-                1,
-                0
-            ],
-            "min": [
-                0,
-                0,
-                0
-            ]
-        },
-        {
-            "bufferView": 3,
-            "componentType": 5123,
-            "type": "SCALAR",
-            "count": 3
         }
     ],
     "asset": {
@@ -2691,8 +2669,8 @@ func TestWrite_MeshesDifferentMatsPreserved(t *testing.T) {
     },
     "buffers": [
         {
-            "byteLength": 84,
-            "uri": "data:application/octet-stream;base64,AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAAAAAAABAAIAAAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAAAAAAABAAIA"
+            "byteLength": 42,
+            "uri": "data:application/octet-stream;base64,AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAAAAAAABAAIA"
         }
     ],
     "bufferViews": [
@@ -2704,18 +2682,6 @@ func TestWrite_MeshesDifferentMatsPreserved(t *testing.T) {
         {
             "buffer": 0,
             "byteOffset": 36,
-            "byteLength": 6,
-            "target": 34963
-        },
-        {
-            "buffer": 0,
-            "byteOffset": 42,
-            "byteLength": 36,
-            "target": 34962
-        },
-        {
-            "buffer": 0,
-            "byteOffset": 78,
             "byteLength": 6,
             "target": 34963
         }
@@ -2764,9 +2730,9 @@ func TestWrite_MeshesDifferentMatsPreserved(t *testing.T) {
             "primitives": [
                 {
                     "attributes": {
-                        "POSITION": 2
+                        "POSITION": 0
                     },
-                    "indices": 3,
+                    "indices": 1,
                     "material": 1
                 }
             ]

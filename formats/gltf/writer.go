@@ -33,9 +33,10 @@ type Writer struct {
 	nodes       []Node
 	materials   []Material
 
-	matIndices     materialIndices // Tracks and deduplicates unique materials
-	meshIndices    meshIndices     // Tracks and deduplicates unique meshes&materials
-	textureIndices textureIndices  // Tracks and deduplicates unique textures
+	matIndices      materialIndices  // Tracks and deduplicates unique materials
+	meshIndices     meshIndices      // Tracks and deduplicates unique meshes&materials
+	writtenMeshData attributeIndices // Tracks and deduplicate written mesh data
+	textureIndices  textureIndices   // Tracks and deduplicates unique textures
 
 	skins      []Skin
 	animations []Animation
@@ -66,8 +67,9 @@ func NewWriter() *Writer {
 		skins:       make([]Skin, 0),
 		animations:  make([]Animation, 0),
 
-		meshIndices:    make(meshIndices),
-		textureIndices: make(textureIndices),
+		meshIndices:     make(meshIndices),
+		writtenMeshData: make(attributeIndices),
+		textureIndices:  make(textureIndices),
 
 		// Extensions
 		lights: make([]KHR_LightsPunctual, 0),
@@ -456,25 +458,40 @@ func (w *Writer) AddMesh(model PolyformModel) (_ int, err error) {
 	w.meshIndices[uniqueMesh] = meshIndex
 
 	// Create the mesh - process geometry, materials etc
-	primitiveAttributes := make(map[string]int)
 
-	for _, val := range model.Mesh.Float4Attributes() {
-		primitiveAttributes[polyformToGLTFAttribute(val)] = len(w.accessors)
-		w.WriteVector4(attributeType(val), model.Mesh.Float4Attribute(val))
+	var primitiveAttributes map[string]int
+	var indicesIndex int
+
+	writtenData, alreadyWrittenMesh := w.writtenMeshData[model.Mesh]
+
+	if alreadyWrittenMesh {
+		primitiveAttributes = writtenData.attribute
+		indicesIndex = *writtenData.indices
+	} else {
+		primitiveAttributes = make(map[string]int)
+		for _, val := range model.Mesh.Float4Attributes() {
+			primitiveAttributes[polyformToGLTFAttribute(val)] = len(w.accessors)
+			w.WriteVector4(attributeType(val), model.Mesh.Float4Attribute(val))
+		}
+
+		for _, val := range model.Mesh.Float3Attributes() {
+			primitiveAttributes[polyformToGLTFAttribute(val)] = len(w.accessors)
+			w.WriteVector3(attributeType(val), model.Mesh.Float3Attribute(val))
+		}
+
+		for _, val := range model.Mesh.Float2Attributes() {
+			primitiveAttributes[polyformToGLTFAttribute(val)] = len(w.accessors)
+			w.WriteVector2(attributeType(val), model.Mesh.Float2Attribute(val))
+		}
+
+		indicesIndex = len(w.accessors)
+		w.WriteIndices(model.Mesh.Indices(), model.Mesh.AttributeLength())
+
+		w.writtenMeshData[model.Mesh] = writtenMeshData{
+			attribute: primitiveAttributes,
+			indices:   &indicesIndex,
+		}
 	}
-
-	for _, val := range model.Mesh.Float3Attributes() {
-		primitiveAttributes[polyformToGLTFAttribute(val)] = len(w.accessors)
-		w.WriteVector3(attributeType(val), model.Mesh.Float3Attribute(val))
-	}
-
-	for _, val := range model.Mesh.Float2Attributes() {
-		primitiveAttributes[polyformToGLTFAttribute(val)] = len(w.accessors)
-		w.WriteVector2(attributeType(val), model.Mesh.Float2Attribute(val))
-	}
-
-	indicesIndex := len(w.accessors)
-	w.WriteIndices(model.Mesh.Indices(), model.Mesh.AttributeLength())
 
 	var mode *PrimitiveMode = nil
 	if model.Mesh.Topology() == modeling.PointTopology {
