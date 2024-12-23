@@ -44,13 +44,13 @@ func (as *AppServer) NodeConnectionEndpoint(w http.ResponseWriter, r *http.Reque
 		response, err = as.nodeConnectionEndpoint_post(createRequest)
 
 	case "DELETE":
-		createRequest, castErr := readJSON[DeleteNodeConnectionRequest](r.Body)
+		deleteRequest, castErr := readJSON[DeleteNodeConnectionRequest](r.Body)
 		if castErr != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			writeJSONError(w, castErr)
 			return
 		}
-		response, err = as.nodeConnectionEndpoint_delete(createRequest)
+		response, err = as.nodeConnectionEndpoint_delete(deleteRequest)
 	}
 
 	if err != nil {

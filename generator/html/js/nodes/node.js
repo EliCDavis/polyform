@@ -130,60 +130,34 @@ export class PolyNodeController {
             this.liteNode.addWidget(downloadButton);
         }
 
-        // TODO: FOIXM AEJPRGEAIPGNREAGI
-        this.liteNode.onConnectionsChange = this.onConnectionChange.bind(this);
+        // type ConnectionChangeCallback = (connection: Connection, port: Port, portType: PortType, node: FlowNode) => void
+        for (let i = 0; i < this.liteNode.inputs(); i++) {
+            const port = this.liteNode.inputPort(i);
+            port.addConnectionAddedListener((connection, port, portType, node) => {
+                if (this.app.ServerUpdatingNodeConnections) {
+                    return;
+                }
+                console.log("connection ADDED", connection, port, portType, node);
+                this.app.RequestManager.setNodeInputConnection(
+                    this.liteNode.nodeInstanceID,
+                    connection.inPort().getDisplayName(),
+                    connection.outNode().nodeInstanceID,
+                    connection.outPort().getDisplayName(),
+                )
+            });
+
+            port.addConnectionRemovedListener((connection, port, portType, node) => {
+                if (this.app.ServerUpdatingNodeConnections) {
+                    return;
+                }
+                console.log("connection removed", connection, port, portType, node)
+                this.app.RequestManager.deleteNodeInput(this.id, port.getDisplayName())
+            });
+        }
 
         this.update(nodeData);
     }
 
-    /**
-     * 
-     * @param {number} inOrOut 
-     * @param {string|number} slot 
-     * @param {boolean} connected 
-     * @param {*} linkInfo 
-     * @param {*} inputInfo 
-     * @returns {void} 
-     */
-    onConnectionChange(inOrOut, slot /* string or number */, connected, linkInfo, inputInfo) {
-        if (this.app.ServerUpdatingNodeConnections) {
-            return;
-        }
-
-        const input = inOrOut === LiteGraph.INPUT;
-        const output = inOrOut === LiteGraph.OUTPUT;
-
-        console.log("onConnectionsChange", {
-            "input": input,
-            "slot": slot,
-            "connected": connected,
-            "linkInfo": linkInfo,
-            "inputInfo": inputInfo
-        })
-
-        if (input && !connected) {
-            this.app.RequestManager.deleteNodeInput(this.id, inputInfo.name)
-        }
-
-        if (input && connected) {
-            // console.log(LiteGraph)
-            // console.log(lgraphInstance)
-
-            const link = lgraphInstance.links[linkInfo.id];
-            const outNode = lgraphInstance.getNodeById(link.origin_id);
-            const inNode = lgraphInstance.getNodeById(link.target_id);
-            // console.log(link)
-            // console.log("out?", outNode)
-            // console.log("in?", inNode)
-
-            this.app.RequestManager.setNodeInputConnection(
-                inNode.nodeInstanceID,
-                inNode.inputs[link.target_slot].name,
-                outNode.nodeInstanceID,
-                outNode.outputs[link.origin_slot].name,
-            )
-        }
-    }
 
     update(nodeData) {
         this.name = nodeData.name;

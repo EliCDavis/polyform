@@ -16,6 +16,9 @@ type SumData[T vector.Number] struct {
 func (cn SumData[T]) Process() (T, error) {
 	var total T
 	for _, v := range cn.Values {
+		if v == nil {
+			continue
+		}
 		total += v.Value()
 	}
 	return total, nil
@@ -30,7 +33,17 @@ type DifferenceData[T vector.Number] struct {
 }
 
 func (cn DifferenceData[T]) Process() (T, error) {
-	return cn.A.Value() - cn.B.Value(), nil
+	var a T
+	var b T
+
+	if cn.A != nil {
+		a = cn.A.Value()
+	}
+
+	if cn.B != nil {
+		b = cn.B.Value()
+	}
+	return a - b, nil
 }
 
 // ============================================================================
@@ -42,7 +55,17 @@ type DivideData[T vector.Number] struct {
 }
 
 func (cn DivideData[T]) Process() (T, error) {
-	return cn.Dividend.Value() / cn.Divisor.Value(), nil
+	var a T
+	var b T
+
+	if cn.Dividend != nil {
+		a = cn.Dividend.Value()
+	}
+
+	if cn.Divisor != nil {
+		b = cn.Divisor.Value()
+	}
+	return a / b, nil
 }
 
 // ============================================================================
@@ -54,7 +77,18 @@ type MultiplyData[T vector.Number] struct {
 }
 
 func (cn MultiplyData[T]) Process() (T, error) {
-	return cn.A.Value() * cn.B.Value(), nil
+	var a T
+	var b T
+
+	if cn.A != nil {
+		a = cn.A.Value()
+	}
+
+	if cn.B != nil {
+		b = cn.B.Value()
+	}
+
+	return a * b, nil
 }
 
 // ============================================================================

@@ -58,9 +58,10 @@ type StructNodeProcesor[T any] interface {
 type StructNode[T any, G StructNodeProcesor[T]] struct {
 	Data G
 
-	value       T
-	err         error
-	depVersions []int
+	value                        T
+	err                          error
+	depVersions                  []int
+	inputChangedSinceLastProcess bool
 
 	version int
 	subs    []Alertable
@@ -68,12 +69,17 @@ type StructNode[T any, G StructNodeProcesor[T]] struct {
 
 func (sn *StructNode[T, G]) SetInput(input string, output Output) {
 	refutil.SetStructField(&sn.Data, input, output.NodeOutput)
+	sn.inputChangedSinceLastProcess = true
 }
 
 func (sn StructNode[T, G]) Outdated() bool {
 
 	// Nil versions means we've never processed before
 	if sn.depVersions == nil {
+		return true
+	}
+
+	if sn.inputChangedSinceLastProcess {
 		return true
 	}
 
@@ -222,6 +228,7 @@ func (sn *StructNode[T, G]) process() {
 	sn.value, sn.err = sn.Data.Process()
 	sn.version++
 	sn.updateUsedDependencyVersions()
+	sn.inputChangedSinceLastProcess = false
 }
 
 func (sn StructNode[T, G]) Name() string {
