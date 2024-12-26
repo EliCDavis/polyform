@@ -16,7 +16,7 @@ import (
 )
 
 func readLine(in io.Reader) (string, error) {
-	data := make([]byte, 0)
+	data := strings.Builder{}
 
 	buf := make([]byte, 1)
 	var err error
@@ -26,12 +26,11 @@ func readLine(in io.Reader) (string, error) {
 			return "", err
 		}
 
-		b := buf[0]
-		if b == '\n' {
-			return string(data), nil
+		if buf[0] == '\n' || buf[0] == '\r' {
+			return data.String(), nil
 		}
 
-		data = append(data, b)
+		data.WriteByte(buf[0])
 	}
 }
 

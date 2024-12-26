@@ -2,6 +2,7 @@ package ply_test
 
 import (
 	"bytes"
+	"strings"
 	"testing"
 
 	"github.com/EliCDavis/polyform/formats/ply"
@@ -164,4 +165,19 @@ end_header
 			assert.Equal(t, tc.want, string(tc.input.Bytes()))
 		})
 	}
+}
+
+func TestHeader_ReadCarriageReturns(t *testing.T) {
+	// ARRANGE ================================================================
+	headerString := "ply\r\nformat ascii 1.0\r\nend_header\n"
+
+	// ACT ====================================================================
+	header, err := ply.ReadHeader(strings.NewReader(headerString))
+
+	// ASSERT =================================================================
+	assert.NoError(t, err)
+	assert.Equal(t, ply.ASCII, header.Format)
+	assert.Len(t, header.Comments, 0)
+	assert.Len(t, header.ObjInfo, 0)
+	assert.Len(t, header.Elements, 0)
 }

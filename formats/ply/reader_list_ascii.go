@@ -7,15 +7,22 @@ import (
 
 type listAsciiPropertyReader struct {
 	property         ListProperty
-	lastReadListSize int64
+	lastReadListSize int32
 	buf              []string
 }
 
 func (lpr *listAsciiPropertyReader) Read(line []string) (offset int, err error) {
-	lpr.lastReadListSize, err = strconv.ParseInt(line[0], 10, 64)
+	v, err := strconv.ParseInt(line[0], 10, 32)
+	if err != nil {
+		return -1, err
+	}
+	lpr.lastReadListSize = int32(v)
+
+	// Resize to fit contents
 	if len(lpr.buf) < int(lpr.lastReadListSize) {
 		lpr.buf = make([]string, lpr.lastReadListSize)
 	}
+
 	copy(lpr.buf, line[1:lpr.lastReadListSize+1])
 	return int(lpr.lastReadListSize) + 1, err
 }
@@ -42,7 +49,7 @@ func (lpr listAsciiPropertyReader) Int(out []int) error {
 	}
 
 	for i := 0; i < int(lpr.lastReadListSize); i++ {
-		v, err := strconv.ParseInt(lpr.buf[i], 10, 64)
+		v, err := strconv.ParseInt(lpr.buf[i], 10, 32)
 		if err != nil {
 			return err
 		}
