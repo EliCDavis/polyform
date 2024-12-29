@@ -5,17 +5,17 @@ go 1.21.0
 require (
 	github.com/EliCDavis/vector v1.8.0
 	github.com/schollz/progressbar/v3 v3.14.4
-	github.com/stretchr/testify v1.9.0
+	github.com/stretchr/testify v1.10.0
 )
 
 require (
 	github.com/EliCDavis/jbtf v0.2.0
-	github.com/EliCDavis/sfm v1.0.1
+	github.com/EliCDavis/sfm v1.2.0
 	github.com/gorilla/websocket v1.5.3
 )
 
 require (
-	github.com/EliCDavis/bitlib v1.1.0
+	github.com/EliCDavis/bitlib v1.2.0
 	github.com/EliCDavis/iter v1.0.2
 	github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect

@@ -39,6 +39,19 @@ builds:
       - amd64
       - arm64
 
+  - id: colmap-utils
+    main: ./examples/colmap-utils
+    binary: colmap-utils
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+
   - id: candle
     main: ./examples/candle
     binary: candle
