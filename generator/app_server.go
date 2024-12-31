@@ -10,10 +10,12 @@ import (
 	"log"
 	"net/http"
 	"path"
+	"runtime/debug"
 	"sync"
 	"text/template"
 	"time"
 
+	"github.com/EliCDavis/polyform/generator/endpoint"
 	"github.com/EliCDavis/polyform/generator/room"
 )
 
@@ -125,13 +127,22 @@ func (as *AppServer) Serve() error {
 	// http.Handle("/css/", fs)
 
 	http.HandleFunc("/schema", as.SchemaEndpoint)
-	http.HandleFunc("/scene", as.SceneEndpoint)
+	http.Handle("/scene", endpoint.Handler{
+		Methods: map[string]endpoint.Method{
+			http.MethodGet: endpoint.ResponseMethod[*room.WebScene]{
+				ResponseWriter: endpoint.JsonResponseWriter[*room.WebScene]{},
+				Handler: func(r *http.Request) (*room.WebScene, error) {
+					return as.webscene, nil
+				},
+			},
+		},
+	})
 	http.HandleFunc("/zip", as.ZipEndpoint)
-	http.HandleFunc("/node", as.NodeEndpoint)
-	http.HandleFunc("/node/connection", as.NodeConnectionEndpoint)
+	http.Handle("/node", nodeEndpoint(as))
+	http.Handle("/node/connection", nodeConnectionEndpoint(as))
+	http.Handle("/profile/", profileEndpoint(as))
+	http.Handle("/graph", graphEndpoint(as))
 	http.HandleFunc("/started", as.StartedEndpoint)
-	http.HandleFunc("/graph", as.GraphEndpoint)
-	http.HandleFunc("/profile/", as.ProfileEndpoint)
 	http.HandleFunc("/mermaid", as.MermaidEndpoint)
 	http.HandleFunc("/swagger", as.SwaggerEndpoint)
 	http.HandleFunc("/producer/", as.ProducerEndpoint)
@@ -190,6 +201,7 @@ func (as *AppServer) ProducerEndpoint(w http.ResponseWriter, r *http.Request) {
 func (as *AppServer) writeProducerDataToRequest(producerToLoad string, w http.ResponseWriter) (err error) {
 	defer func() {
 		if recErr := recover(); recErr != nil {
+			fmt.Println("stacktrace from panic: \n" + string(debug.Stack()))
 			err = fmt.Errorf("panic recover: %v", recErr)
 		}
 	}()

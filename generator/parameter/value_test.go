@@ -17,7 +17,7 @@ func TestParameterNodeSwaggerProperty(t *testing.T) {
 		propFormat swagger.PropertyFormat
 	}{
 		"basic string parameter": {
-			input:      &parameter.Value[string]{},
+			input:      &parameter.String{},
 			propType:   swagger.StringPropertyType,
 			propFormat: "",
 		},

@@ -306,11 +306,16 @@ func (pnd CircleAlongSplineNodeData) Process() (modeling.Mesh, error) {
 		return modeling.EmptyMesh(modeling.TriangleTopology), nil
 	}
 
+	spline := pnd.Spline.Value()
+	if spline == nil {
+		return modeling.EmptyMesh(modeling.TriangleTopology), nil
+	}
+
 	circle := CircleAlongSpline{
 		Radius:           1.0,
 		CircleResolution: 3,
 		ClosePath:        false,
-		Spline:           pnd.Spline.Value(),
+		Spline:           spline,
 		SplineResolution: 3,
 	}
 

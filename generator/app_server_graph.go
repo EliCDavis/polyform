@@ -1,56 +1,27 @@
 package generator
 
 import (
-	"fmt"
-	"io"
 	"net/http"
+
+	"github.com/EliCDavis/polyform/generator/endpoint"
 )
 
-func (as *AppServer) GraphEndpoint(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	as.producerLock.Lock()
-	defer as.producerLock.Unlock()
+func graphEndpoint(as *AppServer) endpoint.Handler {
+	return endpoint.Handler{
+		Methods: map[string]endpoint.Method{
+			http.MethodGet: endpoint.ResponseMethod[[]byte]{
+				ResponseWriter: endpoint.BinaryResponseWriter{},
+				Handler: func(r *http.Request) ([]byte, error) {
+					return as.app.Graph(), nil
+				},
+			},
 
-	var err error
-
-	switch r.Method {
-	case "GET", "":
-		err = as.graphEndpoint_Get(w)
-
-	case "POST":
-		err = as.graphEndpoint_Post(w, r)
+			http.MethodPost: endpoint.BodyMethod[[]byte]{
+				Request: endpoint.BinaryRequestReader{},
+				Handler: func(request endpoint.Request[[]byte]) error {
+					return as.app.ApplyGraph(request.Body)
+				},
+			},
+		},
 	}
-
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		writeJSONError(w, err)
-	}
-}
-
-func (as *AppServer) graphEndpoint_Get(w http.ResponseWriter) (err error) {
-	defer func() {
-		if recErr := recover(); recErr != nil {
-			err = fmt.Errorf("panic recover: %v", recErr)
-		}
-	}()
-	_, err = w.Write(as.app.Graph())
-	return err
-}
-
-func (as *AppServer) graphEndpoint_Post(w http.ResponseWriter, r *http.Request) (err error) {
-	defer func() {
-		if recErr := recover(); recErr != nil {
-			err = fmt.Errorf("panic recover: %v", recErr)
-		}
-	}()
-	data, err := io.ReadAll(r.Body)
-	if err != nil {
-		return
-	}
-	err = as.app.ApplyGraph(data)
-	if err != nil {
-		return
-	}
-	_, err = w.Write([]byte("{}"))
-	return
 }

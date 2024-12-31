@@ -8,7 +8,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"path"
 	"path/filepath"
@@ -48,8 +47,6 @@ func (a *App) ApplyGraph(jsonPayload []byte) error {
 	if err != nil {
 		return fmt.Errorf("unable to build a jbtf decoder: %w", err)
 	}
-
-	log.Println(graph.Name)
 
 	if graph.Name != "" {
 		a.Name = graph.Name

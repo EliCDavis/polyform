@@ -30,6 +30,9 @@ func readLine(in io.Reader) (string, error) {
 			return data.String(), nil
 		}
 
+		// Just eat the carriage return. We're supposed to only eat them if
+		// they come before \n, but like, what assholes just sprinkles
+		// \r mid line.
 		if buf[0] != '\r' {
 			data.WriteByte(buf[0])
 		}

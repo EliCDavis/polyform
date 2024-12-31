@@ -11,11 +11,14 @@ func PointDataToPointCloud(points []colmap.Point3D) modeling.Mesh {
 	colorData := make([]vector3.Float64, len(points))
 	errorData := make([]float64, len(points))
 	idData := make([]float64, len(points))
+	lenTrackData := make([]float64, len(points))
+
 	for i, p := range points {
 		positionData[i] = p.Position
 		colorData[i] = vector3.FromColor(p.Color)
 		errorData[i] = p.Error
 		idData[i] = float64(p.ID)
+		lenTrackData[i] = float64(len(p.Tracks))
 	}
 
 	return modeling.NewPointCloud(
@@ -26,8 +29,9 @@ func PointDataToPointCloud(points []colmap.Point3D) modeling.Mesh {
 		},
 		nil,
 		map[string][]float64{
-			"error": errorData,
-			"id":    idData,
+			"error":       errorData,
+			"id":          idData,
+			"track count": lenTrackData,
 		},
 		nil,
 	)

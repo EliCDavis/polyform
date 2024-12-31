@@ -8,7 +8,7 @@ import (
 
 var PointsToPlyCommand = &cli.Command{
 	Name:  "points-to-ply",
-	Usage: "Convert a spart reconstruction's points.bin file into a ply file",
+	Usage: "Convert a sparse reconstruction's points.bin file into a ply file",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:  "points",

@@ -15,8 +15,8 @@ func Nodes() *refutil.TypeFactory {
 	// 	}
 	// })
 
-	// refutil.RegisterTypeWithBuilder(factory, func() ParameterNode[geometry.AABB] {
-	// 	return ParameterNode[geometry.AABB]{
+	// refutil.RegisterTypeWithBuilder(factory, func() parameter.Value[geometry.AABB] {
+	// 	return parameter.Value[geometry.AABB]{
 	// 		Name:         "Box",
 	// 		DefaultValue: geometry.NewAABB(vector3.Zero[float64](), vector3.One[float64]()),
 	// 	}
