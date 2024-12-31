@@ -4,6 +4,8 @@ import (
 	"os"
 
 	"github.com/EliCDavis/polyform/examples/ply-utils/properties"
+	"github.com/EliCDavis/polyform/formats/ply"
+	"github.com/EliCDavis/polyform/modeling"
 	"github.com/urfave/cli/v2"
 )
 
@@ -11,6 +13,10 @@ var inFilePath string
 
 func openPlyFile() (*os.File, error) {
 	return os.Open(inFilePath)
+}
+
+func getPlyFile() (*modeling.Mesh, error) {
+	return ply.Load(inFilePath)
 }
 
 func main() {
@@ -32,6 +38,7 @@ func main() {
 		},
 		Commands: []*cli.Command{
 			HeaderCommand,
+			ToGLTFCommand,
 			properties.PropertiesCommand,
 		},
 	}

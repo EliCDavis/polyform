@@ -26,11 +26,13 @@ func readLine(in io.Reader) (string, error) {
 			return "", err
 		}
 
-		if buf[0] == '\n' || buf[0] == '\r' {
+		if buf[0] == '\n' {
 			return data.String(), nil
 		}
 
-		data.WriteByte(buf[0])
+		if buf[0] != '\r' {
+			data.WriteByte(buf[0])
+		}
 	}
 }
 

@@ -14,8 +14,9 @@ const (
 )
 
 type VertexColorSpaceTransformer struct {
-	Attribute      string
-	Transformation VertexColorSpaceTransformation
+	Attribute              string
+	SkipOnMissingAttribute bool
+	Transformation         VertexColorSpaceTransformation
 }
 
 func (vcst VertexColorSpaceTransformer) attribute() string {
@@ -26,6 +27,9 @@ func (vcst VertexColorSpaceTransformer) Transform(m modeling.Mesh) (results mode
 	attribute := getAttribute(vcst, modeling.ColorAttribute)
 
 	if err = RequireV3Attribute(m, attribute); err != nil {
+		if vcst.SkipOnMissingAttribute {
+			return m, nil
+		}
 		return
 	}
 

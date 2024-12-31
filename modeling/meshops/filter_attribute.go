@@ -100,18 +100,18 @@ func FilterFloat3(m modeling.Mesh, attribute string, filter func(v vector3.Float
 	check(RequireV3Attribute(m, attribute))
 
 	vertices := m.Float3Attribute(attribute)
-	verticeToKeep := make(map[int]struct{}, 0)
+	verticeToKeep := make([]bool, vertices.Len())
 
 	for i := 0; i < vertices.Len(); i++ {
 		if filter(vertices.At(i)) {
-			verticeToKeep[i] = struct{}{}
+			verticeToKeep[i] = true
 		}
 	}
 
 	indices := m.Indices()
 	finalIndices := make([]int, 0)
 	for i := 0; i < indices.Len(); i++ {
-		if _, ok := verticeToKeep[indices.At(i)]; ok {
+		if verticeToKeep[indices.At(i)] {
 			finalIndices = append(finalIndices, i)
 		}
 	}
