@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"github.com/EliCDavis/jbtf"
-	"github.com/EliCDavis/polyform/generator"
+	"github.com/EliCDavis/polyform/generator/schema"
 	"github.com/EliCDavis/polyform/nodes"
 )
 
@@ -68,8 +68,8 @@ func (pn *File) Value() []byte {
 	return pn.DefaultValue
 }
 
-func (pn *File) Schema() generator.ParameterSchema {
-	return generator.ParameterSchemaBase{
+func (pn *File) Schema() schema.Parameter {
+	return schema.ParameterBase{
 		Name: pn.Name,
 		Type: "[]uint8",
 	}

@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/EliCDavis/polyform/generator/endpoint"
+	"github.com/EliCDavis/polyform/generator/schema"
 	"github.com/EliCDavis/polyform/nodes"
 )
 
@@ -14,8 +15,8 @@ func nodeEndpoint(as *AppServer) endpoint.Handler {
 	}
 
 	type CreateResponse struct {
-		NodeID string             `json:"nodeID"`
-		Data   NodeInstanceSchema `json:"data"`
+		NodeID string              `json:"nodeID"`
+		Data   schema.NodeInstance `json:"data"`
 	}
 
 	type DeleteRequest struct {

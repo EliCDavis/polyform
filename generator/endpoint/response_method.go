@@ -11,7 +11,7 @@ type ResponseMethod[Response any] struct {
 	Handler        func(r *http.Request) (Response, error)
 }
 
-func (jse ResponseMethod[Response]) ContentType() string {
+func (jse ResponseMethod[Response]) ContentType() ContentType {
 	return jse.ResponseWriter.ContentType()
 }
 

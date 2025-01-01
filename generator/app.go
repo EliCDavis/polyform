@@ -17,6 +17,7 @@ import (
 
 	"github.com/EliCDavis/jbtf"
 	"github.com/EliCDavis/polyform/generator/room"
+	"github.com/EliCDavis/polyform/generator/schema"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
 )
@@ -127,7 +128,7 @@ func (a *App) Graph() []byte {
 		Version:     a.Version,
 		Description: a.Description,
 		WebScene:    a.WebScene,
-		Producers:   make(map[string]ProducerSchema),
+		Producers:   make(map[string]schema.Producer),
 	}
 
 	appNodeSchema := make(map[string]GraphNodeInstance)
@@ -153,7 +154,7 @@ func (a *App) Graph() []byte {
 		node := appNodeSchema[id]
 		appNodeSchema[id] = node
 
-		g.Producers[key] = ProducerSchema{
+		g.Producers[key] = schema.Producer{
 			NodeID: id,
 			Port:   producer.Port(),
 		}
@@ -277,17 +278,17 @@ type appCLI struct {
 	Commands    []*cliCommand
 }
 
-func BuildNodeTypeSchema(node nodes.Node) NodeTypeSchema {
+func BuildNodeTypeSchema(node nodes.Node) schema.NodeType {
 
-	typeSchema := NodeTypeSchema{
+	typeSchema := schema.NodeType{
 		DisplayName: "Untyped",
-		Outputs:     make([]NodeOutput, 0),
-		Inputs:      make(map[string]NodeInput),
+		Outputs:     make([]schema.NodeOutput, 0),
+		Inputs:      make(map[string]schema.NodeInput),
 	}
 
 	outputs := node.Outputs()
 	for _, o := range outputs {
-		typeSchema.Outputs = append(typeSchema.Outputs, NodeOutput{
+		typeSchema.Outputs = append(typeSchema.Outputs, schema.NodeOutput{
 			Name: o.NodeOutput.Port(),
 			Type: o.Type,
 		})
@@ -295,7 +296,7 @@ func BuildNodeTypeSchema(node nodes.Node) NodeTypeSchema {
 
 	inputs := node.Inputs()
 	for _, o := range inputs {
-		typeSchema.Inputs[o.Name] = NodeInput{
+		typeSchema.Inputs[o.Name] = schema.NodeInput{
 			Type: o.Type,
 		}
 	}
@@ -344,13 +345,13 @@ func (a *App) recursivelyRegisterNodeTypes(node nodes.Node) {
 
 func (a App) buildNodeGraphInstanceSchema(node nodes.Node, encoder *jbtf.Encoder) GraphNodeInstance {
 
-	schema := GraphNodeInstance{
+	appSchema := GraphNodeInstance{
 		Type:         refutil.GetTypeWithPackage(node),
-		Dependencies: make([]NodeDependencySchema, 0),
+		Dependencies: make([]schema.NodeDependency, 0),
 	}
 
 	for _, subDependency := range node.Dependencies() {
-		schema.Dependencies = append(schema.Dependencies, NodeDependencySchema{
+		appSchema.Dependencies = append(appSchema.Dependencies, schema.NodeDependency{
 			DependencyID:   a.nodeIDs[subDependency.Dependency()],
 			DependencyPort: subDependency.DependencyPort(),
 			Name:           subDependency.Name(),
@@ -362,23 +363,23 @@ func (a App) buildNodeGraphInstanceSchema(node nodes.Node, encoder *jbtf.Encoder
 		if err != nil {
 			panic(err)
 		}
-		schema.Data = data
+		appSchema.Data = data
 	}
 
-	return schema
+	return appSchema
 }
 
-func (a App) buildNodeInstanceSchema(node nodes.Node) NodeInstanceSchema {
+func (a App) buildNodeInstanceSchema(node nodes.Node) schema.NodeInstance {
 
-	schema := NodeInstanceSchema{
+	nodeInstance := schema.NodeInstance{
 		Name:         "Unamed",
 		Type:         refutil.GetTypeWithPackage(node),
-		Dependencies: make([]NodeDependencySchema, 0),
+		Dependencies: make([]schema.NodeDependency, 0),
 		Version:      node.Version(),
 	}
 
 	for _, subDependency := range node.Dependencies() {
-		schema.Dependencies = append(schema.Dependencies, NodeDependencySchema{
+		nodeInstance.Dependencies = append(nodeInstance.Dependencies, schema.NodeDependency{
 			DependencyID:   a.nodeIDs[subDependency.Dependency()],
 			DependencyPort: subDependency.DependencyPort(),
 			Name:           subDependency.Name(),
@@ -386,17 +387,16 @@ func (a App) buildNodeInstanceSchema(node nodes.Node) NodeInstanceSchema {
 	}
 
 	if param, ok := node.(Parameter); ok {
-		schema.Name = param.DisplayName()
-		schema.parameter = param
-		schema.Parameter = param.Schema()
+		nodeInstance.Name = param.DisplayName()
+		nodeInstance.Parameter = param.Schema()
 	} else {
 		named, ok := node.(nodes.Named)
 		if ok {
-			schema.Name = named.Name()
+			nodeInstance.Name = named.Name()
 		}
 	}
 
-	return schema
+	return nodeInstance
 }
 
 func (a *App) buildIDsForNode(dep nodes.Node) {
@@ -419,14 +419,34 @@ func (a *App) buildIDsForNode(dep nodes.Node) {
 	a.nodeIDs[dep] = id
 }
 
-func (a *App) Schema() AppSchema {
-	a.SetupProducers()
-
-	schema := AppSchema{
-		Producers: make(map[string]ProducerSchema),
+func (a *App) GetParameter(nodeId string) Parameter {
+	var node nodes.Node
+	for n, id := range a.nodeIDs {
+		if id == nodeId {
+			node = n
+		}
 	}
 
-	appNodeSchema := make(map[string]NodeInstanceSchema)
+	if node == nil {
+		panic(fmt.Errorf("no node exists with id %q", nodeId))
+	}
+
+	param, ok := node.(Parameter)
+	if !ok {
+		panic(fmt.Errorf("node %q is not a parameter", nodeId))
+	}
+
+	return param
+}
+
+func (a *App) Schema() schema.App {
+	a.SetupProducers()
+
+	appSchema := schema.App{
+		Producers: make(map[string]schema.Producer),
+	}
+
+	appNodeSchema := make(map[string]schema.NodeInstance)
 
 	for node := range a.nodeIDs {
 		id, ok := a.nodeIDs[node]
@@ -448,16 +468,16 @@ func (a *App) Schema() AppSchema {
 		node.Name = key
 		appNodeSchema[id] = node
 
-		schema.Producers[key] = ProducerSchema{
+		appSchema.Producers[key] = schema.Producer{
 			NodeID: id,
 			Port:   producer.Port(),
 		}
 	}
 
-	schema.Nodes = appNodeSchema
+	appSchema.Nodes = appNodeSchema
 
 	registeredTypes := a.types.Types()
-	nodeTypes := make([]NodeTypeSchema, 0, len(registeredTypes))
+	nodeTypes := make([]schema.NodeType, 0, len(registeredTypes))
 	for _, registeredType := range registeredTypes {
 		nodeInstance, ok := a.types.New(registeredType).(nodes.Node)
 		if !ok {
@@ -471,9 +491,9 @@ func (a *App) Schema() AppSchema {
 		b.Type = registeredType
 		nodeTypes = append(nodeTypes, b)
 	}
-	schema.Types = nodeTypes
+	appSchema.Types = nodeTypes
 
-	return schema
+	return appSchema
 }
 
 func (a App) Generate(outputPath string) error {

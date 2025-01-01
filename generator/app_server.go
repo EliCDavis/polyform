@@ -224,24 +224,7 @@ func (as *AppServer) writeProducerDataToRequest(producerToLoad string, w http.Re
 
 func (as *AppServer) ApplyMessage(key string, msg []byte) (bool, error) {
 	log.Println("applying...")
-	params := as.app.Schema()
-	// nodes := a.Schema().Nodes
-
-	// for _, p := range params.Nodes {
-	// 	paramChanged, err := p.ApplyJsonMessage(profile.Parameters)
-	// 	if err != nil {
-	// 		return changed, err
-	// 	}
-
-	// 	if paramChanged {
-	// 		changed = true
-	// 	}
-	// }
-
-	n := params.Nodes[key]
-	changed, err := n.parameter.ApplyMessage(msg)
-	params.Nodes[key] = n
-
+	changed, err := as.app.GetParameter(key).ApplyMessage(msg)
 	return changed, err
 }
 

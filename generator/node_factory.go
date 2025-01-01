@@ -1,6 +1,7 @@
 package generator
 
 import (
+	"github.com/EliCDavis/polyform/generator/parameter"
 	"github.com/EliCDavis/polyform/modeling/meshops"
 	"github.com/EliCDavis/polyform/modeling/meshops/gausops"
 	"github.com/EliCDavis/polyform/refutil"
@@ -39,5 +40,6 @@ func Nodes() *refutil.TypeFactory {
 	return factory.Combine(
 		meshops.Nodes(),
 		gausops.Nodes(),
+		parameter.Nodes(),
 	)
 }

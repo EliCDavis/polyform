@@ -11,7 +11,7 @@ type BodyMethod[Body any] struct {
 	Handler func(request Request[Body]) error
 }
 
-func (jse BodyMethod[Body]) ContentType() string {
+func (jse BodyMethod[Body]) ContentType() ContentType {
 	return ""
 }
 

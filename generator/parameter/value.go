@@ -9,7 +9,7 @@ import (
 	"github.com/EliCDavis/jbtf"
 	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/formats/swagger"
-	"github.com/EliCDavis/polyform/generator"
+	"github.com/EliCDavis/polyform/generator/schema"
 	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
@@ -38,7 +38,7 @@ func (sno ParameterNodeOutput[T]) Port() string {
 // ============================================================================
 
 type ValueSchema[T any] struct {
-	generator.ParameterSchemaBase
+	schema.ParameterBase
 	DefaultValue T `json:"defaultValue"`
 	CurrentValue T `json:"currentValue"`
 }
@@ -165,9 +165,9 @@ func (pn *Value[T]) FromJSON(decoder jbtf.Decoder, body []byte) (err error) {
 
 // ============================================================================
 
-func (pn *Value[T]) Schema() generator.ParameterSchema {
+func (pn *Value[T]) Schema() schema.Parameter {
 	return ValueSchema[T]{
-		ParameterSchemaBase: generator.ParameterSchemaBase{
+		ParameterBase: schema.ParameterBase{
 			Name: pn.Name,
 			Type: fmt.Sprintf("%T", *new(T)),
 		},

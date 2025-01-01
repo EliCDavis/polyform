@@ -9,7 +9,7 @@ import (
 	"os"
 
 	"github.com/EliCDavis/jbtf"
-	"github.com/EliCDavis/polyform/generator"
+	"github.com/EliCDavis/polyform/generator/schema"
 	"github.com/EliCDavis/polyform/nodes"
 )
 
@@ -90,8 +90,8 @@ func (pn *Image) Value() image.Image {
 	return pn.DefaultValue
 }
 
-func (pn *Image) Schema() generator.ParameterSchema {
-	return generator.ParameterSchemaBase{
+func (pn *Image) Schema() schema.Parameter {
+	return schema.ParameterBase{
 		Name: pn.Name,
 		Type: "image.Image",
 	}

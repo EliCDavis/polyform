@@ -16,6 +16,6 @@ func (se Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		panic(fmt.Errorf("endpoint has not implemented HTTP method: '%s'", r.Method))
 	}
 
-	w.Header().Set("Content-Type", method.ContentType())
+	w.Header().Set("Content-Type", string(method.ContentType()))
 	method.Handle(w, r)
 }

@@ -1,7 +1,6 @@
 package generator
 
 import (
-	"fmt"
 	"net/http"
 	"path"
 
@@ -35,11 +34,8 @@ func profileEndpoint(as *AppServer) endpoint.Handler {
 					defer as.producerLock.Unlock()
 
 					profileID := path.Base(r.URL.Path)
-					n, ok := as.app.Schema().Nodes[profileID]
-					if !ok {
-						return nil, fmt.Errorf("no node registered with ID: '%s'", profileID)
-					}
-					return n.parameter.ToMessage(), nil
+					n := as.app.GetParameter(profileID)
+					return n.ToMessage(), nil
 				},
 			},
 		},

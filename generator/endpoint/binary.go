@@ -5,10 +5,6 @@ import (
 	"net/http"
 )
 
-const (
-	BinaryContentType = "application/octet-stream"
-)
-
 // ============================================================================
 
 type BinaryRequestReader struct{}
@@ -26,6 +22,6 @@ func (jrw BinaryResponseWriter) Serialize(w http.ResponseWriter, response []byte
 	return err
 }
 
-func (jrw BinaryResponseWriter) ContentType() string {
+func (jrw BinaryResponseWriter) ContentType() ContentType {
 	return BinaryContentType
 }

@@ -34,10 +34,6 @@ func writeJSONError(out io.Writer, err error) error {
 	return err
 }
 
-const (
-	JsonContentType = "application/json"
-)
-
 // ============================================================================
 
 type JsonRequestReader[T any] struct{}
@@ -59,7 +55,7 @@ func (jrw JsonResponseWriter[Response]) Serialize(w http.ResponseWriter, respons
 	return err
 }
 
-func (jrw JsonResponseWriter[Response]) ContentType() string {
+func (jrw JsonResponseWriter[Response]) ContentType() ContentType {
 	return JsonContentType
 }
 
@@ -69,7 +65,7 @@ type JsonMethod[Body any, Response any] struct {
 	Handler func(request Request[Body]) (Response, error)
 }
 
-func (jse JsonMethod[Body, Response]) ContentType() string {
+func (jse JsonMethod[Body, Response]) ContentType() ContentType {
 	return JsonContentType
 }
 
