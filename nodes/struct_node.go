@@ -173,7 +173,7 @@ func (sn StructNode[T, G]) Inputs() []Input {
 
 	refArrInput := refutil.GenericFieldValues("[]nodes.NodeOutput", sn.Data)
 	for name, inputType := range refArrInput {
-		nodeInputs = append(nodeInputs, Input{Name: name, Type: "[]" + inputType})
+		nodeInputs = append(nodeInputs, Input{Name: name, Type: inputType, Array: true})
 	}
 
 	return nodeInputs

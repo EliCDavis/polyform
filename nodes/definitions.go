@@ -13,8 +13,9 @@ type Output struct {
 }
 
 type Input struct {
-	Name string
-	Type string
+	Name  string
+	Type  string
+	Array bool
 }
 
 // type Producer interface {

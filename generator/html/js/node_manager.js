@@ -1,30 +1,6 @@
 import { PolyNodeController, camelCaseToWords } from "./nodes/node.js";
 
 
-const ParameterNodeOutputPortName = "Out";
-const ParameterNodeColor = "#233";
-const ParameterNodeBackgroundColor = "#355";
-
-/**
- * 
- * @param {string} dataType 
- * @returns {string}
- */
-function ParameterNodeType(dataType) {
-    return "github.com/EliCDavis/polyform/parameter.Value[" + dataType + "]";
-}
-
-
-/**
- * 
- * @param {string} subCategory 
- * @returns {string}
- */
-function ParameterNamespace(subCategory) {
-    return "parameter/" + subCategory
-}
-
-
 export class NodeManager {
     constructor(app) {
         this.app = app;
@@ -34,30 +10,41 @@ export class NodeManager {
         this.subscribers = [];
         this.initializedNodeTypes = false
         // this.registerSpecialParameterPolyformNodes();
+
+        this.app.NodeFlowGraph.addOnNodeAddedListener(this.onNodeAddedCallback.bind(this));
     }
 
-    onNodeCreateCallback(liteNode, nodeType) {
+    onNodeAddedCallback(flowNode) {
+
         if (this.app.ServerUpdatingNodeConnections) {
             return;
         }
+
+        console.log(flowNode.metadata())
+        const nodeType = flowNode.metadata().typeData.type
+        console.log(nodeType, flowNode)
+
         this.app.RequestManager.createNode(nodeType, (resp) => {
             const isProducer = false;
             const nodeID = resp.nodeID
             const nodeData = resp.data;
-            liteNode.nodeInstanceID = nodeID;
-            this.nodeIdToNode.set(nodeID, new PolyNodeController(liteNode, this, nodeID, nodeData, this.app, isProducer));
+
+            // TODO: This is an ugo hack. Consider somehow making this apart of the metadata.
+            flowNode.nodeInstanceID = nodeID;
+
+            this.nodeIdToNode.set(nodeID, new PolyNodeController(flowNode, this, nodeID, nodeData, this.app, isProducer));
         })
     }
 
     sortNodesByName(nodesToSort) {
-        let sortable = [];
-        for (var nodeID in nodesToSort) {
+        const sortable = [];
+        for (let nodeID in nodesToSort) {
             sortable.push([nodeID, nodesToSort[nodeID]]);
         }
 
         sortable.sort((a, b) => {
-            var textA = a[1].name.toUpperCase();
-            var textB = b[1].name.toUpperCase();
+            const textA = a[1].name.toUpperCase();
+            const textB = b[1].name.toUpperCase();
             return (textA < textB) ? -1 : (textA > textB) ? 1 : 0;
         });
         return sortable;
@@ -71,65 +58,101 @@ export class NodeManager {
 
             for (let i = 0; i < nodeData.dependencies.length; i++) {
                 const dep = nodeData.dependencies[i];
+                let dependencyName = dep.name;
+
+                // Inputs that are elements in array are named "Input.N"
+                if (dependencyName.indexOf(".") !== -1) {
+                    dependencyName = dependencyName.split(".")[0]
+                }
+
                 const target = this.nodeIdToNode.get(dep.dependencyID);
 
                 let sourceInput = -1;
-                // console.log(source.liteNode)
-                for (let sourceInputIndex = 0; sourceInputIndex < source.liteNode.inputs(); sourceInputIndex++) {
-                    if (source.liteNode.inputPort(sourceInputIndex).getDisplayName() === dep.name) {
+                // console.log(source.flowNode)
+                for (let sourceInputIndex = 0; sourceInputIndex < source.flowNode.inputs(); sourceInputIndex++) {
+                    if (source.flowNode.inputPort(sourceInputIndex).getDisplayName() === dependencyName) {
                         sourceInput = sourceInputIndex;
                     }
                 }
 
-                // connectNodes(nodeOut: FlowNode, outPort: number, nodeIn: FlowNode, inPort): Connection | undefined {
 
                 if (sourceInput === -1) {
-                    console.error("failed to find source")
+                    console.error("failed to find source for ", dep)
                     continue;
                 }
 
+                // connectNodes(nodeOut: FlowNode, outPort: number, nodeIn: FlowNode, inPort): Connection | undefined {
                 // TODO: This only works for nodes with one output
                 this.app.NodeFlowGraph.connectNodes(
-                    target.liteNode, 0,
-                    source.liteNode, sourceInput,
+                    target.flowNode, 0,
+                    source.flowNode, sourceInput,
                 )
-                // target.liteNode.connect(0, source.liteNode, sourceInput)
-                // source.lightNode.connect(i, target.lightNode, 0);
             }
         }
     }
 
 
-    buildCustomNodeType(typeData) {
+    registerCustomNodeType(typeData) {
+        console.log("typedata", typeData)
         const nodeConfig = {
             title: camelCaseToWords(typeData.displayName),
             inputs: [],
-            outputs:[]
+            outputs: [],
+            metadata: {
+                typeData: typeData
+            }
         }
 
-        for (var inputName in typeData.inputs) {
+        for (let inputName in typeData.inputs) {
             nodeConfig.inputs.push({
-                name: inputName, 
-                type: typeData.inputs[inputName].type
+                name: inputName,
+                type: typeData.inputs[inputName].type,
+                array: typeData.inputs[inputName].isArray
             });
         }
 
+        let isProducer = false;
+
         if (typeData.outputs) {
             typeData.outputs.forEach((o) => {
-                nodeConfig.outputs.push({
-                    name: o.name, 
-                    type: o.type
-                });
+                nodeConfig.outputs.push({ name: o.name, type: o.type });
+
+                if (o.type === "github.com/EliCDavis/polyform/generator.Artifact") {
+                    isProducer = true;
+                }
             })
         }
+
+        if (isProducer) {
+            const ParameterNodeBackgroundColor = "#332233";
+            const ParameterStyle = {
+                title: {
+                    color: "#4a3355"
+                },
+                idle: {
+                    color: ParameterNodeBackgroundColor,
+                },
+                mouseOver: {
+                    color: ParameterNodeBackgroundColor,
+                },
+                grabbed: {
+                    color: ParameterNodeBackgroundColor,
+                },
+                selected: {
+                    color: ParameterNodeBackgroundColor,
+                }
+            }
+            nodeConfig.style = ParameterStyle
+        }
+
         // nm.onNodeCreateCallback(this, typeData.type);
-        
+
         const category = typeData.path + "/" + typeData.displayName;
         this.nodeTypeToLitePath.set(typeData.type, category);
         PolyformNodesPublisher.register(category, nodeConfig);
     }
 
-    newLiteNode(nodeData) {
+    newNode(nodeData) {
         const isParameter = !!nodeData.parameter;
 
         // Not a parameter, just create a node that adhere's to the server's 
@@ -149,6 +172,7 @@ export class NodeManager {
     }
 
     updateNodes(newSchema) {
+
         // Only need to do this once, since types are set at compile time. If
         // that ever changes, god.
         if (this.initializedNodeTypes === false) {
@@ -158,7 +182,7 @@ export class NodeManager {
                 if (type.parameter) {
                     return;
                 }
-                this.buildCustomNodeType(type)
+                this.registerCustomNodeType(type)
             })
         }
 
@@ -182,11 +206,14 @@ export class NodeManager {
                     }
                 }
 
-                const liteNode = this.newLiteNode(nodeData);
-                this.app.NodeFlowGraph.addNode(liteNode);
-                liteNode.nodeInstanceID = nodeID;
+                const flowNode = this.newNode(nodeData);
+                this.app.NodeFlowGraph.addNode(flowNode);
 
-                this.nodeIdToNode.set(nodeID, new PolyNodeController(liteNode, this, nodeID, nodeData, this.app, isProducer));
+                // TODO: This is an ugo hack. Consider somehow making this 
+                // apart of the metadata.
+                flowNode.nodeInstanceID = nodeID;
+
+                this.nodeIdToNode.set(nodeID, new PolyNodeController(flowNode, this, nodeID, nodeData, this.app, isProducer));
                 nodeAdded = true;
             }
         }

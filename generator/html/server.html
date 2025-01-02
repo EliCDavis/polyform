@@ -224,8 +224,8 @@
 
     <script>
         const RenderingConfiguration = {
-            AntiAlias: {{.AntiAlias }},
-            XrEnabled:  {{ .XrEnabled }}
+            AntiAlias: {{ .AntiAlias }},
+            XrEnabled: {{ .XrEnabled }}
         }
     </script>
 
@@ -344,11 +344,26 @@
     </script>
 
     <script>
-        // LiteGraph.clearRegisteredTypes();
-        // const lgraphInstance = new LGraph();
-
         const nodeCanvas = document.getElementById("light-canvas")
-        // const lightCanvas = new LGraphCanvas("#light-canvas", lgraphInstance);
+
+        const ParameterNodeBackgroundColor = "#233";
+        const ParameterStyle = {
+            title: {
+                color: "#355"
+            },
+            idle: {
+                color: ParameterNodeBackgroundColor,
+            },
+            mouseOver: {
+                color: ParameterNodeBackgroundColor,
+            },
+            grabbed: {
+                color: ParameterNodeBackgroundColor,
+            },
+            selected: {
+                color: ParameterNodeBackgroundColor,
+            }
+        }
 
         const PolyformNodesPublisher = new NodePublisher({
             name: "Polyform",
@@ -369,7 +384,13 @@
                                 property: "value"
                             }
                         }
-                    ]
+                    ],
+                    style: ParameterStyle,
+                    metadata: {
+                        typeData: {
+                            type: "github.com/EliCDavis/polyform/generator/parameter.Value[int]"
+                        }
+                    }
                 },
                 "parameters/float64": {
                     title: "Float64 Parameter",
@@ -386,7 +407,13 @@
                                 property: "value"
                             }
                         }
-                    ]
+                    ],
+                    style: ParameterStyle,
+                    metadata: {
+                        typeData: {
+                            type: "github.com/EliCDavis/polyform/generator/parameter.Value[float64]"
+                        }
+                    }
                 },
                 "parameters/geometry.AABB": {
                     title: "AABB Parameter",
@@ -445,7 +472,13 @@
                                 property: "max-z"
                             }
                         }
-                    ]
+                    ],
+                    style: ParameterStyle,
+                    metadata: {
+                        typeData: {
+                            type: "github.com/EliCDavis/polyform/generator/parameter.Value[github.com/EliCDavis/polyform/math/geometry.AABB]"
+                        }
+                    }
                 },
                 "parameters/image.Image": {
                     title: "Image Parameter",
@@ -461,7 +494,13 @@
                             config: {
                             }
                         }
-                    ]
+                    ],
+                    style: ParameterStyle,
+                    metadata: {
+                        typeData: {
+                            type: "github.com/EliCDavis/polyform/generator/parameter.Value[image.Image]"
+                        }
+                    }
                 },
                 "parameters/[]uint8": {
                     title: "[]uint8 Parameter",
@@ -477,7 +516,13 @@
                             config: {
                             }
                         }
-                    ]
+                    ],
+                    style: ParameterStyle,
+                    metadata: {
+                        typeData: {
+                            type: "github.com/EliCDavis/polyform/generator/parameter.Value[[]uint8]"
+                        }
+                    }
                 },
                 "parameters/coloring.WebColor": {
                     title: "Color Parameter",
@@ -494,7 +539,13 @@
                                 property: "value"
                             }
                         }
-                    ]
+                    ],
+                    style: ParameterStyle,
+                    metadata: {
+                        typeData: {
+                            type: "github.com/EliCDavis/polyform/generator/parameter.Value[github.com/EliCDavis/polyform/drawing/coloring.WebColor]"
+                        }
+                    }
                 },
                 "parameters/vector3.Vector[float64]": {
                     title: "Vector3 Parameter",
@@ -523,7 +574,13 @@
                                 property: "z"
                             }
                         }
-                    ]
+                    ],
+                    style: ParameterStyle,
+                    metadata: {
+                        typeData: {
+                            type: "github.com/EliCDavis/polyform/generator/parameter.Value[github.com/EliCDavis/vector/vector3.Vector[float64]]"
+                        }
+                    }
                 },
                 "parameters/[]vector3.Vector[float64]": {
                     title: "Vector3 Array Parameter",
@@ -533,6 +590,12 @@
                             type: "[]github.com/EliCDavis/vector/vector3.Vector[float64]"
                         }
                     ],
+                    style: ParameterStyle,
+                    metadata: {
+                        typeData: {
+                            type: "github.com/EliCDavis/polyform/generator/parameter.Value[[]github.com/EliCDavis/vector/vector3.Vector[float64]]"
+                        }
+                    }
                 },
                 "parameters/vector2.Vector[float64]": {
                     title: "Vector2 Parameter",
@@ -555,7 +618,13 @@
                                 property: "y"
                             }
                         }
-                    ]
+                    ],
+                    style: ParameterStyle,
+                    metadata: {
+                        typeData: {
+                            type: "github.com/EliCDavis/polyform/generator/parameter.Value[github.com/EliCDavis/vector/vector2.Vector[float64]]"
+                        }
+                    }
                 },
                 "parameters/bool": {
                     title: "Bool Parameter",
@@ -572,7 +641,13 @@
                                 property: "value"
                             }
                         },
-                    ]
+                    ],
+                    style: ParameterStyle,
+                    metadata: {
+                        typeData: {
+                            type: "github.com/EliCDavis/polyform/generator/parameter.Value[bool]"
+                        }
+                    }
                 },
                 "parameters/string": {
                     title: "String Parameter",
@@ -589,7 +664,13 @@
                                 property: "value"
                             }
                         },
-                    ]
+                    ],
+                    style: ParameterStyle,
+                    metadata: {
+                        typeData: {
+                            type: "github.com/EliCDavis/polyform/generator/parameter.Value[string]"
+                        }
+                    }
                 },
             },
         });

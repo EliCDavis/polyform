@@ -78,16 +78,16 @@ export class PolyNodeController {
 
     /**
      * 
-     * @param {*} liteNode 
+     * @param {*} flowNode 
      * @param {NodeManager} nodeManager 
      * @param {string} id 
      * @param {*} nodeData 
      * @param {*} app 
      * @param {boolean} isProducer 
      */
-    constructor(liteNode, nodeManager, id, nodeData, app, isProducer) {
+    constructor(flowNode, nodeManager, id, nodeData, app, isProducer) {
         // console.log(liteNode)
-        this.liteNode = liteNode;
+        this.flowNode = flowNode;
         this.id = id;
         this.app = app;
         this.nodeManager = nodeManager;
@@ -101,14 +101,14 @@ export class PolyNodeController {
         this.parameter = null;
 
         if (nodeData.parameter) {
-            this.parameter = BuildParameter(liteNode, this.nodeManager, this.id, nodeData.parameter, this.app);
+            this.parameter = BuildParameter(flowNode, this.nodeManager, this.id, nodeData.parameter, this.app);
         }
 
         if (this.isProducer) {
             const ext = getFileExtension(nodeData.name);
             if (ext === "png") {
-                const imageWidget = GlobalWidgetFactory.create(liteNode, "image", {});
-                liteNode.addWidget(imageWidget);
+                const imageWidget = GlobalWidgetFactory.create(flowNode, "image", {});
+                flowNode.addWidget(imageWidget);
                 app.SchemaRefreshManager.Subscribe((url, image) => {
                     // console.log(url, image)
                     // imageWidget.SetBlob(image);
@@ -119,27 +119,27 @@ export class PolyNodeController {
                 });
             }
 
-            this.liteNode.color = "#232";
-            this.liteNode.bgcolor = "#353";
-            const downloadButton = GlobalWidgetFactory.create(liteNode, "button", {
+            this.flowNode.color = "#232";
+            this.flowNode.bgcolor = "#353";
+            const downloadButton = GlobalWidgetFactory.create(flowNode, "button", {
                 text: "Download",
                 callback: () => {
                     saveFileToDisk("/producer/" + this.name, this.name);
                 }
             })
-            this.liteNode.addWidget(downloadButton);
+            this.flowNode.addWidget(downloadButton);
         }
 
         // type ConnectionChangeCallback = (connection: Connection, port: Port, portType: PortType, node: FlowNode) => void
-        for (let i = 0; i < this.liteNode.inputs(); i++) {
-            const port = this.liteNode.inputPort(i);
+        for (let i = 0; i < this.flowNode.inputs(); i++) {
+            const port = this.flowNode.inputPort(i);
             port.addConnectionAddedListener((connection, port, portType, node) => {
                 if (this.app.ServerUpdatingNodeConnections) {
                     return;
                 }
                 console.log("connection ADDED", connection, port, portType, node);
                 this.app.RequestManager.setNodeInputConnection(
-                    this.liteNode.nodeInstanceID,
+                    this.flowNode.nodeInstanceID,
                     connection.inPort().getDisplayName(),
                     connection.outNode().nodeInstanceID,
                     connection.outPort().getDisplayName(),

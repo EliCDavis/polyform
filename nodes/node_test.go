@@ -80,7 +80,8 @@ func TestNodes(t *testing.T) {
 
 	combinedInputs := combined.Inputs()
 	assert.Len(t, combinedInputs, 1)
-	assert.Equal(t, "[]github.com/EliCDavis/polyform/modeling.Mesh", combinedInputs[0].Type)
+	assert.Equal(t, "github.com/EliCDavis/polyform/modeling.Mesh", combinedInputs[0].Type, combinedInputs[0].Array)
+	assert.True(t, combinedInputs[0].Array)
 
 	combinedDeps := combined.Out().Node().Dependencies()
 	assert.Len(t, combinedDeps, 2)

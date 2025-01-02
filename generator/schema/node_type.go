@@ -6,7 +6,8 @@ type NodeOutput struct {
 }
 
 type NodeInput struct {
-	Type string `json:"type"`
+	Type    string `json:"type"`
+	IsArray bool   `json:"isArray"`
 }
 
 type NodeType struct {

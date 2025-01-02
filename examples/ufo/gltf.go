@@ -18,10 +18,13 @@ type GltfArtifactData struct {
 }
 
 func (gad GltfArtifactData) Process() (generator.Artifact, error) {
-	models := make([]gltf.PolyformModel, len(gad.Models))
+	models := make([]gltf.PolyformModel, 0, len(gad.Models))
 
-	for i, m := range gad.Models {
-		models[i] = m.Value()
+	for _, m := range gad.Models {
+		if m == nil {
+			continue
+		}
+		models = append(models, m.Value())
 	}
 
 	return &artifact.Gltf{

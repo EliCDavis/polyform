@@ -12,7 +12,7 @@ export class Vector3ArrayParameterNodeController {
         this.allPositionControlsMeshes = [];
         this.renderControls = false;
 
-        parameterData.currentValue.forEach((ele) => {
+        parameterData.currentValue?.forEach((ele) => {
             this.newPositionControl(ele);
         })
 
@@ -23,14 +23,19 @@ export class Vector3ArrayParameterNodeController {
             callback: () => {
                 const paramData = this.buildParameterData();
 
-                const oldEle = paramData[paramData.length - 1]
-                const newEle = {
-                    x: oldEle.x + 1,
-                    y: oldEle.y,
-                    z: oldEle.z,
+                if (paramData.length > 0) {
+                    const oldEle = paramData[paramData.length - 1]
+                    const newEle = {
+                        x: oldEle.x + 1,
+                        y: oldEle.y,
+                        z: oldEle.z,
+                    }
+
+                    paramData.push(newEle)
+                } else {
+                    paramData.push({ x: 0, y: 0, z: 0 })
                 }
 
-                paramData.push(newEle)
 
                 this.nodeManager.nodeParameterChanged({
                     id: this.id,
@@ -119,7 +124,7 @@ export class Vector3ArrayParameterNodeController {
 
     update(parameterData) {
         this.clearPositionControls();
-        parameterData.currentValue.forEach((ele) => {
+        parameterData.currentValue?.forEach((ele) => {
             this.newPositionControl(ele);
         })
     }

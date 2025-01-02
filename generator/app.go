@@ -297,7 +297,8 @@ func BuildNodeTypeSchema(node nodes.Node) schema.NodeType {
 	inputs := node.Inputs()
 	for _, o := range inputs {
 		typeSchema.Inputs[o.Name] = schema.NodeInput{
-			Type: o.Type,
+			Type:    o.Type,
+			IsArray: o.Array,
 		}
 	}
 
