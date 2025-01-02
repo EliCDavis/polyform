@@ -11,7 +11,7 @@ import (
 	"github.com/EliCDavis/polyform/nodes"
 )
 
-type GltfArtifact = nodes.StructNode[generator.Artifact, GltfArtifactData]
+type GltfArtifact = nodes.Struct[generator.Artifact, GltfArtifactData]
 
 type GltfArtifactData struct {
 	Models []nodes.NodeOutput[gltf.PolyformModel]
@@ -34,7 +34,7 @@ func (gad GltfArtifactData) Process() (generator.Artifact, error) {
 	}, nil
 }
 
-type GltfModel = nodes.StructNode[gltf.PolyformModel, GltfModelNodeData]
+type GltfModel = nodes.Struct[gltf.PolyformModel, GltfModelNodeData]
 
 type GltfModelNodeData struct {
 	Mesh     nodes.NodeOutput[modeling.Mesh]
@@ -57,7 +57,7 @@ func (gmnd GltfModelNodeData) Process() (gltf.PolyformModel, error) {
 	return model, nil
 }
 
-type GltfMaterialNode = nodes.StructNode[gltf.PolyformMaterial, GltfMaterialNodeData]
+type GltfMaterialNode = nodes.Struct[gltf.PolyformMaterial, GltfMaterialNodeData]
 
 type GltfMaterialNodeData struct {
 	Color                    nodes.NodeOutput[coloring.WebColor]
@@ -161,7 +161,7 @@ func (gmnd GltfMaterialNodeData) Process() (gltf.PolyformMaterial, error) {
 	}, nil
 }
 
-type GltfMaterialTransmissionExtensionNode = nodes.StructNode[gltf.PolyformTransmission, GltfMaterialTransmissionExtensionNodeData]
+type GltfMaterialTransmissionExtensionNode = nodes.Struct[gltf.PolyformTransmission, GltfMaterialTransmissionExtensionNodeData]
 
 type GltfMaterialTransmissionExtensionNodeData struct {
 	TransmissionFactor nodes.NodeOutput[float64]
@@ -179,7 +179,7 @@ func (gmvend GltfMaterialTransmissionExtensionNodeData) Process() (gltf.Polyform
 	}, nil
 }
 
-type GltfMaterialVolumeExtensionNode = nodes.StructNode[gltf.PolyformVolume, GltfMaterialVolumeExtensionNodeData]
+type GltfMaterialVolumeExtensionNode = nodes.Struct[gltf.PolyformVolume, GltfMaterialVolumeExtensionNodeData]
 
 type GltfMaterialVolumeExtensionNodeData struct {
 	ThicknessFactor     nodes.NodeOutput[float64]
@@ -212,7 +212,7 @@ func (gmvend GltfMaterialVolumeExtensionNodeData) Process() (gltf.PolyformVolume
 	}, nil
 }
 
-type GltfMaterialAnisotropyExtensionNode = nodes.StructNode[gltf.PolyformAnisotropy, GltfMaterialAnisotropyExtensionNodeData]
+type GltfMaterialAnisotropyExtensionNode = nodes.Struct[gltf.PolyformAnisotropy, GltfMaterialAnisotropyExtensionNodeData]
 
 type GltfMaterialAnisotropyExtensionNodeData struct {
 	AnisotropyStrength nodes.NodeOutput[float64]
@@ -237,7 +237,7 @@ func (gmvend GltfMaterialAnisotropyExtensionNodeData) Process() (gltf.PolyformAn
 	}, nil
 }
 
-type GltfMaterialClearcoatExtensionNode = nodes.StructNode[gltf.PolyformClearcoat, GltfMaterialClearcoatExtensionNodeData]
+type GltfMaterialClearcoatExtensionNode = nodes.Struct[gltf.PolyformClearcoat, GltfMaterialClearcoatExtensionNodeData]
 
 type GltfMaterialClearcoatExtensionNodeData struct {
 	ClearcoatFactor          nodes.NodeOutput[float64]

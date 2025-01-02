@@ -60,7 +60,7 @@ func ColorGradingLut(m modeling.Mesh, lut image.Image, attr string) modeling.Mes
 	return m.SetFloat3Attribute(attr, newColor)
 }
 
-type ColorGradingLutNode = nodes.StructNode[modeling.Mesh, ColorGradingLutNodeData]
+type ColorGradingLutNode = nodes.Struct[modeling.Mesh, ColorGradingLutNodeData]
 
 type ColorGradingLutNodeData struct {
 	Mesh      nodes.NodeOutput[modeling.Mesh]

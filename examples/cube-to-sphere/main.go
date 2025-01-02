@@ -14,7 +14,7 @@ import (
 	"github.com/EliCDavis/vector/vector3"
 )
 
-type CubeToSphereAnimation = nodes.StructNode[modeling.Mesh, CubeToSphereAnimationData]
+type CubeToSphereAnimation = nodes.Struct[modeling.Mesh, CubeToSphereAnimationData]
 
 type CubeToSphereAnimationData struct {
 	Time       nodes.NodeOutput[float64]
@@ -85,7 +85,7 @@ func main() {
 	}
 }
 
-type GltfArtifact = nodes.StructNode[generator.Artifact, GltfArtifactData]
+type GltfArtifact = nodes.Struct[generator.Artifact, GltfArtifactData]
 
 type GltfArtifactData struct {
 	Mesh nodes.NodeOutput[modeling.Mesh]

@@ -23,7 +23,7 @@ import (
 	"github.com/EliCDavis/vector/vector3"
 )
 
-type NormalImage = nodes.StructNode[generator.Artifact, NormalImageData]
+type NormalImage = nodes.Struct[generator.Artifact, NormalImageData]
 
 type NormalImageData struct {
 	NumberOfLines nodes.NodeOutput[int]
@@ -112,7 +112,7 @@ func (ni NormalImageData) Process() (generator.Artifact, error) {
 	return artifact.Image{Image: texturing.BoxBlurNTimes(img, 10)}, nil
 }
 
-type PumpkinField = nodes.StructNode[marching.Field, PumpkinFieldData]
+type PumpkinField = nodes.Struct[marching.Field, PumpkinFieldData]
 
 type PumpkinFieldData struct {
 	MaxWidth, TopDip, DistanceFromCenter, WedgeLineRadius nodes.NodeOutput[float64]
@@ -214,7 +214,7 @@ func (pf PumpkinFieldData) Process() (marching.Field, error) {
 	return pumpkinField, nil
 }
 
-type SphericalUVMapping = nodes.StructNode[modeling.Mesh, SphericalUVMappingData]
+type SphericalUVMapping = nodes.Struct[modeling.Mesh, SphericalUVMappingData]
 
 type SphericalUVMappingData struct {
 	Mesh nodes.NodeOutput[modeling.Mesh]
@@ -240,7 +240,7 @@ func (sm SphericalUVMappingData) Process() (modeling.Mesh, error) {
 	return mesh.SetFloat2Attribute(modeling.TexCoordAttribute, newUVs), nil
 }
 
-type PumpkinGLBArtifact = nodes.StructNode[generator.Artifact, PumpkinGLBArtifactData]
+type PumpkinGLBArtifact = nodes.Struct[generator.Artifact, PumpkinGLBArtifactData]
 
 type PumpkinGLBArtifactData struct {
 	PumpkinBody nodes.NodeOutput[modeling.Mesh]
@@ -296,7 +296,7 @@ func (pga PumpkinGLBArtifactData) Process() (generator.Artifact, error) {
 	}, nil
 }
 
-type MetalRoughness = nodes.StructNode[generator.Artifact, MetalRoughnessData]
+type MetalRoughness = nodes.Struct[generator.Artifact, MetalRoughnessData]
 
 type MetalRoughnessData struct {
 	Roughness nodes.NodeOutput[float64]

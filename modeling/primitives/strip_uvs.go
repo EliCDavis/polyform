@@ -39,7 +39,7 @@ func (suv StripUVs) LeftToRight() vector2.Float64 {
 	return suv.StartRight().Sub(suv.StartLeft())
 }
 
-type StripUVsNode = nodes.StructNode[StripUVs, StripUVsNodeData]
+type StripUVsNode = nodes.Struct[StripUVs, StripUVsNodeData]
 
 type StripUVsNodeData struct {
 	Width nodes.NodeOutput[float64]

@@ -6,7 +6,7 @@ import (
 	"github.com/EliCDavis/vector/vector3"
 )
 
-type ScaleWithinRegionNode = nodes.StructNode[modeling.Mesh, ScaleWithinRegionNodeData]
+type ScaleWithinRegionNode = nodes.Struct[modeling.Mesh, ScaleWithinRegionNodeData]
 
 type ScaleWithinRegionNodeData struct {
 	Mesh     nodes.NodeOutput[modeling.Mesh]

@@ -75,7 +75,7 @@ func ScaleAttribute2D(m modeling.Mesh, attribute string, origin, amount vector2.
 	return m.SetFloat2Attribute(attribute, scaledData)
 }
 
-type ScaleAttribute3DNode = nodes.StructNode[modeling.Mesh, ScaleAttribute3DNodeData]
+type ScaleAttribute3DNode = nodes.Struct[modeling.Mesh, ScaleAttribute3DNodeData]
 
 type ScaleAttribute3DNodeData struct {
 	Attribute nodes.NodeOutput[string]

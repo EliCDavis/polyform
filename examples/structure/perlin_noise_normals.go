@@ -9,7 +9,7 @@ import (
 	"github.com/EliCDavis/polyform/nodes"
 )
 
-type PerlinNoiseNormalsNode = nodes.StructNode[image.Image, PerlinNoiseNormalsNodeData]
+type PerlinNoiseNormalsNode = nodes.Struct[image.Image, PerlinNoiseNormalsNodeData]
 
 type PerlinNoiseNormalsNodeData struct {
 	Octaves        nodes.NodeOutput[int]

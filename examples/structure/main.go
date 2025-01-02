@@ -202,7 +202,7 @@ func PipeMaterial(seed *rand.Rand) *gltf.PolyformMaterial {
 	}
 }
 
-type PipeNode = nodes.StructNode[generator.Artifact, PipeNodeData]
+type PipeNode = nodes.Struct[generator.Artifact, PipeNodeData]
 
 type PipeNodeData struct {
 	Positions nodes.NodeOutput[[]vector3.Float64]

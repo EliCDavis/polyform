@@ -10,7 +10,7 @@ import (
 	"github.com/EliCDavis/polyform/nodes"
 )
 
-type LoaderNode = nodes.StructNode[modeling.Mesh, LoaderNodeData]
+type LoaderNode = nodes.Struct[modeling.Mesh, LoaderNodeData]
 
 type LoaderNodeData struct {
 	Data nodes.NodeOutput[[]byte]
@@ -39,7 +39,7 @@ func (pn LoaderNodeData) Process() (modeling.Mesh, error) {
 	// return *plyMesh, err
 }
 
-type SpzLoaderNode = nodes.StructNode[modeling.Mesh, SpzLoaderNodeData]
+type SpzLoaderNode = nodes.Struct[modeling.Mesh, SpzLoaderNodeData]
 
 type SpzLoaderNodeData struct {
 	Data nodes.NodeOutput[[]byte]

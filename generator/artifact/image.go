@@ -21,7 +21,7 @@ func (ia Image) Write(w io.Writer) error {
 	return png.Encode(w, ia.Image)
 }
 
-type ImageNode = nodes.StructNode[generator.Artifact, ImageNodeData]
+type ImageNode = nodes.Struct[generator.Artifact, ImageNodeData]
 
 type ImageNodeData struct {
 	In nodes.NodeOutput[image.Image]

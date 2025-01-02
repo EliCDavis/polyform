@@ -13,7 +13,7 @@ import (
 	"github.com/EliCDavis/vector/vector3"
 )
 
-type DiscoBallNode = nodes.StructNode[[]gltf.PolyformModel, DiscoBallNodeData]
+type DiscoBallNode = nodes.Struct[[]gltf.PolyformModel, DiscoBallNodeData]
 
 type DiscoBallNodeData struct {
 	Color       nodes.NodeOutput[coloring.WebColor]

@@ -11,7 +11,7 @@ import (
 	"github.com/EliCDavis/vector/vector2"
 )
 
-type PipeNormalsNode = nodes.StructNode[image.Image, PipeNormalsNodeData]
+type PipeNormalsNode = nodes.Struct[image.Image, PipeNormalsNodeData]
 
 type PipeNormalsNodeData struct {
 	LineCount nodes.NodeOutput[int]

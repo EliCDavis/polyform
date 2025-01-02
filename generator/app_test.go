@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type TestNode = nodes.StructNode[float64, TestNodeData]
+type TestNode = nodes.Struct[float64, TestNodeData]
 
 type TestNodeData struct {
 	A nodes.NodeOutput[float64]

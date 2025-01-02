@@ -6,7 +6,7 @@ import (
 	"github.com/EliCDavis/vector/vector3"
 )
 
-type New = nodes.StructNode[vector3.Float64, NewData[float64]]
+type New = nodes.Struct[vector3.Float64, NewData[float64]]
 
 type NewData[T vector.Number] struct {
 	X nodes.NodeOutput[T]

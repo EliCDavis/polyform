@@ -23,7 +23,7 @@ func (Splat) Mime() string {
 	return "application/octet-stream"
 }
 
-type SplatNode = nodes.StructNode[generator.Artifact, SplatNodeData]
+type SplatNode = nodes.Struct[generator.Artifact, SplatNodeData]
 
 type SplatNodeData struct {
 	In nodes.NodeOutput[modeling.Mesh]
@@ -114,7 +114,7 @@ func (SplatPly) Mime() string {
 	return "application/octet-stream"
 }
 
-type SplatPlyNode = nodes.StructNode[generator.Artifact, SplatPlyNodeData]
+type SplatPlyNode = nodes.Struct[generator.Artifact, SplatPlyNodeData]
 
 type SplatPlyNodeData struct {
 	In nodes.NodeOutput[modeling.Mesh]

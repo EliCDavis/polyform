@@ -26,7 +26,7 @@ func RotateAttribute(m modeling.Mesh, attribute string, amount quaternion.Quater
 	return m.SetFloat4Attribute(attribute, rotatedData)
 }
 
-type RotateAttributeNode = nodes.StructNode[modeling.Mesh, RotateAttributeNodeData]
+type RotateAttributeNode = nodes.Struct[modeling.Mesh, RotateAttributeNodeData]
 
 type RotateAttributeNodeData struct {
 	Mesh      nodes.NodeOutput[modeling.Mesh]

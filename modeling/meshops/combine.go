@@ -5,7 +5,7 @@ import (
 	"github.com/EliCDavis/polyform/nodes"
 )
 
-type CombineNode = nodes.StructNode[modeling.Mesh, CombineNodeData]
+type CombineNode = nodes.Struct[modeling.Mesh, CombineNodeData]
 
 type CombineNodeData struct {
 	A nodes.NodeOutput[modeling.Mesh]

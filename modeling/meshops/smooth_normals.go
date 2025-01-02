@@ -135,7 +135,7 @@ func SmoothNormalsImplicitWeld(m modeling.Mesh, distance float64) modeling.Mesh 
 	return m.SetFloat3Attribute(modeling.NormalAttribute, normals)
 }
 
-type SmoothNormalsNode = nodes.StructNode[modeling.Mesh, SmoothNormalsNodeData]
+type SmoothNormalsNode = nodes.Struct[modeling.Mesh, SmoothNormalsNodeData]
 
 type SmoothNormalsNodeData struct {
 	Mesh nodes.NodeOutput[modeling.Mesh]
@@ -148,7 +148,7 @@ func (snn SmoothNormalsNodeData) Process() (modeling.Mesh, error) {
 	return SmoothNormals(snn.Mesh.Value()), nil
 }
 
-type SmoothNormalsImplicitWeldNode = nodes.StructNode[modeling.Mesh, SmoothNormalsImplicitWeldNodeData]
+type SmoothNormalsImplicitWeldNode = nodes.Struct[modeling.Mesh, SmoothNormalsImplicitWeldNodeData]
 
 type SmoothNormalsImplicitWeldNodeData struct {
 	Mesh     nodes.NodeOutput[modeling.Mesh]

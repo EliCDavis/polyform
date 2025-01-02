@@ -9,7 +9,7 @@ import (
 	"github.com/EliCDavis/vector/vector3"
 )
 
-type CirclePointsNode = nodes.StructNode[[]vector3.Float64, CirclePointsNodeData]
+type CirclePointsNode = nodes.Struct[[]vector3.Float64, CirclePointsNodeData]
 
 type CirclePointsNodeData struct {
 	Count  nodes.NodeOutput[int]
@@ -60,7 +60,7 @@ func Circle(times int, radius float64) []trs.TRS {
 	return transforms
 }
 
-type CircleNode = nodes.StructNode[[]trs.TRS, CircleNodeData]
+type CircleNode = nodes.Struct[[]trs.TRS, CircleNodeData]
 
 type CircleNodeData struct {
 	Radius nodes.NodeOutput[float64]

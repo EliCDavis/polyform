@@ -7,7 +7,7 @@ import (
 	"github.com/EliCDavis/vector/vector2"
 )
 
-type PlateNode = nodes.StructNode[modeling.Mesh, PlateNodeData]
+type PlateNode = nodes.Struct[modeling.Mesh, PlateNodeData]
 
 type PlateNodeData struct {
 	Thickness  nodes.NodeOutput[float64]

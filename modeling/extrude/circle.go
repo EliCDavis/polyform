@@ -248,7 +248,7 @@ func (c CircleAlongSpline) Extrude() modeling.Mesh {
 	return polygon(c.CircleResolution, points, false)
 }
 
-type CircleNode = nodes.StructNode[modeling.Mesh, CircleNodeData]
+type CircleNode = nodes.Struct[modeling.Mesh, CircleNodeData]
 
 type CircleNodeData struct {
 	Closed     nodes.NodeOutput[bool]
@@ -290,7 +290,7 @@ func (pnd CircleNodeData) Process() (modeling.Mesh, error) {
 
 }
 
-type CircleAlongSplineNode = nodes.StructNode[modeling.Mesh, CircleAlongSplineNodeData]
+type CircleAlongSplineNode = nodes.Struct[modeling.Mesh, CircleAlongSplineNodeData]
 
 type CircleAlongSplineNodeData struct {
 	Closed           nodes.NodeOutput[bool]

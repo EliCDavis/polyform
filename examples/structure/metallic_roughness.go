@@ -10,7 +10,7 @@ import (
 	"github.com/EliCDavis/polyform/nodes"
 )
 
-type MetallicRoughnessNode = nodes.StructNode[generator.Artifact, MetallicRoughnessNodeData]
+type MetallicRoughnessNode = nodes.Struct[generator.Artifact, MetallicRoughnessNodeData]
 
 type MetallicRoughnessNodeData struct {
 	Octaves          nodes.NodeOutput[int]

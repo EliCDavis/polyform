@@ -14,7 +14,7 @@ func Mesh(mesh modeling.Mesh, transforms []trs.TRS) modeling.Mesh {
 	return result
 }
 
-type MeshNode = nodes.StructNode[modeling.Mesh, MeshNodeData]
+type MeshNode = nodes.Struct[modeling.Mesh, MeshNodeData]
 
 type MeshNodeData struct {
 	Mesh       nodes.NodeOutput[modeling.Mesh]

@@ -6,7 +6,7 @@ import (
 	"github.com/EliCDavis/vector/vector3"
 )
 
-type New = nodes.StructNode[quaternion.Quaternion, NewData]
+type New = nodes.Struct[quaternion.Quaternion, NewData]
 
 type NewData struct {
 	X nodes.NodeOutput[float64]
@@ -42,7 +42,7 @@ func (cn NewData) Process() (quaternion.Quaternion, error) {
 
 // From Theta =================================================================
 
-type FromTheta = nodes.StructNode[quaternion.Quaternion, FromThetaData]
+type FromTheta = nodes.Struct[quaternion.Quaternion, FromThetaData]
 
 type FromThetaData struct {
 	Theta     nodes.NodeOutput[float64]

@@ -20,7 +20,7 @@ func (IO) Mime() string {
 	return "application/octet-stream"
 }
 
-type IONode = nodes.StructNode[generator.Artifact, IONodeData]
+type IONode = nodes.Struct[generator.Artifact, IONodeData]
 
 type IONodeData struct {
 	In nodes.NodeOutput[io.Reader]

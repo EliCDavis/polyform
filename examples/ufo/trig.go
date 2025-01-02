@@ -6,7 +6,7 @@ import (
 	"github.com/EliCDavis/polyform/nodes"
 )
 
-type SinNode = nodes.StructNode[[]float64, SinNodeData]
+type SinNode = nodes.Struct[[]float64, SinNodeData]
 
 type SinNodeData struct {
 	Input nodes.NodeOutput[[]float64]
@@ -32,7 +32,7 @@ func (snd SinNodeData) Process() ([]float64, error) {
 	return out, nil
 }
 
-type CosNode = nodes.StructNode[[]float64, CosNodeData]
+type CosNode = nodes.Struct[[]float64, CosNodeData]
 
 type CosNodeData struct {
 	Input nodes.NodeOutput[[]float64]

@@ -11,7 +11,7 @@ import (
 	"github.com/EliCDavis/vector/vector3"
 )
 
-type ScrewNode = nodes.StructNode[modeling.Mesh, ScrewNodeData]
+type ScrewNode = nodes.Struct[modeling.Mesh, ScrewNodeData]
 
 type ScrewNodeData struct {
 	Line        nodes.NodeOutput[[]vector3.Float64]

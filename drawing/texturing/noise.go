@@ -9,7 +9,7 @@ import (
 	"github.com/EliCDavis/polyform/nodes"
 )
 
-type SeamlessPerlinNode = nodes.StructNode[image.Image, SeamlessPerlinNodeData]
+type SeamlessPerlinNode = nodes.Struct[image.Image, SeamlessPerlinNodeData]
 
 type SeamlessPerlinNodeData struct {
 	Positive nodes.NodeOutput[coloring.WebColor]

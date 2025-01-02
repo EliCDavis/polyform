@@ -20,7 +20,7 @@ func (Text) Mime() string {
 	return "text/plain"
 }
 
-type TextNode = nodes.StructNode[generator.Artifact, TextNodeData]
+type TextNode = nodes.Struct[generator.Artifact, TextNodeData]
 
 type TextNodeData struct {
 	In nodes.NodeOutput[string]

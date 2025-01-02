@@ -39,7 +39,7 @@ func TranslateAttribute3D(m modeling.Mesh, attribute string, amount vector3.Floa
 	return m.SetFloat3Attribute(attribute, scaledData)
 }
 
-type TranslateAttribute3DNode = nodes.StructNode[modeling.Mesh, TranslateAttribute3DNodeData]
+type TranslateAttribute3DNode = nodes.Struct[modeling.Mesh, TranslateAttribute3DNodeData]
 
 type TranslateAttribute3DNodeData struct {
 	Attribute nodes.NodeOutput[string]

@@ -275,7 +275,7 @@ func (c Cube) calcUVs() []vector2.Float64 {
 	return uvs
 }
 
-type CubeNode = nodes.StructNode[modeling.Mesh, CubeNodeData]
+type CubeNode = nodes.Struct[modeling.Mesh, CubeNodeData]
 
 type CubeNodeData struct {
 	Width  nodes.NodeOutput[float64]

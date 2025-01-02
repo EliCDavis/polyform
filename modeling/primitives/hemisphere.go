@@ -87,7 +87,7 @@ func (h Hemisphere) UV(rows, columns int) modeling.Mesh {
 		})
 }
 
-type HemisphereNode = nodes.StructNode[modeling.Mesh, HemisphereNodeData]
+type HemisphereNode = nodes.Struct[modeling.Mesh, HemisphereNodeData]
 
 type HemisphereNodeData struct {
 	Rows    nodes.NodeOutput[int]

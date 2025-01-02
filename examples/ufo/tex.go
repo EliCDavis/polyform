@@ -9,7 +9,7 @@ import (
 	"github.com/fogleman/gg"
 )
 
-type BrushedMetalNode = nodes.StructNode[image.Image, BrushedMetalNodeNodeData]
+type BrushedMetalNode = nodes.Struct[image.Image, BrushedMetalNodeNodeData]
 
 type BrushedMetalNodeNodeData struct {
 	Dimensions nodes.NodeOutput[int]

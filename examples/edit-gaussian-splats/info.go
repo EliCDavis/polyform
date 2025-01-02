@@ -7,7 +7,7 @@ import (
 	"github.com/EliCDavis/polyform/nodes"
 )
 
-type InfoNode = nodes.StructNode[string, InfoNodeData]
+type InfoNode = nodes.Struct[string, InfoNodeData]
 
 type InfoNodeData struct {
 	Original nodes.NodeOutput[modeling.Mesh]

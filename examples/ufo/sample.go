@@ -6,7 +6,7 @@ import (
 	"github.com/EliCDavis/vector/vector3"
 )
 
-type ShiftNode = nodes.StructNode[[]float64, ShiftNodeData]
+type ShiftNode = nodes.Struct[[]float64, ShiftNodeData]
 
 type ShiftNodeData struct {
 	In    nodes.NodeOutput[[]float64]
@@ -33,7 +33,7 @@ func (snd ShiftNodeData) Process() ([]float64, error) {
 	return out, nil
 }
 
-type VectorArrayNode = nodes.StructNode[[]vector3.Float64, VectoryArrayNodeData]
+type VectorArrayNode = nodes.Struct[[]vector3.Float64, VectoryArrayNodeData]
 
 type VectoryArrayNodeData struct {
 	X nodes.NodeOutput[[]float64]
@@ -82,7 +82,7 @@ func (snd VectoryArrayNodeData) Process() ([]vector3.Float64, error) {
 	return out, nil
 }
 
-type QuaternionArrayFromThetaNode = nodes.StructNode[[]quaternion.Quaternion, QuaternionArrayFromThetaNodeData]
+type QuaternionArrayFromThetaNode = nodes.Struct[[]quaternion.Quaternion, QuaternionArrayFromThetaNodeData]
 
 type QuaternionArrayFromThetaNodeData struct {
 	X nodes.NodeOutput[[]float64]

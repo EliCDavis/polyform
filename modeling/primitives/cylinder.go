@@ -119,7 +119,7 @@ func (c Cylinder) ToMesh() modeling.Mesh {
 	return cylinderMesh
 }
 
-type CylinderNode = nodes.StructNode[modeling.Mesh, CylinderNodeData]
+type CylinderNode = nodes.Struct[modeling.Mesh, CylinderNodeData]
 
 type CylinderNodeData struct {
 	Sides  nodes.NodeOutput[int]

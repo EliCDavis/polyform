@@ -7,7 +7,7 @@ import (
 )
 
 // ============================================================================
-type SumNode = StructNode[float64, SumData[float64]]
+type SumNode = Struct[float64, SumData[float64]]
 
 type SumData[T vector.Number] struct {
 	Values []NodeOutput[T]
@@ -25,7 +25,7 @@ func (cn SumData[T]) Process() (T, error) {
 }
 
 // ============================================================================
-type DifferenceNode = StructNode[float64, DifferenceData[float64]]
+type DifferenceNode = Struct[float64, DifferenceData[float64]]
 
 type DifferenceData[T vector.Number] struct {
 	A NodeOutput[T]
@@ -47,7 +47,7 @@ func (cn DifferenceData[T]) Process() (T, error) {
 }
 
 // ============================================================================
-type DivideNode = StructNode[float64, DivideData[float64]]
+type DivideNode = Struct[float64, DivideData[float64]]
 
 type DivideData[T vector.Number] struct {
 	Dividend NodeOutput[T]
@@ -69,7 +69,7 @@ func (cn DivideData[T]) Process() (T, error) {
 }
 
 // ============================================================================
-type Multiply = StructNode[float64, MultiplyData[float64]]
+type Multiply = Struct[float64, MultiplyData[float64]]
 
 type MultiplyData[T vector.Number] struct {
 	A NodeOutput[T]
@@ -92,7 +92,7 @@ func (cn MultiplyData[T]) Process() (T, error) {
 }
 
 // ============================================================================
-type Round = StructNode[int, RoundData[float64]]
+type Round = Struct[int, RoundData[float64]]
 
 type RoundData[T vector.Number] struct {
 	A NodeOutput[T]

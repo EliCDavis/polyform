@@ -2,7 +2,7 @@ package basics
 
 import "github.com/EliCDavis/polyform/nodes"
 
-type SampleNode = nodes.StructNode[[]float64, SampleNodeData]
+type SampleNode = nodes.Struct[[]float64, SampleNodeData]
 
 type SampleNodeData struct {
 	Start   nodes.NodeOutput[float64]

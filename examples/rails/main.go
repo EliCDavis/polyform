@@ -18,7 +18,7 @@ import (
 	"github.com/EliCDavis/vector/vector3"
 )
 
-type GlbArtifactNode = nodes.StructNode[generator.Artifact, GlbArtifactNodeData]
+type GlbArtifactNode = nodes.Struct[generator.Artifact, GlbArtifactNodeData]
 
 type GlbArtifactNodeData struct {
 	Plank          nodes.NodeOutput[modeling.Mesh]

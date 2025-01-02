@@ -7,7 +7,7 @@ import (
 	"github.com/EliCDavis/polyform/nodes"
 )
 
-type BinaryNode = nodes.StructNode[generator.Artifact, BinaryNodeData]
+type BinaryNode = nodes.Struct[generator.Artifact, BinaryNodeData]
 
 type Binary struct {
 	Data []byte

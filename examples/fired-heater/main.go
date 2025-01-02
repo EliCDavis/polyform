@@ -22,7 +22,7 @@ type Segment struct {
 	height float64
 }
 
-type ChimneyNode = nodes.StructNode[Segment, ChimneyNodeData]
+type ChimneyNode = nodes.Struct[Segment, ChimneyNodeData]
 
 type ChimneyNodeData struct {
 	FunnelWidth, FunnelHeight, TaperHeight, ShootWidth, ShootHeight nodes.NodeOutput[float64]
@@ -84,7 +84,7 @@ func (cn ChimneyNodeData) Process() (Segment, error) {
 	}, nil
 }
 
-type ChasisNode = nodes.StructNode[Segment, ChasisNodeData]
+type ChasisNode = nodes.Struct[Segment, ChasisNodeData]
 
 type ChasisNodeData struct {
 	Height, Width nodes.NodeOutput[float64]
@@ -127,7 +127,7 @@ func (cn ChasisNodeData) Process() (Segment, error) {
 	}, nil
 }
 
-type LegsNode = nodes.StructNode[Segment, LegsNodeData]
+type LegsNode = nodes.Struct[Segment, LegsNodeData]
 
 type LegsNodeData struct {
 	Height, Width nodes.NodeOutput[float64]
@@ -171,7 +171,7 @@ func (ln LegsNodeData) Process() (Segment, error) {
 	}, nil
 }
 
-type FloorNode = nodes.StructNode[Segment, FloorNodeData]
+type FloorNode = nodes.Struct[Segment, FloorNodeData]
 
 type FloorNodeData struct {
 	FloorHeight, Radius, WalkWidth nodes.NodeOutput[float64]
@@ -282,7 +282,7 @@ func PiShape(height, width float64) []vector2.Float64 {
 	}
 }
 
-type CombineSegmentsNode = nodes.StructNode[generator.Artifact, CombineSegmentsNodeData]
+type CombineSegmentsNode = nodes.Struct[generator.Artifact, CombineSegmentsNodeData]
 
 type CombineSegmentsNodeData struct {
 	Segments []nodes.NodeOutput[Segment]

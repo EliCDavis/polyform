@@ -95,7 +95,7 @@ func LaplacianSmoothAlongAxis(m modeling.Mesh, attribute string, iterations int,
 	return m.SetFloat3Attribute(attribute, vertices)
 }
 
-type LaplacianSmoothNode = nodes.StructNode[modeling.Mesh, LaplacianSmoothNodeData]
+type LaplacianSmoothNode = nodes.Struct[modeling.Mesh, LaplacianSmoothNodeData]
 
 type LaplacianSmoothNodeData struct {
 	Mesh            nodes.NodeOutput[modeling.Mesh]

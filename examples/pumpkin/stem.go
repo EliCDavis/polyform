@@ -22,7 +22,7 @@ import (
 	"github.com/EliCDavis/vector/vector3"
 )
 
-type StemMesh = nodes.StructNode[gltf.PolyformModel, StemMeshData]
+type StemMesh = nodes.Struct[gltf.PolyformModel, StemMeshData]
 
 type StemMeshData struct {
 	StemResolution nodes.NodeOutput[float64]
@@ -129,7 +129,7 @@ func (sm StemMeshData) Process() (gltf.PolyformModel, error) {
 	}, nil
 }
 
-type StemNormalImage = nodes.StructNode[generator.Artifact, StemNormalImageData]
+type StemNormalImage = nodes.Struct[generator.Artifact, StemNormalImageData]
 
 type StemNormalImageData struct {
 	NumberOfLines nodes.NodeOutput[int]
@@ -204,7 +204,7 @@ func (sni StemNormalImageData) Process() (generator.Artifact, error) {
 	return &artifact.Image{Image: img}, nil
 }
 
-type StemRoughness = nodes.StructNode[generator.Artifact, StemRoughnessData]
+type StemRoughness = nodes.Struct[generator.Artifact, StemRoughnessData]
 
 type StemRoughnessData struct {
 	Dimensions nodes.NodeOutput[int]

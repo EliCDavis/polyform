@@ -30,7 +30,7 @@ func LineExlusive(start, end vector3.Float64, inbetween int) []trs.TRS {
 	return values
 }
 
-type LineNode = nodes.StructNode[[]trs.TRS, LineNodeData]
+type LineNode = nodes.Struct[[]trs.TRS, LineNodeData]
 
 type LineNodeData struct {
 	Start nodes.NodeOutput[vector3.Float64]

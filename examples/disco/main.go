@@ -35,7 +35,7 @@ func texture(metal float64, roughness float64) image.Image {
 	return ctx.Image()
 }
 
-type DiscoSceneNode = nodes.StructNode[generator.Artifact, DiscoSceneNodeData]
+type DiscoSceneNode = nodes.Struct[generator.Artifact, DiscoSceneNodeData]
 
 type DiscoSceneNodeData struct {
 	People nodes.NodeOutput[int]

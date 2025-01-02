@@ -20,7 +20,7 @@ func (ga Gltf) Write(w io.Writer) error {
 	return gltf.WriteBinary(ga.Scene, w)
 }
 
-type GltfNode = nodes.StructNode[generator.Artifact, GltfNodeData]
+type GltfNode = nodes.Struct[generator.Artifact, GltfNodeData]
 
 type GltfNodeData struct {
 	In nodes.NodeOutput[gltf.PolyformScene]

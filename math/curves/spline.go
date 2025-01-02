@@ -15,7 +15,7 @@ type Spline interface {
 	Dir(distance float64) vector3.Float64
 }
 
-type LengthNode = nodes.StructNode[float64, LengthNodeData]
+type LengthNode = nodes.Struct[float64, LengthNodeData]
 
 type LengthNodeData struct {
 	Spline nodes.NodeOutput[Spline]

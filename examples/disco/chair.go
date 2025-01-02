@@ -12,7 +12,7 @@ import (
 	"github.com/EliCDavis/vector/vector3"
 )
 
-type ChairNode = nodes.StructNode[modeling.Mesh, ChairNodeData]
+type ChairNode = nodes.Struct[modeling.Mesh, ChairNodeData]
 
 type ChairNodeData struct {
 	Height    nodes.NodeOutput[float64]
@@ -194,7 +194,7 @@ func (cn ChairNodeData) Process() (modeling.Mesh, error) {
 		)), nil
 }
 
-type CushionNode = nodes.StructNode[modeling.Mesh, CushionNodeData]
+type CushionNode = nodes.Struct[modeling.Mesh, CushionNodeData]
 
 type CushionNodeData struct {
 	Thickness nodes.NodeOutput[float64]

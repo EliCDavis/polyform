@@ -12,7 +12,7 @@ type TRSNodeData struct {
 	Scale    nodes.NodeOutput[[]vector3.Float64]
 }
 
-type TRSNode = nodes.StructNode[[]trs.TRS, TRSNodeData]
+type TRSNode = nodes.Struct[[]trs.TRS, TRSNodeData]
 
 func (tnd TRSNodeData) Process() ([]trs.TRS, error) {
 	positions := tnd.Position.Value()

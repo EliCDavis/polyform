@@ -37,7 +37,7 @@ func jitterPositions(pos []vector3.Float64, amplitude, frequency float64) []vect
 		})
 }
 
-type MarchingCubes = nodes.StructNode[modeling.Mesh, MarchingCubesData]
+type MarchingCubes = nodes.Struct[modeling.Mesh, MarchingCubesData]
 
 type MarchingCubesData struct {
 	Field         nodes.NodeOutput[marching.Field]
@@ -57,7 +57,7 @@ func (mc MarchingCubesData) Process() (modeling.Mesh, error) {
 	return mesh, nil
 }
 
-type EdgeDetection = nodes.StructNode[[][]float64, EdgeDetectionData]
+type EdgeDetection = nodes.Struct[[][]float64, EdgeDetectionData]
 
 type EdgeDetectionData struct {
 	SrcImage  nodes.NodeOutput[image.Image]
@@ -94,7 +94,7 @@ func loadImage(imageData []byte) (image.Image, error) {
 	return img, err
 }
 
-type PropogateHeat = nodes.StructNode[[][]float64, PropogateHeatData]
+type PropogateHeat = nodes.Struct[[][]float64, PropogateHeatData]
 
 type PropogateHeatData struct {
 	Data       nodes.NodeOutput[[][]float64]

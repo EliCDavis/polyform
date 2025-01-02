@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type CombineNode = nodes.StructNode[modeling.Mesh, CombineData]
+type CombineNode = nodes.Struct[modeling.Mesh, CombineData]
 
 type CombineData struct {
 	Meshes []nodes.NodeOutput[modeling.Mesh]

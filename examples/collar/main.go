@@ -36,7 +36,7 @@ func SquarePoints(width, height float64) []vector2.Float64 {
 	}
 }
 
-type ConeNode = nodes.StructNode[modeling.Mesh, ConeNodeData]
+type ConeNode = nodes.Struct[modeling.Mesh, ConeNodeData]
 
 type ConeNodeData struct {
 	Height nodes.NodeOutput[float64]
@@ -71,7 +71,7 @@ func (r ConeNodeData) Process() (modeling.Mesh, error) {
 		Rotate(quaternion.FromTheta(math.Pi/2, vector3.Right[float64]())), nil
 }
 
-type CollarNode = nodes.StructNode[modeling.Mesh, CollarNodeData]
+type CollarNode = nodes.Struct[modeling.Mesh, CollarNodeData]
 
 type CollarNodeData struct {
 	Height     nodes.NodeOutput[float64]
@@ -100,7 +100,7 @@ func (cn CollarNodeData) Process() (modeling.Mesh, error) {
 		SetFloat2Attribute(modeling.TexCoordAttribute, collarUVs), nil
 }
 
-type GlbArtifactNode = nodes.StructNode[generator.Artifact, GlbArtifactNodeData]
+type GlbArtifactNode = nodes.Struct[generator.Artifact, GlbArtifactNodeData]
 
 type GlbArtifactNodeData struct {
 	Collar         nodes.NodeOutput[modeling.Mesh]
@@ -148,7 +148,7 @@ func (gan GlbArtifactNodeData) Process() (generator.Artifact, error) {
 	}, nil
 }
 
-type CollarAlbedoTextureNode = nodes.StructNode[image.Image, CollarAlbedoTextureNodeData]
+type CollarAlbedoTextureNode = nodes.Struct[image.Image, CollarAlbedoTextureNodeData]
 
 type CollarAlbedoTextureNodeData struct {
 	BaseColor   nodes.NodeOutput[coloring.WebColor]

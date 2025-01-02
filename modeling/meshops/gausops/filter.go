@@ -8,7 +8,7 @@ import (
 	"github.com/EliCDavis/polyform/nodes"
 )
 
-type FilterNode = nodes.StructNode[modeling.Mesh, FilterNodeData]
+type FilterNode = nodes.Struct[modeling.Mesh, FilterNodeData]
 
 type FilterNodeData struct {
 	Splat nodes.NodeOutput[modeling.Mesh]

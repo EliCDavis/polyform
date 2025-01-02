@@ -9,7 +9,7 @@ import (
 	"github.com/EliCDavis/vector/vector3"
 )
 
-type TableNode = nodes.StructNode[gltf.PolyformModel, TableNodeData]
+type TableNode = nodes.Struct[gltf.PolyformModel, TableNodeData]
 
 type TableNodeData struct {
 	Color      nodes.NodeOutput[coloring.WebColor]

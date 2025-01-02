@@ -9,39 +9,39 @@ import (
 
 // ============================================================================
 
-// type StructNodeOutputDefinition[T any] interface {
-// 	StructNodeProcesor[T]
+// type StructOutputDefinition[T any] interface {
+// 	StructProcesor[T]
 // 	IStructData[T]
 // }
 
-type StructNodeOutput[T any, G StructNodeProcesor[T]] struct {
-	Struct *StructNode[T, G]
+type StructOutput[T any, G StructProcesor[T]] struct {
+	Struct *Struct[T, G]
 	Name   string
 }
 
-func (sno StructNodeOutput[T, G]) Value() T {
+func (sno StructOutput[T, G]) Value() T {
 	return sno.Struct.Value()
 }
 
-func (sno StructNodeOutput[T, G]) Node() Node {
+func (sno StructOutput[T, G]) Node() Node {
 	return sno.Struct
 }
 
-func (sno StructNodeOutput[T, G]) Port() string {
+func (sno StructOutput[T, G]) Port() string {
 	return sno.Name
 }
 
 // ============================================================================
 
 // type IStructData[T any] interface {
-// 	node(p StructNodeProcesor[T]) *StructNode[T]
+// 	node(p StructProcesor[T]) *Struct[T]
 // }
 
 // type StructData[T any] struct {
-// 	n *StructNode[T]
+// 	n *Struct[T]
 // }
 
-// func (bd *StructData[T]) node(p StructNodeProcesor[T]) *StructNode[T] {
+// func (bd *StructData[T]) node(p StructProcesor[T]) *Struct[T] {
 // 	if bd.n == nil {
 // 		bd.n = Struct(p)
 // 	}
@@ -51,11 +51,11 @@ func (sno StructNodeOutput[T, G]) Port() string {
 
 // ============================================================================
 
-type StructNodeProcesor[T any] interface {
+type StructProcesor[T any] interface {
 	Process() (T, error)
 }
 
-type StructNode[T any, G StructNodeProcesor[T]] struct {
+type Struct[T any, G StructProcesor[T]] struct {
 	Data G
 
 	value                        T
@@ -67,12 +67,12 @@ type StructNode[T any, G StructNodeProcesor[T]] struct {
 	subs    []Alertable
 }
 
-func (sn *StructNode[T, G]) SetInput(input string, output Output) {
+func (sn *Struct[T, G]) SetInput(input string, output Output) {
 	refutil.SetStructField(&sn.Data, input, output.NodeOutput)
 	sn.inputChangedSinceLastProcess = true
 }
 
-func (sn StructNode[T, G]) Outdated() bool {
+func (sn Struct[T, G]) Outdated() bool {
 
 	// Nil versions means we've never processed before
 	if sn.depVersions == nil {
@@ -100,7 +100,7 @@ func (sn StructNode[T, G]) Outdated() bool {
 	return false
 }
 
-func (sn *StructNode[T, G]) updateUsedDependencyVersions() {
+func (sn *Struct[T, G]) updateUsedDependencyVersions() {
 	deps := sn.Dependencies()
 	sn.depVersions = make([]int, len(deps))
 	for i, dep := range deps {
@@ -108,36 +108,36 @@ func (sn *StructNode[T, G]) updateUsedDependencyVersions() {
 	}
 }
 
-type StructNodeDependency struct {
+type StructDependency struct {
 	name           string
 	dep            Node
 	dependencyPort string
 }
 
-func (snd StructNodeDependency) Name() string {
+func (snd StructDependency) Name() string {
 	return snd.name
 }
 
-func (snd StructNodeDependency) Dependency() Node {
+func (snd StructDependency) Dependency() Node {
 	return snd.dep
 }
 
-func (snd StructNodeDependency) DependencyPort() string {
+func (snd StructDependency) DependencyPort() string {
 	return snd.dependencyPort
 }
 
-func (sn StructNode[T, G]) Version() int {
+func (sn Struct[T, G]) Version() int {
 	return sn.version
 }
 
-func (sn *StructNode[T, G]) Out() StructNodeOutput[T, G] {
-	return StructNodeOutput[T, G]{
+func (sn *Struct[T, G]) Out() StructOutput[T, G] {
+	return StructOutput[T, G]{
 		Struct: sn,
 		Name:   "Out",
 	}
 }
 
-func (sn *StructNode[T, G]) Outputs() []Output {
+func (sn *Struct[T, G]) Outputs() []Output {
 	// outputs := refutil.FuncValuesOfType[ReferencesNode](tn.Data)
 
 	// outs := make([]Output, len(outputs))
@@ -155,7 +155,7 @@ func (sn *StructNode[T, G]) Outputs() []Output {
 	return []Output{
 		{
 			Type: refutil.GetTypeWithPackage(new(T)),
-			NodeOutput: StructNodeOutput[T, G]{
+			NodeOutput: StructOutput[T, G]{
 				Name:   "Out",
 				Struct: sn,
 			},
@@ -163,7 +163,7 @@ func (sn *StructNode[T, G]) Outputs() []Output {
 	}
 }
 
-func (sn StructNode[T, G]) Inputs() []Input {
+func (sn Struct[T, G]) Inputs() []Input {
 	nodeInputs := make([]Input, 0)
 
 	refInput := refutil.GenericFieldValues("nodes.NodeOutput", sn.Data)
@@ -179,12 +179,12 @@ func (sn StructNode[T, G]) Inputs() []Input {
 	return nodeInputs
 }
 
-func (sn StructNode[T, G]) Dependencies() []NodeDependency {
+func (sn Struct[T, G]) Dependencies() []NodeDependency {
 	output := make([]NodeDependency, 0)
 
 	basicData := refutil.FieldValuesOfType[NodeOutputReference](sn.Data)
 	for key, val := range basicData {
-		output = append(output, StructNodeDependency{
+		output = append(output, StructDependency{
 			name:           key,
 			dep:            val.Node(),
 			dependencyPort: val.Port(),
@@ -198,7 +198,7 @@ func (sn StructNode[T, G]) Dependencies() []NodeDependency {
 				continue
 			}
 
-			output = append(output, StructNodeDependency{
+			output = append(output, StructDependency{
 				name:           fmt.Sprintf("%s.%d", key, i),
 				dep:            e.Node(),
 				dependencyPort: e.Port(),
@@ -208,22 +208,22 @@ func (sn StructNode[T, G]) Dependencies() []NodeDependency {
 	return output
 }
 
-func (sn *StructNode[T, G]) Value() T {
+func (sn *Struct[T, G]) Value() T {
 	if sn.Outdated() {
 		sn.process()
 	}
 	return sn.value
 }
 
-func (sn *StructNode[T, G]) Node() Node {
+func (sn *Struct[T, G]) Node() Node {
 	return sn
 }
 
-func (sn *StructNode[T, G]) Port() string {
+func (sn *Struct[T, G]) Port() string {
 	return "Out"
 }
 
-func (sn *StructNode[T, G]) process() {
+func (sn *Struct[T, G]) process() {
 	// tn.value, tn.err = tn.transform(tn.in)
 	sn.value, sn.err = sn.Data.Process()
 	sn.version++
@@ -231,15 +231,15 @@ func (sn *StructNode[T, G]) process() {
 	sn.inputChangedSinceLastProcess = false
 }
 
-func (sn StructNode[T, G]) Name() string {
+func (sn Struct[T, G]) Name() string {
 	return refutil.GetTypeNameWithoutPackage(sn.Data)
 }
 
-func (sn StructNode[T, G]) Type() string {
+func (sn Struct[T, G]) Type() string {
 	return refutil.GetTypeNameWithoutPackage(sn.Data)
 }
 
-func (sn StructNode[T, G]) Path() string {
+func (sn Struct[T, G]) Path() string {
 	packagePath := refutil.GetPackagePath(sn.Data)
 	if !strings.Contains(packagePath, "/") {
 		return packagePath
@@ -257,22 +257,22 @@ func (sn StructNode[T, G]) Path() string {
 	return strings.Join(path, "/")
 }
 
-func (sn *StructNode[T, G]) State() NodeState {
+func (sn *Struct[T, G]) State() NodeState {
 	if sn.Outdated() {
 		return Stale
 	}
 	return Processed
 }
 
-func (sn *StructNode[T, G]) AddSubscription(a Alertable) {
+func (sn *Struct[T, G]) AddSubscription(a Alertable) {
 	if a == nil {
 		panic("attempting to subscribe with nil alertable")
 	}
 	sn.subs = append(sn.subs, a)
 }
 
-func Struct[T StructNodeProcesor[G], G any](p T) *StructNode[G, T] {
-	return &StructNode[G, T]{
+func NewStruct[T StructProcesor[G], G any](p T) *Struct[G, T] {
+	return &Struct[G, T]{
 		Data:        p,
 		version:     0,
 		subs:        make([]Alertable, 0),

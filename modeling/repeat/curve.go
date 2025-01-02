@@ -51,7 +51,7 @@ func SplineExlusive(curve curves.Spline, inbetween int) []trs.TRS {
 	return transforms
 }
 
-type SplineNode = nodes.StructNode[[]trs.TRS, SplineNodeData]
+type SplineNode = nodes.Struct[[]trs.TRS, SplineNodeData]
 
 type SplineNodeData struct {
 	Curve nodes.NodeOutput[curves.Spline]

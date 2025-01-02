@@ -12,7 +12,7 @@ import (
 	"github.com/fogleman/gg"
 )
 
-type GridNode = nodes.StructNode[image.Image, GridNodeData]
+type GridNode = nodes.Struct[image.Image, GridNodeData]
 
 type GridNodeData struct {
 	HorizontalLines nodes.NodeOutput[int]
