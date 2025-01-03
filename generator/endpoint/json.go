@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"runtime/debug"
 )
 
 func readJSON[T any](body io.Reader) (T, error) {
@@ -17,20 +16,10 @@ func readJSON[T any](body io.Reader) (T, error) {
 	return v, json.Unmarshal(data, &v)
 }
 
-func writeJSONError(out io.Writer, err error) error {
-	var d struct {
-		Error string `json:"error"`
-	} = struct {
-		Error string `json:"error"`
-	}{
-		Error: err.Error(),
-	}
-	data, err := json.Marshal(d)
-	if err != nil {
-		return err
-	}
-
-	_, err = out.Write(data)
+func writeJSONError(w http.ResponseWriter, err error) error {
+	w.Header().Set("Content-Type", string(JsonContentType))
+	w.WriteHeader(http.StatusInternalServerError)
+	_, err = w.Write([]byte(fmt.Sprintf(`{"error": "%s"}`, err.Error())))
 	return err
 }
 
@@ -61,51 +50,10 @@ func (jrw JsonResponseWriter[Response]) ContentType() ContentType {
 
 // ============================================================================
 
-type JsonMethod[Body any, Response any] struct {
-	Handler func(request Request[Body]) (Response, error)
-}
-
-func (jse JsonMethod[Body, Response]) ContentType() ContentType {
-	return JsonContentType
-}
-
-func (jse JsonMethod[Body, Response]) runHandler(request Request[Body]) (resp Response, err error) {
-	defer func() {
-		if recErr := recover(); recErr != nil {
-			fmt.Println("stacktrace from panic: \n" + string(debug.Stack()))
-			err = fmt.Errorf("panic recover: %v", recErr)
-		}
-	}()
-	resp, err = jse.Handler(request)
-	return
-}
-
-func (jse JsonMethod[Body, Response]) Handle(w http.ResponseWriter, r *http.Request) {
-
-	request, err := readJSON[Body](r.Body)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		writeJSONError(w, err)
-		return
-	}
-
-	response, err := jse.runHandler(Request[Body]{
-		Body: request,
-		Url:  r.URL.Path,
-	})
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		writeJSONError(w, err)
-		return
-	}
-
-	data, err := json.Marshal(response)
-	if err != nil {
-		panic(err)
-	}
-
-	_, err = w.Write(data)
-	if err != nil {
-		panic(err)
+func JsonMethod[Body any, Response any](handler func(request Request[Body]) (Response, error)) BodyResponseMethod[Body, Response] {
+	return BodyResponseMethod[Body, Response]{
+		Request:        JsonRequestReader[Body]{},
+		ResponseWriter: JsonResponseWriter[Response]{},
+		Handler:        handler,
 	}
 }

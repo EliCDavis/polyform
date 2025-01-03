@@ -27,8 +27,8 @@ func nodeEndpoint(as *AppServer) endpoint.Handler {
 
 	return endpoint.Handler{
 		Methods: map[string]endpoint.Method{
-			http.MethodPost: endpoint.JsonMethod[CreateRequest, CreateResponse]{
-				Handler: func(request endpoint.Request[CreateRequest]) (CreateResponse, error) {
+			http.MethodPost: endpoint.JsonMethod(
+				func(request endpoint.Request[CreateRequest]) (CreateResponse, error) {
 					if !as.app.types.KeyRegistered(request.Body.NodeType) {
 						return CreateResponse{}, fmt.Errorf("no factory registered with ID %s", request.Body.NodeType)
 					}
@@ -45,9 +45,9 @@ func nodeEndpoint(as *AppServer) endpoint.Handler {
 						Data:   as.app.buildNodeInstanceSchema(casted),
 					}, nil
 				},
-			},
-			http.MethodDelete: endpoint.JsonMethod[DeleteRequest, EmptyResponse]{
-				Handler: func(request endpoint.Request[DeleteRequest]) (EmptyResponse, error) {
+			),
+			http.MethodDelete: endpoint.JsonMethod(
+				func(request endpoint.Request[DeleteRequest]) (EmptyResponse, error) {
 					var nodeToDelete nodes.Node
 					for n, id := range as.app.nodeIDs {
 						if id == request.Body.NodeID {
@@ -58,7 +58,7 @@ func nodeEndpoint(as *AppServer) endpoint.Handler {
 					delete(as.app.nodeIDs, nodeToDelete)
 					return EmptyResponse{}, nil
 				},
-			},
+			),
 		},
 	}
 }

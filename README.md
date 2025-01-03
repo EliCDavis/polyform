@@ -10,7 +10,7 @@ Polyform is for loading, generating, editing, and exporting 3D geometry and it's
 
 ## Overview
 
-- Formats
+- [Formats](/formats/)
   - [gltf](/formats/gltf/) - GLTF file format
   - [obj](/formats/obj/) - OBJ file format
   - [ply](/formats/ply/) - PLY file format

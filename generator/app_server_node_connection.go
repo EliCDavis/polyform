@@ -25,8 +25,8 @@ func nodeConnectionEndpoint(as *AppServer) endpoint.Handler {
 
 	return endpoint.Handler{
 		Methods: map[string]endpoint.Method{
-			http.MethodPost: endpoint.JsonMethod[CreateRequest, EmptyResponse]{
-				Handler: func(request endpoint.Request[CreateRequest]) (EmptyResponse, error) {
+			http.MethodPost: endpoint.JsonMethod(
+				func(request endpoint.Request[CreateRequest]) (EmptyResponse, error) {
 					inNode := as.app.nodeFromID(request.Body.NodeInId)
 					outNode := as.app.nodeFromID(request.Body.NodeOutId)
 					outPortVals := refutil.CallFuncValuesOfType(outNode, request.Body.OutPortName)
@@ -42,9 +42,9 @@ func nodeConnectionEndpoint(as *AppServer) endpoint.Handler {
 
 					return EmptyResponse{}, nil
 				},
-			},
-			http.MethodDelete: endpoint.JsonMethod[DeleteRequest, EmptyResponse]{
-				Handler: func(request endpoint.Request[DeleteRequest]) (EmptyResponse, error) {
+			),
+			http.MethodDelete: endpoint.JsonMethod(
+				func(request endpoint.Request[DeleteRequest]) (EmptyResponse, error) {
 					inNode := as.app.nodeFromID(request.Body.NodeId)
 
 					inNode.SetInput(
@@ -57,7 +57,7 @@ func nodeConnectionEndpoint(as *AppServer) endpoint.Handler {
 
 					return EmptyResponse{}, nil
 				},
-			},
+			),
 		},
 	}
 }

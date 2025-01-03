@@ -31,7 +31,6 @@ func (jse BodyResponseMethod[Body, Response]) Handle(w http.ResponseWriter, r *h
 
 	request, err := jse.Request.Interpret(r)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
 		writeJSONError(w, err)
 		return
 	}
@@ -41,7 +40,6 @@ func (jse BodyResponseMethod[Body, Response]) Handle(w http.ResponseWriter, r *h
 		Url:  r.URL.Path,
 	})
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
 		writeJSONError(w, err)
 		return
 	}

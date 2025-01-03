@@ -29,7 +29,6 @@ func (jse ResponseMethod[Response]) runHandler(r *http.Request) (resp Response, 
 func (jse ResponseMethod[Response]) Handle(w http.ResponseWriter, r *http.Request) {
 	response, err := jse.runHandler(r)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
 		writeJSONError(w, err)
 		return
 	}
