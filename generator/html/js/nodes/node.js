@@ -130,28 +130,46 @@ export class PolyNodeController {
             this.flowNode.addWidget(downloadButton);
         }
 
-        // type ConnectionChangeCallback = (connection: Connection, port: Port, portType: PortType, node: FlowNode) => void
+        // type ConnectionChangeCallback = (connection: Connection, connectionIndex: number, port: Port, portType: PortType, node: FlowNode) => void
         for (let i = 0; i < this.flowNode.inputs(); i++) {
             const port = this.flowNode.inputPort(i);
-            port.addConnectionAddedListener((connection, port, portType, node) => {
+            port.addConnectionAddedListener((connection, connectionIndex, port, portType, node) => {
                 if (this.app.ServerUpdatingNodeConnections) {
                     return;
                 }
-                console.log("connection ADDED", connection, port, portType, node);
+                console.log("connection ADDED", connection, connectionIndex, port, portType, node);
+
+                let inputPort = connection.inPort().getDisplayName();
+                if (portType === "INPUTARRAY"){
+                    inputPort += "." + connectionIndex;
+                }
+
                 this.app.RequestManager.setNodeInputConnection(
                     this.flowNode.nodeInstanceID,
-                    connection.inPort().getDisplayName(),
+                    inputPort,
                     connection.outNode().nodeInstanceID,
                     connection.outPort().getDisplayName(),
                 )
             });
 
-            port.addConnectionRemovedListener((connection, port, portType, node) => {
+            port.addConnectionRemovedListener((connection, connectionIndex, port, portType, node) => {
                 if (this.app.ServerUpdatingNodeConnections) {
                     return;
                 }
-                console.log("connection removed", connection, port, portType, node)
-                this.app.RequestManager.deleteNodeInput(this.id, port.getDisplayName())
+                console.log("connection removed", {
+                    "connection": connection, 
+                    "connectionIndex": connectionIndex, 
+                    "port": port, 
+                    "portType": portType, 
+                    "node": node
+                })
+                
+                let inputPort = port.getDisplayName();
+                if (portType === "INPUTARRAY"){
+                    inputPort += "." + connectionIndex;
+                }
+                
+                this.app.RequestManager.deleteNodeInput(this.id, inputPort)
             });
         }
 

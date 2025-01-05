@@ -239,6 +239,59 @@ func SetStructField(structToSet any, field string, val any) {
 	panic(fmt.Errorf("field '%s' was not found on struct", field))
 }
 
+func findStructField(structToSet any, field string) reflect.Value {
+	viewPointerValue := reflect.ValueOf(structToSet)
+
+	view := viewPointerValue
+	viewKind := view.Kind()
+
+	// Dereference pointer
+	for viewKind == reflect.Ptr {
+		view = view.Elem()
+		viewKind = view.Kind()
+	}
+
+	if viewKind != reflect.Struct {
+		panic(fmt.Errorf("value of type: '%s' has no field '%s' to set", viewKind.String(), field))
+	}
+
+	viewType := view.Type()
+
+	// viewType.FieldByName(field)
+	for i := 0; i < viewType.NumField(); i++ {
+		structField := viewType.Field(i)
+
+		// Not our field, continue
+		if structField.Name != field {
+			continue
+		}
+
+		return view.Field(i)
+	}
+
+	panic(fmt.Errorf("field '%s' was not found on struct", field))
+}
+
+func RemoveFromStructFieldArray(structToSet any, field string, index int) {
+	viewFieldValue := findStructField(structToSet, field)
+	if !viewFieldValue.CanSet() {
+		panic(fmt.Errorf("field '%s' was found but can not be set", field))
+	}
+
+	newSlice := reflect.AppendSlice(viewFieldValue.Slice(0, index), viewFieldValue.Slice(index+1, viewFieldValue.Len()))
+	viewFieldValue.Set(newSlice)
+}
+
+func AddToStructFieldArray(structToSet any, field string, val any) {
+	viewFieldValue := findStructField(structToSet, field)
+	if !viewFieldValue.CanSet() {
+		panic(fmt.Errorf("field '%s' was found but can not be set", field))
+	}
+
+	newSlilce := reflect.Append(viewFieldValue, reflect.ValueOf(val))
+	viewFieldValue.Set(newSlilce)
+}
+
 func GenericFieldValues(genericType string, in any) map[string]string {
 	viewPointerValue := reflect.ValueOf(in)
 
@@ -301,40 +354,41 @@ func FieldValuesOfTypeInArray[T any](in any) map[string][]T {
 		structField := viewType.Field(i)
 
 		viewFieldValueKind := viewFieldValue.Kind()
-		if viewFieldValueKind == reflect.Slice {
-
-			if viewFieldValue.IsNil() {
-				continue
-			}
-
-			sliceElementType := viewFieldValue.Type().Elem()
-			if sliceElementType.Kind() != reflect.Interface {
-				continue
-			}
-
-			var exampleVal *T
-			if !sliceElementType.Implements(reflect.TypeOf(exampleVal).Elem()) {
-				continue
-			}
-
-			// This workes >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-			for i := 0; i < viewFieldValue.Len(); i++ {
-				element := viewFieldValue.Index(i)
-
-				if !element.CanInterface() || element.Kind() != reflect.Interface {
-					break
-				}
-
-				elementInterface := element.Interface()
-
-				perm, ok := elementInterface.(T)
-				if !ok {
-					break
-				}
-				out[structField.Name] = append(out[structField.Name], perm)
-			}
-			// <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+		if viewFieldValueKind != reflect.Slice {
+			continue
 		}
+
+		if viewFieldValue.IsNil() {
+			continue
+		}
+
+		sliceElementType := viewFieldValue.Type().Elem()
+		if sliceElementType.Kind() != reflect.Interface {
+			continue
+		}
+
+		var exampleVal *T
+		if !sliceElementType.Implements(reflect.TypeOf(exampleVal).Elem()) {
+			continue
+		}
+
+		// This works >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+		for i := 0; i < viewFieldValue.Len(); i++ {
+			element := viewFieldValue.Index(i)
+
+			if !element.CanInterface() || element.Kind() != reflect.Interface {
+				break
+			}
+
+			elementInterface := element.Interface()
+
+			perm, ok := elementInterface.(T)
+			if !ok {
+				break
+			}
+			out[structField.Name] = append(out[structField.Name], perm)
+		}
+		// <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 	}
 
 	return out

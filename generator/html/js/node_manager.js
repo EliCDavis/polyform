@@ -51,10 +51,11 @@ export class NodeManager {
     }
 
     updateNodeConnections(nodes) {
+        // console.log("nodes", nodes)
         for (let node of nodes) {
             const nodeID = node[0];
             const nodeData = node[1];
-            const source = this.nodeIdToNode.get(nodeID);
+            const inNode = this.nodeIdToNode.get(nodeID);
 
             for (let i = 0; i < nodeData.dependencies.length; i++) {
                 const dep = nodeData.dependencies[i];
@@ -65,16 +66,15 @@ export class NodeManager {
                     dependencyName = dependencyName.split(".")[0]
                 }
 
-                const target = this.nodeIdToNode.get(dep.dependencyID);
+                const outNode = this.nodeIdToNode.get(dep.dependencyID);
 
                 let sourceInput = -1;
                 // console.log(source.flowNode)
-                for (let sourceInputIndex = 0; sourceInputIndex < source.flowNode.inputs(); sourceInputIndex++) {
-                    if (source.flowNode.inputPort(sourceInputIndex).getDisplayName() === dependencyName) {
+                for (let sourceInputIndex = 0; sourceInputIndex < inNode.flowNode.inputs(); sourceInputIndex++) {
+                    if (inNode.flowNode.inputPort(sourceInputIndex).getDisplayName() === dependencyName) {
                         sourceInput = sourceInputIndex;
                     }
                 }
-
 
                 if (sourceInput === -1) {
                     console.error("failed to find source for ", dep)
@@ -84,8 +84,8 @@ export class NodeManager {
                 // connectNodes(nodeOut: FlowNode, outPort: number, nodeIn: FlowNode, inPort): Connection | undefined {
                 // TODO: This only works for nodes with one output
                 this.app.NodeFlowGraph.connectNodes(
-                    target.flowNode, 0,
-                    source.flowNode, sourceInput,
+                    outNode.flowNode, 0,
+                    inNode.flowNode, sourceInput,
                 )
             }
         }

@@ -2,6 +2,7 @@ package nodes
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/EliCDavis/polyform/refutil"
@@ -68,6 +69,25 @@ type Struct[T any, G StructProcesor[T]] struct {
 }
 
 func (sn *Struct[T, G]) SetInput(input string, output Output) {
+	// HHHHACK for array types atm.
+	// I don't have enough knowledge yet for a proper refactor. I need to add
+	// more features to see where things go fucky
+	if index := strings.Index(input, "."); index != -1 {
+		inputName := input[:index]
+		if output.NodeOutput == nil {
+			index, err := strconv.Atoi(input[index+1:])
+			if err != nil {
+				panic(err)
+			}
+
+			refutil.RemoveFromStructFieldArray(&sn.Data, inputName, index)
+		} else {
+			refutil.AddToStructFieldArray(&sn.Data, inputName, output.NodeOutput)
+		}
+		sn.inputChangedSinceLastProcess = true
+		return
+	}
+
 	refutil.SetStructField(&sn.Data, input, output.NodeOutput)
 	sn.inputChangedSinceLastProcess = true
 }

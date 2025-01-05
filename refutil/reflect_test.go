@@ -257,3 +257,30 @@ func TestSetStructField(t *testing.T) {
 		refutil.SetStructField(12, "D", 5)
 	})
 }
+
+func TestAddToStructFieldArray(t *testing.T) {
+	type Struct struct {
+		Blah string
+		A    []int
+	}
+
+	s := &Struct{}
+	refutil.AddToStructFieldArray(s, "A", 1)
+	assert.Len(t, s.A, 1)
+	assert.Equal(t, 1, s.A[0])
+}
+
+func TestRemoveFromStructFieldArray(t *testing.T) {
+	type Struct struct {
+		Blah string
+		A    []int
+	}
+
+	s := &Struct{
+		A: []int{1, 2, 3},
+	}
+	refutil.RemoveFromStructFieldArray(s, "A", 1)
+	assert.Len(t, s.A, 2)
+	assert.Equal(t, 1, s.A[0])
+	assert.Equal(t, 3, s.A[1])
+}
