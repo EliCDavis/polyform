@@ -1,0 +1,1779 @@
+{
+	"buffers": [
+		{
+			"byteLength": 0,
+			"uri": "data:application/octet-stream;base64,"
+		}
+	],
+	"data": {
+		"description": "Demo for different GLTF material extensions",
+		"name": "UFO",
+		"nodes": {
+			"Node-0": {
+				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
+				"data": {
+					"name": "Weld Dist",
+					"currentValue": 0.0001,
+					"defaultValue": 0.0001,
+					"cli": null
+				},
+				"metadata": {
+					"position": {
+						"x": -347.681910729572,
+						"y": 1098.7817951612506
+					}
+				}
+			},
+			"Node-1": {
+				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[github.com/EliCDavis/vector/vector2.Vector[float64]]",
+				"data": {
+					"name": "UV Start",
+					"currentValue": {
+						"x": 0,
+						"y": 0.5
+					},
+					"defaultValue": {
+						"x": 0,
+						"y": 0.5
+					},
+					"cli": null
+				},
+				"metadata": {
+					"position": {
+						"x": -907.6819107295731,
+						"y": 1060.7817951612506
+					}
+				}
+			},
+			"Node-10": {
+				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[github.com/EliCDavis/polyform/drawing/coloring.WebColor]",
+				"data": {
+					"name": "UFO Color",
+					"currentValue": "#ffffff",
+					"defaultValue": "#ffffff",
+					"cli": null
+				},
+				"metadata": {
+					"position": {
+						"x": 2463.2501110231683,
+						"y": -336.3649853781046
+					}
+				}
+			},
+			"Node-11": {
+				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[string]",
+				"data": {
+					"name": "Color Tex URI",
+					"currentValue": "brushed.png",
+					"defaultValue": "brushed.png",
+					"cli": null
+				},
+				"metadata": {
+					"position": {
+						"x": 2470.579752649925,
+						"y": -215.51857425701934
+					}
+				}
+			},
+			"Node-12": {
+				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
+				"data": {
+					"name": "UFO Metallic",
+					"currentValue": 1,
+					"defaultValue": 1,
+					"cli": null
+				},
+				"metadata": {
+					"position": {
+						"x": 2473.1106319601276,
+						"y": -76.862756826035
+					}
+				}
+			},
+			"Node-13": {
+				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
+				"data": {
+					"name": "UFO Roughness",
+					"currentValue": 0.3,
+					"defaultValue": 0.3,
+					"cli": null
+				},
+				"metadata": {
+					"position": {
+						"x": 2551.2105207092386,
+						"y": 199.408165704901
+					}
+				}
+			},
+			"Node-14": {
+				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[string]",
+				"data": {
+					"name": "Metalic Tex URI",
+					"currentValue": "rough.png",
+					"defaultValue": "rough.png",
+					"cli": null
+				},
+				"metadata": {
+					"position": {
+						"x": 2409.0938918755783,
+						"y": 77.82345493775739
+					}
+				}
+			},
+			"Node-15": {
+				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
+				"data": {
+					"name": "UFO ClearcoatFactor",
+					"currentValue": 0.25,
+					"defaultValue": 0.25,
+					"cli": null
+				},
+				"metadata": {
+					"position": {
+						"x": 2046.0822569562756,
+						"y": -494.04495607374844
+					}
+				}
+			},
+			"Node-16": {
+				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
+				"data": {
+					"name": "UFO ClearcoatRoughnessFactor",
+					"currentValue": 0.15,
+					"defaultValue": 0.15,
+					"cli": null
+				},
+				"metadata": {
+					"position": {
+						"x": 1981.947892722162,
+						"y": -355.3635225807725
+					}
+				}
+			},
+			"Node-17": {
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformClearcoat,github.com/EliCDavis/polyform/generator/artifact.GltfMaterialClearcoatExtensionNodeData]",
+				"dependencies": [
+					{
+						"dependencyID": "Node-15",
+						"dependencyPort": "Out",
+						"name": "ClearcoatFactor"
+					},
+					{
+						"dependencyID": "Node-16",
+						"dependencyPort": "Out",
+						"name": "ClearcoatRoughnessFactor"
+					}
+				],
+				"metadata": {
+					"position": {
+						"x": 2399.115746789052,
+						"y": -489.12948226907
+					}
+				}
+			},
+			"Node-18": {
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformMaterial,github.com/EliCDavis/polyform/generator/artifact.GltfMaterialNodeData]",
+				"dependencies": [
+					{
+						"dependencyID": "Node-11",
+						"dependencyPort": "Out",
+						"name": "ColorTexture"
+					},
+					{
+						"dependencyID": "Node-12",
+						"dependencyPort": "Out",
+						"name": "MetallicFactor"
+					},
+					{
+						"dependencyID": "Node-13",
+						"dependencyPort": "Out",
+						"name": "RoughnessFactor"
+					},
+					{
+						"dependencyID": "Node-14",
+						"dependencyPort": "Out",
+						"name": "MetallicRoughnessTexture"
+					},
+					{
+						"dependencyID": "Node-17",
+						"dependencyPort": "Out",
+						"name": "Clearcoat"
+					},
+					{
+						"dependencyID": "Node-10",
+						"dependencyPort": "Out",
+						"name": "Color"
+					}
+				],
+				"metadata": {
+					"position": {
+						"x": 2888.112748642899,
+						"y": -318.13355703160374
+					}
+				}
+			},
+			"Node-19": {
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformModel,github.com/EliCDavis/polyform/generator/artifact.GltfModelNodeData]",
+				"dependencies": [
+					{
+						"dependencyID": "Node-9",
+						"dependencyPort": "Out",
+						"name": "Mesh"
+					},
+					{
+						"dependencyID": "Node-18",
+						"dependencyPort": "Out",
+						"name": "Material"
+					}
+				],
+				"metadata": {
+					"position": {
+						"x": 3668.2578358016244,
+						"y": 344.4958732445509
+					}
+				}
+			},
+			"Node-2": {
+				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[github.com/EliCDavis/vector/vector2.Vector[float64]]",
+				"data": {
+					"name": "UV End",
+					"currentValue": {
+						"x": 20,
+						"y": 0.5
+					},
+					"defaultValue": {
+						"x": 20,
+						"y": 0.5
+					},
+					"cli": null
+				},
+				"metadata": {
+					"position": {
+						"x": -907.6819107295731,
+						"y": 852.781795161252
+					}
+				}
+			},
+			"Node-20": {
+				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[github.com/EliCDavis/polyform/drawing/coloring.WebColor]",
+				"data": {
+					"name": "Abduction Ring Color",
+					"currentValue": "#00ff00",
+					"defaultValue": "#00ff00",
+					"cli": null
+				},
+				"metadata": {
+					"position": {
+						"x": 1579.3680909349412,
+						"y": 5.029082388210064
+					}
+				}
+			},
+			"Node-21": {
+				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
+				"data": {
+					"name": "Abduction Ring Emissive Strength",
+					"currentValue": 3,
+					"defaultValue": 3,
+					"cli": null
+				},
+				"metadata": {
+					"position": {
+						"x": 1579.3680909349412,
+						"y": 176.02908238821004
+					}
+				}
+			},
+			"Node-22": {
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformMaterial,github.com/EliCDavis/polyform/generator/artifact.GltfMaterialNodeData]",
+				"dependencies": [
+					{
+						"dependencyID": "Node-21",
+						"dependencyPort": "Out",
+						"name": "EmissiveStrength"
+					},
+					{
+						"dependencyID": "Node-20",
+						"dependencyPort": "Out",
+						"name": "Color"
+					},
+					{
+						"dependencyID": "Node-20",
+						"dependencyPort": "Out",
+						"name": "EmissiveFactor"
+					}
+				],
+				"metadata": {
+					"position": {
+						"x": 2055.0243409349405,
+						"y": 430.0290823882101
+					}
+				}
+			},
+			"Node-23": {
+				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[int]",
+				"data": {
+					"name": "Abduction Ring Resolution",
+					"currentValue": 20,
+					"defaultValue": 20,
+					"cli": null
+				},
+				"metadata": {
+					"position": {
+						"x": 1180.5243409349412,
+						"y": 5.029082388210064
+					}
+				}
+			},
+			"Node-24": {
+				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
+				"data": {
+					"name": "Abduction Ring Thickness Frequency",
+					"currentValue": 37.69911184307752,
+					"defaultValue": 37.69911184307752,
+					"cli": null
+				},
+				"metadata": {
+					"position": {
+						"x": 70.40715343494087,
+						"y": 515.0290823882101
+					}
+				}
+			},
+			"Node-25": {
+				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[int]",
+				"data": {
+					"name": "Abduction Ring Path Resolution",
+					"currentValue": 120,
+					"defaultValue": 120,
+					"cli": null
+				},
+				"metadata": {
+					"position": {
+						"x": 70.40715343494087,
+						"y": 344.0290823882101
+					}
+				}
+			},
+			"Node-26": {
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[[]float64,github.com/EliCDavis/polyform/nodes/experimental.SampleNodeData]",
+				"dependencies": [
+					{
+						"dependencyID": "Node-24",
+						"dependencyPort": "Out",
+						"name": "End"
+					},
+					{
+						"dependencyID": "Node-25",
+						"dependencyPort": "Out",
+						"name": "Samples"
+					}
+				],
+				"metadata": {
+					"position": {
+						"x": 526.860278434941,
+						"y": 1031.02908238821
+					}
+				}
+			},
+			"Node-27": {
+				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
+				"data": {
+					"name": "Thickness Scale",
+					"currentValue": 0.25,
+					"defaultValue": 0.25,
+					"cli": null
+				},
+				"metadata": {
+					"position": {
+						"x": 526.860278434941,
+						"y": 1817.02908238821
+					}
+				}
+			},
+			"Node-28": {
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[[]float64,github.com/EliCDavis/polyform/nodes/experimental.CosNodeData]",
+				"dependencies": [
+					{
+						"dependencyID": "Node-26",
+						"dependencyPort": "Out",
+						"name": "Input"
+					},
+					{
+						"dependencyID": "Node-27",
+						"dependencyPort": "Out",
+						"name": "Scale"
+					}
+				],
+				"metadata": {
+					"position": {
+						"x": 887.2977784349413,
+						"y": 5.029082388210064
+					}
+				}
+			},
+			"Node-29": {
+				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
+				"data": {
+					"name": "Thickness Shift",
+					"currentValue": 0.5,
+					"defaultValue": 0.5,
+					"cli": null
+				},
+				"metadata": {
+					"position": {
+						"x": 887.2977784349413,
+						"y": 1296.02908238821
+					}
+				}
+			},
+			"Node-3": {
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/modeling/primitives.StripUVs,github.com/EliCDavis/polyform/modeling/primitives.StripUVsNodeData]",
+				"dependencies": [
+					{
+						"dependencyID": "Node-1",
+						"dependencyPort": "Out",
+						"name": "Start"
+					},
+					{
+						"dependencyID": "Node-2",
+						"dependencyPort": "Out",
+						"name": "End"
+					}
+				],
+				"metadata": {
+					"position": {
+						"x": -627.6819107295731,
+						"y": 1191.7817951612508
+					}
+				}
+			},
+			"Node-30": {
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[[]float64,github.com/EliCDavis/polyform/nodes/experimental.ShiftNodeData]",
+				"dependencies": [
+					{
+						"dependencyID": "Node-28",
+						"dependencyPort": "Out",
+						"name": "In"
+					},
+					{
+						"dependencyID": "Node-29",
+						"dependencyPort": "Out",
+						"name": "Shift"
+					}
+				],
+				"metadata": {
+					"position": {
+						"x": 1180.5243409349412,
+						"y": 1755.02908238821
+					}
+				}
+			},
+			"Node-31": {
+				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
+				"data": {
+					"name": "2Pi",
+					"currentValue": 6.283185307179586,
+					"defaultValue": 6.283185307179586,
+					"cli": null
+				},
+				"metadata": {
+					"position": {
+						"x": 70.40715343494087,
+						"y": 5.029082388210064
+					}
+				}
+			},
+			"Node-32": {
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[[]float64,github.com/EliCDavis/polyform/nodes/experimental.SampleNodeData]",
+				"dependencies": [
+					{
+						"dependencyID": "Node-25",
+						"dependencyPort": "Out",
+						"name": "Samples"
+					},
+					{
+						"dependencyID": "Node-31",
+						"dependencyPort": "Out",
+						"name": "End"
+					}
+				],
+				"metadata": {
+					"position": {
+						"x": 526.860278434941,
+						"y": 1236.02908238821
+					}
+				}
+			},
+			"Node-33": {
+				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
+				"data": {
+					"name": "Abduction Ring Radius",
+					"currentValue": 4,
+					"defaultValue": 4,
+					"cli": null
+				},
+				"metadata": {
+					"position": {
+						"x": 526.860278434941,
+						"y": 176.02908238821004
+					}
+				}
+			},
+			"Node-34": {
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[[]float64,github.com/EliCDavis/polyform/nodes/experimental.CosNodeData]",
+				"dependencies": [
+					{
+						"dependencyID": "Node-32",
+						"dependencyPort": "Out",
+						"name": "Input"
+					},
+					{
+						"dependencyID": "Node-33",
+						"dependencyPort": "Out",
+						"name": "Scale"
+					}
+				],
+				"metadata": {
+					"position": {
+						"x": 887.2977784349413,
+						"y": 182.02908238821004
+					}
+				}
+			},
+			"Node-35": {
+				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
+				"data": {
+					"name": "Abduction Ring Frequency",
+					"currentValue": 25.132741228718345,
+					"defaultValue": 25.132741228718345,
+					"cli": null
+				},
+				"metadata": {
+					"position": {
+						"x": 70.40715343494087,
+						"y": 173.02908238821004
+					}
+				}
+			},
+			"Node-36": {
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[[]float64,github.com/EliCDavis/polyform/nodes/experimental.SampleNodeData]",
+				"dependencies": [
+					{
+						"dependencyID": "Node-35",
+						"dependencyPort": "Out",
+						"name": "End"
+					},
+					{
+						"dependencyID": "Node-25",
+						"dependencyPort": "Out",
+						"name": "Samples"
+					}
+				],
+				"metadata": {
+					"position": {
+						"x": 526.860278434941,
+						"y": 1441.02908238821
+					}
+				}
+			},
+			"Node-37": {
+				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
+				"data": {
+					"name": "Abduction Ring Amplitude",
+					"currentValue": 0.5,
+					"defaultValue": 0.5,
+					"cli": null
+				},
+				"metadata": {
+					"position": {
+						"x": 526.860278434941,
+						"y": 5.029082388210064
+					}
+				}
+			},
+			"Node-38": {
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[[]float64,github.com/EliCDavis/polyform/nodes/experimental.SinNodeData]",
+				"dependencies": [
+					{
+						"dependencyID": "Node-36",
+						"dependencyPort": "Out",
+						"name": "Input"
+					},
+					{
+						"dependencyID": "Node-37",
+						"dependencyPort": "Out",
+						"name": "Scale"
+					}
+				],
+				"metadata": {
+					"position": {
+						"x": 887.2977784349413,
+						"y": 940.0290823882101
+					}
+				}
+			},
+			"Node-39": {
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[[]float64,github.com/EliCDavis/polyform/nodes/experimental.SinNodeData]",
+				"dependencies": [
+					{
+						"dependencyID": "Node-32",
+						"dependencyPort": "Out",
+						"name": "Input"
+					},
+					{
+						"dependencyID": "Node-33",
+						"dependencyPort": "Out",
+						"name": "Scale"
+					}
+				],
+				"metadata": {
+					"position": {
+						"x": 887.2977784349413,
+						"y": 1118.02908238821
+					}
+				}
+			},
+			"Node-4": {
+				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[[]github.com/EliCDavis/vector/vector3.Vector[float64]]",
+				"data": {
+					"name": "UFO Outline",
+					"currentValue": [
+						{
+							"x": 0,
+							"y": -1,
+							"z": 0
+						},
+						{
+							"x": 3,
+							"y": 2,
+							"z": 0
+						},
+						{
+							"x": 4,
+							"y": 0.5,
+							"z": 0
+						},
+						{
+							"x": 10,
+							"y": 3,
+							"z": 0
+						},
+						{
+							"x": 10,
+							"y": 4,
+							"z": 0
+						},
+						{
+							"x": 4,
+							"y": 5,
+							"z": 0
+						},
+						{
+							"x": 4,
+							"y": 5.5,
+							"z": 0
+						},
+						{
+							"x": 0,
+							"y": 5.5,
+							"z": 0
+						}
+					],
+					"defaultValue": [
+						{
+							"x": 0,
+							"y": -1,
+							"z": 0
+						},
+						{
+							"x": 3,
+							"y": 2,
+							"z": 0
+						},
+						{
+							"x": 4,
+							"y": 0.5,
+							"z": 0
+						},
+						{
+							"x": 10,
+							"y": 3,
+							"z": 0
+						},
+						{
+							"x": 10,
+							"y": 4,
+							"z": 0
+						},
+						{
+							"x": 4,
+							"y": 5,
+							"z": 0
+						},
+						{
+							"x": 4,
+							"y": 5.5,
+							"z": 0
+						},
+						{
+							"x": 0,
+							"y": 5.5,
+							"z": 0
+						}
+					],
+					"cli": null
+				},
+				"metadata": {
+					"position": {
+						"x": -924.1425347985063,
+						"y": 475.11986131801336
+					}
+				}
+			},
+			"Node-40": {
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[[]github.com/EliCDavis/vector/vector3.Vector[float64],github.com/EliCDavis/polyform/nodes/experimental.VectoryArrayNodeData]",
+				"dependencies": [
+					{
+						"dependencyID": "Node-34",
+						"dependencyPort": "Out",
+						"name": "X"
+					},
+					{
+						"dependencyID": "Node-38",
+						"dependencyPort": "Out",
+						"name": "Y"
+					},
+					{
+						"dependencyID": "Node-39",
+						"dependencyPort": "Out",
+						"name": "Z"
+					}
+				],
+				"metadata": {
+					"position": {
+						"x": 1180.5243409349412,
+						"y": 2807.0290823882096
+					}
+				}
+			},
+			"Node-41": {
+				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[bool]",
+				"data": {
+					"name": "Closed",
+					"currentValue": true,
+					"defaultValue": true,
+					"cli": null
+				},
+				"metadata": {
+					"position": {
+						"x": 1180.5243409349412,
+						"y": 176.02908238821004
+					}
+				}
+			},
+			"Node-42": {
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/modeling.Mesh,github.com/EliCDavis/polyform/modeling/extrude.CircleNodeData]",
+				"dependencies": [
+					{
+						"dependencyID": "Node-41",
+						"dependencyPort": "Out",
+						"name": "Closed"
+					},
+					{
+						"dependencyID": "Node-23",
+						"dependencyPort": "Out",
+						"name": "Resolution"
+					},
+					{
+						"dependencyID": "Node-30",
+						"dependencyPort": "Out",
+						"name": "Radii"
+					},
+					{
+						"dependencyID": "Node-40",
+						"dependencyPort": "Out",
+						"name": "Path"
+					}
+				],
+				"metadata": {
+					"position": {
+						"x": 1579.3680909349412,
+						"y": 347.0290823882101
+					}
+				}
+			},
+			"Node-43": {
+				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
+				"data": {
+					"name": "Ring Start Position",
+					"currentValue": -10,
+					"defaultValue": -10,
+					"cli": null
+				},
+				"metadata": {
+					"position": {
+						"x": 526.860278434941,
+						"y": 860.0290823882101
+					}
+				}
+			},
+			"Node-44": {
+				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
+				"data": {
+					"name": "Ring End Position",
+					"currentValue": -3,
+					"defaultValue": -3,
+					"cli": null
+				},
+				"metadata": {
+					"position": {
+						"x": 526.860278434941,
+						"y": 689.0290823882101
+					}
+				}
+			},
+			"Node-45": {
+				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[int]",
+				"data": {
+					"name": "Ring Count",
+					"currentValue": 3,
+					"defaultValue": 3,
+					"cli": null
+				},
+				"metadata": {
+					"position": {
+						"x": 526.860278434941,
+						"y": 518.0290823882101
+					}
+				}
+			},
+			"Node-46": {
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[[]float64,github.com/EliCDavis/polyform/nodes/experimental.SampleNodeData]",
+				"dependencies": [
+					{
+						"dependencyID": "Node-43",
+						"dependencyPort": "Out",
+						"name": "Start"
+					},
+					{
+						"dependencyID": "Node-44",
+						"dependencyPort": "Out",
+						"name": "End"
+					},
+					{
+						"dependencyID": "Node-45",
+						"dependencyPort": "Out",
+						"name": "Samples"
+					}
+				],
+				"metadata": {
+					"position": {
+						"x": 887.2977784349413,
+						"y": 530.0290823882101
+					}
+				}
+			},
+			"Node-47": {
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[[]github.com/EliCDavis/vector/vector3.Vector[float64],github.com/EliCDavis/polyform/nodes/experimental.VectoryArrayNodeData]",
+				"dependencies": [
+					{
+						"dependencyID": "Node-46",
+						"dependencyPort": "Out",
+						"name": "Y"
+					}
+				],
+				"metadata": {
+					"position": {
+						"x": 1180.5243409349412,
+						"y": 3007.0290823882096
+					}
+				}
+			},
+			"Node-48": {
+				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
+				"data": {
+					"name": "Start Ring Scale",
+					"currentValue": 1,
+					"defaultValue": 1,
+					"cli": null
+				},
+				"metadata": {
+					"position": {
+						"x": 526.860278434941,
+						"y": 1646.02908238821
+					}
+				}
+			},
+			"Node-49": {
+				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
+				"data": {
+					"name": "End Ring Scale",
+					"currentValue": 0.3,
+					"defaultValue": 0.3,
+					"cli": null
+				},
+				"metadata": {
+					"position": {
+						"x": 526.860278434941,
+						"y": 347.0290823882101
+					}
+				}
+			},
+			"Node-5": {
+				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[int]",
+				"data": {
+					"name": "UFO Resolution",
+					"currentValue": 40,
+					"defaultValue": 40,
+					"cli": null
+				},
+				"metadata": {
+					"position": {
+						"x": -627.6819107295731,
+						"y": 1561.7817951612503
+					}
+				}
+			},
+			"Node-50": {
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[[]float64,github.com/EliCDavis/polyform/nodes/experimental.SampleNodeData]",
+				"dependencies": [
+					{
+						"dependencyID": "Node-45",
+						"dependencyPort": "Out",
+						"name": "Samples"
+					},
+					{
+						"dependencyID": "Node-48",
+						"dependencyPort": "Out",
+						"name": "Start"
+					},
+					{
+						"dependencyID": "Node-49",
+						"dependencyPort": "Out",
+						"name": "End"
+					}
+				],
+				"metadata": {
+					"position": {
+						"x": 887.2977784349413,
+						"y": 735.0290823882101
+					}
+				}
+			},
+			"Node-51": {
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[[]github.com/EliCDavis/vector/vector3.Vector[float64],github.com/EliCDavis/polyform/nodes/experimental.VectoryArrayNodeData]",
+				"dependencies": [
+					{
+						"dependencyID": "Node-50",
+						"dependencyPort": "Out",
+						"name": "X"
+					},
+					{
+						"dependencyID": "Node-50",
+						"dependencyPort": "Out",
+						"name": "Y"
+					},
+					{
+						"dependencyID": "Node-50",
+						"dependencyPort": "Out",
+						"name": "Z"
+					}
+				],
+				"metadata": {
+					"position": {
+						"x": 1180.5243409349412,
+						"y": 3207.0290823882096
+					}
+				}
+			},
+			"Node-52": {
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[[]github.com/EliCDavis/polyform/math/trs.TRS,github.com/EliCDavis/polyform/nodes/experimental.TRSNodeData]",
+				"dependencies": [
+					{
+						"dependencyID": "Node-47",
+						"dependencyPort": "Out",
+						"name": "Position"
+					},
+					{
+						"dependencyID": "Node-51",
+						"dependencyPort": "Out",
+						"name": "Scale"
+					}
+				],
+				"metadata": {
+					"position": {
+						"x": 1579.3680909349412,
+						"y": 3203.0290823882096
+					}
+				}
+			},
+			"Node-53": {
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/modeling.Mesh,github.com/EliCDavis/polyform/modeling/repeat.MeshNodeData]",
+				"dependencies": [
+					{
+						"dependencyID": "Node-42",
+						"dependencyPort": "Out",
+						"name": "Mesh"
+					},
+					{
+						"dependencyID": "Node-52",
+						"dependencyPort": "Out",
+						"name": "Transforms"
+					}
+				],
+				"metadata": {
+					"position": {
+						"x": 2055.0243409349405,
+						"y": 1280.02908238821
+					}
+				}
+			},
+			"Node-54": {
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformModel,github.com/EliCDavis/polyform/generator/artifact.GltfModelNodeData]",
+				"dependencies": [
+					{
+						"dependencyID": "Node-53",
+						"dependencyPort": "Out",
+						"name": "Mesh"
+					},
+					{
+						"dependencyID": "Node-22",
+						"dependencyPort": "Out",
+						"name": "Material"
+					}
+				],
+				"metadata": {
+					"position": {
+						"x": 3668.2578358016244,
+						"y": 520.4958732445516
+					}
+				}
+			},
+			"Node-55": {
+				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
+				"data": {
+					"name": "Hemisphere Radius",
+					"currentValue": 3.1,
+					"defaultValue": 3.1,
+					"cli": null
+				},
+				"metadata": {
+					"position": {
+						"x": 3060.988794074595,
+						"y": 2040.7973592762423
+					}
+				}
+			},
+			"Node-56": {
+				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[int]",
+				"data": {
+					"name": "UFO Dome Rows",
+					"currentValue": 40,
+					"defaultValue": 40,
+					"cli": null
+				},
+				"metadata": {
+					"position": {
+						"x": 3086.3530798029105,
+						"y": 2189.0955073189125
+					}
+				}
+			},
+			"Node-57": {
+				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[int]",
+				"data": {
+					"name": "UFO Dome Columns",
+					"currentValue": 40,
+					"defaultValue": 40,
+					"cli": null
+				},
+				"metadata": {
+					"position": {
+						"x": 3069.4435559840326,
+						"y": 1879.2433908383375
+					}
+				}
+			},
+			"Node-58": {
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/modeling.Mesh,github.com/EliCDavis/polyform/modeling/primitives.HemisphereNodeData]",
+				"dependencies": [
+					{
+						"dependencyID": "Node-56",
+						"dependencyPort": "Out",
+						"name": "Rows"
+					},
+					{
+						"dependencyID": "Node-57",
+						"dependencyPort": "Out",
+						"name": "Columns"
+					},
+					{
+						"dependencyID": "Node-55",
+						"dependencyPort": "Out",
+						"name": "Radius"
+					}
+				],
+				"metadata": {
+					"position": {
+						"x": 3397.428584111728,
+						"y": 2002.2812216888028
+					}
+				}
+			},
+			"Node-59": {
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/modeling.Mesh,github.com/EliCDavis/polyform/modeling/meshops.SmoothNormalsNodeData]",
+				"dependencies": [
+					{
+						"dependencyID": "Node-58",
+						"dependencyPort": "Out",
+						"name": "Mesh"
+					}
+				],
+				"metadata": {
+					"position": {
+						"x": 3629.5796423029115,
+						"y": 2098.095507318911
+					}
+				}
+			},
+			"Node-6": {
+				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
+				"data": {
+					"name": "Revolutions",
+					"currentValue": 1,
+					"defaultValue": 1,
+					"cli": null
+				},
+				"metadata": {
+					"position": {
+						"x": -627.6819107295731,
+						"y": 1023.7817951612519
+					}
+				}
+			},
+			"Node-60": {
+				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[github.com/EliCDavis/vector/vector3.Vector[float64]]",
+				"data": {
+					"name": "Dome Position",
+					"currentValue": {
+						"x": 0,
+						"y": 5,
+						"z": 0
+					},
+					"defaultValue": {
+						"x": 0,
+						"y": 5,
+						"z": 0
+					},
+					"cli": null
+				},
+				"metadata": {
+					"position": {
+						"x": 3629.5796423029115,
+						"y": 1850.0955073189139
+					}
+				}
+			},
+			"Node-61": {
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/modeling.Mesh,github.com/EliCDavis/polyform/modeling/meshops.TranslateAttribute3DNodeData]",
+				"dependencies": [
+					{
+						"dependencyID": "Node-59",
+						"dependencyPort": "Out",
+						"name": "Mesh"
+					},
+					{
+						"dependencyID": "Node-60",
+						"dependencyPort": "Out",
+						"name": "Amount"
+					}
+				],
+				"metadata": {
+					"position": {
+						"x": 4065.660384774818,
+						"y": 1932.7016106319256
+					}
+				}
+			},
+			"Node-62": {
+				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[github.com/EliCDavis/polyform/drawing/coloring.WebColor]",
+				"data": {
+					"name": "Dome Color",
+					"currentValue": "#c8c8c8",
+					"defaultValue": "#c8c8c8",
+					"cli": null
+				},
+				"metadata": {
+					"position": {
+						"x": 3616.9878557239604,
+						"y": 893.3602982817096
+					}
+				}
+			},
+			"Node-63": {
+				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
+				"data": {
+					"name": "Dome Metalic",
+					"currentValue": 0,
+					"defaultValue": 0,
+					"cli": null
+				},
+				"metadata": {
+					"position": {
+						"x": 3633.0398452985764,
+						"y": 1199.696031184177
+					}
+				}
+			},
+			"Node-64": {
+				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
+				"data": {
+					"name": "Dome Roughness",
+					"currentValue": 0.2,
+					"defaultValue": 0.2,
+					"cli": null
+				},
+				"metadata": {
+					"position": {
+						"x": 3613.5481436722575,
+						"y": 1350.497470925661
+					}
+				}
+			},
+			"Node-65": {
+				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
+				"data": {
+					"name": "Dome IOR",
+					"currentValue": 1.52,
+					"defaultValue": 1.52,
+					"cli": null
+				},
+				"metadata": {
+					"position": {
+						"x": 3623.8672798273665,
+						"y": 1061.3602982817076
+					}
+				}
+			},
+			"Node-66": {
+				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
+				"data": {
+					"name": "Dome Transmission",
+					"currentValue": 0.9,
+					"defaultValue": 0.9,
+					"cli": null
+				},
+				"metadata": {
+					"position": {
+						"x": 3221.057055085565,
+						"y": 1501.5778884803403
+					}
+				}
+			},
+			"Node-67": {
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformTransmission,github.com/EliCDavis/polyform/generator/artifact.GltfMaterialTransmissionExtensionNodeData]",
+				"dependencies": [
+					{
+						"dependencyID": "Node-66",
+						"dependencyPort": "Out",
+						"name": "TransmissionFactor"
+					}
+				],
+				"metadata": {
+					"position": {
+						"x": 3504.6239287016524,
+						"y": 1499.7126279315369
+					}
+				}
+			},
+			"Node-68": {
+				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
+				"data": {
+					"name": "Dome Thickness",
+					"currentValue": 0.5,
+					"defaultValue": 0.5,
+					"cli": null
+				},
+				"metadata": {
+					"position": {
+						"x": 3262.4452952041224,
+						"y": 1703.9341852579257
+					}
+				}
+			},
+			"Node-69": {
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformVolume,github.com/EliCDavis/polyform/generator/artifact.GltfMaterialVolumeExtensionNodeData]",
+				"dependencies": [
+					{
+						"dependencyID": "Node-68",
+						"dependencyPort": "Out",
+						"name": "ThicknessFactor"
+					}
+				],
+				"metadata": {
+					"position": {
+						"x": 3551.6333267416016,
+						"y": 1647.2729158798365
+					}
+				}
+			},
+			"Node-7": {
+				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
+				"data": {
+					"name": "Height",
+					"currentValue": 0,
+					"defaultValue": 0,
+					"cli": null
+				},
+				"metadata": {
+					"position": {
+						"x": -627.6819107295731,
+						"y": 852.781795161252
+					}
+				}
+			},
+			"Node-70": {
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformMaterial,github.com/EliCDavis/polyform/generator/artifact.GltfMaterialNodeData]",
+				"dependencies": [
+					{
+						"dependencyID": "Node-63",
+						"dependencyPort": "Out",
+						"name": "MetallicFactor"
+					},
+					{
+						"dependencyID": "Node-64",
+						"dependencyPort": "Out",
+						"name": "RoughnessFactor"
+					},
+					{
+						"dependencyID": "Node-65",
+						"dependencyPort": "Out",
+						"name": "IndexOfRefraction"
+					},
+					{
+						"dependencyID": "Node-67",
+						"dependencyPort": "Out",
+						"name": "Transmission"
+					},
+					{
+						"dependencyID": "Node-69",
+						"dependencyPort": "Out",
+						"name": "Volume"
+					},
+					{
+						"dependencyID": "Node-62",
+						"dependencyPort": "Out",
+						"name": "Color"
+					}
+				],
+				"metadata": {
+					"position": {
+						"x": 4107.48760530471,
+						"y": 1438.4373376200087
+					}
+				}
+			},
+			"Node-71": {
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformModel,github.com/EliCDavis/polyform/generator/artifact.GltfModelNodeData]",
+				"dependencies": [
+					{
+						"dependencyID": "Node-61",
+						"dependencyPort": "Out",
+						"name": "Mesh"
+					},
+					{
+						"dependencyID": "Node-70",
+						"dependencyPort": "Out",
+						"name": "Material"
+					}
+				],
+				"metadata": {
+					"position": {
+						"x": 4494.030788083701,
+						"y": 1830.04567756497
+					}
+				}
+			},
+			"Node-72": {
+				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[int]",
+				"data": {
+					"name": "Contour Sides",
+					"currentValue": 20,
+					"defaultValue": 20,
+					"cli": null
+				},
+				"metadata": {
+					"position": {
+						"x": 638.8757037460801,
+						"y": -238.89969658493646
+					}
+				}
+			},
+			"Node-73": {
+				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
+				"data": {
+					"name": "Contour Thickness",
+					"currentValue": 0.2,
+					"defaultValue": 0.2,
+					"cli": null
+				},
+				"metadata": {
+					"position": {
+						"x": 638.8757037460801,
+						"y": -70.89969658493673
+					}
+				}
+			},
+			"Node-74": {
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/modeling.Mesh,github.com/EliCDavis/polyform/modeling/extrude.CircleNodeData]",
+				"dependencies": [
+					{
+						"dependencyID": "Node-72",
+						"dependencyPort": "Out",
+						"name": "Resolution"
+					},
+					{
+						"dependencyID": "Node-73",
+						"dependencyPort": "Out",
+						"name": "Radius"
+					},
+					{
+						"dependencyID": "Node-4",
+						"dependencyPort": "Out",
+						"name": "Path"
+					}
+				],
+				"metadata": {
+					"position": {
+						"x": 970.5085162460798,
+						"y": -238.89969658493646
+					}
+				}
+			},
+			"Node-75": {
+				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[int]",
+				"data": {
+					"name": "Countour Repeat Times",
+					"currentValue": 10,
+					"defaultValue": 10,
+					"cli": null
+				},
+				"metadata": {
+					"position": {
+						"x": 638.8757037460801,
+						"y": 97.1003034150635
+					}
+				}
+			},
+			"Node-76": {
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[[]github.com/EliCDavis/polyform/math/trs.TRS,github.com/EliCDavis/polyform/modeling/repeat.CircleNodeData]",
+				"dependencies": [
+					{
+						"dependencyID": "Node-75",
+						"dependencyPort": "Out",
+						"name": "Times"
+					}
+				],
+				"metadata": {
+					"position": {
+						"x": 970.5085162460798,
+						"y": 9.100303415063351
+					}
+				}
+			},
+			"Node-77": {
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/modeling.Mesh,github.com/EliCDavis/polyform/modeling/repeat.MeshNodeData]",
+				"dependencies": [
+					{
+						"dependencyID": "Node-74",
+						"dependencyPort": "Out",
+						"name": "Mesh"
+					},
+					{
+						"dependencyID": "Node-76",
+						"dependencyPort": "Out",
+						"name": "Transforms"
+					}
+				],
+				"metadata": {
+					"position": {
+						"x": 1220.5085162460794,
+						"y": -238.89969658493646
+					}
+				}
+			},
+			"Node-78": {
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformModel,github.com/EliCDavis/polyform/generator/artifact.GltfModelNodeData]",
+				"dependencies": [
+					{
+						"dependencyID": "Node-77",
+						"dependencyPort": "Out",
+						"name": "Mesh"
+					},
+					{
+						"dependencyID": "Node-18",
+						"dependencyPort": "Out",
+						"name": "Material"
+					}
+				],
+				"metadata": {
+					"position": {
+						"x": 3656.3574150675577,
+						"y": 197.572011612462
+					}
+				}
+			},
+			"Node-79": {
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/generator/artifact.Artifact,github.com/EliCDavis/polyform/generator/artifact.GltfArtifactData]",
+				"dependencies": [
+					{
+						"dependencyID": "Node-19",
+						"dependencyPort": "Out",
+						"name": "Models.0"
+					},
+					{
+						"dependencyID": "Node-54",
+						"dependencyPort": "Out",
+						"name": "Models.1"
+					},
+					{
+						"dependencyID": "Node-71",
+						"dependencyPort": "Out",
+						"name": "Models.2"
+					},
+					{
+						"dependencyID": "Node-78",
+						"dependencyPort": "Out",
+						"name": "Models.3"
+					}
+				],
+				"metadata": {
+					"position": {
+						"x": 5385.6217976472635,
+						"y": 1199.7364168199874
+					}
+				}
+			},
+			"Node-8": {
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/modeling.Mesh,github.com/EliCDavis/polyform/modeling/extrude.ScrewNodeData]",
+				"dependencies": [
+					{
+						"dependencyID": "Node-4",
+						"dependencyPort": "Out",
+						"name": "Line"
+					},
+					{
+						"dependencyID": "Node-5",
+						"dependencyPort": "Out",
+						"name": "Segments"
+					},
+					{
+						"dependencyID": "Node-6",
+						"dependencyPort": "Out",
+						"name": "Revolutions"
+					},
+					{
+						"dependencyID": "Node-7",
+						"dependencyPort": "Out",
+						"name": "Distance"
+					},
+					{
+						"dependencyID": "Node-3",
+						"dependencyPort": "Out",
+						"name": "UVs"
+					}
+				],
+				"metadata": {
+					"position": {
+						"x": -347.681910729572,
+						"y": 852.781795161252
+					}
+				}
+			},
+			"Node-80": {
+				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[github.com/EliCDavis/polyform/drawing/coloring.WebColor]",
+				"data": {
+					"name": "Positive",
+					"currentValue": "#dedede",
+					"defaultValue": "#dedede",
+					"cli": null
+				},
+				"metadata": {
+					"position": {
+						"x": 3058.248157217123,
+						"y": 3386.492206279283
+					}
+				}
+			},
+			"Node-81": {
+				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[github.com/EliCDavis/polyform/drawing/coloring.WebColor]",
+				"data": {
+					"name": "Negative",
+					"currentValue": "#cacaca",
+					"defaultValue": "#cacaca",
+					"cli": null
+				},
+				"metadata": {
+					"position": {
+						"x": 3058.248157217123,
+						"y": 3215.492206279284
+					}
+				}
+			},
+			"Node-82": {
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[image.Image,github.com/EliCDavis/polyform/nodes/experimental.SeamlessPerlinNodeData]",
+				"dependencies": [
+					{
+						"dependencyID": "Node-80",
+						"dependencyPort": "Out",
+						"name": "Positive"
+					},
+					{
+						"dependencyID": "Node-81",
+						"dependencyPort": "Out",
+						"name": "Negative"
+					}
+				],
+				"metadata": {
+					"position": {
+						"x": 3355.7150935603636,
+						"y": 3308.6992739621105
+					}
+				}
+			},
+			"Node-83": {
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/generator/artifact.Artifact,github.com/EliCDavis/polyform/generator/artifact.ImageNodeData]",
+				"dependencies": [
+					{
+						"dependencyID": "Node-82",
+						"dependencyPort": "Out",
+						"name": "In"
+					}
+				],
+				"metadata": {
+					"position": {
+						"x": 3684.946774342119,
+						"y": 3243.5908215669288
+					}
+				}
+			},
+			"Node-84": {
+				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[github.com/EliCDavis/polyform/drawing/coloring.WebColor]",
+				"data": {
+					"name": "Positive",
+					"currentValue": "#0046ff",
+					"defaultValue": "#0046ff",
+					"cli": null
+				},
+				"metadata": {
+					"position": {
+						"x": 3058.248157217123,
+						"y": 3725.492206279283
+					}
+				}
+			},
+			"Node-85": {
+				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[github.com/EliCDavis/polyform/drawing/coloring.WebColor]",
+				"data": {
+					"name": "Negative",
+					"currentValue": "#00c8ff",
+					"defaultValue": "#00c8ff",
+					"cli": null
+				},
+				"metadata": {
+					"position": {
+						"x": 3058.248157217123,
+						"y": 3554.492206279283
+					}
+				}
+			},
+			"Node-86": {
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[image.Image,github.com/EliCDavis/polyform/nodes/experimental.SeamlessPerlinNodeData]",
+				"dependencies": [
+					{
+						"dependencyID": "Node-84",
+						"dependencyPort": "Out",
+						"name": "Positive"
+					},
+					{
+						"dependencyID": "Node-85",
+						"dependencyPort": "Out",
+						"name": "Negative"
+					}
+				],
+				"metadata": {
+					"position": {
+						"x": 3369.082965423448,
+						"y": 3606.2460051305106
+					}
+				}
+			},
+			"Node-87": {
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/generator/artifact.Artifact,github.com/EliCDavis/polyform/generator/artifact.ImageNodeData]",
+				"dependencies": [
+					{
+						"dependencyID": "Node-86",
+						"dependencyPort": "Out",
+						"name": "In"
+					}
+				],
+				"metadata": {
+					"position": {
+						"x": 3688.3681444173376,
+						"y": 3632.3108546934236
+					}
+				}
+			},
+			"Node-9": {
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/modeling.Mesh,github.com/EliCDavis/polyform/modeling/meshops.SmoothNormalsImplicitWeldNodeData]",
+				"dependencies": [
+					{
+						"dependencyID": "Node-8",
+						"dependencyPort": "Out",
+						"name": "Mesh"
+					},
+					{
+						"dependencyID": "Node-0",
+						"dependencyPort": "Out",
+						"name": "Distance"
+					}
+				],
+				"metadata": {
+					"position": {
+						"x": -67.68191072957265,
+						"y": 852.781795161252
+					}
+				}
+			}
+		},
+		"producers": {
+			"brushed.png": {
+				"nodeID": "Node-83",
+				"port": "Out"
+			},
+			"rough.png": {
+				"nodeID": "Node-87",
+				"port": "Out"
+			},
+			"ufo.glb": {
+				"nodeID": "Node-79",
+				"port": "Out"
+			}
+		},
+		"version": "1.0.0",
+		"webScene": {
+			"antiAlias": false,
+			"background": "#262269",
+			"fog": {
+				"color": "#262269",
+				"far": 150,
+				"near": 10
+			},
+			"ground": "#516e51",
+			"lighting": "#ffffff",
+			"renderWireframe": false,
+			"xrEnabled": false
+		}
+	}
+}

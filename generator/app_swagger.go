@@ -7,6 +7,7 @@ import (
 	"unicode"
 
 	"github.com/EliCDavis/polyform/formats/swagger"
+	"github.com/EliCDavis/polyform/generator/artifact"
 	"github.com/EliCDavis/polyform/nodes"
 )
 
@@ -26,7 +27,7 @@ func swaggerDefinitionNameFromProducerPath(producerPath string) string {
 	return string(output) + "Request"
 }
 
-func buildSwaggerDefinitionForProducer(producer nodes.NodeOutput[Artifact]) swagger.Definition {
+func buildSwaggerDefinitionForProducer(producer nodes.NodeOutput[artifact.Artifact]) swagger.Definition {
 	props := make(map[string]swagger.Property)
 	params := recurseDependenciesType[SwaggerParameter](producer.Node())
 

@@ -46,7 +46,6 @@ export class Vector3ArrayParameterNodeController {
 
         this.lightNode.addWidget(addPointButton);
 
-        console.log(this.lightNode)
 
         this.lightNode.addSelectListener((obj) => {
             this.renderControls = true;

@@ -282,13 +282,13 @@ func PiShape(height, width float64) []vector2.Float64 {
 	}
 }
 
-type CombineSegmentsNode = nodes.Struct[generator.Artifact, CombineSegmentsNodeData]
+type CombineSegmentsNode = nodes.Struct[artifact.Artifact, CombineSegmentsNodeData]
 
 type CombineSegmentsNodeData struct {
 	Segments []nodes.NodeOutput[Segment]
 }
 
-func (csn CombineSegmentsNodeData) Process() (generator.Artifact, error) {
+func (csn CombineSegmentsNodeData) Process() (artifact.Artifact, error) {
 	offset := 0.
 	final := make([]gltf.PolyformModel, 0)
 	for _, segmentNode := range csn.Segments {
@@ -471,7 +471,7 @@ func main() {
 			Lighting:   coloring.WebColor{R: 0xff, G: 0xfd, B: 0xd1, A: 255},
 			Ground:     coloring.WebColor{R: 0x87, G: 0x82, B: 0x78, A: 255},
 		},
-		Producers: map[string]nodes.NodeOutput[generator.Artifact]{
+		Producers: map[string]nodes.NodeOutput[artifact.Artifact]{
 			"firedheater.glb": firedheaterNode,
 		},
 	}

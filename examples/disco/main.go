@@ -35,7 +35,7 @@ func texture(metal float64, roughness float64) image.Image {
 	return ctx.Image()
 }
 
-type DiscoSceneNode = nodes.Struct[generator.Artifact, DiscoSceneNodeData]
+type DiscoSceneNode = nodes.Struct[artifact.Artifact, DiscoSceneNodeData]
 
 type DiscoSceneNodeData struct {
 	People nodes.NodeOutput[int]
@@ -61,7 +61,7 @@ type DiscoSceneNodeData struct {
 	PlateThickness nodes.NodeOutput[float64]
 }
 
-func (dsn DiscoSceneNodeData) Process() (generator.Artifact, error) {
+func (dsn DiscoSceneNodeData) Process() (artifact.Artifact, error) {
 	chairs := dsn.Chair.Value()
 	cushions := dsn.Cushion.Value()
 	plates := dsn.Plate.Value().Translate(vector3.New(
@@ -395,7 +395,7 @@ func main() {
 		Name:        "Woodland Disco Romance",
 		Version:     "1.0.0",
 		Description: "Applying color pallettes to a sample room",
-		Producers: map[string]nodes.NodeOutput[generator.Artifact]{
+		Producers: map[string]nodes.NodeOutput[artifact.Artifact]{
 			"disco.glb": discoScene.Out(),
 			"metal.png": artifact.NewImageNode(nodes.Value(texture(1, 0))),
 			"rough.png": artifact.NewImageNode(nodes.Value(texture(0, 1))),

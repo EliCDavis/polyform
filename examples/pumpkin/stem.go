@@ -9,7 +9,6 @@ import (
 	"github.com/EliCDavis/polyform/drawing/texturing"
 	"github.com/EliCDavis/polyform/drawing/texturing/normals"
 	"github.com/EliCDavis/polyform/formats/gltf"
-	"github.com/EliCDavis/polyform/generator"
 	"github.com/EliCDavis/polyform/generator/artifact"
 	"github.com/EliCDavis/polyform/math/noise"
 	"github.com/EliCDavis/polyform/math/quaternion"
@@ -129,13 +128,13 @@ func (sm StemMeshData) Process() (gltf.PolyformModel, error) {
 	}, nil
 }
 
-type StemNormalImage = nodes.Struct[generator.Artifact, StemNormalImageData]
+type StemNormalImage = nodes.Struct[artifact.Artifact, StemNormalImageData]
 
 type StemNormalImageData struct {
 	NumberOfLines nodes.NodeOutput[int]
 }
 
-func (sni StemNormalImageData) Process() (generator.Artifact, error) {
+func (sni StemNormalImageData) Process() (artifact.Artifact, error) {
 	dim := 1024
 	img := image.NewRGBA(image.Rect(0, 0, dim, dim))
 	// normals.Fill(img)
@@ -204,14 +203,14 @@ func (sni StemNormalImageData) Process() (generator.Artifact, error) {
 	return &artifact.Image{Image: img}, nil
 }
 
-type StemRoughness = nodes.Struct[generator.Artifact, StemRoughnessData]
+type StemRoughness = nodes.Struct[artifact.Artifact, StemRoughnessData]
 
 type StemRoughnessData struct {
 	Dimensions nodes.NodeOutput[int]
 	Roughness  nodes.NodeOutput[float64]
 }
 
-func (sr StemRoughnessData) Process() (generator.Artifact, error) {
+func (sr StemRoughnessData) Process() (artifact.Artifact, error) {
 	dim := sr.Dimensions.Value()
 	stemRoughnessImage := image.NewRGBA(image.Rect(0, 0, dim, dim))
 

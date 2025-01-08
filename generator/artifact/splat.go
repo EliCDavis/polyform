@@ -6,7 +6,6 @@ import (
 
 	"github.com/EliCDavis/polyform/formats/ply"
 	"github.com/EliCDavis/polyform/formats/splat"
-	"github.com/EliCDavis/polyform/generator"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/nodes"
 )
@@ -23,17 +22,17 @@ func (Splat) Mime() string {
 	return "application/octet-stream"
 }
 
-type SplatNode = nodes.Struct[generator.Artifact, SplatNodeData]
+type SplatNode = nodes.Struct[Artifact, SplatNodeData]
 
 type SplatNodeData struct {
 	In nodes.NodeOutput[modeling.Mesh]
 }
 
-func (pn SplatNodeData) Process() (generator.Artifact, error) {
+func (pn SplatNodeData) Process() (Artifact, error) {
 	return Splat{Mesh: pn.In.Value()}, nil
 }
 
-func NewSplatNode(meshNode nodes.NodeOutput[modeling.Mesh]) nodes.NodeOutput[generator.Artifact] {
+func NewSplatNode(meshNode nodes.NodeOutput[modeling.Mesh]) nodes.NodeOutput[Artifact] {
 	return (&SplatNode{
 		Data: SplatNodeData{
 			In: meshNode,
@@ -114,17 +113,17 @@ func (SplatPly) Mime() string {
 	return "application/octet-stream"
 }
 
-type SplatPlyNode = nodes.Struct[generator.Artifact, SplatPlyNodeData]
+type SplatPlyNode = nodes.Struct[Artifact, SplatPlyNodeData]
 
 type SplatPlyNodeData struct {
 	In nodes.NodeOutput[modeling.Mesh]
 }
 
-func (pn SplatPlyNodeData) Process() (generator.Artifact, error) {
+func (pn SplatPlyNodeData) Process() (Artifact, error) {
 	return SplatPly{Mesh: pn.In.Value()}, nil
 }
 
-func NewSplatPlyNode(meshNode nodes.NodeOutput[modeling.Mesh]) nodes.NodeOutput[generator.Artifact] {
+func NewSplatPlyNode(meshNode nodes.NodeOutput[modeling.Mesh]) nodes.NodeOutput[Artifact] {
 	return (&SplatPlyNode{
 		Data: SplatPlyNodeData{
 			In: meshNode,

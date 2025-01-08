@@ -13,6 +13,7 @@ func Nodes() *refutil.TypeFactory {
 	refutil.RegisterType[SmoothNormalsNode](factory)
 	refutil.RegisterType[ScaleAttribute3DNode](factory)
 	refutil.RegisterType[CombineNode](factory)
+	refutil.RegisterType[SmoothNormalsImplicitWeldNode](factory)
 
 	return factory
 }

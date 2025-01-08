@@ -100,6 +100,25 @@ export class PolyNodeController {
 
         this.parameter = null;
 
+        if (nodeData.metadata) {
+            if (nodeData.metadata.position) {
+                console.log("setting position....", nodeData.metadata.position)
+                this.flowNode.setPosition(nodeData.metadata.position);
+            }
+        }
+
+        this.flowNode.addDragStoppedListener((nodeChanged) => {
+            this.app.RequestManager.setNodeMetadata(
+                this.flowNode.nodeInstanceID,
+                {
+                    position: this.flowNode.getPosition()
+                },
+                (response) => {
+                    console.log("set metadata response", response)
+                }
+            );
+        });
+
         if (nodeData.parameter) {
             this.parameter = BuildParameter(flowNode, this.nodeManager, this.id, nodeData.parameter, this.app);
         }
@@ -140,7 +159,7 @@ export class PolyNodeController {
                 console.log("connection ADDED", connection, connectionIndex, port, portType, node);
 
                 let inputPort = connection.inPort().getDisplayName();
-                if (portType === "INPUTARRAY"){
+                if (portType === "INPUTARRAY") {
                     inputPort += "." + connectionIndex;
                 }
 
@@ -157,18 +176,18 @@ export class PolyNodeController {
                     return;
                 }
                 console.log("connection removed", {
-                    "connection": connection, 
-                    "connectionIndex": connectionIndex, 
-                    "port": port, 
-                    "portType": portType, 
+                    "connection": connection,
+                    "connectionIndex": connectionIndex,
+                    "port": port,
+                    "portType": portType,
                     "node": node
                 })
-                
+
                 let inputPort = port.getDisplayName();
-                if (portType === "INPUTARRAY"){
+                if (portType === "INPUTARRAY") {
                     inputPort += "." + connectionIndex;
                 }
-                
+
                 this.app.RequestManager.deleteNodeInput(this.id, inputPort)
             });
         }
@@ -182,6 +201,13 @@ export class PolyNodeController {
         this.outputs = nodeData.outputs;
         this.version = nodeData.version;
         this.dependencies = nodeData.dependencies;
+
+        console.log(nodeData);
+        if (nodeData.metadata) {
+            if (nodeData.metadata.position) {
+                this.flowNode.setPosition(nodeData.metadata.position);
+            }
+        }
 
         if (nodeData.parameter) {
             this.parameter.update(nodeData.parameter)

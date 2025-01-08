@@ -46,7 +46,7 @@ func TestGetAndApplyGraph(t *testing.T) {
 		Name:        appName,
 		Version:     appVersion,
 		Description: appDescription,
-		Producers: map[string]nodes.NodeOutput[generator.Artifact]{
+		Producers: map[string]nodes.NodeOutput[artifact.Artifact]{
 			producerFileName: artifact.NewTextNode(&parameter.String{
 				Name:         "Welp",
 				DefaultValue: "yee",

@@ -117,19 +117,6 @@ builds:
       - amd64
       - arm64
 
-  - id: cube-to-sphere
-    main: ./examples/cube-to-sphere
-    binary: cube-to-sphere
-    env:
-      - CGO_ENABLED=0
-    goos:
-      - linux
-      - windows
-      - darwin
-    goarch:
-      - amd64
-      - arm64
-
   - id: disco
     main: ./examples/disco
     binary: disco
@@ -367,19 +354,6 @@ builds:
   - id: texturing
     main: ./examples/texturing
     binary: texturing
-    env:
-      - CGO_ENABLED=0
-    goos:
-      - linux
-      - windows
-      - darwin
-    goarch:
-      - amd64
-      - arm64
-
-  - id: ufo
-    main: ./examples/ufo
-    binary: ufo
     env:
       - CGO_ENABLED=0
     goos:

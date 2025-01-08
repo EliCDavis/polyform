@@ -23,6 +23,9 @@ func nodeEndpoint(as *AppServer) endpoint.Handler {
 		NodeID string `json:"nodeID"`
 	}
 
+	type PatchMethod struct {
+	}
+
 	type EmptyResponse struct{}
 
 	return endpoint.Handler{

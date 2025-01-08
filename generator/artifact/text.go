@@ -3,7 +3,6 @@ package artifact
 import (
 	"io"
 
-	"github.com/EliCDavis/polyform/generator"
 	"github.com/EliCDavis/polyform/nodes"
 )
 
@@ -20,17 +19,17 @@ func (Text) Mime() string {
 	return "text/plain"
 }
 
-type TextNode = nodes.Struct[generator.Artifact, TextNodeData]
+type TextNode = nodes.Struct[Artifact, TextNodeData]
 
 type TextNodeData struct {
 	In nodes.NodeOutput[string]
 }
 
-func (tand TextNodeData) Process() (generator.Artifact, error) {
+func (tand TextNodeData) Process() (Artifact, error) {
 	return Text{Data: tand.In.Value()}, nil
 }
 
-func NewTextNode(textNode nodes.NodeOutput[string]) nodes.NodeOutput[generator.Artifact] {
+func NewTextNode(textNode nodes.NodeOutput[string]) nodes.NodeOutput[Artifact] {
 	return (&TextNode{
 		Data: TextNodeData{
 			In: textNode,

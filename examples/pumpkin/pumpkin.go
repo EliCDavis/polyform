@@ -10,7 +10,6 @@ import (
 	"github.com/EliCDavis/polyform/drawing/texturing"
 	"github.com/EliCDavis/polyform/drawing/texturing/normals"
 	"github.com/EliCDavis/polyform/formats/gltf"
-	"github.com/EliCDavis/polyform/generator"
 	"github.com/EliCDavis/polyform/generator/artifact"
 	"github.com/EliCDavis/polyform/math/noise"
 	"github.com/EliCDavis/polyform/math/quaternion"
@@ -23,14 +22,14 @@ import (
 	"github.com/EliCDavis/vector/vector3"
 )
 
-type NormalImage = nodes.Struct[generator.Artifact, NormalImageData]
+type NormalImage = nodes.Struct[artifact.Artifact, NormalImageData]
 
 type NormalImageData struct {
 	NumberOfLines nodes.NodeOutput[int]
 	NumberOfWarts nodes.NodeOutput[int]
 }
 
-func (ni NormalImageData) Process() (generator.Artifact, error) {
+func (ni NormalImageData) Process() (artifact.Artifact, error) {
 	dim := 1024
 	img := image.NewRGBA(image.Rect(0, 0, dim, dim))
 	// normals.Fill(img)
@@ -240,7 +239,7 @@ func (sm SphericalUVMappingData) Process() (modeling.Mesh, error) {
 	return mesh.SetFloat2Attribute(modeling.TexCoordAttribute, newUVs), nil
 }
 
-type PumpkinGLBArtifact = nodes.Struct[generator.Artifact, PumpkinGLBArtifactData]
+type PumpkinGLBArtifact = nodes.Struct[artifact.Artifact, PumpkinGLBArtifactData]
 
 type PumpkinGLBArtifactData struct {
 	PumpkinBody nodes.NodeOutput[modeling.Mesh]
@@ -248,7 +247,7 @@ type PumpkinGLBArtifactData struct {
 	LightColor  nodes.NodeOutput[coloring.WebColor]
 }
 
-func (pga PumpkinGLBArtifactData) Process() (generator.Artifact, error) {
+func (pga PumpkinGLBArtifactData) Process() (artifact.Artifact, error) {
 	pumpkin := pga.PumpkinBody.Value()
 	return &artifact.Gltf{
 		Scene: gltf.PolyformScene{
@@ -296,13 +295,13 @@ func (pga PumpkinGLBArtifactData) Process() (generator.Artifact, error) {
 	}, nil
 }
 
-type MetalRoughness = nodes.Struct[generator.Artifact, MetalRoughnessData]
+type MetalRoughness = nodes.Struct[artifact.Artifact, MetalRoughnessData]
 
 type MetalRoughnessData struct {
 	Roughness nodes.NodeOutput[float64]
 }
 
-func (mr MetalRoughnessData) Process() (generator.Artifact, error) {
+func (mr MetalRoughnessData) Process() (artifact.Artifact, error) {
 	dim := 1024
 	img := image.NewRGBA(image.Rect(0, 0, dim, dim))
 	// normals.Fill(img)

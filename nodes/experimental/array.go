@@ -1,4 +1,4 @@
-package main
+package experimental
 
 import (
 	"github.com/EliCDavis/polyform/math/quaternion"

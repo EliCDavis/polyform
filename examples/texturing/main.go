@@ -58,7 +58,7 @@ func main() {
 		Name:    "Grid Texture",
 		Version: "1.0.0",
 		Authors: []generator.Author{{Name: "Eli C Davis"}},
-		Producers: map[string]nodes.NodeOutput[generator.Artifact]{
+		Producers: map[string]nodes.NodeOutput[artifact.Artifact]{
 			"grid.png": artifact.NewImageNode(&GridNode{
 				Data: GridNodeData{
 					HorizontalLines: lines,

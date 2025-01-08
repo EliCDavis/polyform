@@ -18,7 +18,7 @@ import (
 	"github.com/EliCDavis/vector/vector3"
 )
 
-type GlbArtifactNode = nodes.Struct[generator.Artifact, GlbArtifactNodeData]
+type GlbArtifactNode = nodes.Struct[artifact.Artifact, GlbArtifactNodeData]
 
 type GlbArtifactNodeData struct {
 	Plank          nodes.NodeOutput[modeling.Mesh]
@@ -28,7 +28,7 @@ type GlbArtifactNodeData struct {
 	Rail2          nodes.NodeOutput[modeling.Mesh]
 }
 
-func (gan GlbArtifactNodeData) Process() (generator.Artifact, error) {
+func (gan GlbArtifactNodeData) Process() (artifact.Artifact, error) {
 	railMetal := 1.
 	railRough := 0.4
 	plankMetal := 0.
@@ -231,7 +231,7 @@ func main() {
 				Far:   50,
 			},
 		},
-		Producers: map[string]nodes.NodeOutput[generator.Artifact]{
+		Producers: map[string]nodes.NodeOutput[artifact.Artifact]{
 			"rails.glb": gltfNode.Out(),
 		},
 	}

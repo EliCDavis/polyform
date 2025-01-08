@@ -20,4 +20,5 @@ type GraphNodeInstance struct {
 	Type         string                  `json:"type"`
 	Dependencies []schema.NodeDependency `json:"dependencies,omitempty"`
 	Data         json.RawMessage         `json:"data,omitempty"`
+	Metadata     json.RawMessage         `json:"metadata,omitempty"`
 }

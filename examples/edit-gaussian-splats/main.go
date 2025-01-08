@@ -158,7 +158,7 @@ func main() {
 			AntiAlias: false,
 			XrEnabled: true,
 		},
-		Producers: map[string]nodes.NodeOutput[generator.Artifact]{
+		Producers: map[string]nodes.NodeOutput[artifact.Artifact]{
 			"mesh.ply": artifact.NewSplatPlyNode(pointcloud.Out()),
 			"info.txt": artifact.NewTextNode(&InfoNode{
 				Data: InfoNodeData{

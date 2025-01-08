@@ -22,7 +22,7 @@ func TestSwaggerFromGraph_SingleParameterSingleProducer(t *testing.T) {
 		Name:        appName,
 		Version:     appVersion,
 		Description: appDescription,
-		Producers: map[string]nodes.NodeOutput[generator.Artifact]{
+		Producers: map[string]nodes.NodeOutput[artifact.Artifact]{
 			producerFileName: artifact.NewTextNode(&parameter.Value[string]{
 				Name:         "Welp",
 				DefaultValue: "yee",
@@ -104,7 +104,7 @@ func TestSwaggerFromGraph_MultipleParametersSingleProducer(t *testing.T) {
 		Name:        "Example Graph",
 		Version:     "1.0.0",
 		Description: "Example graph that contains multiple parameters",
-		Producers: map[string]nodes.NodeOutput[generator.Artifact]{
+		Producers: map[string]nodes.NodeOutput[artifact.Artifact]{
 			"example.glb": artifact.NewSplatNode(
 				&meshops.CropAttribute3DNode{
 					Data: meshops.CropAttribute3DNodeData{

@@ -100,7 +100,7 @@ func (cn CollarNodeData) Process() (modeling.Mesh, error) {
 		SetFloat2Attribute(modeling.TexCoordAttribute, collarUVs), nil
 }
 
-type GlbArtifactNode = nodes.Struct[generator.Artifact, GlbArtifactNodeData]
+type GlbArtifactNode = nodes.Struct[artifact.Artifact, GlbArtifactNodeData]
 
 type GlbArtifactNodeData struct {
 	Collar         nodes.NodeOutput[modeling.Mesh]
@@ -109,7 +109,7 @@ type GlbArtifactNodeData struct {
 	SpikeColor     nodes.NodeOutput[coloring.WebColor]
 }
 
-func (gan GlbArtifactNodeData) Process() (generator.Artifact, error) {
+func (gan GlbArtifactNodeData) Process() (artifact.Artifact, error) {
 	collar := gan.Collar.Value()
 	spikes := gan.Spike.Value()
 	scene := gltf.PolyformScene{
@@ -250,7 +250,7 @@ func main() {
 				},
 			},
 		},
-		Producers: map[string]nodes.NodeOutput[generator.Artifact]{
+		Producers: map[string]nodes.NodeOutput[artifact.Artifact]{
 			"mesh.glb":    gltfNode.Out(),
 			mrTexturePath: artifact.NewImageNode(nodes.FuncValue(mrTexture)),
 			collarAlbedoPath: artifact.NewImageNode(&CollarAlbedoTextureNode{

@@ -1,4 +1,4 @@
-package texturing
+package experimental
 
 import (
 	"image"

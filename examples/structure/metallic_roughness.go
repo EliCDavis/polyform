@@ -4,13 +4,12 @@ import (
 	"image"
 	"image/color"
 
-	"github.com/EliCDavis/polyform/generator"
 	"github.com/EliCDavis/polyform/generator/artifact"
 	"github.com/EliCDavis/polyform/math/noise"
 	"github.com/EliCDavis/polyform/nodes"
 )
 
-type MetallicRoughnessNode = nodes.Struct[generator.Artifact, MetallicRoughnessNodeData]
+type MetallicRoughnessNode = nodes.Struct[artifact.Artifact, MetallicRoughnessNodeData]
 
 type MetallicRoughnessNodeData struct {
 	Octaves          nodes.NodeOutput[int]
@@ -18,7 +17,7 @@ type MetallicRoughnessNodeData struct {
 	MaximumRoughness nodes.NodeOutput[float64]
 }
 
-func (pnn MetallicRoughnessNodeData) Process() (generator.Artifact, error) {
+func (pnn MetallicRoughnessNodeData) Process() (artifact.Artifact, error) {
 	dim := 256
 	n := noise.NewTilingNoise(dim, 1/64., pnn.Octaves.Value())
 	img := image.NewRGBA(image.Rect(0, 0, dim, dim))

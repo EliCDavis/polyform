@@ -202,7 +202,7 @@ func PipeMaterial(seed *rand.Rand) *gltf.PolyformMaterial {
 	}
 }
 
-type PipeNode = nodes.Struct[generator.Artifact, PipeNodeData]
+type PipeNode = nodes.Struct[artifact.Artifact, PipeNodeData]
 
 type PipeNodeData struct {
 	Positions nodes.NodeOutput[[]vector3.Float64]
@@ -222,7 +222,7 @@ type PipeNodeData struct {
 	FoundationHeight nodes.NodeOutput[float64]
 }
 
-func (p PipeNodeData) Process() (generator.Artifact, error) {
+func (p PipeNodeData) Process() (artifact.Artifact, error) {
 	gltfModels := make([]gltf.PolyformModel, 0)
 
 	pipeSides := p.PipeResolution.Value()
@@ -358,7 +358,7 @@ func main() {
 			Background: coloring.WebColor{R: 0x9f, G: 0xb0, B: 0xc1, A: 255},
 			Lighting:   coloring.WebColor{R: 0xff, G: 0xd8, B: 0x94, A: 255},
 		},
-		Producers: map[string]nodes.NodeOutput[generator.Artifact]{
+		Producers: map[string]nodes.NodeOutput[artifact.Artifact]{
 			"pipe-normal.png": artifact.NewImageNode((&PipeNormalsNode{
 				Data: PipeNormalsNodeData{
 					BlurIterations: &parameter.Int{

@@ -10,7 +10,6 @@ export class BasicParameterNodeController {
             if (this.updating) {
                 return;
             }
-            console.log("Value", newVal)
             nodeManager.nodeParameterChanged({ id: id, data: newVal });
         });
     }

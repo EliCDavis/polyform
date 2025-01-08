@@ -39,6 +39,7 @@ func nodeConnectionEndpoint(as *AppServer) endpoint.Handler {
 						},
 					)
 					as.incModelVersion()
+					as.AutosaveGraph()
 
 					return EmptyResponse{}, nil
 				},
@@ -54,6 +55,7 @@ func nodeConnectionEndpoint(as *AppServer) endpoint.Handler {
 						},
 					)
 					as.incModelVersion()
+					as.AutosaveGraph()
 
 					return EmptyResponse{}, nil
 				},

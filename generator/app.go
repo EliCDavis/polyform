@@ -16,6 +16,8 @@ import (
 	"time"
 
 	"github.com/EliCDavis/jbtf"
+	"github.com/EliCDavis/polyform/generator/artifact"
+	"github.com/EliCDavis/polyform/generator/cli"
 	"github.com/EliCDavis/polyform/generator/room"
 	"github.com/EliCDavis/polyform/generator/schema"
 	"github.com/EliCDavis/polyform/nodes"
@@ -30,11 +32,12 @@ type App struct {
 	Description string
 	WebScene    *room.WebScene
 	Authors     []Author
-	Producers   map[string]nodes.NodeOutput[Artifact]
+	Producers   map[string]nodes.NodeOutput[artifact.Artifact]
 
 	// Runtime data
-	nodeIDs map[nodes.Node]string
-	types   *refutil.TypeFactory
+	nodeIDs      map[nodes.Node]string
+	nodeMetadata map[string]json.RawMessage
+	types        *refutil.TypeFactory
 }
 
 func (a *App) ApplyGraph(jsonPayload []byte) error {
@@ -66,6 +69,7 @@ func (a *App) ApplyGraph(jsonPayload []byte) error {
 	}
 
 	a.nodeIDs = make(map[nodes.Node]string)
+	a.nodeMetadata = make(map[string]json.RawMessage)
 	createdNodes := make(map[string]nodes.Node)
 
 	// Create the Nodes
@@ -80,6 +84,7 @@ func (a *App) ApplyGraph(jsonPayload []byte) error {
 		}
 		createdNodes[nodeID] = casted
 		a.nodeIDs[casted] = nodeID
+		a.nodeMetadata[nodeID] = instanceDetails.Metadata
 	}
 
 	// Connect the nodes we just created
@@ -98,10 +103,11 @@ func (a *App) ApplyGraph(jsonPayload []byte) error {
 	}
 
 	// Set the Producers
+	a.Producers = make(map[string]nodes.NodeOutput[artifact.Artifact])
 	for fileName, producerDetails := range graph.Producers {
 		producerNode := createdNodes[producerDetails.NodeID]
 		outPortVals := refutil.CallFuncValuesOfType(producerNode, producerDetails.Port)
-		ref := outPortVals[0].(nodes.NodeOutput[Artifact])
+		ref := outPortVals[0].(nodes.NodeOutput[artifact.Artifact])
 		if ref == nil {
 			panic(fmt.Errorf("REF IS NIL FOR FILE %s (node id: %s) and port %s", fileName, producerDetails.NodeID, producerDetails.Port))
 		}
@@ -169,7 +175,7 @@ func (a *App) Graph() []byte {
 	return data
 }
 
-func writeProducersToZip(path string, producers map[string]nodes.NodeOutput[Artifact], zw *zip.Writer) error {
+func writeProducersToZip(path string, producers map[string]nodes.NodeOutput[artifact.Artifact], zw *zip.Writer) error {
 	if producers == nil {
 		panic("can't write nil producers")
 	}
@@ -207,6 +213,9 @@ func (a *App) nodeFromID(id string) nodes.Node {
 func (a *App) addType(v any) {
 	if a.types == nil {
 		a.types = Nodes()
+		// for _, p := range a.types.Types() {
+		// 	log.Println(p)
+		// }
 	}
 	if !a.types.TypeRegistered(v) {
 		a.types.RegisterType(v)
@@ -275,7 +284,7 @@ type appCLI struct {
 	Version     string
 	Description string
 	Authors     []Author
-	Commands    []*cliCommand
+	Commands    []*cli.Command
 }
 
 func BuildNodeTypeSchema(node nodes.Node) schema.NodeType {
@@ -349,6 +358,7 @@ func (a App) buildNodeGraphInstanceSchema(node nodes.Node, encoder *jbtf.Encoder
 	appSchema := GraphNodeInstance{
 		Type:         refutil.GetTypeWithPackage(node),
 		Dependencies: make([]schema.NodeDependency, 0),
+		Metadata:     a.nodeMetadata[a.nodeIDs[node]],
 	}
 
 	for _, subDependency := range node.Dependencies() {
@@ -377,6 +387,7 @@ func (a App) buildNodeInstanceSchema(node nodes.Node) schema.NodeInstance {
 		Type:         refutil.GetTypeWithPackage(node),
 		Dependencies: make([]schema.NodeDependency, 0),
 		Version:      node.Version(),
+		Metadata:     a.nodeMetadata[a.nodeIDs[node]],
 	}
 
 	for _, subDependency := range node.Dependencies() {
@@ -403,6 +414,7 @@ func (a App) buildNodeInstanceSchema(node nodes.Node) schema.NodeInstance {
 func (a *App) buildIDsForNode(dep nodes.Node) {
 	if a.nodeIDs == nil {
 		a.nodeIDs = make(map[nodes.Node]string)
+		a.nodeMetadata = make(map[string]json.RawMessage)
 	}
 
 	// IDs for this node has already been built.
@@ -546,10 +558,9 @@ func (a *App) Run() error {
 	os_setup(a)
 	a.SetupProducers()
 
-	commandMap := make(map[string]*cliCommand)
-
-	var commands []*cliCommand
-	commands = []*cliCommand{
+	configFile := ""
+	var commands []*cli.Command
+	commands = []*cli.Command{
 		{
 			Name:        "Generate",
 			Description: "Runs all producers the app has defined and saves it to the file system",
@@ -573,6 +584,8 @@ func (a *App) Run() error {
 				a.initialize(editCmd)
 				hostFlag := editCmd.String("host", "localhost", "interface to bind to")
 				portFlag := editCmd.String("port", "8080", "port to serve over")
+
+				autoSave := editCmd.Bool("autosave", false, "Whether or not to save changes back to the graph loaded")
 
 				sslFlag := editCmd.Bool("ssl", false, "Whether or not to use SSL")
 				certFlag := editCmd.String("ssl.cert", "cert.pem", "Path to cert file")
@@ -612,6 +625,9 @@ func (a *App) Run() error {
 					host:     *hostFlag,
 					port:     *portFlag,
 					webscene: a.WebScene,
+
+					autosave:   *autoSave,
+					configPath: configFile,
 
 					tls:      *sslFlag,
 					certPath: *certFlag,
@@ -750,65 +766,24 @@ func (a *App) Run() error {
 		},
 	}
 
-	for _, cmd := range commands {
-		for _, alias := range cmd.Aliases {
-			commandMap[alias] = cmd
-		}
+	cliApp := cli.App{
+		Commands: commands,
+		ConfigProvided: func(config string) error {
+			fileData, err := os.ReadFile(config)
+			if err != nil {
+				return err
+			}
+
+			err = a.ApplyGraph(fileData)
+			if err != nil {
+				return err
+			}
+
+			configFile = config
+			a.SetupProducers()
+			return nil
+		},
 	}
 
-	argsWithoutProg := os.Args[1:]
-
-	if len(argsWithoutProg) == 0 {
-		return commandMap["help"].Run(nil)
-	}
-
-	// appConfigFlags := flag.NewFlagSet("app", flag.ExitOnError)
-	// graphFlag := appConfigFlags.String("graph", "", "Graph to load")
-	// err := appConfigFlags.Parse(os.Args[1:])
-	// if err != nil {
-	// 	return err
-	// }
-	// appConfigFlags.Arg()
-
-	firstArg := argsWithoutProg[0]
-	if cmd, ok := commandMap[firstArg]; ok {
-		return cmd.Run(os.Args[2:])
-	}
-
-	if !fileExists(firstArg) {
-		return fmt.Errorf("unrecognized command %s", firstArg)
-	}
-
-	fileData, err := os.ReadFile(firstArg)
-	if err != nil {
-		return err
-	}
-
-	err = a.ApplyGraph(fileData)
-	if err != nil {
-		return err
-	}
-
-	a.SetupProducers()
-
-	argsWithoutGraph := argsWithoutProg[1:]
-	if len(argsWithoutGraph) == 0 {
-		return commandMap["help"].Run(nil)
-	}
-
-	firstArg = argsWithoutGraph[1]
-	if cmd, ok := commandMap[firstArg]; ok {
-		return cmd.Run(os.Args[3:])
-	}
-
-	return fmt.Errorf("unrecognized command %s", firstArg)
-}
-
-func fileExists(fp string) bool {
-	if _, err := os.Stat(fp); err == nil {
-		return true
-	} else if errors.Is(err, os.ErrNotExist) {
-		return false
-	}
-	return false
+	return cliApp.Run(os.Args)
 }

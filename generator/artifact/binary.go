@@ -3,11 +3,10 @@ package artifact
 import (
 	"io"
 
-	"github.com/EliCDavis/polyform/generator"
 	"github.com/EliCDavis/polyform/nodes"
 )
 
-type BinaryNode = nodes.Struct[generator.Artifact, BinaryNodeData]
+type BinaryNode = nodes.Struct[Artifact, BinaryNodeData]
 
 type Binary struct {
 	Data []byte
@@ -26,11 +25,11 @@ type BinaryNodeData struct {
 	In nodes.NodeOutput[[]byte]
 }
 
-func (pn BinaryNodeData) Process() (generator.Artifact, error) {
+func (pn BinaryNodeData) Process() (Artifact, error) {
 	return Binary{Data: pn.In.Value()}, nil
 }
 
-func NewBinaryNode(bytesNode nodes.NodeOutput[[]byte]) nodes.NodeOutput[generator.Artifact] {
+func NewBinaryNode(bytesNode nodes.NodeOutput[[]byte]) nodes.NodeOutput[Artifact] {
 	return (&BinaryNode{
 		Data: BinaryNodeData{
 			In: bytesNode,

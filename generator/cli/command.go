@@ -1,6 +1,6 @@
-package generator
+package cli
 
-type cliCommand struct {
+type Command struct {
 	Name        string
 	Description string
 	Aliases     []string

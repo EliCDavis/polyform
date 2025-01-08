@@ -9,6 +9,7 @@ import (
 	"io/fs"
 	"log"
 	"net/http"
+	"os"
 	"path"
 	"runtime/debug"
 	"sync"
@@ -72,6 +73,9 @@ type AppServer struct {
 	tls        bool
 	certPath   string
 	keyPath    string
+
+	autosave   bool
+	configPath string
 
 	webscene *room.WebScene
 
@@ -140,6 +144,7 @@ func (as *AppServer) Serve() error {
 	http.HandleFunc("/zip", as.ZipEndpoint)
 	http.Handle("/node", nodeEndpoint(as))
 	http.Handle("/node/connection", nodeConnectionEndpoint(as))
+	http.Handle("/node/metadata", nodeMetadataEndpoint(as))
 	http.Handle("/profile/", profileEndpoint(as))
 	http.Handle("/graph", graphEndpoint(as))
 	http.HandleFunc("/started", as.StartedEndpoint)
@@ -167,6 +172,21 @@ func (as *AppServer) Serve() error {
 		fmt.Printf("Serving over: http://%s\n", connection)
 		return http.ListenAndServe(connection, nil)
 	}
+}
+
+var autsaveMutex sync.Mutex
+
+func (as *AppServer) AutosaveGraph() {
+	if !as.autosave {
+		return
+	}
+	autsaveMutex.Lock()
+	defer autsaveMutex.Unlock()
+	err := os.WriteFile(as.configPath, as.app.Graph(), 0666)
+	if err != nil {
+		panic(err)
+	}
+	log.Printf("Graph written %s\n", as.configPath)
 }
 
 func (as *AppServer) SchemaEndpoint(w http.ResponseWriter, r *http.Request) {

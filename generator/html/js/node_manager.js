@@ -93,7 +93,6 @@ export class NodeManager {
 
 
     registerCustomNodeType(typeData) {
-        console.log("typedata", typeData)
         const nodeConfig = {
             title: camelCaseToWords(typeData.displayName),
             inputs: [],
@@ -117,7 +116,7 @@ export class NodeManager {
             typeData.outputs.forEach((o) => {
                 nodeConfig.outputs.push({ name: o.name, type: o.type });
 
-                if (o.type === "github.com/EliCDavis/polyform/generator.Artifact") {
+                if (o.type === "github.com/EliCDavis/polyform/artifact.Artifact") {
                     isProducer = true;
                 }
             })
@@ -155,7 +154,7 @@ export class NodeManager {
     newNode(nodeData) {
         const isParameter = !!nodeData.parameter;
 
-        // Not a parameter, just create a node that adhere's to the server's 
+        // Not a parameter, just create a node that adhere's to the server's
         // reflection.
         // if (!isParameter) {
         //     const nodeIdentifier = this.nodeTypeToLitePath.get(nodeData.type)
@@ -209,7 +208,7 @@ export class NodeManager {
                 const flowNode = this.newNode(nodeData);
                 this.app.NodeFlowGraph.addNode(flowNode);
 
-                // TODO: This is an ugo hack. Consider somehow making this 
+                // TODO: This is an ugo hack. Consider somehow making this
                 // apart of the metadata.
                 flowNode.nodeInstanceID = nodeID;
 
@@ -221,7 +220,7 @@ export class NodeManager {
         this.updateNodeConnections(sortedNodes);
 
         if (nodeAdded) {
-            nodeFlowGraph.organize();
+            // nodeFlowGraph.organize();
         }
         this.app.ServerUpdatingNodeConnections = false;
     }

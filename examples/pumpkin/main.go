@@ -23,6 +23,7 @@ import (
 	"github.com/EliCDavis/polyform/modeling/marching"
 	"github.com/EliCDavis/polyform/modeling/meshops"
 	"github.com/EliCDavis/polyform/nodes"
+	"github.com/EliCDavis/polyform/nodes/experimental"
 	"github.com/EliCDavis/vector/vector3"
 )
 
@@ -304,7 +305,7 @@ func main() {
 			Background: coloring.WebColor{R: 0x13, G: 0x0b, B: 0x3c, A: 255},
 			Lighting:   coloring.WebColor{R: 0xff, G: 0xd8, B: 0x94, A: 255},
 		},
-		Producers: map[string]nodes.NodeOutput[generator.Artifact]{
+		Producers: map[string]nodes.NodeOutput[artifact.Artifact]{
 			"pumpkin.glb": &PumpkinGLBArtifact{
 				Data: PumpkinGLBArtifactData{
 					PumpkinBody: pumpkinMesh,
@@ -323,8 +324,8 @@ func main() {
 					},
 				},
 			},
-			"pumpkin.png": artifact.NewImageNode(&texturing.SeamlessPerlinNode{
-				Data: texturing.SeamlessPerlinNodeData{
+			"pumpkin.png": artifact.NewImageNode(&experimental.SeamlessPerlinNode{
+				Data: experimental.SeamlessPerlinNodeData{
 					Positive: &parameter.Color{
 						Name:         "Base Color",
 						DefaultValue: coloring.WebColor{R: 0xf9, G: 0x81, B: 0x1f, A: 255},
@@ -335,8 +336,8 @@ func main() {
 					},
 				},
 			}),
-			"stem.png": artifact.NewImageNode(&texturing.SeamlessPerlinNode{
-				Data: texturing.SeamlessPerlinNodeData{
+			"stem.png": artifact.NewImageNode(&experimental.SeamlessPerlinNode{
+				Data: experimental.SeamlessPerlinNodeData{
 					Positive: &parameter.Color{
 						Name:         "Stem Base Color",
 						DefaultValue: coloring.WebColor{R: 0xce, G: 0xa2, B: 0x7e, A: 255},
@@ -381,7 +382,7 @@ func main() {
 					Roughness:  nodes.Value(0.78),
 				},
 			},
-			// "uvMap.png": nodes.InputFromFunc(func() generator.Artifact {
+			// "uvMap.png": nodes.InputFromFunc(func() artifact.Artifact {
 			// 	img := texturing.DebugUVTexture{
 			// 		ImageResolution:      1024,
 			// 		BoardResolution:      10,
