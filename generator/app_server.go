@@ -74,8 +74,9 @@ type AppServer struct {
 	certPath   string
 	keyPath    string
 
-	autosave   bool
-	configPath string
+	autsaveMutex sync.Mutex
+	autosave     bool
+	configPath   string
 
 	webscene *room.WebScene
 
@@ -174,16 +175,15 @@ func (as *AppServer) Serve() error {
 	}
 }
 
-var autsaveMutex sync.Mutex
-
 func (as *AppServer) AutosaveGraph() {
 	if !as.autosave {
 		return
 	}
-	autsaveMutex.Lock()
-	defer autsaveMutex.Unlock()
+	as.autsaveMutex.Lock()
+	defer as.autsaveMutex.Unlock()
 	err := os.WriteFile(as.configPath, as.app.Graph(), 0666)
 	if err != nil {
+		log.Printf("EEEERRRRRROOORRRRRR %v\n", err)
 		panic(err)
 	}
 	log.Printf("Graph written %s\n", as.configPath)

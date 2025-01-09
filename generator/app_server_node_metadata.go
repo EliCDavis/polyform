@@ -20,7 +20,7 @@ func nodeMetadataEndpoint(as *AppServer) endpoint.Handler {
 		Methods: map[string]endpoint.Method{
 			http.MethodPost: endpoint.JsonMethod(
 				func(request endpoint.Request[EditRequest]) (EmptyResponse, error) {
-					as.app.nodeMetadata[request.Body.NodeID] = request.Body.Metadata
+					as.app.nodeMetadata.Set(request.Body.NodeID, request.Body.Metadata)
 					as.AutosaveGraph()
 					return EmptyResponse{}, nil
 				},

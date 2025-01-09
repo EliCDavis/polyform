@@ -36,7 +36,7 @@ type App struct {
 
 	// Runtime data
 	nodeIDs      map[nodes.Node]string
-	nodeMetadata map[string]json.RawMessage
+	nodeMetadata *SyncMap[string, json.RawMessage]
 	types        *refutil.TypeFactory
 }
 
@@ -69,7 +69,7 @@ func (a *App) ApplyGraph(jsonPayload []byte) error {
 	}
 
 	a.nodeIDs = make(map[nodes.Node]string)
-	a.nodeMetadata = make(map[string]json.RawMessage)
+	a.nodeMetadata = NewSyncMap[string, json.RawMessage]()
 	createdNodes := make(map[string]nodes.Node)
 
 	// Create the Nodes
@@ -84,7 +84,7 @@ func (a *App) ApplyGraph(jsonPayload []byte) error {
 		}
 		createdNodes[nodeID] = casted
 		a.nodeIDs[casted] = nodeID
-		a.nodeMetadata[nodeID] = instanceDetails.Metadata
+		a.nodeMetadata.Set(nodeID, instanceDetails.Metadata)
 	}
 
 	// Connect the nodes we just created
@@ -358,7 +358,7 @@ func (a App) buildNodeGraphInstanceSchema(node nodes.Node, encoder *jbtf.Encoder
 	appSchema := GraphNodeInstance{
 		Type:         refutil.GetTypeWithPackage(node),
 		Dependencies: make([]schema.NodeDependency, 0),
-		Metadata:     a.nodeMetadata[a.nodeIDs[node]],
+		Metadata:     a.nodeMetadata.Get(a.nodeIDs[node]),
 	}
 
 	for _, subDependency := range node.Dependencies() {
@@ -387,7 +387,7 @@ func (a App) buildNodeInstanceSchema(node nodes.Node) schema.NodeInstance {
 		Type:         refutil.GetTypeWithPackage(node),
 		Dependencies: make([]schema.NodeDependency, 0),
 		Version:      node.Version(),
-		Metadata:     a.nodeMetadata[a.nodeIDs[node]],
+		Metadata:     a.nodeMetadata.Get(a.nodeIDs[node]),
 	}
 
 	for _, subDependency := range node.Dependencies() {
@@ -414,7 +414,7 @@ func (a App) buildNodeInstanceSchema(node nodes.Node) schema.NodeInstance {
 func (a *App) buildIDsForNode(dep nodes.Node) {
 	if a.nodeIDs == nil {
 		a.nodeIDs = make(map[nodes.Node]string)
-		a.nodeMetadata = make(map[string]json.RawMessage)
+		a.nodeMetadata = NewSyncMap[string, json.RawMessage]()
 	}
 
 	// IDs for this node has already been built.
