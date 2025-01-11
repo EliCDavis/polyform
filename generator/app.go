@@ -35,9 +35,10 @@ type App struct {
 	Producers   map[string]nodes.NodeOutput[artifact.Artifact]
 
 	// Runtime data
-	nodeIDs      map[nodes.Node]string
-	nodeMetadata *SyncMap[string, json.RawMessage]
-	types        *refutil.TypeFactory
+	nodeIDs       map[nodes.Node]string
+	nodeMetadata  *NestedSyncMap
+	graphMetadata *NestedSyncMap
+	types         *refutil.TypeFactory
 }
 
 func (a *App) ApplyGraph(jsonPayload []byte) error {
@@ -69,7 +70,7 @@ func (a *App) ApplyGraph(jsonPayload []byte) error {
 	}
 
 	a.nodeIDs = make(map[nodes.Node]string)
-	a.nodeMetadata = NewSyncMap[string, json.RawMessage]()
+	a.nodeMetadata = NewNestedSyncMap()
 	createdNodes := make(map[string]nodes.Node)
 
 	// Create the Nodes
@@ -355,14 +356,23 @@ func (a *App) recursivelyRegisterNodeTypes(node nodes.Node) {
 
 func (a App) buildNodeGraphInstanceSchema(node nodes.Node, encoder *jbtf.Encoder) GraphNodeInstance {
 
-	appSchema := GraphNodeInstance{
+	var graphMetadata map[string]any
+	if metadtata := a.nodeMetadata.Get(a.nodeIDs[node]); metadtata != nil {
+		casted, ok := metadtata.(map[string]any)
+		if !ok {
+			panic(fmt.Errorf("node %s metadata is not map, instead: %v", a.nodeIDs[node], metadtata))
+		}
+		graphMetadata = casted
+	}
+
+	nodeInstance := GraphNodeInstance{
 		Type:         refutil.GetTypeWithPackage(node),
 		Dependencies: make([]schema.NodeDependency, 0),
-		Metadata:     a.nodeMetadata.Get(a.nodeIDs[node]),
+		Metadata:     graphMetadata,
 	}
 
 	for _, subDependency := range node.Dependencies() {
-		appSchema.Dependencies = append(appSchema.Dependencies, schema.NodeDependency{
+		nodeInstance.Dependencies = append(nodeInstance.Dependencies, schema.NodeDependency{
 			DependencyID:   a.nodeIDs[subDependency.Dependency()],
 			DependencyPort: subDependency.DependencyPort(),
 			Name:           subDependency.Name(),
@@ -374,10 +384,10 @@ func (a App) buildNodeGraphInstanceSchema(node nodes.Node, encoder *jbtf.Encoder
 		if err != nil {
 			panic(err)
 		}
-		appSchema.Data = data
+		nodeInstance.Data = data
 	}
 
-	return appSchema
+	return nodeInstance
 }
 
 func (a App) buildNodeInstanceSchema(node nodes.Node) schema.NodeInstance {
@@ -387,7 +397,7 @@ func (a App) buildNodeInstanceSchema(node nodes.Node) schema.NodeInstance {
 		Type:         refutil.GetTypeWithPackage(node),
 		Dependencies: make([]schema.NodeDependency, 0),
 		Version:      node.Version(),
-		Metadata:     a.nodeMetadata.Get(a.nodeIDs[node]),
+		Metadata:     a.nodeMetadata.Get(a.nodeIDs[node]).(map[string]any),
 	}
 
 	for _, subDependency := range node.Dependencies() {
@@ -414,7 +424,7 @@ func (a App) buildNodeInstanceSchema(node nodes.Node) schema.NodeInstance {
 func (a *App) buildIDsForNode(dep nodes.Node) {
 	if a.nodeIDs == nil {
 		a.nodeIDs = make(map[nodes.Node]string)
-		a.nodeMetadata = NewSyncMap[string, json.RawMessage]()
+		a.nodeMetadata = NewNestedSyncMap()
 	}
 
 	// IDs for this node has already been built.

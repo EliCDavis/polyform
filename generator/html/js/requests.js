@@ -143,8 +143,8 @@ class RequestManager {
         }, callback)
     }
 
-    setNodeMetadata(inNodeID, metadata, callback) {
-        this.postJson("node/metadata", {
+    setNodeMetadata(inNodeID, key, metadata, callback) {
+        this.postJson("node/metadata" + key, {
             "nodeId": inNodeID,
             "metadata": metadata
         }, callback)

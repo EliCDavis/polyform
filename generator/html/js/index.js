@@ -691,3 +691,4 @@ updateLoop.addToUpdate(() => {
     labelRenderer.render(scene, camera);
     stats.update();
 });
+

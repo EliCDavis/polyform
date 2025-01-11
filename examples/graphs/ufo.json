@@ -55,8 +55,8 @@
 				},
 				"metadata": {
 					"position": {
-						"x": 2353.9114835543446,
-						"y": -295.36300007729574
+						"x": 2403.377236020519,
+						"y": -304.63782866470336
 					}
 				}
 			},
@@ -145,8 +145,8 @@
 				},
 				"metadata": {
 					"position": {
-						"x": 1872.6092652533382,
-						"y": -314.3615372799636
+						"x": 1838.7121491931282,
+						"y": -274.8149018763856
 					}
 				}
 			},
@@ -175,21 +175,6 @@
 				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformMaterial,github.com/EliCDavis/polyform/generator/artifact.GltfMaterialNodeData]",
 				"dependencies": [
 					{
-						"dependencyID": "Node-11",
-						"dependencyPort": "Out",
-						"name": "ColorTexture"
-					},
-					{
-						"dependencyID": "Node-12",
-						"dependencyPort": "Out",
-						"name": "MetallicFactor"
-					},
-					{
-						"dependencyID": "Node-13",
-						"dependencyPort": "Out",
-						"name": "RoughnessFactor"
-					},
-					{
 						"dependencyID": "Node-14",
 						"dependencyPort": "Out",
 						"name": "MetallicRoughnessTexture"
@@ -203,12 +188,27 @@
 						"dependencyID": "Node-10",
 						"dependencyPort": "Out",
 						"name": "Color"
+					},
+					{
+						"dependencyID": "Node-11",
+						"dependencyPort": "Out",
+						"name": "ColorTexture"
+					},
+					{
+						"dependencyID": "Node-12",
+						"dependencyPort": "Out",
+						"name": "MetallicFactor"
+					},
+					{
+						"dependencyID": "Node-13",
+						"dependencyPort": "Out",
+						"name": "RoughnessFactor"
 					}
 				],
 				"metadata": {
 					"position": {
-						"x": 2778.7741211740754,
-						"y": -277.13157173079486
+						"x": 2791.140559290619,
+						"y": -331.2347384906723
 					}
 				}
 			},
@@ -216,20 +216,20 @@
 				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformModel,github.com/EliCDavis/polyform/generator/artifact.GltfModelNodeData]",
 				"dependencies": [
 					{
-						"dependencyID": "Node-18",
-						"dependencyPort": "Out",
-						"name": "Material"
-					},
-					{
 						"dependencyID": "Node-9",
 						"dependencyPort": "Out",
 						"name": "Mesh"
+					},
+					{
+						"dependencyID": "Node-18",
+						"dependencyPort": "Out",
+						"name": "Material"
 					}
 				],
 				"metadata": {
 					"position": {
-						"x": 3383.391243019082,
-						"y": 122.61431711951953
+						"x": 3266.0349091096823,
+						"y": 79.02482166745655
 					}
 				}
 			},
@@ -290,17 +290,17 @@
 					{
 						"dependencyID": "Node-20",
 						"dependencyPort": "Out",
-						"name": "Color"
-					},
-					{
-						"dependencyID": "Node-20",
-						"dependencyPort": "Out",
 						"name": "EmissiveFactor"
 					},
 					{
 						"dependencyID": "Node-21",
 						"dependencyPort": "Out",
 						"name": "EmissiveStrength"
+					},
+					{
+						"dependencyID": "Node-20",
+						"dependencyPort": "Out",
+						"name": "Color"
 					}
 				],
 				"metadata": {
@@ -395,14 +395,14 @@
 				"type": "github.com/EliCDavis/polyform/nodes.Struct[[]float64,github.com/EliCDavis/polyform/nodes/experimental.CosNodeData]",
 				"dependencies": [
 					{
-						"dependencyID": "Node-26",
-						"dependencyPort": "Out",
-						"name": "Input"
-					},
-					{
 						"dependencyID": "Node-27",
 						"dependencyPort": "Out",
 						"name": "Scale"
+					},
+					{
+						"dependencyID": "Node-26",
+						"dependencyPort": "Out",
+						"name": "Input"
 					}
 				],
 				"metadata": {
@@ -452,14 +452,14 @@
 				"type": "github.com/EliCDavis/polyform/nodes.Struct[[]float64,github.com/EliCDavis/polyform/nodes/experimental.ShiftNodeData]",
 				"dependencies": [
 					{
-						"dependencyID": "Node-29",
-						"dependencyPort": "Out",
-						"name": "Shift"
-					},
-					{
 						"dependencyID": "Node-28",
 						"dependencyPort": "Out",
 						"name": "In"
+					},
+					{
+						"dependencyID": "Node-29",
+						"dependencyPort": "Out",
+						"name": "Shift"
 					}
 				],
 				"metadata": {
@@ -560,14 +560,14 @@
 				"type": "github.com/EliCDavis/polyform/nodes.Struct[[]float64,github.com/EliCDavis/polyform/nodes/experimental.SampleNodeData]",
 				"dependencies": [
 					{
-						"dependencyID": "Node-35",
-						"dependencyPort": "Out",
-						"name": "End"
-					},
-					{
 						"dependencyID": "Node-25",
 						"dependencyPort": "Out",
 						"name": "Samples"
+					},
+					{
+						"dependencyID": "Node-35",
+						"dependencyPort": "Out",
+						"name": "End"
 					}
 				],
 				"metadata": {
@@ -596,14 +596,14 @@
 				"type": "github.com/EliCDavis/polyform/nodes.Struct[[]float64,github.com/EliCDavis/polyform/nodes/experimental.SinNodeData]",
 				"dependencies": [
 					{
-						"dependencyID": "Node-36",
-						"dependencyPort": "Out",
-						"name": "Input"
-					},
-					{
 						"dependencyID": "Node-37",
 						"dependencyPort": "Out",
 						"name": "Scale"
+					},
+					{
+						"dependencyID": "Node-36",
+						"dependencyPort": "Out",
+						"name": "Input"
 					}
 				],
 				"metadata": {
@@ -735,6 +735,11 @@
 				"type": "github.com/EliCDavis/polyform/nodes.Struct[[]github.com/EliCDavis/vector/vector3.Vector[float64],github.com/EliCDavis/polyform/nodes/experimental.VectoryArrayNodeData]",
 				"dependencies": [
 					{
+						"dependencyID": "Node-34",
+						"dependencyPort": "Out",
+						"name": "X"
+					},
+					{
 						"dependencyID": "Node-38",
 						"dependencyPort": "Out",
 						"name": "Y"
@@ -743,11 +748,6 @@
 						"dependencyID": "Node-39",
 						"dependencyPort": "Out",
 						"name": "Z"
-					},
-					{
-						"dependencyID": "Node-34",
-						"dependencyPort": "Out",
-						"name": "X"
 					}
 				],
 				"metadata": {
@@ -900,8 +900,8 @@
 				},
 				"metadata": {
 					"position": {
-						"x": 4109.088571999582,
-						"y": -697.9023623385368
+						"x": 4108.524314505038,
+						"y": -684.8789487948012
 					}
 				}
 			},
@@ -967,17 +967,17 @@
 					{
 						"dependencyID": "Node-50",
 						"dependencyPort": "Out",
-						"name": "X"
-					},
-					{
-						"dependencyID": "Node-50",
-						"dependencyPort": "Out",
 						"name": "Y"
 					},
 					{
 						"dependencyID": "Node-50",
 						"dependencyPort": "Out",
 						"name": "Z"
+					},
+					{
+						"dependencyID": "Node-50",
+						"dependencyPort": "Out",
+						"name": "X"
 					}
 				],
 				"metadata": {
@@ -1003,8 +1003,8 @@
 				],
 				"metadata": {
 					"position": {
-						"x": 5067.853344409999,
-						"y": -1106.9030434613705
+						"x": 5053.70774115424,
+						"y": -1079.6222371824113
 					}
 				}
 			},
@@ -1337,11 +1337,6 @@
 				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformMaterial,github.com/EliCDavis/polyform/generator/artifact.GltfMaterialNodeData]",
 				"dependencies": [
 					{
-						"dependencyID": "Node-69",
-						"dependencyPort": "Out",
-						"name": "Volume"
-					},
-					{
 						"dependencyID": "Node-62",
 						"dependencyPort": "Out",
 						"name": "Color"
@@ -1365,6 +1360,11 @@
 						"dependencyID": "Node-67",
 						"dependencyPort": "Out",
 						"name": "Transmission"
+					},
+					{
+						"dependencyID": "Node-69",
+						"dependencyPort": "Out",
+						"name": "Volume"
 					}
 				],
 				"metadata": {
@@ -1429,6 +1429,11 @@
 				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/modeling.Mesh,github.com/EliCDavis/polyform/modeling/extrude.CircleNodeData]",
 				"dependencies": [
 					{
+						"dependencyID": "Node-4",
+						"dependencyPort": "Out",
+						"name": "Path"
+					},
+					{
 						"dependencyID": "Node-72",
 						"dependencyPort": "Out",
 						"name": "Resolution"
@@ -1437,11 +1442,6 @@
 						"dependencyID": "Node-73",
 						"dependencyPort": "Out",
 						"name": "Radius"
-					},
-					{
-						"dependencyID": "Node-4",
-						"dependencyPort": "Out",
-						"name": "Path"
 					}
 				],
 				"metadata": {
@@ -1486,14 +1486,14 @@
 				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/modeling.Mesh,github.com/EliCDavis/polyform/modeling/repeat.MeshNodeData]",
 				"dependencies": [
 					{
-						"dependencyID": "Node-74",
-						"dependencyPort": "Out",
-						"name": "Mesh"
-					},
-					{
 						"dependencyID": "Node-76",
 						"dependencyPort": "Out",
 						"name": "Transforms"
+					},
+					{
+						"dependencyID": "Node-74",
+						"dependencyPort": "Out",
+						"name": "Mesh"
 					}
 				],
 				"metadata": {
@@ -1519,8 +1519,8 @@
 				],
 				"metadata": {
 					"position": {
-						"x": 3392.8242622713074,
-						"y": -130.1772239629187
+						"x": 3257.0520938764403,
+						"y": -153.55653319994178
 					}
 				}
 			},
@@ -1559,6 +1559,16 @@
 				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/modeling.Mesh,github.com/EliCDavis/polyform/modeling/extrude.ScrewNodeData]",
 				"dependencies": [
 					{
+						"dependencyID": "Node-7",
+						"dependencyPort": "Out",
+						"name": "Distance"
+					},
+					{
+						"dependencyID": "Node-3",
+						"dependencyPort": "Out",
+						"name": "UVs"
+					},
+					{
 						"dependencyID": "Node-4",
 						"dependencyPort": "Out",
 						"name": "Line"
@@ -1572,16 +1582,6 @@
 						"dependencyID": "Node-6",
 						"dependencyPort": "Out",
 						"name": "Revolutions"
-					},
-					{
-						"dependencyID": "Node-7",
-						"dependencyPort": "Out",
-						"name": "Distance"
-					},
-					{
-						"dependencyID": "Node-3",
-						"dependencyPort": "Out",
-						"name": "UVs"
 					}
 				],
 				"metadata": {

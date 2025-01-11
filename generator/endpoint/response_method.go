@@ -18,7 +18,7 @@ func (jse ResponseMethod[Response]) ContentType() ContentType {
 func (jse ResponseMethod[Response]) runHandler(r *http.Request) (resp Response, err error) {
 	defer func() {
 		if recErr := recover(); recErr != nil {
-			fmt.Println("stacktrace from panic: \n" + string(debug.Stack()))
+			fmt.Printf("panic: %v\nstacktrace from panic:\n%s", recErr, string(debug.Stack()))
 			err = fmt.Errorf("panic recover: %v", recErr)
 		}
 	}()
