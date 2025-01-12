@@ -116,7 +116,7 @@ export class NodeManager {
             typeData.outputs.forEach((o) => {
                 nodeConfig.outputs.push({ name: o.name, type: o.type });
 
-                if (o.type === "github.com/EliCDavis/polyform/artifact.Artifact") {
+                if (o.type === "github.com/EliCDavis/polyform/generator/artifact.Artifact") {
                     isProducer = true;
                 }
             })

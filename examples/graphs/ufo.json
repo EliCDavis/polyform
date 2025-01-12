@@ -11,14 +11,14 @@
 			"nodes": {
 				"Node-0": {
 					"position": {
-						"x": 2623.039260421572,
-						"y": 428.13050317788145
+						"x": 2402.4954955957883,
+						"y": 666.4600554896203
 					}
 				},
 				"Node-1": {
 					"position": {
-						"x": 1984.0116844527915,
-						"y": 1060.0688176405104
+						"x": 1763.4679196270058,
+						"y": 1298.398369952246
 					}
 				},
 				"Node-10": {
@@ -83,14 +83,14 @@
 				},
 				"Node-2": {
 					"position": {
-						"x": 1984.0116844527915,
-						"y": 852.0688176405125
+						"x": 1763.4679196270058,
+						"y": 1090.3983699522498
 					}
 				},
 				"Node-20": {
 					"position": {
-						"x": 4975.43189466519,
-						"y": -1702.9862941959848
+						"x": 4946.799760002651,
+						"y": -1731.6184288585234
 					}
 				},
 				"Node-21": {
@@ -107,110 +107,110 @@
 				},
 				"Node-23": {
 					"position": {
-						"x": 3419.185276473465,
-						"y": -1595.3969526709973
+						"x": 2638.1852916522726,
+						"y": -1971.932219612231
 					}
 				},
 				"Node-24": {
 					"position": {
-						"x": 1828.040308959192,
-						"y": -1723.3199740970772
+						"x": 1700.6439090562828,
+						"y": -2112.7348247369414
 					}
 				},
 				"Node-25": {
 					"position": {
-						"x": 1342.3412492263246,
-						"y": -1963.976950858961
+						"x": 1214.944849323416,
+						"y": -2353.391801498815
 					}
 				},
 				"Node-26": {
 					"position": {
-						"x": 2333.555980704555,
-						"y": -1744.9971814700102
+						"x": 2206.1595808016637,
+						"y": -2134.412032109874
 					}
 				},
 				"Node-27": {
 					"position": {
-						"x": 2536.520368182807,
-						"y": -1504.3602990369964
+						"x": 2171.61568988466,
+						"y": -1744.8591366221722
 					}
 				},
 				"Node-28": {
 					"position": {
-						"x": 2811.0724258790683,
-						"y": -1669.7743501636528
+						"x": 2478.4237817504218,
+						"y": -1831.937104765758
 					}
 				},
 				"Node-29": {
 					"position": {
-						"x": 2876.1938968788904,
-						"y": -1450.0375655236971
+						"x": 2417.6771163400617,
+						"y": -1640.2452959888853
 					}
 				},
 				"Node-3": {
 					"position": {
-						"x": 2233.478302828487,
-						"y": 986.3155526304848
+						"x": 2012.9345380027028,
+						"y": 1224.645104942221
 					}
 				},
 				"Node-30": {
 					"position": {
-						"x": 3158.1483630554385,
-						"y": -1666.676322871715
+						"x": 2709.186434177009,
+						"y": -1787.4832428961188
 					}
 				},
 				"Node-31": {
 					"position": {
-						"x": 1872.293985491239,
-						"y": -1942.7184203380466
+						"x": 1744.8975855883298,
+						"y": -2332.1332709779017
 					}
 				},
 				"Node-32": {
 					"position": {
-						"x": 2328.2095142698677,
-						"y": -1936.1873287975116
+						"x": 2200.8131143669757,
+						"y": -2325.602179437367
 					}
 				},
 				"Node-33": {
 					"position": {
-						"x": 2776.452930659024,
-						"y": -1869.773328616634
+						"x": 2136.774505691759,
+						"y": -1950.0396111333207
 					}
 				},
 				"Node-34": {
 					"position": {
-						"x": 3181.506418982939,
-						"y": -2044.3524296801002
+						"x": 2529.5886755170013,
+						"y": -2332.802875614372
 					}
 				},
 				"Node-35": {
 					"position": {
-						"x": 1852.0805820450169,
-						"y": -2097.3415530329275
+						"x": 1724.6841821421076,
+						"y": -2486.756403672778
 					}
 				},
 				"Node-36": {
 					"position": {
-						"x": 2334.111859231966,
-						"y": -2112.5453335354687
+						"x": 2206.7154593290743,
+						"y": -2501.9601841753192
 					}
 				},
 				"Node-37": {
 					"position": {
-						"x": 2778.473539435301,
-						"y": -2076.0124388114264
+						"x": 2076.1799655648592,
+						"y": -2673.62117224614
 					}
 				},
 				"Node-38": {
 					"position": {
-						"x": 3187.157639218524,
-						"y": -2211.111633557549
+						"x": 2535.2398957525857,
+						"y": -2499.5620794918204
 					}
 				},
 				"Node-39": {
 					"position": {
-						"x": 3180.589015207625,
-						"y": -1890.6910196535769
+						"x": 2528.6712717416867,
+						"y": -2179.1414655878552
 					}
 				},
 				"Node-4": {
@@ -221,92 +221,92 @@
 				},
 				"Node-40": {
 					"position": {
-						"x": 3505.036050570725,
-						"y": -2037.7766674219488
+						"x": 2889.3046623602704,
+						"y": -2274.5323201340957
 					}
 				},
 				"Node-41": {
 					"position": {
-						"x": 3487.6657203447053,
-						"y": -2190.8068518970495
+						"x": 2871.9343321342503,
+						"y": -2427.5625046091955
 					}
 				},
 				"Node-42": {
 					"position": {
-						"x": 3854.63670738643,
-						"y": -1962.3264236474552
+						"x": 3238.905319175975,
+						"y": -2199.082076359605
 					}
 				},
 				"Node-43": {
 					"position": {
-						"x": 4087.8472508345017,
-						"y": -1171.27310732422
+						"x": 3899.6022553238613,
+						"y": -913.6685760142611
 					}
 				},
 				"Node-44": {
 					"position": {
-						"x": 4109.568256064622,
-						"y": -1308.7697804347308
+						"x": 3912.6157136056663,
+						"y": -1051.165249124774
 					}
 				},
 				"Node-45": {
 					"position": {
-						"x": 4095.282083434469,
-						"y": -1019.6345131755085
+						"x": 3943.7170284843555,
+						"y": -763.5583127222379
 					}
 				},
 				"Node-46": {
 					"position": {
-						"x": 4517.913224895331,
-						"y": -1212.8675371044071
+						"x": 4220.787077749448,
+						"y": -1062.0861210773423
 					}
 				},
 				"Node-47": {
 					"position": {
-						"x": 4772.649480789292,
-						"y": -1216.9594823309446
+						"x": 4452.876619481803,
+						"y": -1056.3354013633282
 					}
 				},
 				"Node-48": {
 					"position": {
-						"x": 4108.524314505038,
-						"y": -684.8789487948012
+						"x": 3934.0342967045954,
+						"y": -474.65267404218764
 					}
 				},
 				"Node-49": {
 					"position": {
-						"x": 4106.458992434814,
-						"y": -853.4644249982441
+						"x": 3941.3520330564647,
+						"y": -619.6248050394746
 					}
 				},
 				"Node-5": {
 					"position": {
-						"x": 2246.050871732611,
-						"y": 801.3264395769935
+						"x": 2025.507106906827,
+						"y": 1039.655991888732
 					}
 				},
 				"Node-50": {
 					"position": {
-						"x": 4511.961043668546,
-						"y": -1003.9558757396491
+						"x": 4221.3144068358715,
+						"y": -812.8916325910628
 					}
 				},
 				"Node-51": {
 					"position": {
-						"x": 4780.933018359815,
-						"y": -1003.5678400053686
+						"x": 4438.83293857632,
+						"y": -809.9610920122899
 					}
 				},
 				"Node-52": {
 					"position": {
-						"x": 5053.70774115424,
-						"y": -1079.6222371824113
+						"x": 4686.644561487137,
+						"y": -1058.7386294566202
 					}
 				},
 				"Node-53": {
 					"position": {
-						"x": 5289.679363999643,
-						"y": -1206.7638809922448
+						"x": 4895.616035088735,
+						"y": -1059.007058699823
 					}
 				},
 				"Node-54": {
@@ -317,56 +317,56 @@
 				},
 				"Node-55": {
 					"position": {
-						"x": 4592.719324039656,
-						"y": 1111.3890779750411
+						"x": 4647.750326946456,
+						"y": 1717.5666826002025
 					}
 				},
 				"Node-56": {
 					"position": {
-						"x": 4618.083609767973,
-						"y": 1259.687226017711
+						"x": 4673.114612674773,
+						"y": 1865.8648306428724
 					}
 				},
 				"Node-57": {
 					"position": {
-						"x": 4601.174085949095,
-						"y": 949.8351095371366
+						"x": 4656.205088855894,
+						"y": 1556.012714162298
 					}
 				},
 				"Node-58": {
 					"position": {
-						"x": 4929.159114076787,
-						"y": 1072.8729403876016
+						"x": 4984.190116983586,
+						"y": 1679.050545012763
 					}
 				},
 				"Node-59": {
 					"position": {
-						"x": 5161.310172267972,
-						"y": 1168.6872260177097
+						"x": 5216.341175174772,
+						"y": 1774.864830642871
 					}
 				},
 				"Node-6": {
 					"position": {
-						"x": 2305.321553709198,
-						"y": 662.0564819649413
+						"x": 2084.777788883414,
+						"y": 900.3860342766802
 					}
 				},
 				"Node-60": {
 					"position": {
-						"x": 5161.310172267972,
-						"y": 920.6872260177131
+						"x": 5216.341175174772,
+						"y": 1526.8648306428743
 					}
 				},
 				"Node-61": {
 					"position": {
-						"x": 5635.315332417611,
-						"y": 989.3211754494542
+						"x": 5690.346335324411,
+						"y": 1595.4987800746155
 					}
 				},
 				"Node-62": {
 					"position": {
-						"x": 5148.718385689021,
-						"y": -36.04798301948624
+						"x": 5105.901148659046,
+						"y": 2.991262507848777
 					}
 				},
 				"Node-63": {
@@ -413,56 +413,56 @@
 				},
 				"Node-7": {
 					"position": {
-						"x": 2305.321553709198,
-						"y": 491.0564819649408
+						"x": 2097.186779688168,
+						"y": 689.9028817161014
 					}
 				},
 				"Node-70": {
 					"position": {
-						"x": 5641.214157252812,
-						"y": 225.59393472732714
+						"x": 5659.1300721883235,
+						"y": 51.55361821093697
 					}
 				},
 				"Node-71": {
 					"position": {
-						"x": 6061.717464586266,
-						"y": 528.2039675990142
+						"x": 6213.302047772202,
+						"y": 741.9770977330253
 					}
 				},
 				"Node-72": {
 					"position": {
-						"x": 2180.4414866283064,
-						"y": -941.5632493719296
+						"x": 2201.1323648002376,
+						"y": -1007.7740595221059
 					}
 				},
 				"Node-73": {
 					"position": {
-						"x": 2145.140228056072,
-						"y": -1074.6622195468651
+						"x": 2165.831106228003,
+						"y": -1140.8730296970414
 					}
 				},
 				"Node-74": {
 					"position": {
-						"x": 2522.4570222377874,
-						"y": -1180.365880889982
+						"x": 2543.1479004097187,
+						"y": -1246.5766910401583
 					}
 				},
 				"Node-75": {
 					"position": {
-						"x": 2145.140228056072,
-						"y": -806.9880776958522
+						"x": 2165.831106228003,
+						"y": -873.1988878460285
 					}
 				},
 				"Node-76": {
 					"position": {
-						"x": 2507.9212098845146,
-						"y": -884.6053545863718
+						"x": 2528.612088056446,
+						"y": -950.8161647365481
 					}
 				},
 				"Node-77": {
 					"position": {
-						"x": 2768.303932993994,
-						"y": -1037.0843019791512
+						"x": 2788.994811165925,
+						"y": -1103.2951121293274
 					}
 				},
 				"Node-78": {
@@ -479,81 +479,137 @@
 				},
 				"Node-8": {
 					"position": {
-						"x": 2649.9804795018385,
-						"y": 629.3547399103101
+						"x": 2429.4367146760546,
+						"y": 833.8415900272682
 					}
 				},
 				"Node-80": {
 					"position": {
-						"x": 6344.901959317542,
-						"y": -1129.012763790689
+						"x": 6360.01817936439,
+						"y": -1181.4156599530952
 					}
 				},
 				"Node-81": {
 					"position": {
-						"x": 6344.901959317542,
-						"y": -1300.0127637906876
+						"x": 6349.940699333158,
+						"y": -1331.2529518875067
 					}
 				},
 				"Node-82": {
 					"position": {
-						"x": 6642.368895660782,
-						"y": -1206.8056961078605
+						"x": 6646.399887673275,
+						"y": -1318.6657244545354
 					}
 				},
 				"Node-83": {
 					"position": {
-						"x": 6971.600576442538,
-						"y": -1271.9141485030427
+						"x": 6973.6160724487845,
+						"y": -1327.3402886748186
 					}
 				},
 				"Node-84": {
 					"position": {
-						"x": 6344.901959317542,
-						"y": -790.0127637906894
+						"x": 7619.884898780683,
+						"y": -1160.7279119498064
 					}
 				},
 				"Node-85": {
 					"position": {
-						"x": 6344.901959317542,
-						"y": -961.0127637906894
+						"x": 7619.884898780683,
+						"y": -1331.7279119498062
 					}
 				},
 				"Node-86": {
 					"position": {
-						"x": 6655.736767523867,
-						"y": -909.2589649394622
+						"x": 7930.719706987008,
+						"y": -1323.2819575096908
 					}
 				},
 				"Node-87": {
 					"position": {
-						"x": 6975.021946517756,
-						"y": -883.1941153765492
+						"x": 8255.201827310235,
+						"y": -1328.3987559227785
 					}
 				},
 				"Node-9": {
 					"position": {
-						"x": 2903.039260421572,
-						"y": 566.491895389688
+						"x": 2694.9044864005423,
+						"y": 703.2933411170831
 					}
 				}
 			},
 			"notes": {
 				"1": {
 					"position": {
-						"x": 3633.845712467699,
-						"y": -1290.4544090212012
+						"x": 4954.6107399809,
+						"y": -1859.3736274145708
 					},
-					"text": "#Note\n\nRight-click this note and select \"edit note\" to put what you want here.",
-					"width": 300
+					"text": "# Abduction Ring Material\n\nWe utilize GLTF's emissive properties to make the rings glow.",
+					"width": 568.1458185819718
+				},
+				"2": {
+					"position": {
+						"x": 3962.797840955745,
+						"y": -1186.2220339132343
+					},
+					"text": "# Duplicate Abduction Rings\n\nWe duplicate the original abduction ring multiple times, altering its scale and position.",
+					"width": 618.9045508221542
+				},
+				"3": {
+					"position": {
+						"x": 6382.000749359395,
+						"y": -1473.7464709947574
+					},
+					"text": "# Brushed Metal Albedo Map\n\nWe can recreate a brush metal texture simply by taking perlin noise and stretching it along one axis. We can do this from stretching the UV coordinates alone, so we can just use a normal perlin texture",
+					"width": 819.8089490666998
+				},
+				"4": {
+					"position": {
+						"x": 7622.079178472536,
+						"y": -1477.51428315596
+					},
+					"text": "# Brushed Metal Texture Metal/Roughness Map\n\nSince the albedo map is Perlin, we can just use Perlin noise also to generate the metal roughness map",
+					"width": 841.9044953520117
+				},
+				"5": {
+					"position": {
+						"x": 4746.261209521863,
+						"y": 1421.271994265256
+					},
+					"text": "# UFO Dome Mesh\n\nIt's just half a sphere. ",
+					"width": 937.9202011044327
+				},
+				"6": {
+					"position": {
+						"x": 5274.764078928088,
+						"y": -179.30161467240868
+					},
+					"text": "# UFO Dome Material\n\nTo give the appearance of glass, we utilize GLTF material extensions:\n\n* index of refraction \n* transmission\n* volume\n\nDifferent viewers have differing levels of support for these extensions",
+					"width": 697.1542557375064
+				},
+				"7": {
+					"position": {
+						"x": 2426.5800563360967,
+						"y": -2752.8284457131585
+					},
+					"text": "# Abduction Ring Mesh\n\nWe create an abduction ring by first starting with a circle. We vary the height of the vertices along the circle. As we vary the height, we also vary the thickness of the circle.",
+					"width": 835.1575890648115
+				},
+				"8": {
+					"position": {
+						"x": 2139.0849616209334,
+						"y": 526.9790206860227
+					},
+					"text": "# UFO Body Mesh\n\nTake the contour defined and rotate it along the Y-axis to create a body.",
+					"width": 741.1551780657253
 				},
 				"id": {
 					"position": {
-						"x": 638.6613342488698,
-						"y": -844.2075131890639
+						"x": 2147.291378219588,
+						"y": -569.9231193559135
 					},
-					"text": "# Hello\n\nWhatsup",
-					"width": 464.41224914132056
+					"text": "# Metal Material\n\nIt's a pretty standard metallic roughness material. We utilize GLTF's clearcoat extension because we can.",
+					"width": 870.9728370335938
 				}
 			}
 		},
@@ -665,11 +721,6 @@
 				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformMaterial,github.com/EliCDavis/polyform/generator/artifact.GltfMaterialNodeData]",
 				"dependencies": [
 					{
-						"dependencyID": "Node-14",
-						"dependencyPort": "Out",
-						"name": "MetallicRoughnessTexture"
-					},
-					{
 						"dependencyID": "Node-17",
 						"dependencyPort": "Out",
 						"name": "Clearcoat"
@@ -693,6 +744,11 @@
 						"dependencyID": "Node-13",
 						"dependencyPort": "Out",
 						"name": "RoughnessFactor"
+					},
+					{
+						"dependencyID": "Node-14",
+						"dependencyPort": "Out",
+						"name": "MetallicRoughnessTexture"
 					}
 				]
 			},
@@ -700,14 +756,14 @@
 				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformModel,github.com/EliCDavis/polyform/generator/artifact.GltfModelNodeData]",
 				"dependencies": [
 					{
-						"dependencyID": "Node-9",
-						"dependencyPort": "Out",
-						"name": "Mesh"
-					},
-					{
 						"dependencyID": "Node-18",
 						"dependencyPort": "Out",
 						"name": "Material"
+					},
+					{
+						"dependencyID": "Node-9",
+						"dependencyPort": "Out",
+						"name": "Mesh"
 					}
 				]
 			},
@@ -748,11 +804,6 @@
 				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformMaterial,github.com/EliCDavis/polyform/generator/artifact.GltfMaterialNodeData]",
 				"dependencies": [
 					{
-						"dependencyID": "Node-21",
-						"dependencyPort": "Out",
-						"name": "EmissiveStrength"
-					},
-					{
 						"dependencyID": "Node-20",
 						"dependencyPort": "Out",
 						"name": "Color"
@@ -761,6 +812,11 @@
 						"dependencyID": "Node-20",
 						"dependencyPort": "Out",
 						"name": "EmissiveFactor"
+					},
+					{
+						"dependencyID": "Node-21",
+						"dependencyPort": "Out",
+						"name": "EmissiveStrength"
 					}
 				]
 			},
@@ -858,14 +914,14 @@
 				"type": "github.com/EliCDavis/polyform/nodes.Struct[[]float64,github.com/EliCDavis/polyform/nodes/experimental.ShiftNodeData]",
 				"dependencies": [
 					{
-						"dependencyID": "Node-28",
-						"dependencyPort": "Out",
-						"name": "In"
-					},
-					{
 						"dependencyID": "Node-29",
 						"dependencyPort": "Out",
 						"name": "Shift"
+					},
+					{
+						"dependencyID": "Node-28",
+						"dependencyPort": "Out",
+						"name": "In"
 					}
 				]
 			},
@@ -906,14 +962,14 @@
 				"type": "github.com/EliCDavis/polyform/nodes.Struct[[]float64,github.com/EliCDavis/polyform/nodes/experimental.CosNodeData]",
 				"dependencies": [
 					{
-						"dependencyID": "Node-32",
-						"dependencyPort": "Out",
-						"name": "Input"
-					},
-					{
 						"dependencyID": "Node-33",
 						"dependencyPort": "Out",
 						"name": "Scale"
+					},
+					{
+						"dependencyID": "Node-32",
+						"dependencyPort": "Out",
+						"name": "Input"
 					}
 				]
 			},
@@ -1075,6 +1131,11 @@
 				"type": "github.com/EliCDavis/polyform/nodes.Struct[[]github.com/EliCDavis/vector/vector3.Vector[float64],github.com/EliCDavis/polyform/nodes/experimental.VectoryArrayNodeData]",
 				"dependencies": [
 					{
+						"dependencyID": "Node-34",
+						"dependencyPort": "Out",
+						"name": "X"
+					},
+					{
 						"dependencyID": "Node-38",
 						"dependencyPort": "Out",
 						"name": "Y"
@@ -1083,11 +1144,6 @@
 						"dependencyID": "Node-39",
 						"dependencyPort": "Out",
 						"name": "Z"
-					},
-					{
-						"dependencyID": "Node-34",
-						"dependencyPort": "Out",
-						"name": "X"
 					}
 				]
 			},
@@ -1213,11 +1269,6 @@
 				"type": "github.com/EliCDavis/polyform/nodes.Struct[[]float64,github.com/EliCDavis/polyform/nodes/experimental.SampleNodeData]",
 				"dependencies": [
 					{
-						"dependencyID": "Node-48",
-						"dependencyPort": "Out",
-						"name": "Start"
-					},
-					{
 						"dependencyID": "Node-49",
 						"dependencyPort": "Out",
 						"name": "End"
@@ -1226,6 +1277,11 @@
 						"dependencyID": "Node-45",
 						"dependencyPort": "Out",
 						"name": "Samples"
+					},
+					{
+						"dependencyID": "Node-48",
+						"dependencyPort": "Out",
+						"name": "Start"
 					}
 				]
 			},
@@ -1235,17 +1291,17 @@
 					{
 						"dependencyID": "Node-50",
 						"dependencyPort": "Out",
+						"name": "X"
+					},
+					{
+						"dependencyID": "Node-50",
+						"dependencyPort": "Out",
 						"name": "Y"
 					},
 					{
 						"dependencyID": "Node-50",
 						"dependencyPort": "Out",
 						"name": "Z"
-					},
-					{
-						"dependencyID": "Node-50",
-						"dependencyPort": "Out",
-						"name": "X"
 					}
 				]
 			},
@@ -1283,14 +1339,14 @@
 				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformModel,github.com/EliCDavis/polyform/generator/artifact.GltfModelNodeData]",
 				"dependencies": [
 					{
-						"dependencyID": "Node-22",
-						"dependencyPort": "Out",
-						"name": "Material"
-					},
-					{
 						"dependencyID": "Node-53",
 						"dependencyPort": "Out",
 						"name": "Mesh"
+					},
+					{
+						"dependencyID": "Node-22",
+						"dependencyPort": "Out",
+						"name": "Material"
 					}
 				]
 			},
@@ -1325,6 +1381,11 @@
 				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/modeling.Mesh,github.com/EliCDavis/polyform/modeling/primitives.HemisphereNodeData]",
 				"dependencies": [
 					{
+						"dependencyID": "Node-56",
+						"dependencyPort": "Out",
+						"name": "Rows"
+					},
+					{
 						"dependencyID": "Node-57",
 						"dependencyPort": "Out",
 						"name": "Columns"
@@ -1333,11 +1394,6 @@
 						"dependencyID": "Node-55",
 						"dependencyPort": "Out",
 						"name": "Radius"
-					},
-					{
-						"dependencyID": "Node-56",
-						"dependencyPort": "Out",
-						"name": "Rows"
 					}
 				]
 			},
@@ -1381,14 +1437,14 @@
 				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/modeling.Mesh,github.com/EliCDavis/polyform/modeling/meshops.TranslateAttribute3DNodeData]",
 				"dependencies": [
 					{
-						"dependencyID": "Node-60",
-						"dependencyPort": "Out",
-						"name": "Amount"
-					},
-					{
 						"dependencyID": "Node-59",
 						"dependencyPort": "Out",
 						"name": "Mesh"
+					},
+					{
+						"dependencyID": "Node-60",
+						"dependencyPort": "Out",
+						"name": "Amount"
 					}
 				]
 			},
@@ -1479,6 +1535,16 @@
 				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformMaterial,github.com/EliCDavis/polyform/generator/artifact.GltfMaterialNodeData]",
 				"dependencies": [
 					{
+						"dependencyID": "Node-67",
+						"dependencyPort": "Out",
+						"name": "Transmission"
+					},
+					{
+						"dependencyID": "Node-69",
+						"dependencyPort": "Out",
+						"name": "Volume"
+					},
+					{
 						"dependencyID": "Node-62",
 						"dependencyPort": "Out",
 						"name": "Color"
@@ -1497,16 +1563,6 @@
 						"dependencyID": "Node-65",
 						"dependencyPort": "Out",
 						"name": "IndexOfRefraction"
-					},
-					{
-						"dependencyID": "Node-67",
-						"dependencyPort": "Out",
-						"name": "Transmission"
-					},
-					{
-						"dependencyID": "Node-69",
-						"dependencyPort": "Out",
-						"name": "Volume"
 					}
 				]
 			},
@@ -1641,6 +1697,16 @@
 				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/modeling.Mesh,github.com/EliCDavis/polyform/modeling/extrude.ScrewNodeData]",
 				"dependencies": [
 					{
+						"dependencyID": "Node-3",
+						"dependencyPort": "Out",
+						"name": "UVs"
+					},
+					{
+						"dependencyID": "Node-4",
+						"dependencyPort": "Out",
+						"name": "Line"
+					},
+					{
 						"dependencyID": "Node-5",
 						"dependencyPort": "Out",
 						"name": "Segments"
@@ -1654,16 +1720,6 @@
 						"dependencyID": "Node-7",
 						"dependencyPort": "Out",
 						"name": "Distance"
-					},
-					{
-						"dependencyID": "Node-3",
-						"dependencyPort": "Out",
-						"name": "UVs"
-					},
-					{
-						"dependencyID": "Node-4",
-						"dependencyPort": "Out",
-						"name": "Line"
 					}
 				]
 			},
@@ -1732,14 +1788,14 @@
 				"type": "github.com/EliCDavis/polyform/nodes.Struct[image.Image,github.com/EliCDavis/polyform/nodes/experimental.SeamlessPerlinNodeData]",
 				"dependencies": [
 					{
-						"dependencyID": "Node-84",
-						"dependencyPort": "Out",
-						"name": "Positive"
-					},
-					{
 						"dependencyID": "Node-85",
 						"dependencyPort": "Out",
 						"name": "Negative"
+					},
+					{
+						"dependencyID": "Node-84",
+						"dependencyPort": "Out",
+						"name": "Positive"
 					}
 				]
 			},
@@ -1757,14 +1813,14 @@
 				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/modeling.Mesh,github.com/EliCDavis/polyform/modeling/meshops.SmoothNormalsImplicitWeldNodeData]",
 				"dependencies": [
 					{
-						"dependencyID": "Node-0",
-						"dependencyPort": "Out",
-						"name": "Distance"
-					},
-					{
 						"dependencyID": "Node-8",
 						"dependencyPort": "Out",
 						"name": "Mesh"
+					},
+					{
+						"dependencyID": "Node-0",
+						"dependencyPort": "Out",
+						"name": "Distance"
 					}
 				]
 			}
