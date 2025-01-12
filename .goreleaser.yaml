@@ -3,7 +3,7 @@ version: 2
 # Since we are only releasing "examples" right now, just override whole project name.
 # Normally defaults to "polyform". Will need a monorepo config to account for the separate
 # projects.
-project_name: examples
+project_name: programs
 
 before:
   hooks:
@@ -13,6 +13,19 @@ before:
     # - go generate ./...
 
 builds:
+  - id: polyform
+    main: ./cmd/polyform
+    binary: polyform
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+
   - id: background
     main: ./examples/background
     binary: background
