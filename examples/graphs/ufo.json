@@ -7,6 +7,556 @@
 	],
 	"data": {
 		"description": "Demo for different GLTF material extensions",
+		"metadata": {
+			"nodes": {
+				"Node-0": {
+					"position": {
+						"x": 2623.039260421572,
+						"y": 428.13050317788145
+					}
+				},
+				"Node-1": {
+					"position": {
+						"x": 1984.0116844527915,
+						"y": 1060.0688176405104
+					}
+				},
+				"Node-10": {
+					"position": {
+						"x": 2403.377236020519,
+						"y": -304.63782866470336
+					}
+				},
+				"Node-11": {
+					"position": {
+						"x": 2361.2411251811013,
+						"y": -174.5165889562107
+					}
+				},
+				"Node-12": {
+					"position": {
+						"x": 2363.772004491304,
+						"y": -35.86077152522637
+					}
+				},
+				"Node-13": {
+					"position": {
+						"x": 2441.871893240415,
+						"y": 240.41015100570962
+					}
+				},
+				"Node-14": {
+					"position": {
+						"x": 2299.7552644067546,
+						"y": 118.82544023856602
+					}
+				},
+				"Node-15": {
+					"position": {
+						"x": 1936.743629487452,
+						"y": -453.04297077293955
+					}
+				},
+				"Node-16": {
+					"position": {
+						"x": 1838.7121491931282,
+						"y": -274.8149018763856
+					}
+				},
+				"Node-17": {
+					"position": {
+						"x": 2289.7771193202284,
+						"y": -448.12749696826114
+					}
+				},
+				"Node-18": {
+					"position": {
+						"x": 2791.140559290619,
+						"y": -331.2347384906723
+					}
+				},
+				"Node-19": {
+					"position": {
+						"x": 3266.0349091096823,
+						"y": 79.02482166745655
+					}
+				},
+				"Node-2": {
+					"position": {
+						"x": 1984.0116844527915,
+						"y": 852.0688176405125
+					}
+				},
+				"Node-20": {
+					"position": {
+						"x": 4975.43189466519,
+						"y": -1702.9862941959848
+					}
+				},
+				"Node-21": {
+					"position": {
+						"x": 4859.852703995043,
+						"y": -1541.617893418497
+					}
+				},
+				"Node-22": {
+					"position": {
+						"x": 5304.687836482997,
+						"y": -1707.55561952004
+					}
+				},
+				"Node-23": {
+					"position": {
+						"x": 3419.185276473465,
+						"y": -1595.3969526709973
+					}
+				},
+				"Node-24": {
+					"position": {
+						"x": 1828.040308959192,
+						"y": -1723.3199740970772
+					}
+				},
+				"Node-25": {
+					"position": {
+						"x": 1342.3412492263246,
+						"y": -1963.976950858961
+					}
+				},
+				"Node-26": {
+					"position": {
+						"x": 2333.555980704555,
+						"y": -1744.9971814700102
+					}
+				},
+				"Node-27": {
+					"position": {
+						"x": 2536.520368182807,
+						"y": -1504.3602990369964
+					}
+				},
+				"Node-28": {
+					"position": {
+						"x": 2811.0724258790683,
+						"y": -1669.7743501636528
+					}
+				},
+				"Node-29": {
+					"position": {
+						"x": 2876.1938968788904,
+						"y": -1450.0375655236971
+					}
+				},
+				"Node-3": {
+					"position": {
+						"x": 2233.478302828487,
+						"y": 986.3155526304848
+					}
+				},
+				"Node-30": {
+					"position": {
+						"x": 3158.1483630554385,
+						"y": -1666.676322871715
+					}
+				},
+				"Node-31": {
+					"position": {
+						"x": 1872.293985491239,
+						"y": -1942.7184203380466
+					}
+				},
+				"Node-32": {
+					"position": {
+						"x": 2328.2095142698677,
+						"y": -1936.1873287975116
+					}
+				},
+				"Node-33": {
+					"position": {
+						"x": 2776.452930659024,
+						"y": -1869.773328616634
+					}
+				},
+				"Node-34": {
+					"position": {
+						"x": 3181.506418982939,
+						"y": -2044.3524296801002
+					}
+				},
+				"Node-35": {
+					"position": {
+						"x": 1852.0805820450169,
+						"y": -2097.3415530329275
+					}
+				},
+				"Node-36": {
+					"position": {
+						"x": 2334.111859231966,
+						"y": -2112.5453335354687
+					}
+				},
+				"Node-37": {
+					"position": {
+						"x": 2778.473539435301,
+						"y": -2076.0124388114264
+					}
+				},
+				"Node-38": {
+					"position": {
+						"x": 3187.157639218524,
+						"y": -2211.111633557549
+					}
+				},
+				"Node-39": {
+					"position": {
+						"x": 3180.589015207625,
+						"y": -1890.6910196535769
+					}
+				},
+				"Node-4": {
+					"position": {
+						"x": 875.6833108810104,
+						"y": -534.2276740101696
+					}
+				},
+				"Node-40": {
+					"position": {
+						"x": 3505.036050570725,
+						"y": -2037.7766674219488
+					}
+				},
+				"Node-41": {
+					"position": {
+						"x": 3487.6657203447053,
+						"y": -2190.8068518970495
+					}
+				},
+				"Node-42": {
+					"position": {
+						"x": 3854.63670738643,
+						"y": -1962.3264236474552
+					}
+				},
+				"Node-43": {
+					"position": {
+						"x": 4087.8472508345017,
+						"y": -1171.27310732422
+					}
+				},
+				"Node-44": {
+					"position": {
+						"x": 4109.568256064622,
+						"y": -1308.7697804347308
+					}
+				},
+				"Node-45": {
+					"position": {
+						"x": 4095.282083434469,
+						"y": -1019.6345131755085
+					}
+				},
+				"Node-46": {
+					"position": {
+						"x": 4517.913224895331,
+						"y": -1212.8675371044071
+					}
+				},
+				"Node-47": {
+					"position": {
+						"x": 4772.649480789292,
+						"y": -1216.9594823309446
+					}
+				},
+				"Node-48": {
+					"position": {
+						"x": 4108.524314505038,
+						"y": -684.8789487948012
+					}
+				},
+				"Node-49": {
+					"position": {
+						"x": 4106.458992434814,
+						"y": -853.4644249982441
+					}
+				},
+				"Node-5": {
+					"position": {
+						"x": 2246.050871732611,
+						"y": 801.3264395769935
+					}
+				},
+				"Node-50": {
+					"position": {
+						"x": 4511.961043668546,
+						"y": -1003.9558757396491
+					}
+				},
+				"Node-51": {
+					"position": {
+						"x": 4780.933018359815,
+						"y": -1003.5678400053686
+					}
+				},
+				"Node-52": {
+					"position": {
+						"x": 5053.70774115424,
+						"y": -1079.6222371824113
+					}
+				},
+				"Node-53": {
+					"position": {
+						"x": 5289.679363999643,
+						"y": -1206.7638809922448
+					}
+				},
+				"Node-54": {
+					"position": {
+						"x": 5672.415435300421,
+						"y": -1285.9280746651727
+					}
+				},
+				"Node-55": {
+					"position": {
+						"x": 4592.719324039656,
+						"y": 1111.3890779750411
+					}
+				},
+				"Node-56": {
+					"position": {
+						"x": 4618.083609767973,
+						"y": 1259.687226017711
+					}
+				},
+				"Node-57": {
+					"position": {
+						"x": 4601.174085949095,
+						"y": 949.8351095371366
+					}
+				},
+				"Node-58": {
+					"position": {
+						"x": 4929.159114076787,
+						"y": 1072.8729403876016
+					}
+				},
+				"Node-59": {
+					"position": {
+						"x": 5161.310172267972,
+						"y": 1168.6872260177097
+					}
+				},
+				"Node-6": {
+					"position": {
+						"x": 2305.321553709198,
+						"y": 662.0564819649413
+					}
+				},
+				"Node-60": {
+					"position": {
+						"x": 5161.310172267972,
+						"y": 920.6872260177131
+					}
+				},
+				"Node-61": {
+					"position": {
+						"x": 5635.315332417611,
+						"y": 989.3211754494542
+					}
+				},
+				"Node-62": {
+					"position": {
+						"x": 5148.718385689021,
+						"y": -36.04798301948624
+					}
+				},
+				"Node-63": {
+					"position": {
+						"x": 5164.770375263637,
+						"y": 270.2877498829808
+					}
+				},
+				"Node-64": {
+					"position": {
+						"x": 5145.278673637317,
+						"y": 421.08918962446273
+					}
+				},
+				"Node-65": {
+					"position": {
+						"x": 5155.597809792427,
+						"y": 131.9520169805118
+					}
+				},
+				"Node-66": {
+					"position": {
+						"x": 4752.787585050625,
+						"y": 572.1696071791409
+					}
+				},
+				"Node-67": {
+					"position": {
+						"x": 5036.35445866671,
+						"y": 570.3043466303375
+					}
+				},
+				"Node-68": {
+					"position": {
+						"x": 4794.175825169182,
+						"y": 774.5259039567251
+					}
+				},
+				"Node-69": {
+					"position": {
+						"x": 5083.363856706659,
+						"y": 717.8646345786359
+					}
+				},
+				"Node-7": {
+					"position": {
+						"x": 2305.321553709198,
+						"y": 491.0564819649408
+					}
+				},
+				"Node-70": {
+					"position": {
+						"x": 5641.214157252812,
+						"y": 225.59393472732714
+					}
+				},
+				"Node-71": {
+					"position": {
+						"x": 6061.717464586266,
+						"y": 528.2039675990142
+					}
+				},
+				"Node-72": {
+					"position": {
+						"x": 2180.4414866283064,
+						"y": -941.5632493719296
+					}
+				},
+				"Node-73": {
+					"position": {
+						"x": 2145.140228056072,
+						"y": -1074.6622195468651
+					}
+				},
+				"Node-74": {
+					"position": {
+						"x": 2522.4570222377874,
+						"y": -1180.365880889982
+					}
+				},
+				"Node-75": {
+					"position": {
+						"x": 2145.140228056072,
+						"y": -806.9880776958522
+					}
+				},
+				"Node-76": {
+					"position": {
+						"x": 2507.9212098845146,
+						"y": -884.6053545863718
+					}
+				},
+				"Node-77": {
+					"position": {
+						"x": 2768.303932993994,
+						"y": -1037.0843019791512
+					}
+				},
+				"Node-78": {
+					"position": {
+						"x": 3295.579531996603,
+						"y": -182.90389726569094
+					}
+				},
+				"Node-79": {
+					"position": {
+						"x": 6418.48667958356,
+						"y": -393.1300302483427
+					}
+				},
+				"Node-8": {
+					"position": {
+						"x": 2649.9804795018385,
+						"y": 629.3547399103101
+					}
+				},
+				"Node-80": {
+					"position": {
+						"x": 6344.901959317542,
+						"y": -1129.012763790689
+					}
+				},
+				"Node-81": {
+					"position": {
+						"x": 6344.901959317542,
+						"y": -1300.0127637906876
+					}
+				},
+				"Node-82": {
+					"position": {
+						"x": 6642.368895660782,
+						"y": -1206.8056961078605
+					}
+				},
+				"Node-83": {
+					"position": {
+						"x": 6971.600576442538,
+						"y": -1271.9141485030427
+					}
+				},
+				"Node-84": {
+					"position": {
+						"x": 6344.901959317542,
+						"y": -790.0127637906894
+					}
+				},
+				"Node-85": {
+					"position": {
+						"x": 6344.901959317542,
+						"y": -961.0127637906894
+					}
+				},
+				"Node-86": {
+					"position": {
+						"x": 6655.736767523867,
+						"y": -909.2589649394622
+					}
+				},
+				"Node-87": {
+					"position": {
+						"x": 6975.021946517756,
+						"y": -883.1941153765492
+					}
+				},
+				"Node-9": {
+					"position": {
+						"x": 2903.039260421572,
+						"y": 566.491895389688
+					}
+				}
+			},
+			"notes": {
+				"1": {
+					"position": {
+						"x": 3633.845712467699,
+						"y": -1290.4544090212012
+					},
+					"text": "#Note\n\nRight-click this note and select \"edit note\" to put what you want here.",
+					"width": 300
+				},
+				"id": {
+					"position": {
+						"x": 638.6613342488698,
+						"y": -844.2075131890639
+					},
+					"text": "# Hello\n\nWhatsup",
+					"width": 464.41224914132056
+				}
+			}
+		},
 		"name": "UFO",
 		"nodes": {
 			"Node-0": {
@@ -16,12 +566,6 @@
 					"currentValue": 0.0001,
 					"defaultValue": 0.0001,
 					"cli": null
-				},
-				"metadata": {
-					"position": {
-						"x": 2623.039260421572,
-						"y": 428.13050317788145
-					}
 				}
 			},
 			"Node-1": {
@@ -37,12 +581,6 @@
 						"y": 0.5
 					},
 					"cli": null
-				},
-				"metadata": {
-					"position": {
-						"x": 1984.0116844527915,
-						"y": 1060.0688176405104
-					}
 				}
 			},
 			"Node-10": {
@@ -52,12 +590,6 @@
 					"currentValue": "#ffffff",
 					"defaultValue": "#ffffff",
 					"cli": null
-				},
-				"metadata": {
-					"position": {
-						"x": 2403.377236020519,
-						"y": -304.63782866470336
-					}
 				}
 			},
 			"Node-11": {
@@ -67,12 +599,6 @@
 					"currentValue": "brushed.png",
 					"defaultValue": "brushed.png",
 					"cli": null
-				},
-				"metadata": {
-					"position": {
-						"x": 2361.2411251811013,
-						"y": -174.5165889562107
-					}
 				}
 			},
 			"Node-12": {
@@ -82,12 +608,6 @@
 					"currentValue": 1,
 					"defaultValue": 1,
 					"cli": null
-				},
-				"metadata": {
-					"position": {
-						"x": 2363.772004491304,
-						"y": -35.86077152522637
-					}
 				}
 			},
 			"Node-13": {
@@ -97,12 +617,6 @@
 					"currentValue": 0.3,
 					"defaultValue": 0.3,
 					"cli": null
-				},
-				"metadata": {
-					"position": {
-						"x": 2441.871893240415,
-						"y": 240.41015100570962
-					}
 				}
 			},
 			"Node-14": {
@@ -112,12 +626,6 @@
 					"currentValue": "rough.png",
 					"defaultValue": "rough.png",
 					"cli": null
-				},
-				"metadata": {
-					"position": {
-						"x": 2299.7552644067546,
-						"y": 118.82544023856602
-					}
 				}
 			},
 			"Node-15": {
@@ -127,12 +635,6 @@
 					"currentValue": 0.25,
 					"defaultValue": 0.25,
 					"cli": null
-				},
-				"metadata": {
-					"position": {
-						"x": 1936.743629487452,
-						"y": -453.04297077293955
-					}
 				}
 			},
 			"Node-16": {
@@ -142,12 +644,6 @@
 					"currentValue": 0.15,
 					"defaultValue": 0.15,
 					"cli": null
-				},
-				"metadata": {
-					"position": {
-						"x": 1838.7121491931282,
-						"y": -274.8149018763856
-					}
 				}
 			},
 			"Node-17": {
@@ -163,13 +659,7 @@
 						"dependencyPort": "Out",
 						"name": "ClearcoatRoughnessFactor"
 					}
-				],
-				"metadata": {
-					"position": {
-						"x": 2289.7771193202284,
-						"y": -448.12749696826114
-					}
-				}
+				]
 			},
 			"Node-18": {
 				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformMaterial,github.com/EliCDavis/polyform/generator/artifact.GltfMaterialNodeData]",
@@ -204,13 +694,7 @@
 						"dependencyPort": "Out",
 						"name": "RoughnessFactor"
 					}
-				],
-				"metadata": {
-					"position": {
-						"x": 2791.140559290619,
-						"y": -331.2347384906723
-					}
-				}
+				]
 			},
 			"Node-19": {
 				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformModel,github.com/EliCDavis/polyform/generator/artifact.GltfModelNodeData]",
@@ -225,13 +709,7 @@
 						"dependencyPort": "Out",
 						"name": "Material"
 					}
-				],
-				"metadata": {
-					"position": {
-						"x": 3266.0349091096823,
-						"y": 79.02482166745655
-					}
-				}
+				]
 			},
 			"Node-2": {
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[github.com/EliCDavis/vector/vector2.Vector[float64]]",
@@ -246,12 +724,6 @@
 						"y": 0.5
 					},
 					"cli": null
-				},
-				"metadata": {
-					"position": {
-						"x": 1984.0116844527915,
-						"y": 852.0688176405125
-					}
 				}
 			},
 			"Node-20": {
@@ -261,12 +733,6 @@
 					"currentValue": "#00ff00",
 					"defaultValue": "#00ff00",
 					"cli": null
-				},
-				"metadata": {
-					"position": {
-						"x": 4975.43189466519,
-						"y": -1702.9862941959848
-					}
 				}
 			},
 			"Node-21": {
@@ -276,22 +742,11 @@
 					"currentValue": 3,
 					"defaultValue": 3,
 					"cli": null
-				},
-				"metadata": {
-					"position": {
-						"x": 4859.852703995043,
-						"y": -1541.617893418497
-					}
 				}
 			},
 			"Node-22": {
 				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformMaterial,github.com/EliCDavis/polyform/generator/artifact.GltfMaterialNodeData]",
 				"dependencies": [
-					{
-						"dependencyID": "Node-20",
-						"dependencyPort": "Out",
-						"name": "EmissiveFactor"
-					},
 					{
 						"dependencyID": "Node-21",
 						"dependencyPort": "Out",
@@ -301,14 +756,13 @@
 						"dependencyID": "Node-20",
 						"dependencyPort": "Out",
 						"name": "Color"
+					},
+					{
+						"dependencyID": "Node-20",
+						"dependencyPort": "Out",
+						"name": "EmissiveFactor"
 					}
-				],
-				"metadata": {
-					"position": {
-						"x": 5304.687836482997,
-						"y": -1707.55561952004
-					}
-				}
+				]
 			},
 			"Node-23": {
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[int]",
@@ -317,12 +771,6 @@
 					"currentValue": 20,
 					"defaultValue": 20,
 					"cli": null
-				},
-				"metadata": {
-					"position": {
-						"x": 3419.185276473465,
-						"y": -1595.3969526709973
-					}
 				}
 			},
 			"Node-24": {
@@ -332,12 +780,6 @@
 					"currentValue": 37.69911184307752,
 					"defaultValue": 37.69911184307752,
 					"cli": null
-				},
-				"metadata": {
-					"position": {
-						"x": 1828.040308959192,
-						"y": -1723.3199740970772
-					}
 				}
 			},
 			"Node-25": {
@@ -347,12 +789,6 @@
 					"currentValue": 120,
 					"defaultValue": 120,
 					"cli": null
-				},
-				"metadata": {
-					"position": {
-						"x": 1342.3412492263246,
-						"y": -1963.976950858961
-					}
 				}
 			},
 			"Node-26": {
@@ -368,13 +804,7 @@
 						"dependencyPort": "Out",
 						"name": "Samples"
 					}
-				],
-				"metadata": {
-					"position": {
-						"x": 2333.555980704555,
-						"y": -1744.9971814700102
-					}
-				}
+				]
 			},
 			"Node-27": {
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
@@ -383,34 +813,22 @@
 					"currentValue": 0.25,
 					"defaultValue": 0.25,
 					"cli": null
-				},
-				"metadata": {
-					"position": {
-						"x": 2536.520368182807,
-						"y": -1504.3602990369964
-					}
 				}
 			},
 			"Node-28": {
 				"type": "github.com/EliCDavis/polyform/nodes.Struct[[]float64,github.com/EliCDavis/polyform/nodes/experimental.CosNodeData]",
 				"dependencies": [
 					{
-						"dependencyID": "Node-27",
-						"dependencyPort": "Out",
-						"name": "Scale"
-					},
-					{
 						"dependencyID": "Node-26",
 						"dependencyPort": "Out",
 						"name": "Input"
+					},
+					{
+						"dependencyID": "Node-27",
+						"dependencyPort": "Out",
+						"name": "Scale"
 					}
-				],
-				"metadata": {
-					"position": {
-						"x": 2811.0724258790683,
-						"y": -1669.7743501636528
-					}
-				}
+				]
 			},
 			"Node-29": {
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
@@ -419,12 +837,6 @@
 					"currentValue": 0.5,
 					"defaultValue": 0.5,
 					"cli": null
-				},
-				"metadata": {
-					"position": {
-						"x": 2876.1938968788904,
-						"y": -1450.0375655236971
-					}
 				}
 			},
 			"Node-3": {
@@ -440,13 +852,7 @@
 						"dependencyPort": "Out",
 						"name": "End"
 					}
-				],
-				"metadata": {
-					"position": {
-						"x": 2233.478302828487,
-						"y": 986.3155526304848
-					}
-				}
+				]
 			},
 			"Node-30": {
 				"type": "github.com/EliCDavis/polyform/nodes.Struct[[]float64,github.com/EliCDavis/polyform/nodes/experimental.ShiftNodeData]",
@@ -461,13 +867,7 @@
 						"dependencyPort": "Out",
 						"name": "Shift"
 					}
-				],
-				"metadata": {
-					"position": {
-						"x": 3158.1483630554385,
-						"y": -1666.676322871715
-					}
-				}
+				]
 			},
 			"Node-31": {
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
@@ -476,12 +876,6 @@
 					"currentValue": 6.283185307179586,
 					"defaultValue": 6.283185307179586,
 					"cli": null
-				},
-				"metadata": {
-					"position": {
-						"x": 1872.293985491239,
-						"y": -1942.7184203380466
-					}
 				}
 			},
 			"Node-32": {
@@ -497,13 +891,7 @@
 						"dependencyPort": "Out",
 						"name": "Samples"
 					}
-				],
-				"metadata": {
-					"position": {
-						"x": 2328.2095142698677,
-						"y": -1936.1873287975116
-					}
-				}
+				]
 			},
 			"Node-33": {
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
@@ -512,12 +900,6 @@
 					"currentValue": 4,
 					"defaultValue": 4,
 					"cli": null
-				},
-				"metadata": {
-					"position": {
-						"x": 2776.452930659024,
-						"y": -1869.773328616634
-					}
 				}
 			},
 			"Node-34": {
@@ -533,13 +915,7 @@
 						"dependencyPort": "Out",
 						"name": "Scale"
 					}
-				],
-				"metadata": {
-					"position": {
-						"x": 3181.506418982939,
-						"y": -2044.3524296801002
-					}
-				}
+				]
 			},
 			"Node-35": {
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
@@ -548,34 +924,22 @@
 					"currentValue": 25.132741228718345,
 					"defaultValue": 25.132741228718345,
 					"cli": null
-				},
-				"metadata": {
-					"position": {
-						"x": 1852.0805820450169,
-						"y": -2097.3415530329275
-					}
 				}
 			},
 			"Node-36": {
 				"type": "github.com/EliCDavis/polyform/nodes.Struct[[]float64,github.com/EliCDavis/polyform/nodes/experimental.SampleNodeData]",
 				"dependencies": [
 					{
-						"dependencyID": "Node-25",
-						"dependencyPort": "Out",
-						"name": "Samples"
-					},
-					{
 						"dependencyID": "Node-35",
 						"dependencyPort": "Out",
 						"name": "End"
+					},
+					{
+						"dependencyID": "Node-25",
+						"dependencyPort": "Out",
+						"name": "Samples"
 					}
-				],
-				"metadata": {
-					"position": {
-						"x": 2334.111859231966,
-						"y": -2112.5453335354687
-					}
-				}
+				]
 			},
 			"Node-37": {
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
@@ -584,34 +948,22 @@
 					"currentValue": 0.5,
 					"defaultValue": 0.5,
 					"cli": null
-				},
-				"metadata": {
-					"position": {
-						"x": 2778.473539435301,
-						"y": -2076.0124388114264
-					}
 				}
 			},
 			"Node-38": {
 				"type": "github.com/EliCDavis/polyform/nodes.Struct[[]float64,github.com/EliCDavis/polyform/nodes/experimental.SinNodeData]",
 				"dependencies": [
 					{
-						"dependencyID": "Node-37",
-						"dependencyPort": "Out",
-						"name": "Scale"
-					},
-					{
 						"dependencyID": "Node-36",
 						"dependencyPort": "Out",
 						"name": "Input"
+					},
+					{
+						"dependencyID": "Node-37",
+						"dependencyPort": "Out",
+						"name": "Scale"
 					}
-				],
-				"metadata": {
-					"position": {
-						"x": 3187.157639218524,
-						"y": -2211.111633557549
-					}
-				}
+				]
 			},
 			"Node-39": {
 				"type": "github.com/EliCDavis/polyform/nodes.Struct[[]float64,github.com/EliCDavis/polyform/nodes/experimental.SinNodeData]",
@@ -626,13 +978,7 @@
 						"dependencyPort": "Out",
 						"name": "Scale"
 					}
-				],
-				"metadata": {
-					"position": {
-						"x": 3180.589015207625,
-						"y": -1890.6910196535769
-					}
-				}
+				]
 			},
 			"Node-4": {
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[[]github.com/EliCDavis/vector/vector3.Vector[float64]]",
@@ -723,22 +1069,11 @@
 						}
 					],
 					"cli": null
-				},
-				"metadata": {
-					"position": {
-						"x": 875.6833108810104,
-						"y": -534.2276740101696
-					}
 				}
 			},
 			"Node-40": {
 				"type": "github.com/EliCDavis/polyform/nodes.Struct[[]github.com/EliCDavis/vector/vector3.Vector[float64],github.com/EliCDavis/polyform/nodes/experimental.VectoryArrayNodeData]",
 				"dependencies": [
-					{
-						"dependencyID": "Node-34",
-						"dependencyPort": "Out",
-						"name": "X"
-					},
 					{
 						"dependencyID": "Node-38",
 						"dependencyPort": "Out",
@@ -748,14 +1083,13 @@
 						"dependencyID": "Node-39",
 						"dependencyPort": "Out",
 						"name": "Z"
+					},
+					{
+						"dependencyID": "Node-34",
+						"dependencyPort": "Out",
+						"name": "X"
 					}
-				],
-				"metadata": {
-					"position": {
-						"x": 3505.036050570725,
-						"y": -2037.7766674219488
-					}
-				}
+				]
 			},
 			"Node-41": {
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[bool]",
@@ -764,12 +1098,6 @@
 					"currentValue": true,
 					"defaultValue": true,
 					"cli": null
-				},
-				"metadata": {
-					"position": {
-						"x": 3487.6657203447053,
-						"y": -2190.8068518970495
-					}
 				}
 			},
 			"Node-42": {
@@ -795,13 +1123,7 @@
 						"dependencyPort": "Out",
 						"name": "Path"
 					}
-				],
-				"metadata": {
-					"position": {
-						"x": 3854.63670738643,
-						"y": -1962.3264236474552
-					}
-				}
+				]
 			},
 			"Node-43": {
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
@@ -810,12 +1132,6 @@
 					"currentValue": -10,
 					"defaultValue": -10,
 					"cli": null
-				},
-				"metadata": {
-					"position": {
-						"x": 4087.8472508345017,
-						"y": -1171.27310732422
-					}
 				}
 			},
 			"Node-44": {
@@ -825,12 +1141,6 @@
 					"currentValue": -3,
 					"defaultValue": -3,
 					"cli": null
-				},
-				"metadata": {
-					"position": {
-						"x": 4109.568256064622,
-						"y": -1308.7697804347308
-					}
 				}
 			},
 			"Node-45": {
@@ -840,12 +1150,6 @@
 					"currentValue": 3,
 					"defaultValue": 3,
 					"cli": null
-				},
-				"metadata": {
-					"position": {
-						"x": 4095.282083434469,
-						"y": -1019.6345131755085
-					}
 				}
 			},
 			"Node-46": {
@@ -866,13 +1170,7 @@
 						"dependencyPort": "Out",
 						"name": "Samples"
 					}
-				],
-				"metadata": {
-					"position": {
-						"x": 4517.913224895331,
-						"y": -1212.8675371044071
-					}
-				}
+				]
 			},
 			"Node-47": {
 				"type": "github.com/EliCDavis/polyform/nodes.Struct[[]github.com/EliCDavis/vector/vector3.Vector[float64],github.com/EliCDavis/polyform/nodes/experimental.VectoryArrayNodeData]",
@@ -882,13 +1180,7 @@
 						"dependencyPort": "Out",
 						"name": "Y"
 					}
-				],
-				"metadata": {
-					"position": {
-						"x": 4772.649480789292,
-						"y": -1216.9594823309446
-					}
-				}
+				]
 			},
 			"Node-48": {
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
@@ -897,12 +1189,6 @@
 					"currentValue": 1,
 					"defaultValue": 1,
 					"cli": null
-				},
-				"metadata": {
-					"position": {
-						"x": 4108.524314505038,
-						"y": -684.8789487948012
-					}
 				}
 			},
 			"Node-49": {
@@ -912,12 +1198,6 @@
 					"currentValue": 0.3,
 					"defaultValue": 0.3,
 					"cli": null
-				},
-				"metadata": {
-					"position": {
-						"x": 4106.458992434814,
-						"y": -853.4644249982441
-					}
 				}
 			},
 			"Node-5": {
@@ -927,12 +1207,6 @@
 					"currentValue": 40,
 					"defaultValue": 40,
 					"cli": null
-				},
-				"metadata": {
-					"position": {
-						"x": 2246.050871732611,
-						"y": 801.3264395769935
-					}
 				}
 			},
 			"Node-50": {
@@ -953,13 +1227,7 @@
 						"dependencyPort": "Out",
 						"name": "Samples"
 					}
-				],
-				"metadata": {
-					"position": {
-						"x": 4511.961043668546,
-						"y": -1003.9558757396491
-					}
-				}
+				]
 			},
 			"Node-51": {
 				"type": "github.com/EliCDavis/polyform/nodes.Struct[[]github.com/EliCDavis/vector/vector3.Vector[float64],github.com/EliCDavis/polyform/nodes/experimental.VectoryArrayNodeData]",
@@ -979,13 +1247,7 @@
 						"dependencyPort": "Out",
 						"name": "X"
 					}
-				],
-				"metadata": {
-					"position": {
-						"x": 4780.933018359815,
-						"y": -1003.5678400053686
-					}
-				}
+				]
 			},
 			"Node-52": {
 				"type": "github.com/EliCDavis/polyform/nodes.Struct[[]github.com/EliCDavis/polyform/math/trs.TRS,github.com/EliCDavis/polyform/nodes/experimental.TRSNodeData]",
@@ -1000,13 +1262,7 @@
 						"dependencyPort": "Out",
 						"name": "Scale"
 					}
-				],
-				"metadata": {
-					"position": {
-						"x": 5053.70774115424,
-						"y": -1079.6222371824113
-					}
-				}
+				]
 			},
 			"Node-53": {
 				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/modeling.Mesh,github.com/EliCDavis/polyform/modeling/repeat.MeshNodeData]",
@@ -1021,34 +1277,22 @@
 						"dependencyPort": "Out",
 						"name": "Transforms"
 					}
-				],
-				"metadata": {
-					"position": {
-						"x": 5289.679363999643,
-						"y": -1206.7638809922448
-					}
-				}
+				]
 			},
 			"Node-54": {
 				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformModel,github.com/EliCDavis/polyform/generator/artifact.GltfModelNodeData]",
 				"dependencies": [
 					{
-						"dependencyID": "Node-53",
-						"dependencyPort": "Out",
-						"name": "Mesh"
-					},
-					{
 						"dependencyID": "Node-22",
 						"dependencyPort": "Out",
 						"name": "Material"
+					},
+					{
+						"dependencyID": "Node-53",
+						"dependencyPort": "Out",
+						"name": "Mesh"
 					}
-				],
-				"metadata": {
-					"position": {
-						"x": 5672.415435300421,
-						"y": -1285.9280746651727
-					}
-				}
+				]
 			},
 			"Node-55": {
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
@@ -1057,12 +1301,6 @@
 					"currentValue": 3.1,
 					"defaultValue": 3.1,
 					"cli": null
-				},
-				"metadata": {
-					"position": {
-						"x": 4592.719324039656,
-						"y": 1111.3890779750411
-					}
 				}
 			},
 			"Node-56": {
@@ -1072,12 +1310,6 @@
 					"currentValue": 40,
 					"defaultValue": 40,
 					"cli": null
-				},
-				"metadata": {
-					"position": {
-						"x": 4618.083609767973,
-						"y": 1259.687226017711
-					}
 				}
 			},
 			"Node-57": {
@@ -1087,22 +1319,11 @@
 					"currentValue": 40,
 					"defaultValue": 40,
 					"cli": null
-				},
-				"metadata": {
-					"position": {
-						"x": 4601.174085949095,
-						"y": 949.8351095371366
-					}
 				}
 			},
 			"Node-58": {
 				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/modeling.Mesh,github.com/EliCDavis/polyform/modeling/primitives.HemisphereNodeData]",
 				"dependencies": [
-					{
-						"dependencyID": "Node-56",
-						"dependencyPort": "Out",
-						"name": "Rows"
-					},
 					{
 						"dependencyID": "Node-57",
 						"dependencyPort": "Out",
@@ -1112,14 +1333,13 @@
 						"dependencyID": "Node-55",
 						"dependencyPort": "Out",
 						"name": "Radius"
+					},
+					{
+						"dependencyID": "Node-56",
+						"dependencyPort": "Out",
+						"name": "Rows"
 					}
-				],
-				"metadata": {
-					"position": {
-						"x": 4929.159114076787,
-						"y": 1072.8729403876016
-					}
-				}
+				]
 			},
 			"Node-59": {
 				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/modeling.Mesh,github.com/EliCDavis/polyform/modeling/meshops.SmoothNormalsNodeData]",
@@ -1129,13 +1349,7 @@
 						"dependencyPort": "Out",
 						"name": "Mesh"
 					}
-				],
-				"metadata": {
-					"position": {
-						"x": 5161.310172267972,
-						"y": 1168.6872260177097
-					}
-				}
+				]
 			},
 			"Node-6": {
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
@@ -1144,12 +1358,6 @@
 					"currentValue": 1,
 					"defaultValue": 1,
 					"cli": null
-				},
-				"metadata": {
-					"position": {
-						"x": 2305.321553709198,
-						"y": 662.0564819649413
-					}
 				}
 			},
 			"Node-60": {
@@ -1167,34 +1375,22 @@
 						"z": 0
 					},
 					"cli": null
-				},
-				"metadata": {
-					"position": {
-						"x": 5161.310172267972,
-						"y": 920.6872260177131
-					}
 				}
 			},
 			"Node-61": {
 				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/modeling.Mesh,github.com/EliCDavis/polyform/modeling/meshops.TranslateAttribute3DNodeData]",
 				"dependencies": [
 					{
-						"dependencyID": "Node-59",
-						"dependencyPort": "Out",
-						"name": "Mesh"
-					},
-					{
 						"dependencyID": "Node-60",
 						"dependencyPort": "Out",
 						"name": "Amount"
+					},
+					{
+						"dependencyID": "Node-59",
+						"dependencyPort": "Out",
+						"name": "Mesh"
 					}
-				],
-				"metadata": {
-					"position": {
-						"x": 5635.315332417611,
-						"y": 989.3211754494542
-					}
-				}
+				]
 			},
 			"Node-62": {
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[github.com/EliCDavis/polyform/drawing/coloring.WebColor]",
@@ -1203,12 +1399,6 @@
 					"currentValue": "#c8c8c8",
 					"defaultValue": "#c8c8c8",
 					"cli": null
-				},
-				"metadata": {
-					"position": {
-						"x": 5148.718385689021,
-						"y": -36.04798301948624
-					}
 				}
 			},
 			"Node-63": {
@@ -1218,12 +1408,6 @@
 					"currentValue": 0,
 					"defaultValue": 0,
 					"cli": null
-				},
-				"metadata": {
-					"position": {
-						"x": 5164.770375263637,
-						"y": 270.2877498829808
-					}
 				}
 			},
 			"Node-64": {
@@ -1233,12 +1417,6 @@
 					"currentValue": 0.2,
 					"defaultValue": 0.2,
 					"cli": null
-				},
-				"metadata": {
-					"position": {
-						"x": 5145.278673637317,
-						"y": 421.08918962446273
-					}
 				}
 			},
 			"Node-65": {
@@ -1248,12 +1426,6 @@
 					"currentValue": 1.52,
 					"defaultValue": 1.52,
 					"cli": null
-				},
-				"metadata": {
-					"position": {
-						"x": 5155.597809792427,
-						"y": 131.9520169805118
-					}
 				}
 			},
 			"Node-66": {
@@ -1263,12 +1435,6 @@
 					"currentValue": 0.9,
 					"defaultValue": 0.9,
 					"cli": null
-				},
-				"metadata": {
-					"position": {
-						"x": 4752.787585050625,
-						"y": 572.1696071791409
-					}
 				}
 			},
 			"Node-67": {
@@ -1279,13 +1445,7 @@
 						"dependencyPort": "Out",
 						"name": "TransmissionFactor"
 					}
-				],
-				"metadata": {
-					"position": {
-						"x": 5036.35445866671,
-						"y": 570.3043466303375
-					}
-				}
+				]
 			},
 			"Node-68": {
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
@@ -1294,12 +1454,6 @@
 					"currentValue": 0.5,
 					"defaultValue": 0.5,
 					"cli": null
-				},
-				"metadata": {
-					"position": {
-						"x": 4794.175825169182,
-						"y": 774.5259039567251
-					}
 				}
 			},
 			"Node-69": {
@@ -1310,13 +1464,7 @@
 						"dependencyPort": "Out",
 						"name": "ThicknessFactor"
 					}
-				],
-				"metadata": {
-					"position": {
-						"x": 5083.363856706659,
-						"y": 717.8646345786359
-					}
-				}
+				]
 			},
 			"Node-7": {
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
@@ -1325,12 +1473,6 @@
 					"currentValue": 0,
 					"defaultValue": 0,
 					"cli": null
-				},
-				"metadata": {
-					"position": {
-						"x": 2305.321553709198,
-						"y": 491.0564819649408
-					}
 				}
 			},
 			"Node-70": {
@@ -1366,13 +1508,7 @@
 						"dependencyPort": "Out",
 						"name": "Volume"
 					}
-				],
-				"metadata": {
-					"position": {
-						"x": 5641.214157252812,
-						"y": 225.59393472732714
-					}
-				}
+				]
 			},
 			"Node-71": {
 				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformModel,github.com/EliCDavis/polyform/generator/artifact.GltfModelNodeData]",
@@ -1387,13 +1523,7 @@
 						"dependencyPort": "Out",
 						"name": "Material"
 					}
-				],
-				"metadata": {
-					"position": {
-						"x": 6061.717464586266,
-						"y": 528.2039675990142
-					}
-				}
+				]
 			},
 			"Node-72": {
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[int]",
@@ -1402,12 +1532,6 @@
 					"currentValue": 20,
 					"defaultValue": 20,
 					"cli": null
-				},
-				"metadata": {
-					"position": {
-						"x": 2180.4414866283064,
-						"y": -941.5632493719296
-					}
 				}
 			},
 			"Node-73": {
@@ -1417,22 +1541,11 @@
 					"currentValue": 0.2,
 					"defaultValue": 0.2,
 					"cli": null
-				},
-				"metadata": {
-					"position": {
-						"x": 2145.140228056072,
-						"y": -1074.6622195468651
-					}
 				}
 			},
 			"Node-74": {
 				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/modeling.Mesh,github.com/EliCDavis/polyform/modeling/extrude.CircleNodeData]",
 				"dependencies": [
-					{
-						"dependencyID": "Node-4",
-						"dependencyPort": "Out",
-						"name": "Path"
-					},
 					{
 						"dependencyID": "Node-72",
 						"dependencyPort": "Out",
@@ -1442,14 +1555,13 @@
 						"dependencyID": "Node-73",
 						"dependencyPort": "Out",
 						"name": "Radius"
+					},
+					{
+						"dependencyID": "Node-4",
+						"dependencyPort": "Out",
+						"name": "Path"
 					}
-				],
-				"metadata": {
-					"position": {
-						"x": 2522.4570222377874,
-						"y": -1180.365880889982
-					}
-				}
+				]
 			},
 			"Node-75": {
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[int]",
@@ -1458,12 +1570,6 @@
 					"currentValue": 10,
 					"defaultValue": 10,
 					"cli": null
-				},
-				"metadata": {
-					"position": {
-						"x": 2145.140228056072,
-						"y": -806.9880776958522
-					}
 				}
 			},
 			"Node-76": {
@@ -1474,34 +1580,22 @@
 						"dependencyPort": "Out",
 						"name": "Times"
 					}
-				],
-				"metadata": {
-					"position": {
-						"x": 2507.9212098845146,
-						"y": -884.6053545863718
-					}
-				}
+				]
 			},
 			"Node-77": {
 				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/modeling.Mesh,github.com/EliCDavis/polyform/modeling/repeat.MeshNodeData]",
 				"dependencies": [
 					{
-						"dependencyID": "Node-76",
-						"dependencyPort": "Out",
-						"name": "Transforms"
-					},
-					{
 						"dependencyID": "Node-74",
 						"dependencyPort": "Out",
 						"name": "Mesh"
+					},
+					{
+						"dependencyID": "Node-76",
+						"dependencyPort": "Out",
+						"name": "Transforms"
 					}
-				],
-				"metadata": {
-					"position": {
-						"x": 2768.303932993994,
-						"y": -1037.0843019791512
-					}
-				}
+				]
 			},
 			"Node-78": {
 				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformModel,github.com/EliCDavis/polyform/generator/artifact.GltfModelNodeData]",
@@ -1516,13 +1610,7 @@
 						"dependencyPort": "Out",
 						"name": "Material"
 					}
-				],
-				"metadata": {
-					"position": {
-						"x": 3257.0520938764403,
-						"y": -153.55653319994178
-					}
-				}
+				]
 			},
 			"Node-79": {
 				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/generator/artifact.Artifact,github.com/EliCDavis/polyform/generator/artifact.GltfArtifactData]",
@@ -1547,17 +1635,21 @@
 						"dependencyPort": "Out",
 						"name": "Models.3"
 					}
-				],
-				"metadata": {
-					"position": {
-						"x": 6418.48667958356,
-						"y": -393.1300302483427
-					}
-				}
+				]
 			},
 			"Node-8": {
 				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/modeling.Mesh,github.com/EliCDavis/polyform/modeling/extrude.ScrewNodeData]",
 				"dependencies": [
+					{
+						"dependencyID": "Node-5",
+						"dependencyPort": "Out",
+						"name": "Segments"
+					},
+					{
+						"dependencyID": "Node-6",
+						"dependencyPort": "Out",
+						"name": "Revolutions"
+					},
 					{
 						"dependencyID": "Node-7",
 						"dependencyPort": "Out",
@@ -1572,24 +1664,8 @@
 						"dependencyID": "Node-4",
 						"dependencyPort": "Out",
 						"name": "Line"
-					},
-					{
-						"dependencyID": "Node-5",
-						"dependencyPort": "Out",
-						"name": "Segments"
-					},
-					{
-						"dependencyID": "Node-6",
-						"dependencyPort": "Out",
-						"name": "Revolutions"
 					}
-				],
-				"metadata": {
-					"position": {
-						"x": 2649.9804795018385,
-						"y": 629.3547399103101
-					}
-				}
+				]
 			},
 			"Node-80": {
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[github.com/EliCDavis/polyform/drawing/coloring.WebColor]",
@@ -1598,12 +1674,6 @@
 					"currentValue": "#dedede",
 					"defaultValue": "#dedede",
 					"cli": null
-				},
-				"metadata": {
-					"position": {
-						"x": 6344.901959317542,
-						"y": -1129.012763790689
-					}
 				}
 			},
 			"Node-81": {
@@ -1613,12 +1683,6 @@
 					"currentValue": "#cacaca",
 					"defaultValue": "#cacaca",
 					"cli": null
-				},
-				"metadata": {
-					"position": {
-						"x": 6344.901959317542,
-						"y": -1300.0127637906876
-					}
 				}
 			},
 			"Node-82": {
@@ -1634,13 +1698,7 @@
 						"dependencyPort": "Out",
 						"name": "Negative"
 					}
-				],
-				"metadata": {
-					"position": {
-						"x": 6642.368895660782,
-						"y": -1206.8056961078605
-					}
-				}
+				]
 			},
 			"Node-83": {
 				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/generator/artifact.Artifact,github.com/EliCDavis/polyform/generator/artifact.ImageNodeData]",
@@ -1650,13 +1708,7 @@
 						"dependencyPort": "Out",
 						"name": "In"
 					}
-				],
-				"metadata": {
-					"position": {
-						"x": 6971.600576442538,
-						"y": -1271.9141485030427
-					}
-				}
+				]
 			},
 			"Node-84": {
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[github.com/EliCDavis/polyform/drawing/coloring.WebColor]",
@@ -1665,12 +1717,6 @@
 					"currentValue": "#0046ff",
 					"defaultValue": "#0046ff",
 					"cli": null
-				},
-				"metadata": {
-					"position": {
-						"x": 6344.901959317542,
-						"y": -790.0127637906894
-					}
 				}
 			},
 			"Node-85": {
@@ -1680,12 +1726,6 @@
 					"currentValue": "#00c8ff",
 					"defaultValue": "#00c8ff",
 					"cli": null
-				},
-				"metadata": {
-					"position": {
-						"x": 6344.901959317542,
-						"y": -961.0127637906894
-					}
 				}
 			},
 			"Node-86": {
@@ -1701,13 +1741,7 @@
 						"dependencyPort": "Out",
 						"name": "Negative"
 					}
-				],
-				"metadata": {
-					"position": {
-						"x": 6655.736767523867,
-						"y": -909.2589649394622
-					}
-				}
+				]
 			},
 			"Node-87": {
 				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/generator/artifact.Artifact,github.com/EliCDavis/polyform/generator/artifact.ImageNodeData]",
@@ -1717,34 +1751,22 @@
 						"dependencyPort": "Out",
 						"name": "In"
 					}
-				],
-				"metadata": {
-					"position": {
-						"x": 6975.021946517756,
-						"y": -883.1941153765492
-					}
-				}
+				]
 			},
 			"Node-9": {
 				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/modeling.Mesh,github.com/EliCDavis/polyform/modeling/meshops.SmoothNormalsImplicitWeldNodeData]",
 				"dependencies": [
 					{
-						"dependencyID": "Node-8",
-						"dependencyPort": "Out",
-						"name": "Mesh"
-					},
-					{
 						"dependencyID": "Node-0",
 						"dependencyPort": "Out",
 						"name": "Distance"
+					},
+					{
+						"dependencyID": "Node-8",
+						"dependencyPort": "Out",
+						"name": "Mesh"
 					}
-				],
-				"metadata": {
-					"position": {
-						"x": 2903.039260421572,
-						"y": 566.491895389688
-					}
-				}
+				]
 			}
 		},
 		"producers": {

@@ -36,7 +36,6 @@ type App struct {
 
 	// Runtime data
 	nodeIDs       map[nodes.Node]string
-	nodeMetadata  *NestedSyncMap
 	graphMetadata *NestedSyncMap
 	types         *refutil.TypeFactory
 }
@@ -70,7 +69,8 @@ func (a *App) ApplyGraph(jsonPayload []byte) error {
 	}
 
 	a.nodeIDs = make(map[nodes.Node]string)
-	a.nodeMetadata = NewNestedSyncMap()
+	a.graphMetadata = NewNestedSyncMap()
+	a.graphMetadata.OverwriteData(graph.Metadata)
 	createdNodes := make(map[string]nodes.Node)
 
 	// Create the Nodes
@@ -85,7 +85,6 @@ func (a *App) ApplyGraph(jsonPayload []byte) error {
 		}
 		createdNodes[nodeID] = casted
 		a.nodeIDs[casted] = nodeID
-		a.nodeMetadata.Set(nodeID, instanceDetails.Metadata)
 	}
 
 	// Connect the nodes we just created
@@ -136,6 +135,9 @@ func (a *App) Graph() []byte {
 		Description: a.Description,
 		WebScene:    a.WebScene,
 		Producers:   make(map[string]schema.Producer),
+
+		// TODO: Is this unsafe?
+		Metadata: a.graphMetadata.data,
 	}
 
 	appNodeSchema := make(map[string]GraphNodeInstance)
@@ -356,19 +358,9 @@ func (a *App) recursivelyRegisterNodeTypes(node nodes.Node) {
 
 func (a App) buildNodeGraphInstanceSchema(node nodes.Node, encoder *jbtf.Encoder) GraphNodeInstance {
 
-	var graphMetadata map[string]any
-	if metadtata := a.nodeMetadata.Get(a.nodeIDs[node]); metadtata != nil {
-		casted, ok := metadtata.(map[string]any)
-		if !ok {
-			panic(fmt.Errorf("node %s metadata is not map, instead: %v", a.nodeIDs[node], metadtata))
-		}
-		graphMetadata = casted
-	}
-
 	nodeInstance := GraphNodeInstance{
 		Type:         refutil.GetTypeWithPackage(node),
 		Dependencies: make([]schema.NodeDependency, 0),
-		Metadata:     graphMetadata,
 	}
 
 	for _, subDependency := range node.Dependencies() {
@@ -397,7 +389,7 @@ func (a App) buildNodeInstanceSchema(node nodes.Node) schema.NodeInstance {
 		Type:         refutil.GetTypeWithPackage(node),
 		Dependencies: make([]schema.NodeDependency, 0),
 		Version:      node.Version(),
-		Metadata:     a.nodeMetadata.Get(a.nodeIDs[node]).(map[string]any),
+		Metadata:     a.graphMetadata.Get("nodes." + a.nodeIDs[node]).(map[string]any),
 	}
 
 	for _, subDependency := range node.Dependencies() {
@@ -424,7 +416,7 @@ func (a App) buildNodeInstanceSchema(node nodes.Node) schema.NodeInstance {
 func (a *App) buildIDsForNode(dep nodes.Node) {
 	if a.nodeIDs == nil {
 		a.nodeIDs = make(map[nodes.Node]string)
-		a.nodeMetadata = NewNestedSyncMap()
+		a.graphMetadata = NewNestedSyncMap()
 	}
 
 	// IDs for this node has already been built.
@@ -465,8 +457,17 @@ func (a *App) GetParameter(nodeId string) Parameter {
 func (a *App) Schema() schema.App {
 	a.SetupProducers()
 
+	var noteMetadata map[string]any
+	if notes := a.graphMetadata.Get("notes"); notes != nil {
+		casted, ok := notes.(map[string]any)
+		if ok {
+			noteMetadata = casted
+		}
+	}
+
 	appSchema := schema.App{
 		Producers: make(map[string]schema.Producer),
+		Notes:     noteMetadata,
 	}
 
 	appNodeSchema := make(map[string]schema.NodeInstance)

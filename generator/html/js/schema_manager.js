@@ -1,7 +1,8 @@
 class SchemaManager {
-    constructor(requestManager, nodeManager) {
+    constructor(requestManager, nodeManager, noteManager) {
         this.requestManager = requestManager;
         this.nodeManager = nodeManager;
+        this.noteManager = noteManager;
 
         this.schema = null;
         this.subscribers = [];
@@ -30,6 +31,7 @@ class SchemaManager {
             });
 
             this.nodeManager.updateNodes(this.schema)
+            this.noteManager.schemaUpdate(this.schema);
         })
     }
 }

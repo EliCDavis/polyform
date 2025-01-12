@@ -39,6 +39,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { InitXR } from './xr.js';
 import { UpdateManager } from './update-manager.js';
 import { getFileExtension } from './utils.js';
+import { NoteManager } from './note_manager.js';
 
 const viewportSettings = {
     renderWireframe: false,
@@ -176,7 +177,8 @@ const App = {
 }
 
 const nodeManager = new NodeManager(App);
-const schemaManager = new SchemaManager(requestManager, nodeManager);
+const noteManager = new NoteManager(requestManager, nodeFlowGraph)
+const schemaManager = new SchemaManager(requestManager, nodeManager, noteManager);
 
 if (RenderingConfiguration.XrEnabled) {
     InitXR(scene, renderer, updateLoop, representationManager, groundMesh);

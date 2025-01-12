@@ -1,37 +1,44 @@
 package generator
 
-// func graphMetadataEndpoint(as *AppServer) endpoint.Handler {
+import (
+	"net/http"
+	"strings"
 
-// 	type EditRequest map[string]any
+	"github.com/EliCDavis/polyform/generator/endpoint"
+)
 
-// 	type EmptyResponse struct{}
+func graphMetadataEndpoint(as *AppServer) endpoint.Handler {
 
-// 	return endpoint.Handler{
-// 		Methods: map[string]endpoint.Method{
-// 			http.MethodPost: endpoint.JsonMethod(
-// 				func(request endpoint.Request[EditRequest]) (EmptyResponse, error) {
+	type EditRequest any
 
-// 					// We're making the assumption the url starts like this,
-// 					// so assert it.
-// 					if strings.Index(request.Url, "/graph/metadata") != 0 {
-// 						panic("url should begin with /graph/metadata")
-// 					}
+	type EmptyResponse struct{}
 
-// 					metadataPath := request.Url[len("/graph/metadata"):]
+	return endpoint.Handler{
+		Methods: map[string]endpoint.Method{
+			http.MethodPost: endpoint.JsonMethod(
+				func(request endpoint.Request[EditRequest]) (EmptyResponse, error) {
 
-// 					if metadataPath[0] == '/' {
-// 						metadataPath = metadataPath[1:]
-// 					}
+					// We're making the assumption the url starts like this,
+					// so assert it.
+					if strings.Index(request.Url, "/graph/metadata") != 0 {
+						panic("url should begin with /graph/metadata")
+					}
 
-// 					if len(metadataPath) > 0 {
-// 						metadataPath = "." + strings.Replace(metadataPath, "/", ".", -1)
-// 					}
+					metadataPath := request.Url[len("/graph/metadata"):]
 
-// 					as.app.nodeMetadata.Set(request.Body.NodeID+metadataPath, request.Body)
-// 					as.AutosaveGraph()
-// 					return EmptyResponse{}, nil
-// 				},
-// 			),
-// 		},
-// 	}
-// }
+					if metadataPath[0] == '/' {
+						metadataPath = metadataPath[1:]
+					}
+
+					if len(metadataPath) > 0 {
+						metadataPath = strings.Replace(metadataPath, "/", ".", -1)
+					}
+
+					as.app.graphMetadata.Set(metadataPath, request.Body)
+					as.AutosaveGraph()
+					return EmptyResponse{}, nil
+				},
+			),
+		},
+	}
+}

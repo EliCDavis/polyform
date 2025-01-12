@@ -144,10 +144,15 @@ class RequestManager {
     }
 
     setNodeMetadata(inNodeID, key, metadata, callback) {
-        this.postJson("node/metadata" + key, {
-            "nodeId": inNodeID,
-            "metadata": metadata
-        }, callback)
+        this.postJson(`graph/metadata/nodes/${inNodeID}/${key}`, metadata, callback)
+    }
+
+    createNote(noteID, note, callback) {
+        this.postJson(`graph/metadata/notes/${noteID}`, note, callback)
+    }
+
+    setNoteMetadata(noteID, key, metadata, callback) {
+        this.postJson(`graph/metadata/notes/${noteID}/${key}`, metadata, callback)
     }
 
     createNode(nodeType, callback) {

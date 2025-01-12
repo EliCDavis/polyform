@@ -14,11 +14,11 @@ type Graph struct {
 	WebScene    *room.WebScene               `json:"webScene"`
 	Producers   map[string]schema.Producer   `json:"producers"`
 	Nodes       map[string]GraphNodeInstance `json:"nodes"`
+	Metadata    map[string]any               `json:"metadata,omitempty"`
 }
 
 type GraphNodeInstance struct {
 	Type         string                  `json:"type"`
 	Dependencies []schema.NodeDependency `json:"dependencies,omitempty"`
 	Data         json.RawMessage         `json:"data,omitempty"`
-	Metadata     map[string]any          `json:"metadata,omitempty"`
 }

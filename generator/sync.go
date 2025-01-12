@@ -63,6 +63,18 @@ func (sm *NestedSyncMap) Get(key string) any {
 	return current[elements[len(elements)-1]]
 }
 
+func (sm *NestedSyncMap) OverwriteData(data map[string]any) {
+	sm.mutex.Lock()
+	defer sm.mutex.Unlock()
+
+	if data == nil {
+		sm.data = make(map[string]any)
+	} else {
+		sm.data = data
+	}
+
+}
+
 func (sm *NestedSyncMap) Set(key string, value any) {
 	sm.mutex.Lock()
 	defer sm.mutex.Unlock()

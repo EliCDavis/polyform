@@ -110,7 +110,7 @@ export class PolyNodeController {
         this.flowNode.addDragStoppedListener((nodeChanged) => {
             this.app.RequestManager.setNodeMetadata(
                 this.flowNode.nodeInstanceID,
-                "/position",
+                "position",
                 this.flowNode.getPosition(),
                 (response) => {
                     console.log("set metadata response", response)
