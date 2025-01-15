@@ -9,7 +9,16 @@ export class NoteManager {
         this.updating = false;
 
         flowGraph.addNoteAddedListener(this.noteAdded.bind(this));
+        flowGraph.addNoteRemovedListener(this.noteRemoved.bind(this));
         flowGraph.addNoteDragStopListener(this.noteDragStopped.bind(this));
+    }
+
+    generateID() {
+        let maxID = 0;
+        this.notes.forEach((note, ID) => {
+            maxID = Math.max(maxID, parseInt(ID)) 
+        })
+        return "" + (maxID+1);
     }
 
     schemaUpdate(newSchema) {
@@ -56,7 +65,7 @@ export class NoteManager {
         if (this.updating) {
             return;
         }
-        addedNote.id = "" + this.notes.size;
+        addedNote.id = this.generateID();
         this.requestManager.createNote(
             addedNote.id,
             {
@@ -69,6 +78,13 @@ export class NoteManager {
 
         this.notes.set(addedNote.id, addedNote);
         this.setupNote(addedNote);
+    }
+
+    noteRemoved(removedNode /*FlowNote*/) {
+        if (this.updating) {
+            return;
+        }
+        this.requestManager.deleteMetadata(`notes/${removedNode.id}`)
     }
 
     noteDragStopped(noteDragged /*FlowNote*/) {

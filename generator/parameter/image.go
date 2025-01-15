@@ -23,6 +23,10 @@ type Image struct {
 	appliedProfile image.Image
 }
 
+func (in *Image) SetName(name string) {
+	in.Name = name
+}
+
 func (in *Image) Node() nodes.Node {
 	return in
 }

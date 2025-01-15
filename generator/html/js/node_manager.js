@@ -142,6 +142,8 @@ export class NodeManager {
                 }
             }
             nodeConfig.style = ParameterStyle
+
+            nodeConfig.canEditTitle = true;
         }
 
         // nm.onNodeCreateCallback(this, typeData.type);
@@ -198,14 +200,16 @@ export class NodeManager {
                 const nodeToUpdate = this.nodeIdToNode.get(nodeID);
                 nodeToUpdate.update(nodeData);
             } else {
+                const flowNode = this.newNode(nodeData);
+
                 let isProducer = false;
                 for (const [key, value] of Object.entries(newSchema.producers)) {
                     if (value.nodeID === nodeID) {
                         isProducer = true;
+                        flowNode.setTitle(key);
                     }
                 }
 
-                const flowNode = this.newNode(nodeData);
                 this.app.NodeFlowGraph.addNode(flowNode);
 
                 // TODO: This is an ugo hack. Consider somehow making this

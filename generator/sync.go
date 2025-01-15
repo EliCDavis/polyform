@@ -42,10 +42,19 @@ func NewNestedSyncMap() *NestedSyncMap {
 	}
 }
 
-func (sm *NestedSyncMap) Get(key string) any {
+func (sm *NestedSyncMap) OverwriteData(data map[string]any) {
 	sm.mutex.Lock()
 	defer sm.mutex.Unlock()
 
+	if data == nil {
+		sm.data = make(map[string]any)
+	} else {
+		sm.data = data
+	}
+
+}
+
+func (sm *NestedSyncMap) lookup(key string) (map[string]any, string) {
 	elements := strings.Split(key, ".")
 	current := sm.data
 	for i := 0; i < len(elements)-1; i++ {
@@ -60,19 +69,23 @@ func (sm *NestedSyncMap) Get(key string) any {
 		}
 		current = casted
 	}
-	return current[elements[len(elements)-1]]
+	return current, elements[len(elements)-1]
 }
 
-func (sm *NestedSyncMap) OverwriteData(data map[string]any) {
+func (sm *NestedSyncMap) Get(key string) any {
 	sm.mutex.Lock()
 	defer sm.mutex.Unlock()
 
-	if data == nil {
-		sm.data = make(map[string]any)
-	} else {
-		sm.data = data
-	}
+	data, key := sm.lookup(key)
+	return data[key]
+}
 
+func (sm *NestedSyncMap) Delete(key string) {
+	sm.mutex.Lock()
+	defer sm.mutex.Unlock()
+
+	data, key := sm.lookup(key)
+	delete(data, key)
 }
 
 func (sm *NestedSyncMap) Set(key string, value any) {

@@ -185,12 +185,12 @@ if (RenderingConfiguration.XrEnabled) {
 }
 
 nodeManager.subscribeToParameterChange((param) => {
-    schemaManager.setProfileKey(param.id, param.data, param.binary);
+    schemaManager.setParameter(param.id, param.data, param.binary);
 });
 
 let firstTimeLoadingScene = true;
 
-const loader = new GLTFLoader().setPath('producer/');
+const loader = new GLTFLoader().setPath('producer/value/');
 let producerScene = null;
 
 let guassianSplatViewer = null;
@@ -420,7 +420,7 @@ class SchemaRefreshManager {
 
             switch (fileExt) {
                 case "txt":
-                    this.loadText('producer/' + producer);
+                    this.loadText('producer/value/' + producer);
                     break;
 
                 case "gltf":
@@ -429,15 +429,15 @@ class SchemaRefreshManager {
                     break;
 
                 case "splat":
-                    this.loadSplat(producer, 'producer/' + producer)
+                    this.loadSplat(producer, 'producer/value/' + producer)
                     break;
 
                 case "ply":
-                    this.loadSplat(producer, 'producer/' + producer)
+                    this.loadSplat(producer, 'producer/value/' + producer)
                     break;
 
                 case "png":
-                    this.loadImage('producer/' + producer);
+                    this.loadImage('producer/value/' + producer);
                     break;
             }
         }

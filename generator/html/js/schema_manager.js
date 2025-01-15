@@ -12,8 +12,8 @@ class SchemaManager {
         this.subscribers.push(subscriber);
     }
 
-    setProfileKey(key, data, binary) {
-        this.requestManager.updateProfile(
+    setParameter(key, data, binary) {
+        this.requestManager.setParameter(
             key,
             data,
             binary,

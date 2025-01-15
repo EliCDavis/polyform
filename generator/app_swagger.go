@@ -85,7 +85,7 @@ func (a App) SwaggerSpec() swagger.Spec {
 	for path, producer := range a.Producers {
 		definitionName := swaggerDefinitionNameFromProducerPath(path)
 
-		paths["/producer/"+path] = swagger.Path{
+		paths["/producer/value/"+path] = swagger.Path{
 			// Post required for bodys per HTTP spec.
 			swagger.PostRequestMethod: swagger.RequestDefinition{
 				// Summary:     "Test",

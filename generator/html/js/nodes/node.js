@@ -122,6 +122,27 @@ export class PolyNodeController {
             this.parameter = BuildParameter(flowNode, this.nodeManager, this.id, nodeData.parameter, this.app);
         }
 
+        // type TitleChangeCallback = (node: FlowNode, oldTitle: string, newTitle: string) => void
+        this.flowNode.addTitleChangeListener((_, __, newTitle) => {
+
+            // The only two times we can change title is if the node is a 
+            // parameter, or if it's a producer.
+
+            if (isProducer) {
+                this.app.RequestManager.setProducerTitle(
+                    this.flowNode.nodeInstanceID,
+                    newTitle,
+                    () => { }
+                );
+            } else {
+                this.app.RequestManager.setParameterTitle(
+                    this.flowNode.nodeInstanceID,
+                    newTitle,
+                    () => { }
+                );
+            }
+        });
+
         if (this.isProducer) {
             const ext = getFileExtension(nodeData.name);
             if (ext === "png") {
@@ -142,7 +163,7 @@ export class PolyNodeController {
             const downloadButton = GlobalWidgetFactory.create(flowNode, "button", {
                 text: "Download",
                 callback: () => {
-                    saveFileToDisk("/producer/" + this.name, this.name);
+                    saveFileToDisk("/producer/value/" + this.name, this.name);
                 }
             })
             this.flowNode.addWidget(downloadButton);

@@ -43,9 +43,9 @@ func TestSwaggerFromGraph_SingleParameterSingleProducer(t *testing.T) {
 
 	// Producers
 	assert.Len(t, spec.Paths, 1)
-	assert.Contains(t, spec.Paths, "/producer/test.txt")
+	assert.Contains(t, spec.Paths, "/producer/value/test.txt")
 
-	path := spec.Paths["/producer/test.txt"]
+	path := spec.Paths["/producer/value/test.txt"]
 	assert.Len(t, path, 1)
 	assert.Contains(t, path, swagger.PostRequestMethod)
 
@@ -139,9 +139,9 @@ func TestSwaggerFromGraph_MultipleParametersSingleProducer(t *testing.T) {
 
 	// Producers
 	assert.Len(t, spec.Paths, 1)
-	assert.Contains(t, spec.Paths, "/producer/example.glb")
+	assert.Contains(t, spec.Paths, "/producer/value/example.glb")
 
-	path := spec.Paths["/producer/example.glb"]
+	path := spec.Paths["/producer/value/example.glb"]
 	assert.Len(t, path, 1)
 	assert.Contains(t, path, swagger.PostRequestMethod)
 	request := path[swagger.PostRequestMethod]

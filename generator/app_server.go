@@ -145,13 +145,15 @@ func (as *AppServer) Serve() error {
 	http.HandleFunc("/zip", as.ZipEndpoint)
 	http.Handle("/node", nodeEndpoint(as))
 	http.Handle("/node/connection", nodeConnectionEndpoint(as))
-	http.Handle("/profile/", profileEndpoint(as))
+	http.Handle("/parameter/value/", parameterValueEndpoint(as))
+	http.Handle("/parameter/name/", parameterNameEndpoint(as))
 	http.Handle("/graph", graphEndpoint(as))
 	http.Handle("/graph/metadata/", graphMetadataEndpoint(as))
 	http.HandleFunc("/started", as.StartedEndpoint)
 	http.HandleFunc("/mermaid", as.MermaidEndpoint)
 	http.HandleFunc("/swagger", as.SwaggerEndpoint)
-	http.HandleFunc("/producer/", as.ProducerEndpoint)
+	http.HandleFunc("/producer/value/", as.ProducerEndpoint)
+	http.Handle("/producer/name/", producerNameEndpoint(as))
 
 	hub := room.NewHub(as.webscene, &as.movelVersion)
 	go hub.Run()
@@ -183,7 +185,6 @@ func (as *AppServer) AutosaveGraph() {
 	defer as.autsaveMutex.Unlock()
 	err := os.WriteFile(as.configPath, as.app.Graph(), 0666)
 	if err != nil {
-		log.Printf("EEEERRRRRROOORRRRRR %v\n", err)
 		panic(err)
 	}
 	log.Printf("Graph written %s\n", as.configPath)
@@ -242,7 +243,7 @@ func (as *AppServer) writeProducerDataToRequest(producerToLoad string, w http.Re
 	return bufWr.Flush()
 }
 
-func (as *AppServer) ApplyMessage(key string, msg []byte) (bool, error) {
+func (as *AppServer) UpdateParameter(key string, msg []byte) (bool, error) {
 	log.Println("applying...")
 	changed, err := as.app.GetParameter(key).ApplyMessage(msg)
 	return changed, err
@@ -286,5 +287,6 @@ func (as *AppServer) SceneEndpoint(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		panic(err)
 	}
+	w.Header().Set("Content-Type", "application/json")
 	w.Write(data)
 }

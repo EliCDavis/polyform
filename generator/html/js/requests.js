@@ -54,6 +54,7 @@ class RequestManager {
         xmlHttp.send(null);
     }
 
+    
     fetchJSON(theUrl, callback) {
         const xmlHttp = new XMLHttpRequest();
         xmlHttp.onreadystatechange = () => {
@@ -80,8 +81,34 @@ class RequestManager {
         xmlHttp.send(null);
     }
 
-    postJson(theUrl, body, callback) {
+    deleteEmptyBodyEmptyResponse(theUrl, callback) {
+        const xmlHttp = new XMLHttpRequest();
+        // xmlHttp.responseType = 'blob';
+
+        xmlHttp.onreadystatechange = () => {
+            if (xmlHttp.readyState == 4 && xmlHttp.status == 200) {
+                // console.log(xmlHttp.responseText)
+                // callback(xmlHttp.response);
+                callback();
+            }
+        }
+        xmlHttp.open("DELETE", theUrl, true); // true for asynchronous 
+        xmlHttp.send(null);
+    }
+
+    postJsonBodyJsonResponse(theUrl, body, callback) {
         this.postBinary(theUrl, JSON.stringify(body), callback)
+    }
+
+    postTextBodyEmptyResponse(theUrl, body, callback) {
+        const xmlHttp = new XMLHttpRequest();
+        xmlHttp.onreadystatechange = () => {
+            if (xmlHttp.readyState == 4 && xmlHttp.status == 200 && callback) {
+                callback();
+            }
+        }
+        xmlHttp.open("POST", theUrl, true); // true for asynchronous 
+        xmlHttp.send(body);
     }
 
     postBinary(theUrl, body, callback) {
@@ -95,7 +122,7 @@ class RequestManager {
         xmlHttp.send(body);
     }
 
-    delete(theUrl, body, callback) {
+    deleteJSONBodyJSONResponse(theUrl, body, callback) {
         const xmlHttp = new XMLHttpRequest();
         xmlHttp.onreadystatechange = () => {
             if (xmlHttp.readyState == 4 && xmlHttp.status == 200 && callback) {
@@ -103,7 +130,7 @@ class RequestManager {
             }
         }
         xmlHttp.open("DELETE", theUrl, true); // true for asynchronous 
-        xmlHttp.send(body);
+        xmlHttp.send(JSON.stringify(body));
     }
 
     getStartedTime(callback) {
@@ -114,28 +141,36 @@ class RequestManager {
         this.fetchJSON("/schema", callback);
     }
 
-    updateProfile(key, data, binary, callback) {
-        const url = "/profile/" + key;
+    setParameter(key, data, binary, callback) {
+        const url = "/parameter/value/" + key;
         if (binary) {
             this.postBinary(url, data, callback);
         } else {
-            this.postJson(url, data, callback);
+            this.postJsonBodyJsonResponse(url, data, callback);
         }
     }
 
+    setParameterTitle(inNodeID, value, callback) {
+        this.postTextBodyEmptyResponse("/parameter/name/"+inNodeID, value, callback);
+    }
+
+    setProducerTitle(inNodeID, value, callback) {
+        this.postTextBodyEmptyResponse("/producer/name/"+inNodeID, value, callback);
+    }
+
     getParameterValue(key, callback) {
-        this.fetchRaw("/profile/" + key, callback);
+        this.fetchRaw("/parameter/value/" + key, callback);
     }
 
     deleteNodeInput(nodeID, inputPortName, callback) {
-        this.delete("node/connection", JSON.stringify({
+        this.deleteJSONBodyJSONResponse("node/connection", {
             "nodeId": nodeID,
             "inPortName": inputPortName
-        }), callback)
+        }, callback)
     }
 
     setNodeInputConnection(inNodeID, inputPortName, outNodeID, outPortName, callback) {
-        this.postJson("node/connection", {
+        this.postJsonBodyJsonResponse("node/connection", {
             "nodeOutId": outNodeID,
             "outPortName": outPortName,
             "nodeInId": inNodeID,
@@ -144,19 +179,25 @@ class RequestManager {
     }
 
     setNodeMetadata(inNodeID, key, metadata, callback) {
-        this.postJson(`graph/metadata/nodes/${inNodeID}/${key}`, metadata, callback)
+        this.postJsonBodyJsonResponse(`graph/metadata/nodes/${inNodeID}/${key}`, metadata, callback)
     }
 
+    
+
     createNote(noteID, note, callback) {
-        this.postJson(`graph/metadata/notes/${noteID}`, note, callback)
+        this.postJsonBodyJsonResponse(`graph/metadata/notes/${noteID}`, note, callback)
     }
 
     setNoteMetadata(noteID, key, metadata, callback) {
-        this.postJson(`graph/metadata/notes/${noteID}/${key}`, metadata, callback)
+        this.postJsonBodyJsonResponse(`graph/metadata/notes/${noteID}/${key}`, metadata, callback)
+    }
+
+    deleteMetadata(path, callback) {
+        this.deleteEmptyBodyEmptyResponse(`graph/metadata/${path}`, callback)
     }
 
     createNode(nodeType, callback) {
-        this.postJson("node", {
+        this.postJsonBodyJsonResponse("node", {
             "nodeType": nodeType,
         }, callback)
     }
@@ -170,6 +211,6 @@ class RequestManager {
     }
 
     setGraph(newGraph, callback) {
-        this.postJson("/graph", newGraph, callback)
+        this.postJsonBodyJsonResponse("/graph", newGraph, callback)
     }
 }

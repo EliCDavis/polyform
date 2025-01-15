@@ -86,6 +86,10 @@ type Value[T any] struct {
 	appliedProfile *T
 }
 
+func (in *Value[T]) SetName(name string) {
+	in.Name = name
+}
+
 func (in *Value[T]) Port() string {
 	return "Out"
 }

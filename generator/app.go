@@ -11,6 +11,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"sort"
 	"strings"
 	"text/template"
 	"time"
@@ -128,6 +129,16 @@ func (a *App) ApplyGraph(jsonPayload []byte) error {
 	return nil
 }
 
+func (a *App) FindNodeByID(nodeId string) nodes.Node {
+	var node nodes.Node
+	for n, id := range a.nodeIDs {
+		if id == nodeId {
+			node = n
+		}
+	}
+	return node
+}
+
 func (a *App) Graph() []byte {
 	g := Graph{
 		Name:        a.Name,
@@ -140,7 +151,7 @@ func (a *App) Graph() []byte {
 		Metadata: a.graphMetadata.data,
 	}
 
-	appNodeSchema := make(map[string]GraphNodeInstance)
+	nodeInstances := make(map[string]GraphNodeInstance)
 
 	encoder := &jbtf.Encoder{}
 
@@ -150,18 +161,18 @@ func (a *App) Graph() []byte {
 			panic(fmt.Errorf("node %v has not had an ID generated for it", node))
 		}
 
-		if _, ok := appNodeSchema[id]; ok {
+		if _, ok := nodeInstances[id]; ok {
 			panic("not sure how this happened")
 		}
 
-		appNodeSchema[id] = a.buildNodeGraphInstanceSchema(node, encoder)
+		nodeInstances[id] = a.buildNodeGraphInstanceSchema(node, encoder)
 	}
 
 	for key, producer := range a.Producers {
 		// a.buildSchemaForNode(producer.Node(), appNodeSchema)
 		id := a.nodeIDs[producer.Node()]
-		node := appNodeSchema[id]
-		appNodeSchema[id] = node
+		node := nodeInstances[id]
+		nodeInstances[id] = node
 
 		g.Producers[key] = schema.Producer{
 			NodeID: id,
@@ -169,7 +180,7 @@ func (a *App) Graph() []byte {
 		}
 	}
 
-	g.Nodes = appNodeSchema
+	g.Nodes = nodeInstances
 
 	data, err := encoder.ToPgtf(g)
 	if err != nil {
@@ -371,6 +382,10 @@ func (a App) buildNodeGraphInstanceSchema(node nodes.Node, encoder *jbtf.Encoder
 		})
 	}
 
+	sort.Slice(nodeInstance.Dependencies, func(i, j int) bool {
+		return strings.ToLower(nodeInstance.Dependencies[i].Name) < strings.ToLower(nodeInstance.Dependencies[j].Name)
+	})
+
 	if param, ok := node.(CustomGraphSerialization); ok {
 		data, err := param.ToJSON(encoder)
 		if err != nil {
@@ -435,12 +450,7 @@ func (a *App) buildIDsForNode(dep nodes.Node) {
 }
 
 func (a *App) GetParameter(nodeId string) Parameter {
-	var node nodes.Node
-	for n, id := range a.nodeIDs {
-		if id == nodeId {
-			node = n
-		}
-	}
+	node := a.FindNodeByID(nodeId)
 
 	if node == nil {
 		panic(fmt.Errorf("no node exists with id %q", nodeId))

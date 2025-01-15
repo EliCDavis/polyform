@@ -43,6 +43,8 @@ func nodeEndpoint(as *AppServer) endpoint.Handler {
 					}
 					as.app.buildIDsForNode(casted)
 
+					as.AutosaveGraph()
+
 					return CreateResponse{
 						NodeID: as.app.nodeIDs[casted],
 						Data:   as.app.buildNodeInstanceSchema(casted),
@@ -52,13 +54,23 @@ func nodeEndpoint(as *AppServer) endpoint.Handler {
 			http.MethodDelete: endpoint.JsonMethod(
 				func(request endpoint.Request[DeleteRequest]) (EmptyResponse, error) {
 					var nodeToDelete nodes.Node
+
 					for n, id := range as.app.nodeIDs {
 						if id == request.Body.NodeID {
 							nodeToDelete = n
 						}
 					}
 
+					for filename, producer := range as.app.Producers {
+						if as.app.nodeIDs[producer.Node()] == request.Body.NodeID {
+							delete(as.app.Producers, filename)
+						}
+					}
+
 					delete(as.app.nodeIDs, nodeToDelete)
+
+					as.AutosaveGraph()
+
 					return EmptyResponse{}, nil
 				},
 			),

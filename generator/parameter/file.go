@@ -19,6 +19,10 @@ type File struct {
 	appliedProfile []byte
 }
 
+func (in *File) SetName(name string) {
+	in.Name = name
+}
+
 func (in *File) Node() nodes.Node {
 	return in
 }

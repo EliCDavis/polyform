@@ -11,6 +11,7 @@ type Parameter interface {
 	DisplayName() string
 	Schema() schema.Parameter
 	InitializeForCLI(set *flag.FlagSet)
+	SetName(name string)
 
 	ApplyMessage(msg []byte) (bool, error)
 	ToMessage() []byte
