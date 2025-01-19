@@ -2,12 +2,13 @@ package parameter
 
 import (
 	"github.com/EliCDavis/polyform/drawing/coloring"
+	"github.com/EliCDavis/polyform/generator"
 	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/refutil"
 	"github.com/EliCDavis/vector/vector3"
 )
 
-func Nodes() *refutil.TypeFactory {
+func init() {
 	factory := &refutil.TypeFactory{}
 
 	refutil.RegisterTypeWithBuilder(factory, func() Int { return Int{} })
@@ -32,5 +33,5 @@ func Nodes() *refutil.TypeFactory {
 		}
 	})
 
-	return factory
+	generator.RegisterTypes(factory)
 }

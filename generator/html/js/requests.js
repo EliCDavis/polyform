@@ -202,6 +202,12 @@ class RequestManager {
         }, callback)
     }
 
+    deleteNode(nodeId, callback) {
+        this.deleteJSONBodyJSONResponse("node", {
+            "nodeID": nodeId,
+        }, callback)
+    }
+
     getGraph(callback) {
         this.fetchJSON("/graph", callback)
     }

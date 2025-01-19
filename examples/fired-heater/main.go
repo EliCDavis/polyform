@@ -304,7 +304,7 @@ func (csn CombineSegmentsNodeData) Process() (artifact.Artifact, error) {
 		}
 		offset += segment.height / 2
 	}
-	return artifact.Gltf{
+	return gltf.Artifact{
 		Scene: gltf.PolyformScene{
 			Models: final,
 		},

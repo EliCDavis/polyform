@@ -1,4 +1,4 @@
-package gausops
+package curves
 
 import (
 	"github.com/EliCDavis/polyform/generator"
@@ -8,8 +8,8 @@ import (
 func init() {
 	factory := &refutil.TypeFactory{}
 
-	refutil.RegisterType[ColorGradingLutNode](factory)
-	refutil.RegisterType[ScaleNode](factory)
+	refutil.RegisterType[CatmullRomSplineNode](factory)
+	refutil.RegisterType[LengthNode](factory)
 
 	generator.RegisterTypes(factory)
 }

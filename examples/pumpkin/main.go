@@ -15,6 +15,7 @@ import (
 	"github.com/EliCDavis/polyform/drawing/texturing"
 	"github.com/EliCDavis/polyform/generator"
 	"github.com/EliCDavis/polyform/generator/artifact"
+	"github.com/EliCDavis/polyform/generator/artifact/basics"
 	"github.com/EliCDavis/polyform/generator/parameter"
 	"github.com/EliCDavis/polyform/generator/room"
 	"github.com/EliCDavis/polyform/math/colors"
@@ -324,7 +325,7 @@ func main() {
 					},
 				},
 			},
-			"pumpkin.png": artifact.NewImageNode(&experimental.SeamlessPerlinNode{
+			"pumpkin.png": basics.NewImageNode(&experimental.SeamlessPerlinNode{
 				Data: experimental.SeamlessPerlinNodeData{
 					Positive: &parameter.Color{
 						Name:         "Base Color",
@@ -336,7 +337,7 @@ func main() {
 					},
 				},
 			}),
-			"stem.png": artifact.NewImageNode(&experimental.SeamlessPerlinNode{
+			"stem.png": basics.NewImageNode(&experimental.SeamlessPerlinNode{
 				Data: experimental.SeamlessPerlinNodeData{
 					Positive: &parameter.Color{
 						Name:         "Stem Base Color",

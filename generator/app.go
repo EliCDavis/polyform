@@ -4,7 +4,6 @@ import (
 	"archive/zip"
 	_ "embed"
 	"encoding/json"
-	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -25,8 +24,6 @@ import (
 	"github.com/EliCDavis/polyform/refutil"
 )
 
-type NodeBuilder func() nodes.Node
-
 type App struct {
 	Name        string
 	Version     string
@@ -38,7 +35,6 @@ type App struct {
 	// Runtime data
 	nodeIDs       map[nodes.Node]string
 	graphMetadata *NestedSyncMap
-	types         *refutil.TypeFactory
 }
 
 func (a *App) ApplyGraph(jsonPayload []byte) error {
@@ -79,7 +75,7 @@ func (a *App) ApplyGraph(jsonPayload []byte) error {
 		if nodeID == "" {
 			panic("attempting to create a node without an ID")
 		}
-		newNode := a.types.New(instanceDetails.Type)
+		newNode := types.New(instanceDetails.Type)
 		casted, ok := newNode.(nodes.Node)
 		if !ok {
 			panic(fmt.Errorf("graph definition contained type that instantiated a non node: %s", instanceDetails.Type))
@@ -162,7 +158,7 @@ func (a *App) Graph() []byte {
 		}
 
 		if _, ok := nodeInstances[id]; ok {
-			panic("not sure how this happened")
+			panic(fmt.Errorf("we've arrived to a invalid state. two nodes refer to the same ID. There's a bug somewhere"))
 		}
 
 		nodeInstances[id] = a.buildNodeGraphInstanceSchema(node, encoder)
@@ -225,14 +221,8 @@ func (a *App) nodeFromID(id string) nodes.Node {
 }
 
 func (a *App) addType(v any) {
-	if a.types == nil {
-		a.types = Nodes()
-		// for _, p := range a.types.Types() {
-		// 	log.Println(p)
-		// }
-	}
-	if !a.types.TypeRegistered(v) {
-		a.types.RegisterType(v)
+	if !types.TypeRegistered(v) {
+		types.RegisterType(v)
 	}
 }
 
@@ -338,7 +328,6 @@ func BuildNodeTypeSchema(node nodes.Node) schema.NodeType {
 	if pathed, ok := node.(nodes.Pathed); ok {
 		typeSchema.Path = pathed.Path()
 	} else {
-
 		packagePath := refutil.GetPackagePath(node)
 		if strings.Contains(packagePath, "/") {
 			path := strings.Split(packagePath, "/")
@@ -354,7 +343,10 @@ func BuildNodeTypeSchema(node nodes.Node) schema.NodeType {
 		} else {
 			typeSchema.Path = packagePath
 		}
+	}
 
+	if described, ok := node.(nodes.Describable); ok {
+		typeSchema.Info = described.Description()
 	}
 
 	return typeSchema
@@ -399,12 +391,17 @@ func (a App) buildNodeGraphInstanceSchema(node nodes.Node, encoder *jbtf.Encoder
 
 func (a App) buildNodeInstanceSchema(node nodes.Node) schema.NodeInstance {
 
+	var metadata map[string]any
+	if data := a.graphMetadata.Get("nodes." + a.nodeIDs[node]); data != nil {
+		metadata = data.(map[string]any)
+	}
+
 	nodeInstance := schema.NodeInstance{
 		Name:         "Unamed",
 		Type:         refutil.GetTypeWithPackage(node),
 		Dependencies: make([]schema.NodeDependency, 0),
 		Version:      node.Version(),
-		Metadata:     a.graphMetadata.Get("nodes." + a.nodeIDs[node]).(map[string]any),
+		Metadata:     metadata,
 	}
 
 	for _, subDependency := range node.Dependencies() {
@@ -428,25 +425,44 @@ func (a App) buildNodeInstanceSchema(node nodes.Node) schema.NodeInstance {
 	return nodeInstance
 }
 
-func (a *App) buildIDsForNode(dep nodes.Node) {
+func (a *App) buildIDsForNode(node nodes.Node) {
 	if a.nodeIDs == nil {
 		a.nodeIDs = make(map[nodes.Node]string)
 		a.graphMetadata = NewNestedSyncMap()
 	}
 
 	// IDs for this node has already been built.
-	if _, ok := a.nodeIDs[dep]; ok {
+	if _, ok := a.nodeIDs[node]; ok {
 		return
 	}
 
-	a.addType(dep)
+	a.addType(node)
 
-	for _, subDependency := range dep.Dependencies() {
+	for _, subDependency := range node.Dependencies() {
 		a.buildIDsForNode(subDependency.Dependency())
 	}
 
-	id := fmt.Sprintf("Node-%d", len(a.nodeIDs))
-	a.nodeIDs[dep] = id
+	// TODO: UGLY UGLY UGLY UGLY
+	i := len(a.nodeIDs)
+	for {
+		id := fmt.Sprintf("Node-%d", i)
+
+		taken := false
+		for _, usedId := range a.nodeIDs {
+			if usedId == id {
+				taken = true
+			}
+			if taken {
+				break
+			}
+		}
+		if !taken {
+			a.nodeIDs[node] = id
+			break
+		}
+		i++
+	}
+
 }
 
 func (a *App) GetParameter(nodeId string) Parameter {
@@ -510,10 +526,10 @@ func (a *App) Schema() schema.App {
 
 	appSchema.Nodes = appNodeSchema
 
-	registeredTypes := a.types.Types()
+	registeredTypes := types.Types()
 	nodeTypes := make([]schema.NodeType, 0, len(registeredTypes))
 	for _, registeredType := range registeredTypes {
-		nodeInstance, ok := a.types.New(registeredType).(nodes.Node)
+		nodeInstance, ok := types.New(registeredType).(nodes.Node)
 		if !ok {
 			panic("Registered type is somehow not a node. Not sure how we got here :/")
 		}
@@ -572,9 +588,9 @@ func (a *App) SetupProducers() {
 }
 
 func (a *App) Run() error {
-	if a.Producers == nil || len(a.Producers) == 0 {
-		return errors.New("application has not defined any producers")
-	}
+	// if a.Producers == nil || len(a.Producers) == 0 {
+	// 	return errors.New("application has not defined any producers")
+	// }
 
 	os_setup(a)
 	a.SetupProducers()
@@ -607,6 +623,7 @@ func (a *App) Run() error {
 				portFlag := editCmd.String("port", "8080", "port to serve over")
 
 				autoSave := editCmd.Bool("autosave", false, "Whether or not to save changes back to the graph loaded")
+				launchWebBrowser := editCmd.Bool("launch-browser", true, "Whether or not to open the web page in the web browser")
 
 				sslFlag := editCmd.Bool("ssl", false, "Whether or not to use SSL")
 				certFlag := editCmd.String("ssl.cert", "cert.pem", "Path to cert file")
@@ -642,10 +659,11 @@ func (a *App) Run() error {
 				}
 
 				server := AppServer{
-					app:      a,
-					host:     *hostFlag,
-					port:     *portFlag,
-					webscene: a.WebScene,
+					app:              a,
+					host:             *hostFlag,
+					port:             *portFlag,
+					webscene:         a.WebScene,
+					launchWebbrowser: *launchWebBrowser,
 
 					autosave:   *autoSave,
 					configPath: configFile,

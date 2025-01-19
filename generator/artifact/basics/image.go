@@ -1,10 +1,11 @@
-package artifact
+package basics
 
 import (
 	"image"
 	"image/png"
 	"io"
 
+	"github.com/EliCDavis/polyform/generator/artifact"
 	"github.com/EliCDavis/polyform/nodes"
 )
 
@@ -20,17 +21,17 @@ func (ia Image) Write(w io.Writer) error {
 	return png.Encode(w, ia.Image)
 }
 
-type ImageNode = nodes.Struct[Artifact, ImageNodeData]
+type ImageNode = nodes.Struct[artifact.Artifact, ImageNodeData]
 
 type ImageNodeData struct {
 	In nodes.NodeOutput[image.Image]
 }
 
-func (pn ImageNodeData) Process() (Artifact, error) {
+func (pn ImageNodeData) Process() (artifact.Artifact, error) {
 	return Image{Image: pn.In.Value()}, nil
 }
 
-func NewImageNode(imageNode nodes.NodeOutput[image.Image]) nodes.NodeOutput[Artifact] {
+func NewImageNode(imageNode nodes.NodeOutput[image.Image]) nodes.NodeOutput[artifact.Artifact] {
 	return (&ImageNode{
 		Data: ImageNodeData{
 			In: imageNode,

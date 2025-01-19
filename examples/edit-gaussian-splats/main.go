@@ -4,8 +4,10 @@ import (
 	"math"
 
 	"github.com/EliCDavis/polyform/drawing/coloring"
+	"github.com/EliCDavis/polyform/formats/ply"
 	"github.com/EliCDavis/polyform/generator"
 	"github.com/EliCDavis/polyform/generator/artifact"
+	"github.com/EliCDavis/polyform/generator/artifact/basics"
 	"github.com/EliCDavis/polyform/generator/parameter"
 	"github.com/EliCDavis/polyform/generator/room"
 	"github.com/EliCDavis/polyform/math/geometry"
@@ -159,8 +161,8 @@ func main() {
 			XrEnabled: true,
 		},
 		Producers: map[string]nodes.NodeOutput[artifact.Artifact]{
-			"mesh.ply": artifact.NewSplatPlyNode(pointcloud.Out()),
-			"info.txt": artifact.NewTextNode(&InfoNode{
+			"mesh.ply": ply.NewSplatPlyNode(pointcloud.Out()),
+			"info.txt": basics.NewTextNode(&InfoNode{
 				Data: InfoNodeData{
 					Original: pointcloud.Out(),
 					Final:    colorGraded.Out(),

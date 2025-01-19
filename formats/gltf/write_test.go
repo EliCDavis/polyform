@@ -2463,7 +2463,7 @@ func TestWrite_MeshesDeduplicated(t *testing.T) {
 	err := gltf.WriteText(gltf.PolyformScene{
 		Models: []gltf.PolyformModel{
 			{Name: "mesh_right", Mesh: &tri, Material: material, Translation: &rightV, Scale: &scaleUniform15},
-			{Name: "mesh_left", Mesh: &tri, Material: material, Translation: &leftV, Scale: &scaleDistort, Quaternion: &rotQuat},
+			{Name: "mesh_left", Mesh: &tri, Material: material, Translation: &leftV, Scale: &scaleDistort, Rotation: &rotQuat},
 		},
 	}, &buf)
 
@@ -2632,7 +2632,7 @@ func TestWrite_MeshesDifferentMatsPreserved(t *testing.T) {
 	err := gltf.WriteText(gltf.PolyformScene{
 		Models: []gltf.PolyformModel{
 			{Name: "mesh_right", Mesh: &tri, Material: materialLeft, Translation: &rightV, Scale: &scaleUniform15},
-			{Name: "mesh_left", Mesh: &tri, Material: materialRight, Translation: &leftV, Scale: &scaleDistort, Quaternion: &rotQuat},
+			{Name: "mesh_left", Mesh: &tri, Material: materialRight, Translation: &leftV, Scale: &scaleDistort, Rotation: &rotQuat},
 		},
 	}, &buf)
 

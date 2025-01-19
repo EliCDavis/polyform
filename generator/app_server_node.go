@@ -32,11 +32,11 @@ func nodeEndpoint(as *AppServer) endpoint.Handler {
 		Methods: map[string]endpoint.Method{
 			http.MethodPost: endpoint.JsonMethod(
 				func(request endpoint.Request[CreateRequest]) (CreateResponse, error) {
-					if !as.app.types.KeyRegistered(request.Body.NodeType) {
+					if !types.KeyRegistered(request.Body.NodeType) {
 						return CreateResponse{}, fmt.Errorf("no factory registered with ID %s", request.Body.NodeType)
 					}
 
-					newNode := as.app.types.New(request.Body.NodeType)
+					newNode := types.New(request.Body.NodeType)
 					casted, ok := newNode.(nodes.Node)
 					if !ok {
 						panic(fmt.Errorf("Regiestered type did not create a node. How'd ya manage that: %s", request.Body.NodeType))

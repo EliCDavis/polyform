@@ -7,6 +7,15 @@
 
 Polyform is for loading, generating, editing, and exporting 3D geometry and it's associated data.
 
+Developers and artists are welcome to join the  [Discord](https://discord.gg/rHAdm6TFX9).
+
+## Quickstart
+
+Download the latest [release](https://github.com/EliCDavis/polyform/releases) of polyform and one of the [example graphs](./examples/graphs/) and then run:
+
+```bash
+polyform <downloaded_example>.json edit
+```
 
 ## Overview
 

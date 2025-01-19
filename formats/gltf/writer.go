@@ -359,8 +359,8 @@ func (w *Writer) AddScene(scene PolyformScene) error {
 			newNode.Translation = &arr
 		}
 
-		if model.Quaternion != nil {
-			arr := model.Quaternion.ToArr()
+		if model.Rotation != nil {
+			arr := model.Rotation.ToArr()
 			newNode.Rotation = &arr
 		}
 

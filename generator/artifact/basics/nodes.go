@@ -1,4 +1,4 @@
-package gausops
+package basics
 
 import (
 	"github.com/EliCDavis/polyform/generator"
@@ -8,8 +8,10 @@ import (
 func init() {
 	factory := &refutil.TypeFactory{}
 
-	refutil.RegisterType[ColorGradingLutNode](factory)
-	refutil.RegisterType[ScaleNode](factory)
+	refutil.RegisterType[ImageNode](factory)
+	refutil.RegisterType[BinaryNode](factory)
+	refutil.RegisterType[IONode](factory)
+	refutil.RegisterType[TextNode](factory)
 
 	generator.RegisterTypes(factory)
 }

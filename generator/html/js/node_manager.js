@@ -12,6 +12,15 @@ export class NodeManager {
         // this.registerSpecialParameterPolyformNodes();
 
         this.app.NodeFlowGraph.addOnNodeAddedListener(this.onNodeAddedCallback.bind(this));
+        this.app.NodeFlowGraph.addOnNodeRemovedListener(this.nodeRemoved.bind(this));
+    }
+
+    nodeRemoved(flowNode) {
+        if (this.app.ServerUpdatingNodeConnections) {
+            return;
+        }
+
+        this.app.RequestManager.deleteNode(flowNode.nodeInstanceID)
     }
 
     onNodeAddedCallback(flowNode) {
@@ -95,6 +104,7 @@ export class NodeManager {
     registerCustomNodeType(typeData) {
         const nodeConfig = {
             title: camelCaseToWords(typeData.displayName),
+            info: typeData.info,
             inputs: [],
             outputs: [],
             metadata: {
@@ -148,7 +158,7 @@ export class NodeManager {
 
         // nm.onNodeCreateCallback(this, typeData.type);
 
-        const category = typeData.path + "/" + typeData.displayName;
+        const category = typeData.path + "/" + camelCaseToWords(typeData.displayName);
         this.nodeTypeToLitePath.set(typeData.type, category);
         PolyformNodesPublisher.register(category, nodeConfig);
     }

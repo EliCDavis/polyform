@@ -7,6 +7,7 @@ import (
 	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/generator"
 	"github.com/EliCDavis/polyform/generator/artifact"
+	"github.com/EliCDavis/polyform/generator/artifact/basics"
 	"github.com/EliCDavis/polyform/generator/parameter"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/fogleman/gg"
@@ -59,7 +60,7 @@ func main() {
 		Version: "1.0.0",
 		Authors: []generator.Author{{Name: "Eli C Davis"}},
 		Producers: map[string]nodes.NodeOutput[artifact.Artifact]{
-			"grid.png": artifact.NewImageNode(&GridNode{
+			"grid.png": basics.NewImageNode(&GridNode{
 				Data: GridNodeData{
 					HorizontalLines: lines,
 					VerticalLines:   lines,

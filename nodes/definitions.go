@@ -72,8 +72,14 @@ type Typed interface {
 	Type() string
 }
 
-// Pathed ======================================================================
+// Pathed =====================================================================
 
 type Pathed interface {
 	Path() string
+}
+
+// Describable ================================================================
+
+type Describable interface {
+	Description() string
 }

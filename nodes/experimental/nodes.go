@@ -1,10 +1,11 @@
 package experimental
 
 import (
+	"github.com/EliCDavis/polyform/generator"
 	"github.com/EliCDavis/polyform/refutil"
 )
 
-func Nodes() *refutil.TypeFactory {
+func init() {
 	factory := &refutil.TypeFactory{}
 
 	refutil.RegisterType[TRSNode](factory)
@@ -17,5 +18,5 @@ func Nodes() *refutil.TypeFactory {
 	refutil.RegisterType[SampleNode](factory)
 	refutil.RegisterType[SeamlessPerlinNode](factory)
 
-	return factory
+	generator.RegisterTypes(factory)
 }

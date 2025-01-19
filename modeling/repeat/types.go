@@ -1,10 +1,13 @@
 package repeat
 
-import "github.com/EliCDavis/polyform/refutil"
+import (
+	"github.com/EliCDavis/polyform/generator"
+	"github.com/EliCDavis/polyform/refutil"
+)
 
-func Nodes() *refutil.TypeFactory {
+func init() {
 	factory := &refutil.TypeFactory{}
 	refutil.RegisterType[MeshNode](factory)
 	refutil.RegisterType[CircleNode](factory)
-	return factory
+	generator.RegisterTypes(factory)
 }

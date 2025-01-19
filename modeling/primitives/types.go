@@ -1,11 +1,14 @@
 package primitives
 
-import "github.com/EliCDavis/polyform/refutil"
+import (
+	"github.com/EliCDavis/polyform/generator"
+	"github.com/EliCDavis/polyform/refutil"
+)
 
-func Nodes() *refutil.TypeFactory {
+func init() {
 	factory := &refutil.TypeFactory{}
 	refutil.RegisterType[CubeNode](factory)
 	refutil.RegisterType[HemisphereNode](factory)
 	refutil.RegisterType[StripUVsNode](factory)
-	return factory
+	generator.RegisterTypes(factory)
 }

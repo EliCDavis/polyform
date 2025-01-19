@@ -1,10 +1,11 @@
 package meshops
 
 import (
+	"github.com/EliCDavis/polyform/generator"
 	"github.com/EliCDavis/polyform/refutil"
 )
 
-func Nodes() *refutil.TypeFactory {
+func init() {
 	factory := &refutil.TypeFactory{}
 
 	refutil.RegisterType[TranslateAttribute3DNode](factory)
@@ -15,5 +16,5 @@ func Nodes() *refutil.TypeFactory {
 	refutil.RegisterType[CombineNode](factory)
 	refutil.RegisterType[SmoothNormalsImplicitWeldNode](factory)
 
-	return factory
+	generator.RegisterTypes(factory)
 }

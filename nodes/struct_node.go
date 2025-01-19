@@ -255,6 +255,13 @@ func (sn Struct[T, G]) Name() string {
 	return refutil.GetTypeNameWithoutPackage(sn.Data)
 }
 
+func (sn Struct[T, G]) Description() string {
+	if described, ok := any(sn.Data).(Describable); ok {
+		return described.Description()
+	}
+	return ""
+}
+
 func (sn Struct[T, G]) Type() string {
 	return refutil.GetTypeNameWithoutPackage(sn.Data)
 }

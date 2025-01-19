@@ -24,7 +24,7 @@ type PolyformModel struct {
 
 	Translation *vector3.Float64
 	Scale       *vector3.Float64
-	Quaternion  *quaternion.Quaternion
+	Rotation    *quaternion.Quaternion
 
 	// Utilizes the EXT_mesh_gpu_instancing extension to duplicate the model
 	// without increasing the mesh data footprint on the GPU

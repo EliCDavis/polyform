@@ -68,11 +68,12 @@ type pageData struct {
 var htmlFs embed.FS
 
 type AppServer struct {
-	app        *App
-	host, port string
-	tls        bool
-	certPath   string
-	keyPath    string
+	app              *App
+	host, port       string
+	tls              bool
+	certPath         string
+	keyPath          string
+	launchWebbrowser bool
 
 	autsaveMutex sync.Mutex
 	autosave     bool
@@ -168,11 +169,19 @@ func (as *AppServer) Serve() error {
 
 	connection := fmt.Sprintf("%s:%s", as.host, as.port)
 	if as.tls {
-		fmt.Printf("Serving over: https://%s\n", connection)
+		url := fmt.Sprintf("https://%s", connection)
+		fmt.Printf("Serving over: %s\n", url)
+		if as.launchWebbrowser {
+			openURL(url)
+		}
 		return http.ListenAndServeTLS(connection, as.certPath, as.keyPath, nil)
 
 	} else {
-		fmt.Printf("Serving over: http://%s\n", connection)
+		url := fmt.Sprintf("http://%s", connection)
+		fmt.Printf("Serving over: %s\n", url)
+		if as.launchWebbrowser {
+			openURL(url)
+		}
 		return http.ListenAndServe(connection, nil)
 	}
 }

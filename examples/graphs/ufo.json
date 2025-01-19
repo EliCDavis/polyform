@@ -311,8 +311,8 @@
 				},
 				"Node-54": {
 					"position": {
-						"x": 5672.415435300421,
-						"y": -1285.9280746651727
+						"x": 5758.587213305993,
+						"y": -1340.7646606687229
 					}
 				},
 				"Node-55": {
@@ -389,26 +389,26 @@
 				},
 				"Node-66": {
 					"position": {
-						"x": 4752.787585050625,
-						"y": 572.1696071791409
+						"x": 4695.233211254887,
+						"y": 521.61508965586
 					}
 				},
 				"Node-67": {
 					"position": {
-						"x": 5036.35445866671,
-						"y": 570.3043466303375
+						"x": 4929.801090963787,
+						"y": 570.3043466303376
 					}
 				},
 				"Node-68": {
 					"position": {
-						"x": 4794.175825169182,
-						"y": 774.5259039567251
+						"x": 4852.403682518823,
+						"y": 716.2980466070876
 					}
 				},
 				"Node-69": {
 					"position": {
-						"x": 5083.363856706659,
-						"y": 717.8646345786359
+						"x": 5126.140756149433,
+						"y": 716.3091109625348
 					}
 				},
 				"Node-7": {
@@ -419,8 +419,8 @@
 				},
 				"Node-70": {
 					"position": {
-						"x": 5659.1300721883235,
-						"y": 51.55361821093697
+						"x": 5696.237884979171,
+						"y": 192.03319520486738
 					}
 				},
 				"Node-71": {
@@ -431,14 +431,14 @@
 				},
 				"Node-72": {
 					"position": {
-						"x": 2201.1323648002376,
-						"y": -1007.7740595221059
+						"x": 2188.35010037942,
+						"y": -1102.3628162361429
 					}
 				},
 				"Node-73": {
 					"position": {
-						"x": 2165.831106228003,
-						"y": -1140.8730296970414
+						"x": 2183.726276417146,
+						"y": -1226.9402767972012
 					}
 				},
 				"Node-74": {
@@ -449,20 +449,20 @@
 				},
 				"Node-75": {
 					"position": {
-						"x": 2165.831106228003,
-						"y": -873.1988878460285
+						"x": 2168.387559112166,
+						"y": -957.5618330234132
 					}
 				},
 				"Node-76": {
 					"position": {
-						"x": 2528.612088056446,
-						"y": -950.8161647365481
+						"x": 2541.3943524772626,
+						"y": -1006.2059772267497
 					}
 				},
 				"Node-77": {
 					"position": {
-						"x": 2788.994811165925,
-						"y": -1103.2951121293274
+						"x": 2793.2555659728646,
+						"y": -1117.7816784729184
 					}
 				},
 				"Node-78": {
@@ -531,10 +531,40 @@
 						"y": -1328.3987559227785
 					}
 				},
+				"Node-88": {
+					"position": {
+						"x": 5601.018237238986,
+						"y": -2072.784695545321
+					}
+				},
+				"Node-89": {
+					"position": {
+						"x": 5033.099087417141,
+						"y": -679.0994141421298
+					}
+				},
 				"Node-9": {
 					"position": {
 						"x": 2694.9044864005423,
 						"y": 703.2933411170831
+					}
+				},
+				"Node-90": {
+					"position": {
+						"x": 5675.1186936327795,
+						"y": -773.0440358317495
+					}
+				},
+				"Node-91": {
+					"position": {
+						"x": 5307.695180722666,
+						"y": -907.6141208710491
+					}
+				},
+				"Node-92": {
+					"position": {
+						"x": 6005.493323631078,
+						"y": -679.0716096423056
 					}
 				}
 			},
@@ -557,11 +587,11 @@
 				},
 				"2": {
 					"position": {
-						"x": 3962.797840955745,
-						"y": -1186.2220339132343
+						"x": 3926.6830049842315,
+						"y": -1234.375148541916
 					},
-					"text": "# Duplicate Abduction Rings\n\nWe duplicate the original abduction ring multiple times, altering its scale and position.",
-					"width": 618.9045508221542
+					"text": "# Duplicate Abduction Rings\n\nWe duplicate the original abduction ring multiple times, altering its scale and position.\n\nTo avoid increasing the GLTF payload size from duplicate meshes. We only compute the TRS matrices and plug them into the GPU Instances port. This functionality is enabled through the EXT_mesh_gpu_instancing extension",
+					"width": 953.5043525592483
 				},
 				"3": {
 					"position": {
@@ -589,8 +619,8 @@
 				},
 				"6": {
 					"position": {
-						"x": 5274.764078928088,
-						"y": -179.30161467240868
+						"x": 5496.633216704432,
+						"y": -30.819960929773398
 					},
 					"text": "# UFO Dome Material\n\nTo give the appearance of glass, we utilize GLTF material extensions:\n\n* index of refraction \n* transmission\n* volume\n\nDifferent viewers have differing levels of support for these extensions",
 					"width": 697.1542557375064
@@ -703,7 +733,7 @@
 				}
 			},
 			"Node-17": {
-				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformClearcoat,github.com/EliCDavis/polyform/generator/artifact.GltfMaterialClearcoatExtensionNodeData]",
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformClearcoat,github.com/EliCDavis/polyform/formats/gltf.GltfMaterialClearcoatExtensionNodeData]",
 				"dependencies": [
 					{
 						"dependencyID": "Node-15",
@@ -718,7 +748,7 @@
 				]
 			},
 			"Node-18": {
-				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformMaterial,github.com/EliCDavis/polyform/generator/artifact.GltfMaterialNodeData]",
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformMaterial,github.com/EliCDavis/polyform/formats/gltf.GltfMaterialNodeData]",
 				"dependencies": [
 					{
 						"dependencyID": "Node-17",
@@ -753,7 +783,7 @@
 				]
 			},
 			"Node-19": {
-				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformModel,github.com/EliCDavis/polyform/generator/artifact.GltfModelNodeData]",
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformModel,github.com/EliCDavis/polyform/formats/gltf.GltfModelNodeData]",
 				"dependencies": [
 					{
 						"dependencyID": "Node-18",
@@ -801,7 +831,7 @@
 				}
 			},
 			"Node-22": {
-				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformMaterial,github.com/EliCDavis/polyform/generator/artifact.GltfMaterialNodeData]",
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformMaterial,github.com/EliCDavis/polyform/formats/gltf.GltfMaterialNodeData]",
 				"dependencies": [
 					{
 						"dependencyID": "Node-20",
@@ -1320,31 +1350,21 @@
 					}
 				]
 			},
-			"Node-53": {
-				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/modeling.Mesh,github.com/EliCDavis/polyform/modeling/repeat.MeshNodeData]",
+			"Node-54": {
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformModel,github.com/EliCDavis/polyform/formats/gltf.GltfModelNodeData]",
 				"dependencies": [
-					{
-						"dependencyID": "Node-42",
-						"dependencyPort": "Out",
-						"name": "Mesh"
-					},
 					{
 						"dependencyID": "Node-52",
 						"dependencyPort": "Out",
-						"name": "Transforms"
-					}
-				]
-			},
-			"Node-54": {
-				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformModel,github.com/EliCDavis/polyform/generator/artifact.GltfModelNodeData]",
-				"dependencies": [
+						"name": "GpuInstances"
+					},
 					{
 						"dependencyID": "Node-22",
 						"dependencyPort": "Out",
 						"name": "Material"
 					},
 					{
-						"dependencyID": "Node-53",
+						"dependencyID": "Node-42",
 						"dependencyPort": "Out",
 						"name": "Mesh"
 					}
@@ -1494,12 +1514,12 @@
 				}
 			},
 			"Node-67": {
-				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformTransmission,github.com/EliCDavis/polyform/generator/artifact.GltfMaterialTransmissionExtensionNodeData]",
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformTransmission,github.com/EliCDavis/polyform/formats/gltf.GltfMaterialTransmissionExtensionNodeData]",
 				"dependencies": [
 					{
 						"dependencyID": "Node-66",
 						"dependencyPort": "Out",
-						"name": "TransmissionFactor"
+						"name": "Factor"
 					}
 				]
 			},
@@ -1513,7 +1533,7 @@
 				}
 			},
 			"Node-69": {
-				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformVolume,github.com/EliCDavis/polyform/generator/artifact.GltfMaterialVolumeExtensionNodeData]",
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformVolume,github.com/EliCDavis/polyform/formats/gltf.GltfMaterialVolumeExtensionNodeData]",
 				"dependencies": [
 					{
 						"dependencyID": "Node-68",
@@ -1532,7 +1552,7 @@
 				}
 			},
 			"Node-70": {
-				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformMaterial,github.com/EliCDavis/polyform/generator/artifact.GltfMaterialNodeData]",
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformMaterial,github.com/EliCDavis/polyform/formats/gltf.GltfMaterialNodeData]",
 				"dependencies": [
 					{
 						"dependencyID": "Node-62",
@@ -1567,7 +1587,7 @@
 				]
 			},
 			"Node-71": {
-				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformModel,github.com/EliCDavis/polyform/generator/artifact.GltfModelNodeData]",
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformModel,github.com/EliCDavis/polyform/formats/gltf.GltfModelNodeData]",
 				"dependencies": [
 					{
 						"dependencyID": "Node-70",
@@ -1654,7 +1674,7 @@
 				]
 			},
 			"Node-78": {
-				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformModel,github.com/EliCDavis/polyform/generator/artifact.GltfModelNodeData]",
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformModel,github.com/EliCDavis/polyform/formats/gltf.GltfModelNodeData]",
 				"dependencies": [
 					{
 						"dependencyID": "Node-18",
@@ -1669,7 +1689,7 @@
 				]
 			},
 			"Node-79": {
-				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/generator/artifact.Artifact,github.com/EliCDavis/polyform/generator/artifact.GltfArtifactData]",
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/generator/artifact.Artifact,github.com/EliCDavis/polyform/formats/gltf.GltfArtifactData]",
 				"dependencies": [
 					{
 						"dependencyID": "Node-19",
@@ -1757,7 +1777,7 @@
 				]
 			},
 			"Node-83": {
-				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/generator/artifact.Artifact,github.com/EliCDavis/polyform/generator/artifact.ImageNodeData]",
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/generator/artifact.Artifact,github.com/EliCDavis/polyform/generator/artifact/basics.ImageNodeData]",
 				"dependencies": [
 					{
 						"dependencyID": "Node-82",
@@ -1800,7 +1820,7 @@
 				]
 			},
 			"Node-87": {
-				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/generator/artifact.Artifact,github.com/EliCDavis/polyform/generator/artifact.ImageNodeData]",
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/generator/artifact.Artifact,github.com/EliCDavis/polyform/generator/artifact/basics.ImageNodeData]",
 				"dependencies": [
 					{
 						"dependencyID": "Node-86",

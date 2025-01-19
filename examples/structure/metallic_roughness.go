@@ -5,6 +5,7 @@ import (
 	"image/color"
 
 	"github.com/EliCDavis/polyform/generator/artifact"
+	"github.com/EliCDavis/polyform/generator/artifact/basics"
 	"github.com/EliCDavis/polyform/math/noise"
 	"github.com/EliCDavis/polyform/nodes"
 )
@@ -38,7 +39,7 @@ func (pnn MetallicRoughnessNodeData) Process() (artifact.Artifact, error) {
 		}
 	}
 
-	return artifact.Image{
+	return basics.Image{
 		Image: img,
 	}, nil
 }

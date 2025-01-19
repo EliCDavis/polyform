@@ -62,7 +62,7 @@ func (gan GlbArtifactNodeData) Process() (artifact.Artifact, error) {
 		},
 	}
 
-	return artifact.Gltf{
+	return gltf.Artifact{
 		Scene: scene,
 	}, nil
 }

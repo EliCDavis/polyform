@@ -11,6 +11,7 @@ import (
 	"github.com/EliCDavis/polyform/drawing/texturing/normals"
 	"github.com/EliCDavis/polyform/formats/gltf"
 	"github.com/EliCDavis/polyform/generator/artifact"
+	"github.com/EliCDavis/polyform/generator/artifact/basics"
 	"github.com/EliCDavis/polyform/math/noise"
 	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/polyform/math/sample"
@@ -108,7 +109,7 @@ func (ni NormalImageData) Process() (artifact.Artifact, error) {
 	}
 
 	// return img
-	return artifact.Image{Image: texturing.BoxBlurNTimes(img, 10)}, nil
+	return basics.Image{Image: texturing.BoxBlurNTimes(img, 10)}, nil
 }
 
 type PumpkinField = nodes.Struct[marching.Field, PumpkinFieldData]
@@ -249,7 +250,7 @@ type PumpkinGLBArtifactData struct {
 
 func (pga PumpkinGLBArtifactData) Process() (artifact.Artifact, error) {
 	pumpkin := pga.PumpkinBody.Value()
-	return &artifact.Gltf{
+	return &gltf.Artifact{
 		Scene: gltf.PolyformScene{
 			Models: []gltf.PolyformModel{
 				{
@@ -323,5 +324,5 @@ func (mr MetalRoughnessData) Process() (artifact.Artifact, error) {
 			})
 		}
 	}
-	return &artifact.Image{Image: img}, nil
+	return &basics.Image{Image: img}, nil
 }

@@ -3,9 +3,11 @@ package generator_test
 import (
 	"testing"
 
+	"github.com/EliCDavis/polyform/formats/ply"
 	"github.com/EliCDavis/polyform/formats/swagger"
 	"github.com/EliCDavis/polyform/generator"
 	"github.com/EliCDavis/polyform/generator/artifact"
+	"github.com/EliCDavis/polyform/generator/artifact/basics"
 	"github.com/EliCDavis/polyform/generator/parameter"
 	"github.com/EliCDavis/polyform/modeling/meshops"
 	"github.com/EliCDavis/polyform/nodes"
@@ -23,7 +25,7 @@ func TestSwaggerFromGraph_SingleParameterSingleProducer(t *testing.T) {
 		Version:     appVersion,
 		Description: appDescription,
 		Producers: map[string]nodes.NodeOutput[artifact.Artifact]{
-			producerFileName: artifact.NewTextNode(&parameter.Value[string]{
+			producerFileName: basics.NewTextNode(&parameter.Value[string]{
 				Name:         "Welp",
 				DefaultValue: "yee",
 			}),
@@ -105,7 +107,7 @@ func TestSwaggerFromGraph_MultipleParametersSingleProducer(t *testing.T) {
 		Version:     "1.0.0",
 		Description: "Example graph that contains multiple parameters",
 		Producers: map[string]nodes.NodeOutput[artifact.Artifact]{
-			"example.glb": artifact.NewSplatNode(
+			"example.glb": ply.NewSplatNode(
 				&meshops.CropAttribute3DNode{
 					Data: meshops.CropAttribute3DNodeData{
 						AABB: &parameter.AABB{
