@@ -121,6 +121,7 @@ func TestAppCommand_Outline(t *testing.T) {
             "dependencies": [],
             "parameter": {
                 "name": "Welp",
+                "description": "",
                 "type": "string",
                 "defaultValue": "yee",
                 "currentValue": "yee"
@@ -153,6 +154,7 @@ func TestAppCommand_Outline(t *testing.T) {
             ],
             "parameter": {
                 "name": "",
+                "description": "",
                 "type": "string",
                 "defaultValue": "",
                 "currentValue": ""
