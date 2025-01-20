@@ -6,6 +6,21 @@
 		}
 	],
 	"data": {
+		"authors": [
+			{
+				"name": "Eli C Davis",
+				"contactInfo": [
+					{
+						"medium": "bsky.app",
+						"value": "@elicdavis.bsky.social"
+					},
+					{
+						"medium": "github.com",
+						"value": "EliCDavis"
+					}
+				]
+			}
+		],
 		"description": "Demo for different GLTF material extensions",
 		"metadata": {
 			"nodes": {

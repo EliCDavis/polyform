@@ -300,3 +300,52 @@ func TestAppCommand_Swagger(t *testing.T) {
     }
 }`, string(contents))
 }
+
+func TestAppCommand_New(t *testing.T) {
+	appName := "Test Graph"
+	appVersion := "Test Graph"
+	appDescription := "Test Graph"
+	producerFileName := "test.txt"
+
+	outBuf := &bytes.Buffer{}
+
+	app := generator.App{
+		Name:        appName,
+		Version:     appVersion,
+		Description: appDescription,
+		Producers: map[string]nodes.NodeOutput[artifact.Artifact]{
+			producerFileName: basics.NewTextNode(&parameter.String{
+				Name:         "Welp",
+				DefaultValue: "yee",
+			}),
+		},
+
+		Out: outBuf,
+	}
+
+	// ACT ====================================================================
+	err := app.Run([]string{
+		"polyform", "new",
+		"--name", "My New Graph",
+		"--description", "This is just a test",
+		"--version", "v1.0.2",
+		"--author", "Test Runner",
+	})
+	contents, readErr := io.ReadAll(outBuf)
+
+	// ASSERT =================================================================
+	assert.NoError(t, err)
+	assert.NoError(t, readErr)
+	assert.Equal(t, `{
+	"name": "My New Graph",
+	"version": "v1.0.2",
+	"description": "This is just a test",
+	"authors": [
+		{
+			"name": "Test Runner"
+		}
+	],
+	"producers": null,
+	"nodes": null
+}`, string(contents))
+}

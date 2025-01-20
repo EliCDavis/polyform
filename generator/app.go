@@ -55,6 +55,8 @@ func (a *App) ApplyGraph(jsonPayload []byte) error {
 		a.Name = graph.Name
 	}
 
+	a.Authors = graph.Authors
+
 	if graph.Version != "" {
 		a.Version = graph.Version
 	}
@@ -142,6 +144,7 @@ func (a *App) Graph() []byte {
 		Name:        a.Name,
 		Version:     a.Version,
 		Description: a.Description,
+		Authors:     a.Authors,
 		WebScene:    a.WebScene,
 		Producers:   make(map[string]schema.Producer),
 
@@ -605,8 +608,64 @@ func (a *App) Run(args []string) error {
 	var commands []*cli.Command
 	commands = []*cli.Command{
 		{
+			Name:        "New",
+			Description: "Create a new graph",
+			Aliases:     []string{"new"},
+			Run: func(state *cli.RunState) error {
+				newCmd := flag.NewFlagSet("new", flag.ExitOnError)
+				a.initialize(newCmd)
+				nameFlag := newCmd.String("name", "Graph", "name of the program")
+				versionFlag := newCmd.String("version", "v0.0.1", "version of the program")
+				descriptionFlag := newCmd.String("description", "", "description of the program")
+				authorFlag := newCmd.String("author", "", "author of the program")
+				// authorFlag := newCmd.String("author", "", "author of the program")
+				outFlag := newCmd.String("out", "", "Optional path to file to write content to")
+
+				if err := newCmd.Parse(state.Args); err != nil {
+					return err
+				}
+
+				graph := Graph{}
+
+				if nameFlag != nil {
+					graph.Name = *nameFlag
+				}
+
+				if versionFlag != nil {
+					graph.Version = *versionFlag
+				}
+
+				if descriptionFlag != nil {
+					graph.Description = *descriptionFlag
+				}
+
+				if authorFlag != nil && *authorFlag != "" {
+					graph.Authors = append(graph.Authors, Author{
+						Name: *authorFlag,
+					})
+				}
+
+				data, err := json.MarshalIndent(graph, "", "\t")
+				if err != nil {
+					return err
+				}
+
+				var out io.Writer = state.Out
+				if outFlag != nil && *outFlag != "" {
+					f, err := os.Create(*outFlag)
+					if err != nil {
+						return err
+					}
+					defer f.Close()
+					out = f
+				}
+				_, err = out.Write(data)
+				return err
+			},
+		},
+		{
 			Name:        "Generate",
-			Description: "Runs all producers the app has defined and saves it to the file system",
+			Description: "Runs all producers the graph has defined and saves it to the file system",
 			Aliases:     []string{"generate", "gen"},
 			Run: func(appState *cli.RunState) error {
 				generateCmd := flag.NewFlagSet("generate", flag.ExitOnError)
@@ -756,7 +815,7 @@ func (a *App) Run(args []string) error {
 			Run: func(appState *cli.RunState) error {
 				mermaidCmd := flag.NewFlagSet("mermaid", flag.ExitOnError)
 				a.initialize(mermaidCmd)
-				fileFlag := mermaidCmd.String("file-name", "", "Optional path to file to write content to")
+				fileFlag := mermaidCmd.String("out", "", "Optional path to file to write content to")
 
 				if err := mermaidCmd.Parse(appState.Args); err != nil {
 					return err
@@ -783,7 +842,7 @@ func (a *App) Run(args []string) error {
 			Run: func(appState *cli.RunState) error {
 				swaggerCmd := flag.NewFlagSet("swagger", flag.ExitOnError)
 				a.initialize(swaggerCmd)
-				fileFlag := swaggerCmd.String("file-name", "", "Optional path to file to write content to")
+				fileFlag := swaggerCmd.String("out", "", "Optional path to file to write content to")
 
 				if err := swaggerCmd.Parse(appState.Args); err != nil {
 					return err
@@ -824,7 +883,7 @@ func (a *App) Run(args []string) error {
 				if err != nil {
 					return err
 				}
-				return tmpl.Execute(os.Stdout, cliDetails)
+				return tmpl.Execute(appState.Out, cliDetails)
 			},
 		},
 	}

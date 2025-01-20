@@ -21,6 +21,10 @@ type MeshNodeData struct {
 	Transforms nodes.NodeOutput[[]trs.TRS]
 }
 
+func (rnd MeshNodeData) Description() string {
+	return "Duplicates the input mesh and transforms it for every TRS provided"
+}
+
 func (rnd MeshNodeData) Process() (modeling.Mesh, error) {
 	if rnd.Mesh == nil {
 		return modeling.EmptyMesh(modeling.TriangleTopology), nil

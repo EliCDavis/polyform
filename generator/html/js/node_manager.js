@@ -100,6 +100,26 @@ export class NodeManager {
         }
     }
 
+    findNodeTypeData(node, schema) {
+        for (let i = 0; i < schema.types.length; i++) {
+            if (schema.types[i].type === node.type) {
+                return schema.types[i];
+            }
+        }
+        throw "no type exists for " + node.type
+    }
+
+    nodeTypeIsProducer(typeData) {
+        if (typeData.outputs) {
+
+            for (let i = 0; i < typeData.outputs.length; i++) {
+                if (typeData.outputs[i].type === "github.com/EliCDavis/polyform/generator/artifact.Artifact") {
+                    return true;
+                }
+            }
+        }
+        return false
+    }
 
     registerCustomNodeType(typeData) {
         const nodeConfig = {
@@ -120,15 +140,11 @@ export class NodeManager {
             });
         }
 
-        let isProducer = false;
+        const isProducer = this.nodeTypeIsProducer(typeData);
 
         if (typeData.outputs) {
             typeData.outputs.forEach((o) => {
                 nodeConfig.outputs.push({ name: o.name, type: o.type });
-
-                if (o.type === "github.com/EliCDavis/polyform/generator/artifact.Artifact") {
-                    isProducer = true;
-                }
             })
         }
 
@@ -212,10 +228,9 @@ export class NodeManager {
             } else {
                 const flowNode = this.newNode(nodeData);
 
-                let isProducer = false;
+                const isProducer = this.nodeTypeIsProducer(this.findNodeTypeData(nodeData, newSchema));
                 for (const [key, value] of Object.entries(newSchema.producers)) {
                     if (value.nodeID === nodeID) {
-                        isProducer = true;
                         flowNode.setTitle(key);
                     }
                 }

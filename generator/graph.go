@@ -11,7 +11,8 @@ type Graph struct {
 	Name        string                       `json:"name,omitempty"`
 	Version     string                       `json:"version,omitempty"`
 	Description string                       `json:"description,omitempty"`
-	WebScene    *room.WebScene               `json:"webScene"`
+	Authors     []Author                     `json:"authors,omitempty"`
+	WebScene    *room.WebScene               `json:"webScene,omitempty"`
 	Producers   map[string]schema.Producer   `json:"producers"`
 	Nodes       map[string]GraphNodeInstance `json:"nodes"`
 	Metadata    map[string]any               `json:"metadata,omitempty"`

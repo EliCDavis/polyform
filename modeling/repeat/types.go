@@ -9,5 +9,7 @@ func init() {
 	factory := &refutil.TypeFactory{}
 	refutil.RegisterType[MeshNode](factory)
 	refutil.RegisterType[CircleNode](factory)
+	refutil.RegisterType[SplineNode](factory)
+	refutil.RegisterType[LineNode](factory)
 	generator.RegisterTypes(factory)
 }

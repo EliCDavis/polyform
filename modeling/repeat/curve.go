@@ -58,6 +58,10 @@ type SplineNodeData struct {
 	Times nodes.NodeOutput[int]
 }
 
+func (rnd SplineNodeData) Description() string {
+	return "Creates an array of TRS matrices by sampling the curve"
+}
+
 func (r SplineNodeData) Process() ([]trs.TRS, error) {
 	if r.Curve == nil || r.Times == nil {
 		return nil, nil

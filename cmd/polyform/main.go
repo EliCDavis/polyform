@@ -23,9 +23,24 @@ import (
 func main() {
 	app := generator.App{
 		Name:        "Polyform",
-		Version:     "0.0.1",
-		Description: "",
-		Producers:   map[string]nodes.NodeOutput[artifact.Artifact]{},
+		Version:     "0.21.0",
+		Description: "Immutable mesh processing program",
+		Authors: []generator.Author{
+			{
+				Name: "Eli C Davis",
+				ContactInfo: []generator.AuthorContact{
+					{
+						Medium: "bsky.app",
+						Value:  "@elicdavis.bsky.social",
+					},
+					{
+						Medium: "github.com",
+						Value:  "EliCDavis",
+					},
+				},
+			},
+		},
+		Producers: map[string]nodes.NodeOutput[artifact.Artifact]{},
 	}
 
 	if err := app.Run(os.Args); err != nil {

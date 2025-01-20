@@ -1,11 +1,10 @@
 {{ .Name }} - {{ .Version }}
     {{ .Description }}
 
-AUTHOR:
+AUTHORS:
     {{range .Authors}}{{.Name}} 
         {{range .ContactInfo}}{{.Medium}} - {{.Value}}
-        {{end}}
-    {{end}}
+        {{end}}{{end}}
 COMMANDS:
     {{range .Commands }}{{.Name}}: {{range .Aliases}}{{.}} {{end}}
         {{.Description}} 

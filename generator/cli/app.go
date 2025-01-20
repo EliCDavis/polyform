@@ -33,7 +33,7 @@ func (a *App) Run(args []string) error {
 	argsWithoutProg := args[1:]
 
 	if len(argsWithoutProg) == 0 {
-		return commandMap["help"].Run(nil)
+		return commandMap["help"].Run(runState)
 	}
 
 	firstArg := argsWithoutProg[0]
@@ -53,7 +53,7 @@ func (a *App) Run(args []string) error {
 
 	argsWithoutGraph := argsWithoutProg[1:]
 	if len(argsWithoutGraph) == 0 {
-		return commandMap["help"].Run(nil)
+		return commandMap["help"].Run(runState)
 	}
 
 	firstArg = argsWithoutGraph[0]

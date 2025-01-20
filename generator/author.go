@@ -1,11 +1,11 @@
 package generator
 
 type Author struct {
-	Name        string
-	ContactInfo []AuthorContact
+	Name        string          `json:"name"`
+	ContactInfo []AuthorContact `json:"contactInfo,omitempty"`
 }
 
 type AuthorContact struct {
-	Medium string
-	Value  string
+	Medium string `json:"medium"`
+	Value  string `json:"value"`
 }
