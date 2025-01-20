@@ -18,11 +18,3 @@ func RegisterTypes(typesToRegister *refutil.TypeFactory) {
 	// 	log.Printf("Registered: %s\n", t)
 	// }
 }
-
-func Nodes() *refutil.TypeFactory {
-	factory := &refutil.TypeFactory{}
-	return factory.Combine(
-	// parameter.Nodes(),
-	// artifact.Nodes(),
-	)
-}

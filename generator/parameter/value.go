@@ -56,6 +56,7 @@ type CliConfig[T any] struct {
 
 type parameterNodeGraphSchema[T any] struct {
 	Name         string        `json:"name"`
+	Description  string        `json:"description"`
 	CurrentValue T             `json:"currentValue"`
 	DefaultValue T             `json:"defaultValue"`
 	CLI          *CliConfig[T] `json:"cli"`
@@ -88,6 +89,10 @@ type Value[T any] struct {
 
 func (in *Value[T]) SetName(name string) {
 	in.Name = name
+}
+
+func (in *Value[T]) SetDescription(description string) {
+	in.Description = description
 }
 
 func (in *Value[T]) Port() string {
@@ -147,6 +152,7 @@ func (pn *Value[T]) Value() T {
 func (pn *Value[T]) ToJSON(encoder *jbtf.Encoder) ([]byte, error) {
 	return json.Marshal(parameterNodeGraphSchema[T]{
 		Name:         pn.Name,
+		Description:  pn.Description,
 		CurrentValue: pn.Value(),
 		DefaultValue: pn.DefaultValue,
 		CLI:          pn.CLI,
@@ -161,6 +167,7 @@ func (pn *Value[T]) FromJSON(decoder jbtf.Decoder, body []byte) (err error) {
 	}
 
 	pn.Name = gn.Name
+	pn.Description = gn.Description
 	pn.DefaultValue = gn.DefaultValue
 	pn.CLI = gn.CLI
 	pn.appliedProfile = &gn.CurrentValue
@@ -172,8 +179,9 @@ func (pn *Value[T]) FromJSON(decoder jbtf.Decoder, body []byte) (err error) {
 func (pn *Value[T]) Schema() schema.Parameter {
 	return ValueSchema[T]{
 		ParameterBase: schema.ParameterBase{
-			Name: pn.Name,
-			Type: fmt.Sprintf("%T", *new(T)),
+			Name:        pn.Name,
+			Description: pn.Description,
+			Type:        fmt.Sprintf("%T", *new(T)),
 		},
 		DefaultValue: pn.DefaultValue,
 		CurrentValue: pn.Value(),
@@ -255,7 +263,7 @@ func (pn Value[T]) SwaggerProperty() swagger.Property {
 		Description: pn.Description,
 	}
 	switch any(pn).(type) {
-	case Value[string]:
+	case Value[string], *Value[string]:
 		prop.Type = swagger.StringPropertyType
 
 	case Value[time.Time]:
@@ -287,8 +295,20 @@ func (pn Value[T]) SwaggerProperty() swagger.Property {
 	case Value[vector3.Float64]:
 		prop.Ref = "#/definitions/Vector3"
 
+	case Value[vector2.Float64]:
+		prop.Ref = "#/definitions/Vector2"
+
 	case Value[geometry.AABB]:
 		prop.Ref = "#/definitions/AABB"
+
+	case Value[coloring.WebColor]:
+		prop.Type = swagger.StringPropertyType
+
+	case Value[[]vector3.Float64]:
+		prop.Type = swagger.ArrayPropertyType
+		prop.Items = map[string]any{
+			"$ref": "#/definitions/Vector3",
+		}
 
 	default:
 		panic(fmt.Errorf("parameter node %s has a type that can not be converted to a swagger property. Please open up a issue on github.com/EliCDavis/polyform", pn.DisplayName()))

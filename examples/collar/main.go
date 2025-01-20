@@ -4,6 +4,7 @@ import (
 	"image"
 	"image/color"
 	"math"
+	"os"
 
 	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/formats/gltf"
@@ -269,7 +270,7 @@ func main() {
 		},
 	}
 
-	if err := app.Run(); err != nil {
+	if err := app.Run(os.Args); err != nil {
 		panic(err)
 	}
 

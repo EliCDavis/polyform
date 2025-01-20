@@ -13,7 +13,7 @@ var globalApp *App
 func wasmZip(this js.Value, cb []js.Value) interface{} { //
 
 	if globalApp == nil {
-		panic("global app not configured. Run app.Run()")
+		panic("global app not configured. Run app.Run(os.Args)")
 	}
 
 	b := bytes.Buffer{}

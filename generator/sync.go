@@ -51,7 +51,26 @@ func (sm *NestedSyncMap) OverwriteData(data map[string]any) {
 	} else {
 		sm.data = data
 	}
+}
 
+func (sm *NestedSyncMap) PathExists(key string) bool {
+	sm.mutex.Lock()
+	defer sm.mutex.Unlock()
+	elements := strings.Split(key, ".")
+	current := sm.data
+	for i := 0; i < len(elements)-1; i++ {
+		v, ok := current[elements[i]]
+		if !ok {
+			return false
+		}
+
+		casted, ok := v.(map[string]any)
+		if !ok {
+			return false
+		}
+		current = casted
+	}
+	return true
 }
 
 func (sm *NestedSyncMap) lookup(key string) (map[string]any, string) {

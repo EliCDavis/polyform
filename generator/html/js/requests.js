@@ -154,6 +154,10 @@ class RequestManager {
         this.postTextBodyEmptyResponse("/parameter/name/"+inNodeID, value, callback);
     }
 
+    setParameterInfo(inNodeID, value, callback) {
+        this.postTextBodyEmptyResponse("/parameter/description/"+inNodeID, value, callback);
+    }
+
     setProducerTitle(inNodeID, value, callback) {
         this.postTextBodyEmptyResponse("/producer/name/"+inNodeID, value, callback);
     }

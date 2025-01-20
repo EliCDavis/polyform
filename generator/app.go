@@ -32,6 +32,8 @@ type App struct {
 	Authors     []Author
 	Producers   map[string]nodes.NodeOutput[artifact.Artifact]
 
+	Out io.Writer
+
 	// Runtime data
 	nodeIDs       map[nodes.Node]string
 	graphMetadata *NestedSyncMap
@@ -392,8 +394,12 @@ func (a App) buildNodeGraphInstanceSchema(node nodes.Node, encoder *jbtf.Encoder
 func (a App) buildNodeInstanceSchema(node nodes.Node) schema.NodeInstance {
 
 	var metadata map[string]any
-	if data := a.graphMetadata.Get("nodes." + a.nodeIDs[node]); data != nil {
-		metadata = data.(map[string]any)
+	metadataPath := "nodes." + a.nodeIDs[node]
+
+	if a.graphMetadata.PathExists(metadataPath) {
+		if data := a.graphMetadata.Get(metadataPath); data != nil {
+			metadata = data.(map[string]any)
+		}
 	}
 
 	nodeInstance := schema.NodeInstance{
@@ -587,7 +593,7 @@ func (a *App) SetupProducers() {
 	}
 }
 
-func (a *App) Run() error {
+func (a *App) Run(args []string) error {
 	// if a.Producers == nil || len(a.Producers) == 0 {
 	// 	return errors.New("application has not defined any producers")
 	// }
@@ -602,11 +608,11 @@ func (a *App) Run() error {
 			Name:        "Generate",
 			Description: "Runs all producers the app has defined and saves it to the file system",
 			Aliases:     []string{"generate", "gen"},
-			Run: func(args []string) error {
+			Run: func(appState *cli.RunState) error {
 				generateCmd := flag.NewFlagSet("generate", flag.ExitOnError)
 				a.initialize(generateCmd)
 				folderFlag := generateCmd.String("folder", ".", "folder to save generated contents to")
-				if err := generateCmd.Parse(args); err != nil {
+				if err := generateCmd.Parse(appState.Args); err != nil {
 					return err
 				}
 				return a.Generate(*folderFlag)
@@ -616,7 +622,7 @@ func (a *App) Run() error {
 			Name:        "Edit",
 			Description: "Starts an http server and hosts a webplayer for editing the execution graph",
 			Aliases:     []string{"edit"},
-			Run: func(args []string) error {
+			Run: func(appState *cli.RunState) error {
 				editCmd := flag.NewFlagSet("edit", flag.ExitOnError)
 				a.initialize(editCmd)
 				hostFlag := editCmd.String("host", "localhost", "interface to bind to")
@@ -654,7 +660,7 @@ func (a *App) Run() error {
 					"Time allowed to write a message to the peer over a websocketed connection.",
 				)
 
-				if err := editCmd.Parse(args); err != nil {
+				if err := editCmd.Parse(appState.Args); err != nil {
 					return err
 				}
 
@@ -684,57 +690,75 @@ func (a *App) Run() error {
 		},
 		{
 			Name:        "Outline",
-			Description: "Enumerates all generators, parameters, and producers in a heirarchial fashion formatted in JSON",
+			Description: "Enumerates all parameters and producers in a heirarchial fashion formatted in JSON",
 			Aliases:     []string{"outline"},
-			Run: func(args []string) error {
+			Run: func(appState *cli.RunState) error {
 				outlineCmd := flag.NewFlagSet("outline", flag.ExitOnError)
 				a.initialize(outlineCmd)
 
-				if err := outlineCmd.Parse(args); err != nil {
+				if err := outlineCmd.Parse(appState.Args); err != nil {
 					return err
 				}
 
-				data, err := json.MarshalIndent(a.Schema(), "", "    ")
-				if err != nil {
-					panic(err)
-				}
-				os.Stdout.Write(data)
+				schema := a.Schema()
 
-				return nil
+				usedTypes := make(map[string]struct{})
+				for _, n := range schema.Nodes {
+					usedTypes[n.Type] = struct{}{}
+				}
+
+				for i := len(schema.Types) - 1; i >= 0; i-- {
+					if _, ok := usedTypes[schema.Types[i].Type]; !ok {
+						schema.Types = append(schema.Types[:i], schema.Types[i+1:]...)
+					}
+				}
+
+				data, err := json.MarshalIndent(schema, "", "    ")
+				if err != nil {
+					return err
+				}
+
+				_, err = appState.Out.Write(data)
+				return err
 			},
 		},
 		{
 			Name:        "Zip",
 			Description: "Runs all producers defined and writes it to a zip file",
 			Aliases:     []string{"zip", "z"},
-			Run: func(args []string) error {
+			Run: func(appState *cli.RunState) error {
 				zipCmd := flag.NewFlagSet("zip", flag.ExitOnError)
 				a.initialize(zipCmd)
-				fileFlag := zipCmd.String("file-name", "out.zip", "file to write the contents of the zip too")
+				fileFlag := zipCmd.String("out", "", "file to write the contents of the zip too")
 
-				if err := zipCmd.Parse(args); err != nil {
+				if err := zipCmd.Parse(appState.Args); err != nil {
 					return err
 				}
 
-				f, err := os.Create(*fileFlag)
-				if err != nil {
-					return err
-				}
-				defer f.Close()
+				var out io.Writer = appState.Out
 
-				return a.WriteZip(f)
+				if fileFlag != nil && *fileFlag != "" {
+					f, err := os.Create(*fileFlag)
+					if err != nil {
+						return err
+					}
+					defer f.Close()
+					out = f
+				}
+
+				return a.WriteZip(out)
 			},
 		},
 		{
 			Name:        "Mermaid",
 			Description: "Create a mermaid flow chart for a specific producer",
 			Aliases:     []string{"mermaid"},
-			Run: func(args []string) error {
+			Run: func(appState *cli.RunState) error {
 				mermaidCmd := flag.NewFlagSet("mermaid", flag.ExitOnError)
 				a.initialize(mermaidCmd)
 				fileFlag := mermaidCmd.String("file-name", "", "Optional path to file to write content to")
 
-				if err := mermaidCmd.Parse(args); err != nil {
+				if err := mermaidCmd.Parse(appState.Args); err != nil {
 					return err
 				}
 
@@ -756,16 +780,16 @@ func (a *App) Run() error {
 			Name:        "Swagger",
 			Description: "Create a swagger 2.0 file",
 			Aliases:     []string{"swagger"},
-			Run: func(args []string) error {
+			Run: func(appState *cli.RunState) error {
 				swaggerCmd := flag.NewFlagSet("swagger", flag.ExitOnError)
 				a.initialize(swaggerCmd)
 				fileFlag := swaggerCmd.String("file-name", "", "Optional path to file to write content to")
 
-				if err := swaggerCmd.Parse(args); err != nil {
+				if err := swaggerCmd.Parse(appState.Args); err != nil {
 					return err
 				}
 
-				var out io.Writer = os.Stdout
+				var out io.Writer = appState.Out
 
 				if fileFlag != nil && *fileFlag != "" {
 					f, err := os.Create(*fileFlag)
@@ -783,7 +807,7 @@ func (a *App) Run() error {
 			Name:        "Help",
 			Description: "",
 			Aliases:     []string{"help", "h"},
-			Run: func(args []string) error {
+			Run: func(appState *cli.RunState) error {
 				cliDetails := appCLI{
 					Name:        a.Name,
 					Version:     a.Version,
@@ -807,6 +831,7 @@ func (a *App) Run() error {
 
 	cliApp := cli.App{
 		Commands: commands,
+		Out:      a.Out,
 		ConfigProvided: func(config string) error {
 			fileData, err := os.ReadFile(config)
 			if err != nil {
@@ -824,5 +849,5 @@ func (a *App) Run() error {
 		},
 	}
 
-	return cliApp.Run(os.Args)
+	return cliApp.Run(args)
 }

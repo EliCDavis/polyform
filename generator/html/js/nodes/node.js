@@ -102,7 +102,7 @@ export class PolyNodeController {
 
         if (nodeData.metadata) {
             if (nodeData.metadata.position) {
-                console.log("setting position....", nodeData.metadata.position)
+                // console.log("setting position....", nodeData.metadata.position)
                 this.flowNode.setPosition(nodeData.metadata.position);
             }
         }
@@ -120,6 +120,9 @@ export class PolyNodeController {
 
         if (nodeData.parameter) {
             this.parameter = BuildParameter(flowNode, this.nodeManager, this.id, nodeData.parameter, this.app);
+            if(nodeData.parameter.description) {
+                flowNode.setInfo(nodeData.parameter.description);
+            }
         }
 
         // type TitleChangeCallback = (node: FlowNode, oldTitle: string, newTitle: string) => void
@@ -142,6 +145,18 @@ export class PolyNodeController {
                 );
             }
         });
+
+
+        // Only parameters can change their info
+        if (!isProducer) {
+            this.flowNode.addInfoChangeListener((_, __, newTitle) => {
+                this.app.RequestManager.setParameterInfo(
+                    this.flowNode.nodeInstanceID,
+                    newTitle,
+                    () => { }
+                );
+            });
+        }
 
         if (this.isProducer) {
             const ext = getFileExtension(nodeData.name);
@@ -222,7 +237,7 @@ export class PolyNodeController {
         this.version = nodeData.version;
         this.dependencies = nodeData.dependencies;
 
-        console.log(nodeData);
+        // console.log(nodeData);
         if (nodeData.metadata) {
             if (nodeData.metadata.position) {
                 this.flowNode.setPosition(nodeData.metadata.position);

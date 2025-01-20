@@ -95,8 +95,8 @@
 				},
 				"Node-21": {
 					"position": {
-						"x": 4859.852703995043,
-						"y": -1541.617893418497
+						"x": 4836.669300279127,
+						"y": -1525.8862980398374
 					}
 				},
 				"Node-22": {
@@ -649,6 +649,7 @@
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
 				"data": {
 					"name": "Weld Dist",
+					"description": "",
 					"currentValue": 0.0001,
 					"defaultValue": 0.0001,
 					"cli": null
@@ -658,6 +659,7 @@
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[github.com/EliCDavis/vector/vector2.Vector[float64]]",
 				"data": {
 					"name": "UV Start",
+					"description": "",
 					"currentValue": {
 						"x": 0,
 						"y": 0.5
@@ -673,6 +675,7 @@
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[github.com/EliCDavis/polyform/drawing/coloring.WebColor]",
 				"data": {
 					"name": "UFO Color",
+					"description": "",
 					"currentValue": "#ffffff",
 					"defaultValue": "#ffffff",
 					"cli": null
@@ -682,6 +685,7 @@
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[string]",
 				"data": {
 					"name": "Color Tex URI",
+					"description": "",
 					"currentValue": "brushed.png",
 					"defaultValue": "brushed.png",
 					"cli": null
@@ -691,6 +695,7 @@
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
 				"data": {
 					"name": "UFO Metallic",
+					"description": "",
 					"currentValue": 1,
 					"defaultValue": 1,
 					"cli": null
@@ -700,6 +705,7 @@
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
 				"data": {
 					"name": "UFO Roughness",
+					"description": "",
 					"currentValue": 0.3,
 					"defaultValue": 0.3,
 					"cli": null
@@ -709,6 +715,7 @@
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[string]",
 				"data": {
 					"name": "Metalic Tex URI",
+					"description": "",
 					"currentValue": "rough.png",
 					"defaultValue": "rough.png",
 					"cli": null
@@ -718,6 +725,7 @@
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
 				"data": {
 					"name": "UFO Clearcoat Factor",
+					"description": "",
 					"currentValue": 0.25,
 					"defaultValue": 0.25,
 					"cli": null
@@ -726,7 +734,8 @@
 			"Node-16": {
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
 				"data": {
-					"name": "UFO ClearcoatRoughnessFactor",
+					"name": "UFO Clearcoat Roughness Factor",
+					"description": "",
 					"currentValue": 0.15,
 					"defaultValue": 0.15,
 					"cli": null
@@ -801,6 +810,7 @@
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[github.com/EliCDavis/vector/vector2.Vector[float64]]",
 				"data": {
 					"name": "UV End",
+					"description": "",
 					"currentValue": {
 						"x": 20,
 						"y": 0.5
@@ -816,6 +826,7 @@
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[github.com/EliCDavis/polyform/drawing/coloring.WebColor]",
 				"data": {
 					"name": "Abduction Ring Color",
+					"description": "",
 					"currentValue": "#00ff00",
 					"defaultValue": "#00ff00",
 					"cli": null
@@ -825,6 +836,7 @@
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
 				"data": {
 					"name": "Abduction Ring Emissive Strength",
+					"description": "The strength adjustment to be multiplied with the material's emissive value",
 					"currentValue": 3,
 					"defaultValue": 3,
 					"cli": null
@@ -854,6 +866,7 @@
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[int]",
 				"data": {
 					"name": "Abduction Ring Resolution",
+					"description": "",
 					"currentValue": 20,
 					"defaultValue": 20,
 					"cli": null
@@ -863,6 +876,7 @@
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
 				"data": {
 					"name": "Abduction Ring Thickness Frequency",
+					"description": "",
 					"currentValue": 37.69911184307752,
 					"defaultValue": 37.69911184307752,
 					"cli": null
@@ -872,6 +886,7 @@
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[int]",
 				"data": {
 					"name": "Abduction Ring Path Resolution",
+					"description": "",
 					"currentValue": 120,
 					"defaultValue": 120,
 					"cli": null
@@ -896,6 +911,7 @@
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
 				"data": {
 					"name": "Thickness Scale",
+					"description": "",
 					"currentValue": 0.25,
 					"defaultValue": 0.25,
 					"cli": null
@@ -920,6 +936,7 @@
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
 				"data": {
 					"name": "Thickness Shift",
+					"description": "",
 					"currentValue": 0.5,
 					"defaultValue": 0.5,
 					"cli": null
@@ -959,6 +976,7 @@
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
 				"data": {
 					"name": "2Pi",
+					"description": "",
 					"currentValue": 6.283185307179586,
 					"defaultValue": 6.283185307179586,
 					"cli": null
@@ -983,6 +1001,7 @@
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
 				"data": {
 					"name": "Abduction Ring Radius",
+					"description": "",
 					"currentValue": 4,
 					"defaultValue": 4,
 					"cli": null
@@ -1007,6 +1026,7 @@
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
 				"data": {
 					"name": "Abduction Ring Frequency",
+					"description": "",
 					"currentValue": 25.132741228718345,
 					"defaultValue": 25.132741228718345,
 					"cli": null
@@ -1031,6 +1051,7 @@
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
 				"data": {
 					"name": "Abduction Ring Amplitude",
+					"description": "",
 					"currentValue": 0.5,
 					"defaultValue": 0.5,
 					"cli": null
@@ -1070,6 +1091,7 @@
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[[]github.com/EliCDavis/vector/vector3.Vector[float64]]",
 				"data": {
 					"name": "UFO Outline",
+					"description": "",
 					"currentValue": [
 						{
 							"x": 0,
@@ -1181,6 +1203,7 @@
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[bool]",
 				"data": {
 					"name": "Closed",
+					"description": "",
 					"currentValue": true,
 					"defaultValue": true,
 					"cli": null
@@ -1215,6 +1238,7 @@
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
 				"data": {
 					"name": "Ring Start Position",
+					"description": "",
 					"currentValue": -10,
 					"defaultValue": -10,
 					"cli": null
@@ -1224,6 +1248,7 @@
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
 				"data": {
 					"name": "Ring End Position",
+					"description": "",
 					"currentValue": -3,
 					"defaultValue": -3,
 					"cli": null
@@ -1233,6 +1258,7 @@
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[int]",
 				"data": {
 					"name": "Ring Count",
+					"description": "",
 					"currentValue": 3,
 					"defaultValue": 3,
 					"cli": null
@@ -1272,6 +1298,7 @@
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
 				"data": {
 					"name": "Start Ring Scale",
+					"description": "",
 					"currentValue": 1,
 					"defaultValue": 1,
 					"cli": null
@@ -1281,6 +1308,7 @@
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
 				"data": {
 					"name": "End Ring Scale",
+					"description": "",
 					"currentValue": 0.3,
 					"defaultValue": 0.3,
 					"cli": null
@@ -1290,6 +1318,7 @@
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[int]",
 				"data": {
 					"name": "UFO Resolution",
+					"description": "",
 					"currentValue": 40,
 					"defaultValue": 40,
 					"cli": null
@@ -1374,6 +1403,7 @@
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
 				"data": {
 					"name": "Hemisphere Radius",
+					"description": "",
 					"currentValue": 3.1,
 					"defaultValue": 3.1,
 					"cli": null
@@ -1383,6 +1413,7 @@
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[int]",
 				"data": {
 					"name": "UFO Dome Rows",
+					"description": "",
 					"currentValue": 40,
 					"defaultValue": 40,
 					"cli": null
@@ -1392,6 +1423,7 @@
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[int]",
 				"data": {
 					"name": "UFO Dome Columns",
+					"description": "",
 					"currentValue": 40,
 					"defaultValue": 40,
 					"cli": null
@@ -1431,6 +1463,7 @@
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
 				"data": {
 					"name": "Revolutions",
+					"description": "",
 					"currentValue": 1,
 					"defaultValue": 1,
 					"cli": null
@@ -1440,6 +1473,7 @@
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[github.com/EliCDavis/vector/vector3.Vector[float64]]",
 				"data": {
 					"name": "Dome Position",
+					"description": "",
 					"currentValue": {
 						"x": 0,
 						"y": 5,
@@ -1472,6 +1506,7 @@
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[github.com/EliCDavis/polyform/drawing/coloring.WebColor]",
 				"data": {
 					"name": "Dome Color",
+					"description": "",
 					"currentValue": "#c8c8c8",
 					"defaultValue": "#c8c8c8",
 					"cli": null
@@ -1481,6 +1516,7 @@
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
 				"data": {
 					"name": "Dome Metalic",
+					"description": "",
 					"currentValue": 0,
 					"defaultValue": 0,
 					"cli": null
@@ -1490,6 +1526,7 @@
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
 				"data": {
 					"name": "Dome Roughness",
+					"description": "",
 					"currentValue": 0.2,
 					"defaultValue": 0.2,
 					"cli": null
@@ -1499,6 +1536,7 @@
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
 				"data": {
 					"name": "Dome IOR",
+					"description": "",
 					"currentValue": 1.52,
 					"defaultValue": 1.52,
 					"cli": null
@@ -1508,6 +1546,7 @@
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
 				"data": {
 					"name": "Dome Transmission",
+					"description": "",
 					"currentValue": 0.9,
 					"defaultValue": 0.9,
 					"cli": null
@@ -1527,6 +1566,7 @@
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
 				"data": {
 					"name": "Dome Thickness",
+					"description": "",
 					"currentValue": 0.5,
 					"defaultValue": 0.5,
 					"cli": null
@@ -1546,6 +1586,7 @@
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
 				"data": {
 					"name": "Height",
+					"description": "",
 					"currentValue": 0,
 					"defaultValue": 0,
 					"cli": null
@@ -1605,6 +1646,7 @@
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[int]",
 				"data": {
 					"name": "Contour Sides",
+					"description": "",
 					"currentValue": 20,
 					"defaultValue": 20,
 					"cli": null
@@ -1614,6 +1656,7 @@
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
 				"data": {
 					"name": "Contour Thickness",
+					"description": "",
 					"currentValue": 0.2,
 					"defaultValue": 0.2,
 					"cli": null
@@ -1643,6 +1686,7 @@
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[int]",
 				"data": {
 					"name": "Countour Repeat Times",
+					"description": "",
 					"currentValue": 10,
 					"defaultValue": 10,
 					"cli": null
@@ -1747,6 +1791,7 @@
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[github.com/EliCDavis/polyform/drawing/coloring.WebColor]",
 				"data": {
 					"name": "Positive",
+					"description": "",
 					"currentValue": "#dedede",
 					"defaultValue": "#dedede",
 					"cli": null
@@ -1756,6 +1801,7 @@
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[github.com/EliCDavis/polyform/drawing/coloring.WebColor]",
 				"data": {
 					"name": "Negative",
+					"description": "",
 					"currentValue": "#cacaca",
 					"defaultValue": "#cacaca",
 					"cli": null
@@ -1790,6 +1836,7 @@
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[github.com/EliCDavis/polyform/drawing/coloring.WebColor]",
 				"data": {
 					"name": "Positive",
+					"description": "",
 					"currentValue": "#0046ff",
 					"defaultValue": "#0046ff",
 					"cli": null
@@ -1799,6 +1846,7 @@
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[github.com/EliCDavis/polyform/drawing/coloring.WebColor]",
 				"data": {
 					"name": "Negative",
+					"description": "",
 					"currentValue": "#00c8ff",
 					"defaultValue": "#00c8ff",
 					"cli": null

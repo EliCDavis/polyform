@@ -3,15 +3,26 @@ package cli
 import (
 	"errors"
 	"fmt"
+	"io"
 	"os"
 )
 
 type App struct {
 	Commands       []*Command
+	Out            io.Writer
 	ConfigProvided func(config string) error
 }
 
 func (a *App) Run(args []string) error {
+
+	runState := &RunState{
+		Out: a.Out,
+	}
+
+	if a.Out == nil {
+		runState.Out = os.Stdout
+	}
+
 	commandMap := make(map[string]*Command)
 	for _, cmd := range a.Commands {
 		for _, alias := range cmd.Aliases {
@@ -27,7 +38,8 @@ func (a *App) Run(args []string) error {
 
 	firstArg := argsWithoutProg[0]
 	if cmd, ok := commandMap[firstArg]; ok {
-		return cmd.Run(args[2:])
+		runState.Args = args[2:]
+		return cmd.Run(runState)
 	}
 
 	if !fileExists(firstArg) {
@@ -46,7 +58,8 @@ func (a *App) Run(args []string) error {
 
 	firstArg = argsWithoutGraph[0]
 	if cmd, ok := commandMap[firstArg]; ok {
-		return cmd.Run(argsWithoutGraph[1:])
+		runState.Args = argsWithoutGraph[1:]
+		return cmd.Run(runState)
 	}
 
 	return fmt.Errorf("unrecognized command %s", firstArg)

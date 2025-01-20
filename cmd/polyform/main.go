@@ -1,6 +1,8 @@
 package main
 
 import (
+	"os"
+
 	"github.com/EliCDavis/polyform/generator"
 	"github.com/EliCDavis/polyform/generator/artifact"
 	"github.com/EliCDavis/polyform/nodes"
@@ -26,7 +28,7 @@ func main() {
 		Producers:   map[string]nodes.NodeOutput[artifact.Artifact]{},
 	}
 
-	if err := app.Run(); err != nil {
+	if err := app.Run(os.Args); err != nil {
 		panic(err)
 	}
 }

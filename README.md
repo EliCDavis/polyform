@@ -17,6 +17,12 @@ Download the latest [release](https://github.com/EliCDavis/polyform/releases) of
 polyform <downloaded_example>.json edit
 ```
 
+Or if you have golang installed, simply clone the repo and run:
+
+```bash
+go run ./cmd/polyform ./examples/graphs/ufo.json edit
+```
+
 ## Overview
 
 - [Formats](/formats/)

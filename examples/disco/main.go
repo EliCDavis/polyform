@@ -3,6 +3,7 @@ package main
 import (
 	"image"
 	"image/color"
+	"os"
 
 	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/formats/gltf"
@@ -402,7 +403,7 @@ func main() {
 			"rough.png": basics.NewImageNode(nodes.Value(texture(0, 1))),
 		},
 	}
-	err := app.Run()
+	err := app.Run(os.Args)
 	if err != nil {
 		panic(err)
 	}

@@ -74,3 +74,19 @@ func parameterNameEndpoint(as *AppServer) endpoint.Handler {
 		},
 	}
 }
+
+func parameterDescriptionEndpoint(as *AppServer) endpoint.Handler {
+	return endpoint.Handler{
+		Methods: map[string]endpoint.Method{
+			http.MethodPost: endpoint.BodyMethod[string]{
+				Request: endpoint.TextRequestReader{},
+				Handler: func(req endpoint.Request[string]) error {
+					parameterId := path.Base(req.Url)
+					as.app.GetParameter(parameterId).SetDescription(req.Body)
+					as.AutosaveGraph()
+					return nil
+				},
+			},
+		},
+	}
+}

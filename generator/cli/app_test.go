@@ -15,8 +15,8 @@ func TestRunCallsCommand(t *testing.T) {
 			{
 				Name:    "command",
 				Aliases: []string{"command", "c"},
-				Run: func(args []string) error {
-					values = args
+				Run: func(appState *cli.RunState) error {
+					values = appState.Args
 					return nil
 				},
 			},
@@ -41,7 +41,7 @@ func TestRunCallsHelpOnUnknownCommand(t *testing.T) {
 			{
 				Name:    "Help",
 				Aliases: []string{"help"},
-				Run: func(args []string) error {
+				Run: func(appState *cli.RunState) error {
 					called = true
 					return nil
 				},

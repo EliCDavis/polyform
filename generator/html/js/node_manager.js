@@ -29,9 +29,9 @@ export class NodeManager {
             return;
         }
 
-        console.log(flowNode.metadata())
+        // console.log(flowNode.metadata())
         const nodeType = flowNode.metadata().typeData.type
-        console.log(nodeType, flowNode)
+        // console.log(nodeType, flowNode)
 
         this.app.RequestManager.createNode(nodeType, (resp) => {
             const isProducer = false;

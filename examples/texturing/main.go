@@ -3,6 +3,7 @@ package main
 import (
 	"image"
 	"image/draw"
+	"os"
 
 	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/generator"
@@ -85,7 +86,7 @@ func main() {
 		},
 	}
 
-	if err := app.Run(); err != nil {
+	if err := app.Run(os.Args); err != nil {
 		panic(err)
 	}
 }

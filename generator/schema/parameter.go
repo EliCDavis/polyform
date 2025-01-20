@@ -6,8 +6,9 @@ type Parameter interface {
 }
 
 type ParameterBase struct {
-	Name string `json:"name"`
-	Type string `json:"type"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Type        string `json:"type"`
 }
 
 func (gps ParameterBase) DisplayName() string {

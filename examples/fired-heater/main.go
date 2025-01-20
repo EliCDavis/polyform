@@ -2,6 +2,7 @@ package main
 
 import (
 	"math"
+	"os"
 
 	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/formats/gltf"
@@ -476,7 +477,7 @@ func main() {
 		},
 	}
 
-	err := app.Run()
+	err := app.Run(os.Args)
 	if err != nil {
 		panic(err)
 	}

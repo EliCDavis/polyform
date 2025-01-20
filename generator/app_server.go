@@ -148,6 +148,7 @@ func (as *AppServer) Serve() error {
 	http.Handle("/node/connection", nodeConnectionEndpoint(as))
 	http.Handle("/parameter/value/", parameterValueEndpoint(as))
 	http.Handle("/parameter/name/", parameterNameEndpoint(as))
+	http.Handle("/parameter/description/", parameterDescriptionEndpoint(as))
 	http.Handle("/graph", graphEndpoint(as))
 	http.Handle("/graph/metadata/", graphMetadataEndpoint(as))
 	http.HandleFunc("/started", as.StartedEndpoint)

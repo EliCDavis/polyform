@@ -4,6 +4,7 @@ import (
 	"image/color"
 	"math"
 	"math/rand"
+	"os"
 	"time"
 
 	"github.com/EliCDavis/polyform/drawing/coloring"
@@ -489,7 +490,7 @@ func main() {
 		},
 	}
 
-	err := app.Run()
+	err := app.Run(os.Args)
 	if err != nil {
 		panic(err)
 	}
