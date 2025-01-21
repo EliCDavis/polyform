@@ -14,6 +14,7 @@ cert.pem
 key.pem
 
 # nix
+result
 /result/
 /result-.*/
 
