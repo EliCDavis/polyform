@@ -41,6 +41,92 @@ func ScaleAttribute3D(m modeling.Mesh, attribute string, origin, amount vector3.
 	return m.SetFloat3Attribute(attribute, scaledData)
 }
 
+// ============================================================================
+
+type ScaleAttributeAlongNormalTransformer struct {
+	AttributeToScale string
+	NormalAttribute  string
+	Amount           float64
+}
+
+func (st ScaleAttributeAlongNormalTransformer) Transform(m modeling.Mesh) (results modeling.Mesh, err error) {
+	attribute := fallbackAttribute(st.AttributeToScale, modeling.PositionAttribute)
+	if err = RequireV3Attribute(m, attribute); err != nil {
+		return
+	}
+
+	normalAttribute := fallbackAttribute(st.NormalAttribute, modeling.NormalAttribute)
+	if err = RequireV3Attribute(m, attribute); err != nil {
+		return
+	}
+
+	return ScaleAttributeAlongNormal(m, attribute, normalAttribute, st.Amount), nil
+}
+
+func ScaleAttributeAlongNormal(m modeling.Mesh, attributeToScale, normalAttribute string, amount float64) modeling.Mesh {
+	if err := RequireV3Attribute(m, attributeToScale); err != nil {
+		panic(err)
+	}
+
+	if err := RequireV3Attribute(m, normalAttribute); err != nil {
+		panic(err)
+	}
+
+	positionData := m.Float3Attribute(attributeToScale)
+	normalData := m.Float3Attribute(normalAttribute)
+	scaledData := make([]vector3.Float64, positionData.Len())
+	for i := 0; i < positionData.Len(); i++ {
+		scaledData[i] = positionData.At(i).Add(normalData.At(i).Scale(amount))
+	}
+
+	return m.SetFloat3Attribute(attributeToScale, scaledData)
+}
+
+type ScaleAttributeAlongNormalNode = nodes.Struct[modeling.Mesh, ScaleAttributeAlongNormalNodeData]
+
+type ScaleAttributeAlongNormalNodeData struct {
+	Mesh             nodes.NodeOutput[modeling.Mesh]
+	Amount           nodes.NodeOutput[float64]
+	AttributeToScale nodes.NodeOutput[string]
+	NormalAttribute  nodes.NodeOutput[string]
+}
+
+func (sa3dn ScaleAttributeAlongNormalNodeData) Process() (modeling.Mesh, error) {
+
+	if sa3dn.Mesh == nil {
+		return modeling.EmptyMesh(modeling.TriangleTopology), nil
+	}
+
+	mesh := sa3dn.Mesh.Value()
+
+	attrToScale := modeling.PositionAttribute
+	if sa3dn.AttributeToScale != nil {
+		attrToScale = sa3dn.AttributeToScale.Value()
+	}
+
+	if !mesh.HasFloat3Attribute(attrToScale) {
+		return modeling.EmptyMesh(modeling.TriangleTopology), nil
+	}
+
+	attrNormal := modeling.NormalAttribute
+	if sa3dn.NormalAttribute != nil {
+		attrNormal = sa3dn.NormalAttribute.Value()
+	}
+
+	if !mesh.HasFloat3Attribute(attrNormal) {
+		return modeling.EmptyMesh(modeling.TriangleTopology), nil
+	}
+
+	ammount := 0.
+	if sa3dn.Amount != nil {
+		ammount = sa3dn.Amount.Value()
+	}
+
+	return ScaleAttributeAlongNormal(mesh, attrToScale, attrNormal, ammount), nil
+}
+
+// ============================================================================
+
 type ScaleAttribute2DTransformer struct {
 	Attribute string
 	Origin    vector2.Float64

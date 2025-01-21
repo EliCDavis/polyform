@@ -5,6 +5,7 @@ import (
 	"math"
 
 	"github.com/EliCDavis/polyform/modeling"
+	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/vector/vector3"
 )
 
@@ -177,4 +178,51 @@ func UVSphereUnwelded(radius float64, rows, columns int) modeling.Mesh {
 		SetFloat3Data(map[string][]vector3.Float64{
 			modeling.PositionAttribute: finalVerts,
 		})
+}
+
+type UvSphereNode = nodes.Struct[modeling.Mesh, UvSphereNodeData]
+
+type UvSphereNodeData struct {
+	Radius  nodes.NodeOutput[float64]
+	Rows    nodes.NodeOutput[int]
+	Columns nodes.NodeOutput[int]
+	Weld    nodes.NodeOutput[bool]
+}
+
+func (c UvSphereNodeData) Description() string {
+	return "A spherical mesh that is created by starting with a square grid, turning it into a cylinder, and then squeezing the top and bottom. It is the simplest way to create a sphere, but it has a poor vertex distribution."
+}
+
+func (c UvSphereNodeData) Process() (modeling.Mesh, error) {
+
+	// radius float64, rows, columns int
+
+	radius := .5
+	rows := 10
+	columns := 10
+	weld := true
+
+	if c.Radius != nil {
+		radius = c.Radius.Value()
+	}
+
+	if c.Rows != nil {
+		rows = c.Rows.Value()
+	}
+	rows = max(rows, 2)
+
+	if c.Columns != nil {
+		columns = c.Columns.Value()
+	}
+	columns = max(columns, 3)
+
+	if c.Weld != nil {
+		weld = c.Weld.Value()
+	}
+
+	if weld {
+		return UVSphere(radius, rows, columns), nil
+	}
+
+	return UVSphereUnwelded(radius, rows, columns), nil
 }

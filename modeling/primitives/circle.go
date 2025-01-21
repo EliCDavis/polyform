@@ -4,6 +4,7 @@ import (
 	"math"
 
 	"github.com/EliCDavis/polyform/modeling"
+	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
 )
@@ -77,4 +78,58 @@ func (c Circle) ToMesh() modeling.Mesh {
 		NewTriangleMesh(tris).
 		SetFloat3Data(meshV3Data).
 		SetFloat2Data(meshV2Data)
+}
+
+type CircleUVsNode = nodes.Struct[CircleUVs, CircleUVsNodeData]
+
+type CircleUVsNodeData struct {
+	Center nodes.NodeOutput[vector2.Float64]
+	Radius nodes.NodeOutput[float64]
+}
+
+func (c CircleUVsNodeData) Process() (CircleUVs, error) {
+	uvs := CircleUVs{
+		Radius: 0.5,
+		Center: vector2.New(0.5, 0.5),
+	}
+
+	if c.Center != nil {
+		uvs.Center = c.Center.Value()
+	}
+
+	if c.Radius != nil {
+		uvs.Radius = c.Radius.Value()
+	}
+
+	return uvs, nil
+}
+
+type CircleNode = nodes.Struct[modeling.Mesh, CircleNodeData]
+
+type CircleNodeData struct {
+	Radius nodes.NodeOutput[float64]
+	Sides  nodes.NodeOutput[int]
+	UVs    nodes.NodeOutput[CircleUVs]
+}
+
+func (c CircleNodeData) Process() (modeling.Mesh, error) {
+	circle := Circle{
+		Radius: 0.5,
+		Sides:  12,
+	}
+
+	if c.Sides != nil {
+		circle.Sides = c.Sides.Value()
+	}
+
+	if c.Radius != nil {
+		circle.Radius = c.Radius.Value()
+	}
+
+	if c.UVs != nil {
+		uvs := c.UVs.Value()
+		circle.UVs = &uvs
+	}
+
+	return circle.ToMesh(), nil
 }

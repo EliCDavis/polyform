@@ -2,6 +2,7 @@ package primitives
 
 import (
 	"github.com/EliCDavis/polyform/modeling"
+	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
 )
@@ -41,4 +42,34 @@ func (q Quad) ToMesh() modeling.Mesh {
 			},
 		}).
 		SetFloat2Data(v2Data)
+}
+
+type QuadNode = nodes.Struct[modeling.Mesh, QuadNodeData]
+
+type QuadNodeData struct {
+	Width nodes.NodeOutput[float64]
+	Depth nodes.NodeOutput[float64]
+	UVs   nodes.NodeOutput[StripUVs]
+}
+
+func (c QuadNodeData) Process() (modeling.Mesh, error) {
+	quad := Quad{
+		Width: 1,
+		Depth: 1,
+	}
+
+	if c.Width != nil {
+		quad.Width = c.Width.Value()
+	}
+
+	if c.Depth != nil {
+		quad.Depth = c.Depth.Value()
+	}
+
+	if c.UVs != nil {
+		uvs := c.UVs.Value()
+		quad.UVs = &uvs
+	}
+
+	return quad.ToMesh(), nil
 }

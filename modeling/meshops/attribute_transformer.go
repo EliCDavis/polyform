@@ -13,3 +13,10 @@ func getAttribute(at attributeTransformer, fallback string) string {
 	}
 	return attr
 }
+
+func fallbackAttribute(attribute, fallback string) string {
+	if strings.TrimSpace(attribute) == "" {
+		return fallback
+	}
+	return attribute
+}
