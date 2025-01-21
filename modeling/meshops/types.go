@@ -11,9 +11,12 @@ func init() {
 	refutil.RegisterType[TranslateAttribute3DNode](factory)
 	refutil.RegisterType[CropAttribute3DNode](factory)
 	refutil.RegisterType[LaplacianSmoothNode](factory)
-	refutil.RegisterType[SmoothNormalsNode](factory)
+
 	refutil.RegisterType[CombineNode](factory)
+
+	refutil.RegisterType[SmoothNormalsNode](factory)
 	refutil.RegisterType[SmoothNormalsImplicitWeldNode](factory)
+	refutil.RegisterType[FlatNormalsNode](factory)
 
 	refutil.RegisterType[ScaleAttribute3DNode](factory)
 	refutil.RegisterType[ScaleAttributeAlongNormalNode](factory)

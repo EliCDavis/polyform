@@ -2,6 +2,7 @@ package meshops
 
 import (
 	"github.com/EliCDavis/polyform/modeling"
+	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/vector/vector3"
 )
 
@@ -47,4 +48,24 @@ func FlatNormals(m modeling.Mesh) modeling.Mesh {
 	}
 
 	return m.SetFloat3Attribute(modeling.NormalAttribute, normals)
+}
+
+type FlatNormalsNode = nodes.Struct[modeling.Mesh, FlatNormalsNodeData]
+
+type FlatNormalsNodeData struct {
+	Mesh nodes.NodeOutput[modeling.Mesh]
+}
+
+func (fnnd FlatNormalsNodeData) Process() (modeling.Mesh, error) {
+	if fnnd.Mesh == nil {
+		return modeling.EmptyMesh(modeling.TriangleTopology), nil
+	}
+
+	mesh := fnnd.Mesh.Value()
+
+	if !mesh.HasFloat3Attribute(modeling.PositionAttribute) || mesh.Topology() != modeling.TriangleTopology {
+		return modeling.EmptyMesh(modeling.TriangleTopology), nil
+	}
+
+	return FlatNormals(mesh), nil
 }
