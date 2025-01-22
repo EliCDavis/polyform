@@ -757,7 +757,7 @@
 				}
 			},
 			"Node-17": {
-				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformClearcoat,github.com/EliCDavis/polyform/formats/gltf.GltfMaterialClearcoatExtensionNodeData]",
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformClearcoat,github.com/EliCDavis/polyform/formats/gltf.MaterialClearcoatExtensionNodeData]",
 				"dependencies": [
 					{
 						"dependencyID": "Node-15",
@@ -772,7 +772,7 @@
 				]
 			},
 			"Node-18": {
-				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformMaterial,github.com/EliCDavis/polyform/formats/gltf.GltfMaterialNodeData]",
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformMaterial,github.com/EliCDavis/polyform/formats/gltf.MaterialNodeData]",
 				"dependencies": [
 					{
 						"dependencyID": "Node-17",
@@ -807,7 +807,7 @@
 				]
 			},
 			"Node-19": {
-				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformModel,github.com/EliCDavis/polyform/formats/gltf.GltfModelNodeData]",
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformModel,github.com/EliCDavis/polyform/formats/gltf.ModelNodeData]",
 				"dependencies": [
 					{
 						"dependencyID": "Node-18",
@@ -858,7 +858,7 @@
 				}
 			},
 			"Node-22": {
-				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformMaterial,github.com/EliCDavis/polyform/formats/gltf.GltfMaterialNodeData]",
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformMaterial,github.com/EliCDavis/polyform/formats/gltf.MaterialNodeData]",
 				"dependencies": [
 					{
 						"dependencyID": "Node-20",
@@ -1395,7 +1395,7 @@
 				]
 			},
 			"Node-54": {
-				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformModel,github.com/EliCDavis/polyform/formats/gltf.GltfModelNodeData]",
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformModel,github.com/EliCDavis/polyform/formats/gltf.ModelNodeData]",
 				"dependencies": [
 					{
 						"dependencyID": "Node-52",
@@ -1568,7 +1568,7 @@
 				}
 			},
 			"Node-67": {
-				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformTransmission,github.com/EliCDavis/polyform/formats/gltf.GltfMaterialTransmissionExtensionNodeData]",
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformTransmission,github.com/EliCDavis/polyform/formats/gltf.MaterialTransmissionExtensionNodeData]",
 				"dependencies": [
 					{
 						"dependencyID": "Node-66",
@@ -1588,7 +1588,7 @@
 				}
 			},
 			"Node-69": {
-				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformVolume,github.com/EliCDavis/polyform/formats/gltf.GltfMaterialVolumeExtensionNodeData]",
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformVolume,github.com/EliCDavis/polyform/formats/gltf.MaterialVolumeExtensionNodeData]",
 				"dependencies": [
 					{
 						"dependencyID": "Node-68",
@@ -1608,7 +1608,7 @@
 				}
 			},
 			"Node-70": {
-				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformMaterial,github.com/EliCDavis/polyform/formats/gltf.GltfMaterialNodeData]",
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformMaterial,github.com/EliCDavis/polyform/formats/gltf.MaterialNodeData]",
 				"dependencies": [
 					{
 						"dependencyID": "Node-62",
@@ -1643,7 +1643,7 @@
 				]
 			},
 			"Node-71": {
-				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformModel,github.com/EliCDavis/polyform/formats/gltf.GltfModelNodeData]",
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformModel,github.com/EliCDavis/polyform/formats/gltf.ModelNodeData]",
 				"dependencies": [
 					{
 						"dependencyID": "Node-70",
@@ -1733,7 +1733,7 @@
 				]
 			},
 			"Node-78": {
-				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformModel,github.com/EliCDavis/polyform/formats/gltf.GltfModelNodeData]",
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformModel,github.com/EliCDavis/polyform/formats/gltf.ModelNodeData]",
 				"dependencies": [
 					{
 						"dependencyID": "Node-18",
@@ -1748,7 +1748,7 @@
 				]
 			},
 			"Node-79": {
-				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/generator/artifact.Artifact,github.com/EliCDavis/polyform/formats/gltf.GltfArtifactData]",
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/generator/artifact.Artifact,github.com/EliCDavis/polyform/formats/gltf.ArtifactNodeData]",
 				"dependencies": [
 					{
 						"dependencyID": "Node-19",

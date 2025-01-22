@@ -48,7 +48,7 @@ type ConeNodeData struct {
 func (r ConeNodeData) Process() (modeling.Mesh, error) {
 	cone := Cone{
 		Height: 1,
-		Radius: 1,
+		Radius: 0.5,
 		Sides:  3,
 	}
 

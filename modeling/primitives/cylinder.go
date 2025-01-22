@@ -130,7 +130,7 @@ type CylinderNodeData struct {
 }
 
 func (hnd CylinderNodeData) Process() (modeling.Mesh, error) {
-	radius := 1.
+	radius := 0.5
 	if hnd.Radius != nil {
 		radius = hnd.Radius.Value()
 	}

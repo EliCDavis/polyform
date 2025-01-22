@@ -33,6 +33,12 @@ func buildSwaggerDefinitionForProducer(producer nodes.NodeOutput[artifact.Artifa
 
 	for _, param := range params {
 		paramName := strings.Replace(param.DisplayName(), " ", "", -1)
+
+		// Don't expose unnamed parameters
+		if paramName == "" {
+			continue
+		}
+
 		props[paramName] = param.SwaggerProperty()
 	}
 
