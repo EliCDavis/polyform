@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"os"
 
 	"github.com/EliCDavis/polyform/generator"
@@ -12,6 +13,8 @@ import (
 	_ "github.com/EliCDavis/polyform/formats/ply"
 	_ "github.com/EliCDavis/polyform/generator/artifact/basics"
 	_ "github.com/EliCDavis/polyform/generator/parameter"
+	_ "github.com/EliCDavis/polyform/math"
+	_ "github.com/EliCDavis/polyform/math/vector"
 	_ "github.com/EliCDavis/polyform/modeling/extrude"
 	_ "github.com/EliCDavis/polyform/modeling/meshops"
 	_ "github.com/EliCDavis/polyform/modeling/meshops/gausops"
@@ -44,6 +47,6 @@ func main() {
 	}
 
 	if err := app.Run(os.Args); err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 }

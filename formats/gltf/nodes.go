@@ -18,13 +18,13 @@ import (
 func init() {
 	factory := &refutil.TypeFactory{}
 
-	refutil.RegisterType[GltfArtifact](factory)
-	refutil.RegisterType[GltfMaterialAnisotropyExtensionNode](factory)
-	refutil.RegisterType[GltfMaterialClearcoatExtensionNode](factory)
-	refutil.RegisterType[GltfMaterialNode](factory)
-	refutil.RegisterType[GltfMaterialTransmissionExtensionNode](factory)
-	refutil.RegisterType[GltfMaterialVolumeExtensionNode](factory)
-	refutil.RegisterType[GltfModel](factory)
+	refutil.RegisterType[ArtifactNode](factory)
+	refutil.RegisterType[MaterialAnisotropyExtensionNode](factory)
+	refutil.RegisterType[MaterialClearcoatExtensionNode](factory)
+	refutil.RegisterType[MaterialNode](factory)
+	refutil.RegisterType[MaterialTransmissionExtensionNode](factory)
+	refutil.RegisterType[MaterialVolumeExtensionNode](factory)
+	refutil.RegisterType[ModelNode](factory)
 	refutil.RegisterType[TextureNode](factory)
 
 	generator.RegisterTypes(factory)
@@ -42,13 +42,13 @@ func (ga Artifact) Write(w io.Writer) error {
 	return WriteBinary(ga.Scene, w)
 }
 
-type GltfArtifact = nodes.Struct[artifact.Artifact, GltfArtifactData]
+type ArtifactNode = nodes.Struct[artifact.Artifact, ArtifactNodeData]
 
-type GltfArtifactData struct {
+type ArtifactNodeData struct {
 	Models []nodes.NodeOutput[PolyformModel]
 }
 
-func (gad GltfArtifactData) Process() (artifact.Artifact, error) {
+func (gad ArtifactNodeData) Process() (artifact.Artifact, error) {
 	models := make([]PolyformModel, 0, len(gad.Models))
 
 	for _, m := range gad.Models {
@@ -65,9 +65,9 @@ func (gad GltfArtifactData) Process() (artifact.Artifact, error) {
 	}, nil
 }
 
-type GltfModel = nodes.Struct[PolyformModel, GltfModelNodeData]
+type ModelNode = nodes.Struct[PolyformModel, ModelNodeData]
 
-type GltfModelNodeData struct {
+type ModelNodeData struct {
 	Mesh     nodes.NodeOutput[modeling.Mesh]
 	Material nodes.NodeOutput[PolyformMaterial]
 
@@ -78,7 +78,7 @@ type GltfModelNodeData struct {
 	GpuInstances nodes.NodeOutput[[]trs.TRS]
 }
 
-func (gmnd GltfModelNodeData) Process() (PolyformModel, error) {
+func (gmnd ModelNodeData) Process() (PolyformModel, error) {
 	model := PolyformModel{Name: "Mesh"}
 
 	if gmnd.Material != nil {
@@ -133,9 +133,9 @@ func (gmnd TextureNodeData) Description() string {
 	return "An object that combines an image and its sampler"
 }
 
-type GltfMaterialNode = nodes.Struct[PolyformMaterial, GltfMaterialNodeData]
+type MaterialNode = nodes.Struct[PolyformMaterial, MaterialNodeData]
 
-type GltfMaterialNodeData struct {
+type MaterialNodeData struct {
 	Color                    nodes.NodeOutput[coloring.WebColor]
 	ColorTexture             nodes.NodeOutput[string]
 	MetallicFactor           nodes.NodeOutput[float64]
@@ -152,7 +152,7 @@ type GltfMaterialNodeData struct {
 	EmissiveStrength  nodes.NodeOutput[float64]
 }
 
-func (gmnd GltfMaterialNodeData) Process() (PolyformMaterial, error) {
+func (gmnd MaterialNodeData) Process() (PolyformMaterial, error) {
 	var pbr *PolyformPbrMetallicRoughness
 
 	if gmnd.Color != nil {
@@ -237,18 +237,18 @@ func (gmnd GltfMaterialNodeData) Process() (PolyformMaterial, error) {
 	}, nil
 }
 
-func (gmnd GltfMaterialNodeData) Description() string {
+func (gmnd MaterialNodeData) Description() string {
 	return "The material appearance of a primitive"
 }
 
-type GltfMaterialTransmissionExtensionNode = nodes.Struct[PolyformTransmission, GltfMaterialTransmissionExtensionNodeData]
+type MaterialTransmissionExtensionNode = nodes.Struct[PolyformTransmission, MaterialTransmissionExtensionNodeData]
 
-type GltfMaterialTransmissionExtensionNodeData struct {
+type MaterialTransmissionExtensionNodeData struct {
 	Factor  nodes.NodeOutput[float64]
 	Texture nodes.NodeOutput[PolyformTexture]
 }
 
-func (gmvend GltfMaterialTransmissionExtensionNodeData) Process() (PolyformTransmission, error) {
+func (gmvend MaterialTransmissionExtensionNodeData) Process() (PolyformTransmission, error) {
 	transmission := PolyformTransmission{}
 
 	if gmvend.Factor != nil {
@@ -263,19 +263,19 @@ func (gmvend GltfMaterialTransmissionExtensionNodeData) Process() (PolyformTrans
 	return transmission, nil
 }
 
-func (gmvend GltfMaterialTransmissionExtensionNodeData) Description() string {
+func (gmvend MaterialTransmissionExtensionNodeData) Description() string {
 	return "The KHR_materials_transmission extension provides a way to define glTF 2.0 materials that are transparent to light in a physically plausible way. That is, it enables the creation of transparent materials that absorb, reflect and transmit light depending on the incident angle and the wavelength of light. Common uses cases for thin-surface transmissive materials include plastics and glass."
 }
 
-type GltfMaterialVolumeExtensionNode = nodes.Struct[PolyformVolume, GltfMaterialVolumeExtensionNodeData]
+type MaterialVolumeExtensionNode = nodes.Struct[PolyformVolume, MaterialVolumeExtensionNodeData]
 
-type GltfMaterialVolumeExtensionNodeData struct {
+type MaterialVolumeExtensionNodeData struct {
 	ThicknessFactor     nodes.NodeOutput[float64]
 	AttenuationDistance nodes.NodeOutput[float64]
 	AttenuationColor    nodes.NodeOutput[coloring.WebColor]
 }
 
-func (gmvend GltfMaterialVolumeExtensionNodeData) Process() (PolyformVolume, error) {
+func (gmvend MaterialVolumeExtensionNodeData) Process() (PolyformVolume, error) {
 	var thickness float64
 	var attenutationDistance *float64
 	attenuationColor := coloring.White()
@@ -300,18 +300,18 @@ func (gmvend GltfMaterialVolumeExtensionNodeData) Process() (PolyformVolume, err
 	}, nil
 }
 
-func (gmvend GltfMaterialVolumeExtensionNodeData) Description() string {
+func (gmvend MaterialVolumeExtensionNodeData) Description() string {
 	return "By default, a glTF 2.0 material describes the scattering properties of a surface enclosing an infinitely thin volume. The surface defined by the mesh represents a thin wall. The volume extension makes it possible to turn the surface into an interface between volumes. The mesh to which the material is attached defines the boundaries of an homogeneous medium and therefore must be manifold. Volumes provide effects like refraction, absorption and scattering. Scattering is not subject of this extension."
 }
 
-type GltfMaterialAnisotropyExtensionNode = nodes.Struct[PolyformAnisotropy, GltfMaterialAnisotropyExtensionNodeData]
+type MaterialAnisotropyExtensionNode = nodes.Struct[PolyformAnisotropy, MaterialAnisotropyExtensionNodeData]
 
-type GltfMaterialAnisotropyExtensionNodeData struct {
+type MaterialAnisotropyExtensionNodeData struct {
 	AnisotropyStrength nodes.NodeOutput[float64]
 	AnisotropyRotation nodes.NodeOutput[float64]
 }
 
-func (gmvend GltfMaterialAnisotropyExtensionNodeData) Process() (PolyformAnisotropy, error) {
+func (gmvend MaterialAnisotropyExtensionNodeData) Process() (PolyformAnisotropy, error) {
 	var strength float64
 	var rotation float64
 
@@ -329,18 +329,18 @@ func (gmvend GltfMaterialAnisotropyExtensionNodeData) Process() (PolyformAnisotr
 	}, nil
 }
 
-func (gmvend GltfMaterialAnisotropyExtensionNodeData) Description() string {
+func (gmvend MaterialAnisotropyExtensionNodeData) Description() string {
 	return "This extension defines the anisotropic property of a material as observable with brushed metals for example. An asymmetric specular lobe model is introduced to allow for such phenomena. The visually distinct feature of that lobe is the elongated appearance of the specular reflection."
 }
 
-type GltfMaterialClearcoatExtensionNode = nodes.Struct[PolyformClearcoat, GltfMaterialClearcoatExtensionNodeData]
+type MaterialClearcoatExtensionNode = nodes.Struct[PolyformClearcoat, MaterialClearcoatExtensionNodeData]
 
-type GltfMaterialClearcoatExtensionNodeData struct {
+type MaterialClearcoatExtensionNodeData struct {
 	ClearcoatFactor          nodes.NodeOutput[float64]
 	ClearcoatRoughnessFactor nodes.NodeOutput[float64]
 }
 
-func (gmcend GltfMaterialClearcoatExtensionNodeData) Process() (PolyformClearcoat, error) {
+func (gmcend MaterialClearcoatExtensionNodeData) Process() (PolyformClearcoat, error) {
 	var strength float64
 	var rotation float64
 
@@ -358,6 +358,6 @@ func (gmcend GltfMaterialClearcoatExtensionNodeData) Process() (PolyformClearcoa
 	}, nil
 }
 
-func (gmcend GltfMaterialClearcoatExtensionNodeData) Description() string {
+func (gmcend MaterialClearcoatExtensionNodeData) Description() string {
 	return "A clear coat is a common technique used in Physically-Based Rendering to represent a protective layer applied to a base material."
 }

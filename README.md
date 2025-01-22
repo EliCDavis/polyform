@@ -205,7 +205,7 @@ Things I want to implement eventually...
   - [x] Cylinder
   - [x] Quad
   - [x] Circle
-  - [ ] Cone
+  - [x] Cone
   - [ ] Capsule
   - [ ] Hemisphere
   - [ ] Rounded Cube

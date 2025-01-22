@@ -12,11 +12,11 @@ import (
 	"github.com/EliCDavis/polyform/generator/parameter"
 	"github.com/EliCDavis/polyform/generator/room"
 	"github.com/EliCDavis/polyform/math/geometry"
+	"github.com/EliCDavis/polyform/math/vector"
 	"github.com/EliCDavis/polyform/modeling/meshops"
 	"github.com/EliCDavis/polyform/modeling/meshops/gausops"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/nodes/quatn"
-	"github.com/EliCDavis/polyform/nodes/vecn/vecn3"
 	"github.com/EliCDavis/vector/vector3"
 )
 
@@ -57,8 +57,8 @@ func main() {
 				Description:  "How much to rotate the pointcloud by",
 				DefaultValue: math.Pi,
 			},
-			Direction: &vecn3.New{
-				Data: vecn3.NewData[float64]{
+			Direction: &vector.New{
+				Data: vector.NewData[float64]{
 					X: &parameter.Float64{
 						Name: "Rotation Direction X",
 					},
@@ -111,8 +111,8 @@ func main() {
 		},
 	}
 
-	x := &vecn3.New{
-		Data: vecn3.NewData[float64]{
+	x := &vector.New{
+		Data: vector.NewData[float64]{
 			X: scale,
 			Y: scale,
 			Z: scale,

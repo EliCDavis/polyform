@@ -9,14 +9,15 @@ import (
 	"github.com/EliCDavis/polyform/generator/artifact"
 	"github.com/EliCDavis/polyform/generator/parameter"
 	"github.com/EliCDavis/polyform/generator/room"
+	"github.com/EliCDavis/polyform/math"
 	"github.com/EliCDavis/polyform/math/curves"
 	"github.com/EliCDavis/polyform/math/trs"
+	"github.com/EliCDavis/polyform/math/vector"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/extrude"
 	"github.com/EliCDavis/polyform/modeling/primitives"
 	"github.com/EliCDavis/polyform/modeling/repeat"
 	"github.com/EliCDavis/polyform/nodes"
-	"github.com/EliCDavis/polyform/nodes/vecn/vecn3"
 	"github.com/EliCDavis/vector/vector3"
 )
 
@@ -83,22 +84,22 @@ func main() {
 		},
 	}
 
-	widthShift := &nodes.Multiply{
-		Data: nodes.MultiplyData[float64]{
+	widthShift := &math.Multiply{
+		Data: math.MultiplyData[float64]{
 			A: width,
 			B: &parameter.Float64{Name: "Spacing", DefaultValue: .3},
 		},
 	}
 
-	inverseWidthShift := &nodes.Multiply{
-		Data: nodes.MultiplyData[float64]{
+	inverseWidthShift := &math.Multiply{
+		Data: math.MultiplyData[float64]{
 			A: widthShift,
 			B: &parameter.Float64{Name: "Flip", DefaultValue: -1},
 		},
 	}
 
-	shift := vecn3.New{
-		Data: vecn3.NewData[float64]{
+	shift := vector.New{
+		Data: vector.NewData[float64]{
 			X: widthShift,
 			Y: height,
 		},
@@ -121,8 +122,8 @@ func main() {
 
 	railSpline := &curves.CatmullRomSplineNode{
 		Data: curves.CatmullRomSplineNodeData{
-			Points: &vecn3.ShiftArrayNode{
-				Data: vecn3.ShiftArrayNodeData[float64]{
+			Points: &vector.ShiftArrayNode{
+				Data: vector.ShiftArrayNodeData[float64]{
 					Array:  path,
 					Amount: &shift,
 				},
@@ -157,8 +158,8 @@ func main() {
 		},
 	}
 
-	numPlanks := &nodes.DivideNode{
-		Data: nodes.DivideData[float64]{
+	numPlanks := &math.DivideNode{
+		Data: math.DivideData[float64]{
 			Dividend: splineLength,
 			Divisor:  &parameter.Float64{Name: "Planks Per Meter", DefaultValue: 1},
 		},
@@ -174,8 +175,8 @@ func main() {
 			PlankPositions: &repeat.SplineNode{
 				Data: repeat.SplineNodeData{
 					Curve: pathSpline,
-					Times: &nodes.Round{
-						Data: nodes.RoundData[float64]{
+					Times: &math.Round{
+						Data: math.RoundData[float64]{
 							A: numPlanks,
 						},
 					},
@@ -186,11 +187,11 @@ func main() {
 				Data: extrude.CircleAlongSplineNodeData{
 					Spline: &curves.CatmullRomSplineNode{
 						Data: curves.CatmullRomSplineNodeData{
-							Points: &vecn3.ShiftArrayNode{
-								Data: vecn3.ShiftArrayNodeData[float64]{
+							Points: &vector.ShiftArrayNode{
+								Data: vector.ShiftArrayNodeData[float64]{
 									Array: path,
-									Amount: &vecn3.New{
-										Data: vecn3.NewData[float64]{
+									Amount: &vector.New{
+										Data: vector.NewData[float64]{
 											X: inverseWidthShift,
 											Y: height,
 										},

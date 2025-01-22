@@ -11,12 +11,13 @@ import (
 	"github.com/EliCDavis/polyform/generator/artifact"
 	"github.com/EliCDavis/polyform/generator/artifact/basics"
 	"github.com/EliCDavis/polyform/generator/parameter"
+	"github.com/EliCDavis/polyform/math"
 	"github.com/EliCDavis/polyform/math/trs"
+	"github.com/EliCDavis/polyform/math/vector"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/meshops"
 	"github.com/EliCDavis/polyform/modeling/repeat"
 	"github.com/EliCDavis/polyform/nodes"
-	"github.com/EliCDavis/polyform/nodes/vecn/vecn3"
 	"github.com/EliCDavis/vector/vector3"
 	"github.com/fogleman/gg"
 )
@@ -173,8 +174,8 @@ func main() {
 		DefaultValue: 1.75,
 	}
 
-	chairPosition := &nodes.SumNode{
-		Data: nodes.SumData[float64]{
+	chairPosition := &math.SumNode{
+		Data: math.SumData[float64]{
 			Values: []nodes.NodeOutput[float64]{
 				tableRadius,
 				chairTableSpacing,
@@ -199,28 +200,28 @@ func main() {
 			Mesh: &CushionNode{
 				Data: CushionNodeData{
 					Thickness: cushionThickness,
-					Width: &nodes.DifferenceNode{
-						Data: nodes.DifferenceData[float64]{
+					Width: &math.DifferenceNode{
+						Data: math.DifferenceData[float64]{
 							A: chairWidth,
 							B: cushionInset,
 						},
 					},
-					Length: &nodes.DifferenceNode{
-						Data: nodes.DifferenceData[float64]{
+					Length: &math.DifferenceNode{
+						Data: math.DifferenceData[float64]{
 							A: chairLength,
 							B: cushionInset,
 						},
 					},
 				},
 			},
-			Amount: &vecn3.New{
-				Data: vecn3.NewData[float64]{
-					Y: &nodes.SumNode{
-						Data: nodes.SumData[float64]{
+			Amount: &vector.New{
+				Data: vector.NewData[float64]{
+					Y: &math.SumNode{
+						Data: math.SumData[float64]{
 							Values: []nodes.NodeOutput[float64]{
 								chairHeight,
-								&nodes.DivideNode{
-									Data: nodes.DivideData[float64]{
+								&math.DivideNode{
+									Data: math.DivideData[float64]{
 										Dividend: cushionThickness,
 										Divisor:  nodes.Value[float64](2),
 									},
@@ -289,11 +290,11 @@ func main() {
 	platePositions := &repeat.CircleNode{
 		Data: repeat.CircleNodeData{
 			Times: personCount,
-			Radius: &nodes.DifferenceNode{
-				Data: nodes.DifferenceData[float64]{
+			Radius: &math.DifferenceNode{
+				Data: math.DifferenceData[float64]{
 					A: tableRadius,
-					B: &nodes.SumNode{
-						Data: nodes.SumData[float64]{
+					B: &math.SumNode{
+						Data: math.SumData[float64]{
 							Values: []nodes.NodeOutput[float64]{
 								&parameter.Float64{
 									Name:         "Plate/Table Inset",

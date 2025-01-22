@@ -104,6 +104,10 @@ func (pm *PolyformMaterial) equal(other *PolyformMaterial) bool {
 		return true
 	}
 
+	if pm == nil || other == nil {
+		return false
+	}
+
 	if pm.Name != other.Name {
 		return false
 	}
@@ -139,6 +143,10 @@ func (pt *PolyformTexture) equal(other *PolyformTexture) bool {
 		return true
 	}
 
+	if pt == nil || other == nil {
+		return false
+	}
+
 	if pt.URI != other.URI {
 		return false
 	}
@@ -160,6 +168,14 @@ func (pt *PolyformTexture) equal(other *PolyformTexture) bool {
 }
 
 func (pt *PolyformNormal) equal(other *PolyformNormal) bool {
+	if pt == other {
+		return true
+	}
+
+	if pt == nil || other == nil {
+		return false
+	}
+
 	if !pt.PolyformTexture.equal(other.PolyformTexture) {
 		return false
 	}
@@ -169,6 +185,10 @@ func (pt *PolyformNormal) equal(other *PolyformNormal) bool {
 func (pmr *PolyformPbrMetallicRoughness) equal(other *PolyformPbrMetallicRoughness) bool {
 	if pmr == other {
 		return true
+	}
+
+	if pmr == nil || other == nil {
+		return false
 	}
 
 	if !float64PtrsEqual(pmr.MetallicFactor, other.MetallicFactor) ||

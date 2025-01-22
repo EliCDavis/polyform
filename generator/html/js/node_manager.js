@@ -122,8 +122,10 @@ export class NodeManager {
     }
 
     registerCustomNodeType(typeData) {
+        console.log(typeData)
         const nodeConfig = {
             title: camelCaseToWords(typeData.displayName),
+            subTitle: typeData.path,
             info: typeData.info,
             inputs: [],
             outputs: [],
