@@ -7,6 +7,7 @@ export class NodeManager {
         this.guiFolderData = {};
         this.nodeIdToNode = new Map();
         this.nodeTypeToLitePath = new Map();
+        this.producerTypes = new Map();
         this.subscribers = [];
         this.initializedNodeTypes = false
         // this.registerSpecialParameterPolyformNodes();
@@ -34,7 +35,7 @@ export class NodeManager {
         // console.log(nodeType, flowNode)
 
         this.app.RequestManager.createNode(nodeType, (resp) => {
-            const isProducer = false;
+            const isProducer = this.producerTypes.get(nodeType);
             const nodeID = resp.nodeID
             const nodeData = resp.data;
 
@@ -122,7 +123,6 @@ export class NodeManager {
     }
 
     registerCustomNodeType(typeData) {
-        console.log(typeData)
         const nodeConfig = {
             title: camelCaseToWords(typeData.displayName),
             subTitle: typeData.path,
@@ -143,6 +143,7 @@ export class NodeManager {
         }
 
         const isProducer = this.nodeTypeIsProducer(typeData);
+        this.producerTypes.set(typeData.type, isProducer);
 
         if (typeData.outputs) {
             typeData.outputs.forEach((o) => {
@@ -230,7 +231,7 @@ export class NodeManager {
             } else {
                 const flowNode = this.newNode(nodeData);
 
-                const isProducer = this.nodeTypeIsProducer(this.findNodeTypeData(nodeData, newSchema));
+                const isProducer = this.producerTypes.get(nodeData.type);;
                 for (const [key, value] of Object.entries(newSchema.producers)) {
                     if (value.nodeID === nodeID) {
                         flowNode.setTitle(key);

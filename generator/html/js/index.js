@@ -305,7 +305,10 @@ class SchemaRefreshManager {
 
             // progressiveSurfacemap.addObjectsToLightMap(objects);
 
-            if (firstTimeLoadingScene) {
+            if (firstTimeLoadingScene && isFinite(aabbWidth) && isFinite(aabbDepth) && isFinite(aabbHeight)) {
+                // console.log("Camera position intialized", aabbWidth, aabbDepth, aabbHeight);
+
+
                 firstTimeLoadingScene = false;
 
                 camera.position.y = (- mid + aabbHalfHeight) * (3 / 2);
@@ -356,7 +359,7 @@ class SchemaRefreshManager {
         }
 
         guassianSplatViewer = new GaussianSplats3D.Viewer(splatViewerOptions);
-        
+
         // getSplatCenter
         guassianSplatViewer.addSplatScene(producerURL, {
             // rotation: [1, 0, 0, 0],

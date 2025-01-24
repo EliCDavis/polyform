@@ -51,6 +51,7 @@ func producerNameEndpoint(as *AppServer) endpoint.Handler {
 
 					as.app.Producers[req.Body] = ref
 
+					as.incModelVersion()
 					as.AutosaveGraph()
 
 					return nil
