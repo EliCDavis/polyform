@@ -241,6 +241,7 @@ func TestAppCommand_Swagger(t *testing.T) {
 			producerFileName: basics.NewTextNode(&parameter.String{
 				Name:         "Welp",
 				DefaultValue: "yee",
+				Description:  "I'm a description",
 			}),
 		},
 
@@ -293,7 +294,7 @@ func TestAppCommand_Swagger(t *testing.T) {
             "properties": {
                 "Welp": {
                     "type": "string",
-                    "description": ""
+                    "description": "I'm a description"
                 }
             }
         }
