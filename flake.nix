@@ -4,8 +4,10 @@
     utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = inputs@{ nixpkgs, utils, ... }:
-    utils.lib.eachDefaultSystem (system:
+  outputs =
+    { nixpkgs, utils, ... }:
+    utils.lib.eachDefaultSystem (
+      system:
       let
         pkgs = import nixpkgs { inherit system; };
 
@@ -13,36 +15,47 @@
         # This ensures a package is reproducible.
         vendorHash = "sha256-mTPSIwBNcZQm+YYrtHr6ed903KQYCN8U39lLAI/0ZWw=";
 
-        polyform = with pkgs;
+        polyform =
+          with pkgs;
           (buildGoModule {
             inherit vendorHash;
             name = "polyform";
             src = ./.;
-            CGO_ENABLED = 0;
+            env = {
+              CGO_ENABLED = 0;
+            };
             subPackages = [ "cmd/polyform" ];
           });
 
-        examples = with pkgs;
-          lib.mapAttrs (name: path:
-            (buildGoModule {
-              inherit name vendorHash;
-              src = ./.;
-              CGO_ENABLED = 0;
-              subPackages = [ "examples/${name}" ];
-            })) (lib.filterAttrs (n: v: v == "directory")
-              (builtins.readDir ./examples));
-
-        mkExamplesCross = GOOS: GOARCH:
+        examples =
           with pkgs;
-          lib.mapAttrs (name: path:
+          lib.mapAttrs (
+            name: path:
             (buildGoModule {
               inherit name vendorHash;
               src = ./.;
-              CGO_ENABLED = 0;
+              env = {
+                CGO_ENABLED = 0;
+              };
               subPackages = [ "examples/${name}" ];
-            }).overrideAttrs (old: old // { inherit GOOS GOARCH; }))
-          (lib.filterAttrs (n: v: v == "directory")
-            (builtins.readDir ./examples));
+            })
+          ) (lib.filterAttrs (n: v: v == "directory") (builtins.readDir ./examples));
+
+        mkExamplesCross =
+          GOOS: GOARCH:
+          with pkgs;
+          lib.mapAttrs (
+            name: path:
+            (buildGoModule {
+              inherit name vendorHash;
+              src = ./.;
+              env = {
+                CGO_ENABLED = 0;
+              };
+              subPackages = [ "examples/${name}" ];
+            }).overrideAttrs
+              (old: old // { inherit GOOS GOARCH; })
+          ) (lib.filterAttrs (n: v: v == "directory") (builtins.readDir ./examples));
 
         supportedGoPlatforms = [
           "linux/amd64"
@@ -53,17 +66,26 @@
           "windows/amd64"
         ];
 
-        withEachPlatform = module:
+        withEachPlatform =
+          module:
           with pkgs;
-          (lib.foldl lib.mergeAttrs { } (map (platform:
-            let
-              parts = lib.splitString "/" platform;
-              GOOS = builtins.elemAt parts 0;
-              GOARCH = builtins.elemAt parts 1;
-            in { ${GOOS} = { ${GOARCH} = module GOOS GOARCH; }; })
-            supportedGoPlatforms));
-
-      in {
+          (lib.foldl lib.mergeAttrs { } (
+            map (
+              platform:
+              let
+                parts = lib.splitString "/" platform;
+                GOOS = builtins.elemAt parts 0;
+                GOARCH = builtins.elemAt parts 1;
+              in
+              {
+                ${GOOS} = {
+                  ${GOARCH} = module GOOS GOARCH;
+                };
+              }
+            ) supportedGoPlatforms
+          ));
+      in
+      {
         packages = {
           inherit polyform examples;
           default = polyform;
@@ -73,14 +95,23 @@
         apps = {
           release = {
             type = "app";
-            program = toString (pkgs.writers.writeBash "release" ''
-              ${pkgs.goreleaser}/bin/goreleaser release
-            '');
+            program = toString (
+              pkgs.writers.writeBash "release" ''
+                ${pkgs.goreleaser}/bin/goreleaser release
+              ''
+            );
           };
         };
 
         devShell = pkgs.mkShell {
-          packages = with pkgs; [ go gopls gotools go-tools goreleaser ];
+          packages = with pkgs; [
+            go
+            gopls
+            gotools
+            go-tools
+            goreleaser
+          ];
         };
-      });
+      }
+    );
 }
