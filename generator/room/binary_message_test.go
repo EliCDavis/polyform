@@ -8,6 +8,8 @@ import (
 
 	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/generator/room"
+	"github.com/EliCDavis/polyform/generator/schema"
+	"github.com/EliCDavis/vector/vector3"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -97,7 +99,7 @@ func TestMessage_ClientSetOrientationMessage(t *testing.T) {
 				Objects: []room.PlayerRepresentation{
 					{
 						Type: 1,
-						Position: room.Vec3[float32]{
+						Position: vector3.Serializable[float32]{
 							X: 0,
 							Y: 0,
 							Z: 0,
@@ -150,7 +152,7 @@ func TestMessage_ClientSetOrientationMessage(t *testing.T) {
 				Objects: []room.PlayerRepresentation{
 					{
 						Type: 1,
-						Position: room.Vec3[float32]{
+						Position: vector3.Serializable[float32]{
 							X: 1,
 							Y: 2,
 							Z: 3,
@@ -164,7 +166,7 @@ func TestMessage_ClientSetOrientationMessage(t *testing.T) {
 					},
 					{
 						Type: 2,
-						Position: room.Vec3[float32]{
+						Position: vector3.Serializable[float32]{
 							X: 3,
 							Y: 2,
 							Z: 1,
@@ -312,7 +314,7 @@ func TestMessage_ServerRoomStateUpdate(t *testing.T) {
 						Representation: []room.PlayerRepresentation{
 							{
 								Type: 2,
-								Position: room.Vec3[float32]{
+								Position: vector3.Serializable[float32]{
 									X: 1,
 									Y: 2,
 									Z: 3,
@@ -327,11 +329,11 @@ func TestMessage_ServerRoomStateUpdate(t *testing.T) {
 						},
 					},
 				},
-				WebScene: &room.WebScene{
+				WebScene: &schema.WebScene{
 					AntiAlias:       true,
 					RenderWireframe: true,
 					XrEnabled:       true,
-					Fog: room.WebSceneFog{
+					Fog: schema.WebSceneFog{
 						Color: coloring.Green(),
 						Near:  12,
 						Far:   25,

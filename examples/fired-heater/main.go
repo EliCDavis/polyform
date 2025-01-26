@@ -9,7 +9,7 @@ import (
 	"github.com/EliCDavis/polyform/generator"
 	"github.com/EliCDavis/polyform/generator/artifact"
 	"github.com/EliCDavis/polyform/generator/parameter"
-	"github.com/EliCDavis/polyform/generator/room"
+	"github.com/EliCDavis/polyform/generator/schema"
 	"github.com/EliCDavis/polyform/modeling/extrude"
 	"github.com/EliCDavis/polyform/modeling/primitives"
 	"github.com/EliCDavis/polyform/modeling/repeat"
@@ -457,13 +457,13 @@ func main() {
 		Name:        "Fired Heater",
 		Version:     "1.0.0",
 		Description: "Idk making a fired heater",
-		Authors: []generator.Author{
+		Authors: []schema.Author{
 			{
 				Name: "Eli C Davis",
 			},
 		},
-		WebScene: &room.WebScene{
-			Fog: room.WebSceneFog{
+		WebScene: &schema.WebScene{
+			Fog: schema.WebSceneFog{
 				Far:   150,
 				Near:  10,
 				Color: coloring.WebColor{R: 0xa0, G: 0xa0, B: 0xa0, A: 255},
@@ -472,7 +472,7 @@ func main() {
 			Lighting:   coloring.WebColor{R: 0xff, G: 0xfd, B: 0xd1, A: 255},
 			Ground:     coloring.WebColor{R: 0x87, G: 0x82, B: 0x78, A: 255},
 		},
-		Producers: map[string]nodes.NodeOutput[artifact.Artifact]{
+		Files: map[string]nodes.NodeOutput[artifact.Artifact]{
 			"firedheater.glb": firedheaterNode,
 		},
 	}

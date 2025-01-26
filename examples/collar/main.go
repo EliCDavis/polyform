@@ -12,6 +12,7 @@ import (
 	"github.com/EliCDavis/polyform/generator/artifact"
 	"github.com/EliCDavis/polyform/generator/artifact/basics"
 	"github.com/EliCDavis/polyform/generator/parameter"
+	"github.com/EliCDavis/polyform/generator/schema"
 	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/polyform/math/trs"
 	"github.com/EliCDavis/polyform/modeling"
@@ -241,10 +242,10 @@ func main() {
 		Name:        "Spiked Collar Demo",
 		Version:     "0.0.1",
 		Description: "Small demo that let's you edit a spiked collar",
-		Authors: []generator.Author{
+		Authors: []schema.Author{
 			{
 				Name: "Eli Davis",
-				ContactInfo: []generator.AuthorContact{
+				ContactInfo: []schema.AuthorContact{
 					{
 						Medium: "twitter",
 						Value:  "@EliCDavis",
@@ -252,7 +253,7 @@ func main() {
 				},
 			},
 		},
-		Producers: map[string]nodes.NodeOutput[artifact.Artifact]{
+		Files: map[string]nodes.NodeOutput[artifact.Artifact]{
 			"mesh.glb":    gltfNode.Out(),
 			mrTexturePath: basics.NewImageNode(nodes.FuncValue(mrTexture)),
 			collarAlbedoPath: basics.NewImageNode(&CollarAlbedoTextureNode{

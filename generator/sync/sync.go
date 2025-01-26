@@ -1,4 +1,4 @@
-package generator
+package sync
 
 import (
 	"fmt"
@@ -89,6 +89,13 @@ func (sm *NestedSyncMap) lookup(key string) (map[string]any, string) {
 		current = casted
 	}
 	return current, elements[len(elements)-1]
+}
+
+func (sm *NestedSyncMap) Data() map[string]any {
+	sm.mutex.Lock()
+	defer sm.mutex.Unlock()
+
+	return sm.data
 }
 
 func (sm *NestedSyncMap) Get(key string) any {

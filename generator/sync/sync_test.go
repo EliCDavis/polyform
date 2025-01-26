@@ -1,14 +1,14 @@
-package generator_test
+package sync_test
 
 import (
 	"testing"
 
-	"github.com/EliCDavis/polyform/generator"
+	"github.com/EliCDavis/polyform/generator/sync"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestNestedSyncMap(t *testing.T) {
-	syncmap := generator.NewNestedSyncMap()
+	syncmap := sync.NewNestedSyncMap()
 
 	syncmap.Set("1.2.3", 4)
 	syncmap.Set("1.2.4", 5)

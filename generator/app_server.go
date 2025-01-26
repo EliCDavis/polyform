@@ -18,6 +18,7 @@ import (
 
 	"github.com/EliCDavis/polyform/generator/endpoint"
 	"github.com/EliCDavis/polyform/generator/room"
+	"github.com/EliCDavis/polyform/generator/schema"
 )
 
 func writeJSONError(out io.Writer, err error) error {
@@ -79,7 +80,7 @@ type AppServer struct {
 	autosave     bool
 	configPath   string
 
-	webscene *room.WebScene
+	webscene *schema.WebScene
 
 	serverStarted time.Time
 	movelVersion  uint32
@@ -135,9 +136,9 @@ func (as *AppServer) Serve() error {
 	http.HandleFunc("/schema", as.SchemaEndpoint)
 	http.Handle("/scene", endpoint.Handler{
 		Methods: map[string]endpoint.Method{
-			http.MethodGet: endpoint.ResponseMethod[*room.WebScene]{
-				ResponseWriter: endpoint.JsonResponseWriter[*room.WebScene]{},
-				Handler: func(r *http.Request) (*room.WebScene, error) {
+			http.MethodGet: endpoint.ResponseMethod[*schema.WebScene]{
+				ResponseWriter: endpoint.JsonResponseWriter[*schema.WebScene]{},
+				Handler: func(r *http.Request) (*schema.WebScene, error) {
 					return as.webscene, nil
 				},
 			},
@@ -202,7 +203,7 @@ func (as *AppServer) AutosaveGraph() {
 
 func (as *AppServer) SchemaEndpoint(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	data, err := json.Marshal(as.app.Schema())
+	data, err := json.Marshal(as.app.graphInstance.AppSchema())
 	if err != nil {
 		panic(err)
 	}
@@ -236,12 +237,7 @@ func (as *AppServer) writeProducerDataToRequest(producerToLoad string, w http.Re
 			err = fmt.Errorf("panic recover: %v", recErr)
 		}
 	}()
-	producer, ok := as.app.Producers[producerToLoad]
-	if !ok {
-		return fmt.Errorf("no producer registered for: %s", producerToLoad)
-	}
-
-	artifact := producer.Value()
+	artifact := as.app.graphInstance.Artifact(producerToLoad)
 
 	w.Header().Set("Content-Type", artifact.Mime())
 
@@ -255,7 +251,7 @@ func (as *AppServer) writeProducerDataToRequest(producerToLoad string, w http.Re
 
 func (as *AppServer) UpdateParameter(key string, msg []byte) (bool, error) {
 	log.Println("applying...")
-	changed, err := as.app.GetParameter(key).ApplyMessage(msg)
+	changed, err := as.app.graphInstance.UpdateParameter(key, msg)
 	return changed, err
 }
 

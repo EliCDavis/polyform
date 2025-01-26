@@ -5,14 +5,14 @@ import (
 	"time"
 
 	"github.com/EliCDavis/polyform/formats/swagger"
-	"github.com/EliCDavis/polyform/generator"
+	"github.com/EliCDavis/polyform/generator/graph"
 	"github.com/EliCDavis/polyform/generator/parameter"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestParameterNodeSwaggerProperty(t *testing.T) {
 	tests := map[string]struct {
-		input      generator.SwaggerParameter
+		input      graph.SwaggerParameter
 		propType   swagger.PropertyType
 		propFormat swagger.PropertyFormat
 		ref        any

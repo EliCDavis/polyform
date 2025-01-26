@@ -19,7 +19,12 @@ func graphEndpoint(as *AppServer) endpoint.Handler {
 			http.MethodPost: endpoint.BodyMethod[[]byte]{
 				Request: endpoint.BinaryRequestReader{},
 				Handler: func(request endpoint.Request[[]byte]) error {
-					return as.app.ApplyGraph(request.Body)
+					err := as.app.ApplyGraph(request.Body)
+					if err != nil {
+						return err
+					}
+					as.incModelVersion()
+					return nil
 				},
 			},
 		},

@@ -13,7 +13,7 @@ import (
 	"github.com/EliCDavis/polyform/generator/artifact"
 	"github.com/EliCDavis/polyform/generator/artifact/basics"
 	"github.com/EliCDavis/polyform/generator/parameter"
-	"github.com/EliCDavis/polyform/generator/room"
+	"github.com/EliCDavis/polyform/generator/schema"
 	"github.com/EliCDavis/polyform/math/chance"
 	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/polyform/modeling"
@@ -344,14 +344,14 @@ func main() {
 		Name:        "Structure",
 		Version:     "1.0.0",
 		Description: "ProcJam 2023 Submission",
-		Authors: []generator.Author{
+		Authors: []schema.Author{
 			{
 				Name:        "Eli C Davis",
-				ContactInfo: []generator.AuthorContact{{Medium: "Twitter", Value: "@EliCDavis"}},
+				ContactInfo: []schema.AuthorContact{{Medium: "Twitter", Value: "@EliCDavis"}},
 			},
 		},
-		WebScene: &room.WebScene{
-			Fog: room.WebSceneFog{
+		WebScene: &schema.WebScene{
+			Fog: schema.WebSceneFog{
 				Near:  2,
 				Far:   40,
 				Color: coloring.WebColor{R: 0x9f, G: 0xb0, B: 0xc1, A: 255},
@@ -360,7 +360,7 @@ func main() {
 			Background: coloring.WebColor{R: 0x9f, G: 0xb0, B: 0xc1, A: 255},
 			Lighting:   coloring.WebColor{R: 0xff, G: 0xd8, B: 0x94, A: 255},
 		},
-		Producers: map[string]nodes.NodeOutput[artifact.Artifact]{
+		Files: map[string]nodes.NodeOutput[artifact.Artifact]{
 			"pipe-normal.png": basics.NewImageNode((&PipeNormalsNode{
 				Data: PipeNormalsNodeData{
 					BlurIterations: &parameter.Int{

@@ -10,7 +10,7 @@ import (
 	"github.com/EliCDavis/polyform/generator/artifact"
 	"github.com/EliCDavis/polyform/generator/artifact/basics"
 	"github.com/EliCDavis/polyform/generator/parameter"
-	"github.com/EliCDavis/polyform/generator/room"
+	"github.com/EliCDavis/polyform/generator/schema"
 	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/math/vector"
 	"github.com/EliCDavis/polyform/modeling/meshops"
@@ -148,10 +148,10 @@ func main() {
 		Name:        "Edit Gaussian Splats",
 		Version:     "1.0.0",
 		Description: "Crop and Scale portions of Gaussian Splat data",
-		Authors:     []generator.Author{{Name: "Eli C Davis"}},
-		WebScene: &room.WebScene{
+		Authors:     []schema.Author{{Name: "Eli C Davis"}},
+		WebScene: &schema.WebScene{
 			Background: coloring.Black(),
-			Fog: room.WebSceneFog{
+			Fog: schema.WebSceneFog{
 				Color: coloring.Black(),
 				Near:  5,
 				Far:   25,
@@ -161,7 +161,7 @@ func main() {
 			AntiAlias: false,
 			XrEnabled: true,
 		},
-		Producers: map[string]nodes.NodeOutput[artifact.Artifact]{
+		Files: map[string]nodes.NodeOutput[artifact.Artifact]{
 			"mesh.ply": ply.NewSplatPlyNode(pointcloud.Out()),
 			"info.txt": basics.NewTextNode(&InfoNode{
 				Data: InfoNodeData{

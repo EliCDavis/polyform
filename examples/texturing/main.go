@@ -10,6 +10,7 @@ import (
 	"github.com/EliCDavis/polyform/generator/artifact"
 	"github.com/EliCDavis/polyform/generator/artifact/basics"
 	"github.com/EliCDavis/polyform/generator/parameter"
+	"github.com/EliCDavis/polyform/generator/schema"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/fogleman/gg"
 )
@@ -59,8 +60,8 @@ func main() {
 	app := generator.App{
 		Name:    "Grid Texture",
 		Version: "1.0.0",
-		Authors: []generator.Author{{Name: "Eli C Davis"}},
-		Producers: map[string]nodes.NodeOutput[artifact.Artifact]{
+		Authors: []schema.Author{{Name: "Eli C Davis"}},
+		Files: map[string]nodes.NodeOutput[artifact.Artifact]{
 			"grid.png": basics.NewImageNode(&GridNode{
 				Data: GridNodeData{
 					HorizontalLines: lines,

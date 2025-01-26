@@ -8,6 +8,7 @@ import (
 	"io"
 
 	"github.com/EliCDavis/bitlib"
+	"github.com/EliCDavis/polyform/generator/schema"
 )
 
 type MessageType byte
@@ -73,11 +74,11 @@ func (m Message) ClientSetOrientation() (ClientSetOrientationMessage, error) {
 	}, err
 }
 
-func (m Message) ClientSetSceneData() WebScene {
+func (m Message) ClientSetSceneData() schema.WebScene {
 	data := bytes.NewBuffer(m.Data)
 	reader := bitlib.NewReader(data, binary.LittleEndian)
 
-	webScene, _ := bitlib.Read[WebScene](reader)
+	webScene, _ := bitlib.Read[schema.WebScene](reader)
 	return webScene
 }
 
@@ -98,7 +99,7 @@ func (m Message) ServerRoomStateUpdate() RoomState {
 	}
 
 	room.ModelVersion = reader.UInt32()
-	webScene, _ := bitlib.Read[WebScene](reader)
+	webScene, _ := bitlib.Read[schema.WebScene](reader)
 	room.WebScene = &webScene
 
 	playerLen := reader.Byte()

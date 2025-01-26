@@ -8,7 +8,7 @@ import (
 	"github.com/EliCDavis/polyform/generator"
 	"github.com/EliCDavis/polyform/generator/artifact"
 	"github.com/EliCDavis/polyform/generator/parameter"
-	"github.com/EliCDavis/polyform/generator/room"
+	"github.com/EliCDavis/polyform/generator/schema"
 	"github.com/EliCDavis/polyform/math"
 	"github.com/EliCDavis/polyform/math/curves"
 	"github.com/EliCDavis/polyform/math/trs"
@@ -213,10 +213,10 @@ func main() {
 		Name:        "Rail Road Demo",
 		Version:     "0.0.1",
 		Description: "Small demo that let's you build a rail road track",
-		Authors: []generator.Author{
+		Authors: []schema.Author{
 			{
 				Name: "Eli Davis",
-				ContactInfo: []generator.AuthorContact{
+				ContactInfo: []schema.AuthorContact{
 					{
 						Medium: "twitter",
 						Value:  "@EliCDavis",
@@ -224,17 +224,17 @@ func main() {
 				},
 			},
 		},
-		WebScene: &room.WebScene{
+		WebScene: &schema.WebScene{
 			Background: coloring.WebColor{R: 0x91, G: 0xd2, B: 0xed},
 			Ground:     coloring.WebColor{R: 0x80, G: 0xac, B: 0x8a},
 			Lighting:   coloring.WebColor{R: 0xFF, G: 0xFF, B: 0xFF},
-			Fog: room.WebSceneFog{
+			Fog: schema.WebSceneFog{
 				Color: coloring.WebColor{R: 0x91, G: 0xd2, B: 0xed},
 				Near:  10,
 				Far:   50,
 			},
 		},
-		Producers: map[string]nodes.NodeOutput[artifact.Artifact]{
+		Files: map[string]nodes.NodeOutput[artifact.Artifact]{
 			"rails.glb": gltfNode.Out(),
 		},
 	}

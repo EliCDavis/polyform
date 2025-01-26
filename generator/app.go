@@ -10,45 +10,35 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"sort"
-	"strings"
 	"text/template"
 	"time"
 
 	"github.com/EliCDavis/jbtf"
 	"github.com/EliCDavis/polyform/generator/artifact"
 	"github.com/EliCDavis/polyform/generator/cli"
+	"github.com/EliCDavis/polyform/generator/graph"
 	"github.com/EliCDavis/polyform/generator/room"
 	"github.com/EliCDavis/polyform/generator/schema"
 	"github.com/EliCDavis/polyform/nodes"
-	"github.com/EliCDavis/polyform/refutil"
 )
 
 type App struct {
 	Name        string
 	Version     string
 	Description string
-	WebScene    *room.WebScene
-	Authors     []Author
-	Producers   map[string]nodes.NodeOutput[artifact.Artifact]
+	WebScene    *schema.WebScene
+	Authors     []schema.Author
+	Files       map[string]nodes.NodeOutput[artifact.Artifact]
 
-	Out io.Writer
-
-	// Runtime data
-	nodeIDs       map[nodes.Node]string
-	graphMetadata *NestedSyncMap
+	graphInstance *graph.Instance
+	Out           io.Writer
 }
 
 func (a *App) ApplyGraph(jsonPayload []byte) error {
 
-	graph, err := jbtf.Unmarshal[Graph](jsonPayload)
+	graph, err := jbtf.Unmarshal[schema.Graph](jsonPayload)
 	if err != nil {
 		return fmt.Errorf("unable to parse graph as a jbtf: %w", err)
-	}
-
-	decoder, err := jbtf.NewDecoder(jsonPayload)
-	if err != nil {
-		return fmt.Errorf("unable to build a jbtf decoder: %w", err)
 	}
 
 	if graph.Name != "" {
@@ -69,119 +59,21 @@ func (a *App) ApplyGraph(jsonPayload []byte) error {
 		a.WebScene = graph.WebScene
 	}
 
-	a.nodeIDs = make(map[nodes.Node]string)
-	a.graphMetadata = NewNestedSyncMap()
-	a.graphMetadata.OverwriteData(graph.Metadata)
-	createdNodes := make(map[string]nodes.Node)
-
-	// Create the Nodes
-	for nodeID, instanceDetails := range graph.Nodes {
-		if nodeID == "" {
-			panic("attempting to create a node without an ID")
-		}
-		newNode := types.New(instanceDetails.Type)
-		casted, ok := newNode.(nodes.Node)
-		if !ok {
-			panic(fmt.Errorf("graph definition contained type that instantiated a non node: %s", instanceDetails.Type))
-		}
-		createdNodes[nodeID] = casted
-		a.nodeIDs[casted] = nodeID
-	}
-
-	// Connect the nodes we just created
-	for nodeID, instanceDetails := range graph.Nodes {
-		node := createdNodes[nodeID]
-		for _, dependency := range instanceDetails.Dependencies {
-
-			outNode := createdNodes[dependency.DependencyID]
-			outPortVals := refutil.CallFuncValuesOfType(outNode, dependency.DependencyPort)
-			ref := outPortVals[0].(nodes.NodeOutputReference)
-
-			node.SetInput(dependency.Name, nodes.Output{
-				NodeOutput: ref,
-			})
-		}
-	}
-
-	// Set the Producers
-	a.Producers = make(map[string]nodes.NodeOutput[artifact.Artifact])
-	for fileName, producerDetails := range graph.Producers {
-		producerNode := createdNodes[producerDetails.NodeID]
-		outPortVals := refutil.CallFuncValuesOfType(producerNode, producerDetails.Port)
-		ref := outPortVals[0].(nodes.NodeOutput[artifact.Artifact])
-		if ref == nil {
-			panic(fmt.Errorf("REF IS NIL FOR FILE %s (node id: %s) and port %s", fileName, producerDetails.NodeID, producerDetails.Port))
-		}
-		a.Producers[fileName] = ref
-	}
-
-	// Set Parameters
-	for nodeID, instanceDetails := range graph.Nodes {
-		nodeI := createdNodes[nodeID]
-		if p, ok := nodeI.(CustomGraphSerialization); ok {
-			err := p.FromJSON(decoder, instanceDetails.Data)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
-}
-
-func (a *App) FindNodeByID(nodeId string) nodes.Node {
-	var node nodes.Node
-	for n, id := range a.nodeIDs {
-		if id == nodeId {
-			node = n
-		}
-	}
-	return node
+	return a.graphInstance.ApplySchema(jsonPayload)
 }
 
 func (a *App) Graph() []byte {
-	g := Graph{
+	g := schema.Graph{
 		Name:        a.Name,
 		Version:     a.Version,
 		Description: a.Description,
 		Authors:     a.Authors,
 		WebScene:    a.WebScene,
 		Producers:   make(map[string]schema.Producer),
-
-		// TODO: Is this unsafe?
-		Metadata: a.graphMetadata.data,
 	}
-
-	nodeInstances := make(map[string]GraphNodeInstance)
 
 	encoder := &jbtf.Encoder{}
-
-	for node := range a.nodeIDs {
-		id, ok := a.nodeIDs[node]
-		if !ok {
-			panic(fmt.Errorf("node %v has not had an ID generated for it", node))
-		}
-
-		if _, ok := nodeInstances[id]; ok {
-			panic(fmt.Errorf("we've arrived to a invalid state. two nodes refer to the same ID. There's a bug somewhere"))
-		}
-
-		nodeInstances[id] = a.buildNodeGraphInstanceSchema(node, encoder)
-	}
-
-	for key, producer := range a.Producers {
-		// a.buildSchemaForNode(producer.Node(), appNodeSchema)
-		id := a.nodeIDs[producer.Node()]
-		node := nodeInstances[id]
-		nodeInstances[id] = node
-
-		g.Producers[key] = schema.Producer{
-			NodeID: id,
-			Port:   producer.Port(),
-		}
-	}
-
-	g.Nodes = nodeInstances
+	a.graphInstance.EncodeSchema(&g, encoder)
 
 	data, err := encoder.ToPgtf(g)
 	if err != nil {
@@ -190,22 +82,22 @@ func (a *App) Graph() []byte {
 	return data
 }
 
-func writeProducersToZip(path string, producers map[string]nodes.NodeOutput[artifact.Artifact], zw *zip.Writer) error {
-	if producers == nil {
-		panic("can't write nil producers")
+func writeProducersToZip(path string, graph *graph.Instance, zw *zip.Writer) error {
+	if graph == nil {
+		panic("can't zip nil graph")
 	}
 
 	if zw == nil {
 		panic("can't write to nil zip writer")
 	}
 
-	for file, producer := range producers {
+	for _, file := range graph.ProducerNames() {
 		filePath := path + file
 		f, err := zw.Create(filePath)
 		if err != nil {
 			return err
 		}
-		artifact := producer.Value()
+		artifact := graph.Artifact(file)
 		err = artifact.Write(f)
 		if err != nil {
 			return err
@@ -216,68 +108,14 @@ func writeProducersToZip(path string, producers map[string]nodes.NodeOutput[arti
 	return nil
 }
 
-func (a *App) nodeFromID(id string) nodes.Node {
-	for node, nodeID := range a.nodeIDs {
-		if nodeID == id {
-			return node
-		}
-	}
-	panic(fmt.Sprintf("no node with id '%s' found", id))
-}
-
-func (a *App) addType(v any) {
-	if !types.TypeRegistered(v) {
-		types.RegisterType(v)
-	}
-}
-
-func (a App) getParameters() []Parameter {
-	if a.Producers == nil {
-		return nil
-	}
-
-	parameterSet := make(map[Parameter]struct{})
-	for _, n := range a.Producers {
-		params := recurseDependenciesType[Parameter](n.Node())
-		for _, p := range params {
-			parameterSet[p] = struct{}{}
-		}
-	}
-
-	uniqueParams := make([]Parameter, 0, len(parameterSet))
-	for p := range parameterSet {
-		uniqueParams = append(uniqueParams, p)
-	}
-
-	return uniqueParams
-}
-
-func recurseDependenciesType[T any](dependent nodes.Dependent) []T {
-	allDependencies := make([]T, 0)
-	for _, dep := range dependent.Dependencies() {
-		subDependent := dep.Dependency()
-		subDependencies := recurseDependenciesType[T](subDependent)
-		allDependencies = append(allDependencies, subDependencies...)
-
-		ofT, ok := subDependent.(T)
-		if ok {
-			allDependencies = append(allDependencies, ofT)
-		}
-	}
-
-	return allDependencies
-}
-
 func (a App) initialize(set *flag.FlagSet) {
-	for _, p := range a.getParameters() {
-		p.InitializeForCLI(set)
-	}
+	a.graphInstance.InitializeParameters(set)
 }
 
 func (a App) WriteZip(out io.Writer) error {
 	z := zip.NewWriter(out)
 
-	err := writeProducersToZip("", a.Producers, z)
+	err := writeProducersToZip("", a.graphInstance, z)
 	if err != nil {
 		return err
 	}
@@ -292,271 +130,12 @@ type appCLI struct {
 	Name        string
 	Version     string
 	Description string
-	Authors     []Author
+	Authors     []schema.Author
 	Commands    []*cli.Command
 }
 
-func BuildNodeTypeSchema(node nodes.Node) schema.NodeType {
-
-	typeSchema := schema.NodeType{
-		DisplayName: "Untyped",
-		Outputs:     make([]schema.NodeOutput, 0),
-		Inputs:      make(map[string]schema.NodeInput),
-	}
-
-	outputs := node.Outputs()
-	for _, o := range outputs {
-		typeSchema.Outputs = append(typeSchema.Outputs, schema.NodeOutput{
-			Name: o.NodeOutput.Port(),
-			Type: o.Type,
-		})
-	}
-
-	inputs := node.Inputs()
-	for _, o := range inputs {
-		typeSchema.Inputs[o.Name] = schema.NodeInput{
-			Type:    o.Type,
-			IsArray: o.Array,
-		}
-	}
-
-	if param, ok := node.(Parameter); ok {
-		typeSchema.Parameter = param.Schema()
-	}
-
-	if typed, ok := node.(nodes.Typed); ok {
-		typeSchema.DisplayName = typed.Type()
-	} else {
-		typeSchema.DisplayName = refutil.GetTypeName(node)
-	}
-
-	if pathed, ok := node.(nodes.Pathed); ok {
-		typeSchema.Path = pathed.Path()
-	} else {
-		packagePath := refutil.GetPackagePath(node)
-		if strings.Contains(packagePath, "/") {
-			path := strings.Split(packagePath, "/")
-			path = path[1:]
-			if path[0] == "EliCDavis" {
-				path = path[1:]
-			}
-
-			if path[0] == "polyform" {
-				path = path[1:]
-			}
-			typeSchema.Path = strings.Join(path, "/")
-		} else {
-			typeSchema.Path = packagePath
-		}
-	}
-
-	if described, ok := node.(nodes.Describable); ok {
-		typeSchema.Info = described.Description()
-	}
-
-	return typeSchema
-}
-
-func (a *App) recursivelyRegisterNodeTypes(node nodes.Node) {
-	a.addType(node)
-	for _, subDependency := range node.Dependencies() {
-		a.recursivelyRegisterNodeTypes(subDependency.Dependency())
-	}
-}
-
-func (a App) buildNodeGraphInstanceSchema(node nodes.Node, encoder *jbtf.Encoder) GraphNodeInstance {
-
-	nodeInstance := GraphNodeInstance{
-		Type:         refutil.GetTypeWithPackage(node),
-		Dependencies: make([]schema.NodeDependency, 0),
-	}
-
-	for _, subDependency := range node.Dependencies() {
-		nodeInstance.Dependencies = append(nodeInstance.Dependencies, schema.NodeDependency{
-			DependencyID:   a.nodeIDs[subDependency.Dependency()],
-			DependencyPort: subDependency.DependencyPort(),
-			Name:           subDependency.Name(),
-		})
-	}
-
-	sort.Slice(nodeInstance.Dependencies, func(i, j int) bool {
-		return strings.ToLower(nodeInstance.Dependencies[i].Name) < strings.ToLower(nodeInstance.Dependencies[j].Name)
-	})
-
-	if param, ok := node.(CustomGraphSerialization); ok {
-		data, err := param.ToJSON(encoder)
-		if err != nil {
-			panic(err)
-		}
-		nodeInstance.Data = data
-	}
-
-	return nodeInstance
-}
-
-func (a App) buildNodeInstanceSchema(node nodes.Node) schema.NodeInstance {
-
-	var metadata map[string]any
-	metadataPath := "nodes." + a.nodeIDs[node]
-
-	if a.graphMetadata.PathExists(metadataPath) {
-		if data := a.graphMetadata.Get(metadataPath); data != nil {
-			metadata = data.(map[string]any)
-		}
-	}
-
-	nodeInstance := schema.NodeInstance{
-		Name:         "Unamed",
-		Type:         refutil.GetTypeWithPackage(node),
-		Dependencies: make([]schema.NodeDependency, 0),
-		Version:      node.Version(),
-		Metadata:     metadata,
-	}
-
-	for _, subDependency := range node.Dependencies() {
-		nodeInstance.Dependencies = append(nodeInstance.Dependencies, schema.NodeDependency{
-			DependencyID:   a.nodeIDs[subDependency.Dependency()],
-			DependencyPort: subDependency.DependencyPort(),
-			Name:           subDependency.Name(),
-		})
-	}
-
-	if param, ok := node.(Parameter); ok {
-		nodeInstance.Name = param.DisplayName()
-		nodeInstance.Parameter = param.Schema()
-	} else {
-		named, ok := node.(nodes.Named)
-		if ok {
-			nodeInstance.Name = named.Name()
-		}
-	}
-
-	return nodeInstance
-}
-
-func (a *App) buildIDsForNode(node nodes.Node) {
-	if a.nodeIDs == nil {
-		a.nodeIDs = make(map[nodes.Node]string)
-		a.graphMetadata = NewNestedSyncMap()
-	}
-
-	// IDs for this node has already been built.
-	if _, ok := a.nodeIDs[node]; ok {
-		return
-	}
-
-	a.addType(node)
-
-	for _, subDependency := range node.Dependencies() {
-		a.buildIDsForNode(subDependency.Dependency())
-	}
-
-	// TODO: UGLY UGLY UGLY UGLY
-	i := len(a.nodeIDs)
-	for {
-		id := fmt.Sprintf("Node-%d", i)
-
-		taken := false
-		for _, usedId := range a.nodeIDs {
-			if usedId == id {
-				taken = true
-			}
-			if taken {
-				break
-			}
-		}
-		if !taken {
-			a.nodeIDs[node] = id
-			break
-		}
-		i++
-	}
-
-}
-
-func (a *App) GetParameter(nodeId string) Parameter {
-	node := a.FindNodeByID(nodeId)
-
-	if node == nil {
-		panic(fmt.Errorf("no node exists with id %q", nodeId))
-	}
-
-	param, ok := node.(Parameter)
-	if !ok {
-		panic(fmt.Errorf("node %q is not a parameter", nodeId))
-	}
-
-	return param
-}
-
-func (a *App) Schema() schema.App {
-	a.SetupProducers()
-
-	var noteMetadata map[string]any
-	if notes := a.graphMetadata.Get("notes"); notes != nil {
-		casted, ok := notes.(map[string]any)
-		if ok {
-			noteMetadata = casted
-		}
-	}
-
-	appSchema := schema.App{
-		Producers: make(map[string]schema.Producer),
-		Notes:     noteMetadata,
-	}
-
-	appNodeSchema := make(map[string]schema.NodeInstance)
-
-	for node := range a.nodeIDs {
-		id, ok := a.nodeIDs[node]
-		if !ok {
-			panic(fmt.Errorf("node %v has not had an ID generated for it", node))
-		}
-
-		if _, ok := appNodeSchema[id]; ok {
-			panic("not sure how this happened")
-		}
-
-		appNodeSchema[id] = a.buildNodeInstanceSchema(node)
-	}
-
-	for key, producer := range a.Producers {
-		// a.buildSchemaForNode(producer.Node(), appNodeSchema)
-		id := a.nodeIDs[producer.Node()]
-		node := appNodeSchema[id]
-		node.Name = key
-		appNodeSchema[id] = node
-
-		appSchema.Producers[key] = schema.Producer{
-			NodeID: id,
-			Port:   producer.Port(),
-		}
-	}
-
-	appSchema.Nodes = appNodeSchema
-
-	registeredTypes := types.Types()
-	nodeTypes := make([]schema.NodeType, 0, len(registeredTypes))
-	for _, registeredType := range registeredTypes {
-		nodeInstance, ok := types.New(registeredType).(nodes.Node)
-		if !ok {
-			panic("Registered type is somehow not a node. Not sure how we got here :/")
-		}
-		if nodeInstance == nil {
-			panic("New registered type")
-		}
-		// log.Printf("%T: %+v\n", nodeInstance, nodeInstance)
-		b := BuildNodeTypeSchema(nodeInstance)
-		b.Type = registeredType
-		nodeTypes = append(nodeTypes, b)
-	}
-	appSchema.Types = nodeTypes
-
-	return appSchema
-}
-
 func (a App) Generate(outputPath string) error {
-	for name, p := range a.Producers {
+	for _, name := range a.graphInstance.ProducerNames() {
 		fp := path.Join(outputPath, name)
 
 		// Producer names are paths which can contain subfolders, so be sure
@@ -574,7 +153,7 @@ func (a App) Generate(outputPath string) error {
 		defer f.Close()
 
 		// Write data to file
-		arifact := p.Value()
+		arifact := a.graphInstance.Artifact(name)
 		err = arifact.Write(f)
 		if err != nil {
 			return err
@@ -584,25 +163,19 @@ func (a App) Generate(outputPath string) error {
 	return nil
 }
 
-func (a *App) SetupProducers() {
-	for _, p := range a.Producers {
-		a.recursivelyRegisterNodeTypes(p.Node())
+func (a *App) initGraphInstance() {
+	if a.graphInstance != nil {
+		return
 	}
-
-	if a.nodeIDs == nil {
-		for _, producer := range a.Producers {
-			a.buildIDsForNode(producer.Node())
-		}
+	a.graphInstance = graph.New(types)
+	for name, file := range a.Files {
+		a.graphInstance.AddProducer(name, file)
 	}
 }
 
 func (a *App) Run(args []string) error {
-	// if a.Producers == nil || len(a.Producers) == 0 {
-	// 	return errors.New("application has not defined any producers")
-	// }
-
 	os_setup(a)
-	a.SetupProducers()
+	a.initGraphInstance()
 
 	configFile := ""
 	var commands []*cli.Command
@@ -618,14 +191,13 @@ func (a *App) Run(args []string) error {
 				versionFlag := newCmd.String("version", "v0.0.1", "version of the program")
 				descriptionFlag := newCmd.String("description", "", "description of the program")
 				authorFlag := newCmd.String("author", "", "author of the program")
-				// authorFlag := newCmd.String("author", "", "author of the program")
 				outFlag := newCmd.String("out", "", "Optional path to file to write content to")
 
 				if err := newCmd.Parse(state.Args); err != nil {
 					return err
 				}
 
-				graph := Graph{}
+				graph := schema.Graph{}
 
 				if nameFlag != nil {
 					graph.Name = *nameFlag
@@ -640,7 +212,7 @@ func (a *App) Run(args []string) error {
 				}
 
 				if authorFlag != nil && *authorFlag != "" {
-					graph.Authors = append(graph.Authors, Author{
+					graph.Authors = append(graph.Authors, schema.Author{
 						Name: *authorFlag,
 					})
 				}
@@ -759,7 +331,7 @@ func (a *App) Run(args []string) error {
 					return err
 				}
 
-				schema := a.Schema()
+				schema := a.graphInstance.AppSchema()
 
 				usedTypes := make(map[string]struct{})
 				for _, n := range schema.Nodes {
@@ -903,7 +475,6 @@ func (a *App) Run(args []string) error {
 			}
 
 			configFile = config
-			a.SetupProducers()
 			return nil
 		},
 	}

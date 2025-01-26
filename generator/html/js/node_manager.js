@@ -122,6 +122,26 @@ export class NodeManager {
         return false
     }
 
+    convertPathToUppercase(dirtyPath) {
+        let cleanPath = "";
+        let capatilize = true;
+        for (let i = 0; i < dirtyPath.length; i++) {
+            const char = dirtyPath.charAt(i);
+            if (capatilize) {
+                cleanPath += char.toUpperCase(); 
+                capatilize = false;
+                continue;
+            }
+
+            if (char === "/") {
+                capatilize = true;
+            }
+
+            cleanPath += char;
+        }
+        return cleanPath;
+    }
+
     registerCustomNodeType(typeData) {
         const nodeConfig = {
             title: camelCaseToWords(typeData.displayName),
@@ -177,7 +197,7 @@ export class NodeManager {
 
         // nm.onNodeCreateCallback(this, typeData.type);
 
-        const category = typeData.path + "/" + camelCaseToWords(typeData.displayName);
+        const category = this.convertPathToUppercase(typeData.path) + "/" + camelCaseToWords(typeData.displayName);
         this.nodeTypeToLitePath.set(typeData.type, category);
         PolyformNodesPublisher.register(category, nodeConfig);
     }
@@ -198,7 +218,7 @@ export class NodeManager {
         }
 
         const parameterType = nodeData.parameter.type;
-        return PolyformNodesPublisher.create("parameters/" + parameterType);
+        return PolyformNodesPublisher.create("Parameters/" + parameterType);
     }
 
     updateNodes(newSchema) {

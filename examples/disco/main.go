@@ -398,7 +398,7 @@ func main() {
 		Name:        "Woodland Disco Romance",
 		Version:     "1.0.0",
 		Description: "Applying color pallettes to a sample room",
-		Producers: map[string]nodes.NodeOutput[artifact.Artifact]{
+		Files: map[string]nodes.NodeOutput[artifact.Artifact]{
 			"disco.glb": discoScene.Out(),
 			"metal.png": basics.NewImageNode(nodes.Value(texture(1, 0))),
 			"rough.png": basics.NewImageNode(nodes.Value(texture(0, 1))),

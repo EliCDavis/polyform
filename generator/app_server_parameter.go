@@ -43,8 +43,8 @@ func parameterValueEndpoint(as *AppServer) endpoint.Handler {
 					defer as.producerLock.Unlock()
 
 					parameterId := path.Base(r.URL.Path)
-					n := as.app.GetParameter(parameterId)
-					return n.ToMessage(), nil
+					n := as.app.graphInstance.ParameterData(parameterId)
+					return n, nil
 				},
 			},
 		},
@@ -58,7 +58,7 @@ func parameterNameEndpoint(as *AppServer) endpoint.Handler {
 				ResponseWriter: endpoint.TextResponseWriter{},
 				Handler: func(r *http.Request) (string, error) {
 					parameterId := path.Base(r.URL.Path)
-					return as.app.GetParameter(parameterId).DisplayName(), nil
+					return as.app.graphInstance.Parameter(parameterId).DisplayName(), nil
 				},
 			},
 
@@ -66,7 +66,7 @@ func parameterNameEndpoint(as *AppServer) endpoint.Handler {
 				Request: endpoint.TextRequestReader{},
 				Handler: func(req endpoint.Request[string]) error {
 					parameterId := path.Base(req.Url)
-					as.app.GetParameter(parameterId).SetName(req.Body)
+					as.app.graphInstance.Parameter(parameterId).SetName(req.Body)
 					as.AutosaveGraph()
 					return nil
 				},
@@ -82,7 +82,7 @@ func parameterDescriptionEndpoint(as *AppServer) endpoint.Handler {
 				Request: endpoint.TextRequestReader{},
 				Handler: func(req endpoint.Request[string]) error {
 					parameterId := path.Base(req.Url)
-					as.app.GetParameter(parameterId).SetDescription(req.Body)
+					as.app.graphInstance.Parameter(parameterId).SetDescription(req.Body)
 					as.AutosaveGraph()
 					return nil
 				},

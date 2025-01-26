@@ -21,14 +21,12 @@ func init() {
 
 	refutil.RegisterTypeWithBuilder(factory, func() AABB {
 		return AABB{
-			Name:         "Box",
 			DefaultValue: geometry.NewAABB(vector3.Zero[float64](), vector3.One[float64]()),
 		}
 	})
 
 	refutil.RegisterTypeWithBuilder(factory, func() Color {
 		return Color{
-			Name:         "Color",
 			DefaultValue: coloring.White(),
 		}
 	})

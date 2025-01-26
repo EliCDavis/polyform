@@ -36,14 +36,14 @@ func graphMetadataEndpoint(as *AppServer) endpoint.Handler {
 		Methods: map[string]endpoint.Method{
 			http.MethodPost: endpoint.JsonMethod(
 				func(request endpoint.Request[EditRequest]) (EmptyResponse, error) {
-					as.app.graphMetadata.Set(urlToMetadataKey(request.Url), request.Body)
+					as.app.graphInstance.SetMetadata(urlToMetadataKey(request.Url), request.Body)
 					as.AutosaveGraph()
 					return EmptyResponse{}, nil
 				},
 			),
 
 			http.MethodDelete: endpoint.Func(func(r *http.Request) error {
-				as.app.graphMetadata.Delete(urlToMetadataKey(r.URL.Path))
+				as.app.graphInstance.DeleteMetadata(urlToMetadataKey(r.URL.Path))
 				as.AutosaveGraph()
 				return nil
 			}),

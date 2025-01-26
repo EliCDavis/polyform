@@ -8,6 +8,7 @@ import (
 
 	"github.com/EliCDavis/polyform/formats/swagger"
 	"github.com/EliCDavis/polyform/generator/artifact"
+	"github.com/EliCDavis/polyform/generator/graph"
 	"github.com/EliCDavis/polyform/nodes"
 )
 
@@ -29,7 +30,7 @@ func swaggerDefinitionNameFromProducerPath(producerPath string) string {
 
 func buildSwaggerDefinitionForProducer(producer nodes.NodeOutput[artifact.Artifact]) swagger.Definition {
 	props := make(map[string]swagger.Property)
-	params := recurseDependenciesType[SwaggerParameter](producer.Node())
+	params := graph.RecurseDependenciesType[graph.SwaggerParameter](producer.Node())
 
 	for _, param := range params {
 		paramName := strings.Replace(param.DisplayName(), " ", "", -1)
@@ -81,14 +82,15 @@ func recursivelyFindCommonSwaggerProperties(allDefs map[string]swagger.Definitio
 
 }
 
-func (a App) SwaggerSpec() swagger.Spec {
+func (a *App) SwaggerSpec() swagger.Spec {
+	a.initGraphInstance()
 	jsonApplication := "application/json"
 
 	paths := make(map[string]swagger.Path)
 
 	definitions := make(map[string]swagger.Definition)
 
-	for path, producer := range a.Producers {
+	for _, path := range a.graphInstance.ProducerNames() {
 		definitionName := swaggerDefinitionNameFromProducerPath(path)
 
 		paths["/producer/value/"+path] = swagger.Path{
@@ -118,6 +120,7 @@ func (a App) SwaggerSpec() swagger.Spec {
 			},
 		}
 
+		producer := a.graphInstance.Producer(path)
 		definitions[definitionName] = buildSwaggerDefinitionForProducer(producer)
 	}
 

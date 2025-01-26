@@ -17,7 +17,7 @@ import (
 	"github.com/EliCDavis/polyform/generator/artifact"
 	"github.com/EliCDavis/polyform/generator/artifact/basics"
 	"github.com/EliCDavis/polyform/generator/parameter"
-	"github.com/EliCDavis/polyform/generator/room"
+	"github.com/EliCDavis/polyform/generator/schema"
 	"github.com/EliCDavis/polyform/math/colors"
 	"github.com/EliCDavis/polyform/math/noise"
 	"github.com/EliCDavis/polyform/modeling"
@@ -285,10 +285,10 @@ func main() {
 		Name:        "Pumpkin",
 		Version:     "1.0.0",
 		Description: "Making a pumpkin for Haloween",
-		Authors: []generator.Author{
+		Authors: []schema.Author{
 			{
 				Name: "Eli C Davis",
-				ContactInfo: []generator.AuthorContact{
+				ContactInfo: []schema.AuthorContact{
 					{
 						Medium: "Twitter",
 						Value:  "@EliCDavis",
@@ -296,8 +296,8 @@ func main() {
 				},
 			},
 		},
-		WebScene: &room.WebScene{
-			Fog: room.WebSceneFog{
+		WebScene: &schema.WebScene{
+			Fog: schema.WebSceneFog{
 				Near:  2,
 				Far:   10,
 				Color: coloring.WebColor{R: 0x13, G: 0x0b, B: 0x3c, A: 255},
@@ -306,7 +306,7 @@ func main() {
 			Background: coloring.WebColor{R: 0x13, G: 0x0b, B: 0x3c, A: 255},
 			Lighting:   coloring.WebColor{R: 0xff, G: 0xd8, B: 0x94, A: 255},
 		},
-		Producers: map[string]nodes.NodeOutput[artifact.Artifact]{
+		Files: map[string]nodes.NodeOutput[artifact.Artifact]{
 			"pumpkin.glb": &PumpkinGLBArtifact{
 				Data: PumpkinGLBArtifactData{
 					PumpkinBody: pumpkinMesh,

@@ -1,4 +1,4 @@
-package generator
+package schema
 
 type Author struct {
 	Name        string          `json:"name"`

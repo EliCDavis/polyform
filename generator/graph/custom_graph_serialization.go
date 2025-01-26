@@ -1,4 +1,4 @@
-package generator
+package graph
 
 import "github.com/EliCDavis/jbtf"
 

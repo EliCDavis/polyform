@@ -5,8 +5,7 @@ import (
 	"os"
 
 	"github.com/EliCDavis/polyform/generator"
-	"github.com/EliCDavis/polyform/generator/artifact"
-	"github.com/EliCDavis/polyform/nodes"
+	"github.com/EliCDavis/polyform/generator/schema"
 
 	// Import these so they register their nodes with the generator
 	_ "github.com/EliCDavis/polyform/formats/gltf"
@@ -26,24 +25,17 @@ import (
 func main() {
 	app := generator.App{
 		Name:        "Polyform",
-		Version:     "0.21.0",
+		Version:     "0.22.0",
 		Description: "Immutable mesh processing program",
-		Authors: []generator.Author{
+		Authors: []schema.Author{
 			{
 				Name: "Eli C Davis",
-				ContactInfo: []generator.AuthorContact{
-					{
-						Medium: "bsky.app",
-						Value:  "@elicdavis.bsky.social",
-					},
-					{
-						Medium: "github.com",
-						Value:  "EliCDavis",
-					},
+				ContactInfo: []schema.AuthorContact{
+					{Medium: "bsky.app", Value: "@elicdavis.bsky.social"},
+					{Medium: "github.com", Value: "EliCDavis"},
 				},
 			},
 		},
-		Producers: map[string]nodes.NodeOutput[artifact.Artifact]{},
 	}
 
 	if err := app.Run(os.Args); err != nil {

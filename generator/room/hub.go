@@ -10,6 +10,10 @@ import (
 	"math/rand"
 	"net/http"
 	"time"
+
+	"github.com/EliCDavis/polyform/generator/schema"
+	"github.com/EliCDavis/vector"
+	"github.com/EliCDavis/vector/vector3"
 )
 
 var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
@@ -38,10 +42,17 @@ var defaultDisplayNames = []string{
 	"Bella",
 }
 
+type Vec4[T vector.Number] struct {
+	X T
+	Y T
+	Z T
+	W T
+}
+
 type PlayerRepresentation struct {
-	Type     byte          `json:"type"`
-	Position Vec3[float32] `json:"position"`
-	Rotation Vec4[float32] `json:"rotation"`
+	Type     byte                          `json:"type"`
+	Position vector3.Serializable[float32] `json:"position"`
+	Rotation Vec4[float32]                 `json:"rotation"`
 }
 
 type Player struct {
@@ -51,7 +62,7 @@ type Player struct {
 
 type RoomState struct {
 	ModelVersion uint32
-	WebScene     *WebScene
+	WebScene     *schema.WebScene
 	Players      map[string]*Player
 }
 
@@ -86,7 +97,7 @@ type Hub struct {
 	modelVersion *uint32
 }
 
-func NewHub(webScene *WebScene, modelVersion *uint32) *Hub {
+func NewHub(webScene *schema.WebScene, modelVersion *uint32) *Hub {
 	return &Hub{
 		broadcast:     make(chan []byte),
 		register:      make(chan *Client),
