@@ -63,6 +63,7 @@ func (a *App) ApplyGraph(jsonPayload []byte) error {
 }
 
 func (a *App) Graph() []byte {
+	a.initGraphInstance()
 	g := schema.Graph{
 		Name:        a.Name,
 		Version:     a.Version,
