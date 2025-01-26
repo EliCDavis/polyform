@@ -12,14 +12,14 @@ func graphEndpoint(app *App) endpoint.Handler {
 			http.MethodGet: endpoint.ResponseMethod[[]byte]{
 				ResponseWriter: endpoint.BinaryResponseWriter{},
 				Handler: func(r *http.Request) ([]byte, error) {
-					return app.Graph(), nil
+					return app.Schema(), nil
 				},
 			},
 
 			http.MethodPost: endpoint.BodyMethod[[]byte]{
 				Request: endpoint.BinaryRequestReader{},
 				Handler: func(request endpoint.Request[[]byte]) error {
-					err := app.ApplyGraph(request.Body)
+					err := app.ApplySchema(request.Body)
 					if err != nil {
 						return err
 					}

@@ -125,8 +125,8 @@ func (i *Instance) buildIDsForNode(node nodes.Node) {
 	}
 }
 
-func (i *Instance) ApplySchema(jsonPayload []byte) error {
-	graphSchema, err := jbtf.Unmarshal[schema.Graph](jsonPayload)
+func (i *Instance) ApplyAppSchema(jsonPayload []byte) error {
+	appSchema, err := jbtf.Unmarshal[schema.App](jsonPayload)
 	if err != nil {
 		return fmt.Errorf("unable to parse graph as a jbtf: %w", err)
 	}
@@ -138,12 +138,12 @@ func (i *Instance) ApplySchema(jsonPayload []byte) error {
 
 	i.nodeIDs = make(map[nodes.Node]string)
 	i.metadata = sync.NewNestedSyncMap()
-	i.metadata.OverwriteData(graphSchema.Metadata)
+	i.metadata.OverwriteData(appSchema.Metadata)
 
 	createdNodes := make(map[string]nodes.Node)
 
 	// Create the Nodes
-	for nodeID, instanceDetails := range graphSchema.Nodes {
+	for nodeID, instanceDetails := range appSchema.Nodes {
 		if nodeID == "" {
 			panic("attempting to create a node without an ID")
 		}
@@ -157,7 +157,7 @@ func (i *Instance) ApplySchema(jsonPayload []byte) error {
 	}
 
 	// Connect the nodes we just created
-	for nodeID, instanceDetails := range graphSchema.Nodes {
+	for nodeID, instanceDetails := range appSchema.Nodes {
 		node := createdNodes[nodeID]
 		for _, dependency := range instanceDetails.Dependencies {
 
@@ -173,7 +173,7 @@ func (i *Instance) ApplySchema(jsonPayload []byte) error {
 
 	// Set the Producers
 	i.producers = make(map[string]nodes.NodeOutput[artifact.Artifact])
-	for fileName, producerDetails := range graphSchema.Producers {
+	for fileName, producerDetails := range appSchema.Producers {
 		producerNode := createdNodes[producerDetails.NodeID]
 		outPortVals := refutil.CallFuncValuesOfType(producerNode, producerDetails.Port)
 		ref := outPortVals[0].(nodes.NodeOutput[artifact.Artifact])
@@ -184,7 +184,7 @@ func (i *Instance) ApplySchema(jsonPayload []byte) error {
 	}
 
 	// Set Parameters
-	for nodeID, instanceDetails := range graphSchema.Nodes {
+	for nodeID, instanceDetails := range appSchema.Nodes {
 		nodeI := createdNodes[nodeID]
 		if p, ok := nodeI.(CustomGraphSerialization); ok {
 			err := p.FromJSON(decoder, instanceDetails.Data)
@@ -199,7 +199,7 @@ func (i *Instance) ApplySchema(jsonPayload []byte) error {
 	return nil
 }
 
-func (i *Instance) AppSchema() schema.App {
+func (i *Instance) Schema() schema.GraphInstance {
 	var noteMetadata map[string]any
 	if notes := i.metadata.Get("notes"); notes != nil {
 		casted, ok := notes.(map[string]any)
@@ -208,7 +208,7 @@ func (i *Instance) AppSchema() schema.App {
 		}
 	}
 
-	appSchema := schema.App{
+	appSchema := schema.GraphInstance{
 		Producers: make(map[string]schema.Producer),
 		Notes:     noteMetadata,
 	}
@@ -263,8 +263,8 @@ func (i *Instance) AppSchema() schema.App {
 	return appSchema
 }
 
-func (i *Instance) EncodeSchema(graphSchema *schema.Graph, encoder *jbtf.Encoder) {
-	nodeInstances := make(map[string]schema.GraphNodeInstance)
+func (i *Instance) EncodeToAppSchema(appSchema *schema.App, encoder *jbtf.Encoder) {
+	nodeInstances := make(map[string]schema.AppNodeInstance)
 	for node := range i.nodeIDs {
 		id, ok := i.nodeIDs[node]
 		if !ok {
@@ -278,26 +278,29 @@ func (i *Instance) EncodeSchema(graphSchema *schema.Graph, encoder *jbtf.Encoder
 		nodeInstances[id] = i.buildNodeGraphInstanceSchema(node, encoder)
 	}
 
+	if appSchema.Producers == nil {
+		appSchema.Producers = make(map[string]schema.Producer)
+	}
 	for key, producer := range i.producers {
 		// a.buildSchemaForNode(producer.Node(), appNodeSchema)
 		id := i.nodeIDs[producer.Node()]
 		node := nodeInstances[id]
 		nodeInstances[id] = node
 
-		graphSchema.Producers[key] = schema.Producer{
+		appSchema.Producers[key] = schema.Producer{
 			NodeID: id,
 			Port:   producer.Port(),
 		}
 	}
-	graphSchema.Nodes = nodeInstances
+	appSchema.Nodes = nodeInstances
 
 	// TODO: Is this unsafe? Yes.
-	graphSchema.Metadata = i.metadata.Data()
+	appSchema.Metadata = i.metadata.Data()
 }
 
-func (i *Instance) buildNodeGraphInstanceSchema(node nodes.Node, encoder *jbtf.Encoder) schema.GraphNodeInstance {
+func (i *Instance) buildNodeGraphInstanceSchema(node nodes.Node, encoder *jbtf.Encoder) schema.AppNodeInstance {
 
-	nodeInstance := schema.GraphNodeInstance{
+	nodeInstance := schema.AppNodeInstance{
 		Type:         refutil.GetTypeWithPackage(node),
 		Dependencies: make([]schema.NodeDependency, 0),
 	}

@@ -19,7 +19,7 @@ func (gs *GraphSaver) Save() {
 
 	gs.autsaveMutex.Lock()
 	defer gs.autsaveMutex.Unlock()
-	err := os.WriteFile(gs.savePath, gs.app.Graph(), 0666)
+	err := os.WriteFile(gs.savePath, gs.app.Schema(), 0666)
 	if err != nil {
 		panic(err)
 	}

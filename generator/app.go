@@ -34,9 +34,9 @@ type App struct {
 	Out           io.Writer
 }
 
-func (a *App) ApplyGraph(jsonPayload []byte) error {
+func (a *App) ApplySchema(jsonPayload []byte) error {
 
-	graph, err := jbtf.Unmarshal[schema.Graph](jsonPayload)
+	graph, err := jbtf.Unmarshal[schema.App](jsonPayload)
 	if err != nil {
 		return fmt.Errorf("unable to parse graph as a jbtf: %w", err)
 	}
@@ -59,12 +59,12 @@ func (a *App) ApplyGraph(jsonPayload []byte) error {
 		a.WebScene = graph.WebScene
 	}
 
-	return a.graphInstance.ApplySchema(jsonPayload)
+	return a.graphInstance.ApplyAppSchema(jsonPayload)
 }
 
-func (a *App) Graph() []byte {
+func (a *App) Schema() []byte {
 	a.initGraphInstance()
-	g := schema.Graph{
+	g := schema.App{
 		Name:        a.Name,
 		Version:     a.Version,
 		Description: a.Description,
@@ -74,7 +74,7 @@ func (a *App) Graph() []byte {
 	}
 
 	encoder := &jbtf.Encoder{}
-	a.graphInstance.EncodeSchema(&g, encoder)
+	a.graphInstance.EncodeToAppSchema(&g, encoder)
 
 	data, err := encoder.ToPgtf(g)
 	if err != nil {
@@ -187,6 +187,7 @@ func (a *App) Run(args []string) error {
 			Aliases:     []string{"new"},
 			Run: func(state *cli.RunState) error {
 				newCmd := flag.NewFlagSet("new", flag.ExitOnError)
+				// newCmd.SetOutput(state.Out)
 				a.initialize(newCmd)
 				nameFlag := newCmd.String("name", "Graph", "name of the program")
 				versionFlag := newCmd.String("version", "v0.0.1", "version of the program")
@@ -198,7 +199,7 @@ func (a *App) Run(args []string) error {
 					return err
 				}
 
-				graph := schema.Graph{}
+				graph := schema.App{}
 
 				if nameFlag != nil {
 					graph.Name = *nameFlag
@@ -332,7 +333,7 @@ func (a *App) Run(args []string) error {
 					return err
 				}
 
-				schema := a.graphInstance.AppSchema()
+				schema := a.graphInstance.Schema()
 
 				usedTypes := make(map[string]struct{})
 				for _, n := range schema.Nodes {
@@ -470,7 +471,7 @@ func (a *App) Run(args []string) error {
 				return err
 			}
 
-			err = a.ApplyGraph(fileData)
+			err = a.ApplySchema(fileData)
 			if err != nil {
 				return err
 			}

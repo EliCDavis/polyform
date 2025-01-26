@@ -193,7 +193,7 @@ func (as *AppServer) Serve() error {
 
 func (as *AppServer) SchemaEndpoint(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	data, err := json.Marshal(as.app.graphInstance.AppSchema())
+	data, err := json.Marshal(as.app.graphInstance.Schema())
 	if err != nil {
 		panic(err)
 	}

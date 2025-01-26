@@ -139,7 +139,7 @@ func (a *App) cli() error {
 						return err
 					}
 
-					data, err := json.MarshalIndent(a.graphInstance.AppSchema(), "", "    ")
+					data, err := json.MarshalIndent(a.graphInstance.Schema(), "", "    ")
 					if err != nil {
 						return err
 					}

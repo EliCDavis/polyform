@@ -16,7 +16,7 @@ func sanitizeMermaidName(in string) string {
 func WriteMermaid(a App, out io.Writer) error {
 	a.initGraphInstance()
 
-	schema := a.graphInstance.AppSchema()
+	schema := a.graphInstance.Schema()
 
 	fmt.Fprintf(out, "---\ntitle: %s\n---\n\nflowchart LR\n", a.Name)
 
