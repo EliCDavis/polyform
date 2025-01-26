@@ -17,6 +17,7 @@ func init() {
 
 	refutil.RegisterType[CircleNode](factory)
 	refutil.RegisterType[CircleUVsNode](factory)
+	refutil.RegisterType[ConeNode](factory)
 
 	generator.RegisterTypes(factory)
 }

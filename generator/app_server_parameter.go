@@ -5,14 +5,13 @@ import (
 	"path"
 
 	"github.com/EliCDavis/polyform/generator/endpoint"
+	"github.com/EliCDavis/polyform/generator/graph"
 )
 
-func parameterValueEndpoint(as *AppServer) endpoint.Handler {
+func parameterValueEndpoint(graphInstance *graph.Instance, saver *GraphSaver) endpoint.Handler {
 
 	updateParameter := func(parameterId string, body []byte) error {
-		as.producerLock.Lock()
-		defer as.producerLock.Unlock()
-		_, err := as.UpdateParameter(parameterId, body)
+		_, err := graphInstance.UpdateParameter(parameterId, body)
 		return err
 	}
 
@@ -29,9 +28,7 @@ func parameterValueEndpoint(as *AppServer) endpoint.Handler {
 						return err
 					}
 
-					as.AutosaveGraph()
-
-					as.incModelVersion()
+					saver.Save()
 					return nil
 				},
 			},
@@ -39,11 +36,8 @@ func parameterValueEndpoint(as *AppServer) endpoint.Handler {
 			http.MethodGet: endpoint.ResponseMethod[[]byte]{
 				ResponseWriter: endpoint.BinaryResponseWriter{},
 				Handler: func(r *http.Request) ([]byte, error) {
-					as.producerLock.Lock()
-					defer as.producerLock.Unlock()
-
 					parameterId := path.Base(r.URL.Path)
-					n := as.app.graphInstance.ParameterData(parameterId)
+					n := graphInstance.ParameterData(parameterId)
 					return n, nil
 				},
 			},
@@ -51,14 +45,14 @@ func parameterValueEndpoint(as *AppServer) endpoint.Handler {
 	}
 }
 
-func parameterNameEndpoint(as *AppServer) endpoint.Handler {
+func parameterNameEndpoint(graphInstance *graph.Instance, saver *GraphSaver) endpoint.Handler {
 	return endpoint.Handler{
 		Methods: map[string]endpoint.Method{
 			http.MethodGet: endpoint.ResponseMethod[string]{
 				ResponseWriter: endpoint.TextResponseWriter{},
 				Handler: func(r *http.Request) (string, error) {
 					parameterId := path.Base(r.URL.Path)
-					return as.app.graphInstance.Parameter(parameterId).DisplayName(), nil
+					return graphInstance.Parameter(parameterId).DisplayName(), nil
 				},
 			},
 
@@ -66,8 +60,8 @@ func parameterNameEndpoint(as *AppServer) endpoint.Handler {
 				Request: endpoint.TextRequestReader{},
 				Handler: func(req endpoint.Request[string]) error {
 					parameterId := path.Base(req.Url)
-					as.app.graphInstance.Parameter(parameterId).SetName(req.Body)
-					as.AutosaveGraph()
+					graphInstance.Parameter(parameterId).SetName(req.Body)
+					saver.Save()
 					return nil
 				},
 			},
@@ -75,15 +69,15 @@ func parameterNameEndpoint(as *AppServer) endpoint.Handler {
 	}
 }
 
-func parameterDescriptionEndpoint(as *AppServer) endpoint.Handler {
+func parameterDescriptionEndpoint(graphInstance *graph.Instance, saver *GraphSaver) endpoint.Handler {
 	return endpoint.Handler{
 		Methods: map[string]endpoint.Method{
 			http.MethodPost: endpoint.BodyMethod[string]{
 				Request: endpoint.TextRequestReader{},
 				Handler: func(req endpoint.Request[string]) error {
 					parameterId := path.Base(req.Url)
-					as.app.graphInstance.Parameter(parameterId).SetDescription(req.Body)
-					as.AutosaveGraph()
+					graphInstance.Parameter(parameterId).SetDescription(req.Body)
+					saver.Save()
 					return nil
 				},
 			},

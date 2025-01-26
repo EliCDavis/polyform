@@ -9,10 +9,8 @@ import (
 	"io/fs"
 	"log"
 	"net/http"
-	"os"
 	"path"
 	"runtime/debug"
-	"sync"
 	"text/template"
 	"time"
 
@@ -76,15 +74,12 @@ type AppServer struct {
 	keyPath          string
 	launchWebbrowser bool
 
-	autsaveMutex sync.Mutex
-	autosave     bool
-	configPath   string
+	autosave   bool
+	configPath string
 
 	webscene *schema.WebScene
 
 	serverStarted time.Time
-	movelVersion  uint32
-	producerLock  sync.Mutex
 
 	clientConfig *room.ClientConfig
 }
@@ -133,6 +128,14 @@ func (as *AppServer) Serve() error {
 	http.Handle("/js/", fs)
 	// http.Handle("/css/", fs)
 
+	var graphSaver *GraphSaver
+	if as.autosave {
+		graphSaver = &GraphSaver{
+			app:      as.app,
+			savePath: as.configPath,
+		}
+	}
+
 	http.HandleFunc("/schema", as.SchemaEndpoint)
 	http.Handle("/scene", endpoint.Handler{
 		Methods: map[string]endpoint.Method{
@@ -145,20 +148,20 @@ func (as *AppServer) Serve() error {
 		},
 	})
 	http.HandleFunc("/zip", as.ZipEndpoint)
-	http.Handle("/node", nodeEndpoint(as))
-	http.Handle("/node/connection", nodeConnectionEndpoint(as))
-	http.Handle("/parameter/value/", parameterValueEndpoint(as))
-	http.Handle("/parameter/name/", parameterNameEndpoint(as))
-	http.Handle("/parameter/description/", parameterDescriptionEndpoint(as))
-	http.Handle("/graph", graphEndpoint(as))
-	http.Handle("/graph/metadata/", graphMetadataEndpoint(as))
+	http.Handle("/node", nodeEndpoint(as.app.graphInstance, graphSaver))
+	http.Handle("/node/connection", nodeConnectionEndpoint(as.app.graphInstance, graphSaver))
+	http.Handle("/parameter/value/", parameterValueEndpoint(as.app.graphInstance, graphSaver))
+	http.Handle("/parameter/name/", parameterNameEndpoint(as.app.graphInstance, graphSaver))
+	http.Handle("/parameter/description/", parameterDescriptionEndpoint(as.app.graphInstance, graphSaver))
+	http.Handle("/graph", graphEndpoint(as.app))
+	http.Handle("/graph/metadata/", graphMetadataEndpoint(as.app.graphInstance, graphSaver))
 	http.HandleFunc("/started", as.StartedEndpoint)
 	http.HandleFunc("/mermaid", as.MermaidEndpoint)
 	http.HandleFunc("/swagger", as.SwaggerEndpoint)
 	http.HandleFunc("/producer/value/", as.ProducerEndpoint)
-	http.Handle("/producer/name/", producerNameEndpoint(as))
+	http.Handle("/producer/name/", producerNameEndpoint(as.app.graphInstance, graphSaver))
 
-	hub := room.NewHub(as.webscene, &as.movelVersion)
+	hub := room.NewHub(as.webscene, as.app.graphInstance)
 	go hub.Run()
 
 	http.Handle("/live", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -188,19 +191,6 @@ func (as *AppServer) Serve() error {
 	}
 }
 
-func (as *AppServer) AutosaveGraph() {
-	if !as.autosave {
-		return
-	}
-	as.autsaveMutex.Lock()
-	defer as.autsaveMutex.Unlock()
-	err := os.WriteFile(as.configPath, as.app.Graph(), 0666)
-	if err != nil {
-		panic(err)
-	}
-	log.Printf("Graph written %s\n", as.configPath)
-}
-
 func (as *AppServer) SchemaEndpoint(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	data, err := json.Marshal(as.app.graphInstance.AppSchema())
@@ -217,9 +207,6 @@ func (as *AppServer) ProducerEndpoint(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Cross-Origin-Opener-Policy", "same-origin")
 	w.Header().Add("Cross-Origin-Resource-Policy", "cross-origin")
 	w.Header().Add("Cross-Origin-Embedder-Policy", "require-corp")
-
-	as.producerLock.Lock()
-	defer as.producerLock.Unlock()
 
 	// params, _ := url.ParseQuery(r.URL.RawQuery)
 	err := as.writeProducerDataToRequest(path.Base(r.URL.Path), w)
@@ -247,17 +234,6 @@ func (as *AppServer) writeProducerDataToRequest(producerToLoad string, w http.Re
 		return
 	}
 	return bufWr.Flush()
-}
-
-func (as *AppServer) UpdateParameter(key string, msg []byte) (bool, error) {
-	log.Println("applying...")
-	changed, err := as.app.graphInstance.UpdateParameter(key, msg)
-	return changed, err
-}
-
-func (as *AppServer) incModelVersion() {
-	// TODO: Make thread safe
-	as.movelVersion++
 }
 
 func (as *AppServer) StartedEndpoint(w http.ResponseWriter, r *http.Request) {

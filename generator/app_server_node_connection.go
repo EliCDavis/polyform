@@ -4,9 +4,10 @@ import (
 	"net/http"
 
 	"github.com/EliCDavis/polyform/generator/endpoint"
+	"github.com/EliCDavis/polyform/generator/graph"
 )
 
-func nodeConnectionEndpoint(as *AppServer) endpoint.Handler {
+func nodeConnectionEndpoint(graphInstance *graph.Instance, saver *GraphSaver) endpoint.Handler {
 	type DeleteRequest struct {
 		NodeId     string `json:"nodeId"`
 		InPortName string `json:"inPortName"`
@@ -25,29 +26,25 @@ func nodeConnectionEndpoint(as *AppServer) endpoint.Handler {
 		Methods: map[string]endpoint.Method{
 			http.MethodPost: endpoint.JsonMethod(
 				func(request endpoint.Request[CreateRequest]) (EmptyResponse, error) {
-					as.app.
-						graphInstance.
+					graphInstance.
 						ConnectNodes(
 							request.Body.NodeOutId,
 							request.Body.OutPortName,
 							request.Body.NodeInId,
 							request.Body.InPortName,
 						)
-					as.incModelVersion()
-					as.AutosaveGraph()
+					saver.Save()
 					return EmptyResponse{}, nil
 				},
 			),
 			http.MethodDelete: endpoint.JsonMethod(
 				func(request endpoint.Request[DeleteRequest]) (EmptyResponse, error) {
-					as.app.
-						graphInstance.
+					graphInstance.
 						DeleteNodeInputConnection(
 							request.Body.NodeId,
 							request.Body.InPortName,
 						)
-					as.incModelVersion()
-					as.AutosaveGraph()
+					saver.Save()
 					return EmptyResponse{}, nil
 				},
 			),

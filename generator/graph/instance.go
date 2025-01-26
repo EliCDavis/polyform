@@ -12,24 +12,37 @@ import (
 	"github.com/EliCDavis/polyform/generator/sync"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
+
+	gsync "sync"
 )
 
 type Instance struct {
 	typeFactory *refutil.TypeFactory
 
-	nodeIDs   map[nodes.Node]string
-	metadata  *sync.NestedSyncMap
-	producers map[string]nodes.NodeOutput[artifact.Artifact]
+	movelVersion uint32
+	nodeIDs      map[nodes.Node]string
+	metadata     *sync.NestedSyncMap
+	producers    map[string]nodes.NodeOutput[artifact.Artifact]
+	producerLock gsync.Mutex
 }
 
 func New(typeFactory *refutil.TypeFactory) *Instance {
 	return &Instance{
 		typeFactory: typeFactory,
 
-		nodeIDs:   make(map[nodes.Node]string),
-		metadata:  sync.NewNestedSyncMap(),
-		producers: make(map[string]nodes.NodeOutput[artifact.Artifact]),
+		nodeIDs:      make(map[nodes.Node]string),
+		metadata:     sync.NewNestedSyncMap(),
+		producers:    make(map[string]nodes.NodeOutput[artifact.Artifact]),
+		movelVersion: 0,
 	}
+}
+func (i *Instance) ModelVersion() uint32 {
+	return i.movelVersion
+}
+
+func (i *Instance) incModelVersion() {
+	// TODO: Make thread safe
+	i.movelVersion++
 }
 
 func (i *Instance) NodeInstanceSchema(node nodes.Node) schema.NodeInstance {
@@ -181,6 +194,8 @@ func (i *Instance) ApplySchema(jsonPayload []byte) error {
 		}
 	}
 
+	i.incModelVersion()
+
 	return nil
 }
 
@@ -280,7 +295,7 @@ func (i *Instance) EncodeSchema(graphSchema *schema.Graph, encoder *jbtf.Encoder
 	graphSchema.Metadata = i.metadata.Data()
 }
 
-func (i Instance) buildNodeGraphInstanceSchema(node nodes.Node, encoder *jbtf.Encoder) schema.GraphNodeInstance {
+func (i *Instance) buildNodeGraphInstanceSchema(node nodes.Node, encoder *jbtf.Encoder) schema.GraphNodeInstance {
 
 	nodeInstance := schema.GraphNodeInstance{
 		Type:         refutil.GetTypeWithPackage(node),
@@ -360,7 +375,7 @@ func (i *Instance) DeleteNode(nodeId string) {
 
 // PARAMETER ==================================================================
 
-func (i Instance) getParameters() []Parameter {
+func (i *Instance) getParameters() []Parameter {
 	if i.producers == nil {
 		return nil
 	}
@@ -381,13 +396,13 @@ func (i Instance) getParameters() []Parameter {
 	return uniqueParams
 }
 
-func (i Instance) InitializeParameters(set *flag.FlagSet) {
+func (i *Instance) InitializeParameters(set *flag.FlagSet) {
 	for _, p := range i.getParameters() {
 		p.InitializeForCLI(set)
 	}
 }
 
-func (i Instance) Parameter(nodeId string) Parameter {
+func (i *Instance) Parameter(nodeId string) Parameter {
 	node := i.Node(nodeId)
 
 	param, ok := node.(Parameter)
@@ -398,11 +413,18 @@ func (i Instance) Parameter(nodeId string) Parameter {
 	return param
 }
 
-func (i Instance) UpdateParameter(nodeId string, data []byte) (bool, error) {
-	return i.Parameter(nodeId).ApplyMessage(data)
+func (i *Instance) UpdateParameter(nodeId string, data []byte) (bool, error) {
+	i.producerLock.Lock()
+	defer i.producerLock.Unlock()
+
+	r, err := i.Parameter(nodeId).ApplyMessage(data)
+	i.incModelVersion()
+	return r, err
 }
 
-func (i Instance) ParameterData(nodeId string) []byte {
+func (i *Instance) ParameterData(nodeId string) []byte {
+	i.producerLock.Lock()
+	defer i.producerLock.Unlock()
 	return i.Parameter(nodeId).ToMessage()
 }
 
@@ -425,6 +447,7 @@ func (i *Instance) DeleteNodeInputConnection(nodeId, portName string) {
 			NodeOutput: nil,
 		},
 	)
+	i.incModelVersion()
 }
 
 func (i *Instance) ConnectNodes(nodeOutId, outPortName, nodeInId, inPortName string) {
@@ -439,6 +462,7 @@ func (i *Instance) ConnectNodes(nodeOutId, outPortName, nodeInId, inPortName str
 			NodeOutput: ref,
 		},
 	)
+	i.incModelVersion()
 }
 
 // PRODUCERS ==================================================================
@@ -475,6 +499,7 @@ func (i *Instance) SetNodeAsProducer(nodeId, producerName string) {
 	}
 
 	i.producers[producerName] = ref
+	i.incModelVersion()
 }
 
 func (i *Instance) recursivelyRegisterNodeTypes(node nodes.Node) {
@@ -489,6 +514,10 @@ func (i *Instance) Artifact(producerName string) artifact.Artifact {
 	if !ok {
 		panic(fmt.Errorf("no producer registered for: %s", producerName))
 	}
+
+	i.producerLock.Lock()
+	defer i.producerLock.Unlock()
+
 	return producer.Value()
 }
 

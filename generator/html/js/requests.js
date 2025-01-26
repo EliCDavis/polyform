@@ -54,7 +54,7 @@ class RequestManager {
         xmlHttp.send(null);
     }
 
-    
+
     fetchJSON(theUrl, callback) {
         const xmlHttp = new XMLHttpRequest();
         xmlHttp.onreadystatechange = () => {
@@ -97,7 +97,18 @@ class RequestManager {
     }
 
     postJsonBodyJsonResponse(theUrl, body, callback) {
-        this.postBinary(theUrl, JSON.stringify(body), callback)
+        this.postBinaryJsonResponse(theUrl, JSON.stringify(body), callback)
+    }
+
+    postJsonBodyEmptyResponse(theUrl, body, callback) {
+        const xmlHttp = new XMLHttpRequest();
+        xmlHttp.onreadystatechange = () => {
+            if (xmlHttp.readyState == 4 && xmlHttp.status == 200 && callback) {
+                callback();
+            }
+        }
+        xmlHttp.open("POST", theUrl, true); // true for asynchronous 
+        xmlHttp.send(JSON.stringify(body));
     }
 
     postTextBodyEmptyResponse(theUrl, body, callback) {
@@ -111,7 +122,18 @@ class RequestManager {
         xmlHttp.send(body);
     }
 
-    postBinary(theUrl, body, callback) {
+    postBinaryEmptyResponse(theUrl, body, callback) {
+        const xmlHttp = new XMLHttpRequest();
+        xmlHttp.onreadystatechange = () => {
+            if (xmlHttp.readyState == 4 && xmlHttp.status == 200 && callback) {
+                callback();
+            }
+        }
+        xmlHttp.open("POST", theUrl, true); // true for asynchronous 
+        xmlHttp.send(body);
+    }
+
+    postBinaryJsonResponse(theUrl, body, callback) {
         const xmlHttp = new XMLHttpRequest();
         xmlHttp.onreadystatechange = () => {
             if (xmlHttp.readyState == 4 && xmlHttp.status == 200 && callback) {
@@ -144,22 +166,22 @@ class RequestManager {
     setParameter(key, data, binary, callback) {
         const url = "/parameter/value/" + key;
         if (binary) {
-            this.postBinary(url, data, callback);
+            this.postBinaryEmptyResponse(url, data, callback);
         } else {
-            this.postJsonBodyJsonResponse(url, data, callback);
+            this.postJsonBodyEmptyResponse(url, data, callback);
         }
     }
 
     setParameterTitle(inNodeID, value, callback) {
-        this.postTextBodyEmptyResponse("/parameter/name/"+inNodeID, value, callback);
+        this.postTextBodyEmptyResponse("/parameter/name/" + inNodeID, value, callback);
     }
 
     setParameterInfo(inNodeID, value, callback) {
-        this.postTextBodyEmptyResponse("/parameter/description/"+inNodeID, value, callback);
+        this.postTextBodyEmptyResponse("/parameter/description/" + inNodeID, value, callback);
     }
 
     setProducerTitle(inNodeID, value, callback) {
-        this.postTextBodyEmptyResponse("/producer/name/"+inNodeID, value, callback);
+        this.postTextBodyEmptyResponse("/producer/name/" + inNodeID, value, callback);
     }
 
     getParameterValue(key, callback) {
@@ -186,7 +208,7 @@ class RequestManager {
         this.postJsonBodyJsonResponse(`graph/metadata/nodes/${inNodeID}/${key}`, metadata, callback)
     }
 
-    
+
 
     createNote(noteID, note, callback) {
         this.postJsonBodyJsonResponse(`graph/metadata/notes/${noteID}`, note, callback)

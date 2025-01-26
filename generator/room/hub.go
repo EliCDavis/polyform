@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/EliCDavis/polyform/generator/graph"
 	"github.com/EliCDavis/polyform/generator/schema"
 	"github.com/EliCDavis/vector"
 	"github.com/EliCDavis/vector/vector3"
@@ -94,10 +95,10 @@ type Hub struct {
 
 	state RoomState
 
-	modelVersion *uint32
+	graphInstance *graph.Instance
 }
 
-func NewHub(webScene *schema.WebScene, modelVersion *uint32) *Hub {
+func NewHub(webScene *schema.WebScene, graphInstance *graph.Instance) *Hub {
 	return &Hub{
 		broadcast:     make(chan []byte),
 		register:      make(chan *Client),
@@ -109,7 +110,7 @@ func NewHub(webScene *schema.WebScene, modelVersion *uint32) *Hub {
 			Players:  map[string]*Player{},
 			WebScene: webScene,
 		},
-		modelVersion: modelVersion,
+		graphInstance: graphInstance,
 	}
 }
 
@@ -172,7 +173,7 @@ func (h *Hub) Run() {
 			}
 
 		case <-h.sceneUpdate:
-			h.state.ModelVersion = *h.modelVersion
+			h.state.ModelVersion = h.graphInstance.ModelVersion()
 			for client := range h.clients {
 				select {
 				case client.send <- ServerRoomStateUpdate(h.state):

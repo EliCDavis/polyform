@@ -4,10 +4,11 @@ import (
 	"net/http"
 
 	"github.com/EliCDavis/polyform/generator/endpoint"
+	"github.com/EliCDavis/polyform/generator/graph"
 	"github.com/EliCDavis/polyform/generator/schema"
 )
 
-func nodeEndpoint(as *AppServer) endpoint.Handler {
+func nodeEndpoint(graphInstance *graph.Instance, saver *GraphSaver) endpoint.Handler {
 	type CreateRequest struct {
 		NodeType string `json:"nodeType"`
 	}
@@ -30,22 +31,22 @@ func nodeEndpoint(as *AppServer) endpoint.Handler {
 		Methods: map[string]endpoint.Method{
 			http.MethodPost: endpoint.JsonMethod(
 				func(request endpoint.Request[CreateRequest]) (CreateResponse, error) {
-					node, id, err := as.app.graphInstance.CreateNode(request.Body.NodeType)
+					node, id, err := graphInstance.CreateNode(request.Body.NodeType)
 					if err != nil {
 						return CreateResponse{}, err
 					}
-					as.AutosaveGraph()
+					saver.Save()
 
 					return CreateResponse{
 						NodeID: id,
-						Data:   as.app.graphInstance.NodeInstanceSchema(node),
+						Data:   graphInstance.NodeInstanceSchema(node),
 					}, nil
 				},
 			),
 			http.MethodDelete: endpoint.JsonMethod(
 				func(request endpoint.Request[DeleteRequest]) (EmptyResponse, error) {
-					as.app.graphInstance.DeleteNode(request.Body.NodeID)
-					as.AutosaveGraph()
+					graphInstance.DeleteNode(request.Body.NodeID)
+					saver.Save()
 					return EmptyResponse{}, nil
 				},
 			),

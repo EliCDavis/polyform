@@ -5,9 +5,10 @@ import (
 	"strings"
 
 	"github.com/EliCDavis/polyform/generator/endpoint"
+	"github.com/EliCDavis/polyform/generator/graph"
 )
 
-func graphMetadataEndpoint(as *AppServer) endpoint.Handler {
+func graphMetadataEndpoint(graphInstance *graph.Instance, saver *GraphSaver) endpoint.Handler {
 
 	urlToMetadataKey := func(url string) string {
 		// We're making the assumption the url starts like this,
@@ -36,15 +37,15 @@ func graphMetadataEndpoint(as *AppServer) endpoint.Handler {
 		Methods: map[string]endpoint.Method{
 			http.MethodPost: endpoint.JsonMethod(
 				func(request endpoint.Request[EditRequest]) (EmptyResponse, error) {
-					as.app.graphInstance.SetMetadata(urlToMetadataKey(request.Url), request.Body)
-					as.AutosaveGraph()
+					graphInstance.SetMetadata(urlToMetadataKey(request.Url), request.Body)
+					saver.Save()
 					return EmptyResponse{}, nil
 				},
 			),
 
 			http.MethodDelete: endpoint.Func(func(r *http.Request) error {
-				as.app.graphInstance.DeleteMetadata(urlToMetadataKey(r.URL.Path))
-				as.AutosaveGraph()
+				graphInstance.DeleteMetadata(urlToMetadataKey(r.URL.Path))
+				saver.Save()
 				return nil
 			}),
 		},
