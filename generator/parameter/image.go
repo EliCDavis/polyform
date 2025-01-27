@@ -15,6 +15,7 @@ import (
 
 type Image struct {
 	Name         string
+	Description  string
 	DefaultValue image.Image
 	CLI          *CliConfig[string]
 
@@ -25,6 +26,10 @@ type Image struct {
 
 func (in *Image) SetName(name string) {
 	in.Name = name
+}
+
+func (in *Image) SetDescription(description string) {
+	in.Description = description
 }
 
 func (in *Image) Node() nodes.Node {

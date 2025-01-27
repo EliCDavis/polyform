@@ -248,7 +248,7 @@ func (i *Instance) Schema() schema.GraphInstance {
 	for _, registeredType := range registeredTypes {
 		nodeInstance, ok := i.typeFactory.New(registeredType).(nodes.Node)
 		if !ok {
-			panic("Registered type is somehow not a node. Not sure how we got here :/")
+			panic(fmt.Errorf("Registered type %q is not a node. Not sure how we got here :/", registeredType))
 		}
 		if nodeInstance == nil {
 			panic("New registered type")

@@ -11,6 +11,9 @@ import (
 func init() {
 	factory := &refutil.TypeFactory{}
 
+	refutil.RegisterType[File](factory)
+	refutil.RegisterType[Image](factory)
+
 	refutil.RegisterTypeWithBuilder(factory, func() Int { return Int{} })
 	refutil.RegisterTypeWithBuilder(factory, func() Float64 { return Float64{} })
 	refutil.RegisterTypeWithBuilder(factory, func() Vector3 { return Vector3{} })

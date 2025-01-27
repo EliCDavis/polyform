@@ -107,7 +107,7 @@ func TestSwaggerFromGraph_MultipleParametersSingleProducer(t *testing.T) {
 		Version:     "1.0.0",
 		Description: "Example graph that contains multiple parameters",
 		Files: map[string]nodes.NodeOutput[artifact.Artifact]{
-			"example.glb": ply.NewSplatNode(
+			"example.glb": ply.NewPlyNode(
 				&meshops.CropAttribute3DNode{
 					Data: meshops.CropAttribute3DNodeData{
 						AABB: &parameter.AABB{

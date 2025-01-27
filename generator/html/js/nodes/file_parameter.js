@@ -1,14 +1,14 @@
 
 export class FileParameterNodeController {
 
-    constructor(lightNode, nodeManager, id, parameterData, app) {
-        this.lightNode = lightNode;
+    constructor(flowNode, nodeManager, id, parameterData, app) {
+        this.flowNode = flowNode;
         this.id = id;
         this.app = app;
-        this.lightNode.setTitle(parameterData.name);
+        this.flowNode.setTitle(parameterData.name);
 
-        this.lightNode.onDropFile = (file) => {
-            // console.log(file)
+        this.flowNode.addFileDropListener((file) => {
+            console.log("AAAHHHHHHHH",  file)
             var reader = new FileReader();
             reader.onload = (evt) => {
                 console.log(evt.target.result)
@@ -25,7 +25,8 @@ export class FileParameterNodeController {
             //     that.size[1] = (img.height / img.width) * that.size[0];
             // });
             // this.loadImgFromURL(url);
-        }
+        });
+
     }
 
     loadImgFromURL(url) {

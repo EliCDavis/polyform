@@ -373,6 +373,7 @@
             nodes: {
                 "Parameters/int": {
                     title: "Int Parameter",
+                    subTitle: "Int",
                     canEditTitle: true,
                     canEditInfo: true,
                     outputs: [
@@ -398,6 +399,7 @@
                 },
                 "Parameters/float64": {
                     title: "Float64 Parameter",
+                    subTitle: "Float64",
                     canEditTitle: true,
                     canEditInfo: true,
                     outputs: [
@@ -423,6 +425,7 @@
                 },
                 "Parameters/geometry.AABB": {
                     title: "AABB Parameter",
+                    subTitle: "AABB",
                     canEditTitle: true,
                     canEditInfo: true,
                     outputs: [
@@ -490,6 +493,7 @@
                 },
                 "Parameters/image.Image": {
                     title: "Image Parameter",
+                    subTitle: "Image",
                     canEditTitle: true,
                     canEditInfo: true,
                     outputs: [
@@ -514,6 +518,7 @@
                 },
                 "Parameters/[]uint8": {
                     title: "[]uint8 Parameter",
+                    subTitle: "File",
                     canEditTitle: true,
                     canEditInfo: true,
                     outputs: [
@@ -522,22 +527,16 @@
                             type: "[]uint8"
                         }
                     ],
-                    widgets: [
-                        {
-                            type: "image",
-                            config: {
-                            }
-                        }
-                    ],
                     style: ParameterStyle,
                     metadata: {
                         typeData: {
-                            type: "github.com/EliCDavis/polyform/generator/parameter.Value[[]uint8]"
+                            type: "github.com/EliCDavis/polyform/generator/parameter.File"
                         }
                     }
                 },
                 "Parameters/coloring.WebColor": {
                     title: "Color Parameter",
+                    subTitle: "Color",
                     canEditTitle: true,
                     canEditInfo: true,
                     outputs: [
@@ -563,6 +562,7 @@
                 },
                 "Parameters/vector3.Vector[float64]": {
                     title: "Vector3 Parameter",
+                    subTitle: "Vector3",
                     canEditTitle: true,
                     canEditInfo: true,
                     outputs: [
@@ -600,6 +600,7 @@
                 },
                 "Parameters/[]vector3.Vector[float64]": {
                     title: "Vector3 Array Parameter",
+                    subTitle: "Vector3 Array",
                     canEditTitle: true,
                     canEditInfo: true,
                     outputs: [
@@ -617,6 +618,7 @@
                 },
                 "Parameters/vector2.Vector[float64]": {
                     title: "Vector2 Parameter",
+                    subTitle: "Vector2 Array",
                     canEditTitle: true,
                     canEditInfo: true,
                     outputs: [
@@ -648,6 +650,7 @@
                 },
                 "Parameters/bool": {
                     title: "Bool Parameter",
+                    subTitle: "Bool",
                     canEditTitle: true,
                     canEditInfo: true,
                     outputs: [
@@ -673,6 +676,7 @@
                 },
                 "Parameters/string": {
                     title: "String Parameter",
+                    subTitle: "String",
                     canEditTitle: true,
                     canEditInfo: true,
                     outputs: [

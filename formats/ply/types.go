@@ -3,8 +3,8 @@ package ply
 import (
 	"fmt"
 	"io"
+	"log"
 
-	"github.com/EliCDavis/polyform/formats/splat"
 	"github.com/EliCDavis/polyform/generator"
 	"github.com/EliCDavis/polyform/generator/artifact"
 	"github.com/EliCDavis/polyform/modeling"
@@ -12,51 +12,23 @@ import (
 	"github.com/EliCDavis/polyform/refutil"
 )
 
+// ============================================================================
+
 func init() {
 	factory := &refutil.TypeFactory{}
 
-	refutil.RegisterType[SplatNode](factory)
+	refutil.RegisterType[ArtifactNode](factory)
 
 	generator.RegisterTypes(factory)
 }
-
-type Splat struct {
-	Mesh modeling.Mesh
-}
-
-func (sa Splat) Write(w io.Writer) error {
-	return splat.Write(w, sa.Mesh)
-}
-
-func (Splat) Mime() string {
-	return "application/octet-stream"
-}
-
-type SplatNode = nodes.Struct[artifact.Artifact, SplatNodeData]
-
-type SplatNodeData struct {
-	In nodes.NodeOutput[modeling.Mesh]
-}
-
-func (pn SplatNodeData) Process() (artifact.Artifact, error) {
-	return Splat{Mesh: pn.In.Value()}, nil
-}
-
-func NewSplatNode(meshNode nodes.NodeOutput[modeling.Mesh]) nodes.NodeOutput[artifact.Artifact] {
-	return (&SplatNode{
-		Data: SplatNodeData{
-			In: meshNode,
-		},
-	}).Out()
-}
-
-// ============================================================================
 
 type SplatPly struct {
 	Mesh modeling.Mesh
 }
 
 func (sa SplatPly) Write(w io.Writer) error {
+
+	log.Println("Writer...")
 
 	writers := []PropertyWriter{
 		Vector3PropertyWriter{
@@ -123,19 +95,19 @@ func (SplatPly) Mime() string {
 	return "application/octet-stream"
 }
 
-type SplatPlyNode = nodes.Struct[artifact.Artifact, SplatPlyNodeData]
+type ArtifactNode = nodes.Struct[artifact.Artifact, ArtifactNodeData]
 
-type SplatPlyNodeData struct {
+type ArtifactNodeData struct {
 	In nodes.NodeOutput[modeling.Mesh]
 }
 
-func (pn SplatPlyNodeData) Process() (artifact.Artifact, error) {
+func (pn ArtifactNodeData) Process() (artifact.Artifact, error) {
 	return SplatPly{Mesh: pn.In.Value()}, nil
 }
 
-func NewSplatPlyNode(meshNode nodes.NodeOutput[modeling.Mesh]) nodes.NodeOutput[artifact.Artifact] {
-	return (&SplatPlyNode{
-		Data: SplatPlyNodeData{
+func NewPlyNode(meshNode nodes.NodeOutput[modeling.Mesh]) nodes.NodeOutput[artifact.Artifact] {
+	return (&ArtifactNode{
+		Data: ArtifactNodeData{
 			In: meshNode,
 		},
 	}).Out()

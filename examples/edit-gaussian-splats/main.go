@@ -162,7 +162,7 @@ func main() {
 			XrEnabled: true,
 		},
 		Files: map[string]nodes.NodeOutput[artifact.Artifact]{
-			"mesh.ply": ply.NewSplatPlyNode(pointcloud.Out()),
+			"mesh.ply": ply.NewPlyNode(pointcloud.Out()),
 			"info.txt": basics.NewTextNode(&InfoNode{
 				Data: InfoNodeData{
 					Original: pointcloud.Out(),

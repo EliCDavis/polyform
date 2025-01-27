@@ -32,7 +32,7 @@ go run ./cmd/polyform ./examples/graphs/ufo.json edit
   - [stl](/formats/stl/) - STL file format
   - [colmap](/formats/colmap/) - Utilities for loading COLMAP reconstruction data
   - [opensfm](/formats/opensfm/) - Utilities for loading OpenSFM reconstruction data
-  - [splat](/formats/splat/) - Guassian splatting's SPLAT format
+  - [splat](/formats/splat/) - Mkkellogg's SPLAT format
   - [spz](/formats/spz/) - Niantic Scaniverse's [SPZ format](https://scaniverse.com/news/spz-gaussian-splat-open-source-file-format)
   - [potree](/formats/potree/) - Potree V2 file format
 - Modeling
@@ -84,11 +84,11 @@ This was my [submission for ProcJam 2022](https://elicdavis.itch.io/evergreen-tr
 
 ### Other Examples
 
-|                                                                                      |                                                                                     |
-| ------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------- |
-| [[Source Here](/examples/graphs/ufo.json)] ![ufo](/examples/graphs/ufo.png)                 | [[Source Here](/examples/candle/main.go)] ![candle](/examples/candle/candle.png)    |
-| [[Source Here](/examples/terrain/main.go)] ![terrain](/examples/terrain/terrain.png) | [[Source Here](/examples/covid/main.go)] ![terrain](/examples/covid/covid.png)      |
-| [[Source Here](/examples/plumbob/main.go)] ![plumbob](/examples/plumbob/plumbob.png) | [[Source Here](/examples/oreo/main.go)] ![oreo](/examples/oreo/oreo.png)            |
+|                                                                                      |                                                                                  |
+| ------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------- |
+| [[Source Here](/examples/graphs/ufo.json)] ![ufo](/examples/graphs/ufo.png)          | [[Source Here](/examples/candle/main.go)] ![candle](/examples/candle/candle.png) |
+| [[Source Here](/examples/terrain/main.go)] ![terrain](/examples/terrain/terrain.png) | [[Source Here](/examples/covid/main.go)] ![terrain](/examples/covid/covid.png)   |
+| [[Source Here](/examples/plumbob/main.go)] ![plumbob](/examples/plumbob/plumbob.png) | [[Source Here](/examples/oreo/main.go)] ![oreo](/examples/oreo/oreo.png)         |
 
 
 ## Developing

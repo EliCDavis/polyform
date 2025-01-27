@@ -12,6 +12,7 @@ import (
 
 type File struct {
 	Name         string
+	Description  string
 	DefaultValue []byte
 	CLI          *CliConfig[string]
 
@@ -21,6 +22,10 @@ type File struct {
 
 func (in *File) SetName(name string) {
 	in.Name = name
+}
+
+func (in *File) SetDescription(description string) {
+	in.Description = description
 }
 
 func (in *File) Node() nodes.Node {
