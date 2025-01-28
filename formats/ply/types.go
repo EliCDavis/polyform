@@ -1,9 +1,9 @@
 package ply
 
 import (
+	"bytes"
 	"fmt"
 	"io"
-	"log"
 
 	"github.com/EliCDavis/polyform/generator"
 	"github.com/EliCDavis/polyform/generator/artifact"
@@ -18,6 +18,7 @@ func init() {
 	factory := &refutil.TypeFactory{}
 
 	refutil.RegisterType[ArtifactNode](factory)
+	refutil.RegisterType[ReadNode](factory)
 
 	generator.RegisterTypes(factory)
 }
@@ -27,9 +28,6 @@ type SplatPly struct {
 }
 
 func (sa SplatPly) Write(w io.Writer) error {
-
-	log.Println("Writer...")
-
 	writers := []PropertyWriter{
 		Vector3PropertyWriter{
 			ModelAttribute: modeling.PositionAttribute,
@@ -111,4 +109,24 @@ func NewPlyNode(meshNode nodes.NodeOutput[modeling.Mesh]) nodes.NodeOutput[artif
 			In: meshNode,
 		},
 	}).Out()
+}
+
+type ReadNode = nodes.Struct[modeling.Mesh, ReadNodeData]
+
+type ReadNodeData struct {
+	In nodes.NodeOutput[[]byte]
+}
+
+func (pn ReadNodeData) Process() (modeling.Mesh, error) {
+	if pn.In == nil {
+		return modeling.EmptyMesh(modeling.PointTopology), nil
+	}
+
+	data := pn.In.Value()
+
+	mesh, err := ReadMesh(bytes.NewReader(data))
+	if err != nil {
+		return modeling.EmptyMesh(modeling.PointTopology), nil
+	}
+	return *mesh, nil
 }

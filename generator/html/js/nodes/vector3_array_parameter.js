@@ -8,8 +8,9 @@ export class Vector3ArrayParameterNodeController {
         this.nodeManager = nodeManager;
         this.app = app;
         this.scene = app.ViewerScene;
+        this.allPositionControlHelpers = [];
         this.allPositionControls = [];
-        this.allPositionControlsMeshes = [];
+        this.allPositionControlHelpersMeshes = [];
         this.renderControls = false;
 
         parameterData.currentValue?.forEach((ele) => {
@@ -59,8 +60,11 @@ export class Vector3ArrayParameterNodeController {
     }
 
     updateControlRendering() {
-        this.allPositionControls.forEach((v) => {
+        this.allPositionControlHelpers.forEach((v) => {
             v.visible = this.renderControls;
+            v.enabled = this.renderControls;
+        });
+        this.allPositionControls.forEach((v) => {
             v.enabled = this.renderControls;
         });
     }
@@ -68,7 +72,7 @@ export class Vector3ArrayParameterNodeController {
     buildParameterData() {
         const data = [];
 
-        this.allPositionControlsMeshes.forEach((ele) => {
+        this.allPositionControlHelpersMeshes.forEach((ele) => {
             data.push({
                 x: ele.position.x,
                 y: ele.position.y,
@@ -98,27 +102,31 @@ export class Vector3ArrayParameterNodeController {
             }
         });
 
+        const helper = control.getHelper();
+        this.allPositionControlHelpers.push(helper);
         this.allPositionControls.push(control);
-        this.allPositionControlsMeshes.push(mesh);
+        this.allPositionControlHelpersMeshes.push(mesh);
 
         this.scene.add(mesh);
-        this.app.Scene.add(control);
+        this.app.Scene.add(helper);
         mesh.position.set(pos.x, pos.y, pos.z);
         control.attach(mesh);
 
-        control.visible = this.renderControls;
+        helper.visible = this.renderControls;
+        helper.enabled = this.renderControls;
         control.enabled = this.renderControls;
     }
 
     clearPositionControls() {
-        this.allPositionControls.forEach((v) => {
+        this.allPositionControlHelpers.forEach((v) => {
             this.app.Scene.remove(v);
         });
-        this.allPositionControlsMeshes.forEach((v) => {
+        this.allPositionControlHelpersMeshes.forEach((v) => {
             this.scene.remove(v);
         })
+        this.allPositionControlHelpers = [];
+        this.allPositionControlHelpersMeshes = [];
         this.allPositionControls = [];
-        this.allPositionControlsMeshes = [];
     }
 
     update(parameterData) {

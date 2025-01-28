@@ -10,6 +10,8 @@ import (
 	"github.com/EliCDavis/vector/vector4"
 )
 
+const magicNum uint32 = 0x5053474e
+
 type Header struct {
 	Magic          uint32 `json:"magic"`     // Must be 0x5053474e (NGSP = Niantic gaussian splat)
 	Version        uint32 `json:"version"`   // Must be 2
@@ -21,7 +23,7 @@ type Header struct {
 }
 
 func (pgh Header) Validate() error {
-	if pgh.Magic != 0x5053474e {
+	if pgh.Magic != magicNum {
 		return fmt.Errorf("invalid magic number in header: %d", pgh.Magic)
 	}
 

@@ -41,21 +41,25 @@ export class Vector3ParameterNodeController {
         this.lightNode.setProperty("z", curVal.z);
         this.mesh.position.set(curVal.x, curVal.y, curVal.z);
 
-        app.Scene.add(control)
+        const helper = control.getHelper();
+        app.Scene.add(helper)
         control.attach(this.mesh);
 
         this.lightNode.setTitle(parameterData.name);
 
-        control.visible = false;
+        helper.visible = false;
+        helper.enabled = false;
         control.enabled = false;
 
         this.lightNode.addSelectListener(() => {
-            control.visible = true;
+            helper.visible = true;
+            helper.enabled = true;
             control.enabled = true;
         });
 
         this.lightNode.addUnselectListener(() => {
-            control.visible = false;
+            helper.visible = false;
+            helper.enabled = false;
             control.enabled = false;
         });
 

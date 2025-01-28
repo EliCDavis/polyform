@@ -17,11 +17,12 @@ export class AABBParameterNodeController {
 
         controlMesh.position.set(pos.x, pos.y, pos.z);
 
-        app.Scene.add(control)
+        const helper = control.getHelper();
+        app.Scene.add(helper);
         control.attach(controlMesh);
 
-        control.visible = false;
-        control.enabled = false;
+        // control.visible = false;
+        // control.enabled = false;
 
         control.addEventListener('dragging-changed', (event) => {
             app.OrbitControls.enabled = !event.value;
@@ -34,6 +35,7 @@ export class AABBParameterNodeController {
         return {
             mesh: controlMesh,
             control: control,
+            helper: helper,
         };
     }
 
@@ -129,49 +131,70 @@ export class AABBParameterNodeController {
             z: curVal.center.z - curVal.extents.z
         }, false, false, true);
 
-        this.up.control.visible = false;
-        this.up.control.enabled = false;
-        this.down.control.visible = false;
-        this.down.control.enabled = false;
-        this.left.control.visible = false;
-        this.left.control.enabled = false;
-        this.right.control.visible = false;
-        this.right.control.enabled = false;
-        this.forward.control.visible = false;
-        this.forward.control.enabled = false;
-        this.backward.control.visible = false;
-        this.backward.control.enabled = false;
+        this.up.helper.visible = false;
+        this.up.helper.enabled = false;
+        this.down.helper.visible = false;
+        this.down.helper.enabled = false;
+        this.left.helper.visible = false;
+        this.left.helper.enabled = false;
+        this.right.helper.visible = false;
+        this.right.helper.enabled = false;
+        this.forward.helper.visible = false;
+        this.forward.helper.enabled = false;
+        this.backward.helper.visible = false;
+        this.backward.helper.enabled = false;
         this.box.visible = false;
+
+        this.up.control.enabled = false;
+        this.down.control.enabled = false;
+        this.left.control.enabled = false;
+        this.right.control.enabled = false;
+        this.forward.control.enabled = false;
+        this.backward.control.enabled = false;
 
         this.lightNode.addSelectListener(() => {
             this.box.visible = true;
-            this.up.control.visible = true;
+            this.up.helper.visible = true;
+            this.up.helper.enabled = true;
+            this.down.helper.visible = true;
+            this.down.helper.enabled = true;
+            this.left.helper.visible = true;
+            this.left.helper.enabled = true;
+            this.right.helper.visible = true;
+            this.right.helper.enabled = true;
+            this.forward.helper.visible = true;
+            this.forward.helper.enabled = true;
+            this.backward.helper.visible = true;
+            this.backward.helper.enabled = true;
+
             this.up.control.enabled = true;
-            this.down.control.visible = true;
             this.down.control.enabled = true;
-            this.left.control.visible = true;
             this.left.control.enabled = true;
-            this.right.control.visible = true;
             this.right.control.enabled = true;
-            this.forward.control.visible = true;
             this.forward.control.enabled = true;
-            this.backward.control.visible = true;
             this.backward.control.enabled = true;
         });
 
         this.lightNode.addUnselectListener(() => {
             this.box.visible = false;
-            this.up.control.visible = false;
+            this.up.helper.visible = false;
+            this.up.helper.enabled = false;
+            this.down.helper.visible = false;
+            this.down.helper.enabled = false;
+            this.left.helper.visible = false;
+            this.left.helper.enabled = false;
+            this.right.helper.visible = false;
+            this.right.helper.enabled = false;
+            this.forward.helper.visible = false;
+            this.forward.helper.enabled = false;
+            this.backward.helper.visible = false;
+            this.backward.helper.enabled = false;
+
             this.up.control.enabled = false;
-            this.down.control.visible = false;
             this.down.control.enabled = false;
-            this.left.control.visible = false;
             this.left.control.enabled = false;
-            this.right.control.visible = false;
             this.right.control.enabled = false;
-            this.forward.control.visible = false;
             this.forward.control.enabled = false;
-            this.backward.control.visible = false;
             this.backward.control.enabled = false;
         });
     }

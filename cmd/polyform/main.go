@@ -12,6 +12,7 @@ import (
 	_ "github.com/EliCDavis/polyform/formats/ply"
 	_ "github.com/EliCDavis/polyform/formats/splat"
 	_ "github.com/EliCDavis/polyform/formats/spz"
+	_ "github.com/EliCDavis/polyform/formats/stl"
 	_ "github.com/EliCDavis/polyform/generator/artifact/basics"
 	_ "github.com/EliCDavis/polyform/generator/parameter"
 	_ "github.com/EliCDavis/polyform/math"
