@@ -1,6 +1,8 @@
 package opensfm
 
 import (
+	"io"
+
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/sfm/opensfm"
 	"github.com/EliCDavis/vector/vector3"
@@ -26,6 +28,20 @@ func ReconstructionToPointcloud(reconstruction opensfm.ReconstructionSchema) mod
 // Loads the feature match point data into a Pointcloud mesh
 func LoadReconstructiontData(filename string) (modeling.Mesh, error) {
 	reconstructions, err := opensfm.LoadReconstruction(filename)
+	mesh := modeling.EmptyPointcloud()
+	if err != nil {
+		return mesh, err
+	}
+
+	for _, rec := range reconstructions {
+		mesh = mesh.Append(ReconstructionToPointcloud(rec))
+	}
+
+	return mesh, nil
+}
+
+func ReadReconstructiontData(in io.Reader) (modeling.Mesh, error) {
+	reconstructions, err := opensfm.ReadReconstruction(in)
 	mesh := modeling.EmptyPointcloud()
 	if err != nil {
 		return mesh, err

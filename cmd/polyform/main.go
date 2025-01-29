@@ -8,7 +8,9 @@ import (
 	"github.com/EliCDavis/polyform/generator/schema"
 
 	// Import these so they register their nodes with the generator
+	_ "github.com/EliCDavis/polyform/formats/colmap"
 	_ "github.com/EliCDavis/polyform/formats/gltf"
+	_ "github.com/EliCDavis/polyform/formats/opensfm"
 	_ "github.com/EliCDavis/polyform/formats/ply"
 	_ "github.com/EliCDavis/polyform/formats/splat"
 	_ "github.com/EliCDavis/polyform/formats/spz"

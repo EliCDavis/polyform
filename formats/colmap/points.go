@@ -1,6 +1,8 @@
 package colmap
 
 import (
+	"io"
+
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/sfm/colmap"
 	"github.com/EliCDavis/vector/vector3"
@@ -35,6 +37,14 @@ func PointDataToPointCloud(points []colmap.Point3D) modeling.Mesh {
 		},
 		nil,
 	)
+}
+
+func ReadSparsePointData(in io.Reader) (modeling.Mesh, error) {
+	points, err := colmap.ReadPoints3DBinary(in)
+	if err != nil {
+		return modeling.EmptyPointcloud(), err
+	}
+	return PointDataToPointCloud(points), nil
 }
 
 // Loads the feature match point data into a Pointcloud mesh

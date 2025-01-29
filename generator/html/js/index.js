@@ -268,14 +268,40 @@ class SchemaRefreshManager {
         );
     }
 
+    viewAABB(aabb) {
+
+        const aabbDepth = (aabb.max.z - aabb.min.z)
+        const aabbWidth = (aabb.max.x - aabb.min.x)
+        const aabbHeight = (aabb.max.y - aabb.min.y)
+        const aabbHalfHeight = aabbHeight / 2
+        const mid = (aabb.max.y + aabb.min.y) / 2
+
+        if (firstTimeLoadingScene && isFinite(aabbWidth) && isFinite(aabbDepth) && isFinite(aabbHeight)) {
+            // console.log("Camera position intialized", aabbWidth, aabbDepth, aabbHeight);
+            firstTimeLoadingScene = false;
+
+            camera.position.y = (- mid + aabbHalfHeight) * (3 / 2);
+            camera.position.z = Math.sqrt(
+                (aabbWidth * aabbWidth) +
+                (aabbDepth * aabbDepth) +
+                (aabbHeight * aabbHeight)
+            ) / 2;
+
+            orbitControls.target.set(
+                (aabb.max.x + aabb.min.x) / 2, 
+                - mid + aabbHalfHeight, 
+                (aabb.max.z + aabb.min.z) / 2
+            );
+            orbitControls.update();
+        }
+    }
+
     loadGltf(key, producerURL) {
         this.AddLoading();
-        loader.load(producerURL, (gltf) => {
+        loader.load(producerURL, ((gltf) => {
 
             const aabb = new THREE.Box3();
             aabb.setFromObject(gltf.scene);
-            const aabbDepth = (aabb.max.z - aabb.min.z)
-            const aabbWidth = (aabb.max.x - aabb.min.x)
             const aabbHeight = (aabb.max.y - aabb.min.y)
             const aabbHalfHeight = aabbHeight / 2
             const mid = (aabb.max.y + aabb.min.y) / 2
@@ -305,27 +331,12 @@ class SchemaRefreshManager {
 
             // progressiveSurfacemap.addObjectsToLightMap(objects);
 
-            if (firstTimeLoadingScene && isFinite(aabbWidth) && isFinite(aabbDepth) && isFinite(aabbHeight)) {
-                // console.log("Camera position intialized", aabbWidth, aabbDepth, aabbHeight);
-
-
-                firstTimeLoadingScene = false;
-
-                camera.position.y = (- mid + aabbHalfHeight) * (3 / 2);
-                camera.position.z = Math.sqrt(
-                    (aabbWidth * aabbWidth) +
-                    (aabbDepth * aabbDepth) +
-                    (aabbHeight * aabbHeight)
-                ) / 2;
-
-                orbitControls.target.set(0, - mid + aabbHalfHeight, 0);
-                orbitControls.update();
-            }
+            this.viewAABB(aabb);
 
             this.UpdateSubscribers(producerURL, gltf);
 
             this.RemoveLoading();
-        },
+        }).bind(this),
             undefined,
             (error) => {
                 this.RemoveLoading();
@@ -366,41 +377,27 @@ class SchemaRefreshManager {
             // scale: [-1, -1, 1, 0],
             // streamView: false
             // 'scale': [0.25, 0.25, 0.25],
-        }).then(() => {
+        }).then((() => {
 
             guassianSplatViewer.splatMesh.onSplatTreeReady((splatTree) => {
                 const tree = splatTree.subTrees[0]
                 const aabb = new THREE.Box3();
                 aabb.setFromPoints([tree.sceneMin, tree.sceneMax]);
-                const aabbDepth = (aabb.max.z - aabb.min.z)
-                const aabbWidth = (aabb.max.x - aabb.min.x)
                 const aabbHeight = (aabb.max.y - aabb.min.y)
                 const aabbHalfHeight = aabbHeight / 2
                 const mid = (aabb.max.y + aabb.min.y) / 2
 
                 const shiftY = - mid + aabbHalfHeight
                 guassianSplatViewer.splatMesh.position.set(0, shiftY, 0)
-                viewerContainer.position.set(0, shiftY, 0)
+                viewerContainer.position.set(0, shiftY, 0);
 
-                if (firstTimeLoadingScene) {
-                    firstTimeLoadingScene = false;
-
-                    camera.position.y = mid * (3 / 2);
-                    camera.position.z = Math.sqrt(
-                        (aabbWidth * aabbWidth) +
-                        (aabbDepth * aabbDepth) +
-                        (aabbHeight * aabbHeight)
-                    ) / 2;
-
-                    orbitControls.target.set(0, mid, 0);
-                    orbitControls.update();
-                }
+                this.viewAABB(aabb);
             });
 
             this.RemoveLoading();
             this.UpdateSubscribers(producerURL, guassianSplatViewer.splatMesh);
 
-        }).catch(x => {
+        }).bind(this)).catch(x => {
             console.error(x)
             this.RemoveLoading();
             ErrorManager.ShowError(key, x.error);
