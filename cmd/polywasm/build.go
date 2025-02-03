@@ -1,9 +1,9 @@
 package main
 
 import (
-	"bufio"
+	// "bufio"
 	"bytes"
-	"compress/gzip"
+	// "compress/gzip"
 	_ "embed"
 	"io"
 	"log"
@@ -124,32 +124,43 @@ func buildCommand() *cli.Command {
 			}
 			defer wasmFile.Close()
 
-			gzippedWasmFile, err := os.Create(filepath.Join(outFolder, "main.wasm.gz"))
+			// gzippedWasmFile, err := os.Create(filepath.Join(outFolder, "main.wasm.gz"))
+			// if err != nil {
+			// 	return err
+			// }
+			// defer gzippedWasmFile.Close()
+
+			// gzipWriter := gzip.NewWriter(gzippedWasmFile)
+			// chunkSize := 1024 // Adjust as needed
+			// reader := bufio.NewReader(wasmFile)
+
+			// for {
+			// 	buf := make([]byte, chunkSize)
+			// 	n, err := reader.Read(buf)
+			// 	if err != nil {
+			// 		if err.Error() == "EOF" {
+			// 			break // Reached end of file
+			// 		}
+			// 		return err
+			// 	}
+			// 	_, err = gzipWriter.Write(buf[:n])
+			// 	if err != nil {
+			// 		return err
+			// 	}
+			// }
+
+			// gzipWriter.Close()
+
+			outFile, err := os.Create(filepath.Join(outFolder, "main.wasm"))
 			if err != nil {
 				return err
 			}
-			defer gzippedWasmFile.Close()
+			defer outFile.Close()
 
-			gzipWriter := gzip.NewWriter(gzippedWasmFile)
-			chunkSize := 1024 // Adjust as needed
-			reader := bufio.NewReader(wasmFile)
-
-			for {
-				buf := make([]byte, chunkSize)
-				n, err := reader.Read(buf)
-				if err != nil {
-					if err.Error() == "EOF" {
-						break // Reached end of file
-					}
-					return err
-				}
-				_, err = gzipWriter.Write(buf[:n])
-				if err != nil {
-					return err
-				}
+			_, err = io.Copy(outFile, wasmFile)
+			if err != nil {
+				return err
 			}
-
-			gzipWriter.Close()
 
 			err = os.WriteFile(filepath.Join(outFolder, "index.html"), htmlContents, 0666)
 			if err != nil {

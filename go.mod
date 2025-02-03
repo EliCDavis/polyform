@@ -15,6 +15,12 @@ require (
 )
 
 require (
+	github.com/hack-pad/safejs v0.1.1 // indirect
+	github.com/nlepage/go-js-promise v1.0.0 // indirect
+	github.com/nlepage/go-wasm-http-server/v2 v2.1.0 // indirect
+)
+
+require (
 	github.com/EliCDavis/bitlib v1.2.0
 	github.com/EliCDavis/iter v1.0.2
 	github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db // indirect
