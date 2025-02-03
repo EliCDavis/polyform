@@ -9,7 +9,7 @@ importScripts('https://cdn.jsdelivr.net/gh/nlepage/go-wasm-http-server@v2.1.0/sw
 
 
 const CURRENT_VERSION = 'v0.0.23';
-const WASM = 'main.wasm.gz'
+const WASM = 'main.wasm'
 
 addEventListener("install", (event) => {
     console.log("installed", event)
