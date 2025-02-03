@@ -9,13 +9,14 @@
 	<script>
 		// By default the ServiceWorker's scope will be "server/"
 		navigator.serviceWorker
-			.register('sw.js', { scope: "/app/" })
+			.register('sw.js', { scope: "/polyform/" })
 			.then(registration => {
 				console.log("register", registration)
 				document.getElementById("status-display").innerText = "activated"
 				const sw = registration.active ?? registration.installing ?? registration.waiting
 				// setInterval(() => sw.postMessage(null), 15000)
-				window.location.href = window.location.href + "app/"
+				// window.location.href = window.location.href + "app/"
+				window.location.reload()
 			})
 	</script>
 </head>

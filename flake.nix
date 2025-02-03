@@ -13,19 +13,33 @@
 
         # Anytime dependencies update or change, we will need to update this.
         # This ensures a package is reproducible.
-        vendorHash = "sha256-mTPSIwBNcZQm+YYrtHr6ed903KQYCN8U39lLAI/0ZWw=";
+        vendorHash = "sha256-4VvpNv331VeCxy6pn+LHpwVh/SwulwlQbGUfEchKcD8=";
 
         polyform =
           with pkgs;
-          (buildGoModule {
+          buildGoModule {
             inherit vendorHash;
             name = "polyform";
             src = ./.;
             env = {
               CGO_ENABLED = 0;
             };
+            doCheck = false;
             subPackages = [ "cmd/polyform" ];
-          });
+          };
+
+        polywasm =
+          with pkgs;
+          buildGoModule {
+            inherit vendorHash;
+            name = "polywasm";
+            src = ./.;
+            env = {
+              CGO_ENABLED = 0;
+            };
+            doCheck = false;
+            subPackages = [ "cmd/polywasm" ];
+          };
 
         examples =
           with pkgs;
@@ -40,6 +54,30 @@
               subPackages = [ "examples/${name}" ];
             })
           ) (lib.filterAttrs (n: v: v == "directory") (builtins.readDir ./examples));
+
+        pages =
+          with pkgs;
+          stdenvNoCC.mkDerivation {
+            name = "pages";
+            src = ./.;
+            phases = [
+              "unpackPhase"
+              "buildPhase"
+            ];
+            nativeBuildInputs = [ go ];
+            buildPhase = ''
+              export HOME=$(mktemp -d)
+              export DIST=$(mktemp -d)
+              mkdir -p $out $GOCACHE
+
+              cp -r ${polyform.goModules} ./vendor
+              GOOS=js GOARCH=wasm go build -mod=vendor -o ./main.wasm ./cmd/polyform
+
+              ${polywasm}/bin/polywasm build --wasm ./main.wasm -o $DIST
+
+              cp -r $DIST/* $out
+            '';
+          };
 
         mkExamplesCross =
           GOOS: GOARCH:
@@ -87,7 +125,12 @@
       in
       {
         packages = {
-          inherit polyform examples;
+          inherit
+            polyform
+            polywasm
+            examples
+            pages
+            ;
           default = polyform;
           examplesCross = withEachPlatform mkExamplesCross;
         };
