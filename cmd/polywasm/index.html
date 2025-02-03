@@ -4,17 +4,25 @@
 
 <head>
 	<meta charset="utf-8" />
-	<title>Go WebAssembly</title>
+	<title>Polyform</title>
 	<meta name="viewport" content="width=device-width, initial-scale=1" />
-	<script src="wasm_exec.js" defer></script>
-	<script src="wasm.js" defer></script>
+	<script>
+		// By default the ServiceWorker's scope will be "server/"
+		navigator.serviceWorker
+			.register('sw.js', { scope: "/app/" })
+			.then(registration => {
+				console.log("register", registration)
+				document.getElementById("status-display").innerText = "activated"
+				const sw = registration.active ?? registration.installing ?? registration.waiting
+				// setInterval(() => sw.postMessage(null), 15000)
+				window.location.href = window.location.href + "app/"
+			})
+	</script>
 </head>
 
 <body>
-	<h1>WebAssembly</h1>
-	<p>Add two numbers, using WebAssembly:</p>
-	<input type="number" id="a" value="2" /> + <input type="number" id="b" value="2" /> = <input type="number"
-		id="result" readonly />
+	<h1>Polyform</h1>
+	<b id="status-display">Downloading...</b>
 </body>
 
 </html>

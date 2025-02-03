@@ -6,6 +6,8 @@ import (
 	"bytes"
 	"log"
 	"syscall/js"
+
+	wasmhttp "github.com/nlepage/go-wasm-http-server/v2"
 )
 
 var globalApp *App
@@ -35,4 +37,25 @@ func wasmZip(this js.Value, cb []js.Value) interface{} { //
 func os_setup(a *App) {
 	js.Global().Set("zipGeometry", js.FuncOf(wasmZip))
 	globalApp = a
+}
+
+func (as *AppServer) Serve() error {
+	mux, err := as.Handler()
+	if err != nil {
+		return err
+	}
+
+	log.Print("Starting wasm serve...")
+
+	if _, err = wasmhttp.Serve(mux); err != nil {
+		return err
+	}
+	// f()
+	select {}
+
+	// return err
+}
+
+func isWasm() bool {
+	return true
 }

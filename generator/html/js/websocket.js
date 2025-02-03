@@ -107,7 +107,6 @@ export class WebSocketManager {
         this.viewportSettings = viewportSettings;
         this.schemaManager = schemaManager;
 
-        this.lastUpdatedModel = -1;
         this.connectedPlayers = {};
         this.clientID = null;
     }
@@ -125,10 +124,13 @@ export class WebSocketManager {
             websocketProtocol = "wss://";
         }
 
-        this.conn = new WebSocket(websocketProtocol + document.location.host + "/live");
+        this.conn = new WebSocket(websocketProtocol + document.location.host + document.location.pathname + "live");
         this.conn.binaryType = "arraybuffer";
         this.conn.onclose = this.onClose.bind(this);
         this.conn.onmessage = this.onMessage.bind(this);
+        this.conn.onerror = (event) => {
+            console.error("websocket error", event)
+        }
 
         setInterval(this.updateServerWithCameraData.bind(this), 200);
         setInterval(this.updateServerWithSceneData.bind(this), 200);
@@ -340,10 +342,7 @@ export class WebSocketManager {
     }
 
     onRoomStateUpdate(messageData) {
-        if (this.lastUpdatedModel !== messageData.ModelVersion) {
-            this.lastUpdatedModel = messageData.ModelVersion;
-            this.schemaManager.refreshSchema();
-        }
+        this.schemaManager.setModelVersion(messageData.ModelVersion);
 
         if (this.viewportSettings.SettingsHaveChanged() === false) {
             const webScene = messageData.WebScene;

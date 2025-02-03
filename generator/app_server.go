@@ -84,7 +84,7 @@ type AppServer struct {
 	clientConfig *room.ClientConfig
 }
 
-func (as *AppServer) Serve() error {
+func (as *AppServer) Handler() (*http.ServeMux, error) {
 	as.serverStarted = time.Now()
 
 	as.webscene = as.app.WebScene
@@ -92,12 +92,14 @@ func (as *AppServer) Serve() error {
 		as.webscene = room.DefaultWebScene()
 	}
 
+	mux := http.NewServeMux()
+
 	htmlData, err := htmlFs.ReadFile("html/server.html")
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		pageToServe := pageData{
 			Title:       as.app.Name,
 			Version:     as.app.Version,
@@ -121,11 +123,11 @@ func (as *AppServer) Serve() error {
 
 	fSys, err := fs.Sub(htmlFs, "html")
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	fs := http.FileServer(http.FS(fSys))
-	http.Handle("/js/", fs)
+	mux.Handle("/js/", fs)
 	// http.Handle("/css/", fs)
 
 	var graphSaver *GraphSaver
@@ -136,8 +138,8 @@ func (as *AppServer) Serve() error {
 		}
 	}
 
-	http.HandleFunc("/schema", as.SchemaEndpoint)
-	http.Handle("/scene", endpoint.Handler{
+	mux.HandleFunc("/schema", as.SchemaEndpoint)
+	mux.Handle("/scene", endpoint.Handler{
 		Methods: map[string]endpoint.Method{
 			http.MethodGet: endpoint.ResponseMethod[*schema.WebScene]{
 				ResponseWriter: endpoint.JsonResponseWriter[*schema.WebScene]{},
@@ -147,24 +149,24 @@ func (as *AppServer) Serve() error {
 			},
 		},
 	})
-	http.HandleFunc("/zip", as.ZipEndpoint)
-	http.Handle("/node", nodeEndpoint(as.app.graphInstance, graphSaver))
-	http.Handle("/node/connection", nodeConnectionEndpoint(as.app.graphInstance, graphSaver))
-	http.Handle("/parameter/value/", parameterValueEndpoint(as.app.graphInstance, graphSaver))
-	http.Handle("/parameter/name/", parameterNameEndpoint(as.app.graphInstance, graphSaver))
-	http.Handle("/parameter/description/", parameterDescriptionEndpoint(as.app.graphInstance, graphSaver))
-	http.Handle("/graph", graphEndpoint(as.app))
-	http.Handle("/graph/metadata/", graphMetadataEndpoint(as.app.graphInstance, graphSaver))
-	http.HandleFunc("/started", as.StartedEndpoint)
-	http.HandleFunc("/mermaid", as.MermaidEndpoint)
-	http.HandleFunc("/swagger", as.SwaggerEndpoint)
-	http.HandleFunc("/producer/value/", as.ProducerEndpoint)
-	http.Handle("/producer/name/", producerNameEndpoint(as.app.graphInstance, graphSaver))
+	mux.HandleFunc("/zip", as.ZipEndpoint)
+	mux.Handle("/node", nodeEndpoint(as.app.graphInstance, graphSaver))
+	mux.Handle("/node/connection", nodeConnectionEndpoint(as.app.graphInstance, graphSaver))
+	mux.Handle("/parameter/value/", parameterValueEndpoint(as.app.graphInstance, graphSaver))
+	mux.Handle("/parameter/name/", parameterNameEndpoint(as.app.graphInstance, graphSaver))
+	mux.Handle("/parameter/description/", parameterDescriptionEndpoint(as.app.graphInstance, graphSaver))
+	mux.Handle("/graph", graphEndpoint(as.app))
+	mux.Handle("/graph/metadata/", graphMetadataEndpoint(as.app.graphInstance, graphSaver))
+	mux.HandleFunc("/started", as.StartedEndpoint)
+	mux.HandleFunc("/mermaid", as.MermaidEndpoint)
+	mux.HandleFunc("/swagger", as.SwaggerEndpoint)
+	mux.HandleFunc("/producer/value/", as.ProducerEndpoint)
+	mux.Handle("/producer/name/", producerNameEndpoint(as.app.graphInstance, graphSaver))
 
 	hub := room.NewHub(as.webscene, as.app.graphInstance)
 	go hub.Run()
 
-	http.Handle("/live", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	mux.Handle("/live", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		conf := as.clientConfig
 		if conf == nil {
 			conf = room.DefaultClientConfig()
@@ -172,23 +174,7 @@ func (as *AppServer) Serve() error {
 		hub.ServeWs(w, r, conf)
 	}))
 
-	connection := fmt.Sprintf("%s:%s", as.host, as.port)
-	if as.tls {
-		url := fmt.Sprintf("https://%s", connection)
-		fmt.Printf("Serving over: %s\n", url)
-		if as.launchWebbrowser {
-			openURL(url)
-		}
-		return http.ListenAndServeTLS(connection, as.certPath, as.keyPath, nil)
-
-	} else {
-		url := fmt.Sprintf("http://%s", connection)
-		fmt.Printf("Serving over: %s\n", url)
-		if as.launchWebbrowser {
-			openURL(url)
-		}
-		return http.ListenAndServe(connection, nil)
-	}
+	return mux, nil
 }
 
 func (as *AppServer) SchemaEndpoint(w http.ResponseWriter, r *http.Request) {
@@ -239,7 +225,7 @@ func (as *AppServer) writeProducerDataToRequest(producerToLoad string, w http.Re
 func (as *AppServer) StartedEndpoint(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	time := as.serverStarted.Format("2006-01-02 15:04:05")
-	w.Write([]byte(fmt.Sprintf("{ \"time\": \"%s\" }", time)))
+	w.Write([]byte(fmt.Sprintf("{ \"time\": \"%s\", \"modelVersion\": %d }", time, as.app.graphInstance.ModelVersion())))
 }
 
 func (as *AppServer) MermaidEndpoint(w http.ResponseWriter, r *http.Request) {

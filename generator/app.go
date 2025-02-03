@@ -481,5 +481,9 @@ func (a *App) Run(args []string) error {
 		},
 	}
 
+	if isWasm() {
+		return cliApp.Run([]string{".", "edit"})
+	}
+
 	return cliApp.Run(args)
 }

@@ -1,10 +1,12 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
+	"compress/gzip"
 	_ "embed"
-	"fmt"
 	"io"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -16,8 +18,8 @@ import (
 //go:embed index.html
 var htmlContents []byte
 
-//go:embed wasm.js
-var wasmJsContents []byte
+//go:embed sw.js
+var swJsContents []byte
 
 func Copy(srcpath, dstpath string) (err error) {
 	r, err := os.Open(srcpath)
@@ -56,25 +58,56 @@ func TinygoRoot() (string, error) {
 	return strings.TrimSpace(outb.String()), err
 }
 
+func RegularGo(out, programToBuild string, stripDebug bool) (string, string, error) {
+	args := []string{
+		"build",
+	}
+
+	if stripDebug {
+		// args = append(args, "-ldflags", "-s -w")
+	}
+
+	args = append(
+		args,
+		"-o", out,
+		programToBuild,
+	)
+
+	log.Print(args)
+	cmd := exec.Command("go", args...)
+	cmd.Env = []string{
+		"GOOS=js",
+		"GOARCH=wasm",
+	}
+	var outb bytes.Buffer
+	var outErr bytes.Buffer
+
+	cmd.Stdout = &outb
+	cmd.Stderr = &outErr
+	err := cmd.Run()
+
+	return strings.TrimSpace(outb.String()), strings.TrimSpace(outErr.String()), err
+}
+
 func buildCommand() *cli.Command {
 	return &cli.Command{
 		Name:        "build",
 		Description: "Compiles a polyform app using tinygo into a wasm binary and wraps it in a website",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
-				Name:     "app-path",
-				Usage:    "Path to polyform application to compile",
+				Name:     "wasm",
+				Usage:    "Path to wasm to bundle",
 				Required: true,
 			},
 			&cli.StringFlag{
-				Name:     "out",
-				Usage:    "folder to write all contents to",
-				Required: false,
-				Value:    "html",
+				Name:    "out",
+				Aliases: []string{"o"},
+				Usage:   "folder to write all contents to",
+				Value:   "html",
 			},
 			&cli.BoolFlag{
 				Name:  "no-debug",
-				Usage: "whether or not to strip debug symbols",
+				Usage: "whether or not to strip debug symbols (reduces file size)",
 				Value: true,
 			},
 		},
@@ -85,54 +118,45 @@ func buildCommand() *cli.Command {
 				return err
 			}
 
-			args := []string{
-				"build",
-				"-o", filepath.Join(outFolder, "wasm.wasm"),
-				"-target", "wasm",
-			}
-
-			if ctx.Bool("no-debug") {
-				args = append(args, "-no-debug")
-			}
-
-			args = append(args, ctx.String("app-path"))
-
-			cmd := exec.Command("tinygo", args...)
-
-			var outb, errb bytes.Buffer
-			cmd.Stdout = &outb
-			cmd.Stderr = &errb
-			err = cmd.Run()
-
-			if len(outb.Bytes()) > 0 {
-				fmt.Fprintf(ctx.App.Writer, "Tinygo Build Output:\n%s", outb.String())
-			}
-
-			if len(errb.Bytes()) > 0 {
-				fmt.Fprintf(ctx.App.ErrWriter, "Tinygo Build Error:\n%s", errb.String())
-			}
-
-			if err != nil {
-				fmt.Fprintln(ctx.App.Writer, args)
-				return err
-			}
-
-			tinygoRoot, err := TinygoRoot()
+			wasmFile, err := os.Open(ctx.String("wasm"))
 			if err != nil {
 				return err
 			}
+			defer wasmFile.Close()
 
-			err = Copy(filepath.Join(tinygoRoot, "targets", "wasm_exec.js"), filepath.Join(outFolder, "wasm_exec.js"))
+			gzippedWasmFile, err := os.Create(filepath.Join(outFolder, "main.wasm.gz"))
 			if err != nil {
 				return err
 			}
+			defer gzippedWasmFile.Close()
+
+			gzipWriter := gzip.NewWriter(gzippedWasmFile)
+			chunkSize := 1024 // Adjust as needed
+			reader := bufio.NewReader(wasmFile)
+
+			for {
+				buf := make([]byte, chunkSize)
+				n, err := reader.Read(buf)
+				if err != nil {
+					if err.Error() == "EOF" {
+						break // Reached end of file
+					}
+					return err
+				}
+				_, err = gzipWriter.Write(buf[:n])
+				if err != nil {
+					return err
+				}
+			}
+
+			gzipWriter.Close()
 
 			err = os.WriteFile(filepath.Join(outFolder, "index.html"), htmlContents, 0666)
 			if err != nil {
 				return err
 			}
 
-			err = os.WriteFile(filepath.Join(outFolder, "wasm.js"), wasmJsContents, 0666)
+			err = os.WriteFile(filepath.Join(outFolder, "sw.js"), swJsContents, 0666)
 			if err != nil {
 				return err
 			}

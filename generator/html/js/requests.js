@@ -156,15 +156,15 @@ class RequestManager {
     }
 
     getStartedTime(callback) {
-        this.fetchJSON("/started", callback);
+        this.fetchJSON("./started", callback);
     }
 
     getSchema(callback) {
-        this.fetchJSON("/schema", callback);
+        this.fetchJSON("./schema", callback);
     }
 
     setParameter(key, data, binary, callback) {
-        const url = "/parameter/value/" + key;
+        const url = "./parameter/value/" + key;
         if (binary) {
             this.postBinaryEmptyResponse(url, data, callback);
         } else {
@@ -173,19 +173,19 @@ class RequestManager {
     }
 
     setParameterTitle(inNodeID, value, callback) {
-        this.postTextBodyEmptyResponse("/parameter/name/" + inNodeID, value, callback);
+        this.postTextBodyEmptyResponse("./parameter/name/" + inNodeID, value, callback);
     }
 
     setParameterInfo(inNodeID, value, callback) {
-        this.postTextBodyEmptyResponse("/parameter/description/" + inNodeID, value, callback);
+        this.postTextBodyEmptyResponse("./parameter/description/" + inNodeID, value, callback);
     }
 
     setProducerTitle(inNodeID, value, callback) {
-        this.postTextBodyEmptyResponse("/producer/name/" + inNodeID, value, callback);
+        this.postTextBodyEmptyResponse("./producer/name/" + inNodeID, value, callback);
     }
 
     getParameterValue(key, callback) {
-        this.fetchRaw("/parameter/value/" + key, callback);
+        this.fetchRaw("./parameter/value/" + key, callback);
     }
 
     deleteNodeInput(nodeID, inputPortName, callback) {
@@ -235,14 +235,14 @@ class RequestManager {
     }
 
     getGraph(callback) {
-        this.fetchJSON("/graph", callback)
+        this.fetchJSON("./graph", callback)
     }
 
     getSwagger(callback) {
-        this.fetchJSON("/swagger", callback)
+        this.fetchJSON("./swagger", callback)
     }
 
     setGraph(newGraph, callback) {
-        this.postJsonBodyJsonResponse("/graph", newGraph, callback)
+        this.postJsonBodyJsonResponse("./graph", newGraph, callback)
     }
 }

@@ -1,5 +1,6 @@
 class SchemaManager {
     constructor(requestManager, nodeManager, noteManager) {
+        this.modelVersion = -1;
         this.requestManager = requestManager;
         this.nodeManager = nodeManager;
         this.noteManager = noteManager;
@@ -21,6 +22,14 @@ class SchemaManager {
                 // this.refreshSchema();
             }
         )
+    }
+
+    setModelVersion(newModelVersion) {
+        if (newModelVersion === this.modelVersion) {
+            return;
+        }
+        this.modelVersion = newModelVersion;
+        this.refreshSchema();
     }
 
     refreshSchema() {

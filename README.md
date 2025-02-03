@@ -119,9 +119,7 @@ air edit --port 8080 --ssl
 air edit --port 8080 --ssl --host 0.0.0.0
 ```
 
-## WASM Dev
-
-Install [tinygo](https://github.com/WebAssembly/binaryen) and [binaryren](https://github.com/WebAssembly/binaryen)
+## WASM Deployment
 
 Compile the `polywasm` app
 
@@ -129,10 +127,17 @@ Compile the `polywasm` app
 go install ./cmd/polywasm
 ```
 
-Then build your example app
+Build your app
 
 ```bash
-polywasm build --app-path ./examples/MY_EXAMPLE
+GOOS=js GOARCH=wasm go build -ldflags="-w -s" -o main.wasm ./cmd/polyform
+polywasm build --wasm main.wasm
+```
+
+Then serve
+
+```bash
+polywasm serve
 ```
 
 ## Processing Example

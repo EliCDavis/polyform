@@ -10,6 +10,7 @@ setInterval(() => {
         if (initID !== payload.time) {
             location.reload();
         }
+        schemaManager.setModelVersion(payload.modelVersion)
     })
 }, 1000);
 
