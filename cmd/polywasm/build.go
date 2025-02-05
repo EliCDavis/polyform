@@ -4,12 +4,14 @@ import (
 	// "bufio"
 
 	// "compress/gzip"
+	"bytes"
 	"embed"
 	_ "embed"
 	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
+	"text/template"
 
 	"github.com/urfave/cli/v2"
 )
@@ -64,6 +66,10 @@ func buildCommand() *cli.Command {
 				Usage:   "folder to write all contents to",
 				Value:   "html",
 			},
+			&cli.StringFlag{
+				Name:  "version",
+				Value: "debug",
+			},
 		},
 		Action: func(ctx *cli.Context) error {
 			outFolder := ctx.String("out")
@@ -82,7 +88,22 @@ func buildCommand() *cli.Command {
 				return err
 			}
 
-			err = os.WriteFile(filepath.Join(outFolder, "sw.js"), swJsContents, 0666)
+			type swPage struct {
+				Version string
+			}
+
+			buf := &bytes.Buffer{}
+			t := template.New("")
+			_, err = t.Parse(string(swJsContents))
+			if err != nil {
+				return err
+			}
+			err = t.Execute(buf, swPage{Version: ctx.String("version")})
+			if err != nil {
+				return err
+			}
+
+			err = os.WriteFile(filepath.Join(outFolder, "sw.js"), buf.Bytes(), 0666)
 			if err != nil {
 				return err
 			}
