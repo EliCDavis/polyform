@@ -5,11 +5,17 @@
   };
 
   outputs =
-    { nixpkgs, utils, ... }:
+    {
+      self,
+      nixpkgs,
+      utils,
+      ...
+    }:
     utils.lib.eachDefaultSystem (
       system:
       let
         pkgs = import nixpkgs { inherit system; };
+        rev = if builtins.hasAttr "shortRev" self then self.shortRev else self.dirtyShortRev;
 
         # Anytime dependencies update or change, we will need to update this.
         # This ensures a package is reproducible.
@@ -73,7 +79,7 @@
               cp -r ${polyform.goModules} ./vendor
               GOOS=js GOARCH=wasm go build -mod=vendor -o ./main.wasm ./cmd/polyform
 
-              ${polywasm}/bin/polywasm build --wasm ./main.wasm -o $DIST
+              ${polywasm}/bin/polywasm build --version ${rev} --wasm ./main.wasm -o $DIST
 
               cp -r $DIST/* $out
             '';
