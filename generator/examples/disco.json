@@ -1,0 +1,604 @@
+{
+	"buffers": [
+		{
+			"byteLength": 0,
+			"uri": "data:application/octet-stream;base64,"
+		}
+	],
+	"data": {
+		"description": "Immutable mesh processing program",
+		"metadata": {
+			"nodes": {
+				"Node-0": {
+					"position": {
+						"x": 677.8841303757923,
+						"y": 481.070699984879
+					}
+				},
+				"Node-1": {
+					"position": {
+						"x": -865.6487203325164,
+						"y": 88.36951250639504
+					}
+				},
+				"Node-10": {
+					"position": {
+						"x": -445.9593648804378,
+						"y": 320.80359879135307
+					}
+				},
+				"Node-11": {
+					"position": {
+						"x": -1121.5806608422997,
+						"y": 32.805342260763354
+					}
+				},
+				"Node-12": {
+					"position": {
+						"x": -880.0215812414846,
+						"y": 316.58610137764816
+					}
+				},
+				"Node-13": {
+					"position": {
+						"x": -1256.486969081928,
+						"y": 428.61590557871114
+					}
+				},
+				"Node-14": {
+					"position": {
+						"x": -694.1003689678361,
+						"y": 1699.6611368278777
+					}
+				},
+				"Node-15": {
+					"position": {
+						"x": -689.8328170415456,
+						"y": 1481.516621081329
+					}
+				},
+				"Node-16": {
+					"position": {
+						"x": -414.9462036365279,
+						"y": 1598.9785935044783
+					}
+				},
+				"Node-17": {
+					"position": {
+						"x": -1482.6966411470917,
+						"y": 990.4374561615903
+					}
+				},
+				"Node-18": {
+					"position": {
+						"x": -959.7460069538656,
+						"y": 1674.1242080733027
+					}
+				},
+				"Node-19": {
+					"position": {
+						"x": -1205.760686389719,
+						"y": 1710.883050968334
+					}
+				},
+				"Node-2": {
+					"position": {
+						"x": 55.517716514193935,
+						"y": 17.557879656102283
+					}
+				},
+				"Node-20": {
+					"position": {
+						"x": -145.38196648144552,
+						"y": 1034.1672664960306
+					}
+				},
+				"Node-21": {
+					"position": {
+						"x": 310.78057164805637,
+						"y": 1097.542839796933
+					}
+				},
+				"Node-22": {
+					"position": {
+						"x": 43.94081185374791,
+						"y": 1292.2143043225874
+					}
+				},
+				"Node-23": {
+					"position": {
+						"x": -181.81610944173565,
+						"y": 1279.5978207187304
+					}
+				},
+				"Node-24": {
+					"position": {
+						"x": -766.5544427037363,
+						"y": 985.8284853775855
+					}
+				},
+				"Node-25": {
+					"position": {
+						"x": -477.98985260285804,
+						"y": 1135.4492512739246
+					}
+				},
+				"Node-26": {
+					"position": {
+						"x": -767.4036619333324,
+						"y": 1138.9884618945616
+					}
+				},
+				"Node-27": {
+					"position": {
+						"x": -505.6244898028731,
+						"y": 927.7752228494973
+					}
+				},
+				"Node-28": {
+					"position": {
+						"x": -1240.1185211458549,
+						"y": 573.4315565481248
+					}
+				},
+				"Node-29": {
+					"position": {
+						"x": 230.12817409300223,
+						"y": -65.34321890248198
+					}
+				},
+				"Node-3": {
+					"position": {
+						"x": -348.3892308259713,
+						"y": -345.7887520712131
+					}
+				},
+				"Node-30": {
+					"position": {
+						"x": 382,
+						"y": -81
+					}
+				},
+				"Node-31": {
+					"position": {
+						"x": 259,
+						"y": -81
+					}
+				},
+				"Node-32": {
+					"position": {
+						"x": 285,
+						"y": 175.77499389648438
+					}
+				},
+				"Node-4": {
+					"position": {
+						"x": -666.409582151739,
+						"y": -147.5338081313436
+					}
+				},
+				"Node-5": {
+					"position": {
+						"x": -621.7827951850937,
+						"y": 131.5898566847306
+					}
+				},
+				"Node-6": {
+					"position": {
+						"x": -393.83870017440603,
+						"y": 78.06344517544636
+					}
+				},
+				"Node-7": {
+					"position": {
+						"x": -652.5953957662917,
+						"y": -4.280899552880456
+					}
+				},
+				"Node-8": {
+					"position": {
+						"x": -1129.4879744370987,
+						"y": 199.19735531576646
+					}
+				},
+				"Node-9": {
+					"position": {
+						"x": -918.1727805571614,
+						"y": 588.683581109705
+					}
+				}
+			},
+			"notes": {
+				"1": {
+					"position": {
+						"x": -1036.918299605814,
+						"y": 1527.1463694478866
+					},
+					"text": "# Top Base\n\nPart that connects the disco ball to what it hangs from",
+					"width": 300
+				},
+				"2": {
+					"position": {
+						"x": 24.343389777761907,
+						"y": 992.2362863954553
+					},
+					"text": "# String\n\nWhat the disco ball hangs from",
+					"width": 300
+				}
+			}
+		},
+		"name": "Polyform",
+		"nodes": {
+			"Node-0": {
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/generator/artifact.Artifact,github.com/EliCDavis/polyform/formats/gltf.ArtifactNodeData]",
+				"dependencies": [
+					{
+						"dependencyID": "Node-2",
+						"dependencyPort": "Out",
+						"name": "Models.0"
+					},
+					{
+						"dependencyID": "Node-10",
+						"dependencyPort": "Out",
+						"name": "Models.1"
+					},
+					{
+						"dependencyID": "Node-16",
+						"dependencyPort": "Out",
+						"name": "Models.2"
+					},
+					{
+						"dependencyID": "Node-21",
+						"dependencyPort": "Out",
+						"name": "Models.3"
+					}
+				]
+			},
+			"Node-1": {
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/modeling.Mesh,github.com/EliCDavis/polyform/modeling/primitives.UvSphereNodeData]",
+				"dependencies": [
+					{
+						"dependencyID": "Node-11",
+						"dependencyPort": "Out",
+						"name": "Columns"
+					},
+					{
+						"dependencyID": "Node-17",
+						"dependencyPort": "Out",
+						"name": "Radius"
+					},
+					{
+						"dependencyID": "Node-11",
+						"dependencyPort": "Out",
+						"name": "Rows"
+					},
+					{
+						"dependencyID": "Node-8",
+						"dependencyPort": "Out",
+						"name": "Weld"
+					}
+				]
+			},
+			"Node-10": {
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformModel,github.com/EliCDavis/polyform/formats/gltf.ModelNodeData]",
+				"dependencies": [
+					{
+						"dependencyID": "Node-12",
+						"dependencyPort": "Out",
+						"name": "Material"
+					},
+					{
+						"dependencyID": "Node-1",
+						"dependencyPort": "Out",
+						"name": "Mesh"
+					}
+				]
+			},
+			"Node-11": {
+				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[int]",
+				"data": {
+					"name": "",
+					"description": "",
+					"currentValue": 40,
+					"defaultValue": 0,
+					"cli": null
+				}
+			},
+			"Node-12": {
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformMaterial,github.com/EliCDavis/polyform/formats/gltf.MaterialNodeData]",
+				"dependencies": [
+					{
+						"dependencyID": "Node-13",
+						"dependencyPort": "Out",
+						"name": "Color"
+					},
+					{
+						"dependencyID": "Node-28",
+						"dependencyPort": "Out",
+						"name": "RoughnessFactor"
+					}
+				]
+			},
+			"Node-13": {
+				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[github.com/EliCDavis/polyform/drawing/coloring.WebColor]",
+				"data": {
+					"name": "Color",
+					"description": "",
+					"currentValue": "#000000",
+					"defaultValue": "#ffffff",
+					"cli": null
+				}
+			},
+			"Node-14": {
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/vector/vector3.Vector[float64],github.com/EliCDavis/polyform/math/vector.NewData[float64]]",
+				"dependencies": [
+					{
+						"dependencyID": "Node-18",
+						"dependencyPort": "Out",
+						"name": "Y"
+					}
+				]
+			},
+			"Node-15": {
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/modeling.Mesh,github.com/EliCDavis/polyform/modeling/primitives.HemisphereNodeData]"
+			},
+			"Node-16": {
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformModel,github.com/EliCDavis/polyform/formats/gltf.ModelNodeData]",
+				"dependencies": [
+					{
+						"dependencyID": "Node-12",
+						"dependencyPort": "Out",
+						"name": "Material"
+					},
+					{
+						"dependencyID": "Node-15",
+						"dependencyPort": "Out",
+						"name": "Mesh"
+					},
+					{
+						"dependencyID": "Node-14",
+						"dependencyPort": "Out",
+						"name": "Translation"
+					}
+				]
+			},
+			"Node-17": {
+				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
+				"data": {
+					"name": "Radius",
+					"description": "",
+					"currentValue": 1,
+					"defaultValue": 0,
+					"cli": null
+				}
+			},
+			"Node-18": {
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[float64,github.com/EliCDavis/polyform/math.DivideData[float64]]",
+				"dependencies": [
+					{
+						"dependencyID": "Node-17",
+						"dependencyPort": "Out",
+						"name": "Dividend"
+					},
+					{
+						"dependencyID": "Node-19",
+						"dependencyPort": "Out",
+						"name": "Divisor"
+					}
+				]
+			},
+			"Node-19": {
+				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
+				"data": {
+					"name": "",
+					"description": "",
+					"currentValue": 1.7,
+					"defaultValue": 0,
+					"cli": null
+				}
+			},
+			"Node-2": {
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformModel,github.com/EliCDavis/polyform/formats/gltf.ModelNodeData]",
+				"dependencies": [
+					{
+						"dependencyID": "Node-3",
+						"dependencyPort": "Out",
+						"name": "Material"
+					},
+					{
+						"dependencyID": "Node-6",
+						"dependencyPort": "Out",
+						"name": "Mesh"
+					}
+				]
+			},
+			"Node-20": {
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/modeling.Mesh,github.com/EliCDavis/polyform/modeling/primitives.CylinderNodeData]",
+				"dependencies": [
+					{
+						"dependencyID": "Node-24",
+						"dependencyPort": "Out",
+						"name": "Height"
+					},
+					{
+						"dependencyID": "Node-27",
+						"dependencyPort": "Out",
+						"name": "Radius"
+					}
+				]
+			},
+			"Node-21": {
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformModel,github.com/EliCDavis/polyform/formats/gltf.ModelNodeData]",
+				"dependencies": [
+					{
+						"dependencyID": "Node-12",
+						"dependencyPort": "Out",
+						"name": "Material"
+					},
+					{
+						"dependencyID": "Node-20",
+						"dependencyPort": "Out",
+						"name": "Mesh"
+					},
+					{
+						"dependencyID": "Node-22",
+						"dependencyPort": "Out",
+						"name": "Translation"
+					}
+				]
+			},
+			"Node-22": {
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/vector/vector3.Vector[float64],github.com/EliCDavis/polyform/math/vector.NewData[float64]]",
+				"dependencies": [
+					{
+						"dependencyID": "Node-23",
+						"dependencyPort": "Out",
+						"name": "Y"
+					}
+				]
+			},
+			"Node-23": {
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[float64,github.com/EliCDavis/polyform/math.SumData[float64]]",
+				"dependencies": [
+					{
+						"dependencyID": "Node-25",
+						"dependencyPort": "Out",
+						"name": "Values.0"
+					},
+					{
+						"dependencyID": "Node-17",
+						"dependencyPort": "Out",
+						"name": "Values.1"
+					}
+				]
+			},
+			"Node-24": {
+				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
+				"data": {
+					"name": "String Length",
+					"description": "",
+					"currentValue": 2,
+					"defaultValue": 0,
+					"cli": null
+				}
+			},
+			"Node-25": {
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[float64,github.com/EliCDavis/polyform/math.DivideData[float64]]",
+				"dependencies": [
+					{
+						"dependencyID": "Node-24",
+						"dependencyPort": "Out",
+						"name": "Dividend"
+					},
+					{
+						"dependencyID": "Node-26",
+						"dependencyPort": "Out",
+						"name": "Divisor"
+					}
+				]
+			},
+			"Node-26": {
+				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
+				"data": {
+					"name": "",
+					"description": "",
+					"currentValue": 2,
+					"defaultValue": 0,
+					"cli": null
+				}
+			},
+			"Node-27": {
+				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
+				"data": {
+					"name": "String Thickness",
+					"description": "",
+					"currentValue": 0.05,
+					"defaultValue": 0,
+					"cli": null
+				}
+			},
+			"Node-28": {
+				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
+				"data": {
+					"name": "",
+					"description": "",
+					"currentValue": 0,
+					"defaultValue": 0,
+					"cli": null
+				}
+			},
+			"Node-3": {
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.PolyformMaterial,github.com/EliCDavis/polyform/formats/gltf.MaterialNodeData]",
+				"dependencies": [
+					{
+						"dependencyID": "Node-4",
+						"dependencyPort": "Out",
+						"name": "RoughnessFactor"
+					}
+				]
+			},
+			"Node-4": {
+				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
+				"data": {
+					"name": "",
+					"description": "",
+					"currentValue": 0.25,
+					"defaultValue": 0,
+					"cli": null
+				}
+			},
+			"Node-5": {
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/modeling.Mesh,github.com/EliCDavis/polyform/modeling/meshops.FlatNormalsNodeData]",
+				"dependencies": [
+					{
+						"dependencyID": "Node-1",
+						"dependencyPort": "Out",
+						"name": "Mesh"
+					}
+				]
+			},
+			"Node-6": {
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/modeling.Mesh,github.com/EliCDavis/polyform/modeling/meshops.ScaleAttributeAlongNormalNodeData]",
+				"dependencies": [
+					{
+						"dependencyID": "Node-7",
+						"dependencyPort": "Out",
+						"name": "Amount"
+					},
+					{
+						"dependencyID": "Node-5",
+						"dependencyPort": "Out",
+						"name": "Mesh"
+					}
+				]
+			},
+			"Node-7": {
+				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
+				"data": {
+					"name": "",
+					"description": "",
+					"currentValue": 0.02,
+					"defaultValue": 0,
+					"cli": null
+				}
+			},
+			"Node-8": {
+				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[bool]",
+				"data": {
+					"name": "",
+					"description": "",
+					"currentValue": false,
+					"defaultValue": false,
+					"cli": null
+				}
+			}
+		},
+		"producers": {
+			"disco.glb": {
+				"nodeID": "Node-0",
+				"port": "Out"
+			}
+		},
+		"version": "0.21.0"
+	}
+}

@@ -56,11 +56,12 @@ func readJSON[T any](body io.Reader) (T, error) {
 }
 
 type pageData struct {
-	Title       string
-	Version     string
-	Description string
-	AntiAlias   bool
-	XrEnabled   bool
+	Title         string
+	Version       string
+	Description   string
+	AntiAlias     bool
+	XrEnabled     bool
+	ExampleGraphs []string
 }
 
 //go:embed html/*
@@ -100,12 +101,14 @@ func (as *AppServer) Handler() (*http.ServeMux, error) {
 	}
 
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+
 		pageToServe := pageData{
-			Title:       as.app.Name,
-			Version:     as.app.Version,
-			Description: as.app.Description,
-			AntiAlias:   as.webscene.AntiAlias,
-			XrEnabled:   as.webscene.XrEnabled,
+			Title:         as.app.Name,
+			Version:       as.app.Version,
+			Description:   as.app.Description,
+			AntiAlias:     as.webscene.AntiAlias,
+			XrEnabled:     as.webscene.XrEnabled,
+			ExampleGraphs: allExamples(),
 		}
 
 		// Required for sharedMemoryForWorkers to work
@@ -155,6 +158,7 @@ func (as *AppServer) Handler() (*http.ServeMux, error) {
 	mux.Handle("/parameter/value/", parameterValueEndpoint(as.app.graphInstance, graphSaver))
 	mux.Handle("/parameter/name/", parameterNameEndpoint(as.app.graphInstance, graphSaver))
 	mux.Handle("/parameter/description/", parameterDescriptionEndpoint(as.app.graphInstance, graphSaver))
+	mux.Handle("/load-example", exampleGraphEndpoint(as.app))
 	mux.Handle("/graph", graphEndpoint(as.app))
 	mux.Handle("/graph/metadata/", graphMetadataEndpoint(as.app.graphInstance, graphSaver))
 	mux.HandleFunc("/started", as.StartedEndpoint)

@@ -6,6 +6,23 @@ import (
 	"github.com/EliCDavis/polyform/generator/endpoint"
 )
 
+func exampleGraphEndpoint(app *App) endpoint.Handler {
+	return endpoint.Handler{
+		Methods: map[string]endpoint.Method{
+			http.MethodPost: endpoint.BodyMethod[string]{
+				Request: endpoint.TextRequestReader{},
+				Handler: func(request endpoint.Request[string]) error {
+					err := app.ApplySchema(loadExample(request.Body))
+					if err != nil {
+						return err
+					}
+					return nil
+				},
+			},
+		},
+	}
+}
+
 func graphEndpoint(app *App) endpoint.Handler {
 	return endpoint.Handler{
 		Methods: map[string]endpoint.Method{

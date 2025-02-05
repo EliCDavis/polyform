@@ -2,15 +2,14 @@ package main
 
 import (
 	// "bufio"
-	"bytes"
+
 	// "compress/gzip"
+	"embed"
 	_ "embed"
 	"io"
-	"log"
+	"io/fs"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"strings"
 
 	"github.com/urfave/cli/v2"
 )
@@ -20,6 +19,9 @@ var htmlContents []byte
 
 //go:embed sw.js
 var swJsContents []byte
+
+//go:embed icons/*
+var iconFs embed.FS
 
 func Copy(srcpath, dstpath string) (err error) {
 	r, err := os.Open(srcpath)
@@ -46,49 +48,6 @@ func Copy(srcpath, dstpath string) (err error) {
 	return err
 }
 
-func TinygoRoot() (string, error) {
-	cmd := exec.Command(
-		"tinygo",
-		"env",
-		"TINYGOROOT",
-	)
-	var outb bytes.Buffer
-	cmd.Stdout = &outb
-	err := cmd.Run()
-	return strings.TrimSpace(outb.String()), err
-}
-
-func RegularGo(out, programToBuild string, stripDebug bool) (string, string, error) {
-	args := []string{
-		"build",
-	}
-
-	if stripDebug {
-		// args = append(args, "-ldflags", "-s -w")
-	}
-
-	args = append(
-		args,
-		"-o", out,
-		programToBuild,
-	)
-
-	log.Print(args)
-	cmd := exec.Command("go", args...)
-	cmd.Env = []string{
-		"GOOS=js",
-		"GOARCH=wasm",
-	}
-	var outb bytes.Buffer
-	var outErr bytes.Buffer
-
-	cmd.Stdout = &outb
-	cmd.Stderr = &outErr
-	err := cmd.Run()
-
-	return strings.TrimSpace(outb.String()), strings.TrimSpace(outErr.String()), err
-}
-
 func buildCommand() *cli.Command {
 	return &cli.Command{
 		Name:        "build",
@@ -105,11 +64,6 @@ func buildCommand() *cli.Command {
 				Usage:   "folder to write all contents to",
 				Value:   "html",
 			},
-			&cli.BoolFlag{
-				Name:  "no-debug",
-				Usage: "whether or not to strip debug symbols (reduces file size)",
-				Value: true,
-			},
 		},
 		Action: func(ctx *cli.Context) error {
 			outFolder := ctx.String("out")
@@ -118,46 +72,7 @@ func buildCommand() *cli.Command {
 				return err
 			}
 
-			wasmFile, err := os.Open(ctx.String("wasm"))
-			if err != nil {
-				return err
-			}
-			defer wasmFile.Close()
-
-			// gzippedWasmFile, err := os.Create(filepath.Join(outFolder, "main.wasm.gz"))
-			// if err != nil {
-			// 	return err
-			// }
-			// defer gzippedWasmFile.Close()
-
-			// gzipWriter := gzip.NewWriter(gzippedWasmFile)
-			// chunkSize := 1024 // Adjust as needed
-			// reader := bufio.NewReader(wasmFile)
-
-			// for {
-			// 	buf := make([]byte, chunkSize)
-			// 	n, err := reader.Read(buf)
-			// 	if err != nil {
-			// 		if err.Error() == "EOF" {
-			// 			break // Reached end of file
-			// 		}
-			// 		return err
-			// 	}
-			// 	_, err = gzipWriter.Write(buf[:n])
-			// 	if err != nil {
-			// 		return err
-			// 	}
-			// }
-
-			// gzipWriter.Close()
-
-			outFile, err := os.Create(filepath.Join(outFolder, "main.wasm"))
-			if err != nil {
-				return err
-			}
-			defer outFile.Close()
-
-			_, err = io.Copy(outFile, wasmFile)
+			err = Copy(ctx.String("wasm"), filepath.Join(outFolder, "main.wasm"))
 			if err != nil {
 				return err
 			}
@@ -172,7 +87,22 @@ func buildCommand() *cli.Command {
 				return err
 			}
 
-			return err
+			return fs.WalkDir(iconFs, ".", func(path string, d fs.DirEntry, err error) error {
+				if err != nil {
+					return err
+				}
+
+				if d.IsDir() {
+					return nil
+				}
+
+				content, err := iconFs.ReadFile(path)
+				if err != nil {
+					return err
+				}
+
+				return os.WriteFile(filepath.Join(outFolder, filepath.Base(path)), content, 0666)
+			})
 		},
 	}
 }

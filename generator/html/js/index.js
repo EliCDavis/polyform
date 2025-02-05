@@ -461,6 +461,9 @@ schemaManager.subscribe(schemaRefreshManager.NewSchema.bind(schemaRefreshManager
 
 
 const fileControls = {
+    newGraph: () => {
+        document.getElementById("new-graph-popup").style.display = "flex"; 
+    },
     saveSwagger: () => {
         requestManager.getSwagger((swagger) => {
             const fileContent = JSON.stringify(swagger);
@@ -531,13 +534,16 @@ const fileControls = {
     }
 }
 
-const fileSettingsFolder = panel.addFolder("File");
-fileSettingsFolder.add(fileControls, "saveGraph").name("Save Graph")
-fileSettingsFolder.add(fileControls, "loadProfile").name("Load Graph")
-fileSettingsFolder.add(fileControls, "saveModel").name("Download Model")
-fileSettingsFolder.add(fileControls, "viewProgram").name("View Program")
-fileSettingsFolder.add(fileControls, "saveSwagger").name("Swagger 2.0")
-fileSettingsFolder.close();
+const fileSettingsFolder = panel.addFolder("Graph");
+fileSettingsFolder.add(fileControls, "newGraph").name("New")
+fileSettingsFolder.add(fileControls, "saveGraph").name("Save")
+fileSettingsFolder.add(fileControls, "loadProfile").name("Load")
+
+const exportSettingsFolder = panel.addFolder("Export");
+exportSettingsFolder.add(fileControls, "saveModel").name("Model")
+exportSettingsFolder.add(fileControls, "viewProgram").name("Mermaid")
+exportSettingsFolder.add(fileControls, "saveSwagger").name("Swagger 2.0")
+exportSettingsFolder.close();
 
 const viewportSettingsFolder = panel.addFolder("Rendering");
 viewportSettingsFolder.close();

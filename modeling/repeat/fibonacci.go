@@ -5,6 +5,7 @@ import (
 
 	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/polyform/math/trs"
+	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/vector/vector3"
 )
 
@@ -27,6 +28,25 @@ func FibonacciSpherePoints(samples int, offsetRadius float64) []vector3.Float64 
 	return points
 }
 
+func FibonacciSpiral(samples int, radius float64) []trs.TRS {
+
+	points := make([]trs.TRS, samples)
+	phi := math.Pi * (3.0 - math.Sqrt(5.0)) // golden angle in radians
+
+	for i := 0; i < samples; i++ {
+		theta := phi * float64(i) // golden angle increment
+
+		d := math.Sqrt(float64(i) / float64(samples-1))
+		x := math.Cos(theta) * radius * d
+		z := math.Sin(theta) * radius * d
+
+		p := vector3.New(x, 0, z)
+		points[i] = trs.New(p, quaternion.Identity(), vector3.One[float64]())
+	}
+
+	return points
+}
+
 func FibonacciSphere(samples int, radius float64) []trs.TRS {
 	points := FibonacciSpherePoints(samples, radius)
 	transforms := make([]trs.TRS, len(points))
@@ -39,4 +59,48 @@ func FibonacciSphere(samples int, radius float64) []trs.TRS {
 	}
 
 	return transforms
+}
+
+type FibonacciSphereNode = nodes.Struct[[]trs.TRS, FibonacciSphereNodeData]
+
+type FibonacciSphereNodeData struct {
+	Count  nodes.NodeOutput[int]
+	Radius nodes.NodeOutput[float64]
+}
+
+func (fpnd FibonacciSphereNodeData) Process() ([]trs.TRS, error) {
+	radius := 1.
+	count := 10
+
+	if fpnd.Count != nil {
+		count = fpnd.Count.Value()
+	}
+
+	if fpnd.Radius != nil {
+		radius = fpnd.Radius.Value()
+	}
+
+	return FibonacciSphere(count, radius), nil
+}
+
+type FibonacciSpiralNode = nodes.Struct[[]trs.TRS, FibonacciSpiralNodeData]
+
+type FibonacciSpiralNodeData struct {
+	Count  nodes.NodeOutput[int]
+	Radius nodes.NodeOutput[float64]
+}
+
+func (fpnd FibonacciSpiralNodeData) Process() ([]trs.TRS, error) {
+	radius := 1.
+	count := 10
+
+	if fpnd.Count != nil {
+		count = fpnd.Count.Value()
+	}
+
+	if fpnd.Radius != nil {
+		radius = fpnd.Radius.Value()
+	}
+
+	return FibonacciSpiral(count, radius), nil
 }

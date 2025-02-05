@@ -39,10 +39,6 @@ type LineNodeData struct {
 }
 
 func (r LineNodeData) Process() ([]trs.TRS, error) {
-	if r.Start == nil || r.End == nil {
-		return nil, nil
-	}
-
 	times := 0
 	if r.Times != nil {
 		times = r.Times.Value()
@@ -52,8 +48,15 @@ func (r LineNodeData) Process() ([]trs.TRS, error) {
 		return nil, nil
 	}
 
-	start := r.Start.Value()
-	end := r.End.Value()
+	start := vector3.Zero[float64]()
+	if r.Start != nil {
+		start = r.Start.Value()
+	}
+
+	end := vector3.Zero[float64]()
+	if r.End != nil {
+		end = r.End.Value()
+	}
 
 	if times == 1 {
 		LineExlusive(start, end, 1)

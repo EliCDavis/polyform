@@ -5,6 +5,7 @@ class SchemaManager {
         this.nodeManager = nodeManager;
         this.noteManager = noteManager;
 
+        this.shownPopupOnce = false;
         this.schema = null;
         this.subscribers = [];
     }
@@ -33,7 +34,14 @@ class SchemaManager {
     }
 
     refreshSchema() {
-        this.requestManager.getSchema((newSchema) => {
+        this.requestManager.getSchema(((newSchema) => {
+            console.log(newSchema)
+
+            if (Object.keys(newSchema.nodes).length === 0 && !this.shownPopupOnce) {
+                document.getElementById("new-graph-popup").style.display = "flex"; 
+                this.shownPopupOnce = true;
+            }
+
             this.schema = newSchema;
             this.subscribers.forEach(sub => {
                 sub(this.schema);
@@ -41,6 +49,6 @@ class SchemaManager {
 
             this.nodeManager.updateNodes(this.schema)
             this.noteManager.schemaUpdate(this.schema);
-        })
+        }).bind(this))
     }
 }
