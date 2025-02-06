@@ -334,6 +334,7 @@
         }
 
         function loadExample(graphToLoad) {
+            closePopup();
             fetch("./load-example", { method: "POST", body: graphToLoad });
         }
 

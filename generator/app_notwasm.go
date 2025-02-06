@@ -16,7 +16,7 @@ func isWasm() bool {
 }
 
 func (as *AppServer) Serve() error {
-	mux, err := as.Handler()
+	mux, err := as.Handler("/")
 	if err != nil {
 		return err
 	}

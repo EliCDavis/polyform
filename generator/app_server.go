@@ -85,7 +85,7 @@ type AppServer struct {
 	clientConfig *room.ClientConfig
 }
 
-func (as *AppServer) Handler() (*http.ServeMux, error) {
+func (as *AppServer) Handler(indexFile string) (*http.ServeMux, error) {
 	as.serverStarted = time.Now()
 
 	as.webscene = as.app.WebScene
@@ -100,7 +100,7 @@ func (as *AppServer) Handler() (*http.ServeMux, error) {
 		return nil, err
 	}
 
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc(indexFile, func(w http.ResponseWriter, r *http.Request) {
 
 		pageToServe := pageData{
 			Title:         as.app.Name,

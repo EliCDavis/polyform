@@ -240,7 +240,6 @@ export class NodeManager {
 
         this.app.ServerUpdatingNodeConnections = true;
 
-        let nodeAdded = false;
         for (let node of sortedNodes) {
             const nodeID = node[0];
             const nodeData = node[1];
@@ -265,15 +264,11 @@ export class NodeManager {
                 flowNode.nodeInstanceID = nodeID;
 
                 this.nodeIdToNode.set(nodeID, new PolyNodeController(flowNode, this, nodeID, nodeData, this.app, isProducer));
-                nodeAdded = true;
             }
         }
 
         this.updateNodeConnections(sortedNodes);
 
-        if (nodeAdded) {
-            // nodeFlowGraph.organize();
-        }
         this.app.ServerUpdatingNodeConnections = false;
     }
 

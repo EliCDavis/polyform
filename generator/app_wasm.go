@@ -40,7 +40,7 @@ func os_setup(a *App) {
 }
 
 func (as *AppServer) Serve() error {
-	mux, err := as.Handler()
+	mux, err := as.Handler("/app.html")
 	if err != nil {
 		return err
 	}

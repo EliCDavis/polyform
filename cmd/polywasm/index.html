@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
 	<meta charset="utf-8" />
 	<title>Polyform</title>
@@ -171,17 +172,26 @@
 		"retina_detect": true
 	});
 
+	function replacePage() {
+		fetch("./app.html", { method: "GET" })
+			.then((resp) => resp.text())
+			.then((resp) => {
+				document.open();
+				document.write(resp);
+				document.close();
+			});
+	}
+
 	navigator.serviceWorker
-		.register('sw.js', { scope: window.location.pathname + "app/" })
+		.register('sw.js', { scope: window.location.pathname + "./" })
 		.then(registration => {
 			document.getElementById("status-display").innerText = "Initializing"
 
 			const sw = registration.active ?? registration.installing ?? registration.waiting
-			const redirectLocation = window.location.href + "app/"
 
 			if (registration.active) {
 				document.getElementById("status-display").innerText = "Activated"
-				window.location.href = redirectLocation
+				replacePage();
 				return
 			}
 
@@ -190,7 +200,7 @@
 				if (event.target.state === 'activated') {
 					console.log('activated')
 					document.getElementById("status-display").innerText = "Activated"
-					window.location.href = redirectLocation
+					replacePage();
 				}
 			})
 		})
