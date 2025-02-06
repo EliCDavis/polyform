@@ -335,7 +335,9 @@
 
         function loadExample(graphToLoad) {
             closePopup();
-            fetch("./load-example", { method: "POST", body: graphToLoad });
+            fetch("./load-example", { method: "POST", body: graphToLoad }).then(() => {
+                location.reload();
+            });
         }
 
         // https://phuoc.ng/collection/html-dom/create-resizable-split-views/
