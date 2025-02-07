@@ -11,16 +11,28 @@ Developers and artists are welcome to join the  [Discord](https://discord.gg/rHA
 
 ## Quickstart
 
+### Pre-built binaries
 Download the latest [release](https://github.com/EliCDavis/polyform/releases) of polyform and one of the [example graphs](./examples/graphs/) and then run:
 
 ```bash
 polyform <downloaded_example>.json edit
 ```
 
+### Go
 Or if you have golang installed, simply clone the repo and run:
 
 ```bash
 go run ./cmd/polyform ./examples/graphs/ufo.json edit
+```
+
+### Nix
+Or if you have Nix installed, run with:
+
+```bash
+nix run .#polyform ./examples/graphs/ufo.json edit
+
+# List all available packages
+nix flake show
 ```
 
 ## Overview
@@ -36,7 +48,7 @@ go run ./cmd/polyform ./examples/graphs/ufo.json edit
   - [spz](/formats/spz/) - Niantic Scaniverse's [SPZ format](https://scaniverse.com/news/spz-gaussian-splat-open-source-file-format)
   - [potree](/formats/potree/) - Potree V2 file format
 - Modeling
-  - [meshops](/modeling/meshops/) - All currently implemented algorithms for transforming meshes. 
+  - [meshops](/modeling/meshops/) - All currently implemented algorithms for transforming meshes.
   - [marching](/modeling/marching/) - Multi-threaded Cube Marching algorithm and utilities.
   - [extrude](/modeling/extrude/) - Functionality for generating geometry from 2D shapes.
   - [repeat](/modeling/repeat/) - Functionality for copying geometry in common patterns.
@@ -45,7 +57,7 @@ go run ./cmd/polyform ./examples/graphs/ufo.json edit
 - Drawing
   - [coloring](/drawing/coloring/) - Color utilities for blending multiple colors together using weights.
   - [texturing](/drawing/texturing/) - Traditional image processing utilities (common convolution kernels).
-    - [normals](/drawing//texturing/normals/) - Utilities for generating and editing normal maps. 
+    - [normals](/drawing//texturing/normals/) - Utilities for generating and editing normal maps.
 - [Math](/math/README.md)
   - [colors](/math/colors/) - Making working with golang colors not suck as much.
   - [curves](/math/curves/) - Common curves used in animation like cubic bezier curves.
@@ -169,7 +181,7 @@ func main() {
   canvas := marching.NewMarchingCanvas(resolution)
   meshSDF := marching.Mesh(transformedMesh, .1, 10)
   canvas.AddFieldParallel(meshSDF)
-  
+
   obj.Save("chunky-bunny.obj", canvas.MarchParallel(.3))
 }
 ```
@@ -187,7 +199,7 @@ Progress towards V1...
 - [ ] Finalize Node error propogation flow
 - [ ] Cleanup Node interface
 - [ ] Finalize package organization for node equivalent functionality (ie vector3 => vecn3)
-- [ ] Proper WASM Deployment  
+- [x] Proper WASM Deployment
 
 Things I want to implement eventually...
 
