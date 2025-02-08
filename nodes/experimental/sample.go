@@ -1,9 +1,7 @@
 package experimental
 
 import (
-	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/polyform/nodes"
-	"github.com/EliCDavis/vector/vector3"
 )
 
 type SampleNode = nodes.Struct[[]float64, SampleNodeData]
@@ -15,21 +13,9 @@ type SampleNodeData struct {
 }
 
 func (snd SampleNodeData) Process() ([]float64, error) {
-	if snd.Samples == nil {
-		return nil, nil
-	}
-
-	start := 0.
-	end := 1.
-	samples := max(snd.Samples.Value(), 0)
-
-	if snd.Start != nil {
-		start = snd.Start.Value()
-	}
-
-	if snd.End != nil {
-		end = snd.End.Value()
-	}
+	start := nodes.TryGetOutputValue(snd.Start, 0.)
+	end := nodes.TryGetOutputValue(snd.End, 1.)
+	samples := max(nodes.TryGetOutputValue(snd.Samples, 0), 0)
 
 	out := make([]float64, samples)
 	inc := (end - start) / float64(samples-1)
@@ -63,115 +49,6 @@ func (snd ShiftNodeData) Process() ([]float64, error) {
 	out := make([]float64, len(in))
 	for i, v := range in {
 		out[i] = v + shift
-	}
-
-	return out, nil
-}
-
-type VectorArrayNode = nodes.Struct[[]vector3.Float64, VectoryArrayNodeData]
-
-type VectoryArrayNodeData struct {
-	X nodes.NodeOutput[[]float64]
-	Y nodes.NodeOutput[[]float64]
-	Z nodes.NodeOutput[[]float64]
-}
-
-func (snd VectoryArrayNodeData) Process() ([]vector3.Float64, error) {
-	var xArr []float64
-	var yArr []float64
-	var zArr []float64
-
-	if snd.X != nil {
-		xArr = snd.X.Value()
-	}
-
-	if snd.Y != nil {
-		yArr = snd.Y.Value()
-	}
-
-	if snd.Z != nil {
-		zArr = snd.Z.Value()
-	}
-
-	out := make([]vector3.Float64, max(len(xArr), len(yArr), len(zArr)))
-	for i := 0; i < len(out); i++ {
-		x := 0.
-		y := 0.
-		z := 0.
-
-		if i < len(xArr) {
-			x = xArr[i]
-		}
-
-		if i < len(yArr) {
-			y = yArr[i]
-		}
-
-		if i < len(zArr) {
-			z = zArr[i]
-		}
-
-		out[i] = vector3.New(x, y, z)
-	}
-
-	return out, nil
-}
-
-type QuaternionArrayFromThetaNode = nodes.Struct[[]quaternion.Quaternion, QuaternionArrayFromThetaNodeData]
-
-type QuaternionArrayFromThetaNodeData struct {
-	X nodes.NodeOutput[[]float64]
-	Y nodes.NodeOutput[[]float64]
-	Z nodes.NodeOutput[[]float64]
-	W nodes.NodeOutput[[]float64]
-}
-
-func (snd QuaternionArrayFromThetaNodeData) Process() ([]quaternion.Quaternion, error) {
-	var xArr []float64
-	var yArr []float64
-	var zArr []float64
-	var wArr []float64
-
-	if snd.X != nil {
-		xArr = snd.X.Value()
-	}
-
-	if snd.Y != nil {
-		yArr = snd.Y.Value()
-	}
-
-	if snd.Z != nil {
-		zArr = snd.Z.Value()
-	}
-
-	if snd.W != nil {
-		wArr = snd.W.Value()
-	}
-
-	out := make([]quaternion.Quaternion, max(len(xArr), len(yArr), len(zArr)))
-	for i := 0; i < len(out); i++ {
-		x := 0.
-		y := 0.
-		z := 0.
-		w := 0.
-
-		if i < len(xArr) {
-			x = xArr[i]
-		}
-
-		if i < len(yArr) {
-			y = yArr[i]
-		}
-
-		if i < len(zArr) {
-			z = zArr[i]
-		}
-
-		if i < len(wArr) {
-			w = wArr[i]
-		}
-
-		out[i] = quaternion.FromTheta(w, vector3.New(x, y, z))
 	}
 
 	return out, nil

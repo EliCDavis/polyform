@@ -2,8 +2,10 @@ package generator
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/EliCDavis/polyform/generator/endpoint"
+	"github.com/EliCDavis/polyform/generator/schema"
 )
 
 func exampleGraphEndpoint(app *App) endpoint.Handler {
@@ -16,6 +18,42 @@ func exampleGraphEndpoint(app *App) endpoint.Handler {
 					if err != nil {
 						return err
 					}
+					return nil
+				},
+			},
+		},
+	}
+}
+
+func newGraphEndpoint(app *App) endpoint.Handler {
+	type NewGraph struct {
+		Name        string `json:"name"`
+		Author      string `json:"author"`
+		Description string `json:"description"`
+		Version     string `json:"version"`
+	}
+
+	clean := func(in, fallback string) string {
+		cleaned := strings.TrimSpace(in)
+		if cleaned == "" {
+			return fallback
+		}
+		return cleaned
+	}
+
+	return endpoint.Handler{
+		Methods: map[string]endpoint.Method{
+			http.MethodPost: endpoint.BodyMethod[NewGraph]{
+				Request: endpoint.JsonRequestReader[NewGraph]{},
+				Handler: func(request endpoint.Request[NewGraph]) error {
+					app.Name = clean(request.Body.Name, "New Graph")
+					cleanedAuthor := clean(request.Body.Author, "")
+					if cleanedAuthor != "" {
+						app.Authors = []schema.Author{{Name: cleanedAuthor}}
+					}
+					app.Description = clean(request.Body.Description, "")
+					app.Version = clean(request.Body.Version, "v0.0.1")
+					app.graphInstance.Reset()
 					return nil
 				},
 			},

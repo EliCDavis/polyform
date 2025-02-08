@@ -21,8 +21,8 @@ type Instance struct {
 
 	movelVersion uint32
 	nodeIDs      map[nodes.Node]string
-	metadata     *sync.NestedSyncMap
 	producers    map[string]nodes.NodeOutput[artifact.Artifact]
+	metadata     *sync.NestedSyncMap
 	producerLock gsync.Mutex
 }
 
@@ -125,6 +125,12 @@ func (i *Instance) buildIDsForNode(node nodes.Node) {
 	}
 }
 
+func (i *Instance) Reset() {
+	i.nodeIDs = make(map[nodes.Node]string)
+	i.metadata = sync.NewNestedSyncMap()
+	i.producers = make(map[string]nodes.NodeOutput[artifact.Artifact])
+}
+
 func (i *Instance) ApplyAppSchema(jsonPayload []byte) error {
 	appSchema, err := jbtf.Unmarshal[schema.App](jsonPayload)
 	if err != nil {
@@ -136,8 +142,7 @@ func (i *Instance) ApplyAppSchema(jsonPayload []byte) error {
 		return fmt.Errorf("unable to build a jbtf decoder: %w", err)
 	}
 
-	i.nodeIDs = make(map[nodes.Node]string)
-	i.metadata = sync.NewNestedSyncMap()
+	i.Reset()
 	i.metadata.OverwriteData(appSchema.Metadata)
 
 	createdNodes := make(map[string]nodes.Node)
@@ -172,7 +177,6 @@ func (i *Instance) ApplyAppSchema(jsonPayload []byte) error {
 	}
 
 	// Set the Producers
-	i.producers = make(map[string]nodes.NodeOutput[artifact.Artifact])
 	for fileName, producerDetails := range appSchema.Producers {
 		producerNode := createdNodes[producerDetails.NodeID]
 		outPortVals := refutil.CallFuncValuesOfType(producerNode, producerDetails.Port)

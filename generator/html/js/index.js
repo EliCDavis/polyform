@@ -655,11 +655,11 @@ viewportManager.AddSetting(
 );
 
 
-function resize() {
+function resize(force) {
     const w = renderer.domElement.clientWidth;
     const h = renderer.domElement.clientHeight
 
-    if (renderer.domElement.width !== w || renderer.domElement.height !== h) {
+    if (renderer.domElement.width !== w || renderer.domElement.height !== h || force) {
         renderer.setSize(w, h, false);
         composer.setSize(w, h);
         camera.aspect = w / h;
@@ -688,7 +688,7 @@ if (websocketManager.canConnect()) {
 }
 
 updateLoop.addToUpdate(() => {
-    resize();
+    resize(false);
 
     composer.render(scene, camera);
 

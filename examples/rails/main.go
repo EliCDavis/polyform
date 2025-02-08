@@ -12,7 +12,7 @@ import (
 	"github.com/EliCDavis/polyform/math"
 	"github.com/EliCDavis/polyform/math/curves"
 	"github.com/EliCDavis/polyform/math/trs"
-	"github.com/EliCDavis/polyform/math/vector"
+	vec3Node "github.com/EliCDavis/polyform/math/vector3"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/extrude"
 	"github.com/EliCDavis/polyform/modeling/primitives"
@@ -98,8 +98,8 @@ func main() {
 		},
 	}
 
-	shift := vector.New{
-		Data: vector.NewData[float64]{
+	shift := vec3Node.New{
+		Data: vec3Node.NewNodeData[float64]{
 			X: widthShift,
 			Y: height,
 		},
@@ -122,8 +122,8 @@ func main() {
 
 	railSpline := &curves.CatmullRomSplineNode{
 		Data: curves.CatmullRomSplineNodeData{
-			Points: &vector.ShiftArrayNode{
-				Data: vector.ShiftArrayNodeData[float64]{
+			Points: &vec3Node.ShiftArrayNode{
+				Data: vec3Node.ShiftArrayNodeData[float64]{
 					Array:  path,
 					Amount: &shift,
 				},
@@ -187,11 +187,11 @@ func main() {
 				Data: extrude.CircleAlongSplineNodeData{
 					Spline: &curves.CatmullRomSplineNode{
 						Data: curves.CatmullRomSplineNodeData{
-							Points: &vector.ShiftArrayNode{
-								Data: vector.ShiftArrayNodeData[float64]{
+							Points: &vec3Node.ShiftArrayNode{
+								Data: vec3Node.ShiftArrayNodeData[float64]{
 									Array: path,
-									Amount: &vector.New{
-										Data: vector.NewData[float64]{
+									Amount: &vec3Node.New{
+										Data: vec3Node.NewNodeData[float64]{
 											X: inverseWidthShift,
 											Y: height,
 										},

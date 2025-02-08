@@ -12,19 +12,20 @@ import (
 type SeamlessPerlinNode = nodes.Struct[image.Image, SeamlessPerlinNodeData]
 
 type SeamlessPerlinNodeData struct {
-	Positive nodes.NodeOutput[coloring.WebColor]
-	Negative nodes.NodeOutput[coloring.WebColor]
+	Dimensions nodes.NodeOutput[int]
+	Positive   nodes.NodeOutput[coloring.WebColor]
+	Negative   nodes.NodeOutput[coloring.WebColor]
 }
 
 func (an SeamlessPerlinNodeData) Process() (image.Image, error) {
-	dim := 1024
+	dim := nodes.TryGetOutputValue(an.Dimensions, 256)
 	img := image.NewRGBA(image.Rect(0, 0, dim, dim))
 	// normals.Fill(img)
 
 	n := noise.NewTilingNoise(dim, 1/64., 5)
 
-	nR, nG, nB, _ := an.Negative.Value().RGBA()
-	pR, pG, pB, _ := an.Positive.Value().RGBA()
+	nR, nG, nB, _ := nodes.TryGetOutputValue(an.Negative, coloring.Black()).RGBA()
+	pR, pG, pB, _ := nodes.TryGetOutputValue(an.Positive, coloring.White()).RGBA()
 
 	rRange := float64(pR>>8) - float64(nR>>8)
 	gRange := float64(pG>>8) - float64(nG>>8)

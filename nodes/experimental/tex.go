@@ -34,11 +34,7 @@ func (gnd BrushedMetalNodeNodeData) Process() (image.Image, error) {
 
 	ctx := gg.NewContextForImage(img)
 
-	lineWidth := 1.
-	if gnd.BrushSize != nil {
-		lineWidth = gnd.BrushSize.Value()
-	}
-	ctx.SetLineWidth(lineWidth)
+	ctx.SetLineWidth(nodes.TryGetOutputValue(gnd.BrushSize, 1.))
 
 	bruchColor := coloring.Grey(150)
 	if gnd.BrushColor != nil {
@@ -46,11 +42,7 @@ func (gnd BrushedMetalNodeNodeData) Process() (image.Image, error) {
 	}
 	ctx.SetColor(bruchColor)
 
-	horizontalLines := 10
-	if gnd.Count != nil {
-		horizontalLines = gnd.Count.Value()
-	}
-
+	horizontalLines := nodes.TryGetOutputValue(gnd.Count, 10)
 	horizontalSpacing := float64(dimensions) / float64(horizontalLines)
 	for i := 0; i < horizontalLines; i++ {
 		y := (horizontalSpacing * float64(i)) + (horizontalSpacing / 2)

@@ -1,4 +1,4 @@
-package vector
+package vector3
 
 import (
 	"github.com/EliCDavis/polyform/nodes"
@@ -6,13 +6,13 @@ import (
 	"github.com/EliCDavis/vector/vector3"
 )
 
-type SumNode = nodes.Struct[vector3.Float64, SumData[float64]]
+type Sum = nodes.Struct[vector3.Float64, SumNodeData[float64]]
 
-type SumData[T vector.Number] struct {
+type SumNodeData[T vector.Number] struct {
 	Values []nodes.NodeOutput[vector3.Vector[T]]
 }
 
-func (cn SumData[T]) Process() (vector3.Vector[T], error) {
+func (cn SumNodeData[T]) Process() (vector3.Vector[T], error) {
 	var total vector3.Vector[T]
 	for _, v := range cn.Values {
 		total = total.Add(v.Value())

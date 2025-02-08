@@ -131,7 +131,6 @@ func (as *AppServer) Handler(indexFile string) (*http.ServeMux, error) {
 
 	fs := http.FileServer(http.FS(fSys))
 	mux.Handle("/js/", fs)
-	// http.Handle("/css/", fs)
 
 	var graphSaver *GraphSaver
 	if as.autosave {
@@ -158,6 +157,7 @@ func (as *AppServer) Handler(indexFile string) (*http.ServeMux, error) {
 	mux.Handle("/parameter/value/", parameterValueEndpoint(as.app.graphInstance, graphSaver))
 	mux.Handle("/parameter/name/", parameterNameEndpoint(as.app.graphInstance, graphSaver))
 	mux.Handle("/parameter/description/", parameterDescriptionEndpoint(as.app.graphInstance, graphSaver))
+	mux.Handle("/new-graph", newGraphEndpoint(as.app))
 	mux.Handle("/load-example", exampleGraphEndpoint(as.app))
 	mux.Handle("/graph", graphEndpoint(as.app))
 	mux.Handle("/graph/metadata/", graphMetadataEndpoint(as.app.graphInstance, graphSaver))

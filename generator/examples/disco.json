@@ -330,7 +330,7 @@
 				}
 			},
 			"Node-14": {
-				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/vector/vector3.Vector[float64],github.com/EliCDavis/polyform/math/vector.NewData[float64]]",
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/vector/vector3.Vector[float64],github.com/EliCDavis/polyform/math/vector3.NewNodeData[float64]]",
 				"dependencies": [
 					{
 						"dependencyID": "Node-18",
@@ -448,7 +448,7 @@
 				]
 			},
 			"Node-22": {
-				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/vector/vector3.Vector[float64],github.com/EliCDavis/polyform/math/vector.NewData[float64]]",
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/vector/vector3.Vector[float64],github.com/EliCDavis/polyform/math/vector3.NewNodeData[float64]]",
 				"dependencies": [
 					{
 						"dependencyID": "Node-23",

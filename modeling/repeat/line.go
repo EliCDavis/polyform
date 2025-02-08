@@ -33,38 +33,28 @@ func LineExlusive(start, end vector3.Float64, inbetween int) []trs.TRS {
 type LineNode = nodes.Struct[[]trs.TRS, LineNodeData]
 
 type LineNodeData struct {
-	Start nodes.NodeOutput[vector3.Float64]
-	End   nodes.NodeOutput[vector3.Float64]
-	Times nodes.NodeOutput[int]
+	Start     nodes.NodeOutput[vector3.Float64]
+	End       nodes.NodeOutput[vector3.Float64]
+	Rotations nodes.NodeOutput[float64]
+	Samples   nodes.NodeOutput[int]
 }
 
 func (r LineNodeData) Process() ([]trs.TRS, error) {
-	times := 0
-	if r.Times != nil {
-		times = r.Times.Value()
-	}
-
-	if times <= 0 {
+	samples := nodes.TryGetOutputValue(r.Samples, 2)
+	if samples <= 0 {
 		return nil, nil
 	}
 
-	start := vector3.Zero[float64]()
-	if r.Start != nil {
-		start = r.Start.Value()
-	}
+	start := nodes.TryGetOutputValue(r.Start, vector3.Zero[float64]())
+	end := nodes.TryGetOutputValue(r.End, vector3.Zero[float64]())
 
-	end := vector3.Zero[float64]()
-	if r.End != nil {
-		end = r.End.Value()
-	}
-
-	if times == 1 {
+	if samples == 1 {
 		LineExlusive(start, end, 1)
 	}
 
-	if times == 2 {
+	if samples == 2 {
 		Line(start, end, 0)
 	}
 
-	return Line(start, end, times-2), nil
+	return Line(start, end, samples-2), nil
 }

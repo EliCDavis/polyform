@@ -12,11 +12,11 @@ import (
 	"github.com/EliCDavis/polyform/generator/parameter"
 	"github.com/EliCDavis/polyform/generator/schema"
 	"github.com/EliCDavis/polyform/math/geometry"
-	"github.com/EliCDavis/polyform/math/vector"
+	"github.com/EliCDavis/polyform/math/quaternion"
+	vec3Node "github.com/EliCDavis/polyform/math/vector3"
 	"github.com/EliCDavis/polyform/modeling/meshops"
 	"github.com/EliCDavis/polyform/modeling/meshops/gausops"
 	"github.com/EliCDavis/polyform/nodes"
-	"github.com/EliCDavis/polyform/nodes/quatn"
 	"github.com/EliCDavis/vector/vector3"
 )
 
@@ -50,15 +50,15 @@ func main() {
 	// 	},
 	// }
 
-	rotateAmount := &quatn.FromTheta{
-		Data: quatn.FromThetaData{
+	rotateAmount := &quaternion.FromThetaNode{
+		Data: quaternion.FromThetaNodeData{
 			Theta: &parameter.Float64{
 				Name:         "Rotation",
 				Description:  "How much to rotate the pointcloud by",
 				DefaultValue: math.Pi,
 			},
-			Direction: &vector.New{
-				Data: vector.NewData[float64]{
+			Direction: &vec3Node.New{
+				Data: vec3Node.NewNodeData[float64]{
 					X: &parameter.Float64{
 						Name: "Rotation Direction X",
 					},
@@ -111,8 +111,8 @@ func main() {
 		},
 	}
 
-	x := &vector.New{
-		Data: vector.NewData[float64]{
+	x := &vec3Node.New{
+		Data: vec3Node.NewNodeData[float64]{
 			X: scale,
 			Y: scale,
 			Z: scale,

@@ -15,15 +15,22 @@ import (
 	_ "github.com/EliCDavis/polyform/formats/splat"
 	_ "github.com/EliCDavis/polyform/formats/spz"
 	_ "github.com/EliCDavis/polyform/formats/stl"
+
 	_ "github.com/EliCDavis/polyform/generator/artifact/basics"
 	_ "github.com/EliCDavis/polyform/generator/parameter"
+
 	_ "github.com/EliCDavis/polyform/math"
-	_ "github.com/EliCDavis/polyform/math/vector"
+	_ "github.com/EliCDavis/polyform/math/quaternion"
+	_ "github.com/EliCDavis/polyform/math/trig"
+	_ "github.com/EliCDavis/polyform/math/trs"
+	_ "github.com/EliCDavis/polyform/math/vector3"
+
 	_ "github.com/EliCDavis/polyform/modeling/extrude"
 	_ "github.com/EliCDavis/polyform/modeling/meshops"
 	_ "github.com/EliCDavis/polyform/modeling/meshops/gausops"
 	_ "github.com/EliCDavis/polyform/modeling/primitives"
 	_ "github.com/EliCDavis/polyform/modeling/repeat"
+
 	_ "github.com/EliCDavis/polyform/nodes/experimental"
 )
 

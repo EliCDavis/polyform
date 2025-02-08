@@ -259,8 +259,8 @@
 
     <script>
         const RenderingConfiguration = {
-            AntiAlias: {{ .AntiAlias }},
-            XrEnabled: {{ .XrEnabled }}
+            AntiAlias: "{{ .AntiAlias }}" === "true",
+            XrEnabled: "{{ .XrEnabled }}" === "true"
         }
     </script>
 
@@ -301,6 +301,9 @@
                     <div>Graph Name</div>
                     <input type="text" id="graph-name" name="name">
 
+                    <div>Graph Description</div>
+                    <input type="text" id="graph-description" name="description">
+
                     <div>Author</div>
                     <input type="text" id="graph-author" name="author">
 
@@ -323,7 +326,8 @@
             </div>
 
             <div style="margin-top: 20px;">
-                <button onclick="closePopup()" style="padding: 8px; border-radius: 8px;">Start</button>
+                <button onclick="newGraph()" style="padding: 8px; border-radius: 8px;">New</button>
+                <button onclick="closePopup()" style="padding: 8px; border-radius: 8px;">Close</button>
             </div>
         </div>
     </div>
@@ -335,7 +339,25 @@
 
         function loadExample(graphToLoad) {
             closePopup();
-            fetch("./load-example", { method: "POST", body: graphToLoad }).then(() => {
+            fetch("./load-example", { method: "POST", body: graphToLoad })
+                .then((resp) => {
+                    console.log("loaded")
+                    location.reload();
+                });
+        }
+
+        function newGraph(graphToLoad) {
+            closePopup();
+            fetch("./new-graph", {
+                method: "POST",
+                body: JSON.stringify({
+                    "name": document.getElementById('graph-name').value,
+                    "author": document.getElementById('graph-author').value,
+                    "description": document.getElementById('graph-description').value,
+                    "version": document.getElementById('graph-version').value,
+                })
+            }).then((resp) => {
+                console.log("loaded")
                 location.reload();
             });
         }

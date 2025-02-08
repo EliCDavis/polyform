@@ -1,4 +1,4 @@
-package vector
+package trig
 
 import (
 	"github.com/EliCDavis/polyform/generator"
@@ -8,9 +8,8 @@ import (
 func init() {
 	factory := &refutil.TypeFactory{}
 
-	refutil.RegisterType[SumNode](factory)
-	refutil.RegisterType[New](factory)
-	refutil.RegisterType[ShiftArrayNode](factory)
+	refutil.RegisterType[SinArray](factory)
+	refutil.RegisterType[CosArray](factory)
 
 	generator.RegisterTypes(factory)
 }

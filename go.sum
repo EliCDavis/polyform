@@ -35,6 +35,8 @@ github.com/nlepage/go-js-promise v1.0.0 h1:K7OmJ3+0BgWJ2LfXchg2sI6RDr7AW/KWR8182
 github.com/nlepage/go-js-promise v1.0.0/go.mod h1:bdOP0wObXu34euibyK39K1hoBCtlgTKXGc56AGflaRo=
 github.com/nlepage/go-wasm-http-server/v2 v2.1.0 h1:KAkpUxR6LzTaBPj0DikhTUJwlxdGGI8WHa0pX8P8yvI=
 github.com/nlepage/go-wasm-http-server/v2 v2.1.0/go.mod h1:r8j7cEOeUqNp+c+C52sNuWaFTvvT/cNqIwBuEtA36HA=
+github.com/nlepage/go-wasm-http-server/v2 v2.2.1 h1:4tzhSb3HKQ3Ykt2TPfqEnmcPfw8n1E8agv4OzAyckr8=
+github.com/nlepage/go-wasm-http-server/v2 v2.2.1/go.mod h1:r8j7cEOeUqNp+c+C52sNuWaFTvvT/cNqIwBuEtA36HA=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/rivo/uniseg v0.4.7 h1:WUdvkW8uEhrYfLC4ZzdpI2ztxP1I582+49Oc5Mq64VQ=

@@ -933,7 +933,7 @@
 				}
 			},
 			"Node-28": {
-				"type": "github.com/EliCDavis/polyform/nodes.Struct[[]float64,github.com/EliCDavis/polyform/nodes/experimental.CosNodeData]",
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[[]float64,github.com/EliCDavis/polyform/math/trig.CosArrayNodeData]",
 				"dependencies": [
 					{
 						"dependencyID": "Node-26",
@@ -943,7 +943,7 @@
 					{
 						"dependencyID": "Node-27",
 						"dependencyPort": "Out",
-						"name": "Scale"
+						"name": "Amplitude"
 					}
 				]
 			},
@@ -1023,7 +1023,7 @@
 				}
 			},
 			"Node-34": {
-				"type": "github.com/EliCDavis/polyform/nodes.Struct[[]float64,github.com/EliCDavis/polyform/nodes/experimental.CosNodeData]",
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[[]float64,github.com/EliCDavis/polyform/math/trig.CosArrayNodeData]",
 				"dependencies": [
 					{
 						"dependencyID": "Node-32",
@@ -1033,7 +1033,7 @@
 					{
 						"dependencyID": "Node-33",
 						"dependencyPort": "Out",
-						"name": "Scale"
+						"name": "Amplitude"
 					}
 				]
 			},
@@ -1073,7 +1073,7 @@
 				}
 			},
 			"Node-38": {
-				"type": "github.com/EliCDavis/polyform/nodes.Struct[[]float64,github.com/EliCDavis/polyform/nodes/experimental.SinNodeData]",
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[[]float64,github.com/EliCDavis/polyform/math/trig.SinArrayNodeData]",
 				"dependencies": [
 					{
 						"dependencyID": "Node-36",
@@ -1083,12 +1083,12 @@
 					{
 						"dependencyID": "Node-37",
 						"dependencyPort": "Out",
-						"name": "Scale"
+						"name": "Amplitude"
 					}
 				]
 			},
 			"Node-39": {
-				"type": "github.com/EliCDavis/polyform/nodes.Struct[[]float64,github.com/EliCDavis/polyform/nodes/experimental.SinNodeData]",
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[[]float64,github.com/EliCDavis/polyform/math/trig.SinArrayNodeData]",
 				"dependencies": [
 					{
 						"dependencyID": "Node-32",
@@ -1098,7 +1098,7 @@
 					{
 						"dependencyID": "Node-33",
 						"dependencyPort": "Out",
-						"name": "Scale"
+						"name": "Amplitude"
 					}
 				]
 			},
@@ -1195,7 +1195,7 @@
 				}
 			},
 			"Node-40": {
-				"type": "github.com/EliCDavis/polyform/nodes.Struct[[]github.com/EliCDavis/vector/vector3.Vector[float64],github.com/EliCDavis/polyform/nodes/experimental.VectoryArrayNodeData]",
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[[]github.com/EliCDavis/vector/vector3.Vector[float64],github.com/EliCDavis/polyform/math/vector3.NewArrayNodeData]",
 				"dependencies": [
 					{
 						"dependencyID": "Node-34",
@@ -1300,7 +1300,7 @@
 				]
 			},
 			"Node-47": {
-				"type": "github.com/EliCDavis/polyform/nodes.Struct[[]github.com/EliCDavis/vector/vector3.Vector[float64],github.com/EliCDavis/polyform/nodes/experimental.VectoryArrayNodeData]",
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[[]github.com/EliCDavis/vector/vector3.Vector[float64],github.com/EliCDavis/polyform/math/vector3.NewArrayNodeData]",
 				"dependencies": [
 					{
 						"dependencyID": "Node-46",
@@ -1360,7 +1360,7 @@
 				]
 			},
 			"Node-51": {
-				"type": "github.com/EliCDavis/polyform/nodes.Struct[[]github.com/EliCDavis/vector/vector3.Vector[float64],github.com/EliCDavis/polyform/nodes/experimental.VectoryArrayNodeData]",
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[[]github.com/EliCDavis/vector/vector3.Vector[float64],github.com/EliCDavis/polyform/math/vector3.NewArrayNodeData]",
 				"dependencies": [
 					{
 						"dependencyID": "Node-50",
@@ -1380,7 +1380,7 @@
 				]
 			},
 			"Node-52": {
-				"type": "github.com/EliCDavis/polyform/nodes.Struct[[]github.com/EliCDavis/polyform/math/trs.TRS,github.com/EliCDavis/polyform/nodes/experimental.TRSNodeData]",
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[[]github.com/EliCDavis/polyform/math/trs.TRS,github.com/EliCDavis/polyform/math/trs.ArrayNodeData]",
 				"dependencies": [
 					{
 						"dependencyID": "Node-47",

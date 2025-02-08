@@ -14,7 +14,7 @@ type Image struct {
 }
 
 func (im Image) Mime() string {
-	return "iamge/png"
+	return "image/png"
 }
 
 func (ia Image) Write(w io.Writer) error {
