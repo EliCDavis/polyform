@@ -379,6 +379,7 @@ class SchemaRefreshManager {
             // rotation: [1, 0, 0, 0],
             // scale: [-1, -1, 1, 0],
             // streamView: false
+            // showLoadingUI: false,
             // 'scale': [0.25, 0.25, 0.25],
         }).then((() => {
 
