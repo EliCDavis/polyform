@@ -367,7 +367,7 @@ class SchemaRefreshManager {
             camera: camera,
             gpuAcceleratedSort: true,
             // 'sceneRevealMode': GaussianSplats3D.SceneRevealMode.Instant,
-            sharedMemoryForWebWorkers: true
+            // sharedMemoryForWebWorkers: true
         }
 
         guassianSplatViewer = new GaussianSplats3D.Viewer(splatViewerOptions);

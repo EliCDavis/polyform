@@ -50,11 +50,11 @@ func (cn ChimneyNodeData) Process() (Segment, error) {
 
 	allRows := repeat.Mesh(
 		primitives.Cylinder{Sides: 20, Height: 0.3, Radius: shootWidth + .3}.ToMesh(),
-		repeat.Line(
-			vector3.New(0, -halfTotalHeight+funnelHeight+taperHeight, 0),
-			vector3.New(0, (shootHeight*(float64(rows)/float64(rows+1)))-halfTotalHeight+funnelHeight+taperHeight, 0),
-			rows-2,
-		),
+		repeat.Line{
+			Start:   vector3.New(0, -halfTotalHeight+funnelHeight+taperHeight, 0),
+			End:     vector3.New(0, (shootHeight*(float64(rows)/float64(rows+1)))-halfTotalHeight+funnelHeight+taperHeight, 0),
+			Samples: rows - 2,
+		}.TRS(),
 	)
 
 	widths := []float64{

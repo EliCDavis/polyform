@@ -14,5 +14,6 @@ func init() {
 	refutil.RegisterType[FibonacciSphereNode](factory)
 	refutil.RegisterType[FibonacciSpiralNode](factory)
 	refutil.RegisterType[TRSNode](factory)
+	refutil.RegisterType[TransformationNode](factory)
 	generator.RegisterTypes(factory)
 }

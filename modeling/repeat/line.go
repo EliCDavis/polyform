@@ -6,25 +6,48 @@ import (
 	"github.com/EliCDavis/vector/vector3"
 )
 
-func Line(start, end vector3.Float64, inbetween int) []trs.TRS {
-	return append(
-		LineExlusive(start, end, inbetween),
-		trs.Position(start),
-		trs.Position(end),
-	)
+type Line struct {
+	// Start of the line
+	Start vector3.Float64
+
+	// End of the line
+	End vector3.Float64
+
+	// How many TRS matrices to produce
+	Samples int
+
+	// If true, the start and end points are not included in the resulting
+	// array of TRS values
+	Exclusive bool
 }
 
-// Like line, but we don't include transforms on the start and end points. Only
-// the inbetween points
-func LineExlusive(start, end vector3.Float64, inbetween int) []trs.TRS {
+func (l Line) TRS() []trs.TRS {
+	if l.Samples == 0 {
+		return make([]trs.TRS, 0)
+	}
 
-	dir := end.Sub(start)
-	inc := dir.DivByConstant(float64(inbetween + 1))
+	if l.Samples == 1 {
+		return []trs.TRS{trs.Position(vector3.Midpoint(l.Start, l.End))}
+	}
 
-	values := make([]trs.TRS, inbetween)
+	values := make([]trs.TRS, 0, l.Samples)
+	if !l.Exclusive {
+		values = append(values, trs.Position(l.Start))
+	}
 
-	for i := 0; i < inbetween; i++ {
-		values[i] = trs.Position(start.Add(inc.Scale(float64(i + 1))))
+	inbetweenSamples := l.Samples
+	if !l.Exclusive {
+		inbetweenSamples -= 2
+	}
+
+	dir := l.End.Sub(l.Start)
+	inc := dir.DivByConstant(float64(inbetweenSamples + 1))
+	for i := 0; i < inbetweenSamples; i++ {
+		values = append(values, trs.Position(l.Start.Add(inc.Scale(float64(i+1)))))
+	}
+
+	if !l.Exclusive {
+		values = append(values, trs.Position(l.End))
 	}
 
 	return values
@@ -35,26 +58,16 @@ type LineNode = nodes.Struct[[]trs.TRS, LineNodeData]
 type LineNodeData struct {
 	Start     nodes.NodeOutput[vector3.Float64]
 	End       nodes.NodeOutput[vector3.Float64]
-	Rotations nodes.NodeOutput[float64]
 	Samples   nodes.NodeOutput[int]
+	Exclusive nodes.NodeOutput[bool]
 }
 
 func (r LineNodeData) Process() ([]trs.TRS, error) {
-	samples := nodes.TryGetOutputValue(r.Samples, 2)
-	if samples <= 0 {
-		return nil, nil
+	line := Line{
+		Start:     nodes.TryGetOutputValue(r.Start, vector3.Zero[float64]()),
+		End:       nodes.TryGetOutputValue(r.End, vector3.Zero[float64]()),
+		Samples:   max(nodes.TryGetOutputValue(r.Samples, 0), 0),
+		Exclusive: nodes.TryGetOutputValue(r.Exclusive, false),
 	}
-
-	start := nodes.TryGetOutputValue(r.Start, vector3.Zero[float64]())
-	end := nodes.TryGetOutputValue(r.End, vector3.Zero[float64]())
-
-	if samples == 1 {
-		LineExlusive(start, end, 1)
-	}
-
-	if samples == 2 {
-		Line(start, end, 0)
-	}
-
-	return Line(start, end, samples-2), nil
+	return line.TRS(), nil
 }
