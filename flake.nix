@@ -19,7 +19,7 @@
 
         # Anytime dependencies update or change, we will need to update this.
         # This ensures a package is reproducible.
-        vendorHash = "sha256-4VvpNv331VeCxy6pn+LHpwVh/SwulwlQbGUfEchKcD8=";
+        vendorHash = "sha256-fHmVz1JTwKb6p6bZhP3Qt7LFeMIYi5uAOiDe1GWtoVw=";
 
         polyform =
           with pkgs;

@@ -130,19 +130,6 @@ builds:
       - amd64
       - arm64
 
-  - id: disco
-    main: ./examples/disco
-    binary: disco
-    env:
-      - CGO_ENABLED=0
-    goos:
-      - linux
-      - windows
-      - darwin
-    goarch:
-      - amd64
-      - arm64
-
   - id: edit-gaussian-splats
     main: ./examples/edit-gaussian-splats
     binary: edit-gaussian-splats
