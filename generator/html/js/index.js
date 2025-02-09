@@ -355,6 +355,7 @@ class SchemaRefreshManager {
 
         renderer.setPixelRatio(1);
 
+        const wasm = true;
         // https://github.com/mkkellogg/GaussianSplats3D/blob/main/src/Viewer.js
         const splatViewerOptions = {
             selfDrivenMode: false,
@@ -365,9 +366,10 @@ class SchemaRefreshManager {
             renderer: renderer,
             threeScene: scene,
             camera: camera,
-            gpuAcceleratedSort: true,
             // 'sceneRevealMode': GaussianSplats3D.SceneRevealMode.Instant,
-            // sharedMemoryForWebWorkers: true
+
+            gpuAcceleratedSort: !wasm,
+            sharedMemoryForWorkers: !wasm
         }
 
         guassianSplatViewer = new GaussianSplats3D.Viewer(splatViewerOptions);
