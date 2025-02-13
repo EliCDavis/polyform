@@ -18,14 +18,33 @@ jobs:
       - uses: DeterminateSystems/nix-installer-action@main
       - uses: DeterminateSystems/flake-checker-action@main
 
-  build:
+  release:
     runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v4
       - uses: DeterminateSystems/nix-installer-action@main
       - uses: DeterminateSystems/flakehub-cache-action@main
 
-      - name: Build Pages
+      - name: Restore Nix-cached Release Artifacts
+        run: nix build .#release -o ./artifacts
+
+      - name: Publish GitHub Release
+        run: |
+          gh release create $GITHUB_REF_NAME --generate-notes ./artifacts/*
+
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: DeterminateSystems/flakehub-cache-action@main
+
+      - name: Restore Nix-cached Pages Artifacts
         run: nix build .#pages -o ./dist
 
       - name: Setup Pages
@@ -36,25 +55,6 @@ jobs:
         with:
           path: "./dist"
 
-  release:
-    runs-on: ubuntu-latest
-    env:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: DeterminateSystems/nix-installer-action@main
-      - uses: DeterminateSystems/flakehub-cache-action@main
-
-      - name: Release all platforms
-        run: nix run .#release
-
-  deploy:
-    runs-on: ubuntu-latest
-    needs: build
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
