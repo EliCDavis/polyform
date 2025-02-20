@@ -85,7 +85,7 @@ const renderer = new THREE.WebGLRenderer({
     antialias: RenderingConfiguration.AntiAlias
 });
 renderer.setPixelRatio(window.devicePixelRatio);
-renderer.setSize(threeCanvas.clientWidth, threeCanvas.clientHeight, false);
+// renderer.setSize(threeCanvas.clientWidth, threeCanvas.clientHeight, false);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap; // default THREE.PCFShadowMap
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -113,7 +113,7 @@ composer.addPass(outputPass);
 // const progressiveSurfacemap = new ProgressiveLightMap(renderer, lightMapRes);
 
 const labelRenderer = new CSS2DRenderer();
-labelRenderer.setSize(threeCanvas.clientWidth, threeCanvas.clientHeight, false);
+// labelRenderer.setSize(threeCanvas.clientWidth, threeCanvas.clientHeight, false);
 labelRenderer.domElement.style.position = 'absolute';
 labelRenderer.domElement.style.top = '0px';
 labelRenderer.domElement.style.pointerEvents = 'none';

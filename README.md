@@ -7,9 +7,11 @@
 
 Polyform is for loading, generating, editing, and exporting 3D geometry and it's associated data.
 
-Developers and artists are welcome to join the  [Discord](https://discord.gg/rHAdm6TFX9).
+Developers and artists are welcome to join the [Discord](https://discord.gg/rHAdm6TFX9) to share feedback, get help, or discuss feature requests.
 
 ## Quickstart
+
+If you just want to play around without setting polyform up locally, you can check it out [here](https://elicdavis.github.io/polyform/)
 
 ### Pre-built binaries
 Download the latest [release](https://github.com/EliCDavis/polyform/releases) of polyform and one of the [example graphs](./examples/graphs/) and then run:
@@ -190,7 +192,6 @@ Results in:
 
 ![Chunky Bunny](/examples/inflate/chunky-bunny.png)
 
-
 ## Todo List
 
 Progress towards V1...
@@ -198,7 +199,7 @@ Progress towards V1...
 - [ ] Finalize Material Definition (or remove and defer to file format specifications)
 - [ ] Finalize Node error propogation flow
 - [ ] Cleanup Node interface
-- [ ] Finalize package organization for node equivalent functionality (ie vector3 => vecn3)
+- [x] Finalize package organization for node equivalent functionality (ie vector3 => vecn3)
 - [x] Proper WASM Deployment
 
 Things I want to implement eventually...
