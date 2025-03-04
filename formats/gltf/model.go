@@ -28,7 +28,15 @@ type PolyformModel struct {
 
 	// Utilizes the EXT_mesh_gpu_instancing extension to duplicate the model
 	// without increasing the mesh data footprint on the GPU
+	// deprecated
 	GpuInstances []trs.TRS
+
+	// Utilizes the EXT_mesh_gpu_instancing extension to duplicate the model
+	// without increasing the mesh data footprint on the GPU.
+	// If this flag is set - the TRS attributes are expected to be provided for the model.
+	// All model instances that share same mesh and material will be rendered in a single draw call
+	// using GPU instancing extension.
+	UseGpuInstancing bool
 
 	Skeleton   *animation.Skeleton
 	Animations []animation.Sequence
