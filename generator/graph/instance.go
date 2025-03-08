@@ -63,6 +63,12 @@ func (i *Instance) NodeInstanceSchema(node nodes.Node) schema.NodeInstance {
 		Metadata:      metadata,
 	}
 
+	for outputPortName, outputPort := range node.Outputs() {
+		nodeInstance.Output[outputPortName] = schema.NodeInstanceOutputPort{
+			Version: outputPort.Version(),
+		}
+	}
+
 	for inputPortName, inputPort := range node.Inputs() {
 
 		if single, ok := inputPort.(nodes.SingleValueInputPort); ok {
@@ -212,12 +218,18 @@ func (i *Instance) ApplyAppSchema(jsonPayload []byte) error {
 	// Set the Producers
 	for fileName, producerDetails := range appSchema.Producers {
 		producerNode := createdNodes[producerDetails.NodeID]
-		outPortVals := refutil.CallStructMethod(producerNode, producerDetails.Port)
-		ref := outPortVals[0].(nodes.Output[artifact.Artifact])
-		if ref == nil {
-			panic(fmt.Errorf("REF IS NIL FOR FILE %s (node id: %s) and port %s", fileName, producerDetails.NodeID, producerDetails.Port))
+		outputs := producerNode.Outputs()
+		output, ok := outputs[producerDetails.Port]
+		if !ok {
+			panic(fmt.Errorf("can't assign producer: node %q contains no port %q", producerDetails.NodeID, producerDetails.Port))
 		}
-		i.producers[fileName] = ref
+
+		casted, ok := output.(nodes.Output[artifact.Artifact])
+		if !ok {
+			panic(fmt.Errorf("can't assign producer: node %q port %q does not produce artifacts", producerDetails.NodeID, producerDetails.Port))
+		}
+
+		i.producers[fileName] = casted
 	}
 
 	// Set Parameters
@@ -721,15 +733,15 @@ func BuildNodeTypeSchema(node nodes.Node) schema.NodeType {
 	}
 
 	inputs := node.Inputs()
-	for name, o := range inputs {
+	for name, input := range inputs {
 
 		nodeType := "any"
-		if typed, ok := o.(nodes.Typed); ok {
+		if typed, ok := input.(nodes.Typed); ok {
 			nodeType = typed.Type()
 		}
 
 		array := false
-		if _, ok := o.(nodes.ArrayValueInputPort); ok {
+		if _, ok := input.(nodes.ArrayValueInputPort); ok {
 			array = true
 		}
 

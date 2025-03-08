@@ -123,7 +123,7 @@ func TestSwaggerFromGraph_MultipleParametersSingleProducer(t *testing.T) {
 	crop := &meshops.CropAttribute3DNode{
 		Data: meshops.CropAttribute3DNodeData{
 			AABB: nodes.GetNodeOutputPort[geometry.AABB](aabb, "Value"),
-			Mesh: nodes.GetNodeOutputPort[modeling.Mesh](mesh, "Value"),
+			Mesh: nodes.GetNodeOutputPort[modeling.Mesh](mesh, "Out"),
 		},
 	}
 

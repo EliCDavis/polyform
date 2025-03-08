@@ -12,6 +12,7 @@ import (
 	"github.com/EliCDavis/polyform/generator/schema"
 	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/nodes"
+	"github.com/EliCDavis/polyform/refutil"
 	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
 )
@@ -38,6 +39,10 @@ func (sno parameterNodeOutput[T]) Name() string {
 
 func (sno parameterNodeOutput[T]) Version() int {
 	return sno.Val.version
+}
+
+func (sno parameterNodeOutput[T]) Type() string {
+	return refutil.GetTypeWithPackage(new(T))
 }
 
 // ============================================================================

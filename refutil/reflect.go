@@ -2,7 +2,6 @@ package refutil
 
 import (
 	"fmt"
-	"log"
 	"path"
 	"reflect"
 	"strings"
@@ -149,7 +148,7 @@ func FuncValuesOfType[T any](in any) map[string]T {
 		if !ok {
 			panic("what happened")
 		}
-		log.Printf("cast: %v\b", cast)
+		// log.Printf("cast: %v\b", cast)
 
 		out[method.Name] = cast
 	}
@@ -161,7 +160,7 @@ func CallStructMethod(in any, methodName string, args ...any) []any {
 	method := reflect.ValueOf(in).MethodByName(methodName)
 	bitch := reflect.Value{}
 	if method == bitch {
-		panic(fmt.Errorf("no method %s found on %v", methodName, in))
+		panic(fmt.Errorf("no method %s found on %V", methodName, in))
 	}
 
 	argVals := make([]reflect.Value, len(args))
