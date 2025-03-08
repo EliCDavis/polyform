@@ -11,19 +11,19 @@ import (
 	"github.com/EliCDavis/vector/vector2"
 )
 
-type PipeNormalsNode = nodes.Struct[image.Image, PipeNormalsNodeData]
+type PipeNormalsNode = nodes.Struct[PipeNormalsNodeData]
 
 type PipeNormalsNodeData struct {
-	LineCount nodes.NodeOutput[int]
-	LineWidth nodes.NodeOutput[float64]
+	LineCount nodes.Output[int]
+	LineWidth nodes.Output[float64]
 
-	BoltCount  nodes.NodeOutput[int]
-	BoltRadius nodes.NodeOutput[float64]
+	BoltCount  nodes.Output[int]
+	BoltRadius nodes.Output[float64]
 
-	BlurIterations nodes.NodeOutput[int]
+	BlurIterations nodes.Output[int]
 }
 
-func (pnn PipeNormalsNodeData) Process() (image.Image, error) {
+func (pnn PipeNormalsNodeData) Out() nodes.StructOutput[image.Image] {
 	dim := 256
 	img := image.NewRGBA(image.Rect(0, 0, dim, dim))
 	// normals.Fill(img)

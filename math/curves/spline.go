@@ -15,22 +15,22 @@ type Spline interface {
 	Dir(distance float64) vector3.Float64
 }
 
-type LengthNode = nodes.Struct[float64, LengthNodeData]
+type LengthNode = nodes.Struct[LengthNodeData]
 
 type LengthNodeData struct {
-	Spline nodes.NodeOutput[Spline]
+	Spline nodes.Output[Spline]
 }
 
-func (r LengthNodeData) Process() (float64, error) {
+func (r LengthNodeData) Out() nodes.StructOutput[float64] {
 	if r.Spline == nil {
-		return 0, nil
+		return nodes.NewStructOutput(0.)
 	}
 
 	spline := r.Spline.Value()
 
 	if spline == nil {
-		return 0, nil
+		return nodes.NewStructOutput(0.)
 	}
 
-	return spline.Length(), nil
+	return nodes.NewStructOutput(spline.Length())
 }

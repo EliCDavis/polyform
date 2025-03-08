@@ -23,14 +23,14 @@ import (
 	"github.com/EliCDavis/vector/vector3"
 )
 
-type NormalImage = nodes.Struct[artifact.Artifact, NormalImageData]
+type NormalImage = nodes.Struct[NormalImageData]
 
 type NormalImageData struct {
-	NumberOfLines nodes.NodeOutput[int]
-	NumberOfWarts nodes.NodeOutput[int]
+	NumberOfLines nodes.Output[int]
+	NumberOfWarts nodes.Output[int]
 }
 
-func (ni NormalImageData) Process() (artifact.Artifact, error) {
+func (ni NormalImageData) Out() nodes.StructOutput[artifact.Artifact] {
 	dim := 1024
 	img := image.NewRGBA(image.Rect(0, 0, dim, dim))
 	// normals.Fill(img)
@@ -112,16 +112,16 @@ func (ni NormalImageData) Process() (artifact.Artifact, error) {
 	return basics.Image{Image: texturing.BoxBlurNTimes(img, 10)}, nil
 }
 
-type PumpkinField = nodes.Struct[marching.Field, PumpkinFieldData]
+type PumpkinField = nodes.Struct[PumpkinFieldData]
 
 type PumpkinFieldData struct {
-	MaxWidth, TopDip, DistanceFromCenter, WedgeLineRadius nodes.NodeOutput[float64]
-	Sides                                                 nodes.NodeOutput[int]
-	ImageField                                            nodes.NodeOutput[[][]float64]
-	UseImageField                                         nodes.NodeOutput[bool]
+	MaxWidth, TopDip, DistanceFromCenter, WedgeLineRadius nodes.Output[float64]
+	Sides                                                 nodes.Output[int]
+	ImageField                                            nodes.Output[[][]float64]
+	UseImageField                                         nodes.Output[bool]
 }
 
-func (pf PumpkinFieldData) Process() (marching.Field, error) {
+func (pf PumpkinFieldData) Out() nodes.StructOutput[marching.Field] {
 	distanceFromCenter := pf.DistanceFromCenter.Value()
 	maxWidth := pf.MaxWidth.Value()
 	topDip := pf.TopDip.Value()
@@ -214,13 +214,13 @@ func (pf PumpkinFieldData) Process() (marching.Field, error) {
 	return pumpkinField, nil
 }
 
-type SphericalUVMapping = nodes.Struct[modeling.Mesh, SphericalUVMappingData]
+type SphericalUVMapping = nodes.Struct[SphericalUVMappingData]
 
 type SphericalUVMappingData struct {
-	Mesh nodes.NodeOutput[modeling.Mesh]
+	Mesh nodes.Output[modeling.Mesh]
 }
 
-func (sm SphericalUVMappingData) Process() (modeling.Mesh, error) {
+func (sm SphericalUVMappingData) Out() nodes.StructOutput[modeling.Mesh] {
 	mesh := sm.Mesh.Value()
 	pumpkinVerts := mesh.Float3Attribute(modeling.PositionAttribute)
 	newUVs := make([]vector2.Float64, pumpkinVerts.Len())
@@ -240,15 +240,15 @@ func (sm SphericalUVMappingData) Process() (modeling.Mesh, error) {
 	return mesh.SetFloat2Attribute(modeling.TexCoordAttribute, newUVs), nil
 }
 
-type PumpkinGLBArtifact = nodes.Struct[artifact.Artifact, PumpkinGLBArtifactData]
+type PumpkinGLBArtifact = nodes.Struct[PumpkinGLBArtifactData]
 
 type PumpkinGLBArtifactData struct {
-	PumpkinBody nodes.NodeOutput[modeling.Mesh]
-	PumpkinStem nodes.NodeOutput[gltf.PolyformModel]
-	LightColor  nodes.NodeOutput[coloring.WebColor]
+	PumpkinBody nodes.Output[modeling.Mesh]
+	PumpkinStem nodes.Output[gltf.PolyformModel]
+	LightColor  nodes.Output[coloring.WebColor]
 }
 
-func (pga PumpkinGLBArtifactData) Process() (artifact.Artifact, error) {
+func (pga PumpkinGLBArtifactData) Out() nodes.StructOutput[artifact.Artifact] {
 	pumpkin := pga.PumpkinBody.Value()
 	return &gltf.Artifact{
 		Scene: gltf.PolyformScene{
@@ -296,13 +296,13 @@ func (pga PumpkinGLBArtifactData) Process() (artifact.Artifact, error) {
 	}, nil
 }
 
-type MetalRoughness = nodes.Struct[artifact.Artifact, MetalRoughnessData]
+type MetalRoughness = nodes.Struct[MetalRoughnessData]
 
 type MetalRoughnessData struct {
-	Roughness nodes.NodeOutput[float64]
+	Roughness nodes.Output[float64]
 }
 
-func (mr MetalRoughnessData) Process() (artifact.Artifact, error) {
+func (mr MetalRoughnessData) Out() nodes.StructOutput[artifact.Artifact] {
 	dim := 1024
 	img := image.NewRGBA(image.Rect(0, 0, dim, dim))
 	// normals.Fill(img)

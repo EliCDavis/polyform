@@ -3,7 +3,7 @@ package graph
 import (
 	"flag"
 	"fmt"
-	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/EliCDavis/jbtf"
@@ -21,7 +21,7 @@ type Instance struct {
 
 	movelVersion uint32
 	nodeIDs      map[nodes.Node]string
-	producers    map[string]nodes.NodeOutput[artifact.Artifact]
+	producers    map[string]nodes.Output[artifact.Artifact]
 	metadata     *sync.NestedSyncMap
 	producerLock gsync.Mutex
 }
@@ -32,7 +32,7 @@ func New(typeFactory *refutil.TypeFactory) *Instance {
 
 		nodeIDs:      make(map[nodes.Node]string),
 		metadata:     sync.NewNestedSyncMap(),
-		producers:    make(map[string]nodes.NodeOutput[artifact.Artifact]),
+		producers:    make(map[string]nodes.Output[artifact.Artifact]),
 		movelVersion: 0,
 	}
 }
@@ -56,19 +56,39 @@ func (i *Instance) NodeInstanceSchema(node nodes.Node) schema.NodeInstance {
 	}
 
 	nodeInstance := schema.NodeInstance{
-		Name:         "Unamed",
-		Type:         refutil.GetTypeWithPackage(node),
-		Dependencies: make([]schema.NodeDependency, 0),
-		Version:      node.Version(),
-		Metadata:     metadata,
+		Name:          "Unamed",
+		Type:          refutil.GetTypeWithPackage(node),
+		AssignedInput: make(map[string]schema.PortReference),
+		Output:        make(map[string]schema.NodeInstanceOutputPort),
+		Metadata:      metadata,
 	}
 
-	for _, subDependency := range node.Dependencies() {
-		nodeInstance.Dependencies = append(nodeInstance.Dependencies, schema.NodeDependency{
-			DependencyID:   i.nodeIDs[subDependency.Dependency()],
-			DependencyPort: subDependency.DependencyPort(),
-			Name:           subDependency.Name(),
-		})
+	for inputPortName, inputPort := range node.Inputs() {
+
+		if single, ok := inputPort.(nodes.SingleValueInputPort); ok {
+			val := single.Value()
+			if val == nil {
+				continue
+			}
+
+			nodeInstance.AssignedInput[inputPortName] = schema.PortReference{
+				NodeId:   i.nodeIDs[val.Node()],
+				PortName: val.Name(),
+			}
+		}
+
+		if array, ok := inputPort.(nodes.ArrayValueInputPort); ok {
+			for valIndex, val := range array.Value() {
+				if val == nil {
+					continue
+				}
+
+				nodeInstance.AssignedInput[fmt.Sprintf("%s.%d", inputPortName, valIndex)] = schema.PortReference{
+					NodeId:   i.nodeIDs[val.Node()],
+					PortName: val.Name(),
+				}
+			}
+		}
 	}
 
 	if param, ok := node.(Parameter); ok {
@@ -99,8 +119,9 @@ func (i *Instance) buildIDsForNode(node nodes.Node) {
 
 	i.addType(node)
 
-	for _, subDependency := range node.Dependencies() {
-		i.buildIDsForNode(subDependency.Dependency())
+	references := flattenNodeInputReferences(node)
+	for _, ref := range references {
+		i.buildIDsForNode(ref)
 	}
 
 	// TODO: UGLY UGLY UGLY UGLY
@@ -128,7 +149,7 @@ func (i *Instance) buildIDsForNode(node nodes.Node) {
 func (i *Instance) Reset() {
 	i.nodeIDs = make(map[nodes.Node]string)
 	i.metadata = sync.NewNestedSyncMap()
-	i.producers = make(map[string]nodes.NodeOutput[artifact.Artifact])
+	i.producers = make(map[string]nodes.Output[artifact.Artifact])
 }
 
 func (i *Instance) ApplyAppSchema(jsonPayload []byte) error {
@@ -164,23 +185,35 @@ func (i *Instance) ApplyAppSchema(jsonPayload []byte) error {
 	// Connect the nodes we just created
 	for nodeID, instanceDetails := range appSchema.Nodes {
 		node := createdNodes[nodeID]
-		for _, dependency := range instanceDetails.Dependencies {
+		inputs := node.Inputs()
+		for inputName, dependency := range instanceDetails.AssignedInput {
+			input, ok := inputs[inputName]
+			if !ok {
+				panic(fmt.Errorf("Node %s has no input %s", nodeID, inputName))
+			}
 
-			outNode := createdNodes[dependency.DependencyID]
-			outPortVals := refutil.CallFuncValuesOfType(outNode, dependency.DependencyPort)
-			ref := outPortVals[0].(nodes.NodeOutputReference)
+			outNode := createdNodes[dependency.NodeId]
+			outNodeOutputs := outNode.Outputs()
+			output, ok := outNodeOutputs[dependency.PortName]
+			if !ok {
+				panic(fmt.Errorf("Node %s has no output %s", dependency.NodeId, dependency.PortName))
+			}
 
-			node.SetInput(dependency.Name, nodes.Output{
-				NodeOutput: ref,
-			})
+			if single, ok := input.(nodes.SingleValueInputPort); ok {
+				single.Set(output)
+			} else if array, ok := input.(nodes.SingleValueInputPort); ok {
+				array.Set(output)
+			} else {
+				panic(fmt.Errorf("not sure how to assign node %q's input %q", nodeID, inputName))
+			}
 		}
 	}
 
 	// Set the Producers
 	for fileName, producerDetails := range appSchema.Producers {
 		producerNode := createdNodes[producerDetails.NodeID]
-		outPortVals := refutil.CallFuncValuesOfType(producerNode, producerDetails.Port)
-		ref := outPortVals[0].(nodes.NodeOutput[artifact.Artifact])
+		outPortVals := refutil.CallStructMethod(producerNode, producerDetails.Port)
+		ref := outPortVals[0].(nodes.Output[artifact.Artifact])
 		if ref == nil {
 			panic(fmt.Errorf("REF IS NIL FOR FILE %s (node id: %s) and port %s", fileName, producerDetails.NodeID, producerDetails.Port))
 		}
@@ -241,7 +274,7 @@ func (i *Instance) Schema() schema.GraphInstance {
 
 		appSchema.Producers[key] = schema.Producer{
 			NodeID: id,
-			Port:   producer.Port(),
+			Port:   producer.Name(),
 		}
 	}
 
@@ -293,7 +326,7 @@ func (i *Instance) EncodeToAppSchema(appSchema *schema.App, encoder *jbtf.Encode
 
 		appSchema.Producers[key] = schema.Producer{
 			NodeID: id,
-			Port:   producer.Port(),
+			Port:   producer.Name(),
 		}
 	}
 	appSchema.Nodes = nodeInstances
@@ -305,21 +338,45 @@ func (i *Instance) EncodeToAppSchema(appSchema *schema.App, encoder *jbtf.Encode
 func (i *Instance) buildNodeGraphInstanceSchema(node nodes.Node, encoder *jbtf.Encoder) schema.AppNodeInstance {
 
 	nodeInstance := schema.AppNodeInstance{
-		Type:         refutil.GetTypeWithPackage(node),
-		Dependencies: make([]schema.NodeDependency, 0),
+		Type:          refutil.GetTypeWithPackage(node),
+		AssignedInput: make(map[string]schema.PortReference),
 	}
 
-	for _, subDependency := range node.Dependencies() {
-		nodeInstance.Dependencies = append(nodeInstance.Dependencies, schema.NodeDependency{
-			DependencyID:   i.nodeIDs[subDependency.Dependency()],
-			DependencyPort: subDependency.DependencyPort(),
-			Name:           subDependency.Name(),
-		})
+	for inputName, input := range node.Inputs() {
+
+		switch v := input.(type) {
+		case nodes.SingleValueInputPort:
+			val := v.Value()
+			if val == nil {
+				continue
+			}
+
+			nodeInstance.AssignedInput[inputName] = schema.PortReference{
+				NodeId:   i.nodeIDs[val.Node()],
+				PortName: val.Name(),
+			}
+
+		case nodes.ArrayValueInputPort:
+			for index, val := range v.Value() {
+				if val == nil {
+					continue
+				}
+
+				nodeInstance.AssignedInput[fmt.Sprintf("%s.%d", inputName, index)] = schema.PortReference{
+					NodeId:   i.nodeIDs[val.Node()],
+					PortName: val.Name(),
+				}
+			}
+
+		default:
+			panic(fmt.Errorf("unable to recurse %v input %q", node, inputName))
+		}
+
 	}
 
-	sort.Slice(nodeInstance.Dependencies, func(i, j int) bool {
-		return strings.ToLower(nodeInstance.Dependencies[i].Name) < strings.ToLower(nodeInstance.Dependencies[j].Name)
-	})
+	// sort.Slice(nodeInstance.AssignedInput, func(i, j int) bool {
+	// 	return strings.ToLower(nodeInstance.AssignedInput[i].Name) < strings.ToLower(nodeInstance.AssignedInput[j].Name)
+	// })
 
 	if param, ok := node.(CustomGraphSerialization); ok {
 		data, err := param.ToJSON(encoder)
@@ -448,45 +505,88 @@ func (i *Instance) DeleteMetadata(key string) {
 // CONNECTIONS ================================================================
 
 func (i *Instance) DeleteNodeInputConnection(nodeId, portName string) {
-	i.Node(nodeId).SetInput(
-		portName,
-		nodes.Output{
-			NodeOutput: nil,
-		},
-	)
+	node := i.Node(nodeId)
+
+	cleanPortName := portName
+	portIndex := -1
+	if strings.Contains(portName, ".") {
+		split := strings.Split(portName, ".")
+		var err error
+		portIndex, err = strconv.Atoi(split[1])
+		if err != nil {
+			panic(fmt.Errorf("unable to parse array index from %s: %w", portName, err))
+		}
+		cleanPortName = split[0]
+	}
+
+	inputs := node.Inputs()
+	input, ok := inputs[cleanPortName]
+	if !ok {
+		panic(fmt.Errorf("node %s contains no input port %s", nodeId, cleanPortName))
+	}
+
+	if portIndex == -1 {
+		input.Clear()
+	} else {
+
+		// We're dealing with the removal of a specific element in an array
+		array, ok := input.(nodes.ArrayValueInputPort)
+
+		if !ok {
+			panic(fmt.Errorf("Treating node %q port %q like array, when it isn't", nodeId, portName))
+		}
+
+		array.Remove(array.Value()[portIndex])
+
+	}
+
 	i.incModelVersion()
 }
 
 func (i *Instance) ConnectNodes(nodeOutId, outPortName, nodeInId, inPortName string) {
 	inNode := i.Node(nodeInId)
-	outNode := i.Node(nodeOutId)
-	outPortVals := refutil.CallFuncValuesOfType(outNode, outPortName)
+	inputs := inNode.Inputs()
+	input, ok := inputs[inPortName]
+	if !ok {
+		panic(fmt.Errorf("node %q contains no in-port %q", nodeInId, inPortName))
+	}
 
-	ref := outPortVals[0].(nodes.NodeOutputReference)
-	inNode.SetInput(
-		inPortName,
-		nodes.Output{
-			NodeOutput: ref,
-		},
-	)
+	outNode := i.Node(nodeOutId)
+	outputs := outNode.Outputs()
+	output, ok := outputs[outPortName]
+	if !ok {
+		panic(fmt.Errorf("node %q contains no in-port %q", nodeOutId, outPortName))
+	}
+
+	if single, ok := input.(nodes.SingleValueInputPort); ok {
+		single.Set(output)
+	} else if array, ok := input.(nodes.ArrayValueInputPort); ok {
+		array.Add(output)
+	} else {
+		panic(fmt.Errorf("can not determine type of node %q's input %q", nodeInId, inPortName))
+	}
+
 	i.incModelVersion()
 }
 
 // PRODUCERS ==================================================================
 
-func (i *Instance) SetNodeAsProducer(nodeId, producerName string) {
+func (i *Instance) SetNodeAsProducer(nodeId, nodePort, producerName string) {
 	producerNode := i.Node(nodeId)
 
 	if producerNode == nil {
 		panic(fmt.Errorf("no node exists with id %q", nodeId))
 	}
 
-	// TODO: We need to allow users to specify which output port
-	// that is the actuall artifact. can't rely on "Out"
-	outPortVals := refutil.CallFuncValuesOfType(producerNode, "Out")
-	ref := outPortVals[0].(nodes.NodeOutput[artifact.Artifact])
-	if ref == nil {
-		panic(fmt.Errorf("Couldn't find Out port on Node: %s", nodeId))
+	outputs := producerNode.Outputs()
+	output, ok := outputs[nodePort]
+	if !ok {
+		panic(fmt.Errorf("node %q does not contain output %q", nodeId, nodePort))
+	}
+
+	casted, ok := output.(nodes.Output[artifact.Artifact])
+	if !ok {
+		panic(fmt.Errorf("node %q output %q does not produce artifacts", nodeId, nodePort))
 	}
 
 	// We need to check and remove previous references...
@@ -496,23 +596,23 @@ func (i *Instance) SetNodeAsProducer(nodeId, producerName string) {
 			continue
 		}
 
-		// TODO: This changes once we allow multiple output
-		// port artifact. Need to specify port instead of "Out"
-		if producer.Port() != "Out" {
+		if producer.Name() != nodePort {
 			continue
 		}
 
 		delete(i.producers, filename)
 	}
 
-	i.producers[producerName] = ref
+	i.producers[producerName] = casted
 	i.incModelVersion()
 }
 
 func (i *Instance) recursivelyRegisterNodeTypes(node nodes.Node) {
 	i.addType(node)
-	for _, subDependency := range node.Dependencies() {
-		i.recursivelyRegisterNodeTypes(subDependency.Dependency())
+
+	inputReferences := flattenNodeInputReferences(node)
+	for _, reference := range inputReferences {
+		i.recursivelyRegisterNodeTypes(reference)
 	}
 }
 
@@ -528,13 +628,13 @@ func (i *Instance) Artifact(producerName string) artifact.Artifact {
 	return producer.Value()
 }
 
-func (i *Instance) AddProducer(producerName string, producer nodes.NodeOutput[artifact.Artifact]) {
+func (i *Instance) AddProducer(producerName string, producer nodes.Output[artifact.Artifact]) {
 	i.recursivelyRegisterNodeTypes(producer.Node())
 	i.buildIDsForNode(producer.Node())
 	i.producers[producerName] = producer
 }
 
-func (i *Instance) Producer(producerName string) nodes.NodeOutput[artifact.Artifact] {
+func (i *Instance) Producer(producerName string) nodes.Output[artifact.Artifact] {
 	return i.producers[producerName]
 }
 
@@ -548,16 +648,50 @@ func (i *Instance) ProducerNames() []string {
 	return names
 }
 
+func flattenNodeInputReferences(node nodes.Node) []nodes.Node {
+
+	references := make([]nodes.Node, 0)
+
+	for inputName, input := range node.Inputs() {
+
+		switch v := input.(type) {
+		case nodes.SingleValueInputPort:
+			value := v.Value()
+			if value == nil {
+				continue
+			}
+			references = append(references, value.Node())
+
+		case nodes.ArrayValueInputPort:
+			for _, val := range v.Value() {
+				if val == nil {
+					continue
+				}
+				references = append(references, val.Node())
+			}
+
+		default:
+			panic(fmt.Errorf("unable to recursive %v's input %q", node, inputName))
+		}
+
+	}
+
+	return references
+}
+
 // REFLECTION =================================================================
 
-func RecurseDependenciesType[T any](dependent nodes.Dependent) []T {
+func RecurseDependenciesType[T any](dependent nodes.Node) []T {
 	allDependencies := make([]T, 0)
-	for _, dep := range dependent.Dependencies() {
-		subDependent := dep.Dependency()
-		subDependencies := RecurseDependenciesType[T](subDependent)
+
+	inputReferences := flattenNodeInputReferences(dependent)
+
+	for _, input := range inputReferences {
+
+		subDependencies := RecurseDependenciesType[T](input)
 		allDependencies = append(allDependencies, subDependencies...)
 
-		ofT, ok := subDependent.(T)
+		ofT, ok := input.(T)
 		if ok {
 			allDependencies = append(allDependencies, ofT)
 		}
@@ -570,23 +704,38 @@ func BuildNodeTypeSchema(node nodes.Node) schema.NodeType {
 
 	typeSchema := schema.NodeType{
 		DisplayName: "Untyped",
-		Outputs:     make([]schema.NodeOutput, 0),
+		Outputs:     make(map[string]schema.NodeOutput),
 		Inputs:      make(map[string]schema.NodeInput),
 	}
 
 	outputs := node.Outputs()
-	for _, o := range outputs {
-		typeSchema.Outputs = append(typeSchema.Outputs, schema.NodeOutput{
-			Name: o.NodeOutput.Port(),
-			Type: o.Type,
-		})
+	for name, o := range outputs {
+		nodeType := "any"
+		if typed, ok := o.(nodes.Typed); ok {
+			nodeType = typed.Type()
+		}
+
+		typeSchema.Outputs[name] = schema.NodeOutput{
+			Type: nodeType,
+		}
 	}
 
 	inputs := node.Inputs()
-	for _, o := range inputs {
-		typeSchema.Inputs[o.Name] = schema.NodeInput{
-			Type:    o.Type,
-			IsArray: o.Array,
+	for name, o := range inputs {
+
+		nodeType := "any"
+		if typed, ok := o.(nodes.Typed); ok {
+			nodeType = typed.Type()
+		}
+
+		array := false
+		if _, ok := o.(nodes.ArrayValueInputPort); ok {
+			array = true
+		}
+
+		typeSchema.Inputs[name] = schema.NodeInput{
+			Type:    nodeType,
+			IsArray: array,
 		}
 	}
 

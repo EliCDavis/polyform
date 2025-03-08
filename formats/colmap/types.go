@@ -17,15 +17,19 @@ func init() {
 	generator.RegisterTypes(factory)
 }
 
-type ReadPointsNode = nodes.Struct[modeling.Mesh, ReadPointsNodeData]
+type ReadPointsNode = nodes.Struct[ReadPointsNodeData]
 
 type ReadPointsNodeData struct {
-	In nodes.NodeOutput[[]byte]
+	In nodes.Output[[]byte]
 }
 
-func (pn ReadPointsNodeData) Process() (modeling.Mesh, error) {
+func (pn ReadPointsNodeData) Out() nodes.StructOutput[modeling.Mesh] {
 	if pn.In == nil {
-		return modeling.EmptyMesh(modeling.PointTopology), nil
+		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.PointTopology))
 	}
-	return ReadSparsePointData(bytes.NewReader(pn.In.Value()))
+
+	data, err := ReadSparsePointData(bytes.NewReader(pn.In.Value()))
+	out := nodes.NewStructOutput(data)
+	out.LogError(err)
+	return out
 }

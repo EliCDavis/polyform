@@ -39,15 +39,15 @@ func SquarePoints(width, height float64) []vector2.Float64 {
 	}
 }
 
-type ConeNode = nodes.Struct[modeling.Mesh, ConeNodeData]
+type ConeNode = nodes.Struct[ConeNodeData]
 
 type ConeNodeData struct {
-	Height nodes.NodeOutput[float64]
-	Radius nodes.NodeOutput[float64]
-	Sides  nodes.NodeOutput[int]
+	Height nodes.Output[float64]
+	Radius nodes.Output[float64]
+	Sides  nodes.Output[int]
 }
 
-func (r ConeNodeData) Process() (modeling.Mesh, error) {
+func (r ConeNodeData) Out() nodes.StructOutput[modeling.Mesh] {
 	sides := r.Sides.Value()
 	if sides < 3 {
 		panic("can not make cone with less that 3 sides")
@@ -74,16 +74,16 @@ func (r ConeNodeData) Process() (modeling.Mesh, error) {
 		Rotate(quaternion.FromTheta(math.Pi/2, vector3.Right[float64]())), nil
 }
 
-type CollarNode = nodes.Struct[modeling.Mesh, CollarNodeData]
+type CollarNode = nodes.Struct[CollarNodeData]
 
 type CollarNodeData struct {
-	Height     nodes.NodeOutput[float64]
-	Thickness  nodes.NodeOutput[float64]
-	Resolution nodes.NodeOutput[int]
-	Radius     nodes.NodeOutput[float64]
+	Height     nodes.Output[float64]
+	Thickness  nodes.Output[float64]
+	Resolution nodes.Output[int]
+	Radius     nodes.Output[float64]
 }
 
-func (cn CollarNodeData) Process() (modeling.Mesh, error) {
+func (cn CollarNodeData) Out() nodes.StructOutput[modeling.Mesh] {
 	collarHeight := cn.Height.Value()
 	collarThickness := cn.Thickness.Value()
 	collarRadius := cn.Radius.Value()
@@ -103,16 +103,16 @@ func (cn CollarNodeData) Process() (modeling.Mesh, error) {
 		SetFloat2Attribute(modeling.TexCoordAttribute, collarUVs), nil
 }
 
-type GlbArtifactNode = nodes.Struct[artifact.Artifact, GlbArtifactNodeData]
+type GlbArtifactNode = nodes.Struct[GlbArtifactNodeData]
 
 type GlbArtifactNodeData struct {
-	Collar         nodes.NodeOutput[modeling.Mesh]
-	Spike          nodes.NodeOutput[modeling.Mesh]
-	SpikePositions nodes.NodeOutput[[]trs.TRS]
-	SpikeColor     nodes.NodeOutput[coloring.WebColor]
+	Collar         nodes.Output[modeling.Mesh]
+	Spike          nodes.Output[modeling.Mesh]
+	SpikePositions nodes.Output[[]trs.TRS]
+	SpikeColor     nodes.Output[coloring.WebColor]
 }
 
-func (gan GlbArtifactNodeData) Process() (artifact.Artifact, error) {
+func (gan GlbArtifactNodeData) Out() nodes.StructOutput[artifact.Artifact] {
 	collar := gan.Collar.Value()
 	spikes := gan.Spike.Value()
 	scene := gltf.PolyformScene{
@@ -151,14 +151,14 @@ func (gan GlbArtifactNodeData) Process() (artifact.Artifact, error) {
 	}, nil
 }
 
-type CollarAlbedoTextureNode = nodes.Struct[image.Image, CollarAlbedoTextureNodeData]
+type CollarAlbedoTextureNode = nodes.Struct[CollarAlbedoTextureNodeData]
 
 type CollarAlbedoTextureNodeData struct {
-	BaseColor   nodes.NodeOutput[coloring.WebColor]
-	StitchColor nodes.NodeOutput[coloring.WebColor]
+	BaseColor   nodes.Output[coloring.WebColor]
+	StitchColor nodes.Output[coloring.WebColor]
 }
 
-func (catn CollarAlbedoTextureNodeData) Process() (image.Image, error) {
+func (catn CollarAlbedoTextureNodeData) Out() nodes.StructOutput[image.Image] {
 	ctx := gg.NewContext(256, 256)
 	ctx.SetColor(catn.BaseColor.Value())
 	ctx.DrawRectangle(0, 0, 256, 256)
@@ -253,7 +253,7 @@ func main() {
 				},
 			},
 		},
-		Files: map[string]nodes.NodeOutput[artifact.Artifact]{
+		Files: map[string]nodes.Output[artifact.Artifact]{
 			"mesh.glb":    gltfNode.Out(),
 			mrTexturePath: basics.NewImageNode(nodes.FuncValue(mrTexture)),
 			collarAlbedoPath: basics.NewImageNode(&CollarAlbedoTextureNode{

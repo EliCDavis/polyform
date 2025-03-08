@@ -324,14 +324,14 @@ func (crc *CatmullRomSpline) At(distance float64) vector3.Float64 {
 	return curveToEvaluation.Distance(remainingDistance)
 }
 
-type CatmullRomSplineNode = nodes.Struct[Spline, CatmullRomSplineNodeData]
+type CatmullRomSplineNode = nodes.Struct[CatmullRomSplineNodeData]
 
 type CatmullRomSplineNodeData struct {
-	Points nodes.NodeOutput[[]vector3.Float64]
-	Alpha  nodes.NodeOutput[float64]
+	Points nodes.Output[[]vector3.Float64]
+	Alpha  nodes.Output[float64]
 }
 
-func (r CatmullRomSplineNodeData) Process() (Spline, error) {
+func (r CatmullRomSplineNodeData) Out() nodes.StructOutput[Spline] {
 
 	alpha := 0.
 	if r.Alpha != nil {
@@ -339,12 +339,12 @@ func (r CatmullRomSplineNodeData) Process() (Spline, error) {
 	}
 
 	if r.Points == nil {
-		return nil, nil
+		return nodes.NewStructOutput[Spline](nil)
 	}
 
 	points := r.Points.Value()
 	if len(points) < 4 {
-		return nil, nil
+		return nodes.NewStructOutput[Spline](nil)
 	}
 
 	// for _, p := range points {
@@ -362,5 +362,5 @@ func (r CatmullRomSplineNodeData) Process() (Spline, error) {
 	// causing it to populate things twice
 	spline.Length()
 
-	return &spline, nil
+	return nodes.NewStructOutput[Spline](&spline)
 }

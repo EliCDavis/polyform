@@ -14,6 +14,17 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func buildTextArifact(p *parameter.String) nodes.Output[artifact.Artifact] {
+	return nodes.GetNodeOutputPort[artifact.Artifact](
+		&basics.TextNode{
+			Data: basics.TextNodeData{
+				In: nodes.GetNodeOutputPort[string](p, "Value"),
+			},
+		},
+		"Out",
+	)
+}
+
 func TestGetAndApplyGraph(t *testing.T) {
 	appName := "Test Graph"
 	appVersion := "Test Graph"
@@ -23,8 +34,8 @@ func TestGetAndApplyGraph(t *testing.T) {
 		Name:        appName,
 		Version:     appVersion,
 		Description: appDescription,
-		Files: map[string]nodes.NodeOutput[artifact.Artifact]{
-			producerFileName: basics.NewTextNode(&parameter.String{
+		Files: map[string]nodes.Output[artifact.Artifact]{
+			producerFileName: buildTextArifact(&parameter.String{
 				Name:         "Welp",
 				DefaultValue: "yee",
 			}),
@@ -61,8 +72,8 @@ func TestAppCommand_Outline(t *testing.T) {
 		Name:        appName,
 		Version:     appVersion,
 		Description: appDescription,
-		Files: map[string]nodes.NodeOutput[artifact.Artifact]{
-			producerFileName: basics.NewTextNode(&parameter.String{
+		Files: map[string]nodes.Output[artifact.Artifact]{
+			producerFileName: buildTextArifact(&parameter.String{
 				Name:         "Welp",
 				DefaultValue: "yee",
 			}),
@@ -167,13 +178,12 @@ func TestAppCommand_Zip(t *testing.T) {
 		Name:        appName,
 		Version:     appVersion,
 		Description: appDescription,
-		Files: map[string]nodes.NodeOutput[artifact.Artifact]{
-			producerFileName: basics.NewTextNode(&parameter.String{
+		Files: map[string]nodes.Output[artifact.Artifact]{
+			producerFileName: buildTextArifact(&parameter.String{
 				Name:         "Welp",
 				DefaultValue: "yee",
 			}),
 		},
-
 		Out: outBuf,
 	}
 
@@ -209,8 +219,8 @@ func TestAppCommand_Swagger(t *testing.T) {
 		Name:        appName,
 		Version:     appVersion,
 		Description: appDescription,
-		Files: map[string]nodes.NodeOutput[artifact.Artifact]{
-			producerFileName: basics.NewTextNode(&parameter.String{
+		Files: map[string]nodes.Output[artifact.Artifact]{
+			producerFileName: buildTextArifact(&parameter.String{
 				Name:         "Welp",
 				DefaultValue: "yee",
 				Description:  "I'm a description",
@@ -286,8 +296,8 @@ func TestAppCommand_New(t *testing.T) {
 		Name:        appName,
 		Version:     appVersion,
 		Description: appDescription,
-		Files: map[string]nodes.NodeOutput[artifact.Artifact]{
-			producerFileName: basics.NewTextNode(&parameter.String{
+		Files: map[string]nodes.Output[artifact.Artifact]{
+			producerFileName: buildTextArifact(&parameter.String{
 				Name:         "Welp",
 				DefaultValue: "yee",
 			}),

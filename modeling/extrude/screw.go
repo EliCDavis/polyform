@@ -11,32 +11,32 @@ import (
 	"github.com/EliCDavis/vector/vector3"
 )
 
-type ScrewNode = nodes.Struct[modeling.Mesh, ScrewNodeData]
+type ScrewNode = nodes.Struct[ScrewNodeData]
 
 type ScrewNodeData struct {
-	Line        nodes.NodeOutput[[]vector3.Float64]
-	Segments    nodes.NodeOutput[int]
-	Revolutions nodes.NodeOutput[float64]
-	Distance    nodes.NodeOutput[float64]
-	UVs         nodes.NodeOutput[primitives.StripUVs]
+	Line        nodes.Output[[]vector3.Float64]
+	Segments    nodes.Output[int]
+	Revolutions nodes.Output[float64]
+	Distance    nodes.Output[float64]
+	UVs         nodes.Output[primitives.StripUVs]
 }
 
-func (snd ScrewNodeData) Process() (modeling.Mesh, error) {
+func (snd ScrewNodeData) Out() nodes.StructOutput[modeling.Mesh] {
 	if snd.Line == nil {
-		return modeling.EmptyMesh(modeling.TriangleTopology), nil
+		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
 	}
 	line := snd.Line.Value()
 
 	// Can't create a mesh with a single point
 	if len(line) < 2 {
-		return modeling.EmptyMesh(modeling.TriangleTopology), nil
+		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
 	}
 
 	segments := nodes.TryGetOutputValue(snd.Segments, 20)
 
 	// 1 or 0 segments leaves us with an edge or nothing
 	if segments < 2 {
-		return modeling.EmptyMesh(modeling.TriangleTopology), nil
+		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
 	}
 
 	revolutions := nodes.TryGetOutputValue(snd.Revolutions, 1.)
@@ -107,7 +107,7 @@ func (snd ScrewNodeData) Process() (modeling.Mesh, error) {
 		}
 	}
 
-	return modeling.NewTriangleMesh(indices).
+	return nodes.NewStructOutput(modeling.NewTriangleMesh(indices).
 		SetFloat3Attribute(modeling.PositionAttribute, verts).
-		SetFloat2Attribute(modeling.TexCoordAttribute, uvs), nil
+		SetFloat2Attribute(modeling.TexCoordAttribute, uvs))
 }

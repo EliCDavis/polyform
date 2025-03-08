@@ -204,27 +204,27 @@ func PipeMaterial(seed *rand.Rand) *gltf.PolyformMaterial {
 	}
 }
 
-type PipeNode = nodes.Struct[artifact.Artifact, PipeNodeData]
+type PipeNode = nodes.Struct[PipeNodeData]
 
 type PipeNodeData struct {
-	Positions nodes.NodeOutput[[]vector3.Float64]
+	Positions nodes.Output[[]vector3.Float64]
 
-	NumberOfShelfs nodes.NodeOutput[int]
-	ShelfSpacing   nodes.NodeOutput[float64]
-	ShelfWidth     nodes.NodeOutput[float64]
-	LegSpacing     nodes.NodeOutput[float64]
+	NumberOfShelfs nodes.Output[int]
+	ShelfSpacing   nodes.Output[float64]
+	ShelfWidth     nodes.Output[float64]
+	LegSpacing     nodes.Output[float64]
 
-	PipeResolution    nodes.NodeOutput[int]
-	PipeMinimumRadius nodes.NodeOutput[float64]
-	PipeMaximumRadius nodes.NodeOutput[float64]
+	PipeResolution    nodes.Output[int]
+	PipeMinimumRadius nodes.Output[float64]
+	PipeMaximumRadius nodes.Output[float64]
 
-	LegWidth         nodes.NodeOutput[float64]
-	LegHeight        nodes.NodeOutput[float64]
-	FoundationWidth  nodes.NodeOutput[float64]
-	FoundationHeight nodes.NodeOutput[float64]
+	LegWidth         nodes.Output[float64]
+	LegHeight        nodes.Output[float64]
+	FoundationWidth  nodes.Output[float64]
+	FoundationHeight nodes.Output[float64]
 }
 
-func (p PipeNodeData) Process() (artifact.Artifact, error) {
+func (p PipeNodeData) Out() nodes.StructOutput[artifact.Artifact] {
 	gltfModels := make([]gltf.PolyformModel, 0)
 
 	pipeSides := p.PipeResolution.Value()
@@ -360,7 +360,7 @@ func main() {
 			Background: coloring.WebColor{R: 0x9f, G: 0xb0, B: 0xc1, A: 255},
 			Lighting:   coloring.WebColor{R: 0xff, G: 0xd8, B: 0x94, A: 255},
 		},
-		Files: map[string]nodes.NodeOutput[artifact.Artifact]{
+		Files: map[string]nodes.Output[artifact.Artifact]{
 			"pipe-normal.png": basics.NewImageNode((&PipeNormalsNode{
 				Data: PipeNormalsNodeData{
 					BlurIterations: &parameter.Int{

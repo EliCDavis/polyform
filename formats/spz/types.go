@@ -15,26 +15,28 @@ func init() {
 	generator.RegisterTypes(factory)
 }
 
-type ReadNode = nodes.Struct[modeling.Mesh, ReadNodeData]
+type ReadNode = nodes.Struct[ReadNodeData]
 
 type ReadNodeData struct {
-	Data nodes.NodeOutput[[]byte]
+	Data nodes.Output[[]byte]
 }
 
-func (gad ReadNodeData) Process() (modeling.Mesh, error) {
+func (gad ReadNodeData) Out() nodes.StructOutput[modeling.Mesh] {
 	if gad.Data == nil {
-		return modeling.EmptyMesh(modeling.PointTopology), nil
+		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.PointTopology))
 	}
 
 	data := gad.Data.Value()
 	if len(data) == 0 {
-		return modeling.EmptyMesh(modeling.PointTopology), nil
+		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.PointTopology))
 	}
 
 	cloud, err := Read(bytes.NewReader(data))
 	if err != nil {
-		return modeling.EmptyMesh(modeling.PointTopology), err
+		out := nodes.NewStructOutput(modeling.EmptyMesh(modeling.PointTopology))
+		out.LogError(err)
+		return out
 	}
 
-	return cloud.Mesh, nil
+	return nodes.NewStructOutput(cloud.Mesh)
 }

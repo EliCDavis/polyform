@@ -14,27 +14,27 @@ func Mesh(mesh modeling.Mesh, transforms []trs.TRS) modeling.Mesh {
 	return result
 }
 
-type MeshNode = nodes.Struct[modeling.Mesh, MeshNodeData]
+type MeshNode = nodes.Struct[MeshNodeData]
 
 type MeshNodeData struct {
-	Mesh       nodes.NodeOutput[modeling.Mesh]
-	Transforms nodes.NodeOutput[[]trs.TRS]
+	Mesh       nodes.Output[modeling.Mesh]
+	Transforms nodes.Output[[]trs.TRS]
 }
 
 func (rnd MeshNodeData) Description() string {
 	return "Duplicates and transforms the input mesh for every TRS provided"
 }
 
-func (rnd MeshNodeData) Process() (modeling.Mesh, error) {
+func (rnd MeshNodeData) Out() nodes.StructOutput[modeling.Mesh] {
 	if rnd.Mesh == nil {
-		return modeling.EmptyMesh(modeling.TriangleTopology), nil
+		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
 	}
 	mesh := rnd.Mesh.Value()
 
 	if rnd.Transforms == nil {
-		return modeling.EmptyMesh(mesh.Topology()), nil
+		return nodes.NewStructOutput(modeling.EmptyMesh(mesh.Topology()))
 	}
 	transforms := rnd.Transforms.Value()
 
-	return Mesh(mesh, transforms), nil
+	return nodes.NewStructOutput(Mesh(mesh, transforms))
 }

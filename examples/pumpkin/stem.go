@@ -22,14 +22,14 @@ import (
 	"github.com/EliCDavis/vector/vector3"
 )
 
-type StemMesh = nodes.Struct[gltf.PolyformModel, StemMeshData]
+type StemMesh = nodes.Struct[StemMeshData]
 
 type StemMeshData struct {
-	StemResolution nodes.NodeOutput[float64]
-	TopDip         nodes.NodeOutput[float64]
+	StemResolution nodes.Output[float64]
+	TopDip         nodes.Output[float64]
 }
 
-func (sm StemMeshData) Process() (gltf.PolyformModel, error) {
+func (sm StemMeshData) Out() nodes.StructOutput[gltf.PolyformModel] {
 	stemCanvas := marching.NewMarchingCanvas(sm.StemResolution.Value())
 
 	sides := 6
@@ -129,13 +129,13 @@ func (sm StemMeshData) Process() (gltf.PolyformModel, error) {
 	}, nil
 }
 
-type StemNormalImage = nodes.Struct[artifact.Artifact, StemNormalImageData]
+type StemNormalImage = nodes.Struct[StemNormalImageData]
 
 type StemNormalImageData struct {
-	NumberOfLines nodes.NodeOutput[int]
+	NumberOfLines nodes.Output[int]
 }
 
-func (sni StemNormalImageData) Process() (artifact.Artifact, error) {
+func (sni StemNormalImageData) Out() nodes.StructOutput[artifact.Artifact] {
 	dim := 1024
 	img := image.NewRGBA(image.Rect(0, 0, dim, dim))
 	// normals.Fill(img)
@@ -204,14 +204,14 @@ func (sni StemNormalImageData) Process() (artifact.Artifact, error) {
 	return &basics.Image{Image: img}, nil
 }
 
-type StemRoughness = nodes.Struct[artifact.Artifact, StemRoughnessData]
+type StemRoughness = nodes.Struct[StemRoughnessData]
 
 type StemRoughnessData struct {
-	Dimensions nodes.NodeOutput[int]
-	Roughness  nodes.NodeOutput[float64]
+	Dimensions nodes.Output[int]
+	Roughness  nodes.Output[float64]
 }
 
-func (sr StemRoughnessData) Process() (artifact.Artifact, error) {
+func (sr StemRoughnessData) Out() nodes.StructOutput[artifact.Artifact] {
 	dim := sr.Dimensions.Value()
 	stemRoughnessImage := image.NewRGBA(image.Rect(0, 0, dim, dim))
 

@@ -26,21 +26,21 @@ func RotateAttribute(m modeling.Mesh, attribute string, amount quaternion.Quater
 	return m.SetFloat4Attribute(attribute, rotatedData)
 }
 
-type RotateAttributeNode = nodes.Struct[modeling.Mesh, RotateAttributeNodeData]
+type RotateAttributeNode = nodes.Struct[RotateAttributeNodeData]
 
 type RotateAttributeNodeData struct {
-	Mesh      nodes.NodeOutput[modeling.Mesh]
-	Attribute nodes.NodeOutput[string]
-	Amount    nodes.NodeOutput[quaternion.Quaternion]
+	Mesh      nodes.Output[modeling.Mesh]
+	Attribute nodes.Output[string]
+	Amount    nodes.Output[quaternion.Quaternion]
 }
 
-func (rand RotateAttributeNodeData) Process() (modeling.Mesh, error) {
+func (rand RotateAttributeNodeData) Out() nodes.StructOutput[modeling.Mesh] {
 	if rand.Mesh == nil {
-		return modeling.EmptyPointcloud(), nil
+		return nodes.NewStructOutput(modeling.EmptyPointcloud())
 	}
 
 	if rand.Amount == nil {
-		return rand.Mesh.Value(), nil
+		return nodes.NewStructOutput(rand.Mesh.Value())
 	}
 
 	attr := modeling.RotationAttribute
@@ -48,5 +48,5 @@ func (rand RotateAttributeNodeData) Process() (modeling.Mesh, error) {
 		attr = rand.Attribute.Value()
 	}
 
-	return RotateAttribute(rand.Mesh.Value(), attr, rand.Amount.Value()), nil
+	return nodes.NewStructOutput(RotateAttribute(rand.Mesh.Value(), attr, rand.Amount.Value()))
 }

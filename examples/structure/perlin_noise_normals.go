@@ -9,14 +9,14 @@ import (
 	"github.com/EliCDavis/polyform/nodes"
 )
 
-type PerlinNoiseNormalsNode = nodes.Struct[image.Image, PerlinNoiseNormalsNodeData]
+type PerlinNoiseNormalsNode = nodes.Struct[PerlinNoiseNormalsNodeData]
 
 type PerlinNoiseNormalsNodeData struct {
-	Octaves        nodes.NodeOutput[int]
-	BlurIterations nodes.NodeOutput[int]
+	Octaves        nodes.Output[int]
+	BlurIterations nodes.Output[int]
 }
 
-func (pnn PerlinNoiseNormalsNodeData) Process() (image.Image, error) {
+func (pnn PerlinNoiseNormalsNodeData) Out() nodes.StructOutput[image.Image] {
 	dim := 256
 	img := image.NewRGBA(image.Rect(0, 0, dim, dim))
 

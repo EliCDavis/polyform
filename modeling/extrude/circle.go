@@ -248,19 +248,19 @@ func (c CircleAlongSpline) Extrude() modeling.Mesh {
 	return polygon(c.CircleResolution, points, false)
 }
 
-type CircleNode = nodes.Struct[modeling.Mesh, CircleNodeData]
+type CircleNode = nodes.Struct[CircleNodeData]
 
 type CircleNodeData struct {
-	Closed     nodes.NodeOutput[bool]
-	Resolution nodes.NodeOutput[int]
-	Radius     nodes.NodeOutput[float64]
-	Radii      nodes.NodeOutput[[]float64]
-	Path       nodes.NodeOutput[[]vector3.Float64]
+	Closed     nodes.Output[bool]
+	Resolution nodes.Output[int]
+	Radius     nodes.Output[float64]
+	Radii      nodes.Output[[]float64]
+	Path       nodes.Output[[]vector3.Float64]
 }
 
-func (pnd CircleNodeData) Process() (modeling.Mesh, error) {
+func (pnd CircleNodeData) Out() nodes.StructOutput[modeling.Mesh] {
 	if pnd.Path == nil {
-		return modeling.EmptyMesh(modeling.TriangleTopology), nil
+		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
 	}
 
 	circle := Circle{
@@ -286,29 +286,29 @@ func (pnd CircleNodeData) Process() (modeling.Mesh, error) {
 		circle.ClosePath = pnd.Closed.Value()
 	}
 
-	return circle.Extrude(), nil
+	return nodes.NewStructOutput(circle.Extrude())
 
 }
 
-type CircleAlongSplineNode = nodes.Struct[modeling.Mesh, CircleAlongSplineNodeData]
+type CircleAlongSplineNode = nodes.Struct[CircleAlongSplineNodeData]
 
 type CircleAlongSplineNodeData struct {
-	Closed           nodes.NodeOutput[bool]
-	CircleResolution nodes.NodeOutput[int]
-	Radius           nodes.NodeOutput[float64]
-	Radii            nodes.NodeOutput[[]float64]
-	Spline           nodes.NodeOutput[curves.Spline]
-	SplineResolution nodes.NodeOutput[int]
+	Closed           nodes.Output[bool]
+	CircleResolution nodes.Output[int]
+	Radius           nodes.Output[float64]
+	Radii            nodes.Output[[]float64]
+	Spline           nodes.Output[curves.Spline]
+	SplineResolution nodes.Output[int]
 }
 
-func (pnd CircleAlongSplineNodeData) Process() (modeling.Mesh, error) {
+func (pnd CircleAlongSplineNodeData) Out() nodes.StructOutput[modeling.Mesh] {
 	if pnd.Spline == nil {
-		return modeling.EmptyMesh(modeling.TriangleTopology), nil
+		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
 	}
 
 	spline := pnd.Spline.Value()
 	if spline == nil {
-		return modeling.EmptyMesh(modeling.TriangleTopology), nil
+		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
 	}
 
 	circle := CircleAlongSpline{
@@ -339,6 +339,6 @@ func (pnd CircleAlongSplineNodeData) Process() (modeling.Mesh, error) {
 		circle.ClosePath = pnd.Closed.Value()
 	}
 
-	return circle.Extrude(), nil
+	return nodes.NewStructOutput(circle.Extrude())
 
 }

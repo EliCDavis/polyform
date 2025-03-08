@@ -12,27 +12,32 @@ import (
 	"github.com/EliCDavis/polyform/generator/schema"
 	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/nodes"
-	"github.com/EliCDavis/polyform/refutil"
 	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
 )
 
 // ============================================================================
 
-type ParameterNodeOutput[T any] struct {
+const valueOutputPortName = "Value"
+
+type parameterNodeOutput[T any] struct {
 	Val *Value[T]
 }
 
-func (sno ParameterNodeOutput[T]) Value() T {
+func (sno parameterNodeOutput[T]) Value() T {
 	return sno.Val.Value()
 }
 
-func (sno ParameterNodeOutput[T]) Node() nodes.Node {
+func (sno parameterNodeOutput[T]) Node() nodes.Node {
 	return sno.Val
 }
 
-func (sno ParameterNodeOutput[T]) Port() string {
-	return "Out"
+func (sno parameterNodeOutput[T]) Name() string {
+	return valueOutputPortName
+}
+
+func (sno parameterNodeOutput[T]) Version() int {
+	return sno.Val.version
 }
 
 // ============================================================================
@@ -82,9 +87,18 @@ type Value[T any] struct {
 	DefaultValue T             `json:"defaultValue"`
 	CLI          *CliConfig[T] `json:"cli"`
 
-	subs           []nodes.Alertable
 	version        int
 	appliedProfile *T
+}
+
+func (tn *Value[T]) Outputs() map[string]nodes.OutputPort {
+	return map[string]nodes.OutputPort{
+		valueOutputPortName: parameterNodeOutput[T]{Val: tn},
+	}
+}
+
+func (tn Value[T]) Inputs() map[string]nodes.InputPort {
+	return nil
 }
 
 func (in *Value[T]) SetName(name string) {
@@ -93,14 +107,6 @@ func (in *Value[T]) SetName(name string) {
 
 func (in *Value[T]) SetDescription(description string) {
 	in.Description = description
-}
-
-func (in *Value[T]) Port() string {
-	return "Out"
-}
-
-func (vn Value[T]) SetInput(input string, output nodes.Output) {
-	panic("input can not be set")
 }
 
 func (pn *Value[T]) DisplayName() string {
@@ -120,10 +126,6 @@ func (pn *Value[T]) ApplyMessage(msg []byte) (bool, error) {
 
 	pn.version++
 	pn.appliedProfile = &val
-
-	for _, s := range pn.subs {
-		s.Alert(pn.version, nodes.Processed)
-	}
 
 	return true, nil
 }
@@ -186,52 +188,6 @@ func (pn *Value[T]) Schema() schema.Parameter {
 		DefaultValue: pn.DefaultValue,
 		CurrentValue: pn.Value(),
 	}
-}
-
-func (pn *Value[T]) AddSubscription(a nodes.Alertable) {
-	if pn.subs == nil {
-		pn.subs = make([]nodes.Alertable, 0, 1)
-	}
-
-	pn.subs = append(pn.subs, a)
-}
-
-func (pn *Value[T]) Dependencies() []nodes.NodeDependency {
-	return nil
-}
-
-func (pn *Value[T]) State() nodes.NodeState {
-	return nodes.Processed
-}
-
-func (tn *Value[T]) Outputs() []nodes.Output {
-	return []nodes.Output{
-		{
-			// Name: "Out",
-			Type: refutil.GetTypeWithPackage(new(T)),
-			NodeOutput: ParameterNodeOutput[T]{
-				Val: tn,
-			},
-		},
-	}
-}
-
-func (tn *Value[T]) Out() nodes.NodeOutput[T] {
-	return ParameterNodeOutput[T]{
-		Val: tn,
-	}
-}
-
-func (in *Value[T]) Node() nodes.Node {
-	return in
-}
-
-func (tn Value[T]) Inputs() []nodes.Input {
-	return []nodes.Input{}
-}
-
-func (pn Value[T]) Version() int {
-	return pn.version
 }
 
 func (pn Value[T]) InitializeForCLI(set *flag.FlagSet) {

@@ -40,17 +40,17 @@ func RotateAttribute3D(m modeling.Mesh, attribute string, q quaternion.Quaternio
 	return m.SetFloat3Attribute(attribute, scaledData)
 }
 
-type RotateAttribute3DNode = nodes.Struct[modeling.Mesh, RotateAttribute3DNodeData]
+type RotateAttribute3DNode = nodes.Struct[RotateAttribute3DNodeData]
 
 type RotateAttribute3DNodeData struct {
-	Attribute nodes.NodeOutput[string]
-	Mesh      nodes.NodeOutput[modeling.Mesh]
-	Amount    nodes.NodeOutput[quaternion.Quaternion]
+	Attribute nodes.Output[string]
+	Mesh      nodes.Output[modeling.Mesh]
+	Amount    nodes.Output[quaternion.Quaternion]
 }
 
-func (ra3dn RotateAttribute3DNodeData) Process() (modeling.Mesh, error) {
+func (ra3dn RotateAttribute3DNodeData) Out() nodes.StructOutput[modeling.Mesh] {
 	if ra3dn.Mesh == nil {
-		return modeling.EmptyMesh(modeling.TriangleTopology), nil
+		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
 	}
 
 	attr := modeling.PositionAttribute
@@ -58,5 +58,5 @@ func (ra3dn RotateAttribute3DNodeData) Process() (modeling.Mesh, error) {
 		attr = ra3dn.Attribute.Value()
 	}
 
-	return RotateAttribute3D(ra3dn.Mesh.Value(), attr, ra3dn.Amount.Value()), nil
+	return nodes.NewStructOutput(RotateAttribute3D(ra3dn.Mesh.Value(), attr, ra3dn.Amount.Value()))
 }

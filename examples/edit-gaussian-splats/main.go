@@ -161,7 +161,7 @@ func main() {
 			AntiAlias: false,
 			XrEnabled: true,
 		},
-		Files: map[string]nodes.NodeOutput[artifact.Artifact]{
+		Files: map[string]nodes.Output[artifact.Artifact]{
 			"mesh.ply": ply.NewPlyNode(pointcloud.Out()),
 			"info.txt": basics.NewTextNode(&InfoNode{
 				Data: InfoNodeData{

@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/EliCDavis/jbtf"
+	"github.com/EliCDavis/polyform/generator/artifact"
 	"github.com/EliCDavis/polyform/generator/artifact/basics"
 	"github.com/EliCDavis/polyform/generator/graph"
 	"github.com/EliCDavis/polyform/generator/parameter"
@@ -16,15 +17,15 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type TestNode = nodes.Struct[float64, TestNodeData]
+type TestNode = nodes.Struct[TestNodeData]
 
 type TestNodeData struct {
-	A nodes.NodeOutput[float64]
-	B nodes.NodeOutput[int]
+	A nodes.Output[float64]
+	B nodes.Output[int]
 }
 
-func (bn TestNodeData) Process() (float64, error) {
-	return 0, nil
+func (bn TestNodeData) Out() nodes.StructOutput[float64] {
+	return nodes.NewStructOutput(0.)
 }
 
 func TestBuildNodeTypeSchema(t *testing.T) {
@@ -38,8 +39,7 @@ func TestBuildNodeTypeSchema(t *testing.T) {
 	assert.Equal(t, "int", schema.Inputs["B"].Type)
 
 	assert.Len(t, schema.Outputs, 1)
-	assert.Equal(t, "float64", schema.Outputs[0].Type)
-	assert.Equal(t, "Out", schema.Outputs[0].Name)
+	assert.Equal(t, "float64", schema.Outputs["Out"].Type)
 }
 
 func TestInstance_AddProducer_InitializeParameters_Artifacts(t *testing.T) {
@@ -50,8 +50,7 @@ func TestInstance_AddProducer_InitializeParameters_Artifacts(t *testing.T) {
 	assert.Len(t, instance.ProducerNames(), 0)
 	flags := flag.NewFlagSet("set", flag.PanicOnError)
 
-	// ACT ====================================================================
-	instance.AddProducer("test.txt", basics.NewTextNode(&parameter.String{
+	strParam := &parameter.String{
 		Name: "Welp",
 		CLI: &parameter.CliConfig[string]{
 			FlagName: "yeet",
@@ -59,7 +58,16 @@ func TestInstance_AddProducer_InitializeParameters_Artifacts(t *testing.T) {
 		},
 		DefaultValue: "yee",
 		Description:  "I'm a description",
-	}))
+	}
+
+	textNode := basics.TextNode{
+		Data: basics.TextNodeData{
+			In: nodes.GetNodeOutputPort[string](strParam, "Value"),
+		},
+	}
+
+	// ACT ====================================================================
+	instance.AddProducer("test.txt", nodes.GetNodeOutputPort[artifact.Artifact](&textNode, "Out"))
 	producerNames := instance.ProducerNames()
 	instance.InitializeParameters(flags)
 	assert.NoError(t, flags.Parse([]string{"-yeet", contentToSetViaFlag}))

@@ -17,9 +17,11 @@ import (
 	_ "github.com/EliCDavis/polyform/formats/stl"
 
 	_ "github.com/EliCDavis/polyform/generator/artifact/basics"
+	_ "github.com/EliCDavis/polyform/generator/constant"
 	_ "github.com/EliCDavis/polyform/generator/parameter"
 
 	_ "github.com/EliCDavis/polyform/math"
+	_ "github.com/EliCDavis/polyform/math/noise"
 	_ "github.com/EliCDavis/polyform/math/quaternion"
 	_ "github.com/EliCDavis/polyform/math/trig"
 	_ "github.com/EliCDavis/polyform/math/trs"

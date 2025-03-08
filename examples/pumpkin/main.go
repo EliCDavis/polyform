@@ -39,14 +39,14 @@ func jitterPositions(pos []vector3.Float64, amplitude, frequency float64) []vect
 		})
 }
 
-type MarchingCubes = nodes.Struct[modeling.Mesh, MarchingCubesData]
+type MarchingCubes = nodes.Struct[MarchingCubesData]
 
 type MarchingCubesData struct {
-	Field         nodes.NodeOutput[marching.Field]
-	CubersPerUnit nodes.NodeOutput[float64]
+	Field         nodes.Output[marching.Field]
+	CubersPerUnit nodes.Output[float64]
 }
 
-func (mc MarchingCubesData) Process() (modeling.Mesh, error) {
+func (mc MarchingCubesData) Out() nodes.StructOutput[modeling.Mesh] {
 	addFieldStart := time.Now()
 	canvas := marching.NewMarchingCanvas(mc.CubersPerUnit.Value())
 	canvas.AddField(mc.Field.Value())
@@ -59,14 +59,14 @@ func (mc MarchingCubesData) Process() (modeling.Mesh, error) {
 	return mesh, nil
 }
 
-type EdgeDetection = nodes.Struct[[][]float64, EdgeDetectionData]
+type EdgeDetection = nodes.Struct[EdgeDetectionData]
 
 type EdgeDetectionData struct {
-	SrcImage  nodes.NodeOutput[image.Image]
-	FillValue nodes.NodeOutput[float64]
+	SrcImage  nodes.Output[image.Image]
+	FillValue nodes.Output[float64]
 }
 
-func (ed EdgeDetectionData) Process() ([][]float64, error) {
+func (ed EdgeDetectionData) Out() nodes.StructOutput[[][]float64] {
 	src := ed.SrcImage.Value()
 	imageData := make([][]float64, src.Bounds().Dx())
 	fillValue := ed.FillValue.Value()
@@ -96,15 +96,15 @@ func loadImage(imageData []byte) (image.Image, error) {
 	return img, err
 }
 
-type PropogateHeat = nodes.Struct[[][]float64, PropogateHeatData]
+type PropogateHeat = nodes.Struct[PropogateHeatData]
 
 type PropogateHeatData struct {
-	Data       nodes.NodeOutput[[][]float64]
-	Iterations nodes.NodeOutput[int]
-	Decay      nodes.NodeOutput[float64]
+	Data       nodes.Output[[][]float64]
+	Iterations nodes.Output[int]
+	Decay      nodes.Output[float64]
 }
 
-func (ph PropogateHeatData) Process() ([][]float64, error) {
+func (ph PropogateHeatData) Out() nodes.StructOutput[[][]float64] {
 	originalData := ph.Data.Value()
 	iterations := ph.Iterations.Value()
 	decay := ph.Decay.Value()
@@ -194,7 +194,7 @@ func main() {
 
 	edgeDetection := &EdgeDetection{
 		Data: EdgeDetectionData{
-			SrcImage:  nodes.Value(img),
+			SrcImage:  nodes.NewValue(img),
 			FillValue: maxHeatNode,
 		},
 	}
@@ -306,7 +306,7 @@ func main() {
 			Background: coloring.WebColor{R: 0x13, G: 0x0b, B: 0x3c, A: 255},
 			Lighting:   coloring.WebColor{R: 0xff, G: 0xd8, B: 0x94, A: 255},
 		},
-		Files: map[string]nodes.NodeOutput[artifact.Artifact]{
+		Files: map[string]nodes.Output[artifact.Artifact]{
 			"pumpkin.glb": &PumpkinGLBArtifact{
 				Data: PumpkinGLBArtifactData{
 					PumpkinBody: pumpkinMesh,
@@ -380,7 +380,7 @@ func main() {
 			"stem-roughness.png": &StemRoughness{
 				Data: StemRoughnessData{
 					Dimensions: textureDimensions,
-					Roughness:  nodes.Value(0.78),
+					Roughness:  nodes.NewValue(0.78),
 				},
 			},
 			// "uvMap.png": nodes.InputFromFunc(func() artifact.Artifact {

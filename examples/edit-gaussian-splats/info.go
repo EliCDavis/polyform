@@ -7,20 +7,20 @@ import (
 	"github.com/EliCDavis/polyform/nodes"
 )
 
-type InfoNode = nodes.Struct[string, InfoNodeData]
+type InfoNode = nodes.Struct[InfoNodeData]
 
 type InfoNodeData struct {
-	Original nodes.NodeOutput[modeling.Mesh]
-	Final    nodes.NodeOutput[modeling.Mesh]
+	Original nodes.Output[modeling.Mesh]
+	Final    nodes.Output[modeling.Mesh]
 }
 
-func (in InfoNodeData) Process() (string, error) {
+func (in InfoNodeData) Out() nodes.StructOutput[string] {
 	if in.Original == nil || in.Final == nil {
-		return "", nil
+		return nodes.NewStructOutput("")
 	}
 
 	original := in.Original.Value().AttributeLength()
 	final := in.Final.Value().AttributeLength()
 
-	return fmt.Sprintf("Points: %d / %d\nPruned: %d", final, original, original-final), nil
+	return nodes.NewStructOutput(fmt.Sprintf("Points: %d / %d\nPruned: %d", final, original, original-final))
 }

@@ -17,31 +17,31 @@ func init() {
 	generator.RegisterTypes(factory)
 }
 
-type NewNode = nodes.Struct[TRS, NewNodeData]
+type NewNode = nodes.Struct[NewNodeData]
 
 type NewNodeData struct {
-	Position nodes.NodeOutput[vector3.Float64]
-	Scale    nodes.NodeOutput[vector3.Float64]
-	Rotation nodes.NodeOutput[quaternion.Quaternion]
+	Position nodes.Output[vector3.Float64]
+	Scale    nodes.Output[vector3.Float64]
+	Rotation nodes.Output[quaternion.Quaternion]
 }
 
-func (tnd NewNodeData) Process() (TRS, error) {
-	return New(
+func (tnd NewNodeData) Out() nodes.StructOutput[TRS] {
+	return nodes.NewStructOutput(New(
 		nodes.TryGetOutputValue(tnd.Position, vector3.Zero[float64]()),
 		nodes.TryGetOutputValue(tnd.Rotation, quaternion.Identity()),
 		nodes.TryGetOutputValue(tnd.Scale, vector3.One[float64]()),
-	), nil
+	))
 }
 
-type ArrayNode = nodes.Struct[[]TRS, ArrayNodeData]
+type ArrayNode = nodes.Struct[ArrayNodeData]
 
 type ArrayNodeData struct {
-	Position nodes.NodeOutput[[]vector3.Float64]
-	Scale    nodes.NodeOutput[[]vector3.Float64]
-	Rotation nodes.NodeOutput[[]quaternion.Quaternion]
+	Position nodes.Output[[]vector3.Float64]
+	Scale    nodes.Output[[]vector3.Float64]
+	Rotation nodes.Output[[]quaternion.Quaternion]
 }
 
-func (tnd ArrayNodeData) Process() ([]TRS, error) {
+func (tnd ArrayNodeData) Out() nodes.StructOutput[[]TRS] {
 	positions := nodes.TryGetOutputValue(tnd.Position, nil)
 	rotations := nodes.TryGetOutputValue(tnd.Rotation, nil)
 	scales := nodes.TryGetOutputValue(tnd.Scale, nil)
@@ -67,5 +67,5 @@ func (tnd ArrayNodeData) Process() ([]TRS, error) {
 		transforms[i] = New(p, r, s)
 	}
 
-	return transforms, nil
+	return nodes.NewStructOutput(transforms)
 }

@@ -18,52 +18,52 @@ func init() {
 	generator.RegisterTypes(factory)
 }
 
-type NewNode = nodes.Struct[Quaternion, NewNodeData]
+type NewNode = nodes.Struct[NewNodeData]
 
 type NewNodeData struct {
-	X nodes.NodeOutput[float64]
-	Y nodes.NodeOutput[float64]
-	Z nodes.NodeOutput[float64]
-	W nodes.NodeOutput[float64]
+	X nodes.Output[float64]
+	Y nodes.Output[float64]
+	Z nodes.Output[float64]
+	W nodes.Output[float64]
 }
 
-func (cn NewNodeData) Process() (Quaternion, error) {
-	return New(
+func (cn NewNodeData) Out() nodes.StructOutput[Quaternion] {
+	return nodes.NewStructOutput(New(
 		vector3.New(
 			nodes.TryGetOutputValue(cn.X, 0.),
 			nodes.TryGetOutputValue(cn.Y, 0.),
 			nodes.TryGetOutputValue(cn.Z, 0.),
 		),
 		nodes.TryGetOutputValue(cn.W, 0),
-	), nil
+	))
 }
 
 // From Theta =================================================================
 
-type FromThetaNode = nodes.Struct[Quaternion, FromThetaNodeData]
+type FromThetaNode = nodes.Struct[FromThetaNodeData]
 
 type FromThetaNodeData struct {
-	Theta     nodes.NodeOutput[float64]
-	Direction nodes.NodeOutput[vector3.Float64]
+	Theta     nodes.Output[float64]
+	Direction nodes.Output[vector3.Float64]
 }
 
-func (cn FromThetaNodeData) Process() (Quaternion, error) {
-	return FromTheta(
+func (cn FromThetaNodeData) Out() nodes.StructOutput[Quaternion] {
+	return nodes.NewStructOutput(FromTheta(
 		nodes.TryGetOutputValue(cn.Theta, 0),
 		nodes.TryGetOutputValue(cn.Direction, vector3.Zero[float64]()),
-	), nil
+	))
 }
 
 // ============================================================================
 
-type FromThetaArrayNode = nodes.Struct[[]Quaternion, FromThetaArrayNodeData]
+type FromThetaArrayNode = nodes.Struct[FromThetaArrayNodeData]
 
 type FromThetaArrayNodeData struct {
-	Direction nodes.NodeOutput[[]vector3.Float64]
-	Theta     nodes.NodeOutput[[]float64]
+	Direction nodes.Output[[]vector3.Float64]
+	Theta     nodes.Output[[]float64]
 }
 
-func (snd FromThetaArrayNodeData) Process() ([]Quaternion, error) {
+func (snd FromThetaArrayNodeData) Out() nodes.StructOutput[[]Quaternion] {
 	directions := nodes.TryGetOutputValue(snd.Direction, nil)
 	thetaArr := nodes.TryGetOutputValue(snd.Theta, nil)
 
@@ -83,16 +83,16 @@ func (snd FromThetaArrayNodeData) Process() ([]Quaternion, error) {
 		out[i] = FromTheta(theta, direction)
 	}
 
-	return out, nil
+	return nodes.NewStructOutput(out)
 }
 
 // From Euler Angles ==========================================================
-type FromEulerAnglesNode = nodes.Struct[Quaternion, FromEulerAnglesNodeData]
+type FromEulerAnglesNode = nodes.Struct[FromEulerAnglesNodeData]
 
 type FromEulerAnglesNodeData struct {
-	Angles nodes.NodeOutput[vector3.Float64]
+	Angles nodes.Output[vector3.Float64]
 }
 
-func (cn FromEulerAnglesNodeData) Process() (Quaternion, error) {
-	return FromEulerAngles(nodes.TryGetOutputValue(cn.Angles, vector3.Zero[float64]())), nil
+func (cn FromEulerAnglesNodeData) Out() nodes.StructOutput[Quaternion] {
+	return nodes.NewStructOutput(FromEulerAngles(nodes.TryGetOutputValue(cn.Angles, vector3.Zero[float64]())))
 }

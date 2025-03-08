@@ -6,16 +6,16 @@ import (
 	"github.com/EliCDavis/polyform/nodes"
 )
 
-type SinArray = nodes.Struct[[]float64, SinArrayNodeData]
+type SinArray = nodes.Struct[SinArrayNodeData]
 
 type SinArrayNodeData struct {
-	Input     nodes.NodeOutput[[]float64]
-	Amplitude nodes.NodeOutput[float64]
+	Input     nodes.Output[[]float64]
+	Amplitude nodes.Output[float64]
 }
 
-func (snd SinArrayNodeData) Process() ([]float64, error) {
+func (snd SinArrayNodeData) Out() nodes.StructOutput[[]float64] {
 	if snd.Input == nil {
-		return nil, nil
+		return nodes.NewStructOutput[[]float64](nil)
 	}
 
 	scale := nodes.TryGetOutputValue(snd.Amplitude, 1)
@@ -26,19 +26,19 @@ func (snd SinArrayNodeData) Process() ([]float64, error) {
 		out[i] = math.Sin(v) * scale
 	}
 
-	return out, nil
+	return nodes.NewStructOutput(out)
 }
 
-type CosArray = nodes.Struct[[]float64, CosArrayNodeData]
+type CosArray = nodes.Struct[CosArrayNodeData]
 
 type CosArrayNodeData struct {
-	Input     nodes.NodeOutput[[]float64]
-	Amplitude nodes.NodeOutput[float64]
+	Input     nodes.Output[[]float64]
+	Amplitude nodes.Output[float64]
 }
 
-func (snd CosArrayNodeData) Process() ([]float64, error) {
+func (snd CosArrayNodeData) Out() nodes.StructOutput[[]float64] {
 	if snd.Input == nil {
-		return nil, nil
+		return nodes.NewStructOutput[[]float64](nil)
 	}
 
 	scale := nodes.TryGetOutputValue(snd.Amplitude, 1)
@@ -49,5 +49,5 @@ func (snd CosArrayNodeData) Process() ([]float64, error) {
 		out[i] = math.Cos(v) * scale
 	}
 
-	return out, nil
+	return nodes.NewStructOutput(out)
 }

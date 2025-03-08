@@ -15,18 +15,18 @@ import (
 	"github.com/fogleman/gg"
 )
 
-type GridNode = nodes.Struct[image.Image, GridNodeData]
+type GridNode = nodes.Struct[GridNodeData]
 
 type GridNodeData struct {
-	HorizontalLines nodes.NodeOutput[int]
-	VerticalLines   nodes.NodeOutput[int]
-	Dimensions      nodes.NodeOutput[int]
-	Color           nodes.NodeOutput[coloring.WebColor]
-	LineColor       nodes.NodeOutput[coloring.WebColor]
-	LineWidth       nodes.NodeOutput[float64]
+	HorizontalLines nodes.Output[int]
+	VerticalLines   nodes.Output[int]
+	Dimensions      nodes.Output[int]
+	Color           nodes.Output[coloring.WebColor]
+	LineColor       nodes.Output[coloring.WebColor]
+	LineWidth       nodes.Output[float64]
 }
 
-func (gnd GridNodeData) Process() (image.Image, error) {
+func (gnd GridNodeData) Out() nodes.StructOutput[image.Image] {
 	dimensions := gnd.Dimensions.Value()
 	img := image.NewRGBA(image.Rect(0, 0, dimensions, dimensions))
 
@@ -61,7 +61,7 @@ func main() {
 		Name:    "Grid Texture",
 		Version: "1.0.0",
 		Authors: []schema.Author{{Name: "Eli C Davis"}},
-		Files: map[string]nodes.NodeOutput[artifact.Artifact]{
+		Files: map[string]nodes.Output[artifact.Artifact]{
 			"grid.png": basics.NewImageNode(&GridNode{
 				Data: GridNodeData{
 					HorizontalLines: lines,

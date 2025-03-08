@@ -9,17 +9,20 @@ import (
 	"github.com/fogleman/gg"
 )
 
-type BrushedMetalNode = nodes.Struct[image.Image, BrushedMetalNodeNodeData]
+type BrushedMetalNode = nodes.Struct[BrushedMetalNodeNodeData]
 
 type BrushedMetalNodeNodeData struct {
-	Dimensions nodes.NodeOutput[int]
-	BaseColor  nodes.NodeOutput[coloring.WebColor]
-	BrushColor nodes.NodeOutput[coloring.WebColor]
-	BrushSize  nodes.NodeOutput[float64]
-	Count      nodes.NodeOutput[int]
+	Dimensions nodes.Output[int]
+	BaseColor  nodes.Output[coloring.WebColor]
+	BrushColor nodes.Output[coloring.WebColor]
+	BrushSize  nodes.Output[float64]
+	Count      nodes.Output[int]
 }
 
-func (gnd BrushedMetalNodeNodeData) Process() (image.Image, error) {
+// func (gnd BrushedMetalNodeNodeData) Out() nodes.StructOutput[image.Image] {
+// func (gnd BrushedMetalNodeNodeData) Out() nodes.StructOutput[image.Image] {
+
+func (gnd BrushedMetalNodeNodeData) Out() nodes.StructOutput[image.Image] {
 	dimensions := 512
 	if gnd.Dimensions != nil {
 		dimensions = gnd.Dimensions.Value()
@@ -51,5 +54,5 @@ func (gnd BrushedMetalNodeNodeData) Process() (image.Image, error) {
 
 	ctx.Stroke()
 
-	return ctx.Image(), nil
+	return nodes.NewStructOutput(ctx.Image())
 }

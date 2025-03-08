@@ -9,14 +9,14 @@ import (
 	"github.com/EliCDavis/vector/vector3"
 )
 
-type CirclePointsNode = nodes.Struct[[]vector3.Float64, CirclePointsNodeData]
+type CirclePointsNode = nodes.Struct[CirclePointsNodeData]
 
 type CirclePointsNodeData struct {
-	Count  nodes.NodeOutput[int]
-	Radius nodes.NodeOutput[float64]
+	Count  nodes.Output[int]
+	Radius nodes.Output[float64]
 }
 
-func (cpnd CirclePointsNodeData) Process() ([]vector3.Float64, error) {
+func (cpnd CirclePointsNodeData) Out() nodes.StructOutput[[]vector3.Float64] {
 	count := 0
 	radius := 1.
 
@@ -28,7 +28,7 @@ func (cpnd CirclePointsNodeData) Process() ([]vector3.Float64, error) {
 		radius = cpnd.Radius.Value()
 	}
 
-	return CirclePoints(count, radius), nil
+	return nodes.NewStructOutput(CirclePoints(count, radius))
 }
 
 func CirclePoints(count int, radius float64) []vector3.Float64 {
@@ -60,14 +60,14 @@ func Circle(times int, radius float64) []trs.TRS {
 	return transforms
 }
 
-type CircleNode = nodes.Struct[[]trs.TRS, CircleNodeData]
+type CircleNode = nodes.Struct[CircleNodeData]
 
 type CircleNodeData struct {
-	Radius nodes.NodeOutput[float64]
-	Times  nodes.NodeOutput[int]
+	Radius nodes.Output[float64]
+	Times  nodes.Output[int]
 }
 
-func (r CircleNodeData) Process() ([]trs.TRS, error) {
+func (r CircleNodeData) Out() nodes.StructOutput[[]trs.TRS] {
 	times := 0
 	radius := 0.
 
@@ -79,5 +79,5 @@ func (r CircleNodeData) Process() ([]trs.TRS, error) {
 		radius = r.Radius.Value()
 	}
 
-	return Circle(times, radius), nil
+	return nodes.NewStructOutput(Circle(times, radius))
 }

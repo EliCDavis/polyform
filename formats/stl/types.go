@@ -18,28 +18,30 @@ func init() {
 	generator.RegisterTypes(factory)
 }
 
-type ReadNode = nodes.Struct[modeling.Mesh, ReadNodeData]
+type ReadNode = nodes.Struct[ReadNodeData]
 
 type ReadNodeData struct {
-	Data nodes.NodeOutput[[]byte]
+	Data nodes.Output[[]byte]
 }
 
-func (gad ReadNodeData) Process() (modeling.Mesh, error) {
+func (gad ReadNodeData) Out() nodes.StructOutput[modeling.Mesh] {
 	if gad.Data == nil {
-		return modeling.EmptyMesh(modeling.TriangleTopology), nil
+		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
 	}
 
 	data := gad.Data.Value()
 	if len(data) == 0 {
-		return modeling.EmptyMesh(modeling.TriangleTopology), nil
+		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
 	}
 
 	cloud, err := ReadMesh(bytes.NewReader(data))
 	if err != nil {
-		return modeling.EmptyMesh(modeling.TriangleTopology), err
+		out := nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
+		out.LogError(err)
+		return out
 	}
 
-	return *cloud, nil
+	return nodes.NewStructOutput(*cloud)
 }
 
 // ============================================================================
@@ -56,12 +58,12 @@ func (Artifact) Mime() string {
 	return "application/sla"
 }
 
-type ArtifactNode = nodes.Struct[artifact.Artifact, ArtifactNodeData]
+type ArtifactNode = nodes.Struct[ArtifactNodeData]
 
 type ArtifactNodeData struct {
-	In nodes.NodeOutput[modeling.Mesh]
+	In nodes.Output[modeling.Mesh]
 }
 
-func (pn ArtifactNodeData) Process() (artifact.Artifact, error) {
-	return Artifact{Mesh: pn.In.Value()}, nil
+func (pn ArtifactNodeData) Out() nodes.StructOutput[artifact.Artifact] {
+	return nodes.NewStructOutput[artifact.Artifact](Artifact{Mesh: pn.In.Value()})
 }

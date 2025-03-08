@@ -23,15 +23,15 @@ type Segment struct {
 	height float64
 }
 
-type ChimneyNode = nodes.Struct[Segment, ChimneyNodeData]
+type ChimneyNode = nodes.Struct[ChimneyNodeData]
 
 type ChimneyNodeData struct {
-	FunnelWidth, FunnelHeight, TaperHeight, ShootWidth, ShootHeight nodes.NodeOutput[float64]
-	Rows                                                            nodes.NodeOutput[int]
-	Color                                                           nodes.NodeOutput[coloring.WebColor]
+	FunnelWidth, FunnelHeight, TaperHeight, ShootWidth, ShootHeight nodes.Output[float64]
+	Rows                                                            nodes.Output[int]
+	Color                                                           nodes.Output[coloring.WebColor]
 }
 
-func (cn ChimneyNodeData) Process() (Segment, error) {
+func (cn ChimneyNodeData) Out() nodes.StructOutput[Segment] {
 	taperHeight := cn.TaperHeight.Value()
 	shootHeight := cn.ShootHeight.Value()
 	funnelHeight := cn.FunnelHeight.Value()
@@ -85,15 +85,15 @@ func (cn ChimneyNodeData) Process() (Segment, error) {
 	}, nil
 }
 
-type ChasisNode = nodes.Struct[Segment, ChasisNodeData]
+type ChasisNode = nodes.Struct[ChasisNodeData]
 
 type ChasisNodeData struct {
-	Height, Width nodes.NodeOutput[float64]
-	Rows, Columns nodes.NodeOutput[int]
-	Color         nodes.NodeOutput[coloring.WebColor]
+	Height, Width nodes.Output[float64]
+	Rows, Columns nodes.Output[int]
+	Color         nodes.Output[coloring.WebColor]
 }
 
-func (cn ChasisNodeData) Process() (Segment, error) {
+func (cn ChasisNodeData) Out() nodes.StructOutput[Segment] {
 	height := cn.Height.Value()
 	width := cn.Width.Value()
 	rows := cn.Rows.Value()
@@ -128,15 +128,15 @@ func (cn ChasisNodeData) Process() (Segment, error) {
 	}, nil
 }
 
-type LegsNode = nodes.Struct[Segment, LegsNodeData]
+type LegsNode = nodes.Struct[LegsNodeData]
 
 type LegsNodeData struct {
-	Height, Width nodes.NodeOutput[float64]
-	NumLegs       nodes.NodeOutput[int]
-	LegColor      nodes.NodeOutput[coloring.WebColor]
+	Height, Width nodes.Output[float64]
+	NumLegs       nodes.Output[int]
+	LegColor      nodes.Output[coloring.WebColor]
 }
 
-func (ln LegsNodeData) Process() (Segment, error) {
+func (ln LegsNodeData) Out() nodes.StructOutput[Segment] {
 	height := ln.Height.Value()
 	width := ln.Width.Value()
 	numLegs := ln.NumLegs.Value()
@@ -172,14 +172,14 @@ func (ln LegsNodeData) Process() (Segment, error) {
 	}, nil
 }
 
-type FloorNode = nodes.Struct[Segment, FloorNodeData]
+type FloorNode = nodes.Struct[FloorNodeData]
 
 type FloorNodeData struct {
-	FloorHeight, Radius, WalkWidth nodes.NodeOutput[float64]
-	FloorColor, RailingColor       nodes.NodeOutput[coloring.WebColor]
+	FloorHeight, Radius, WalkWidth nodes.Output[float64]
+	FloorColor, RailingColor       nodes.Output[coloring.WebColor]
 }
 
-func (fn FloorNodeData) Process() (Segment, error) {
+func (fn FloorNodeData) Out() nodes.StructOutput[Segment] {
 
 	floorColor := fn.FloorColor.Value()
 	railingColor := fn.RailingColor.Value()
@@ -283,13 +283,13 @@ func PiShape(height, width float64) []vector2.Float64 {
 	}
 }
 
-type CombineSegmentsNode = nodes.Struct[artifact.Artifact, CombineSegmentsNodeData]
+type CombineSegmentsNode = nodes.Struct[CombineSegmentsNodeData]
 
 type CombineSegmentsNodeData struct {
-	Segments []nodes.NodeOutput[Segment]
+	Segments []nodes.Output[Segment]
 }
 
-func (csn CombineSegmentsNodeData) Process() (artifact.Artifact, error) {
+func (csn CombineSegmentsNodeData) Out() nodes.StructOutput[artifact.Artifact] {
 	offset := 0.
 	final := make([]gltf.PolyformModel, 0)
 	for _, segmentNode := range csn.Segments {
@@ -355,7 +355,7 @@ func main() {
 
 	firedheaterNode := &CombineSegmentsNode{
 		Data: CombineSegmentsNodeData{
-			Segments: []nodes.NodeOutput[Segment]{
+			Segments: []nodes.Output[Segment]{
 				&LegsNode{
 					Data: LegsNodeData{
 						Height: &parameter.Float64{
@@ -472,7 +472,7 @@ func main() {
 			Lighting:   coloring.WebColor{R: 0xff, G: 0xfd, B: 0xd1, A: 255},
 			Ground:     coloring.WebColor{R: 0x87, G: 0x82, B: 0x78, A: 255},
 		},
-		Files: map[string]nodes.NodeOutput[artifact.Artifact]{
+		Files: map[string]nodes.Output[artifact.Artifact]{
 			"firedheater.glb": firedheaterNode,
 		},
 	}

@@ -6,18 +6,18 @@ import (
 	"github.com/EliCDavis/vector/vector3"
 )
 
-type ScaleWithinRegionNode = nodes.Struct[modeling.Mesh, ScaleWithinRegionNodeData]
+type ScaleWithinRegionNode = nodes.Struct[ScaleWithinRegionNodeData]
 
 type ScaleWithinRegionNodeData struct {
-	Mesh     nodes.NodeOutput[modeling.Mesh]
-	Scale    nodes.NodeOutput[float64]
-	Radius   nodes.NodeOutput[float64]
-	Position nodes.NodeOutput[vector3.Float64]
+	Mesh     nodes.Output[modeling.Mesh]
+	Scale    nodes.Output[float64]
+	Radius   nodes.Output[float64]
+	Position nodes.Output[vector3.Float64]
 }
 
-func (swrnd ScaleWithinRegionNodeData) Process() (modeling.Mesh, error) {
+func (swrnd ScaleWithinRegionNodeData) Out() nodes.StructOutput[modeling.Mesh] {
 	if swrnd.Mesh == nil {
-		return modeling.EmptyPointcloud(), nil
+		return nodes.NewStructOutput(modeling.EmptyPointcloud())
 	}
 
 	m := swrnd.Mesh.Value()
@@ -48,7 +48,7 @@ func (swrnd ScaleWithinRegionNodeData) Process() (modeling.Mesh, error) {
 		}
 	}
 
-	return m.
+	return nodes.NewStructOutput(m.
 		SetFloat3Attribute(modeling.PositionAttribute, newPos).
-		SetFloat3Attribute(modeling.ScaleAttribute, newScale), nil
+		SetFloat3Attribute(modeling.ScaleAttribute, newScale))
 }

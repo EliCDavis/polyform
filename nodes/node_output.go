@@ -1,17 +1,12 @@
 package nodes
 
-type NodeOutput[T any] interface {
-	NodeOutputReference
-	Value() T
-}
-
-type Processor[T any] interface {
-	Process() (T, error)
-}
-
-func TryGetOutputValue[T any](output NodeOutput[T], fallback T) T {
+func TryGetOutputValue[T any](output Output[T], fallback T) T {
 	if output == nil {
 		return fallback
 	}
 	return output.Value()
+}
+
+func GetNodeOutputPort[T any](node Node, portName string) Output[T] {
+	return node.Outputs()[portName].(Output[T])
 }
