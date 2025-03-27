@@ -100,8 +100,12 @@ func TestAppCommand_Outline(t *testing.T) {
         "Node-0": {
             "type": "github.com/EliCDavis/polyform/generator/parameter.Value[string]",
             "name": "Welp",
-            "version": 0,
-            "dependencies": [],
+            "assignedInput": {},
+            "output": {
+                "Value": {
+                    "version": 0
+                }
+            },
             "parameter": {
                 "name": "Welp",
                 "description": "",
@@ -111,16 +115,19 @@ func TestAppCommand_Outline(t *testing.T) {
             }
         },
         "Node-1": {
-            "type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/generator/artifact.Artifact,github.com/EliCDavis/polyform/generator/artifact/basics.TextNodeData]",
+            "type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/generator/artifact/basics.TextNodeData]",
             "name": "test.txt",
-            "version": 0,
-            "dependencies": [
-                {
+            "assignedInput": {
+                "In": {
                     "dependencyID": "Node-0",
-                    "dependencyPort": "Out",
-                    "name": "In"
+                    "dependencyPort": "Value"
                 }
-            ]
+            },
+            "output": {
+                "Out": {
+                    "version": -1
+                }
+            }
         }
     },
     "types": [
@@ -129,12 +136,11 @@ func TestAppCommand_Outline(t *testing.T) {
             "info": "",
             "type": "github.com/EliCDavis/polyform/generator/parameter.Value[string]",
             "path": "generator/parameter",
-            "outputs": [
-                {
-                    "name": "Out",
+            "outputs": {
+                "Value": {
                     "type": "string"
                 }
-            ],
+            },
             "parameter": {
                 "name": "",
                 "description": "",
@@ -146,14 +152,13 @@ func TestAppCommand_Outline(t *testing.T) {
         {
             "displayName": "TextNodeData",
             "info": "",
-            "type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/generator/artifact.Artifact,github.com/EliCDavis/polyform/generator/artifact/basics.TextNodeData]",
+            "type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/generator/artifact/basics.TextNodeData]",
             "path": "generator/artifact/basics",
-            "outputs": [
-                {
-                    "name": "Out",
+            "outputs": {
+                "Out": {
                     "type": "github.com/EliCDavis/polyform/generator/artifact.Artifact"
                 }
-            ],
+            },
             "inputs": {
                 "In": {
                     "type": "string",
