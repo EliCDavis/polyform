@@ -134,17 +134,19 @@ func TestStruct_ArrayAdd_AddAndRemoveInputNodes(t *testing.T) {
 
 	valueNode := nodes.NewValue(4.)
 	inputToAdd := valueNode.Outputs()["Value"].(nodes.Output[float64])
-	n.Inputs()["Values"].(nodes.ArrayValueInputPort).Add(inputToAdd)
 
+	// Test Adding to the input port
+	n.Inputs()["Values"].(nodes.ArrayValueInputPort).Add(inputToAdd)
 	assert.Equal(t, 10., sumOutput.Value())
 	assert.Equal(t, 1, sumOutput.Version())
 
+	// Change the value thats added to the input port
 	valueNode.Set(5)
 	assert.Equal(t, 11., sumOutput.Value())
 	assert.Equal(t, 2, sumOutput.Version())
 
+	// Test removing from the input port
 	n.Inputs()["Values"].(nodes.ArrayValueInputPort).Remove(inputToAdd)
-
 	assert.Equal(t, 6., sumOutput.Value())
 	assert.Equal(t, 3, sumOutput.Version())
 }

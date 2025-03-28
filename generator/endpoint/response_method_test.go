@@ -67,5 +67,5 @@ func TestResponseMethod_ErrorPanicRecovery(t *testing.T) {
 
 	assert.Equal(t, 500, resp.StatusCode)
 	assert.Equal(t, "application/json", resp.Header.Get("Content-Type"))
-	assert.Equal(t, `{"error": "panic recover: yee haw"}`, string(body))
+	assert.Equal(t, `{"error":"panic recover: yee haw"}`, string(body))
 }
