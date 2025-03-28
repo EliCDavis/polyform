@@ -340,7 +340,7 @@ func rgbToFloatArr(c color.Color) [3]float64 {
 
 func (w *Writer) AddScene(scene PolyformScene) error {
 	for _, model := range scene.Models {
-		meshIndex, err := w.AddMesh(model)
+		meshIndex, err := w.AddModel(model)
 		if err != nil {
 			return fmt.Errorf("failed to add model %q: %w", model.Name, err)
 		} else if meshIndex == -1 {
@@ -424,7 +424,7 @@ func (w *Writer) AddScene(scene PolyformScene) error {
 	return nil
 }
 
-func (w *Writer) AddMesh(model PolyformModel) (_ int, err error) {
+func (w *Writer) AddModel(model PolyformModel) (_ int, err error) {
 	if model.Mesh == nil {
 		return -1, fmt.Errorf("%w: nil mesh in model %q", ErrInvalidInput, model.Name)
 	}

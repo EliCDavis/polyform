@@ -55,7 +55,15 @@ func (gad ArtifactNodeData) Out() nodes.StructOutput[artifact.Artifact] {
 		if m == nil {
 			continue
 		}
-		models = append(models, m.Value())
+		value := m.Value()
+
+		// TechDebt: Skip nodes without meshes as at the moment it'll cause stuff
+		// to error out
+		if value.Mesh == nil {
+			continue
+		}
+
+		models = append(models, value)
 	}
 
 	return nodes.NewStructOutput[artifact.Artifact](&Artifact{

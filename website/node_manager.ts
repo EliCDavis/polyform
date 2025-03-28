@@ -39,7 +39,7 @@ export class NodeManager {
 
     subscribers: Array<(change: NodeParameterChangeEvent) => void>;
 
-    producerTypes: Map<string, boolean>;
+    producerTypes: Map<string, string>;
 
     nodeTypeToLitePath: Map<string, string>;
 
@@ -60,7 +60,7 @@ export class NodeManager {
 
         this.nodeIdToNode = new Map<string, PolyNodeController>();
         this.nodeTypeToLitePath = new Map<string, string>();
-        this.producerTypes = new Map<string, boolean>();
+        this.producerTypes = new Map<string, string>();
         this.subscribers = [];
         this.initializedNodeTypes = false;
         this.serverUpdatingNodeConnections = false;
@@ -89,13 +89,17 @@ export class NodeManager {
         // console.log(nodeType, flowNode)
 
         this.requestManager.createNode(nodeType, (resp) => {
-            const isProducer = this.producerTypes.get(nodeType);
             const nodeID = resp.nodeID
             const nodeData = resp.data;
 
             // TODO: This is an ugo hack. Consider somehow making this apart of the metadata.
             // flowNode.nodeInstanceID = nodeID;
             flowNode.setProperty("instanceID", nodeID);
+
+            let producerOutPort: string = null
+            if (this.producerTypes.has(nodeType)) {
+                producerOutPort = this.producerTypes.get(nodeType);
+            }
 
             this.nodeIdToNode.set(
                 nodeID,
@@ -105,7 +109,7 @@ export class NodeManager {
                     nodeID,
                     nodeData,
                     this.app,
-                    isProducer,
+                    producerOutPort,
                     this.requestManager,
                     this.producerViewManager
                 )
@@ -171,16 +175,16 @@ export class NodeManager {
         }
     }
 
-    nodeTypeIsProducer(typeData: NodeType): boolean {
+    nodeTypeIsProducer(typeData: NodeType): string {
         if (typeData.outputs) {
 
             for (let output in typeData.outputs) {
                 if (typeData.outputs[output].type === "github.com/EliCDavis/polyform/generator/artifact.Artifact") {
-                    return true;
+                    return output;
                 }
             }
         }
-        return false
+        return null
     }
 
     convertPathToUppercase(dirtyPath: string): string {
@@ -226,7 +230,9 @@ export class NodeManager {
         }
 
         const isProducer = this.nodeTypeIsProducer(typeData);
-        this.producerTypes.set(typeData.type, isProducer);
+        if (isProducer) {
+            this.producerTypes.set(typeData.type, isProducer);
+        }
 
         if (typeData.outputs) {
             for (let outName in typeData.outputs) {
@@ -317,11 +323,16 @@ export class NodeManager {
             } else {
                 const flowNode = this.newNode(nodeData);
 
-                const isProducer = this.producerTypes.get(nodeData.type);
+                const isProducer = this.producerTypes.has(nodeData.type);
                 for (const [key, value] of Object.entries(newSchema.producers)) {
                     if (value.nodeID === nodeID) {
                         flowNode.setTitle(key);
                     }
+                }
+
+                let producerOutPort: string = null
+                if (this.producerTypes.has(nodeData.type)) {
+                    producerOutPort = this.producerTypes.get(nodeData.type);
                 }
 
                 this.nodeFlowGraph.addNode(flowNode);
@@ -336,7 +347,7 @@ export class NodeManager {
                     nodeID,
                     nodeData,
                     this.app,
-                    isProducer,
+                    producerOutPort,
                     this.requestManager,
                     this.producerViewManager
                 );

@@ -24,8 +24,17 @@ export function saveFileToDisk(theUrl: string, fileName: string): void {
     })
 }
 
+export interface SetProducerBody {
+    nodePort: string,
+    producer: string,
+}
 
-declare interface CreateNodeResponse {
+export interface StartedResponse {
+    time: string,
+    modelVersion: number
+}
+
+export interface CreateNodeResponse {
     nodeID: string;
     data: NodeInstance;
 }
@@ -164,11 +173,11 @@ export class RequestManager {
         xmlHttp.send(JSON.stringify(requestBody));
     }
 
-    getStartedTime(callback): void {
+    getStartedTime(callback?: ResponseCallback<StartedResponse>): void {
         this.fetchJSON("./started", callback);
     }
 
-    getSchema(callback: (g: GraphInstance) => void): void {
+    getSchema(callback: ResponseCallback<GraphInstance>): void {
         this.fetchJSON("./schema", callback);
     }
 
@@ -189,8 +198,8 @@ export class RequestManager {
         this.postTextBodyEmptyResponse("./parameter/description/" + inNodeID, value, callback);
     }
 
-    setProducerTitle(inNodeID: string, value: string, callback): void {
-        this.postTextBodyEmptyResponse("./producer/name/" + inNodeID, value, callback);
+    setProducerTitle(inNodeID: string, value: SetProducerBody, callback): void {
+        this.postJsonBodyEmptyResponse("./producer/name/" + inNodeID, value, callback);
     }
 
     getParameterValue(key: string, callback): void {

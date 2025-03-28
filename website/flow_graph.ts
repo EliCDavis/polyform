@@ -1,9 +1,9 @@
-import { NodeFlowGraph, Publisher } from "@elicdavis/node-flow";
+import { FlowNodeConfig, NodeFlowGraph, Publisher } from "@elicdavis/node-flow";
 
 const nodeCanvas = document.getElementById("light-canvas")
 
 const ParameterNodeBackgroundColor = "#233";
-const ParameterOutPortName = "Out";
+const ParameterOutPortName = "Value";
 const ParameterStyle = {
     title: {
         color: "#355"
@@ -22,7 +22,7 @@ const ParameterStyle = {
     }
 }
 
-const IntParameter = {
+const IntParameter: FlowNodeConfig = {
     title: "Int Parameter",
     subTitle: "Int",
     canEditTitle: true,
@@ -49,7 +49,7 @@ const IntParameter = {
     }
 }
 
-const FloarParameter = {
+const FloatParameter: FlowNodeConfig = {
     title: "Float64 Parameter",
     subTitle: "Float64",
     canEditTitle: true,
@@ -76,7 +76,7 @@ const FloarParameter = {
     }
 };
 
-const AABBParameter = {
+const AABBParameter: FlowNodeConfig = {
     title: "AABB Parameter",
     subTitle: "AABB",
     canEditTitle: true,
@@ -145,7 +145,7 @@ const AABBParameter = {
     }
 };
 
-const ImageParameter = {
+const ImageParameter: FlowNodeConfig = {
     title: "Image Parameter",
     subTitle: "Image",
     canEditTitle: true,
@@ -171,7 +171,7 @@ const ImageParameter = {
     }
 };
 
-const FileParameter = {
+const FileParameter: FlowNodeConfig = {
     title: "[]uint8 Parameter",
     subTitle: "File",
     canEditTitle: true,
@@ -190,7 +190,7 @@ const FileParameter = {
     }
 };
 
-const ColorParamter = {
+const ColorParamter: FlowNodeConfig = {
     title: "Color Parameter",
     subTitle: "Color",
     canEditTitle: true,
@@ -217,7 +217,7 @@ const ColorParamter = {
     }
 };
 
-const Vector3Parameter = {
+const Vector3Parameter: FlowNodeConfig = {
     title: "Vector3 Parameter",
     subTitle: "Vector3",
     canEditTitle: true,
@@ -256,7 +256,7 @@ const Vector3Parameter = {
     }
 };
 
-const Vector3ArrayParameter = {
+const Vector3ArrayParameter: FlowNodeConfig = {
     title: "Vector3 Array Parameter",
     subTitle: "Vector3 Array",
     canEditTitle: true,
@@ -275,7 +275,7 @@ const Vector3ArrayParameter = {
     }
 };
 
-const Vector2Parameter = {
+const Vector2Parameter: FlowNodeConfig = {
     title: "Vector2 Parameter",
     subTitle: "Vector2 Array",
     canEditTitle: true,
@@ -308,7 +308,7 @@ const Vector2Parameter = {
     }
 };
 
-const BoolParameters = {
+const BoolParameters: FlowNodeConfig = {
     title: "Bool Parameter",
     subTitle: "Bool",
     canEditTitle: true,
@@ -334,7 +334,7 @@ const BoolParameters = {
         }
     }
 };
-const StringParameter = {
+const StringParameter: FlowNodeConfig = {
     title: "String Parameter",
     subTitle: "String",
     canEditTitle: true,
@@ -373,7 +373,7 @@ export function CreateNodeFlowGraph(): FlowGraphInit {
         nodes: {
             "Parameters/bool": BoolParameters,
             "Parameters/int": IntParameter,
-            "Parameters/float64": FloarParameter,
+            "Parameters/float64": FloatParameter,
             "Parameters/coloring.WebColor": ColorParamter,
             "Parameters/string": StringParameter,
             "Parameters/geometry.AABB": AABBParameter,

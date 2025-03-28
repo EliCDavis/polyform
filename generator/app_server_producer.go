@@ -11,8 +11,8 @@ import (
 func producerNameEndpoint(graphInstance *graph.Instance, saver *GraphSaver) endpoint.Handler {
 
 	type SetProducer struct {
-		NodePort string
-		Producer string
+		NodePort string `json:"nodePort"`
+		Producer string `json:"producer"`
 	}
 
 	return endpoint.Handler{

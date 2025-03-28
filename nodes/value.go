@@ -20,7 +20,7 @@ func (sno valueOutputPort[T]) Name() string {
 }
 
 func (sno valueOutputPort[T]) Version() int {
-	return 0
+	return sno.Val.Version()
 }
 
 // ============================================================================

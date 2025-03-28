@@ -1,6 +1,7 @@
 package nodes
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -115,7 +116,12 @@ func (soc structOutputCache) Version(key string) int {
 		return -1
 	}
 
-	return val.version
+	version := val.version
+	if soc.Outdated(key) {
+		version++
+	}
+
+	return version
 
 }
 
@@ -130,10 +136,16 @@ func (soc structOutputCache) Outdated(key string) bool {
 }
 
 func (soc structOutputCache) Cache(key string, val any) {
+	version := soc.Version(key)
+	newVersion := version + 1
+	if version > -1 && soc.Outdated(key) {
+		newVersion--
+	}
+
 	soc.cache[key] = cachedStructOutput{
 		nodeInputVersions: soc.versioner.inputVersions(),
 		val:               val,
-		version:           soc.Version(key) + 1,
+		version:           newVersion,
 	}
 }
 
@@ -213,15 +225,61 @@ func (so StructOutput[T]) build(node Node, cache *structOutputCache, data any, f
 
 // ============================================================================
 
+type structArrayInput struct {
+	node     Node
+	data     dataProvider
+	port     string
+	datatype string
+}
+
+func (si *structArrayInput) Clear() {
+	refutil.SetStructField(si.data.Data(), si.port, nil)
+}
+
+func (si structArrayInput) Node() Node {
+	return si.node
+}
+
+func (si structArrayInput) Name() string {
+	return si.port
+}
+
+func (so structArrayInput) Type() string {
+	return so.datatype
+}
+
+func (si structArrayInput) Value() []OutputPort {
+	return refutil.FieldValuesOfTypeInArray[OutputPort](si.data.Data())[si.port]
+	// return refutil.FieldValue[[]OutputPort](si.data.Data(), si.port)
+}
+
+func (si structArrayInput) Add(port OutputPort) error {
+	refutil.AddToStructFieldArray(si.data.Data(), si.port, port)
+	return nil
+}
+
+func (si structArrayInput) Remove(port OutputPort) error {
+	vals := refutil.FieldValuesOfTypeInArray[OutputPort](si.data.Data())[si.port]
+	for i, v := range vals {
+		if v == port {
+			refutil.RemoveFromStructFieldArray(si.data.Data(), si.port, i)
+			return nil
+		}
+	}
+	return fmt.Errorf("array input port %s does not contain a reference to output port %s", si.Name(), port.Name())
+}
+
+// ============================================================================
+
 type structInput struct {
 	node     Node
-	data     any
+	data     dataProvider
 	port     string
 	datatype string
 }
 
 func (si *structInput) Clear() {
-	refutil.SetStructField(si.data, si.port, nil)
+	refutil.SetStructField(si.data.Data(), si.port, nil)
 }
 
 func (si structInput) Node() Node {
@@ -237,12 +295,28 @@ func (so structInput) Type() string {
 }
 
 func (si structInput) Value() OutputPort {
-	return refutil.FieldValue[OutputPort](si.data, si.port)
+	return refutil.FieldValue[OutputPort](si.data.Data(), si.port)
 }
 
 func (si structInput) Set(port OutputPort) error {
-	refutil.SetStructField(si.data, si.port, port)
+	refutil.SetStructField(si.data.Data(), si.port, port)
 	return nil
+}
+
+// ============================================================================
+
+// Hack to give input ports the ability to modify the Data field on a Struct
+// without the Data field being a pointer.
+type structDataProvider[T any] struct {
+	Node *Struct[T]
+}
+
+func (sdp structDataProvider[T]) Data() any {
+	return &sdp.Node.Data
+}
+
+type dataProvider interface {
+	Data() any
 }
 
 // ============================================================================
@@ -254,6 +328,11 @@ type Struct[T any] struct {
 }
 
 func (s *Struct[T]) Outputs() map[string]OutputPort {
+	// if s.Data == nil {
+	// 	var v T
+	// 	s.Data = &v
+	// }
+
 	funcs := refutil.FuncValuesOfType[outputPortBuilder](s.Data)
 	out := make(map[string]OutputPort)
 
@@ -265,7 +344,7 @@ func (s *Struct[T]) Outputs() map[string]OutputPort {
 	}
 
 	for functionName, zero := range funcs {
-		out[functionName] = zero.build(s, s.outputCache, s.Data, functionName)
+		out[functionName] = zero.build(s, s.outputCache, &s.Data, functionName)
 	}
 
 	return out
@@ -274,20 +353,32 @@ func (s *Struct[T]) Outputs() map[string]OutputPort {
 func (s *Struct[T]) Inputs() map[string]InputPort {
 	nodeInputs := make(map[string]InputPort)
 
+	// if s.Data == nil {
+	// 	var v T
+	// 	s.Data = &v
+	// }
+
 	refInput := refutil.GenericFieldTypes("nodes.Output", s.Data)
 	for name, dataType := range refInput {
 		nodeInputs[name] = &structInput{
 			node:     s,
-			data:     &s.Data,
+			data:     &structDataProvider[T]{Node: s},
 			port:     name,
 			datatype: dataType,
 		}
 	}
 
-	// refArrInput := refutil.GenericFieldTypes("[]nodes.NodeOutput", s.Data)
-	// for name, inputType := range refArrInput {
-	// 	nodeInputs = append(nodeInputs, Input{Name: name, Type: inputType, Array: true})
-	// }
+	refArrInput := refutil.GenericFieldTypes("[]nodes.Output", s.Data)
+	for name, dataType := range refArrInput {
+		// nodeInputs = append(nodeInputs, Input{Name: name, Type: inputType, Array: true})
+
+		nodeInputs[name] = &structArrayInput{
+			node:     s,
+			data:     &structDataProvider[T]{Node: s},
+			port:     name,
+			datatype: dataType,
+		}
+	}
 
 	return nodeInputs
 }

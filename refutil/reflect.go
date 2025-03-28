@@ -204,7 +204,7 @@ func FieldValue[T any](in any, field string) T {
 	viewKind := view.Kind()
 
 	// Dereference pointer
-	if viewKind == reflect.Ptr {
+	for viewKind == reflect.Ptr {
 		view = view.Elem()
 		viewKind = view.Kind()
 	}
@@ -460,7 +460,7 @@ func FieldValuesOfTypeInArray[T any](in any) map[string][]T {
 	viewKind := view.Kind()
 
 	// Dereference pointer
-	if viewKind == reflect.Ptr {
+	for viewKind == reflect.Ptr {
 		view = view.Elem()
 		viewKind = view.Kind()
 	}

@@ -120,7 +120,7 @@ export class PolyNodeController {
         id: string,
         nodeData: NodeInstance,
         app: ThreeApp,
-        isProducer: boolean,
+        producerOutput: string,
         requestManager: RequestManager,
         producerViewManager: ProducerViewManager
     ) {
@@ -129,7 +129,7 @@ export class PolyNodeController {
         this.id = id;
         this.app = app;
         this.nodeManager = nodeManager;
-        this.isProducer = isProducer;
+        this.isProducer = !!producerOutput;
         this.requestManager = requestManager;
         this.producerViewManager = producerViewManager;
 
@@ -177,10 +177,13 @@ export class PolyNodeController {
             // The only two times we can change title is if the node is a 
             // parameter, or if it's a producer.
 
-            if (isProducer) {
+            if (this.isProducer) {
                 this.requestManager.setProducerTitle(
                     this.flowNode.getProperty("instanceID"),
-                    newTitle,
+                    {
+                        nodePort: producerOutput,
+                        producer: newTitle
+                    },
                     () => { }
                 );
             } else {
@@ -194,7 +197,7 @@ export class PolyNodeController {
 
 
         // Only parameters can change their info
-        if (!isProducer) {
+        if (!this.isProducer) {
             this.flowNode.addInfoChangeListener((_, __, newTitle) => {
                 this.requestManager.setParameterInfo(
                     this.flowNode.getProperty("instanceID"),

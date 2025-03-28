@@ -556,18 +556,30 @@ func (i *Instance) DeleteNodeInputConnection(nodeId, portName string) {
 }
 
 func (i *Instance) ConnectNodes(nodeOutId, outPortName, nodeInId, inPortName string) {
+
+	cleanedInputName := inPortName
+	components := strings.Split(inPortName, ".")
+	if len(components) > 1 {
+		cleanedInputName = components[0]
+		_, err := strconv.ParseInt(components[1], 10, 64)
+		if err != nil {
+			panic(fmt.Errorf("unable to parse index from %s: %w", inPortName, err))
+		}
+	}
+
 	inNode := i.Node(nodeInId)
 	inputs := inNode.Inputs()
-	input, ok := inputs[inPortName]
+
+	input, ok := inputs[cleanedInputName]
 	if !ok {
-		panic(fmt.Errorf("node %q contains no in-port %q", nodeInId, inPortName))
+		panic(fmt.Errorf("node %q contains no in-port %q", nodeInId, cleanedInputName))
 	}
 
 	outNode := i.Node(nodeOutId)
 	outputs := outNode.Outputs()
 	output, ok := outputs[outPortName]
 	if !ok {
-		panic(fmt.Errorf("node %q contains no in-port %q", nodeOutId, outPortName))
+		panic(fmt.Errorf("node %q contains no out-port %q", nodeOutId, outPortName))
 	}
 
 	if single, ok := input.(nodes.SingleValueInputPort); ok {
@@ -575,7 +587,7 @@ func (i *Instance) ConnectNodes(nodeOutId, outPortName, nodeInId, inPortName str
 	} else if array, ok := input.(nodes.ArrayValueInputPort); ok {
 		array.Add(output)
 	} else {
-		panic(fmt.Errorf("can not determine type of node %q's input %q", nodeInId, inPortName))
+		panic(fmt.Errorf("can not determine type of node %q's input %q", nodeInId, cleanedInputName))
 	}
 
 	i.incModelVersion()
