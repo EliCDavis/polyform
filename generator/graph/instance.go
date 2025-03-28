@@ -192,7 +192,19 @@ func (i *Instance) ApplyAppSchema(jsonPayload []byte) error {
 	for nodeID, instanceDetails := range appSchema.Nodes {
 		node := createdNodes[nodeID]
 		inputs := node.Inputs()
-		for inputName, dependency := range instanceDetails.AssignedInput {
+		for dirtyInputName, dependency := range instanceDetails.AssignedInput {
+
+			// TODO: There's an index associated with this input as to where
+			// it belongs in the array.
+			//
+			// If the order of elements ever mattered to a function, this would
+			// fuck things up bad.
+			inputName := dirtyInputName
+			components := strings.Split(inputName, ".")
+			if len(components) > 1 {
+				inputName = components[0]
+			}
+
 			input, ok := inputs[inputName]
 			if !ok {
 				panic(fmt.Errorf("Node %s has no input %s", nodeID, inputName))
@@ -207,8 +219,8 @@ func (i *Instance) ApplyAppSchema(jsonPayload []byte) error {
 
 			if single, ok := input.(nodes.SingleValueInputPort); ok {
 				single.Set(output)
-			} else if array, ok := input.(nodes.SingleValueInputPort); ok {
-				array.Set(output)
+			} else if array, ok := input.(nodes.ArrayValueInputPort); ok {
+				array.Add(output)
 			} else {
 				panic(fmt.Errorf("not sure how to assign node %q's input %q", nodeID, inputName))
 			}

@@ -1,4 +1,4 @@
-name: Teset
+name: Test
 
 on:
     push:
@@ -9,7 +9,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    name: Update coverage badge
+    name: Test
     steps:
       - name: Checkout
         uses: actions/checkout@v4
