@@ -7,8 +7,8 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
-import { ViewportSettings } from "./ViewportSettings";
-import { UpdateManager } from "./update-manager";
+import { ViewportSettings } from "./viewport_settings";
+import { UpdateManager } from "./update_manager";
 
 // https://threejs.org/examples/?q=Directional#webgl_lights_hemisphere
 // https://threejs.org/examples/#webgl_geometry_spline_editor

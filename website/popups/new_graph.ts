@@ -91,7 +91,7 @@ export class NewGraphPopup {
                 {
                     style: { "margin-top": "20px" },
                     children: [
-                        { tag: "button", text: "New", style: buttonStyle, onclick: this.closePopup.bind(this) },
+                        { tag: "button", text: "New", style: buttonStyle, onclick: this.newClicked.bind(this) },
                         { tag: "button", text: "Close", style: buttonStyle, onclick: this.closePopup.bind(this) }
                     ]
                 }
@@ -146,13 +146,28 @@ export class NewGraphPopup {
         this.description = evt.data;
     }
 
+
+    newClicked(): void {
+        this.closePopup();
+        this.newGraph({
+            author: this.author,
+            description: this.description,
+            name: this.name,
+            version: this.version
+        });
+    }
+
     newGraph(parameters: NewGraphParameters): void {
         this.closePopup();
         fetch("./new-graph", {
             method: "POST",
             body: JSON.stringify(parameters)
         }).then((resp) => {
-            location.reload();
+            if (resp.ok) {
+                location.reload();
+            } else {
+                console.error(resp);
+            }
         });
     }
 

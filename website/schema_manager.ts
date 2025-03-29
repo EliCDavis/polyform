@@ -1,6 +1,6 @@
 import { NodeManager } from "./node_manager";
 import { NoteManager } from "./note_manager";
-import { NewGraphPopup } from "./popups/NewGraphPopup";
+import { NewGraphPopup } from "./popups/new_graph";
 import { RequestManager } from "./requests";
 import { GraphInstance } from "./schema";
 

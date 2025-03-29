@@ -166,7 +166,7 @@ const ImageParameter: FlowNodeConfig = {
     style: ParameterStyle,
     metadata: {
         typeData: {
-            type: "github.com/EliCDavis/polyform/generator/parameter.Value[image.Image]"
+            type: "github.com/EliCDavis/polyform/generator/parameter.Image"
         }
     }
 };

@@ -3,7 +3,7 @@ import { XRControllerModelFactory } from 'three/examples/jsm/webxr/XRControllerM
 import { RepresentationType, WebSocketRepresentationManager } from "./websocket.js";
 import { AdditiveBlending, BufferGeometry, CircleGeometry, Float32BufferAttribute, Group, Line, LineBasicMaterial, Matrix4, Mesh, MeshBasicMaterial, Object3D, Quaternion, Raycaster, RingGeometry, Vector3, XRGripSpace, XRTargetRaySpace } from 'three';
 import { ThreeApp } from './three_app.js';
-import { UpdateEntry, UpdateManager } from './update-manager.js';
+import { UpdateEntry, UpdateManager } from './update_manager.js';
 
 interface Controller {
     target: XRTargetRaySpace;

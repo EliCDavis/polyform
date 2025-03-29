@@ -1,7 +1,7 @@
 import { BinaryReader } from './binary_reader';
 import { BinaryWriter } from './binary_writer';
 import { BufferGeometry, Color, Group, Material, Mesh, Object3D, Quaternion, Scene, Vector3 } from 'three';
-import { ViewportManager } from './viewport-manager';
+import { ViewportManager } from './viewport_manager';
 import { SchemaManager } from './schema_manager';
 import { CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer.js'
 

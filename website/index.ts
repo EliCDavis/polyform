@@ -4,17 +4,17 @@ import Stats from 'three/examples/jsm/libs/stats.module.js';
 import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
 
 import { XRManager } from './xr.js';
-import { UpdateManager } from './update-manager.js';
+import { UpdateManager } from './update_manager.js';
 import { NoteManager } from './note_manager.js';
 import { Color, MeshBasicMaterial, MeshPhongMaterial, SphereGeometry } from 'three';
-import { ViewportManager, ViewportSetting } from './viewport-manager.js';
+import { ViewportManager, ViewportSetting } from './viewport_manager.js';
 import { SchemaManager } from './schema_manager.js';
 import { ProducerViewManager } from './ProducerView/producer_view_manager.js';
 import { downloadBlob, RequestManager } from './requests.js';
 import { CreateNodeFlowGraph } from "./flow_graph.js";
 import { CreateThreeApp, ThreeApp } from "./three_app.js";
-import { ViewportSettings } from "./ViewportSettings.js";
-import { NewGraphPopup } from './popups/NewGraphPopup';
+import { ViewportSettings } from "./viewport_settings.js";
+import { NewGraphPopup } from './popups/new_graph.js';
 
 const graphPopup = new NewGraphPopup(globalThis.ExampleGraphs);
 
