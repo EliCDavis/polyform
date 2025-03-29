@@ -2,10 +2,13 @@ package endpoint
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 )
+
+type errorResponse struct {
+	Error string `json:"error"`
+}
 
 func readJSON[T any](body io.Reader) (T, error) {
 	var v T
@@ -19,7 +22,15 @@ func readJSON[T any](body io.Reader) (T, error) {
 func writeJSONError(w http.ResponseWriter, err error) error {
 	w.Header().Set("Content-Type", string(JsonContentType))
 	w.WriteHeader(http.StatusInternalServerError)
-	_, err = w.Write([]byte(fmt.Sprintf(`{"error": "%s"}`, err.Error())))
+
+	data, err := json.Marshal(errorResponse{
+		Error: err.Error(),
+	})
+	if err != nil {
+		return err
+	}
+
+	_, err = w.Write(data)
 	return err
 }
 

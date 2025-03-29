@@ -39,20 +39,20 @@ func TranslateAttribute3D(m modeling.Mesh, attribute string, amount vector3.Floa
 	return m.SetFloat3Attribute(attribute, scaledData)
 }
 
-type TranslateAttribute3DNode = nodes.Struct[modeling.Mesh, TranslateAttribute3DNodeData]
+type TranslateAttribute3DNode = nodes.Struct[TranslateAttribute3DNodeData]
 
 type TranslateAttribute3DNodeData struct {
-	Attribute nodes.NodeOutput[string]
-	Mesh      nodes.NodeOutput[modeling.Mesh]
-	Amount    nodes.NodeOutput[vector3.Float64]
+	Attribute nodes.Output[string]
+	Mesh      nodes.Output[modeling.Mesh]
+	Amount    nodes.Output[vector3.Float64]
 }
 
-func (ta3dn TranslateAttribute3DNodeData) Process() (modeling.Mesh, error) {
+func (ta3dn TranslateAttribute3DNodeData) Out() nodes.StructOutput[modeling.Mesh] {
 	attr := modeling.PositionAttribute
 
 	if ta3dn.Attribute != nil {
 		attr = ta3dn.Attribute.Value()
 	}
 
-	return TranslateAttribute3D(ta3dn.Mesh.Value(), attr, ta3dn.Amount.Value()), nil
+	return nodes.NewStructOutput(TranslateAttribute3D(ta3dn.Mesh.Value(), attr, ta3dn.Amount.Value()))
 }

@@ -44,15 +44,15 @@ func (q Quad) ToMesh() modeling.Mesh {
 		SetFloat2Data(v2Data)
 }
 
-type QuadNode = nodes.Struct[modeling.Mesh, QuadNodeData]
+type QuadNode = nodes.Struct[QuadNodeData]
 
 type QuadNodeData struct {
-	Width nodes.NodeOutput[float64]
-	Depth nodes.NodeOutput[float64]
-	UVs   nodes.NodeOutput[StripUVs]
+	Width nodes.Output[float64]
+	Depth nodes.Output[float64]
+	UVs   nodes.Output[StripUVs]
 }
 
-func (c QuadNodeData) Process() (modeling.Mesh, error) {
+func (c QuadNodeData) Out() nodes.StructOutput[modeling.Mesh] {
 	quad := Quad{
 		Width: 1,
 		Depth: 1,
@@ -71,5 +71,5 @@ func (c QuadNodeData) Process() (modeling.Mesh, error) {
 		quad.UVs = &uvs
 	}
 
-	return quad.ToMesh(), nil
+	return nodes.NewStructOutput(quad.ToMesh())
 }

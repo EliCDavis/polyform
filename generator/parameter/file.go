@@ -10,6 +10,28 @@ import (
 	"github.com/EliCDavis/polyform/nodes"
 )
 
+type fileNodeOutput struct {
+	Val *File
+}
+
+func (sno fileNodeOutput) Value() []byte {
+	return sno.Val.Value()
+}
+
+func (sno fileNodeOutput) Node() nodes.Node {
+	return sno.Val
+}
+
+func (sno fileNodeOutput) Name() string {
+	return valueOutputPortName
+}
+
+func (sno fileNodeOutput) Version() int {
+	return sno.Val.version
+}
+
+// ============================================================================
+
 type File struct {
 	Name         string
 	Description  string
@@ -26,18 +48,6 @@ func (in *File) SetName(name string) {
 
 func (in *File) SetDescription(description string) {
 	in.Description = description
-}
-
-func (in *File) Node() nodes.Node {
-	return in
-}
-
-func (in File) Port() string {
-	return "Out"
-}
-
-func (vn File) SetInput(input string, output nodes.Output) {
-	panic("input can not be set")
 }
 
 func (pn *File) DisplayName() string {
@@ -84,14 +94,6 @@ func (pn *File) Schema() schema.Parameter {
 	}
 }
 
-func (pn *File) Dependencies() []nodes.NodeDependency {
-	return nil
-}
-
-func (pn *File) State() nodes.NodeState {
-	return nodes.Processed
-}
-
 type FileNodeOutput struct {
 	Val *File
 }
@@ -108,29 +110,14 @@ func (sno FileNodeOutput) Port() string {
 	return "Out"
 }
 
-func (tn *File) Outputs() []nodes.Output {
-	return []nodes.Output{
-		{
-			Type: "[]uint8",
-			NodeOutput: FileNodeOutput{
-				Val: tn,
-			},
-		},
+func (tn *File) Outputs() map[string]nodes.OutputPort {
+	return map[string]nodes.OutputPort{
+		valueOutputPortName: fileNodeOutput{Val: tn},
 	}
 }
 
-func (tn *File) Out() FileNodeOutput {
-	return FileNodeOutput{
-		Val: tn,
-	}
-}
-
-func (tn File) Inputs() []nodes.Input {
-	return []nodes.Input{}
-}
-
-func (pn File) Version() int {
-	return pn.version
+func (tn File) Inputs() map[string]nodes.InputPort {
+	return nil
 }
 
 func (pn File) InitializeForCLI(set *flag.FlagSet) {

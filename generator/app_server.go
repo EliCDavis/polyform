@@ -100,8 +100,13 @@ func (as *AppServer) Handler(indexFile string) (*http.ServeMux, error) {
 		return nil, err
 	}
 
-	mux.HandleFunc(indexFile, func(w http.ResponseWriter, r *http.Request) {
+	htmlTemplate := template.New("")
+	_, err = htmlTemplate.Parse(string(htmlData))
+	if err != nil {
+		return nil, fmt.Errorf("unable to interpret html template: %w", err)
+	}
 
+	mux.HandleFunc(indexFile, func(w http.ResponseWriter, r *http.Request) {
 		pageToServe := pageData{
 			Title:         as.app.Name,
 			Version:       as.app.Version,
@@ -116,12 +121,10 @@ func (as *AppServer) Handler(indexFile string) (*http.ServeMux, error) {
 		w.Header().Add("Cross-Origin-Resource-Policy", "cross-origin")
 		w.Header().Add("Cross-Origin-Embedder-Policy", "require-corp")
 
-		t := template.New("")
-		_, err := t.Parse(string(htmlData))
+		err := htmlTemplate.Execute(w, pageToServe)
 		if err != nil {
 			panic(err)
 		}
-		t.Execute(w, pageToServe)
 	})
 
 	fSys, err := fs.Sub(htmlFs, "html")

@@ -17,15 +17,21 @@ func init() {
 	generator.RegisterTypes(factory)
 }
 
-type ReadReconstructionNode = nodes.Struct[modeling.Mesh, ReadReconstructionNodeData]
+type ReadReconstructionNode = nodes.Struct[ReadReconstructionNodeData]
 
 type ReadReconstructionNodeData struct {
-	In nodes.NodeOutput[[]byte]
+	In nodes.Output[[]byte]
 }
 
-func (pn ReadReconstructionNodeData) Process() (modeling.Mesh, error) {
+func (pn ReadReconstructionNodeData) Out() nodes.StructOutput[modeling.Mesh] {
 	if pn.In == nil {
-		return modeling.EmptyMesh(modeling.PointTopology), nil
+		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.PointTopology))
 	}
-	return ReadReconstructiontData(bytes.NewReader(pn.In.Value()))
+
+	data, err := ReadReconstructiontData(bytes.NewReader(pn.In.Value()))
+
+	out := nodes.NewStructOutput(data)
+	out.LogError(err)
+
+	return out
 }

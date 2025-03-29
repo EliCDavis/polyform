@@ -50,22 +50,22 @@ func FlatNormals(m modeling.Mesh) modeling.Mesh {
 	return m.SetFloat3Attribute(modeling.NormalAttribute, normals)
 }
 
-type FlatNormalsNode = nodes.Struct[modeling.Mesh, FlatNormalsNodeData]
+type FlatNormalsNode = nodes.Struct[FlatNormalsNodeData]
 
 type FlatNormalsNodeData struct {
-	Mesh nodes.NodeOutput[modeling.Mesh]
+	Mesh nodes.Output[modeling.Mesh]
 }
 
-func (fnnd FlatNormalsNodeData) Process() (modeling.Mesh, error) {
+func (fnnd FlatNormalsNodeData) Out() nodes.StructOutput[modeling.Mesh] {
 	if fnnd.Mesh == nil {
-		return modeling.EmptyMesh(modeling.TriangleTopology), nil
+		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
 	}
 
 	mesh := fnnd.Mesh.Value()
 
 	if !mesh.HasFloat3Attribute(modeling.PositionAttribute) || mesh.Topology() != modeling.TriangleTopology {
-		return modeling.EmptyMesh(modeling.TriangleTopology), nil
+		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
 	}
 
-	return FlatNormals(mesh), nil
+	return nodes.NewStructOutput(FlatNormals(mesh))
 }

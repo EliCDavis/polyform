@@ -73,7 +73,7 @@ func TestBodyMethod_ErrorReadingMalformedBody(t *testing.T) {
 
 	assert.Equal(t, 500, resp.StatusCode)
 	assert.Equal(t, "application/json", resp.Header.Get("Content-Type"))
-	assert.Equal(t, `{"error": "unexpected end of JSON input"}`, string(body))
+	assert.Equal(t, `{"error":"unexpected end of JSON input"}`, string(body))
 	assert.Equal(t, 0, readBody.Blah)
 }
 
@@ -105,6 +105,6 @@ func TestBodyMethod_PanicRecoveryRunningHandler(t *testing.T) {
 
 	assert.Equal(t, 500, resp.StatusCode)
 	assert.Equal(t, "application/json", resp.Header.Get("Content-Type"))
-	assert.Equal(t, `{"error": "panic recover: we freakin"}`, string(body))
+	assert.Equal(t, `{"error":"panic recover: we freakin"}`, string(body))
 	assert.Equal(t, 0, readBody.Blah)
 }

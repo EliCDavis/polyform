@@ -135,33 +135,33 @@ func SmoothNormalsImplicitWeld(m modeling.Mesh, distance float64) modeling.Mesh 
 	return m.SetFloat3Attribute(modeling.NormalAttribute, normals)
 }
 
-type SmoothNormalsNode = nodes.Struct[modeling.Mesh, SmoothNormalsNodeData]
+type SmoothNormalsNode = nodes.Struct[SmoothNormalsNodeData]
 
 type SmoothNormalsNodeData struct {
-	Mesh nodes.NodeOutput[modeling.Mesh]
+	Mesh nodes.Output[modeling.Mesh]
 }
 
-func (snn SmoothNormalsNodeData) Process() (modeling.Mesh, error) {
+func (snn SmoothNormalsNodeData) Out() nodes.StructOutput[modeling.Mesh] {
 	if snn.Mesh == nil {
-		return modeling.EmptyMesh(modeling.TriangleTopology), nil
+		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
 	}
-	return SmoothNormals(snn.Mesh.Value()), nil
+	return nodes.NewStructOutput(SmoothNormals(snn.Mesh.Value()))
 }
 
-type SmoothNormalsImplicitWeldNode = nodes.Struct[modeling.Mesh, SmoothNormalsImplicitWeldNodeData]
+type SmoothNormalsImplicitWeldNode = nodes.Struct[SmoothNormalsImplicitWeldNodeData]
 
 type SmoothNormalsImplicitWeldNodeData struct {
-	Mesh     nodes.NodeOutput[modeling.Mesh]
-	Distance nodes.NodeOutput[float64]
+	Mesh     nodes.Output[modeling.Mesh]
+	Distance nodes.Output[float64]
 }
 
-func (snn SmoothNormalsImplicitWeldNodeData) Process() (modeling.Mesh, error) {
+func (snn SmoothNormalsImplicitWeldNodeData) Out() nodes.StructOutput[modeling.Mesh] {
 	if snn.Mesh == nil {
-		return modeling.EmptyMesh(modeling.TriangleTopology), nil
+		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
 	}
 	distance := 0.
 	if snn.Distance != nil {
 		distance = snn.Distance.Value()
 	}
-	return SmoothNormalsImplicitWeld(snn.Mesh.Value(), distance), nil
+	return nodes.NewStructOutput(SmoothNormalsImplicitWeld(snn.Mesh.Value(), distance))
 }

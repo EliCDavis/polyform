@@ -16,7 +16,7 @@ type App struct {
 }
 
 type AppNodeInstance struct {
-	Type         string           `json:"type"`
-	Dependencies []NodeDependency `json:"dependencies,omitempty"`
-	Data         json.RawMessage  `json:"data,omitempty"`
+	Type          string                   `json:"type"`
+	AssignedInput map[string]PortReference `json:"assignedInput"`
+	Data          json.RawMessage          `json:"data,omitempty"`
 }

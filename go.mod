@@ -1,6 +1,6 @@
 module github.com/EliCDavis/polyform
 
-go 1.21.0
+go 1.22.0
 
 require (
 	github.com/EliCDavis/vector v1.8.0

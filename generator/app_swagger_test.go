@@ -7,10 +7,12 @@ import (
 	"github.com/EliCDavis/polyform/formats/swagger"
 	"github.com/EliCDavis/polyform/generator"
 	"github.com/EliCDavis/polyform/generator/artifact"
-	"github.com/EliCDavis/polyform/generator/artifact/basics"
 	"github.com/EliCDavis/polyform/generator/parameter"
+	"github.com/EliCDavis/polyform/math/geometry"
+	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/meshops"
 	"github.com/EliCDavis/polyform/nodes"
+	"github.com/EliCDavis/vector/vector3"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -24,8 +26,8 @@ func TestSwaggerFromGraph_SingleParameterSingleProducer(t *testing.T) {
 		Name:        appName,
 		Version:     appVersion,
 		Description: appDescription,
-		Files: map[string]nodes.NodeOutput[artifact.Artifact]{
-			producerFileName: basics.NewTextNode(&parameter.Value[string]{
+		Files: map[string]nodes.Output[artifact.Artifact]{
+			producerFileName: buildTextArifact(&parameter.Value[string]{
 				Name:         "Welp",
 				DefaultValue: "yee",
 			}),
@@ -102,29 +104,41 @@ func TestSwaggerFromGraph_SingleParameterSingleProducer(t *testing.T) {
 
 func TestSwaggerFromGraph_MultipleParametersSingleProducer(t *testing.T) {
 
+	aabb := &parameter.AABB{
+		Name:        "Bounding Box",
+		Description: "Box to crop gaussian splat by",
+	}
+
+	vec := &parameter.Vector3{
+		Name:        "Translation",
+		Description: "Amount to shift the mesh by",
+	}
+
+	mesh := &meshops.TranslateAttribute3DNode{
+		Data: meshops.TranslateAttribute3DNodeData{
+			Amount: nodes.GetNodeOutputPort[vector3.Float64](vec, "Value"),
+		},
+	}
+
+	crop := &meshops.CropAttribute3DNode{
+		Data: meshops.CropAttribute3DNodeData{
+			AABB: nodes.GetNodeOutputPort[geometry.AABB](aabb, "Value"),
+			Mesh: nodes.GetNodeOutputPort[modeling.Mesh](mesh, "Out"),
+		},
+	}
+
+	ply := &ply.ArtifactNode{
+		Data: ply.ArtifactNodeData{
+			In: nodes.GetNodeOutputPort[modeling.Mesh](crop, "Out"),
+		},
+	}
+
 	app := generator.App{
 		Name:        "Example Graph",
 		Version:     "1.0.0",
 		Description: "Example graph that contains multiple parameters",
-		Files: map[string]nodes.NodeOutput[artifact.Artifact]{
-			"example.glb": ply.NewPlyNode(
-				&meshops.CropAttribute3DNode{
-					Data: meshops.CropAttribute3DNodeData{
-						AABB: &parameter.AABB{
-							Name:        "Bounding Box",
-							Description: "Box to crop gaussian splat by",
-						},
-						Mesh: &meshops.TranslateAttribute3DNode{
-							Data: meshops.TranslateAttribute3DNodeData{
-								Amount: &parameter.Vector3{
-									Name:        "Translation",
-									Description: "Amount to shift the mesh by",
-								},
-							},
-						},
-					},
-				},
-			),
+		Files: map[string]nodes.Output[artifact.Artifact]{
+			"example.glb": nodes.GetNodeOutputPort[artifact.Artifact](ply, "Out"),
 		},
 	}
 

@@ -28,7 +28,7 @@ func swaggerDefinitionNameFromProducerPath(producerPath string) string {
 	return string(output) + "Request"
 }
 
-func buildSwaggerDefinitionForProducer(producer nodes.NodeOutput[artifact.Artifact]) swagger.Definition {
+func buildSwaggerDefinitionForProducer(producer nodes.Output[artifact.Artifact]) swagger.Definition {
 	props := make(map[string]swagger.Property)
 	params := graph.RecurseDependenciesType[graph.SwaggerParameter](producer.Node())
 

@@ -6,31 +6,31 @@ import (
 	"github.com/EliCDavis/vector/vector3"
 )
 
-type New = nodes.Struct[vector3.Float64, NewNodeData[float64]]
+type New = nodes.Struct[NewNodeData[float64]]
 
 type NewNodeData[T vector.Number] struct {
-	X nodes.NodeOutput[T]
-	Y nodes.NodeOutput[T]
-	Z nodes.NodeOutput[T]
+	X nodes.Output[T]
+	Y nodes.Output[T]
+	Z nodes.Output[T]
 }
 
-func (cn NewNodeData[T]) Process() (vector3.Vector[T], error) {
-	return vector3.New[T](
+func (cn NewNodeData[T]) Out() nodes.StructOutput[vector3.Vector[T]] {
+	return nodes.NewStructOutput(vector3.New[T](
 		nodes.TryGetOutputValue(cn.X, 0),
 		nodes.TryGetOutputValue(cn.Y, 0),
 		nodes.TryGetOutputValue(cn.Z, 0),
-	), nil
+	))
 }
 
-type NewArray = nodes.Struct[[]vector3.Float64, NewArrayNodeData]
+type NewArray = nodes.Struct[NewArrayNodeData]
 
 type NewArrayNodeData struct {
-	X nodes.NodeOutput[[]float64]
-	Y nodes.NodeOutput[[]float64]
-	Z nodes.NodeOutput[[]float64]
+	X nodes.Output[[]float64]
+	Y nodes.Output[[]float64]
+	Z nodes.Output[[]float64]
 }
 
-func (snd NewArrayNodeData) Process() ([]vector3.Float64, error) {
+func (snd NewArrayNodeData) Out() nodes.StructOutput[[]vector3.Float64] {
 	xArr := nodes.TryGetOutputValue(snd.X, nil)
 	yArr := nodes.TryGetOutputValue(snd.Y, nil)
 	zArr := nodes.TryGetOutputValue(snd.Z, nil)
@@ -56,5 +56,5 @@ func (snd NewArrayNodeData) Process() ([]vector3.Float64, error) {
 		out[i] = vector3.New(x, y, z)
 	}
 
-	return out, nil
+	return nodes.NewStructOutput(out)
 }

@@ -21,14 +21,25 @@ func init() {
 	generator.RegisterTypes(factory)
 }
 
-// ============================================================================
-type SumNode = nodes.Struct[float64, SumData[float64]]
+type AddNode = nodes.Struct[AddNodeData]
 
-type SumData[T vector.Number] struct {
-	Values []nodes.NodeOutput[T]
+type AddNodeData struct {
+	A nodes.Output[float64]
+	B nodes.Output[float64]
 }
 
-func (cn SumData[T]) Process() (T, error) {
+func (and AddNodeData) Out() nodes.StructOutput[float64] {
+	return nodes.NewStructOutput(and.A.Value() + and.B.Value())
+}
+
+// ============================================================================
+type SumNode = nodes.Struct[SumData[float64]]
+
+type SumData[T vector.Number] struct {
+	Values []nodes.Output[T]
+}
+
+func (cn SumData[T]) Out() nodes.StructOutput[T] {
 	var total T
 	for _, v := range cn.Values {
 		if v == nil {
@@ -36,18 +47,18 @@ func (cn SumData[T]) Process() (T, error) {
 		}
 		total += v.Value()
 	}
-	return total, nil
+	return nodes.NewStructOutput(total)
 }
 
 // ============================================================================
-type DifferenceNode = nodes.Struct[float64, DifferenceData[float64]]
+type DifferenceNode = nodes.Struct[DifferenceData[float64]]
 
 type DifferenceData[T vector.Number] struct {
-	A nodes.NodeOutput[T]
-	B nodes.NodeOutput[T]
+	A nodes.Output[T]
+	B nodes.Output[T]
 }
 
-func (cn DifferenceData[T]) Process() (T, error) {
+func (cn DifferenceData[T]) Out() nodes.StructOutput[T] {
 	var a T
 	var b T
 
@@ -58,18 +69,18 @@ func (cn DifferenceData[T]) Process() (T, error) {
 	if cn.B != nil {
 		b = cn.B.Value()
 	}
-	return a - b, nil
+	return nodes.NewStructOutput(a - b)
 }
 
 // ============================================================================
-type DivideNode = nodes.Struct[float64, DivideData[float64]]
+type DivideNode = nodes.Struct[DivideData[float64]]
 
 type DivideData[T vector.Number] struct {
-	Dividend nodes.NodeOutput[T]
-	Divisor  nodes.NodeOutput[T]
+	Dividend nodes.Output[T]
+	Divisor  nodes.Output[T]
 }
 
-func (cn DivideData[T]) Process() (T, error) {
+func (cn DivideData[T]) Out() nodes.StructOutput[T] {
 	var a T
 	var b T
 
@@ -80,18 +91,18 @@ func (cn DivideData[T]) Process() (T, error) {
 	if cn.Divisor != nil {
 		b = cn.Divisor.Value()
 	}
-	return a / b, nil
+	return nodes.NewStructOutput(a / b)
 }
 
 // ============================================================================
-type Multiply = nodes.Struct[float64, MultiplyData[float64]]
+type Multiply = nodes.Struct[MultiplyData[float64]]
 
 type MultiplyData[T vector.Number] struct {
-	A nodes.NodeOutput[T]
-	B nodes.NodeOutput[T]
+	A nodes.Output[T]
+	B nodes.Output[T]
 }
 
-func (cn MultiplyData[T]) Process() (T, error) {
+func (cn MultiplyData[T]) Out() nodes.StructOutput[T] {
 	var a T
 	var b T
 
@@ -103,19 +114,19 @@ func (cn MultiplyData[T]) Process() (T, error) {
 		b = cn.B.Value()
 	}
 
-	return a * b, nil
+	return nodes.NewStructOutput(a * b)
 }
 
 // ============================================================================
-type Round = nodes.Struct[int, RoundData[float64]]
+type Round = nodes.Struct[RoundData[float64]]
 
 type RoundData[T vector.Number] struct {
-	A nodes.NodeOutput[T]
+	A nodes.Output[T]
 }
 
-func (cn RoundData[T]) Process() (int, error) {
+func (cn RoundData[T]) Out() nodes.StructOutput[int] {
 	if cn.A == nil {
-		return 0, nil
+		return nodes.NewStructOutput(0)
 	}
-	return int(math.Round(float64(cn.A.Value()))), nil
+	return nodes.NewStructOutput(int(math.Round(float64(cn.A.Value()))))
 }

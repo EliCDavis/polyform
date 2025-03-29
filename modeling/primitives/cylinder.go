@@ -119,17 +119,17 @@ func (c Cylinder) ToMesh() modeling.Mesh {
 	return cylinderMesh
 }
 
-type CylinderNode = nodes.Struct[modeling.Mesh, CylinderNodeData]
+type CylinderNode = nodes.Struct[CylinderNodeData]
 
 type CylinderNodeData struct {
-	Sides  nodes.NodeOutput[int]
-	Height nodes.NodeOutput[float64]
-	Radius nodes.NodeOutput[float64]
-	Top    nodes.NodeOutput[bool]
-	Bottom nodes.NodeOutput[bool]
+	Sides  nodes.Output[int]
+	Height nodes.Output[float64]
+	Radius nodes.Output[float64]
+	Top    nodes.Output[bool]
+	Bottom nodes.Output[bool]
 }
 
-func (hnd CylinderNodeData) Process() (modeling.Mesh, error) {
+func (hnd CylinderNodeData) Out() nodes.StructOutput[modeling.Mesh] {
 	radius := 0.5
 	if hnd.Radius != nil {
 		radius = hnd.Radius.Value()
@@ -163,5 +163,5 @@ func (hnd CylinderNodeData) Process() (modeling.Mesh, error) {
 		NoBottom: !bottom,
 	}
 
-	return hemi.ToMesh(), nil
+	return nodes.NewStructOutput(hemi.ToMesh())
 }

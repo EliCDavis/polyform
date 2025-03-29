@@ -6,34 +6,34 @@ import (
 	"github.com/EliCDavis/vector/vector3"
 )
 
-type Sum = nodes.Struct[vector3.Float64, SumNodeData[float64]]
+type Sum = nodes.Struct[SumNodeData[float64]]
 
 type SumNodeData[T vector.Number] struct {
-	Values []nodes.NodeOutput[vector3.Vector[T]]
+	Values []nodes.Output[vector3.Vector[T]]
 }
 
-func (cn SumNodeData[T]) Process() (vector3.Vector[T], error) {
+func (cn SumNodeData[T]) Out() nodes.StructOutput[vector3.Vector[T]] {
 	var total vector3.Vector[T]
 	for _, v := range cn.Values {
 		total = total.Add(v.Value())
 	}
-	return total, nil
+	return nodes.NewStructOutput(total)
 }
 
-type ShiftArrayNode = nodes.Struct[[]vector3.Float64, ShiftArrayNodeData[float64]]
+type ShiftArrayNode = nodes.Struct[ShiftArrayNodeData[float64]]
 
 type ShiftArrayNodeData[T vector.Number] struct {
-	Array  nodes.NodeOutput[[]vector3.Vector[T]]
-	Amount nodes.NodeOutput[vector3.Vector[T]]
+	Array  nodes.Output[[]vector3.Vector[T]]
+	Amount nodes.Output[vector3.Vector[T]]
 }
 
-func (cn ShiftArrayNodeData[T]) Process() ([]vector3.Vector[T], error) {
+func (cn ShiftArrayNodeData[T]) Out() nodes.StructOutput[[]vector3.Vector[T]] {
 	if cn.Array == nil {
-		return nil, nil
+		return nodes.NewStructOutput[[]vector3.Vector[T]](nil)
 	}
 
 	if cn.Amount == nil {
-		return cn.Array.Value(), nil
+		return nodes.NewStructOutput(cn.Array.Value())
 	}
 
 	original := cn.Array.Value()
@@ -42,5 +42,5 @@ func (cn ShiftArrayNodeData[T]) Process() ([]vector3.Vector[T], error) {
 	for i, v := range original {
 		total[i] = v.Add(amount)
 	}
-	return total, nil
+	return nodes.NewStructOutput(total)
 }

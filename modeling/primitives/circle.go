@@ -80,14 +80,14 @@ func (c Circle) ToMesh() modeling.Mesh {
 		SetFloat2Data(meshV2Data)
 }
 
-type CircleUVsNode = nodes.Struct[CircleUVs, CircleUVsNodeData]
+type CircleUVsNode = nodes.Struct[CircleUVsNodeData]
 
 type CircleUVsNodeData struct {
-	Center nodes.NodeOutput[vector2.Float64]
-	Radius nodes.NodeOutput[float64]
+	Center nodes.Output[vector2.Float64]
+	Radius nodes.Output[float64]
 }
 
-func (c CircleUVsNodeData) Process() (CircleUVs, error) {
+func (c CircleUVsNodeData) Out() nodes.StructOutput[CircleUVs] {
 	uvs := CircleUVs{
 		Radius: 0.5,
 		Center: vector2.New(0.5, 0.5),
@@ -101,18 +101,18 @@ func (c CircleUVsNodeData) Process() (CircleUVs, error) {
 		uvs.Radius = c.Radius.Value()
 	}
 
-	return uvs, nil
+	return nodes.NewStructOutput(uvs)
 }
 
-type CircleNode = nodes.Struct[modeling.Mesh, CircleNodeData]
+type CircleNode = nodes.Struct[CircleNodeData]
 
 type CircleNodeData struct {
-	Radius nodes.NodeOutput[float64]
-	Sides  nodes.NodeOutput[int]
-	UVs    nodes.NodeOutput[CircleUVs]
+	Radius nodes.Output[float64]
+	Sides  nodes.Output[int]
+	UVs    nodes.Output[CircleUVs]
 }
 
-func (c CircleNodeData) Process() (modeling.Mesh, error) {
+func (c CircleNodeData) Out() nodes.StructOutput[modeling.Mesh] {
 	circle := Circle{
 		Radius: 0.5,
 		Sides:  12,
@@ -131,5 +131,5 @@ func (c CircleNodeData) Process() (modeling.Mesh, error) {
 		circle.UVs = &uvs
 	}
 
-	return circle.ToMesh(), nil
+	return nodes.NewStructOutput(circle.ToMesh())
 }

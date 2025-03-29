@@ -275,15 +275,15 @@ func (c Cube) calcUVs() []vector2.Float64 {
 	return uvs
 }
 
-type CubeNode = nodes.Struct[modeling.Mesh, CubeNodeData]
+type CubeNode = nodes.Struct[CubeNodeData]
 
 type CubeNodeData struct {
-	Width  nodes.NodeOutput[float64]
-	Height nodes.NodeOutput[float64]
-	Depth  nodes.NodeOutput[float64]
+	Width  nodes.Output[float64]
+	Height nodes.Output[float64]
+	Depth  nodes.Output[float64]
 }
 
-func (c CubeNodeData) Process() (modeling.Mesh, error) {
+func (c CubeNodeData) Out() nodes.StructOutput[modeling.Mesh] {
 	cube := Cube{
 		Height: 1,
 		Width:  1,
@@ -302,5 +302,5 @@ func (c CubeNodeData) Process() (modeling.Mesh, error) {
 		cube.Depth = c.Depth.Value()
 	}
 
-	return cube.UnweldedQuads(), nil
+	return nodes.NewStructOutput(cube.UnweldedQuads())
 }

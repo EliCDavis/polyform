@@ -28,7 +28,7 @@ type App struct {
 	Description string
 	WebScene    *schema.WebScene
 	Authors     []schema.Author
-	Files       map[string]nodes.NodeOutput[artifact.Artifact]
+	Files       map[string]nodes.Output[artifact.Artifact]
 
 	graphInstance *graph.Instance
 	Out           io.Writer

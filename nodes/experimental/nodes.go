@@ -12,6 +12,7 @@ func init() {
 	refutil.RegisterType[BrushedMetalNode](factory)
 	refutil.RegisterType[SampleNode](factory)
 	refutil.RegisterType[SeamlessPerlinNode](factory)
+	refutil.RegisterType[GridNode](factory)
 
 	generator.RegisterTypes(factory)
 }

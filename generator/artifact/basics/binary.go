@@ -7,7 +7,7 @@ import (
 	"github.com/EliCDavis/polyform/nodes"
 )
 
-type BinaryNode = nodes.Struct[artifact.Artifact, BinaryNodeData]
+type BinaryNode = nodes.Struct[BinaryNodeData]
 
 type Binary struct {
 	Data []byte
@@ -23,17 +23,9 @@ func (Binary) Mime() string {
 }
 
 type BinaryNodeData struct {
-	In nodes.NodeOutput[[]byte]
+	In nodes.Output[[]byte]
 }
 
-func (pn BinaryNodeData) Process() (artifact.Artifact, error) {
-	return Binary{Data: pn.In.Value()}, nil
-}
-
-func NewBinaryNode(bytesNode nodes.NodeOutput[[]byte]) nodes.NodeOutput[artifact.Artifact] {
-	return (&BinaryNode{
-		Data: BinaryNodeData{
-			In: bytesNode,
-		},
-	}).Out()
+func (pn BinaryNodeData) Out() nodes.StructOutput[artifact.Artifact] {
+	return nodes.NewStructOutput[artifact.Artifact](Binary{Data: pn.In.Value()})
 }

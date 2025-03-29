@@ -51,30 +51,30 @@ func SplineExlusive(curve curves.Spline, inbetween int) []trs.TRS {
 	return transforms
 }
 
-type SplineNode = nodes.Struct[[]trs.TRS, SplineNodeData]
+type SplineNode = nodes.Struct[SplineNodeData]
 
 type SplineNodeData struct {
-	Curve nodes.NodeOutput[curves.Spline]
-	Times nodes.NodeOutput[int]
+	Curve nodes.Output[curves.Spline]
+	Times nodes.Output[int]
 }
 
 func (rnd SplineNodeData) Description() string {
 	return "Creates an array of TRS matrices by sampling the curve"
 }
 
-func (r SplineNodeData) Process() ([]trs.TRS, error) {
+func (r SplineNodeData) Out() nodes.StructOutput[[]trs.TRS] {
 	if r.Curve == nil || r.Times == nil {
-		return nil, nil
+		return nodes.NewStructOutput[[]trs.TRS](nil)
 	}
 
 	times := r.Times.Value()
 	if times <= 0 {
-		return nil, nil
+		return nodes.NewStructOutput[[]trs.TRS](nil)
 	}
 
 	curve := r.Curve.Value()
 	if curve == nil {
-		return nil, nil
+		return nodes.NewStructOutput[[]trs.TRS](nil)
 	}
 
 	if times == 1 {
@@ -85,5 +85,5 @@ func (r SplineNodeData) Process() ([]trs.TRS, error) {
 		Spline(curve, 0)
 	}
 
-	return Spline(curve, times-2), nil
+	return nodes.NewStructOutput(Spline(curve, times-2))
 }

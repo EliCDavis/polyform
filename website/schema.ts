@@ -1,0 +1,56 @@
+export interface NodeOutput {
+    type: string;
+}
+
+export interface NodeInput {
+    type: string;
+    isArray: boolean;
+}
+
+export interface NodeType {
+    displayName: string;
+    info: string;
+    type: string;
+    path: string;
+    outputs?: { [key: string]: NodeOutput };
+    inputs?: { [key: string]: NodeInput };
+    parameter?: any;
+}
+
+export interface PortReference {
+    dependencyID: string;
+    dependencyPort: string;
+}
+
+export interface NodeInstanceOutputPort {
+    version: number;
+}
+
+export interface NodeInstanceOutput {
+    [key: string]: NodeInstanceOutputPort
+}
+
+export interface NodeInstanceAssignedInput {
+    [key: string]: PortReference
+}
+
+
+export interface NodeInstance {
+    type: string;
+    name: string;
+    assignedInput: NodeInstanceAssignedInput;
+    output: NodeInstanceOutput;
+    parameter?: any;
+    metadata?: { [key: string]: any };
+}
+
+export interface GraphInstanceNodes {
+    [key: string]: NodeInstance
+}
+
+export interface GraphInstance {
+    producers: { [key: string]: any };
+    nodes: GraphInstanceNodes;
+    types: NodeType[];
+    notes: { [key: string]: any };
+}

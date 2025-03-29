@@ -22,26 +22,29 @@ func WriteMermaid(a App, out io.Writer) error {
 
 	for id, n := range schema.Nodes {
 
-		if len(n.Dependencies) > 0 {
+		if len(n.AssignedInput) > 0 {
 			fmt.Fprintf(out, "\tsubgraph %s%s\n\tdirection LR\n", id, sanitizeMermaidName(n.Name))
 			fmt.Fprintf(out, "\tsubgraph %s-In[%s]\n\tdirection TB\n", id, "Input")
 		} else {
 			fmt.Fprintf(out, "\t%s%s\n", id, sanitizeMermaidName(n.Name))
 		}
 
-		for depIndex, dep := range n.Dependencies {
-			fmt.Fprintf(out, "\t%s-%d(%s)\n", id, depIndex, sanitizeMermaidName(dep.Name))
+		depIndex := 0
+		for name := range n.AssignedInput {
+			fmt.Fprintf(out, "\t%s-%d(%s)\n", id, depIndex, sanitizeMermaidName(name))
+			depIndex++
 		}
 
-		if len(n.Dependencies) > 0 {
+		if len(n.AssignedInput) > 0 {
 			fmt.Fprint(out, "\tend\n")
 			fmt.Fprint(out, "\tend\n")
 		}
 	}
 
 	for id, n := range schema.Nodes {
-		for depIndex, d := range n.Dependencies {
-			fmt.Fprintf(out, "\t%s --> %s-%d\n", d.DependencyID, id, depIndex)
+		depIndex := 0
+		for _, d := range n.AssignedInput {
+			fmt.Fprintf(out, "\t%s --> %s-%d\n", d.NodeId, id, depIndex)
 		}
 	}
 

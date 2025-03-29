@@ -21,20 +21,12 @@ func (ia Image) Write(w io.Writer) error {
 	return png.Encode(w, ia.Image)
 }
 
-type ImageNode = nodes.Struct[artifact.Artifact, ImageNodeData]
+type ImageNode = nodes.Struct[ImageNodeData]
 
 type ImageNodeData struct {
-	In nodes.NodeOutput[image.Image]
+	In nodes.Output[image.Image]
 }
 
-func (pn ImageNodeData) Process() (artifact.Artifact, error) {
-	return Image{Image: pn.In.Value()}, nil
-}
-
-func NewImageNode(imageNode nodes.NodeOutput[image.Image]) nodes.NodeOutput[artifact.Artifact] {
-	return (&ImageNode{
-		Data: ImageNodeData{
-			In: imageNode,
-		},
-	}).Out()
+func (pn ImageNodeData) Out() nodes.StructOutput[artifact.Artifact] {
+	return nodes.NewStructOutput[artifact.Artifact](Image{Image: pn.In.Value()})
 }

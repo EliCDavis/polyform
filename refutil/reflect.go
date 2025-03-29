@@ -96,14 +96,14 @@ func GetTypeNameWithoutPackage(in any) string {
 	return parts[len(parts)-1]
 }
 
-func FuncValuesOfType[T any](in any) []string {
+func FuncNamesOfType[T any](in any) []string {
 	viewPointerValue := reflect.ValueOf(in)
 
 	view := viewPointerValue
 	out := make([]string, 0)
 
 	viewType := view.Type()
-	for i := 0; i < viewType.NumMethod(); i++ {
+	for i := range viewType.NumMethod() {
 		method := viewType.Method(i)
 
 		methodType := method.Func.Type()
@@ -123,15 +123,48 @@ func FuncValuesOfType[T any](in any) []string {
 	return out
 }
 
-func CallFuncValuesOfType(in any, methodName string, args ...any) []any {
+func FuncValuesOfType[T any](in any) map[string]T {
+	viewPointerValue := reflect.ValueOf(in)
+
+	view := viewPointerValue
+	out := make(map[string]T)
+
+	viewType := view.Type()
+	for i := range viewType.NumMethod() {
+		method := viewType.Method(i)
+
+		methodType := method.Func.Type()
+		if methodType.NumOut() != 1 {
+			continue
+		}
+
+		methodOutType := methodType.Out(0)
+		var exampleVal *T
+		if !methodOutType.Implements(reflect.TypeOf(exampleVal).Elem()) {
+			continue
+		}
+
+		cast, ok := reflect.Zero(methodOutType).Interface().(T)
+		if !ok {
+			panic("what happened")
+		}
+		// log.Printf("cast: %v\b", cast)
+
+		out[method.Name] = cast
+	}
+
+	return out
+}
+
+func CallStructMethod(in any, methodName string, args ...any) []any {
 	method := reflect.ValueOf(in).MethodByName(methodName)
 	bitch := reflect.Value{}
 	if method == bitch {
-		panic(fmt.Errorf("no method %s found on %v", methodName, in))
+		panic(fmt.Errorf("no method %s found on %V", methodName, in))
 	}
 
 	argVals := make([]reflect.Value, len(args))
-	for i, arg := range argVals {
+	for i, arg := range args {
 		argVals[i] = reflect.ValueOf(arg)
 	}
 	vals := method.Call(argVals)
@@ -141,6 +174,79 @@ func CallFuncValuesOfType(in any, methodName string, args ...any) []any {
 		returnVals[i] = v.Interface()
 	}
 	return returnVals
+}
+
+func GetMethodsWithSingleArgument[T any](in any) map[string]string {
+
+	out := make(map[string]string)
+
+	inType := reflect.ValueOf(in)
+
+	for i := 0; i < inType.NumMethod(); i++ {
+		method := inType.Method(i)
+		methodType := method.Type()
+
+		// If the number of arguments isn't 1
+		if methodType.NumIn() != 1 {
+			continue
+		}
+
+		// out[method.String()]
+	}
+
+	return out
+}
+
+func FieldValue[T any](in any, field string) T {
+	viewPointerValue := reflect.ValueOf(in)
+
+	view := viewPointerValue
+	viewKind := view.Kind()
+
+	// Dereference pointer
+	for viewKind == reflect.Ptr {
+		view = view.Elem()
+		viewKind = view.Kind()
+	}
+
+	if viewKind != reflect.Struct {
+		panic(fmt.Errorf("views of type: '%s' can not be populated", viewKind.String()))
+	}
+
+	viewType := view.Type()
+
+	for i := 0; i < viewType.NumField(); i++ {
+		viewFieldValue := view.Field(i)
+		structField := viewType.Field(i)
+
+		viewFieldValueKind := viewFieldValue.Kind()
+		if viewFieldValue.CanInterface() && viewFieldValueKind == reflect.Interface {
+
+			if structField.Name != field {
+				continue
+			}
+
+			// Skip nodes that have not been set....
+			// TODO: Is this really what we want to do here?
+			if viewFieldValue.IsNil() {
+				var t T
+				return t
+			}
+
+			i := viewFieldValue.Interface()
+			perm, ok := i.(T)
+			if !ok {
+				// panic(fmt.Errorf("view field '%s' is an interface but not a permission which is not allowed", structField.Name))
+				continue
+			}
+			return perm
+		}
+
+		// panic(fmt.Errorf("unimplemented scenario where view's field '%s' is type %s", structField.Name, viewFieldValueKind.String()))
+	}
+
+	var t T
+	panic(fmt.Errorf("%T contains no field %q of type %T", in, field, t))
 }
 
 func FieldValuesOfType[T any](in any) map[string]T {
@@ -292,7 +398,7 @@ func AddToStructFieldArray(structToSet any, field string, val any) {
 	viewFieldValue.Set(newSlilce)
 }
 
-func GenericFieldValues(genericType string, in any) map[string]string {
+func StructFieldTypes(in any) map[string]string {
 	viewPointerValue := reflect.ValueOf(in)
 
 	view := viewPointerValue
@@ -312,7 +418,7 @@ func GenericFieldValues(genericType string, in any) map[string]string {
 
 	out := make(map[string]string)
 
-	for i := 0; i < viewType.NumField(); i++ {
+	for i := range viewType.NumField() {
 		viewFieldValue := view.Field(i)
 		structField := viewType.Field(i)
 
@@ -320,12 +426,30 @@ func GenericFieldValues(genericType string, in any) map[string]string {
 
 		// It really does suck this bad at the moment while this proposal is open
 		// https://stackoverflow.com/questions/73864711/get-type-parameter-from-a-generic-struct-using-reflection
-		if strings.Index(typeString, genericType+"[") == 0 && typeString[len(typeString)-1:] == "]" {
-			out[structField.Name] = typeString[len(genericType)+1 : len(typeString)-1]
-		}
+		// if strings.Index(typeString, genericType+"[") == 0 && typeString[len(typeString)-1:] == "]" {
+		// out[structField.Name] = typeString[len(genericType)+1 : len(typeString)-1]
+		// }
+
+		out[structField.Name] = typeString
 	}
 
 	return out
+}
+
+func GenericFieldTypes(genericType string, in any) map[string]string {
+	fields := StructFieldTypes(in)
+	result := make(map[string]string)
+
+	for structName, typeString := range fields {
+
+		// It really does suck this bad at the moment while this proposal is open
+		// https://stackoverflow.com/questions/73864711/get-type-parameter-from-a-generic-struct-using-reflection
+		if strings.Index(typeString, genericType+"[") == 0 && typeString[len(typeString)-1:] == "]" {
+			result[structName] = typeString[len(genericType)+1 : len(typeString)-1]
+		}
+	}
+
+	return result
 }
 
 func FieldValuesOfTypeInArray[T any](in any) map[string][]T {
@@ -336,7 +460,7 @@ func FieldValuesOfTypeInArray[T any](in any) map[string][]T {
 	viewKind := view.Kind()
 
 	// Dereference pointer
-	if viewKind == reflect.Ptr {
+	for viewKind == reflect.Ptr {
 		view = view.Elem()
 		viewKind = view.Kind()
 	}

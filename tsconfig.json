@@ -1,0 +1,28 @@
+{
+    "compilerOptions": {
+        "lib": [
+            // "ES2024",
+            "DOM"
+        ],
+        // "outDir": "./generator/html/js",
+        // "allowJs": true,
+        "outFile": "./generator/html/js/index.js",
+        // "target": "ESNext",
+        // "moduleResolution": ""
+        // "module": "System",
+        "paths": {
+            "@elicdavis/node-flow": [
+                "./node_modules/@elicdavis/node-flow/dist"
+            ],
+            "@elicdavis/node-flow/*": [
+                "./node_modules/@elicdavis/node-flow/dist/*"
+            ]
+        }
+    },
+    "include": [
+        "website/**/*.ts"
+    ],
+    "exclude": [
+        "node_modules"
+    ]
+}
