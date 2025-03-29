@@ -59,7 +59,6 @@ export function Element(config: ElementConfig): HTMLElement {
         newEle.textContent = config.text;
     }
 
-
     if (config.style) {
         for (const key in config.style) {
             newEle.style[key] = config.style[key];

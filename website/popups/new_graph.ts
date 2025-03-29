@@ -45,14 +45,14 @@ export class NewGraphPopup {
 
         const exampleGraph: ElementConfig = {
             children: [
-                { text: "Open Example", style: { "margin-left": "8px" } },
+                { text: "Open Example", style: { "margin-left": "8px", "font-weight": "bold" } },
                 { style: { "width": "170px" }, children: exampleButtons }
             ]
         };
 
         const newGraph: ElementConfig = {
             children: [
-                { text: "New" },
+                { text: "New", style: { "font-weight": "bold" } },
 
                 { text: "Graph New" },
                 { type: "text", name: "name", change: this.nameChange },
@@ -175,8 +175,11 @@ export class NewGraphPopup {
         this.closePopup();
         fetch("./load-example", { method: "POST", body: example })
             .then((resp) => {
-                console.log("loaded")
-                location.reload();
+                if (resp.ok) {
+                    location.reload();
+                } else {
+                    console.error(resp);
+                }
             });
     }
 } 
