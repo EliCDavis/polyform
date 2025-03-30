@@ -36,25 +36,6 @@ func writeJSONError(out io.Writer, err error) error {
 	return err
 }
 
-func writeJSON(out io.Writer, v any) error {
-	data, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	_, err = out.Write(data)
-	return err
-}
-
-func readJSON[T any](body io.Reader) (T, error) {
-	var v T
-	data, err := io.ReadAll(body)
-	if err != nil {
-		return v, err
-	}
-	return v, json.Unmarshal(data, &v)
-}
-
 type pageData struct {
 	Title         string
 	Version       string

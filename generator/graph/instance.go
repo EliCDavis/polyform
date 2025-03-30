@@ -63,6 +63,16 @@ func (i *Instance) NodeInstanceSchema(node nodes.Node) schema.NodeInstance {
 		Metadata:      metadata,
 	}
 
+	if param, ok := node.(Parameter); ok {
+		nodeInstance.Name = param.DisplayName()
+		nodeInstance.Parameter = param.Schema()
+	} else {
+		named, ok := node.(nodes.Named)
+		if ok {
+			nodeInstance.Name = named.Name()
+		}
+	}
+
 	for outputPortName, outputPort := range node.Outputs() {
 		nodeInstance.Output[outputPortName] = schema.NodeInstanceOutputPort{
 			Version: outputPort.Version(),
@@ -72,38 +82,38 @@ func (i *Instance) NodeInstanceSchema(node nodes.Node) schema.NodeInstance {
 	for inputPortName, inputPort := range node.Inputs() {
 
 		if single, ok := inputPort.(nodes.SingleValueInputPort); ok {
-			val := single.Value()
-			if val == nil {
+			port := single.Value()
+			if port == nil {
 				continue
 			}
 
+			dependencyID, ok := i.nodeIDs[port.Node()]
+			if !ok {
+				panic(fmt.Errorf("node %q input port %q references ouput port %q to a node we have no knowledge of", nodeInstance.Name, inputPort.Name(), port.Name()))
+			}
+
 			nodeInstance.AssignedInput[inputPortName] = schema.PortReference{
-				NodeId:   i.nodeIDs[val.Node()],
-				PortName: val.Name(),
+				NodeId:   dependencyID,
+				PortName: port.Name(),
 			}
 		}
 
 		if array, ok := inputPort.(nodes.ArrayValueInputPort); ok {
-			for valIndex, val := range array.Value() {
-				if val == nil {
+			for valIndex, port := range array.Value() {
+				if port == nil {
 					continue
 				}
 
+				dependencyID, ok := i.nodeIDs[port.Node()]
+				if !ok {
+					panic(fmt.Errorf("node %q input port %q references ouput port %q to a node we have no knowledge of", nodeInstance.Name, inputPort.Name(), port.Name()))
+				}
+
 				nodeInstance.AssignedInput[fmt.Sprintf("%s.%d", inputPortName, valIndex)] = schema.PortReference{
-					NodeId:   i.nodeIDs[val.Node()],
-					PortName: val.Name(),
+					NodeId:   dependencyID,
+					PortName: port.Name(),
 				}
 			}
-		}
-	}
-
-	if param, ok := node.(Parameter); ok {
-		nodeInstance.Name = param.DisplayName()
-		nodeInstance.Parameter = param.Schema()
-	} else {
-		named, ok := node.(nodes.Named)
-		if ok {
-			nodeInstance.Name = named.Name()
 		}
 	}
 
@@ -309,7 +319,7 @@ func (i *Instance) Schema() schema.GraphInstance {
 	for _, registeredType := range registeredTypes {
 		nodeInstance, ok := i.typeFactory.New(registeredType).(nodes.Node)
 		if !ok {
-			panic(fmt.Errorf("Registered type %q is not a node. Not sure how we got here :/", registeredType))
+			panic(fmt.Errorf("Registered type %q is not a node", registeredType))
 		}
 		if nodeInstance == nil {
 			panic("New registered type")

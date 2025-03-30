@@ -134,42 +134,57 @@ export class NodeManager {
         return sortable;
     }
 
+    findIndexOfInputPortWithName(node: FlowNode, portName: string): number {
+        for (let i = 0; i < node.inputs(); i++) {
+            if (node.inputPort(i).getDisplayName() === portName) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    findIndexOfOutputPortWithName(node: FlowNode, portName: string): number {
+        for (let i = 0; i < node.outputs(); i++) {
+            if (node.outputPort(i).getDisplayName() === portName) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
     updateNodeConnections(nodes: Array<{ id: string, node: NodeInstance }>): void {
         // console.log("nodes", nodes)
         for (let node of nodes) {
+
             const nodeID = node.id;
             const nodeData = node.node;
-            const inNode = this.nodeIdToNode.get(nodeID);
+            const nodeController = this.nodeIdToNode.get(nodeID);
 
-            for (let input in nodeData.assignedInput) {
-                const dep = nodeData.assignedInput[input];
-                let inputPortName = input;
+            for (const dirtyinputPortName in nodeData.assignedInput) {
+                let cleanedInputPortName = dirtyinputPortName;
 
                 // Inputs that are elements in array are named "Input.N"
-                if (inputPortName.indexOf(".") !== -1) {
-                    inputPortName = inputPortName.split(".")[0]
+                if (cleanedInputPortName.indexOf(".") !== -1) {
+                    cleanedInputPortName = cleanedInputPortName.split(".")[0]
                 }
 
-                const outNode = this.nodeIdToNode.get(dep.dependencyID);
-
-                let sourceInput = -1;
-                // console.log(source.flowNode)
-                for (let sourceInputIndex = 0; sourceInputIndex < inNode.flowNode.inputs(); sourceInputIndex++) {
-                    if (inNode.flowNode.inputPort(sourceInputIndex).getDisplayName() === inputPortName) {
-                        sourceInput = sourceInputIndex;
-                    }
-                }
-
-                if (sourceInput === -1) {
-                    console.error("failed to find source for ", dep)
+                const inputPort = nodeData.assignedInput[cleanedInputPortName];
+                const inputPortIndex = this.findIndexOfInputPortWithName(nodeController.flowNode, cleanedInputPortName);
+                if (inputPortIndex === -1) {
+                    console.error("failed to find source for ", inputPort)
                     continue;
                 }
 
-                // connectNodes(nodeOut: FlowNode, outPort: number, nodeIn: FlowNode, inPort): Connection | undefined {
-                // TODO: This only works for nodes with one output
+                const otherNode = this.nodeIdToNode.get(inputPort.dependencyID);
+                const outputPortIndex = this.findIndexOfOutputPortWithName(otherNode.flowNode, inputPort.dependencyPort);
+                if (outputPortIndex === -1) {
+                    console.error("failed to find output port", inputPort.dependencyPort, "on node", otherNode)
+                    continue;
+                }
+
                 this.nodeFlowGraph.connectNodes(
-                    outNode.flowNode, 0,
-                    inNode.flowNode, sourceInput,
+                    otherNode.flowNode, outputPortIndex,
+                    nodeController.flowNode, inputPortIndex,
                 )
             }
         }

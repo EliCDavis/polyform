@@ -28,6 +28,9 @@ func (co ConstOutput[T]) Node() nodes.Node {
 func (co ConstOutput[T]) Name() string {
 	return co.PortName
 }
+func (so ConstOutput[T]) Type() string {
+	return refutil.GetTypeWithPackage(new(T))
+}
 
 type Pi struct{}
 
@@ -35,7 +38,7 @@ func (Pi) Inputs() map[string]nodes.InputPort {
 	return nil
 }
 
-func (p Pi) Outputs() map[string]nodes.OutputPort {
+func (p *Pi) Outputs() map[string]nodes.OutputPort {
 	return map[string]nodes.OutputPort{
 		"Pi": ConstOutput[float64]{
 			Ref:      p,
