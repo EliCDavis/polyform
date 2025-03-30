@@ -13,6 +13,7 @@ func init() {
 	refutil.RegisterType[NewNode](factory)
 	refutil.RegisterType[FromThetaNode](factory)
 	refutil.RegisterType[FromThetaArrayNode](factory)
+	refutil.RegisterType[FromEulerAngleNode](factory)
 	refutil.RegisterType[FromEulerAnglesNode](factory)
 
 	generator.RegisterTypes(factory)
@@ -87,12 +88,29 @@ func (snd FromThetaArrayNodeData) Out() nodes.StructOutput[[]Quaternion] {
 }
 
 // From Euler Angles ==========================================================
+type FromEulerAngleNode = nodes.Struct[FromEulerAngleNodeData]
+
+type FromEulerAngleNodeData struct {
+	Angle nodes.Output[vector3.Float64]
+}
+
+func (cn FromEulerAngleNodeData) Out() nodes.StructOutput[Quaternion] {
+	return nodes.NewStructOutput(FromEulerAngle(nodes.TryGetOutputValue(cn.Angle, vector3.Zero[float64]())))
+}
+
 type FromEulerAnglesNode = nodes.Struct[FromEulerAnglesNodeData]
 
 type FromEulerAnglesNodeData struct {
-	Angles nodes.Output[vector3.Float64]
+	Angles nodes.Output[[]vector3.Float64]
 }
 
-func (cn FromEulerAnglesNodeData) Out() nodes.StructOutput[Quaternion] {
-	return nodes.NewStructOutput(FromEulerAngles(nodes.TryGetOutputValue(cn.Angles, vector3.Zero[float64]())))
+func (cn FromEulerAnglesNodeData) Out() nodes.StructOutput[[]Quaternion] {
+	angles := nodes.TryGetOutputValue(cn.Angles, nil)
+
+	out := make([]Quaternion, len(angles))
+	for i, v := range angles {
+		out[i] = FromEulerAngle(v)
+	}
+
+	return nodes.NewStructOutput(out)
 }

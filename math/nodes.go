@@ -80,17 +80,20 @@ type DivideData[T vector.Number] struct {
 	Divisor  nodes.Output[T]
 }
 
+func (DivideData[T]) Description() string {
+	return "Dividend / Divisor"
+}
+
 func (cn DivideData[T]) Out() nodes.StructOutput[T] {
-	var a T
-	var b T
+	var empty T
+	a := nodes.TryGetOutputValue(cn.Dividend, empty)
+	b := nodes.TryGetOutputValue(cn.Divisor, empty)
 
-	if cn.Dividend != nil {
-		a = cn.Dividend.Value()
+	// TODO: Eeeeehhhhhhhhhhhhhhhhhhhhh
+	if b == 0 {
+		return nodes.NewStructOutput(empty)
 	}
 
-	if cn.Divisor != nil {
-		b = cn.Divisor.Value()
-	}
 	return nodes.NewStructOutput(a / b)
 }
 

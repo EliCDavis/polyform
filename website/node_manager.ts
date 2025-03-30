@@ -79,21 +79,16 @@ export class NodeManager {
     }
 
     onNodeAddedCallback(flowNode: FlowNode): void {
-
         if (this.serverUpdatingNodeConnections) {
             return;
         }
 
-        // console.log(flowNode.metadata())
         const nodeType = flowNode.metadata().typeData.type
-        // console.log(nodeType, flowNode)
 
         this.requestManager.createNode(nodeType, (resp) => {
             const nodeID = resp.nodeID
             const nodeData = resp.data;
 
-            // TODO: This is an ugo hack. Consider somehow making this apart of the metadata.
-            // flowNode.nodeInstanceID = nodeID;
             flowNode.setProperty("instanceID", nodeID);
 
             let producerOutPort: string = null
@@ -153,9 +148,7 @@ export class NodeManager {
     }
 
     updateNodeConnections(nodes: Array<{ id: string, node: NodeInstance }>): void {
-        // console.log("nodes", nodes)
         for (let node of nodes) {
-
             const nodeID = node.id;
             const nodeData = node.node;
             const nodeController = this.nodeIdToNode.get(nodeID);
@@ -168,7 +161,7 @@ export class NodeManager {
                     cleanedInputPortName = cleanedInputPortName.split(".")[0]
                 }
 
-                const inputPort = nodeData.assignedInput[cleanedInputPortName];
+                const inputPort = nodeData.assignedInput[dirtyinputPortName];
                 const inputPortIndex = this.findIndexOfInputPortWithName(nodeController.flowNode, cleanedInputPortName);
                 if (inputPortIndex === -1) {
                     console.error("failed to find source for ", inputPort)
@@ -192,8 +185,7 @@ export class NodeManager {
 
     nodeTypeIsProducer(typeData: NodeType): string {
         if (typeData.outputs) {
-
-            for (let output in typeData.outputs) {
+            for (const output in typeData.outputs) {
                 if (typeData.outputs[output].type === "github.com/EliCDavis/polyform/generator/artifact.Artifact") {
                     return output;
                 }

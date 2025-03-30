@@ -54,6 +54,10 @@ func (trs TRS) Matrix() mat.Matrix4x4 {
 	}
 }
 
+func (trs TRS) RotateDirection(in vector3.Float64) vector3.Float64 {
+	return trs.rotation.Rotate(in)
+}
+
 // Transform a point by the TRS
 func (trs TRS) Transform(in vector3.Float64) vector3.Float64 {
 	return trs.rotation.Rotate(trs.scale.MultByVector(in)).Add(trs.position)

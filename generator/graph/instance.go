@@ -789,7 +789,9 @@ func BuildNodeTypeSchema(node nodes.Node) schema.NodeType {
 		typeSchema.Parameter = param.Schema()
 	}
 
-	if typed, ok := node.(nodes.Typed); ok {
+	if typed, ok := node.(nodes.Named); ok {
+		typeSchema.DisplayName = typed.Name()
+	} else if typed, ok := node.(nodes.Typed); ok {
 		typeSchema.DisplayName = typed.Type()
 	} else {
 		typeSchema.DisplayName = refutil.GetTypeName(node)

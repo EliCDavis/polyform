@@ -39,7 +39,7 @@ func TestToEulerAngles(t *testing.T) {
 			assert.InDelta(t, tc.want.Y(), eulerAngles.Y(), epsilon)
 			assert.InDelta(t, tc.want.Z(), eulerAngles.Z(), epsilon)
 
-			back := quaternion.FromEulerAngles(eulerAngles)
+			back := quaternion.FromEulerAngle(eulerAngles)
 			assert.InDelta(t, tc.input.Dir().X(), back.Dir().X(), epsilon)
 			assert.InDelta(t, tc.input.Dir().Y(), back.Dir().Y(), epsilon)
 			assert.InDelta(t, tc.input.Dir().Z(), back.Dir().Z(), epsilon)
