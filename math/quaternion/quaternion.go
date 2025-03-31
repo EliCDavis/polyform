@@ -150,7 +150,7 @@ func FromTheta(theta float64, v vector3.Float64) Quaternion {
 }
 
 // https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
-func FromEulerAngles(angles vector3.Float64) Quaternion {
+func FromEulerAngle(angles vector3.Float64) Quaternion {
 	cr := math.Cos(angles.X() * 0.5)
 	sr := math.Sin(angles.X() * 0.5)
 	cp := math.Cos(angles.Y() * 0.5)

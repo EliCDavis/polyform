@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/EliCDavis/jbtf"
+	"github.com/EliCDavis/polyform/generator/artifact"
 	"github.com/EliCDavis/polyform/generator/artifact/basics"
 	"github.com/EliCDavis/polyform/generator/graph"
 	"github.com/EliCDavis/polyform/generator/parameter"
@@ -16,15 +17,15 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type TestNode = nodes.Struct[float64, TestNodeData]
+type TestNode = nodes.Struct[TestNodeData]
 
 type TestNodeData struct {
-	A nodes.NodeOutput[float64]
-	B nodes.NodeOutput[int]
+	A nodes.Output[float64]
+	B nodes.Output[int]
 }
 
-func (bn TestNodeData) Process() (float64, error) {
-	return 0, nil
+func (bn TestNodeData) Out() nodes.StructOutput[float64] {
+	return nodes.NewStructOutput(0.)
 }
 
 func TestBuildNodeTypeSchema(t *testing.T) {
@@ -38,8 +39,7 @@ func TestBuildNodeTypeSchema(t *testing.T) {
 	assert.Equal(t, "int", schema.Inputs["B"].Type)
 
 	assert.Len(t, schema.Outputs, 1)
-	assert.Equal(t, "float64", schema.Outputs[0].Type)
-	assert.Equal(t, "Out", schema.Outputs[0].Name)
+	assert.Equal(t, "float64", schema.Outputs["Out"].Type)
 }
 
 func TestInstance_AddProducer_InitializeParameters_Artifacts(t *testing.T) {
@@ -50,8 +50,7 @@ func TestInstance_AddProducer_InitializeParameters_Artifacts(t *testing.T) {
 	assert.Len(t, instance.ProducerNames(), 0)
 	flags := flag.NewFlagSet("set", flag.PanicOnError)
 
-	// ACT ====================================================================
-	instance.AddProducer("test.txt", basics.NewTextNode(&parameter.String{
+	strParam := &parameter.String{
 		Name: "Welp",
 		CLI: &parameter.CliConfig[string]{
 			FlagName: "yeet",
@@ -59,7 +58,16 @@ func TestInstance_AddProducer_InitializeParameters_Artifacts(t *testing.T) {
 		},
 		DefaultValue: "yee",
 		Description:  "I'm a description",
-	}))
+	}
+
+	textNode := basics.TextNode{
+		Data: basics.TextNodeData{
+			In: nodes.GetNodeOutputPort[string](strParam, "Value"),
+		},
+	}
+
+	// ACT ====================================================================
+	instance.AddProducer("test.txt", nodes.GetNodeOutputPort[artifact.Artifact](&textNode, "Out"))
 	producerNames := instance.ProducerNames()
 	instance.InitializeParameters(flags)
 	assert.NoError(t, flags.Parse([]string{"-yeet", contentToSetViaFlag}))
@@ -92,8 +100,12 @@ func TestInstance_AddProducer_InitializeParameters_Artifacts(t *testing.T) {
 		"Node-0": {
 			"type": "github.com/EliCDavis/polyform/generator/parameter.Value[string]",
 			"name": "Welp",
-			"version": 0,
-			"dependencies": [],
+			"assignedInput": {},
+			"output": {
+				"Value": {
+					"version": 0
+				}
+			},
 			"parameter": {
 				"name": "Welp",
 				"description": "I'm a description",
@@ -103,16 +115,19 @@ func TestInstance_AddProducer_InitializeParameters_Artifacts(t *testing.T) {
 			}
 		},
 		"Node-1": {
-			"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/generator/artifact.Artifact,github.com/EliCDavis/polyform/generator/artifact/basics.TextNodeData]",
+			"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/generator/artifact/basics.TextNodeData]",
 			"name": "test.txt",
-			"version": 1,
-			"dependencies": [
-				{
+			"assignedInput": {
+				"In": {
 					"dependencyID": "Node-0",
-					"dependencyPort": "Out",
-					"name": "In"
+					"dependencyPort": "Value"
 				}
-			]
+			},
+			"output": {
+				"Out": {
+					"version": 0
+				}
+			}
 		}
 	},
 	"types": [
@@ -121,12 +136,11 @@ func TestInstance_AddProducer_InitializeParameters_Artifacts(t *testing.T) {
 			"info": "",
 			"type": "github.com/EliCDavis/polyform/generator/parameter.Value[string]",
 			"path": "generator/parameter",
-			"outputs": [
-				{
-					"name": "Out",
+			"outputs": {
+				"Value": {
 					"type": "string"
 				}
-			],
+			},
 			"parameter": {
 				"name": "",
 				"description": "",
@@ -138,14 +152,13 @@ func TestInstance_AddProducer_InitializeParameters_Artifacts(t *testing.T) {
 		{
 			"displayName": "TextNodeData",
 			"info": "",
-			"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/generator/artifact.Artifact,github.com/EliCDavis/polyform/generator/artifact/basics.TextNodeData]",
+			"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/generator/artifact/basics.TextNodeData]",
 			"path": "generator/artifact/basics",
-			"outputs": [
-				{
-					"name": "Out",
+			"outputs": {
+				"Out": {
 					"type": "github.com/EliCDavis/polyform/generator/artifact.Artifact"
 				}
-			],
+			},
 			"inputs": {
 				"In": {
 					"type": "string",
@@ -168,6 +181,7 @@ func TestInstance_AddProducer_InitializeParameters_Artifacts(t *testing.T) {
 		"nodes": {
 			"Node-0": {
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[string]",
+				"assignedInput": {},
 				"data": {
 					"name": "Welp",
 					"description": "I'm a description",
@@ -180,14 +194,13 @@ func TestInstance_AddProducer_InitializeParameters_Artifacts(t *testing.T) {
 				}
 			},
 			"Node-1": {
-				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/generator/artifact.Artifact,github.com/EliCDavis/polyform/generator/artifact/basics.TextNodeData]",
-				"dependencies": [
-					{
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/generator/artifact/basics.TextNodeData]",
+				"assignedInput": {
+					"In": {
 						"dependencyID": "Node-0",
-						"dependencyPort": "Out",
-						"name": "In"
+						"dependencyPort": "Value"
 					}
-				]
+				}
 			}
 		},
 		"producers": {

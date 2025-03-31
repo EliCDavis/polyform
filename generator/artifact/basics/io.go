@@ -20,20 +20,12 @@ func (IO) Mime() string {
 	return "application/octet-stream"
 }
 
-type IONode = nodes.Struct[artifact.Artifact, IONodeData]
+type IONode = nodes.Struct[IONodeData]
 
 type IONodeData struct {
-	In nodes.NodeOutput[io.Reader]
+	In nodes.Output[io.Reader]
 }
 
-func (pn IONodeData) Process() (artifact.Artifact, error) {
-	return IO{Reader: pn.In.Value()}, nil
-}
-
-func NewIONode(readerNode nodes.NodeOutput[io.Reader]) nodes.NodeOutput[artifact.Artifact] {
-	return (&IONode{
-		Data: IONodeData{
-			In: readerNode,
-		},
-	}).Out()
+func (pn IONodeData) Out() nodes.StructOutput[artifact.Artifact] {
+	return nodes.NewStructOutput[artifact.Artifact](IO{Reader: pn.In.Value()})
 }

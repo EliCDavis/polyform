@@ -82,19 +82,19 @@ func ScaleAttributeAlongNormal(m modeling.Mesh, attributeToScale, normalAttribut
 	return m.SetFloat3Attribute(attributeToScale, scaledData)
 }
 
-type ScaleAttributeAlongNormalNode = nodes.Struct[modeling.Mesh, ScaleAttributeAlongNormalNodeData]
+type ScaleAttributeAlongNormalNode = nodes.Struct[ScaleAttributeAlongNormalNodeData]
 
 type ScaleAttributeAlongNormalNodeData struct {
-	Mesh             nodes.NodeOutput[modeling.Mesh]
-	Amount           nodes.NodeOutput[float64]
-	AttributeToScale nodes.NodeOutput[string]
-	NormalAttribute  nodes.NodeOutput[string]
+	Mesh             nodes.Output[modeling.Mesh]
+	Amount           nodes.Output[float64]
+	AttributeToScale nodes.Output[string]
+	NormalAttribute  nodes.Output[string]
 }
 
-func (sa3dn ScaleAttributeAlongNormalNodeData) Process() (modeling.Mesh, error) {
+func (sa3dn ScaleAttributeAlongNormalNodeData) Out() nodes.StructOutput[modeling.Mesh] {
 
 	if sa3dn.Mesh == nil {
-		return modeling.EmptyMesh(modeling.TriangleTopology), nil
+		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
 	}
 
 	mesh := sa3dn.Mesh.Value()
@@ -105,7 +105,7 @@ func (sa3dn ScaleAttributeAlongNormalNodeData) Process() (modeling.Mesh, error) 
 	}
 
 	if !mesh.HasFloat3Attribute(attrToScale) {
-		return modeling.EmptyMesh(modeling.TriangleTopology), nil
+		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
 	}
 
 	attrNormal := modeling.NormalAttribute
@@ -114,7 +114,7 @@ func (sa3dn ScaleAttributeAlongNormalNodeData) Process() (modeling.Mesh, error) 
 	}
 
 	if !mesh.HasFloat3Attribute(attrNormal) {
-		return modeling.EmptyMesh(modeling.TriangleTopology), nil
+		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
 	}
 
 	ammount := 0.
@@ -122,7 +122,7 @@ func (sa3dn ScaleAttributeAlongNormalNodeData) Process() (modeling.Mesh, error) 
 		ammount = sa3dn.Amount.Value()
 	}
 
-	return ScaleAttributeAlongNormal(mesh, attrToScale, attrNormal, ammount), nil
+	return nodes.NewStructOutput(ScaleAttributeAlongNormal(mesh, attrToScale, attrNormal, ammount))
 }
 
 // ============================================================================
@@ -161,16 +161,16 @@ func ScaleAttribute2D(m modeling.Mesh, attribute string, origin, amount vector2.
 	return m.SetFloat2Attribute(attribute, scaledData)
 }
 
-type ScaleAttribute3DNode = nodes.Struct[modeling.Mesh, ScaleAttribute3DNodeData]
+type ScaleAttribute3DNode = nodes.Struct[ScaleAttribute3DNodeData]
 
 type ScaleAttribute3DNodeData struct {
-	Attribute nodes.NodeOutput[string]
-	Mesh      nodes.NodeOutput[modeling.Mesh]
-	Amount    nodes.NodeOutput[vector3.Float64]
-	Origin    nodes.NodeOutput[vector3.Float64]
+	Attribute nodes.Output[string]
+	Mesh      nodes.Output[modeling.Mesh]
+	Amount    nodes.Output[vector3.Float64]
+	Origin    nodes.Output[vector3.Float64]
 }
 
-func (sa3dn ScaleAttribute3DNodeData) Process() (modeling.Mesh, error) {
+func (sa3dn ScaleAttribute3DNodeData) Out() nodes.StructOutput[modeling.Mesh] {
 	attr := modeling.PositionAttribute
 	if sa3dn.Attribute != nil {
 		attr = sa3dn.Attribute.Value()
@@ -181,5 +181,5 @@ func (sa3dn ScaleAttribute3DNodeData) Process() (modeling.Mesh, error) {
 		origin = sa3dn.Origin.Value()
 	}
 
-	return ScaleAttribute3D(sa3dn.Mesh.Value(), attr, origin, sa3dn.Amount.Value()), nil
+	return nodes.NewStructOutput(ScaleAttribute3D(sa3dn.Mesh.Value(), attr, origin, sa3dn.Amount.Value()))
 }

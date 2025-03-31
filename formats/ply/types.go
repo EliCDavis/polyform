@@ -121,46 +121,35 @@ func (SplatPly) Mime() string {
 	return "application/octet-stream"
 }
 
-type ArtifactNode = nodes.Struct[artifact.Artifact, ArtifactNodeData]
+type ArtifactNode = nodes.Struct[ArtifactNodeData]
 
 type ArtifactNodeData struct {
-	In nodes.NodeOutput[modeling.Mesh]
+	In nodes.Output[modeling.Mesh]
 }
 
-func (pn ArtifactNodeData) Process() (artifact.Artifact, error) {
+func (pn ArtifactNodeData) Out() nodes.StructOutput[artifact.Artifact] {
 	if pn.In == nil {
-		return SplatPly{
-			Mesh: modeling.EmptyPointcloud(),
-		}, nil
-
+		return nodes.NewStructOutput[artifact.Artifact](SplatPly{Mesh: modeling.EmptyPointcloud()})
 	}
-	return SplatPly{Mesh: pn.In.Value()}, nil
+	return nodes.NewStructOutput[artifact.Artifact](SplatPly{Mesh: pn.In.Value()})
 }
 
-func NewPlyNode(meshNode nodes.NodeOutput[modeling.Mesh]) nodes.NodeOutput[artifact.Artifact] {
-	return (&ArtifactNode{
-		Data: ArtifactNodeData{
-			In: meshNode,
-		},
-	}).Out()
-}
-
-type ReadNode = nodes.Struct[modeling.Mesh, ReadNodeData]
+type ReadNode = nodes.Struct[ReadNodeData]
 
 type ReadNodeData struct {
-	In nodes.NodeOutput[[]byte]
+	In nodes.Output[[]byte]
 }
 
-func (pn ReadNodeData) Process() (modeling.Mesh, error) {
+func (pn ReadNodeData) Out() nodes.StructOutput[modeling.Mesh] {
 	if pn.In == nil {
-		return modeling.EmptyMesh(modeling.PointTopology), nil
+		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.PointTopology))
 	}
 
 	data := pn.In.Value()
 
 	mesh, err := ReadMesh(bytes.NewReader(data))
 	if err != nil {
-		return modeling.EmptyMesh(modeling.PointTopology), nil
+		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.PointTopology))
 	}
-	return *mesh, nil
+	return nodes.NewStructOutput(*mesh)
 }

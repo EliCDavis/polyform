@@ -8,20 +8,20 @@ import (
 	"github.com/EliCDavis/polyform/nodes"
 )
 
-type FilterNode = nodes.Struct[modeling.Mesh, FilterNodeData]
+type FilterNode = nodes.Struct[FilterNodeData]
 
 type FilterNodeData struct {
-	Splat nodes.NodeOutput[modeling.Mesh]
+	Splat nodes.Output[modeling.Mesh]
 
-	MinOpacity nodes.NodeOutput[float64]
-	MaxOpacity nodes.NodeOutput[float64]
-	MinVolume  nodes.NodeOutput[float64]
-	MaxVolume  nodes.NodeOutput[float64]
+	MinOpacity nodes.Output[float64]
+	MaxOpacity nodes.Output[float64]
+	MinVolume  nodes.Output[float64]
+	MaxVolume  nodes.Output[float64]
 }
 
-func (fnd FilterNodeData) Process() (modeling.Mesh, error) {
+func (fnd FilterNodeData) Out() nodes.StructOutput[modeling.Mesh] {
 	if fnd.Splat == nil {
-		return modeling.EmptyPointcloud(), nil
+		return nodes.NewStructOutput(modeling.EmptyPointcloud())
 	}
 
 	minOpacity := -math.MaxFloat64
@@ -63,5 +63,5 @@ func (fnd FilterNodeData) Process() (modeling.Mesh, error) {
 		indicesKept = append(indicesKept, i)
 	}
 
-	return meshops.RemovedUnreferencedVertices(m.SetIndices(indicesKept)), nil
+	return nodes.NewStructOutput(meshops.RemovedUnreferencedVertices(m.SetIndices(indicesKept)))
 }

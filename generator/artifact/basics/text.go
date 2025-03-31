@@ -20,20 +20,12 @@ func (Text) Mime() string {
 	return "text/plain"
 }
 
-type TextNode = nodes.Struct[artifact.Artifact, TextNodeData]
+type TextNode = nodes.Struct[TextNodeData]
 
 type TextNodeData struct {
-	In nodes.NodeOutput[string]
+	In nodes.Output[string]
 }
 
-func (tand TextNodeData) Process() (artifact.Artifact, error) {
-	return Text{Data: tand.In.Value()}, nil
-}
-
-func NewTextNode(textNode nodes.NodeOutput[string]) nodes.NodeOutput[artifact.Artifact] {
-	return (&TextNode{
-		Data: TextNodeData{
-			In: textNode,
-		},
-	}).Out()
+func (tand TextNodeData) Out() nodes.StructOutput[artifact.Artifact] {
+	return nodes.NewStructOutput[artifact.Artifact](Text{Data: tand.In.Value()})
 }

@@ -36,31 +36,31 @@ func (t genericTestStruct[T]) TypeWithPackage() string {
 	return refutil.GetTypeWithPackage(v)
 }
 
-func TestFuncValuesOfType(t *testing.T) {
+func TestFuncNamesOfType(t *testing.T) {
 	ts := TestStruct{}
-	v := refutil.FuncValuesOfType[error](ts)
+	v := refutil.FuncNamesOfType[error](ts)
 
 	assert.Len(t, v, 1)
-	assert.Equal(t, "ABC", v[0])
+	assert.Contains(t, v, "ABC")
 }
 
-func TestFuncValuesOfType_Interface(t *testing.T) {
+func TestFuncNamesOfType_Interface(t *testing.T) {
 	ts := TestStruct{}
 	var reader io.Reader = &ts
-	v := refutil.FuncValuesOfType[error](reader)
+	v := refutil.FuncNamesOfType[error](reader)
 
 	assert.Len(t, v, 1)
-	assert.Equal(t, "ABC", v[0])
+	assert.Contains(t, v, "ABC")
 }
 
 func TestGenericFieldValuesOfType(t *testing.T) {
 	ts := TestStruct{}
 
-	v := refutil.GenericFieldValues("vector3.Vector", ts)
+	v := refutil.GenericFieldTypes("vector3.Vector", ts)
 	assert.Len(t, v, 1)
 	assert.Equal(t, "float64", v["C"])
 
-	v = refutil.GenericFieldValues("vector3.Vector", &ts)
+	v = refutil.GenericFieldTypes("vector3.Vector", &ts)
 	assert.Len(t, v, 1)
 	assert.Equal(t, "float64", v["C"])
 }
@@ -283,4 +283,20 @@ func TestRemoveFromStructFieldArray(t *testing.T) {
 	assert.Len(t, s.A, 2)
 	assert.Equal(t, 1, s.A[0])
 	assert.Equal(t, 3, s.A[1])
+}
+
+func TestGetFieldValues(t *testing.T) {
+	ts := TestStruct{}
+
+	v := refutil.StructFieldTypes(ts)
+	assert.Len(t, v, 4)
+	assert.Equal(t, "int", v["A"])
+	assert.Equal(t, "bool", v["B"])
+	assert.Equal(t, "vector3.Vector[float64]", v["C"])
+	assert.Equal(t, "*vector3.Vector[float64]", v["D"])
+
+	// A int
+	// B bool
+	// C vector3.Float64
+	// D *vector3.Float64
 }

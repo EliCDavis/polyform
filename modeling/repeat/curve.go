@@ -22,11 +22,12 @@ func Spline(curve curves.Spline, inbetween int) []trs.TRS {
 		vector3.One[float64](),
 	)
 
-	return append(
-		SplineExlusive(curve, inbetween),
-		start,
-		end,
-	)
+	result := make([]trs.TRS, 0, inbetween+2)
+	result = append(result, start)
+	result = append(result, SplineExlusive(curve, inbetween)...)
+	result = append(result, end)
+
+	return result
 }
 
 // Like line, but we don't include meshes on the start and end points. Only the
@@ -37,7 +38,7 @@ func SplineExlusive(curve curves.Spline, inbetween int) []trs.TRS {
 
 	transforms := make([]trs.TRS, inbetween)
 
-	for i := 0; i < inbetween; i++ {
+	for i := range inbetween {
 		dist := inc * float64(i+1)
 		dir := curve.Dir(dist)
 
@@ -51,39 +52,39 @@ func SplineExlusive(curve curves.Spline, inbetween int) []trs.TRS {
 	return transforms
 }
 
-type SplineNode = nodes.Struct[[]trs.TRS, SplineNodeData]
+type SplineNode = nodes.Struct[SplineNodeData]
 
 type SplineNodeData struct {
-	Curve nodes.NodeOutput[curves.Spline]
-	Times nodes.NodeOutput[int]
+	Curve nodes.Output[curves.Spline]
+	Times nodes.Output[int]
 }
 
 func (rnd SplineNodeData) Description() string {
 	return "Creates an array of TRS matrices by sampling the curve"
 }
 
-func (r SplineNodeData) Process() ([]trs.TRS, error) {
+func (r SplineNodeData) Out() nodes.StructOutput[[]trs.TRS] {
 	if r.Curve == nil || r.Times == nil {
-		return nil, nil
+		return nodes.NewStructOutput[[]trs.TRS](nil)
 	}
 
 	times := r.Times.Value()
 	if times <= 0 {
-		return nil, nil
+		return nodes.NewStructOutput[[]trs.TRS](nil)
 	}
 
 	curve := r.Curve.Value()
 	if curve == nil {
-		return nil, nil
+		return nodes.NewStructOutput[[]trs.TRS](nil)
 	}
 
 	if times == 1 {
-		SplineExlusive(curve, 1)
+		return nodes.NewStructOutput(SplineExlusive(curve, 1))
 	}
 
 	if times == 2 {
-		Spline(curve, 0)
+		return nodes.NewStructOutput(Spline(curve, 0))
 	}
 
-	return Spline(curve, times-2), nil
+	return nodes.NewStructOutput(Spline(curve, times-2))
 }

@@ -5,25 +5,31 @@ import (
 	"github.com/EliCDavis/polyform/nodes"
 )
 
-type CombineNode = nodes.Struct[modeling.Mesh, CombineNodeData]
+type CombineNode = nodes.Struct[CombineNodeData]
 
 type CombineNodeData struct {
-	A nodes.NodeOutput[modeling.Mesh]
-	B nodes.NodeOutput[modeling.Mesh]
+	Meshes []nodes.Output[modeling.Mesh]
 }
 
-func (cnd CombineNodeData) Process() (modeling.Mesh, error) {
-	if cnd.A == nil && cnd.B == nil {
-		return modeling.EmptyMesh(modeling.TriangleTopology), nil
+func (cnd CombineNodeData) Out() nodes.StructOutput[modeling.Mesh] {
+
+	fallback := modeling.EmptyMesh(modeling.TriangleTopology)
+
+	if len(cnd.Meshes) == 0 {
+		return nodes.NewStructOutput(fallback)
 	}
 
-	if cnd.A == nil {
-		return cnd.B.Value(), nil
+	if len(cnd.Meshes) == 1 {
+		return nodes.NewStructOutput(nodes.TryGetOutputValue(cnd.Meshes[0], fallback))
 	}
 
-	if cnd.B == nil {
-		return cnd.A.Value(), nil
+	result := nodes.TryGetOutputValue(cnd.Meshes[0], fallback)
+	for i := 1; i < len(cnd.Meshes); i++ {
+		if cnd.Meshes[i] == nil {
+			continue
+		}
+		result = result.Append(cnd.Meshes[i].Value())
 	}
 
-	return cnd.A.Value().Append(cnd.B.Value()), nil
+	return nodes.NewStructOutput(result)
 }

@@ -4,46 +4,6 @@
 <head>
     <meta charset="utf-8">
     <title>{{.Title}}</title>
-    <script async src="https://unpkg.com/es-module-shims@1.8.0/dist/es-module-shims.js"></script>
-    <script type="importmap">
-        {
-          "imports": {
-            "three": "./js/three.0.172.0.module.min.js",
-            "three/core": "./js/three.core.min.js",
-            "three/addons/": "https://unpkg.com/three@0.172.0/examples/jsm/",
-            "@mkkellogg/gaussian-splats-3d": "./js/gaussian-splats-3d.module.min.js",
-            "node": "/js/node.js",
-            "xr": "/js/xr.js",
-            "node_manager": "/js/node_manager.js",
-            "binary_reader": "/js/binary_reader.js",
-            "binary_writer": "/js/binary_writer.js",
-            "websocket": "/js/websocket.js"
-          }
-        }
-    </script>
-    <script type="module" src="js/box.js"></script>
-    <script type="text/javascript" src="js/NodeFlow.js"></script>
-    <script type="module" src="js/update-manager.js"></script>
-    <script src="js/utils.js"></script>
-    <script src="js/info_manager.js"></script>
-    <script src="js/error_manager.js"></script>
-    <script src="js/requests.js"></script>
-    <script src="js/viewport-manager.js"></script>
-    <script type="module" src="js/binary_reader.js"></script>
-    <script type="module" src="js/binary_writer.js"></script>
-    <script type="module" src="js/websocket.js"></script>
-    <script type="module" src="js/nodes/basic_parameter.js"></script>
-    <script type="module" src="js/nodes/vector2_parameter.js"></script>
-    <script type="module" src="js/nodes/vector3_parameter.js"></script>
-    <script type="module" src="js/nodes/vector3_array_parameter.js"></script>
-    <script type="module" src="js/nodes/image_parameter.js"></script>
-    <script type="module" src="js/nodes/file_parameter.js"></script>
-    <script type="module" src="js/nodes/aabb_parameter.js"></script>
-    <script type="module" src="js/nodes/node.js"></script>
-    <script type="module" src="js/node_manager.js"></script>
-    <script type="module" src="js/note_manager.js"></script>
-    <script type="module" src="js/xr.js"></script>
-    <script src="js/schema_manager.js"></script>
     <style>
         html {
             height: 100%;
@@ -221,14 +181,6 @@
             width: 100%;
         }
 
-        #new-graph-popup {
-            position: fixed;
-            top: 20%;
-            width: 100%;
-            display: none;
-            justify-content: center;
-        }
-
         .new-graph-title {
             font-weight: bold;
             font-size: 20px;
@@ -249,6 +201,20 @@
             box-shadow: none;
         }
     </style>
+
+
+    <script>
+        globalThis.RenderingConfiguration = {
+            AntiAlias: "{{ .AntiAlias }}" === "true",
+            XrEnabled: "{{ .XrEnabled }}" === "true"
+        }
+
+        globalThis.ExampleGraphs = [
+            // {{range .ExampleGraphs }}
+            "{{.}}",
+            // {{ end }}
+        ]
+    </script>
 </head>
 
 <body>
@@ -256,14 +222,6 @@
         {{.Title}} - {{.Version}}<br />
         {{.Description}}
     </div>
-
-    <script>
-        const RenderingConfiguration = {
-            AntiAlias: "{{ .AntiAlias }}" === "true",
-            XrEnabled: "{{ .XrEnabled }}" === "true"
-        }
-    </script>
-
 
     <div id="watermark">
         <a href="https://github.com/EliCDavis/polyform">Polyform</a>
@@ -277,8 +235,6 @@
     <div style="position: absolute; display: flex;">
     </div>
 
-    <script type="module" src="js/index.js"></script>
-
     <div id="main-content">
         <div id="three-viewer-container">
             <canvas style="width: 100%; height: 100%;" id="three-canvas"></canvas>
@@ -291,76 +247,7 @@
         </div>
     </div>
 
-    <div id="new-graph-popup">
-        <div
-            style="background-color: #00000069; backdrop-filter: blur(10px); padding: 24px; border-radius: 24px; display: flex; flex-direction: column; align-items: center;">
-            <div style="display: flex;">
-                <div>
-                    <div class="new-graph-title">New</div>
-
-                    <div>Graph Name</div>
-                    <input type="text" id="graph-name" name="name">
-
-                    <div>Graph Description</div>
-                    <input type="text" id="graph-description" name="description">
-
-                    <div>Author</div>
-                    <input type="text" id="graph-author" name="author">
-
-                    <div>Version</div>
-                    <input type="text" id="graph-version" name="version">
-
-                </div>
-
-                <div style="margin: 80px;">OR</div>
-
-                <div>
-                    <div style="margin-left: 8px;" class="new-graph-title">Open Example</div>
-
-                    <div style="width: 170px;">
-                        {{range .ExampleGraphs }}
-                        <div class="example-graph-item" onclick="loadExample('{{.}}')">{{.}}</div>
-                        {{ end }}
-                    </div>
-                </div>
-            </div>
-
-            <div style="margin-top: 20px;">
-                <button onclick="newGraph()" style="padding: 8px; border-radius: 8px;">New</button>
-                <button onclick="closePopup()" style="padding: 8px; border-radius: 8px;">Close</button>
-            </div>
-        </div>
-    </div>
-
     <script>
-        function closePopup() {
-            document.getElementById("new-graph-popup").style.display = "none";
-        }
-
-        function loadExample(graphToLoad) {
-            closePopup();
-            fetch("./load-example", { method: "POST", body: graphToLoad })
-                .then((resp) => {
-                    console.log("loaded")
-                    location.reload();
-                });
-        }
-
-        function newGraph(graphToLoad) {
-            closePopup();
-            fetch("./new-graph", {
-                method: "POST",
-                body: JSON.stringify({
-                    "name": document.getElementById('graph-name').value,
-                    "author": document.getElementById('graph-author').value,
-                    "description": document.getElementById('graph-description').value,
-                    "version": document.getElementById('graph-version').value,
-                })
-            }).then((resp) => {
-                console.log("loaded")
-                location.reload();
-            });
-        }
 
         // https://phuoc.ng/collection/html-dom/create-resizable-split-views/
         document.addEventListener('DOMContentLoaded', function () {
@@ -447,371 +334,7 @@
         });
     </script>
 
-    <script>
-        const nodeCanvas = document.getElementById("light-canvas")
-
-        const ParameterNodeBackgroundColor = "#233";
-        const ParameterStyle = {
-            title: {
-                color: "#355"
-            },
-            idle: {
-                color: ParameterNodeBackgroundColor,
-            },
-            mouseOver: {
-                color: ParameterNodeBackgroundColor,
-            },
-            grabbed: {
-                color: ParameterNodeBackgroundColor,
-            },
-            selected: {
-                color: ParameterNodeBackgroundColor,
-            }
-        }
-
-        const PolyformNodesPublisher = new NodePublisher({
-            name: "Polyform",
-            version: "1.0.0",
-            nodes: {
-                "Parameters/int": {
-                    title: "Int Parameter",
-                    subTitle: "Int",
-                    canEditTitle: true,
-                    canEditInfo: true,
-                    outputs: [
-                        {
-                            name: "Out",
-                            type: "int"
-                        }
-                    ],
-                    widgets: [
-                        {
-                            type: "number",
-                            config: {
-                                property: "value"
-                            }
-                        }
-                    ],
-                    style: ParameterStyle,
-                    metadata: {
-                        typeData: {
-                            type: "github.com/EliCDavis/polyform/generator/parameter.Value[int]"
-                        }
-                    }
-                },
-                "Parameters/float64": {
-                    title: "Float64 Parameter",
-                    subTitle: "Float64",
-                    canEditTitle: true,
-                    canEditInfo: true,
-                    outputs: [
-                        {
-                            name: "Out",
-                            type: "float64"
-                        }
-                    ],
-                    widgets: [
-                        {
-                            type: "number",
-                            config: {
-                                property: "value"
-                            }
-                        }
-                    ],
-                    style: ParameterStyle,
-                    metadata: {
-                        typeData: {
-                            type: "github.com/EliCDavis/polyform/generator/parameter.Value[float64]"
-                        }
-                    }
-                },
-                "Parameters/geometry.AABB": {
-                    title: "AABB Parameter",
-                    subTitle: "AABB",
-                    canEditTitle: true,
-                    canEditInfo: true,
-                    outputs: [
-                        {
-                            name: "Out",
-                            type: "github.com/EliCDavis/polyform/math/geometry.AABB"
-                        }
-                    ],
-                    widgets: [
-                        {
-                            type: "text",
-                            config: {
-                                value: "min"
-                            }
-                        },
-                        {
-                            type: "number",
-                            config: {
-                                property: "min-x"
-                            }
-                        },
-                        {
-                            type: "number",
-                            config: {
-                                property: "min-y"
-                            }
-                        },
-                        {
-                            type: "number",
-                            config: {
-                                property: "min-z"
-                            }
-                        },
-                        {
-                            type: "text",
-                            config: {
-                                value: "max"
-                            }
-                        },
-                        {
-                            type: "number",
-                            config: {
-                                property: "max-x"
-                            }
-                        },
-                        {
-                            type: "number",
-                            config: {
-                                property: "max-y"
-                            }
-                        },
-                        {
-                            type: "number",
-                            config: {
-                                property: "max-z"
-                            }
-                        }
-                    ],
-                    style: ParameterStyle,
-                    metadata: {
-                        typeData: {
-                            type: "github.com/EliCDavis/polyform/generator/parameter.Value[github.com/EliCDavis/polyform/math/geometry.AABB]"
-                        }
-                    }
-                },
-                "Parameters/image.Image": {
-                    title: "Image Parameter",
-                    subTitle: "Image",
-                    canEditTitle: true,
-                    canEditInfo: true,
-                    outputs: [
-                        {
-                            name: "Out",
-                            type: "image.Image"
-                        }
-                    ],
-                    widgets: [
-                        {
-                            type: "image",
-                            config: {
-                            }
-                        }
-                    ],
-                    style: ParameterStyle,
-                    metadata: {
-                        typeData: {
-                            type: "github.com/EliCDavis/polyform/generator/parameter.Value[image.Image]"
-                        }
-                    }
-                },
-                "Parameters/[]uint8": {
-                    title: "[]uint8 Parameter",
-                    subTitle: "File",
-                    canEditTitle: true,
-                    canEditInfo: true,
-                    outputs: [
-                        {
-                            name: "Out",
-                            type: "[]uint8"
-                        }
-                    ],
-                    style: ParameterStyle,
-                    metadata: {
-                        typeData: {
-                            type: "github.com/EliCDavis/polyform/generator/parameter.File"
-                        }
-                    }
-                },
-                "Parameters/coloring.WebColor": {
-                    title: "Color Parameter",
-                    subTitle: "Color",
-                    canEditTitle: true,
-                    canEditInfo: true,
-                    outputs: [
-                        {
-                            name: "Out",
-                            type: "github.com/EliCDavis/polyform/drawing/coloring.WebColor"
-                        }
-                    ],
-                    widgets: [
-                        {
-                            type: "color",
-                            config: {
-                                property: "value"
-                            }
-                        }
-                    ],
-                    style: ParameterStyle,
-                    metadata: {
-                        typeData: {
-                            type: "github.com/EliCDavis/polyform/generator/parameter.Value[github.com/EliCDavis/polyform/drawing/coloring.WebColor]"
-                        }
-                    }
-                },
-                "Parameters/vector3.Vector[float64]": {
-                    title: "Vector3 Parameter",
-                    subTitle: "Vector3",
-                    canEditTitle: true,
-                    canEditInfo: true,
-                    outputs: [
-                        {
-                            name: "Out",
-                            type: "github.com/EliCDavis/vector/vector3.Vector[float64]"
-                        }
-                    ],
-                    widgets: [
-                        {
-                            type: "number",
-                            config: {
-                                property: "x"
-                            }
-                        },
-                        {
-                            type: "number",
-                            config: {
-                                property: "y"
-                            }
-                        },
-                        {
-                            type: "number",
-                            config: {
-                                property: "z"
-                            }
-                        }
-                    ],
-                    style: ParameterStyle,
-                    metadata: {
-                        typeData: {
-                            type: "github.com/EliCDavis/polyform/generator/parameter.Value[github.com/EliCDavis/vector/vector3.Vector[float64]]"
-                        }
-                    }
-                },
-                "Parameters/[]vector3.Vector[float64]": {
-                    title: "Vector3 Array Parameter",
-                    subTitle: "Vector3 Array",
-                    canEditTitle: true,
-                    canEditInfo: true,
-                    outputs: [
-                        {
-                            name: "Out",
-                            type: "[]github.com/EliCDavis/vector/vector3.Vector[float64]"
-                        }
-                    ],
-                    style: ParameterStyle,
-                    metadata: {
-                        typeData: {
-                            type: "github.com/EliCDavis/polyform/generator/parameter.Value[[]github.com/EliCDavis/vector/vector3.Vector[float64]]"
-                        }
-                    }
-                },
-                "Parameters/vector2.Vector[float64]": {
-                    title: "Vector2 Parameter",
-                    subTitle: "Vector2 Array",
-                    canEditTitle: true,
-                    canEditInfo: true,
-                    outputs: [
-                        {
-                            name: "Out",
-                            type: "github.com/EliCDavis/vector/vector2.Vector[float64]"
-                        }
-                    ],
-                    widgets: [
-                        {
-                            type: "number",
-                            config: {
-                                property: "x"
-                            }
-                        },
-                        {
-                            type: "number",
-                            config: {
-                                property: "y"
-                            }
-                        }
-                    ],
-                    style: ParameterStyle,
-                    metadata: {
-                        typeData: {
-                            type: "github.com/EliCDavis/polyform/generator/parameter.Value[github.com/EliCDavis/vector/vector2.Vector[float64]]"
-                        }
-                    }
-                },
-                "Parameters/bool": {
-                    title: "Bool Parameter",
-                    subTitle: "Bool",
-                    canEditTitle: true,
-                    canEditInfo: true,
-                    outputs: [
-                        {
-                            name: "Out",
-                            type: "bool"
-                        }
-                    ],
-                    widgets: [
-                        {
-                            type: "toggle",
-                            config: {
-                                property: "value"
-                            }
-                        },
-                    ],
-                    style: ParameterStyle,
-                    metadata: {
-                        typeData: {
-                            type: "github.com/EliCDavis/polyform/generator/parameter.Value[bool]"
-                        }
-                    }
-                },
-                "Parameters/string": {
-                    title: "String Parameter",
-                    subTitle: "String",
-                    canEditTitle: true,
-                    canEditInfo: true,
-                    outputs: [
-                        {
-                            name: "Out",
-                            type: "string"
-                        }
-                    ],
-                    widgets: [
-                        {
-                            type: "string",
-                            config: {
-                                property: "value"
-                            }
-                        },
-                    ],
-                    style: ParameterStyle,
-                    metadata: {
-                        typeData: {
-                            type: "github.com/EliCDavis/polyform/generator/parameter.Value[string]"
-                        }
-                    }
-                },
-            },
-        });
-
-        const nodeFlowGraph = new NodeFlowGraph(nodeCanvas, {
-        });
-
-        nodeFlowGraph.addPublisher("polyform", PolyformNodesPublisher);
-
-        // lgraphInstance.start();
-    </script>
+    <script type="text/javascript" src="js/index.js"></script>
 
 </body>
 

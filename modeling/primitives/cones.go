@@ -37,15 +37,15 @@ func (c Cone) ToMesh() modeling.Mesh {
 
 }
 
-type ConeNode = nodes.Struct[modeling.Mesh, ConeNodeData]
+type ConeNode = nodes.Struct[ConeNodeData]
 
 type ConeNodeData struct {
-	Height nodes.NodeOutput[float64]
-	Radius nodes.NodeOutput[float64]
-	Sides  nodes.NodeOutput[int]
+	Height nodes.Output[float64]
+	Radius nodes.Output[float64]
+	Sides  nodes.Output[int]
 }
 
-func (r ConeNodeData) Process() (modeling.Mesh, error) {
+func (r ConeNodeData) Out() nodes.StructOutput[modeling.Mesh] {
 	cone := Cone{
 		Height: 1,
 		Radius: 0.5,
@@ -64,5 +64,5 @@ func (r ConeNodeData) Process() (modeling.Mesh, error) {
 		cone.Height = r.Height.Value()
 	}
 
-	return cone.ToMesh(), nil
+	return nodes.NewStructOutput(cone.ToMesh())
 }

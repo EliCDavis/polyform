@@ -9,13 +9,19 @@ import (
 )
 
 func producerNameEndpoint(graphInstance *graph.Instance, saver *GraphSaver) endpoint.Handler {
+
+	type SetProducer struct {
+		NodePort string `json:"nodePort"`
+		Producer string `json:"producer"`
+	}
+
 	return endpoint.Handler{
 		Methods: map[string]endpoint.Method{
-			http.MethodPost: endpoint.BodyMethod[string]{
-				Request: endpoint.TextRequestReader{},
-				Handler: func(req endpoint.Request[string]) error {
-					producerId := path.Base(req.Url)
-					graphInstance.SetNodeAsProducer(producerId, req.Body)
+			http.MethodPost: endpoint.BodyMethod[SetProducer]{
+				Request: endpoint.JsonRequestReader[SetProducer]{},
+				Handler: func(req endpoint.Request[SetProducer]) error {
+					nodeId := path.Base(req.Url)
+					graphInstance.SetNodeAsProducer(nodeId, req.Body.NodePort, req.Body.Producer)
 					saver.Save()
 
 					return nil

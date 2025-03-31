@@ -13,13 +13,38 @@ import (
 	"github.com/EliCDavis/polyform/nodes"
 )
 
+type imageNodeOutput struct {
+	Val *Image
+}
+
+func (sno imageNodeOutput) Name() string {
+	return valueOutputPortName
+}
+
+func (sno imageNodeOutput) Value() image.Image {
+	return sno.Val.Value()
+}
+
+func (sno imageNodeOutput) Node() nodes.Node {
+	return sno.Val
+}
+
+func (sno imageNodeOutput) Port() string {
+	return valueOutputPortName
+}
+
+func (sno imageNodeOutput) Version() int {
+	return sno.Val.version
+}
+
+// ============================================================================
+
 type Image struct {
 	Name         string
 	Description  string
 	DefaultValue image.Image
 	CLI          *CliConfig[string]
 
-	subs           []nodes.Alertable
 	version        int
 	appliedProfile image.Image
 }
@@ -30,18 +55,6 @@ func (in *Image) SetName(name string) {
 
 func (in *Image) SetDescription(description string) {
 	in.Description = description
-}
-
-func (in *Image) Node() nodes.Node {
-	return in
-}
-
-func (in Image) Port() string {
-	return "Out"
-}
-
-func (vn Image) SetInput(input string, output nodes.Output) {
-	panic("input can not be set")
 }
 
 func (pn *Image) DisplayName() string {
@@ -56,10 +69,6 @@ func (pn *Image) ApplyMessage(msg []byte) (bool, error) {
 
 	pn.version++
 	pn.appliedProfile = val
-
-	for _, s := range pn.subs {
-		s.Alert(pn.version, nodes.Processed)
-	}
 
 	return true, nil
 }
@@ -106,61 +115,16 @@ func (pn *Image) Schema() schema.Parameter {
 	}
 }
 
-func (pn *Image) AddSubscription(a nodes.Alertable) {
-	if pn.subs == nil {
-		pn.subs = make([]nodes.Alertable, 0, 1)
-	}
-
-	pn.subs = append(pn.subs, a)
-}
-
-func (pn *Image) Dependencies() []nodes.NodeDependency {
-	return nil
-}
-
-func (pn *Image) State() nodes.NodeState {
-	return nodes.Processed
-}
-
-type ImageNodeOutput struct {
-	Val *Image
-}
-
-func (sno ImageNodeOutput) Value() image.Image {
-	return sno.Val.Value()
-}
-
-func (sno ImageNodeOutput) Node() nodes.Node {
-	return sno.Val
-}
-
-func (sno ImageNodeOutput) Port() string {
-	return "Out"
-}
-
-func (tn *Image) Outputs() []nodes.Output {
-	return []nodes.Output{
-		{
-			Type: "image.Image",
-			NodeOutput: ImageNodeOutput{
-				Val: tn,
-			},
+func (tn *Image) Outputs() map[string]nodes.OutputPort {
+	return map[string]nodes.OutputPort{
+		valueOutputPortName: imageNodeOutput{
+			Val: tn,
 		},
 	}
 }
 
-func (tn *Image) Out() ImageNodeOutput {
-	return ImageNodeOutput{
-		Val: tn,
-	}
-}
-
-func (tn Image) Inputs() []nodes.Input {
-	return []nodes.Input{}
-}
-
-func (pn Image) Version() int {
-	return pn.version
+func (tn Image) Inputs() map[string]nodes.InputPort {
+	return nil
 }
 
 func (pn Image) InitializeForCLI(set *flag.FlagSet) {

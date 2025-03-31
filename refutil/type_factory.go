@@ -85,6 +85,16 @@ func (factory *TypeFactory) RegisterType(v any) {
 	}
 }
 
+func (factory *TypeFactory) RegisterBuilder(key string, builder func() any) {
+	if factory.types == nil {
+		factory.types = make(map[string]typeEntry)
+	}
+	factory.types[key] = typeEntry{
+		// pkg: typeEle.PkgPath(),
+		builder: builder,
+	}
+}
+
 func (factory TypeFactory) Combine(others ...*TypeFactory) *TypeFactory {
 	newFactory := make(map[string]typeEntry)
 
