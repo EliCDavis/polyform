@@ -22,7 +22,7 @@
     "@typescript-eslint/eslint-plugin": "^5.31.0",
     "@typescript-eslint/parser": "^5.31.0",
     "abort-controller": "^3.0.0",
-    "esbuild": "^0.15.11",
+    "esbuild": "^0.25.2",
     "eslint": "^8.20.0",
     "eslint-config-standard": "^17.0.0",
     "eslint-plugin-import": "^2.25.2",
