@@ -38,7 +38,7 @@ func SplineExlusive(curve curves.Spline, inbetween int) []trs.TRS {
 
 	transforms := make([]trs.TRS, inbetween)
 
-	for i := 0; i < inbetween; i++ {
+	for i := range inbetween {
 		dist := inc * float64(i+1)
 		dir := curve.Dir(dist)
 

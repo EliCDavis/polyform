@@ -8,22 +8,28 @@ import (
 type CombineNode = nodes.Struct[CombineNodeData]
 
 type CombineNodeData struct {
-	A nodes.Output[modeling.Mesh]
-	B nodes.Output[modeling.Mesh]
+	Meshes []nodes.Output[modeling.Mesh]
 }
 
 func (cnd CombineNodeData) Out() nodes.StructOutput[modeling.Mesh] {
-	if cnd.A == nil && cnd.B == nil {
-		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
+
+	fallback := modeling.EmptyMesh(modeling.TriangleTopology)
+
+	if len(cnd.Meshes) == 0 {
+		return nodes.NewStructOutput(fallback)
 	}
 
-	if cnd.A == nil {
-		return nodes.NewStructOutput(cnd.B.Value())
+	if len(cnd.Meshes) == 1 {
+		return nodes.NewStructOutput(nodes.TryGetOutputValue(cnd.Meshes[0], fallback))
 	}
 
-	if cnd.B == nil {
-		return nodes.NewStructOutput(cnd.A.Value())
+	result := nodes.TryGetOutputValue(cnd.Meshes[0], fallback)
+	for i := 1; i < len(cnd.Meshes); i++ {
+		if cnd.Meshes[i] == nil {
+			continue
+		}
+		result = result.Append(cnd.Meshes[i].Value())
 	}
 
-	return nodes.NewStructOutput(cnd.A.Value().Append(cnd.B.Value()))
+	return nodes.NewStructOutput(result)
 }

@@ -35,6 +35,7 @@
     "typescript": "^4.7.4"
   },
   "dependencies": {
+    "@elicdavis/node-flow": "^0.1.1",
     "@mkkellogg/gaussian-splats-3d": "^0.4.7",
     "@types/three": "^0.174.0",
     "three": "^0.174.0"

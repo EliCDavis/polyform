@@ -1,1 +1,324 @@
-{"buffers":[{"byteLength":0,"uri":"data:application/octet-stream;base64,"}],"data":{"authors":[{"name":"Eli C Davis","contactInfo":[{"medium":"bsky.app","value":"@elicdavis.bsky.social"},{"medium":"github.com","value":"EliCDavis"}]}],"description":"Immutable mesh processing program","metadata":{"nodes":{"Node-0":{"position":{"x":1567.4258954194406,"y":322.63335724847826}},"Node-1":{"position":{"x":837.7246414995578,"y":273.01783165449234}},"Node-10":{"position":{"x":1021.4335776975993,"y":437.7334269441334}},"Node-11":{"position":{"x":-72.21064043753051,"y":814.1968953730265}},"Node-12":{"position":{"x":-400.58549030660896,"y":793.3844048883665}},"Node-13":{"position":{"x":506.76915349605804,"y":398.84339970988816}},"Node-2":{"position":{"x":1267.197259560411,"y":289.65614653835723}},"Node-3":{"position":{"x":840,"y":104.47726440429688}},"Node-4":{"position":{"x":496.2982045268315,"y":135.89384852503375}},"Node-5":{"position":{"x":478.8344727350086,"y":264.2434048072408}},"Node-6":{"position":{"x":739.2201016418095,"y":499.3222573354115}},"Node-7":{"position":{"x":284.71445395426133,"y":617.9658341476188}},"Node-8":{"position":{"x":-95.49429571427606,"y":563.0821443419094}},"Node-9":{"position":{"x":286.3052855428326,"y":480.35890173620214}}},"notes":{"1":{"position":{"x":21,"y":22.477264404296875},"text":"# Tutorial\n\nThis graph is meant to showcase and explain the different features of polyform","width":677},"2":{"position":{"x":1296,"y":48.477264404296875},"text":"# Artifacts\n\nThe output of the polyform graphs are called Artifacts, and their nodes are colored purple.\n\nTo render out artifacts, we must name them. You can do so by right-clicking on an artifact node and selecting: *Edit > Title*. \n\nBe sure to include the file extension at the end of the file name","width":523},"3":{"position":{"x":6.19701066490822,"y":152.39666491174742},"text":"# Parameters\n\nParameters are how users can provide input into the graph. All parameter nodes are colored green. \n\nIn order to create a parameter, right-click on the graph and select: *New Node > Polyform > Parameters > Your parameter type*.\n\nIf you want the parameter to be exposed to the command line or swagger, you can name it. You can name it by right-clicking the parameter node, and selecting *Edit > Title*.\n\nBe sure to give it a unique name!","width":451.1423537224773}}},"name":"Polyform","nodes":{"Node-0":{"type":"github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.ArtifactNodeData]","assignedInput":{"Models.0":{"dependencyID":"Node-2","dependencyPort":"Out"}}},"Node-1":{"type":"github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/modeling/primitives.CubeNodeData]","assignedInput":{"Width":{"dependencyID":"Node-13","dependencyPort":"Value"}}},"Node-10":{"type":"github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/modeling/repeat.TRSNodeData]","assignedInput":{"Input":{"dependencyID":"Node-3","dependencyPort":"Out"},"Transforms":{"dependencyID":"Node-6","dependencyPort":"Out"}}},"Node-11":{"type":"github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/math/quaternion.FromEulerAnglesNodeData]","assignedInput":{"Angles":{"dependencyID":"Node-12","dependencyPort":"Value"}}},"Node-12":{"type":"github.com/EliCDavis/polyform/generator/parameter.Value[github.com/EliCDavis/vector/vector3.Vector[float64]]","assignedInput":{},"data":{"name":"","description":"","currentValue":{"x":0,"y":1,"z":0},"defaultValue":{"x":0,"y":0,"z":0},"cli":null}},"Node-13":{"type":"github.com/EliCDavis/polyform/generator/parameter.Value[float64]","assignedInput":{},"data":{"name":"","description":"","currentValue":2,"defaultValue":0,"cli":null}},"Node-2":{"type":"github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.ModelNodeData]","assignedInput":{"GpuInstances":{"dependencyID":"Node-10","dependencyPort":"Out"},"Mesh":{"dependencyID":"Node-1","dependencyPort":"Out"}}},"Node-3":{"type":"github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/modeling/repeat.CircleNodeData]","assignedInput":{"Radius":{"dependencyID":"Node-4","dependencyPort":"Value"},"Times":{"dependencyID":"Node-5","dependencyPort":"Value"}}},"Node-4":{"type":"github.com/EliCDavis/polyform/generator/parameter.Value[float64]","assignedInput":{},"data":{"name":"","description":"","currentValue":5,"defaultValue":0,"cli":null}},"Node-5":{"type":"github.com/EliCDavis/polyform/generator/parameter.Value[int]","assignedInput":{},"data":{"name":"","description":"","currentValue":15,"defaultValue":0,"cli":null}},"Node-6":{"type":"github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/modeling/repeat.TransformationNodeData]","assignedInput":{"Samples":{"dependencyID":"Node-9","dependencyPort":"Value"},"Transformation":{"dependencyID":"Node-7","dependencyPort":"Out"}}},"Node-7":{"type":"github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/math/trs.NewNodeData]","assignedInput":{"Position":{"dependencyID":"Node-8","dependencyPort":"Value"},"Rotation":{"dependencyID":"Node-11","dependencyPort":"Out"}}},"Node-8":{"type":"github.com/EliCDavis/polyform/generator/parameter.Value[github.com/EliCDavis/vector/vector3.Vector[float64]]","assignedInput":{},"data":{"name":"","description":"","currentValue":{"x":0,"y":1,"z":0},"defaultValue":{"x":0,"y":0,"z":0},"cli":null}},"Node-9":{"type":"github.com/EliCDavis/polyform/generator/parameter.Value[int]","assignedInput":{},"data":{"name":"","description":"","currentValue":5,"defaultValue":0,"cli":null}}},"producers":{"test.glb":{"nodeID":"Node-0","port":"Out"}},"version":"0.22.0"}}
+{
+    "buffers": [
+        {
+            "byteLength": 0,
+            "uri": "data:application/octet-stream;base64,"
+        }
+    ],
+    "data": {
+        "authors": [
+            {
+                "name": "Eli C Davis",
+                "contactInfo": [
+                    {
+                        "medium": "bsky.app",
+                        "value": "@elicdavis.bsky.social"
+                    },
+                    {
+                        "medium": "github.com",
+                        "value": "EliCDavis"
+                    }
+                ]
+            }
+        ],
+        "description": "Immutable mesh processing program",
+        "metadata": {
+            "nodes": {
+                "Node-0": {
+                    "position": {
+                        "x": 1567.4258954194406,
+                        "y": 322.63335724847826
+                    }
+                },
+                "Node-1": {
+                    "position": {
+                        "x": 837.7246414995578,
+                        "y": 273.01783165449234
+                    }
+                },
+                "Node-10": {
+                    "position": {
+                        "x": 1021.4335776975993,
+                        "y": 437.7334269441334
+                    }
+                },
+                "Node-11": {
+                    "position": {
+                        "x": -72.21064043753051,
+                        "y": 814.1968953730265
+                    }
+                },
+                "Node-12": {
+                    "position": {
+                        "x": -400.58549030660896,
+                        "y": 793.3844048883665
+                    }
+                },
+                "Node-13": {
+                    "position": {
+                        "x": 506.76915349605804,
+                        "y": 398.84339970988816
+                    }
+                },
+                "Node-2": {
+                    "position": {
+                        "x": 1267.197259560411,
+                        "y": 289.65614653835723
+                    }
+                },
+                "Node-3": {
+                    "position": {
+                        "x": 840,
+                        "y": 104.47726440429688
+                    }
+                },
+                "Node-4": {
+                    "position": {
+                        "x": 496.2982045268315,
+                        "y": 135.89384852503375
+                    }
+                },
+                "Node-5": {
+                    "position": {
+                        "x": 478.8344727350086,
+                        "y": 264.2434048072408
+                    }
+                },
+                "Node-6": {
+                    "position": {
+                        "x": 739.2201016418095,
+                        "y": 499.3222573354115
+                    }
+                },
+                "Node-7": {
+                    "position": {
+                        "x": 284.71445395426133,
+                        "y": 617.9658341476188
+                    }
+                },
+                "Node-8": {
+                    "position": {
+                        "x": -95.49429571427606,
+                        "y": 563.0821443419094
+                    }
+                },
+                "Node-9": {
+                    "position": {
+                        "x": 286.3052855428326,
+                        "y": 480.35890173620214
+                    }
+                }
+            },
+            "notes": {
+                "1": {
+                    "position": {
+                        "x": 21,
+                        "y": 22.477264404296875
+                    },
+                    "text": "# Tutorial\n\nThis graph is meant to showcase and explain the different features of polyform",
+                    "width": 677
+                },
+                "2": {
+                    "position": {
+                        "x": 1296,
+                        "y": 48.477264404296875
+                    },
+                    "text": "# Artifacts\n\nThe output of the polyform graphs are called Artifacts, and their nodes are colored purple.\n\nTo render out artifacts, we must name them. You can do so by right-clicking on an artifact node and selecting: *Edit > Title*. \n\nBe sure to include the file extension at the end of the file name",
+                    "width": 523
+                },
+                "3": {
+                    "position": {
+                        "x": 6.19701066490822,
+                        "y": 152.39666491174742
+                    },
+                    "text": "# Parameters\n\nParameters are how users can provide input into the graph. All parameter nodes are colored green. \n\nIn order to create a parameter, right-click on the graph and select: *New Node > Polyform > Parameters > Your parameter type*.\n\nIf you want the parameter to be exposed to the command line or swagger, you can name it. You can name it by right-clicking the parameter node, and selecting *Edit > Title*.\n\nBe sure to give it a unique name!",
+                    "width": 451.1423537224773
+                }
+            }
+        },
+        "name": "Polyform",
+        "nodes": {
+            "Node-0": {
+                "type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.ArtifactNodeData]",
+                "assignedInput": {
+                    "Models.0": {
+                        "dependencyID": "Node-2",
+                        "dependencyPort": "Out"
+                    }
+                }
+            },
+            "Node-1": {
+                "type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/modeling/primitives.CubeNodeData]",
+                "assignedInput": {
+                    "Width": {
+                        "dependencyID": "Node-13",
+                        "dependencyPort": "Value"
+                    }
+                }
+            },
+            "Node-10": {
+                "type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/modeling/repeat.TRSNodeData]",
+                "assignedInput": {
+                    "Input": {
+                        "dependencyID": "Node-3",
+                        "dependencyPort": "Out"
+                    },
+                    "Transforms": {
+                        "dependencyID": "Node-6",
+                        "dependencyPort": "Out"
+                    }
+                }
+            },
+            "Node-11": {
+                "type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/math/quaternion.FromEulerAngleNodeData]",
+                "assignedInput": {
+                    "Angle": {
+                        "dependencyID": "Node-12",
+                        "dependencyPort": "Value"
+                    }
+                }
+            },
+            "Node-12": {
+                "type": "github.com/EliCDavis/polyform/generator/parameter.Value[github.com/EliCDavis/vector/vector3.Vector[float64]]",
+                "assignedInput": {},
+                "data": {
+                    "name": "",
+                    "description": "",
+                    "currentValue": {
+                        "x": 0,
+                        "y": 1,
+                        "z": 0
+                    },
+                    "defaultValue": {
+                        "x": 0,
+                        "y": 0,
+                        "z": 0
+                    },
+                    "cli": null
+                }
+            },
+            "Node-13": {
+                "type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
+                "assignedInput": {},
+                "data": {
+                    "name": "",
+                    "description": "",
+                    "currentValue": 2,
+                    "defaultValue": 0,
+                    "cli": null
+                }
+            },
+            "Node-2": {
+                "type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.ModelNodeData]",
+                "assignedInput": {
+                    "GpuInstances": {
+                        "dependencyID": "Node-10",
+                        "dependencyPort": "Out"
+                    },
+                    "Mesh": {
+                        "dependencyID": "Node-1",
+                        "dependencyPort": "Out"
+                    }
+                }
+            },
+            "Node-3": {
+                "type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/modeling/repeat.CircleNodeData]",
+                "assignedInput": {
+                    "Radius": {
+                        "dependencyID": "Node-4",
+                        "dependencyPort": "Value"
+                    },
+                    "Times": {
+                        "dependencyID": "Node-5",
+                        "dependencyPort": "Value"
+                    }
+                }
+            },
+            "Node-4": {
+                "type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
+                "assignedInput": {},
+                "data": {
+                    "name": "",
+                    "description": "",
+                    "currentValue": 5,
+                    "defaultValue": 0,
+                    "cli": null
+                }
+            },
+            "Node-5": {
+                "type": "github.com/EliCDavis/polyform/generator/parameter.Value[int]",
+                "assignedInput": {},
+                "data": {
+                    "name": "",
+                    "description": "",
+                    "currentValue": 15,
+                    "defaultValue": 0,
+                    "cli": null
+                }
+            },
+            "Node-6": {
+                "type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/modeling/repeat.TransformationNodeData]",
+                "assignedInput": {
+                    "Samples": {
+                        "dependencyID": "Node-9",
+                        "dependencyPort": "Value"
+                    },
+                    "Transformation": {
+                        "dependencyID": "Node-7",
+                        "dependencyPort": "Out"
+                    }
+                }
+            },
+            "Node-7": {
+                "type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/math/trs.NewNodeData]",
+                "assignedInput": {
+                    "Position": {
+                        "dependencyID": "Node-8",
+                        "dependencyPort": "Value"
+                    },
+                    "Rotation": {
+                        "dependencyID": "Node-11",
+                        "dependencyPort": "Out"
+                    }
+                }
+            },
+            "Node-8": {
+                "type": "github.com/EliCDavis/polyform/generator/parameter.Value[github.com/EliCDavis/vector/vector3.Vector[float64]]",
+                "assignedInput": {},
+                "data": {
+                    "name": "",
+                    "description": "",
+                    "currentValue": {
+                        "x": 0,
+                        "y": 1,
+                        "z": 0
+                    },
+                    "defaultValue": {
+                        "x": 0,
+                        "y": 0,
+                        "z": 0
+                    },
+                    "cli": null
+                }
+            },
+            "Node-9": {
+                "type": "github.com/EliCDavis/polyform/generator/parameter.Value[int]",
+                "assignedInput": {},
+                "data": {
+                    "name": "",
+                    "description": "",
+                    "currentValue": 5,
+                    "defaultValue": 0,
+                    "cli": null
+                }
+            }
+        },
+        "producers": {
+            "test.glb": {
+                "nodeID": "Node-0",
+                "port": "Out"
+            }
+        },
+        "version": "0.22.0"
+    }
+}
