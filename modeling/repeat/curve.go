@@ -22,11 +22,12 @@ func Spline(curve curves.Spline, inbetween int) []trs.TRS {
 		vector3.One[float64](),
 	)
 
-	return append(
-		SplineExlusive(curve, inbetween),
-		start,
-		end,
-	)
+	result := make([]trs.TRS, 0, inbetween+2)
+	result = append(result, start)
+	result = append(result, SplineExlusive(curve, inbetween)...)
+	result = append(result, end)
+
+	return result
 }
 
 // Like line, but we don't include meshes on the start and end points. Only the
@@ -78,11 +79,11 @@ func (r SplineNodeData) Out() nodes.StructOutput[[]trs.TRS] {
 	}
 
 	if times == 1 {
-		SplineExlusive(curve, 1)
+		return nodes.NewStructOutput(SplineExlusive(curve, 1))
 	}
 
 	if times == 2 {
-		Spline(curve, 0)
+		return nodes.NewStructOutput(Spline(curve, 0))
 	}
 
 	return nodes.NewStructOutput(Spline(curve, times-2))
