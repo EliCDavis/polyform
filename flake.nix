@@ -47,14 +47,16 @@
           lib.mapAttrs (
             name: type:
             buildGoModule {
-              inherit name vendorHash;
-              src = ./.;
+              inherit name vendorHash src;
               env = {
                 CGO_ENABLED = 0;
               };
               subPackages = [
                 "cmd/${name}"
               ];
+              preBuild = ''
+                cp -r ${website}/* ./generator/html/
+              '';
             }
           ) (lib.filterAttrs (n: v: v == "directory") (builtins.readDir ./cmd));
 
@@ -63,14 +65,16 @@
           lib.mapAttrs (
             name: type:
             buildGoModule {
-              inherit name vendorHash;
-              src = ./.;
+              inherit name vendorHash src;
               env = {
                 CGO_ENABLED = 0;
               };
               subPackages = [
                 "examples/${name}"
               ];
+              preBuild = ''
+                cp -r ${website}/* ./generator/html/
+              '';
             }
           ) (lib.filterAttrs (n: v: v == "directory") (builtins.readDir ./examples));
 
@@ -144,6 +148,24 @@
               ${cmd.polywasm}/bin/polywasm build --version ${rev} --wasm ./main.wasm -o $DIST
 
               cp -r $DIST/* $out
+            '';
+          };
+
+        website =
+          with pkgs;
+          buildNpmPackage {
+            inherit src;
+            pname = "website";
+            version = "0.0.1";
+            npmBuildScript = "build-dev";
+            npmDepsHash = "sha256-+z/4Rni+oLEvsK2VFIGUazdgAOAAHueUu/9/ygwv2Xo=";
+            installPhase = ''
+              runHook preInstallPhase
+
+              mkdir -p $out
+              cp -r ./generator/html/* $out
+
+              runHook postInstallPhase
             '';
           };
       in
