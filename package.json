@@ -4,7 +4,6 @@
   "description": "Polyform",
   "main": "index.js",
   "scripts": {
-    "vscode:prepublish": "npm run build-prod",
     "build-prod": "ts-node ./esbuild.prod.ts",
     "build-dev": "ts-node ./esbuild.ts",
     "watch-prod": "npm run build-prod -- --watch",
