@@ -92,25 +92,11 @@ func (pb *pipelineBuilder) add(command Command) {
 		pb.indices = read
 	}
 
-	if readPermissions.Materials != nil {
-		if pb.materials == write {
-			pb.completeCurrentWave()
-		}
-		pb.materials = read
-	}
-
 	if writePermissions.Indices != nil {
 		if pb.indices != none {
 			pb.completeCurrentWave()
 		}
 		pb.indices = write
-	}
-
-	if writePermissions.Materials != nil {
-		if pb.materials != none {
-			pb.completeCurrentWave()
-		}
-		pb.materials = write
 	}
 
 	updateLedger(pb.dataV1, readPermissions.V1Permissions, writePermissions.V1Permissions)
@@ -141,4 +127,3 @@ func Schedule(commandsToSchedule ...Command) Pipeline {
 
 	return builder.build()
 }
-

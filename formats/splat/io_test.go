@@ -71,7 +71,6 @@ func TestReadWrite(t *testing.T) {
 				.5,
 			},
 		},
-		nil,
 	)
 
 	buf := &bytes.Buffer{}

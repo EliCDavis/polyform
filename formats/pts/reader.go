@@ -102,7 +102,7 @@ func ReadPointCloud(in io.Reader) (*modeling.Mesh, error) {
 		v1Data[modeling.IntensityAttribute] = intensity
 	}
 
-	finalMesh := modeling.NewPointCloud(nil, v3Data, nil, v1Data, nil)
+	finalMesh := modeling.NewPointCloud(nil, v3Data, nil, v1Data)
 
 	return &finalMesh, nil
 }

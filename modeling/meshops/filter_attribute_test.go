@@ -14,7 +14,7 @@ import (
 func TestFilterFloat1(t *testing.T) {
 	mesh := modeling.NewPointCloud(nil, nil, nil, map[string][]float64{
 		"test": {1, 2, 3},
-	}, nil)
+	})
 
 	transformer := meshops.FilterFloat1Transformer{
 		Attribute: "test",
@@ -38,7 +38,7 @@ func TestFilterFloat2(t *testing.T) {
 			vector2.Up[float64]().Scale(2),
 			vector2.Up[float64]().Scale(3),
 		},
-	}, nil, nil)
+	}, nil)
 
 	transformer := meshops.FilterFloat2Transformer{
 		Attribute: "test",
@@ -62,7 +62,7 @@ func TestFilterFloat3(t *testing.T) {
 			vector3.Up[float64]().Scale(2),
 			vector3.Up[float64]().Scale(3),
 		},
-	}, nil, nil, nil)
+	}, nil, nil)
 
 	transformer := meshops.FilterFloat3Transformer{
 		Attribute: "test",
@@ -86,7 +86,7 @@ func TestFilterFloat4(t *testing.T) {
 			vector4.New[float64](2, 0, 0, 0),
 			vector4.New[float64](3, 0, 0, 0),
 		},
-	}, nil, nil, nil, nil)
+	}, nil, nil, nil)
 
 	transformer := meshops.FilterFloat4Transformer{
 		Attribute: "test",

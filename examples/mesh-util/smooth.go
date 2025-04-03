@@ -61,7 +61,7 @@ func smoothCommand() *cli.Command {
 					meshops.SmoothNormalsTransformer{},
 				)
 
-			return obj.Save(c.String("out"), smoothedMesh)
+			return obj.SaveMesh(c.String("out"), smoothedMesh)
 		},
 	}
 }

@@ -87,15 +87,13 @@ func SliceByPlaneWithAttribute(m modeling.Mesh, plane geometry.Plane, attribute 
 		SetFloat4Data(v4Data).
 		SetFloat3Data(v3Data).
 		SetFloat2Data(v2Data).
-		SetFloat1Data(v1Data).
-		SetMaterials(m.Materials())
+		SetFloat1Data(v1Data)
 
 	below := modeling.NewMesh(m.Topology(), belowPlaneIndices).
 		SetFloat4Data(v4Data).
 		SetFloat3Data(v3Data).
 		SetFloat2Data(v2Data).
-		SetFloat1Data(v1Data).
-		SetMaterials(m.Materials())
+		SetFloat1Data(v1Data)
 
 	return RemovedUnreferencedVertices(above), RemovedUnreferencedVertices(below)
 }

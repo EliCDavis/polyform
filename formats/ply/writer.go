@@ -33,7 +33,7 @@ type MeshWriter struct {
 	WriteUnspecifiedProperties bool
 }
 
-func (mw MeshWriter) Write(mesh modeling.Mesh, writer io.Writer) error {
+func (mw MeshWriter) Write(mesh modeling.Mesh, texture string, writer io.Writer) error {
 
 	writers := make([]PropertyWriter, 0)
 	properties := make([]Property, 0)
@@ -139,11 +139,8 @@ func (mw MeshWriter) Write(mesh modeling.Mesh, writer io.Writer) error {
 		Comments: []string{},
 	}
 
-	if len(mesh.Materials()) > 0 && mesh.Materials()[0].Material != nil {
-		mat := mesh.Materials()[0].Material
-		if mat.ColorTextureURI != nil {
-			header.Comments = append(header.Comments, fmt.Sprintf("TextureFile %s", *mat.ColorTextureURI))
-		}
+	if texture != "" {
+		header.Comments = append(header.Comments, fmt.Sprintf("TextureFile %s", texture))
 	}
 
 	header.Comments = append(header.Comments, "Created with github.com/EliCDavis/polyform")

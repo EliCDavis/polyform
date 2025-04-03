@@ -87,14 +87,24 @@ func run() error {
 				SmoothingFactor: .1,
 			},
 			meshops.SmoothNormalsTransformer{},
-		).
-		SetMaterial(modeling.Material{
-			Name:         "Text",
-			DiffuseColor: color.RGBA{R: 90, G: 218, B: 255, A: 255},
-		})
+		)
 	log.Printf("time to compute: %s", time.Since(start))
 
-	return obj.Save("tmp/text/text.obj", mesh)
+	return obj.Save("tmp/text/text.obj", obj.Scene{
+		Objects: []obj.Object{
+			{
+				Entries: []obj.Entry{
+					{
+						Mesh: mesh,
+						Material: &obj.Material{
+							Name:         "Text",
+							DiffuseColor: color.RGBA{R: 90, G: 218, B: 255, A: 255},
+						},
+					},
+				},
+			},
+		},
+	})
 }
 
 func main() {

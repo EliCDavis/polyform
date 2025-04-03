@@ -24,7 +24,7 @@ func Save(plyPath string, meshToSave modeling.Mesh, format Format) error {
 	defer plyFile.Close()
 
 	out := bufio.NewWriter(plyFile)
-	err = Write(out, meshToSave, format)
+	err = Write(out, meshToSave, format, "")
 	if err != nil {
 		return err
 	}

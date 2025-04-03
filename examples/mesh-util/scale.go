@@ -59,7 +59,7 @@ func scaleCommand() *cli.Command {
 				)
 			}
 
-			return obj.Save(c.String("out"), scaledMesh)
+			return obj.SaveMesh(c.String("out"), scaledMesh)
 		},
 	}
 }

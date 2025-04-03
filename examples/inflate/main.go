@@ -33,11 +33,8 @@ func loadMesh(meshPath string) (*modeling.Mesh, error) {
 		return ply.Load(meshPath)
 
 	case ".obj":
-		meshes, err := obj.Load(meshPath)
-		mesh := modeling.EmptyMesh(modeling.TriangleTopology)
-		for _, m := range meshes {
-			mesh = mesh.Append(m.Mesh)
-		}
+		scene, err := obj.Load(meshPath)
+		mesh := scene.ToMesh()
 		return &mesh, err
 
 	default:
@@ -115,7 +112,7 @@ func main() {
 			// 	obj.Save(fmt.Sprintf("%d-%s", i, c.String("out")), canvas.March(float64(i)/10))
 			// }
 
-			return obj.Save(c.String("out"), canvas.MarchParallel(c.Float64("threshold")))
+			return obj.SaveMesh(c.String("out"), canvas.MarchParallel(c.Float64("threshold")))
 		},
 	}
 

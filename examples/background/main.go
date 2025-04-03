@@ -41,5 +41,5 @@ func main() {
 			},
 		)
 
-	obj.Save("tmp/background/background.obj", terrain)
+	obj.SaveMesh("tmp/background/background.obj", terrain)
 }

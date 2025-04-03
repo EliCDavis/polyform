@@ -296,7 +296,10 @@ export class NodeManager {
             return this.nodesPublisher.create(nodeIdentifier);
         }
 
-        const parameterType = nodeData.parameter.type;
+        let parameterType = nodeData.parameter.type;
+        if (parameterType === "[]uint8") {
+            parameterType = "File";
+        }
         return this.nodesPublisher.create("Parameters/" + parameterType);
     }
 

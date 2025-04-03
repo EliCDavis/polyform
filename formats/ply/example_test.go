@@ -59,6 +59,6 @@ func ExampleWrite() {
 	mesh, _ := ply.ReadMesh(file)
 	scaledMesh := mesh.Scale(vector3.New(2., 2., 2.))
 
-	ply.Write(out, scaledMesh, ply.ASCII)
+	ply.Write(out, scaledMesh, ply.ASCII, "")
 	log.Println(out.String())
 }

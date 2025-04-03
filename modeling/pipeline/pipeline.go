@@ -14,13 +14,12 @@ type Pipeline struct {
 }
 
 type MeshView struct {
-	v4Data    map[string][]vector4.Float64
-	v3Data    map[string][]vector3.Float64
-	v2Data    map[string][]vector2.Float64
-	v1Data    map[string][]float64
-	indices   []int
-	materials []modeling.MeshMaterial
-	topology  modeling.Topology
+	v4Data   map[string][]vector4.Float64
+	v3Data   map[string][]vector3.Float64
+	v2Data   map[string][]vector2.Float64
+	v1Data   map[string][]float64
+	indices  []int
+	topology modeling.Topology
 }
 
 func (wip MeshView) Mesh() modeling.Mesh {
@@ -75,10 +74,6 @@ func setupCommand(command Command, mesh MeshView) {
 		read.Indices.m = &m
 	}
 
-	if read.Materials != nil {
-		read.Materials.data = mesh.materials
-	}
-
 	setupVxWriteAttr(write.V4Permissions, mesh.v4Data)
 	setupVxWriteAttr(write.V3Permissions, mesh.v3Data)
 	setupVxWriteAttr(write.V2Permissions, mesh.v2Data)
@@ -90,10 +85,6 @@ func setupCommand(command Command, mesh MeshView) {
 
 	if write.Indices != nil {
 		write.Indices.data = mesh.indices
-	}
-
-	if write.Materials != nil {
-		write.Materials.data = mesh.materials
 	}
 }
 
@@ -108,10 +99,6 @@ func teardownCommand(command Command, wip *MeshView) {
 	if read.Indices != nil {
 		read.Indices.data = nil
 		read.Indices.m = nil
-	}
-
-	if read.Materials != nil {
-		read.Materials.data = nil
 	}
 
 	teardownVxReadAttr(read.V4Permissions)
@@ -131,10 +118,6 @@ func teardownCommand(command Command, wip *MeshView) {
 
 	if write.Indices != nil {
 		write.Indices.data = nil
-	}
-
-	if write.Materials != nil {
-		write.Materials.data = nil
 	}
 }
 

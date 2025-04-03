@@ -111,7 +111,6 @@ func TestScanFloat3AttributeParallel(t *testing.T) {
 		},
 		nil,
 		nil,
-		nil,
 	)
 
 	readValues := make([]vector3.Float64, count)
@@ -142,7 +141,6 @@ func TestScanFloat2AttributeParallel(t *testing.T) {
 		map[string][]vector2.Float64{
 			attribute: values,
 		},
-		nil,
 		nil,
 	)
 
@@ -175,7 +173,6 @@ func TestScanFloat1AttributeParallel(t *testing.T) {
 		map[string][]float64{
 			attribute: values,
 		},
-		nil,
 	)
 
 	readValues := make([]float64, count)
@@ -205,7 +202,6 @@ func TestModifyFloat3AttributeParallel(t *testing.T) {
 		map[string][]vector3.Float64{
 			attribute: values,
 		},
-		nil,
 		nil,
 		nil,
 	)
@@ -246,7 +242,6 @@ func TestModifyFloat2AttributeParallel(t *testing.T) {
 			attribute: values,
 		},
 		nil,
-		nil,
 	)
 
 	readValues := make([]vector2.Float64, count)
@@ -285,7 +280,6 @@ func TestModifyFloat1AttributeParallel(t *testing.T) {
 		map[string][]float64{
 			attribute: values,
 		},
-		nil,
 	)
 
 	readValues := make([]float64, count)

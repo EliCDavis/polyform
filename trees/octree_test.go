@@ -82,7 +82,6 @@ func TestOctreeLineSphere(t *testing.T) {
 		},
 		nil,
 		nil,
-		nil,
 	)
 	tree := mesh.OctTree()
 
@@ -115,7 +114,6 @@ func BenchmarkOctreeLineSphere(b *testing.B) {
 		map[string][]vector3.Float64{
 			modeling.PositionAttribute: repeat.CirclePoints(10000, 1),
 		},
-		nil,
 		nil,
 		nil,
 	)

@@ -34,11 +34,8 @@ func readMesh(meshPath string) (*modeling.Mesh, error) {
 	switch strings.ToLower(ext) {
 
 	case ".obj":
-		meshes, err := obj.Load(meshPath)
-		mesh := modeling.EmptyMesh(modeling.TriangleTopology)
-		for _, m := range meshes {
-			mesh = mesh.Append(m.Mesh)
-		}
+		scene, err := obj.Load(meshPath)
+		mesh := scene.ToMesh()
 		return &mesh, err
 
 	case ".ply":
@@ -56,7 +53,7 @@ func fileExits(filePath string) bool {
 	return true
 }
 
-func inferRenderingMaterial(originalPath string, mat *modeling.Material) (rendering.Material, error) {
+func inferRenderingMaterial(originalPath string, mat *obj.Material) (rendering.Material, error) {
 	defaultMat := materials.NewLambertian(textures.NewSolidColorTexture(vector3.Fill(0.7)))
 	if mat == nil {
 		return defaultMat, nil
@@ -150,12 +147,6 @@ func makeRenderFunction(name string, maxRayBounce, samplesPerPixel, imageWidth i
 			}
 
 			var mats rendering.Material = materials.NewLambertian(textures.NewSolidColorTexture(vector3.Fill(0.7)))
-			if len(mesh.Materials()) > 0 {
-				mats, err = inferRenderingMaterial(modelPath, mesh.Materials()[0].Material)
-				if err != nil {
-					return err
-				}
-			}
 
 			box := mesh.BoundingBox(modeling.PositionAttribute)
 			centeredMesh := mesh.Translate(box.Center().Scale(-1))

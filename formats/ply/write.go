@@ -64,8 +64,8 @@ var defaultWriter = MeshWriter{
 	},
 }
 
-func Write(out io.Writer, model modeling.Mesh, format Format) error {
+func Write(out io.Writer, model modeling.Mesh, format Format, texture string) error {
 	writer := defaultWriter
 	writer.Format = format
-	return writer.Write(model, out)
+	return writer.Write(model, texture, out)
 }

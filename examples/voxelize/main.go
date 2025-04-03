@@ -42,14 +42,16 @@ func main() {
 			},
 		},
 		Action: func(ctx *cli.Context) error {
-			meshes, err := obj.Load(ctx.String(inFlag))
+			scene, err := obj.Load(ctx.String(inFlag))
 			if err != nil {
 				return err
 			}
 
 			mesh := modeling.EmptyMesh(modeling.TriangleTopology)
-			for _, m := range meshes {
-				mesh = mesh.Append(m.Mesh)
+			for _, obj := range scene.Objects {
+				for _, entry := range obj.Entries {
+					mesh = mesh.Append(entry.Mesh)
+				}
 			}
 
 			voxelSize := ctx.Float64(voxelSizeFlag)
@@ -68,7 +70,7 @@ func main() {
 			}
 			log.Printf("Time to mesh: %s", time.Since(startMesh))
 
-			return obj.Save(ctx.String(outFlag), voxelizedMesh)
+			return obj.SaveMesh(ctx.String(outFlag), voxelizedMesh)
 		},
 	}
 

@@ -36,7 +36,6 @@ func (rdep ReadPermission[T]) Data() T {
 type MeshReadPermission struct {
 	Everything    *ReadPermission[modeling.Mesh]
 	Indices       *ReadIndicesPermission
-	Materials     *ReadArrayPermission[modeling.MeshMaterial]
 	V1Permissions map[string]ReadArrayPermission[float64]
 	V2Permissions map[string]ReadArrayPermission[vector2.Float64]
 	V3Permissions map[string]ReadArrayPermission[vector3.Float64]
@@ -68,7 +67,6 @@ func (wp *WritePermission[T]) Write(val T) {
 type MeshWritePermission struct {
 	Everything    *WritePermission[modeling.Mesh]
 	Indices       *WriteArrayPermission[int]
-	Materials     *WriteArrayPermission[modeling.MeshMaterial]
 	V1Permissions map[string]WriteArrayPermission[float64]
 	V2Permissions map[string]WriteArrayPermission[vector2.Float64]
 	V3Permissions map[string]WriteArrayPermission[vector3.Float64]

@@ -22,7 +22,7 @@ func ReconstructionToPointcloud(reconstruction opensfm.ReconstructionSchema) mod
 	return modeling.NewPointCloud(nil, map[string][]vector3.Vector[float64]{
 		modeling.PositionAttribute: positionData,
 		modeling.ColorAttribute:    colorData,
-	}, nil, nil, nil)
+	}, nil, nil)
 }
 
 // Loads the feature match point data into a Pointcloud mesh
