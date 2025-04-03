@@ -2,7 +2,6 @@ package obj
 
 import (
 	"fmt"
-	"image/color"
 	"io"
 	"strings"
 
@@ -10,59 +9,6 @@ import (
 	"github.com/EliCDavis/polyform/formats/txt"
 	"github.com/EliCDavis/polyform/modeling"
 )
-
-func writeMaterialColor(colorType string, color color.Color, writer *txt.Writer) error {
-	if color == nil {
-		return nil
-	}
-	writer.StartEntry()
-	writer.String(colorType)
-	writer.Space()
-
-	r, g, b, _ := color.RGBA()
-	writer.Float64MaxFigs(float64(r)/0xffff, 3)
-	writer.Space()
-	writer.Float64MaxFigs(float64(g)/0xffff, 3)
-	writer.Space()
-	writer.Float64MaxFigs(float64(b)/0xffff, 3)
-
-	writer.NewLine()
-	if _, err := writer.FinishEntry(); err != nil {
-		return fmt.Errorf("failed to write %s: %w", colorType, err)
-	}
-	return nil
-}
-
-func writeMaterialFloat(floatType string, f float64, writer *txt.Writer) error {
-	writer.StartEntry()
-	writer.String(floatType)
-	writer.Space()
-	writer.Float64(f)
-	writer.NewLine()
-
-	if _, err := writer.FinishEntry(); err != nil {
-		return fmt.Errorf("failed to write %s: %w", floatType, err)
-	}
-	return nil
-}
-
-func writeMaterialTexture(texType string, tex *string, writer *txt.Writer) error {
-	if tex == nil {
-		return nil
-	}
-
-	writer.StartEntry()
-
-	writer.String(texType)
-	writer.Space()
-	writer.String(*tex)
-	writer.NewLine()
-
-	if _, err := writer.FinishEntry(); err != nil {
-		return fmt.Errorf("failed to write %s: %w", texType, err)
-	}
-	return nil
-}
 
 func WriteMaterials(scene Scene, out io.Writer) error {
 	_, _ = fmt.Fprintln(out, "# Created with github.com/EliCDavis/polyform")
@@ -217,7 +163,7 @@ func writeFaceVertAndUvsAndNormals(tris *iter.ArrayIterator[int], out *txt.Write
 }
 
 func WriteMesh(m modeling.Mesh, materialFile string, out io.Writer) error {
-	return WriteScene(
+	return Write(
 		Scene{
 			Objects: []Object{
 				{
@@ -230,7 +176,7 @@ func WriteMesh(m modeling.Mesh, materialFile string, out io.Writer) error {
 	)
 }
 
-func WriteScene(scene Scene, materialFile string, out io.Writer) error {
+func Write(scene Scene, materialFile string, out io.Writer) error {
 	if _, err := fmt.Fprintln(out, "# Created with github.com/EliCDavis/polyform"); err != nil {
 		return fmt.Errorf("failed to write attribution comment: %w", err)
 	}

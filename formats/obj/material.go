@@ -9,6 +9,59 @@ import (
 	"github.com/EliCDavis/polyform/formats/txt"
 )
 
+func writeMaterialColor(colorType string, color color.Color, writer *txt.Writer) error {
+	if color == nil {
+		return nil
+	}
+	writer.StartEntry()
+	writer.String(colorType)
+	writer.Space()
+
+	r, g, b, _ := color.RGBA()
+	writer.Float64MaxFigs(float64(r)/0xffff, 3)
+	writer.Space()
+	writer.Float64MaxFigs(float64(g)/0xffff, 3)
+	writer.Space()
+	writer.Float64MaxFigs(float64(b)/0xffff, 3)
+
+	writer.NewLine()
+	if _, err := writer.FinishEntry(); err != nil {
+		return fmt.Errorf("failed to write %s: %w", colorType, err)
+	}
+	return nil
+}
+
+func writeMaterialFloat(floatType string, f float64, writer *txt.Writer) error {
+	writer.StartEntry()
+	writer.String(floatType)
+	writer.Space()
+	writer.Float64(f)
+	writer.NewLine()
+
+	if _, err := writer.FinishEntry(); err != nil {
+		return fmt.Errorf("failed to write %s: %w", floatType, err)
+	}
+	return nil
+}
+
+func writeMaterialTexture(texType string, tex *string, writer *txt.Writer) error {
+	if tex == nil {
+		return nil
+	}
+
+	writer.StartEntry()
+
+	writer.String(texType)
+	writer.Space()
+	writer.String(*tex)
+	writer.NewLine()
+
+	if _, err := writer.FinishEntry(); err != nil {
+		return fmt.Errorf("failed to write %s: %w", texType, err)
+	}
+	return nil
+}
+
 // Material is just a clone of obj's MTL format at the moment cause man this
 // problem scares me.
 type Material struct {

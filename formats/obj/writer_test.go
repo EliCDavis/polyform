@@ -195,7 +195,7 @@ func TestWriteObjWithSingleMaterial(t *testing.T) {
 	buf := bytes.Buffer{}
 
 	// ACT ====================================================================
-	err := obj.WriteScene(obj.Scene{
+	err := obj.Write(obj.Scene{
 		Objects: []obj.Object{
 			{
 				Entries: []obj.Entry{
@@ -276,7 +276,7 @@ func TestWriteObjWithMultipleMaterials(t *testing.T) {
 	buf := bytes.Buffer{}
 
 	// ACT ====================================================================
-	err := obj.WriteScene(scene, "", &buf)
+	err := obj.Write(scene, "", &buf)
 
 	// ASSERT =================================================================
 	require.NoError(t, err)

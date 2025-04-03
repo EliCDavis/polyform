@@ -28,34 +28,6 @@ type SplatPly struct {
 }
 
 func (sa SplatPly) Write(w io.Writer) error {
-
-	if sa.Mesh.PrimitiveCount() == 0 {
-		// header := Header{
-		// 	Format: BinaryLittleEndian,
-		// 	Elements: []Element{
-		// 		{
-		// 			Name:  VertexElementName,
-		// 			Count: 0,
-		// 			Properties: []Property{
-		// 				ScalarProperty{PropertyName: "x", Type: Float},
-		// 				ScalarProperty{PropertyName: "y", Type: Float},
-		// 				ScalarProperty{PropertyName: "z", Type: Float},
-		// 				ScalarProperty{PropertyName: "nx", Type: Float},
-		// 				ScalarProperty{PropertyName: "ny", Type: Float},
-		// 				ScalarProperty{PropertyName: "nz", Type: Float},
-		// 				ScalarProperty{PropertyName: "f_dc_0", Type: Float},
-		// 				ScalarProperty{PropertyName: "f_dc_1", Type: Float},
-		// 				ScalarProperty{PropertyName: "f_dc_2", Type: Float},
-		// 				ScalarProperty{PropertyName: "scale_0", Type: Float},
-		// 				ScalarProperty{PropertyName: "scale_1", Type: Float},
-		// 				ScalarProperty{PropertyName: "scale_2", Type: Float},
-		// 			},
-		// 		},
-		// 	},
-		// }
-		// return header.Write(w)
-	}
-
 	writers := []PropertyWriter{
 		Vector3PropertyWriter{
 			ModelAttribute: modeling.PositionAttribute,

@@ -19,8 +19,7 @@ func Load(objPath string) (*Scene, error) {
 	}
 	defer inFile.Close()
 
-	buf := bufio.NewReader(inFile)
-	scene, matPaths, err := ReadMesh(buf)
+	scene, matPaths, err := ReadMesh(bufio.NewReader(inFile))
 	if err != nil {
 		return nil, fmt.Errorf("failed to read mesh: %w", err)
 	}
@@ -50,6 +49,15 @@ func Load(objPath string) (*Scene, error) {
 	}
 
 	return scene, nil
+}
+
+func LoadMesh(objPath string) (*modeling.Mesh, error) {
+	scene, err := Load(objPath)
+	if err != nil {
+		return nil, err
+	}
+	mesh := scene.ToMesh()
+	return &mesh, nil
 }
 
 // SaveMesh writes the mesh to the path specified in OBJ format, optionally writing
@@ -100,7 +108,7 @@ func Save(objPath string, scene Scene) error {
 
 	out := bufio.NewWriter(objFile)
 
-	if err = WriteScene(scene, mtlPath, out); err != nil {
+	if err = Write(scene, mtlPath, out); err != nil {
 		return fmt.Errorf("failed to write mesh: %w", err)
 	}
 

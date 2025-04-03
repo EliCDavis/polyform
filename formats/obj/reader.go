@@ -197,6 +197,10 @@ func ReadMesh(in io.Reader) (*Scene, []string, error) {
 			continue
 		}
 
+		if trimmedLined[0] == '#' {
+			continue
+		}
+
 		components := strings.Fields(trimmedLined)
 		switch Keyword(components[0]) {
 
