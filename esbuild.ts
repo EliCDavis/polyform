@@ -1,13 +1,12 @@
-import { build, serve, BuildOptions } from 'esbuild';
-
+import { build, context, BuildOptions } from "esbuild";
 
 const buildOptsWeb: BuildOptions = {
-  entryPoints: ['./website/index.ts'],
+  entryPoints: ["./website/index.ts"],
   //   inject: [],
-  outfile: './generator/html/js/index.js',
+  outfile: "./generator/html/js/index.js",
   //   external: [],
-  platform: 'browser',
-  target: ['esNext'],
+  platform: "browser",
+  target: ["esNext"],
   //   format: 'cjs',
   bundle: true,
   sourcemap: true,
@@ -22,24 +21,30 @@ const buildOptsWeb: BuildOptions = {
 };
 
 const serveOpts = {
-  servedir: './'
+  servedir: "./",
 };
 
-const flags = process.argv.filter(arg => /--[^=].*/.test(arg));
-const enableWatch = (flags.includes('--watch'));
+const flags = process.argv.filter((arg) => /--[^=].*/.test(arg));
+const enableWatch = flags.includes("--watch");
 
-if (enableWatch) {
+async function startDevServer() {
+  const ctx = await context(buildOptsWeb);
 
-  buildOptsWeb.watch = {
-    onRebuild: (error, result) => {
-      if (error) { console.error('watch web development build failed:', error); }
-      else { console.log('watch web development build succeeded:', result); }
-    }
-  };
+  if (enableWatch) {
+    await ctx.watch();
+    console.log("watching web development build...");
 
-  serve(serveOpts, {}).then((result) => {
-    console.log(`serving extension from "${serveOpts.servedir}" at "http://${result.host}:${result.port}"`);
-  });
+    const { hosts, port } = await ctx.serve(serveOpts);
+    console.log(
+      `serving extension from "${serveOpts.servedir}" at "http://${hosts[0]}:${port}"`,
+    );
+  } else {
+    await ctx.rebuild();
+    await ctx.dispose();
+  }
 }
 
-build(buildOptsWeb).then(() => enableWatch ? console.log("watching web development build...") : null);
+startDevServer().catch((err) => {
+  console.error("Build failed:", err);
+  process.exit(1);
+});
