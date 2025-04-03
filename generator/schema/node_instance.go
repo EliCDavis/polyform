@@ -1,8 +1,8 @@
 package schema
 
 type PortReference struct {
-	NodeId   string `json:"dependencyID"`
-	PortName string `json:"dependencyPort"`
+	NodeId   string `json:"id"`
+	PortName string `json:"port"`
 }
 
 type NodeInstanceOutputPort struct {

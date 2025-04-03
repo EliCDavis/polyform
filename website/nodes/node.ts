@@ -156,10 +156,16 @@ export class PolyNodeController {
         }
 
         this.flowNode.addDragStoppedListener((nodeChanged) => {
+
+            // Round to decrease file size of json. Precision isn't needed
+            const pos = this.flowNode.getPosition();
+            pos.x = Math.round(pos.x);
+            pos.y = Math.round(pos.y);
+
             this.requestManager.setNodeMetadata(
                 this.flowNode.getProperty(InstanceIDProperty),
                 "position",
-                this.flowNode.getPosition(),
+                pos,
                 (response) => {
                     console.log("set metadata response", response)
                 }

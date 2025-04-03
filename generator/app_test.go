@@ -119,8 +119,8 @@ func TestAppCommand_Outline(t *testing.T) {
             "name": "test.txt",
             "assignedInput": {
                 "In": {
-                    "dependencyID": "Node-0",
-                    "dependencyPort": "Value"
+                    "id": "Node-0",
+                    "port": "Value"
                 }
             },
             "output": {

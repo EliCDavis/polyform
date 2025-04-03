@@ -95,6 +95,44 @@ nodeManager.subscribeToParameterChange((param) => {
 
 schemaManager.subscribe(producerViewManager.NewSchema.bind(producerViewManager));
 
+const Compress = async (str: string, encoding = 'gzip' as CompressionFormat): Promise<ArrayBuffer> => {
+    const byteArray = new TextEncoder().encode(str)
+    const cs = new CompressionStream(encoding)
+    const writer = cs.writable.getWriter()
+    writer.write(byteArray)
+    writer.close()
+    return new Response(cs.readable).arrayBuffer()
+}
+
+const Decompress = async (byteArray: BufferSource, encoding = 'gzip' as CompressionFormat): Promise<string> => {
+    const cs = new DecompressionStream(encoding)
+    const writer = cs.writable.getWriter()
+    writer.write(byteArray)
+    writer.close()
+    const arrayBuffer = await new Response(cs.readable).arrayBuffer()
+    return new TextDecoder().decode(arrayBuffer)
+}
+
+async function CopyToClipboard(text: string) {
+    try {
+        await navigator.clipboard.writeText(text);
+        console.log('Text copied to clipboard');
+    } catch (err) {
+        console.error('Failed to copy text: ', err);
+    }
+}
+
+function ArrayBufferToBase64(buffer: ArrayBuffer) {
+    return new Promise((resolve, reject) => {
+        let blob = new Blob([buffer]);
+        let reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+    });
+}
+
+
 const fileControls = {
     newGraph: () => {
         graphPopup.show();
@@ -117,6 +155,15 @@ const fileControls = {
             a.download = 'graph.json';
             a.href = window.URL.createObjectURL(bb);
             a.click();
+        })
+    },
+    link: () => {
+        requestManager.getGraph(async (graph) => {
+            const fileContent = JSON.stringify(graph);
+            const compressedGraph = await Compress(fileContent);
+            const compressedString = await ArrayBufferToBase64(compressedGraph)
+            const url = window.location.href + "q?graph=" + compressedString
+            CopyToClipboard(url);
         })
     },
     loadProfile: () => {
@@ -173,7 +220,8 @@ const panel = new GUI({ width: 310 });
 const fileSettingsFolder = panel.addFolder("Graph");
 fileSettingsFolder.add(fileControls, "newGraph").name("New")
 fileSettingsFolder.add(fileControls, "saveGraph").name("Save")
-fileSettingsFolder.add(fileControls, "loadProfile").name("Load")
+fileSettingsFolder.add(fileControls, "loadProfile").name("Load");
+fileSettingsFolder.add(fileControls, "link").name("Link");
 
 const exportSettingsFolder = panel.addFolder("Export");
 exportSettingsFolder.add(fileControls, "saveModel").name("Model")

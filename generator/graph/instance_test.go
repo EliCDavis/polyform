@@ -119,8 +119,8 @@ func TestInstance_AddProducer_InitializeParameters_Artifacts(t *testing.T) {
 			"name": "test.txt",
 			"assignedInput": {
 				"In": {
-					"dependencyID": "Node-0",
-					"dependencyPort": "Value"
+					"id": "Node-0",
+					"port": "Value"
 				}
 			},
 			"output": {
@@ -197,8 +197,8 @@ func TestInstance_AddProducer_InitializeParameters_Artifacts(t *testing.T) {
 				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/generator/artifact/basics.TextNodeData]",
 				"assignedInput": {
 					"In": {
-						"dependencyID": "Node-0",
-						"dependencyPort": "Value"
+						"id": "Node-0",
+						"port": "Value"
 					}
 				}
 			}

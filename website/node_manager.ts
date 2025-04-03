@@ -168,10 +168,10 @@ export class NodeManager {
                     continue;
                 }
 
-                const otherNode = this.nodeIdToNode.get(inputPort.dependencyID);
-                const outputPortIndex = this.findIndexOfOutputPortWithName(otherNode.flowNode, inputPort.dependencyPort);
+                const otherNode = this.nodeIdToNode.get(inputPort.id);
+                const outputPortIndex = this.findIndexOfOutputPortWithName(otherNode.flowNode, inputPort.port);
                 if (outputPortIndex === -1) {
-                    console.error("failed to find output port", inputPort.dependencyPort, "on node", otherNode)
+                    console.error("failed to find output port", inputPort.port, "on node", otherNode)
                     continue;
                 }
 

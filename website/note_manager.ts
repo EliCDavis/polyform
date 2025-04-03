@@ -105,7 +105,13 @@ export class NoteManager {
         if (this.updating) {
             return;
         }
-        this.requestManager.setNoteMetadata(noteDragged.getMetadataProperty(ID_PROPERTY), "position", noteDragged.position(), () => { });
+        
+        // Round to decrease file size of json. Precision isn't needed
+        const pos = noteDragged.position();
+        pos.x = Math.round(pos.x);
+        pos.y = Math.round(pos.y);
+
+        this.requestManager.setNoteMetadata(noteDragged.getMetadataProperty(ID_PROPERTY), "position", pos, () => { });
     }
 
     setupNote(note: FlowNote): void {

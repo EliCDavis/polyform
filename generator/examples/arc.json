@@ -224,12 +224,12 @@
                 "type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/math/vector3.NewArrayNodeData]",
                 "assignedInput": {
                     "X": {
-                        "dependencyID": "Node-3",
-                        "dependencyPort": "Out"
+                        "id": "Node-3",
+                        "port": "Out"
                     },
                     "Z": {
-                        "dependencyID": "Node-4",
-                        "dependencyPort": "Out"
+                        "id": "Node-4",
+                        "port": "Out"
                     }
                 }
             },
@@ -237,12 +237,12 @@
                 "type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/math/vector3.NewArrayNodeData]",
                 "assignedInput": {
                     "X": {
-                        "dependencyID": "Node-8",
-                        "dependencyPort": "Out"
+                        "id": "Node-8",
+                        "port": "Out"
                     },
                     "Z": {
-                        "dependencyID": "Node-9",
-                        "dependencyPort": "Out"
+                        "id": "Node-9",
+                        "port": "Out"
                     }
                 }
             },
@@ -250,8 +250,8 @@
                 "type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/math/curves.CatmullRomSplineNodeData]",
                 "assignedInput": {
                     "Points": {
-                        "dependencyID": "Node-10",
-                        "dependencyPort": "Out"
+                        "id": "Node-10",
+                        "port": "Out"
                     }
                 }
             },
@@ -259,8 +259,8 @@
                 "type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/math/curves.CatmullRomSplineNodeData]",
                 "assignedInput": {
                     "Points": {
-                        "dependencyID": "Node-0",
-                        "dependencyPort": "Out"
+                        "id": "Node-0",
+                        "port": "Out"
                     }
                 }
             },
@@ -268,16 +268,16 @@
                 "type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/modeling/extrude.CircleAlongSplineNodeData]",
                 "assignedInput": {
                     "Radius": {
-                        "dependencyID": "Node-19",
-                        "dependencyPort": "Value"
+                        "id": "Node-19",
+                        "port": "Value"
                     },
                     "Spline": {
-                        "dependencyID": "Node-11",
-                        "dependencyPort": "Out"
+                        "id": "Node-11",
+                        "port": "Out"
                     },
                     "SplineResolution": {
-                        "dependencyID": "Node-18",
-                        "dependencyPort": "Value"
+                        "id": "Node-18",
+                        "port": "Value"
                     }
                 }
             },
@@ -285,8 +285,8 @@
                 "type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.ArtifactNodeData]",
                 "assignedInput": {
                     "Models.0": {
-                        "dependencyID": "Node-17",
-                        "dependencyPort": "Out"
+                        "id": "Node-17",
+                        "port": "Out"
                     }
                 }
             },
@@ -294,16 +294,16 @@
                 "type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/modeling/extrude.CircleAlongSplineNodeData]",
                 "assignedInput": {
                     "Radius": {
-                        "dependencyID": "Node-19",
-                        "dependencyPort": "Value"
+                        "id": "Node-19",
+                        "port": "Value"
                     },
                     "Spline": {
-                        "dependencyID": "Node-12",
-                        "dependencyPort": "Out"
+                        "id": "Node-12",
+                        "port": "Out"
                     },
                     "SplineResolution": {
-                        "dependencyID": "Node-18",
-                        "dependencyPort": "Value"
+                        "id": "Node-18",
+                        "port": "Value"
                     }
                 }
             },
@@ -311,16 +311,16 @@
                 "type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.ModelNodeData]",
                 "assignedInput": {
                     "Material": {
-                        "dependencyID": "Node-26",
-                        "dependencyPort": "Out"
+                        "id": "Node-26",
+                        "port": "Out"
                     },
                     "Mesh": {
-                        "dependencyID": "Node-22",
-                        "dependencyPort": "Out"
+                        "id": "Node-22",
+                        "port": "Out"
                     },
                     "Rotation": {
-                        "dependencyID": "Node-28",
-                        "dependencyPort": "Out"
+                        "id": "Node-28",
+                        "port": "Out"
                     }
                 }
             },
@@ -350,12 +350,12 @@
                 "type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/nodes/experimental.SampleNodeData]",
                 "assignedInput": {
                     "End": {
-                        "dependencyID": "Node-31",
-                        "dependencyPort": "Pi"
+                        "id": "Node-31",
+                        "port": "Pi"
                     },
                     "Samples": {
-                        "dependencyID": "Node-18",
-                        "dependencyPort": "Value"
+                        "id": "Node-18",
+                        "port": "Value"
                     }
                 }
             },
@@ -363,20 +363,20 @@
                 "type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/modeling/meshops.CombineNodeData]",
                 "assignedInput": {
                     "Meshes.0": {
-                        "dependencyID": "Node-16",
-                        "dependencyPort": "Out"
+                        "id": "Node-16",
+                        "port": "Out"
                     },
                     "Meshes.1": {
-                        "dependencyID": "Node-13",
-                        "dependencyPort": "Out"
+                        "id": "Node-13",
+                        "port": "Out"
                     },
                     "Meshes.2": {
-                        "dependencyID": "Node-23",
-                        "dependencyPort": "Out"
+                        "id": "Node-23",
+                        "port": "Out"
                     },
                     "Meshes.3": {
-                        "dependencyID": "Node-25",
-                        "dependencyPort": "Out"
+                        "id": "Node-25",
+                        "port": "Out"
                     }
                 }
             },
@@ -384,12 +384,12 @@
                 "type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/modeling/meshops.TranslateAttribute3DNodeData]",
                 "assignedInput": {
                     "Amount": {
-                        "dependencyID": "Node-24",
-                        "dependencyPort": "Out"
+                        "id": "Node-24",
+                        "port": "Out"
                     },
                     "Mesh": {
-                        "dependencyID": "Node-16",
-                        "dependencyPort": "Out"
+                        "id": "Node-16",
+                        "port": "Out"
                     }
                 }
             },
@@ -397,8 +397,8 @@
                 "type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/math/vector3.NewNodeData[float64]]",
                 "assignedInput": {
                     "Y": {
-                        "dependencyID": "Node-6",
-                        "dependencyPort": "Value"
+                        "id": "Node-6",
+                        "port": "Value"
                     }
                 }
             },
@@ -406,12 +406,12 @@
                 "type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/modeling/meshops.TranslateAttribute3DNodeData]",
                 "assignedInput": {
                     "Amount": {
-                        "dependencyID": "Node-24",
-                        "dependencyPort": "Out"
+                        "id": "Node-24",
+                        "port": "Out"
                     },
                     "Mesh": {
-                        "dependencyID": "Node-13",
-                        "dependencyPort": "Out"
+                        "id": "Node-13",
+                        "port": "Out"
                     }
                 }
             },
@@ -419,8 +419,8 @@
                 "type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.MaterialNodeData]",
                 "assignedInput": {
                     "RoughnessFactor": {
-                        "dependencyID": "Node-27",
-                        "dependencyPort": "Value"
+                        "id": "Node-27",
+                        "port": "Value"
                     }
                 }
             },
@@ -439,8 +439,8 @@
                 "type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/math/quaternion.FromEulerAngleNodeData]",
                 "assignedInput": {
                     "Angle": {
-                        "dependencyID": "Node-29",
-                        "dependencyPort": "Out"
+                        "id": "Node-29",
+                        "port": "Out"
                     }
                 }
             },
@@ -448,8 +448,8 @@
                 "type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/math/vector3.NewNodeData[float64]]",
                 "assignedInput": {
                     "Z": {
-                        "dependencyID": "Node-31",
-                        "dependencyPort": "Pi / 2"
+                        "id": "Node-31",
+                        "port": "Pi / 2"
                     }
                 }
             },
@@ -457,12 +457,12 @@
                 "type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/math/trig.SinArrayNodeData]",
                 "assignedInput": {
                     "Amplitude": {
-                        "dependencyID": "Node-5",
-                        "dependencyPort": "Value"
+                        "id": "Node-5",
+                        "port": "Value"
                     },
                     "Input": {
-                        "dependencyID": "Node-2",
-                        "dependencyPort": "Out"
+                        "id": "Node-2",
+                        "port": "Out"
                     }
                 }
             },
@@ -474,12 +474,12 @@
                 "type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/math/trig.CosArrayNodeData]",
                 "assignedInput": {
                     "Amplitude": {
-                        "dependencyID": "Node-5",
-                        "dependencyPort": "Value"
+                        "id": "Node-5",
+                        "port": "Value"
                     },
                     "Input": {
-                        "dependencyID": "Node-2",
-                        "dependencyPort": "Out"
+                        "id": "Node-2",
+                        "port": "Out"
                     }
                 }
             },
@@ -509,12 +509,12 @@
                 "type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/math.SumNodeData[float64]]",
                 "assignedInput": {
                     "Values.0": {
-                        "dependencyID": "Node-5",
-                        "dependencyPort": "Value"
+                        "id": "Node-5",
+                        "port": "Value"
                     },
                     "Values.1": {
-                        "dependencyID": "Node-6",
-                        "dependencyPort": "Value"
+                        "id": "Node-6",
+                        "port": "Value"
                     }
                 }
             },
@@ -522,12 +522,12 @@
                 "type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/math/trig.SinArrayNodeData]",
                 "assignedInput": {
                     "Amplitude": {
-                        "dependencyID": "Node-7",
-                        "dependencyPort": "Out"
+                        "id": "Node-7",
+                        "port": "Out"
                     },
                     "Input": {
-                        "dependencyID": "Node-2",
-                        "dependencyPort": "Out"
+                        "id": "Node-2",
+                        "port": "Out"
                     }
                 }
             },
@@ -535,12 +535,12 @@
                 "type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/math/trig.CosArrayNodeData]",
                 "assignedInput": {
                     "Amplitude": {
-                        "dependencyID": "Node-7",
-                        "dependencyPort": "Out"
+                        "id": "Node-7",
+                        "port": "Out"
                     },
                     "Input": {
-                        "dependencyID": "Node-2",
-                        "dependencyPort": "Out"
+                        "id": "Node-2",
+                        "port": "Out"
                     }
                 }
             }

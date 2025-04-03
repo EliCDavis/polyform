@@ -18,8 +18,8 @@ export interface NodeType {
 }
 
 export interface PortReference {
-    dependencyID: string;
-    dependencyPort: string;
+    id: string;
+    port: string;
 }
 
 export interface NodeInstanceOutputPort {
