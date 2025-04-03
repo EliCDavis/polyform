@@ -4,12 +4,14 @@ import { InfoManager } from "../info_manager";
 import { GraphInstance } from "../schema";
 import { getFileExtension } from "../utils";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
 import { RequestManager } from "../requests";
 import * as GaussianSplats3D from '@mkkellogg/gaussian-splats-3d';
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { ThreeApp } from "../three_app";
 
-const loader = new GLTFLoader().setPath('producer/value/');
+const gltfLoader = new GLTFLoader().setPath('producer/value/');
+const objLoader = new OBJLoader().setPath('producer/value/');
 
 type ProducerRefreshCallback = (string: string, thing: any) => void;
 
@@ -167,9 +169,39 @@ export class ProducerViewManager {
         }
     }
 
+    loadObj(key: string, producerURL: string): void {
+        this.AddLoading();
+
+        objLoader.load(
+            producerURL,
+            ((obj) => {
+                this.RemoveLoading();
+
+                const aabb = new Box3();
+                aabb.setFromObject(obj);
+                const aabbHeight = (aabb.max.y - aabb.min.y)
+                const aabbHalfHeight = aabbHeight / 2
+                const mid = (aabb.max.y + aabb.min.y) / 2
+
+                this.producerScene.add(obj);
+
+                // We have to do this weird thing because the pivot of the scene
+                // Isn't always the center of the AABB
+                this.viewerContainer.position.set(0, - mid + aabbHalfHeight, 0);
+
+                this.viewAABB(aabb);
+            }),
+            undefined,
+            (err) => {
+                console.error(err);
+                this.RemoveLoading();
+            }
+        )
+    }
+
     loadGltf(key: string, producerURL: string) {
         this.AddLoading();
-        loader.load(
+        gltfLoader.load(
             producerURL,
             ((gltf) => {
 
@@ -319,6 +351,10 @@ export class ProducerViewManager {
                 case "gltf":
                 case "glb":
                     this.loadGltf(producer, producer);
+                    break;
+
+                case "obj":
+                    this.loadObj(producer, producer);
                     break;
 
                 case "splat":

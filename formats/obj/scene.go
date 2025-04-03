@@ -57,7 +57,7 @@ func (e Entry) writeVertexData(writer *txt.Writer) error {
 
 	if m.HasFloat3Attribute(modeling.NormalAttribute) {
 		normalData := m.Float3Attribute(modeling.NormalAttribute)
-		for i := 0; i < normalData.Len(); i++ {
+		for i := range normalData.Len() {
 			n := normalData.At(i)
 			writer.StartEntry()
 			writer.Append(vnTxt)

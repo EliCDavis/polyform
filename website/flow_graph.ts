@@ -172,7 +172,7 @@ const ImageParameter: FlowNodeConfig = {
 };
 
 const FileParameter: FlowNodeConfig = {
-    title: "[]uint8 Parameter",
+    title: "File Parameter",
     subTitle: "File",
     canEditTitle: true,
     canEditInfo: true,
@@ -378,7 +378,7 @@ export function CreateNodeFlowGraph(): FlowGraphInit {
             "Parameters/string": StringParameter,
             "Parameters/geometry.AABB": AABBParameter,
             "Parameters/image.Image": ImageParameter,
-            "Parameters/[]uint8": FileParameter,
+            "Parameters/File": FileParameter,
             "Parameters/vector3.Vector[float64]": Vector3Parameter,
             "Parameters/[]vector3.Vector[float64]": Vector3ArrayParameter,
             "Parameters/vector2.Vector[float64]": Vector2Parameter,
