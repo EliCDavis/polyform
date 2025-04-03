@@ -1,4 +1,3 @@
-import * as THREE from 'three';
 import { BasicParameterNodeController } from './basic_parameter.js';
 import { Vector3ParameterNodeController } from './vector3_parameter.js';
 import { Vector3ArrayParameterNodeController } from './vector3_array_parameter.js';
@@ -14,6 +13,7 @@ import { FlowNode, GlobalWidgetFactory, ImageWidget } from '@elicdavis/node-flow
 import { ThreeApp } from '../three_app.js';
 import { ProducerViewManager } from '../ProducerView/producer_view_manager.js';
 
+export const InstanceIDProperty: string = "instanceID"
 
 interface ParameterController {
     update(parameterData: any): void
@@ -64,7 +64,16 @@ function BuildParameter(
 
 // https://stackoverflow.com/a/35953318/4974261
 export function camelCaseToWords(str: string): string {
-    var result = str
+    let title = str;
+
+    const endMatches = str.match(/\[[^\]]*\]$/g);
+    let end = "";
+    if (endMatches !== null && endMatches.length > 0) {
+        end = " " + endMatches[0];
+        title = title.substring(0, title.length - endMatches[0].length);
+    }
+
+    title = title
         .replace(/(_)+/g, ' ')
         .replace(/([a-z])([A-Z][a-z])/g, "$1 $2")
         .replace(/([A-Z][a-z])([A-Z])/g, "$1 $2")
@@ -77,7 +86,7 @@ export function camelCaseToWords(str: string): string {
         .replace(/([0-9]{2,})([A-Z]{2,})/g, "$1 $2")
         .trim();
 
-    let title = result.charAt(0).toUpperCase() + result.slice(1);
+    title = title.charAt(0).toUpperCase() + title.slice(1);
     if (title.endsWith(" Node")) {
         title = title.substring(0, title.length - 5);
     }
@@ -87,7 +96,7 @@ export function camelCaseToWords(str: string): string {
     if (title.endsWith("NodeData")) {
         title = title.substring(0, title.length - 8);
     }
-    return title;
+    return title + end;
 }
 
 export class PolyNodeController {
@@ -148,7 +157,7 @@ export class PolyNodeController {
 
         this.flowNode.addDragStoppedListener((nodeChanged) => {
             this.requestManager.setNodeMetadata(
-                this.flowNode.getProperty("instanceID"),
+                this.flowNode.getProperty(InstanceIDProperty),
                 "position",
                 this.flowNode.getPosition(),
                 (response) => {
@@ -179,7 +188,7 @@ export class PolyNodeController {
 
             if (this.isProducer) {
                 this.requestManager.setProducerTitle(
-                    this.flowNode.getProperty("instanceID"),
+                    this.flowNode.getProperty(InstanceIDProperty),
                     {
                         nodePort: producerOutput,
                         producer: newTitle
@@ -188,7 +197,7 @@ export class PolyNodeController {
                 );
             } else {
                 this.requestManager.setParameterTitle(
-                    this.flowNode.getProperty("instanceID"),
+                    this.flowNode.getProperty(InstanceIDProperty),
                     newTitle,
                     () => { }
                 );
@@ -200,7 +209,7 @@ export class PolyNodeController {
         if (!this.isProducer) {
             this.flowNode.addInfoChangeListener((_, __, newTitle) => {
                 this.requestManager.setParameterInfo(
-                    this.flowNode.getProperty("instanceID"),
+                    this.flowNode.getProperty(InstanceIDProperty),
                     newTitle,
                     () => { }
                 );
@@ -248,9 +257,9 @@ export class PolyNodeController {
                 }
 
                 this.requestManager.setNodeInputConnection(
-                    this.flowNode.getProperty("instanceID"),
+                    this.flowNode.getProperty(InstanceIDProperty),
                     inputPort,
-                    connection.outNode().getProperty("instanceID"),
+                    connection.outNode().getProperty(InstanceIDProperty),
                     connection.outPort().getDisplayName(),
                 )
             });

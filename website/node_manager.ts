@@ -1,5 +1,5 @@
 import { FlowNode, NodeFlowGraph, Publisher } from "@elicdavis/node-flow";
-import { PolyNodeController, camelCaseToWords } from "./nodes/node.js";
+import { InstanceIDProperty, PolyNodeController, camelCaseToWords } from "./nodes/node.js";
 import { RequestManager } from "./requests.js";
 import { GraphInstance, GraphInstanceNodes, NodeInstance } from "./schema.js";
 import { NodeType } from './schema';
@@ -75,7 +75,7 @@ export class NodeManager {
             return;
         }
 
-        this.requestManager.deleteNode(flowNode.getProperty("instanceID"))
+        this.requestManager.deleteNode(flowNode.getProperty(InstanceIDProperty))
     }
 
     onNodeAddedCallback(flowNode: FlowNode): void {
@@ -89,7 +89,7 @@ export class NodeManager {
             const nodeID = resp.nodeID
             const nodeData = resp.data;
 
-            flowNode.setProperty("instanceID", nodeID);
+            flowNode.setProperty(InstanceIDProperty, nodeID);
 
             let producerOutPort: string = null
             if (this.producerTypes.has(nodeType)) {
@@ -333,7 +333,6 @@ export class NodeManager {
             } else {
                 const flowNode = this.newNode(nodeData);
 
-                const isProducer = this.producerTypes.has(nodeData.type);
                 for (const [key, value] of Object.entries(newSchema.producers)) {
                     if (value.nodeID === nodeID) {
                         flowNode.setTitle(key);
@@ -349,7 +348,7 @@ export class NodeManager {
 
                 // TODO: This is an ugo hack. Consider somehow making this
                 // apart of the metadata.
-                flowNode.setProperty("instanceID", nodeID);
+                flowNode.setProperty(InstanceIDProperty, nodeID);
 
                 const controller = new PolyNodeController(
                     flowNode,

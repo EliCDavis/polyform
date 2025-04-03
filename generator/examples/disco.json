@@ -357,7 +357,7 @@
 				}
 			},
 			"Node-18": {
-				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/math.DivideData[float64]]",
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/math.DivideNodeData[float64]]",
 				"assignedInput": {
 					"Dividend": {
 						"dependencyID": "Node-17",
@@ -432,7 +432,7 @@
 				}
 			},
 			"Node-23": {
-				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/math.SumData[float64]]",
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/math.SumNodeData[float64]]",
 				"assignedInput": {
 					"Values.0": {
 						"dependencyID": "Node-25",
@@ -455,7 +455,7 @@
 				}
 			},
 			"Node-25": {
-				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/math.DivideData[float64]]",
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/math.DivideNodeData[float64]]",
 				"assignedInput": {
 					"Dividend": {
 						"dependencyID": "Node-24",
