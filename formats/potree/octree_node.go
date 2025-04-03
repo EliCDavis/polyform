@@ -155,5 +155,5 @@ func LoadNode(on *OctreeNode, metadata *Metadata, buf []byte) modeling.Mesh {
 		attributeOffset += attribute.Size
 	}
 
-	return modeling.NewPointCloud(nil, pointcloudData, nil, nil, nil)
+	return modeling.NewPointCloud(nil, pointcloudData, nil, nil)
 }

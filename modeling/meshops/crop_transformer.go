@@ -85,7 +85,7 @@ func CropFloat3Attribute(m modeling.Mesh, attr string, boundingBox geometry.AABB
 		}
 	}
 
-	return modeling.NewPointCloud(v4, v3, v2, v1, m.Materials())
+	return modeling.NewPointCloud(v4, v3, v2, v1)
 }
 
 type CropAttribute3DNode = nodes.Struct[CropAttribute3DNodeData]

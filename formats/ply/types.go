@@ -114,7 +114,7 @@ func (sa SplatPly) Write(w io.Writer) error {
 		Properties: writers,
 	}
 
-	return writer.Write(sa.Mesh, w)
+	return writer.Write(sa.Mesh, "", w)
 }
 
 func (SplatPly) Mime() string {

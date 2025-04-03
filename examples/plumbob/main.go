@@ -4,7 +4,6 @@ import (
 	"image/color"
 
 	"github.com/EliCDavis/polyform/formats/obj"
-	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/meshops"
 	"github.com/EliCDavis/polyform/modeling/primitives"
 	"github.com/EliCDavis/polyform/rendering"
@@ -12,36 +11,45 @@ import (
 	"github.com/EliCDavis/vector/vector3"
 )
 
-func plumbob() modeling.Mesh {
-	return primitives.
-		UVSphere(1, 2, 8).
-		Transform(
-			meshops.ScaleAttribute3DTransformer{
-				Amount: vector3.New(1., 2., 1.),
+func plumbob() obj.Scene {
+	return obj.Scene{
+		Objects: []obj.Object{
+			obj.Object{
+				Name: "Plumbob",
+				Entries: []obj.Entry{
+					obj.Entry{
+						Mesh: primitives.
+							UVSphere(1, 2, 8).
+							Transform(
+								meshops.ScaleAttribute3DTransformer{
+									Amount: vector3.New(1., 2., 1.),
+								},
+								meshops.UnweldTransformer{},
+								meshops.FlatNormalsTransformer{},
+							),
+						Material: &obj.Material{
+							Name:              "Plumbob",
+							DiffuseColor:      color.RGBA{0, 255, 0, 255},
+							Transparency:      .1,
+							SpecularHighlight: 50,
+							SpecularColor:     color.RGBA{0, 255, 0, 255},
+						},
+					},
+				},
 			},
-			meshops.UnweldTransformer{},
-			meshops.FlatNormalsTransformer{},
-		).
-		SetMaterial(modeling.Material{
-			Name:              "Plumbob",
-			DiffuseColor:      color.RGBA{0, 255, 0, 255},
-			Transparency:      .1,
-			SpecularHighlight: 50,
-			SpecularColor:     color.RGBA{0, 255, 0, 255},
-		})
+		},
+	}
 }
 
 func render() {
 	jewelColor := vector3.New(0., 0.9, 0.4)
 	jewelMat := materials.NewDielectricWithColor(1.5, jewelColor)
 
+	mesh := plumbob().Objects[0].Entries[0].Mesh
 	scene := []rendering.Hittable{
+		rendering.NewMesh(mesh, jewelMat),
 		rendering.NewMesh(
-			plumbob(),
-			jewelMat,
-		),
-		rendering.NewMesh(
-			plumbob().Transform(
+			mesh.Transform(
 				meshops.ScaleAttribute3DTransformer{
 					Amount: vector3.Fill(0.9),
 				},

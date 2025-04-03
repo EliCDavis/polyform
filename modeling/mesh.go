@@ -18,26 +18,24 @@ import (
 )
 
 type Mesh struct {
-	v4Data    map[string][]vector4.Float64
-	v3Data    map[string][]vector3.Float64
-	v2Data    map[string][]vector2.Float64
-	v1Data    map[string][]float64
-	indices   []int
-	materials []MeshMaterial
-	topology  Topology
+	v4Data   map[string][]vector4.Float64
+	v3Data   map[string][]vector3.Float64
+	v2Data   map[string][]vector2.Float64
+	v1Data   map[string][]float64
+	indices  []int
+	topology Topology
 }
 
 // New Mesh creates a new mesh with the specified topology with all empty
 // attribute data arrays stripped.
 func NewMesh(topo Topology, indices []int) Mesh {
 	return Mesh{
-		indices:   indices,
-		materials: nil,
-		topology:  topo,
-		v1Data:    make(map[string][]float64),
-		v2Data:    make(map[string][]vector2.Float64),
-		v3Data:    make(map[string][]vector3.Float64),
-		v4Data:    make(map[string][]vector4.Float64),
+		indices:  indices,
+		topology: topo,
+		v1Data:   make(map[string][]float64),
+		v2Data:   make(map[string][]vector2.Float64),
+		v3Data:   make(map[string][]vector3.Float64),
+		v4Data:   make(map[string][]vector4.Float64),
 	}
 }
 
@@ -45,13 +43,12 @@ func NewMesh(topo Topology, indices []int) Mesh {
 // arrays stripped.
 func NewTriangleMesh(indices []int) Mesh {
 	return Mesh{
-		indices:   indices,
-		materials: nil,
-		topology:  TriangleTopology,
-		v1Data:    make(map[string][]float64),
-		v2Data:    make(map[string][]vector2.Float64),
-		v3Data:    make(map[string][]vector3.Float64),
-		v4Data:    make(map[string][]vector4.Float64),
+		indices:  indices,
+		topology: TriangleTopology,
+		v1Data:   make(map[string][]float64),
+		v2Data:   make(map[string][]vector2.Float64),
+		v3Data:   make(map[string][]vector3.Float64),
+		v4Data:   make(map[string][]vector4.Float64),
 	}
 }
 
@@ -61,7 +58,6 @@ func newImpliedIndicesMesh(
 	v2Data map[string][]vector2.Float64,
 	v3Data map[string][]vector3.Float64,
 	v4Data map[string][]vector4.Float64,
-	materials []MeshMaterial,
 ) Mesh {
 	attributeCount := 0
 
@@ -111,13 +107,12 @@ func newImpliedIndicesMesh(
 	}
 
 	return Mesh{
-		indices:   indices,
-		materials: materials,
-		topology:  topo,
-		v4Data:    cleanedV4Data,
-		v3Data:    cleanedV3Data,
-		v2Data:    cleanedV2Data,
-		v1Data:    cleanedV1Data,
+		indices:  indices,
+		topology: topo,
+		v4Data:   cleanedV4Data,
+		v3Data:   cleanedV3Data,
+		v2Data:   cleanedV2Data,
+		v1Data:   cleanedV1Data,
 	}
 }
 
@@ -125,9 +120,8 @@ func NewLineStripMesh(
 	v3Data map[string][]vector3.Float64,
 	v2Data map[string][]vector2.Float64,
 	v1Data map[string][]float64,
-	materials []MeshMaterial,
 ) Mesh {
-	return newImpliedIndicesMesh(LineStripTopology, v1Data, v2Data, v3Data, nil, materials)
+	return newImpliedIndicesMesh(LineStripTopology, v1Data, v2Data, v3Data, nil)
 }
 
 func NewPointCloud(
@@ -135,22 +129,20 @@ func NewPointCloud(
 	v3Data map[string][]vector3.Float64,
 	v2Data map[string][]vector2.Float64,
 	v1Data map[string][]float64,
-	materials []MeshMaterial,
 ) Mesh {
-	return newImpliedIndicesMesh(PointTopology, v1Data, v2Data, v3Data, v4Data, materials)
+	return newImpliedIndicesMesh(PointTopology, v1Data, v2Data, v3Data, v4Data)
 }
 
 // Creates a new mesh with the specified topology that has no vertices or
 // attribute data
 func EmptyMesh(topo Topology) Mesh {
 	return Mesh{
-		indices:   make([]int, 0),
-		materials: make([]MeshMaterial, 0),
-		topology:  topo,
-		v4Data:    make(map[string][]vector4.Float64),
-		v3Data:    make(map[string][]vector3.Float64),
-		v2Data:    make(map[string][]vector2.Float64),
-		v1Data:    make(map[string][]float64),
+		indices:  make([]int, 0),
+		topology: topo,
+		v4Data:   make(map[string][]vector4.Float64),
+		v3Data:   make(map[string][]vector3.Float64),
+		v2Data:   make(map[string][]vector2.Float64),
+		v1Data:   make(map[string][]float64),
 	}
 }
 
@@ -179,25 +171,23 @@ func (m Mesh) ToPointCloud() Mesh {
 	}
 
 	return Mesh{
-		v4Data:    m.v4Data,
-		v3Data:    m.v3Data,
-		v2Data:    m.v2Data,
-		v1Data:    m.v1Data,
-		indices:   indices,
-		materials: m.materials,
-		topology:  PointTopology,
+		v4Data:   m.v4Data,
+		v3Data:   m.v3Data,
+		v2Data:   m.v2Data,
+		v1Data:   m.v1Data,
+		indices:  indices,
+		topology: PointTopology,
 	}
 }
 
 func (m Mesh) SetIndices(indices []int) Mesh {
 	return Mesh{
-		v4Data:    m.v4Data,
-		v3Data:    m.v3Data,
-		v2Data:    m.v2Data,
-		v1Data:    m.v1Data,
-		indices:   indices,
-		materials: m.materials,
-		topology:  m.topology,
+		v4Data:   m.v4Data,
+		v3Data:   m.v3Data,
+		v2Data:   m.v2Data,
+		v1Data:   m.v1Data,
+		indices:  indices,
+		topology: m.topology,
 	}
 }
 
@@ -263,34 +253,6 @@ func (m Mesh) Float1Attributes() []string {
 	sort.Strings(attributes)
 
 	return attributes
-}
-
-func (m Mesh) Materials() []MeshMaterial {
-	return m.materials
-}
-
-func (m Mesh) SetMaterial(mat Material) Mesh {
-	return Mesh{
-		v4Data:    m.v4Data,
-		v3Data:    m.v3Data,
-		v2Data:    m.v2Data,
-		v1Data:    m.v1Data,
-		indices:   m.indices,
-		materials: []MeshMaterial{{PrimitiveCount: len(m.indices) / m.topology.IndexSize(), Material: &mat}},
-		topology:  m.topology,
-	}
-}
-
-func (m Mesh) SetMaterials(mat []MeshMaterial) Mesh {
-	return Mesh{
-		v4Data:    m.v4Data,
-		v3Data:    m.v3Data,
-		v2Data:    m.v2Data,
-		v1Data:    m.v1Data,
-		indices:   m.indices,
-		materials: mat,
-		topology:  m.topology,
-	}
 }
 
 func (m Mesh) Tri(i int) Tri {
@@ -360,19 +322,17 @@ func (m Mesh) Append(other Mesh) Mesh {
 	finalV4Data := appendData(m.v4Data, other.v4Data, mAtrLength, oAtrLength, func() vector4.Vector[float64] { return vector4.Zero[float64]() })
 
 	finalTris := append(m.indices, other.indices...)
-	finalMaterials := append(m.materials, other.materials...)
 	for i := len(m.indices); i < len(finalTris); i++ {
 		finalTris[i] += mAtrLength
 	}
 
 	return Mesh{
-		v1Data:    finalV1Data,
-		v2Data:    finalV2Data,
-		v3Data:    finalV3Data,
-		v4Data:    finalV4Data,
-		materials: finalMaterials,
-		indices:   finalTris,
-		topology:  m.topology,
+		v1Data:   finalV1Data,
+		v2Data:   finalV2Data,
+		v3Data:   finalV3Data,
+		v4Data:   finalV4Data,
+		indices:  finalTris,
+		topology: m.topology,
 	}
 }
 
@@ -959,13 +919,12 @@ func (m Mesh) WeldByFloat3Attribute(attribute string, decimalPlace int) Mesh {
 	}
 
 	return Mesh{
-		indices:   newTris,
-		v4Data:    finalV4Data,
-		v3Data:    finalV3Data,
-		v2Data:    finalV2Data,
-		v1Data:    finalV1Data,
-		materials: nil, // TODO: Figure out the new tri counts for the materials. Util then clear em
-		topology:  m.topology,
+		indices:  newTris,
+		v4Data:   finalV4Data,
+		v3Data:   finalV3Data,
+		v2Data:   finalV2Data,
+		v1Data:   finalV1Data,
+		topology: m.topology,
 	}
 }
 
@@ -1030,25 +989,23 @@ func (m Mesh) SetFloat4Attribute(attr string, data []vector4.Float64) Mesh {
 	}
 
 	return Mesh{
-		v4Data:    finalV4Data,
-		v3Data:    m.v3Data,
-		v2Data:    m.v2Data,
-		v1Data:    m.v1Data,
-		indices:   m.indices,
-		materials: m.materials,
-		topology:  m.topology,
+		v4Data:   finalV4Data,
+		v3Data:   m.v3Data,
+		v2Data:   m.v2Data,
+		v1Data:   m.v1Data,
+		indices:  m.indices,
+		topology: m.topology,
 	}
 }
 
 func (m Mesh) SetFloat4Data(data map[string][]vector4.Float64) Mesh {
 	return Mesh{
-		v1Data:    m.v1Data,
-		v2Data:    m.v2Data,
-		v3Data:    m.v3Data,
-		v4Data:    data,
-		indices:   m.indices,
-		materials: m.materials,
-		topology:  m.topology,
+		v1Data:   m.v1Data,
+		v2Data:   m.v2Data,
+		v3Data:   m.v3Data,
+		v4Data:   data,
+		indices:  m.indices,
+		topology: m.topology,
 	}
 }
 
@@ -1069,25 +1026,23 @@ func (m Mesh) SetFloat3Attribute(attr string, data []vector3.Float64) Mesh {
 	}
 
 	return Mesh{
-		v4Data:    m.v4Data,
-		v3Data:    finalV3Data,
-		v2Data:    m.v2Data,
-		v1Data:    m.v1Data,
-		indices:   m.indices,
-		materials: m.materials,
-		topology:  m.topology,
+		v4Data:   m.v4Data,
+		v3Data:   finalV3Data,
+		v2Data:   m.v2Data,
+		v1Data:   m.v1Data,
+		indices:  m.indices,
+		topology: m.topology,
 	}
 }
 
 func (m Mesh) SetFloat3Data(data map[string][]vector3.Float64) Mesh {
 	return Mesh{
-		v1Data:    m.v1Data,
-		v2Data:    m.v2Data,
-		v3Data:    data,
-		v4Data:    m.v4Data,
-		indices:   m.indices,
-		materials: m.materials,
-		topology:  m.topology,
+		v1Data:   m.v1Data,
+		v2Data:   m.v2Data,
+		v3Data:   data,
+		v4Data:   m.v4Data,
+		indices:  m.indices,
+		topology: m.topology,
 	}
 }
 
@@ -1124,25 +1079,23 @@ func (m Mesh) SetFloat2Attribute(attr string, data []vector2.Float64) Mesh {
 	}
 
 	return Mesh{
-		v4Data:    m.v4Data,
-		v3Data:    m.v3Data,
-		v2Data:    finalV2Data,
-		v1Data:    m.v1Data,
-		indices:   m.indices,
-		materials: m.materials,
-		topology:  m.topology,
+		v4Data:   m.v4Data,
+		v3Data:   m.v3Data,
+		v2Data:   finalV2Data,
+		v1Data:   m.v1Data,
+		indices:  m.indices,
+		topology: m.topology,
 	}
 }
 
 func (m Mesh) SetFloat2Data(data map[string][]vector2.Float64) Mesh {
 	return Mesh{
-		v1Data:    m.v1Data,
-		v2Data:    data,
-		v3Data:    m.v3Data,
-		v4Data:    m.v4Data,
-		indices:   m.indices,
-		materials: m.materials,
-		topology:  m.topology,
+		v1Data:   m.v1Data,
+		v2Data:   data,
+		v3Data:   m.v3Data,
+		v4Data:   m.v4Data,
+		indices:  m.indices,
+		topology: m.topology,
 	}
 }
 
@@ -1163,37 +1116,34 @@ func (m Mesh) SetFloat1Attribute(attr string, data []float64) Mesh {
 	}
 
 	return Mesh{
-		v4Data:    m.v4Data,
-		v3Data:    m.v3Data,
-		v2Data:    m.v2Data,
-		v1Data:    finalV1Data,
-		indices:   m.indices,
-		materials: m.materials,
-		topology:  m.topology,
+		v4Data:   m.v4Data,
+		v3Data:   m.v3Data,
+		v2Data:   m.v2Data,
+		v1Data:   finalV1Data,
+		indices:  m.indices,
+		topology: m.topology,
 	}
 }
 
 func (m Mesh) SetFloat1Data(data map[string][]float64) Mesh {
 	return Mesh{
-		v1Data:    data,
-		v2Data:    m.v2Data,
-		v3Data:    m.v3Data,
-		v4Data:    m.v4Data,
-		indices:   m.indices,
-		materials: m.materials,
-		topology:  m.topology,
+		v1Data:   data,
+		v2Data:   m.v2Data,
+		v3Data:   m.v3Data,
+		v4Data:   m.v4Data,
+		indices:  m.indices,
+		topology: m.topology,
 	}
 }
 
 func (m Mesh) ClearAttributeData() Mesh {
 	return Mesh{
-		v1Data:    nil,
-		v2Data:    nil,
-		v3Data:    nil,
-		v4Data:    nil,
-		indices:   m.indices,
-		materials: m.materials,
-		topology:  m.topology,
+		v1Data:   nil,
+		v2Data:   nil,
+		v3Data:   nil,
+		v4Data:   nil,
+		indices:  m.indices,
+		topology: m.topology,
 	}
 }
 

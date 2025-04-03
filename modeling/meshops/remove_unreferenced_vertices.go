@@ -66,6 +66,5 @@ func RemovedUnreferencedVertices(m modeling.Mesh) modeling.Mesh {
 		SetFloat4Data(finalV4Data).
 		SetFloat3Data(finalV3Data).
 		SetFloat2Data(finalV2Data).
-		SetFloat1Data(finalV1Data).
-		SetMaterials(m.Materials())
+		SetFloat1Data(finalV1Data)
 }

@@ -16,11 +16,8 @@ func readMesh(path string) (*modeling.Mesh, error) {
 
 	switch strings.ToLower(ext) {
 	case ".obj":
-		meshes, err := obj.Load(path)
-		mesh := modeling.EmptyMesh(modeling.TriangleTopology)
-		for _, m := range meshes {
-			mesh = mesh.Append(m.Mesh)
-		}
+		scene, err := obj.Load(path)
+		mesh := scene.ToMesh()
 		return &mesh, err
 
 	case ".ply":

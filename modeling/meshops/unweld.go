@@ -66,6 +66,5 @@ func Unweld(m modeling.Mesh) modeling.Mesh {
 		SetFloat4Data(unweldedV4Data).
 		SetFloat3Data(unweldedV3Data).
 		SetFloat2Data(unweldedV2Data).
-		SetFloat1Data(unweldedV1Data).
-		SetMaterials(m.Materials())
+		SetFloat1Data(unweldedV1Data)
 }

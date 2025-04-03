@@ -76,7 +76,7 @@ func main() {
 
 	log.Printf("time to compute: %s", time.Now().Sub(start))
 
-	err := obj.Save("tmp/csg/csg.obj", mesh)
+	err := obj.SaveMesh("tmp/csg/csg.obj", mesh)
 	if err != nil {
 		panic(err)
 	}

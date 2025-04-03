@@ -36,7 +36,6 @@ func ImageDataToPointCloud(images []colmap.Image) modeling.Mesh {
 			"camera id":   cameraIdData,
 			"point count": pointCountData,
 		},
-		nil,
 	)
 }
 

@@ -81,7 +81,7 @@ func main() {
 	})
 
 	textureName := "terrain.jpg"
-	mat := modeling.Material{
+	mat := obj.Material{
 		Name:            "Terrain",
 		ColorTextureURI: &textureName,
 	}
@@ -122,21 +122,21 @@ func main() {
 
 			return v.SetY(heightFunc(v.XZ()))
 		}).
-		SetFloat2Attribute(modeling.TexCoordAttribute, uvs).
-		SetMaterial(mat)
+		SetFloat2Attribute(modeling.TexCoordAttribute, uvs)
 
-	objFile, err := os.Create("terrain.obj")
+	err := obj.Save("terrain.obj", obj.Scene{
+		Objects: []obj.Object{
+			{
+				Entries: []obj.Entry{
+					{
+						Mesh:     terrain,
+						Material: &mat,
+					},
+				},
+			},
+		},
+	})
 	if err != nil {
 		panic(err)
 	}
-	defer objFile.Close()
-
-	mtlFile, err := os.Create("terrain.mtl")
-	if err != nil {
-		panic(err)
-	}
-	defer mtlFile.Close()
-
-	obj.WriteMesh(terrain, "terrain.mtl", objFile)
-	obj.WriteMaterialsFromMesh(terrain, mtlFile)
 }

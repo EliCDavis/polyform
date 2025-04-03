@@ -56,7 +56,7 @@ end_header
 	}.Welded()
 
 	buf := bytes.Buffer{}
-	err := ply.Write(&buf, cube, ply.ASCII)
+	err := ply.Write(&buf, cube, ply.ASCII, "")
 
 	assert.NoError(t, err)
 	assert.Equal(t, plyData, buf.String())
@@ -96,19 +96,10 @@ end_header
 				vector2.New(0., 1.),
 				vector2.New(1., 1.),
 			},
-		}).
-		SetMaterials([]modeling.MeshMaterial{
-			{
-				PrimitiveCount: 1,
-				Material: &modeling.Material{
-					Name:            "example",
-					ColorTextureURI: &imgName,
-				},
-			},
 		})
 
 	buf := bytes.Buffer{}
-	err := ply.Write(&buf, tri, ply.ASCII)
+	err := ply.Write(&buf, tri, ply.ASCII, imgName)
 
 	assert.NoError(t, err)
 	assert.Equal(t, plyData, buf.String())
@@ -191,12 +182,11 @@ func TestWriteASCII_PointCloud(t *testing.T) {
 			"1-uchar": {10 / 255.},
 			"1-float": {10.1},
 		},
-		nil,
 	)
 
 	// ACT ====================================================================
 	buf := bytes.Buffer{}
-	err := writer.Write(mesh, &buf)
+	err := writer.Write(mesh, "", &buf)
 
 	// ASSERT =================================================================
 	plyData := `ply
@@ -333,12 +323,11 @@ func TestWriteBinary_PointCloud(t *testing.T) {
 			"1-uchar": {10 / 255.},
 			"1-float": {10.1},
 		},
-		nil,
 	)
 
 	// ACT ====================================================================
 	buf := &bytes.Buffer{}
-	err := writer.Write(mesh, buf)
+	err := writer.Write(mesh, "", buf)
 	buf = bytes.NewBuffer(buf.Bytes())
 	ply.ReadHeader(buf)
 
@@ -393,12 +382,11 @@ func TestWrite_IncludeAllUnspecied(t *testing.T) {
 			"1-uchar": {10 / 255.},
 			"1-float": {10.1},
 		},
-		nil,
 	)
 
 	// ACT ====================================================================
 	buf := &bytes.Buffer{}
-	err := writer.Write(mesh, buf)
+	err := writer.Write(mesh, "", buf)
 	buf = bytes.NewBuffer(buf.Bytes())
 	meshBack, readErr := ply.ReadMesh(buf)
 
@@ -467,7 +455,7 @@ func TestWriteBinary_Tri(t *testing.T) {
 
 	// ACT ====================================================================
 	buf := &bytes.Buffer{}
-	err := writer.Write(mesh, buf)
+	err := writer.Write(mesh, "", buf)
 	assert.NoError(t, err)
 
 	buf = bytes.NewBuffer(buf.Bytes())
@@ -549,7 +537,7 @@ func TestWriteBinary_TriWithUVData(t *testing.T) {
 
 	// ACT ====================================================================
 	buf := &bytes.Buffer{}
-	err := writer.Write(mesh, buf)
+	err := writer.Write(mesh, "", buf)
 	assert.NoError(t, err)
 
 	buf = bytes.NewBuffer(buf.Bytes())

@@ -228,8 +228,23 @@ func main() {
 						atlas,
 					)
 
-					tree := trunk.SetMaterial(barkPBR.Material()).
-						Append(branch.SetMaterial(branchPBR.Material()))
+					scene := obj.Scene{
+						Objects: []obj.Object{
+							obj.Object{
+								Name: "Tree",
+								Entries: []obj.Entry{
+									obj.Entry{
+										Mesh:     trunk,
+										Material: barkPBR.Material(),
+									},
+									obj.Entry{
+										Mesh:     branch,
+										Material: branchPBR.Material(),
+									},
+								},
+							},
+						},
+					}
 
 					TrunkTexture(
 						1024,
@@ -257,7 +272,7 @@ func main() {
 						return err
 					}
 
-					return obj.Save(fmt.Sprintf("%s.obj", filePrefixes), tree)
+					return obj.Save(fmt.Sprintf("%s.obj", filePrefixes), scene)
 				},
 			},
 			{
@@ -420,8 +435,8 @@ func main() {
 							return err
 						}
 
-						terrain = DrawTrail(
-							terrain,
+						terrain.Entries[0].Mesh = DrawTrail(
+							terrain.Entries[0].Mesh,
 							&terrainPBR,
 							snowPath,
 							forestWidth,
@@ -476,9 +491,17 @@ func main() {
 						trunks = trunks.Append(trunk.Translate(pos))
 						branches = branches.Append(branch.Translate(pos))
 					}
-					terrain = terrain.
-						Append(trunks.SetMaterial(barkPBR.Material())).
-						Append(branches.SetMaterial(branchPBR.Material()))
+
+					terrain.Entries = append(terrain.Entries,
+						obj.Entry{
+							Mesh:     trunks,
+							Material: barkPBR.Material(),
+						},
+						obj.Entry{
+							Mesh:     branches,
+							Material: branchPBR.Material(),
+						},
+					)
 
 					TrunkTexture(
 						1024,
@@ -508,7 +531,7 @@ func main() {
 					if err != nil {
 						return err
 					}
-					return obj.Save(fmt.Sprintf("%s.obj", filePrefixes), terrain)
+					return obj.Save(fmt.Sprintf("%s.obj", filePrefixes), obj.Scene{Objects: []obj.Object{terrain}})
 				},
 			},
 			{

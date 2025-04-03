@@ -74,6 +74,5 @@ func Read(in io.Reader) (modeling.Mesh, error) {
 		map[string][]float64{
 			modeling.OpacityAttribute: opacityData,
 		},
-		nil,
 	), err
 }

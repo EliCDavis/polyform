@@ -224,12 +224,13 @@ func bunnyScene() []rendering.Hittable {
 	jewelMat = materials.NewLambertian(textures.NewSolidColorTexture(vector3.New(0.7, 0.7, 0.7)))
 	jewelMat = materials.NewDielectricWithColor(1.5, jewelColor)
 
-	bunny, err := obj.Load("test-models/stanford-bunny.obj")
+	bunnyScene, err := obj.Load("test-models/stanford-bunny.obj")
 	if err != nil {
 		panic(err)
 	}
+	bunny := bunnyScene.ToMesh()
 
-	b1 := bunny[0].Mesh.
+	b1 := bunny.
 		Transform(
 			meshops.CenterAttribute3DTransformer{},
 			meshops.ScaleAttribute3DTransformer{

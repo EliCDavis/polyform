@@ -8,8 +8,6 @@ import (
 	"io"
 	"strconv"
 	"strings"
-
-	"github.com/EliCDavis/polyform/modeling"
 )
 
 func parseFloatLine(components []string) (f float64, err error) {
@@ -29,16 +27,16 @@ func parseColorLine(components []string) (color.Color, error) {
 	return color.RGBA{uint8(r * 255), uint8(g * 255), uint8(b * 255), 255}, nil
 }
 
-func ReadMaterials(in io.Reader) ([]modeling.Material, error) {
+func ReadMaterials(in io.Reader) ([]Material, error) {
 	if in == nil {
 		panic(errors.New("cannot build obj materials from nil reader"))
 	}
 
 	scanner := bufio.NewScanner(in)
 
-	materials := make([]modeling.Material, 0)
+	materials := make([]Material, 0)
 
-	var workingMaterial *modeling.Material = nil
+	var workingMaterial *Material = nil
 
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -57,7 +55,7 @@ func ReadMaterials(in io.Reader) ([]modeling.Material, error) {
 				materials = append(materials, *workingMaterial)
 			}
 
-			workingMaterial = &modeling.Material{
+			workingMaterial = &Material{
 				Name: strings.Join(components[1:], " "),
 			}
 

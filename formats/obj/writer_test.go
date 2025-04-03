@@ -191,19 +191,24 @@ func TestWriteObjWithSingleMaterial(t *testing.T) {
 				vector2.New[float64](0.5, 1),
 				vector2.New[float64](0, 0),
 			},
-		}).
-		SetMaterials([]modeling.MeshMaterial{
-			{
-				PrimitiveCount: 1,
-				Material: &modeling.Material{
-					Name: "red",
-				},
-			},
 		})
 	buf := bytes.Buffer{}
 
 	// ACT ====================================================================
-	err := obj.WriteMesh(m, "", &buf)
+	err := obj.WriteScene(obj.Scene{
+		Objects: []obj.Object{
+			{
+				Entries: []obj.Entry{
+					{
+						Mesh: m,
+						Material: &obj.Material{
+							Name: "red",
+						},
+					},
+				},
+			},
+		},
+	}, "", &buf)
 
 	// ASSERT =================================================================
 	require.NoError(t, err)
@@ -226,54 +231,52 @@ f 1/1/1 2/2/2 3/3/3
 
 func TestWriteObjWithMultipleMaterials(t *testing.T) {
 	// ARRANGE ================================================================
-	m := modeling.NewTriangleMesh([]int{0, 1, 2, 3, 4, 5}).
+	m := modeling.NewTriangleMesh([]int{0, 1, 2}).
 		SetFloat3Data(map[string][]vector3.Float64{
 			modeling.PositionAttribute: {
-				vector3.New[float64](1, 2, 3),
-				vector3.New[float64](4, 5, 6),
-				vector3.New[float64](7, 8, 9),
-				vector3.New[float64](1, 2, 3),
-				vector3.New[float64](4, 5, 6),
-				vector3.New[float64](7, 8, 9),
+				vector3.New(1., 2, 3),
+				vector3.New(4., 5, 6),
+				vector3.New(7., 8, 9),
 			},
 			modeling.NormalAttribute: {
-				vector3.New[float64](0, 1, 0),
-				vector3.New[float64](0, 0, 1),
-				vector3.New[float64](1, 0, 0),
-				vector3.New[float64](0, 1, 0),
-				vector3.New[float64](0, 0, 1),
-				vector3.New[float64](1, 0, 0),
+				vector3.New(0., 1, 0),
+				vector3.New(0., 0, 1),
+				vector3.New(1., 0, 0),
 			},
 		}).
 		SetFloat2Data(map[string][]vector2.Float64{
 			modeling.TexCoordAttribute: {
-				vector2.New[float64](1, 0.5),
-				vector2.New[float64](0.5, 1),
-				vector2.New[float64](0, 0),
-				vector2.New[float64](1, 0.5),
-				vector2.New[float64](0.5, 1),
-				vector2.New[float64](0, 0),
-			},
-		}).
-		SetMaterials([]modeling.MeshMaterial{
-			{
-				PrimitiveCount: 1,
-				Material: &modeling.Material{
-					Name: "red",
-				},
-			},
-			{
-				PrimitiveCount: 1,
-				Material: &modeling.Material{
-					Name: "blue",
-				},
+				vector2.New(1, 0.5),
+				vector2.New(0.5, 1),
+				vector2.New(0., 0),
 			},
 		})
+
+	scene := obj.Scene{
+		Objects: []obj.Object{
+			{
+				Entries: []obj.Entry{
+					{
+						Mesh: m,
+						Material: &obj.Material{
+							Name: "red",
+						},
+					},
+					{
+						Mesh: m,
+						Material: &obj.Material{
+							Name: "blue",
+						},
+					},
+				},
+			},
+		},
+	}
 
 	buf := bytes.Buffer{}
 
 	// ACT ====================================================================
-	err := obj.WriteMesh(m, "", &buf)
+	err := obj.WriteScene(scene, "", &buf)
 
 	// ASSERT =================================================================
 	require.NoError(t, err)
@@ -283,18 +286,18 @@ func TestWriteObjWithMultipleMaterials(t *testing.T) {
 v 1 2 3
 v 4 5 6
 v 7 8 9
-v 1 2 3
-v 4 5 6
-v 7 8 9
-vt 1 0.5
-vt 0.5 1
-vt 0 0
 vt 1 0.5
 vt 0.5 1
 vt 0 0
 vn 0 1 0
 vn 0 0 1
 vn 1 0 0
+v 1 2 3
+v 4 5 6
+v 7 8 9
+vt 1 0.5
+vt 0.5 1
+vt 0 0
 vn 0 1 0
 vn 0 0 1
 vn 1 0 0
@@ -308,71 +311,30 @@ f 4/4/4 5/5/5 6/6/6
 func TestWriteMaterials(t *testing.T) {
 	// ARRANGE ================================================================
 	buf := bytes.Buffer{}
-	ms := []modeling.MeshMaterial{
-		{
-			PrimitiveCount: 1,
-			Material: &modeling.Material{
-				Name:         "red",
-				DiffuseColor: color.RGBA{1, 255, 3, 255},
-			},
-		},
-		{
-			PrimitiveCount: 1,
-			Material: &modeling.Material{
-				Name:          "blue",
-				AmbientColor:  color.RGBA{4, 5, 6, 255},
-				SpecularColor: color.RGBA{7, 8, 9, 255},
+	scene := obj.Scene{
+		Objects: []obj.Object{
+			{
+				Entries: []obj.Entry{
+					{
+						Material: &obj.Material{
+							Name:         "red",
+							DiffuseColor: color.RGBA{1, 255, 3, 255},
+						},
+					},
+					{
+						Material: &obj.Material{
+							Name:          "blue",
+							AmbientColor:  color.RGBA{4, 5, 6, 255},
+							SpecularColor: color.RGBA{7, 8, 9, 255},
+						},
+					},
+				},
 			},
 		},
 	}
 
 	// ACT ====================================================================
-	err := obj.WriteMaterials(ms, &buf)
-
-	// ASSERT =================================================================
-	require.NoError(t, err)
-	assert.Equal(t,
-		`# Created with github.com/EliCDavis/polyform
-newmtl red
-Kd 0.004 1 0.012
-Ns 0
-Ni 0
-d 1
-
-newmtl blue
-Ka 0.016 0.02 0.024
-Ks 0.027 0.031 0.035
-Ns 0
-Ni 0
-d 1
-
-`, buf.String())
-}
-
-func TestWriteMaterialsFromMesh(t *testing.T) {
-	// ARRANGE ================================================================
-	buf := bytes.Buffer{}
-	m := modeling.NewTriangleMesh(nil).
-		SetMaterials([]modeling.MeshMaterial{
-			{
-				PrimitiveCount: 1,
-				Material: &modeling.Material{
-					Name:         "red",
-					DiffuseColor: color.RGBA{1, 255, 3, 255},
-				},
-			},
-			{
-				PrimitiveCount: 1,
-				Material: &modeling.Material{
-					Name:          "blue",
-					AmbientColor:  color.RGBA{4, 5, 6, 255},
-					SpecularColor: color.RGBA{7, 8, 9, 255},
-				},
-			},
-		})
-
-	// ACT ====================================================================
-	err := obj.WriteMaterialsFromMesh(m, &buf)
+	err := obj.WriteMaterials(scene, &buf)
 
 	// ASSERT =================================================================
 	require.NoError(t, err)

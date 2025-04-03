@@ -103,11 +103,7 @@ func main() {
 				SmoothingFactor: .1,
 			},
 			meshops.SmoothNormalsTransformer{},
-		).
-		SetMaterial(modeling.Material{
-			Name:         "Gopher",
-			DiffuseColor: color.RGBA{R: 90, G: 218, B: 255, A: 255},
-		})
+		)
 
 	log.Printf("time to mesh: %s", time.Since(start))
 

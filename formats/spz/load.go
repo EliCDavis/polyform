@@ -242,7 +242,6 @@ func Read(inUncompressed io.Reader) (*Cloud, error) {
 			map[string][]float64{
 				modeling.OpacityAttribute: alphas,
 			},
-			nil,
 		),
 	}, nil
 }

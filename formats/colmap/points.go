@@ -35,7 +35,6 @@ func PointDataToPointCloud(points []colmap.Point3D) modeling.Mesh {
 			"id":          idData,
 			"track count": lenTrackData,
 		},
-		nil,
 	)
 }
 

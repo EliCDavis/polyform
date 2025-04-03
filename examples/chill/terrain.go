@@ -7,6 +7,7 @@ import (
 
 	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/drawing/texturing"
+	"github.com/EliCDavis/polyform/formats/obj"
 	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/math/noise"
 	"github.com/EliCDavis/polyform/math/sample"
@@ -157,7 +158,7 @@ func DrawTrail(
 		)
 }
 
-func Terrain(forestWidth float64, height sample.Vec2ToFloat, textures *PBRTextures) (modeling.Mesh, vector3.Float64) {
+func Terrain(forestWidth float64, height sample.Vec2ToFloat, textures *PBRTextures) (obj.Object, vector3.Float64) {
 	n := 10000
 	mapRadius := forestWidth / 2
 	mapOffset := vector2.New(mapRadius, mapRadius)
@@ -194,8 +195,15 @@ func Terrain(forestWidth float64, height sample.Vec2ToFloat, textures *PBRTextur
 		Transform(
 			meshops.SmoothNormalsTransformer{},
 		).
-		SetFloat2Attribute(modeling.TexCoordAttribute, uvs).
-		SetMaterial(textures.Material())
+		SetFloat2Attribute(modeling.TexCoordAttribute, uvs)
 
-	return terrain, maxHeight
+	return obj.Object{
+		Name: "Terrain",
+		Entries: []obj.Entry{
+			obj.Entry{
+				Mesh:     terrain,
+				Material: textures.Material(),
+			},
+		},
+	}, maxHeight
 }

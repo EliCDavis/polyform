@@ -7,7 +7,7 @@ import (
 	"os"
 	"path"
 
-	"github.com/EliCDavis/polyform/modeling"
+	"github.com/EliCDavis/polyform/formats/obj"
 )
 
 type PBRTextures struct {
@@ -30,11 +30,11 @@ func writeTex(name string, tex image.Image) error {
 	return png.Encode(texOut, tex)
 }
 
-func (pbrt PBRTextures) Material() modeling.Material {
+func (pbrt PBRTextures) Material() *obj.Material {
 	colorPath := pbrt.ColorPath()
 	normalPath := pbrt.NormalPath()
 	specularPath := pbrt.SpecularPath()
-	return modeling.Material{
+	return &obj.Material{
 		Name:               pbrt.name,
 		AmbientColor:       color.White,
 		DiffuseColor:       color.White,

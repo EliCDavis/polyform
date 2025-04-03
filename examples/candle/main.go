@@ -147,17 +147,23 @@ func main() {
 		texturePath,
 	)
 
-	candleMat := modeling.Material{
-		Name:            "Candle",
-		ColorTextureURI: &texturePath,
-		DiffuseColor:    color.White,
-		Transparency:    0,
-	}
-
-	final := candleBody(1, 0.5, 0.1, 0.9, 0.0125, 0.1).
-		SetMaterial(candleMat)
-
-	err := obj.Save("candle.obj", final)
+	err := obj.Save("candle.obj", obj.Scene{
+		Objects: []obj.Object{
+			{
+				Entries: []obj.Entry{
+					{
+						Mesh: candleBody(1, 0.5, 0.1, 0.9, 0.0125, 0.1),
+						Material: &obj.Material{
+							Name:            "Candle",
+							ColorTextureURI: &texturePath,
+							DiffuseColor:    color.White,
+							Transparency:    0,
+						},
+					},
+				},
+			},
+		},
+	})
 	if err != nil {
 		panic(err)
 	}

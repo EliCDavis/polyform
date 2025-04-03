@@ -66,7 +66,7 @@ func virusField(center vector3.Float64, virusWidth, time float64) marching.Field
 	return marching.Sphere(center, virusWidth*time, 1).Combine(fields...)
 }
 
-func covidMesh(textureMap string, time float64) modeling.Mesh {
+func covidMesh(textureMap string, time float64) obj.Scene {
 	cubesPerUnit := 10.
 	canvas := marching.NewMarchingCanvas(cubesPerUnit)
 
@@ -76,12 +76,22 @@ func covidMesh(textureMap string, time float64) modeling.Mesh {
 	marchedMesh := canvas.MarchParallel(-0.1)
 
 	if marchedMesh.PrimitiveCount() == 0 {
-		return marchedMesh
+		return obj.Scene{
+			Objects: []obj.Object{
+				obj.Object{
+					Entries: []obj.Entry{
+						obj.Entry{
+							Mesh: marchedMesh,
+						},
+					},
+				},
+			},
+		}
 	}
 
 	uvs := make([]vector2.Float64, 0)
 
-	return marchedMesh.
+	marchedMesh = marchedMesh.
 		ScanFloat3Attribute(modeling.PositionAttribute, func(i int, v vector3.Float64) {
 			x := (v.Length() - 1.5) / 2.1
 			uvs = append(uvs, vector2.New(x, 0.5))
@@ -94,11 +104,23 @@ func covidMesh(textureMap string, time float64) modeling.Mesh {
 				SmoothingFactor: .1,
 			},
 			meshops.SmoothNormalsTransformer{},
-		).
-		SetMaterial(modeling.Material{
-			Name:            "COVID",
-			ColorTextureURI: &textureMap,
-		})
+		)
+
+	return obj.Scene{
+		Objects: []obj.Object{
+			obj.Object{
+				Entries: []obj.Entry{
+					obj.Entry{
+						Mesh: marchedMesh,
+						Material: &obj.Material{
+							Name:            "COVID",
+							ColorTextureURI: &textureMap,
+						},
+					},
+				},
+			},
+		},
+	}
 }
 
 func main() {
@@ -114,12 +136,13 @@ func main() {
 		panic(err)
 	}
 
-	finalMesh := covidMesh(textureMap, 1)
-	err = obj.Save("tmp/covid/covid.obj", finalMesh)
+	covidScene := covidMesh(textureMap, 1)
+	err = obj.Save("tmp/covid/covid.obj", covidScene)
 	if err != nil {
 		panic(err)
 	}
 
+	finalMesh := covidScene.ToMesh()
 	box := finalMesh.BoundingBox(modeling.PositionAttribute)
 	size := box.Size()
 
@@ -133,7 +156,7 @@ func main() {
 	for i := 0; i < growFrames+(fps*2); i++ {
 		rand.Seed(0)
 		percentComplete := math.Min(float64(i)/float64(growFrames), 1)
-		mesh := covidMesh(textureMap, percentComplete)
+		mesh := covidMesh(textureMap, percentComplete).Objects[0].Entries[0].Mesh
 
 		scene := []rendering.Hittable{}
 
