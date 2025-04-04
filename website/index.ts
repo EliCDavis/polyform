@@ -221,7 +221,9 @@ const fileSettingsFolder = panel.addFolder("Graph");
 fileSettingsFolder.add(fileControls, "newGraph").name("New")
 fileSettingsFolder.add(fileControls, "saveGraph").name("Save")
 fileSettingsFolder.add(fileControls, "loadProfile").name("Load");
-fileSettingsFolder.add(fileControls, "link").name("Link");
+
+// Graphs when compressed still make for a giant URL
+// fileSettingsFolder.add(fileControls, "link").name("Get Link");
 
 const exportSettingsFolder = panel.addFolder("Export");
 exportSettingsFolder.add(fileControls, "saveModel").name("Model")

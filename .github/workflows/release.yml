@@ -32,7 +32,7 @@ jobs:
 
       - name: Publish GitHub Release
         run: |
-          gh release create $GITHUB_REF_NAME --generate-notes ./artifacts/*
+          gh release upload $GITHUB_REF_NAME ./artifacts/* --clobber
 
   deploy:
     runs-on: ubuntu-latest
