@@ -7,6 +7,7 @@ import (
 	"github.com/EliCDavis/polyform/math/curves"
 	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/polyform/modeling"
+	"github.com/EliCDavis/polyform/modeling/primitives"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
@@ -229,6 +230,7 @@ type CircleAlongSpline struct {
 
 	Spline           curves.Spline
 	SplineResolution int
+	UVs              *primitives.StripUVs
 }
 
 func (c CircleAlongSpline) Extrude() modeling.Mesh {
@@ -245,6 +247,18 @@ func (c CircleAlongSpline) Extrude() modeling.Mesh {
 			Thickness: r,
 		}
 	}
+
+	if c.UVs != nil {
+		uvInc := 1. / float64(c.SplineResolution-1)
+
+		for i := range c.SplineResolution {
+			points[i].UV = &ExtrusionPointUV{
+				Point:     c.UVs.At(uvInc * float64(i)),
+				Thickness: c.UVs.Width,
+			}
+		}
+	}
+
 	return polygon(c.CircleResolution, points, false)
 }
 
@@ -299,6 +313,7 @@ type CircleAlongSplineNodeData struct {
 	Radii            nodes.Output[[]float64]
 	Spline           nodes.Output[curves.Spline]
 	SplineResolution nodes.Output[int]
+	UVs              nodes.Output[primitives.StripUVs]
 }
 
 func (pnd CircleAlongSplineNodeData) Out() nodes.StructOutput[modeling.Mesh] {
@@ -312,19 +327,12 @@ func (pnd CircleAlongSplineNodeData) Out() nodes.StructOutput[modeling.Mesh] {
 	}
 
 	circle := CircleAlongSpline{
-		Radius:           1.0,
+		Radius:           nodes.TryGetOutputValue(pnd.Radius, 1.0),
 		CircleResolution: 3,
-		ClosePath:        false,
+		ClosePath:        nodes.TryGetOutputValue(pnd.Closed, false),
 		Spline:           spline,
 		SplineResolution: 3,
-	}
-
-	if pnd.Radius != nil {
-		circle.Radius = pnd.Radius.Value()
-	}
-
-	if pnd.Radii != nil {
-		circle.Radii = pnd.Radii.Value()
+		Radii:            nodes.TryGetOutputValue(pnd.Radii, nil),
 	}
 
 	if pnd.CircleResolution != nil {
@@ -335,8 +343,9 @@ func (pnd CircleAlongSplineNodeData) Out() nodes.StructOutput[modeling.Mesh] {
 		circle.SplineResolution = max(3, pnd.SplineResolution.Value())
 	}
 
-	if pnd.Closed != nil {
-		circle.ClosePath = pnd.Closed.Value()
+	if pnd.UVs != nil {
+		uvs := pnd.UVs.Value()
+		circle.UVs = &uvs
 	}
 
 	return nodes.NewStructOutput(circle.Extrude())

@@ -26,6 +26,7 @@ import (
 	_ "github.com/EliCDavis/polyform/math/quaternion"
 	_ "github.com/EliCDavis/polyform/math/trig"
 	_ "github.com/EliCDavis/polyform/math/trs"
+	_ "github.com/EliCDavis/polyform/math/vector2"
 	_ "github.com/EliCDavis/polyform/math/vector3"
 
 	_ "github.com/EliCDavis/polyform/modeling/extrude"

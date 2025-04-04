@@ -8,6 +8,7 @@ import (
 func init() {
 	factory := &refutil.TypeFactory{}
 	refutil.RegisterType[CubeNode](factory)
+	refutil.RegisterType[CubeUVsNode](factory)
 	refutil.RegisterType[QuadNode](factory)
 	refutil.RegisterType[StripUVsNode](factory)
 

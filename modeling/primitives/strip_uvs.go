@@ -11,6 +11,13 @@ type StripUVs struct {
 	Width float64
 }
 
+func (suv StripUVs) At(time float64) vector2.Float64 {
+	return suv.End.
+		Sub(suv.Start).
+		Scale(time).
+		Add(suv.Start)
+}
+
 func (suv StripUVs) Dir() vector2.Float64 {
 	return suv.End.Sub(suv.Start)
 }

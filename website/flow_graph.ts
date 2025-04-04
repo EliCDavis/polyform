@@ -277,7 +277,7 @@ const Vector3ArrayParameter: FlowNodeConfig = {
 
 const Vector2Parameter: FlowNodeConfig = {
     title: "Vector2 Parameter",
-    subTitle: "Vector2 Array",
+    subTitle: "Vector2",
     canEditTitle: true,
     canEditInfo: true,
     outputs: [

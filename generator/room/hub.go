@@ -41,6 +41,9 @@ var defaultDisplayNames = []string{
 	"Snufkin",
 	"Mortimer",
 	"Bella",
+	"Raven",
+	"Chelsea",
+	"Eddie",
 }
 
 type Vec4[T vector.Number] struct {
