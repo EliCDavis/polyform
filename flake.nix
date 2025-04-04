@@ -98,6 +98,8 @@
 
               ln -s ${cmd.polyform.goModules} ./vendor
 
+              cp -r ${website}/* ./generator/html/
+
               for platform in ${builtins.toString supportedGoPlatforms}; do
                 GOOS=$(echo $platform | cut -d'/' -f1)
                 GOARCH=$(echo $platform | cut -d'/' -f2)
@@ -143,6 +145,9 @@
               mkdir -p $out
 
               ln -s ${cmd.polyform.goModules} ./vendor
+
+              cp -r ${website}/* ./generator/html/
+
               GOOS=js GOARCH=wasm go build -mod=vendor -o ./main.wasm ./cmd/polyform
 
               ${cmd.polywasm}/bin/polywasm build --version ${rev} --wasm ./main.wasm -o $DIST
