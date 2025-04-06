@@ -31,7 +31,7 @@ func (bn TestNodeData) Out() nodes.StructOutput[float64] {
 func TestBuildNodeTypeSchema(t *testing.T) {
 	schema := graph.BuildNodeTypeSchema(&TestNode{})
 
-	assert.Equal(t, "TestNodeData", schema.DisplayName)
+	assert.Equal(t, "Test", schema.DisplayName)
 	assert.Equal(t, "generator/graph_test", schema.Path)
 
 	assert.Len(t, schema.Inputs, 2)
@@ -150,7 +150,7 @@ func TestInstance_AddProducer_InitializeParameters_Artifacts(t *testing.T) {
 			}
 		},
 		{
-			"displayName": "TextNodeData",
+			"displayName": "Text",
 			"info": "",
 			"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/generator/artifact/basics.TextNodeData]",
 			"path": "generator/artifact/basics",
