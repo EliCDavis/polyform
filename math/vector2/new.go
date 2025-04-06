@@ -14,7 +14,7 @@ type NewNodeData[T vector.Number] struct {
 }
 
 func (cn NewNodeData[T]) Out() nodes.StructOutput[vector2.Vector[T]] {
-	return nodes.NewStructOutput(vector2.New[T](
+	return nodes.NewStructOutput(vector2.New(
 		nodes.TryGetOutputValue(cn.X, 0),
 		nodes.TryGetOutputValue(cn.Y, 0),
 	))
@@ -32,7 +32,7 @@ func (snd NewArrayNodeData) Out() nodes.StructOutput[[]vector2.Float64] {
 	yArr := nodes.TryGetOutputValue(snd.Y, nil)
 
 	out := make([]vector2.Float64, max(len(xArr), len(yArr)))
-	for i := 0; i < len(out); i++ {
+	for i := range out {
 		x := 0.
 		y := 0.
 

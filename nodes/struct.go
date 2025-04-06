@@ -2,12 +2,24 @@ package nodes
 
 import (
 	"fmt"
-	"sort"
 	"strconv"
 	"strings"
+	"unicode"
 
 	"github.com/EliCDavis/polyform/refutil"
+	"github.com/EliCDavis/polyform/utils"
 )
+
+func addSpaces(s string) string {
+	var result strings.Builder
+	for _, r := range s {
+		if unicode.IsUpper(r) && result.Len() > 0 {
+			result.WriteRune(' ')
+		}
+		result.WriteRune(r)
+	}
+	return result.String()
+}
 
 type inputVersions interface {
 	inputVersions() string
@@ -308,40 +320,14 @@ func (s *Struct[T]) Inputs() map[string]InputPort {
 	return nodeInputs
 }
 
-func sortMapByKey[T any](m map[string]T) []T {
-	type entry struct {
-		key string
-		val T
-	}
-
-	vals := make([]entry, 0, len(m))
-	for key, val := range m {
-		vals = append(vals, entry{
-			key: key,
-			val: val,
-		})
-	}
-
-	sort.Slice(vals, func(i, j int) bool {
-		return vals[i].key < vals[j].key
-	})
-
-	result := make([]T, len(m))
-	for i := range result {
-		result[i] = vals[i].val
-	}
-
-	return result
-}
-
 func (s *Struct[T]) inputVersions() string {
 	builder := strings.Builder{}
 
-	inputs := sortMapByKey(s.Inputs())
+	inputs := utils.SortMapByKey(s.Inputs())
 
 	for _, input := range inputs {
 
-		switch v := input.(type) {
+		switch v := input.Val.(type) {
 		case SingleValueInputPort:
 			val := v.Value()
 			if val != nil {
@@ -373,7 +359,13 @@ func (s *Struct[T]) inputVersions() string {
 }
 
 func (sn Struct[T]) Name() string {
-	return refutil.GetTypeNameWithoutPackage(sn.Data)
+	name := refutil.GetTypeNameWithoutPackage(sn.Data)
+
+	if strings.LastIndex(name, "NodeData") == len(name)-8 {
+		name = name[0 : len(name)-8]
+	}
+
+	return addSpaces(name)
 }
 
 func (sn Struct[T]) Description() string {

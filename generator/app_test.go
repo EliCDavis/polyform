@@ -150,7 +150,7 @@ func TestAppCommand_Outline(t *testing.T) {
             }
         },
         {
-            "displayName": "TextNodeData",
+            "displayName": "Text",
             "info": "",
             "type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/generator/artifact/basics.TextNodeData]",
             "path": "generator/artifact/basics",

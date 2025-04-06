@@ -259,7 +259,7 @@ func (c CircleAlongSpline) Extrude() modeling.Mesh {
 		}
 	}
 
-	return polygon(c.CircleResolution, points, false)
+	return polygon(c.CircleResolution, points, c.ClosePath)
 }
 
 type CircleNode = nodes.Struct[CircleNodeData]

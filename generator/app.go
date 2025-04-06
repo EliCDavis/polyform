@@ -410,6 +410,40 @@ func (a *App) Run(args []string) error {
 			},
 		},
 		{
+			Name:        "Markdown",
+			Description: "Create a markdown document describing all nodes available",
+			Aliases:     []string{"markdown"},
+			Run: func(appState *cli.RunState) error {
+				markdownCmd := flag.NewFlagSet("markdown", flag.ExitOnError)
+				a.initialize(markdownCmd)
+				fileFlag := markdownCmd.String("out", "", "Optional path to file to write content to")
+
+				if err := markdownCmd.Parse(appState.Args); err != nil {
+					return err
+				}
+
+				var out io.Writer = os.Stdout
+
+				if fileFlag != nil && *fileFlag != "" {
+					f, err := os.Create(*fileFlag)
+					if err != nil {
+						return err
+					}
+					defer f.Close()
+					out = f
+				}
+
+				doc := DocumentationWriter{
+					Title:       a.Name,
+					Description: a.Description,
+					Version:     a.Version,
+					NodeTypes:   types,
+				}
+
+				return doc.WriteSingleMarkdown(out)
+			},
+		},
+		{
 			Name:        "Swagger",
 			Description: "Create a swagger 2.0 file",
 			Aliases:     []string{"swagger"},

@@ -41,7 +41,7 @@ import (
 func main() {
 	app := generator.App{
 		Name:        "Polyform",
-		Version:     "0.22.0",
+		Version:     "0.23.2",
 		Description: "Immutable mesh processing program",
 		Authors: []schema.Author{
 			{

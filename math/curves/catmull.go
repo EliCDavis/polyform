@@ -253,17 +253,38 @@ func (crcp CatmullRomSplineParameters) Spline() CatmullRomSpline {
 		}
 	}
 
-	curves := make([]*CatmullRomCurve, len(crcp.Points)-3)
-	for i := 0; i < len(crcp.Points)-3; i++ {
-		curves[i] = &CatmullRomCurve{
+	curves := make([]*CatmullRomCurve, 0, len(crcp.Points)-1)
+	curves = append(curves, &CatmullRomCurve{
+		p0:      crcp.Points[0].Sub(crcp.Points[1]).Add(crcp.Points[0]),
+		p1:      crcp.Points[0],
+		p2:      crcp.Points[1],
+		p3:      crcp.Points[2],
+		alpha:   crcp.Alpha,
+		epsilon: epsilon,
+	})
+
+	for i := range len(crcp.Points) - 3 {
+		curves = append(curves, &CatmullRomCurve{
 			p0:      crcp.Points[i],
 			p1:      crcp.Points[i+1],
 			p2:      crcp.Points[i+2],
 			p3:      crcp.Points[i+3],
 			alpha:   crcp.Alpha,
 			epsilon: epsilon,
-		}
+		})
 	}
+
+	last := len(crcp.Points) - 1
+	curves = append(curves, &CatmullRomCurve{
+		p0: crcp.Points[last-2],
+		p1: crcp.Points[last-1],
+		p2: crcp.Points[last],
+		p3: crcp.Points[last].
+			Sub(crcp.Points[last-1]).
+			Add(crcp.Points[last]),
+		alpha:   crcp.Alpha,
+		epsilon: epsilon,
+	})
 
 	return CatmullRomSpline{
 		alpha:  crcp.Alpha,

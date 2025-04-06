@@ -104,7 +104,7 @@ func SmoothNormalsImplicitWeld(m modeling.Mesh, distance float64) modeling.Mesh 
 		normalized := vertices.At(p2).Sub(vertices.At(p1)).Cross(vertices.At(p3).Sub(vertices.At(p1)))
 
 		// This occurs whenever the given tri is actually just a line
-		if math.IsNaN(normalized.X()) {
+		if normalized.ContainsNaN() {
 			continue
 		}
 
@@ -159,9 +159,8 @@ func (snn SmoothNormalsImplicitWeldNodeData) Out() nodes.StructOutput[modeling.M
 	if snn.Mesh == nil {
 		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
 	}
-	distance := 0.
-	if snn.Distance != nil {
-		distance = snn.Distance.Value()
-	}
-	return nodes.NewStructOutput(SmoothNormalsImplicitWeld(snn.Mesh.Value(), distance))
+	return nodes.NewStructOutput(SmoothNormalsImplicitWeld(
+		snn.Mesh.Value(),
+		nodes.TryGetOutputValue(snn.Distance, 0.0001),
+	))
 }

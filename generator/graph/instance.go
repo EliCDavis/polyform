@@ -36,6 +36,7 @@ func New(typeFactory *refutil.TypeFactory) *Instance {
 		movelVersion: 0,
 	}
 }
+
 func (i *Instance) ModelVersion() uint32 {
 	return i.movelVersion
 }
@@ -322,7 +323,7 @@ func (i *Instance) Schema() schema.GraphInstance {
 			panic(fmt.Errorf("Registered type %q is not a node", registeredType))
 		}
 		if nodeInstance == nil {
-			panic("New registered type")
+			panic("New registered type is nil")
 		}
 		// log.Printf("%T: %+v\n", nodeInstance, nodeInstance)
 		b := BuildNodeTypeSchema(nodeInstance)
@@ -747,7 +748,6 @@ func RecurseDependenciesType[T any](dependent nodes.Node) []T {
 }
 
 func BuildNodeTypeSchema(node nodes.Node) schema.NodeType {
-
 	typeSchema := schema.NodeType{
 		DisplayName: "Untyped",
 		Outputs:     make(map[string]schema.NodeOutput),
@@ -768,7 +768,6 @@ func BuildNodeTypeSchema(node nodes.Node) schema.NodeType {
 
 	inputs := node.Inputs()
 	for name, input := range inputs {
-
 		nodeType := "any"
 		if typed, ok := input.(nodes.Typed); ok {
 			nodeType = typed.Type()
