@@ -4,22 +4,10 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"unicode"
 
 	"github.com/EliCDavis/polyform/refutil"
 	"github.com/EliCDavis/polyform/utils"
 )
-
-func addSpaces(s string) string {
-	var result strings.Builder
-	for _, r := range s {
-		if unicode.IsUpper(r) && result.Len() > 0 {
-			result.WriteRune(' ')
-		}
-		result.WriteRune(r)
-	}
-	return result.String()
-}
 
 type inputVersions interface {
 	inputVersions() string
@@ -365,7 +353,7 @@ func (sn Struct[T]) Name() string {
 		name = name[0 : len(name)-8]
 	}
 
-	return addSpaces(name)
+	return utils.CamelCaseToSpaceCase(name)
 }
 
 func (sn Struct[T]) Description() string {
