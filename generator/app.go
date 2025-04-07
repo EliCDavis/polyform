@@ -10,6 +10,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 	"text/template"
 	"time"
 
@@ -410,16 +411,22 @@ func (a *App) Run(args []string) error {
 			},
 		},
 		{
-			Name:        "Markdown",
-			Description: "Create a markdown document describing all nodes available",
-			Aliases:     []string{"markdown"},
+			Name:        "Documentation",
+			Description: "Create a document describing all savailable nodes",
+			Aliases:     []string{"documentation"},
 			Run: func(appState *cli.RunState) error {
-				markdownCmd := flag.NewFlagSet("markdown", flag.ExitOnError)
+				markdownCmd := flag.NewFlagSet("documentation", flag.ExitOnError)
 				a.initialize(markdownCmd)
 				fileFlag := markdownCmd.String("out", "", "Optional path to file to write content to")
+				formatFlag := markdownCmd.String("format", "markdown", "How to write documentation [markdown, html]")
 
 				if err := markdownCmd.Parse(appState.Args); err != nil {
 					return err
+				}
+
+				format := strings.ToLower(strings.TrimSpace(*formatFlag))
+				if format != "html" && format != "markdown" {
+					return fmt.Errorf("unrecognized format %q", format)
 				}
 
 				var out io.Writer = os.Stdout
@@ -440,7 +447,15 @@ func (a *App) Run(args []string) error {
 					NodeTypes:   types,
 				}
 
-				return doc.WriteSingleMarkdown(out)
+				switch format {
+				case "markdown":
+					return doc.WriteSingleMarkdown(out)
+
+				case "html":
+					return doc.WriteSingleHTML(out)
+
+				}
+				return nil
 			},
 		},
 		{

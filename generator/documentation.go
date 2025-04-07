@@ -39,8 +39,7 @@ func (dw DocumentationWriter) nodeInstances() []nodes.Node {
 	return registeredNodes
 }
 
-func (dw DocumentationWriter) WriteSingleMarkdown(out io.Writer) error {
-
+func (dw DocumentationWriter) writeSingle(writer markdown.Writer) error {
 	instances := dw.nodeInstances()
 	sections := make(map[string][]schema.NodeType)
 	for _, instance := range instances {
@@ -52,8 +51,6 @@ func (dw DocumentationWriter) WriteSingleMarkdown(out io.Writer) error {
 	}
 
 	sortedSections := utils.SortMapByKey(sections)
-
-	writer := markdown.NewWriter(out)
 
 	writer.Header1(dw.Title)
 
@@ -75,20 +72,36 @@ func (dw DocumentationWriter) WriteSingleMarkdown(out io.Writer) error {
 
 			writer.Paragraph("Inputs:")
 			if len(instance.Inputs) > 0 {
+				writer.StartBulletList()
 				for val, i := range instance.Inputs {
-					writer.Bullet(fmt.Sprintf("**%s**: %s", val, i.Type))
+					writer.StartBullet()
+
+					writer.StartBold()
+					writer.Text(val)
+					writer.EndBold()
+
+					writer.Text(fmt.Sprintf(": %s", i.Type))
+					writer.EndBullet()
 				}
-				writer.NewLine()
+				writer.EndBulletList()
 			} else {
 				writer.Paragraph("(None)")
 			}
 
 			writer.Paragraph("Outputs:")
 			if len(instance.Outputs) > 0 {
+				writer.StartBulletList()
 				for val, o := range instance.Outputs {
-					writer.Bullet(fmt.Sprintf("**%s**: %s", val, o.Type))
+					writer.StartBullet()
+
+					writer.StartBold()
+					writer.Text(val)
+					writer.EndBold()
+
+					writer.Text(fmt.Sprintf(": %s", o.Type))
+					writer.EndBullet()
 				}
-				writer.NewLine()
+				writer.EndBulletList()
 			} else {
 				writer.Paragraph("(None)")
 			}
@@ -96,4 +109,14 @@ func (dw DocumentationWriter) WriteSingleMarkdown(out io.Writer) error {
 	}
 
 	return writer.Error()
+}
+
+func (dw DocumentationWriter) WriteSingleMarkdown(out io.Writer) error {
+	writer := markdown.NewWriter(out)
+	return dw.writeSingle(writer)
+}
+
+func (dw DocumentationWriter) WriteSingleHTML(out io.Writer) error {
+	writer := markdown.NewHtmlWriter(out)
+	return dw.writeSingle(writer)
 }

@@ -7,14 +7,16 @@ import (
 
 func CamelCaseToSpaceCase(s string) string {
 	var result strings.Builder
-	previousCapital := false
+	dontSpaceNextRune := false
 	for _, r := range s {
-		if unicode.IsUpper(r) && result.Len() > 0 && !previousCapital {
+		if unicode.IsUpper(r) && result.Len() > 0 && !dontSpaceNextRune {
+			result.WriteRune(' ')
+		} else if unicode.IsDigit(r) {
 			result.WriteRune(' ')
 		}
-		result.WriteRune(r)
 
-		previousCapital = unicode.IsUpper(r)
+		result.WriteRune(r)
+		dontSpaceNextRune = unicode.IsUpper(r) || unicode.IsDigit(r)
 	}
 	return result.String()
 }

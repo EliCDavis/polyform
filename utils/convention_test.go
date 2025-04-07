@@ -33,6 +33,10 @@ func TestCamelCaseToSpaceCase(t *testing.T) {
 			In:  "UVsTest",
 			Out: "UVs Test",
 		},
+		"Number": {
+			In:  "My3D",
+			Out: "My 3D",
+		},
 	}
 
 	for name, test := range tests {
