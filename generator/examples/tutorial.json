@@ -211,7 +211,7 @@
             "Node-2": {
                 "type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.ModelNodeData]",
                 "assignedInput": {
-                    "GpuInstances": {
+                    "Gpu Instances": {
                         "id": "Node-10",
                         "port": "Out"
                     },

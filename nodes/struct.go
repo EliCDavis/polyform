@@ -15,7 +15,7 @@ type inputVersions interface {
 
 // ============================================================================
 type outputPortBuilder interface {
-	build(node Node, cache *structOutputCache, data any, functionName string) OutputPort
+	build(node Node, cache *structOutputCache, data any, functionName, displayName string) OutputPort
 }
 
 func NewStructOutput[T any](val T) StructOutput[T] {
@@ -85,6 +85,7 @@ type cachedStructOutput struct {
 }
 
 type StructOutput[T any] struct {
+	displayName  string
 	functionName string
 	node         Node
 	data         any
@@ -93,7 +94,7 @@ type StructOutput[T any] struct {
 }
 
 func (so StructOutput[T]) Name() string {
-	return so.functionName
+	return so.displayName
 }
 
 func (so StructOutput[T]) Node() Node {
@@ -139,11 +140,12 @@ func (so StructOutput[T]) LogError(err error) {
 
 // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
-func (so StructOutput[T]) build(node Node, cache *structOutputCache, data any, functionName string) OutputPort {
+func (so StructOutput[T]) build(node Node, cache *structOutputCache, data any, functionName, displayName string) OutputPort {
 	return &StructOutput[T]{
 		node:         node,
 		data:         data,
 		functionName: functionName,
+		displayName:  displayName,
 		cache:        cache,
 	}
 }
@@ -151,14 +153,15 @@ func (so StructOutput[T]) build(node Node, cache *structOutputCache, data any, f
 // ============================================================================
 
 type structArrayInput struct {
-	node     Node
-	data     dataProvider
-	port     string
-	datatype string
+	node        Node
+	data        dataProvider
+	structField string
+	displayName string
+	datatype    string
 }
 
 func (si *structArrayInput) Clear() {
-	refutil.SetStructField(si.data.Data(), si.port, nil)
+	refutil.SetStructField(si.data.Data(), si.structField, nil)
 }
 
 func (si structArrayInput) Node() Node {
@@ -166,7 +169,7 @@ func (si structArrayInput) Node() Node {
 }
 
 func (si structArrayInput) Name() string {
-	return si.port
+	return si.displayName
 }
 
 func (so structArrayInput) Type() string {
@@ -174,20 +177,20 @@ func (so structArrayInput) Type() string {
 }
 
 func (si structArrayInput) Value() []OutputPort {
-	return refutil.FieldValuesOfTypeInArray[OutputPort](si.data.Data())[si.port]
+	return refutil.FieldValuesOfTypeInArray[OutputPort](si.data.Data())[si.structField]
 	// return refutil.FieldValue[[]OutputPort](si.data.Data(), si.port)
 }
 
 func (si structArrayInput) Add(port OutputPort) error {
-	refutil.AddToStructFieldArray(si.data.Data(), si.port, port)
+	refutil.AddToStructFieldArray(si.data.Data(), si.structField, port)
 	return nil
 }
 
 func (si structArrayInput) Remove(port OutputPort) error {
-	vals := refutil.FieldValuesOfTypeInArray[OutputPort](si.data.Data())[si.port]
+	vals := refutil.FieldValuesOfTypeInArray[OutputPort](si.data.Data())[si.structField]
 	for i, v := range vals {
 		if v == port {
-			refutil.RemoveFromStructFieldArray(si.data.Data(), si.port, i)
+			refutil.RemoveFromStructFieldArray(si.data.Data(), si.structField, i)
 			return nil
 		}
 	}
@@ -197,14 +200,15 @@ func (si structArrayInput) Remove(port OutputPort) error {
 // ============================================================================
 
 type structInput struct {
-	node     Node
-	data     dataProvider
-	port     string
-	datatype string
+	node        Node
+	data        dataProvider
+	structField string
+	displayName string
+	datatype    string
 }
 
 func (si *structInput) Clear() {
-	refutil.SetStructField(si.data.Data(), si.port, nil)
+	refutil.SetStructField(si.data.Data(), si.structField, nil)
 }
 
 func (si structInput) Node() Node {
@@ -212,7 +216,7 @@ func (si structInput) Node() Node {
 }
 
 func (si structInput) Name() string {
-	return si.port
+	return si.displayName
 }
 
 func (so structInput) Type() string {
@@ -220,11 +224,11 @@ func (so structInput) Type() string {
 }
 
 func (si structInput) Value() OutputPort {
-	return refutil.FieldValue[OutputPort](si.data.Data(), si.port)
+	return refutil.FieldValue[OutputPort](si.data.Data(), si.structField)
 }
 
 func (si structInput) Set(port OutputPort) error {
-	refutil.SetStructField(si.data.Data(), si.port, port)
+	refutil.SetStructField(si.data.Data(), si.structField, port)
 	return nil
 }
 
@@ -269,7 +273,8 @@ func (s *Struct[T]) Outputs() map[string]OutputPort {
 	}
 
 	for functionName, zero := range funcs {
-		out[functionName] = zero.build(s, s.outputCache, &s.Data, functionName)
+		portName := utils.CamelCaseToSpaceCase(functionName)
+		out[portName] = zero.build(s, s.outputCache, &s.Data, functionName, portName)
 	}
 
 	return out
@@ -285,23 +290,26 @@ func (s *Struct[T]) Inputs() map[string]InputPort {
 
 	refInput := refutil.GenericFieldTypes("nodes.Output", s.Data)
 	for name, dataType := range refInput {
-		nodeInputs[name] = &structInput{
-			node:     s,
-			data:     &structDataProvider[T]{Node: s},
-			port:     name,
-			datatype: dataType,
+		portName := utils.CamelCaseToSpaceCase(name)
+		nodeInputs[portName] = &structInput{
+			node:        s,
+			data:        &structDataProvider[T]{Node: s},
+			displayName: portName,
+			structField: name,
+			datatype:    dataType,
 		}
 	}
 
 	refArrInput := refutil.GenericFieldTypes("[]nodes.Output", s.Data)
 	for name, dataType := range refArrInput {
 		// nodeInputs = append(nodeInputs, Input{Name: name, Type: inputType, Array: true})
-
-		nodeInputs[name] = &structArrayInput{
-			node:     s,
-			data:     &structDataProvider[T]{Node: s},
-			port:     name,
-			datatype: dataType,
+		portName := utils.CamelCaseToSpaceCase(name)
+		nodeInputs[portName] = &structArrayInput{
+			node:        s,
+			data:        &structDataProvider[T]{Node: s},
+			structField: name,
+			displayName: portName,
+			datatype:    dataType,
 		}
 	}
 

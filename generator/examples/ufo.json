@@ -759,11 +759,11 @@
 			"Node-17": {
 				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.MaterialClearcoatExtensionNodeData]",
 				"assignedInput": {
-					"ClearcoatFactor": {
+					"Clearcoat Factor": {
 						"id": "Node-15",
 						"port": "Value"
 					},
-					"ClearcoatRoughnessFactor": {
+					"Clearcoat Roughness Factor": {
 						"id": "Node-16",
 						"port": "Value"
 					}
@@ -780,19 +780,19 @@
 						"id": "Node-10",
 						"port": "Value"
 					},
-					"ColorTexture": {
+					"Color Texture": {
 						"id": "Node-11",
 						"port": "Value"
 					},
-					"MetallicFactor": {
+					"Metallic Factor": {
 						"id": "Node-12",
 						"port": "Value"
 					},
-					"MetallicRoughnessTexture": {
+					"Metallic Roughness Texture": {
 						"id": "Node-14",
 						"port": "Value"
 					},
-					"RoughnessFactor": {
+					"Roughness Factor": {
 						"id": "Node-13",
 						"port": "Value"
 					}
@@ -854,11 +854,11 @@
 						"id": "Node-20",
 						"port": "Value"
 					},
-					"EmissiveFactor": {
+					"Emissive Factor": {
 						"id": "Node-20",
 						"port": "Value"
 					},
-					"EmissiveStrength": {
+					"Emissive Strength": {
 						"id": "Node-21",
 						"port": "Value"
 					}
@@ -1347,7 +1347,7 @@
 			"Node-54": {
 				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.ModelNodeData]",
 				"assignedInput": {
-					"GpuInstances": {
+					"Gpu Instances": {
 						"id": "Node-52",
 						"port": "Out"
 					},
@@ -1530,7 +1530,7 @@
 			"Node-69": {
 				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.MaterialVolumeExtensionNodeData]",
 				"assignedInput": {
-					"ThicknessFactor": {
+					"Thickness Factor": {
 						"id": "Node-68",
 						"port": "Value"
 					}
@@ -1553,15 +1553,15 @@
 						"id": "Node-62",
 						"port": "Value"
 					},
-					"IndexOfRefraction": {
+					"Index Of Refraction": {
 						"id": "Node-65",
 						"port": "Value"
 					},
-					"MetallicFactor": {
+					"Metallic Factor": {
 						"id": "Node-63",
 						"port": "Value"
 					},
-					"RoughnessFactor": {
+					"Roughness Factor": {
 						"id": "Node-64",
 						"port": "Value"
 					},

@@ -301,7 +301,7 @@
 						"id": "Node-13",
 						"port": "Value"
 					},
-					"RoughnessFactor": {
+					"Roughness Factor": {
 						"id": "Node-28",
 						"port": "Value"
 					}
@@ -500,7 +500,7 @@
 			"Node-3": {
 				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.MaterialNodeData]",
 				"assignedInput": {
-					"RoughnessFactor": {
+					"Roughness Factor": {
 						"id": "Node-4",
 						"port": "Value"
 					}
