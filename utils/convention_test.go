@@ -37,6 +37,10 @@ func TestCamelCaseToSpaceCase(t *testing.T) {
 			In:  "My3D",
 			Out: "My 3D",
 		},
+		"Multi-digit number": {
+			In:  "float64",
+			Out: "float 64",
+		},
 	}
 
 	for name, test := range tests {

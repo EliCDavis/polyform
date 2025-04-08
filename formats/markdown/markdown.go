@@ -8,13 +8,27 @@ var h3 = []byte("### ")
 var bullet = []byte("* ")
 
 type markdownWriter struct {
-	writer *txt.Writer
+	writer      *txt.Writer
+	indentLevel int
 }
 
 func (w *markdownWriter) header(header []byte, text string) (int, error) {
 	w.writer.StartEntry()
 	w.writer.Append(header)
 	w.writer.String(text)
+	w.writer.NewLine()
+	w.writer.NewLine()
+	return w.writer.FinishEntry()
+}
+
+func (w *markdownWriter) headerWithId(header []byte, text, id string) (int, error) {
+	w.writer.StartEntry()
+	w.writer.Append(header)
+	w.writer.Append([]byte("<a id=\""))
+	w.writer.String(id)
+	w.writer.Append([]byte("\">"))
+	w.writer.String(text)
+	w.writer.Append([]byte("</a>"))
 	w.writer.NewLine()
 	w.writer.NewLine()
 	return w.writer.FinishEntry()
@@ -28,22 +42,47 @@ func (w *markdownWriter) Header2(text string) (int, error) {
 	return w.header(h2, text)
 }
 
+func (w *markdownWriter) Header2WithId(text string, id string) (int, error) {
+	return w.headerWithId(h2, text, id)
+}
+
 func (w *markdownWriter) Header3(text string) (int, error) {
 	return w.header(h3, text)
 }
 
+func (w *markdownWriter) Header3WithId(text string, id string) (int, error) {
+	return w.headerWithId(h3, text, id)
+}
+
+func (w *markdownWriter) Link(text string, link string) (int, error) {
+	w.writer.StartEntry()
+	w.writer.Append([]byte("["))
+	w.writer.String(text)
+	w.writer.Append([]byte("](#"))
+	w.writer.String(link)
+	w.writer.Append([]byte(")"))
+	return w.writer.FinishEntry()
+}
+
 func (w *markdownWriter) StartBulletList() (int, error) {
+	w.indentLevel++
 	return 0, nil
 }
 
 func (w *markdownWriter) EndBulletList() (int, error) {
+	w.indentLevel--
 	w.writer.StartEntry()
-	w.writer.NewLine()
+	if w.indentLevel == 0 {
+		w.writer.NewLine()
+	}
 	return w.writer.FinishEntry()
 }
 
 func (w *markdownWriter) StartBullet() (int, error) {
 	w.writer.StartEntry()
+	for range w.indentLevel - 1 {
+		w.writer.Append([]byte("    "))
+	}
 	w.writer.Append([]byte("* "))
 	return w.writer.FinishEntry()
 }
@@ -63,6 +102,18 @@ func (w *markdownWriter) StartBold() (int, error) {
 func (w *markdownWriter) EndBold() (int, error) {
 	w.writer.StartEntry()
 	w.writer.Append([]byte("**"))
+	return w.writer.FinishEntry()
+}
+
+func (w *markdownWriter) StartItalics() (int, error) {
+	w.writer.StartEntry()
+	w.writer.Append([]byte("*"))
+	return w.writer.FinishEntry()
+}
+
+func (w *markdownWriter) EndItalics() (int, error) {
+	w.writer.StartEntry()
+	w.writer.Append([]byte("*"))
 	return w.writer.FinishEntry()
 }
 

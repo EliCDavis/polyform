@@ -11,7 +11,7 @@ func CamelCaseToSpaceCase(s string) string {
 	for _, r := range s {
 		if unicode.IsUpper(r) && result.Len() > 0 && !dontSpaceNextRune {
 			result.WriteRune(' ')
-		} else if unicode.IsDigit(r) {
+		} else if unicode.IsDigit(r) && !dontSpaceNextRune {
 			result.WriteRune(' ')
 		}
 

@@ -43,9 +43,16 @@ func TestDocumentation_SingleMarkdown(t *testing.T) {
 
 A Description
 
-## generator
+## Table Of Contents
 
-### Test Doc
+*1 nodes across 1 packages*
+
+* [generator](#0)
+    * [Test Doc](#0-0)
+
+## <a id="0">generator</a>
+
+### <a id="0-0">Test Doc</a>
 
 Inputs:
 

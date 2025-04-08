@@ -3,6 +3,7 @@ package generator
 import (
 	"fmt"
 	"io"
+	"strconv"
 
 	"github.com/EliCDavis/polyform/formats/markdown"
 	"github.com/EliCDavis/polyform/generator/graph"
@@ -50,6 +51,11 @@ func (dw DocumentationWriter) writeSingle(writer markdown.Writer) error {
 		sections[builtSchema.Path] = append(sections[builtSchema.Path], builtSchema)
 	}
 
+	nodeCount := 0
+	for _, section := range sections {
+		nodeCount += len(section)
+	}
+
 	sortedSections := utils.SortMapByKey(sections)
 
 	writer.Header1(dw.Title)
@@ -58,13 +64,43 @@ func (dw DocumentationWriter) writeSingle(writer markdown.Writer) error {
 	if version == "" {
 		version = "(undefined)"
 	}
-	writer.Paragraph(fmt.Sprintf("*Version: %s*", version))
+
+	writer.StartItalics()
+	writer.Text(fmt.Sprintf("Version: %s", version))
+	writer.EndItalics()
+	writer.NewLine()
+	writer.NewLine()
+
 	writer.Paragraph(dw.Description)
 
-	for _, section := range sortedSections {
-		writer.Header2(section.Key)
-		for _, instance := range section.Val {
-			writer.Header3(instance.DisplayName)
+	writer.Header2("Table Of Contents")
+
+	writer.StartItalics()
+	writer.Text(fmt.Sprintf("%d nodes across %d packages", nodeCount, len(sections)))
+	writer.EndItalics()
+	writer.NewLine()
+	writer.NewLine()
+
+	writer.StartBulletList()
+	for sectionIndex, section := range sortedSections {
+		writer.StartBullet()
+		writer.Link(section.Key, strconv.Itoa(sectionIndex))
+		writer.EndBullet()
+
+		writer.StartBulletList()
+		for instanceIndex, instance := range section.Val {
+			writer.StartBullet()
+			writer.Link(instance.DisplayName, fmt.Sprintf("%d-%d", sectionIndex, instanceIndex))
+			writer.EndBullet()
+		}
+		writer.EndBulletList()
+	}
+	writer.EndBulletList()
+
+	for sectionIndex, section := range sortedSections {
+		writer.Header2WithId(section.Key, strconv.Itoa(sectionIndex))
+		for instanceIndex, instance := range section.Val {
+			writer.Header3WithId(instance.DisplayName, fmt.Sprintf("%d-%d", sectionIndex, instanceIndex))
 
 			if instance.Info != "" {
 				writer.Paragraph(instance.Info)
