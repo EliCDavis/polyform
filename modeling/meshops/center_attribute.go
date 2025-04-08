@@ -4,6 +4,7 @@ import (
 	"math"
 
 	"github.com/EliCDavis/polyform/modeling"
+	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/vector/vector3"
 )
 
@@ -44,4 +45,22 @@ func CenterFloat3Attribute(m modeling.Mesh, attr string) modeling.Mesh {
 	}
 
 	return m.SetFloat3Attribute(attr, modified)
+}
+
+type CenterAttribute3DNode = nodes.Struct[CenterAttribute3DNodeData]
+
+type CenterAttribute3DNodeData struct {
+	Attribute nodes.Output[string]
+	Mesh      nodes.Output[modeling.Mesh]
+}
+
+func (ca3dn CenterAttribute3DNodeData) Out() nodes.StructOutput[modeling.Mesh] {
+	if ca3dn.Mesh == nil {
+		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
+	}
+
+	return nodes.NewStructOutput(CenterFloat3Attribute(
+		ca3dn.Mesh.Value(),
+		nodes.TryGetOutputValue(ca3dn.Attribute, modeling.PositionAttribute),
+	))
 }

@@ -10,6 +10,7 @@ func init() {
 
 	refutil.RegisterType[TranslateAttribute3DNode](factory)
 	refutil.RegisterType[CropAttribute3DNode](factory)
+	refutil.RegisterType[CenterAttribute3DNode](factory)
 	refutil.RegisterType[LaplacianSmoothNode](factory)
 
 	refutil.RegisterType[CombineNode](factory)

@@ -105,15 +105,14 @@ type LaplacianSmoothNodeData struct {
 }
 
 func (lp LaplacianSmoothNodeData) Out() nodes.StructOutput[modeling.Mesh] {
-	atrr := modeling.PositionAttribute
-	if lp.Attribute != nil {
-		atrr = lp.Attribute.Value()
+	if lp.Mesh == nil {
+		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
 	}
 
 	return nodes.NewStructOutput(LaplacianSmooth(
 		lp.Mesh.Value(),
-		atrr,
-		lp.Iterations.Value(),
-		lp.SmoothingFactor.Value(),
+		nodes.TryGetOutputValue(lp.Attribute, modeling.PositionAttribute),
+		nodes.TryGetOutputValue(lp.Iterations, 10),
+		nodes.TryGetOutputValue(lp.SmoothingFactor, 0.1),
 	))
 }
