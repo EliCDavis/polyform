@@ -162,7 +162,8 @@ func TestAppCommand_Outline(t *testing.T) {
             "inputs": {
                 "In": {
                     "type": "string",
-                    "isArray": false
+                    "isArray": false,
+                    "description": ""
                 }
             }
         }

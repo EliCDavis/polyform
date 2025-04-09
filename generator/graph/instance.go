@@ -778,9 +778,15 @@ func BuildNodeTypeSchema(node nodes.Node) schema.NodeType {
 			array = true
 		}
 
+		desc := ""
+		if description, ok := input.(nodes.Describable); ok {
+			desc = description.Description()
+		}
+
 		typeSchema.Inputs[name] = schema.NodeInput{
-			Type:    nodeType,
-			IsArray: array,
+			Type:        nodeType,
+			IsArray:     array,
+			Description: desc,
 		}
 	}
 

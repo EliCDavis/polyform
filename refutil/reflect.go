@@ -317,7 +317,7 @@ func SetStructField(structToSet any, field string, val any) {
 	viewType := view.Type()
 
 	// viewType.FieldByName(field)
-	for i := 0; i < viewType.NumField(); i++ {
+	for i := range viewType.NumField() {
 		structField := viewType.Field(i)
 
 		// Not our field, continue
@@ -345,7 +345,7 @@ func SetStructField(structToSet any, field string, val any) {
 	panic(fmt.Errorf("field '%s' was not found on struct", field))
 }
 
-func findStructField(structToSet any, field string) reflect.Value {
+func findStructFieldValue(structToSet any, field string) reflect.Value {
 	viewPointerValue := reflect.ValueOf(structToSet)
 
 	view := viewPointerValue
@@ -378,8 +378,41 @@ func findStructField(structToSet any, field string) reflect.Value {
 	panic(fmt.Errorf("field '%s' was not found on struct", field))
 }
 
+func findStructField(structToSet any, field string) reflect.StructField {
+	viewPointerValue := reflect.ValueOf(structToSet)
+
+	view := viewPointerValue
+	viewKind := view.Kind()
+
+	// Dereference pointer
+	for viewKind == reflect.Ptr {
+		view = view.Elem()
+		viewKind = view.Kind()
+	}
+
+	if viewKind != reflect.Struct {
+		panic(fmt.Errorf("value of type: '%s' has no field '%s' to set", viewKind.String(), field))
+	}
+
+	viewType := view.Type()
+
+	// viewType.FieldByName(field)
+	for i := 0; i < viewType.NumField(); i++ {
+		structField := viewType.Field(i)
+
+		// Not our field, continue
+		if structField.Name != field {
+			continue
+		}
+
+		return structField
+	}
+
+	panic(fmt.Errorf("field '%s' was not found on struct", field))
+}
+
 func RemoveFromStructFieldArray(structToSet any, field string, index int) {
-	viewFieldValue := findStructField(structToSet, field)
+	viewFieldValue := findStructFieldValue(structToSet, field)
 	if !viewFieldValue.CanSet() {
 		panic(fmt.Errorf("field '%s' was found but can not be set", field))
 	}
@@ -389,13 +422,17 @@ func RemoveFromStructFieldArray(structToSet any, field string, index int) {
 }
 
 func AddToStructFieldArray(structToSet any, field string, val any) {
-	viewFieldValue := findStructField(structToSet, field)
+	viewFieldValue := findStructFieldValue(structToSet, field)
 	if !viewFieldValue.CanSet() {
 		panic(fmt.Errorf("field '%s' was found but can not be set", field))
 	}
 
 	newSlilce := reflect.Append(viewFieldValue, reflect.ValueOf(val))
 	viewFieldValue.Set(newSlilce)
+}
+
+func GetStructTag(structToSet any, field string, tag string) string {
+	return findStructField(structToSet, field).Tag.Get(tag)
 }
 
 func StructFieldTypes(in any) map[string]string {

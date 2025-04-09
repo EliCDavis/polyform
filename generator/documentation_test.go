@@ -13,6 +13,7 @@ type TestDocNode = nodes.Struct[TestDocNodeData]
 
 type TestDocNodeData struct {
 	A nodes.Output[int]
+	B nodes.Output[int] `description:"B has a description"`
 }
 
 func (TestDocNodeData) Out() nodes.StructOutput[float64] {
@@ -57,6 +58,7 @@ A Description
 Inputs:
 
 * **A**: int
+* **B**: int - B has a description
 
 Outputs:
 

@@ -3,6 +3,7 @@ package generator
 import (
 	"fmt"
 	"io"
+	"sort"
 	"strconv"
 
 	"github.com/EliCDavis/polyform/formats/markdown"
@@ -83,6 +84,13 @@ func (dw DocumentationWriter) writeSingle(writer markdown.Writer) error {
 
 	writer.StartBulletList()
 	for sectionIndex, section := range sortedSections {
+
+		instances := section.Val
+		sort.Slice(instances, func(i, j int) bool {
+			return instances[i].DisplayName > instances[j].DisplayName
+		})
+		sortedSections[sectionIndex].Val = instances
+
 		writer.StartBullet()
 		writer.Link(section.Key, strconv.Itoa(sectionIndex))
 		writer.EndBullet()
@@ -109,14 +117,21 @@ func (dw DocumentationWriter) writeSingle(writer markdown.Writer) error {
 			writer.Paragraph("Inputs:")
 			if len(instance.Inputs) > 0 {
 				writer.StartBulletList()
-				for val, i := range instance.Inputs {
+				sortedInput := utils.SortMapByKey(instance.Inputs)
+				for _, input := range sortedInput {
 					writer.StartBullet()
 
 					writer.StartBold()
-					writer.Text(val)
+					writer.Text(input.Key)
 					writer.EndBold()
 
-					writer.Text(fmt.Sprintf(": %s", i.Type))
+					writer.Text(fmt.Sprintf(": %s", input.Val.Type))
+
+					if input.Val.Description != "" {
+						writer.Text(" - ")
+						writer.Text(input.Val.Description)
+					}
+
 					writer.EndBullet()
 				}
 				writer.EndBulletList()

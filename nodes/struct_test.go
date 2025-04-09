@@ -11,7 +11,7 @@ import (
 type SimpleTestStructNode = nodes.Struct[SimpleAddTestStruct]
 
 type SimpleAddTestStruct struct {
-	A nodes.Output[float64]
+	A nodes.Output[float64] `description:"A Desc"`
 	B nodes.Output[float64]
 }
 
@@ -30,9 +30,14 @@ func TestStruct_SimpleAdd(t *testing.T) {
 	}
 
 	output := n.Outputs()
-	assert.Len(t, output, 1)
-	// assert.Contains(t, "Sum", output)
+	require.Len(t, output, 1)
 	require.Contains(t, output, "Sum")
+
+	inputs := n.Inputs()
+	require.Len(t, inputs, 2)
+	require.Contains(t, inputs, "A")
+	require.Contains(t, inputs, "B")
+	assert.Equal(t, inputs["A"].(nodes.Describable).Description(), "A Desc")
 
 	sumOutput := output["Sum"].(nodes.Output[float64])
 	assert.Equal(t, 3., sumOutput.Value())

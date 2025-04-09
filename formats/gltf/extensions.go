@@ -81,7 +81,6 @@ func (sg PolyformPbrSpecularGlossiness) ToMaterialExtensionData(w *Writer) map[s
 
 // https://github.com/KhronosGroup/glTF/blob/main/extensions/2.0/Khronos/KHR_materials_transmission/README.md
 type PolyformTransmission struct {
-
 	// The base percentage of light that is transmitted through the surface.
 	// Default: 0.0
 	Factor float64

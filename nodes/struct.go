@@ -232,6 +232,10 @@ func (si structInput) Set(port OutputPort) error {
 	return nil
 }
 
+func (si structInput) Description() string {
+	return refutil.GetStructTag(si.data.Data(), si.structField, "description")
+}
+
 // ============================================================================
 
 // Hack to give input ports the ability to modify the Data field on a Struct

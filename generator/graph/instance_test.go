@@ -162,7 +162,8 @@ func TestInstance_AddProducer_InitializeParameters_Artifacts(t *testing.T) {
 			"inputs": {
 				"In": {
 					"type": "string",
-					"isArray": false
+					"isArray": false,
+					"description": ""
 				}
 			}
 		}

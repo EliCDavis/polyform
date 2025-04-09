@@ -252,8 +252,8 @@ func (gmnd MaterialNodeData) Description() string {
 type MaterialTransmissionExtensionNode = nodes.Struct[MaterialTransmissionExtensionNodeData]
 
 type MaterialTransmissionExtensionNodeData struct {
-	Factor  nodes.Output[float64]
-	Texture nodes.Output[PolyformTexture]
+	Factor  nodes.Output[float64]         `description:"The base percentage of light that is transmitted through the surface"`
+	Texture nodes.Output[PolyformTexture] `description:"A texture that defines the transmission percentage of the surface, stored in the R channel. This will be multiplied by transmissionFactor."`
 }
 
 func (gmvend MaterialTransmissionExtensionNodeData) Out() nodes.StructOutput[PolyformTransmission] {
