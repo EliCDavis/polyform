@@ -5,6 +5,7 @@ export interface NodeOutput {
 export interface NodeInput {
     type: string;
     isArray: boolean;
+    description: string;
 }
 
 export interface NodeType {

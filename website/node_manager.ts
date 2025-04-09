@@ -1,4 +1,4 @@
-import { FlowNode, NodeFlowGraph, Publisher } from "@elicdavis/node-flow";
+import { FlowNode, FlowNodeConfig, NodeFlowGraph, Publisher } from "@elicdavis/node-flow";
 import { InstanceIDProperty, PolyNodeController, camelCaseToWords } from "./nodes/node.js";
 import { RequestManager } from "./requests.js";
 import { GraphInstance, GraphInstanceNodes, NodeInstance } from "./schema.js";
@@ -215,7 +215,7 @@ export class NodeManager {
     }
 
     registerCustomNodeType(typeData: NodeType): void {
-        const nodeConfig = {
+        const nodeConfig: FlowNodeConfig = {
             title: camelCaseToWords(typeData.displayName),
             subTitle: typeData.path,
             info: typeData.info,
@@ -232,7 +232,8 @@ export class NodeManager {
             nodeConfig.inputs.push({
                 name: inputName,
                 type: typeData.inputs[inputName].type,
-                array: typeData.inputs[inputName].isArray
+                array: typeData.inputs[inputName].isArray,
+                description: typeData.inputs[inputName].description
             });
         }
 
