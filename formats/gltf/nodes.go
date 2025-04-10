@@ -143,13 +143,15 @@ func (gmnd TextureNodeData) Description() string {
 
 type MaterialNode = nodes.Struct[MaterialNodeData]
 
+// https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#reference-material
+
 type MaterialNodeData struct {
-	Color                    nodes.Output[coloring.WebColor]
-	ColorTexture             nodes.Output[string]
-	MetallicFactor           nodes.Output[float64]
-	RoughnessFactor          nodes.Output[float64]
-	MetallicRoughnessTexture nodes.Output[string]
-	EmissiveFactor           nodes.Output[coloring.WebColor]
+	Color                    nodes.Output[coloring.WebColor] `description:"The factors for the base color of the material. This value defines linear multipliers for the sampled texels of the base color texture."`
+	ColorTexture             nodes.Output[string]            `description:"The base color texture. The first three components (RGB) MUST be encoded with the sRGB transfer function. They specify the base color of the material. If the fourth component (A) is present, it represents the linear alpha coverage of the material. Otherwise, the alpha coverage is equal to 1.0. The material.alphaMode property specifies how alpha is interpreted. The stored texels MUST NOT be premultiplied. When undefined, the texture MUST be sampled as having 1.0 in all components."`
+	MetallicFactor           nodes.Output[float64]           `description:"The factor for the metalness of the material. This value defines a linear multiplier for the sampled metalness values of the metallic-roughness texture."`
+	RoughnessFactor          nodes.Output[float64]           `description:"The factor for the roughness of the material. This value defines a linear multiplier for the sampled roughness values of the metallic-roughness texture."`
+	MetallicRoughnessTexture nodes.Output[string]            `description:"The metallic-roughness texture. The metalness values are sampled from the B channel. The roughness values are sampled from the G channel. These values MUST be encoded with a linear transfer function. If other channels are present (R or A), they MUST be ignored for metallic-roughness calculations. When undefined, the texture MUST be sampled as having 1.0 in G and B components."`
+	EmissiveFactor           nodes.Output[coloring.WebColor] `description:"The factors for the emissive color of the material. This value defines linear multipliers for the sampled texels of the emissive texture."`
 
 	// Extensions
 	IndexOfRefraction nodes.Output[float64]
@@ -256,88 +258,64 @@ type MaterialTransmissionExtensionNodeData struct {
 	Texture nodes.Output[PolyformTexture] `description:"A texture that defines the transmission percentage of the surface, stored in the R channel. This will be multiplied by transmissionFactor."`
 }
 
-func (gmvend MaterialTransmissionExtensionNodeData) Out() nodes.StructOutput[PolyformTransmission] {
-	transmission := PolyformTransmission{}
-
-	if gmvend.Factor != nil {
-		transmission.Factor = gmvend.Factor.Value()
+func (node MaterialTransmissionExtensionNodeData) Out() nodes.StructOutput[PolyformTransmission] {
+	transmission := PolyformTransmission{
+		Factor: nodes.TryGetOutputValue(node.Factor, 0.),
 	}
 
-	if gmvend.Texture != nil {
-		v := gmvend.Texture.Value()
+	if node.Texture != nil {
+		v := node.Texture.Value()
 		transmission.Texture = &v
 	}
 
 	return nodes.NewStructOutput(transmission)
 }
 
-func (gmvend MaterialTransmissionExtensionNodeData) Description() string {
+func (node MaterialTransmissionExtensionNodeData) Description() string {
 	return "The KHR_materials_transmission extension provides a way to define glTF 2.0 materials that are transparent to light in a physically plausible way. That is, it enables the creation of transparent materials that absorb, reflect and transmit light depending on the incident angle and the wavelength of light. Common uses cases for thin-surface transmissive materials include plastics and glass."
 }
 
 type MaterialVolumeExtensionNode = nodes.Struct[MaterialVolumeExtensionNodeData]
 
 type MaterialVolumeExtensionNodeData struct {
-	ThicknessFactor     nodes.Output[float64]
-	AttenuationDistance nodes.Output[float64]
-	AttenuationColor    nodes.Output[coloring.WebColor]
+	ThicknessFactor     nodes.Output[float64]           `description:"The thickness of the volume beneath the surface. The value is given in the coordinate space of the mesh. If the value is 0 the material is thin-walled. Otherwise the material is a volume boundary. The doubleSided property has no effect on volume boundaries. Range is [0, +inf)."`
+	AttenuationDistance nodes.Output[float64]           `description:"Density of the medium given as the average distance that light travels in the medium before interacting with a particle. The value is given in world space. Range is (0, +inf)."`
+	AttenuationColor    nodes.Output[coloring.WebColor] `description:"The color that white light turns into due to absorption when reaching the attenuation distance."`
 }
 
-func (gmvend MaterialVolumeExtensionNodeData) Out() nodes.StructOutput[PolyformVolume] {
-	var thickness float64
+func (node MaterialVolumeExtensionNodeData) Out() nodes.StructOutput[PolyformVolume] {
 	var attenutationDistance *float64
-	attenuationColor := coloring.White()
-
-	if gmvend.ThicknessFactor != nil {
-		thickness = gmvend.ThicknessFactor.Value()
-	}
-
-	if gmvend.AttenuationDistance != nil {
-		v := gmvend.AttenuationDistance.Value()
+	if node.AttenuationDistance != nil {
+		v := node.AttenuationDistance.Value()
 		attenutationDistance = &v
 	}
 
-	if gmvend.AttenuationColor != nil {
-		attenuationColor = gmvend.AttenuationColor.Value()
-	}
-
 	return nodes.NewStructOutput(PolyformVolume{
-		ThicknessFactor:     thickness,
-		AttenuationColor:    attenuationColor,
+		ThicknessFactor:     nodes.TryGetOutputValue(node.ThicknessFactor, 0),
+		AttenuationColor:    nodes.TryGetOutputValue(node.AttenuationColor, coloring.White()),
 		AttenuationDistance: attenutationDistance,
 	})
 }
 
-func (gmvend MaterialVolumeExtensionNodeData) Description() string {
+func (node MaterialVolumeExtensionNodeData) Description() string {
 	return "By default, a glTF 2.0 material describes the scattering properties of a surface enclosing an infinitely thin volume. The surface defined by the mesh represents a thin wall. The volume extension makes it possible to turn the surface into an interface between volumes. The mesh to which the material is attached defines the boundaries of an homogeneous medium and therefore must be manifold. Volumes provide effects like refraction, absorption and scattering. Scattering is not subject of this extension."
 }
 
 type MaterialAnisotropyExtensionNode = nodes.Struct[MaterialAnisotropyExtensionNodeData]
 
 type MaterialAnisotropyExtensionNodeData struct {
-	AnisotropyStrength nodes.Output[float64]
-	AnisotropyRotation nodes.Output[float64]
+	AnisotropyStrength nodes.Output[float64] `description:"The anisotropy strength. When the anisotropy texture is present, this value is multiplied by the texture's blue channel."`
+	AnisotropyRotation nodes.Output[float64] `description:"The rotation of the anisotropy in tangent, bitangent space, measured in radians counter-clockwise from the tangent. When the anisotropy texture is present, this value provides additional rotation to the vectors in the texture."`
 }
 
-func (gmvend MaterialAnisotropyExtensionNodeData) Out() nodes.StructOutput[PolyformAnisotropy] {
-	var strength float64
-	var rotation float64
-
-	if gmvend.AnisotropyStrength != nil {
-		strength = gmvend.AnisotropyStrength.Value()
-	}
-
-	if gmvend.AnisotropyRotation != nil {
-		rotation = gmvend.AnisotropyRotation.Value()
-	}
-
+func (node MaterialAnisotropyExtensionNodeData) Out() nodes.StructOutput[PolyformAnisotropy] {
 	return nodes.NewStructOutput(PolyformAnisotropy{
-		AnisotropyStrength: strength,
-		AnisotropyRotation: rotation,
+		AnisotropyStrength: nodes.TryGetOutputValue(node.AnisotropyStrength, 0),
+		AnisotropyRotation: nodes.TryGetOutputValue(node.AnisotropyRotation, 0),
 	})
 }
 
-func (gmvend MaterialAnisotropyExtensionNodeData) Description() string {
+func (node MaterialAnisotropyExtensionNodeData) Description() string {
 	return "This extension defines the anisotropic property of a material as observable with brushed metals for example. An asymmetric specular lobe model is introduced to allow for such phenomena. The visually distinct feature of that lobe is the elongated appearance of the specular reflection."
 }
 
@@ -348,24 +326,13 @@ type MaterialClearcoatExtensionNodeData struct {
 	ClearcoatRoughnessFactor nodes.Output[float64]
 }
 
-func (gmcend MaterialClearcoatExtensionNodeData) Out() nodes.StructOutput[PolyformClearcoat] {
-	var strength float64
-	var rotation float64
-
-	if gmcend.ClearcoatFactor != nil {
-		strength = gmcend.ClearcoatFactor.Value()
-	}
-
-	if gmcend.ClearcoatRoughnessFactor != nil {
-		rotation = gmcend.ClearcoatRoughnessFactor.Value()
-	}
-
+func (node MaterialClearcoatExtensionNodeData) Out() nodes.StructOutput[PolyformClearcoat] {
 	return nodes.NewStructOutput(PolyformClearcoat{
-		ClearcoatFactor:          strength,
-		ClearcoatRoughnessFactor: rotation,
+		ClearcoatFactor:          nodes.TryGetOutputValue(node.ClearcoatFactor, 0),
+		ClearcoatRoughnessFactor: nodes.TryGetOutputValue(node.ClearcoatRoughnessFactor, 0),
 	})
 }
 
-func (gmcend MaterialClearcoatExtensionNodeData) Description() string {
+func (node MaterialClearcoatExtensionNodeData) Description() string {
 	return "A clear coat is a common technique used in Physically-Based Rendering to represent a protective layer applied to a base material."
 }

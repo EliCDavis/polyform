@@ -1,11 +1,12 @@
 export interface NodeOutput {
     type: string;
+    description?: string;
 }
 
 export interface NodeInput {
     type: string;
     isArray: boolean;
-    description: string;
+    description?: string;
 }
 
 export interface NodeType {
