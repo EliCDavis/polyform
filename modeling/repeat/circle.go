@@ -9,33 +9,11 @@ import (
 	"github.com/EliCDavis/vector/vector3"
 )
 
-type CirclePointsNode = nodes.Struct[CirclePointsNodeData]
-
-type CirclePointsNodeData struct {
-	Count  nodes.Output[int]
-	Radius nodes.Output[float64]
-}
-
-func (cpnd CirclePointsNodeData) Out() nodes.StructOutput[[]vector3.Float64] {
-	count := 0
-	radius := 1.
-
-	if cpnd.Count != nil {
-		count = cpnd.Count.Value()
-	}
-
-	if cpnd.Radius != nil {
-		radius = cpnd.Radius.Value()
-	}
-
-	return nodes.NewStructOutput(CirclePoints(count, radius))
-}
-
 func CirclePoints(count int, radius float64) []vector3.Float64 {
 	angleIncrement := (1.0 / float64(count)) * 2.0 * math.Pi
 	final := make([]vector3.Float64, count)
 
-	for i := 0; i < count; i++ {
+	for i := range count {
 		angle := angleIncrement * float64(i)
 		final[i] = vector3.New(math.Cos(angle)*radius, 0, math.Sin(angle)*radius)
 	}
@@ -48,7 +26,7 @@ func Circle(times int, radius float64) []trs.TRS {
 
 	transforms := make([]trs.TRS, times)
 
-	for i := 0; i < times; i++ {
+	for i := range times {
 		angle := angleIncrement * float64(i)
 
 		pos := vector3.New(math.Cos(angle), 0, math.Sin(angle)).Scale(radius)
@@ -68,16 +46,8 @@ type CircleNodeData struct {
 }
 
 func (r CircleNodeData) Out() nodes.StructOutput[[]trs.TRS] {
-	times := 0
-	radius := 0.
-
-	if r.Times != nil {
-		times = r.Times.Value()
-	}
-
-	if r.Radius != nil {
-		radius = r.Radius.Value()
-	}
-
-	return nodes.NewStructOutput(Circle(times, radius))
+	return nodes.NewStructOutput(Circle(
+		nodes.TryGetOutputValue(r.Times, 3),
+		nodes.TryGetOutputValue(r.Radius, 1.),
+	))
 }

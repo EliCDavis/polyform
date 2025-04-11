@@ -34,7 +34,5 @@ func (rnd MeshNodeData) Out() nodes.StructOutput[modeling.Mesh] {
 	if rnd.Transforms == nil {
 		return nodes.NewStructOutput(modeling.EmptyMesh(mesh.Topology()))
 	}
-	transforms := rnd.Transforms.Value()
-
-	return nodes.NewStructOutput(Mesh(mesh, transforms))
+	return nodes.NewStructOutput(Mesh(mesh, rnd.Transforms.Value()))
 }

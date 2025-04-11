@@ -194,33 +194,11 @@ func (c UvSphereNodeData) Description() string {
 }
 
 func (c UvSphereNodeData) Out() nodes.StructOutput[modeling.Mesh] {
+	radius := nodes.TryGetOutputValue(c.Radius, .5)
+	rows := max(nodes.TryGetOutputValue(c.Rows, 10), 2)
+	columns := max(nodes.TryGetOutputValue(c.Columns, 10), 3)
 
-	// radius float64, rows, columns int
-
-	radius := .5
-	rows := 10
-	columns := 10
-	weld := true
-
-	if c.Radius != nil {
-		radius = c.Radius.Value()
-	}
-
-	if c.Rows != nil {
-		rows = c.Rows.Value()
-	}
-	rows = max(rows, 2)
-
-	if c.Columns != nil {
-		columns = c.Columns.Value()
-	}
-	columns = max(columns, 3)
-
-	if c.Weld != nil {
-		weld = c.Weld.Value()
-	}
-
-	if weld {
+	if nodes.TryGetOutputValue(c.Weld, false) {
 		return nodes.NewStructOutput(UVSphere(radius, rows, columns))
 	}
 
