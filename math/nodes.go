@@ -17,19 +17,36 @@ func init() {
 	refutil.RegisterType[DivideNode](factory)
 	refutil.RegisterType[Multiply](factory)
 	refutil.RegisterType[Round](factory)
+	refutil.RegisterType[nodes.Struct[InverseNodeData[float64]]](factory)
+	refutil.RegisterType[nodes.Struct[InverseNodeData[int]]](factory)
 
 	generator.RegisterTypes(factory)
 }
 
-type AddNode = nodes.Struct[AddNodeData]
-
-type AddNodeData struct {
-	A nodes.Output[float64]
-	B nodes.Output[float64]
+// ============================================================================
+type InverseNodeData[T vector.Number] struct {
+	In nodes.Output[T] `description:"The number to take the inverse of"`
 }
 
-func (and AddNodeData) Out() nodes.StructOutput[float64] {
-	return nodes.NewStructOutput(and.A.Value() + and.B.Value())
+func (cn InverseNodeData[T]) Additive() nodes.StructOutput[T] {
+	return nodes.NewStructOutput(nodes.TryGetOutputValue(cn.In, 0) * -1)
+}
+
+func (cn InverseNodeData[T]) AdditiveDescription() string {
+	return "The additive inverse of an element x, denoted −x, is the element that when added to x, yields the additive identity, 0"
+}
+
+func (cn InverseNodeData[T]) Multiplicative() nodes.StructOutput[T] {
+	v := nodes.TryGetOutputValue(cn.In, 0)
+	if v == 0 {
+		var t T
+		return nodes.NewStructOutput(t)
+	}
+	return nodes.NewStructOutput(1. / v)
+}
+
+func (cn InverseNodeData[T]) MultiplicativeDescription() string {
+	return "The multiplicative inverse for a number x, denoted by 1/x or x^−1, is a number which when multiplied by x yields the multiplicative identity, 1"
 }
 
 // ============================================================================

@@ -341,12 +341,6 @@ func (a *App) Run(args []string) error {
 					usedTypes[n.Type] = struct{}{}
 				}
 
-				for i := len(schema.Types) - 1; i >= 0; i-- {
-					if _, ok := usedTypes[schema.Types[i].Type]; !ok {
-						schema.Types = append(schema.Types[:i], schema.Types[i+1:]...)
-					}
-				}
-
 				data, err := json.MarshalIndent(schema, "", "    ")
 				if err != nil {
 					return err

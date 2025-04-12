@@ -33,8 +33,6 @@ export class NodeManager {
 
     // RUNTIME >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-    initializedNodeTypes: boolean;
-
     nodeIdToNode: Map<string, PolyNodeController>;
 
     subscribers: Array<(change: NodeParameterChangeEvent) => void>;
@@ -50,7 +48,8 @@ export class NodeManager {
         requestManager: RequestManager,
         nodesPublisher: Publisher,
         app: ThreeApp,
-        producerViewManager: ProducerViewManager
+        producerViewManager: ProducerViewManager,
+        nodeTypes: Array<NodeType>
     ) {
         this.nodeFlowGraph = nodeFlowGraph;
         this.requestManager = requestManager;
@@ -62,9 +61,16 @@ export class NodeManager {
         this.nodeTypeToLitePath = new Map<string, string>();
         this.producerTypes = new Map<string, string>();
         this.subscribers = [];
-        this.initializedNodeTypes = false;
         this.serverUpdatingNodeConnections = false;
         // this.registerSpecialParameterPolyformNodes();
+
+        nodeTypes.forEach(type => {
+            // We should have custom nodes already defined for parameters
+            if (type.parameter) {
+                return;
+            }
+            this.registerCustomNodeType(type)
+        });
 
         nodeFlowGraph.addOnNodeAddedListener(this.onNodeAddedCallback.bind(this));
         nodeFlowGraph.addOnNodeRemovedListener(this.nodeRemoved.bind(this));
@@ -305,21 +311,6 @@ export class NodeManager {
     }
 
     updateNodes(newSchema: GraphInstance): void {
-
-        // Only need to do this once, since types are set at compile time. If
-        // that ever changes, god.
-        if (this.initializedNodeTypes === false) {
-            this.initializedNodeTypes = true;
-            newSchema.types.forEach(type => {
-                // We should have custom nodes already defined for parameters
-                if (type.parameter) {
-                    return;
-                }
-
-                this.registerCustomNodeType(type)
-            })
-        }
-
         const sortedNodes = this.sortNodesByName(newSchema.nodes);
 
         this.serverUpdatingNodeConnections = true;

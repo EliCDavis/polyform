@@ -130,44 +130,6 @@ func TestAppCommand_Outline(t *testing.T) {
             }
         }
     },
-    "types": [
-        {
-            "displayName": "parameter.Value[string]",
-            "info": "",
-            "type": "github.com/EliCDavis/polyform/generator/parameter.Value[string]",
-            "path": "generator/parameter",
-            "outputs": {
-                "Value": {
-                    "type": "string"
-                }
-            },
-            "parameter": {
-                "name": "",
-                "description": "",
-                "type": "string",
-                "defaultValue": "",
-                "currentValue": ""
-            }
-        },
-        {
-            "displayName": "Text",
-            "info": "",
-            "type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/generator/artifact/basics.TextNodeData]",
-            "path": "generator/artifact/basics",
-            "outputs": {
-                "Out": {
-                    "type": "github.com/EliCDavis/polyform/generator/artifact.Artifact"
-                }
-            },
-            "inputs": {
-                "In": {
-                    "type": "string",
-                    "isArray": false,
-                    "description": ""
-                }
-            }
-        }
-    ],
     "notes": null
 }`, string(contents))
 }

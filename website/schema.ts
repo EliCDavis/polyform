@@ -53,6 +53,5 @@ export interface GraphInstanceNodes {
 export interface GraphInstance {
     producers: { [key: string]: any };
     nodes: GraphInstanceNodes;
-    types: NodeType[];
     notes: { [key: string]: any };
 }

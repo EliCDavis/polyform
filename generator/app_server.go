@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/EliCDavis/polyform/generator/endpoint"
+	"github.com/EliCDavis/polyform/generator/graph"
 	"github.com/EliCDavis/polyform/generator/room"
 	"github.com/EliCDavis/polyform/generator/schema"
 )
@@ -136,6 +137,7 @@ func (as *AppServer) Handler(indexFile string) (*http.ServeMux, error) {
 		},
 	})
 	mux.HandleFunc("/zip", as.ZipEndpoint)
+	mux.HandleFunc("/node-types", NodeTypesEndpoint)
 	mux.Handle("/node", nodeEndpoint(as.app.graphInstance, graphSaver))
 	mux.Handle("/node/connection", nodeConnectionEndpoint(as.app.graphInstance, graphSaver))
 	mux.Handle("/parameter/value/", parameterValueEndpoint(as.app.graphInstance, graphSaver))
@@ -168,6 +170,15 @@ func (as *AppServer) Handler(indexFile string) (*http.ServeMux, error) {
 func (as *AppServer) SchemaEndpoint(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	data, err := json.Marshal(as.app.graphInstance.Schema())
+	if err != nil {
+		panic(err)
+	}
+	w.Write(data)
+}
+
+func NodeTypesEndpoint(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	data, err := json.Marshal(graph.BuildSchemaForAllNodeTypes(types))
 	if err != nil {
 		panic(err)
 	}

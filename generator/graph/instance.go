@@ -315,23 +315,6 @@ func (i *Instance) Schema() schema.GraphInstance {
 
 	appSchema.Nodes = appNodeSchema
 
-	registeredTypes := i.typeFactory.Types()
-	nodeTypes := make([]schema.NodeType, 0, len(registeredTypes))
-	for _, registeredType := range registeredTypes {
-		nodeInstance, ok := i.typeFactory.New(registeredType).(nodes.Node)
-		if !ok {
-			panic(fmt.Errorf("Registered type %q is not a node", registeredType))
-		}
-		if nodeInstance == nil {
-			panic("New registered type is nil")
-		}
-		// log.Printf("%T: %+v\n", nodeInstance, nodeInstance)
-		b := BuildNodeTypeSchema(nodeInstance)
-		b.Type = registeredType
-		nodeTypes = append(nodeTypes, b)
-	}
-	appSchema.Types = nodeTypes
-
 	return appSchema
 }
 
@@ -745,6 +728,25 @@ func RecurseDependenciesType[T any](dependent nodes.Node) []T {
 	}
 
 	return allDependencies
+}
+
+func BuildSchemaForAllNodeTypes(typeFactory *refutil.TypeFactory) []schema.NodeType {
+	registeredTypes := typeFactory.Types()
+	nodeTypes := make([]schema.NodeType, 0, len(registeredTypes))
+	for _, registeredType := range registeredTypes {
+		nodeInstance, ok := typeFactory.New(registeredType).(nodes.Node)
+		if !ok {
+			panic(fmt.Errorf("Registered type %q is not a node", registeredType))
+		}
+		if nodeInstance == nil {
+			panic("New registered type is nil")
+		}
+		// log.Printf("%T: %+v\n", nodeInstance, nodeInstance)
+		b := BuildNodeTypeSchema(nodeInstance)
+		b.Type = registeredType
+		nodeTypes = append(nodeTypes, b)
+	}
+	return nodeTypes
 }
 
 func BuildNodeTypeSchema(node nodes.Node) schema.NodeType {
