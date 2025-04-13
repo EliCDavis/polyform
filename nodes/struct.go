@@ -125,7 +125,6 @@ func (si StructOutput[T]) Description() string {
 	if refutil.HasMethod(si.data, name) {
 		return refutil.CallStructMethod(si.data, name)[0].(string)
 	}
-
 	return ""
 }
 
@@ -374,8 +373,14 @@ func (s *Struct[T]) inputVersions() string {
 func (sn Struct[T]) Name() string {
 	name := refutil.GetTypeNameWithoutPackage(sn.Data)
 
-	if strings.LastIndex(name, "NodeData") == len(name)-8 {
+	i := strings.LastIndex(name, "NodeData")
+	if i != -1 && i == len(name)-8 {
 		name = name[0 : len(name)-8]
+	} else {
+		i = strings.LastIndex(name, "Node")
+		if i != -1 && i == len(name)-4 {
+			name = name[0 : len(name)-4]
+		}
 	}
 
 	return utils.CamelCaseToSpaceCase(name)

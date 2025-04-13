@@ -158,8 +158,7 @@ func FuncValuesOfType[T any](in any) map[string]T {
 
 func HasMethod(in any, methodName string) bool {
 	method := reflect.ValueOf(in).MethodByName(methodName)
-	bitch := reflect.Value{}
-	return method != bitch
+	return method != reflect.Value{}
 }
 
 func CallStructMethod(in any, methodName string, args ...any) []any {

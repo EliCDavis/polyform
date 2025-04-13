@@ -19,8 +19,98 @@ func init() {
 	refutil.RegisterType[Round](factory)
 	refutil.RegisterType[nodes.Struct[InverseNodeData[float64]]](factory)
 	refutil.RegisterType[nodes.Struct[InverseNodeData[int]]](factory)
+	refutil.RegisterType[nodes.Struct[NegateNode[int]]](factory)
+	refutil.RegisterType[nodes.Struct[NegateNode[float64]]](factory)
+	refutil.RegisterType[nodes.Struct[DoubleNode[int]]](factory)
+	refutil.RegisterType[nodes.Struct[DoubleNode[float64]]](factory)
+	refutil.RegisterType[nodes.Struct[HalfNode[int]]](factory)
+	refutil.RegisterType[nodes.Struct[HalfNode[float64]]](factory)
+	refutil.RegisterType[nodes.Struct[OneNode]](factory)
+	refutil.RegisterType[nodes.Struct[ZeroNode]](factory)
 
 	generator.RegisterTypes(factory)
+}
+
+// ============================================================================
+
+type OneNode struct{}
+
+func (cn OneNode) Int() nodes.StructOutput[int] {
+	return nodes.NewStructOutput(1)
+}
+
+func (cn OneNode) Float64() nodes.StructOutput[float64] {
+	return nodes.NewStructOutput(1.)
+}
+
+func (cn OneNode) Description() string {
+	return "Just the number 1"
+}
+
+// ============================================================================
+
+type ZeroNode struct{}
+
+func (cn ZeroNode) Int() nodes.StructOutput[int] {
+	return nodes.NewStructOutput(0)
+}
+
+func (cn ZeroNode) Float64() nodes.StructOutput[float64] {
+	return nodes.NewStructOutput(0.)
+}
+
+func (cn ZeroNode) Description() string {
+	return "Just the number 0"
+}
+
+// ============================================================================
+
+type DoubleNode[T vector.Number] struct {
+	In nodes.Output[T] `description:"The number to double"`
+}
+
+func (cn DoubleNode[T]) Int() nodes.StructOutput[int] {
+	return nodes.NewStructOutput(int(nodes.TryGetOutputValue(cn.In, 0)) * 2)
+}
+
+func (cn DoubleNode[T]) Float64() nodes.StructOutput[float64] {
+	return nodes.NewStructOutput(float64(nodes.TryGetOutputValue(cn.In, 0)) * 2)
+}
+
+func (cn DoubleNode[T]) Description() string {
+	return "Doubles the number provided"
+}
+
+// ============================================================================
+
+type HalfNode[T vector.Number] struct {
+	In nodes.Output[T] `description:"The number to halve"`
+}
+
+func (cn HalfNode[T]) Int() nodes.StructOutput[int] {
+	return nodes.NewStructOutput(int(float64(nodes.TryGetOutputValue(cn.In, 0)) * 0.5))
+}
+
+func (cn HalfNode[T]) Float64() nodes.StructOutput[float64] {
+	return nodes.NewStructOutput(float64(nodes.TryGetOutputValue(cn.In, 0)) * 0.5)
+}
+
+func (cn HalfNode[T]) Description() string {
+	return "Divides the number in half"
+}
+
+// ============================================================================
+
+type NegateNode[T vector.Number] struct {
+	In nodes.Output[T] `description:"The number to take the additive inverse of"`
+}
+
+func (cn NegateNode[T]) Out() nodes.StructOutput[T] {
+	return nodes.NewStructOutput(nodes.TryGetOutputValue(cn.In, 0) * -1)
+}
+
+func (cn NegateNode[T]) Description() string {
+	return "The additive inverse of an element x, denoted −x, is the element that when added to x, yields the additive identity, 0"
 }
 
 // ============================================================================
