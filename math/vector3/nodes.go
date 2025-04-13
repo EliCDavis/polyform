@@ -11,12 +11,18 @@ func init() {
 
 	refutil.RegisterType[nodes.Struct[NewNodeData[float64]]](factory)
 	refutil.RegisterType[nodes.Struct[NewNodeData[int]]](factory)
-	refutil.RegisterType[nodes.Struct[NewArrayNodeData[float64]]](factory)
-	refutil.RegisterType[nodes.Struct[NewArrayNodeData[int]]](factory)
+
+	refutil.RegisterType[nodes.Struct[ArrayFromComponentsNodeData[float64]]](factory)
+	refutil.RegisterType[nodes.Struct[ArrayFromComponentsNodeData[int]]](factory)
+
 	refutil.RegisterType[nodes.Struct[SumNodeData[float64]]](factory)
 	refutil.RegisterType[nodes.Struct[SumNodeData[int]]](factory)
+
 	refutil.RegisterType[nodes.Struct[ShiftArrayNodeData[int]]](factory)
 	refutil.RegisterType[nodes.Struct[ShiftArrayNodeData[float64]]](factory)
+
+	refutil.RegisterType[nodes.Struct[ArrayFromNodesNodeData[int]]](factory)
+	refutil.RegisterType[nodes.Struct[ArrayFromNodesNodeData[float64]]](factory)
 
 	generator.RegisterTypes(factory)
 }

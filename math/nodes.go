@@ -12,19 +12,32 @@ import (
 func init() {
 	factory := &refutil.TypeFactory{}
 
-	refutil.RegisterType[SumNode](factory)
-	refutil.RegisterType[DifferenceNode](factory)
-	refutil.RegisterType[DivideNode](factory)
-	refutil.RegisterType[Multiply](factory)
 	refutil.RegisterType[Round](factory)
+
+	refutil.RegisterType[nodes.Struct[DifferenceNodeData[int]]](factory)
+	refutil.RegisterType[nodes.Struct[DifferenceNodeData[float64]]](factory)
+
+	refutil.RegisterType[nodes.Struct[SumNodeData[int]]](factory)
+	refutil.RegisterType[nodes.Struct[SumNodeData[float64]]](factory)
+
+	refutil.RegisterType[nodes.Struct[DivideNodeData[int]]](factory)
+	refutil.RegisterType[nodes.Struct[DivideNodeData[float64]]](factory)
+
+	refutil.RegisterType[nodes.Struct[MultiplyNodeData[float64]]](factory)
+	refutil.RegisterType[nodes.Struct[MultiplyNodeData[int]]](factory)
+
 	refutil.RegisterType[nodes.Struct[InverseNodeData[float64]]](factory)
 	refutil.RegisterType[nodes.Struct[InverseNodeData[int]]](factory)
+
 	refutil.RegisterType[nodes.Struct[NegateNode[int]]](factory)
 	refutil.RegisterType[nodes.Struct[NegateNode[float64]]](factory)
+
 	refutil.RegisterType[nodes.Struct[DoubleNode[int]]](factory)
 	refutil.RegisterType[nodes.Struct[DoubleNode[float64]]](factory)
+
 	refutil.RegisterType[nodes.Struct[HalfNode[int]]](factory)
 	refutil.RegisterType[nodes.Struct[HalfNode[float64]]](factory)
+
 	refutil.RegisterType[nodes.Struct[OneNode]](factory)
 	refutil.RegisterType[nodes.Struct[ZeroNode]](factory)
 
@@ -140,8 +153,6 @@ func (cn InverseNodeData[T]) MultiplicativeDescription() string {
 }
 
 // ============================================================================
-type SumNode = nodes.Struct[SumNodeData[float64]]
-
 type SumNodeData[T vector.Number] struct {
 	Values []nodes.Output[T]
 }
@@ -158,8 +169,6 @@ func (cn SumNodeData[T]) Out() nodes.StructOutput[T] {
 }
 
 // ============================================================================
-type DifferenceNode = nodes.Struct[DifferenceNodeData[float64]]
-
 type DifferenceNodeData[T vector.Number] struct {
 	A nodes.Output[T]
 	B nodes.Output[T]
@@ -180,7 +189,6 @@ func (cn DifferenceNodeData[T]) Out() nodes.StructOutput[T] {
 }
 
 // ============================================================================
-type DivideNode = nodes.Struct[DivideNodeData[float64]]
 
 type DivideNodeData[T vector.Number] struct {
 	Dividend nodes.Output[T]
@@ -205,7 +213,6 @@ func (cn DivideNodeData[T]) Out() nodes.StructOutput[T] {
 }
 
 // ============================================================================
-type Multiply = nodes.Struct[MultiplyNodeData[float64]]
 
 type MultiplyNodeData[T vector.Number] struct {
 	A nodes.Output[T]
