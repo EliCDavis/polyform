@@ -252,7 +252,8 @@ export class NodeManager {
             for (let outName in typeData.outputs) {
                 nodeConfig.outputs.push({
                     name: outName,
-                    type: typeData.outputs[outName].type
+                    type: typeData.outputs[outName].type,
+                    description: typeData.outputs[outName].description
                 });
             }
         }

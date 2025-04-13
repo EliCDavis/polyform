@@ -120,6 +120,15 @@ func (so StructOutput[T]) Type() string {
 	return refutil.GetTypeWithPackage(new(T))
 }
 
+func (si StructOutput[T]) Description() string {
+	name := si.functionName + "Description"
+	if refutil.HasMethod(si.data, name) {
+		return refutil.CallStructMethod(si.data, name)[0].(string)
+	}
+
+	return ""
+}
+
 // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 // Methods called by the actual function that builds the thing
 //
@@ -195,6 +204,10 @@ func (si structArrayInput) Remove(port OutputPort) error {
 		}
 	}
 	return fmt.Errorf("array input port %s does not contain a reference to output port %s", si.Name(), port.Name())
+}
+
+func (si structArrayInput) Description() string {
+	return refutil.GetStructTag(si.data.Data(), si.structField, "description")
 }
 
 // ============================================================================

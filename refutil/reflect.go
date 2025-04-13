@@ -156,6 +156,12 @@ func FuncValuesOfType[T any](in any) map[string]T {
 	return out
 }
 
+func HasMethod(in any, methodName string) bool {
+	method := reflect.ValueOf(in).MethodByName(methodName)
+	bitch := reflect.Value{}
+	return method != bitch
+}
+
 func CallStructMethod(in any, methodName string, args ...any) []any {
 	method := reflect.ValueOf(in).MethodByName(methodName)
 	bitch := reflect.Value{}
@@ -176,26 +182,26 @@ func CallStructMethod(in any, methodName string, args ...any) []any {
 	return returnVals
 }
 
-func GetMethodsWithSingleArgument[T any](in any) map[string]string {
+// func GetMethodsWithNumArguments[T any](in any, num int) map[string]string {
 
-	out := make(map[string]string)
+// 	out := make(map[string]string)
 
-	inType := reflect.ValueOf(in)
+// 	inType := reflect.ValueOf(in)
 
-	for i := 0; i < inType.NumMethod(); i++ {
-		method := inType.Method(i)
-		methodType := method.Type()
+// 	for i := 0; i < inType.NumMethod(); i++ {
+// 		method := inType.Method(i)
+// 		methodType := method.Type()
 
-		// If the number of arguments isn't 1
-		if methodType.NumIn() != 1 {
-			continue
-		}
+// 		// If the number of arguments isn't 1
+// 		if methodType.NumIn() != num {
+// 			continue
+// 		}
 
-		// out[method.String()]
-	}
+// 		// out[method.String()]
+// 	}
 
-	return out
-}
+// 	return out
+// }
 
 func FieldValue[T any](in any, field string) T {
 	viewPointerValue := reflect.ValueOf(in)

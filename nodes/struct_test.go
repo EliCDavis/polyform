@@ -21,6 +21,10 @@ func (and SimpleAddTestStruct) Sum() nodes.StructOutput[float64] {
 	return result
 }
 
+func (and SimpleAddTestStruct) SumDescription() string {
+	return "The addition of A and B"
+}
+
 func TestStruct_SimpleAdd(t *testing.T) {
 	var n nodes.Node = &SimpleTestStructNode{
 		Data: SimpleAddTestStruct{
@@ -44,6 +48,7 @@ func TestStruct_SimpleAdd(t *testing.T) {
 	assert.Equal(t, 0, sumOutput.Version())
 	assert.Equal(t, "Sum", sumOutput.Name())
 	assert.Equal(t, n, sumOutput.Node())
+	assert.Equal(t, "The addition of A and B", sumOutput.(nodes.Describable).Description())
 }
 
 // ================================================================================================

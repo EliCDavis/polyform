@@ -763,8 +763,14 @@ func BuildNodeTypeSchema(node nodes.Node) schema.NodeType {
 			nodeType = typed.Type()
 		}
 
+		desc := ""
+		if description, ok := o.(nodes.Describable); ok {
+			desc = description.Description()
+		}
+
 		typeSchema.Outputs[name] = schema.NodeOutput{
-			Type: nodeType,
+			Type:        nodeType,
+			Description: desc,
 		}
 	}
 
