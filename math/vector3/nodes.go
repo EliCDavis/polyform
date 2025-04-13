@@ -24,5 +24,11 @@ func init() {
 	refutil.RegisterType[nodes.Struct[ArrayFromNodesNodeData[int]]](factory)
 	refutil.RegisterType[nodes.Struct[ArrayFromNodesNodeData[float64]]](factory)
 
+	refutil.RegisterType[nodes.Struct[Select[int]]](factory)
+	refutil.RegisterType[nodes.Struct[Select[float64]]](factory)
+
+	refutil.RegisterType[nodes.Struct[SelectArray[int]]](factory)
+	refutil.RegisterType[nodes.Struct[SelectArray[float64]]](factory)
+
 	generator.RegisterTypes(factory)
 }

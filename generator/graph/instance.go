@@ -3,6 +3,7 @@ package graph
 import (
 	"flag"
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -169,6 +170,53 @@ func (i *Instance) Reset() {
 	i.producers = make(map[string]nodes.Output[artifact.Artifact])
 }
 
+type sortedReference struct {
+	name string
+	port schema.PortReference
+
+	arrayName string
+	array     int
+}
+
+func sortPortReferences(ports map[string]schema.PortReference) []sortedReference {
+	sorted := make([]sortedReference, 0, len(ports))
+	for name, port := range ports {
+		i := -1
+		arrName := ""
+
+		split := strings.LastIndex(name, ".")
+		if split != -1 {
+			v, err := strconv.Atoi(name[split+1:])
+			if err != nil {
+				panic(err)
+			}
+			i = v
+			arrName = name[:split]
+		}
+
+		sorted = append(sorted, sortedReference{
+			name:      name,
+			port:      port,
+			array:     i,
+			arrayName: arrName,
+		})
+	}
+
+	sort.Slice(sorted, func(i int, j int) bool {
+		if sorted[i].array == -1 || sorted[j].array == -1 {
+			return sorted[i].name < sorted[j].name
+		}
+
+		if sorted[i].arrayName == sorted[j].arrayName {
+			return sorted[i].array < sorted[j].array
+		}
+
+		return sorted[i].array < sorted[j].array
+	})
+
+	return sorted
+}
+
 func (i *Instance) ApplyAppSchema(jsonPayload []byte) error {
 	appSchema, err := jbtf.Unmarshal[schema.App](jsonPayload)
 	if err != nil {
@@ -203,13 +251,14 @@ func (i *Instance) ApplyAppSchema(jsonPayload []byte) error {
 	for nodeID, instanceDetails := range appSchema.Nodes {
 		node := createdNodes[nodeID]
 		inputs := node.Inputs()
-		for dirtyInputName, dependency := range instanceDetails.AssignedInput {
 
-			// TODO: There's an index associated with this input as to where
-			// it belongs in the array.
-			//
-			// If the order of elements ever mattered to a function, this would
-			// fuck things up bad.
+		sortedInput := sortPortReferences(instanceDetails.AssignedInput)
+
+		for _, sorted := range sortedInput {
+
+			dirtyInputName := sorted.name
+			dependency := sorted.port
+
 			inputName := dirtyInputName
 			components := strings.Split(inputName, ".")
 			if len(components) > 1 {

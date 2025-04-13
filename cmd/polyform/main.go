@@ -34,6 +34,7 @@ import (
 	_ "github.com/EliCDavis/polyform/modeling/meshops/gausops"
 	_ "github.com/EliCDavis/polyform/modeling/primitives"
 	_ "github.com/EliCDavis/polyform/modeling/repeat"
+	_ "github.com/EliCDavis/polyform/modeling/triangulation"
 
 	_ "github.com/EliCDavis/polyform/nodes/experimental"
 )
