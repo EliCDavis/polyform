@@ -6,7 +6,7 @@ import (
 	"github.com/EliCDavis/polyform/formats/ply"
 	"github.com/EliCDavis/polyform/formats/swagger"
 	"github.com/EliCDavis/polyform/generator"
-	"github.com/EliCDavis/polyform/generator/artifact"
+	"github.com/EliCDavis/polyform/generator/manifest"
 	"github.com/EliCDavis/polyform/generator/parameter"
 	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/modeling"
@@ -26,7 +26,7 @@ func TestSwaggerFromGraph_SingleParameterSingleProducer(t *testing.T) {
 		Name:        appName,
 		Version:     appVersion,
 		Description: appDescription,
-		Files: map[string]nodes.Output[artifact.Artifact]{
+		Files: map[string]nodes.Output[manifest.Artifact]{
 			producerFileName: buildTextArifact(&parameter.Value[string]{
 				Name:         "Welp",
 				DefaultValue: "yee",
@@ -137,8 +137,8 @@ func TestSwaggerFromGraph_MultipleParametersSingleProducer(t *testing.T) {
 		Name:        "Example Graph",
 		Version:     "1.0.0",
 		Description: "Example graph that contains multiple parameters",
-		Files: map[string]nodes.Output[artifact.Artifact]{
-			"example.glb": nodes.GetNodeOutputPort[artifact.Artifact](ply, "Out"),
+		Files: map[string]nodes.Output[manifest.Artifact]{
+			"example.glb": nodes.GetNodeOutputPort[manifest.Artifact](ply, "Out"),
 		},
 	}
 

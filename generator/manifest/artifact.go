@@ -1,4 +1,4 @@
-package artifact
+package manifest
 
 import "io"
 

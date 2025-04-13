@@ -3,7 +3,7 @@ package basics
 import (
 	"io"
 
-	"github.com/EliCDavis/polyform/generator/artifact"
+	"github.com/EliCDavis/polyform/generator/manifest"
 	"github.com/EliCDavis/polyform/nodes"
 )
 
@@ -26,6 +26,6 @@ type TextNodeData struct {
 	In nodes.Output[string]
 }
 
-func (tand TextNodeData) Out() nodes.StructOutput[artifact.Artifact] {
-	return nodes.NewStructOutput[artifact.Artifact](Text{Data: tand.In.Value()})
+func (tand TextNodeData) Out() nodes.StructOutput[manifest.Artifact] {
+	return nodes.NewStructOutput[manifest.Artifact](Text{Data: tand.In.Value()})
 }

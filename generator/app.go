@@ -15,9 +15,9 @@ import (
 	"time"
 
 	"github.com/EliCDavis/jbtf"
-	"github.com/EliCDavis/polyform/generator/artifact"
 	"github.com/EliCDavis/polyform/generator/cli"
 	"github.com/EliCDavis/polyform/generator/graph"
+	"github.com/EliCDavis/polyform/generator/manifest"
 	"github.com/EliCDavis/polyform/generator/room"
 	"github.com/EliCDavis/polyform/generator/schema"
 	"github.com/EliCDavis/polyform/nodes"
@@ -29,7 +29,7 @@ type App struct {
 	Description string
 	WebScene    *schema.WebScene
 	Authors     []schema.Author
-	Files       map[string]nodes.Output[artifact.Artifact]
+	Files       map[string]nodes.Output[manifest.Artifact]
 
 	graphInstance *graph.Instance
 	Out           io.Writer

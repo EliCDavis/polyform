@@ -4,7 +4,7 @@ import (
 	"io"
 
 	"github.com/EliCDavis/polyform/generator"
-	"github.com/EliCDavis/polyform/generator/artifact"
+	"github.com/EliCDavis/polyform/generator/manifest"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
@@ -40,6 +40,6 @@ func (pn ArtifactNodeData) Description() string {
 	return "Mkkellogg's SPLAT format for their three.js Gaussian Splat Viewer"
 }
 
-func (pn ArtifactNodeData) Out() nodes.StructOutput[artifact.Artifact] {
-	return nodes.NewStructOutput[artifact.Artifact](Splat{Mesh: pn.In.Value()})
+func (pn ArtifactNodeData) Out() nodes.StructOutput[manifest.Artifact] {
+	return nodes.NewStructOutput[manifest.Artifact](Splat{Mesh: pn.In.Value()})
 }

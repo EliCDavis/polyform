@@ -5,7 +5,7 @@ import (
 	"io"
 
 	"github.com/EliCDavis/polyform/generator"
-	"github.com/EliCDavis/polyform/generator/artifact"
+	"github.com/EliCDavis/polyform/generator/manifest"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
@@ -64,6 +64,6 @@ type ArtifactNodeData struct {
 	In nodes.Output[modeling.Mesh]
 }
 
-func (pn ArtifactNodeData) Out() nodes.StructOutput[artifact.Artifact] {
-	return nodes.NewStructOutput[artifact.Artifact](Artifact{Mesh: pn.In.Value()})
+func (pn ArtifactNodeData) Out() nodes.StructOutput[manifest.Artifact] {
+	return nodes.NewStructOutput[manifest.Artifact](Artifact{Mesh: pn.In.Value()})
 }

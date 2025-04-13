@@ -6,7 +6,7 @@ import (
 	"io"
 
 	"github.com/EliCDavis/polyform/generator"
-	"github.com/EliCDavis/polyform/generator/artifact"
+	"github.com/EliCDavis/polyform/generator/manifest"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
@@ -99,11 +99,11 @@ type ArtifactNodeData struct {
 	In nodes.Output[modeling.Mesh]
 }
 
-func (pn ArtifactNodeData) Out() nodes.StructOutput[artifact.Artifact] {
+func (pn ArtifactNodeData) Out() nodes.StructOutput[manifest.Artifact] {
 	if pn.In == nil {
-		return nodes.NewStructOutput[artifact.Artifact](SplatPly{Mesh: modeling.EmptyPointcloud()})
+		return nodes.NewStructOutput[manifest.Artifact](SplatPly{Mesh: modeling.EmptyPointcloud()})
 	}
-	return nodes.NewStructOutput[artifact.Artifact](SplatPly{Mesh: pn.In.Value()})
+	return nodes.NewStructOutput[manifest.Artifact](SplatPly{Mesh: pn.In.Value()})
 }
 
 type ReadNode = nodes.Struct[ReadNodeData]

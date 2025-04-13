@@ -6,7 +6,7 @@ import (
 
 	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/generator"
-	"github.com/EliCDavis/polyform/generator/artifact"
+	"github.com/EliCDavis/polyform/generator/manifest"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
@@ -45,12 +45,12 @@ type ArtifactNodeData struct {
 	MaterialFile nodes.Output[string]
 }
 
-func (pn ArtifactNodeData) Out() nodes.StructOutput[artifact.Artifact] {
+func (pn ArtifactNodeData) Out() nodes.StructOutput[manifest.Artifact] {
 	if pn.Scene == nil {
-		return nodes.NewStructOutput[artifact.Artifact](Artifact{})
+		return nodes.NewStructOutput[manifest.Artifact](Artifact{})
 	}
 
-	return nodes.NewStructOutput[artifact.Artifact](Artifact{
+	return nodes.NewStructOutput[manifest.Artifact](Artifact{
 		Scene:        pn.Scene.Value(),
 		MaterialFile: nodes.TryGetOutputValue(pn.MaterialFile, ""),
 	})

@@ -6,7 +6,7 @@ import (
 
 	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/generator"
-	"github.com/EliCDavis/polyform/generator/artifact"
+	"github.com/EliCDavis/polyform/generator/manifest"
 	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/polyform/math/trs"
 	"github.com/EliCDavis/polyform/modeling"
@@ -48,7 +48,7 @@ type ArtifactNodeData struct {
 	Models []nodes.Output[PolyformModel]
 }
 
-func (gad ArtifactNodeData) Out() nodes.StructOutput[artifact.Artifact] {
+func (gad ArtifactNodeData) Out() nodes.StructOutput[manifest.Artifact] {
 	models := make([]PolyformModel, 0, len(gad.Models))
 
 	for _, m := range gad.Models {
@@ -66,7 +66,7 @@ func (gad ArtifactNodeData) Out() nodes.StructOutput[artifact.Artifact] {
 		models = append(models, value)
 	}
 
-	return nodes.NewStructOutput[artifact.Artifact](&Artifact{
+	return nodes.NewStructOutput[manifest.Artifact](&Artifact{
 		Scene: PolyformScene{
 			Models: models,
 		},

@@ -1,4 +1,4 @@
-package artifact
+package manifest
 
 type Entry struct {
 	Metdata  map[string]any

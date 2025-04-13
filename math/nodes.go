@@ -175,17 +175,7 @@ type DifferenceNodeData[T vector.Number] struct {
 }
 
 func (cn DifferenceNodeData[T]) Out() nodes.StructOutput[T] {
-	var a T
-	var b T
-
-	if cn.A != nil {
-		a = cn.A.Value()
-	}
-
-	if cn.B != nil {
-		b = cn.B.Value()
-	}
-	return nodes.NewStructOutput(a - b)
+	return nodes.NewStructOutput(nodes.TryGetOutputValue(cn.A, 0) - nodes.TryGetOutputValue(cn.B, 0))
 }
 
 // ============================================================================
@@ -220,18 +210,7 @@ type MultiplyNodeData[T vector.Number] struct {
 }
 
 func (cn MultiplyNodeData[T]) Out() nodes.StructOutput[T] {
-	var a T
-	var b T
-
-	if cn.A != nil {
-		a = cn.A.Value()
-	}
-
-	if cn.B != nil {
-		b = cn.B.Value()
-	}
-
-	return nodes.NewStructOutput(a * b)
+	return nodes.NewStructOutput(nodes.TryGetOutputValue(cn.A, 0) * nodes.TryGetOutputValue(cn.B, 0))
 }
 
 // ============================================================================

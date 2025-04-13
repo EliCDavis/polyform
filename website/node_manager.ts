@@ -192,7 +192,7 @@ export class NodeManager {
     nodeTypeIsProducer(typeData: NodeType): string {
         if (typeData.outputs) {
             for (const output in typeData.outputs) {
-                if (typeData.outputs[output].type === "github.com/EliCDavis/polyform/generator/artifact.Artifact") {
+                if (typeData.outputs[output].type === "github.com/EliCDavis/polyform/generator/manifest.Artifact") {
                     return output;
                 }
             }

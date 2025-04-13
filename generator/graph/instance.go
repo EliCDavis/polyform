@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/EliCDavis/jbtf"
-	"github.com/EliCDavis/polyform/generator/artifact"
+	"github.com/EliCDavis/polyform/generator/manifest"
 	"github.com/EliCDavis/polyform/generator/schema"
 	"github.com/EliCDavis/polyform/generator/sync"
 	"github.com/EliCDavis/polyform/nodes"
@@ -22,7 +22,7 @@ type Instance struct {
 
 	movelVersion uint32
 	nodeIDs      map[nodes.Node]string
-	producers    map[string]nodes.Output[artifact.Artifact]
+	producers    map[string]nodes.Output[manifest.Artifact]
 	metadata     *sync.NestedSyncMap
 	producerLock gsync.Mutex
 }
@@ -33,7 +33,7 @@ func New(typeFactory *refutil.TypeFactory) *Instance {
 
 		nodeIDs:      make(map[nodes.Node]string),
 		metadata:     sync.NewNestedSyncMap(),
-		producers:    make(map[string]nodes.Output[artifact.Artifact]),
+		producers:    make(map[string]nodes.Output[manifest.Artifact]),
 		movelVersion: 0,
 	}
 }
@@ -167,7 +167,7 @@ func (i *Instance) buildIDsForNode(node nodes.Node) {
 func (i *Instance) Reset() {
 	i.nodeIDs = make(map[nodes.Node]string)
 	i.metadata = sync.NewNestedSyncMap()
-	i.producers = make(map[string]nodes.Output[artifact.Artifact])
+	i.producers = make(map[string]nodes.Output[manifest.Artifact])
 }
 
 type sortedReference struct {
@@ -296,7 +296,7 @@ func (i *Instance) ApplyAppSchema(jsonPayload []byte) error {
 			panic(fmt.Errorf("can't assign producer: node %q contains no port %q", producerDetails.NodeID, producerDetails.Port))
 		}
 
-		casted, ok := output.(nodes.Output[artifact.Artifact])
+		casted, ok := output.(nodes.Output[manifest.Artifact])
 		if !ok {
 			panic(fmt.Errorf("can't assign producer: node %q port %q does not produce artifacts", producerDetails.NodeID, producerDetails.Port))
 		}
@@ -663,7 +663,7 @@ func (i *Instance) SetNodeAsProducer(nodeId, nodePort, producerName string) {
 		panic(fmt.Errorf("node %q does not contain output %q", nodeId, nodePort))
 	}
 
-	casted, ok := output.(nodes.Output[artifact.Artifact])
+	casted, ok := output.(nodes.Output[manifest.Artifact])
 	if !ok {
 		panic(fmt.Errorf("node %q output %q does not produce artifacts", nodeId, nodePort))
 	}
@@ -695,7 +695,7 @@ func (i *Instance) recursivelyRegisterNodeTypes(node nodes.Node) {
 	}
 }
 
-func (i *Instance) Artifact(producerName string) artifact.Artifact {
+func (i *Instance) Artifact(producerName string) manifest.Artifact {
 	producer, ok := i.producers[producerName]
 	if !ok {
 		panic(fmt.Errorf("no producer registered for: %s", producerName))
@@ -707,13 +707,13 @@ func (i *Instance) Artifact(producerName string) artifact.Artifact {
 	return producer.Value()
 }
 
-func (i *Instance) AddProducer(producerName string, producer nodes.Output[artifact.Artifact]) {
+func (i *Instance) AddProducer(producerName string, producer nodes.Output[manifest.Artifact]) {
 	i.recursivelyRegisterNodeTypes(producer.Node())
 	i.buildIDsForNode(producer.Node())
 	i.producers[producerName] = producer
 }
 
-func (i *Instance) Producer(producerName string) nodes.Output[artifact.Artifact] {
+func (i *Instance) Producer(producerName string) nodes.Output[manifest.Artifact] {
 	return i.producers[producerName]
 }
 

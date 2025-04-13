@@ -7,9 +7,9 @@ import (
 	"testing"
 
 	"github.com/EliCDavis/jbtf"
-	"github.com/EliCDavis/polyform/generator/artifact"
-	"github.com/EliCDavis/polyform/generator/artifact/basics"
 	"github.com/EliCDavis/polyform/generator/graph"
+	"github.com/EliCDavis/polyform/generator/manifest"
+	"github.com/EliCDavis/polyform/generator/manifest/basics"
 	"github.com/EliCDavis/polyform/generator/parameter"
 	"github.com/EliCDavis/polyform/generator/schema"
 	"github.com/EliCDavis/polyform/nodes"
@@ -67,7 +67,7 @@ func TestInstance_AddProducer_InitializeParameters_Artifacts(t *testing.T) {
 	}
 
 	// ACT ====================================================================
-	instance.AddProducer("test.txt", nodes.GetNodeOutputPort[artifact.Artifact](&textNode, "Out"))
+	instance.AddProducer("test.txt", nodes.GetNodeOutputPort[manifest.Artifact](&textNode, "Out"))
 	producerNames := instance.ProducerNames()
 	instance.InitializeParameters(flags)
 	assert.NoError(t, flags.Parse([]string{"-yeet", contentToSetViaFlag}))
@@ -115,7 +115,7 @@ func TestInstance_AddProducer_InitializeParameters_Artifacts(t *testing.T) {
 			}
 		},
 		"Node-1": {
-			"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/generator/artifact/basics.TextNodeData]",
+			"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/generator/manifest/basics.TextNodeData]",
 			"name": "test.txt",
 			"assignedInput": {
 				"In": {
@@ -157,7 +157,7 @@ func TestInstance_AddProducer_InitializeParameters_Artifacts(t *testing.T) {
 				}
 			},
 			"Node-1": {
-				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/generator/artifact/basics.TextNodeData]",
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/generator/manifest/basics.TextNodeData]",
 				"assignedInput": {
 					"In": {
 						"id": "Node-0",
