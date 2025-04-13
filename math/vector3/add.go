@@ -6,8 +6,6 @@ import (
 	"github.com/EliCDavis/vector/vector3"
 )
 
-type Sum = nodes.Struct[SumNodeData[float64]]
-
 type SumNodeData[T vector.Number] struct {
 	Values []nodes.Output[vector3.Vector[T]]
 }
@@ -19,8 +17,6 @@ func (cn SumNodeData[T]) Out() nodes.StructOutput[vector3.Vector[T]] {
 	}
 	return nodes.NewStructOutput(total)
 }
-
-type ShiftArrayNode = nodes.Struct[ShiftArrayNodeData[float64]]
 
 type ShiftArrayNodeData[T vector.Number] struct {
 	Array  nodes.Output[[]vector3.Vector[T]]
