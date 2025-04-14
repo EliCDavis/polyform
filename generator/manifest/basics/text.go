@@ -7,25 +7,53 @@ import (
 	"github.com/EliCDavis/polyform/nodes"
 )
 
-type Text struct {
+type TextArtifact struct {
 	Data string
 }
 
-func (ta Text) Write(w io.Writer) error {
+func (ta TextArtifact) Write(w io.Writer) error {
 	_, err := w.Write([]byte(ta.Data))
 	return err
 }
 
-func (Text) Mime() string {
+func (TextArtifact) Mime() string {
 	return "text/plain"
 }
+
+// ============================================================================
+
+type TextManifest struct {
+	Artifact TextArtifact
+	Name     string
+}
+
+func (ta TextManifest) Main() string {
+	if ta.Name == "" {
+		return "text.txt"
+	}
+	return ta.Name
+}
+
+func (ta TextManifest) Artifacts() map[string]manifest.Entry {
+	return map[string]manifest.Entry{
+		ta.Main(): {
+			Artifact: ta.Artifact,
+		},
+	}
+}
+
+// ============================================================================
 
 type TextNode = nodes.Struct[TextNodeData]
 
 type TextNodeData struct {
-	In nodes.Output[string]
+	In   nodes.Output[string]
+	Name nodes.Output[string]
 }
 
-func (tand TextNodeData) Out() nodes.StructOutput[manifest.Artifact] {
-	return nodes.NewStructOutput[manifest.Artifact](Text{Data: tand.In.Value()})
+func (tand TextNodeData) Out() nodes.StructOutput[manifest.Manifest] {
+	return nodes.NewStructOutput[manifest.Manifest](TextManifest{
+		Name:     nodes.TryGetOutputValue(tand.Name, "text") + ".txt",
+		Artifact: TextArtifact{Data: nodes.TryGetOutputValue(tand.In, "")},
+	})
 }

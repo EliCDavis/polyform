@@ -29,7 +29,7 @@ type App struct {
 	Description string
 	WebScene    *schema.WebScene
 	Authors     []schema.Author
-	Files       map[string]nodes.Output[manifest.Artifact]
+	Files       map[string]nodes.Output[manifest.Manifest]
 
 	graphInstance *graph.Instance
 	Out           io.Writer
@@ -84,7 +84,7 @@ func (a *App) Schema() []byte {
 	return data
 }
 
-func writeProducersToZip(path string, graph *graph.Instance, zw *zip.Writer) error {
+func writeProducersToZip(outFolder string, graph *graph.Instance, zw *zip.Writer) error {
 	if graph == nil {
 		panic("can't zip nil graph")
 	}
@@ -93,18 +93,22 @@ func writeProducersToZip(path string, graph *graph.Instance, zw *zip.Writer) err
 		panic("can't write to nil zip writer")
 	}
 
-	for _, file := range graph.ProducerNames() {
-		filePath := path + file
-		f, err := zw.Create(filePath)
-		if err != nil {
-			return err
+	for _, manifestName := range graph.ProducerNames() {
+		manifestFolder := path.Join(outFolder, manifestName)
+		manifest := graph.Manifest(manifestName)
+		entries := manifest.Artifacts()
+		for artifactName, entry := range entries {
+
+			f, err := zw.Create(path.Join(manifestFolder, artifactName))
+			if err != nil {
+				return err
+			}
+
+			err = entry.Artifact.Write(f)
+			if err != nil {
+				return err
+			}
 		}
-		artifact := graph.Artifact(file)
-		err = artifact.Write(f)
-		if err != nil {
-			return err
-		}
-		// log.Printf("wrote %s", filePath)
 	}
 
 	return nil
@@ -137,28 +141,33 @@ type appCLI struct {
 }
 
 func (a App) Generate(outputPath string) error {
-	for _, name := range a.graphInstance.ProducerNames() {
-		fp := path.Join(outputPath, name)
+	for _, manifestName := range a.graphInstance.ProducerNames() {
+		manifestFolder := path.Join(outputPath, manifestName)
 
-		// Producer names are paths which can contain subfolders, so be sure
-		// the subfolders exist before creating the file
-		err := os.MkdirAll(filepath.Dir(fp), os.ModeDir)
-		if err != nil {
-			return err
-		}
+		manifest := a.graphInstance.Manifest(manifestName)
+		entries := manifest.Artifacts()
 
-		// Create the File
-		f, err := os.Create(fp)
-		if err != nil {
-			return err
-		}
-		defer f.Close()
+		for entryName, entry := range entries {
+			manifestEntryPath := filepath.Join(manifestFolder, entryName)
+			// Producer names are paths which can contain subfolders, so be sure
+			// the subfolders exist before creating the file
+			err := os.MkdirAll(filepath.Dir(manifestEntryPath), os.ModeDir)
+			if err != nil {
+				return err
+			}
 
-		// Write data to file
-		arifact := a.graphInstance.Artifact(name)
-		err = arifact.Write(f)
-		if err != nil {
-			return err
+			// Create the File
+			f, err := os.Create(manifestEntryPath)
+			if err != nil {
+				return err
+			}
+			defer f.Close()
+
+			// Write data to file
+			err = entry.Artifact.Write(f)
+			if err != nil {
+				return err
+			}
 		}
 	}
 

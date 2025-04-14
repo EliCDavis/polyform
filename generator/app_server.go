@@ -194,7 +194,7 @@ func (as *AppServer) ProducerEndpoint(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Cross-Origin-Embedder-Policy", "require-corp")
 
 	// params, _ := url.ParseQuery(r.URL.RawQuery)
-	err := as.writeProducerDataToRequest(path.Base(r.URL.Path), w)
+	err := as.writeProducerDataToRequest(path.Base(path.Dir(r.URL.Path)), path.Base(r.URL.Path), w)
 	if err != nil {
 		log.Print(err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -202,14 +202,16 @@ func (as *AppServer) ProducerEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (as *AppServer) writeProducerDataToRequest(producerToLoad string, w http.ResponseWriter) (err error) {
+func (as *AppServer) writeProducerDataToRequest(producerToLoad, file string, w http.ResponseWriter) (err error) {
 	defer func() {
 		if recErr := recover(); recErr != nil {
 			fmt.Println("stacktrace from panic: \n" + string(debug.Stack()))
 			err = fmt.Errorf("panic recover: %v", recErr)
 		}
 	}()
-	artifact := as.app.graphInstance.Artifact(producerToLoad)
+
+	manifest := as.app.graphInstance.Manifest(producerToLoad)
+	artifact := manifest.Artifacts()[file].Artifact
 
 	w.Header().Set("Content-Type", artifact.Mime())
 

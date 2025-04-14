@@ -67,13 +67,14 @@ func TestInstance_AddProducer_InitializeParameters_Artifacts(t *testing.T) {
 	}
 
 	// ACT ====================================================================
-	instance.AddProducer("test.txt", nodes.GetNodeOutputPort[manifest.Artifact](&textNode, "Out"))
+	instance.AddProducer("test.txt", nodes.GetNodeOutputPort[manifest.Manifest](&textNode, "Out"))
 	producerNames := instance.ProducerNames()
 	instance.InitializeParameters(flags)
 	assert.NoError(t, flags.Parse([]string{"-yeet", contentToSetViaFlag}))
-	textArtifact := instance.Artifact("test.txt")
+	textManifest := instance.Manifest("test.txt")
+	artifacts := textManifest.Artifacts()
 	buf := &bytes.Buffer{}
-	assert.NoError(t, textArtifact.Write(buf))
+	assert.NoError(t, artifacts[textManifest.Main()].Artifact.Write(buf))
 
 	instanceSchema := instance.Schema()
 	instanceSchemaData, err := json.MarshalIndent(instanceSchema, "", "\t")
@@ -87,6 +88,7 @@ func TestInstance_AddProducer_InitializeParameters_Artifacts(t *testing.T) {
 
 	// ASSERT =================================================================
 	assert.Len(t, producerNames, 1)
+	assert.Len(t, artifacts, 1)
 	assert.Equal(t, "test.txt", producerNames[0])
 	assert.Equal(t, contentToSetViaFlag, buf.String())
 	assert.Equal(t, `{

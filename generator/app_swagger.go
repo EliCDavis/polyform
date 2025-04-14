@@ -28,9 +28,9 @@ func swaggerDefinitionNameFromProducerPath(producerPath string) string {
 	return string(output) + "Request"
 }
 
-func buildSwaggerDefinitionForProducer(producer nodes.Output[manifest.Artifact]) swagger.Definition {
+func buildSwaggerDefinitionForProducer(manifest nodes.Output[manifest.Manifest]) swagger.Definition {
 	props := make(map[string]swagger.Property)
-	params := graph.RecurseDependenciesType[graph.SwaggerParameter](producer.Node())
+	params := graph.RecurseDependenciesType[graph.SwaggerParameter](manifest.Node())
 
 	for _, param := range params {
 		paramName := strings.Replace(param.DisplayName(), " ", "", -1)

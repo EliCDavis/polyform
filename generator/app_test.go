@@ -14,8 +14,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func buildTextArifact(p *parameter.String) nodes.Output[manifest.Artifact] {
-	return nodes.GetNodeOutputPort[manifest.Artifact](
+func buildTextArifact(p *parameter.String) nodes.Output[manifest.Manifest] {
+	return nodes.GetNodeOutputPort[manifest.Manifest](
 		&basics.TextNode{
 			Data: basics.TextNodeData{
 				In: nodes.GetNodeOutputPort[string](p, "Value"),
@@ -34,7 +34,7 @@ func TestGetAndApplyGraph(t *testing.T) {
 		Name:        appName,
 		Version:     appVersion,
 		Description: appDescription,
-		Files: map[string]nodes.Output[manifest.Artifact]{
+		Files: map[string]nodes.Output[manifest.Manifest]{
 			producerFileName: buildTextArifact(&parameter.String{
 				Name:         "Welp",
 				DefaultValue: "yee",
@@ -54,8 +54,9 @@ func TestGetAndApplyGraph(t *testing.T) {
 	assert.Equal(t, appDescription, app.Description)
 	assert.Equal(t, string(graphData), string(graphAgain))
 	b := &bytes.Buffer{}
-	art := app.Files[producerFileName].Value()
-	err = art.Write(b)
+	manifest := app.Files[producerFileName].Value()
+	art := manifest.Artifacts()[manifest.Main()]
+	err = art.Artifact.Write(b)
 	assert.NoError(t, err)
 	assert.Equal(t, "yee", b.String())
 }
@@ -72,7 +73,7 @@ func TestAppCommand_Outline(t *testing.T) {
 		Name:        appName,
 		Version:     appVersion,
 		Description: appDescription,
-		Files: map[string]nodes.Output[manifest.Artifact]{
+		Files: map[string]nodes.Output[manifest.Manifest]{
 			producerFileName: buildTextArifact(&parameter.String{
 				Name:         "Welp",
 				DefaultValue: "yee",
@@ -138,7 +139,7 @@ func TestAppCommand_Zip(t *testing.T) {
 	appName := "Test Graph"
 	appVersion := "Test Graph"
 	appDescription := "Test Graph"
-	producerFileName := "test.txt"
+	producerFileName := "test"
 
 	outBuf := &bytes.Buffer{}
 
@@ -146,7 +147,7 @@ func TestAppCommand_Zip(t *testing.T) {
 		Name:        appName,
 		Version:     appVersion,
 		Description: appDescription,
-		Files: map[string]nodes.Output[manifest.Artifact]{
+		Files: map[string]nodes.Output[manifest.Manifest]{
 			producerFileName: buildTextArifact(&parameter.String{
 				Name:         "Welp",
 				DefaultValue: "yee",
@@ -165,7 +166,7 @@ func TestAppCommand_Zip(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NoError(t, zipErr)
 	assert.Len(t, r.File, 1)
-	assert.Equal(t, "test.txt", r.File[0].Name)
+	assert.Equal(t, "test/text.txt", r.File[0].Name)
 
 	rc, err := r.File[0].Open()
 	assert.NoError(t, err)
@@ -187,7 +188,7 @@ func TestAppCommand_Swagger(t *testing.T) {
 		Name:        appName,
 		Version:     appVersion,
 		Description: appDescription,
-		Files: map[string]nodes.Output[manifest.Artifact]{
+		Files: map[string]nodes.Output[manifest.Manifest]{
 			producerFileName: buildTextArifact(&parameter.String{
 				Name:         "Welp",
 				DefaultValue: "yee",
@@ -264,7 +265,7 @@ func TestAppCommand_New(t *testing.T) {
 		Name:        appName,
 		Version:     appVersion,
 		Description: appDescription,
-		Files: map[string]nodes.Output[manifest.Artifact]{
+		Files: map[string]nodes.Output[manifest.Manifest]{
 			producerFileName: buildTextArifact(&parameter.String{
 				Name:         "Welp",
 				DefaultValue: "yee",

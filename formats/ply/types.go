@@ -93,6 +93,8 @@ func (SplatPly) Mime() string {
 	return "application/octet-stream"
 }
 
+// ============================================================================
+
 type ArtifactNode = nodes.Struct[ArtifactNodeData]
 
 type ArtifactNodeData struct {
@@ -106,6 +108,49 @@ func (pn ArtifactNodeData) Out() nodes.StructOutput[manifest.Artifact] {
 	return nodes.NewStructOutput[manifest.Artifact](SplatPly{Mesh: pn.In.Value()})
 }
 
+// ============================================================================
+
+type Manifest struct {
+	Artifact SplatPly
+	Name     string
+}
+
+func (ta Manifest) Main() string {
+	if ta.Name == "" {
+		return "model"
+	}
+	return ta.Name
+}
+
+func (ta Manifest) Artifacts() map[string]manifest.Entry {
+	return map[string]manifest.Entry{
+		ta.Main(): {
+			Artifact: ta.Artifact,
+		},
+	}
+}
+
+// ============================================================================
+
+type ManifestNode = nodes.Struct[ManifestNodeData]
+
+type ManifestNodeData struct {
+	In nodes.Output[modeling.Mesh]
+}
+
+func (pn ManifestNodeData) Out() nodes.StructOutput[manifest.Manifest] {
+	if pn.In == nil {
+		return nodes.NewStructOutput[manifest.Manifest](Manifest{
+			Artifact: SplatPly{Mesh: modeling.EmptyPointcloud()},
+		})
+	}
+
+	return nodes.NewStructOutput[manifest.Manifest](Manifest{
+		Artifact: SplatPly{Mesh: modeling.EmptyPointcloud()},
+	})
+}
+
+// ============================================================================
 type ReadNode = nodes.Struct[ReadNodeData]
 
 type ReadNodeData struct {
