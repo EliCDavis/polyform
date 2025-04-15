@@ -298,7 +298,7 @@ func (i *Instance) ApplyAppSchema(jsonPayload []byte) error {
 
 		casted, ok := output.(nodes.Output[manifest.Manifest])
 		if !ok {
-			panic(fmt.Errorf("can't assign producer: node %q port %q does not produce artifacts", producerDetails.NodeID, producerDetails.Port))
+			panic(fmt.Errorf("can't assign producer: node %q port %q does not produce a manifest", producerDetails.NodeID, producerDetails.Port))
 		}
 
 		i.namedProducers[fileName] = casted

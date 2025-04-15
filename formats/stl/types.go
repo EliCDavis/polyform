@@ -14,7 +14,7 @@ import (
 func init() {
 	factory := &refutil.TypeFactory{}
 	refutil.RegisterType[ReadNode](factory)
-	refutil.RegisterType[ArtifactNode](factory)
+	refutil.RegisterType[ManifestNode](factory)
 	generator.RegisterTypes(factory)
 }
 
@@ -58,12 +58,13 @@ func (Artifact) Mime() string {
 	return "application/sla"
 }
 
-type ArtifactNode = nodes.Struct[ArtifactNodeData]
+type ManifestNode = nodes.Struct[ManifestNodeData]
 
-type ArtifactNodeData struct {
-	In nodes.Output[modeling.Mesh]
+type ManifestNodeData struct {
+	Mesh nodes.Output[modeling.Mesh]
 }
 
-func (pn ArtifactNodeData) Out() nodes.StructOutput[manifest.Artifact] {
-	return nodes.NewStructOutput[manifest.Artifact](Artifact{Mesh: pn.In.Value()})
+func (pn ManifestNodeData) Out() nodes.StructOutput[manifest.Manifest] {
+	entry := manifest.Entry{Artifact: Artifact{Mesh: pn.Mesh.Value()}}
+	return nodes.NewStructOutput(manifest.SingleEntryManifest("model.stl", entry))
 }

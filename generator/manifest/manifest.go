@@ -1,11 +1,20 @@
 package manifest
 
 type Entry struct {
-	Metdata  map[string]any
+	Metadata map[string]any `json:"metadata"`
 	Artifact Artifact
 }
 
-type Manifest interface {
-	Main() string
-	Artifacts() map[string]Entry
+type Manifest struct {
+	Main    string           `json:"main"`
+	Entries map[string]Entry `json:"entries"`
+}
+
+func SingleEntryManifest(name string, entry Entry) Manifest {
+	return Manifest{
+		Main: name,
+		Entries: map[string]Entry{
+			name: entry,
+		},
+	}
 }

@@ -211,7 +211,7 @@ func (as *AppServer) writeProducerDataToRequest(producerToLoad, file string, w h
 	}()
 
 	manifest := as.app.graphInstance.Manifest(producerToLoad)
-	artifact := manifest.Artifacts()[file].Artifact
+	artifact := manifest.Entries[file].Artifact
 
 	w.Header().Set("Content-Type", artifact.Mime())
 

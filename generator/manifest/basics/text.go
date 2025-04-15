@@ -22,26 +22,6 @@ func (TextArtifact) Mime() string {
 
 // ============================================================================
 
-type TextManifest struct {
-	Artifact TextArtifact
-	Name     string
-}
-
-func (ta TextManifest) Main() string {
-	if ta.Name == "" {
-		return "text.txt"
-	}
-	return ta.Name
-}
-
-func (ta TextManifest) Artifacts() map[string]manifest.Entry {
-	return map[string]manifest.Entry{
-		ta.Main(): {
-			Artifact: ta.Artifact,
-		},
-	}
-}
-
 // ============================================================================
 
 type TextNode = nodes.Struct[TextNodeData]
@@ -52,8 +32,7 @@ type TextNodeData struct {
 }
 
 func (tand TextNodeData) Out() nodes.StructOutput[manifest.Manifest] {
-	return nodes.NewStructOutput[manifest.Manifest](TextManifest{
-		Name:     nodes.TryGetOutputValue(tand.Name, "text") + ".txt",
-		Artifact: TextArtifact{Data: nodes.TryGetOutputValue(tand.In, "")},
-	})
+	name := nodes.TryGetOutputValue(tand.Name, "text.txt")
+	entry := manifest.Entry{Artifact: TextArtifact{Data: nodes.TryGetOutputValue(tand.In, "")}}
+	return nodes.NewStructOutput[manifest.Manifest](manifest.SingleEntryManifest(name, entry))
 }

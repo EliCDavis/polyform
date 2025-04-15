@@ -17,7 +17,7 @@ import (
 func init() {
 	factory := &refutil.TypeFactory{}
 
-	refutil.RegisterType[ArtifactNode](factory)
+	refutil.RegisterType[ManifestNode](factory)
 	refutil.RegisterType[ReadNode](factory)
 
 	generator.RegisterTypes(factory)
@@ -110,44 +110,22 @@ func (pn ArtifactNodeData) Out() nodes.StructOutput[manifest.Artifact] {
 
 // ============================================================================
 
-type Manifest struct {
-	Artifact SplatPly
-	Name     string
-}
-
-func (ta Manifest) Main() string {
-	if ta.Name == "" {
-		return "model"
-	}
-	return ta.Name
-}
-
-func (ta Manifest) Artifacts() map[string]manifest.Entry {
-	return map[string]manifest.Entry{
-		ta.Main(): {
-			Artifact: ta.Artifact,
-		},
-	}
-}
-
-// ============================================================================
-
 type ManifestNode = nodes.Struct[ManifestNodeData]
 
 type ManifestNodeData struct {
-	In nodes.Output[modeling.Mesh]
+	Name nodes.Output[string] `description:"Name of the main file in the manifest, defaults to 'model.ply'"`
+	Mesh nodes.Output[modeling.Mesh]
 }
 
 func (pn ManifestNodeData) Out() nodes.StructOutput[manifest.Manifest] {
-	if pn.In == nil {
-		return nodes.NewStructOutput[manifest.Manifest](Manifest{
-			Artifact: SplatPly{Mesh: modeling.EmptyPointcloud()},
-		})
+	name := nodes.TryGetOutputValue(pn.Name, "model.ply")
+	if pn.Mesh == nil {
+		entry := manifest.Entry{Artifact: SplatPly{Mesh: modeling.EmptyPointcloud()}}
+		return nodes.NewStructOutput(manifest.SingleEntryManifest(name, entry))
 	}
 
-	return nodes.NewStructOutput[manifest.Manifest](Manifest{
-		Artifact: SplatPly{Mesh: modeling.EmptyPointcloud()},
-	})
+	entry := manifest.Entry{Artifact: SplatPly{Mesh: pn.Mesh.Value()}}
+	return nodes.NewStructOutput(manifest.SingleEntryManifest(name, entry))
 }
 
 // ============================================================================

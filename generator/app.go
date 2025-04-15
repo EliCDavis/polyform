@@ -96,7 +96,7 @@ func writeProducersToZip(outFolder string, graph *graph.Instance, zw *zip.Writer
 	for _, manifestName := range graph.ProducerNames() {
 		manifestFolder := path.Join(outFolder, manifestName)
 		manifest := graph.Manifest(manifestName)
-		entries := manifest.Artifacts()
+		entries := manifest.Entries
 		for artifactName, entry := range entries {
 
 			f, err := zw.Create(path.Join(manifestFolder, artifactName))
@@ -145,7 +145,7 @@ func (a App) Generate(outputPath string) error {
 		manifestFolder := path.Join(outputPath, manifestName)
 
 		manifest := a.graphInstance.Manifest(manifestName)
-		entries := manifest.Artifacts()
+		entries := manifest.Entries
 
 		for entryName, entry := range entries {
 			manifestEntryPath := filepath.Join(manifestFolder, entryName)

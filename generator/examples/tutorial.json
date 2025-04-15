@@ -139,7 +139,7 @@
         "name": "Polyform",
         "nodes": {
             "Node-0": {
-                "type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.ArtifactNodeData]",
+                "type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.ManifestNodeData]",
                 "assignedInput": {
                     "Models.0": {
                         "id": "Node-2",

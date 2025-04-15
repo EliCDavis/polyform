@@ -129,7 +129,7 @@ func TestSwaggerFromGraph_MultipleParametersSingleProducer(t *testing.T) {
 
 	ply := &ply.ManifestNode{
 		Data: ply.ManifestNodeData{
-			In: nodes.GetNodeOutputPort[modeling.Mesh](crop, "Out"),
+			Mesh: nodes.GetNodeOutputPort[modeling.Mesh](crop, "Out"),
 		},
 	}
 

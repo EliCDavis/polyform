@@ -24,9 +24,12 @@ func (ia Image) Write(w io.Writer) error {
 type ImageNode = nodes.Struct[ImageNodeData]
 
 type ImageNodeData struct {
-	In nodes.Output[image.Image]
+	Image nodes.Output[image.Image]
+	Name  nodes.Output[string] `description:"Name of the image file, defaults to 'image.png'"`
 }
 
-func (pn ImageNodeData) Out() nodes.StructOutput[manifest.Artifact] {
-	return nodes.NewStructOutput[manifest.Artifact](Image{Image: pn.In.Value()})
+func (pn ImageNodeData) Out() nodes.StructOutput[manifest.Manifest] {
+	entry := manifest.Entry{Artifact: Image{Image: pn.Image.Value()}}
+	name := nodes.TryGetOutputValue(pn.Name, "image.png")
+	return nodes.NewStructOutput(manifest.SingleEntryManifest(name, entry))
 }

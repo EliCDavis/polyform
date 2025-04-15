@@ -55,7 +55,7 @@ func TestGetAndApplyGraph(t *testing.T) {
 	assert.Equal(t, string(graphData), string(graphAgain))
 	b := &bytes.Buffer{}
 	manifest := app.Files[producerFileName].Value()
-	art := manifest.Artifacts()[manifest.Main()]
+	art := manifest.Entries[manifest.Main]
 	err = art.Artifact.Write(b)
 	assert.NoError(t, err)
 	assert.Equal(t, "yee", b.String())
