@@ -2,7 +2,7 @@ package manifest
 
 type Entry struct {
 	Metadata map[string]any `json:"metadata"`
-	Artifact Artifact
+	Artifact Artifact       `json:"-"`
 }
 
 type Manifest struct {

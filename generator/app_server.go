@@ -152,6 +152,7 @@ func (as *AppServer) Handler(indexFile string) (*http.ServeMux, error) {
 	mux.HandleFunc("/swagger", as.SwaggerEndpoint)
 	mux.HandleFunc("/producer/value/", as.ProducerEndpoint)
 	mux.Handle("/producer/name/", producerNameEndpoint(as.app.graphInstance, graphSaver))
+	mux.HandleFunc("/manifest/", as.ManifestEndpoint)
 
 	hub := room.NewHub(as.webscene, as.app.graphInstance)
 	go hub.Run()
