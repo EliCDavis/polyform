@@ -86,7 +86,7 @@ func (gnd BrushedMetalNodeData) Out() nodes.StructOutput[image.Image] {
 
 	horizontalLines := nodes.TryGetOutputValue(gnd.Count, 10)
 	horizontalSpacing := float64(dimensions) / float64(horizontalLines)
-	for i := 0; i < horizontalLines; i++ {
+	for i := range horizontalLines {
 		y := (horizontalSpacing * float64(i)) + (horizontalSpacing / 2)
 		ctx.DrawLine(0, y, float64(dimensions), y)
 	}

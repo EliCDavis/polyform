@@ -344,25 +344,25 @@ func (f Field) March(atr string, cubesPerUnit, cutoff float64) modeling.Mesh {
 	min := f.Domain.Min()
 	max := f.Domain.Max()
 
-	minCanvas := modeling.VectorInt{
-		X: int(math.Floor(min.X()*cubesPerUnit)) - 1,
-		Y: int(math.Floor(min.Y()*cubesPerUnit)) - 1,
-		Z: int(math.Floor(min.Z()*cubesPerUnit)) - 1,
-	}
+	minCanvas := vector3.New(
+		int(math.Floor(min.X()*cubesPerUnit))-1,
+		int(math.Floor(min.Y()*cubesPerUnit))-1,
+		int(math.Floor(min.Z()*cubesPerUnit))-1,
+	)
 
-	maxCanvas := modeling.VectorInt{
-		X: int(math.Ceil(max.X()*cubesPerUnit)) + 1,
-		Y: int(math.Ceil(max.Y()*cubesPerUnit)) + 1,
-		Z: int(math.Ceil(max.Z()*cubesPerUnit)) + 1,
-	}
+	maxCanvas := vector3.New(
+		int(math.Ceil(max.X()*cubesPerUnit))+1,
+		int(math.Ceil(max.Y()*cubesPerUnit))+1,
+		int(math.Ceil(max.Z()*cubesPerUnit))+1,
+	)
 
 	cubesToUnit := 1. / cubesPerUnit
 
 	tris := make([]int, 0)
 
-	for x := minCanvas.X; x < maxCanvas.X-1; x++ {
-		for y := minCanvas.Y; y < maxCanvas.Y-1; y++ {
-			for z := minCanvas.Z; z < maxCanvas.Z-1; z++ {
+	for x := minCanvas.X(); x < maxCanvas.X()-1; x++ {
+		for y := minCanvas.Y(); y < maxCanvas.Y()-1; y++ {
+			for z := minCanvas.Z(); z < maxCanvas.Z()-1; z++ {
 				v := vector3.New(float64(x), float64(y), float64(z)).Scale(cubesToUnit)
 
 				cubeCornerPositions := []vector3.Float64{
@@ -512,25 +512,25 @@ func (f Field) Voxelize(atr string, cubesPerUnit, cutoff float64) []vector3.Floa
 	min := f.Domain.Min()
 	max := f.Domain.Max()
 
-	minCanvas := modeling.VectorInt{
-		X: int(math.Floor(min.X()*cubesPerUnit)) - 1,
-		Y: int(math.Floor(min.Y()*cubesPerUnit)) - 1,
-		Z: int(math.Floor(min.Z()*cubesPerUnit)) - 1,
-	}
+	minCanvas := vector3.New(
+		int(math.Floor(min.X()*cubesPerUnit))-1,
+		int(math.Floor(min.Y()*cubesPerUnit))-1,
+		int(math.Floor(min.Z()*cubesPerUnit))-1,
+	)
 
-	maxCanvas := modeling.VectorInt{
-		X: int(math.Ceil(max.X()*cubesPerUnit)) + 1,
-		Y: int(math.Ceil(max.Y()*cubesPerUnit)) + 1,
-		Z: int(math.Ceil(max.Z()*cubesPerUnit)) + 1,
-	}
+	maxCanvas := vector3.New(
+		int(math.Ceil(max.X()*cubesPerUnit))+1,
+		int(math.Ceil(max.Y()*cubesPerUnit))+1,
+		int(math.Ceil(max.Z()*cubesPerUnit))+1,
+	)
 
 	cubesToUnit := 1. / cubesPerUnit
 
 	vals := make([]vector3.Float64, 0)
 
-	for x := minCanvas.X; x < maxCanvas.X; x++ {
-		for y := minCanvas.Y; y < maxCanvas.Y; y++ {
-			for z := minCanvas.Z; z < maxCanvas.Z; z++ {
+	for x := minCanvas.X(); x < maxCanvas.X(); x++ {
+		for y := minCanvas.Y(); y < maxCanvas.Y(); y++ {
+			for z := minCanvas.Z(); z < maxCanvas.Z(); z++ {
 				v := vector3.New(float64(x), float64(y), float64(z)).Scale(cubesToUnit)
 				if atrFunc(v) < cutoff {
 					vals = append(vals, v)

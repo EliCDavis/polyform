@@ -31,8 +31,8 @@ func (an SeamlessPerlinNodeData) Out() nodes.StructOutput[image.Image] {
 	gRange := float64(pG>>8) - float64(nG>>8)
 	bRange := float64(pB>>8) - float64(nB>>8)
 
-	for x := 0; x < dim; x++ {
-		for y := 0; y < dim; y++ {
+	for x := range dim {
+		for y := range dim {
 			val := n.Noise(x, y)
 			p := (val * 0.5) + 0.5
 

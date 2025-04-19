@@ -815,12 +815,12 @@ func (m Mesh) WeldByFloat3Attribute(attribute string, decimalPlace int) Mesh {
 	m.requireTopology(TriangleTopology)
 
 	// =================== Finding unique vertices ============================
-	vertILU := make(map[VectorInt]int)
+	vertILU := make(map[vector3.Int]int)
 	vertIToOriginalLU := make(map[int]int)
 
 	// Mapping from rounded vector to whether or not it get's used by a triangle
 	// in the resulting mesh
-	vertLUUsed := make(map[VectorInt]bool)
+	vertLUUsed := make(map[vector3.Int]bool)
 
 	// count of unique vertices once rounded
 	uniqueVertCount := 0
