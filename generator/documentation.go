@@ -142,14 +142,20 @@ func (dw DocumentationWriter) writeSingle(writer markdown.Writer) error {
 			writer.Paragraph("Outputs:")
 			if len(instance.Outputs) > 0 {
 				writer.StartBulletList()
-				for val, o := range instance.Outputs {
+
+				sortedOutput := utils.SortMapByKey(instance.Outputs)
+				for _, output := range sortedOutput {
 					writer.StartBullet()
 
 					writer.StartBold()
-					writer.Text(val)
+					writer.Text(output.Key)
 					writer.EndBold()
 
-					writer.Text(fmt.Sprintf(": %s", o.Type))
+					writer.Text(fmt.Sprintf(": %s", output.Val.Type))
+					if output.Val.Description != "" {
+						writer.Text(" - ")
+						writer.Text(output.Val.Description)
+					}
 					writer.EndBullet()
 				}
 				writer.EndBulletList()

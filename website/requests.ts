@@ -1,4 +1,4 @@
-import { GraphInstance, NodeInstance } from "./schema";
+import { GraphInstance, NodeInstance, NodeType } from "./schema";
 
 export function downloadBlob(theUrl: string, callback: (body: any) => void): void {
     const xmlHttp = new XMLHttpRequest();
@@ -254,6 +254,10 @@ export class RequestManager {
         this.deleteJSONBodyJSONResponse("node", {
             "nodeID": nodeId,
         }, callback)
+    }
+
+    getNodeTypes(callback?: ResponseCallback<Array<NodeType>>): void {
+        this.fetchJSON("/node-types", callback)
     }
 
     getGraph(callback): void {

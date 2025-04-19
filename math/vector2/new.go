@@ -6,8 +6,6 @@ import (
 	"github.com/EliCDavis/vector/vector2"
 )
 
-type New = nodes.Struct[NewNodeData[float64]]
-
 type NewNodeData[T vector.Number] struct {
 	X nodes.Output[T]
 	Y nodes.Output[T]
@@ -20,21 +18,19 @@ func (cn NewNodeData[T]) Out() nodes.StructOutput[vector2.Vector[T]] {
 	))
 }
 
-type NewArray = nodes.Struct[NewArrayNodeData]
-
-type NewArrayNodeData struct {
-	X nodes.Output[[]float64]
-	Y nodes.Output[[]float64]
+type ArrayFromComponentsNodeData[T vector.Number] struct {
+	X nodes.Output[[]T]
+	Y nodes.Output[[]T]
 }
 
-func (snd NewArrayNodeData) Out() nodes.StructOutput[[]vector2.Float64] {
+func (snd ArrayFromComponentsNodeData[T]) Out() nodes.StructOutput[[]vector2.Vector[T]] {
 	xArr := nodes.TryGetOutputValue(snd.X, nil)
 	yArr := nodes.TryGetOutputValue(snd.Y, nil)
 
-	out := make([]vector2.Float64, max(len(xArr), len(yArr)))
+	out := make([]vector2.Vector[T], max(len(xArr), len(yArr)))
 	for i := range out {
-		x := 0.
-		y := 0.
+		var x T
+		var y T
 
 		if i < len(xArr) {
 			x = xArr[i]
@@ -45,6 +41,20 @@ func (snd NewArrayNodeData) Out() nodes.StructOutput[[]vector2.Float64] {
 		}
 
 		out[i] = vector2.New(x, y)
+	}
+
+	return nodes.NewStructOutput(out)
+}
+
+type ArrayFromNodesNodeData[T vector.Number] struct {
+	In []nodes.Output[vector2.Vector[T]]
+}
+
+func (node ArrayFromNodesNodeData[T]) Out() nodes.StructOutput[[]vector2.Vector[T]] {
+	out := make([]vector2.Vector[T], len(node.In))
+
+	for i, n := range node.In {
+		out[i] = nodes.TryGetOutputValue(n, vector2.Zero[T]())
 	}
 
 	return nodes.NewStructOutput(out)

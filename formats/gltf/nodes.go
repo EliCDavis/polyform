@@ -6,7 +6,7 @@ import (
 
 	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/generator"
-	"github.com/EliCDavis/polyform/generator/artifact"
+	"github.com/EliCDavis/polyform/generator/manifest"
 	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/polyform/math/trs"
 	"github.com/EliCDavis/polyform/modeling"
@@ -18,7 +18,7 @@ import (
 func init() {
 	factory := &refutil.TypeFactory{}
 
-	refutil.RegisterType[ArtifactNode](factory)
+	refutil.RegisterType[ManifestNode](factory)
 	refutil.RegisterType[MaterialAnisotropyExtensionNode](factory)
 	refutil.RegisterType[MaterialClearcoatExtensionNode](factory)
 	refutil.RegisterType[MaterialNode](factory)
@@ -42,13 +42,13 @@ func (ga Artifact) Write(w io.Writer) error {
 	return WriteBinary(ga.Scene, w)
 }
 
-type ArtifactNode = nodes.Struct[ArtifactNodeData]
+type ManifestNode = nodes.Struct[ManifestNodeData]
 
-type ArtifactNodeData struct {
+type ManifestNodeData struct {
 	Models []nodes.Output[PolyformModel]
 }
 
-func (gad ArtifactNodeData) Out() nodes.StructOutput[artifact.Artifact] {
+func (gad ManifestNodeData) Out() nodes.StructOutput[manifest.Manifest] {
 	models := make([]PolyformModel, 0, len(gad.Models))
 
 	for _, m := range gad.Models {
@@ -66,11 +66,15 @@ func (gad ArtifactNodeData) Out() nodes.StructOutput[artifact.Artifact] {
 		models = append(models, value)
 	}
 
-	return nodes.NewStructOutput[artifact.Artifact](&Artifact{
-		Scene: PolyformScene{
-			Models: models,
+	entry := manifest.Entry{
+		Artifact: &Artifact{
+			Scene: PolyformScene{
+				Models: models,
+			},
 		},
-	})
+	}
+
+	return nodes.NewStructOutput(manifest.SingleEntryManifest("model.glb", entry))
 }
 
 type ModelNode = nodes.Struct[ModelNodeData]

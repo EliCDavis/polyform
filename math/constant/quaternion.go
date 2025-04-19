@@ -17,7 +17,7 @@ func (Quaternion) Inputs() map[string]nodes.InputPort {
 
 func (p *Quaternion) Outputs() map[string]nodes.OutputPort {
 	return map[string]nodes.OutputPort{
-		"Identity": ConstOutput[quaternion.Quaternion]{
+		"Identity": nodes.ConstOutput[quaternion.Quaternion]{
 			Ref:      p,
 			Val:      quaternion.Identity(),
 			PortName: "Identity",

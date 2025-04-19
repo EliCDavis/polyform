@@ -1,13 +1,14 @@
 package schema
 
 type NodeOutput struct {
-	Type string `json:"type"`
+	Type        string `json:"type"`
+	Description string `json:"description,omitempty"`
 }
 
 type NodeInput struct {
 	Type        string `json:"type"`
 	IsArray     bool   `json:"isArray"`
-	Description string `json:"description"`
+	Description string `json:"description,omitempty"`
 }
 
 type NodeType struct {

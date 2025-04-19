@@ -6,7 +6,7 @@ import (
 	"io"
 
 	"github.com/EliCDavis/polyform/generator"
-	"github.com/EliCDavis/polyform/generator/artifact"
+	"github.com/EliCDavis/polyform/generator/manifest"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
@@ -17,7 +17,7 @@ import (
 func init() {
 	factory := &refutil.TypeFactory{}
 
-	refutil.RegisterType[ArtifactNode](factory)
+	refutil.RegisterType[ManifestNode](factory)
 	refutil.RegisterType[ReadNode](factory)
 
 	generator.RegisterTypes(factory)
@@ -93,19 +93,42 @@ func (SplatPly) Mime() string {
 	return "application/octet-stream"
 }
 
+// ============================================================================
+
 type ArtifactNode = nodes.Struct[ArtifactNodeData]
 
 type ArtifactNodeData struct {
 	In nodes.Output[modeling.Mesh]
 }
 
-func (pn ArtifactNodeData) Out() nodes.StructOutput[artifact.Artifact] {
+func (pn ArtifactNodeData) Out() nodes.StructOutput[manifest.Artifact] {
 	if pn.In == nil {
-		return nodes.NewStructOutput[artifact.Artifact](SplatPly{Mesh: modeling.EmptyPointcloud()})
+		return nodes.NewStructOutput[manifest.Artifact](SplatPly{Mesh: modeling.EmptyPointcloud()})
 	}
-	return nodes.NewStructOutput[artifact.Artifact](SplatPly{Mesh: pn.In.Value()})
+	return nodes.NewStructOutput[manifest.Artifact](SplatPly{Mesh: pn.In.Value()})
 }
 
+// ============================================================================
+
+type ManifestNode = nodes.Struct[ManifestNodeData]
+
+type ManifestNodeData struct {
+	Name nodes.Output[string] `description:"Name of the main file in the manifest, defaults to 'model.ply'"`
+	Mesh nodes.Output[modeling.Mesh]
+}
+
+func (pn ManifestNodeData) Out() nodes.StructOutput[manifest.Manifest] {
+	name := nodes.TryGetOutputValue(pn.Name, "model.ply")
+	if pn.Mesh == nil {
+		entry := manifest.Entry{Artifact: SplatPly{Mesh: modeling.EmptyPointcloud()}}
+		return nodes.NewStructOutput(manifest.SingleEntryManifest(name, entry))
+	}
+
+	entry := manifest.Entry{Artifact: SplatPly{Mesh: pn.Mesh.Value()}}
+	return nodes.NewStructOutput(manifest.SingleEntryManifest(name, entry))
+}
+
+// ============================================================================
 type ReadNode = nodes.Struct[ReadNodeData]
 
 type ReadNodeData struct {

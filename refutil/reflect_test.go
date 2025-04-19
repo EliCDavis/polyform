@@ -189,6 +189,8 @@ func TestGetName(t *testing.T) {
 	}
 }
 
+type ParentGeneric[T any] struct{}
+
 func TestGetTypeNameWithoutPackage(t *testing.T) {
 	// var reader io.Reader
 	var v *vector3.Vector[float64]
@@ -219,6 +221,10 @@ func TestGetTypeNameWithoutPackage(t *testing.T) {
 		"nil pointer external lib": {
 			input: v,
 			want:  "Vector[float64]",
+		},
+		"nested generics": {
+			input: ParentGeneric[vector3.Vector[float64]]{},
+			want:  "ParentGeneric[github.com/EliCDavis/vector/vector3.Vector[float64]]",
 		},
 	}
 
