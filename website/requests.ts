@@ -1,4 +1,4 @@
-import { GraphInstance, NodeInstance, NodeType } from "./schema";
+import { GraphInstance, Manifest, NodeInstance, NodeType } from "./schema";
 
 export function downloadBlob(theUrl: string, callback: (body: any) => void): void {
     const xmlHttp = new XMLHttpRequest();
@@ -262,6 +262,10 @@ export class RequestManager {
 
     getGraph(callback): void {
         this.fetchJSON("./graph", callback)
+    }
+
+    getManifest(nodeId: string, portName: string, callback?: ResponseCallback<Manifest>): void {
+        this.fetchJSON(`./manifest/${nodeId}/${portName}`, callback)
     }
 
     getSwagger(callback): void {

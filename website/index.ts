@@ -54,9 +54,9 @@ container.appendChild(stats.dom);
 
 const flowGraphStuff = CreateNodeFlowGraph();
 const requestManager = new RequestManager();
-const producerViewManager = new ProducerViewManager(threeApp, requestManager);
 
 requestManager.getNodeTypes((nodeTypes) => {
+    const producerViewManager = new ProducerViewManager(threeApp, requestManager, nodeTypes);
 
     let initID = null
     setInterval(() => {
