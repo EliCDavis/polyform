@@ -91,9 +91,16 @@ func GetTypeNameWithoutPackage(in any) string {
 		return str
 	}
 
+	genericType := ""
+	startGeneric := strings.Index(str, "[")
+	if startGeneric != -1 && str[len(str)-1:] == "]" {
+		genericType = str[startGeneric:]
+		str = str[0:startGeneric]
+	}
+
 	parts := strings.Split(str, ".")
 
-	return parts[len(parts)-1]
+	return parts[len(parts)-1] + genericType
 }
 
 func FuncNamesOfType[T any](in any) []string {

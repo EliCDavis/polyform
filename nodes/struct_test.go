@@ -4,30 +4,38 @@ import (
 	"testing"
 
 	"github.com/EliCDavis/polyform/nodes"
+	"github.com/EliCDavis/vector/vector3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-type SimpleTestStructNode = nodes.Struct[SimpleAddTestStruct]
+type GenericTestStructNode[T any] struct {
+}
 
-type SimpleAddTestStruct struct {
+type SimpleTestStructNode = nodes.Struct[SimpleAddTestStructNodeData]
+
+type SimpleAddTestStructNodeData struct {
 	A nodes.Output[float64] `description:"A Desc"`
 	B nodes.Output[float64]
 }
 
-func (and SimpleAddTestStruct) Sum() nodes.StructOutput[float64] {
+func (SimpleAddTestStructNodeData) Description() string {
+	return "Adds A and B"
+}
+
+func (and SimpleAddTestStructNodeData) Sum() nodes.StructOutput[float64] {
 	result := nodes.NewStructOutput(0.)
 	result.Set(and.A.Value() + and.B.Value())
 	return result
 }
 
-func (and SimpleAddTestStruct) SumDescription() string {
+func (and SimpleAddTestStructNodeData) SumDescription() string {
 	return "The addition of A and B"
 }
 
 func TestStruct_SimpleAdd(t *testing.T) {
 	var n nodes.Node = &SimpleTestStructNode{
-		Data: SimpleAddTestStruct{
+		Data: SimpleAddTestStructNodeData{
 			A: nodes.NewValue(1.).Outputs()["Value"].(nodes.Output[float64]),
 			B: nodes.NewValue(2.).Outputs()["Value"].(nodes.Output[float64]),
 		},
@@ -79,8 +87,20 @@ func TestStruct_ArrayAdd(t *testing.T) {
 		},
 	}
 
+	// ACT ====================================================================
 	output := n.Outputs()
+	namedNode, named := n.(nodes.Named)
+	pathedNode, pathed := n.(nodes.Pathed)
+
+	// ASSERT =================================================================
 	assert.Len(t, output, 1)
+
+	assert.True(t, named)
+	assert.Equal(t, "Array Test Struct", namedNode.Name())
+
+	assert.True(t, pathed)
+	assert.Equal(t, "nodes_test", pathedNode.Path())
+
 	// assert.Contains(t, "Sum", output)
 	require.Contains(t, output, "Sum")
 
@@ -159,4 +179,63 @@ func TestStruct_ArrayAdd_AddAndRemoveInputNodes(t *testing.T) {
 	n.Inputs()["Values"].(nodes.ArrayValueInputPort).Remove(inputToAdd)
 	assert.Equal(t, 6., sumOutput.Value())
 	assert.Equal(t, 3, sumOutput.Version())
+}
+
+func TestNodeInfo(t *testing.T) {
+
+	tests := map[string]struct {
+		Node        nodes.Node
+		Name        string
+		Type        string
+		Description string
+	}{
+		"SimpleTestStruct": {
+			Node:        &SimpleTestStructNode{},
+			Name:        "Simple Add Test Struct",
+			Type:        "SimpleAddTestStructNodeData",
+			Description: "Adds A and B",
+		},
+		"ArrayTestStruct": {
+			Node:        &ArrayTestStructNode{},
+			Name:        "Array Test Struct",
+			Type:        "ArrayTestStruct",
+			Description: "",
+		},
+		"Generic[float64]": {
+			Node:        &nodes.Struct[GenericTestStructNode[float64]]{},
+			Name:        "Generic Test Struct[float64]",
+			Type:        "GenericTestStructNode[float64]",
+			Description: "",
+		},
+		"Generic[vector3.Float64]": {
+			Node:        &nodes.Struct[GenericTestStructNode[vector3.Float64]]{},
+			Name:        "Generic Test Struct[vector3.Vector[float64]]",
+			Type:        "GenericTestStructNode[github.com/EliCDavis/vector/vector3.Vector[float64]]",
+			Description: "",
+		},
+	}
+
+	for testName, testCase := range tests {
+		t.Run(testName, func(t *testing.T) {
+
+			// ACT ============================================================
+			namedNode, named := testCase.Node.(nodes.Named)
+			pathedNode, pathed := testCase.Node.(nodes.Pathed)
+			describeNode, described := testCase.Node.(nodes.Describable)
+			typedNode, typed := testCase.Node.(nodes.Typed)
+
+			// ASSERT =========================================================
+			assert.True(t, named, "Should be named")
+			assert.Equal(t, testCase.Name, namedNode.Name(), "Incorrect Name")
+
+			assert.True(t, pathed, "Should be pathed")
+			assert.Equal(t, "nodes_test", pathedNode.Path(), "Incorrect Path")
+
+			assert.True(t, described, "Should have a description")
+			assert.Equal(t, testCase.Description, describeNode.Description(), "Incorrect description")
+
+			assert.True(t, typed, "Should be typed")
+			assert.Equal(t, testCase.Type, typedNode.Type(), "Incorrect Type")
+		})
+	}
 }

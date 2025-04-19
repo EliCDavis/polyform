@@ -370,8 +370,25 @@ func (s *Struct[T]) inputVersions() string {
 	return builder.String()
 }
 
+func collapseCommonPackages(dirty string) string {
+	commonPackage := "github.com/EliCDavis/vector/"
+	vectorStart := strings.Index(dirty, commonPackage)
+	if vectorStart == -1 {
+		return dirty
+	}
+	return dirty[:vectorStart] + dirty[vectorStart+len(commonPackage):]
+}
+
 func (sn Struct[T]) Name() string {
 	name := refutil.GetTypeNameWithoutPackage(sn.Data)
+
+	genericType := ""
+	startGeneric := strings.Index(name, "[")
+	if startGeneric != -1 && name[len(name)-1:] == "]" {
+		genericType = collapseCommonPackages(name[startGeneric:])
+
+		name = name[0:startGeneric]
+	}
 
 	i := strings.LastIndex(name, "NodeData")
 	if i != -1 && i == len(name)-8 {
@@ -383,7 +400,7 @@ func (sn Struct[T]) Name() string {
 		}
 	}
 
-	return utils.CamelCaseToSpaceCase(name)
+	return utils.CamelCaseToSpaceCase(name) + genericType
 }
 
 func (sn Struct[T]) Description() string {

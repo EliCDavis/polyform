@@ -222,7 +222,7 @@ export class NodeManager {
 
     registerCustomNodeType(typeData: NodeType): void {
         const nodeConfig: FlowNodeConfig = {
-            title: camelCaseToWords(typeData.displayName),
+            title: typeData.displayName, //camelCaseToWords(typeData.displayName),
             subTitle: typeData.path,
             info: typeData.info,
             inputs: [],
@@ -284,7 +284,8 @@ export class NodeManager {
 
         // nm.onNodeCreateCallback(this, typeData.type);
 
-        const category = this.convertPathToUppercase(typeData.path) + "/" + camelCaseToWords(typeData.displayName);
+        // const category = this.convertPathToUppercase(typeData.path) + "/" + camelCaseToWords(typeData.displayName);
+        const category = this.convertPathToUppercase(typeData.path) + "/" + typeData.displayName;
         this.nodeTypeToLitePath.set(typeData.type, category);
         this.nodesPublisher.register(category, nodeConfig);
     }

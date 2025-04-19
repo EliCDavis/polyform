@@ -29,6 +29,7 @@ import (
 	_ "github.com/EliCDavis/polyform/math/vector2"
 	_ "github.com/EliCDavis/polyform/math/vector3"
 
+	_ "github.com/EliCDavis/polyform/modeling"
 	_ "github.com/EliCDavis/polyform/modeling/extrude"
 	_ "github.com/EliCDavis/polyform/modeling/meshops"
 	_ "github.com/EliCDavis/polyform/modeling/meshops/gausops"
