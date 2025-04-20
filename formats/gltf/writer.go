@@ -41,11 +41,10 @@ type Writer struct {
 	skins      []Skin
 	animations []Animation
 
-	textures     []Texture
-	images       []Image
-	samplers     []Sampler
-	textureInfos []TextureInfo
-	scene        []int
+	textures []Texture
+	images   []Image
+	samplers []Sampler
+	scene    []int
 
 	// Extension Stuff
 	lights []KHR_LightsPunctual
@@ -130,7 +129,7 @@ func (w *Writer) WriteVector4(accessorComponentType AccessorComponentType, data 
 	max := vector4.Fill(-math.MaxFloat64)
 
 	if accessorComponentType == AccessorComponentType_FLOAT {
-		for i := 0; i < data.Len(); i++ {
+		for i := range data.Len() {
 			v := data.At(i)
 			min = vector4.Min(min, v)
 			max = vector4.Max(max, v)
@@ -139,7 +138,7 @@ func (w *Writer) WriteVector4(accessorComponentType AccessorComponentType, data 
 	}
 
 	if accessorComponentType == AccessorComponentType_UNSIGNED_BYTE {
-		for i := 0; i < data.Len(); i++ {
+		for i := range data.Len() {
 			v := data.At(i)
 			min = vector4.Min(min, v)
 			max = vector4.Max(max, v)
