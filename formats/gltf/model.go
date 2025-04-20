@@ -72,6 +72,14 @@ type PolyformTexture struct {
 	Extensions []TextureExtension
 }
 
+func (pt *PolyformTexture) canAddToGLTF() bool {
+	if pt == nil {
+		return false
+	}
+
+	return pt.URI != "" || pt.Image != nil
+}
+
 func (pm *PolyformTexture) prepareExtensions(w *Writer) (map[string]any, map[string]any) {
 	var texInfoExt map[string]any
 	var texExt map[string]any
