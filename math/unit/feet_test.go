@@ -40,6 +40,10 @@ func TestParseFeet(t *testing.T) {
 			In:  "1' 6\"",
 			Out: 1.5,
 		},
+		"   1'        6\"     ": {
+			In:  "   1'        6\"     ",
+			Out: 1.5,
+		},
 		"uhh\"": {
 			In:    "uhh\"",
 			Out:   0,

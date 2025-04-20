@@ -30,5 +30,19 @@ func init() {
 	refutil.RegisterType[nodes.Struct[SelectArray[int]]](factory)
 	refutil.RegisterType[nodes.Struct[SelectArray[float64]]](factory)
 
+	refutil.RegisterType[nodes.Struct[Half[int]]](factory)
+	refutil.RegisterType[nodes.Struct[Half[float64]]](factory)
+
+	refutil.RegisterType[nodes.Struct[Double[int]]](factory)
+	refutil.RegisterType[nodes.Struct[Double[float64]]](factory)
+
+	refutil.RegisterType[nodes.Struct[Scale[int]]](factory)
+	refutil.RegisterType[nodes.Struct[Scale[float64]]](factory)
+
+	refutil.RegisterType[nodes.Struct[Dot]](factory)
+
+	refutil.RegisterType[nodes.Struct[Length[int]]](factory)
+	refutil.RegisterType[nodes.Struct[Length[float64]]](factory)
+
 	generator.RegisterTypes(factory)
 }
