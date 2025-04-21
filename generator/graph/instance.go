@@ -24,7 +24,9 @@ type Instance struct {
 	nodeIDs        map[nodes.Node]string
 	namedProducers map[string]nodes.Output[manifest.Manifest]
 	metadata       *sync.NestedSyncMap
-	producerLock   gsync.Mutex
+
+	// TODO: Make this a lock across the entire instance
+	producerLock gsync.Mutex
 }
 
 func New(typeFactory *refutil.TypeFactory) *Instance {

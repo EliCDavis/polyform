@@ -1,15 +1,15 @@
-import { Box3, EquirectangularReflectionMapping, Group, Mesh, PerspectiveCamera, Scene, SRGBColorSpace, TextureLoader, WebGLRenderer } from "three";
+import { Box3, EquirectangularReflectionMapping, Group, Mesh, MeshStandardMaterial, PerspectiveCamera, Scene, SRGBColorSpace, TextureLoader, WebGLRenderer } from "three";
 import { ErrorManager } from "../error_manager";
 import { InfoManager } from "../info_manager";
 import { GraphInstance, Manifest, NodeType } from "../schema";
 import { getFileExtension } from "../utils";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
+import { PLYLoader } from 'three/examples/jsm/loaders/PLYLoader.js';
 import { RequestManager } from "../requests";
 import * as GaussianSplats3D from '@mkkellogg/gaussian-splats-3d';
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { ThreeApp } from "../three_app";
-
 
 
 type ProducerRefreshCallback = (string: string, thing: any) => void;
@@ -157,7 +157,6 @@ export class ProducerViewManager {
     }
 
     viewAABB(aabb: Box3): void {
-
         const aabbDepth = (aabb.max.z - aabb.min.z)
         const aabbWidth = (aabb.max.x - aabb.min.x)
         const aabbHeight = (aabb.max.y - aabb.min.y)
@@ -273,6 +272,42 @@ export class ProducerViewManager {
             });
     }
 
+    loadPly(plyLoader: PLYLoader, key: string, producerURL: string): void {
+        this.AddLoading();
+
+        plyLoader.load(
+            producerURL,
+            ((geometry) => {
+                this.RemoveLoading();
+                geometry.computeVertexNormals();
+
+                const material = new MeshStandardMaterial({  });
+                const mesh = new Mesh(geometry, material);
+                mesh.castShadow = true;
+                mesh.receiveShadow = true;
+
+                const aabb = new Box3();
+                aabb.setFromObject(mesh);
+                const aabbHeight = (aabb.max.y - aabb.min.y)
+                const aabbHalfHeight = aabbHeight / 2
+                const mid = (aabb.max.y + aabb.min.y) / 2
+
+                this.producerScene.add(mesh);
+
+                // We have to do this weird thing because the pivot of the scene
+                // Isn't always the center of the AABB
+                this.viewerContainer.position.set(0, - mid + aabbHalfHeight, 0);
+
+                this.viewAABB(aabb);
+            }),
+            undefined,
+            (err) => {
+                console.error(err);
+                this.RemoveLoading();
+            }
+        )
+    }
+
     loadSplat(key: string, producerURL: string): void {
         this.AddLoading();
         if (this.guassianSplatViewer) {
@@ -348,6 +383,7 @@ export class ProducerViewManager {
 
         const manifestUrl: string = `./manifest/${nodeId}/${portName}/`;
         const fileToLoad = manifest.main;
+        const fileToLoadMetadata = manifest.entries[fileToLoad].metadata
 
         ErrorManager.ClearError(manifest.main);
         const fileExt = getFileExtension(manifest.main);
@@ -373,7 +409,12 @@ export class ProducerViewManager {
                 break;
 
             case "ply":
-                this.loadSplat(fileToLoad, manifestUrl + fileToLoad)
+                if (fileToLoadMetadata && fileToLoadMetadata["gaussianSplat"] === true) {
+                    this.loadSplat(fileToLoad, manifestUrl + fileToLoad)
+                } else {
+                    const plyLoader = new PLYLoader().setPath(manifestUrl);
+                    this.loadPly(plyLoader, fileToLoad, fileToLoad)
+                }
                 break;
 
             // case "png":
