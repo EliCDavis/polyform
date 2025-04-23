@@ -455,55 +455,58 @@ func (w *Writer) serializeInstances(group modelInstanceGroup, useGpuInstancing b
 				w.AddAnimations(group.animations, *group.skeleton, skinNode)
 			}
 		}
-	} else {
-		if group.isAnimated() && len(group.instances) > 1 {
-			// This really has already been checked earlier and should never happen.
-			// This limitation can be lifted once node children mechanics is implemented.
-			return fmt.Errorf("animated model %q has multiple instances, but GPU instancing is disabled", group.instances[0].name)
+
+		return nil
+	}
+
+	if group.isAnimated() && len(group.instances) > 1 {
+		// This really has already been checked earlier and should never happen.
+		// This limitation can be lifted once node children mechanics is implemented.
+		return fmt.Errorf("animated model %q has multiple instances, but GPU instancing is disabled", group.instances[0].name)
+	}
+
+	// Create individual nodes for each instance
+	for _, instance := range group.instances {
+		nodeIndex := len(w.nodes)
+		newNode := Node{
+			Mesh: &group.meshIndex,
+			Name: instance.name,
 		}
 
-		// Create individual nodes for each instance
-		for _, instance := range group.instances {
-			nodeIndex := len(w.nodes)
-			newNode := Node{
-				Mesh: &group.meshIndex,
-				Name: instance.name,
+		// Set transformations
+		if instance.trs != nil {
+			posArr := instance.trs.Position().ToFixedArr()
+			scaleArr := instance.trs.Scale().ToFixedArr()
+
+			// Only set rotation if it's not identity quaternion
+			rot := instance.trs.Rotation()
+			if rot.W() != 1 || rot.Dir().X() != 0 || rot.Dir().Y() != 0 || rot.Dir().Z() != 0 {
+				rotArr := rot.ToArr()
+				newNode.Rotation = &rotArr
 			}
 
-			// Set transformations
-			if instance.trs != nil {
-				posArr := instance.trs.Position().ToFixedArr()
-				scaleArr := instance.trs.Scale().ToFixedArr()
+			newNode.Translation = &posArr
+			newNode.Scale = &scaleArr
+		}
 
-				// Only set rotation if it's not identity quaternion
-				rot := instance.trs.Rotation()
-				if rot.W() != 1 || rot.Dir().X() != 0 || rot.Dir().Y() != 0 || rot.Dir().Z() != 0 {
-					rotArr := rot.ToArr()
-					newNode.Rotation = &rotArr
-				}
+		w.nodes = append(w.nodes, newNode)
+		w.scene = append(w.scene, nodeIndex)
 
-				newNode.Translation = &posArr
-				newNode.Scale = &scaleArr
+		// If this triggers - there always only one instance
+		if group.isAnimated() {
+			skinNode := nodeIndex
+			if group.skeleton != nil {
+				var skinIndex *int
+				skinIndex, skinNode = w.AddSkin(*group.skeleton)
+				w.nodes[nodeIndex].Skin = skinIndex
 			}
 
-			w.nodes = append(w.nodes, newNode)
-			w.scene = append(w.scene, nodeIndex)
-
-			// If this triggers - there always only one instance
-			if group.isAnimated() {
-				skinNode := nodeIndex
-				if group.skeleton != nil {
-					var skinIndex *int
-					skinIndex, skinNode = w.AddSkin(*group.skeleton)
-					w.nodes[nodeIndex].Skin = skinIndex
-				}
-
-				if len(group.animations) > 0 {
-					w.AddAnimations(group.animations, *group.skeleton, skinNode)
-				}
+			if len(group.animations) > 0 {
+				w.AddAnimations(group.animations, *group.skeleton, skinNode)
 			}
 		}
 	}
+
 	return nil
 }
 
