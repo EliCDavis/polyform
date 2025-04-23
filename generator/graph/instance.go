@@ -22,8 +22,8 @@ type Instance struct {
 
 	movelVersion   uint32
 	nodeIDs        map[nodes.Node]string
-	namedProducers map[string]nodes.Output[manifest.Manifest]
 	metadata       *sync.NestedSyncMap
+	namedManifests *namedOutputManager[manifest.Manifest]
 
 	// TODO: Make this a lock across the entire instance
 	producerLock gsync.Mutex
@@ -33,15 +33,31 @@ func New(typeFactory *refutil.TypeFactory) *Instance {
 	return &Instance{
 		typeFactory: typeFactory,
 
-		nodeIDs:        make(map[nodes.Node]string),
-		metadata:       sync.NewNestedSyncMap(),
-		namedProducers: make(map[string]nodes.Output[manifest.Manifest]),
-		movelVersion:   0,
+		nodeIDs:  make(map[nodes.Node]string),
+		metadata: sync.NewNestedSyncMap(),
+		namedManifests: &namedOutputManager[manifest.Manifest]{
+			namedPorts: make(map[string]namedOutputEntry[manifest.Manifest]),
+		},
+		movelVersion: 0,
 	}
+}
+
+func (i *Instance) IsPortNamed(node nodes.Node, portName string) (string, bool) {
+	return i.namedManifests.IsPortNamed(node, portName)
 }
 
 func (i *Instance) ModelVersion() uint32 {
 	return i.movelVersion
+}
+
+func (i *Instance) NodeIds() []string {
+	ids := make([]string, 0, len(i.nodeIDs))
+
+	for _, id := range i.nodeIDs {
+		ids = append(ids, id)
+	}
+
+	return ids
 }
 
 func (i *Instance) incModelVersion() {
@@ -169,7 +185,9 @@ func (i *Instance) buildIDsForNode(node nodes.Node) {
 func (i *Instance) Reset() {
 	i.nodeIDs = make(map[nodes.Node]string)
 	i.metadata = sync.NewNestedSyncMap()
-	i.namedProducers = make(map[string]nodes.Output[manifest.Manifest])
+	i.namedManifests = &namedOutputManager[manifest.Manifest]{
+		namedPorts: make(map[string]namedOutputEntry[manifest.Manifest]),
+	}
 }
 
 type sortedReference struct {
@@ -290,7 +308,7 @@ func (i *Instance) ApplyAppSchema(jsonPayload []byte) error {
 	}
 
 	// Set the Producers
-	for fileName, producerDetails := range appSchema.Producers {
+	for producerName, producerDetails := range appSchema.Producers {
 		producerNode := createdNodes[producerDetails.NodeID]
 		outputs := producerNode.Outputs()
 		output, ok := outputs[producerDetails.Port]
@@ -303,7 +321,7 @@ func (i *Instance) ApplyAppSchema(jsonPayload []byte) error {
 			panic(fmt.Errorf("can't assign producer: node %q port %q does not produce a manifest", producerDetails.NodeID, producerDetails.Port))
 		}
 
-		i.namedProducers[fileName] = casted
+		i.namedManifests.NamePort(producerName, producerDetails.Port, producerNode, casted)
 	}
 
 	// Set Parameters
@@ -351,16 +369,16 @@ func (i *Instance) Schema() schema.GraphInstance {
 		appNodeSchema[id] = i.NodeInstanceSchema(node)
 	}
 
-	for key, producer := range i.namedProducers {
+	for key, producer := range i.namedManifests.namedPorts {
 		// a.buildSchemaForNode(producer.Node(), appNodeSchema)
-		id := i.nodeIDs[producer.Node()]
+		id := i.nodeIDs[producer.node]
 		node := appNodeSchema[id]
 		node.Name = key
 		appNodeSchema[id] = node
 
 		appSchema.Producers[key] = schema.Producer{
 			NodeID: id,
-			Port:   producer.Name(),
+			Port:   producer.port.Name(),
 		}
 	}
 
@@ -387,15 +405,15 @@ func (i *Instance) EncodeToAppSchema(appSchema *schema.App, encoder *jbtf.Encode
 	if appSchema.Producers == nil {
 		appSchema.Producers = make(map[string]schema.Producer)
 	}
-	for key, producer := range i.namedProducers {
+	for key, producer := range i.namedManifests.namedPorts {
 		// a.buildSchemaForNode(producer.Node(), appNodeSchema)
-		id := i.nodeIDs[producer.Node()]
+		id := i.nodeIDs[producer.node]
 		node := nodeInstances[id]
 		nodeInstances[id] = node
 
 		appSchema.Producers[key] = schema.Producer{
 			NodeID: id,
-			Port:   producer.Name(),
+			Port:   producer.port.Name(),
 		}
 	}
 	appSchema.Nodes = nodeInstances
@@ -497,11 +515,7 @@ func (i *Instance) DeleteNode(nodeId string) {
 		}
 	}
 
-	for filename, producer := range i.namedProducers {
-		if i.nodeIDs[producer.Node()] == nodeId {
-			delete(i.namedProducers, filename)
-		}
-	}
+	i.namedManifests.DeleteNode(nodeToDelete)
 
 	delete(i.nodeIDs, nodeToDelete)
 }
@@ -509,13 +523,13 @@ func (i *Instance) DeleteNode(nodeId string) {
 // PARAMETER ==================================================================
 
 func (i *Instance) getParameters() []Parameter {
-	if i.namedProducers == nil {
+	if i.namedManifests == nil || i.namedManifests.namedPorts == nil {
 		return nil
 	}
 
 	parameterSet := make(map[Parameter]struct{})
-	for _, n := range i.namedProducers {
-		params := RecurseDependenciesType[Parameter](n.Node())
+	for _, n := range i.namedManifests.namedPorts {
+		params := RecurseDependenciesType[Parameter](n.node)
 		for _, p := range params {
 			parameterSet[p] = struct{}{}
 		}
@@ -670,21 +684,7 @@ func (i *Instance) SetNodeAsProducer(nodeId, nodePort, producerName string) {
 		panic(fmt.Errorf("node %q output %q does not produce artifacts", nodeId, nodePort))
 	}
 
-	// We need to check and remove previous references...
-	for filename, producer := range i.namedProducers {
-
-		if i.NodeId(producer.Node()) != nodeId {
-			continue
-		}
-
-		if producer.Name() != nodePort {
-			continue
-		}
-
-		delete(i.namedProducers, filename)
-	}
-
-	i.namedProducers[producerName] = casted
+	i.namedManifests.NamePort(producerName, nodePort, producerNode, casted)
 	i.incModelVersion()
 }
 
@@ -698,7 +698,7 @@ func (i *Instance) recursivelyRegisterNodeTypes(node nodes.Node) {
 }
 
 func (i *Instance) Manifest(producerName string) manifest.Manifest {
-	producer, ok := i.namedProducers[producerName]
+	producer, ok := i.namedManifests.namedPorts[producerName]
 	if !ok {
 		panic(fmt.Errorf("no producer registered for: %s", producerName))
 	}
@@ -706,23 +706,23 @@ func (i *Instance) Manifest(producerName string) manifest.Manifest {
 	i.producerLock.Lock()
 	defer i.producerLock.Unlock()
 
-	return producer.Value()
+	return producer.port.Value()
 }
 
 func (i *Instance) AddProducer(producerName string, producer nodes.Output[manifest.Manifest]) {
 	i.recursivelyRegisterNodeTypes(producer.Node())
 	i.buildIDsForNode(producer.Node())
-	i.namedProducers[producerName] = producer
+	i.namedManifests.NamePort(producerName, producer.Name(), producer.Node(), producer)
 }
 
 func (i *Instance) Producer(producerName string) nodes.Output[manifest.Manifest] {
-	return i.namedProducers[producerName]
+	return i.namedManifests.namedPorts[producerName].port
 }
 
 func (i *Instance) ProducerNames() []string {
-	names := make([]string, 0, len(i.namedProducers))
+	names := make([]string, 0, len(i.namedManifests.namedPorts))
 
-	for name := range i.namedProducers {
+	for name := range i.namedManifests.namedPorts {
 		names = append(names, name)
 	}
 

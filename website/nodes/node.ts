@@ -7,7 +7,7 @@ import { NodeManager } from '../node_manager.js';
 import { FileParameterNodeController } from './file_parameter.js';
 import { getFileExtension, getLastSegmentOfURL } from '../utils.js';
 import { Vector2ParameterNodeController } from './vector2_parameter.js';
-import { NodeInstance, NodeInstanceAssignedInput, NodeInstanceOutput } from '../schema.js';
+import { NodeInstance, NodeInstanceAssignedInput, NodeInstanceOutput, NodeType } from '../schema.js';
 import { RequestManager, saveFileToDisk } from '../requests.js';
 import { FlowNode, GlobalWidgetFactory, ImageWidget } from '@elicdavis/node-flow';
 import { ThreeApp } from '../three_app.js';
@@ -128,6 +128,7 @@ export class PolyNodeController {
         nodeManager: NodeManager,
         id: string,
         nodeData: NodeInstance,
+        nodeType: NodeType,
         app: ThreeApp,
         producerOutput: string,
         requestManager: RequestManager,

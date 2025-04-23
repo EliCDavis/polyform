@@ -84,7 +84,7 @@ func (a *App) Schema() []byte {
 	return data
 }
 
-func writeProducersToZip(outFolder string, graph *graph.Instance, zw *zip.Writer) error {
+func writeManifestsToZip(outFolder string, graph *graph.Instance, zw *zip.Writer) error {
 	if graph == nil {
 		panic("can't zip nil graph")
 	}
@@ -93,20 +93,41 @@ func writeProducersToZip(outFolder string, graph *graph.Instance, zw *zip.Writer
 		panic("can't write to nil zip writer")
 	}
 
-	for _, manifestName := range graph.ProducerNames() {
-		manifestFolder := path.Join(outFolder, manifestName)
-		manifest := graph.Manifest(manifestName)
-		entries := manifest.Entries
-		for artifactName, entry := range entries {
+	nodeIds := graph.NodeIds()
 
-			f, err := zw.Create(path.Join(manifestFolder, artifactName))
-			if err != nil {
-				return err
+	for _, nodeId := range nodeIds {
+		node := graph.Node(nodeId)
+		outputs := node.Outputs()
+		for _, out := range outputs {
+			manifestOut, ok := out.(nodes.Output[manifest.Manifest])
+			if !ok {
+				continue
 			}
 
-			err = entry.Artifact.Write(f)
-			if err != nil {
-				return err
+			manifest := manifestOut.Value()
+			manifestName := fmt.Sprintf("%s-%s", nodeId, out.Name())
+
+			// TODO - There's gonna be an issue if anyone ever names a manifest
+			// output the same name as a nodeID-port combo
+			//
+			// IE: Naming a manifest "Node-8-Out", could conflict with Node-8's
+			// out port
+			if name, named := graph.IsPortNamed(node, out.Name()); named {
+				manifestName = name
+			}
+
+			manifestFolder := path.Join(outFolder, manifestName)
+			entries := manifest.Entries
+			for artifactName, entry := range entries {
+				f, err := zw.Create(path.Join(manifestFolder, artifactName))
+				if err != nil {
+					return err
+				}
+
+				err = entry.Artifact.Write(f)
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}
@@ -121,7 +142,7 @@ func (a App) initialize(set *flag.FlagSet) {
 func (a App) WriteZip(out io.Writer) error {
 	z := zip.NewWriter(out)
 
-	err := writeProducersToZip("", a.graphInstance, z)
+	err := writeManifestsToZip("", a.graphInstance, z)
 	if err != nil {
 		return err
 	}

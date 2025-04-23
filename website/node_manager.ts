@@ -39,7 +39,9 @@ export class NodeManager {
 
     producerTypes: Map<string, string>;
 
-    nodeTypeToLitePath: Map<string, string>;
+    nodeTypeToFlowNodePath: Map<string, string>;
+
+    nodeTypeToNodeDefinition: Map<string, NodeType>;
 
     serverUpdatingNodeConnections: boolean;
 
@@ -58,7 +60,8 @@ export class NodeManager {
         this.producerViewManager = producerViewManager;
 
         this.nodeIdToNode = new Map<string, PolyNodeController>();
-        this.nodeTypeToLitePath = new Map<string, string>();
+        this.nodeTypeToFlowNodePath = new Map<string, string>();
+        this.nodeTypeToNodeDefinition = new Map<string, NodeType>();
         this.producerTypes = new Map<string, string>();
         this.subscribers = [];
         this.serverUpdatingNodeConnections = false;
@@ -109,6 +112,7 @@ export class NodeManager {
                     this,
                     nodeID,
                     nodeData,
+                    this.nodeTypeToNodeDefinition.get(nodeType),
                     this.app,
                     producerOutPort,
                     this.requestManager,
@@ -232,7 +236,9 @@ export class NodeManager {
             },
             canEditTitle: false,
             style: null
-        }
+        };
+
+        this.nodeTypeToNodeDefinition.set(typeData.type, typeData);
 
         for (let inputName in typeData.inputs) {
             nodeConfig.inputs.push({
@@ -286,7 +292,7 @@ export class NodeManager {
 
         // const category = this.convertPathToUppercase(typeData.path) + "/" + camelCaseToWords(typeData.displayName);
         const category = this.convertPathToUppercase(typeData.path) + "/" + typeData.displayName;
-        this.nodeTypeToLitePath.set(typeData.type, category);
+        this.nodeTypeToFlowNodePath.set(typeData.type, category);
         this.nodesPublisher.register(category, nodeConfig);
     }
 
@@ -301,7 +307,7 @@ export class NodeManager {
         // }
 
         if (!isParameter) {
-            const nodeIdentifier = this.nodeTypeToLitePath.get(nodeData.type)
+            const nodeIdentifier = this.nodeTypeToFlowNodePath.get(nodeData.type)
             return this.nodesPublisher.create(nodeIdentifier);
         }
 
@@ -349,6 +355,7 @@ export class NodeManager {
                     this,
                     nodeID,
                     nodeData,
+                    this.nodeTypeToNodeDefinition.get(nodeData.type),
                     this.app,
                     producerOutPort,
                     this.requestManager,
