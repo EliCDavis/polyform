@@ -3,16 +3,20 @@ package gltf
 import (
 	"image/color"
 
-	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/polyform/math/trs"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/animation"
-	"github.com/EliCDavis/vector/vector3"
 )
 
 type PolyformScene struct {
 	Models []PolyformModel
 	Lights []KHR_LightsPunctual
+
+	// UseGpuInstancing indicates that the EXT_mesh_gpu_instancing extension should be used
+	// when appropriate for mesh instances. If not set, even explicit GPU instances will be serialized
+	// as individual nodes. If set and GPU instances are present, they will be serialized using
+	// the extension.
+	UseGpuInstancing bool
 }
 
 // PolyformModel is a utility structure for reading/writing to GLTF format within
@@ -22,21 +26,13 @@ type PolyformModel struct {
 	Mesh     *modeling.Mesh
 	Material *PolyformMaterial
 
-	Translation *vector3.Float64
-	Scale       *vector3.Float64
-	Rotation    *quaternion.Quaternion
-
-	// Utilizes the EXT_mesh_gpu_instancing extension to duplicate the model
-	// without increasing the mesh data footprint on the GPU
-	// deprecated
-	GpuInstances []trs.TRS
+	// TRS contains the transformation (translation, rotation, scale) for this model
+	TRS *trs.TRS
 
 	// Utilizes the EXT_mesh_gpu_instancing extension to duplicate the model
 	// without increasing the mesh data footprint on the GPU.
-	// If this flag is set - the TRS attributes are expected to be provided for the model.
-	// All model instances that share same mesh and material will be rendered in a single draw call
-	// using GPU instancing extension.
-	UseGpuInstancing bool
+	// This is a list of transformations where this model should be repeated.
+	GpuInstances []trs.TRS
 
 	Skeleton   *animation.Skeleton
 	Animations []animation.Sequence

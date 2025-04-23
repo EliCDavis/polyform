@@ -339,7 +339,15 @@ func rgbToFloatArr(c color.Color) [3]float64 {
 }
 
 func (w *Writer) AddScene(scene PolyformScene) error {
+	var instances instanceTracker
+
+	// First pass: process all models, collect mesh data and tracking instances
 	for _, model := range scene.Models {
+		// Validate that if GPU instances are provided, the UseGpuInstancing flag is set
+		if len(model.GpuInstances) > 0 && !scene.UseGpuInstancing {
+			return fmt.Errorf("model %q has GPU instances defined but scene.UseGpuInstancing is not set", model.Name)
+		}
+
 		meshIndex, err := w.AddModel(model)
 		if err != nil {
 			return fmt.Errorf("failed to add model %q: %w", model.Name, err)
@@ -347,72 +355,33 @@ func (w *Writer) AddScene(scene PolyformScene) error {
 			continue // mesh was not added to scene, ignore and continue
 		}
 
-		// Create node with transforms for this model
-		nodeIndex := len(w.nodes)
-		newNode := Node{
-			Mesh: &meshIndex,
-			Name: model.Name,
+		// Create a model instance for the base model's TRS
+		modelInst := modelInstance{
+			meshIndex: meshIndex,
+			trs:       model.TRS,
+			name:      model.Name,
 		}
 
-		if model.Translation != nil {
-			arr := model.Translation.ToFixedArr()
-			newNode.Translation = &arr
-		}
+		// Add to instance tracker - this will create a unique group for animated models
+		instances.add(meshIndex, modelInst, model.Skeleton, model.Animations)
 
-		if model.Rotation != nil {
-			arr := model.Rotation.ToArr()
-			newNode.Rotation = &arr
-		}
-
-		if model.Scale != nil {
-			arr := model.Scale.ToFixedArr()
-			newNode.Scale = &arr
-		}
-
+		// Handle GPU instances if present
 		if len(model.GpuInstances) > 0 {
-			if newNode.Extensions == nil {
-				newNode.Extensions = make(map[string]any)
+			for _, t := range model.GpuInstances {
+				gpuInstance := modelInstance{
+					meshIndex: meshIndex,
+					trs:       &t,
+					name:      model.Name,
+				}
+				instances.add(meshIndex, gpuInstance, model.Skeleton, model.Animations)
 			}
-			w.extensionsUsed[extGpuInstancingID] = true
-
-			instances := ExtGpuInstancing{
-				Attributes: make(map[string]int),
-			}
-
-			positions := make([]vector3.Float64, len(model.GpuInstances))
-			rotations := make([]vector4.Float64, len(model.GpuInstances))
-			scales := make([]vector3.Float64, len(model.GpuInstances))
-			for i, t := range model.GpuInstances {
-				positions[i] = t.Position()
-				rotations[i] = t.Rotation().Vector4()
-				scales[i] = t.Scale()
-			}
-
-			instances.Attributes["TRANSLATION"] = len(w.accessors)
-			w.WriteVector3(AccessorComponentType_FLOAT, iter.Array(positions))
-
-			instances.Attributes["SCALE"] = len(w.accessors)
-			w.WriteVector3(AccessorComponentType_FLOAT, iter.Array(scales))
-
-			instances.Attributes["ROTATION"] = len(w.accessors)
-			w.WriteVector4(AccessorComponentType_FLOAT, iter.Array(rotations))
-
-			newNode.Extensions[extGpuInstancingID] = instances
 		}
+	}
 
-		w.nodes = append(w.nodes, newNode)
-		w.scene = append(w.scene, nodeIndex)
-
-		skinNode := nodeIndex
-		// Handle any skeleton/animation data
-		if model.Skeleton != nil {
-			var skinIndex *int
-			skinIndex, skinNode = w.AddSkin(*model.Skeleton)
-			w.nodes[nodeIndex].Skin = skinIndex
-		}
-
-		if len(model.Animations) > 0 {
-			w.AddAnimations(model.Animations, *model.Skeleton, skinNode)
+	// Second pass: serialize instances, either as individual nodes or using GPU instancing
+	for _, group := range instances.groups {
+		if err := w.serializeInstances(group, scene.UseGpuInstancing); err != nil {
+			return fmt.Errorf("failed to serialize instances: %w", err)
 		}
 	}
 
@@ -421,6 +390,120 @@ func (w *Writer) AddScene(scene PolyformScene) error {
 		w.AddLight(light)
 	}
 
+	return nil
+}
+
+// serializeInstances processes the instance groups and serializes them as GLTF nodes
+// Returns an error if animation models with multiple instances are found when GPU instancing is disabled
+func (w *Writer) serializeInstances(group modelInstanceGroup, useGpuInstancing bool) error {
+	// Skip groups with no instances
+	if len(group.instances) == 0 {
+		return nil
+	}
+
+	if useGpuInstancing {
+		w.extensionsUsed[extGpuInstancingID] = true
+
+		// Create a node for the animated model
+		nodeIndex := len(w.nodes)
+		newNode := Node{
+			Mesh: &group.meshIndex,
+			Name: group.instances[0].name, //In case of GPU instances all names will be the same.
+		}
+		newNode.Extensions = make(map[string]any)
+
+		positions := make([]vector3.Float64, 0, len(group.instances))
+		rotations := make([]vector4.Float64, 0, len(group.instances))
+		scales := make([]vector3.Float64, 0, len(group.instances))
+
+		for i := 0; i < len(group.instances); i++ {
+			if group.instances[i].trs != nil {
+				positions = append(positions, group.instances[i].trs.Position())
+				rotations = append(rotations, group.instances[i].trs.Rotation().Vector4())
+				scales = append(scales, group.instances[i].trs.Scale())
+			}
+		}
+
+		// Create instancing attributes
+		instances := ExtGpuInstancing{
+			Attributes: make(map[string]int),
+		}
+
+		instances.Attributes["TRANSLATION"] = len(w.accessors)
+		w.WriteVector3(AccessorComponentType_FLOAT, iter.Array(positions))
+
+		instances.Attributes["SCALE"] = len(w.accessors)
+		w.WriteVector3(AccessorComponentType_FLOAT, iter.Array(scales))
+
+		instances.Attributes["ROTATION"] = len(w.accessors)
+		w.WriteVector4(AccessorComponentType_FLOAT, iter.Array(rotations))
+
+		newNode.Extensions[extGpuInstancingID] = instances
+
+		w.nodes = append(w.nodes, newNode)
+		w.scene = append(w.scene, nodeIndex)
+
+		if group.isAnimated() {
+			skinNode := nodeIndex
+			if group.skeleton != nil {
+				var skinIndex *int
+				skinIndex, skinNode = w.AddSkin(*group.skeleton)
+				w.nodes[nodeIndex].Skin = skinIndex
+			}
+
+			if len(group.animations) > 0 {
+				w.AddAnimations(group.animations, *group.skeleton, skinNode)
+			}
+		}
+	} else {
+		if group.isAnimated() && len(group.instances) > 1 {
+			// This really has already been checked earlier and should never happen.
+			// This limitation can be lifted once node children mechanics is implemented.
+			return fmt.Errorf("animated model %q has multiple instances, but GPU instancing is disabled", group.instances[0].name)
+		}
+
+		// Create individual nodes for each instance
+		for _, instance := range group.instances {
+			nodeIndex := len(w.nodes)
+			newNode := Node{
+				Mesh: &group.meshIndex,
+				Name: instance.name,
+			}
+
+			// Set transformations
+			if instance.trs != nil {
+				posArr := instance.trs.Position().ToFixedArr()
+				scaleArr := instance.trs.Scale().ToFixedArr()
+
+				// Only set rotation if it's not identity quaternion
+				rot := instance.trs.Rotation()
+				if rot.W() != 1 || rot.Dir().X() != 0 || rot.Dir().Y() != 0 || rot.Dir().Z() != 0 {
+					rotArr := rot.ToArr()
+					newNode.Rotation = &rotArr
+				}
+
+				newNode.Translation = &posArr
+				newNode.Scale = &scaleArr
+			}
+
+			w.nodes = append(w.nodes, newNode)
+			w.scene = append(w.scene, nodeIndex)
+
+			// If this triggers - there always only one instance
+			if group.isAnimated() {
+				skinNode := nodeIndex
+				if group.skeleton != nil {
+					var skinIndex *int
+					skinIndex, skinNode = w.AddSkin(*group.skeleton)
+					w.nodes[nodeIndex].Skin = skinIndex
+				}
+
+				if len(group.animations) > 0 {
+					w.AddAnimations(group.animations, *group.skeleton, skinNode)
+				}
+			}
+		}
+	}
 	return nil
 }
 

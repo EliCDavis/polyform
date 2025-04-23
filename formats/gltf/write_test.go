@@ -3,6 +3,7 @@ package gltf_test
 import (
 	"bytes"
 	"errors"
+	"github.com/EliCDavis/polyform/math/trs"
 	"image/color"
 	"math"
 	"testing"
@@ -2460,10 +2461,13 @@ func TestWrite_MeshesDeduplicated(t *testing.T) {
 	scaleDistort := vector3.New[float64](0.5, 2.5, 0.5)
 	rotQuat := quaternion.FromTheta(-math.Pi/2, vector3.New[float64](1, 0, 0))
 
+	trsRight := trs.New(rightV, quaternion.Identity(), scaleUniform15)
+	trsLeft := trs.New(leftV, rotQuat, scaleDistort)
+
 	err := gltf.WriteText(gltf.PolyformScene{
 		Models: []gltf.PolyformModel{
-			{Name: "mesh_right", Mesh: &tri, Material: material, Translation: &rightV, Scale: &scaleUniform15},
-			{Name: "mesh_left", Mesh: &tri, Material: material, Translation: &leftV, Scale: &scaleDistort, Rotation: &rotQuat},
+			{Name: "mesh_right", Mesh: &tri, Material: material, TRS: &trsRight},
+			{Name: "mesh_left", Mesh: &tri, Material: material, TRS: &trsLeft},
 		},
 	}, &buf)
 
@@ -2629,10 +2633,13 @@ func TestWrite_MeshesDifferentMatsPreserved(t *testing.T) {
 	scaleDistort := vector3.New[float64](0.5, 2.5, 0.5)
 	rotQuat := quaternion.FromTheta(-math.Pi/2, vector3.New[float64](1, 0, 0))
 
+	trsRight := trs.New(rightV, quaternion.Identity(), scaleUniform15)
+	trsLeft := trs.New(leftV, rotQuat, scaleDistort)
+
 	err := gltf.WriteText(gltf.PolyformScene{
 		Models: []gltf.PolyformModel{
-			{Name: "mesh_right", Mesh: &tri, Material: materialLeft, Translation: &rightV, Scale: &scaleUniform15},
-			{Name: "mesh_left", Mesh: &tri, Material: materialRight, Translation: &leftV, Scale: &scaleDistort, Rotation: &rotQuat},
+			{Name: "mesh_right", Mesh: &tri, Material: materialLeft, TRS: &trsRight},
+			{Name: "mesh_left", Mesh: &tri, Material: materialRight, TRS: &trsLeft},
 		},
 	}, &buf)
 

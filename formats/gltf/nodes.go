@@ -7,12 +7,10 @@ import (
 	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/generator"
 	"github.com/EliCDavis/polyform/generator/artifact"
-	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/polyform/math/trs"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
-	"github.com/EliCDavis/vector/vector3"
 )
 
 func init() {
@@ -79,9 +77,7 @@ type ModelNodeData struct {
 	Mesh     nodes.Output[modeling.Mesh]
 	Material nodes.Output[PolyformMaterial]
 
-	Translation nodes.Output[vector3.Float64]
-	Rotation    nodes.Output[quaternion.Quaternion]
-	Scale       nodes.Output[vector3.Float64]
+	TRS nodes.Output[trs.TRS]
 
 	GpuInstances nodes.Output[[]trs.TRS]
 }
@@ -103,19 +99,9 @@ func (gmnd ModelNodeData) Out() nodes.StructOutput[PolyformModel] {
 		model.GpuInstances = gmnd.GpuInstances.Value()
 	}
 
-	if gmnd.Translation != nil {
-		v := gmnd.Translation.Value()
-		model.Translation = &v
-	}
-
-	if gmnd.Scale != nil {
-		v := gmnd.Scale.Value()
-		model.Scale = &v
-	}
-
-	if gmnd.Rotation != nil {
-		v := gmnd.Rotation.Value()
-		model.Rotation = &v
+	if gmnd.TRS != nil {
+		v := gmnd.TRS.Value()
+		model.TRS = &v
 	}
 
 	return nodes.NewStructOutput(model)
