@@ -44,6 +44,9 @@ func Load(objPath string) (*Scene, error) {
 
 	for _, o := range scene.Objects {
 		for i, e := range o.Entries {
+			if e.Material == nil {
+				continue
+			}
 			o.Entries[i].Material = loadedMaterials[e.Material.Name]
 		}
 	}
