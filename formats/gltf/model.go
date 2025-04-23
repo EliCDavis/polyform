@@ -13,9 +13,13 @@ type PolyformScene struct {
 	Lights []KHR_LightsPunctual
 
 	// UseGpuInstancing indicates that the EXT_mesh_gpu_instancing extension should be used
-	// when appropriate for mesh instances. If not set, even explicit GPU instances will be serialized
-	// as individual nodes. If set and GPU instances are present, they will be serialized using
-	// the extension.
+	// when appropriate for mesh instances. This must be set if GPU instances are defined on any of the models in the scene.
+	// If not set while GPU instances are defined - the scene serialisation will fail.
+	// This is a global setting for the scene and cannot be set on a per-model basis.
+	//
+	// The model deduplication applies regardless, and models that have exactly the same mesh pointer reference,
+	// and material value will be collapsed into a single list.
+	// If this flag is set, this single list will be converted into GPU instances as well.
 	UseGpuInstancing bool
 }
 
@@ -27,13 +31,20 @@ type PolyformModel struct {
 	Material *PolyformMaterial
 
 	// TRS contains the transformation (translation, rotation, scale) for this model
+	// This is optional and it will be used if the models are deduplicated and collapsed into a list of instances.
 	TRS *trs.TRS
 
 	// Utilizes the EXT_mesh_gpu_instancing extension to duplicate the model
 	// without increasing the mesh data footprint on the GPU.
 	// This is a list of transformations where this model should be repeated.
+	// This can only used if the UseGpuInstancing flag is set on the scene.
+	// If flag is not set, populating this list will cause the scene writing to fail.
 	GpuInstances []trs.TRS
 
+	// Animation is a list of animations that are applied to this model.
+	// Models with animations defined will never be deduplicated into a single list.
+	// However, these models can utilize GpuInstances and in that case the same animation will be applied to all of them.
+	// Limitations on using GpuInstances still apply.
 	Skeleton   *animation.Skeleton
 	Animations []animation.Sequence
 }
