@@ -87,6 +87,17 @@ func NewWriterFromScene(scene PolyformScene) (*Writer, error) {
 	return writer, nil
 }
 
+// Align ensures the buffer is aligned to the specified byte boundary
+func (w *Writer) Align(alignment int) {
+	padding := (alignment - (w.bytesWritten % alignment)) % alignment
+	if padding > 0 {
+		for i := 0; i < int(padding); i++ {
+			w.bitW.Byte(0)
+		}
+		w.bytesWritten += int(padding)
+	}
+}
+
 func (w Writer) WriteVector4AsFloat32(v vector4.Float64) {
 	w.bitW.Float32(float32(v.X()))
 	w.bitW.Float32(float32(v.Y()))
@@ -124,6 +135,8 @@ func (w Writer) WriteVector2AsByte(v vector2.Float64) {
 }
 
 func (w *Writer) WriteVector4(accessorComponentType AccessorComponentType, data *iter.ArrayIterator[vector4.Float64]) {
+	w.Align(accessorComponentType.Size())
+
 	accessorType := AccessorType_VEC4
 
 	min := vector4.Fill(math.MaxFloat64)
@@ -171,6 +184,8 @@ func (w *Writer) WriteVector4(accessorComponentType AccessorComponentType, data 
 }
 
 func (w *Writer) WriteVector3(accessorComponentType AccessorComponentType, data *iter.ArrayIterator[vector3.Float64]) {
+	w.Align(accessorComponentType.Size())
+
 	accessorType := AccessorType_VEC3
 
 	min := vector3.Fill(math.MaxFloat64)
@@ -228,6 +243,8 @@ func (w *Writer) WriteVector3(accessorComponentType AccessorComponentType, data 
 }
 
 func (w *Writer) WriteVector2(accessorComponentType AccessorComponentType, data *iter.ArrayIterator[vector2.Float64]) {
+	w.Align(accessorComponentType.Size())
+
 	accessorType := AccessorType_VEC2
 
 	min := vector2.Fill(math.MaxFloat64)
@@ -288,7 +305,6 @@ func (w *Writer) WriteIndices(indices *iter.ArrayIterator[int], attributeSize in
 	indiceSize := indices.Len()
 
 	componentType := AccessorComponentType_UNSIGNED_INT
-
 	if attributeSize > math.MaxUint16 {
 		for i := 0; i < indices.Len(); i++ {
 			w.bitW.UInt32(uint32(indices.At(i)))
@@ -301,6 +317,8 @@ func (w *Writer) WriteIndices(indices *iter.ArrayIterator[int], attributeSize in
 		indiceSize *= 2
 		componentType = AccessorComponentType_UNSIGNED_SHORT
 	}
+
+	w.Align(componentType.Size())
 
 	w.accessors = append(w.accessors, Accessor{
 		BufferView:    ptrI(len(w.bufferViews)),
@@ -403,6 +421,7 @@ func (w *Writer) serializeInstances(group modelInstanceGroup, useGpuInstancing b
 
 	if useGpuInstancing {
 		w.extensionsUsed[extGpuInstancingID] = true
+		w.extensionsRequired[extGpuInstancingID] = true
 
 		// Create a node for the animated model
 		nodeIndex := len(w.nodes)

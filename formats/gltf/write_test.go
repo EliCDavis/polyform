@@ -699,8 +699,8 @@ func TestWrite_TexturedTriWithMaterialWithColor_ImageSampleDedupe(t *testing.T) 
     },
     "buffers": [
         {
-            "byteLength": 204,
-            "uri": "data:application/octet-stream;base64,AACAPwAAAAAAAAAAAAAAAAAAgD8AAAAAAAAAAAAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAAAAAAAAAAAAAAAAAAAAAACAPwAAgD8AAAAAAAABAAIAAACAPwAAAAAAAAAAAAAAAAAAgD8AAAAAAAAAAAAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAAAAAAAAAAAAAAAAAAAAAACAPwAAgD8AAAAAAAABAAIA"
+            "byteLength": 206,
+            "uri": "data:application/octet-stream;base64,AACAPwAAAAAAAAAAAAAAAAAAgD8AAAAAAAAAAAAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAAAAAAAAAAAAAAAAAAAAAACAPwAAgD8AAAAAAAABAAIAAAAAAIA/AAAAAAAAAAAAAAAAAACAPwAAAAAAAAAAAAAAAAAAgD8AAAAAAAAAAAAAAAAAAAAAAACAPwAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAIA/AACAPwAAAAAAAAEAAgA="
         }
     ],
     "bufferViews": [
@@ -729,25 +729,25 @@ func TestWrite_TexturedTriWithMaterialWithColor_ImageSampleDedupe(t *testing.T) 
         },
         {
             "buffer": 0,
-            "byteOffset": 102,
+            "byteOffset": 104,
             "byteLength": 36,
             "target": 34962
         },
         {
             "buffer": 0,
-            "byteOffset": 138,
+            "byteOffset": 140,
             "byteLength": 36,
             "target": 34962
         },
         {
             "buffer": 0,
-            "byteOffset": 174,
+            "byteOffset": 176,
             "byteLength": 24,
             "target": 34962
         },
         {
             "buffer": 0,
-            "byteOffset": 198,
+            "byteOffset": 200,
             "byteLength": 6,
             "target": 34963
         }
@@ -1078,8 +1078,8 @@ func TestWrite_TexturedTriWithMaterialWithColor_TextureValueDedupe(t *testing.T)
     },
     "buffers": [
         {
-            "byteLength": 204,
-            "uri": "data:application/octet-stream;base64,AACAPwAAAAAAAAAAAAAAAAAAgD8AAAAAAAAAAAAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAAAAAAAAAAAAAAAAAAAAAACAPwAAgD8AAAAAAAABAAIAAACAPwAAAAAAAAAAAAAAAAAAgD8AAAAAAAAAAAAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAAAAAAAAAAAAAAAAAAAAAACAPwAAgD8AAAAAAAABAAIA"
+            "byteLength": 206,
+            "uri": "data:application/octet-stream;base64,AACAPwAAAAAAAAAAAAAAAAAAgD8AAAAAAAAAAAAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAAAAAAAAAAAAAAAAAAAAAACAPwAAgD8AAAAAAAABAAIAAAAAAIA/AAAAAAAAAAAAAAAAAACAPwAAAAAAAAAAAAAAAAAAgD8AAAAAAAAAAAAAAAAAAAAAAACAPwAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAIA/AACAPwAAAAAAAAEAAgA="
         }
     ],
     "bufferViews": [
@@ -1108,25 +1108,25 @@ func TestWrite_TexturedTriWithMaterialWithColor_TextureValueDedupe(t *testing.T)
         },
         {
             "buffer": 0,
-            "byteOffset": 102,
+            "byteOffset": 104,
             "byteLength": 36,
             "target": 34962
         },
         {
             "buffer": 0,
-            "byteOffset": 138,
+            "byteOffset": 140,
             "byteLength": 36,
             "target": 34962
         },
         {
             "buffer": 0,
-            "byteOffset": 174,
+            "byteOffset": 176,
             "byteLength": 24,
             "target": 34962
         },
         {
             "buffer": 0,
-            "byteOffset": 198,
+            "byteOffset": 200,
             "byteLength": 6,
             "target": 34963
         }
@@ -2342,8 +2342,8 @@ func TestWrite_MaterialsDeduplicated(t *testing.T) {
     },
     "buffers": [
         {
-            "byteLength": 84,
-            "uri": "data:application/octet-stream;base64,AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAAAAAAABAAIAAAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAAAAAAABAAIA"
+            "byteLength": 86,
+            "uri": "data:application/octet-stream;base64,AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAAAAAAABAAIAAAAAAAAAAAAAAAAAAAAAAAAAAACAPwAAAAAAAIA/AAAAAAAAAAAAAAEAAgA="
         }
     ],
     "bufferViews": [
@@ -2360,13 +2360,13 @@ func TestWrite_MaterialsDeduplicated(t *testing.T) {
         },
         {
             "buffer": 0,
-            "byteOffset": 42,
+            "byteOffset": 44,
             "byteLength": 36,
             "target": 34962
         },
         {
             "buffer": 0,
-            "byteOffset": 78,
+            "byteOffset": 80,
             "byteLength": 6,
             "target": 34963
         }
@@ -2590,6 +2590,222 @@ func TestWrite_MeshesDeduplicated(t *testing.T) {
             "nodes": [
                 0,
                 1
+            ]
+        }
+    ]
+}`, buf.String())
+}
+func TestWrite_MeshesGpuInstanced(t *testing.T) {
+	// ARRANGE ================================================================
+	tri := modeling.NewTriangleMesh([]int{0, 1, 2}).
+		SetFloat3Attribute(
+			modeling.PositionAttribute,
+			[]vector3.Float64{
+				vector3.New(0., 0., 0.),
+				vector3.New(0., 1., 0.),
+				vector3.New(1., 0., 0.),
+			},
+		)
+
+	buf := bytes.Buffer{}
+
+	// ACT ====================================================================
+	roughness := 0.
+	material := &gltf.PolyformMaterial{
+		Name: "My Material",
+		PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
+			BaseColorFactor: color.RGBA{255, 100, 80, 255},
+			RoughnessFactor: &roughness,
+		},
+	}
+	rightV := vector3.New[float64](2, 0, 0)
+	leftV := vector3.New[float64](-2, 0, -0)
+	scaleUniform15 := vector3.New[float64](1.5, 1.5, 1.5)
+	scaleDistort := vector3.New[float64](0.5, 2.5, 0.5)
+	rotQuat := quaternion.FromTheta(-math.Pi/2, vector3.New[float64](1, 0, 0))
+
+	trsRight := trs.New(rightV, quaternion.Identity(), scaleUniform15)
+	trsLeft := trs.New(leftV, rotQuat, scaleDistort)
+
+	err := gltf.WriteText(gltf.PolyformScene{
+		Models: []gltf.PolyformModel{
+			{Name: "mesh_right", Mesh: &tri, Material: material, TRS: &trsRight},
+			{Name: "mesh_left", Mesh: &tri, Material: material, TRS: &trsLeft},
+		},
+		UseGpuInstancing: true,
+	}, &buf)
+
+	// ASSERT =================================================================
+	assert.NoError(t, err)
+	assert.Equal(t, `{
+    "extensionsUsed": [
+        "EXT_mesh_gpu_instancing"
+    ],
+    "extensionsRequired": [
+        "EXT_mesh_gpu_instancing"
+    ],
+    "accessors": [
+        {
+            "bufferView": 0,
+            "componentType": 5126,
+            "type": "VEC3",
+            "count": 3,
+            "max": [
+                1,
+                1,
+                0
+            ],
+            "min": [
+                0,
+                0,
+                0
+            ]
+        },
+        {
+            "bufferView": 1,
+            "componentType": 5123,
+            "type": "SCALAR",
+            "count": 3
+        },
+        {
+            "bufferView": 2,
+            "componentType": 5126,
+            "type": "VEC3",
+            "count": 2,
+            "max": [
+                2,
+                0,
+                0
+            ],
+            "min": [
+                -2,
+                0,
+                0
+            ]
+        },
+        {
+            "bufferView": 3,
+            "componentType": 5126,
+            "type": "VEC3",
+            "count": 2,
+            "max": [
+                1.5,
+                2.5,
+                1.5
+            ],
+            "min": [
+                0.5,
+                1.5,
+                0.5
+            ]
+        },
+        {
+            "bufferView": 4,
+            "componentType": 5126,
+            "type": "VEC4",
+            "count": 2,
+            "max": [
+                0,
+                0,
+                0,
+                1
+            ],
+            "min": [
+                -0.7071067811865475,
+                -0,
+                -0,
+                0.7071067811865476
+            ]
+        }
+    ],
+    "asset": {
+        "version": "2.0",
+        "generator": "https://github.com/EliCDavis/polyform"
+    },
+    "buffers": [
+        {
+            "byteLength": 124,
+            "uri": "data:application/octet-stream;base64,AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAAAAAAABAAIAAAAAAABAAAAAAAAAAAAAAADAAAAAAAAAAAAAAMA/AADAPwAAwD8AAAA/AAAgQAAAAD8AAAAAAAAAAAAAAAAAAIA/8wQ1vwAAAIAAAACA8wQ1Pw=="
+        }
+    ],
+    "bufferViews": [
+        {
+            "buffer": 0,
+            "byteLength": 36,
+            "target": 34962
+        },
+        {
+            "buffer": 0,
+            "byteOffset": 36,
+            "byteLength": 6,
+            "target": 34963
+        },
+        {
+            "buffer": 0,
+            "byteOffset": 44,
+            "byteLength": 24,
+            "target": 34962
+        },
+        {
+            "buffer": 0,
+            "byteOffset": 68,
+            "byteLength": 24,
+            "target": 34962
+        },
+        {
+            "buffer": 0,
+            "byteOffset": 92,
+            "byteLength": 32,
+            "target": 34962
+        }
+    ],
+    "materials": [
+        {
+            "name": "My Material",
+            "pbrMetallicRoughness": {
+                "baseColorFactor": [
+                    1,
+                    0.392,
+                    0.314,
+                    1
+                ],
+                "roughnessFactor": 0
+            }
+        }
+    ],
+    "meshes": [
+        {
+            "name": "mesh_right",
+            "primitives": [
+                {
+                    "attributes": {
+                        "POSITION": 0
+                    },
+                    "indices": 1,
+                    "material": 0
+                }
+            ]
+        }
+    ],
+    "nodes": [
+        {
+            "extensions": {
+                "EXT_mesh_gpu_instancing": {
+                    "attributes": {
+                        "ROTATION": 4,
+                        "SCALE": 3,
+                        "TRANSLATION": 2
+                    }
+                }
+            },
+            "mesh": 0,
+            "name": "mesh_right"
+        }
+    ],
+    "scenes": [
+        {
+            "nodes": [
+                0
             ]
         }
     ]
