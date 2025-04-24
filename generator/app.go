@@ -84,7 +84,35 @@ func (a *App) Schema() []byte {
 	return data
 }
 
-func writeManifestsToZip(outFolder string, graph *graph.Instance, zw *zip.Writer) error {
+func writeManifestToZip(graph *graph.Instance, zw *zip.Writer, nodeId string, node nodes.Node, out nodes.Output[manifest.Manifest]) error {
+	manifest := out.Value()
+	manifestName := fmt.Sprintf("%s-%s", nodeId, out.Name())
+
+	// TODO - There's gonna be an issue if anyone ever names a manifest
+	// output the same name as a nodeID-port combo
+	//
+	// IE: Naming a manifest "Node-8-Out", could conflict with Node-8's
+	// out port
+	if name, named := graph.IsPortNamed(node, out.Name()); named {
+		manifestName = name
+	}
+
+	entries := manifest.Entries
+	for artifactName, entry := range entries {
+		f, err := zw.Create(path.Join(manifestName, artifactName))
+		if err != nil {
+			return err
+		}
+
+		if err = entry.Artifact.Write(f); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func writeManifestsToZip(graph *graph.Instance, zw *zip.Writer) error {
 	if graph == nil {
 		panic("can't zip nil graph")
 	}
@@ -103,32 +131,7 @@ func writeManifestsToZip(outFolder string, graph *graph.Instance, zw *zip.Writer
 			if !ok {
 				continue
 			}
-
-			manifest := manifestOut.Value()
-			manifestName := fmt.Sprintf("%s-%s", nodeId, out.Name())
-
-			// TODO - There's gonna be an issue if anyone ever names a manifest
-			// output the same name as a nodeID-port combo
-			//
-			// IE: Naming a manifest "Node-8-Out", could conflict with Node-8's
-			// out port
-			if name, named := graph.IsPortNamed(node, out.Name()); named {
-				manifestName = name
-			}
-
-			manifestFolder := path.Join(outFolder, manifestName)
-			entries := manifest.Entries
-			for artifactName, entry := range entries {
-				f, err := zw.Create(path.Join(manifestFolder, artifactName))
-				if err != nil {
-					return err
-				}
-
-				err = entry.Artifact.Write(f)
-				if err != nil {
-					return err
-				}
-			}
+			writeManifestToZip(graph, zw, nodeId, node, manifestOut)
 		}
 	}
 
@@ -142,8 +145,7 @@ func (a App) initialize(set *flag.FlagSet) {
 func (a App) WriteZip(out io.Writer) error {
 	z := zip.NewWriter(out)
 
-	err := writeManifestsToZip("", a.graphInstance, z)
-	if err != nil {
+	if err := writeManifestsToZip(a.graphInstance, z); err != nil {
 		return err
 	}
 
