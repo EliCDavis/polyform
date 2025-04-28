@@ -46,27 +46,31 @@ func decodeIndices(doc *Gltf, id *GltfId, buffers [][]byte) ([]int, error) {
 		return nil, fmt.Errorf("unexpected accessor type for indices: %s", accessor.Type)
 	}
 
-	if accessor.ComponentType != AccessorComponentType_UNSIGNED_INT && accessor.ComponentType != AccessorComponentType_UNSIGNED_SHORT {
-		return nil, fmt.Errorf("unexpected accessor component type for indices: %d", accessor.ComponentType)
-	}
-
 	bufferView := doc.BufferViews[*accessor.BufferView]
-	bufferEnd := bufferView.ByteOffset + bufferView.ByteLength
-	buffer := buffers[bufferView.Buffer][bufferView.ByteOffset:bufferEnd]
+	start := bufferView.ByteOffset + accessor.ByteOffset
+	end := bufferView.ByteOffset + bufferView.ByteLength
+	buffer := buffers[bufferView.Buffer][start:end]
 
-	var indices []int
+	indices := make([]int, accessor.Count)
 	switch accessor.ComponentType {
 	case AccessorComponentType_UNSIGNED_INT:
-		indices = make([]int, accessor.Count)
 		for i := range indices {
 			indices[i] = int(binary.LittleEndian.Uint32(buffer[i*4:]))
 		}
 
 	case AccessorComponentType_UNSIGNED_SHORT:
-		indices = make([]int, accessor.Count)
 		for i := range indices {
 			indices[i] = int(binary.LittleEndian.Uint16(buffer[i*2:]))
 		}
+
+	case AccessorComponentType_UNSIGNED_BYTE:
+		for i := range indices {
+			indices[i] = int(buffer[i])
+		}
+
+	default:
+		return nil, fmt.Errorf("unexpected accessor component type for indices: %d", accessor.ComponentType)
+
 	}
 
 	return indices, nil

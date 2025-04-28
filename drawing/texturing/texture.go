@@ -87,9 +87,19 @@ func (t Texture[T]) SaveImage(fp string, conv func(T) color.Color) error {
 func (t Texture[T]) SearchNeighborhood(start vector2.Int, size int, cb func(x int, y int, v T)) {
 	startX := start.X()
 	startY := start.Y()
-	for y := startY - size; y <= startY+size; y++ {
-		for x := startX - size; x <= startX+size; x++ {
+	for y := max(startY-size, 0); y <= min(startY+size, t.height-1); y++ {
+		for x := max(startX-size, 0); x <= min(startX+size, t.width-1); x++ {
 			cb(x, y, t.Get(x, y))
 		}
 	}
+}
+
+func Convert[T, G any](in Texture[T], cb func(x int, y int, v T) G) Texture[G] {
+	out := NewTexture[G](in.width, in.height)
+	for y := 0; y < in.height; y++ {
+		for x := 0; x < in.width; x++ {
+			out.Set(x, y, cb(x, y, in.Get(x, y)))
+		}
+	}
+	return out
 }
