@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/EliCDavis/polyform/generator/endpoint"
+	"github.com/EliCDavis/polyform/generator/graph"
 	"github.com/EliCDavis/polyform/generator/room"
 	"github.com/EliCDavis/polyform/generator/schema"
 )
@@ -135,7 +136,8 @@ func (as *AppServer) Handler(indexFile string) (*http.ServeMux, error) {
 			},
 		},
 	})
-	mux.HandleFunc("/zip", as.ZipEndpoint)
+	mux.HandleFunc("/zip/", as.ZipEndpoint)
+	mux.HandleFunc("/node-types", NodeTypesEndpoint)
 	mux.Handle("/node", nodeEndpoint(as.app.graphInstance, graphSaver))
 	mux.Handle("/node/connection", nodeConnectionEndpoint(as.app.graphInstance, graphSaver))
 	mux.Handle("/parameter/value/", parameterValueEndpoint(as.app.graphInstance, graphSaver))
@@ -150,6 +152,7 @@ func (as *AppServer) Handler(indexFile string) (*http.ServeMux, error) {
 	mux.HandleFunc("/swagger", as.SwaggerEndpoint)
 	mux.HandleFunc("/producer/value/", as.ProducerEndpoint)
 	mux.Handle("/producer/name/", producerNameEndpoint(as.app.graphInstance, graphSaver))
+	mux.HandleFunc("/manifest/", as.ManifestEndpoint)
 
 	hub := room.NewHub(as.webscene, as.app.graphInstance)
 	go hub.Run()
@@ -174,6 +177,15 @@ func (as *AppServer) SchemaEndpoint(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
+func NodeTypesEndpoint(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	data, err := json.Marshal(graph.BuildSchemaForAllNodeTypes(types))
+	if err != nil {
+		panic(err)
+	}
+	w.Write(data)
+}
+
 func (as *AppServer) ProducerEndpoint(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Cache-Control", "no-cache")
 
@@ -183,7 +195,7 @@ func (as *AppServer) ProducerEndpoint(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Cross-Origin-Embedder-Policy", "require-corp")
 
 	// params, _ := url.ParseQuery(r.URL.RawQuery)
-	err := as.writeProducerDataToRequest(path.Base(r.URL.Path), w)
+	err := as.writeProducerDataToRequest(path.Base(path.Dir(r.URL.Path)), path.Base(r.URL.Path), w)
 	if err != nil {
 		log.Print(err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -191,14 +203,16 @@ func (as *AppServer) ProducerEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (as *AppServer) writeProducerDataToRequest(producerToLoad string, w http.ResponseWriter) (err error) {
+func (as *AppServer) writeProducerDataToRequest(producerToLoad, file string, w http.ResponseWriter) (err error) {
 	defer func() {
 		if recErr := recover(); recErr != nil {
 			fmt.Println("stacktrace from panic: \n" + string(debug.Stack()))
 			err = fmt.Errorf("panic recover: %v", recErr)
 		}
 	}()
-	artifact := as.app.graphInstance.Artifact(producerToLoad)
+
+	manifest := as.app.graphInstance.Manifest(producerToLoad)
+	artifact := manifest.Entries[file].Artifact
 
 	w.Header().Set("Content-Type", artifact.Mime())
 
@@ -227,14 +241,6 @@ func (as *AppServer) SwaggerEndpoint(w http.ResponseWriter, r *http.Request) {
 	err := as.app.WriteSwagger(w)
 	if err != nil {
 		log.Println(err.Error())
-	}
-}
-
-func (as *AppServer) ZipEndpoint(w http.ResponseWriter, r *http.Request) {
-	err := as.app.WriteZip(w)
-	w.Header().Add("Content-Type", "application/zip")
-	if err != nil {
-		panic(err)
 	}
 }
 

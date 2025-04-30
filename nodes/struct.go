@@ -120,6 +120,14 @@ func (so StructOutput[T]) Type() string {
 	return refutil.GetTypeWithPackage(new(T))
 }
 
+func (si StructOutput[T]) Description() string {
+	name := si.functionName + "Description"
+	if refutil.HasMethod(si.data, name) {
+		return refutil.CallStructMethod(si.data, name)[0].(string)
+	}
+	return ""
+}
+
 // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 // Methods called by the actual function that builds the thing
 //
@@ -195,6 +203,10 @@ func (si structArrayInput) Remove(port OutputPort) error {
 		}
 	}
 	return fmt.Errorf("array input port %s does not contain a reference to output port %s", si.Name(), port.Name())
+}
+
+func (si structArrayInput) Description() string {
+	return refutil.GetStructTag(si.data.Data(), si.structField, "description")
 }
 
 // ============================================================================
@@ -358,14 +370,37 @@ func (s *Struct[T]) inputVersions() string {
 	return builder.String()
 }
 
+func collapseCommonPackages(dirty string) string {
+	commonPackage := "github.com/EliCDavis/vector/"
+	vectorStart := strings.Index(dirty, commonPackage)
+	if vectorStart == -1 {
+		return dirty
+	}
+	return dirty[:vectorStart] + dirty[vectorStart+len(commonPackage):]
+}
+
 func (sn Struct[T]) Name() string {
 	name := refutil.GetTypeNameWithoutPackage(sn.Data)
 
-	if strings.LastIndex(name, "NodeData") == len(name)-8 {
-		name = name[0 : len(name)-8]
+	genericType := ""
+	startGeneric := strings.Index(name, "[")
+	if startGeneric != -1 && name[len(name)-1:] == "]" {
+		genericType = collapseCommonPackages(name[startGeneric:])
+
+		name = name[0:startGeneric]
 	}
 
-	return utils.CamelCaseToSpaceCase(name)
+	i := strings.LastIndex(name, "NodeData")
+	if i != -1 && i == len(name)-8 {
+		name = name[0 : len(name)-8]
+	} else {
+		i = strings.LastIndex(name, "Node")
+		if i != -1 && i == len(name)-4 {
+			name = name[0 : len(name)-4]
+		}
+	}
+
+	return utils.CamelCaseToSpaceCase(name) + genericType
 }
 
 func (sn Struct[T]) Description() string {

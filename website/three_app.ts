@@ -6,6 +6,7 @@ import { CSS2DRenderer } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
+import { SSAOPass } from 'three/examples/jsm/postprocessing/SSAOPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { ViewportSettings } from "./viewport_settings";
 import { UpdateManager } from "./update_manager";
@@ -79,11 +80,13 @@ export function CreateThreeApp(
     renderer.setAnimationLoop(updateLoop.run.bind(updateLoop))
 
     const renderScene = new RenderPass(scene, camera);
+    const ssaoPass = new SSAOPass(scene, camera)
     const bloomPass = new UnrealBloomPass(new Vector2(window.innerWidth, window.innerHeight), .3, 0., 1.01);
     const outputPass = new OutputPass();
 
     const composer = new EffectComposer(renderer);
     composer.addPass(renderScene);
+    composer.addPass(ssaoPass);
     composer.addPass(bloomPass);
     composer.addPass(outputPass);
 

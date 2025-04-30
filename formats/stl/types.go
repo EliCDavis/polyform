@@ -5,7 +5,7 @@ import (
 	"io"
 
 	"github.com/EliCDavis/polyform/generator"
-	"github.com/EliCDavis/polyform/generator/artifact"
+	"github.com/EliCDavis/polyform/generator/manifest"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
@@ -14,7 +14,7 @@ import (
 func init() {
 	factory := &refutil.TypeFactory{}
 	refutil.RegisterType[ReadNode](factory)
-	refutil.RegisterType[ArtifactNode](factory)
+	refutil.RegisterType[ManifestNode](factory)
 	generator.RegisterTypes(factory)
 }
 
@@ -58,12 +58,13 @@ func (Artifact) Mime() string {
 	return "application/sla"
 }
 
-type ArtifactNode = nodes.Struct[ArtifactNodeData]
+type ManifestNode = nodes.Struct[ManifestNodeData]
 
-type ArtifactNodeData struct {
-	In nodes.Output[modeling.Mesh]
+type ManifestNodeData struct {
+	Mesh nodes.Output[modeling.Mesh]
 }
 
-func (pn ArtifactNodeData) Out() nodes.StructOutput[artifact.Artifact] {
-	return nodes.NewStructOutput[artifact.Artifact](Artifact{Mesh: pn.In.Value()})
+func (pn ManifestNodeData) Out() nodes.StructOutput[manifest.Manifest] {
+	entry := manifest.Entry{Artifact: Artifact{Mesh: pn.Mesh.Value()}}
+	return nodes.NewStructOutput(manifest.SingleEntryManifest("model.stl", entry))
 }

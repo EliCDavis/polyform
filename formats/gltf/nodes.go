@@ -1,12 +1,13 @@
 package gltf
 
 import (
+	"image"
 	"image/color"
 	"io"
 
 	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/generator"
-	"github.com/EliCDavis/polyform/generator/artifact"
+	"github.com/EliCDavis/polyform/generator/manifest"
 	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/polyform/math/trs"
 	"github.com/EliCDavis/polyform/modeling"
@@ -18,14 +19,20 @@ import (
 func init() {
 	factory := &refutil.TypeFactory{}
 
-	refutil.RegisterType[ArtifactNode](factory)
+	refutil.RegisterType[ManifestNode](factory)
 	refutil.RegisterType[MaterialAnisotropyExtensionNode](factory)
 	refutil.RegisterType[MaterialClearcoatExtensionNode](factory)
 	refutil.RegisterType[MaterialNode](factory)
 	refutil.RegisterType[MaterialTransmissionExtensionNode](factory)
 	refutil.RegisterType[MaterialVolumeExtensionNode](factory)
 	refutil.RegisterType[ModelNode](factory)
+	refutil.RegisterType[TextureReferenceNode](factory)
 	refutil.RegisterType[TextureNode](factory)
+	refutil.RegisterType[SamplerNode](factory)
+
+	refutil.RegisterType[SamplerWrapNode](factory)
+	refutil.RegisterType[SamplerMinFilterNode](factory)
+	refutil.RegisterType[SamplerMagFilterNode](factory)
 
 	generator.RegisterTypes(factory)
 }
@@ -42,13 +49,13 @@ func (ga Artifact) Write(w io.Writer) error {
 	return WriteBinary(ga.Scene, w)
 }
 
-type ArtifactNode = nodes.Struct[ArtifactNodeData]
+type ManifestNode = nodes.Struct[ManifestNodeData]
 
-type ArtifactNodeData struct {
+type ManifestNodeData struct {
 	Models []nodes.Output[PolyformModel]
 }
 
-func (gad ArtifactNodeData) Out() nodes.StructOutput[artifact.Artifact] {
+func (gad ManifestNodeData) Out() nodes.StructOutput[manifest.Manifest] {
 	models := make([]PolyformModel, 0, len(gad.Models))
 
 	for _, m := range gad.Models {
@@ -66,11 +73,16 @@ func (gad ArtifactNodeData) Out() nodes.StructOutput[artifact.Artifact] {
 		models = append(models, value)
 	}
 
-	return nodes.NewStructOutput[artifact.Artifact](&Artifact{
-		Scene: PolyformScene{
-			Models: models,
+	entry := manifest.Entry{
+		Artifact: &Artifact{
+			Scene: PolyformScene{
+				Models:           models,
+				UseGpuInstancing: true,
+			},
 		},
-	})
+	}
+
+	return nodes.NewStructOutput(manifest.SingleEntryManifest("model.glb", entry))
 }
 
 type ModelNode = nodes.Struct[ModelNodeData]
@@ -87,7 +99,10 @@ type ModelNodeData struct {
 }
 
 func (gmnd ModelNodeData) Out() nodes.StructOutput[PolyformModel] {
-	model := PolyformModel{Name: "Mesh"}
+	model := PolyformModel{
+		Name:         "Mesh",
+		GpuInstances: nodes.TryGetOutputValue(gmnd.GpuInstances, nil),
+	}
 
 	if gmnd.Material != nil {
 		v := gmnd.Material.Value()
@@ -99,46 +114,233 @@ func (gmnd ModelNodeData) Out() nodes.StructOutput[PolyformModel] {
 		model.Mesh = &mesh
 	}
 
-	if gmnd.GpuInstances != nil {
-		model.GpuInstances = gmnd.GpuInstances.Value()
-	}
+	transform := trs.Identity()
 
 	if gmnd.Translation != nil {
 		v := gmnd.Translation.Value()
-		model.Translation = &v
+		transform = transform.Translate(v)
 	}
 
 	if gmnd.Scale != nil {
 		v := gmnd.Scale.Value()
-		model.Scale = &v
+		transform = transform.SetScale(v)
 	}
 
 	if gmnd.Rotation != nil {
 		v := gmnd.Rotation.Value()
-		model.Rotation = &v
+		transform = transform.SetRotation(v)
+	}
+
+	model.TRS = &transform
+
+	if gmnd.GpuInstances != nil {
+		model.GpuInstances = gmnd.GpuInstances.Value()
 	}
 
 	return nodes.NewStructOutput(model)
 }
 
+type TextureReferenceNode = nodes.Struct[TextureReferenceNodeData]
+
+type TextureReferenceNodeData struct {
+	URI     nodes.Output[string]
+	Sampler nodes.Output[Sampler]
+}
+
+func (tnd TextureReferenceNodeData) Out() nodes.StructOutput[PolyformTexture] {
+	var sampler *Sampler = nil
+	if tnd.Sampler != nil {
+		v := tnd.Sampler.Value()
+		sampler = &v
+	}
+
+	return nodes.NewStructOutput(PolyformTexture{
+		Sampler: sampler,
+		URI:     nodes.TryGetOutputValue(tnd.URI, ""),
+	})
+}
+
+func (gmnd TextureReferenceNodeData) Description() string {
+	return "An object that combines an image and its sampler"
+}
+
 type TextureNode = nodes.Struct[TextureNodeData]
 
 type TextureNodeData struct {
-	URI nodes.Output[string]
+	Image   nodes.Output[image.Image]
+	Sampler nodes.Output[Sampler]
 }
 
 func (tnd TextureNodeData) Out() nodes.StructOutput[PolyformTexture] {
-	tex := PolyformTexture{}
-
-	if tnd.URI != nil {
-		tex.URI = tnd.URI.Value()
+	var sampler *Sampler = nil
+	if tnd.Sampler != nil {
+		v := tnd.Sampler.Value()
+		sampler = &v
 	}
 
-	return nodes.NewStructOutput(tex)
+	return nodes.NewStructOutput(PolyformTexture{
+		Sampler: sampler,
+		Image:   nodes.TryGetOutputValue(tnd.Image, nil),
+	})
 }
 
 func (gmnd TextureNodeData) Description() string {
 	return "An object that combines an image and its sampler"
+}
+
+type SamplerNode = nodes.Struct[SamplerNodeData]
+
+type SamplerNodeData struct {
+	MagFilter nodes.Output[SamplerMagFilter] `description:"Magnification filter"`
+	MinFilter nodes.Output[SamplerMinFilter] `description:"Minification filter"`
+	WrapS     nodes.Output[SamplerWrap]      `description:"S (U) wrapping mode"`
+	WrapT     nodes.Output[SamplerWrap]      `description:"T (V) wrapping mode"`
+}
+
+func (tnd SamplerNodeData) Out() nodes.StructOutput[Sampler] {
+	return nodes.NewStructOutput(Sampler{
+		MagFilter: nodes.TryGetOutputValue(tnd.MagFilter, SamplerMagFilter_NEAREST),
+		MinFilter: nodes.TryGetOutputValue(tnd.MinFilter, SamplerMinFilter_NEAREST),
+		WrapS:     nodes.TryGetOutputValue(tnd.WrapS, SamplerWrap_REPEAT),
+		WrapT:     nodes.TryGetOutputValue(tnd.WrapT, SamplerWrap_REPEAT),
+	})
+}
+
+func (SamplerNodeData) Description() string {
+	return "Texture sampler properties for filtering and wrapping modes"
+}
+
+type SamplerWrapNode struct {
+}
+
+func (SamplerWrapNode) Name() string {
+	return "Sampler Wrap"
+}
+
+func (SamplerWrapNode) Inputs() map[string]nodes.InputPort {
+	return nil
+}
+
+func (p *SamplerWrapNode) Outputs() map[string]nodes.OutputPort {
+	return map[string]nodes.OutputPort{
+		"Clamp To Edge": nodes.ConstOutput[SamplerWrap]{
+			Ref:             p,
+			Val:             SamplerWrap_CLAMP_TO_EDGE,
+			PortName:        "Clamp To Edge",
+			PortDescription: "The last pixel of the texture stretches to the edge of the mesh.",
+		},
+
+		"Mirrored Repeat": nodes.ConstOutput[SamplerWrap]{
+			Ref:             p,
+			Val:             SamplerWrap_MIRRORED_REPEAT,
+			PortName:        "Mirrored Repeat",
+			PortDescription: "The texture will repeats to infinity, mirroring on each repeat",
+		},
+
+		"Repeat": nodes.ConstOutput[SamplerWrap]{
+			Ref:             p,
+			Val:             SamplerWrap_REPEAT,
+			PortName:        "Repeat",
+			PortDescription: "The texture will simply repeat to infinity.",
+		},
+	}
+}
+
+type SamplerMagFilterNode struct {
+}
+
+func (SamplerMagFilterNode) Name() string {
+	return "Sampler Mag Filter"
+}
+
+func (SamplerMagFilterNode) Description() string {
+	return "These define the texture magnification function to be used when the pixel being textured maps to an area less than or equal to one texture element (texel)"
+}
+
+func (SamplerMagFilterNode) Inputs() map[string]nodes.InputPort {
+	return nil
+}
+
+func (p *SamplerMagFilterNode) Outputs() map[string]nodes.OutputPort {
+	return map[string]nodes.OutputPort{
+		"Nearest": nodes.ConstOutput[SamplerMagFilter]{
+			Ref:             p,
+			Val:             SamplerMagFilter_NEAREST,
+			PortName:        "Nearest",
+			PortDescription: "The value of the texture element that is nearest (in Manhattan distance) to the specified texture coordinates",
+		},
+
+		"Linear": nodes.ConstOutput[SamplerMagFilter]{
+			Ref:             p,
+			Val:             SamplerMagFilter_LINEAR,
+			PortName:        "Linear",
+			PortDescription: "The weighted average of the four texture elements that are closest to the specified texture coordinates, and can include items wrapped or repeated from other parts of a texture, depending on the values of wrapS and wrapT, and on the exact mapping.",
+		},
+	}
+}
+
+// Descriptions pulled from Three.js
+// http://threejs.org/docs/#api/en/constants/Textures
+
+type SamplerMinFilterNode struct {
+}
+
+func (SamplerMinFilterNode) Name() string {
+	return "Sampler Min Filter"
+}
+
+func (SamplerMinFilterNode) Description() string {
+	return "These define the texture minifying function that is used whenever the pixel being textured maps to an area greater than one texture element (texel)."
+}
+
+func (SamplerMinFilterNode) Inputs() map[string]nodes.InputPort {
+	return nil
+}
+
+func (p *SamplerMinFilterNode) Outputs() map[string]nodes.OutputPort {
+	return map[string]nodes.OutputPort{
+		"Nearest": nodes.ConstOutput[SamplerMinFilter]{
+			Ref:             p,
+			Val:             SamplerMinFilter_NEAREST,
+			PortName:        "Nearest",
+			PortDescription: "The value of the texture element that is nearest (in Manhattan distance) to the specified texture coordinates",
+		},
+
+		"Linear": nodes.ConstOutput[SamplerMinFilter]{
+			Ref:             p,
+			Val:             SamplerMinFilter_LINEAR,
+			PortName:        "Linear",
+			PortDescription: "The weighted average of the four texture elements that are closest to the specified texture coordinates, and can include items wrapped or repeated from other parts of a texture, depending on the values of wrapS and wrapT, and on the exact mapping.",
+		},
+
+		"Nearest Mipmap Nearest": nodes.ConstOutput[SamplerMinFilter]{
+			Ref:             p,
+			Val:             SamplerMinFilter_NEAREST_MIPMAP_NEAREST,
+			PortName:        "Nearest Mipmap Nearest",
+			PortDescription: "Chooses the mipmap that most closely matches the size of the pixel being textured and uses the NearestFilter criterion (the texel nearest to the center of the pixel) to produce a texture value.",
+		},
+
+		"Linear Mipmap Nearest": nodes.ConstOutput[SamplerMinFilter]{
+			Ref:             p,
+			Val:             SamplerMinFilter_LINEAR_MIPMAP_NEAREST,
+			PortName:        "Linear Mipmap Nearest",
+			PortDescription: "Chooses the mipmap that most closely matches the size of the pixel being textured and uses the LinearFilter criterion (a weighted average of the four texels that are closest to the center of the pixel) to produce a texture value.",
+		},
+
+		"Nearest Mipmap Linear": nodes.ConstOutput[SamplerMinFilter]{
+			Ref:             p,
+			Val:             SamplerMinFilter_NEAREST_MIPMAP_LINEAR,
+			PortName:        "Nearest Mipmap Linear",
+			PortDescription: "Chooses the two mipmaps that most closely match the size of the pixel being textured and uses the NearestFilter criterion to produce a texture value from each mipmap. The final texture value is a weighted average of those two values.",
+		},
+
+		"Linear Mipmap Linear": nodes.ConstOutput[SamplerMinFilter]{
+			Ref:             p,
+			Val:             SamplerMinFilter_LINEAR_MIPMAP_LINEAR,
+			PortName:        "Linear Mipmap Linear",
+			PortDescription: "Chooses the two mipmaps that most closely match the size of the pixel being textured and uses the LinearFilter criterion to produce a texture value from each mipmap. The final texture value is a weighted average of those two values.",
+		},
+	}
 }
 
 type MaterialNode = nodes.Struct[MaterialNodeData]
@@ -147,10 +349,10 @@ type MaterialNode = nodes.Struct[MaterialNodeData]
 
 type MaterialNodeData struct {
 	Color                    nodes.Output[coloring.WebColor] `description:"The factors for the base color of the material. This value defines linear multipliers for the sampled texels of the base color texture."`
-	ColorTexture             nodes.Output[string]            `description:"The base color texture. The first three components (RGB) MUST be encoded with the sRGB transfer function. They specify the base color of the material. If the fourth component (A) is present, it represents the linear alpha coverage of the material. Otherwise, the alpha coverage is equal to 1.0. The material.alphaMode property specifies how alpha is interpreted. The stored texels MUST NOT be premultiplied. When undefined, the texture MUST be sampled as having 1.0 in all components."`
+	ColorTexture             nodes.Output[PolyformTexture]   `description:"The base color texture. The first three components (RGB) MUST be encoded with the sRGB transfer function. They specify the base color of the material. If the fourth component (A) is present, it represents the linear alpha coverage of the material. Otherwise, the alpha coverage is equal to 1.0. The material.alphaMode property specifies how alpha is interpreted. The stored texels MUST NOT be premultiplied. When undefined, the texture MUST be sampled as having 1.0 in all components."`
 	MetallicFactor           nodes.Output[float64]           `description:"The factor for the metalness of the material. This value defines a linear multiplier for the sampled metalness values of the metallic-roughness texture."`
 	RoughnessFactor          nodes.Output[float64]           `description:"The factor for the roughness of the material. This value defines a linear multiplier for the sampled roughness values of the metallic-roughness texture."`
-	MetallicRoughnessTexture nodes.Output[string]            `description:"The metallic-roughness texture. The metalness values are sampled from the B channel. The roughness values are sampled from the G channel. These values MUST be encoded with a linear transfer function. If other channels are present (R or A), they MUST be ignored for metallic-roughness calculations. When undefined, the texture MUST be sampled as having 1.0 in G and B components."`
+	MetallicRoughnessTexture nodes.Output[PolyformTexture]   `description:"The metallic-roughness texture. The metalness values are sampled from the B channel. The roughness values are sampled from the G channel. These values MUST be encoded with a linear transfer function. If other channels are present (R or A), they MUST be ignored for metallic-roughness calculations. When undefined, the texture MUST be sampled as having 1.0 in G and B components."`
 	EmissiveFactor           nodes.Output[coloring.WebColor] `description:"The factors for the emissive color of the material. This value defines linear multipliers for the sampled texels of the emissive texture."`
 
 	// Extensions
@@ -174,18 +376,16 @@ func (gmnd MaterialNodeData) Out() nodes.StructOutput[PolyformMaterial] {
 		if pbr == nil {
 			pbr = &PolyformPbrMetallicRoughness{}
 		}
-		pbr.BaseColorTexture = &PolyformTexture{
-			URI: gmnd.ColorTexture.Value(),
-		}
+		v := gmnd.ColorTexture.Value()
+		pbr.BaseColorTexture = &v
 	}
 
 	if gmnd.MetallicRoughnessTexture != nil {
 		if pbr == nil {
 			pbr = &PolyformPbrMetallicRoughness{}
 		}
-		pbr.MetallicRoughnessTexture = &PolyformTexture{
-			URI: gmnd.MetallicRoughnessTexture.Value(),
-		}
+		v := gmnd.MetallicRoughnessTexture.Value()
+		pbr.MetallicRoughnessTexture = &v
 	}
 
 	if gmnd.MetallicFactor != nil {

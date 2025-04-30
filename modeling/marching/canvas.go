@@ -63,7 +63,7 @@ const (
 
 type marchingSection struct {
 	dataType  MarchingDataType
-	positions map[modeling.VectorInt]int
+	positions map[vector3.Int]int
 }
 
 type float1MarchingSection = []float64
@@ -94,7 +94,7 @@ func (d MarchingCanvas) index(x, y, z int) int {
 	return (z * marchingSectionSizeSquared) + (y * marchingSectionSize) + x
 }
 
-func (d *MarchingCanvas) chunkIndex_atomic(section *marchingSection, vec modeling.VectorInt) int {
+func (d *MarchingCanvas) chunkIndex_atomic(section *marchingSection, vec vector3.Int) int {
 	d.chunkMutex.Lock()
 	defer d.chunkMutex.Unlock()
 	chunkIndex, ok := section.positions[vec]
@@ -117,12 +117,12 @@ func (d *MarchingCanvas) chunkIndex_atomic(section *marchingSection, vec modelin
 	return chunkIndex
 }
 
-func (d MarchingCanvas) canvasPosToChunkPos(x, y, z int) modeling.VectorInt {
-	return modeling.VectorInt{
-		X: int(math.Floor(float64(x) / marchingSectionSize)),
-		Y: int(math.Floor(float64(y) / marchingSectionSize)),
-		Z: int(math.Floor(float64(z) / marchingSectionSize)),
-	}
+func (d MarchingCanvas) canvasPosToChunkPos(x, y, z int) vector3.Int {
+	return vector3.New(
+		int(math.Floor(float64(x)/marchingSectionSize)),
+		int(math.Floor(float64(y)/marchingSectionSize)),
+		int(math.Floor(float64(z)/marchingSectionSize)),
+	)
 }
 
 // func (d *MarchingCanvas) addFloat1Value(section *marchingSection, x, y, z int, val float64) {
@@ -134,7 +134,7 @@ func (d MarchingCanvas) canvasPosToChunkPos(x, y, z int) modeling.VectorInt {
 
 // 	index := d.chunkIndex_atomic(section, chunkPos)
 
-// 	shiftedPos := modeling.VectorInt{
+// 	shiftedPos := vector3.New(
 // 		X: x - (chunkPos.X * marchingSectionSize),
 // 		Y: y - (chunkPos.Y * marchingSectionSize),
 // 		Z: z - (chunkPos.Z * marchingSectionSize),
@@ -143,21 +143,21 @@ func (d MarchingCanvas) canvasPosToChunkPos(x, y, z int) modeling.VectorInt {
 // 	d.float1Data[index][d.index(shiftedPos.X, shiftedPos.Y, shiftedPos.Z)] += val
 // }
 
-func (d MarchingCanvas) fieldBounds(f Field) (modeling.VectorInt, modeling.VectorInt) {
+func (d MarchingCanvas) fieldBounds(f Field) (vector3.Int, vector3.Int) {
 	min := f.Domain.Min()
 	max := f.Domain.Max()
 
-	minCanvas := modeling.VectorInt{
-		X: int(math.Floor(min.X()*d.cubesPerUnit)) - 1,
-		Y: int(math.Floor(min.Y()*d.cubesPerUnit)) - 1,
-		Z: int(math.Floor(min.Z()*d.cubesPerUnit)) - 1,
-	}
+	minCanvas := vector3.New(
+		int(math.Floor(min.X()*d.cubesPerUnit))-1,
+		int(math.Floor(min.Y()*d.cubesPerUnit))-1,
+		int(math.Floor(min.Z()*d.cubesPerUnit))-1,
+	)
 
-	maxCanvas := modeling.VectorInt{
-		X: int(math.Ceil(max.X()*d.cubesPerUnit)) + 1,
-		Y: int(math.Ceil(max.Y()*d.cubesPerUnit)) + 1,
-		Z: int(math.Ceil(max.Z()*d.cubesPerUnit)) + 1,
-	}
+	maxCanvas := vector3.New(
+		int(math.Ceil(max.X()*d.cubesPerUnit))+1,
+		int(math.Ceil(max.Y()*d.cubesPerUnit))+1,
+		int(math.Ceil(max.Z()*d.cubesPerUnit))+1,
+	)
 
 	return minCanvas, maxCanvas
 }
@@ -172,13 +172,13 @@ func (d MarchingCanvas) getSection(attribute string, dataType MarchingDataType) 
 
 	d.sections[attribute] = &marchingSection{
 		dataType:  dataType,
-		positions: make(map[modeling.VectorInt]int),
+		positions: make(map[vector3.Int]int),
 	}
 
 	return d.sections[attribute]
 }
 
-func (d *MarchingCanvas) addFloat1Range(section *marchingSection, chunkPos, min, max modeling.VectorInt, function sample.Vec3ToFloat) {
+func (d *MarchingCanvas) addFloat1Range(section *marchingSection, chunkPos, min, max vector3.Int, function sample.Vec3ToFloat) {
 	if section.dataType != Float1 {
 		panic(fmt.Errorf("cant add float1 to section with type of: %d", section.dataType))
 	}
@@ -186,36 +186,36 @@ func (d *MarchingCanvas) addFloat1Range(section *marchingSection, chunkPos, min,
 	index := d.chunkIndex_atomic(section, chunkPos)
 	data := d.float1Data[index]
 
-	for z := min.Z; z < max.Z; z++ {
-		for y := min.Y; y < max.Y; y++ {
-			for x := min.X; x < max.X; x++ {
+	for z := min.Z(); z < max.Z(); z++ {
+		for y := min.Y(); y < max.Y(); y++ {
+			for x := min.X(); x < max.X(); x++ {
 				pos := vector3.
 					New(float64(x), float64(y), float64(z)).
 					DivByConstant(d.cubesPerUnit)
 
-				shiftedPos := modeling.VectorInt{
-					X: x - (chunkPos.X * marchingSectionSize),
-					Y: y - (chunkPos.Y * marchingSectionSize),
-					Z: z - (chunkPos.Z * marchingSectionSize),
-				}
+				shiftedPos := vector3.New(
+					x-(chunkPos.X()*marchingSectionSize),
+					y-(chunkPos.Y()*marchingSectionSize),
+					z-(chunkPos.Z()*marchingSectionSize),
+				)
 
-				data[d.index(shiftedPos.X, shiftedPos.Y, shiftedPos.Z)] += function(pos)
+				data[d.index(shiftedPos.X(), shiftedPos.Y(), shiftedPos.Z())] += function(pos)
 			}
 		}
 	}
 }
 
-func (d *MarchingCanvas) calcFloat1Range(min, max modeling.VectorInt, function sample.Vec3ToFloat) []float64 {
+func (d *MarchingCanvas) calcFloat1Range(min, max vector3.Int, function sample.Vec3ToFloat) []float64 {
 	bounds := max.Sub(min)
-	arr := make([]float64, bounds.X*bounds.Y*bounds.Z)
+	arr := make([]float64, bounds.X()*bounds.Y()*bounds.Z())
 
 	i := 0
 
-	for z := min.Z; z < max.Z; z++ {
+	for z := min.Z(); z < max.Z(); z++ {
 		zF := float64(z) / d.cubesPerUnit
-		for y := min.Y; y < max.Y; y++ {
+		for y := min.Y(); y < max.Y(); y++ {
 			yF := float64(y) / d.cubesPerUnit
-			for x := min.X; x < max.X; x++ {
+			for x := min.X(); x < max.X(); x++ {
 				xF := float64(x) / d.cubesPerUnit
 				arr[i] = function(vector3.New(zF, yF, xF))
 				i++
@@ -226,25 +226,25 @@ func (d *MarchingCanvas) calcFloat1Range(min, max modeling.VectorInt, function s
 
 }
 
-func (d MarchingCanvas) chunkSectionsInRange(min, max modeling.VectorInt) []modeling.VectorInt {
-	minChunkPos := d.canvasPosToChunkPos(min.X, min.Y, min.Z)
-	maxChunkPos := d.canvasPosToChunkPos(max.X, max.Y, max.Z)
+func (d MarchingCanvas) chunkSectionsInRange(min, max vector3.Int) []vector3.Int {
+	minChunkPos := d.canvasPosToChunkPos(min.X(), min.Y(), min.Z())
+	maxChunkPos := d.canvasPosToChunkPos(max.X(), max.Y(), max.Z())
 
 	if minChunkPos == maxChunkPos {
-		return []modeling.VectorInt{minChunkPos}
+		return []vector3.Int{minChunkPos}
 	}
 
 	chunkRange := maxChunkPos.Sub(minChunkPos)
 
-	allSections := make([]modeling.VectorInt, 0)
-	for x := 0; x < chunkRange.X+1; x++ {
-		for y := 0; y < chunkRange.Y+1; y++ {
-			for z := 0; z < chunkRange.Z+1; z++ {
-				allSections = append(allSections, modeling.VectorInt{
-					X: minChunkPos.X + x,
-					Y: minChunkPos.Y + y,
-					Z: minChunkPos.Z + z,
-				})
+	allSections := make([]vector3.Int, 0)
+	for x := 0; x < chunkRange.X()+1; x++ {
+		for y := 0; y < chunkRange.Y()+1; y++ {
+			for z := 0; z < chunkRange.Z()+1; z++ {
+				allSections = append(allSections, vector3.New(
+					minChunkPos.X()+x,
+					minChunkPos.Y()+y,
+					minChunkPos.Z()+z,
+				))
 			}
 		}
 	}
@@ -273,16 +273,16 @@ func (d *MarchingCanvas) AddField(field Field) {
 		section := d.getSection(attribute, Float1)
 
 		for _, chunkPos := range chunkSections {
-			canvasSpaceChunkPos := modeling.VectorInt{
-				X: maxInt(chunkPos.X*marchingSectionSize, min.X),
-				Y: maxInt(chunkPos.Y*marchingSectionSize, min.Y),
-				Z: maxInt(chunkPos.Z*marchingSectionSize, min.Z),
-			}
-			endPos := modeling.VectorInt{
-				X: minInt((chunkPos.X*marchingSectionSize)+marchingSectionSize, max.X),
-				Y: minInt((chunkPos.Y*marchingSectionSize)+marchingSectionSize, max.Y),
-				Z: minInt((chunkPos.Z*marchingSectionSize)+marchingSectionSize, max.Z),
-			}
+			canvasSpaceChunkPos := vector3.New(
+				maxInt(chunkPos.X()*marchingSectionSize, min.X()),
+				maxInt(chunkPos.Y()*marchingSectionSize, min.Y()),
+				maxInt(chunkPos.Z()*marchingSectionSize, min.Z()),
+			)
+			endPos := vector3.New(
+				minInt((chunkPos.X()*marchingSectionSize)+marchingSectionSize, max.X()),
+				minInt((chunkPos.Y()*marchingSectionSize)+marchingSectionSize, max.Y()),
+				minInt((chunkPos.Z()*marchingSectionSize)+marchingSectionSize, max.Z()),
+			)
 			d.addFloat1Range(section, chunkPos, canvasSpaceChunkPos, endPos, function)
 		}
 
@@ -298,7 +298,7 @@ func (d *MarchingCanvas) AddFieldParallel(field Field) {
 
 	type job struct {
 		section                    *marchingSection
-		chunkPos, startPos, endPos modeling.VectorInt
+		chunkPos, startPos, endPos vector3.Int
 		function                   sample.Vec3ToFloat
 	}
 
@@ -323,16 +323,16 @@ func (d *MarchingCanvas) AddFieldParallel(field Field) {
 	for attribute, function := range field.Float1Functions {
 		section := d.getSection(attribute, Float1)
 		for _, chunkPos := range chunkSections {
-			canvasSpaceChunkPos := modeling.VectorInt{
-				X: maxInt(chunkPos.X*marchingSectionSize, min.X),
-				Y: maxInt(chunkPos.Y*marchingSectionSize, min.Y),
-				Z: maxInt(chunkPos.Z*marchingSectionSize, min.Z),
-			}
-			endPos := modeling.VectorInt{
-				X: minInt((chunkPos.X*marchingSectionSize)+marchingSectionSize, max.X),
-				Y: minInt((chunkPos.Y*marchingSectionSize)+marchingSectionSize, max.Y),
-				Z: minInt((chunkPos.Z*marchingSectionSize)+marchingSectionSize, max.Z),
-			}
+			canvasSpaceChunkPos := vector3.New(
+				maxInt(chunkPos.X()*marchingSectionSize, min.X()),
+				maxInt(chunkPos.Y()*marchingSectionSize, min.Y()),
+				maxInt(chunkPos.Z()*marchingSectionSize, min.Z()),
+			)
+			endPos := vector3.New(
+				minInt((chunkPos.X()*marchingSectionSize)+marchingSectionSize, max.X()),
+				minInt((chunkPos.Y()*marchingSectionSize)+marchingSectionSize, max.Y()),
+				minInt((chunkPos.Z()*marchingSectionSize)+marchingSectionSize, max.Z()),
+			)
 			jobs <- job{
 				section:  section,
 				chunkPos: chunkPos,
@@ -353,7 +353,7 @@ func (d *MarchingCanvas) AddFieldParallel(field Field) {
 func (d *MarchingCanvas) AddFieldParallel2(field Field) {
 	type job struct {
 		section                    *marchingSection
-		chunkPos, startPos, endPos modeling.VectorInt
+		chunkPos, startPos, endPos vector3.Int
 		function                   sample.Vec3ToFloat
 		data                       []float64
 	}
@@ -378,16 +378,16 @@ func (d *MarchingCanvas) AddFieldParallel2(field Field) {
 	for attribute, function := range field.Float1Functions {
 		section := d.getSection(attribute, Float1)
 		for _, chunkPos := range chunkSections {
-			canvasSpaceChunkPos := modeling.VectorInt{
-				X: maxInt(chunkPos.X*marchingSectionSize, min.X),
-				Y: maxInt(chunkPos.Y*marchingSectionSize, min.Y),
-				Z: maxInt(chunkPos.Z*marchingSectionSize, min.Z),
-			}
-			endPos := modeling.VectorInt{
-				X: minInt((chunkPos.X*marchingSectionSize)+marchingSectionSize, max.X),
-				Y: minInt((chunkPos.Y*marchingSectionSize)+marchingSectionSize, max.Y),
-				Z: minInt((chunkPos.Z*marchingSectionSize)+marchingSectionSize, max.Z),
-			}
+			canvasSpaceChunkPos := vector3.New(
+				maxInt(chunkPos.X()*marchingSectionSize, min.X()),
+				maxInt(chunkPos.Y()*marchingSectionSize, min.Y()),
+				maxInt(chunkPos.Z()*marchingSectionSize, min.Z()),
+			)
+			endPos := vector3.New(
+				minInt((chunkPos.X()*marchingSectionSize)+marchingSectionSize, max.X()),
+				minInt((chunkPos.Y()*marchingSectionSize)+marchingSectionSize, max.Y()),
+				minInt((chunkPos.Z()*marchingSectionSize)+marchingSectionSize, max.Z()),
+			)
 			jobs <- &job{
 				section:  section,
 				chunkPos: chunkPos,
@@ -408,17 +408,17 @@ func (d *MarchingCanvas) AddFieldParallel2(field Field) {
 		chunkPos := result.chunkPos
 		data := d.float1Data[d.chunkIndex_atomic(result.section, chunkPos)]
 		resultData := result.data
-		for z := result.startPos.Z; z < result.endPos.Z; z++ {
-			for y := result.startPos.Y; y < result.endPos.Y; y++ {
-				for x := result.startPos.X; x < result.endPos.X; x++ {
+		for z := result.startPos.Z(); z < result.endPos.Z(); z++ {
+			for y := result.startPos.Y(); y < result.endPos.Y(); y++ {
+				for x := result.startPos.X(); x < result.endPos.X(); x++ {
 
-					shiftedPos := modeling.VectorInt{
-						X: x - (chunkPos.X * marchingSectionSize),
-						Y: y - (chunkPos.Y * marchingSectionSize),
-						Z: z - (chunkPos.Z * marchingSectionSize),
-					}
+					shiftedPos := vector3.New(
+						x-(chunkPos.X()*marchingSectionSize),
+						y-(chunkPos.Y()*marchingSectionSize),
+						z-(chunkPos.Z()*marchingSectionSize),
+					)
 
-					data[d.index(shiftedPos.X, shiftedPos.Y, shiftedPos.Z)] += resultData[i]
+					data[d.index(shiftedPos.X(), shiftedPos.Y(), shiftedPos.Z())] += resultData[i]
 					i++
 				}
 			}
@@ -429,25 +429,25 @@ func (d *MarchingCanvas) AddFieldParallel2(field Field) {
 type workingData struct {
 	tris       []int
 	verts      []vector3.Float64
-	vertLookup map[modeling.VectorInt]int
+	vertLookup map[vector3.Int]int
 }
 
 func (d *MarchingCanvas) marchFloat1BlockPosition(
 	cutoff float64,
 	meshAttribute string,
 	section *marchingSection,
-	blockPosition modeling.VectorInt,
+	blockPosition vector3.Int,
 ) modeling.Mesh {
 
-	cubeDataIndexIncrements := []modeling.VectorInt{
-		{X: 0, Y: 0, Z: 0},
-		{X: 1, Y: 0, Z: 0},
-		{X: 1, Y: 0, Z: 1},
-		{X: 0, Y: 0, Z: 1},
-		{X: 0, Y: 1, Z: 0},
-		{X: 1, Y: 1, Z: 0},
-		{X: 1, Y: 1, Z: 1},
-		{X: 0, Y: 1, Z: 1},
+	cubeDataIndexIncrements := []vector3.Int{
+		vector3.New(0, 0, 0),
+		vector3.New(1, 0, 0),
+		vector3.New(1, 0, 1),
+		vector3.New(0, 0, 1),
+		vector3.New(0, 1, 0),
+		vector3.New(1, 1, 0),
+		vector3.New(1, 1, 1),
+		vector3.New(0, 1, 1),
 	}
 
 	cubeData := make([]float1MarchingSection, 8)
@@ -463,61 +463,61 @@ func (d *MarchingCanvas) marchFloat1BlockPosition(
 	marchingWorkingData := &workingData{
 		tris:       make([]int, 0),
 		verts:      make([]vector3.Float64, 0),
-		vertLookup: make(map[modeling.VectorInt]int),
+		vertLookup: make(map[vector3.Int]int),
 	}
 	blockIndex := section.positions[blockPosition]
 
 	data := d.float1Data[blockIndex]
 	offset := vector3.New(
-		float64(blockPosition.X)*marchingSectionSize,
-		float64(blockPosition.Y)*marchingSectionSize,
-		float64(blockPosition.Z)*marchingSectionSize,
+		float64(blockPosition.X())*marchingSectionSize,
+		float64(blockPosition.Y())*marchingSectionSize,
+		float64(blockPosition.Z())*marchingSectionSize,
 	)
 
 	for z := 0; z < marchingSectionSize; z++ {
 
-		zBlockPosition := blockPosition.Z
+		zBlockPosition := blockPosition.Z()
 		if z == marchingSectionSize-1 {
 			zBlockPosition += 1
-			nextZ := modeling.VectorInt{
-				X: blockPosition.X,
-				Y: blockPosition.Y,
-				Z: zBlockPosition,
-			}
+			nextZ := vector3.New(
+				blockPosition.X(),
+				blockPosition.Y(),
+				zBlockPosition,
+			)
 			if _, ok := section.positions[nextZ]; !ok {
 				continue
 			}
 		}
 
 		for y := 0; y < marchingSectionSize; y++ {
-			yBlockPosition := blockPosition.Y
+			yBlockPosition := blockPosition.Y()
 			if y == marchingSectionSize-1 {
 				yBlockPosition += 1
-				nextY := modeling.VectorInt{
-					X: blockPosition.X,
-					Y: yBlockPosition,
-					Z: zBlockPosition,
-				}
+				nextY := vector3.New(
+					blockPosition.X(),
+					yBlockPosition,
+					zBlockPosition,
+				)
 				if _, ok := section.positions[nextY]; !ok {
 					continue
 				}
 			}
 
 			for x := 0; x < marchingSectionSize; x++ {
-				xBlockPosition := blockPosition.X
+				xBlockPosition := blockPosition.X()
 				if x == marchingSectionSize-1 {
 					xBlockPosition += 1
 				}
 
-				cubeDataBlockPositions := []modeling.VectorInt{
+				cubeDataBlockPositions := []vector3.Int{
 					blockPosition,
-					{X: xBlockPosition, Y: blockPosition.Y, Z: blockPosition.Z},
-					{X: xBlockPosition, Y: blockPosition.Y, Z: zBlockPosition},
-					{X: blockPosition.X, Y: blockPosition.Y, Z: zBlockPosition},
-					{X: blockPosition.X, Y: yBlockPosition, Z: blockPosition.Z},
-					{X: xBlockPosition, Y: yBlockPosition, Z: blockPosition.Z},
-					{X: xBlockPosition, Y: yBlockPosition, Z: zBlockPosition},
-					{X: blockPosition.X, Y: yBlockPosition, Z: zBlockPosition},
+					vector3.New(xBlockPosition, blockPosition.Y(), blockPosition.Z()),
+					vector3.New(xBlockPosition, blockPosition.Y(), zBlockPosition),
+					vector3.New(blockPosition.X(), blockPosition.Y(), zBlockPosition),
+					vector3.New(blockPosition.X(), yBlockPosition, blockPosition.Z()),
+					vector3.New(xBlockPosition, yBlockPosition, blockPosition.Z()),
+					vector3.New(xBlockPosition, yBlockPosition, zBlockPosition),
+					vector3.New(blockPosition.X(), yBlockPosition, zBlockPosition),
 				}
 
 				cubeData[0] = data
@@ -543,23 +543,23 @@ func (d *MarchingCanvas) marchFloat1BlockPosition(
 					if dataIndex, ok := section.positions[pos]; ok {
 						cubeData[i] = d.float1Data[dataIndex]
 
-						newIndex := modeling.VectorInt{
-							X: x + cubeDataIndexIncrements[i].X,
-							Y: y + cubeDataIndexIncrements[i].Y,
-							Z: z + cubeDataIndexIncrements[i].Z,
+						newIndex := vector3.New(
+							x+cubeDataIndexIncrements[i].X(),
+							y+cubeDataIndexIncrements[i].Y(),
+							z+cubeDataIndexIncrements[i].Z(),
+						)
+
+						if pos.X() != blockPosition.X() {
+							newIndex = newIndex.SetX(0)
+						}
+						if pos.Y() != blockPosition.Y() {
+							newIndex = newIndex.SetY(0)
+						}
+						if pos.Z() != blockPosition.Z() {
+							newIndex = newIndex.SetZ(0)
 						}
 
-						if pos.X != blockPosition.X {
-							newIndex.X = 0
-						}
-						if pos.Y != blockPosition.Y {
-							newIndex.Y = 0
-						}
-						if pos.Z != blockPosition.Z {
-							newIndex.Z = 0
-						}
-
-						cubeDataIndexes[i] = d.index(newIndex.X, newIndex.Y, newIndex.Z)
+						cubeDataIndexes[i] = d.index(newIndex.X(), newIndex.Y(), newIndex.Z())
 					} else {
 						allValid = false
 						break
@@ -677,11 +677,11 @@ func (d MarchingCanvas) marchFloat1Parallel(cutoff float64, meshAttribute string
 	}
 
 	numJobs := len(section.positions)
-	jobs := make(chan modeling.VectorInt, numJobs)
+	jobs := make(chan vector3.Int, numJobs)
 	results := make(chan modeling.Mesh, numJobs)
 
 	for w := 0; w < workers; w++ {
-		go func(jobs <-chan modeling.VectorInt, results chan<- modeling.Mesh) {
+		go func(jobs <-chan vector3.Int, results chan<- modeling.Mesh) {
 			for j := range jobs {
 				results <- d.marchFloat1BlockPosition(cutoff, meshAttribute, section, j)
 			}

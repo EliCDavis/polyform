@@ -6,7 +6,7 @@ import (
 	"io"
 
 	"github.com/EliCDavis/polyform/generator"
-	"github.com/EliCDavis/polyform/generator/artifact"
+	"github.com/EliCDavis/polyform/generator/manifest"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
@@ -17,17 +17,17 @@ import (
 func init() {
 	factory := &refutil.TypeFactory{}
 
-	refutil.RegisterType[ArtifactNode](factory)
+	refutil.RegisterType[ManifestNode](factory)
 	refutil.RegisterType[ReadNode](factory)
 
 	generator.RegisterTypes(factory)
 }
 
-type SplatPly struct {
+type Artifact struct {
 	Mesh modeling.Mesh
 }
 
-func (sa SplatPly) Write(w io.Writer) error {
+func (sa Artifact) Write(w io.Writer) error {
 	writers := []PropertyWriter{
 		Vector3PropertyWriter{
 			ModelAttribute: modeling.PositionAttribute,
@@ -89,9 +89,11 @@ func (sa SplatPly) Write(w io.Writer) error {
 	return writer.Write(sa.Mesh, "", w)
 }
 
-func (SplatPly) Mime() string {
+func (Artifact) Mime() string {
 	return "application/octet-stream"
 }
+
+// ============================================================================
 
 type ArtifactNode = nodes.Struct[ArtifactNodeData]
 
@@ -99,13 +101,41 @@ type ArtifactNodeData struct {
 	In nodes.Output[modeling.Mesh]
 }
 
-func (pn ArtifactNodeData) Out() nodes.StructOutput[artifact.Artifact] {
+func (pn ArtifactNodeData) Out() nodes.StructOutput[manifest.Artifact] {
 	if pn.In == nil {
-		return nodes.NewStructOutput[artifact.Artifact](SplatPly{Mesh: modeling.EmptyPointcloud()})
+		return nodes.NewStructOutput[manifest.Artifact](Artifact{Mesh: modeling.EmptyPointcloud()})
 	}
-	return nodes.NewStructOutput[artifact.Artifact](SplatPly{Mesh: pn.In.Value()})
+	return nodes.NewStructOutput[manifest.Artifact](Artifact{Mesh: pn.In.Value()})
 }
 
+// ============================================================================
+
+type ManifestNode = nodes.Struct[ManifestNodeData]
+
+type ManifestNodeData struct {
+	Name nodes.Output[string] `description:"Name of the main file in the manifest, defaults to 'model.ply'"`
+	Mesh nodes.Output[modeling.Mesh]
+}
+
+func (pn ManifestNodeData) Out() nodes.StructOutput[manifest.Manifest] {
+	name := nodes.TryGetOutputValue(pn.Name, "model.ply")
+	if pn.Mesh == nil {
+		entry := manifest.Entry{Artifact: Artifact{Mesh: modeling.EmptyPointcloud()}}
+		return nodes.NewStructOutput(manifest.SingleEntryManifest(name, entry))
+	}
+
+	mesh := pn.Mesh.Value()
+	metadata := map[string]any{}
+	// TODO: Is this really the best way to determine if it's a splat?
+	if mesh.HasFloat3Attribute(modeling.FDCAttribute) {
+		metadata["gaussianSplat"] = true
+	}
+
+	entry := manifest.Entry{Artifact: Artifact{Mesh: mesh}, Metadata: metadata}
+	return nodes.NewStructOutput(manifest.SingleEntryManifest(name, entry))
+}
+
+// ============================================================================
 type ReadNode = nodes.Struct[ReadNodeData]
 
 type ReadNodeData struct {

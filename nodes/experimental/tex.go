@@ -48,9 +48,9 @@ func (gnd GridNodeData) Out() nodes.StructOutput[image.Image] {
 	return nodes.NewStructOutput(ctx.Image())
 }
 
-type BrushedMetalNode = nodes.Struct[BrushedMetalNodeNodeData]
+type BrushedMetalNode = nodes.Struct[BrushedMetalNodeData]
 
-type BrushedMetalNodeNodeData struct {
+type BrushedMetalNodeData struct {
 	Dimensions nodes.Output[int]
 	BaseColor  nodes.Output[coloring.WebColor]
 	BrushColor nodes.Output[coloring.WebColor]
@@ -61,7 +61,7 @@ type BrushedMetalNodeNodeData struct {
 // func (gnd BrushedMetalNodeNodeData) Out() nodes.StructOutput[image.Image] {
 // func (gnd BrushedMetalNodeNodeData) Out() nodes.StructOutput[image.Image] {
 
-func (gnd BrushedMetalNodeNodeData) Out() nodes.StructOutput[image.Image] {
+func (gnd BrushedMetalNodeData) Out() nodes.StructOutput[image.Image] {
 	dimensions := 512
 	if gnd.Dimensions != nil {
 		dimensions = gnd.Dimensions.Value()
@@ -86,7 +86,7 @@ func (gnd BrushedMetalNodeNodeData) Out() nodes.StructOutput[image.Image] {
 
 	horizontalLines := nodes.TryGetOutputValue(gnd.Count, 10)
 	horizontalSpacing := float64(dimensions) / float64(horizontalLines)
-	for i := 0; i < horizontalLines; i++ {
+	for i := range horizontalLines {
 		y := (horizontalSpacing * float64(i)) + (horizontalSpacing / 2)
 		ctx.DrawLine(0, y, float64(dimensions), y)
 	}

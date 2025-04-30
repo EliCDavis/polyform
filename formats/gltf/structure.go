@@ -119,7 +119,7 @@ type Image struct {
 	ChildOfRootProperty
 	MimeType   ImageMimeType `json:"mimeType,omitempty"`   // The image's media type. This field **MUST** be defined when `bufferView` is defined.
 	URI        string        `json:"uri,omitempty"`        // The URI (or IRI) of the image.  Relative paths are relative to the current glTF asset.  Instead of referencing an external file, this field **MAY** contain a `data:`-URI. This field **MUST NOT** be defined when `bufferView` is defined.
-	BufferView GltfId        `json:"bufferView,omitempty"` // The index of the bufferView that contains the image. This field **MUST NOT** be defined when `uri` is defined.
+	BufferView *GltfId       `json:"bufferView,omitempty"` // The index of the bufferView that contains the image. This field **MUST NOT** be defined when `uri` is defined.
 }
 
 // "A texture and its sampler.

@@ -1,18 +1,27 @@
 package gltf
 
 import (
+	"image"
 	"image/color"
 
-	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/polyform/math/trs"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/animation"
-	"github.com/EliCDavis/vector/vector3"
 )
 
 type PolyformScene struct {
 	Models []PolyformModel
 	Lights []KHR_LightsPunctual
+
+	// UseGpuInstancing indicates that the EXT_mesh_gpu_instancing extension should be used
+	// when appropriate for mesh instances. This must be set if GPU instances are defined on any of the models in the scene.
+	// If not set while GPU instances are defined - the scene serialisation will fail.
+	// This is a global setting for the scene and cannot be set on a per-model basis.
+	//
+	// The model deduplication applies regardless, and models that have exactly the same mesh pointer reference,
+	// and material value will be collapsed into a single list.
+	// If this flag is set, this single list will be converted into GPU instances as well.
+	UseGpuInstancing bool
 }
 
 // PolyformModel is a utility structure for reading/writing to GLTF format within
@@ -22,14 +31,21 @@ type PolyformModel struct {
 	Mesh     *modeling.Mesh
 	Material *PolyformMaterial
 
-	Translation *vector3.Float64
-	Scale       *vector3.Float64
-	Rotation    *quaternion.Quaternion
+	// TRS contains the transformation (translation, rotation, scale) for this model
+	// This is optional and it will be used if the models are deduplicated and collapsed into a list of instances.
+	TRS *trs.TRS
 
 	// Utilizes the EXT_mesh_gpu_instancing extension to duplicate the model
-	// without increasing the mesh data footprint on the GPU
+	// without increasing the mesh data footprint on the GPU.
+	// This is a list of transformations where this model should be repeated.
+	// This can only used if the UseGpuInstancing flag is set on the scene.
+	// If flag is not set, populating this list will cause the scene writing to fail.
 	GpuInstances []trs.TRS
 
+	// Animation is a list of animations that are applied to this model.
+	// Models with animations defined will never be deduplicated into a single list.
+	// However, these models can utilize GpuInstances and in that case the same animation will be applied to all of them.
+	// Limitations on using GpuInstances still apply.
 	Skeleton   *animation.Skeleton
 	Animations []animation.Sequence
 }
@@ -66,8 +82,17 @@ type PolyformOcclusion struct {
 
 type PolyformTexture struct {
 	URI        string
+	Image      image.Image
 	Sampler    *Sampler
 	Extensions []TextureExtension
+}
+
+func (pt *PolyformTexture) canAddToGLTF() bool {
+	if pt == nil {
+		return false
+	}
+
+	return pt.URI != "" || pt.Image != nil
 }
 
 func (pm *PolyformTexture) prepareExtensions(w *Writer) (map[string]any, map[string]any) {
@@ -222,7 +247,7 @@ func colorsEqual(a, b color.Color) bool {
 		return false
 	}
 	// Since color.Color is an interface, we can only check for basic RGBA equality
-	r1, g1, b1, a1 := a.(color.Color).RGBA()
-	r2, g2, b2, a2 := b.(color.Color).RGBA()
+	r1, g1, b1, a1 := a.RGBA()
+	r2, g2, b2, a2 := b.RGBA()
 	return r1 == r2 && g1 == g2 && b1 == b2 && a1 == a2
 }

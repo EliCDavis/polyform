@@ -6,7 +6,7 @@ import (
 
 	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/generator"
-	"github.com/EliCDavis/polyform/generator/artifact"
+	"github.com/EliCDavis/polyform/generator/manifest"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
@@ -15,7 +15,7 @@ import (
 func init() {
 	factory := &refutil.TypeFactory{}
 
-	refutil.RegisterType[ArtifactNode](factory)
+	refutil.RegisterType[ManifestNode](factory)
 	refutil.RegisterType[ReadNode](factory)
 	refutil.RegisterType[SceneNode](factory)
 	refutil.RegisterType[ObjectNode](factory)
@@ -38,22 +38,24 @@ func (Artifact) Mime() string {
 	return "model/obj"
 }
 
-type ArtifactNode = nodes.Struct[ArtifactNodeData]
+type ManifestNode = nodes.Struct[ManifestNodeData]
 
-type ArtifactNodeData struct {
+type ManifestNodeData struct {
 	Scene        nodes.Output[Scene]
 	MaterialFile nodes.Output[string]
 }
 
-func (pn ArtifactNodeData) Out() nodes.StructOutput[artifact.Artifact] {
-	if pn.Scene == nil {
-		return nodes.NewStructOutput[artifact.Artifact](Artifact{})
+func (pn ManifestNodeData) Out() nodes.StructOutput[manifest.Manifest] {
+	artifact := Artifact{
+		MaterialFile: nodes.TryGetOutputValue(pn.MaterialFile, ""),
 	}
 
-	return nodes.NewStructOutput[artifact.Artifact](Artifact{
-		Scene:        pn.Scene.Value(),
-		MaterialFile: nodes.TryGetOutputValue(pn.MaterialFile, ""),
-	})
+	if pn.Scene != nil {
+		artifact.Scene = pn.Scene.Value()
+	}
+
+	entry := manifest.Entry{Artifact: artifact}
+	return nodes.NewStructOutput(manifest.SingleEntryManifest("model.obj", entry))
 }
 
 type SceneNode = nodes.Struct[SceneNodeData]

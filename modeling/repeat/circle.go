@@ -47,7 +47,7 @@ type CircleNodeData struct {
 
 func (r CircleNodeData) Out() nodes.StructOutput[[]trs.TRS] {
 	return nodes.NewStructOutput(Circle(
-		nodes.TryGetOutputValue(r.Times, 3),
-		nodes.TryGetOutputValue(r.Radius, 1.),
+		max(nodes.TryGetOutputValue(r.Times, 1), 0),
+		nodes.TryGetOutputValue(r.Radius, 0.),
 	))
 }

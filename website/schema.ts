@@ -53,6 +53,14 @@ export interface GraphInstanceNodes {
 export interface GraphInstance {
     producers: { [key: string]: any };
     nodes: GraphInstanceNodes;
-    types: NodeType[];
     notes: { [key: string]: any };
+}
+
+export interface Entry {
+    metadata: { [key: string]: any};
+}
+
+export interface Manifest {
+    main: string;
+    entries: { [key: string]: Entry};
 }

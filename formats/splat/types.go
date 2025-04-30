@@ -4,7 +4,7 @@ import (
 	"io"
 
 	"github.com/EliCDavis/polyform/generator"
-	"github.com/EliCDavis/polyform/generator/artifact"
+	"github.com/EliCDavis/polyform/generator/manifest"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
@@ -13,7 +13,7 @@ import (
 func init() {
 	factory := &refutil.TypeFactory{}
 
-	refutil.RegisterType[ArtifactNode](factory)
+	refutil.RegisterType[ManifestNode](factory)
 
 	generator.RegisterTypes(factory)
 }
@@ -30,16 +30,19 @@ func (Splat) Mime() string {
 	return "application/octet-stream"
 }
 
-type ArtifactNode = nodes.Struct[ArtifactNodeData]
+type ManifestNode = nodes.Struct[ManifestNodeData]
 
-type ArtifactNodeData struct {
+type ManifestNodeData struct {
 	In nodes.Output[modeling.Mesh]
 }
 
-func (pn ArtifactNodeData) Description() string {
+func (pn ManifestNodeData) Description() string {
 	return "Mkkellogg's SPLAT format for their three.js Gaussian Splat Viewer"
 }
 
-func (pn ArtifactNodeData) Out() nodes.StructOutput[artifact.Artifact] {
-	return nodes.NewStructOutput[artifact.Artifact](Splat{Mesh: pn.In.Value()})
+func (pn ManifestNodeData) Out() nodes.StructOutput[manifest.Manifest] {
+	entry := manifest.Entry{
+		Artifact: Splat{Mesh: pn.In.Value()},
+	}
+	return nodes.NewStructOutput(manifest.SingleEntryManifest("model.splat", entry))
 }

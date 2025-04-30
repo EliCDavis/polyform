@@ -33,15 +33,15 @@ export class NodeManager {
 
     // RUNTIME >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-    initializedNodeTypes: boolean;
-
     nodeIdToNode: Map<string, PolyNodeController>;
 
     subscribers: Array<(change: NodeParameterChangeEvent) => void>;
 
     producerTypes: Map<string, string>;
 
-    nodeTypeToLitePath: Map<string, string>;
+    nodeTypeToFlowNodePath: Map<string, string>;
+
+    nodeTypeToNodeDefinition: Map<string, NodeType>;
 
     serverUpdatingNodeConnections: boolean;
 
@@ -50,7 +50,8 @@ export class NodeManager {
         requestManager: RequestManager,
         nodesPublisher: Publisher,
         app: ThreeApp,
-        producerViewManager: ProducerViewManager
+        producerViewManager: ProducerViewManager,
+        nodeTypes: Array<NodeType>
     ) {
         this.nodeFlowGraph = nodeFlowGraph;
         this.requestManager = requestManager;
@@ -59,12 +60,20 @@ export class NodeManager {
         this.producerViewManager = producerViewManager;
 
         this.nodeIdToNode = new Map<string, PolyNodeController>();
-        this.nodeTypeToLitePath = new Map<string, string>();
+        this.nodeTypeToFlowNodePath = new Map<string, string>();
+        this.nodeTypeToNodeDefinition = new Map<string, NodeType>();
         this.producerTypes = new Map<string, string>();
         this.subscribers = [];
-        this.initializedNodeTypes = false;
         this.serverUpdatingNodeConnections = false;
         // this.registerSpecialParameterPolyformNodes();
+
+        nodeTypes.forEach(type => {
+            // We should have custom nodes already defined for parameters
+            if (type.parameter) {
+                return;
+            }
+            this.registerCustomNodeType(type)
+        });
 
         nodeFlowGraph.addOnNodeAddedListener(this.onNodeAddedCallback.bind(this));
         nodeFlowGraph.addOnNodeRemovedListener(this.nodeRemoved.bind(this));
@@ -103,6 +112,7 @@ export class NodeManager {
                     this,
                     nodeID,
                     nodeData,
+                    this.nodeTypeToNodeDefinition.get(nodeType),
                     this.app,
                     producerOutPort,
                     this.requestManager,
@@ -186,7 +196,7 @@ export class NodeManager {
     nodeTypeIsProducer(typeData: NodeType): string {
         if (typeData.outputs) {
             for (const output in typeData.outputs) {
-                if (typeData.outputs[output].type === "github.com/EliCDavis/polyform/generator/artifact.Artifact") {
+                if (typeData.outputs[output].type === "github.com/EliCDavis/polyform/generator/manifest.Manifest") {
                     return output;
                 }
             }
@@ -216,7 +226,7 @@ export class NodeManager {
 
     registerCustomNodeType(typeData: NodeType): void {
         const nodeConfig: FlowNodeConfig = {
-            title: camelCaseToWords(typeData.displayName),
+            title: typeData.displayName, //camelCaseToWords(typeData.displayName),
             subTitle: typeData.path,
             info: typeData.info,
             inputs: [],
@@ -226,7 +236,9 @@ export class NodeManager {
             },
             canEditTitle: false,
             style: null
-        }
+        };
+
+        this.nodeTypeToNodeDefinition.set(typeData.type, typeData);
 
         for (let inputName in typeData.inputs) {
             nodeConfig.inputs.push({
@@ -246,7 +258,8 @@ export class NodeManager {
             for (let outName in typeData.outputs) {
                 nodeConfig.outputs.push({
                     name: outName,
-                    type: typeData.outputs[outName].type
+                    type: typeData.outputs[outName].type,
+                    description: typeData.outputs[outName].description
                 });
             }
         }
@@ -277,8 +290,9 @@ export class NodeManager {
 
         // nm.onNodeCreateCallback(this, typeData.type);
 
-        const category = this.convertPathToUppercase(typeData.path) + "/" + camelCaseToWords(typeData.displayName);
-        this.nodeTypeToLitePath.set(typeData.type, category);
+        // const category = this.convertPathToUppercase(typeData.path) + "/" + camelCaseToWords(typeData.displayName);
+        const category = this.convertPathToUppercase(typeData.path) + "/" + typeData.displayName;
+        this.nodeTypeToFlowNodePath.set(typeData.type, category);
         this.nodesPublisher.register(category, nodeConfig);
     }
 
@@ -293,7 +307,7 @@ export class NodeManager {
         // }
 
         if (!isParameter) {
-            const nodeIdentifier = this.nodeTypeToLitePath.get(nodeData.type)
+            const nodeIdentifier = this.nodeTypeToFlowNodePath.get(nodeData.type)
             return this.nodesPublisher.create(nodeIdentifier);
         }
 
@@ -305,21 +319,6 @@ export class NodeManager {
     }
 
     updateNodes(newSchema: GraphInstance): void {
-
-        // Only need to do this once, since types are set at compile time. If
-        // that ever changes, god.
-        if (this.initializedNodeTypes === false) {
-            this.initializedNodeTypes = true;
-            newSchema.types.forEach(type => {
-                // We should have custom nodes already defined for parameters
-                if (type.parameter) {
-                    return;
-                }
-
-                this.registerCustomNodeType(type)
-            })
-        }
-
         const sortedNodes = this.sortNodesByName(newSchema.nodes);
 
         this.serverUpdatingNodeConnections = true;
@@ -356,6 +355,7 @@ export class NodeManager {
                     this,
                     nodeID,
                     nodeData,
+                    this.nodeTypeToNodeDefinition.get(nodeData.type),
                     this.app,
                     producerOutPort,
                     this.requestManager,

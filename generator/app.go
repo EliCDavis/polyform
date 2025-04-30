@@ -1,7 +1,6 @@
 package generator
 
 import (
-	"archive/zip"
 	_ "embed"
 	"encoding/json"
 	"flag"
@@ -15,9 +14,9 @@ import (
 	"time"
 
 	"github.com/EliCDavis/jbtf"
-	"github.com/EliCDavis/polyform/generator/artifact"
 	"github.com/EliCDavis/polyform/generator/cli"
 	"github.com/EliCDavis/polyform/generator/graph"
+	"github.com/EliCDavis/polyform/generator/manifest"
 	"github.com/EliCDavis/polyform/generator/room"
 	"github.com/EliCDavis/polyform/generator/schema"
 	"github.com/EliCDavis/polyform/nodes"
@@ -29,7 +28,7 @@ type App struct {
 	Description string
 	WebScene    *schema.WebScene
 	Authors     []schema.Author
-	Files       map[string]nodes.Output[artifact.Artifact]
+	Files       map[string]nodes.Output[manifest.Manifest]
 
 	graphInstance *graph.Instance
 	Out           io.Writer
@@ -84,45 +83,8 @@ func (a *App) Schema() []byte {
 	return data
 }
 
-func writeProducersToZip(path string, graph *graph.Instance, zw *zip.Writer) error {
-	if graph == nil {
-		panic("can't zip nil graph")
-	}
-
-	if zw == nil {
-		panic("can't write to nil zip writer")
-	}
-
-	for _, file := range graph.ProducerNames() {
-		filePath := path + file
-		f, err := zw.Create(filePath)
-		if err != nil {
-			return err
-		}
-		artifact := graph.Artifact(file)
-		err = artifact.Write(f)
-		if err != nil {
-			return err
-		}
-		// log.Printf("wrote %s", filePath)
-	}
-
-	return nil
-}
-
 func (a App) initialize(set *flag.FlagSet) {
 	a.graphInstance.InitializeParameters(set)
-}
-
-func (a App) WriteZip(out io.Writer) error {
-	z := zip.NewWriter(out)
-
-	err := writeProducersToZip("", a.graphInstance, z)
-	if err != nil {
-		return err
-	}
-
-	return z.Close()
 }
 
 //go:embed cli.tmpl
@@ -137,28 +99,33 @@ type appCLI struct {
 }
 
 func (a App) Generate(outputPath string) error {
-	for _, name := range a.graphInstance.ProducerNames() {
-		fp := path.Join(outputPath, name)
+	for _, manifestName := range a.graphInstance.ProducerNames() {
+		manifestFolder := path.Join(outputPath, manifestName)
 
-		// Producer names are paths which can contain subfolders, so be sure
-		// the subfolders exist before creating the file
-		err := os.MkdirAll(filepath.Dir(fp), os.ModeDir)
-		if err != nil {
-			return err
-		}
+		manifest := a.graphInstance.Manifest(manifestName)
+		entries := manifest.Entries
 
-		// Create the File
-		f, err := os.Create(fp)
-		if err != nil {
-			return err
-		}
-		defer f.Close()
+		for entryName, entry := range entries {
+			manifestEntryPath := filepath.Join(manifestFolder, entryName)
+			// Producer names are paths which can contain subfolders, so be sure
+			// the subfolders exist before creating the file
+			err := os.MkdirAll(filepath.Dir(manifestEntryPath), os.ModeDir)
+			if err != nil {
+				return err
+			}
 
-		// Write data to file
-		arifact := a.graphInstance.Artifact(name)
-		err = arifact.Write(f)
-		if err != nil {
-			return err
+			// Create the File
+			f, err := os.Create(manifestEntryPath)
+			if err != nil {
+				return err
+			}
+			defer f.Close()
+
+			// Write data to file
+			err = entry.Artifact.Write(f)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -341,12 +308,6 @@ func (a *App) Run(args []string) error {
 					usedTypes[n.Type] = struct{}{}
 				}
 
-				for i := len(schema.Types) - 1; i >= 0; i-- {
-					if _, ok := usedTypes[schema.Types[i].Type]; !ok {
-						schema.Types = append(schema.Types[:i], schema.Types[i+1:]...)
-					}
-				}
-
 				data, err := json.MarshalIndent(schema, "", "    ")
 				if err != nil {
 					return err
@@ -380,7 +341,7 @@ func (a *App) Run(args []string) error {
 					out = f
 				}
 
-				return a.WriteZip(out)
+				return writeZip(out, a.graphInstance)
 			},
 		},
 		{
@@ -413,7 +374,7 @@ func (a *App) Run(args []string) error {
 		{
 			Name:        "Documentation",
 			Description: "Create a document describing all savailable nodes",
-			Aliases:     []string{"documentation"},
+			Aliases:     []string{"documentation", "docs"},
 			Run: func(appState *cli.RunState) error {
 				markdownCmd := flag.NewFlagSet("documentation", flag.ExitOnError)
 				a.initialize(markdownCmd)

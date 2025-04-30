@@ -22,9 +22,6 @@ func nodeEndpoint(graphInstance *graph.Instance, saver *GraphSaver) endpoint.Han
 		NodeID string `json:"nodeID"`
 	}
 
-	type PatchMethod struct {
-	}
-
 	type EmptyResponse struct{}
 
 	return endpoint.Handler{
