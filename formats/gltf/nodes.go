@@ -76,7 +76,8 @@ func (gad ManifestNodeData) Out() nodes.StructOutput[manifest.Manifest] {
 	entry := manifest.Entry{
 		Artifact: &Artifact{
 			Scene: PolyformScene{
-				Models: models,
+				Models:           models,
+				UseGpuInstancing: true,
 			},
 		},
 	}
@@ -113,19 +114,27 @@ func (gmnd ModelNodeData) Out() nodes.StructOutput[PolyformModel] {
 		model.Mesh = &mesh
 	}
 
+	transform := trs.Identity()
+
 	if gmnd.Translation != nil {
 		v := gmnd.Translation.Value()
-		model.Translation = &v
+		transform = transform.Translate(v)
 	}
 
 	if gmnd.Scale != nil {
 		v := gmnd.Scale.Value()
-		model.Scale = &v
+		transform = transform.SetScale(v)
 	}
 
 	if gmnd.Rotation != nil {
 		v := gmnd.Rotation.Value()
-		model.Rotation = &v
+		transform = transform.SetRotation(v)
+	}
+
+	model.TRS = &transform
+
+	if gmnd.GpuInstances != nil {
+		model.GpuInstances = gmnd.GpuInstances.Value()
 	}
 
 	return nodes.NewStructOutput(model)

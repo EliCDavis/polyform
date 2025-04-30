@@ -72,6 +72,30 @@ func (trs TRS) Translate(in vector3.Float64) TRS {
 	}
 }
 
+func (trs TRS) SetScale(in vector3.Float64) TRS {
+	return TRS{
+		position: trs.position,
+		scale:    in,
+		rotation: trs.rotation,
+	}
+}
+
+func (trs TRS) SetRotation(in quaternion.Quaternion) TRS {
+	return TRS{
+		position: trs.position,
+		scale:    trs.scale,
+		rotation: in,
+	}
+}
+
+func (trs TRS) SetTranslation(in vector3.Float64) TRS {
+	return TRS{
+		position: in,
+		scale:    trs.scale,
+		rotation: trs.rotation,
+	}
+}
+
 func (trs TRS) Multiply(other TRS) TRS {
 	return FromMatrix(trs.Matrix().Multiply(other.Matrix()))
 }
