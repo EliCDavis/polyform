@@ -93,12 +93,13 @@ func NewWriterFromScene(scene PolyformScene) (*Writer, error) {
 // Align ensures the buffer is aligned to the specified byte boundary
 func (w *Writer) Align(alignment int) {
 	padding := (alignment - (w.bytesWritten % alignment)) % alignment
-	if padding > 0 {
-		for i := 0; i < int(padding); i++ {
-			w.bitW.Byte(0)
-		}
-		w.bytesWritten += int(padding)
+	if padding == 0 {
+		return
 	}
+	for i := 0; i < int(padding); i++ {
+		w.bitW.Byte(0)
+	}
+	w.bytesWritten += int(padding)
 }
 
 func (w Writer) WriteVector4AsFloat32(v vector4.Float64) {
@@ -403,16 +404,6 @@ func (w *Writer) AddScene(scene PolyformScene) error {
 			continue // mesh was not added to scene, ignore and continue
 		}
 
-		// Create a model instance for the base model's TRS
-		modelInst := modelInstance{
-			meshIndex: meshIndex,
-			trs:       model.TRS,
-			name:      model.Name,
-		}
-
-		// Add to instance tracker - this will create a unique group for animated models
-		instances.add(meshIndex, modelInst, model.Skeleton, model.Animations)
-
 		// Handle GPU instances if present
 		if len(model.GpuInstances) > 0 {
 			for _, t := range model.GpuInstances {
@@ -423,6 +414,16 @@ func (w *Writer) AddScene(scene PolyformScene) error {
 				}
 				instances.add(meshIndex, gpuInstance, model.Skeleton, model.Animations)
 			}
+		} else {
+			// Create a model instance for the base model's TRS
+			modelInst := modelInstance{
+				meshIndex: meshIndex,
+				trs:       model.TRS,
+				name:      model.Name,
+			}
+
+			// Add to instance tracker - this will create a unique group for animated models
+			instances.add(meshIndex, modelInst, model.Skeleton, model.Animations)
 		}
 	}
 
