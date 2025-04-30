@@ -4,8 +4,8 @@ package gltf
 // https://github.com/KhronosGroup/glTF/blob/main/specification/2.0/schema/mesh.schema.json
 type Mesh struct {
 	ChildOfRootProperty
-	Primitives []Primitive `json:"primitives"`
-	Weights    []float64   `json:"weights,omitempty"`
+	Primitives []Primitive `json:"primitives"`        // An array of primitives, each defining geometry to be rendered.
+	Weights    []float64   `json:"weights,omitempty"` // Array of weights to be applied to the morph targets. The number of array elements **MUST** match the number of morph targets.
 }
 
 type PrimitiveMode int
