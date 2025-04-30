@@ -223,7 +223,7 @@ export class PolyNodeController {
             });
         }
 
-        if (this.isProducer) {
+        if (!!producerOutput) {
             const ext = getFileExtension(nodeData.name);
             if (ext === "png") {
                 const imageWidget = GlobalWidgetFactory.create(flowNode, "image", {}) as ImageWidget;
@@ -243,7 +243,7 @@ export class PolyNodeController {
             const downloadButton = GlobalWidgetFactory.create(flowNode, "button", {
                 text: "Download",
                 callback: () => {
-                    saveFileToDisk("/producer/value/" + this.name, this.name);
+                    saveFileToDisk("/zip/" + this.id + "/" + producerOutput, this.id);
                 }
             })
             this.flowNode.addWidget(downloadButton);

@@ -136,7 +136,7 @@ func (as *AppServer) Handler(indexFile string) (*http.ServeMux, error) {
 			},
 		},
 	})
-	mux.HandleFunc("/zip", as.ZipEndpoint)
+	mux.HandleFunc("/zip/", as.ZipEndpoint)
 	mux.HandleFunc("/node-types", NodeTypesEndpoint)
 	mux.Handle("/node", nodeEndpoint(as.app.graphInstance, graphSaver))
 	mux.Handle("/node/connection", nodeConnectionEndpoint(as.app.graphInstance, graphSaver))
@@ -241,14 +241,6 @@ func (as *AppServer) SwaggerEndpoint(w http.ResponseWriter, r *http.Request) {
 	err := as.app.WriteSwagger(w)
 	if err != nil {
 		log.Println(err.Error())
-	}
-}
-
-func (as *AppServer) ZipEndpoint(w http.ResponseWriter, r *http.Request) {
-	err := as.app.WriteZip(w)
-	w.Header().Add("Content-Type", "application/zip")
-	if err != nil {
-		panic(err)
 	}
 }
 
