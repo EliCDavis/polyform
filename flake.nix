@@ -163,7 +163,7 @@
             pname = "website";
             version = "0.0.1";
             npmBuildScript = "build-dev";
-            npmDepsHash = "sha256-wCgwvHFrAnRCmZ0aiSVv0mIR0OTtC7GYI6W3YgdZuxQ=";
+            npmDepsHash = "sha256-TygLIomsRPDdt1Xnz+OLLNibTcwvqpq3M3JOYRJg2m8=";
             installPhase = ''
               runHook preInstallPhase
 
