@@ -11,6 +11,7 @@ import (
 	"github.com/EliCDavis/iter"
 	"github.com/EliCDavis/polyform/drawing/texturing"
 	"github.com/EliCDavis/polyform/formats/gltf"
+	"github.com/EliCDavis/polyform/formats/ply"
 	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/meshops"
@@ -286,7 +287,7 @@ func SaveOutDepth(name string, tex texturing.Texture[float64]) error {
 func colorPassthrough(c color.Color) color.Color { return c }
 
 func loadMesh() (*modeling.Mesh, error) {
-	// return ply.Load("./test-models/stanford-bunny.ply")
+	return ply.Load("./test-models/stanford-bunny.ply")
 
 	doc, buffs, err := gltf.ExperimentalLoad("C:/Users/elida/Downloads/example.gltf")
 	if err != nil {
@@ -302,23 +303,12 @@ func loadMesh() (*modeling.Mesh, error) {
 	for _, v := range models {
 		mesh := *v.Mesh
 
-		if v.Scale != nil {
-			mesh = mesh.Scale(*v.Scale)
-		}
-
-		if v.Rotation != nil {
-			v := *v.Rotation
-			mesh = mesh.Rotate(v)
-		}
-
-		if v.Translation != nil {
-			v := *v.Translation
-			mesh = mesh.Translate(v)
+		if v.TRS != nil {
+			mesh = mesh.ApplyTRS(*v.TRS)
 		}
 
 		finalMesh = finalMesh.Append(mesh)
 	}
-	finalMesh = meshops.CenterFloat3Attribute(finalMesh, modeling.PositionAttribute)
 	return &finalMesh, nil
 }
 
@@ -375,18 +365,17 @@ func run(mesh modeling.Mesh, camera Camera, i int) {
 	}
 
 	noErr(colorTex.SaveImage(fmt.Sprintf("%d-%s", i, OutName), colorPassthrough))
-	// noErr(SaveOutDepth("depth.png", depthTexture))
+	noErr(SaveOutDepth("depth.png", depthTexture))
 
-	visibilityDepth, visbilityColor := ComputeVisibility(depthTexture, positionTexture, colorTex, 6)
+	visibilityDepth, visbilityColor := ComputeVisibility(depthTexture, positionTexture, colorTex, 11)
 
-	// noErr(visibilityColor.SaveImage("vis-"+OutName, colorPassthrough))
-	// noErr(SaveOutDepth("vis-depth.png", visibilityDepth))
-	// noErr(visbilityColor.SaveImage("vis-"+OutName, colorPassthrough))
+	noErr(SaveOutDepth("vis-depth.png", visibilityDepth))
+	noErr(visbilityColor.SaveImage("vis-"+OutName, colorPassthrough))
 
 	depthContribution := 2.01 // The greater the value, the larger the contribution
-	_, anisotropicFillingColor := ApplyAnisotropicFilling(visibilityDepth, visbilityColor, 6, depthContribution)
+	anisotropicFillingDepth, anisotropicFillingColor := ApplyAnisotropicFilling(visibilityDepth, visbilityColor, 6, depthContribution)
 
-	// noErr(SaveOutDepth("ani-depth.png", anisotropicFillingDepth))
+	noErr(SaveOutDepth("ani-depth.png", anisotropicFillingDepth))
 	noErr(anisotropicFillingColor.SaveImage(fmt.Sprintf("ani-vis-%d.png", i), colorPassthrough))
 
 	log.Printf("Computed in %s", time.Since(start))
@@ -395,11 +384,17 @@ func run(mesh modeling.Mesh, camera Camera, i int) {
 func main() {
 	loadedMesh, err := loadMesh()
 	noErr(err)
+	centeredMesh := meshops.CenterFloat3Attribute(*loadedMesh, modeling.PositionAttribute)
 
-	mesh := loadedMesh.
-		Scale(vector3.New(1, -1, -1.).Scale(.01)).
+	// mesh := loadedMesh.
+	// 	Scale(vector3.New(1, -1, -1.).Scale(.01)).
+	// 	Rotate(quaternion.FromEulerAngle(vector3.New(0., 0., 0.))).
+	// 	Translate(vector3.New(0, -.13, 0.25))
+
+	mesh := centeredMesh.
+		Scale(vector3.New(1, -1, -1.).Scale(1)).
 		Rotate(quaternion.FromEulerAngle(vector3.New(0., 0., 0.))).
-		Translate(vector3.New(0, -.13, 0.25))
+		Translate(vector3.New(0, 0, 0.25))
 
 	camera := Camera{
 		FocalLength: 800,    // in pixels

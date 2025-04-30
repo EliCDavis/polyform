@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/EliCDavis/polyform/math/quaternion"
+	"github.com/EliCDavis/polyform/math/trs"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
@@ -283,33 +284,29 @@ func decodePrimitive(doc *Gltf, buffers [][]byte, n Node, m Mesh, p Primitive) (
 		}
 	}
 
-	var position *vector3.Float64
+	transform := trs.Identity()
 	if n.Translation != nil {
 		data := *n.Translation
 		p := vector3.New(data[0], data[1], data[2])
-		position = &p
+		transform = transform.SetTranslation(p)
 	}
 
-	var scale *vector3.Float64
 	if n.Scale != nil {
 		data := *n.Scale
 		p := vector3.New(data[0], data[1], data[2])
-		scale = &p
+		transform = transform.SetScale(p)
 	}
 
-	var rotation *quaternion.Quaternion
 	if n.Rotation != nil {
 		data := *n.Rotation
 		p := quaternion.New(vector3.New(data[0], data[1], data[2]), data[3])
-		rotation = &p
+		transform = transform.SetRotation(p)
 	}
 
 	return &PolyformModel{
-		Name:        n.Name,
-		Mesh:        &mesh,
-		Translation: position,
-		Scale:       scale,
-		Rotation:    rotation,
+		Name: n.Name,
+		Mesh: &mesh,
+		TRS:  &transform,
 	}, nil
 }
 
