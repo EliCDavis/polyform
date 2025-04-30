@@ -120,7 +120,7 @@ func TestMaterialExtension_ToExtensionData(t *testing.T) {
 		},
 		"SpecularGlossiness/diffuseTexture": {
 			extension: gltf.PolyformPbrSpecularGlossiness{
-				DiffuseTexture: &gltf.PolyformTexture{},
+				DiffuseTexture: &gltf.PolyformTexture{URI: "Yeet"},
 			},
 			want: map[string]any{
 				"diffuseTexture": &gltf.TextureInfo{},
@@ -144,7 +144,7 @@ func TestMaterialExtension_ToExtensionData(t *testing.T) {
 		},
 		"SpecularGlossiness/specularGlossinessTexture": {
 			extension: gltf.PolyformPbrSpecularGlossiness{
-				SpecularGlossinessTexture: &gltf.PolyformTexture{},
+				SpecularGlossinessTexture: &gltf.PolyformTexture{URI: "Yeet"},
 			},
 			want: map[string]any{
 				"specularGlossinessTexture": &gltf.TextureInfo{},
@@ -177,7 +177,7 @@ func TestMaterialExtension_ToExtensionData(t *testing.T) {
 		"Transmission/everything": {
 			extension: gltf.PolyformTransmission{
 				Factor:  1,
-				Texture: &gltf.PolyformTexture{},
+				Texture: &gltf.PolyformTexture{URI: "Yeet"},
 			},
 			want: map[string]any{
 				"transmissionFactor":  1.,
@@ -192,7 +192,7 @@ func TestMaterialExtension_ToExtensionData(t *testing.T) {
 		},
 		"Iridescence/iridescenceTexture": {
 			extension: gltf.PolyformIridescence{
-				IridescenceTexture: &gltf.PolyformTexture{},
+				IridescenceTexture: &gltf.PolyformTexture{URI: "Yeet"},
 			},
 			want: map[string]any{
 				"iridescenceFactor":  0.,
@@ -228,7 +228,7 @@ func TestMaterialExtension_ToExtensionData(t *testing.T) {
 		},
 		"Iridescence/iridescenceThicknessTexture": {
 			extension: gltf.PolyformIridescence{
-				IridescenceThicknessTexture: &gltf.PolyformTexture{},
+				IridescenceThicknessTexture: &gltf.PolyformTexture{URI: "Yeet"},
 			},
 			want: map[string]any{
 				"iridescenceFactor":           0.,
@@ -261,7 +261,7 @@ func TestMaterialExtension_ToExtensionData(t *testing.T) {
 		},
 		"Sheen/sheenColorTexture": {
 			extension: gltf.PolyformSheen{
-				SheenColorTexture: &gltf.PolyformTexture{},
+				SheenColorTexture: &gltf.PolyformTexture{URI: "Yeet"},
 			},
 			want: map[string]any{
 				"sheenRoughnessFactor": 0.,
@@ -270,7 +270,7 @@ func TestMaterialExtension_ToExtensionData(t *testing.T) {
 		},
 		"Sheen/sheenRoughnessTexture": {
 			extension: gltf.PolyformSheen{
-				SheenRoughnessTexture: &gltf.PolyformTexture{},
+				SheenRoughnessTexture: &gltf.PolyformTexture{URI: "Yeet"},
 			},
 			want: map[string]any{
 				"sheenRoughnessFactor":  0.,
@@ -311,7 +311,7 @@ func TestMaterialExtension_ToExtensionData(t *testing.T) {
 			extension: gltf.PolyformAnisotropy{
 				AnisotropyStrength: 0.5,
 				AnisotropyRotation: 1,
-				AnisotropyTexture:  &gltf.PolyformTexture{},
+				AnisotropyTexture:  &gltf.PolyformTexture{URI: "Yeet"},
 			},
 			want: map[string]any{
 				"anisotropyStrength": 0.5,
@@ -369,7 +369,7 @@ func TestMaterialExtension_ToExtensionData(t *testing.T) {
 		},
 		"Volume/thicknessTexture": {
 			extension: gltf.PolyformVolume{
-				ThicknessTexture: &gltf.PolyformTexture{},
+				ThicknessTexture: &gltf.PolyformTexture{URI: "Yeet"},
 			},
 			want: map[string]any{
 				"thicknessFactor":  0.,
@@ -397,7 +397,7 @@ func TestMaterialExtension_ToExtensionData(t *testing.T) {
 		"Volume/everything": {
 			extension: gltf.PolyformVolume{
 				ThicknessFactor:     1.,
-				ThicknessTexture:    &gltf.PolyformTexture{},
+				ThicknessTexture:    &gltf.PolyformTexture{URI: "Yeet"},
 				AttenuationDistance: pointer(1.),
 				AttenuationColor:    color.White,
 			},
@@ -422,7 +422,7 @@ func TestMaterialExtension_ToExtensionData(t *testing.T) {
 		},
 		"Specular/specularTexture": {
 			extension: gltf.PolyformSpecular{
-				Texture: &gltf.PolyformTexture{},
+				Texture: &gltf.PolyformTexture{URI: "Yeet"},
 			},
 			want: map[string]any{
 				"specularTexture": &gltf.TextureInfo{},
@@ -430,7 +430,7 @@ func TestMaterialExtension_ToExtensionData(t *testing.T) {
 		},
 		"Specular/specularColorTexture": {
 			extension: gltf.PolyformSpecular{
-				ColorTexture: &gltf.PolyformTexture{},
+				ColorTexture: &gltf.PolyformTexture{URI: "Yeet"},
 			},
 			want: map[string]any{
 				"specularColorTexture": &gltf.TextureInfo{},

@@ -3,7 +3,7 @@ package basics
 import (
 	"io"
 
-	"github.com/EliCDavis/polyform/generator/artifact"
+	"github.com/EliCDavis/polyform/generator/manifest"
 	"github.com/EliCDavis/polyform/nodes"
 )
 
@@ -26,6 +26,6 @@ type BinaryNodeData struct {
 	In nodes.Output[[]byte]
 }
 
-func (pn BinaryNodeData) Out() nodes.StructOutput[artifact.Artifact] {
-	return nodes.NewStructOutput[artifact.Artifact](Binary{Data: pn.In.Value()})
+func (pn BinaryNodeData) Out() nodes.StructOutput[manifest.Artifact] {
+	return nodes.NewStructOutput[manifest.Artifact](Binary{Data: pn.In.Value()})
 }

@@ -7,15 +7,15 @@ import (
 	"testing"
 
 	"github.com/EliCDavis/polyform/generator"
-	"github.com/EliCDavis/polyform/generator/artifact"
-	"github.com/EliCDavis/polyform/generator/artifact/basics"
+	"github.com/EliCDavis/polyform/generator/manifest"
+	"github.com/EliCDavis/polyform/generator/manifest/basics"
 	"github.com/EliCDavis/polyform/generator/parameter"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/stretchr/testify/assert"
 )
 
-func buildTextArifact(p *parameter.String) nodes.Output[artifact.Artifact] {
-	return nodes.GetNodeOutputPort[artifact.Artifact](
+func buildTextArifact(p *parameter.String) nodes.Output[manifest.Manifest] {
+	return nodes.GetNodeOutputPort[manifest.Manifest](
 		&basics.TextNode{
 			Data: basics.TextNodeData{
 				In: nodes.GetNodeOutputPort[string](p, "Value"),
@@ -34,7 +34,7 @@ func TestGetAndApplyGraph(t *testing.T) {
 		Name:        appName,
 		Version:     appVersion,
 		Description: appDescription,
-		Files: map[string]nodes.Output[artifact.Artifact]{
+		Files: map[string]nodes.Output[manifest.Manifest]{
 			producerFileName: buildTextArifact(&parameter.String{
 				Name:         "Welp",
 				DefaultValue: "yee",
@@ -54,8 +54,9 @@ func TestGetAndApplyGraph(t *testing.T) {
 	assert.Equal(t, appDescription, app.Description)
 	assert.Equal(t, string(graphData), string(graphAgain))
 	b := &bytes.Buffer{}
-	art := app.Files[producerFileName].Value()
-	err = art.Write(b)
+	manifest := app.Files[producerFileName].Value()
+	art := manifest.Entries[manifest.Main]
+	err = art.Artifact.Write(b)
 	assert.NoError(t, err)
 	assert.Equal(t, "yee", b.String())
 }
@@ -72,7 +73,7 @@ func TestAppCommand_Outline(t *testing.T) {
 		Name:        appName,
 		Version:     appVersion,
 		Description: appDescription,
-		Files: map[string]nodes.Output[artifact.Artifact]{
+		Files: map[string]nodes.Output[manifest.Manifest]{
 			producerFileName: buildTextArifact(&parameter.String{
 				Name:         "Welp",
 				DefaultValue: "yee",
@@ -115,7 +116,7 @@ func TestAppCommand_Outline(t *testing.T) {
             }
         },
         "Node-1": {
-            "type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/generator/artifact/basics.TextNodeData]",
+            "type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/generator/manifest/basics.TextNodeData]",
             "name": "test.txt",
             "assignedInput": {
                 "In": {
@@ -130,44 +131,6 @@ func TestAppCommand_Outline(t *testing.T) {
             }
         }
     },
-    "types": [
-        {
-            "displayName": "parameter.Value[string]",
-            "info": "",
-            "type": "github.com/EliCDavis/polyform/generator/parameter.Value[string]",
-            "path": "generator/parameter",
-            "outputs": {
-                "Value": {
-                    "type": "string"
-                }
-            },
-            "parameter": {
-                "name": "",
-                "description": "",
-                "type": "string",
-                "defaultValue": "",
-                "currentValue": ""
-            }
-        },
-        {
-            "displayName": "Text",
-            "info": "",
-            "type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/generator/artifact/basics.TextNodeData]",
-            "path": "generator/artifact/basics",
-            "outputs": {
-                "Out": {
-                    "type": "github.com/EliCDavis/polyform/generator/artifact.Artifact"
-                }
-            },
-            "inputs": {
-                "In": {
-                    "type": "string",
-                    "isArray": false,
-                    "description": ""
-                }
-            }
-        }
-    ],
     "notes": null
 }`, string(contents))
 }
@@ -176,7 +139,7 @@ func TestAppCommand_Zip(t *testing.T) {
 	appName := "Test Graph"
 	appVersion := "Test Graph"
 	appDescription := "Test Graph"
-	producerFileName := "test.txt"
+	producerFileName := "test"
 
 	outBuf := &bytes.Buffer{}
 
@@ -184,7 +147,7 @@ func TestAppCommand_Zip(t *testing.T) {
 		Name:        appName,
 		Version:     appVersion,
 		Description: appDescription,
-		Files: map[string]nodes.Output[artifact.Artifact]{
+		Files: map[string]nodes.Output[manifest.Manifest]{
 			producerFileName: buildTextArifact(&parameter.String{
 				Name:         "Welp",
 				DefaultValue: "yee",
@@ -203,7 +166,7 @@ func TestAppCommand_Zip(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NoError(t, zipErr)
 	assert.Len(t, r.File, 1)
-	assert.Equal(t, "test.txt", r.File[0].Name)
+	assert.Equal(t, "test/text.txt", r.File[0].Name)
 
 	rc, err := r.File[0].Open()
 	assert.NoError(t, err)
@@ -225,7 +188,7 @@ func TestAppCommand_Swagger(t *testing.T) {
 		Name:        appName,
 		Version:     appVersion,
 		Description: appDescription,
-		Files: map[string]nodes.Output[artifact.Artifact]{
+		Files: map[string]nodes.Output[manifest.Manifest]{
 			producerFileName: buildTextArifact(&parameter.String{
 				Name:         "Welp",
 				DefaultValue: "yee",
@@ -302,7 +265,7 @@ func TestAppCommand_New(t *testing.T) {
 		Name:        appName,
 		Version:     appVersion,
 		Description: appDescription,
-		Files: map[string]nodes.Output[artifact.Artifact]{
+		Files: map[string]nodes.Output[manifest.Manifest]{
 			producerFileName: buildTextArifact(&parameter.String{
 				Name:         "Welp",
 				DefaultValue: "yee",

@@ -7,7 +7,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"image"
 	"image/color"
+	"image/png"
 	"io"
 	"math"
 
@@ -33,19 +35,19 @@ type Writer struct {
 	nodes       []Node
 	materials   []Material
 
-	matIndices      materialIndices  // Tracks and deduplicates unique materials
-	meshIndices     meshIndices      // Tracks and deduplicates unique meshes&materials
-	writtenMeshData attributeIndices // Tracks and deduplicate written mesh data
-	textureIndices  textureIndices   // Tracks and deduplicates unique textures
+	matIndices          materialIndices     // Tracks and deduplicates unique materials
+	meshIndices         meshIndices         // Tracks and deduplicates unique meshes&materials
+	writtenMeshData     attributeIndices    // Tracks and deduplicate written mesh data
+	textureIndices      textureIndices      // Tracks and deduplicates unique textures
+	embededImageIndices map[image.Image]int // Tracks and deduplicates unique written images to our buffer
 
 	skins      []Skin
 	animations []Animation
 
-	textures     []Texture
-	images       []Image
-	samplers     []Sampler
-	textureInfos []TextureInfo
-	scene        []int
+	textures []Texture
+	images   []Image
+	samplers []Sampler
+	scene    []int
 
 	// Extension Stuff
 	lights []KHR_LightsPunctual
@@ -67,9 +69,10 @@ func NewWriter() *Writer {
 		skins:       make([]Skin, 0),
 		animations:  make([]Animation, 0),
 
-		meshIndices:     make(meshIndices),
-		writtenMeshData: make(attributeIndices),
-		textureIndices:  make(textureIndices),
+		meshIndices:         make(meshIndices),
+		writtenMeshData:     make(attributeIndices),
+		textureIndices:      make(textureIndices),
+		embededImageIndices: make(map[image.Image]int),
 
 		// Extensions
 		lights: make([]KHR_LightsPunctual, 0),
@@ -143,7 +146,7 @@ func (w *Writer) WriteVector4(accessorComponentType AccessorComponentType, data 
 	max := vector4.Fill(-math.MaxFloat64)
 
 	if accessorComponentType == AccessorComponentType_FLOAT {
-		for i := 0; i < data.Len(); i++ {
+		for i := range data.Len() {
 			v := data.At(i)
 			min = vector4.Min(min, v)
 			max = vector4.Max(max, v)
@@ -152,7 +155,7 @@ func (w *Writer) WriteVector4(accessorComponentType AccessorComponentType, data 
 	}
 
 	if accessorComponentType == AccessorComponentType_UNSIGNED_BYTE {
-		for i := 0; i < data.Len(); i++ {
+		for i := range data.Len() {
 			v := data.At(i)
 			min = vector4.Min(min, v)
 			max = vector4.Max(max, v)
@@ -306,12 +309,12 @@ func (w *Writer) WriteIndices(indices *iter.ArrayIterator[int], attributeSize in
 
 	componentType := AccessorComponentType_UNSIGNED_INT
 	if attributeSize > math.MaxUint16 {
-		for i := 0; i < indices.Len(); i++ {
+		for i := range indices.Len() {
 			w.bitW.UInt32(uint32(indices.At(i)))
 		}
 		indiceSize *= 4
 	} else {
-		for i := 0; i < indices.Len(); i++ {
+		for i := range indices.Len() {
 			w.bitW.UInt16(uint16(indices.At(i)))
 		}
 		indiceSize *= 2
@@ -335,6 +338,33 @@ func (w *Writer) WriteIndices(indices *iter.ArrayIterator[int], attributeSize in
 	})
 
 	w.bytesWritten += indiceSize
+}
+
+func (w *Writer) writeImageAsPng(image image.Image) (int, error) {
+	buf := &bytes.Buffer{}
+	err := png.Encode(buf, image)
+	if err != nil {
+		return -1, err
+	}
+
+	imageSize := buf.Len()
+	_, err = w.bitW.Write(buf.Bytes())
+	if err != nil {
+		return -1, err
+	}
+
+	bufferViewIndex := len(w.bufferViews)
+
+	w.bufferViews = append(w.bufferViews, BufferView{
+		Buffer:     0,
+		ByteOffset: w.bytesWritten,
+		ByteLength: imageSize,
+		Target:     ELEMENT_ARRAY_BUFFER,
+	})
+
+	w.bytesWritten += imageSize
+
+	return bufferViewIndex, nil
 }
 
 func rgbaToFloatArr(c color.Color) [4]float64 {
@@ -642,8 +672,8 @@ func (w *Writer) AddTexture(polyTex *PolyformTexture) *TextureInfo {
 	// New texture may need to be created, but it still may be the same as existing one.
 	newTex := Texture{Extensions: texExt}
 
-	{ // check if an image with this URI was already added before
-		imageIndex := len(w.images)
+	imageIndex := len(w.images)
+	if polyTex.URI != "" { // check if an image with this URI was already added before
 		var imageFound bool
 		for i, im := range w.images {
 			if im.URI == polyTex.URI {
@@ -655,8 +685,27 @@ func (w *Writer) AddTexture(polyTex *PolyformTexture) *TextureInfo {
 		if !imageFound {
 			w.images = append(w.images, Image{URI: polyTex.URI})
 		}
-		newTex.Source = ptrI(imageIndex)
+	} else if polyTex.Image != nil {
+
+		foundIndex, ok := w.embededImageIndices[polyTex.Image]
+		if ok {
+			imageIndex = foundIndex
+		} else {
+			bufferView, err := w.writeImageAsPng(polyTex.Image)
+			if err != nil {
+				panic(err)
+			}
+
+			w.images = append(w.images, Image{
+				MimeType:   ImageMimeType_PNG,
+				BufferView: &bufferView,
+			})
+			w.embededImageIndices[polyTex.Image] = imageIndex
+		}
+	} else {
+		panic(fmt.Errorf("no uri or image"))
 	}
+	newTex.Source = ptrI(imageIndex)
 
 	// Check if a sampler like existing was already aded
 	if polyTex.Sampler != nil {
@@ -715,11 +764,11 @@ func (w *Writer) AddMaterial(mat *PolyformMaterial) (*int, error) {
 			pbr.BaseColorFactor = &factor
 		}
 
-		if polyPBR.BaseColorTexture != nil {
+		if polyPBR.BaseColorTexture.canAddToGLTF() {
 			pbr.BaseColorTexture = w.AddTexture(polyPBR.BaseColorTexture)
 		}
 
-		if polyPBR.MetallicRoughnessTexture != nil {
+		if polyPBR.MetallicRoughnessTexture.canAddToGLTF() {
 			pbr.MetallicRoughnessTexture = w.AddTexture(polyPBR.MetallicRoughnessTexture)
 		}
 	}

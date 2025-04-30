@@ -61,7 +61,7 @@ func (sg PolyformPbrSpecularGlossiness) ToMaterialExtensionData(w *Writer) map[s
 		metadata["diffuseFactor"] = rgbaToFloatArr(sg.DiffuseFactor)
 	}
 
-	if sg.DiffuseTexture != nil {
+	if sg.DiffuseTexture.canAddToGLTF() {
 		metadata["diffuseTexture"] = w.AddTexture(sg.DiffuseTexture)
 	}
 
@@ -99,7 +99,7 @@ func (tr PolyformTransmission) ToMaterialExtensionData(w *Writer) map[string]any
 
 	metadata["transmissionFactor"] = tr.Factor
 
-	if tr.Texture != nil {
+	if tr.Texture.canAddToGLTF() {
 		metadata["transmissionTexture"] = w.AddTexture(tr.Texture)
 	}
 
@@ -140,7 +140,7 @@ func (v PolyformVolume) ToMaterialExtensionData(w *Writer) map[string]any {
 
 	metadata["thicknessFactor"] = v.ThicknessFactor
 
-	if v.ThicknessTexture != nil {
+	if v.ThicknessTexture.canAddToGLTF() {
 		metadata["thicknessTexture"] = w.AddTexture(v.ThicknessTexture)
 	}
 
@@ -214,7 +214,7 @@ func (ps PolyformSpecular) ToMaterialExtensionData(w *Writer) map[string]any {
 		metadata["specularFactor"] = *ps.Factor
 	}
 
-	if ps.Texture != nil {
+	if ps.Texture.canAddToGLTF() {
 		metadata["specularTexture"] = w.AddTexture(ps.Texture)
 	}
 
@@ -222,7 +222,7 @@ func (ps PolyformSpecular) ToMaterialExtensionData(w *Writer) map[string]any {
 		metadata["specularColorFactor"] = rgbToFloatArr(ps.ColorFactor)
 	}
 
-	if ps.ColorTexture != nil {
+	if ps.ColorTexture.canAddToGLTF() {
 		metadata["specularColorTexture"] = w.AddTexture(ps.ColorTexture)
 	}
 
@@ -342,7 +342,7 @@ func (pmi PolyformIridescence) ToMaterialExtensionData(w *Writer) map[string]any
 
 	metadata["iridescenceFactor"] = pmi.IridescenceFactor
 
-	if pmi.IridescenceTexture != nil {
+	if pmi.IridescenceTexture.canAddToGLTF() {
 		metadata["iridescenceTexture"] = w.AddTexture(pmi.IridescenceTexture)
 	}
 
@@ -358,7 +358,7 @@ func (pmi PolyformIridescence) ToMaterialExtensionData(w *Writer) map[string]any
 		metadata["iridescenceThicknessMaximum"] = *pmi.IridescenceThicknessMaximum
 	}
 
-	if pmi.IridescenceThicknessTexture != nil {
+	if pmi.IridescenceThicknessTexture != nil && pmi.IridescenceThicknessTexture.canAddToGLTF() {
 		metadata["iridescenceThicknessTexture"] = w.AddTexture(pmi.IridescenceThicknessTexture)
 	}
 
@@ -395,13 +395,13 @@ func (ps PolyformSheen) ToMaterialExtensionData(w *Writer) map[string]any {
 		metadata["sheenColorFactor"] = rgbToFloatArr(ps.SheenColorFactor)
 	}
 
-	if ps.SheenColorTexture != nil {
+	if ps.SheenColorTexture.canAddToGLTF() {
 		metadata["sheenColorTexture"] = w.AddTexture(ps.SheenColorTexture)
 	}
 
 	metadata["sheenRoughnessFactor"] = ps.SheenRoughnessFactor
 
-	if ps.SheenRoughnessTexture != nil {
+	if ps.SheenRoughnessTexture.canAddToGLTF() {
 		metadata["sheenRoughnessTexture"] = w.AddTexture(ps.SheenRoughnessTexture)
 	}
 
@@ -439,7 +439,7 @@ func (pa PolyformAnisotropy) ToMaterialExtensionData(w *Writer) map[string]any {
 	metadata["anisotropyStrength"] = pa.AnisotropyStrength
 	metadata["anisotropyRotation"] = pa.AnisotropyRotation
 
-	if pa.AnisotropyTexture != nil {
+	if pa.AnisotropyTexture.canAddToGLTF() {
 		metadata["anisotropyTexture"] = w.AddTexture(pa.AnisotropyTexture)
 	}
 

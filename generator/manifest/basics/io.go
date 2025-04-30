@@ -3,7 +3,7 @@ package basics
 import (
 	"io"
 
-	"github.com/EliCDavis/polyform/generator/artifact"
+	"github.com/EliCDavis/polyform/generator/manifest"
 	"github.com/EliCDavis/polyform/nodes"
 )
 
@@ -26,6 +26,6 @@ type IONodeData struct {
 	In nodes.Output[io.Reader]
 }
 
-func (pn IONodeData) Out() nodes.StructOutput[artifact.Artifact] {
-	return nodes.NewStructOutput[artifact.Artifact](IO{Reader: pn.In.Value()})
+func (pn IONodeData) Out() nodes.StructOutput[manifest.Artifact] {
+	return nodes.NewStructOutput[manifest.Artifact](IO{Reader: pn.In.Value()})
 }

@@ -1,7 +1,6 @@
 package triangulation
 
 import (
-	"log"
 	"math"
 
 	"github.com/EliCDavis/polyform/modeling"
@@ -158,7 +157,7 @@ func fillHole(polygon []Edge, point int, triangulation map[Triangle]struct{}, po
 		triToAdd := Triangle{edge[0], edge[1], point}
 		if triToAdd.CounterClockwise(points) {
 			triToAdd = Triangle{edge[0], point, edge[1]}
-			log.Print(triToAdd.CounterClockwise(points))
+			// log.Print(triToAdd.CounterClockwise(points))
 		}
 
 		triangulation[triToAdd] = exists
@@ -276,7 +275,7 @@ func ConstrainedBowyerWatson(pointsDirty []vector2.Float64, constraints []Constr
 				continue
 			}
 
-			for i := 0; i < len(constraint.shape); i++ {
+			for i := range constraint.shape {
 				edgeEnd := constraint.shape[i]
 
 				left := i - 1
@@ -298,7 +297,7 @@ func ConstrainedBowyerWatson(pointsDirty []vector2.Float64, constraints []Constr
 
 				delete(triangulation, triangle)
 
-				log.Println(totalPointsContained, len(intersections))
+				// log.Println(totalPointsContained, len(intersections))
 
 				if totalPointsContained == 1 {
 					finalPoints = append(finalPoints, intersections...)
@@ -337,7 +336,6 @@ func ConstrainedBowyerWatson(pointsDirty []vector2.Float64, constraints []Constr
 
 					trisToAdd[Triangle{km1, len(finalPoints) - 2, kp1}] = exists
 					trisToAdd[Triangle{len(finalPoints) - 2, len(finalPoints) - 1, kp1}] = exists
-
 				}
 			}
 		}

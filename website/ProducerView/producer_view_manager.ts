@@ -1,17 +1,16 @@
-import { Box3, EquirectangularReflectionMapping, Group, Mesh, PerspectiveCamera, Scene, SRGBColorSpace, TextureLoader, WebGLRenderer } from "three";
+import { Box3, EquirectangularReflectionMapping, Group, Mesh, MeshStandardMaterial, PerspectiveCamera, Scene, SRGBColorSpace, TextureLoader, WebGLRenderer } from "three";
 import { ErrorManager } from "../error_manager";
 import { InfoManager } from "../info_manager";
-import { GraphInstance } from "../schema";
+import { GraphInstance, Manifest, NodeType } from "../schema";
 import { getFileExtension } from "../utils";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
+import { PLYLoader } from 'three/examples/jsm/loaders/PLYLoader.js';
 import { RequestManager } from "../requests";
 import * as GaussianSplats3D from '@mkkellogg/gaussian-splats-3d';
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { ThreeApp } from "../three_app";
 
-const gltfLoader = new GLTFLoader().setPath('producer/value/');
-const objLoader = new OBJLoader().setPath('producer/value/');
 
 type ProducerRefreshCallback = (string: string, thing: any) => void;
 
@@ -50,10 +49,26 @@ export class ProducerViewManager {
 
     scene: Scene;
 
+    nodeTypeManifestPorts: Map<string, string>;
+
     constructor(
         app: ThreeApp,
         requestManager: RequestManager,
+        nodeTypes: Array<NodeType>
     ) {
+        this.nodeTypeManifestPorts = new Map<string, string>();
+        for (let i = 0; i < nodeTypes.length; i++) {
+            const nodeType = nodeTypes[i];
+            if (!nodeType.outputs) {
+                continue;
+            }
+            for (const [outputName, output] of Object.entries(nodeType.outputs)) {
+                if (output.type === "github.com/EliCDavis/polyform/generator/manifest.Manifest") {
+                    this.nodeTypeManifestPorts.set(nodeType.type, outputName);
+                }
+            }
+        }
+
         this.requestManager = requestManager;
         this.renderer = app.Renderer;
         this.camera = app.Camera;
@@ -142,7 +157,6 @@ export class ProducerViewManager {
     }
 
     viewAABB(aabb: Box3): void {
-
         const aabbDepth = (aabb.max.z - aabb.min.z)
         const aabbWidth = (aabb.max.x - aabb.min.x)
         const aabbHeight = (aabb.max.y - aabb.min.y)
@@ -169,7 +183,7 @@ export class ProducerViewManager {
         }
     }
 
-    loadObj(key: string, producerURL: string): void {
+    loadObj(objLoader: OBJLoader, key: string, producerURL: string): void {
         this.AddLoading();
 
         objLoader.load(
@@ -199,7 +213,7 @@ export class ProducerViewManager {
         )
     }
 
-    loadGltf(key: string, producerURL: string) {
+    loadGltf(gltfLoader: GLTFLoader, key: string, producerURL: string) {
         this.AddLoading();
         gltfLoader.load(
             producerURL,
@@ -256,6 +270,42 @@ export class ProducerViewManager {
                 }
 
             });
+    }
+
+    loadPly(plyLoader: PLYLoader, key: string, producerURL: string): void {
+        this.AddLoading();
+
+        plyLoader.load(
+            producerURL,
+            ((geometry) => {
+                this.RemoveLoading();
+                geometry.computeVertexNormals();
+
+                const material = new MeshStandardMaterial({  });
+                const mesh = new Mesh(geometry, material);
+                mesh.castShadow = true;
+                mesh.receiveShadow = true;
+
+                const aabb = new Box3();
+                aabb.setFromObject(mesh);
+                const aabbHeight = (aabb.max.y - aabb.min.y)
+                const aabbHalfHeight = aabbHeight / 2
+                const mid = (aabb.max.y + aabb.min.y) / 2
+
+                this.producerScene.add(mesh);
+
+                // We have to do this weird thing because the pivot of the scene
+                // Isn't always the center of the AABB
+                this.viewerContainer.position.set(0, - mid + aabbHalfHeight, 0);
+
+                this.viewAABB(aabb);
+            }),
+            undefined,
+            (err) => {
+                console.error(err);
+                this.RemoveLoading();
+            }
+        )
     }
 
     loadSplat(key: string, producerURL: string): void {
@@ -329,6 +379,50 @@ export class ProducerViewManager {
         });
     }
 
+    ManifestLoaded(nodeId: string, portName: string, manifest: Manifest): void {
+
+        const manifestUrl: string = `./manifest/${nodeId}/${portName}/`;
+        const fileToLoad = manifest.main;
+        const fileToLoadMetadata = manifest.entries[fileToLoad].metadata
+
+        ErrorManager.ClearError(manifest.main);
+        const fileExt = getFileExtension(manifest.main);
+
+        switch (fileExt) {
+            case "txt":
+                this.loadText(manifestUrl + fileToLoad);
+                break;
+
+            case "gltf":
+            case "glb":
+                const gltfLoader = new GLTFLoader().setPath(manifestUrl);
+                this.loadGltf(gltfLoader, fileToLoad, fileToLoad);
+                break;
+
+            case "obj":
+                const objLoader = new OBJLoader().setPath(manifestUrl);
+                this.loadObj(objLoader, fileToLoad, fileToLoad);
+                break;
+
+            case "splat":
+                this.loadSplat(fileToLoad, manifestUrl + fileToLoad)
+                break;
+
+            case "ply":
+                if (fileToLoadMetadata && fileToLoadMetadata["gaussianSplat"] === true) {
+                    this.loadSplat(fileToLoad, manifestUrl + fileToLoad)
+                } else {
+                    const plyLoader = new PLYLoader().setPath(manifestUrl);
+                    this.loadPly(plyLoader, fileToLoad, fileToLoad)
+                }
+                break;
+
+            // case "png":
+            //     this.loadImage(manifestUrl + fileToLoad);
+            //     break;
+        }
+    }
+
     Refresh(schema: GraphInstance) {
         InfoManager.ClearInfo();
 
@@ -339,36 +433,17 @@ export class ProducerViewManager {
         this.producerScene = new Group();
         this.viewerContainer.add(this.producerScene);
 
-        for (const [producer, producerData] of Object.entries(schema.producers)) {
-            ErrorManager.ClearError(producer);
-            const fileExt = getFileExtension(producer);
+        for (const [nodeID, nodeInstance] of Object.entries(schema.nodes)) {
 
-            switch (fileExt) {
-                case "txt":
-                    this.loadText('producer/value/' + producer);
-                    break;
-
-                case "gltf":
-                case "glb":
-                    this.loadGltf(producer, producer);
-                    break;
-
-                case "obj":
-                    this.loadObj(producer, producer);
-                    break;
-
-                case "splat":
-                    this.loadSplat(producer, 'producer/value/' + producer)
-                    break;
-
-                case "ply":
-                    this.loadSplat(producer, 'producer/value/' + producer)
-                    break;
-
-                case "png":
-                    this.loadImage('producer/value/' + producer);
-                    break;
+            // This node doesn't have a manifest output, continue
+            if (!this.nodeTypeManifestPorts.has(nodeInstance.type)) {
+                continue;
             }
+
+            const portName = this.nodeTypeManifestPorts.get(nodeInstance.type)
+            this.requestManager.getManifest(nodeID, portName, (manifest) => {
+                this.ManifestLoaded(nodeID, portName, manifest)
+            });
         }
     }
 

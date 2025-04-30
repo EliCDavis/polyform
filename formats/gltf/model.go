@@ -1,6 +1,7 @@
 package gltf
 
 import (
+	"image"
 	"image/color"
 
 	"github.com/EliCDavis/polyform/math/trs"
@@ -81,8 +82,17 @@ type PolyformOcclusion struct {
 
 type PolyformTexture struct {
 	URI        string
+	Image      image.Image
 	Sampler    *Sampler
 	Extensions []TextureExtension
+}
+
+func (pt *PolyformTexture) canAddToGLTF() bool {
+	if pt == nil {
+		return false
+	}
+
+	return pt.URI != "" || pt.Image != nil
 }
 
 func (pm *PolyformTexture) prepareExtensions(w *Writer) (map[string]any, map[string]any) {
@@ -237,7 +247,7 @@ func colorsEqual(a, b color.Color) bool {
 		return false
 	}
 	// Since color.Color is an interface, we can only check for basic RGBA equality
-	r1, g1, b1, a1 := a.(color.Color).RGBA()
-	r2, g2, b2, a2 := b.(color.Color).RGBA()
+	r1, g1, b1, a1 := a.RGBA()
+	r2, g2, b2, a2 := b.RGBA()
 	return r1 == r2 && g1 == g2 && b1 == b2 && a1 == a2
 }
