@@ -243,7 +243,7 @@ export class PolyNodeController {
             const downloadButton = GlobalWidgetFactory.create(flowNode, "button", {
                 text: "Download",
                 callback: () => {
-                    saveFileToDisk("/zip/" + this.id + "/" + producerOutput, this.id);
+                    saveFileToDisk("./zip/" + this.id + "/" + producerOutput, this.id);
                 }
             })
             this.flowNode.addWidget(downloadButton);

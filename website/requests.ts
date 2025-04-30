@@ -257,7 +257,7 @@ export class RequestManager {
     }
 
     getNodeTypes(callback?: ResponseCallback<Array<NodeType>>): void {
-        this.fetchJSON("/node-types", callback)
+        this.fetchJSON("./node-types", callback)
     }
 
     getGraph(callback): void {
