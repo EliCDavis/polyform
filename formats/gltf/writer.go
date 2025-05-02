@@ -450,7 +450,7 @@ func (w *Writer) serializeInstances(group modelInstanceGroup, useGpuInstancing b
 		return nil
 	}
 
-	if useGpuInstancing {
+	if useGpuInstancing && len(group.instances) > 1 {
 		w.extensionsUsed[extGpuInstancingID] = true
 		w.extensionsRequired[extGpuInstancingID] = true
 
@@ -525,8 +525,11 @@ func (w *Writer) serializeInstances(group modelInstanceGroup, useGpuInstancing b
 
 		// Set transformations
 		if instance.trs != nil {
+			// Only set position if it's not 0,0,0
 			posArr := instance.trs.Position().ToFixedArr()
-			scaleArr := instance.trs.Scale().ToFixedArr()
+			if posArr[0] != 0 || posArr[1] != 0 || posArr[2] != 0 {
+				newNode.Translation = &posArr
+			}
 
 			// Only set rotation if it's not identity quaternion
 			rot := instance.trs.Rotation()
@@ -535,8 +538,11 @@ func (w *Writer) serializeInstances(group modelInstanceGroup, useGpuInstancing b
 				newNode.Rotation = &rotArr
 			}
 
-			newNode.Translation = &posArr
-			newNode.Scale = &scaleArr
+			// Only set scale if it's not 1,1,1
+			scaleArr := instance.trs.Scale().ToFixedArr()
+			if scaleArr[0] != 1 || scaleArr[1] != 1 || scaleArr[2] != 1 {
+				newNode.Scale = &scaleArr
+			}
 		}
 
 		w.nodes = append(w.nodes, newNode)

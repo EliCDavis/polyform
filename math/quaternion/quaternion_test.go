@@ -4,6 +4,7 @@ import (
 	"math"
 	"testing"
 
+	"github.com/EliCDavis/polyform/math/mat"
 	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/vector/vector3"
 	"github.com/stretchr/testify/assert"
@@ -73,6 +74,80 @@ func TestQuaternion_Rotate(t *testing.T) {
 			assert.InDelta(t, tc.want.X(), rotated.X(), 0.00000001)
 			assert.InDelta(t, tc.want.Y(), rotated.Y(), 0.00000001)
 			assert.InDelta(t, tc.want.Z(), rotated.Z(), 0.00000001)
+		})
+	}
+}
+
+func TestConstructor_FromMatrix(t *testing.T) {
+
+	tests := map[string]struct {
+		matrix mat.Matrix4x4
+		want   quaternion.Quaternion
+	}{
+		"identity": {
+			matrix: mat.Matrix4x4{
+				1, 0, 0, 0,
+				0, 1, 0, 0,
+				0, 0, 1, 0,
+				0, 0, 0, 1,
+			},
+			want: quaternion.Identity(),
+		},
+
+		"x": {
+			matrix: mat.Matrix4x4{
+				1, 0, 0, 0,
+				0, 0, -1, 0,
+				0, 1, 0, 0,
+				0, 0, 0, 1,
+			},
+			want: quaternion.FromEulerAngle(
+				vector3.New(math.Pi/2, 0., 0.),
+			),
+		},
+
+		"y": {
+			matrix: mat.Matrix4x4{
+				0, 0, 1, 0,
+				0, 1, 0, 0,
+				-1, 0, 0, 0,
+				0, 0, 0, 1,
+			},
+			want: (quaternion.FromEulerAngle(
+				vector3.New(0, math.Pi/2, 0.),
+			)),
+		},
+
+		"z": {
+			matrix: mat.Matrix4x4{
+				0, -1, 0, 0,
+				1, 0, 0, 0,
+				0, 0, 1, 0,
+				0, 0, 0, 1,
+			},
+			want: quaternion.FromEulerAngle(
+				vector3.New(0, 0, math.Pi/2),
+			),
+		},
+
+		// TODO: I think something is wrong FromEulerAngle
+		// "rotation-yz": {
+		// 	matrix: mat.Matrix4x4{
+		// 		0, 0, 1, 0,
+		// 		1, 0, 0, 0,
+		// 		0, 1, 0, 0,
+		// 		0, 0, 0, 1,
+		// 	},
+		// 	want: trs.Rotation(quaternion.FromEulerAngle(
+		// 		vector3.New(0, math.Pi/2, math.Pi/2),
+		// 	)),
+		// },
+
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			assert.Equal(t, tc.want, quaternion.FromMatrix(tc.matrix))
 		})
 	}
 }

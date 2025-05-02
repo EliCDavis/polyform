@@ -217,16 +217,35 @@ func FromMatrix(k mat.Matrix4x4) Quaternion {
 	// }
 
 	if scale > 0.0 {
+		// 	sqrtV = math.Sqrt(scale + 1.0)
+		// 	result.w = sqrtV * 0.5
+		// 	sqrtV = 0.5 / sqrtV
+
+		// 	result.v = vector3.New(
+		// 		(m.M23-m.M32)*sqrtV,
+		// 		(m.M31-m.M13)*sqrtV,
+		// 		(m.M12-m.M21)*sqrtV,
+		// 	)
 		sqrtV = math.Sqrt(scale + 1.0)
 		result.w = sqrtV * 0.5
 		sqrtV = 0.5 / sqrtV
 
 		result.v = vector3.New(
-			(k.X12-k.X21)*sqrtV,
-			(k.X20-k.X02)*sqrtV,
-			(k.X01-k.X10)*sqrtV,
+			(k.X21-k.X12)*sqrtV,
+			(k.X02-k.X20)*sqrtV,
+			(k.X10-k.X01)*sqrtV,
 		)
 	} else if k.X00 >= k.X11 && k.X00 >= k.X22 {
+
+		// 	sqrtV = math.Sqrt(1.0 + m.X00 - m.X11 - m.X22)
+		// 	half = 0.5 / sqrtV
+
+		// 	result.v = vector3.New(
+		// 		0.5*sqrtV,
+		// 		(m.M12+m.M21)*half,
+		// 		(m.M13+m.M31)*half,
+		// 	)
+		// 	result.w = (m.M23 - m.M32) * half
 		sqrtV = math.Sqrt(1.0 + k.X00 - k.X11 - k.X22)
 		half = 0.5 / sqrtV
 
@@ -235,7 +254,7 @@ func FromMatrix(k mat.Matrix4x4) Quaternion {
 			(k.X01+k.X10)*half,
 			(k.X02+k.X20)*half,
 		)
-		result.w = (k.X12 - k.X21) * half
+		result.w = (k.X21 - k.X12) * half
 	} else if k.X11 > k.X22 {
 		sqrtV = math.Sqrt(1.0 + k.X11 - k.X00 - k.X22)
 		half = 0.5 / sqrtV
@@ -245,7 +264,7 @@ func FromMatrix(k mat.Matrix4x4) Quaternion {
 			0.5*sqrtV,
 			(k.X21+k.X12)*half,
 		)
-		result.w = (k.X20 - k.X02) * half
+		result.w = (k.X02 - k.X20) * half
 	} else {
 		sqrtV = math.Sqrt(1.0 + k.X22 - k.X00 - k.X11)
 		half = 0.5 / sqrtV
@@ -255,7 +274,7 @@ func FromMatrix(k mat.Matrix4x4) Quaternion {
 			(k.X21+k.X12)*half,
 			0.5*sqrtV,
 		)
-		result.w = (k.X01 - k.X10) * half
+		result.w = (k.X10 - k.X01) * half
 	}
 
 	return result.Normalize()

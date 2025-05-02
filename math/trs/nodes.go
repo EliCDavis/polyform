@@ -29,8 +29,8 @@ type NewNode = nodes.Struct[NewNodeData]
 
 type NewNodeData struct {
 	Position nodes.Output[vector3.Float64]
-	Scale    nodes.Output[vector3.Float64]
 	Rotation nodes.Output[quaternion.Quaternion]
+	Scale    nodes.Output[vector3.Float64]
 }
 
 func (tnd NewNodeData) Out() nodes.StructOutput[TRS] {

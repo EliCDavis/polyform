@@ -8,12 +8,14 @@ import (
 )
 
 type Quad struct {
-	Width float64
-	Depth float64
-	UVs   *StripUVs
+	Width   float64
+	Depth   float64
+	Columns int
+	Rows    int
+	UVs     *StripUVs
 }
 
-func (q Quad) ToMesh() modeling.Mesh {
+func (q Quad) simpleQuad() modeling.Mesh {
 	up := vector3.Up[float64]()
 
 	v2Data := make(map[string][]vector2.Float64)
@@ -44,26 +46,80 @@ func (q Quad) ToMesh() modeling.Mesh {
 		SetFloat2Data(v2Data)
 }
 
+func (q Quad) ToMesh() modeling.Mesh {
+	if q.Rows <= 1 && q.Columns <= 1 {
+		return q.simpleQuad()
+	}
+	up := vector3.Up[float64]()
+
+	// A 3x1 quad has 8 verts
+	// . -- . -- . -- .
+	// |    |    |    |
+	// . -- . -- . -- .
+
+	vertexCount := (q.Rows + 1) * (q.Columns + 1)
+	verts := make([]vector3.Float64, 0, vertexCount)
+	normals := make([]vector3.Float64, 0, vertexCount)
+
+	halfWidth := q.Width / 2.
+	halfHeight := q.Depth / 2.
+	rowInc := q.Width / float64(q.Rows)
+	colInc := q.Depth / float64(q.Columns)
+
+	// I'm lazy and don't want to think hard
+	vertToIndex := make(map[vector2.Int]int)
+
+	for x := range q.Rows + 1 {
+		for y := range q.Columns + 1 {
+			vertToIndex[vector2.New(x, y)] = len(verts)
+			verts = append(verts, vector3.New(
+				(rowInc*float64(x))-halfWidth,
+				0,
+				(colInc*float64(y))-halfHeight,
+			))
+			normals = append(normals, up)
+		}
+	}
+
+	indices := make([]int, q.Rows*q.Columns*6)
+	for x := range q.Rows {
+		for y := range q.Columns {
+			indices = append(
+				indices,
+				vertToIndex[vector2.New(x, y)],
+				vertToIndex[vector2.New(x, y+1)],
+				vertToIndex[vector2.New(x+1, y+1)],
+				vertToIndex[vector2.New(x+1, y+1)],
+				vertToIndex[vector2.New(x+1, y)],
+				vertToIndex[vector2.New(x, y)],
+			)
+		}
+	}
+
+	return modeling.NewTriangleMesh(indices).
+		SetFloat3Data(map[string][]vector3.Float64{
+			modeling.PositionAttribute: verts,
+			modeling.NormalAttribute:   normals,
+		})
+
+}
+
 type QuadNode = nodes.Struct[QuadNodeData]
 
 type QuadNodeData struct {
-	Width nodes.Output[float64]
-	Depth nodes.Output[float64]
-	UVs   nodes.Output[StripUVs]
+	Width   nodes.Output[float64]
+	Depth   nodes.Output[float64]
+	Columns nodes.Output[int]
+	Rows    nodes.Output[int]
+	UVs     nodes.Output[StripUVs]
 }
 
 func (c QuadNodeData) Out() nodes.StructOutput[modeling.Mesh] {
 	quad := Quad{
-		Width: 1,
-		Depth: 1,
-	}
-
-	if c.Width != nil {
-		quad.Width = c.Width.Value()
-	}
-
-	if c.Depth != nil {
-		quad.Depth = c.Depth.Value()
+		Width:   nodes.TryGetOutputValue(c.Width, 1.),
+		Depth:   nodes.TryGetOutputValue(c.Depth, 1.),
+		Rows:    max(nodes.TryGetOutputValue(c.Rows, 1), 1),
+		Columns: max(nodes.TryGetOutputValue(c.Columns, 1), 1),
 	}
 
 	if c.UVs != nil {

@@ -96,10 +96,11 @@ type CubeUVs struct {
 }
 
 type Cube struct {
-	Height float64
-	Width  float64
-	Depth  float64
-	UVs    *CubeUVs
+	Height     float64
+	Width      float64
+	Depth      float64
+	Dimensions int
+	UVs        *CubeUVs
 }
 
 func UnitCube() modeling.Mesh {
@@ -138,33 +139,35 @@ func (c Cube) UnweldedQuads() modeling.Mesh {
 	}
 
 	top := Quad{
-		UVs:   topUV,
-		Width: c.Width,
-		Depth: c.Depth,
+		UVs:     topUV,
+		Width:   c.Width,
+		Depth:   c.Depth,
+		Columns: c.Dimensions,
+		Rows:    c.Dimensions,
 	}.ToMesh().Translate(vector3.New(0., halfH, 0.))
 
 	bottom := rotate(
-		Quad{UVs: bottomUV, Width: c.Width, Depth: c.Depth}.ToMesh(),
+		Quad{UVs: bottomUV, Width: c.Width, Depth: c.Depth, Columns: c.Dimensions, Rows: c.Dimensions}.ToMesh(),
 		quaternion.FromTheta(math.Pi, vector3.Forward[float64]()),
 	).Translate(vector3.New(0., -halfH, 0.))
 
 	left := rotate(
-		Quad{UVs: leftUV, Width: c.Height, Depth: c.Depth}.ToMesh(),
+		Quad{UVs: leftUV, Width: c.Height, Depth: c.Depth, Columns: c.Dimensions, Rows: c.Dimensions}.ToMesh(),
 		quaternion.FromTheta(math.Pi/2, vector3.Forward[float64]()),
 	).Translate(vector3.New(-halfW, 0., 0.))
 
 	right := rotate(
-		Quad{UVs: rightUV, Width: c.Height, Depth: c.Depth}.ToMesh(),
+		Quad{UVs: rightUV, Width: c.Height, Depth: c.Depth, Columns: c.Dimensions, Rows: c.Dimensions}.ToMesh(),
 		quaternion.FromTheta(math.Pi*(3./2.), vector3.Forward[float64]()),
 	).Translate(vector3.New(halfW, 0, 0.))
 
 	front := rotate(
-		Quad{UVs: frontUV, Width: c.Width, Depth: c.Height}.ToMesh(),
+		Quad{UVs: frontUV, Width: c.Width, Depth: c.Height, Columns: c.Dimensions, Rows: c.Dimensions}.ToMesh(),
 		quaternion.FromTheta(math.Pi*(3./2.), vector3.Left[float64]()),
 	).Translate(vector3.New(0., 0., halfD))
 
 	back := rotate(
-		Quad{UVs: backUV, Width: c.Width, Depth: c.Height}.ToMesh(),
+		Quad{UVs: backUV, Width: c.Width, Depth: c.Height, Columns: c.Dimensions, Rows: c.Dimensions}.ToMesh(),
 		quaternion.FromTheta(math.Pi*(1./2.), vector3.Left[float64]()),
 	).Translate(vector3.New(0., 0., -halfD))
 
@@ -278,29 +281,19 @@ func (c Cube) calcUVs() []vector2.Float64 {
 type CubeNode = nodes.Struct[CubeNodeData]
 
 type CubeNodeData struct {
-	Width  nodes.Output[float64]
-	Height nodes.Output[float64]
-	Depth  nodes.Output[float64]
-	UVs    nodes.Output[CubeUVs]
+	Width      nodes.Output[float64]
+	Height     nodes.Output[float64]
+	Depth      nodes.Output[float64]
+	Dimensions nodes.Output[int]
+	UVs        nodes.Output[CubeUVs]
 }
 
 func (c CubeNodeData) Out() nodes.StructOutput[modeling.Mesh] {
 	cube := Cube{
-		Height: 1,
-		Width:  1,
-		Depth:  1,
-	}
-
-	if c.Height != nil {
-		cube.Height = c.Height.Value()
-	}
-
-	if c.Width != nil {
-		cube.Width = c.Width.Value()
-	}
-
-	if c.Depth != nil {
-		cube.Depth = c.Depth.Value()
+		Height:     nodes.TryGetOutputValue(c.Height, 1.),
+		Width:      nodes.TryGetOutputValue(c.Width, 1.),
+		Depth:      nodes.TryGetOutputValue(c.Depth, 1.),
+		Dimensions: max(1, nodes.TryGetOutputValue(c.Dimensions, 1)),
 	}
 
 	if c.UVs != nil {
