@@ -33,15 +33,17 @@ func FibonacciSpiral(samples int, radius float64) []trs.TRS {
 	points := make([]trs.TRS, samples)
 	phi := math.Pi * (3.0 - math.Sqrt(5.0)) // golden angle in radians
 
-	for i := 0; i < samples; i++ {
+	for i := range samples {
 		theta := phi * float64(i) // golden angle increment
 
 		d := math.Sqrt(float64(i) / float64(samples-1))
 		x := math.Cos(theta) * radius * d
 		z := math.Sin(theta) * radius * d
 
+		rot := quaternion.FromTheta(theta-(math.Pi/2), vector3.Down[float64]())
+
 		p := vector3.New(x, 0, z)
-		points[i] = trs.New(p, quaternion.Identity(), vector3.One[float64]())
+		points[i] = trs.New(p, rot, vector3.One[float64]())
 	}
 
 	return points

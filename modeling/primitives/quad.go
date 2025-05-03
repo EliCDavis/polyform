@@ -60,6 +60,9 @@ func (q Quad) ToMesh() modeling.Mesh {
 	vertexCount := (q.Rows + 1) * (q.Columns + 1)
 	verts := make([]vector3.Float64, 0, vertexCount)
 	normals := make([]vector3.Float64, 0, vertexCount)
+	uvs := make([]vector2.Float64, 0, vertexCount)
+
+	uvStrip := q.UVs
 
 	halfWidth := q.Width / 2.
 	halfHeight := q.Depth / 2.
@@ -78,6 +81,13 @@ func (q Quad) ToMesh() modeling.Mesh {
 				(colInc*float64(y))-halfHeight,
 			))
 			normals = append(normals, up)
+
+			if uvStrip != nil {
+				uvs = append(uvs, uvStrip.AtXY(
+					float64(x)/float64(q.Rows),
+					float64(y)/float64(q.Columns),
+				))
+			}
 		}
 	}
 
@@ -100,7 +110,8 @@ func (q Quad) ToMesh() modeling.Mesh {
 		SetFloat3Data(map[string][]vector3.Float64{
 			modeling.PositionAttribute: verts,
 			modeling.NormalAttribute:   normals,
-		})
+		}).
+		SetFloat2Attribute(modeling.TexCoordAttribute, uvs)
 
 }
 

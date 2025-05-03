@@ -27,7 +27,7 @@ const ivec3 off = ivec3(-1,0,1);
 */
 
 // https://stackoverflow.com/questions/5281261/generating-a-normal-map-from-a-height-map
-func FromHeightmap(heightmap image.Image) *image.RGBA {
+func FromHeightmap(heightmap image.Image, scale float64) *image.RGBA {
 	dst := image.NewRGBA(heightmap.Bounds())
 
 	texturing.Convolve(heightmap, func(x, y int, values []color.Color) {
@@ -38,8 +38,8 @@ func FromHeightmap(heightmap image.Image) *image.RGBA {
 		s10 := float64(colors.Red(values[1])) / 255.
 		s12 := float64(colors.Red(values[7])) / 255.
 
-		va := vector3.New(2, 0, s21-s01).Normalized()
-		vb := vector3.New(0, 2, s12-s10).Normalized()
+		va := vector3.New(2, 0, (s21-s01)*scale).Normalized()
+		vb := vector3.New(0, 2, (s12-s10)*scale).Normalized()
 		n := va.Cross(vb)
 
 		dst.Set(x, y, color.RGBA{

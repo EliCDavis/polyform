@@ -2,6 +2,7 @@ package repeat
 
 import (
 	"github.com/EliCDavis/polyform/generator"
+	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
 )
 
@@ -15,5 +16,6 @@ func init() {
 	refutil.RegisterType[FibonacciSpiralNode](factory)
 	refutil.RegisterType[TRSNode](factory)
 	refutil.RegisterType[TransformationNode](factory)
+	refutil.RegisterType[nodes.Struct[polygonNode]](factory)
 	generator.RegisterTypes(factory)
 }

@@ -28,6 +28,7 @@ func init() {
 	refutil.RegisterType[ModelNode](factory)
 	refutil.RegisterType[TextureReferenceNode](factory)
 	refutil.RegisterType[TextureNode](factory)
+	refutil.RegisterType[NormalTextureNode](factory)
 	refutil.RegisterType[SamplerNode](factory)
 
 	refutil.RegisterType[SamplerWrapNode](factory)
@@ -186,6 +187,29 @@ func (tnd TextureNodeData) Out() nodes.StructOutput[PolyformTexture] {
 
 func (gmnd TextureNodeData) Description() string {
 	return "An object that combines an image and its sampler"
+}
+
+type NormalTextureNode = nodes.Struct[NormalTextureNodeData]
+
+type NormalTextureNodeData struct {
+	Texture nodes.Output[PolyformTexture]
+	Scale   nodes.Output[float64]
+}
+
+func (tnd NormalTextureNodeData) Out() nodes.StructOutput[PolyformNormal] {
+	normal := PolyformNormal{}
+
+	if tnd.Scale != nil {
+		scale := tnd.Scale.Value()
+		normal.Scale = &scale
+	}
+
+	if tnd.Texture != nil {
+		tex := tnd.Texture.Value()
+		normal.PolyformTexture = &tex
+	}
+
+	return nodes.NewStructOutput(normal)
 }
 
 type SamplerNode = nodes.Struct[SamplerNodeData]
@@ -354,6 +378,7 @@ type MaterialNodeData struct {
 	RoughnessFactor          nodes.Output[float64]           `description:"The factor for the roughness of the material. This value defines a linear multiplier for the sampled roughness values of the metallic-roughness texture."`
 	MetallicRoughnessTexture nodes.Output[PolyformTexture]   `description:"The metallic-roughness texture. The metalness values are sampled from the B channel. The roughness values are sampled from the G channel. These values MUST be encoded with a linear transfer function. If other channels are present (R or A), they MUST be ignored for metallic-roughness calculations. When undefined, the texture MUST be sampled as having 1.0 in G and B components."`
 	EmissiveFactor           nodes.Output[coloring.WebColor] `description:"The factors for the emissive color of the material. This value defines linear multipliers for the sampled texels of the emissive texture."`
+	NormalTexture            nodes.Output[PolyformNormal]    `description:"The tangent space normal texture. The texture encodes RGB components with linear transfer function. Each texel represents the XYZ components of a normal vector in tangent space. The normal vectors use the convention +X is right and +Y is up. +Z points toward the viewer. If a fourth component (A) is present, it **MUST** be ignored. When undefined, the material does not have a tangent space normal texture."`
 
 	// Extensions
 	IndexOfRefraction nodes.Output[float64]
@@ -440,10 +465,17 @@ func (gmnd MaterialNodeData) Out() nodes.StructOutput[PolyformMaterial] {
 		})
 	}
 
+	var normalTexture *PolyformNormal = nil
+	if gmnd.NormalTexture != nil {
+		tex := gmnd.NormalTexture.Value()
+		normalTexture = &tex
+	}
+
 	return nodes.NewStructOutput(PolyformMaterial{
 		PbrMetallicRoughness: pbr,
 		Extensions:           extensions,
 		EmissiveFactor:       emissiveFactor,
+		NormalTexture:        normalTexture,
 	})
 }
 

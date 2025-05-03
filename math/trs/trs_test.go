@@ -77,5 +77,45 @@ func TestTranslate(t *testing.T) {
 	assert.InDelta(t, 2., newPosition.X(), 0.0000001)
 	assert.InDelta(t, 3., newPosition.Y(), 0.0000001)
 	assert.InDelta(t, 4., newPosition.Z(), 0.0000001)
+}
 
+func TestInDelta(t *testing.T) {
+	tests := map[string]struct {
+		a, b  trs.TRS
+		delta float64
+		err   string
+	}{
+		"0 delta, both identity": {
+			a:     trs.Identity(),
+			b:     trs.Identity(),
+			delta: 0,
+		},
+		"slightly different position, within delta": {
+			a:     trs.Position(vector3.New(0., 0., 0.)),
+			b:     trs.Position(vector3.New(0., .1, 0.)),
+			delta: .2,
+		},
+		"slightly different position, at delta": {
+			a:     trs.Position(vector3.New(0., 0., 0.)),
+			b:     trs.Position(vector3.New(0., .2, 0.)),
+			delta: .2,
+		},
+		"slightly different position, outside delta": {
+			a:     trs.Position(vector3.New(0., 0., 0.)),
+			b:     trs.Position(vector3.New(0., .200000000000001, 0.)),
+			delta: .2,
+			err:   "expected position.y 0 to be within delta (0.2) of 0.200000000000001",
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			err := tc.a.WithinDelta(tc.b, tc.delta)
+			if tc.err == "" {
+				assert.NoError(t, err)
+			} else {
+				assert.EqualError(t, err, tc.err)
+			}
+		})
+	}
 }

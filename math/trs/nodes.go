@@ -1,6 +1,8 @@
 package trs
 
 import (
+	"math/rand/v2"
+
 	"github.com/EliCDavis/polyform/generator"
 	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/polyform/nodes"
@@ -15,6 +17,8 @@ func init() {
 	refutil.RegisterType[NewNode](factory)
 	refutil.RegisterType[RotateDirectionNode](factory)
 	refutil.RegisterType[RotateDirectionsNode](factory)
+	refutil.RegisterType[RandomizeArrayNode](factory)
+	refutil.RegisterType[TransformArrayNode](factory)
 	refutil.RegisterType[MultiplyNode](factory)
 	refutil.RegisterType[MultiplyArrayNode](factory)
 	refutil.RegisterType[SelectNode](factory)
@@ -39,6 +43,57 @@ func (tnd NewNodeData) Out() nodes.StructOutput[TRS] {
 		nodes.TryGetOutputValue(tnd.Rotation, quaternion.Identity()),
 		nodes.TryGetOutputValue(tnd.Scale, vector3.One[float64]()),
 	))
+}
+
+// ============================================================================
+
+type RandomizeArrayNode = nodes.Struct[RandomizeArrayNodeData]
+
+type RandomizeArrayNodeData struct {
+	TranslationMinimum nodes.Output[vector3.Float64]
+	TranslationMaximum nodes.Output[vector3.Float64]
+	ScaleMinimum       nodes.Output[vector3.Float64]
+	ScaleMaximum       nodes.Output[vector3.Float64]
+	RotationMinimum    nodes.Output[vector3.Float64]
+	RotationMaximum    nodes.Output[vector3.Float64]
+	Samples            nodes.Output[int]
+}
+
+func (tnd RandomizeArrayNodeData) Out() nodes.StructOutput[[]TRS] {
+	minT := nodes.TryGetOutputValue(tnd.TranslationMinimum, vector3.Zero[float64]())
+	maxT := nodes.TryGetOutputValue(tnd.TranslationMaximum, vector3.Zero[float64]())
+	rangeT := maxT.Sub(minT)
+
+	minS := nodes.TryGetOutputValue(tnd.ScaleMinimum, vector3.One[float64]())
+	maxS := nodes.TryGetOutputValue(tnd.ScaleMaximum, vector3.One[float64]())
+	rangeS := maxS.Sub(minS)
+
+	minR := nodes.TryGetOutputValue(tnd.RotationMinimum, vector3.Zero[float64]())
+	maxR := nodes.TryGetOutputValue(tnd.RotationMaximum, vector3.Zero[float64]())
+	rangeR := maxR.Sub(minR)
+
+	samples := make([]TRS, max(nodes.TryGetOutputValue(tnd.Samples, 0), 0))
+	for i := range samples {
+		samples[i] = New(
+			minT.Add(vector3.New(
+				rangeT.X()*rand.Float64(),
+				rangeT.Y()*rand.Float64(),
+				rangeT.Z()*rand.Float64(),
+			)),
+			quaternion.FromEulerAngle(minR.Add(vector3.New(
+				rangeR.X()*rand.Float64(),
+				rangeR.Y()*rand.Float64(),
+				rangeR.Z()*rand.Float64(),
+			))),
+			minS.Add(vector3.New(
+				rangeS.X()*rand.Float64(),
+				rangeS.Y()*rand.Float64(),
+				rangeS.Z()*rand.Float64(),
+			)),
+		)
+	}
+
+	return nodes.NewStructOutput(samples)
 }
 
 // ============================================================================
@@ -133,7 +188,7 @@ func (tnd MultiplyArrayNodeData) Out() nodes.StructOutput[[]TRS] {
 	out := make([]TRS, max(len(aVal), len(bVal)))
 
 	identity := Identity()
-	for i := 0; i < len(out); i++ {
+	for i := range out {
 		a := identity
 		b := identity
 
@@ -146,6 +201,31 @@ func (tnd MultiplyArrayNodeData) Out() nodes.StructOutput[[]TRS] {
 		}
 
 		out[i] = a.Multiply(b)
+	}
+
+	return nodes.NewStructOutput(out)
+}
+
+// ============================================================================
+
+type TransformArrayNode = nodes.Struct[TransformArrayNodeData]
+
+type TransformArrayNodeData struct {
+	Transform nodes.Output[TRS]
+	Array     nodes.Output[[]TRS]
+}
+
+func (tnd TransformArrayNodeData) Out() nodes.StructOutput[[]TRS] {
+	if tnd.Transform == nil {
+		return nodes.NewStructOutput(nodes.TryGetOutputValue(tnd.Array, nil))
+	}
+
+	v := tnd.Transform.Value()
+	inArr := nodes.TryGetOutputValue(tnd.Array, nil)
+
+	out := make([]TRS, len(inArr))
+	for i, e := range inArr {
+		out[i] = v.Multiply(e)
 	}
 
 	return nodes.NewStructOutput(out)

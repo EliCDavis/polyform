@@ -1,6 +1,10 @@
 package trs
 
 import (
+	"fmt"
+	"math"
+	"strconv"
+
 	"github.com/EliCDavis/polyform/math/mat"
 	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/vector/vector3"
@@ -115,4 +119,51 @@ func (trs TRS) TransformInPlace(in []vector3.Float64) {
 	for i, v := range in {
 		in[i] = trs.Transform(v)
 	}
+}
+
+func inDelta(a, b, d float64, component string) error {
+	diff := math.Abs(a - b)
+	if diff <= d {
+		return nil
+	}
+	return fmt.Errorf(
+		"expected %s %s to be within delta (%s) of %s",
+		component,
+		strconv.FormatFloat(a, 'f', -1, 64),
+		strconv.FormatFloat(d, 'f', -1, 64),
+		strconv.FormatFloat(b, 'f', -1, 64),
+	)
+}
+
+// Checks if each of the components of this TRS is within delta of TRS passed
+// in.
+// If they aren't, an error is returned describing which component is out of
+// range
+func (trs TRS) WithinDelta(in TRS, delta float64) error {
+	cases := []struct {
+		component string
+		a         float64
+		b         float64
+	}{
+		{component: "position.x", a: trs.position.X(), b: in.position.X()},
+		{component: "position.y", a: trs.position.Y(), b: in.position.Y()},
+		{component: "position.z", a: trs.position.Z(), b: in.position.Z()},
+
+		{component: "rotation.x", a: trs.rotation.Dir().X(), b: in.rotation.Dir().X()},
+		{component: "rotation.y", a: trs.rotation.Dir().Y(), b: in.rotation.Dir().Y()},
+		{component: "rotation.z", a: trs.rotation.Dir().Z(), b: in.rotation.Dir().Z()},
+		{component: "rotation.w", a: trs.rotation.W(), b: in.rotation.W()},
+
+		{component: "scale.x", a: trs.scale.X(), b: in.scale.X()},
+		{component: "scale.y", a: trs.scale.Y(), b: in.scale.Y()},
+		{component: "scale.z", a: trs.scale.Z(), b: in.scale.Z()},
+	}
+
+	for _, c := range cases {
+		if err := inDelta(c.a, c.b, delta, c.component); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
