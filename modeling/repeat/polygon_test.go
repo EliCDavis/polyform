@@ -69,7 +69,6 @@ func TestPolygon(t *testing.T) {
 
 			for i, v := range actual {
 				assert.NoError(t, v.WithinDelta(tc.expect[i], 0.000000001), fmt.Sprintf("item %d", i))
-
 			}
 		})
 	}

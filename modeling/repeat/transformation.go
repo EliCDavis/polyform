@@ -15,7 +15,7 @@ func (t Transformation) TRS() []trs.TRS {
 	results := make([]trs.TRS, t.Samples)
 
 	previous := t.Initial
-	for i := 0; i < t.Samples; i++ {
+	for i := range t.Samples {
 		results[i] = t.Transformation.Multiply(previous)
 		previous = results[i]
 	}

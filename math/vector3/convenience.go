@@ -6,6 +6,8 @@ import (
 	"github.com/EliCDavis/vector/vector3"
 )
 
+// ============================================================================
+
 type Half[T vector.Number] struct {
 	In nodes.Output[vector3.Vector[T]]
 }
@@ -17,6 +19,8 @@ func (cn Half[T]) Float64() nodes.StructOutput[vector3.Vector[float64]] {
 func (cn Half[T]) Int() nodes.StructOutput[vector3.Vector[int]] {
 	return nodes.NewStructOutput(nodes.TryGetOutputValue(cn.In, vector3.Zero[T]()).Scale(0.5).ToInt())
 }
+
+// ============================================================================
 
 type Double[T vector.Number] struct {
 	In nodes.Output[vector3.Vector[T]]
@@ -30,6 +34,8 @@ func (cn Double[T]) Int() nodes.StructOutput[vector3.Vector[int]] {
 	return nodes.NewStructOutput(nodes.TryGetOutputValue(cn.In, vector3.Zero[T]()).Scale(2).ToInt())
 }
 
+// ============================================================================
+
 type Length[T vector.Number] struct {
 	In nodes.Output[vector3.Vector[T]]
 }
@@ -41,6 +47,8 @@ func (cn Length[T]) Float64() nodes.StructOutput[float64] {
 func (cn Length[T]) Int() nodes.StructOutput[int] {
 	return nodes.NewStructOutput(int(nodes.TryGetOutputValue(cn.In, vector3.Zero[T]()).ToFloat64().Length()))
 }
+
+// ============================================================================
 
 type Scale[T vector.Number] struct {
 	Vector nodes.Output[vector3.Vector[T]] `description:"The vector to scale"`
@@ -61,6 +69,8 @@ func (cn Scale[T]) Float64() nodes.StructOutput[vector3.Vector[float64]] {
 func (cn Scale[T]) Int() nodes.StructOutput[vector3.Vector[int]] {
 	return nodes.NewStructOutput(cn.result().RoundToInt())
 }
+
+// ============================================================================
 
 type Dot struct {
 	A nodes.Output[vector3.Float64]

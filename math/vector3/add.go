@@ -18,12 +18,14 @@ func (cn SumNodeData[T]) Out() nodes.StructOutput[vector3.Vector[T]] {
 	return nodes.NewStructOutput(total)
 }
 
-type ShiftArrayNodeData[T vector.Number] struct {
-	Array  nodes.Output[[]vector3.Vector[T]]
+// ============================================================================
+
+type AddToArrayNodeData[T vector.Number] struct {
 	Amount nodes.Output[vector3.Vector[T]]
+	Array  nodes.Output[[]vector3.Vector[T]]
 }
 
-func (cn ShiftArrayNodeData[T]) Out() nodes.StructOutput[[]vector3.Vector[T]] {
+func (cn AddToArrayNodeData[T]) Out() nodes.StructOutput[[]vector3.Vector[T]] {
 	if cn.Array == nil {
 		return nodes.NewStructOutput[[]vector3.Vector[T]](nil)
 	}

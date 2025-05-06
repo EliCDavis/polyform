@@ -18,8 +18,8 @@ func init() {
 	refutil.RegisterType[nodes.Struct[SumNodeData[float64]]](factory)
 	refutil.RegisterType[nodes.Struct[SumNodeData[int]]](factory)
 
-	refutil.RegisterType[nodes.Struct[ShiftArrayNodeData[int]]](factory)
-	refutil.RegisterType[nodes.Struct[ShiftArrayNodeData[float64]]](factory)
+	refutil.RegisterType[nodes.Struct[AddToArrayNodeData[int]]](factory)
+	refutil.RegisterType[nodes.Struct[AddToArrayNodeData[float64]]](factory)
 
 	refutil.RegisterType[nodes.Struct[ArrayFromNodesNodeData[int]]](factory)
 	refutil.RegisterType[nodes.Struct[ArrayFromNodesNodeData[float64]]](factory)
@@ -43,6 +43,15 @@ func init() {
 
 	refutil.RegisterType[nodes.Struct[Length[int]]](factory)
 	refutil.RegisterType[nodes.Struct[Length[float64]]](factory)
+
+	refutil.RegisterType[nodes.Struct[Distance[float64]]](factory)
+	refutil.RegisterType[nodes.Struct[Distance[int]]](factory)
+	refutil.RegisterType[nodes.Struct[Distances[float64]]](factory)
+	refutil.RegisterType[nodes.Struct[Distances[int]]](factory)
+	refutil.RegisterType[nodes.Struct[DistancesToArray[float64]]](factory)
+	refutil.RegisterType[nodes.Struct[DistancesToArray[int]]](factory)
+	refutil.RegisterType[nodes.Struct[DistancesToNodes[float64]]](factory)
+	refutil.RegisterType[nodes.Struct[DistancesToNodes[int]]](factory)
 
 	generator.RegisterTypes(factory)
 }

@@ -1,6 +1,7 @@
 package generator
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/EliCDavis/polyform/generator/endpoint"
@@ -39,6 +40,10 @@ func nodeConnectionEndpoint(graphInstance *graph.Instance, saver *GraphSaver) en
 			),
 			http.MethodDelete: endpoint.JsonMethod(
 				func(request endpoint.Request[DeleteRequest]) (EmptyResponse, error) {
+					if !graphInstance.HasNodeWithId(request.Body.NodeId) {
+						return EmptyResponse{}, fmt.Errorf("no node exists with id %s", request.Body.NodeId)
+					}
+
 					graphInstance.
 						DeleteNodeInputConnection(
 							request.Body.NodeId,

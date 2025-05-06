@@ -1,6 +1,7 @@
 package trs
 
 import (
+	"math"
 	"math/rand/v2"
 
 	"github.com/EliCDavis/polyform/generator"
@@ -20,10 +21,11 @@ func init() {
 	refutil.RegisterType[RandomizeArrayNode](factory)
 	refutil.RegisterType[TransformArrayNode](factory)
 	refutil.RegisterType[MultiplyNode](factory)
+	refutil.RegisterType[MultiplyToArrayNode](factory)
 	refutil.RegisterType[MultiplyArrayNode](factory)
 	refutil.RegisterType[SelectNode](factory)
 	refutil.RegisterType[SelectArrayNode](factory)
-
+	refutil.RegisterType[nodes.Struct[FilterNode]](factory)
 	generator.RegisterTypes(factory)
 }
 
@@ -208,6 +210,53 @@ func (tnd MultiplyArrayNodeData) Out() nodes.StructOutput[[]TRS] {
 
 // ============================================================================
 
+type MultiplyToArrayNode = nodes.Struct[MultiplyToArrayNodeData]
+
+type MultiplyToArrayNodeData struct {
+	Left  nodes.Output[TRS]
+	Array nodes.Output[[]TRS]
+	Right nodes.Output[TRS]
+}
+
+func (n MultiplyToArrayNodeData) Description() string {
+	return "Multiplies each element by the left and right values provided. If left or right is not defined, they are considered the identity matrix. Each value in the resulting array is computed by `left * arr[i] * right`"
+}
+
+func (n MultiplyToArrayNodeData) Out() nodes.StructOutput[[]TRS] {
+	if n.Array == nil {
+		return nodes.NewStructOutput[[]TRS](nil)
+	}
+
+	arr := n.Array.Value()
+
+	if n.Left == nil && n.Right == nil {
+		return nodes.NewStructOutput(arr)
+	}
+
+	out := make([]TRS, len(arr))
+	if n.Left == nil && n.Right != nil {
+		right := n.Right.Value()
+		for i, v := range arr {
+			out[i] = v.Multiply(right)
+		}
+	} else if n.Left != nil && n.Right == nil {
+		left := n.Left.Value()
+		for i, v := range arr {
+			out[i] = left.Multiply(v)
+		}
+	} else {
+		right := n.Right.Value()
+		left := n.Left.Value()
+		for i, v := range arr {
+			out[i] = left.Multiply(v.Multiply(right))
+		}
+	}
+
+	return nodes.NewStructOutput(out)
+}
+
+// ============================================================================
+
 type TransformArrayNode = nodes.Struct[TransformArrayNodeData]
 
 type TransformArrayNodeData struct {
@@ -312,4 +361,68 @@ func (tnd ArrayNodeData) Out() nodes.StructOutput[[]TRS] {
 	}
 
 	return nodes.NewStructOutput(transforms)
+}
+
+// ============================================================================
+
+func filterV3(v, min, max vector3.Float64) bool {
+	if v.X() < min.X() || v.X() > max.X() {
+		return false
+	}
+
+	if v.Y() < min.Y() || v.Y() > max.Y() {
+		return false
+	}
+
+	if v.Z() < min.Z() || v.Z() > max.Z() {
+		return false
+	}
+
+	return true
+}
+
+type FilterNode struct {
+	Input       nodes.Output[[]TRS]
+	MinScale    nodes.Output[vector3.Float64]
+	MaxScale    nodes.Output[vector3.Float64]
+	MinPosition nodes.Output[vector3.Float64]
+	MaxPosition nodes.Output[vector3.Float64]
+}
+
+func (tnd FilterNode) Filter() ([]TRS, []TRS) {
+	if tnd.Input == nil {
+		return nil, nil
+	}
+
+	if tnd.MinScale == nil && tnd.MaxScale == nil && tnd.MinPosition == nil && tnd.MaxPosition == nil {
+		return tnd.Input.Value(), nil
+	}
+
+	arr := tnd.Input.Value()
+	minS := nodes.TryGetOutputValue(tnd.MinScale, vector3.Fill(-math.MaxFloat64))
+	maxS := nodes.TryGetOutputValue(tnd.MaxScale, vector3.Fill(math.MaxFloat64))
+	minP := nodes.TryGetOutputValue(tnd.MinPosition, vector3.Fill(-math.MaxFloat64))
+	maxP := nodes.TryGetOutputValue(tnd.MaxPosition, vector3.Fill(math.MaxFloat64))
+
+	kept := make([]TRS, 0)
+	removed := make([]TRS, 0)
+
+	for _, v := range arr {
+		if filterV3(v.scale, minS, maxS) && filterV3(v.position, minP, maxP) {
+			kept = append(kept, v)
+		} else {
+			removed = append(removed, v)
+		}
+	}
+	return kept, removed
+}
+
+func (tnd FilterNode) Kept() nodes.StructOutput[[]TRS] {
+	kept, _ := tnd.Filter()
+	return nodes.NewStructOutput(kept)
+}
+
+func (tnd FilterNode) Removed() nodes.StructOutput[[]TRS] {
+	_, removed := tnd.Filter()
+	return nodes.NewStructOutput(removed)
 }

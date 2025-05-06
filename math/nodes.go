@@ -16,6 +16,8 @@ func init() {
 
 	refutil.RegisterType[nodes.Struct[DifferenceNodeData[int]]](factory)
 	refutil.RegisterType[nodes.Struct[DifferenceNodeData[float64]]](factory)
+	refutil.RegisterType[nodes.Struct[DifferencesToArrayNodeData[int]]](factory)
+	refutil.RegisterType[nodes.Struct[DifferencesToArrayNodeData[float64]]](factory)
 
 	refutil.RegisterType[nodes.Struct[SumNodeData[int]]](factory)
 	refutil.RegisterType[nodes.Struct[SumNodeData[float64]]](factory)
@@ -23,11 +25,16 @@ func init() {
 	refutil.RegisterType[nodes.Struct[SumArraysNodeData[int]]](factory)
 	refutil.RegisterType[nodes.Struct[SumArraysNodeData[float64]]](factory)
 
+	refutil.RegisterType[nodes.Struct[AddToArrayNodeData[int]]](factory)
+	refutil.RegisterType[nodes.Struct[AddToArrayNodeData[float64]]](factory)
+
 	refutil.RegisterType[nodes.Struct[DivideNodeData[int]]](factory)
 	refutil.RegisterType[nodes.Struct[DivideNodeData[float64]]](factory)
 
 	refutil.RegisterType[nodes.Struct[MultiplyNodeData[float64]]](factory)
 	refutil.RegisterType[nodes.Struct[MultiplyNodeData[int]]](factory)
+	refutil.RegisterType[nodes.Struct[MultiplyToArrayNodeData[float64]]](factory)
+	refutil.RegisterType[nodes.Struct[MultiplyToArrayNodeData[int]]](factory)
 
 	refutil.RegisterType[nodes.Struct[InverseNodeData[float64]]](factory)
 	refutil.RegisterType[nodes.Struct[InverseNodeData[int]]](factory)
@@ -43,6 +50,15 @@ func init() {
 
 	refutil.RegisterType[nodes.Struct[OneNode]](factory)
 	refutil.RegisterType[nodes.Struct[ZeroNode]](factory)
+
+	refutil.RegisterType[nodes.Struct[MinNode[int]]](factory)
+	refutil.RegisterType[nodes.Struct[MinNode[float64]]](factory)
+	refutil.RegisterType[nodes.Struct[MinArrayNode[int]]](factory)
+	refutil.RegisterType[nodes.Struct[MinArrayNode[float64]]](factory)
+	refutil.RegisterType[nodes.Struct[MaxNode[int]]](factory)
+	refutil.RegisterType[nodes.Struct[MaxNode[float64]]](factory)
+	refutil.RegisterType[nodes.Struct[MaxArrayNode[int]]](factory)
+	refutil.RegisterType[nodes.Struct[MaxArrayNode[float64]]](factory)
 
 	generator.RegisterTypes(factory)
 }
@@ -157,66 +173,6 @@ func (cn InverseNodeData[T]) MultiplicativeDescription() string {
 
 // ============================================================================
 
-type SumNodeData[T vector.Number] struct {
-	Values []nodes.Output[T]
-}
-
-func (cn SumNodeData[T]) Out() nodes.StructOutput[T] {
-	var total T
-	for _, v := range cn.Values {
-		if v == nil {
-			continue
-		}
-		total += v.Value()
-	}
-	return nodes.NewStructOutput(total)
-}
-
-// ============================================================================
-
-type SumArraysNodeData[T vector.Number] struct {
-	Values []nodes.Output[[]T]
-}
-
-func (cn SumArraysNodeData[T]) Out() nodes.StructOutput[[]T] {
-	size := 0
-	values := make([][]T, 0)
-	for _, v := range cn.Values {
-		if v == nil {
-			continue
-		}
-
-		val := v.Value()
-		if len(val) == 0 {
-			continue
-		}
-
-		values = append(values, val)
-		size = max(size, len(val))
-	}
-
-	total := make([]T, size)
-	for _, arrs := range values {
-		for i, v := range arrs {
-			total[i] = total[i] + v
-		}
-	}
-
-	return nodes.NewStructOutput(total)
-}
-
-// ============================================================================
-type DifferenceNodeData[T vector.Number] struct {
-	A nodes.Output[T]
-	B nodes.Output[T]
-}
-
-func (cn DifferenceNodeData[T]) Out() nodes.StructOutput[T] {
-	return nodes.NewStructOutput(nodes.TryGetOutputValue(cn.A, 0) - nodes.TryGetOutputValue(cn.B, 0))
-}
-
-// ============================================================================
-
 type DivideNodeData[T vector.Number] struct {
 	Dividend nodes.Output[T]
 	Divisor  nodes.Output[T]
@@ -237,17 +193,6 @@ func (cn DivideNodeData[T]) Out() nodes.StructOutput[T] {
 	}
 
 	return nodes.NewStructOutput(a / b)
-}
-
-// ============================================================================
-
-type MultiplyNodeData[T vector.Number] struct {
-	A nodes.Output[T]
-	B nodes.Output[T]
-}
-
-func (cn MultiplyNodeData[T]) Out() nodes.StructOutput[T] {
-	return nodes.NewStructOutput(nodes.TryGetOutputValue(cn.A, 0) * nodes.TryGetOutputValue(cn.B, 0))
 }
 
 // ============================================================================

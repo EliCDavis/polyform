@@ -268,6 +268,16 @@ Resources either directly contributing to the code, or are just interesting find
   - Tiling Noise
     - [ _Tiling Noise_ by Ronja](https://www.ronja-tutorials.com/post/029-tiling-noise/)
     - [gamedev.stackexchange _How do you generate tileable Perlin noise?_](https://gamedev.stackexchange.com/questions/23625/how-do-you-generate-tileable-perlin-noise)
+- Sampling and Distribution
+  - Quasirandom
+    - [The Unreasonable Effectiveness of Quasirandom Sequences](https://extremelearning.com.au/unreasonable-effectiveness-of-quasirandom-sequences/)
+    - [Evenly Distributing Points in a Triangle](https://extremelearning.com.au/evenly-distributing-points-in-a-triangle/)
+  - Vose Alias Weighted Sampling
+    - [_"Darts, Dice, and Coins: Sampling from a Discrete Distribution"_ Keith Schwarz](https://www.keithschwarz.com/darts-dice-coins/)
+    - [Wikipedia](https://en.wikipedia.org/wiki/Alias_method)
+    - [_"Parallel Weighted Random Sampling"_ Lorenz Hübschle-Schneider Peter Sanders](https://dl.acm.org/doi/10.1145/3549934)
+    - [C# Sample Implementation](https://github.com/cdanek/KaimiraWeightedList)
+    - [Go Sample Implementation](https://github.com/minaguib/weightedrandom)
 - Triangulation
   - Delaunay
     - Bowyer–Watson
@@ -387,10 +397,8 @@ Resources either directly contributing to the code, or are just interesting find
   - Chromatic Aberration
     - [TomasHubelbauer/canvas-chromatic-aberration](https://github.com/TomasHubelbauer/canvas-chromatic-aberration)
 - Point Cloud Rendering
-  - [_"Real-time Rendering of Massive Unstructured Raw Point
-Clouds using Screen-space Operators"_ Ruggero Pintus, Enrico Gobbetti, and Marco Agus](http://indigo.diginext.fr/EN/Documents/vast2011-pbr.pdf)
-  - [_"Raw point cloud deferred shading through screen space
-pyramidal operators"_ Hassan Bouchiba, Jean-Emmanuel Deschaud, Francois Goulette](https://hal.science/hal-01959578/file/sp_eg18.pdf)
+  - [_"Real-time Rendering of Massive Unstructured Raw Point Clouds using Screen-space Operators"_ Ruggero Pintus, Enrico Gobbetti, and Marco Agus](http://indigo.diginext.fr/EN/Documents/vast2011-pbr.pdf)
+  - [_"Raw point cloud deferred shading through screen space pyramidal operators"_ Hassan Bouchiba, Jean-Emmanuel Deschaud, Francois Goulette](https://hal.science/hal-01959578/file/sp_eg18.pdf)
   - [_"THE PULL-PUSH ALGORITHM REVISITED"_ Martin Kraus](https://www.scitepress.org/papers/2009/17726/17726.pdf)
 
 ## Web Libraries

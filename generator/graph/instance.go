@@ -482,6 +482,15 @@ func (i *Instance) NodeId(node nodes.Node) string {
 	return i.nodeIDs[node]
 }
 
+func (i *Instance) HasNodeWithId(nodeId string) bool {
+	for _, id := range i.nodeIDs {
+		if id == nodeId {
+			return true
+		}
+	}
+	return false
+}
+
 func (i *Instance) Node(nodeId string) nodes.Node {
 	for n, id := range i.nodeIDs {
 		if id == nodeId {
