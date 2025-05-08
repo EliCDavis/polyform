@@ -271,13 +271,17 @@ Resources either directly contributing to the code, or are just interesting find
 - Sampling and Distribution
   - Quasirandom
     - [The Unreasonable Effectiveness of Quasirandom Sequences](https://extremelearning.com.au/unreasonable-effectiveness-of-quasirandom-sequences/)
-    - [Evenly Distributing Points in a Triangle](https://extremelearning.com.au/evenly-distributing-points-in-a-triangle/)
   - Vose Alias Weighted Sampling
     - [_"Darts, Dice, and Coins: Sampling from a Discrete Distribution"_ Keith Schwarz](https://www.keithschwarz.com/darts-dice-coins/)
     - [Wikipedia](https://en.wikipedia.org/wiki/Alias_method)
     - [_"Parallel Weighted Random Sampling"_ Lorenz Hübschle-Schneider Peter Sanders](https://dl.acm.org/doi/10.1145/3549934)
     - [C# Sample Implementation](https://github.com/cdanek/KaimiraWeightedList)
     - [Go Sample Implementation](https://github.com/minaguib/weightedrandom)
+  - Triangle
+    - [Evenly Distributing Points in a Triangle](https://extremelearning.com.au/evenly-distributing-points-in-a-triangle/)
+    - [_"A Low-Distortion Map Between Triangle and Square"_ by Eric Heitz](https://drive.google.com/file/d/1J-183vt4BrN9wmqItECIjjLIKwm29qSg/view)
+    - [_"Adventures in Sampling Points on Triangles (Part 1)"_ by Matt Phar](https://pharr.org/matt/blog/2019/02/27/triangle-sampling-1)
+    - [_"Adventures in Sampling Points on Triangles (Part 1.5): Reader Mail and Followups"_ by Matt Phar](https://pharr.org/matt/blog/2019/03/13/triangle-sampling-1.5)
 - Triangulation
   - Delaunay
     - Bowyer–Watson

@@ -2,6 +2,7 @@ package modeling
 
 import (
 	"math"
+	"math/rand/v2"
 
 	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/trees"
@@ -193,6 +194,94 @@ func (t Tri) UniqueVertices() bool {
 	return true
 }
 
+func LowDiscrepancySample(u float32) (float64, float64) {
+	// https://pharr.org/matt/blog/2019/03/13/triangle-sampling-1.5.html
+
+	uf := uint32(u * (1 << 32))
+	cx, cy := float32(0.0), float32(0.0)
+	w := float32(0.5)
+
+	for range 16 {
+		uu := uf >> 30
+		flip := (uu & 3) == 0
+
+		if (uu & 1) == 0 {
+			cy += w
+		}
+		if (uu & 2) == 0 {
+			cx += w
+		}
+
+		if flip {
+			w *= -0.5
+		} else {
+			w *= 0.5
+		}
+		uf <<= 2
+	}
+
+	return float64(cx + w/3.0), float64(cy + w/3.0)
+}
+
+func (t Tri) UniformSample(attr string, in vector2.Float64) vector3.Float64 {
+	// https://pharr.org/matt/blog/2019/03/13/triangle-sampling-1.5
+	u := in.X() / 2.
+	v := in.Y() / 2.
+	offset := v - u
+	if offset > 0 {
+		v += offset
+	} else {
+		u -= offset
+	}
+	return t.P1Vec3Attr(attr).Scale(1. - u - v).
+		Add(t.P2Vec3Attr(attr).Scale(u)).
+		Add(t.P3Vec3Attr(attr).Scale(v))
+}
+
+func (t Tri) RandomSample(attr string, rand *rand.Rand) vector3.Float64 {
+	// TODO: Implement like, something actually smart
+	// See resources in README for quasirandom for actual smart stuff
+
+	// >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+	// Dumbass Attempt #1
+	// >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+	// a := t.P1Vec3Attr(attr)
+	// b := t.P2Vec3Attr(attr)
+	// c := t.P3Vec3Attr(attr)
+
+	// x := vector3.Lerp(a, b, rand.Float64())
+	// return vector3.Lerp(x, c, rand.Float64())
+	// <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+	// >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+	// Attempt #2
+	// >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+	// a := t.P1Vec3Attr(attr)
+	// b := t.P2Vec3Attr(attr)
+	// c := t.P3Vec3Attr(attr)
+	// ab := b.Sub(a)
+	// ac := c.Sub(a)
+
+	// r1 := rand.Float64()
+	// r2 := rand.Float64()
+
+	// // Sample a square
+	// p := ab.Scale(r1).Add(ac.Scale(r2)).Add(a)
+
+	// // Reflect if it's not inside our triangle
+	// if !t.PointInSide(p) {
+	// 	p = ab.Scale(1 - r1).Add(ac.Scale(1 - r2)).Add(a)
+	// }
+
+	// return p
+	// <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+	u, v := LowDiscrepancySample(float32(rand.Float64()))
+	return t.P1Vec3Attr(attr).Scale(1. - u - v).
+		Add(t.P2Vec3Attr(attr).Scale(u)).
+		Add(t.P3Vec3Attr(attr).Scale(v))
+}
+
 func (t Tri) Bounds() geometry.AABB {
 	center := t.P1Vec3Attr(PositionAttribute).
 		Add(t.P2Vec3Attr(PositionAttribute)).
@@ -251,6 +340,14 @@ func (t Tri) RayIntersects(ray geometry.Ray) (vector3.Float64, bool) {
 	tVal := v0v2.Dot(qvec) * invDet
 
 	return ray.At(tVal), true
+}
+
+func (t Tri) Normal(attr string) vector3.Float64 {
+	a := t.P1Vec3Attr(attr)
+	b := t.P2Vec3Attr(attr)
+	c := t.P3Vec3Attr(attr)
+
+	return b.Sub(a).Cross(c.Sub(a)).Normalized()
 }
 
 // https://gdbooks.gitbooks.io/3dcollisions/content/Chapter4/point_in_triangle.html

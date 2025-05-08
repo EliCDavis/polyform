@@ -121,6 +121,24 @@ func (trs TRS) TransformInPlace(in []vector3.Float64) {
 	}
 }
 
+// Look at returns a new TRS with it's rotation modified to be looking at the
+// position provided
+func (trs TRS) LookAt(positionToLookAt vector3.Float64) TRS {
+	forward := positionToLookAt.Sub(trs.position).Normalized()
+	up := vector3.Up[float64]()
+	right := forward.Cross(up)
+	up = forward.Cross(right)
+
+	trs.rotation = quaternion.FromMatrix(mat.Matrix4x4{
+		right.X(), up.X(), forward.X(), 0,
+		right.Y(), up.Y(), forward.Y(), 0,
+		right.Z(), up.Z(), forward.Z(), 0,
+		0, 0, 0, 1,
+	})
+
+	return trs
+}
+
 func inDelta(a, b, d float64, component string) error {
 	diff := math.Abs(a - b)
 	if diff <= d {
