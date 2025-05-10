@@ -151,7 +151,7 @@ requestManager.getNodeTypes((nodeTypes) => {
             input.click();
         },
         saveModel: () => {
-            downloadBlob("./zip", (data) => {
+            downloadBlob("./zip/", (data) => {
                 const a = document.createElement('a');
                 a.download = 'model.zip';
                 const url = window.URL.createObjectURL(data);
