@@ -60,14 +60,18 @@ func (ms MeshSurface) TRS() []trs.TRS {
 	g := phi(2)
 	a1 := 1. / g
 	a2 := 1. / (g * g)
+	alpha := vector2.New(a1, a2)
+	seed := vector2.New(0.5, 0.5)
 
 	transforms := make([]trs.TRS, 0, ms.Samples)
 	for triIndex, sampleCount := range samplesPerTri {
 		tri := ms.Mesh.Tri(triIndex)
 		normal := tri.Normal(ms.Attribute)
+
 		for range sampleCount {
 			n := float64(len(transforms))
-			u := vector2.New(math.Mod(0.5+a1*n, 1.), math.Mod(0.5+a2*n, 1.))
+			// u := vector2.New(math.Mod(0.5+a1*n, 1.), math.Mod(0.5+a2*n, 1.))
+			u := alpha.Scale(n).Add(seed).Mod(1)
 			p := tri.UniformSample(ms.Attribute, u)
 			transforms = append(transforms, trs.Position(p).LookAt(p.Add(normal)))
 		}

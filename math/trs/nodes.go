@@ -87,6 +87,7 @@ func (tnd RandomizeArrayNodeData) Out() nodes.StructOutput[[]TRS] {
 				rangeR.Y()*rand.Float64(),
 				rangeR.Z()*rand.Float64(),
 			))),
+			// quaternion.Identity(),
 			minS.Add(vector3.New(
 				rangeS.X()*rand.Float64(),
 				rangeS.Y()*rand.Float64(),

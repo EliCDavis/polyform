@@ -55,6 +55,10 @@ func (q Quaternion) Rotate(v vector3.Float64) vector3.Float64 {
 		Add(q.v.Cross(v).Scale(2.0 * q.w))
 }
 
+func (q Quaternion) Dot(o Quaternion) float64 {
+	return q.v.Dot(o.v) + (q.w * o.w)
+}
+
 func (q Quaternion) RotateArray(arr []vector3.Float64) []vector3.Float64 {
 	results := make([]vector3.Float64, len(arr))
 	for i, v := range arr {
@@ -115,8 +119,8 @@ func (q Quaternion) Multiply(other Quaternion) Quaternion {
 	}
 }
 
-// https://github.com/toji/gl-matrix/blob/f0583ef53e94bc7e78b78c8a24f09ed5e2f7a20c/src/gl-matrix/quat.js#L54
 func RotationTo(from, to vector3.Float64) Quaternion {
+	// https://github.com/toji/gl-matrix/blob/f0583ef53e94bc7e78b78c8a24f09ed5e2f7a20c/src/gl-matrix/quat.js#L54
 	dot := from.Dot(to)
 
 	if dot < -0.999999 {
@@ -174,58 +178,7 @@ func FromMatrix(k mat.Matrix4x4) Quaternion {
 	scale := k.X00 + k.X11 + k.X22
 	var result Quaternion
 
-	// if scale > 0.0 {
-	// 	sqrtV = math.Sqrt(scale + 1.0)
-	// 	result.w = sqrtV * 0.5
-	// 	sqrtV = 0.5 / sqrtV
-
-	// 	result.v = vector3.New(
-	// 		(m.M23-m.M32)*sqrtV,
-	// 		(m.M31-m.M13)*sqrtV,
-	// 		(m.M12-m.M21)*sqrtV,
-	// 	)
-	// } else if m.X00 >= m.X11 && m.X00 >= m.X22 {
-	// 	sqrtV = math.Sqrt(1.0 + m.X00 - m.X11 - m.X22)
-	// 	half = 0.5 / sqrtV
-
-	// 	result.v = vector3.New(
-	// 		0.5*sqrtV,
-	// 		(m.M12+m.M21)*half,
-	// 		(m.M13+m.M31)*half,
-	// 	)
-	// 	result.w = (m.M23 - m.M32) * half
-	// } else if m.X11 > m.X22 {
-	// 	sqrtV = math.Sqrt(1.0 + m.X11 - m.X00 - m.X22)
-	// 	half = 0.5 / sqrtV
-
-	// 	result.v = vector3.New(
-	// 		(m.M21+m.M12)*half,
-	// 		0.5*sqrtV,
-	// 		(m.M32+m.M23)*half,
-	// 	)
-	// 	result.w = (m.M31 - m.M13) * half
-	// } else {
-	// 	sqrtV = math.Sqrt(1.0 + m.X22 - m.X00 - m.X11)
-	// 	half = 0.5 / sqrtV
-
-	// 	result.v = vector3.New(
-	// 		(m.M31+m.M13)*half,
-	// 		(m.M32+m.M23)*half,
-	// 		0.5*sqrtV,
-	// 	)
-	// 	result.w = (m.M12 - m.M21) * half
-	// }
-
 	if scale > 0.0 {
-		// 	sqrtV = math.Sqrt(scale + 1.0)
-		// 	result.w = sqrtV * 0.5
-		// 	sqrtV = 0.5 / sqrtV
-
-		// 	result.v = vector3.New(
-		// 		(m.M23-m.M32)*sqrtV,
-		// 		(m.M31-m.M13)*sqrtV,
-		// 		(m.M12-m.M21)*sqrtV,
-		// 	)
 		sqrtV = math.Sqrt(scale + 1.0)
 		result.w = sqrtV * 0.5
 		sqrtV = 0.5 / sqrtV
@@ -236,16 +189,6 @@ func FromMatrix(k mat.Matrix4x4) Quaternion {
 			(k.X10-k.X01)*sqrtV,
 		)
 	} else if k.X00 >= k.X11 && k.X00 >= k.X22 {
-
-		// 	sqrtV = math.Sqrt(1.0 + m.X00 - m.X11 - m.X22)
-		// 	half = 0.5 / sqrtV
-
-		// 	result.v = vector3.New(
-		// 		0.5*sqrtV,
-		// 		(m.M12+m.M21)*half,
-		// 		(m.M13+m.M31)*half,
-		// 	)
-		// 	result.w = (m.M23 - m.M32) * half
 		sqrtV = math.Sqrt(1.0 + k.X00 - k.X11 - k.X22)
 		half = 0.5 / sqrtV
 

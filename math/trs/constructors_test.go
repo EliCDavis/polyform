@@ -9,6 +9,7 @@ import (
 	"github.com/EliCDavis/polyform/math/trs"
 	"github.com/EliCDavis/vector/vector3"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestConstructor_Position(t *testing.T) {
@@ -258,26 +259,101 @@ func TestConstructor_ToFromMatrix(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			delta := 0.000000000001
 			matrix := trs.FromMatrix(tc.matrix).Matrix()
-			assert.InDelta(t, tc.matrix.X00, matrix.X00, delta, "X00")
-			assert.InDelta(t, tc.matrix.X01, matrix.X01, delta, "X01")
-			assert.InDelta(t, tc.matrix.X02, matrix.X02, delta, "X02")
-			assert.InDelta(t, tc.matrix.X03, matrix.X03, delta, "X03")
-
-			assert.InDelta(t, tc.matrix.X10, matrix.X10, delta, "X10")
-			assert.InDelta(t, tc.matrix.X11, matrix.X11, delta, "X11")
-			assert.InDelta(t, tc.matrix.X12, matrix.X12, delta, "X12")
-			assert.InDelta(t, tc.matrix.X13, matrix.X13, delta, "X13")
-
-			assert.InDelta(t, tc.matrix.X20, matrix.X20, delta, "X20")
-			assert.InDelta(t, tc.matrix.X21, matrix.X21, delta, "X21")
-			assert.InDelta(t, tc.matrix.X22, matrix.X22, delta, "X22")
-			assert.InDelta(t, tc.matrix.X23, matrix.X23, delta, "X23")
-
-			assert.InDelta(t, tc.matrix.X30, matrix.X30, delta, "X30")
-			assert.InDelta(t, tc.matrix.X31, matrix.X31, delta, "X31")
-			assert.InDelta(t, tc.matrix.X32, matrix.X32, delta, "X32")
-			assert.InDelta(t, tc.matrix.X33, matrix.X33, delta, "X33")
+			AssertMatrixInDelta(t, tc.matrix, matrix, delta)
 		})
 	}
+}
 
+// func TestConstructor_ToFromMatrix_rotationFuzz(t *testing.T) {
+
+// 	inc := 50
+// 	incF := float64(inc)
+// 	for x := range inc {
+// 		for y := range inc {
+// 			for z := range inc {
+// 				dir := vector3.New(x-25, y-25, z-25).ToFloat64().Normalized()
+// 				if dir.ContainsNaN() {
+// 					continue
+// 				}
+// 				for w := range inc {
+// 					q := quaternion.FromTheta(float64(w)/incF, dir)
+// 					transformation := trs.FromMatrix(trs.Rotation(q).Matrix())
+// 					AssertRotationInDelta(t, q, transformation.Rotation(), 0.000000001)
+// 				}
+// 			}
+// 		}
+// 	}
+
+// }
+
+func FuzzToFromMatrix_RotationAndScale(f *testing.F) {
+	f.Add(1., 1., 1., 1., 2., 3., 4.)
+
+	f.Fuzz(func(t *testing.T, sx float64, sy float64, sz float64, rx float64, ry float64, rz float64, w float64) {
+		scale := vector3.New(sx, sy, sz).Abs()
+		if scale.X() == 0 {
+			scale = scale.SetX(1)
+		}
+		if scale.Y() == 0 {
+			scale = scale.SetY(1)
+		}
+		if scale.Z() == 0 {
+			scale = scale.SetZ(1)
+		}
+		rotation := quaternion.FromTheta(w, vector3.New(rx, ry, rz).Normalized())
+
+		delta := 0.000000001
+		back := trs.FromMatrix(trs.New(vector3.Float64{}, rotation, scale).Matrix())
+
+		require.InDelta(t, scale.X(), back.Scale().X(), delta, "Scale-X")
+		require.InDelta(t, scale.Y(), back.Scale().Y(), delta, "Scale-Y")
+		require.InDelta(t, scale.Z(), back.Scale().Z(), delta, "Scale-Z")
+
+		assert.InDelta(t, 1., math.Abs(rotation.Dot(back.Rotation())), delta, "Rotation")
+	})
+}
+
+// func FuzzToFromMatrix_Scale(f *testing.F) {
+// 	f.Add(1., 1., 1.)
+
+// 	f.Fuzz(func(t *testing.T, sx float64, sy float64, sz float64) {
+// 		scale := vector3.New(sx, sy, sz).Abs()
+
+// 		delta := 0.000000000001
+// 		back := trs.FromMatrix(trs.Scale(scale).Matrix())
+
+// 		require.InDelta(t, scale.X(), back.Scale().X(), delta, "X")
+// 		require.InDelta(t, scale.Y(), back.Scale().Y(), delta, "Y")
+// 		require.InDelta(t, scale.Z(), back.Scale().Z(), delta, "Z")
+
+// 	})
+// }
+
+func AssertRotationInDelta(t *testing.T, expected, actual quaternion.Quaternion, delta float64) {
+	assert.InDelta(t, expected.Dir().X(), actual.Dir().X(), delta, "X")
+	assert.InDelta(t, expected.Dir().Y(), actual.Dir().Y(), delta, "Y")
+	assert.InDelta(t, expected.Dir().Z(), actual.Dir().Z(), delta, "Z")
+	assert.InDelta(t, expected.W(), actual.W(), delta, "W")
+}
+
+func AssertMatrixInDelta(t *testing.T, expected, actual mat.Matrix4x4, delta float64) {
+	require.InDelta(t, expected.X00, actual.X00, delta, "X00")
+	require.InDelta(t, expected.X01, actual.X01, delta, "X01")
+	require.InDelta(t, expected.X02, actual.X02, delta, "X02")
+	require.InDelta(t, expected.X03, actual.X03, delta, "X03")
+
+	require.InDelta(t, expected.X10, actual.X10, delta, "X10")
+	require.InDelta(t, expected.X11, actual.X11, delta, "X11")
+	require.InDelta(t, expected.X12, actual.X12, delta, "X12")
+	require.InDelta(t, expected.X13, actual.X13, delta, "X13")
+
+	require.InDelta(t, expected.X20, actual.X20, delta, "X20")
+	require.InDelta(t, expected.X21, actual.X21, delta, "X21")
+	require.InDelta(t, expected.X22, actual.X22, delta, "X22")
+	require.InDelta(t, expected.X23, actual.X23, delta, "X23")
+
+	require.InDelta(t, expected.X30, actual.X30, delta, "X30")
+	require.InDelta(t, expected.X31, actual.X31, delta, "X31")
+	require.InDelta(t, expected.X32, actual.X32, delta, "X32")
+	require.InDelta(t, expected.X33, actual.X33, delta, "X33")
 }

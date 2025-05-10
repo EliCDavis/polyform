@@ -31,31 +31,44 @@ func (trs TRS) Rotation() quaternion.Quaternion {
 	return trs.rotation
 }
 
-// https://github.com/UltravioletFramework/ultraviolet/issues/92
 func (trs TRS) Matrix() mat.Matrix4x4 {
+	// https://github.com/UltravioletFramework/ultraviolet/issues/92
 	p := trs.position
 	s := trs.scale
 
-	rotX2 := trs.rotation.Dir().X() * 2.
-	rotY2 := trs.rotation.Dir().Y() * 2.
-	rotZ2 := trs.rotation.Dir().Z() * 2.
+	rotX := trs.rotation.Dir().X()
+	rotY := trs.rotation.Dir().Y()
+	rotZ := trs.rotation.Dir().Z()
+	rotW := trs.rotation.W()
 
-	xx := trs.rotation.Dir().X() * rotX2
-	xy := trs.rotation.Dir().X() * rotY2
-	xz := trs.rotation.Dir().X() * rotZ2
-	yy := trs.rotation.Dir().Y() * rotY2
-	yz := trs.rotation.Dir().Y() * rotZ2
-	zz := trs.rotation.Dir().Z() * rotZ2
-	wx := trs.rotation.W() * rotX2
-	wy := trs.rotation.W() * rotY2
-	wz := trs.rotation.W() * rotZ2
+	xx := rotX * rotX
+	yy := rotY * rotY
+	zz := rotZ * rotZ
+	xy := rotX * rotY
+	zw := rotZ * rotW
+	zx := rotZ * rotX
+	yw := rotY * rotW
+	yz := rotY * rotZ
+	xw := rotX * rotW
 
-	return mat.Matrix4x4{
-		(1 - (yy + zz)) * s.X(), (xy - wz) * s.Y(), (xz + wy) * s.Z(), p.X(),
-		(xy + wz) * s.X(), (1 - (xx + zz)) * s.Y(), (yz - wx) * s.Z(), p.Y(),
-		(xz - wy) * s.X(), (yz + wx) * s.Y(), (1 - (xx + yy)) * s.Z(), p.Z(),
-		0, 0, 0, 1,
-	}
+	var result mat.Matrix4x4
+	result.X00 = s.X() * (1 - (2 * (yy + zz)))
+	result.X10 = s.X() * (2 * (xy + zw))
+	result.X20 = s.X() * (2 * (zx - yw))
+	result.X30 = 0
+	result.X01 = s.Y() * (2 * (xy - zw))
+	result.X11 = s.Y() * (1 - (2 * (zz + xx)))
+	result.X21 = s.Y() * (2 * (yz + xw))
+	result.X31 = 0
+	result.X02 = s.Z() * (2 * (zx + yw))
+	result.X12 = s.Z() * (2 * (yz - xw))
+	result.X22 = s.Z() * (1 - (2 * (yy + xx)))
+	result.X32 = 0
+	result.X03 = p.X()
+	result.X13 = p.Y()
+	result.X23 = p.Z()
+	result.X33 = 1
+	return result
 }
 
 func (trs TRS) RotateDirection(in vector3.Float64) vector3.Float64 {
@@ -126,8 +139,8 @@ func (trs TRS) TransformInPlace(in []vector3.Float64) {
 func (trs TRS) LookAt(positionToLookAt vector3.Float64) TRS {
 	forward := positionToLookAt.Sub(trs.position).Normalized()
 	up := vector3.Up[float64]()
-	right := forward.Cross(up)
-	up = forward.Cross(right)
+	right := forward.Cross(up).Normalized()
+	up = forward.Cross(right).Normalized()
 
 	trs.rotation = quaternion.FromMatrix(mat.Matrix4x4{
 		right.X(), up.X(), forward.X(), 0,
