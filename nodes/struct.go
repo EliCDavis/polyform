@@ -2,7 +2,6 @@ package nodes
 
 import (
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/EliCDavis/polyform/refutil"
@@ -343,7 +342,7 @@ func (s *Struct[T]) inputVersions() string {
 		case SingleValueInputPort:
 			val := v.Value()
 			if val != nil {
-				builder.WriteString(strconv.Itoa(val.Version()))
+				builder.WriteString(fmt.Sprintf("%p: %d", val.Node(), val.Version()))
 			} else {
 				builder.WriteString("nil")
 			}
@@ -353,7 +352,7 @@ func (s *Struct[T]) inputVersions() string {
 
 			for _, val := range v.Value() {
 				if val != nil {
-					builder.WriteString(strconv.Itoa(val.Version()))
+					builder.WriteString(fmt.Sprintf("%p: %d", val.Node(), val.Version()))
 					builder.WriteString(",")
 				} else {
 					builder.WriteString("nil,")
