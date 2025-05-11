@@ -59,10 +59,19 @@ type RandomizeArrayNodeData struct {
 	ScaleMaximum       nodes.Output[vector3.Float64]
 	RotationMinimum    nodes.Output[vector3.Float64]
 	RotationMaximum    nodes.Output[vector3.Float64]
-	Samples            nodes.Output[int]
+	Array              nodes.Output[[]TRS]
 }
 
 func (tnd RandomizeArrayNodeData) Out() nodes.StructOutput[[]TRS] {
+	if tnd.Array == nil {
+		return nodes.NewStructOutput[[]TRS](nil)
+	}
+
+	input := tnd.Array.Value()
+	if len(input) == 0 {
+		return nodes.NewStructOutput[[]TRS](nil)
+	}
+
 	minT := nodes.TryGetOutputValue(tnd.TranslationMinimum, vector3.Zero[float64]())
 	maxT := nodes.TryGetOutputValue(tnd.TranslationMaximum, vector3.Zero[float64]())
 	rangeT := maxT.Sub(minT)
@@ -75,9 +84,9 @@ func (tnd RandomizeArrayNodeData) Out() nodes.StructOutput[[]TRS] {
 	maxR := nodes.TryGetOutputValue(tnd.RotationMaximum, vector3.Zero[float64]())
 	rangeR := maxR.Sub(minR)
 
-	samples := make([]TRS, max(nodes.TryGetOutputValue(tnd.Samples, 0), 0))
-	for i := range samples {
-		samples[i] = New(
+	out := make([]TRS, len(input))
+	for i := range out {
+		sample := New(
 			minT.Add(vector3.New(
 				rangeT.X()*rand.Float64(),
 				rangeT.Y()*rand.Float64(),
@@ -88,16 +97,16 @@ func (tnd RandomizeArrayNodeData) Out() nodes.StructOutput[[]TRS] {
 				rangeR.Y()*rand.Float64(),
 				rangeR.Z()*rand.Float64(),
 			))),
-			// quaternion.Identity(),
 			minS.Add(vector3.New(
 				rangeS.X()*rand.Float64(),
 				rangeS.Y()*rand.Float64(),
 				rangeS.Z()*rand.Float64(),
 			)),
 		)
+		out[i] = input[i].Multiply(sample)
 	}
 
-	return nodes.NewStructOutput(samples)
+	return nodes.NewStructOutput(out)
 }
 
 // ============================================================================

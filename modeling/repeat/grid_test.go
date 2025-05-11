@@ -31,6 +31,22 @@ func TestGrid(t *testing.T) {
 			rows: 0, column: 1, width: 1, height: 1,
 			expect: []vector2.Float64{},
 		},
+		"vertical line": {
+			rows: 3, column: 1, width: 1, height: 1,
+			expect: []vector2.Float64{
+				vector2.New(0., -0.5),
+				vector2.New(0., 0.0),
+				vector2.New(0., 0.5),
+			},
+		},
+		"horizontal line": {
+			rows: 1, column: 3, width: 1, height: 1,
+			expect: []vector2.Float64{
+				vector2.New(-0.5, 0.),
+				vector2.New(0.0, 0.),
+				vector2.New(0.5, 0.),
+			},
+		},
 		"4 corners": {
 			rows: 2, column: 2, width: 1, height: 1,
 			expect: []vector2.Float64{

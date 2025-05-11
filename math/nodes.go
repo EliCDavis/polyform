@@ -14,6 +14,8 @@ func init() {
 
 	refutil.RegisterType[Round](factory)
 
+	refutil.RegisterType[nodes.Struct[CircumferenceNode]](factory)
+
 	refutil.RegisterType[nodes.Struct[DifferenceNodeData[int]]](factory)
 	refutil.RegisterType[nodes.Struct[DifferenceNodeData[float64]]](factory)
 	refutil.RegisterType[nodes.Struct[DifferencesToArrayNodeData[int]]](factory)
@@ -215,4 +217,28 @@ func (cn RoundNodeData) Float() nodes.StructOutput[float64] {
 		return nodes.NewStructOutput(0.)
 	}
 	return nodes.NewStructOutput(math.Round(cn.In.Value()))
+}
+
+// ============================================================================
+
+type CircumferenceNode struct {
+	Radius nodes.Output[float64]
+}
+
+func (cn CircumferenceNode) Description() string {
+	return "Circumference of a circle"
+}
+
+func (cn CircumferenceNode) Int() nodes.StructOutput[int] {
+	if cn.Radius == nil {
+		return nodes.NewStructOutput(0)
+	}
+	return nodes.NewStructOutput(int(math.Round(cn.Radius.Value() * 2 * math.Pi)))
+}
+
+func (cn CircumferenceNode) Float() nodes.StructOutput[float64] {
+	if cn.Radius == nil {
+		return nodes.NewStructOutput(0.)
+	}
+	return nodes.NewStructOutput(math.Round(cn.Radius.Value() * 2 * math.Pi))
 }

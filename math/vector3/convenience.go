@@ -87,3 +87,42 @@ func (cn Dot) Dot() nodes.StructOutput[float64] {
 func (cn Dot) DotDescription() string {
 	return "The dot product of A and B. If either value is not set, then 0 is returned"
 }
+
+// ============================================================================
+
+type Inverse[T vector.Number] struct {
+	Vector nodes.Output[vector3.Vector[T]]
+}
+
+func (cn Inverse[T]) additive() vector3.Vector[float64] {
+	if cn.Vector == nil {
+		return vector3.Zero[float64]()
+	}
+
+	return cn.Vector.Value().ToFloat64().Scale(-1)
+}
+
+func (cn Inverse[T]) multiplicative() vector3.Vector[float64] {
+	if cn.Vector == nil {
+		return vector3.Zero[float64]()
+	}
+
+	in := cn.Vector.Value().ToFloat64()
+	return vector3.New(1./in.X(), 1./in.Y(), 1./in.Z())
+}
+
+func (cn Inverse[T]) Additive() nodes.StructOutput[vector3.Vector[float64]] {
+	return nodes.NewStructOutput(cn.additive())
+}
+
+func (cn Inverse[T]) AdditiveInt() nodes.StructOutput[vector3.Vector[int]] {
+	return nodes.NewStructOutput(cn.additive().ToInt())
+}
+
+func (cn Inverse[T]) Multiplicative() nodes.StructOutput[vector3.Vector[float64]] {
+	return nodes.NewStructOutput(cn.multiplicative())
+}
+
+func (cn Inverse[T]) MultiplicativeInt() nodes.StructOutput[vector3.Vector[int]] {
+	return nodes.NewStructOutput(cn.multiplicative().RoundToInt())
+}

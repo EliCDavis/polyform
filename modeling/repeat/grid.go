@@ -55,8 +55,8 @@ func (g Grid) Vector2() []vector2.Float64 {
 		bottomLeft = bottomLeft.SetY(0)
 	}
 
-	for x := range g.Rows {
-		for y := range g.Columns {
+	for y := range g.Rows {
+		for x := range g.Columns {
 			inc := vector2.New(
 				widthInc*float64(x),
 				heightInc*float64(y),
