@@ -25,7 +25,8 @@ func init() {
 	refutil.RegisterType[MultiplyArrayNode](factory)
 	refutil.RegisterType[SelectNode](factory)
 	refutil.RegisterType[SelectArrayNode](factory)
-	refutil.RegisterType[nodes.Struct[FilterNode]](factory)
+	refutil.RegisterType[nodes.Struct[FilterPositionNode]](factory)
+	refutil.RegisterType[nodes.Struct[FilterScaleNode]](factory)
 	generator.RegisterTypes(factory)
 }
 
@@ -382,48 +383,126 @@ func filterV3(v, min, max vector3.Float64) bool {
 	return true
 }
 
-type FilterNode struct {
-	Input       nodes.Output[[]TRS]
-	MinScale    nodes.Output[vector3.Float64]
-	MaxScale    nodes.Output[vector3.Float64]
-	MinPosition nodes.Output[vector3.Float64]
-	MaxPosition nodes.Output[vector3.Float64]
-}
-
-func (tnd FilterNode) Filter() ([]TRS, []TRS) {
-	if tnd.Input == nil {
+func filter(
+	Input nodes.Output[[]TRS],
+	MinX nodes.Output[float64],
+	MinY nodes.Output[float64],
+	MinZ nodes.Output[float64],
+	MaxX nodes.Output[float64],
+	MaxY nodes.Output[float64],
+	MaxZ nodes.Output[float64],
+	position bool,
+) ([]TRS, []TRS) {
+	if Input == nil {
 		return nil, nil
 	}
 
-	if tnd.MinScale == nil && tnd.MaxScale == nil && tnd.MinPosition == nil && tnd.MaxPosition == nil {
-		return tnd.Input.Value(), nil
+	inputs := []nodes.Output[float64]{
+		MinX, MinY, MinZ,
+		MaxX, MaxY, MaxZ,
+	}
+	allNil := true
+	for _, v := range inputs {
+		if v != nil {
+			allNil = false
+			break
+		}
 	}
 
-	arr := tnd.Input.Value()
-	minS := nodes.TryGetOutputValue(tnd.MinScale, vector3.Fill(-math.MaxFloat64))
-	maxS := nodes.TryGetOutputValue(tnd.MaxScale, vector3.Fill(math.MaxFloat64))
-	minP := nodes.TryGetOutputValue(tnd.MinPosition, vector3.Fill(-math.MaxFloat64))
-	maxP := nodes.TryGetOutputValue(tnd.MaxPosition, vector3.Fill(math.MaxFloat64))
+	if allNil {
+		return Input.Value(), nil
+	}
+
+	arr := Input.Value()
+	min := vector3.New(
+		nodes.TryGetOutputValue(MinX, -math.MaxFloat64),
+		nodes.TryGetOutputValue(MinY, -math.MaxFloat64),
+		nodes.TryGetOutputValue(MinZ, -math.MaxFloat64),
+	)
+	max := vector3.New(
+		nodes.TryGetOutputValue(MaxX, math.MaxFloat64),
+		nodes.TryGetOutputValue(MaxY, math.MaxFloat64),
+		nodes.TryGetOutputValue(MaxZ, math.MaxFloat64),
+	)
 
 	kept := make([]TRS, 0)
 	removed := make([]TRS, 0)
 
-	for _, v := range arr {
-		if filterV3(v.scale, minS, maxS) && filterV3(v.position, minP, maxP) {
-			kept = append(kept, v)
-		} else {
-			removed = append(removed, v)
+	if position {
+		for _, v := range arr {
+			if filterV3(v.position, min, max) {
+				kept = append(kept, v)
+			} else {
+				removed = append(removed, v)
+			}
+		}
+	} else {
+		for _, v := range arr {
+			if filterV3(v.scale, min, max) {
+				kept = append(kept, v)
+			} else {
+				removed = append(removed, v)
+			}
 		}
 	}
+
 	return kept, removed
 }
 
-func (tnd FilterNode) Kept() nodes.StructOutput[[]TRS] {
+type FilterPositionNode struct {
+	Input nodes.Output[[]TRS]
+	MinX  nodes.Output[float64]
+	MinY  nodes.Output[float64]
+	MinZ  nodes.Output[float64]
+	MaxX  nodes.Output[float64]
+	MaxY  nodes.Output[float64]
+	MaxZ  nodes.Output[float64]
+}
+
+func (tnd FilterPositionNode) Filter() ([]TRS, []TRS) {
+	return filter(
+		tnd.Input,
+		tnd.MinX, tnd.MinY, tnd.MinZ,
+		tnd.MaxX, tnd.MaxY, tnd.MaxZ,
+		true,
+	)
+}
+
+func (tnd FilterPositionNode) Kept() nodes.StructOutput[[]TRS] {
 	kept, _ := tnd.Filter()
 	return nodes.NewStructOutput(kept)
 }
 
-func (tnd FilterNode) Removed() nodes.StructOutput[[]TRS] {
+func (tnd FilterPositionNode) Removed() nodes.StructOutput[[]TRS] {
+	_, removed := tnd.Filter()
+	return nodes.NewStructOutput(removed)
+}
+
+type FilterScaleNode struct {
+	Input nodes.Output[[]TRS]
+	MinX  nodes.Output[float64]
+	MinY  nodes.Output[float64]
+	MinZ  nodes.Output[float64]
+	MaxX  nodes.Output[float64]
+	MaxY  nodes.Output[float64]
+	MaxZ  nodes.Output[float64]
+}
+
+func (tnd FilterScaleNode) Filter() ([]TRS, []TRS) {
+	return filter(
+		tnd.Input,
+		tnd.MinX, tnd.MinY, tnd.MinZ,
+		tnd.MaxX, tnd.MaxY, tnd.MaxZ,
+		false,
+	)
+}
+
+func (tnd FilterScaleNode) Kept() nodes.StructOutput[[]TRS] {
+	kept, _ := tnd.Filter()
+	return nodes.NewStructOutput(kept)
+}
+
+func (tnd FilterScaleNode) Removed() nodes.StructOutput[[]TRS] {
 	_, removed := tnd.Filter()
 	return nodes.NewStructOutput(removed)
 }
