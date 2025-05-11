@@ -80,14 +80,14 @@ func (ms MeshSurface) TRS() []trs.TRS {
 	return transforms
 }
 
-type MeshSurfaceNode struct {
+type SampleMeshSurfaceNode struct {
 	Mesh      nodes.Output[modeling.Mesh]
 	Attribute nodes.Output[string]
 	Samples   nodes.Output[int]
 	Up        nodes.Output[vector3.Float64]
 }
 
-func (rnd MeshSurfaceNode) Out() nodes.StructOutput[[]trs.TRS] {
+func (rnd SampleMeshSurfaceNode) Out() nodes.StructOutput[[]trs.TRS] {
 	if rnd.Mesh == nil {
 		return nodes.NewStructOutput[[]trs.TRS](nil)
 	}
