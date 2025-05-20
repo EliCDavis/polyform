@@ -231,6 +231,10 @@ export class RequestManager {
     setNodeMetadata(inNodeID: string, key: string, metadata: any, callback?: ResponseCallback<any>): void {
         this.postJsonBodyJsonResponse(`graph/metadata/nodes/${inNodeID}/${key}`, metadata, callback)
     }
+    
+    deleteNodeMetadata(nodeID: string, callback?): void {
+        this.deleteMetadata(`nodes/${nodeID}`, callback)
+    }
 
     createNote(noteID: string, note, callback?: ResponseCallback<any>): void {
         this.postJsonBodyJsonResponse(`graph/metadata/notes/${noteID}`, note, callback)
@@ -251,6 +255,7 @@ export class RequestManager {
     }
 
     deleteNode(nodeId: string, callback?: ResponseCallback<any>): void {
+        this.deleteNodeMetadata(nodeId);
         this.deleteJSONBodyJSONResponse("node", {
             "nodeID": nodeId,
         }, callback)
