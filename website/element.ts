@@ -1,3 +1,4 @@
+import { Observable } from "./observable";
 
 
 export interface ElementConfig {
@@ -8,9 +9,8 @@ export interface ElementConfig {
 
     id?: string;
     classList?: Array<string>;
-    style?: {
-        [name: string]: string
-    }
+
+    style?: Partial<CSSStyleDeclaration>;
 
     text?: string;
 
@@ -32,7 +32,11 @@ export interface ElementConfig {
      */
     type?: string
 
+    value?: string
+
     change?: (e: InputEvent) => void
+
+    value$?: Observable<string>
 }
 
 export function Element(config: ElementConfig): HTMLElement {
@@ -60,9 +64,7 @@ export function Element(config: ElementConfig): HTMLElement {
     }
 
     if (config.style) {
-        for (const key in config.style) {
-            newEle.style[key] = config.style[key];
-        }
+        Object.assign(newEle.style, config.style);
     }
 
     if (config.children) {
@@ -84,6 +86,24 @@ export function Element(config: ElementConfig): HTMLElement {
     if (config.change) {
         const inputEle = newEle as HTMLInputElement
         inputEle.addEventListener("change", config.change);
+    }
+
+    if (config.value) {
+        const inputEle = newEle as HTMLInputElement
+        inputEle.value = config.value;
+    }
+
+    if (config.value$) {
+        if (config.value) {
+            config.value$.set(config.value);
+        }
+        
+        const inputEle = newEle as HTMLInputElement
+        inputEle.addEventListener("input", (ev: InputEvent) => {
+            console.log(ev);
+            config.value$.set(inputEle.value);
+        });
+        inputEle.value = config.value$.value();
     }
 
     if (config.onclick) {

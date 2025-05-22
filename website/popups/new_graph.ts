@@ -45,14 +45,14 @@ export class NewGraphPopup {
 
         const exampleGraph: ElementConfig = {
             children: [
-                { text: "Open Example", style: { "margin-left": "8px", "font-weight": "bold" } },
+                { text: "Open Example", style: { marginLeft: "8px", fontWeight: "bold" } },
                 { style: { "width": "170px" }, children: exampleButtons }
             ]
         };
 
         const newGraph: ElementConfig = {
             children: [
-                { text: "New", style: { "font-weight": "bold" } },
+                { text: "New", style: { fontWeight: "bold" } },
 
                 { text: "Graph New" },
                 { type: "text", name: "name", change: this.nameChange },
@@ -70,13 +70,13 @@ export class NewGraphPopup {
 
         const popupContents: ElementConfig = {
             style: {
-                "background-color": "#00000069",
-                "backdrop-filter": "blur(10px)",
-                "padding": "24px",
-                "border-radius": "24px",
-                "display": "flex",
-                "flex-direction": "column",
-                "align-items": "center",
+                backgroundColor: "#00000069",
+                backdropFilter: "blur(10px)",
+                padding: "24px",
+                borderRadius: "24px",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
             },
             children: [
                 {
@@ -89,7 +89,7 @@ export class NewGraphPopup {
                 },
 
                 {
-                    style: { "margin-top": "20px" },
+                    style: { marginTop: "20px" },
                     children: [
                         { tag: "button", text: "New", style: buttonStyle, onclick: this.newClicked.bind(this) },
                         { tag: "button", text: "Close", style: buttonStyle, onclick: this.closePopup.bind(this) }
