@@ -11,6 +11,7 @@ import (
 	"github.com/EliCDavis/polyform/generator/manifest"
 	"github.com/EliCDavis/polyform/generator/schema"
 	"github.com/EliCDavis/polyform/generator/sync"
+	"github.com/EliCDavis/polyform/generator/variable"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
 
@@ -24,6 +25,7 @@ type Instance struct {
 	nodeIDs        map[nodes.Node]string
 	metadata       *sync.NestedSyncMap
 	namedManifests *namedOutputManager[manifest.Manifest]
+	variables      *VariableGroup
 
 	// TODO: Make this a lock across the entire instance
 	producerLock gsync.Mutex
@@ -32,15 +34,56 @@ type Instance struct {
 func New(typeFactory *refutil.TypeFactory) *Instance {
 	return &Instance{
 		typeFactory: typeFactory,
-
-		nodeIDs:  make(map[nodes.Node]string),
-		metadata: sync.NewNestedSyncMap(),
+		variables:   NewVariableGroup(),
+		nodeIDs:     make(map[nodes.Node]string),
+		metadata:    sync.NewNestedSyncMap(),
 		namedManifests: &namedOutputManager[manifest.Manifest]{
 			namedPorts: make(map[string]namedOutputEntry[manifest.Manifest]),
 		},
 		movelVersion: 0,
 	}
 }
+
+// >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+// VARIABLES
+// >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+func (i *Instance) NewVariable(variablePath string, variable variable.Variable) {
+	if variable == nil {
+		panic(fmt.Errorf("trying to add a nil variable %q to graph", variablePath))
+	}
+
+	if i.variables.HasVariable(variablePath) {
+		panic(fmt.Errorf("trying to add a variable to the path %q that already has a variable", variablePath))
+	}
+
+	if i.variables.HasSubgroup(variablePath) {
+		panic(fmt.Errorf("trying to add a variable to the path %q that is registered as a subgroup", variablePath))
+	}
+
+	i.variables.AddVariable(variablePath, variable)
+	i.typeFactory.RegisterBuilder(variablePath, func() any {
+		return variable.NodeReference()
+	})
+}
+
+func (i *Instance) DeleteVariable(variablePath string) {
+	if !i.variables.HasVariable(variablePath) {
+		panic(fmt.Errorf("trying to delete a variable at the path %q which doesn't contain a variable", variablePath))
+	}
+
+	i.variables.RemoveVariable(variablePath)
+	i.typeFactory.Unregister(variablePath)
+}
+
+func (i *Instance) GetVariable(variablePath string) variable.Variable {
+	if !i.variables.HasVariable(variablePath) {
+		panic(fmt.Errorf("trying to get a variable at the path %q which doesn't exist", variablePath))
+	}
+
+	return i.variables.GetVariable(variablePath)
+}
+
+// <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
 func (i *Instance) IsPortNamed(node nodes.Node, portName string) (string, bool) {
 	return i.namedManifests.IsPortNamed(node, portName)
@@ -298,9 +341,15 @@ func (i *Instance) ApplyAppSchema(jsonPayload []byte) error {
 			}
 
 			if single, ok := input.(nodes.SingleValueInputPort); ok {
-				single.Set(output)
+				err := single.Set(output)
+				if err != nil {
+					panic(err)
+				}
 			} else if array, ok := input.(nodes.ArrayValueInputPort); ok {
-				array.Add(output)
+				err := array.Add(output)
+				if err != nil {
+					panic(err)
+				}
 			} else {
 				panic(fmt.Errorf("not sure how to assign node %q's input %q", nodeID, inputName))
 			}
@@ -628,7 +677,10 @@ func (i *Instance) DeleteNodeInputConnection(nodeId, portName string) {
 			panic(fmt.Errorf("Treating node %q port %q like array, when it isn't", nodeId, portName))
 		}
 
-		array.Remove(array.Value()[portIndex])
+		err := array.Remove(array.Value()[portIndex])
+		if err != nil {
+			panic(err)
+		}
 
 	}
 
@@ -663,9 +715,15 @@ func (i *Instance) ConnectNodes(nodeOutId, outPortName, nodeInId, inPortName str
 	}
 
 	if single, ok := input.(nodes.SingleValueInputPort); ok {
-		single.Set(output)
+		err := single.Set(output)
+		if err != nil {
+			panic(err)
+		}
 	} else if array, ok := input.(nodes.ArrayValueInputPort); ok {
-		array.Add(output)
+		err := array.Add(output)
+		if err != nil {
+			panic(err)
+		}
 	} else {
 		panic(fmt.Errorf("can not determine type of node %q's input %q", nodeInId, cleanedInputName))
 	}
@@ -736,163 +794,4 @@ func (i *Instance) ProducerNames() []string {
 	}
 
 	return names
-}
-
-func flattenNodeInputReferences(node nodes.Node) []nodes.Node {
-
-	references := make([]nodes.Node, 0)
-
-	for inputName, input := range node.Inputs() {
-
-		switch v := input.(type) {
-		case nodes.SingleValueInputPort:
-			value := v.Value()
-			if value == nil {
-				continue
-			}
-			references = append(references, value.Node())
-
-		case nodes.ArrayValueInputPort:
-			for _, val := range v.Value() {
-				if val == nil {
-					continue
-				}
-				references = append(references, val.Node())
-			}
-
-		default:
-			panic(fmt.Errorf("unable to recursive %v's input %q", node, inputName))
-		}
-
-	}
-
-	return references
-}
-
-// REFLECTION =================================================================
-
-func RecurseDependenciesType[T any](dependent nodes.Node) []T {
-	allDependencies := make([]T, 0)
-
-	inputReferences := flattenNodeInputReferences(dependent)
-
-	for _, input := range inputReferences {
-
-		subDependencies := RecurseDependenciesType[T](input)
-		allDependencies = append(allDependencies, subDependencies...)
-
-		ofT, ok := input.(T)
-		if ok {
-			allDependencies = append(allDependencies, ofT)
-		}
-	}
-
-	return allDependencies
-}
-
-func BuildSchemaForAllNodeTypes(typeFactory *refutil.TypeFactory) []schema.NodeType {
-	registeredTypes := typeFactory.Types()
-	nodeTypes := make([]schema.NodeType, 0, len(registeredTypes))
-	for _, registeredType := range registeredTypes {
-		nodeInstance, ok := typeFactory.New(registeredType).(nodes.Node)
-		if !ok {
-			panic(fmt.Errorf("Registered type %q is not a node", registeredType))
-		}
-		if nodeInstance == nil {
-			panic("New registered type is nil")
-		}
-		// log.Printf("%T: %+v\n", nodeInstance, nodeInstance)
-		b := BuildNodeTypeSchema(nodeInstance)
-		b.Type = registeredType
-		nodeTypes = append(nodeTypes, b)
-	}
-	return nodeTypes
-}
-
-func BuildNodeTypeSchema(node nodes.Node) schema.NodeType {
-	typeSchema := schema.NodeType{
-		DisplayName: "Untyped",
-		Outputs:     make(map[string]schema.NodeOutput),
-		Inputs:      make(map[string]schema.NodeInput),
-	}
-
-	outputs := node.Outputs()
-	for name, o := range outputs {
-		nodeType := "any"
-		if typed, ok := o.(nodes.Typed); ok {
-			nodeType = typed.Type()
-		}
-
-		desc := ""
-		if description, ok := o.(nodes.Describable); ok {
-			desc = description.Description()
-		}
-
-		typeSchema.Outputs[name] = schema.NodeOutput{
-			Type:        nodeType,
-			Description: desc,
-		}
-	}
-
-	inputs := node.Inputs()
-	for name, input := range inputs {
-		nodeType := "any"
-		if typed, ok := input.(nodes.Typed); ok {
-			nodeType = typed.Type()
-		}
-
-		array := false
-		if _, ok := input.(nodes.ArrayValueInputPort); ok {
-			array = true
-		}
-
-		desc := ""
-		if description, ok := input.(nodes.Describable); ok {
-			desc = description.Description()
-		}
-
-		typeSchema.Inputs[name] = schema.NodeInput{
-			Type:        nodeType,
-			IsArray:     array,
-			Description: desc,
-		}
-	}
-
-	if param, ok := node.(Parameter); ok {
-		typeSchema.Parameter = param.Schema()
-	}
-
-	if typed, ok := node.(nodes.Named); ok {
-		typeSchema.DisplayName = typed.Name()
-	} else if typed, ok := node.(nodes.Typed); ok {
-		typeSchema.DisplayName = typed.Type()
-	} else {
-		typeSchema.DisplayName = refutil.GetTypeName(node)
-	}
-
-	if pathed, ok := node.(nodes.Pathed); ok {
-		typeSchema.Path = pathed.Path()
-	} else {
-		packagePath := refutil.GetPackagePath(node)
-		if strings.Contains(packagePath, "/") {
-			path := strings.Split(packagePath, "/")
-			path = path[1:]
-			if path[0] == "EliCDavis" {
-				path = path[1:]
-			}
-
-			if path[0] == "polyform" {
-				path = path[1:]
-			}
-			typeSchema.Path = strings.Join(path, "/")
-		} else {
-			typeSchema.Path = packagePath
-		}
-	}
-
-	if described, ok := node.(nodes.Describable); ok {
-		typeSchema.Info = described.Description()
-	}
-
-	return typeSchema
 }

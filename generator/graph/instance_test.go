@@ -132,7 +132,11 @@ func TestInstance_AddProducer_InitializeParameters_Artifacts(t *testing.T) {
 			}
 		}
 	},
-	"notes": null
+	"notes": null,
+	"variables": {
+		"variables": null,
+		"subgroups": null
+	}
 }`, string(instanceSchemaData))
 
 	assert.Equal(t, `{
@@ -173,6 +177,10 @@ func TestInstance_AddProducer_InitializeParameters_Artifacts(t *testing.T) {
 				"nodeID": "Node-1",
 				"port": "Out"
 			}
+		},
+		"variables": {
+			"subgroups": null,
+			"variables": null
 		}
 	}
 }`, string(appSchemaData))
