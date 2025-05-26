@@ -40,8 +40,20 @@ func (tv *TypeVariable[T]) SetDescription(description string) {
 	tv.description = description
 }
 
-func (tv TypeVariable[T]) ApplyMessage(msg []byte) (bool, error) {
-	return false, nil
+func (tv *TypeVariable[T]) ApplyMessage(msg []byte) (bool, error) {
+	var val T
+	err := json.Unmarshal(msg, &val)
+	if err != nil {
+		return false, err
+	}
+
+	// if pn.appliedProfile != nil && val == *pn.appliedProfile {
+	// 	return false, nil
+	// }
+
+	tv.version++
+	tv.value = val
+	return true, nil
 }
 
 func (tv TypeVariable[T]) ToMessage() []byte {

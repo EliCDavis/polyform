@@ -4,6 +4,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/EliCDavis/polyform/generator/schema"
 	"github.com/EliCDavis/polyform/generator/variable"
 )
 
@@ -36,6 +37,28 @@ type VariableGroup struct {
 
 	// TODO: Two mutexes, one per map
 	mutex *sync.RWMutex
+}
+
+func (vg *VariableGroup) Schema() schema.VariableGroup {
+	vg.mutex.RLock()
+	defer vg.mutex.RUnlock()
+
+	variableSchema := make(map[string]variable.JsonContainer)
+	for name, vars := range vg.variables {
+		variableSchema[name] = variable.JsonContainer{
+			Variable: vars,
+		}
+	}
+
+	groupSchema := make(map[string]schema.VariableGroup)
+	for name, group := range vg.subGroups {
+		groupSchema[name] = group.Schema()
+	}
+
+	return schema.VariableGroup{
+		Variables: variableSchema,
+		SubGroups: groupSchema,
+	}
 }
 
 func (vg *VariableGroup) AddVariable(variablePath string, variable variable.Variable) {

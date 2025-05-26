@@ -9,7 +9,10 @@ import (
 	"github.com/EliCDavis/polyform/generator/variable"
 )
 
-const variableInstanceEndpointPath = "/variable/instance/"
+const (
+	variableInstanceEndpointPath = "/variable/instance/"
+	variableValueEndpointPath    = "/variable/value/"
+)
 
 func variableInstanceEndpoint(graphInstance *graph.Instance, saver *GraphSaver) endpoint.Handler {
 
@@ -46,8 +49,8 @@ func variableInstanceEndpoint(graphInstance *graph.Instance, saver *GraphSaver) 
 
 func variableValueEndpoint(graphInstance *graph.Instance, saver *GraphSaver) endpoint.Handler {
 
-	updateParameter := func(parameterId string, body []byte) error {
-		_, err := graphInstance.UpdateParameter(parameterId, body)
+	updateVariable := func(variablePath string, body []byte) error {
+		_, err := graphInstance.UpdateVariable(variablePath, body)
 		return err
 	}
 
@@ -58,8 +61,8 @@ func variableValueEndpoint(graphInstance *graph.Instance, saver *GraphSaver) end
 				Request: endpoint.BinaryRequestReader{},
 				Handler: func(request endpoint.Request[[]byte]) error {
 
-					parameterId := path.Base(request.Url)
-					err := updateParameter(parameterId, request.Body)
+					variablePath := request.Url[len(variableValueEndpointPath):]
+					err := updateVariable(variablePath, request.Body)
 					if err != nil {
 						return err
 					}
@@ -72,8 +75,8 @@ func variableValueEndpoint(graphInstance *graph.Instance, saver *GraphSaver) end
 			http.MethodGet: endpoint.ResponseMethod[[]byte]{
 				ResponseWriter: endpoint.BinaryResponseWriter{},
 				Handler: func(r *http.Request) ([]byte, error) {
-					parameterId := path.Base(r.URL.Path)
-					n := graphInstance.ParameterData(parameterId)
+					variablePath := r.URL.Path[len(variableValueEndpointPath):]
+					n := graphInstance.VariableData(variablePath)
 					return n, nil
 				},
 			},

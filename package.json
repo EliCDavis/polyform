@@ -37,6 +37,7 @@
     "@elicdavis/node-flow": "^0.1.5",
     "@mkkellogg/gaussian-splats-3d": "^0.4.7",
     "@types/three": "^0.174.0",
+    "rxjs": "^7.8.2",
     "three": "^0.174.0"
   }
 }

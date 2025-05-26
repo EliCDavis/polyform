@@ -77,25 +77,25 @@ func DeserializeVariable(msg json.RawMessage) (Variable, error) {
 	case "bool":
 		return deserialiseTypedVariableSchema[bool](msg)
 
-	case "float2":
+	case "vector2.vector[float64]":
 		return deserialiseTypedVariableSchema[vector2.Float64](msg)
 
-	case "int2":
+	case "vector2.vector[int]":
 		return deserialiseTypedVariableSchema[vector2.Int](msg)
 
-	case "float3":
+	case "vector3.vector[float64]":
 		return deserialiseTypedVariableSchema[vector3.Float64](msg)
 
-	case "int3":
+	case "vector3.vector[int]":
 		return deserialiseTypedVariableSchema[vector3.Int](msg)
 
-	case "float3[]":
+	case "[]vector3.vector[float64]":
 		return deserialiseTypedVariableSchema[[]vector3.Float64](msg)
 
-	case "aabb":
+	case "geometry.aabb":
 		return deserialiseTypedVariableSchema[geometry.AABB](msg)
 
-	case "color":
+	case "coloring.webcolor":
 		return deserialiseTypedVariableSchema[coloring.WebColor](msg)
 
 	default:

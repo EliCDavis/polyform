@@ -83,6 +83,24 @@ func (i *Instance) GetVariable(variablePath string) variable.Variable {
 	return i.variables.GetVariable(variablePath)
 }
 
+func (i *Instance) UpdateVariable(variablePath string, data []byte) (bool, error) {
+	i.producerLock.Lock()
+	defer i.producerLock.Unlock()
+
+	variable := i.variables.GetVariable(variablePath)
+	r, err := variable.ApplyMessage(data)
+	i.incModelVersion()
+	return r, err
+}
+
+func (i *Instance) VariableData(variablePath string) []byte {
+	i.producerLock.Lock()
+	defer i.producerLock.Unlock()
+
+	variable := i.variables.GetVariable(variablePath)
+	return variable.ToMessage()
+}
+
 // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
 func (i *Instance) IsPortNamed(node nodes.Node, portName string) (string, bool) {
@@ -401,6 +419,7 @@ func (i *Instance) Schema() schema.GraphInstance {
 	appSchema := schema.GraphInstance{
 		Producers: make(map[string]schema.Producer),
 		Notes:     noteMetadata,
+		Variables: i.variables.Schema(),
 	}
 
 	appNodeSchema := make(map[string]schema.NodeInstance)

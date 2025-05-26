@@ -1,5 +1,7 @@
+import { BehaviorSubject } from "rxjs";
 import { Element, ElementConfig } from "../element";
-import { Observable } from '../observable';
+import { SchemaManager } from "../schema_manager";
+import { VariableType } from "../variable_type";
 
 interface NewVariableParameters {
     name: string,
@@ -7,17 +9,6 @@ interface NewVariableParameters {
     type: string
 }
 
-enum VariableType {
-    Float = "float64",
-    Float2 = "Float2",
-    Float3 = "Float3",
-    Int = "int",
-    Int2 = "Int2",
-    Int3 = "Int3",
-    String = "string",
-    Bool = "bool",
-    AABB = "AABB",
-}
 
 const buttonStyle = {
     "padding": "8px",
@@ -33,14 +24,15 @@ export class NewVariablePopup {
 
     popup: HTMLElement
 
-    name: Observable<string>;
-    type: Observable<string>;
-    description: Observable<string>;
+    name: BehaviorSubject<string>;
+    type: BehaviorSubject<string>;
+    description: BehaviorSubject<string>;
 
-    constructor() {
-        this.name = new Observable<string>("New Variable");
-        this.type = new Observable<string>(VariableType.Float);
-        this.description = new Observable<string>("");
+    constructor(private schemaManager: SchemaManager) {
+        this.name = new BehaviorSubject<string>("New Variable");
+
+        this.type = new BehaviorSubject<string>(VariableType.Float);
+        this.description = new BehaviorSubject<string>("");
 
         const newGraph: ElementConfig = {
             style: {
@@ -53,15 +45,15 @@ export class NewVariablePopup {
                 },
 
                 { text: "Name" },
-                { type: "text", name: "name", value$: this.name },
+                { type: "text", name: "name", change$: this.name },
 
                 { text: "Description" },
-                { type: "text", name: "description", value$: this.description },
+                { type: "text", name: "description", change$: this.description },
 
                 { text: "Type" },
                 {
                     tag: "select",
-                    value$: this.type,
+                    change$: this.type,
                     children: [
                         { tag: "option", value: VariableType.Float, text: "Float" },
                         { tag: "option", value: VariableType.Float2, text: "Float2" },
@@ -72,6 +64,7 @@ export class NewVariablePopup {
                         { tag: "option", value: VariableType.String, text: "String" },
                         { tag: "option", value: VariableType.Bool, text: "Bool" },
                         { tag: "option", value: VariableType.AABB, text: "AABB" },
+                        { tag: "option", value: VariableType.Color, text: "Color" },
                     ]
                 },
             ]
@@ -133,9 +126,9 @@ export class NewVariablePopup {
 
     VariableParametersFromPopup(): NewVariableParameters {
         return {
-            "name": this.inputValue(this.name.value(), "New Variable"),
-            "type": this.inputValue(this.type.value(), "Float"),
-            "description": this.inputValue(this.description.value(), ""),
+            "name": this.inputValue(this.name.value, "New Variable"),
+            "type": this.inputValue(this.type.value, "Float"),
+            "description": this.inputValue(this.description.value, ""),
         }
     }
 
@@ -155,9 +148,14 @@ export class NewVariablePopup {
             body: JSON.stringify(parameters)
         }).then((resp) => {
             if (!resp.ok) {
+                resp.json().then((error) => {
+                    alert(error.error);
+                })
                 console.error(resp);
+                return;
                 // location.reload();
             }
+            this.schemaManager.refreshSchema();
             console.log(resp)
         });
     }

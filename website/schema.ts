@@ -54,13 +54,26 @@ export interface GraphInstance {
     producers: { [key: string]: any };
     nodes: GraphInstanceNodes;
     notes: { [key: string]: any };
+    variables: VariableGroup;
+}
+
+export interface Variable {
+    type: string;
+    name: string;
+    description: string;
+    value: any;
+}
+
+export interface VariableGroup {
+    subgroups: VariableGroup;
+    variables: { [key: string]: Variable };
 }
 
 export interface Entry {
-    metadata: { [key: string]: any};
+    metadata: { [key: string]: any };
 }
 
 export interface Manifest {
     main: string;
-    entries: { [key: string]: Entry};
+    entries: { [key: string]: Entry };
 }

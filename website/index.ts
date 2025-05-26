@@ -20,7 +20,6 @@ import { ArrayBufferToBase64, Compress, CopyToClipboard } from "./utils.js";
 import { VariableManager } from "./variable_manager.js";
 
 
-new VariableManager(document.getElementById("sidebar-content"));
 const graphPopup = new NewGraphPopup(globalThis.ExampleGraphs);
 
 const RenderingConfiguration = {
@@ -74,7 +73,8 @@ requestManager.getNodeTypes((nodeTypes) => {
         })
     }, 1000);
 
-    console.log(nodeTypes)
+    console.log(nodeTypes);
+    
     const noteManager = new NoteManager(requestManager, flowGraphStuff.NodeFlowGraph)
 
     const nodeManager = new NodeManager(
@@ -86,6 +86,7 @@ requestManager.getNodeTypes((nodeTypes) => {
         nodeTypes
     );
     const schemaManager = new SchemaManager(requestManager, nodeManager, noteManager, graphPopup);
+    new VariableManager(document.getElementById("sidebar-content"), schemaManager);
 
     nodeManager.subscribeToParameterChange((param) => {
         schemaManager.setParameter(param.id, param.data, param.binary);

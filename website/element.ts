@@ -1,5 +1,6 @@
-import { Observable } from "./observable";
+import { BehaviorSubject, Subject } from "rxjs";
 
+export type HTMLInputTypeAttribute = "button" | "checkbox" | "color" | "date" | "datetime-local" | "email" | "file" | "hidden" | "image" | "month" | "number" | "password" | "radio" | "range" | "reset" | "search" | "submit" | "tel" | "text" | "time" | "url" | "week";
 
 export interface ElementConfig {
     /**
@@ -29,14 +30,20 @@ export interface ElementConfig {
      * Content type of the object.
      *
      * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/type)
+     * 
+     * https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/input#input_types
      */
-    type?: string
+    type?: HTMLInputTypeAttribute;
 
     value?: string
 
+    step?: string,
+
     change?: (e: InputEvent) => void
 
-    value$?: Observable<string>
+    change$?: Subject<string>;
+
+    size?: number;
 }
 
 export function Element(config: ElementConfig): HTMLElement {
@@ -91,19 +98,41 @@ export function Element(config: ElementConfig): HTMLElement {
     if (config.value) {
         const inputEle = newEle as HTMLInputElement
         inputEle.value = config.value;
+
+        if (config.type === "checkbox") {
+            inputEle.checked = config.value === "true";
+        }
     }
 
-    if (config.value$) {
-        if (config.value) {
-            config.value$.set(config.value);
-        }
-        
+    if (config.step) {
         const inputEle = newEle as HTMLInputElement
-        inputEle.addEventListener("input", (ev: InputEvent) => {
+        inputEle.step = config.step;
+    }
+
+    if (config.size) {
+        const inputEle = newEle as HTMLInputElement
+        inputEle.size = config.size;
+    }
+
+    if (config.change$) {
+        // if (config.value) {
+        //     config.change$.next(config.value);
+        // }
+
+        const inputEle = newEle as HTMLInputElement
+        inputEle.addEventListener("change", (ev: InputEvent) => {
             console.log(ev);
-            config.value$.set(inputEle.value);
+
+            if (config.type === "checkbox") {
+                config.change$.next("" + inputEle.checked);
+            } else {
+                config.change$.next(inputEle.value);
+            }
         });
-        inputEle.value = config.value$.value();
+        // inputEle.value = config.change$.value;
+        // if (config.type === "checkbox") {
+        //     inputEle.checked = config.change$.value === "true";
+        // }
     }
 
     if (config.onclick) {
