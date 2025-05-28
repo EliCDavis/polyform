@@ -136,12 +136,25 @@ func (i *Instance) NodeInstanceSchema(node nodes.Node) schema.NodeInstance {
 		}
 	}
 
+	// nodeType := ""
+	// if typed, ok := node.(nodes.Typed); ok {
+	// 	nodeType = typed.Type()
+	// } else {
+	// 	nodeType = refutil.GetTypeWithPackage(node)
+	// }
+
 	nodeInstance := schema.NodeInstance{
 		Name:          "Unamed",
 		Type:          refutil.GetTypeWithPackage(node),
 		AssignedInput: make(map[string]schema.PortReference),
 		Output:        make(map[string]schema.NodeInstanceOutputPort),
 		Metadata:      metadata,
+	}
+
+	if reference, ok := node.(variable.Reference); ok {
+		variable := reference.Reference()
+		nodeInstance.Name = variable.Name()
+		nodeInstance.Variable = variable
 	}
 
 	if param, ok := node.(Parameter); ok {
@@ -161,7 +174,6 @@ func (i *Instance) NodeInstanceSchema(node nodes.Node) schema.NodeInstance {
 	}
 
 	for inputPortName, inputPort := range node.Inputs() {
-
 		if single, ok := inputPort.(nodes.SingleValueInputPort); ok {
 			port := single.Value()
 			if port == nil {
@@ -246,6 +258,7 @@ func (i *Instance) buildIDsForNode(node nodes.Node) {
 func (i *Instance) Reset() {
 	i.nodeIDs = make(map[nodes.Node]string)
 	i.metadata = sync.NewNestedSyncMap()
+	i.variables = NewVariableGroup()
 	i.namedManifests = &namedOutputManager[manifest.Manifest]{
 		namedPorts: make(map[string]namedOutputEntry[manifest.Manifest]),
 	}

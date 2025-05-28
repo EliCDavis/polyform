@@ -8,7 +8,7 @@ import (
 const variableReferenceNodeOutputPortName = "Value"
 
 type VariableReferenceNode[T any] struct {
-	variable TypeVariable[T]
+	variable *TypeVariable[T]
 }
 
 func (vrn *VariableReferenceNode[T]) Outputs() map[string]nodes.OutputPort {
@@ -17,6 +17,10 @@ func (vrn *VariableReferenceNode[T]) Outputs() map[string]nodes.OutputPort {
 			node: vrn,
 		},
 	}
+}
+
+func (vrn *VariableReferenceNode[T]) Reference() Variable {
+	return vrn.variable
 }
 
 func (vrn *VariableReferenceNode[T]) Inputs() map[string]nodes.InputPort {
@@ -30,6 +34,33 @@ func (vrn *VariableReferenceNode[T]) Name() string {
 func (vrn *VariableReferenceNode[T]) Description() string {
 	return vrn.variable.description
 }
+
+// CUSTOM JTF Serialization ===================================================
+
+// func (pn *VariableReferenceNode[T]) ToJSON(encoder *jbtf.Encoder) ([]byte, error) {
+// 	return json.Marshal(parameterNodeGraphSchema[T]{
+// 		Name:         pn.Name,
+// 		Description:  pn.Description,
+// 		CurrentValue: pn.Value(),
+// 		DefaultValue: pn.DefaultValue,
+// 		CLI:          pn.CLI,
+// 	})
+// }
+
+// func (pn *VariableReferenceNode[T]) FromJSON(decoder jbtf.Decoder, body []byte) (err error) {
+// 	gn := parameterNodeGraphSchema[T]{}
+// 	err = json.Unmarshal(body, &gn)
+// 	if err != nil {
+// 		return
+// 	}
+
+// 	pn.Name = gn.Name
+// 	pn.Description = gn.Description
+// 	pn.DefaultValue = gn.DefaultValue
+// 	pn.CLI = gn.CLI
+// 	pn.appliedProfile = &gn.CurrentValue
+// 	return
+// }
 
 // ============================================================================
 // Output Port Interface Implementation =======================================

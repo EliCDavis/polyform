@@ -16,3 +16,7 @@ type Variable interface {
 	ApplyMessage(msg []byte) (bool, error)
 	ToMessage() []byte
 }
+
+type Reference interface {
+	Reference() Variable
+}

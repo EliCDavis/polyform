@@ -90,8 +90,7 @@ export class VariableManager {
 
         x.pipe(
             map(mapper),
-            combineLatestWith(y.pipe(map(mapper)))
-        ).pipe(
+            combineLatestWith(y.pipe(map(mapper))),
             skip(1),
             mergeMap((val) => this.setVariableValue(key, { x: val[0], y: val[1] }))
         ).subscribe((resp: Response) => {
@@ -150,16 +149,16 @@ export class VariableManager {
             ),
             skip(1), // Ignore the first change, as it's just the initial value
             mergeMap((val) => this.setVariableValue(key, {
-                min: {
+                center: {
                     x: val[0], y: val[1], z: val[2]
                 },
-                max: {
+                extents: {
                     x: val[3], y: val[4], z: val[5]
                 },
-            })))
-            .subscribe((resp: Response) => {
-                console.log(resp);
-            })
+            }))
+        ).subscribe((resp: Response) => {
+            console.log(resp);
+        })
 
         return {
             style: inputContainerStyle,

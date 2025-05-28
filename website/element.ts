@@ -75,9 +75,11 @@ export function Element(config: ElementConfig): HTMLElement {
     }
 
     if (config.children) {
+        const instantiatedChildren = new Array<HTMLElement>();
         for (let i = 0; i < config.children.length; i++) {
-            newEle.appendChild(Element(config.children[i]));
+            instantiatedChildren.push(Element(config.children[i]))
         }
+        newEle.replaceChildren(...instantiatedChildren);
     }
 
     if (config.name) {
@@ -115,24 +117,14 @@ export function Element(config: ElementConfig): HTMLElement {
     }
 
     if (config.change$) {
-        // if (config.value) {
-        //     config.change$.next(config.value);
-        // }
-
         const inputEle = newEle as HTMLInputElement
         inputEle.addEventListener("change", (ev: InputEvent) => {
-            console.log(ev);
-
             if (config.type === "checkbox") {
                 config.change$.next("" + inputEle.checked);
             } else {
                 config.change$.next(inputEle.value);
             }
         });
-        // inputEle.value = config.change$.value;
-        // if (config.type === "checkbox") {
-        //     inputEle.checked = config.change$.value === "true";
-        // }
     }
 
     if (config.onclick) {

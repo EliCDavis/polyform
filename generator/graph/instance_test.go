@@ -134,8 +134,8 @@ func TestInstance_AddProducer_InitializeParameters_Artifacts(t *testing.T) {
 	},
 	"notes": null,
 	"variables": {
-		"variables": null,
-		"subgroups": null
+		"variables": {},
+		"subgroups": {}
 	}
 }`, string(instanceSchemaData))
 

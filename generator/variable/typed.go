@@ -60,7 +60,7 @@ func (tv TypeVariable[T]) ToMessage() []byte {
 	return nil
 }
 
-func (tv TypeVariable[T]) NodeReference() nodes.Node {
+func (tv *TypeVariable[T]) NodeReference() nodes.Node {
 	return &VariableReferenceNode[T]{
 		variable: tv,
 	}

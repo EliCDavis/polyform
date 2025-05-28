@@ -43,6 +43,7 @@ export interface NodeInstance {
     assignedInput: NodeInstanceAssignedInput;
     output: NodeInstanceOutput;
     parameter?: any;
+    variable?: any;
     metadata?: { [key: string]: any };
 }
 

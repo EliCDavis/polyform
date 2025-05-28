@@ -2,11 +2,17 @@ import { FlowNodeConfig, NodeFlowGraph, Publisher } from "@elicdavis/node-flow";
 
 const nodeCanvas = document.getElementById("light-canvas")
 
-const ParameterNodeBackgroundColor = "#233";
+
+const Green = {
+    Background: "#233",
+    Title: "#355"
+}
+
+const ParameterNodeBackgroundColor = "#333";
 const ParameterOutPortName = "Value";
 const ParameterStyle = {
     title: {
-        color: "#355"
+        color: "#545454"
     },
     idle: {
         color: ParameterNodeBackgroundColor,
