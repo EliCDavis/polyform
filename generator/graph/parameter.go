@@ -11,6 +11,7 @@ type Parameter interface {
 	DisplayName() string
 	Schema() schema.Parameter
 	InitializeForCLI(set *flag.FlagSet)
+
 	SetName(name string)
 	SetDescription(name string)
 
@@ -23,3 +24,5 @@ type SwaggerParameter interface {
 
 	SwaggerProperty() swagger.Property
 }
+
+// ============================================================================

@@ -13,6 +13,7 @@ type App struct {
 	Producers   map[string]Producer        `json:"producers"`
 	Nodes       map[string]AppNodeInstance `json:"nodes"`
 	Metadata    map[string]any             `json:"metadata,omitempty"`
+	Variables   VariableGroup              `json:"variables,omitempty"`
 }
 
 type AppNodeInstance struct {

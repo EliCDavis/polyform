@@ -265,25 +265,24 @@ export class NodeManager {
         }
 
         if (isProducer) {
-            const ParameterNodeBackgroundColor = "#332233";
-            const ParameterStyle = {
+            const ManifestNodeBackgroundColor = "#332233";
+            nodeConfig.style = {
                 title: {
                     color: "#4a3355"
                 },
                 idle: {
-                    color: ParameterNodeBackgroundColor,
+                    color: ManifestNodeBackgroundColor,
                 },
                 mouseOver: {
-                    color: ParameterNodeBackgroundColor,
+                    color: ManifestNodeBackgroundColor,
                 },
                 grabbed: {
-                    color: ParameterNodeBackgroundColor,
+                    color: ManifestNodeBackgroundColor,
                 },
                 selected: {
-                    color: ParameterNodeBackgroundColor,
+                    color: ManifestNodeBackgroundColor,
                 }
             }
-            nodeConfig.style = ParameterStyle
 
             nodeConfig.canEditTitle = true;
         }
@@ -298,24 +297,32 @@ export class NodeManager {
 
     newNode(nodeData: NodeInstance): FlowNode {
         const isParameter = !!nodeData.parameter;
+        const isVariable = !!nodeData.variable;
 
         // Not a parameter, just create a node that adhere's to the server's
         // reflection.
-        // if (!isParameter) {
-        //     const nodeIdentifier = this.nodeTypeToLitePath.get(nodeData.type)
-        //     return LiteGraph.createNode(nodeIdentifier);
-        // }
-
-        if (!isParameter) {
+        if (!isParameter && !isVariable) {
             const nodeIdentifier = this.nodeTypeToFlowNodePath.get(nodeData.type)
             return this.nodesPublisher.create(nodeIdentifier);
         }
 
-        let parameterType = nodeData.parameter.type;
-        if (parameterType === "[]uint8") {
-            parameterType = "File";
+        if (isParameter) {
+            let parameterType = nodeData.parameter.type;
+            if (parameterType === "[]uint8") {
+                parameterType = "File";
+            }
+            return this.nodesPublisher.create("Parameters/" + parameterType);
         }
-        return this.nodesPublisher.create("Parameters/" + parameterType);
+
+        if (isVariable) {
+            let parameterType = nodeData.variable.type;
+            if (parameterType === "[]uint8") {
+                parameterType = "File";
+            }
+            return this.nodesPublisher.create("Generator/Variable/" + nodeData.variable.name);
+        }
+
+        throw new Error("what tf is this.")
     }
 
     updateNodes(newSchema: GraphInstance): void {
@@ -346,8 +353,6 @@ export class NodeManager {
 
                 this.nodeFlowGraph.addNode(flowNode);
 
-                // TODO: This is an ugo hack. Consider somehow making this
-                // apart of the metadata.
                 flowNode.setProperty(InstanceIDProperty, nodeID);
 
                 const controller = new PolyNodeController(
