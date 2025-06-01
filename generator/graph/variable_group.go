@@ -31,6 +31,24 @@ func NewVariableGroup() *VariableGroup {
 	}
 }
 
+func VariableGroupFromSchema(in schema.VariableGroup) *VariableGroup {
+	variables := make(map[string]variable.Variable)
+	for key, variable := range in.Variables {
+		variables[key] = variable.Variable
+	}
+
+	subgroups := make(map[string]*VariableGroup)
+	for key, group := range in.SubGroups {
+		subgroups[key] = VariableGroupFromSchema(group)
+	}
+
+	return &VariableGroup{
+		variables: variables,
+		subGroups: subgroups,
+		mutex:     &sync.RWMutex{},
+	}
+}
+
 type VariableGroup struct {
 	variables map[string]variable.Variable
 	subGroups map[string]*VariableGroup
@@ -188,4 +206,34 @@ func (vg *VariableGroup) RemoveSubgroup(subgroupPath string) {
 	}
 
 	vg.subGroups[groupName].RemoveSubgroup(subPath)
+}
+
+func (vg *VariableGroup) ReverseLookup(in map[variable.Variable]string, prefix string) {
+	vg.mutex.RLock()
+	defer vg.mutex.RUnlock()
+
+	for entry, variable := range vg.variables {
+		in[variable] = prefix + entry
+	}
+
+	for entry, group := range vg.subGroups {
+		group.ReverseLookup(in, entry+"/")
+	}
+}
+
+func (vg *VariableGroup) traverse(subpath string, f func(path string, v variable.Variable)) {
+	vg.mutex.RLock()
+	defer vg.mutex.RUnlock()
+
+	for entry, variable := range vg.variables {
+		f(subpath+entry, variable)
+	}
+
+	for entry, group := range vg.subGroups {
+		group.traverse(entry+"/", f)
+	}
+}
+
+func (vg *VariableGroup) Traverse(f func(path string, v variable.Variable)) {
+	vg.traverse("", f)
 }

@@ -15,12 +15,6 @@ const (
 )
 
 func variableInstanceEndpoint(graphInstance *graph.Instance, saver *GraphSaver) endpoint.Handler {
-
-	// updateParameter := func(parameterId string, body []byte) error {
-	// 	_, err := graphInstance.UpdateParameter(parameterId, body)
-	// 	return err
-	// }
-
 	return endpoint.Handler{
 		Methods: map[string]endpoint.Method{
 

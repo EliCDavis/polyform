@@ -18,6 +18,7 @@ type App struct {
 
 type AppNodeInstance struct {
 	Type          string                   `json:"type"`
-	AssignedInput map[string]PortReference `json:"assignedInput"`
+	AssignedInput map[string]PortReference `json:"assignedInput,omitempty"`
 	Data          json.RawMessage          `json:"data,omitempty"`
+	Variable      *string                  `json:"variable,omitempty"`
 }

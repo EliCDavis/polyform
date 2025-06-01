@@ -150,7 +150,6 @@ func TestInstance_AddProducer_InitializeParameters_Artifacts(t *testing.T) {
 		"nodes": {
 			"Node-0": {
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[string]",
-				"assignedInput": {},
 				"data": {
 					"name": "Welp",
 					"description": "I'm a description",
@@ -179,8 +178,8 @@ func TestInstance_AddProducer_InitializeParameters_Artifacts(t *testing.T) {
 			}
 		},
 		"variables": {
-			"subgroups": null,
-			"variables": null
+			"subgroups": {},
+			"variables": {}
 		}
 	}
 }`, string(appSchemaData))

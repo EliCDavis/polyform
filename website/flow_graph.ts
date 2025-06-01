@@ -2,30 +2,31 @@ import { FlowNodeConfig, NodeFlowGraph, Publisher } from "@elicdavis/node-flow";
 
 const nodeCanvas = document.getElementById("light-canvas")
 
-
-const Green = {
-    Background: "#233",
-    Title: "#355"
+interface ColorScheme {
+    Background: string,
+    Title: string
 }
 
-const ParameterNodeBackgroundColor = "#333";
+const ColorSchemes = {
+    Green: {
+        Background: "#233",
+        Title: "#355"
+    },
+    Grey: {
+        Background: "#333",
+        Title: "#545454"
+    }
+}
+
+const parameterPallete: ColorScheme = ColorSchemes.Grey;
+
 const ParameterOutPortName = "Value";
 const ParameterStyle = {
-    title: {
-        color: "#545454"
-    },
-    idle: {
-        color: ParameterNodeBackgroundColor,
-    },
-    mouseOver: {
-        color: ParameterNodeBackgroundColor,
-    },
-    grabbed: {
-        color: ParameterNodeBackgroundColor,
-    },
-    selected: {
-        color: ParameterNodeBackgroundColor,
-    }
+    title: { color: parameterPallete.Title },
+    idle: { color: parameterPallete.Background, },
+    mouseOver: { color: parameterPallete.Background, },
+    grabbed: { color: parameterPallete.Background, },
+    selected: { color: parameterPallete.Background, }
 }
 
 const IntParameter: FlowNodeConfig = {

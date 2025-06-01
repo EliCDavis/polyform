@@ -239,7 +239,12 @@ export class VariableManager {
                 flexDirection: "column"
             },
             children: [
-                { text: variable.name },
+                {
+                    text: variable.name,
+                    style: {
+                        textDecoration: "underline"
+                    }
+                },
                 { text: variable.description },
                 eleConfig
             ]

@@ -258,6 +258,9 @@ func (i *Instance) buildIDsForNode(node nodes.Node) {
 func (i *Instance) Reset() {
 	i.nodeIDs = make(map[nodes.Node]string)
 	i.metadata = sync.NewNestedSyncMap()
+	i.variables.Traverse(func(path string, v variable.Variable) {
+		i.typeFactory.Unregister(path)
+	})
 	i.variables = NewVariableGroup()
 	i.namedManifests = &namedOutputManager[manifest.Manifest]{
 		namedPorts: make(map[string]namedOutputEntry[manifest.Manifest]),
@@ -324,6 +327,9 @@ func (i *Instance) ApplyAppSchema(jsonPayload []byte) error {
 
 	i.Reset()
 	i.metadata.OverwriteData(appSchema.Metadata)
+	VariableGroupFromSchema(appSchema.Variables).Traverse(func(path string, v variable.Variable) {
+		i.NewVariable(path, v)
+	})
 
 	createdNodes := make(map[string]nodes.Node)
 
@@ -332,13 +338,22 @@ func (i *Instance) ApplyAppSchema(jsonPayload []byte) error {
 		if nodeID == "" {
 			panic("attempting to create a node without an ID")
 		}
-		newNode := i.typeFactory.New(instanceDetails.Type)
-		casted, ok := newNode.(nodes.Node)
-		if !ok {
-			panic(fmt.Errorf("graph definition contained type that instantiated a non node: %s", instanceDetails.Type))
+
+		if instanceDetails.Variable != nil {
+			// We instantiate variables a different way
+			node := i.variables.GetVariable(*instanceDetails.Variable).NodeReference()
+			createdNodes[nodeID] = node
+			i.nodeIDs[node] = nodeID
+		} else {
+			newNode := i.typeFactory.New(instanceDetails.Type)
+			casted, ok := newNode.(nodes.Node)
+			if !ok {
+				panic(fmt.Errorf("graph definition contained type that instantiated a non node: %s", instanceDetails.Type))
+			}
+			createdNodes[nodeID] = casted
+			i.nodeIDs[casted] = nodeID
 		}
-		createdNodes[nodeID] = casted
-		i.nodeIDs[casted] = nodeID
+
 	}
 
 	// Connect the nodes we just created
@@ -469,6 +484,9 @@ func (i *Instance) Schema() schema.GraphInstance {
 }
 
 func (i *Instance) EncodeToAppSchema(appSchema *schema.App, encoder *jbtf.Encoder) {
+	variableLut := make(map[variable.Variable]string)
+	i.variables.ReverseLookup(variableLut, "")
+
 	nodeInstances := make(map[string]schema.AppNodeInstance)
 	for node := range i.nodeIDs {
 		id, ok := i.nodeIDs[node]
@@ -480,12 +498,20 @@ func (i *Instance) EncodeToAppSchema(appSchema *schema.App, encoder *jbtf.Encode
 			panic(fmt.Errorf("we've arrived to a invalid state. two nodes refer to the same ID. There's a bug somewhere"))
 		}
 
-		nodeInstances[id] = i.buildNodeGraphInstanceSchema(node, encoder)
+		nodeSchema := i.buildNodeGraphInstanceSchema(node, encoder)
+
+		if reference, ok := node.(variable.Reference); ok {
+			variablePath := variableLut[reference.Reference()]
+			nodeSchema.Variable = &variablePath
+		}
+
+		nodeInstances[id] = nodeSchema
 	}
 
 	if appSchema.Producers == nil {
 		appSchema.Producers = make(map[string]schema.Producer)
 	}
+
 	for key, producer := range i.namedManifests.namedPorts {
 		// a.buildSchemaForNode(producer.Node(), appNodeSchema)
 		id := i.nodeIDs[producer.node]
@@ -497,7 +523,9 @@ func (i *Instance) EncodeToAppSchema(appSchema *schema.App, encoder *jbtf.Encode
 			Port:   producer.port.Name(),
 		}
 	}
+
 	appSchema.Nodes = nodeInstances
+	appSchema.Variables = i.variables.Schema()
 
 	// TODO: Is this unsafe? Yes.
 	appSchema.Metadata = i.metadata.Data()
