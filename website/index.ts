@@ -86,7 +86,7 @@ requestManager.getNodeTypes((nodeTypes) => {
         nodeTypes
     );
     const schemaManager = new SchemaManager(requestManager, nodeManager, noteManager, graphPopup);
-    new VariableManager(document.getElementById("sidebar-content"), schemaManager);
+    new VariableManager(document.getElementById("sidebar-content"), schemaManager, nodeManager);
 
     nodeManager.subscribeToParameterChange((param) => {
         schemaManager.setParameter(param.id, param.data, param.binary);

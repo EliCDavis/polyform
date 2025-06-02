@@ -29,7 +29,7 @@ func (bn TestNodeData) Out() nodes.StructOutput[float64] {
 }
 
 func TestBuildNodeTypeSchema(t *testing.T) {
-	schema := graph.BuildNodeTypeSchema(&TestNode{})
+	schema := graph.BuildNodeTypeSchema("", &TestNode{})
 
 	assert.Equal(t, "Test", schema.DisplayName)
 	assert.Equal(t, "generator/graph_test", schema.Path)

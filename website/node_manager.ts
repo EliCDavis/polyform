@@ -6,6 +6,12 @@ import { NodeType } from './schema';
 import { ThreeApp } from "./three_app.js";
 import { ProducerViewManager } from './ProducerView/producer_view_manager';
 
+const ColorSchemes = {
+    Green: {
+        Background: "#233",
+        Title: "#355"
+    },
+}
 
 interface NodeParameterChangeEvent {
     // Node ID
@@ -249,6 +255,7 @@ export class NodeManager {
             });
         }
 
+        const isVariable = typeData.path === "generator/variable";
         const isProducer = this.nodeTypeIsProducer(typeData);
         if (isProducer) {
             this.producerTypes.set(typeData.type, isProducer);
@@ -283,8 +290,27 @@ export class NodeManager {
                     color: ManifestNodeBackgroundColor,
                 }
             }
-
             nodeConfig.canEditTitle = true;
+        }
+
+        if (isVariable) {
+            nodeConfig.style = {
+                title: {
+                    color: ColorSchemes.Green.Title
+                },
+                idle: {
+                    color: ColorSchemes.Green.Background,
+                },
+                mouseOver: {
+                    color: ColorSchemes.Green.Background,
+                },
+                grabbed: {
+                    color: ColorSchemes.Green.Background,
+                },
+                selected: {
+                    color: ColorSchemes.Green.Background,
+                }
+            }
         }
 
         // nm.onNodeCreateCallback(this, typeData.type);

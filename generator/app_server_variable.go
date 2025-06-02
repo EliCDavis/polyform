@@ -6,6 +6,7 @@ import (
 
 	"github.com/EliCDavis/polyform/generator/endpoint"
 	"github.com/EliCDavis/polyform/generator/graph"
+	"github.com/EliCDavis/polyform/generator/schema"
 	"github.com/EliCDavis/polyform/generator/variable"
 )
 
@@ -15,19 +16,23 @@ const (
 )
 
 func variableInstanceEndpoint(graphInstance *graph.Instance, saver *GraphSaver) endpoint.Handler {
+
+	type CreateVariableResponse struct {
+		NodeType schema.NodeType `json:"nodeType"`
+	}
+
 	return endpoint.Handler{
 		Methods: map[string]endpoint.Method{
 
 			// Create a new instance of a variable
-			http.MethodPost: endpoint.BodyMethod[variable.JsonContainer]{
-				Request: endpoint.JsonRequestReader[variable.JsonContainer]{},
-				Handler: func(request endpoint.Request[variable.JsonContainer]) error {
-					variablePath := request.Url[len(variableInstanceEndpointPath):]
-					graphInstance.NewVariable(variablePath, request.Body.Variable)
-					saver.Save()
-					return nil
-				},
-			},
+			http.MethodPost: endpoint.JsonMethod(func(request endpoint.Request[variable.JsonContainer]) (CreateVariableResponse, error) {
+				variablePath := request.Url[len(variableInstanceEndpointPath):]
+				registeredType := graphInstance.NewVariable(variablePath, request.Body.Variable)
+				saver.Save()
+				return CreateVariableResponse{
+					NodeType: graph.BuildNodeTypeSchema(registeredType, request.Body.Variable.NodeReference()),
+				}, nil
+			}),
 
 			http.MethodGet: endpoint.ResponseMethod[variable.Variable]{
 				ResponseWriter: endpoint.JsonResponseWriter[variable.Variable]{},

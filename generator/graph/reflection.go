@@ -39,14 +39,14 @@ func BuildSchemaForAllNodeTypes(typeFactory *refutil.TypeFactory) []schema.NodeT
 			panic("New registered type is nil")
 		}
 		// log.Printf("%T: %+v\n", nodeInstance, nodeInstance)
-		b := BuildNodeTypeSchema(nodeInstance)
-		b.Type = registeredType
+		// log.Print(registeredType)
+		b := BuildNodeTypeSchema(registeredType, nodeInstance)
 		nodeTypes = append(nodeTypes, b)
 	}
 	return nodeTypes
 }
 
-func BuildNodeTypeSchema(node nodes.Node) schema.NodeType {
+func BuildNodeTypeSchema(registeredType string, node nodes.Node) schema.NodeType {
 	typeSchema := schema.NodeType{
 		DisplayName: "Untyped",
 		Outputs:     make(map[string]schema.NodeOutput),
@@ -130,6 +130,8 @@ func BuildNodeTypeSchema(node nodes.Node) schema.NodeType {
 	if described, ok := node.(nodes.Describable); ok {
 		typeSchema.Info = described.Description()
 	}
+
+	typeSchema.Type = registeredType
 
 	return typeSchema
 }

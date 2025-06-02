@@ -78,3 +78,7 @@ export interface Manifest {
     main: string;
     entries: { [key: string]: Entry };
 }
+
+export interface CreateVariableResponse {
+    nodeType: NodeType
+}

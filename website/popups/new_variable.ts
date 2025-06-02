@@ -2,6 +2,9 @@ import { BehaviorSubject } from "rxjs";
 import { Element, ElementConfig } from "../element";
 import { SchemaManager } from "../schema_manager";
 import { VariableType } from "../variable_type";
+import { Publisher } from "@elicdavis/node-flow";
+import { NodeManager } from "../node_manager";
+import { CreateVariableResponse } from "../schema";
 
 interface NewVariableParameters {
     name: string,
@@ -28,9 +31,11 @@ export class NewVariablePopup {
     type: BehaviorSubject<string>;
     description: BehaviorSubject<string>;
 
-    constructor(private schemaManager: SchemaManager) {
-        this.name = new BehaviorSubject<string>("New Variable");
+    nodeManager: NodeManager;
 
+    constructor(private schemaManager: SchemaManager, nodeManager: NodeManager) {
+        this.name = new BehaviorSubject<string>("New Variable");
+        this.nodeManager = nodeManager;
         this.type = new BehaviorSubject<string>(VariableType.Float);
         this.description = new BehaviorSubject<string>("");
 
@@ -147,16 +152,16 @@ export class NewVariablePopup {
             method: "POST",
             body: JSON.stringify(parameters)
         }).then((resp) => {
-            if (!resp.ok) {
-                resp.json().then((error) => {
-                    alert(error.error);
-                })
-                console.error(resp);
-                return;
-                // location.reload();
-            }
-            this.schemaManager.refreshSchema();
-            console.log(resp)
+            resp.json().then((body) => {
+                if (!resp.ok) {
+                    alert(body.error);
+                } else {
+                    const createresp: CreateVariableResponse = body;
+                    this.schemaManager.refreshSchema();
+                    this.nodeManager.registerCustomNodeType(createresp.nodeType)
+                    console.log(createresp)
+                }
+            })
         });
     }
 

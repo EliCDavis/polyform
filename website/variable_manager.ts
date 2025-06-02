@@ -4,6 +4,7 @@ import { GraphInstance, Variable } from "./schema";
 import { SchemaManager } from "./schema_manager";
 import { VariableType } from './variable_type';
 import { BehaviorSubject, combineLatestWith, flatMap, map, mergeMap, Observable, skip, Subject } from "rxjs";
+import { NodeManager } from './node_manager';
 
 const inputStyle: Partial<CSSStyleDeclaration> = {
     flexShrink: "1",
@@ -34,15 +35,19 @@ export function post$(url: string, body: BodyInit): Observable<Response> {
 
 export class VariableManager {
 
-    variableListView: Element
+    variableListView: Element;
 
-    constructor(parent: HTMLElement, schemaManager: SchemaManager) {
+    nodeManager: NodeManager;
+
+    constructor(parent: HTMLElement, schemaManager: SchemaManager, nodeManager: NodeManager) {
+        this.nodeManager = nodeManager;
+        
         const newVariableButton = parent.querySelector("#new-variable")
         // const newFolderButton = parent.querySelector("#new-folder")
         this.variableListView = parent.querySelector("#variable-list")
 
         newVariableButton.addEventListener('click', (event) => {
-            const popup = new NewVariablePopup(schemaManager);
+            const popup = new NewVariablePopup(schemaManager, this.nodeManager);
             popup.show();
         });
 

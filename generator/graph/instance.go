@@ -47,7 +47,7 @@ func New(typeFactory *refutil.TypeFactory) *Instance {
 // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 // VARIABLES
 // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-func (i *Instance) NewVariable(variablePath string, variable variable.Variable) {
+func (i *Instance) NewVariable(variablePath string, variable variable.Variable) string {
 	if variable == nil {
 		panic(fmt.Errorf("trying to add a nil variable %q to graph", variablePath))
 	}
@@ -64,6 +64,8 @@ func (i *Instance) NewVariable(variablePath string, variable variable.Variable) 
 	i.typeFactory.RegisterBuilder(variablePath, func() any {
 		return variable.NodeReference()
 	})
+
+	return variablePath
 }
 
 func (i *Instance) DeleteVariable(variablePath string) {
@@ -213,11 +215,11 @@ func (i *Instance) NodeInstanceSchema(node nodes.Node) schema.NodeInstance {
 	return nodeInstance
 }
 
-func (i *Instance) addType(v any) {
-	if !i.typeFactory.TypeRegistered(v) {
-		i.typeFactory.RegisterType(v)
-	}
-}
+// func (i *Instance) addType(v any) {
+// 	if !i.typeFactory.TypeRegistered(v) {
+// 		i.typeFactory.RegisterType(v)
+// 	}
+// }
 
 func (i *Instance) buildIDsForNode(node nodes.Node) {
 
@@ -226,7 +228,8 @@ func (i *Instance) buildIDsForNode(node nodes.Node) {
 		return
 	}
 
-	i.addType(node)
+	// Try to remove this
+	// i.addType(node)
 
 	references := flattenNodeInputReferences(node)
 	for _, ref := range references {
@@ -815,14 +818,14 @@ func (i *Instance) SetNodeAsProducer(nodeId, nodePort, producerName string) {
 	i.incModelVersion()
 }
 
-func (i *Instance) recursivelyRegisterNodeTypes(node nodes.Node) {
-	i.addType(node)
+// func (i *Instance) recursivelyRegisterNodeTypes(node nodes.Node) {
+// 	i.addType(node)
 
-	inputReferences := flattenNodeInputReferences(node)
-	for _, reference := range inputReferences {
-		i.recursivelyRegisterNodeTypes(reference)
-	}
-}
+// 	inputReferences := flattenNodeInputReferences(node)
+// 	for _, reference := range inputReferences {
+// 		i.recursivelyRegisterNodeTypes(reference)
+// 	}
+// }
 
 func (i *Instance) Manifest(producerName string) manifest.Manifest {
 	producer, ok := i.namedManifests.namedPorts[producerName]
@@ -837,7 +840,7 @@ func (i *Instance) Manifest(producerName string) manifest.Manifest {
 }
 
 func (i *Instance) AddProducer(producerName string, producer nodes.Output[manifest.Manifest]) {
-	i.recursivelyRegisterNodeTypes(producer.Node())
+	// i.recursivelyRegisterNodeTypes(producer.Node())
 	i.buildIDsForNode(producer.Node())
 	i.namedManifests.NamePort(producerName, producer.Name(), producer.Node(), producer)
 }
