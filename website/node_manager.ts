@@ -38,7 +38,6 @@ export class NodeManager {
     producerViewManager: ProducerViewManager;
 
     // RUNTIME >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
     nodeIdToNode: Map<string, PolyNodeController>;
 
     subscribers: Array<(change: NodeParameterChangeEvent) => void>;
@@ -354,11 +353,17 @@ export class NodeManager {
     updateNodes(newSchema: GraphInstance): void {
         const sortedNodes = this.sortNodesByName(newSchema.nodes);
 
+        const nodesSet = new Map<string, boolean>();
+        this.nodeIdToNode.forEach((node, nodeId) => {
+            nodesSet.set(nodeId, false);
+        });
+
         this.serverUpdatingNodeConnections = true;
 
         for (let node of sortedNodes) {
             const nodeID = node.id;
             const nodeData = node.node;
+            nodesSet.set(nodeID, true);
 
             if (this.nodeIdToNode.has(nodeID)) {
                 const nodeToUpdate = this.nodeIdToNode.get(nodeID);
@@ -397,6 +402,16 @@ export class NodeManager {
         }
 
         this.updateNodeConnections(sortedNodes);
+
+        nodesSet.forEach((set, nodeId) => {
+            if (set) {
+                return;
+            }
+            console.log("removing node..." + nodeId)
+            const node = this.nodeIdToNode.get(nodeId)
+            this.nodeFlowGraph.removeNode(node.flowNode);
+            this.nodeIdToNode.delete(nodeId);
+        });
 
         this.serverUpdatingNodeConnections = false;
     }
