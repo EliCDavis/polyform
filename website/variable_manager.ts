@@ -5,6 +5,8 @@ import { SchemaManager } from "./schema_manager";
 import { VariableType } from './variable_type';
 import { BehaviorSubject, combineLatestWith, flatMap, map, mergeMap, Observable, skip, Subject } from "rxjs";
 import { NodeManager } from './node_manager';
+import { DeleteVariablePopup } from './popups/delete_variable';
+import { EditVariablePopup } from './popups/edit_variable';
 
 const inputStyle: Partial<CSSStyleDeclaration> = {
     flexShrink: "1",
@@ -39,9 +41,11 @@ export class VariableManager {
 
     nodeManager: NodeManager;
 
+    schemaManager: SchemaManager;
+
     constructor(parent: HTMLElement, schemaManager: SchemaManager, nodeManager: NodeManager) {
         this.nodeManager = nodeManager;
-        
+        this.schemaManager = schemaManager;
         const newVariableButton = parent.querySelector("#new-variable")
         // const newFolderButton = parent.querySelector("#new-folder")
         this.variableListView = parent.querySelector("#variable-list")
@@ -85,6 +89,7 @@ export class VariableManager {
             style: {
                 minWidth: "0",
                 flexShrink: "1",
+                flexGrow: "1"
             }
         };
     }
@@ -186,51 +191,51 @@ export class VariableManager {
 
         const intMap = (s: string) => parseInt(s)
 
-        let eleConfig: ElementConfig;
+        let input: ElementConfig;
         switch (variable.type) {
             case VariableType.Float:
-                eleConfig = this.newBasicVariable(key, variable, parseFloat);
-                eleConfig.type = "number";
+                input = this.newBasicVariable(key, variable, parseFloat);
+                input.type = "number";
                 break;
 
             case VariableType.Float2:
-                eleConfig = this.newVector2Variable(key, variable, parseFloat, "");
+                input = this.newVector2Variable(key, variable, parseFloat, "");
                 break;
 
             case VariableType.Float3:
-                eleConfig = this.newVector3Variable(key, variable, parseFloat, "");
+                input = this.newVector3Variable(key, variable, parseFloat, "");
                 break;
 
             case VariableType.Int2:
-                eleConfig = this.newVector2Variable(key, variable, intMap, "1");
+                input = this.newVector2Variable(key, variable, intMap, "1");
                 break;
 
             case VariableType.Int3:
-                eleConfig = this.newVector3Variable(key, variable, intMap, "1");
+                input = this.newVector3Variable(key, variable, intMap, "1");
                 break;
 
             case VariableType.Int:
-                eleConfig = this.newBasicVariable(key, variable, intMap);
-                eleConfig.type = "number";
-                eleConfig.step = "1";
+                input = this.newBasicVariable(key, variable, intMap);
+                input.type = "number";
+                input.step = "1";
                 break;
 
             case VariableType.String:
-                eleConfig = this.newBasicVariable(key, variable, (s) => s);
+                input = this.newBasicVariable(key, variable, (s) => s);
                 break;
 
             case VariableType.Color:
-                eleConfig = this.newBasicVariable(key, variable, (s) => s);
-                eleConfig.type = "color";
+                input = this.newBasicVariable(key, variable, (s) => s);
+                input.type = "color";
                 break;
 
             case VariableType.Bool:
-                eleConfig = this.newBasicVariable(key, variable, (s) => s === "true");
-                eleConfig.type = "checkbox";
+                input = this.newBasicVariable(key, variable, (s) => s === "true");
+                input.type = "checkbox";
                 break;
 
             case VariableType.AABB:
-                eleConfig = this.newAABBVariable(key, variable);
+                input = this.newAABBVariable(key, variable);
                 break;
 
             default:
@@ -241,17 +246,58 @@ export class VariableManager {
             style: {
                 marginTop: "16px",
                 display: "flex",
-                flexDirection: "column"
+                flexDirection: "row"
             },
             children: [
                 {
-                    text: variable.name,
                     style: {
-                        textDecoration: "underline"
-                    }
+                        display: "flex",
+                        flexDirection: "column",
+                        justifyContent: "center",
+                        marginRight: "8px"
+                    },
+                    children: [
+                        {
+                            tag: "button",
+                            text: "Edit",
+                            onclick: () => {
+                                const popoup = new EditVariablePopup(this.schemaManager, this.nodeManager, key, variable);
+                                popoup.show();
+                            }
+                        },
+                        {
+                            tag: "button",
+                            text: "Delete",
+                            onclick: () => {
+                                const deletePopoup = new DeleteVariablePopup(this.schemaManager, this.nodeManager, key, variable);
+                                deletePopoup.show();
+                            }
+                        }
+                    ]
                 },
-                { text: variable.description },
-                eleConfig
+                {
+                    style: {
+                        display: "flex",
+                        flexDirection: "column",
+                        flexGrow: "1"
+                    },
+                    children: [
+                        {
+                            text: variable.name,
+                            style: {
+                                textDecoration: "underline"
+                            }
+                        },
+                        {
+                            text: variable.description,
+                            style: {
+                                lineHeight: "normal",
+                                marginBottom: "8px",
+                            }
+                        },
+                        input
+                    ]
+                }
             ]
         })
     }

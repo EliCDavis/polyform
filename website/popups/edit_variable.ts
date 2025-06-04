@@ -1,15 +1,12 @@
 import { BehaviorSubject } from "rxjs";
 import { SchemaManager } from "../schema_manager";
-import { VariableType } from "../variable_type";
 import { NodeManager } from "../node_manager";
-import { CreateVariableResponse } from "../schema";
-import { VariableTypeDropdown } from "./variable_type_dropdown";
+import { CreateVariableResponse, Variable } from "../schema";
 import { Popup } from "./popup";
 
-interface NewVariableParameters {
+interface EditVariableParameters {
     name: string,
     description: string,
-    type: string
 }
 
 const buttonStyle = {
@@ -17,28 +14,32 @@ const buttonStyle = {
     "border-radius": "8px",
 }
 
-function inputValue(value: string | undefined, fallback: string): string {
-    if (value) {
-        return value;
-    }
-    return fallback
-}
-
-export class NewVariablePopup {
+export class EditVariablePopup {
 
     popup: HTMLElement
 
     name: BehaviorSubject<string>;
-    type: BehaviorSubject<string>;
+
     description: BehaviorSubject<string>;
+
+    variableKey: string;
+
+    variable: Variable;
 
     nodeManager: NodeManager;
 
-    constructor(private schemaManager: SchemaManager, nodeManager: NodeManager) {
-        this.name = new BehaviorSubject<string>("New Variable");
+    constructor(
+        private schemaManager: SchemaManager,
+        nodeManager: NodeManager,
+        variableKey: string,
+        variable: Variable
+    ) {
+        this.variableKey = variableKey;
+        this.variable = variable;
+
+        this.name = new BehaviorSubject<string>(variable.name);
         this.nodeManager = nodeManager;
-        this.type = new BehaviorSubject<string>(VariableType.Float);
-        this.description = new BehaviorSubject<string>("");
+        this.description = new BehaviorSubject<string>(variable.description);
 
         this.popup = Popup([
             {
@@ -48,24 +49,31 @@ export class NewVariablePopup {
                 },
                 children: [
                     {
-                        text: "New Variable", style: { fontWeight: "bold" }
+                        text: "Edit Variable", style: { fontWeight: "bold" }
                     },
 
                     { text: "Name" },
-                    { type: "text", name: "name", change$: this.name },
+                    {
+                        type: "text",
+                        name: "name",
+                        value: variable.name,
+                        change$: this.name
+                    },
 
                     { text: "Description" },
-                    { type: "text", name: "description", change$: this.description },
-
-                    { text: "Type" },
-                    VariableTypeDropdown(this.type),
+                    {
+                        type: "text",
+                        name: "description",
+                        value: variable.description,
+                        change$: this.description
+                    },
                 ]
             },
             {
                 style: { marginTop: "20px" },
                 children: [
-                    { tag: "button", text: "Create", style: buttonStyle, onclick: this.newClicked.bind(this) },
-                    { tag: "button", text: "Close", style: buttonStyle, onclick: this.closePopup.bind(this) }
+                    { tag: "button", text: "Save", style: buttonStyle, onclick: this.saveClicked.bind(this) },
+                    { tag: "button", text: "Cancel", style: buttonStyle, onclick: this.closePopup.bind(this) }
                 ]
             }
         ]);
@@ -81,16 +89,15 @@ export class NewVariablePopup {
         this.popup.style.display = "none";
     }
 
-    newClicked(): void {
+    saveClicked(): void {
         this.closePopup();
-        this.newVariable({
-            "name": inputValue(this.name.value, "New Variable"),
-            "type": inputValue(this.type.value, "Float"),
-            "description": inputValue(this.description.value, ""),
+        this.updateVariable({
+            "name": this.name.value,
+            "description": this.description.value,
         });
     }
 
-    newVariable(parameters: NewVariableParameters): void {
+    updateVariable(parameters: EditVariableParameters): void {
         fetch("./variable/instance/" + parameters.name.replace(/\s/g, ''), {
             method: "POST",
             body: JSON.stringify(parameters)

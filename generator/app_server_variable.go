@@ -42,6 +42,15 @@ func variableInstanceEndpoint(graphInstance *graph.Instance, saver *GraphSaver) 
 					return graphInstance.GetVariable(variablePath), nil
 				},
 			},
+
+			http.MethodDelete: endpoint.Func(
+				func(request *http.Request) error {
+					variablePath := request.URL.Path[len(variableInstanceEndpointPath):]
+					graphInstance.DeleteVariable(variablePath)
+					saver.Save()
+					return nil
+				},
+			),
 		},
 	}
 }

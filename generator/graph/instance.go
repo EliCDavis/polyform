@@ -73,6 +73,19 @@ func (i *Instance) DeleteVariable(variablePath string) {
 		panic(fmt.Errorf("trying to delete a variable at the path %q which doesn't contain a variable", variablePath))
 	}
 
+	varP := i.variables.GetVariable(variablePath)
+	nodesToDelete := make([]string, 0)
+	for node, nodeId := range i.nodeIDs {
+		ref, ok := node.(variable.Reference)
+		if ok && ref.Reference() == varP {
+			nodesToDelete = append(nodesToDelete, nodeId)
+		}
+	}
+
+	for _, n := range nodesToDelete {
+		i.DeleteNodeById(n)
+	}
+
 	i.variables.RemoveVariable(variablePath)
 	i.typeFactory.Unregister(variablePath)
 }
@@ -627,7 +640,7 @@ func (i *Instance) CreateNode(nodeType string) (nodes.Node, string, error) {
 	return casted, i.nodeIDs[casted], nil
 }
 
-func (i *Instance) DeleteNode(nodeId string) {
+func (i *Instance) DeleteNodeById(nodeId string) {
 	var nodeToDelete nodes.Node
 
 	for n, id := range i.nodeIDs {
@@ -636,9 +649,51 @@ func (i *Instance) DeleteNode(nodeId string) {
 		}
 	}
 
-	i.namedManifests.DeleteNode(nodeToDelete)
+	if nodeToDelete == nil {
+		panic(fmt.Errorf("can't delete, no node registered with ID %s", nodeId))
+	}
 
+	i.DeleteNode(nodeToDelete)
+}
+
+func (i *Instance) DeleteNode(nodeToDelete nodes.Node) {
+	i.namedManifests.DeleteNode(nodeToDelete)
 	delete(i.nodeIDs, nodeToDelete)
+
+	// Delete all nodes connecting to this
+	for node := range i.nodeIDs {
+		for inputName, input := range node.Inputs() {
+
+			switch v := input.(type) {
+			case nodes.SingleValueInputPort:
+				value := v.Value()
+				if value == nil {
+					continue
+				}
+				if value.Node() == nodeToDelete {
+					v.Clear()
+				}
+
+			case nodes.ArrayValueInputPort:
+				for _, val := range v.Value() {
+					if val == nil {
+						continue
+					}
+
+					if val.Node() == nodeToDelete {
+						err := v.Remove(val)
+						if err != nil {
+							panic(err)
+						}
+					}
+				}
+
+			default:
+				panic(fmt.Errorf("unable to interpret %v's input %q", node, inputName))
+			}
+
+		}
+	}
 }
 
 // PARAMETER ==================================================================
