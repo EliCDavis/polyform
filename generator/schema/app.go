@@ -13,10 +13,12 @@ type App struct {
 	Producers   map[string]Producer        `json:"producers"`
 	Nodes       map[string]AppNodeInstance `json:"nodes"`
 	Metadata    map[string]any             `json:"metadata,omitempty"`
+	Variables   VariableGroup              `json:"variables,omitempty"`
 }
 
 type AppNodeInstance struct {
 	Type          string                   `json:"type"`
-	AssignedInput map[string]PortReference `json:"assignedInput"`
+	AssignedInput map[string]PortReference `json:"assignedInput,omitempty"`
 	Data          json.RawMessage          `json:"data,omitempty"`
+	Variable      *string                  `json:"variable,omitempty"`
 }

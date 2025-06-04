@@ -135,16 +135,6 @@
             padding: 10px;
         }
 
-        #main-content {
-            flex-direction: column;
-            display: flex;
-            flex: 1;
-
-            /* overflow: hidden; */
-            height: 100%;
-            width: 100%;
-        }
-
         #three-viewer-container {
             display: flex;
             height: 40%;
@@ -168,14 +158,14 @@
         }
 
         .resizer[data-direction='horizontal'] {
-            background-color: #5e5e5e;
+            background-color: #004359;
             cursor: ew-resize;
             height: 100%;
             width: 2px;
         }
 
         .resizer[data-direction='vertical'] {
-            background-color: #5e5e5e;
+            background-color: #004359;
             cursor: ns-resize;
             height: 2px;
             width: 100%;
@@ -199,6 +189,58 @@
         #three-canvas:focus {
             outline: none !important;
             box-shadow: none;
+        }
+
+        #full-page {
+            /* flex-direction: column; */
+            display: flex;
+            flex: 1;
+
+            /* overflow: hidden; */
+            height: 100%;
+            width: 100%;
+        }
+
+        #sidebar {
+            width: 300px;
+            height: 100%;
+            background-color: #00212B;
+            flex-direction: row;
+            display: flex;
+        }
+
+        #sidebar-icon-bar {
+            width: 40px;
+            min-width: 40px;
+            height: 100%;
+            background-color: #003847;
+        }
+
+        #sidebar-content {
+            display: flex;
+            flex-direction: column;
+            margin: 8px;
+            flex-grow: 1;
+        }
+
+        #sidebar button {
+            border: 0;
+            background-color: #196E6C;
+            color: white;
+            margin: 2px;
+            padding: 6px;
+            border-radius: 4px;
+            text-transform: none;
+        }
+
+        #main-content {
+            flex-direction: column;
+            display: flex;
+            flex: 1;
+
+            /* overflow: hidden; */
+            height: 100%;
+            width: 100%;
         }
     </style>
 
@@ -235,16 +277,35 @@
     <div style="position: absolute; display: flex;">
     </div>
 
-    <div id="main-content">
-        <div id="three-viewer-container">
-            <canvas style="width: 100%; height: 100%;" id="three-canvas"></canvas>
+    <div id="full-page">
+
+        <div id="sidebar">
+            <div id="sidebar-icon-bar"></div>
+            <div id="sidebar-content">
+
+                <!-- <div>Variables</div> -->
+
+                <button id="new-variable">New Variable</button>
+
+                <div id="variable-list"></div>
+                <!-- <button id="new-folder">New Folder</button> -->
+            </div>
         </div>
 
-        <div class="resizer" data-direction="vertical"></div>
+        <div class="resizer" data-direction="horizontal"></div>
 
-        <div id="light-container">
-            <canvas id="light-canvas"></canvas>
+        <div id="main-content">
+            <div id="three-viewer-container">
+                <canvas style="width: 100%; height: 100%;" id="three-canvas"></canvas>
+            </div>
+
+            <div class="resizer" data-direction="vertical"></div>
+
+            <div id="light-container">
+                <canvas id="light-canvas"></canvas>
+            </div>
         </div>
+
     </div>
 
     <script>

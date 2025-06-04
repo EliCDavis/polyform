@@ -6,6 +6,12 @@ import { NodeType } from './schema';
 import { ThreeApp } from "./three_app.js";
 import { ProducerViewManager } from './ProducerView/producer_view_manager';
 
+const ColorSchemes = {
+    Green: {
+        Background: "#233",
+        Title: "#355"
+    },
+}
 
 interface NodeParameterChangeEvent {
     // Node ID
@@ -32,7 +38,6 @@ export class NodeManager {
     producerViewManager: ProducerViewManager;
 
     // RUNTIME >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
     nodeIdToNode: Map<string, PolyNodeController>;
 
     subscribers: Array<(change: NodeParameterChangeEvent) => void>;
@@ -249,6 +254,7 @@ export class NodeManager {
             });
         }
 
+        const isVariable = typeData.path === "generator/variable";
         const isProducer = this.nodeTypeIsProducer(typeData);
         if (isProducer) {
             this.producerTypes.set(typeData.type, isProducer);
@@ -265,27 +271,45 @@ export class NodeManager {
         }
 
         if (isProducer) {
-            const ParameterNodeBackgroundColor = "#332233";
-            const ParameterStyle = {
+            const ManifestNodeBackgroundColor = "#332233";
+            nodeConfig.style = {
                 title: {
                     color: "#4a3355"
                 },
                 idle: {
-                    color: ParameterNodeBackgroundColor,
+                    color: ManifestNodeBackgroundColor,
                 },
                 mouseOver: {
-                    color: ParameterNodeBackgroundColor,
+                    color: ManifestNodeBackgroundColor,
                 },
                 grabbed: {
-                    color: ParameterNodeBackgroundColor,
+                    color: ManifestNodeBackgroundColor,
                 },
                 selected: {
-                    color: ParameterNodeBackgroundColor,
+                    color: ManifestNodeBackgroundColor,
                 }
             }
-            nodeConfig.style = ParameterStyle
-
             nodeConfig.canEditTitle = true;
+        }
+
+        if (isVariable) {
+            nodeConfig.style = {
+                title: {
+                    color: ColorSchemes.Green.Title
+                },
+                idle: {
+                    color: ColorSchemes.Green.Background,
+                },
+                mouseOver: {
+                    color: ColorSchemes.Green.Background,
+                },
+                grabbed: {
+                    color: ColorSchemes.Green.Background,
+                },
+                selected: {
+                    color: ColorSchemes.Green.Background,
+                }
+            }
         }
 
         // nm.onNodeCreateCallback(this, typeData.type);
@@ -298,34 +322,48 @@ export class NodeManager {
 
     newNode(nodeData: NodeInstance): FlowNode {
         const isParameter = !!nodeData.parameter;
+        const isVariable = !!nodeData.variable;
 
         // Not a parameter, just create a node that adhere's to the server's
         // reflection.
-        // if (!isParameter) {
-        //     const nodeIdentifier = this.nodeTypeToLitePath.get(nodeData.type)
-        //     return LiteGraph.createNode(nodeIdentifier);
-        // }
-
-        if (!isParameter) {
+        if (!isParameter && !isVariable) {
             const nodeIdentifier = this.nodeTypeToFlowNodePath.get(nodeData.type)
             return this.nodesPublisher.create(nodeIdentifier);
         }
 
-        let parameterType = nodeData.parameter.type;
-        if (parameterType === "[]uint8") {
-            parameterType = "File";
+        if (isParameter) {
+            let parameterType = nodeData.parameter.type;
+            if (parameterType === "[]uint8") {
+                parameterType = "File";
+            }
+            return this.nodesPublisher.create("Parameters/" + parameterType);
         }
-        return this.nodesPublisher.create("Parameters/" + parameterType);
+
+        if (isVariable) {
+            let parameterType = nodeData.variable.type;
+            if (parameterType === "[]uint8") {
+                parameterType = "File";
+            }
+            return this.nodesPublisher.create("Generator/Variable/" + nodeData.variable.name);
+        }
+
+        throw new Error("what tf is this.")
     }
 
     updateNodes(newSchema: GraphInstance): void {
         const sortedNodes = this.sortNodesByName(newSchema.nodes);
+
+        const nodesSet = new Map<string, boolean>();
+        this.nodeIdToNode.forEach((node, nodeId) => {
+            nodesSet.set(nodeId, false);
+        });
 
         this.serverUpdatingNodeConnections = true;
 
         for (let node of sortedNodes) {
             const nodeID = node.id;
             const nodeData = node.node;
+            nodesSet.set(nodeID, true);
 
             if (this.nodeIdToNode.has(nodeID)) {
                 const nodeToUpdate = this.nodeIdToNode.get(nodeID);
@@ -346,8 +384,6 @@ export class NodeManager {
 
                 this.nodeFlowGraph.addNode(flowNode);
 
-                // TODO: This is an ugo hack. Consider somehow making this
-                // apart of the metadata.
                 flowNode.setProperty(InstanceIDProperty, nodeID);
 
                 const controller = new PolyNodeController(
@@ -366,6 +402,16 @@ export class NodeManager {
         }
 
         this.updateNodeConnections(sortedNodes);
+
+        nodesSet.forEach((set, nodeId) => {
+            if (set) {
+                return;
+            }
+            console.log("removing node..." + nodeId)
+            const node = this.nodeIdToNode.get(nodeId)
+            this.nodeFlowGraph.removeNode(node.flowNode);
+            this.nodeIdToNode.delete(nodeId);
+        });
 
         this.serverUpdatingNodeConnections = false;
     }

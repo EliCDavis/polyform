@@ -15,7 +15,7 @@ type NodeInstance struct {
 	AssignedInput map[string]PortReference          `json:"assignedInput"`
 	Output        map[string]NodeInstanceOutputPort `json:"output"`
 
-	Parameter Parameter `json:"parameter,omitempty"`
-
-	Metadata map[string]any `json:"metadata,omitempty"`
+	Parameter Parameter      `json:"parameter,omitempty"`
+	Variable  any            `json:"variable,omitempty"`
+	Metadata  map[string]any `json:"metadata,omitempty"`
 }

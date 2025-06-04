@@ -29,7 +29,7 @@ func (bn TestNodeData) Out() nodes.StructOutput[float64] {
 }
 
 func TestBuildNodeTypeSchema(t *testing.T) {
-	schema := graph.BuildNodeTypeSchema(&TestNode{})
+	schema := graph.BuildNodeTypeSchema("", &TestNode{})
 
 	assert.Equal(t, "Test", schema.DisplayName)
 	assert.Equal(t, "generator/graph_test", schema.Path)
@@ -132,7 +132,11 @@ func TestInstance_AddProducer_InitializeParameters_Artifacts(t *testing.T) {
 			}
 		}
 	},
-	"notes": null
+	"notes": null,
+	"variables": {
+		"variables": {},
+		"subgroups": {}
+	}
 }`, string(instanceSchemaData))
 
 	assert.Equal(t, `{
@@ -146,7 +150,6 @@ func TestInstance_AddProducer_InitializeParameters_Artifacts(t *testing.T) {
 		"nodes": {
 			"Node-0": {
 				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[string]",
-				"assignedInput": {},
 				"data": {
 					"name": "Welp",
 					"description": "I'm a description",
@@ -173,6 +176,10 @@ func TestInstance_AddProducer_InitializeParameters_Artifacts(t *testing.T) {
 				"nodeID": "Node-1",
 				"port": "Out"
 			}
+		},
+		"variables": {
+			"subgroups": {},
+			"variables": {}
 		}
 	}
 }`, string(appSchemaData))

@@ -42,7 +42,7 @@ func nodeEndpoint(graphInstance *graph.Instance, saver *GraphSaver) endpoint.Han
 			),
 			http.MethodDelete: endpoint.JsonMethod(
 				func(request endpoint.Request[DeleteRequest]) (EmptyResponse, error) {
-					graphInstance.DeleteNode(request.Body.NodeID)
+					graphInstance.DeleteNodeById(request.Body.NodeID)
 					saver.Save()
 					return EmptyResponse{}, nil
 				},
