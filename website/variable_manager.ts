@@ -7,6 +7,7 @@ import { BehaviorSubject, combineLatestWith, flatMap, map, mergeMap, Observable,
 import { NodeManager } from './node_manager';
 import { DeleteVariablePopup } from './popups/delete_variable';
 import { EditVariablePopup } from './popups/edit_variable';
+import { Publisher } from '@elicdavis/node-flow';
 
 const inputStyle: Partial<CSSStyleDeclaration> = {
     flexShrink: "1",
@@ -43,9 +44,12 @@ export class VariableManager {
 
     schemaManager: SchemaManager;
 
-    constructor(parent: HTMLElement, schemaManager: SchemaManager, nodeManager: NodeManager) {
+    publisher: Publisher;
+
+    constructor(parent: HTMLElement, schemaManager: SchemaManager, nodeManager: NodeManager, publisher: Publisher) {
         this.nodeManager = nodeManager;
         this.schemaManager = schemaManager;
+        this.publisher = publisher;
         const newVariableButton = parent.querySelector("#new-variable")
         // const newFolderButton = parent.querySelector("#new-folder")
         this.variableListView = parent.querySelector("#variable-list")
@@ -269,7 +273,7 @@ export class VariableManager {
                             tag: "button",
                             text: "Delete",
                             onclick: () => {
-                                const deletePopoup = new DeleteVariablePopup(this.schemaManager, this.nodeManager, key, variable);
+                                const deletePopoup = new DeleteVariablePopup(this.schemaManager, this.nodeManager, this.publisher, key, variable);
                                 deletePopoup.show();
                             }
                         }
@@ -283,7 +287,7 @@ export class VariableManager {
                     },
                     children: [
                         {
-                            text: variable.name,
+                            text: key,
                             style: {
                                 textDecoration: "underline"
                             }

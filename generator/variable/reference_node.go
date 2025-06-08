@@ -27,12 +27,8 @@ func (vrn *VariableReferenceNode[T]) Inputs() map[string]nodes.InputPort {
 	return nil
 }
 
-func (vrn *VariableReferenceNode[T]) Name() string {
-	return vrn.variable.name
-}
-
-func (vrn *VariableReferenceNode[T]) Description() string {
-	return vrn.variable.description
+func (tv *VariableReferenceNode[T]) Name() string {
+	return tv.variable.info.Name()
 }
 
 // CUSTOM JTF Serialization ===================================================

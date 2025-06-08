@@ -20,8 +20,8 @@ func (jc *JsonContainer) UnmarshalJSON(b []byte) (err error) {
 	return
 }
 
-func (tv JsonContainer) MarshalJSON() ([]byte, error) {
-	return json.Marshal(tv.Variable)
+func (jc JsonContainer) MarshalJSON() ([]byte, error) {
+	return json.Marshal(jc.Variable)
 }
 
 // ============================================================================
@@ -44,17 +44,11 @@ func deserialiseTypedVariableSchema[T any](msg json.RawMessage) (Variable, error
 	if err != nil {
 		return nil, err
 	}
-	return &TypeVariable[T]{
-		name:        vsb.Name,
-		value:       vsb.Value,
-		description: vsb.Description,
-	}, nil
+	return &TypeVariable[T]{value: vsb.Value}, nil
 }
 
 type variableSchemaBase struct {
-	Name        string `json:"name"`
-	Type        string `json:"type"`
-	Description string `json:"description,omitempty"`
+	Type string `json:"type"`
 }
 
 func DeserializeVariable(msg json.RawMessage) (Variable, error) {

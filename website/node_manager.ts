@@ -1,16 +1,50 @@
-import { FlowNode, FlowNodeConfig, NodeFlowGraph, Publisher } from "@elicdavis/node-flow";
+import { FlowNode, FlowNodeConfig, FlowNodeStyle, NodeFlowGraph, Publisher } from "@elicdavis/node-flow";
 import { InstanceIDProperty, PolyNodeController, camelCaseToWords } from "./nodes/node.js";
 import { RequestManager } from "./requests.js";
 import { GraphInstance, GraphInstanceNodes, NodeInstance } from "./schema.js";
-import { NodeType } from './schema';
+import { NodeDefinition } from './schema';
 import { ThreeApp } from "./three_app.js";
 import { ProducerViewManager } from './ProducerView/producer_view_manager';
 
-const ColorSchemes = {
-    Green: {
-        Background: "#233",
-        Title: "#355"
+export const GeneratorVariablePublisherPath = "Generator/Variable/";
+
+
+const VariableNodeBackgroundColor = "#233";
+const VariableColorScheme: FlowNodeStyle = {
+    title: {
+        color: "#355"
     },
+    idle: {
+        color: VariableNodeBackgroundColor,
+    },
+    mouseOver: {
+        color: VariableNodeBackgroundColor,
+    },
+    grabbed: {
+        color: VariableNodeBackgroundColor,
+    },
+    selected: {
+        color: VariableNodeBackgroundColor,
+    }
+}
+
+const ManifestNodeBackgroundColor = "#332233";
+const ManifestColorScheme: FlowNodeStyle = {
+    title: {
+        color: "#4a3355"
+    },
+    idle: {
+        color: ManifestNodeBackgroundColor,
+    },
+    mouseOver: {
+        color: ManifestNodeBackgroundColor,
+    },
+    grabbed: {
+        color: ManifestNodeBackgroundColor,
+    },
+    selected: {
+        color: ManifestNodeBackgroundColor,
+    }
 }
 
 interface NodeParameterChangeEvent {
@@ -46,8 +80,6 @@ export class NodeManager {
 
     nodeTypeToFlowNodePath: Map<string, string>;
 
-    nodeTypeToNodeDefinition: Map<string, NodeType>;
-
     serverUpdatingNodeConnections: boolean;
 
     constructor(
@@ -56,7 +88,7 @@ export class NodeManager {
         nodesPublisher: Publisher,
         app: ThreeApp,
         producerViewManager: ProducerViewManager,
-        nodeTypes: Array<NodeType>
+        nodeTypes: Array<NodeDefinition>
     ) {
         this.nodeFlowGraph = nodeFlowGraph;
         this.requestManager = requestManager;
@@ -66,7 +98,6 @@ export class NodeManager {
 
         this.nodeIdToNode = new Map<string, PolyNodeController>();
         this.nodeTypeToFlowNodePath = new Map<string, string>();
-        this.nodeTypeToNodeDefinition = new Map<string, NodeType>();
         this.producerTypes = new Map<string, string>();
         this.subscribers = [];
         this.serverUpdatingNodeConnections = false;
@@ -117,7 +148,6 @@ export class NodeManager {
                     this,
                     nodeID,
                     nodeData,
-                    this.nodeTypeToNodeDefinition.get(nodeType),
                     this.app,
                     producerOutPort,
                     this.requestManager,
@@ -198,7 +228,7 @@ export class NodeManager {
         }
     }
 
-    nodeTypeIsProducer(typeData: NodeType): string {
+    nodeTypeIsProducer(typeData: NodeDefinition): string {
         if (typeData.outputs) {
             for (const output in typeData.outputs) {
                 if (typeData.outputs[output].type === "github.com/EliCDavis/polyform/generator/manifest.Manifest") {
@@ -229,94 +259,87 @@ export class NodeManager {
         return cleanPath;
     }
 
-    registerCustomNodeType(typeData: NodeType): void {
+    // getFlowNodeConfig(nodePublisherPath: string): FlowNodeConfig {
+    //     return this.nodesPublisher.nodes().get(nodePublisherPath);
+    // }
+
+    updateNodeInfo(originalPublisherID: string, newPublisherID: string, newName: string, newDescription: string): void {
+        const originalDefinition = this.nodesPublisher.nodes().get(originalPublisherID);
+        originalDefinition.title = newName;
+        originalDefinition.info = newDescription;
+
+        this.unregisterNodeType(originalPublisherID);
+        this.nodesPublisher.register(newPublisherID, originalDefinition);
+        console.log(originalDefinition);
+    }
+
+    unregisterNodeType(nodePublisherPath: string): void {
+        if (!this.nodesPublisher.unregister(nodePublisherPath)) {
+            console.error("Failed to unregister", nodePublisherPath);
+            return;
+        }
+
+        this.nodeTypeToFlowNodePath.forEach((nodeType: string, flowNodePath: string) => {
+            if (flowNodePath === nodePublisherPath) {
+                console.log(nodeType, flowNodePath)
+                this.nodeTypeToFlowNodePath.delete(nodeType);
+            }
+        });
+    }
+
+    registerCustomNodeType(nodeDefinition: NodeDefinition): void {
         const nodeConfig: FlowNodeConfig = {
-            title: typeData.displayName, //camelCaseToWords(typeData.displayName),
-            subTitle: typeData.path,
-            info: typeData.info,
+            title: nodeDefinition.displayName, //camelCaseToWords(typeData.displayName),
+            subTitle: nodeDefinition.path,
+            info: nodeDefinition.info,
             inputs: [],
             outputs: [],
             metadata: {
-                typeData: typeData
+                typeData: nodeDefinition
             },
             canEditTitle: false,
             style: null
         };
 
-        this.nodeTypeToNodeDefinition.set(typeData.type, typeData);
-
-        for (let inputName in typeData.inputs) {
+        for (let inputName in nodeDefinition.inputs) {
             nodeConfig.inputs.push({
                 name: inputName,
-                type: typeData.inputs[inputName].type,
-                array: typeData.inputs[inputName].isArray,
-                description: typeData.inputs[inputName].description
+                type: nodeDefinition.inputs[inputName].type,
+                array: nodeDefinition.inputs[inputName].isArray,
+                description: nodeDefinition.inputs[inputName].description
             });
         }
 
-        const isVariable = typeData.path === "generator/variable";
-        const isProducer = this.nodeTypeIsProducer(typeData);
+        const isVariable = nodeDefinition.path === "generator/variable";
+        const isProducer = this.nodeTypeIsProducer(nodeDefinition);
         if (isProducer) {
-            this.producerTypes.set(typeData.type, isProducer);
+            this.producerTypes.set(nodeDefinition.type, isProducer);
         }
 
-        if (typeData.outputs) {
-            for (let outName in typeData.outputs) {
+        if (nodeDefinition.outputs) {
+            for (let outName in nodeDefinition.outputs) {
                 nodeConfig.outputs.push({
                     name: outName,
-                    type: typeData.outputs[outName].type,
-                    description: typeData.outputs[outName].description
+                    type: nodeDefinition.outputs[outName].type,
+                    description: nodeDefinition.outputs[outName].description
                 });
             }
         }
 
         if (isProducer) {
-            const ManifestNodeBackgroundColor = "#332233";
-            nodeConfig.style = {
-                title: {
-                    color: "#4a3355"
-                },
-                idle: {
-                    color: ManifestNodeBackgroundColor,
-                },
-                mouseOver: {
-                    color: ManifestNodeBackgroundColor,
-                },
-                grabbed: {
-                    color: ManifestNodeBackgroundColor,
-                },
-                selected: {
-                    color: ManifestNodeBackgroundColor,
-                }
-            }
+            nodeConfig.style = ManifestColorScheme;
             nodeConfig.canEditTitle = true;
         }
 
         if (isVariable) {
-            nodeConfig.style = {
-                title: {
-                    color: ColorSchemes.Green.Title
-                },
-                idle: {
-                    color: ColorSchemes.Green.Background,
-                },
-                mouseOver: {
-                    color: ColorSchemes.Green.Background,
-                },
-                grabbed: {
-                    color: ColorSchemes.Green.Background,
-                },
-                selected: {
-                    color: ColorSchemes.Green.Background,
-                }
-            }
+            nodeConfig.style = VariableColorScheme;
         }
 
         // nm.onNodeCreateCallback(this, typeData.type);
 
         // const category = this.convertPathToUppercase(typeData.path) + "/" + camelCaseToWords(typeData.displayName);
-        const category = this.convertPathToUppercase(typeData.path) + "/" + typeData.displayName;
-        this.nodeTypeToFlowNodePath.set(typeData.type, category);
+        const category = this.convertPathToUppercase(nodeDefinition.path) + "/" + nodeDefinition.displayName;
+        this.nodeTypeToFlowNodePath.set(nodeDefinition.type, category);
         this.nodesPublisher.register(category, nodeConfig);
     }
 
@@ -344,7 +367,7 @@ export class NodeManager {
             if (parameterType === "[]uint8") {
                 parameterType = "File";
             }
-            return this.nodesPublisher.create("Generator/Variable/" + nodeData.variable.name);
+            return this.nodesPublisher.create(GeneratorVariablePublisherPath + nodeData.name);
         }
 
         throw new Error("what tf is this.")
@@ -391,7 +414,6 @@ export class NodeManager {
                     this,
                     nodeID,
                     nodeData,
-                    this.nodeTypeToNodeDefinition.get(nodeData.type),
                     this.app,
                     producerOutPort,
                     this.requestManager,

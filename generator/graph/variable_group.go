@@ -1,239 +1,231 @@
 package graph
 
-import (
-	"strings"
-	"sync"
+// func variablePathComponents(variablePath string) (groupName, subPath string) {
+// 	i := strings.Index(variablePath, "/")
 
-	"github.com/EliCDavis/polyform/generator/schema"
-	"github.com/EliCDavis/polyform/generator/variable"
-)
+// 	// No subpathing. No subgroup
+// 	if i == -1 {
+// 		groupName = ""
+// 		subPath = variablePath
+// 		return
+// 	}
 
-func variablePathComponents(variablePath string) (groupName, subPath string) {
-	i := strings.Index(variablePath, "/")
+// 	groupName = variablePath[:i]
+// 	subPath = variablePath[i+1:]
+// 	return
+// }
 
-	// No subpathing. No subgroup
-	if i == -1 {
-		groupName = ""
-		subPath = variablePath
-		return
-	}
+// func NewVariableGroup() *VariableGroup {
+// 	return &VariableGroup{
+// 		variables: make(map[string]variable.Variable),
+// 		subGroups: make(map[string]*VariableGroup),
+// 		mutex:     &sync.RWMutex{},
+// 	}
+// }
 
-	groupName = variablePath[:i]
-	subPath = variablePath[i+1:]
-	return
-}
+// func VariableGroupFromSchema(in schema.VariableGroup) *VariableGroup {
+// 	variables := make(map[string]variable.Variable)
+// 	for key, variable := range in.Variables {
+// 		variables[key] = variable.Variable
+// 	}
 
-func NewVariableGroup() *VariableGroup {
-	return &VariableGroup{
-		variables: make(map[string]variable.Variable),
-		subGroups: make(map[string]*VariableGroup),
-		mutex:     &sync.RWMutex{},
-	}
-}
+// 	subgroups := make(map[string]*VariableGroup)
+// 	for key, group := range in.SubGroups {
+// 		subgroups[key] = VariableGroupFromSchema(group)
+// 	}
 
-func VariableGroupFromSchema(in schema.VariableGroup) *VariableGroup {
-	variables := make(map[string]variable.Variable)
-	for key, variable := range in.Variables {
-		variables[key] = variable.Variable
-	}
+// 	return &VariableGroup{
+// 		variables: variables,
+// 		subGroups: subgroups,
+// 		mutex:     &sync.RWMutex{},
+// 	}
+// }
 
-	subgroups := make(map[string]*VariableGroup)
-	for key, group := range in.SubGroups {
-		subgroups[key] = VariableGroupFromSchema(group)
-	}
+// type VariableGroup struct {
+// 	variables map[string]variable.Variable
+// 	subGroups map[string]*VariableGroup
 
-	return &VariableGroup{
-		variables: variables,
-		subGroups: subgroups,
-		mutex:     &sync.RWMutex{},
-	}
-}
+// 	// TODO: Two mutexes, one per map
+// 	mutex *sync.RWMutex
+// }
 
-type VariableGroup struct {
-	variables map[string]variable.Variable
-	subGroups map[string]*VariableGroup
+// func (vg *VariableGroup) Schema() schema.VariableGroup {
+// 	vg.mutex.RLock()
+// 	defer vg.mutex.RUnlock()
 
-	// TODO: Two mutexes, one per map
-	mutex *sync.RWMutex
-}
+// 	variableSchema := make(map[string]variable.JsonContainer)
+// 	for name, vars := range vg.variables {
+// 		variableSchema[name] = variable.JsonContainer{
+// 			Variable: vars,
+// 		}
+// 	}
 
-func (vg *VariableGroup) Schema() schema.VariableGroup {
-	vg.mutex.RLock()
-	defer vg.mutex.RUnlock()
+// 	groupSchema := make(map[string]schema.VariableGroup)
+// 	for name, group := range vg.subGroups {
+// 		groupSchema[name] = group.Schema()
+// 	}
 
-	variableSchema := make(map[string]variable.JsonContainer)
-	for name, vars := range vg.variables {
-		variableSchema[name] = variable.JsonContainer{
-			Variable: vars,
-		}
-	}
+// 	return schema.VariableGroup{
+// 		Variables: variableSchema,
+// 		SubGroups: groupSchema,
+// 	}
+// }
 
-	groupSchema := make(map[string]schema.VariableGroup)
-	for name, group := range vg.subGroups {
-		groupSchema[name] = group.Schema()
-	}
+// func (vg *VariableGroup) AddVariable(variablePath string, variable variable.Variable) {
+// 	vg.mutex.Lock()
+// 	defer vg.mutex.Unlock()
 
-	return schema.VariableGroup{
-		Variables: variableSchema,
-		SubGroups: groupSchema,
-	}
-}
+// 	groupName, subPathName := variablePathComponents(variablePath)
 
-func (vg *VariableGroup) AddVariable(variablePath string, variable variable.Variable) {
-	vg.mutex.Lock()
-	defer vg.mutex.Unlock()
+// 	// No subpathing. Just add to this group
+// 	if groupName == "" {
+// 		vg.variables[subPathName] = variable
+// 		return
+// 	}
 
-	groupName, subPathName := variablePathComponents(variablePath)
+// 	group, ok := vg.subGroups[groupName]
+// 	if ok {
+// 		group.AddVariable(subPathName, variable)
+// 		return
+// 	}
 
-	// No subpathing. Just add to this group
-	if groupName == "" {
-		vg.variables[subPathName] = variable
-		return
-	}
+// 	group = NewVariableGroup()
+// 	group.AddVariable(subPathName, variable)
+// 	vg.subGroups[groupName] = group
+// }
 
-	group, ok := vg.subGroups[groupName]
-	if ok {
-		group.AddVariable(subPathName, variable)
-		return
-	}
+// func (vg *VariableGroup) RemoveVariable(variablePath string) {
+// 	vg.mutex.Lock()
+// 	defer vg.mutex.Unlock()
 
-	group = NewVariableGroup()
-	group.AddVariable(subPathName, variable)
-	vg.subGroups[groupName] = group
-}
+// 	groupName, subPathName := variablePathComponents(variablePath)
 
-func (vg *VariableGroup) RemoveVariable(variablePath string) {
-	vg.mutex.Lock()
-	defer vg.mutex.Unlock()
+// 	if groupName == "" {
+// 		delete(vg.variables, variablePath)
+// 		return
+// 	}
 
-	groupName, subPathName := variablePathComponents(variablePath)
+// 	vg.subGroups[groupName].RemoveVariable(subPathName)
+// }
 
-	if groupName == "" {
-		delete(vg.variables, variablePath)
-		return
-	}
+// func (vg *VariableGroup) HasVariable(variablePath string) bool {
+// 	vg.mutex.RLock()
+// 	defer vg.mutex.RUnlock()
 
-	vg.subGroups[groupName].RemoveVariable(subPathName)
-}
+// 	groupName, subPathName := variablePathComponents(variablePath)
 
-func (vg *VariableGroup) HasVariable(variablePath string) bool {
-	vg.mutex.RLock()
-	defer vg.mutex.RUnlock()
+// 	if groupName == "" {
+// 		_, ok := vg.variables[variablePath]
+// 		return ok
+// 	}
 
-	groupName, subPathName := variablePathComponents(variablePath)
+// 	_, ok := vg.subGroups[groupName]
+// 	if !ok {
+// 		return false
+// 	}
+// 	return vg.subGroups[groupName].HasVariable(subPathName)
+// }
 
-	if groupName == "" {
-		_, ok := vg.variables[variablePath]
-		return ok
-	}
+// func (vg *VariableGroup) GetVariable(variablePath string) variable.Variable {
+// 	vg.mutex.RLock()
+// 	defer vg.mutex.RUnlock()
 
-	_, ok := vg.subGroups[groupName]
-	if !ok {
-		return false
-	}
-	return vg.subGroups[groupName].HasVariable(subPathName)
-}
+// 	groupName, subPathName := variablePathComponents(variablePath)
 
-func (vg *VariableGroup) GetVariable(variablePath string) variable.Variable {
-	vg.mutex.RLock()
-	defer vg.mutex.RUnlock()
+// 	if groupName == "" {
+// 		return vg.variables[variablePath]
+// 	}
 
-	groupName, subPathName := variablePathComponents(variablePath)
+// 	return vg.subGroups[groupName].GetVariable(subPathName)
+// }
 
-	if groupName == "" {
-		return vg.variables[variablePath]
-	}
+// func (vg *VariableGroup) HasSubgroup(subgroupPath string) bool {
+// 	vg.mutex.RLock()
+// 	defer vg.mutex.RUnlock()
 
-	return vg.subGroups[groupName].GetVariable(subPathName)
-}
+// 	groupName, subPathName := variablePathComponents(subgroupPath)
 
-func (vg *VariableGroup) HasSubgroup(subgroupPath string) bool {
-	vg.mutex.RLock()
-	defer vg.mutex.RUnlock()
+// 	if groupName == "" {
+// 		_, ok := vg.subGroups[subgroupPath]
+// 		return ok
+// 	}
 
-	groupName, subPathName := variablePathComponents(subgroupPath)
+// 	if _, ok := vg.subGroups[groupName]; !ok {
+// 		return false
+// 	}
 
-	if groupName == "" {
-		_, ok := vg.subGroups[subgroupPath]
-		return ok
-	}
+// 	return vg.subGroups[groupName].HasSubgroup(subPathName)
+// }
 
-	if _, ok := vg.subGroups[groupName]; !ok {
-		return false
-	}
+// func (vg *VariableGroup) GetSubgroup(subgroupPath string) *VariableGroup {
+// 	vg.mutex.RLock()
+// 	defer vg.mutex.RUnlock()
 
-	return vg.subGroups[groupName].HasSubgroup(subPathName)
-}
+// 	groupName, subPathName := variablePathComponents(subgroupPath)
 
-func (vg *VariableGroup) GetSubgroup(subgroupPath string) *VariableGroup {
-	vg.mutex.RLock()
-	defer vg.mutex.RUnlock()
+// 	if groupName == "" {
+// 		return vg.subGroups[subgroupPath]
+// 	}
 
-	groupName, subPathName := variablePathComponents(subgroupPath)
+// 	return vg.subGroups[groupName].GetSubgroup(subPathName)
+// }
 
-	if groupName == "" {
-		return vg.subGroups[subgroupPath]
-	}
+// func (vg *VariableGroup) AddSubgroup(subgroupPath string) {
+// 	vg.mutex.Lock()
+// 	defer vg.mutex.Unlock()
 
-	return vg.subGroups[groupName].GetSubgroup(subPathName)
-}
+// 	groupName, subPath := variablePathComponents(subgroupPath)
 
-func (vg *VariableGroup) AddSubgroup(subgroupPath string) {
-	vg.mutex.Lock()
-	defer vg.mutex.Unlock()
+// 	if groupName == "" {
+// 		vg.subGroups[subgroupPath] = NewVariableGroup()
+// 		return
+// 	}
 
-	groupName, subPath := variablePathComponents(subgroupPath)
+// 	g := NewVariableGroup()
+// 	vg.subGroups[groupName] = g
+// 	g.AddSubgroup(subPath)
+// }
 
-	if groupName == "" {
-		vg.subGroups[subgroupPath] = NewVariableGroup()
-		return
-	}
+// func (vg *VariableGroup) RemoveSubgroup(subgroupPath string) {
+// 	vg.mutex.Lock()
+// 	defer vg.mutex.Unlock()
 
-	g := NewVariableGroup()
-	vg.subGroups[groupName] = g
-	g.AddSubgroup(subPath)
-}
+// 	groupName, subPath := variablePathComponents(subgroupPath)
 
-func (vg *VariableGroup) RemoveSubgroup(subgroupPath string) {
-	vg.mutex.Lock()
-	defer vg.mutex.Unlock()
+// 	if groupName == "" {
+// 		delete(vg.subGroups, subgroupPath)
+// 		return
+// 	}
 
-	groupName, subPath := variablePathComponents(subgroupPath)
+// 	vg.subGroups[groupName].RemoveSubgroup(subPath)
+// }
 
-	if groupName == "" {
-		delete(vg.subGroups, subgroupPath)
-		return
-	}
+// func (vg *VariableGroup) ReverseLookup(in map[variable.Variable]string, prefix string) {
+// 	vg.mutex.RLock()
+// 	defer vg.mutex.RUnlock()
 
-	vg.subGroups[groupName].RemoveSubgroup(subPath)
-}
+// 	for entry, variable := range vg.variables {
+// 		in[variable] = prefix + entry
+// 	}
 
-func (vg *VariableGroup) ReverseLookup(in map[variable.Variable]string, prefix string) {
-	vg.mutex.RLock()
-	defer vg.mutex.RUnlock()
+// 	for entry, group := range vg.subGroups {
+// 		group.ReverseLookup(in, entry+"/")
+// 	}
+// }
 
-	for entry, variable := range vg.variables {
-		in[variable] = prefix + entry
-	}
+// func (vg *VariableGroup) traverse(subpath string, f func(path string, v variable.Variable)) {
+// 	vg.mutex.RLock()
+// 	defer vg.mutex.RUnlock()
 
-	for entry, group := range vg.subGroups {
-		group.ReverseLookup(in, entry+"/")
-	}
-}
+// 	for entry, variable := range vg.variables {
+// 		f(subpath+entry, variable)
+// 	}
 
-func (vg *VariableGroup) traverse(subpath string, f func(path string, v variable.Variable)) {
-	vg.mutex.RLock()
-	defer vg.mutex.RUnlock()
+// 	for entry, group := range vg.subGroups {
+// 		group.traverse(entry+"/", f)
+// 	}
+// }
 
-	for entry, variable := range vg.variables {
-		f(subpath+entry, variable)
-	}
-
-	for entry, group := range vg.subGroups {
-		group.traverse(entry+"/", f)
-	}
-}
-
-func (vg *VariableGroup) Traverse(f func(path string, v variable.Variable)) {
-	vg.traverse("", f)
-}
+// func (vg *VariableGroup) Traverse(f func(path string, v variable.Variable)) {
+// 	vg.traverse("", f)
+// }

@@ -2,25 +2,17 @@ package variable
 
 import (
 	"encoding/json"
+	"fmt"
 
+	"github.com/EliCDavis/polyform/generator/schema"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
 )
 
 type TypeVariable[T any] struct {
-	value       T
-	name        string
-	description string
-
+	value   T
 	version int
-}
-
-func (tv TypeVariable[T]) Name() string {
-	return tv.name
-}
-
-func (tv *TypeVariable[T]) SetName(name string) {
-	tv.name = name
+	info    Info
 }
 
 func (tv *TypeVariable[T]) SetValue(v T) {
@@ -36,8 +28,16 @@ func (tv *TypeVariable[T]) Version() int {
 	return tv.version
 }
 
-func (tv *TypeVariable[T]) SetDescription(description string) {
-	tv.description = description
+func (tv *TypeVariable[T]) Info() Info {
+	return tv.info
+}
+
+func (tv *TypeVariable[T]) setInfo(i Info) error {
+	if tv.info != nil {
+		return fmt.Errorf("already assigned info")
+	}
+	tv.info = i
+	return nil
 }
 
 func (tv *TypeVariable[T]) ApplyMessage(msg []byte) (bool, error) {
@@ -70,10 +70,17 @@ func (tv TypeVariable[T]) MarshalJSON() ([]byte, error) {
 	var t T
 	return json.Marshal(typedVariableSchema[T]{
 		variableSchemaBase: variableSchemaBase{
-			Name:        tv.name,
-			Type:        refutil.GetTypeName(t),
-			Description: tv.description,
+			Type: refutil.GetTypeName(t),
 		},
 		Value: tv.value,
 	})
+}
+
+func (tv TypeVariable[T]) schema() schema.RuntimeVariable {
+	var t T
+	return schema.RuntimeVariable{
+		Description: tv.info.Description(),
+		Type:        refutil.GetTypeName(t),
+		Value:       tv.value,
+	}
 }

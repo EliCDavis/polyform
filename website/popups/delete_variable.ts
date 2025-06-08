@@ -1,7 +1,8 @@
 import { SchemaManager } from "../schema_manager";
-import { NodeManager } from "../node_manager";
+import { GeneratorVariablePublisherPath, NodeManager } from "../node_manager";
 import { Variable } from "../schema";
 import { Popup } from "./popup";
+import { Publisher } from "@elicdavis/node-flow";
 
 const buttonStyle = {
     "padding": "8px",
@@ -18,15 +19,18 @@ export class DeleteVariablePopup {
 
     nodeManager: NodeManager;
 
+    publisher: Publisher;
+
     constructor(
         private schemaManager: SchemaManager,
         nodeManager: NodeManager,
+        publisher: Publisher,
         variableKey: string,
         variable: Variable
     ) {
         this.variableKey = variableKey;
         this.variable = variable;
-
+        this.publisher = publisher;
         this.nodeManager = nodeManager;
 
         this.popup = Popup([
@@ -41,7 +45,7 @@ export class DeleteVariablePopup {
                     },
 
                     {
-                        text: "Are you sure you want to delete " + variable.name
+                        text: "Are you sure you want to delete " + this.variableKey
                     },
                 ]
             },
@@ -79,7 +83,7 @@ export class DeleteVariablePopup {
                 console.log(resp);
             } else {
                 this.schemaManager.refreshSchema();
-                // this.nodeManager.registerCustomNodeType(createResp.nodeType)
+                this.nodeManager.unregisterNodeType(GeneratorVariablePublisherPath + this.variableKey)
             }
         });
     }

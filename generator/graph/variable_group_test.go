@@ -1,105 +1,96 @@
 package graph_test
 
-import (
-	"fmt"
-	"testing"
+// func TestVariableGroup_Variable(t *testing.T) {
+// 	// ARRANGE ================================================================
+// 	vg := graph.NewVariableGroup()
+// 	vp := "test"
+// 	variable := &variable.TypeVariable[int]{}
 
-	"github.com/EliCDavis/polyform/generator/graph"
-	"github.com/EliCDavis/polyform/generator/variable"
-	"github.com/stretchr/testify/assert"
-)
+// 	// ACT ====================================================================
+// 	has1 := vg.HasVariable(vp)
+// 	vg.AddVariable(vp, variable)
+// 	has2 := vg.HasVariable(vp)
+// 	back := vg.GetVariable(vp)
+// 	vg.RemoveVariable(vp)
+// 	has3 := vg.HasVariable(vp)
 
-func TestVariableGroup_Variable(t *testing.T) {
-	// ARRANGE ================================================================
-	vg := graph.NewVariableGroup()
-	vp := "test"
-	variable := &variable.TypeVariable[int]{}
+// 	// ASSERT =================================================================
+// 	assert.Equal(t, variable, back)
+// 	assert.False(t, has1)
+// 	assert.True(t, has2)
+// 	assert.False(t, has3)
+// }
 
-	// ACT ====================================================================
-	has1 := vg.HasVariable(vp)
-	vg.AddVariable(vp, variable)
-	has2 := vg.HasVariable(vp)
-	back := vg.GetVariable(vp)
-	vg.RemoveVariable(vp)
-	has3 := vg.HasVariable(vp)
+// func TestVariableGroup_NestedVariable(t *testing.T) {
+// 	// ARRANGE ================================================================
+// 	vg := graph.NewVariableGroup()
+// 	subgroup := "subgroup"
+// 	variableName := "test"
+// 	variablePath := fmt.Sprintf("%s/%s", subgroup, variableName)
+// 	variable := &variable.TypeVariable[int]{}
 
-	// ASSERT =================================================================
-	assert.Equal(t, variable, back)
-	assert.False(t, has1)
-	assert.True(t, has2)
-	assert.False(t, has3)
-}
+// 	// ACT/ASSERT =============================================================
+// 	// Make sure we don't already have the variable
+// 	assert.False(t, vg.HasVariable(variablePath))
+// 	assert.False(t, vg.HasSubgroup(subgroup))
 
-func TestVariableGroup_NestedVariable(t *testing.T) {
-	// ARRANGE ================================================================
-	vg := graph.NewVariableGroup()
-	subgroup := "subgroup"
-	variableName := "test"
-	variablePath := fmt.Sprintf("%s/%s", subgroup, variableName)
-	variable := &variable.TypeVariable[int]{}
+// 	// Add the variable
+// 	vg.AddVariable(variablePath, variable)
+// 	assert.False(t, vg.HasVariable(variableName))
+// 	assert.True(t, vg.HasVariable(variablePath))
+// 	assert.True(t, vg.HasSubgroup(subgroup))
+// 	assert.Equal(t, variable, vg.GetVariable(variablePath))
 
-	// ACT/ASSERT =============================================================
-	// Make sure we don't already have the variable
-	assert.False(t, vg.HasVariable(variablePath))
-	assert.False(t, vg.HasSubgroup(subgroup))
+// 	sg := vg.GetSubgroup(subgroup)
+// 	assert.True(t, sg.HasVariable(variableName))
 
-	// Add the variable
-	vg.AddVariable(variablePath, variable)
-	assert.False(t, vg.HasVariable(variableName))
-	assert.True(t, vg.HasVariable(variablePath))
-	assert.True(t, vg.HasSubgroup(subgroup))
-	assert.Equal(t, variable, vg.GetVariable(variablePath))
+// 	// Remove the variable
+// 	vg.RemoveVariable(variablePath)
+// 	assert.False(t, vg.HasVariable(variablePath))
+// 	assert.False(t, sg.HasVariable(variableName))
+// }
 
-	sg := vg.GetSubgroup(subgroup)
-	assert.True(t, sg.HasVariable(variableName))
+// func TestVariableGroup_AddRemoveSubgroup(t *testing.T) {
+// 	// ARRANGE ================================================================
+// 	vg := graph.NewVariableGroup()
+// 	vp := "subsub/sub"
 
-	// Remove the variable
-	vg.RemoveVariable(variablePath)
-	assert.False(t, vg.HasVariable(variablePath))
-	assert.False(t, sg.HasVariable(variableName))
-}
+// 	// ACT ====================================================================
+// 	has1 := vg.HasSubgroup("subsub")
+// 	vg.AddSubgroup(vp)
+// 	has2 := vg.HasSubgroup(vp)
+// 	has3 := vg.HasSubgroup("subsub")
 
-func TestVariableGroup_AddRemoveSubgroup(t *testing.T) {
-	// ARRANGE ================================================================
-	vg := graph.NewVariableGroup()
-	vp := "subsub/sub"
+// 	vg.RemoveSubgroup(vp)
+// 	has4 := vg.HasSubgroup(vp)
+// 	has5 := vg.HasSubgroup("subsub")
 
-	// ACT ====================================================================
-	has1 := vg.HasSubgroup("subsub")
-	vg.AddSubgroup(vp)
-	has2 := vg.HasSubgroup(vp)
-	has3 := vg.HasSubgroup("subsub")
+// 	// ASSERT =================================================================
+// 	assert.False(t, has1)
+// 	assert.True(t, has2)
+// 	assert.True(t, has3)
+// 	assert.False(t, has4)
+// 	assert.True(t, has5)
+// }
 
-	vg.RemoveSubgroup(vp)
-	has4 := vg.HasSubgroup(vp)
-	has5 := vg.HasSubgroup("subsub")
+// func TestVariableGroup_HasSubgroup(t *testing.T) {
+// 	// ARRANGE ================================================================
+// 	vg := graph.NewVariableGroup()
 
-	// ASSERT =================================================================
-	assert.False(t, has1)
-	assert.True(t, has2)
-	assert.True(t, has3)
-	assert.False(t, has4)
-	assert.True(t, has5)
-}
+// 	// ACT ====================================================================
+// 	has1 := vg.HasSubgroup("a/b/c")
 
-func TestVariableGroup_HasSubgroup(t *testing.T) {
-	// ARRANGE ================================================================
-	vg := graph.NewVariableGroup()
+// 	// ASSERT =================================================================
+// 	assert.False(t, has1)
+// }
 
-	// ACT ====================================================================
-	has1 := vg.HasSubgroup("a/b/c")
+// func TestVariableGroup_HasVariable(t *testing.T) {
+// 	// ARRANGE ================================================================
+// 	vg := graph.NewVariableGroup()
 
-	// ASSERT =================================================================
-	assert.False(t, has1)
-}
+// 	// ACT ====================================================================
+// 	has1 := vg.HasVariable("a/b/c")
 
-func TestVariableGroup_HasVariable(t *testing.T) {
-	// ARRANGE ================================================================
-	vg := graph.NewVariableGroup()
-
-	// ACT ====================================================================
-	has1 := vg.HasVariable("a/b/c")
-
-	// ASSERT =================================================================
-	assert.False(t, has1)
-}
+// 	// ASSERT =================================================================
+// 	assert.False(t, has1)
+// }

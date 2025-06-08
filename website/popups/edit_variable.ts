@@ -1,6 +1,6 @@
 import { BehaviorSubject } from "rxjs";
 import { SchemaManager } from "../schema_manager";
-import { NodeManager } from "../node_manager";
+import { GeneratorVariablePublisherPath, NodeManager } from "../node_manager";
 import { CreateVariableResponse, Variable } from "../schema";
 import { Popup } from "./popup";
 
@@ -37,7 +37,7 @@ export class EditVariablePopup {
         this.variableKey = variableKey;
         this.variable = variable;
 
-        this.name = new BehaviorSubject<string>(variable.name);
+        this.name = new BehaviorSubject<string>(variableKey);
         this.nodeManager = nodeManager;
         this.description = new BehaviorSubject<string>(variable.description);
 
@@ -56,7 +56,7 @@ export class EditVariablePopup {
                     {
                         type: "text",
                         name: "name",
-                        value: variable.name,
+                        value: variableKey,
                         change$: this.name
                     },
 
@@ -98,7 +98,7 @@ export class EditVariablePopup {
     }
 
     updateVariable(parameters: EditVariableParameters): void {
-        fetch("./variable/instance/" + parameters.name.replace(/\s/g, ''), {
+        fetch("./variable/info/" + this.variableKey, {
             method: "POST",
             body: JSON.stringify(parameters)
         }).then((resp) => {
@@ -106,9 +106,13 @@ export class EditVariablePopup {
                 if (!resp.ok) {
                     alert(body.error);
                 } else {
-                    const createResp: CreateVariableResponse = body;
                     this.schemaManager.refreshSchema();
-                    this.nodeManager.registerCustomNodeType(createResp.nodeType)
+                    this.nodeManager.updateNodeInfo(
+                        GeneratorVariablePublisherPath + this.variableKey,
+                        GeneratorVariablePublisherPath + this.name.value,
+                        this.name.value,
+                        this.description.value
+                    )
                 }
             })
         });

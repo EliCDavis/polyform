@@ -25,7 +25,7 @@ type Instance struct {
 	nodeIDs        map[nodes.Node]string
 	metadata       *sync.NestedSyncMap
 	namedManifests *namedOutputManager[manifest.Manifest]
-	variables      *VariableGroup
+	variables      variable.System
 
 	// TODO: Make this a lock across the entire instance
 	producerLock gsync.Mutex
@@ -34,7 +34,7 @@ type Instance struct {
 func New(typeFactory *refutil.TypeFactory) *Instance {
 	return &Instance{
 		typeFactory: typeFactory,
-		variables:   NewVariableGroup(),
+		variables:   variable.NewSystem(),
 		nodeIDs:     make(map[nodes.Node]string),
 		metadata:    sync.NewNestedSyncMap(),
 		namedManifests: &namedOutputManager[manifest.Manifest]{
@@ -52,15 +52,11 @@ func (i *Instance) NewVariable(variablePath string, variable variable.Variable) 
 		panic(fmt.Errorf("trying to add a nil variable %q to graph", variablePath))
 	}
 
-	if i.variables.HasVariable(variablePath) {
-		panic(fmt.Errorf("trying to add a variable to the path %q that already has a variable", variablePath))
+	err := i.variables.Add(variablePath, variable)
+	if err != nil {
+		panic(fmt.Errorf("failed to add variable to graph: %w", err))
 	}
 
-	if i.variables.HasSubgroup(variablePath) {
-		panic(fmt.Errorf("trying to add a variable to the path %q that is registered as a subgroup", variablePath))
-	}
-
-	i.variables.AddVariable(variablePath, variable)
 	i.typeFactory.RegisterBuilder(variablePath, func() any {
 		return variable.NodeReference()
 	})
@@ -69,11 +65,14 @@ func (i *Instance) NewVariable(variablePath string, variable variable.Variable) 
 }
 
 func (i *Instance) DeleteVariable(variablePath string) {
-	if !i.variables.HasVariable(variablePath) {
+	if !i.variables.Exists(variablePath) {
 		panic(fmt.Errorf("trying to delete a variable at the path %q which doesn't contain a variable", variablePath))
 	}
 
-	varP := i.variables.GetVariable(variablePath)
+	varP, err := i.variables.Variable(variablePath)
+	if err != nil {
+		panic(err)
+	}
 	nodesToDelete := make([]string, 0)
 	for node, nodeId := range i.nodeIDs {
 		ref, ok := node.(variable.Reference)
@@ -86,34 +85,59 @@ func (i *Instance) DeleteVariable(variablePath string) {
 		i.DeleteNodeById(n)
 	}
 
-	i.variables.RemoveVariable(variablePath)
+	err = i.variables.Remove(variablePath)
+	if err != nil {
+		panic(err)
+	}
 	i.typeFactory.Unregister(variablePath)
 }
 
 func (i *Instance) GetVariable(variablePath string) variable.Variable {
-	if !i.variables.HasVariable(variablePath) {
+	if !i.variables.Exists(variablePath) {
 		panic(fmt.Errorf("trying to get a variable at the path %q which doesn't exist", variablePath))
 	}
 
-	return i.variables.GetVariable(variablePath)
+	variable, err := i.variables.Variable(variablePath)
+	if err != nil {
+		panic(err)
+	}
+	return variable
+}
+
+func (i *Instance) SetVariableInfo(variablePath, newPath, description string) error {
+	variable, err := i.variables.Variable(variablePath)
+	if err != nil {
+		return err
+	}
+
+	variable.Info().SetDescription(description)
+
+	return i.variables.Move(variablePath, newPath)
 }
 
 func (i *Instance) UpdateVariable(variablePath string, data []byte) (bool, error) {
 	i.producerLock.Lock()
 	defer i.producerLock.Unlock()
 
-	variable := i.variables.GetVariable(variablePath)
+	variable, err := i.variables.Variable(variablePath)
+	if err != nil {
+		return false, err
+	}
+
 	r, err := variable.ApplyMessage(data)
 	i.incModelVersion()
 	return r, err
 }
 
-func (i *Instance) VariableData(variablePath string) []byte {
+func (i *Instance) VariableData(variablePath string) ([]byte, error) {
 	i.producerLock.Lock()
 	defer i.producerLock.Unlock()
 
-	variable := i.variables.GetVariable(variablePath)
-	return variable.ToMessage()
+	variable, err := i.variables.Variable(variablePath)
+	if err != nil {
+		return nil, err
+	}
+	return variable.ToMessage(), nil
 }
 
 // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
@@ -168,7 +192,7 @@ func (i *Instance) NodeInstanceSchema(node nodes.Node) schema.NodeInstance {
 
 	if reference, ok := node.(variable.Reference); ok {
 		variable := reference.Reference()
-		nodeInstance.Name = variable.Name()
+		nodeInstance.Name = variable.Info().Name()
 		nodeInstance.Variable = variable
 	}
 
@@ -274,10 +298,10 @@ func (i *Instance) buildIDsForNode(node nodes.Node) {
 func (i *Instance) Reset() {
 	i.nodeIDs = make(map[nodes.Node]string)
 	i.metadata = sync.NewNestedSyncMap()
-	i.variables.Traverse(func(path string, v variable.Variable) {
+	i.variables.Traverse(func(path string, info variable.Info, v variable.Variable) {
 		i.typeFactory.Unregister(path)
 	})
-	i.variables = NewVariableGroup()
+	i.variables = variable.NewSystem()
 	i.namedManifests = &namedOutputManager[manifest.Manifest]{
 		namedPorts: make(map[string]namedOutputEntry[manifest.Manifest]),
 	}
@@ -343,9 +367,24 @@ func (i *Instance) ApplyAppSchema(jsonPayload []byte) error {
 
 	i.Reset()
 	i.metadata.OverwriteData(appSchema.Metadata)
-	VariableGroupFromSchema(appSchema.Variables).Traverse(func(path string, v variable.Variable) {
-		i.NewVariable(path, v)
+	appSchema.Variables.Traverse(func(path string, v schema.PersistedVariable) bool {
+		var varabl variable.Variable
+		varabl, err = variable.DeserializeVariable(v.Data)
+		if err == nil {
+			i.NewVariable(path, varabl)
+
+			info, err := i.variables.Info(path)
+			if err != nil {
+				panic(fmt.Errorf("failed to add variable to graph: %w", err))
+			}
+			info.SetDescription(v.Description)
+		}
+
+		return err == nil
 	})
+	if err != nil {
+		return err
+	}
 
 	createdNodes := make(map[string]nodes.Node)
 
@@ -357,7 +396,11 @@ func (i *Instance) ApplyAppSchema(jsonPayload []byte) error {
 
 		if instanceDetails.Variable != nil {
 			// We instantiate variables a different way
-			node := i.variables.GetVariable(*instanceDetails.Variable).NodeReference()
+			variable, err := i.variables.Variable(*instanceDetails.Variable)
+			if err != nil {
+				return err
+			}
+			node := variable.NodeReference()
 			createdNodes[nodeID] = node
 			i.nodeIDs[node] = nodeID
 		} else {
@@ -460,10 +503,15 @@ func (i *Instance) Schema() schema.GraphInstance {
 		}
 	}
 
+	variableSchema, err := i.variables.RuntimeSchema()
+	if err != nil {
+		panic(err)
+	}
+
 	appSchema := schema.GraphInstance{
 		Producers: make(map[string]schema.Producer),
 		Notes:     noteMetadata,
-		Variables: i.variables.Schema(),
+		Variables: variableSchema,
 	}
 
 	appNodeSchema := make(map[string]schema.NodeInstance)
@@ -501,7 +549,9 @@ func (i *Instance) Schema() schema.GraphInstance {
 
 func (i *Instance) EncodeToAppSchema(appSchema *schema.App, encoder *jbtf.Encoder) {
 	variableLut := make(map[variable.Variable]string)
-	i.variables.ReverseLookup(variableLut, "")
+	i.variables.Traverse(func(path string, info variable.Info, v variable.Variable) {
+		variableLut[v] = path
+	})
 
 	nodeInstances := make(map[string]schema.AppNodeInstance)
 	for node := range i.nodeIDs {
@@ -540,8 +590,13 @@ func (i *Instance) EncodeToAppSchema(appSchema *schema.App, encoder *jbtf.Encode
 		}
 	}
 
+	variableSchema, err := i.variables.PersistedSchema()
+	if err != nil {
+		panic(err)
+	}
+
 	appSchema.Nodes = nodeInstances
-	appSchema.Variables = i.variables.Schema()
+	appSchema.Variables = variableSchema
 
 	// TODO: Is this unsafe? Yes.
 	appSchema.Metadata = i.metadata.Data()

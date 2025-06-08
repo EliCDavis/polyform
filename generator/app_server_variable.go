@@ -2,7 +2,6 @@ package generator
 
 import (
 	"net/http"
-	"path"
 
 	"github.com/EliCDavis/polyform/generator/endpoint"
 	"github.com/EliCDavis/polyform/generator/graph"
@@ -11,8 +10,9 @@ import (
 )
 
 const (
-	variableInstanceEndpointPath = "/variable/instance/"
-	variableValueEndpointPath    = "/variable/value/"
+	variableInstanceEndpointPath        = "/variable/instance/"
+	variableValueEndpointPath           = "/variable/value/"
+	variableNameDescriptionEndpointPath = "/variable/info/"
 )
 
 func variableInstanceEndpoint(graphInstance *graph.Instance, saver *GraphSaver) endpoint.Handler {
@@ -84,50 +84,28 @@ func variableValueEndpoint(graphInstance *graph.Instance, saver *GraphSaver) end
 				ResponseWriter: endpoint.BinaryResponseWriter{},
 				Handler: func(r *http.Request) ([]byte, error) {
 					variablePath := r.URL.Path[len(variableValueEndpointPath):]
-					n := graphInstance.VariableData(variablePath)
-					return n, nil
+					return graphInstance.VariableData(variablePath)
 				},
 			},
 		},
 	}
 }
 
-func variableNameEndpoint(graphInstance *graph.Instance, saver *GraphSaver) endpoint.Handler {
-	return endpoint.Handler{
-		Methods: map[string]endpoint.Method{
-			http.MethodGet: endpoint.ResponseMethod[string]{
-				ResponseWriter: endpoint.TextResponseWriter{},
-				Handler: func(r *http.Request) (string, error) {
-					parameterId := path.Base(r.URL.Path)
-					return graphInstance.Parameter(parameterId).DisplayName(), nil
-				},
-			},
+func variableInfoEndpoint(graphInstance *graph.Instance, saver *GraphSaver) endpoint.Handler {
 
-			http.MethodPost: endpoint.BodyMethod[string]{
-				Request: endpoint.TextRequestReader{},
-				Handler: func(req endpoint.Request[string]) error {
-					parameterId := path.Base(req.Url)
-					graphInstance.Parameter(parameterId).SetName(req.Body)
-					saver.Save()
-					return nil
-				},
-			},
-		},
+	type SetVariableInfoBody struct {
+		Name        string `json:"name"`
+		Description string `json:"description"`
 	}
-}
 
-func variableDescriptionEndpoint(graphInstance *graph.Instance, saver *GraphSaver) endpoint.Handler {
 	return endpoint.Handler{
 		Methods: map[string]endpoint.Method{
-			http.MethodPost: endpoint.BodyMethod[string]{
-				Request: endpoint.TextRequestReader{},
-				Handler: func(req endpoint.Request[string]) error {
-					parameterId := path.Base(req.Url)
-					graphInstance.Parameter(parameterId).SetDescription(req.Body)
-					saver.Save()
-					return nil
-				},
-			},
+			http.MethodPost: endpoint.JsonMethod(func(request endpoint.Request[SetVariableInfoBody]) (struct{}, error) {
+				variablePath := request.Url[len(variableNameDescriptionEndpointPath):]
+				err := graphInstance.SetVariableInfo(variablePath, request.Body.Name, request.Body.Description)
+				saver.Save()
+				return struct{}{}, err
+			}),
 		},
 	}
 }

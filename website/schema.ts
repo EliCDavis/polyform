@@ -9,7 +9,7 @@ export interface NodeInput {
     description?: string;
 }
 
-export interface NodeType {
+export interface NodeDefinition {
     displayName: string;
     info: string;
     type: string;
@@ -60,7 +60,7 @@ export interface GraphInstance {
 
 export interface Variable {
     type: string;
-    name: string;
+    // name: string;
     description: string;
     value: any;
 }
@@ -80,5 +80,5 @@ export interface Manifest {
 }
 
 export interface CreateVariableResponse {
-    nodeType: NodeType
+    nodeType: NodeDefinition
 }
