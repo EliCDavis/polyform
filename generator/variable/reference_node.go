@@ -31,6 +31,10 @@ func (tv *VariableReferenceNode[T]) Name() string {
 	return tv.variable.info.Name()
 }
 
+func (tv *VariableReferenceNode[T]) Description() string {
+	return tv.variable.Info().Description()
+}
+
 // CUSTOM JTF Serialization ===================================================
 
 // func (pn *VariableReferenceNode[T]) ToJSON(encoder *jbtf.Encoder) ([]byte, error) {

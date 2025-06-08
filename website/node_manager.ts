@@ -101,7 +101,6 @@ export class NodeManager {
         this.producerTypes = new Map<string, string>();
         this.subscribers = [];
         this.serverUpdatingNodeConnections = false;
-        // this.registerSpecialParameterPolyformNodes();
 
         nodeTypes.forEach(type => {
             // We should have custom nodes already defined for parameters
@@ -128,7 +127,7 @@ export class NodeManager {
             return;
         }
 
-        const nodeType = flowNode.metadata().typeData.type
+        const nodeType: string = flowNode.metadata().typeData.type
 
         this.requestManager.createNode(nodeType, (resp) => {
             const nodeID = resp.nodeID
@@ -263,15 +262,21 @@ export class NodeManager {
     //     return this.nodesPublisher.nodes().get(nodePublisherPath);
     // }
 
-    updateNodeInfo(originalPublisherID: string, newPublisherID: string, newName: string, newDescription: string): void {
-        const originalDefinition = this.nodesPublisher.nodes().get(originalPublisherID);
-        originalDefinition.title = newName;
-        originalDefinition.info = newDescription;
+    // updateVariableInfo(originalPublisherID: string, newPublisherID: string, newName: string, newDescription: string): void {
+    //     const originalDefinition = this.nodesPublisher.nodes().get(originalPublisherID);
+    //     originalDefinition.title = newName;
+    //     originalDefinition.info = newDescription;
+    //     originalDefinition.metadata.typeData.type = newName;
 
-        this.unregisterNodeType(originalPublisherID);
-        this.nodesPublisher.register(newPublisherID, originalDefinition);
-        console.log(originalDefinition);
-    }
+    //     this.unregisterNodeType(originalPublisherID);
+    //     this.nodesPublisher.register(newPublisherID, originalDefinition);
+    //     this.nodeTypeToFlowNodePath.set(newName, "generator/variable/" + newName);
+    //     console.log(originalDefinition);
+
+    //     this.nodeIdToNode.forEach((controller, nodeId) => {
+    //         controller.flowNode.metadata()
+    //     })
+    // }
 
     unregisterNodeType(nodePublisherPath: string): void {
         if (!this.nodesPublisher.unregister(nodePublisherPath)) {

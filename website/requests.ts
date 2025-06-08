@@ -278,6 +278,6 @@ export class RequestManager {
     }
 
     setGraph(newGraph, callback?: ResponseCallback<any>): void {
-        this.postJsonBodyJsonResponse("./graph", newGraph, callback)
+        this.postJsonBodyEmptyResponse("./graph", newGraph, callback)
     }
 }

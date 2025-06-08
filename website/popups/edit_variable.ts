@@ -91,6 +91,9 @@ export class EditVariablePopup {
 
     saveClicked(): void {
         this.closePopup();
+        if (this.name.value === this.variableKey) {
+            return;
+        }
         this.updateVariable({
             "name": this.name.value,
             "description": this.description.value,
@@ -106,13 +109,14 @@ export class EditVariablePopup {
                 if (!resp.ok) {
                     alert(body.error);
                 } else {
-                    this.schemaManager.refreshSchema();
-                    this.nodeManager.updateNodeInfo(
-                        GeneratorVariablePublisherPath + this.variableKey,
-                        GeneratorVariablePublisherPath + this.name.value,
-                        this.name.value,
-                        this.description.value
-                    )
+                    location.reload();
+                    // this.schemaManager.refreshSchema();
+                    // this.nodeManager.updateVariableInfo(
+                    //     GeneratorVariablePublisherPath + this.variableKey,
+                    //     GeneratorVariablePublisherPath + this.name.value,
+                    //     this.name.value,
+                    //     this.description.value
+                    // )
                 }
             })
         });
