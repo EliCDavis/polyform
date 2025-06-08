@@ -1,5 +1,5 @@
 ![Polyform Banner](./docs/polyformbanner.png)
-![Coverage](https://img.shields.io/badge/Coverage-33.5%25-yellow)
+![Coverage](https://img.shields.io/badge/Coverage-33.6%25-yellow)
 [![Go Report Card](https://goreportcard.com/badge/github.com/EliCDavis/polyform)](https://goreportcard.com/report/github.com/EliCDavis/polyform)
 [![CITATION.cff](https://github.com/EliCDavis/polyform/actions/workflows/cff-validator-complete.yml/badge.svg)](https://github.com/EliCDavis/polyform/actions/workflows/cff-validator-complete.yml)
 [![](https://dcbadge.limes.pink/api/server/https://discord.gg/rHAdm6TFX9?style=flat&theme=default-inverted)](https://discord.gg/rHAdm6TFX9)
@@ -404,6 +404,9 @@ Resources either directly contributing to the code, or are just interesting find
   - [_"Real-time Rendering of Massive Unstructured Raw Point Clouds using Screen-space Operators"_ Ruggero Pintus, Enrico Gobbetti, and Marco Agus](http://indigo.diginext.fr/EN/Documents/vast2011-pbr.pdf)
   - [_"Raw point cloud deferred shading through screen space pyramidal operators"_ Hassan Bouchiba, Jean-Emmanuel Deschaud, Francois Goulette](https://hal.science/hal-01959578/file/sp_eg18.pdf)
   - [_"THE PULL-PUSH ALGORITHM REVISITED"_ Martin Kraus](https://www.scitepress.org/papers/2009/17726/17726.pdf)
+- Morton Encoding
+  - [_"Morton encoding/decoding through bit interleaving: Implementations"_ Jeroen Baert's Blog](https://www.forceflow.be/2013/10/07/morton-encodingdecoding-through-bit-interleaving-implementations/)
+    - [Code](https://github.com/Forceflow/libmorton)
 
 ## Web Libraries
 
