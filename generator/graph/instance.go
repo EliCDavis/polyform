@@ -115,6 +115,17 @@ func (i *Instance) SetVariableInfo(variablePath, newPath, description string) er
 	return i.variables.Move(variablePath, newPath)
 }
 
+func (i *Instance) SetVariableDescription(variablePath, description string) error {
+	variable, err := i.variables.Variable(variablePath)
+	if err != nil {
+		return err
+	}
+
+	variable.Info().SetDescription(description)
+
+	return nil
+}
+
 func (i *Instance) UpdateVariable(variablePath string, data []byte) (bool, error) {
 	i.producerLock.Lock()
 	defer i.producerLock.Unlock()

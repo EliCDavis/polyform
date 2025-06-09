@@ -11,7 +11,7 @@ import { Publisher } from '@elicdavis/node-flow';
 
 const inputStyle: Partial<CSSStyleDeclaration> = {
     flexShrink: "1",
-    flexGrow: "1",
+    // flexGrow: "1",
     minWidth: "0",
     flexBasis: "0"
 }
@@ -93,7 +93,7 @@ export class VariableManager {
             style: {
                 minWidth: "0",
                 flexShrink: "1",
-                flexGrow: "1"
+                // flexGrow: "1"
             }
         };
     }

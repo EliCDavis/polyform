@@ -7,9 +7,10 @@ import { VariableTypeDropdown } from "./variable_type_dropdown";
 import { Popup } from "./popup";
 
 interface NewVariableParameters {
-    name: string,
+    variable: {
+        type: string
+    }
     description: string,
-    type: string
 }
 
 const buttonStyle = {
@@ -82,16 +83,20 @@ export class NewVariablePopup {
     }
 
     newClicked(): void {
+        
         this.closePopup();
+
+
         this.newVariable({
-            "name": inputValue(this.name.value, "New Variable"),
-            "type": inputValue(this.type.value, "Float"),
-            "description": inputValue(this.description.value, ""),
+            variable: {
+                type: inputValue(this.type.value, "Float"),
+            },
+            description: inputValue(this.description.value, ""),
         });
     }
 
     newVariable(parameters: NewVariableParameters): void {
-        fetch("./variable/instance/" + parameters.name.replace(/\s/g, ''), {
+        fetch("./variable/instance/" + this.name.value, {
             method: "POST",
             body: JSON.stringify(parameters)
         }).then((resp) => {
