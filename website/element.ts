@@ -1,4 +1,6 @@
+import { BehaviorSubject, Subject } from "rxjs";
 
+export type HTMLInputTypeAttribute = "button" | "checkbox" | "color" | "date" | "datetime-local" | "email" | "file" | "hidden" | "image" | "month" | "number" | "password" | "radio" | "range" | "reset" | "search" | "submit" | "tel" | "text" | "time" | "url" | "week";
 
 export interface ElementConfig {
     /**
@@ -8,9 +10,8 @@ export interface ElementConfig {
 
     id?: string;
     classList?: Array<string>;
-    style?: {
-        [name: string]: string
-    }
+
+    style?: Partial<CSSStyleDeclaration>;
 
     text?: string;
 
@@ -29,10 +30,20 @@ export interface ElementConfig {
      * Content type of the object.
      *
      * [MDN Reference](https://developer.mozilla.org/docs/Web/API/HTMLInputElement/type)
+     * 
+     * https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/input#input_types
      */
-    type?: string
+    type?: HTMLInputTypeAttribute;
+
+    value?: string
+
+    step?: string,
 
     change?: (e: InputEvent) => void
+
+    change$?: Subject<string>;
+
+    size?: number;
 }
 
 export function Element(config: ElementConfig): HTMLElement {
@@ -60,15 +71,15 @@ export function Element(config: ElementConfig): HTMLElement {
     }
 
     if (config.style) {
-        for (const key in config.style) {
-            newEle.style[key] = config.style[key];
-        }
+        Object.assign(newEle.style, config.style);
     }
 
     if (config.children) {
+        const instantiatedChildren = new Array<HTMLElement>();
         for (let i = 0; i < config.children.length; i++) {
-            newEle.appendChild(Element(config.children[i]));
+            instantiatedChildren.push(Element(config.children[i]))
         }
+        newEle.replaceChildren(...instantiatedChildren);
     }
 
     if (config.name) {
@@ -84,6 +95,36 @@ export function Element(config: ElementConfig): HTMLElement {
     if (config.change) {
         const inputEle = newEle as HTMLInputElement
         inputEle.addEventListener("change", config.change);
+    }
+
+    if (config.value) {
+        const inputEle = newEle as HTMLInputElement
+        inputEle.value = config.value;
+
+        if (config.type === "checkbox") {
+            inputEle.checked = config.value === "true";
+        }
+    }
+
+    if (config.step) {
+        const inputEle = newEle as HTMLInputElement
+        inputEle.step = config.step;
+    }
+
+    if (config.size) {
+        const inputEle = newEle as HTMLInputElement
+        inputEle.size = config.size;
+    }
+
+    if (config.change$) {
+        const inputEle = newEle as HTMLInputElement
+        inputEle.addEventListener("change", (ev: InputEvent) => {
+            if (config.type === "checkbox") {
+                config.change$.next("" + inputEle.checked);
+            } else {
+                config.change$.next(inputEle.value);
+            }
+        });
     }
 
     if (config.onclick) {

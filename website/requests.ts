@@ -1,4 +1,4 @@
-import { GraphInstance, Manifest, NodeInstance, NodeType } from "./schema";
+import { GraphInstance, Manifest, NodeInstance, NodeDefinition } from "./schema";
 
 export function downloadBlob(theUrl: string, callback: (body: any) => void): void {
     const xmlHttp = new XMLHttpRequest();
@@ -231,6 +231,10 @@ export class RequestManager {
     setNodeMetadata(inNodeID: string, key: string, metadata: any, callback?: ResponseCallback<any>): void {
         this.postJsonBodyJsonResponse(`graph/metadata/nodes/${inNodeID}/${key}`, metadata, callback)
     }
+    
+    deleteNodeMetadata(nodeID: string, callback?): void {
+        this.deleteMetadata(`nodes/${nodeID}`, callback)
+    }
 
     createNote(noteID: string, note, callback?: ResponseCallback<any>): void {
         this.postJsonBodyJsonResponse(`graph/metadata/notes/${noteID}`, note, callback)
@@ -251,12 +255,13 @@ export class RequestManager {
     }
 
     deleteNode(nodeId: string, callback?: ResponseCallback<any>): void {
+        this.deleteNodeMetadata(nodeId);
         this.deleteJSONBodyJSONResponse("node", {
             "nodeID": nodeId,
         }, callback)
     }
 
-    getNodeTypes(callback?: ResponseCallback<Array<NodeType>>): void {
+    getNodeTypes(callback?: ResponseCallback<Array<NodeDefinition>>): void {
         this.fetchJSON("./node-types", callback)
     }
 
@@ -273,6 +278,6 @@ export class RequestManager {
     }
 
     setGraph(newGraph, callback?: ResponseCallback<any>): void {
-        this.postJsonBodyJsonResponse("./graph", newGraph, callback)
+        this.postJsonBodyEmptyResponse("./graph", newGraph, callback)
     }
 }

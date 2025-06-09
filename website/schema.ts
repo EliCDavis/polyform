@@ -9,7 +9,7 @@ export interface NodeInput {
     description?: string;
 }
 
-export interface NodeType {
+export interface NodeDefinition {
     displayName: string;
     info: string;
     type: string;
@@ -43,6 +43,7 @@ export interface NodeInstance {
     assignedInput: NodeInstanceAssignedInput;
     output: NodeInstanceOutput;
     parameter?: any;
+    variable?: any;
     metadata?: { [key: string]: any };
 }
 
@@ -54,13 +55,30 @@ export interface GraphInstance {
     producers: { [key: string]: any };
     nodes: GraphInstanceNodes;
     notes: { [key: string]: any };
+    variables: VariableGroup;
+}
+
+export interface Variable {
+    type: string;
+    // name: string;
+    description: string;
+    value: any;
+}
+
+export interface VariableGroup {
+    subgroups: VariableGroup;
+    variables: { [key: string]: Variable };
 }
 
 export interface Entry {
-    metadata: { [key: string]: any};
+    metadata: { [key: string]: any };
 }
 
 export interface Manifest {
     main: string;
-    entries: { [key: string]: Entry};
+    entries: { [key: string]: Entry };
+}
+
+export interface CreateVariableResponse {
+    nodeType: NodeDefinition
 }

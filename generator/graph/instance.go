@@ -11,6 +11,7 @@ import (
 	"github.com/EliCDavis/polyform/generator/manifest"
 	"github.com/EliCDavis/polyform/generator/schema"
 	"github.com/EliCDavis/polyform/generator/sync"
+	"github.com/EliCDavis/polyform/generator/variable"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
 
@@ -24,6 +25,7 @@ type Instance struct {
 	nodeIDs        map[nodes.Node]string
 	metadata       *sync.NestedSyncMap
 	namedManifests *namedOutputManager[manifest.Manifest]
+	variables      variable.System
 
 	// TODO: Make this a lock across the entire instance
 	producerLock gsync.Mutex
@@ -32,15 +34,124 @@ type Instance struct {
 func New(typeFactory *refutil.TypeFactory) *Instance {
 	return &Instance{
 		typeFactory: typeFactory,
-
-		nodeIDs:  make(map[nodes.Node]string),
-		metadata: sync.NewNestedSyncMap(),
+		variables:   variable.NewSystem(),
+		nodeIDs:     make(map[nodes.Node]string),
+		metadata:    sync.NewNestedSyncMap(),
 		namedManifests: &namedOutputManager[manifest.Manifest]{
 			namedPorts: make(map[string]namedOutputEntry[manifest.Manifest]),
 		},
 		movelVersion: 0,
 	}
 }
+
+// >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+// VARIABLES
+// >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+func (i *Instance) NewVariable(variablePath string, variable variable.Variable) string {
+	if variable == nil {
+		panic(fmt.Errorf("trying to add a nil variable %q to graph", variablePath))
+	}
+
+	err := i.variables.Add(variablePath, variable)
+	if err != nil {
+		panic(fmt.Errorf("failed to add variable to graph: %w", err))
+	}
+
+	i.typeFactory.RegisterBuilder(variablePath, func() any {
+		return variable.NodeReference()
+	})
+
+	return variablePath
+}
+
+func (i *Instance) DeleteVariable(variablePath string) {
+	if !i.variables.Exists(variablePath) {
+		panic(fmt.Errorf("trying to delete a variable at the path %q which doesn't contain a variable", variablePath))
+	}
+
+	varP, err := i.variables.Variable(variablePath)
+	if err != nil {
+		panic(err)
+	}
+	nodesToDelete := make([]string, 0)
+	for node, nodeId := range i.nodeIDs {
+		ref, ok := node.(variable.Reference)
+		if ok && ref.Reference() == varP {
+			nodesToDelete = append(nodesToDelete, nodeId)
+		}
+	}
+
+	for _, n := range nodesToDelete {
+		i.DeleteNodeById(n)
+	}
+
+	err = i.variables.Remove(variablePath)
+	if err != nil {
+		panic(err)
+	}
+	i.typeFactory.Unregister(variablePath)
+}
+
+func (i *Instance) GetVariable(variablePath string) variable.Variable {
+	if !i.variables.Exists(variablePath) {
+		panic(fmt.Errorf("trying to get a variable at the path %q which doesn't exist", variablePath))
+	}
+
+	variable, err := i.variables.Variable(variablePath)
+	if err != nil {
+		panic(err)
+	}
+	return variable
+}
+
+func (i *Instance) SetVariableInfo(variablePath, newPath, description string) error {
+	variable, err := i.variables.Variable(variablePath)
+	if err != nil {
+		return err
+	}
+
+	variable.Info().SetDescription(description)
+
+	return i.variables.Move(variablePath, newPath)
+}
+
+func (i *Instance) SetVariableDescription(variablePath, description string) error {
+	variable, err := i.variables.Variable(variablePath)
+	if err != nil {
+		return err
+	}
+
+	variable.Info().SetDescription(description)
+
+	return nil
+}
+
+func (i *Instance) UpdateVariable(variablePath string, data []byte) (bool, error) {
+	i.producerLock.Lock()
+	defer i.producerLock.Unlock()
+
+	variable, err := i.variables.Variable(variablePath)
+	if err != nil {
+		return false, err
+	}
+
+	r, err := variable.ApplyMessage(data)
+	i.incModelVersion()
+	return r, err
+}
+
+func (i *Instance) VariableData(variablePath string) ([]byte, error) {
+	i.producerLock.Lock()
+	defer i.producerLock.Unlock()
+
+	variable, err := i.variables.Variable(variablePath)
+	if err != nil {
+		return nil, err
+	}
+	return variable.ToMessage(), nil
+}
+
+// <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
 func (i *Instance) IsPortNamed(node nodes.Node, portName string) (string, bool) {
 	return i.namedManifests.IsPortNamed(node, portName)
@@ -75,12 +186,25 @@ func (i *Instance) NodeInstanceSchema(node nodes.Node) schema.NodeInstance {
 		}
 	}
 
+	// nodeType := ""
+	// if typed, ok := node.(nodes.Typed); ok {
+	// 	nodeType = typed.Type()
+	// } else {
+	// 	nodeType = refutil.GetTypeWithPackage(node)
+	// }
+
 	nodeInstance := schema.NodeInstance{
 		Name:          "Unamed",
 		Type:          refutil.GetTypeWithPackage(node),
 		AssignedInput: make(map[string]schema.PortReference),
 		Output:        make(map[string]schema.NodeInstanceOutputPort),
 		Metadata:      metadata,
+	}
+
+	if reference, ok := node.(variable.Reference); ok {
+		variable := reference.Reference()
+		nodeInstance.Name = variable.Info().Name()
+		nodeInstance.Variable = variable
 	}
 
 	if param, ok := node.(Parameter); ok {
@@ -100,7 +224,6 @@ func (i *Instance) NodeInstanceSchema(node nodes.Node) schema.NodeInstance {
 	}
 
 	for inputPortName, inputPort := range node.Inputs() {
-
 		if single, ok := inputPort.(nodes.SingleValueInputPort); ok {
 			port := single.Value()
 			if port == nil {
@@ -140,11 +263,11 @@ func (i *Instance) NodeInstanceSchema(node nodes.Node) schema.NodeInstance {
 	return nodeInstance
 }
 
-func (i *Instance) addType(v any) {
-	if !i.typeFactory.TypeRegistered(v) {
-		i.typeFactory.RegisterType(v)
-	}
-}
+// func (i *Instance) addType(v any) {
+// 	if !i.typeFactory.TypeRegistered(v) {
+// 		i.typeFactory.RegisterType(v)
+// 	}
+// }
 
 func (i *Instance) buildIDsForNode(node nodes.Node) {
 
@@ -153,7 +276,8 @@ func (i *Instance) buildIDsForNode(node nodes.Node) {
 		return
 	}
 
-	i.addType(node)
+	// Try to remove this
+	// i.addType(node)
 
 	references := flattenNodeInputReferences(node)
 	for _, ref := range references {
@@ -185,6 +309,10 @@ func (i *Instance) buildIDsForNode(node nodes.Node) {
 func (i *Instance) Reset() {
 	i.nodeIDs = make(map[nodes.Node]string)
 	i.metadata = sync.NewNestedSyncMap()
+	i.variables.Traverse(func(path string, info variable.Info, v variable.Variable) {
+		i.typeFactory.Unregister(path)
+	})
+	i.variables = variable.NewSystem()
 	i.namedManifests = &namedOutputManager[manifest.Manifest]{
 		namedPorts: make(map[string]namedOutputEntry[manifest.Manifest]),
 	}
@@ -250,6 +378,24 @@ func (i *Instance) ApplyAppSchema(jsonPayload []byte) error {
 
 	i.Reset()
 	i.metadata.OverwriteData(appSchema.Metadata)
+	appSchema.Variables.Traverse(func(path string, v schema.PersistedVariable) bool {
+		var varabl variable.Variable
+		varabl, err = variable.DeserializeVariable(v.Data)
+		if err == nil {
+			i.NewVariable(path, varabl)
+
+			info, err := i.variables.Info(path)
+			if err != nil {
+				panic(fmt.Errorf("failed to add variable to graph: %w", err))
+			}
+			info.SetDescription(v.Description)
+		}
+
+		return err == nil
+	})
+	if err != nil {
+		return err
+	}
 
 	createdNodes := make(map[string]nodes.Node)
 
@@ -258,13 +404,26 @@ func (i *Instance) ApplyAppSchema(jsonPayload []byte) error {
 		if nodeID == "" {
 			panic("attempting to create a node without an ID")
 		}
-		newNode := i.typeFactory.New(instanceDetails.Type)
-		casted, ok := newNode.(nodes.Node)
-		if !ok {
-			panic(fmt.Errorf("graph definition contained type that instantiated a non node: %s", instanceDetails.Type))
+
+		if instanceDetails.Variable != nil {
+			// We instantiate variables a different way
+			variable, err := i.variables.Variable(*instanceDetails.Variable)
+			if err != nil {
+				return err
+			}
+			node := variable.NodeReference()
+			createdNodes[nodeID] = node
+			i.nodeIDs[node] = nodeID
+		} else {
+			newNode := i.typeFactory.New(instanceDetails.Type)
+			casted, ok := newNode.(nodes.Node)
+			if !ok {
+				panic(fmt.Errorf("graph definition contained type that instantiated a non node: %s", instanceDetails.Type))
+			}
+			createdNodes[nodeID] = casted
+			i.nodeIDs[casted] = nodeID
 		}
-		createdNodes[nodeID] = casted
-		i.nodeIDs[casted] = nodeID
+
 	}
 
 	// Connect the nodes we just created
@@ -298,9 +457,15 @@ func (i *Instance) ApplyAppSchema(jsonPayload []byte) error {
 			}
 
 			if single, ok := input.(nodes.SingleValueInputPort); ok {
-				single.Set(output)
+				err := single.Set(output)
+				if err != nil {
+					panic(err)
+				}
 			} else if array, ok := input.(nodes.ArrayValueInputPort); ok {
-				array.Add(output)
+				err := array.Add(output)
+				if err != nil {
+					panic(err)
+				}
 			} else {
 				panic(fmt.Errorf("not sure how to assign node %q's input %q", nodeID, inputName))
 			}
@@ -349,9 +514,15 @@ func (i *Instance) Schema() schema.GraphInstance {
 		}
 	}
 
+	variableSchema, err := i.variables.RuntimeSchema()
+	if err != nil {
+		panic(err)
+	}
+
 	appSchema := schema.GraphInstance{
 		Producers: make(map[string]schema.Producer),
 		Notes:     noteMetadata,
+		Variables: variableSchema,
 	}
 
 	appNodeSchema := make(map[string]schema.NodeInstance)
@@ -388,6 +559,11 @@ func (i *Instance) Schema() schema.GraphInstance {
 }
 
 func (i *Instance) EncodeToAppSchema(appSchema *schema.App, encoder *jbtf.Encoder) {
+	variableLut := make(map[variable.Variable]string)
+	i.variables.Traverse(func(path string, info variable.Info, v variable.Variable) {
+		variableLut[v] = path
+	})
+
 	nodeInstances := make(map[string]schema.AppNodeInstance)
 	for node := range i.nodeIDs {
 		id, ok := i.nodeIDs[node]
@@ -399,12 +575,20 @@ func (i *Instance) EncodeToAppSchema(appSchema *schema.App, encoder *jbtf.Encode
 			panic(fmt.Errorf("we've arrived to a invalid state. two nodes refer to the same ID. There's a bug somewhere"))
 		}
 
-		nodeInstances[id] = i.buildNodeGraphInstanceSchema(node, encoder)
+		nodeSchema := i.buildNodeGraphInstanceSchema(node, encoder)
+
+		if reference, ok := node.(variable.Reference); ok {
+			variablePath := variableLut[reference.Reference()]
+			nodeSchema.Variable = &variablePath
+		}
+
+		nodeInstances[id] = nodeSchema
 	}
 
 	if appSchema.Producers == nil {
 		appSchema.Producers = make(map[string]schema.Producer)
 	}
+
 	for key, producer := range i.namedManifests.namedPorts {
 		// a.buildSchemaForNode(producer.Node(), appNodeSchema)
 		id := i.nodeIDs[producer.node]
@@ -416,7 +600,14 @@ func (i *Instance) EncodeToAppSchema(appSchema *schema.App, encoder *jbtf.Encode
 			Port:   producer.port.Name(),
 		}
 	}
+
+	variableSchema, err := i.variables.PersistedSchema()
+	if err != nil {
+		panic(err)
+	}
+
 	appSchema.Nodes = nodeInstances
+	appSchema.Variables = variableSchema
 
 	// TODO: Is this unsafe? Yes.
 	appSchema.Metadata = i.metadata.Data()
@@ -515,7 +706,7 @@ func (i *Instance) CreateNode(nodeType string) (nodes.Node, string, error) {
 	return casted, i.nodeIDs[casted], nil
 }
 
-func (i *Instance) DeleteNode(nodeId string) {
+func (i *Instance) DeleteNodeById(nodeId string) {
 	var nodeToDelete nodes.Node
 
 	for n, id := range i.nodeIDs {
@@ -524,9 +715,51 @@ func (i *Instance) DeleteNode(nodeId string) {
 		}
 	}
 
-	i.namedManifests.DeleteNode(nodeToDelete)
+	if nodeToDelete == nil {
+		panic(fmt.Errorf("can't delete, no node registered with ID %s", nodeId))
+	}
 
+	i.DeleteNode(nodeToDelete)
+}
+
+func (i *Instance) DeleteNode(nodeToDelete nodes.Node) {
+	i.namedManifests.DeleteNode(nodeToDelete)
 	delete(i.nodeIDs, nodeToDelete)
+
+	// Delete all nodes connecting to this
+	for node := range i.nodeIDs {
+		for inputName, input := range node.Inputs() {
+
+			switch v := input.(type) {
+			case nodes.SingleValueInputPort:
+				value := v.Value()
+				if value == nil {
+					continue
+				}
+				if value.Node() == nodeToDelete {
+					v.Clear()
+				}
+
+			case nodes.ArrayValueInputPort:
+				for _, val := range v.Value() {
+					if val == nil {
+						continue
+					}
+
+					if val.Node() == nodeToDelete {
+						err := v.Remove(val)
+						if err != nil {
+							panic(err)
+						}
+					}
+				}
+
+			default:
+				panic(fmt.Errorf("unable to interpret %v's input %q", node, inputName))
+			}
+
+		}
+	}
 }
 
 // PARAMETER ==================================================================
@@ -628,7 +861,10 @@ func (i *Instance) DeleteNodeInputConnection(nodeId, portName string) {
 			panic(fmt.Errorf("Treating node %q port %q like array, when it isn't", nodeId, portName))
 		}
 
-		array.Remove(array.Value()[portIndex])
+		err := array.Remove(array.Value()[portIndex])
+		if err != nil {
+			panic(err)
+		}
 
 	}
 
@@ -663,9 +899,15 @@ func (i *Instance) ConnectNodes(nodeOutId, outPortName, nodeInId, inPortName str
 	}
 
 	if single, ok := input.(nodes.SingleValueInputPort); ok {
-		single.Set(output)
+		err := single.Set(output)
+		if err != nil {
+			panic(err)
+		}
 	} else if array, ok := input.(nodes.ArrayValueInputPort); ok {
-		array.Add(output)
+		err := array.Add(output)
+		if err != nil {
+			panic(err)
+		}
 	} else {
 		panic(fmt.Errorf("can not determine type of node %q's input %q", nodeInId, cleanedInputName))
 	}
@@ -697,14 +939,14 @@ func (i *Instance) SetNodeAsProducer(nodeId, nodePort, producerName string) {
 	i.incModelVersion()
 }
 
-func (i *Instance) recursivelyRegisterNodeTypes(node nodes.Node) {
-	i.addType(node)
+// func (i *Instance) recursivelyRegisterNodeTypes(node nodes.Node) {
+// 	i.addType(node)
 
-	inputReferences := flattenNodeInputReferences(node)
-	for _, reference := range inputReferences {
-		i.recursivelyRegisterNodeTypes(reference)
-	}
-}
+// 	inputReferences := flattenNodeInputReferences(node)
+// 	for _, reference := range inputReferences {
+// 		i.recursivelyRegisterNodeTypes(reference)
+// 	}
+// }
 
 func (i *Instance) Manifest(producerName string) manifest.Manifest {
 	producer, ok := i.namedManifests.namedPorts[producerName]
@@ -719,7 +961,7 @@ func (i *Instance) Manifest(producerName string) manifest.Manifest {
 }
 
 func (i *Instance) AddProducer(producerName string, producer nodes.Output[manifest.Manifest]) {
-	i.recursivelyRegisterNodeTypes(producer.Node())
+	// i.recursivelyRegisterNodeTypes(producer.Node())
 	i.buildIDsForNode(producer.Node())
 	i.namedManifests.NamePort(producerName, producer.Name(), producer.Node(), producer)
 }
@@ -736,163 +978,4 @@ func (i *Instance) ProducerNames() []string {
 	}
 
 	return names
-}
-
-func flattenNodeInputReferences(node nodes.Node) []nodes.Node {
-
-	references := make([]nodes.Node, 0)
-
-	for inputName, input := range node.Inputs() {
-
-		switch v := input.(type) {
-		case nodes.SingleValueInputPort:
-			value := v.Value()
-			if value == nil {
-				continue
-			}
-			references = append(references, value.Node())
-
-		case nodes.ArrayValueInputPort:
-			for _, val := range v.Value() {
-				if val == nil {
-					continue
-				}
-				references = append(references, val.Node())
-			}
-
-		default:
-			panic(fmt.Errorf("unable to recursive %v's input %q", node, inputName))
-		}
-
-	}
-
-	return references
-}
-
-// REFLECTION =================================================================
-
-func RecurseDependenciesType[T any](dependent nodes.Node) []T {
-	allDependencies := make([]T, 0)
-
-	inputReferences := flattenNodeInputReferences(dependent)
-
-	for _, input := range inputReferences {
-
-		subDependencies := RecurseDependenciesType[T](input)
-		allDependencies = append(allDependencies, subDependencies...)
-
-		ofT, ok := input.(T)
-		if ok {
-			allDependencies = append(allDependencies, ofT)
-		}
-	}
-
-	return allDependencies
-}
-
-func BuildSchemaForAllNodeTypes(typeFactory *refutil.TypeFactory) []schema.NodeType {
-	registeredTypes := typeFactory.Types()
-	nodeTypes := make([]schema.NodeType, 0, len(registeredTypes))
-	for _, registeredType := range registeredTypes {
-		nodeInstance, ok := typeFactory.New(registeredType).(nodes.Node)
-		if !ok {
-			panic(fmt.Errorf("Registered type %q is not a node", registeredType))
-		}
-		if nodeInstance == nil {
-			panic("New registered type is nil")
-		}
-		// log.Printf("%T: %+v\n", nodeInstance, nodeInstance)
-		b := BuildNodeTypeSchema(nodeInstance)
-		b.Type = registeredType
-		nodeTypes = append(nodeTypes, b)
-	}
-	return nodeTypes
-}
-
-func BuildNodeTypeSchema(node nodes.Node) schema.NodeType {
-	typeSchema := schema.NodeType{
-		DisplayName: "Untyped",
-		Outputs:     make(map[string]schema.NodeOutput),
-		Inputs:      make(map[string]schema.NodeInput),
-	}
-
-	outputs := node.Outputs()
-	for name, o := range outputs {
-		nodeType := "any"
-		if typed, ok := o.(nodes.Typed); ok {
-			nodeType = typed.Type()
-		}
-
-		desc := ""
-		if description, ok := o.(nodes.Describable); ok {
-			desc = description.Description()
-		}
-
-		typeSchema.Outputs[name] = schema.NodeOutput{
-			Type:        nodeType,
-			Description: desc,
-		}
-	}
-
-	inputs := node.Inputs()
-	for name, input := range inputs {
-		nodeType := "any"
-		if typed, ok := input.(nodes.Typed); ok {
-			nodeType = typed.Type()
-		}
-
-		array := false
-		if _, ok := input.(nodes.ArrayValueInputPort); ok {
-			array = true
-		}
-
-		desc := ""
-		if description, ok := input.(nodes.Describable); ok {
-			desc = description.Description()
-		}
-
-		typeSchema.Inputs[name] = schema.NodeInput{
-			Type:        nodeType,
-			IsArray:     array,
-			Description: desc,
-		}
-	}
-
-	if param, ok := node.(Parameter); ok {
-		typeSchema.Parameter = param.Schema()
-	}
-
-	if typed, ok := node.(nodes.Named); ok {
-		typeSchema.DisplayName = typed.Name()
-	} else if typed, ok := node.(nodes.Typed); ok {
-		typeSchema.DisplayName = typed.Type()
-	} else {
-		typeSchema.DisplayName = refutil.GetTypeName(node)
-	}
-
-	if pathed, ok := node.(nodes.Pathed); ok {
-		typeSchema.Path = pathed.Path()
-	} else {
-		packagePath := refutil.GetPackagePath(node)
-		if strings.Contains(packagePath, "/") {
-			path := strings.Split(packagePath, "/")
-			path = path[1:]
-			if path[0] == "EliCDavis" {
-				path = path[1:]
-			}
-
-			if path[0] == "polyform" {
-				path = path[1:]
-			}
-			typeSchema.Path = strings.Join(path, "/")
-		} else {
-			typeSchema.Path = packagePath
-		}
-	}
-
-	if described, ok := node.(nodes.Describable); ok {
-		typeSchema.Info = described.Description()
-	}
-
-	return typeSchema
 }

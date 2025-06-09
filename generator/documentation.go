@@ -45,7 +45,7 @@ func (dw DocumentationWriter) writeSingle(writer markdown.Writer) error {
 	instances := dw.nodeInstances()
 	sections := make(map[string][]schema.NodeType)
 	for _, instance := range instances {
-		builtSchema := graph.BuildNodeTypeSchema(instance)
+		builtSchema := graph.BuildNodeTypeSchema("TODO", instance)
 		if _, ok := sections[builtSchema.Path]; !ok {
 			sections[builtSchema.Path] = make([]schema.NodeType, 0)
 		}

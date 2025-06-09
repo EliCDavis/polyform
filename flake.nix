@@ -20,7 +20,7 @@
 
         # Anytime dependencies update or change, this should be updated.
         # This ensures a package is reproducible.
-        vendorHash = "sha256-di6Wtc6D0OYtKqt7pnKWg9dITdKjRbY0TCOlJlYz27E=";
+        vendorHash = "sha256-VZwlsRFHrDJJceQAlkAScJCtXuXFzuhFUhMYl4VAIp0=";
         rev = if builtins.hasAttr "shortRev" self then self.shortRev else self.dirtyShortRev;
         src = builtins.path {
           path = ./.;
@@ -163,7 +163,7 @@
             pname = "website";
             version = "0.0.1";
             npmBuildScript = "build-dev";
-            npmDepsHash = "sha256-TygLIomsRPDdt1Xnz+OLLNibTcwvqpq3M3JOYRJg2m8=";
+            npmDepsHash = "sha256-P14qZ0pOthCmKm8OhoYlGsKT+nxKMupnBIvvu2LCR00=";
             installPhase = ''
               runHook preInstallPhase
 

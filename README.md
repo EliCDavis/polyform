@@ -14,7 +14,7 @@ Developers and artists are welcome to join the [Discord](https://discord.gg/rHAd
 If you just want to play around without setting polyform up locally, you can check it out [here](https://elicdavis.github.io/polyform/)
 
 ### Pre-built binaries
-Download the latest [release](https://github.com/EliCDavis/polyform/releases) of polyform and one of the [example graphs](./examples/graphs/) and then run:
+Download the latest [release](https://github.com/EliCDavis/polyform/releases) of polyform and one of the [example graphs](./generator/examples/) and then run:
 
 ```bash
 polyform <downloaded_example>.json edit

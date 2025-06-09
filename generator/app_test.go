@@ -131,7 +131,11 @@ func TestAppCommand_Outline(t *testing.T) {
             }
         }
     },
-    "notes": null
+    "notes": null,
+    "variables": {
+        "variables": {},
+        "subgroups": {}
+    }
 }`, string(contents))
 }
 
@@ -298,6 +302,10 @@ func TestAppCommand_New(t *testing.T) {
 		}
 	],
 	"producers": null,
-	"nodes": null
+	"nodes": null,
+	"variables": {
+		"variables": null,
+		"subgroups": null
+	}
 }`, string(contents))
 }

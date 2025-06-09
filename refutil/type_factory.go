@@ -49,6 +49,10 @@ func (tf TypeFactory) KeyRegistered(key string) bool {
 	return ok
 }
 
+func (tf TypeFactory) Unregister(key string) {
+	delete(tf.types, key)
+}
+
 func (tf TypeFactory) TypeRegistered(v any) bool {
 	if tf.types == nil {
 		return false

@@ -17,6 +17,8 @@ import { ViewportSettings } from "./viewport_settings.js";
 import { NewGraphPopup } from './popups/new_graph.js';
 import { BuildFogSettings, BuildRenderingSetting } from "./gui_settings/fog.js";
 import { ArrayBufferToBase64, Compress, CopyToClipboard } from "./utils.js";
+import { VariableManager } from "./variable_manager.js";
+
 
 const graphPopup = new NewGraphPopup(globalThis.ExampleGraphs);
 
@@ -24,8 +26,6 @@ const RenderingConfiguration = {
     AntiAlias: globalThis.RenderingConfiguration.AntiAlias,
     XrEnabled: globalThis.RenderingConfiguration.XrEnabled
 }
-
-
 
 const viewportSettings: ViewportSettings = {
     renderWireframe: false,
@@ -50,6 +50,7 @@ const threeApp: ThreeApp = CreateThreeApp(
 );
 
 const stats = new Stats();
+stats.dom.style.left = "unset";
 container.appendChild(stats.dom);
 
 const flowGraphStuff = CreateNodeFlowGraph();
@@ -72,7 +73,8 @@ requestManager.getNodeTypes((nodeTypes) => {
         })
     }, 1000);
 
-    console.log(nodeTypes)
+    console.log(nodeTypes);
+    
     const noteManager = new NoteManager(requestManager, flowGraphStuff.NodeFlowGraph)
 
     const nodeManager = new NodeManager(
@@ -84,14 +86,13 @@ requestManager.getNodeTypes((nodeTypes) => {
         nodeTypes
     );
     const schemaManager = new SchemaManager(requestManager, nodeManager, noteManager, graphPopup);
+    new VariableManager(document.getElementById("sidebar-content"), schemaManager, nodeManager, flowGraphStuff.PolyformNodesPublisher);
 
     nodeManager.subscribeToParameterChange((param) => {
         schemaManager.setParameter(param.id, param.data, param.binary);
     });
 
     schemaManager.subscribe(producerViewManager.NewSchema.bind(producerViewManager));
-
-
 
     const fileControls = {
         newGraph: () => {

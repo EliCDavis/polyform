@@ -62,6 +62,9 @@ func init() {
 	refutil.RegisterType[nodes.Struct[MaxArrayNode[int]]](factory)
 	refutil.RegisterType[nodes.Struct[MaxArrayNode[float64]]](factory)
 
+	refutil.RegisterType[nodes.Struct[IntToFloatNode]](factory)
+	refutil.RegisterType[nodes.Struct[FloatToIntNode]](factory)
+
 	generator.RegisterTypes(factory)
 }
 
@@ -131,6 +134,24 @@ func (cn HalfNode[T]) Float64() nodes.StructOutput[float64] {
 
 func (cn HalfNode[T]) Description() string {
 	return "Divides the number in half"
+}
+
+// ============================================================================
+
+type IntToFloatNode struct {
+	In nodes.Output[int]
+}
+
+func (cn IntToFloatNode) Out() nodes.StructOutput[float64] {
+	return nodes.NewStructOutput(float64(nodes.TryGetOutputValue(cn.In, 0)))
+}
+
+type FloatToIntNode struct {
+	In nodes.Output[float64]
+}
+
+func (cn FloatToIntNode) Out() nodes.StructOutput[int] {
+	return nodes.NewStructOutput(int(nodes.TryGetOutputValue(cn.In, 0)))
 }
 
 // ============================================================================

@@ -1,7 +1,7 @@
 import { Box3, EquirectangularReflectionMapping, Group, Mesh, MeshStandardMaterial, PerspectiveCamera, Scene, SRGBColorSpace, TextureLoader, WebGLRenderer } from "three";
 import { ErrorManager } from "../error_manager";
 import { InfoManager } from "../info_manager";
-import { GraphInstance, Manifest, NodeType } from "../schema";
+import { GraphInstance, Manifest, NodeDefinition } from "../schema";
 import { getFileExtension } from "../utils";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
@@ -54,7 +54,7 @@ export class ProducerViewManager {
     constructor(
         app: ThreeApp,
         requestManager: RequestManager,
-        nodeTypes: Array<NodeType>
+        nodeTypes: Array<NodeDefinition>
     ) {
         this.nodeTypeManifestPorts = new Map<string, string>();
         for (let i = 0; i < nodeTypes.length; i++) {
