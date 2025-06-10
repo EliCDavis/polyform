@@ -17,6 +17,7 @@ export function VariableTypeDropdown(change$: BehaviorSubject<string>): ElementC
             { tag: "option", value: VariableType.Bool, text: "Bool" },
             { tag: "option", value: VariableType.AABB, text: "AABB" },
             { tag: "option", value: VariableType.Color, text: "Color" },
+            { tag: "option", value: VariableType.Float3Array, text: "Float3 Array" },
         ]
     };
 }

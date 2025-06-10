@@ -11,7 +11,6 @@ import { Publisher } from '@elicdavis/node-flow';
 
 const inputStyle: Partial<CSSStyleDeclaration> = {
     flexShrink: "1",
-    // flexGrow: "1",
     minWidth: "0",
     flexBasis: "0"
 }
@@ -35,6 +34,13 @@ export function post$(url: string, body: BodyInit): Observable<Response> {
     return out;
 }
 
+function bind(obj: any, field: string, mapper: (s: string) => any): Subject<string> {
+    const x = new BehaviorSubject<string>(`${obj[field]}`);
+    x.subscribe((val: string) => {
+        obj[field] = mapper(val);
+    })
+    return x;
+}
 
 export class VariableManager {
 
@@ -144,6 +150,88 @@ export class VariableManager {
         };
     }
 
+
+
+    newVector3ArrayVariable<T>(key: string, variable: Variable, mapper: (s: string) => T, step: string): ElementConfig {
+        // const x = new BehaviorSubject<string>(`${variable.value.x}`);
+        // const y = new BehaviorSubject<string>(`${variable.value.y}`);
+        // const z = new BehaviorSubject<string>(`${variable.value.z}`);
+
+        // x.pipe(
+        //     map(mapper),
+        //     combineLatestWith(y.pipe(map(mapper)), z.pipe(map(mapper))),
+        //     skip(1), // Ignore the first change, as it's just the initial value
+        //     mergeMap((val) => this.setVariableValue(key, { x: val[0], y: val[1], z: val[2] }))
+        // ).subscribe((resp: Response) => {
+        //     console.log(resp);
+        // });
+
+        let data = [];
+
+        const children = new Array<ElementConfig>();
+
+        if (variable.value) {
+            data = variable.value;
+        }
+
+        children.push({
+            text: "Length: " + data.length
+        });
+
+        for (let i = 0; i < data.length; i++) {
+            const x = bind(data[i], "x", mapper)
+            const y = bind(data[i], "y", mapper)
+            const z = bind(data[i], "z", mapper)
+            x.pipe(
+                combineLatestWith(y, z),
+                skip(1),
+                mergeMap(() => this.setVariableValue(key, data))
+            ).subscribe(() => { })
+
+            children.push({
+                style: {
+                    paddingTop: "8px",
+                },
+                children: [
+                    // { text: "" + i },
+                    {
+                        style: {
+                            display: "flex",
+                            flexDirection: "column"
+                        },
+                        children: [
+                            { tag: "input", change$: x, type: "number", size: 1, style: inputStyle, value: `${data[i].x}`, step: step },
+                            { tag: "input", change$: y, type: "number", size: 1, style: inputStyle, value: `${data[i].y}`, step: step },
+                            { tag: "input", change$: z, type: "number", size: 1, style: inputStyle, value: `${data[i].z}`, step: step },
+                        ]
+                    },
+                    {
+                        tag: "button",
+                        text: "Delete",
+                        onclick: () => {
+                            data.splice(i, 1);
+                            this.setVariableValue(key, data).subscribe();
+                        }
+                    }
+                ]
+            })
+        }
+
+        children.push({
+            tag: "button",
+            text: "Add",
+            onclick: () => {
+                data.push({ x: 0, y: 0, z: 0 })
+                this.setVariableValue(key, data).subscribe();
+            }
+        });
+
+        return {
+            style: inputContainerStyle,
+            children: children,
+        };
+    }
+
     newAABBVariable(key: string, variable: Variable): ElementConfig {
         const centerx = new BehaviorSubject<string>(`${variable.value.center.x}`);
         const centery = new BehaviorSubject<string>(`${variable.value.center.y}`);
@@ -240,6 +328,10 @@ export class VariableManager {
 
             case VariableType.AABB:
                 input = this.newAABBVariable(key, variable);
+                break;
+
+            case VariableType.Float3Array:
+                input = this.newVector3ArrayVariable(key, variable, parseFloat, "");
                 break;
 
             default:

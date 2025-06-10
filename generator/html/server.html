@@ -50,6 +50,11 @@
             /* TODO Solve this in HTML */
         }
 
+        input[type="number"] {
+            /* flex: 1; */
+            min-width: 0;
+        }
+
         #watermark {
             position: absolute;
             right: 0px;
@@ -92,7 +97,6 @@
             border-radius: 12px;
             display: none;
         }
-
 
         a,
         button,
@@ -219,8 +223,9 @@
         #sidebar-content {
             display: flex;
             flex-direction: column;
-            margin: 8px;
+            padding: 8px;
             flex-grow: 1;
+            overflow: auto;
         }
 
         #sidebar button {
@@ -270,25 +275,18 @@
     </div>
 
     <div id="messageContainer">
-        <div id="infoMessage">
-        </div>
+        <div id="infoMessage"> </div>
     </div>
 
     <div style="position: absolute; display: flex;">
     </div>
 
     <div id="full-page">
-
         <div id="sidebar">
             <div id="sidebar-icon-bar"></div>
             <div id="sidebar-content">
-
-                <!-- <div>Variables</div> -->
-
                 <button id="new-variable">New Variable</button>
-
                 <div id="variable-list"></div>
-                <!-- <button id="new-folder">New Folder</button> -->
             </div>
         </div>
 
@@ -305,7 +303,6 @@
                 <canvas id="light-canvas"></canvas>
             </div>
         </div>
-
     </div>
 
     <script>

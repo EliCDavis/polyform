@@ -83,9 +83,7 @@ export class NewVariablePopup {
     }
 
     newClicked(): void {
-        
         this.closePopup();
-
 
         this.newVariable({
             variable: {
