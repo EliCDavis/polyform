@@ -2,6 +2,8 @@
 <html lang="en">
 
 <head>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+
     <meta charset="utf-8">
     <title>{{.Title}}</title>
     <style>
@@ -35,10 +37,11 @@
         }
 
         #info {
-            position: absolute;
-            top: 0px;
-            width: 100%;
-            padding: 10px;
+            padding: 8px;
+            background-color: #003847;
+            margin: 12px;
+            border-radius: 4px;
+
             box-sizing: border-box;
             text-align: center;
             -moz-user-select: none;
@@ -46,8 +49,11 @@
             -ms-user-select: none;
             user-select: none;
             pointer-events: none;
-            z-index: 1;
-            /* TODO Solve this in HTML */
+        }
+
+        #info h1 {
+            margin-top: 0;
+            margin-bottom: 0;
         }
 
         input[type="number"] {
@@ -223,18 +229,18 @@
         #sidebar-content {
             display: flex;
             flex-direction: column;
-            padding: 8px;
             flex-grow: 1;
             overflow: auto;
+            scrollbar-color: #196e6c #003847;
+            scrollbar-width: thin;
         }
 
         #sidebar button {
             border: 0;
             background-color: #196E6C;
             color: white;
-            margin: 2px;
             padding: 6px;
-            border-radius: 4px;
+            border-radius: 2px;
             text-transform: none;
         }
 
@@ -247,8 +253,78 @@
             height: 100%;
             width: 100%;
         }
-    </style>
 
+        .sidebar-header {
+            background-color: #003847;
+            text-align: center;
+            padding: 4px;
+            font-size: 14px;
+        }
+
+        .sidebar-section-content {
+            display: flex;
+            padding: 12px;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .variable-name {
+            font-size: 18px;
+            flex: 1;
+        }
+
+        .variable-description {
+            line-height: normal;
+            margin-bottom: 8px;
+            color: #d8d8d8;
+        }
+
+        .variable-number-input {
+            border-style: solid;
+            padding: 2px;
+            padding-left: 4px;
+            border-radius: 2px;
+            color: #ffffff;
+            flex-shrink: 1;
+            background-color: #0a2e3d;
+            border-width: 2px;
+            border-color: #003847;
+            flex-grow: 1;
+            min-width: 0;
+            flex-basis: 0;
+        }
+
+        .variable-number-input::-webkit-outer-spin-button,
+        .variable-number-input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        /* Firefox */
+        .variable-number-input[type=number] {
+            -moz-appearance: textfield;
+        }
+
+        #sidebar button.icon-button {
+            background-color: unset;
+            width: 24px;
+            padding: 0;
+            border-radius: 50%;
+            height: 24px;
+        }
+
+        #sidebar button.icon-button:hover {
+            background-color: rgba(0, 0, 0, 0.25);
+        }
+
+        #sidebar button.dropdown-item {
+            background-color: unset;
+        }
+
+        #sidebar button.dropdown-item:hover {
+            background-color: #122a34;
+        }
+    </style>
 
     <script>
         globalThis.RenderingConfiguration = {
@@ -265,10 +341,7 @@
 </head>
 
 <body>
-    <div id="info">
-        {{.Title}} - {{.Version}}<br />
-        {{.Description}}
-    </div>
+
 
     <div id="watermark">
         <a href="https://github.com/EliCDavis/polyform">Polyform</a>
@@ -283,10 +356,30 @@
 
     <div id="full-page">
         <div id="sidebar">
-            <div id="sidebar-icon-bar"></div>
+            <!-- <div id="sidebar-icon-bar"></div> -->
             <div id="sidebar-content">
-                <button id="new-variable">New Variable</button>
-                <div id="variable-list"></div>
+                <div id="info">
+                    <h1>{{.Title}}</h1>
+                    <h3 style="margin: 2px;">{{.Version}}</h3>
+                    {{.Description}}
+                </div>
+                <div class="sidebar-header">Graph</div>
+                <div class="sidebar-section-content" style="flex-direction: row;">
+                    <button style="flex: 1;" class="sidebar-button" id="new-graph-button">New</button>
+                    <button style="flex: 1;" class="sidebar-button" id="save-graph-button">Save</button>
+                    <button style="flex: 1;" class="sidebar-button" id="load-graph-button">Load</button>
+                </div>
+                <div class="sidebar-header">Export</div>
+                <div class="sidebar-section-content" style="flex-direction: row;">
+                    <button style="flex: 1;" class="sidebar-button" id="export-model-button">Model</button>
+                    <button style="flex: 1;" class="sidebar-button" id="export-mermaid-button">Mermaid</button>
+                    <button style="flex: 1;" class="sidebar-button" id="export-swagger-button">Swagger</button>
+                </div>
+                <div class="sidebar-header">Variables</div>
+                <div class="sidebar-section-content">
+                    <button id="new-variable">New Variable</button>
+                    <div id="variable-list"></div>
+                </div>
             </div>
         </div>
 

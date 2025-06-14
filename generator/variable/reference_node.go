@@ -8,7 +8,7 @@ import (
 const variableReferenceNodeOutputPortName = "Value"
 
 type VariableReferenceNode[T any] struct {
-	variable *TypeVariable[T]
+	variable Variable
 }
 
 func (vrn *VariableReferenceNode[T]) Outputs() map[string]nodes.OutputPort {
@@ -28,7 +28,7 @@ func (vrn *VariableReferenceNode[T]) Inputs() map[string]nodes.InputPort {
 }
 
 func (tv *VariableReferenceNode[T]) Name() string {
-	return tv.variable.info.Name()
+	return tv.variable.Info().Name()
 }
 
 func (tv *VariableReferenceNode[T]) Description() string {
@@ -88,11 +88,11 @@ func (vrn *variableReferenceNodePort[T]) Name() string {
 }
 
 func (vrn *variableReferenceNodePort[T]) Version() int {
-	return vrn.node.variable.Version()
+	return vrn.node.variable.currentVersion()
 }
 
 func (vrn *variableReferenceNodePort[T]) Value() T {
-	return vrn.node.variable.value
+	return vrn.node.variable.currentValue().(T)
 }
 
 func (so variableReferenceNodePort[T]) Type() string {

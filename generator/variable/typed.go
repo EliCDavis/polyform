@@ -28,6 +28,14 @@ func (tv *TypeVariable[T]) Version() int {
 	return tv.version
 }
 
+func (tv *TypeVariable[T]) currentValue() any {
+	return tv.value
+}
+
+func (tv *TypeVariable[T]) currentVersion() int {
+	return tv.version
+}
+
 func (tv *TypeVariable[T]) Info() Info {
 	return tv.info
 }
@@ -57,7 +65,11 @@ func (tv *TypeVariable[T]) ApplyMessage(msg []byte) (bool, error) {
 }
 
 func (tv TypeVariable[T]) ToMessage() []byte {
-	return nil
+	data, err := json.Marshal(tv.value)
+	if err != nil {
+		panic(err)
+	}
+	return data
 }
 
 func (tv *TypeVariable[T]) NodeReference() nodes.Node {

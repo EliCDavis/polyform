@@ -53,7 +53,7 @@ export class NewVariablePopup {
                     },
 
                     { text: "Name" },
-                    { type: "text", name: "name", change$: this.name },
+                    { type: "text", name: "name", change$: this.name, value: "New Variable" },
 
                     { text: "Description" },
                     { type: "text", name: "description", change$: this.description },

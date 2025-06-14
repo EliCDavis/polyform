@@ -8,19 +8,25 @@ import { NodeManager } from './node_manager';
 import { DeleteVariablePopup } from './popups/delete_variable';
 import { EditVariablePopup } from './popups/edit_variable';
 import { Publisher } from '@elicdavis/node-flow';
-
-const inputStyle: Partial<CSSStyleDeclaration> = {
-    flexShrink: "1",
-    minWidth: "0",
-    flexBasis: "0"
-}
+import { DropdownMenu } from './dropdown';
 
 const inputContainerStyle: Partial<CSSStyleDeclaration> = {
     display: "flex",
     flexDirection: "column",
+    gap: "8px",
     flexShrink: "1",
-    paddingLeft: "8px",
-    paddingRight: "8px",
+    // paddingLeft: "8px",
+    // paddingRight: "8px",
+}
+
+function LabledField(label: string, field: ElementConfig): ElementConfig {
+    return {
+        style: { display: "flex", flexDirection: "row" },
+        children: [
+            { text: label, style: { marginRight: "8px" } },
+            field,
+        ]
+    };
 }
 
 export function post$(url: string, body: BodyInit): Observable<Response> {
@@ -96,11 +102,7 @@ export class VariableManager {
             change$: variableTopic,
             value: `${variable.value}`,
             size: 1,
-            style: {
-                minWidth: "0",
-                flexShrink: "1",
-                // flexGrow: "1"
-            }
+            classList: ['variable-number-input'],
         };
     }
 
@@ -120,8 +122,8 @@ export class VariableManager {
         return {
             style: inputContainerStyle,
             children: [
-                { tag: "input", change$: x, type: "number", style: inputStyle, value: `${variable.value.x}`, step: step },
-                { tag: "input", change$: y, type: "number", style: inputStyle, value: `${variable.value.y}`, step: step },
+                LabledField("X:", { tag: "input", change$: x, type: "number", size: 1, classList: ['variable-number-input'], value: `${variable.value.x}`, step: step }),
+                LabledField("Y:", { tag: "input", change$: y, type: "number", size: 1, classList: ['variable-number-input'], value: `${variable.value.y}`, step: step }),
             ]
         };
     }
@@ -143,9 +145,9 @@ export class VariableManager {
         return {
             style: inputContainerStyle,
             children: [
-                { tag: "input", change$: x, type: "number", size: 1, style: inputStyle, value: `${variable.value.x}`, step: step },
-                { tag: "input", change$: y, type: "number", size: 1, style: inputStyle, value: `${variable.value.y}`, step: step },
-                { tag: "input", change$: z, type: "number", size: 1, style: inputStyle, value: `${variable.value.z}`, step: step },
+                LabledField("X:", { tag: "input", change$: x, type: "number", size: 1, classList: ['variable-number-input'], value: `${variable.value.x}`, step: step }),
+                LabledField("Y:", { tag: "input", change$: y, type: "number", size: 1, classList: ['variable-number-input'], value: `${variable.value.y}`, step: step }),
+                LabledField("Z:", { tag: "input", change$: z, type: "number", size: 1, classList: ['variable-number-input'], value: `${variable.value.z}`, step: step }),
             ]
         };
     }
@@ -200,9 +202,9 @@ export class VariableManager {
                             flexDirection: "column"
                         },
                         children: [
-                            { tag: "input", change$: x, type: "number", size: 1, style: inputStyle, value: `${data[i].x}`, step: step },
-                            { tag: "input", change$: y, type: "number", size: 1, style: inputStyle, value: `${data[i].y}`, step: step },
-                            { tag: "input", change$: z, type: "number", size: 1, style: inputStyle, value: `${data[i].z}`, step: step },
+                            LabledField("X:", { tag: "input", change$: x, type: "number", size: 1, classList: ['variable-number-input'], value: `${data[i].x}`, step: step }),
+                            LabledField("Y:", { tag: "input", change$: y, type: "number", size: 1, classList: ['variable-number-input'], value: `${data[i].y}`, step: step }),
+                            LabledField("Z:", { tag: "input", change$: z, type: "number", size: 1, classList: ['variable-number-input'], value: `${data[i].z}`, step: step }),
                         ]
                     },
                     {
@@ -266,14 +268,15 @@ export class VariableManager {
             style: inputContainerStyle,
             children: [
                 { text: "center" },
-                { tag: "input", change$: centerx, type: "number", style: inputStyle, value: `${variable.value.center.x}` },
-                { tag: "input", change$: centery, type: "number", style: inputStyle, value: `${variable.value.center.y}` },
-                { tag: "input", change$: centerz, type: "number", style: inputStyle, value: `${variable.value.center.z}` },
+
+                LabledField("X:", { tag: "input", change$: centerx, type: "number", classList: ['variable-number-input'], value: `${variable.value.center.x}` }),
+                LabledField("Y:", { tag: "input", change$: centery, type: "number", classList: ['variable-number-input'], value: `${variable.value.center.y}` }),
+                LabledField("Z:", { tag: "input", change$: centerz, type: "number", classList: ['variable-number-input'], value: `${variable.value.center.z}` }),
 
                 { text: "extents" },
-                { tag: "input", change$: extentsx, type: "number", style: inputStyle, value: `${variable.value.extents.x}` },
-                { tag: "input", change$: extentsy, type: "number", style: inputStyle, value: `${variable.value.extents.y}` },
-                { tag: "input", change$: extentsz, type: "number", style: inputStyle, value: `${variable.value.extents.z}` },
+                LabledField("X:", { tag: "input", change$: extentsx, type: "number", classList: ['variable-number-input'], value: `${variable.value.extents.x}` }),
+                LabledField("Y:", { tag: "input", change$: extentsy, type: "number", classList: ['variable-number-input'], value: `${variable.value.extents.y}` }),
+                LabledField("Z:", { tag: "input", change$: extentsz, type: "number", classList: ['variable-number-input'], value: `${variable.value.extents.z}` }),
             ]
         };
     }
@@ -334,6 +337,10 @@ export class VariableManager {
                 input = this.newVector3ArrayVariable(key, variable, parseFloat, "");
                 break;
 
+            case VariableType.Image:
+                console.log(variable);
+                break;
+
             default:
                 throw new Error("unimplemented variable type: " + variable.type);
         }
@@ -349,47 +356,49 @@ export class VariableManager {
                     style: {
                         display: "flex",
                         flexDirection: "column",
-                        justifyContent: "center",
-                        marginRight: "8px"
-                    },
-                    children: [
-                        {
-                            tag: "button",
-                            text: "Edit",
-                            onclick: () => {
-                                const popoup = new EditVariablePopup(this.schemaManager, this.nodeManager, key, variable);
-                                popoup.show();
-                            }
-                        },
-                        {
-                            tag: "button",
-                            text: "Delete",
-                            onclick: () => {
-                                const deletePopoup = new DeleteVariablePopup(this.schemaManager, this.nodeManager, this.publisher, key, variable);
-                                deletePopoup.show();
-                            }
-                        }
-                    ]
-                },
-                {
-                    style: {
-                        display: "flex",
-                        flexDirection: "column",
                         flexGrow: "1"
                     },
                     children: [
                         {
-                            text: key,
                             style: {
-                                textDecoration: "underline"
-                            }
+                                display: "flex",
+                                flexDirection: "row"
+                            },
+                            children: [
+                                {
+                                    text: key,
+                                    classList: ["variable-name"],
+                                },
+                                DropdownMenu({
+                                    buttonContent: {
+                                        tag: "i",
+                                        classList: ["fa-solid", "fa-ellipsis-vertical"]
+                                    },
+                                    buttonClasses: ["icon-button"],
+                                    content: [
+                                        {
+                                            text: "Edit",
+                                            onclick: () => {
+                                                const popoup = new EditVariablePopup(this.schemaManager, this.nodeManager, key, variable);
+                                                popoup.show();
+                                            }
+                                        },
+                                        {
+                                            text: "Delete",
+                                            onclick: () => {
+                                                const deletePopoup = new DeleteVariablePopup(this.schemaManager, this.nodeManager, this.publisher, key, variable);
+                                                deletePopoup.show();
+                                            }
+                                        },
+                                    ]
+                                }),
+
+                            ]
                         },
                         {
                             text: variable.description,
-                            style: {
-                                lineHeight: "normal",
-                                marginBottom: "8px",
-                            }
+                            classList: ["variable-description"],
+
                         },
                         input
                     ]

@@ -10,4 +10,5 @@ export enum VariableType {
     Color = "coloring.WebColor",
     Bool = "bool",
     AABB = "geometry.AABB",
+    Image = "image.Image"
 }

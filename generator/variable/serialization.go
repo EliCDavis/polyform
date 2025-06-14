@@ -16,7 +16,7 @@ type JsonContainer struct {
 }
 
 func (jc *JsonContainer) UnmarshalJSON(b []byte) (err error) {
-	jc.Variable, err = DeserializeVariable(b)
+	jc.Variable, err = DeserializeVariableJSON(b)
 	return
 }
 
@@ -47,11 +47,17 @@ func deserialiseTypedVariableSchema[T any](msg json.RawMessage) (Variable, error
 	return &TypeVariable[T]{value: vsb.Value}, nil
 }
 
+func deserialiseImageVariable(msg []byte) (Variable, error) {
+	iv := &ImageVariable{}
+	_, err := iv.ApplyMessage(msg)
+	return iv, err
+}
+
 type variableSchemaBase struct {
 	Type string `json:"type"`
 }
 
-func DeserializeVariable(msg json.RawMessage) (Variable, error) {
+func DeserializeVariableJSON(msg []byte) (Variable, error) {
 	vsb := &variableSchemaBase{}
 	err := json.Unmarshal(msg, vsb)
 	if err != nil {
@@ -91,6 +97,9 @@ func DeserializeVariable(msg json.RawMessage) (Variable, error) {
 
 	case "coloring.webcolor":
 		return deserialiseTypedVariableSchema[coloring.WebColor](msg)
+
+	case "image.image":
+		return deserialiseImageVariable(nil)
 
 	default:
 		return nil, fmt.Errorf("unrecognized variable type: %q", vsb.Type)

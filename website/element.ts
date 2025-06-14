@@ -1,4 +1,4 @@
-import { BehaviorSubject, Subject } from "rxjs";
+import { Observable, Subject } from "rxjs";
 
 export type HTMLInputTypeAttribute = "button" | "checkbox" | "color" | "date" | "datetime-local" | "email" | "file" | "hidden" | "image" | "month" | "number" | "password" | "radio" | "range" | "reset" | "search" | "submit" | "tel" | "text" | "time" | "url" | "week";
 
@@ -12,6 +12,7 @@ export interface ElementConfig {
     classList?: Array<string>;
 
     style?: Partial<CSSStyleDeclaration>;
+    style$?: Observable<Partial<CSSStyleDeclaration>>;
 
     text?: string;
 
@@ -74,9 +75,18 @@ export function Element(config: ElementConfig): HTMLElement {
         Object.assign(newEle.style, config.style);
     }
 
+    if (config.style$) {
+        config.style$.subscribe(styling => {
+            Object.assign(newEle.style, styling);
+        });
+    }
+
     if (config.children) {
         const instantiatedChildren = new Array<HTMLElement>();
         for (let i = 0; i < config.children.length; i++) {
+            if (!config.children) {
+                continue;
+            }
             instantiatedChildren.push(Element(config.children[i]))
         }
         newEle.replaceChildren(...instantiatedChildren);

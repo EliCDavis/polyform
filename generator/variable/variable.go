@@ -15,6 +15,9 @@ type Variable interface {
 	ToMessage() []byte
 
 	schema() schema.RuntimeVariable
+
+	currentValue() any
+	currentVersion() int
 	// Schema() schema.Parameter
 	// InitializeForCLI(set *flag.FlagSet)
 }

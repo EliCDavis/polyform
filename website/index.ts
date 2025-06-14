@@ -51,6 +51,7 @@ const threeApp: ThreeApp = CreateThreeApp(
 
 const stats = new Stats();
 stats.dom.style.left = "unset";
+stats.dom.style.right = "0";
 container.appendChild(stats.dom);
 
 const flowGraphStuff = CreateNodeFlowGraph();
@@ -176,41 +177,48 @@ requestManager.getNodeTypes((nodeTypes) => {
         }
     }
 
-    const panel = new GUI({ width: 310 });
+    document.getElementById("new-graph-button").onclick = fileControls.newGraph;
+    document.getElementById("save-graph-button").onclick = fileControls.saveGraph;
+    document.getElementById("load-graph-button").onclick = fileControls.loadProfile;
+    document.getElementById("export-model-button").onclick = fileControls.saveModel;
+    document.getElementById("export-mermaid-button").onclick = fileControls.viewProgram;
+    document.getElementById("export-swagger-button").onclick = fileControls.saveSwagger;
 
-    const fileSettingsFolder = panel.addFolder("Graph");
-    fileSettingsFolder.add(fileControls, "newGraph").name("New")
-    fileSettingsFolder.add(fileControls, "saveGraph").name("Save")
-    fileSettingsFolder.add(fileControls, "loadProfile").name("Load");
+    // const panel = new GUI({ width: 310 });
 
-    // Graphs when compressed still make for a giant URL
-    // fileSettingsFolder.add(fileControls, "link").name("Get Link");
+    // const fileSettingsFolder = panel.addFolder("Graph");
+    // fileSettingsFolder.add(fileControls, "newGraph").name("New")
+    // fileSettingsFolder.add(fileControls, "saveGraph").name("Save")
+    // fileSettingsFolder.add(fileControls, "loadProfile").name("Load");
 
-    const exportSettingsFolder = panel.addFolder("Export");
-    exportSettingsFolder.add(fileControls, "saveModel").name("Model")
-    exportSettingsFolder.add(fileControls, "viewProgram").name("Mermaid")
-    exportSettingsFolder.add(fileControls, "saveSwagger").name("Swagger 2.0")
-    exportSettingsFolder.close();
+    // // Graphs when compressed still make for a giant URL
+    // // fileSettingsFolder.add(fileControls, "link").name("Get Link");
 
-    const viewportSettingsFolder = panel.addFolder("Rendering");
-    viewportSettingsFolder.close();
+    // const exportSettingsFolder = panel.addFolder("Export");
+    // exportSettingsFolder.add(fileControls, "saveModel").name("Model")
+    // exportSettingsFolder.add(fileControls, "viewProgram").name("Mermaid")
+    // exportSettingsFolder.add(fileControls, "saveSwagger").name("Swagger 2.0")
+    // exportSettingsFolder.close();
+
+    // const viewportSettingsFolder = panel.addFolder("Rendering");
+    // viewportSettingsFolder.close();
 
     const viewportManager = new ViewportManager(viewportSettings);
 
-    BuildRenderingSetting(
-        viewportSettingsFolder,
-        viewportManager,
-        viewportSettings,
-        threeApp,
-        producerViewManager
-    )
+    // BuildRenderingSetting(
+    //     viewportSettingsFolder,
+    //     viewportManager,
+    //     viewportSettings,
+    //     threeApp,
+    //     producerViewManager
+    // )
 
-    BuildFogSettings(
-        viewportSettingsFolder,
-        viewportManager,
-        viewportSettings,
-        threeApp
-    )
+    // BuildFogSettings(
+    //     viewportSettingsFolder,
+    //     viewportManager,
+    //     viewportSettings,
+    //     threeApp
+    // )
 
     const doWebsocketStuff = true;
     if (doWebsocketStuff) {
