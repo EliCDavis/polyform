@@ -18,8 +18,8 @@ const (
 func variableInstanceEndpoint(graphInstance *graph.Instance, saver *GraphSaver) endpoint.Handler {
 
 	type CreateVariableRequest struct {
-		Variable    variable.JsonContainer `json:"variable"`
-		Description string                 `json:"description"`
+		Type        string `json:"type"`
+		Description string `json:"description"`
 	}
 
 	type CreateVariableResponse struct {
@@ -32,14 +32,19 @@ func variableInstanceEndpoint(graphInstance *graph.Instance, saver *GraphSaver) 
 			// Create a new instance of a variable
 			http.MethodPost: endpoint.JsonMethod(func(request endpoint.Request[CreateVariableRequest]) (CreateVariableResponse, error) {
 				variablePath := request.Url[len(variableInstanceEndpointPath):]
-				registeredType := graphInstance.NewVariable(variablePath, request.Body.Variable.Variable)
-				err := graphInstance.SetVariableDescription(variablePath, request.Body.Description)
+				variableInstance, err := variable.CreateVariable(request.Body.Type)
+				if err != nil {
+					return CreateVariableResponse{}, err
+				}
+
+				registeredType := graphInstance.NewVariable(variablePath, variableInstance)
+				err = graphInstance.SetVariableDescription(variablePath, request.Body.Description)
 				if err != nil {
 					return CreateVariableResponse{}, err
 				}
 				saver.Save()
 				return CreateVariableResponse{
-					NodeType: graph.BuildNodeTypeSchema(registeredType, request.Body.Variable.Variable.NodeReference()),
+					NodeType: graph.BuildNodeTypeSchema(registeredType, variableInstance.NodeReference()),
 				}, nil
 			}),
 

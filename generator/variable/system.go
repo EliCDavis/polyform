@@ -1,12 +1,12 @@
 package variable
 
 import (
-	"encoding/json"
 	"fmt"
 	"path"
 	"strings"
 	"sync"
 
+	"github.com/EliCDavis/jbtf"
 	"github.com/EliCDavis/polyform/generator/schema"
 )
 
@@ -26,7 +26,7 @@ type System interface {
 	Remove(path string) error
 	Move(oldName, newName string) error
 	Traverse(func(path string, info Info, v Variable))
-	PersistedSchema() (schema.NestedGroup[schema.PersistedVariable], error)
+	PersistedSchema(encoder *jbtf.Encoder) (schema.NestedGroup[schema.PersistedVariable], error)
 	RuntimeSchema() (schema.NestedGroup[schema.RuntimeVariable], error)
 }
 
@@ -64,7 +64,7 @@ func (s *system) RuntimeSchema() (schema.NestedGroup[schema.RuntimeVariable], er
 	for name, entry := range s.entries {
 		switch v := entry.(type) {
 		case *systemVariableEntry:
-			variables[name] = v.variable.schema()
+			variables[name] = v.variable.runtimeSchema()
 
 		default:
 			panic(fmt.Errorf("unimplemented system entry: %v", entry))
@@ -77,7 +77,7 @@ func (s *system) RuntimeSchema() (schema.NestedGroup[schema.RuntimeVariable], er
 	}, nil
 }
 
-func (s *system) PersistedSchema() (schema.NestedGroup[schema.PersistedVariable], error) {
+func (s *system) PersistedSchema(encoder *jbtf.Encoder) (schema.NestedGroup[schema.PersistedVariable], error) {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 
@@ -88,7 +88,8 @@ func (s *system) PersistedSchema() (schema.NestedGroup[schema.PersistedVariable]
 		switch v := entry.(type) {
 
 		case *systemVariableEntry:
-			data, err := json.Marshal(v.variable)
+			data, err := v.variable.toPersistantJSON(encoder)
+			// data, err := json.Marshal(v.variable)
 			if err != nil {
 				return schema.NestedGroup[schema.PersistedVariable]{}, err
 			}

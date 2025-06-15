@@ -45,6 +45,8 @@ export interface ElementConfig {
     change$?: Subject<string>;
 
     size?: number;
+
+    src?: string;
 }
 
 export function Element(config: ElementConfig): HTMLElement {
@@ -73,6 +75,11 @@ export function Element(config: ElementConfig): HTMLElement {
 
     if (config.style) {
         Object.assign(newEle.style, config.style);
+    }
+
+    if (config.src) {
+        const img = newEle as HTMLImageElement;
+        img.src = config.src;
     }
 
     if (config.style$) {

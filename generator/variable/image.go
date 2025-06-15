@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"image"
 
+	"github.com/EliCDavis/jbtf"
 	"github.com/EliCDavis/polyform/generator/schema"
 	"github.com/EliCDavis/polyform/nodes"
 
@@ -99,10 +100,40 @@ func (tv *ImageVariable) NodeReference() nodes.Node {
 // 	})
 // }
 
-func (tv ImageVariable) schema() schema.RuntimeVariable {
+func (tv ImageVariable) runtimeSchema() schema.RuntimeVariable {
 	return schema.RuntimeVariable{
 		Description: tv.info.Description(),
 		Type:        "image.Image", // refutil.GetTypeName(tv.value),
 		Value:       tv.value,
 	}
+}
+
+type imageNodeGraphSchema struct {
+	Type  string `json:"type"`
+	Value *jbtf.Png
+}
+
+func (tv ImageVariable) toPersistantJSON(encoder *jbtf.Encoder) ([]byte, error) {
+	schema := imageNodeGraphSchema{
+		Type: "image.Image",
+	}
+
+	if tv.value != nil {
+		schema.Value = &jbtf.Png{
+			Image: tv.value,
+		}
+	}
+
+	return encoder.Marshal(schema)
+}
+
+func (tv *ImageVariable) fromPersistantJSON(decoder jbtf.Decoder, body []byte) error {
+	gn, err := jbtf.Decode[imageNodeGraphSchema](decoder, body)
+	if err != nil {
+		return err
+	}
+	if gn.Value != nil {
+		tv.value = gn.Value.Image
+	}
+	return nil
 }

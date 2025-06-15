@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/EliCDavis/jbtf"
 	"github.com/EliCDavis/polyform/generator/schema"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
@@ -88,7 +89,7 @@ func (tv TypeVariable[T]) MarshalJSON() ([]byte, error) {
 	})
 }
 
-func (tv TypeVariable[T]) schema() schema.RuntimeVariable {
+func (tv TypeVariable[T]) runtimeSchema() schema.RuntimeVariable {
 	var t T
 	return schema.RuntimeVariable{
 		Description: tv.info.Description(),
@@ -96,3 +97,11 @@ func (tv TypeVariable[T]) schema() schema.RuntimeVariable {
 		Value:       tv.value,
 	}
 }
+
+func (tv TypeVariable[T]) toPersistantJSON(encoder *jbtf.Encoder) ([]byte, error) {
+	return json.Marshal(tv)
+}
+
+// func (tv TypeVariable[T]) fromPersistantJSON(decoder jbtf.Decoder, body []byte) error {
+
+// }

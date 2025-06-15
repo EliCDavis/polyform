@@ -7,9 +7,7 @@ import { VariableTypeDropdown } from "./variable_type_dropdown";
 import { Popup } from "./popup";
 
 interface NewVariableParameters {
-    variable: {
-        type: string
-    }
+    type: string
     description: string,
 }
 
@@ -86,9 +84,7 @@ export class NewVariablePopup {
         this.closePopup();
 
         this.newVariable({
-            variable: {
-                type: inputValue(this.type.value, "Float"),
-            },
+            type: inputValue(this.type.value, "Float"),
             description: inputValue(this.description.value, ""),
         });
     }

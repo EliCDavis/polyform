@@ -48,6 +48,17 @@ function bind(obj: any, field: string, mapper: (s: string) => any): Subject<stri
     return x;
 }
 
+function postBinaryEmptyResponse(theUrl: string, body: any, callback): void {
+    const xmlHttp = new XMLHttpRequest();
+    xmlHttp.onreadystatechange = () => {
+        if (xmlHttp.readyState == 4 && xmlHttp.status == 200 && callback) {
+            callback();
+        }
+    }
+    xmlHttp.open("POST", theUrl, true); // true for asynchronous 
+    xmlHttp.send(body);
+}
+
 export class VariableManager {
 
     variableListView: Element;
@@ -103,6 +114,65 @@ export class VariableManager {
             value: `${variable.value}`,
             size: 1,
             classList: ['variable-number-input'],
+        };
+    }
+
+    newImageVariable(key: string, variable: Variable): ElementConfig {
+        const variableTopic = new Subject<string>();
+
+        // variableTopic.pipe(
+        //     map(mapper),
+        //     mergeMap((val) => this.setVariableValue(key, val))
+        // ).subscribe((resp: Response) => {
+        //     console.log(resp);
+        // })
+
+        return {
+            style: {
+                display: "flex",
+                flexDirection:"column",
+                gap: "8px"
+            },
+            children: [
+                {
+                    tag: "img",
+                    src: "./variable/value/" + key,
+                    style: {
+                        maxWidth: "100%"
+                    }
+                },
+                {
+                    tag: "button",
+                    text: "Set Image",
+                    onclick: () => {
+                        const input = document.createElement('input');
+                        input.type = 'file';
+
+                        input.onchange = e => {
+                            const file = (e.target as HTMLInputElement).files[0];
+
+                            const reader = new FileReader();
+                            reader.readAsArrayBuffer(file);
+
+                            reader.onload = readerEvent => {
+                                const content = readerEvent.target.result as string; // this is the content!
+                                postBinaryEmptyResponse("./variable/value/" + key, content, () => {
+                                    location.reload();
+                                })
+                            }
+                        }
+
+                        input.click();
+                    }
+                }
+                // {
+                //     tag: "input",
+                //     // change$: variableTopic,
+                //     value: `${variable.value}`,
+                //     size: 1,
+                //     classList: ['variable-number-input'],
+                // }
+            ]
         };
     }
 
@@ -338,6 +408,7 @@ export class VariableManager {
                 break;
 
             case VariableType.Image:
+                input = this.newImageVariable(key, variable)
                 console.log(variable);
                 break;
 

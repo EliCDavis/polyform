@@ -380,7 +380,7 @@ func (i *Instance) ApplyAppSchema(jsonPayload []byte) error {
 	i.metadata.OverwriteData(appSchema.Metadata)
 	appSchema.Variables.Traverse(func(path string, v schema.PersistedVariable) bool {
 		var varabl variable.Variable
-		varabl, err = variable.DeserializeVariableJSON(v.Data)
+		varabl, err = variable.DeserializePersistantVariableJSON(v.Data, decoder)
 		if err == nil {
 			i.NewVariable(path, varabl)
 
@@ -601,7 +601,7 @@ func (i *Instance) EncodeToAppSchema(appSchema *schema.App, encoder *jbtf.Encode
 		}
 	}
 
-	variableSchema, err := i.variables.PersistedSchema()
+	variableSchema, err := i.variables.PersistedSchema(encoder)
 	if err != nil {
 		panic(err)
 	}

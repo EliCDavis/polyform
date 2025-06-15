@@ -1,6 +1,7 @@
 package variable
 
 import (
+	"github.com/EliCDavis/jbtf"
 	"github.com/EliCDavis/polyform/generator/schema"
 	"github.com/EliCDavis/polyform/nodes"
 )
@@ -14,10 +15,13 @@ type Variable interface {
 	ApplyMessage(msg []byte) (bool, error)
 	ToMessage() []byte
 
-	schema() schema.RuntimeVariable
+	runtimeSchema() schema.RuntimeVariable
 
 	currentValue() any
 	currentVersion() int
+
+	toPersistantJSON(encoder *jbtf.Encoder) ([]byte, error)
+	// fromPersistantJSON(decoder jbtf.Decoder, body []byte) error
 	// Schema() schema.Parameter
 	// InitializeForCLI(set *flag.FlagSet)
 }
