@@ -133,6 +133,10 @@ func (s *system) Move(oldName, newName string) error {
 		return fmt.Errorf("new path can not be empty")
 	}
 
+	if oldName == clean {
+		return nil
+	}
+
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 

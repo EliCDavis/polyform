@@ -19,6 +19,7 @@ export function VariableTypeDropdown(change$: BehaviorSubject<string>): ElementC
             { tag: "option", value: VariableType.Color, text: "Color" },
             { tag: "option", value: VariableType.Float3Array, text: "Float3 Array" },
             { tag: "option", value: VariableType.Image, text: "Image" },
+            { tag: "option", value: VariableType.File, text: "File" },
         ]
     };
 }

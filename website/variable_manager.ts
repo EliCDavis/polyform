@@ -59,6 +59,39 @@ function postBinaryEmptyResponse(theUrl: string, body: any, callback): void {
     xmlHttp.send(body);
 }
 
+function uploadBinaryAsVariableValue(variableKey: string): void {
+    const input = document.createElement('input');
+    input.type = 'file';
+
+    input.onchange = e => {
+        const file = (e.target as HTMLInputElement).files[0];
+
+        const reader = new FileReader();
+        reader.readAsArrayBuffer(file);
+
+        reader.onload = readerEvent => {
+            const content = readerEvent.target.result as string; // this is the content!
+            postBinaryEmptyResponse("./variable/value/" + variableKey, content, () => {
+                location.reload();
+            })
+        }
+    }
+
+    input.click();
+}
+
+function formatFileSize(bytes: number): string {
+    if (bytes === 0) return '0 B';
+
+    const units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
+    const k = 1024;
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    const size = bytes / Math.pow(k, i);
+
+    // Show up to one decimal if needed
+    return `${size.toFixed(size < 10 && i > 0 ? 1 : 0)} ${units[i]}`;
+}
+
 export class VariableManager {
 
     variableListView: Element;
@@ -118,19 +151,10 @@ export class VariableManager {
     }
 
     newImageVariable(key: string, variable: Variable): ElementConfig {
-        const variableTopic = new Subject<string>();
-
-        // variableTopic.pipe(
-        //     map(mapper),
-        //     mergeMap((val) => this.setVariableValue(key, val))
-        // ).subscribe((resp: Response) => {
-        //     console.log(resp);
-        // })
-
         return {
             style: {
                 display: "flex",
-                flexDirection:"column",
+                flexDirection: "column",
                 gap: "8px"
             },
             children: [
@@ -145,33 +169,34 @@ export class VariableManager {
                     tag: "button",
                     text: "Set Image",
                     onclick: () => {
-                        const input = document.createElement('input');
-                        input.type = 'file';
-
-                        input.onchange = e => {
-                            const file = (e.target as HTMLInputElement).files[0];
-
-                            const reader = new FileReader();
-                            reader.readAsArrayBuffer(file);
-
-                            reader.onload = readerEvent => {
-                                const content = readerEvent.target.result as string; // this is the content!
-                                postBinaryEmptyResponse("./variable/value/" + key, content, () => {
-                                    location.reload();
-                                })
-                            }
-                        }
-
-                        input.click();
+                        uploadBinaryAsVariableValue(key);
                     }
                 }
-                // {
-                //     tag: "input",
-                //     // change$: variableTopic,
-                //     value: `${variable.value}`,
-                //     size: 1,
-                //     classList: ['variable-number-input'],
-                // }
+            ]
+        };
+    }
+
+    newFileVariable(key: string, variable: Variable): ElementConfig {
+        return {
+            style: {
+                display: "flex",
+                flexDirection: "column",
+                gap: "8px"
+            },
+            children: [
+                {
+                    text: formatFileSize(variable.value.size),
+                    style: {
+                        maxWidth: "100%"
+                    }
+                },
+                {
+                    tag: "button",
+                    text: "Set File",
+                    onclick: () => {
+                        uploadBinaryAsVariableValue(key);
+                    }
+                }
             ]
         };
     }
@@ -410,6 +435,10 @@ export class VariableManager {
             case VariableType.Image:
                 input = this.newImageVariable(key, variable)
                 console.log(variable);
+                break;
+
+            case VariableType.File:
+                input = this.newFileVariable(key, variable)
                 break;
 
             default:

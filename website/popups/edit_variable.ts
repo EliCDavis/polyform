@@ -91,7 +91,7 @@ export class EditVariablePopup {
 
     saveClicked(): void {
         this.closePopup();
-        if (this.name.value === this.variableKey) {
+        if (this.name.value === this.variableKey && this.description.value === this.variable.description) {
             return;
         }
         this.updateVariable({

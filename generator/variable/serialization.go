@@ -53,6 +53,11 @@ func deserialiseImageVariable(msg []byte, decoder jbtf.Decoder) (Variable, error
 	return iv, iv.fromPersistantJSON(decoder, msg)
 }
 
+func deserialiseFileVariable(msg []byte, decoder jbtf.Decoder) (Variable, error) {
+	iv := &FileVariable{}
+	return iv, iv.fromPersistantJSON(decoder, msg)
+}
+
 type variableSchemaBase struct {
 	Type string `json:"type"`
 }
@@ -101,6 +106,9 @@ func DeserializePersistantVariableJSON(msg []byte, decoder jbtf.Decoder) (Variab
 	case "image.image":
 		return deserialiseImageVariable(msg, decoder)
 
+	case "file":
+		return deserialiseFileVariable(msg, decoder)
+
 	default:
 		return nil, fmt.Errorf("unrecognized variable type: %q", vsb.Type)
 	}
@@ -143,6 +151,9 @@ func CreateVariable(variableType string) (Variable, error) {
 
 	case "image.image":
 		return &ImageVariable{}, nil
+
+	case "file":
+		return &FileVariable{}, nil
 
 	default:
 		return nil, fmt.Errorf("unrecognized variable type: %q", variableType)
