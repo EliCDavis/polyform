@@ -12,6 +12,16 @@ import (
 	"github.com/EliCDavis/polyform/modeling/animation"
 )
 
+// Options configures GLTF export behavior
+type Options struct {
+	// EmbedTextures forces texture images to be embedded as data URIs instead of external file references
+	EmbedTextures bool
+
+	// MinifyJSON produces compact JSON output without indentation when true.
+	// When false (default), JSON is pretty-printed with indentation for readability.
+	MinifyJSON bool
+}
+
 func defaultAsset() Asset {
 	return Asset{
 		Version:   "2.0",
@@ -156,13 +166,26 @@ func flattenSkeletonToNodes(offset int, skeleton animation.Skeleton, out *bytes.
 }
 
 func WriteText(scene PolyformScene, out io.Writer) error {
-	writer, err := NewWriterFromScene(scene)
-	if err != nil {
-		return fmt.Errorf("failed to create writer from scene: %w", err)
+	return WriteTextWithOpts(scene, out, Options{})
+}
+
+func WriteTextWithOpts(scene PolyformScene, out io.Writer, opts Options) error {
+	writer := NewWriter()
+	writer.EmbedTextures = opts.EmbedTextures
+
+	if err := writer.AddScene(scene); err != nil {
+		return fmt.Errorf("failed to add scene to writer: %w", err)
 	}
 
 	outline := writer.ToGLTF(BufferEmbeddingStrategy_Base64Encode)
-	bolB, err := json.MarshalIndent(outline, "", "    ")
+
+	var bolB []byte
+	var err error
+	if opts.MinifyJSON {
+		bolB, err = json.Marshal(outline)
+	} else {
+		bolB, err = json.MarshalIndent(outline, "", "    ")
+	}
 	if err != nil {
 		return fmt.Errorf("failed to marshal JSON: %w", err)
 	}
@@ -174,10 +197,17 @@ func WriteText(scene PolyformScene, out io.Writer) error {
 }
 
 func WriteBinary(scene PolyformScene, out io.Writer) error {
-	writer, err := NewWriterFromScene(scene)
-	if err != nil {
-		return fmt.Errorf("failed to create writer from scene: %w", err)
+	return WriteBinaryWithOpts(scene, out, Options{})
+}
+
+func WriteBinaryWithOpts(scene PolyformScene, out io.Writer, opts Options) error {
+	writer := NewWriter()
+	writer.EmbedTextures = opts.EmbedTextures
+
+	if err := writer.AddScene(scene); err != nil {
+		return fmt.Errorf("failed to add scene to writer: %w", err)
 	}
+
 	if err := writer.WriteGLB(out); err != nil {
 		return fmt.Errorf("failed to write GLB: %w", err)
 	}
