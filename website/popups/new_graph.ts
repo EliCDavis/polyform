@@ -1,23 +1,11 @@
 import { Element, ElementConfig } from "../element";
+import { Popup, PopupButtonType } from "./popup";
 
 interface NewGraphParameters {
     name: string,
     author: string,
     description: string,
     version: string,
-}
-
-const buttonStyle = {
-    "padding": "8px",
-    "border-radius": "8px",
-}
-
-const NewGraphPopupStyle = {
-    "position": "fixed",
-    "top": "20%",
-    "width": "100%",
-    "display": "none",
-    "justify-content": "center",
 }
 
 export class NewGraphPopup {
@@ -45,62 +33,44 @@ export class NewGraphPopup {
 
         const exampleGraph: ElementConfig = {
             children: [
-                { text: "Open Example", style: { marginLeft: "8px", fontWeight: "bold" } },
+                { tag: "h3", text: "Open Example", style: { marginLeft: "8px", fontWeight: "bold" } },
                 { style: { "width": "170px" }, children: exampleButtons }
             ]
         };
 
         const newGraph: ElementConfig = {
             children: [
-                { text: "New", style: { fontWeight: "bold" } },
+                { tag: "h3", text: "New", style: { fontWeight: "bold" } },
 
-                { text: "Graph New" },
+                { text: "Name" },
                 { type: "text", name: "name", change: this.nameChange },
 
-                { text: "Graph Description" },
-                { type: "text", name: "description", change: this.descriptionChange },
+                { text: "Description", style: { marginTop: "8px" } },
+                { tag: "textarea", name: "description", change: this.descriptionChange },
 
-                { text: "Author" },
+                { text: "Author", style: { marginTop: "8px" } },
                 { type: "text", name: "author", change: this.authorChange },
 
-                { text: "Version" },
+                { text: "Version", style: { marginTop: "8px" } },
                 { type: "text", name: "version", change: this.versionChange },
             ]
         }
 
-        const popupContents: ElementConfig = {
-            style: {
-                backgroundColor: "#00000069",
-                backdropFilter: "blur(10px)",
-                padding: "24px",
-                borderRadius: "24px",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-            },
-            children: [
-                {
-                    style: { "display": "flex" },
-                    children: [
-                        newGraph,
-                        { text: "OR", style: { "margin": "80px" } },
-                        exampleGraph,
-                    ]
-                },
 
-                {
-                    style: { marginTop: "20px" },
-                    children: [
-                        { tag: "button", text: "New", style: buttonStyle, onclick: this.newClicked.bind(this) },
-                        { tag: "button", text: "Close", style: buttonStyle, onclick: this.closePopup.bind(this) }
-                    ]
-                }
-            ]
-        };
-
-        this.popup = Element({
-            style: NewGraphPopupStyle,
-            children: [popupContents]
+        this.popup = Popup({
+            title: "New Graph",
+            buttons: [
+                { text: "Close", click: this.closePopup.bind(this) },
+                { text: "New", click: this.newClicked.bind(this), type: PopupButtonType.Primary },
+            ],
+            content: [{
+                style: { "display": "flex" },
+                children: [
+                    newGraph,
+                    { text: "OR", style: { "margin": "80px" } },
+                    exampleGraph,
+                ]
+            }]
         })
 
         document.body.appendChild(this.popup);

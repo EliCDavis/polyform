@@ -17,7 +17,7 @@ import { ViewportSettings } from "./viewport_settings.js";
 import { NewGraphPopup } from './popups/new_graph.js';
 import { BuildFogSettings, BuildRenderingSetting } from "./gui_settings/fog.js";
 import { ArrayBufferToBase64, Compress, CopyToClipboard } from "./utils.js";
-import { VariableManager } from "./variable_manager.js";
+import { VariableManager } from "./variables/variable_manager.js";
 
 
 const graphPopup = new NewGraphPopup(globalThis.ExampleGraphs);
@@ -87,7 +87,7 @@ requestManager.getNodeTypes((nodeTypes) => {
         nodeTypes
     );
     const schemaManager = new SchemaManager(requestManager, nodeManager, noteManager, graphPopup);
-    new VariableManager(document.getElementById("sidebar-content"), schemaManager, nodeManager, flowGraphStuff.PolyformNodesPublisher);
+    new VariableManager(document.getElementById("sidebar-content"), schemaManager, nodeManager, flowGraphStuff.PolyformNodesPublisher, threeApp);
 
     nodeManager.subscribeToParameterChange((param) => {
         schemaManager.setParameter(param.id, param.data, param.binary);

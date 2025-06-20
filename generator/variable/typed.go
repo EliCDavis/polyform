@@ -102,6 +102,18 @@ func (tv TypeVariable[T]) toPersistantJSON(encoder *jbtf.Encoder) ([]byte, error
 	return json.Marshal(tv)
 }
 
-// func (tv TypeVariable[T]) fromPersistantJSON(decoder jbtf.Decoder, body []byte) error {
+type typedVariableSchema[T any] struct {
+	variableSchemaBase
+	Value T             `json:"value"`
+	CLI   *cliConfig[T] `json:"cli,omitempty"`
+}
 
-// }
+func (tv *TypeVariable[T]) fromPersistantJSON(decoder jbtf.Decoder, body []byte) error {
+	vsb := &typedVariableSchema[T]{}
+	err := json.Unmarshal(body, vsb)
+	if err != nil {
+		return err
+	}
+	tv.value = vsb.Value
+	return nil
+}

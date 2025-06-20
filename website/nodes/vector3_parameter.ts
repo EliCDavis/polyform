@@ -3,20 +3,19 @@ import { NodeManager } from '../node_manager';
 import { Group } from 'three';
 import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
 import { ThreeApp } from '../three_app';
+import { TransformGizmo } from '../gizmo.ts/transform';
 
 export class Vector3ParameterNodeController {
-    
+
     id: string;
 
     flowNode: FlowNode;
 
     nodeManager: NodeManager;
 
-    mesh: Group;
-    
-    updating: boolean;
+    gizmo: TransformGizmo;
 
-    app: ThreeApp;
+    updating: boolean;
 
     constructor(
         flowNode: FlowNode,
@@ -30,59 +29,45 @@ export class Vector3ParameterNodeController {
         this.flowNode = flowNode;
         this.updating = false;
 
-        const control = new TransformControls(app.Camera, app.Renderer.domElement);
-        control.setMode('translate');
-        control.setSpace("local");
-
-        this.mesh = new Group();
-
-        control.addEventListener('dragging-changed', (event) => {
-            app.OrbitControls.enabled = !event.value;
-
-            if (!app.OrbitControls.enabled) {
-                return;
+        const curVal = parameterData.currentValue;
+        this.gizmo = new TransformGizmo({
+            camera: app.Camera,
+            domElement: app.Renderer.domElement,
+            orbitControls: app.OrbitControls,
+            parent: app.ViewerScene,
+            scene: app.Scene,
+            initialPosition: {
+                x: curVal.x,
+                y: curVal.x,
+                z: curVal.x
             }
+        })
 
+        this.gizmo.position$().subscribe(position => {
             nodeManager.nodeParameterChanged({
                 id: id,
                 data: {
-                    x: this.mesh.position.x,
-                    y: this.mesh.position.y,
-                    z: this.mesh.position.z,
+                    x: position.x,
+                    y: position.y,
+                    z: position.z,
                 },
                 binary: false
             });
-        });
+        })
 
-        app.ViewerScene.add(this.mesh);
-
-
-        const curVal = parameterData.currentValue;
         this.flowNode.setProperty("x", curVal.x);
         this.flowNode.setProperty("y", curVal.y);
         this.flowNode.setProperty("z", curVal.z);
-        this.mesh.position.set(curVal.x, curVal.y, curVal.z);
 
-        const helper = control.getHelper();
-        app.Scene.add(helper)
-        control.attach(this.mesh);
 
         this.flowNode.setTitle(parameterData.name);
 
-        helper.visible = false;
-        // helper.enabled = false;
-        control.enabled = false;
-
         this.flowNode.addSelectListener(() => {
-            helper.visible = true;
-            // helper.enabled = true;
-            control.enabled = true;
+            this.gizmo.setEnabled(true);
         });
 
         this.flowNode.addUnselectListener(() => {
-            helper.visible = false;
-            // helper.enabled = false;
-            control.enabled = false;
+            this.gizmo.setEnabled(false);
         });
 
         this.flowNode.addPropertyChangeListener("x", this.propertyChange.bind(this));
@@ -108,7 +93,7 @@ export class Vector3ParameterNodeController {
     update(parameterData) {
         this.updating = true;
         const curVal = parameterData.currentValue;
-        this.mesh.position.set(curVal.x, curVal.y, curVal.z);
+        this.gizmo.setPosition(curVal.x, curVal.y, curVal.z)
         this.flowNode.setProperty("x", curVal.x);
         this.flowNode.setProperty("y", curVal.y);
         this.flowNode.setProperty("z", curVal.z);

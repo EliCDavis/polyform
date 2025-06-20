@@ -21,6 +21,7 @@ type Variable interface {
 	currentVersion() int
 
 	toPersistantJSON(encoder *jbtf.Encoder) ([]byte, error)
+	fromPersistantJSON(decoder jbtf.Decoder, body []byte) error
 	// fromPersistantJSON(decoder jbtf.Decoder, body []byte) error
 	// Schema() schema.Parameter
 	// InitializeForCLI(set *flag.FlagSet)

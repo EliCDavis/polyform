@@ -1,5 +1,5 @@
 import { BehaviorSubject, map } from "rxjs";
-import { ElementConfig } from "./element";
+import { ElementConfig } from "../element";
 
 export interface DropdownMenuItem {
     text: string;

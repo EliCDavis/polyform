@@ -1,19 +1,14 @@
 import { BehaviorSubject } from "rxjs";
 import { SchemaManager } from "../schema_manager";
-import { VariableType } from "../variable_type";
+import { VariableType } from "../variables/variable_type";
 import { NodeManager } from "../node_manager";
 import { CreateVariableResponse } from "../schema";
 import { VariableTypeDropdown } from "./variable_type_dropdown";
-import { Popup } from "./popup";
+import { Popup, PopupButtonType } from "./popup";
 
 interface NewVariableParameters {
     type: string
     description: string,
-}
-
-const buttonStyle = {
-    "padding": "8px",
-    "border-radius": "8px",
 }
 
 function inputValue(value: string | undefined, fallback: string): string {
@@ -39,35 +34,29 @@ export class NewVariablePopup {
         this.type = new BehaviorSubject<string>(VariableType.Float);
         this.description = new BehaviorSubject<string>("");
 
-        this.popup = Popup([
-            {
+        this.popup = Popup({
+            title: "New Variable",
+            content: [{
                 style: {
                     display: "flex",
-                    flexDirection: "column"
+                    flexDirection: "column",
                 },
                 children: [
-                    {
-                        text: "New Variable", style: { fontWeight: "bold" }
-                    },
-
                     { text: "Name" },
                     { type: "text", name: "name", change$: this.name, value: "New Variable" },
 
-                    { text: "Description" },
-                    { type: "text", name: "description", change$: this.description },
+                    { text: "Description", style: { marginTop: "16px" } },
+                    { tag: "textarea", type: "text", name: "description", change$: this.description },
 
-                    { text: "Type" },
+                    { text: "Type", style: { marginTop: "16px" } },
                     VariableTypeDropdown(this.type),
                 ]
-            },
-            {
-                style: { marginTop: "20px" },
-                children: [
-                    { tag: "button", text: "Create", style: buttonStyle, onclick: this.newClicked.bind(this) },
-                    { tag: "button", text: "Close", style: buttonStyle, onclick: this.closePopup.bind(this) }
-                ]
-            }
-        ]);
+            }],
+            buttons: [
+                { text: "Close", click: this.closePopup.bind(this) },
+                { text: "Create", click: this.newClicked.bind(this), type: PopupButtonType.Primary },
+            ]
+        });
 
         document.body.appendChild(this.popup);
     }

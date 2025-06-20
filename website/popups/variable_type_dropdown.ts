@@ -1,6 +1,6 @@
 import { BehaviorSubject } from "rxjs";
 import { ElementConfig } from "../element";
-import { VariableType } from "../variable_type";
+import { VariableType } from "../variables/variable_type";
 
 export function VariableTypeDropdown(change$: BehaviorSubject<string>): ElementConfig {
     return {

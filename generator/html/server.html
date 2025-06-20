@@ -126,17 +126,6 @@
             background: rgba(0, 0, 0, 0.7);
         }
 
-        #overlay button {
-            background: transparent;
-            border: 0;
-            border: 1px solid rgb(255, 255, 255);
-            border-radius: 4px;
-            color: #ffffff;
-            padding: 12px 18px;
-            text-transform: uppercase;
-            cursor: pointer;
-        }
-
         #notSupported {
             width: 50%;
             margin: auto;
@@ -196,6 +185,14 @@
             cursor: pointer;
         }
 
+        .example-graph-item:nth-child(odd) { 
+            background-color: #0a2e3d;
+        }
+
+        .example-graph-item:nth-child(odd):hover { 
+            background-color: rgba(255, 255, 255, 0.496);
+        }
+
         #three-canvas:focus {
             outline: none !important;
             box-shadow: none;
@@ -235,11 +232,11 @@
             scrollbar-width: thin;
         }
 
-        #sidebar button {
+        button {
             border: 0;
             background-color: #196E6C;
             color: white;
-            padding: 6px;
+            padding: 6px 14px;
             border-radius: 2px;
             text-transform: none;
         }
@@ -279,7 +276,7 @@
             color: #d8d8d8;
         }
 
-        .variable-number-input {
+        input {
             border-style: solid;
             padding: 2px;
             padding-left: 4px;
@@ -294,18 +291,25 @@
             flex-basis: 0;
         }
 
-        .variable-number-input::-webkit-outer-spin-button,
-        .variable-number-input::-webkit-inner-spin-button {
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
             -webkit-appearance: none;
             margin: 0;
         }
 
         /* Firefox */
-        .variable-number-input[type=number] {
+        input[type=number] {
             -moz-appearance: textfield;
         }
 
-        #sidebar button.icon-button {
+        textarea,
+        select {
+            color: #ffffff;
+            background-color: #0a2e3d;
+            border-color: #003847;
+        }
+
+        button.icon-button {
             background-color: unset;
             width: 24px;
             padding: 0;
@@ -313,16 +317,72 @@
             height: 24px;
         }
 
-        #sidebar button.icon-button:hover {
+        button.icon-button:hover {
             background-color: rgba(0, 0, 0, 0.25);
         }
 
-        #sidebar button.dropdown-item {
+        button.dropdown-item {
             background-color: unset;
         }
 
-        #sidebar button.dropdown-item:hover {
+        button.dropdown-item:hover {
             background-color: #122a34;
+        }
+
+        button.toggle {
+            width: 50px;
+            padding: 3px;
+            border-radius: 28px;
+            border-color: #003847;
+            background-color: #0a2e3d;
+            display: flex;
+            flex-direction: row;
+            border-style: solid;
+            border-width: 2px;
+        }
+
+        .toggle>.toggle-slider {
+            height: 20px;
+            width: 20px;
+            background-color: #003847;
+            border-radius: 20px;
+        }
+
+        button.secondary {
+            background-color: #122a34;
+        }
+
+        button.destructive {
+            background-color: #7f1d1d;
+        }
+
+        .popup {
+            background-color: rgba(0, 56, 71, 0.90);
+            backdrop-filter: blur(10px);
+            padding: 24px;
+            border-radius: 24px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 400px;
+        }
+
+        .popup input {
+            padding: 8px;
+            border: 0;
+            width: 100%;
+        }
+
+        .popup textarea {
+            padding: 8px;
+            border: 0;
+            width: 100%;
+        }
+
+        .popup select {
+            padding: 8px;
+            border: 0;
+            width: 100%;
         }
     </style>
 

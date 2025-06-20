@@ -2,17 +2,14 @@ import { BehaviorSubject } from "rxjs";
 import { SchemaManager } from "../schema_manager";
 import { GeneratorVariablePublisherPath, NodeManager } from "../node_manager";
 import { CreateVariableResponse, Variable } from "../schema";
-import { Popup } from "./popup";
+import { Popup, PopupButtonType } from "./popup";
 
 interface EditVariableParameters {
     name: string,
     description: string,
 }
 
-const buttonStyle = {
-    "padding": "8px",
-    "border-radius": "8px",
-}
+
 
 export class EditVariablePopup {
 
@@ -26,11 +23,8 @@ export class EditVariablePopup {
 
     variable: Variable;
 
-    nodeManager: NodeManager;
 
     constructor(
-        private schemaManager: SchemaManager,
-        nodeManager: NodeManager,
         variableKey: string,
         variable: Variable
     ) {
@@ -38,45 +32,41 @@ export class EditVariablePopup {
         this.variable = variable;
 
         this.name = new BehaviorSubject<string>(variableKey);
-        this.nodeManager = nodeManager;
         this.description = new BehaviorSubject<string>(variable.description);
 
-        this.popup = Popup([
-            {
+        this.popup = Popup({
+            title: "Edit Variable",
+            buttons: [
+                { text: "Cancel", click: this.closePopup.bind(this) },
+                { text: "Save", click: this.saveClicked.bind(this), type: PopupButtonType.Primary },
+            ],
+            content: [{
                 style: {
                     display: "flex",
-                    flexDirection: "column"
+                    flexDirection: "column",
+                    width: "400px"
                 },
                 children: [
-                    {
-                        text: "Edit Variable", style: { fontWeight: "bold" }
-                    },
-
                     { text: "Name" },
                     {
                         type: "text",
                         name: "name",
+                        style: {flex: "1"},
                         value: variableKey,
                         change$: this.name
                     },
 
-                    { text: "Description" },
+                    { text: "Description", style: { marginTop: "16px" } },
                     {
+                        tag: "textarea",
                         type: "text",
                         name: "description",
                         value: variable.description,
                         change$: this.description
                     },
                 ]
-            },
-            {
-                style: { marginTop: "20px" },
-                children: [
-                    { tag: "button", text: "Save", style: buttonStyle, onclick: this.saveClicked.bind(this) },
-                    { tag: "button", text: "Cancel", style: buttonStyle, onclick: this.closePopup.bind(this) }
-                ]
-            }
-        ]);
+            }]
+        });
 
         document.body.appendChild(this.popup);
     }

@@ -15,8 +15,10 @@ export interface ElementConfig {
     style$?: Observable<Partial<CSSStyleDeclaration>>;
 
     text?: string;
+    text$?: Observable<string>;
 
     children?: Array<ElementConfig>
+    children$?: Observable<Array<ElementConfig>>
 
     onclick?: (this: GlobalEventHandlers, ev: MouseEvent) => any;
 
@@ -37,6 +39,7 @@ export interface ElementConfig {
     type?: HTMLInputTypeAttribute;
 
     value?: string
+    value$?: Observable<string>
 
     step?: string,
 
@@ -47,6 +50,17 @@ export interface ElementConfig {
     size?: number;
 
     src?: string;
+}
+
+function replaceChildren(ele: HTMLElement, children: Array<ElementConfig>): void {
+    const instantiatedChildren = new Array<HTMLElement>();
+    for (let i = 0; i < children.length; i++) {
+        if (!children[i]) {
+            continue;
+        }
+        instantiatedChildren.push(Element(children[i]))
+    }
+    ele.replaceChildren(...instantiatedChildren);
 }
 
 export function Element(config: ElementConfig): HTMLElement {
@@ -73,6 +87,12 @@ export function Element(config: ElementConfig): HTMLElement {
         newEle.textContent = config.text;
     }
 
+    if (config.text$) {
+        config.text$.subscribe(text => {
+            newEle.textContent = text;
+        })
+    }
+
     if (config.style) {
         Object.assign(newEle.style, config.style);
     }
@@ -89,14 +109,13 @@ export function Element(config: ElementConfig): HTMLElement {
     }
 
     if (config.children) {
-        const instantiatedChildren = new Array<HTMLElement>();
-        for (let i = 0; i < config.children.length; i++) {
-            if (!config.children) {
-                continue;
-            }
-            instantiatedChildren.push(Element(config.children[i]))
-        }
-        newEle.replaceChildren(...instantiatedChildren);
+        replaceChildren(newEle, config.children);
+    }
+
+    if (config.children$) {
+        config.children$.subscribe((newChildren) => {
+            replaceChildren(newEle, newChildren);
+        });
     }
 
     if (config.name) {
@@ -121,6 +140,23 @@ export function Element(config: ElementConfig): HTMLElement {
         if (config.type === "checkbox") {
             inputEle.checked = config.value === "true";
         }
+    }
+
+    if (config.value$) {
+        const inputEle = newEle as HTMLInputElement
+        config.value$.subscribe(newVal => {
+
+            // Prevent change event from being raised when no change has occurred
+            if (inputEle.value === newVal) {
+                return;
+            }
+
+            inputEle.value = newVal;
+
+            if (config.type === "checkbox") {
+                inputEle.checked = newVal === "true";
+            }
+        })
     }
 
     if (config.step) {
