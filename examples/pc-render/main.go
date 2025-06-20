@@ -294,7 +294,7 @@ func loadMesh() (*modeling.Mesh, error) {
 		return nil, err
 	}
 
-	models, err := gltf.ExperimentalDecodeModels(doc, buffs)
+	models, err := gltf.ExperimentalDecodeModels(doc, buffs, "C:/Users/elida/Downloads/")
 	if err != nil {
 		return nil, err
 	}
