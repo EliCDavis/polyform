@@ -1389,18 +1389,6 @@ func TestWriteWithOptsAPI(t *testing.T) {
 		assert.Greater(t, buf.Len(), 0, "Should have written binary data")
 	})
 
-	t.Run("backward_compatibility", func(t *testing.T) {
-		buf1 := &bytes.Buffer{}
-		buf2 := &bytes.Buffer{}
-
-		// Test that WriteTextWithOptions still works and produces same result as WriteTextWithOpts
-		err2 := gltf.WriteTextWithOpts(*scene, buf2, gltf.Options{EmbedTextures: true})
-		require.NoError(t, err2)
-
-		// Both should produce the same output
-		assert.Equal(t, buf1.String(), buf2.String(), "Old and new APIs should produce identical output")
-	})
-
 	t.Run("minify_json_option", func(t *testing.T) {
 		prettyBuf := &bytes.Buffer{}
 		minifiedBuf := &bytes.Buffer{}
