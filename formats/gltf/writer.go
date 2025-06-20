@@ -828,6 +828,9 @@ func (w *Writer) AddMaterial(mat *PolyformMaterial) (*int, error) {
 			Strength:    mat.OcclusionTexture.Strength,
 		}
 	}
+	if mat.EmissiveTexture != nil {
+		m.EmissiveTexture = w.AddTexture(mat.EmissiveTexture)
+	}
 
 	w.materials = append(w.materials, m)
 	index := len(w.materials) - 1
