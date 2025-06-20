@@ -54,6 +54,9 @@ type Writer struct {
 
 	extensionsUsed     map[string]bool
 	extensionsRequired map[string]bool
+	
+	// EmbedTextures forces texture images to be embedded as data URIs instead of external file references
+	EmbedTextures bool
 }
 
 func NewWriter() *Writer {
@@ -368,6 +371,17 @@ func (w *Writer) writeImageAsPng(image image.Image) (int, error) {
 	return bufferViewIndex, nil
 }
 
+func (w *Writer) imageToDataURI(img image.Image) (string, error) {
+	buf := &bytes.Buffer{}
+	err := png.Encode(buf, img)
+	if err != nil {
+		return "", err
+	}
+	
+	encoded := base64.StdEncoding.EncodeToString(buf.Bytes())
+	return "data:image/png;base64," + encoded, nil
+}
+
 func rgbaToFloatArr(c color.Color) [4]float64 {
 	r, g, b, a := c.RGBA()
 	return [4]float64{
@@ -680,7 +694,25 @@ func (w *Writer) AddTexture(polyTex *PolyformTexture) *TextureInfo {
 	newTex := Texture{Extensions: texExt}
 
 	imageIndex := len(w.images)
-	if polyTex.URI != "" { // check if an image with this URI was already added before
+	
+	// If EmbedTextures is enabled and we have image data, prioritize embedding over URI
+	if w.EmbedTextures && polyTex.Image != nil {
+		foundIndex, ok := w.embededImageIndices[polyTex.Image]
+		if ok {
+			imageIndex = foundIndex
+		} else {
+			// Encode image as data URI instead of writing to buffer
+			dataURI, err := w.imageToDataURI(polyTex.Image)
+			if err != nil {
+				panic(err)
+			}
+
+			w.images = append(w.images, Image{
+				URI: dataURI,
+			})
+			w.embededImageIndices[polyTex.Image] = imageIndex
+		}
+	} else if polyTex.URI != "" { // check if an image with this URI was already added before
 		var imageFound bool
 		for i, im := range w.images {
 			if im.URI == polyTex.URI {

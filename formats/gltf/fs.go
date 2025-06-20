@@ -34,9 +34,23 @@ func SaveText(gltfPath string, scene PolyformScene) error {
 	return save(gltfPath, scene, WriteText)
 }
 
+// SaveTextWithOpts writes the mesh to the path specified in GLTF format with the provided options
+func SaveTextWithOpts(gltfPath string, scene PolyformScene, opts Options) error {
+	return save(gltfPath, scene, func(scene PolyformScene, out io.Writer) error {
+		return WriteTextWithOpts(scene, out, opts)
+	})
+}
+
 // SaveBinary writes the mesh to the path specified in GLB format
 func SaveBinary(gltfPath string, scene PolyformScene) error {
 	return save(gltfPath, scene, WriteBinary)
+}
+
+// SaveBinaryWithOpts writes the mesh to the path specified in GLB format with the provided options
+func SaveBinaryWithOpts(gltfPath string, scene PolyformScene, opts Options) error {
+	return save(gltfPath, scene, func(scene PolyformScene, out io.Writer) error {
+		return WriteBinaryWithOpts(scene, out, opts)
+	})
 }
 
 // Save writes the mesh to the path in the format dictated by the extension in

@@ -59,7 +59,6 @@ type PolyformMaterial struct {
 	Extensions           []MaterialExtension
 	NormalTexture        *PolyformNormal
 	OcclusionTexture     *PolyformOcclusion
-	EmissiveTexture      *PolyformTexture
 	EmissiveFactor       color.Color
 }
 
@@ -138,9 +137,6 @@ func (pm *PolyformMaterial) equal(other *PolyformMaterial) bool {
 		return false
 	}
 	if !pm.PbrMetallicRoughness.equal(other.PbrMetallicRoughness) {
-		return false
-	}
-	if !pm.EmissiveTexture.equal(other.EmissiveTexture) {
 		return false
 	}
 	if !colorsEqual(pm.EmissiveFactor, other.EmissiveFactor) {
