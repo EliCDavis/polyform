@@ -4,7 +4,7 @@ import { inputContainerStyle, LabledField, setVariableValue } from "./variable_m
 import { SchemaManager } from "../schema_manager";
 import { NodeManager } from "../node_manager";
 import { ElementConfig } from "../element";
-import { TransformGizmo } from "../gizmo.ts/transform";
+import { TransformGizmo } from "../gizmo/transform";
 import { ThreeApp } from "../three_app";
 import { Toggle } from "../components/toggle";
 import { VariableElement } from "./variable";

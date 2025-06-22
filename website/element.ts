@@ -2,6 +2,10 @@ import { Observable, Subject } from "rxjs";
 
 export type HTMLInputTypeAttribute = "button" | "checkbox" | "color" | "date" | "datetime-local" | "email" | "file" | "hidden" | "image" | "month" | "number" | "password" | "radio" | "range" | "reset" | "search" | "submit" | "tel" | "text" | "time" | "url" | "week";
 
+export interface IChildrenManager {
+    setContainer(container: HTMLElement);
+}
+
 export interface ElementConfig {
     /**
      * Defaults to `div` if unset
@@ -19,6 +23,7 @@ export interface ElementConfig {
 
     children?: Array<ElementConfig>
     children$?: Observable<Array<ElementConfig>>
+    childrenManager?: IChildrenManager
 
     onclick?: (this: GlobalEventHandlers, ev: MouseEvent) => any;
 
@@ -116,6 +121,10 @@ export function Element(config: ElementConfig): HTMLElement {
         config.children$.subscribe((newChildren) => {
             replaceChildren(newEle, newChildren);
         });
+    }
+
+    if (config.childrenManager) {
+        config.childrenManager.setContainer(newEle);
     }
 
     if (config.name) {

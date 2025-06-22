@@ -6,6 +6,7 @@ import { NodeManager } from "../node_manager";
 import { ElementConfig } from "../element";
 import { ThreeApp } from "../three_app";
 import { VariableElement } from "./variable";
+import { ElementInstance } from "./element_instance";
 
 
 function bind(obj: any, field: string, mapper: (s: string) => any): Subject<string> {
@@ -15,6 +16,57 @@ function bind(obj: any, field: string, mapper: (s: string) => any): Subject<stri
     })
     return x;
 }
+
+interface Vector3 { x: number, y: number, z: number }
+
+// class Vector3Element extends ElementInstance<Vector3> {
+
+//     vector: Vector3;
+
+//     constructor(vector: Vector3) {
+//         super();
+//         this.vector = vector;
+//     }
+
+//     set(data: Vector3): void {
+//         throw new Error("Method not implemented.");
+//     }
+
+//     onDestroy(): void {
+//         throw new Error("Method not implemented.");
+//     }
+
+//     build(): ElementConfig {
+//         return {
+//             children: [
+//                 {
+//                     style: {
+//                         display: "flex",
+//                         flexDirection: "column"
+//                     },
+//                     children: [
+//                         this.label("X:", x, `${data[i].x}`),
+//                         this.label("Y:", y, `${data[i].y}`),
+//                         this.label("Z:", z, `${data[i].z}`),
+//                     ]
+//                 },
+//                 {
+//                     tag: "button",
+//                     text: "Delete",
+//                     onclick: () => {
+//                         data.splice(i, 1);
+//                         setVariableValue(this.key, data).subscribe();
+//                     }
+//                 }
+//             ]
+//         }
+//     }
+
+//     label(name: string, change: Subject<string>, value: string): ElementConfig {
+//         return LabledField(name, { tag: "input", change$: change, type: "number", size: 1, classList: ['variable-number-input'], value: value, step: this.step })
+//     }
+
+// }
 
 export class Vector3ArrayVariableElement extends VariableElement {
 

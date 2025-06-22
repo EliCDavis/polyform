@@ -26,8 +26,8 @@ export abstract class ElementInstance<T> implements IElementInstance<T> {
     }
 
     abstract set(data: T): void;
-    abstract onDestroy(): void;
-    abstract build(): ElementConfig;
+    protected abstract onDestroy(): void;
+    protected abstract build(): ElementConfig;
 
     addSubscription(subscription: Subscription): void {
         this.subscriptions.push(subscription);

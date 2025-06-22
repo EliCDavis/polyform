@@ -277,6 +277,8 @@ Resources either directly contributing to the code, or are just interesting find
     - [_"Parallel Weighted Random Sampling"_ Lorenz Hübschle-Schneider Peter Sanders](https://dl.acm.org/doi/10.1145/3549934)
     - [C# Sample Implementation](https://github.com/cdanek/KaimiraWeightedList)
     - [Go Sample Implementation](https://github.com/minaguib/weightedrandom)
+  - Temperature
+    - [_"Fiddling Weights with Temperature"_ by Boris the Brave](https://www.boristhebrave.com/2025/05/07/fiddling-weights-with-temperature/)
   - Triangle
     - [Evenly Distributing Points in a Triangle](https://extremelearning.com.au/evenly-distributing-points-in-a-triangle/)
     - [_"A Low-Distortion Map Between Triangle and Square"_ by Eric Heitz](https://drive.google.com/file/d/1J-183vt4BrN9wmqItECIjjLIKwm29qSg/view)

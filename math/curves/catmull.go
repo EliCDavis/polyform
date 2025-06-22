@@ -324,7 +324,8 @@ func (crc *CatmullRomSpline) At(distance float64) vector3.Float64 {
 		return crc.curves[0].Time(0)
 	}
 
-	if distance >= crc.Length() {
+	splineLength := crc.Length()
+	if distance >= splineLength {
 		return crc.curves[len(crc.curves)-1].Time(1)
 	}
 
@@ -339,7 +340,10 @@ func (crc *CatmullRomSpline) At(distance float64) vector3.Float64 {
 	}
 
 	if curveToEvaluation == nil {
-		panic("we got a nil curve!!!")
+		// Sometimes, due to floating point error, we can get into a spot where we land
+		// just between the sum of curves and the different of curves. Just assume we're
+		// at the end
+		return crc.curves[len(crc.curves)-1].Time(1)
 	}
 
 	return curveToEvaluation.Distance(remainingDistance)

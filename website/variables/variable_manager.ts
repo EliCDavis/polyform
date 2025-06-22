@@ -3,11 +3,11 @@ import { NewVariablePopup } from "../popups/new_variable";
 import { GraphInstance, Variable } from "../schema";
 import { SchemaManager } from "../schema_manager";
 import { VariableType } from './variable_type';
-import { Observable, Subject } from "rxjs";
+import { map, Observable, Subject } from "rxjs";
 import { NodeManager } from '../node_manager';
 import { Publisher } from '@elicdavis/node-flow';
 import { ThreeApp } from '../three_app';
-import { ElementManager } from './element_manager';
+import { ElementList, ListItemEntry as ListItem } from './element_manager';
 import { BasicVariableElement } from './basic_variable';
 import { Vector2VariableElement } from './vector2';
 import { Vector3VariableElement } from './vector3';
@@ -83,11 +83,7 @@ export function setVariableValue(variable: string, value: any): Observable<Respo
     return post$("./variable/value/" + variable, JSON.stringify(value))
 }
 
-
-
 export class VariableManager {
-
-    variableListView: Element;
 
     nodeManager: NodeManager;
 
@@ -97,7 +93,7 @@ export class VariableManager {
 
     app: ThreeApp;
 
-    elementManager: ElementManager<Variable>;
+    elementManager: ElementList<Variable>;
 
     constructor(parent: HTMLElement, schemaManager: SchemaManager, nodeManager: NodeManager, publisher: Publisher, app: ThreeApp) {
         this.nodeManager = nodeManager;
@@ -107,22 +103,32 @@ export class VariableManager {
 
         const newVariableButton = parent.querySelector("#new-variable")
         // const newFolderButton = parent.querySelector("#new-folder")
-        this.variableListView = parent.querySelector("#variable-list")
-
+        
         newVariableButton.addEventListener('click', (event) => {
             const popup = new NewVariablePopup(schemaManager, this.nodeManager);
             popup.show();
         });
-
-        schemaManager.subscribe(this.newSchemaInstance.bind(this));
-
-        this.elementManager = new ElementManager<Variable>(this.variableListView, (a, b) => {
-            return this.newVariable(a, b)
-        });
-    }
-
-    newSchemaInstance(graphInstance: GraphInstance): void {
-        this.elementManager.set(graphInstance.variables.variables);
+        
+        this.elementManager = new ElementList<Variable>(
+            schemaManager.instance$().pipe(map((graph) => {
+                const items = Array<ListItem<Variable>>();
+                for (const key in graph.variables.variables) {
+                    items.push({
+                        key: key,
+                        data: graph.variables.variables[key],
+                    })
+                }
+                return items;
+            })),
+            (a, b) => {
+                return this.newVariable(a, b)
+            }
+        );
+        
+        const variableListView = parent.querySelector("#variable-list")
+        variableListView.append(Element({
+            childrenManager: this.elementManager,
+        }));
     }
 
     newVariable(key: string, variable: Variable): VariableElement {

@@ -50,7 +50,7 @@ func (ms MeshSurface) TRS() []trs.TRS {
 	}
 
 	r := rand.New(rand.NewPCG(uint64(time.Now().UnixNano()), uint64(time.Now().UnixNano())))
-	list := bias.NewSeededList(items, r)
+	list := bias.NewList(items, bias.ListConfig{Seed: r})
 
 	samplesPerTri := make([]int, triCount)
 	for range ms.Samples {

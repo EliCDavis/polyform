@@ -1,32 +1,56 @@
+import { Observable } from "rxjs";
+import { IChildrenManager } from "../element";
 import { IElementInstance } from "./element_instance";
 
-export class ElementManager<T> {
+export interface ListItemEntry<T> {
+    key: string;
+    data: T
+}
+
+export class ElementList<T> implements IChildrenManager {
 
     // CONFIG =================================================================
     builder: (key: string, t: T) => IElementInstance<T>;
-    container: Element;
 
     // RUNTIME ================================================================
+    container: Element;
     built: Map<string, IElementInstance<T>>;
+    cached: Array<ListItemEntry<T>>;
 
-    constructor(container: Element, builder: (key: string, t: T) => IElementInstance<T>) {
-        this.container = container;
+    constructor(data$: Observable<Array<ListItemEntry<T>>>, builder: (key: string, t: T) => IElementInstance<T>) {
         this.builder = builder;
         this.built = new Map<string, IElementInstance<T>>();
+        data$.subscribe((data) => {
+            if (this.container) {
+                this.set(data);
+            } else {
+                this.cached = data;
+            }
+        })
     }
 
-    set(data: { [key: string]: T }): void {
+    setContainer(container: HTMLElement) {
+        this.container = container;
+        if (this.cached) {
+            this.set(this.cached)
+        }
+    }
+
+    private set(data: Array<ListItemEntry<T>>): void {
+
+        // TODO: Figure out how re-ordering should behave
+
         const keep = new Map<string, boolean>();
-        let i = -1;
-        for (const key in data) {
+        for (let i = 0; i < data.length; i++) {
+            const entry = data[i];
+            const key = entry.key;
             keep.set(key, true);
-            i++;
             if (this.built.has(key)) {
-                this.built.get(key).set(data[key]);
+                this.built.get(key).set(entry.data);
                 continue;
             }
 
-            const instance = this.builder(key, data[key]);
+            const instance = this.builder(key, entry.data);
             this.built.set(key, instance);
             if (i === 0) {
                 this.container.append(instance.element());

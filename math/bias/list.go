@@ -2,6 +2,7 @@ package bias
 
 import (
 	"errors"
+	"math"
 	"math/rand/v2"
 	"time"
 )
@@ -41,17 +42,29 @@ func unzipAndAverage[T any](items []ListItem[T]) ([]float64, []T, float64) {
 	return weight, vals, sum / float64(len(items))
 }
 
-func NewList[T any](items []ListItem[T]) *List[T] {
-	// TODO: Find a better seed
-	return NewSeededList(items, rand.New(rand.NewPCG(uint64(time.Now().UnixNano()), uint64(time.Now().UnixNano()))))
+type ListConfig struct {
+	Seed        *rand.Rand
+	Temperature *float64
 }
 
-func NewSeededList[T any](items []ListItem[T], seed *rand.Rand) *List[T] {
+func NewList[T any](dirtyItems []ListItem[T], config ListConfig) *List[T] {
+
+	temp := 1.
+	if config.Temperature != nil {
+		temp = *config.Temperature
+	}
+
+	items := rewight(dirtyItems, temp)
 
 	n := len(items)
 
 	if n == 0 {
 		panic(errors.New("No items provided"))
+	}
+
+	var seed *rand.Rand = config.Seed
+	if seed == nil {
+		seed = rand.New(rand.NewPCG(uint64(time.Now().UnixNano()), uint64(time.Now().UnixNano())))
 	}
 
 	weights, vals, average := unzipAndAverage(items)
@@ -100,4 +113,119 @@ func NewSeededList[T any](items []ListItem[T], seed *rand.Rand) *List[T] {
 	}
 
 	return wr
+}
+
+func rewight[T any](items []ListItem[T], temperature float64) []ListItem[T] {
+	if len(items) == 0 {
+		return nil
+	}
+
+	if temperature == 1 {
+		return items
+	}
+
+	// 	/*
+	// 		https://www.boristhebrave.com/2025/05/07/fiddling-weights-with-temperature/
+	// 		def reweight(weights: list[float], temperature: float) -> list[float]:
+	// 			if temperature == 0:
+	// 				# At temperature 0, only the maximum weight is ever selected
+	// 				max_weight = max(weights)
+	// 				return [1.0 if w == max_weight else 0.0 for w in weights]
+
+	// 			# Rescale weights (for numerical stability)
+	// 			max_weight = max(weights)
+	// 			weights = [w / max_weight for w in weights]
+
+	// 			# Convert to logits and apply temperature
+	// 			logits = [math.log(w) for w in weights]
+	// 			scaled_logits = [l / temperature for l in logits]
+
+	// 			# Handle overflow
+	// 			if any(math.isinf(sl) for sl in scaled_logits):
+	// 				return [1.0 if math.isinf(sl) else 0.0 for sl in scaled_logits]
+
+	// 			# Convert back to weights
+	// 			max_logit = max(scaled_logits)
+	// 			exp_logits = [math.exp(l - max_logit) for l in scaled_logits]
+
+	// 			# We don't need to divide by the sum here as that will be done in randomChoice,
+	// 			# but I leave it in for clarity.
+	// 			sum_exp = sum(exp_logits)
+	// 			return [exp / sum_exp for exp in exp_logits]
+	// 	*/
+
+	weights := make([]float64, len(items))
+	for i, item := range items {
+		weights[i] = item.Weight
+	}
+
+	maxWeight := math.Inf(-1)
+	for _, w := range weights {
+		maxWeight = max(maxWeight, w)
+	}
+
+	// Handle temperature == 0: only max weight survives
+	if temperature == 0 {
+		out := make([]ListItem[T], 0)
+		for _, item := range items {
+			if item.Weight == maxWeight {
+				out = append(out, ListItem[T]{Item: item.Item, Weight: 1.0})
+			}
+		}
+		return out
+	}
+
+	// Normalize weights
+	//     max_weight = max(weights)
+	//     weights = [w / max_weight for w in weights]
+	for i := range weights {
+		weights[i] /= maxWeight
+	}
+
+	// Convert to logits and apply temperature
+	//     logits = [math.log(w) for w in weights]
+	//     scaled_logits = [l / temperature for l in logits]
+	scaled_logits := make([]float64, len(weights))
+	hasInf := false
+	for i, l := range weights {
+		scaled_logits[i] = math.Log(l) / temperature
+		if math.IsInf(scaled_logits[i], 0) {
+			hasInf = true
+		}
+	}
+
+	// Handle overflow
+	//     if any(math.isinf(sl) for sl in scaled_logits):
+	//         return [1.0 if math.isinf(sl) else 0.0 for sl in scaled_logits]
+	if hasInf {
+		out := make([]ListItem[T], 0)
+		for i := range items {
+			if math.IsInf(scaled_logits[i], 0) {
+				out = append(out, ListItem[T]{Item: items[i].Item, Weight: 1.0})
+			}
+		}
+		return out
+	}
+
+	// Convert back to weights
+	//     max_logit = max(scaled_logits)
+	//     exp_logits = [math.exp(l - max_logit) for l in scaled_logits]
+	maxLogit := scaled_logits[0]
+	for _, l := range scaled_logits[1:] {
+		maxLogit = max(maxLogit, l)
+	}
+
+	exp := make([]float64, len(scaled_logits))
+	sum := 0.0
+	for i, l := range scaled_logits {
+		exp[i] = math.Exp(l - maxLogit)
+		sum += exp[i]
+	}
+
+	// return [exp / sum_exp for exp in exp_logits]
+	out := make([]ListItem[T], len(items))
+	for i := range items {
+		out[i] = ListItem[T]{Item: items[i].Item, Weight: exp[i] / sum}
+	}
+	return out
 }
