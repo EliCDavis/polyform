@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/EliCDavis/polyform/examples/ply-utils/flags"
 	"github.com/EliCDavis/polyform/formats/gltf"
 	"github.com/EliCDavis/polyform/modeling/meshops"
 	"github.com/urfave/cli/v2"
@@ -13,6 +14,7 @@ var ToGLTFCommand = &cli.Command{
 	Name:  "to-gltf",
 	Usage: "converts a PLY file to gltf",
 	Flags: []cli.Flag{
+		flags.PlyFile,
 		&cli.StringFlag{
 			Name:    "out",
 			Usage:   "Path to write the GLTF to",
@@ -21,7 +23,7 @@ var ToGLTFCommand = &cli.Command{
 		},
 	},
 	Action: func(ctx *cli.Context) error {
-		mesh, err := getPlyFile()
+		mesh, err := flags.GetPlyFile()
 		if err != nil {
 			return err
 		}

@@ -5,9 +5,13 @@ import (
 	"math/rand/v2"
 	"sort"
 
+	"github.com/EliCDavis/iter"
+	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/math/morton"
 	"github.com/EliCDavis/polyform/modeling"
+	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
+	"github.com/EliCDavis/vector/vector4"
 )
 
 type mortonIndex struct {
@@ -37,30 +41,19 @@ func (mst MortonShuffleTransformer) attribute() string {
 	return mst.Attribute
 }
 
-func MortonShuffle(mesh modeling.Mesh, attribute string, binSize int, resolution uint) modeling.Mesh {
-	if err := RequireV3Attribute(mesh, attribute); err != nil {
-		panic(err)
-	}
-
-	// TODO: CAN MORTON SHUFFLE EVEN WORK WITH TRIANGLE TOPOLOGIES???
-	if err := RequireTopology(mesh, modeling.PointTopology); err != nil {
-		panic(err)
-	}
-
+func MortonShuffleIndices(indices *iter.ArrayIterator[int], positions *iter.ArrayIterator[vector3.Float64], binSize int, resolution uint) []int {
 	encoder := morton.Encoder3D{
-		Bounds:     mesh.BoundingBox(attribute),
+		Bounds:     geometry.NewAABBFromIter(positions),
 		Resolution: resolution,
 	}
 
-	indices := mesh.Indices()
 	mortonIndices := make([]mortonIndex, indices.Len())
-	attrToShuffle := mesh.Float3Attribute(attribute)
 	for i := range indices.Len() {
 		index := indices.At(i)
 		mortonIndices[i] = mortonIndex{
 			OriginalValue:    index,
 			OriginalPosition: i,
-			MortonIndex:      encoder.Encode(attrToShuffle.At(index)),
+			MortonIndex:      encoder.Encode(positions.At(index)),
 		}
 	}
 
@@ -84,12 +77,34 @@ func MortonShuffle(mesh modeling.Mesh, attribute string, binSize int, resolution
 
 	for i, m := range mortonIndices {
 		newIndices[i] = m.OriginalValue
-
 	}
 
-	// mesh.SetFloat3Attribute(modeling.ColorAttribute, nil)
+	return newIndices
+}
 
-	return untanglePointcloud(mesh.SetFloat3Attribute(modeling.ColorAttribute, nil).SetIndices(newIndices))
+func MortonShuffle(mesh modeling.Mesh, attribute string, binSize int, resolution uint) modeling.Mesh {
+	if err := RequireV3Attribute(mesh, attribute); err != nil {
+		panic(err)
+	}
+
+	// TODO: CAN MORTON SHUFFLE EVEN WORK WITH TRIANGLE TOPOLOGIES???
+	if err := RequireTopology(mesh, modeling.PointTopology); err != nil {
+		panic(err)
+	}
+
+	newIndices := MortonShuffleIndices(mesh.Indices(), mesh.Float3Attribute(attribute), binSize, resolution)
+
+	return untanglePointcloud(mesh.SetIndices(newIndices))
+}
+
+func untanglePointcloudAttribute[T any](oldAttr *iter.ArrayIterator[T], remapping []int) []T {
+	newAttr := make([]T, oldAttr.Len())
+
+	for attrIndex := range oldAttr.Len() {
+		newAttr[remapping[attrIndex]] = oldAttr.At(attrIndex)
+	}
+
+	return newAttr
 }
 
 func untanglePointcloud(in modeling.Mesh) modeling.Mesh {
@@ -97,10 +112,10 @@ func untanglePointcloud(in modeling.Mesh) modeling.Mesh {
 		panic(err)
 	}
 
-	// v4Data := make(map[string][]vector4.Float64)
+	v4Data := make(map[string][]vector4.Float64)
 	v3Data := make(map[string][]vector3.Float64)
-	// v2Data := make(map[string][]vector2.Float64)
-	// v1Data := make(map[string][]float64)
+	v2Data := make(map[string][]vector2.Float64)
+	v1Data := make(map[string][]float64)
 
 	indices := in.Indices()
 	remapping := make([]int, indices.Len())
@@ -108,19 +123,22 @@ func untanglePointcloud(in modeling.Mesh) modeling.Mesh {
 		remapping[indices.At(i)] = i
 	}
 
-	vertexCount := in.AttributeLength()
-
-	for _, attr := range in.Float3Attributes() {
-		oldAttr := in.Float3Attribute(attr)
-		newAttr := make([]vector3.Float64, vertexCount)
-
-		for attrIndex := range oldAttr.Len() {
-			newAttr[remapping[attrIndex]] = oldAttr.At(attrIndex)
-		}
-
-		v3Data[attr] = newAttr
+	for _, attr := range in.Float1Attributes() {
+		v1Data[attr] = untanglePointcloudAttribute(in.Float1Attribute(attr), remapping)
 	}
 
-	return modeling.NewPointCloud(nil, v3Data, nil, nil)
+	for _, attr := range in.Float2Attributes() {
+		v2Data[attr] = untanglePointcloudAttribute(in.Float2Attribute(attr), remapping)
+	}
+
+	for _, attr := range in.Float3Attributes() {
+		v3Data[attr] = untanglePointcloudAttribute(in.Float3Attribute(attr), remapping)
+	}
+
+	for _, attr := range in.Float4Attributes() {
+		v4Data[attr] = untanglePointcloudAttribute(in.Float4Attribute(attr), remapping)
+	}
+
+	return modeling.NewPointCloud(v4Data, v3Data, v2Data, v1Data)
 
 }

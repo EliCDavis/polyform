@@ -26,10 +26,6 @@ func dataSizeFormat(size int64) string {
 	return fmt.Sprintf("%d mb", size/1024)
 }
 
-func openPlyFile(ctx *cli.Context) (*os.File, error) {
-	return os.Open(ctx.String("in"))
-}
-
 func getOutpath(ctx *cli.Context) (string, error) {
 	outPath := ctx.String("out")
 	if fileExists(outPath) {

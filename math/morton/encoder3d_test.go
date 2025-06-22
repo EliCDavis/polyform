@@ -96,3 +96,56 @@ func TestEncoder3D_Array(t *testing.T) {
 	}
 
 }
+
+func TestExpand21(t *testing.T) {
+
+	tests := map[string]struct {
+		In       uint64
+		Expected uint64
+	}{
+		"0b0": {},
+		"0b1": {
+			In:       uint64(0b1),
+			Expected: uint64(0b1),
+		},
+		"0b11": {
+			In:       uint64(0b11),
+			Expected: uint64(0b1001),
+		},
+		"0b111": {
+			In:       uint64(0b111),
+			Expected: uint64(0b1001001),
+		},
+		"0b101": {
+			In:       uint64(0b101),
+			Expected: uint64(0b1000001),
+		},
+		"0b1111_1111": {
+			In:       uint64(0b1111_1111),
+			Expected: uint64(0b001001001001001001001001),
+		},
+		"0b1111_1111_1111": {
+			In:       uint64(0b1111_1111_111),
+			Expected: uint64(0b001001001001001001001001001001001),
+		},
+		"0b1111_1111_1111_1111_1111": {
+			In:       uint64(0b1111_1111_1111_1111_1111),
+			Expected: uint64(0b001001001001001001001001001001001001001001001001001001001001),
+		},
+		"0b1111_1111_1111_1111_1111_1": {
+			In:       uint64(0b1111_1111_1111_1111_1111_1),
+			Expected: uint64(0b001001001001001001001001001001001001001001001001001001001001001),
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			encoded := morton.ExpandBits21(tc.In)
+			back := morton.CompactBits21(encoded)
+
+			assert.Equal(t, tc.Expected, encoded, "Encoded Index")
+			assert.Equal(t, tc.In, back, "Decoded Index")
+		})
+	}
+
+}

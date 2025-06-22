@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"os"
 
 	"github.com/EliCDavis/polyform/formats/gltf"
@@ -30,7 +31,19 @@ func main() {
 			},
 			&cli.UintFlag{
 				Name:  "resolution",
+				Usage: "How many bits each component take up in the morton index (max 21)",
 				Value: 10,
+				Action: func(ctx *cli.Context, u uint) error {
+					if u == 0 {
+						return errors.New("Value must be atleast 1")
+					}
+
+					if u > 21 {
+						return errors.New("resolution can not be greater than 21")
+					}
+
+					return nil
+				},
 			},
 		},
 		Action: func(ctx *cli.Context) error {

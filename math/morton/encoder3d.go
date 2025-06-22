@@ -20,13 +20,11 @@ func (m *Encoder3D) Encode(point vector3.Float64) uint64 {
 	max := m.Bounds.Max()
 	maxVal := (1 << m.Resolution) - 1
 
-	// Normalize coordinates to [0, 1] range
 	normalized := point.Sub(min).
 		DivByVector(max.Sub(min)).
 		Clamp(0, 1).
 		Scale(float64(maxVal))
 
-	// Interleave the bits
 	return interleaveBits3D(
 		uint64(normalized.X()),
 		uint64(normalized.Y()),
@@ -45,8 +43,6 @@ func (m *Encoder3D) EncodeArray(points []vector3.Float64) []uint64 {
 
 	for i, p := range points {
 		normalized := p.Sub(min).DivByVector(extents).Clamp(0, 1).Scale(float64(maxVal))
-
-		// Interleave the bits
 		results[i] = interleaveBits3D(
 			uint64(normalized.X()),
 			uint64(normalized.Y()),
@@ -97,41 +93,44 @@ func (m *Encoder3D) DecodeArray(mortons []uint64) []vector3.Float64 {
 
 // interleaveBits3D interleaves the bits of three integers for 3D Morton encoding
 func interleaveBits3D(x, y, z uint64) uint64 {
-	x = expandBits(x)
-	y = expandBits(y)
-	z = expandBits(z)
+	x = ExpandBits21(x)
+	y = ExpandBits21(y)
+	z = ExpandBits21(z)
 
 	return x | (y << 1) | (z << 2)
 }
 
 // deinterleaveBits3D extracts the individual coordinates from a Morton code
 func deinterleaveBits3D(morton uint64, resolution uint) (uint64, uint64, uint64) {
-	x := compactBits(morton)
-	y := compactBits(morton >> 1)
-	z := compactBits(morton >> 2)
+	x := CompactBits21(morton)
+	y := CompactBits21(morton >> 1)
+	z := CompactBits21(morton >> 2)
 
 	// Mask to only keep the bits we care about
 	mask := (uint64(1) << resolution) - 1
 	return x & mask, y & mask, z & mask
 }
 
-// expandBits spreads the bits of a number so they can be interleaved
+// ExpandBits21 spreads the bits of a number so they can be interleaved
 // Input:  00000000000000000000001011010010
 // Output: 001000001000001000000001000000010
-func expandBits(v uint64) uint64 {
-	v = (v * 0x00010001) & 0xFF0000FF
-	v = (v * 0x00000101) & 0x0F00F00F
-	v = (v * 0x00000011) & 0xC30C30C3
-	v = (v * 0x00000005) & 0x49249249
+func ExpandBits21(v uint64) uint64 {
+	v &= 0x1FFFFF // Ensure input is 21 bits max (0-20)
+	v = (v | (v << 32)) & 0x1F00000000FFFF
+	v = (v | (v << 16)) & 0x1F0000FF0000FF
+	v = (v | (v << 8)) & 0x100F00F00F00F00F
+	v = (v | (v << 4)) & 0x10C30C30C30C30C3
+	v = (v | (v << 2)) & 0x1249249249249249
 	return v
 }
 
-// compactBits is the inverse of expandBits
-func compactBits(v uint64) uint64 {
-	v &= 0x49249249
-	v = (v | (v >> 2)) & 0xC30C30C3
-	v = (v | (v >> 4)) & 0x0F00F00F
-	v = (v | (v >> 8)) & 0xFF0000FF
-	v = (v | (v >> 16)) & 0x0000FFFF
+// CompactBits21 is the inverse of expandBits
+func CompactBits21(v uint64) uint64 {
+	v &= 0x1249249249249249
+	v = (v | (v >> 2)) & 0x10C30C30C30C30C3
+	v = (v | (v >> 4)) & 0x100F00F00F00F00F
+	v = (v | (v >> 8)) & 0x1F0000FF0000FF
+	v = (v | (v >> 16)) & 0x1F00000000FFFF
+	v = (v | (v >> 32)) & 0x1FFFFF
 	return v
 }

@@ -8,6 +8,7 @@ import (
 	"math"
 	"sort"
 
+	"github.com/EliCDavis/polyform/examples/ply-utils/flags"
 	"github.com/EliCDavis/polyform/formats/ply"
 	"github.com/urfave/cli/v2"
 )
@@ -219,7 +220,7 @@ var analyzePropertiesCommand = &cli.Command{
 		},
 	},
 	Action: func(ctx *cli.Context) error {
-		f, err := openPlyFile(ctx)
+		f, err := flags.OpenPlyFile()
 		if err != nil {
 			return err
 		}

@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/EliCDavis/polyform/examples/ply-utils/flags"
 	"github.com/EliCDavis/polyform/formats/ply"
 	"github.com/urfave/cli/v2"
 )
@@ -62,6 +63,7 @@ func writeHeaderAsJSON(header ply.Header, out io.Writer) error {
 var HeaderCommand = &cli.Command{
 	Name: "header",
 	Flags: []cli.Flag{
+		flags.PlyFile,
 		&cli.BoolFlag{
 			Name:  "json",
 			Usage: "whether or not to print the header information out in JSON format",
@@ -74,7 +76,7 @@ var HeaderCommand = &cli.Command{
 		},
 	},
 	Action: func(ctx *cli.Context) error {
-		f, err := openPlyFile()
+		f, err := flags.OpenPlyFile()
 		if err != nil {
 			return err
 		}

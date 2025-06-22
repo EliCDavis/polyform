@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/EliCDavis/iter"
 	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/vector/vector3"
 	"github.com/stretchr/testify/assert"
@@ -546,6 +547,22 @@ func TestAABBFromPoints(t *testing.T) {
 		vector3.New(0., 0., 0.5),
 		vector3.New(0., 0., -0.5),
 	)
+
+	assert.Equal(t, vector3.Zero[float64](), aabb.Center())
+	assert.Equal(t, vector3.One[float64](), aabb.Size())
+}
+
+func TestAABBFromIter(t *testing.T) {
+	iter := iter.Array([]vector3.Float64{
+		vector3.New(-0.5, 0., 0.),
+		vector3.New(0.5, 0., 0.),
+		vector3.New(0., 0.5, 0.),
+		vector3.New(0., -0.5, 0.),
+		vector3.New(0., 0., 0.5),
+		vector3.New(0., 0., -0.5),
+	})
+
+	aabb := geometry.NewAABBFromIter(iter)
 
 	assert.Equal(t, vector3.Zero[float64](), aabb.Center())
 	assert.Equal(t, vector3.One[float64](), aabb.Size())

@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/EliCDavis/polyform/examples/ply-utils/flags"
 	"github.com/EliCDavis/polyform/formats/ply"
 	"github.com/urfave/cli/v2"
 )
@@ -92,7 +93,7 @@ var removePropertiesCommand = &cli.Command{
 			return err
 		}
 
-		f, err := openPlyFile(ctx)
+		f, err := flags.OpenPlyFile()
 		if err != nil {
 			return err
 		}

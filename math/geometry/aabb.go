@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"math"
 
+	"github.com/EliCDavis/iter"
 	"github.com/EliCDavis/vector/vector3"
 )
 
@@ -53,22 +54,31 @@ func NewAABBFromPoints(points ...vector3.Float64) AABB {
 	min := vector3.New(math.Inf(1), math.Inf(1), math.Inf(1))
 	max := vector3.New(math.Inf(-1), math.Inf(-1), math.Inf(-1))
 	for _, v := range points {
-		min = min.SetX(math.Min(v.X(), min.X()))
-		min = min.SetY(math.Min(v.Y(), min.Y()))
-		min = min.SetZ(math.Min(v.Z(), min.Z()))
-
-		max = max.SetX(math.Max(v.X(), max.X()))
-		max = max.SetY(math.Max(v.Y(), max.Y()))
-		max = max.SetZ(math.Max(v.Z(), max.Z()))
+		min = vector3.Min(min, v)
+		max = vector3.Max(max, v)
 	}
 
-	area := max.
-		Sub(min)
+	area := max.Sub(min)
 
-	center := area.
-		Scale(0.5).
-		Add(min)
+	center := area.Scale(0.5).Add(min)
 
+	return NewAABB(center, area)
+}
+
+func NewAABBFromIter(points iter.Iterator[vector3.Float64]) AABB {
+	min := vector3.New(math.Inf(1), math.Inf(1), math.Inf(1))
+	max := vector3.New(math.Inf(-1), math.Inf(-1), math.Inf(-1))
+	for {
+		v, err := points.Next()
+		if err != nil {
+			break
+		}
+		min = vector3.Min(min, v)
+		max = vector3.Max(max, v)
+	}
+
+	area := max.Sub(min)
+	center := area.Scale(0.5).Add(min)
 	return NewAABB(center, area)
 }
 
