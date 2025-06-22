@@ -861,7 +861,7 @@ func TestTextureLoading(t *testing.T) {
 				return *loadedDoc, buffers
 			},
 			expectError: true,
-			errorMsg:    "invalid data URI format",
+			errorMsg:    "missing comma separator",
 		},
 	}
 
@@ -1528,4 +1528,205 @@ func TestWriteWithOptsAPI(t *testing.T) {
 		assert.NotContains(t, minifiedContent, "    ", "Minified JSON should not contain indentation")
 		assert.NotContains(t, minifiedContent, "\n", "Minified JSON should not contain newlines")
 	})
+}
+
+// =============================================================================
+// Data URI Tests
+// =============================================================================
+
+func TestLoadImageFromDataURI(t *testing.T) {
+	// Create valid base64 encoded images for testing
+	pngImg := generateTestImage(16, 16, color.RGBA{255, 0, 0, 255})
+	pngDataURI := imageToBase64DataURI(t, pngImg)
+	
+	// Extract the base64 portion for creating test URIs
+	commaIndex := strings.Index(pngDataURI, ",")
+	require.Greater(t, commaIndex, -1, "Valid data URI should have a comma")
+	pngBase64Data := pngDataURI[commaIndex+1:]
+
+	tests := []struct {
+		name        string
+		dataURI     string
+		expectError bool
+		errorMsg    string
+	}{
+		{
+			name:        "valid_png_data_uri",
+			dataURI:     "data:image/png;base64," + pngBase64Data,
+			expectError: false,
+		},
+		{
+			name:        "valid_jpeg_data_uri_explicit",
+			dataURI:     "data:image/jpeg;base64," + pngBase64Data, // Will fail on format mismatch
+			expectError: true,
+			errorMsg:    "content type mismatch",
+		},
+		{
+			name:        "missing_data_prefix",
+			dataURI:     "image/png;base64," + pngBase64Data,
+			expectError: true,
+			errorMsg:    "failed to open image file", // Treated as file path, not data URI
+		},
+		{
+			name:        "missing_comma_separator",
+			dataURI:     "data:image/png;base64" + pngBase64Data,
+			expectError: true,
+			errorMsg:    "missing comma separator",
+		},
+		{
+			name:        "empty_content_type",
+			dataURI:     "data:;base64," + pngBase64Data,
+			expectError: true,
+			errorMsg:    "missing content type",
+		},
+		{
+			name:        "unsupported_content_type",
+			dataURI:     "data:image/gif;base64," + pngBase64Data,
+			expectError: true,
+			errorMsg:    "unsupported content type",
+		},
+		{
+			name:        "missing_base64_declaration",
+			dataURI:     "data:image/png," + pngBase64Data,
+			expectError: true,
+			errorMsg:    "base64 encoding declaration is required",
+		},
+		{
+			name:        "invalid_base64_data",
+			dataURI:     "data:image/png;base64,invalid_base64_data!!!",
+			expectError: true,
+			errorMsg:    "failed to decode base64 data",
+		},
+		{
+			name:        "corrupted_image_data",
+			dataURI:     "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==",
+			expectError: false, // This is actually a valid 1x1 PNG
+		},
+		{
+			name:        "multiple_semicolons_in_header",
+			dataURI:     "data:image/png;charset=utf-8;base64," + pngBase64Data,
+			expectError: false, // Should work, ignores charset parameter
+		},
+		{
+			name:        "base64_not_last_parameter",
+			dataURI:     "data:image/png;base64;other=value," + pngBase64Data,
+			expectError: false, // Should work, base64 is found
+		},
+		{
+			name:        "whitespace_in_header",
+			dataURI:     "data: image/png ; base64 ," + pngBase64Data,
+			expectError: false, // Should handle whitespace
+		},
+		{
+			name:        "empty_header",
+			dataURI:     "data:," + pngBase64Data,
+			expectError: true,
+			errorMsg:    "missing content type",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Test by creating a GLTF with embedded texture and loading it
+			err := testDataURIThroughGLTF(t, tt.dataURI)
+
+			if tt.expectError {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.errorMsg)
+				return
+			}
+
+			require.NoError(t, err)
+		})
+	}
+}
+
+// testDataURIThroughGLTF tests data URI loading by creating a GLTF with embedded texture
+func testDataURIThroughGLTF(t *testing.T, dataURI string) error {
+	// Create a simple GLTF document with an embedded texture
+	doc := createMinimalValidGLTF(t)
+
+	// Add an image with the data URI
+	doc.Images = []gltf.Image{
+		{URI: dataURI},
+	}
+
+	// Add textures and materials
+	doc.Textures = []gltf.Texture{
+		{Source: ptr(0)},
+	}
+
+	doc.Materials = []gltf.Material{
+		{
+			ChildOfRootProperty: gltf.ChildOfRootProperty{
+				Name: "TestMaterial",
+			},
+			PbrMetallicRoughness: ptr(gltf.PbrMetallicRoughness{
+				BaseColorTexture: ptr(gltf.TextureInfo{
+					Index: 0,
+				}),
+			}),
+		},
+	}
+
+	// Update primitive to use material
+	doc.Meshes[0].Primitives[0].Material = ptr(0)
+
+	// Write the GLTF file
+	tempFile := writeGLTFToTempFile(t, doc)
+
+	// Load and decode - this will trigger data URI loading
+	loadedDoc, buffers, err := gltf.ExperimentalLoad(tempFile)
+	if err != nil {
+		return err
+	}
+
+	_, err = gltf.ExperimentalDecodeScene(loadedDoc, buffers, filepath.Dir(tempFile))
+	return err
+}
+
+func TestDataURIValidationEdgeCases(t *testing.T) {
+	tests := []struct {
+		name        string
+		dataURI     string
+		expectError bool
+		errorMsg    string
+	}{
+		{
+			name:        "data_uri_with_commas_in_base64",
+			dataURI:     "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==",
+			expectError: false,
+		},
+		{
+			name:        "very_long_content_type",
+			dataURI:     "data:image/png;some=very;long=parameter;list=here;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==",
+			expectError: false,
+		},
+		{
+			name:        "case_sensitive_content_type",
+			dataURI:     "data:IMAGE/PNG;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==",
+			expectError: true,
+			errorMsg:    "unsupported content type",
+		},
+		{
+			name:        "case_sensitive_base64",
+			dataURI:     "data:image/png;BASE64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==",
+			expectError: true,
+			errorMsg:    "base64 encoding declaration is required",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := testDataURIThroughGLTF(t, tt.dataURI)
+
+			if tt.expectError {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.errorMsg)
+				return
+			}
+
+			require.NoError(t, err)
+		})
+	}
 }

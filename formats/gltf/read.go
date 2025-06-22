@@ -217,7 +217,7 @@ func decodeVector2Accessor(doc *Gltf, id GltfId, buffers [][]byte) ([]vector2.Fl
 
 	case AccessorComponentType_FLOAT:
 		for i := range accessor.Count {
-			offset := (i * stride)
+			offset := i * stride
 			x := float64(math.Float32frombits(binary.LittleEndian.Uint32(buffer[offset:])))
 			y := float64(math.Float32frombits(binary.LittleEndian.Uint32(buffer[offset+4:])))
 			vectors[i] = vector2.New(x, y)
@@ -230,7 +230,7 @@ func decodeVector2Accessor(doc *Gltf, id GltfId, buffers [][]byte) ([]vector2.Fl
 		}
 
 		for i := range accessor.Count {
-			offset := (i * stride)
+			offset := i * stride
 			x := float64(buffer[offset]) / div
 			y := float64(buffer[offset+1]) / div
 			vectors[i] = vector2.New(x, y)
@@ -305,7 +305,7 @@ func decodeVector3Accessor(doc *Gltf, id GltfId, buffers [][]byte) ([]vector3.Fl
 
 	case AccessorComponentType_FLOAT:
 		for i := range accessor.Count {
-			offset := (i * stride)
+			offset := i * stride
 			x := float64(math.Float32frombits(binary.LittleEndian.Uint32(buffer[offset:])))
 			y := float64(math.Float32frombits(binary.LittleEndian.Uint32(buffer[offset+4:])))
 			z := float64(math.Float32frombits(binary.LittleEndian.Uint32(buffer[offset+8:])))
@@ -319,7 +319,7 @@ func decodeVector3Accessor(doc *Gltf, id GltfId, buffers [][]byte) ([]vector3.Fl
 		}
 
 		for i := range accessor.Count {
-			offset := (i * stride)
+			offset := i * stride
 			x := float64(buffer[offset]) / div
 			y := float64(buffer[offset+1]) / div
 			z := float64(buffer[offset+2]) / div
@@ -396,7 +396,7 @@ func decodeVector4Accessor(doc *Gltf, id GltfId, buffers [][]byte) ([]vector4.Fl
 	switch accessor.ComponentType {
 	case AccessorComponentType_FLOAT:
 		for i := range vectors {
-			offset := (i * stride)
+			offset := i * stride
 			x := float64(math.Float32frombits(binary.LittleEndian.Uint32(buffer[offset:])))
 			y := float64(math.Float32frombits(binary.LittleEndian.Uint32(buffer[offset+4:])))
 			z := float64(math.Float32frombits(binary.LittleEndian.Uint32(buffer[offset+8:])))
@@ -411,7 +411,7 @@ func decodeVector4Accessor(doc *Gltf, id GltfId, buffers [][]byte) ([]vector4.Fl
 		}
 
 		for i := range vectors {
-			offset := (i * stride)
+			offset := i * stride
 			x := float64(buffer[offset]) / div
 			y := float64(buffer[offset+1]) / div
 			z := float64(buffer[offset+2]) / div
@@ -517,20 +517,66 @@ func resolveImagePath(imagePath string) (string, error) {
 }
 
 // loadImageFromDataURI loads an image from a data URI
+// Data URI format: data:[<mediatype>][;base64],<data>
 func loadImageFromDataURI(dataURI string) (image.Image, error) {
-	// Parse data URI format: data:[<mediatype>][;base64],<data>
-	parts := strings.Split(dataURI, ",")
-	if len(parts) != 2 || !strings.HasPrefix(parts[0], "data:") {
-		return nil, fmt.Errorf("invalid data URI format")
+	// Check if it's a valid data URI
+	if !strings.HasPrefix(dataURI, "data:") {
+		return nil, fmt.Errorf("invalid data URI: must start with 'data:'")
 	}
 
-	// Check if it's base64 encoded
-	if !strings.Contains(parts[0], "base64") {
-		return nil, fmt.Errorf("only base64 encoded data URIs are supported")
+	// Find the first comma that separates header from data
+	commaIndex := strings.Index(dataURI, ",")
+	if commaIndex == -1 {
+		return nil, fmt.Errorf("invalid data URI: missing comma separator")
+	}
+
+	header := dataURI[5:commaIndex] // Skip "data:" prefix
+	data := dataURI[commaIndex+1:]
+
+	// Parse the header to extract mediatype and parameters
+	// Format: [<mediatype>][;base64]
+	var mediaType string
+	var isBase64 bool
+
+	// Split header by semicolons to get mediatype and parameters
+	headerParts := strings.Split(header, ";")
+
+	if len(headerParts) == 0 {
+		return nil, fmt.Errorf("invalid data URI: empty header")
+	}
+
+	// First part is the media type
+	mediaType = strings.TrimSpace(headerParts[0])
+
+	// Check remaining parts for base64 parameter
+	for i := 1; i < len(headerParts); i++ {
+		param := strings.TrimSpace(headerParts[i])
+		if param == "base64" {
+			isBase64 = true
+			break
+		}
+	}
+
+	// Validate content type is present and supported
+	if mediaType == "" {
+		return nil, fmt.Errorf("invalid data URI: missing content type (required by GLTF specification)")
+	}
+
+	// Check if the content type is supported
+	switch mediaType {
+	case "image/jpeg", "image/png":
+		// Supported image formats
+	default:
+		return nil, fmt.Errorf("unsupported content type %q: only image/jpeg and image/png are supported", mediaType)
+	}
+
+	// Check for base64 encoding declaration
+	if !isBase64 {
+		return nil, fmt.Errorf("invalid data URI: base64 encoding declaration is required")
 	}
 
 	// Decode base64 data
-	decoded, err := base64.StdEncoding.DecodeString(parts[1])
+	decoded, err := base64.StdEncoding.DecodeString(data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode base64 data: %w", err)
 	}
@@ -544,15 +590,26 @@ func loadImageFromDataURI(dataURI string) (image.Image, error) {
 		return nil, fmt.Errorf("failed to decode image from data URI: %w", err)
 	}
 
-	// Log the detected format for debugging purposes
-	_ = format // format contains the detected image format (e.g., "jpeg", "png")
+	// Verify the detected format matches the declared content type
+	switch format {
+	case "jpeg":
+		if mediaType != "image/jpeg" {
+			return nil, fmt.Errorf("content type mismatch: declared %q but detected JPEG", mediaType)
+		}
+	case "png":
+		if mediaType != "image/png" {
+			return nil, fmt.Errorf("content type mismatch: declared %q but detected PNG", mediaType)
+		}
+	default:
+		return nil, fmt.Errorf("unsupported image format detected: %q", format)
+	}
 
 	return img, nil
 }
 
 // loadTexture loads a texture from the GLTF document
 func loadTexture(doc *Gltf, textureId GltfId, gltfDir string) (*PolyformTexture, error) {
-	if textureId >= len(doc.Textures) {
+	if textureId >= len(doc.Textures) || textureId < 0 {
 		return nil, fmt.Errorf("invalid texture ID: %d", textureId)
 	}
 
@@ -709,6 +766,7 @@ func loadMaterial(doc *Gltf, materialId GltfId, gltfDir string) (*PolyformMateri
 
 // matrixToTRS decomposes a column-major 4x4 transformation matrix into TRS components
 func matrixToTRS(matrix [16]float64) trs.TRS {
+
 	// Convert column-major array to Matrix4x4 struct
 	// GLTF uses column-major order: [0,1,2,3] is first column, [4,5,6,7] is second column, etc.
 	m := mat.Matrix4x4{
