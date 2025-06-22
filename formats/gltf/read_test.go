@@ -22,19 +22,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const epsilon = 1e-6
+
 // ptr is a generic utility function to create a pointer to any value.
 // This is useful in tests for creating pointers to literals.
 func ptr[T any](value T) *T {
 	return &value
-}
-
-// =============================================================================
-// Test Data Generation Helpers
-// =============================================================================
-
-// intPtr returns a pointer to an integer
-func ptr[T any](f T) *T{
-	return &f
 }
 
 // generateTestImage creates a simple test image with a solid color
@@ -133,16 +126,16 @@ func createMinimalValidGLTF(t *testing.T) gltf.Gltf {
 			{Buffer: 0, ByteOffset: 84, ByteLength: 24, Target: gltf.ARRAY_BUFFER},        // texcoords
 		},
 		Accessors: []gltf.Accessor{
-			{BufferView: intPtr(0), ComponentType: gltf.AccessorComponentType_UNSIGNED_INT, Count: 3, Type: gltf.AccessorType_SCALAR}, // indices
-			{BufferView: intPtr(1), ComponentType: gltf.AccessorComponentType_FLOAT, Count: 3, Type: gltf.AccessorType_VEC3},          // positions
-			{BufferView: intPtr(2), ComponentType: gltf.AccessorComponentType_FLOAT, Count: 3, Type: gltf.AccessorType_VEC3},          // normals
-			{BufferView: intPtr(3), ComponentType: gltf.AccessorComponentType_FLOAT, Count: 3, Type: gltf.AccessorType_VEC2},          // texcoords
+			{BufferView: ptr(0), ComponentType: gltf.AccessorComponentType_UNSIGNED_INT, Count: 3, Type: gltf.AccessorType_SCALAR}, // indices
+			{BufferView: ptr(1), ComponentType: gltf.AccessorComponentType_FLOAT, Count: 3, Type: gltf.AccessorType_VEC3},          // positions
+			{BufferView: ptr(2), ComponentType: gltf.AccessorComponentType_FLOAT, Count: 3, Type: gltf.AccessorType_VEC3},          // normals
+			{BufferView: ptr(3), ComponentType: gltf.AccessorComponentType_FLOAT, Count: 3, Type: gltf.AccessorType_VEC2},          // texcoords
 		},
 		Meshes: []gltf.Mesh{
 			{
 				Primitives: []gltf.Primitive{
 					{
-						Indices: intPtr(0),
+						Indices: ptr(0),
 						Attributes: map[string]gltf.GltfId{
 							gltf.POSITION:   1,
 							gltf.NORMAL:     2,
@@ -153,7 +146,7 @@ func createMinimalValidGLTF(t *testing.T) gltf.Gltf {
 			},
 		},
 		Nodes: []gltf.Node{
-			{Mesh: intPtr(0)},
+			{Mesh: ptr(0)},
 		},
 		Scenes: []gltf.Scene{
 			{Nodes: []gltf.GltfId{0}},
@@ -181,8 +174,8 @@ func createGLTFWithMaterials(t *testing.T) gltf.Gltf {
 
 	// Add textures
 	doc.Textures = []gltf.Texture{
-		{Source: intPtr(0)}, // Base color
-		{Source: intPtr(1)}, // Normal
+		{Source: ptr(0)}, // Base color
+		{Source: ptr(1)}, // Normal
 	}
 
 	// Add materials
@@ -196,18 +189,18 @@ func createGLTFWithMaterials(t *testing.T) gltf.Gltf {
 				BaseColorTexture: ptr(gltf.TextureInfo{
 					Index: 0,
 				}),
-				MetallicFactor:  float64Ptr(0.0),
-				RoughnessFactor: float64Ptr(1.0),
+				MetallicFactor:  ptr(0.0),
+				RoughnessFactor: ptr(1.0),
 			},
 			NormalTexture: &gltf.NormalTexture{
 				TextureInfo: gltf.TextureInfo{Index: 1},
-				Scale:       float64Ptr(1.0),
+				Scale:       ptr(1.0),
 			},
 		},
 	}
 
 	// Update primitive to use material
-	doc.Meshes[0].Primitives[0].Material = intPtr(0)
+	doc.Meshes[0].Primitives[0].Material = ptr(0)
 
 	return doc
 }
@@ -230,7 +223,7 @@ func createGLTFWithHierarchy(t *testing.T) gltf.Gltf {
 		},
 		{
 			Name:     "Child2",
-			Mesh:     intPtr(0),
+			Mesh:     ptr(0),
 			Rotation: ptr([4]float64{0.0, 0.0, 0.0, 1.0}),
 		},
 	}
@@ -258,21 +251,12 @@ func writeGLTFToTempFile(t *testing.T, doc gltf.Gltf) string {
 // Helper functions for struct validation
 // =============================================================================
 
-// assertVector3Equal compares two vector3.Float64 with tolerance
+// assertVector3Equal compares two vector3.Float64 with epsilon tolerance
 func assertVector3Equal(t *testing.T, expected, actual vector3.Float64, msg string) {
 	t.Helper()
-	tolerance := 1e-6
-	assert.InDelta(t, expected.X(), actual.X(), tolerance, msg+" X component")
-	assert.InDelta(t, expected.Y(), actual.Y(), tolerance, msg+" Y component")
-	assert.InDelta(t, expected.Z(), actual.Z(), tolerance, msg+" Z component")
-}
-
-// assertVector2Equal compares two vector2.Float64 with tolerance
-func assertVector2Equal(t *testing.T, expected, actual vector2.Float64, msg string) {
-	t.Helper()
-	tolerance := 1e-6
-	assert.InDelta(t, expected.X(), actual.X(), tolerance, msg+" X component")
-	assert.InDelta(t, expected.Y(), actual.Y(), tolerance, msg+" Y component")
+	assert.InDelta(t, expected.X(), actual.X(), epsilon, msg+" X component")
+	assert.InDelta(t, expected.Y(), actual.Y(), epsilon, msg+" Y component")
+	assert.InDelta(t, expected.Z(), actual.Z(), epsilon, msg+" Z component")
 }
 
 // assertColorEqual compares two color.RGBA values
@@ -497,7 +481,7 @@ func TestAccessorDecoding(t *testing.T) {
 					},
 					Accessors: []gltf.Accessor{
 						{
-							BufferView:    intPtr(0),
+							BufferView:    ptr(0),
 							ComponentType: gltf.AccessorComponentType_FLOAT,
 							Count:         3,
 							Type:          gltf.AccessorType_SCALAR,
@@ -538,7 +522,7 @@ func TestAccessorDecoding(t *testing.T) {
 					},
 					Accessors: []gltf.Accessor{
 						{
-							BufferView:    intPtr(0),
+							BufferView:    ptr(0),
 							ComponentType: gltf.AccessorComponentType_FLOAT,
 							Count:         2,
 							Type:          gltf.AccessorType_VEC3,
@@ -574,7 +558,7 @@ func TestAccessorDecoding(t *testing.T) {
 					},
 					Accessors: []gltf.Accessor{
 						{
-							BufferView:    intPtr(0),
+							BufferView:    ptr(0),
 							ComponentType: gltf.AccessorComponentType_UNSIGNED_SHORT,
 							Count:         3,
 							Type:          gltf.AccessorType_SCALAR,
@@ -743,12 +727,12 @@ func TestMaterialLoading(t *testing.T) {
 						},
 						PbrMetallicRoughness: &gltf.PbrMetallicRoughness{
 							BaseColorFactor: &[4]float64{0.5, 0.5, 0.5, 1.0},
-							MetallicFactor:  float64Ptr(0.1),
-							RoughnessFactor: float64Ptr(0.9),
+							MetallicFactor:  ptr(0.1),
+							RoughnessFactor: ptr(0.9),
 						},
 					},
 				}
-				doc.Meshes[0].Primitives[0].Material = intPtr(0)
+				doc.Meshes[0].Primitives[0].Material = ptr(0)
 				tempFile := writeGLTFToTempFile(t, doc)
 				loadedDoc, buffers, err := gltf.ExperimentalLoad(tempFile)
 				require.NoError(t, err)
@@ -840,7 +824,7 @@ func TestTextureLoading(t *testing.T) {
 			setupTexture: func() (gltf.Gltf, [][]byte) {
 				doc := createGLTFWithMaterials(t)
 				// Reference non-existent image
-				doc.Textures[0].Source = intPtr(999)
+				doc.Textures[0].Source = ptr(999)
 				tempFile := writeGLTFToTempFile(t, doc)
 				loadedDoc, buffers, err := gltf.ExperimentalLoad(tempFile)
 				require.NoError(t, err)
@@ -1075,12 +1059,10 @@ func TestSceneHierarchy(t *testing.T) {
 				// The hierarchy should have accumulated transformations
 				// Root: translation (1,0,0), Child1: scale (2,2,2), Child2: rotation
 				translation := model.TRS.Position()
-				assert.InDelta(t, 1.0, translation.X(), 1e-6, "Translation should be applied")
+				assert.InDelta(t, 1.0, translation.X(), epsilon, "Translation should be applied")
 
 				scale := model.TRS.Scale()
-				assert.InDelta(t, 2.0, scale.X(), 1e-6, "Scale should be accumulated")
-				assert.InDelta(t, 2.0, scale.Y(), 1e-6, "Scale should be accumulated")
-				assert.InDelta(t, 2.0, scale.Z(), 1e-6, "Scale should be accumulated")
+				assertVector3Equal(t, vector3.New(2.0, 2.0, 2.0), scale, "Scale should be applied")
 			}
 		})
 	}
@@ -1229,10 +1211,8 @@ func TestIntegrationLoadAndDecode(t *testing.T) {
 				scale := model.TRS.Scale()
 
 				// Should have accumulated transforms from hierarchy
-				assert.InDelta(t, 1.0, translation.X(), 1e-6, "Translation from root")
-				assert.InDelta(t, 2.0, scale.X(), 1e-6, "Scale from Child1")
-				assert.InDelta(t, 2.0, scale.Y(), 1e-6, "Scale from Child1")
-				assert.InDelta(t, 2.0, scale.Z(), 1e-6, "Scale from Child1")
+				assert.InDelta(t, 1.0, translation.X(), epsilon, "Translation from root")
+				assertVector3Equal(t, vector3.New(2.0, 2.0, 2.0), scale, "Scale should be applied")
 			},
 		},
 	}
@@ -1293,7 +1273,7 @@ func TestErrorHandling(t *testing.T) {
 			setupError: func() (gltf.Gltf, [][]byte) {
 				doc := createMinimalValidGLTF(t)
 				// Reference non-existent buffer view
-				doc.Accessors[0].BufferView = intPtr(999)
+				doc.Accessors[0].BufferView = ptr(999)
 				tempFile := writeGLTFToTempFile(t, doc)
 				loadedDoc, buffers, err := gltf.ExperimentalLoad(tempFile)
 				require.NoError(t, err)
@@ -1307,7 +1287,7 @@ func TestErrorHandling(t *testing.T) {
 			setupError: func() (gltf.Gltf, [][]byte) {
 				doc := createMinimalValidGLTF(t)
 				// Reference non-existent material
-				doc.Meshes[0].Primitives[0].Material = intPtr(999)
+				doc.Meshes[0].Primitives[0].Material = ptr(999)
 				tempFile := writeGLTFToTempFile(t, doc)
 				loadedDoc, buffers, err := gltf.ExperimentalLoad(tempFile)
 				require.NoError(t, err)
@@ -1538,7 +1518,7 @@ func TestLoadImageFromDataURI(t *testing.T) {
 	// Create valid base64 encoded images for testing
 	pngImg := generateTestImage(16, 16, color.RGBA{255, 0, 0, 255})
 	pngDataURI := imageToBase64DataURI(t, pngImg)
-	
+
 	// Extract the base64 portion for creating test URIs
 	commaIndex := strings.Index(pngDataURI, ",")
 	require.Greater(t, commaIndex, -1, "Valid data URI should have a comma")
