@@ -764,22 +764,6 @@ func loadMaterial(doc *Gltf, materialId GltfId, gltfDir string) (*PolyformMateri
 	return material, nil
 }
 
-// matrixToTRS decomposes a column-major 4x4 transformation matrix into TRS components
-func matrixToTRS(matrix [16]float64) trs.TRS {
-
-	// Convert column-major array to Matrix4x4 struct
-	// GLTF uses column-major order: [0,1,2,3] is first column, [4,5,6,7] is second column, etc.
-	m := mat.Matrix4x4{
-		X00: matrix[0], X01: matrix[4], X02: matrix[8], X03: matrix[12], // Row 0
-		X10: matrix[1], X11: matrix[5], X12: matrix[9], X13: matrix[13], // Row 1
-		X20: matrix[2], X21: matrix[6], X22: matrix[10], X23: matrix[14], // Row 2
-		X30: matrix[3], X31: matrix[7], X32: matrix[11], X33: matrix[15], // Row 3
-	}
-
-	// Use library function to decompose matrix
-	return trs.FromMatrix(m)
-}
-
 func decodePrimitive(doc *Gltf, buffers [][]byte, n Node, m Mesh, p Primitive, gltfDir string) (*PolyformModel, error) {
 	// Handle indices - they might be nil for non-indexed geometry
 	var indices []int
@@ -840,9 +824,7 @@ func decodePrimitive(doc *Gltf, buffers [][]byte, n Node, m Mesh, p Primitive, g
 
 	// Handle matrix transformation if present
 	if n.Matrix != nil {
-		// Convert column-major matrix to TRS
-		m := *n.Matrix
-		transform = matrixToTRS(m)
+		transform = trs.FromMatrix(mat.New4x4FromColArray(*n.Matrix))
 	} else {
 		// Handle TRS components
 		if n.Translation != nil {
@@ -950,7 +932,7 @@ func processNodeHierarchy(doc *Gltf, buffers [][]byte, gltfDir string, nodeIndex
 	// Calculate node transformation
 	nodeTransform := trs.Identity()
 	if node.Matrix != nil {
-		nodeTransform = matrixToTRS(*node.Matrix)
+		nodeTransform = trs.FromMatrix(mat.New4x4FromColArray(*node.Matrix))
 	} else {
 		if node.Translation != nil {
 			data := *node.Translation
