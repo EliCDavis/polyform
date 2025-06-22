@@ -22,6 +22,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// ptr is a generic utility function to create a pointer to any value.
+// This is useful in tests for creating pointers to literals.
+func ptr[T any](value T) *T {
+	return &value
+}
+
 // =============================================================================
 // Test Data Generation Helpers
 // =============================================================================
@@ -43,14 +49,12 @@ func generateTestImage(width, height int, col color.RGBA) image.Image {
 }
 
 // imageToBase64DataURI converts an image to a base64 data URI
-func imageToBase64DataURI(img image.Image) (string, error) {
+func imageToBase64DataURI(t *testing.T, img image.Image) string {
 	buf := &bytes.Buffer{}
-	err := png.Encode(buf, img)
-	if err != nil {
-		return "", err
-	}
+	require.NoError(t, png.Encode(buf, img))
+
 	encoded := base64.StdEncoding.EncodeToString(buf.Bytes())
-	return "data:image/png;base64," + encoded, nil
+	return "data:image/png;base64," + encoded
 }
 
 // createTestBuffer creates a binary buffer with test data
@@ -109,7 +113,7 @@ func createTriangleBuffer() (string, int) {
 }
 
 // createMinimalValidGLTF creates a minimal valid GLTF document
-func createMinimalValidGLTF() gltf.Gltf {
+func createMinimalValidGLTF(t *testing.T) gltf.Gltf {
 	bufferData, bufferSize := createTriangleBuffer()
 
 	return gltf.Gltf{
@@ -159,15 +163,15 @@ func createMinimalValidGLTF() gltf.Gltf {
 }
 
 // createGLTFWithMaterials creates a GLTF with materials and textures
-func createGLTFWithMaterials() gltf.Gltf {
-	doc := createMinimalValidGLTF()
+func createGLTFWithMaterials(t *testing.T) gltf.Gltf {
+	doc := createMinimalValidGLTF(t)
 
 	// Create test images
 	baseColorImg := generateTestImage(64, 64, color.RGBA{255, 0, 0, 255})  // Red
 	normalImg := generateTestImage(64, 64, color.RGBA{128, 128, 255, 255}) // Blue-ish normal
 
-	baseColorURI, _ := imageToBase64DataURI(baseColorImg)
-	normalURI, _ := imageToBase64DataURI(normalImg)
+	baseColorURI := imageToBase64DataURI(t, baseColorImg)
+	normalURI := imageToBase64DataURI(t, normalImg)
 
 	// Add images
 	doc.Images = []gltf.Image{
@@ -188,10 +192,10 @@ func createGLTFWithMaterials() gltf.Gltf {
 				Name: "TestMaterial",
 			},
 			PbrMetallicRoughness: &gltf.PbrMetallicRoughness{
-				BaseColorFactor: &[4]float64{1.0, 0.0, 0.0, 1.0},
-				BaseColorTexture: &gltf.TextureInfo{
+				BaseColorFactor: ptr([4]float64{1.0, 0.0, 0.0, 1.0}),
+				BaseColorTexture: ptr(gltf.TextureInfo{
 					Index: 0,
-				},
+				}),
 				MetallicFactor:  float64Ptr(0.0),
 				RoughnessFactor: float64Ptr(1.0),
 			},
@@ -209,25 +213,25 @@ func createGLTFWithMaterials() gltf.Gltf {
 }
 
 // createGLTFWithHierarchy creates a GLTF with node hierarchy
-func createGLTFWithHierarchy() gltf.Gltf {
-	doc := createMinimalValidGLTF()
+func createGLTFWithHierarchy(t *testing.T) gltf.Gltf {
+	doc := createMinimalValidGLTF(t)
 
 	// Create hierarchy: Root -> Child1 -> Child2 (with mesh)
 	doc.Nodes = []gltf.Node{
 		{
 			Name:        "Root",
 			Children:    []gltf.GltfId{1},
-			Translation: &[3]float64{1.0, 0.0, 0.0},
+			Translation: ptr([3]float64{1.0, 0.0, 0.0}),
 		},
 		{
 			Name:     "Child1",
 			Children: []gltf.GltfId{2},
-			Scale:    &[3]float64{2.0, 2.0, 2.0},
+			Scale:    ptr([3]float64{2.0, 2.0, 2.0}),
 		},
 		{
 			Name:     "Child2",
 			Mesh:     intPtr(0),
-			Rotation: &[4]float64{0.0, 0.0, 0.0, 1.0},
+			Rotation: ptr([4]float64{0.0, 0.0, 0.0, 1.0}),
 		},
 	}
 
@@ -325,7 +329,7 @@ func assertMaterialEqual(t *testing.T, expected, actual *gltf.PolyformMaterial, 
 func TestExperimentalLoad(t *testing.T) {
 	tests := []struct {
 		name        string
-		setupGLTF   func() gltf.Gltf
+		setupGLTF   func(t *testing.T) gltf.Gltf
 		expectError bool
 		errorMsg    string
 	}{
@@ -346,8 +350,8 @@ func TestExperimentalLoad(t *testing.T) {
 		},
 		{
 			name: "missing_asset_version",
-			setupGLTF: func() gltf.Gltf {
-				doc := createMinimalValidGLTF()
+			setupGLTF: func(t *testing.T) gltf.Gltf {
+				doc := createMinimalValidGLTF(t)
 				doc.Asset.Version = ""
 				return doc
 			},
@@ -356,8 +360,8 @@ func TestExperimentalLoad(t *testing.T) {
 		},
 		{
 			name: "invalid_buffer_byte_length",
-			setupGLTF: func() gltf.Gltf {
-				doc := createMinimalValidGLTF()
+			setupGLTF: func(t *testing.T) gltf.Gltf {
+				doc := createMinimalValidGLTF(t)
 				doc.Buffers[0].ByteLength = 0
 				return doc
 			},
@@ -366,8 +370,8 @@ func TestExperimentalLoad(t *testing.T) {
 		},
 		{
 			name: "mismatched_buffer_length",
-			setupGLTF: func() gltf.Gltf {
-				doc := createMinimalValidGLTF()
+			setupGLTF: func(t *testing.T) gltf.Gltf {
+				doc := createMinimalValidGLTF(t)
 				doc.Buffers[0].ByteLength = 999999 // Wrong length
 				return doc
 			},
@@ -376,8 +380,8 @@ func TestExperimentalLoad(t *testing.T) {
 		},
 		{
 			name: "invalid_base64_data",
-			setupGLTF: func() gltf.Gltf {
-				doc := createMinimalValidGLTF()
+			setupGLTF: func(t *testing.T) gltf.Gltf {
+				doc := createMinimalValidGLTF(t)
 				doc.Buffers[0].URI = "data:application/octet-stream;base64,invalid_base64_data!!!"
 				return doc
 			},
@@ -386,8 +390,8 @@ func TestExperimentalLoad(t *testing.T) {
 		},
 		{
 			name: "unsupported_data_uri_encoding",
-			setupGLTF: func() gltf.Gltf {
-				doc := createMinimalValidGLTF()
+			setupGLTF: func(t *testing.T) gltf.Gltf {
+				doc := createMinimalValidGLTF(t)
 				doc.Buffers[0].URI = "data:application/octet-stream;charset=utf-8,some_data"
 				return doc
 			},
@@ -396,8 +400,8 @@ func TestExperimentalLoad(t *testing.T) {
 		},
 		{
 			name: "empty_buffer_uri",
-			setupGLTF: func() gltf.Gltf {
-				doc := createMinimalValidGLTF()
+			setupGLTF: func(t *testing.T) gltf.Gltf {
+				doc := createMinimalValidGLTF(t)
 				doc.Buffers[0].URI = ""
 				return doc
 			},
@@ -408,7 +412,7 @@ func TestExperimentalLoad(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			doc := tt.setupGLTF()
+			doc := tt.setupGLTF(t)
 			tempFile := writeGLTFToTempFile(t, doc)
 
 			loadedDoc, buffers, err := gltf.ExperimentalLoad(tempFile)
@@ -631,7 +635,7 @@ func TestPrimitiveDecoding(t *testing.T) {
 		{
 			name: "triangle_primitive",
 			setupPrimitive: func() (gltf.Gltf, [][]byte) {
-				doc := createMinimalValidGLTF()
+				doc := createMinimalValidGLTF(t)
 				tempFile := writeGLTFToTempFile(t, doc)
 				loadedDoc, buffers, err := gltf.ExperimentalLoad(tempFile)
 				require.NoError(t, err)
@@ -643,7 +647,7 @@ func TestPrimitiveDecoding(t *testing.T) {
 		{
 			name: "point_primitive",
 			setupPrimitive: func() (gltf.Gltf, [][]byte) {
-				doc := createMinimalValidGLTF()
+				doc := createMinimalValidGLTF(t)
 				mode := gltf.PrimitiveMode_POINTS
 				doc.Meshes[0].Primitives[0].Mode = &mode
 				tempFile := writeGLTFToTempFile(t, doc)
@@ -657,7 +661,7 @@ func TestPrimitiveDecoding(t *testing.T) {
 		{
 			name: "line_primitive",
 			setupPrimitive: func() (gltf.Gltf, [][]byte) {
-				doc := createMinimalValidGLTF()
+				doc := createMinimalValidGLTF(t)
 				mode := gltf.PrimitiveMode_LINES
 				doc.Meshes[0].Primitives[0].Mode = &mode
 				tempFile := writeGLTFToTempFile(t, doc)
@@ -718,7 +722,7 @@ func TestMaterialLoading(t *testing.T) {
 		{
 			name: "material_with_textures",
 			setupMaterial: func() (gltf.Gltf, [][]byte) {
-				doc := createGLTFWithMaterials()
+				doc := createGLTFWithMaterials(t)
 				tempFile := writeGLTFToTempFile(t, doc)
 				loadedDoc, buffers, err := gltf.ExperimentalLoad(tempFile)
 				require.NoError(t, err)
@@ -731,7 +735,7 @@ func TestMaterialLoading(t *testing.T) {
 		{
 			name: "material_without_textures",
 			setupMaterial: func() (gltf.Gltf, [][]byte) {
-				doc := createMinimalValidGLTF()
+				doc := createMinimalValidGLTF(t)
 				doc.Materials = []gltf.Material{
 					{
 						ChildOfRootProperty: gltf.ChildOfRootProperty{
@@ -809,7 +813,7 @@ func TestTextureLoading(t *testing.T) {
 		{
 			name: "data_uri_texture",
 			setupTexture: func() (gltf.Gltf, [][]byte) {
-				doc := createGLTFWithMaterials()
+				doc := createGLTFWithMaterials(t)
 				tempFile := writeGLTFToTempFile(t, doc)
 				loadedDoc, buffers, err := gltf.ExperimentalLoad(tempFile)
 				require.NoError(t, err)
@@ -820,7 +824,7 @@ func TestTextureLoading(t *testing.T) {
 		{
 			name: "invalid_texture_reference",
 			setupTexture: func() (gltf.Gltf, [][]byte) {
-				doc := createGLTFWithMaterials()
+				doc := createGLTFWithMaterials(t)
 				// Reference non-existent texture
 				doc.Materials[0].PbrMetallicRoughness.BaseColorTexture.Index = 999
 				tempFile := writeGLTFToTempFile(t, doc)
@@ -834,7 +838,7 @@ func TestTextureLoading(t *testing.T) {
 		{
 			name: "invalid_image_reference",
 			setupTexture: func() (gltf.Gltf, [][]byte) {
-				doc := createGLTFWithMaterials()
+				doc := createGLTFWithMaterials(t)
 				// Reference non-existent image
 				doc.Textures[0].Source = intPtr(999)
 				tempFile := writeGLTFToTempFile(t, doc)
@@ -848,7 +852,7 @@ func TestTextureLoading(t *testing.T) {
 		{
 			name: "malformed_data_uri",
 			setupTexture: func() (gltf.Gltf, [][]byte) {
-				doc := createGLTFWithMaterials()
+				doc := createGLTFWithMaterials(t)
 				// Use malformed data URI
 				doc.Images[0].URI = "data:invalid_format"
 				tempFile := writeGLTFToTempFile(t, doc)
@@ -905,7 +909,7 @@ func TestSceneHierarchy(t *testing.T) {
 		{
 			name: "simple_hierarchy",
 			setupScene: func() (gltf.Gltf, [][]byte) {
-				doc := createGLTFWithHierarchy()
+				doc := createGLTFWithHierarchy(t)
 				tempFile := writeGLTFToTempFile(t, doc)
 				loadedDoc, buffers, err := gltf.ExperimentalLoad(tempFile)
 				require.NoError(t, err)
@@ -917,7 +921,7 @@ func TestSceneHierarchy(t *testing.T) {
 		{
 			name: "empty_scene",
 			setupScene: func() (gltf.Gltf, [][]byte) {
-				doc := createMinimalValidGLTF()
+				doc := createMinimalValidGLTF(t)
 				doc.Scenes[0].Nodes = []gltf.GltfId{} // Empty scene
 				tempFile := writeGLTFToTempFile(t, doc)
 				loadedDoc, buffers, err := gltf.ExperimentalLoad(tempFile)
@@ -930,7 +934,7 @@ func TestSceneHierarchy(t *testing.T) {
 		{
 			name: "invalid_scene_index",
 			setupScene: func() (gltf.Gltf, [][]byte) {
-				doc := createMinimalValidGLTF()
+				doc := createMinimalValidGLTF(t)
 				doc.Scene = 999 // Invalid scene index
 				tempFile := writeGLTFToTempFile(t, doc)
 				loadedDoc, buffers, err := gltf.ExperimentalLoad(tempFile)
@@ -996,7 +1000,7 @@ func TestTransformations(t *testing.T) {
 		{
 			name: "trs_components",
 			setupTransform: func() (gltf.Gltf, [][]byte) {
-				doc := createMinimalValidGLTF()
+				doc := createMinimalValidGLTF(t)
 				doc.Nodes[0].Translation = &[3]float64{1.0, 2.0, 3.0}
 				doc.Nodes[0].Scale = &[3]float64{2.0, 2.0, 2.0}
 				doc.Nodes[0].Rotation = &[4]float64{0.0, 0.0, 0.0, 1.0}
@@ -1012,7 +1016,7 @@ func TestTransformations(t *testing.T) {
 		{
 			name: "matrix_transform",
 			setupTransform: func() (gltf.Gltf, [][]byte) {
-				doc := createMinimalValidGLTF()
+				doc := createMinimalValidGLTF(t)
 				// Identity matrix with translation
 				doc.Nodes[0].Matrix = &[16]float64{
 					1.0, 0.0, 0.0, 0.0,
@@ -1032,7 +1036,7 @@ func TestTransformations(t *testing.T) {
 		{
 			name: "identity_transform",
 			setupTransform: func() (gltf.Gltf, [][]byte) {
-				doc := createMinimalValidGLTF()
+				doc := createMinimalValidGLTF(t)
 				// No explicit transform - should be identity
 				tempFile := writeGLTFToTempFile(t, doc)
 				loadedDoc, buffers, err := gltf.ExperimentalLoad(tempFile)
@@ -1080,7 +1084,7 @@ func TestTransformations(t *testing.T) {
 func TestIntegrationLoadAndDecode(t *testing.T) {
 	tests := []struct {
 		name           string
-		setupDocument  func() gltf.Gltf
+		setupDocument  func(t *testing.T) gltf.Gltf
 		expectedModels int
 		validateModel  func(t *testing.T, model gltf.PolyformModel)
 	}{
@@ -1133,7 +1137,7 @@ func TestIntegrationLoadAndDecode(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			doc := tt.setupDocument()
+			doc := tt.setupDocument(t)
 			tempFile := writeGLTFToTempFile(t, doc)
 
 			// Load document
@@ -1171,7 +1175,7 @@ func TestErrorHandling(t *testing.T) {
 		{
 			name: "invalid_accessor_reference",
 			setupError: func() (gltf.Gltf, [][]byte) {
-				doc := createMinimalValidGLTF()
+				doc := createMinimalValidGLTF(t)
 				// Reference non-existent accessor
 				doc.Meshes[0].Primitives[0].Attributes[gltf.POSITION] = 999
 				tempFile := writeGLTFToTempFile(t, doc)
@@ -1185,7 +1189,7 @@ func TestErrorHandling(t *testing.T) {
 		{
 			name: "invalid_buffer_view_reference",
 			setupError: func() (gltf.Gltf, [][]byte) {
-				doc := createMinimalValidGLTF()
+				doc := createMinimalValidGLTF(t)
 				// Reference non-existent buffer view
 				doc.Accessors[0].BufferView = intPtr(999)
 				tempFile := writeGLTFToTempFile(t, doc)
@@ -1199,7 +1203,7 @@ func TestErrorHandling(t *testing.T) {
 		{
 			name: "invalid_material_reference",
 			setupError: func() (gltf.Gltf, [][]byte) {
-				doc := createMinimalValidGLTF()
+				doc := createMinimalValidGLTF(t)
 				// Reference non-existent material
 				doc.Meshes[0].Primitives[0].Material = intPtr(999)
 				tempFile := writeGLTFToTempFile(t, doc)
@@ -1213,7 +1217,7 @@ func TestErrorHandling(t *testing.T) {
 		{
 			name: "invalid_node_reference",
 			setupError: func() (gltf.Gltf, [][]byte) {
-				doc := createMinimalValidGLTF()
+				doc := createMinimalValidGLTF(t)
 				// Reference non-existent node in scene
 				doc.Scenes[0].Nodes = []gltf.GltfId{999}
 				tempFile := writeGLTFToTempFile(t, doc)
@@ -1261,7 +1265,7 @@ func TestErrorHandling(t *testing.T) {
 func TestOptionsAPI(t *testing.T) {
 	t.Run("save_text_with_opts", func(t *testing.T) {
 		// Create a GLTF with materials and textures
-		doc := createGLTFWithMaterials()
+		doc := createGLTFWithMaterials(t)
 		tempFile := writeGLTFToTempFile(t, doc)
 
 		// Load the original scene
@@ -1310,7 +1314,7 @@ func TestOptionsAPI(t *testing.T) {
 	})
 
 	t.Run("save_binary_with_opts", func(t *testing.T) {
-		doc := createGLTFWithMaterials()
+		doc := createGLTFWithMaterials(t)
 		tempFile := writeGLTFToTempFile(t, doc)
 
 		loadedDoc, buffers, err := gltf.ExperimentalLoad(tempFile)
@@ -1336,20 +1340,20 @@ func TestOptionsAPI(t *testing.T) {
 		// Test that Options struct can be created and used properly
 		opts := gltf.Options{
 			EmbedTextures: true,
-			MinifyJSON:    true,
+			JsonFormat:    gltf.MinifyJsonFormat,
 		}
 		assert.True(t, opts.EmbedTextures, "EmbedTextures should be settable")
-		assert.True(t, opts.MinifyJSON, "MinifyJSON should be settable")
+		assert.Equal(t, gltf.MinifyJsonFormat, opts.JsonFormat, "JsonFormat should be settable")
 
 		// Test zero value
 		defaultOpts := gltf.Options{}
 		assert.False(t, defaultOpts.EmbedTextures, "Default EmbedTextures should be false")
-		assert.False(t, defaultOpts.MinifyJSON, "Default MinifyJSON should be false")
+		assert.Equal(t, gltf.DefaultJsonFormat, defaultOpts.JsonFormat, "Default JsonFormat should be DefaultJsonFormat")
 	})
 }
 
 func TestWriteWithOptsAPI(t *testing.T) {
-	doc := createGLTFWithMaterials()
+	doc := createGLTFWithMaterials(t)
 	tempFile := writeGLTFToTempFile(t, doc)
 
 	loadedDoc, buffers, err := gltf.ExperimentalLoad(tempFile)
@@ -1389,11 +1393,11 @@ func TestWriteWithOptsAPI(t *testing.T) {
 		minifiedBuf := &bytes.Buffer{}
 
 		// Test pretty-printed JSON (default)
-		err := gltf.WriteTextWithOpts(*scene, prettyBuf, gltf.Options{MinifyJSON: false})
+		err := gltf.WriteTextWithOpts(*scene, prettyBuf, gltf.Options{JsonFormat: gltf.PrettyJsonFormat})
 		require.NoError(t, err)
 
 		// Test minified JSON
-		err = gltf.WriteTextWithOpts(*scene, minifiedBuf, gltf.Options{MinifyJSON: true})
+		err = gltf.WriteTextWithOpts(*scene, minifiedBuf, gltf.Options{JsonFormat: gltf.MinifyJsonFormat})
 		require.NoError(t, err)
 
 		prettyContent := prettyBuf.String()

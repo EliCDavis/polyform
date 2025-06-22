@@ -12,14 +12,25 @@ import (
 	"github.com/EliCDavis/polyform/modeling/animation"
 )
 
+// JsonFormat specifies the JSON output format for GLTF export
+type JsonFormat int
+
+const (
+	// DefaultJsonFormat uses the library's default JSON formatting (pretty-printed with indentation)
+	DefaultJsonFormat JsonFormat = iota
+	// MinifyJsonFormat produces compact JSON output without indentation
+	MinifyJsonFormat
+	// PrettyJsonFormat explicitly specifies pretty-printed JSON with indentation (same as default)
+	PrettyJsonFormat
+)
+
 // Options configures GLTF export behavior
 type Options struct {
 	// EmbedTextures forces texture images to be embedded as data URIs instead of external file references
 	EmbedTextures bool
 
-	// MinifyJSON produces compact JSON output without indentation when true.
-	// When false (default), JSON is pretty-printed with indentation for readability.
-	MinifyJSON bool
+	// JsonFormat specifies the JSON output format (default is pretty-printed with indentation)
+	JsonFormat JsonFormat
 }
 
 func defaultAsset() Asset {
@@ -181,9 +192,12 @@ func WriteTextWithOpts(scene PolyformScene, out io.Writer, opts Options) error {
 
 	var bolB []byte
 	var err error
-	if opts.MinifyJSON {
+	switch opts.JsonFormat {
+	case MinifyJsonFormat:
 		bolB, err = json.Marshal(outline)
-	} else {
+	case DefaultJsonFormat, PrettyJsonFormat:
+		fallthrough
+	default:
 		bolB, err = json.MarshalIndent(outline, "", "    ")
 	}
 	if err != nil {

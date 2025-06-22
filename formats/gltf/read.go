@@ -8,13 +8,14 @@ import (
 	"fmt"
 	"image"
 	"image/color"
-	"image/jpeg"
-	"image/png"
+	_ "image/jpeg" // Import for side effects to register JPEG decoder
+	_ "image/png"  // Import for side effects to register PNG decoder
 	"math"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/EliCDavis/polyform/math/mat"
 	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/polyform/math/trs"
 	"github.com/EliCDavis/polyform/modeling"
@@ -474,24 +475,16 @@ func loadImage(imagePath string) (image.Image, error) {
 	}
 	defer file.Close()
 
-	// Determine image format from file extension
-	ext := strings.ToLower(filepath.Ext(imagePath))
-	switch ext {
-	case ".jpg", ".jpeg":
-		img, err := jpeg.Decode(file)
-		if err != nil {
-			return nil, fmt.Errorf("failed to decode JPEG image %q: %w", imagePath, err)
-		}
-		return img, nil
-	case ".png":
-		img, err := png.Decode(file)
-		if err != nil {
-			return nil, fmt.Errorf("failed to decode PNG image %q: %w", imagePath, err)
-		}
-		return img, nil
-	default:
-		return nil, fmt.Errorf("unsupported image format: %s", ext)
+	// Use image.Decode to automatically detect format from file content
+	img, format, err := image.Decode(file)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode image %q: %w", imagePath, err)
 	}
+	
+	// Log the detected format for debugging purposes
+	_ = format // format contains the detected image format (e.g., "jpeg", "png")
+	
+	return img, nil
 }
 
 // loadImageFromDataURI loads an image from a data URI
@@ -516,24 +509,16 @@ func loadImageFromDataURI(dataURI string) (image.Image, error) {
 	// Create reader from decoded data
 	reader := bytes.NewReader(decoded)
 
-	// Determine image format from media type
-	mediaType := strings.Split(parts[0], ";")[0]
-	switch {
-	case strings.Contains(mediaType, "image/jpeg"):
-		img, err := jpeg.Decode(reader)
-		if err != nil {
-			return nil, fmt.Errorf("failed to decode JPEG from data URI: %w", err)
-		}
-		return img, nil
-	case strings.Contains(mediaType, "image/png"):
-		img, err := png.Decode(reader)
-		if err != nil {
-			return nil, fmt.Errorf("failed to decode PNG from data URI: %w", err)
-		}
-		return img, nil
-	default:
-		return nil, fmt.Errorf("unsupported image format in data URI: %s", mediaType)
+	// Use image.Decode to automatically detect format from data content
+	img, format, err := image.Decode(reader)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode image from data URI: %w", err)
 	}
+	
+	// Log the detected format for debugging purposes
+	_ = format // format contains the detected image format (e.g., "jpeg", "png")
+	
+	return img, nil
 }
 
 // loadTexture loads a texture from the GLTF document
@@ -687,63 +672,17 @@ func loadMaterial(doc *Gltf, materialId GltfId, gltfDir string) (*PolyformMateri
 
 // matrixToTRS decomposes a column-major 4x4 transformation matrix into TRS components
 func matrixToTRS(matrix [16]float64) trs.TRS {
-	// Extract translation (last column, elements 12, 13, 14)
-	translation := vector3.New(matrix[12], matrix[13], matrix[14])
-
-	// Extract scale by computing the length of the first three columns
-	scaleX := math.Sqrt(matrix[0]*matrix[0] + matrix[1]*matrix[1] + matrix[2]*matrix[2])
-	scaleY := math.Sqrt(matrix[4]*matrix[4] + matrix[5]*matrix[5] + matrix[6]*matrix[6])
-	scaleZ := math.Sqrt(matrix[8]*matrix[8] + matrix[9]*matrix[9] + matrix[10]*matrix[10])
-	scale := vector3.New(scaleX, scaleY, scaleZ)
-
-	// Normalize rotation matrix by removing scale
-	rotMatrix := [9]float64{
-		matrix[0] / scaleX, matrix[1] / scaleX, matrix[2] / scaleX,
-		matrix[4] / scaleY, matrix[5] / scaleY, matrix[6] / scaleY,
-		matrix[8] / scaleZ, matrix[9] / scaleZ, matrix[10] / scaleZ,
+	// Convert column-major array to Matrix4x4 struct
+	// GLTF uses column-major order: [0,1,2,3] is first column, [4,5,6,7] is second column, etc.
+	m := mat.Matrix4x4{
+		X00: matrix[0], X01: matrix[4], X02: matrix[8],  X03: matrix[12], // Row 0
+		X10: matrix[1], X11: matrix[5], X12: matrix[9],  X13: matrix[13], // Row 1
+		X20: matrix[2], X21: matrix[6], X22: matrix[10], X23: matrix[14], // Row 2
+		X30: matrix[3], X31: matrix[7], X32: matrix[11], X33: matrix[15], // Row 3
 	}
-
-	// Convert rotation matrix to quaternion
-	rotation := matrixToQuaternion(rotMatrix)
-
-	return trs.Identity().SetTranslation(translation).SetRotation(rotation).SetScale(scale)
-}
-
-// matrixToQuaternion converts a 3x3 rotation matrix to a quaternion
-func matrixToQuaternion(m [9]float64) quaternion.Quaternion {
-	// Algorithm from "Converting a Rotation Matrix to Euler Angles and Back"
-	// by Gregory G. Slabaugh
-	trace := m[0] + m[4] + m[8]
-
-	if trace > 0 {
-		s := math.Sqrt(trace+1.0) * 2 // s = 4 * qw
-		w := 0.25 * s
-		x := (m[7] - m[5]) / s
-		y := (m[2] - m[6]) / s
-		z := (m[3] - m[1]) / s
-		return quaternion.New(vector3.New(x, y, z), w)
-	} else if m[0] > m[4] && m[0] > m[8] {
-		s := math.Sqrt(1.0+m[0]-m[4]-m[8]) * 2 // s = 4 * qx
-		w := (m[7] - m[5]) / s
-		x := 0.25 * s
-		y := (m[1] + m[3]) / s
-		z := (m[2] + m[6]) / s
-		return quaternion.New(vector3.New(x, y, z), w)
-	} else if m[4] > m[8] {
-		s := math.Sqrt(1.0+m[4]-m[0]-m[8]) * 2 // s = 4 * qy
-		w := (m[2] - m[6]) / s
-		x := (m[1] + m[3]) / s
-		y := 0.25 * s
-		z := (m[5] + m[7]) / s
-		return quaternion.New(vector3.New(x, y, z), w)
-	} else {
-		s := math.Sqrt(1.0+m[8]-m[0]-m[4]) * 2 // s = 4 * qz
-		w := (m[3] - m[1]) / s
-		x := (m[2] + m[6]) / s
-		y := (m[5] + m[7]) / s
-		z := 0.25 * s
-		return quaternion.New(vector3.New(x, y, z), w)
-	}
+	
+	// Use library function to decompose matrix
+	return trs.FromMatrix(m)
 }
 
 func decodePrimitive(doc *Gltf, buffers [][]byte, n Node, m Mesh, p Primitive, gltfDir string) (*PolyformModel, error) {

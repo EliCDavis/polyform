@@ -54,7 +54,7 @@ type Writer struct {
 
 	extensionsUsed     map[string]bool
 	extensionsRequired map[string]bool
-	
+
 	// EmbedTextures forces texture images to be embedded as data URIs instead of external file references
 	EmbedTextures bool
 }
@@ -373,11 +373,10 @@ func (w *Writer) writeImageAsPng(image image.Image) (int, error) {
 
 func (w *Writer) imageToDataURI(img image.Image) (string, error) {
 	buf := &bytes.Buffer{}
-	err := png.Encode(buf, img)
-	if err != nil {
-		return "", err
+	if err := png.Encode(buf, img); err != nil {
+		return "", fmt.Errorf("failed to encode PNG image: %w", err)
 	}
-	
+
 	encoded := base64.StdEncoding.EncodeToString(buf.Bytes())
 	return "data:image/png;base64," + encoded, nil
 }
@@ -694,7 +693,7 @@ func (w *Writer) AddTexture(polyTex *PolyformTexture) *TextureInfo {
 	newTex := Texture{Extensions: texExt}
 
 	imageIndex := len(w.images)
-	
+
 	// If EmbedTextures is enabled and we have image data, prioritize embedding over URI
 	if w.EmbedTextures && polyTex.Image != nil {
 		foundIndex, ok := w.embededImageIndices[polyTex.Image]
@@ -707,9 +706,7 @@ func (w *Writer) AddTexture(polyTex *PolyformTexture) *TextureInfo {
 				panic(err)
 			}
 
-			w.images = append(w.images, Image{
-				URI: dataURI,
-			})
+			w.images = append(w.images, Image{URI: dataURI})
 			w.embededImageIndices[polyTex.Image] = imageIndex
 		}
 	} else if polyTex.URI != "" { // check if an image with this URI was already added before
@@ -1112,10 +1109,24 @@ func (w Writer) ToGLTF(embeddingStrategy BufferEmbeddingStrategy) Gltf {
 }
 
 func (w Writer) WriteGLB(out io.Writer) error {
-	jsonBytes, err := json.Marshal(w.ToGLTF(BufferEmbeddingStrategy_GLB))
-	if err != nil {
-		return err
+	return w.WriteGLBOpts(out, Options{})
+}
+
+func (w Writer) WriteGLBOpts(out io.Writer, opts Options) error {
+	var jsonBytes []byte
+	var err error
+	switch opts.JsonFormat {
+	case PrettyJsonFormat:
+		jsonBytes, err = json.MarshalIndent(w.ToGLTF(BufferEmbeddingStrategy_GLB), "", "    ")
+	case DefaultJsonFormat, MinifyJsonFormat:
+		fallthrough
+	default:
+		jsonBytes, err = json.Marshal(w.ToGLTF(BufferEmbeddingStrategy_GLB))
 	}
+	if err != nil {
+		return fmt.Errorf("failed to marshal JSON: %w", err)
+	}
+
 	jsonByteLen := len(jsonBytes)
 	jsonPadding := (4 - (jsonByteLen % 4)) % 4
 	jsonByteLen += jsonPadding
