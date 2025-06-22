@@ -577,7 +577,7 @@ func loadTexture(doc *Gltf, textureId GltfId, gltfDir string) (*PolyformTexture,
 
 	// Load sampler if present
 	if texture.Sampler != nil {
-		if *texture.Sampler >= len(doc.Samplers) {
+		if *texture.Sampler >= len(doc.Samplers) || *texture.Sampler < 0 {
 			return nil, fmt.Errorf("texture %d references invalid sampler %d", textureId, *texture.Sampler)
 		}
 		sampler := doc.Samplers[*texture.Sampler]
@@ -589,7 +589,7 @@ func loadTexture(doc *Gltf, textureId GltfId, gltfDir string) (*PolyformTexture,
 
 // loadMaterial loads a material from the GLTF document
 func loadMaterial(doc *Gltf, materialId GltfId, gltfDir string) (*PolyformMaterial, error) {
-	if materialId >= len(doc.Materials) {
+	if materialId >= len(doc.Materials) || materialId  < 0 {
 		return nil, fmt.Errorf("invalid material ID: %d", materialId)
 	}
 

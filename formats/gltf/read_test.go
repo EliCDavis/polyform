@@ -27,12 +27,7 @@ import (
 // =============================================================================
 
 // intPtr returns a pointer to an integer
-func intPtr(i int) *int {
-	return &i
-}
-
-// float64Ptr returns a pointer to a float64
-func float64Ptr(f float64) *float64 {
+func ptr[T any](f T) *T{
 	return &f
 }
 
@@ -68,7 +63,7 @@ func createTestBuffer(data []byte) string {
 func createTriangleBuffer() (string, int) {
 	buf := &bytes.Buffer{}
 
-	// Indices (3 triangles = 9 indices)
+	// Indices (1 triangle = 3 indices)
 	indices := []uint32{0, 1, 2}
 	for _, idx := range indices {
 		binary.Write(buf, binary.LittleEndian, idx)
