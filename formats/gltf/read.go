@@ -11,6 +11,7 @@ import (
 	_ "image/jpeg" // Import for side effects to register JPEG decoder
 	_ "image/png"  // Import for side effects to register PNG decoder
 	"math"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -467,24 +468,52 @@ func decodeVector4Accessor(doc *Gltf, id GltfId, buffers [][]byte) ([]vector4.Fl
 	return vectors, nil
 }
 
-// loadImage loads an image from a file path and returns it
+// loadImage loads an image from a file path or file:// URI and returns it
 func loadImage(imagePath string) (image.Image, error) {
-	file, err := os.Open(imagePath)
+	// Convert file:// URI to local path if needed
+	actualPath, err := resolveImagePath(imagePath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open image file %q: %w", imagePath, err)
+		return nil, fmt.Errorf("failed to resolve image path %q: %w", imagePath, err)
+	}
+
+	file, err := os.Open(actualPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open image file %q: %w", actualPath, err)
 	}
 	defer file.Close()
 
 	// Use image.Decode to automatically detect format from file content
 	img, format, err := image.Decode(file)
 	if err != nil {
-		return nil, fmt.Errorf("failed to decode image %q: %w", imagePath, err)
+		return nil, fmt.Errorf("failed to decode image %q: %w", actualPath, err)
 	}
-	
+
 	// Log the detected format for debugging purposes
 	_ = format // format contains the detected image format (e.g., "jpeg", "png")
-	
+
 	return img, nil
+}
+
+// resolveImagePath converts file:// URIs to local file paths, or returns the path unchanged
+func resolveImagePath(imagePath string) (string, error) {
+	// Check if it's a file:// URI
+	if strings.HasPrefix(imagePath, "file://") {
+		parsedURL, err := url.Parse(imagePath)
+		if err != nil {
+			return "", fmt.Errorf("invalid file URI: %w", err)
+		}
+
+		if parsedURL.Scheme != "file" {
+			return "", fmt.Errorf("expected file:// scheme, got %s://", parsedURL.Scheme)
+		}
+
+		// Convert URL path to local file path
+		// parsedURL.Path already handles URL decoding
+		return parsedURL.Path, nil
+	}
+
+	// Return path unchanged if it's not a file:// URI
+	return imagePath, nil
 }
 
 // loadImageFromDataURI loads an image from a data URI
@@ -514,10 +543,10 @@ func loadImageFromDataURI(dataURI string) (image.Image, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode image from data URI: %w", err)
 	}
-	
+
 	// Log the detected format for debugging purposes
 	_ = format // format contains the detected image format (e.g., "jpeg", "png")
-	
+
 	return img, nil
 }
 
@@ -546,8 +575,16 @@ func loadTexture(doc *Gltf, textureId GltfId, gltfDir string) (*PolyformTexture,
 				}
 				polyformTexture.Image = img
 				polyformTexture.URI = imageRef.URI
+			} else if strings.HasPrefix(imageRef.URI, "file://") {
+				// Handle file:// URI (absolute path)
+				img, err := loadImage(imageRef.URI)
+				if err != nil {
+					return nil, fmt.Errorf("failed to load image for texture %d: %w", textureId, err)
+				}
+				polyformTexture.Image = img
+				polyformTexture.URI = imageRef.URI
 			} else {
-				// Load external image file
+				// Load external image file (relative path)
 				imagePath := filepath.Join(gltfDir, imageRef.URI)
 				img, err := loadImage(imagePath)
 				if err != nil {
@@ -675,12 +712,12 @@ func matrixToTRS(matrix [16]float64) trs.TRS {
 	// Convert column-major array to Matrix4x4 struct
 	// GLTF uses column-major order: [0,1,2,3] is first column, [4,5,6,7] is second column, etc.
 	m := mat.Matrix4x4{
-		X00: matrix[0], X01: matrix[4], X02: matrix[8],  X03: matrix[12], // Row 0
-		X10: matrix[1], X11: matrix[5], X12: matrix[9],  X13: matrix[13], // Row 1
+		X00: matrix[0], X01: matrix[4], X02: matrix[8], X03: matrix[12], // Row 0
+		X10: matrix[1], X11: matrix[5], X12: matrix[9], X13: matrix[13], // Row 1
 		X20: matrix[2], X21: matrix[6], X22: matrix[10], X23: matrix[14], // Row 2
 		X30: matrix[3], X31: matrix[7], X32: matrix[11], X33: matrix[15], // Row 3
 	}
-	
+
 	// Use library function to decompose matrix
 	return trs.FromMatrix(m)
 }

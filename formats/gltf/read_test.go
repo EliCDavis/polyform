@@ -895,6 +895,108 @@ func TestTextureLoading(t *testing.T) {
 }
 
 // =============================================================================
+// File URI Tests
+// =============================================================================
+
+func TestFileURISupport(t *testing.T) {
+	// Create a temporary image file
+	tempDir := t.TempDir()
+	imagePath := filepath.Join(tempDir, "test_image.png")
+
+	// Create a simple test image
+	img := generateTestImage(32, 32, color.RGBA{255, 0, 0, 255})
+	file, err := os.Create(imagePath)
+	require.NoError(t, err)
+	defer file.Close()
+
+	err = png.Encode(file, img)
+	require.NoError(t, err)
+
+	tests := []struct {
+		name        string
+		imageURI    string
+		expectError bool
+		errorMsg    string
+	}{
+		{
+			name:        "file_uri_absolute",
+			imageURI:    "file://" + imagePath,
+			expectError: false,
+		},
+		{
+			name:        "invalid_file_uri",
+			imageURI:    "file:///nonexistent/path/image.png",
+			expectError: true,
+			errorMsg:    "failed to open image file",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create a GLTF document that references the image
+			doc := createMinimalValidGLTF(t)
+
+			// Add an image reference
+			doc.Images = []gltf.Image{
+				{URI: tt.imageURI},
+			}
+
+			// Add textures and materials
+			doc.Textures = []gltf.Texture{
+				{Source: ptr(0)},
+			}
+
+			doc.Materials = []gltf.Material{
+				{
+					ChildOfRootProperty: gltf.ChildOfRootProperty{
+						Name: "TestMaterial",
+					},
+					PbrMetallicRoughness: ptr(gltf.PbrMetallicRoughness{
+						BaseColorTexture: ptr(gltf.TextureInfo{
+							Index: 0,
+						}),
+					}),
+				},
+			}
+
+			// Update primitive to use material
+			doc.Meshes[0].Primitives[0].Material = ptr(0)
+
+			// Write the updated GLTF file
+			tempFile := writeGLTFToTempFile(t, doc)
+
+			// Load and decode
+			loadedDoc, buffers, err := gltf.ExperimentalLoad(tempFile)
+			require.NoError(t, err)
+
+			scene, err := gltf.ExperimentalDecodeScene(loadedDoc, buffers, filepath.Dir(tempFile))
+
+			if tt.expectError {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.errorMsg)
+				return
+			}
+
+			require.NoError(t, err)
+			require.Len(t, scene.Models, 1)
+
+			model := scene.Models[0]
+			require.NotNil(t, model.Material)
+			require.NotNil(t, model.Material.PbrMetallicRoughness)
+			require.NotNil(t, model.Material.PbrMetallicRoughness.BaseColorTexture)
+
+			// Validate that the image was loaded successfully
+			assert.NotNil(t, model.Material.PbrMetallicRoughness.BaseColorTexture.Image)
+
+			// Check that the loaded image has the expected properties
+			bounds := model.Material.PbrMetallicRoughness.BaseColorTexture.Image.Bounds()
+			assert.Equal(t, 32, bounds.Dx(), "Image width should be 32")
+			assert.Equal(t, 32, bounds.Dy(), "Image height should be 32")
+		})
+	}
+}
+
+// =============================================================================
 // Scene Hierarchy Tests
 // =============================================================================
 
