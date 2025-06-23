@@ -14,12 +14,12 @@ require (
 	github.com/EliCDavis/jbtf v0.2.0
 	github.com/EliCDavis/sfm v1.2.0
 	github.com/gorilla/websocket v1.5.3
+	github.com/nlepage/go-wasm-http-server/v2 v2.2.1
 )
 
 require (
 	github.com/hack-pad/safejs v0.1.1 // indirect
 	github.com/nlepage/go-js-promise v1.1.0 // indirect
-	github.com/nlepage/go-wasm-http-server/v2 v2.2.1 // indirect
 )
 
 require (
