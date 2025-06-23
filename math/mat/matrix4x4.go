@@ -20,6 +20,16 @@ func MatFromDirs(up, forward, offset vector3.Float64) Matrix4x4 {
 	}
 }
 
+// FromColArray creates a Matrix4x4 from a 1D array of 16 elements, interpreting them as columns.
+func FromColArray(matrix [16]float64) Matrix4x4 {
+	return Matrix4x4{
+		X00: matrix[0], X01: matrix[4], X02: matrix[8], X03: matrix[12], // Row 0
+		X10: matrix[1], X11: matrix[5], X12: matrix[9], X13: matrix[13], // Row 1
+		X20: matrix[2], X21: matrix[6], X22: matrix[10], X23: matrix[14], // Row 2
+		X30: matrix[3], X31: matrix[7], X32: matrix[11], X33: matrix[15], // Row 3
+	}
+}
+
 func Identity() Matrix4x4 {
 	return Matrix4x4{
 		1, 0, 0, 0,
@@ -46,7 +56,7 @@ func (a Matrix4x4) MulPosition(b vector3.Float64) vector3.Float64 {
 }
 
 func (a Matrix4x4) Determinant() float64 {
-	return (a.X00*a.X11*a.X22*a.X33 - a.X00*a.X11*a.X23*a.X32 +
+	return a.X00*a.X11*a.X22*a.X33 - a.X00*a.X11*a.X23*a.X32 +
 		a.X00*a.X12*a.X23*a.X31 - a.X00*a.X12*a.X21*a.X33 +
 		a.X00*a.X13*a.X21*a.X32 - a.X00*a.X13*a.X22*a.X31 -
 		a.X01*a.X12*a.X23*a.X30 + a.X01*a.X12*a.X20*a.X33 -
@@ -57,7 +67,7 @@ func (a Matrix4x4) Determinant() float64 {
 		a.X02*a.X11*a.X23*a.X30 - a.X02*a.X11*a.X20*a.X33 -
 		a.X03*a.X10*a.X21*a.X32 + a.X03*a.X10*a.X22*a.X31 -
 		a.X03*a.X11*a.X22*a.X30 + a.X03*a.X11*a.X20*a.X32 -
-		a.X03*a.X12*a.X20*a.X31 + a.X03*a.X12*a.X21*a.X30)
+		a.X03*a.X12*a.X20*a.X31 + a.X03*a.X12*a.X21*a.X30
 }
 
 func (a Matrix4x4) Inverse() Matrix4x4 {

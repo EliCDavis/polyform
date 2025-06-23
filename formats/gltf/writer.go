@@ -54,6 +54,9 @@ type Writer struct {
 
 	extensionsUsed     map[string]bool
 	extensionsRequired map[string]bool
+
+	// EmbedTextures forces texture images to be embedded as data URIs instead of external file references
+	EmbedTextures bool
 }
 
 func NewWriter() *Writer {
@@ -368,6 +371,16 @@ func (w *Writer) writeImageAsPng(image image.Image) (int, error) {
 	return bufferViewIndex, nil
 }
 
+func (w *Writer) imageToDataURI(img image.Image) (string, error) {
+	buf := &bytes.Buffer{}
+	if err := png.Encode(buf, img); err != nil {
+		return "", fmt.Errorf("failed to encode PNG image: %w", err)
+	}
+
+	encoded := base64.StdEncoding.EncodeToString(buf.Bytes())
+	return "data:image/png;base64," + encoded, nil
+}
+
 func rgbaToFloatArr(c color.Color) [4]float64 {
 	r, g, b, a := c.RGBA()
 	return [4]float64{
@@ -680,7 +693,23 @@ func (w *Writer) AddTexture(polyTex *PolyformTexture) *TextureInfo {
 	newTex := Texture{Extensions: texExt}
 
 	imageIndex := len(w.images)
-	if polyTex.URI != "" { // check if an image with this URI was already added before
+
+	// If EmbedTextures is enabled and we have image data, prioritize embedding over URI
+	if w.EmbedTextures && polyTex.Image != nil {
+		foundIndex, ok := w.embededImageIndices[polyTex.Image]
+		if ok {
+			imageIndex = foundIndex
+		} else {
+			// Encode image as data URI instead of writing to buffer
+			dataURI, err := w.imageToDataURI(polyTex.Image)
+			if err != nil {
+				panic(err)
+			}
+
+			w.images = append(w.images, Image{URI: dataURI})
+			w.embededImageIndices[polyTex.Image] = imageIndex
+		}
+	} else if polyTex.URI != "" { // check if an image with this URI was already added before
 		var imageFound bool
 		for i, im := range w.images {
 			if im.URI == polyTex.URI {
@@ -827,6 +856,9 @@ func (w *Writer) AddMaterial(mat *PolyformMaterial) (*int, error) {
 			TextureInfo: *w.AddTexture(mat.OcclusionTexture.PolyformTexture),
 			Strength:    mat.OcclusionTexture.Strength,
 		}
+	}
+	if mat.EmissiveTexture != nil {
+		m.EmissiveTexture = w.AddTexture(mat.EmissiveTexture)
 	}
 
 	w.materials = append(w.materials, m)
@@ -1076,11 +1108,21 @@ func (w Writer) ToGLTF(embeddingStrategy BufferEmbeddingStrategy) Gltf {
 	}
 }
 
-func (w Writer) WriteGLB(out io.Writer) error {
-	jsonBytes, err := json.Marshal(w.ToGLTF(BufferEmbeddingStrategy_GLB))
-	if err != nil {
-		return err
+func (w Writer) WriteGLB(out io.Writer, opts WriterOptions) error {
+	var jsonBytes []byte
+	var err error
+	switch opts.JsonFormat {
+	case PrettyJsonFormat:
+		jsonBytes, err = json.MarshalIndent(w.ToGLTF(BufferEmbeddingStrategy_GLB), "", "    ")
+	case DefaultJsonFormat, MinifyJsonFormat:
+		fallthrough
+	default:
+		jsonBytes, err = json.Marshal(w.ToGLTF(BufferEmbeddingStrategy_GLB))
 	}
+	if err != nil {
+		return fmt.Errorf("failed to marshal JSON: %w", err)
+	}
+
 	jsonByteLen := len(jsonBytes)
 	jsonPadding := (4 - (jsonByteLen % 4)) % 4
 	jsonByteLen += jsonPadding

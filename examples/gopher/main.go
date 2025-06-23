@@ -193,7 +193,7 @@ func main() {
 				Animations: animations,
 			},
 		},
-	})
+	}, nil)
 	if err != nil {
 		panic(err)
 	}

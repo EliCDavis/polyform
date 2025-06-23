@@ -56,7 +56,7 @@ func TestWriteBasicTri(t *testing.T) {
 				},
 			},
 		},
-	}, &buf)
+	}, &buf, nil)
 
 	// ASSERT =================================================================
 	assert.NoError(t, err)
@@ -178,7 +178,7 @@ func TestWriteColorTri(t *testing.T) {
 				Mesh: &tri,
 			},
 		},
-	}, &buf)
+	}, &buf, nil)
 
 	// ASSERT =================================================================
 	assert.NoError(t, err)
@@ -329,7 +329,7 @@ func TestWrite_TexturedTriWithMaterialWithColor(t *testing.T) {
 				},
 			},
 		},
-	}, &buf)
+	}, &buf, nil)
 
 	// ASSERT =================================================================
 	assert.NoError(t, err)
@@ -579,7 +579,7 @@ func TestWrite_TexturedTriWithMaterialWithColor_ImageSampleDedupe(t *testing.T) 
 				},
 			},
 		},
-	}, &buf)
+	}, &buf, nil)
 
 	// ASSERT =================================================================
 	assert.NoError(t, err)
@@ -961,7 +961,7 @@ func TestWrite_TexturedTriWithMaterialWithColor_TextureValueDedupe(t *testing.T)
 				},
 			},
 		},
-	}, &buf)
+	}, &buf, nil)
 
 	// ASSERT =================================================================
 	assert.NoError(t, err)
@@ -1290,7 +1290,7 @@ func TestWrite_TexturedTriWithMaterialWithColor_NormalOcclusion(t *testing.T) {
 				},
 			},
 		},
-	}, &buf)
+	}, &buf, nil)
 
 	// ASSERT =================================================================
 	assert.NoError(t, err)
@@ -1523,7 +1523,7 @@ func TestWrite_TexturedTriWithTexExtension(t *testing.T) {
 				},
 			},
 		},
-	}, &buf)
+	}, &buf, nil)
 
 	// ASSERT =================================================================
 	assert.NoError(t, err)
@@ -1756,7 +1756,7 @@ func TestWrite_TexturedTriWithTexExtension_Required(t *testing.T) {
 				},
 			},
 		},
-	}, &buf)
+	}, &buf, nil)
 
 	// ASSERT =================================================================
 	assert.NoError(t, err)
@@ -1963,7 +1963,7 @@ func TestWrite_MaterialAlphaMode(t *testing.T) {
 				},
 			},
 		},
-	}, &buf)
+	}, &buf, nil)
 
 	// ASSERT =================================================================
 	assert.NoError(t, err)
@@ -2094,7 +2094,7 @@ func TestWrite_MaterialAlphaModeWithCutOff(t *testing.T) {
 				},
 			},
 		},
-	}, &buf)
+	}, &buf, nil)
 
 	// ASSERT =================================================================
 	assert.NoError(t, err)
@@ -2241,7 +2241,7 @@ func TestWrite_MaterialAlphaCutOffError(t *testing.T) {
 				},
 			},
 		},
-	}, &buf)
+	}, &buf, nil)
 
 	// ASSERT =================================================================
 	assert.Error(t, err)
@@ -2285,7 +2285,7 @@ func TestWrite_MaterialsDeduplicated(t *testing.T) {
 			{Name: "mesh0", Mesh: &tri0, Material: material},
 			{Name: "mesh1", Mesh: &tri1, Material: material},
 		},
-	}, &buf)
+	}, &buf, nil)
 
 	// ASSERT =================================================================
 	assert.NoError(t, err)
@@ -2469,7 +2469,7 @@ func TestWrite_MeshesDeduplicated(t *testing.T) {
 			{Name: "mesh_right", Mesh: &tri, Material: material, TRS: &trsRight},
 			{Name: "mesh_left", Mesh: &tri, Material: material, TRS: &trsLeft},
 		},
-	}, &buf)
+	}, &buf, nil)
 
 	// ASSERT =================================================================
 	assert.NoError(t, err)
@@ -2633,7 +2633,7 @@ func TestWrite_MeshesGpuInstanced(t *testing.T) {
 			{Name: "mesh_left", Mesh: &tri, Material: material, TRS: &trsLeft},
 		},
 		UseGpuInstancing: true,
-	}, &buf)
+	}, &buf, nil)
 
 	// ASSERT =================================================================
 	assert.NoError(t, err)
@@ -2857,7 +2857,7 @@ func TestWrite_MeshesDifferentMatsPreserved(t *testing.T) {
 			{Name: "mesh_right", Mesh: &tri, Material: materialLeft, TRS: &trsRight},
 			{Name: "mesh_left", Mesh: &tri, Material: materialRight, TRS: &trsLeft},
 		},
-	}, &buf)
+	}, &buf, nil)
 
 	// ASSERT =================================================================
 	assert.NoError(t, err)
@@ -3020,7 +3020,7 @@ func TestWrite_NilMeshError(t *testing.T) {
 				Mesh: nil,
 			},
 		},
-	}, &buf)
+	}, &buf, nil)
 
 	// ASSERT =================================================================
 	assert.Error(t, err)
@@ -3040,7 +3040,7 @@ func TestWriteEmptyMesh(t *testing.T) {
 				Mesh: &tri,
 			},
 		},
-	}, &buf)
+	}, &buf, nil)
 
 	// ASSERT =================================================================
 	assert.NoError(t, err)

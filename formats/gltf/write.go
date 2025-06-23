@@ -12,6 +12,27 @@ import (
 	"github.com/EliCDavis/polyform/modeling/animation"
 )
 
+// JsonFormat specifies the JSON output format for GLTF export
+type JsonFormat int
+
+const (
+	// DefaultJsonFormat uses the library's default JSON formatting (pretty-printed with indentation)
+	DefaultJsonFormat JsonFormat = iota
+	// MinifyJsonFormat produces compact JSON output without indentation
+	MinifyJsonFormat
+	// PrettyJsonFormat explicitly specifies pretty-printed JSON with indentation (same as default)
+	PrettyJsonFormat
+)
+
+// WriterOptions configures GLTF export behavior
+type WriterOptions struct {
+	// EmbedTextures forces texture images to be embedded as data URIs instead of external file references
+	EmbedTextures bool
+
+	// JsonFormat specifies the JSON output format (default is pretty-printed with indentation)
+	JsonFormat JsonFormat
+}
+
 func defaultAsset() Asset {
 	return Asset{
 		Version:   "2.0",
@@ -155,14 +176,31 @@ func flattenSkeletonToNodes(offset int, skeleton animation.Skeleton, out *bytes.
 	return nodes
 }
 
-func WriteText(scene PolyformScene, out io.Writer) error {
-	writer, err := NewWriterFromScene(scene)
-	if err != nil {
-		return fmt.Errorf("failed to create writer from scene: %w", err)
+func WriteText(scene PolyformScene, out io.Writer, options *WriterOptions) error {
+	var opts WriterOptions
+	if options != nil {
+		opts = *options
+	}
+
+	writer := NewWriter()
+	writer.EmbedTextures = opts.EmbedTextures
+
+	if err := writer.AddScene(scene); err != nil {
+		return fmt.Errorf("failed to add scene to writer: %w", err)
 	}
 
 	outline := writer.ToGLTF(BufferEmbeddingStrategy_Base64Encode)
-	bolB, err := json.MarshalIndent(outline, "", "    ")
+
+	var bolB []byte
+	var err error
+	switch opts.JsonFormat {
+	case MinifyJsonFormat:
+		bolB, err = json.Marshal(outline)
+	case DefaultJsonFormat, PrettyJsonFormat:
+		fallthrough
+	default:
+		bolB, err = json.MarshalIndent(outline, "", "    ")
+	}
 	if err != nil {
 		return fmt.Errorf("failed to marshal JSON: %w", err)
 	}
@@ -173,12 +211,20 @@ func WriteText(scene PolyformScene, out io.Writer) error {
 	return nil
 }
 
-func WriteBinary(scene PolyformScene, out io.Writer) error {
-	writer, err := NewWriterFromScene(scene)
-	if err != nil {
-		return fmt.Errorf("failed to create writer from scene: %w", err)
+func WriteBinary(scene PolyformScene, out io.Writer, options *WriterOptions) error {
+	var opts WriterOptions
+	if options != nil {
+		opts = *options
 	}
-	if err := writer.WriteGLB(out); err != nil {
+
+	writer := NewWriter()
+	writer.EmbedTextures = opts.EmbedTextures
+
+	if err := writer.AddScene(scene); err != nil {
+		return fmt.Errorf("failed to add scene to writer: %w", err)
+	}
+
+	if err := writer.WriteGLB(out, opts); err != nil {
 		return fmt.Errorf("failed to write GLB: %w", err)
 	}
 
