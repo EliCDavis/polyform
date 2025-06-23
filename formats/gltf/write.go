@@ -25,7 +25,7 @@ const (
 )
 
 // Options configures GLTF export behavior
-type Options struct {
+type WriterOptions struct {
 	// EmbedTextures forces texture images to be embedded as data URIs instead of external file references
 	EmbedTextures bool
 
