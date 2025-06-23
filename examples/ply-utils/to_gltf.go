@@ -45,6 +45,6 @@ var ToGLTFCommand = &cli.Command{
 			Models: []gltf.PolyformModel{
 				{Name: "PLY", Mesh: &cleanedMesh},
 			},
-		})
+		}, nil)
 	},
 }

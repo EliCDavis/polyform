@@ -47,7 +47,7 @@ func (Artifact) Mime() string {
 }
 
 func (ga Artifact) Write(w io.Writer) error {
-	return WriteBinary(ga.Scene, w)
+	return WriteBinary(ga.Scene, w, nil)
 }
 
 type ManifestNode = nodes.Struct[ManifestNodeData]

@@ -24,7 +24,7 @@ const (
 	PrettyJsonFormat
 )
 
-// Options configures GLTF export behavior
+// WriterOptions configures GLTF export behavior
 type WriterOptions struct {
 	// EmbedTextures forces texture images to be embedded as data URIs instead of external file references
 	EmbedTextures bool
@@ -176,11 +176,12 @@ func flattenSkeletonToNodes(offset int, skeleton animation.Skeleton, out *bytes.
 	return nodes
 }
 
-func WriteText(scene PolyformScene, out io.Writer) error {
-	return WriteTextWithOpts(scene, out, Options{})
-}
+func WriteText(scene PolyformScene, out io.Writer, options *WriterOptions) error {
+	var opts WriterOptions
+	if options != nil {
+		opts = *options
+	}
 
-func WriteTextWithOpts(scene PolyformScene, out io.Writer, opts Options) error {
 	writer := NewWriter()
 	writer.EmbedTextures = opts.EmbedTextures
 
@@ -210,11 +211,12 @@ func WriteTextWithOpts(scene PolyformScene, out io.Writer, opts Options) error {
 	return nil
 }
 
-func WriteBinary(scene PolyformScene, out io.Writer) error {
-	return WriteBinaryWithOpts(scene, out, Options{})
-}
+func WriteBinary(scene PolyformScene, out io.Writer, options *WriterOptions) error {
+	var opts WriterOptions
+	if options != nil {
+		opts = *options
+	}
 
-func WriteBinaryWithOpts(scene PolyformScene, out io.Writer, opts Options) error {
 	writer := NewWriter()
 	writer.EmbedTextures = opts.EmbedTextures
 
@@ -222,7 +224,7 @@ func WriteBinaryWithOpts(scene PolyformScene, out io.Writer, opts Options) error
 		return fmt.Errorf("failed to add scene to writer: %w", err)
 	}
 
-	if err := writer.WriteGLB(out); err != nil {
+	if err := writer.WriteGLB(out, opts); err != nil {
 		return fmt.Errorf("failed to write GLB: %w", err)
 	}
 

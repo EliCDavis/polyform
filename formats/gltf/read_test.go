@@ -1341,7 +1341,7 @@ func TestErrorHandling(t *testing.T) {
 }
 
 // =============================================================================
-// Options API Tests
+// WriterOptions API Tests
 // =============================================================================
 
 func TestOptionsAPI(t *testing.T) {
@@ -1361,7 +1361,7 @@ func TestOptionsAPI(t *testing.T) {
 
 		// Test with embedding enabled
 		outputPath1 := filepath.Join(outputDir, "embedded.gltf")
-		err = gltf.SaveTextWithOpts(outputPath1, *scene, gltf.Options{EmbedTextures: true})
+		err = gltf.SaveText(outputPath1, *scene, &gltf.WriterOptions{EmbedTextures: true})
 		require.NoError(t, err)
 
 		exportedContent1, err := os.ReadFile(outputPath1)
@@ -1379,7 +1379,7 @@ func TestOptionsAPI(t *testing.T) {
 
 		// Test with default options (embedding disabled)
 		outputPath2 := filepath.Join(outputDir, "default.gltf")
-		err = gltf.SaveTextWithOpts(outputPath2, *scene, gltf.Options{})
+		err = gltf.SaveText(outputPath2, *scene, &gltf.WriterOptions{})
 		require.NoError(t, err)
 
 		exportedContent2, err := os.ReadFile(outputPath2)
@@ -1409,7 +1409,7 @@ func TestOptionsAPI(t *testing.T) {
 
 		// Test SaveBinaryWithOpts
 		binaryOutputPath := filepath.Join(outputDir, "test_output.glb")
-		err = gltf.SaveBinaryWithOpts(binaryOutputPath, *scene, gltf.Options{EmbedTextures: true})
+		err = gltf.SaveBinary(binaryOutputPath, *scene, &gltf.WriterOptions{EmbedTextures: true})
 		require.NoError(t, err)
 
 		// Verify binary file exists and has content
@@ -1419,8 +1419,8 @@ func TestOptionsAPI(t *testing.T) {
 	})
 
 	t.Run("options_struct_validation", func(t *testing.T) {
-		// Test that Options struct can be created and used properly
-		opts := gltf.Options{
+		// Test that WriterOptions struct can be created and used properly
+		opts := gltf.WriterOptions{
 			EmbedTextures: true,
 			JsonFormat:    gltf.MinifyJsonFormat,
 		}
@@ -1428,7 +1428,7 @@ func TestOptionsAPI(t *testing.T) {
 		assert.Equal(t, gltf.MinifyJsonFormat, opts.JsonFormat, "JsonFormat should be settable")
 
 		// Test zero value
-		defaultOpts := gltf.Options{}
+		defaultOpts := gltf.WriterOptions{}
 		assert.False(t, defaultOpts.EmbedTextures, "Default EmbedTextures should be false")
 		assert.Equal(t, gltf.DefaultJsonFormat, defaultOpts.JsonFormat, "Default JsonFormat should be DefaultJsonFormat")
 	})
@@ -1446,7 +1446,7 @@ func TestWriteWithOptsAPI(t *testing.T) {
 
 	t.Run("write_text_with_opts", func(t *testing.T) {
 		buf := &bytes.Buffer{}
-		err := gltf.WriteTextWithOpts(*scene, buf, gltf.Options{EmbedTextures: true})
+		err := gltf.WriteText(*scene, buf, &gltf.WriterOptions{EmbedTextures: true})
 		require.NoError(t, err)
 
 		var exportedDoc gltf.Gltf
@@ -1463,7 +1463,7 @@ func TestWriteWithOptsAPI(t *testing.T) {
 
 	t.Run("write_binary_with_opts", func(t *testing.T) {
 		buf := &bytes.Buffer{}
-		err := gltf.WriteBinaryWithOpts(*scene, buf, gltf.Options{EmbedTextures: true})
+		err := gltf.WriteBinary(*scene, buf, &gltf.WriterOptions{EmbedTextures: true})
 		require.NoError(t, err)
 
 		// Verify we got some binary data
@@ -1475,11 +1475,11 @@ func TestWriteWithOptsAPI(t *testing.T) {
 		minifiedBuf := &bytes.Buffer{}
 
 		// Test pretty-printed JSON (default)
-		err := gltf.WriteTextWithOpts(*scene, prettyBuf, gltf.Options{JsonFormat: gltf.PrettyJsonFormat})
+		err := gltf.WriteText(*scene, prettyBuf, &gltf.WriterOptions{JsonFormat: gltf.PrettyJsonFormat})
 		require.NoError(t, err)
 
 		// Test minified JSON
-		err = gltf.WriteTextWithOpts(*scene, minifiedBuf, gltf.Options{JsonFormat: gltf.MinifyJsonFormat})
+		err = gltf.WriteText(*scene, minifiedBuf, &gltf.WriterOptions{JsonFormat: gltf.MinifyJsonFormat})
 		require.NoError(t, err)
 
 		prettyContent := prettyBuf.String()

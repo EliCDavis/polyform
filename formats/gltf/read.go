@@ -668,7 +668,7 @@ func loadTexture(doc *Gltf, textureId GltfId, gltfDir string) (*PolyformTexture,
 
 // loadMaterial loads a material from the GLTF document
 func loadMaterial(doc *Gltf, materialId GltfId, gltfDir string) (*PolyformMaterial, error) {
-	if materialId >= len(doc.Materials) || materialId  < 0 {
+	if materialId >= len(doc.Materials) || materialId < 0 {
 		return nil, fmt.Errorf("invalid material ID: %d", materialId)
 	}
 
@@ -824,7 +824,7 @@ func decodePrimitive(doc *Gltf, buffers [][]byte, n Node, m Mesh, p Primitive, g
 
 	// Handle matrix transformation if present
 	if n.Matrix != nil {
-		transform = trs.FromMatrix(mat.New4x4FromColArray(*n.Matrix))
+		transform = trs.FromMatrix(mat.FromColArray(*n.Matrix))
 	} else {
 		// Handle TRS components
 		if n.Translation != nil {
@@ -932,7 +932,7 @@ func processNodeHierarchy(doc *Gltf, buffers [][]byte, gltfDir string, nodeIndex
 	// Calculate node transformation
 	nodeTransform := trs.Identity()
 	if node.Matrix != nil {
-		nodeTransform = trs.FromMatrix(mat.New4x4FromColArray(*node.Matrix))
+		nodeTransform = trs.FromMatrix(mat.FromColArray(*node.Matrix))
 	} else {
 		if node.Translation != nil {
 			data := *node.Translation

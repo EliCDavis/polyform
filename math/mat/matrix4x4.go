@@ -22,7 +22,7 @@ func MatFromDirs(up, forward, offset vector3.Float64) Matrix4x4 {
 	}
 }
 
-// New4x4FromColArray creates a Matrix4x4 from a 1D array of 16 elements, interpreting them as columns.
+// FromColArray creates a Matrix4x4 from a 1D array of 16 elements, interpreting them as columns.
 func FromColArray(matrix [16]float64) Matrix4x4 {
 	return Matrix4x4{
 		X00: matrix[0], X01: matrix[4], X02: matrix[8], X03: matrix[12], // Row 0

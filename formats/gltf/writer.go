@@ -1108,11 +1108,7 @@ func (w Writer) ToGLTF(embeddingStrategy BufferEmbeddingStrategy) Gltf {
 	}
 }
 
-func (w Writer) WriteGLB(out io.Writer) error {
-	return w.WriteGLBOpts(out, Options{})
-}
-
-func (w Writer) WriteGLBOpts(out io.Writer, opts Options) error {
+func (w Writer) WriteGLB(out io.Writer, opts WriterOptions) error {
 	var jsonBytes []byte
 	var err error
 	switch opts.JsonFormat {
