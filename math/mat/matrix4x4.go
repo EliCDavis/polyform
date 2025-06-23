@@ -1,8 +1,6 @@
 package mat
 
-import (
-	"github.com/EliCDavis/vector/vector3"
-)
+import "github.com/EliCDavis/vector/vector3"
 
 type Matrix4x4 struct {
 	X00, X01, X02, X03 float64

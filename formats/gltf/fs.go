@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 )
 
-func save(gltfPath string, scene PolyformScene, opts *WriterOptions, saveFunc func(scene PolyformScene, out io.Writer, opts *WriterOptions) error) error {
+func save(gltfPath string, scene PolyformScene, options *WriterOptions, saveFunc func(_ PolyformScene, out io.Writer, _ *WriterOptions) error) error {
 	err := os.MkdirAll(path.Dir(gltfPath), os.ModeDir)
 	if err != nil {
 		return err
@@ -22,7 +22,7 @@ func save(gltfPath string, scene PolyformScene, opts *WriterOptions, saveFunc fu
 	defer gltfFile.Close()
 
 	out := bufio.NewWriter(gltfFile)
-	err = saveFunc(scene, out, opts)
+	err = saveFunc(scene, out, options)
 	if err != nil {
 		return err
 	}

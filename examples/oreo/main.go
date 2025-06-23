@@ -280,5 +280,6 @@ func main() {
 				{Mesh: &oreoCookieBottom},
 			},
 		},
+		nil,
 	)
 }
