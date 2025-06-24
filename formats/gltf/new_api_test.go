@@ -57,7 +57,7 @@ func TestParse(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			reader := strings.NewReader(tt.gltfData)
-			doc, err := Parse(reader, nil)
+			doc, err := Parse(reader)
 
 			if tt.expectError {
 				require.Error(t, err)
@@ -91,13 +91,13 @@ func TestParseFile(t *testing.T) {
 	require.NoError(t, err)
 
 	// Test loading the file
-	doc, err := ParseFile(gltfPath, nil)
+	doc, err := ParseFile(gltfPath)
 	require.NoError(t, err)
 	require.NotNil(t, doc)
 	assert.Equal(t, "2.0", doc.Asset.Version)
 
 	// Test loading non-existent file
-	_, err = ParseFile(filepath.Join(tempDir, "nonexistent.gltf"), nil)
+	_, err = ParseFile(filepath.Join(tempDir, "nonexistent.gltf"))
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to open GLTF file")
 }
@@ -152,7 +152,8 @@ func TestLoad(t *testing.T) {
 			}
 
 			reader := strings.NewReader(tt.gltfData)
-			doc, buffers, err := Load(reader, tempDir, nil)
+			opts := &ReaderOptions{BasePath: tempDir}
+			doc, buffers, err := Load(reader, opts)
 
 			if tt.expectError {
 				require.Error(t, err)
@@ -233,7 +234,7 @@ func TestCustomLoaders(t *testing.T) {
 			BufferLoader: loader,
 		}
 
-		doc, buffers, err := Load(strings.NewReader(gltfData), "", opts)
+		doc, buffers, err := Load(strings.NewReader(gltfData), opts)
 		require.NoError(t, err)
 		require.NotNil(t, doc)
 		assert.Len(t, buffers, 1)
@@ -273,7 +274,7 @@ func TestCustomLoaders(t *testing.T) {
 			ImageLoader: loader,
 		}
 
-		models, err := DecodeModels(gltfDoc, [][]byte{make([]byte, 102)}, "", opts)
+		models, err := DecodeModels(gltfDoc, [][]byte{make([]byte, 102)}, opts)
 		require.NoError(t, err)
 		require.Len(t, models, 1)
 		require.NotNil(t, models[0].Material)
@@ -283,7 +284,7 @@ func TestCustomLoaders(t *testing.T) {
 	})
 }
 
-func TestSkipTextureFiles(t *testing.T) {
+func TestNoOpImageLoader(t *testing.T) {
 	gltfDoc := createMinimalValidGLTF()
 	gltfDoc.Images = []Image{{URI: "nonexistent.png"}}
 	gltfDoc.Textures = []Texture{{Source: ptr(0)}}
@@ -296,16 +297,16 @@ func TestSkipTextureFiles(t *testing.T) {
 	}
 	gltfDoc.Meshes[0].Primitives[0].Material = ptr(0)
 
-	// Without SkipTextureFiles - should fail
-	models, err := DecodeModels(gltfDoc, [][]byte{make([]byte, 102)}, "", nil)
+	// Without NoOpImageLoader - should fail
+	models, err := DecodeModels(gltfDoc, [][]byte{make([]byte, 102)}, nil)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to load material")
 
-	// With SkipTextureFiles - should succeed
+	// With NoOpImageLoader - should succeed
 	opts := &ReaderOptions{
-		SkipTextureFiles: true,
+		ImageLoader: &NoOpImageLoader{},
 	}
-	models, err = DecodeModels(gltfDoc, [][]byte{make([]byte, 102)}, "", opts)
+	models, err = DecodeModels(gltfDoc, [][]byte{make([]byte, 102)}, opts)
 	require.NoError(t, err)
 	require.Len(t, models, 1)
 	require.NotNil(t, models[0].Material)
@@ -334,8 +335,7 @@ func TestBasePath(t *testing.T) {
 	opts := &ReaderOptions{
 		BasePath: subDir,
 	}
-
-	doc, buffers, err := Load(strings.NewReader(gltfData), tempDir, opts)
+	doc, buffers, err := Load(strings.NewReader(gltfData), opts)
 	require.NoError(t, err)
 	require.NotNil(t, doc)
 	assert.Len(t, buffers, 1)
@@ -359,12 +359,12 @@ func TestBackwardCompatibility(t *testing.T) {
 	require.NotNil(t, doc)
 
 	// Test deprecated ExperimentalDecodeModels
-	models, err := ExperimentalDecodeModels(doc, buffers, tempDir, nil)
+	models, err := ExperimentalDecodeModels(doc, buffers, tempDir, &ReaderOptions{})
 	require.NoError(t, err)
 	assert.Len(t, models, 1)
 
 	// Test deprecated ExperimentalDecodeScene
-	scene, err := ExperimentalDecodeScene(doc, buffers, tempDir, nil)
+	scene, err := ExperimentalDecodeScene(doc, buffers, tempDir, &ReaderOptions{})
 	require.NoError(t, err)
 	assert.NotNil(t, scene)
 	assert.Len(t, scene.Models, 1)

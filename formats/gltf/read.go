@@ -7,36 +7,30 @@
 //     models, err := gltf.DecodeModels(doc, buffers, "", nil)
 //
 //  2. Loading from memory/streams:
-//     doc, buffers, err := gltf.Load(reader, basePath, nil)
+//     doc, buffers, err := gltf.Load(reader, nil)
 //
 //  3. Custom resource loading (e.g., from database):
 //     opts := &gltf.ReaderOptions{
 //     BufferLoader: myBufferLoader,
 //     ImageLoader: myImageLoader,
 //     }
-//     doc, buffers, err := gltf.Load(reader, "", opts)
+//     doc, buffers, err := gltf.Load(reader, opts)
 //
 //  4. Parsing without loading resources:
-//     doc, err := gltf.Parse(reader, nil)
+//     doc, err := gltf.Parse(reader)
 //     // Process doc structure, then load resources as needed
 package gltf
 
 import (
-	"bytes"
-	"encoding/base64"
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"image"
 	"image/color"
-	_ "image/jpeg" // Import for side effects to register JPEG decoder
-	_ "image/png"  // Import for side effects to register PNG decoder
 	"io"
 	"math"
-	"net/url"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/EliCDavis/polyform/math/mat"
 	"github.com/EliCDavis/polyform/math/quaternion"
@@ -65,10 +59,6 @@ type ImageLoader interface {
 
 // ReaderOptions configures GLTF import behavior
 type ReaderOptions struct {
-	// SkipTextureFiles will skip loading external texture files, and not error out if they are absent.
-	// This will still load textures that are embedded in the GLTF file via data URIs or binary buffers.
-	SkipTextureFiles bool
-
 	// BufferLoader provides custom buffer resolution. If nil, uses default file loading.
 	BufferLoader BufferLoader
 
@@ -523,161 +513,10 @@ func decodeVector4Accessor(doc *Gltf, id GltfId, buffers [][]byte) ([]vector4.Fl
 	return vectors, nil
 }
 
-// loadImage loads an image from a file path or file:// URI and returns it
-func loadImage(imagePath string, basePath string, opts ReaderOptions) (image.Image, error) {
-	// Use custom image loader if provided
-	if opts.ImageLoader != nil {
-		return opts.ImageLoader.LoadImage(imagePath)
-	}
 
-	// Default file loading
-	actualPath := imagePath
-
-	// Handle file:// URIs
-	if strings.HasPrefix(imagePath, "file://") {
-		resolvedPath, err := resolveImagePath(imagePath)
-		if err != nil {
-			return nil, fmt.Errorf("failed to resolve image path %q: %w", imagePath, err)
-		}
-		actualPath = resolvedPath
-	} else if !filepath.IsAbs(imagePath) && basePath != "" {
-		// Resolve relative paths
-		actualPath = filepath.Join(basePath, imagePath)
-	}
-
-	file, err := os.Open(actualPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open image file %q: %w", actualPath, err)
-	}
-	defer file.Close()
-
-	// Use image.Decode to automatically detect format from file content
-	img, format, err := image.Decode(file)
-	if err != nil {
-		return nil, fmt.Errorf("failed to decode image %q: %w", actualPath, err)
-	}
-
-	// Log the detected format for debugging purposes
-	_ = format // format contains the detected image format (e.g., "jpeg", "png")
-
-	return img, nil
-}
-
-// resolveImagePath converts file:// URIs to local file paths, or returns the path unchanged
-func resolveImagePath(imagePath string) (string, error) {
-	// Check if it's a file:// URI
-	if strings.HasPrefix(imagePath, "file://") {
-		parsedURL, err := url.Parse(imagePath)
-		if err != nil {
-			return "", fmt.Errorf("invalid file URI: %w", err)
-		}
-
-		if parsedURL.Scheme != "file" {
-			return "", fmt.Errorf("expected file:// scheme, got %s://", parsedURL.Scheme)
-		}
-
-		// Convert URL path to local file path
-		// parsedURL.Path already handles URL decoding
-		return parsedURL.Path, nil
-	}
-
-	// Return path unchanged if it's not a file:// URI
-	return imagePath, nil
-}
-
-// loadImageFromDataURI loads an image from a data URI
-// Data URI format: data:[<mediatype>][;base64],<data>
-func loadImageFromDataURI(dataURI string) (image.Image, error) {
-	// Check if it's a valid data URI
-	if !strings.HasPrefix(dataURI, "data:") {
-		return nil, fmt.Errorf("invalid data URI: must start with 'data:'")
-	}
-
-	// Find the first comma that separates header from data
-	commaIndex := strings.Index(dataURI, ",")
-	if commaIndex == -1 {
-		return nil, fmt.Errorf("invalid data URI: missing comma separator")
-	}
-
-	header := dataURI[5:commaIndex] // Skip "data:" prefix
-	data := dataURI[commaIndex+1:]
-
-	// Parse the header to extract mediatype and parameters
-	// Format: [<mediatype>][;base64]
-	var mediaType string
-	var isBase64 bool
-
-	// Split header by semicolons to get mediatype and parameters
-	headerParts := strings.Split(header, ";")
-
-	if len(headerParts) == 0 {
-		return nil, fmt.Errorf("invalid data URI: empty header")
-	}
-
-	// First part is the media type
-	mediaType = strings.TrimSpace(headerParts[0])
-
-	// Check remaining parts for base64 parameter
-	for i := 1; i < len(headerParts); i++ {
-		param := strings.TrimSpace(headerParts[i])
-		if param == "base64" {
-			isBase64 = true
-			break
-		}
-	}
-
-	// Validate content type is present and supported
-	if mediaType == "" {
-		return nil, fmt.Errorf("invalid data URI: missing content type (required by GLTF specification)")
-	}
-
-	// Check if the content type is supported
-	switch mediaType {
-	case "image/jpeg", "image/png":
-		// Supported image formats
-	default:
-		return nil, fmt.Errorf("unsupported content type %q: only image/jpeg and image/png are supported", mediaType)
-	}
-
-	// Check for base64 encoding declaration
-	if !isBase64 {
-		return nil, fmt.Errorf("invalid data URI: base64 encoding declaration is required")
-	}
-
-	// Decode base64 data
-	decoded, err := base64.StdEncoding.DecodeString(data)
-	if err != nil {
-		return nil, fmt.Errorf("failed to decode base64 data: %w", err)
-	}
-
-	// Create reader from decoded data
-	reader := bytes.NewReader(decoded)
-
-	// Use image.Decode to automatically detect format from data content
-	img, format, err := image.Decode(reader)
-	if err != nil {
-		return nil, fmt.Errorf("failed to decode image from data URI: %w", err)
-	}
-
-	// Verify the detected format matches the declared content type
-	switch format {
-	case "jpeg":
-		if mediaType != "image/jpeg" {
-			return nil, fmt.Errorf("content type mismatch: declared %q but detected JPEG", mediaType)
-		}
-	case "png":
-		if mediaType != "image/png" {
-			return nil, fmt.Errorf("content type mismatch: declared %q but detected PNG", mediaType)
-		}
-	default:
-		return nil, fmt.Errorf("unsupported image format detected: %q", format)
-	}
-
-	return img, nil
-}
 
 // loadTexture loads a texture from the GLTF document
-func loadTexture(doc *Gltf, textureId GltfId, gltfDir string, opts ReaderOptions) (*PolyformTexture, error) {
+func loadTexture(doc *Gltf, textureId GltfId, opts *ReaderOptions) (*PolyformTexture, error) {
 	if textureId >= len(doc.Textures) || textureId < 0 {
 		return nil, fmt.Errorf("invalid texture ID: %d", textureId)
 	}
@@ -693,33 +532,27 @@ func loadTexture(doc *Gltf, textureId GltfId, gltfDir string, opts ReaderOptions
 
 		imageRef := doc.Images[*texture.Source]
 		if imageRef.URI != "" {
-			if strings.HasPrefix(imageRef.URI, "data:") {
-				// Handle data URI (embedded image)
-				img, err := loadImageFromDataURI(imageRef.URI)
+			// Use image loader to load the image
+			if opts != nil && opts.ImageLoader != nil {
+				img, err := opts.ImageLoader.LoadImage(imageRef.URI)
 				if err != nil {
-					return nil, fmt.Errorf("failed to load embedded image for texture %d: %w", textureId, err)
+					return nil, fmt.Errorf("failed to load image for texture %d: %w", textureId, err)
 				}
 				polyformTexture.Image = img
 				polyformTexture.URI = imageRef.URI
-			} else if strings.HasPrefix(imageRef.URI, "file://") {
-				if !opts.SkipTextureFiles {
-					// Handle file:// URI (absolute path)
-					img, err := loadImage(imageRef.URI, gltfDir, opts)
-					if err != nil {
-						return nil, fmt.Errorf("failed to load image for texture %d: %w", textureId, err)
-					}
-					polyformTexture.Image = img
-				}
-				polyformTexture.URI = imageRef.URI
 			} else {
-				if !opts.SkipTextureFiles {
-					// Load external image file (relative path)
-					img, err := loadImage(imageRef.URI, gltfDir, opts)
-					if err != nil {
-						return nil, fmt.Errorf("failed to load image for texture %d: %w", textureId, err)
-					}
-					polyformTexture.Image = img
+				// Use default standard image loader
+				defaultLoader := &StandardImageLoader{
+					BasePath: "",
 				}
+				if opts != nil {
+					defaultLoader.BasePath = opts.BasePath
+				}
+				img, err := defaultLoader.LoadImage(imageRef.URI)
+				if err != nil {
+					return nil, fmt.Errorf("failed to load image for texture %d: %w", textureId, err)
+				}
+				polyformTexture.Image = img
 				polyformTexture.URI = imageRef.URI
 			}
 		}
@@ -739,7 +572,7 @@ func loadTexture(doc *Gltf, textureId GltfId, gltfDir string, opts ReaderOptions
 }
 
 // loadMaterial loads a material from the GLTF document
-func loadMaterial(doc *Gltf, materialId GltfId, gltfDir string, opts ReaderOptions) (*PolyformMaterial, error) {
+func loadMaterial(doc *Gltf, materialId GltfId, opts *ReaderOptions) (*PolyformMaterial, error) {
 	if materialId >= len(doc.Materials) || materialId < 0 {
 		return nil, fmt.Errorf("invalid material ID: %d", materialId)
 	}
@@ -766,7 +599,7 @@ func loadMaterial(doc *Gltf, materialId GltfId, gltfDir string, opts ReaderOptio
 
 		// Base color texture
 		if gltfMaterial.PbrMetallicRoughness.BaseColorTexture != nil {
-			texture, err := loadTexture(doc, gltfMaterial.PbrMetallicRoughness.BaseColorTexture.Index, gltfDir, opts)
+			texture, err := loadTexture(doc, gltfMaterial.PbrMetallicRoughness.BaseColorTexture.Index, opts)
 			if err != nil {
 				return nil, fmt.Errorf("failed to load base color texture: %w", err)
 			}
@@ -783,7 +616,7 @@ func loadMaterial(doc *Gltf, materialId GltfId, gltfDir string, opts ReaderOptio
 
 		// Metallic-roughness texture
 		if gltfMaterial.PbrMetallicRoughness.MetallicRoughnessTexture != nil {
-			texture, err := loadTexture(doc, gltfMaterial.PbrMetallicRoughness.MetallicRoughnessTexture.Index, gltfDir, opts)
+			texture, err := loadTexture(doc, gltfMaterial.PbrMetallicRoughness.MetallicRoughnessTexture.Index, opts)
 			if err != nil {
 				return nil, fmt.Errorf("failed to load metallic-roughness texture: %w", err)
 			}
@@ -795,7 +628,7 @@ func loadMaterial(doc *Gltf, materialId GltfId, gltfDir string, opts ReaderOptio
 
 	// Load normal texture
 	if gltfMaterial.NormalTexture != nil {
-		texture, err := loadTexture(doc, gltfMaterial.NormalTexture.Index, gltfDir, opts)
+		texture, err := loadTexture(doc, gltfMaterial.NormalTexture.Index, opts)
 		if err != nil {
 			return nil, fmt.Errorf("failed to load normal texture: %w", err)
 		}
@@ -807,7 +640,7 @@ func loadMaterial(doc *Gltf, materialId GltfId, gltfDir string, opts ReaderOptio
 
 	// Load emissive texture
 	if gltfMaterial.EmissiveTexture != nil {
-		texture, err := loadTexture(doc, gltfMaterial.EmissiveTexture.Index, gltfDir, opts)
+		texture, err := loadTexture(doc, gltfMaterial.EmissiveTexture.Index, opts)
 		if err != nil {
 			return nil, fmt.Errorf("failed to load emissive texture: %w", err)
 		}
@@ -836,7 +669,7 @@ func loadMaterial(doc *Gltf, materialId GltfId, gltfDir string, opts ReaderOptio
 	return material, nil
 }
 
-func decodePrimitive(doc *Gltf, buffers [][]byte, n Node, m Mesh, p Primitive, gltfDir string, opts ReaderOptions) (*PolyformModel, error) {
+func decodePrimitive(doc *Gltf, buffers [][]byte, n Node, m Mesh, p Primitive, opts *ReaderOptions) (*PolyformModel, error) {
 	// Handle indices - they might be nil for non-indexed geometry
 	var indices []int
 	var err error
@@ -921,7 +754,7 @@ func decodePrimitive(doc *Gltf, buffers [][]byte, n Node, m Mesh, p Primitive, g
 	// Load material if present
 	var material *PolyformMaterial
 	if p.Material != nil {
-		mat, err := loadMaterial(doc, *p.Material, gltfDir, opts)
+		mat, err := loadMaterial(doc, *p.Material, opts)
 		if err != nil {
 			return nil, fmt.Errorf("failed to load material: %w", err)
 		}
@@ -937,7 +770,7 @@ func decodePrimitive(doc *Gltf, buffers [][]byte, n Node, m Mesh, p Primitive, g
 }
 
 // processNodeHierarchy recursively processes a node and its children, accumulating transformations
-func processNodeHierarchy(doc *Gltf, buffers [][]byte, gltfDir string, nodeIndex int, parentTransform trs.TRS, scene *PolyformScene, opts ReaderOptions) error {
+func processNodeHierarchy(doc *Gltf, buffers [][]byte, nodeIndex int, parentTransform trs.TRS, scene *PolyformScene, opts *ReaderOptions) error {
 	if nodeIndex >= len(doc.Nodes) {
 		return fmt.Errorf("invalid node index: %d", nodeIndex)
 	}
@@ -970,7 +803,7 @@ func processNodeHierarchy(doc *Gltf, buffers [][]byte, gltfDir string, nodeIndex
 	if node.Mesh != nil {
 		mesh := doc.Meshes[*node.Mesh]
 		for primitiveIndex, p := range mesh.Primitives {
-			model, err := decodePrimitive(doc, buffers, node, mesh, p, gltfDir, opts)
+			model, err := decodePrimitive(doc, buffers, node, mesh, p, opts)
 			if err != nil {
 				return fmt.Errorf("Node %d Meshes[%d].primitives[%d]: %w", nodeIndex, *node.Mesh, primitiveIndex, err)
 			}
@@ -983,7 +816,7 @@ func processNodeHierarchy(doc *Gltf, buffers [][]byte, gltfDir string, nodeIndex
 
 	// Process children recursively
 	for _, childIndex := range node.Children {
-		err := processNodeHierarchy(doc, buffers, gltfDir, childIndex, worldTransform, scene, opts)
+		err := processNodeHierarchy(doc, buffers, childIndex, worldTransform, scene, opts)
 		if err != nil {
 			return fmt.Errorf("failed to process child node %d of node %d: %w", childIndex, nodeIndex, err)
 		}
@@ -999,11 +832,11 @@ func processNodeHierarchy(doc *Gltf, buffers [][]byte, gltfDir string, nodeIndex
 // Example:
 //
 //	jsonData := strings.NewReader(gltfJSON)
-//	doc, err := gltf.Parse(jsonData, nil)
+//	doc, err := gltf.Parse(jsonData)
 //	if err != nil {
 //	    log.Fatal(err)
 //	}
-func Parse(r io.Reader, options *ReaderOptions) (*Gltf, error) {
+func Parse(r io.Reader) (*Gltf, error) {
 	data, err := io.ReadAll(r)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read GLTF data: %w", err)
@@ -1029,18 +862,18 @@ func Parse(r io.Reader, options *ReaderOptions) (*Gltf, error) {
 //
 // Example:
 //
-//	doc, err := gltf.ParseFile("model.gltf", nil)
+//	doc, err := gltf.ParseFile("model.gltf")
 //	if err != nil {
 //	    log.Fatal(err)
 //	}
-func ParseFile(gltfPath string, options *ReaderOptions) (*Gltf, error) {
+func ParseFile(gltfPath string) (*Gltf, error) {
 	file, err := os.Open(gltfPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open GLTF file %q: %w", gltfPath, err)
 	}
 	defer file.Close()
 
-	return Parse(file, options)
+	return Parse(file)
 }
 
 // Load reads GLTF JSON from an io.Reader and loads all referenced buffers.
@@ -1048,27 +881,35 @@ func ParseFile(gltfPath string, options *ReaderOptions) (*Gltf, error) {
 // Example with embedded buffer:
 //
 //	jsonData := strings.NewReader(gltfJSON) // GLTF with data URI buffers
-//	doc, buffers, err := gltf.Load(jsonData, "", nil)
+//	doc, buffers, err := gltf.Load(jsonData, nil)
 //
 // Example with custom loader:
 //
 //	opts := &gltf.ReaderOptions{
 //	    BufferLoader: myCustomLoader,
 //	}
-//	doc, buffers, err := gltf.Load(jsonData, "", opts)
+//	doc, buffers, err := gltf.Load(jsonData, opts)
 //
-// The basePath parameter (or options.BasePath if set) is used to resolve relative buffer URIs.
 // If a custom BufferLoader is provided in options, it will be used to load buffers.
-func Load(r io.Reader, basePath string, options *ReaderOptions) (*Gltf, [][]byte, error) {
+// Otherwise, a StandardBufferLoader is used with options.BasePath (or current directory).
+func Load(r io.Reader, options *ReaderOptions) (*Gltf, [][]byte, error) {
 	// Parse the GLTF JSON
-	g, err := Parse(r, options)
+	g, err := Parse(r)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	// Determine the base path for resolving relative URIs
-	if options != nil && options.BasePath != "" {
-		basePath = options.BasePath
+	// Set up options with defaults
+	opts := &ReaderOptions{}
+	if options != nil {
+		*opts = *options
+	}
+
+	// Use standard buffer loader if none provided
+	if opts.BufferLoader == nil {
+		opts.BufferLoader = &StandardBufferLoader{
+			BasePath: opts.BasePath,
+		}
 	}
 
 	// Load buffers
@@ -1078,7 +919,7 @@ func Load(r io.Reader, basePath string, options *ReaderOptions) (*Gltf, [][]byte
 			return nil, nil, fmt.Errorf("buffer %d has invalid byte length: %d", bufIndex, buf.ByteLength)
 		}
 
-		bufferData, err := loadBufferData(buf.URI, basePath, options)
+		bufferData, err := opts.BufferLoader.LoadBuffer(buf.URI)
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to load buffer %d: %w", bufIndex, err)
 		}
@@ -1094,7 +935,7 @@ func Load(r io.Reader, basePath string, options *ReaderOptions) (*Gltf, [][]byte
 }
 
 // LoadFile reads a GLTF file from disk and loads all referenced buffers.
-// This is equivalent to calling Load with a file reader and the file's directory as basePath.
+// The directory containing the GLTF file is used as the base path for resolving relative URIs.
 //
 // Example:
 //
@@ -1103,10 +944,10 @@ func Load(r io.Reader, basePath string, options *ReaderOptions) (*Gltf, [][]byte
 //	    log.Fatal(err)
 //	}
 //
-// Example with options:
+// Example with custom image loader:
 //
 //	opts := &gltf.ReaderOptions{
-//	    SkipTextureFiles: true,  // Don't load external texture files
+//	    ImageLoader: &gltf.NoOpImageLoader{},  // Skip loading texture files
 //	}
 //	doc, buffers, err := gltf.LoadFile("model.gltf", opts)
 func LoadFile(gltfPath string, options *ReaderOptions) (*Gltf, [][]byte, error) {
@@ -1116,61 +957,23 @@ func LoadFile(gltfPath string, options *ReaderOptions) (*Gltf, [][]byte, error) 
 	}
 	defer file.Close()
 
-	return Load(file, filepath.Dir(gltfPath), options)
+	// Set up options with base path
+	opts := &ReaderOptions{}
+	if options != nil {
+		*opts = *options
+	}
+	
+	// Use the GLTF file's directory as base path if not specified
+	if opts.BasePath == "" {
+		opts.BasePath = filepath.Dir(gltfPath)
+	}
+	
+	return Load(file, opts)
 }
 
-// loadBufferData loads buffer data from a URI using the appropriate loader
-func loadBufferData(uri string, basePath string, options *ReaderOptions) ([]byte, error) {
-	// Handle data URIs
-	if strings.HasPrefix(uri, "data:") {
-		return decodeDataURI(uri)
-	}
-
-	// Use custom buffer loader if provided
-	if options != nil && options.BufferLoader != nil {
-		return options.BufferLoader.LoadBuffer(uri)
-	}
-
-	// Default file loading
-	bufferPath := uri
-	if !filepath.IsAbs(bufferPath) && basePath != "" {
-		bufferPath = filepath.Join(basePath, bufferPath)
-	}
-
-	return os.ReadFile(bufferPath)
-}
-
-// decodeDataURI extracts binary data from a data URI
-func decodeDataURI(dataURI string) ([]byte, error) {
-	if !strings.HasPrefix(dataURI, "data:") {
-		return nil, fmt.Errorf("invalid data URI: must start with 'data:'")
-	}
-
-	// Find the comma that separates header from data
-	commaIndex := strings.Index(dataURI, ",")
-	if commaIndex == -1 {
-		return nil, fmt.Errorf("invalid data URI: missing comma separator")
-	}
-
-	header := dataURI[5:commaIndex] // Skip "data:" prefix
-	data := dataURI[commaIndex+1:]
-
-	// Check if it's base64 encoded
-	if !strings.Contains(header, "base64") {
-		return nil, fmt.Errorf("only base64 encoded data URIs are supported")
-	}
-
-	// Decode base64 data
-	decoded, err := base64.StdEncoding.DecodeString(data)
-	if err != nil {
-		return nil, fmt.Errorf("failed to decode base64 data: %w", err)
-	}
-
-	return decoded, nil
-}
 
 // DecodeModels converts a GLTF document into a flat list of Polyform models.
-// The basePath parameter (or options.BasePath if set) is used to resolve relative image URIs.
+// The options.BasePath field is used to resolve relative image URIs.
 // If a custom ImageLoader is provided in options, it will be used to load images.
 //
 // Example:
@@ -1183,12 +986,17 @@ func decodeDataURI(dataURI string) ([]byte, error) {
 //	for _, model := range models {
 //	    fmt.Printf("Model: %s, Vertices: %d\n", model.Name, model.Mesh.AttributeLength())
 //	}
-func DecodeModels(doc *Gltf, buffers [][]byte, basePath string, options *ReaderOptions) ([]PolyformModel, error) {
-	var opts ReaderOptions
+func DecodeModels(doc *Gltf, buffers [][]byte, options *ReaderOptions) ([]PolyformModel, error) {
+	// Set up options with defaults
+	opts := &ReaderOptions{}
 	if options != nil {
-		opts = *options
-		if opts.BasePath != "" {
-			basePath = opts.BasePath
+		*opts = *options
+	}
+	
+	// Use standard image loader if none provided
+	if opts.ImageLoader == nil {
+		opts.ImageLoader = &StandardImageLoader{
+			BasePath: opts.BasePath,
 		}
 	}
 
@@ -1202,7 +1010,7 @@ func DecodeModels(doc *Gltf, buffers [][]byte, basePath string, options *ReaderO
 		mesh := doc.Meshes[*node.Mesh]
 
 		for primitiveIndex, p := range mesh.Primitives {
-			model, err := decodePrimitive(doc, buffers, node, mesh, p, basePath, opts)
+			model, err := decodePrimitive(doc, buffers, node, mesh, p, opts)
 			if err != nil {
 				return nil, fmt.Errorf("Node %d Meshes[%d].primitives[%d]: %w", nodeIndex, *node.Mesh, primitiveIndex, err)
 			}
@@ -1214,23 +1022,28 @@ func DecodeModels(doc *Gltf, buffers [][]byte, basePath string, options *ReaderO
 }
 
 // DecodeScene reconstructs the complete scene hierarchy with proper parent-child relationships.
-// The basePath parameter (or options.BasePath if set) is used to resolve relative image URIs.
+// The options.BasePath field is used to resolve relative image URIs.
 // If a custom ImageLoader is provided in options, it will be used to load images.
 //
 // Example:
 //
 //	doc, buffers, _ := gltf.LoadFile("scene.gltf", nil)
-//	scene, err := gltf.DecodeScene(doc, buffers, "", nil)
+//	scene, err := gltf.DecodeScene(doc, buffers, nil)
 //	if err != nil {
 //	    log.Fatal(err)
 //	}
 //	fmt.Printf("Scene has %d models and %d lights\n", len(scene.Models), len(scene.Lights))
-func DecodeScene(doc *Gltf, buffers [][]byte, basePath string, options *ReaderOptions) (*PolyformScene, error) {
-	var opts ReaderOptions
+func DecodeScene(doc *Gltf, buffers [][]byte, options *ReaderOptions) (*PolyformScene, error) {
+	// Set up options with defaults
+	opts := &ReaderOptions{}
 	if options != nil {
-		opts = *options
-		if opts.BasePath != "" {
-			basePath = opts.BasePath
+		*opts = *options
+	}
+	
+	// Use standard image loader if none provided
+	if opts.ImageLoader == nil {
+		opts.ImageLoader = &StandardImageLoader{
+			BasePath: opts.BasePath,
 		}
 	}
 
@@ -1258,7 +1071,7 @@ func DecodeScene(doc *Gltf, buffers [][]byte, basePath string, options *ReaderOp
 
 	// Process root nodes and their children recursively
 	for _, rootNodeIndex := range gltfScene.Nodes {
-		err := processNodeHierarchy(doc, buffers, basePath, rootNodeIndex, trs.Identity(), scene, opts)
+		err := processNodeHierarchy(doc, buffers, rootNodeIndex, trs.Identity(), scene, opts)
 		if err != nil {
 			return nil, fmt.Errorf("failed to process root node %d: %w", rootNodeIndex, err)
 		}
@@ -1270,13 +1083,13 @@ func DecodeScene(doc *Gltf, buffers [][]byte, basePath string, options *ReaderOp
 // Deprecated: Use DecodeModels instead.
 // ExperimentalDecodeModels converts a GLTF document into a flat list of Polyform models.
 func ExperimentalDecodeModels(doc *Gltf, buffers [][]byte, gltfDir string, options *ReaderOptions) ([]PolyformModel, error) {
-	return DecodeModels(doc, buffers, gltfDir, options)
+	return DecodeModels(doc, buffers, options)
 }
 
 // Deprecated: Use DecodeScene instead.
 // ExperimentalDecodeScene reconstructs the complete scene hierarchy with proper parent-child relationships.
 func ExperimentalDecodeScene(doc *Gltf, buffers [][]byte, gltfDir string, options *ReaderOptions) (*PolyformScene, error) {
-	return DecodeScene(doc, buffers, gltfDir, options)
+	return DecodeScene(doc, buffers, options)
 }
 
 // Deprecated: Use LoadFile instead.

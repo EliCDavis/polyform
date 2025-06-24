@@ -231,7 +231,7 @@ func ApplyAnisotropicFilling(inDepth texturing.Texture[float64], inColor texturi
 						radius := pos.ToFloat64().Sub(vector2.New(x, y).ToFloat64()).Length()
 						radiualWeight := 1. - ((radius) / 2.)
 
-						depthWeight := (1. - min(1., math.Abs(v-curDepth)/depthContribution))
+						depthWeight := 1. - min(1., math.Abs(v-curDepth)/depthContribution)
 
 						weight := depthWeight * radiualWeight
 
@@ -289,12 +289,12 @@ func colorPassthrough(c color.Color) color.Color { return c }
 func loadMesh() (*modeling.Mesh, error) {
 	return ply.Load("./test-models/stanford-bunny.ply")
 
-	doc, buffs, err := gltf.ExperimentalLoad("C:/Users/elida/Downloads/example.gltf")
+	doc, buffs, err := gltf.LoadFile("C:/Users/elida/Downloads/example.gltf", nil)
 	if err != nil {
 		return nil, err
 	}
 
-	models, err := gltf.ExperimentalDecodeModels(doc, buffs, "C:/Users/elida/Downloads/")
+	models, err := gltf.DecodeModels(doc, buffs, &gltf.ReaderOptions{BasePath: "C:/Users/elida/Downloads/"})
 	if err != nil {
 		return nil, err
 	}
