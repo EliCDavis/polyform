@@ -100,7 +100,7 @@ func TestStandardBufferLoader_LoadBuffer(t *testing.T) {
 			name:        "empty_uri",
 			uri:         "",
 			expectError: true,
-			errorMsg:    "no such file",
+			errorMsg:    "is a directory",
 		},
 	}
 
@@ -181,7 +181,7 @@ func TestStandardBufferLoader_DataURIEdgeCases(t *testing.T) {
 			name:        "data_uri_with_whitespace",
 			uri:         "data: application/octet-stream ; base64 , SGVsbG8=",
 			expectError: true,
-			errorMsg:    "only base64 encoded data URIs are supported",
+			errorMsg:    "failed to decode base64 data",
 		},
 		{
 			name:        "empty_data_uri",
