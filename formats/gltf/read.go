@@ -513,8 +513,6 @@ func decodeVector4Accessor(doc *Gltf, id GltfId, buffers [][]byte) ([]vector4.Fl
 	return vectors, nil
 }
 
-
-
 // loadTexture loads a texture from the GLTF document
 func loadTexture(doc *Gltf, textureId GltfId, opts ReaderOptions) (*PolyformTexture, error) {
 	if textureId >= len(doc.Textures) || textureId < 0 {
@@ -946,15 +944,14 @@ func LoadFile(gltfPath string, options *ReaderOptions) (*Gltf, [][]byte, error) 
 	if options != nil {
 		*opts = *options
 	}
-	
+
 	// Use the GLTF file's directory as base path if not specified
 	if opts.BasePath == "" {
 		opts.BasePath = filepath.Dir(gltfPath)
 	}
-	
+
 	return Load(file, opts)
 }
-
 
 // DecodeModels converts a GLTF document into a flat list of Polyform models.
 // The options.BasePath field is used to resolve relative image URIs.
@@ -976,7 +973,7 @@ func DecodeModels(doc *Gltf, buffers [][]byte, options *ReaderOptions) ([]Polyfo
 	if options != nil {
 		*opts = *options
 	}
-	
+
 	// Use standard image loader if none provided
 	if opts.ImageLoader == nil {
 		opts.ImageLoader = &StandardImageLoader{
@@ -1023,7 +1020,7 @@ func DecodeScene(doc *Gltf, buffers [][]byte, options *ReaderOptions) (*Polyform
 	if options != nil {
 		*opts = *options
 	}
-	
+
 	// Use standard image loader if none provided
 	if opts.ImageLoader == nil {
 		opts.ImageLoader = &StandardImageLoader{

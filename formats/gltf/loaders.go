@@ -100,11 +100,11 @@ func resolveImagePath(fileURI string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	
+
 	if parsed.Scheme != "file" {
 		return "", fmt.Errorf("expected 'file' scheme, got %q", parsed.Scheme)
 	}
-	
+
 	// URL path is already unescaped
 	return parsed.Path, nil
 }

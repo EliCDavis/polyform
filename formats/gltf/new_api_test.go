@@ -76,7 +76,7 @@ func TestParseFile(t *testing.T) {
 	// Create a temporary GLTF file
 	tempDir := t.TempDir()
 	gltfPath := filepath.Join(tempDir, "test.gltf")
-	
+
 	gltfContent := `{
 		"asset": {"version": "2.0"},
 		"scenes": [{"nodes": [0]}],
@@ -86,7 +86,7 @@ func TestParseFile(t *testing.T) {
 		"bufferViews": [{"buffer": 0, "byteLength": 36}],
 		"buffers": [{"byteLength": 36, "uri": "buffer.bin"}]
 	}`
-	
+
 	err := os.WriteFile(gltfPath, []byte(gltfContent), 0644)
 	require.NoError(t, err)
 
@@ -144,7 +144,7 @@ func TestLoad(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tempDir := t.TempDir()
-			
+
 			// Setup files if needed
 			for filename, content := range tt.setupFiles {
 				err := os.WriteFile(filepath.Join(tempDir, filename), content, 0644)
@@ -172,7 +172,7 @@ func TestLoadFile(t *testing.T) {
 	tempDir := t.TempDir()
 	gltfPath := filepath.Join(tempDir, "test.gltf")
 	bufferPath := filepath.Join(tempDir, "buffer.bin")
-	
+
 	// Create GLTF file
 	gltfContent := `{
 		"asset": {"version": "2.0"},
@@ -180,7 +180,7 @@ func TestLoadFile(t *testing.T) {
 	}`
 	err := os.WriteFile(gltfPath, []byte(gltfContent), 0644)
 	require.NoError(t, err)
-	
+
 	// Create buffer file
 	err = os.WriteFile(bufferPath, make([]byte, 36), 0644)
 	require.NoError(t, err)
@@ -250,7 +250,7 @@ func TestCustomLoaders(t *testing.T) {
 				testImage.Set(x, y, color.RGBA{255, 0, 0, 255})
 			}
 		}
-		
+
 		loader := &mockImageLoader{
 			images: map[string]image.Image{
 				"custom://image1": testImage,
@@ -320,7 +320,7 @@ func TestBasePath(t *testing.T) {
 	subDir := filepath.Join(tempDir, "models")
 	err := os.MkdirAll(subDir, 0755)
 	require.NoError(t, err)
-	
+
 	// Create buffer in subdirectory
 	bufferPath := filepath.Join(subDir, "buffer.bin")
 	err = os.WriteFile(bufferPath, make([]byte, 36), 0644)
@@ -345,11 +345,11 @@ func TestBackwardCompatibility(t *testing.T) {
 	// Create test GLTF file
 	tempDir := t.TempDir()
 	gltfPath := filepath.Join(tempDir, "test.gltf")
-	
+
 	gltfDoc := createMinimalValidGLTF()
 	gltfData, err := json.Marshal(gltfDoc)
 	require.NoError(t, err)
-	
+
 	err = os.WriteFile(gltfPath, gltfData, 0644)
 	require.NoError(t, err)
 
@@ -380,58 +380,58 @@ func createMinimalValidGLTF() *Gltf {
 	// Create a minimal triangle
 	// Positions: 3 vertices * 3 floats * 4 bytes = 36 bytes
 	positions := []byte{
-		0, 0, 0, 0,       // vertex 0 x: 0.0
-		0, 0, 0, 0,       // vertex 0 y: 0.0
-		0, 0, 0, 0,       // vertex 0 z: 0.0
-		0, 0, 128, 63,    // vertex 1 x: 1.0
-		0, 0, 0, 0,       // vertex 1 y: 0.0
-		0, 0, 0, 0,       // vertex 1 z: 0.0
-		0, 0, 0, 0,       // vertex 2 x: 0.0
-		0, 0, 128, 63,    // vertex 2 y: 1.0
-		0, 0, 0, 0,       // vertex 2 z: 0.0
+		0, 0, 0, 0, // vertex 0 x: 0.0
+		0, 0, 0, 0, // vertex 0 y: 0.0
+		0, 0, 0, 0, // vertex 0 z: 0.0
+		0, 0, 128, 63, // vertex 1 x: 1.0
+		0, 0, 0, 0, // vertex 1 y: 0.0
+		0, 0, 0, 0, // vertex 1 z: 0.0
+		0, 0, 0, 0, // vertex 2 x: 0.0
+		0, 0, 128, 63, // vertex 2 y: 1.0
+		0, 0, 0, 0, // vertex 2 z: 0.0
 	}
-	
+
 	// Normals: 3 vertices * 3 floats * 4 bytes = 36 bytes
 	normals := []byte{
-		0, 0, 0, 0,       // normal 0: (0, 0, 1)
-		0, 0, 0, 0,       //
-		0, 0, 128, 63,    //
-		0, 0, 0, 0,       // normal 1: (0, 0, 1)
-		0, 0, 0, 0,       //
-		0, 0, 128, 63,    //
-		0, 0, 0, 0,       // normal 2: (0, 0, 1)
-		0, 0, 0, 0,       //
-		0, 0, 128, 63,    //
+		0, 0, 0, 0, // normal 0: (0, 0, 1)
+		0, 0, 0, 0, //
+		0, 0, 128, 63, //
+		0, 0, 0, 0, // normal 1: (0, 0, 1)
+		0, 0, 0, 0, //
+		0, 0, 128, 63, //
+		0, 0, 0, 0, // normal 2: (0, 0, 1)
+		0, 0, 0, 0, //
+		0, 0, 128, 63, //
 	}
-	
+
 	// UVs: 3 vertices * 2 floats * 4 bytes = 24 bytes
 	uvs := []byte{
-		0, 0, 0, 0,       // uv 0: (0, 0)
-		0, 0, 0, 0,       //
-		0, 0, 128, 63,    // uv 1: (1, 0)
-		0, 0, 0, 0,       //
-		0, 0, 128, 63,    // uv 2: (1, 1)
-		0, 0, 128, 63,    //
+		0, 0, 0, 0, // uv 0: (0, 0)
+		0, 0, 0, 0, //
+		0, 0, 128, 63, // uv 1: (1, 0)
+		0, 0, 0, 0, //
+		0, 0, 128, 63, // uv 2: (1, 1)
+		0, 0, 128, 63, //
 	}
-	
+
 	// Indices: 3 indices * 2 bytes = 6 bytes
 	indices := []byte{0, 0, 1, 0, 2, 0} // unsigned short indices
-	
+
 	// Combine all data
 	allData := append(positions, normals...)
 	allData = append(allData, uvs...)
 	allData = append(allData, indices...)
-	
+
 	// Convert to base64
 	bufferData := bytes.NewBuffer(allData).Bytes()
-	
+
 	// Debug: print actual sizes
 	// fmt.Printf("Positions: %d bytes\n", len(positions))
-	// fmt.Printf("Normals: %d bytes\n", len(normals))  
+	// fmt.Printf("Normals: %d bytes\n", len(normals))
 	// fmt.Printf("UVs: %d bytes\n", len(uvs))
 	// fmt.Printf("Indices: %d bytes\n", len(indices))
 	// fmt.Printf("Total buffer: %d bytes\n", len(bufferData))
-	
+
 	base64Data := "data:application/octet-stream;base64," + bytesToBase64(bufferData)
 
 	return &Gltf{
@@ -440,15 +440,15 @@ func createMinimalValidGLTF() *Gltf {
 			{URI: base64Data, ByteLength: len(bufferData)},
 		},
 		BufferViews: []BufferView{
-			{Buffer: 0, ByteOffset: 0, ByteLength: 36, Target: ARRAY_BUFFER},          // positions
-			{Buffer: 0, ByteOffset: 36, ByteLength: 36, Target: ARRAY_BUFFER},         // normals
-			{Buffer: 0, ByteOffset: 72, ByteLength: 24, Target: ARRAY_BUFFER},         // uvs
-			{Buffer: 0, ByteOffset: 96, ByteLength: 6, Target: ELEMENT_ARRAY_BUFFER},  // indices
+			{Buffer: 0, ByteOffset: 0, ByteLength: 36, Target: ARRAY_BUFFER},         // positions
+			{Buffer: 0, ByteOffset: 36, ByteLength: 36, Target: ARRAY_BUFFER},        // normals
+			{Buffer: 0, ByteOffset: 72, ByteLength: 24, Target: ARRAY_BUFFER},        // uvs
+			{Buffer: 0, ByteOffset: 96, ByteLength: 6, Target: ELEMENT_ARRAY_BUFFER}, // indices
 		},
 		Accessors: []Accessor{
-			{BufferView: ptr(GltfId(0)), ByteOffset: 0, ComponentType: AccessorComponentType_FLOAT, Count: 3, Type: AccessorType_VEC3}, // positions
-			{BufferView: ptr(GltfId(1)), ByteOffset: 0, ComponentType: AccessorComponentType_FLOAT, Count: 3, Type: AccessorType_VEC3}, // normals
-			{BufferView: ptr(GltfId(2)), ByteOffset: 0, ComponentType: AccessorComponentType_FLOAT, Count: 3, Type: AccessorType_VEC2}, // uvs
+			{BufferView: ptr(GltfId(0)), ByteOffset: 0, ComponentType: AccessorComponentType_FLOAT, Count: 3, Type: AccessorType_VEC3},            // positions
+			{BufferView: ptr(GltfId(1)), ByteOffset: 0, ComponentType: AccessorComponentType_FLOAT, Count: 3, Type: AccessorType_VEC3},            // normals
+			{BufferView: ptr(GltfId(2)), ByteOffset: 0, ComponentType: AccessorComponentType_FLOAT, Count: 3, Type: AccessorType_VEC2},            // uvs
 			{BufferView: ptr(GltfId(3)), ByteOffset: 0, ComponentType: AccessorComponentType_UNSIGNED_SHORT, Count: 3, Type: AccessorType_SCALAR}, // indices
 		},
 		Meshes: []Mesh{

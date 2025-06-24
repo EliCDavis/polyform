@@ -30,8 +30,8 @@ func TestStandardBufferLoader_LoadBuffer(t *testing.T) {
 		expectedLen int
 	}{
 		{
-			name: "valid_data_uri",
-			uri:  "data:application/octet-stream;base64,SGVsbG8gV29ybGQ=", // "Hello World"
+			name:        "valid_data_uri",
+			uri:         "data:application/octet-stream;base64,SGVsbG8gV29ybGQ=", // "Hello World"
 			expectedLen: 11,
 			expectError: false,
 		},
@@ -107,7 +107,7 @@ func TestStandardBufferLoader_LoadBuffer(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tempDir := t.TempDir()
-			
+
 			// Setup files if needed
 			for filename, content := range tt.setupFiles {
 				fullPath := filepath.Join(tempDir, filename)
@@ -200,7 +200,7 @@ func TestStandardBufferLoader_DataURIEdgeCases(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			loader := &StandardBufferLoader{BasePath: ""}
-			
+
 			data, err := loader.LoadBuffer(tt.uri)
 
 			if tt.expectError {
@@ -299,7 +299,7 @@ func TestStandardImageLoader_LoadImage(t *testing.T) {
 			errorMsg:    "failed to open image file",
 		},
 		{
-			name:        "corrupted_image_file",
+			name: "corrupted_image_file",
 			setupFiles: map[string]image.Image{
 				"corrupted.png": nil, // Will write corrupted data
 			},
@@ -312,14 +312,14 @@ func TestStandardImageLoader_LoadImage(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tempDir := t.TempDir()
-			
+
 			// Setup image files if needed
 			for filename, img := range tt.setupFiles {
 				fullPath := filepath.Join(tempDir, filename)
 				dir := filepath.Dir(fullPath)
 				err := os.MkdirAll(dir, 0755)
 				require.NoError(t, err)
-				
+
 				if img == nil && strings.Contains(filename, "corrupted") {
 					// Write corrupted PNG data
 					err = os.WriteFile(fullPath, []byte("not a valid image"), 0644)
@@ -364,7 +364,7 @@ func TestStandardImageLoader_LoadImage(t *testing.T) {
 
 			require.NoError(t, err)
 			require.NotNil(t, img)
-			
+
 			// Verify image dimensions
 			bounds := img.Bounds()
 			assert.Equal(t, 16, bounds.Dx())
@@ -377,7 +377,7 @@ func TestStandardImageLoader_DataURIValidation(t *testing.T) {
 	// Create a valid test image for format validation tests
 	testImg := createTestImage(t, 8, 8, color.RGBA{0, 255, 0, 255})
 	validPNGData := imageToBase64(t, testImg, "png")
-	
+
 	tests := []struct {
 		name        string
 		uri         string
@@ -436,7 +436,7 @@ func TestStandardImageLoader_DataURIValidation(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			loader := &StandardImageLoader{BasePath: ""}
-			
+
 			img, err := loader.LoadImage(tt.uri)
 
 			if tt.expectError {
@@ -452,7 +452,7 @@ func TestStandardImageLoader_DataURIValidation(t *testing.T) {
 }
 
 // =============================================================================
-// NoOpImageLoader Tests  
+// NoOpImageLoader Tests
 // =============================================================================
 
 func TestNoOpImageLoader_LoadImage(t *testing.T) {
@@ -489,9 +489,9 @@ func TestNoOpImageLoader_LoadImage(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			loader := &NoOpImageLoader{}
-			
+
 			img, err := loader.LoadImage(tt.uri)
-			
+
 			// NoOpImageLoader should always return (nil, nil)
 			require.NoError(t, err)
 			assert.Nil(t, img)
@@ -519,14 +519,14 @@ func createTestImage(t *testing.T, width, height int, col color.RGBA) image.Imag
 func imageToDataURI(t *testing.T, img image.Image, format string) string {
 	t.Helper()
 	buf := &bytes.Buffer{}
-	
+
 	switch format {
 	case "png":
 		require.NoError(t, png.Encode(buf, img))
 	default:
 		t.Fatalf("Unsupported format: %s", format)
 	}
-	
+
 	encoded := base64.StdEncoding.EncodeToString(buf.Bytes())
 	return "data:image/" + format + ";base64," + encoded
 }
@@ -535,13 +535,13 @@ func imageToDataURI(t *testing.T, img image.Image, format string) string {
 func imageToBase64(t *testing.T, img image.Image, format string) string {
 	t.Helper()
 	buf := &bytes.Buffer{}
-	
+
 	switch format {
 	case "png":
 		require.NoError(t, png.Encode(buf, img))
 	default:
 		t.Fatalf("Unsupported format: %s", format)
 	}
-	
+
 	return base64.StdEncoding.EncodeToString(buf.Bytes())
 }
