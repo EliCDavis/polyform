@@ -878,13 +878,13 @@ func Load(r io.Reader, options *ReaderOptions) (*Gltf, [][]byte, error) {
 	// Parse the GLTF JSON
 	g, err := Parse(r)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("failed to parse GLTF data: %w", err)
 	}
 
 	// Set up options with defaults
-	opts := &ReaderOptions{}
+	var opts ReaderOptions
 	if options != nil {
-		*opts = *options
+		opts = *options
 	}
 
 	// Use standard buffer loader if none provided
@@ -969,9 +969,9 @@ func LoadFile(gltfPath string, options *ReaderOptions) (*Gltf, [][]byte, error) 
 //	}
 func DecodeModels(doc *Gltf, buffers [][]byte, options *ReaderOptions) ([]PolyformModel, error) {
 	// Set up options with defaults
-	opts := &ReaderOptions{}
+	var opts ReaderOptions
 	if options != nil {
-		*opts = *options
+		opts = *options
 	}
 
 	// Use standard image loader if none provided
@@ -991,7 +991,7 @@ func DecodeModels(doc *Gltf, buffers [][]byte, options *ReaderOptions) ([]Polyfo
 		mesh := doc.Meshes[*node.Mesh]
 
 		for primitiveIndex, p := range mesh.Primitives {
-			model, err := decodePrimitive(doc, buffers, node, mesh, p, *opts)
+			model, err := decodePrimitive(doc, buffers, node, mesh, p, opts)
 			if err != nil {
 				return nil, fmt.Errorf("Node %d Meshes[%d].primitives[%d]: %w", nodeIndex, *node.Mesh, primitiveIndex, err)
 			}
@@ -1016,9 +1016,9 @@ func DecodeModels(doc *Gltf, buffers [][]byte, options *ReaderOptions) ([]Polyfo
 //	fmt.Printf("Scene has %d models and %d lights\n", len(scene.Models), len(scene.Lights))
 func DecodeScene(doc *Gltf, buffers [][]byte, options *ReaderOptions) (*PolyformScene, error) {
 	// Set up options with defaults
-	opts := &ReaderOptions{}
+	var opts ReaderOptions
 	if options != nil {
-		*opts = *options
+		opts = *options
 	}
 
 	// Use standard image loader if none provided
@@ -1035,7 +1035,7 @@ func DecodeScene(doc *Gltf, buffers [][]byte, options *ReaderOptions) (*Polyform
 	}
 
 	// Get the main scene or use the first one
-	sceneIndex := 0
+	var sceneIndex int
 	if doc.Scene >= 0 && doc.Scene < len(doc.Scenes) {
 		sceneIndex = doc.Scene
 	}
@@ -1052,7 +1052,7 @@ func DecodeScene(doc *Gltf, buffers [][]byte, options *ReaderOptions) (*Polyform
 
 	// Process root nodes and their children recursively
 	for _, rootNodeIndex := range gltfScene.Nodes {
-		err := processNodeHierarchy(doc, buffers, rootNodeIndex, trs.Identity(), scene, *opts)
+		err := processNodeHierarchy(doc, buffers, rootNodeIndex, trs.Identity(), scene, opts)
 		if err != nil {
 			return nil, fmt.Errorf("failed to process root node %d: %w", rootNodeIndex, err)
 		}
@@ -1064,12 +1064,27 @@ func DecodeScene(doc *Gltf, buffers [][]byte, options *ReaderOptions) (*Polyform
 // Deprecated: Use DecodeModels instead.
 // ExperimentalDecodeModels converts a GLTF document into a flat list of Polyform models.
 func ExperimentalDecodeModels(doc *Gltf, buffers [][]byte, gltfDir string, options *ReaderOptions) ([]PolyformModel, error) {
+	opts := &ReaderOptions{}
+	if options != nil {
+		*opts = *options
+	}
+	if opts.BasePath == "" && gltfDir != "" {
+		opts.BasePath = gltfDir
+	}
 	return DecodeModels(doc, buffers, options)
 }
 
 // Deprecated: Use DecodeScene instead.
 // ExperimentalDecodeScene reconstructs the complete scene hierarchy with proper parent-child relationships.
 func ExperimentalDecodeScene(doc *Gltf, buffers [][]byte, gltfDir string, options *ReaderOptions) (*PolyformScene, error) {
+	opts := &ReaderOptions{}
+	if options != nil {
+		*opts = *options
+	}
+	if opts.BasePath == "" && gltfDir != "" {
+		opts.BasePath = gltfDir
+	}
+
 	return DecodeScene(doc, buffers, options)
 }
 
