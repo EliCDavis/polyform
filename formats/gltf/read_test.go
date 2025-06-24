@@ -307,10 +307,10 @@ func assertMaterialEqual(t *testing.T, expected, actual *gltf.PolyformMaterial, 
 }
 
 // =============================================================================
-// ExperimentalLoad Tests
+// LoadFile Tests
 // =============================================================================
 
-func TestExperimentalLoad(t *testing.T) {
+func TestLoadFile(t *testing.T) {
 	tests := []struct {
 		name        string
 		setupGLTF   func(t *testing.T) gltf.Gltf
@@ -399,7 +399,7 @@ func TestExperimentalLoad(t *testing.T) {
 			doc := tt.setupGLTF(t)
 			tempFile := writeGLTFToTempFile(t, doc)
 
-			loadedDoc, buffers, err := gltf.ExperimentalLoad(tempFile)
+			loadedDoc, buffers, err := gltf.LoadFile(tempFile, nil)
 
 			if tt.expectError {
 				require.Error(t, err)
@@ -428,20 +428,20 @@ func TestExperimentalLoad(t *testing.T) {
 	}
 }
 
-func TestExperimentalLoadFileNotFound(t *testing.T) {
-	_, _, err := gltf.ExperimentalLoad("/non/existent/path.gltf")
+func TestLoadFileNotFound(t *testing.T) {
+	_, _, err := gltf.LoadFile("/non/existent/path.gltf", nil)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to read GLTF file")
+	assert.Contains(t, err.Error(), "failed to open GLTF file")
 }
 
-func TestExperimentalLoadInvalidJSON(t *testing.T) {
+func TestLoadInvalidJSON(t *testing.T) {
 	tempDir := t.TempDir()
 	tempFile := filepath.Join(tempDir, "invalid.gltf")
 
 	err := os.WriteFile(tempFile, []byte("invalid json {"), 0644)
 	require.NoError(t, err)
 
-	_, _, err = gltf.ExperimentalLoad(tempFile)
+	_, _, err = gltf.LoadFile(tempFile, nil)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to parse GLTF JSON")
 }
@@ -621,7 +621,7 @@ func TestPrimitiveDecoding(t *testing.T) {
 			setupPrimitive: func() (gltf.Gltf, [][]byte) {
 				doc := createMinimalValidGLTF(t)
 				tempFile := writeGLTFToTempFile(t, doc)
-				loadedDoc, buffers, err := gltf.ExperimentalLoad(tempFile)
+				loadedDoc, buffers, err := gltf.LoadFile(tempFile, nil)
 				require.NoError(t, err)
 				return *loadedDoc, buffers
 			},
@@ -635,7 +635,7 @@ func TestPrimitiveDecoding(t *testing.T) {
 				mode := gltf.PrimitiveMode_POINTS
 				doc.Meshes[0].Primitives[0].Mode = &mode
 				tempFile := writeGLTFToTempFile(t, doc)
-				loadedDoc, buffers, err := gltf.ExperimentalLoad(tempFile)
+				loadedDoc, buffers, err := gltf.LoadFile(tempFile, nil)
 				require.NoError(t, err)
 				return *loadedDoc, buffers
 			},
@@ -649,7 +649,7 @@ func TestPrimitiveDecoding(t *testing.T) {
 				mode := gltf.PrimitiveMode_LINES
 				doc.Meshes[0].Primitives[0].Mode = &mode
 				tempFile := writeGLTFToTempFile(t, doc)
-				loadedDoc, buffers, err := gltf.ExperimentalLoad(tempFile)
+				loadedDoc, buffers, err := gltf.LoadFile(tempFile, nil)
 				require.NoError(t, err)
 				return *loadedDoc, buffers
 			},
@@ -661,9 +661,8 @@ func TestPrimitiveDecoding(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			doc, buffers := tt.setupPrimitive()
-			tempDir := t.TempDir()
 
-			models, err := gltf.ExperimentalDecodeModels(&doc, buffers, tempDir)
+			models, err := gltf.DecodeModels(&doc, buffers, nil)
 
 			if tt.expectError {
 				require.Error(t, err)
@@ -708,7 +707,7 @@ func TestMaterialLoading(t *testing.T) {
 			setupMaterial: func() (gltf.Gltf, [][]byte) {
 				doc := createGLTFWithMaterials(t)
 				tempFile := writeGLTFToTempFile(t, doc)
-				loadedDoc, buffers, err := gltf.ExperimentalLoad(tempFile)
+				loadedDoc, buffers, err := gltf.LoadFile(tempFile, nil)
 				require.NoError(t, err)
 				return *loadedDoc, buffers
 			},
@@ -734,7 +733,7 @@ func TestMaterialLoading(t *testing.T) {
 				}
 				doc.Meshes[0].Primitives[0].Material = ptr(0)
 				tempFile := writeGLTFToTempFile(t, doc)
-				loadedDoc, buffers, err := gltf.ExperimentalLoad(tempFile)
+				loadedDoc, buffers, err := gltf.LoadFile(tempFile, nil)
 				require.NoError(t, err)
 				return *loadedDoc, buffers
 			},
@@ -747,9 +746,8 @@ func TestMaterialLoading(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			doc, buffers := tt.setupMaterial()
-			tempDir := t.TempDir()
 
-			models, err := gltf.ExperimentalDecodeModels(&doc, buffers, tempDir)
+			models, err := gltf.DecodeModels(&doc, buffers, nil)
 
 			if tt.expectError {
 				require.Error(t, err)
@@ -799,7 +797,7 @@ func TestTextureLoading(t *testing.T) {
 			setupTexture: func() (gltf.Gltf, [][]byte) {
 				doc := createGLTFWithMaterials(t)
 				tempFile := writeGLTFToTempFile(t, doc)
-				loadedDoc, buffers, err := gltf.ExperimentalLoad(tempFile)
+				loadedDoc, buffers, err := gltf.LoadFile(tempFile, nil)
 				require.NoError(t, err)
 				return *loadedDoc, buffers
 			},
@@ -812,7 +810,7 @@ func TestTextureLoading(t *testing.T) {
 				// Reference non-existent texture
 				doc.Materials[0].PbrMetallicRoughness.BaseColorTexture.Index = 999
 				tempFile := writeGLTFToTempFile(t, doc)
-				loadedDoc, buffers, err := gltf.ExperimentalLoad(tempFile)
+				loadedDoc, buffers, err := gltf.LoadFile(tempFile, nil)
 				require.NoError(t, err)
 				return *loadedDoc, buffers
 			},
@@ -826,7 +824,7 @@ func TestTextureLoading(t *testing.T) {
 				// Reference non-existent image
 				doc.Textures[0].Source = ptr(999)
 				tempFile := writeGLTFToTempFile(t, doc)
-				loadedDoc, buffers, err := gltf.ExperimentalLoad(tempFile)
+				loadedDoc, buffers, err := gltf.LoadFile(tempFile, nil)
 				require.NoError(t, err)
 				return *loadedDoc, buffers
 			},
@@ -840,7 +838,7 @@ func TestTextureLoading(t *testing.T) {
 				// Use malformed data URI
 				doc.Images[0].URI = "data:invalid_format"
 				tempFile := writeGLTFToTempFile(t, doc)
-				loadedDoc, buffers, err := gltf.ExperimentalLoad(tempFile)
+				loadedDoc, buffers, err := gltf.LoadFile(tempFile, nil)
 				require.NoError(t, err)
 				return *loadedDoc, buffers
 			},
@@ -852,9 +850,8 @@ func TestTextureLoading(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			doc, buffers := tt.setupTexture()
-			tempDir := t.TempDir()
 
-			models, err := gltf.ExperimentalDecodeModels(&doc, buffers, tempDir)
+			models, err := gltf.DecodeModels(&doc, buffers, nil)
 
 			if tt.expectError {
 				require.Error(t, err)
@@ -950,10 +947,10 @@ func TestFileURISupport(t *testing.T) {
 			tempFile := writeGLTFToTempFile(t, doc)
 
 			// Load and decode
-			loadedDoc, buffers, err := gltf.ExperimentalLoad(tempFile)
+			loadedDoc, buffers, err := gltf.LoadFile(tempFile, nil)
 			require.NoError(t, err)
 
-			scene, err := gltf.ExperimentalDecodeScene(loadedDoc, buffers, filepath.Dir(tempFile))
+			scene, err := gltf.DecodeScene(loadedDoc, buffers, nil)
 
 			if tt.expectError {
 				require.Error(t, err)
@@ -997,7 +994,7 @@ func TestSceneHierarchy(t *testing.T) {
 			setupScene: func() (gltf.Gltf, [][]byte) {
 				doc := createGLTFWithHierarchy(t)
 				tempFile := writeGLTFToTempFile(t, doc)
-				loadedDoc, buffers, err := gltf.ExperimentalLoad(tempFile)
+				loadedDoc, buffers, err := gltf.LoadFile(tempFile, nil)
 				require.NoError(t, err)
 				return *loadedDoc, buffers
 			},
@@ -1010,7 +1007,7 @@ func TestSceneHierarchy(t *testing.T) {
 				doc := createMinimalValidGLTF(t)
 				doc.Scenes[0].Nodes = []gltf.GltfId{} // Empty scene
 				tempFile := writeGLTFToTempFile(t, doc)
-				loadedDoc, buffers, err := gltf.ExperimentalLoad(tempFile)
+				loadedDoc, buffers, err := gltf.LoadFile(tempFile, nil)
 				require.NoError(t, err)
 				return *loadedDoc, buffers
 			},
@@ -1023,7 +1020,7 @@ func TestSceneHierarchy(t *testing.T) {
 				doc := createMinimalValidGLTF(t)
 				doc.Scene = 999 // Invalid scene index
 				tempFile := writeGLTFToTempFile(t, doc)
-				loadedDoc, buffers, err := gltf.ExperimentalLoad(tempFile)
+				loadedDoc, buffers, err := gltf.LoadFile(tempFile, nil)
 				require.NoError(t, err)
 				return *loadedDoc, buffers
 			},
@@ -1036,9 +1033,8 @@ func TestSceneHierarchy(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			doc, buffers := tt.setupScene()
-			tempDir := t.TempDir()
 
-			scene, err := gltf.ExperimentalDecodeScene(&doc, buffers, tempDir)
+			scene, err := gltf.DecodeScene(&doc, buffers, nil)
 
 			if tt.expectError {
 				require.Error(t, err)
@@ -1089,7 +1085,7 @@ func TestTransformations(t *testing.T) {
 				doc.Nodes[0].Scale = &[3]float64{2.0, 2.0, 2.0}
 				doc.Nodes[0].Rotation = &[4]float64{0.0, 0.0, 0.0, 1.0}
 				tempFile := writeGLTFToTempFile(t, doc)
-				loadedDoc, buffers, err := gltf.ExperimentalLoad(tempFile)
+				loadedDoc, buffers, err := gltf.LoadFile(tempFile, nil)
 				require.NoError(t, err)
 				return *loadedDoc, buffers
 			},
@@ -1109,7 +1105,7 @@ func TestTransformations(t *testing.T) {
 					5.0, 6.0, 7.0, 1.0,
 				}
 				tempFile := writeGLTFToTempFile(t, doc)
-				loadedDoc, buffers, err := gltf.ExperimentalLoad(tempFile)
+				loadedDoc, buffers, err := gltf.LoadFile(tempFile, nil)
 				require.NoError(t, err)
 				return *loadedDoc, buffers
 			},
@@ -1123,7 +1119,7 @@ func TestTransformations(t *testing.T) {
 				doc := createMinimalValidGLTF(t)
 				// No explicit transform - should be identity
 				tempFile := writeGLTFToTempFile(t, doc)
-				loadedDoc, buffers, err := gltf.ExperimentalLoad(tempFile)
+				loadedDoc, buffers, err := gltf.LoadFile(tempFile, nil)
 				require.NoError(t, err)
 				return *loadedDoc, buffers
 			},
@@ -1136,9 +1132,8 @@ func TestTransformations(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			doc, buffers := tt.setupTransform()
-			tempDir := t.TempDir()
 
-			models, err := gltf.ExperimentalDecodeModels(&doc, buffers, tempDir)
+			models, err := gltf.DecodeModels(&doc, buffers, nil)
 
 			if tt.expectError {
 				require.Error(t, err)
@@ -1223,12 +1218,12 @@ func TestIntegrationLoadAndDecode(t *testing.T) {
 			tempFile := writeGLTFToTempFile(t, doc)
 
 			// Load document
-			loadedDoc, buffers, err := gltf.ExperimentalLoad(tempFile)
+			loadedDoc, buffers, err := gltf.LoadFile(tempFile, nil)
 			require.NoError(t, err)
 			require.NotNil(t, loadedDoc)
 
 			// Decode scene
-			scene, err := gltf.ExperimentalDecodeScene(loadedDoc, buffers, filepath.Dir(tempFile))
+			scene, err := gltf.DecodeScene(loadedDoc, buffers, nil)
 			require.NoError(t, err)
 			require.NotNil(t, scene)
 			require.Len(t, scene.Models, tt.expectedModels)
@@ -1261,7 +1256,7 @@ func TestErrorHandling(t *testing.T) {
 				// Reference non-existent accessor
 				doc.Meshes[0].Primitives[0].Attributes[gltf.POSITION] = 999
 				tempFile := writeGLTFToTempFile(t, doc)
-				loadedDoc, buffers, err := gltf.ExperimentalLoad(tempFile)
+				loadedDoc, buffers, err := gltf.LoadFile(tempFile, nil)
 				require.NoError(t, err)
 				return *loadedDoc, buffers
 			},
@@ -1275,7 +1270,7 @@ func TestErrorHandling(t *testing.T) {
 				// Reference non-existent buffer view
 				doc.Accessors[0].BufferView = ptr(999)
 				tempFile := writeGLTFToTempFile(t, doc)
-				loadedDoc, buffers, err := gltf.ExperimentalLoad(tempFile)
+				loadedDoc, buffers, err := gltf.LoadFile(tempFile, nil)
 				require.NoError(t, err)
 				return *loadedDoc, buffers
 			},
@@ -1289,7 +1284,7 @@ func TestErrorHandling(t *testing.T) {
 				// Reference non-existent material
 				doc.Meshes[0].Primitives[0].Material = ptr(999)
 				tempFile := writeGLTFToTempFile(t, doc)
-				loadedDoc, buffers, err := gltf.ExperimentalLoad(tempFile)
+				loadedDoc, buffers, err := gltf.LoadFile(tempFile, nil)
 				require.NoError(t, err)
 				return *loadedDoc, buffers
 			},
@@ -1303,7 +1298,7 @@ func TestErrorHandling(t *testing.T) {
 				// Reference non-existent node in scene
 				doc.Scenes[0].Nodes = []gltf.GltfId{999}
 				tempFile := writeGLTFToTempFile(t, doc)
-				loadedDoc, buffers, err := gltf.ExperimentalLoad(tempFile)
+				loadedDoc, buffers, err := gltf.LoadFile(tempFile, nil)
 				require.NoError(t, err)
 				return *loadedDoc, buffers
 			},
@@ -1315,7 +1310,6 @@ func TestErrorHandling(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			doc, buffers := tt.setupError()
-			tempDir := t.TempDir()
 
 			var err error
 			func() {
@@ -1325,7 +1319,7 @@ func TestErrorHandling(t *testing.T) {
 						err = fmt.Errorf("panic occurred: %v", r)
 					}
 				}()
-				_, err = gltf.ExperimentalDecodeScene(&doc, buffers, tempDir)
+				_, err = gltf.DecodeScene(&doc, buffers, nil)
 			}()
 
 			if tt.expectError {
@@ -1351,10 +1345,10 @@ func TestOptionsAPI(t *testing.T) {
 		tempFile := writeGLTFToTempFile(t, doc)
 
 		// Load the original scene
-		loadedDoc, buffers, err := gltf.ExperimentalLoad(tempFile)
+		loadedDoc, buffers, err := gltf.LoadFile(tempFile, nil)
 		require.NoError(t, err)
 
-		scene, err := gltf.ExperimentalDecodeScene(loadedDoc, buffers, filepath.Dir(tempFile))
+		scene, err := gltf.DecodeScene(loadedDoc, buffers, nil)
 		require.NoError(t, err)
 
 		outputDir := t.TempDir()
@@ -1399,10 +1393,10 @@ func TestOptionsAPI(t *testing.T) {
 		doc := createGLTFWithMaterials(t)
 		tempFile := writeGLTFToTempFile(t, doc)
 
-		loadedDoc, buffers, err := gltf.ExperimentalLoad(tempFile)
+		loadedDoc, buffers, err := gltf.LoadFile(tempFile, nil)
 		require.NoError(t, err)
 
-		scene, err := gltf.ExperimentalDecodeScene(loadedDoc, buffers, filepath.Dir(tempFile))
+		scene, err := gltf.DecodeScene(loadedDoc, buffers, nil)
 		require.NoError(t, err)
 
 		outputDir := t.TempDir()
@@ -1438,10 +1432,10 @@ func TestWriteWithOptsAPI(t *testing.T) {
 	doc := createGLTFWithMaterials(t)
 	tempFile := writeGLTFToTempFile(t, doc)
 
-	loadedDoc, buffers, err := gltf.ExperimentalLoad(tempFile)
+	loadedDoc, buffers, err := gltf.LoadFile(tempFile, nil)
 	require.NoError(t, err)
 
-	scene, err := gltf.ExperimentalDecodeScene(loadedDoc, buffers, filepath.Dir(tempFile))
+	scene, err := gltf.DecodeScene(loadedDoc, buffers, nil)
 	require.NoError(t, err)
 
 	t.Run("write_text_with_opts", func(t *testing.T) {
@@ -1656,12 +1650,12 @@ func testDataURIThroughGLTF(t *testing.T, dataURI string) error {
 	tempFile := writeGLTFToTempFile(t, doc)
 
 	// Load and decode - this will trigger data URI loading
-	loadedDoc, buffers, err := gltf.ExperimentalLoad(tempFile)
+	loadedDoc, buffers, err := gltf.LoadFile(tempFile, nil)
 	if err != nil {
 		return err
 	}
 
-	_, err = gltf.ExperimentalDecodeScene(loadedDoc, buffers, filepath.Dir(tempFile))
+	_, err = gltf.DecodeScene(loadedDoc, buffers, nil)
 	return err
 }
 

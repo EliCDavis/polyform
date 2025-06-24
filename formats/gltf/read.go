@@ -516,7 +516,7 @@ func decodeVector4Accessor(doc *Gltf, id GltfId, buffers [][]byte) ([]vector4.Fl
 
 
 // loadTexture loads a texture from the GLTF document
-func loadTexture(doc *Gltf, textureId GltfId, opts *ReaderOptions) (*PolyformTexture, error) {
+func loadTexture(doc *Gltf, textureId GltfId, opts ReaderOptions) (*PolyformTexture, error) {
 	if textureId >= len(doc.Textures) || textureId < 0 {
 		return nil, fmt.Errorf("invalid texture ID: %d", textureId)
 	}
@@ -532,29 +532,13 @@ func loadTexture(doc *Gltf, textureId GltfId, opts *ReaderOptions) (*PolyformTex
 
 		imageRef := doc.Images[*texture.Source]
 		if imageRef.URI != "" {
-			// Use image loader to load the image
-			if opts != nil && opts.ImageLoader != nil {
-				img, err := opts.ImageLoader.LoadImage(imageRef.URI)
-				if err != nil {
-					return nil, fmt.Errorf("failed to load image for texture %d: %w", textureId, err)
-				}
-				polyformTexture.Image = img
-				polyformTexture.URI = imageRef.URI
-			} else {
-				// Use default standard image loader
-				defaultLoader := &StandardImageLoader{
-					BasePath: "",
-				}
-				if opts != nil {
-					defaultLoader.BasePath = opts.BasePath
-				}
-				img, err := defaultLoader.LoadImage(imageRef.URI)
-				if err != nil {
-					return nil, fmt.Errorf("failed to load image for texture %d: %w", textureId, err)
-				}
-				polyformTexture.Image = img
-				polyformTexture.URI = imageRef.URI
+			// Use the configured image loader
+			img, err := opts.ImageLoader.LoadImage(imageRef.URI)
+			if err != nil {
+				return nil, fmt.Errorf("failed to load image for texture %d: %w", textureId, err)
 			}
+			polyformTexture.Image = img
+			polyformTexture.URI = imageRef.URI
 		}
 		// TODO: Handle embedded images via buffer views
 	}
@@ -572,7 +556,7 @@ func loadTexture(doc *Gltf, textureId GltfId, opts *ReaderOptions) (*PolyformTex
 }
 
 // loadMaterial loads a material from the GLTF document
-func loadMaterial(doc *Gltf, materialId GltfId, opts *ReaderOptions) (*PolyformMaterial, error) {
+func loadMaterial(doc *Gltf, materialId GltfId, opts ReaderOptions) (*PolyformMaterial, error) {
 	if materialId >= len(doc.Materials) || materialId < 0 {
 		return nil, fmt.Errorf("invalid material ID: %d", materialId)
 	}
@@ -669,7 +653,7 @@ func loadMaterial(doc *Gltf, materialId GltfId, opts *ReaderOptions) (*PolyformM
 	return material, nil
 }
 
-func decodePrimitive(doc *Gltf, buffers [][]byte, n Node, m Mesh, p Primitive, opts *ReaderOptions) (*PolyformModel, error) {
+func decodePrimitive(doc *Gltf, buffers [][]byte, n Node, m Mesh, p Primitive, opts ReaderOptions) (*PolyformModel, error) {
 	// Handle indices - they might be nil for non-indexed geometry
 	var indices []int
 	var err error
@@ -770,7 +754,7 @@ func decodePrimitive(doc *Gltf, buffers [][]byte, n Node, m Mesh, p Primitive, o
 }
 
 // processNodeHierarchy recursively processes a node and its children, accumulating transformations
-func processNodeHierarchy(doc *Gltf, buffers [][]byte, nodeIndex int, parentTransform trs.TRS, scene *PolyformScene, opts *ReaderOptions) error {
+func processNodeHierarchy(doc *Gltf, buffers [][]byte, nodeIndex int, parentTransform trs.TRS, scene *PolyformScene, opts ReaderOptions) error {
 	if nodeIndex >= len(doc.Nodes) {
 		return fmt.Errorf("invalid node index: %d", nodeIndex)
 	}
@@ -1010,7 +994,7 @@ func DecodeModels(doc *Gltf, buffers [][]byte, options *ReaderOptions) ([]Polyfo
 		mesh := doc.Meshes[*node.Mesh]
 
 		for primitiveIndex, p := range mesh.Primitives {
-			model, err := decodePrimitive(doc, buffers, node, mesh, p, opts)
+			model, err := decodePrimitive(doc, buffers, node, mesh, p, *opts)
 			if err != nil {
 				return nil, fmt.Errorf("Node %d Meshes[%d].primitives[%d]: %w", nodeIndex, *node.Mesh, primitiveIndex, err)
 			}
@@ -1071,7 +1055,7 @@ func DecodeScene(doc *Gltf, buffers [][]byte, options *ReaderOptions) (*Polyform
 
 	// Process root nodes and their children recursively
 	for _, rootNodeIndex := range gltfScene.Nodes {
-		err := processNodeHierarchy(doc, buffers, rootNodeIndex, trs.Identity(), scene, opts)
+		err := processNodeHierarchy(doc, buffers, rootNodeIndex, trs.Identity(), scene, *opts)
 		if err != nil {
 			return nil, fmt.Errorf("failed to process root node %d: %w", rootNodeIndex, err)
 		}
