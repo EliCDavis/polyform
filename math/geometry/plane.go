@@ -7,6 +7,13 @@ type Plane struct {
 	distance float64
 }
 
+func NewPlane(position, normal vector3.Float64) Plane {
+	return Plane{
+		normal:   normal,
+		distance: normal.Dot(position),
+	}
+}
+
 func NewPlaneFromPoints(a, b, c vector3.Float64) Plane {
 	normal := b.Sub(a).Cross(c.Sub(a)).Normalized()
 	return Plane{

@@ -332,6 +332,14 @@ Resources either directly contributing to the code, or are just interesting find
     - [_L-System User Notes_ Written by Paul Bourke](https://paulbourke.net/fractals/lsys/)
     - [L System On Wikipedia](https://en.wikipedia.org/wiki/L-system)
     - [_An Introduction to Lindenmayer Systems_ by Gabriela Ochoa](https://www1.biologie.uni-hamburg.de/b-online/e28_3/lsys.html)
+  - Subdivision
+    - [_"Exploring Rectangle Subdivisions"_ by Boris The Brave](https://www.boristhebrave.com/2025/05/03/exploring-rectangle-subdivisions/)
+    - [_"Recursive Subdivision Variants"_ by Boris The Brave](https://www.boristhebrave.com/2021/08/14/recursive-subdivision-variants/)
+    - [_"Recursive bisection with a twist"_ by Oleg Dolya](https://www.patreon.com/posts/49191011)
+    - [_"A Better Recursive Division Algorithm"_ by Jamis Buck](https://weblog.jamisbuck.org/2015/1/15/better-recursive-division-algorithm.html)
+  - WFC
+    - ["The Wavefunction Collapse Algorithm explained very clearly" - Robert Heaton](https://robertheaton.com/2018/12/17/wavefunction-collapse-algorithm/)
+    - [Source code for "The Wavefunction Collapse Algorithm explained very clearly"](https://github.com/robert/wavefunction-collapse)
 - Voronoi
   - [Voronoi Edges by Inigo Quilez](https://iquilezles.org/articles/voronoilines/)
 - Functions / Curves / Animation Lines
@@ -358,9 +366,6 @@ Resources either directly contributing to the code, or are just interesting find
   - [Threejs on Color Management](https://threejs.org/docs/#manual/en/introduction/Color-management)
   - [Threejs Colorspace conversion](https://github.com/mrdoob/three.js/blob/e6f7c4e677cb8869502739da2640791d020d8d2f/src/math/ColorManagement.js#L5)
   - [Bartosz Ciechanowski on Color Spaces](https://ciechanow.ski/color-spaces/)
-- WFC
-  - ["The Wavefunction Collapse Algorithm explained very clearly" - Robert Heaton](https://robertheaton.com/2018/12/17/wavefunction-collapse-algorithm/)
-  - [Source code for "The Wavefunction Collapse Algorithm explained very clearly"](https://github.com/robert/wavefunction-collapse)
 - UV Unwrapping
   - [_"ABF++ : Fast and Robust Angle Based Flattening"_ Alla Sheffer  Bruno Levy   Maxim Mogilnitsky  Alexander Bogomyakov](https://www.cs.ubc.ca/~sheffa/papers/abf_plus_plus.pdf)
   - OptCuts: Joint Optimization of Surface Cuts and Parameterization

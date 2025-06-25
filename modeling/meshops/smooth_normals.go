@@ -145,7 +145,15 @@ func (snn SmoothNormalsNodeData) Out() nodes.StructOutput[modeling.Mesh] {
 	if snn.Mesh == nil {
 		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
 	}
-	return nodes.NewStructOutput(SmoothNormals(snn.Mesh.Value()))
+
+	mesh := snn.Mesh.Value()
+	if !mesh.HasFloat3Attribute(modeling.PositionAttribute) {
+		out := nodes.NewStructOutput(mesh)
+		out.LogError(fmt.Errorf("can't calculate normals without position data"))
+		return out
+	}
+
+	return nodes.NewStructOutput(SmoothNormals(mesh))
 }
 
 type SmoothNormalsImplicitWeldNode = nodes.Struct[SmoothNormalsImplicitWeldNodeData]

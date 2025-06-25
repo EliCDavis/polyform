@@ -24,5 +24,8 @@ func init() {
 	refutil.RegisterType[ScaleAttribute3DNode](factory)
 	refutil.RegisterType[ScaleAttributeAlongNormalNode](factory)
 
+	refutil.RegisterType[nodes.Struct[SliceAttributeByPlaneNode]](factory)
+	refutil.RegisterType[nodes.Struct[FlipTriangleWindingNode]](factory)
+
 	generator.RegisterTypes(factory)
 }

@@ -2,6 +2,7 @@ package variable
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"image"
 
@@ -66,10 +67,6 @@ func (tv *ImageVariable) ApplyMessage(msg []byte) (bool, error) {
 		return false, err
 	}
 
-	// if pn.appliedProfile != nil && val == *pn.appliedProfile {
-	// 	return false, nil
-	// }
-
 	tv.version++
 	tv.value = img
 	return true, nil
@@ -82,6 +79,16 @@ func (tv ImageVariable) ToMessage() []byte {
 		panic(err)
 	}
 	return out.Bytes()
+}
+
+func (tv *ImageVariable) applyProfile(profile json.RawMessage) error {
+	tv.version++
+	img, _, err := image.Decode(bytes.NewReader(profile))
+	if err != nil {
+		return err
+	}
+	tv.value = img
+	return nil
 }
 
 func (tv *ImageVariable) NodeReference() nodes.Node {

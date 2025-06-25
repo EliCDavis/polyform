@@ -1,6 +1,7 @@
 package variable
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/EliCDavis/jbtf"
@@ -48,14 +49,15 @@ func (tv *FileVariable) currentVersion() int {
 }
 
 func (tv *FileVariable) ApplyMessage(msg []byte) (bool, error) {
-
-	// if pn.appliedProfile != nil && val == *pn.appliedProfile {
-	// 	return false, nil
-	// }
-
 	tv.version++
 	tv.value = msg
 	return true, nil
+}
+
+func (tv *FileVariable) applyProfile(profile json.RawMessage) error {
+	tv.version++
+	tv.value = profile
+	return nil
 }
 
 func (tv FileVariable) ToMessage() []byte {

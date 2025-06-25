@@ -14,6 +14,7 @@ type App struct {
 	Nodes       map[string]AppNodeInstance     `json:"nodes"`
 	Metadata    map[string]any                 `json:"metadata,omitempty"`
 	Variables   NestedGroup[PersistedVariable] `json:"variables,omitempty"`
+	Profiles    map[string]map[string]any      `json:"profiles,omitempty"`
 }
 
 type AppNodeInstance struct {

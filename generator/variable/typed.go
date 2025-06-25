@@ -56,13 +56,21 @@ func (tv *TypeVariable[T]) ApplyMessage(msg []byte) (bool, error) {
 		return false, err
 	}
 
-	// if pn.appliedProfile != nil && val == *pn.appliedProfile {
-	// 	return false, nil
-	// }
-
 	tv.version++
 	tv.value = val
 	return true, nil
+}
+
+func (tv *TypeVariable[T]) applyProfile(profile json.RawMessage) error {
+	var val T
+	err := json.Unmarshal(profile, &val)
+	if err != nil {
+		return err
+	}
+
+	tv.version++
+	tv.value = val
+	return nil
 }
 
 func (tv TypeVariable[T]) ToMessage() []byte {

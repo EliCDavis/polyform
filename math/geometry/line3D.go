@@ -47,6 +47,10 @@ func (l Line3D) Translate(amt vector3.Float64) Line3D {
 	}
 }
 
+func (l Line3D) AtTime(time float64) vector3.Float64 {
+	return l.p2.Sub(l.p1).Scale(time).Add(l.p1)
+}
+
 // YIntersection Uses the paremetric equations of the line
 func (l Line3D) YIntersection(x float64, z float64) float64 {
 	v := l.p2.Sub(l.p1)

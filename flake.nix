@@ -20,7 +20,7 @@
 
         # Anytime dependencies update or change, this should be updated.
         # This ensures a package is reproducible.
-        vendorHash = "sha256-VZwlsRFHrDJJceQAlkAScJCtXuXFzuhFUhMYl4VAIp0=";
+        vendorHash = "sha256-NhCEGim2vAlGH75H2+dGuqZ/dArCFp/PJcDitfwUeLE=";
         rev = if builtins.hasAttr "shortRev" self then self.shortRev else self.dirtyShortRev;
         src = builtins.path {
           path = ./.;

@@ -1,6 +1,7 @@
 package variable
 
 import (
+	"encoding/json"
 	"fmt"
 	"path"
 	"strings"
@@ -28,6 +29,7 @@ type System interface {
 	Traverse(func(path string, info Info, v Variable))
 	PersistedSchema(encoder *jbtf.Encoder) (schema.NestedGroup[schema.PersistedVariable], error)
 	RuntimeSchema() (schema.NestedGroup[schema.RuntimeVariable], error)
+	ApplyProfile(profile map[string]json.RawMessage) error
 }
 
 func NewSystem() System {
@@ -38,6 +40,7 @@ func NewSystem() System {
 
 type systemEntry interface {
 	SetPath(newPath string)
+	ApplyProfile(profile json.RawMessage) error
 }
 
 type systemVariableEntry struct {
@@ -49,9 +52,29 @@ func (sve *systemVariableEntry) SetPath(newPath string) {
 	sve.info.name = path.Base(newPath)
 }
 
+func (sve *systemVariableEntry) ApplyProfile(profile json.RawMessage) error {
+	return sve.variable.applyProfile(profile)
+}
+
 type system struct {
 	entries map[string]systemEntry
 	mutex   sync.RWMutex
+}
+
+func (s *system) ApplyProfile(profile map[string]json.RawMessage) error {
+	for key, data := range profile {
+		entry, ok := s.entries[key]
+
+		// TODO: Do we really just want to skip over this?
+		if !ok {
+			continue
+		}
+
+		if err := entry.ApplyProfile(data); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (s *system) RuntimeSchema() (schema.NestedGroup[schema.RuntimeVariable], error) {

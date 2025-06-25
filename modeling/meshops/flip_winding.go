@@ -1,7 +1,10 @@
 package meshops
 
 import (
+	"fmt"
+
 	"github.com/EliCDavis/polyform/modeling"
+	"github.com/EliCDavis/polyform/nodes"
 )
 
 type FlipTriangleWindingTransformer struct {
@@ -30,4 +33,24 @@ func FlipTriangleWinding(m modeling.Mesh) modeling.Mesh {
 	}
 
 	return m.SetIndices(finalTris)
+}
+
+type FlipTriangleWindingNode struct {
+	Mesh nodes.Output[modeling.Mesh]
+}
+
+func (n FlipTriangleWindingNode) Flipped() nodes.StructOutput[modeling.Mesh] {
+	if n.Mesh == nil {
+		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
+	}
+
+	mesh := n.Mesh.Value()
+
+	if mesh.Topology() != modeling.TriangleTopology {
+		out := nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
+		out.LogError(fmt.Errorf("Cant flip triangles of a non triangle mesh"))
+		return out
+	}
+
+	return nodes.NewStructOutput(FlipTriangleWinding(mesh))
 }

@@ -93,7 +93,7 @@ type Value[T any] struct {
 	CLI          *CliConfig[T] `json:"cli"`
 
 	version        int
-	appliedProfile *T
+	appliedVersion *T
 }
 
 func (tn *Value[T]) Outputs() map[string]nodes.OutputPort {
@@ -125,12 +125,8 @@ func (pn *Value[T]) ApplyMessage(msg []byte) (bool, error) {
 		return false, err
 	}
 
-	// if pn.appliedProfile != nil && val == *pn.appliedProfile {
-	// 	return false, nil
-	// }
-
 	pn.version++
-	pn.appliedProfile = &val
+	pn.appliedVersion = &val
 
 	return true, nil
 }
@@ -144,8 +140,8 @@ func (pn Value[T]) ToMessage() []byte {
 }
 
 func (pn *Value[T]) Value() T {
-	if pn.appliedProfile != nil {
-		return *pn.appliedProfile
+	if pn.appliedVersion != nil {
+		return *pn.appliedVersion
 	}
 
 	if pn.CLI != nil && pn.CLI.value != nil {
@@ -177,7 +173,7 @@ func (pn *Value[T]) FromJSON(decoder jbtf.Decoder, body []byte) (err error) {
 	pn.Description = gn.Description
 	pn.DefaultValue = gn.DefaultValue
 	pn.CLI = gn.CLI
-	pn.appliedProfile = &gn.CurrentValue
+	pn.appliedVersion = &gn.CurrentValue
 	return
 }
 

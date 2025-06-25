@@ -4,9 +4,11 @@ import (
 	"math"
 
 	"github.com/EliCDavis/polyform/generator"
+	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
 	"github.com/EliCDavis/vector"
+	"github.com/EliCDavis/vector/vector3"
 )
 
 func init() {
@@ -65,7 +67,26 @@ func init() {
 	refutil.RegisterType[nodes.Struct[IntToFloatNode]](factory)
 	refutil.RegisterType[nodes.Struct[FloatToIntNode]](factory)
 
+	refutil.RegisterType[nodes.Struct[PlaneFromNormalNode]](factory)
+	refutil.RegisterType[nodes.Struct[SquareNode]](factory)
+	refutil.RegisterType[nodes.Struct[SquareRootNode]](factory)
+	refutil.RegisterType[nodes.Struct[HypotenuseNode]](factory)
+
 	generator.RegisterTypes(factory)
+}
+
+// ============================================================================
+
+type PlaneFromNormalNode struct {
+	Normal   nodes.Output[vector3.Float64]
+	Position nodes.Output[vector3.Float64]
+}
+
+func (n PlaneFromNormalNode) Out() nodes.StructOutput[geometry.Plane] {
+	return nodes.NewStructOutput(geometry.NewPlane(
+		nodes.TryGetOutputValue(n.Position, vector3.Zero[float64]()),
+		nodes.TryGetOutputValue(n.Normal, vector3.Up[float64]()),
+	))
 }
 
 // ============================================================================
@@ -262,4 +283,36 @@ func (cn CircumferenceNode) Float() nodes.StructOutput[float64] {
 		return nodes.NewStructOutput(0.)
 	}
 	return nodes.NewStructOutput(math.Round(cn.Radius.Value() * 2 * math.Pi))
+}
+
+// ============================================================================
+type SquareNode struct {
+	In nodes.Output[float64]
+}
+
+func (cn SquareNode) Out() nodes.StructOutput[float64] {
+	v := nodes.TryGetOutputValue(cn.In, 0)
+	return nodes.NewStructOutput(v * v)
+}
+
+type SquareRootNode struct {
+	In nodes.Output[float64]
+}
+
+func (cn SquareRootNode) Out() nodes.StructOutput[float64] {
+	return nodes.NewStructOutput(math.Sqrt(nodes.TryGetOutputValue(cn.In, 0)))
+}
+
+// ============================================================================
+
+type HypotenuseNode struct {
+	A nodes.Output[float64]
+	B nodes.Output[float64]
+}
+
+func (cn HypotenuseNode) Out() nodes.StructOutput[float64] {
+	return nodes.NewStructOutput(math.Hypot(
+		nodes.TryGetOutputValue(cn.A, 0),
+		nodes.TryGetOutputValue(cn.B, 0),
+	))
 }

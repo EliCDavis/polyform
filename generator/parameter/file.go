@@ -38,8 +38,8 @@ type File struct {
 	DefaultValue []byte
 	CLI          *CliConfig[string]
 
-	version        int
-	appliedProfile []byte
+	version      int
+	appliedValue []byte
 }
 
 func (in *File) SetName(name string) {
@@ -56,7 +56,7 @@ func (pn *File) DisplayName() string {
 
 func (pn *File) ApplyMessage(msg []byte) (bool, error) {
 	pn.version++
-	pn.appliedProfile = msg
+	pn.appliedValue = msg
 	return true, nil
 }
 
@@ -65,8 +65,8 @@ func (pn *File) ToMessage() []byte {
 }
 
 func (pn *File) Value() []byte {
-	if pn.appliedProfile != nil {
-		return pn.appliedProfile
+	if pn.appliedValue != nil {
+		return pn.appliedValue
 	}
 
 	if pn.CLI != nil && pn.CLI.value != nil && *pn.CLI.value != "" {
@@ -77,12 +77,12 @@ func (pn *File) Value() []byte {
 		}
 		defer f.Close()
 
-		pn.appliedProfile, err = io.ReadAll(f)
+		pn.appliedValue, err = io.ReadAll(f)
 		if err != nil {
 			return nil
 		}
 
-		return pn.appliedProfile
+		return pn.appliedValue
 	}
 	return pn.DefaultValue
 }
@@ -170,7 +170,7 @@ func (pn *File) FromJSON(decoder jbtf.Decoder, body []byte) (err error) {
 		pn.DefaultValue = gn.DefaultValue.Data
 	}
 	if gn.CurrentValue != nil {
-		pn.appliedProfile = gn.CurrentValue.Data
+		pn.appliedValue = gn.CurrentValue.Data
 	}
 	return
 }

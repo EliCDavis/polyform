@@ -25,9 +25,8 @@ func (h Hemisphere) UV(rows, columns int) modeling.Mesh {
 
 	positions := make([]vector3.Float64, 0)
 
-	// add top vertex
-	v0 := vector3.New(0., 0., 0.)
-	positions = append(positions, v0)
+	// add bottom vertex
+	positions = append(positions, vector3.Zero[float64]())
 
 	// generate vertices per stack / slice
 	for i := 0; i < rows-1; i++ {
@@ -44,7 +43,7 @@ func (h Hemisphere) UV(rows, columns int) modeling.Mesh {
 		}
 	}
 
-	// add bottom vertex
+	// add top vertex
 	v1i := len(positions)
 	v1 := vector3.New(0, h.Radius, 0)
 	positions = append(positions, v1)
@@ -97,30 +96,13 @@ type HemisphereNodeData struct {
 }
 
 func (hnd HemisphereNodeData) Out() nodes.StructOutput[modeling.Mesh] {
-	radius := 0.5
-	if hnd.Radius != nil {
-		radius = hnd.Radius.Value()
-	}
-
-	capped := true
-	if hnd.Capped != nil {
-		capped = hnd.Capped.Value()
-	}
-
 	hemi := Hemisphere{
-		Radius: radius,
-		Capped: capped,
+		Radius: nodes.TryGetOutputValue(hnd.Radius, 0.5),
+		Capped: nodes.TryGetOutputValue(hnd.Capped, true),
 	}
 
-	rows := 20
-	if hnd.Rows != nil {
-		rows = hnd.Rows.Value()
-	}
-
-	columns := 20
-	if hnd.Columns != nil {
-		columns = hnd.Columns.Value()
-	}
-
-	return nodes.NewStructOutput(hemi.UV(rows, columns))
+	return nodes.NewStructOutput(hemi.UV(
+		nodes.TryGetOutputValue(hnd.Rows, 20),
+		nodes.TryGetOutputValue(hnd.Columns, 20),
+	))
 }

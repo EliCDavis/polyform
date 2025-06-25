@@ -45,8 +45,8 @@ type Image struct {
 	DefaultValue image.Image
 	CLI          *CliConfig[string]
 
-	version        int
-	appliedProfile image.Image
+	version      int
+	appliedValue image.Image
 }
 
 func (in *Image) SetName(name string) {
@@ -68,7 +68,7 @@ func (pn *Image) ApplyMessage(msg []byte) (bool, error) {
 	}
 
 	pn.version++
-	pn.appliedProfile = val
+	pn.appliedValue = val
 
 	return true, nil
 }
@@ -87,8 +87,8 @@ func (pn *Image) ToMessage() []byte {
 }
 
 func (pn *Image) Value() image.Image {
-	if pn.appliedProfile != nil {
-		return pn.appliedProfile
+	if pn.appliedValue != nil {
+		return pn.appliedValue
 	}
 
 	if pn.CLI != nil && pn.CLI.value != nil && *pn.CLI.value != "" {
@@ -98,12 +98,12 @@ func (pn *Image) Value() image.Image {
 		}
 		defer f.Close()
 
-		pn.appliedProfile, _, err = image.Decode(f)
+		pn.appliedValue, _, err = image.Decode(f)
 		if err != nil {
 			return nil
 		}
 
-		return pn.appliedProfile
+		return pn.appliedValue
 	}
 	return pn.DefaultValue
 }
@@ -177,7 +177,7 @@ func (pn *Image) FromJSON(decoder jbtf.Decoder, body []byte) (err error) {
 		pn.DefaultValue = gn.DefaultValue.Image
 	}
 	if gn.CurrentValue != nil {
-		pn.appliedProfile = gn.CurrentValue.Image
+		pn.appliedValue = gn.CurrentValue.Image
 	}
 	return
 }

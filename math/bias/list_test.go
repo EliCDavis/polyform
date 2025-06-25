@@ -1,6 +1,7 @@
 package bias_test
 
 import (
+	"math"
 	"math/rand/v2"
 	"testing"
 
@@ -13,52 +14,43 @@ func ptr(f float64) *float64 {
 }
 
 func TestList(t *testing.T) {
-
 	var tests = map[string]struct {
-		config bias.ListConfig
-		a      int
-		b      int
-		c      int
+		config  bias.ListConfig
+		list    []bias.ListItem[string]
+		results map[string]int
 	}{
 		"basic": {
-			config: bias.ListConfig{Seed: rand.New(rand.NewPCG(0, 0))},
-			a:      6998,
-			b:      1961,
-			c:      1041,
+			config:  bias.ListConfig{Seed: rand.New(rand.NewPCG(0, 0))},
+			list:    []bias.ListItem[string]{{Item: "A", Weight: 0.7}, {Item: "B", Weight: 0.2}, {Item: "C", Weight: 0.1}},
+			results: map[string]int{"A": 6998, "B": 1961, "C": 1041},
 		},
 		"basic-explicit temp": {
-			config: bias.ListConfig{Seed: rand.New(rand.NewPCG(0, 0)), Temperature: ptr(1)},
-			a:      6998,
-			b:      1961,
-			c:      1041,
+			config:  bias.ListConfig{Seed: rand.New(rand.NewPCG(0, 0)), Temperature: ptr(1)},
+			list:    []bias.ListItem[string]{{Item: "A", Weight: 0.7}, {Item: "B", Weight: 0.2}, {Item: "C", Weight: 0.1}},
+			results: map[string]int{"A": 6998, "B": 1961, "C": 1041},
 		},
 		"0 temp": {
-			config: bias.ListConfig{Seed: rand.New(rand.NewPCG(0, 0)), Temperature: ptr(0)},
-			a:      10000,
-			b:      0,
-			c:      0,
+			config:  bias.ListConfig{Seed: rand.New(rand.NewPCG(0, 0)), Temperature: ptr(0)},
+			list:    []bias.ListItem[string]{{Item: "A", Weight: 0.7}, {Item: "B", Weight: 0.2}, {Item: "C", Weight: 0.1}},
+			results: map[string]int{"A": 10000},
 		},
 		"5 temp": {
-			config: bias.ListConfig{Seed: rand.New(rand.NewPCG(0, 0)), Temperature: ptr(5)},
-			a:      4065,
-			b:      3114,
-			c:      2821,
+			config:  bias.ListConfig{Seed: rand.New(rand.NewPCG(0, 0)), Temperature: ptr(5)},
+			list:    []bias.ListItem[string]{{Item: "A", Weight: 0.7}, {Item: "B", Weight: 0.2}, {Item: "C", Weight: 0.1}},
+			results: map[string]int{"A": 4065, "B": 3114, "C": 2821},
+		},
+		"inf temp": {
+			config:  bias.ListConfig{Seed: rand.New(rand.NewPCG(0, 0)), Temperature: ptr(math.Inf(1))},
+			list:    []bias.ListItem[string]{{Item: "A", Weight: 0.7}, {Item: "B", Weight: 0.2}, {Item: "C", Weight: 0.1}},
+			results: map[string]int{"A": 3332, "B": 3276, "C": 3392},
 		},
 	}
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			list := bias.NewList([]bias.ListItem[string]{
-				{Item: "A", Weight: 0.7},
-				{Item: "B", Weight: 0.2},
-				{Item: "C", Weight: 0.1},
-			}, test.config)
+			list := bias.NewList(test.list, test.config)
 
-			results := map[string]int{
-				"A": 0,
-				"B": 0,
-				"C": 0,
-			}
+			results := map[string]int{}
 
 			// ACT ====================================================================
 			for range 10000 {
@@ -66,13 +58,12 @@ func TestList(t *testing.T) {
 			}
 
 			// ASSERT =================================================================
-			assert.Len(t, results, 3)
-			assert.Equal(t, test.a, results["A"])
-			assert.Equal(t, test.b, results["B"])
-			assert.Equal(t, test.c, results["C"])
+			assert.Len(t, results, len(test.results))
+			for key, val := range test.results {
+				assert.Equal(t, val, results[key], key)
+			}
 		})
 	}
-
 }
 
 func TestNewListPanicsOnEmptyItems(t *testing.T) {

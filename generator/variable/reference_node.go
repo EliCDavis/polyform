@@ -35,46 +35,6 @@ func (tv *VariableReferenceNode[T]) Description() string {
 	return tv.variable.Info().Description()
 }
 
-// CUSTOM JTF Serialization ===================================================
-
-// func (pn *VariableReferenceNode[T]) ToJSON(encoder *jbtf.Encoder) ([]byte, error) {
-// 	return json.Marshal(parameterNodeGraphSchema[T]{
-// 		Name:         pn.Name,
-// 		Description:  pn.Description,
-// 		CurrentValue: pn.Value(),
-// 		DefaultValue: pn.DefaultValue,
-// 		CLI:          pn.CLI,
-// 	})
-// }
-
-// func (pn *VariableReferenceNode[T]) FromJSON(decoder jbtf.Decoder, body []byte) (err error) {
-// 	gn := parameterNodeGraphSchema[T]{}
-// 	err = json.Unmarshal(body, &gn)
-// 	if err != nil {
-// 		return
-// 	}
-
-// 	pn.Name = gn.Name
-// 	pn.Description = gn.Description
-// 	pn.DefaultValue = gn.DefaultValue
-// 	pn.CLI = gn.CLI
-// 	pn.appliedProfile = &gn.CurrentValue
-// 	return
-// }
-
-// ============================================================================
-// Output Port Interface Implementation =======================================
-// ============================================================================
-//
-// type Output interface {
-// 	  Node() Node
-// 	  Name() string
-// 	  Version() int
-// 	  Value() T
-// }
-//
-// ============================================================================
-
 type variableReferenceNodePort[T any] struct {
 	node *VariableReferenceNode[T]
 }

@@ -1,6 +1,8 @@
 package variable
 
 import (
+	"encoding/json"
+
 	"github.com/EliCDavis/jbtf"
 	"github.com/EliCDavis/polyform/generator/schema"
 	"github.com/EliCDavis/polyform/nodes"
@@ -22,6 +24,8 @@ type Variable interface {
 
 	toPersistantJSON(encoder *jbtf.Encoder) ([]byte, error)
 	fromPersistantJSON(decoder jbtf.Decoder, body []byte) error
+
+	applyProfile(profile json.RawMessage) error
 	// fromPersistantJSON(decoder jbtf.Decoder, body []byte) error
 	// Schema() schema.Parameter
 	// InitializeForCLI(set *flag.FlagSet)

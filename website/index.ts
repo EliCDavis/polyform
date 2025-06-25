@@ -128,7 +128,7 @@ requestManager.getNodeTypes((nodeTypes) => {
                 CopyToClipboard(url);
             })
         },
-        loadProfile: () => {
+        loadGraph: () => {
             const input = document.createElement('input');
             input.type = 'file';
 
@@ -179,7 +179,7 @@ requestManager.getNodeTypes((nodeTypes) => {
 
     document.getElementById("new-graph-button").onclick = fileControls.newGraph;
     document.getElementById("save-graph-button").onclick = fileControls.saveGraph;
-    document.getElementById("load-graph-button").onclick = fileControls.loadProfile;
+    document.getElementById("load-graph-button").onclick = fileControls.loadGraph;
     document.getElementById("export-model-button").onclick = fileControls.saveModel;
     document.getElementById("export-mermaid-button").onclick = fileControls.viewProgram;
     document.getElementById("export-swagger-button").onclick = fileControls.saveSwagger;
@@ -189,7 +189,7 @@ requestManager.getNodeTypes((nodeTypes) => {
     // const fileSettingsFolder = panel.addFolder("Graph");
     // fileSettingsFolder.add(fileControls, "newGraph").name("New")
     // fileSettingsFolder.add(fileControls, "saveGraph").name("Save")
-    // fileSettingsFolder.add(fileControls, "loadProfile").name("Load");
+    // fileSettingsFolder.add(fileControls, "loadGraph").name("Load");
 
     // // Graphs when compressed still make for a giant URL
     // // fileSettingsFolder.add(fileControls, "link").name("Get Link");
