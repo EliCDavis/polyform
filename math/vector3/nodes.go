@@ -56,5 +56,10 @@ func init() {
 	refutil.RegisterType[nodes.Struct[Inverse[int]]](factory)
 	refutil.RegisterType[nodes.Struct[Inverse[float64]]](factory)
 
+	refutil.RegisterType[nodes.Struct[Subtract[int]]](factory)
+	refutil.RegisterType[nodes.Struct[Subtract[float64]]](factory)
+	refutil.RegisterType[nodes.Struct[SubtractToArrayNodeData[int]]](factory)
+	refutil.RegisterType[nodes.Struct[SubtractToArrayNodeData[float64]]](factory)
+
 	generator.RegisterTypes(factory)
 }

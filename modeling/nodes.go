@@ -26,6 +26,7 @@ func init() {
 	refutil.RegisterType[nodes.Struct[MapEntryNode[[]vector3.Float64]]](factory)
 	refutil.RegisterType[nodes.Struct[MapEntryNode[[]vector4.Float64]]](factory)
 	refutil.RegisterType[nodes.Struct[NewMeshNode]](factory)
+	refutil.RegisterType[nodes.Struct[SetAttribute3DNode]](factory)
 	refutil.RegisterType[TopologyNode](factory)
 	refutil.RegisterType[AttributeNode](factory)
 	generator.RegisterTypes(factory)
@@ -197,6 +198,8 @@ func (p *TopologyNode) Outputs() map[string]nodes.OutputPort {
 	}
 }
 
+// ============================================================================
+
 type AttributeNode struct{}
 
 func (AttributeNode) Name() string {
@@ -230,4 +233,38 @@ func (p *AttributeNode) Outputs() map[string]nodes.OutputPort {
 		OpacityAttribute:   p.stringConstOut(OpacityAttribute),
 		FDCAttribute:       p.stringConstOut(FDCAttribute),
 	}
+}
+
+// ============================================================================
+
+type SetAttribute3DNode struct {
+	Mesh      nodes.Output[Mesh]
+	Attribute nodes.Output[string]
+	Data      nodes.Output[[]vector3.Float64]
+}
+
+func (n SetAttribute3DNode) Out() nodes.StructOutput[Mesh] {
+	if n.Attribute == nil || n.Data == nil {
+		return nodes.NewStructOutput(
+			nodes.TryGetOutputValue(n.Mesh, EmptyMesh(PointTopology)),
+		)
+	}
+
+	if n.Mesh == nil {
+		attr := n.Attribute.Value()
+		// create a new mesh with the attribute data
+		mesh := NewPointCloud(
+			nil,
+			map[string][]vector3.Float64{
+				attr: n.Data.Value(),
+			},
+			nil,
+			nil,
+		)
+
+		return nodes.NewStructOutput(mesh)
+	}
+
+	mesh := n.Mesh.Value().SetFloat3Attribute(n.Attribute.Value(), n.Data.Value())
+	return nodes.NewStructOutput(mesh)
 }

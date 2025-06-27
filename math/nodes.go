@@ -26,9 +26,6 @@ func init() {
 	refutil.RegisterType[nodes.Struct[SumNodeData[int]]](factory)
 	refutil.RegisterType[nodes.Struct[SumNodeData[float64]]](factory)
 
-	refutil.RegisterType[nodes.Struct[SumArraysNodeData[int]]](factory)
-	refutil.RegisterType[nodes.Struct[SumArraysNodeData[float64]]](factory)
-
 	refutil.RegisterType[nodes.Struct[AddToArrayNodeData[int]]](factory)
 	refutil.RegisterType[nodes.Struct[AddToArrayNodeData[float64]]](factory)
 
@@ -71,6 +68,9 @@ func init() {
 	refutil.RegisterType[nodes.Struct[SquareNode]](factory)
 	refutil.RegisterType[nodes.Struct[SquareRootNode]](factory)
 	refutil.RegisterType[nodes.Struct[HypotenuseNode]](factory)
+
+	refutil.RegisterType[nodes.Struct[RemapNode[float64]]](factory)
+	refutil.RegisterType[nodes.Struct[RemapToArrayNode[float64]]](factory)
 
 	generator.RegisterTypes(factory)
 }
@@ -315,4 +315,63 @@ func (cn HypotenuseNode) Out() nodes.StructOutput[float64] {
 		nodes.TryGetOutputValue(cn.A, 0),
 		nodes.TryGetOutputValue(cn.B, 0),
 	))
+}
+
+// ============================================================================
+
+type RemapNode[T vector.Number] struct {
+	Value nodes.Output[T]
+
+	InMin nodes.Output[T]
+	InMax nodes.Output[T]
+
+	OutMin nodes.Output[T]
+	OutMax nodes.Output[T]
+}
+
+func (n RemapNode[T]) Out() nodes.StructOutput[T] {
+	inMin := nodes.TryGetOutputValue(n.InMin, 0)
+	inMax := nodes.TryGetOutputValue(n.InMax, 1)
+	inRange := inMax - inMin
+
+	outMin := nodes.TryGetOutputValue(n.OutMin, 0)
+	outMax := nodes.TryGetOutputValue(n.OutMax, 1)
+	outRange := outMax - outMin
+
+	v := nodes.TryGetOutputValue(n.Value, 0)
+
+	in := (v - inMin) / inRange
+	out := (in * outRange) + outMin
+
+	return nodes.NewStructOutput(out)
+}
+
+type RemapToArrayNode[T vector.Number] struct {
+	Value nodes.Output[[]T]
+
+	InMin nodes.Output[T]
+	InMax nodes.Output[T]
+
+	OutMin nodes.Output[T]
+	OutMax nodes.Output[T]
+}
+
+func (n RemapToArrayNode[T]) Out() nodes.StructOutput[[]T] {
+	inMin := nodes.TryGetOutputValue(n.InMin, 0)
+	inMax := nodes.TryGetOutputValue(n.InMax, 1)
+	inRange := inMax - inMin
+
+	outMin := nodes.TryGetOutputValue(n.OutMin, 0)
+	outMax := nodes.TryGetOutputValue(n.OutMax, 1)
+	outRange := outMax - outMin
+
+	values := nodes.TryGetOutputValue(n.Value, nil)
+	out := make([]T, len(values))
+
+	for i, v := range values {
+		in := (v - inMin) / inRange
+		out[i] = (in * outRange) + outMin
+	}
+
+	return nodes.NewStructOutput(out)
 }

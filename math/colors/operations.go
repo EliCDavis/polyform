@@ -176,3 +176,27 @@ func AlphaLessThanOrEqual(c color.Color, val byte) bool {
 	_, _, _, a := c.RGBA()
 	return byte(a>>8) <= val
 }
+
+func Interpolate(a, b color.Color, t float64) color.Color {
+	rA, gA, bA, _ := a.RGBA()
+	rB, gB, bB, _ := b.RGBA()
+
+	rAF := float64(rA >> 8)
+	gAF := float64(gA >> 8)
+	bAF := float64(bA >> 8)
+
+	rBF := float64(rB >> 8)
+	gBF := float64(gB >> 8)
+	bBF := float64(bB >> 8)
+
+	rVal := math.Round(((rBF - rAF) * t) + rAF)
+	bVal := math.Round(((bBF - bAF) * t) + bAF)
+	gVal := math.Round(((gBF - gAF) * t) + gAF)
+
+	return color.RGBA{
+		R: uint8(rVal),
+		G: uint8(gVal),
+		B: uint8(bVal),
+		A: 255,
+	}
+}
