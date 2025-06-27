@@ -1870,14 +1870,18 @@ func (m *mockBufferLoader) LoadBuffer(uri string) ([]byte, error) {
 }
 
 type mockImageLoader struct {
-	images map[string]image.Image
+	images  map[string]image.Image
+	formats map[string]string
 }
 
-func (m *mockImageLoader) LoadImage(uri string) (image.Image, error) {
-	if img, ok := m.images[uri]; ok {
-		return img, nil
+func (m *mockImageLoader) LoadImage(uri string) (image.Image, string, error) {
+	img, imgOk := m.images[uri]
+	format, fmtOk := m.formats[uri]
+
+	if imgOk && fmtOk {
+		return img, format, nil
 	}
-	return nil, fmt.Errorf("image not found: %s", uri)
+	return nil, "", fmt.Errorf("image not found: %s", uri)
 }
 
 func TestCustomLoaders(t *testing.T) {
@@ -1916,9 +1920,8 @@ func TestCustomLoaders(t *testing.T) {
 		}
 
 		loader := &mockImageLoader{
-			images: map[string]image.Image{
-				"custom://image1": testImage,
-			},
+			images:  map[string]image.Image{"custom://image1": testImage},
+			formats: map[string]string{"custom://image1": "png"},
 		}
 
 		// Create a minimal valid GLTF doc

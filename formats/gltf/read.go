@@ -54,7 +54,7 @@ type BufferLoader interface {
 type ImageLoader interface {
 	// LoadImage loads an image for the given URI.
 	// The URI may be a relative path, absolute path, or custom scheme.
-	LoadImage(uri string) (image.Image, error)
+	LoadImage(uri string) (image.Image, string, error)
 }
 
 // ReaderOptions configures GLTF import behavior
@@ -531,7 +531,7 @@ func loadTexture(doc *Gltf, textureId GltfId, opts ReaderOptions) (*PolyformText
 		imageRef := doc.Images[*texture.Source]
 		if imageRef.URI != "" {
 			// Use the configured image loader
-			img, err := opts.ImageLoader.LoadImage(imageRef.URI)
+			img, _, err := opts.ImageLoader.LoadImage(imageRef.URI)
 			if err != nil {
 				return nil, fmt.Errorf("failed to load image for texture %d: %w", textureId, err)
 			}
@@ -736,11 +736,11 @@ func decodePrimitive(doc *Gltf, buffers [][]byte, n Node, m Mesh, p Primitive, o
 	// Load material if present
 	var material *PolyformMaterial
 	if p.Material != nil {
-		mat, err := loadMaterial(doc, *p.Material, opts)
+		m, err := loadMaterial(doc, *p.Material, opts)
 		if err != nil {
 			return nil, fmt.Errorf("failed to load material: %w", err)
 		}
-		material = mat
+		material = m
 	}
 
 	return &PolyformModel{
@@ -819,14 +819,10 @@ func processNodeHierarchy(doc *Gltf, buffers [][]byte, nodeIndex int, parentTran
 //	    log.Fatal(err)
 //	}
 func Parse(r io.Reader) (*Gltf, error) {
-	data, err := io.ReadAll(r)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read GLTF data: %w", err)
-	}
-
+	decoder := json.NewDecoder(r)
 	g := &Gltf{}
-	err = json.Unmarshal(data, g)
-	if err != nil {
+
+	if err := decoder.Decode(g); err != nil {
 		return nil, fmt.Errorf("failed to parse GLTF JSON: %w", err)
 	}
 
@@ -873,7 +869,7 @@ func ParseFile(gltfPath string) (*Gltf, error) {
 //	doc, buffers, err := gltf.Load(jsonData, opts)
 //
 // If a custom BufferLoader is provided in options, it will be used to load buffers.
-// Otherwise, a StandardBufferLoader is used with options.BasePath (or current directory).
+// Otherwise, a StandardLoader is used with options.BasePath (or current directory).
 func Load(r io.Reader, options *ReaderOptions) (*Gltf, [][]byte, error) {
 	// Parse the GLTF JSON
 	g, err := Parse(r)
@@ -889,7 +885,7 @@ func Load(r io.Reader, options *ReaderOptions) (*Gltf, [][]byte, error) {
 
 	// Use standard buffer loader if none provided
 	if opts.BufferLoader == nil {
-		opts.BufferLoader = &StandardBufferLoader{
+		opts.BufferLoader = &StandardLoader{
 			BasePath: opts.BasePath,
 		}
 	}
@@ -976,7 +972,7 @@ func DecodeModels(doc *Gltf, buffers [][]byte, options *ReaderOptions) ([]Polyfo
 
 	// Use standard image loader if none provided
 	if opts.ImageLoader == nil {
-		opts.ImageLoader = &StandardImageLoader{
+		opts.ImageLoader = &StandardLoader{
 			BasePath: opts.BasePath,
 		}
 	}
@@ -1023,7 +1019,7 @@ func DecodeScene(doc *Gltf, buffers [][]byte, options *ReaderOptions) (*Polyform
 
 	// Use standard image loader if none provided
 	if opts.ImageLoader == nil {
-		opts.ImageLoader = &StandardImageLoader{
+		opts.ImageLoader = &StandardLoader{
 			BasePath: opts.BasePath,
 		}
 	}

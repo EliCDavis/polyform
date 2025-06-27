@@ -16,7 +16,7 @@ import (
 )
 
 // =============================================================================
-// StandardBufferLoader Tests
+// StandardLoader Tests
 // =============================================================================
 
 func TestStandardBufferLoader_LoadBuffer(t *testing.T) {
@@ -126,7 +126,7 @@ func TestStandardBufferLoader_LoadBuffer(t *testing.T) {
 				basePath = tempDir
 			}
 
-			loader := &StandardBufferLoader{
+			loader := &StandardLoader{
 				BasePath: basePath,
 			}
 
@@ -199,7 +199,7 @@ func TestStandardBufferLoader_DataURIEdgeCases(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			loader := &StandardBufferLoader{BasePath: ""}
+			loader := &StandardLoader{BasePath: ""}
 
 			data, err := loader.LoadBuffer(tt.uri)
 
@@ -225,53 +225,59 @@ func TestStandardImageLoader_LoadImage(t *testing.T) {
 	testPNGDataURI := imageToDataURI(t, testPNGImg, "png")
 
 	tests := []struct {
-		name        string
-		setupFiles  map[string]image.Image
-		basePath    string
-		uri         string
-		expectError bool
-		errorMsg    string
+		name         string
+		setupFiles   map[string]image.Image
+		basePath     string
+		uri          string
+		expectFormat string
+		expectError  bool
+		errorMsg     string
 	}{
 		{
-			name:        "valid_png_data_uri",
-			uri:         testPNGDataURI,
-			expectError: false,
+			name:         "valid_png_data_uri",
+			uri:          testPNGDataURI,
+			expectFormat: "png",
+			expectError:  false,
 		},
 		{
 			name: "relative_image_file",
 			setupFiles: map[string]image.Image{
 				"image.png": testPNGImg,
 			},
-			basePath:    "",
-			uri:         "image.png",
-			expectError: false,
+			basePath:     "",
+			uri:          "image.png",
+			expectFormat: "png",
+			expectError:  false,
 		},
 		{
 			name: "relative_image_with_base_path",
 			setupFiles: map[string]image.Image{
 				"assets/image.png": testPNGImg,
 			},
-			basePath:    "assets",
-			uri:         "image.png",
-			expectError: false,
+			basePath:     "assets",
+			uri:          "image.png",
+			expectFormat: "png",
+			expectError:  false,
 		},
 		{
 			name: "absolute_image_path",
 			setupFiles: map[string]image.Image{
 				"image.png": testPNGImg,
 			},
-			basePath:    "",
-			uri:         "", // Will be set to absolute path in test
-			expectError: false,
+			basePath:     "",
+			uri:          "", // Will be set to absolute path in test
+			expectFormat: "png",
+			expectError:  false,
 		},
 		{
 			name: "file_uri_scheme",
 			setupFiles: map[string]image.Image{
 				"image.png": testPNGImg,
 			},
-			basePath:    "",
-			uri:         "", // Will be set to file:// URI in test
-			expectError: false,
+			basePath:     "",
+			uri:          "", // Will be set to file:// URI in test
+			expectFormat: "png",
+			expectError:  false,
 		},
 		{
 			name:        "missing_image_file",
@@ -341,7 +347,7 @@ func TestStandardImageLoader_LoadImage(t *testing.T) {
 				basePath = tempDir
 			}
 
-			loader := &StandardImageLoader{
+			loader := &StandardLoader{
 				BasePath: basePath,
 			}
 
@@ -354,7 +360,7 @@ func TestStandardImageLoader_LoadImage(t *testing.T) {
 			}
 
 			// Test loading
-			img, err := loader.LoadImage(uri)
+			img, format, err := loader.LoadImage(uri)
 
 			if tt.expectError {
 				require.Error(t, err)
@@ -364,6 +370,7 @@ func TestStandardImageLoader_LoadImage(t *testing.T) {
 
 			require.NoError(t, err)
 			require.NotNil(t, img)
+			assert.Equal(t, tt.expectFormat, format)
 
 			// Verify image dimensions
 			bounds := img.Bounds()
@@ -379,21 +386,24 @@ func TestStandardImageLoader_DataURIValidation(t *testing.T) {
 	validPNGData := imageToBase64(t, testImg, "png")
 
 	tests := []struct {
-		name        string
-		uri         string
-		expectError bool
-		errorMsg    string
+		name         string
+		uri          string
+		expectFormat string
+		expectError  bool
+		errorMsg     string
 	}{
 		{
-			name:        "valid_png_explicit",
-			uri:         "data:image/png;base64," + validPNGData,
-			expectError: false,
+			name:         "valid_png_explicit",
+			uri:          "data:image/png;base64," + validPNGData,
+			expectFormat: "png",
+			expectError:  false,
 		},
 		{
-			name:        "format_mismatch_jpeg_declared_png_actual",
-			uri:         "data:image/jpeg;base64," + validPNGData,
-			expectError: true,
-			errorMsg:    "image format mismatch",
+			name:         "format_mismatch_jpeg_declared_png_actual",
+			uri:          "data:image/jpeg;base64," + validPNGData,
+			expectFormat: "jpeg",
+			expectError:  true,
+			errorMsg:     "image format mismatch",
 		},
 		{
 			name:        "missing_content_type",
@@ -435,9 +445,9 @@ func TestStandardImageLoader_DataURIValidation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			loader := &StandardImageLoader{BasePath: ""}
+			loader := &StandardLoader{BasePath: ""}
 
-			img, err := loader.LoadImage(tt.uri)
+			img, format, err := loader.LoadImage(tt.uri)
 
 			if tt.expectError {
 				require.Error(t, err)
@@ -446,7 +456,8 @@ func TestStandardImageLoader_DataURIValidation(t *testing.T) {
 			}
 
 			require.NoError(t, err)
-			require.NotNil(t, img)
+			assert.Equal(t, tt.expectFormat, format)
+			assert.NotNil(t, img)
 		})
 	}
 }
@@ -490,11 +501,12 @@ func TestNoOpImageLoader_LoadImage(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			loader := &NoOpImageLoader{}
 
-			img, err := loader.LoadImage(tt.uri)
+			img, format, err := loader.LoadImage(tt.uri)
 
 			// NoOpImageLoader should always return (nil, nil)
 			require.NoError(t, err)
 			assert.Nil(t, img)
+			assert.Equal(t, "", format)
 		})
 	}
 }
