@@ -373,7 +373,7 @@ func (a *App) Run(args []string) error {
 		},
 		{
 			Name:        "Documentation",
-			Description: "Create a document describing all savailable nodes",
+			Description: "Create a document describing all available nodes",
 			Aliases:     []string{"documentation", "docs"},
 			Run: func(appState *cli.RunState) error {
 				markdownCmd := flag.NewFlagSet("documentation", flag.ExitOnError)

@@ -354,6 +354,8 @@ type RemapToArrayNode[T vector.Number] struct {
 
 	OutMin nodes.Output[T]
 	OutMax nodes.Output[T]
+
+	Clamp nodes.Output[bool]
 }
 
 func (n RemapToArrayNode[T]) Out() nodes.StructOutput[[]T] {
@@ -368,10 +370,19 @@ func (n RemapToArrayNode[T]) Out() nodes.StructOutput[[]T] {
 	values := nodes.TryGetOutputValue(n.Value, nil)
 	out := make([]T, len(values))
 
+	clamped := nodes.TryGetOutputValue(n.Clamp, true)
+
 	for i, v := range values {
 		in := (v - inMin) / inRange
 		out[i] = (in * outRange) + outMin
+		if clamped {
+			out[i] = clamp(out[i], outMin, outMax)
+		}
 	}
 
 	return nodes.NewStructOutput(out)
+}
+
+func clamp[T vector.Number](t, minV, maxV T) T {
+	return min(max(t, minV), maxV)
 }
