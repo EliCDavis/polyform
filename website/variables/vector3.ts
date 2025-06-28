@@ -47,7 +47,7 @@ export class Vector3VariableElement extends VariableElement {
         }));
 
         const showGizmo = new BehaviorSubject<boolean>(false);
-        let gizmo = new TransformGizmo({
+        this.gizmo = new TransformGizmo({
             camera: this.app.Camera,
             domElement: this.app.Renderer.domElement,
             orbitControls: this.app.OrbitControls,
@@ -59,8 +59,8 @@ export class Vector3VariableElement extends VariableElement {
                 z: this.variable.value.x
             }
         });
-        this.addSubscription(showGizmo.subscribe((show) => gizmo.setEnabled(show)));
-        this.addSubscription(gizmo.position$().subscribe(pos => {
+        this.addSubscription(showGizmo.subscribe((show) => this.gizmo.setEnabled(show)));
+        this.addSubscription(this.gizmo.position$().subscribe(pos => {
             setVariableValue(this.key, { x: pos.x, y: pos.y, z: pos.z })
         }))
 

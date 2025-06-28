@@ -1,7 +1,5 @@
 import { FlowNode } from '@elicdavis/node-flow';
 import { NodeManager } from '../node_manager';
-import { Group } from 'three';
-import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
 import { ThreeApp } from '../three_app';
 import { TransformGizmo } from '../gizmo/transform';
 

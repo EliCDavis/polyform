@@ -33,15 +33,46 @@ export class BasicVariableElement<T> extends VariableElement {
             console.log(resp);
         }))
 
-        return {
+        let styling: Partial<CSSStyleDeclaration> = {}
+        if (this.inputType === "color") {
+            styling = {
+                minHeight: "25px",
+                width: "25px",
+                maxWidth: "25px",
+                padding: "0",
+                cursor: "pointer"
+            }
+        }
+
+        const inputEle: ElementConfig = {
             tag: "input",
             type: this.inputType,
             change$: change$,
             value: `${this.variable.value}`,
             value$: this.value$,
+            style: styling,
             step: this.step,
             size: 1
         };
+
+        if (this.inputType === "color") {
+            return {
+                style: {
+                    flexDirection: "row",
+                    display: "flex",
+                    gap: "16px"
+                },
+                children: [
+                    inputEle,
+                    {
+                        text: this.variable.value,
+                        text$: this.value$,
+                    }
+                ]
+            };
+        }
+
+        return inputEle;
     }
 
     onDestroy(): void {

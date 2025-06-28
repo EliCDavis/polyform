@@ -165,7 +165,7 @@ export class VariableManager {
                 return new BasicVariableElement<boolean>(key, variable, this.schemaManager, this.nodeManager, (s) => s === "true", "checkbox", "");
 
             case VariableType.AABB:
-                return new AABBVariableElement(key, variable, this.schemaManager, this.nodeManager);
+                return new AABBVariableElement(key, variable, this.schemaManager, this.nodeManager, this.app);
 
             case VariableType.Float3Array:
                 return new Vector3ArrayVariableElement(key, variable, this.schemaManager, this.nodeManager, this.app, parseFloat, "")

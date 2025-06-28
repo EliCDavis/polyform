@@ -14,17 +14,20 @@ export interface TransformGizmoConfig {
         y: number,
         z: number,
     }
+    hideX?: boolean;
+    hideY?: boolean;
+    hideZ?: boolean;
 }
 
 export class TransformGizmo {
 
-    mesh: Group;
+    private mesh: Group;
 
-    controls: TransformControls;
+    private controls: TransformControls;
 
-    helper: any;
+    private helper: any;
 
-    change$: Subject<Vector3>;
+    private change$: Subject<Vector3>;
 
     constructor(config: TransformGizmoConfig) {
         this.change$ = new Subject<Vector3>();
@@ -32,6 +35,10 @@ export class TransformGizmo {
         this.controls = new TransformControls(config.camera, config.domElement);
         this.controls.setMode('translate');
         this.controls.setSpace("local");
+
+        this.controls.showX = !(config.hideX === true);
+        this.controls.showY = !(config.hideY === true);
+        this.controls.showZ = !(config.hideZ === true);
 
         this.mesh = new Group();
 
@@ -67,6 +74,30 @@ export class TransformGizmo {
 
     setPosition(x: number, y: number, z: number): void {
         this.mesh.position.set(x, y, z);
+    }
+
+    setX(x: number): void {
+        this.mesh.position.setX(x);
+    }
+
+    setY(y: number): void {
+        this.mesh.position.setY(y);
+    }
+
+    setZ(z: number): void {
+        this.mesh.position.setZ(z);
+    }
+
+    x(): number {
+        return this.mesh.position.x;
+    }
+
+    y(): number {
+        return this.mesh.position.y;
+    }
+
+    z(): number {
+        return this.mesh.position.z;
     }
 
     position$(): Observable<Vector3> {
