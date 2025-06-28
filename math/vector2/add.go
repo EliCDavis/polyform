@@ -13,6 +13,9 @@ type SumNodeData[T vector.Number] struct {
 func (cn SumNodeData[T]) Out() nodes.StructOutput[vector2.Vector[T]] {
 	var total vector2.Vector[T]
 	for _, v := range cn.Values {
+		if v == nil {
+			continue
+		}
 		total = total.Add(v.Value())
 	}
 	return nodes.NewStructOutput(total)

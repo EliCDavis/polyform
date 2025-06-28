@@ -6,7 +6,6 @@ import (
 	"github.com/EliCDavis/vector/vector3"
 )
 
-// Returns a single float, representing the distance between A and B
 type Subtract[T vector.Number] struct {
 	A nodes.Output[vector3.Vector[T]]
 	B nodes.Output[vector3.Vector[T]]
