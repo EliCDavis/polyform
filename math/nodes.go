@@ -282,7 +282,7 @@ func (cn CircumferenceNode) Float() nodes.StructOutput[float64] {
 	if cn.Radius == nil {
 		return nodes.NewStructOutput(0.)
 	}
-	return nodes.NewStructOutput(math.Round(cn.Radius.Value() * 2 * math.Pi))
+	return nodes.NewStructOutput(cn.Radius.Value() * 2 * math.Pi)
 }
 
 // ============================================================================

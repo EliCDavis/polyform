@@ -100,7 +100,7 @@ This was my [submission for ProcJam 2022](https://elicdavis.itch.io/evergreen-tr
 
 |                                                                                      |                                                                                  |
 | ------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------- |
-| [[Source Here](/examples/graphs/ufo.json)] ![ufo](/examples/graphs/ufo.png)          | [[Source Here](/examples/candle/main.go)] ![candle](/examples/candle/candle.png) |
+| [[Source Here](/generator/examples/ufo.json)] ![ufo](/docs/ufo.png)                  | [[Source Here](/examples/candle/main.go)] ![candle](/examples/candle/candle.png) |
 | [[Source Here](/examples/terrain/main.go)] ![terrain](/examples/terrain/terrain.png) | [[Source Here](/examples/covid/main.go)] ![terrain](/examples/covid/covid.png)   |
 | [[Source Here](/examples/plumbob/main.go)] ![plumbob](/examples/plumbob/plumbob.png) | [[Source Here](/examples/oreo/main.go)] ![oreo](/examples/oreo/oreo.png)         |
 

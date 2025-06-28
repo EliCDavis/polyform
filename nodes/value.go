@@ -36,12 +36,6 @@ func NewValue[T any](startingValue T) *Value[T] {
 	}
 }
 
-func FuncValue[T any](f func() T) *Value[T] {
-	return &Value[T]{
-		value: f(),
-	}
-}
-
 func (tn *Value[T]) Outputs() map[string]OutputPort {
 	return map[string]OutputPort{
 		valueOutputPortName: &valueOutputPort[T]{
