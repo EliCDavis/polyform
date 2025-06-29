@@ -120,6 +120,7 @@ func (as *AppServer) Handler(indexFile string) (*http.ServeMux, error) {
 
 	fs := http.FileServer(http.FS(fSys))
 	mux.Handle("/js/", fs)
+	mux.Handle("/icons/", fs)
 
 	var graphSaver *GraphSaver
 	if as.autosave {

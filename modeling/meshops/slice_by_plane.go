@@ -101,6 +101,14 @@ func trianglePlaneIntersectionPoints(s1p1, s2p1, s2p2 vector3.Float64, plane geo
 	return l1.AtTime(time1), l2.AtTime(time2)
 }
 
+func alignWithNormal(normal vector3.Float64, vertices []vector3.Float64, indices []int, i1, i2, i3 int) []int {
+	normalized := vertices[i2].Sub(vertices[i1]).Cross(vertices[i3].Sub(vertices[i1])).Normalized()
+	if normal.Dot(normalized) > 0 {
+		return append(indices, i1, i2, i3)
+	}
+	return append(indices, i1, i3, i2)
+}
+
 func sliceTrianglesByPlaneWithAttribute(m modeling.Mesh, plane geometry.Plane, attribute string) (modeling.Mesh, modeling.Mesh) {
 	if err := RequireTopology(m, modeling.TriangleTopology); err != nil {
 		panic(err)
@@ -126,6 +134,7 @@ func sliceTrianglesByPlaneWithAttribute(m modeling.Mesh, plane geometry.Plane, a
 	// Mark which tris belong in retained or clipped
 	for t := range numFaces {
 		tri := m.Tri(t)
+		triNormal := tri.Normal(attribute)
 
 		a := tri.P1Vec3Attr(attribute)
 		b := tri.P2Vec3Attr(attribute)
@@ -178,17 +187,14 @@ func sliceTrianglesByPlaneWithAttribute(m modeling.Mesh, plane geometry.Plane, a
 			newKeepIndice2 := newKeepIndice1 + 1
 
 			abovePlaneVertices = append(abovePlaneVertices, newV1, newV2)
-			abovePlaneIndices = append(abovePlaneIndices, keepIndices[0], newKeepIndice1, newKeepIndice2)
+			abovePlaneIndices = alignWithNormal(triNormal, abovePlaneVertices, abovePlaneIndices, keepIndices[0], newKeepIndice1, newKeepIndice2)
 
 			newRemoveIndice1 := len(belowPlaneVertices)
 			newRemoveIndice2 := newRemoveIndice1 + 1
 
 			belowPlaneVertices = append(belowPlaneVertices, newV1, newV2)
-			belowPlaneIndices = append(
-				belowPlaneIndices,
-				newRemoveIndice1, removedIndices[0], newRemoveIndice2,
-				newRemoveIndice2, removedIndices[0], removedIndices[1],
-			)
+			belowPlaneIndices = alignWithNormal(triNormal, belowPlaneVertices, belowPlaneIndices, newRemoveIndice1, removedIndices[0], newRemoveIndice2)
+			belowPlaneIndices = alignWithNormal(triNormal, belowPlaneVertices, belowPlaneIndices, newRemoveIndice2, removedIndices[0], removedIndices[1])
 
 		case 2:
 			// Two points are kept.
@@ -200,17 +206,14 @@ func sliceTrianglesByPlaneWithAttribute(m modeling.Mesh, plane geometry.Plane, a
 			newKeepIndice2 := newKeepIndice1 + 1
 
 			belowPlaneVertices = append(belowPlaneVertices, newV1, newV2)
-			belowPlaneIndices = append(belowPlaneIndices, removedIndices[0], newKeepIndice1, newKeepIndice2)
+			belowPlaneIndices = alignWithNormal(triNormal, belowPlaneVertices, belowPlaneIndices, removedIndices[0], newKeepIndice1, newKeepIndice2)
 
 			newRemoveIndice1 := len(abovePlaneVertices)
 			newRemoveIndice2 := newRemoveIndice1 + 1
 
 			abovePlaneVertices = append(abovePlaneVertices, newV1, newV2)
-			abovePlaneIndices = append(
-				abovePlaneIndices,
-				newRemoveIndice1, keepIndices[0], newRemoveIndice2,
-				newRemoveIndice2, keepIndices[0], keepIndices[1],
-			)
+			abovePlaneIndices = alignWithNormal(triNormal, abovePlaneVertices, abovePlaneIndices, newRemoveIndice1, keepIndices[0], newRemoveIndice2)
+			abovePlaneIndices = alignWithNormal(triNormal, abovePlaneVertices, abovePlaneIndices, newRemoveIndice2, keepIndices[0], keepIndices[1])
 
 		case 3:
 			abovePlaneIndices = append(abovePlaneIndices, tri.P1(), tri.P2(), tri.P3())

@@ -126,3 +126,39 @@ func (cn Inverse[T]) Multiplicative() nodes.StructOutput[vector3.Vector[float64]
 func (cn Inverse[T]) MultiplicativeInt() nodes.StructOutput[vector3.Vector[int]] {
 	return nodes.NewStructOutput(cn.multiplicative().RoundToInt())
 }
+
+// ============================================================================
+
+type Normalize struct {
+	In nodes.Output[vector3.Float64]
+}
+
+func (cn Normalize) Normalized() nodes.StructOutput[vector3.Float64] {
+	if cn.In == nil {
+		return nodes.NewStructOutput(vector3.Zero[float64]())
+	}
+	return nodes.NewStructOutput(cn.In.Value().Normalized())
+}
+
+func (cn Normalize) NormalizeDescription() string {
+	return "Returns the input vector scaled to have a length of 1. (0,0,0) is returned if no vector is provided"
+}
+
+// ============================================================================
+
+type NormalizeArray struct {
+	In nodes.Output[[]vector3.Float64]
+}
+
+func (cn NormalizeArray) Normalized() nodes.StructOutput[[]vector3.Float64] {
+	if cn.In == nil {
+		return nodes.NewStructOutput([]vector3.Float64{})
+	}
+
+	in := cn.In.Value()
+	out := make([]vector3.Float64, len(in))
+	for i, v := range in {
+		out[i] = v.Normalized()
+	}
+	return nodes.NewStructOutput(out)
+}
