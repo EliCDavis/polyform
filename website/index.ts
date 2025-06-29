@@ -22,6 +22,10 @@ import { VariableManager } from "./variables/variable_manager.js";
 
 const graphPopup = new NewGraphPopup(globalThis.ExampleGraphs);
 
+if (globalThis.RenderingConfiguration.ShowNewGraphPopup) {
+    graphPopup.show();
+}
+
 const RenderingConfiguration = {
     AntiAlias: globalThis.RenderingConfiguration.AntiAlias,
     XrEnabled: globalThis.RenderingConfiguration.XrEnabled
@@ -75,7 +79,7 @@ requestManager.getNodeTypes((nodeTypes) => {
     }, 1000);
 
     console.log(nodeTypes);
-    
+
     const noteManager = new NoteManager(requestManager, flowGraphStuff.NodeFlowGraph)
 
     const nodeManager = new NodeManager(
@@ -86,7 +90,7 @@ requestManager.getNodeTypes((nodeTypes) => {
         producerViewManager,
         nodeTypes
     );
-    const schemaManager = new SchemaManager(requestManager, nodeManager, noteManager, graphPopup);
+    const schemaManager = new SchemaManager(requestManager, nodeManager, noteManager);
     new VariableManager(document.getElementById("sidebar-content"), schemaManager, nodeManager, flowGraphStuff.PolyformNodesPublisher, threeApp);
 
     nodeManager.subscribeToParameterChange((param) => {

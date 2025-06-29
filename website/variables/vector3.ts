@@ -8,6 +8,7 @@ import { TransformGizmo } from "../gizmo/transform";
 import { ThreeApp } from "../three_app";
 import { Toggle } from "../components/toggle";
 import { VariableElement } from "./variable";
+import { GizmoToggle } from "./gizmo_toggle";
 
 export class Vector3VariableElement extends VariableElement {
 
@@ -97,24 +98,7 @@ export class Vector3VariableElement extends VariableElement {
                     step: this.step,
                     value$: this.valueZ$
                 }),
-                {
-                    style: {
-                        display: "flex",
-                        flexDirection: "row",
-                        alignItems: "center",
-                        gap: "8px"
-                    },
-                    children: [
-                        {
-                            tag: "i",
-                            classList: ["fa-solid", "fa-eye"],
-                            style: { color: "#196d6d" }
-                        },
-                        { text: "Gizmo" },
-                        { style: { flex: "1" } },
-                        Toggle({ initialValue: false, change: showGizmo })
-                    ]
-                },
+                GizmoToggle(showGizmo),
             ]
         };
     }

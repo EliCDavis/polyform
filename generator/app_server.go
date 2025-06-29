@@ -38,24 +38,26 @@ func writeJSONError(out io.Writer, err error) error {
 }
 
 type pageData struct {
-	Title         string
-	Version       string
-	Description   string
-	AntiAlias     bool
-	XrEnabled     bool
-	ExampleGraphs []string
+	Title             string
+	Version           string
+	Description       string
+	AntiAlias         bool
+	XrEnabled         bool
+	ShowNewGraphPopup bool
+	ExampleGraphs     []string
 }
 
 //go:embed html/*
 var htmlFs embed.FS
 
 type AppServer struct {
-	app              *App
-	host, port       string
-	tls              bool
-	certPath         string
-	keyPath          string
-	launchWebbrowser bool
+	app               *App
+	host, port        string
+	tls               bool
+	certPath          string
+	keyPath           string
+	launchWebbrowser  bool
+	showNewGraphPopup bool
 
 	autosave   bool
 	configPath string
@@ -69,6 +71,7 @@ type AppServer struct {
 
 func (as *AppServer) Handler(indexFile string) (*http.ServeMux, error) {
 	as.serverStarted = time.Now()
+	as.showNewGraphPopup = true
 
 	as.webscene = as.app.WebScene
 	if as.webscene == nil {
@@ -90,12 +93,13 @@ func (as *AppServer) Handler(indexFile string) (*http.ServeMux, error) {
 
 	mux.HandleFunc(indexFile, func(w http.ResponseWriter, r *http.Request) {
 		pageToServe := pageData{
-			Title:         as.app.Name,
-			Version:       as.app.Version,
-			Description:   as.app.Description,
-			AntiAlias:     as.webscene.AntiAlias,
-			XrEnabled:     as.webscene.XrEnabled,
-			ExampleGraphs: allExamples(),
+			Title:             as.app.Name,
+			Version:           as.app.Version,
+			Description:       as.app.Description,
+			AntiAlias:         as.webscene.AntiAlias,
+			XrEnabled:         as.webscene.XrEnabled,
+			ShowNewGraphPopup: as.showNewGraphPopup,
+			ExampleGraphs:     allExamples(),
 		}
 
 		// Required for sharedMemoryForWorkers to work
@@ -143,9 +147,9 @@ func (as *AppServer) Handler(indexFile string) (*http.ServeMux, error) {
 	mux.Handle("/parameter/value/", parameterValueEndpoint(as.app.graphInstance, graphSaver))
 	mux.Handle("/parameter/name/", parameterNameEndpoint(as.app.graphInstance, graphSaver))
 	mux.Handle("/parameter/description/", parameterDescriptionEndpoint(as.app.graphInstance, graphSaver))
-	mux.Handle("/new-graph", newGraphEndpoint(as.app))
-	mux.Handle("/load-example", exampleGraphEndpoint(as.app))
-	mux.Handle("/graph", graphEndpoint(as.app))
+	mux.Handle("/new-graph", newGraphEndpoint(as.app, as))
+	mux.Handle("/load-example", exampleGraphEndpoint(as.app, as))
+	mux.Handle("/graph", graphEndpoint(as.app, as))
 	mux.Handle("/graph/metadata/", graphMetadataEndpoint(as.app.graphInstance, graphSaver))
 	mux.HandleFunc("/started", as.StartedEndpoint)
 	mux.HandleFunc("/mermaid", as.MermaidEndpoint)

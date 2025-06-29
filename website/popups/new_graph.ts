@@ -43,16 +43,16 @@ export class NewGraphPopup {
                 { tag: "h3", text: "New", style: { fontWeight: "bold" } },
 
                 { text: "Name" },
-                { type: "text", name: "name", change: this.nameChange },
+                { type: "text", name: "name", change: this.nameChange.bind(this), },
 
                 { text: "Description", style: { marginTop: "8px" } },
-                { tag: "textarea", name: "description", change: this.descriptionChange },
+                { tag: "textarea", name: "description", change: this.descriptionChange.bind(this) },
 
                 { text: "Author", style: { marginTop: "8px" } },
-                { type: "text", name: "author", change: this.authorChange },
+                { type: "text", name: "author", change: this.authorChange.bind(this) },
 
                 { text: "Version", style: { marginTop: "8px" } },
-                { type: "text", name: "version", change: this.versionChange },
+                { type: "text", name: "version", change: this.versionChange.bind(this) },
             ]
         }
 
@@ -101,30 +101,30 @@ export class NewGraphPopup {
     }
 
     nameChange(evt: InputEvent): void {
-        this.name = evt.data;
+        this.name = (evt.target as any).value;
     }
 
     authorChange(evt: InputEvent): void {
-        this.author = evt.data;
+        this.author = (evt.target as any).value;
     }
 
     versionChange(evt: InputEvent): void {
-        this.version = evt.data;
+        this.version = (evt.target as any).value;
     }
 
     descriptionChange(evt: InputEvent): void {
-        this.description = evt.data;
+        this.description = (evt.target as any).value;
     }
 
 
     newClicked(): void {
-        this.closePopup();
         this.newGraph({
             author: this.author,
             description: this.description,
             name: this.name,
             version: this.version
         });
+        this.closePopup();
     }
 
     newGraph(parameters: NewGraphParameters): void {

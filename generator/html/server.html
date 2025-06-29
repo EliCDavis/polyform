@@ -185,11 +185,11 @@
             cursor: pointer;
         }
 
-        .example-graph-item:nth-child(odd) { 
+        .example-graph-item:nth-child(odd) {
             background-color: #0a2e3d;
         }
 
-        .example-graph-item:nth-child(odd):hover { 
+        .example-graph-item:nth-child(odd):hover {
             background-color: rgba(255, 255, 255, 0.496);
         }
 
@@ -389,7 +389,8 @@
     <script>
         globalThis.RenderingConfiguration = {
             AntiAlias: true,
-            XrEnabled: "{{ .XrEnabled }}" === "true"
+            XrEnabled: "{{ .XrEnabled }}" === "true",
+            ShowNewGraphPopup: "{{ .ShowNewGraphPopup }}" === "true"
         }
 
         globalThis.ExampleGraphs = [

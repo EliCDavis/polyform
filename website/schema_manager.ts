@@ -21,16 +21,13 @@ export class SchemaManager {
 
     subscribers: Array<(g: GraphInstance) => void>;
 
-    newgraphPopup: NewGraphPopup;
-
     schema$: Subject<GraphInstance>;
 
-    constructor(requestManager: RequestManager, nodeManager: NodeManager, noteManager: NoteManager, newgraphPopup: NewGraphPopup) {
+    constructor(requestManager: RequestManager, nodeManager: NodeManager, noteManager: NoteManager) {
         this.modelVersion = -1;
         this.requestManager = requestManager;
         this.nodeManager = nodeManager;
         this.noteManager = noteManager;
-        this.newgraphPopup = newgraphPopup;
         this.schema$ = new Subject<GraphInstance>();
 
         this.shownPopupOnce = false;
@@ -62,11 +59,6 @@ export class SchemaManager {
     }
 
     setGraph(newGraph: GraphInstance): void {
-        if (Object.keys(newGraph.nodes).length === 0 && !this.shownPopupOnce) {
-            this.newgraphPopup.show();
-            this.shownPopupOnce = true;
-        }
-
         this.currentGraph = newGraph;
         this.subscribers.forEach(sub => {
             sub(this.currentGraph);

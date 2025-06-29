@@ -8,6 +8,7 @@ import { VariableElement } from "./variable";
 import { BoxGizmo } from "../gizmo/box";
 import { ThreeApp } from "../three_app";
 import { Toggle } from "../components/toggle";
+import { GizmoToggle } from "./gizmo_toggle";
 
 export class AABBVariableElement extends VariableElement {
 
@@ -90,25 +91,7 @@ export class AABBVariableElement extends VariableElement {
                 LabledField("Y:", this.input(extentsy, `${this.variable.value.extents.y}`, this.valueextentsy)),
                 LabledField("Z:", this.input(extentsz, `${this.variable.value.extents.z}`, this.valueextentsz)),
 
-                {
-                    style: {
-                        display: "flex",
-                        flexDirection: "row",
-                        alignItems: "center",
-                        gap: "8px"
-                    },
-                    children: [
-                        {
-                            tag: "i",
-                            classList: ["fa-solid", "fa-eye"],
-                            style: { color: "#196d6d" }
-                        },
-                        { text: "Gizmo" },
-                        { style: { flex: "1" } },
-                        Toggle
-                            ({ initialValue: false, change: showGizmo })
-                    ]
-                },
+                GizmoToggle(showGizmo),
             ]
         };
     }

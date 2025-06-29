@@ -7,6 +7,8 @@ import { ElementConfig } from "../element";
 import { ThreeApp } from "../three_app";
 import { VariableElement } from "./variable";
 import { ElementInstance } from "./element_instance";
+import { TransformGizmo } from "../gizmo/transform";
+import { GizmoToggle } from "./gizmo_toggle";
 
 
 function bind(obj: any, field: string, mapper: (s: string) => any): Subject<string> {
@@ -72,6 +74,8 @@ export class Vector3ArrayVariableElement extends VariableElement {
 
     dataDisplay$: BehaviorSubject<Array<ElementConfig>>;
     length$: BehaviorSubject<string>;
+    showGizmo$: BehaviorSubject<boolean>;
+    builtGizmos: Array<TransformGizmo>;
 
     constructor(
         key: string,
@@ -86,6 +90,14 @@ export class Vector3ArrayVariableElement extends VariableElement {
     }
 
     buildVariable(): ElementConfig {
+        this.showGizmo$ = new BehaviorSubject<boolean>(false);
+        this.addSubscription(this.showGizmo$.subscribe((show) => {
+            if (this.builtGizmos) {
+                for (let i = 0; i < this.builtGizmos.length; i++) {
+                    this.builtGizmos[i].setEnabled(show);
+                }
+            }
+        }))
         this.dataDisplay$ = new BehaviorSubject<Array<ElementConfig>>(this.buildDataDisplay());
 
         let data = [];
@@ -107,12 +119,22 @@ export class Vector3ArrayVariableElement extends VariableElement {
                         data.push({ x: 0, y: 0, z: 0 })
                         setVariableValue(this.key, data).subscribe();
                     }
-                }
+                },
+                GizmoToggle(this.showGizmo$)
             ],
         };
     }
 
+
     buildDataDisplay(): Array<ElementConfig> {
+        if (this.builtGizmos) {
+            for (let i = 0; i < this.builtGizmos.length; i++) {
+                this.builtGizmos[i].dispose();
+            }
+        }
+        this.builtGizmos = new Array<TransformGizmo>();
+
+
         let data = [];
 
         if (this.variable.value) {
@@ -122,9 +144,34 @@ export class Vector3ArrayVariableElement extends VariableElement {
         let dataDisplay = new Array<ElementConfig>();
 
         for (let i = 0; i < data.length; i++) {
-            const x = bind(data[i], "x", this.mapper)
-            const y = bind(data[i], "y", this.mapper)
-            const z = bind(data[i], "z", this.mapper)
+            const gizmo = new TransformGizmo({
+                camera: this.app.Camera,
+                domElement: this.app.Renderer.domElement,
+                orbitControls: this.app.OrbitControls,
+                parent: this.app.ViewerScene,
+                scene: this.app.Scene,
+                initialPosition: {
+                    x: data[i].x,
+                    y: data[i].y,
+                    z: data[i].z
+                }
+            });
+            this.builtGizmos.push(gizmo);
+            
+            if (this.showGizmo$.value) {
+                gizmo.setEnabled(true);
+            }
+
+            this.addSubscription(gizmo.position$().subscribe(pos => {
+                data[i] = pos;
+                setVariableValue(this.key, data);
+            }))
+
+
+            const x = bind(data[i], "x", this.mapper);
+            const y = bind(data[i], "y", this.mapper);
+            const z = bind(data[i], "z", this.mapper);
+
             x.pipe(
                 combineLatestWith(y, z),
                 skip(1),
@@ -132,11 +179,8 @@ export class Vector3ArrayVariableElement extends VariableElement {
             ).subscribe(() => { })
 
             dataDisplay.push({
-                style: {
-                    paddingTop: "8px",
-                },
+                style: { paddingTop: "8px", },
                 children: [
-                    // { text: "" + i },
                     {
                         style: {
                             display: "flex",
@@ -150,6 +194,7 @@ export class Vector3ArrayVariableElement extends VariableElement {
                     },
                     {
                         tag: "button",
+                        style: { width: "90%", margin: "12px" },
                         text: "Delete",
                         onclick: () => {
                             data.splice(i, 1);
@@ -157,7 +202,7 @@ export class Vector3ArrayVariableElement extends VariableElement {
                         }
                     }
                 ]
-            })
+            });
         }
         return dataDisplay;
     }
