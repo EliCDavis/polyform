@@ -81,6 +81,14 @@ func (tv ImageVariable) ToMessage() []byte {
 	return out.Bytes()
 }
 
+func (tv ImageVariable) getProfile() json.RawMessage {
+	result, err := json.Marshal(tv.ToMessage())
+	if err != nil {
+		panic(err)
+	}
+	return result
+}
+
 func (tv *ImageVariable) applyProfile(profile json.RawMessage) error {
 	tv.version++
 	img, _, err := image.Decode(bytes.NewReader(profile))

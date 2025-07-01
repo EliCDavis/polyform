@@ -1,7 +1,7 @@
 import { SchemaManager } from "../schema_manager";
 import { GeneratorVariablePublisherPath, NodeManager } from "../node_manager";
 import { Variable } from "../schema";
-import { Popup, PopupButtonType } from "./popup";
+import { CreatePopupElement, PopupButtonType } from "./popup";
 
 export class DeleteVariablePopup {
 
@@ -23,7 +23,7 @@ export class DeleteVariablePopup {
         this.variable = variable;
         this.nodeManager = nodeManager;
 
-        this.popup = Popup({
+        this.popup = CreatePopupElement({
             title: "Delete Variable",
             content: [{
                 text: "Are you sure you want to delete " + this.variableKey

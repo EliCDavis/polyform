@@ -56,6 +56,7 @@ export interface GraphInstance {
     nodes: GraphInstanceNodes;
     notes: { [key: string]: any };
     variables: VariableGroup;
+    profiles: Array<string>
 }
 
 export interface Variable {

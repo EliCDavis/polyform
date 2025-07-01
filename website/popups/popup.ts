@@ -40,7 +40,7 @@ export interface PopupConfig {
     content?: Array<ElementConfig>
 }
 
-export function Popup(config: PopupConfig): HTMLElement {
+export function CreatePopupElement(config: PopupConfig): HTMLElement {
     let titleEle: ElementConfig = undefined;
     if (config.title) {
         titleEle = {
@@ -93,3 +93,30 @@ export function Popup(config: PopupConfig): HTMLElement {
         }]
     });
 }
+
+
+export abstract class Popup {
+
+    private popup: HTMLElement
+
+    constructor() { }
+
+    protected abstract build(): PopupConfig;
+    protected abstract destroy(): void;
+
+    show(): void {
+        if (!this.popup) {
+            this.popup = CreatePopupElement(this.build());
+        }
+        this.popup.style.display = "flex";
+        document.body.appendChild(this.popup);
+    }
+
+    close(): void {
+        this.popup.style.display = "none";
+        this.popup.remove();
+        this.destroy();
+        this.popup = null;
+    }
+
+} 

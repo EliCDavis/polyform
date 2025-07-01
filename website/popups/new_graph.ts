@@ -1,5 +1,5 @@
 import { Element, ElementConfig } from "../element";
-import { Popup, PopupButtonType } from "./popup";
+import { CreatePopupElement, PopupButtonType } from "./popup";
 
 interface NewGraphParameters {
     name: string,
@@ -57,7 +57,7 @@ export class NewGraphPopup {
         }
 
 
-        this.popup = Popup({
+        this.popup = CreatePopupElement({
             title: "New Graph",
             buttons: [
                 { text: "Close", click: this.closePopup.bind(this) },

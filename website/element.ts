@@ -119,7 +119,11 @@ export function Element(config: ElementConfig): HTMLElement {
 
     if (config.children$) {
         config.children$.subscribe((newChildren) => {
-            replaceChildren(newEle, newChildren);
+            if (newChildren) {
+                replaceChildren(newEle, newChildren);
+            } else {
+                newEle.replaceChildren();
+            }
         });
     }
 

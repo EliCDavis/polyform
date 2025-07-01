@@ -60,6 +60,14 @@ func (tv *FileVariable) applyProfile(profile json.RawMessage) error {
 	return nil
 }
 
+func (tv FileVariable) getProfile() json.RawMessage {
+	result, err := json.Marshal(tv.ToMessage())
+	if err != nil {
+		panic(err)
+	}
+	return result
+}
+
 func (tv FileVariable) ToMessage() []byte {
 	return tv.value
 }

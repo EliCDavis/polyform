@@ -3,11 +3,11 @@
 
 <head>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
-	<meta name="viewport" content="width=device-width, initial-scale=1" />
-	<link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png">
-	<link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png">
-	<link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png">
-	<link rel="manifest" href="/icons/site.webmanifest">
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16x16.png">
+    <link rel="manifest" href="icons/site.webmanifest">
     <meta charset="utf-8">
     <title>{{.Title}}</title>
     <style>
@@ -195,6 +195,11 @@
 
         .example-graph-item:nth-child(odd):hover {
             background-color: rgba(255, 255, 255, 0.496);
+        }
+
+        .profile-item:hover {
+            background-color: rgb(25 110 108);
+            cursor: pointer;
         }
 
         #three-canvas:focus {
@@ -438,13 +443,22 @@
                 <div class="sidebar-section-content" style="flex-direction: row;">
                     <button style="flex: 1;" class="sidebar-button" id="export-model-button">Model</button>
                     <button style="flex: 1;" class="sidebar-button" id="export-mermaid-button">Mermaid</button>
-                    <button style="flex: 1;" class="sidebar-button" id="export-swagger-button">Swagger</button>
+                    <!-- <button style="flex: 1;" class="sidebar-button" id="export-swagger-button">Swagger</button> -->
                 </div>
+
+                <div class="sidebar-header">Profiles</div>
+                <div class="sidebar-section-content">
+                    <button id="new-profile">New Profile</button>
+                    <div id="profile-list"></div>
+                </div>
+
                 <div class="sidebar-header">Variables</div>
                 <div class="sidebar-section-content">
                     <button id="new-variable">New Variable</button>
                     <div id="variable-list"></div>
                 </div>
+
+                
             </div>
         </div>
 

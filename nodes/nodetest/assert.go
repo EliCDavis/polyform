@@ -13,18 +13,18 @@ type Assertion interface {
 
 // ============================================================================
 
-type AssertPortValue[T any] struct {
+type assertPortValue[T any] struct {
 	Port  string
 	Value T
 }
 
-func (apv AssertPortValue[T]) Assert(t *testing.T, node nodes.Node) {
+func (apv assertPortValue[T]) Assert(t *testing.T, node nodes.Node) {
 	out := nodes.GetNodeOutputPort[T](node, apv.Port).Value()
 	assert.Equal(t, apv.Value, out)
 }
 
-func NewAssertPortValue[T any](port string, value T) AssertPortValue[T] {
-	return AssertPortValue[T]{
+func AssertOutput[T any](port string, value T) Assertion {
+	return assertPortValue[T]{
 		Port:  port,
 		Value: value,
 	}
