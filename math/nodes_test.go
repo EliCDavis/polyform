@@ -21,7 +21,7 @@ func TestNodes(t *testing.T) {
 				In: nodetest.NewPortValue(1.),
 			}),
 			assertions: []nodetest.Assertion{
-				nodetest.NewAssertPortValue("Out", 1.),
+				nodetest.AssertOutput("Out", 1.),
 			},
 		},
 		"Square: 10 => 100": {
@@ -29,7 +29,7 @@ func TestNodes(t *testing.T) {
 				In: nodetest.NewPortValue(10.),
 			}),
 			assertions: []nodetest.Assertion{
-				nodetest.NewAssertPortValue("Out", 100.),
+				nodetest.AssertOutput("Out", 100.),
 			},
 		},
 		"Round: nil => 0": {
@@ -37,8 +37,8 @@ func TestNodes(t *testing.T) {
 				Data: math.RoundNodeData{},
 			},
 			assertions: []nodetest.Assertion{
-				nodetest.NewAssertPortValue("Int", 0),
-				nodetest.NewAssertPortValue("Float", 0.),
+				nodetest.AssertOutput("Int", 0),
+				nodetest.AssertOutput("Float", 0.),
 			},
 		},
 		"Round: 1.23 => 1": {
@@ -48,15 +48,15 @@ func TestNodes(t *testing.T) {
 				},
 			},
 			assertions: []nodetest.Assertion{
-				nodetest.NewAssertPortValue("Int", 1),
-				nodetest.NewAssertPortValue("Float", 1.),
+				nodetest.AssertOutput("Int", 1),
+				nodetest.AssertOutput("Float", 1.),
 			},
 		},
 		"Circumference: nil => 0": {
 			node: nodetest.NewNode(math.CircumferenceNode{}),
 			assertions: []nodetest.Assertion{
-				nodetest.NewAssertPortValue("Int", 0),
-				nodetest.NewAssertPortValue("Float", 0.),
+				nodetest.AssertOutput("Int", 0),
+				nodetest.AssertOutput("Float", 0.),
 			},
 		},
 		"Circumference: 2 => 4pi": {
@@ -64,32 +64,32 @@ func TestNodes(t *testing.T) {
 				Radius: nodetest.NewPortValue(2.),
 			}),
 			assertions: []nodetest.Assertion{
-				nodetest.NewAssertPortValue("Int", 13),
-				nodetest.NewAssertPortValue("Float", 4.*gomath.Pi),
+				nodetest.AssertOutput("Int", 13),
+				nodetest.AssertOutput("Float", 4.*gomath.Pi),
 				nodetest.AssertNodeDescription{Description: "Circumference of a circle"},
 			},
 		},
 		"One": {
 			node: nodetest.NewNode(math.OneNode{}),
 			assertions: []nodetest.Assertion{
-				nodetest.NewAssertPortValue("Int", 1),
-				nodetest.NewAssertPortValue("Float 64", 1.),
+				nodetest.AssertOutput("Int", 1),
+				nodetest.AssertOutput("Float 64", 1.),
 				nodetest.AssertNodeDescription{Description: "Just the number 1"},
 			},
 		},
 		"Zero": {
 			node: nodetest.NewNode(math.ZeroNode{}),
 			assertions: []nodetest.Assertion{
-				nodetest.NewAssertPortValue("Int", 0),
-				nodetest.NewAssertPortValue("Float 64", 0.),
+				nodetest.AssertOutput("Int", 0),
+				nodetest.AssertOutput("Float 64", 0.),
 				nodetest.AssertNodeDescription{Description: "Just the number 0"},
 			},
 		},
 		"Double: nil => 0": {
 			node: nodetest.NewNode(math.DoubleNode[float64]{}),
 			assertions: []nodetest.Assertion{
-				nodetest.NewAssertPortValue("Int", 0),
-				nodetest.NewAssertPortValue("Float 64", 0.),
+				nodetest.AssertOutput("Int", 0),
+				nodetest.AssertOutput("Float 64", 0.),
 			},
 		},
 		"Double: 2 => 4": {
@@ -97,8 +97,8 @@ func TestNodes(t *testing.T) {
 				In: nodetest.NewPortValue(2.),
 			}),
 			assertions: []nodetest.Assertion{
-				nodetest.NewAssertPortValue("Int", 4),
-				nodetest.NewAssertPortValue("Float 64", 4.),
+				nodetest.AssertOutput("Int", 4),
+				nodetest.AssertOutput("Float 64", 4.),
 				nodetest.AssertNodeDescription{Description: "Doubles the number provided"},
 				nodetest.NewAssertInputPortDescription("In", "The number to double"),
 			},
@@ -106,8 +106,8 @@ func TestNodes(t *testing.T) {
 		"Half: nil => 0": {
 			node: nodetest.NewNode(math.HalfNode[float64]{}),
 			assertions: []nodetest.Assertion{
-				nodetest.NewAssertPortValue("Int", 0),
-				nodetest.NewAssertPortValue("Float 64", 0.),
+				nodetest.AssertOutput("Int", 0),
+				nodetest.AssertOutput("Float 64", 0.),
 			},
 		},
 		"Half: 4 => 2": {
@@ -115,8 +115,8 @@ func TestNodes(t *testing.T) {
 				In: nodetest.NewPortValue(4.),
 			}),
 			assertions: []nodetest.Assertion{
-				nodetest.NewAssertPortValue("Int", 2),
-				nodetest.NewAssertPortValue("Float 64", 2.),
+				nodetest.AssertOutput("Int", 2),
+				nodetest.AssertOutput("Float 64", 2.),
 				nodetest.AssertNodeDescription{Description: "Divides the number in half"},
 				nodetest.NewAssertInputPortDescription("In", "The number to halve"),
 			},
@@ -124,7 +124,7 @@ func TestNodes(t *testing.T) {
 		"Negate: nil => 0": {
 			node: nodetest.NewNode(math.NegateNode[float64]{}),
 			assertions: []nodetest.Assertion{
-				nodetest.NewAssertPortValue("Out", 0.),
+				nodetest.AssertOutput("Out", 0.),
 				nodetest.NewAssertInputPortDescription("In", "The number to take the additive inverse of"),
 				nodetest.AssertNodeDescription{Description: "The additive inverse of an element x, denoted −x, is the element that when added to x, yields the additive identity, 0"},
 			},
@@ -134,7 +134,7 @@ func TestNodes(t *testing.T) {
 				In: nodetest.NewPortValue(4.),
 			}),
 			assertions: []nodetest.Assertion{
-				nodetest.NewAssertPortValue("Out", -4.),
+				nodetest.AssertOutput("Out", -4.),
 			},
 		},
 	}

@@ -26,6 +26,7 @@ type Variable interface {
 	fromPersistantJSON(decoder jbtf.Decoder, body []byte) error
 
 	applyProfile(profile json.RawMessage) error
+	getProfile() json.RawMessage
 	// fromPersistantJSON(decoder jbtf.Decoder, body []byte) error
 	// Schema() schema.Parameter
 	// InitializeForCLI(set *flag.FlagSet)

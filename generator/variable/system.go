@@ -11,6 +11,8 @@ import (
 	"github.com/EliCDavis/polyform/generator/schema"
 )
 
+type Profile map[string]json.RawMessage
+
 // System => Info
 // Info => Variable
 // Variable => Info
@@ -29,7 +31,8 @@ type System interface {
 	Traverse(func(path string, info Info, v Variable))
 	PersistedSchema(encoder *jbtf.Encoder) (schema.NestedGroup[schema.PersistedVariable], error)
 	RuntimeSchema() (schema.NestedGroup[schema.RuntimeVariable], error)
-	ApplyProfile(profile map[string]json.RawMessage) error
+	ApplyProfile(profile Profile) error
+	GetProfile() Profile
 }
 
 func NewSystem() System {
@@ -41,6 +44,7 @@ func NewSystem() System {
 type systemEntry interface {
 	SetPath(newPath string)
 	ApplyProfile(profile json.RawMessage) error
+	GetProfile() json.RawMessage
 }
 
 type systemVariableEntry struct {
@@ -56,12 +60,31 @@ func (sve *systemVariableEntry) ApplyProfile(profile json.RawMessage) error {
 	return sve.variable.applyProfile(profile)
 }
 
+func (sve *systemVariableEntry) GetProfile() json.RawMessage {
+	return sve.variable.getProfile()
+}
+
 type system struct {
 	entries map[string]systemEntry
 	mutex   sync.RWMutex
 }
 
-func (s *system) ApplyProfile(profile map[string]json.RawMessage) error {
+func (s *system) GetProfile() Profile {
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
+
+	result := make(Profile)
+
+	for key, data := range s.entries {
+		result[key] = data.GetProfile()
+	}
+
+	return result
+}
+
+func (s *system) ApplyProfile(profile Profile) error {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
 	for key, data := range profile {
 		entry, ok := s.entries[key]
 

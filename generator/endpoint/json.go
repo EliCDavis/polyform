@@ -68,3 +68,16 @@ func JsonMethod[Body any, Response any](handler func(request Request[Body]) (Res
 		Handler:        handler,
 	}
 }
+
+func JsonBodyMethod[Body any](handler func(request Request[Body]) error) BodyMethod[Body] {
+	return BodyMethod[Body]{
+		Request: JsonRequestReader[Body]{},
+		Handler: handler,
+	}
+}
+
+func JsonResponseMethod[Response any](handler func(r *http.Request) (Response, error)) ResponseMethod[Response] {
+	return ResponseMethod[Response]{
+		ResponseWriter: JsonResponseWriter[Response]{},
+	}
+}

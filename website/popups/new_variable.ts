@@ -4,7 +4,7 @@ import { VariableType } from "../variables/variable_type";
 import { NodeManager } from "../node_manager";
 import { CreateVariableResponse } from "../schema";
 import { VariableTypeDropdown } from "./variable_type_dropdown";
-import { Popup, PopupButtonType } from "./popup";
+import { CreatePopupElement, PopupButtonType } from "./popup";
 
 interface NewVariableParameters {
     type: string
@@ -34,7 +34,7 @@ export class NewVariablePopup {
         this.type = new BehaviorSubject<string>(VariableType.Float);
         this.description = new BehaviorSubject<string>("");
 
-        this.popup = Popup({
+        this.popup = CreatePopupElement({
             title: "New Variable",
             content: [{
                 style: {

@@ -148,6 +148,13 @@ func (as *AppServer) Handler(indexFile string) (*http.ServeMux, error) {
 	mux.Handle("/parameter/value/", parameterValueEndpoint(as.app.graphInstance, graphSaver))
 	mux.Handle("/parameter/name/", parameterNameEndpoint(as.app.graphInstance, graphSaver))
 	mux.Handle("/parameter/description/", parameterDescriptionEndpoint(as.app.graphInstance, graphSaver))
+
+	mux.Handle("/profile", profileEndpoint(as.app.graphInstance, graphSaver))
+	mux.Handle("/profile/apply", applyProfileEndpoint(as.app.graphInstance, graphSaver))
+	mux.Handle("/profile/rename", renameProfileEndpoint(as.app.graphInstance, graphSaver))
+	mux.Handle("/profile/overwrite", overwriteProfileEndpoint(as.app.graphInstance, graphSaver))
+	mux.Handle("/profiles", profilesEndpoint(as.app.graphInstance))
+
 	mux.Handle("/new-graph", newGraphEndpoint(as.app, as))
 	mux.Handle("/load-example", exampleGraphEndpoint(as.app, as))
 	mux.Handle("/graph", graphEndpoint(as.app, as))

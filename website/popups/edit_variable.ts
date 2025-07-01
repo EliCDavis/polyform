@@ -2,7 +2,7 @@ import { BehaviorSubject } from "rxjs";
 import { SchemaManager } from "../schema_manager";
 import { GeneratorVariablePublisherPath, NodeManager } from "../node_manager";
 import { CreateVariableResponse, Variable } from "../schema";
-import { Popup, PopupButtonType } from "./popup";
+import { CreatePopupElement, PopupButtonType } from "./popup";
 
 interface EditVariableParameters {
     name: string,
@@ -34,7 +34,7 @@ export class EditVariablePopup {
         this.name = new BehaviorSubject<string>(variableKey);
         this.description = new BehaviorSubject<string>(variable.description);
 
-        this.popup = Popup({
+        this.popup = CreatePopupElement({
             title: "Edit Variable",
             buttons: [
                 { text: "Cancel", click: this.closePopup.bind(this) },

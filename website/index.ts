@@ -18,6 +18,7 @@ import { NewGraphPopup } from './popups/new_graph.js';
 import { BuildFogSettings, BuildRenderingSetting } from "./gui_settings/fog.js";
 import { ArrayBufferToBase64, Compress, CopyToClipboard } from "./utils.js";
 import { VariableManager } from "./variables/variable_manager.js";
+import { ProfileManager } from "./profile/profile_manager.js";
 
 
 const graphPopup = new NewGraphPopup(globalThis.ExampleGraphs);
@@ -35,8 +36,8 @@ const viewportSettings: ViewportSettings = {
     renderWireframe: false,
     fog: {
         color: "0xa0a0a0",
-        near: 10,
-        far: 50,
+        near: 100,
+        far: 150,
     },
     background: "0xa0a0a0",
     lighting: "0xffffff",
@@ -92,6 +93,7 @@ requestManager.getNodeTypes((nodeTypes) => {
     );
     const schemaManager = new SchemaManager(requestManager, nodeManager, noteManager);
     new VariableManager(document.getElementById("sidebar-content"), schemaManager, nodeManager, flowGraphStuff.PolyformNodesPublisher, threeApp);
+    new ProfileManager(document.getElementById("sidebar-content"), schemaManager);
 
     nodeManager.subscribeToParameterChange((param) => {
         schemaManager.setParameter(param.id, param.data, param.binary);
@@ -186,7 +188,7 @@ requestManager.getNodeTypes((nodeTypes) => {
     document.getElementById("load-graph-button").onclick = fileControls.loadGraph;
     document.getElementById("export-model-button").onclick = fileControls.saveModel;
     document.getElementById("export-mermaid-button").onclick = fileControls.viewProgram;
-    document.getElementById("export-swagger-button").onclick = fileControls.saveSwagger;
+    // document.getElementById("export-swagger-button").onclick = fileControls.saveSwagger;
 
     // const panel = new GUI({ width: 310 });
 

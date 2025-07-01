@@ -73,6 +73,10 @@ func (tv *TypeVariable[T]) applyProfile(profile json.RawMessage) error {
 	return nil
 }
 
+func (tv *TypeVariable[T]) getProfile() json.RawMessage {
+	return tv.ToMessage()
+}
+
 func (tv TypeVariable[T]) ToMessage() []byte {
 	data, err := json.Marshal(tv.value)
 	if err != nil {

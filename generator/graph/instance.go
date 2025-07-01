@@ -27,8 +27,10 @@ type Instance struct {
 	namedManifests *namedOutputManager[manifest.Manifest]
 	variables      variable.System
 
+	profiles map[string]variable.Profile
+
 	// TODO: Make this a lock across the entire instance
-	producerLock gsync.Mutex
+	lock gsync.RWMutex
 }
 
 func New(typeFactory *refutil.TypeFactory) *Instance {
@@ -127,8 +129,8 @@ func (i *Instance) SetVariableDescription(variablePath, description string) erro
 }
 
 func (i *Instance) UpdateVariable(variablePath string, data []byte) (bool, error) {
-	i.producerLock.Lock()
-	defer i.producerLock.Unlock()
+	i.lock.Lock()
+	defer i.lock.Unlock()
 
 	variable, err := i.variables.Variable(variablePath)
 	if err != nil {
@@ -141,14 +143,84 @@ func (i *Instance) UpdateVariable(variablePath string, data []byte) (bool, error
 }
 
 func (i *Instance) VariableData(variablePath string) ([]byte, error) {
-	i.producerLock.Lock()
-	defer i.producerLock.Unlock()
+	i.lock.Lock()
+	defer i.lock.Unlock()
 
 	variable, err := i.variables.Variable(variablePath)
 	if err != nil {
 		return nil, err
 	}
 	return variable.ToMessage(), nil
+}
+
+// <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+// >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+// Profiles
+// >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+func (i *Instance) SaveProfile(profileName string) {
+	i.lock.Lock()
+	defer i.lock.Unlock()
+
+	i.profiles[profileName] = i.variables.GetProfile()
+}
+
+func (i *Instance) LoadProfile(profileName string) error {
+	i.lock.Lock()
+	defer i.lock.Unlock()
+
+	if profile, ok := i.profiles[profileName]; ok {
+		return i.variables.ApplyProfile(profile)
+	}
+
+	return fmt.Errorf("no profile exists with name %q", profileName)
+}
+
+func (i *Instance) RenameProfile(profile, newName string) error {
+	i.lock.Lock()
+	defer i.lock.Unlock()
+
+	if _, ok := i.profiles[profile]; !ok {
+		return fmt.Errorf("profile %q does not exist", profile)
+	}
+
+	if _, ok := i.profiles[newName]; ok {
+		return fmt.Errorf("profile %q already exists", profile)
+	}
+
+	i.profiles[newName] = i.profiles[profile]
+
+	delete(i.profiles, profile)
+
+	return nil
+}
+
+func (i *Instance) DeleteProfile(profileName string) error {
+	i.lock.Lock()
+	defer i.lock.Unlock()
+
+	if _, ok := i.profiles[profileName]; !ok {
+		return fmt.Errorf("graph contains no profile named %q", profileName)
+	}
+
+	delete(i.profiles, profileName)
+	return nil
+}
+
+func (i *Instance) Profiles() []string {
+	i.lock.RLock()
+	defer i.lock.RUnlock()
+
+	profiles := make([]string, 0, len(i.profiles))
+
+	for profile := range i.profiles {
+		profiles = append(profiles, profile)
+	}
+
+	sort.Strings(profiles)
+
+	return profiles
 }
 
 // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
@@ -316,6 +388,7 @@ func (i *Instance) Reset() {
 	i.namedManifests = &namedOutputManager[manifest.Manifest]{
 		namedPorts: make(map[string]namedOutputEntry[manifest.Manifest]),
 	}
+	i.profiles = make(map[string]variable.Profile)
 }
 
 type sortedReference struct {
@@ -395,6 +468,10 @@ func (i *Instance) ApplyAppSchema(jsonPayload []byte) error {
 	})
 	if err != nil {
 		return err
+	}
+
+	for profile, data := range appSchema.Profiles {
+		i.profiles[profile] = data.Data
 	}
 
 	createdNodes := make(map[string]nodes.Node)
@@ -506,6 +583,9 @@ func (i *Instance) ApplyAppSchema(jsonPayload []byte) error {
 }
 
 func (i *Instance) Schema() schema.GraphInstance {
+	i.lock.RLock()
+	defer i.lock.RUnlock()
+
 	var noteMetadata map[string]any
 	if notes := i.metadata.Get("notes"); notes != nil {
 		casted, ok := notes.(map[string]any)
@@ -523,7 +603,13 @@ func (i *Instance) Schema() schema.GraphInstance {
 		Producers: make(map[string]schema.Producer),
 		Notes:     noteMetadata,
 		Variables: variableSchema,
+		Profiles:  make([]string, 0, len(i.profiles)),
 	}
+
+	for profile := range i.profiles {
+		appSchema.Profiles = append(appSchema.Profiles, profile)
+	}
+	sort.Strings(appSchema.Profiles)
 
 	appNodeSchema := make(map[string]schema.NodeInstance)
 
@@ -583,6 +669,15 @@ func (i *Instance) EncodeToAppSchema(appSchema *schema.App, encoder *jbtf.Encode
 		}
 
 		nodeInstances[id] = nodeSchema
+	}
+
+	if appSchema.Profiles == nil {
+		appSchema.Profiles = make(map[string]schema.AppProfile)
+	}
+	for name, data := range i.profiles {
+		appSchema.Profiles[name] = schema.AppProfile{
+			Data: data,
+		}
 	}
 
 	if appSchema.Producers == nil {
@@ -803,8 +898,8 @@ func (i *Instance) Parameter(nodeId string) Parameter {
 }
 
 func (i *Instance) UpdateParameter(nodeId string, data []byte) (bool, error) {
-	i.producerLock.Lock()
-	defer i.producerLock.Unlock()
+	i.lock.Lock()
+	defer i.lock.Unlock()
 
 	r, err := i.Parameter(nodeId).ApplyMessage(data)
 	i.incModelVersion()
@@ -812,8 +907,8 @@ func (i *Instance) UpdateParameter(nodeId string, data []byte) (bool, error) {
 }
 
 func (i *Instance) ParameterData(nodeId string) []byte {
-	i.producerLock.Lock()
-	defer i.producerLock.Unlock()
+	i.lock.Lock()
+	defer i.lock.Unlock()
 	return i.Parameter(nodeId).ToMessage()
 }
 
@@ -954,8 +1049,8 @@ func (i *Instance) Manifest(producerName string) manifest.Manifest {
 		panic(fmt.Errorf("no producer registered for: %s", producerName))
 	}
 
-	i.producerLock.Lock()
-	defer i.producerLock.Unlock()
+	i.lock.Lock()
+	defer i.lock.Unlock()
 
 	return producer.port.Value()
 }
