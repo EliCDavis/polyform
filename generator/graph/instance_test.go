@@ -11,7 +11,6 @@ import (
 	"github.com/EliCDavis/polyform/generator/manifest"
 	"github.com/EliCDavis/polyform/generator/manifest/basics"
 	"github.com/EliCDavis/polyform/generator/parameter"
-	"github.com/EliCDavis/polyform/generator/schema"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
 	"github.com/stretchr/testify/assert"
@@ -46,7 +45,9 @@ func TestInstance_AddProducer_InitializeParameters_Artifacts(t *testing.T) {
 	// ARRANGE ================================================================
 	contentToSetViaFlag := "bruh"
 	factory := &refutil.TypeFactory{}
-	instance := graph.New(factory)
+	instance := graph.New(graph.Config{
+		TypeFactory: factory,
+	})
 	assert.Len(t, instance.ProducerNames(), 0)
 	flags := flag.NewFlagSet("set", flag.PanicOnError)
 
@@ -80,9 +81,8 @@ func TestInstance_AddProducer_InitializeParameters_Artifacts(t *testing.T) {
 	instanceSchemaData, err := json.MarshalIndent(instanceSchema, "", "\t")
 	assert.NoError(t, err)
 
-	appSchema := &schema.App{}
 	encoder := &jbtf.Encoder{}
-	instance.EncodeToAppSchema(appSchema, encoder)
+	appSchema := instance.EncodeToAppSchema(encoder)
 	appSchemaData, err := encoder.ToPgtf(appSchema)
 	assert.NoError(t, err)
 

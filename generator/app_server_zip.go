@@ -78,14 +78,14 @@ func writeZip(out io.Writer, graph *graph.Instance) error {
 	return z.Close()
 }
 
-func (as *AppServer) zipEndpoint(w http.ResponseWriter, r *http.Request) error {
+func (as *EditServer) zipEndpoint(w http.ResponseWriter, r *http.Request) error {
 
 	// Their requesting a zip of the entire graph, just zip the entire thing
 	if r.URL.Path == "/zip/" {
-		return writeZip(w, as.app.graphInstance)
+		return writeZip(w, as.app.Graph)
 	}
 
-	resolvedNode, err := getNodeOutputFromURLPath[manifest.Manifest](r, "/zip/", as.app.graphInstance)
+	resolvedNode, err := getNodeOutputFromURLPath[manifest.Manifest](r, "/zip/", as.app.Graph)
 	if err != nil {
 		return err
 	}
@@ -95,7 +95,7 @@ func (as *AppServer) zipEndpoint(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	z := zip.NewWriter(w)
-	err = writeManifestToZip(as.app.graphInstance, z, resolvedNode.node, resolvedNode.output)
+	err = writeManifestToZip(as.app.Graph, z, resolvedNode.node, resolvedNode.output)
 	if err != nil {
 		return err
 	}
@@ -104,7 +104,7 @@ func (as *AppServer) zipEndpoint(w http.ResponseWriter, r *http.Request) error {
 
 }
 
-func (as *AppServer) ZipEndpoint(w http.ResponseWriter, r *http.Request) {
+func (as *EditServer) ZipEndpoint(w http.ResponseWriter, r *http.Request) {
 	defer func() {
 		if recErr := recover(); recErr != nil {
 			fmt.Printf("err: %s\n", recErr)

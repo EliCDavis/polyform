@@ -5,10 +5,11 @@ import (
 	"strings"
 
 	"github.com/EliCDavis/polyform/generator/endpoint"
+	"github.com/EliCDavis/polyform/generator/graph"
 	"github.com/EliCDavis/polyform/generator/schema"
 )
 
-func exampleGraphEndpoint(app *App, as *AppServer) endpoint.Handler {
+func exampleGraphEndpoint(app *App, as *EditServer) endpoint.Handler {
 	return endpoint.Handler{
 		Methods: map[string]endpoint.Method{
 			http.MethodPost: endpoint.BodyMethod[string]{
@@ -26,7 +27,7 @@ func exampleGraphEndpoint(app *App, as *AppServer) endpoint.Handler {
 	}
 }
 
-func newGraphEndpoint(app *App, as *AppServer) endpoint.Handler {
+func newGraphEndpoint(app *App, editServer *EditServer) endpoint.Handler {
 	type NewGraph struct {
 		Name        string `json:"name"`
 		Author      string `json:"author"`
@@ -47,15 +48,14 @@ func newGraphEndpoint(app *App, as *AppServer) endpoint.Handler {
 			http.MethodPost: endpoint.BodyMethod[NewGraph]{
 				Request: endpoint.JsonRequestReader[NewGraph]{},
 				Handler: func(request endpoint.Request[NewGraph]) error {
-					as.showNewGraphPopup = false
-					app.Name = clean(request.Body.Name, "New Graph")
-					cleanedAuthor := clean(request.Body.Author, "")
-					if cleanedAuthor != "" {
-						app.Authors = []schema.Author{{Name: cleanedAuthor}}
-					}
-					app.Description = clean(request.Body.Description, "")
-					app.Version = clean(request.Body.Version, "v0.0.1")
-					app.graphInstance.Reset()
+					editServer.showNewGraphPopup = false
+					app.Graph.Reset()
+					app.Graph.SetDetails(graph.Details{
+						Name:        clean(request.Body.Name, "New Graph"),
+						Description: clean(request.Body.Description, ""),
+						Version:     clean(request.Body.Version, "v0.0.1"),
+						Authors:     []schema.Author{{Name: clean(request.Body.Author, "")}},
+					})
 					return nil
 				},
 			},
@@ -63,7 +63,7 @@ func newGraphEndpoint(app *App, as *AppServer) endpoint.Handler {
 	}
 }
 
-func graphEndpoint(app *App, as *AppServer) endpoint.Handler {
+func graphEndpoint(app *App, as *EditServer) endpoint.Handler {
 	return endpoint.Handler{
 		Methods: map[string]endpoint.Method{
 			http.MethodGet: endpoint.ResponseMethod[[]byte]{

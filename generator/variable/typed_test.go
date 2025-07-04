@@ -1,80 +1,77 @@
-package parameter_test
+package variable_test
 
 import (
 	"testing"
-	"time"
 
+	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/formats/swagger"
-	"github.com/EliCDavis/polyform/generator/graph"
-	"github.com/EliCDavis/polyform/generator/parameter"
+	"github.com/EliCDavis/polyform/generator/variable"
+	"github.com/EliCDavis/polyform/math/geometry"
+	"github.com/EliCDavis/vector/vector2"
+	"github.com/EliCDavis/vector/vector3"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestParameterNodeSwaggerProperty(t *testing.T) {
 	tests := map[string]struct {
-		input      graph.SwaggerParameter
+		input      variable.Variable
 		propType   swagger.PropertyType
 		propFormat swagger.PropertyFormat
 		ref        any
 		items      any
 	}{
 		"basic string parameter": {
-			input:      &parameter.String{},
+			input:      &variable.TypeVariable[string]{},
 			propType:   swagger.StringPropertyType,
 			propFormat: "",
 		},
-		"date string parameter": {
-			input:      &parameter.Value[time.Time]{},
-			propType:   swagger.StringPropertyType,
-			propFormat: swagger.DateTimePropertyFormat,
-		},
 		"float64 parameter": {
-			input:      &parameter.Float64{},
+			input:      &variable.TypeVariable[float64]{},
 			propType:   swagger.NumberPropertyType,
 			propFormat: swagger.DoublePropertyFormat,
 		},
 		"float32 parameter": {
-			input:      &parameter.Value[float32]{},
+			input:      &variable.TypeVariable[float32]{},
 			propType:   swagger.NumberPropertyType,
 			propFormat: swagger.FloatPropertyFormat,
 		},
 		"int parameter": {
-			input:    &parameter.Int{},
+			input:    &variable.TypeVariable[int]{},
 			propType: swagger.IntegerPropertyType,
 		},
 		"int32 parameter": {
-			input:      &parameter.Value[int32]{},
+			input:      &variable.TypeVariable[int32]{},
 			propType:   swagger.IntegerPropertyType,
 			propFormat: swagger.Int32PropertyFormat,
 		},
 		"int64 parameter": {
-			input:      &parameter.Value[int64]{},
+			input:      &variable.TypeVariable[int64]{},
 			propType:   swagger.IntegerPropertyType,
 			propFormat: swagger.Int64PropertyFormat,
 		},
 		"bool parameter": {
-			input:    &parameter.Bool{},
+			input:    &variable.TypeVariable[bool]{},
 			propType: swagger.BooleanPropertyType,
 		},
 		"vector2 parameter": {
-			input: &parameter.Vector2{},
-			ref:   "#/definitions/Vector2",
+			input: &variable.TypeVariable[vector2.Float64]{},
+			ref:   "#/definitions/Float2",
 		},
 		"vector3 parameter": {
-			input: &parameter.Vector3{},
-			ref:   "#/definitions/Vector3",
+			input: &variable.TypeVariable[vector3.Float64]{},
+			ref:   "#/definitions/Float3",
 		},
 		"aabb parameter": {
-			input: &parameter.AABB{},
+			input: &variable.TypeVariable[geometry.AABB]{},
 			ref:   "#/definitions/AABB",
 		},
 		"color": {
-			input:      &parameter.Color{},
+			input:      &variable.TypeVariable[coloring.WebColor]{},
 			propType:   swagger.StringPropertyType,
 			propFormat: "",
 		},
 		"vector3 array parameter": {
-			input:    &parameter.Vector3Array{},
+			input:    &variable.TypeVariable[[]vector3.Float64]{},
 			propType: swagger.ArrayPropertyType,
 			items: map[string]any{
 				"$ref": "#/definitions/Vector3",

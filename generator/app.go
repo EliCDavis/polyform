@@ -16,65 +16,24 @@ import (
 	"github.com/EliCDavis/jbtf"
 	"github.com/EliCDavis/polyform/generator/cli"
 	"github.com/EliCDavis/polyform/generator/graph"
-	"github.com/EliCDavis/polyform/generator/manifest"
 	"github.com/EliCDavis/polyform/generator/room"
 	"github.com/EliCDavis/polyform/generator/schema"
-	"github.com/EliCDavis/polyform/nodes"
 )
 
 type App struct {
-	Name        string
-	Version     string
-	Description string
-	WebScene    *schema.WebScene
-	Authors     []schema.Author
-	Files       map[string]nodes.Output[manifest.Manifest]
-
-	graphInstance *graph.Instance
-	Out           io.Writer
+	Out   io.Writer
+	Graph *graph.Instance
 }
 
 func (a *App) ApplySchema(jsonPayload []byte) error {
-
-	graph, err := jbtf.Unmarshal[schema.App](jsonPayload)
-	if err != nil {
-		return fmt.Errorf("unable to parse graph as a jbtf: %w", err)
-	}
-
-	if graph.Name != "" {
-		a.Name = graph.Name
-	}
-
-	a.Authors = graph.Authors
-
-	if graph.Version != "" {
-		a.Version = graph.Version
-	}
-
-	if graph.Description != "" {
-		a.Description = graph.Description
-	}
-
-	if graph.WebScene != nil {
-		a.WebScene = graph.WebScene
-	}
-
-	return a.graphInstance.ApplyAppSchema(jsonPayload)
+	return a.Graph.ApplyAppSchema(jsonPayload)
 }
 
 func (a *App) Schema() []byte {
 	a.initGraphInstance()
-	g := schema.App{
-		Name:        a.Name,
-		Version:     a.Version,
-		Description: a.Description,
-		Authors:     a.Authors,
-		WebScene:    a.WebScene,
-		Producers:   make(map[string]schema.Producer),
-	}
 
 	encoder := &jbtf.Encoder{}
-	a.graphInstance.EncodeToAppSchema(&g, encoder)
+	g := a.Graph.EncodeToAppSchema(encoder)
 
 	data, err := encoder.ToPgtf(g)
 	if err != nil {
@@ -84,7 +43,7 @@ func (a *App) Schema() []byte {
 }
 
 func (a App) initialize(set *flag.FlagSet) {
-	a.graphInstance.InitializeParameters(set)
+	a.Graph.InitializeParameters(set)
 }
 
 //go:embed cli.tmpl
@@ -99,10 +58,10 @@ type appCLI struct {
 }
 
 func (a App) Generate(outputPath string) error {
-	for _, manifestName := range a.graphInstance.ProducerNames() {
+	for _, manifestName := range a.Graph.ProducerNames() {
 		manifestFolder := path.Join(outputPath, manifestName)
 
-		manifest := a.graphInstance.Manifest(manifestName)
+		manifest := a.Graph.Manifest(manifestName)
 		entries := manifest.Entries
 
 		for entryName, entry := range entries {
@@ -133,13 +92,12 @@ func (a App) Generate(outputPath string) error {
 }
 
 func (a *App) initGraphInstance() {
-	if a.graphInstance != nil {
+	if a.Graph != nil {
 		return
 	}
-	a.graphInstance = graph.New(types)
-	for name, file := range a.Files {
-		a.graphInstance.AddProducer(name, file)
-	}
+	a.Graph = graph.New(graph.Config{
+		TypeFactory: types,
+	})
 }
 
 func (a *App) Run(args []string) error {
@@ -265,11 +223,10 @@ func (a *App) Run(args []string) error {
 					return err
 				}
 
-				server := AppServer{
+				server := EditServer{
 					app:              a,
 					host:             *hostFlag,
 					port:             *portFlag,
-					webscene:         a.WebScene,
 					launchWebbrowser: *launchWebBrowser,
 
 					autosave:   *autoSave,
@@ -287,34 +244,6 @@ func (a *App) Run(args []string) error {
 					},
 				}
 				return server.Serve()
-			},
-		},
-		{
-			Name:        "Outline",
-			Description: "Enumerates all parameters and producers in a heirarchial fashion formatted in JSON",
-			Aliases:     []string{"outline"},
-			Run: func(appState *cli.RunState) error {
-				outlineCmd := flag.NewFlagSet("outline", flag.ExitOnError)
-				a.initialize(outlineCmd)
-
-				if err := outlineCmd.Parse(appState.Args); err != nil {
-					return err
-				}
-
-				schema := a.graphInstance.Schema()
-
-				usedTypes := make(map[string]struct{})
-				for _, n := range schema.Nodes {
-					usedTypes[n.Type] = struct{}{}
-				}
-
-				data, err := json.MarshalIndent(schema, "", "    ")
-				if err != nil {
-					return err
-				}
-
-				_, err = appState.Out.Write(data)
-				return err
 			},
 		},
 		{
@@ -341,7 +270,7 @@ func (a *App) Run(args []string) error {
 					out = f
 				}
 
-				return writeZip(out, a.graphInstance)
+				return writeZip(out, a.Graph)
 			},
 		},
 		{
@@ -402,9 +331,9 @@ func (a *App) Run(args []string) error {
 				}
 
 				doc := DocumentationWriter{
-					Title:       a.Name,
-					Description: a.Description,
-					Version:     a.Version,
+					Title:       a.Graph.GetName(),
+					Description: a.Graph.GetDescription(),
+					Version:     a.Graph.GetVersion(),
 					NodeTypes:   types,
 				}
 
@@ -452,11 +381,11 @@ func (a *App) Run(args []string) error {
 			Aliases:     []string{"help", "h"},
 			Run: func(appState *cli.RunState) error {
 				cliDetails := appCLI{
-					Name:        a.Name,
-					Version:     a.Version,
+					Name:        a.Graph.GetName(),
+					Version:     a.Graph.GetVersion(),
+					Authors:     a.Graph.GetAuthors(),
+					Description: a.Graph.GetDescription(),
 					Commands:    commands,
-					Authors:     a.Authors,
-					Description: a.Description,
 				}
 
 				if cliDetails.Version == "" {

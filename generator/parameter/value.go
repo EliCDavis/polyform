@@ -4,11 +4,9 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"time"
 
 	"github.com/EliCDavis/jbtf"
 	"github.com/EliCDavis/polyform/drawing/coloring"
-	"github.com/EliCDavis/polyform/formats/swagger"
 	"github.com/EliCDavis/polyform/generator/schema"
 	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/nodes"
@@ -213,62 +211,4 @@ func (pn Value[T]) InitializeForCLI(set *flag.FlagSet) {
 	default:
 		panic(fmt.Errorf("parameter node %s has a type that can not be initialized on the command line. Please open up a issue on github.com/EliCDavis/polyform", pn.DisplayName()))
 	}
-}
-
-func (pn Value[T]) SwaggerProperty() swagger.Property {
-	prop := swagger.Property{
-		Description: pn.Description,
-	}
-	switch any(pn).(type) {
-	case Value[string], *Value[string]:
-		prop.Type = swagger.StringPropertyType
-
-	case Value[time.Time]:
-		prop.Type = swagger.StringPropertyType
-		prop.Format = swagger.DateTimePropertyFormat
-
-	case Value[float64]:
-		prop.Type = swagger.NumberPropertyType
-		prop.Format = swagger.DoublePropertyFormat
-
-	case Value[float32]:
-		prop.Type = swagger.NumberPropertyType
-		prop.Format = swagger.FloatPropertyFormat
-
-	case Value[bool]:
-		prop.Type = swagger.BooleanPropertyType
-
-	case Value[int]:
-		prop.Type = swagger.IntegerPropertyType
-
-	case Value[int64]:
-		prop.Type = swagger.IntegerPropertyType
-		prop.Format = swagger.Int64PropertyFormat
-
-	case Value[int32]:
-		prop.Type = swagger.IntegerPropertyType
-		prop.Format = swagger.Int32PropertyFormat
-
-	case Value[vector3.Float64]:
-		prop.Ref = "#/definitions/Vector3"
-
-	case Value[vector2.Float64]:
-		prop.Ref = "#/definitions/Vector2"
-
-	case Value[geometry.AABB]:
-		prop.Ref = "#/definitions/AABB"
-
-	case Value[coloring.WebColor]:
-		prop.Type = swagger.StringPropertyType
-
-	case Value[[]vector3.Float64]:
-		prop.Type = swagger.ArrayPropertyType
-		prop.Items = map[string]any{
-			"$ref": "#/definitions/Vector3",
-		}
-
-	default:
-		panic(fmt.Errorf("parameter node %s has a type that can not be converted to a swagger property. Please open up a issue on github.com/EliCDavis/polyform", pn.DisplayName()))
-	}
-	return prop
 }

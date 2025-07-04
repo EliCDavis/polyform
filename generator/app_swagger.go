@@ -3,14 +3,48 @@ package generator
 import (
 	"encoding/json"
 	"io"
-	"strings"
 	"unicode"
 
 	"github.com/EliCDavis/polyform/formats/swagger"
-	"github.com/EliCDavis/polyform/generator/graph"
-	"github.com/EliCDavis/polyform/generator/manifest"
-	"github.com/EliCDavis/polyform/nodes"
 )
+
+func findAllRefernecesObjects(allDefs map[string]swagger.Definition, def swagger.Definition) {
+	for _, p := range def.Properties {
+		recursivelyFindCommonSwaggerProperties(allDefs, p)
+	}
+}
+
+func recursivelyFindCommonSwaggerProperties(allDefs map[string]swagger.Definition, prop swagger.Property) {
+	switch prop.Ref {
+	case "#/definitions/AABB":
+		allDefs[swagger.AABBDefinitionName] = swagger.AABBDefinition
+
+	case "#/definitions/Float2":
+		allDefs[swagger.Float2DefinitionName] = swagger.Float2Definition
+
+	case "#/definitions/Float3":
+		allDefs[swagger.Float3DefinitionName] = swagger.Float3Definition
+
+	case "#/definitions/Float4":
+		allDefs[swagger.Float4DefinitionName] = swagger.Float4Definition
+
+	case "#/definitions/Int2":
+		allDefs[swagger.Int2DefinitionName] = swagger.Int2Definition
+
+	case "#/definitions/Int3":
+		allDefs[swagger.Int3DefinitionName] = swagger.Int3Definition
+
+	case "#/definitions/Int4":
+		allDefs[swagger.Int4DefinitionName] = swagger.Int4Definition
+	}
+
+	for _, p := range prop.Properties {
+		if p.Type == swagger.ObjectPropertyType {
+			recursivelyFindCommonSwaggerProperties(allDefs, p)
+		}
+	}
+
+}
 
 func swaggerDefinitionNameFromProducerPath(producerPath string) string {
 	var output []rune //create an output slice
@@ -28,27 +62,6 @@ func swaggerDefinitionNameFromProducerPath(producerPath string) string {
 	return string(output) + "Request"
 }
 
-func buildSwaggerDefinitionForProducer(manifest nodes.Output[manifest.Manifest]) swagger.Definition {
-	props := make(map[string]swagger.Property)
-	params := graph.RecurseDependenciesType[graph.SwaggerParameter](manifest.Node())
-
-	for _, param := range params {
-		paramName := strings.Replace(param.DisplayName(), " ", "", -1)
-
-		// Don't expose unnamed parameters
-		if paramName == "" {
-			continue
-		}
-
-		props[paramName] = param.SwaggerProperty()
-	}
-
-	return swagger.Definition{
-		Type:       "object",
-		Properties: props,
-	}
-}
-
 func (a App) WriteSwagger(out io.Writer) error {
 	jsonData, err := json.MarshalIndent(a.SwaggerSpec(), "", "    ")
 	if err != nil {
@@ -59,38 +72,13 @@ func (a App) WriteSwagger(out io.Writer) error {
 	return err
 }
 
-func recursivelyFindCommonSwaggerProperties(allDefs map[string]swagger.Definition, prop swagger.Property) {
-	switch prop.Ref {
-	case "#/definitions/AABB":
-		allDefs[swagger.AABBDefinitionName] = swagger.AABBDefinition
-
-	case "#/definitions/Vector2":
-		allDefs[swagger.Vector2DefinitionName] = swagger.Vector2Definition
-
-	case "#/definitions/Vector3":
-		allDefs[swagger.Vector3DefinitionName] = swagger.Vector3Definition
-
-	case "#/definitions/Vector4":
-		allDefs[swagger.Vector4DefinitionName] = swagger.Vector4Definition
-	}
-
-	for _, p := range prop.Properties {
-		if p.Type == swagger.ObjectPropertyType {
-			recursivelyFindCommonSwaggerProperties(allDefs, p)
-		}
-	}
-
-}
-
 func (a *App) SwaggerSpec() swagger.Spec {
 	a.initGraphInstance()
 	jsonApplication := "application/json"
 
 	paths := make(map[string]swagger.Path)
 
-	definitions := make(map[string]swagger.Definition)
-
-	for _, path := range a.graphInstance.ProducerNames() {
+	for _, path := range a.Graph.ProducerNames() {
 		definitionName := swaggerDefinitionNameFromProducerPath(path)
 
 		paths["/producer/value/"+path] = swagger.Path{
@@ -120,22 +108,22 @@ func (a *App) SwaggerSpec() swagger.Spec {
 			},
 		}
 
-		producer := a.graphInstance.Producer(path)
-		definitions[definitionName] = buildSwaggerDefinitionForProducer(producer)
+		// producer := a.graphInstance.Producer(path)
 	}
 
-	for _, def := range definitions {
-		for _, p := range def.Properties {
-			recursivelyFindCommonSwaggerProperties(definitions, p)
-		}
+	requestDefinition := a.Graph.SwaggerDefinition()
+	definitions := map[string]swagger.Definition{
+		"ManifestRequest": requestDefinition,
 	}
+
+	findAllRefernecesObjects(definitions, requestDefinition)
 
 	return swagger.Spec{
 		Version: "2.0",
 		Info: &swagger.Info{
-			Title:       a.Name,
-			Description: a.Description,
-			Version:     a.Version,
+			Title:       a.Graph.GetName(),
+			Description: a.Graph.GetDescription(),
+			Version:     a.Graph.GetVersion(),
 		},
 		Paths:       paths,
 		Definitions: definitions,
