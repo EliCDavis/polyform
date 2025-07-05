@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/EliCDavis/jbtf"
+	"github.com/EliCDavis/polyform/formats/swagger"
 	"github.com/EliCDavis/polyform/generator/schema"
 	"github.com/EliCDavis/polyform/nodes"
 )
@@ -130,4 +131,12 @@ func (tv *FileVariable) fromPersistantJSON(decoder jbtf.Decoder, body []byte) er
 		tv.value = gn.Value.Data
 	}
 	return nil
+}
+
+func (tv *FileVariable) SwaggerProperty() swagger.Property {
+	return swagger.Property{
+		Type:        swagger.StringPropertyType,
+		Format:      swagger.BinaryPropertyFormat,
+		Description: tv.info.Description(),
+	}
 }

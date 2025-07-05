@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/EliCDavis/jbtf"
+	"github.com/EliCDavis/polyform/formats/swagger"
 	"github.com/EliCDavis/polyform/generator/schema"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
@@ -128,4 +129,67 @@ func (tv *TypeVariable[T]) fromPersistantJSON(decoder jbtf.Decoder, body []byte)
 	}
 	tv.value = vsb.Value
 	return nil
+}
+
+func (tv *TypeVariable[T]) SwaggerProperty() swagger.Property {
+
+	prop := swagger.Property{}
+
+	var t T
+	switch refutil.GetTypeName(t) {
+	case "string":
+		prop.Type = swagger.StringPropertyType
+
+	// case Value[time.Time]:
+	// 	prop.Type = swagger.StringPropertyType
+	// 	prop.Format = swagger.DateTimePropertyFormat
+
+	case "float64":
+		prop.Type = swagger.NumberPropertyType
+		prop.Format = swagger.DoublePropertyFormat
+
+	case "float32":
+		prop.Type = swagger.NumberPropertyType
+		prop.Format = swagger.FloatPropertyFormat
+
+	case "bool":
+		prop.Type = swagger.BooleanPropertyType
+
+	case "int":
+		prop.Type = swagger.IntegerPropertyType
+
+	case "int64":
+		prop.Type = swagger.IntegerPropertyType
+		prop.Format = swagger.Int64PropertyFormat
+
+	case "int32":
+		prop.Type = swagger.IntegerPropertyType
+		prop.Format = swagger.Int32PropertyFormat
+
+	case "vector3.Vector[float64]":
+		prop.Ref = "#/definitions/Float3"
+
+	case "vector2.Vector[float64]":
+		prop.Ref = "#/definitions/Float2"
+
+	case "vector3.Vector[int]":
+		prop.Ref = "#/definitions/Int3"
+
+	case "vector2.Vector[int]":
+		prop.Ref = "#/definitions/Int2"
+
+	case "geometry.AABB":
+		prop.Ref = "#/definitions/AABB"
+
+	case "coloring.WebColor":
+		prop.Type = swagger.StringPropertyType
+
+	case "[]vector3.Vector[float64]":
+		prop.Type = swagger.ArrayPropertyType
+		prop.Items = map[string]any{
+			"$ref": "#/definitions/Vector3",
+		}
+	}
+
+	return prop
 }
