@@ -1,6 +1,7 @@
 package generator
 
 import (
+	"archive/zip"
 	_ "embed"
 	"encoding/json"
 	"flag"
@@ -13,8 +14,8 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/EliCDavis/jbtf"
 	"github.com/EliCDavis/polyform/generator/cli"
+	"github.com/EliCDavis/polyform/generator/edit"
 	"github.com/EliCDavis/polyform/generator/graph"
 	"github.com/EliCDavis/polyform/generator/room"
 	"github.com/EliCDavis/polyform/generator/schema"
@@ -32,13 +33,12 @@ func (a *App) ApplySchema(jsonPayload []byte) error {
 func (a *App) Schema() []byte {
 	a.initGraphInstance()
 
-	encoder := &jbtf.Encoder{}
-	g := a.Graph.EncodeToAppSchema(encoder)
+	data, err := a.Graph.EncodeToAppSchema()
 
-	data, err := encoder.ToPgtf(g)
 	if err != nil {
 		panic(err)
 	}
+
 	return data
 }
 
@@ -223,20 +223,19 @@ func (a *App) Run(args []string) error {
 					return err
 				}
 
-				server := EditServer{
-					app:              a,
-					host:             *hostFlag,
-					port:             *portFlag,
-					launchWebbrowser: *launchWebBrowser,
+				server := edit.Server{
+					Host:             *hostFlag,
+					Port:             *portFlag,
+					LaunchWebbrowser: *launchWebBrowser,
 
-					autosave:   *autoSave,
-					configPath: configFile,
+					Autosave:   *autoSave,
+					ConfigPath: configFile,
 
-					tls:      *sslFlag,
-					certPath: *certFlag,
-					keyPath:  *keyFlag,
+					Tls:      *sslFlag,
+					CertPath: *certFlag,
+					KeyPath:  *keyFlag,
 
-					clientConfig: &room.ClientConfig{
+					ClientConfig: &room.ClientConfig{
 						MaxMessageSize: *maxMessageSizeFlag,
 						PingPeriod:     *pingPeriodFlag,
 						PongWait:       *pongWaitFlag,
@@ -270,7 +269,13 @@ func (a *App) Run(args []string) error {
 					out = f
 				}
 
-				return writeZip(out, a.Graph)
+				z := zip.NewWriter(out)
+
+				if err := graph.WriteToZip(a.Graph, z); err != nil {
+					return err
+				}
+
+				return z.Close()
 			},
 		},
 		{
@@ -297,7 +302,7 @@ func (a *App) Run(args []string) error {
 					out = f
 				}
 
-				return WriteMermaid(*a, out)
+				return a.Graph.WriteMermaid(out)
 			},
 		},
 		{
@@ -372,7 +377,7 @@ func (a *App) Run(args []string) error {
 					out = f
 				}
 
-				return a.WriteSwagger(out)
+				return graph.WriteSwagger(a.Graph, out)
 			},
 		},
 		{

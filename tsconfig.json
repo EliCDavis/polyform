@@ -6,7 +6,7 @@
         ],
         // "outDir": "./generator/html/js",
         // "allowJs": true,
-        "outFile": "./generator/html/js/index.js",
+        "outFile": "./generator/edit/html/js/index.js",
         // "target": "esnext",
         // "moduleResolution": "bundler"
         // "target": "ESNext",

@@ -6,7 +6,6 @@ import (
 	"flag"
 	"testing"
 
-	"github.com/EliCDavis/jbtf"
 	"github.com/EliCDavis/polyform/generator/graph"
 	"github.com/EliCDavis/polyform/generator/manifest"
 	"github.com/EliCDavis/polyform/generator/manifest/basics"
@@ -81,9 +80,7 @@ func TestInstance_AddProducer_InitializeParameters_Artifacts(t *testing.T) {
 	instanceSchemaData, err := json.MarshalIndent(instanceSchema, "", "\t")
 	assert.NoError(t, err)
 
-	encoder := &jbtf.Encoder{}
-	appSchema := instance.EncodeToAppSchema(encoder)
-	appSchemaData, err := encoder.ToPgtf(appSchema)
+	appSchema, err := instance.EncodeToAppSchema()
 	assert.NoError(t, err)
 
 	// ASSERT =================================================================
@@ -182,5 +179,5 @@ func TestInstance_AddProducer_InitializeParameters_Artifacts(t *testing.T) {
 			"variables": {}
 		}
 	}
-}`, string(appSchemaData))
+}`, string(appSchema))
 }

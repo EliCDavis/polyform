@@ -741,9 +741,11 @@ func (a *Instance) Schema() schema.GraphInstance {
 	return appSchema
 }
 
-func (a *Instance) EncodeToAppSchema(encoder *jbtf.Encoder) schema.App {
+func (a *Instance) EncodeToAppSchema() ([]byte, error) {
 	a.lock.RLock()
 	defer a.lock.RUnlock()
+
+	encoder := &jbtf.Encoder{}
 
 	appSchema := schema.App{
 		Name:        a.details.Name,
@@ -814,7 +816,7 @@ func (a *Instance) EncodeToAppSchema(encoder *jbtf.Encoder) schema.App {
 	// TODO: Is this unsafe? Yes.
 	appSchema.Metadata = a.metadata.Data()
 
-	return appSchema
+	return encoder.ToPgtf(appSchema)
 }
 
 func (a *Instance) buildNodeGraphInstanceSchema(node nodes.Node, encoder *jbtf.Encoder) schema.AppNodeInstance {

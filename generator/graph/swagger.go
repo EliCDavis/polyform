@@ -1,4 +1,4 @@
-package generator
+package graph
 
 import (
 	"encoding/json"
@@ -62,8 +62,8 @@ func swaggerDefinitionNameFromProducerPath(producerPath string) string {
 	return string(output) + "Request"
 }
 
-func (a App) WriteSwagger(out io.Writer) error {
-	jsonData, err := json.MarshalIndent(a.SwaggerSpec(), "", "    ")
+func WriteSwagger(instance *Instance, out io.Writer) error {
+	jsonData, err := json.MarshalIndent(SwaggerSpec(instance), "", "    ")
 	if err != nil {
 		return err
 	}
@@ -72,13 +72,12 @@ func (a App) WriteSwagger(out io.Writer) error {
 	return err
 }
 
-func (a *App) SwaggerSpec() swagger.Spec {
-	a.initGraphInstance()
+func SwaggerSpec(instance *Instance) swagger.Spec {
 	jsonApplication := "application/json"
 
 	paths := make(map[string]swagger.Path)
 
-	for _, path := range a.Graph.ProducerNames() {
+	for _, path := range instance.ProducerNames() {
 		definitionName := swaggerDefinitionNameFromProducerPath(path)
 
 		paths["/producer/value/"+path] = swagger.Path{
@@ -108,10 +107,10 @@ func (a *App) SwaggerSpec() swagger.Spec {
 			},
 		}
 
-		// producer := a.graphInstance.Producer(path)
+		// producer := instanceInstance.Producer(path)
 	}
 
-	requestDefinition := a.Graph.SwaggerDefinition()
+	requestDefinition := instance.SwaggerDefinition()
 	definitions := map[string]swagger.Definition{
 		"ManifestRequest": requestDefinition,
 	}
@@ -121,9 +120,9 @@ func (a *App) SwaggerSpec() swagger.Spec {
 	return swagger.Spec{
 		Version: "2.0",
 		Info: &swagger.Info{
-			Title:       a.Graph.GetName(),
-			Description: a.Graph.GetDescription(),
-			Version:     a.Graph.GetVersion(),
+			Title:       instance.GetName(),
+			Description: instance.GetDescription(),
+			Version:     instance.GetVersion(),
 		},
 		Paths:       paths,
 		Definitions: definitions,

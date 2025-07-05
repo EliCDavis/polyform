@@ -1,4 +1,4 @@
-package generator
+package edit
 
 import (
 	"net/http"

@@ -1,4 +1,4 @@
-package generator
+package edit
 
 import (
 	"bufio"
@@ -50,31 +50,31 @@ type pageData struct {
 //go:embed html/*
 var htmlFs embed.FS
 
-type EditServer struct {
-	app               *App
-	host, port        string
-	tls               bool
-	certPath          string
-	keyPath           string
-	launchWebbrowser  bool
-	showNewGraphPopup bool
+type Server struct {
+	Graph             *graph.Instance
+	Host, Port        string
+	Tls               bool
+	CertPath          string
+	KeyPath           string
+	LaunchWebbrowser  bool
+	ShowNewGraphPopup bool
 
-	autosave   bool
-	configPath string
+	Autosave   bool
+	ConfigPath string
 
-	webscene *schema.WebScene
+	Webscene *schema.WebScene
 
-	serverStarted time.Time
+	ServerStarted time.Time
 
-	clientConfig *room.ClientConfig
+	ClientConfig *room.ClientConfig
 }
 
-func (as *EditServer) Handler(indexFile string) (*http.ServeMux, error) {
-	as.serverStarted = time.Now()
-	as.showNewGraphPopup = true
+func (as *Server) Handler(indexFile string) (*http.ServeMux, error) {
+	as.ServerStarted = time.Now()
+	as.ShowNewGraphPopup = true
 
-	if as.webscene == nil {
-		as.webscene = room.DefaultWebScene()
+	if as.Webscene == nil {
+		as.Webscene = room.DefaultWebScene()
 	}
 
 	mux := http.NewServeMux()
@@ -92,12 +92,12 @@ func (as *EditServer) Handler(indexFile string) (*http.ServeMux, error) {
 
 	mux.HandleFunc(indexFile, func(w http.ResponseWriter, r *http.Request) {
 		pageToServe := pageData{
-			Title:             as.app.Graph.GetName(),
-			Version:           as.app.Graph.GetVersion(),
-			Description:       as.app.Graph.GetDescription(),
-			AntiAlias:         as.webscene.AntiAlias,
-			XrEnabled:         as.webscene.XrEnabled,
-			ShowNewGraphPopup: as.showNewGraphPopup,
+			Title:             as.Graph.GetName(),
+			Version:           as.Graph.GetVersion(),
+			Description:       as.Graph.GetDescription(),
+			AntiAlias:         as.Webscene.AntiAlias,
+			XrEnabled:         as.Webscene.XrEnabled,
+			ShowNewGraphPopup: as.ShowNewGraphPopup,
 			ExampleGraphs:     allExamples(),
 		}
 
@@ -122,10 +122,10 @@ func (as *EditServer) Handler(indexFile string) (*http.ServeMux, error) {
 	mux.Handle("/icons/", fs)
 
 	var graphSaver *GraphSaver
-	if as.autosave {
+	if as.Autosave {
 		graphSaver = &GraphSaver{
-			app:      as.app,
-			savePath: as.configPath,
+			graph:    as.Graph,
+			savePath: as.ConfigPath,
 		}
 	}
 
@@ -135,44 +135,44 @@ func (as *EditServer) Handler(indexFile string) (*http.ServeMux, error) {
 			http.MethodGet: endpoint.ResponseMethod[*schema.WebScene]{
 				ResponseWriter: endpoint.JsonResponseWriter[*schema.WebScene]{},
 				Handler: func(r *http.Request) (*schema.WebScene, error) {
-					return as.webscene, nil
+					return as.Webscene, nil
 				},
 			},
 		},
 	})
 	mux.HandleFunc("/zip/", as.ZipEndpoint)
-	mux.HandleFunc("/node-types", NodeTypesEndpoint)
-	mux.Handle("/node", nodeEndpoint(as.app.Graph, graphSaver))
-	mux.Handle("/node/connection", nodeConnectionEndpoint(as.app.Graph, graphSaver))
-	mux.Handle("/parameter/value/", parameterValueEndpoint(as.app.Graph, graphSaver))
-	mux.Handle("/parameter/name/", parameterNameEndpoint(as.app.Graph, graphSaver))
-	mux.Handle("/parameter/description/", parameterDescriptionEndpoint(as.app.Graph, graphSaver))
+	mux.HandleFunc("/node-types", as.NodeTypesEndpoint)
+	mux.Handle("/node", nodeEndpoint(as.Graph, graphSaver))
+	mux.Handle("/node/connection", nodeConnectionEndpoint(as.Graph, graphSaver))
+	mux.Handle("/parameter/value/", parameterValueEndpoint(as.Graph, graphSaver))
+	mux.Handle("/parameter/name/", parameterNameEndpoint(as.Graph, graphSaver))
+	mux.Handle("/parameter/description/", parameterDescriptionEndpoint(as.Graph, graphSaver))
 
-	mux.Handle("/profile", profileEndpoint(as.app.Graph, graphSaver))
-	mux.Handle("/profile/apply", applyProfileEndpoint(as.app.Graph, graphSaver))
-	mux.Handle("/profile/rename", renameProfileEndpoint(as.app.Graph, graphSaver))
-	mux.Handle("/profile/overwrite", overwriteProfileEndpoint(as.app.Graph, graphSaver))
-	mux.Handle("/profiles", profilesEndpoint(as.app.Graph))
+	mux.Handle("/profile", profileEndpoint(as.Graph, graphSaver))
+	mux.Handle("/profile/apply", applyProfileEndpoint(as.Graph, graphSaver))
+	mux.Handle("/profile/rename", renameProfileEndpoint(as.Graph, graphSaver))
+	mux.Handle("/profile/overwrite", overwriteProfileEndpoint(as.Graph, graphSaver))
+	mux.Handle("/profiles", profilesEndpoint(as.Graph))
 
-	mux.Handle("/new-graph", newGraphEndpoint(as.app, as))
-	mux.Handle("/load-example", exampleGraphEndpoint(as.app, as))
-	mux.Handle("/graph", graphEndpoint(as.app, as))
-	mux.Handle("/graph/metadata/", graphMetadataEndpoint(as.app.Graph, graphSaver))
+	mux.Handle("/new-graph", newGraphEndpoint(as))
+	mux.Handle("/load-example", exampleGraphEndpoint(as))
+	mux.Handle("/graph", graphEndpoint(as))
+	mux.Handle("/graph/metadata/", graphMetadataEndpoint(as.Graph, graphSaver))
 	mux.HandleFunc("/started", as.StartedEndpoint)
 	mux.HandleFunc("/mermaid", as.MermaidEndpoint)
 	mux.HandleFunc("/swagger", as.SwaggerEndpoint)
 	mux.HandleFunc("/producer/value/", as.ProducerEndpoint)
-	mux.Handle("/producer/name/", producerNameEndpoint(as.app.Graph, graphSaver))
+	mux.Handle("/producer/name/", producerNameEndpoint(as.Graph, graphSaver))
 	mux.HandleFunc("/manifest/", as.ManifestEndpoint)
-	mux.Handle(variableInstanceEndpointPath, variableInstanceEndpoint(as.app.Graph, graphSaver))
-	mux.Handle(variableValueEndpointPath, variableValueEndpoint(as.app.Graph, graphSaver))
-	mux.Handle(variableNameDescriptionEndpointPath, variableInfoEndpoint(as.app.Graph, graphSaver))
+	mux.Handle(variableInstanceEndpointPath, variableInstanceEndpoint(as.Graph, graphSaver))
+	mux.Handle(variableValueEndpointPath, variableValueEndpoint(as.Graph, graphSaver))
+	mux.Handle(variableNameDescriptionEndpointPath, variableInfoEndpoint(as.Graph, graphSaver))
 
-	hub := room.NewHub(as.webscene, as.app.Graph)
+	hub := room.NewHub(as.Webscene, as.Graph)
 	go hub.Run()
 
 	mux.Handle("/live", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		conf := as.clientConfig
+		conf := as.ClientConfig
 		if conf == nil {
 			conf = room.DefaultClientConfig()
 		}
@@ -182,25 +182,25 @@ func (as *EditServer) Handler(indexFile string) (*http.ServeMux, error) {
 	return mux, nil
 }
 
-func (as *EditServer) SchemaEndpoint(w http.ResponseWriter, r *http.Request) {
+func (as *Server) SchemaEndpoint(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	data, err := json.Marshal(as.app.Graph.Schema())
+	data, err := json.Marshal(as.Graph.Schema())
 	if err != nil {
 		panic(err)
 	}
 	w.Write(data)
 }
 
-func NodeTypesEndpoint(w http.ResponseWriter, r *http.Request) {
+func (as *Server) NodeTypesEndpoint(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	data, err := json.Marshal(graph.BuildSchemaForAllNodeTypes(types))
+	data, err := json.Marshal(as.Graph.BuildSchemaForAllNodeTypes())
 	if err != nil {
 		panic(err)
 	}
 	w.Write(data)
 }
 
-func (as *EditServer) ProducerEndpoint(w http.ResponseWriter, r *http.Request) {
+func (as *Server) ProducerEndpoint(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Cache-Control", "no-cache")
 
 	// Required for sharedMemoryForWorkers to work
@@ -217,7 +217,7 @@ func (as *EditServer) ProducerEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (as *EditServer) writeProducerDataToRequest(producerToLoad, file string, w http.ResponseWriter) (err error) {
+func (as *Server) writeProducerDataToRequest(producerToLoad, file string, w http.ResponseWriter) (err error) {
 	defer func() {
 		if recErr := recover(); recErr != nil {
 			fmt.Println("stacktrace from panic: \n" + string(debug.Stack()))
@@ -225,7 +225,7 @@ func (as *EditServer) writeProducerDataToRequest(producerToLoad, file string, w 
 		}
 	}()
 
-	manifest := as.app.Graph.Manifest(producerToLoad)
+	manifest := as.Graph.Manifest(producerToLoad)
 	artifact := manifest.Entries[file].Artifact
 
 	w.Header().Set("Content-Type", artifact.Mime())
@@ -238,28 +238,28 @@ func (as *EditServer) writeProducerDataToRequest(producerToLoad, file string, w 
 	return bufWr.Flush()
 }
 
-func (as *EditServer) StartedEndpoint(w http.ResponseWriter, r *http.Request) {
+func (as *Server) StartedEndpoint(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	time := as.serverStarted.Format("2006-01-02 15:04:05")
-	w.Write([]byte(fmt.Sprintf("{ \"time\": \"%s\", \"modelVersion\": %d }", time, as.app.Graph.ModelVersion())))
+	time := as.ServerStarted.Format("2006-01-02 15:04:05")
+	fmt.Fprintf(w, "{ \"time\": \"%s\", \"modelVersion\": %d }", time, as.Graph.ModelVersion())
 }
 
-func (as *EditServer) MermaidEndpoint(w http.ResponseWriter, r *http.Request) {
-	err := WriteMermaid(*as.app, w)
+func (as *Server) MermaidEndpoint(w http.ResponseWriter, r *http.Request) {
+	err := as.Graph.WriteMermaid(w)
 	if err != nil {
 		log.Println(err.Error())
 	}
 }
 
-func (as *EditServer) SwaggerEndpoint(w http.ResponseWriter, r *http.Request) {
-	err := as.app.WriteSwagger(w)
+func (as *Server) SwaggerEndpoint(w http.ResponseWriter, r *http.Request) {
+	err := graph.WriteSwagger(as.Graph, w)
 	if err != nil {
 		log.Println(err.Error())
 	}
 }
 
-func (as *EditServer) SceneEndpoint(w http.ResponseWriter, r *http.Request) {
-	data, err := json.Marshal(as.webscene)
+func (as *Server) SceneEndpoint(w http.ResponseWriter, r *http.Request) {
+	data, err := json.Marshal(as.Webscene)
 	if err != nil {
 		panic(err)
 	}

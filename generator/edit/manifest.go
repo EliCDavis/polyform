@@ -1,4 +1,4 @@
-package generator
+package edit
 
 import (
 	"encoding/json"
@@ -51,8 +51,8 @@ func getNodeOutputFromURLPath[T any](r *http.Request, base string, graph *graph.
 	}, nil
 }
 
-func (as *EditServer) writeManifest(w http.ResponseWriter, r *http.Request) error {
-	resolvedNode, err := getNodeOutputFromURLPath[manifest.Manifest](r, "/manifest/", as.app.Graph)
+func (as *Server) writeManifest(w http.ResponseWriter, r *http.Request) error {
+	resolvedNode, err := getNodeOutputFromURLPath[manifest.Manifest](r, "/manifest/", as.Graph)
 	if err != nil {
 		return err
 	}
@@ -80,7 +80,7 @@ func (as *EditServer) writeManifest(w http.ResponseWriter, r *http.Request) erro
 	return artifact.Write(w)
 }
 
-func (as *EditServer) ManifestEndpoint(w http.ResponseWriter, r *http.Request) {
+func (as *Server) ManifestEndpoint(w http.ResponseWriter, r *http.Request) {
 	defer func() {
 		if recErr := recover(); recErr != nil {
 			fmt.Printf("err: %s\n", recErr)
