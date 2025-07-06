@@ -8,8 +8,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path"
-	"path/filepath"
 	"strings"
 	"text/template"
 	"time"
@@ -43,7 +41,7 @@ func (a *App) Schema() []byte {
 }
 
 func (a App) initialize(set *flag.FlagSet) {
-	a.Graph.InitializeParameters(set)
+	a.Graph.InitializeFromCLI(set)
 }
 
 //go:embed cli.tmpl
@@ -55,40 +53,6 @@ type appCLI struct {
 	Description string
 	Authors     []schema.Author
 	Commands    []*cli.Command
-}
-
-func (a App) Generate(outputPath string) error {
-	for _, manifestName := range a.Graph.ProducerNames() {
-		manifestFolder := path.Join(outputPath, manifestName)
-
-		manifest := a.Graph.Manifest(manifestName)
-		entries := manifest.Entries
-
-		for entryName, entry := range entries {
-			manifestEntryPath := filepath.Join(manifestFolder, entryName)
-			// Producer names are paths which can contain subfolders, so be sure
-			// the subfolders exist before creating the file
-			err := os.MkdirAll(filepath.Dir(manifestEntryPath), os.ModeDir)
-			if err != nil {
-				return err
-			}
-
-			// Create the File
-			f, err := os.Create(manifestEntryPath)
-			if err != nil {
-				return err
-			}
-			defer f.Close()
-
-			// Write data to file
-			err = entry.Artifact.Write(f)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
 }
 
 func (a *App) initGraphInstance() {
@@ -174,7 +138,7 @@ func (a *App) Run(args []string) error {
 				if err := generateCmd.Parse(appState.Args); err != nil {
 					return err
 				}
-				return a.Generate(*folderFlag)
+				return graph.WriteToFolder(a.Graph, *folderFlag)
 			},
 		},
 		{
@@ -302,7 +266,7 @@ func (a *App) Run(args []string) error {
 					out = f
 				}
 
-				return a.Graph.WriteMermaid(out)
+				return graph.WriteMermaid(a.Graph, out)
 			},
 		},
 		{

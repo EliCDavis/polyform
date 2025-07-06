@@ -39,7 +39,7 @@ func (as *Server) zipEndpoint(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	z := zip.NewWriter(w)
-	err = graph.WriteManifestToZip(as.Graph, z, resolvedNode.node, resolvedNode.output)
+	err = graph.WriteManifestToZip(as.Graph, z, as.Graph.NodeId(resolvedNode.node), resolvedNode.node, resolvedNode.output)
 	if err != nil {
 		return err
 	}

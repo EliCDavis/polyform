@@ -991,10 +991,10 @@ func (a *Instance) getParameters() []Parameter {
 	return uniqueParams
 }
 
-func (a *Instance) InitializeParameters(set *flag.FlagSet) {
-	for _, p := range a.getParameters() {
-		p.InitializeForCLI(set)
-	}
+func (a *Instance) InitializeFromCLI(set *flag.FlagSet) {
+	// 	for _, p := range a.getParameters() {
+	// 		p.InitializeForCLI(set)
+	// 	}
 }
 
 func (a *Instance) Parameter(nodeId string) Parameter {

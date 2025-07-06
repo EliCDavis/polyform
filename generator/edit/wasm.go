@@ -8,7 +8,7 @@ import (
 	wasmhttp "github.com/nlepage/go-wasm-http-server/v2"
 )
 
-func (as *EditServer) Serve() error {
+func (as *Server) Serve() error {
 	mux, err := as.Handler("/app.html")
 	if err != nil {
 		return err

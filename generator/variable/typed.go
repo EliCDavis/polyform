@@ -193,3 +193,34 @@ func (tv *TypeVariable[T]) SwaggerProperty() swagger.Property {
 
 	return prop
 }
+
+// func (pn TypeVariable[T]) InitializeForCLI(set *flag.FlagSet) {
+// 	if pn.CLI == nil {
+// 		return
+// 	}
+// 	switch cli := any(pn.CLI).(type) {
+// 	case *CliConfig[string]:
+// 		cli.value = set.String(cli.FlagName, (any(pn.DefaultValue)).(string), cli.Usage)
+
+// 	case *CliConfig[float64]:
+// 		cli.value = set.Float64(cli.FlagName, (any(pn.DefaultValue)).(float64), cli.Usage)
+
+// 	case *CliConfig[bool]:
+// 		cli.value = set.Bool(cli.FlagName, (any(pn.DefaultValue)).(bool), cli.Usage)
+
+// 	case *CliConfig[int]:
+// 		cli.value = set.Int(cli.FlagName, (any(pn.DefaultValue)).(int), cli.Usage)
+
+// 	case *CliConfig[int64]:
+// 		cli.value = set.Int64(cli.FlagName, (any(pn.DefaultValue)).(int64), cli.Usage)
+// 	default:
+// 		panic(fmt.Errorf("parameter node %s has a type that can not be initialized on the command line. Please open up a issue on github.com/EliCDavis/polyform", pn.DisplayName()))
+// 	}
+// }
+
+type CliConfig[T any] struct {
+	FlagName string `json:"flagName"`
+	Usage    string `json:"usage"`
+	// Default  T      `json:"default"`
+	value *T
+}

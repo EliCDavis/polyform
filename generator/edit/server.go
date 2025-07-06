@@ -152,7 +152,6 @@ func (as *Server) Handler(indexFile string) (*http.ServeMux, error) {
 	mux.Handle("/profile/apply", applyProfileEndpoint(as.Graph, graphSaver))
 	mux.Handle("/profile/rename", renameProfileEndpoint(as.Graph, graphSaver))
 	mux.Handle("/profile/overwrite", overwriteProfileEndpoint(as.Graph, graphSaver))
-	mux.Handle("/profiles", profilesEndpoint(as.Graph))
 
 	mux.Handle("/new-graph", newGraphEndpoint(as))
 	mux.Handle("/load-example", exampleGraphEndpoint(as))
@@ -245,7 +244,7 @@ func (as *Server) StartedEndpoint(w http.ResponseWriter, r *http.Request) {
 }
 
 func (as *Server) MermaidEndpoint(w http.ResponseWriter, r *http.Request) {
-	err := as.Graph.WriteMermaid(w)
+	err := graph.WriteMermaid(as.Graph, w)
 	if err != nil {
 		log.Println(err.Error())
 	}

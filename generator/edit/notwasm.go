@@ -13,21 +13,19 @@ func (as *Server) Serve() error {
 		return err
 	}
 
-	connection := fmt.Sprintf("%s:%s", as.Host, as.Port)
+	protocol := "http"
 	if as.Tls {
-		url := fmt.Sprintf("https://%s", connection)
-		fmt.Printf("Serving over: %s\n", url)
-		if as.LaunchWebbrowser {
-			openURL(url)
-		}
-		return http.ListenAndServeTLS(connection, as.CertPath, as.KeyPath, mux)
-
-	} else {
-		url := fmt.Sprintf("http://%s", connection)
-		fmt.Printf("Serving over: %s\n", url)
-		if as.LaunchWebbrowser {
-			openURL(url)
-		}
-		return http.ListenAndServe(connection, mux)
+		protocol = "https"
 	}
+	url := fmt.Sprintf("%s://%s:%s", protocol, as.Host, as.Port)
+	fmt.Printf("Serving over: %s\n", url)
+	if as.LaunchWebbrowser {
+		openURL(url)
+	}
+
+	if as.Tls {
+		return http.ListenAndServeTLS(url, as.CertPath, as.KeyPath, mux)
+	}
+
+	return http.ListenAndServe(url, mux)
 }

@@ -64,7 +64,7 @@ func TestAppCommand_Zip(t *testing.T) {
 
 	g.AddProducer(producerFileName, buildTextArifact(&parameter.String{
 		Name:         "Welp",
-		DefaultValue: "yee",
+		CurrentValue: "yee",
 	}))
 
 	app := generator.App{
@@ -108,7 +108,7 @@ func TestAppCommand_Swagger(t *testing.T) {
 
 	g.AddProducer(producerFileName, buildTextArifact(&parameter.String{
 		Name:         "Welp",
-		DefaultValue: "yee",
+		CurrentValue: "yee",
 		Description:  "I'm a description",
 	}))
 

@@ -2,7 +2,6 @@ package parameter
 
 import (
 	"encoding/json"
-	"flag"
 	"fmt"
 
 	"github.com/EliCDavis/jbtf"
@@ -47,27 +46,15 @@ func (sno parameterNodeOutput[T]) Type() string {
 
 type ValueSchema[T any] struct {
 	schema.ParameterBase
-	DefaultValue T `json:"defaultValue"`
 	CurrentValue T `json:"currentValue"`
 }
 
 // ============================================================================
 
-type CliConfig[T any] struct {
-	FlagName string `json:"flagName"`
-	Usage    string `json:"usage"`
-	// Default  T      `json:"default"`
-	value *T
-}
-
-// ============================================================================
-
 type parameterNodeGraphSchema[T any] struct {
-	Name         string        `json:"name"`
-	Description  string        `json:"description"`
-	CurrentValue T             `json:"currentValue"`
-	DefaultValue T             `json:"defaultValue"`
-	CLI          *CliConfig[T] `json:"cli"`
+	Name         string `json:"name"`
+	Description  string `json:"description"`
+	CurrentValue T      `json:"currentValue"`
 }
 
 // ============================================================================
@@ -85,13 +72,11 @@ type AABB = Value[geometry.AABB]
 type Color = Value[coloring.WebColor]
 
 type Value[T any] struct {
-	Name         string        `json:"name"`
-	Description  string        `json:"description"`
-	DefaultValue T             `json:"defaultValue"`
-	CLI          *CliConfig[T] `json:"cli"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
 
-	version        int
-	appliedVersion *T
+	version      int
+	CurrentValue T
 }
 
 func (tn *Value[T]) Outputs() map[string]nodes.OutputPort {
@@ -124,7 +109,7 @@ func (pn *Value[T]) ApplyMessage(msg []byte) (bool, error) {
 	}
 
 	pn.version++
-	pn.appliedVersion = &val
+	pn.CurrentValue = val
 
 	return true, nil
 }
@@ -138,14 +123,7 @@ func (pn Value[T]) ToMessage() []byte {
 }
 
 func (pn *Value[T]) Value() T {
-	if pn.appliedVersion != nil {
-		return *pn.appliedVersion
-	}
-
-	if pn.CLI != nil && pn.CLI.value != nil {
-		return *pn.CLI.value
-	}
-	return pn.DefaultValue
+	return pn.CurrentValue
 }
 
 // CUSTOM JTF Serialization ===================================================
@@ -155,8 +133,6 @@ func (pn *Value[T]) ToJSON(encoder *jbtf.Encoder) ([]byte, error) {
 		Name:         pn.Name,
 		Description:  pn.Description,
 		CurrentValue: pn.Value(),
-		DefaultValue: pn.DefaultValue,
-		CLI:          pn.CLI,
 	})
 }
 
@@ -169,9 +145,7 @@ func (pn *Value[T]) FromJSON(decoder jbtf.Decoder, body []byte) (err error) {
 
 	pn.Name = gn.Name
 	pn.Description = gn.Description
-	pn.DefaultValue = gn.DefaultValue
-	pn.CLI = gn.CLI
-	pn.appliedVersion = &gn.CurrentValue
+	pn.CurrentValue = gn.CurrentValue
 	return
 }
 
@@ -184,31 +158,6 @@ func (pn *Value[T]) Schema() schema.Parameter {
 			Description: pn.Description,
 			Type:        fmt.Sprintf("%T", *new(T)),
 		},
-		DefaultValue: pn.DefaultValue,
 		CurrentValue: pn.Value(),
-	}
-}
-
-func (pn Value[T]) InitializeForCLI(set *flag.FlagSet) {
-	if pn.CLI == nil {
-		return
-	}
-	switch cli := any(pn.CLI).(type) {
-	case *CliConfig[string]:
-		cli.value = set.String(cli.FlagName, (any(pn.DefaultValue)).(string), cli.Usage)
-
-	case *CliConfig[float64]:
-		cli.value = set.Float64(cli.FlagName, (any(pn.DefaultValue)).(float64), cli.Usage)
-
-	case *CliConfig[bool]:
-		cli.value = set.Bool(cli.FlagName, (any(pn.DefaultValue)).(bool), cli.Usage)
-
-	case *CliConfig[int]:
-		cli.value = set.Int(cli.FlagName, (any(pn.DefaultValue)).(int), cli.Usage)
-
-	case *CliConfig[int64]:
-		cli.value = set.Int64(cli.FlagName, (any(pn.DefaultValue)).(int64), cli.Usage)
-	default:
-		panic(fmt.Errorf("parameter node %s has a type that can not be initialized on the command line. Please open up a issue on github.com/EliCDavis/polyform", pn.DisplayName()))
 	}
 }

@@ -13,7 +13,7 @@ func sanitizeMermaidName(in string) string {
 	return "[" + strings.ReplaceAll(strings.ReplaceAll(in, "[", "."), "]", "") + "]"
 }
 
-func (a *Instance) WriteMermaid(out io.Writer) error {
+func WriteMermaid(a *Instance, out io.Writer) error {
 	fmt.Fprintf(out, "---\ntitle: %s\n---\n\nflowchart LR\n", a.details.Name)
 
 	schema := a.Schema()

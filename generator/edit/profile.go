@@ -43,16 +43,6 @@ func profileEndpoint(graphInstance *graph.Instance, saver *GraphSaver) endpoint.
 	}
 }
 
-func profilesEndpoint(graphInstance *graph.Instance) endpoint.Handler {
-	return endpoint.Handler{
-		Methods: map[string]endpoint.Method{
-			http.MethodGet: endpoint.JsonResponseMethod(func(r *http.Request) ([]string, error) {
-				return graphInstance.Profiles(), nil
-			}),
-		},
-	}
-}
-
 func applyProfileEndpoint(graphInstance *graph.Instance, saver *GraphSaver) endpoint.Handler {
 	type ApplyProfileRequest struct {
 		Name string `json:"name"`

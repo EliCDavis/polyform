@@ -3,7 +3,6 @@ package graph_test
 import (
 	"bytes"
 	"encoding/json"
-	"flag"
 	"testing"
 
 	"github.com/EliCDavis/polyform/generator/graph"
@@ -48,16 +47,12 @@ func TestInstance_AddProducer_InitializeParameters_Artifacts(t *testing.T) {
 		TypeFactory: factory,
 	})
 	assert.Len(t, instance.ProducerNames(), 0)
-	flags := flag.NewFlagSet("set", flag.PanicOnError)
+	// flags := flag.NewFlagSet("set", flag.PanicOnError)
 
 	strParam := &parameter.String{
-		Name: "Welp",
-		CLI: &parameter.CliConfig[string]{
-			FlagName: "yeet",
-			Usage:    "I'm the flag description",
-		},
-		DefaultValue: "yee",
+		Name:         "Welp",
 		Description:  "I'm a description",
+		CurrentValue: "bruh",
 	}
 
 	textNode := basics.TextNode{
@@ -69,8 +64,7 @@ func TestInstance_AddProducer_InitializeParameters_Artifacts(t *testing.T) {
 	// ACT ====================================================================
 	instance.AddProducer("test.txt", nodes.GetNodeOutputPort[manifest.Manifest](&textNode, "Out"))
 	producerNames := instance.ProducerNames()
-	instance.InitializeParameters(flags)
-	assert.NoError(t, flags.Parse([]string{"-yeet", contentToSetViaFlag}))
+	// assert.NoError(t, flags.Parse([]string{"-yeet", contentToSetViaFlag}))
 	textManifest := instance.Manifest("test.txt")
 
 	buf := &bytes.Buffer{}
@@ -109,7 +103,6 @@ func TestInstance_AddProducer_InitializeParameters_Artifacts(t *testing.T) {
 				"name": "Welp",
 				"description": "I'm a description",
 				"type": "string",
-				"defaultValue": "yee",
 				"currentValue": "bruh"
 			}
 		},
@@ -150,12 +143,7 @@ func TestInstance_AddProducer_InitializeParameters_Artifacts(t *testing.T) {
 				"data": {
 					"name": "Welp",
 					"description": "I'm a description",
-					"currentValue": "bruh",
-					"defaultValue": "yee",
-					"cli": {
-						"flagName": "yeet",
-						"usage": "I'm the flag description"
-					}
+					"currentValue": "bruh"
 				}
 			},
 			"Node-1": {
