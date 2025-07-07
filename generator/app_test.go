@@ -11,6 +11,7 @@ import (
 	"github.com/EliCDavis/polyform/generator/manifest"
 	"github.com/EliCDavis/polyform/generator/manifest/basics"
 	"github.com/EliCDavis/polyform/generator/parameter"
+	"github.com/EliCDavis/polyform/generator/schema"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/stretchr/testify/assert"
 )
@@ -202,4 +203,61 @@ func TestAppCommand_New(t *testing.T) {
 		"subgroups": null
 	}
 }`, string(contents))
+}
+
+func TestAppCommand_Help(t *testing.T) {
+	outBuf := &bytes.Buffer{}
+
+	app := generator.App{
+		Name:        "Test App",
+		Version:     "test",
+		Description: "This is just a test app",
+		Authors: []schema.Author{
+			{
+				Name: "Test Runner",
+				ContactInfo: []schema.AuthorContact{
+					{
+						Medium: "package",
+						Value:  "testing",
+					},
+				},
+			},
+		},
+		Out: outBuf,
+	}
+
+	// ACT ====================================================================
+	err := app.Run([]string{
+		"polyform", "help",
+	})
+	contents, readErr := io.ReadAll(outBuf)
+
+	// ASSERT =================================================================
+	assert.NoError(t, err)
+	assert.NoError(t, readErr)
+	assert.Equal(t, `Test App test
+    This is just a test app
+
+AUTHORS:
+    Test Runner 
+        package - testing
+        
+COMMANDS:
+    New: new 
+        Create a new graph 
+    Generate: generate gen 
+        Runs all producers the graph has defined and saves it to the file system 
+    Edit: edit 
+        Starts an http server and hosts a webplayer for editing the execution graph 
+    Zip: zip z 
+        Runs all producers defined and writes it to a zip file 
+    Mermaid: mermaid 
+        Create a mermaid flow chart for a specific producer 
+    Documentation: documentation docs 
+        Create a document describing all available nodes 
+    Swagger: swagger 
+        Create a swagger 2.0 file 
+    Help: help h 
+         
+    `, string(contents))
 }

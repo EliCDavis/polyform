@@ -57,11 +57,19 @@ func writeManifestToFolder(i *Instance, folder string, nodeId string, node nodes
 	manifest := out.Value()
 	manifestName := manifestFileName(i, nodeId, node, out)
 
+	manifestFolder := path.Join(folder, manifestName)
+	err := os.MkdirAll(manifestFolder, os.ModeDir)
+	if err != nil {
+		return err
+	}
+
 	entries := manifest.Entries
 	for artifactName, entry := range entries {
-		f, err := os.Create(path.Join(folder, manifestName, artifactName))
+		artifacePath := path.Join(manifestFolder, artifactName)
+
+		f, err := os.Create(artifacePath)
 		if err != nil {
-			return err
+			return fmt.Errorf("unable to create file %q: %w", artifacePath, err)
 		}
 		defer f.Close()
 

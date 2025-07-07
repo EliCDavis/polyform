@@ -51,27 +51,27 @@ type pageData struct {
 var htmlFs embed.FS
 
 type Server struct {
-	Graph             *graph.Instance
-	Host, Port        string
-	Tls               bool
-	CertPath          string
-	KeyPath           string
-	LaunchWebbrowser  bool
-	ShowNewGraphPopup bool
+	Graph            *graph.Instance
+	Host, Port       string
+	Tls              bool
+	CertPath         string
+	KeyPath          string
+	LaunchWebbrowser bool
 
 	Autosave   bool
 	ConfigPath string
 
 	Webscene *schema.WebScene
 
-	ServerStarted time.Time
-
 	ClientConfig *room.ClientConfig
+
+	serverStarted     time.Time
+	showNewGraphPopup bool
 }
 
 func (as *Server) Handler(indexFile string) (*http.ServeMux, error) {
-	as.ServerStarted = time.Now()
-	as.ShowNewGraphPopup = true
+	as.serverStarted = time.Now()
+	as.showNewGraphPopup = true
 
 	if as.Webscene == nil {
 		as.Webscene = room.DefaultWebScene()
@@ -91,13 +91,21 @@ func (as *Server) Handler(indexFile string) (*http.ServeMux, error) {
 	}
 
 	mux.HandleFunc(indexFile, func(w http.ResponseWriter, r *http.Request) {
+		title := as.Graph.GetName()
+		description := as.Graph.GetDescription()
+
+		if description == "" && title == "" {
+			title = "Polyform"
+			description = "Immutable mesh processing pipelines"
+		}
+
 		pageToServe := pageData{
-			Title:             as.Graph.GetName(),
+			Title:             title,
 			Version:           as.Graph.GetVersion(),
-			Description:       as.Graph.GetDescription(),
+			Description:       description,
 			AntiAlias:         as.Webscene.AntiAlias,
 			XrEnabled:         as.Webscene.XrEnabled,
-			ShowNewGraphPopup: as.ShowNewGraphPopup,
+			ShowNewGraphPopup: as.showNewGraphPopup,
 			ExampleGraphs:     allExamples(),
 		}
 
@@ -239,7 +247,7 @@ func (as *Server) writeProducerDataToRequest(producerToLoad, file string, w http
 
 func (as *Server) StartedEndpoint(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	time := as.ServerStarted.Format("2006-01-02 15:04:05")
+	time := as.serverStarted.Format("2006-01-02 15:04:05")
 	fmt.Fprintf(w, "{ \"time\": \"%s\", \"modelVersion\": %d }", time, as.Graph.ModelVersion())
 }
 

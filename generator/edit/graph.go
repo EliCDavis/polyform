@@ -15,7 +15,7 @@ func exampleGraphEndpoint(as *Server) endpoint.Handler {
 			http.MethodPost: endpoint.BodyMethod[string]{
 				Request: endpoint.TextRequestReader{},
 				Handler: func(request endpoint.Request[string]) error {
-					as.ShowNewGraphPopup = false
+					as.showNewGraphPopup = false
 					err := as.Graph.ApplyAppSchema(loadExample(request.Body))
 					if err != nil {
 						return err
@@ -48,7 +48,7 @@ func newGraphEndpoint(editServer *Server) endpoint.Handler {
 			http.MethodPost: endpoint.BodyMethod[NewGraph]{
 				Request: endpoint.JsonRequestReader[NewGraph]{},
 				Handler: func(request endpoint.Request[NewGraph]) error {
-					editServer.ShowNewGraphPopup = false
+					editServer.showNewGraphPopup = false
 					editServer.Graph.Reset()
 					editServer.Graph.SetDetails(graph.Details{
 						Name:        clean(request.Body.Name, "New Graph"),
@@ -76,7 +76,7 @@ func graphEndpoint(as *Server) endpoint.Handler {
 			http.MethodPost: endpoint.BodyMethod[[]byte]{
 				Request: endpoint.BinaryRequestReader{},
 				Handler: func(request endpoint.Request[[]byte]) error {
-					as.ShowNewGraphPopup = false
+					as.showNewGraphPopup = false
 					err := as.Graph.ApplyAppSchema(request.Body)
 					if err != nil {
 						return err

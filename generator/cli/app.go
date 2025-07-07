@@ -1,26 +1,30 @@
 package cli
 
 import (
-	"errors"
+	"flag"
 	"fmt"
 	"io"
 	"os"
 )
 
 type App struct {
-	Commands       []*Command
-	Out            io.Writer
-	ConfigProvided func(config string) error
+	Commands []*Command
+	Out      io.Writer
+	Err      io.Writer
 }
 
 func (a *App) Run(args []string) error {
-
 	runState := &RunState{
 		Out: a.Out,
+		Err: a.Err,
 	}
 
 	if a.Out == nil {
 		runState.Out = os.Stdout
+	}
+
+	if a.Err == nil {
+		runState.Err = os.Stderr
 	}
 
 	commandMap := make(map[string]*Command)
@@ -36,41 +40,40 @@ func (a *App) Run(args []string) error {
 		return commandMap["help"].Run(runState)
 	}
 
-	firstArg := argsWithoutProg[0]
-	if cmd, ok := commandMap[firstArg]; ok {
-		runState.Args = args[2:]
-		return cmd.Run(runState)
+	commandName := argsWithoutProg[0]
+	cmd, ok := commandMap[commandName]
+	if !ok {
+		return fmt.Errorf("unrecognized command %s", commandName)
 	}
 
-	if !fileExists(firstArg) {
-		return fmt.Errorf("unrecognized command %s", firstArg)
+	runState.Args = args[2:]
+	flags := flag.NewFlagSet(commandName, flag.ExitOnError)
+	flags.SetOutput(runState.Err)
+
+	registeredFlags := make(map[string]Flag)
+	for _, flag := range cmd.Flags {
+		flag.add(flags)
+		registeredFlags[flag.name()] = flag
 	}
 
-	err := a.ConfigProvided(firstArg)
+	err := flags.Parse(runState.Args)
 	if err != nil {
 		return err
 	}
 
-	argsWithoutGraph := argsWithoutProg[1:]
-	if len(argsWithoutGraph) == 0 {
-		return commandMap["help"].Run(runState)
+	runState.flags = registeredFlags
+	for _, flag := range cmd.Flags {
+		if flag.required() && !flag.set() {
+			return fmt.Errorf("flag %q is required but not set", flag.name())
+		}
 	}
 
-	firstArg = argsWithoutGraph[0]
-	if cmd, ok := commandMap[firstArg]; ok {
-		runState.Args = argsWithoutGraph[1:]
-		return cmd.Run(runState)
+	for _, flag := range cmd.Flags {
+		if err := flag.action(); err != nil {
+			return err
+		}
 	}
 
-	return fmt.Errorf("unrecognized command %s", firstArg)
+	return cmd.Run(runState)
 
-}
-
-func fileExists(fp string) bool {
-	if _, err := os.Stat(fp); err == nil {
-		return true
-	} else if errors.Is(err, os.ErrNotExist) {
-		return false
-	}
-	return false
 }

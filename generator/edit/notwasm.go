@@ -17,15 +17,16 @@ func (as *Server) Serve() error {
 	if as.Tls {
 		protocol = "https"
 	}
-	url := fmt.Sprintf("%s://%s:%s", protocol, as.Host, as.Port)
+	addr := fmt.Sprintf("%s:%s", as.Host, as.Port)
+	url := fmt.Sprintf("%s://%s", protocol, addr)
 	fmt.Printf("Serving over: %s\n", url)
 	if as.LaunchWebbrowser {
 		openURL(url)
 	}
 
 	if as.Tls {
-		return http.ListenAndServeTLS(url, as.CertPath, as.KeyPath, mux)
+		return http.ListenAndServeTLS(addr, as.CertPath, as.KeyPath, mux)
 	}
 
-	return http.ListenAndServe(url, mux)
+	return http.ListenAndServe(addr, mux)
 }

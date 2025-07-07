@@ -20,6 +20,7 @@ import (
 
 	_ "github.com/EliCDavis/polyform/generator/manifest/basics"
 	_ "github.com/EliCDavis/polyform/generator/parameter"
+	"github.com/EliCDavis/polyform/generator/schema"
 
 	_ "github.com/EliCDavis/polyform/math"
 	_ "github.com/EliCDavis/polyform/math/colors"
@@ -45,21 +46,19 @@ import (
 
 func main() {
 	app := generator.App{
+		Name:        "Polyform",
+		Description: "Immutable mesh processing pipelines",
+		Authors: []schema.Author{
+			{
+				Name: "Eli C Davis",
+				ContactInfo: []schema.AuthorContact{
+					{Medium: "bsky.app", Value: "@elicdavis.bsky.social"},
+					{Medium: "github.com", Value: "EliCDavis"},
+				},
+			},
+		},
+
 		Out: os.Stdout,
-		// Graph: graph.New(graph.Config{
-		// 	Name:        "Polyform",
-		// 	Version:     "",
-		// 	Description: "Immutable mesh processing pipelines",
-		// 	Authors: []schema.Author{
-		// 		{
-		// 			Name: "Eli C Davis",
-		// 			ContactInfo: []schema.AuthorContact{
-		// 				{Medium: "bsky.app", Value: "@elicdavis.bsky.social"},
-		// 				{Medium: "github.com", Value: "EliCDavis"},
-		// 			},
-		// 		},
-		// 	},
-		// }),
 	}
 
 	if err := app.Run(os.Args); err != nil {
