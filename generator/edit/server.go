@@ -71,7 +71,7 @@ type Server struct {
 
 func (as *Server) Handler(indexFile string) (*http.ServeMux, error) {
 	as.serverStarted = time.Now()
-	as.showNewGraphPopup = true
+	as.showNewGraphPopup = as.ConfigPath == ""
 
 	if as.Webscene == nil {
 		as.Webscene = room.DefaultWebScene()

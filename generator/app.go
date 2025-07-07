@@ -4,7 +4,6 @@ import (
 	"archive/zip"
 	_ "embed"
 	"encoding/json"
-	"flag"
 	"fmt"
 	"io"
 	"os"
@@ -17,6 +16,7 @@ import (
 	"github.com/EliCDavis/polyform/generator/graph"
 	"github.com/EliCDavis/polyform/generator/room"
 	"github.com/EliCDavis/polyform/generator/schema"
+	"github.com/EliCDavis/polyform/generator/variable"
 )
 
 type App struct {
@@ -26,6 +26,7 @@ type App struct {
 	Authors     []schema.Author
 
 	Out   io.Writer
+	Err   io.Writer
 	Graph *graph.Instance
 }
 
@@ -46,8 +47,9 @@ func (a *App) Schema() []byte {
 	return data
 }
 
-func (a App) initialize(set *flag.FlagSet) {
-	a.Graph.InitializeFromCLI(set)
+func (a *App) applyProfileToGraph(profile variable.Profile) error {
+	a.initGraphInstance()
+	return a.Graph.ApplyProfile(profile)
 }
 
 //go:embed cli.tmpl
@@ -96,11 +98,28 @@ func (a *App) Run(args []string) error {
 	graphFlag := &cli.StringFlag{
 		Name:        graphFlagName,
 		Description: "graph to load",
-		Action: func(s string) error {
+		Action: func(app cli.RunState, s string) error {
 			if s == "" && a.Graph == nil {
 				return fmt.Errorf("graph flag is not provided and app has no embedded graph")
 			}
 			return a.loadGraphFromDisk(s)
+		},
+	}
+
+	profileFlagName := "profile"
+	profileFlag := &cli.StringFlag{
+		Name:        profileFlagName,
+		Description: "profile to apply to graph",
+		Action: func(app cli.RunState, profileData string) error {
+			if profileData == "" {
+				return nil
+			}
+			var profile variable.Profile
+			err := json.Unmarshal([]byte(profileData), &profile)
+			if err != nil {
+				return fmt.Errorf("unable to interpret profile flags data: %w", err)
+			}
+			return a.applyProfileToGraph(profile)
 		},
 	}
 
@@ -176,9 +195,9 @@ func (a *App) Run(args []string) error {
 					Description: "folder to save generated contents to",
 				},
 				graphFlag,
+				profileFlag,
 			},
 			Run: func(appState *cli.RunState) error {
-
 				return graph.WriteToFolder(a.Graph, appState.String("folder"))
 			},
 		},
@@ -243,7 +262,7 @@ func (a *App) Run(args []string) error {
 				&cli.StringFlag{
 					Name:        graphFlagName,
 					Description: "graph to load",
-					Action: func(s string) error {
+					Action: func(r cli.RunState, s string) error {
 						if s == "" {
 							return nil
 						}
@@ -285,11 +304,9 @@ func (a *App) Run(args []string) error {
 					Description: "file to write the contents of the zip too",
 				},
 				graphFlag,
+				profileFlag,
 			},
 			Run: func(appState *cli.RunState) error {
-				if err := a.loadGraphFromDisk(appState.String(graphFlagName)); err != nil {
-					return err
-				}
 
 				fileFlag := appState.String("out")
 
@@ -414,6 +431,45 @@ func (a *App) Run(args []string) error {
 			},
 		},
 		{
+			Name:        "Outline",
+			Description: "outline the data embedded in a graph",
+			Aliases:     []string{"outline"},
+			Flags: []cli.Flag{
+				graphFlag,
+			},
+			Run: func(app *cli.RunState) error {
+				fmt.Fprintf(app.Out, "# %s\n\n", a.Graph.GetName())
+				if a.Graph.GetVersion() != "" {
+					fmt.Fprintf(app.Out, "%s\n\n", a.Graph.GetVersion())
+				}
+				fmt.Fprintf(app.Out, "%s\n\n", a.Graph.GetDescription())
+
+				fmt.Fprintf(app.Out, "## Variables\n\n")
+
+				variables := a.Graph.Schema().Variables.Variables
+				if len(variables) == 0 {
+					fmt.Fprintf(app.Out, "(none)\n")
+				}
+
+				for name, variable := range variables {
+					fmt.Fprintf(app.Out, "* %s: %s - %s\n", name, variable.Type, variable.Description)
+					fmt.Fprintf(app.Out, "  * Value: %v\n", variable.Value)
+				}
+
+				fmt.Fprintf(app.Out, "\n## Profiles\n\n")
+
+				profiles := a.Graph.Profiles()
+				if len(profiles) == 0 {
+					fmt.Fprintf(app.Out, "(none)\n\n")
+				}
+
+				for i, profile := range profiles {
+					fmt.Fprintf(app.Out, "%d. %s\n", i+1, profile)
+				}
+				return nil
+			},
+		},
+		{
 			Name:        "Help",
 			Description: "",
 			Aliases:     []string{"help", "h"},
@@ -438,6 +494,7 @@ func (a *App) Run(args []string) error {
 	cliApp := cli.App{
 		Commands: commands,
 		Out:      a.Out,
+		Err:      a.Err,
 	}
 
 	if isWasm() {

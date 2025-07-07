@@ -1,7 +1,6 @@
 package graph
 
 import (
-	"flag"
 	"fmt"
 	"sort"
 	"strconv"
@@ -304,6 +303,12 @@ func (a *Instance) Profiles() []string {
 	sort.Strings(profiles)
 
 	return profiles
+}
+
+func (a *Instance) ApplyProfile(profile variable.Profile) error {
+	a.lock.Lock()
+	defer a.lock.Unlock()
+	return a.variables.ApplyProfile(profile)
 }
 
 // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
@@ -989,12 +994,6 @@ func (a *Instance) getParameters() []Parameter {
 	}
 
 	return uniqueParams
-}
-
-func (a *Instance) InitializeFromCLI(set *flag.FlagSet) {
-	// 	for _, p := range a.getParameters() {
-	// 		p.InitializeForCLI(set)
-	// 	}
 }
 
 func (a *Instance) Parameter(nodeId string) Parameter {

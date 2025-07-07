@@ -46,7 +46,6 @@ func (a *App) Run(args []string) error {
 		return fmt.Errorf("unrecognized command %s", commandName)
 	}
 
-	runState.Args = args[2:]
 	flags := flag.NewFlagSet(commandName, flag.ExitOnError)
 	flags.SetOutput(runState.Err)
 
@@ -56,12 +55,13 @@ func (a *App) Run(args []string) error {
 		registeredFlags[flag.name()] = flag
 	}
 
-	err := flags.Parse(runState.Args)
+	err := flags.Parse(args[2:])
 	if err != nil {
 		return err
 	}
 
 	runState.flags = registeredFlags
+	runState.Args = flags.Args()
 	for _, flag := range cmd.Flags {
 		if flag.required() && !flag.set() {
 			return fmt.Errorf("flag %q is required but not set", flag.name())
@@ -69,7 +69,7 @@ func (a *App) Run(args []string) error {
 	}
 
 	for _, flag := range cmd.Flags {
-		if err := flag.action(); err != nil {
+		if err := flag.action(*runState); err != nil {
 			return err
 		}
 	}

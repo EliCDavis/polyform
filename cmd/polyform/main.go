@@ -1,7 +1,7 @@
 package main
 
 import (
-	"log"
+	"fmt"
 	"os"
 
 	"github.com/EliCDavis/polyform/generator"
@@ -59,9 +59,11 @@ func main() {
 		},
 
 		Out: os.Stdout,
+		Err: os.Stderr,
 	}
 
 	if err := app.Run(os.Args); err != nil {
-		log.Fatal(err)
+		fmt.Fprintln(os.Stderr, err.Error())
+		os.Exit(1)
 	}
 }

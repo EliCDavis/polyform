@@ -257,6 +257,8 @@ COMMANDS:
         Create a document describing all available nodes 
     Swagger: swagger 
         Create a swagger 2.0 file 
+    Outline: outline 
+        outline the data embedded in a graph 
     Help: help h 
          
     `, string(contents))

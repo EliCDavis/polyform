@@ -11,7 +11,7 @@ type Flag interface {
 	name() string
 	required() bool
 	set() bool
-	action() error
+	action(app RunState) error
 }
 
 // ============================================================================
@@ -21,7 +21,7 @@ type StringFlag struct {
 	Value       string
 	Description string
 	Required    bool
-	Action      func(s string) error
+	Action      func(app RunState, s string) error
 
 	parsedValue *string
 }
@@ -46,11 +46,11 @@ func (f *StringFlag) set() bool {
 	return f.value() != ""
 }
 
-func (f *StringFlag) action() error {
+func (f *StringFlag) action(app RunState) error {
 	if f.Action == nil {
 		return nil
 	}
-	return f.Action(*f.parsedValue)
+	return f.Action(app, *f.parsedValue)
 }
 
 // ============================================================================
@@ -59,7 +59,7 @@ type BoolFlag struct {
 	Name        string
 	Value       bool
 	Description string
-	Action      func(s bool) error
+	Action      func(app RunState, s bool) error
 
 	parsedValue *bool
 }
@@ -84,11 +84,11 @@ func (f *BoolFlag) set() bool {
 	return true
 }
 
-func (f *BoolFlag) action() error {
+func (f *BoolFlag) action(app RunState) error {
 	if f.Action == nil {
 		return nil
 	}
-	return f.Action(*f.parsedValue)
+	return f.Action(app, *f.parsedValue)
 }
 
 // ============================================================================
@@ -98,7 +98,7 @@ type DurationFlag struct {
 	Value       time.Duration
 	Description string
 	Required    bool
-	Action      func(s time.Duration) error
+	Action      func(app RunState, s time.Duration) error
 
 	parsedValue *time.Duration
 }
@@ -123,11 +123,11 @@ func (f *DurationFlag) set() bool {
 	return f.value() != time.Duration(0)
 }
 
-func (f *DurationFlag) action() error {
+func (f *DurationFlag) action(app RunState) error {
 	if f.Action == nil {
 		return nil
 	}
-	return f.Action(*f.parsedValue)
+	return f.Action(app, *f.parsedValue)
 }
 
 // ============================================================================
@@ -137,7 +137,7 @@ type Int64Flag struct {
 	Value       int64
 	Description string
 	Required    bool
-	Action      func(s int64) error
+	Action      func(app RunState, s int64) error
 
 	parsedValue *int64
 }
@@ -162,9 +162,9 @@ func (f *Int64Flag) set() bool {
 	return f.value() != int64(0)
 }
 
-func (f *Int64Flag) action() error {
+func (f *Int64Flag) action(app RunState) error {
 	if f.Action == nil {
 		return nil
 	}
-	return f.Action(*f.parsedValue)
+	return f.Action(app, *f.parsedValue)
 }
