@@ -239,27 +239,29 @@ func TestAppCommand_Help(t *testing.T) {
     This is just a test app
 
 AUTHORS:
-    Test Runner 
+    Test Runner
         package - testing
         
 COMMANDS:
     New: new 
-        Create a new graph 
+        Create a new graph
     Generate: generate gen 
-        Runs all producers the graph has defined and saves it to the file system 
+        Runs all producers the graph has defined and saves it to the file system
     Edit: edit 
-        Starts an http server and hosts a webplayer for editing the execution graph 
+        Starts an http server and hosts a webplayer for editing the execution graph
+    Serve: serve 
+        Starts a 'production' server meant for taking requests for executing a certain graph
     Zip: zip z 
-        Runs all producers defined and writes it to a zip file 
+        Runs all producers defined and writes it to a zip file
     Mermaid: mermaid 
-        Create a mermaid flow chart for a specific producer 
+        Create a mermaid flow chart for a specific producer
     Documentation: documentation docs 
-        Create a document describing all available nodes 
+        Create a document describing all available nodes
     Swagger: swagger 
-        Create a swagger 2.0 file 
+        Create a swagger 2.0 file
     Outline: outline 
-        outline the data embedded in a graph 
+        outline the data embedded in a graph
     Help: help h 
-         
+        
     `, string(contents))
 }

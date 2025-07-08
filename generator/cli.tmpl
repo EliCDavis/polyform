@@ -2,10 +2,10 @@
     {{ .Description }}
 
 AUTHORS:
-    {{range .Authors}}{{.Name}} 
+    {{range .Authors}}{{.Name}}
         {{range .ContactInfo}}{{.Medium}} - {{.Value}}
         {{end}}{{end}}
 COMMANDS:
     {{range .Commands }}{{.Name}}: {{range .Aliases}}{{.}} {{end}}
-        {{.Description}} 
+        {{.Description}}
     {{ end }}

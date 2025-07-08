@@ -16,11 +16,11 @@ func exampleGraphEndpoint(as *Server) endpoint.Handler {
 				Request: endpoint.TextRequestReader{},
 				Handler: func(request endpoint.Request[string]) error {
 					as.showNewGraphPopup = false
-					err := as.Graph.ApplyAppSchema(loadExample(request.Body))
+					data, err := loadExample(request.Body)
 					if err != nil {
 						return err
 					}
-					return nil
+					return as.Graph.ApplyAppSchema(data)
 				},
 			},
 		},
@@ -77,11 +77,7 @@ func graphEndpoint(as *Server) endpoint.Handler {
 				Request: endpoint.BinaryRequestReader{},
 				Handler: func(request endpoint.Request[[]byte]) error {
 					as.showNewGraphPopup = false
-					err := as.Graph.ApplyAppSchema(request.Body)
-					if err != nil {
-						return err
-					}
-					return nil
+					return as.Graph.ApplyAppSchema(request.Body)
 				},
 			},
 		},

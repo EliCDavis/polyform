@@ -15,6 +15,7 @@ import (
 	"github.com/EliCDavis/polyform/generator/edit"
 	"github.com/EliCDavis/polyform/generator/graph"
 	"github.com/EliCDavis/polyform/generator/room"
+	"github.com/EliCDavis/polyform/generator/run"
 	"github.com/EliCDavis/polyform/generator/schema"
 	"github.com/EliCDavis/polyform/generator/variable"
 )
@@ -290,6 +291,57 @@ func (a *App) Run(args []string) error {
 						PongWait:       appState.Duration("pong-wait"),
 						WriteWait:      appState.Duration("write-wait"),
 					},
+				}
+				return server.Serve()
+			},
+		},
+		{
+			Name:        "Serve",
+			Aliases:     []string{"serve"},
+			Description: "Starts a 'production' server meant for taking requests for executing a certain graph",
+			Flags: []cli.Flag{
+				&cli.StringFlag{
+					Name:        "host",
+					Value:       "localhost",
+					Description: "interface to bind to",
+				},
+				&cli.StringFlag{
+					Name:        "port",
+					Value:       "8080",
+					Description: "port to serve over",
+				},
+				&cli.BoolFlag{
+					Name:        "ssl",
+					Description: "Whether or not to use SSL",
+				},
+				&cli.StringFlag{
+					Name:        "ssl.cert",
+					Value:       "cert.pem",
+					Description: "Path to cert file",
+				},
+				&cli.StringFlag{
+					Name:        "ssl.key",
+					Value:       "key.pem",
+					Description: "Path to key file",
+				},
+				&cli.IntFlag{
+					Name:        "cache-size",
+					Value:       100,
+					Description: "Path to key file",
+				},
+				graphFlag,
+				profileFlag,
+			},
+			Run: func(appState *cli.RunState) error {
+				server := run.Server{
+					Graph: a.Graph,
+					Host:  appState.String("host"),
+					Port:  appState.String("port"),
+
+					Tls:       appState.Bool("ssl"),
+					CertPath:  appState.String("ssl.cert"),
+					KeyPath:   appState.String("ssl.key"),
+					CacheSize: appState.Int("cache-size"),
 				}
 				return server.Serve()
 			},

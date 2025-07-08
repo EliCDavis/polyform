@@ -168,3 +168,42 @@ func (f *Int64Flag) action(app RunState) error {
 	}
 	return f.Action(app, *f.parsedValue)
 }
+
+// ============================================================================
+
+type IntFlag struct {
+	Name        string
+	Value       int
+	Description string
+	Required    bool
+	Action      func(app RunState, s int) error
+
+	parsedValue *int
+}
+
+func (f *IntFlag) add(set *flag.FlagSet) {
+	f.parsedValue = set.Int(f.Name, f.Value, f.Description)
+}
+
+func (f *IntFlag) value() any {
+	return *f.parsedValue
+}
+
+func (f *IntFlag) name() string {
+	return f.Name
+}
+
+func (f *IntFlag) required() bool {
+	return f.Required
+}
+
+func (f *IntFlag) set() bool {
+	return f.value() != 0
+}
+
+func (f *IntFlag) action(app RunState) error {
+	if f.Action == nil {
+		return nil
+	}
+	return f.Action(app, *f.parsedValue)
+}

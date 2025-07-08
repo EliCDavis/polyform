@@ -23,10 +23,14 @@ func allExamples() []string {
 	return entries
 }
 
-func loadExample(example string) []byte {
+func loadExample(example string) ([]byte, error) {
 	var contents []byte
 	found := false
-	fs.WalkDir(examplesFs, ".", func(path string, d fs.DirEntry, err error) error {
+	err := fs.WalkDir(examplesFs, ".", func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+
 		if d.IsDir() {
 			return nil
 		}
@@ -41,13 +45,17 @@ func loadExample(example string) []byte {
 		return err
 	})
 
+	if err != nil {
+		return nil, err
+	}
+
 	if !found {
-		panic(fmt.Errorf("example: %q doesn't exist", example))
+		return nil, fmt.Errorf("example: %q doesn't exist", example)
 	}
 
 	if len(contents) == 0 {
-		panic("example loaded is empty")
+		return nil, fmt.Errorf("example: %q loaded empty", example)
 	}
 
-	return contents
+	return contents, nil
 }

@@ -218,9 +218,9 @@ func (tv *TypeVariable[T]) SwaggerProperty() swagger.Property {
 // 	}
 // }
 
-type CliConfig[T any] struct {
-	FlagName string `json:"flagName"`
-	Usage    string `json:"usage"`
-	// Default  T      `json:"default"`
-	value *T
-}
+// type CliConfig[T any] struct {
+// 	FlagName string `json:"flagName"`
+// 	Usage    string `json:"usage"`
+// 	// Default  T      `json:"default"`
+// 	value *T
+// }
