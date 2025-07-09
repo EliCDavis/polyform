@@ -2,7 +2,9 @@ package run
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 
@@ -66,19 +68,16 @@ func getNodeOutputFromURLPath[T any](requestUrl string, base string, graph *grap
 }
 
 func (s *Server) manifestEndpoint() http.Handler {
-	type PostResponse struct {
-		Manifest manifest.Manifest
-		Id       string
-	}
-
-	post := func(request endpoint.Request[variable.Profile]) (PostResponse, error) {
+	post := func(request endpoint.Request[*variable.Profile]) (CreateManifestResponse, error) {
 		s.lock.Lock()
 		defer s.lock.Unlock()
 
-		response := PostResponse{}
-		err := s.Graph.ApplyProfile(request.Body)
-		if err != nil {
-			return response, fmt.Errorf("unable to apply profile: %w", err)
+		response := CreateManifestResponse{}
+		if request.Body != nil {
+			err := s.Graph.ApplyProfile(*request.Body)
+			if err != nil {
+				return response, fmt.Errorf("unable to apply profile: %w", err)
+			}
 		}
 
 		resolvedNode, err := getNodeOutputFromURLPath[manifest.Manifest](request.Url, "/manifest/", s.Graph)
@@ -120,7 +119,21 @@ func (s *Server) manifestEndpoint() http.Handler {
 
 	return endpoint.Handler{
 		Methods: map[string]endpoint.Method{
-			http.MethodPost: endpoint.JsonMethod(post),
+			http.MethodPost: endpoint.BodyResponseMethod[*variable.Profile, CreateManifestResponse]{
+				ResponseWriter: endpoint.JsonResponseWriter[CreateManifestResponse]{},
+				Request: endpoint.RequestReaderFunc[*variable.Profile](func(r *http.Request) (*variable.Profile, error) {
+					data, err := io.ReadAll(r.Body)
+					if err != nil {
+						return nil, err
+					}
+					if len(data) == 0 {
+						return nil, nil
+					}
+					var v *variable.Profile
+					return v, json.Unmarshal(data, &v)
+				}),
+				Handler: post,
+			},
 			http.MethodGet: endpoint.ResponseMethod[[]byte]{
 				ResponseWriter: endpoint.BinaryResponseWriter{},
 				Handler:        get,
