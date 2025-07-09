@@ -1,13 +1,15 @@
-package generator
+package edit
 
 import (
 	"log"
 	"os"
 	"sync"
+
+	"github.com/EliCDavis/polyform/generator/graph"
 )
 
 type GraphSaver struct {
-	app          *App
+	graph        *graph.Instance
 	autsaveMutex sync.Mutex
 	savePath     string
 }
@@ -19,7 +21,13 @@ func (gs *GraphSaver) Save() {
 
 	gs.autsaveMutex.Lock()
 	defer gs.autsaveMutex.Unlock()
-	err := os.WriteFile(gs.savePath, gs.app.Schema(), 0666)
+
+	data, err := gs.graph.EncodeToAppSchema()
+	if err != nil {
+		panic(err)
+	}
+
+	err = os.WriteFile(gs.savePath, data, 0666)
 	if err != nil {
 		panic(err)
 	}

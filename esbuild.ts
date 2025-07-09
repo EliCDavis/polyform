@@ -3,7 +3,7 @@ import { build, context, BuildOptions } from "esbuild";
 const buildOptsWeb: BuildOptions = {
   entryPoints: ["./website/index.ts"],
   //   inject: [],
-  outfile: "./generator/html/js/index.js",
+  outfile: "./generator/edit/html/js/index.js",
   //   external: [],
   platform: "browser",
   target: ["esNext"],

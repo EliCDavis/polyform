@@ -24,13 +24,13 @@ func init() {
 
 	refutil.RegisterTypeWithBuilder(factory, func() AABB {
 		return AABB{
-			DefaultValue: geometry.NewAABB(vector3.Zero[float64](), vector3.One[float64]()),
+			CurrentValue: geometry.NewAABB(vector3.Zero[float64](), vector3.One[float64]()),
 		}
 	})
 
 	refutil.RegisterTypeWithBuilder(factory, func() Color {
 		return Color{
-			DefaultValue: coloring.White(),
+			CurrentValue: coloring.White(),
 		}
 	})
 

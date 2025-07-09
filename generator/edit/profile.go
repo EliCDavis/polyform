@@ -1,4 +1,4 @@
-package generator
+package edit
 
 import (
 	"errors"
@@ -38,16 +38,6 @@ func profileEndpoint(graphInstance *graph.Instance, saver *GraphSaver) endpoint.
 				saver.Save()
 
 				return nil
-			}),
-		},
-	}
-}
-
-func profilesEndpoint(graphInstance *graph.Instance) endpoint.Handler {
-	return endpoint.Handler{
-		Methods: map[string]endpoint.Method{
-			http.MethodGet: endpoint.JsonResponseMethod(func(r *http.Request) ([]string, error) {
-				return graphInstance.Profiles(), nil
 			}),
 		},
 	}

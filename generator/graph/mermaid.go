@@ -1,4 +1,4 @@
-package generator
+package graph
 
 import (
 	"fmt"
@@ -13,13 +13,10 @@ func sanitizeMermaidName(in string) string {
 	return "[" + strings.ReplaceAll(strings.ReplaceAll(in, "[", "."), "]", "") + "]"
 }
 
-func WriteMermaid(a App, out io.Writer) error {
-	a.initGraphInstance()
+func WriteMermaid(a *Instance, out io.Writer) error {
+	fmt.Fprintf(out, "---\ntitle: %s\n---\n\nflowchart LR\n", a.details.Name)
 
-	schema := a.graphInstance.Schema()
-
-	fmt.Fprintf(out, "---\ntitle: %s\n---\n\nflowchart LR\n", a.Name)
-
+	schema := a.Schema()
 	for id, n := range schema.Nodes {
 
 		if len(n.AssignedInput) > 0 {

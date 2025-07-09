@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 
 	"github.com/EliCDavis/jbtf"
+	"github.com/EliCDavis/polyform/formats/swagger"
 	"github.com/EliCDavis/polyform/generator/schema"
 	"github.com/EliCDavis/polyform/nodes"
 )
@@ -27,6 +28,7 @@ type Variable interface {
 
 	applyProfile(profile json.RawMessage) error
 	getProfile() json.RawMessage
+	SwaggerProperty() swagger.Property
 	// fromPersistantJSON(decoder jbtf.Decoder, body []byte) error
 	// Schema() schema.Parameter
 	// InitializeForCLI(set *flag.FlagSet)
