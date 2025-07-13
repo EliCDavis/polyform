@@ -1032,8 +1032,8 @@ func DecodeScene(doc *Gltf, buffers [][]byte, options *ReaderOptions) (*Polyform
 
 	// Get the main scene or use the first one
 	var sceneIndex int
-	if doc.Scene >= 0 && doc.Scene < len(doc.Scenes) {
-		sceneIndex = doc.Scene
+	if doc.Scene != nil && *doc.Scene >= 0 && *doc.Scene < len(doc.Scenes) {
+		sceneIndex = *doc.Scene
 	}
 
 	if len(doc.Scenes) == 0 {

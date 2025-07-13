@@ -265,6 +265,7 @@ func (a *App) Run(args []string) error {
 					Description: "graph to load",
 					Action: func(r cli.RunState, s string) error {
 						if s == "" {
+							a.initGraphInstance()
 							return nil
 						}
 						return a.loadGraphFromDisk(s)

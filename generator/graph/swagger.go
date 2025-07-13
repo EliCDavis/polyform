@@ -2,10 +2,13 @@ package graph
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"unicode"
 
 	"github.com/EliCDavis/polyform/formats/swagger"
+	"github.com/EliCDavis/polyform/generator/manifest"
+	"github.com/EliCDavis/polyform/nodes"
 )
 
 func findAllRefernecesObjects(allDefs map[string]swagger.Definition, def swagger.Definition) {
@@ -74,45 +77,134 @@ func WriteSwagger(instance *Instance, out io.Writer) error {
 
 func SwaggerSpec(instance *Instance) swagger.Spec {
 	jsonApplication := "application/json"
+	profileRequestObject := "VariableProfile"
+	createManifestResponse := "CreateManifestResponse"
 
 	paths := make(map[string]swagger.Path)
 
-	for _, path := range instance.ProducerNames() {
-		definitionName := swaggerDefinitionNameFromProducerPath(path)
+	err := ForeachManifestNodeOutput(instance, func(nodeId string, node nodes.Node, output nodes.Output[manifest.Manifest]) error {
+		description := ""
+		if describable, ok := node.(nodes.Describable); ok {
+			description = describable.Description()
+		}
 
-		paths["/producer/value/"+path] = swagger.Path{
-			// Post required for bodys per HTTP spec.
+		nodeName := nodeId
+		if name, ok := instance.IsPortNamed(node, output.Name()); ok {
+			nodeName = name
+		}
+
+		paths[fmt.Sprintf("/manifest/%s/%s", nodeName, output.Name())] = swagger.Path{
 			swagger.PostRequestMethod: swagger.RequestDefinition{
-				// Summary:     "Test",
-				// Description: "???",
-				Produces: []string{
-					// ???? How do we do this.
-				},
-				Consumes: []string{jsonApplication},
+				Description: description,
+				Produces:    []string{jsonApplication},
+				Consumes:    []string{jsonApplication},
 				Parameters: []swagger.Parameter{
 					{
 						In:       "body",
 						Name:     "Request",
 						Required: false,
 						Schema: swagger.SchemaObject{
-							Ref: swagger.DefinitionRefPath(definitionName),
+							Ref: swagger.DefinitionRefPath(profileRequestObject),
 						},
 					},
 				},
 				Responses: map[int]swagger.Response{
 					200: {
-						Description: "Producer Payload",
+						Description: "Success",
+						Schema: &swagger.Property{
+							Ref: fmt.Sprintf("#/definitions/%s", createManifestResponse),
+						},
 					},
 				},
 			},
 		}
+		return nil
+	})
 
-		// producer := instanceInstance.Producer(path)
+	if err != nil {
+		panic(fmt.Errorf("failed iterating over node manifest ports: %w", err))
+	}
+
+	paths["/manifest/{id}/{entry}"] = swagger.Path{
+		swagger.GetRequestMethod: swagger.RequestDefinition{
+			Parameters: []swagger.Parameter{
+				{
+					In:          swagger.PathParameterLocation,
+					Name:        "id",
+					Required:    true,
+					Type:        "string",
+					Description: "ID of the produced manifest to query",
+				},
+				{
+					In:          swagger.PathParameterLocation,
+					Name:        "entry",
+					Required:    true,
+					Type:        "string",
+					Description: "Entry in the produced manifest to retrieve",
+				},
+			},
+			Produces: []string{"application/octet-stream"},
+			Responses: map[int]swagger.Response{
+				200: {
+					Description: "Success",
+					Schema: &swagger.Property{
+						Type: "file",
+					},
+				},
+			},
+		},
+	}
+
+	paths["/profile"] = swagger.Path{
+		swagger.GetRequestMethod: swagger.RequestDefinition{
+			Produces: []string{jsonApplication},
+			Responses: map[int]swagger.Response{
+				200: {
+					Description: "Success",
+					Schema: &swagger.Definition{
+						Type:                 "object",
+						AdditionalProperties: true,
+					},
+				},
+			},
+		},
 	}
 
 	requestDefinition := instance.SwaggerDefinition()
 	definitions := map[string]swagger.Definition{
-		"ManifestRequest": requestDefinition,
+		profileRequestObject: requestDefinition,
+		"Metadata": {
+			Type:                 "object",
+			AdditionalProperties: true,
+		},
+		"Entry": {
+			Type: "object",
+			Properties: map[string]swagger.Property{
+				"metadata": {
+					Ref: "#/definitions/Metadata",
+				},
+			},
+		},
+		"Entries": {
+			Type: "object",
+			AdditionalProperties: &swagger.Property{
+				Ref: "#/definitions/Entry",
+			},
+		},
+		"Manifest": {
+			Type: "object",
+			Properties: map[string]swagger.Property{
+				"main":    {Type: swagger.StringPropertyType},
+				"entries": {Ref: "#/definitions/Entries"},
+			},
+		},
+		"CreateManifestResponse": {
+			Type: "object",
+			Properties: map[string]swagger.Property{
+				"id":       {Type: swagger.StringPropertyType},
+				"manifest": {Ref: "#/definitions/Manifest"},
+			},
+		},
 	}
 
 	findAllRefernecesObjects(definitions, requestDefinition)
@@ -126,9 +218,5 @@ func SwaggerSpec(instance *Instance) swagger.Spec {
 		},
 		Paths:       paths,
 		Definitions: definitions,
-		// Definitions: map[string]swagger.Definition{
-		// swagger.Vector3DefinitionName: swagger.Vector3Definition,
-		// swagger.AABBDefinitionName:    swagger.AABBDefinition,
-		// },
 	}
 }

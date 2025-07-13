@@ -46,10 +46,11 @@ type Path map[RequestMethod]RequestDefinition
 
 type Definition struct {
 	// Type is probably always "object"
-	Type       string              `json:"type"`
-	Properties map[string]Property `json:"properties"`
-	Required   []string            `json:"required,omitempty"`
-	Example    any                 `json:"example,omitempty"`
+	Type                 string              `json:"type"`
+	Properties           map[string]Property `json:"properties,omitempty"`
+	AdditionalProperties any                 `json:"additionalProperties,omitempty"`
+	Required             []string            `json:"required,omitempty"`
+	Example              any                 `json:"example,omitempty"`
 }
 
 type Spec struct {

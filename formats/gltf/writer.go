@@ -1076,6 +1076,8 @@ func (w Writer) ToGLTF(embeddingStrategy BufferEmbeddingStrategy) Gltf {
 		}
 	}
 
+	scene := 0
+
 	return Gltf{
 		Asset:       defaultAsset(),
 		Buffers:     buffers,
@@ -1083,7 +1085,7 @@ func (w Writer) ToGLTF(embeddingStrategy BufferEmbeddingStrategy) Gltf {
 		Accessors:   w.accessors,
 
 		// Skins: skins,
-		Scene: 0,
+		Scene: &scene,
 		Scenes: []Scene{
 			{
 				Nodes: w.scene,

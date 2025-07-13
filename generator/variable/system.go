@@ -110,9 +110,8 @@ func (s *system) ApplyProfile(profile Profile) error {
 	for key, data := range profile {
 		entry, ok := s.entries[key]
 
-		// TODO: Do we really just want to skip over this?
 		if !ok {
-			continue
+			return fmt.Errorf("unable to apply %q from profile, variable does not exist", key)
 		}
 
 		if err := entry.ApplyProfile(data); err != nil {

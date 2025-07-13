@@ -48,7 +48,7 @@ func WriteToZip(i *Instance, zw *zip.Writer) error {
 		panic("can't write to nil zip writer")
 	}
 
-	return foreachManifestNodeOutput(i, func(s string, n nodes.Node, o nodes.Output[manifest.Manifest]) error {
+	return ForeachManifestNodeOutput(i, func(s string, n nodes.Node, o nodes.Output[manifest.Manifest]) error {
 		return WriteManifestToZip(i, zw, s, n, o)
 	})
 }
@@ -82,27 +82,7 @@ func writeManifestToFolder(i *Instance, folder string, nodeId string, node nodes
 }
 
 func WriteToFolder(i *Instance, folder string) error {
-	return foreachManifestNodeOutput(i, func(s string, n nodes.Node, o nodes.Output[manifest.Manifest]) error {
+	return ForeachManifestNodeOutput(i, func(s string, n nodes.Node, o nodes.Output[manifest.Manifest]) error {
 		return writeManifestToFolder(i, folder, s, n, o)
 	})
-}
-
-func foreachManifestNodeOutput(i *Instance, f func(string, nodes.Node, nodes.Output[manifest.Manifest]) error) error {
-	nodeIds := i.NodeIds()
-
-	for _, nodeId := range nodeIds {
-		node := i.Node(nodeId)
-		outputs := node.Outputs()
-		for _, out := range outputs {
-			manifestOut, ok := out.(nodes.Output[manifest.Manifest])
-			if !ok {
-				continue
-			}
-			err := f(nodeId, node, manifestOut)
-			if err != nil {
-				return err
-			}
-		}
-	}
-	return nil
 }

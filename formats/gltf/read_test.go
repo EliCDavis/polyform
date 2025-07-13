@@ -151,7 +151,7 @@ func createMinimalValidGLTF(t *testing.T) gltf.Gltf {
 		Scenes: []gltf.Scene{
 			{Nodes: []gltf.GltfId{0}},
 		},
-		Scene: 0,
+		Scene: ptr(0),
 	}
 }
 
@@ -1018,7 +1018,7 @@ func TestSceneHierarchy(t *testing.T) {
 			name: "invalid_scene_index",
 			setupScene: func() (gltf.Gltf, [][]byte) {
 				doc := createMinimalValidGLTF(t)
-				doc.Scene = 999 // Invalid scene index
+				doc.Scene = ptr(999) // Invalid scene index
 				tempFile := writeGLTFToTempFile(t, doc)
 				loadedDoc, buffers, err := gltf.LoadFile(tempFile, nil)
 				require.NoError(t, err)

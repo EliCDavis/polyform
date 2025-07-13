@@ -1,9 +1,7 @@
 package endpoint
 
 import (
-	"fmt"
 	"net/http"
-	"runtime/debug"
 )
 
 type ResponseMethod[Response any] struct {
@@ -15,19 +13,10 @@ func (jse ResponseMethod[Response]) ContentType() ContentType {
 	return jse.ResponseWriter.ContentType()
 }
 
-func (jse ResponseMethod[Response]) runHandler(r *http.Request) (resp Response, err error) {
-	defer func() {
-		if recErr := recover(); recErr != nil {
-			fmt.Printf("panic: %v\nstacktrace from panic:\n%s", recErr, string(debug.Stack()))
-			err = fmt.Errorf("panic recover: %v", recErr)
-		}
-	}()
-	resp, err = jse.Handler(r)
-	return
-}
-
 func (jse ResponseMethod[Response]) Handle(w http.ResponseWriter, r *http.Request) {
-	response, err := jse.runHandler(r)
+	response, err := safeReturn(func() (Response, error) {
+		return jse.Handler(r)
+	})
 	if err != nil {
 		writeJSONError(w, err)
 		return

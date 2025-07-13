@@ -1,0 +1,24 @@
+{
+  "name": "com.elicdavis.polyform",
+  "displayName": "Polyform Core",
+  "author": {
+    "name": "Eli C Davis",
+    "url": "https://github.com/EliCDavis/"
+  },
+  "documentationUrl": "https://github.com/EliCDavis/polyform",
+  "version": "1.0.0",
+  "unity": "2020.3",
+  "description": "Polyforms's core functionality for interfacing with deployed graphs.",
+  "keywords": [
+    "Procedural",
+    "Art"
+  ],
+  "category": "Core",
+  "samples": [
+    
+  ],
+  "dependencies": {
+    "com.unity.nuget.newtonsoft-json": "2.0.2",
+    "com.unity.cloud.gltfast": "6.0.0"
+  }
+}

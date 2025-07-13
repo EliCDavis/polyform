@@ -97,7 +97,7 @@ func TestAppCommand_Swagger(t *testing.T) {
 	appName := "Test Graph"
 	appVersion := "Test Graph"
 	appDescription := "Test Graph"
-	producerFileName := "test.txt"
+	producerFileName := "test"
 
 	outBuf := &bytes.Buffer{}
 
@@ -133,17 +133,22 @@ func TestAppCommand_Swagger(t *testing.T) {
         "version": "Test Graph"
     },
     "paths": {
-        "/producer/value/test.txt": {
+        "/manifest/test/Out": {
             "post": {
                 "summary": "",
                 "description": "",
-                "produces": [],
+                "produces": [
+                    "application/json"
+                ],
                 "consumes": [
                     "application/json"
                 ],
                 "responses": {
                     "200": {
-                        "description": "Producer Payload"
+                        "description": "Success",
+                        "schema": {
+                            "$ref": "#/definitions/CreateManifestResponse"
+                        }
                     }
                 },
                 "parameters": [
@@ -151,17 +156,110 @@ func TestAppCommand_Swagger(t *testing.T) {
                         "in": "body",
                         "name": "Request",
                         "schema": {
-                            "$ref": "#/definitions/TestTxtRequest"
+                            "$ref": "#/definitions/VariableProfile"
                         }
                     }
                 ]
             }
+        },
+        "/manifest/{id}/{entry}": {
+            "get": {
+                "summary": "",
+                "description": "",
+                "produces": [
+                    "application/octet-stream"
+                ],
+                "consumes": null,
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "type": "file"
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "description": "ID of the produced manifest to query",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "path",
+                        "name": "entry",
+                        "description": "Entry in the produced manifest to retrieve",
+                        "required": true,
+                        "type": "string"
+                    }
+                ]
+            }
+        },
+        "/profile": {
+            "get": {
+                "summary": "",
+                "description": "",
+                "produces": [
+                    "application/json"
+                ],
+                "consumes": null,
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                },
+                "parameters": null
+            }
         }
     },
     "definitions": {
-        "ManifestRequest": {
+        "CreateManifestResponse": {
             "type": "object",
-            "properties": {}
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "manifest": {
+                    "$ref": "#/definitions/Manifest"
+                }
+            }
+        },
+        "Entries": {
+            "type": "object",
+            "additionalProperties": {
+                "$ref": "#/definitions/Entry"
+            }
+        },
+        "Entry": {
+            "type": "object",
+            "properties": {
+                "metadata": {
+                    "$ref": "#/definitions/Metadata"
+                }
+            }
+        },
+        "Manifest": {
+            "type": "object",
+            "properties": {
+                "entries": {
+                    "$ref": "#/definitions/Entries"
+                },
+                "main": {
+                    "type": "string"
+                }
+            }
+        },
+        "Metadata": {
+            "type": "object",
+            "additionalProperties": true
+        },
+        "VariableProfile": {
+            "type": "object"
         }
     }
 }`, string(contents))

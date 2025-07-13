@@ -3,34 +3,37 @@ package run
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"strings"
 
 	"github.com/EliCDavis/polyform/generator/endpoint"
-	"github.com/EliCDavis/polyform/generator/graph"
-	"github.com/EliCDavis/polyform/generator/manifest"
 	"github.com/EliCDavis/polyform/generator/variable"
 	"github.com/EliCDavis/polyform/nodes"
 )
 
-type resolvedNodeUrl[T any] struct {
-	nodeID       string
-	node         nodes.Node
-	outputName   string
-	output       nodes.Output[T]
-	remainingUrl string
+type nodeAndOutput[T any] struct {
+	nodeID     string
+	node       nodes.Node
+	outputName string
+	output     nodes.Output[T]
 }
 
 func urlComponents(url, base string) []string {
 	if strings.Index(url, base) != 0 {
 		panic(fmt.Errorf("expected url %q to begin with %q", url, base))
 	}
-	return strings.Split(url[len(base):], "/")
+	components := strings.Split(url[len(base):], "/")
+	if len(components) == 1 && components[0] == "" {
+		return nil
+	}
+
+	return components
 }
 
-func getNodeOutputFromURLPath[T any](requestUrl string, base string, graph *graph.Instance) (*resolvedNodeUrl[T], error) {
+func getNodeOutputFromURLPath[T any](requestUrl string, base string, graph []nodeAndOutput[T]) (*nodeAndOutput[T], error) {
 	components := urlComponents(requestUrl, base)
 
 	if len(components) == 0 {
@@ -41,30 +44,19 @@ func getNodeOutputFromURLPath[T any](requestUrl string, base string, graph *grap
 		return nil, fmt.Errorf("url is missing manifest port name")
 	}
 
-	nodeID := components[0]
-	if !graph.HasNodeWithId(nodeID) {
-		return nil, fmt.Errorf("no node exists with id %s", nodeID)
-	}
-	node := graph.Node(nodeID)
+	for _, n := range graph {
+		if n.nodeID != components[0] {
+			continue
+		}
 
-	outputs := node.Outputs()
-	outPortName := components[1]
-	output, ok := outputs[outPortName]
-	if !ok {
-		return nil, fmt.Errorf("Node %q does not contain output %q", nodeID, outPortName)
+		if n.outputName != components[1] {
+			continue
+		}
+
+		return &n, nil
 	}
 
-	manifestOutput, ok := output.(nodes.Output[T])
-	if !ok {
-		return nil, fmt.Errorf("Node %q output %q does not produce specified type", nodeID, outPortName)
-	}
-	return &resolvedNodeUrl[T]{
-		nodeID:       nodeID,
-		node:         node,
-		outputName:   outPortName,
-		output:       manifestOutput,
-		remainingUrl: strings.Join(components[2:], "/"),
-	}, nil
+	return nil, fmt.Errorf("%s/%s does not match any node/port combination that produces a manifest", components[0], components[1])
 }
 
 func (s *Server) manifestEndpoint() http.Handler {
@@ -80,7 +72,7 @@ func (s *Server) manifestEndpoint() http.Handler {
 			}
 		}
 
-		resolvedNode, err := getNodeOutputFromURLPath[manifest.Manifest](request.Url, "/manifest/", s.Graph)
+		resolvedNode, err := getNodeOutputFromURLPath(request.Url, "/manifest/", s.manifestNodes)
 		if err != nil {
 			return response, err
 		}
@@ -97,14 +89,14 @@ func (s *Server) manifestEndpoint() http.Handler {
 
 		components := urlComponents(r.URL.Path, "/manifest/")
 		if len(components) != 2 {
-			return nil, fmt.Errorf("unable to parse url: %q", r.URL.Path)
+			return nil, fmt.Errorf("invalid url: %q", r.URL.Path)
 		}
 		id := components[0]
 		entryPath := components[1]
 
 		m, ok := s.cache.Get(id)
 		if !ok {
-			return nil, fmt.Errorf("contain no manifest with id %q", id)
+			return nil, fmt.Errorf("no manifest exists with id %q", id)
 		}
 
 		entry, ok := m.Entries[entryPath]
@@ -130,7 +122,11 @@ func (s *Server) manifestEndpoint() http.Handler {
 						return nil, nil
 					}
 					var v *variable.Profile
-					return v, json.Unmarshal(data, &v)
+					err = json.Unmarshal(data, &v)
+					if err != nil {
+						return nil, errors.New("unable to interpret variable profile")
+					}
+					return v, nil
 				}),
 				Handler: post,
 			},
