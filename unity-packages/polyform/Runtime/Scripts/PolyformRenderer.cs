@@ -1,15 +1,19 @@
 ﻿using System;
 using System.Collections;
 using EliCDavis.Polyform.Artifacts;
+using EliCDavis.Polyform.Models;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace EliCDavis.Polyform
 {
     public class PolyformRenderer : MonoBehaviour
     {
-        [SerializeField] private ConnectionConfig connectionConfig;
+        [SerializeField] private Graph graph;
 
-        [SerializeField] private ArtifactHandler[] handlers;
+        [SerializeField] private AvailableManifestObject endpoint;
+
+        [SerializeField] private ArtifactLoader[] handlers;
 
         private void Start()
         {
@@ -23,23 +27,22 @@ namespace EliCDavis.Polyform
 
         private IEnumerator Run()
         {
-            var manifestsReq = connectionConfig.AvailableManifests();
-            yield return manifestsReq.Run();
-
-            foreach (var manifest in manifestsReq.Result)
-            {
-                yield return LoadManifest(manifest);
-            }
+            yield return LoadManifest(endpoint.AvailableManifest());
         }
 
         private IEnumerator LoadManifest(AvailableManifest manifest)
         {
-            Debug.Log($"Loading: {manifest.Name}/{manifest.Port}");
-            var manifestsReq = connectionConfig.CreateManifest(manifest.Name, manifest.Port);
+            var manifestsReq = graph.CreateManifest(manifest.Name, manifest.Port);
             yield return manifestsReq.Run();
 
-            var gltf = gameObject.AddComponent<GLTFast.GltfAsset>();
-            gltf.Url = $"http://localhost:8080/manifest/{manifestsReq.Result.Id}/{manifestsReq.Result.Manifest.Main}";
+            foreach (var handler in handlers)
+            {
+                if (!handler.CanHandle(manifestsReq.Result.Manifest)) continue;
+                handler.Handle(graph, manifestsReq.Result);
+                yield break;
+            }
+
+            throw new Exception($"No handler registered to handle manifest: {manifest.Name}/{manifest.Port}");
         }
     }
 }

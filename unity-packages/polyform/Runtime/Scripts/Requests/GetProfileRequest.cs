@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using EliCDavis.Polyform.Models;
 
 namespace EliCDavis.Polyform.Requests
 {
@@ -7,7 +8,7 @@ namespace EliCDavis.Polyform.Requests
     // GET  manifests
     // GET  profile
 
-    public class GetProfileRequest : GetJsonRequest<Dictionary<string, string>>
+    public class GetProfileRequest : GetJsonRequest<Dictionary<string, Property> >
     {
         public GetProfileRequest(string baseUrl) : base(baseUrl)
         {

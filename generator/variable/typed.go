@@ -183,6 +183,7 @@ func (tv *TypeVariable[T]) SwaggerProperty() swagger.Property {
 
 	case "coloring.WebColor":
 		prop.Type = swagger.StringPropertyType
+		prop.Format = "color"
 
 	case "[]vector3.Vector[float64]":
 		prop.Type = swagger.ArrayPropertyType
@@ -190,6 +191,8 @@ func (tv *TypeVariable[T]) SwaggerProperty() swagger.Property {
 			"$ref": "#/definitions/Vector3",
 		}
 	}
+
+	prop.Description = tv.info.Description()
 
 	return prop
 }

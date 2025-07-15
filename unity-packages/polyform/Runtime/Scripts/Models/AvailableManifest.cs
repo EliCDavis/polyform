@@ -1,15 +1,12 @@
 ﻿using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
 
-namespace EliCDavis.Polyform
+namespace EliCDavis.Polyform.Models
 {
     [System.Serializable]
     public class AvailableManifest
     {
-        [JsonProperty("name")]
-        public string Name { get; set; }
-        
-        [JsonProperty("port")]
-        public string Port { get; set; }
+        [JsonProperty("name")] public string Name;
+
+        [JsonProperty("port")] public string Port;
     }
 }

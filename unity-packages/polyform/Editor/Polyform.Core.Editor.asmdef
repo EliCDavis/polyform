@@ -1,7 +1,10 @@
 {
     "name": "Polyform.Core.Editor",
     "rootNamespace": "EliCDavis.Polyform.Editor",
-    "references": [],
+    "references": [
+        "Polyform.Core",
+        "Unity.EditorCoroutines.Editor"
+    ],
     "includePlatforms": [
         "Editor"
     ],

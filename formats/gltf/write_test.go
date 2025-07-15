@@ -3062,10 +3062,6 @@ func TestWriteEmptyMesh(t *testing.T) {
     "asset": {
         "version": "2.0",
         "generator": "https://github.com/EliCDavis/polyform"
-    },
-    "scene": 0,
-    "scenes": [
-        {}
-    ]
+    }
 }`, buf.String())
 }

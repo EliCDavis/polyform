@@ -1,4 +1,6 @@
-﻿namespace EliCDavis.Polyform.Requests
+﻿using EliCDavis.Polyform.Models;
+
+namespace EliCDavis.Polyform.Requests
 {
     public class GetManifestsRequest : GetJsonRequest<AvailableManifest[]>
     {

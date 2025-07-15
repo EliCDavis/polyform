@@ -1,7 +1,10 @@
 {
-    "name": "Polyform.Core",
-    "rootNamespace": "EliCDavis.Polyform",
-    "references": [],
+    "name": "Polyform.GLTF",
+    "rootNamespace": "EliCDavis.Polyform.GLTF",
+    "references": [
+        "glTFast",
+        "Polyform.Core"
+    ],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using EliCDavis.Polyform.Models;
 using Newtonsoft.Json;
 using UnityEngine.Networking;
 
@@ -10,7 +11,7 @@ namespace EliCDavis.Polyform.Requests
         
         private string port;
         
-        public CreateManifestResponse Result { get; private set; }
+        public ManifestInstance Result { get; private set; }
         
         public CreateManifestRequest(string baseUrl, string node, string port) : base(baseUrl)
         {
@@ -24,7 +25,7 @@ namespace EliCDavis.Polyform.Requests
         
         protected override void HandleBody(byte[] data)
         {
-            Result = JsonConvert.DeserializeObject<CreateManifestResponse>(Encoding.UTF8.GetString(data));
+            Result = JsonConvert.DeserializeObject<ManifestInstance>(Encoding.UTF8.GetString(data));
         }
     }
 }
