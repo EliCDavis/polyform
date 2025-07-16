@@ -12,7 +12,7 @@ namespace EliCDavis.Polyform.Requests
         
         protected override string Method => UnityWebRequest.kHttpVerbGET;
 
-        protected override void HandleBody(byte[] data)
+        protected override void HandleResponseBody(byte[] data)
         {
             Result = JsonConvert.DeserializeObject<T>(Encoding.UTF8.GetString(data));
         }

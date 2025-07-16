@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using EliCDavis.Polyform.Requests;
 using UnityEngine;
 
@@ -13,9 +14,9 @@ namespace EliCDavis.Polyform
             return new GetManifestsRequest(url);
         }
 
-        public CreateManifestRequest CreateManifest(string node, string port)
+        public CreateManifestRequest CreateManifest(string node, string port, Dictionary<string, object> profile = null)
         {
-            return new CreateManifestRequest(url, node, port);
+            return new CreateManifestRequest(url, node, port, profile);
         }
 
         public GetProfileRequest Profile()

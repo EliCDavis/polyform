@@ -58,6 +58,9 @@ namespace EliCDavis.Polyform.Editor
 
             profile.SetData(profileRequest.Result);
             
+            EditorUtility.SetDirty(graph);
+            EditorUtility.SetDirty(profile);
+
 
             AssetDatabase.SaveAssets();
         }
@@ -84,6 +87,7 @@ namespace EliCDavis.Polyform.Editor
                 }
                 
                 found.SetAvailableManifest(available);
+                EditorUtility.SetDirty(found);
             }
 
             for (var i  = 0; i < availableManifestObjects.Count; i ++)

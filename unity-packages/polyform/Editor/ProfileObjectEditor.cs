@@ -42,6 +42,7 @@ namespace EliCDavis.Polyform.Editor
             return evt =>
             {
                 profileObject.Set(prop, evt.newValue);
+                EditorUtility.SetDirty(profileObject);
                 AssetDatabase.SaveAssets();
             };
         }
@@ -58,7 +59,7 @@ namespace EliCDavis.Polyform.Editor
                             {
                                 value = profileObject.Get<double>(propName)
                             };
-                            dbl.RegisterValueChangedCallback(SaveValue<double>(profileObject, propName));
+                            dbl.RegisterCallback(SaveValue<double>(profileObject, propName));
                             return dbl;
 
                         default:
@@ -66,7 +67,7 @@ namespace EliCDavis.Polyform.Editor
                             {
                                 value = profileObject.Get<float>(propName)
                             };
-                            f.RegisterValueChangedCallback(SaveValue<float>(profileObject, propName));
+                            f.RegisterCallback(SaveValue<float>(profileObject, propName));
                             return f;
                     }
 
@@ -75,7 +76,7 @@ namespace EliCDavis.Polyform.Editor
                     {
                         value = profileObject.Get<int>(propName)
                     };
-                    i.RegisterValueChangedCallback(SaveValue<int>(profileObject, propName));
+                    i.RegisterCallback(SaveValue<int>(profileObject, propName));
                     return i;
 
                 case "string":
@@ -99,7 +100,7 @@ namespace EliCDavis.Polyform.Editor
                             {
                                 value = profileObject.Get<string>(propName)
                             };
-                            textField.RegisterValueChangedCallback(SaveValue<string>(profileObject, propName));
+                            textField.RegisterCallback(SaveValue<string>(profileObject, propName));
                             return textField;
                     }
             }

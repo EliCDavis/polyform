@@ -20,7 +20,7 @@ namespace EliCDavis.Polyform.Requests
 
         protected override string Path => $"manifest/{manifestId}/{entry}";
 
-        protected override void HandleBody(byte[] data)
+        protected override void HandleResponseBody(byte[] data)
         {
             Result = data;
         }

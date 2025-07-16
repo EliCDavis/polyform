@@ -30,7 +30,6 @@ namespace EliCDavis.Polyform.Editor
                         paddingLeft = padding,
                         paddingRight = padding,
                         paddingTop = padding,
-                        flexDirection = new StyleEnum<FlexDirection>(FlexDirection.Row)
                     }
                 };
                 if (i % 2 == 1)
@@ -38,14 +37,29 @@ namespace EliCDavis.Polyform.Editor
                     container.style.backgroundColor = new StyleColor(new Color(1, 1, 1, 0.1f));
                 }
 
-                container.Add(new Label(keyval.Key));
+                {
+                    var header = new VisualElement()
+                    {
+                        style =
+                        {
+                            flexDirection = new StyleEnum<FlexDirection>(FlexDirection.Row)
+                        }
+                    };
+                    header.Add(new Label(keyval.Key));
 
-                var spacer = new VisualElement();
-                spacer.style.flexGrow = 1;
-                container.Add(spacer);
+                    var spacer = new VisualElement();
+                    spacer.style.flexGrow = 1;
+                    header.Add(spacer);
 
+                    header.Add(new Label(keyval.Value.ToString()));
+                    container.Add(header);
+                }
 
-                container.Add(new Label(keyval.Value.ToString()));
+                if (!string.IsNullOrWhiteSpace(keyval.Value.Description))
+                {
+                    container.Add(new Label(keyval.Value.Description));
+                }
+
                 root.Add(container);
                 i++;
             }

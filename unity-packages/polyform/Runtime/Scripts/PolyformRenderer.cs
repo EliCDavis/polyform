@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections;
+using System.Collections.Generic;
 using EliCDavis.Polyform.Artifacts;
 using EliCDavis.Polyform.Models;
 using UnityEngine;
-using UnityEngine.Serialization;
 
 namespace EliCDavis.Polyform
 {
@@ -13,16 +13,53 @@ namespace EliCDavis.Polyform
 
         [SerializeField] private AvailableManifestObject endpoint;
 
-        [SerializeField] private ArtifactLoader[] handlers;
+        [SerializeField] private RuntimeArtifactLoader[] handlers;
+
+        [SerializeField] private ProfileObject profile;
+
+        #region Runtime
+
+        private Coroutine running;
+
+        private IRuntimeArtifact runtimeArtifact;
+
+        #endregion
+
 
         private void Start()
         {
             Render();
         }
 
-        public void Render()
+        private void OnEnable()
         {
-            StartCoroutine(Run());
+            if (profile != null)
+            {
+                profile.OnDataChange += ProfileChange;
+            }
+        }
+
+        private void OnDisable()
+        {
+            if (profile != null)
+            {
+                profile.OnDataChange -= ProfileChange;
+            }
+        }
+
+        private void Render()
+        {
+            if (running != null)
+            {
+                StopCoroutine(running);
+            }
+
+            running = StartCoroutine(Run());
+        }
+
+        void ProfileChange(string key, object val)
+        {
+            Render();
         }
 
         private IEnumerator Run()
@@ -32,13 +69,25 @@ namespace EliCDavis.Polyform
 
         private IEnumerator LoadManifest(AvailableManifest manifest)
         {
-            var manifestsReq = graph.CreateManifest(manifest.Name, manifest.Port);
+            if (runtimeArtifact != null)
+            {
+                runtimeArtifact.Unload();
+                runtimeArtifact = null;
+            }
+
+            Dictionary<string, object> variableData = null;
+            if (profile != null)
+            {
+                variableData = profile.Profile();
+            }
+
+            var manifestsReq = graph.CreateManifest(manifest.Name, manifest.Port, variableData);
             yield return manifestsReq.Run();
 
             foreach (var handler in handlers)
             {
                 if (!handler.CanHandle(manifestsReq.Result.Manifest)) continue;
-                handler.Handle(graph, manifestsReq.Result);
+                runtimeArtifact = handler.Handle(graph, manifestsReq.Result);
                 yield break;
             }
 
