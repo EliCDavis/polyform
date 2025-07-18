@@ -161,7 +161,7 @@ type Gltf struct {
 	Meshes      []Mesh       `json:"meshes,omitempty"`      // An array of meshes.  A mesh is a set of primitives to be rendered
 	Nodes       []Node       `json:"nodes,omitempty"`       // An array of nodes.
 	Samplers    []Sampler    `json:"samplers,omitempty"`    // An array of samplers.  A sampler contains properties for texture filtering and wrapping modes.
-	Scene       int          `json:"scene,omitempty"`       // The index of the default scene.  This property **MUST NOT** be defined, when `scenes` is undefined.
+	Scene       *int         `json:"scene,omitempty"`       // The index of the default scene.  This property **MUST NOT** be defined, when `scenes` is undefined.
 	Scenes      []Scene      `json:"scenes,omitempty"`      // An array of scenes.
 	Skins       []Skin       `json:"skins,omitempty"`       // An array of skins.  A skin is defined by joints and matrices.
 	Textures    []Texture    `json:"textures,omitempty"`    // An array of textures

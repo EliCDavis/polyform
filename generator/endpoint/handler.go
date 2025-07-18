@@ -1,7 +1,6 @@
 package endpoint
 
 import (
-	"fmt"
 	"net/http"
 )
 
@@ -13,7 +12,8 @@ func (se Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	method, ok := se.Methods[r.Method]
 
 	if !ok {
-		panic(fmt.Errorf("endpoint '%s' has not implemented HTTP method: '%s'", r.URL.Path, r.Method))
+		w.WriteHeader(http.StatusNotFound)
+		return
 	}
 
 	w.Header().Set("Content-Type", string(method.ContentType()))

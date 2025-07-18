@@ -140,6 +140,7 @@ func TestWriteBasicTri(t *testing.T) {
             "name": "mesh"
         }
     ],
+    "scene": 0,
     "scenes": [
         {
             "nodes": [
@@ -272,6 +273,7 @@ func TestWriteColorTri(t *testing.T) {
             "name": "mesh"
         }
     ],
+    "scene": 0,
     "scenes": [
         {
             "nodes": [
@@ -467,6 +469,7 @@ func TestWrite_TexturedTriWithMaterialWithColor(t *testing.T) {
             "name": "mesh"
         }
     ],
+    "scene": 0,
     "scenes": [
         {
             "nodes": [
@@ -837,6 +840,7 @@ func TestWrite_TexturedTriWithMaterialWithColor_ImageSampleDedupe(t *testing.T) 
             "wrapT": 10497
         }
     ],
+    "scene": 0,
     "scenes": [
         {
             "nodes": [
@@ -1216,6 +1220,7 @@ func TestWrite_TexturedTriWithMaterialWithColor_TextureValueDedupe(t *testing.T)
             "wrapT": 10497
         }
     ],
+    "scene": 0,
     "scenes": [
         {
             "nodes": [
@@ -1442,6 +1447,7 @@ func TestWrite_TexturedTriWithMaterialWithColor_NormalOcclusion(t *testing.T) {
             "name": "mesh"
         }
     ],
+    "scene": 0,
     "scenes": [
         {
             "nodes": [
@@ -1680,6 +1686,7 @@ func TestWrite_TexturedTriWithTexExtension(t *testing.T) {
             "wrapT": 10497
         }
     ],
+    "scene": 0,
     "scenes": [
         {
             "nodes": [
@@ -1916,6 +1923,7 @@ func TestWrite_TexturedTriWithTexExtension_Required(t *testing.T) {
             "wrapT": 10497
         }
     ],
+    "scene": 0,
     "scenes": [
         {
             "nodes": [
@@ -2050,6 +2058,7 @@ func TestWrite_MaterialAlphaMode(t *testing.T) {
             "name": "mesh"
         }
     ],
+    "scene": 0,
     "scenes": [
         {
             "nodes": [
@@ -2182,6 +2191,7 @@ func TestWrite_MaterialAlphaModeWithCutOff(t *testing.T) {
             "name": "mesh"
         }
     ],
+    "scene": 0,
     "scenes": [
         {
             "nodes": [
@@ -2421,6 +2431,7 @@ func TestWrite_MaterialsDeduplicated(t *testing.T) {
             "name": "mesh1"
         }
     ],
+    "scene": 0,
     "scenes": [
         {
             "nodes": [
@@ -2585,6 +2596,7 @@ func TestWrite_MeshesDeduplicated(t *testing.T) {
             "name": "mesh_left"
         }
     ],
+    "scene": 0,
     "scenes": [
         {
             "nodes": [
@@ -2802,6 +2814,7 @@ func TestWrite_MeshesGpuInstanced(t *testing.T) {
             "name": "mesh_right"
         }
     ],
+    "scene": 0,
     "scenes": [
         {
             "nodes": [
@@ -2997,6 +3010,7 @@ func TestWrite_MeshesDifferentMatsPreserved(t *testing.T) {
             "name": "mesh_left"
         }
     ],
+    "scene": 0,
     "scenes": [
         {
             "nodes": [
@@ -3048,9 +3062,6 @@ func TestWriteEmptyMesh(t *testing.T) {
     "asset": {
         "version": "2.0",
         "generator": "https://github.com/EliCDavis/polyform"
-    },
-    "scenes": [
-        {}
-    ]
+    }
 }`, buf.String())
 }

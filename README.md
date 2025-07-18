@@ -14,24 +14,24 @@ Developers and artists are welcome to join the [Discord](https://discord.gg/rHAd
 If you just want to play around without setting polyform up locally, you can check it out [here](https://elicdavis.github.io/polyform/)
 
 ### Pre-built binaries
-Download the latest [release](https://github.com/EliCDavis/polyform/releases) of polyform and one of the [example graphs](./generator/examples/) and then run:
+Download the latest [release](https://github.com/EliCDavis/polyform/releases) of polyform and one of the [example graphs](./generator/edit/examples/) and then run:
 
 ```bash
-polyform <downloaded_example>.json edit
+polyform edit --graph <downloaded_example>.json
 ```
 
 ### Go
 Or if you have golang installed, simply clone the repo and run:
 
 ```bash
-go run ./cmd/polyform ./examples/graphs/ufo.json edit
+go run ./cmd/polyform edit --graph ./examples/graphs/ufo.json
 ```
 
 ### Nix
 Or if you have Nix installed, run with:
 
 ```bash
-nix run .#polyform ./examples/graphs/ufo.json edit
+nix run .#polyform edit --graph ./examples/graphs/ufo.json
 
 # List all available packages
 nix flake show
@@ -100,7 +100,7 @@ This was my [submission for ProcJam 2022](https://elicdavis.itch.io/evergreen-tr
 
 |                                                                                      |                                                                                  |
 | ------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------- |
-| [[Source Here](/generator/examples/ufo.json)] ![ufo](/docs/ufo.png)                  | [[Source Here](/examples/candle/main.go)] ![candle](/examples/candle/candle.png) |
+| [[Source Here](/generator/edit/examples/ufo.json)] ![ufo](/docs/ufo.png)                  | [[Source Here](/examples/candle/main.go)] ![candle](/examples/candle/candle.png) |
 | [[Source Here](/examples/terrain/main.go)] ![terrain](/examples/terrain/terrain.png) | [[Source Here](/examples/covid/main.go)] ![terrain](/examples/covid/covid.png)   |
 | [[Source Here](/examples/plumbob/main.go)] ![plumbob](/examples/plumbob/plumbob.png) | [[Source Here](/examples/oreo/main.go)] ![oreo](/examples/oreo/oreo.png)         |
 

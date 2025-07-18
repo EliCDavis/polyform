@@ -24,8 +24,8 @@ func (ia Image) Write(w io.Writer) error {
 type ImageNode = nodes.Struct[ImageNodeData]
 
 type ImageNodeData struct {
-	Image nodes.Output[image.Image]
-	Name  nodes.Output[string] `description:"Name of the image file, defaults to 'image.png'"`
+	Image nodes.Output[image.Image] `description:"The image to save"`
+	Name  nodes.Output[string]      `description:"Name of the image file, defaults to 'image.png'"`
 }
 
 func (pn ImageNodeData) Out() nodes.StructOutput[manifest.Manifest] {

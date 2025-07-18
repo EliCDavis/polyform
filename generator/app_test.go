@@ -7,9 +7,11 @@ import (
 	"testing"
 
 	"github.com/EliCDavis/polyform/generator"
+	"github.com/EliCDavis/polyform/generator/graph"
 	"github.com/EliCDavis/polyform/generator/manifest"
 	"github.com/EliCDavis/polyform/generator/manifest/basics"
 	"github.com/EliCDavis/polyform/generator/parameter"
+	"github.com/EliCDavis/polyform/generator/schema"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/stretchr/testify/assert"
 )
@@ -29,17 +31,12 @@ func TestGetAndApplyGraph(t *testing.T) {
 	appName := "Test Graph"
 	appVersion := "Test Graph"
 	appDescription := "Test Graph"
-	producerFileName := "test.txt"
 	app := generator.App{
-		Name:        appName,
-		Version:     appVersion,
-		Description: appDescription,
-		Files: map[string]nodes.Output[manifest.Manifest]{
-			producerFileName: buildTextArifact(&parameter.String{
-				Name:         "Welp",
-				DefaultValue: "yee",
-			}),
-		},
+		Graph: graph.New(graph.Config{
+			Name:        appName,
+			Version:     appVersion,
+			Description: appDescription,
+		}),
 	}
 
 	// ACT ====================================================================
@@ -49,94 +46,7 @@ func TestGetAndApplyGraph(t *testing.T) {
 
 	// ASSERT =================================================================
 	assert.NoError(t, err)
-	assert.Equal(t, appName, app.Name)
-	assert.Equal(t, appVersion, app.Version)
-	assert.Equal(t, appDescription, app.Description)
 	assert.Equal(t, string(graphData), string(graphAgain))
-	b := &bytes.Buffer{}
-	manifest := app.Files[producerFileName].Value()
-	art := manifest.Entries[manifest.Main]
-	err = art.Artifact.Write(b)
-	assert.NoError(t, err)
-	assert.Equal(t, "yee", b.String())
-}
-
-func TestAppCommand_Outline(t *testing.T) {
-	appName := "Test Graph"
-	appVersion := "Test Graph"
-	appDescription := "Test Graph"
-	producerFileName := "test.txt"
-
-	outBuf := &bytes.Buffer{}
-
-	app := generator.App{
-		Name:        appName,
-		Version:     appVersion,
-		Description: appDescription,
-		Files: map[string]nodes.Output[manifest.Manifest]{
-			producerFileName: buildTextArifact(&parameter.String{
-				Name:         "Welp",
-				DefaultValue: "yee",
-			}),
-		},
-
-		Out: outBuf,
-	}
-
-	// ACT ====================================================================
-	err := app.Run([]string{"polyform", "outline"})
-	contents, readErr := io.ReadAll(outBuf)
-
-	// ASSERT =================================================================
-	assert.NoError(t, err)
-	assert.NoError(t, readErr)
-	assert.Equal(t, `{
-    "producers": {
-        "test.txt": {
-            "nodeID": "Node-1",
-            "port": "Out"
-        }
-    },
-    "nodes": {
-        "Node-0": {
-            "type": "github.com/EliCDavis/polyform/generator/parameter.Value[string]",
-            "name": "Welp",
-            "assignedInput": {},
-            "output": {
-                "Value": {
-                    "version": 0
-                }
-            },
-            "parameter": {
-                "name": "Welp",
-                "description": "",
-                "type": "string",
-                "defaultValue": "yee",
-                "currentValue": "yee"
-            }
-        },
-        "Node-1": {
-            "type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/generator/manifest/basics.TextNodeData]",
-            "name": "test.txt",
-            "assignedInput": {
-                "In": {
-                    "id": "Node-0",
-                    "port": "Value"
-                }
-            },
-            "output": {
-                "Out": {
-                    "version": -1
-                }
-            }
-        }
-    },
-    "notes": null,
-    "variables": {
-        "variables": {},
-        "subgroups": {}
-    }
-}`, string(contents))
 }
 
 func TestAppCommand_Zip(t *testing.T) {
@@ -147,17 +57,20 @@ func TestAppCommand_Zip(t *testing.T) {
 
 	outBuf := &bytes.Buffer{}
 
-	app := generator.App{
+	g := graph.New(graph.Config{
 		Name:        appName,
 		Version:     appVersion,
 		Description: appDescription,
-		Files: map[string]nodes.Output[manifest.Manifest]{
-			producerFileName: buildTextArifact(&parameter.String{
-				Name:         "Welp",
-				DefaultValue: "yee",
-			}),
-		},
-		Out: outBuf,
+	})
+
+	g.AddProducer(producerFileName, buildTextArifact(&parameter.String{
+		Name:         "Welp",
+		CurrentValue: "yee",
+	}))
+
+	app := generator.App{
+		Graph: g,
+		Out:   outBuf,
 	}
 
 	// ACT ====================================================================
@@ -184,23 +97,25 @@ func TestAppCommand_Swagger(t *testing.T) {
 	appName := "Test Graph"
 	appVersion := "Test Graph"
 	appDescription := "Test Graph"
-	producerFileName := "test.txt"
+	producerFileName := "test"
 
 	outBuf := &bytes.Buffer{}
 
-	app := generator.App{
+	g := graph.New(graph.Config{
 		Name:        appName,
 		Version:     appVersion,
 		Description: appDescription,
-		Files: map[string]nodes.Output[manifest.Manifest]{
-			producerFileName: buildTextArifact(&parameter.String{
-				Name:         "Welp",
-				DefaultValue: "yee",
-				Description:  "I'm a description",
-			}),
-		},
+	})
 
-		Out: outBuf,
+	g.AddProducer(producerFileName, buildTextArifact(&parameter.String{
+		Name:         "Welp",
+		CurrentValue: "yee",
+		Description:  "I'm a description",
+	}))
+
+	app := generator.App{
+		Graph: g,
+		Out:   outBuf,
 	}
 
 	// ACT ====================================================================
@@ -218,17 +133,22 @@ func TestAppCommand_Swagger(t *testing.T) {
         "version": "Test Graph"
     },
     "paths": {
-        "/producer/value/test.txt": {
+        "/manifest/test/Out": {
             "post": {
                 "summary": "",
                 "description": "",
-                "produces": [],
+                "produces": [
+                    "application/json"
+                ],
                 "consumes": [
                     "application/json"
                 ],
                 "responses": {
                     "200": {
-                        "description": "Producer Payload"
+                        "description": "Success",
+                        "schema": {
+                            "$ref": "#/definitions/CreateManifestResponse"
+                        }
                     }
                 },
                 "parameters": [
@@ -236,46 +156,119 @@ func TestAppCommand_Swagger(t *testing.T) {
                         "in": "body",
                         "name": "Request",
                         "schema": {
-                            "$ref": "#/definitions/TestTxtRequest"
+                            "$ref": "#/definitions/VariableProfile"
                         }
                     }
                 ]
             }
+        },
+        "/manifest/{id}/{entry}": {
+            "get": {
+                "summary": "",
+                "description": "",
+                "produces": [
+                    "application/octet-stream"
+                ],
+                "consumes": null,
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "type": "file"
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "description": "ID of the produced manifest to query",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "path",
+                        "name": "entry",
+                        "description": "Entry in the produced manifest to retrieve",
+                        "required": true,
+                        "type": "string"
+                    }
+                ]
+            }
+        },
+        "/profile": {
+            "get": {
+                "summary": "",
+                "description": "",
+                "produces": [
+                    "application/json"
+                ],
+                "consumes": null,
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                },
+                "parameters": null
+            }
         }
     },
     "definitions": {
-        "TestTxtRequest": {
+        "CreateManifestResponse": {
             "type": "object",
             "properties": {
-                "Welp": {
-                    "type": "string",
-                    "description": "I'm a description"
+                "id": {
+                    "type": "string"
+                },
+                "manifest": {
+                    "$ref": "#/definitions/Manifest"
                 }
             }
+        },
+        "Entries": {
+            "type": "object",
+            "additionalProperties": {
+                "$ref": "#/definitions/Entry"
+            }
+        },
+        "Entry": {
+            "type": "object",
+            "properties": {
+                "metadata": {
+                    "$ref": "#/definitions/Metadata"
+                }
+            }
+        },
+        "Manifest": {
+            "type": "object",
+            "properties": {
+                "entries": {
+                    "$ref": "#/definitions/Entries"
+                },
+                "main": {
+                    "type": "string"
+                }
+            }
+        },
+        "Metadata": {
+            "type": "object",
+            "additionalProperties": true
+        },
+        "VariableProfile": {
+            "type": "object"
         }
     }
 }`, string(contents))
 }
 
 func TestAppCommand_New(t *testing.T) {
-	appName := "Test Graph"
-	appVersion := "Test Graph"
-	appDescription := "Test Graph"
-	producerFileName := "test.txt"
-
 	outBuf := &bytes.Buffer{}
 
 	app := generator.App{
-		Name:        appName,
-		Version:     appVersion,
-		Description: appDescription,
-		Files: map[string]nodes.Output[manifest.Manifest]{
-			producerFileName: buildTextArifact(&parameter.String{
-				Name:         "Welp",
-				DefaultValue: "yee",
-			}),
-		},
-
 		Out: outBuf,
 	}
 
@@ -308,4 +301,65 @@ func TestAppCommand_New(t *testing.T) {
 		"subgroups": null
 	}
 }`, string(contents))
+}
+
+func TestAppCommand_Help(t *testing.T) {
+	outBuf := &bytes.Buffer{}
+
+	app := generator.App{
+		Name:        "Test App",
+		Version:     "test",
+		Description: "This is just a test app",
+		Authors: []schema.Author{
+			{
+				Name: "Test Runner",
+				ContactInfo: []schema.AuthorContact{
+					{
+						Medium: "package",
+						Value:  "testing",
+					},
+				},
+			},
+		},
+		Out: outBuf,
+	}
+
+	// ACT ====================================================================
+	err := app.Run([]string{
+		"polyform", "help",
+	})
+	contents, readErr := io.ReadAll(outBuf)
+
+	// ASSERT =================================================================
+	assert.NoError(t, err)
+	assert.NoError(t, readErr)
+	assert.Equal(t, `Test App test
+    This is just a test app
+
+AUTHORS:
+    Test Runner
+        package - testing
+        
+COMMANDS:
+    New: new 
+        Create a new graph
+    Generate: generate gen 
+        Runs all producers the graph has defined and saves it to the file system
+    Edit: edit 
+        Starts an http server and hosts a webplayer for editing the execution graph
+    Serve: serve 
+        Starts a 'production' server meant for taking requests for executing a certain graph
+    Zip: zip z 
+        Runs all producers defined and writes it to a zip file
+    Mermaid: mermaid 
+        Create a mermaid flow chart for a specific producer
+    Documentation: documentation docs 
+        Create a document describing all available nodes
+    Swagger: swagger 
+        Create a swagger 2.0 file
+    Outline: outline 
+        outline the data embedded in a graph
+    Help: help h 
+        
+    `, string(contents))
 }

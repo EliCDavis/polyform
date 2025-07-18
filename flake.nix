@@ -55,7 +55,7 @@
                 "cmd/${name}"
               ];
               preBuild = ''
-                cp -r ${website}/* ./generator/html/
+                cp -r ${website}/* ./generator/edit/html/
               '';
             }
           ) (lib.filterAttrs (n: v: v == "directory") (builtins.readDir ./cmd));
@@ -73,7 +73,7 @@
                 "examples/${name}"
               ];
               preBuild = ''
-                cp -r ${website}/* ./generator/html/
+                cp -r ${website}/* ./generator/edit/html/
               '';
             }
           ) (lib.filterAttrs (n: v: v == "directory") (builtins.readDir ./examples));
@@ -98,7 +98,7 @@
 
               ln -s ${cmd.polyform.goModules} ./vendor
 
-              cp -r ${website}/* ./generator/html/
+              cp -r ${website}/* ./generator/edit/html/
 
               for platform in ${builtins.toString supportedGoPlatforms}; do
                 GOOS=$(echo $platform | cut -d'/' -f1)
@@ -146,7 +146,7 @@
 
               ln -s ${cmd.polyform.goModules} ./vendor
 
-              cp -r ${website}/* ./generator/html/
+              cp -r ${website}/* ./generator/edit/html/
 
               GOOS=js GOARCH=wasm go build -mod=vendor -o ./main.wasm ./cmd/polyform
 
@@ -168,7 +168,7 @@
               runHook preInstallPhase
 
               mkdir -p $out
-              cp -r ./generator/html/* $out
+              cp -r ./generator/edit/html/* $out
 
               runHook postInstallPhase
             '';

@@ -1,11 +1,10 @@
 package main
 
 import (
-	"log"
+	"fmt"
 	"os"
 
 	"github.com/EliCDavis/polyform/generator"
-	"github.com/EliCDavis/polyform/generator/schema"
 
 	// Import these so they register their nodes with the generator
 	_ "github.com/EliCDavis/polyform/drawing/texturing/normals"
@@ -21,6 +20,7 @@ import (
 
 	_ "github.com/EliCDavis/polyform/generator/manifest/basics"
 	_ "github.com/EliCDavis/polyform/generator/parameter"
+	"github.com/EliCDavis/polyform/generator/schema"
 
 	_ "github.com/EliCDavis/polyform/math"
 	_ "github.com/EliCDavis/polyform/math/colors"
@@ -47,7 +47,6 @@ import (
 func main() {
 	app := generator.App{
 		Name:        "Polyform",
-		Version:     "",
 		Description: "Immutable mesh processing pipelines",
 		Authors: []schema.Author{
 			{
@@ -58,9 +57,13 @@ func main() {
 				},
 			},
 		},
+
+		Out: os.Stdout,
+		Err: os.Stderr,
 	}
 
 	if err := app.Run(os.Args); err != nil {
-		log.Fatal(err)
+		fmt.Fprintln(os.Stderr, err.Error())
+		os.Exit(1)
 	}
 }

@@ -26,11 +26,14 @@ func RecurseDependenciesType[T any](dependent nodes.Node) []T {
 	return allDependencies
 }
 
-func BuildSchemaForAllNodeTypes(typeFactory *refutil.TypeFactory) []schema.NodeType {
-	registeredTypes := typeFactory.Types()
+func (i *Instance) BuildSchemaForAllNodeTypes() []schema.NodeType {
+	i.lock.Lock()
+	defer i.lock.Unlock()
+
+	registeredTypes := i.typeFactory.Types()
 	nodeTypes := make([]schema.NodeType, 0, len(registeredTypes))
 	for _, registeredType := range registeredTypes {
-		instance := typeFactory.New(registeredType)
+		instance := i.typeFactory.New(registeredType)
 		nodeInstance, ok := instance.(nodes.Node)
 		if !ok {
 			panic(fmt.Errorf("Registered type %q is not a node: %s", registeredType, instance))

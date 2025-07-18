@@ -1,9 +1,7 @@
 package endpoint
 
 import (
-	"fmt"
 	"net/http"
-	"runtime/debug"
 )
 
 type BodyMethod[Body any] struct {
@@ -15,17 +13,6 @@ func (jse BodyMethod[Body]) ContentType() ContentType {
 	return ""
 }
 
-func (jse BodyMethod[Body]) runHandler(request Request[Body]) (err error) {
-	defer func() {
-		if recErr := recover(); recErr != nil {
-			fmt.Printf("panic: %v\nstacktrace from panic:\n%s", recErr, string(debug.Stack()))
-			err = fmt.Errorf("panic recover: %v", recErr)
-		}
-	}()
-	err = jse.Handler(request)
-	return
-}
-
 func (jse BodyMethod[Body]) Handle(w http.ResponseWriter, r *http.Request) {
 
 	request, err := jse.Request.Interpret(r)
@@ -34,10 +21,13 @@ func (jse BodyMethod[Body]) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = jse.runHandler(Request[Body]{
-		Body: request,
-		Url:  r.URL.Path,
+	err = safeRun(func() error {
+		return jse.Handler(Request[Body]{
+			Body: request,
+			Url:  r.URL.Path,
+		})
 	})
+
 	if err != nil {
 		writeJSONError(w, err)
 		return

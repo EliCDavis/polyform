@@ -1,10 +1,6 @@
 package parameter
 
 import (
-	"flag"
-	"io"
-	"os"
-
 	"github.com/EliCDavis/jbtf"
 	"github.com/EliCDavis/polyform/generator/schema"
 	"github.com/EliCDavis/polyform/nodes"
@@ -33,10 +29,8 @@ func (sno fileNodeOutput) Version() int {
 // ============================================================================
 
 type File struct {
-	Name         string
-	Description  string
-	DefaultValue []byte
-	CLI          *CliConfig[string]
+	Name        string
+	Description string
 
 	version      int
 	appliedValue []byte
@@ -65,26 +59,7 @@ func (pn *File) ToMessage() []byte {
 }
 
 func (pn *File) Value() []byte {
-	if pn.appliedValue != nil {
-		return pn.appliedValue
-	}
-
-	if pn.CLI != nil && pn.CLI.value != nil && *pn.CLI.value != "" {
-		f, err := os.Open(*pn.CLI.value)
-		if err != nil {
-			panic(err)
-			return nil
-		}
-		defer f.Close()
-
-		pn.appliedValue, err = io.ReadAll(f)
-		if err != nil {
-			return nil
-		}
-
-		return pn.appliedValue
-	}
-	return pn.DefaultValue
+	return pn.appliedValue
 }
 
 func (pn *File) Schema() schema.Parameter {
@@ -120,37 +95,21 @@ func (tn File) Inputs() map[string]nodes.InputPort {
 	return nil
 }
 
-func (pn File) InitializeForCLI(set *flag.FlagSet) {
-	if pn.CLI == nil {
-		return
-	}
-	pn.CLI.value = set.String(pn.CLI.FlagName, "", pn.CLI.Usage)
-}
-
 // CUSTOM JTF Serialization ===================================================
 
 type fileNodeGraphSchema struct {
-	Name         string             `json:"name"`
-	CurrentValue *jbtf.Bytes        `json:"currentValue"`
-	DefaultValue *jbtf.Bytes        `json:"defaultValue"`
-	CLI          *CliConfig[string] `json:"cli"`
+	Name         string      `json:"name"`
+	CurrentValue *jbtf.Bytes `json:"currentValue"`
 }
 
 func (pn *File) ToJSON(encoder *jbtf.Encoder) ([]byte, error) {
 	schema := fileNodeGraphSchema{
 		Name: pn.Name,
-		CLI:  pn.CLI,
 	}
 
 	if pn.Value() != nil {
 		schema.CurrentValue = &jbtf.Bytes{
 			Data: pn.Value(),
-		}
-	}
-
-	if schema.DefaultValue != nil {
-		schema.DefaultValue = &jbtf.Bytes{
-			Data: pn.DefaultValue,
 		}
 	}
 
@@ -164,11 +123,7 @@ func (pn *File) FromJSON(decoder jbtf.Decoder, body []byte) (err error) {
 	}
 
 	pn.Name = gn.Name
-	pn.CLI = gn.CLI
 
-	if gn.DefaultValue != nil {
-		pn.DefaultValue = gn.DefaultValue.Data
-	}
 	if gn.CurrentValue != nil {
 		pn.appliedValue = gn.CurrentValue.Data
 	}
