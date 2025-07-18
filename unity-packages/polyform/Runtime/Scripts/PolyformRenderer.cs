@@ -87,7 +87,7 @@ namespace EliCDavis.Polyform
             foreach (var handler in handlers)
             {
                 if (!handler.CanHandle(manifestsReq.Result.Manifest)) continue;
-                runtimeArtifact = handler.Handle(graph, manifestsReq.Result);
+                runtimeArtifact = handler.Handle(gameObject, graph, manifestsReq.Result);
                 yield break;
             }
 

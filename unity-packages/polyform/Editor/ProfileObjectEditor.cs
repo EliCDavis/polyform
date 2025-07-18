@@ -43,7 +43,6 @@ namespace EliCDavis.Polyform.Editor
             {
                 profileObject.Set(prop, evt.newValue);
                 EditorUtility.SetDirty(profileObject);
-                AssetDatabase.SaveAssets();
             };
         }
 
@@ -74,24 +73,29 @@ namespace EliCDavis.Polyform.Editor
                 case "integer":
                     var i = new IntegerField(propName)
                     {
-                        value = profileObject.Get<int>(propName)
+                        value = (int)profileObject.Get<long>(propName)
                     };
-                    i.RegisterCallback(SaveValue<int>(profileObject, propName));
+                    // Debug.Log($"Created: {propName}: {profileObject.Get<long>(propName)} ({typeof(long)})");
+                    i.RegisterCallback((ChangeEvent<int> evt) =>
+                    {
+                        profileObject.Set(propName, (long)evt.newValue);
+                        EditorUtility.SetDirty(profileObject);
+                    });
                     return i;
 
                 case "string":
                     switch (prop.Format)
                     {
                         case "color":
-                            ColorUtility.TryParseHtmlString("#" + profileObject.Get<string>(propName), out var color);
+                            ColorUtility.TryParseHtmlString(profileObject.Get<string>(propName), out var color);
                             var colorField = new ColorField(propName)
                             {
                                 value = color
                             };
                             colorField.RegisterValueChangedCallback(evt =>
                             {
-                                profileObject.Set(propName, ColorUtility.ToHtmlStringRGBA(evt.newValue));
-                                AssetDatabase.SaveAssets();
+                                profileObject.Set(propName, "#" + ColorUtility.ToHtmlStringRGBA(evt.newValue));
+                                EditorUtility.SetDirty(profileObject);
                             });
                             return colorField;
 

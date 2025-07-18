@@ -61,7 +61,6 @@ namespace EliCDavis.Polyform.Editor
             EditorUtility.SetDirty(graph);
             EditorUtility.SetDirty(profile);
 
-
             AssetDatabase.SaveAssets();
         }
 

@@ -45,7 +45,9 @@ namespace EliCDavis.Polyform.Editor
                             flexDirection = new StyleEnum<FlexDirection>(FlexDirection.Row)
                         }
                     };
-                    header.Add(new Label(keyval.Key));
+                    var title = new Label(keyval.Key);
+                    title.style.unityFontStyleAndWeight = FontStyle.Bold;
+                    header.Add(title);
 
                     var spacer = new VisualElement();
                     spacer.style.flexGrow = 1;
@@ -57,7 +59,14 @@ namespace EliCDavis.Polyform.Editor
 
                 if (!string.IsNullOrWhiteSpace(keyval.Value.Description))
                 {
-                    container.Add(new Label(keyval.Value.Description));
+                    var l = new Label(keyval.Value.Description)
+                    {
+                        style =
+                        {
+                            whiteSpace = new StyleEnum<WhiteSpace>(WhiteSpace.Normal)
+                        }
+                    };
+                    container.Add(l);
                 }
 
                 root.Add(container);

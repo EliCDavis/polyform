@@ -21,7 +21,7 @@ namespace EliCDavis.Polyform
 
         public void Set(string key, object val)
         {
-            Debug.Log($"Setting {key} to {val} ({val.GetType()})");
+            // Debug.Log($"Setting {key} to {val} ({val.GetType()})");
             data ??= new Dictionary<string, object>();
             data[key] = val;
             OnDataChange?.Invoke(key, val);
@@ -44,14 +44,16 @@ namespace EliCDavis.Polyform
 
         public void OnBeforeSerialize()
         {
+            data ??= new Dictionary<string, object>();
             serializedData = JsonConvert.SerializeObject(data);
-            Debug.Log($"Saving: {serializedData}");
+            // Debug.Log($"Saving: {serializedData}");
         }
 
         public void OnAfterDeserialize()
         {
-            Debug.Log($"Loading: {serializedData}");
+            // Debug.Log($"Loading: {serializedData}");
             data = JsonConvert.DeserializeObject<Dictionary<string, object>>(serializedData);
+            // Debug.Log($"Deserialized: {data["Resolution"]} ({data["Resolution"].GetType()})");
         }
     }
 }
