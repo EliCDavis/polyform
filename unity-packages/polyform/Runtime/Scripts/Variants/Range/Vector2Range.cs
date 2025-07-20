@@ -12,8 +12,8 @@ namespace EliCDavis.Polyform.Variants.Range
         public override Vector2 Sample()
         {
             return center + new Vector2(
-                Random.Range(-size.x, size.x),
-                Random.Range(-size.y, size.y)
+                Random.Range(-size.x, size.x) / 2f,
+                Random.Range(-size.y, size.y) / 2f
             );
         }
     }

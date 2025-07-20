@@ -1,9 +1,9 @@
 ![Polyform Banner](./docs/polyformbanner.png)
 ![Coverage](https://img.shields.io/badge/Coverage-35.9%25-yellow)
 [![Go Report Card](https://goreportcard.com/badge/github.com/EliCDavis/polyform)](https://goreportcard.com/report/github.com/EliCDavis/polyform)
+[![Go Reference](https://pkg.go.dev/badge/github.com/EliCDavis/polyform.svg)](https://pkg.go.dev/github.com/EliCDavis/polyform)
 [![CITATION.cff](https://github.com/EliCDavis/polyform/actions/workflows/cff-validator-complete.yml/badge.svg)](https://github.com/EliCDavis/polyform/actions/workflows/cff-validator-complete.yml)
 [![](https://dcbadge.limes.pink/api/server/https://discord.gg/rHAdm6TFX9?style=flat&theme=default-inverted)](https://discord.gg/rHAdm6TFX9)
-
 
 Polyform is for loading, generating, editing, and exporting 3D geometry and it's associated data.
 

@@ -10,9 +10,19 @@ namespace EliCDavis.Polyform
         [Serializable]
         class NamedProperty
         {
-            [SerializeField] public string name;
+            public string Name => name;
 
-            [SerializeField] public Property property;
+            public Property Property => property;
+
+            public NamedProperty(string name, Property property)
+            {
+                this.name = name;
+                this.property = property;
+            }
+
+            [SerializeField] private string name;
+
+            [SerializeField] private Property property;
         }
 
         [SerializeField] private NamedProperty[] properties;
@@ -24,11 +34,7 @@ namespace EliCDavis.Polyform
             var i = 0;
             foreach (var keyval in profileResult)
             {
-                properties[i] = new NamedProperty()
-                {
-                    name = keyval.Key,
-                    property = keyval.Value
-                };
+                properties[i] = new NamedProperty(keyval.Key, keyval.Value);
                 i++;
             }
         }
@@ -38,7 +44,7 @@ namespace EliCDavis.Polyform
             var result = new Dictionary<string, Property>();
             foreach (var prop in properties)
             {
-                result[prop.name] = prop.property;
+                result[prop.Name] = prop.Property;
             }
             return result;
         }

@@ -19,6 +19,11 @@ namespace EliCDavis.Polyform
 
         public ProfileSchemaObject Schema => schema;
 
+        public void Clear()
+        {
+            data = new Dictionary<string, object>();
+        }
+        
         public void Set(string key, object val)
         {
             // Debug.Log($"Setting {key} to {val} ({val.GetType()})");

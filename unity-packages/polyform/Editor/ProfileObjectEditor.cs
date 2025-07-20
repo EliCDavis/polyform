@@ -22,7 +22,6 @@ namespace EliCDavis.Polyform.Editor
 
             var schemaField = new PropertyField(serializedObject.FindProperty("schema"));
 
-            // InspectorElement.FillDefaultInspector(root, serializedObject, this);
             root.Add(schemaField);
 
             var variableContainer = new VisualElement();
@@ -33,6 +32,15 @@ namespace EliCDavis.Polyform.Editor
             {
                 BuildVariables(profile, profile.Schema, variableContainer);
             }));
+            
+            root.Add(new Button(() =>
+            {
+                profile.Clear();
+                EditorUtility.SetDirty(profile);
+            })
+            {
+                text = "Reset"
+            });
 
             return root;
         }

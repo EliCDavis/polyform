@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Text;
 using EliCDavis.Polyform.Models;
+using EliCDavis.Polyform.Serialization;
 using Newtonsoft.Json;
 using UnityEngine.Networking;
 
@@ -40,7 +41,8 @@ namespace EliCDavis.Polyform.Requests
                 return null;
             }
 
-            return Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(profile));
+            var json = JsonConvert.SerializeObject(profile, Formatting.None, new ColorHexConverter());
+            return Encoding.UTF8.GetBytes(json);
         }
     }
 }

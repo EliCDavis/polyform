@@ -192,9 +192,11 @@ func (tv *TypeVariable[T]) SwaggerProperty() swagger.Property {
 		}
 	}
 
-	desc := tv.info.Description()
-	if desc != "" {
-		prop.Description = desc
+	if tv != nil && tv.info != nil {
+		desc := tv.info.Description()
+		if desc != "" {
+			prop.Description = desc
+		}
 	}
 
 	return prop

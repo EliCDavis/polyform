@@ -68,7 +68,7 @@ func TestParameterNodeSwaggerProperty(t *testing.T) {
 		"color": {
 			input:      &variable.TypeVariable[coloring.WebColor]{},
 			propType:   swagger.StringPropertyType,
-			propFormat: "",
+			propFormat: "color",
 		},
 		"vector3 array parameter": {
 			input:    &variable.TypeVariable[[]vector3.Float64]{},

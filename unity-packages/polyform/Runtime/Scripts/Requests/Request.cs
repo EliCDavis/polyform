@@ -38,7 +38,7 @@ namespace EliCDavis.Polyform.Requests
             yield return req.SendWebRequest();
             if (req.responseCode != 200)
             {
-                throw new Exception($"{Method} {url} Returned Response Code {req.responseCode}");
+                throw new Exception($"{Method} {url} Returned Response Code {req.responseCode} - {req.downloadHandler.text}");
             }
 
             HandleResponseBody(req.downloadHandler.data);
