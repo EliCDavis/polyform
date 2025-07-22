@@ -27,7 +27,7 @@ namespace EliCDavis.Polyform
 
         [SerializeField] private NamedProperty[] properties;
 
-        public void SetData(Dictionary<string,Property> profileResult)
+        public void SetData(Dictionary<string, Property> profileResult)
         {
             properties = new NamedProperty[profileResult.Count];
 
@@ -42,10 +42,14 @@ namespace EliCDavis.Polyform
         public Dictionary<string, Property> Data()
         {
             var result = new Dictionary<string, Property>();
-            foreach (var prop in properties)
+            if (properties != null)
             {
-                result[prop.Name] = prop.Property;
+                foreach (var prop in properties)
+                {
+                    result[prop.Name] = prop.Property;
+                }
             }
+
             return result;
         }
     }

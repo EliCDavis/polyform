@@ -1,4 +1,5 @@
 ﻿using System;
+using EliCDavis.Polyform.Elements;
 using EliCDavis.Polyform.Models;
 using UnityEditor;
 using UnityEditor.UIElements;
@@ -32,7 +33,7 @@ namespace EliCDavis.Polyform.Editor
             {
                 BuildVariables(profile, profile.Schema, variableContainer);
             }));
-            
+
             root.Add(new Button(() =>
             {
                 profile.Clear();
@@ -54,7 +55,7 @@ namespace EliCDavis.Polyform.Editor
             };
         }
 
-        BindableElement CreateField(ProfileObject profileObject, string propName, Property prop)
+        VisualElement CreateField(ProfileObject profileObject, string propName, Property prop)
         {
             switch (prop.Type)
             {
@@ -115,6 +116,21 @@ namespace EliCDavis.Polyform.Editor
                             textField.RegisterCallback(SaveValue<string>(profileObject, propName));
                             return textField;
                     }
+
+                case "array":
+                    switch (prop.Items.Ref)
+                    {
+                        case "#/definitions/Vector3":
+                            var arrayField = new Vector3ArrayField(propName, profileObject.Get<Vector3[]>(propName));
+                            arrayField.OnValueChanged += list =>
+                            {
+                                profileObject.Set(propName, list.ToArray());
+                                EditorUtility.SetDirty(profileObject);
+                            };
+                            return arrayField;                  
+                    }
+                    break;
+          
             }
 
             throw new Exception($"unimplemented type: {prop.Type}");
@@ -123,7 +139,7 @@ namespace EliCDavis.Polyform.Editor
         void BuildVariables(ProfileObject profile, ProfileSchemaObject profileSchema, VisualElement root)
         {
             root.Clear();
-            if (profile == null)
+            if (profile == null || profileSchema == null)
             {
                 return;
             }

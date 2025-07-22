@@ -12,7 +12,6 @@ namespace EliCDavis.Polyform.Editor
     [CustomEditor(typeof(VariantProfile))]
     public class VariantProfileEditor : UnityEditor.Editor
     {
-
         public override VisualElement CreateInspectorGUI()
         {
             var root = new VisualElement();
@@ -37,42 +36,43 @@ namespace EliCDavis.Polyform.Editor
             return root;
         }
 
-        private static VisualElement SetupObjectField<T>(VariantProfile profileObject, ObjectField field, string propName)
+        private static VisualElement SetupObjectField<T>(VariantProfile profileObject, ObjectField field,
+            string propName)
         {
+            var container = new VisualElement();
             var val = profileObject.Get<T>(propName);
             field.objectType = typeof(Variant<T>);
             field.value = val;
             field.RegisterValueChangedCallback((evt) =>
             {
-                profileObject.Set(propName, evt.newValue as Variant<T>);
+                container.Clear();
+
+                var newVal = evt.newValue as Variant<T>;
+                profileObject.Set(propName, newVal);
                 EditorUtility.SetDirty(profileObject);
+
+                if (newVal != null)
+                {
+                    container.Add(new InspectorElement(newVal));
+                }
             });
-            
-            // var editor = UnityEditor.Editor.CreateEditor(val);
-            // if (editor != null)
-            // {
-            //     editors.Add(editor);
-            //     Debug.Log("Created editor for prop " + propName);
-            //     return editor.CreateInspectorGUI();
-            // }
 
-            if (val == null)
+            if (val != null)
             {
-                return null;
+                container.Add(new InspectorElement(val));
             }
-            
-            return new InspectorElement(val);
 
-            return null;
+            return container;
         }
 
         static VisualElement GetProperty(VariantProfile profileObject, string propName, Property prop)
         {
             var root = new VisualElement();
+            var tooltip = string.IsNullOrWhiteSpace(prop.Description) ? prop.ToString() : $"{prop}: {prop.Description}";
             var objectField = new ObjectField()
             {
                 label = propName,
-                tooltip = $"{prop}: {prop.Description}",
+                tooltip = tooltip,
             };
             root.Add(objectField);
 
@@ -84,29 +84,29 @@ namespace EliCDavis.Polyform.Editor
                     switch (prop.Format)
                     {
                         case "double":
-                            editorEle =SetupObjectField<double>(profileObject, objectField, propName);
+                            editorEle = SetupObjectField<double>(profileObject, objectField, propName);
                             break;
 
                         default:
-                            editorEle =SetupObjectField<float>(profileObject, objectField, propName);
+                            editorEle = SetupObjectField<float>(profileObject, objectField, propName);
                             break;
                     }
 
                     break;
 
                 case "integer":
-                    editorEle =SetupObjectField<int>(profileObject, objectField, propName);
+                    editorEle = SetupObjectField<int>(profileObject, objectField, propName);
                     break;
 
                 case "string":
                     switch (prop.Format)
                     {
                         case "color":
-                            editorEle =SetupObjectField<Color>(profileObject, objectField, propName);
+                            editorEle = SetupObjectField<Color>(profileObject, objectField, propName);
                             break;
 
                         default:
-                            editorEle =SetupObjectField<string>(profileObject, objectField, propName);
+                            editorEle = SetupObjectField<string>(profileObject, objectField, propName);
                             break;
                     }
 

@@ -190,6 +190,12 @@ func (tv *TypeVariable[T]) SwaggerProperty() swagger.Property {
 		prop.Items = map[string]any{
 			"$ref": "#/definitions/Vector3",
 		}
+
+	case "[]vector2.Vector[float64]":
+		prop.Type = swagger.ArrayPropertyType
+		prop.Items = map[string]any{
+			"$ref": "#/definitions/Vector2",
+		}
 	}
 
 	if tv != nil && tv.info != nil {

@@ -41,7 +41,11 @@ namespace EliCDavis.Polyform.Requests
                 return null;
             }
 
-            var json = JsonConvert.SerializeObject(profile, Formatting.None, new ColorHexConverter());
+            var json = JsonConvert.SerializeObject(
+                profile, 
+                Formatting.None, 
+                JsonConverters.Converters
+            );
             return Encoding.UTF8.GetBytes(json);
         }
     }

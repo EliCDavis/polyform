@@ -8,7 +8,7 @@ namespace EliCDavis.Polyform.Variants.SpawnAreas
 
         [SerializeField] private float groundInset;
 
-        protected Color gizmoColor = new Color(1, 0, 0, 0.2f);
+        protected Color GizmoColor = new Color(1, 0, 0, 0.2f);
         
         public Vector3 SpawnPoint()
         {

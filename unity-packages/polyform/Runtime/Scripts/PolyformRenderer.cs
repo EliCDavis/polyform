@@ -9,13 +9,11 @@ namespace EliCDavis.Polyform
 {
     public class PolyformRenderer : MonoBehaviour
     {
-        [SerializeField] private Graph graph;
-
         [SerializeField] private AvailableManifestObject endpoint;
 
-        [SerializeField] private RuntimeArtifactLoader[] handlers;
-
         [SerializeField] private ProfileObject profile;
+
+        [SerializeField] private RuntimeArtifactLoader[] handlers;
 
         #region Runtime
 
@@ -24,7 +22,6 @@ namespace EliCDavis.Polyform
         private IRuntimeArtifact runtimeArtifact;
 
         #endregion
-
 
         private void Start()
         {
@@ -64,10 +61,10 @@ namespace EliCDavis.Polyform
 
         private IEnumerator Run()
         {
-            yield return LoadManifest(endpoint.AvailableManifest());
+            yield return LoadManifest();
         }
 
-        private IEnumerator LoadManifest(AvailableManifest manifest)
+        private IEnumerator LoadManifest()
         {
             if (runtimeArtifact != null)
             {
@@ -81,17 +78,17 @@ namespace EliCDavis.Polyform
                 variableData = profile.Profile();
             }
 
-            var manifestsReq = graph.CreateManifest(manifest.Name, manifest.Port, variableData);
+            var manifestsReq = endpoint.Create(variableData);
             yield return manifestsReq.Run();
 
             foreach (var handler in handlers)
             {
                 if (!handler.CanHandle(manifestsReq.Result.Manifest)) continue;
-                runtimeArtifact = handler.Handle(gameObject, graph, manifestsReq.Result);
+                runtimeArtifact = handler.Handle(gameObject, endpoint.Graph, manifestsReq.Result);
                 yield break;
             }
-
-            throw new Exception($"No handler registered to handle manifest: {manifest.Name}/{manifest.Port}");
+            
+            throw new Exception($"No handler registered to handle manifest: {endpoint.Name}/{endpoint.Port}");
         }
     }
 }

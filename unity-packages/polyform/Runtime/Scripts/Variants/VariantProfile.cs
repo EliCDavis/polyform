@@ -66,7 +66,6 @@ namespace EliCDavis.Polyform.Variants
 
             if (references == null)
             {
-                Debug.Log("creating...");
                 CreateReferences();
                 return;
             }
@@ -89,14 +88,12 @@ namespace EliCDavis.Polyform.Variants
 
         public void Set<T>(string key, Variant<T> val)
         {
-            // Debug.Log($"Setting {key} to {val} ({val.GetType()})");
             InitReferences();
             foreach (var reference in references)
             {
                 if (reference.name != key) continue;
                 reference.reference = val;
                 OnDataChange?.Invoke(key, val);
-                Debug.Log("Set!!!" + key);
                 return;
             }
 

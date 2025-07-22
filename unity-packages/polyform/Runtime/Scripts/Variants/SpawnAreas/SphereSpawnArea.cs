@@ -18,7 +18,7 @@ namespace EliCDavis.Polyform.Variants.SpawnAreas
         
         private void OnDrawGizmosSelected()
         {
-            Gizmos.color = gizmoColor;
+            Gizmos.color = GizmoColor;
             Gizmos.DrawSphere(transform.position, radius);
         }
     }

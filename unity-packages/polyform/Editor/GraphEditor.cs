@@ -85,7 +85,7 @@ namespace EliCDavis.Polyform.Editor
                     found = graph.AddElement<AvailableManifestObject>(name);
                 }
                 
-                found.SetAvailableManifest(available);
+                found.SetAvailableManifest(graph, available);
                 EditorUtility.SetDirty(found);
             }
 

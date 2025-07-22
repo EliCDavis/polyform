@@ -1,6 +1,4 @@
-﻿using UnityEngine;
-
-namespace EliCDavis.Polyform.Variants
+﻿namespace EliCDavis.Polyform.Variants
 {
     public abstract class Variant<T>: VariantBase
     {

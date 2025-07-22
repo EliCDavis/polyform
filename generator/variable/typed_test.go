@@ -77,6 +77,13 @@ func TestParameterNodeSwaggerProperty(t *testing.T) {
 				"$ref": "#/definitions/Vector3",
 			},
 		},
+		"vector2 array parameter": {
+			input:    &variable.TypeVariable[[]vector2.Float64]{},
+			propType: swagger.ArrayPropertyType,
+			items: map[string]any{
+				"$ref": "#/definitions/Vector2",
+			},
+		},
 	}
 
 	for name, test := range tests {

@@ -16,8 +16,19 @@ namespace EliCDavis.Polyform.Models
         [SerializeField] [JsonProperty("description")]
         public string Description;
         
+        [SerializeField] [JsonProperty("items")]
+        public ItemsObject Items;
+        
+        [SerializeField] [JsonProperty("$ref")]
+        public string Ref;
+        
         public override string ToString()
         {
+            if (Type == "array")
+            {
+                return $"{Type} ({Items})";
+            }
+            
             if (string.IsNullOrWhiteSpace(Format))
             {
                 return Type;
