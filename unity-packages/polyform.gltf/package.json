@@ -1,0 +1,23 @@
+{
+  "name": "com.elicdavis.polyform.gltf",
+  "displayName": "Polyform GLTF Support",
+  "author": {
+    "name": "Eli C Davis",
+    "url": "https://github.com/EliCDavis/"
+  },
+  "documentationUrl": "https://github.com/EliCDavis/polyform",
+  "version": "1.0.0",
+  "unity": "2020.3",
+  "description": "Support for loading GLTF artifacts in polyform",
+  "keywords": [
+    "Artifacts",
+    "GLTF"
+  ],
+  "category": "Artifacts",
+  "samples": [],
+  "dependencies": {
+    "com.unity.nuget.newtonsoft-json": "2.0.2",
+    "com.unity.cloud.gltfast": "6.0.0",
+    "com.elicdavis.polyform": "1.0.0"
+  }
+}

@@ -188,7 +188,7 @@ requestManager.getNodeTypes((nodeTypes) => {
     document.getElementById("load-graph-button").onclick = fileControls.loadGraph;
     document.getElementById("export-model-button").onclick = fileControls.saveModel;
     document.getElementById("export-mermaid-button").onclick = fileControls.viewProgram;
-    // document.getElementById("export-swagger-button").onclick = fileControls.saveSwagger;
+    document.getElementById("export-swagger-button").onclick = fileControls.saveSwagger;
 
     // const panel = new GUI({ width: 310 });
 

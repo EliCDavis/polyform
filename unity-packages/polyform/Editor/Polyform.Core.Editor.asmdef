@@ -1,0 +1,19 @@
+{
+    "name": "Polyform.Core.Editor",
+    "rootNamespace": "EliCDavis.Polyform.Editor",
+    "references": [
+        "Polyform.Core",
+        "Unity.EditorCoroutines.Editor"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

@@ -7,6 +7,7 @@ import (
 	"image"
 
 	"github.com/EliCDavis/jbtf"
+	"github.com/EliCDavis/polyform/formats/swagger"
 	"github.com/EliCDavis/polyform/generator/schema"
 	"github.com/EliCDavis/polyform/nodes"
 
@@ -151,4 +152,12 @@ func (tv *ImageVariable) fromPersistantJSON(decoder jbtf.Decoder, body []byte) e
 		tv.value = gn.Value.Image
 	}
 	return nil
+}
+
+func (tv *ImageVariable) SwaggerProperty() swagger.Property {
+	return swagger.Property{
+		Type:        swagger.StringPropertyType,
+		Format:      swagger.BinaryPropertyFormat,
+		Description: tv.info.Description(),
+	}
 }

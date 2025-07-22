@@ -2,11 +2,9 @@ package parameter
 
 import (
 	"bytes"
-	"flag"
 	"image"
 	_ "image/jpeg"
 	"image/png"
-	"os"
 
 	"github.com/EliCDavis/jbtf"
 	"github.com/EliCDavis/polyform/generator/schema"
@@ -40,10 +38,8 @@ func (sno imageNodeOutput) Version() int {
 // ============================================================================
 
 type Image struct {
-	Name         string
-	Description  string
-	DefaultValue image.Image
-	CLI          *CliConfig[string]
+	Name        string
+	Description string
 
 	version      int
 	appliedValue image.Image
@@ -87,25 +83,7 @@ func (pn *Image) ToMessage() []byte {
 }
 
 func (pn *Image) Value() image.Image {
-	if pn.appliedValue != nil {
-		return pn.appliedValue
-	}
-
-	if pn.CLI != nil && pn.CLI.value != nil && *pn.CLI.value != "" {
-		f, err := os.Open(*pn.CLI.value)
-		if err != nil {
-			return nil
-		}
-		defer f.Close()
-
-		pn.appliedValue, _, err = image.Decode(f)
-		if err != nil {
-			return nil
-		}
-
-		return pn.appliedValue
-	}
-	return pn.DefaultValue
+	return pn.appliedValue
 }
 
 func (pn *Image) Schema() schema.Parameter {
@@ -127,37 +105,21 @@ func (tn Image) Inputs() map[string]nodes.InputPort {
 	return nil
 }
 
-func (pn Image) InitializeForCLI(set *flag.FlagSet) {
-	if pn.CLI == nil {
-		return
-	}
-	pn.CLI.value = set.String(pn.CLI.FlagName, "", pn.CLI.Usage)
-}
-
 // CUSTOM JTF Serialization ===================================================
 
 type imageNodeGraphSchema struct {
-	Name         string             `json:"name"`
-	CurrentValue *jbtf.Png          `json:"currentValue"`
-	DefaultValue *jbtf.Png          `json:"defaultValue"`
-	CLI          *CliConfig[string] `json:"cli"`
+	Name         string    `json:"name"`
+	CurrentValue *jbtf.Png `json:"currentValue"`
 }
 
 func (pn *Image) ToJSON(encoder *jbtf.Encoder) ([]byte, error) {
 	schema := imageNodeGraphSchema{
 		Name: pn.Name,
-		CLI:  pn.CLI,
 	}
 
 	if pn.Value() != nil {
 		schema.CurrentValue = &jbtf.Png{
 			Image: pn.Value(),
-		}
-	}
-
-	if schema.DefaultValue != nil {
-		schema.DefaultValue = &jbtf.Png{
-			Image: pn.DefaultValue,
 		}
 	}
 
@@ -171,11 +133,7 @@ func (pn *Image) FromJSON(decoder jbtf.Decoder, body []byte) (err error) {
 	}
 
 	pn.Name = gn.Name
-	pn.CLI = gn.CLI
 
-	if gn.DefaultValue != nil {
-		pn.DefaultValue = gn.DefaultValue.Image
-	}
 	if gn.CurrentValue != nil {
 		pn.appliedValue = gn.CurrentValue.Image
 	}

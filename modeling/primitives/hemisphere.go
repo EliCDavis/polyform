@@ -9,18 +9,21 @@ import (
 	"github.com/EliCDavis/vector/vector3"
 )
 
+const minHemisphereColumns = 3
+const minHemisphereRows = 2
+
 type Hemisphere struct {
 	Radius float64
 	Capped bool
 }
 
 func (h Hemisphere) UV(rows, columns int) modeling.Mesh {
-	if columns < 3 {
-		panic(fmt.Errorf("invalid row count (%d) for uv sphere", columns))
+	if columns < minHemisphereColumns {
+		panic(fmt.Errorf("invalid row count (%d < %d) for uv sphere", columns, minHemisphereColumns))
 	}
 
-	if rows < 2 {
-		panic(fmt.Errorf("invalid columns count (%d) for uv sphere", rows))
+	if rows < minHemisphereRows {
+		panic(fmt.Errorf("invalid columns count (%d < %d) for uv sphere", rows, minHemisphereRows))
 	}
 
 	positions := make([]vector3.Float64, 0)
@@ -102,7 +105,7 @@ func (hnd HemisphereNodeData) Out() nodes.StructOutput[modeling.Mesh] {
 	}
 
 	return nodes.NewStructOutput(hemi.UV(
-		nodes.TryGetOutputValue(hnd.Rows, 20),
-		nodes.TryGetOutputValue(hnd.Columns, 20),
+		max(minHemisphereRows, nodes.TryGetOutputValue(hnd.Rows, 20)),
+		max(minHemisphereColumns, nodes.TryGetOutputValue(hnd.Columns, 20)),
 	))
 }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/EliCDavis/jbtf"
+	"github.com/EliCDavis/polyform/formats/swagger"
 	"github.com/EliCDavis/polyform/generator/schema"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
@@ -129,3 +130,111 @@ func (tv *TypeVariable[T]) fromPersistantJSON(decoder jbtf.Decoder, body []byte)
 	tv.value = vsb.Value
 	return nil
 }
+
+func (tv *TypeVariable[T]) SwaggerProperty() swagger.Property {
+
+	prop := swagger.Property{}
+
+	var t T
+	switch refutil.GetTypeName(t) {
+	case "string":
+		prop.Type = swagger.StringPropertyType
+
+	// case Value[time.Time]:
+	// 	prop.Type = swagger.StringPropertyType
+	// 	prop.Format = swagger.DateTimePropertyFormat
+
+	case "float64":
+		prop.Type = swagger.NumberPropertyType
+		prop.Format = swagger.DoublePropertyFormat
+
+	case "float32":
+		prop.Type = swagger.NumberPropertyType
+		prop.Format = swagger.FloatPropertyFormat
+
+	case "bool":
+		prop.Type = swagger.BooleanPropertyType
+
+	case "int":
+		prop.Type = swagger.IntegerPropertyType
+
+	case "int64":
+		prop.Type = swagger.IntegerPropertyType
+		prop.Format = swagger.Int64PropertyFormat
+
+	case "int32":
+		prop.Type = swagger.IntegerPropertyType
+		prop.Format = swagger.Int32PropertyFormat
+
+	case "vector3.Vector[float64]":
+		prop.Ref = "#/definitions/Float3"
+
+	case "vector2.Vector[float64]":
+		prop.Ref = "#/definitions/Float2"
+
+	case "vector3.Vector[int]":
+		prop.Ref = "#/definitions/Int3"
+
+	case "vector2.Vector[int]":
+		prop.Ref = "#/definitions/Int2"
+
+	case "geometry.AABB":
+		prop.Ref = "#/definitions/AABB"
+
+	case "coloring.WebColor":
+		prop.Type = swagger.StringPropertyType
+		prop.Format = "color"
+
+	case "[]vector3.Vector[float64]":
+		prop.Type = swagger.ArrayPropertyType
+		prop.Items = map[string]any{
+			"$ref": "#/definitions/Vector3",
+		}
+
+	case "[]vector2.Vector[float64]":
+		prop.Type = swagger.ArrayPropertyType
+		prop.Items = map[string]any{
+			"$ref": "#/definitions/Vector2",
+		}
+	}
+
+	if tv != nil && tv.info != nil {
+		desc := tv.info.Description()
+		if desc != "" {
+			prop.Description = desc
+		}
+	}
+
+	return prop
+}
+
+// func (pn TypeVariable[T]) InitializeForCLI(set *flag.FlagSet) {
+// 	if pn.CLI == nil {
+// 		return
+// 	}
+// 	switch cli := any(pn.CLI).(type) {
+// 	case *CliConfig[string]:
+// 		cli.value = set.String(cli.FlagName, (any(pn.DefaultValue)).(string), cli.Usage)
+
+// 	case *CliConfig[float64]:
+// 		cli.value = set.Float64(cli.FlagName, (any(pn.DefaultValue)).(float64), cli.Usage)
+
+// 	case *CliConfig[bool]:
+// 		cli.value = set.Bool(cli.FlagName, (any(pn.DefaultValue)).(bool), cli.Usage)
+
+// 	case *CliConfig[int]:
+// 		cli.value = set.Int(cli.FlagName, (any(pn.DefaultValue)).(int), cli.Usage)
+
+// 	case *CliConfig[int64]:
+// 		cli.value = set.Int64(cli.FlagName, (any(pn.DefaultValue)).(int64), cli.Usage)
+// 	default:
+// 		panic(fmt.Errorf("parameter node %s has a type that can not be initialized on the command line. Please open up a issue on github.com/EliCDavis/polyform", pn.DisplayName()))
+// 	}
+// }
+
+// type CliConfig[T any] struct {
+// 	FlagName string `json:"flagName"`
+// 	Usage    string `json:"usage"`
+// 	// Default  T      `json:"default"`
+// 	value *T
+// }

@@ -3,15 +3,12 @@ package graph_test
 import (
 	"bytes"
 	"encoding/json"
-	"flag"
 	"testing"
 
-	"github.com/EliCDavis/jbtf"
 	"github.com/EliCDavis/polyform/generator/graph"
 	"github.com/EliCDavis/polyform/generator/manifest"
 	"github.com/EliCDavis/polyform/generator/manifest/basics"
 	"github.com/EliCDavis/polyform/generator/parameter"
-	"github.com/EliCDavis/polyform/generator/schema"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
 	"github.com/stretchr/testify/assert"
@@ -46,18 +43,16 @@ func TestInstance_AddProducer_InitializeParameters_Artifacts(t *testing.T) {
 	// ARRANGE ================================================================
 	contentToSetViaFlag := "bruh"
 	factory := &refutil.TypeFactory{}
-	instance := graph.New(factory)
+	instance := graph.New(graph.Config{
+		TypeFactory: factory,
+	})
 	assert.Len(t, instance.ProducerNames(), 0)
-	flags := flag.NewFlagSet("set", flag.PanicOnError)
+	// flags := flag.NewFlagSet("set", flag.PanicOnError)
 
 	strParam := &parameter.String{
-		Name: "Welp",
-		CLI: &parameter.CliConfig[string]{
-			FlagName: "yeet",
-			Usage:    "I'm the flag description",
-		},
-		DefaultValue: "yee",
+		Name:         "Welp",
 		Description:  "I'm a description",
+		CurrentValue: "bruh",
 	}
 
 	textNode := basics.TextNode{
@@ -69,8 +64,7 @@ func TestInstance_AddProducer_InitializeParameters_Artifacts(t *testing.T) {
 	// ACT ====================================================================
 	instance.AddProducer("test.txt", nodes.GetNodeOutputPort[manifest.Manifest](&textNode, "Out"))
 	producerNames := instance.ProducerNames()
-	instance.InitializeParameters(flags)
-	assert.NoError(t, flags.Parse([]string{"-yeet", contentToSetViaFlag}))
+	// assert.NoError(t, flags.Parse([]string{"-yeet", contentToSetViaFlag}))
 	textManifest := instance.Manifest("test.txt")
 
 	buf := &bytes.Buffer{}
@@ -80,10 +74,7 @@ func TestInstance_AddProducer_InitializeParameters_Artifacts(t *testing.T) {
 	instanceSchemaData, err := json.MarshalIndent(instanceSchema, "", "\t")
 	assert.NoError(t, err)
 
-	appSchema := &schema.App{}
-	encoder := &jbtf.Encoder{}
-	instance.EncodeToAppSchema(appSchema, encoder)
-	appSchemaData, err := encoder.ToPgtf(appSchema)
+	appSchema, err := instance.EncodeToAppSchema()
 	assert.NoError(t, err)
 
 	// ASSERT =================================================================
@@ -112,7 +103,6 @@ func TestInstance_AddProducer_InitializeParameters_Artifacts(t *testing.T) {
 				"name": "Welp",
 				"description": "I'm a description",
 				"type": "string",
-				"defaultValue": "yee",
 				"currentValue": "bruh"
 			}
 		},
@@ -153,12 +143,7 @@ func TestInstance_AddProducer_InitializeParameters_Artifacts(t *testing.T) {
 				"data": {
 					"name": "Welp",
 					"description": "I'm a description",
-					"currentValue": "bruh",
-					"defaultValue": "yee",
-					"cli": {
-						"flagName": "yeet",
-						"usage": "I'm the flag description"
-					}
+					"currentValue": "bruh"
 				}
 			},
 			"Node-1": {
@@ -182,5 +167,5 @@ func TestInstance_AddProducer_InitializeParameters_Artifacts(t *testing.T) {
 			"variables": {}
 		}
 	}
-}`, string(appSchemaData))
+}`, string(appSchema))
 }

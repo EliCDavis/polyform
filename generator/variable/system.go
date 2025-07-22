@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/EliCDavis/jbtf"
+	"github.com/EliCDavis/polyform/formats/swagger"
 	"github.com/EliCDavis/polyform/generator/schema"
 )
 
@@ -33,6 +34,7 @@ type System interface {
 	RuntimeSchema() (schema.NestedGroup[schema.RuntimeVariable], error)
 	ApplyProfile(profile Profile) error
 	GetProfile() Profile
+	SwaggerDefinition() swagger.Definition
 }
 
 func NewSystem() System {
@@ -45,6 +47,7 @@ type systemEntry interface {
 	SetPath(newPath string)
 	ApplyProfile(profile json.RawMessage) error
 	GetProfile() json.RawMessage
+	SwaggerProperty() swagger.Property
 }
 
 type systemVariableEntry struct {
@@ -64,9 +67,28 @@ func (sve *systemVariableEntry) GetProfile() json.RawMessage {
 	return sve.variable.getProfile()
 }
 
+func (sve *systemVariableEntry) SwaggerProperty() swagger.Property {
+	return sve.variable.SwaggerProperty()
+}
+
 type system struct {
 	entries map[string]systemEntry
 	mutex   sync.RWMutex
+}
+
+func (s *system) SwaggerDefinition() swagger.Definition {
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
+
+	props := make(map[string]swagger.Property, len(s.entries))
+	for name, entry := range s.entries {
+		props[name] = entry.SwaggerProperty()
+	}
+
+	return swagger.Definition{
+		Type:       "object",
+		Properties: props,
+	}
 }
 
 func (s *system) GetProfile() Profile {
@@ -88,9 +110,8 @@ func (s *system) ApplyProfile(profile Profile) error {
 	for key, data := range profile {
 		entry, ok := s.entries[key]
 
-		// TODO: Do we really just want to skip over this?
 		if !ok {
-			continue
+			return fmt.Errorf("unable to apply %q from profile, variable does not exist", key)
 		}
 
 		if err := entry.ApplyProfile(data); err != nil {

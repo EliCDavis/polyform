@@ -1,90 +1,56 @@
 package generator
 
 import (
+	"archive/zip"
 	_ "embed"
 	"encoding/json"
-	"flag"
 	"fmt"
 	"io"
 	"os"
-	"path"
-	"path/filepath"
 	"strings"
 	"text/template"
 	"time"
 
-	"github.com/EliCDavis/jbtf"
 	"github.com/EliCDavis/polyform/generator/cli"
+	"github.com/EliCDavis/polyform/generator/edit"
 	"github.com/EliCDavis/polyform/generator/graph"
-	"github.com/EliCDavis/polyform/generator/manifest"
 	"github.com/EliCDavis/polyform/generator/room"
+	"github.com/EliCDavis/polyform/generator/run"
 	"github.com/EliCDavis/polyform/generator/schema"
-	"github.com/EliCDavis/polyform/nodes"
+	"github.com/EliCDavis/polyform/generator/variable"
 )
 
 type App struct {
 	Name        string
 	Version     string
 	Description string
-	WebScene    *schema.WebScene
 	Authors     []schema.Author
-	Files       map[string]nodes.Output[manifest.Manifest]
 
-	graphInstance *graph.Instance
-	Out           io.Writer
+	Out   io.Writer
+	Err   io.Writer
+	Graph *graph.Instance
 }
 
 func (a *App) ApplySchema(jsonPayload []byte) error {
-
-	graph, err := jbtf.Unmarshal[schema.App](jsonPayload)
-	if err != nil {
-		return fmt.Errorf("unable to parse graph as a jbtf: %w", err)
-	}
-
-	if graph.Name != "" {
-		a.Name = graph.Name
-	}
-
-	a.Authors = graph.Authors
-
-	if graph.Version != "" {
-		a.Version = graph.Version
-	}
-
-	if graph.Description != "" {
-		a.Description = graph.Description
-	}
-
-	if graph.WebScene != nil {
-		a.WebScene = graph.WebScene
-	}
-
-	return a.graphInstance.ApplyAppSchema(jsonPayload)
+	a.initGraphInstance()
+	return a.Graph.ApplyAppSchema(jsonPayload)
 }
 
 func (a *App) Schema() []byte {
 	a.initGraphInstance()
-	g := schema.App{
-		Name:        a.Name,
-		Version:     a.Version,
-		Description: a.Description,
-		Authors:     a.Authors,
-		WebScene:    a.WebScene,
-		Producers:   make(map[string]schema.Producer),
-	}
 
-	encoder := &jbtf.Encoder{}
-	a.graphInstance.EncodeToAppSchema(&g, encoder)
+	data, err := a.Graph.EncodeToAppSchema()
 
-	data, err := encoder.ToPgtf(g)
 	if err != nil {
 		panic(err)
 	}
+
 	return data
 }
 
-func (a App) initialize(set *flag.FlagSet) {
-	a.graphInstance.InitializeParameters(set)
+func (a *App) applyProfileToGraph(profile variable.Profile) error {
+	a.initGraphInstance()
+	return a.Graph.ApplyProfile(profile)
 }
 
 //go:embed cli.tmpl
@@ -98,93 +64,106 @@ type appCLI struct {
 	Commands    []*cli.Command
 }
 
-func (a App) Generate(outputPath string) error {
-	for _, manifestName := range a.graphInstance.ProducerNames() {
-		manifestFolder := path.Join(outputPath, manifestName)
+func (a *App) initGraphInstance() {
+	if a.Graph != nil {
+		return
+	}
+	a.Graph = graph.New(graph.Config{
+		TypeFactory: types,
+	})
+}
 
-		manifest := a.graphInstance.Manifest(manifestName)
-		entries := manifest.Entries
+func (a *App) loadGraphFromDisk(config string) error {
+	if config == "" {
+		return nil
+	}
 
-		for entryName, entry := range entries {
-			manifestEntryPath := filepath.Join(manifestFolder, entryName)
-			// Producer names are paths which can contain subfolders, so be sure
-			// the subfolders exist before creating the file
-			err := os.MkdirAll(filepath.Dir(manifestEntryPath), os.ModeDir)
-			if err != nil {
-				return err
-			}
+	fileData, err := os.ReadFile(config)
+	if err != nil {
+		return err
+	}
 
-			// Create the File
-			f, err := os.Create(manifestEntryPath)
-			if err != nil {
-				return err
-			}
-			defer f.Close()
-
-			// Write data to file
-			err = entry.Artifact.Write(f)
-			if err != nil {
-				return err
-			}
-		}
+	err = a.ApplySchema(fileData)
+	if err != nil {
+		return err
 	}
 
 	return nil
 }
 
-func (a *App) initGraphInstance() {
-	if a.graphInstance != nil {
-		return
-	}
-	a.graphInstance = graph.New(types)
-	for name, file := range a.Files {
-		a.graphInstance.AddProducer(name, file)
-	}
-}
-
 func (a *App) Run(args []string) error {
 	os_setup(a)
-	a.initGraphInstance()
+	// a.initGraphInstance()
 
-	configFile := ""
+	graphFlagName := "graph"
+	graphFlag := &cli.StringFlag{
+		Name:        graphFlagName,
+		Description: "graph to load",
+		Action: func(app cli.RunState, s string) error {
+			if s == "" && a.Graph == nil {
+				return fmt.Errorf("graph flag is not provided and app has no embedded graph")
+			}
+			return a.loadGraphFromDisk(s)
+		},
+	}
+
+	profileFlagName := "profile"
+	profileFlag := &cli.StringFlag{
+		Name:        profileFlagName,
+		Description: "profile to apply to graph",
+		Action: func(app cli.RunState, profileData string) error {
+			if profileData == "" {
+				return nil
+			}
+			var profile variable.Profile
+			err := json.Unmarshal([]byte(profileData), &profile)
+			if err != nil {
+				return fmt.Errorf("unable to interpret profile flags data: %w", err)
+			}
+			return a.applyProfileToGraph(profile)
+		},
+	}
+
 	var commands []*cli.Command
 	commands = []*cli.Command{
 		{
 			Name:        "New",
 			Description: "Create a new graph",
 			Aliases:     []string{"new"},
+			Flags: []cli.Flag{
+				&cli.StringFlag{
+					Name:        "name",
+					Value:       "Graph",
+					Description: "name of the graph",
+				},
+				&cli.StringFlag{
+					Name:        "version",
+					Value:       "v0.0.1",
+					Description: "version of the graph",
+				},
+				&cli.StringFlag{
+					Name:        "description",
+					Description: "description of the graph",
+				},
+				&cli.StringFlag{
+					Name:        "author",
+					Description: "author of the graph",
+				},
+				&cli.StringFlag{
+					Name:        "out",
+					Description: "Optional path to file to write content to",
+				},
+			},
 			Run: func(state *cli.RunState) error {
-				newCmd := flag.NewFlagSet("new", flag.ExitOnError)
-				// newCmd.SetOutput(state.Out)
-				a.initialize(newCmd)
-				nameFlag := newCmd.String("name", "Graph", "name of the program")
-				versionFlag := newCmd.String("version", "v0.0.1", "version of the program")
-				descriptionFlag := newCmd.String("description", "", "description of the program")
-				authorFlag := newCmd.String("author", "", "author of the program")
-				outFlag := newCmd.String("out", "", "Optional path to file to write content to")
-
-				if err := newCmd.Parse(state.Args); err != nil {
-					return err
+				graph := schema.App{
+					Name:        state.String("name"),
+					Version:     state.String("version"),
+					Description: state.String("description"),
 				}
 
-				graph := schema.App{}
-
-				if nameFlag != nil {
-					graph.Name = *nameFlag
-				}
-
-				if versionFlag != nil {
-					graph.Version = *versionFlag
-				}
-
-				if descriptionFlag != nil {
-					graph.Description = *descriptionFlag
-				}
-
-				if authorFlag != nil && *authorFlag != "" {
-					graph.Authors = append(graph.Authors, schema.Author{
-						Name: *authorFlag,
-					})
+				authorFlag := state.String("author")
+				if authorFlag != "" {
+					graph.Authors = append(graph.Authors, schema.Author{Name: authorFlag})
 				}
 
 				data, err := json.MarshalIndent(graph, "", "\t")
@@ -193,8 +172,9 @@ func (a *App) Run(args []string) error {
 				}
 
 				var out io.Writer = state.Out
-				if outFlag != nil && *outFlag != "" {
-					f, err := os.Create(*outFlag)
+				outFlag := state.String("out")
+				if outFlag != "" {
+					f, err := os.Create(outFlag)
 					if err != nil {
 						return err
 					}
@@ -209,131 +189,183 @@ func (a *App) Run(args []string) error {
 			Name:        "Generate",
 			Description: "Runs all producers the graph has defined and saves it to the file system",
 			Aliases:     []string{"generate", "gen"},
+			Flags: []cli.Flag{
+				&cli.StringFlag{
+					Name:        "folder",
+					Value:       ".",
+					Description: "folder to save generated contents to",
+				},
+				graphFlag,
+				profileFlag,
+			},
 			Run: func(appState *cli.RunState) error {
-				generateCmd := flag.NewFlagSet("generate", flag.ExitOnError)
-				a.initialize(generateCmd)
-				folderFlag := generateCmd.String("folder", ".", "folder to save generated contents to")
-				if err := generateCmd.Parse(appState.Args); err != nil {
-					return err
-				}
-				return a.Generate(*folderFlag)
+				return graph.WriteToFolder(a.Graph, appState.String("folder"))
 			},
 		},
 		{
 			Name:        "Edit",
 			Description: "Starts an http server and hosts a webplayer for editing the execution graph",
 			Aliases:     []string{"edit"},
+			Flags: []cli.Flag{
+				&cli.StringFlag{
+					Name:        "host",
+					Value:       "localhost",
+					Description: "interface to bind to",
+				},
+				&cli.StringFlag{
+					Name:        "port",
+					Value:       "8080",
+					Description: "port to serve over",
+				},
+				&cli.BoolFlag{
+					Name:        "autosave",
+					Description: "Whether or not to save changes back to the loaded graph",
+				},
+				&cli.BoolFlag{
+					Name:        "launch-browser",
+					Description: "Whether or not to open the web page in the web browser",
+					Value:       true,
+				},
+				&cli.BoolFlag{
+					Name:        "ssl",
+					Description: "Whether or not to use SSL",
+				},
+				&cli.StringFlag{
+					Name:        "ssl.cert",
+					Value:       "cert.pem",
+					Description: "Path to cert file",
+				},
+				&cli.StringFlag{
+					Name:        "ssl.key",
+					Value:       "key.pem",
+					Description: "Path to key file",
+				},
+				&cli.DurationFlag{
+					Name:        "ping-period",
+					Value:       time.Second * 54,
+					Description: "Send pings to peer with this period over websocketed connection. Must be less than pongWait",
+				},
+				&cli.DurationFlag{
+					Name:        "pong-wait",
+					Value:       time.Second * 60,
+					Description: "Time allowed to read the next pong message from the peer over a websocketed connection",
+				},
+				&cli.DurationFlag{
+					Name:        "write-wait",
+					Value:       time.Second * 10,
+					Description: "Time allowed to write a message to the peer over a websocketed connection",
+				},
+				&cli.Int64Flag{
+					Name:        "max-message-size",
+					Value:       1024 * 2,
+					Description: "Maximum message size allowed from peer over websocketed connection",
+				},
+				&cli.StringFlag{
+					Name:        graphFlagName,
+					Description: "graph to load",
+					Action: func(r cli.RunState, s string) error {
+						if s == "" {
+							a.initGraphInstance()
+							return nil
+						}
+						return a.loadGraphFromDisk(s)
+					},
+				},
+			},
 			Run: func(appState *cli.RunState) error {
-				editCmd := flag.NewFlagSet("edit", flag.ExitOnError)
-				a.initialize(editCmd)
-				hostFlag := editCmd.String("host", "localhost", "interface to bind to")
-				portFlag := editCmd.String("port", "8080", "port to serve over")
+				server := edit.Server{
+					Graph:            a.Graph,
+					Host:             appState.String("host"),
+					Port:             appState.String("port"),
+					LaunchWebbrowser: appState.Bool("launch-browser"),
 
-				autoSave := editCmd.Bool("autosave", false, "Whether or not to save changes back to the graph loaded")
-				launchWebBrowser := editCmd.Bool("launch-browser", true, "Whether or not to open the web page in the web browser")
+					Autosave:   appState.Bool("autosave"),
+					ConfigPath: appState.String(graphFlagName),
 
-				sslFlag := editCmd.Bool("ssl", false, "Whether or not to use SSL")
-				certFlag := editCmd.String("ssl.cert", "cert.pem", "Path to cert file")
-				keyFlag := editCmd.String("ssl.key", "key.pem", "Path to key file")
+					Tls:      appState.Bool("ssl"),
+					CertPath: appState.String("ssl.cert"),
+					KeyPath:  appState.String("ssl.key"),
 
-				// Websocket
-				maxMessageSizeFlag := editCmd.Int64(
-					"max-message-size",
-					1024*2,
-					"Maximum message size allowed from peer over websocketed connection",
-				)
-
-				pingPeriodFlag := editCmd.Duration(
-					"ping-period",
-					time.Second*54,
-					"Send pings to peer with this period over websocketed connection. Must be less than pongWait.",
-				)
-
-				pongWaitFlag := editCmd.Duration(
-					"pong-wait",
-					time.Second*60,
-					"Time allowed to read the next pong message from the peer over a websocketed connection.",
-				)
-
-				writeWaitFlag := editCmd.Duration(
-					"write-wait",
-					time.Second*10,
-					"Time allowed to write a message to the peer over a websocketed connection.",
-				)
-
-				if err := editCmd.Parse(appState.Args); err != nil {
-					return err
-				}
-
-				server := AppServer{
-					app:              a,
-					host:             *hostFlag,
-					port:             *portFlag,
-					webscene:         a.WebScene,
-					launchWebbrowser: *launchWebBrowser,
-
-					autosave:   *autoSave,
-					configPath: configFile,
-
-					tls:      *sslFlag,
-					certPath: *certFlag,
-					keyPath:  *keyFlag,
-
-					clientConfig: &room.ClientConfig{
-						MaxMessageSize: *maxMessageSizeFlag,
-						PingPeriod:     *pingPeriodFlag,
-						PongWait:       *pongWaitFlag,
-						WriteWait:      *writeWaitFlag,
+					ClientConfig: &room.ClientConfig{
+						MaxMessageSize: appState.Int64("max-message-size"),
+						PingPeriod:     appState.Duration("ping-period"),
+						PongWait:       appState.Duration("pong-wait"),
+						WriteWait:      appState.Duration("write-wait"),
 					},
 				}
 				return server.Serve()
 			},
 		},
 		{
-			Name:        "Outline",
-			Description: "Enumerates all parameters and producers in a heirarchial fashion formatted in JSON",
-			Aliases:     []string{"outline"},
+			Name:        "Serve",
+			Aliases:     []string{"serve"},
+			Description: "Starts a 'production' server meant for taking requests for executing a certain graph",
+			Flags: []cli.Flag{
+				&cli.StringFlag{
+					Name:        "host",
+					Value:       "localhost",
+					Description: "interface to bind to",
+				},
+				&cli.StringFlag{
+					Name:        "port",
+					Value:       "8080",
+					Description: "port to serve over",
+				},
+				&cli.BoolFlag{
+					Name:        "ssl",
+					Description: "Whether or not to use SSL",
+				},
+				&cli.StringFlag{
+					Name:        "ssl.cert",
+					Value:       "cert.pem",
+					Description: "Path to cert file",
+				},
+				&cli.StringFlag{
+					Name:        "ssl.key",
+					Value:       "key.pem",
+					Description: "Path to key file",
+				},
+				&cli.IntFlag{
+					Name:        "cache-size",
+					Value:       100,
+					Description: "Path to key file",
+				},
+				graphFlag,
+				profileFlag,
+			},
 			Run: func(appState *cli.RunState) error {
-				outlineCmd := flag.NewFlagSet("outline", flag.ExitOnError)
-				a.initialize(outlineCmd)
+				server := run.Server{
+					Graph: a.Graph,
+					Host:  appState.String("host"),
+					Port:  appState.String("port"),
 
-				if err := outlineCmd.Parse(appState.Args); err != nil {
-					return err
+					Tls:       appState.Bool("ssl"),
+					CertPath:  appState.String("ssl.cert"),
+					KeyPath:   appState.String("ssl.key"),
+					CacheSize: appState.Int("cache-size"),
 				}
-
-				schema := a.graphInstance.Schema()
-
-				usedTypes := make(map[string]struct{})
-				for _, n := range schema.Nodes {
-					usedTypes[n.Type] = struct{}{}
-				}
-
-				data, err := json.MarshalIndent(schema, "", "    ")
-				if err != nil {
-					return err
-				}
-
-				_, err = appState.Out.Write(data)
-				return err
+				return server.Serve()
 			},
 		},
 		{
 			Name:        "Zip",
 			Description: "Runs all producers defined and writes it to a zip file",
 			Aliases:     []string{"zip", "z"},
+			Flags: []cli.Flag{
+				&cli.StringFlag{
+					Name:        "out",
+					Description: "file to write the contents of the zip too",
+				},
+				graphFlag,
+				profileFlag,
+			},
 			Run: func(appState *cli.RunState) error {
-				zipCmd := flag.NewFlagSet("zip", flag.ExitOnError)
-				a.initialize(zipCmd)
-				fileFlag := zipCmd.String("out", "", "file to write the contents of the zip too")
 
-				if err := zipCmd.Parse(appState.Args); err != nil {
-					return err
-				}
+				fileFlag := appState.String("out")
 
 				var out io.Writer = appState.Out
-
-				if fileFlag != nil && *fileFlag != "" {
-					f, err := os.Create(*fileFlag)
+				if fileFlag != "" {
+					f, err := os.Create(fileFlag)
 					if err != nil {
 						return err
 					}
@@ -341,26 +373,30 @@ func (a *App) Run(args []string) error {
 					out = f
 				}
 
-				return writeZip(out, a.graphInstance)
+				z := zip.NewWriter(out)
+				if err := graph.WriteToZip(a.Graph, z); err != nil {
+					return err
+				}
+
+				return z.Close()
 			},
 		},
 		{
 			Name:        "Mermaid",
 			Description: "Create a mermaid flow chart for a specific producer",
 			Aliases:     []string{"mermaid"},
+			Flags: []cli.Flag{
+				&cli.StringFlag{
+					Name:        "out",
+					Description: "Optional path to file to write content to",
+				},
+				graphFlag,
+			},
 			Run: func(appState *cli.RunState) error {
-				mermaidCmd := flag.NewFlagSet("mermaid", flag.ExitOnError)
-				a.initialize(mermaidCmd)
-				fileFlag := mermaidCmd.String("out", "", "Optional path to file to write content to")
-
-				if err := mermaidCmd.Parse(appState.Args); err != nil {
-					return err
-				}
-
 				var out io.Writer = os.Stdout
-
-				if fileFlag != nil && *fileFlag != "" {
-					f, err := os.Create(*fileFlag)
+				fileFlag := appState.String("out")
+				if fileFlag != "" {
+					f, err := os.Create(fileFlag)
 					if err != nil {
 						return err
 					}
@@ -368,32 +404,35 @@ func (a *App) Run(args []string) error {
 					out = f
 				}
 
-				return WriteMermaid(*a, out)
+				return graph.WriteMermaid(a.Graph, out)
 			},
 		},
 		{
 			Name:        "Documentation",
 			Description: "Create a document describing all available nodes",
 			Aliases:     []string{"documentation", "docs"},
+			Flags: []cli.Flag{
+				&cli.StringFlag{
+					Name:        "out",
+					Description: "Optional path to file to write content to",
+				},
+				&cli.StringFlag{
+					Name:        "format",
+					Value:       "markdown",
+					Description: "How to write documentation [markdown, html]",
+				},
+			},
 			Run: func(appState *cli.RunState) error {
-				markdownCmd := flag.NewFlagSet("documentation", flag.ExitOnError)
-				a.initialize(markdownCmd)
-				fileFlag := markdownCmd.String("out", "", "Optional path to file to write content to")
-				formatFlag := markdownCmd.String("format", "markdown", "How to write documentation [markdown, html]")
-
-				if err := markdownCmd.Parse(appState.Args); err != nil {
-					return err
-				}
-
-				format := strings.ToLower(strings.TrimSpace(*formatFlag))
+				format := strings.ToLower(strings.TrimSpace(appState.String("format")))
 				if format != "html" && format != "markdown" {
 					return fmt.Errorf("unrecognized format %q", format)
 				}
 
 				var out io.Writer = os.Stdout
 
-				if fileFlag != nil && *fileFlag != "" {
-					f, err := os.Create(*fileFlag)
+				fileFlag := appState.String("out")
+				if fileFlag != "" {
+					f, err := os.Create(fileFlag)
 					if err != nil {
 						return err
 					}
@@ -402,9 +441,9 @@ func (a *App) Run(args []string) error {
 				}
 
 				doc := DocumentationWriter{
-					Title:       a.Name,
-					Description: a.Description,
-					Version:     a.Version,
+					Title:       a.Graph.GetName(),
+					Description: a.Graph.GetDescription(),
+					Version:     a.Graph.GetVersion(),
 					NodeTypes:   types,
 				}
 
@@ -414,7 +453,6 @@ func (a *App) Run(args []string) error {
 
 				case "html":
 					return doc.WriteSingleHTML(out)
-
 				}
 				return nil
 			},
@@ -423,19 +461,18 @@ func (a *App) Run(args []string) error {
 			Name:        "Swagger",
 			Description: "Create a swagger 2.0 file",
 			Aliases:     []string{"swagger"},
+			Flags: []cli.Flag{
+				&cli.StringFlag{
+					Name:        "out",
+					Description: "Optional path to file to write content to",
+				},
+				graphFlag,
+			},
 			Run: func(appState *cli.RunState) error {
-				swaggerCmd := flag.NewFlagSet("swagger", flag.ExitOnError)
-				a.initialize(swaggerCmd)
-				fileFlag := swaggerCmd.String("out", "", "Optional path to file to write content to")
-
-				if err := swaggerCmd.Parse(appState.Args); err != nil {
-					return err
-				}
-
 				var out io.Writer = appState.Out
-
-				if fileFlag != nil && *fileFlag != "" {
-					f, err := os.Create(*fileFlag)
+				fileFlag := appState.String("out")
+				if fileFlag != "" {
+					f, err := os.Create(fileFlag)
 					if err != nil {
 						return err
 					}
@@ -443,7 +480,46 @@ func (a *App) Run(args []string) error {
 					out = f
 				}
 
-				return a.WriteSwagger(out)
+				return graph.WriteSwagger(a.Graph, out)
+			},
+		},
+		{
+			Name:        "Outline",
+			Description: "outline the data embedded in a graph",
+			Aliases:     []string{"outline"},
+			Flags: []cli.Flag{
+				graphFlag,
+			},
+			Run: func(app *cli.RunState) error {
+				fmt.Fprintf(app.Out, "# %s\n\n", a.Graph.GetName())
+				if a.Graph.GetVersion() != "" {
+					fmt.Fprintf(app.Out, "%s\n\n", a.Graph.GetVersion())
+				}
+				fmt.Fprintf(app.Out, "%s\n\n", a.Graph.GetDescription())
+
+				fmt.Fprintf(app.Out, "## Variables\n\n")
+
+				variables := a.Graph.Schema().Variables.Variables
+				if len(variables) == 0 {
+					fmt.Fprintf(app.Out, "(none)\n")
+				}
+
+				for name, variable := range variables {
+					fmt.Fprintf(app.Out, "* %s: %s - %s\n", name, variable.Type, variable.Description)
+					fmt.Fprintf(app.Out, "  * Value: %v\n", variable.Value)
+				}
+
+				fmt.Fprintf(app.Out, "\n## Profiles\n\n")
+
+				profiles := a.Graph.Profiles()
+				if len(profiles) == 0 {
+					fmt.Fprintf(app.Out, "(none)\n\n")
+				}
+
+				for i, profile := range profiles {
+					fmt.Fprintf(app.Out, "%d. %s\n", i+1, profile)
+				}
+				return nil
 			},
 		},
 		{
@@ -454,13 +530,9 @@ func (a *App) Run(args []string) error {
 				cliDetails := appCLI{
 					Name:        a.Name,
 					Version:     a.Version,
-					Commands:    commands,
 					Authors:     a.Authors,
 					Description: a.Description,
-				}
-
-				if cliDetails.Version == "" {
-					cliDetails.Version = "(no version)"
+					Commands:    commands,
 				}
 
 				tmpl, err := template.New("CLI App").Parse(cliTemplate)
@@ -475,20 +547,7 @@ func (a *App) Run(args []string) error {
 	cliApp := cli.App{
 		Commands: commands,
 		Out:      a.Out,
-		ConfigProvided: func(config string) error {
-			fileData, err := os.ReadFile(config)
-			if err != nil {
-				return err
-			}
-
-			err = a.ApplySchema(fileData)
-			if err != nil {
-				return err
-			}
-
-			configFile = config
-			return nil
-		},
+		Err:      a.Err,
 	}
 
 	if isWasm() {
