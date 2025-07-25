@@ -37,7 +37,7 @@ func (gad ReadNodeData) Out() nodes.StructOutput[modeling.Mesh] {
 	cloud, err := ReadMesh(bytes.NewReader(data))
 	if err != nil {
 		out := nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
-		out.LogError(err)
+		out.CaptureError(err)
 		return out
 	}
 

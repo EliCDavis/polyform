@@ -164,7 +164,7 @@ func (pn ReadNodeData) Out() nodes.StructOutput[modeling.Mesh] {
 	scene, _, err := ReadMesh(bytes.NewReader(data))
 	if err != nil {
 		output := nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
-		output.LogError(err)
+		output.CaptureError(err)
 		return output
 	}
 	return nodes.NewStructOutput(scene.ToMesh())

@@ -23,8 +23,7 @@ func main() {
 		Usage: "Iterates through each vertex of the mesh passed in and computes the corresponding voxel the vertex belongs to. The output mesh is a visualization of those voxels.",
 		Authors: []*cli.Author{
 			{
-				Name:  "Eli Davis",
-				Email: "eli@recolude.com",
+				Name: "Eli Davis",
 			},
 		},
 		Flags: []cli.Flag{

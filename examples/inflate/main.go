@@ -47,8 +47,7 @@ func main() {
 		Name: "inflate",
 		Authors: []*cli.Author{
 			{
-				Name:  "Eli Davis",
-				Email: "eli@recolude.com",
+				Name: "Eli Davis",
 			},
 		},
 		Flags: []cli.Flag{

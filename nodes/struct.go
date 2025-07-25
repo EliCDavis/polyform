@@ -137,7 +137,7 @@ func (so *StructOutput[T]) Set(v T) {
 	so.val = v
 }
 
-func (so StructOutput[T]) LogError(err error) {
+func (so StructOutput[T]) CaptureError(err error) {
 	if err == nil {
 		return
 	}

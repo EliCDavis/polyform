@@ -8,12 +8,12 @@ import (
 // ============================================================================
 
 type SumNodeData[T vector.Number] struct {
-	Values []nodes.Output[T]
+	Values []nodes.Output[T] `description:"The nodes to sum"`
 }
 
-func (cn SumNodeData[T]) Out() nodes.StructOutput[T] {
+func (sn SumNodeData[T]) Out() nodes.StructOutput[T] {
 	var total T
-	for _, v := range cn.Values {
+	for _, v := range sn.Values {
 		if v == nil {
 			continue
 		}

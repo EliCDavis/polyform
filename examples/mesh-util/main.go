@@ -12,8 +12,7 @@ func main() {
 		Name: "mesh-util",
 		Authors: []*cli.Author{
 			{
-				Name:  "Eli Davis",
-				Email: "eli@recolude.com",
+				Name: "Eli Davis",
 			},
 		},
 		Commands: []*cli.Command{

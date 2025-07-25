@@ -30,6 +30,6 @@ func (pn ReadPointsNodeData) Out() nodes.StructOutput[modeling.Mesh] {
 
 	data, err := ReadSparsePointData(bytes.NewReader(pn.In.Value()))
 	out := nodes.NewStructOutput(data)
-	out.LogError(err)
+	out.CaptureError(err)
 	return out
 }

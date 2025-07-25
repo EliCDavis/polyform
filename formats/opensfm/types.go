@@ -31,7 +31,7 @@ func (pn ReadReconstructionNodeData) Out() nodes.StructOutput[modeling.Mesh] {
 	data, err := ReadReconstructiontData(bytes.NewReader(pn.In.Value()))
 
 	out := nodes.NewStructOutput(data)
-	out.LogError(err)
+	out.CaptureError(err)
 
 	return out
 }

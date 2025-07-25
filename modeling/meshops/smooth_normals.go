@@ -149,7 +149,7 @@ func (snn SmoothNormalsNodeData) Out() nodes.StructOutput[modeling.Mesh] {
 	mesh := snn.Mesh.Value()
 	if !mesh.HasFloat3Attribute(modeling.PositionAttribute) {
 		out := nodes.NewStructOutput(mesh)
-		out.LogError(fmt.Errorf("can't calculate normals without position data"))
+		out.CaptureError(fmt.Errorf("can't calculate normals without position data"))
 		return out
 	}
 
@@ -170,7 +170,7 @@ func (snn SmoothNormalsImplicitWeldNodeData) Out() nodes.StructOutput[modeling.M
 	mesh := snn.Mesh.Value()
 	if !mesh.HasFloat3Attribute(modeling.PositionAttribute) {
 		out := nodes.NewStructOutput(mesh)
-		out.LogError(fmt.Errorf("can't calculate normals without position data"))
+		out.CaptureError(fmt.Errorf("can't calculate normals without position data"))
 		return out
 	}
 	return nodes.NewStructOutput(SmoothNormalsImplicitWeld(

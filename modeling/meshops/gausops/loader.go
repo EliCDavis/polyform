@@ -22,7 +22,7 @@ func (pn LoaderNodeData) Out() nodes.StructOutput[modeling.Mesh] {
 	splat, err := ply.ReadMesh(bufReader)
 	if err != nil {
 		out := nodes.NewStructOutput(modeling.EmptyPointcloud())
-		out.LogError(err)
+		out.CaptureError(err)
 		return out
 	}
 
@@ -41,7 +41,7 @@ func (pn SpzLoaderNodeData) Out() nodes.StructOutput[modeling.Mesh] {
 	header, err := spz.Read(bufReader)
 	if err != nil {
 		out := nodes.NewStructOutput(modeling.EmptyPointcloud())
-		out.LogError(err)
+		out.CaptureError(err)
 		return out
 	}
 

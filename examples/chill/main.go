@@ -100,8 +100,7 @@ func main() {
 		Name: "chill",
 		Authors: []*cli.Author{
 			{
-				Name:  "Eli Davis",
-				Email: "eli@recolude.com",
+				Name: "Eli Davis",
 			},
 		},
 		Version:     "1.0.0",

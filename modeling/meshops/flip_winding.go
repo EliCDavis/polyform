@@ -48,7 +48,7 @@ func (n FlipTriangleWindingNode) Flipped() nodes.StructOutput[modeling.Mesh] {
 
 	if mesh.Topology() != modeling.TriangleTopology {
 		out := nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
-		out.LogError(fmt.Errorf("Cant flip triangles of a non triangle mesh"))
+		out.CaptureError(fmt.Errorf("Cant flip triangles of a non triangle mesh"))
 		return out
 	}
 

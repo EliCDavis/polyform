@@ -5,36 +5,24 @@
 [![CITATION.cff](https://github.com/EliCDavis/polyform/actions/workflows/cff-validator-complete.yml/badge.svg)](https://github.com/EliCDavis/polyform/actions/workflows/cff-validator-complete.yml)
 [![](https://dcbadge.limes.pink/api/server/https://discord.gg/rHAdm6TFX9?style=flat&theme=default-inverted)](https://discord.gg/rHAdm6TFX9)
 
-Polyform is for loading, generating, editing, and exporting 3D geometry and it's associated data.
+Polyform is a immutable processing pipeline for loading, generating, editing, and exporting 3D geometry and it's associated data.
 
 Developers and artists are welcome to join the [Discord](https://discord.gg/rHAdm6TFX9) to share feedback, get help, or discuss feature requests.
 
 ## Quickstart
 
-If you just want to play around without setting polyform up locally, you can check it out [here](https://elicdavis.github.io/polyform/)
+You can play around with the WASM deployment [here](https://elicdavis.github.io/polyform/).
 
-### Pre-built binaries
-Download the latest [release](https://github.com/EliCDavis/polyform/releases) of polyform and one of the [example graphs](./generator/edit/examples/) and then run:
-
-```bash
-polyform edit --graph <downloaded_example>.json
-```
-
-### Go
-Or if you have golang installed, simply clone the repo and run:
+Or if you want to run it locally, you can download the latest [release](https://github.com/EliCDavis/polyform/releases) and run:
 
 ```bash
-go run ./cmd/polyform edit --graph ./examples/graphs/ufo.json
-```
+polyform edit
 
-### Nix
-Or if you have Nix installed, run with:
+# Or if you have golang installed, simply clone the repo and run:
+go run ./cmd/polyform edit
 
-```bash
-nix run .#polyform edit --graph ./examples/graphs/ufo.json
-
-# List all available packages
-nix flake show
+# Or if you have Nix installed, run with:
+nix run .#polyform edit
 ```
 
 ## Overview
@@ -49,27 +37,31 @@ nix flake show
   - [splat](/formats/splat/) - Mkkellogg's SPLAT format
   - [spz](/formats/spz/) - Niantic Scaniverse's [SPZ format](https://scaniverse.com/news/spz-gaussian-splat-open-source-file-format)
   - [potree](/formats/potree/) - Potree V2 file format
-- Modeling
-  - [meshops](/modeling/meshops/) - All currently implemented algorithms for transforming meshes.
-  - [marching](/modeling/marching/) - Multi-threaded Cube Marching algorithm and utilities.
+- [Modeling](/modeling/)
   - [extrude](/modeling/extrude/) - Functionality for generating geometry from 2D shapes.
-  - [repeat](/modeling/repeat/) - Functionality for copying geometry in common patterns.
+  - [marching](/modeling/marching/) - Multi-threaded Cube Marching algorithm and utilities.
+  - [meshops](/modeling/meshops/) - All currently implemented algorithms for transforming meshes.
   - [primitives](/modeling/repeat/) - Functionality pertaining to generating common geometry.
+  - [repeat](/modeling/repeat/) - Functionality for copying geometry in common patterns.
   - [triangulation](/modeling/triangulation/) - Generating meshes from a set of 2D points.
-- Drawing
+- [Drawing](/drawing/)
   - [coloring](/drawing/coloring/) - Color utilities for blending multiple colors together using weights.
   - [texturing](/drawing/texturing/) - Traditional image processing utilities (common convolution kernels).
     - [normals](/drawing//texturing/normals/) - Utilities for generating and editing normal maps.
-- [Math](/math/README.md)
+- [Math](/math/)
+  - [bias](/math/bias/) - Generic, temperature-scaled, biased random sampler for weighted selection of items
   - [colors](/math/colors/) - Making working with golang colors not suck as much.
   - [curves](/math/curves/) - Common curves used in animation like cubic bezier curves.
   - [geometry](/math/geometry/) - AABB, Line2D, Line3D, Plane, and Rays.
+  - [kmeans](/math/kmeans/) - Generic k-means clustering algorithm across 1D to 4D vector spaces.
+  - [mat](/math/mat/) - 4x4 Matrix implementation
+  - [morton](/math/morton/) - 3D Morton encoder that maps floating-point vectors to and from compact 64-bit Morton codes with configurable spatial bounds and resolution.
   - [noise](/math/noise/) - Utilities around noise functions for common usecases like stacking multiple samples of perlin noise from different frequencies.
-  - [quaternion](/math/quaternion/) - Quaternion math and helper functions
-  - [trs](/math/trs/) - Math and utilities around TRS transformations
-  - [sample](/math/sample/) - Serves as a group of definitions for defining a mapping from one numeric value to another
+  - [quaternion](/math/quaternion/) - Quaternion math and helper functions.
   - [sdf](/math/sdf/) - SDF implementations of different geometry primitives, along with common math functions. Basically slowly picking through [Inigo Quilez's Distfunction](https://iquilezles.org/articles/distfunctions/) article as I need them in my different projects.
-- [Generator](/generator/) - Application scaffolding for editing and creating meshes
+  - [sample](/math/sample/) - Serves as a group of definitions for defining a mapping from one numeric value to another.
+  - [trs](/math/trs/) - Math and utilities around TRS transformations.
+- [Generator](/generator/) - Application scaffolding for editing and creating meshes.
 - [Trees](/trees/) - Implementation of common spatial partitioning trees.
 
 Packages that have spawned from polyform's undertaking and have since been refactored into their own repositories:
@@ -104,6 +96,44 @@ This was my [submission for ProcJam 2022](https://elicdavis.itch.io/evergreen-tr
 | [[Source Here](/examples/terrain/main.go)] ![terrain](/examples/terrain/terrain.png) | [[Source Here](/examples/covid/main.go)] ![terrain](/examples/covid/covid.png)   |
 | [[Source Here](/examples/plumbob/main.go)] ![plumbob](/examples/plumbob/plumbob.png) | [[Source Here](/examples/oreo/main.go)] ![oreo](/examples/oreo/oreo.png)         |
 
+
+## Processing Example
+
+Reads in a obj and applies the cube marching algorithm over the meshes 3D SDF.
+
+```go
+package main
+
+import (
+  "github.com/EliCDavis/polyform/formats/obj"
+  "github.com/EliCDavis/polyform/modeling"
+  "github.com/EliCDavis/polyform/modeling/marching"
+  "github.com/EliCDavis/polyform/modeling/meshops"
+  "github.com/EliCDavis/vector"
+)
+
+func main() {
+  objScene, _ := obj.Load("test-models/stanford-bunny.obj")
+
+  resolution := 10.
+  scale := 12.
+
+  transformedMesh := objScene.ToMesh().Transform(
+    meshops.CenterAttribute3DTransformer{},
+    meshops.ScaleAttribute3DTransformer{Amount: vector3.Fill(scale)},
+  )
+
+  canvas := marching.NewMarchingCanvas(resolution)
+  meshSDF := marching.Mesh(transformedMesh, .1, 10)
+  canvas.AddFieldParallel(meshSDF)
+
+  obj.SaveMesh("chunky-bunny.obj", canvas.MarchParallel(.3))
+}
+```
+
+Results in:
+
+![Chunky Bunny](/examples/inflate/chunky-bunny.png)
 
 ## Developing
 
@@ -153,102 +183,6 @@ Then serve
 ```bash
 polywasm serve
 ```
-
-## Processing Example
-
-Reads in a obj and applies the cube marching algorithm over the meshes 3D SDF.
-
-```go
-package main
-
-import (
-  "github.com/EliCDavis/polyform/formats/obj"
-  "github.com/EliCDavis/polyform/modeling"
-  "github.com/EliCDavis/polyform/modeling/marching"
-  "github.com/EliCDavis/polyform/modeling/meshops"
-  "github.com/EliCDavis/vector"
-)
-
-func main() {
-  loadedMesh, _ := obj.Load("test-models/stanford-bunny.obj")
-
-  resolution := 10.
-  scale := 12.
-
-  transformedMesh := loadedMesh.Transform(
-    meshops.Center3DTransformer{},
-    meshops.Scale3DTransformer{Amount: vector3.Fill(scale)},
-  )
-
-  canvas := marching.NewMarchingCanvas(resolution)
-  meshSDF := marching.Mesh(transformedMesh, .1, 10)
-  canvas.AddFieldParallel(meshSDF)
-
-  obj.Save("chunky-bunny.obj", canvas.MarchParallel(.3))
-}
-```
-
-Results in:
-
-![Chunky Bunny](/examples/inflate/chunky-bunny.png)
-
-## Todo List
-
-Progress towards V1...
-
-- [x] Finalize Material Definition (or remove and defer to file format specifications)
-- [ ] Finalize Node error propogation flow
-- [x] Cleanup Node interface
-- [x] Finalize package organization for node equivalent functionality (ie vector3 => vecn3)
-- [x] Proper WASM Deployment
-
-Things I want to implement eventually...
-
-- [x] Cube Marching
-- [x] Bezier Curves
-- [ ] Slice By Plane
-- [ ] Slice By Bounding Box
-- [ ] Constrained Delaunay Tesselation
-- [x] Meshing Pipeline
-- [x] Bones / Animations
-- [ ] Quadric Error Decimation
-- [x] Proper Build Pipeline
-- [x] Documentation Website
-- [ ] Primitive Meshes
-  - [x] Cube
-  - [ ] Sphere
-    - [x] UV
-    - [ ] Ico
-    - [ ] Quad
-  - [x] Cylinder
-  - [x] Quad
-  - [x] Circle
-  - [x] Cone
-  - [ ] Capsule
-  - [ ] Hemisphere
-  - [ ] Rounded Cube
-- [ ] SDFs
-  - [x] Box
-  - [x] Line
-  - [x] Plane
-  - [x] Sphere
-  - [x] Rounded Cylinder
-  - [x] Rounded Box
-  - [ ] Torus
-  - [ ] Box Frame
-  - [ ] Cone
-  - [ ] Rounded Cone
-  - [ ] Elipsoid
-  - [ ] Triangle
-- [ ] 3D Tesselation
-- [ ] Slice By Octree
-- [ ] Poisson Reconstruction
-- [ ] Buncha texture patterns
-- [ ] Noise...
-  - [ ] Simplex
-- [ ] Splines...
-  - [x] Catmull
-  - [ ] B Spline
 
 ## Resources
 
@@ -421,7 +355,6 @@ Libraries the Webviewer depends on in some capacity
 
 * [three.js](https://github.com/mrdoob/three.js)
 * [GaussianSplats3D](https://github.com/mkkellogg/GaussianSplats3D)
-* [dat.gui](https://github.com/dataarts/dat.gui)
 
 ## Citiation
 
