@@ -8,7 +8,7 @@ Inputs to nodes are other nodes' outputs, and outputs are computed dynamically a
 
 Nodes generally start as a struct, where the fields of that struct represent it's connections to other node's output.
 
-For the sake of presenting information to the user, as well as automatically generating documentation, you can add descriptions for each input, as well as the node itself.
+For the sake of presenting information to the user, as well as automatically generating documentation, you can define descriptions for node as well as each of it's inputs.
 
 ```go
 type MathNode struct {
@@ -95,7 +95,6 @@ func (sn SumNode) Sum() nodes.StructOutput[float64] {
 	}
 	return nodes.NewStructOutput(total)
 }
-
 ```
 
 ## Registering a Node

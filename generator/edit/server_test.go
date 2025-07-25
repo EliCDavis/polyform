@@ -111,7 +111,7 @@ func TestServer(t *testing.T) {
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &out))
 				assert.Equal(t, `{"displayName":"parameter.Value[float64]","info":"","type":"Float64","path":"generator/parameter","outputs":{"Value":{"type":"float64"}},"parameter":{"name":"","description":"","type":"float64","currentValue":1}}`, string(out[0]))
 				assert.Equal(t, `{"displayName":"MyVariable","info":"Variable HTTP test","type":"MyVariable","path":"generator/variable","outputs":{"Value":{"type":"float64"}}}`, string(out[1]))
-				assert.Equal(t, `{"displayName":"Sum[float64]","info":"","type":"Sum","path":"math","outputs":{"Out":{"type":"float64"}},"inputs":{"Values":{"type":"float64","isArray":true}}}`, string(out[2]))
+				assert.Equal(t, `{"displayName":"Sum[float64]","info":"","type":"Sum","path":"math","outputs":{"Out":{"type":"float64"}},"inputs":{"Values":{"type":"float64","isArray":true,"description":"The nodes to sum"}}}`, string(out[2]))
 				assert.Len(t, out, 3)
 			},
 		},
