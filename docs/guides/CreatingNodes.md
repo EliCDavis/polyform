@@ -1,3 +1,6 @@
+[Table of Contents](../README.md) | Next: [Manifests](./CreatingManifests.md)
+
+
 # Creating a Custom Node
 
 In Polyform, a node generally represents a single operation in a procedural graph. 
@@ -8,7 +11,7 @@ Inputs to nodes are other nodes' outputs, and outputs are computed dynamically a
 
 Nodes generally start as a struct, where the fields of that struct represent it's connections to other node's output.
 
-For the sake of presenting information to the user, as well as automatically generating documentation, you can define descriptions for node as well as each of it's inputs.
+For the sake of presenting information to the user, as well as automatically generating documentation, you can define descriptions for the node as well as each of it's inputs.
 
 ```go
 type MathNode struct {

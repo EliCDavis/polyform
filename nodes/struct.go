@@ -3,6 +3,7 @@ package nodes
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/EliCDavis/polyform/refutil"
 	"github.com/EliCDavis/polyform/utils"
@@ -90,6 +91,7 @@ type StructOutput[T any] struct {
 	data         any
 	val          T
 	cache        *structOutputCache
+	report       ExecutionReport
 }
 
 func (so StructOutput[T]) Name() string {
@@ -105,7 +107,9 @@ func (so *StructOutput[T]) Value() T {
 	if !so.cache.Outdated(so.functionName) {
 		val = so.cache.Get(so.functionName).(StructOutput[T])
 	} else {
+		start := time.Now()
 		val = refutil.CallStructMethod(so.data, so.functionName)[0].(StructOutput[T])
+		val.report.TotalTime = time.Since(start)
 		so.cache.Cache(so.functionName, val)
 	}
 	return val.val
@@ -119,12 +123,27 @@ func (so StructOutput[T]) Type() string {
 	return refutil.GetTypeWithPackage(new(T))
 }
 
-func (si StructOutput[T]) Description() string {
-	name := si.functionName + "Description"
-	if refutil.HasMethod(si.data, name) {
-		return refutil.CallStructMethod(si.data, name)[0].(string)
+func (so StructOutput[T]) Description() string {
+	name := so.functionName + "Description"
+	if refutil.HasMethod(so.data, name) {
+		return refutil.CallStructMethod(so.data, name)[0].(string)
 	}
 	return ""
+}
+
+// >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+// Implementing ObservableExecution
+// >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+// The report of executing the output function
+func (so StructOutput[T]) ExecutionReport() ExecutionReport {
+
+	// More song and dance of function return vs node return
+	if !so.cache.Outdated(so.functionName) {
+		val := so.cache.Get(so.functionName).(StructOutput[T])
+		return val.report
+	}
+	return so.report
 }
 
 // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -133,16 +152,18 @@ func (si StructOutput[T]) Description() string {
 // We do this circus act where the StructOutput returned from the function
 // isn't the StructOutput we pass around to other nodes to use.
 // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+// Set the result of the output
 func (so *StructOutput[T]) Set(v T) {
 	so.val = v
 }
 
-func (so StructOutput[T]) CaptureError(err error) {
+func (so *StructOutput[T]) CaptureError(err error) {
 	if err == nil {
 		return
 	}
 
-	// Do capture
+	so.report.Errors = append(so.report.Errors, err.Error())
 }
 
 // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<

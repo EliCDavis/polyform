@@ -5,7 +5,7 @@ import (
 	"github.com/EliCDavis/vector"
 )
 
-func methodToArr[T any, G any](in T, arr []T, f func(a, b T) G) []G {
+func methodToArr[T any, G any](in T, arr []T, f func(a, arrI T) G) []G {
 	out := make([]G, len(arr))
 
 	for i, v := range arr {
@@ -36,7 +36,7 @@ func (cn DifferencesToArrayNodeData[T]) Out() nodes.StructOutput[[]T] {
 		nodes.TryGetOutputValue(cn.In, 0),
 		nodes.TryGetOutputValue(cn.Array, nil),
 		func(a, b T) T {
-			return a - b
+			return b - a
 		},
 	))
 }

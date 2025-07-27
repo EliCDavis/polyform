@@ -13,18 +13,32 @@ type Assertion interface {
 
 // ============================================================================
 
-type assertPortValue[T any] struct {
-	Port  string
-	Value T
+type AssertOutputPortValue[T any] struct {
+	Port            string
+	Value           T
+	ExecutionReport *nodes.ExecutionReport
 }
 
-func (apv assertPortValue[T]) Assert(t *testing.T, node nodes.Node) {
-	out := nodes.GetNodeOutputPort[T](node, apv.Port).Value()
-	assert.Equal(t, apv.Value, out)
+func (apv AssertOutputPortValue[T]) Assert(t *testing.T, node nodes.Node) {
+	out := nodes.GetNodeOutputPort[T](node, apv.Port)
+	assert.Equal(t, apv.Value, out.Value())
+
+	if apv.ExecutionReport == nil {
+		return
+	}
+
+	obvervable, ok := out.(nodes.ObservableExecution)
+	if !ok {
+		t.Error("node output does not have expected execution report")
+	}
+
+	report := obvervable.ExecutionReport()
+	assert.Equal(t, apv.ExecutionReport.Logs, report.Logs)
+	assert.Equal(t, apv.ExecutionReport.Errors, report.Errors)
 }
 
-func AssertOutput[T any](port string, value T) Assertion {
-	return assertPortValue[T]{
+func AssertOutput[T any](port string, value T) AssertOutputPortValue[T] {
+	return AssertOutputPortValue[T]{
 		Port:  port,
 		Value: value,
 	}
@@ -75,8 +89,6 @@ func NewAssertInputPortDescription(port, description string) AssertNodeInputPort
 		Description: description,
 	}
 }
-
-// ============================================================================
 
 func NewNode[T any](data T) nodes.Node {
 	return &nodes.Struct[T]{

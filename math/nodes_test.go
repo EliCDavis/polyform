@@ -32,6 +32,97 @@ func TestNodes(t *testing.T) {
 				nodetest.AssertOutput("Out", 100.),
 			},
 		},
+		"Difference: nil - nil = 0": {
+			node: nodetest.NewNode(math.DifferenceNodeData[float64]{}),
+			assertions: []nodetest.Assertion{
+				nodetest.AssertOutput("Out", 0.),
+			},
+		},
+		"Difference: 1 - nil = 1": {
+			node: nodetest.NewNode(math.DifferenceNodeData[float64]{
+				A: nodetest.NewPortValue(1.),
+			}),
+			assertions: []nodetest.Assertion{
+				nodetest.AssertOutput("Out", 1.),
+			},
+		},
+		"Difference: nil - 1 = -1": {
+			node: nodetest.NewNode(math.DifferenceNodeData[float64]{
+				B: nodetest.NewPortValue(1.),
+			}),
+			assertions: []nodetest.Assertion{
+				nodetest.AssertOutput("Out", -1.),
+			},
+		},
+		"Difference: 1 - 1 = 0": {
+			node: nodetest.NewNode(math.DifferenceNodeData[float64]{
+				A: nodetest.NewPortValue(1.),
+				B: nodetest.NewPortValue(1.),
+			}),
+			assertions: []nodetest.Assertion{
+				nodetest.AssertOutput("Out", 0.),
+			},
+		},
+		"Difference: []{1,2,3} - nil = []{1,2,3}": {
+			node: nodetest.NewNode(math.DifferencesToArrayNodeData[float64]{
+				Array: nodetest.NewPortValue([]float64{1., 2., 3.}),
+			}),
+			assertions: []nodetest.Assertion{
+				nodetest.AssertOutput("Out", []float64{1., 2., 3.}),
+			},
+		},
+		"Difference: []{1,2,3} - 1 = []{0,1,2}": {
+			node: nodetest.NewNode(math.DifferencesToArrayNodeData[float64]{
+				In:    nodetest.NewPortValue(1.),
+				Array: nodetest.NewPortValue([]float64{1., 2., 3.}),
+			}),
+			assertions: []nodetest.Assertion{
+				nodetest.AssertOutput("Out", []float64{0., 1., 2.}),
+			},
+		},
+		"Divide: nil / nil = 0": {
+			node: nodetest.NewNode(math.DivideNode[float64]{
+				// In:    nodetest.NewPortValue(1.),
+			}),
+			assertions: []nodetest.Assertion{
+				nodetest.NewAssertInputPortDescription("Dividend", "the number being divided"),
+				nodetest.NewAssertInputPortDescription("Divisor", "number doing the dividing"),
+				nodetest.AssertOutputPortValue[float64]{
+					Port:  "Out",
+					Value: 0.,
+					ExecutionReport: &nodes.ExecutionReport{
+						Errors: []string{"can't divide by 0"},
+					},
+				},
+			},
+		},
+		"Divide: 1 / nil = 0": {
+			node: nodetest.NewNode(math.DivideNode[float64]{
+				Dividend: nodetest.NewPortValue(1.),
+			}),
+			assertions: []nodetest.Assertion{
+				nodetest.AssertOutputPortValue[float64]{
+					Port:  "Out",
+					Value: 0.,
+					ExecutionReport: &nodes.ExecutionReport{
+						Errors: []string{"can't divide by 0"},
+					},
+				},
+			},
+		},
+		"Divide: 1 / 2 = 0.5": {
+			node: nodetest.NewNode(math.DivideNode[float64]{
+				Dividend: nodetest.NewPortValue(1.),
+				Divisor:  nodetest.NewPortValue(2.),
+			}),
+			assertions: []nodetest.Assertion{
+				nodetest.AssertOutputPortValue[float64]{
+					Port:            "Out",
+					Value:           0.5,
+					ExecutionReport: &nodes.ExecutionReport{},
+				},
+			},
+		},
 		"Round: nil => 0": {
 			node: &nodes.Struct[math.RoundNodeData]{
 				Data: math.RoundNodeData{},
