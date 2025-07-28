@@ -26,6 +26,7 @@ export interface PortReference {
 
 export interface NodeInstanceOutputPort {
     version: number;
+    report?: ExecutionReport;
 }
 
 export interface NodeInstanceOutput {
@@ -82,4 +83,17 @@ export interface Manifest {
 
 export interface CreateVariableResponse {
     nodeType: NodeDefinition
+}
+
+export interface StepTiming {
+    label?: string;
+    duration: number;
+    steps?: StepTiming[];
+}
+
+export interface ExecutionReport {
+    errors?: string[];
+    logs?: string[];
+    totalTime: number;
+    steps?: StepTiming[];
 }

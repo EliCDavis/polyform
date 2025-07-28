@@ -31,6 +31,8 @@ func init() {
 
 	refutil.RegisterType[nodes.Struct[DivideNodeData[int]]](factory)
 	refutil.RegisterType[nodes.Struct[DivideNodeData[float64]]](factory)
+	refutil.RegisterType[nodes.Struct[DivideToArrayNode[int]]](factory)
+	refutil.RegisterType[nodes.Struct[DivideToArrayNode[float64]]](factory)
 
 	refutil.RegisterType[nodes.Struct[MultiplyNodeData[float64]]](factory)
 	refutil.RegisterType[nodes.Struct[MultiplyNodeData[int]]](factory)
@@ -206,37 +208,15 @@ func (cn InverseNodeData[T]) Multiplicative() nodes.StructOutput[T] {
 	v := nodes.TryGetOutputValue(cn.In, 0)
 	if v == 0 {
 		var t T
-		return nodes.NewStructOutput(t)
+		out := nodes.NewStructOutput(t)
+		out.CaptureError(cantDivideByZeroErr)
+		return out
 	}
 	return nodes.NewStructOutput(1. / v)
 }
 
 func (cn InverseNodeData[T]) MultiplicativeDescription() string {
 	return "The multiplicative inverse for a number x, denoted by 1/x or x^−1, is a number which when multiplied by x yields the multiplicative identity, 1"
-}
-
-// ============================================================================
-
-type DivideNodeData[T vector.Number] struct {
-	Dividend nodes.Output[T]
-	Divisor  nodes.Output[T]
-}
-
-func (DivideNodeData[T]) Description() string {
-	return "Dividend / Divisor"
-}
-
-func (cn DivideNodeData[T]) Out() nodes.StructOutput[T] {
-	var empty T
-	a := nodes.TryGetOutputValue(cn.Dividend, empty)
-	b := nodes.TryGetOutputValue(cn.Divisor, empty)
-
-	// TODO: Eeeeehhhhhhhhhhhhhhhhhhhhh
-	if b == 0 {
-		return nodes.NewStructOutput(empty)
-	}
-
-	return nodes.NewStructOutput(a / b)
 }
 
 // ============================================================================

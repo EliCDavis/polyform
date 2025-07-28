@@ -66,9 +66,9 @@ type AssertNodeInputPortDescription struct {
 }
 
 func (apv AssertNodeInputPortDescription) Assert(t *testing.T, node nodes.Node) {
-	outputs := node.Inputs()
+	inputs := node.Inputs()
 
-	port, ok := outputs[apv.Port]
+	port, ok := inputs[apv.Port]
 	if !ok {
 		t.Error("node does not contain input port", apv.Port)
 		return
@@ -98,4 +98,27 @@ func NewNode[T any](data T) nodes.Node {
 
 func NewPortValue[T any](data T) nodes.Output[T] {
 	return nodes.ConstOutput[T]{Val: data}
+}
+
+type AssertNodeOutputPortDescription struct {
+	Port        string
+	Description string
+}
+
+func (apv AssertNodeOutputPortDescription) Assert(t *testing.T, node nodes.Node) {
+	inputs := node.Outputs()
+
+	port, ok := inputs[apv.Port]
+	if !ok {
+		t.Error("node does not contain output port", apv.Port)
+		return
+	}
+
+	describable, ok := port.(nodes.Describable)
+	if !ok {
+		t.Error("node output port does not contain a description", apv.Port)
+		return
+	}
+
+	assert.Equal(t, apv.Description, describable.Description())
 }

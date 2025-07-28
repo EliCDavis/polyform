@@ -1,12 +1,15 @@
 package schema
 
+import "github.com/EliCDavis/polyform/nodes"
+
 type PortReference struct {
 	NodeId   string `json:"id"`
 	PortName string `json:"port"`
 }
 
 type NodeInstanceOutputPort struct {
-	Version int `json:"version"`
+	Version int                    `json:"version"`
+	Report  *nodes.ExecutionReport `json:"report,omitempty"`
 }
 
 type NodeInstance struct {

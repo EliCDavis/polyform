@@ -7,18 +7,22 @@ import (
 	"github.com/EliCDavis/vector"
 )
 
-var cantDivideByZeroError = errors.New("can't divide by 0")
+var cantDivideByZeroErr = errors.New("can't divide by 0")
 
-type DivideNode[T vector.Number] struct {
+type DivideNodeData[T vector.Number] struct {
 	Dividend nodes.Output[T] `description:"the number being divided"`
 	Divisor  nodes.Output[T] `description:"number doing the dividing"`
 }
 
-func (cn DivideNode[T]) Out() nodes.StructOutput[T] {
+func (DivideNodeData[T]) Description() string {
+	return "Dividend / Divisor"
+}
+
+func (cn DivideNodeData[T]) Out() nodes.StructOutput[T] {
 	b := nodes.TryGetOutputValue(cn.Divisor, 0)
 	if b == 0 {
 		out := nodes.NewStructOutput[T](0)
-		out.CaptureError(cantDivideByZeroError)
+		out.CaptureError(cantDivideByZeroErr)
 		return out
 	}
 
@@ -34,18 +38,22 @@ type DivideToArrayNode[T vector.Number] struct {
 
 func (cn DivideToArrayNode[T]) Out() nodes.StructOutput[[]T] {
 	arr := nodes.TryGetOutputValue(cn.Array, nil)
+	if len(arr) == 0 {
+		return nodes.NewStructOutput([]T{})
+	}
+
 	b := nodes.TryGetOutputValue(cn.In, 0)
 
 	if b == 0 {
 		out := nodes.NewStructOutput(make([]T, len(arr)))
-		out.CaptureError(cantDivideByZeroError)
+		out.CaptureError(cantDivideByZeroErr)
 		return out
 	}
 
 	return nodes.NewStructOutput(methodToArr(
 		b, arr,
 		func(a, b T) T {
-			return a / b
+			return b / a
 		},
 	))
 }

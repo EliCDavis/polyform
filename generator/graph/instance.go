@@ -378,9 +378,16 @@ func (a *Instance) NodeInstanceSchema(node nodes.Node) schema.NodeInstance {
 	}
 
 	for outputPortName, outputPort := range node.Outputs() {
-		nodeInstance.Output[outputPortName] = schema.NodeInstanceOutputPort{
+		result := schema.NodeInstanceOutputPort{
 			Version: outputPort.Version(),
 		}
+
+		if observable, ok := outputPort.(nodes.ObservableExecution); ok {
+			report := observable.ExecutionReport()
+			result.Report = &report
+		}
+
+		nodeInstance.Output[outputPortName] = result
 	}
 
 	for inputPortName, inputPort := range node.Inputs() {

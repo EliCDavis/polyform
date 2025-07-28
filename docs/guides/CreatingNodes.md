@@ -1,6 +1,5 @@
 [Table of Contents](../README.md) | Next: [Manifests](./CreatingManifests.md)
 
-
 # Creating a Custom Node
 
 In Polyform, a node generally represents a single operation in a procedural graph. 
