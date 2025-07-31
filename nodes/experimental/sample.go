@@ -13,18 +13,20 @@ type SampleNodeData struct {
 }
 
 func (snd SampleNodeData) Out() nodes.StructOutput[[]float64] {
-	start := nodes.TryGetOutputValue(snd.Start, 0.)
-	end := nodes.TryGetOutputValue(snd.End, 1.)
-	samples := max(nodes.TryGetOutputValue(snd.Samples, 0), 0)
+	out := nodes.StructOutput[[]float64]{}
+	start := nodes.TryGetOutputValue(&out, snd.Start, 0.)
+	end := nodes.TryGetOutputValue(&out, snd.End, 1.)
+	samples := max(nodes.TryGetOutputValue(&out, snd.Samples, 0), 0)
 
-	out := make([]float64, samples)
+	arr := make([]float64, samples)
 	inc := (end - start) / float64(samples-1)
-	for i := 0; i < samples; i++ {
+	for i := range samples {
 		v := start + (float64(i) * inc)
-		out[i] = v
+		arr[i] = v
 	}
 
-	return nodes.NewStructOutput(out)
+	out.Set(arr)
+	return out
 }
 
 type ShiftNode = nodes.Struct[ShiftNodeData]
@@ -35,21 +37,24 @@ type ShiftNodeData struct {
 }
 
 func (snd ShiftNodeData) Out() nodes.StructOutput[[]float64] {
+	out := nodes.StructOutput[[]float64]{}
 	if snd.In == nil {
-		return nodes.NewStructOutput[[]float64](nil)
+		return out
 	}
 
+	in := nodes.GetOutputValue(out, snd.In)
 	if snd.Shift == nil {
-		return nodes.NewStructOutput(snd.In.Value())
+		out.Set(in)
+		return out
 	}
 
-	in := snd.In.Value()
-	shift := snd.Shift.Value()
+	shift := nodes.GetOutputValue(out, snd.Shift)
 
-	out := make([]float64, len(in))
+	arr := make([]float64, len(in))
 	for i, v := range in {
-		out[i] = v + shift
+		arr[i] = v + shift
 	}
 
-	return nodes.NewStructOutput(out)
+	out.Set(arr)
+	return out
 }

@@ -55,7 +55,7 @@ export class NewProfilePopup extends Popup {
             if (!resp.ok) {
                 alert("unable to create profile");
             } else {
-                this.schemaManager.refreshSchema();
+                this.schemaManager.refreshSchema("created a profile");
             }
         });
     }

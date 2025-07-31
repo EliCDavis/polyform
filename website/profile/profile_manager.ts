@@ -30,7 +30,7 @@ function ProfileElement(profileName: string, schemaManager: SchemaManager): Elem
                                 if (!resp.ok) {
                                     alert("unable to load profile");
                                 } else {
-                                    schemaManager.refreshSchema();
+                                    schemaManager.refreshSchema("Applied a profile");
                                 }
                             });
                         }

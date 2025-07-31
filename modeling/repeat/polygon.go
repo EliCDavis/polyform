@@ -58,9 +58,11 @@ type polygonNode struct {
 }
 
 func (r polygonNode) Out() nodes.StructOutput[[]trs.TRS] {
-	return nodes.NewStructOutput(Polygon(
-		max(nodes.TryGetOutputValue(r.Times, 1), 0),
-		max(nodes.TryGetOutputValue(r.Sides, 1), 3),
-		nodes.TryGetOutputValue(r.Radius, 0.),
+	out := nodes.StructOutput[[]trs.TRS]{}
+	out.Set(Polygon(
+		max(nodes.TryGetOutputValue(&out, r.Times, 1), 0),
+		max(nodes.TryGetOutputValue(&out, r.Sides, 1), 3),
+		nodes.TryGetOutputValue(&out, r.Radius, 0.),
 	))
+	return out
 }

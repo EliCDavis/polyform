@@ -21,12 +21,13 @@ type FromHeightmapNode struct {
 }
 
 func (n FromHeightmapNode) Out() nodes.StructOutput[image.Image] {
-	img := nodes.TryGetOutputValue(n.In, nil)
+	out := nodes.NewStructOutput[image.Image](nil)
+	img := nodes.TryGetOutputValue(&out, n.In, nil)
 	if img == nil {
-		return nodes.NewStructOutput[image.Image](nil)
+		return out
 	}
-	return nodes.NewStructOutput(image.Image(FromHeightmap(
-		img,
-		nodes.TryGetOutputValue(n.Scale, 1.),
-	)))
+
+	scale := nodes.TryGetOutputValue(&out, n.Scale, 1.)
+	out.Set(image.Image(FromHeightmap(img, scale)))
+	return out
 }

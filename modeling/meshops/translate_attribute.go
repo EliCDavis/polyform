@@ -52,9 +52,18 @@ func (ta3dn TranslateAttribute3DNodeData) Out() nodes.StructOutput[modeling.Mesh
 		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
 	}
 
-	return nodes.NewStructOutput(TranslateAttribute3D(
-		ta3dn.Mesh.Value(),
-		nodes.TryGetOutputValue(ta3dn.Attribute, modeling.PositionAttribute),
-		nodes.TryGetOutputValue(ta3dn.Amount, vector3.Zero[float64]()),
+	out := nodes.StructOutput[modeling.Mesh]{}
+	mesh := nodes.GetOutputValue(out, ta3dn.Mesh)
+
+	if ta3dn.Amount == nil {
+		out.Set(mesh)
+		return out
+	}
+
+	out.Set(TranslateAttribute3D(
+		mesh,
+		nodes.TryGetOutputValue(&out, ta3dn.Attribute, modeling.PositionAttribute),
+		nodes.GetOutputValue(out, ta3dn.Amount),
 	))
+	return out
 }

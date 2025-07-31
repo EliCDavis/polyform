@@ -109,10 +109,13 @@ func (lp LaplacianSmoothNodeData) Out() nodes.StructOutput[modeling.Mesh] {
 		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
 	}
 
-	return nodes.NewStructOutput(LaplacianSmooth(
-		lp.Mesh.Value(),
-		nodes.TryGetOutputValue(lp.Attribute, modeling.PositionAttribute),
-		nodes.TryGetOutputValue(lp.Iterations, 10),
-		nodes.TryGetOutputValue(lp.SmoothingFactor, 0.1),
+	out := nodes.StructOutput[modeling.Mesh]{}
+	out.Set(LaplacianSmooth(
+		nodes.GetOutputValue(out, lp.Mesh),
+		nodes.TryGetOutputValue(&out, lp.Attribute, modeling.PositionAttribute),
+		nodes.TryGetOutputValue(&out, lp.Iterations, 10),
+		nodes.TryGetOutputValue(&out, lp.SmoothingFactor, 0.1),
 	))
+
+	return out
 }

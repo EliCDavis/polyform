@@ -96,24 +96,28 @@ func (sa3dn ScaleAttributeAlongNormalNodeData) Out() nodes.StructOutput[modeling
 		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
 	}
 
-	mesh := sa3dn.Mesh.Value()
+	out := nodes.StructOutput[modeling.Mesh]{}
+	mesh := nodes.GetOutputValue(out, sa3dn.Mesh)
 
-	attrToScale := nodes.TryGetOutputValue(sa3dn.AttributeToScale, modeling.PositionAttribute)
+	attrToScale := nodes.TryGetOutputValue(&out, sa3dn.AttributeToScale, modeling.PositionAttribute)
 	if !mesh.HasFloat3Attribute(attrToScale) {
-		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
+		out.Set(modeling.EmptyMesh(modeling.TriangleTopology))
+		return out
 	}
 
-	attrNormal := nodes.TryGetOutputValue(sa3dn.NormalAttribute, modeling.NormalAttribute)
+	attrNormal := nodes.TryGetOutputValue(&out, sa3dn.NormalAttribute, modeling.NormalAttribute)
 	if !mesh.HasFloat3Attribute(attrNormal) {
-		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
+		out.Set(modeling.EmptyMesh(modeling.TriangleTopology))
+		return out
 	}
 
-	return nodes.NewStructOutput(ScaleAttributeAlongNormal(
+	out.Set(ScaleAttributeAlongNormal(
 		mesh,
 		attrToScale,
 		attrNormal,
-		nodes.TryGetOutputValue(sa3dn.Amount, 0.),
+		nodes.TryGetOutputValue(&out, sa3dn.Amount, 0.),
 	))
+	return out
 }
 
 // ============================================================================
@@ -165,11 +169,12 @@ func (sa3dn ScaleAttribute3DNodeData) Out() nodes.StructOutput[modeling.Mesh] {
 	if sa3dn.Mesh == nil {
 		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
 	}
-
-	return nodes.NewStructOutput(ScaleAttribute3D(
+	out := nodes.StructOutput[modeling.Mesh]{}
+	out.Set(ScaleAttribute3D(
 		sa3dn.Mesh.Value(),
-		nodes.TryGetOutputValue(sa3dn.Attribute, modeling.PositionAttribute),
-		nodes.TryGetOutputValue(sa3dn.Origin, vector3.Zero[float64]()),
-		nodes.TryGetOutputValue(sa3dn.Amount, vector3.One[float64]()),
+		nodes.TryGetOutputValue(&out, sa3dn.Attribute, modeling.PositionAttribute),
+		nodes.TryGetOutputValue(&out, sa3dn.Origin, vector3.Zero[float64]()),
+		nodes.TryGetOutputValue(&out, sa3dn.Amount, vector3.One[float64]()),
 	))
+	return out
 }

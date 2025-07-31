@@ -11,14 +11,14 @@ type SumNodeData[T vector.Number] struct {
 }
 
 func (cn SumNodeData[T]) Out() nodes.StructOutput[vector2.Vector[T]] {
+	out := nodes.StructOutput[vector2.Vector[T]]{}
+	values := nodes.GetOutputValues(&out, cn.Values)
 	var total vector2.Vector[T]
-	for _, v := range cn.Values {
-		if v == nil {
-			continue
-		}
-		total = total.Add(v.Value())
+	for _, v := range values {
+		total = total.Add(v)
 	}
-	return nodes.NewStructOutput(total)
+	out.Set(total)
+	return out
 }
 
 type AddToArrayNodeData[T vector.Number] struct {
@@ -27,19 +27,22 @@ type AddToArrayNodeData[T vector.Number] struct {
 }
 
 func (cn AddToArrayNodeData[T]) Out() nodes.StructOutput[[]vector2.Vector[T]] {
+	out := nodes.StructOutput[[]vector2.Vector[T]]{}
 	if cn.Array == nil {
-		return nodes.NewStructOutput[[]vector2.Vector[T]](nil)
+		return out
 	}
 
+	original := nodes.GetOutputValue(out, cn.Array)
 	if cn.Amount == nil {
-		return nodes.NewStructOutput(cn.Array.Value())
+		out.Set(original)
+		return out
 	}
 
-	original := cn.Array.Value()
-	amount := cn.Amount.Value()
+	amount := nodes.GetOutputValue(out, cn.Amount)
 	total := make([]vector2.Vector[T], len(original))
 	for i, v := range original {
 		total[i] = v.Add(amount)
 	}
-	return nodes.NewStructOutput(total)
+	out.Set(total)
+	return out
 }

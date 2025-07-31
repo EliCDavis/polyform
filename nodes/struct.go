@@ -166,6 +166,10 @@ func (so *StructOutput[T]) CaptureError(err error) {
 	so.report.Errors = append(so.report.Errors, err.Error())
 }
 
+func (so *StructOutput[T]) CaptureTiming(title string, timing time.Duration) {
+	// Do capture
+}
+
 // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
 func (so StructOutput[T]) build(node Node, cache *structOutputCache, data any, functionName, displayName string) OutputPort {

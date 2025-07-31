@@ -93,8 +93,10 @@ type FibonacciSpiralNodeData struct {
 }
 
 func (fpnd FibonacciSpiralNodeData) Out() nodes.StructOutput[[]trs.TRS] {
-	return nodes.NewStructOutput(FibonacciSpiral(
-		nodes.TryGetOutputValue(fpnd.Count, 10),
-		nodes.TryGetOutputValue(fpnd.Radius, 1.),
+	out := nodes.StructOutput[[]trs.TRS]{}
+	out.Set(FibonacciSpiral(
+		nodes.TryGetOutputValue(&out, fpnd.Count, 10),
+		nodes.TryGetOutputValue(&out, fpnd.Radius, 1.),
 	))
+	return out
 }

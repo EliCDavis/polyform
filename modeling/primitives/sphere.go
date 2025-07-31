@@ -194,13 +194,16 @@ func (c UvSphereNodeData) Description() string {
 }
 
 func (c UvSphereNodeData) Out() nodes.StructOutput[modeling.Mesh] {
-	radius := nodes.TryGetOutputValue(c.Radius, .5)
-	rows := max(nodes.TryGetOutputValue(c.Rows, 10), 2)
-	columns := max(nodes.TryGetOutputValue(c.Columns, 10), 3)
+	out := nodes.StructOutput[modeling.Mesh]{}
+	radius := nodes.TryGetOutputValue(&out, c.Radius, .5)
+	rows := max(nodes.TryGetOutputValue(&out, c.Rows, 10), 2)
+	columns := max(nodes.TryGetOutputValue(&out, c.Columns, 10), 3)
 
-	if nodes.TryGetOutputValue(c.Weld, false) {
-		return nodes.NewStructOutput(UVSphere(radius, rows, columns))
+	if nodes.TryGetOutputValue(&out, c.Weld, false) {
+		out.Set(UVSphere(radius, rows, columns))
+	} else {
+		out.Set(UVSphereUnwelded(radius, rows, columns))
 	}
 
-	return nodes.NewStructOutput(UVSphereUnwelded(radius, rows, columns))
+	return out
 }

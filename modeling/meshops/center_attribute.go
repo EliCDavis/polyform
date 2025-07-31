@@ -59,8 +59,10 @@ func (ca3dn CenterAttribute3DNodeData) Out() nodes.StructOutput[modeling.Mesh] {
 		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
 	}
 
-	return nodes.NewStructOutput(CenterFloat3Attribute(
-		ca3dn.Mesh.Value(),
-		nodes.TryGetOutputValue(ca3dn.Attribute, modeling.PositionAttribute),
+	out := nodes.StructOutput[modeling.Mesh]{}
+	out.Set(CenterFloat3Attribute(
+		nodes.GetOutputValue(out, ca3dn.Mesh),
+		nodes.TryGetOutputValue(&out, ca3dn.Attribute, modeling.PositionAttribute),
 	))
+	return out
 }

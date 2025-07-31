@@ -88,23 +88,23 @@ type SampleMeshSurfaceNode struct {
 }
 
 func (rnd SampleMeshSurfaceNode) Out() nodes.StructOutput[[]trs.TRS] {
+	out := nodes.StructOutput[[]trs.TRS]{}
 	if rnd.Mesh == nil {
-		return nodes.NewStructOutput[[]trs.TRS](nil)
+		return out
 	}
-	mesh := rnd.Mesh.Value()
 
+	mesh := nodes.GetOutputValue(out, rnd.Mesh)
 	if mesh.Topology() != modeling.TriangleTopology {
-		out := nodes.NewStructOutput[[]trs.TRS](nil)
 		out.CaptureError(fmt.Errorf("mesh must have triangle topology to sample surface"))
 		return out
 	}
 
 	surface := MeshSurface{
 		Mesh:      mesh,
-		Attribute: nodes.TryGetOutputValue(rnd.Attribute, modeling.PositionAttribute),
-		Samples:   nodes.TryGetOutputValue(rnd.Samples, 0),
-		Up:        nodes.TryGetOutputValue(rnd.Up, vector3.Up[float64]()),
+		Attribute: nodes.TryGetOutputValue(&out, rnd.Attribute, modeling.PositionAttribute),
+		Samples:   nodes.TryGetOutputValue(&out, rnd.Samples, 0),
+		Up:        nodes.TryGetOutputValue(&out, rnd.Up, vector3.Up[float64]()),
 	}
-
-	return nodes.NewStructOutput(surface.TRS())
+	out.Set(surface.TRS())
+	return out
 }

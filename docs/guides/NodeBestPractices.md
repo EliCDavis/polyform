@@ -81,6 +81,8 @@ In golang, `int8`, `int16`, `int`, `int32`, `int64`, `float32`, `float64` are al
 
 INSERT DESCRIPTION
 
+EXAMPLE: SCALE A VECTOR
+
 ```go
 func (mn MathNode) Divide() nodes.StructOutput[float64] {
     a := nodes.TryGetOutputValue(mn.A, 0)

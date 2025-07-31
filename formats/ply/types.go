@@ -118,21 +118,19 @@ type ManifestNodeData struct {
 }
 
 func (pn ManifestNodeData) Out() nodes.StructOutput[manifest.Manifest] {
-	name := nodes.TryGetOutputValue(pn.Name, "model.ply")
-	if pn.Mesh == nil {
-		entry := manifest.Entry{Artifact: Artifact{Mesh: modeling.EmptyPointcloud()}}
-		return nodes.NewStructOutput(manifest.SingleEntryManifest(name, entry))
-	}
-
-	mesh := pn.Mesh.Value()
+	out := nodes.StructOutput[manifest.Manifest]{}
+	name := nodes.TryGetOutputValue(&out, pn.Name, "model.ply")
+	mesh := nodes.TryGetOutputValue(&out, pn.Mesh, modeling.EmptyPointcloud())
 	metadata := map[string]any{}
+
 	// TODO: Is this really the best way to determine if it's a splat?
 	if mesh.HasFloat3Attribute(modeling.FDCAttribute) {
 		metadata["gaussianSplat"] = true
 	}
 
 	entry := manifest.Entry{Artifact: Artifact{Mesh: mesh}, Metadata: metadata}
-	return nodes.NewStructOutput(manifest.SingleEntryManifest(name, entry))
+	out.Set(manifest.SingleEntryManifest(name, entry))
+	return out
 }
 
 // ============================================================================
@@ -143,15 +141,18 @@ type ReadNodeData struct {
 }
 
 func (pn ReadNodeData) Out() nodes.StructOutput[modeling.Mesh] {
+	out := nodes.NewStructOutput(modeling.EmptyMesh(modeling.PointTopology))
 	if pn.In == nil {
-		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.PointTopology))
+		return out
 	}
 
-	data := pn.In.Value()
-
+	data := nodes.GetOutputValue(out, pn.In)
 	mesh, err := ReadMesh(bytes.NewReader(data))
 	if err != nil {
-		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.PointTopology))
+		out.CaptureError(err)
+		return out
 	}
-	return nodes.NewStructOutput(*mesh)
+
+	out.Set(*mesh)
+	return out
 }

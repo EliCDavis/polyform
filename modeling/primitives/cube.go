@@ -289,19 +289,16 @@ type CubeNodeData struct {
 }
 
 func (c CubeNodeData) Out() nodes.StructOutput[modeling.Mesh] {
+	out := nodes.StructOutput[modeling.Mesh]{}
 	cube := Cube{
-		Height:     nodes.TryGetOutputValue(c.Height, 1.),
-		Width:      nodes.TryGetOutputValue(c.Width, 1.),
-		Depth:      nodes.TryGetOutputValue(c.Depth, 1.),
-		Dimensions: max(1, nodes.TryGetOutputValue(c.Dimensions, 1)),
+		Height:     nodes.TryGetOutputValue(&out, c.Height, 1.),
+		Width:      nodes.TryGetOutputValue(&out, c.Width, 1.),
+		Depth:      nodes.TryGetOutputValue(&out, c.Depth, 1.),
+		Dimensions: max(1, nodes.TryGetOutputValue(&out, c.Dimensions, 1)),
+		UVs:        nodes.TryGetOutputReference(out, c.UVs, nil),
 	}
-
-	if c.UVs != nil {
-		uvs := c.UVs.Value()
-		cube.UVs = &uvs
-	}
-
-	return nodes.NewStructOutput(cube.UnweldedQuads())
+	out.Set(cube.UnweldedQuads())
+	return out
 }
 
 // CubeUVs

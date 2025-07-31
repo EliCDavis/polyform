@@ -46,16 +46,13 @@ type ManifestNodeData struct {
 }
 
 func (pn ManifestNodeData) Out() nodes.StructOutput[manifest.Manifest] {
-	artifact := Artifact{
-		MaterialFile: nodes.TryGetOutputValue(pn.MaterialFile, ""),
-	}
-
-	if pn.Scene != nil {
-		artifact.Scene = pn.Scene.Value()
-	}
-
-	entry := manifest.Entry{Artifact: artifact}
-	return nodes.NewStructOutput(manifest.SingleEntryManifest("model.obj", entry))
+	out := nodes.StructOutput[manifest.Manifest]{}
+	entry := manifest.Entry{Artifact: Artifact{
+		MaterialFile: nodes.TryGetOutputValue(&out, pn.MaterialFile, ""),
+		Scene:        nodes.TryGetOutputValue(&out, pn.Scene, Scene{}),
+	}}
+	out.Set(manifest.SingleEntryManifest("model.obj", entry))
+	return out
 }
 
 type SceneNode = nodes.Struct[SceneNodeData]
@@ -83,14 +80,12 @@ type ObjectNodeData struct {
 }
 
 func (pn ObjectNodeData) Out() nodes.StructOutput[Object] {
-	entries := make([]Entry, 0)
-	for _, o := range pn.Entrys {
-		if o == nil {
-			continue
-		}
-		entries = append(entries, o.Value())
-	}
-	return nodes.NewStructOutput(Object{Name: nodes.TryGetOutputValue(pn.Name, ""), Entries: entries})
+	out := nodes.StructOutput[Object]{}
+	out.Set(Object{
+		Name:    nodes.TryGetOutputValue(&out, pn.Name, ""),
+		Entries: nodes.GetOutputValues(&out, pn.Entrys),
+	})
+	return out
 }
 
 type EntryNode = nodes.Struct[EntryNodeData]
@@ -101,16 +96,12 @@ type EntryNodeData struct {
 }
 
 func (pn EntryNodeData) Out() nodes.StructOutput[Entry] {
-	var mat *Material
-	if pn.Material != nil {
-		m := pn.Material.Value()
-		mat = &m
-	}
-
-	return nodes.NewStructOutput(Entry{
-		Mesh:     nodes.TryGetOutputValue(pn.Mesh, modeling.EmptyMesh(modeling.TriangleTopology)),
-		Material: mat,
+	out := nodes.StructOutput[Entry]{}
+	out.Set(Entry{
+		Mesh:     nodes.TryGetOutputValue(&out, pn.Mesh, modeling.EmptyMesh(modeling.TriangleTopology)),
+		Material: nodes.TryGetOutputReference(out, pn.Material, nil),
 	})
+	return nodes.NewStructOutput(Entry{})
 }
 
 type MaterialNode = nodes.Struct[MaterialNodeData]
@@ -126,26 +117,17 @@ type MaterialNodeData struct {
 }
 
 func (pn MaterialNodeData) Out() nodes.StructOutput[Material] {
-	mat := Material{
-		Name:              nodes.TryGetOutputValue(pn.Name, ""),
-		SpecularHighlight: nodes.TryGetOutputValue(pn.SpecularHighlight, 100),
-		OpticalDensity:    nodes.TryGetOutputValue(pn.OpticalDensity, 1),
-		Transparency:      nodes.TryGetOutputValue(pn.Transparency, 0),
-	}
-
-	if pn.AmbientColor != nil {
-		mat.AmbientColor = pn.AmbientColor.Value()
-	}
-
-	if pn.DiffuseColor != nil {
-		mat.DiffuseColor = pn.DiffuseColor.Value()
-	}
-
-	if pn.SpecularColor != nil {
-		mat.SpecularColor = pn.SpecularColor.Value()
-	}
-
-	return nodes.NewStructOutput(mat)
+	out := nodes.StructOutput[Material]{}
+	out.Set(Material{
+		Name:              nodes.TryGetOutputValue(&out, pn.Name, ""),
+		SpecularHighlight: nodes.TryGetOutputValue(&out, pn.SpecularHighlight, 100),
+		OpticalDensity:    nodes.TryGetOutputValue(&out, pn.OpticalDensity, 1),
+		Transparency:      nodes.TryGetOutputValue(&out, pn.Transparency, 0),
+		AmbientColor:      nodes.TryGetOutputReference(out, pn.AmbientColor, nil),
+		DiffuseColor:      nodes.TryGetOutputReference(out, pn.DiffuseColor, nil),
+		SpecularColor:     nodes.TryGetOutputReference(out, pn.SpecularColor, nil),
+	})
+	return out
 }
 
 type ReadNode = nodes.Struct[ReadNodeData]

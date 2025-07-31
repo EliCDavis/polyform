@@ -91,7 +91,7 @@ requestManager.getNodeTypes((nodeTypes) => {
         producerViewManager,
         nodeTypes
     );
-    const schemaManager = new SchemaManager(requestManager, nodeManager, noteManager);
+    const schemaManager = new SchemaManager(requestManager);
     new VariableManager(document.getElementById("sidebar-content"), schemaManager, nodeManager, flowGraphStuff.PolyformNodesPublisher, threeApp);
     new ProfileManager(document.getElementById("sidebar-content"), schemaManager);
 
@@ -99,7 +99,11 @@ requestManager.getNodeTypes((nodeTypes) => {
         schemaManager.setParameter(param.id, param.data, param.binary);
     });
 
-    schemaManager.subscribe(producerViewManager.NewSchema.bind(producerViewManager));
+    schemaManager.subscribe((g) => {
+        producerViewManager.NewSchema(g);
+        nodeManager.updateNodes(g);
+        noteManager.schemaUpdate(g);
+    });
 
     const fileControls = {
         newGraph: () => {

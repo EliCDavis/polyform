@@ -48,40 +48,39 @@ type SliceAttributeByPlaneNode struct {
 	Attribute nodes.Output[string]
 }
 
-func (n SliceAttributeByPlaneNode) AbovePlane() nodes.StructOutput[modeling.Mesh] {
+func (n SliceAttributeByPlaneNode) slice(above bool) nodes.StructOutput[modeling.Mesh] {
+	out := nodes.StructOutput[modeling.Mesh]{}
 	if n.Mesh == nil {
 		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
 	}
 
+	mesh := nodes.GetOutputValue(out, n.Mesh)
 	if n.Plane == nil {
-		return nodes.NewStructOutput(n.Mesh.Value())
+		out.Set(mesh)
+		return out
+	}
+	plane := nodes.GetOutputValue(out, n.Plane)
+
+	aboveM, belowM := SliceByPlaneWithAttribute(
+		mesh,
+		plane,
+		nodes.TryGetOutputValue(&out, n.Attribute, modeling.PositionAttribute),
+	)
+	if above {
+		out.Set(aboveM)
+	} else {
+		out.Set(belowM)
 	}
 
-	above, _ := SliceByPlaneWithAttribute(
-		n.Mesh.Value(),
-		n.Plane.Value(),
-		nodes.TryGetOutputValue(n.Attribute, modeling.PositionAttribute),
-	)
+	return out
+}
 
-	return nodes.NewStructOutput(above)
+func (n SliceAttributeByPlaneNode) AbovePlane() nodes.StructOutput[modeling.Mesh] {
+	return n.slice(true)
 }
 
 func (n SliceAttributeByPlaneNode) BelowPlane() nodes.StructOutput[modeling.Mesh] {
-	if n.Mesh == nil {
-		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
-	}
-
-	if n.Plane == nil {
-		return nodes.NewStructOutput(n.Mesh.Value())
-	}
-
-	_, below := SliceByPlaneWithAttribute(
-		n.Mesh.Value(),
-		n.Plane.Value(),
-		nodes.TryGetOutputValue(n.Attribute, modeling.PositionAttribute),
-	)
-
-	return nodes.NewStructOutput(below)
+	return n.slice(false)
 }
 
 func trianglePlaneIntersectionPoints(s1p1, s2p1, s2p2 vector3.Float64, plane geometry.Plane) (vector3.Float64, vector3.Float64) {

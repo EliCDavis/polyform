@@ -58,7 +58,7 @@ export class DeleteVariablePopup {
                 alert("Error deleting variable");
                 console.log(resp);
             } else {
-                this.schemaManager.refreshSchema();
+                this.schemaManager.refreshSchema("Deleted a variable");
                 this.nodeManager.unregisterNodeType(GeneratorVariablePublisherPath + this.variableKey)
             }
         });

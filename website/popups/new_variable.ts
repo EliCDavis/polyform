@@ -88,7 +88,7 @@ export class NewVariablePopup {
                     alert(body.error);
                 } else {
                     const createResp: CreateVariableResponse = body;
-                    this.schemaManager.refreshSchema();
+                    this.schemaManager.refreshSchema("created a variable");
                     this.nodeManager.registerCustomNodeType(createResp.nodeType)
                 }
             })

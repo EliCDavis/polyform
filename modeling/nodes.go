@@ -104,11 +104,13 @@ type MapEntryNode[T any] struct {
 }
 
 func (men MapEntryNode[T]) Out() nodes.StructOutput[MapEntry[T]] {
+	out := nodes.StructOutput[MapEntry[T]]{}
 	var val T
-	return nodes.NewStructOutput(MapEntry[T]{
-		Name: nodes.TryGetOutputValue(men.Name, ""),
-		Data: nodes.TryGetOutputValue(men.Data, val),
+	out.Set(MapEntry[T]{
+		Name: nodes.TryGetOutputValue(&out, men.Name, ""),
+		Data: nodes.TryGetOutputValue(&out, men.Data, val),
 	})
+	return out
 }
 
 type NewMeshNode struct {
@@ -120,30 +122,29 @@ type NewMeshNode struct {
 	Float4Data []nodes.Output[MapEntry[[]vector4.Float64]]
 }
 
-func collapseMapEntries[T any](entries []nodes.Output[MapEntry[T]]) map[string]T {
+func collapseMapEntries[T any](recorder nodes.ExecutionRecorder, entries []nodes.Output[MapEntry[T]]) map[string]T {
 	result := make(map[string]T)
-	for _, e := range entries {
-		if e == nil {
-			continue
-		}
-
-		val := e.Value()
+	resolvedEntries := nodes.GetOutputValues(recorder, entries)
+	for _, val := range resolvedEntries {
 		result[val.Name] = val.Data
 	}
 	return result
 }
 
 func (nmn NewMeshNode) Mesh() nodes.StructOutput[Mesh] {
-	mesh := NewMesh(
-		nodes.TryGetOutputValue(nmn.Topology, TriangleTopology),
-		nodes.TryGetOutputValue(nmn.Indices, nil),
-	).
-		SetFloat1Data(collapseMapEntries(nmn.Float1Data)).
-		SetFloat2Data(collapseMapEntries(nmn.Float2Data)).
-		SetFloat3Data(collapseMapEntries(nmn.Float3Data)).
-		SetFloat4Data(collapseMapEntries(nmn.Float4Data))
+	out := nodes.StructOutput[Mesh]{}
 
-	return nodes.NewStructOutput(mesh)
+	mesh := NewMesh(
+		nodes.TryGetOutputValue(&out, nmn.Topology, TriangleTopology),
+		nodes.TryGetOutputValue(&out, nmn.Indices, nil),
+	).
+		SetFloat1Data(collapseMapEntries(&out, nmn.Float1Data)).
+		SetFloat2Data(collapseMapEntries(&out, nmn.Float2Data)).
+		SetFloat3Data(collapseMapEntries(&out, nmn.Float3Data)).
+		SetFloat4Data(collapseMapEntries(&out, nmn.Float4Data))
+
+	out.Set(mesh)
+	return out
 }
 
 // ============================================================================
@@ -244,27 +245,29 @@ type SetAttribute3DNode struct {
 }
 
 func (n SetAttribute3DNode) Out() nodes.StructOutput[Mesh] {
+	out := nodes.StructOutput[Mesh]{}
 	if n.Attribute == nil || n.Data == nil {
-		return nodes.NewStructOutput(
-			nodes.TryGetOutputValue(n.Mesh, EmptyMesh(PointTopology)),
-		)
+		mesh := nodes.TryGetOutputValue(&out, n.Mesh, EmptyMesh(PointTopology))
+		out.Set(mesh)
+		return out
 	}
+	attr := nodes.GetOutputValue(out, n.Attribute)
+	data := nodes.GetOutputValue(out, n.Data)
 
 	if n.Mesh == nil {
-		attr := n.Attribute.Value()
 		// create a new mesh with the attribute data
 		mesh := NewPointCloud(
 			nil,
 			map[string][]vector3.Float64{
-				attr: n.Data.Value(),
+				attr: data,
 			},
 			nil,
 			nil,
 		)
-
-		return nodes.NewStructOutput(mesh)
+		out.Set(mesh)
+		return out
 	}
 
-	mesh := n.Mesh.Value().SetFloat3Attribute(n.Attribute.Value(), n.Data.Value())
-	return nodes.NewStructOutput(mesh)
+	out.Set(nodes.GetOutputValue(out, n.Mesh).SetFloat3Attribute(attr, data))
+	return out
 }

@@ -64,7 +64,6 @@ func init() {
 	refutil.RegisterType[nodes.Struct[MaxArrayNode[float64]]](factory)
 
 	refutil.RegisterType[nodes.Struct[IntToFloatNode]](factory)
-	refutil.RegisterType[nodes.Struct[FloatToIntNode]](factory)
 
 	refutil.RegisterType[nodes.Struct[PlaneFromNormalNode]](factory)
 	refutil.RegisterType[nodes.Struct[SquareNode]](factory)
@@ -85,10 +84,12 @@ type PlaneFromNormalNode struct {
 }
 
 func (n PlaneFromNormalNode) Out() nodes.StructOutput[geometry.Plane] {
-	return nodes.NewStructOutput(geometry.NewPlane(
-		nodes.TryGetOutputValue(n.Position, vector3.Zero[float64]()),
-		nodes.TryGetOutputValue(n.Normal, vector3.Up[float64]()),
+	out := nodes.StructOutput[geometry.Plane]{}
+	out.Set(geometry.NewPlane(
+		nodes.TryGetOutputValue(&out, n.Position, vector3.Zero[float64]()),
+		nodes.TryGetOutputValue(&out, n.Normal, vector3.Up[float64]()),
 	))
+	return out
 }
 
 // ============================================================================
@@ -130,11 +131,15 @@ type DoubleNode[T vector.Number] struct {
 }
 
 func (cn DoubleNode[T]) Int() nodes.StructOutput[int] {
-	return nodes.NewStructOutput(int(nodes.TryGetOutputValue(cn.In, 0)) * 2)
+	out := nodes.StructOutput[int]{}
+	out.Set(int(float64(nodes.TryGetOutputValue(&out, cn.In, 0)) * 2))
+	return out
 }
 
 func (cn DoubleNode[T]) Float64() nodes.StructOutput[float64] {
-	return nodes.NewStructOutput(float64(nodes.TryGetOutputValue(cn.In, 0)) * 2)
+	out := nodes.StructOutput[float64]{}
+	out.Set(float64(nodes.TryGetOutputValue(&out, cn.In, 0)) * 2)
+	return out
 }
 
 func (cn DoubleNode[T]) Description() string {
@@ -148,11 +153,15 @@ type HalfNode[T vector.Number] struct {
 }
 
 func (cn HalfNode[T]) Int() nodes.StructOutput[int] {
-	return nodes.NewStructOutput(int(float64(nodes.TryGetOutputValue(cn.In, 0)) * 0.5))
+	out := nodes.StructOutput[int]{}
+	out.Set(int(float64(nodes.TryGetOutputValue(&out, cn.In, 0)) * 0.5))
+	return out
 }
 
 func (cn HalfNode[T]) Float64() nodes.StructOutput[float64] {
-	return nodes.NewStructOutput(float64(nodes.TryGetOutputValue(cn.In, 0)) * 0.5)
+	out := nodes.StructOutput[float64]{}
+	out.Set(float64(nodes.TryGetOutputValue(&out, cn.In, 0)) * 0.5)
+	return out
 }
 
 func (cn HalfNode[T]) Description() string {
@@ -166,15 +175,9 @@ type IntToFloatNode struct {
 }
 
 func (cn IntToFloatNode) Out() nodes.StructOutput[float64] {
-	return nodes.NewStructOutput(float64(nodes.TryGetOutputValue(cn.In, 0)))
-}
-
-type FloatToIntNode struct {
-	In nodes.Output[float64]
-}
-
-func (cn FloatToIntNode) Out() nodes.StructOutput[int] {
-	return nodes.NewStructOutput(int(nodes.TryGetOutputValue(cn.In, 0)))
+	out := nodes.StructOutput[float64]{}
+	out.Set(float64(nodes.TryGetOutputValue(&out, cn.In, 0)))
+	return out
 }
 
 // ============================================================================
@@ -184,7 +187,9 @@ type NegateNode[T vector.Number] struct {
 }
 
 func (cn NegateNode[T]) Out() nodes.StructOutput[T] {
-	return nodes.NewStructOutput(nodes.TryGetOutputValue(cn.In, 0) * -1)
+	out := nodes.StructOutput[T]{}
+	out.Set(nodes.TryGetOutputValue(&out, cn.In, 0) * -1)
+	return out
 }
 
 func (cn NegateNode[T]) Description() string {
@@ -197,7 +202,9 @@ type InverseNodeData[T vector.Number] struct {
 }
 
 func (cn InverseNodeData[T]) Additive() nodes.StructOutput[T] {
-	return nodes.NewStructOutput(nodes.TryGetOutputValue(cn.In, 0) * -1)
+	out := nodes.StructOutput[T]{}
+	out.Set(nodes.TryGetOutputValue(&out, cn.In, 0) * -1)
+	return out
 }
 
 func (cn InverseNodeData[T]) AdditiveDescription() string {
@@ -205,14 +212,14 @@ func (cn InverseNodeData[T]) AdditiveDescription() string {
 }
 
 func (cn InverseNodeData[T]) Multiplicative() nodes.StructOutput[T] {
-	v := nodes.TryGetOutputValue(cn.In, 0)
+	out := nodes.StructOutput[T]{}
+	v := nodes.TryGetOutputValue(&out, cn.In, 0)
 	if v == 0 {
-		var t T
-		out := nodes.NewStructOutput(t)
 		out.CaptureError(cantDivideByZeroErr)
 		return out
 	}
-	return nodes.NewStructOutput(1. / v)
+	out.Set(1. / v)
+	return out
 }
 
 func (cn InverseNodeData[T]) MultiplicativeDescription() string {
@@ -228,17 +235,15 @@ type RoundNodeData struct {
 }
 
 func (cn RoundNodeData) Int() nodes.StructOutput[int] {
-	if cn.In == nil {
-		return nodes.NewStructOutput(0)
-	}
-	return nodes.NewStructOutput(int(math.Round(cn.In.Value())))
+	out := nodes.StructOutput[int]{}
+	out.Set(int(math.Round(nodes.TryGetOutputValue(&out, cn.In, 0.))))
+	return out
 }
 
 func (cn RoundNodeData) Float() nodes.StructOutput[float64] {
-	if cn.In == nil {
-		return nodes.NewStructOutput(0.)
-	}
-	return nodes.NewStructOutput(math.Round(cn.In.Value()))
+	out := nodes.StructOutput[float64]{}
+	out.Set(math.Round(nodes.TryGetOutputValue(&out, cn.In, 0.)))
+	return out
 }
 
 // ============================================================================
@@ -252,17 +257,15 @@ func (cn CircumferenceNode) Description() string {
 }
 
 func (cn CircumferenceNode) Int() nodes.StructOutput[int] {
-	if cn.Radius == nil {
-		return nodes.NewStructOutput(0)
-	}
-	return nodes.NewStructOutput(int(math.Round(cn.Radius.Value() * 2 * math.Pi)))
+	out := nodes.StructOutput[int]{}
+	out.Set(int(math.Round(nodes.TryGetOutputValue(&out, cn.Radius, 0.) * 2 * math.Pi)))
+	return out
 }
 
 func (cn CircumferenceNode) Float() nodes.StructOutput[float64] {
-	if cn.Radius == nil {
-		return nodes.NewStructOutput(0.)
-	}
-	return nodes.NewStructOutput(cn.Radius.Value() * 2 * math.Pi)
+	out := nodes.StructOutput[float64]{}
+	out.Set(nodes.TryGetOutputValue(&out, cn.Radius, 0.) * 2 * math.Pi)
+	return out
 }
 
 // ============================================================================
@@ -271,8 +274,10 @@ type SquareNode struct {
 }
 
 func (cn SquareNode) Out() nodes.StructOutput[float64] {
-	v := nodes.TryGetOutputValue(cn.In, 0)
-	return nodes.NewStructOutput(v * v)
+	out := nodes.StructOutput[float64]{}
+	v := nodes.TryGetOutputValue(&out, cn.In, 0)
+	out.Set(v * v)
+	return out
 }
 
 type SquareRootNode struct {
@@ -280,21 +285,25 @@ type SquareRootNode struct {
 }
 
 func (cn SquareRootNode) Out() nodes.StructOutput[float64] {
-	return nodes.NewStructOutput(math.Sqrt(nodes.TryGetOutputValue(cn.In, 0)))
+	out := nodes.StructOutput[float64]{}
+	out.Set(math.Sqrt(nodes.TryGetOutputValue(&out, cn.In, 0)))
+	return out
 }
 
 // ============================================================================
 
 type HypotenuseNode struct {
-	A nodes.Output[float64]
-	B nodes.Output[float64]
+	P nodes.Output[float64]
+	Q nodes.Output[float64]
 }
 
 func (cn HypotenuseNode) Out() nodes.StructOutput[float64] {
-	return nodes.NewStructOutput(math.Hypot(
-		nodes.TryGetOutputValue(cn.A, 0),
-		nodes.TryGetOutputValue(cn.B, 0),
+	out := nodes.StructOutput[float64]{}
+	out.Set(math.Hypot(
+		nodes.TryGetOutputValue(&out, cn.P, 0),
+		nodes.TryGetOutputValue(&out, cn.Q, 0),
 	))
+	return out
 }
 
 // ============================================================================
@@ -310,20 +319,22 @@ type RemapNode[T vector.Number] struct {
 }
 
 func (n RemapNode[T]) Out() nodes.StructOutput[T] {
-	inMin := nodes.TryGetOutputValue(n.InMin, 0)
-	inMax := nodes.TryGetOutputValue(n.InMax, 1)
+	out := nodes.StructOutput[T]{}
+
+	inMin := nodes.TryGetOutputValue(&out, n.InMin, 0)
+	inMax := nodes.TryGetOutputValue(&out, n.InMax, 1)
 	inRange := inMax - inMin
 
-	outMin := nodes.TryGetOutputValue(n.OutMin, 0)
-	outMax := nodes.TryGetOutputValue(n.OutMax, 1)
+	outMin := nodes.TryGetOutputValue(&out, n.OutMin, 0)
+	outMax := nodes.TryGetOutputValue(&out, n.OutMax, 1)
 	outRange := outMax - outMin
 
-	v := nodes.TryGetOutputValue(n.Value, 0)
+	v := nodes.TryGetOutputValue(&out, n.Value, 0)
 
 	in := (v - inMin) / inRange
-	out := (in * outRange) + outMin
+	out.Set((in * outRange) + outMin)
 
-	return nodes.NewStructOutput(out)
+	return out
 }
 
 type RemapToArrayNode[T vector.Number] struct {
@@ -339,28 +350,31 @@ type RemapToArrayNode[T vector.Number] struct {
 }
 
 func (n RemapToArrayNode[T]) Out() nodes.StructOutput[[]T] {
-	inMin := nodes.TryGetOutputValue(n.InMin, 0)
-	inMax := nodes.TryGetOutputValue(n.InMax, 1)
+	out := nodes.StructOutput[[]T]{}
+
+	inMin := nodes.TryGetOutputValue(&out, n.InMin, 0)
+	inMax := nodes.TryGetOutputValue(&out, n.InMax, 1)
 	inRange := inMax - inMin
 
-	outMin := nodes.TryGetOutputValue(n.OutMin, 0)
-	outMax := nodes.TryGetOutputValue(n.OutMax, 1)
+	outMin := nodes.TryGetOutputValue(&out, n.OutMin, 0)
+	outMax := nodes.TryGetOutputValue(&out, n.OutMax, 1)
 	outRange := outMax - outMin
 
-	values := nodes.TryGetOutputValue(n.Value, nil)
-	out := make([]T, len(values))
+	values := nodes.TryGetOutputValue(&out, n.Value, nil)
+	arr := make([]T, len(values))
 
-	clamped := nodes.TryGetOutputValue(n.Clamp, true)
+	clamped := nodes.TryGetOutputValue(&out, n.Clamp, true)
 
 	for i, v := range values {
 		in := (v - inMin) / inRange
-		out[i] = (in * outRange) + outMin
+		arr[i] = (in * outRange) + outMin
 		if clamped {
-			out[i] = clamp(out[i], outMin, outMax)
+			arr[i] = clamp(arr[i], outMin, outMax)
 		}
 	}
 
-	return nodes.NewStructOutput(out)
+	out.Set(arr)
+	return out
 }
 
 func clamp[T vector.Number](t, minV, maxV T) T {

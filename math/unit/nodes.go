@@ -28,11 +28,15 @@ type FeetToMetersNode[T vector.Number] struct {
 }
 
 func (ftm FeetToMetersNode[T]) Float64() nodes.StructOutput[float64] {
-	return nodes.NewStructOutput(float64(nodes.TryGetOutputValue(ftm.Feet, 0)) * FeetToMeters)
+	out := nodes.StructOutput[float64]{}
+	out.Set(float64(nodes.TryGetOutputValue(&out, ftm.Feet, 0)) * FeetToMeters)
+	return out
 }
 
 func (ftm FeetToMetersNode[T]) Int() nodes.StructOutput[int] {
-	return nodes.NewStructOutput(int(math.Round(float64(nodes.TryGetOutputValue(ftm.Feet, 0)) * FeetToMeters)))
+	out := nodes.StructOutput[int]{}
+	out.Set(int(math.Round(float64(nodes.TryGetOutputValue(&out, ftm.Feet, 0)) * FeetToMeters)))
+	return out
 }
 
 type MeterToFeetNode[T vector.Number] struct {
@@ -40,11 +44,15 @@ type MeterToFeetNode[T vector.Number] struct {
 }
 
 func (ftm MeterToFeetNode[T]) Float64() nodes.StructOutput[float64] {
-	return nodes.NewStructOutput(float64(nodes.TryGetOutputValue(ftm.Meters, 0)) * MetersToFeet)
+	out := nodes.StructOutput[float64]{}
+	out.Set(float64(nodes.TryGetOutputValue(&out, ftm.Meters, 0)) * MetersToFeet)
+	return out
 }
 
 func (ftm MeterToFeetNode[T]) Int() nodes.StructOutput[int] {
-	return nodes.NewStructOutput(int(math.Round(float64(nodes.TryGetOutputValue(ftm.Meters, 0)) * MetersToFeet)))
+	out := nodes.StructOutput[int]{}
+	out.Set(int(math.Round(float64(nodes.TryGetOutputValue(&out, ftm.Meters, 0)) * MetersToFeet)))
+	return out
 }
 
 type ParseFeetNode struct {
@@ -52,8 +60,9 @@ type ParseFeetNode struct {
 }
 
 func (ftm ParseFeetNode) Float64() nodes.StructOutput[float64] {
-	feet, err := ParseFeet(nodes.TryGetOutputValue(ftm.Feet, ""))
-	out := nodes.NewStructOutput(feet)
+	out := nodes.StructOutput[float64]{}
+	feet, err := ParseFeet(nodes.TryGetOutputValue(&out, ftm.Feet, ""))
+	out.Set(feet)
 	if err != nil {
 		out.CaptureError(err)
 	}
@@ -61,8 +70,9 @@ func (ftm ParseFeetNode) Float64() nodes.StructOutput[float64] {
 }
 
 func (ftm ParseFeetNode) Int() nodes.StructOutput[int] {
-	feet, err := ParseFeet(nodes.TryGetOutputValue(ftm.Feet, ""))
-	out := nodes.NewStructOutput(int(math.Round(feet)))
+	out := nodes.StructOutput[int]{}
+	feet, err := ParseFeet(nodes.TryGetOutputValue(&out, ftm.Feet, ""))
+	out.Set(int(math.Round(feet)))
 	if err != nil {
 		out.CaptureError(err)
 	}
