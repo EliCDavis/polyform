@@ -39,14 +39,15 @@ func (rand RotateAttributeNodeData) Out() nodes.StructOutput[modeling.Mesh] {
 		return nodes.NewStructOutput(modeling.EmptyPointcloud())
 	}
 
+	out := nodes.StructOutput[modeling.Mesh]{}
+	mesh := nodes.GetOutputValue(&out, rand.Mesh)
 	if rand.Amount == nil {
-		return nodes.NewStructOutput(rand.Mesh.Value())
+		out.Set(mesh)
+		return out
 	}
 
-	attr := modeling.RotationAttribute
-	if rand.Attribute != nil {
-		attr = rand.Attribute.Value()
-	}
-
-	return nodes.NewStructOutput(RotateAttribute(rand.Mesh.Value(), attr, rand.Amount.Value()))
+	amt := nodes.GetOutputValue(&out, rand.Amount)
+	attr := nodes.TryGetOutputValue(&out, rand.Attribute, modeling.RotationAttribute)
+	out.Set(RotateAttribute(mesh, attr, amt))
+	return out
 }

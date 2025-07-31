@@ -42,13 +42,13 @@ func (snd ShiftNodeData) Out() nodes.StructOutput[[]float64] {
 		return out
 	}
 
-	in := nodes.GetOutputValue(out, snd.In)
+	in := nodes.GetOutputValue(&out, snd.In)
 	if snd.Shift == nil {
 		out.Set(in)
 		return out
 	}
 
-	shift := nodes.GetOutputValue(out, snd.Shift)
+	shift := nodes.GetOutputValue(&out, snd.Shift)
 
 	arr := make([]float64, len(in))
 	for i, v := range in {

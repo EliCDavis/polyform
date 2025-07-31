@@ -36,7 +36,7 @@ func (cn Perlin1DNodeData) Out() nodes.StructOutput[[]float64] {
 	scale := nodes.TryGetOutputValue(&out, cn.Amplitude, 1.)
 	frequency := nodes.TryGetOutputValue(&out, cn.Frequency, 1.)
 	shift := nodes.TryGetOutputValue(&out, cn.Shift, 0.)
-	times := nodes.GetOutputValue(out, cn.Time)
+	times := nodes.GetOutputValue(&out, cn.Time)
 
 	values := make([]float64, len(times))
 	for i, t := range times {
@@ -61,7 +61,7 @@ func (cn Perlin2DNodeData) Out() nodes.StructOutput[[]float64] {
 		return out
 	}
 
-	times := nodes.GetOutputValue(out, cn.Time)
+	times := nodes.GetOutputValue(&out, cn.Time)
 	scale := nodes.TryGetOutputValue(&out, cn.Amplitude, 1.)
 	frequency := nodes.TryGetOutputValue(&out, cn.Frequency, vector2.One[float64]())
 	shift := nodes.TryGetOutputValue(&out, cn.Shift, vector2.Zero[float64]())
@@ -91,7 +91,7 @@ func (cn Perlin3DNodeData) Out() nodes.StructOutput[[]float64] {
 
 	scale := nodes.TryGetOutputValue(&out, cn.Amplitude, 1.)
 
-	times := nodes.GetOutputValue(out, cn.Time)
+	times := nodes.GetOutputValue(&out, cn.Time)
 	frequency := nodes.TryGetOutputValue(&out, cn.Frequency, vector3.One[float64]())
 	shift := nodes.TryGetOutputValue(&out, cn.Shift, vector3.Zero[float64]())
 	values := make([]float64, len(times))

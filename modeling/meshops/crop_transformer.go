@@ -103,13 +103,14 @@ func (ca3dn CropAttribute3DNodeData) Out() nodes.StructOutput[modeling.Mesh] {
 		return out
 	}
 
-	mesh := nodes.GetOutputValue(out, ca3dn.Mesh)
+	mesh := nodes.GetOutputValue(&out, ca3dn.Mesh)
 	if ca3dn.AABB == nil {
 		out.Set(mesh)
 		return out
 	}
 
 	attr := nodes.TryGetOutputValue(&out, ca3dn.Attribute, modeling.PositionAttribute)
-	aabb := nodes.GetOutputValue(out, ca3dn.AABB)
-	return nodes.NewStructOutput(CropFloat3Attribute(mesh, attr, aabb))
+	aabb := nodes.GetOutputValue(&out, ca3dn.AABB)
+	out.Set(CropFloat3Attribute(mesh, attr, aabb))
+	return out
 }

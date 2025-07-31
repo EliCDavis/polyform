@@ -88,20 +88,12 @@ type CircleUVsNodeData struct {
 }
 
 func (c CircleUVsNodeData) Out() nodes.StructOutput[CircleUVs] {
-	uvs := CircleUVs{
-		Radius: 0.5,
-		Center: vector2.New(0.5, 0.5),
-	}
-
-	if c.Center != nil {
-		uvs.Center = c.Center.Value()
-	}
-
-	if c.Radius != nil {
-		uvs.Radius = c.Radius.Value()
-	}
-
-	return nodes.NewStructOutput(uvs)
+	out := nodes.StructOutput[CircleUVs]{}
+	out.Set(CircleUVs{
+		Radius: nodes.TryGetOutputValue(&out, c.Radius, 0.5),
+		Center: nodes.TryGetOutputValue(&out, c.Center, vector2.Fill(0.5)),
+	})
+	return out
 }
 
 type CircleNode = nodes.Struct[CircleNodeData]
@@ -113,23 +105,12 @@ type CircleNodeData struct {
 }
 
 func (c CircleNodeData) Out() nodes.StructOutput[modeling.Mesh] {
+	out := nodes.StructOutput[modeling.Mesh]{}
 	circle := Circle{
-		Radius: 0.5,
-		Sides:  12,
+		Radius: nodes.TryGetOutputValue(&out, c.Radius, 0.5),
+		Sides:  nodes.TryGetOutputValue(&out, c.Sides, 12),
+		UVs:    nodes.TryGetOutputReference(&out, c.UVs, nil),
 	}
-
-	if c.Sides != nil {
-		circle.Sides = c.Sides.Value()
-	}
-
-	if c.Radius != nil {
-		circle.Radius = c.Radius.Value()
-	}
-
-	if c.UVs != nil {
-		uvs := c.UVs.Value()
-		circle.UVs = &uvs
-	}
-
-	return nodes.NewStructOutput(circle.ToMesh())
+	out.Set(circle.ToMesh())
+	return out
 }

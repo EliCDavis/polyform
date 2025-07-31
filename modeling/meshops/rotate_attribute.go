@@ -53,10 +53,15 @@ func (ra3dn RotateAttribute3DNodeData) Out() nodes.StructOutput[modeling.Mesh] {
 		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
 	}
 
-	attr := modeling.PositionAttribute
-	if ra3dn.Attribute != nil {
-		attr = ra3dn.Attribute.Value()
+	out := nodes.StructOutput[modeling.Mesh]{}
+	mesh := nodes.GetOutputValue(&out, ra3dn.Mesh)
+	if ra3dn.Amount == nil {
+		out.Set(mesh)
+		return out
 	}
 
-	return nodes.NewStructOutput(RotateAttribute3D(ra3dn.Mesh.Value(), attr, ra3dn.Amount.Value()))
+	attr := nodes.TryGetOutputValue(&out, ra3dn.Attribute, modeling.PositionAttribute)
+	ammount := nodes.GetOutputValue(&out, ra3dn.Amount)
+	out.Set(RotateAttribute3D(mesh, attr, ammount))
+	return out
 }

@@ -64,27 +64,29 @@ func (rnd SplineNodeData) Description() string {
 }
 
 func (r SplineNodeData) Out() nodes.StructOutput[[]trs.TRS] {
+	out := nodes.StructOutput[[]trs.TRS]{}
 	if r.Curve == nil || r.Times == nil {
-		return nodes.NewStructOutput[[]trs.TRS](nil)
+		return out
 	}
 
-	times := r.Times.Value()
+	times := nodes.GetOutputValue(&out, r.Times)
 	if times <= 0 {
-		return nodes.NewStructOutput[[]trs.TRS](nil)
+		return out
 	}
 
-	curve := r.Curve.Value()
+	curve := nodes.GetOutputValue(&out, r.Curve)
 	if curve == nil {
-		return nodes.NewStructOutput[[]trs.TRS](nil)
+		return out
 	}
 
-	if times == 1 {
-		return nodes.NewStructOutput(SplineExlusive(curve, 1))
+	switch times {
+	case 1:
+		out.Set(SplineExlusive(curve, 1))
+	case 2:
+		out.Set(Spline(curve, 0))
+	default:
+		out.Set(Spline(curve, times-2))
 	}
 
-	if times == 2 {
-		return nodes.NewStructOutput(Spline(curve, 0))
-	}
-
-	return nodes.NewStructOutput(Spline(curve, times-2))
+	return out
 }

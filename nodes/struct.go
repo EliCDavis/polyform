@@ -110,6 +110,11 @@ func (so *StructOutput[T]) Value() T {
 		start := time.Now()
 		val = refutil.CallStructMethod(so.data, so.functionName)[0].(StructOutput[T])
 		val.report.TotalTime = time.Since(start)
+		self := val.report.TotalTime
+		for _, v := range val.report.Steps {
+			self -= v.Duration
+		}
+		val.report.SelfTime = &self
 		so.cache.Cache(so.functionName, val)
 	}
 	return val.val
@@ -167,7 +172,10 @@ func (so *StructOutput[T]) CaptureError(err error) {
 }
 
 func (so *StructOutput[T]) CaptureTiming(title string, timing time.Duration) {
-	// Do capture
+	so.report.Steps = append(so.report.Steps, StepTiming{
+		Label:    title,
+		Duration: timing,
+	})
 }
 
 // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<

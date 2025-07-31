@@ -29,10 +29,14 @@ func (rnd MeshNodeData) Out() nodes.StructOutput[modeling.Mesh] {
 	if rnd.Mesh == nil {
 		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
 	}
-	mesh := rnd.Mesh.Value()
+	out := nodes.StructOutput[modeling.Mesh]{}
 
+	mesh := nodes.GetOutputValue(&out, rnd.Mesh)
 	if rnd.Transforms == nil {
-		return nodes.NewStructOutput(modeling.EmptyMesh(mesh.Topology()))
+		out.Set(mesh)
+		return out
 	}
-	return nodes.NewStructOutput(Mesh(mesh, rnd.Transforms.Value()))
+
+	out.Set(Mesh(mesh, nodes.GetOutputValue(&out, rnd.Transforms)))
+	return out
 }

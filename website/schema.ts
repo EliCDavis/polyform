@@ -95,5 +95,6 @@ export interface ExecutionReport {
     errors?: string[];
     logs?: string[];
     totalTime: number;
+    selfTime?: number;
     steps?: StepTiming[];
 }

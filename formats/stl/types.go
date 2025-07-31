@@ -29,19 +29,22 @@ func (gad ReadNodeData) Out() nodes.StructOutput[modeling.Mesh] {
 		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
 	}
 
-	data := gad.Data.Value()
+	out := nodes.StructOutput[modeling.Mesh]{}
+	data := nodes.GetOutputValue(&out, gad.Data)
 	if len(data) == 0 {
-		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
+		out.Set(modeling.EmptyMesh(modeling.TriangleTopology))
+		return out
 	}
 
 	cloud, err := ReadMesh(bytes.NewReader(data))
 	if err != nil {
-		out := nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
+		out.Set(modeling.EmptyMesh(modeling.TriangleTopology))
 		out.CaptureError(err)
 		return out
 	}
 
-	return nodes.NewStructOutput(*cloud)
+	out.Set(*cloud)
+	return out
 }
 
 // ============================================================================
@@ -65,6 +68,12 @@ type ManifestNodeData struct {
 }
 
 func (pn ManifestNodeData) Out() nodes.StructOutput[manifest.Manifest] {
-	entry := manifest.Entry{Artifact: Artifact{Mesh: pn.Mesh.Value()}}
-	return nodes.NewStructOutput(manifest.SingleEntryManifest("model.stl", entry))
+	out := nodes.StructOutput[manifest.Manifest]{}
+	entry := manifest.Entry{
+		Artifact: Artifact{
+			Mesh: nodes.TryGetOutputValue(&out, pn.Mesh, modeling.EmptyMesh(modeling.TriangleTopology)),
+		},
+	}
+	out.Set(manifest.SingleEntryManifest("model.stl", entry))
+	return out
 }

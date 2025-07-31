@@ -54,12 +54,12 @@ func (n SliceAttributeByPlaneNode) slice(above bool) nodes.StructOutput[modeling
 		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
 	}
 
-	mesh := nodes.GetOutputValue(out, n.Mesh)
+	mesh := nodes.GetOutputValue(&out, n.Mesh)
 	if n.Plane == nil {
 		out.Set(mesh)
 		return out
 	}
-	plane := nodes.GetOutputValue(out, n.Plane)
+	plane := nodes.GetOutputValue(&out, n.Plane)
 
 	aboveM, belowM := SliceByPlaneWithAttribute(
 		mesh,

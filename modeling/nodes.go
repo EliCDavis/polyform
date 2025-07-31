@@ -36,12 +36,12 @@ type SelectFromMeshNode struct {
 	Mesh nodes.Output[Mesh]
 }
 
-func (n SelectFromMeshNode) Float3(attr string) []vector3.Float64 {
+func (n SelectFromMeshNode) Float3(recorder nodes.ExecutionRecorder, attr string) []vector3.Float64 {
 	if n.Mesh == nil {
 		return nil
 	}
 
-	mesh := n.Mesh.Value()
+	mesh := nodes.GetOutputValue(recorder, n.Mesh)
 	if !mesh.HasFloat3Attribute(attr) {
 		return nil
 	}
@@ -49,12 +49,12 @@ func (n SelectFromMeshNode) Float3(attr string) []vector3.Float64 {
 	return iterToArr(mesh.Float3Attribute(attr))
 }
 
-func (n SelectFromMeshNode) Float2(attr string) []vector2.Float64 {
+func (n SelectFromMeshNode) Float2(recorder nodes.ExecutionRecorder, attr string) []vector2.Float64 {
 	if n.Mesh == nil {
 		return nil
 	}
 
-	mesh := n.Mesh.Value()
+	mesh := nodes.GetOutputValue(recorder, n.Mesh)
 	if !mesh.HasFloat2Attribute(attr) {
 		return nil
 	}
@@ -66,7 +66,9 @@ func (n SelectFromMeshNode) Indices() nodes.StructOutput[[]int] {
 	if n.Mesh == nil {
 		return nodes.NewStructOutput[[]int](nil)
 	}
-	return nodes.NewStructOutput(iterToArr(n.Mesh.Value().Indices()))
+	out := nodes.StructOutput[[]int]{}
+	out.Set(iterToArr(nodes.GetOutputValue(&out, n.Mesh).Indices()))
+	return out
 }
 
 func (n SelectFromMeshNode) Topology() nodes.StructOutput[Topology] {
@@ -74,23 +76,33 @@ func (n SelectFromMeshNode) Topology() nodes.StructOutput[Topology] {
 		// TODO: EEEHHHHHHHHHHHHHHHH
 		return nodes.NewStructOutput(TriangleTopology)
 	}
-	return nodes.NewStructOutput(n.Mesh.Value().topology)
+	out := nodes.StructOutput[Topology]{}
+	out.Set(nodes.GetOutputValue(&out, n.Mesh).topology)
+	return out
 }
 
 func (n SelectFromMeshNode) Position() nodes.StructOutput[[]vector3.Float64] {
-	return nodes.NewStructOutput(n.Float3(PositionAttribute))
+	out := nodes.StructOutput[[]vector3.Float64]{}
+	out.Set(n.Float3(&out, PositionAttribute))
+	return out
 }
 
 func (n SelectFromMeshNode) Normal() nodes.StructOutput[[]vector3.Float64] {
-	return nodes.NewStructOutput(n.Float3(NormalAttribute))
+	out := nodes.StructOutput[[]vector3.Float64]{}
+	out.Set(n.Float3(&out, NormalAttribute))
+	return out
 }
 
-func (n SelectFromMeshNode) Color() nodes.StructOutput[[]vector3.Float64] {
-	return nodes.NewStructOutput(n.Float3(ColorAttribute))
+func (n SelectFromMeshNode) Color3() nodes.StructOutput[[]vector3.Float64] {
+	out := nodes.StructOutput[[]vector3.Float64]{}
+	out.Set(n.Float3(&out, ColorAttribute))
+	return out
 }
 
 func (n SelectFromMeshNode) TexCoord() nodes.StructOutput[[]vector2.Float64] {
-	return nodes.NewStructOutput(n.Float2(TexCoordAttribute))
+	out := nodes.StructOutput[[]vector2.Float64]{}
+	out.Set(n.Float2(&out, TexCoordAttribute))
+	return out
 }
 
 type MapEntry[T any] struct {
@@ -251,8 +263,8 @@ func (n SetAttribute3DNode) Out() nodes.StructOutput[Mesh] {
 		out.Set(mesh)
 		return out
 	}
-	attr := nodes.GetOutputValue(out, n.Attribute)
-	data := nodes.GetOutputValue(out, n.Data)
+	attr := nodes.GetOutputValue(&out, n.Attribute)
+	data := nodes.GetOutputValue(&out, n.Data)
 
 	if n.Mesh == nil {
 		// create a new mesh with the attribute data
@@ -268,6 +280,6 @@ func (n SetAttribute3DNode) Out() nodes.StructOutput[Mesh] {
 		return out
 	}
 
-	out.Set(nodes.GetOutputValue(out, n.Mesh).SetFloat3Attribute(attr, data))
+	out.Set(nodes.GetOutputValue(&out, n.Mesh).SetFloat3Attribute(attr, data))
 	return out
 }

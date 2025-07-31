@@ -97,7 +97,7 @@ func (sa3dn ScaleAttributeAlongNormalNodeData) Out() nodes.StructOutput[modeling
 	}
 
 	out := nodes.StructOutput[modeling.Mesh]{}
-	mesh := nodes.GetOutputValue(out, sa3dn.Mesh)
+	mesh := nodes.GetOutputValue(&out, sa3dn.Mesh)
 
 	attrToScale := nodes.TryGetOutputValue(&out, sa3dn.AttributeToScale, modeling.PositionAttribute)
 	if !mesh.HasFloat3Attribute(attrToScale) {
@@ -171,7 +171,7 @@ func (sa3dn ScaleAttribute3DNodeData) Out() nodes.StructOutput[modeling.Mesh] {
 	}
 	out := nodes.StructOutput[modeling.Mesh]{}
 	out.Set(ScaleAttribute3D(
-		sa3dn.Mesh.Value(),
+		nodes.GetOutputValue(&out, sa3dn.Mesh),
 		nodes.TryGetOutputValue(&out, sa3dn.Attribute, modeling.PositionAttribute),
 		nodes.TryGetOutputValue(&out, sa3dn.Origin, vector3.Zero[float64]()),
 		nodes.TryGetOutputValue(&out, sa3dn.Amount, vector3.One[float64]()),

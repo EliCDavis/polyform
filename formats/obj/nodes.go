@@ -62,14 +62,9 @@ type SceneNodeData struct {
 }
 
 func (pn SceneNodeData) Out() nodes.StructOutput[Scene] {
-	objects := make([]Object, 0)
-	for _, o := range pn.Objects {
-		if o == nil {
-			continue
-		}
-		objects = append(objects, o.Value())
-	}
-	return nodes.NewStructOutput(Scene{Objects: objects})
+	out := nodes.StructOutput[Scene]{}
+	out.Set(Scene{Objects: nodes.GetOutputValues(&out, pn.Objects)})
+	return out
 }
 
 type ObjectNode = nodes.Struct[ObjectNodeData]
@@ -99,9 +94,9 @@ func (pn EntryNodeData) Out() nodes.StructOutput[Entry] {
 	out := nodes.StructOutput[Entry]{}
 	out.Set(Entry{
 		Mesh:     nodes.TryGetOutputValue(&out, pn.Mesh, modeling.EmptyMesh(modeling.TriangleTopology)),
-		Material: nodes.TryGetOutputReference(out, pn.Material, nil),
+		Material: nodes.TryGetOutputReference(&out, pn.Material, nil),
 	})
-	return nodes.NewStructOutput(Entry{})
+	return out
 }
 
 type MaterialNode = nodes.Struct[MaterialNodeData]
@@ -123,9 +118,9 @@ func (pn MaterialNodeData) Out() nodes.StructOutput[Material] {
 		SpecularHighlight: nodes.TryGetOutputValue(&out, pn.SpecularHighlight, 100),
 		OpticalDensity:    nodes.TryGetOutputValue(&out, pn.OpticalDensity, 1),
 		Transparency:      nodes.TryGetOutputValue(&out, pn.Transparency, 0),
-		AmbientColor:      nodes.TryGetOutputReference(out, pn.AmbientColor, nil),
-		DiffuseColor:      nodes.TryGetOutputReference(out, pn.DiffuseColor, nil),
-		SpecularColor:     nodes.TryGetOutputReference(out, pn.SpecularColor, nil),
+		AmbientColor:      nodes.TryGetOutputReference(&out, pn.AmbientColor, nil),
+		DiffuseColor:      nodes.TryGetOutputReference(&out, pn.DiffuseColor, nil),
+		SpecularColor:     nodes.TryGetOutputReference(&out, pn.SpecularColor, nil),
 	})
 	return out
 }
@@ -141,13 +136,15 @@ func (pn ReadNodeData) Out() nodes.StructOutput[modeling.Mesh] {
 		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
 	}
 
-	data := pn.In.Value()
+	out := nodes.StructOutput[modeling.Mesh]{}
+	data := nodes.GetOutputValue(&out, pn.In)
 
 	scene, _, err := ReadMesh(bytes.NewReader(data))
 	if err != nil {
-		output := nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
-		output.CaptureError(err)
-		return output
+		out.Set(modeling.EmptyMesh(modeling.TriangleTopology))
+		out.CaptureError(err)
+		return out
 	}
-	return nodes.NewStructOutput(scene.ToMesh())
+	out.Set(scene.ToMesh())
+	return out
 }

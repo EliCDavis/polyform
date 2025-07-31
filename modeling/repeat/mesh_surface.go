@@ -93,7 +93,7 @@ func (rnd SampleMeshSurfaceNode) Out() nodes.StructOutput[[]trs.TRS] {
 		return out
 	}
 
-	mesh := nodes.GetOutputValue(out, rnd.Mesh)
+	mesh := nodes.GetOutputValue(&out, rnd.Mesh)
 	if mesh.Topology() != modeling.TriangleTopology {
 		out.CaptureError(fmt.Errorf("mesh must have triangle topology to sample surface"))
 		return out

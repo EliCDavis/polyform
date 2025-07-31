@@ -76,7 +76,7 @@ func (ca3dn ColorGradingLutNodeData) Out() nodes.StructOutput[modeling.Mesh] {
 		return out
 	}
 
-	mesh := nodes.GetOutputValue(out, ca3dn.Mesh)
+	mesh := nodes.GetOutputValue(&out, ca3dn.Mesh)
 	img := nodes.TryGetOutputValue(&out, ca3dn.LUT, nil)
 	if img == nil {
 		out.Set(mesh)

@@ -22,15 +22,12 @@ type LengthNodeData struct {
 }
 
 func (r LengthNodeData) Out() nodes.StructOutput[float64] {
-	if r.Spline == nil {
-		return nodes.NewStructOutput(0.)
+	out := nodes.StructOutput[float64]{}
+	spline := nodes.TryGetOutputValue(&out, r.Spline, nil)
+
+	if spline != nil {
+		out.Set(spline.Length())
 	}
 
-	spline := r.Spline.Value()
-
-	if spline == nil {
-		return nodes.NewStructOutput(0.)
-	}
-
-	return nodes.NewStructOutput(spline.Length())
+	return out
 }

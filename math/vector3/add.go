@@ -34,13 +34,13 @@ func (cn AddToArrayNodeData[T]) Out() nodes.StructOutput[[]vector3.Vector[T]] {
 		return out
 	}
 
-	original := nodes.GetOutputValue(out, cn.Array)
+	original := nodes.GetOutputValue(&out, cn.Array)
 	if cn.Amount == nil {
 		out.Set(original)
 		return out
 	}
 
-	amount := nodes.GetOutputValue(out, cn.Amount)
+	amount := nodes.GetOutputValue(&out, cn.Amount)
 	total := make([]vector3.Vector[T], len(original))
 	for i, v := range original {
 		total[i] = v.Add(amount)

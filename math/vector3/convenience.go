@@ -93,7 +93,7 @@ func (cn Dot) Dot() nodes.StructOutput[float64] {
 		return nodes.NewStructOutput(0.)
 	}
 	out := nodes.StructOutput[float64]{}
-	out.Set(nodes.GetOutputValue(out, cn.A).Dot(nodes.GetOutputValue(out, cn.B)))
+	out.Set(nodes.GetOutputValue(&out, cn.A).Dot(nodes.GetOutputValue(&out, cn.B)))
 	return out
 }
 
@@ -167,7 +167,7 @@ func (cn Normalize) Normalized() nodes.StructOutput[vector3.Float64] {
 	if cn.In == nil {
 		return out
 	}
-	out.Set(nodes.GetOutputValue(out, cn.In).Normalized())
+	out.Set(nodes.GetOutputValue(&out, cn.In).Normalized())
 	return out
 }
 
@@ -187,7 +187,7 @@ func (cn NormalizeArray) Normalized() nodes.StructOutput[[]vector3.Float64] {
 		return out
 	}
 
-	in := nodes.GetOutputValue(out, cn.In)
+	in := nodes.GetOutputValue(&out, cn.In)
 	arr := make([]vector3.Float64, len(in))
 	for i, v := range in {
 		arr[i] = v.Normalized()

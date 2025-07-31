@@ -102,10 +102,9 @@ type ArtifactNodeData struct {
 }
 
 func (pn ArtifactNodeData) Out() nodes.StructOutput[manifest.Artifact] {
-	if pn.In == nil {
-		return nodes.NewStructOutput[manifest.Artifact](Artifact{Mesh: modeling.EmptyPointcloud()})
-	}
-	return nodes.NewStructOutput[manifest.Artifact](Artifact{Mesh: pn.In.Value()})
+	out := nodes.StructOutput[manifest.Artifact]{}
+	out.Set(Artifact{Mesh: nodes.TryGetOutputValue(&out, pn.In, modeling.EmptyPointcloud())})
+	return out
 }
 
 // ============================================================================
@@ -146,7 +145,7 @@ func (pn ReadNodeData) Out() nodes.StructOutput[modeling.Mesh] {
 		return out
 	}
 
-	data := nodes.GetOutputValue(out, pn.In)
+	data := nodes.GetOutputValue(&out, pn.In)
 	mesh, err := ReadMesh(bytes.NewReader(data))
 	if err != nil {
 		out.CaptureError(err)

@@ -132,7 +132,7 @@ func (c QuadNodeData) Out() nodes.StructOutput[modeling.Mesh] {
 		Depth:   nodes.TryGetOutputValue(&out, c.Depth, 1.),
 		Rows:    max(nodes.TryGetOutputValue(&out, c.Rows, 1), 1),
 		Columns: max(nodes.TryGetOutputValue(&out, c.Columns, 1), 1),
-		UVs:     nodes.TryGetOutputReference(out, c.UVs, nil),
+		UVs:     nodes.TryGetOutputReference(&out, c.UVs, nil),
 	}
 	out.Set(quad.ToMesh())
 	return out

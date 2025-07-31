@@ -53,7 +53,7 @@ func (ta3dn TranslateAttribute3DNodeData) Out() nodes.StructOutput[modeling.Mesh
 	}
 
 	out := nodes.StructOutput[modeling.Mesh]{}
-	mesh := nodes.GetOutputValue(out, ta3dn.Mesh)
+	mesh := nodes.GetOutputValue(&out, ta3dn.Mesh)
 
 	if ta3dn.Amount == nil {
 		out.Set(mesh)
@@ -63,7 +63,7 @@ func (ta3dn TranslateAttribute3DNodeData) Out() nodes.StructOutput[modeling.Mesh
 	out.Set(TranslateAttribute3D(
 		mesh,
 		nodes.TryGetOutputValue(&out, ta3dn.Attribute, modeling.PositionAttribute),
-		nodes.GetOutputValue(out, ta3dn.Amount),
+		nodes.GetOutputValue(&out, ta3dn.Amount),
 	))
 	return out
 }

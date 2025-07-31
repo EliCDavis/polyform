@@ -26,17 +26,20 @@ func (gad ReadNodeData) Out() nodes.StructOutput[modeling.Mesh] {
 		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.PointTopology))
 	}
 
-	data := gad.Data.Value()
+	out := nodes.StructOutput[modeling.Mesh]{}
+	out.Set(modeling.EmptyMesh(modeling.PointTopology))
+
+	data := nodes.GetOutputValue(&out, gad.Data)
 	if len(data) == 0 {
-		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.PointTopology))
+		return out
 	}
 
 	cloud, err := Read(bytes.NewReader(data))
 	if err != nil {
-		out := nodes.NewStructOutput(modeling.EmptyMesh(modeling.PointTopology))
 		out.CaptureError(err)
 		return out
 	}
 
-	return nodes.NewStructOutput(cloud.Mesh)
+	out.Set(cloud.Mesh)
+	return out
 }

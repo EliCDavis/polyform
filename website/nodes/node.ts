@@ -332,9 +332,13 @@ export class PolyNodeController {
                 continue;
             }
 
-            if (report.totalTime !== 0) {
+            if (report.selfTime !== undefined) {
                 this.flowNode.addMessage({
-                    message: `${outputName}: ${formatNanoseconds(report.totalTime)}`,
+                    message: `${outputName}: ${formatNanoseconds(report.selfTime)}`,
+                })
+            } else if (report.totalTime !== 0) {
+                this.flowNode.addMessage({
+                    message: `${outputName}: total ${formatNanoseconds(report.totalTime)}`,
                 })
             }
 

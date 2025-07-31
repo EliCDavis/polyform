@@ -71,18 +71,11 @@ type FibonacciSphereNodeData struct {
 }
 
 func (fpnd FibonacciSphereNodeData) Out() nodes.StructOutput[[]trs.TRS] {
-	radius := 1.
-	count := 10
-
-	if fpnd.Count != nil {
-		count = fpnd.Count.Value()
-	}
-
-	if fpnd.Radius != nil {
-		radius = fpnd.Radius.Value()
-	}
-
-	return nodes.NewStructOutput(FibonacciSphere(count, radius))
+	out := nodes.StructOutput[[]trs.TRS]{}
+	radius := nodes.TryGetOutputValue(&out, fpnd.Radius, 1.)
+	count := nodes.TryGetOutputValue(&out, fpnd.Count, 10)
+	out.Set(FibonacciSphere(count, radius))
+	return out
 }
 
 type FibonacciSpiralNode = nodes.Struct[FibonacciSpiralNodeData]

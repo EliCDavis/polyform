@@ -61,11 +61,14 @@ func (fnnd FlatNormalsNodeData) Out() nodes.StructOutput[modeling.Mesh] {
 		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
 	}
 
-	mesh := fnnd.Mesh.Value()
+	out := nodes.StructOutput[modeling.Mesh]{}
+	mesh := nodes.GetOutputValue(&out, fnnd.Mesh)
 
 	if !mesh.HasFloat3Attribute(modeling.PositionAttribute) || mesh.Topology() != modeling.TriangleTopology {
-		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
+		out.Set(modeling.EmptyMesh(modeling.TriangleTopology))
+		return out
 	}
 
-	return nodes.NewStructOutput(FlatNormals(mesh))
+	out.Set(FlatNormals(mesh))
+	return out
 }

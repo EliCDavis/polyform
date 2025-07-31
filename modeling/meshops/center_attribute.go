@@ -61,7 +61,7 @@ func (ca3dn CenterAttribute3DNodeData) Out() nodes.StructOutput[modeling.Mesh] {
 
 	out := nodes.StructOutput[modeling.Mesh]{}
 	out.Set(CenterFloat3Attribute(
-		nodes.GetOutputValue(out, ca3dn.Mesh),
+		nodes.GetOutputValue(&out, ca3dn.Mesh),
 		nodes.TryGetOutputValue(&out, ca3dn.Attribute, modeling.PositionAttribute),
 	))
 	return out

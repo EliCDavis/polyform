@@ -28,9 +28,10 @@ func (pn ReadReconstructionNodeData) Out() nodes.StructOutput[modeling.Mesh] {
 		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.PointTopology))
 	}
 
-	data, err := ReadReconstructiontData(bytes.NewReader(pn.In.Value()))
+	out := nodes.StructOutput[modeling.Mesh]{}
+	data, err := ReadReconstructiontData(bytes.NewReader(nodes.GetOutputValue(&out, pn.In)))
 
-	out := nodes.NewStructOutput(data)
+	out.Set(data)
 	out.CaptureError(err)
 
 	return out

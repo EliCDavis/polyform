@@ -30,12 +30,14 @@ func (rnd TRSNodeData) Out() nodes.StructOutput[[]trs.TRS] {
 	if rnd.Input == nil {
 		return nodes.NewStructOutput(make([]trs.TRS, 0))
 	}
-	mesh := rnd.Input.Value()
 
+	out := nodes.StructOutput[[]trs.TRS]{}
+	mesh := nodes.GetOutputValue(&out, rnd.Input)
 	if rnd.Transforms == nil {
-		return nodes.NewStructOutput(mesh)
+		out.Set(mesh)
+		return out
 	}
-	transforms := rnd.Transforms.Value()
-
-	return nodes.NewStructOutput(TRS(mesh, transforms))
+	transforms := nodes.GetOutputValue(&out, rnd.Transforms)
+	out.Set(TRS(mesh, transforms))
+	return out
 }

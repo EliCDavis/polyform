@@ -41,8 +41,10 @@ func (pn ManifestNodeData) Description() string {
 }
 
 func (pn ManifestNodeData) Out() nodes.StructOutput[manifest.Manifest] {
+	out := nodes.StructOutput[manifest.Manifest]{}
 	entry := manifest.Entry{
-		Artifact: Splat{Mesh: pn.In.Value()},
+		Artifact: Splat{Mesh: nodes.TryGetOutputValue(&out, pn.In, modeling.EmptyPointcloud())},
 	}
-	return nodes.NewStructOutput(manifest.SingleEntryManifest("model.splat", entry))
+	out.Set(manifest.SingleEntryManifest("model.splat", entry))
+	return out
 }

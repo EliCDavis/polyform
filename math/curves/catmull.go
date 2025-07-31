@@ -357,19 +357,11 @@ type CatmullRomSplineNodeData struct {
 }
 
 func (r CatmullRomSplineNodeData) Out() nodes.StructOutput[Spline] {
+	out := nodes.StructOutput[Spline]{}
 
-	alpha := 0.
-	if r.Alpha != nil {
-		alpha = r.Alpha.Value()
-	}
-
-	if r.Points == nil {
-		return nodes.NewStructOutput[Spline](nil)
-	}
-
-	points := r.Points.Value()
-	if len(points) < 4 {
-		return nodes.NewStructOutput[Spline](nil)
+	points := nodes.TryGetOutputValue(&out, r.Points, nil)
+	if len(points) < 2 {
+		return out
 	}
 
 	// for _, p := range points {
@@ -379,13 +371,13 @@ func (r CatmullRomSplineNodeData) Out() nodes.StructOutput[Spline] {
 
 	spline := CatmullRomSplineParameters{
 		Points: points,
-		Alpha:  alpha,
+		Alpha:  nodes.TryGetOutputValue(&out, r.Alpha, 0),
 	}.Spline()
 
 	// UGGO: Force a calculation to fill all the temp data
 	// Prevents two threads calling length at the same time,
 	// causing it to populate things twice
 	spline.Length()
-
-	return nodes.NewStructOutput[Spline](&spline)
+	out.Set(&spline)
+	return out
 }

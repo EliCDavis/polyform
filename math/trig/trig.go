@@ -20,7 +20,7 @@ func runFunction(
 	scale := nodes.TryGetOutputValue(&out, Amplitude, 1)
 	shift := nodes.TryGetOutputValue(&out, Shift, 0)
 
-	in := nodes.GetOutputValue(out, Input)
+	in := nodes.GetOutputValue(&out, Input)
 	arr := make([]float64, len(in))
 	for i, v := range in {
 		arr[i] = f(v+shift) * scale

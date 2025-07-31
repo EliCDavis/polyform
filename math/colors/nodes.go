@@ -33,18 +33,18 @@ func (n InterpolateNode) Out() nodes.StructOutput[coloring.WebColor] {
 	}
 
 	if n.A == nil {
-		out.Set(nodes.GetOutputValue(out, n.B))
+		out.Set(nodes.GetOutputValue(&out, n.B))
 		return out
 	}
 
 	if n.B == nil {
-		out.Set(nodes.GetOutputValue(out, n.A))
+		out.Set(nodes.GetOutputValue(&out, n.A))
 		return out
 	}
 
 	i := Interpolate(
-		n.A.Value(),
-		n.B.Value(),
+		nodes.GetOutputValue(&out, n.A),
+		nodes.GetOutputValue(&out, n.B),
 		nodes.TryGetOutputValue(&out, n.Time, 0),
 	)
 
@@ -71,7 +71,7 @@ func (n InterpolateToArrayNode) Out() nodes.StructOutput[[]coloring.WebColor] {
 	}
 
 	out := nodes.StructOutput[[]coloring.WebColor]{}
-	times := nodes.GetOutputValue(out, n.Time)
+	times := nodes.GetOutputValue(&out, n.Time)
 
 	arr := make([]coloring.WebColor, len(times))
 	out.Set(arr)
@@ -81,7 +81,7 @@ func (n InterpolateToArrayNode) Out() nodes.StructOutput[[]coloring.WebColor] {
 	}
 
 	if n.A == nil {
-		v := nodes.GetOutputValue(out, n.B)
+		v := nodes.GetOutputValue(&out, n.B)
 		for i := range arr {
 			arr[i] = v
 		}
@@ -90,7 +90,7 @@ func (n InterpolateToArrayNode) Out() nodes.StructOutput[[]coloring.WebColor] {
 	}
 
 	if n.B == nil {
-		v := nodes.GetOutputValue(out, n.A)
+		v := nodes.GetOutputValue(&out, n.A)
 		for i := range arr {
 			arr[i] = v
 		}
@@ -98,8 +98,8 @@ func (n InterpolateToArrayNode) Out() nodes.StructOutput[[]coloring.WebColor] {
 		return out
 	}
 
-	aV := nodes.GetOutputValue(out, n.A)
-	bV := nodes.GetOutputValue(out, n.B)
+	aV := nodes.GetOutputValue(&out, n.A)
+	bV := nodes.GetOutputValue(&out, n.B)
 
 	for i, t := range times {
 		v := Interpolate(aV, bV, t)

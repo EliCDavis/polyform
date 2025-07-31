@@ -28,8 +28,10 @@ func (pn ReadPointsNodeData) Out() nodes.StructOutput[modeling.Mesh] {
 		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.PointTopology))
 	}
 
-	data, err := ReadSparsePointData(bytes.NewReader(pn.In.Value()))
-	out := nodes.NewStructOutput(data)
+	out := nodes.StructOutput[modeling.Mesh]{}
+
+	data, err := ReadSparsePointData(bytes.NewReader(nodes.GetOutputValue(&out, pn.In)))
+	out.Set(data)
 	out.CaptureError(err)
 	return out
 }

@@ -34,17 +34,24 @@ func TryGetOutputValue[G any](result ExecutionRecorder, output Output[G], fallba
 	return v
 }
 
-func GetOutputValue[T, G any](result StructOutput[T], output Output[G]) G {
+func GetOutputValue[G any](result ExecutionRecorder, output Output[G]) G {
 	start := time.Now()
 	v := output.Value()
 	result.CaptureTiming(output.Name(), time.Since(start))
 	return v
 }
 
-func TryGetOutputReference[T, G any](result StructOutput[T], output Output[G], fallback *G) *G {
+func TryGetOutputReference[G any](result ExecutionRecorder, output Output[G], fallback *G) *G {
 	if output == nil {
 		return fallback
 	}
+	start := time.Now()
+	v := output.Value()
+	result.CaptureTiming(output.Name(), time.Since(start))
+	return &v
+}
+
+func GetOutputReference[G any](result ExecutionRecorder, output Output[G]) *G {
 	start := time.Now()
 	v := output.Value()
 	result.CaptureTiming(output.Name(), time.Since(start))

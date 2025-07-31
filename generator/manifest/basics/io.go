@@ -12,6 +12,9 @@ type IO struct {
 }
 
 func (ga IO) Write(w io.Writer) error {
+	if ga.Reader == nil {
+		return nil
+	}
 	_, err := io.Copy(w, ga.Reader)
 	return err
 }
@@ -27,5 +30,7 @@ type IONodeData struct {
 }
 
 func (pn IONodeData) Out() nodes.StructOutput[manifest.Artifact] {
-	return nodes.NewStructOutput[manifest.Artifact](IO{Reader: pn.In.Value()})
+	out := nodes.StructOutput[manifest.Artifact]{}
+	out.Set(IO{Reader: nodes.TryGetOutputValue(&out, pn.In, nil)})
+	return out
 }

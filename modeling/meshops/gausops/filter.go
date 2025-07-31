@@ -30,7 +30,7 @@ func (fnd FilterNodeData) Out() nodes.StructOutput[modeling.Mesh] {
 	minVolume := nodes.TryGetOutputValue(&out, fnd.MinVolume, -math.MaxFloat64)
 	maxVolume := nodes.TryGetOutputValue(&out, fnd.MaxVolume, math.MaxFloat64)
 
-	m := nodes.GetOutputValue(out, fnd.Splat)
+	m := nodes.GetOutputValue(&out, fnd.Splat)
 	opacity := m.Float1Attribute(modeling.OpacityAttribute)
 	scale := m.Float3Attribute(modeling.ScaleAttribute)
 

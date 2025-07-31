@@ -256,33 +256,34 @@ func (n MultiplyToArrayNodeData) Out() nodes.StructOutput[[]TRS] {
 	}
 
 	out := nodes.StructOutput[[]TRS]{}
-	in := nodes.GetOutputValue(out, n.Array)
+	in := nodes.GetOutputValue(&out, n.Array)
 
 	if n.Left == nil && n.Right == nil {
-		return nodes.NewStructOutput(in)
+		out.Set(in)
+		return out
 	}
 
 	arr := make([]TRS, len(in))
 	if n.Left == nil && n.Right != nil {
-		right := nodes.GetOutputValue(out, n.Right)
+		right := nodes.GetOutputValue(&out, n.Right)
 		for i, v := range in {
 			arr[i] = v.Multiply(right)
 		}
 	} else if n.Left != nil && n.Right == nil {
-		left := nodes.GetOutputValue(out, n.Left)
+		left := nodes.GetOutputValue(&out, n.Left)
 		for i, v := range in {
 			arr[i] = left.Multiply(v)
 		}
 	} else {
-		right := nodes.GetOutputValue(out, n.Right)
-		left := nodes.GetOutputValue(out, n.Left)
+		right := nodes.GetOutputValue(&out, n.Right)
+		left := nodes.GetOutputValue(&out, n.Left)
 		for i, v := range in {
 			arr[i] = left.Multiply(v.Multiply(right))
 		}
 	}
 
 	out.Set(arr)
-	return nodes.NewStructOutput(arr)
+	return out
 }
 
 // ============================================================================
@@ -302,7 +303,7 @@ func (tnd TransformArrayNodeData) Out() nodes.StructOutput[[]TRS] {
 		return out
 	}
 
-	v := nodes.GetOutputValue(out, tnd.Transform)
+	v := nodes.GetOutputValue(&out, tnd.Transform)
 	inArr := nodes.TryGetOutputValue(&out, tnd.Array, nil)
 
 	outArr := make([]TRS, len(inArr))
@@ -330,7 +331,7 @@ func (tnd RotateDirectionNodeData) Out() nodes.StructOutput[vector3.Float64] {
 		return out
 	}
 
-	out.Set(nodes.GetOutputValue(out, tnd.TRS).RotateDirection(nodes.GetOutputValue(out, tnd.Direction)))
+	out.Set(nodes.GetOutputValue(&out, tnd.TRS).RotateDirection(nodes.GetOutputValue(&out, tnd.Direction)))
 	return out
 }
 
@@ -449,7 +450,7 @@ func filter(
 		}
 	}
 
-	arr := nodes.GetOutputValue(out, Input)
+	arr := nodes.GetOutputValue(&out, Input)
 	if allNil {
 		return out, arr, nil
 	}

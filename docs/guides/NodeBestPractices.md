@@ -108,3 +108,23 @@ INSERT DESCRIPTION
 
 "opt for sum over out"
 
+
+## Avoid Calling Input if you can
+
+```go
+a := A.Value()
+b := B.Value()
+if b < 0 { 
+    return
+}
+```
+
+To
+
+```go
+b := B.Value()
+if b < 0 { 
+    return
+}
+a := A.Value()
+```

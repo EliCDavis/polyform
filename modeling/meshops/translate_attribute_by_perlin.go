@@ -76,7 +76,7 @@ func (ta3dn TranslateAttributeByPerlinNoise3DNode) Out() nodes.StructOutput[mode
 
 	out := nodes.StructOutput[modeling.Mesh]{}
 	out.Set(TranslateAttribute3DByPerlinNoise(
-		nodes.GetOutputValue(out, ta3dn.Mesh),
+		nodes.GetOutputValue(&out, ta3dn.Mesh),
 		nodes.TryGetOutputValue(&out, ta3dn.Attribute, modeling.PositionAttribute),
 		nodes.TryGetOutputValue(&out, ta3dn.Frequency, vector3.One[float64]()),
 		nodes.TryGetOutputValue(&out, ta3dn.Amplitude, vector3.One[float64]()),

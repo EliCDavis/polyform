@@ -40,17 +40,16 @@ type FlipTriangleWindingNode struct {
 }
 
 func (n FlipTriangleWindingNode) Flipped() nodes.StructOutput[modeling.Mesh] {
+	out := nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
 	if n.Mesh == nil {
-		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
-	}
-
-	mesh := n.Mesh.Value()
-
-	if mesh.Topology() != modeling.TriangleTopology {
-		out := nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
-		out.CaptureError(fmt.Errorf("Cant flip triangles of a non triangle mesh"))
 		return out
 	}
 
-	return nodes.NewStructOutput(FlipTriangleWinding(mesh))
+	mesh := nodes.GetOutputValue(&out, n.Mesh)
+	if mesh.Topology() != modeling.TriangleTopology {
+		out.CaptureError(fmt.Errorf("Cant flip triangles of a non triangle mesh"))
+		return out
+	}
+	out.Set(FlipTriangleWinding(mesh))
+	return out
 }
