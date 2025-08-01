@@ -45,13 +45,11 @@ type ConeNodeData struct {
 	Sides  nodes.Output[int]
 }
 
-func (r ConeNodeData) Out() nodes.StructOutput[modeling.Mesh] {
-	out := nodes.StructOutput[modeling.Mesh]{}
+func (r ConeNodeData) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	cone := Cone{
-		Height: nodes.TryGetOutputValue(&out, r.Height, 1),
-		Radius: nodes.TryGetOutputValue(&out, r.Radius, 0.5),
-		Sides:  max(nodes.TryGetOutputValue(&out, r.Sides, 3), 3),
+		Height: nodes.TryGetOutputValue(out, r.Height, 1),
+		Radius: nodes.TryGetOutputValue(out, r.Radius, 0.5),
+		Sides:  max(nodes.TryGetOutputValue(out, r.Sides, 3), 3),
 	}
 	out.Set(cone.ToMesh())
-	return out
 }

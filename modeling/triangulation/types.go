@@ -21,29 +21,26 @@ type BowyerWatsonNode struct {
 	Constraints nodes.Output[[]vector2.Float64]
 }
 
-func (node BowyerWatsonNode) Out() nodes.StructOutput[modeling.Mesh] {
+func (node BowyerWatsonNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
+	out.Set(modeling.EmptyMesh(modeling.TriangleTopology))
 	if node.Points == nil {
-		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
+		return
 	}
 
-	out := nodes.StructOutput[modeling.Mesh]{}
-
-	val := nodes.TryGetOutputValue(&out, node.Points, nil)
+	val := nodes.TryGetOutputValue(out, node.Points, nil)
 	if len(val) < 3 {
 		out.CaptureError(errors.New("require atleast 3 points to run"))
-		out.Set(modeling.EmptyMesh(modeling.TriangleTopology))
-		return out
+		return
 	}
 
-	contraints := nodes.TryGetOutputValue(&out, node.Constraints, nil)
+	contraints := nodes.TryGetOutputValue(out, node.Constraints, nil)
 	if len(contraints) < 3 {
 		out.Set(BowyerWatson(val))
-		return out
+		return
 	}
 
 	out.Set(ConstrainedBowyerWatson(
 		val,
 		[]Constraint{NewConstraint(contraints)},
 	))
-	return out
 }

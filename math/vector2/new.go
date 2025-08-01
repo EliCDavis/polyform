@@ -11,13 +11,11 @@ type NewNodeData[T vector.Number] struct {
 	Y nodes.Output[T]
 }
 
-func (cn NewNodeData[T]) Out() nodes.StructOutput[vector2.Vector[T]] {
-	out := nodes.StructOutput[vector2.Vector[T]]{}
+func (cn NewNodeData[T]) Out(out *nodes.StructOutput[vector2.Vector[T]]) {
 	out.Set(vector2.New(
-		nodes.TryGetOutputValue(&out, cn.X, 0),
-		nodes.TryGetOutputValue(&out, cn.Y, 0),
+		nodes.TryGetOutputValue(out, cn.X, 0),
+		nodes.TryGetOutputValue(out, cn.Y, 0),
 	))
-	return out
 }
 
 type ArrayFromComponentsNodeData[T vector.Number] struct {
@@ -25,10 +23,9 @@ type ArrayFromComponentsNodeData[T vector.Number] struct {
 	Y nodes.Output[[]T]
 }
 
-func (snd ArrayFromComponentsNodeData[T]) Out() nodes.StructOutput[[]vector2.Vector[T]] {
-	out := nodes.StructOutput[[]vector2.Vector[T]]{}
-	xArr := nodes.TryGetOutputValue(&out, snd.X, nil)
-	yArr := nodes.TryGetOutputValue(&out, snd.Y, nil)
+func (snd ArrayFromComponentsNodeData[T]) Out(out *nodes.StructOutput[[]vector2.Vector[T]]) {
+	xArr := nodes.TryGetOutputValue(out, snd.X, nil)
+	yArr := nodes.TryGetOutputValue(out, snd.Y, nil)
 
 	arr := make([]vector2.Vector[T], max(len(xArr), len(yArr)))
 	for i := range arr {
@@ -47,15 +44,12 @@ func (snd ArrayFromComponentsNodeData[T]) Out() nodes.StructOutput[[]vector2.Vec
 	}
 
 	out.Set(arr)
-	return out
 }
 
 type ArrayFromNodesNodeData[T vector.Number] struct {
 	In []nodes.Output[vector2.Vector[T]]
 }
 
-func (node ArrayFromNodesNodeData[T]) Out() nodes.StructOutput[[]vector2.Vector[T]] {
-	out := nodes.StructOutput[[]vector2.Vector[T]]{}
-	out.Set(nodes.GetOutputValues(&out, node.In))
-	return out
+func (node ArrayFromNodesNodeData[T]) Out(out *nodes.StructOutput[[]vector2.Vector[T]]) {
+	out.Set(nodes.GetOutputValues(out, node.In))
 }

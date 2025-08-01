@@ -84,20 +84,14 @@ func (g GridNode) grid(recorder nodes.ExecutionRecorder) Grid {
 	}
 }
 
-func (g GridNode) TRS() nodes.StructOutput[[]trs.TRS] {
-	out := nodes.StructOutput[[]trs.TRS]{}
-	out.Set(g.grid(&out).TRS())
-	return out
+func (g GridNode) TRS(out *nodes.StructOutput[[]trs.TRS]) {
+	out.Set(g.grid(out).TRS())
 }
 
-func (g GridNode) Vector2() nodes.StructOutput[[]vector2.Float64] {
-	out := nodes.StructOutput[[]vector2.Float64]{}
-	out.Set(g.grid(&out).Vector2())
-	return out
+func (g GridNode) Vector2(out *nodes.StructOutput[[]vector2.Float64]) {
+	out.Set(g.grid(out).Vector2())
 }
 
-func (g GridNode) Vector3() nodes.StructOutput[[]vector3.Float64] {
-	out := nodes.StructOutput[[]vector3.Float64]{}
-	out.Set(g.grid(&out).Vector3())
-	return out
+func (g GridNode) Vector3(out *nodes.StructOutput[[]vector3.Float64]) {
+	out.Set(g.grid(out).Vector3())
 }

@@ -20,10 +20,8 @@ type DifferenceNodeData[T vector.Number] struct {
 	B nodes.Output[T]
 }
 
-func (cn DifferenceNodeData[T]) Out() nodes.StructOutput[T] {
-	out := nodes.StructOutput[T]{}
-	out.Set(nodes.TryGetOutputValue(&out, cn.A, 0) - nodes.TryGetOutputValue(&out, cn.B, 0))
-	return out
+func (cn DifferenceNodeData[T]) Out(out *nodes.StructOutput[T]) {
+	out.Set(nodes.TryGetOutputValue(out, cn.A, 0) - nodes.TryGetOutputValue(out, cn.B, 0))
 }
 
 // ============================================================================
@@ -33,14 +31,12 @@ type DifferencesToArrayNodeData[T vector.Number] struct {
 	Array nodes.Output[[]T]
 }
 
-func (cn DifferencesToArrayNodeData[T]) Out() nodes.StructOutput[[]T] {
-	out := nodes.StructOutput[[]T]{}
+func (cn DifferencesToArrayNodeData[T]) Out(out *nodes.StructOutput[[]T]) {
 	out.Set(methodToArr(
-		nodes.TryGetOutputValue(&out, cn.In, 0),
-		nodes.TryGetOutputValue(&out, cn.Array, nil),
+		nodes.TryGetOutputValue(out, cn.In, 0),
+		nodes.TryGetOutputValue(out, cn.Array, nil),
 		func(a, b T) T {
 			return b - a
 		},
 	))
-	return out
 }

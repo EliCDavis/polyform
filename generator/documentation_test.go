@@ -16,8 +16,8 @@ type TestDocNodeData struct {
 	B nodes.Output[int] `description:"B has a description"`
 }
 
-func (TestDocNodeData) Out() nodes.StructOutput[float64] {
-	return nodes.NewStructOutput(1.)
+func (TestDocNodeData) Out(out *nodes.StructOutput[float64]) {
+	out.Set(1.)
 }
 
 func TestDocumentation_SingleMarkdown(t *testing.T) {

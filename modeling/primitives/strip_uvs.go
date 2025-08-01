@@ -61,12 +61,10 @@ type StripUVsNodeData struct {
 	End   nodes.Output[vector2.Float64]
 }
 
-func (sund StripUVsNodeData) Out() nodes.StructOutput[StripUVs] {
-	out := nodes.StructOutput[StripUVs]{}
+func (sund StripUVsNodeData) Out(out *nodes.StructOutput[StripUVs]) {
 	out.Set(StripUVs{
-		Start: nodes.TryGetOutputValue(&out, sund.Start, vector2.New(0, 0.5)),
-		End:   nodes.TryGetOutputValue(&out, sund.End, vector2.New(1, 0.5)),
-		Width: nodes.TryGetOutputValue(&out, sund.Width, 1.),
+		Start: nodes.TryGetOutputValue(out, sund.Start, vector2.New(0, 0.5)),
+		End:   nodes.TryGetOutputValue(out, sund.End, vector2.New(1, 0.5)),
+		Width: nodes.TryGetOutputValue(out, sund.Width, 1.),
 	})
-	return out
 }

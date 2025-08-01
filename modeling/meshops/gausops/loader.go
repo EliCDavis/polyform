@@ -16,20 +16,17 @@ type LoaderNodeData struct {
 	Data nodes.Output[[]byte]
 }
 
-func (pn LoaderNodeData) Out() nodes.StructOutput[modeling.Mesh] {
-	out := nodes.StructOutput[modeling.Mesh]{}
-
-	bufReader := bufio.NewReader(bytes.NewReader(nodes.TryGetOutputValue(&out, pn.Data, nil)))
+func (pn LoaderNodeData) Out(out *nodes.StructOutput[modeling.Mesh]) {
+	bufReader := bufio.NewReader(bytes.NewReader(nodes.TryGetOutputValue(out, pn.Data, nil)))
 
 	splat, err := ply.ReadMesh(bufReader)
 	if err != nil {
 		out.Set(modeling.EmptyPointcloud())
 		out.CaptureError(err)
-		return out
+		return
 	}
 
 	out.Set(*splat)
-	return out
 }
 
 type SpzLoaderNode = nodes.Struct[SpzLoaderNodeData]
@@ -38,17 +35,15 @@ type SpzLoaderNodeData struct {
 	Data nodes.Output[[]byte]
 }
 
-func (pn SpzLoaderNodeData) Out() nodes.StructOutput[modeling.Mesh] {
-	out := nodes.StructOutput[modeling.Mesh]{}
-	bufReader := bufio.NewReader(bytes.NewReader(nodes.TryGetOutputValue(&out, pn.Data, nil)))
+func (pn SpzLoaderNodeData) Out(out *nodes.StructOutput[modeling.Mesh]) {
+	bufReader := bufio.NewReader(bytes.NewReader(nodes.TryGetOutputValue(out, pn.Data, nil)))
 
 	header, err := spz.Read(bufReader)
 	if err != nil {
 		out.Set(modeling.EmptyPointcloud())
 		out.CaptureError(err)
-		return out
+		return
 	}
 
 	out.Set(header.Mesh)
-	return out
 }

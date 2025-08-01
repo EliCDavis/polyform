@@ -288,17 +288,15 @@ type CubeNodeData struct {
 	UVs        nodes.Output[CubeUVs]
 }
 
-func (c CubeNodeData) Out() nodes.StructOutput[modeling.Mesh] {
-	out := nodes.StructOutput[modeling.Mesh]{}
+func (c CubeNodeData) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	cube := Cube{
-		Height:     nodes.TryGetOutputValue(&out, c.Height, 1.),
-		Width:      nodes.TryGetOutputValue(&out, c.Width, 1.),
-		Depth:      nodes.TryGetOutputValue(&out, c.Depth, 1.),
-		Dimensions: max(1, nodes.TryGetOutputValue(&out, c.Dimensions, 1)),
-		UVs:        nodes.TryGetOutputReference(&out, c.UVs, nil),
+		Height:     nodes.TryGetOutputValue(out, c.Height, 1.),
+		Width:      nodes.TryGetOutputValue(out, c.Width, 1.),
+		Depth:      nodes.TryGetOutputValue(out, c.Depth, 1.),
+		Dimensions: max(1, nodes.TryGetOutputValue(out, c.Dimensions, 1)),
+		UVs:        nodes.TryGetOutputReference(out, c.UVs, nil),
 	}
 	out.Set(cube.UnweldedQuads())
-	return out
 }
 
 // CubeUVs
@@ -314,15 +312,13 @@ type CubeUVsNodeData struct {
 	Back   nodes.Output[StripUVs]
 }
 
-func (cnd CubeUVsNodeData) Uv() nodes.StructOutput[CubeUVs] {
-	out := nodes.StructOutput[CubeUVs]{}
+func (cnd CubeUVsNodeData) Uv(out *nodes.StructOutput[CubeUVs]) {
 	out.Set(CubeUVs{
-		Top:    nodes.TryGetOutputReference(&out, cnd.Top, nil),
-		Bottom: nodes.TryGetOutputReference(&out, cnd.Bottom, nil),
-		Left:   nodes.TryGetOutputReference(&out, cnd.Left, nil),
-		Right:  nodes.TryGetOutputReference(&out, cnd.Right, nil),
-		Front:  nodes.TryGetOutputReference(&out, cnd.Front, nil),
-		Back:   nodes.TryGetOutputReference(&out, cnd.Back, nil),
+		Top:    nodes.TryGetOutputReference(out, cnd.Top, nil),
+		Bottom: nodes.TryGetOutputReference(out, cnd.Bottom, nil),
+		Left:   nodes.TryGetOutputReference(out, cnd.Left, nil),
+		Right:  nodes.TryGetOutputReference(out, cnd.Right, nil),
+		Front:  nodes.TryGetOutputReference(out, cnd.Front, nil),
+		Back:   nodes.TryGetOutputReference(out, cnd.Back, nil),
 	})
-	return out
 }

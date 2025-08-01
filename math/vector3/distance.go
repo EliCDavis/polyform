@@ -20,16 +20,12 @@ func (d Distance[T]) distance(recorder nodes.ExecutionRecorder) float64 {
 	return a.Distance(b)
 }
 
-func (d Distance[T]) Float64() nodes.StructOutput[float64] {
-	out := nodes.StructOutput[float64]{}
-	out.Set(d.distance(&out))
-	return out
+func (d Distance[T]) Float64(out *nodes.StructOutput[float64]) {
+	out.Set(d.distance(out))
 }
 
-func (d Distance[T]) Int() nodes.StructOutput[int] {
-	out := nodes.StructOutput[int]{}
-	out.Set(int(math.Round(d.distance(&out))))
-	return out
+func (d Distance[T]) Int(out *nodes.StructOutput[int]) {
+	out.Set(int(math.Round(d.distance(out))))
 }
 
 // ============================================================================
@@ -40,11 +36,9 @@ type DistancesToArray[T vector.Number] struct {
 	Array nodes.Output[[]vector3.Vector[T]]
 }
 
-func (d DistancesToArray[T]) Distances() nodes.StructOutput[[]float64] {
-	out := nodes.StructOutput[[]float64]{}
-
-	a := nodes.TryGetOutputValue(&out, d.In, vector3.Zero[T]()).ToFloat64()
-	arr := nodes.TryGetOutputValue(&out, d.Array, nil)
+func (d DistancesToArray[T]) Distances(out *nodes.StructOutput[[]float64]) {
+	a := nodes.TryGetOutputValue(out, d.In, vector3.Zero[T]()).ToFloat64()
+	arr := nodes.TryGetOutputValue(out, d.Array, nil)
 	result := make([]float64, len(arr))
 
 	for i, v := range arr {
@@ -52,7 +46,6 @@ func (d DistancesToArray[T]) Distances() nodes.StructOutput[[]float64] {
 	}
 
 	out.Set(result)
-	return out
 }
 
 // ============================================================================
@@ -63,18 +56,16 @@ type DistancesToNodes[T vector.Number] struct {
 	Nodes []nodes.Output[vector3.Vector[T]]
 }
 
-func (d DistancesToNodes[T]) Distances() nodes.StructOutput[[]float64] {
-	out := nodes.StructOutput[[]float64]{}
-	a := nodes.TryGetOutputValue(&out, d.In, vector3.Zero[T]()).ToFloat64()
+func (d DistancesToNodes[T]) Distances(out *nodes.StructOutput[[]float64]) {
+	a := nodes.TryGetOutputValue(out, d.In, vector3.Zero[T]()).ToFloat64()
 
-	resolvedNodes := nodes.GetOutputValues(&out, d.Nodes)
+	resolvedNodes := nodes.GetOutputValues(out, d.Nodes)
 	arr := make([]float64, len(resolvedNodes))
 	for i, v := range resolvedNodes {
 		arr[i] = a.Distance(v.ToFloat64())
 	}
 
 	out.Set(arr)
-	return out
 }
 
 // ============================================================================
@@ -85,16 +76,13 @@ type Distances[T vector.Number] struct {
 	B nodes.Output[[]vector3.Vector[T]]
 }
 
-func (d Distances[T]) Distances() nodes.StructOutput[[]float64] {
-	out := nodes.StructOutput[[]float64]{}
-	a := nodes.TryGetOutputValue(&out, d.A, nil)
-	b := nodes.TryGetOutputValue(&out, d.B, nil)
+func (d Distances[T]) Distances(out *nodes.StructOutput[[]float64]) {
+	a := nodes.TryGetOutputValue(out, d.A, nil)
+	b := nodes.TryGetOutputValue(out, d.B, nil)
 	result := make([]float64, max(len(a), len(b)))
 
 	for i := range min(len(a), len(b)) {
 		result[i] = a[i].ToFloat64().Distance(b[i].ToFloat64())
 	}
 	out.Set(result)
-
-	return out
 }

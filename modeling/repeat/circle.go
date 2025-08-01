@@ -45,11 +45,9 @@ type CircleNodeData struct {
 	Times  nodes.Output[int]
 }
 
-func (r CircleNodeData) Out() nodes.StructOutput[[]trs.TRS] {
-	out := nodes.StructOutput[[]trs.TRS]{}
+func (r CircleNodeData) Out(out *nodes.StructOutput[[]trs.TRS]) {
 	out.Set(Circle(
-		max(nodes.TryGetOutputValue(&out, r.Times, 1), 0),
-		nodes.TryGetOutputValue(&out, r.Radius, 0.),
+		max(nodes.TryGetOutputValue(out, r.Times, 1), 0),
+		nodes.TryGetOutputValue(out, r.Radius, 0.),
 	))
-	return out
 }

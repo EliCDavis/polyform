@@ -29,8 +29,6 @@ type IONodeData struct {
 	In nodes.Output[io.Reader]
 }
 
-func (pn IONodeData) Out() nodes.StructOutput[manifest.Artifact] {
-	out := nodes.StructOutput[manifest.Artifact]{}
-	out.Set(IO{Reader: nodes.TryGetOutputValue(&out, pn.In, nil)})
-	return out
+func (pn IONodeData) Out(out *nodes.StructOutput[manifest.Artifact]) {
+	out.Set(IO{Reader: nodes.TryGetOutputValue(out, pn.In, nil)})
 }

@@ -10,47 +10,39 @@ type Select[T vector.Number] struct {
 	In nodes.Output[vector3.Vector[T]]
 }
 
-func (node Select[T]) X() nodes.StructOutput[T] {
-	out := nodes.StructOutput[T]{}
-	out.Set(nodes.TryGetOutputValue(&out, node.In, vector3.Zero[T]()).X())
-	return out
+func (node Select[T]) X(out *nodes.StructOutput[T]) {
+	out.Set(nodes.TryGetOutputValue(out, node.In, vector3.Zero[T]()).X())
 }
 
-func (node Select[T]) Y() nodes.StructOutput[T] {
-	out := nodes.StructOutput[T]{}
-	out.Set(nodes.TryGetOutputValue(&out, node.In, vector3.Zero[T]()).Y())
-	return out
+func (node Select[T]) Y(out *nodes.StructOutput[T]) {
+	out.Set(nodes.TryGetOutputValue(out, node.In, vector3.Zero[T]()).Y())
 }
 
-func (node Select[T]) Z() nodes.StructOutput[T] {
-	out := nodes.StructOutput[T]{}
-	out.Set(nodes.TryGetOutputValue(&out, node.In, vector3.Zero[T]()).Z())
-	return out
+func (node Select[T]) Z(out *nodes.StructOutput[T]) {
+	out.Set(nodes.TryGetOutputValue(out, node.In, vector3.Zero[T]()).Z())
 }
 
 type SelectArray[T vector.Number] struct {
 	In nodes.Output[[]vector3.Vector[T]]
 }
 
-func (node SelectArray[T]) arr(component int) nodes.StructOutput[[]T] {
-	out := nodes.StructOutput[[]T]{}
-	in := nodes.TryGetOutputValue(&out, node.In, nil)
+func (node SelectArray[T]) arr(out *nodes.StructOutput[[]T], component int) []T {
+	in := nodes.TryGetOutputValue(out, node.In, nil)
 	arr := make([]T, len(in))
 	for i, v := range in {
 		arr[i] = v.Component(component)
 	}
-	out.Set(arr)
-	return out
+	return arr
 }
 
-func (node SelectArray[T]) X() nodes.StructOutput[[]T] {
-	return node.arr(0)
+func (node SelectArray[T]) X(out *nodes.StructOutput[[]T]) {
+	out.Set(node.arr(out, 0))
 }
 
-func (node SelectArray[T]) Y() nodes.StructOutput[[]T] {
-	return node.arr(1)
+func (node SelectArray[T]) Y(out *nodes.StructOutput[[]T]) {
+	out.Set(node.arr(out, 1))
 }
 
-func (node SelectArray[T]) Z() nodes.StructOutput[[]T] {
-	return node.arr(2)
+func (node SelectArray[T]) Z(out *nodes.StructOutput[[]T]) {
+	out.Set(node.arr(out, 2))
 }

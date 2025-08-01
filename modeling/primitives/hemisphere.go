@@ -98,17 +98,14 @@ type HemisphereNodeData struct {
 	Capped  nodes.Output[bool]
 }
 
-func (hnd HemisphereNodeData) Out() nodes.StructOutput[modeling.Mesh] {
-	out := nodes.StructOutput[modeling.Mesh]{}
+func (hnd HemisphereNodeData) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	hemi := Hemisphere{
-		Radius: nodes.TryGetOutputValue(&out, hnd.Radius, 0.5),
-		Capped: nodes.TryGetOutputValue(&out, hnd.Capped, true),
+		Radius: nodes.TryGetOutputValue(out, hnd.Radius, 0.5),
+		Capped: nodes.TryGetOutputValue(out, hnd.Capped, true),
 	}
 
 	out.Set(hemi.UV(
-		max(minHemisphereRows, nodes.TryGetOutputValue(&out, hnd.Rows, 20)),
-		max(minHemisphereColumns, nodes.TryGetOutputValue(&out, hnd.Columns, 20)),
+		max(minHemisphereRows, nodes.TryGetOutputValue(out, hnd.Rows, 20)),
+		max(minHemisphereColumns, nodes.TryGetOutputValue(out, hnd.Columns, 20)),
 	))
-
-	return out
 }

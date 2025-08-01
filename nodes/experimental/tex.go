@@ -20,26 +20,24 @@ type GridNodeData struct {
 	LineWidth       nodes.Output[float64]
 }
 
-func (gnd GridNodeData) Out() nodes.StructOutput[image.Image] {
-	out := nodes.StructOutput[image.Image]{}
-
-	dimensions := nodes.TryGetOutputValue(&out, gnd.Dimensions, 256)
+func (gnd GridNodeData) Out(out *nodes.StructOutput[image.Image]) {
+	dimensions := nodes.TryGetOutputValue(out, gnd.Dimensions, 256)
 	img := image.NewRGBA(image.Rect(0, 0, dimensions, dimensions))
 
-	draw.Draw(img, img.Bounds(), &image.Uniform{nodes.TryGetOutputValue(&out, gnd.Color, coloring.Black())}, image.Point{}, draw.Src)
+	draw.Draw(img, img.Bounds(), &image.Uniform{nodes.TryGetOutputValue(out, gnd.Color, coloring.Black())}, image.Point{}, draw.Src)
 
 	ctx := gg.NewContextForImage(img)
-	ctx.SetLineWidth(nodes.TryGetOutputValue(&out, gnd.LineWidth, 1.))
-	ctx.SetColor(nodes.TryGetOutputValue(&out, gnd.LineColor, coloring.White()))
+	ctx.SetLineWidth(nodes.TryGetOutputValue(out, gnd.LineWidth, 1.))
+	ctx.SetColor(nodes.TryGetOutputValue(out, gnd.LineColor, coloring.White()))
 
-	horizontalLines := nodes.TryGetOutputValue(&out, gnd.HorizontalLines, 10)
+	horizontalLines := nodes.TryGetOutputValue(out, gnd.HorizontalLines, 10)
 	horizontalSpacing := float64(dimensions) / float64(horizontalLines)
 	for i := 0; i < horizontalLines; i++ {
 		y := (horizontalSpacing * float64(i)) + (horizontalSpacing / 2)
 		ctx.DrawLine(0, y, float64(dimensions), y)
 	}
 
-	verticalLines := nodes.TryGetOutputValue(&out, gnd.VerticalLines, 10)
+	verticalLines := nodes.TryGetOutputValue(out, gnd.VerticalLines, 10)
 	verticalSpacing := float64(dimensions) / float64(verticalLines)
 	for i := 0; i < verticalLines; i++ {
 		x := (verticalSpacing * float64(i)) + (verticalSpacing / 2)
@@ -48,7 +46,6 @@ func (gnd GridNodeData) Out() nodes.StructOutput[image.Image] {
 	ctx.Stroke()
 
 	out.Set(ctx.Image())
-	return out
 }
 
 type BrushedMetalNode = nodes.Struct[BrushedMetalNodeData]
@@ -61,26 +58,24 @@ type BrushedMetalNodeData struct {
 	Count      nodes.Output[int]
 }
 
-// func (gnd BrushedMetalNodeNodeData) Out() nodes.StructOutput[image.Image] {
-// func (gnd BrushedMetalNodeNodeData) Out() nodes.StructOutput[image.Image] {
+// func (gnd BrushedMetalNodeNodeData) Out(out *nodes.StructOutput[image.Image]) {
+// func (gnd BrushedMetalNodeNodeData) Out(out *nodes.StructOutput[image.Image]) {
 
-func (gnd BrushedMetalNodeData) Out() nodes.StructOutput[image.Image] {
-	out := nodes.StructOutput[image.Image]{}
-
-	dimensions := nodes.TryGetOutputValue(&out, gnd.Dimensions, 512)
+func (gnd BrushedMetalNodeData) Out(out *nodes.StructOutput[image.Image]) {
+	dimensions := nodes.TryGetOutputValue(out, gnd.Dimensions, 512)
 	img := image.NewRGBA(image.Rect(0, 0, dimensions, dimensions))
 
-	baseColor := nodes.TryGetOutputValue(&out, gnd.BaseColor, coloring.Grey(200))
+	baseColor := nodes.TryGetOutputValue(out, gnd.BaseColor, coloring.Grey(200))
 	draw.Draw(img, img.Bounds(), &image.Uniform{baseColor}, image.Point{}, draw.Src)
 
 	ctx := gg.NewContextForImage(img)
 
-	ctx.SetLineWidth(nodes.TryGetOutputValue(&out, gnd.BrushSize, 1.))
+	ctx.SetLineWidth(nodes.TryGetOutputValue(out, gnd.BrushSize, 1.))
 
-	brushColor := nodes.TryGetOutputValue(&out, gnd.BrushColor, coloring.Grey(150))
+	brushColor := nodes.TryGetOutputValue(out, gnd.BrushColor, coloring.Grey(150))
 	ctx.SetColor(brushColor)
 
-	horizontalLines := nodes.TryGetOutputValue(&out, gnd.Count, 10)
+	horizontalLines := nodes.TryGetOutputValue(out, gnd.Count, 10)
 	horizontalSpacing := float64(dimensions) / float64(horizontalLines)
 	for i := range horizontalLines {
 		y := (horizontalSpacing * float64(i)) + (horizontalSpacing / 2)
@@ -90,5 +85,4 @@ func (gnd BrushedMetalNodeData) Out() nodes.StructOutput[image.Image] {
 	ctx.Stroke()
 
 	out.Set(ctx.Image())
-	return out
 }

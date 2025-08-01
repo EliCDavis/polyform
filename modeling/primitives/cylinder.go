@@ -129,15 +129,13 @@ type CylinderNodeData struct {
 	Bottom nodes.Output[bool]
 }
 
-func (hnd CylinderNodeData) Out() nodes.StructOutput[modeling.Mesh] {
-	out := nodes.StructOutput[modeling.Mesh]{}
+func (hnd CylinderNodeData) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	hemi := Cylinder{
-		Radius:   nodes.TryGetOutputValue(&out, hnd.Radius, 0.5),
-		Height:   nodes.TryGetOutputValue(&out, hnd.Height, 1),
-		Sides:    max(nodes.TryGetOutputValue(&out, hnd.Sides, 20), 3),
-		NoTop:    !nodes.TryGetOutputValue(&out, hnd.Top, true),
-		NoBottom: !nodes.TryGetOutputValue(&out, hnd.Bottom, true),
+		Radius:   nodes.TryGetOutputValue(out, hnd.Radius, 0.5),
+		Height:   nodes.TryGetOutputValue(out, hnd.Height, 1),
+		Sides:    max(nodes.TryGetOutputValue(out, hnd.Sides, 20), 3),
+		NoTop:    !nodes.TryGetOutputValue(out, hnd.Top, true),
+		NoBottom: !nodes.TryGetOutputValue(out, hnd.Bottom, true),
 	}
 	out.Set(hemi.ToMesh())
-	return out
 }

@@ -54,15 +54,14 @@ type CenterAttribute3DNodeData struct {
 	Mesh      nodes.Output[modeling.Mesh]
 }
 
-func (ca3dn CenterAttribute3DNodeData) Out() nodes.StructOutput[modeling.Mesh] {
+func (ca3dn CenterAttribute3DNodeData) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	if ca3dn.Mesh == nil {
-		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
+		out.Set(modeling.EmptyMesh(modeling.TriangleTopology))
+		return
 	}
 
-	out := nodes.StructOutput[modeling.Mesh]{}
 	out.Set(CenterFloat3Attribute(
-		nodes.GetOutputValue(&out, ca3dn.Mesh),
-		nodes.TryGetOutputValue(&out, ca3dn.Attribute, modeling.PositionAttribute),
+		nodes.GetOutputValue(out, ca3dn.Mesh),
+		nodes.TryGetOutputValue(out, ca3dn.Attribute, modeling.PositionAttribute),
 	))
-	return out
 }

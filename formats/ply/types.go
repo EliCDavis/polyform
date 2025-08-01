@@ -101,10 +101,8 @@ type ArtifactNodeData struct {
 	In nodes.Output[modeling.Mesh]
 }
 
-func (pn ArtifactNodeData) Out() nodes.StructOutput[manifest.Artifact] {
-	out := nodes.StructOutput[manifest.Artifact]{}
-	out.Set(Artifact{Mesh: nodes.TryGetOutputValue(&out, pn.In, modeling.EmptyPointcloud())})
-	return out
+func (pn ArtifactNodeData) Out(out *nodes.StructOutput[manifest.Artifact]) {
+	out.Set(Artifact{Mesh: nodes.TryGetOutputValue(out, pn.In, modeling.EmptyPointcloud())})
 }
 
 // ============================================================================
@@ -116,10 +114,9 @@ type ManifestNodeData struct {
 	Mesh nodes.Output[modeling.Mesh]
 }
 
-func (pn ManifestNodeData) Out() nodes.StructOutput[manifest.Manifest] {
-	out := nodes.StructOutput[manifest.Manifest]{}
-	name := nodes.TryGetOutputValue(&out, pn.Name, "model.ply")
-	mesh := nodes.TryGetOutputValue(&out, pn.Mesh, modeling.EmptyPointcloud())
+func (pn ManifestNodeData) Out(out *nodes.StructOutput[manifest.Manifest]) {
+	name := nodes.TryGetOutputValue(out, pn.Name, "model.ply")
+	mesh := nodes.TryGetOutputValue(out, pn.Mesh, modeling.EmptyPointcloud())
 	metadata := map[string]any{}
 
 	// TODO: Is this really the best way to determine if it's a splat?
@@ -129,7 +126,6 @@ func (pn ManifestNodeData) Out() nodes.StructOutput[manifest.Manifest] {
 
 	entry := manifest.Entry{Artifact: Artifact{Mesh: mesh}, Metadata: metadata}
 	out.Set(manifest.SingleEntryManifest(name, entry))
-	return out
 }
 
 // ============================================================================
@@ -139,19 +135,18 @@ type ReadNodeData struct {
 	In nodes.Output[[]byte]
 }
 
-func (pn ReadNodeData) Out() nodes.StructOutput[modeling.Mesh] {
-	out := nodes.NewStructOutput(modeling.EmptyMesh(modeling.PointTopology))
+func (pn ReadNodeData) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	if pn.In == nil {
-		return out
+		out.Set(modeling.EmptyMesh(modeling.PointTopology))
+		return
 	}
 
-	data := nodes.GetOutputValue(&out, pn.In)
+	data := nodes.GetOutputValue(out, pn.In)
 	mesh, err := ReadMesh(bytes.NewReader(data))
 	if err != nil {
 		out.CaptureError(err)
-		return out
+		return
 	}
 
 	out.Set(*mesh)
-	return out
 }

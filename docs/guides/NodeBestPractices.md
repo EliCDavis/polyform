@@ -37,7 +37,7 @@ type MathNode struct {
 Your node outputs should never panic. Doing so halts the execution of the graph, preventing any output from being produced and shown to the user. If you want communicate that something is wrong with the configuration of the node, utilize the `CaptureError` method of the `nodes.StructOutput`, and return something "sensible".
 
 ```go
-func (mn MathNode) Divide() nodes.StructOutput[float64] {
+func (mn MathNode) Divide(out *nodes.StructOutput[float64]) {
     a := nodes.TryGetOutputValue(mn.A, 0)
     b := nodes.TryGetOutputValue(mn.B, 0)
 
@@ -84,7 +84,7 @@ INSERT DESCRIPTION
 EXAMPLE: SCALE A VECTOR
 
 ```go
-func (mn MathNode) Divide() nodes.StructOutput[float64] {
+func (mn MathNode) Divide(out *nodes.StructOutput[float64]) {
     a := nodes.TryGetOutputValue(mn.A, 0)
 
     if mn.B == nil {

@@ -16,7 +16,7 @@ package nodes_test
 // 	Meshes []nodes.Output[modeling.Mesh]
 // }
 
-// func (cn CombineData) Out() nodes.StructOutput[modeling.Mesh] {
+// func (cn CombineData) Out(out *nodes.StructOutput[modeling.Mesh]) {
 // 	finalMesh := modeling.EmptyMesh(modeling.TriangleTopology)
 
 // 	for _, n := range cn.Meshes {

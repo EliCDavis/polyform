@@ -7,27 +7,25 @@ import (
 )
 
 func runFunction(
+	out *nodes.StructOutput[[]float64],
 	Input nodes.Output[[]float64],
 	Amplitude nodes.Output[float64],
 	Shift nodes.Output[float64],
 	f func(x float64) float64,
-) nodes.StructOutput[[]float64] {
-	out := nodes.StructOutput[[]float64]{}
+) {
 	if Input == nil {
-		return out
+		return
 	}
 
-	scale := nodes.TryGetOutputValue(&out, Amplitude, 1)
-	shift := nodes.TryGetOutputValue(&out, Shift, 0)
+	scale := nodes.TryGetOutputValue(out, Amplitude, 1)
+	shift := nodes.TryGetOutputValue(out, Shift, 0)
 
-	in := nodes.GetOutputValue(&out, Input)
+	in := nodes.GetOutputValue(out, Input)
 	arr := make([]float64, len(in))
 	for i, v := range in {
 		arr[i] = f(v+shift) * scale
 	}
 	out.Set(arr)
-
-	return out
 }
 
 // ============================================================================
@@ -40,8 +38,8 @@ type SinArrayNodeData struct {
 	Shift     nodes.Output[float64]
 }
 
-func (n SinArrayNodeData) Out() nodes.StructOutput[[]float64] {
-	return runFunction(n.Input, n.Amplitude, n.Shift, math.Sin)
+func (n SinArrayNodeData) Out(out *nodes.StructOutput[[]float64]) {
+	runFunction(out, n.Input, n.Amplitude, n.Shift, math.Sin)
 }
 
 // ============================================================================
@@ -54,8 +52,8 @@ type CosArrayNodeData struct {
 	Shift     nodes.Output[float64]
 }
 
-func (n CosArrayNodeData) Out() nodes.StructOutput[[]float64] {
-	return (runFunction(n.Input, n.Amplitude, n.Shift, math.Cos))
+func (n CosArrayNodeData) Out(out *nodes.StructOutput[[]float64]) {
+	runFunction(out, n.Input, n.Amplitude, n.Shift, math.Cos)
 }
 
 // ============================================================================
@@ -66,8 +64,8 @@ type TanArray struct {
 	Shift     nodes.Output[float64]
 }
 
-func (n TanArray) Out() nodes.StructOutput[[]float64] {
-	return (runFunction(n.Input, n.Amplitude, n.Shift, math.Tan))
+func (n TanArray) Out(out *nodes.StructOutput[[]float64]) {
+	runFunction(out, n.Input, n.Amplitude, n.Shift, math.Tan)
 }
 
 // ============================================================================
@@ -78,8 +76,8 @@ type ArcSinArray struct {
 	Shift     nodes.Output[float64]
 }
 
-func (n ArcSinArray) Out() nodes.StructOutput[[]float64] {
-	return (runFunction(n.Input, n.Amplitude, n.Shift, math.Asin))
+func (n ArcSinArray) Out(out *nodes.StructOutput[[]float64]) {
+	runFunction(out, n.Input, n.Amplitude, n.Shift, math.Asin)
 }
 
 // ============================================================================
@@ -90,8 +88,8 @@ type ArcCosArray struct {
 	Shift     nodes.Output[float64]
 }
 
-func (n ArcCosArray) Out() nodes.StructOutput[[]float64] {
-	return (runFunction(n.Input, n.Amplitude, n.Shift, math.Acos))
+func (n ArcCosArray) Out(out *nodes.StructOutput[[]float64]) {
+	runFunction(out, n.Input, n.Amplitude, n.Shift, math.Acos)
 }
 
 // ============================================================================
@@ -102,6 +100,6 @@ type ArcTanArray struct {
 	Shift     nodes.Output[float64]
 }
 
-func (n ArcTanArray) Out() nodes.StructOutput[[]float64] {
-	return (runFunction(n.Input, n.Amplitude, n.Shift, math.Atan))
+func (n ArcTanArray) Out(out *nodes.StructOutput[[]float64]) {
+	runFunction(out, n.Input, n.Amplitude, n.Shift, math.Atan)
 }

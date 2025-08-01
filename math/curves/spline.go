@@ -21,13 +21,9 @@ type LengthNodeData struct {
 	Spline nodes.Output[Spline]
 }
 
-func (r LengthNodeData) Out() nodes.StructOutput[float64] {
-	out := nodes.StructOutput[float64]{}
-	spline := nodes.TryGetOutputValue(&out, r.Spline, nil)
-
+func (r LengthNodeData) Out(out *nodes.StructOutput[float64]) {
+	spline := nodes.TryGetOutputValue(out, r.Spline, nil)
 	if spline != nil {
 		out.Set(spline.Length())
 	}
-
-	return out
 }

@@ -23,10 +23,8 @@ func (SimpleAddTestStructNodeData) Description() string {
 	return "Adds A and B"
 }
 
-func (and SimpleAddTestStructNodeData) Sum() nodes.StructOutput[float64] {
-	result := nodes.NewStructOutput(0.)
-	result.Set(and.A.Value() + and.B.Value())
-	return result
+func (and SimpleAddTestStructNodeData) Sum(out *nodes.StructOutput[float64]) {
+	out.Set(and.A.Value() + and.B.Value())
 }
 
 func (and SimpleAddTestStructNodeData) SumDescription() string {
@@ -67,13 +65,12 @@ type ArrayTestStruct struct {
 	Values []nodes.Output[float64]
 }
 
-func (and ArrayTestStruct) Sum() nodes.StructOutput[float64] {
+func (and ArrayTestStruct) Sum(out *nodes.StructOutput[float64]) {
 	sum := 0.
 	for _, v := range and.Values {
 		sum += v.Value()
 	}
-	result := nodes.NewStructOutput(sum)
-	return result
+	out.Set(sum)
 }
 
 func TestStruct_ArrayAdd(t *testing.T) {

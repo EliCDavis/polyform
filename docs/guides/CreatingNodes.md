@@ -28,7 +28,7 @@ func (MathNode) Description() string {
 Any method on a struct that returns a  `nodes.StructOutput[T]` is automatically treated as an output port by the system. `StructOutput[T]` acts as a wrapper around the value you want to output for supporting things like error handling.
 
 ```go
-func (cn MathNode) Add() nodes.StructOutput[float64] {
+func (cn MathNode) Add(out *nodes.StructOutput[float64]) {
     a := cn.A.Value()
     b := cn.B.Value()
 	return nodes.NewStructOutput(a + b)
@@ -38,7 +38,7 @@ func (cn MathNode) Add() nodes.StructOutput[float64] {
 However, when implementing the function, a node should never assume any of its input ports are set. Calling `Value()` on a `nil` input port will cause the runtime to panic and the graph execution to halt. The utility `nodes.TryGetOutputValue` has been introduced that will attempt to take the value of an input port if it exists, and returns a fallback value when the input port is `nil`. Updating our code to be more safe results in our `Add` function looking like:
 
 ```go
-func (mn MathNode) Add() nodes.StructOutput[float64] {
+func (mn MathNode) Add(out *nodes.StructOutput[float64]) {
     a := nodes.TryGetOutputValue(mn.A, 0)
     b := nodes.TryGetOutputValue(mn.B, 0)
 	return nodes.NewStructOutput(a + b)
@@ -50,7 +50,7 @@ Sometimes, the current input into a node is in effect "invalid" and no real comp
 Before we return our sensible value, we can capture an error to alert the graph system that something has gone wrong.
 
 ```go
-func (mn MathNode) Divide() nodes.StructOutput[float64] {
+func (mn MathNode) Divide(out *nodes.StructOutput[float64]) {
     a := nodes.TryGetOutputValue(mn.A, 0)
     b := nodes.TryGetOutputValue(mn.B, 0)
 
@@ -87,7 +87,7 @@ type SumNode struct {
 	Values []nodes.Output[float64] `description:"The nodes to sum"`
 }
 
-func (sn SumNode) Sum() nodes.StructOutput[float64] {
+func (sn SumNode) Sum(out *nodes.StructOutput[float64]) {
 	var total float64
 	for _, v := range sn.Values {
 		if v == nil {

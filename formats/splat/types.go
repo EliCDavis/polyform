@@ -40,11 +40,9 @@ func (pn ManifestNodeData) Description() string {
 	return "Mkkellogg's SPLAT format for their three.js Gaussian Splat Viewer"
 }
 
-func (pn ManifestNodeData) Out() nodes.StructOutput[manifest.Manifest] {
-	out := nodes.StructOutput[manifest.Manifest]{}
+func (pn ManifestNodeData) Out(out *nodes.StructOutput[manifest.Manifest]) {
 	entry := manifest.Entry{
-		Artifact: Splat{Mesh: nodes.TryGetOutputValue(&out, pn.In, modeling.EmptyPointcloud())},
+		Artifact: Splat{Mesh: nodes.TryGetOutputValue(out, pn.In, modeling.EmptyPointcloud())},
 	}
 	out.Set(manifest.SingleEntryManifest("model.splat", entry))
-	return out
 }

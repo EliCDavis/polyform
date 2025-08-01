@@ -28,10 +28,8 @@ type ImageNodeData struct {
 	Name  nodes.Output[string]      `description:"Name of the image file, defaults to 'image.png'"`
 }
 
-func (pn ImageNodeData) Out() nodes.StructOutput[manifest.Manifest] {
-	out := nodes.StructOutput[manifest.Manifest]{}
-	entry := manifest.Entry{Artifact: Image{Image: nodes.TryGetOutputValue(&out, pn.Image, nil)}}
-	name := nodes.TryGetOutputValue(&out, pn.Name, "image.png")
+func (pn ImageNodeData) Out(out *nodes.StructOutput[manifest.Manifest]) {
+	entry := manifest.Entry{Artifact: Image{Image: nodes.TryGetOutputValue(out, pn.Image, nil)}}
+	name := nodes.TryGetOutputValue(out, pn.Name, "image.png")
 	out.Set(manifest.SingleEntryManifest(name, entry))
-	return out
 }

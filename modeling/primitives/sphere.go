@@ -193,17 +193,14 @@ func (c UvSphereNodeData) Description() string {
 	return "A spherical mesh that is created by starting with a square grid, turning it into a cylinder, and then squeezing the top and bottom. It is the simplest way to create a sphere, but it has a poor vertex distribution."
 }
 
-func (c UvSphereNodeData) Out() nodes.StructOutput[modeling.Mesh] {
-	out := nodes.StructOutput[modeling.Mesh]{}
-	radius := nodes.TryGetOutputValue(&out, c.Radius, .5)
-	rows := max(nodes.TryGetOutputValue(&out, c.Rows, 10), 2)
-	columns := max(nodes.TryGetOutputValue(&out, c.Columns, 10), 3)
+func (c UvSphereNodeData) Out(out *nodes.StructOutput[modeling.Mesh]) {
+	radius := nodes.TryGetOutputValue(out, c.Radius, .5)
+	rows := max(nodes.TryGetOutputValue(out, c.Rows, 10), 2)
+	columns := max(nodes.TryGetOutputValue(out, c.Columns, 10), 3)
 
-	if nodes.TryGetOutputValue(&out, c.Weld, false) {
+	if nodes.TryGetOutputValue(out, c.Weld, false) {
 		out.Set(UVSphere(radius, rows, columns))
 	} else {
 		out.Set(UVSphereUnwelded(radius, rows, columns))
 	}
-
-	return out
 }

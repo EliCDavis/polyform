@@ -96,21 +96,19 @@ type CropAttribute3DNodeData struct {
 	AABB      nodes.Output[geometry.AABB]
 }
 
-func (ca3dn CropAttribute3DNodeData) Out() nodes.StructOutput[modeling.Mesh] {
-	out := nodes.StructOutput[modeling.Mesh]{}
+func (ca3dn CropAttribute3DNodeData) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	if ca3dn.Mesh == nil {
 		out.Set(modeling.EmptyMesh(modeling.TriangleTopology))
-		return out
+		return
 	}
 
-	mesh := nodes.GetOutputValue(&out, ca3dn.Mesh)
+	mesh := nodes.GetOutputValue(out, ca3dn.Mesh)
 	if ca3dn.AABB == nil {
 		out.Set(mesh)
-		return out
+		return
 	}
 
-	attr := nodes.TryGetOutputValue(&out, ca3dn.Attribute, modeling.PositionAttribute)
-	aabb := nodes.GetOutputValue(&out, ca3dn.AABB)
+	attr := nodes.TryGetOutputValue(out, ca3dn.Attribute, modeling.PositionAttribute)
+	aabb := nodes.GetOutputValue(out, ca3dn.AABB)
 	out.Set(CropFloat3Attribute(mesh, attr, aabb))
-	return out
 }

@@ -125,15 +125,13 @@ type QuadNodeData struct {
 	UVs     nodes.Output[StripUVs]
 }
 
-func (c QuadNodeData) Out() nodes.StructOutput[modeling.Mesh] {
-	out := nodes.StructOutput[modeling.Mesh]{}
+func (c QuadNodeData) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	quad := Quad{
-		Width:   nodes.TryGetOutputValue(&out, c.Width, 1.),
-		Depth:   nodes.TryGetOutputValue(&out, c.Depth, 1.),
-		Rows:    max(nodes.TryGetOutputValue(&out, c.Rows, 1), 1),
-		Columns: max(nodes.TryGetOutputValue(&out, c.Columns, 1), 1),
-		UVs:     nodes.TryGetOutputReference(&out, c.UVs, nil),
+		Width:   nodes.TryGetOutputValue(out, c.Width, 1.),
+		Depth:   nodes.TryGetOutputValue(out, c.Depth, 1.),
+		Rows:    max(nodes.TryGetOutputValue(out, c.Rows, 1), 1),
+		Columns: max(nodes.TryGetOutputValue(out, c.Columns, 1), 1),
+		UVs:     nodes.TryGetOutputReference(out, c.UVs, nil),
 	}
 	out.Set(quad.ToMesh())
-	return out
 }

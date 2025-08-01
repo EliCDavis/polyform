@@ -26,18 +26,17 @@ func (rnd TRSNodeData) Description() string {
 	return "Duplicates the input transforms and transforms it for every TRS provided"
 }
 
-func (rnd TRSNodeData) Out() nodes.StructOutput[[]trs.TRS] {
+func (rnd TRSNodeData) Out(out *nodes.StructOutput[[]trs.TRS]) {
 	if rnd.Input == nil {
-		return nodes.NewStructOutput(make([]trs.TRS, 0))
+		out.Set(make([]trs.TRS, 0))
+		return
 	}
 
-	out := nodes.StructOutput[[]trs.TRS]{}
-	mesh := nodes.GetOutputValue(&out, rnd.Input)
+	mesh := nodes.GetOutputValue(out, rnd.Input)
 	if rnd.Transforms == nil {
 		out.Set(mesh)
-		return out
+		return
 	}
-	transforms := nodes.GetOutputValue(&out, rnd.Transforms)
+	transforms := nodes.GetOutputValue(out, rnd.Transforms)
 	out.Set(TRS(mesh, transforms))
-	return out
 }

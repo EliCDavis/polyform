@@ -45,14 +45,12 @@ type ManifestNodeData struct {
 	MaterialFile nodes.Output[string]
 }
 
-func (pn ManifestNodeData) Out() nodes.StructOutput[manifest.Manifest] {
-	out := nodes.StructOutput[manifest.Manifest]{}
+func (pn ManifestNodeData) Out(out *nodes.StructOutput[manifest.Manifest]) {
 	entry := manifest.Entry{Artifact: Artifact{
-		MaterialFile: nodes.TryGetOutputValue(&out, pn.MaterialFile, ""),
-		Scene:        nodes.TryGetOutputValue(&out, pn.Scene, Scene{}),
+		MaterialFile: nodes.TryGetOutputValue(out, pn.MaterialFile, ""),
+		Scene:        nodes.TryGetOutputValue(out, pn.Scene, Scene{}),
 	}}
 	out.Set(manifest.SingleEntryManifest("model.obj", entry))
-	return out
 }
 
 type SceneNode = nodes.Struct[SceneNodeData]
@@ -61,10 +59,8 @@ type SceneNodeData struct {
 	Objects []nodes.Output[Object]
 }
 
-func (pn SceneNodeData) Out() nodes.StructOutput[Scene] {
-	out := nodes.StructOutput[Scene]{}
-	out.Set(Scene{Objects: nodes.GetOutputValues(&out, pn.Objects)})
-	return out
+func (pn SceneNodeData) Out(out *nodes.StructOutput[Scene]) {
+	out.Set(Scene{Objects: nodes.GetOutputValues(out, pn.Objects)})
 }
 
 type ObjectNode = nodes.Struct[ObjectNodeData]
@@ -74,13 +70,11 @@ type ObjectNodeData struct {
 	Entrys []nodes.Output[Entry]
 }
 
-func (pn ObjectNodeData) Out() nodes.StructOutput[Object] {
-	out := nodes.StructOutput[Object]{}
+func (pn ObjectNodeData) Out(out *nodes.StructOutput[Object]) {
 	out.Set(Object{
-		Name:    nodes.TryGetOutputValue(&out, pn.Name, ""),
-		Entries: nodes.GetOutputValues(&out, pn.Entrys),
+		Name:    nodes.TryGetOutputValue(out, pn.Name, ""),
+		Entries: nodes.GetOutputValues(out, pn.Entrys),
 	})
-	return out
 }
 
 type EntryNode = nodes.Struct[EntryNodeData]
@@ -90,13 +84,11 @@ type EntryNodeData struct {
 	Material nodes.Output[Material]
 }
 
-func (pn EntryNodeData) Out() nodes.StructOutput[Entry] {
-	out := nodes.StructOutput[Entry]{}
+func (pn EntryNodeData) Out(out *nodes.StructOutput[Entry]) {
 	out.Set(Entry{
-		Mesh:     nodes.TryGetOutputValue(&out, pn.Mesh, modeling.EmptyMesh(modeling.TriangleTopology)),
-		Material: nodes.TryGetOutputReference(&out, pn.Material, nil),
+		Mesh:     nodes.TryGetOutputValue(out, pn.Mesh, modeling.EmptyMesh(modeling.TriangleTopology)),
+		Material: nodes.TryGetOutputReference(out, pn.Material, nil),
 	})
-	return out
 }
 
 type MaterialNode = nodes.Struct[MaterialNodeData]
@@ -111,18 +103,16 @@ type MaterialNodeData struct {
 	Transparency      nodes.Output[float64]
 }
 
-func (pn MaterialNodeData) Out() nodes.StructOutput[Material] {
-	out := nodes.StructOutput[Material]{}
+func (pn MaterialNodeData) Out(out *nodes.StructOutput[Material]) {
 	out.Set(Material{
-		Name:              nodes.TryGetOutputValue(&out, pn.Name, ""),
-		SpecularHighlight: nodes.TryGetOutputValue(&out, pn.SpecularHighlight, 100),
-		OpticalDensity:    nodes.TryGetOutputValue(&out, pn.OpticalDensity, 1),
-		Transparency:      nodes.TryGetOutputValue(&out, pn.Transparency, 0),
-		AmbientColor:      nodes.TryGetOutputReference(&out, pn.AmbientColor, nil),
-		DiffuseColor:      nodes.TryGetOutputReference(&out, pn.DiffuseColor, nil),
-		SpecularColor:     nodes.TryGetOutputReference(&out, pn.SpecularColor, nil),
+		Name:              nodes.TryGetOutputValue(out, pn.Name, ""),
+		SpecularHighlight: nodes.TryGetOutputValue(out, pn.SpecularHighlight, 100),
+		OpticalDensity:    nodes.TryGetOutputValue(out, pn.OpticalDensity, 1),
+		Transparency:      nodes.TryGetOutputValue(out, pn.Transparency, 0),
+		AmbientColor:      nodes.TryGetOutputReference(out, pn.AmbientColor, nil),
+		DiffuseColor:      nodes.TryGetOutputReference(out, pn.DiffuseColor, nil),
+		SpecularColor:     nodes.TryGetOutputReference(out, pn.SpecularColor, nil),
 	})
-	return out
 }
 
 type ReadNode = nodes.Struct[ReadNodeData]
@@ -131,20 +121,19 @@ type ReadNodeData struct {
 	In nodes.Output[[]byte]
 }
 
-func (pn ReadNodeData) Out() nodes.StructOutput[modeling.Mesh] {
+func (pn ReadNodeData) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	if pn.In == nil {
-		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
+		out.Set(modeling.EmptyMesh(modeling.TriangleTopology))
+		return
 	}
 
-	out := nodes.StructOutput[modeling.Mesh]{}
-	data := nodes.GetOutputValue(&out, pn.In)
+	data := nodes.GetOutputValue(out, pn.In)
 
 	scene, _, err := ReadMesh(bytes.NewReader(data))
 	if err != nil {
 		out.Set(modeling.EmptyMesh(modeling.TriangleTopology))
 		out.CaptureError(err)
-		return out
+		return
 	}
 	out.Set(scene.ToMesh())
-	return out
 }

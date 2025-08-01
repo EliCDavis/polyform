@@ -63,20 +63,19 @@ func (rnd SplineNodeData) Description() string {
 	return "Creates an array of TRS matrices by sampling the curve"
 }
 
-func (r SplineNodeData) Out() nodes.StructOutput[[]trs.TRS] {
-	out := nodes.StructOutput[[]trs.TRS]{}
+func (r SplineNodeData) Out(out *nodes.StructOutput[[]trs.TRS]) {
 	if r.Curve == nil || r.Times == nil {
-		return out
+		return
 	}
 
-	times := nodes.GetOutputValue(&out, r.Times)
+	times := nodes.GetOutputValue(out, r.Times)
 	if times <= 0 {
-		return out
+		return
 	}
 
-	curve := nodes.GetOutputValue(&out, r.Curve)
+	curve := nodes.GetOutputValue(out, r.Curve)
 	if curve == nil {
-		return out
+		return
 	}
 
 	switch times {
@@ -87,6 +86,4 @@ func (r SplineNodeData) Out() nodes.StructOutput[[]trs.TRS] {
 	default:
 		out.Set(Spline(curve, times-2))
 	}
-
-	return out
 }

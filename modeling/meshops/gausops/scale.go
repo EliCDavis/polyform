@@ -43,22 +43,20 @@ type ScaleNodeData struct {
 	Amount    nodes.Output[vector3.Float64]
 }
 
-func (sa3dn ScaleNodeData) Out() nodes.StructOutput[modeling.Mesh] {
-	out := nodes.StructOutput[modeling.Mesh]{}
+func (sa3dn ScaleNodeData) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	if sa3dn.Mesh == nil {
-		out.Set(modeling.EmptyMesh(modeling.TriangleTopology))
-		return out
+		out.Set(modeling.EmptyPointcloud())
+		return
 	}
 
-	mesh := nodes.GetOutputValue(&out, sa3dn.Mesh)
+	mesh := nodes.GetOutputValue(out, sa3dn.Mesh)
 	if sa3dn.Amount == nil {
 		out.Set(mesh)
-		return out
+		return
 	}
 
-	attr := nodes.TryGetOutputValue(&out, sa3dn.Attribute, modeling.ScaleAttribute)
-	amount := nodes.GetOutputValue(&out, sa3dn.Amount)
+	attr := nodes.TryGetOutputValue(out, sa3dn.Attribute, modeling.ScaleAttribute)
+	amount := nodes.GetOutputValue(out, sa3dn.Amount)
 
 	out.Set(Scale(mesh, attr, amount))
-	return out
 }

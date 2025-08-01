@@ -272,21 +272,20 @@ type CircleNodeData struct {
 	Path       nodes.Output[[]vector3.Float64]
 }
 
-func (pnd CircleNodeData) Out() nodes.StructOutput[modeling.Mesh] {
+func (pnd CircleNodeData) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	if pnd.Path == nil {
-		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
+		out.Set(modeling.EmptyMesh(modeling.TriangleTopology))
+		return
 	}
 
-	out := nodes.StructOutput[modeling.Mesh]{}
 	circle := Circle{
-		Radius:     nodes.TryGetOutputValue(&out, pnd.Radius, 1.0),
-		Resolution: max(3, nodes.TryGetOutputValue(&out, pnd.Resolution, 3)),
-		ClosePath:  nodes.TryGetOutputValue(&out, pnd.Closed, false),
-		Path:       nodes.GetOutputValue(&out, pnd.Path),
-		Radii:      nodes.TryGetOutputValue(&out, pnd.Radii, nil),
+		Radius:     nodes.TryGetOutputValue(out, pnd.Radius, 1.0),
+		Resolution: max(3, nodes.TryGetOutputValue(out, pnd.Resolution, 3)),
+		ClosePath:  nodes.TryGetOutputValue(out, pnd.Closed, false),
+		Path:       nodes.GetOutputValue(out, pnd.Path),
+		Radii:      nodes.TryGetOutputValue(out, pnd.Radii, nil),
 	}
 	out.Set(circle.Extrude())
-	return out
 }
 
 type CircleAlongSplineNode = nodes.Struct[CircleAlongSplineNodeData]
@@ -301,28 +300,27 @@ type CircleAlongSplineNodeData struct {
 	UVs              nodes.Output[primitives.StripUVs]
 }
 
-func (pnd CircleAlongSplineNodeData) Out() nodes.StructOutput[modeling.Mesh] {
+func (pnd CircleAlongSplineNodeData) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	if pnd.Spline == nil {
-		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
+		out.Set(modeling.EmptyMesh(modeling.TriangleTopology))
+		return
 	}
 
-	out := nodes.StructOutput[modeling.Mesh]{}
-	spline := nodes.GetOutputValue(&out, pnd.Spline)
+	spline := nodes.GetOutputValue(out, pnd.Spline)
 	if spline == nil {
 		out.Set(modeling.EmptyMesh(modeling.TriangleTopology))
-		return out
+		return
 	}
 
 	circle := CircleAlongSpline{
-		Radius:           nodes.TryGetOutputValue(&out, pnd.Radius, 1.0),
-		CircleResolution: max(3, nodes.TryGetOutputValue(&out, pnd.CircleResolution, 3)),
-		ClosePath:        nodes.TryGetOutputValue(&out, pnd.Closed, false),
+		Radius:           nodes.TryGetOutputValue(out, pnd.Radius, 1.0),
+		CircleResolution: max(3, nodes.TryGetOutputValue(out, pnd.CircleResolution, 3)),
+		ClosePath:        nodes.TryGetOutputValue(out, pnd.Closed, false),
 		Spline:           spline,
-		SplineResolution: max(3, nodes.TryGetOutputValue(&out, pnd.SplineResolution, 3)),
-		Radii:            nodes.TryGetOutputValue(&out, pnd.Radii, nil),
-		UVs:              nodes.TryGetOutputReference(&out, pnd.UVs, nil),
+		SplineResolution: max(3, nodes.TryGetOutputValue(out, pnd.SplineResolution, 3)),
+		Radii:            nodes.TryGetOutputValue(out, pnd.Radii, nil),
+		UVs:              nodes.TryGetOutputReference(out, pnd.UVs, nil),
 	}
 
 	out.Set(circle.Extrude())
-	return out
 }

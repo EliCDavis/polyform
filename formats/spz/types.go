@@ -21,25 +21,22 @@ type ReadNodeData struct {
 	Data nodes.Output[[]byte]
 }
 
-func (gad ReadNodeData) Out() nodes.StructOutput[modeling.Mesh] {
+func (gad ReadNodeData) Out(out *nodes.StructOutput[modeling.Mesh]) {
+	out.Set(modeling.EmptyMesh(modeling.PointTopology))
 	if gad.Data == nil {
-		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.PointTopology))
+		return
 	}
 
-	out := nodes.StructOutput[modeling.Mesh]{}
-	out.Set(modeling.EmptyMesh(modeling.PointTopology))
-
-	data := nodes.GetOutputValue(&out, gad.Data)
+	data := nodes.GetOutputValue(out, gad.Data)
 	if len(data) == 0 {
-		return out
+		return
 	}
 
 	cloud, err := Read(bytes.NewReader(data))
 	if err != nil {
 		out.CaptureError(err)
-		return out
+		return
 	}
 
 	out.Set(cloud.Mesh)
-	return out
 }

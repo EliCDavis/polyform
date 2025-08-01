@@ -28,17 +28,15 @@ type NewNodeData struct {
 	W nodes.Output[float64]
 }
 
-func (cn NewNodeData) Out() nodes.StructOutput[Quaternion] {
-	out := nodes.StructOutput[Quaternion]{}
+func (cn NewNodeData) Out(out *nodes.StructOutput[Quaternion]) {
 	out.Set(New(
 		vector3.New(
-			nodes.TryGetOutputValue(&out, cn.X, 0.),
-			nodes.TryGetOutputValue(&out, cn.Y, 0.),
-			nodes.TryGetOutputValue(&out, cn.Z, 0.),
+			nodes.TryGetOutputValue(out, cn.X, 0.),
+			nodes.TryGetOutputValue(out, cn.Y, 0.),
+			nodes.TryGetOutputValue(out, cn.Z, 0.),
 		),
-		nodes.TryGetOutputValue(&out, cn.W, 0),
+		nodes.TryGetOutputValue(out, cn.W, 0),
 	))
-	return out
 }
 
 // From Theta =================================================================
@@ -50,13 +48,11 @@ type FromThetaNodeData struct {
 	Direction nodes.Output[vector3.Float64]
 }
 
-func (cn FromThetaNodeData) Out() nodes.StructOutput[Quaternion] {
-	out := nodes.StructOutput[Quaternion]{}
+func (cn FromThetaNodeData) Out(out *nodes.StructOutput[Quaternion]) {
 	out.Set(FromTheta(
-		nodes.TryGetOutputValue(&out, cn.Theta, 0),
-		nodes.TryGetOutputValue(&out, cn.Direction, vector3.Zero[float64]()),
+		nodes.TryGetOutputValue(out, cn.Theta, 0),
+		nodes.TryGetOutputValue(out, cn.Direction, vector3.Zero[float64]()),
 	))
-	return out
 }
 
 // ============================================================================
@@ -68,10 +64,9 @@ type FromThetaArrayNodeData struct {
 	Theta     nodes.Output[[]float64]
 }
 
-func (snd FromThetaArrayNodeData) Out() nodes.StructOutput[[]Quaternion] {
-	out := nodes.StructOutput[[]Quaternion]{}
-	directions := nodes.TryGetOutputValue(&out, snd.Direction, nil)
-	thetaArr := nodes.TryGetOutputValue(&out, snd.Theta, nil)
+func (snd FromThetaArrayNodeData) Out(out *nodes.StructOutput[[]Quaternion]) {
+	directions := nodes.TryGetOutputValue(out, snd.Direction, nil)
+	thetaArr := nodes.TryGetOutputValue(out, snd.Theta, nil)
 
 	arr := make([]Quaternion, max(len(directions), len(directions)))
 	for i := range arr {
@@ -89,7 +84,6 @@ func (snd FromThetaArrayNodeData) Out() nodes.StructOutput[[]Quaternion] {
 		arr[i] = FromTheta(theta, direction)
 	}
 	out.Set(arr)
-	return out
 }
 
 // From Euler Angles ==========================================================
@@ -99,10 +93,8 @@ type FromEulerAngleNodeData struct {
 	Angle nodes.Output[vector3.Float64]
 }
 
-func (cn FromEulerAngleNodeData) Out() nodes.StructOutput[Quaternion] {
-	out := nodes.StructOutput[Quaternion]{}
-	out.Set(FromEulerAngle(nodes.TryGetOutputValue(&out, cn.Angle, vector3.Zero[float64]())))
-	return out
+func (cn FromEulerAngleNodeData) Out(out *nodes.StructOutput[Quaternion]) {
+	out.Set(FromEulerAngle(nodes.TryGetOutputValue(out, cn.Angle, vector3.Zero[float64]())))
 }
 
 type FromEulerAnglesNode = nodes.Struct[FromEulerAnglesNodeData]
@@ -111,14 +103,12 @@ type FromEulerAnglesNodeData struct {
 	Angles nodes.Output[[]vector3.Float64]
 }
 
-func (cn FromEulerAnglesNodeData) Out() nodes.StructOutput[[]Quaternion] {
-	out := nodes.StructOutput[[]Quaternion]{}
-	angles := nodes.TryGetOutputValue(&out, cn.Angles, nil)
+func (cn FromEulerAnglesNodeData) Out(out *nodes.StructOutput[[]Quaternion]) {
+	angles := nodes.TryGetOutputValue(out, cn.Angles, nil)
 
 	arr := make([]Quaternion, len(angles))
 	for i, v := range angles {
 		arr[i] = FromEulerAngle(v)
 	}
 	out.Set(arr)
-	return out
 }

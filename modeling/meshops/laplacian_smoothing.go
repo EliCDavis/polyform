@@ -104,18 +104,16 @@ type LaplacianSmoothNodeData struct {
 	SmoothingFactor nodes.Output[float64]
 }
 
-func (lp LaplacianSmoothNodeData) Out() nodes.StructOutput[modeling.Mesh] {
+func (lp LaplacianSmoothNodeData) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	if lp.Mesh == nil {
-		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
+		out.Set(modeling.EmptyMesh(modeling.TriangleTopology))
+		return
 	}
 
-	out := nodes.StructOutput[modeling.Mesh]{}
 	out.Set(LaplacianSmooth(
-		nodes.GetOutputValue(&out, lp.Mesh),
-		nodes.TryGetOutputValue(&out, lp.Attribute, modeling.PositionAttribute),
-		nodes.TryGetOutputValue(&out, lp.Iterations, 10),
-		nodes.TryGetOutputValue(&out, lp.SmoothingFactor, 0.1),
+		nodes.GetOutputValue(out, lp.Mesh),
+		nodes.TryGetOutputValue(out, lp.Attribute, modeling.PositionAttribute),
+		nodes.TryGetOutputValue(out, lp.Iterations, 10),
+		nodes.TryGetOutputValue(out, lp.SmoothingFactor, 0.1),
 	))
-
-	return out
 }

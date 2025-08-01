@@ -18,16 +18,14 @@ func (DivideNodeData[T]) Description() string {
 	return "Dividend / Divisor"
 }
 
-func (cn DivideNodeData[T]) Out() nodes.StructOutput[T] {
-	out := nodes.NewStructOutput[T](0)
-	b := nodes.TryGetOutputValue(&out, cn.Divisor, 0)
+func (cn DivideNodeData[T]) Out(out *nodes.StructOutput[T]) {
+	b := nodes.TryGetOutputValue(out, cn.Divisor, 0)
 	if b == 0 {
 		out.CaptureError(cantDivideByZeroErr)
-		return out
+		return
 	}
 
-	out.Set(nodes.TryGetOutputValue(&out, cn.Dividend, 0) / b)
-	return out
+	out.Set(nodes.TryGetOutputValue(out, cn.Dividend, 0) / b)
 }
 
 // ============================================================================
@@ -37,19 +35,18 @@ type DivideToArrayNode[T vector.Number] struct {
 	Array nodes.Output[[]T]
 }
 
-func (cn DivideToArrayNode[T]) Out() nodes.StructOutput[[]T] {
-	out := nodes.StructOutput[[]T]{}
-	arr := nodes.TryGetOutputValue(&out, cn.Array, nil)
+func (cn DivideToArrayNode[T]) Out(out *nodes.StructOutput[[]T]) {
+	arr := nodes.TryGetOutputValue(out, cn.Array, nil)
 	if len(arr) == 0 {
-		return out
+		return
 	}
 
-	b := nodes.TryGetOutputValue(&out, cn.In, 0)
+	b := nodes.TryGetOutputValue(out, cn.In, 0)
 
 	if b == 0 {
 		out.Set(make([]T, len(arr)))
 		out.CaptureError(cantDivideByZeroErr)
-		return out
+		return
 	}
 
 	out.Set(methodToArr(
@@ -58,5 +55,4 @@ func (cn DivideToArrayNode[T]) Out() nodes.StructOutput[[]T] {
 			return b / a
 		},
 	))
-	return out
 }

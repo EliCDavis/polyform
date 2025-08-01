@@ -28,16 +28,12 @@ func (n MinNode[T]) min(recorder nodes.ExecutionRecorder) T {
 	return v
 }
 
-func (n MinNode[T]) Int() nodes.StructOutput[int] {
-	out := nodes.StructOutput[int]{}
-	out.Set(int(n.min(&out)))
-	return out
+func (n MinNode[T]) Int(out *nodes.StructOutput[int]) {
+	out.Set(int(n.min(out)))
 }
 
-func (n MinNode[T]) Float64() nodes.StructOutput[float64] {
-	out := nodes.StructOutput[float64]{}
-	out.Set(float64(n.min(&out)))
-	return out
+func (n MinNode[T]) Float64(out *nodes.StructOutput[float64]) {
+	out.Set(float64(n.min(out)))
 }
 
 // ============================================================================
@@ -62,16 +58,12 @@ func (n MinArrayNode[T]) min(recorder nodes.ExecutionRecorder) T {
 	return v
 }
 
-func (n MinArrayNode[T]) Int() nodes.StructOutput[int] {
-	out := nodes.StructOutput[int]{}
-	out.Set(int(n.min(&out)))
-	return out
+func (n MinArrayNode[T]) Int(out *nodes.StructOutput[int]) {
+	out.Set(int(n.min(out)))
 }
 
-func (n MinArrayNode[T]) Float64() nodes.StructOutput[float64] {
-	out := nodes.StructOutput[float64]{}
-	out.Set(float64(n.min(&out)))
-	return out
+func (n MinArrayNode[T]) Float64(out *nodes.StructOutput[float64]) {
+	out.Set(float64(n.min(out)))
 }
 
 // ============================================================================
@@ -97,16 +89,12 @@ func (n MaxNode[T]) max(recorder nodes.ExecutionRecorder) T {
 	return v
 }
 
-func (n MaxNode[T]) Int() nodes.StructOutput[int] {
-	out := nodes.StructOutput[int]{}
-	out.Set(int(n.max(&out)))
-	return out
+func (n MaxNode[T]) Int(out *nodes.StructOutput[int]) {
+	out.Set(int(n.max(out)))
 }
 
-func (n MaxNode[T]) Float64() nodes.StructOutput[float64] {
-	out := nodes.StructOutput[float64]{}
-	out.Set(float64(n.max(&out)))
-	return out
+func (n MaxNode[T]) Float64(out *nodes.StructOutput[float64]) {
+	out.Set(float64(n.max(out)))
 }
 
 // ============================================================================
@@ -131,14 +119,10 @@ func (n MaxArrayNode[T]) max(recorder nodes.ExecutionRecorder) T {
 	return v
 }
 
-func (n MaxArrayNode[T]) Int() nodes.StructOutput[int] {
-	out := nodes.StructOutput[int]{}
-	out.Set(int(n.max(&out)))
-	return out
+func (n MaxArrayNode[T]) Int(out *nodes.StructOutput[int]) {
+	out.Set(int(n.max(out)))
 }
 
-func (n MaxArrayNode[T]) Float64() nodes.StructOutput[float64] {
-	out := nodes.StructOutput[float64]{}
-	out.Set(float64(n.max(&out)))
-	return out
+func (n MaxArrayNode[T]) Float64(out *nodes.StructOutput[float64]) {
+	out.Set(float64(n.max(out)))
 }

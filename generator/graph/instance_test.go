@@ -21,8 +21,7 @@ type TestNodeData struct {
 	B nodes.Output[int]
 }
 
-func (bn TestNodeData) Out() nodes.StructOutput[float64] {
-	return nodes.NewStructOutput(0.)
+func (bn TestNodeData) Out(out *nodes.StructOutput[float64]) {
 }
 
 func TestBuildNodeTypeSchema(t *testing.T) {

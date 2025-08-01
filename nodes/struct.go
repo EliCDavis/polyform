@@ -42,7 +42,6 @@ func (soc structOutputCache) Version(key string) int {
 	}
 
 	return version
-
 }
 
 func (soc structOutputCache) Outdated(key string) bool {
@@ -108,7 +107,7 @@ func (so *StructOutput[T]) Value() T {
 		val = so.cache.Get(so.functionName).(StructOutput[T])
 	} else {
 		start := time.Now()
-		val = refutil.CallStructMethod(so.data, so.functionName)[0].(StructOutput[T])
+		refutil.CallStructMethod(so.data, so.functionName, &val)
 		val.report.TotalTime = time.Since(start)
 		self := val.report.TotalTime
 		for _, v := range val.report.Steps {
@@ -180,7 +179,7 @@ func (so *StructOutput[T]) CaptureTiming(title string, timing time.Duration) {
 
 // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
-func (so StructOutput[T]) build(node Node, cache *structOutputCache, data any, functionName, displayName string) OutputPort {
+func (so *StructOutput[T]) build(node Node, cache *structOutputCache, data any, functionName, displayName string) OutputPort {
 	return &StructOutput[T]{
 		node:         node,
 		data:         data,
@@ -310,7 +309,7 @@ func (s *Struct[T]) Outputs() map[string]OutputPort {
 	// 	s.Data = &v
 	// }
 
-	funcs := refutil.FuncValuesOfType[outputPortBuilder](s.Data)
+	funcs := refutil.FuncArgumentsOfType[outputPortBuilder](s.Data)
 	out := make(map[string]OutputPort)
 
 	if s.outputCache == nil {

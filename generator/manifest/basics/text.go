@@ -31,10 +31,8 @@ type TextNodeData struct {
 	Name nodes.Output[string]
 }
 
-func (tand TextNodeData) Out() nodes.StructOutput[manifest.Manifest] {
-	out := nodes.StructOutput[manifest.Manifest]{}
-	name := nodes.TryGetOutputValue(&out, tand.Name, "text.txt")
-	entry := manifest.Entry{Artifact: TextArtifact{Data: nodes.TryGetOutputValue(&out, tand.In, "")}}
+func (tand TextNodeData) Out(out *nodes.StructOutput[manifest.Manifest]) {
+	name := nodes.TryGetOutputValue(out, tand.Name, "text.txt")
+	entry := manifest.Entry{Artifact: TextArtifact{Data: nodes.TryGetOutputValue(out, tand.In, "")}}
 	out.Set(manifest.SingleEntryManifest(name, entry))
-	return out
 }

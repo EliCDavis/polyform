@@ -70,12 +70,10 @@ type FibonacciSphereNodeData struct {
 	Radius nodes.Output[float64]
 }
 
-func (fpnd FibonacciSphereNodeData) Out() nodes.StructOutput[[]trs.TRS] {
-	out := nodes.StructOutput[[]trs.TRS]{}
-	radius := nodes.TryGetOutputValue(&out, fpnd.Radius, 1.)
-	count := nodes.TryGetOutputValue(&out, fpnd.Count, 10)
+func (fpnd FibonacciSphereNodeData) Out(out *nodes.StructOutput[[]trs.TRS]) {
+	radius := nodes.TryGetOutputValue(out, fpnd.Radius, 1.)
+	count := nodes.TryGetOutputValue(out, fpnd.Count, 10)
 	out.Set(FibonacciSphere(count, radius))
-	return out
 }
 
 type FibonacciSpiralNode = nodes.Struct[FibonacciSpiralNodeData]
@@ -85,11 +83,9 @@ type FibonacciSpiralNodeData struct {
 	Radius nodes.Output[float64]
 }
 
-func (fpnd FibonacciSpiralNodeData) Out() nodes.StructOutput[[]trs.TRS] {
-	out := nodes.StructOutput[[]trs.TRS]{}
+func (fpnd FibonacciSpiralNodeData) Out(out *nodes.StructOutput[[]trs.TRS]) {
 	out.Set(FibonacciSpiral(
-		nodes.TryGetOutputValue(&out, fpnd.Count, 10),
-		nodes.TryGetOutputValue(&out, fpnd.Radius, 1.),
+		nodes.TryGetOutputValue(out, fpnd.Count, 10),
+		nodes.TryGetOutputValue(out, fpnd.Radius, 1.),
 	))
-	return out
 }

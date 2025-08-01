@@ -130,7 +130,7 @@ func FuncNamesOfType[T any](in any) []string {
 	return out
 }
 
-func FuncValuesOfType[T any](in any) map[string]T {
+func FuncReturnOfType[T any](in any) map[string]T {
 	viewPointerValue := reflect.ValueOf(in)
 
 	view := viewPointerValue
@@ -154,6 +154,45 @@ func FuncValuesOfType[T any](in any) map[string]T {
 		cast, ok := reflect.Zero(methodOutType).Interface().(T)
 		if !ok {
 			panic("what happened")
+		}
+		// log.Printf("cast: %v\b", cast)
+
+		out[method.Name] = cast
+	}
+
+	return out
+}
+
+func FuncArgumentsOfType[T any](in any) map[string]T {
+	viewPointerValue := reflect.ValueOf(in)
+
+	view := viewPointerValue
+	out := make(map[string]T)
+
+	viewType := view.Type()
+	for i := range viewType.NumMethod() {
+		method := viewType.Method(i)
+
+		methodType := method.Func.Type()
+		if methodType.NumOut() != 0 {
+			continue
+		}
+
+		// 2 inputs. 1 is the struct itself, the other is the argument itself
+		inputCount := methodType.NumIn()
+		if inputCount != 2 {
+			continue
+		}
+
+		methodInType := methodType.In(1)
+		var exampleVal *T
+		if !methodInType.Implements(reflect.TypeOf(exampleVal).Elem()) {
+			continue
+		}
+
+		cast, ok := reflect.Zero(methodInType).Interface().(T)
+		if !ok {
+			panic("what happened 3")
 		}
 		// log.Printf("cast: %v\b", cast)
 

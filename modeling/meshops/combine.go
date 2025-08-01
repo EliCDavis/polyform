@@ -11,15 +11,13 @@ type CombineNodeData struct {
 	Meshes []nodes.Output[modeling.Mesh]
 }
 
-func (cnd CombineNodeData) Out() nodes.StructOutput[modeling.Mesh] {
-	out := nodes.StructOutput[modeling.Mesh]{}
-
+func (cnd CombineNodeData) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	fallback := modeling.EmptyMesh(modeling.TriangleTopology)
 
-	meshes := nodes.GetOutputValues(&out, cnd.Meshes)
+	meshes := nodes.GetOutputValues(out, cnd.Meshes)
 	if len(meshes) == 0 {
 		out.Set(fallback)
-		return out
+		return
 	}
 
 	result := meshes[0]
@@ -28,5 +26,4 @@ func (cnd CombineNodeData) Out() nodes.StructOutput[modeling.Mesh] {
 	}
 
 	out.Set(result)
-	return out
 }
