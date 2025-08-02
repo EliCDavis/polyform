@@ -18,8 +18,8 @@ import (
 
 func buildTextArifact(p *parameter.String) nodes.Output[manifest.Manifest] {
 	return nodes.GetNodeOutputPort[manifest.Manifest](
-		&basics.TextNode{
-			Data: basics.TextNodeData{
+		&nodes.Struct[basics.TextNode]{
+			Data: basics.TextNode{
 				In: nodes.GetNodeOutputPort[string](p, "Value"),
 			},
 		},

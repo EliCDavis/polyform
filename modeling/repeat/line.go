@@ -53,16 +53,14 @@ func (l Line) TRS() []trs.TRS {
 	return values
 }
 
-type LineNode = nodes.Struct[LineNodeData]
-
-type LineNodeData struct {
+type LineNode struct {
 	Start     nodes.Output[vector3.Float64]
 	End       nodes.Output[vector3.Float64]
 	Samples   nodes.Output[int]
 	Exclusive nodes.Output[bool]
 }
 
-func (r LineNodeData) Out(out *nodes.StructOutput[[]trs.TRS]) {
+func (r LineNode) Out(out *nodes.StructOutput[[]trs.TRS]) {
 	line := Line{
 		Start:     nodes.TryGetOutputValue(out, r.Start, vector3.Zero[float64]()),
 		End:       nodes.TryGetOutputValue(out, r.End, vector3.Zero[float64]()),

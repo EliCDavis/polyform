@@ -14,18 +14,16 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type TestNode = nodes.Struct[TestNodeData]
-
-type TestNodeData struct {
+type TestNode struct {
 	A nodes.Output[float64]
 	B nodes.Output[int]
 }
 
-func (bn TestNodeData) Out(out *nodes.StructOutput[float64]) {
+func (bn TestNode) Out(out *nodes.StructOutput[float64]) {
 }
 
 func TestBuildNodeTypeSchema(t *testing.T) {
-	schema := graph.BuildNodeTypeSchema("", &TestNode{})
+	schema := graph.BuildNodeTypeSchema("", &nodes.Struct[TestNode]{})
 
 	assert.Equal(t, "Test", schema.DisplayName)
 	assert.Equal(t, "generator/graph_test", schema.Path)
@@ -54,8 +52,8 @@ func TestInstance_AddProducer_InitializeParameters_Artifacts(t *testing.T) {
 		CurrentValue: "bruh",
 	}
 
-	textNode := basics.TextNode{
-		Data: basics.TextNodeData{
+	textNode := nodes.Struct[basics.TextNode]{
+		Data: basics.TextNode{
 			In: nodes.GetNodeOutputPort[string](strParam, "Value"),
 		},
 	}
@@ -106,7 +104,7 @@ func TestInstance_AddProducer_InitializeParameters_Artifacts(t *testing.T) {
 			}
 		},
 		"Node-1": {
-			"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/generator/manifest/basics.TextNodeData]",
+			"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/generator/manifest/basics.TextNode]",
 			"name": "test.txt",
 			"assignedInput": {
 				"In": {
@@ -146,7 +144,7 @@ func TestInstance_AddProducer_InitializeParameters_Artifacts(t *testing.T) {
 				}
 			},
 			"Node-1": {
-				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/generator/manifest/basics.TextNodeData]",
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/generator/manifest/basics.TextNode]",
 				"assignedInput": {
 					"In": {
 						"id": "Node-0",

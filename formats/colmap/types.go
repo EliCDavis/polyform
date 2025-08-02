@@ -12,18 +12,16 @@ import (
 func init() {
 	factory := &refutil.TypeFactory{}
 
-	refutil.RegisterType[ReadPointsNode](factory)
+	refutil.RegisterType[nodes.Struct[ReadPointsNode]](factory)
 
 	generator.RegisterTypes(factory)
 }
 
-type ReadPointsNode = nodes.Struct[ReadPointsNodeData]
-
-type ReadPointsNodeData struct {
+type ReadPointsNode struct {
 	In nodes.Output[[]byte]
 }
 
-func (pn ReadPointsNodeData) Out(out *nodes.StructOutput[modeling.Mesh]) {
+func (pn ReadPointsNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	if pn.In == nil {
 		out.Set(modeling.EmptyMesh(modeling.PointTopology))
 		return

@@ -381,12 +381,6 @@ func (a *Instance) NodeInstanceSchema(node nodes.Node) schema.NodeInstance {
 		result := schema.NodeInstanceOutputPort{
 			Version: outputPort.Version(),
 		}
-
-		if observable, ok := outputPort.(nodes.ObservableExecution); ok {
-			report := observable.ExecutionReport()
-			result.Report = &report
-		}
-
 		nodeInstance.Output[outputPortName] = result
 	}
 

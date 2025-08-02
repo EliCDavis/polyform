@@ -319,20 +319,6 @@ export class PolyNodeController {
         if (nodeData.parameter) {
             this.parameter.update(nodeData.parameter)
         }
-
-        this.setReport(nodeData);
-    }
-
-    setReport(nodeData: NodeInstance): void {
-        this.flowNode.clearMessages();
-
-        for (let outputName in nodeData.output) {
-            const report = nodeData.output[outputName].report;
-            if (!report) {
-                continue;
-            }
-            this.setOutputPortReport(outputName, report)
-        }
     }
 
     setOutputPortReport(portName: string, report: ExecutionReport) {

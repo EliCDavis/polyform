@@ -13,18 +13,16 @@ import (
 
 func init() {
 	factory := &refutil.TypeFactory{}
-	refutil.RegisterType[ReadNode](factory)
-	refutil.RegisterType[ManifestNode](factory)
+	refutil.RegisterType[nodes.Struct[ReadNode]](factory)
+	refutil.RegisterType[nodes.Struct[ManifestNode]](factory)
 	generator.RegisterTypes(factory)
 }
 
-type ReadNode = nodes.Struct[ReadNodeData]
-
-type ReadNodeData struct {
+type ReadNode struct {
 	Data nodes.Output[[]byte]
 }
 
-func (gad ReadNodeData) Out(out *nodes.StructOutput[modeling.Mesh]) {
+func (gad ReadNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	if gad.Data == nil {
 		out.Set(modeling.EmptyMesh(modeling.TriangleTopology))
 		return
@@ -60,13 +58,11 @@ func (Artifact) Mime() string {
 	return "application/sla"
 }
 
-type ManifestNode = nodes.Struct[ManifestNodeData]
-
-type ManifestNodeData struct {
+type ManifestNode struct {
 	Mesh nodes.Output[modeling.Mesh]
 }
 
-func (pn ManifestNodeData) Out(out *nodes.StructOutput[manifest.Manifest]) {
+func (pn ManifestNode) Out(out *nodes.StructOutput[manifest.Manifest]) {
 	entry := manifest.Entry{
 		Artifact: Artifact{
 			Mesh: nodes.TryGetOutputValue(out, pn.Mesh, modeling.EmptyMesh(modeling.TriangleTopology)),

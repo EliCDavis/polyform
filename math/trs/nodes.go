@@ -14,17 +14,17 @@ import (
 func init() {
 	factory := &refutil.TypeFactory{}
 
-	refutil.RegisterType[ArrayNode](factory)
-	refutil.RegisterType[NewNode](factory)
-	refutil.RegisterType[RotateDirectionNode](factory)
-	refutil.RegisterType[RotateDirectionsNode](factory)
-	refutil.RegisterType[RandomizeArrayNode](factory)
-	refutil.RegisterType[TransformArrayNode](factory)
-	refutil.RegisterType[MultiplyNode](factory)
-	refutil.RegisterType[MultiplyToArrayNode](factory)
-	refutil.RegisterType[MultiplyArrayNode](factory)
-	refutil.RegisterType[SelectNode](factory)
-	refutil.RegisterType[SelectArrayNode](factory)
+	refutil.RegisterType[nodes.Struct[ArrayNode]](factory)
+	refutil.RegisterType[nodes.Struct[NewNode]](factory)
+	refutil.RegisterType[nodes.Struct[RotateDirectionNode]](factory)
+	refutil.RegisterType[nodes.Struct[RotateDirectionsNode]](factory)
+	refutil.RegisterType[nodes.Struct[RandomizeArrayNode]](factory)
+	refutil.RegisterType[nodes.Struct[TransformArrayNode]](factory)
+	refutil.RegisterType[nodes.Struct[MultiplyNode]](factory)
+	refutil.RegisterType[nodes.Struct[MultiplyToArrayNode]](factory)
+	refutil.RegisterType[nodes.Struct[MultiplyArrayNode]](factory)
+	refutil.RegisterType[nodes.Struct[SelectNode]](factory)
+	refutil.RegisterType[nodes.Struct[SelectArrayNode]](factory)
 	refutil.RegisterType[nodes.Struct[FilterPositionNode]](factory)
 	refutil.RegisterType[nodes.Struct[FilterScaleNode]](factory)
 	generator.RegisterTypes(factory)
@@ -32,15 +32,13 @@ func init() {
 
 // ============================================================================
 
-type NewNode = nodes.Struct[NewNodeData]
-
-type NewNodeData struct {
+type NewNode struct {
 	Position nodes.Output[vector3.Float64]
 	Rotation nodes.Output[quaternion.Quaternion]
 	Scale    nodes.Output[vector3.Float64]
 }
 
-func (tnd NewNodeData) Out(out *nodes.StructOutput[TRS]) {
+func (tnd NewNode) Out(out *nodes.StructOutput[TRS]) {
 	out.Set(New(
 		nodes.TryGetOutputValue(out, tnd.Position, vector3.Zero[float64]()),
 		nodes.TryGetOutputValue(out, tnd.Rotation, quaternion.Identity()),
@@ -50,9 +48,7 @@ func (tnd NewNodeData) Out(out *nodes.StructOutput[TRS]) {
 
 // ============================================================================
 
-type RandomizeArrayNode = nodes.Struct[RandomizeArrayNodeData]
-
-type RandomizeArrayNodeData struct {
+type RandomizeArrayNode struct {
 	TranslationMinimum nodes.Output[vector3.Float64]
 	TranslationMaximum nodes.Output[vector3.Float64]
 	ScaleMinimum       nodes.Output[vector3.Float64]
@@ -62,7 +58,7 @@ type RandomizeArrayNodeData struct {
 	Array              nodes.Output[[]TRS]
 }
 
-func (tnd RandomizeArrayNodeData) Out(out *nodes.StructOutput[[]TRS]) {
+func (tnd RandomizeArrayNode) Out(out *nodes.StructOutput[[]TRS]) {
 	input := nodes.TryGetOutputValue(out, tnd.Array, nil)
 	if len(input) == 0 {
 		return
@@ -107,33 +103,29 @@ func (tnd RandomizeArrayNodeData) Out(out *nodes.StructOutput[[]TRS]) {
 
 // ============================================================================
 
-type SelectNode = nodes.Struct[SelectNodeData]
-
-type SelectNodeData struct {
+type SelectNode struct {
 	TRS nodes.Output[TRS]
 }
 
-func (tnd SelectNodeData) Position(out *nodes.StructOutput[vector3.Float64]) {
+func (tnd SelectNode) Position(out *nodes.StructOutput[vector3.Float64]) {
 	out.Set(nodes.TryGetOutputValue(out, tnd.TRS, Identity()).Position())
 }
 
-func (tnd SelectNodeData) Scale(out *nodes.StructOutput[vector3.Float64]) {
+func (tnd SelectNode) Scale(out *nodes.StructOutput[vector3.Float64]) {
 	out.Set(nodes.TryGetOutputValue(out, tnd.TRS, Identity()).Scale())
 }
 
-func (tnd SelectNodeData) Rotation(out *nodes.StructOutput[quaternion.Quaternion]) {
+func (tnd SelectNode) Rotation(out *nodes.StructOutput[quaternion.Quaternion]) {
 	out.Set(nodes.TryGetOutputValue(out, tnd.TRS, Identity()).Rotation())
 }
 
 // ============================================================================
 
-type SelectArrayNode = nodes.Struct[SelectArrayNodeData]
-
-type SelectArrayNodeData struct {
+type SelectArrayNode struct {
 	TRS nodes.Output[[]TRS]
 }
 
-func (tnd SelectArrayNodeData) Position(out *nodes.StructOutput[[]vector3.Float64]) {
+func (tnd SelectArrayNode) Position(out *nodes.StructOutput[[]vector3.Float64]) {
 	trss := nodes.TryGetOutputValue(out, tnd.TRS, nil)
 	arr := make([]vector3.Float64, len(trss))
 
@@ -144,7 +136,7 @@ func (tnd SelectArrayNodeData) Position(out *nodes.StructOutput[[]vector3.Float6
 	out.Set(arr)
 }
 
-func (tnd SelectArrayNodeData) Scale(out *nodes.StructOutput[[]vector3.Float64]) {
+func (tnd SelectArrayNode) Scale(out *nodes.StructOutput[[]vector3.Float64]) {
 	trss := nodes.TryGetOutputValue(out, tnd.TRS, nil)
 	arr := make([]vector3.Float64, len(trss))
 
@@ -155,7 +147,7 @@ func (tnd SelectArrayNodeData) Scale(out *nodes.StructOutput[[]vector3.Float64])
 	out.Set(arr)
 }
 
-func (tnd SelectArrayNodeData) Rotation(out *nodes.StructOutput[[]quaternion.Quaternion]) {
+func (tnd SelectArrayNode) Rotation(out *nodes.StructOutput[[]quaternion.Quaternion]) {
 	trss := nodes.TryGetOutputValue(out, tnd.TRS, nil)
 	arr := make([]quaternion.Quaternion, len(trss))
 
@@ -168,14 +160,12 @@ func (tnd SelectArrayNodeData) Rotation(out *nodes.StructOutput[[]quaternion.Qua
 
 // ============================================================================
 
-type MultiplyNode = nodes.Struct[MultiplyNodeData]
-
-type MultiplyNodeData struct {
+type MultiplyNode struct {
 	A nodes.Output[TRS]
 	B nodes.Output[TRS]
 }
 
-func (tnd MultiplyNodeData) Out(out *nodes.StructOutput[TRS]) {
+func (tnd MultiplyNode) Out(out *nodes.StructOutput[TRS]) {
 	a := nodes.TryGetOutputValue(out, tnd.A, Identity())
 	b := nodes.TryGetOutputValue(out, tnd.B, Identity())
 	out.Set(a.Multiply(b))
@@ -183,14 +173,12 @@ func (tnd MultiplyNodeData) Out(out *nodes.StructOutput[TRS]) {
 
 // ============================================================================
 
-type MultiplyArrayNode = nodes.Struct[MultiplyArrayNodeData]
-
-type MultiplyArrayNodeData struct {
+type MultiplyArrayNode struct {
 	A nodes.Output[[]TRS]
 	B nodes.Output[[]TRS]
 }
 
-func (tnd MultiplyArrayNodeData) Out(out *nodes.StructOutput[[]TRS]) {
+func (tnd MultiplyArrayNode) Out(out *nodes.StructOutput[[]TRS]) {
 	aVal := nodes.TryGetOutputValue(out, tnd.A, nil)
 	bVal := nodes.TryGetOutputValue(out, tnd.B, nil)
 
@@ -217,19 +205,17 @@ func (tnd MultiplyArrayNodeData) Out(out *nodes.StructOutput[[]TRS]) {
 
 // ============================================================================
 
-type MultiplyToArrayNode = nodes.Struct[MultiplyToArrayNodeData]
-
-type MultiplyToArrayNodeData struct {
+type MultiplyToArrayNode struct {
 	Left  nodes.Output[TRS]
 	Array nodes.Output[[]TRS]
 	Right nodes.Output[TRS]
 }
 
-func (n MultiplyToArrayNodeData) Description() string {
+func (n MultiplyToArrayNode) Description() string {
 	return "Multiplies each element by the left and right values provided. If left or right is not defined, they are considered the identity matrix. Each value in the resulting array is computed by `left * arr[i] * right`"
 }
 
-func (n MultiplyToArrayNodeData) Out(out *nodes.StructOutput[[]TRS]) {
+func (n MultiplyToArrayNode) Out(out *nodes.StructOutput[[]TRS]) {
 	if n.Array == nil {
 		return
 	}
@@ -264,14 +250,12 @@ func (n MultiplyToArrayNodeData) Out(out *nodes.StructOutput[[]TRS]) {
 
 // ============================================================================
 
-type TransformArrayNode = nodes.Struct[TransformArrayNodeData]
-
-type TransformArrayNodeData struct {
+type TransformArrayNode struct {
 	Transform nodes.Output[TRS]
 	Array     nodes.Output[[]TRS]
 }
 
-func (tnd TransformArrayNodeData) Out(out *nodes.StructOutput[[]TRS]) {
+func (tnd TransformArrayNode) Out(out *nodes.StructOutput[[]TRS]) {
 	if tnd.Transform == nil {
 		out.Set(nodes.TryGetOutputValue(out, tnd.Array, nil))
 		return
@@ -289,14 +273,12 @@ func (tnd TransformArrayNodeData) Out(out *nodes.StructOutput[[]TRS]) {
 
 // ============================================================================
 
-type RotateDirectionNode = nodes.Struct[RotateDirectionNodeData]
-
-type RotateDirectionNodeData struct {
+type RotateDirectionNode struct {
 	TRS       nodes.Output[TRS]
 	Direction nodes.Output[vector3.Float64]
 }
 
-func (tnd RotateDirectionNodeData) Out(out *nodes.StructOutput[vector3.Float64]) {
+func (tnd RotateDirectionNode) Out(out *nodes.StructOutput[vector3.Float64]) {
 	if tnd.TRS == nil || tnd.Direction == nil {
 		out.Set(nodes.TryGetOutputValue(out, tnd.Direction, vector3.Zero[float64]()))
 		return
@@ -307,14 +289,12 @@ func (tnd RotateDirectionNodeData) Out(out *nodes.StructOutput[vector3.Float64])
 
 // ============================================================================
 
-type RotateDirectionsNode = nodes.Struct[RotateDirectionNodeData]
-
-type RotateDirectionsNodeData struct {
+type RotateDirectionsNode struct {
 	TRS       nodes.Output[[]TRS]
 	Direction nodes.Output[[]vector3.Float64]
 }
 
-func (tnd RotateDirectionsNodeData) Out(out *nodes.StructOutput[[]vector3.Float64]) {
+func (tnd RotateDirectionsNode) Out(out *nodes.StructOutput[[]vector3.Float64]) {
 	trss := nodes.TryGetOutputValue(out, tnd.TRS, nil)
 	directions := nodes.TryGetOutputValue(out, tnd.Direction, nil)
 	arr := make([]vector3.Float64, max(len(trss), len(directions)))
@@ -334,15 +314,13 @@ func (tnd RotateDirectionsNodeData) Out(out *nodes.StructOutput[[]vector3.Float6
 
 // ============================================================================
 
-type ArrayNode = nodes.Struct[ArrayNodeData]
-
-type ArrayNodeData struct {
+type ArrayNode struct {
 	Position nodes.Output[[]vector3.Float64]
 	Scale    nodes.Output[[]vector3.Float64]
 	Rotation nodes.Output[[]quaternion.Quaternion]
 }
 
-func (tnd ArrayNodeData) Out(out *nodes.StructOutput[[]TRS]) {
+func (tnd ArrayNode) Out(out *nodes.StructOutput[[]TRS]) {
 	positions := nodes.TryGetOutputValue(out, tnd.Position, nil)
 	rotations := nodes.TryGetOutputValue(out, tnd.Rotation, nil)
 	scales := nodes.TryGetOutputValue(out, tnd.Scale, nil)

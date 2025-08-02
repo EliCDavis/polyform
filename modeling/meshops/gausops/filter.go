@@ -8,9 +8,7 @@ import (
 	"github.com/EliCDavis/polyform/nodes"
 )
 
-type FilterNode = nodes.Struct[FilterNodeData]
-
-type FilterNodeData struct {
+type FilterNode struct {
 	Splat nodes.Output[modeling.Mesh]
 
 	MinOpacity nodes.Output[float64]
@@ -19,7 +17,7 @@ type FilterNodeData struct {
 	MaxVolume  nodes.Output[float64]
 }
 
-func (fnd FilterNodeData) Out(out *nodes.StructOutput[modeling.Mesh]) {
+func (fnd FilterNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	if fnd.Splat == nil {
 		out.Set(modeling.EmptyPointcloud())
 		return

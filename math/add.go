@@ -7,11 +7,11 @@ import (
 
 // ============================================================================
 
-type SumNodeData[T vector.Number] struct {
+type SumNode[T vector.Number] struct {
 	Values []nodes.Output[T] `description:"The nodes to sum"`
 }
 
-func (sn SumNodeData[T]) Out(out *nodes.StructOutput[T]) {
+func (sn SumNode[T]) Out(out *nodes.StructOutput[T]) {
 	vals := nodes.GetOutputValues(out, sn.Values)
 	var total T
 	for _, v := range vals {
@@ -22,12 +22,12 @@ func (sn SumNodeData[T]) Out(out *nodes.StructOutput[T]) {
 
 // ============================================================================
 
-type AddToArrayNodeData[T vector.Number] struct {
+type AddToArrayNode[T vector.Number] struct {
 	In    nodes.Output[T]
 	Array nodes.Output[[]T]
 }
 
-func (cn AddToArrayNodeData[T]) Out(out *nodes.StructOutput[[]T]) {
+func (cn AddToArrayNode[T]) Out(out *nodes.StructOutput[[]T]) {
 	out.Set(methodToArr(
 		nodes.TryGetOutputValue(out, cn.In, 0),
 		nodes.TryGetOutputValue(out, cn.Array, nil),

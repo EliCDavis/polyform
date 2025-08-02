@@ -17,8 +17,8 @@ import (
 func init() {
 	factory := &refutil.TypeFactory{}
 
-	refutil.RegisterType[ManifestNode](factory)
-	refutil.RegisterType[ReadNode](factory)
+	refutil.RegisterType[nodes.Struct[ManifestNode]](factory)
+	refutil.RegisterType[nodes.Struct[ReadNode]](factory)
 
 	generator.RegisterTypes(factory)
 }
@@ -95,26 +95,22 @@ func (Artifact) Mime() string {
 
 // ============================================================================
 
-type ArtifactNode = nodes.Struct[ArtifactNodeData]
-
-type ArtifactNodeData struct {
+type ArtifactNode struct {
 	In nodes.Output[modeling.Mesh]
 }
 
-func (pn ArtifactNodeData) Out(out *nodes.StructOutput[manifest.Artifact]) {
+func (pn ArtifactNode) Out(out *nodes.StructOutput[manifest.Artifact]) {
 	out.Set(Artifact{Mesh: nodes.TryGetOutputValue(out, pn.In, modeling.EmptyPointcloud())})
 }
 
 // ============================================================================
 
-type ManifestNode = nodes.Struct[ManifestNodeData]
-
-type ManifestNodeData struct {
+type ManifestNode struct {
 	Name nodes.Output[string] `description:"Name of the main file in the manifest, defaults to 'model.ply'"`
 	Mesh nodes.Output[modeling.Mesh]
 }
 
-func (pn ManifestNodeData) Out(out *nodes.StructOutput[manifest.Manifest]) {
+func (pn ManifestNode) Out(out *nodes.StructOutput[manifest.Manifest]) {
 	name := nodes.TryGetOutputValue(out, pn.Name, "model.ply")
 	mesh := nodes.TryGetOutputValue(out, pn.Mesh, modeling.EmptyPointcloud())
 	metadata := map[string]any{}
@@ -129,13 +125,12 @@ func (pn ManifestNodeData) Out(out *nodes.StructOutput[manifest.Manifest]) {
 }
 
 // ============================================================================
-type ReadNode = nodes.Struct[ReadNodeData]
 
-type ReadNodeData struct {
+type ReadNode struct {
 	In nodes.Output[[]byte]
 }
 
-func (pn ReadNodeData) Out(out *nodes.StructOutput[modeling.Mesh]) {
+func (pn ReadNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	if pn.In == nil {
 		out.Set(modeling.EmptyMesh(modeling.PointTopology))
 		return

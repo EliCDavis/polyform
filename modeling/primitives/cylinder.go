@@ -119,9 +119,7 @@ func (c Cylinder) ToMesh() modeling.Mesh {
 	return cylinderMesh
 }
 
-type CylinderNode = nodes.Struct[CylinderNodeData]
-
-type CylinderNodeData struct {
+type CylinderNode struct {
 	Sides  nodes.Output[int]
 	Height nodes.Output[float64]
 	Radius nodes.Output[float64]
@@ -129,7 +127,7 @@ type CylinderNodeData struct {
 	Bottom nodes.Output[bool]
 }
 
-func (hnd CylinderNodeData) Out(out *nodes.StructOutput[modeling.Mesh]) {
+func (hnd CylinderNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	hemi := Cylinder{
 		Radius:   nodes.TryGetOutputValue(out, hnd.Radius, 0.5),
 		Height:   nodes.TryGetOutputValue(out, hnd.Height, 1),

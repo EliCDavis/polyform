@@ -349,14 +349,12 @@ func (crc *CatmullRomSpline) At(distance float64) vector3.Float64 {
 	return curveToEvaluation.Distance(remainingDistance)
 }
 
-type CatmullRomSplineNode = nodes.Struct[CatmullRomSplineNodeData]
-
-type CatmullRomSplineNodeData struct {
+type CatmullRomSplineNode struct {
 	Points nodes.Output[[]vector3.Float64]
 	Alpha  nodes.Output[float64]
 }
 
-func (r CatmullRomSplineNodeData) Out(out *nodes.StructOutput[Spline]) {
+func (r CatmullRomSplineNode) Out(out *nodes.StructOutput[Spline]) {
 	points := nodes.TryGetOutputValue(out, r.Points, nil)
 	if len(points) < 2 {
 		return

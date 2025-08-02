@@ -9,15 +9,13 @@ import (
 	"github.com/EliCDavis/polyform/nodes"
 )
 
-type SeamlessPerlinNode = nodes.Struct[SeamlessPerlinNodeData]
-
-type SeamlessPerlinNodeData struct {
+type SeamlessPerlinNode struct {
 	Dimensions nodes.Output[int]
 	Positive   nodes.Output[coloring.WebColor]
 	Negative   nodes.Output[coloring.WebColor]
 }
 
-func (an SeamlessPerlinNodeData) Out(out *nodes.StructOutput[image.Image]) {
+func (an SeamlessPerlinNode) Out(out *nodes.StructOutput[image.Image]) {
 	dim := nodes.TryGetOutputValue(out, an.Dimensions, 256)
 	img := image.NewRGBA(image.Rect(0, 0, dim, dim))
 	// normals.Fill(img)

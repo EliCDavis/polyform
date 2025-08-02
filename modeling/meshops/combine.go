@@ -5,13 +5,11 @@ import (
 	"github.com/EliCDavis/polyform/nodes"
 )
 
-type CombineNode = nodes.Struct[CombineNodeData]
-
-type CombineNodeData struct {
+type CombineNode struct {
 	Meshes []nodes.Output[modeling.Mesh]
 }
 
-func (cnd CombineNodeData) Out(out *nodes.StructOutput[modeling.Mesh]) {
+func (cnd CombineNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	fallback := modeling.EmptyMesh(modeling.TriangleTopology)
 
 	meshes := nodes.GetOutputValues(out, cnd.Meshes)

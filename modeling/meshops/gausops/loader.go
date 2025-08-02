@@ -10,13 +10,11 @@ import (
 	"github.com/EliCDavis/polyform/nodes"
 )
 
-type LoaderNode = nodes.Struct[LoaderNodeData]
-
-type LoaderNodeData struct {
+type LoaderNode struct {
 	Data nodes.Output[[]byte]
 }
 
-func (pn LoaderNodeData) Out(out *nodes.StructOutput[modeling.Mesh]) {
+func (pn LoaderNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	bufReader := bufio.NewReader(bytes.NewReader(nodes.TryGetOutputValue(out, pn.Data, nil)))
 
 	splat, err := ply.ReadMesh(bufReader)
@@ -29,13 +27,11 @@ func (pn LoaderNodeData) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	out.Set(*splat)
 }
 
-type SpzLoaderNode = nodes.Struct[SpzLoaderNodeData]
-
-type SpzLoaderNodeData struct {
+type SpzLoaderNode struct {
 	Data nodes.Output[[]byte]
 }
 
-func (pn SpzLoaderNodeData) Out(out *nodes.StructOutput[modeling.Mesh]) {
+func (pn SpzLoaderNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	bufReader := bufio.NewReader(bytes.NewReader(nodes.TryGetOutputValue(out, pn.Data, nil)))
 
 	header, err := spz.Read(bufReader)

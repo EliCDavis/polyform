@@ -11,17 +11,15 @@ import (
 
 func init() {
 	factory := &refutil.TypeFactory{}
-	refutil.RegisterType[ReadNode](factory)
+	refutil.RegisterType[nodes.Struct[ReadNode]](factory)
 	generator.RegisterTypes(factory)
 }
 
-type ReadNode = nodes.Struct[ReadNodeData]
-
-type ReadNodeData struct {
+type ReadNode struct {
 	Data nodes.Output[[]byte]
 }
 
-func (gad ReadNodeData) Out(out *nodes.StructOutput[modeling.Mesh]) {
+func (gad ReadNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	out.Set(modeling.EmptyMesh(modeling.PointTopology))
 	if gad.Data == nil {
 		return

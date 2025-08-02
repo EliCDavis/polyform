@@ -115,9 +115,7 @@ func (q Quad) ToMesh() modeling.Mesh {
 
 }
 
-type QuadNode = nodes.Struct[QuadNodeData]
-
-type QuadNodeData struct {
+type QuadNode struct {
 	Width   nodes.Output[float64]
 	Depth   nodes.Output[float64]
 	Columns nodes.Output[int]
@@ -125,7 +123,7 @@ type QuadNodeData struct {
 	UVs     nodes.Output[StripUVs]
 }
 
-func (c QuadNodeData) Out(out *nodes.StructOutput[modeling.Mesh]) {
+func (c QuadNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	quad := Quad{
 		Width:   nodes.TryGetOutputValue(out, c.Width, 1.),
 		Depth:   nodes.TryGetOutputValue(out, c.Depth, 1.),

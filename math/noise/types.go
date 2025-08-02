@@ -11,23 +11,21 @@ import (
 func init() {
 	factory := &refutil.TypeFactory{}
 
-	refutil.RegisterType[Perlin1DNode](factory)
-	refutil.RegisterType[Perlin2DNode](factory)
-	refutil.RegisterType[Perlin3DNode](factory)
+	refutil.RegisterType[nodes.Struct[Perlin1DNode]](factory)
+	refutil.RegisterType[nodes.Struct[Perlin2DNode]](factory)
+	refutil.RegisterType[nodes.Struct[Perlin3DNode]](factory)
 
 	generator.RegisterTypes(factory)
 }
 
-type Perlin1DNode = nodes.Struct[Perlin1DNodeData]
-
-type Perlin1DNodeData struct {
+type Perlin1DNode struct {
 	Time      nodes.Output[[]float64]
 	Shift     nodes.Output[float64]
 	Amplitude nodes.Output[float64]
 	Frequency nodes.Output[float64]
 }
 
-func (cn Perlin1DNodeData) Out(out *nodes.StructOutput[[]float64]) {
+func (cn Perlin1DNode) Out(out *nodes.StructOutput[[]float64]) {
 	if cn.Time == nil {
 		return
 	}
@@ -44,16 +42,14 @@ func (cn Perlin1DNodeData) Out(out *nodes.StructOutput[[]float64]) {
 	out.Set(values)
 }
 
-type Perlin2DNode = nodes.Struct[Perlin2DNodeData]
-
-type Perlin2DNodeData struct {
+type Perlin2DNode struct {
 	Time      nodes.Output[[]vector2.Float64]
 	Amplitude nodes.Output[float64]
 	Frequency nodes.Output[vector2.Float64]
 	Shift     nodes.Output[vector2.Float64]
 }
 
-func (cn Perlin2DNodeData) Out(out *nodes.StructOutput[[]float64]) {
+func (cn Perlin2DNode) Out(out *nodes.StructOutput[[]float64]) {
 	if cn.Time == nil {
 		return
 	}
@@ -70,16 +66,14 @@ func (cn Perlin2DNodeData) Out(out *nodes.StructOutput[[]float64]) {
 	out.Set(values)
 }
 
-type Perlin3DNode = nodes.Struct[Perlin3DNodeData]
-
-type Perlin3DNodeData struct {
+type Perlin3DNode struct {
 	Time      nodes.Output[[]vector3.Float64]
 	Amplitude nodes.Output[float64]
 	Frequency nodes.Output[vector3.Float64]
 	Shift     nodes.Output[vector3.Float64]
 }
 
-func (cn Perlin3DNodeData) Out(out *nodes.StructOutput[[]float64]) {
+func (cn Perlin3DNode) Out(out *nodes.StructOutput[[]float64]) {
 	if cn.Time == nil {
 		return
 	}

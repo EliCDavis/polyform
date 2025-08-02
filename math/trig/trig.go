@@ -30,29 +30,25 @@ func runFunction(
 
 // ============================================================================
 
-type SinArray = nodes.Struct[SinArrayNodeData]
-
-type SinArrayNodeData struct {
+type SinArray struct {
 	Input     nodes.Output[[]float64]
 	Amplitude nodes.Output[float64]
 	Shift     nodes.Output[float64]
 }
 
-func (n SinArrayNodeData) Out(out *nodes.StructOutput[[]float64]) {
+func (n SinArray) Out(out *nodes.StructOutput[[]float64]) {
 	runFunction(out, n.Input, n.Amplitude, n.Shift, math.Sin)
 }
 
 // ============================================================================
 
-type CosArray = nodes.Struct[CosArrayNodeData]
-
-type CosArrayNodeData struct {
+type CosArray struct {
 	Input     nodes.Output[[]float64]
 	Amplitude nodes.Output[float64]
 	Shift     nodes.Output[float64]
 }
 
-func (n CosArrayNodeData) Out(out *nodes.StructOutput[[]float64]) {
+func (n CosArray) Out(out *nodes.StructOutput[[]float64]) {
 	runFunction(out, n.Input, n.Amplitude, n.Shift, math.Cos)
 }
 

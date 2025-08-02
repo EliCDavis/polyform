@@ -40,15 +40,13 @@ func RotateAttribute3D(m modeling.Mesh, attribute string, q quaternion.Quaternio
 	return m.SetFloat3Attribute(attribute, scaledData)
 }
 
-type RotateAttribute3DNode = nodes.Struct[RotateAttribute3DNodeData]
-
-type RotateAttribute3DNodeData struct {
+type RotateAttribute3DNode struct {
 	Attribute nodes.Output[string]
 	Mesh      nodes.Output[modeling.Mesh]
 	Amount    nodes.Output[quaternion.Quaternion]
 }
 
-func (ra3dn RotateAttribute3DNodeData) Out(out *nodes.StructOutput[modeling.Mesh]) {
+func (ra3dn RotateAttribute3DNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	if ra3dn.Mesh == nil {
 		out.Set(modeling.EmptyMesh(modeling.TriangleTopology))
 		return

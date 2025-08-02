@@ -11,9 +11,7 @@ import (
 	"github.com/EliCDavis/vector/vector3"
 )
 
-type ScrewNode = nodes.Struct[ScrewNodeData]
-
-type ScrewNodeData struct {
+type ScrewNode struct {
 	Line        nodes.Output[[]vector3.Float64]
 	Segments    nodes.Output[int]
 	Revolutions nodes.Output[float64]
@@ -21,7 +19,7 @@ type ScrewNodeData struct {
 	UVs         nodes.Output[primitives.StripUVs]
 }
 
-func (snd ScrewNodeData) Out(out *nodes.StructOutput[modeling.Mesh]) {
+func (snd ScrewNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	out.Set(modeling.EmptyMesh(modeling.TriangleTopology))
 	if snd.Line == nil {
 		return

@@ -14,33 +14,33 @@ import (
 func init() {
 	factory := &refutil.TypeFactory{}
 
-	refutil.RegisterType[Round](factory)
+	refutil.RegisterType[nodes.Struct[RoundNode]](factory)
 
 	refutil.RegisterType[nodes.Struct[CircumferenceNode]](factory)
 
-	refutil.RegisterType[nodes.Struct[DifferenceNodeData[int]]](factory)
-	refutil.RegisterType[nodes.Struct[DifferenceNodeData[float64]]](factory)
-	refutil.RegisterType[nodes.Struct[DifferencesToArrayNodeData[int]]](factory)
-	refutil.RegisterType[nodes.Struct[DifferencesToArrayNodeData[float64]]](factory)
+	refutil.RegisterType[nodes.Struct[DifferenceNode[int]]](factory)
+	refutil.RegisterType[nodes.Struct[DifferenceNode[float64]]](factory)
+	refutil.RegisterType[nodes.Struct[DifferencesToArrayNode[int]]](factory)
+	refutil.RegisterType[nodes.Struct[DifferencesToArrayNode[float64]]](factory)
 
-	refutil.RegisterType[nodes.Struct[SumNodeData[int]]](factory)
-	refutil.RegisterType[nodes.Struct[SumNodeData[float64]]](factory)
+	refutil.RegisterType[nodes.Struct[SumNode[int]]](factory)
+	refutil.RegisterType[nodes.Struct[SumNode[float64]]](factory)
 
-	refutil.RegisterType[nodes.Struct[AddToArrayNodeData[int]]](factory)
-	refutil.RegisterType[nodes.Struct[AddToArrayNodeData[float64]]](factory)
+	refutil.RegisterType[nodes.Struct[AddToArrayNode[int]]](factory)
+	refutil.RegisterType[nodes.Struct[AddToArrayNode[float64]]](factory)
 
-	refutil.RegisterType[nodes.Struct[DivideNodeData[int]]](factory)
-	refutil.RegisterType[nodes.Struct[DivideNodeData[float64]]](factory)
+	refutil.RegisterType[nodes.Struct[DivideNode[int]]](factory)
+	refutil.RegisterType[nodes.Struct[DivideNode[float64]]](factory)
 	refutil.RegisterType[nodes.Struct[DivideToArrayNode[int]]](factory)
 	refutil.RegisterType[nodes.Struct[DivideToArrayNode[float64]]](factory)
 
-	refutil.RegisterType[nodes.Struct[MultiplyNodeData[float64]]](factory)
-	refutil.RegisterType[nodes.Struct[MultiplyNodeData[int]]](factory)
-	refutil.RegisterType[nodes.Struct[MultiplyToArrayNodeData[float64]]](factory)
-	refutil.RegisterType[nodes.Struct[MultiplyToArrayNodeData[int]]](factory)
+	refutil.RegisterType[nodes.Struct[MultiplyNode[float64]]](factory)
+	refutil.RegisterType[nodes.Struct[MultiplyNode[int]]](factory)
+	refutil.RegisterType[nodes.Struct[MultiplyToArrayNode[float64]]](factory)
+	refutil.RegisterType[nodes.Struct[MultiplyToArrayNode[int]]](factory)
 
-	refutil.RegisterType[nodes.Struct[InverseNodeData[float64]]](factory)
-	refutil.RegisterType[nodes.Struct[InverseNodeData[int]]](factory)
+	refutil.RegisterType[nodes.Struct[InverseNode[float64]]](factory)
+	refutil.RegisterType[nodes.Struct[InverseNode[int]]](factory)
 
 	refutil.RegisterType[nodes.Struct[NegateNode[int]]](factory)
 	refutil.RegisterType[nodes.Struct[NegateNode[float64]]](factory)
@@ -181,19 +181,19 @@ func (cn NegateNode[T]) Description() string {
 }
 
 // ============================================================================
-type InverseNodeData[T vector.Number] struct {
+type InverseNode[T vector.Number] struct {
 	In nodes.Output[T] `description:"The number to take the inverse of"`
 }
 
-func (cn InverseNodeData[T]) Additive(out *nodes.StructOutput[T]) {
+func (cn InverseNode[T]) Additive(out *nodes.StructOutput[T]) {
 	out.Set(nodes.TryGetOutputValue(out, cn.In, 0) * -1)
 }
 
-func (cn InverseNodeData[T]) AdditiveDescription() string {
+func (cn InverseNode[T]) AdditiveDescription() string {
 	return "The additive inverse of an element x, denoted −x, is the element that when added to x, yields the additive identity, 0"
 }
 
-func (cn InverseNodeData[T]) Multiplicative(out *nodes.StructOutput[T]) {
+func (cn InverseNode[T]) Multiplicative(out *nodes.StructOutput[T]) {
 	v := nodes.TryGetOutputValue(out, cn.In, 0)
 	if v == 0 {
 		out.CaptureError(cantDivideByZeroErr)
@@ -202,23 +202,21 @@ func (cn InverseNodeData[T]) Multiplicative(out *nodes.StructOutput[T]) {
 	out.Set(1. / v)
 }
 
-func (cn InverseNodeData[T]) MultiplicativeDescription() string {
+func (cn InverseNode[T]) MultiplicativeDescription() string {
 	return "The multiplicative inverse for a number x, denoted by 1/x or x^−1, is a number which when multiplied by x yields the multiplicative identity, 1"
 }
 
 // ============================================================================
 
-type Round = nodes.Struct[RoundNodeData]
-
-type RoundNodeData struct {
+type RoundNode struct {
 	In nodes.Output[float64]
 }
 
-func (cn RoundNodeData) Int(out *nodes.StructOutput[int]) {
+func (cn RoundNode) Int(out *nodes.StructOutput[int]) {
 	out.Set(int(math.Round(nodes.TryGetOutputValue(out, cn.In, 0.))))
 }
 
-func (cn RoundNodeData) Float(out *nodes.StructOutput[float64]) {
+func (cn RoundNode) Float(out *nodes.StructOutput[float64]) {
 	out.Set(math.Round(nodes.TryGetOutputValue(out, cn.In, 0.)))
 }
 

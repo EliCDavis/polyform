@@ -15,23 +15,23 @@ func methodToArr[T any, G any](in T, arr []T, f func(a, arrI T) G) []G {
 	return out
 }
 
-type DifferenceNodeData[T vector.Number] struct {
+type DifferenceNode[T vector.Number] struct {
 	A nodes.Output[T]
 	B nodes.Output[T]
 }
 
-func (cn DifferenceNodeData[T]) Out(out *nodes.StructOutput[T]) {
+func (cn DifferenceNode[T]) Out(out *nodes.StructOutput[T]) {
 	out.Set(nodes.TryGetOutputValue(out, cn.A, 0) - nodes.TryGetOutputValue(out, cn.B, 0))
 }
 
 // ============================================================================
 
-type DifferencesToArrayNodeData[T vector.Number] struct {
+type DifferencesToArrayNode[T vector.Number] struct {
 	In    nodes.Output[T]
 	Array nodes.Output[[]T]
 }
 
-func (cn DifferencesToArrayNodeData[T]) Out(out *nodes.StructOutput[[]T]) {
+func (cn DifferencesToArrayNode[T]) Out(out *nodes.StructOutput[[]T]) {
 	out.Set(methodToArr(
 		nodes.TryGetOutputValue(out, cn.In, 0),
 		nodes.TryGetOutputValue(out, cn.Array, nil),

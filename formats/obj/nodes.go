@@ -15,12 +15,12 @@ import (
 func init() {
 	factory := &refutil.TypeFactory{}
 
-	refutil.RegisterType[ManifestNode](factory)
-	refutil.RegisterType[ReadNode](factory)
-	refutil.RegisterType[SceneNode](factory)
-	refutil.RegisterType[ObjectNode](factory)
-	refutil.RegisterType[EntryNode](factory)
-	refutil.RegisterType[MaterialNode](factory)
+	refutil.RegisterType[nodes.Struct[ManifestNode]](factory)
+	refutil.RegisterType[nodes.Struct[ReadNode]](factory)
+	refutil.RegisterType[nodes.Struct[SceneNode]](factory)
+	refutil.RegisterType[nodes.Struct[ObjectNode]](factory)
+	refutil.RegisterType[nodes.Struct[EntryNode]](factory)
+	refutil.RegisterType[nodes.Struct[MaterialNode]](factory)
 
 	generator.RegisterTypes(factory)
 }
@@ -38,14 +38,12 @@ func (Artifact) Mime() string {
 	return "model/obj"
 }
 
-type ManifestNode = nodes.Struct[ManifestNodeData]
-
-type ManifestNodeData struct {
+type ManifestNode struct {
 	Scene        nodes.Output[Scene]
 	MaterialFile nodes.Output[string]
 }
 
-func (pn ManifestNodeData) Out(out *nodes.StructOutput[manifest.Manifest]) {
+func (pn ManifestNode) Out(out *nodes.StructOutput[manifest.Manifest]) {
 	entry := manifest.Entry{Artifact: Artifact{
 		MaterialFile: nodes.TryGetOutputValue(out, pn.MaterialFile, ""),
 		Scene:        nodes.TryGetOutputValue(out, pn.Scene, Scene{}),
@@ -53,47 +51,39 @@ func (pn ManifestNodeData) Out(out *nodes.StructOutput[manifest.Manifest]) {
 	out.Set(manifest.SingleEntryManifest("model.obj", entry))
 }
 
-type SceneNode = nodes.Struct[SceneNodeData]
-
-type SceneNodeData struct {
+type SceneNode struct {
 	Objects []nodes.Output[Object]
 }
 
-func (pn SceneNodeData) Out(out *nodes.StructOutput[Scene]) {
+func (pn SceneNode) Out(out *nodes.StructOutput[Scene]) {
 	out.Set(Scene{Objects: nodes.GetOutputValues(out, pn.Objects)})
 }
 
-type ObjectNode = nodes.Struct[ObjectNodeData]
-
-type ObjectNodeData struct {
+type ObjectNode struct {
 	Name   nodes.Output[string]
 	Entrys []nodes.Output[Entry]
 }
 
-func (pn ObjectNodeData) Out(out *nodes.StructOutput[Object]) {
+func (pn ObjectNode) Out(out *nodes.StructOutput[Object]) {
 	out.Set(Object{
 		Name:    nodes.TryGetOutputValue(out, pn.Name, ""),
 		Entries: nodes.GetOutputValues(out, pn.Entrys),
 	})
 }
 
-type EntryNode = nodes.Struct[EntryNodeData]
-
-type EntryNodeData struct {
+type EntryNode struct {
 	Mesh     nodes.Output[modeling.Mesh]
 	Material nodes.Output[Material]
 }
 
-func (pn EntryNodeData) Out(out *nodes.StructOutput[Entry]) {
+func (pn EntryNode) Out(out *nodes.StructOutput[Entry]) {
 	out.Set(Entry{
 		Mesh:     nodes.TryGetOutputValue(out, pn.Mesh, modeling.EmptyMesh(modeling.TriangleTopology)),
 		Material: nodes.TryGetOutputReference(out, pn.Material, nil),
 	})
 }
 
-type MaterialNode = nodes.Struct[MaterialNodeData]
-
-type MaterialNodeData struct {
+type MaterialNode struct {
 	Name              nodes.Output[string]
 	AmbientColor      nodes.Output[coloring.WebColor]
 	DiffuseColor      nodes.Output[coloring.WebColor]
@@ -103,7 +93,7 @@ type MaterialNodeData struct {
 	Transparency      nodes.Output[float64]
 }
 
-func (pn MaterialNodeData) Out(out *nodes.StructOutput[Material]) {
+func (pn MaterialNode) Out(out *nodes.StructOutput[Material]) {
 	out.Set(Material{
 		Name:              nodes.TryGetOutputValue(out, pn.Name, ""),
 		SpecularHighlight: nodes.TryGetOutputValue(out, pn.SpecularHighlight, 100),
@@ -115,13 +105,11 @@ func (pn MaterialNodeData) Out(out *nodes.StructOutput[Material]) {
 	})
 }
 
-type ReadNode = nodes.Struct[ReadNodeData]
-
-type ReadNodeData struct {
+type ReadNode struct {
 	In nodes.Output[[]byte]
 }
 
-func (pn ReadNodeData) Out(out *nodes.StructOutput[modeling.Mesh]) {
+func (pn ReadNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	if pn.In == nil {
 		out.Set(modeling.EmptyMesh(modeling.TriangleTopology))
 		return

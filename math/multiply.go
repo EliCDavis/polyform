@@ -5,23 +5,23 @@ import (
 	"github.com/EliCDavis/vector"
 )
 
-type MultiplyNodeData[T vector.Number] struct {
+type MultiplyNode[T vector.Number] struct {
 	A nodes.Output[T]
 	B nodes.Output[T]
 }
 
-func (cn MultiplyNodeData[T]) Out(out *nodes.StructOutput[T]) {
+func (cn MultiplyNode[T]) Out(out *nodes.StructOutput[T]) {
 	out.Set(nodes.TryGetOutputValue(out, cn.A, 0) * nodes.TryGetOutputValue(out, cn.B, 0))
 }
 
 // ============================================================================
 
-type MultiplyToArrayNodeData[T vector.Number] struct {
+type MultiplyToArrayNode[T vector.Number] struct {
 	In    nodes.Output[T]
 	Array nodes.Output[[]T]
 }
 
-func (cn MultiplyToArrayNodeData[T]) Out(out *nodes.StructOutput[[]T]) {
+func (cn MultiplyToArrayNode[T]) Out(out *nodes.StructOutput[[]T]) {
 	out.Set(methodToArr(
 		nodes.TryGetOutputValue(out, cn.In, 0),
 		nodes.TryGetOutputValue(out, cn.Array, nil),

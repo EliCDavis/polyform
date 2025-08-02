@@ -21,14 +21,12 @@ func (ia Image) Write(w io.Writer) error {
 	return png.Encode(w, ia.Image)
 }
 
-type ImageNode = nodes.Struct[ImageNodeData]
-
-type ImageNodeData struct {
+type ImageNode struct {
 	Image nodes.Output[image.Image] `description:"The image to save"`
 	Name  nodes.Output[string]      `description:"Name of the image file, defaults to 'image.png'"`
 }
 
-func (pn ImageNodeData) Out(out *nodes.StructOutput[manifest.Manifest]) {
+func (pn ImageNode) Out(out *nodes.StructOutput[manifest.Manifest]) {
 	entry := manifest.Entry{Artifact: Image{Image: nodes.TryGetOutputValue(out, pn.Image, nil)}}
 	name := nodes.TryGetOutputValue(out, pn.Name, "image.png")
 	out.Set(manifest.SingleEntryManifest(name, entry))

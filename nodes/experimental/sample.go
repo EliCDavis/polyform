@@ -4,15 +4,13 @@ import (
 	"github.com/EliCDavis/polyform/nodes"
 )
 
-type SampleNode = nodes.Struct[SampleNodeData]
-
-type SampleNodeData struct {
+type SampleNode struct {
 	Start   nodes.Output[float64]
 	End     nodes.Output[float64]
 	Samples nodes.Output[int]
 }
 
-func (snd SampleNodeData) Out(out *nodes.StructOutput[[]float64]) {
+func (snd SampleNode) Out(out *nodes.StructOutput[[]float64]) {
 	start := nodes.TryGetOutputValue(out, snd.Start, 0.)
 	end := nodes.TryGetOutputValue(out, snd.End, 1.)
 	samples := max(nodes.TryGetOutputValue(out, snd.Samples, 0), 0)
@@ -27,14 +25,12 @@ func (snd SampleNodeData) Out(out *nodes.StructOutput[[]float64]) {
 	out.Set(arr)
 }
 
-type ShiftNode = nodes.Struct[ShiftNodeData]
-
-type ShiftNodeData struct {
+type ShiftNode struct {
 	In    nodes.Output[[]float64]
 	Shift nodes.Output[float64]
 }
 
-func (snd ShiftNodeData) Out(out *nodes.StructOutput[[]float64]) {
+func (snd ShiftNode) Out(out *nodes.StructOutput[[]float64]) {
 	if snd.In == nil {
 		return
 	}

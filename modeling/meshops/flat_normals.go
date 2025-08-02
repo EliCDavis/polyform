@@ -52,13 +52,11 @@ func FlatNormals(m modeling.Mesh) modeling.Mesh {
 	return m.SetFloat3Attribute(modeling.NormalAttribute, normals)
 }
 
-type FlatNormalsNode = nodes.Struct[FlatNormalsNodeData]
-
-type FlatNormalsNodeData struct {
+type FlatNormalsNode struct {
 	Mesh nodes.Output[modeling.Mesh]
 }
 
-func (fnnd FlatNormalsNodeData) Out(out *nodes.StructOutput[modeling.Mesh]) {
+func (fnnd FlatNormalsNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	out.Set(modeling.EmptyMesh(modeling.TriangleTopology))
 	if fnnd.Mesh == nil {
 		return

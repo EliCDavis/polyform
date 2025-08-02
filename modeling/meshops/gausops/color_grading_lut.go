@@ -60,15 +60,13 @@ func ColorGradingLut(m modeling.Mesh, lut image.Image, attr string) modeling.Mes
 	return m.SetFloat3Attribute(attr, newColor)
 }
 
-type ColorGradingLutNode = nodes.Struct[ColorGradingLutNodeData]
-
-type ColorGradingLutNodeData struct {
+type ColorGradingLutNode struct {
 	Mesh      nodes.Output[modeling.Mesh]
 	Attribute nodes.Output[string]
 	LUT       nodes.Output[image.Image]
 }
 
-func (ca3dn ColorGradingLutNodeData) Out(out *nodes.StructOutput[modeling.Mesh]) {
+func (ca3dn ColorGradingLutNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	if ca3dn.Mesh == nil {
 		out.Set(modeling.EmptyMesh(modeling.PointTopology))
 		return

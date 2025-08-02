@@ -89,16 +89,14 @@ func (h Hemisphere) UV(rows, columns int) modeling.Mesh {
 		})
 }
 
-type HemisphereNode = nodes.Struct[HemisphereNodeData]
-
-type HemisphereNodeData struct {
+type HemisphereNode struct {
 	Rows    nodes.Output[int]
 	Columns nodes.Output[int]
 	Radius  nodes.Output[float64]
 	Capped  nodes.Output[bool]
 }
 
-func (hnd HemisphereNodeData) Out(out *nodes.StructOutput[modeling.Mesh]) {
+func (hnd HemisphereNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	hemi := Hemisphere{
 		Radius: nodes.TryGetOutputValue(out, hnd.Radius, 0.5),
 		Capped: nodes.TryGetOutputValue(out, hnd.Capped, true),

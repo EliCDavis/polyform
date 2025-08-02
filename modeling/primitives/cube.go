@@ -278,9 +278,7 @@ func (c Cube) calcUVs() []vector2.Float64 {
 	return uvs
 }
 
-type CubeNode = nodes.Struct[CubeNodeData]
-
-type CubeNodeData struct {
+type CubeNode struct {
 	Width      nodes.Output[float64]
 	Height     nodes.Output[float64]
 	Depth      nodes.Output[float64]
@@ -288,7 +286,7 @@ type CubeNodeData struct {
 	UVs        nodes.Output[CubeUVs]
 }
 
-func (c CubeNodeData) Out(out *nodes.StructOutput[modeling.Mesh]) {
+func (c CubeNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	cube := Cube{
 		Height:     nodes.TryGetOutputValue(out, c.Height, 1.),
 		Width:      nodes.TryGetOutputValue(out, c.Width, 1.),
@@ -301,9 +299,7 @@ func (c CubeNodeData) Out(out *nodes.StructOutput[modeling.Mesh]) {
 
 // CubeUVs
 
-type CubeUVsNode = nodes.Struct[CubeUVsNodeData]
-
-type CubeUVsNodeData struct {
+type CubeUVsNode struct {
 	Top    nodes.Output[StripUVs]
 	Bottom nodes.Output[StripUVs]
 	Left   nodes.Output[StripUVs]
@@ -312,7 +308,7 @@ type CubeUVsNodeData struct {
 	Back   nodes.Output[StripUVs]
 }
 
-func (cnd CubeUVsNodeData) Uv(out *nodes.StructOutput[CubeUVs]) {
+func (cnd CubeUVsNode) Uv(out *nodes.StructOutput[CubeUVs]) {
 	out.Set(CubeUVs{
 		Top:    nodes.TryGetOutputReference(out, cnd.Top, nil),
 		Bottom: nodes.TryGetOutputReference(out, cnd.Bottom, nil),

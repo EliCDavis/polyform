@@ -12,28 +12,26 @@ import (
 type GenericTestStructNode[T any] struct {
 }
 
-type SimpleTestStructNode = nodes.Struct[SimpleAddTestStructNodeData]
-
-type SimpleAddTestStructNodeData struct {
+type SimpleAddTestStructNode struct {
 	A nodes.Output[float64] `description:"A Desc"`
 	B nodes.Output[float64]
 }
 
-func (SimpleAddTestStructNodeData) Description() string {
+func (SimpleAddTestStructNode) Description() string {
 	return "Adds A and B"
 }
 
-func (and SimpleAddTestStructNodeData) Sum(out *nodes.StructOutput[float64]) {
+func (and SimpleAddTestStructNode) Sum(out *nodes.StructOutput[float64]) {
 	out.Set(and.A.Value() + and.B.Value())
 }
 
-func (and SimpleAddTestStructNodeData) SumDescription() string {
+func (and SimpleAddTestStructNode) SumDescription() string {
 	return "The addition of A and B"
 }
 
 func TestStruct_SimpleAdd(t *testing.T) {
-	var n nodes.Node = &SimpleTestStructNode{
-		Data: SimpleAddTestStructNodeData{
+	var n nodes.Node = &nodes.Struct[SimpleAddTestStructNode]{
+		Data: SimpleAddTestStructNode{
 			A: nodes.NewValue(1.).Outputs()["Value"].(nodes.Output[float64]),
 			B: nodes.NewValue(2.).Outputs()["Value"].(nodes.Output[float64]),
 		},
@@ -187,9 +185,9 @@ func TestNodeInfo(t *testing.T) {
 		Description string
 	}{
 		"SimpleTestStruct": {
-			Node:        &SimpleTestStructNode{},
+			Node:        &nodes.Struct[SimpleAddTestStructNode]{},
 			Name:        "Simple Add Test Struct",
-			Type:        "SimpleAddTestStructNodeData",
+			Type:        "SimpleAddTestStructNode",
 			Description: "Adds A and B",
 		},
 		"ArrayTestStruct": {

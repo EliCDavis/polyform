@@ -9,21 +9,19 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type TestDocNode = nodes.Struct[TestDocNodeData]
-
-type TestDocNodeData struct {
+type TestDocNode struct {
 	A nodes.Output[int]
 	B nodes.Output[int] `description:"B has a description"`
 }
 
-func (TestDocNodeData) Out(out *nodes.StructOutput[float64]) {
+func (TestDocNode) Out(out *nodes.StructOutput[float64]) {
 	out.Set(1.)
 }
 
 func TestDocumentation_SingleMarkdown(t *testing.T) {
 	// ARRANGE ================================================================
 	factory := &refutil.TypeFactory{}
-	refutil.RegisterType[TestDocNode](factory)
+	refutil.RegisterType[nodes.Struct[TestDocNode]](factory)
 
 	doc := DocumentationWriter{
 		Title:       "Test",

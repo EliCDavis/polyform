@@ -23,12 +23,10 @@ func (IO) Mime() string {
 	return "application/octet-stream"
 }
 
-type IONode = nodes.Struct[IONodeData]
-
-type IONodeData struct {
+type IONode struct {
 	In nodes.Output[io.Reader]
 }
 
-func (pn IONodeData) Out(out *nodes.StructOutput[manifest.Artifact]) {
+func (pn IONode) Out(out *nodes.StructOutput[manifest.Artifact]) {
 	out.Set(IO{Reader: nodes.TryGetOutputValue(out, pn.In, nil)})
 }

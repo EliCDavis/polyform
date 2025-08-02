@@ -17,12 +17,12 @@ func (d Subtract[T]) Out(out *nodes.StructOutput[vector3.Vector[T]]) {
 	out.Set(a.Sub(b))
 }
 
-type SubtractToArrayNodeData[T vector.Number] struct {
+type SubtractToArrayNode[T vector.Number] struct {
 	Amount nodes.Output[vector3.Vector[T]]
 	Array  nodes.Output[[]vector3.Vector[T]]
 }
 
-func (cn SubtractToArrayNodeData[T]) Out(out *nodes.StructOutput[[]vector3.Vector[T]]) {
+func (cn SubtractToArrayNode[T]) Out(out *nodes.StructOutput[[]vector3.Vector[T]]) {
 	if cn.Array == nil {
 		return
 	}

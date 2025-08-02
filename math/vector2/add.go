@@ -6,11 +6,11 @@ import (
 	"github.com/EliCDavis/vector/vector2"
 )
 
-type SumNodeData[T vector.Number] struct {
+type SumNode[T vector.Number] struct {
 	Values []nodes.Output[vector2.Vector[T]]
 }
 
-func (cn SumNodeData[T]) Out(out *nodes.StructOutput[vector2.Vector[T]]) {
+func (cn SumNode[T]) Out(out *nodes.StructOutput[vector2.Vector[T]]) {
 	values := nodes.GetOutputValues(out, cn.Values)
 	var total vector2.Vector[T]
 	for _, v := range values {
@@ -19,12 +19,12 @@ func (cn SumNodeData[T]) Out(out *nodes.StructOutput[vector2.Vector[T]]) {
 	out.Set(total)
 }
 
-type AddToArrayNodeData[T vector.Number] struct {
+type AddToArrayNode[T vector.Number] struct {
 	Array  nodes.Output[[]vector2.Vector[T]]
 	Amount nodes.Output[vector2.Vector[T]]
 }
 
-func (cn AddToArrayNodeData[T]) Out(out *nodes.StructOutput[[]vector2.Vector[T]]) {
+func (cn AddToArrayNode[T]) Out(out *nodes.StructOutput[[]vector2.Vector[T]]) {
 	if cn.Array == nil {
 		return
 	}

@@ -53,15 +53,13 @@ func (suv StripUVs) LeftToRight() vector2.Float64 {
 	return suv.StartRight().Sub(suv.StartLeft())
 }
 
-type StripUVsNode = nodes.Struct[StripUVsNodeData]
-
-type StripUVsNodeData struct {
+type StripUVsNode struct {
 	Width nodes.Output[float64]
 	Start nodes.Output[vector2.Float64]
 	End   nodes.Output[vector2.Float64]
 }
 
-func (sund StripUVsNodeData) Out(out *nodes.StructOutput[StripUVs]) {
+func (sund StripUVsNode) Out(out *nodes.StructOutput[StripUVs]) {
 	out.Set(StripUVs{
 		Start: nodes.TryGetOutputValue(out, sund.Start, vector2.New(0, 0.5)),
 		End:   nodes.TryGetOutputValue(out, sund.End, vector2.New(1, 0.5)),

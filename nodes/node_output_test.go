@@ -10,8 +10,8 @@ import (
 func TestGetNodeOutputPort(t *testing.T) {
 	val1 := 123.456
 	val2 := 678.910
-	node := &SimpleTestStructNode{
-		Data: SimpleAddTestStructNodeData{
+	node := &nodes.Struct[SimpleAddTestStructNode]{
+		Data: SimpleAddTestStructNode{
 			A: nodes.ConstOutput[float64]{Val: val1},
 			B: nodes.ConstOutput[float64]{Val: val2},
 		},

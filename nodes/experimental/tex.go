@@ -9,9 +9,7 @@ import (
 	"github.com/fogleman/gg"
 )
 
-type GridNode = nodes.Struct[GridNodeData]
-
-type GridNodeData struct {
+type GridNode struct {
 	HorizontalLines nodes.Output[int]
 	VerticalLines   nodes.Output[int]
 	Dimensions      nodes.Output[int]
@@ -20,7 +18,7 @@ type GridNodeData struct {
 	LineWidth       nodes.Output[float64]
 }
 
-func (gnd GridNodeData) Out(out *nodes.StructOutput[image.Image]) {
+func (gnd GridNode) Out(out *nodes.StructOutput[image.Image]) {
 	dimensions := nodes.TryGetOutputValue(out, gnd.Dimensions, 256)
 	img := image.NewRGBA(image.Rect(0, 0, dimensions, dimensions))
 
@@ -48,9 +46,7 @@ func (gnd GridNodeData) Out(out *nodes.StructOutput[image.Image]) {
 	out.Set(ctx.Image())
 }
 
-type BrushedMetalNode = nodes.Struct[BrushedMetalNodeData]
-
-type BrushedMetalNodeData struct {
+type BrushedMetalNode struct {
 	Dimensions nodes.Output[int]
 	BaseColor  nodes.Output[coloring.WebColor]
 	BrushColor nodes.Output[coloring.WebColor]
@@ -58,10 +54,10 @@ type BrushedMetalNodeData struct {
 	Count      nodes.Output[int]
 }
 
-// func (gnd BrushedMetalNodeNodeData) Out(out *nodes.StructOutput[image.Image]) {
-// func (gnd BrushedMetalNodeNodeData) Out(out *nodes.StructOutput[image.Image]) {
+// func (gnd BrushedMetalNodeNode) Out(out *nodes.StructOutput[image.Image]) {
+// func (gnd BrushedMetalNodeNode) Out(out *nodes.StructOutput[image.Image]) {
 
-func (gnd BrushedMetalNodeData) Out(out *nodes.StructOutput[image.Image]) {
+func (gnd BrushedMetalNode) Out(out *nodes.StructOutput[image.Image]) {
 	dimensions := nodes.TryGetOutputValue(out, gnd.Dimensions, 512)
 	img := image.NewRGBA(image.Rect(0, 0, dimensions, dimensions))
 

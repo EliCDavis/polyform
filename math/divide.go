@@ -9,16 +9,16 @@ import (
 
 var cantDivideByZeroErr = errors.New("can't divide by 0")
 
-type DivideNodeData[T vector.Number] struct {
+type DivideNode[T vector.Number] struct {
 	Dividend nodes.Output[T] `description:"the number being divided"`
 	Divisor  nodes.Output[T] `description:"number doing the dividing"`
 }
 
-func (DivideNodeData[T]) Description() string {
+func (DivideNode[T]) Description() string {
 	return "Dividend / Divisor"
 }
 
-func (cn DivideNodeData[T]) Out(out *nodes.StructOutput[T]) {
+func (cn DivideNode[T]) Out(out *nodes.StructOutput[T]) {
 	b := nodes.TryGetOutputValue(out, cn.Divisor, 0)
 	if b == 0 {
 		out.CaptureError(cantDivideByZeroErr)

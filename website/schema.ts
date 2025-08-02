@@ -26,7 +26,6 @@ export interface PortReference {
 
 export interface NodeInstanceOutputPort {
     version: number;
-    report?: ExecutionReport;
 }
 
 export interface NodeInstanceOutput {

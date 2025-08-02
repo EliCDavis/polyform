@@ -421,7 +421,7 @@ func (sn Struct[T]) Name() string {
 		name = name[0:startGeneric]
 	}
 
-	i := strings.LastIndex(name, "NodeData")
+	i := strings.LastIndex(name, "Node")
 	if i != -1 && i == len(name)-8 {
 		name = name[0 : len(name)-8]
 	} else {

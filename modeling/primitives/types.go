@@ -2,23 +2,24 @@ package primitives
 
 import (
 	"github.com/EliCDavis/polyform/generator"
+	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
 )
 
 func init() {
 	factory := &refutil.TypeFactory{}
-	refutil.RegisterType[CubeNode](factory)
-	refutil.RegisterType[CubeUVsNode](factory)
-	refutil.RegisterType[QuadNode](factory)
-	refutil.RegisterType[StripUVsNode](factory)
+	refutil.RegisterType[nodes.Struct[CubeNode]](factory)
+	refutil.RegisterType[nodes.Struct[CubeUVsNode]](factory)
+	refutil.RegisterType[nodes.Struct[QuadNode]](factory)
+	refutil.RegisterType[nodes.Struct[StripUVsNode]](factory)
 
-	refutil.RegisterType[CylinderNode](factory)
-	refutil.RegisterType[HemisphereNode](factory)
-	refutil.RegisterType[UvSphereNode](factory)
+	refutil.RegisterType[nodes.Struct[CylinderNode]](factory)
+	refutil.RegisterType[nodes.Struct[HemisphereNode]](factory)
+	refutil.RegisterType[nodes.Struct[UvSphereNode]](factory)
 
-	refutil.RegisterType[CircleNode](factory)
-	refutil.RegisterType[CircleUVsNode](factory)
-	refutil.RegisterType[ConeNode](factory)
+	refutil.RegisterType[nodes.Struct[CircleNode]](factory)
+	refutil.RegisterType[nodes.Struct[CircleUVsNode]](factory)
+	refutil.RegisterType[nodes.Struct[ConeNode]](factory)
 
 	generator.RegisterTypes(factory)
 }
