@@ -140,6 +140,9 @@
 
         #three-viewer-container {
             display: flex;
+            margin:0;
+            padding:0;
+            overflow: hidden;
             height: 40%;
             min-height: 0;
         }
@@ -202,7 +205,15 @@
             cursor: pointer;
         }
 
+        #three-canvas {
+            width: 100%; 
+            height: 100%;
+            outline: none !important;
+        }
+
         #three-canvas:focus {
+            width: 100%; 
+            height: 100%;
             outline: none !important;
             box-shadow: none;
         }
@@ -466,7 +477,7 @@
 
         <div id="main-content">
             <div id="three-viewer-container">
-                <canvas style="width: 100%; height: 100%;" id="three-canvas"></canvas>
+                <canvas id="three-canvas"></canvas>
             </div>
 
             <div class="resizer" data-direction="vertical"></div>

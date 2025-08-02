@@ -322,7 +322,6 @@ export class PolyNodeController {
     }
 
     setOutputPortReport(portName: string, report: ExecutionReport) {
-        console.log("updating " + portName, report)
         if (report.selfTime !== undefined) {
             this.flowNode.addMessage({
                 message: `${portName}: ${formatNanoseconds(report.selfTime)}`,
