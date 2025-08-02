@@ -237,7 +237,7 @@ export class PolyNodeController {
             if (ext === "png") {
                 const imageWidget = GlobalWidgetFactory.create(flowNode, "image", {}) as ImageWidget;
                 flowNode.addWidget(imageWidget);
-                producerViewManager.Subscribe((url, image) => {
+                producerViewManager.SubscribeToProducerRefresh((url, image) => {
                     // console.log(url, image)
                     // imageWidget.SetBlob(image);
                     // console.log(nodeData.name, getLastSegmentOfURL(url), image);
@@ -331,24 +331,31 @@ export class PolyNodeController {
             if (!report) {
                 continue;
             }
+            this.setOutputPortReport(outputName, report)
+        }
+    }
 
-            if (report.selfTime !== undefined) {
-                this.flowNode.addMessage({
-                    message: `${outputName}: ${formatNanoseconds(report.selfTime)}`,
-                })
-            } else if (report.totalTime !== 0) {
-                this.flowNode.addMessage({
-                    message: `${outputName}: total ${formatNanoseconds(report.totalTime)}`,
-                })
-            }
+    setOutputPortReport(portName: string, report: ExecutionReport) {
+        console.log("updating " + portName, report)
+        if (report.selfTime !== undefined) {
+            this.flowNode.addMessage({
+                message: `${portName}: ${formatNanoseconds(report.selfTime)}`,
+                alwaysShow: true
+            })
+        } else if (report.totalTime !== 0) {
+            this.flowNode.addMessage({
+                message: `${portName}: total ${formatNanoseconds(report.totalTime)}`,
+                alwaysShow: true
+            })
+        }
 
-            if (report.errors) {
-                for (let errI = 0; errI < report.errors.length; errI++) {
-                    this.flowNode.addMessage({
-                        message: `${outputName}: ${report.errors[errI]}`,
-                        type: MessageType.Error
-                    })
-                }
+        if (report.errors) {
+            for (let errI = 0; errI < report.errors.length; errI++) {
+                this.flowNode.addMessage({
+                    message: `${portName}: ${report.errors[errI]}`,
+                    type: MessageType.Error,
+                    alwaysShow: true
+                })
             }
         }
     }

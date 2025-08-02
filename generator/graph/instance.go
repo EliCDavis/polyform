@@ -691,6 +691,31 @@ func (a *Instance) ApplyAppSchema(jsonPayload []byte) error {
 	return nil
 }
 
+func (a *Instance) ExecutionReport() schema.GraphExecutionReport {
+	a.lock.RLock()
+	defer a.lock.RUnlock()
+
+	appNodeSchema := make(map[string]schema.NodeExecutionReport)
+
+	for node, id := range a.nodeIDs {
+		if _, ok := appNodeSchema[id]; ok {
+			panic("a;ready contain report, not sure how this happened")
+		}
+
+		nodeReport := schema.NodeExecutionReport{
+			Output: make(map[string]nodes.ExecutionReport),
+		}
+		for outputPortName, outputPort := range node.Outputs() {
+			if observable, ok := outputPort.(nodes.ObservableExecution); ok {
+				nodeReport.Output[outputPortName] = observable.ExecutionReport()
+			}
+		}
+		appNodeSchema[id] = nodeReport
+	}
+
+	return schema.GraphExecutionReport{Nodes: appNodeSchema}
+}
+
 func (a *Instance) Schema() schema.GraphInstance {
 	a.lock.RLock()
 	defer a.lock.RUnlock()
@@ -722,12 +747,7 @@ func (a *Instance) Schema() schema.GraphInstance {
 
 	appNodeSchema := make(map[string]schema.NodeInstance)
 
-	for node := range a.nodeIDs {
-		id, ok := a.nodeIDs[node]
-		if !ok {
-			panic(fmt.Errorf("node %v has not had an ID generated for it", node))
-		}
-
+	for node, id := range a.nodeIDs {
 		if _, ok := appNodeSchema[id]; ok {
 			panic("not sure how this happened")
 		}

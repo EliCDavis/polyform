@@ -25,23 +25,23 @@ func (MathNode) Description() string {
 
 ### Defining Outputs 
 
-Any method on a struct that returns a  `nodes.StructOutput[T]` is automatically treated as an output port by the system. `StructOutput[T]` acts as a wrapper around the value you want to output for supporting things like error handling.
+Any method on a struct that accepts a `*nodes.StructOutput[T]` is automatically treated as an output port by the system. `StructOutput[T]` acts as a wrapper around the value you want to output for supporting things like error handling.
 
 ```go
 func (cn MathNode) Add(out *nodes.StructOutput[float64]) {
     a := cn.A.Value()
     b := cn.B.Value()
-	return nodes.NewStructOutput(a + b)
+	out.Set(a + b)
 }
 ```
 
-However, when implementing the function, a node should never assume any of its input ports are set. Calling `Value()` on a `nil` input port will cause the runtime to panic and the graph execution to halt. The utility `nodes.TryGetOutputValue` has been introduced that will attempt to take the value of an input port if it exists, and returns a fallback value when the input port is `nil`. Updating our code to be more safe results in our `Add` function looking like:
+However, when implementing the function, a node should never assume any of its input ports are set. Calling `Value()` on a `nil` input port will cause the runtime to panic and the graph execution to halt. The utility `nodes.TryGetOutputValue` has been introduced that will attempt to take the value of an input port if it exists, and returns a fallback value when the input port is `nil`. `TryGetOutputValue` also keeps up with how much time it takes for the input to execute, subtracting it from the `MathNode`'s execution time, allowing for proper reporting of performance on a per node basis. Updating our code to be more safe results in our `Add` function looking like:
 
 ```go
 func (mn MathNode) Add(out *nodes.StructOutput[float64]) {
-    a := nodes.TryGetOutputValue(mn.A, 0)
-    b := nodes.TryGetOutputValue(mn.B, 0)
-	return nodes.NewStructOutput(a + b)
+    a := nodes.TryGetOutputValue(out, mn.A, 0)
+    b := nodes.TryGetOutputValue(out, mn.B, 0)
+	out.Set(a + b)
 }
 ```
 
@@ -51,16 +51,19 @@ Before we return our sensible value, we can capture an error to alert the graph 
 
 ```go
 func (mn MathNode) Divide(out *nodes.StructOutput[float64]) {
-    a := nodes.TryGetOutputValue(mn.A, 0)
-    b := nodes.TryGetOutputValue(mn.B, 0)
+    a := nodes.TryGetOutputValue(out, mn.A, 0)
+    b := nodes.TryGetOutputValue(out, mn.B, 0)
 
     if b == 0 {
-        out := nodes.NewStructOutput[float64](0.)
+		// By default, the output is the zero value already, so this line 
+		// effectively acts as a no-op, and is kept for demonstration purposes
+		// only.
+		out.Set(0) 
         out.CaptureError(errors.New("can't divide by 0"))
-        return out
+        return
     }
 
-	return nodes.NewStructOutput(a / b)
+	out.Set(a / b)
 }
 ```
 
@@ -80,7 +83,7 @@ func (MathNode) DivideDescription() string {
 
 ### Array Inputs
 
-If the operation you're performing can take any number of inputs, you can define your input as type `[]nodes.Output[T]`. Doing so allows users to wire up multiple nodes into the same input slot.
+If the operation you're performing can take any number of inputs, you can define your input as type `[]nodes.Output[T]`. Doing so allows users to wire up multiple nodes into the same input slot. You can then use `nodes.GetOutputValues` to call resolve all inputs, creating timings while doing so.
 
 ```go
 type SumNode struct {
@@ -89,13 +92,11 @@ type SumNode struct {
 
 func (sn SumNode) Sum(out *nodes.StructOutput[float64]) {
 	var total float64
-	for _, v := range sn.Values {
-		if v == nil {
-			continue
-		}
-		total += v.Value()
+	values := nodes.GetOutputValues(out, sn.Values)
+	for _, v := range values {
+		total += v
 	}
-	return nodes.NewStructOutput(total)
+	out.Set(total)
 }
 ```
 

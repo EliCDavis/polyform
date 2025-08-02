@@ -4,6 +4,7 @@ import { BufferGeometry, Color, Group, Material, Mesh, Object3D, Quaternion, Sce
 import { ViewportManager } from './viewport_manager';
 import { SchemaManager } from './schema_manager';
 import { CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer.js'
+import { ProducerViewManager } from './ProducerView/producer_view_manager';
 
 export const RepresentationType = {
     Player: 0,
@@ -167,20 +168,20 @@ export class WebSocketManager {
 
     viewportSettings: ViewportManager;
 
-    schemaManager: SchemaManager;
+    producerView: ProducerViewManager;
 
     constructor(
         representationManager: WebSocketRepresentationManager,
         scene: Scene,
         playerConfiguration: WebSockertPlayerConfig,
         viewportSettings: ViewportManager,
-        schemaManager: SchemaManager
+        producerView: ProducerViewManager
     ) {
         this.representationManager = representationManager;
         this.scene = scene;
         this.playerConfiguration = playerConfiguration;
         this.viewportSettings = viewportSettings;
-        this.schemaManager = schemaManager;
+        this.producerView = producerView;
 
         this.connectedPlayers = new Map<string, { representations: Array<PlayerRepresentation> }>();
         this.clientID = null;
@@ -419,7 +420,7 @@ export class WebSocketManager {
     }
 
     onRoomStateUpdate(messageData: WebsocketRoom): void {
-        this.schemaManager.setModelVersion(messageData.ModelVersion);
+        this.producerView.setModelVersion(messageData.ModelVersion);
 
         if (this.viewportSettings.SettingsHaveChanged() === false) {
             const webScene = messageData.WebScene;

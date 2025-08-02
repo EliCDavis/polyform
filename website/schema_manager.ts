@@ -7,8 +7,6 @@ import { GraphInstance } from "./schema";
 
 export class SchemaManager {
 
-    modelVersion: number;
-
     shownPopupOnce: boolean;
 
     requestManager: RequestManager;
@@ -20,7 +18,6 @@ export class SchemaManager {
     schema$: Subject<GraphInstance>;
 
     constructor(requestManager: RequestManager) {
-        this.modelVersion = -1;
         this.requestManager = requestManager;
         this.schema$ = new Subject<GraphInstance>();
 
@@ -42,14 +39,6 @@ export class SchemaManager {
                 // this.refreshSchema();
             }
         )
-    }
-
-    setModelVersion(newModelVersion: number): void {
-        if (newModelVersion === this.modelVersion) {
-            return;
-        }
-        this.modelVersion = newModelVersion;
-        this.refreshSchema("Model version change");
     }
 
     setGraph(newGraph: GraphInstance): void {

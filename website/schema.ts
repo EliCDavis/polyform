@@ -98,3 +98,11 @@ export interface ExecutionReport {
     selfTime?: number;
     steps?: StepTiming[];
 }
+
+export interface GraphExecutionReport {
+    nodes: { [key: string]: NodeExecutionReport};
+}
+
+export interface NodeExecutionReport {
+    output: { [key: string]: ExecutionReport};
+}

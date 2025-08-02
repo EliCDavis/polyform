@@ -10,6 +10,7 @@ import { RequestManager } from "../requests";
 import * as GaussianSplats3D from '@mkkellogg/gaussian-splats-3d';
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { ThreeApp } from "../three_app";
+import { SchemaManager } from '../schema_manager';
 
 
 type ProducerRefreshCallback = (string: string, thing: any) => void;
@@ -27,7 +28,9 @@ export class ProducerViewManager {
 
     wireframe: boolean;
 
-    subscribers: Array<ProducerRefreshCallback>;
+    producerItemSubscriber: Array<ProducerRefreshCallback>;
+
+    completeRefreshSubscriber: Array<() => void>;
 
     cachedSchema: GraphInstance;
 
@@ -51,11 +54,20 @@ export class ProducerViewManager {
 
     nodeTypeManifestPorts: Map<string, string>;
 
+    modelVersion: number;
+
+    schemaManager: SchemaManager;
+
+
     constructor(
         app: ThreeApp,
         requestManager: RequestManager,
-        nodeTypes: Array<NodeDefinition>
+        nodeTypes: Array<NodeDefinition>,
+        schemaManager: SchemaManager
     ) {
+        this.completeRefreshSubscriber = [];
+        this.modelVersion = -1;
+        this.schemaManager = schemaManager;
         this.nodeTypeManifestPorts = new Map<string, string>();
         for (let i = 0; i < nodeTypes.length; i++) {
             const nodeType = nodeTypes[i];
@@ -81,11 +93,24 @@ export class ProducerViewManager {
         this.firstTimeLoadingScene = true;
         this.loadingCount = 0;
         this.cachedSchema = null;
-        this.subscribers = [];
+        this.producerItemSubscriber = [];
     }
 
-    Subscribe(callback: ProducerRefreshCallback): void {
-        this.subscribers.push(callback);
+    setModelVersion(newModelVersion: number): void {
+        if (newModelVersion === this.modelVersion) {
+            return;
+        }
+        this.modelVersion = newModelVersion;
+        this.schemaManager.refreshSchema("Model version change");
+    }
+
+    SubscribeToProducerRefresh(callback: ProducerRefreshCallback): void {
+        this.producerItemSubscriber.push(callback);
+    }
+
+    // Called whenever 
+    SubscribeToCompleteRefresh(subsriber: () => void): void {
+        this.completeRefreshSubscriber.push(subsriber);
     }
 
     AddLoading(): void {
@@ -101,6 +126,11 @@ export class ProducerViewManager {
         if (this.loadingCount === 0 && this.cachedSchema) {
             this.Refresh(this.cachedSchema)
             this.cachedSchema = null;
+        } else {
+            // We're all done loading!!!
+            for (let i = 0; i < this.completeRefreshSubscriber.length; i++) {
+                this.completeRefreshSubscriber[i]();
+            }
         }
     }
 
@@ -281,7 +311,7 @@ export class ProducerViewManager {
                 this.RemoveLoading();
                 geometry.computeVertexNormals();
 
-                const material = new MeshStandardMaterial({  });
+                const material = new MeshStandardMaterial({});
                 const mesh = new Mesh(geometry, material);
                 mesh.castShadow = true;
                 mesh.receiveShadow = true;
@@ -448,7 +478,7 @@ export class ProducerViewManager {
     }
 
     UpdateSubscribers(url: string, thing: any) {
-        this.subscribers
+        this.producerItemSubscriber
             .forEach(sub => {
                 if (!sub) {
                     return;

@@ -1,4 +1,4 @@
-import { GraphInstance, Manifest, NodeInstance, NodeDefinition } from "./schema";
+import { GraphInstance, Manifest, NodeInstance, NodeDefinition, GraphExecutionReport } from "./schema";
 
 export function downloadBlob(theUrl: string, callback: (body: any) => void): void {
     const xmlHttp = new XMLHttpRequest();
@@ -179,6 +179,10 @@ export class RequestManager {
 
     getSchema(callback: ResponseCallback<GraphInstance>): void {
         this.fetchJSON("./schema", callback);
+    }
+
+    getExecutionReport(callback: ResponseCallback<GraphExecutionReport>): void {
+        this.fetchJSON("./graph/execution-report", callback);
     }
 
     setParameter(key: string, data, binary: boolean, callback): void {

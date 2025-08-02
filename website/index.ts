@@ -63,7 +63,8 @@ const flowGraphStuff = CreateNodeFlowGraph();
 const requestManager = new RequestManager();
 
 requestManager.getNodeTypes((nodeTypes) => {
-    const producerViewManager = new ProducerViewManager(threeApp, requestManager, nodeTypes);
+    const schemaManager = new SchemaManager(requestManager);
+    const producerViewManager = new ProducerViewManager(threeApp, requestManager, nodeTypes, schemaManager);
 
     let initID = null
     setInterval(() => {
@@ -75,7 +76,7 @@ requestManager.getNodeTypes((nodeTypes) => {
             if (initID !== payload.time) {
                 location.reload();
             }
-            schemaManager.setModelVersion(payload.modelVersion)
+            producerViewManager.setModelVersion(payload.modelVersion)
         })
     }, 1000);
 
@@ -91,9 +92,12 @@ requestManager.getNodeTypes((nodeTypes) => {
         producerViewManager,
         nodeTypes
     );
-    const schemaManager = new SchemaManager(requestManager);
     new VariableManager(document.getElementById("sidebar-content"), schemaManager, nodeManager, flowGraphStuff.PolyformNodesPublisher, threeApp);
     new ProfileManager(document.getElementById("sidebar-content"), schemaManager);
+
+    producerViewManager.SubscribeToCompleteRefresh(() => {
+        nodeManager.refreshExecutionReport();
+    })
 
     nodeManager.subscribeToParameterChange((param) => {
         schemaManager.setParameter(param.id, param.data, param.binary);
@@ -248,7 +252,7 @@ requestManager.getNodeTypes((nodeTypes) => {
                 playerEyeMaterial: new MeshBasicMaterial({ color: 0x000000 }),
             },
             viewportManager,
-            schemaManager
+            producerViewManager
         );
 
         if (websocketManager.canConnect()) {

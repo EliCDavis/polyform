@@ -127,7 +127,7 @@ func TestNodes(t *testing.T) {
 			assertions: []nodetest.Assertion{
 				nodetest.AssertOutputPortValue[[]float64]{
 					Port:            "Out",
-					Value:           []float64{},
+					Value:           nil,
 					ExecutionReport: &nodes.ExecutionReport{},
 				},
 			},
@@ -166,7 +166,7 @@ func TestNodes(t *testing.T) {
 			assertions: []nodetest.Assertion{
 				nodetest.AssertOutputPortValue[[]float64]{
 					Port:            "Out",
-					Value:           []float64{},
+					Value:           nil,
 					ExecutionReport: &nodes.ExecutionReport{},
 				},
 			},
