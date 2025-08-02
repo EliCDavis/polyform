@@ -24,24 +24,26 @@ type ReadNodeData struct {
 	Data nodes.Output[[]byte]
 }
 
-func (gad ReadNodeData) Out() nodes.StructOutput[modeling.Mesh] {
+func (gad ReadNodeData) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	if gad.Data == nil {
-		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
+		out.Set(modeling.EmptyMesh(modeling.TriangleTopology))
+		return
 	}
 
-	data := gad.Data.Value()
+	data := nodes.GetOutputValue(out, gad.Data)
 	if len(data) == 0 {
-		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
+		out.Set(modeling.EmptyMesh(modeling.TriangleTopology))
+		return
 	}
 
 	cloud, err := ReadMesh(bytes.NewReader(data))
 	if err != nil {
-		out := nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
+		out.Set(modeling.EmptyMesh(modeling.TriangleTopology))
 		out.CaptureError(err)
-		return out
+		return
 	}
 
-	return nodes.NewStructOutput(*cloud)
+	out.Set(*cloud)
 }
 
 // ============================================================================
@@ -64,7 +66,11 @@ type ManifestNodeData struct {
 	Mesh nodes.Output[modeling.Mesh]
 }
 
-func (pn ManifestNodeData) Out() nodes.StructOutput[manifest.Manifest] {
-	entry := manifest.Entry{Artifact: Artifact{Mesh: pn.Mesh.Value()}}
-	return nodes.NewStructOutput(manifest.SingleEntryManifest("model.stl", entry))
+func (pn ManifestNodeData) Out(out *nodes.StructOutput[manifest.Manifest]) {
+	entry := manifest.Entry{
+		Artifact: Artifact{
+			Mesh: nodes.TryGetOutputValue(out, pn.Mesh, modeling.EmptyMesh(modeling.TriangleTopology)),
+		},
+	}
+	out.Set(manifest.SingleEntryManifest("model.stl", entry))
 }

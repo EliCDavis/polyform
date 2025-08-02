@@ -23,15 +23,13 @@ type ReadReconstructionNodeData struct {
 	In nodes.Output[[]byte]
 }
 
-func (pn ReadReconstructionNodeData) Out() nodes.StructOutput[modeling.Mesh] {
+func (pn ReadReconstructionNodeData) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	if pn.In == nil {
-		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.PointTopology))
+		out.Set(modeling.EmptyMesh(modeling.PointTopology))
+		return
 	}
 
-	data, err := ReadReconstructiontData(bytes.NewReader(pn.In.Value()))
-
-	out := nodes.NewStructOutput(data)
+	data, err := ReadReconstructiontData(bytes.NewReader(nodes.GetOutputValue(out, pn.In)))
+	out.Set(data)
 	out.CaptureError(err)
-
-	return out
 }

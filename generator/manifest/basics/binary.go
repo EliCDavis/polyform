@@ -26,6 +26,6 @@ type BinaryNodeData struct {
 	In nodes.Output[[]byte]
 }
 
-func (pn BinaryNodeData) Out() nodes.StructOutput[manifest.Artifact] {
-	return nodes.NewStructOutput[manifest.Artifact](Binary{Data: pn.In.Value()})
+func (pn BinaryNodeData) Out(out *nodes.StructOutput[manifest.Artifact]) {
+	out.Set(Binary{Data: nodes.TryGetOutputValue(out, pn.In, []byte{})})
 }

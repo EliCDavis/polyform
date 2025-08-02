@@ -68,22 +68,19 @@ type ColorGradingLutNodeData struct {
 	LUT       nodes.Output[image.Image]
 }
 
-func (ca3dn ColorGradingLutNodeData) Out() nodes.StructOutput[modeling.Mesh] {
-	attr := modeling.FDCAttribute
-
-	if ca3dn.Attribute != nil {
-		attr = ca3dn.Attribute.Value()
+func (ca3dn ColorGradingLutNodeData) Out(out *nodes.StructOutput[modeling.Mesh]) {
+	if ca3dn.Mesh == nil {
+		out.Set(modeling.EmptyMesh(modeling.PointTopology))
+		return
 	}
 
-	lut := ca3dn.LUT
-	if lut == nil {
-		return nodes.NewStructOutput(ca3dn.Mesh.Value())
-	}
-
-	img := lut.Value()
+	mesh := nodes.GetOutputValue(out, ca3dn.Mesh)
+	img := nodes.TryGetOutputValue(out, ca3dn.LUT, nil)
 	if img == nil {
-		return nodes.NewStructOutput(ca3dn.Mesh.Value())
+		out.Set(mesh)
+		return
 	}
 
-	return nodes.NewStructOutput(ColorGradingLut(ca3dn.Mesh.Value(), lut.Value(), attr))
+	attr := nodes.TryGetOutputValue(out, ca3dn.Attribute, modeling.FDCAttribute)
+	out.Set(ColorGradingLut(mesh, img, attr))
 }

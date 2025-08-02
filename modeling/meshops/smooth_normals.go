@@ -141,19 +141,19 @@ type SmoothNormalsNodeData struct {
 	Mesh nodes.Output[modeling.Mesh]
 }
 
-func (snn SmoothNormalsNodeData) Out() nodes.StructOutput[modeling.Mesh] {
+func (snn SmoothNormalsNodeData) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	if snn.Mesh == nil {
-		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
+		out.Set(modeling.EmptyMesh(modeling.TriangleTopology))
+		return
 	}
-
-	mesh := snn.Mesh.Value()
+	mesh := nodes.GetOutputValue(out, snn.Mesh)
 	if !mesh.HasFloat3Attribute(modeling.PositionAttribute) {
-		out := nodes.NewStructOutput(mesh)
+		out.Set(mesh)
 		out.CaptureError(fmt.Errorf("can't calculate normals without position data"))
-		return out
+		return
 	}
 
-	return nodes.NewStructOutput(SmoothNormals(mesh))
+	out.Set(SmoothNormals(mesh))
 }
 
 type SmoothNormalsImplicitWeldNode = nodes.Struct[SmoothNormalsImplicitWeldNodeData]
@@ -163,18 +163,20 @@ type SmoothNormalsImplicitWeldNodeData struct {
 	Distance nodes.Output[float64]
 }
 
-func (snn SmoothNormalsImplicitWeldNodeData) Out() nodes.StructOutput[modeling.Mesh] {
+func (snn SmoothNormalsImplicitWeldNodeData) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	if snn.Mesh == nil {
-		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
+		out.Set(modeling.EmptyMesh(modeling.TriangleTopology))
+		return
 	}
-	mesh := snn.Mesh.Value()
+	mesh := nodes.GetOutputValue(out, snn.Mesh)
 	if !mesh.HasFloat3Attribute(modeling.PositionAttribute) {
-		out := nodes.NewStructOutput(mesh)
+		out.Set(mesh)
 		out.CaptureError(fmt.Errorf("can't calculate normals without position data"))
-		return out
+		return
 	}
-	return nodes.NewStructOutput(SmoothNormalsImplicitWeld(
+
+	out.Set(SmoothNormalsImplicitWeld(
 		mesh,
-		nodes.TryGetOutputValue(snn.Distance, 0.0001),
+		nodes.TryGetOutputValue(out, snn.Distance, 0.0001),
 	))
 }

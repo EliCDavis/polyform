@@ -10,8 +10,8 @@ type MultiplyNodeData[T vector.Number] struct {
 	B nodes.Output[T]
 }
 
-func (cn MultiplyNodeData[T]) Out() nodes.StructOutput[T] {
-	return nodes.NewStructOutput(nodes.TryGetOutputValue(cn.A, 0) * nodes.TryGetOutputValue(cn.B, 0))
+func (cn MultiplyNodeData[T]) Out(out *nodes.StructOutput[T]) {
+	out.Set(nodes.TryGetOutputValue(out, cn.A, 0) * nodes.TryGetOutputValue(out, cn.B, 0))
 }
 
 // ============================================================================
@@ -21,10 +21,10 @@ type MultiplyToArrayNodeData[T vector.Number] struct {
 	Array nodes.Output[[]T]
 }
 
-func (cn MultiplyToArrayNodeData[T]) Out() nodes.StructOutput[[]T] {
-	return nodes.NewStructOutput(methodToArr(
-		nodes.TryGetOutputValue(cn.In, 0),
-		nodes.TryGetOutputValue(cn.Array, nil),
+func (cn MultiplyToArrayNodeData[T]) Out(out *nodes.StructOutput[[]T]) {
+	out.Set(methodToArr(
+		nodes.TryGetOutputValue(out, cn.In, 0),
+		nodes.TryGetOutputValue(out, cn.Array, nil),
 		func(a, b T) T {
 			return a * b
 		},

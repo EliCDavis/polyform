@@ -26,28 +26,30 @@ type InterpolateNode struct {
 	Time nodes.Output[float64]
 }
 
-func (n InterpolateNode) Out() nodes.StructOutput[coloring.WebColor] {
+func (n InterpolateNode) Out(out *nodes.StructOutput[coloring.WebColor]) {
+	out.Set(coloring.WebColor{R: 0, G: 0, B: 0, A: 255})
 	if n.A == nil && n.B == nil {
-		return nodes.NewStructOutput(coloring.WebColor{R: 0, G: 0, B: 0, A: 255})
+		return
 	}
 
 	if n.A == nil {
-		return nodes.NewStructOutput(n.B.Value())
+		out.Set(nodes.GetOutputValue(out, n.B))
+		return
 	}
 
 	if n.B == nil {
-		return nodes.NewStructOutput(n.A.Value())
+		out.Set(nodes.GetOutputValue(out, n.A))
+		return
 	}
 
 	i := Interpolate(
-		n.A.Value(),
-		n.B.Value(),
-		nodes.TryGetOutputValue(n.Time, 0),
+		nodes.GetOutputValue(out, n.A),
+		nodes.GetOutputValue(out, n.B),
+		nodes.TryGetOutputValue(out, n.Time, 0),
 	)
 
 	r, g, b, a := i.RGBA()
-
-	return nodes.NewStructOutput(coloring.WebColor{
+	out.Set(coloring.WebColor{
 		R: byte(r >> 8),
 		G: byte(g >> 8),
 		B: byte(b >> 8),
@@ -61,63 +63,60 @@ type InterpolateToArrayNode struct {
 	Time nodes.Output[[]float64]
 }
 
-func (n InterpolateToArrayNode) Out() nodes.StructOutput[[]coloring.WebColor] {
+func (n InterpolateToArrayNode) Out(out *nodes.StructOutput[[]coloring.WebColor]) {
 	if n.Time == nil {
-		return nodes.NewStructOutput([]coloring.WebColor{})
+		return
 	}
 
-	times := n.Time.Value()
-	out := make([]coloring.WebColor, len(times))
+	times := nodes.GetOutputValue(out, n.Time)
+
+	arr := make([]coloring.WebColor, len(times))
+	out.Set(arr)
 
 	if n.A == nil && n.B == nil {
-		return nodes.NewStructOutput(out)
+		return
 	}
 
 	if n.A == nil {
-		v := n.B.Value()
-		for i := range out {
-			out[i] = v
+		v := nodes.GetOutputValue(out, n.B)
+		for i := range arr {
+			arr[i] = v
 		}
-
-		return nodes.NewStructOutput(out)
+		return
 	}
 
 	if n.B == nil {
-		v := n.A.Value()
-		for i := range out {
-			out[i] = v
+		v := nodes.GetOutputValue(out, n.A)
+		for i := range arr {
+			arr[i] = v
 		}
-
-		return nodes.NewStructOutput(out)
+		return
 	}
 
-	aV := n.A.Value()
-	bV := n.B.Value()
+	aV := nodes.GetOutputValue(out, n.A)
+	bV := nodes.GetOutputValue(out, n.B)
 
 	for i, t := range times {
 		v := Interpolate(aV, bV, t)
 		r, g, b, a := v.RGBA()
-		out[i] = coloring.WebColor{
+		arr[i] = coloring.WebColor{
 			R: byte(r >> 8),
 			G: byte(g >> 8),
 			B: byte(b >> 8),
 			A: byte(a >> 8),
 		}
 	}
-
-	return nodes.NewStructOutput(out)
 }
 
 type ToVectorNode struct {
 	In nodes.Output[coloring.WebColor]
 }
 
-func (n ToVectorNode) vector4() vector4.Float64 {
+func (n ToVectorNode) vector4(c coloring.WebColor) vector4.Float64 {
 	if n.In == nil {
 		return vector4.Zero[float64]()
 	}
 
-	c := n.In.Value()
 	return vector4.New(
 		float64(c.R)/255.,
 		float64(c.G)/255.,
@@ -126,12 +125,12 @@ func (n ToVectorNode) vector4() vector4.Float64 {
 	)
 }
 
-func (n ToVectorNode) Vector3() nodes.StructOutput[vector3.Float64] {
-	return nodes.NewStructOutput(n.vector4().XYZ())
+func (n ToVectorNode) Vector3(out *nodes.StructOutput[vector3.Float64]) {
+	out.Set(n.vector4(nodes.TryGetOutputValue(out, n.In, coloring.WebColor{})).XYZ())
 }
 
-func (n ToVectorNode) Vector4() nodes.StructOutput[vector4.Float64] {
-	return nodes.NewStructOutput(n.vector4())
+func (n ToVectorNode) Vector4(out *nodes.StructOutput[vector4.Float64]) {
+	out.Set(n.vector4(nodes.TryGetOutputValue(out, n.In, coloring.WebColor{})))
 }
 
 // ============================================================================
@@ -140,37 +139,29 @@ type ToVectorArrayNode struct {
 	In nodes.Output[[]coloring.WebColor]
 }
 
-func (n ToVectorArrayNode) Vector3() nodes.StructOutput[[]vector3.Float64] {
-	if n.In == nil {
-		return nodes.NewStructOutput([]vector3.Float64{})
-	}
-
-	in := n.In.Value()
-	out := make([]vector3.Float64, len(in))
+func (n ToVectorArrayNode) Vector3(out *nodes.StructOutput[[]vector3.Float64]) {
+	in := nodes.TryGetOutputValue(out, n.In, nil)
+	arr := make([]vector3.Float64, len(in))
 	for i, c := range in {
-		out[i] = vector3.New(
+		arr[i] = vector3.New(
 			float64(c.R)/255.,
 			float64(c.G)/255.,
 			float64(c.B)/255.,
 		)
 	}
-	return nodes.NewStructOutput(out)
+	out.Set(arr)
 }
 
-func (n ToVectorArrayNode) Vector4() nodes.StructOutput[[]vector4.Float64] {
-	if n.In == nil {
-		return nodes.NewStructOutput([]vector4.Float64{})
-	}
-
-	in := n.In.Value()
-	out := make([]vector4.Float64, len(in))
+func (n ToVectorArrayNode) Vector4(out *nodes.StructOutput[[]vector4.Float64]) {
+	in := nodes.TryGetOutputValue(out, n.In, nil)
+	arr := make([]vector4.Float64, len(in))
 	for i, c := range in {
-		out[i] = vector4.New(
+		arr[i] = vector4.New(
 			float64(c.R)/255.,
 			float64(c.G)/255.,
 			float64(c.B)/255.,
 			float64(c.A)/255.,
 		)
 	}
-	return nodes.NewStructOutput(out)
+	out.Set(arr)
 }

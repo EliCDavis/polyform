@@ -41,7 +41,7 @@ export class OverwriteProfilePopup extends Popup {
             if (!resp.ok) {
                 alert("unable to rename profile");
             } else {
-                this.schemaManager.refreshSchema();
+                this.schemaManager.refreshSchema("profile overwritten");
             }
         });
     }

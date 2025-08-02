@@ -47,14 +47,21 @@ type TranslateAttribute3DNodeData struct {
 	Amount    nodes.Output[vector3.Float64]
 }
 
-func (ta3dn TranslateAttribute3DNodeData) Out() nodes.StructOutput[modeling.Mesh] {
+func (ta3dn TranslateAttribute3DNodeData) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	if ta3dn.Mesh == nil {
-		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
+		out.Set(modeling.EmptyMesh(modeling.TriangleTopology))
+		return
 	}
 
-	return nodes.NewStructOutput(TranslateAttribute3D(
-		ta3dn.Mesh.Value(),
-		nodes.TryGetOutputValue(ta3dn.Attribute, modeling.PositionAttribute),
-		nodes.TryGetOutputValue(ta3dn.Amount, vector3.Zero[float64]()),
+	mesh := nodes.GetOutputValue(out, ta3dn.Mesh)
+	if ta3dn.Amount == nil {
+		out.Set(mesh)
+		return
+	}
+
+	out.Set(TranslateAttribute3D(
+		mesh,
+		nodes.TryGetOutputValue(out, ta3dn.Attribute, modeling.PositionAttribute),
+		nodes.GetOutputValue(out, ta3dn.Amount),
 	))
 }

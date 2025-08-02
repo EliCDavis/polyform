@@ -35,7 +35,7 @@ export class DeleteProfilePopup extends Popup {
             if (!resp.ok) {
                 alert("unable to delete profile");
             } else {
-                this.schemaManager.refreshSchema();
+                this.schemaManager.refreshSchema("deleted a variable profile");
             }
         });
     }

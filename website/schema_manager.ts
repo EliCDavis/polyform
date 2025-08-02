@@ -7,15 +7,9 @@ import { GraphInstance } from "./schema";
 
 export class SchemaManager {
 
-    modelVersion: number;
-
     shownPopupOnce: boolean;
 
     requestManager: RequestManager;
-
-    nodeManager: NodeManager;
-
-    noteManager: NoteManager;
 
     currentGraph: GraphInstance;
 
@@ -23,11 +17,8 @@ export class SchemaManager {
 
     schema$: Subject<GraphInstance>;
 
-    constructor(requestManager: RequestManager, nodeManager: NodeManager, noteManager: NoteManager) {
-        this.modelVersion = -1;
+    constructor(requestManager: RequestManager) {
         this.requestManager = requestManager;
-        this.nodeManager = nodeManager;
-        this.noteManager = noteManager;
         this.schema$ = new Subject<GraphInstance>();
 
         this.shownPopupOnce = false;
@@ -50,26 +41,16 @@ export class SchemaManager {
         )
     }
 
-    setModelVersion(newModelVersion: number): void {
-        if (newModelVersion === this.modelVersion) {
-            return;
-        }
-        this.modelVersion = newModelVersion;
-        this.refreshSchema();
-    }
-
     setGraph(newGraph: GraphInstance): void {
         this.currentGraph = newGraph;
         this.subscribers.forEach(sub => {
             sub(this.currentGraph);
         });
         this.schema$.next(this.currentGraph);
-
-        this.nodeManager.updateNodes(this.currentGraph)
-        this.noteManager.schemaUpdate(this.currentGraph);
     }
 
-    refreshSchema(): void {
+    refreshSchema(reason: string): void {
+        console.log("Refreshing graph: " + reason)
         this.requestManager.getSchema(this.setGraph.bind(this));
     }
 

@@ -25,14 +25,17 @@ func (rnd MeshNodeData) Description() string {
 	return "Duplicates and transforms the input mesh for every TRS provided"
 }
 
-func (rnd MeshNodeData) Out() nodes.StructOutput[modeling.Mesh] {
+func (rnd MeshNodeData) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	if rnd.Mesh == nil {
-		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
+		out.Set(modeling.EmptyMesh(modeling.TriangleTopology))
+		return
 	}
-	mesh := rnd.Mesh.Value()
 
+	mesh := nodes.GetOutputValue(out, rnd.Mesh)
 	if rnd.Transforms == nil {
-		return nodes.NewStructOutput(modeling.EmptyMesh(mesh.Topology()))
+		out.Set(mesh)
+		return
 	}
-	return nodes.NewStructOutput(Mesh(mesh, rnd.Transforms.Value()))
+
+	out.Set(Mesh(mesh, nodes.GetOutputValue(out, rnd.Transforms)))
 }

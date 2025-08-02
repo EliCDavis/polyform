@@ -56,14 +56,14 @@ type ManifestNodeData struct {
 	Models []nodes.Output[PolyformModel]
 }
 
-func (gad ManifestNodeData) Out() nodes.StructOutput[manifest.Manifest] {
+func (gad ManifestNodeData) Out(out *nodes.StructOutput[manifest.Manifest]) {
 	models := make([]PolyformModel, 0, len(gad.Models))
 
 	for _, m := range gad.Models {
 		if m == nil {
 			continue
 		}
-		value := m.Value()
+		value := nodes.GetOutputValue(out, m)
 
 		// TechDebt: Skip nodes without meshes as at the moment it'll cause stuff
 		// to error out
@@ -83,7 +83,7 @@ func (gad ManifestNodeData) Out() nodes.StructOutput[manifest.Manifest] {
 		},
 	}
 
-	return nodes.NewStructOutput(manifest.SingleEntryManifest("model.glb", entry))
+	out.Set(manifest.SingleEntryManifest("model.glb", entry))
 }
 
 type ModelNode = nodes.Struct[ModelNodeData]
@@ -99,46 +99,20 @@ type ModelNodeData struct {
 	GpuInstances nodes.Output[[]trs.TRS]
 }
 
-func (gmnd ModelNodeData) Out() nodes.StructOutput[PolyformModel] {
-	model := PolyformModel{
+func (gmnd ModelNodeData) Out(out *nodes.StructOutput[PolyformModel]) {
+	transform := trs.New(
+		nodes.TryGetOutputValue(out, gmnd.Translation, vector3.Zero[float64]()),
+		nodes.TryGetOutputValue(out, gmnd.Rotation, quaternion.Identity()),
+		nodes.TryGetOutputValue(out, gmnd.Scale, vector3.One[float64]()),
+	)
+
+	out.Set(PolyformModel{
 		Name:         "Mesh",
-		GpuInstances: nodes.TryGetOutputValue(gmnd.GpuInstances, nil),
-	}
-
-	if gmnd.Material != nil {
-		v := gmnd.Material.Value()
-		model.Material = &v
-	}
-
-	if gmnd.Mesh != nil {
-		mesh := gmnd.Mesh.Value()
-		model.Mesh = &mesh
-	}
-
-	transform := trs.Identity()
-
-	if gmnd.Translation != nil {
-		v := gmnd.Translation.Value()
-		transform = transform.Translate(v)
-	}
-
-	if gmnd.Scale != nil {
-		v := gmnd.Scale.Value()
-		transform = transform.SetScale(v)
-	}
-
-	if gmnd.Rotation != nil {
-		v := gmnd.Rotation.Value()
-		transform = transform.SetRotation(v)
-	}
-
-	model.TRS = &transform
-
-	if gmnd.GpuInstances != nil {
-		model.GpuInstances = gmnd.GpuInstances.Value()
-	}
-
-	return nodes.NewStructOutput(model)
+		GpuInstances: nodes.TryGetOutputValue(out, gmnd.GpuInstances, nil),
+		Material:     nodes.TryGetOutputReference(out, gmnd.Material, nil),
+		Mesh:         nodes.TryGetOutputReference(out, gmnd.Mesh, nil),
+		TRS:          &transform,
+	})
 }
 
 type TextureReferenceNode = nodes.Struct[TextureReferenceNodeData]
@@ -148,16 +122,10 @@ type TextureReferenceNodeData struct {
 	Sampler nodes.Output[Sampler]
 }
 
-func (tnd TextureReferenceNodeData) Out() nodes.StructOutput[PolyformTexture] {
-	var sampler *Sampler = nil
-	if tnd.Sampler != nil {
-		v := tnd.Sampler.Value()
-		sampler = &v
-	}
-
-	return nodes.NewStructOutput(PolyformTexture{
-		Sampler: sampler,
-		URI:     nodes.TryGetOutputValue(tnd.URI, ""),
+func (tnd TextureReferenceNodeData) Out(out *nodes.StructOutput[PolyformTexture]) {
+	out.Set(PolyformTexture{
+		Sampler: nodes.TryGetOutputReference(out, tnd.Sampler, nil),
+		URI:     nodes.TryGetOutputValue(out, tnd.URI, ""),
 	})
 }
 
@@ -172,16 +140,10 @@ type TextureNodeData struct {
 	Sampler nodes.Output[Sampler]
 }
 
-func (tnd TextureNodeData) Out() nodes.StructOutput[PolyformTexture] {
-	var sampler *Sampler = nil
-	if tnd.Sampler != nil {
-		v := tnd.Sampler.Value()
-		sampler = &v
-	}
-
-	return nodes.NewStructOutput(PolyformTexture{
-		Sampler: sampler,
-		Image:   nodes.TryGetOutputValue(tnd.Image, nil),
+func (tnd TextureNodeData) Out(out *nodes.StructOutput[PolyformTexture]) {
+	out.Set(PolyformTexture{
+		Sampler: nodes.TryGetOutputReference(out, tnd.Sampler, nil),
+		Image:   nodes.TryGetOutputValue(out, tnd.Image, nil),
 	})
 }
 
@@ -196,20 +158,11 @@ type NormalTextureNodeData struct {
 	Scale   nodes.Output[float64]
 }
 
-func (tnd NormalTextureNodeData) Out() nodes.StructOutput[PolyformNormal] {
-	normal := PolyformNormal{}
-
-	if tnd.Scale != nil {
-		scale := tnd.Scale.Value()
-		normal.Scale = &scale
-	}
-
-	if tnd.Texture != nil {
-		tex := tnd.Texture.Value()
-		normal.PolyformTexture = &tex
-	}
-
-	return nodes.NewStructOutput(normal)
+func (tnd NormalTextureNodeData) Out(out *nodes.StructOutput[PolyformNormal]) {
+	out.Set(PolyformNormal{
+		Scale:           nodes.TryGetOutputReference(out, tnd.Scale, nil),
+		PolyformTexture: nodes.TryGetOutputReference(out, tnd.Texture, nil),
+	})
 }
 
 type SamplerNode = nodes.Struct[SamplerNodeData]
@@ -221,12 +174,12 @@ type SamplerNodeData struct {
 	WrapT     nodes.Output[SamplerWrap]      `description:"T (V) wrapping mode"`
 }
 
-func (tnd SamplerNodeData) Out() nodes.StructOutput[Sampler] {
-	return nodes.NewStructOutput(Sampler{
-		MagFilter: nodes.TryGetOutputValue(tnd.MagFilter, SamplerMagFilter_NEAREST),
-		MinFilter: nodes.TryGetOutputValue(tnd.MinFilter, SamplerMinFilter_NEAREST),
-		WrapS:     nodes.TryGetOutputValue(tnd.WrapS, SamplerWrap_REPEAT),
-		WrapT:     nodes.TryGetOutputValue(tnd.WrapT, SamplerWrap_REPEAT),
+func (tnd SamplerNodeData) Out(out *nodes.StructOutput[Sampler]) {
+	out.Set(Sampler{
+		MagFilter: nodes.TryGetOutputValue(out, tnd.MagFilter, SamplerMagFilter_NEAREST),
+		MinFilter: nodes.TryGetOutputValue(out, tnd.MinFilter, SamplerMinFilter_NEAREST),
+		WrapS:     nodes.TryGetOutputValue(out, tnd.WrapS, SamplerWrap_REPEAT),
+		WrapT:     nodes.TryGetOutputValue(out, tnd.WrapT, SamplerWrap_REPEAT),
 	})
 }
 
@@ -389,93 +342,81 @@ type MaterialNodeData struct {
 	EmissiveStrength  nodes.Output[float64]
 }
 
-func (gmnd MaterialNodeData) Out() nodes.StructOutput[PolyformMaterial] {
+func (gmnd MaterialNodeData) Out(out *nodes.StructOutput[PolyformMaterial]) {
 	var pbr *PolyformPbrMetallicRoughness
 
 	if gmnd.Color != nil {
 		pbr = &PolyformPbrMetallicRoughness{}
-		pbr.BaseColorFactor = gmnd.Color.Value()
+		pbr.BaseColorFactor = nodes.GetOutputValue(out, gmnd.Color)
 	}
 
 	if gmnd.ColorTexture != nil {
 		if pbr == nil {
 			pbr = &PolyformPbrMetallicRoughness{}
 		}
-		v := gmnd.ColorTexture.Value()
-		pbr.BaseColorTexture = &v
+		pbr.BaseColorTexture = nodes.GetOutputReference(out, gmnd.ColorTexture)
 	}
 
 	if gmnd.MetallicRoughnessTexture != nil {
 		if pbr == nil {
 			pbr = &PolyformPbrMetallicRoughness{}
 		}
-		v := gmnd.MetallicRoughnessTexture.Value()
-		pbr.MetallicRoughnessTexture = &v
+		pbr.MetallicRoughnessTexture = nodes.GetOutputReference(out, gmnd.MetallicRoughnessTexture)
 	}
 
 	if gmnd.MetallicFactor != nil {
 		if pbr == nil {
 			pbr = &PolyformPbrMetallicRoughness{}
 		}
-		v := gmnd.MetallicFactor.Value()
-		pbr.MetallicFactor = &v
+		pbr.MetallicFactor = nodes.GetOutputReference(out, gmnd.MetallicFactor)
 	}
 
 	if gmnd.RoughnessFactor != nil {
 		if pbr == nil {
 			pbr = &PolyformPbrMetallicRoughness{}
 		}
-		v := gmnd.RoughnessFactor.Value()
-		pbr.RoughnessFactor = &v
+		pbr.RoughnessFactor = nodes.GetOutputReference(out, gmnd.RoughnessFactor)
 	}
 
 	var emissiveFactor color.Color
 	if gmnd.EmissiveFactor != nil {
-		emissiveFactor = gmnd.EmissiveFactor.Value()
+		emissiveFactor = nodes.GetOutputValue(out, gmnd.EmissiveFactor)
 	}
 
 	extensions := make([]MaterialExtension, 0)
 	if gmnd.Transmission != nil {
-		extensions = append(extensions, gmnd.Transmission.Value())
+		extensions = append(extensions, nodes.GetOutputValue(out, gmnd.Transmission))
 	}
 
 	if gmnd.Volume != nil {
-		extensions = append(extensions, gmnd.Volume.Value())
+		extensions = append(extensions, nodes.GetOutputValue(out, gmnd.Volume))
 	}
 
 	if gmnd.IndexOfRefraction != nil {
-		v := gmnd.IndexOfRefraction.Value()
 		extensions = append(extensions, PolyformIndexOfRefraction{
-			IOR: &v,
+			IOR: nodes.GetOutputReference(out, gmnd.IndexOfRefraction),
 		})
 	}
 
 	if gmnd.Anisotropy != nil {
-		extensions = append(extensions, gmnd.Anisotropy.Value())
+		extensions = append(extensions, nodes.GetOutputValue(out, gmnd.Anisotropy))
 	}
 
 	if gmnd.Clearcoat != nil {
-		extensions = append(extensions, gmnd.Clearcoat.Value())
+		extensions = append(extensions, nodes.GetOutputValue(out, gmnd.Clearcoat))
 	}
 
 	if gmnd.EmissiveStrength != nil {
-		v := gmnd.EmissiveStrength.Value()
 		extensions = append(extensions, PolyformEmissiveStrength{
-			EmissiveStrength: &v,
+			EmissiveStrength: nodes.GetOutputReference(out, gmnd.EmissiveStrength),
 		})
 	}
 
-	var normalTexture *PolyformNormal = nil
-	if gmnd.NormalTexture != nil {
-		tex := gmnd.NormalTexture.Value()
-		normalTexture = &tex
-	}
-
-	return nodes.NewStructOutput(PolyformMaterial{
+	out.Set(PolyformMaterial{
 		PbrMetallicRoughness: pbr,
 		Extensions:           extensions,
 		EmissiveFactor:       emissiveFactor,
-		NormalTexture:        normalTexture,
+		NormalTexture:        nodes.TryGetOutputReference(out, gmnd.NormalTexture, nil),
 	})
 }
 
@@ -490,17 +431,11 @@ type MaterialTransmissionExtensionNodeData struct {
 	Texture nodes.Output[PolyformTexture] `description:"A texture that defines the transmission percentage of the surface, stored in the R channel. This will be multiplied by transmissionFactor."`
 }
 
-func (node MaterialTransmissionExtensionNodeData) Out() nodes.StructOutput[PolyformTransmission] {
-	transmission := PolyformTransmission{
-		Factor: nodes.TryGetOutputValue(node.Factor, 0.),
-	}
-
-	if node.Texture != nil {
-		v := node.Texture.Value()
-		transmission.Texture = &v
-	}
-
-	return nodes.NewStructOutput(transmission)
+func (node MaterialTransmissionExtensionNodeData) Out(out *nodes.StructOutput[PolyformTransmission]) {
+	out.Set(PolyformTransmission{
+		Factor:  nodes.TryGetOutputValue(out, node.Factor, 0.),
+		Texture: nodes.TryGetOutputReference(out, node.Texture, nil),
+	})
 }
 
 func (node MaterialTransmissionExtensionNodeData) Description() string {
@@ -515,17 +450,11 @@ type MaterialVolumeExtensionNodeData struct {
 	AttenuationColor    nodes.Output[coloring.WebColor] `description:"The color that white light turns into due to absorption when reaching the attenuation distance."`
 }
 
-func (node MaterialVolumeExtensionNodeData) Out() nodes.StructOutput[PolyformVolume] {
-	var attenutationDistance *float64
-	if node.AttenuationDistance != nil {
-		v := node.AttenuationDistance.Value()
-		attenutationDistance = &v
-	}
-
-	return nodes.NewStructOutput(PolyformVolume{
-		ThicknessFactor:     nodes.TryGetOutputValue(node.ThicknessFactor, 0),
-		AttenuationColor:    nodes.TryGetOutputValue(node.AttenuationColor, coloring.White()),
-		AttenuationDistance: attenutationDistance,
+func (node MaterialVolumeExtensionNodeData) Out(out *nodes.StructOutput[PolyformVolume]) {
+	out.Set(PolyformVolume{
+		ThicknessFactor:     nodes.TryGetOutputValue(out, node.ThicknessFactor, 0),
+		AttenuationColor:    nodes.TryGetOutputValue(out, node.AttenuationColor, coloring.White()),
+		AttenuationDistance: nodes.TryGetOutputReference(out, node.AttenuationDistance, nil),
 	})
 }
 
@@ -540,10 +469,10 @@ type MaterialAnisotropyExtensionNodeData struct {
 	AnisotropyRotation nodes.Output[float64] `description:"The rotation of the anisotropy in tangent, bitangent space, measured in radians counter-clockwise from the tangent. When the anisotropy texture is present, this value provides additional rotation to the vectors in the texture."`
 }
 
-func (node MaterialAnisotropyExtensionNodeData) Out() nodes.StructOutput[PolyformAnisotropy] {
-	return nodes.NewStructOutput(PolyformAnisotropy{
-		AnisotropyStrength: nodes.TryGetOutputValue(node.AnisotropyStrength, 0),
-		AnisotropyRotation: nodes.TryGetOutputValue(node.AnisotropyRotation, 0),
+func (node MaterialAnisotropyExtensionNodeData) Out(out *nodes.StructOutput[PolyformAnisotropy]) {
+	out.Set(PolyformAnisotropy{
+		AnisotropyStrength: nodes.TryGetOutputValue(out, node.AnisotropyStrength, 0),
+		AnisotropyRotation: nodes.TryGetOutputValue(out, node.AnisotropyRotation, 0),
 	})
 }
 
@@ -558,10 +487,10 @@ type MaterialClearcoatExtensionNodeData struct {
 	ClearcoatRoughnessFactor nodes.Output[float64]
 }
 
-func (node MaterialClearcoatExtensionNodeData) Out() nodes.StructOutput[PolyformClearcoat] {
-	return nodes.NewStructOutput(PolyformClearcoat{
-		ClearcoatFactor:          nodes.TryGetOutputValue(node.ClearcoatFactor, 0),
-		ClearcoatRoughnessFactor: nodes.TryGetOutputValue(node.ClearcoatRoughnessFactor, 0),
+func (node MaterialClearcoatExtensionNodeData) Out(out *nodes.StructOutput[PolyformClearcoat]) {
+	out.Set(PolyformClearcoat{
+		ClearcoatFactor:          nodes.TryGetOutputValue(out, node.ClearcoatFactor, 0),
+		ClearcoatRoughnessFactor: nodes.TryGetOutputValue(out, node.ClearcoatRoughnessFactor, 0),
 	})
 }
 

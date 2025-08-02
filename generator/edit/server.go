@@ -164,6 +164,7 @@ func (as *Server) Handler(indexFile string) (*http.ServeMux, error) {
 	mux.Handle("/new-graph", newGraphEndpoint(as))
 	mux.Handle("/load-example", exampleGraphEndpoint(as))
 	mux.Handle("/graph", graphEndpoint(as))
+	mux.Handle("/graph/execution-report", executionReportEndpoint(as))
 	mux.Handle("/graph/metadata/", graphMetadataEndpoint(as.Graph, graphSaver))
 	mux.HandleFunc("/started", as.StartedEndpoint)
 	mux.HandleFunc("/mermaid", as.MermaidEndpoint)

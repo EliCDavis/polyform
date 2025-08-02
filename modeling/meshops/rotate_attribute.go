@@ -48,15 +48,19 @@ type RotateAttribute3DNodeData struct {
 	Amount    nodes.Output[quaternion.Quaternion]
 }
 
-func (ra3dn RotateAttribute3DNodeData) Out() nodes.StructOutput[modeling.Mesh] {
+func (ra3dn RotateAttribute3DNodeData) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	if ra3dn.Mesh == nil {
-		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
+		out.Set(modeling.EmptyMesh(modeling.TriangleTopology))
+		return
 	}
 
-	attr := modeling.PositionAttribute
-	if ra3dn.Attribute != nil {
-		attr = ra3dn.Attribute.Value()
+	mesh := nodes.GetOutputValue(out, ra3dn.Mesh)
+	if ra3dn.Amount == nil {
+		out.Set(mesh)
+		return
 	}
 
-	return nodes.NewStructOutput(RotateAttribute3D(ra3dn.Mesh.Value(), attr, ra3dn.Amount.Value()))
+	attr := nodes.TryGetOutputValue(out, ra3dn.Attribute, modeling.PositionAttribute)
+	ammount := nodes.GetOutputValue(out, ra3dn.Amount)
+	out.Set(RotateAttribute3D(mesh, attr, ammount))
 }

@@ -31,10 +31,10 @@ type TransformationNodeData struct {
 	Samples        nodes.Output[int]
 }
 
-func (rnd TransformationNodeData) Out() nodes.StructOutput[[]trs.TRS] {
-	return nodes.NewStructOutput(Transformation{
-		Initial:        nodes.TryGetOutputValue(rnd.Initial, trs.Identity()),
-		Transformation: nodes.TryGetOutputValue(rnd.Transformation, trs.Identity()),
-		Samples:        nodes.TryGetOutputValue(rnd.Samples, 0),
+func (rnd TransformationNodeData) Out(out *nodes.StructOutput[[]trs.TRS]) {
+	out.Set(Transformation{
+		Initial:        nodes.TryGetOutputValue(out, rnd.Initial, trs.Identity()),
+		Transformation: nodes.TryGetOutputValue(out, rnd.Transformation, trs.Identity()),
+		Samples:        nodes.TryGetOutputValue(out, rnd.Samples, 0),
 	}.TRS())
 }

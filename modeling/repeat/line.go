@@ -62,12 +62,12 @@ type LineNodeData struct {
 	Exclusive nodes.Output[bool]
 }
 
-func (r LineNodeData) Out() nodes.StructOutput[[]trs.TRS] {
+func (r LineNodeData) Out(out *nodes.StructOutput[[]trs.TRS]) {
 	line := Line{
-		Start:     nodes.TryGetOutputValue(r.Start, vector3.Zero[float64]()),
-		End:       nodes.TryGetOutputValue(r.End, vector3.Zero[float64]()),
-		Samples:   max(nodes.TryGetOutputValue(r.Samples, 0), 0),
-		Exclusive: nodes.TryGetOutputValue(r.Exclusive, false),
+		Start:     nodes.TryGetOutputValue(out, r.Start, vector3.Zero[float64]()),
+		End:       nodes.TryGetOutputValue(out, r.End, vector3.Zero[float64]()),
+		Samples:   max(nodes.TryGetOutputValue(out, r.Samples, 0), 0),
+		Exclusive: nodes.TryGetOutputValue(out, r.Exclusive, false),
 	}
-	return nodes.NewStructOutput(line.TRS())
+	out.Set(line.TRS())
 }

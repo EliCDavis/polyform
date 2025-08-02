@@ -75,23 +75,23 @@ type GridNode struct {
 	Height  nodes.Output[float64]
 }
 
-func (g GridNode) grid() Grid {
+func (g GridNode) grid(recorder nodes.ExecutionRecorder) Grid {
 	return Grid{
-		Rows:    max(nodes.TryGetOutputValue(g.Rows, 1), 0),
-		Columns: max(nodes.TryGetOutputValue(g.Columns, 1), 0),
-		Width:   max(nodes.TryGetOutputValue(g.Width, 1), 0),
-		Height:  max(nodes.TryGetOutputValue(g.Height, 1), 0),
+		Rows:    max(nodes.TryGetOutputValue(recorder, g.Rows, 1), 0),
+		Columns: max(nodes.TryGetOutputValue(recorder, g.Columns, 1), 0),
+		Width:   max(nodes.TryGetOutputValue(recorder, g.Width, 1), 0),
+		Height:  max(nodes.TryGetOutputValue(recorder, g.Height, 1), 0),
 	}
 }
 
-func (g GridNode) TRS() nodes.StructOutput[[]trs.TRS] {
-	return nodes.NewStructOutput(g.grid().TRS())
+func (g GridNode) TRS(out *nodes.StructOutput[[]trs.TRS]) {
+	out.Set(g.grid(out).TRS())
 }
 
-func (g GridNode) Vector2() nodes.StructOutput[[]vector2.Float64] {
-	return nodes.NewStructOutput(g.grid().Vector2())
+func (g GridNode) Vector2(out *nodes.StructOutput[[]vector2.Float64]) {
+	out.Set(g.grid(out).Vector2())
 }
 
-func (g GridNode) Vector3() nodes.StructOutput[[]vector3.Float64] {
-	return nodes.NewStructOutput(g.grid().Vector3())
+func (g GridNode) Vector3(out *nodes.StructOutput[[]vector3.Float64]) {
+	out.Set(g.grid(out).Vector3())
 }

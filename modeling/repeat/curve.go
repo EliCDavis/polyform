@@ -63,28 +63,27 @@ func (rnd SplineNodeData) Description() string {
 	return "Creates an array of TRS matrices by sampling the curve"
 }
 
-func (r SplineNodeData) Out() nodes.StructOutput[[]trs.TRS] {
+func (r SplineNodeData) Out(out *nodes.StructOutput[[]trs.TRS]) {
 	if r.Curve == nil || r.Times == nil {
-		return nodes.NewStructOutput[[]trs.TRS](nil)
+		return
 	}
 
-	times := r.Times.Value()
+	times := nodes.GetOutputValue(out, r.Times)
 	if times <= 0 {
-		return nodes.NewStructOutput[[]trs.TRS](nil)
+		return
 	}
 
-	curve := r.Curve.Value()
+	curve := nodes.GetOutputValue(out, r.Curve)
 	if curve == nil {
-		return nodes.NewStructOutput[[]trs.TRS](nil)
+		return
 	}
 
-	if times == 1 {
-		return nodes.NewStructOutput(SplineExlusive(curve, 1))
+	switch times {
+	case 1:
+		out.Set(SplineExlusive(curve, 1))
+	case 2:
+		out.Set(Spline(curve, 0))
+	default:
+		out.Set(Spline(curve, times-2))
 	}
-
-	if times == 2 {
-		return nodes.NewStructOutput(Spline(curve, 0))
-	}
-
-	return nodes.NewStructOutput(Spline(curve, times-2))
 }
