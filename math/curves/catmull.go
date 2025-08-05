@@ -237,19 +237,27 @@ func (crcp CatmullRomSplineParameters) Spline() CatmullRomSpline {
 		}
 	}
 
-	// One of the least satisfying arbitrary decisions I've made in this
-	// library
 	if len(crcp.Points) == 3 {
 		return CatmullRomSpline{
 			alpha: crcp.Alpha,
-			curves: []*CatmullRomCurve{{
-				alpha:   crcp.Alpha,
-				epsilon: epsilon,
-				p0:      crcp.Points[0],
-				p1:      crcp.Points[1],
-				p2:      crcp.Points[2],
-				p3:      crcp.Points[2],
-			}},
+			curves: []*CatmullRomCurve{
+				{
+					alpha:   crcp.Alpha,
+					epsilon: epsilon,
+					p0:      crcp.Points[0],
+					p1:      crcp.Points[0],
+					p2:      crcp.Points[1],
+					p3:      crcp.Points[1],
+				},
+				{
+					alpha:   crcp.Alpha,
+					epsilon: epsilon,
+					p0:      crcp.Points[1],
+					p1:      crcp.Points[1],
+					p2:      crcp.Points[2],
+					p3:      crcp.Points[2],
+				},
+			},
 		}
 	}
 
@@ -310,7 +318,7 @@ func (crc *CatmullRomSpline) Length() float64 {
 	return *crc.distance
 }
 
-func (crc *CatmullRomSpline) Dir(distance float64) vector3.Float64 {
+func (crc *CatmullRomSpline) Tangent(distance float64) vector3.Float64 {
 	inc := crc.Length() / 1000
 
 	if distance-inc < 0 {

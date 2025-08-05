@@ -2,8 +2,9 @@
 
 ## Guides
 
-* Adding Nodes
-    * [Creating a Custom Node](./guides/CreatingNodes.md)
-    * [Manifests](./guides/CreatingManifests.md)
-    * [Best Practices](./guides/NodeBestPractices.md)
-* [Unity Integration](./guides/UnityIntegration.md)
+* [Polyform Concepts](./guides/Concepts/README.md)
+* Adding New Nodes
+    * [Creating a Custom Node](./guides/CreatingNodes/README.md)
+    * [Manifests](./guides/CreatingManifests/README.md)
+    * [Best Practices](./guides/NodeBestPractices/README.md)
+* [Unity Integration](./guides/UnityIntegration/README.md)

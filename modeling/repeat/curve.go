@@ -11,14 +11,14 @@ import (
 func Spline(curve curves.Spline, inbetween int) []trs.TRS {
 	start := trs.New(
 		curve.At(0),
-		quaternion.RotationTo(vector3.Forward[float64](), curve.Dir(0)),
+		quaternion.RotationTo(vector3.Forward[float64](), curve.Tangent(0)),
 		vector3.One[float64](),
 	)
 
 	dist := curve.Length()
 	end := trs.New(
 		curve.At(dist),
-		quaternion.RotationTo(vector3.Forward[float64](), curve.Dir(dist)),
+		quaternion.RotationTo(vector3.Forward[float64](), curve.Tangent(dist)),
 		vector3.One[float64](),
 	)
 
@@ -40,7 +40,7 @@ func SplineExlusive(curve curves.Spline, inbetween int) []trs.TRS {
 
 	for i := range inbetween {
 		dist := inc * float64(i+1)
-		dir := curve.Dir(dist)
+		dir := curve.Tangent(dist)
 
 		transforms[i] = trs.New(
 			curve.At(dist),

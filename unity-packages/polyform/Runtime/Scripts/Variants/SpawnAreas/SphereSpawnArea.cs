@@ -2,6 +2,7 @@
 
 namespace EliCDavis.Polyform.Variants.SpawnAreas
 {
+    [AddComponentMenu("Polyform/Variant/Spawn Area/Sphere Spawn Area")]
     public class SphereSpawnArea : SpawnArea
     {
         [SerializeField] private float radius;

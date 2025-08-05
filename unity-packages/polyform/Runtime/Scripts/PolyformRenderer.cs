@@ -1,25 +1,26 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using EliCDavis.Polyform.Artifacts;
+using EliCDavis.Polyform.Loading;
 using EliCDavis.Polyform.Models;
 using UnityEngine;
 
 namespace EliCDavis.Polyform
 {
+    [AddComponentMenu("Polyform/Renderer")]
     public class PolyformRenderer : MonoBehaviour
     {
         [SerializeField] private AvailableManifestObject endpoint;
 
         [SerializeField] private ProfileObject profile;
 
-        [SerializeField] private RuntimeArtifactLoader[] handlers;
+        [SerializeField] private RuntimeManifestHandler[] handlers;
 
         #region Runtime
 
         private Coroutine running;
 
-        private IRuntimeArtifact runtimeArtifact;
+        private IRuntimeManifest runtimeManifest;
 
         #endregion
 
@@ -66,10 +67,10 @@ namespace EliCDavis.Polyform
 
         private IEnumerator LoadManifest()
         {
-            if (runtimeArtifact != null)
+            if (runtimeManifest != null)
             {
-                runtimeArtifact.Unload();
-                runtimeArtifact = null;
+                runtimeManifest.Unload();
+                runtimeManifest = null;
             }
 
             Dictionary<string, object> variableData = null;
@@ -84,7 +85,7 @@ namespace EliCDavis.Polyform
             foreach (var handler in handlers)
             {
                 if (!handler.CanHandle(manifestsReq.Result.Manifest)) continue;
-                runtimeArtifact = handler.Handle(gameObject, endpoint.Graph, manifestsReq.Result);
+                runtimeManifest = handler.Handle(gameObject, endpoint.Graph, manifestsReq.Result);
                 yield break;
             }
             
