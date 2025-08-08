@@ -135,3 +135,56 @@ Each run receives a new randomized profile and writes a unique manifest, which t
 Below is an example of variant-based generation:
 
 ![Variant Profile Result](./unity-variant%20rendering.png)
+
+### Editor
+
+#### Manifest Importer
+
+The **Manifest Importer** is a ScriptableObject that executes a graph endpoint and imports the resulting manifest using one or more `EditorManifestHandler`s. It acts as a bridge between a `graph + profile` and asset import into the Unity Editor environment.
+
+You can think of it as a simple entry point for editor-side content generation.
+
+**Usage**
+
+You can create a Manifest Importer from the Unity asset menu:
+
+```
+Create > Polyform > Manifest Importer
+```
+
+Once created, assign:
+
+* A **Graph Endpoint**
+* A **Variant Profile** (optional)
+* One or more **Editor Manifest Handlers**
+
+Then click the `Import` button.
+
+#### Editor Manifest Handlers
+
+Editor Manifest Handlers process an entire manifest returned by a graph endpoint and save its entries as project assets. This enables use cases like:
+
+* Baking procedural content (e.g., GLTFs, textures, data files) into the project
+* Creating tooling around content previews and editing
+
+The included **File Download Manifest Handler** downloads all manifest entries and writes them to the Unity project's Assets/ directory. You can create one from the Unity asset menu:
+
+```
+Create > Polyform > Manifest Handlers > Editor > File Download
+```
+
+**Extending for Custom Use**
+
+This handler is a good starting point for custom workflows. For example, you might:
+
+* Create a handler that automatically converts `.gltf` files into Unity prefabs
+* Add post-processing steps after file download
+* Use manifest metadata to tag or categorize imported assets
+* Generate thumbnail previews or summaries
+
+To do so, subclass `EditorManifestHandler` and override:
+
+```csharp
+public abstract bool CanHandle(Manifest manifest);
+public abstract void Handle(Graph graph, ManifestInstance manifestInstance, ScriptableObject scriptableObject);
+```
