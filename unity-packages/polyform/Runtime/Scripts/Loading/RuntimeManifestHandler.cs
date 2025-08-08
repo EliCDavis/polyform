@@ -6,6 +6,6 @@ namespace EliCDavis.Polyform.Loading
     public abstract class RuntimeManifestHandler: ScriptableObject
     {
         public abstract bool CanHandle(Manifest manifest);
-        public abstract IRuntimeManifest Handle(GameObject parent, Graph graph, ManifestInstance manifestInstance);
+        public abstract IRuntimeManifestInstance Handle(GameObject parent, Graph graph, ManifestInstance manifestInstance);
     }
 }

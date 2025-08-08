@@ -368,11 +368,6 @@ func (r CatmullRomSplineNode) Out(out *nodes.StructOutput[Spline]) {
 		return
 	}
 
-	// for _, p := range points {
-	// 	fmt.Print(p.Format("%g, %g, %g\n"))
-	// }
-	// fmt.Printf("%g\n", alpha)
-
 	spline := CatmullRomSplineParameters{
 		Points: points,
 		Alpha:  nodes.TryGetOutputValue(out, r.Alpha, 0),

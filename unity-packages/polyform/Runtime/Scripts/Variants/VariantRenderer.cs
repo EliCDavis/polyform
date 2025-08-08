@@ -27,7 +27,7 @@ namespace EliCDavis.Polyform.Variants
 
         private GameObject[] runtimeGameobjects;
 
-        private IRuntimeManifest[] runtimeArtifacts;
+        private IRuntimeManifestInstance[] runtimeArtifacts;
 
         #endregion
 
@@ -82,7 +82,7 @@ namespace EliCDavis.Polyform.Variants
                 }
             }
 
-            runtimeArtifacts = new IRuntimeManifest[variantCount];
+            runtimeArtifacts = new IRuntimeManifestInstance[variantCount];
             runtimeGameobjects = new GameObject[variantCount];
             for (var i = 0; i < variantCount; i++)
             {

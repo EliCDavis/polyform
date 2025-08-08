@@ -20,7 +20,7 @@ namespace EliCDavis.Polyform
 
         private Coroutine running;
 
-        private IRuntimeManifest runtimeManifest;
+        private IRuntimeManifestInstance runtimeManifestInstance;
 
         #endregion
 
@@ -67,10 +67,10 @@ namespace EliCDavis.Polyform
 
         private IEnumerator LoadManifest()
         {
-            if (runtimeManifest != null)
+            if (runtimeManifestInstance != null)
             {
-                runtimeManifest.Unload();
-                runtimeManifest = null;
+                runtimeManifestInstance.Unload();
+                runtimeManifestInstance = null;
             }
 
             Dictionary<string, object> variableData = null;
@@ -85,7 +85,7 @@ namespace EliCDavis.Polyform
             foreach (var handler in handlers)
             {
                 if (!handler.CanHandle(manifestsReq.Result.Manifest)) continue;
-                runtimeManifest = handler.Handle(gameObject, endpoint.Graph, manifestsReq.Result);
+                runtimeManifestInstance = handler.Handle(gameObject, endpoint.Graph, manifestsReq.Result);
                 yield break;
             }
             

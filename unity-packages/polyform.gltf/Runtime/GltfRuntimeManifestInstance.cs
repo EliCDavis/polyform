@@ -3,11 +3,11 @@ using UnityEngine;
 
 namespace EliCDavis.Polyform.GLTF
 {
-    public class GltfRuntimeManifest : IRuntimeManifest
+    public class GltfRuntimeManifestInstance : IRuntimeManifestInstance
     {
         private GameObject go;
 
-        public GltfRuntimeManifest(GameObject go)
+        public GltfRuntimeManifestInstance(GameObject go)
         {
             this.go = go;
         }

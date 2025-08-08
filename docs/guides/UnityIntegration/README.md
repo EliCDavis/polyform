@@ -114,7 +114,7 @@ The **Variant Profile** defines how input variables in the graph are randomized 
 * Continuous distribution – for numeric or continuous values (floats, ints, colors, vectors, etc.)
 * Weighted list – for discrete options (booleans, string labels, aggregations of different distributions, etc.)
 
-Every time the graph is executed by the variant renderer, it samples new input values from these distributions, generating a unique configuration and corresponding output. Sampling is independent per variant execution unless explicitly linked via graph logic. Distribution types may evolve (e.g., Gaussian, Poisson, etc.), but current support is primarily uniform.
+Every time the graph is executed by the variant renderer, it samples new input values from these distributions, generating a unique configuration and corresponding output. Distribution types may evolve (e.g., Gaussian, Poisson, etc.), but current support is primarily uniform.
 
 Examples on when you might use a variant renderer include:
 

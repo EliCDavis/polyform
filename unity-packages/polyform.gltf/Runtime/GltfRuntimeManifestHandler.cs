@@ -12,7 +12,7 @@ namespace EliCDavis.Polyform.GLTF
             return manifest.Main.EndsWith(".gltf") || manifest.Main.EndsWith(".glb");
         }
 
-        public override IRuntimeManifest Handle(GameObject parent, Graph graph, ManifestInstance manifestInstance)
+        public override IRuntimeManifestInstance Handle(GameObject parent, Graph graph, ManifestInstance manifestInstance)
         {
             var obj = new GameObject("GLTF Manifest");
             obj.transform.SetParent(parent.transform);
@@ -22,7 +22,7 @@ namespace EliCDavis.Polyform.GLTF
             var gltf = obj.AddComponent<GLTFast.GltfAsset>();
             var url = graph.FormatURl($"manifest/{manifestInstance.Id}/{manifestInstance.Manifest.Main}");
             gltf.Url = url;
-            return new GltfRuntimeManifest(obj);
+            return new GltfRuntimeManifestInstance(obj);
         }
     }
 }
