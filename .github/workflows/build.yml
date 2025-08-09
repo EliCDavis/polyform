@@ -1,12 +1,14 @@
 name: Build
 
 on:
-    push:
-        branches: [ "main" ]
-    pull_request:
-        branches: [ "main" ]
-    # Allows manual triggering
-    workflow_dispatch:
+  push:
+    branches:
+      - "main"
+      - "kpace/*"
+  pull_request:
+    branches: ["main"]
+  # Allows manual triggering
+  workflow_dispatch:
 
 jobs:
   check:
