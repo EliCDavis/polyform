@@ -19,21 +19,21 @@ import (
 func init() {
 	factory := &refutil.TypeFactory{}
 
-	refutil.RegisterType[ManifestNode](factory)
-	refutil.RegisterType[MaterialAnisotropyExtensionNode](factory)
-	refutil.RegisterType[MaterialClearcoatExtensionNode](factory)
-	refutil.RegisterType[MaterialNode](factory)
-	refutil.RegisterType[MaterialTransmissionExtensionNode](factory)
-	refutil.RegisterType[MaterialVolumeExtensionNode](factory)
-	refutil.RegisterType[ModelNode](factory)
-	refutil.RegisterType[TextureReferenceNode](factory)
-	refutil.RegisterType[TextureNode](factory)
-	refutil.RegisterType[NormalTextureNode](factory)
-	refutil.RegisterType[SamplerNode](factory)
+	refutil.RegisterType[nodes.Struct[ManifestNode]](factory)
+	refutil.RegisterType[nodes.Struct[MaterialAnisotropyExtensionNode]](factory)
+	refutil.RegisterType[nodes.Struct[MaterialClearcoatExtensionNode]](factory)
+	refutil.RegisterType[nodes.Struct[MaterialNode]](factory)
+	refutil.RegisterType[nodes.Struct[MaterialTransmissionExtensionNode]](factory)
+	refutil.RegisterType[nodes.Struct[MaterialVolumeExtensionNode]](factory)
+	refutil.RegisterType[nodes.Struct[ModelNode]](factory)
+	refutil.RegisterType[nodes.Struct[TextureReferenceNode]](factory)
+	refutil.RegisterType[nodes.Struct[TextureNode]](factory)
+	refutil.RegisterType[nodes.Struct[NormalTextureNode]](factory)
+	refutil.RegisterType[nodes.Struct[SamplerNode]](factory)
 
 	refutil.RegisterType[SamplerWrapNode](factory)
-	refutil.RegisterType[SamplerMinFilterNode](factory)
-	refutil.RegisterType[SamplerMagFilterNode](factory)
+	refutil.RegisterType[nodes.Struct[SamplerMinFilterNode]](factory)
+	refutil.RegisterType[nodes.Struct[SamplerMagFilterNode]](factory)
 
 	generator.RegisterTypes(factory)
 }
@@ -50,20 +50,18 @@ func (ga Artifact) Write(w io.Writer) error {
 	return WriteBinary(ga.Scene, w, nil)
 }
 
-type ManifestNode = nodes.Struct[ManifestNodeData]
-
-type ManifestNodeData struct {
+type ManifestNode struct {
 	Models []nodes.Output[PolyformModel]
 }
 
-func (gad ManifestNodeData) Out() nodes.StructOutput[manifest.Manifest] {
+func (gad ManifestNode) Out(out *nodes.StructOutput[manifest.Manifest]) {
 	models := make([]PolyformModel, 0, len(gad.Models))
 
 	for _, m := range gad.Models {
 		if m == nil {
 			continue
 		}
-		value := m.Value()
+		value := nodes.GetOutputValue(out, m)
 
 		// TechDebt: Skip nodes without meshes as at the moment it'll cause stuff
 		// to error out
@@ -83,12 +81,10 @@ func (gad ManifestNodeData) Out() nodes.StructOutput[manifest.Manifest] {
 		},
 	}
 
-	return nodes.NewStructOutput(manifest.SingleEntryManifest("model.glb", entry))
+	out.Set(manifest.SingleEntryManifest("model.glb", entry))
 }
 
-type ModelNode = nodes.Struct[ModelNodeData]
-
-type ModelNodeData struct {
+type ModelNode struct {
 	Mesh     nodes.Output[modeling.Mesh]
 	Material nodes.Output[PolyformMaterial]
 
@@ -99,138 +95,83 @@ type ModelNodeData struct {
 	GpuInstances nodes.Output[[]trs.TRS]
 }
 
-func (gmnd ModelNodeData) Out() nodes.StructOutput[PolyformModel] {
-	model := PolyformModel{
+func (gmnd ModelNode) Out(out *nodes.StructOutput[PolyformModel]) {
+	transform := trs.New(
+		nodes.TryGetOutputValue(out, gmnd.Translation, vector3.Zero[float64]()),
+		nodes.TryGetOutputValue(out, gmnd.Rotation, quaternion.Identity()),
+		nodes.TryGetOutputValue(out, gmnd.Scale, vector3.One[float64]()),
+	)
+
+	out.Set(PolyformModel{
 		Name:         "Mesh",
-		GpuInstances: nodes.TryGetOutputValue(gmnd.GpuInstances, nil),
-	}
-
-	if gmnd.Material != nil {
-		v := gmnd.Material.Value()
-		model.Material = &v
-	}
-
-	if gmnd.Mesh != nil {
-		mesh := gmnd.Mesh.Value()
-		model.Mesh = &mesh
-	}
-
-	transform := trs.Identity()
-
-	if gmnd.Translation != nil {
-		v := gmnd.Translation.Value()
-		transform = transform.Translate(v)
-	}
-
-	if gmnd.Scale != nil {
-		v := gmnd.Scale.Value()
-		transform = transform.SetScale(v)
-	}
-
-	if gmnd.Rotation != nil {
-		v := gmnd.Rotation.Value()
-		transform = transform.SetRotation(v)
-	}
-
-	model.TRS = &transform
-
-	if gmnd.GpuInstances != nil {
-		model.GpuInstances = gmnd.GpuInstances.Value()
-	}
-
-	return nodes.NewStructOutput(model)
+		GpuInstances: nodes.TryGetOutputValue(out, gmnd.GpuInstances, nil),
+		Material:     nodes.TryGetOutputReference(out, gmnd.Material, nil),
+		Mesh:         nodes.TryGetOutputReference(out, gmnd.Mesh, nil),
+		TRS:          &transform,
+	})
 }
 
-type TextureReferenceNode = nodes.Struct[TextureReferenceNodeData]
-
-type TextureReferenceNodeData struct {
+type TextureReferenceNode struct {
 	URI     nodes.Output[string]
 	Sampler nodes.Output[Sampler]
 }
 
-func (tnd TextureReferenceNodeData) Out() nodes.StructOutput[PolyformTexture] {
-	var sampler *Sampler = nil
-	if tnd.Sampler != nil {
-		v := tnd.Sampler.Value()
-		sampler = &v
-	}
-
-	return nodes.NewStructOutput(PolyformTexture{
-		Sampler: sampler,
-		URI:     nodes.TryGetOutputValue(tnd.URI, ""),
+func (tnd TextureReferenceNode) Out(out *nodes.StructOutput[PolyformTexture]) {
+	out.Set(PolyformTexture{
+		Sampler: nodes.TryGetOutputReference(out, tnd.Sampler, nil),
+		URI:     nodes.TryGetOutputValue(out, tnd.URI, ""),
 	})
 }
 
-func (gmnd TextureReferenceNodeData) Description() string {
+func (gmnd TextureReferenceNode) Description() string {
 	return "An object that combines an image and its sampler"
 }
 
-type TextureNode = nodes.Struct[TextureNodeData]
-
-type TextureNodeData struct {
+type TextureNode struct {
 	Image   nodes.Output[image.Image]
 	Sampler nodes.Output[Sampler]
 }
 
-func (tnd TextureNodeData) Out() nodes.StructOutput[PolyformTexture] {
-	var sampler *Sampler = nil
-	if tnd.Sampler != nil {
-		v := tnd.Sampler.Value()
-		sampler = &v
-	}
-
-	return nodes.NewStructOutput(PolyformTexture{
-		Sampler: sampler,
-		Image:   nodes.TryGetOutputValue(tnd.Image, nil),
+func (tnd TextureNode) Out(out *nodes.StructOutput[PolyformTexture]) {
+	out.Set(PolyformTexture{
+		Sampler: nodes.TryGetOutputReference(out, tnd.Sampler, nil),
+		Image:   nodes.TryGetOutputValue(out, tnd.Image, nil),
 	})
 }
 
-func (gmnd TextureNodeData) Description() string {
+func (gmnd TextureNode) Description() string {
 	return "An object that combines an image and its sampler"
 }
 
-type NormalTextureNode = nodes.Struct[NormalTextureNodeData]
-
-type NormalTextureNodeData struct {
+type NormalTextureNode struct {
 	Texture nodes.Output[PolyformTexture]
 	Scale   nodes.Output[float64]
 }
 
-func (tnd NormalTextureNodeData) Out() nodes.StructOutput[PolyformNormal] {
-	normal := PolyformNormal{}
-
-	if tnd.Scale != nil {
-		scale := tnd.Scale.Value()
-		normal.Scale = &scale
-	}
-
-	if tnd.Texture != nil {
-		tex := tnd.Texture.Value()
-		normal.PolyformTexture = &tex
-	}
-
-	return nodes.NewStructOutput(normal)
+func (tnd NormalTextureNode) Out(out *nodes.StructOutput[PolyformNormal]) {
+	out.Set(PolyformNormal{
+		Scale:           nodes.TryGetOutputReference(out, tnd.Scale, nil),
+		PolyformTexture: nodes.TryGetOutputReference(out, tnd.Texture, nil),
+	})
 }
 
-type SamplerNode = nodes.Struct[SamplerNodeData]
-
-type SamplerNodeData struct {
+type SamplerNode struct {
 	MagFilter nodes.Output[SamplerMagFilter] `description:"Magnification filter"`
 	MinFilter nodes.Output[SamplerMinFilter] `description:"Minification filter"`
 	WrapS     nodes.Output[SamplerWrap]      `description:"S (U) wrapping mode"`
 	WrapT     nodes.Output[SamplerWrap]      `description:"T (V) wrapping mode"`
 }
 
-func (tnd SamplerNodeData) Out() nodes.StructOutput[Sampler] {
-	return nodes.NewStructOutput(Sampler{
-		MagFilter: nodes.TryGetOutputValue(tnd.MagFilter, SamplerMagFilter_NEAREST),
-		MinFilter: nodes.TryGetOutputValue(tnd.MinFilter, SamplerMinFilter_NEAREST),
-		WrapS:     nodes.TryGetOutputValue(tnd.WrapS, SamplerWrap_REPEAT),
-		WrapT:     nodes.TryGetOutputValue(tnd.WrapT, SamplerWrap_REPEAT),
+func (tnd SamplerNode) Out(out *nodes.StructOutput[Sampler]) {
+	out.Set(Sampler{
+		MagFilter: nodes.TryGetOutputValue(out, tnd.MagFilter, SamplerMagFilter_NEAREST),
+		MinFilter: nodes.TryGetOutputValue(out, tnd.MinFilter, SamplerMinFilter_NEAREST),
+		WrapS:     nodes.TryGetOutputValue(out, tnd.WrapS, SamplerWrap_REPEAT),
+		WrapT:     nodes.TryGetOutputValue(out, tnd.WrapT, SamplerWrap_REPEAT),
 	})
 }
 
-func (SamplerNodeData) Description() string {
+func (SamplerNode) Description() string {
 	return "Texture sampler properties for filtering and wrapping modes"
 }
 
@@ -367,11 +308,9 @@ func (p *SamplerMinFilterNode) Outputs() map[string]nodes.OutputPort {
 	}
 }
 
-type MaterialNode = nodes.Struct[MaterialNodeData]
-
 // https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#reference-material
 
-type MaterialNodeData struct {
+type MaterialNode struct {
 	Color                    nodes.Output[coloring.WebColor] `description:"The factors for the base color of the material. This value defines linear multipliers for the sampled texels of the base color texture."`
 	ColorTexture             nodes.Output[PolyformTexture]   `description:"The base color texture. The first three components (RGB) MUST be encoded with the sRGB transfer function. They specify the base color of the material. If the fourth component (A) is present, it represents the linear alpha coverage of the material. Otherwise, the alpha coverage is equal to 1.0. The material.alphaMode property specifies how alpha is interpreted. The stored texels MUST NOT be premultiplied. When undefined, the texture MUST be sampled as having 1.0 in all components."`
 	MetallicFactor           nodes.Output[float64]           `description:"The factor for the metalness of the material. This value defines a linear multiplier for the sampled metalness values of the metallic-roughness texture."`
@@ -389,182 +328,150 @@ type MaterialNodeData struct {
 	EmissiveStrength  nodes.Output[float64]
 }
 
-func (gmnd MaterialNodeData) Out() nodes.StructOutput[PolyformMaterial] {
+func (gmnd MaterialNode) Out(out *nodes.StructOutput[PolyformMaterial]) {
 	var pbr *PolyformPbrMetallicRoughness
 
 	if gmnd.Color != nil {
 		pbr = &PolyformPbrMetallicRoughness{}
-		pbr.BaseColorFactor = gmnd.Color.Value()
+		pbr.BaseColorFactor = nodes.GetOutputValue(out, gmnd.Color)
 	}
 
 	if gmnd.ColorTexture != nil {
 		if pbr == nil {
 			pbr = &PolyformPbrMetallicRoughness{}
 		}
-		v := gmnd.ColorTexture.Value()
-		pbr.BaseColorTexture = &v
+		pbr.BaseColorTexture = nodes.GetOutputReference(out, gmnd.ColorTexture)
 	}
 
 	if gmnd.MetallicRoughnessTexture != nil {
 		if pbr == nil {
 			pbr = &PolyformPbrMetallicRoughness{}
 		}
-		v := gmnd.MetallicRoughnessTexture.Value()
-		pbr.MetallicRoughnessTexture = &v
+		pbr.MetallicRoughnessTexture = nodes.GetOutputReference(out, gmnd.MetallicRoughnessTexture)
 	}
 
 	if gmnd.MetallicFactor != nil {
 		if pbr == nil {
 			pbr = &PolyformPbrMetallicRoughness{}
 		}
-		v := gmnd.MetallicFactor.Value()
-		pbr.MetallicFactor = &v
+		pbr.MetallicFactor = nodes.GetOutputReference(out, gmnd.MetallicFactor)
 	}
 
 	if gmnd.RoughnessFactor != nil {
 		if pbr == nil {
 			pbr = &PolyformPbrMetallicRoughness{}
 		}
-		v := gmnd.RoughnessFactor.Value()
-		pbr.RoughnessFactor = &v
+		pbr.RoughnessFactor = nodes.GetOutputReference(out, gmnd.RoughnessFactor)
 	}
 
 	var emissiveFactor color.Color
 	if gmnd.EmissiveFactor != nil {
-		emissiveFactor = gmnd.EmissiveFactor.Value()
+		emissiveFactor = nodes.GetOutputValue(out, gmnd.EmissiveFactor)
 	}
 
 	extensions := make([]MaterialExtension, 0)
 	if gmnd.Transmission != nil {
-		extensions = append(extensions, gmnd.Transmission.Value())
+		extensions = append(extensions, nodes.GetOutputValue(out, gmnd.Transmission))
 	}
 
 	if gmnd.Volume != nil {
-		extensions = append(extensions, gmnd.Volume.Value())
+		extensions = append(extensions, nodes.GetOutputValue(out, gmnd.Volume))
 	}
 
 	if gmnd.IndexOfRefraction != nil {
-		v := gmnd.IndexOfRefraction.Value()
 		extensions = append(extensions, PolyformIndexOfRefraction{
-			IOR: &v,
+			IOR: nodes.GetOutputReference(out, gmnd.IndexOfRefraction),
 		})
 	}
 
 	if gmnd.Anisotropy != nil {
-		extensions = append(extensions, gmnd.Anisotropy.Value())
+		extensions = append(extensions, nodes.GetOutputValue(out, gmnd.Anisotropy))
 	}
 
 	if gmnd.Clearcoat != nil {
-		extensions = append(extensions, gmnd.Clearcoat.Value())
+		extensions = append(extensions, nodes.GetOutputValue(out, gmnd.Clearcoat))
 	}
 
 	if gmnd.EmissiveStrength != nil {
-		v := gmnd.EmissiveStrength.Value()
 		extensions = append(extensions, PolyformEmissiveStrength{
-			EmissiveStrength: &v,
+			EmissiveStrength: nodes.GetOutputReference(out, gmnd.EmissiveStrength),
 		})
 	}
 
-	var normalTexture *PolyformNormal = nil
-	if gmnd.NormalTexture != nil {
-		tex := gmnd.NormalTexture.Value()
-		normalTexture = &tex
-	}
-
-	return nodes.NewStructOutput(PolyformMaterial{
+	out.Set(PolyformMaterial{
 		PbrMetallicRoughness: pbr,
 		Extensions:           extensions,
 		EmissiveFactor:       emissiveFactor,
-		NormalTexture:        normalTexture,
+		NormalTexture:        nodes.TryGetOutputReference(out, gmnd.NormalTexture, nil),
 	})
 }
 
-func (gmnd MaterialNodeData) Description() string {
+func (gmnd MaterialNode) Description() string {
 	return "The material appearance of a primitive"
 }
 
-type MaterialTransmissionExtensionNode = nodes.Struct[MaterialTransmissionExtensionNodeData]
-
-type MaterialTransmissionExtensionNodeData struct {
+type MaterialTransmissionExtensionNode struct {
 	Factor  nodes.Output[float64]         `description:"The base percentage of light that is transmitted through the surface"`
 	Texture nodes.Output[PolyformTexture] `description:"A texture that defines the transmission percentage of the surface, stored in the R channel. This will be multiplied by transmissionFactor."`
 }
 
-func (node MaterialTransmissionExtensionNodeData) Out() nodes.StructOutput[PolyformTransmission] {
-	transmission := PolyformTransmission{
-		Factor: nodes.TryGetOutputValue(node.Factor, 0.),
-	}
-
-	if node.Texture != nil {
-		v := node.Texture.Value()
-		transmission.Texture = &v
-	}
-
-	return nodes.NewStructOutput(transmission)
+func (node MaterialTransmissionExtensionNode) Out(out *nodes.StructOutput[PolyformTransmission]) {
+	out.Set(PolyformTransmission{
+		Factor:  nodes.TryGetOutputValue(out, node.Factor, 0.),
+		Texture: nodes.TryGetOutputReference(out, node.Texture, nil),
+	})
 }
 
-func (node MaterialTransmissionExtensionNodeData) Description() string {
+func (node MaterialTransmissionExtensionNode) Description() string {
 	return "The KHR_materials_transmission extension provides a way to define glTF 2.0 materials that are transparent to light in a physically plausible way. That is, it enables the creation of transparent materials that absorb, reflect and transmit light depending on the incident angle and the wavelength of light. Common uses cases for thin-surface transmissive materials include plastics and glass."
 }
 
-type MaterialVolumeExtensionNode = nodes.Struct[MaterialVolumeExtensionNodeData]
-
-type MaterialVolumeExtensionNodeData struct {
+type MaterialVolumeExtensionNode struct {
 	ThicknessFactor     nodes.Output[float64]           `description:"The thickness of the volume beneath the surface. The value is given in the coordinate space of the mesh. If the value is 0 the material is thin-walled. Otherwise the material is a volume boundary. The doubleSided property has no effect on volume boundaries. Range is [0, +inf)."`
 	AttenuationDistance nodes.Output[float64]           `description:"Density of the medium given as the average distance that light travels in the medium before interacting with a particle. The value is given in world space. Range is (0, +inf)."`
 	AttenuationColor    nodes.Output[coloring.WebColor] `description:"The color that white light turns into due to absorption when reaching the attenuation distance."`
 }
 
-func (node MaterialVolumeExtensionNodeData) Out() nodes.StructOutput[PolyformVolume] {
-	var attenutationDistance *float64
-	if node.AttenuationDistance != nil {
-		v := node.AttenuationDistance.Value()
-		attenutationDistance = &v
-	}
-
-	return nodes.NewStructOutput(PolyformVolume{
-		ThicknessFactor:     nodes.TryGetOutputValue(node.ThicknessFactor, 0),
-		AttenuationColor:    nodes.TryGetOutputValue(node.AttenuationColor, coloring.White()),
-		AttenuationDistance: attenutationDistance,
+func (node MaterialVolumeExtensionNode) Out(out *nodes.StructOutput[PolyformVolume]) {
+	out.Set(PolyformVolume{
+		ThicknessFactor:     nodes.TryGetOutputValue(out, node.ThicknessFactor, 0),
+		AttenuationColor:    nodes.TryGetOutputValue(out, node.AttenuationColor, coloring.White()),
+		AttenuationDistance: nodes.TryGetOutputReference(out, node.AttenuationDistance, nil),
 	})
 }
 
-func (node MaterialVolumeExtensionNodeData) Description() string {
+func (node MaterialVolumeExtensionNode) Description() string {
 	return "By default, a glTF 2.0 material describes the scattering properties of a surface enclosing an infinitely thin volume. The surface defined by the mesh represents a thin wall. The volume extension makes it possible to turn the surface into an interface between volumes. The mesh to which the material is attached defines the boundaries of an homogeneous medium and therefore must be manifold. Volumes provide effects like refraction, absorption and scattering. Scattering is not subject of this extension."
 }
 
-type MaterialAnisotropyExtensionNode = nodes.Struct[MaterialAnisotropyExtensionNodeData]
-
-type MaterialAnisotropyExtensionNodeData struct {
+type MaterialAnisotropyExtensionNode struct {
 	AnisotropyStrength nodes.Output[float64] `description:"The anisotropy strength. When the anisotropy texture is present, this value is multiplied by the texture's blue channel."`
 	AnisotropyRotation nodes.Output[float64] `description:"The rotation of the anisotropy in tangent, bitangent space, measured in radians counter-clockwise from the tangent. When the anisotropy texture is present, this value provides additional rotation to the vectors in the texture."`
 }
 
-func (node MaterialAnisotropyExtensionNodeData) Out() nodes.StructOutput[PolyformAnisotropy] {
-	return nodes.NewStructOutput(PolyformAnisotropy{
-		AnisotropyStrength: nodes.TryGetOutputValue(node.AnisotropyStrength, 0),
-		AnisotropyRotation: nodes.TryGetOutputValue(node.AnisotropyRotation, 0),
+func (node MaterialAnisotropyExtensionNode) Out(out *nodes.StructOutput[PolyformAnisotropy]) {
+	out.Set(PolyformAnisotropy{
+		AnisotropyStrength: nodes.TryGetOutputValue(out, node.AnisotropyStrength, 0),
+		AnisotropyRotation: nodes.TryGetOutputValue(out, node.AnisotropyRotation, 0),
 	})
 }
 
-func (node MaterialAnisotropyExtensionNodeData) Description() string {
+func (node MaterialAnisotropyExtensionNode) Description() string {
 	return "This extension defines the anisotropic property of a material as observable with brushed metals for example. An asymmetric specular lobe model is introduced to allow for such phenomena. The visually distinct feature of that lobe is the elongated appearance of the specular reflection."
 }
 
-type MaterialClearcoatExtensionNode = nodes.Struct[MaterialClearcoatExtensionNodeData]
-
-type MaterialClearcoatExtensionNodeData struct {
+type MaterialClearcoatExtensionNode struct {
 	ClearcoatFactor          nodes.Output[float64]
 	ClearcoatRoughnessFactor nodes.Output[float64]
 }
 
-func (node MaterialClearcoatExtensionNodeData) Out() nodes.StructOutput[PolyformClearcoat] {
-	return nodes.NewStructOutput(PolyformClearcoat{
-		ClearcoatFactor:          nodes.TryGetOutputValue(node.ClearcoatFactor, 0),
-		ClearcoatRoughnessFactor: nodes.TryGetOutputValue(node.ClearcoatRoughnessFactor, 0),
+func (node MaterialClearcoatExtensionNode) Out(out *nodes.StructOutput[PolyformClearcoat]) {
+	out.Set(PolyformClearcoat{
+		ClearcoatFactor:          nodes.TryGetOutputValue(out, node.ClearcoatFactor, 0),
+		ClearcoatRoughnessFactor: nodes.TryGetOutputValue(out, node.ClearcoatRoughnessFactor, 0),
 	})
 }
 
-func (node MaterialClearcoatExtensionNodeData) Description() string {
+func (node MaterialClearcoatExtensionNode) Description() string {
 	return "A clear coat is a common technique used in Physically-Based Rendering to represent a protective layer applied to a base material."
 }

@@ -23,18 +23,16 @@ func (t Transformation) TRS() []trs.TRS {
 	return results
 }
 
-type TransformationNode = nodes.Struct[TransformationNodeData]
-
-type TransformationNodeData struct {
+type TransformationNode struct {
 	Initial        nodes.Output[trs.TRS]
 	Transformation nodes.Output[trs.TRS]
 	Samples        nodes.Output[int]
 }
 
-func (rnd TransformationNodeData) Out() nodes.StructOutput[[]trs.TRS] {
-	return nodes.NewStructOutput(Transformation{
-		Initial:        nodes.TryGetOutputValue(rnd.Initial, trs.Identity()),
-		Transformation: nodes.TryGetOutputValue(rnd.Transformation, trs.Identity()),
-		Samples:        nodes.TryGetOutputValue(rnd.Samples, 0),
+func (rnd TransformationNode) Out(out *nodes.StructOutput[[]trs.TRS]) {
+	out.Set(Transformation{
+		Initial:        nodes.TryGetOutputValue(out, rnd.Initial, trs.Identity()),
+		Transformation: nodes.TryGetOutputValue(out, rnd.Transformation, trs.Identity()),
+		Samples:        nodes.TryGetOutputValue(out, rnd.Samples, 0),
 	}.TRS())
 }

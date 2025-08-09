@@ -7,9 +7,9 @@ import { NodeManager } from '../node_manager.js';
 import { FileParameterNodeController } from './file_parameter.js';
 import { getFileExtension, getLastSegmentOfURL } from '../utils.js';
 import { Vector2ParameterNodeController } from './vector2_parameter.js';
-import { NodeInstance, NodeInstanceAssignedInput, NodeInstanceOutput, NodeDefinition } from '../schema.js';
+import { NodeInstance, NodeInstanceAssignedInput, NodeInstanceOutput, NodeDefinition, ExecutionReport } from '../schema.js';
 import { RequestManager, saveFileToDisk } from '../requests.js';
-import { FlowNode, GlobalWidgetFactory, ImageWidget } from '@elicdavis/node-flow';
+import { FlowNode, GlobalWidgetFactory, ImageWidget, MessageType } from '@elicdavis/node-flow';
 import { ThreeApp } from '../three_app.js';
 import { ProducerViewManager } from '../ProducerView/producer_view_manager.js';
 
@@ -17,6 +17,16 @@ export const InstanceIDProperty: string = "instanceID"
 
 interface ParameterController {
     update(parameterData: any): void
+}
+
+function formatNanoseconds(ns: number): string {
+    const ms = ns / 1_000_000;
+    if (ms < 1000) {
+        return `${ms.toFixed(ms < 10 ? 2 : 1)}ms`;
+    }
+
+    const s = ms / 1000;
+    return `${s.toFixed(s < 10 ? 2 : 1)}s`;
 }
 
 function BuildParameter(
@@ -227,7 +237,7 @@ export class PolyNodeController {
             if (ext === "png") {
                 const imageWidget = GlobalWidgetFactory.create(flowNode, "image", {}) as ImageWidget;
                 flowNode.addWidget(imageWidget);
-                producerViewManager.Subscribe((url, image) => {
+                producerViewManager.SubscribeToProducerRefresh((url, image) => {
                     // console.log(url, image)
                     // imageWidget.SetBlob(image);
                     // console.log(nodeData.name, getLastSegmentOfURL(url), image);
@@ -300,7 +310,6 @@ export class PolyNodeController {
         this.outputs = nodeData.output;
         this.dependencies = nodeData.assignedInput;
 
-        // console.log(nodeData);
         if (nodeData.metadata) {
             if (nodeData.metadata.position) {
                 this.flowNode.setPosition(nodeData.metadata.position);
@@ -309,6 +318,30 @@ export class PolyNodeController {
 
         if (nodeData.parameter) {
             this.parameter.update(nodeData.parameter)
+        }
+    }
+
+    setOutputPortReport(portName: string, report: ExecutionReport) {
+        if (report.selfTime !== undefined) {
+            this.flowNode.addMessage({
+                message: `${portName}: ${formatNanoseconds(report.selfTime)}`,
+                alwaysShow: true
+            })
+        } else if (report.totalTime !== 0) {
+            this.flowNode.addMessage({
+                message: `${portName}: total ${formatNanoseconds(report.totalTime)}`,
+                alwaysShow: true
+            })
+        }
+
+        if (report.errors) {
+            for (let errI = 0; errI < report.errors.length; errI++) {
+                this.flowNode.addMessage({
+                    message: `${portName}: ${report.errors[errI]}`,
+                    type: MessageType.Error,
+                    alwaysShow: true
+                })
+            }
         }
     }
 

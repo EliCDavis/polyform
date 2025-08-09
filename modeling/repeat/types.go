@@ -8,14 +8,14 @@ import (
 
 func init() {
 	factory := &refutil.TypeFactory{}
-	refutil.RegisterType[MeshNode](factory)
-	refutil.RegisterType[CircleNode](factory)
-	refutil.RegisterType[SplineNode](factory)
-	refutil.RegisterType[LineNode](factory)
-	refutil.RegisterType[FibonacciSphereNode](factory)
-	refutil.RegisterType[FibonacciSpiralNode](factory)
-	refutil.RegisterType[TRSNode](factory)
-	refutil.RegisterType[TransformationNode](factory)
+	refutil.RegisterType[nodes.Struct[MeshNode]](factory)
+	refutil.RegisterType[nodes.Struct[CircleNode]](factory)
+	refutil.RegisterType[nodes.Struct[SplineNode]](factory)
+	refutil.RegisterType[nodes.Struct[LineNode]](factory)
+	refutil.RegisterType[nodes.Struct[FibonacciSphereNode]](factory)
+	refutil.RegisterType[nodes.Struct[FibonacciSpiralNode]](factory)
+	refutil.RegisterType[nodes.Struct[TRSNode]](factory)
+	refutil.RegisterType[nodes.Struct[TransformationNode]](factory)
 	refutil.RegisterType[nodes.Struct[SampleMeshSurfaceNode]](factory)
 	refutil.RegisterType[nodes.Struct[polygonNode]](factory)
 	refutil.RegisterType[nodes.Struct[GridNode]](factory)

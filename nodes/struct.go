@@ -3,6 +3,7 @@ package nodes
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/EliCDavis/polyform/refutil"
 	"github.com/EliCDavis/polyform/utils"
@@ -41,7 +42,6 @@ func (soc structOutputCache) Version(key string) int {
 	}
 
 	return version
-
 }
 
 func (soc structOutputCache) Outdated(key string) bool {
@@ -90,6 +90,7 @@ type StructOutput[T any] struct {
 	data         any
 	val          T
 	cache        *structOutputCache
+	report       ExecutionReport
 }
 
 func (so StructOutput[T]) Name() string {
@@ -105,7 +106,14 @@ func (so *StructOutput[T]) Value() T {
 	if !so.cache.Outdated(so.functionName) {
 		val = so.cache.Get(so.functionName).(StructOutput[T])
 	} else {
-		val = refutil.CallStructMethod(so.data, so.functionName)[0].(StructOutput[T])
+		start := time.Now()
+		refutil.CallStructMethod(so.data, so.functionName, &val)
+		val.report.TotalTime = time.Since(start)
+		self := val.report.TotalTime
+		for _, v := range val.report.Steps {
+			self -= v.Duration
+		}
+		val.report.SelfTime = &self
 		so.cache.Cache(so.functionName, val)
 	}
 	return val.val
@@ -119,12 +127,27 @@ func (so StructOutput[T]) Type() string {
 	return refutil.GetTypeWithPackage(new(T))
 }
 
-func (si StructOutput[T]) Description() string {
-	name := si.functionName + "Description"
-	if refutil.HasMethod(si.data, name) {
-		return refutil.CallStructMethod(si.data, name)[0].(string)
+func (so StructOutput[T]) Description() string {
+	name := so.functionName + "Description"
+	if refutil.HasMethod(so.data, name) {
+		return refutil.CallStructMethod(so.data, name)[0].(string)
 	}
 	return ""
+}
+
+// >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+// Implementing ObservableExecution
+// >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+// The report of executing the output function
+func (so StructOutput[T]) ExecutionReport() ExecutionReport {
+
+	// More song and dance of function return vs node return
+	if !so.cache.Outdated(so.functionName) {
+		val := so.cache.Get(so.functionName).(StructOutput[T])
+		return val.report
+	}
+	return so.report
 }
 
 // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -133,21 +156,30 @@ func (si StructOutput[T]) Description() string {
 // We do this circus act where the StructOutput returned from the function
 // isn't the StructOutput we pass around to other nodes to use.
 // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+// Set the result of the output
 func (so *StructOutput[T]) Set(v T) {
 	so.val = v
 }
 
-func (so StructOutput[T]) CaptureError(err error) {
+func (so *StructOutput[T]) CaptureError(err error) {
 	if err == nil {
 		return
 	}
 
-	// Do capture
+	so.report.Errors = append(so.report.Errors, err.Error())
+}
+
+func (so *StructOutput[T]) CaptureTiming(title string, timing time.Duration) {
+	so.report.Steps = append(so.report.Steps, StepTiming{
+		Label:    title,
+		Duration: timing,
+	})
 }
 
 // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
-func (so StructOutput[T]) build(node Node, cache *structOutputCache, data any, functionName, displayName string) OutputPort {
+func (so *StructOutput[T]) build(node Node, cache *structOutputCache, data any, functionName, displayName string) OutputPort {
 	return &StructOutput[T]{
 		node:         node,
 		data:         data,
@@ -277,7 +309,7 @@ func (s *Struct[T]) Outputs() map[string]OutputPort {
 	// 	s.Data = &v
 	// }
 
-	funcs := refutil.FuncValuesOfType[outputPortBuilder](s.Data)
+	funcs := refutil.FuncArgumentsOfType[outputPortBuilder](s.Data)
 	out := make(map[string]OutputPort)
 
 	if s.outputCache == nil {
@@ -389,7 +421,7 @@ func (sn Struct[T]) Name() string {
 		name = name[0:startGeneric]
 	}
 
-	i := strings.LastIndex(name, "NodeData")
+	i := strings.LastIndex(name, "Node")
 	if i != -1 && i == len(name)-8 {
 		name = name[0 : len(name)-8]
 	} else {

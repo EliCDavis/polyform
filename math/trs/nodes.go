@@ -14,17 +14,17 @@ import (
 func init() {
 	factory := &refutil.TypeFactory{}
 
-	refutil.RegisterType[ArrayNode](factory)
-	refutil.RegisterType[NewNode](factory)
-	refutil.RegisterType[RotateDirectionNode](factory)
-	refutil.RegisterType[RotateDirectionsNode](factory)
-	refutil.RegisterType[RandomizeArrayNode](factory)
-	refutil.RegisterType[TransformArrayNode](factory)
-	refutil.RegisterType[MultiplyNode](factory)
-	refutil.RegisterType[MultiplyToArrayNode](factory)
-	refutil.RegisterType[MultiplyArrayNode](factory)
-	refutil.RegisterType[SelectNode](factory)
-	refutil.RegisterType[SelectArrayNode](factory)
+	refutil.RegisterType[nodes.Struct[ArrayNode]](factory)
+	refutil.RegisterType[nodes.Struct[NewNode]](factory)
+	refutil.RegisterType[nodes.Struct[RotateDirectionNode]](factory)
+	refutil.RegisterType[nodes.Struct[RotateDirectionsNode]](factory)
+	refutil.RegisterType[nodes.Struct[RandomizeArrayNode]](factory)
+	refutil.RegisterType[nodes.Struct[TransformArrayNode]](factory)
+	refutil.RegisterType[nodes.Struct[MultiplyNode]](factory)
+	refutil.RegisterType[nodes.Struct[MultiplyToArrayNode]](factory)
+	refutil.RegisterType[nodes.Struct[MultiplyArrayNode]](factory)
+	refutil.RegisterType[nodes.Struct[SelectNode]](factory)
+	refutil.RegisterType[nodes.Struct[SelectArrayNode]](factory)
 	refutil.RegisterType[nodes.Struct[FilterPositionNode]](factory)
 	refutil.RegisterType[nodes.Struct[FilterScaleNode]](factory)
 	generator.RegisterTypes(factory)
@@ -32,27 +32,23 @@ func init() {
 
 // ============================================================================
 
-type NewNode = nodes.Struct[NewNodeData]
-
-type NewNodeData struct {
+type NewNode struct {
 	Position nodes.Output[vector3.Float64]
 	Rotation nodes.Output[quaternion.Quaternion]
 	Scale    nodes.Output[vector3.Float64]
 }
 
-func (tnd NewNodeData) Out() nodes.StructOutput[TRS] {
-	return nodes.NewStructOutput(New(
-		nodes.TryGetOutputValue(tnd.Position, vector3.Zero[float64]()),
-		nodes.TryGetOutputValue(tnd.Rotation, quaternion.Identity()),
-		nodes.TryGetOutputValue(tnd.Scale, vector3.One[float64]()),
+func (tnd NewNode) Out(out *nodes.StructOutput[TRS]) {
+	out.Set(New(
+		nodes.TryGetOutputValue(out, tnd.Position, vector3.Zero[float64]()),
+		nodes.TryGetOutputValue(out, tnd.Rotation, quaternion.Identity()),
+		nodes.TryGetOutputValue(out, tnd.Scale, vector3.One[float64]()),
 	))
 }
 
 // ============================================================================
 
-type RandomizeArrayNode = nodes.Struct[RandomizeArrayNodeData]
-
-type RandomizeArrayNodeData struct {
+type RandomizeArrayNode struct {
 	TranslationMinimum nodes.Output[vector3.Float64]
 	TranslationMaximum nodes.Output[vector3.Float64]
 	ScaleMinimum       nodes.Output[vector3.Float64]
@@ -62,30 +58,26 @@ type RandomizeArrayNodeData struct {
 	Array              nodes.Output[[]TRS]
 }
 
-func (tnd RandomizeArrayNodeData) Out() nodes.StructOutput[[]TRS] {
-	if tnd.Array == nil {
-		return nodes.NewStructOutput[[]TRS](nil)
-	}
-
-	input := tnd.Array.Value()
+func (tnd RandomizeArrayNode) Out(out *nodes.StructOutput[[]TRS]) {
+	input := nodes.TryGetOutputValue(out, tnd.Array, nil)
 	if len(input) == 0 {
-		return nodes.NewStructOutput[[]TRS](nil)
+		return
 	}
 
-	minT := nodes.TryGetOutputValue(tnd.TranslationMinimum, vector3.Zero[float64]())
-	maxT := nodes.TryGetOutputValue(tnd.TranslationMaximum, vector3.Zero[float64]())
+	minT := nodes.TryGetOutputValue(out, tnd.TranslationMinimum, vector3.Zero[float64]())
+	maxT := nodes.TryGetOutputValue(out, tnd.TranslationMaximum, vector3.Zero[float64]())
 	rangeT := maxT.Sub(minT)
 
-	minS := nodes.TryGetOutputValue(tnd.ScaleMinimum, vector3.One[float64]())
-	maxS := nodes.TryGetOutputValue(tnd.ScaleMaximum, vector3.One[float64]())
+	minS := nodes.TryGetOutputValue(out, tnd.ScaleMinimum, vector3.One[float64]())
+	maxS := nodes.TryGetOutputValue(out, tnd.ScaleMaximum, vector3.One[float64]())
 	rangeS := maxS.Sub(minS)
 
-	minR := nodes.TryGetOutputValue(tnd.RotationMinimum, vector3.Zero[float64]())
-	maxR := nodes.TryGetOutputValue(tnd.RotationMaximum, vector3.Zero[float64]())
+	minR := nodes.TryGetOutputValue(out, tnd.RotationMinimum, vector3.Zero[float64]())
+	maxR := nodes.TryGetOutputValue(out, tnd.RotationMaximum, vector3.Zero[float64]())
 	rangeR := maxR.Sub(minR)
 
-	out := make([]TRS, len(input))
-	for i := range out {
+	arr := make([]TRS, len(input))
+	for i := range input {
 		sample := New(
 			minT.Add(vector3.New(
 				rangeT.X()*rand.Float64(),
@@ -103,105 +95,97 @@ func (tnd RandomizeArrayNodeData) Out() nodes.StructOutput[[]TRS] {
 				rangeS.Z()*rand.Float64(),
 			)),
 		)
-		out[i] = input[i].Multiply(sample)
+		arr[i] = input[i].Multiply(sample)
 	}
 
-	return nodes.NewStructOutput(out)
+	out.Set(arr)
 }
 
 // ============================================================================
 
-type SelectNode = nodes.Struct[SelectNodeData]
-
-type SelectNodeData struct {
+type SelectNode struct {
 	TRS nodes.Output[TRS]
 }
 
-func (tnd SelectNodeData) Position() nodes.StructOutput[vector3.Float64] {
-	return nodes.NewStructOutput(nodes.TryGetOutputValue(tnd.TRS, Identity()).Position())
+func (tnd SelectNode) Position(out *nodes.StructOutput[vector3.Float64]) {
+	out.Set(nodes.TryGetOutputValue(out, tnd.TRS, Identity()).Position())
 }
 
-func (tnd SelectNodeData) Scale() nodes.StructOutput[vector3.Float64] {
-	return nodes.NewStructOutput(nodes.TryGetOutputValue(tnd.TRS, Identity()).Scale())
+func (tnd SelectNode) Scale(out *nodes.StructOutput[vector3.Float64]) {
+	out.Set(nodes.TryGetOutputValue(out, tnd.TRS, Identity()).Scale())
 }
 
-func (tnd SelectNodeData) Rotation() nodes.StructOutput[quaternion.Quaternion] {
-	return nodes.NewStructOutput(nodes.TryGetOutputValue(tnd.TRS, Identity()).Rotation())
+func (tnd SelectNode) Rotation(out *nodes.StructOutput[quaternion.Quaternion]) {
+	out.Set(nodes.TryGetOutputValue(out, tnd.TRS, Identity()).Rotation())
 }
 
 // ============================================================================
 
-type SelectArrayNode = nodes.Struct[SelectArrayNodeData]
-
-type SelectArrayNodeData struct {
+type SelectArrayNode struct {
 	TRS nodes.Output[[]TRS]
 }
 
-func (tnd SelectArrayNodeData) Position() nodes.StructOutput[[]vector3.Float64] {
-	trss := nodes.TryGetOutputValue(tnd.TRS, nil)
-	out := make([]vector3.Float64, len(trss))
+func (tnd SelectArrayNode) Position(out *nodes.StructOutput[[]vector3.Float64]) {
+	trss := nodes.TryGetOutputValue(out, tnd.TRS, nil)
+	arr := make([]vector3.Float64, len(trss))
 
 	for i, trs := range trss {
-		out[i] = trs.Position()
+		arr[i] = trs.Position()
 	}
 
-	return nodes.NewStructOutput(out)
+	out.Set(arr)
 }
 
-func (tnd SelectArrayNodeData) Scale() nodes.StructOutput[[]vector3.Float64] {
-	trss := nodes.TryGetOutputValue(tnd.TRS, nil)
-	out := make([]vector3.Float64, len(trss))
+func (tnd SelectArrayNode) Scale(out *nodes.StructOutput[[]vector3.Float64]) {
+	trss := nodes.TryGetOutputValue(out, tnd.TRS, nil)
+	arr := make([]vector3.Float64, len(trss))
 
 	for i, trs := range trss {
-		out[i] = trs.Scale()
+		arr[i] = trs.Scale()
 	}
 
-	return nodes.NewStructOutput(out)
+	out.Set(arr)
 }
 
-func (tnd SelectArrayNodeData) Rotation() nodes.StructOutput[[]quaternion.Quaternion] {
-	trss := nodes.TryGetOutputValue(tnd.TRS, nil)
-	out := make([]quaternion.Quaternion, len(trss))
+func (tnd SelectArrayNode) Rotation(out *nodes.StructOutput[[]quaternion.Quaternion]) {
+	trss := nodes.TryGetOutputValue(out, tnd.TRS, nil)
+	arr := make([]quaternion.Quaternion, len(trss))
 
 	for i, trs := range trss {
-		out[i] = trs.Rotation()
+		arr[i] = trs.Rotation()
 	}
 
-	return nodes.NewStructOutput(out)
+	out.Set(arr)
 }
 
 // ============================================================================
 
-type MultiplyNode = nodes.Struct[MultiplyNodeData]
-
-type MultiplyNodeData struct {
+type MultiplyNode struct {
 	A nodes.Output[TRS]
 	B nodes.Output[TRS]
 }
 
-func (tnd MultiplyNodeData) Out() nodes.StructOutput[TRS] {
-	a := nodes.TryGetOutputValue(tnd.A, Identity())
-	b := nodes.TryGetOutputValue(tnd.B, Identity())
-	return nodes.NewStructOutput(a.Multiply(b))
+func (tnd MultiplyNode) Out(out *nodes.StructOutput[TRS]) {
+	a := nodes.TryGetOutputValue(out, tnd.A, Identity())
+	b := nodes.TryGetOutputValue(out, tnd.B, Identity())
+	out.Set(a.Multiply(b))
 }
 
 // ============================================================================
 
-type MultiplyArrayNode = nodes.Struct[MultiplyArrayNodeData]
-
-type MultiplyArrayNodeData struct {
+type MultiplyArrayNode struct {
 	A nodes.Output[[]TRS]
 	B nodes.Output[[]TRS]
 }
 
-func (tnd MultiplyArrayNodeData) Out() nodes.StructOutput[[]TRS] {
-	aVal := nodes.TryGetOutputValue(tnd.A, nil)
-	bVal := nodes.TryGetOutputValue(tnd.B, nil)
+func (tnd MultiplyArrayNode) Out(out *nodes.StructOutput[[]TRS]) {
+	aVal := nodes.TryGetOutputValue(out, tnd.A, nil)
+	bVal := nodes.TryGetOutputValue(out, tnd.B, nil)
 
-	out := make([]TRS, max(len(aVal), len(bVal)))
+	arr := make([]TRS, max(len(aVal), len(bVal)))
 
 	identity := Identity()
-	for i := range out {
+	for i := range arr {
 		a := identity
 		b := identity
 
@@ -213,142 +197,133 @@ func (tnd MultiplyArrayNodeData) Out() nodes.StructOutput[[]TRS] {
 			b = bVal[i]
 		}
 
-		out[i] = a.Multiply(b)
+		arr[i] = a.Multiply(b)
 	}
 
-	return nodes.NewStructOutput(out)
+	out.Set(arr)
 }
 
 // ============================================================================
 
-type MultiplyToArrayNode = nodes.Struct[MultiplyToArrayNodeData]
-
-type MultiplyToArrayNodeData struct {
+type MultiplyToArrayNode struct {
 	Left  nodes.Output[TRS]
 	Array nodes.Output[[]TRS]
 	Right nodes.Output[TRS]
 }
 
-func (n MultiplyToArrayNodeData) Description() string {
+func (n MultiplyToArrayNode) Description() string {
 	return "Multiplies each element by the left and right values provided. If left or right is not defined, they are considered the identity matrix. Each value in the resulting array is computed by `left * arr[i] * right`"
 }
 
-func (n MultiplyToArrayNodeData) Out() nodes.StructOutput[[]TRS] {
+func (n MultiplyToArrayNode) Out(out *nodes.StructOutput[[]TRS]) {
 	if n.Array == nil {
-		return nodes.NewStructOutput[[]TRS](nil)
+		return
 	}
 
-	arr := n.Array.Value()
-
+	in := nodes.GetOutputValue(out, n.Array)
 	if n.Left == nil && n.Right == nil {
-		return nodes.NewStructOutput(arr)
+		out.Set(in)
+		return
 	}
 
-	out := make([]TRS, len(arr))
+	arr := make([]TRS, len(in))
 	if n.Left == nil && n.Right != nil {
-		right := n.Right.Value()
-		for i, v := range arr {
-			out[i] = v.Multiply(right)
+		right := nodes.GetOutputValue(out, n.Right)
+		for i, v := range in {
+			arr[i] = v.Multiply(right)
 		}
 	} else if n.Left != nil && n.Right == nil {
-		left := n.Left.Value()
-		for i, v := range arr {
-			out[i] = left.Multiply(v)
+		left := nodes.GetOutputValue(out, n.Left)
+		for i, v := range in {
+			arr[i] = left.Multiply(v)
 		}
 	} else {
-		right := n.Right.Value()
-		left := n.Left.Value()
-		for i, v := range arr {
-			out[i] = left.Multiply(v.Multiply(right))
+		right := nodes.GetOutputValue(out, n.Right)
+		left := nodes.GetOutputValue(out, n.Left)
+		for i, v := range in {
+			arr[i] = left.Multiply(v.Multiply(right))
 		}
 	}
 
-	return nodes.NewStructOutput(out)
+	out.Set(arr)
 }
 
 // ============================================================================
 
-type TransformArrayNode = nodes.Struct[TransformArrayNodeData]
-
-type TransformArrayNodeData struct {
+type TransformArrayNode struct {
 	Transform nodes.Output[TRS]
 	Array     nodes.Output[[]TRS]
 }
 
-func (tnd TransformArrayNodeData) Out() nodes.StructOutput[[]TRS] {
+func (tnd TransformArrayNode) Out(out *nodes.StructOutput[[]TRS]) {
 	if tnd.Transform == nil {
-		return nodes.NewStructOutput(nodes.TryGetOutputValue(tnd.Array, nil))
+		out.Set(nodes.TryGetOutputValue(out, tnd.Array, nil))
+		return
 	}
 
-	v := tnd.Transform.Value()
-	inArr := nodes.TryGetOutputValue(tnd.Array, nil)
-
-	out := make([]TRS, len(inArr))
+	v := nodes.GetOutputValue(out, tnd.Transform)
+	inArr := nodes.TryGetOutputValue(out, tnd.Array, nil)
+	outArr := make([]TRS, len(inArr))
 	for i, e := range inArr {
-		out[i] = v.Multiply(e)
+		outArr[i] = v.Multiply(e)
 	}
 
-	return nodes.NewStructOutput(out)
+	out.Set(outArr)
 }
 
 // ============================================================================
 
-type RotateDirectionNode = nodes.Struct[RotateDirectionNodeData]
-
-type RotateDirectionNodeData struct {
+type RotateDirectionNode struct {
 	TRS       nodes.Output[TRS]
 	Direction nodes.Output[vector3.Float64]
 }
 
-func (tnd RotateDirectionNodeData) Out() nodes.StructOutput[vector3.Float64] {
+func (tnd RotateDirectionNode) Out(out *nodes.StructOutput[vector3.Float64]) {
 	if tnd.TRS == nil || tnd.Direction == nil {
-		return nodes.NewStructOutput(nodes.TryGetOutputValue(tnd.Direction, vector3.Zero[float64]()))
+		out.Set(nodes.TryGetOutputValue(out, tnd.Direction, vector3.Zero[float64]()))
+		return
 	}
 
-	return nodes.NewStructOutput(tnd.TRS.Value().RotateDirection(tnd.Direction.Value()))
+	out.Set(nodes.GetOutputValue(out, tnd.TRS).RotateDirection(nodes.GetOutputValue(out, tnd.Direction)))
 }
 
 // ============================================================================
 
-type RotateDirectionsNode = nodes.Struct[RotateDirectionNodeData]
-
-type RotateDirectionsNodeData struct {
+type RotateDirectionsNode struct {
 	TRS       nodes.Output[[]TRS]
 	Direction nodes.Output[[]vector3.Float64]
 }
 
-func (tnd RotateDirectionsNodeData) Out() nodes.StructOutput[[]vector3.Float64] {
-	trss := nodes.TryGetOutputValue(tnd.TRS, nil)
-	directions := nodes.TryGetOutputValue(tnd.Direction, nil)
-	out := make([]vector3.Float64, max(len(trss), len(directions)))
+func (tnd RotateDirectionsNode) Out(out *nodes.StructOutput[[]vector3.Float64]) {
+	trss := nodes.TryGetOutputValue(out, tnd.TRS, nil)
+	directions := nodes.TryGetOutputValue(out, tnd.Direction, nil)
+	arr := make([]vector3.Float64, max(len(trss), len(directions)))
 
-	for i := 0; i < len(out); i++ {
+	for i := 0; i < len(arr); i++ {
 		val := vector3.Zero[float64]()
 
 		if i < len(trss) && i < len(directions) {
 			val = trss[i].RotateDirection(directions[i])
 		}
 
-		out[i] = val
+		arr[i] = val
 	}
 
-	return nodes.NewStructOutput(out)
+	out.Set(arr)
 }
 
 // ============================================================================
 
-type ArrayNode = nodes.Struct[ArrayNodeData]
-
-type ArrayNodeData struct {
+type ArrayNode struct {
 	Position nodes.Output[[]vector3.Float64]
 	Scale    nodes.Output[[]vector3.Float64]
 	Rotation nodes.Output[[]quaternion.Quaternion]
 }
 
-func (tnd ArrayNodeData) Out() nodes.StructOutput[[]TRS] {
-	positions := nodes.TryGetOutputValue(tnd.Position, nil)
-	rotations := nodes.TryGetOutputValue(tnd.Rotation, nil)
-	scales := nodes.TryGetOutputValue(tnd.Scale, nil)
+func (tnd ArrayNode) Out(out *nodes.StructOutput[[]TRS]) {
+	positions := nodes.TryGetOutputValue(out, tnd.Position, nil)
+	rotations := nodes.TryGetOutputValue(out, tnd.Rotation, nil)
+	scales := nodes.TryGetOutputValue(out, tnd.Scale, nil)
 
 	transforms := make([]TRS, max(len(positions), len(rotations), len(scales)))
 	for i := 0; i < len(transforms); i++ {
@@ -371,7 +346,7 @@ func (tnd ArrayNodeData) Out() nodes.StructOutput[[]TRS] {
 		transforms[i] = New(p, r, s)
 	}
 
-	return nodes.NewStructOutput(transforms)
+	out.Set(transforms)
 }
 
 // ============================================================================
@@ -393,6 +368,7 @@ func filterV3(v, min, max vector3.Float64) bool {
 }
 
 func filter(
+	recorder nodes.ExecutionRecorder,
 	Input nodes.Output[[]TRS],
 	MinX nodes.Output[float64],
 	MinY nodes.Output[float64],
@@ -418,20 +394,20 @@ func filter(
 		}
 	}
 
+	arr := nodes.GetOutputValue(recorder, Input)
 	if allNil {
-		return Input.Value(), nil
+		return arr, nil
 	}
 
-	arr := Input.Value()
 	min := vector3.New(
-		nodes.TryGetOutputValue(MinX, -math.MaxFloat64),
-		nodes.TryGetOutputValue(MinY, -math.MaxFloat64),
-		nodes.TryGetOutputValue(MinZ, -math.MaxFloat64),
+		nodes.TryGetOutputValue(recorder, MinX, -math.MaxFloat64),
+		nodes.TryGetOutputValue(recorder, MinY, -math.MaxFloat64),
+		nodes.TryGetOutputValue(recorder, MinZ, -math.MaxFloat64),
 	)
 	max := vector3.New(
-		nodes.TryGetOutputValue(MaxX, math.MaxFloat64),
-		nodes.TryGetOutputValue(MaxY, math.MaxFloat64),
-		nodes.TryGetOutputValue(MaxZ, math.MaxFloat64),
+		nodes.TryGetOutputValue(recorder, MaxX, math.MaxFloat64),
+		nodes.TryGetOutputValue(recorder, MaxY, math.MaxFloat64),
+		nodes.TryGetOutputValue(recorder, MaxZ, math.MaxFloat64),
 	)
 
 	kept := make([]TRS, 0)
@@ -468,8 +444,9 @@ type FilterPositionNode struct {
 	MaxZ  nodes.Output[float64]
 }
 
-func (tnd FilterPositionNode) Filter() ([]TRS, []TRS) {
+func (tnd FilterPositionNode) Filter(out *nodes.StructOutput[[]TRS]) ([]TRS, []TRS) {
 	return filter(
+		out,
 		tnd.Input,
 		tnd.MinX, tnd.MinY, tnd.MinZ,
 		tnd.MaxX, tnd.MaxY, tnd.MaxZ,
@@ -477,14 +454,14 @@ func (tnd FilterPositionNode) Filter() ([]TRS, []TRS) {
 	)
 }
 
-func (tnd FilterPositionNode) Kept() nodes.StructOutput[[]TRS] {
-	kept, _ := tnd.Filter()
-	return nodes.NewStructOutput(kept)
+func (tnd FilterPositionNode) Kept(out *nodes.StructOutput[[]TRS]) {
+	kept, _ := tnd.Filter(out)
+	out.Set(kept)
 }
 
-func (tnd FilterPositionNode) Removed() nodes.StructOutput[[]TRS] {
-	_, removed := tnd.Filter()
-	return nodes.NewStructOutput(removed)
+func (tnd FilterPositionNode) Removed(out *nodes.StructOutput[[]TRS]) {
+	_, removed := tnd.Filter(out)
+	out.Set(removed)
 }
 
 type FilterScaleNode struct {
@@ -497,8 +474,9 @@ type FilterScaleNode struct {
 	MaxZ  nodes.Output[float64]
 }
 
-func (tnd FilterScaleNode) Filter() ([]TRS, []TRS) {
+func (tnd FilterScaleNode) Filter(out *nodes.StructOutput[[]TRS]) ([]TRS, []TRS) {
 	return filter(
+		out,
 		tnd.Input,
 		tnd.MinX, tnd.MinY, tnd.MinZ,
 		tnd.MaxX, tnd.MaxY, tnd.MaxZ,
@@ -506,12 +484,12 @@ func (tnd FilterScaleNode) Filter() ([]TRS, []TRS) {
 	)
 }
 
-func (tnd FilterScaleNode) Kept() nodes.StructOutput[[]TRS] {
-	kept, _ := tnd.Filter()
-	return nodes.NewStructOutput(kept)
+func (tnd FilterScaleNode) Kept(out *nodes.StructOutput[[]TRS]) {
+	kept, _ := tnd.Filter(out)
+	out.Set(kept)
 }
 
-func (tnd FilterScaleNode) Removed() nodes.StructOutput[[]TRS] {
-	_, removed := tnd.Filter()
-	return nodes.NewStructOutput(removed)
+func (tnd FilterScaleNode) Removed(out *nodes.StructOutput[[]TRS]) {
+	_, removed := tnd.Filter(out)
+	out.Set(removed)
 }

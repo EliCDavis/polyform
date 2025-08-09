@@ -13,7 +13,7 @@ import (
 func init() {
 	factory := &refutil.TypeFactory{}
 
-	refutil.RegisterType[ManifestNode](factory)
+	refutil.RegisterType[nodes.Struct[ManifestNode]](factory)
 
 	generator.RegisterTypes(factory)
 }
@@ -30,19 +30,17 @@ func (Splat) Mime() string {
 	return "application/octet-stream"
 }
 
-type ManifestNode = nodes.Struct[ManifestNodeData]
-
-type ManifestNodeData struct {
+type ManifestNode struct {
 	In nodes.Output[modeling.Mesh]
 }
 
-func (pn ManifestNodeData) Description() string {
+func (pn ManifestNode) Description() string {
 	return "Mkkellogg's SPLAT format for their three.js Gaussian Splat Viewer"
 }
 
-func (pn ManifestNodeData) Out() nodes.StructOutput[manifest.Manifest] {
+func (pn ManifestNode) Out(out *nodes.StructOutput[manifest.Manifest]) {
 	entry := manifest.Entry{
-		Artifact: Splat{Mesh: pn.In.Value()},
+		Artifact: Splat{Mesh: nodes.TryGetOutputValue(out, pn.In, modeling.EmptyPointcloud())},
 	}
-	return nodes.NewStructOutput(manifest.SingleEntryManifest("model.splat", entry))
+	out.Set(manifest.SingleEntryManifest("model.splat", entry))
 }

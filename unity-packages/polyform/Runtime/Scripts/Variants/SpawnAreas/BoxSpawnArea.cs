@@ -2,6 +2,7 @@
 
 namespace EliCDavis.Polyform.Variants.SpawnAreas
 {
+    [AddComponentMenu("Polyform/Variant/Spawn Area/Box Spawn Area")]
     public class BoxSpawnArea : SpawnArea
     {
         private bool InRange(float v, float min, float max)

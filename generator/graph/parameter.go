@@ -15,5 +15,3 @@ type Parameter interface {
 	ApplyMessage(msg []byte) (bool, error)
 	ToMessage() []byte
 }
-
-// ============================================================================

@@ -35,19 +35,26 @@ func Scale(m modeling.Mesh, scaleAttr string, amount vector3.Float64) modeling.M
 	return m.SetFloat3Attribute(modeling.ScaleAttribute, scaledData)
 }
 
-type ScaleNode = nodes.Struct[ScaleNodeData]
-
-type ScaleNodeData struct {
+type ScaleNode struct {
 	Mesh      nodes.Output[modeling.Mesh]
 	Attribute nodes.Output[string]
 	Amount    nodes.Output[vector3.Float64]
 }
 
-func (sa3dn ScaleNodeData) Out() nodes.StructOutput[modeling.Mesh] {
-	attr := modeling.ScaleAttribute
-	if sa3dn.Attribute != nil {
-		attr = sa3dn.Attribute.Value()
+func (sa3dn ScaleNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
+	if sa3dn.Mesh == nil {
+		out.Set(modeling.EmptyPointcloud())
+		return
 	}
 
-	return nodes.NewStructOutput(Scale(sa3dn.Mesh.Value(), attr, sa3dn.Amount.Value()))
+	mesh := nodes.GetOutputValue(out, sa3dn.Mesh)
+	if sa3dn.Amount == nil {
+		out.Set(mesh)
+		return
+	}
+
+	attr := nodes.TryGetOutputValue(out, sa3dn.Attribute, modeling.ScaleAttribute)
+	amount := nodes.GetOutputValue(out, sa3dn.Amount)
+
+	out.Set(Scale(mesh, attr, amount))
 }

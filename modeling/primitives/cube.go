@@ -278,9 +278,7 @@ func (c Cube) calcUVs() []vector2.Float64 {
 	return uvs
 }
 
-type CubeNode = nodes.Struct[CubeNodeData]
-
-type CubeNodeData struct {
+type CubeNode struct {
 	Width      nodes.Output[float64]
 	Height     nodes.Output[float64]
 	Depth      nodes.Output[float64]
@@ -288,27 +286,20 @@ type CubeNodeData struct {
 	UVs        nodes.Output[CubeUVs]
 }
 
-func (c CubeNodeData) Out() nodes.StructOutput[modeling.Mesh] {
+func (c CubeNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	cube := Cube{
-		Height:     nodes.TryGetOutputValue(c.Height, 1.),
-		Width:      nodes.TryGetOutputValue(c.Width, 1.),
-		Depth:      nodes.TryGetOutputValue(c.Depth, 1.),
-		Dimensions: max(1, nodes.TryGetOutputValue(c.Dimensions, 1)),
+		Height:     nodes.TryGetOutputValue(out, c.Height, 1.),
+		Width:      nodes.TryGetOutputValue(out, c.Width, 1.),
+		Depth:      nodes.TryGetOutputValue(out, c.Depth, 1.),
+		Dimensions: max(1, nodes.TryGetOutputValue(out, c.Dimensions, 1)),
+		UVs:        nodes.TryGetOutputReference(out, c.UVs, nil),
 	}
-
-	if c.UVs != nil {
-		uvs := c.UVs.Value()
-		cube.UVs = &uvs
-	}
-
-	return nodes.NewStructOutput(cube.UnweldedQuads())
+	out.Set(cube.UnweldedQuads())
 }
 
 // CubeUVs
 
-type CubeUVsNode = nodes.Struct[CubeUVsNodeData]
-
-type CubeUVsNodeData struct {
+type CubeUVsNode struct {
 	Top    nodes.Output[StripUVs]
 	Bottom nodes.Output[StripUVs]
 	Left   nodes.Output[StripUVs]
@@ -317,38 +308,13 @@ type CubeUVsNodeData struct {
 	Back   nodes.Output[StripUVs]
 }
 
-func (cnd CubeUVsNodeData) Uv() nodes.StructOutput[CubeUVs] {
-	val := CubeUVs{}
-
-	if cnd.Top != nil {
-		top := cnd.Top.Value()
-		val.Top = &top
-	}
-
-	if cnd.Bottom != nil {
-		bottom := cnd.Bottom.Value()
-		val.Bottom = &bottom
-	}
-
-	if cnd.Left != nil {
-		left := cnd.Left.Value()
-		val.Left = &left
-	}
-
-	if cnd.Right != nil {
-		right := cnd.Right.Value()
-		val.Right = &right
-	}
-
-	if cnd.Front != nil {
-		front := cnd.Front.Value()
-		val.Front = &front
-	}
-
-	if cnd.Back != nil {
-		back := cnd.Back.Value()
-		val.Back = &back
-	}
-
-	return nodes.NewStructOutput(val)
+func (cnd CubeUVsNode) Uv(out *nodes.StructOutput[CubeUVs]) {
+	out.Set(CubeUVs{
+		Top:    nodes.TryGetOutputReference(out, cnd.Top, nil),
+		Bottom: nodes.TryGetOutputReference(out, cnd.Bottom, nil),
+		Left:   nodes.TryGetOutputReference(out, cnd.Left, nil),
+		Right:  nodes.TryGetOutputReference(out, cnd.Right, nil),
+		Front:  nodes.TryGetOutputReference(out, cnd.Front, nil),
+		Back:   nodes.TryGetOutputReference(out, cnd.Back, nil),
+	})
 }

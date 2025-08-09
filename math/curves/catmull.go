@@ -237,19 +237,27 @@ func (crcp CatmullRomSplineParameters) Spline() CatmullRomSpline {
 		}
 	}
 
-	// One of the least satisfying arbitrary decisions I've made in this
-	// library
 	if len(crcp.Points) == 3 {
 		return CatmullRomSpline{
 			alpha: crcp.Alpha,
-			curves: []*CatmullRomCurve{{
-				alpha:   crcp.Alpha,
-				epsilon: epsilon,
-				p0:      crcp.Points[0],
-				p1:      crcp.Points[1],
-				p2:      crcp.Points[2],
-				p3:      crcp.Points[2],
-			}},
+			curves: []*CatmullRomCurve{
+				{
+					alpha:   crcp.Alpha,
+					epsilon: epsilon,
+					p0:      crcp.Points[0],
+					p1:      crcp.Points[0],
+					p2:      crcp.Points[1],
+					p3:      crcp.Points[1],
+				},
+				{
+					alpha:   crcp.Alpha,
+					epsilon: epsilon,
+					p0:      crcp.Points[1],
+					p1:      crcp.Points[1],
+					p2:      crcp.Points[2],
+					p3:      crcp.Points[2],
+				},
+			},
 		}
 	}
 
@@ -310,7 +318,7 @@ func (crc *CatmullRomSpline) Length() float64 {
 	return *crc.distance
 }
 
-func (crc *CatmullRomSpline) Dir(distance float64) vector3.Float64 {
+func (crc *CatmullRomSpline) Tangent(distance float64) vector3.Float64 {
 	inc := crc.Length() / 1000
 
 	if distance-inc < 0 {
@@ -349,43 +357,25 @@ func (crc *CatmullRomSpline) At(distance float64) vector3.Float64 {
 	return curveToEvaluation.Distance(remainingDistance)
 }
 
-type CatmullRomSplineNode = nodes.Struct[CatmullRomSplineNodeData]
-
-type CatmullRomSplineNodeData struct {
+type CatmullRomSplineNode struct {
 	Points nodes.Output[[]vector3.Float64]
 	Alpha  nodes.Output[float64]
 }
 
-func (r CatmullRomSplineNodeData) Out() nodes.StructOutput[Spline] {
-
-	alpha := 0.
-	if r.Alpha != nil {
-		alpha = r.Alpha.Value()
+func (r CatmullRomSplineNode) Out(out *nodes.StructOutput[Spline]) {
+	points := nodes.TryGetOutputValue(out, r.Points, nil)
+	if len(points) < 2 {
+		return
 	}
-
-	if r.Points == nil {
-		return nodes.NewStructOutput[Spline](nil)
-	}
-
-	points := r.Points.Value()
-	if len(points) < 4 {
-		return nodes.NewStructOutput[Spline](nil)
-	}
-
-	// for _, p := range points {
-	// 	fmt.Print(p.Format("%g, %g, %g\n"))
-	// }
-	// fmt.Printf("%g\n", alpha)
 
 	spline := CatmullRomSplineParameters{
 		Points: points,
-		Alpha:  alpha,
+		Alpha:  nodes.TryGetOutputValue(out, r.Alpha, 0),
 	}.Spline()
 
 	// UGGO: Force a calculation to fill all the temp data
 	// Prevents two threads calling length at the same time,
 	// causing it to populate things twice
 	spline.Length()
-
-	return nodes.NewStructOutput[Spline](&spline)
+	out.Set(&spline)
 }

@@ -38,16 +38,14 @@ func Circle(times int, radius float64) []trs.TRS {
 	return transforms
 }
 
-type CircleNode = nodes.Struct[CircleNodeData]
-
-type CircleNodeData struct {
+type CircleNode struct {
 	Radius nodes.Output[float64]
 	Times  nodes.Output[int]
 }
 
-func (r CircleNodeData) Out() nodes.StructOutput[[]trs.TRS] {
-	return nodes.NewStructOutput(Circle(
-		max(nodes.TryGetOutputValue(r.Times, 1), 0),
-		nodes.TryGetOutputValue(r.Radius, 0.),
+func (r CircleNode) Out(out *nodes.StructOutput[[]trs.TRS]) {
+	out.Set(Circle(
+		max(nodes.TryGetOutputValue(out, r.Times, 1), 0),
+		nodes.TryGetOutputValue(out, r.Radius, 0.),
 	))
 }

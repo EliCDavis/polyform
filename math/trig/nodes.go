@@ -9,8 +9,8 @@ import (
 func init() {
 	factory := &refutil.TypeFactory{}
 
-	refutil.RegisterType[SinArray](factory)
-	refutil.RegisterType[CosArray](factory)
+	refutil.RegisterType[nodes.Struct[SinArray]](factory)
+	refutil.RegisterType[nodes.Struct[CosArray]](factory)
 	refutil.RegisterType[nodes.Struct[TanArray]](factory)
 
 	refutil.RegisterType[nodes.Struct[ArcSinArray]](factory)

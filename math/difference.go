@@ -5,7 +5,7 @@ import (
 	"github.com/EliCDavis/vector"
 )
 
-func methodToArr[T any, G any](in T, arr []T, f func(a, b T) G) []G {
+func methodToArr[T any, G any](in T, arr []T, f func(a, arrI T) G) []G {
 	out := make([]G, len(arr))
 
 	for i, v := range arr {
@@ -15,28 +15,28 @@ func methodToArr[T any, G any](in T, arr []T, f func(a, b T) G) []G {
 	return out
 }
 
-type DifferenceNodeData[T vector.Number] struct {
+type DifferenceNode[T vector.Number] struct {
 	A nodes.Output[T]
 	B nodes.Output[T]
 }
 
-func (cn DifferenceNodeData[T]) Out() nodes.StructOutput[T] {
-	return nodes.NewStructOutput(nodes.TryGetOutputValue(cn.A, 0) - nodes.TryGetOutputValue(cn.B, 0))
+func (cn DifferenceNode[T]) Out(out *nodes.StructOutput[T]) {
+	out.Set(nodes.TryGetOutputValue(out, cn.A, 0) - nodes.TryGetOutputValue(out, cn.B, 0))
 }
 
 // ============================================================================
 
-type DifferencesToArrayNodeData[T vector.Number] struct {
+type DifferencesToArrayNode[T vector.Number] struct {
 	In    nodes.Output[T]
 	Array nodes.Output[[]T]
 }
 
-func (cn DifferencesToArrayNodeData[T]) Out() nodes.StructOutput[[]T] {
-	return nodes.NewStructOutput(methodToArr(
-		nodes.TryGetOutputValue(cn.In, 0),
-		nodes.TryGetOutputValue(cn.Array, nil),
+func (cn DifferencesToArrayNode[T]) Out(out *nodes.StructOutput[[]T]) {
+	out.Set(methodToArr(
+		nodes.TryGetOutputValue(out, cn.In, 0),
+		nodes.TryGetOutputValue(out, cn.Array, nil),
 		func(a, b T) T {
-			return a - b
+			return b - a
 		},
 	))
 }

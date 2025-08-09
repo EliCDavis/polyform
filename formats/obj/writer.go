@@ -10,30 +10,65 @@ import (
 	"github.com/EliCDavis/polyform/modeling"
 )
 
-func WriteMaterials(scene Scene, out io.Writer) error {
-	_, _ = fmt.Fprintln(out, "# Created with github.com/EliCDavis/polyform")
-
-	defaultWritten := false
-	written := make(map[*Material]struct{})
+func calculateMaterialNames(scene Scene) map[*Material]string {
+	written := make(map[*Material]string)
+	writtenNames := make(map[string]struct{})
 
 	for _, o := range scene.Objects {
 		for _, e := range o.Entries {
-			if e.Material == nil {
-				if !defaultWritten {
-					if err := DefaultMaterial().write(out); err != nil {
-						return fmt.Errorf("failed to write default material: %w", err)
-					}
-					defaultWritten = true
-				}
-				continue
-			}
-
 			if _, ok := written[e.Material]; ok {
 				continue
 			}
 
-			if err := e.Material.write(out); err != nil {
-				return fmt.Errorf("failed to write material %q on object %q: %w", e.Material.Name, o.Name, err)
+			nameToUse := "Default Diffuse"
+			if e.Material != nil {
+				nameToUse = e.Material.Name
+			}
+
+			if strings.TrimSpace(nameToUse) == "" {
+				nameToUse = "unamed"
+			}
+
+			if _, ok := writtenNames[nameToUse]; ok {
+				duplicateNameCount := 2
+				for {
+					attempt := fmt.Sprintf("%s%d", nameToUse, duplicateNameCount)
+					if _, ok := writtenNames[attempt]; !ok {
+						nameToUse = attempt
+						break
+					}
+					duplicateNameCount++
+				}
+			}
+
+			written[e.Material] = nameToUse
+			writtenNames[nameToUse] = struct{}{}
+		}
+	}
+
+	return written
+}
+
+func WriteMaterials(scene Scene, out io.Writer) error {
+	_, _ = fmt.Fprintln(out, "# Created with github.com/EliCDavis/polyform")
+
+	written := make(map[*Material]struct{})
+	names := calculateMaterialNames(scene)
+	dm := DefaultMaterial()
+
+	for _, o := range scene.Objects {
+		for _, e := range o.Entries {
+			if _, ok := written[e.Material]; ok {
+				continue
+			}
+
+			mat := e.Material
+			if mat == nil {
+				mat = &dm
+			}
+
+			if err := mat.write(names[e.Material], out); err != nil {
+				return fmt.Errorf("failed to write material %q on object %q: %w", mat.Name, o.Name, err)
 			}
 
 			written[e.Material] = struct{}{}
@@ -43,18 +78,12 @@ func WriteMaterials(scene Scene, out io.Writer) error {
 	return nil
 }
 
-func writeUsingMaterial(mat *Material, out *txt.Writer) {
-	if mat == nil {
-		out.StartEntry()
-		out.String("usemtl DefaultDiffuse\n")
-		out.FinishEntry()
-	} else {
-		out.StartEntry()
-		out.String("usemtl ")
-		out.String(strings.Replace(mat.Name, " ", "", -1))
-		out.NewLine()
-		out.FinishEntry()
-	}
+func writeUsingMaterial(matName string, out *txt.Writer) {
+	out.StartEntry()
+	out.String("usemtl ")
+	out.String(strings.Replace(matName, " ", "", -1))
+	out.NewLine()
+	out.FinishEntry()
 }
 
 func writeFaceVerts(tris *iter.ArrayIterator[int], out *txt.Writer, offset int) {
@@ -188,6 +217,10 @@ func Write(scene Scene, materialFile string, out io.Writer) error {
 	}
 
 	writer := txt.NewWriter(out)
+	var matNames map[*Material]string = nil
+	if materialFile != "" {
+		matNames = calculateMaterialNames(scene)
+	}
 
 	if err := scene.writeVertexData(writer); err != nil {
 		return err
@@ -222,9 +255,8 @@ func Write(scene Scene, materialFile string, out io.Writer) error {
 				faceWriter = writeFaceVerts
 			}
 
-			if entry.Material != nil {
-				mat := entry.Material
-				writeUsingMaterial(mat, writer)
+			if matNames != nil {
+				writeUsingMaterial(matNames[entry.Material], writer)
 				if err := writer.Error(); err != nil {
 					return fmt.Errorf("failed to write materials: %w", err)
 				}

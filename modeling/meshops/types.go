@@ -9,20 +9,20 @@ import (
 func init() {
 	factory := &refutil.TypeFactory{}
 
-	refutil.RegisterType[TranslateAttribute3DNode](factory)
+	refutil.RegisterType[nodes.Struct[TranslateAttribute3DNode]](factory)
 	refutil.RegisterType[nodes.Struct[TranslateAttributeByPerlinNoise3DNode]](factory)
-	refutil.RegisterType[CropAttribute3DNode](factory)
-	refutil.RegisterType[CenterAttribute3DNode](factory)
-	refutil.RegisterType[LaplacianSmoothNode](factory)
+	refutil.RegisterType[nodes.Struct[CropAttribute3DNode]](factory)
+	refutil.RegisterType[nodes.Struct[CenterAttribute3DNode]](factory)
+	refutil.RegisterType[nodes.Struct[LaplacianSmoothNode]](factory)
 
-	refutil.RegisterType[CombineNode](factory)
+	refutil.RegisterType[nodes.Struct[CombineNode]](factory)
 
-	refutil.RegisterType[SmoothNormalsNode](factory)
-	refutil.RegisterType[SmoothNormalsImplicitWeldNode](factory)
-	refutil.RegisterType[FlatNormalsNode](factory)
+	refutil.RegisterType[nodes.Struct[SmoothNormalsNode]](factory)
+	refutil.RegisterType[nodes.Struct[SmoothNormalsImplicitWeldNode]](factory)
+	refutil.RegisterType[nodes.Struct[FlatNormalsNode]](factory)
 
-	refutil.RegisterType[ScaleAttribute3DNode](factory)
-	refutil.RegisterType[ScaleAttributeAlongNormalNode](factory)
+	refutil.RegisterType[nodes.Struct[ScaleAttribute3DNode]](factory)
+	refutil.RegisterType[nodes.Struct[ScaleAttributeAlongNormalNode]](factory)
 
 	refutil.RegisterType[nodes.Struct[SliceAttributeByPlaneNode]](factory)
 	refutil.RegisterType[nodes.Struct[FlipTriangleWindingNode]](factory)

@@ -11,88 +11,81 @@ import (
 func init() {
 	factory := &refutil.TypeFactory{}
 
-	refutil.RegisterType[Perlin1DNode](factory)
-	refutil.RegisterType[Perlin2DNode](factory)
-	refutil.RegisterType[Perlin3DNode](factory)
+	refutil.RegisterType[nodes.Struct[Perlin1DNode]](factory)
+	refutil.RegisterType[nodes.Struct[Perlin2DNode]](factory)
+	refutil.RegisterType[nodes.Struct[Perlin3DNode]](factory)
 
 	generator.RegisterTypes(factory)
 }
 
-type Perlin1DNode = nodes.Struct[Perlin1DNodeData]
-
-type Perlin1DNodeData struct {
+type Perlin1DNode struct {
 	Time      nodes.Output[[]float64]
 	Shift     nodes.Output[float64]
 	Amplitude nodes.Output[float64]
 	Frequency nodes.Output[float64]
 }
 
-func (cn Perlin1DNodeData) Out() nodes.StructOutput[[]float64] {
+func (cn Perlin1DNode) Out(out *nodes.StructOutput[[]float64]) {
 	if cn.Time == nil {
-		return nodes.NewStructOutput[[]float64](nil)
+		return
 	}
 
-	scale := nodes.TryGetOutputValue(cn.Amplitude, 1.)
-	frequency := nodes.TryGetOutputValue(cn.Frequency, 1.)
-	shift := nodes.TryGetOutputValue(cn.Shift, 0.)
-	times := cn.Time.Value()
+	scale := nodes.TryGetOutputValue(out, cn.Amplitude, 1.)
+	frequency := nodes.TryGetOutputValue(out, cn.Frequency, 1.)
+	shift := nodes.TryGetOutputValue(out, cn.Shift, 0.)
+	times := nodes.GetOutputValue(out, cn.Time)
+
 	values := make([]float64, len(times))
 	for i, t := range times {
 		values[i] = Perlin1D((t*frequency)+shift) * scale
 	}
-
-	return nodes.NewStructOutput(values)
+	out.Set(values)
 }
 
-type Perlin2DNode = nodes.Struct[Perlin2DNodeData]
-
-type Perlin2DNodeData struct {
+type Perlin2DNode struct {
 	Time      nodes.Output[[]vector2.Float64]
 	Amplitude nodes.Output[float64]
 	Frequency nodes.Output[vector2.Float64]
 	Shift     nodes.Output[vector2.Float64]
 }
 
-func (cn Perlin2DNodeData) Out() nodes.StructOutput[[]float64] {
+func (cn Perlin2DNode) Out(out *nodes.StructOutput[[]float64]) {
 	if cn.Time == nil {
-		return nodes.NewStructOutput[[]float64](nil)
+		return
 	}
 
-	scale := nodes.TryGetOutputValue(cn.Amplitude, 1.)
-	times := cn.Time.Value()
-	frequency := nodes.TryGetOutputValue(cn.Frequency, vector2.One[float64]())
-	shift := nodes.TryGetOutputValue(cn.Shift, vector2.Zero[float64]())
+	times := nodes.GetOutputValue(out, cn.Time)
+	scale := nodes.TryGetOutputValue(out, cn.Amplitude, 1.)
+	frequency := nodes.TryGetOutputValue(out, cn.Frequency, vector2.One[float64]())
+	shift := nodes.TryGetOutputValue(out, cn.Shift, vector2.Zero[float64]())
+
 	values := make([]float64, len(times))
 	for i, t := range times {
 		values[i] = Perlin2D(t.MultByVector(frequency).Add(shift)) * scale
 	}
-
-	return nodes.NewStructOutput(values)
+	out.Set(values)
 }
 
-type Perlin3DNode = nodes.Struct[Perlin3DNodeData]
-
-type Perlin3DNodeData struct {
+type Perlin3DNode struct {
 	Time      nodes.Output[[]vector3.Float64]
 	Amplitude nodes.Output[float64]
 	Frequency nodes.Output[vector3.Float64]
 	Shift     nodes.Output[vector3.Float64]
 }
 
-func (cn Perlin3DNodeData) Out() nodes.StructOutput[[]float64] {
+func (cn Perlin3DNode) Out(out *nodes.StructOutput[[]float64]) {
 	if cn.Time == nil {
-		return nodes.NewStructOutput[[]float64](nil)
+		return
 	}
 
-	scale := nodes.TryGetOutputValue(cn.Amplitude, 1.)
+	scale := nodes.TryGetOutputValue(out, cn.Amplitude, 1.)
 
-	times := cn.Time.Value()
-	frequency := nodes.TryGetOutputValue(cn.Frequency, vector3.One[float64]())
-	shift := nodes.TryGetOutputValue(cn.Shift, vector3.Zero[float64]())
+	times := nodes.GetOutputValue(out, cn.Time)
+	frequency := nodes.TryGetOutputValue(out, cn.Frequency, vector3.One[float64]())
+	shift := nodes.TryGetOutputValue(out, cn.Shift, vector3.Zero[float64]())
 	values := make([]float64, len(times))
 	for i, t := range times {
 		values[i] = Perlin3D(t.MultByVector(frequency).Add(shift)) * scale
 	}
-
-	return nodes.NewStructOutput(values)
+	out.Set(values)
 }

@@ -10,44 +10,32 @@ type Select[T vector.Number] struct {
 	In nodes.Output[vector2.Vector[T]]
 }
 
-func (node Select[T]) X() nodes.StructOutput[T] {
-	if node.In == nil {
-		var v T
-		return nodes.NewStructOutput(v)
-	}
-
-	v := node.In.Value()
-	return nodes.NewStructOutput(v.X())
+func (node Select[T]) X(out *nodes.StructOutput[T]) {
+	out.Set(nodes.TryGetOutputValue(out, node.In, vector2.Zero[T]()).X())
 }
 
-func (node Select[T]) Y() nodes.StructOutput[T] {
-	if node.In == nil {
-		var v T
-		return nodes.NewStructOutput(v)
-	}
-
-	v := node.In.Value()
-	return nodes.NewStructOutput(v.Y())
+func (node Select[T]) Y(out *nodes.StructOutput[T]) {
+	out.Set(nodes.TryGetOutputValue(out, node.In, vector2.Zero[T]()).Y())
 }
 
 type SelectArray[T vector.Number] struct {
 	In nodes.Output[[]vector2.Vector[T]]
 }
 
-func (node SelectArray[T]) X() nodes.StructOutput[[]T] {
-	in := nodes.TryGetOutputValue(node.In, nil)
-	out := make([]T, len(in))
+func (node SelectArray[T]) X(out *nodes.StructOutput[[]T]) {
+	in := nodes.TryGetOutputValue(out, node.In, nil)
+	arr := make([]T, len(in))
 	for i, v := range in {
-		out[i] = v.X()
+		arr[i] = v.X()
 	}
-	return nodes.NewStructOutput(out)
+	out.Set(arr)
 }
 
-func (node SelectArray[T]) Y() nodes.StructOutput[[]T] {
-	in := nodes.TryGetOutputValue(node.In, nil)
-	out := make([]T, len(in))
+func (node SelectArray[T]) Y(out *nodes.StructOutput[[]T]) {
+	in := nodes.TryGetOutputValue(out, node.In, nil)
+	arr := make([]T, len(in))
 	for i, v := range in {
-		out[i] = v.Y()
+		arr[i] = v.Y()
 	}
-	return nodes.NewStructOutput(out)
+	out.Set(arr)
 }

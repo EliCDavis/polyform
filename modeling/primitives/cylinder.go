@@ -119,9 +119,7 @@ func (c Cylinder) ToMesh() modeling.Mesh {
 	return cylinderMesh
 }
 
-type CylinderNode = nodes.Struct[CylinderNodeData]
-
-type CylinderNodeData struct {
+type CylinderNode struct {
 	Sides  nodes.Output[int]
 	Height nodes.Output[float64]
 	Radius nodes.Output[float64]
@@ -129,39 +127,13 @@ type CylinderNodeData struct {
 	Bottom nodes.Output[bool]
 }
 
-func (hnd CylinderNodeData) Out() nodes.StructOutput[modeling.Mesh] {
-	radius := 0.5
-	if hnd.Radius != nil {
-		radius = hnd.Radius.Value()
-	}
-
-	height := 1.
-	if hnd.Height != nil {
-		height = hnd.Height.Value()
-	}
-
-	top := true
-	if hnd.Top != nil {
-		top = hnd.Top.Value()
-	}
-
-	bottom := true
-	if hnd.Bottom != nil {
-		bottom = hnd.Bottom.Value()
-	}
-
-	sides := 20
-	if hnd.Sides != nil {
-		sides = hnd.Sides.Value()
-	}
-
+func (hnd CylinderNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	hemi := Cylinder{
-		Radius:   radius,
-		Height:   height,
-		Sides:    sides,
-		NoTop:    !top,
-		NoBottom: !bottom,
+		Radius:   nodes.TryGetOutputValue(out, hnd.Radius, 0.5),
+		Height:   nodes.TryGetOutputValue(out, hnd.Height, 1),
+		Sides:    max(nodes.TryGetOutputValue(out, hnd.Sides, 20), 3),
+		NoTop:    !nodes.TryGetOutputValue(out, hnd.Top, true),
+		NoBottom: !nodes.TryGetOutputValue(out, hnd.Bottom, true),
 	}
-
-	return nodes.NewStructOutput(hemi.ToMesh())
+	out.Set(hemi.ToMesh())
 }

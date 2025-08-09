@@ -83,3 +83,25 @@ export interface Manifest {
 export interface CreateVariableResponse {
     nodeType: NodeDefinition
 }
+
+export interface StepTiming {
+    label?: string;
+    duration: number;
+    steps?: StepTiming[];
+}
+
+export interface ExecutionReport {
+    errors?: string[];
+    logs?: string[];
+    totalTime: number;
+    selfTime?: number;
+    steps?: StepTiming[];
+}
+
+export interface GraphExecutionReport {
+    nodes: { [key: string]: NodeExecutionReport};
+}
+
+export interface NodeExecutionReport {
+    output: { [key: string]: ExecutionReport};
+}

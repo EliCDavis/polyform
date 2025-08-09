@@ -9,20 +9,20 @@ import (
 func init() {
 	factory := &refutil.TypeFactory{}
 
-	refutil.RegisterType[nodes.Struct[NewNodeData[float64]]](factory)
-	refutil.RegisterType[nodes.Struct[NewNodeData[int]]](factory)
+	refutil.RegisterType[nodes.Struct[NewNode[float64]]](factory)
+	refutil.RegisterType[nodes.Struct[NewNode[int]]](factory)
 
-	refutil.RegisterType[nodes.Struct[ArrayFromComponentsNodeData[float64]]](factory)
-	refutil.RegisterType[nodes.Struct[ArrayFromComponentsNodeData[int]]](factory)
+	refutil.RegisterType[nodes.Struct[ArrayFromComponentsNode[float64]]](factory)
+	refutil.RegisterType[nodes.Struct[ArrayFromComponentsNode[int]]](factory)
 
-	refutil.RegisterType[nodes.Struct[SumNodeData[float64]]](factory)
-	refutil.RegisterType[nodes.Struct[SumNodeData[int]]](factory)
+	refutil.RegisterType[nodes.Struct[SumNode[float64]]](factory)
+	refutil.RegisterType[nodes.Struct[SumNode[int]]](factory)
 
-	refutil.RegisterType[nodes.Struct[AddToArrayNodeData[int]]](factory)
-	refutil.RegisterType[nodes.Struct[AddToArrayNodeData[float64]]](factory)
+	refutil.RegisterType[nodes.Struct[AddToArrayNode[int]]](factory)
+	refutil.RegisterType[nodes.Struct[AddToArrayNode[float64]]](factory)
 
-	refutil.RegisterType[nodes.Struct[ArrayFromNodesNodeData[int]]](factory)
-	refutil.RegisterType[nodes.Struct[ArrayFromNodesNodeData[float64]]](factory)
+	refutil.RegisterType[nodes.Struct[ArrayFromNodesNode[int]]](factory)
+	refutil.RegisterType[nodes.Struct[ArrayFromNodesNode[float64]]](factory)
 
 	refutil.RegisterType[nodes.Struct[Select[int]]](factory)
 	refutil.RegisterType[nodes.Struct[Select[float64]]](factory)

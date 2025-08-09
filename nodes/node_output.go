@@ -1,12 +1,61 @@
 package nodes
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+)
 
-func TryGetOutputValue[T any](output Output[T], fallback T) T {
+func GetOutputValues[G any](recorder ExecutionRecorder, output []Output[G]) []G {
+	if len(output) == 0 {
+		return make([]G, 0)
+	}
+
+	results := make([]G, 0, len(output))
+	for _, out := range output {
+		if out == nil {
+			continue
+		}
+		start := time.Now()
+		v := out.Value()
+		recorder.CaptureTiming(out.Name(), time.Since(start))
+		results = append(results, v)
+	}
+
+	return results
+}
+
+func TryGetOutputValue[G any](result ExecutionRecorder, output Output[G], fallback G) G {
 	if output == nil {
 		return fallback
 	}
-	return output.Value()
+	start := time.Now()
+	v := output.Value()
+	result.CaptureTiming(output.Name(), time.Since(start))
+	return v
+}
+
+func GetOutputValue[G any](result ExecutionRecorder, output Output[G]) G {
+	start := time.Now()
+	v := output.Value()
+	result.CaptureTiming(output.Name(), time.Since(start))
+	return v
+}
+
+func TryGetOutputReference[G any](result ExecutionRecorder, output Output[G], fallback *G) *G {
+	if output == nil {
+		return fallback
+	}
+	start := time.Now()
+	v := output.Value()
+	result.CaptureTiming(output.Name(), time.Since(start))
+	return &v
+}
+
+func GetOutputReference[G any](result ExecutionRecorder, output Output[G]) *G {
+	start := time.Now()
+	v := output.Value()
+	result.CaptureTiming(output.Name(), time.Since(start))
+	return &v
 }
 
 func GetNodeOutputPort[T any](node Node, portName string) Output[T] {

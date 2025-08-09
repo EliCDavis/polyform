@@ -96,12 +96,24 @@ func (a *App) Run(args []string) error {
 	// a.initGraphInstance()
 
 	graphFlagName := "graph"
-	graphFlag := &cli.StringFlag{
+	graphDescription := "graph to load"
+	requiredGraphFlag := &cli.StringFlag{
 		Name:        graphFlagName,
-		Description: "graph to load",
+		Description: graphDescription,
 		Action: func(app cli.RunState, s string) error {
 			if s == "" && a.Graph == nil {
 				return fmt.Errorf("graph flag is not provided and app has no embedded graph")
+			}
+			return a.loadGraphFromDisk(s)
+		},
+	}
+	optionalGraphFlag := &cli.StringFlag{
+		Name:        graphFlagName,
+		Description: graphDescription,
+		Action: func(r cli.RunState, s string) error {
+			if s == "" {
+				a.initGraphInstance()
+				return nil
 			}
 			return a.loadGraphFromDisk(s)
 		},
@@ -195,7 +207,7 @@ func (a *App) Run(args []string) error {
 					Value:       ".",
 					Description: "folder to save generated contents to",
 				},
-				graphFlag,
+				requiredGraphFlag,
 				profileFlag,
 			},
 			Run: func(appState *cli.RunState) error {
@@ -260,17 +272,7 @@ func (a *App) Run(args []string) error {
 					Value:       1024 * 2,
 					Description: "Maximum message size allowed from peer over websocketed connection",
 				},
-				&cli.StringFlag{
-					Name:        graphFlagName,
-					Description: "graph to load",
-					Action: func(r cli.RunState, s string) error {
-						if s == "" {
-							a.initGraphInstance()
-							return nil
-						}
-						return a.loadGraphFromDisk(s)
-					},
-				},
+				optionalGraphFlag,
 			},
 			Run: func(appState *cli.RunState) error {
 				server := edit.Server{
@@ -330,7 +332,7 @@ func (a *App) Run(args []string) error {
 					Value:       100,
 					Description: "Path to key file",
 				},
-				graphFlag,
+				requiredGraphFlag,
 				profileFlag,
 			},
 			Run: func(appState *cli.RunState) error {
@@ -356,7 +358,7 @@ func (a *App) Run(args []string) error {
 					Name:        "out",
 					Description: "file to write the contents of the zip too",
 				},
-				graphFlag,
+				requiredGraphFlag,
 				profileFlag,
 			},
 			Run: func(appState *cli.RunState) error {
@@ -390,7 +392,7 @@ func (a *App) Run(args []string) error {
 					Name:        "out",
 					Description: "Optional path to file to write content to",
 				},
-				graphFlag,
+				requiredGraphFlag,
 			},
 			Run: func(appState *cli.RunState) error {
 				var out io.Writer = os.Stdout
@@ -421,6 +423,7 @@ func (a *App) Run(args []string) error {
 					Value:       "markdown",
 					Description: "How to write documentation [markdown, html]",
 				},
+				optionalGraphFlag,
 			},
 			Run: func(appState *cli.RunState) error {
 				format := strings.ToLower(strings.TrimSpace(appState.String("format")))
@@ -440,10 +443,18 @@ func (a *App) Run(args []string) error {
 					out = f
 				}
 
+				name := a.Graph.GetName()
+				description := a.Graph.GetDescription()
+				version := a.Graph.GetVersion()
+				if name == "" {
+					name = a.Name
+					description = a.Description
+					version = a.Version
+				}
 				doc := DocumentationWriter{
-					Title:       a.Graph.GetName(),
-					Description: a.Graph.GetDescription(),
-					Version:     a.Graph.GetVersion(),
+					Title:       name,
+					Description: description,
+					Version:     version,
 					NodeTypes:   types,
 				}
 
@@ -466,7 +477,7 @@ func (a *App) Run(args []string) error {
 					Name:        "out",
 					Description: "Optional path to file to write content to",
 				},
-				graphFlag,
+				requiredGraphFlag,
 			},
 			Run: func(appState *cli.RunState) error {
 				var out io.Writer = appState.Out
@@ -488,38 +499,10 @@ func (a *App) Run(args []string) error {
 			Description: "outline the data embedded in a graph",
 			Aliases:     []string{"outline"},
 			Flags: []cli.Flag{
-				graphFlag,
+				requiredGraphFlag,
 			},
 			Run: func(app *cli.RunState) error {
-				fmt.Fprintf(app.Out, "# %s\n\n", a.Graph.GetName())
-				if a.Graph.GetVersion() != "" {
-					fmt.Fprintf(app.Out, "%s\n\n", a.Graph.GetVersion())
-				}
-				fmt.Fprintf(app.Out, "%s\n\n", a.Graph.GetDescription())
-
-				fmt.Fprintf(app.Out, "## Variables\n\n")
-
-				variables := a.Graph.Schema().Variables.Variables
-				if len(variables) == 0 {
-					fmt.Fprintf(app.Out, "(none)\n")
-				}
-
-				for name, variable := range variables {
-					fmt.Fprintf(app.Out, "* %s: %s - %s\n", name, variable.Type, variable.Description)
-					fmt.Fprintf(app.Out, "  * Value: %v\n", variable.Value)
-				}
-
-				fmt.Fprintf(app.Out, "\n## Profiles\n\n")
-
-				profiles := a.Graph.Profiles()
-				if len(profiles) == 0 {
-					fmt.Fprintf(app.Out, "(none)\n\n")
-				}
-
-				for i, profile := range profiles {
-					fmt.Fprintf(app.Out, "%d. %s\n", i+1, profile)
-				}
-				return nil
+				return graph.WriteOutline(a.Graph, app.Out)
 			},
 		},
 		{

@@ -10,40 +10,36 @@ import (
 	"github.com/EliCDavis/polyform/nodes"
 )
 
-type LoaderNode = nodes.Struct[LoaderNodeData]
-
-type LoaderNodeData struct {
+type LoaderNode struct {
 	Data nodes.Output[[]byte]
 }
 
-func (pn LoaderNodeData) Out() nodes.StructOutput[modeling.Mesh] {
-	bufReader := bufio.NewReader(bytes.NewReader(pn.Data.Value()))
+func (pn LoaderNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
+	bufReader := bufio.NewReader(bytes.NewReader(nodes.TryGetOutputValue(out, pn.Data, nil)))
 
 	splat, err := ply.ReadMesh(bufReader)
 	if err != nil {
-		out := nodes.NewStructOutput(modeling.EmptyPointcloud())
+		out.Set(modeling.EmptyPointcloud())
 		out.CaptureError(err)
-		return out
+		return
 	}
 
-	return nodes.NewStructOutput(*splat)
+	out.Set(*splat)
 }
 
-type SpzLoaderNode = nodes.Struct[SpzLoaderNodeData]
-
-type SpzLoaderNodeData struct {
+type SpzLoaderNode struct {
 	Data nodes.Output[[]byte]
 }
 
-func (pn SpzLoaderNodeData) Out() nodes.StructOutput[modeling.Mesh] {
-	bufReader := bufio.NewReader(bytes.NewReader(pn.Data.Value()))
+func (pn SpzLoaderNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
+	bufReader := bufio.NewReader(bytes.NewReader(nodes.TryGetOutputValue(out, pn.Data, nil)))
 
 	header, err := spz.Read(bufReader)
 	if err != nil {
-		out := nodes.NewStructOutput(modeling.EmptyPointcloud())
+		out.Set(modeling.EmptyPointcloud())
 		out.CaptureError(err)
-		return out
+		return
 	}
 
-	return nodes.NewStructOutput(header.Mesh)
+	out.Set(header.Mesh)
 }

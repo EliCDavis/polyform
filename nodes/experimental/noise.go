@@ -9,23 +9,21 @@ import (
 	"github.com/EliCDavis/polyform/nodes"
 )
 
-type SeamlessPerlinNode = nodes.Struct[SeamlessPerlinNodeData]
-
-type SeamlessPerlinNodeData struct {
+type SeamlessPerlinNode struct {
 	Dimensions nodes.Output[int]
 	Positive   nodes.Output[coloring.WebColor]
 	Negative   nodes.Output[coloring.WebColor]
 }
 
-func (an SeamlessPerlinNodeData) Out() nodes.StructOutput[image.Image] {
-	dim := nodes.TryGetOutputValue(an.Dimensions, 256)
+func (an SeamlessPerlinNode) Out(out *nodes.StructOutput[image.Image]) {
+	dim := nodes.TryGetOutputValue(out, an.Dimensions, 256)
 	img := image.NewRGBA(image.Rect(0, 0, dim, dim))
 	// normals.Fill(img)
 
 	n := noise.NewTilingNoise(dim, 1/64., 5)
 
-	nR, nG, nB, _ := nodes.TryGetOutputValue(an.Negative, coloring.Black()).RGBA()
-	pR, pG, pB, _ := nodes.TryGetOutputValue(an.Positive, coloring.White()).RGBA()
+	nR, nG, nB, _ := nodes.TryGetOutputValue(out, an.Negative, coloring.Black()).RGBA()
+	pR, pG, pB, _ := nodes.TryGetOutputValue(out, an.Positive, coloring.White()).RGBA()
 
 	rRange := float64(pR>>8) - float64(nR>>8)
 	gRange := float64(pG>>8) - float64(nG>>8)
@@ -48,5 +46,5 @@ func (an SeamlessPerlinNodeData) Out() nodes.StructOutput[image.Image] {
 			})
 		}
 	}
-	return nodes.NewStructOutput[image.Image](img)
+	out.Set(img)
 }

@@ -25,7 +25,7 @@ func TestServer(t *testing.T) {
 	})
 
 	tf.RegisterBuilder("Sum", func() any {
-		return &nodes.Struct[math.SumNodeData[float64]]{}
+		return &nodes.Struct[math.SumNode[float64]]{}
 	})
 
 	server := edit.Server{
@@ -232,7 +232,7 @@ func TestServer(t *testing.T) {
 				}
 			},
 			"Node-2": {
-				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/math.SumNodeData[float64]]",
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/math.SumNode[float64]]",
 				"assignedInput": {
 					"Values.0": {
 						"id": "Node-0",

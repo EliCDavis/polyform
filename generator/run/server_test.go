@@ -23,8 +23,8 @@ import (
 func typeFactory() *refutil.TypeFactory {
 	tf := &refutil.TypeFactory{}
 	tf.RegisterBuilder("Text", func() any {
-		return &basics.TextNode{
-			Data: basics.TextNodeData{
+		return &nodes.Struct[basics.TextNode]{
+			Data: basics.TextNode{
 				In: nodes.GetNodeOutputPort[string](&parameter.String{
 					CurrentValue: "Yee haw",
 				}, "Value"),

@@ -1,6 +1,8 @@
 package meshops
 
 import (
+	"errors"
+
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/vector/vector3"
@@ -50,22 +52,26 @@ func FlatNormals(m modeling.Mesh) modeling.Mesh {
 	return m.SetFloat3Attribute(modeling.NormalAttribute, normals)
 }
 
-type FlatNormalsNode = nodes.Struct[FlatNormalsNodeData]
-
-type FlatNormalsNodeData struct {
+type FlatNormalsNode struct {
 	Mesh nodes.Output[modeling.Mesh]
 }
 
-func (fnnd FlatNormalsNodeData) Out() nodes.StructOutput[modeling.Mesh] {
+func (fnnd FlatNormalsNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
+	out.Set(modeling.EmptyMesh(modeling.TriangleTopology))
 	if fnnd.Mesh == nil {
-		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
+		return
 	}
 
-	mesh := fnnd.Mesh.Value()
-
-	if !mesh.HasFloat3Attribute(modeling.PositionAttribute) || mesh.Topology() != modeling.TriangleTopology {
-		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
+	mesh := nodes.GetOutputValue(out, fnnd.Mesh)
+	if !mesh.HasFloat3Attribute(modeling.PositionAttribute) {
+		out.CaptureError(errors.New("can't calculate normals without normal data"))
+		return
 	}
 
-	return nodes.NewStructOutput(FlatNormals(mesh))
+	if mesh.Topology() != modeling.TriangleTopology {
+		out.CaptureError(errors.New("calculating normals requires triangle topology"))
+		return
+	}
+
+	out.Set(FlatNormals(mesh))
 }
