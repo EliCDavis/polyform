@@ -28,7 +28,7 @@ jobs:
       - uses: DeterminateSystems/flakehub-cache-action@main
 
       - name: Restore Nix-cached Release Artifacts
-        run: nix build .#release -o ./artifacts
+        run: nix build .#release -Lo ./artifacts
 
       - name: Publish GitHub Release
         run: |
@@ -45,7 +45,7 @@ jobs:
       - uses: DeterminateSystems/flakehub-cache-action@main
 
       - name: Restore Nix-cached Pages Artifacts
-        run: nix build .#pages -o ./dist
+        run: nix build .#pages -Lo ./dist
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
