@@ -140,9 +140,7 @@ Below is an example of variant-based generation:
 
 #### Manifest Importer
 
-The **Manifest Importer** is a ScriptableObject that executes a graph endpoint and imports the resulting manifest using one or more `EditorManifestHandler`s. It acts as a bridge between a `graph + profile` and asset import into the Unity Editor environment.
-
-You can think of it as a simple entry point for editor-side content generation.
+The **Manifest Importer** is a ScriptableObject that executes a graph endpoint and imports the resulting manifest using one or more `EditorManifestHandler`s.  You can think of it as a simple entry point for editor-side content generation.
 
 **Usage**
 
@@ -167,7 +165,7 @@ Editor Manifest Handlers process an entire manifest returned by a graph endpoint
 * Baking procedural content (e.g., GLTFs, textures, data files) into the project
 * Creating tooling around content previews and editing
 
-The included **File Download Manifest Handler** downloads all manifest entries and writes them to the Unity project's Assets/ directory. You can create one from the Unity asset menu:
+The included **File Download Manifest Handler** downloads all manifest entries and writes them to the Unity project's `Assets/` directory. You can create one from the Unity asset menu:
 
 ```
 Create > Polyform > Manifest Handlers > Editor > File Download

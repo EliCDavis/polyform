@@ -97,12 +97,12 @@ type Material struct {
 	SpecularTextureURI *string
 }
 
-func (mat Material) write(out io.Writer) (err error) {
+func (mat Material) write(name string, out io.Writer) (err error) {
 	writer := txt.NewWriter(out)
 
 	writer.StartEntry()
 	writer.String("newmtl ")
-	writer.String(strings.Replace(mat.Name, " ", "", -1))
+	writer.String(strings.Replace(name, " ", "", -1))
 	writer.NewLine()
 	if _, err = writer.FinishEntry(); err != nil {
 		return fmt.Errorf("failed to write newmtl: %w", err)
