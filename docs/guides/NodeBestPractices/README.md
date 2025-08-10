@@ -42,12 +42,11 @@ func (mn MathNode) Divide(out *nodes.StructOutput[float64]) {
     b := nodes.TryGetOutputValue(mn.B, 0)
 
     if b == 0 {
-        out := nodes.NewStructOutput[float64](0.)
         out.CaptureError(errors.New("can't divide by 0"))
-        return out
+        return
     }
 
-	return nodes.NewStructOutput(a / b)
+    out.Set(a / b)
 }
 ```
 
@@ -77,54 +76,62 @@ type MathNode[T vector.Number] struct {
 
 In golang, `int8`, `int16`, `int`, `int32`, `int64`, `float32`, `float64` are all valid datatypes you can do all basic arthimetic with. It'd be messy to create versions of nodes for all of these different datatypes. For that reason, you should opt for using `float64` when you need floating point data, and `int` when you want to restrict your input to whole numbers.
 
-## Use Sensible Defaults For Undefined Inputs
+## Emulate No-op for Undefined Behaviour
 
-INSERT DESCRIPTION
+When defining nodes meant to "act on a thing", and the node is missing appropariate data to perform it's action, the output of the node should be the "thing" untouched.
 
-EXAMPLE: SCALE A VECTOR
+For example, if we're scaling a vector by some amount, but no amount has been specified, then we just return the vector untouched.
+
+```go
+type ScaleNode struct {
+    Vector nodes.Output[vector3.Float64]
+    Amount nodes.Output[float64]
+}
+
+func (sn ScaleNode) Scale(out *nodes.StructOutput[vector3.Float64]) {
+    vector := nodes.TryGetOutputValue(out, mn.Vector, vector3.Zero[float64]())
+
+    if sn.Amount == nil {
+        out.Set(vector)
+        return
+    }
+
+    amount := nodes.GetOutputValue(out, mn.Amount)
+    out.Set(vector.Scale(amount))
+}
+```
+
+## Avoid Using Unessessary Input
+
+When a node's configuration lends itself to not requiring all it's input, then we should avoid referencing it to avoid unessessary computation.
+
+So instead of this:
 
 ```go
 func (mn MathNode) Divide(out *nodes.StructOutput[float64]) {
     a := nodes.TryGetOutputValue(mn.A, 0)
+    b := nodes.TryGetOutputValue(mn.B, 0)
 
-    if mn.B == nil {
-        return a
-    }
-
-    b := mn.B.Value()
     if b == 0 {
-        out := nodes.NewStructOutput[float64](0.)
         out.CaptureError(errors.New("can't divide by 0"))
-        return out
+        return
     }
 
-	return nodes.NewStructOutput(a / b)
+    out.Set(a / b)
 }
 ```
 
-## Give Outputs Meaningful Names
-
-INSERT DESCRIPTION
-
-"opt for sum over out"
-
-
-## Avoid Calling Input if you can
+Since the `A` value isn't nessessary when B is 0, we can avoid an unessessary call to `A`.
 
 ```go
-a := A.Value()
-b := B.Value()
-if b < 0 { 
-    return
-}
-```
+func (mn MathNode) Divide(out *nodes.StructOutput[float64]) {
+    b := nodes.TryGetOutputValue(mn.B, 0)
+    if b == 0 {
+        out.CaptureError(errors.New("can't divide by 0"))
+        return
+    }
 
-To
-
-```go
-b := B.Value()
-if b < 0 { 
-    return
+    a := nodes.TryGetOutputValue(mn.A, 0)
+    out.Set(a / b)
 }
-a := A.Value()
 ```

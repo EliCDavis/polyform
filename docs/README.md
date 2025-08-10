@@ -8,3 +8,7 @@
     * [Manifests](./guides/CreatingManifests/README.md)
     * [Best Practices](./guides/NodeBestPractices/README.md)
 * [Unity Integration](./guides/UnityIntegration/README.md)
+
+## Resources
+
+[Recomended Reading](./resources/README.md)
