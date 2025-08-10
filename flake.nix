@@ -18,9 +18,7 @@
           inherit system;
         };
 
-        # Anytime dependencies update or change, this should be updated.
-        # This ensures a package is reproducible.
-        vendorHash = "sha256-NhCEGim2vAlGH75H2+dGuqZ/dArCFp/PJcDitfwUeLE=";
+        vendorHash = builtins.readFile ./go.mod.sri;
         rev = if builtins.hasAttr "shortRev" self then self.shortRev else self.dirtyShortRev;
         src = builtins.path {
           path = ./.;
@@ -163,7 +161,7 @@
             pname = "website";
             version = "0.0.1";
             npmBuildScript = "build-dev";
-            npmDepsHash = "sha256-uea6z39yYjpLTjq+ne3NJdabTQ/N91tLtBqfQMSYcAI=";
+            npmDepsHash = builtins.readFile ./package-lock.json.sri;
             installPhase = ''
               runHook preInstallPhase
 
@@ -190,6 +188,42 @@
               gotools
               go-tools
             ];
+          };
+        };
+
+        apps = {
+          # This can be run with:
+          #   nix run .#update-sris
+          #
+          # It generates the sub-resource integrity hashes for both go and node dependencies.
+          # This should be run anytime dependendencies change in this project and the results checked-in to vcs.
+          update-sris = {
+            type = "app";
+            program = toString (
+              pkgs.writeShellScript "update-sris" ''
+                OUT=$(mktemp -d -t nar-hash-XXXXXX)
+                rm -rf "$OUT"
+
+                echo "go.mod.sri: Compute and store hash..."
+                ${pkgs.go}/bin/go mod vendor -o "$OUT"
+                ${pkgs.go}/bin/go run tailscale.com/cmd/nardump@v1.86.4 --sri "$OUT" > go.mod.sri
+                rm -rf "$OUT"
+
+                echo "package-lock.json.sri: Compute and store hash..."
+                ${pkgs.prefetch-npm-deps}/bin/prefetch-npm-deps ./package-lock.json > ./package-lock.json.sri
+              ''
+            );
+          };
+
+          # Helpful script if Github Actions ever gits in a weird cache state. Clears all caches for the entire repo.
+          # May increase subsequent build times until a full pipeline completes and saves a new cache.
+          clear-gh-action-cache = {
+            type = "app";
+            program = toString (
+              pkgs.writeShellScript "clear-gh-action-cache" ''
+                ${pkgs.gh}/bin/gh cache delete --all --repo EliCDavis/polyform
+              ''
+            );
           };
         };
       }
