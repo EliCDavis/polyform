@@ -1,7 +1,7 @@
 import { FlowNode, FlowNodeConfig, FlowNodeStyle, NodeFlowGraph, Publisher } from "@elicdavis/node-flow";
 import { InstanceIDProperty, PolyNodeController, camelCaseToWords } from "./nodes/node.js";
 import { RequestManager } from "./requests.js";
-import { GraphInstance, GraphInstanceNodes, NodeInstance } from "./schema.js";
+import { GraphExecutionReport, GraphInstance, GraphInstanceNodes, NodeInstance } from "./schema.js";
 import { NodeDefinition } from './schema';
 import { ThreeApp } from "./three_app.js";
 import { ProducerViewManager } from './ProducerView/producer_view_manager';
@@ -112,6 +112,24 @@ export class NodeManager {
 
         nodeFlowGraph.addOnNodeAddedListener(this.onNodeAddedCallback.bind(this));
         nodeFlowGraph.addOnNodeRemovedListener(this.nodeRemoved.bind(this));
+    }
+
+    refreshExecutionReport(): void {
+        this.requestManager.getExecutionReport((executionReport: GraphExecutionReport) => {
+
+            for (let nodeID in executionReport.nodes) {
+                const nodeExecutionReport = executionReport.nodes[nodeID];
+                if (!this.nodeIdToNode.has(nodeID)) {
+                    return;
+                }
+                const nodeToUpdate = this.nodeIdToNode.get(nodeID);
+                nodeToUpdate.flowNode.clearMessages();
+
+                for(let output in nodeExecutionReport.output) {
+                    nodeToUpdate.setOutputPortReport(output, nodeExecutionReport.output[output]);
+                }
+            }
+        });
     }
 
     nodeRemoved(flowNode: FlowNode): void {

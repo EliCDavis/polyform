@@ -14,25 +14,26 @@ func Mesh(mesh modeling.Mesh, transforms []trs.TRS) modeling.Mesh {
 	return result
 }
 
-type MeshNode = nodes.Struct[MeshNodeData]
-
-type MeshNodeData struct {
+type MeshNode struct {
 	Mesh       nodes.Output[modeling.Mesh]
 	Transforms nodes.Output[[]trs.TRS]
 }
 
-func (rnd MeshNodeData) Description() string {
+func (rnd MeshNode) Description() string {
 	return "Duplicates and transforms the input mesh for every TRS provided"
 }
 
-func (rnd MeshNodeData) Out() nodes.StructOutput[modeling.Mesh] {
+func (rnd MeshNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	if rnd.Mesh == nil {
-		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
+		out.Set(modeling.EmptyMesh(modeling.TriangleTopology))
+		return
 	}
-	mesh := rnd.Mesh.Value()
 
+	mesh := nodes.GetOutputValue(out, rnd.Mesh)
 	if rnd.Transforms == nil {
-		return nodes.NewStructOutput(modeling.EmptyMesh(mesh.Topology()))
+		out.Set(mesh)
+		return
 	}
-	return nodes.NewStructOutput(Mesh(mesh, rnd.Transforms.Value()))
+
+	out.Set(Mesh(mesh, nodes.GetOutputValue(out, rnd.Transforms)))
 }

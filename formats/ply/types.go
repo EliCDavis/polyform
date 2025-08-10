@@ -17,8 +17,8 @@ import (
 func init() {
 	factory := &refutil.TypeFactory{}
 
-	refutil.RegisterType[ManifestNode](factory)
-	refutil.RegisterType[ReadNode](factory)
+	refutil.RegisterType[nodes.Struct[ManifestNode]](factory)
+	refutil.RegisterType[nodes.Struct[ReadNode]](factory)
 
 	generator.RegisterTypes(factory)
 }
@@ -95,63 +95,53 @@ func (Artifact) Mime() string {
 
 // ============================================================================
 
-type ArtifactNode = nodes.Struct[ArtifactNodeData]
-
-type ArtifactNodeData struct {
+type ArtifactNode struct {
 	In nodes.Output[modeling.Mesh]
 }
 
-func (pn ArtifactNodeData) Out() nodes.StructOutput[manifest.Artifact] {
-	if pn.In == nil {
-		return nodes.NewStructOutput[manifest.Artifact](Artifact{Mesh: modeling.EmptyPointcloud()})
-	}
-	return nodes.NewStructOutput[manifest.Artifact](Artifact{Mesh: pn.In.Value()})
+func (pn ArtifactNode) Out(out *nodes.StructOutput[manifest.Artifact]) {
+	out.Set(Artifact{Mesh: nodes.TryGetOutputValue(out, pn.In, modeling.EmptyPointcloud())})
 }
 
 // ============================================================================
 
-type ManifestNode = nodes.Struct[ManifestNodeData]
-
-type ManifestNodeData struct {
+type ManifestNode struct {
 	Name nodes.Output[string] `description:"Name of the main file in the manifest, defaults to 'model.ply'"`
 	Mesh nodes.Output[modeling.Mesh]
 }
 
-func (pn ManifestNodeData) Out() nodes.StructOutput[manifest.Manifest] {
-	name := nodes.TryGetOutputValue(pn.Name, "model.ply")
-	if pn.Mesh == nil {
-		entry := manifest.Entry{Artifact: Artifact{Mesh: modeling.EmptyPointcloud()}}
-		return nodes.NewStructOutput(manifest.SingleEntryManifest(name, entry))
-	}
-
-	mesh := pn.Mesh.Value()
+func (pn ManifestNode) Out(out *nodes.StructOutput[manifest.Manifest]) {
+	name := nodes.TryGetOutputValue(out, pn.Name, "model.ply")
+	mesh := nodes.TryGetOutputValue(out, pn.Mesh, modeling.EmptyPointcloud())
 	metadata := map[string]any{}
+
 	// TODO: Is this really the best way to determine if it's a splat?
 	if mesh.HasFloat3Attribute(modeling.FDCAttribute) {
 		metadata["gaussianSplat"] = true
 	}
 
 	entry := manifest.Entry{Artifact: Artifact{Mesh: mesh}, Metadata: metadata}
-	return nodes.NewStructOutput(manifest.SingleEntryManifest(name, entry))
+	out.Set(manifest.SingleEntryManifest(name, entry))
 }
 
 // ============================================================================
-type ReadNode = nodes.Struct[ReadNodeData]
 
-type ReadNodeData struct {
+type ReadNode struct {
 	In nodes.Output[[]byte]
 }
 
-func (pn ReadNodeData) Out() nodes.StructOutput[modeling.Mesh] {
+func (pn ReadNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	if pn.In == nil {
-		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.PointTopology))
+		out.Set(modeling.EmptyMesh(modeling.PointTopology))
+		return
 	}
 
-	data := pn.In.Value()
-
+	data := nodes.GetOutputValue(out, pn.In)
 	mesh, err := ReadMesh(bytes.NewReader(data))
 	if err != nil {
-		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.PointTopology))
+		out.CaptureError(err)
+		return
 	}
-	return nodes.NewStructOutput(*mesh)
+
+	out.Set(*mesh)
 }

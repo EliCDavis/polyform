@@ -11,9 +11,7 @@ import (
 	"github.com/EliCDavis/vector/vector3"
 )
 
-type ScrewNode = nodes.Struct[ScrewNodeData]
-
-type ScrewNodeData struct {
+type ScrewNode struct {
 	Line        nodes.Output[[]vector3.Float64]
 	Segments    nodes.Output[int]
 	Revolutions nodes.Output[float64]
@@ -21,26 +19,27 @@ type ScrewNodeData struct {
 	UVs         nodes.Output[primitives.StripUVs]
 }
 
-func (snd ScrewNodeData) Out() nodes.StructOutput[modeling.Mesh] {
+func (snd ScrewNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
+	out.Set(modeling.EmptyMesh(modeling.TriangleTopology))
 	if snd.Line == nil {
-		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
+		return
 	}
-	line := snd.Line.Value()
+	line := nodes.GetOutputValue(out, snd.Line)
 
 	// Can't create a mesh with a single point
 	if len(line) < 2 {
-		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
+		return
 	}
 
-	segments := nodes.TryGetOutputValue(snd.Segments, 20)
+	segments := nodes.TryGetOutputValue(out, snd.Segments, 20)
 
 	// 1 or 0 segments leaves us with an edge or nothing
 	if segments < 2 {
-		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
+		return
 	}
 
-	revolutions := nodes.TryGetOutputValue(snd.Revolutions, 1.)
-	distance := nodes.TryGetOutputValue(snd.Distance, 0.)
+	revolutions := nodes.TryGetOutputValue(out, snd.Revolutions, 1.)
+	distance := nodes.TryGetOutputValue(out, snd.Distance, 0.)
 
 	axis := vector3.Up[float64]()
 	segmentInc := 1. / float64(segments-1)
@@ -62,7 +61,7 @@ func (snd ScrewNodeData) Out() nodes.StructOutput[modeling.Mesh] {
 	var strip primitives.StripUVs
 
 	if snd.UVs != nil {
-		strip = snd.UVs.Value()
+		strip = nodes.GetOutputValue(out, snd.UVs)
 	} else {
 		strip = primitives.StripUVs{
 			Start: vector2.New(0, 0.5),
@@ -107,7 +106,7 @@ func (snd ScrewNodeData) Out() nodes.StructOutput[modeling.Mesh] {
 		}
 	}
 
-	return nodes.NewStructOutput(modeling.NewTriangleMesh(indices).
+	out.Set(modeling.NewTriangleMesh(indices).
 		SetFloat3Attribute(modeling.PositionAttribute, verts).
 		SetFloat2Attribute(modeling.TexCoordAttribute, uvs))
 }

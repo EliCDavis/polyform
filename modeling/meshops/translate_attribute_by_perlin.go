@@ -69,16 +69,17 @@ type TranslateAttributeByPerlinNoise3DNode struct {
 	Shift     nodes.Output[vector3.Float64]
 }
 
-func (ta3dn TranslateAttributeByPerlinNoise3DNode) Out() nodes.StructOutput[modeling.Mesh] {
+func (ta3dn TranslateAttributeByPerlinNoise3DNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	if ta3dn.Mesh == nil {
-		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
+		out.Set(modeling.EmptyMesh(modeling.TriangleTopology))
+		return
 	}
 
-	return nodes.NewStructOutput(TranslateAttribute3DByPerlinNoise(
-		ta3dn.Mesh.Value(),
-		nodes.TryGetOutputValue(ta3dn.Attribute, modeling.PositionAttribute),
-		nodes.TryGetOutputValue(ta3dn.Frequency, vector3.One[float64]()),
-		nodes.TryGetOutputValue(ta3dn.Amplitude, vector3.One[float64]()),
-		nodes.TryGetOutputValue(ta3dn.Shift, vector3.Zero[float64]()),
+	out.Set(TranslateAttribute3DByPerlinNoise(
+		nodes.GetOutputValue(out, ta3dn.Mesh),
+		nodes.TryGetOutputValue(out, ta3dn.Attribute, modeling.PositionAttribute),
+		nodes.TryGetOutputValue(out, ta3dn.Frequency, vector3.One[float64]()),
+		nodes.TryGetOutputValue(out, ta3dn.Amplitude, vector3.One[float64]()),
+		nodes.TryGetOutputValue(out, ta3dn.Shift, vector3.Zero[float64]()),
 	))
 }

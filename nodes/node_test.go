@@ -16,7 +16,7 @@ package nodes_test
 // 	Meshes []nodes.Output[modeling.Mesh]
 // }
 
-// func (cn CombineData) Out() nodes.StructOutput[modeling.Mesh] {
+// func (cn CombineData) Out(out *nodes.StructOutput[modeling.Mesh]) {
 // 	finalMesh := modeling.EmptyMesh(modeling.TriangleTopology)
 
 // 	for _, n := range cn.Meshes {
@@ -31,19 +31,19 @@ package nodes_test
 // 	times := nodes.NewValue(5)
 
 // 	transforms := &repeat.CircleNode{
-// 		Data: repeat.CircleNodeData{
+// 		Data: repeat.CircleNode{
 // 			Radius: nodes.NewValue(15.),
 // 			Times:  nodes.NewValue(5),
 // 		},
 // 	}
 
 // 	repeated := &repeat.MeshNode{
-// 		Data: repeat.MeshNodeData{
+// 		Data: repeat.MeshNode{
 // 			Mesh: &repeat.MeshNode{
-// 				Data: repeat.MeshNodeData{
+// 				Data: repeat.MeshNode{
 // 					Mesh: nodes.NewValue(primitives.UVSphere(1, 10, 10)),
 // 					Transforms: &repeat.CircleNode{
-// 						Data: repeat.CircleNodeData{
+// 						Data: repeat.CircleNode{
 // 							Radius: nodes.NewValue(5.),
 // 							Times:  times,
 // 						},
@@ -64,10 +64,10 @@ package nodes_test
 // 			Meshes: []nodes.Output[modeling.Mesh]{
 // 				repeated.Out(),
 // 				(&repeat.MeshNode{
-// 					Data: repeat.MeshNodeData{
+// 					Data: repeat.MeshNode{
 // 						Mesh: nodes.NewValue(primitives.UVSphere(1, 10, 10)),
 // 						Transforms: &repeat.CircleNode{
-// 							Data: repeat.CircleNodeData{
+// 							Data: repeat.CircleNode{
 // 								Radius: nodes.NewValue(5.),
 // 								Times:  times,
 // 							},

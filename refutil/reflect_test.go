@@ -28,6 +28,10 @@ func (ts TestStruct) XYZ() int {
 	return 1
 }
 
+func (ts TestStruct) OnlyArgs(b int) {
+
+}
+
 type genericTestStruct[T any] struct {
 }
 
@@ -306,3 +310,16 @@ func TestGetFieldValues(t *testing.T) {
 	// C vector3.Float64
 	// D *vector3.Float64
 }
+
+// func TestFuncArgumentsOfType(t *testing.T) {
+// 	ts := TestStruct{}
+
+// 	v := refutil.FuncArgumentsOfType[int](ts)
+// 	assert.Len(t, v, 1)
+// 	assert.Equal(t, "*vector3.Vector[float64]", v["D"])
+
+// 	// A int
+// 	// B bool
+// 	// C vector3.Float64
+// 	// D *vector3.Float64
+// }

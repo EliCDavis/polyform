@@ -15,27 +15,26 @@ func TRS(input, transforms []trs.TRS) []trs.TRS {
 	return result
 }
 
-type TRSNode = nodes.Struct[TRSNodeData]
-
-type TRSNodeData struct {
+type TRSNode struct {
 	Input      nodes.Output[[]trs.TRS]
 	Transforms nodes.Output[[]trs.TRS]
 }
 
-func (rnd TRSNodeData) Description() string {
+func (rnd TRSNode) Description() string {
 	return "Duplicates the input transforms and transforms it for every TRS provided"
 }
 
-func (rnd TRSNodeData) Out() nodes.StructOutput[[]trs.TRS] {
+func (rnd TRSNode) Out(out *nodes.StructOutput[[]trs.TRS]) {
 	if rnd.Input == nil {
-		return nodes.NewStructOutput(make([]trs.TRS, 0))
+		out.Set(make([]trs.TRS, 0))
+		return
 	}
-	mesh := rnd.Input.Value()
 
+	mesh := nodes.GetOutputValue(out, rnd.Input)
 	if rnd.Transforms == nil {
-		return nodes.NewStructOutput(mesh)
+		out.Set(mesh)
+		return
 	}
-	transforms := rnd.Transforms.Value()
-
-	return nodes.NewStructOutput(TRS(mesh, transforms))
+	transforms := nodes.GetOutputValue(out, rnd.Transforms)
+	out.Set(TRS(mesh, transforms))
 }

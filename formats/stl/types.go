@@ -13,35 +13,35 @@ import (
 
 func init() {
 	factory := &refutil.TypeFactory{}
-	refutil.RegisterType[ReadNode](factory)
-	refutil.RegisterType[ManifestNode](factory)
+	refutil.RegisterType[nodes.Struct[ReadNode]](factory)
+	refutil.RegisterType[nodes.Struct[ManifestNode]](factory)
 	generator.RegisterTypes(factory)
 }
 
-type ReadNode = nodes.Struct[ReadNodeData]
-
-type ReadNodeData struct {
+type ReadNode struct {
 	Data nodes.Output[[]byte]
 }
 
-func (gad ReadNodeData) Out() nodes.StructOutput[modeling.Mesh] {
+func (gad ReadNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	if gad.Data == nil {
-		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
+		out.Set(modeling.EmptyMesh(modeling.TriangleTopology))
+		return
 	}
 
-	data := gad.Data.Value()
+	data := nodes.GetOutputValue(out, gad.Data)
 	if len(data) == 0 {
-		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
+		out.Set(modeling.EmptyMesh(modeling.TriangleTopology))
+		return
 	}
 
 	cloud, err := ReadMesh(bytes.NewReader(data))
 	if err != nil {
-		out := nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
+		out.Set(modeling.EmptyMesh(modeling.TriangleTopology))
 		out.CaptureError(err)
-		return out
+		return
 	}
 
-	return nodes.NewStructOutput(*cloud)
+	out.Set(*cloud)
 }
 
 // ============================================================================
@@ -58,13 +58,15 @@ func (Artifact) Mime() string {
 	return "application/sla"
 }
 
-type ManifestNode = nodes.Struct[ManifestNodeData]
-
-type ManifestNodeData struct {
+type ManifestNode struct {
 	Mesh nodes.Output[modeling.Mesh]
 }
 
-func (pn ManifestNodeData) Out() nodes.StructOutput[manifest.Manifest] {
-	entry := manifest.Entry{Artifact: Artifact{Mesh: pn.Mesh.Value()}}
-	return nodes.NewStructOutput(manifest.SingleEntryManifest("model.stl", entry))
+func (pn ManifestNode) Out(out *nodes.StructOutput[manifest.Manifest]) {
+	entry := manifest.Entry{
+		Artifact: Artifact{
+			Mesh: nodes.TryGetOutputValue(out, pn.Mesh, modeling.EmptyMesh(modeling.TriangleTopology)),
+		},
+	}
+	out.Set(manifest.SingleEntryManifest("model.stl", entry))
 }

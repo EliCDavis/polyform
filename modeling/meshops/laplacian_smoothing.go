@@ -95,24 +95,23 @@ func LaplacianSmoothAlongAxis(m modeling.Mesh, attribute string, iterations int,
 	return m.SetFloat3Attribute(attribute, vertices)
 }
 
-type LaplacianSmoothNode = nodes.Struct[LaplacianSmoothNodeData]
-
-type LaplacianSmoothNodeData struct {
+type LaplacianSmoothNode struct {
 	Mesh            nodes.Output[modeling.Mesh]
 	Attribute       nodes.Output[string]
 	Iterations      nodes.Output[int]
 	SmoothingFactor nodes.Output[float64]
 }
 
-func (lp LaplacianSmoothNodeData) Out() nodes.StructOutput[modeling.Mesh] {
+func (lp LaplacianSmoothNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	if lp.Mesh == nil {
-		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
+		out.Set(modeling.EmptyMesh(modeling.TriangleTopology))
+		return
 	}
 
-	return nodes.NewStructOutput(LaplacianSmooth(
-		lp.Mesh.Value(),
-		nodes.TryGetOutputValue(lp.Attribute, modeling.PositionAttribute),
-		nodes.TryGetOutputValue(lp.Iterations, 10),
-		nodes.TryGetOutputValue(lp.SmoothingFactor, 0.1),
+	out.Set(LaplacianSmooth(
+		nodes.GetOutputValue(out, lp.Mesh),
+		nodes.TryGetOutputValue(out, lp.Attribute, modeling.PositionAttribute),
+		nodes.TryGetOutputValue(out, lp.Iterations, 10),
+		nodes.TryGetOutputValue(out, lp.SmoothingFactor, 0.1),
 	))
 }

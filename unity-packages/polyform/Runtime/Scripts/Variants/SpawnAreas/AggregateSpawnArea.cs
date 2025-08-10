@@ -3,6 +3,7 @@ using UnityEngine;
 
 namespace EliCDavis.Polyform.Variants.SpawnAreas
 {
+    [AddComponentMenu("Polyform/Variant/Spawn Area/Aggregate Spawn Area")]
     public class AggregateSpawnArea : SpawnArea
     {
         [SerializeField] private WeightedListConfig<SpawnArea> spawnAreas;

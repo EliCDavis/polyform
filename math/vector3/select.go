@@ -10,63 +10,39 @@ type Select[T vector.Number] struct {
 	In nodes.Output[vector3.Vector[T]]
 }
 
-func (node Select[T]) X() nodes.StructOutput[T] {
-	if node.In == nil {
-		var v T
-		return nodes.NewStructOutput(v)
-	}
-
-	v := node.In.Value()
-	return nodes.NewStructOutput(v.X())
+func (node Select[T]) X(out *nodes.StructOutput[T]) {
+	out.Set(nodes.TryGetOutputValue(out, node.In, vector3.Zero[T]()).X())
 }
 
-func (node Select[T]) Y() nodes.StructOutput[T] {
-	if node.In == nil {
-		var v T
-		return nodes.NewStructOutput(v)
-	}
-
-	v := node.In.Value()
-	return nodes.NewStructOutput(v.Y())
+func (node Select[T]) Y(out *nodes.StructOutput[T]) {
+	out.Set(nodes.TryGetOutputValue(out, node.In, vector3.Zero[T]()).Y())
 }
 
-func (node Select[T]) Z() nodes.StructOutput[T] {
-	if node.In == nil {
-		var v T
-		return nodes.NewStructOutput(v)
-	}
-
-	v := node.In.Value()
-	return nodes.NewStructOutput(v.Z())
+func (node Select[T]) Z(out *nodes.StructOutput[T]) {
+	out.Set(nodes.TryGetOutputValue(out, node.In, vector3.Zero[T]()).Z())
 }
 
 type SelectArray[T vector.Number] struct {
 	In nodes.Output[[]vector3.Vector[T]]
 }
 
-func (node SelectArray[T]) X() nodes.StructOutput[[]T] {
-	in := nodes.TryGetOutputValue(node.In, nil)
-	out := make([]T, len(in))
+func (node SelectArray[T]) arr(out *nodes.StructOutput[[]T], component int) []T {
+	in := nodes.TryGetOutputValue(out, node.In, nil)
+	arr := make([]T, len(in))
 	for i, v := range in {
-		out[i] = v.X()
+		arr[i] = v.Component(component)
 	}
-	return nodes.NewStructOutput(out)
+	return arr
 }
 
-func (node SelectArray[T]) Y() nodes.StructOutput[[]T] {
-	in := nodes.TryGetOutputValue(node.In, nil)
-	out := make([]T, len(in))
-	for i, v := range in {
-		out[i] = v.Y()
-	}
-	return nodes.NewStructOutput(out)
+func (node SelectArray[T]) X(out *nodes.StructOutput[[]T]) {
+	out.Set(node.arr(out, 0))
 }
 
-func (node SelectArray[T]) Z() nodes.StructOutput[[]T] {
-	in := nodes.TryGetOutputValue(node.In, nil)
-	out := make([]T, len(in))
-	for i, v := range in {
-		out[i] = v.Z()
-	}
-	return nodes.NewStructOutput(out)
+func (node SelectArray[T]) Y(out *nodes.StructOutput[[]T]) {
+	out.Set(node.arr(out, 1))
+}
+
+func (node SelectArray[T]) Z(out *nodes.StructOutput[[]T]) {
+	out.Set(node.arr(out, 2))
 }

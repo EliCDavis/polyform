@@ -13,18 +13,32 @@ type Assertion interface {
 
 // ============================================================================
 
-type assertPortValue[T any] struct {
-	Port  string
-	Value T
+type AssertOutputPortValue[T any] struct {
+	Port            string
+	Value           T
+	ExecutionReport *nodes.ExecutionReport
 }
 
-func (apv assertPortValue[T]) Assert(t *testing.T, node nodes.Node) {
-	out := nodes.GetNodeOutputPort[T](node, apv.Port).Value()
-	assert.Equal(t, apv.Value, out)
+func (apv AssertOutputPortValue[T]) Assert(t *testing.T, node nodes.Node) {
+	out := nodes.GetNodeOutputPort[T](node, apv.Port)
+	assert.Equal(t, apv.Value, out.Value())
+
+	if apv.ExecutionReport == nil {
+		return
+	}
+
+	obvervable, ok := out.(nodes.ObservableExecution)
+	if !ok {
+		t.Error("node output does not have expected execution report")
+	}
+
+	report := obvervable.ExecutionReport()
+	assert.Equal(t, apv.ExecutionReport.Logs, report.Logs)
+	assert.Equal(t, apv.ExecutionReport.Errors, report.Errors)
 }
 
-func AssertOutput[T any](port string, value T) Assertion {
-	return assertPortValue[T]{
+func AssertOutput[T any](port string, value T) AssertOutputPortValue[T] {
+	return AssertOutputPortValue[T]{
 		Port:  port,
 		Value: value,
 	}
@@ -52,9 +66,9 @@ type AssertNodeInputPortDescription struct {
 }
 
 func (apv AssertNodeInputPortDescription) Assert(t *testing.T, node nodes.Node) {
-	outputs := node.Inputs()
+	inputs := node.Inputs()
 
-	port, ok := outputs[apv.Port]
+	port, ok := inputs[apv.Port]
 	if !ok {
 		t.Error("node does not contain input port", apv.Port)
 		return
@@ -76,8 +90,6 @@ func NewAssertInputPortDescription(port, description string) AssertNodeInputPort
 	}
 }
 
-// ============================================================================
-
 func NewNode[T any](data T) nodes.Node {
 	return &nodes.Struct[T]{
 		Data: data,
@@ -86,4 +98,27 @@ func NewNode[T any](data T) nodes.Node {
 
 func NewPortValue[T any](data T) nodes.Output[T] {
 	return nodes.ConstOutput[T]{Val: data}
+}
+
+type AssertNodeOutputPortDescription struct {
+	Port        string
+	Description string
+}
+
+func (apv AssertNodeOutputPortDescription) Assert(t *testing.T, node nodes.Node) {
+	inputs := node.Outputs()
+
+	port, ok := inputs[apv.Port]
+	if !ok {
+		t.Error("node does not contain output port", apv.Port)
+		return
+	}
+
+	describable, ok := port.(nodes.Describable)
+	if !ok {
+		t.Error("node output port does not contain a description", apv.Port)
+		return
+	}
+
+	assert.Equal(t, apv.Description, describable.Description())
 }

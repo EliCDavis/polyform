@@ -1,6 +1,8 @@
 package triangulation
 
 import (
+	"errors"
+
 	"github.com/EliCDavis/polyform/generator"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/nodes"
@@ -19,22 +21,25 @@ type BowyerWatsonNode struct {
 	Constraints nodes.Output[[]vector2.Float64]
 }
 
-func (node BowyerWatsonNode) Out() nodes.StructOutput[modeling.Mesh] {
+func (node BowyerWatsonNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
+	out.Set(modeling.EmptyMesh(modeling.TriangleTopology))
 	if node.Points == nil {
-		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
+		return
 	}
 
-	val := node.Points.Value()
+	val := nodes.TryGetOutputValue(out, node.Points, nil)
 	if len(val) < 3 {
-		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.TriangleTopology))
+		out.CaptureError(errors.New("require atleast 3 points to run"))
+		return
 	}
 
-	contraints := nodes.TryGetOutputValue(node.Constraints, nil)
+	contraints := nodes.TryGetOutputValue(out, node.Constraints, nil)
 	if len(contraints) < 3 {
-		return nodes.NewStructOutput(BowyerWatson(val))
+		out.Set(BowyerWatson(val))
+		return
 	}
 
-	return nodes.NewStructOutput(ConstrainedBowyerWatson(
+	out.Set(ConstrainedBowyerWatson(
 		val,
 		[]Constraint{NewConstraint(contraints)},
 	))

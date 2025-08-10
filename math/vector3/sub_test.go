@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestSubToArrayNodeData(t *testing.T) {
+func TestSubToArrayNode(t *testing.T) {
 	tests := map[string]struct {
 		amount nodes.Output[v3.Vector[float64]]
 		array  nodes.Output[[]v3.Vector[float64]]
@@ -49,8 +49,8 @@ func TestSubToArrayNodeData(t *testing.T) {
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			node := &nodes.Struct[vector3.SubtractToArrayNodeData[float64]]{
-				Data: vector3.SubtractToArrayNodeData[float64]{
+			node := &nodes.Struct[vector3.SubtractToArrayNode[float64]]{
+				Data: vector3.SubtractToArrayNode[float64]{
 					Amount: tc.amount,
 					Array:  tc.array,
 				},

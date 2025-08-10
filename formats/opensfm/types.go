@@ -12,26 +12,22 @@ import (
 func init() {
 	factory := &refutil.TypeFactory{}
 
-	refutil.RegisterType[ReadReconstructionNode](factory)
+	refutil.RegisterType[nodes.Struct[ReadReconstructionNode]](factory)
 
 	generator.RegisterTypes(factory)
 }
 
-type ReadReconstructionNode = nodes.Struct[ReadReconstructionNodeData]
-
-type ReadReconstructionNodeData struct {
+type ReadReconstructionNode struct {
 	In nodes.Output[[]byte]
 }
 
-func (pn ReadReconstructionNodeData) Out() nodes.StructOutput[modeling.Mesh] {
+func (pn ReadReconstructionNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	if pn.In == nil {
-		return nodes.NewStructOutput(modeling.EmptyMesh(modeling.PointTopology))
+		out.Set(modeling.EmptyMesh(modeling.PointTopology))
+		return
 	}
 
-	data, err := ReadReconstructiontData(bytes.NewReader(pn.In.Value()))
-
-	out := nodes.NewStructOutput(data)
+	data, err := ReadReconstructiontData(bytes.NewReader(nodes.GetOutputValue(out, pn.In)))
+	out.Set(data)
 	out.CaptureError(err)
-
-	return out
 }

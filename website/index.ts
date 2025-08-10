@@ -63,7 +63,8 @@ const flowGraphStuff = CreateNodeFlowGraph();
 const requestManager = new RequestManager();
 
 requestManager.getNodeTypes((nodeTypes) => {
-    const producerViewManager = new ProducerViewManager(threeApp, requestManager, nodeTypes);
+    const schemaManager = new SchemaManager(requestManager);
+    const producerViewManager = new ProducerViewManager(threeApp, requestManager, nodeTypes, schemaManager);
 
     let initID = null
     setInterval(() => {
@@ -75,7 +76,7 @@ requestManager.getNodeTypes((nodeTypes) => {
             if (initID !== payload.time) {
                 location.reload();
             }
-            schemaManager.setModelVersion(payload.modelVersion)
+            producerViewManager.setModelVersion(payload.modelVersion)
         })
     }, 1000);
 
@@ -91,15 +92,22 @@ requestManager.getNodeTypes((nodeTypes) => {
         producerViewManager,
         nodeTypes
     );
-    const schemaManager = new SchemaManager(requestManager, nodeManager, noteManager);
     new VariableManager(document.getElementById("sidebar-content"), schemaManager, nodeManager, flowGraphStuff.PolyformNodesPublisher, threeApp);
     new ProfileManager(document.getElementById("sidebar-content"), schemaManager);
+
+    producerViewManager.SubscribeToCompleteRefresh(() => {
+        nodeManager.refreshExecutionReport();
+    })
 
     nodeManager.subscribeToParameterChange((param) => {
         schemaManager.setParameter(param.id, param.data, param.binary);
     });
 
-    schemaManager.subscribe(producerViewManager.NewSchema.bind(producerViewManager));
+    schemaManager.subscribe((g) => {
+        producerViewManager.NewSchema(g);
+        nodeManager.updateNodes(g);
+        noteManager.schemaUpdate(g);
+    });
 
     const fileControls = {
         newGraph: () => {
@@ -244,7 +252,7 @@ requestManager.getNodeTypes((nodeTypes) => {
                 playerEyeMaterial: new MeshBasicMaterial({ color: 0x000000 }),
             },
             viewportManager,
-            schemaManager
+            producerViewManager
         );
 
         if (websocketManager.canConnect()) {
@@ -259,16 +267,20 @@ requestManager.getNodeTypes((nodeTypes) => {
     }
 
 
-    function resize(force: boolean) {
+    function resize() {
         const renderer = threeApp.Renderer;
-        const w = renderer.domElement.clientWidth;
-        const h = renderer.domElement.clientHeight
 
-        if (renderer.domElement.width !== w || renderer.domElement.height !== h || force) {
-            renderer.setSize(w, h, false);
-            threeApp.Composer.setSize(w, h);
+        const rect = renderer.domElement.getBoundingClientRect();
+        const w = Math.floor(rect.width);
+        const h = Math.floor(rect.height)
+
+        if (renderer.domElement.width !== w || renderer.domElement.height !== h) {
             threeApp.Camera.aspect = w / h;
             threeApp.Camera.updateProjectionMatrix();
+            // renderer.domElement.width = w;
+            // renderer.domElement.height = h;
+            renderer.setSize(w, h, false);
+            threeApp.Composer.setSize(w, h);
             // nodeCanvas.resize(nodeCanvas.clientWidth, nodeCanvas.clientHeight, false)
             threeApp.LabelRenderer.setSize(w, h);
         }
@@ -277,7 +289,7 @@ requestManager.getNodeTypes((nodeTypes) => {
     updateLoop.addToUpdate({
         name: "Rendering",
         loop: (delta) => {
-            resize(false);
+            resize();
 
             threeApp.Composer.render(delta);
             producerViewManager.Render();

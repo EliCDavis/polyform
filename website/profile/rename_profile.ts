@@ -57,7 +57,7 @@ export class RenameProfilePopup extends Popup {
             if (!resp.ok) {
                 alert("unable to rename profile");
             } else {
-                this.schemaManager.refreshSchema();
+                this.schemaManager.refreshSchema("renamed a profile");
             }
         });
     }

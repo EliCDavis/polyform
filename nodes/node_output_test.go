@@ -10,8 +10,8 @@ import (
 func TestGetNodeOutputPort(t *testing.T) {
 	val1 := 123.456
 	val2 := 678.910
-	node := &SimpleTestStructNode{
-		Data: SimpleAddTestStructNodeData{
+	node := &nodes.Struct[SimpleAddTestStructNode]{
+		Data: SimpleAddTestStructNode{
 			A: nodes.ConstOutput[float64]{Val: val1},
 			B: nodes.ConstOutput[float64]{Val: val2},
 		},
@@ -33,6 +33,7 @@ func TestGetNodeOutputPort(t *testing.T) {
 }
 
 func TestTryGetOutputValue(t *testing.T) {
-	assert.Equal(t, 123., nodes.TryGetOutputValue(nodes.ConstOutput[float64]{Val: 123}, 456))
-	assert.Equal(t, 456., nodes.TryGetOutputValue[float64](nil, 456))
+	out := &nodes.StructOutput[string]{}
+	assert.Equal(t, 123., nodes.TryGetOutputValue(out, nodes.ConstOutput[float64]{Val: 123}, 456))
+	assert.Equal(t, 456., nodes.TryGetOutputValue[float64](out, nil, 456))
 }

@@ -78,6 +78,7 @@ func JsonBodyMethod[Body any](handler func(request Request[Body]) error) BodyMet
 
 func JsonResponseMethod[Response any](handler func(r *http.Request) (Response, error)) ResponseMethod[Response] {
 	return ResponseMethod[Response]{
+		Handler:        handler,
 		ResponseWriter: JsonResponseWriter[Response]{},
 	}
 }

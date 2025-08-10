@@ -11,31 +11,32 @@ type Subtract[T vector.Number] struct {
 	B nodes.Output[vector3.Vector[T]]
 }
 
-func (d Subtract[T]) Out() nodes.StructOutput[vector3.Vector[T]] {
-	a := nodes.TryGetOutputValue(d.A, vector3.Zero[T]())
-	b := nodes.TryGetOutputValue(d.B, vector3.Zero[T]())
-	return nodes.NewStructOutput(a.Sub(b))
+func (d Subtract[T]) Out(out *nodes.StructOutput[vector3.Vector[T]]) {
+	a := nodes.TryGetOutputValue(out, d.A, vector3.Zero[T]())
+	b := nodes.TryGetOutputValue(out, d.B, vector3.Zero[T]())
+	out.Set(a.Sub(b))
 }
 
-type SubtractToArrayNodeData[T vector.Number] struct {
+type SubtractToArrayNode[T vector.Number] struct {
 	Amount nodes.Output[vector3.Vector[T]]
 	Array  nodes.Output[[]vector3.Vector[T]]
 }
 
-func (cn SubtractToArrayNodeData[T]) Out() nodes.StructOutput[[]vector3.Vector[T]] {
+func (cn SubtractToArrayNode[T]) Out(out *nodes.StructOutput[[]vector3.Vector[T]]) {
 	if cn.Array == nil {
-		return nodes.NewStructOutput[[]vector3.Vector[T]](nil)
+		return
 	}
 
+	original := nodes.GetOutputValue(out, cn.Array)
 	if cn.Amount == nil {
-		return nodes.NewStructOutput(cn.Array.Value())
+		out.Set(original)
+		return
 	}
 
-	original := cn.Array.Value()
-	amount := cn.Amount.Value()
+	amount := nodes.GetOutputValue(out, cn.Amount)
 	total := make([]vector3.Vector[T], len(original))
 	for i, v := range original {
 		total[i] = v.Sub(amount)
 	}
-	return nodes.NewStructOutput(total)
+	out.Set(total)
 }

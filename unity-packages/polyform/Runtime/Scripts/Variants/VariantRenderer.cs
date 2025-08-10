@@ -1,20 +1,19 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using EliCDavis.Polyform.Artifacts;
+using EliCDavis.Polyform.Loading;
 using EliCDavis.Polyform.Models;
 using EliCDavis.Polyform.Variants.SpawnAreas;
 using UnityEngine;
 
 namespace EliCDavis.Polyform.Variants
 {
+    [AddComponentMenu("Polyform/Variant/Variant Renderer")]
     public class VariantRenderer : MonoBehaviour
     {
-        [SerializeField] private Graph graph;
-
         [SerializeField] private AvailableManifestObject endpoint;
 
-        [SerializeField] private RuntimeArtifactLoader[] handlers;
+        [SerializeField] private RuntimeManifestHandler[] handlers;
 
         [SerializeField] private VariantProfile profile;
 
@@ -28,7 +27,7 @@ namespace EliCDavis.Polyform.Variants
 
         private GameObject[] runtimeGameobjects;
 
-        private IRuntimeArtifact[] runtimeArtifacts;
+        private IRuntimeManifestInstance[] runtimeArtifacts;
 
         #endregion
 
@@ -83,17 +82,17 @@ namespace EliCDavis.Polyform.Variants
                 }
             }
 
-            runtimeArtifacts = new IRuntimeArtifact[variantCount];
+            runtimeArtifacts = new IRuntimeManifestInstance[variantCount];
             runtimeGameobjects = new GameObject[variantCount];
-            for (int i = 0; i < variantCount; i++)
+            for (var i = 0; i < variantCount; i++)
             {
-                yield return LoadManifest(i, endpoint.AvailableManifest(), profile.GenerateProfile());
+                yield return LoadManifest(i, profile.GenerateProfile());
             }
         }
 
-        private IEnumerator LoadManifest(int job, AvailableManifest manifest, Dictionary<string, object> variableData)
+        private IEnumerator LoadManifest(int job, Dictionary<string, object> variableData)
         {
-            var manifestsReq = graph.CreateManifest(manifest.Name, manifest.Port, variableData);
+            var manifestsReq = endpoint.Create( variableData);
             yield return manifestsReq.Run();
 
             foreach (var handler in handlers)
@@ -101,11 +100,11 @@ namespace EliCDavis.Polyform.Variants
                 if (!handler.CanHandle(manifestsReq.Result.Manifest)) continue;
                 runtimeGameobjects[job] = new GameObject(job.ToString());
                 runtimeGameobjects[job].transform.position = spawnArea.SpawnPoint();
-                runtimeArtifacts[job] = handler.Handle(runtimeGameobjects[job], graph, manifestsReq.Result);
+                runtimeArtifacts[job] = handler.Handle(runtimeGameobjects[job], endpoint.Graph, manifestsReq.Result);
                 yield break;
             }
 
-            throw new Exception($"No handler registered to handle manifest: {manifest.Name}/{manifest.Port}");
+            throw new Exception($"No handler registered to handle manifest: {endpoint.Name}/{endpoint.Port}");
         }
     }
 }
