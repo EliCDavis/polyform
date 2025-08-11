@@ -15,16 +15,76 @@ import (
 
 type Analyzer interface {
 	Analyze(buf []byte, endian binary.ByteOrder)
-	Print(out io.Writer, printHistogram bool)
+	Print(out io.Writer)
 }
 
-type PropertyAnalyzer[T Number] struct {
+type ContinuousPropertyAnalyzer[T Number] struct {
 	Name   string
 	Offset int
 	End    int
 	Min    T
 	Max    T
-	Counts map[T]int
+}
+
+func (pa *ContinuousPropertyAnalyzer[T]) Print(out io.Writer) {
+	fmt.Printf("[%s] min: %v; max: %v\n", pa.Name, pa.Min, pa.Max)
+}
+
+func (pa *ContinuousPropertyAnalyzer[T]) Analyze(buf []byte, endian binary.ByteOrder) {
+	switch cpa := any(pa).(type) {
+	case *ContinuousPropertyAnalyzer[int8]:
+		v := int8(buf[pa.Offset])
+		cpa.Min = min(cpa.Min, v)
+		cpa.Max = max(cpa.Max, v)
+
+	case *ContinuousPropertyAnalyzer[byte]:
+		v := buf[pa.Offset]
+		cpa.Min = min(cpa.Min, v)
+		cpa.Max = max(cpa.Max, v)
+
+	case *ContinuousPropertyAnalyzer[int16]:
+		v := int16(endian.Uint16(buf[pa.Offset:pa.End]))
+		cpa.Min = min(cpa.Min, v)
+		cpa.Max = max(cpa.Max, v)
+
+	case *ContinuousPropertyAnalyzer[uint16]:
+		v := endian.Uint16(buf[pa.Offset:pa.End])
+		cpa.Min = min(cpa.Min, v)
+		cpa.Max = max(cpa.Max, v)
+
+	case *ContinuousPropertyAnalyzer[int32]:
+		v := int32(endian.Uint32(buf[pa.Offset:pa.End]))
+		cpa.Min = min(cpa.Min, v)
+		cpa.Max = max(cpa.Max, v)
+
+	case *ContinuousPropertyAnalyzer[uint32]:
+		v := endian.Uint32(buf[pa.Offset:pa.End])
+		cpa.Min = min(cpa.Min, v)
+		cpa.Max = max(cpa.Max, v)
+
+	case *ContinuousPropertyAnalyzer[float32]:
+		v := math.Float32frombits(endian.Uint32(buf[pa.Offset:pa.End]))
+		cpa.Min = min(cpa.Min, v)
+		cpa.Max = max(cpa.Max, v)
+
+	case *ContinuousPropertyAnalyzer[float64]:
+		v := math.Float64frombits(endian.Uint64(buf[pa.Offset:pa.End]))
+		cpa.Min = min(cpa.Min, v)
+		cpa.Max = max(cpa.Max, v)
+
+	default:
+		panic(fmt.Errorf("unsupported type: %+v", pa))
+	}
+}
+
+type DiscretePropertyAnalyzer[T Number] struct {
+	Name           string
+	Offset         int
+	End            int
+	Min            T
+	Max            T
+	Counts         map[T]int
+	BuildHistogram bool
 }
 
 type Number interface {
@@ -42,10 +102,10 @@ func (a SortByHistogramKey[T]) Len() int           { return len(a) }
 func (a SortByHistogramKey[T]) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a SortByHistogramKey[T]) Less(i, j int) bool { return a[i].key < a[j].key }
 
-func (pa *PropertyAnalyzer[T]) Print(out io.Writer, printHistogram bool) {
+func (pa *DiscretePropertyAnalyzer[T]) Print(out io.Writer) {
 	fmt.Printf("[%s] min: %v; max: %v\n", pa.Name, pa.Min, pa.Max)
 
-	if !printHistogram {
+	if !pa.BuildHistogram {
 		return
 	}
 
@@ -64,141 +124,161 @@ func (pa *PropertyAnalyzer[T]) Print(out io.Writer, printHistogram bool) {
 	}
 }
 
-func (pa *PropertyAnalyzer[T]) Analyze(buf []byte, endian binary.ByteOrder) {
+func (pa *DiscretePropertyAnalyzer[T]) Analyze(buf []byte, endian binary.ByteOrder) {
 	switch cpa := any(pa).(type) {
-	case *PropertyAnalyzer[int8]:
+	case *DiscretePropertyAnalyzer[int8]:
 		v := int8(buf[pa.Offset])
 		cpa.Min = min(cpa.Min, v)
 		cpa.Max = max(cpa.Max, v)
-		cpa.Counts[v] = cpa.Counts[v] + 1
+		if pa.BuildHistogram {
+			cpa.Counts[v] = cpa.Counts[v] + 1
+		}
 
-	case *PropertyAnalyzer[byte]:
+	case *DiscretePropertyAnalyzer[byte]:
 		v := buf[pa.Offset]
 		cpa.Min = min(cpa.Min, v)
 		cpa.Max = max(cpa.Max, v)
-		cpa.Counts[v] = cpa.Counts[v] + 1
+		if pa.BuildHistogram {
+			cpa.Counts[v] = cpa.Counts[v] + 1
+		}
 
-	case *PropertyAnalyzer[int16]:
+	case *DiscretePropertyAnalyzer[int16]:
 		v := int16(endian.Uint16(buf[pa.Offset:pa.End]))
 		cpa.Min = min(cpa.Min, v)
 		cpa.Max = max(cpa.Max, v)
-		cpa.Counts[v] = cpa.Counts[v] + 1
+		if pa.BuildHistogram {
+			cpa.Counts[v] = cpa.Counts[v] + 1
+		}
 
-	case *PropertyAnalyzer[uint16]:
+	case *DiscretePropertyAnalyzer[uint16]:
 		v := endian.Uint16(buf[pa.Offset:pa.End])
 		cpa.Min = min(cpa.Min, v)
 		cpa.Max = max(cpa.Max, v)
-		cpa.Counts[v] = cpa.Counts[v] + 1
+		if pa.BuildHistogram {
+			cpa.Counts[v] = cpa.Counts[v] + 1
+		}
 
-	case *PropertyAnalyzer[int32]:
+	case *DiscretePropertyAnalyzer[int32]:
 		v := int32(endian.Uint32(buf[pa.Offset:pa.End]))
 		cpa.Min = min(cpa.Min, v)
 		cpa.Max = max(cpa.Max, v)
-		cpa.Counts[v] = cpa.Counts[v] + 1
+		if pa.BuildHistogram {
+			cpa.Counts[v] = cpa.Counts[v] + 1
+		}
 
-	case *PropertyAnalyzer[uint32]:
+	case *DiscretePropertyAnalyzer[uint32]:
 		v := endian.Uint32(buf[pa.Offset:pa.End])
 		cpa.Min = min(cpa.Min, v)
 		cpa.Max = max(cpa.Max, v)
-		cpa.Counts[v] = cpa.Counts[v] + 1
+		if pa.BuildHistogram {
+			cpa.Counts[v] = cpa.Counts[v] + 1
+		}
 
-	case *PropertyAnalyzer[float32]:
+	case *DiscretePropertyAnalyzer[float32]:
 		v := math.Float32frombits(endian.Uint32(buf[pa.Offset:pa.End]))
 		cpa.Min = min(cpa.Min, v)
 		cpa.Max = max(cpa.Max, v)
-		cpa.Counts[v] = cpa.Counts[v] + 1
+		if pa.BuildHistogram {
+			cpa.Counts[v] = cpa.Counts[v] + 1
+		}
 
-	case *PropertyAnalyzer[float64]:
+	case *DiscretePropertyAnalyzer[float64]:
 		v := math.Float64frombits(endian.Uint64(buf[pa.Offset:pa.End]))
 		cpa.Min = min(cpa.Min, v)
 		cpa.Max = max(cpa.Max, v)
-		cpa.Counts[v] = cpa.Counts[v] + 1
+		if pa.BuildHistogram {
+			cpa.Counts[v] = cpa.Counts[v] + 1
+		}
 
 	default:
-		panic(fmt.Errorf("unsupported type: %+v!!!", pa))
+		panic(fmt.Errorf("unsupported type: %+v", pa))
 	}
 }
 
-func buildAnalyzer(prop ply.ScalarProperty, offset int) Analyzer {
+func buildAnalyzer(prop ply.ScalarProperty, offset int, buildHistogram bool) Analyzer {
 	switch prop.Type {
 	case ply.Char:
-		return &PropertyAnalyzer[int8]{
-			Name:   prop.Name(),
-			Offset: offset,
-			End:    offset + 1,
-			Min:    127,
-			Max:    -128,
-			Counts: make(map[int8]int),
+		return &DiscretePropertyAnalyzer[int8]{
+			Name:           prop.Name(),
+			Offset:         offset,
+			End:            offset + 1,
+			Min:            127,
+			Max:            -128,
+			Counts:         make(map[int8]int),
+			BuildHistogram: buildHistogram,
 		}
 
 	case ply.UChar:
-		return &PropertyAnalyzer[byte]{
-			Name:   prop.Name(),
-			Offset: offset,
-			End:    offset + 1,
-			Min:    255,
-			Max:    0,
-			Counts: make(map[byte]int),
+		return &DiscretePropertyAnalyzer[byte]{
+			Name:           prop.Name(),
+			Offset:         offset,
+			End:            offset + 1,
+			Min:            255,
+			Max:            0,
+			Counts:         make(map[byte]int),
+			BuildHistogram: buildHistogram,
 		}
 
 	case ply.Short:
-		return &PropertyAnalyzer[int16]{
-			Name:   prop.Name(),
-			Offset: offset,
-			End:    offset + 2,
-			Min:    32767,
-			Max:    -32768,
-			Counts: make(map[int16]int),
+		return &DiscretePropertyAnalyzer[int16]{
+			Name:           prop.Name(),
+			Offset:         offset,
+			End:            offset + 2,
+			Min:            32767,
+			Max:            -32768,
+			Counts:         make(map[int16]int),
+			BuildHistogram: buildHistogram,
 		}
 
 	case ply.UShort:
-		return &PropertyAnalyzer[uint16]{
-			Name:   prop.Name(),
-			Offset: offset,
-			End:    offset + 2,
-			Min:    65535,
-			Max:    0,
-			Counts: make(map[uint16]int),
+		return &DiscretePropertyAnalyzer[uint16]{
+			Name:           prop.Name(),
+			Offset:         offset,
+			End:            offset + 2,
+			Min:            65535,
+			Max:            0,
+			Counts:         make(map[uint16]int),
+			BuildHistogram: buildHistogram,
 		}
 
 	case ply.Int:
-		return &PropertyAnalyzer[int32]{
-			Name:   prop.Name(),
-			Offset: offset,
-			End:    offset + 4,
-			Min:    2147483647,
-			Max:    -2147483648,
-			Counts: make(map[int32]int),
+		return &DiscretePropertyAnalyzer[int32]{
+			Name:           prop.Name(),
+			Offset:         offset,
+			End:            offset + 4,
+			Min:            2147483647,
+			Max:            -2147483648,
+			Counts:         make(map[int32]int),
+			BuildHistogram: buildHistogram,
 		}
 
 	case ply.UInt:
-		return &PropertyAnalyzer[uint32]{
-			Name:   prop.Name(),
-			Offset: offset,
-			End:    offset + 4,
-			Min:    4294967295,
-			Max:    0,
-			Counts: make(map[uint32]int),
+		return &DiscretePropertyAnalyzer[uint32]{
+			Name:           prop.Name(),
+			Offset:         offset,
+			End:            offset + 4,
+			Min:            4294967295,
+			Max:            0,
+			Counts:         make(map[uint32]int),
+			BuildHistogram: buildHistogram,
 		}
 
 	case ply.Float:
-		return &PropertyAnalyzer[float32]{
+		return &ContinuousPropertyAnalyzer[float32]{
 			Name:   prop.Name(),
 			Offset: offset,
 			End:    offset + 4,
 			Min:    math.MaxFloat32,
 			Max:    -math.MaxFloat32,
-			Counts: make(map[float32]int),
 		}
 
 	case ply.Double:
-		return &PropertyAnalyzer[float64]{
+		return &ContinuousPropertyAnalyzer[float64]{
 			Name:   prop.Name(),
 			Offset: offset,
 			End:    offset + 8,
 			Min:    math.MaxFloat64,
 			Max:    -math.MaxFloat64,
-			Counts: make(map[float64]int),
 		}
 
 	}
@@ -253,6 +333,7 @@ var analyzePropertiesCommand = &cli.Command{
 
 		analyzers := make([]Analyzer, 0)
 		pointSize := 0
+		buildHistogram := ctx.Bool("histogram")
 		for _, p := range header.Elements[0].Properties {
 			scalar, ok := p.(ply.ScalarProperty)
 			if !ok {
@@ -260,7 +341,7 @@ var analyzePropertiesCommand = &cli.Command{
 			}
 
 			if len(specifiedProperties) == 0 || InSlice(scalar.PropertyName, specifiedProperties) {
-				analyzers = append(analyzers, buildAnalyzer(scalar, pointSize))
+				analyzers = append(analyzers, buildAnalyzer(scalar, pointSize, buildHistogram))
 			}
 
 			pointSize += scalar.Size()
@@ -277,7 +358,7 @@ var analyzePropertiesCommand = &cli.Command{
 		}
 
 		for _, a := range analyzers {
-			a.Print(ctx.App.Writer, ctx.Bool("histogram"))
+			a.Print(ctx.App.Writer)
 		}
 
 		return nil

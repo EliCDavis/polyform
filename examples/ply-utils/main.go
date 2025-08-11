@@ -22,6 +22,7 @@ func main() {
 			ToGLTFCommand,
 			properties.PropertiesCommand,
 			FromCSVCommand,
+			CombineCommand,
 		},
 	}
 
