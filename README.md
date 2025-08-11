@@ -1,5 +1,5 @@
 ![Polyform Banner](./docs/polyformbanner.png)
-![Coverage](https://img.shields.io/badge/Coverage-37.2%25-yellow)
+![Coverage](https://img.shields.io/badge/Coverage-37.0%25-yellow)
 [![Go Report Card](https://goreportcard.com/badge/github.com/EliCDavis/polyform)](https://goreportcard.com/report/github.com/EliCDavis/polyform)
 [![Go Reference](https://pkg.go.dev/badge/github.com/EliCDavis/polyform.svg)](https://pkg.go.dev/github.com/EliCDavis/polyform)
 [![CITATION.cff](https://github.com/EliCDavis/polyform/actions/workflows/cff-validator-complete.yml/badge.svg)](https://github.com/EliCDavis/polyform/actions/workflows/cff-validator-complete.yml)
