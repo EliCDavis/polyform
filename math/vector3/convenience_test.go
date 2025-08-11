@@ -25,7 +25,7 @@ func TestSuite(t *testing.T) {
 		nodetest.NewTestCase(
 			"Normalize Array: nil => nil",
 			nodetest.NewNode(vector3.NormalizeArray{}),
-			nodetest.AssertOutput[[]v3.Float64]("Normalized", nil),
+			nodetest.AssertOutput[[]v3.Float64]("Local", nil),
 		),
 		nodetest.NewTestCase(
 			"Normalize Array: 0, 10, 0 => 0, 1, 0",
@@ -34,7 +34,7 @@ func TestSuite(t *testing.T) {
 					v3.New(0., 10., 0.),
 				}),
 			}),
-			nodetest.AssertOutput("Normalized", []v3.Float64{
+			nodetest.AssertOutput("Local", []v3.Float64{
 				v3.Up[float64](),
 			}),
 		),
