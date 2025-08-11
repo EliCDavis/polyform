@@ -1,9 +1,11 @@
 package voxelize
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/EliCDavis/polyform/modeling"
+	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/vector/vector3"
 )
 
@@ -65,4 +67,36 @@ func Surface(mesh modeling.Mesh, attribute string, voxelSize float64) []vector3.
 		finalValues = append(finalValues, voxel.ToFloat64().Scale(voxelSize))
 	}
 	return finalValues
+}
+
+type SurfaceNode struct {
+	Attribute nodes.Output[string]
+	Mesh      nodes.Output[modeling.Mesh]
+	VoxelSize nodes.Output[float64]
+}
+
+func (sn SurfaceNode) Positions(out *nodes.StructOutput[[]vector3.Float64]) {
+	if sn.Mesh == nil || sn.VoxelSize == nil {
+		return
+	}
+
+	voxelSize := nodes.GetOutputValue(out, sn.VoxelSize)
+	if voxelSize <= 0 {
+		out.CaptureError(fmt.Errorf("voxel must be greater than 0, recieved %g", voxelSize))
+		return
+	}
+
+	mesh := nodes.GetOutputValue(out, sn.Mesh)
+	if mesh.Topology() != modeling.TriangleTopology {
+		out.CaptureError(fmt.Errorf("input mesh does not have a triangle topology, instead: %q", mesh.Topology().String()))
+		return
+	}
+
+	attribute := nodes.TryGetOutputValue(out, sn.Attribute, modeling.PositionAttribute)
+	if !mesh.HasFloat3Attribute(attribute) {
+		out.CaptureError(fmt.Errorf("input mesh does not have Float3 attribute named %q", attribute))
+		return
+	}
+
+	out.Set(Surface(mesh, attribute, voxelSize))
 }

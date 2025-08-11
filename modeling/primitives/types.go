@@ -1,7 +1,12 @@
 package primitives
 
 import (
+	"bytes"
+	_ "embed"
+
+	"github.com/EliCDavis/polyform/formats/ply"
 	"github.com/EliCDavis/polyform/generator"
+	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
 )
@@ -21,5 +26,21 @@ func init() {
 	refutil.RegisterType[nodes.Struct[CircleUVsNode]](factory)
 	refutil.RegisterType[nodes.Struct[ConeNode]](factory)
 
+	refutil.RegisterType[nodes.Struct[StanfordBunny]](factory)
+
 	generator.RegisterTypes(factory)
+}
+
+//go:embed stanford-bunny.ply
+var bunnyPLY []byte
+
+type StanfordBunny struct {
+}
+
+func (c StanfordBunny) Bunny(out *nodes.StructOutput[modeling.Mesh]) {
+	bunny, err := ply.ReadMesh(bytes.NewReader(bunnyPLY))
+	if err != nil {
+		out.CaptureError(err)
+	}
+	out.Set(*bunny)
 }
