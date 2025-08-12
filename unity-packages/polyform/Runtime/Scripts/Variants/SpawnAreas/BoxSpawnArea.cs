@@ -3,14 +3,14 @@
 namespace EliCDavis.Polyform.Variants.SpawnAreas
 {
     [AddComponentMenu("Polyform/Variant/Spawn Area/Box Spawn Area")]
-    public class BoxSpawnArea : SpawnArea
+    public class BoxSpawnArea : VolumeSpawnArea
     {
         private bool InRange(float v, float min, float max)
         {
             return v >= min && v <= max;
         }
 
-        protected override Vector3 GenerateSpawn()
+        public override Vector3 GenerateSpawn()
         {
             return transform.TransformPoint(new Vector3(
                 Random.Range(-0.5f, 0.5f),

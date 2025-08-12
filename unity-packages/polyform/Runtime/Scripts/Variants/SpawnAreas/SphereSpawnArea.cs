@@ -3,11 +3,11 @@
 namespace EliCDavis.Polyform.Variants.SpawnAreas
 {
     [AddComponentMenu("Polyform/Variant/Spawn Area/Sphere Spawn Area")]
-    public class SphereSpawnArea : SpawnArea
+    public class SphereSpawnArea : VolumeSpawnArea
     {
         [SerializeField] private float radius;
 
-        protected override Vector3 GenerateSpawn()
+        public override Vector3 GenerateSpawn()
         {
             return transform.position + (Random.insideUnitSphere * radius);
         }

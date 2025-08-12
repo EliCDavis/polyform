@@ -15,7 +15,7 @@ namespace EliCDavis.Polyform.Variants.SpawnAreas
             areas = spawnAreas.List();
         }
 
-        protected override Vector3 GenerateSpawn()
+        public override SpawnTransform SpawnPoint()
         {
             if (areas.Count == 0)
             {
@@ -23,19 +23,6 @@ namespace EliCDavis.Polyform.Variants.SpawnAreas
             }
 
             return areas.Next().SpawnPoint();
-        }
-
-        public override bool InsideArea(Vector3 p)
-        {
-            foreach (var area in areas)
-            {
-                if (area.InsideArea(p))
-                {
-                    return true;
-                }
-            }
-
-            return false;
         }
     }
 }

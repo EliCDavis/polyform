@@ -99,7 +99,10 @@ namespace EliCDavis.Polyform.Variants
             {
                 if (!handler.CanHandle(manifestsReq.Result.Manifest)) continue;
                 runtimeGameobjects[job] = new GameObject(job.ToString());
-                runtimeGameobjects[job].transform.position = spawnArea.SpawnPoint();
+
+                var spawnPoint = spawnArea.SpawnPoint();
+                spawnPoint.Set(runtimeGameobjects[job].transform);
+                
                 runtimeArtifacts[job] = handler.Handle(runtimeGameobjects[job], endpoint.Graph, manifestsReq.Result);
                 yield break;
             }
