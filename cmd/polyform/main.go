@@ -3,10 +3,14 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/EliCDavis/polyform/generator"
+	"github.com/EliCDavis/vector/vector2"
+	"github.com/EliCDavis/vector/vector3"
 
 	// Import these so they register their nodes with the generator
+	"github.com/EliCDavis/polyform/drawing/coloring"
 	_ "github.com/EliCDavis/polyform/drawing/texturing/normals"
 
 	_ "github.com/EliCDavis/polyform/formats/colmap"
@@ -21,10 +25,12 @@ import (
 	_ "github.com/EliCDavis/polyform/generator/manifest/basics"
 	_ "github.com/EliCDavis/polyform/generator/parameter"
 	"github.com/EliCDavis/polyform/generator/schema"
+	"github.com/EliCDavis/polyform/generator/variable"
 
 	_ "github.com/EliCDavis/polyform/math"
 	_ "github.com/EliCDavis/polyform/math/colors"
 	_ "github.com/EliCDavis/polyform/math/constant"
+	"github.com/EliCDavis/polyform/math/geometry"
 	_ "github.com/EliCDavis/polyform/math/noise"
 	_ "github.com/EliCDavis/polyform/math/quaternion"
 	_ "github.com/EliCDavis/polyform/math/trig"
@@ -57,6 +63,53 @@ func main() {
 					{Medium: "github.com", Value: "EliCDavis"},
 				},
 			},
+		},
+
+		VariableFactory: func(variableType string) (variable.Variable, error) {
+			switch strings.ToLower(variableType) {
+			case "float64":
+				return &variable.TypeVariable[float64]{}, nil
+
+			case "string":
+				return &variable.TypeVariable[string]{}, nil
+
+			case "int":
+				return &variable.TypeVariable[int]{}, nil
+
+			case "bool":
+				return &variable.TypeVariable[bool]{}, nil
+
+			case "vector2.vector[float64]":
+				return &variable.TypeVariable[vector2.Float64]{}, nil
+
+			case "vector2.vector[int]":
+				return &variable.TypeVariable[vector2.Int]{}, nil
+
+			case "vector3.vector[float64]":
+				return &variable.TypeVariable[vector3.Float64]{}, nil
+
+			case "vector3.vector[int]":
+				return &variable.TypeVariable[vector3.Int]{}, nil
+
+			case "[]vector3.vector[float64]":
+				return &variable.TypeVariable[[]vector3.Float64]{}, nil
+
+			case "geometry.aabb":
+				return &variable.TypeVariable[geometry.AABB]{}, nil
+
+			case "coloring.webcolor":
+				return &variable.TypeVariable[coloring.WebColor]{}, nil
+
+			case "image.image":
+				return &variable.ImageVariable{}, nil
+
+			case "file":
+				return &variable.FileVariable{}, nil
+
+			default:
+				return nil, fmt.Errorf("unrecognized variable type: %q", variableType)
+			}
+
 		},
 
 		Out: os.Stdout,

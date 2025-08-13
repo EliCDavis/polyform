@@ -102,7 +102,7 @@ func newImpliedIndicesMesh(
 	}
 
 	indices := make([]int, attributeCount)
-	for i := 0; i < len(indices); i++ {
+	for i := range indices {
 		indices[i] = i
 	}
 

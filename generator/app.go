@@ -21,10 +21,11 @@ import (
 )
 
 type App struct {
-	Name        string
-	Version     string
-	Description string
-	Authors     []schema.Author
+	Name            string
+	Version         string
+	Description     string
+	Authors         []schema.Author
+	VariableFactory func(variableType string) (variable.Variable, error)
 
 	Out   io.Writer
 	Err   io.Writer
@@ -69,7 +70,8 @@ func (a *App) initGraphInstance() {
 		return
 	}
 	a.Graph = graph.New(graph.Config{
-		TypeFactory: types,
+		TypeFactory:     types,
+		VariableFactory: a.VariableFactory,
 	})
 }
 
@@ -280,6 +282,7 @@ func (a *App) Run(args []string) error {
 					Host:             appState.String("host"),
 					Port:             appState.String("port"),
 					LaunchWebbrowser: appState.Bool("launch-browser"),
+					VariableFactory:  a.VariableFactory,
 
 					Autosave:   appState.Bool("autosave"),
 					ConfigPath: appState.String(graphFlagName),

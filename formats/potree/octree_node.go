@@ -132,7 +132,7 @@ func LoadNode(on *OctreeNode, metadata *Metadata, buf []byte) modeling.Mesh {
 		if attribute.IsColor() {
 			colorData := make([]vector3.Float64, numPoints)
 
-			for i := 0; i < int(numPoints); i++ {
+			for i := range int(numPoints) {
 				pointOffset := (i * bytesPerPoint) + attributeOffset
 				col := vector3.
 					New(
