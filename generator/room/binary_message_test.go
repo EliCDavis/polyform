@@ -333,13 +333,13 @@ func TestMessage_ServerRoomStateUpdate(t *testing.T) {
 					RenderWireframe: true,
 					XrEnabled:       true,
 					Fog: schema.WebSceneFog{
-						Color: "#00FF00",
+						Color: schema.WebColor{R: 0, G: 255, B: 0, A: 255},
 						Near:  12,
 						Far:   25,
 					},
-					Background: "#000000",
-					Lighting:   "#FFFFFF",
-					Ground:     "#0000FF",
+					Background: schema.WebColor{R: 0, G: 0, B: 0, A: 255},
+					Lighting:   schema.WebColor{R: 255, G: 255, B: 255, A: 255},
+					Ground:     schema.WebColor{R: 0, G: 0, B: 255, A: 255},
 				},
 			},
 			want: []byte{

@@ -4,8 +4,8 @@ import (
 	"image"
 	"image/color"
 
+	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/drawing/texturing"
-	"github.com/EliCDavis/polyform/math/colors"
 	"github.com/EliCDavis/vector/vector3"
 )
 
@@ -33,10 +33,10 @@ func FromHeightmap(heightmap image.Image, scale float64) *image.RGBA {
 	texturing.Convolve(heightmap, func(x, y int, values []color.Color) {
 		// s11 := float64(colors.Red(values[4])) / 255
 
-		s01 := float64(colors.Red(values[3])) / 255.
-		s21 := float64(colors.Red(values[5])) / 255.
-		s10 := float64(colors.Red(values[1])) / 255.
-		s12 := float64(colors.Red(values[7])) / 255.
+		s01 := float64(coloring.Red(values[3])) / 255.
+		s21 := float64(coloring.Red(values[5])) / 255.
+		s10 := float64(coloring.Red(values[1])) / 255.
+		s12 := float64(coloring.Red(values[7])) / 255.
 
 		va := vector3.New(2, 0, (s21-s01)*scale).Normalized()
 		vb := vector3.New(0, 2, (s12-s10)*scale).Normalized()

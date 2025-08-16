@@ -10,12 +10,12 @@ func DefaultWebScene() *schema.WebScene {
 		AntiAlias:       true,
 		XrEnabled:       false,
 		Fog: schema.WebSceneFog{
-			Color: "#A0A0A0",
+			Color: schema.WebColor{R: 0xA0, B: 0xA0, G: 0xA0},
 			Near:  10,
 			Far:   50,
 		},
-		Background: "#A0A0A0",
-		Lighting:   "#FFFFFF",
-		Ground:     "#CBCBCB",
+		Background: schema.WebColor{R: 0xA0, B: 0xA0, G: 0xA0},
+		Lighting:   schema.WebColor{R: 0xFF, B: 0xFF, G: 0xFF},
+		Ground:     schema.WebColor{R: 0xCB, B: 0xCB, G: 0xCB},
 	}
 }

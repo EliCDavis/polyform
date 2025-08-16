@@ -1,23 +1,33 @@
 package math
 
 import (
+	gomath "math"
+
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/vector"
 )
 
 // ============================================================================
 
-type SumNode[T vector.Number] struct {
+type AddNode[T vector.Number] struct {
 	Values []nodes.Output[T] `description:"The nodes to sum"`
 }
 
-func (sn SumNode[T]) Out(out *nodes.StructOutput[T]) {
-	vals := nodes.GetOutputValues(out, sn.Values)
+func (an AddNode[T]) val(out nodes.ExecutionRecorder) T {
+	vals := nodes.GetOutputValues(out, an.Values)
 	var total T
 	for _, v := range vals {
 		total += v
 	}
-	out.Set(total)
+	return total
+}
+
+func (an AddNode[T]) Float(out *nodes.StructOutput[float64]) {
+	out.Set(float64(an.val(out)))
+}
+
+func (an AddNode[T]) Int(out *nodes.StructOutput[int]) {
+	out.Set(int(gomath.Round(float64(an.val(out)))))
 }
 
 // ============================================================================
@@ -27,7 +37,7 @@ type AddToArrayNode[T vector.Number] struct {
 	Array nodes.Output[[]T]
 }
 
-func (cn AddToArrayNode[T]) Out(out *nodes.StructOutput[[]T]) {
+func (cn AddToArrayNode[T]) Sums(out *nodes.StructOutput[[]T]) {
 	out.Set(methodToArr(
 		nodes.TryGetOutputValue(out, cn.In, 0),
 		nodes.TryGetOutputValue(out, cn.Array, nil),

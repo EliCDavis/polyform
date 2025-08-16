@@ -1,9 +1,9 @@
-package colors_test
+package coloring_test
 
 import (
 	"testing"
 
-	"github.com/EliCDavis/polyform/math/colors"
+	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -19,7 +19,7 @@ func TestSRGBToLinear(t *testing.T) {
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			assert.InDelta(t, tc.want, colors.SRGBToLinear(tc.input), 0.0000001)
+			assert.InDelta(t, tc.want, coloring.SRGBToLinear(tc.input), 0.0000001)
 		})
 	}
 }
@@ -36,7 +36,7 @@ func TestLinearToSRGB(t *testing.T) {
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			assert.InDelta(t, tc.want, colors.LinearToSRGB(tc.input), 0.0000001)
+			assert.InDelta(t, tc.want, coloring.LinearToSRGB(tc.input), 0.0000001)
 		})
 	}
 }

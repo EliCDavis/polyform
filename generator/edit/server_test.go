@@ -25,7 +25,7 @@ func TestServer(t *testing.T) {
 	})
 
 	tf.RegisterBuilder("Sum", func() any {
-		return &nodes.Struct[math.SumNode[float64]]{}
+		return &nodes.Struct[math.AddNode[float64]]{}
 	})
 
 	server := edit.Server{

@@ -11,6 +11,7 @@ import (
 
 	// Import these so they register their nodes with the generator
 	"github.com/EliCDavis/polyform/drawing/coloring"
+	_ "github.com/EliCDavis/polyform/drawing/coloring"
 	_ "github.com/EliCDavis/polyform/drawing/texturing/normals"
 
 	_ "github.com/EliCDavis/polyform/formats/colmap"
@@ -28,7 +29,6 @@ import (
 	"github.com/EliCDavis/polyform/generator/variable"
 
 	_ "github.com/EliCDavis/polyform/math"
-	_ "github.com/EliCDavis/polyform/math/colors"
 	_ "github.com/EliCDavis/polyform/math/constant"
 	"github.com/EliCDavis/polyform/math/geometry"
 	_ "github.com/EliCDavis/polyform/math/geometry"
