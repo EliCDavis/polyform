@@ -2,6 +2,7 @@ package edit_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -10,6 +11,7 @@ import (
 	"github.com/EliCDavis/polyform/generator/edit"
 	"github.com/EliCDavis/polyform/generator/graph"
 	"github.com/EliCDavis/polyform/generator/parameter"
+	"github.com/EliCDavis/polyform/generator/variable"
 	"github.com/EliCDavis/polyform/math"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
@@ -28,10 +30,19 @@ func TestServer(t *testing.T) {
 		return &nodes.Struct[math.AddNode[float64]]{}
 	})
 
+	variableFactory := func(s string) (variable.Variable, error) {
+		if s == "float64" {
+			return &variable.TypeVariable[float64]{}, nil
+		}
+		return nil, fmt.Errorf("unrecognized variable: %s", s)
+	}
+
 	server := edit.Server{
 		Graph: graph.New(graph.Config{
-			TypeFactory: tf,
+			TypeFactory:     tf,
+			VariableFactory: variableFactory,
 		}),
+		VariableFactory: variableFactory,
 	}
 	handler, err := server.Handler("./")
 	assert.NoError(t, err)
@@ -111,7 +122,7 @@ func TestServer(t *testing.T) {
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &out))
 				assert.Equal(t, `{"displayName":"parameter.Value[float64]","info":"","type":"Float64","path":"generator/parameter","outputs":{"Value":{"type":"float64"}},"parameter":{"name":"","description":"","type":"float64","currentValue":1}}`, string(out[0]))
 				assert.Equal(t, `{"displayName":"MyVariable","info":"Variable HTTP test","type":"MyVariable","path":"generator/variable","outputs":{"Value":{"type":"float64"}}}`, string(out[1]))
-				assert.Equal(t, `{"displayName":"Sum[float64]","info":"","type":"Sum","path":"math","outputs":{"Out":{"type":"float64"}},"inputs":{"Values":{"type":"float64","isArray":true,"description":"The nodes to sum"}}}`, string(out[2]))
+				assert.Equal(t, `{"displayName":"Add[float64]","info":"","type":"Sum","path":"math","outputs":{"Float":{"type":"float64"},"Int":{"type":"int"}},"inputs":{"Values":{"type":"float64","isArray":true,"description":"The nodes to sum"}}}`, string(out[2]))
 				assert.Len(t, out, 3)
 			},
 		},
@@ -232,7 +243,7 @@ func TestServer(t *testing.T) {
 				}
 			},
 			"Node-2": {
-				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/math.SumNode[float64]]",
+				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/math.AddNode[float64]]",
 				"assignedInput": {
 					"Values.0": {
 						"id": "Node-0",
