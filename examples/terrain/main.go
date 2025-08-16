@@ -27,8 +27,8 @@ func Texture(textureSize int, mapSize, height, waterLevel float64, name string, 
 	tex := image.NewRGBA(image.Rect(0, 0, textureSize, textureSize))
 
 	scaleFactor := mapSize / float64(textureSize)
-	for x := 0; x < textureSize; x++ {
-		for y := 0; y < textureSize; y++ {
+	for x := range textureSize {
+		for y := range textureSize {
 			samplePos := vector2.New(float64(x), float64(y)).Scale(scaleFactor)
 
 			sample := landNoise(samplePos)
@@ -60,7 +60,7 @@ func main() {
 	totalHeight := 200.
 	waterLevel := 15.
 	points := make([]vector2.Float64, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		theta := rand.Float64() * 2 * math.Pi
 		points[i] = vector2.
 			New(math.Cos(theta), math.Sin(theta)).

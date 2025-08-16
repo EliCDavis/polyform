@@ -28,7 +28,7 @@ func TerrainTexture(
 	textureSize int,
 	mapSize float64,
 	textures *PBRTextures,
-	colors coloring.ColorStack,
+	colors coloring.Gradient,
 	startPos vector3.Float64,
 	landNoise sample.Vec2ToFloat,
 ) {
@@ -63,7 +63,7 @@ func TerrainTexture(
 
 			colorSample := colorSampleFunc(pixel)
 			clampedSample := modeling.Clamp(colorSample/(float64(textureSize)/40.), 0, 1)
-			tex.Set(x, y, colors.LinearSample(clampedSample))
+			tex.Set(x, y, colors.Sample(clampedSample))
 
 			// worldSpacePos := pixel.Scale(scaleFactor)
 			// height := landNoise(worldSpacePos)
@@ -105,7 +105,7 @@ func DrawTrail(
 	trail Trail,
 	forestWidth float64,
 	terrainImageSize int,
-	snowColors coloring.ColorStack,
+	snowColors coloring.Gradient,
 ) modeling.Mesh {
 	if len(trail.Segments) == 0 {
 		return terrain

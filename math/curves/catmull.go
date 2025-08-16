@@ -191,6 +191,7 @@ type CatmullRomSplineParameters struct {
 	Points  []vector3.Float64
 	Alpha   float64
 	Epsilon float64
+	Closed  bool
 }
 
 func (crcp CatmullRomSplineParameters) Spline() CatmullRomSpline {
@@ -238,38 +239,84 @@ func (crcp CatmullRomSplineParameters) Spline() CatmullRomSpline {
 	}
 
 	if len(crcp.Points) == 3 {
-		return CatmullRomSpline{
-			alpha: crcp.Alpha,
-			curves: []*CatmullRomCurve{
+
+		var curves []*CatmullRomCurve
+		if crcp.Closed {
+			curves = []*CatmullRomCurve{
+				{
+					alpha:   crcp.Alpha,
+					epsilon: epsilon,
+					p0:      crcp.Points[2],
+					p1:      crcp.Points[0],
+					p2:      crcp.Points[1],
+					p3:      crcp.Points[2],
+				},
+				{
+					alpha:   crcp.Alpha,
+					epsilon: epsilon,
+					p0:      crcp.Points[0],
+					p1:      crcp.Points[1],
+					p2:      crcp.Points[2],
+					p3:      crcp.Points[0],
+				},
+				{
+					alpha:   crcp.Alpha,
+					epsilon: epsilon,
+					p0:      crcp.Points[1],
+					p1:      crcp.Points[2],
+					p2:      crcp.Points[0],
+					p3:      crcp.Points[1],
+				},
+			}
+		} else {
+			curves = []*CatmullRomCurve{
 				{
 					alpha:   crcp.Alpha,
 					epsilon: epsilon,
 					p0:      crcp.Points[0],
 					p1:      crcp.Points[0],
 					p2:      crcp.Points[1],
-					p3:      crcp.Points[1],
+					p3:      crcp.Points[2],
 				},
 				{
 					alpha:   crcp.Alpha,
 					epsilon: epsilon,
-					p0:      crcp.Points[1],
+					p0:      crcp.Points[0],
 					p1:      crcp.Points[1],
 					p2:      crcp.Points[2],
 					p3:      crcp.Points[2],
 				},
-			},
+			}
+		}
+
+		return CatmullRomSpline{
+			alpha:  crcp.Alpha,
+			curves: curves,
 		}
 	}
 
+	last := len(crcp.Points) - 1
 	curves := make([]*CatmullRomCurve, 0, len(crcp.Points)-1)
-	curves = append(curves, &CatmullRomCurve{
-		p0:      crcp.Points[0].Sub(crcp.Points[1]).Add(crcp.Points[0]),
-		p1:      crcp.Points[0],
-		p2:      crcp.Points[1],
-		p3:      crcp.Points[2],
-		alpha:   crcp.Alpha,
-		epsilon: epsilon,
-	})
+
+	if crcp.Closed {
+		curves = append(curves, &CatmullRomCurve{
+			p0:      crcp.Points[last-1],
+			p1:      crcp.Points[0],
+			p2:      crcp.Points[1],
+			p3:      crcp.Points[2],
+			alpha:   crcp.Alpha,
+			epsilon: epsilon,
+		})
+	} else {
+		curves = append(curves, &CatmullRomCurve{
+			p0:      crcp.Points[0].Sub(crcp.Points[1]).Add(crcp.Points[0]),
+			p1:      crcp.Points[0],
+			p2:      crcp.Points[1],
+			p3:      crcp.Points[2],
+			alpha:   crcp.Alpha,
+			epsilon: epsilon,
+		})
+	}
 
 	for i := range len(crcp.Points) - 3 {
 		curves = append(curves, &CatmullRomCurve{
@@ -282,17 +329,36 @@ func (crcp CatmullRomSplineParameters) Spline() CatmullRomSpline {
 		})
 	}
 
-	last := len(crcp.Points) - 1
-	curves = append(curves, &CatmullRomCurve{
-		p0: crcp.Points[last-2],
-		p1: crcp.Points[last-1],
-		p2: crcp.Points[last],
-		p3: crcp.Points[last].
-			Sub(crcp.Points[last-1]).
-			Add(crcp.Points[last]),
-		alpha:   crcp.Alpha,
-		epsilon: epsilon,
-	})
+	if crcp.Closed {
+		curves = append(curves,
+			&CatmullRomCurve{
+				p0:      crcp.Points[last-2],
+				p1:      crcp.Points[last-1],
+				p2:      crcp.Points[last],
+				p3:      crcp.Points[0],
+				alpha:   crcp.Alpha,
+				epsilon: epsilon,
+			}, &CatmullRomCurve{
+				p0:      crcp.Points[last-1],
+				p1:      crcp.Points[last],
+				p2:      crcp.Points[0],
+				p3:      crcp.Points[1],
+				alpha:   crcp.Alpha,
+				epsilon: epsilon,
+			},
+		)
+	} else {
+		curves = append(curves, &CatmullRomCurve{
+			p0: crcp.Points[last-2],
+			p1: crcp.Points[last-1],
+			p2: crcp.Points[last],
+			p3: crcp.Points[last].
+				Sub(crcp.Points[last-1]).
+				Add(crcp.Points[last]),
+			alpha:   crcp.Alpha,
+			epsilon: epsilon,
+		})
+	}
 
 	return CatmullRomSpline{
 		alpha:  crcp.Alpha,
@@ -358,8 +424,9 @@ func (crc *CatmullRomSpline) At(distance float64) vector3.Float64 {
 }
 
 type CatmullRomSplineNode struct {
-	Points nodes.Output[[]vector3.Float64]
-	Alpha  nodes.Output[float64]
+	Points nodes.Output[[]vector3.Float64] `description:"points that form the curve"`
+	Alpha  nodes.Output[float64]           `description:"0.5 for the centripetal spline, 0.0 for the uniform spline, 1.0 for the chordal spline"`
+	Closed nodes.Output[bool]              `description:"whether or not to close the curve to form a loop"`
 }
 
 func (r CatmullRomSplineNode) Out(out *nodes.StructOutput[Spline]) {
@@ -371,6 +438,7 @@ func (r CatmullRomSplineNode) Out(out *nodes.StructOutput[Spline]) {
 	spline := CatmullRomSplineParameters{
 		Points: points,
 		Alpha:  nodes.TryGetOutputValue(out, r.Alpha, 0),
+		Closed: nodes.TryGetOutputValue(out, r.Closed, false),
 	}.Spline()
 
 	// UGGO: Force a calculation to fill all the temp data

@@ -6,12 +6,25 @@ import (
 )
 
 type MultiplyNode[T vector.Number] struct {
-	A nodes.Output[T]
-	B nodes.Output[T]
+	Values []nodes.Output[T]
 }
 
 func (cn MultiplyNode[T]) Out(out *nodes.StructOutput[T]) {
-	out.Set(nodes.TryGetOutputValue(out, cn.A, 0) * nodes.TryGetOutputValue(out, cn.B, 0))
+	vals := nodes.GetOutputValues(out, cn.Values)
+	if len(vals) == 0 {
+		return
+	}
+
+	if len(vals) == 1 {
+		out.Set(vals[0])
+		return
+	}
+
+	total := vals[0]
+	for i := 1; i < len(vals); i++ {
+		total *= vals[i]
+	}
+	out.Set(total)
 }
 
 // ============================================================================

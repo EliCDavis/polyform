@@ -31,6 +31,7 @@ import (
 	_ "github.com/EliCDavis/polyform/math/colors"
 	_ "github.com/EliCDavis/polyform/math/constant"
 	"github.com/EliCDavis/polyform/math/geometry"
+	_ "github.com/EliCDavis/polyform/math/geometry"
 	_ "github.com/EliCDavis/polyform/math/noise"
 	_ "github.com/EliCDavis/polyform/math/quaternion"
 	_ "github.com/EliCDavis/polyform/math/trig"
@@ -109,7 +110,6 @@ func main() {
 			default:
 				return nil, fmt.Errorf("unrecognized variable type: %q", variableType)
 			}
-
 		},
 
 		Out: os.Stdout,
