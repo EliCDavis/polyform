@@ -13,7 +13,7 @@ import (
 
 type BerryConfig struct {
 	relativeBerrySize float64
-	colorPalette      coloring.ColorStack
+	colorPalette      coloring.Gradient
 	chanceOfBerry     float64
 }
 
@@ -22,7 +22,7 @@ func Bristle(
 	specularContext *gg.Context,
 	start, end vector2.Float64,
 	branchWidth, chanceOfSnow float64,
-	colors coloring.ColorStack,
+	colors coloring.Gradient,
 	berry *BerryConfig,
 	depth int,
 ) {
@@ -56,7 +56,7 @@ func Bristle(
 			colorContext.SetColor(color.RGBA{255, 255, 255, 255})
 			specularContext.SetColor(color.RGBA{65, 65, 65, 127})
 		} else {
-			colorContext.SetColor(colors.LinearSample(rand.Float64()))
+			colorContext.SetColor(colors.Sample(rand.Float64()))
 			specularContext.SetColor(color.RGBA{0, 0, 0, 127})
 		}
 
@@ -84,7 +84,7 @@ func Bristle(
 
 			// Draw Berries
 			if berry != nil && rand.Float64() > berry.chanceOfBerry {
-				colorContext.SetColor(berry.colorPalette.LinearSample(rand.Float64()))
+				colorContext.SetColor(berry.colorPalette.Sample(rand.Float64()))
 				colorContext.DrawCircle(
 					point.X()-halfBranchWidth+(halfBranchWidth*rand.Float64()*2),
 					point.Y()-halfBranchWidth+(halfBranchWidth*rand.Float64()*2),
@@ -131,7 +131,7 @@ func Bristle(
 }
 
 func BranchTexture(
-	colors coloring.ColorStack,
+	colors coloring.Gradient,
 	textures *PBRTextures,
 	imageSize float64,
 	minSnow float64,
@@ -169,10 +169,19 @@ func BranchTexture(
 
 	berryConfig := &BerryConfig{
 		relativeBerrySize: .5,
-		colorPalette: coloring.NewColorStack(
-			coloring.NewColorStackEntry(1, 1, 1, color.RGBA{235, 64, 52, 255}),
-			coloring.NewColorStackEntry(1, 1, 1, color.RGBA{235, 52, 98, 255}),
-			coloring.NewColorStackEntry(1, 1, 1, color.RGBA{255, 102, 140, 255}),
+		colorPalette: coloring.NewGradient(
+			coloring.GradientKey{
+				Time:  0,
+				Color: color.RGBA{235, 64, 52, 255},
+			},
+			coloring.GradientKey{
+				Time:  1,
+				Color: color.RGBA{235, 52, 98, 255},
+			},
+			coloring.GradientKey{
+				Time:  2,
+				Color: color.RGBA{255, 102, 140, 255},
+			},
 		),
 		chanceOfBerry: .75,
 	}

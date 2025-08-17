@@ -1,7 +1,6 @@
 package room
 
 import (
-	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/generator/schema"
 )
 
@@ -11,12 +10,12 @@ func DefaultWebScene() *schema.WebScene {
 		AntiAlias:       true,
 		XrEnabled:       false,
 		Fog: schema.WebSceneFog{
-			Color: coloring.WebColor{R: 0xa0, G: 0xa0, B: 0xa0, A: 255},
+			Color: schema.WebColor{R: 0xA0, B: 0xA0, G: 0xA0},
 			Near:  10,
 			Far:   50,
 		},
-		Background: coloring.WebColor{R: 0xa0, G: 0xa0, B: 0xa0, A: 255},
-		Lighting:   coloring.White(),
-		Ground:     coloring.WebColor{R: 0xcb, G: 0xcb, B: 0xcb, A: 255},
+		Background: schema.WebColor{R: 0xA0, B: 0xA0, G: 0xA0},
+		Lighting:   schema.WebColor{R: 0xFF, B: 0xFF, G: 0xFF},
+		Ground:     schema.WebColor{R: 0xCB, B: 0xCB, G: 0xCB},
 	}
 }

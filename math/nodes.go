@@ -18,13 +18,13 @@ func init() {
 
 	refutil.RegisterType[nodes.Struct[CircumferenceNode]](factory)
 
-	refutil.RegisterType[nodes.Struct[DifferenceNode[int]]](factory)
-	refutil.RegisterType[nodes.Struct[DifferenceNode[float64]]](factory)
-	refutil.RegisterType[nodes.Struct[DifferencesToArrayNode[int]]](factory)
-	refutil.RegisterType[nodes.Struct[DifferencesToArrayNode[float64]]](factory)
+	refutil.RegisterType[nodes.Struct[SubtractNode[int]]](factory)
+	refutil.RegisterType[nodes.Struct[SubtractNode[float64]]](factory)
+	refutil.RegisterType[nodes.Struct[SubtractToArrayNode[int]]](factory)
+	refutil.RegisterType[nodes.Struct[SubtractToArrayNode[float64]]](factory)
 
-	refutil.RegisterType[nodes.Struct[SumNode[int]]](factory)
-	refutil.RegisterType[nodes.Struct[SumNode[float64]]](factory)
+	refutil.RegisterType[nodes.Struct[AddNode[int]]](factory)
+	refutil.RegisterType[nodes.Struct[AddNode[float64]]](factory)
 
 	refutil.RegisterType[nodes.Struct[AddToArrayNode[int]]](factory)
 	refutil.RegisterType[nodes.Struct[AddToArrayNode[float64]]](factory)

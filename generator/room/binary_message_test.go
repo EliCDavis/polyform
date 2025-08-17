@@ -6,7 +6,6 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/generator/room"
 	"github.com/EliCDavis/polyform/generator/schema"
 	"github.com/EliCDavis/vector/vector3"
@@ -334,13 +333,13 @@ func TestMessage_ServerRoomStateUpdate(t *testing.T) {
 					RenderWireframe: true,
 					XrEnabled:       true,
 					Fog: schema.WebSceneFog{
-						Color: coloring.Green(),
+						Color: schema.WebColor{R: 0, G: 255, B: 0, A: 255},
 						Near:  12,
 						Far:   25,
 					},
-					Background: coloring.Black(),
-					Lighting:   coloring.White(),
-					Ground:     coloring.Blue(),
+					Background: schema.WebColor{R: 0, G: 0, B: 0, A: 255},
+					Lighting:   schema.WebColor{R: 255, G: 255, B: 255, A: 255},
+					Ground:     schema.WebColor{R: 0, G: 0, B: 255, A: 255},
 				},
 			},
 			want: []byte{

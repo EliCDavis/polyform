@@ -2,6 +2,7 @@ package math
 
 import (
 	"errors"
+	gomath "math"
 
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/vector"
@@ -18,14 +19,22 @@ func (DivideNode[T]) Description() string {
 	return "Dividend / Divisor"
 }
 
-func (cn DivideNode[T]) Out(out *nodes.StructOutput[T]) {
+func (cn DivideNode[T]) val(out nodes.ExecutionRecorder) T {
 	b := nodes.TryGetOutputValue(out, cn.Divisor, 0)
 	if b == 0 {
 		out.CaptureError(cantDivideByZeroErr)
-		return
+		return 0
 	}
 
-	out.Set(nodes.TryGetOutputValue(out, cn.Dividend, 0) / b)
+	return nodes.TryGetOutputValue(out, cn.Dividend, 0) / b
+}
+
+func (an DivideNode[T]) Float(out *nodes.StructOutput[float64]) {
+	out.Set(float64(an.val(out)))
+}
+
+func (an DivideNode[T]) Int(out *nodes.StructOutput[int]) {
+	out.Set(int(gomath.Round(float64(an.val(out)))))
 }
 
 // ============================================================================
@@ -35,7 +44,7 @@ type DivideToArrayNode[T vector.Number] struct {
 	Array nodes.Output[[]T]
 }
 
-func (cn DivideToArrayNode[T]) Out(out *nodes.StructOutput[[]T]) {
+func (cn DivideToArrayNode[T]) Quotients(out *nodes.StructOutput[[]T]) {
 	arr := nodes.TryGetOutputValue(out, cn.Array, nil)
 	if len(arr) == 0 {
 		return

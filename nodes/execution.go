@@ -24,4 +24,5 @@ type ObservableExecution interface {
 
 type ExecutionRecorder interface {
 	CaptureTiming(title string, timing time.Duration)
+	CaptureError(err error)
 }

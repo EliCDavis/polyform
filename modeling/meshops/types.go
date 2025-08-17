@@ -11,9 +11,12 @@ func init() {
 
 	refutil.RegisterType[nodes.Struct[TranslateAttribute3DNode]](factory)
 	refutil.RegisterType[nodes.Struct[TranslateAttributeByPerlinNoise3DNode]](factory)
+	refutil.RegisterType[nodes.Struct[RotateAttribute3DNode]](factory)
 	refutil.RegisterType[nodes.Struct[CropAttribute3DNode]](factory)
 	refutil.RegisterType[nodes.Struct[CenterAttribute3DNode]](factory)
 	refutil.RegisterType[nodes.Struct[LaplacianSmoothNode]](factory)
+	refutil.RegisterType[nodes.Struct[SrgbToLinearNode]](factory)
+	refutil.RegisterType[nodes.Struct[LinearToSRGBNode]](factory)
 
 	refutil.RegisterType[nodes.Struct[CombineNode]](factory)
 

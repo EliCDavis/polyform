@@ -1,7 +1,6 @@
-package colors
+package coloring
 
 import (
-	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/generator"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
@@ -21,13 +20,13 @@ func init() {
 }
 
 type InterpolateNode struct {
-	A    nodes.Output[coloring.WebColor]
-	B    nodes.Output[coloring.WebColor]
+	A    nodes.Output[WebColor]
+	B    nodes.Output[WebColor]
 	Time nodes.Output[float64]
 }
 
-func (n InterpolateNode) Out(out *nodes.StructOutput[coloring.WebColor]) {
-	out.Set(coloring.WebColor{R: 0, G: 0, B: 0, A: 255})
+func (n InterpolateNode) Out(out *nodes.StructOutput[WebColor]) {
+	out.Set(WebColor{R: 0, G: 0, B: 0, A: 255})
 	if n.A == nil && n.B == nil {
 		return
 	}
@@ -49,7 +48,7 @@ func (n InterpolateNode) Out(out *nodes.StructOutput[coloring.WebColor]) {
 	)
 
 	r, g, b, a := i.RGBA()
-	out.Set(coloring.WebColor{
+	out.Set(WebColor{
 		R: byte(r >> 8),
 		G: byte(g >> 8),
 		B: byte(b >> 8),
@@ -58,19 +57,19 @@ func (n InterpolateNode) Out(out *nodes.StructOutput[coloring.WebColor]) {
 }
 
 type InterpolateToArrayNode struct {
-	A    nodes.Output[coloring.WebColor]
-	B    nodes.Output[coloring.WebColor]
+	A    nodes.Output[WebColor]
+	B    nodes.Output[WebColor]
 	Time nodes.Output[[]float64]
 }
 
-func (n InterpolateToArrayNode) Out(out *nodes.StructOutput[[]coloring.WebColor]) {
+func (n InterpolateToArrayNode) Out(out *nodes.StructOutput[[]WebColor]) {
 	if n.Time == nil {
 		return
 	}
 
 	times := nodes.GetOutputValue(out, n.Time)
 
-	arr := make([]coloring.WebColor, len(times))
+	arr := make([]WebColor, len(times))
 	out.Set(arr)
 
 	if n.A == nil && n.B == nil {
@@ -99,7 +98,7 @@ func (n InterpolateToArrayNode) Out(out *nodes.StructOutput[[]coloring.WebColor]
 	for i, t := range times {
 		v := Interpolate(aV, bV, t)
 		r, g, b, a := v.RGBA()
-		arr[i] = coloring.WebColor{
+		arr[i] = WebColor{
 			R: byte(r >> 8),
 			G: byte(g >> 8),
 			B: byte(b >> 8),
@@ -109,10 +108,10 @@ func (n InterpolateToArrayNode) Out(out *nodes.StructOutput[[]coloring.WebColor]
 }
 
 type ToVectorNode struct {
-	In nodes.Output[coloring.WebColor]
+	In nodes.Output[WebColor]
 }
 
-func (n ToVectorNode) vector4(c coloring.WebColor) vector4.Float64 {
+func (n ToVectorNode) vector4(c WebColor) vector4.Float64 {
 	if n.In == nil {
 		return vector4.Zero[float64]()
 	}
@@ -126,17 +125,17 @@ func (n ToVectorNode) vector4(c coloring.WebColor) vector4.Float64 {
 }
 
 func (n ToVectorNode) Vector3(out *nodes.StructOutput[vector3.Float64]) {
-	out.Set(n.vector4(nodes.TryGetOutputValue(out, n.In, coloring.WebColor{})).XYZ())
+	out.Set(n.vector4(nodes.TryGetOutputValue(out, n.In, WebColor{})).XYZ())
 }
 
 func (n ToVectorNode) Vector4(out *nodes.StructOutput[vector4.Float64]) {
-	out.Set(n.vector4(nodes.TryGetOutputValue(out, n.In, coloring.WebColor{})))
+	out.Set(n.vector4(nodes.TryGetOutputValue(out, n.In, WebColor{})))
 }
 
 // ============================================================================
 
 type ToVectorArrayNode struct {
-	In nodes.Output[[]coloring.WebColor]
+	In nodes.Output[[]WebColor]
 }
 
 func (n ToVectorArrayNode) Vector3(out *nodes.StructOutput[[]vector3.Float64]) {

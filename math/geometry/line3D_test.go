@@ -46,74 +46,116 @@ func TestLine3D_ClosestPoint_HorizontalLine(t *testing.T) {
 	}
 }
 
-func TestLine3D_ClosestPoint(t *testing.T) {
-
+func TestLineStripsFromPoints3D(t *testing.T) {
 	tests := map[string]struct {
-		point vector3.Float64
-		line  geometry.Line3D
-		want  vector3.Float64
+		points []vector3.Float64
+		lines  []geometry.Line3D
 	}{
-		"centered horizontal line": {
-			point: vector3.New[float64](0, 0, 0),
-			want:  vector3.New[float64](0, 0, 0),
-			line:  geometry.NewLine3D(vector3.New(0., -1., 0.), vector3.New(0., 1., 0.)),
+		"nil => nil": {},
+		"1 point => nil": {
+			points: []vector3.Float64{
+				vector3.Zero[float64](),
+			},
 		},
-
-		"horizontal line offset +1 +1 / 0, 0, 0": {
-			point: vector3.New[float64](0, 0, 0),
-			want:  vector3.New[float64](1, 0, 1),
-			line:  geometry.NewLine3D(vector3.New(1., -1., 1.), vector3.New(1., 1., 1.)),
+		"2 points => 1 line": {
+			points: []vector3.Float64{
+				vector3.Zero[float64](),
+				vector3.Up[float64](),
+			},
+			lines: []geometry.Line3D{
+				geometry.NewLine3D(
+					vector3.Zero[float64](),
+					vector3.Up[float64](),
+				),
+			},
 		},
-
-		"horizontal line offset -1 +1 / 0, 0, 0": {
-			point: vector3.New[float64](0, 0, 0),
-			want:  vector3.New[float64](-1, 0, 1),
-			line:  geometry.NewLine3D(vector3.New(-1., -1., 1.), vector3.New(-1., 1., 1.)),
-		},
-
-		"horizontal line offset +1 -1 / 0, 0, 0": {
-			point: vector3.New[float64](0, 0, 0),
-			want:  vector3.New[float64](1, 0, -1),
-			line:  geometry.NewLine3D(vector3.New(1., -1., -1.), vector3.New(1., 1., -1.)),
-		},
-
-		"horizontal line offset -1 -1 / 0, 0, 0": {
-			point: vector3.New[float64](0, 0, 0),
-			want:  vector3.New[float64](-1, 0, -1),
-			line:  geometry.NewLine3D(vector3.New(-1., -1., -1.), vector3.New(-1., 1., -1.)),
-		},
-
-		"horizontal line offset +1 +1": {
-			point: vector3.New[float64](2, 0.5, 2),
-			want:  vector3.New[float64](1, 0.5, 1),
-			line:  geometry.NewLine3D(vector3.New(1., -1., 1.), vector3.New(1., 1., 1.)),
-		},
-
-		"horizontal line offset -1 +1": {
-			point: vector3.New[float64](-2, 0.5, 2),
-			want:  vector3.New[float64](-1, 0.5, 1),
-			line:  geometry.NewLine3D(vector3.New(-1., -1., 1.), vector3.New(-1., 1., 1.)),
-		},
-
-		"horizontal line offset +1 -1": {
-			point: vector3.New[float64](2, 0.5, -2),
-			want:  vector3.New[float64](1, 0.5, -1),
-			line:  geometry.NewLine3D(vector3.New(1., -1., -1.), vector3.New(1., 1., -1.)),
-		},
-
-		"horizontal line offset -1 -1": {
-			point: vector3.New[float64](-2, 0.5, -2),
-			want:  vector3.New[float64](-1, 0.5, -1),
-			line:  geometry.NewLine3D(vector3.New(-1., -1., -1.), vector3.New(-1., 1., -1.)),
+		"3 points => 2 line": {
+			points: []vector3.Float64{
+				vector3.Zero[float64](),
+				vector3.Up[float64](),
+				vector3.New(0., 2., 0.),
+			},
+			lines: []geometry.Line3D{
+				geometry.NewLine3D(
+					vector3.Zero[float64](),
+					vector3.Up[float64](),
+				),
+				geometry.NewLine3D(
+					vector3.Up[float64](),
+					vector3.New(0., 2., 0.),
+				),
+			},
 		},
 	}
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			got := tc.line.ClosestPointOnLine(tc.point)
-			assert.InDelta(t, tc.want.X(), got.X(), 0.0001)
-			assert.InDelta(t, tc.want.Y(), got.Y(), 0.0001)
-			assert.InDelta(t, tc.want.Z(), got.Z(), 0.0001)
+			result := geometry.LineStripsFromPoints3D(tc.points)
+			assert.Equal(t, tc.lines, result)
+		})
+	}
+}
+
+func TestLinesFromPoints3D(t *testing.T) {
+	tests := map[string]struct {
+		points []vector3.Float64
+		lines  []geometry.Line3D
+	}{
+		"nil => nil": {},
+		"1 point => nil": {
+			points: []vector3.Float64{
+				vector3.Zero[float64](),
+			},
+		},
+		"2 points => 1 line": {
+			points: []vector3.Float64{
+				vector3.Zero[float64](),
+				vector3.Up[float64](),
+			},
+			lines: []geometry.Line3D{
+				geometry.NewLine3D(
+					vector3.Zero[float64](),
+					vector3.Up[float64](),
+				),
+			},
+		},
+		"3 points => 1 line": {
+			points: []vector3.Float64{
+				vector3.Zero[float64](),
+				vector3.Up[float64](),
+				vector3.New(0., 2., 0.),
+			},
+			lines: []geometry.Line3D{
+				geometry.NewLine3D(
+					vector3.Zero[float64](),
+					vector3.Up[float64](),
+				),
+			},
+		},
+		"4 points => 2 line": {
+			points: []vector3.Float64{
+				vector3.Zero[float64](),
+				vector3.Up[float64](),
+				vector3.New(0., 2., 0.),
+				vector3.New(0., 3., 0.),
+			},
+			lines: []geometry.Line3D{
+				geometry.NewLine3D(
+					vector3.Zero[float64](),
+					vector3.Up[float64](),
+				),
+				geometry.NewLine3D(
+					vector3.New(0., 2., 0.),
+					vector3.New(0., 3., 0.),
+				),
+			},
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			result := geometry.LinesFromPoints3D(tc.points)
+			assert.Equal(t, tc.lines, result)
 		})
 	}
 }

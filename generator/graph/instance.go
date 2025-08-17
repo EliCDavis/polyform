@@ -26,8 +26,9 @@ type Details struct {
 }
 
 type Instance struct {
-	details     Details
-	typeFactory *refutil.TypeFactory
+	details         Details
+	typeFactory     *refutil.TypeFactory
+	variableFactory func(string) (variable.Variable, error)
 
 	movelVersion   uint32
 	nodeIDs        map[nodes.Node]string
@@ -42,11 +43,12 @@ type Instance struct {
 }
 
 type Config struct {
-	Name        string
-	Version     string
-	Description string
-	Authors     []schema.Author
-	TypeFactory *refutil.TypeFactory
+	Name            string
+	Version         string
+	Description     string
+	Authors         []schema.Author
+	TypeFactory     *refutil.TypeFactory
+	VariableFactory func(string) (variable.Variable, error)
 }
 
 func New(config Config) *Instance {
@@ -57,10 +59,11 @@ func New(config Config) *Instance {
 			Version:     config.Version,
 			Authors:     config.Authors,
 		},
-		typeFactory: config.TypeFactory,
-		variables:   variable.NewSystem(),
-		nodeIDs:     make(map[nodes.Node]string),
-		metadata:    sync.NewNestedSyncMap(),
+		typeFactory:     config.TypeFactory,
+		variableFactory: config.VariableFactory,
+		variables:       variable.NewSystem(),
+		nodeIDs:         make(map[nodes.Node]string),
+		metadata:        sync.NewNestedSyncMap(),
 		namedManifests: &namedOutputManager[manifest.Manifest]{
 			namedPorts: make(map[string]namedOutputEntry[manifest.Manifest]),
 		},
@@ -556,7 +559,7 @@ func (a *Instance) ApplyAppSchema(jsonPayload []byte) error {
 	a.metadata.OverwriteData(appSchema.Metadata)
 	appSchema.Variables.Traverse(func(path string, v schema.PersistedVariable) bool {
 		var varabl variable.Variable
-		varabl, err = variable.DeserializePersistantVariableJSON(v.Data, decoder)
+		varabl, err = variable.DeserializePersistantVariableJSON(v.Data, decoder, a.variableFactory)
 		if err == nil {
 			a.NewVariable(path, varabl)
 

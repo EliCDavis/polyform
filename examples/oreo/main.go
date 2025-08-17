@@ -7,9 +7,9 @@ import (
 	"math"
 	"os"
 
+	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/drawing/texturing"
 	"github.com/EliCDavis/polyform/formats/gltf"
-	"github.com/EliCDavis/polyform/math/colors"
 	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/math/noise"
 	"github.com/EliCDavis/polyform/math/quaternion"
@@ -33,7 +33,7 @@ func imageToEdgeData(src image.Image, fillValue float64) [][]float64 {
 			return
 		}
 
-		if colors.AlphaEqual(kernel[4], 255) {
+		if coloring.AlphaEqual(kernel[4], 255) {
 			imageData[x][y] = -fillValue
 		} else {
 			imageData[x][y] = fillValue

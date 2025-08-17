@@ -18,6 +18,7 @@ import (
 	"github.com/EliCDavis/polyform/generator/graph"
 	"github.com/EliCDavis/polyform/generator/room"
 	"github.com/EliCDavis/polyform/generator/schema"
+	"github.com/EliCDavis/polyform/generator/variable"
 )
 
 func writeJSONError(out io.Writer, err error) error {
@@ -57,6 +58,7 @@ type Server struct {
 	CertPath         string
 	KeyPath          string
 	LaunchWebbrowser bool
+	VariableFactory  func(string) (variable.Variable, error)
 
 	Autosave   bool
 	ConfigPath string
@@ -172,7 +174,7 @@ func (as *Server) Handler(indexFile string) (*http.ServeMux, error) {
 	mux.HandleFunc("/producer/value/", as.ProducerEndpoint)
 	mux.Handle("/producer/name/", producerNameEndpoint(as.Graph, graphSaver))
 	mux.HandleFunc("/manifest/", as.ManifestEndpoint)
-	mux.Handle(variableInstanceEndpointPath, variableInstanceEndpoint(as.Graph, graphSaver))
+	mux.Handle(variableInstanceEndpointPath, variableInstanceEndpoint(as, as.Graph, graphSaver))
 	mux.Handle(variableValueEndpointPath, variableValueEndpoint(as.Graph, graphSaver))
 	mux.Handle(variableNameDescriptionEndpointPath, variableInfoEndpoint(as.Graph, graphSaver))
 

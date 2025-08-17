@@ -15,7 +15,7 @@ const (
 	variableNameDescriptionEndpointPath = "/variable/info/"
 )
 
-func variableInstanceEndpoint(graphInstance *graph.Instance, saver *GraphSaver) endpoint.Handler {
+func variableInstanceEndpoint(server *Server, graphInstance *graph.Instance, saver *GraphSaver) endpoint.Handler {
 
 	type CreateVariableRequest struct {
 		Type        string `json:"type"`
@@ -32,7 +32,7 @@ func variableInstanceEndpoint(graphInstance *graph.Instance, saver *GraphSaver) 
 			// Create a new instance of a variable
 			http.MethodPost: endpoint.JsonMethod(func(request endpoint.Request[CreateVariableRequest]) (CreateVariableResponse, error) {
 				variablePath := request.Url[len(variableInstanceEndpointPath):]
-				variableInstance, err := variable.CreateVariable(request.Body.Type)
+				variableInstance, err := server.VariableFactory(request.Body.Type)
 				if err != nil {
 					return CreateVariableResponse{}, err
 				}

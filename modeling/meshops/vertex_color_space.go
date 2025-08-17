@@ -1,8 +1,9 @@
 package meshops
 
 import (
-	"github.com/EliCDavis/polyform/math/colors"
+	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/modeling"
+	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/vector/vector3"
 )
 
@@ -49,9 +50,9 @@ func VertexColorSpace(m modeling.Mesh, attribute string, transformation VertexCo
 		for i := 0; i < oldData.Len(); i++ {
 			entry := oldData.At(i)
 			transferredData[i] = vector3.New(
-				colors.LinearToSRGB(entry.X()),
-				colors.LinearToSRGB(entry.Y()),
-				colors.LinearToSRGB(entry.Z()),
+				coloring.LinearToSRGB(entry.X()),
+				coloring.LinearToSRGB(entry.Y()),
+				coloring.LinearToSRGB(entry.Z()),
 			)
 		}
 
@@ -59,12 +60,46 @@ func VertexColorSpace(m modeling.Mesh, attribute string, transformation VertexCo
 		for i := 0; i < oldData.Len(); i++ {
 			entry := oldData.At(i)
 			transferredData[i] = vector3.New(
-				colors.SRGBToLinear(entry.X()),
-				colors.SRGBToLinear(entry.Y()),
-				colors.SRGBToLinear(entry.Z()),
+				coloring.SRGBToLinear(entry.X()),
+				coloring.SRGBToLinear(entry.Y()),
+				coloring.SRGBToLinear(entry.Z()),
 			)
 		}
 	}
 
 	return m.SetFloat3Attribute(attribute, transferredData)
+}
+
+type SrgbToLinearNode struct {
+	Attribute nodes.Output[string]
+	Mesh      nodes.Output[modeling.Mesh]
+}
+
+func (n SrgbToLinearNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
+	if n.Mesh == nil {
+		out.Set(modeling.EmptyMesh(modeling.TriangleTopology))
+		return
+	}
+
+	mesh := nodes.GetOutputValue(out, n.Mesh)
+	attr := nodes.TryGetOutputValue(out, n.Attribute, modeling.ColorAttribute)
+
+	out.Set(VertexColorSpace(mesh, attr, VertexColorSpaceSRGBToLinear))
+}
+
+type LinearToSRGBNode struct {
+	Attribute nodes.Output[string]
+	Mesh      nodes.Output[modeling.Mesh]
+}
+
+func (n LinearToSRGBNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
+	if n.Mesh == nil {
+		out.Set(modeling.EmptyMesh(modeling.TriangleTopology))
+		return
+	}
+
+	mesh := nodes.GetOutputValue(out, n.Mesh)
+	attr := nodes.TryGetOutputValue(out, n.Attribute, modeling.ColorAttribute)
+
+	out.Set(VertexColorSpace(mesh, attr, VertexColorSpaceLinearToSRGB))
 }

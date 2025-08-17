@@ -99,7 +99,10 @@ func (m Message) ServerRoomStateUpdate() RoomState {
 	}
 
 	room.ModelVersion = reader.UInt32()
-	webScene, _ := bitlib.Read[schema.WebScene](reader)
+	webScene, err := bitlib.Read[schema.WebScene](reader)
+	if err != nil {
+		panic(err)
+	}
 	room.WebScene = &webScene
 
 	playerLen := reader.Byte()
@@ -116,7 +119,7 @@ func (m Message) ServerRoomStateUpdate() RoomState {
 		room.Players[id] = &p
 	}
 
-	err := reader.Error()
+	err = reader.Error()
 	if err != nil {
 		panic(err)
 	}

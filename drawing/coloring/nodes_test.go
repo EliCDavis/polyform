@@ -1,10 +1,9 @@
-package colors_test
+package coloring_test
 
 import (
 	"testing"
 
 	"github.com/EliCDavis/polyform/drawing/coloring"
-	"github.com/EliCDavis/polyform/math/colors"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/stretchr/testify/assert"
 )
@@ -40,8 +39,8 @@ func TestInterpolateNode(t *testing.T) {
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			node := &nodes.Struct[colors.InterpolateNode]{
-				Data: colors.InterpolateNode{
+			node := &nodes.Struct[coloring.InterpolateNode]{
+				Data: coloring.InterpolateNode{
 					A:    tc.a,
 					B:    tc.b,
 					Time: tc.t,

@@ -3,6 +3,9 @@ package geometry
 import (
 	"math"
 
+	"github.com/EliCDavis/polyform/math/quaternion"
+	"github.com/EliCDavis/polyform/math/trs"
+	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/vector/vector3"
 )
 
@@ -49,6 +52,10 @@ func (l Line3D) Translate(amt vector3.Float64) Line3D {
 
 func (l Line3D) AtTime(time float64) vector3.Float64 {
 	return l.p2.Sub(l.p1).Scale(time).Add(l.p1)
+}
+
+func (l Line3D) Direction() vector3.Float64 {
+	return l.p2.Sub(l.p1).Normalized()
 }
 
 // YIntersection Uses the paremetric equations of the line
@@ -153,8 +160,153 @@ func (l Line3D) IntersectionTimeOnPlane(plane Plane) (float64, bool) {
 	if math.Abs(dot) > 0 {
 		w := l.p1.Sub(plane.Origin())
 		fac := -plane.Normal().Dot(w) / dot
-		u = u.Scale(fac)
+		// u = u.Scale(fac)
 		return fac, true
 	}
 	return -1, false
+}
+
+func LineStripsFromPoints3D(points []vector3.Float64) []Line3D {
+	if len(points) < 2 {
+		return nil
+	}
+
+	lines := make([]Line3D, len(points)-1)
+	for i := 0; i < len(points)-1; i++ {
+		lines[i] = NewLine3D(points[i], points[i+1])
+	}
+
+	return lines
+}
+
+func LinesFromPoints3D(points []vector3.Float64) []Line3D {
+	if len(points) < 2 {
+		return nil
+	}
+
+	lines := make([]Line3D, 0, len(points)/2)
+	for i := 0; i < len(points)-1; i += 2 {
+		lines = append(lines, NewLine3D(points[i], points[i+1]))
+	}
+
+	return lines
+}
+
+// ============================================================================
+
+type LinesFromPoints3DNode struct {
+	Points nodes.Output[[]vector3.Float64]
+}
+
+func (n LinesFromPoints3DNode) LineStrips(out *nodes.StructOutput[[]Line3D]) {
+	out.Set(LineStripsFromPoints3D(nodes.TryGetOutputValue(out, n.Points, nil)))
+}
+
+func (n LinesFromPoints3DNode) Lines(out *nodes.StructOutput[[]Line3D]) {
+	out.Set(LinesFromPoints3D(nodes.TryGetOutputValue(out, n.Points, nil)))
+}
+
+// ============================================================================
+
+type LineLengths3DNode struct {
+	Lines nodes.Output[[]Line3D]
+}
+
+func (n LineLengths3DNode) Lengths(out *nodes.StructOutput[[]float64]) {
+	lines := nodes.TryGetOutputValue(out, n.Lines, nil)
+	result := make([]float64, len(lines))
+	for i, line := range lines {
+		result[i] = line.Length()
+	}
+	out.Set(result)
+}
+
+// ============================================================================
+
+type PositionsOnLinesAtTime3DNode struct {
+	Lines nodes.Output[[]Line3D]
+	Time  nodes.Output[float64]
+}
+
+func (n PositionsOnLinesAtTime3DNode) Positions(out *nodes.StructOutput[[]vector3.Float64]) {
+	lines := nodes.TryGetOutputValue(out, n.Lines, nil)
+	if len(lines) == 0 {
+		return
+	}
+
+	time := nodes.TryGetOutputValue(out, n.Time, 0)
+	result := make([]vector3.Float64, len(lines))
+	for i, line := range lines {
+		result[i] = line.AtTime(time)
+	}
+	out.Set(result)
+}
+
+// ============================================================================
+
+type PositionsOnLineAtTimes3DNode struct {
+	Line  nodes.Output[Line3D]
+	Times nodes.Output[[]float64]
+}
+
+func (n PositionsOnLineAtTimes3DNode) Positions(out *nodes.StructOutput[[]vector3.Float64]) {
+	if n.Line == nil || n.Times == nil {
+		return
+	}
+
+	line := nodes.GetOutputValue(out, n.Line)
+	times := nodes.GetOutputValue(out, n.Times)
+
+	result := make([]vector3.Float64, len(times))
+	for i, time := range times {
+		result[i] = line.AtTime(time)
+	}
+	out.Set(result)
+}
+
+// ============================================================================
+
+type TrsFromLines3DNode struct {
+	Lines   nodes.Output[[]Line3D]
+	ScaleX  nodes.Output[bool]
+	ScaleY  nodes.Output[bool]
+	ScaleZ  nodes.Output[bool]
+	Forward nodes.Output[vector3.Float64]
+}
+
+func (n TrsFromLines3DNode) TRS(out *nodes.StructOutput[[]trs.TRS]) {
+	lines := nodes.TryGetOutputValue(out, n.Lines, nil)
+	if len(lines) == 0 {
+		return
+	}
+
+	scaleX := nodes.TryGetOutputValue(out, n.ScaleX, false)
+	scaleY := nodes.TryGetOutputValue(out, n.ScaleY, false)
+	scaleZ := nodes.TryGetOutputValue(out, n.ScaleZ, false)
+	fwd := nodes.TryGetOutputValue(out, n.Forward, vector3.Forward[float64]())
+
+	result := make([]trs.TRS, len(lines))
+	for i, line := range lines {
+		direction := line.p2.Sub(line.p1)
+		length := direction.Length()
+		scale := vector3.One[float64]()
+		if scaleX {
+			scale = scale.SetX(length)
+		}
+
+		if scaleY {
+			scale = scale.SetY(length)
+		}
+
+		if scaleZ {
+			scale = scale.SetZ(length)
+		}
+
+		result[i] = trs.New(
+			line.AtTime(0.5),
+			quaternion.RotationTo(fwd, direction.Normalized()),
+			scale,
+		)
+	}
+	out.Set(result)
 }

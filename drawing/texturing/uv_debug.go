@@ -4,7 +4,7 @@ import (
 	"image"
 	"image/color"
 
-	"github.com/EliCDavis/polyform/math/colors"
+	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/fogleman/gg"
 )
 
@@ -36,10 +36,10 @@ func (duvt DebugUVTexture) Image() image.Image {
 				c = duvt.PositiveCheckerColor
 
 				if duvt.XColorScale != nil && duvt.YColorScale != nil {
-					c = colors.AddRGB(
-						colors.MultiplyRGBByConstant(duvt.PositiveCheckerColor, 1-xPercent),
-						colors.MultiplyRGBByConstant(duvt.XColorScale, xPercent),
-						colors.MultiplyRGBByConstant(duvt.YColorScale, yPercent),
+					c = coloring.AddRGB(
+						coloring.MultiplyRGBByConstant(duvt.PositiveCheckerColor, 1-xPercent),
+						coloring.MultiplyRGBByConstant(duvt.XColorScale, xPercent),
+						coloring.MultiplyRGBByConstant(duvt.YColorScale, yPercent),
 					)
 				}
 			}

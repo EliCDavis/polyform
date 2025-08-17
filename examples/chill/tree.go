@@ -123,7 +123,7 @@ func Tree(
 		), branches
 }
 
-func TrunkTexture(imageSize int, colors coloring.ColorStack, barkNoise sample.Vec2ToFloat, barkPBR *PBRTextures) {
+func TrunkTexture(imageSize int, colors coloring.Gradient, barkNoise sample.Vec2ToFloat, barkPBR *PBRTextures) {
 	dc := gg.NewContext(imageSize, imageSize)
 	dc.SetRGBA(0, 0, 0, 0)
 	dc.Clear()
@@ -136,7 +136,7 @@ func TrunkTexture(imageSize int, colors coloring.ColorStack, barkNoise sample.Ve
 
 			sample := math.Min(df.Sample(vector2.New(float64(x), float64(y)))/(float64(imageSize)/10.), 1)
 
-			dc.SetColor(colors.LinearSample(sample))
+			dc.SetColor(colors.Sample(sample))
 			dc.SetPixel(x, y)
 		}
 	}
