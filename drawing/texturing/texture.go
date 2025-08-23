@@ -6,6 +6,8 @@ import (
 	"image/png"
 	"os"
 
+	"github.com/EliCDavis/polyform/nodes"
+	"github.com/EliCDavis/vector"
 	"github.com/EliCDavis/vector/vector2"
 )
 
@@ -102,4 +104,141 @@ func Convert[T, G any](in Texture[T], cb func(x int, y int, v T) G) Texture[G] {
 		}
 	}
 	return out
+}
+
+type TextureNode[T any] struct {
+	Fill   nodes.Output[T]
+	Width  nodes.Output[int]
+	Height nodes.Output[int]
+}
+
+func (n TextureNode[T]) Texture(out *nodes.StructOutput[Texture[T]]) {
+	t := NewTexture[T](
+		nodes.TryGetOutputValue(out, n.Width, 1),
+		nodes.TryGetOutputValue(out, n.Height, 1),
+	)
+
+	if n.Fill != nil {
+		t.Fill(nodes.GetOutputValue(out, n.Fill))
+	}
+
+	out.Set(t)
+}
+
+// ============================================================================
+
+type CompareValueTextureNode[T vector.Number] struct {
+	Texture nodes.Output[Texture[T]]
+	Value   nodes.Output[T]
+}
+
+func (n CompareValueTextureNode[T]) compare(out *nodes.StructOutput[Texture[bool]], f func(in, value T) bool) {
+	if n.Texture == nil {
+		return
+	}
+
+	in := nodes.GetOutputValue(out, n.Texture)
+	value := nodes.TryGetOutputValue(out, n.Value, 0.)
+	out.Set(Convert(in, func(x, y int, v T) bool {
+		return f(v, value)
+	}))
+}
+
+func (n CompareValueTextureNode[T]) GreaterThan(out *nodes.StructOutput[Texture[bool]]) {
+	n.compare(out, func(in, value T) bool { return in > value })
+}
+
+func (n CompareValueTextureNode[T]) LessThan(out *nodes.StructOutput[Texture[bool]]) {
+	n.compare(out, func(in, value T) bool { return in < value })
+}
+
+func (n CompareValueTextureNode[T]) GreaterThanOrEqualTo(out *nodes.StructOutput[Texture[bool]]) {
+	n.compare(out, func(in, value T) bool { return in >= value })
+}
+
+func (n CompareValueTextureNode[T]) LessThanOrEqualTo(out *nodes.StructOutput[Texture[bool]]) {
+	n.compare(out, func(in, value T) bool { return in <= value })
+}
+
+func (n CompareValueTextureNode[T]) Equal(out *nodes.StructOutput[Texture[bool]]) {
+	n.compare(out, func(in, value T) bool { return in == value })
+}
+
+// ============================================================================
+
+type FromArrayNode[T any] struct {
+	Array  nodes.Output[[]T]
+	Width  nodes.Output[int]
+	Height nodes.Output[int]
+}
+
+func (n FromArrayNode[T]) Texture(out *nodes.StructOutput[Texture[T]]) {
+	if n.Width == nil && n.Height == nil {
+		return
+	}
+
+	width := nodes.TryGetOutputValue(out, n.Width, 1)
+	height := nodes.TryGetOutputValue(out, n.Height, 1)
+	arr := nodes.TryGetOutputValue(out, n.Array, nil)
+
+	if width*height == len(arr) {
+		out.Set(Texture[T]{
+			width:  width,
+			height: height,
+			data:   arr,
+		})
+		return
+	}
+
+	tex := Texture[T]{
+		width:  width,
+		height: height,
+		data:   make([]T, width*height),
+	}
+	copy(tex.data, arr)
+	out.Set(tex)
+}
+
+// ============================================================================
+type SelectNode[T any] struct {
+	Texture nodes.Output[Texture[T]]
+}
+
+func (n SelectNode[T]) Array(out *nodes.StructOutput[[]T]) {
+	if n.Texture == nil {
+		return
+	}
+	out.Set(nodes.GetOutputValue(out, n.Texture).data)
+}
+
+func (n SelectNode[T]) Width(out *nodes.StructOutput[int]) {
+	if n.Texture == nil {
+		return
+	}
+	out.Set(nodes.GetOutputValue(out, n.Texture).Width())
+}
+
+func (n SelectNode[T]) Height(out *nodes.StructOutput[int]) {
+	if n.Texture == nil {
+		return
+	}
+	out.Set(nodes.GetOutputValue(out, n.Texture).Height())
+}
+
+// ============================================================================
+
+type ColorToImageNode struct {
+	Texture nodes.Output[Texture[color.Color]]
+}
+
+func (n ColorToImageNode) Image(out *nodes.StructOutput[image.Image]) {
+	if n.Texture == nil {
+		return
+	}
+	out.Set(nodes.GetOutputValue(out, n.Texture).ToImage(func(c color.Color) color.Color {
+		if c == nil {
+			return color.Black
+		}
+		return c
+	}))
 }

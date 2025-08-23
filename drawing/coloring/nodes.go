@@ -1,9 +1,12 @@
 package coloring
 
 import (
+	"image/color"
+
 	"github.com/EliCDavis/polyform/generator"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
+	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
 	"github.com/EliCDavis/vector/vector4"
 )
@@ -15,6 +18,18 @@ func init() {
 	refutil.RegisterType[nodes.Struct[InterpolateToArrayNode]](factory)
 	refutil.RegisterType[nodes.Struct[ToVectorNode]](factory)
 	refutil.RegisterType[nodes.Struct[ToVectorArrayNode]](factory)
+
+	refutil.RegisterType[nodes.Struct[Gradient1DNode]](factory)
+	refutil.RegisterType[nodes.Struct[Gradient2DNode]](factory)
+	refutil.RegisterType[nodes.Struct[Gradient3DNode]](factory)
+	refutil.RegisterType[nodes.Struct[Gradient4DNode]](factory)
+	refutil.RegisterType[nodes.Struct[GradientColorNode]](factory)
+
+	refutil.RegisterType[nodes.Struct[GradientKeyNode[float64]]](factory)
+	refutil.RegisterType[nodes.Struct[GradientKeyNode[vector2.Float64]]](factory)
+	refutil.RegisterType[nodes.Struct[GradientKeyNode[vector3.Float64]]](factory)
+	refutil.RegisterType[nodes.Struct[GradientKeyNode[vector4.Float64]]](factory)
+	refutil.RegisterType[nodes.Struct[GradientKeyColorNode]](factory)
 
 	generator.RegisterTypes(factory)
 }
@@ -163,4 +178,87 @@ func (n ToVectorArrayNode) Vector4(out *nodes.StructOutput[[]vector4.Float64]) {
 		)
 	}
 	out.Set(arr)
+}
+
+// ============================================================================
+
+type Gradient1DNode struct {
+	In []nodes.Output[GradientKey[float64]]
+}
+
+func (n Gradient1DNode) Gradient(out *nodes.StructOutput[Gradient[float64]]) {
+	out.Set(NewGradient1D(nodes.GetOutputValues(out, n.In)...))
+}
+
+// ============================================================================
+
+type Gradient2DNode struct {
+	In []nodes.Output[GradientKey[vector2.Float64]]
+}
+
+func (n Gradient2DNode) Gradient(out *nodes.StructOutput[Gradient[vector2.Float64]]) {
+	out.Set(NewGradient2D(nodes.GetOutputValues(out, n.In)...))
+}
+
+// ============================================================================
+
+type Gradient3DNode struct {
+	In []nodes.Output[GradientKey[vector3.Float64]]
+}
+
+func (n Gradient3DNode) Gradient(out *nodes.StructOutput[Gradient[vector3.Float64]]) {
+	out.Set(NewGradient3D(nodes.GetOutputValues(out, n.In)...))
+}
+
+// ============================================================================
+
+type Gradient4DNode struct {
+	In []nodes.Output[GradientKey[vector4.Float64]]
+}
+
+func (n Gradient4DNode) Gradient(out *nodes.StructOutput[Gradient[vector4.Float64]]) {
+	out.Set(NewGradient4D(nodes.GetOutputValues(out, n.In)...))
+}
+
+// ============================================================================
+
+type GradientColorNode struct {
+	In []nodes.Output[GradientKey[color.Color]]
+}
+
+func (n GradientColorNode) Gradient(out *nodes.StructOutput[Gradient[color.Color]]) {
+	out.Set(NewGradientColor(nodes.GetOutputValues(out, n.In)...))
+}
+
+// ============================================================================
+
+type GradientKeyNode[T any] struct {
+	Value nodes.Output[T]
+	Time  nodes.Output[float64]
+}
+
+func (n GradientKeyNode[T]) Gradient(out *nodes.StructOutput[GradientKey[T]]) {
+	var val T
+	if n.Value != nil {
+		val = n.Value.Value()
+	}
+
+	out.Set(GradientKey[T]{
+		Time:  nodes.TryGetOutputValue(out, n.Time, 0),
+		Value: val,
+	})
+}
+
+// ============================================================================
+
+type GradientKeyColorNode struct {
+	Value nodes.Output[WebColor]
+	Time  nodes.Output[float64]
+}
+
+func (n GradientKeyColorNode) Gradient(out *nodes.StructOutput[GradientKey[color.Color]]) {
+	out.Set(GradientKey[color.Color]{
+		Time:  nodes.TryGetOutputValue(out, n.Time, 0),
+		Value: nodes.TryGetOutputValue(out, n.Value, WebColor{0, 0, 0, 255}),
+	})
 }

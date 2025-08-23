@@ -23,22 +23,22 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-func branchColorPallettes() map[string]coloring.Gradient {
-	return map[string]coloring.Gradient{
-		"green": coloring.NewGradient(
-			coloring.GradientKey{Time: 0, Color: color.RGBA{12, 89, 36, 255}},
-			coloring.GradientKey{Time: 1, Color: color.RGBA{3, 191, 0, 255}},
-			coloring.GradientKey{Time: 2, Color: color.RGBA{2, 69, 23, 255}},
+func branchColorPallettes() map[string]coloring.Gradient[color.Color] {
+	return map[string]coloring.Gradient[color.Color]{
+		"green": coloring.NewGradientColor(
+			coloring.GradientKey[color.Color]{Time: 0, Value: color.RGBA{12, 89, 36, 255}},
+			coloring.GradientKey[color.Color]{Time: 1, Value: color.RGBA{3, 191, 0, 255}},
+			coloring.GradientKey[color.Color]{Time: 2, Value: color.RGBA{2, 69, 23, 255}},
 		),
-		"dead": coloring.NewGradient(
-			coloring.GradientKey{Time: 0, Color: color.RGBA{234, 226, 126, 255}},
-			coloring.GradientKey{Time: 1, Color: color.RGBA{228, 179, 95, 255}},
-			coloring.GradientKey{Time: 2, Color: color.RGBA{171, 120, 52, 255}},
+		"dead": coloring.NewGradientColor(
+			coloring.GradientKey[color.Color]{Time: 0, Value: color.RGBA{234, 226, 126, 255}},
+			coloring.GradientKey[color.Color]{Time: 1, Value: color.RGBA{228, 179, 95, 255}},
+			coloring.GradientKey[color.Color]{Time: 2, Value: color.RGBA{171, 120, 52, 255}},
 		),
-		"red": coloring.NewGradient(
-			coloring.GradientKey{Time: 0, Color: color.RGBA{168, 50, 62, 255}},
-			coloring.GradientKey{Time: 1, Color: color.RGBA{224, 94, 107, 255}},
-			coloring.GradientKey{Time: 2, Color: color.RGBA{204, 22, 86, 255}},
+		"red": coloring.NewGradientColor(
+			coloring.GradientKey[color.Color]{Time: 0, Value: color.RGBA{168, 50, 62, 255}},
+			coloring.GradientKey[color.Color]{Time: 1, Value: color.RGBA{224, 94, 107, 255}},
+			coloring.GradientKey[color.Color]{Time: 2, Value: color.RGBA{204, 22, 86, 255}},
 		),
 	}
 }
@@ -247,10 +247,10 @@ func main() {
 
 					TrunkTexture(
 						1024,
-						coloring.NewGradient(
+						coloring.NewGradientColor(
 							// coloring.NewColorStackEntry(1, 1, 1, color.RGBA{115, 87, 71, 255}),
-							coloring.GradientKey{Time: 0, Color: color.RGBA{71, 43, 6, 255}},
-							coloring.GradientKey{Time: 1, Color: color.RGBA{94, 63, 21, 255}},
+							coloring.GradientKey[color.Color]{Time: 0, Value: color.RGBA{71, 43, 6, 255}},
+							coloring.GradientKey[color.Color]{Time: 1, Value: color.RGBA{94, 63, 21, 255}},
 						),
 						sample.Vec2ToFloat(noise.PerlinStack(
 							noise.Stack2DEntry{Scalar: 1 / 50., Amplitude: 1. / 2},
@@ -405,10 +405,10 @@ func main() {
 					forestWidth := ctx.Float64("forest-width")
 					terrain, maxTerrainValue := Terrain(forestWidth, terrainHeight.Value, &terrainPBR)
 
-					snowColors := coloring.NewGradient(
-						coloring.GradientKey{Time: 0, Color: color.RGBA{255, 255, 255, 255}},
-						coloring.GradientKey{Time: 10, Color: color.RGBA{255, 255, 255, 255}},
-						coloring.GradientKey{Time: 11, Color: color.RGBA{245, 247, 255, 255}},
+					snowColors := coloring.NewGradientColor(
+						coloring.GradientKey[color.Color]{Time: 0, Value: color.RGBA{255, 255, 255, 255}},
+						coloring.GradientKey[color.Color]{Time: 10, Value: color.RGBA{255, 255, 255, 255}},
+						coloring.GradientKey[color.Color]{Time: 11, Value: color.RGBA{245, 247, 255, 255}},
 					)
 
 					terrainImageSize := 1024 * 4
@@ -505,9 +505,9 @@ func main() {
 
 					TrunkTexture(
 						1024,
-						coloring.NewGradient(
-							coloring.GradientKey{Time: 0, Color: color.RGBA{71, 43, 6, 255}},
-							coloring.GradientKey{Time: 1, Color: color.RGBA{94, 63, 21, 255}},
+						coloring.NewGradientColor(
+							coloring.GradientKey[color.Color]{Time: 0, Value: color.RGBA{71, 43, 6, 255}},
+							coloring.GradientKey[color.Color]{Time: 1, Value: color.RGBA{94, 63, 21, 255}},
 						),
 						sample.Vec2ToFloat(noise.PerlinStack(
 							noise.Stack2DEntry{Scalar: 1 / 50., Amplitude: 1. / 2},

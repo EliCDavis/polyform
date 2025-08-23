@@ -84,7 +84,7 @@ func flower(numPedals int, radius, pitch float64) modeling.Mesh {
 	q := quaternion.FromTheta(pitch, vector3.Left[float64]())
 	return repeat.Mesh(
 		pedal(0.2, 0.4, 0.4, 0.1, 10, marigoldTip).Rotate(q),
-		repeat.Circle(numPedals, radius),
+		repeat.Circle(numPedals, radius, 1.),
 	)
 }
 

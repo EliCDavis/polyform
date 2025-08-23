@@ -236,3 +236,64 @@ func (aabb AABB) intersectsRayInRangeComponent(origin, dir float64, t_min, t_max
 
 	return *t_max <= *t_min
 }
+
+func (aabb AABB) RayIntersect(ray Ray) float64 {
+
+	// Initialize with extreme values
+	tMin := math.Inf(-1)
+	tMax := math.Inf(1)
+
+	origin := ray.Origin()
+	dir := ray.Direction()
+	min := aabb.Min()
+	max := aabb.Max()
+
+	// Check each axis (slab method)
+	axes := []struct {
+		rayOrigin, rayDir, boxMin, boxMax float64
+	}{
+		{origin.X(), dir.X(), min.X(), max.X()},
+		{origin.Y(), dir.Y(), min.Y(), max.Y()},
+		{origin.Z(), dir.Z(), min.Z(), max.Z()},
+	}
+
+	for _, axis := range axes {
+		if math.Abs(axis.rayDir) < 1e-9 { // Ray is parallel to slab
+			// If ray origin is outside the slab, no intersection
+			if axis.rayOrigin < axis.boxMin || axis.rayOrigin > axis.boxMax {
+				return math.Inf(1)
+			}
+		} else {
+			// Calculate intersection times with the two slab planes
+			t1 := (axis.boxMin - axis.rayOrigin) / axis.rayDir
+			t2 := (axis.boxMax - axis.rayOrigin) / axis.rayDir
+
+			// Ensure t1 <= t2 (swap if necessary)
+			if t1 > t2 {
+				t1, t2 = t2, t1
+			}
+
+			// Update the intersection interval
+			tMin = math.Max(tMin, t1)
+			tMax = math.Min(tMax, t2)
+
+			// Early exit if no intersection possible
+			if tMin > tMax {
+				return math.Inf(1)
+			}
+		}
+	}
+
+	// Check if intersection is behind the ray origin
+	if tMax < 0 {
+		return math.Inf(1)
+	}
+
+	// Use tMin if it's positive (ray starts outside), otherwise use tMax
+	if tMin >= 0 {
+		return tMin
+	}
+
+	// Ray starts inside the AABB
+	return tMax
+}

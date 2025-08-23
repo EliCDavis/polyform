@@ -56,8 +56,8 @@ func (l Line) TRS() []trs.TRS {
 type LineNode struct {
 	Start     nodes.Output[vector3.Float64]
 	End       nodes.Output[vector3.Float64]
-	Samples   nodes.Output[int]
-	Exclusive nodes.Output[bool]
+	Samples   nodes.Output[int]  `description:"How many TRS matrices to produce"`
+	Exclusive nodes.Output[bool] `description:"If true, the start and end points are not included in the resulting array of TRS values"`
 }
 
 func (r LineNode) Out(out *nodes.StructOutput[[]trs.TRS]) {
