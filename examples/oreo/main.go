@@ -27,7 +27,7 @@ func imageToEdgeData(src image.Image, fillValue float64) [][]float64 {
 		imageData[i] = make([]float64, src.Bounds().Dy())
 	}
 
-	texturing.Convolve(src, func(x, y int, kernel []color.Color) {
+	texturing.ConvolveImage(src, func(x, y int, kernel []color.Color) {
 		if texturing.SimpleEdgeTest(kernel) {
 			imageData[x][y] = 0
 			return

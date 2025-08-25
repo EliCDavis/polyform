@@ -1,7 +1,6 @@
 package coloring
 
 import (
-	"image/color"
 	"sort"
 
 	"github.com/EliCDavis/vector"
@@ -37,7 +36,7 @@ func NewGradient4D(keys ...GradientKey[vector4.Float64]) Gradient[vector4.Float6
 	return NewGradient(vector4.Space[float64]{}, keys...)
 }
 
-func NewGradientColor(keys ...GradientKey[color.Color]) Gradient[color.Color] {
+func NewGradientColor(keys ...GradientKey[WebColor]) Gradient[WebColor] {
 	return NewGradient(Space{}, keys...)
 }
 

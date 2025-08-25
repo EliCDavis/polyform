@@ -1,8 +1,6 @@
 package meshops
 
 import (
-	"fmt"
-
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/vector/vector2"
@@ -44,82 +42,6 @@ func ScaleAttribute3D(m modeling.Mesh, attribute string, origin, amount vector3.
 }
 
 // ============================================================================
-
-type ScaleAttributeAlongNormalTransformer struct {
-	AttributeToScale string
-	NormalAttribute  string
-	Amount           float64
-}
-
-func (st ScaleAttributeAlongNormalTransformer) Transform(m modeling.Mesh) (results modeling.Mesh, err error) {
-	attribute := fallbackAttribute(st.AttributeToScale, modeling.PositionAttribute)
-	if err = RequireV3Attribute(m, attribute); err != nil {
-		return
-	}
-
-	normalAttribute := fallbackAttribute(st.NormalAttribute, modeling.NormalAttribute)
-	if err = RequireV3Attribute(m, attribute); err != nil {
-		return
-	}
-
-	return ScaleAttributeAlongNormal(m, attribute, normalAttribute, st.Amount), nil
-}
-
-func ScaleAttributeAlongNormal(m modeling.Mesh, attributeToScale, normalAttribute string, amount float64) modeling.Mesh {
-	if err := RequireV3Attribute(m, attributeToScale); err != nil {
-		panic(err)
-	}
-
-	if err := RequireV3Attribute(m, normalAttribute); err != nil {
-		panic(err)
-	}
-
-	positionData := m.Float3Attribute(attributeToScale)
-	normalData := m.Float3Attribute(normalAttribute)
-	scaledData := make([]vector3.Float64, positionData.Len())
-	for i := 0; i < positionData.Len(); i++ {
-		scaledData[i] = positionData.At(i).Add(normalData.At(i).Scale(amount))
-	}
-
-	return m.SetFloat3Attribute(attributeToScale, scaledData)
-}
-
-type ScaleAttributeAlongNormalNode struct {
-	Mesh             nodes.Output[modeling.Mesh]
-	Amount           nodes.Output[float64]
-	AttributeToScale nodes.Output[string]
-	NormalAttribute  nodes.Output[string]
-}
-
-func (sa3dn ScaleAttributeAlongNormalNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
-	if sa3dn.Mesh == nil {
-		out.Set(modeling.EmptyMesh(modeling.TriangleTopology))
-		return
-	}
-
-	mesh := nodes.GetOutputValue(out, sa3dn.Mesh)
-
-	attrToScale := nodes.TryGetOutputValue(out, sa3dn.AttributeToScale, modeling.PositionAttribute)
-	if !mesh.HasFloat3Attribute(attrToScale) {
-		out.CaptureError(fmt.Errorf("mesh does not contain %s to scale", attrToScale))
-		out.Set(mesh)
-		return
-	}
-
-	attrNormal := nodes.TryGetOutputValue(out, sa3dn.NormalAttribute, modeling.NormalAttribute)
-	if !mesh.HasFloat3Attribute(attrNormal) {
-		out.CaptureError(fmt.Errorf("mesh does not contain %s to scale along", attrNormal))
-		out.Set(mesh)
-		return
-	}
-
-	out.Set(ScaleAttributeAlongNormal(
-		mesh,
-		attrToScale,
-		attrNormal,
-		nodes.TryGetOutputValue(out, sa3dn.Amount, 0.),
-	))
-}
 
 // ============================================================================
 

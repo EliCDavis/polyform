@@ -53,7 +53,7 @@ type LinearGradientNode[T any] struct {
 	Gradient    nodes.Output[coloring.Gradient[T]]
 }
 
-func (n LinearGradientNode[T]) GreaterThan(out *nodes.StructOutput[Texture[T]]) {
+func (n LinearGradientNode[T]) LinearGradient(out *nodes.StructOutput[Texture[T]]) {
 	width := nodes.TryGetOutputValue(out, n.Width, 1)
 	height := nodes.TryGetOutputValue(out, n.Height, 1)
 

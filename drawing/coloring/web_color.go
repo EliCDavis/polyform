@@ -8,49 +8,49 @@ import (
 
 // Like color.RGBA but we can be serialized to JSON!
 type WebColor struct {
-	R byte
-	G byte
-	B byte
-	A byte
+	R float64
+	G float64
+	B float64
+	A float64
 }
 
 func (c WebColor) MarshalJSON() ([]byte, error) {
-	if c.A != 255 {
+	if c.A != 1 {
 		return []byte(fmt.Sprintf(
 			"\"#%02x%02x%02x%02x\"",
-			c.R,
-			c.G,
-			c.B,
-			c.A,
+			byte(c.R*255),
+			byte(c.G*255),
+			byte(c.B*255),
+			byte(c.A*255),
 		)), nil
 	}
 
 	return []byte(fmt.Sprintf(
 		"\"#%02x%02x%02x\"",
-		c.R,
-		c.G,
-		c.B,
+		byte(c.R*255),
+		byte(c.G*255),
+		byte(c.B*255),
 	)), nil
 }
 
 func (c WebColor) RGBA() (r, g, b, a uint32) {
-	r = uint32(c.R)
+	r = uint32(c.R * 255)
 	r |= r << 8
-	g = uint32(c.G)
+	g = uint32(c.G * 255)
 	g |= g << 8
-	b = uint32(c.B)
+	b = uint32(c.B * 255)
 	b |= b << 8
-	a = uint32(c.A)
+	a = uint32(c.A * 255)
 	a |= a << 8
 	return
 }
 
 func (c WebColor) RGBA8() color.RGBA {
 	return color.RGBA{
-		R: c.R,
-		G: c.G,
-		B: c.B,
-		A: c.A,
+		R: byte((c.R) * 255),
+		G: byte((c.G) * 255),
+		B: byte((c.B) * 255),
+		A: byte((c.A) * 255),
 	}
 }
 
@@ -77,10 +77,10 @@ func (c *WebColor) unmarshalJson6Digit(data []byte) error {
 		}
 	}
 
-	c.R = byte(r)
-	c.G = byte(g)
-	c.B = byte(b)
-	c.A = byte(a)
+	c.R = float64(r) / 255.
+	c.G = float64(g) / 255.
+	c.B = float64(b) / 255.
+	c.A = float64(a) / 255.
 	return nil
 }
 
@@ -108,10 +108,10 @@ func (c *WebColor) unmarshalJson3Digit(data []byte) error {
 		}
 	}
 
-	c.R = byte(r)
-	c.G = byte(g)
-	c.B = byte(b)
-	c.A = byte(a)
+	c.R = float64(r) / 255.
+	c.G = float64(g) / 255.
+	c.B = float64(b) / 255.
+	c.A = float64(a) / 255.
 	return nil
 }
 
@@ -120,4 +120,14 @@ func (c *WebColor) UnmarshalJSON(data []byte) error {
 		return c.unmarshalJson3Digit(data)
 	}
 	return c.unmarshalJson6Digit(data)
+}
+
+func (c WebColor) Lerp(b WebColor, time float64) WebColor {
+	mt := 1 - time
+	return WebColor{
+		R: (c.R * mt) + (b.R * time),
+		G: (c.G * mt) + (b.G * time),
+		B: (c.B * mt) + (b.B * time),
+		A: (c.A * mt) + (b.A * time),
+	}
 }

@@ -28,7 +28,7 @@ func TerrainTexture(
 	textureSize int,
 	mapSize float64,
 	textures *PBRTextures,
-	colors coloring.Gradient[color.Color],
+	colors coloring.Gradient[coloring.WebColor],
 	startPos vector3.Float64,
 	landNoise sample.Vec2ToFloat,
 ) {
@@ -105,7 +105,7 @@ func DrawTrail(
 	trail Trail,
 	forestWidth float64,
 	terrainImageSize int,
-	snowColors coloring.Gradient[color.Color],
+	snowColors coloring.Gradient[coloring.WebColor],
 ) modeling.Mesh {
 	if len(trail.Segments) == 0 {
 		return terrain

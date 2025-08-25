@@ -1,8 +1,6 @@
 package coloring
 
 import (
-	"image/color"
-
 	"github.com/EliCDavis/polyform/generator"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
@@ -29,7 +27,7 @@ func init() {
 	refutil.RegisterType[nodes.Struct[GradientKeyNode[vector2.Float64]]](factory)
 	refutil.RegisterType[nodes.Struct[GradientKeyNode[vector3.Float64]]](factory)
 	refutil.RegisterType[nodes.Struct[GradientKeyNode[vector4.Float64]]](factory)
-	refutil.RegisterType[nodes.Struct[GradientKeyColorNode]](factory)
+	refutil.RegisterType[nodes.Struct[GradientKeyNode[WebColor]]](factory)
 
 	generator.RegisterTypes(factory)
 }
@@ -56,19 +54,10 @@ func (n InterpolateNode) Out(out *nodes.StructOutput[WebColor]) {
 		return
 	}
 
-	i := Interpolate(
-		nodes.GetOutputValue(out, n.A),
+	out.Set(nodes.GetOutputValue(out, n.A).Lerp(
 		nodes.GetOutputValue(out, n.B),
 		nodes.TryGetOutputValue(out, n.Time, 0),
-	)
-
-	r, g, b, a := i.RGBA()
-	out.Set(WebColor{
-		R: byte(r >> 8),
-		G: byte(g >> 8),
-		B: byte(b >> 8),
-		A: byte(a >> 8),
-	})
+	))
 }
 
 type InterpolateToArrayNode struct {
@@ -111,14 +100,7 @@ func (n InterpolateToArrayNode) Out(out *nodes.StructOutput[[]WebColor]) {
 	bV := nodes.GetOutputValue(out, n.B)
 
 	for i, t := range times {
-		v := Interpolate(aV, bV, t)
-		r, g, b, a := v.RGBA()
-		arr[i] = WebColor{
-			R: byte(r >> 8),
-			G: byte(g >> 8),
-			B: byte(b >> 8),
-			A: byte(a >> 8),
-		}
+		arr[i] = aV.Lerp(bV, t)
 	}
 }
 
@@ -223,10 +205,10 @@ func (n Gradient4DNode) Gradient(out *nodes.StructOutput[Gradient[vector4.Float6
 // ============================================================================
 
 type GradientColorNode struct {
-	In []nodes.Output[GradientKey[color.Color]]
+	In []nodes.Output[GradientKey[WebColor]]
 }
 
-func (n GradientColorNode) Gradient(out *nodes.StructOutput[Gradient[color.Color]]) {
+func (n GradientColorNode) Gradient(out *nodes.StructOutput[Gradient[WebColor]]) {
 	out.Set(NewGradientColor(nodes.GetOutputValues(out, n.In)...))
 }
 
@@ -246,19 +228,5 @@ func (n GradientKeyNode[T]) Gradient(out *nodes.StructOutput[GradientKey[T]]) {
 	out.Set(GradientKey[T]{
 		Time:  nodes.TryGetOutputValue(out, n.Time, 0),
 		Value: val,
-	})
-}
-
-// ============================================================================
-
-type GradientKeyColorNode struct {
-	Value nodes.Output[WebColor]
-	Time  nodes.Output[float64]
-}
-
-func (n GradientKeyColorNode) Gradient(out *nodes.StructOutput[GradientKey[color.Color]]) {
-	out.Set(GradientKey[color.Color]{
-		Time:  nodes.TryGetOutputValue(out, n.Time, 0),
-		Value: nodes.TryGetOutputValue(out, n.Value, WebColor{0, 0, 0, 255}),
 	})
 }

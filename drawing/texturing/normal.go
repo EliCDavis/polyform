@@ -20,7 +20,7 @@ func averageColorComponents(c color.Color) float64 {
 func ToNormal(src image.Image) *image.RGBA {
 	dst := image.NewRGBA(src.Bounds())
 	scale := 1.
-	Convolve(src, func(x, y int, vals []color.Color) {
+	ConvolveImage(src, func(x, y int, vals []color.Color) {
 		// float s[9] contains above samples
 		n := vector3.New(0, 0, scale)
 		s0 := averageColorComponents(vals[0])

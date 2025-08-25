@@ -1,7 +1,6 @@
 package coloring
 
 import (
-	"image/color"
 	"math"
 )
 
@@ -22,51 +21,46 @@ type Space[T any] interface {
 type Space struct {
 }
 
-func (c Space) Distance(a, b color.Color) float64 {
+func (c Space) Distance(a, b WebColor) float64 {
 	return c.Length(c.Sub(b, a))
 }
 
-func (Space) Add(a, b color.Color) color.Color {
-	return AddRGB(a, b)
+func (Space) Add(a, b WebColor) WebColor {
+	return WebColor{
+		R: a.R + b.R,
+		G: a.G + b.G,
+		B: a.B + b.B,
+		A: a.A + b.A,
+	}
 }
 
-func (Space) Sub(a, b color.Color) color.Color {
-	return SubtractColor(a, b)
+func (Space) Sub(a, b WebColor) WebColor {
+	return WebColor{
+		R: a.R - b.R,
+		G: a.G - b.G,
+		B: a.B - b.B,
+		A: a.A - b.A,
+	}
 }
 
-func (Space) Scale(a color.Color, amount float64) color.Color {
-	return MultiplyColorByConstant(a, amount)
+func (Space) Scale(a WebColor, amount float64) WebColor {
+	return WebColor{
+		R: a.R * amount,
+		G: a.G * amount,
+		B: a.B * amount,
+		A: a.A * amount,
+	}
 }
 
-func (Space) Dot(a, b color.Color) float64 {
-	rA, gA, bA, aA := a.RGBA()
-	rB, gB, bB, aB := b.RGBA()
-
-	rAF := float64(rA >> 8)
-	gAF := float64(gA >> 8)
-	bAF := float64(bA >> 8)
-	aAF := float64(aA >> 8)
-
-	rBF := float64(rB >> 8)
-	gBF := float64(gB >> 8)
-	bBF := float64(bB >> 8)
-	aBF := float64(aB >> 8)
-
-	return (rAF * rBF) + (gAF * gBF) + (bAF * bBF) + (aAF * aBF)
+func (Space) Dot(a, b WebColor) float64 {
+	return (a.R * b.R) + (a.G * b.G) + (a.B * b.B) + (a.A * b.A)
 }
 
-func (Space) Length(c color.Color) float64 {
-	r, g, b, a := c.RGBA()
-
-	rF := float64(r >> 8)
-	gF := float64(g >> 8)
-	bF := float64(b >> 8)
-	aF := float64(a >> 8)
-
-	return math.Sqrt((rF * rF) + (gF * gF) + (bF * bF) + (aF * aF))
+func (Space) Length(c WebColor) float64 {
+	return math.Sqrt((c.R * c.R) + (c.G * c.G) + (c.B * c.B) + (c.A * c.A))
 }
 
-func (Space) Normalized(a color.Color) color.Color {
+func (Space) Normalized(a WebColor) WebColor {
 	// Shit. uh. shit
 	// I'm not sure what we can do about this given we're not in floating point
 	// land.
@@ -78,6 +72,6 @@ func (Space) Normalized(a color.Color) color.Color {
 	return a
 }
 
-func (Space) Lerp(a, b color.Color, time float64) color.Color {
-	return Interpolate(a, b, time)
+func (Space) Lerp(a, b WebColor, time float64) WebColor {
+	return a.Lerp(b, time)
 }
