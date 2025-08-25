@@ -4,7 +4,7 @@ func Black() WebColor {
 	return WebColor{0, 0, 0, 255}
 }
 
-func Grey(b byte) WebColor {
+func Grey(b float64) WebColor {
 	return WebColor{b, b, b, 255}
 }
 

@@ -55,6 +55,10 @@ func (soc structOutputCache) Outdated(key string) bool {
 	return val.nodeInputVersions != newVersion
 }
 
+func (soc structOutputCache) InputString() string {
+	return soc.versioner.inputVersions()
+}
+
 func (soc *structOutputCache) Cache(key string, val any) {
 	version := soc.Version(key)
 	newVersion := version + 1
@@ -114,6 +118,8 @@ func (so *StructOutput[T]) Value() T {
 			self -= v.Duration
 		}
 		val.report.SelfTime = &self
+		// val.report.Errors = append(val.report.Errors, fmt.Sprintf("Version: %d", so.cache.Version(so.functionName)))
+		// val.report.Errors = append(val.report.Errors, fmt.Sprintf("Input: %s", so.cache.InputString()))
 		so.cache.Cache(so.functionName, val)
 	}
 	return val.val
@@ -365,7 +371,6 @@ func (s *Struct[T]) Inputs() map[string]InputPort {
 
 func (s *Struct[T]) inputVersions() string {
 	builder := strings.Builder{}
-
 	inputs := utils.SortMapByKey(s.Inputs())
 
 	for _, input := range inputs {
@@ -374,7 +379,7 @@ func (s *Struct[T]) inputVersions() string {
 		case SingleValueInputPort:
 			val := v.Value()
 			if val != nil {
-				builder.WriteString(fmt.Sprintf("%p: %d", val.Node(), val.Version()))
+				builder.WriteString(fmt.Sprintf("%p:%d", val.Node(), val.Version()))
 			} else {
 				builder.WriteString("nil")
 			}
@@ -384,7 +389,7 @@ func (s *Struct[T]) inputVersions() string {
 
 			for _, val := range v.Value() {
 				if val != nil {
-					builder.WriteString(fmt.Sprintf("%p: %d", val.Node(), val.Version()))
+					builder.WriteString(fmt.Sprintf("%p:%d", val.Node(), val.Version()))
 					builder.WriteString(",")
 				} else {
 					builder.WriteString("nil,")
@@ -402,12 +407,22 @@ func (s *Struct[T]) inputVersions() string {
 }
 
 func collapseCommonPackages(dirty string) string {
-	commonPackage := "github.com/EliCDavis/vector/"
-	vectorStart := strings.Index(dirty, commonPackage)
-	if vectorStart == -1 {
-		return dirty
+	result := dirty
+
+	commonPackages := []string{
+		"github.com/EliCDavis/vector/",
+		"github.com/EliCDavis/polyform/drawing/",
 	}
-	return dirty[:vectorStart] + dirty[vectorStart+len(commonPackage):]
+
+	for _, pack := range commonPackages {
+		vectorStart := strings.Index(dirty, pack)
+		if vectorStart == -1 {
+			continue
+		}
+		return result[:vectorStart] + dirty[vectorStart+len(pack):]
+	}
+
+	return result
 }
 
 func (sn Struct[T]) Name() string {

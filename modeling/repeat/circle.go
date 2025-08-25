@@ -21,8 +21,8 @@ func CirclePoints(count int, radius float64) []vector3.Float64 {
 	return final
 }
 
-func Circle(times int, radius float64) []trs.TRS {
-	angleIncrement := (1.0 / float64(times)) * 2.0 * math.Pi
+func Circle(times int, radius, revolutions float64) []trs.TRS {
+	angleIncrement := (1.0 / float64(times)) * 2.0 * math.Pi * revolutions
 
 	transforms := make([]trs.TRS, times)
 
@@ -39,13 +39,15 @@ func Circle(times int, radius float64) []trs.TRS {
 }
 
 type CircleNode struct {
-	Radius nodes.Output[float64]
-	Times  nodes.Output[int]
+	Radius      nodes.Output[float64]
+	Revolutions nodes.Output[float64]
+	Times       nodes.Output[int]
 }
 
 func (r CircleNode) Out(out *nodes.StructOutput[[]trs.TRS]) {
 	out.Set(Circle(
 		max(nodes.TryGetOutputValue(out, r.Times, 1), 0),
-		nodes.TryGetOutputValue(out, r.Radius, 0.),
+		nodes.TryGetOutputValue(out, r.Radius, 0.5),
+		nodes.TryGetOutputValue(out, r.Revolutions, 1.),
 	))
 }

@@ -1,11 +1,15 @@
 package texturing
 
 import (
+	"fmt"
 	"image"
 	"image/color"
 	"image/png"
 	"os"
 
+	"github.com/EliCDavis/polyform/drawing/coloring"
+	"github.com/EliCDavis/polyform/nodes"
+	"github.com/EliCDavis/vector"
 	"github.com/EliCDavis/vector/vector2"
 )
 
@@ -35,6 +39,26 @@ func (t Texture[T]) Fill(v T) {
 	for i := range t.data {
 		t.data[i] = v
 	}
+}
+
+func getTrailingDigits(f float64) float64 {
+	const precision = 10000
+	x := int(f*precision) % precision
+	return float64(x) / precision
+}
+
+func negativeWrap(f float64) float64 {
+	if f >= 0 {
+		return f
+	}
+	return 1 - f
+}
+
+func (t Texture[T]) UV(x, y float64) T {
+	return t.Get(
+		int(negativeWrap(getTrailingDigits(x))*float64(t.width)),
+		int(negativeWrap(getTrailingDigits(y))*float64(t.height)),
+	)
 }
 
 func (t Texture[T]) Width() int {
@@ -102,4 +126,274 @@ func Convert[T, G any](in Texture[T], cb func(x int, y int, v T) G) Texture[G] {
 		}
 	}
 	return out
+}
+
+type TextureNode[T any] struct {
+	Fill   nodes.Output[T]
+	Width  nodes.Output[int]
+	Height nodes.Output[int]
+}
+
+func (n TextureNode[T]) Texture(out *nodes.StructOutput[Texture[T]]) {
+	t := NewTexture[T](
+		nodes.TryGetOutputValue(out, n.Width, 1),
+		nodes.TryGetOutputValue(out, n.Height, 1),
+	)
+
+	if n.Fill != nil {
+		t.Fill(nodes.GetOutputValue(out, n.Fill))
+	}
+
+	out.Set(t)
+}
+
+// ============================================================================
+
+type CompareValueTextureNode[T vector.Number] struct {
+	Texture nodes.Output[Texture[T]]
+	Value   nodes.Output[T]
+}
+
+func (n CompareValueTextureNode[T]) compare(out *nodes.StructOutput[Texture[bool]], f func(in, value T) bool) {
+	if n.Texture == nil {
+		return
+	}
+
+	in := nodes.GetOutputValue(out, n.Texture)
+	value := nodes.TryGetOutputValue(out, n.Value, 0.)
+	out.Set(Convert(in, func(x, y int, v T) bool {
+		return f(v, value)
+	}))
+}
+
+func (n CompareValueTextureNode[T]) GreaterThan(out *nodes.StructOutput[Texture[bool]]) {
+	n.compare(out, func(in, value T) bool { return in > value })
+}
+
+func (n CompareValueTextureNode[T]) LessThan(out *nodes.StructOutput[Texture[bool]]) {
+	n.compare(out, func(in, value T) bool { return in < value })
+}
+
+func (n CompareValueTextureNode[T]) GreaterThanOrEqualTo(out *nodes.StructOutput[Texture[bool]]) {
+	n.compare(out, func(in, value T) bool { return in >= value })
+}
+
+func (n CompareValueTextureNode[T]) LessThanOrEqualTo(out *nodes.StructOutput[Texture[bool]]) {
+	n.compare(out, func(in, value T) bool { return in <= value })
+}
+
+func (n CompareValueTextureNode[T]) Equal(out *nodes.StructOutput[Texture[bool]]) {
+	n.compare(out, func(in, value T) bool { return in == value })
+}
+
+// ============================================================================
+
+type FromArrayNode[T any] struct {
+	Array  nodes.Output[[]T]
+	Width  nodes.Output[int]
+	Height nodes.Output[int]
+}
+
+func (n FromArrayNode[T]) Texture(out *nodes.StructOutput[Texture[T]]) {
+	if n.Width == nil && n.Height == nil {
+		return
+	}
+
+	width := nodes.TryGetOutputValue(out, n.Width, 1)
+	height := nodes.TryGetOutputValue(out, n.Height, 1)
+	arr := nodes.TryGetOutputValue(out, n.Array, nil)
+
+	if width*height == len(arr) {
+		out.Set(Texture[T]{
+			width:  width,
+			height: height,
+			data:   arr,
+		})
+		return
+	}
+
+	tex := Texture[T]{
+		width:  width,
+		height: height,
+		data:   make([]T, width*height),
+	}
+	copy(tex.data, arr)
+	out.Set(tex)
+}
+
+// ============================================================================
+type SelectNode[T any] struct {
+	Texture nodes.Output[Texture[T]]
+}
+
+func (n SelectNode[T]) Array(out *nodes.StructOutput[[]T]) {
+	if n.Texture == nil {
+		return
+	}
+	out.Set(nodes.GetOutputValue(out, n.Texture).data)
+}
+
+func (n SelectNode[T]) Width(out *nodes.StructOutput[int]) {
+	if n.Texture == nil {
+		return
+	}
+	out.Set(nodes.GetOutputValue(out, n.Texture).Width())
+}
+
+func (n SelectNode[T]) Height(out *nodes.StructOutput[int]) {
+	if n.Texture == nil {
+		return
+	}
+	out.Set(nodes.GetOutputValue(out, n.Texture).Height())
+}
+
+// ============================================================================
+
+type ColorToImageNode struct {
+	Texture nodes.Output[Texture[coloring.WebColor]]
+}
+
+func (n ColorToImageNode) Image(out *nodes.StructOutput[image.Image]) {
+	if n.Texture == nil {
+		return
+	}
+	out.Set(nodes.GetOutputValue(out, n.Texture).ToImage(func(c coloring.WebColor) color.Color {
+		return c
+	}))
+}
+
+// ============================================================================
+
+type FloatToImageNode struct {
+	R nodes.Output[Texture[float64]]
+	G nodes.Output[Texture[float64]]
+	B nodes.Output[Texture[float64]]
+	A nodes.Output[Texture[float64]]
+
+	RFill nodes.Output[float64]
+	GFill nodes.Output[float64]
+	BFill nodes.Output[float64]
+	AFill nodes.Output[float64]
+}
+
+func (n FloatToImageNode) Image(out *nodes.StructOutput[image.Image]) {
+	if n.R == nil && n.G == nil && n.B == nil && n.A == nil {
+		return
+	}
+
+	rFill := nodes.TryGetOutputValue(out, n.RFill, 0.)
+	gFill := nodes.TryGetOutputValue(out, n.GFill, 0.)
+	bFill := nodes.TryGetOutputValue(out, n.BFill, 0.)
+	aFill := nodes.TryGetOutputValue(out, n.AFill, 0.)
+
+	rTex := nodes.TryGetOutputReference(out, n.R, nil)
+	gTex := nodes.TryGetOutputReference(out, n.G, nil)
+	bTex := nodes.TryGetOutputReference(out, n.B, nil)
+	aTex := nodes.TryGetOutputReference(out, n.A, nil)
+
+	texs := make([]Texture[float64], 0)
+	if rTex != nil {
+		texs = append(texs, *rTex)
+	}
+	if gTex != nil {
+		texs = append(texs, *gTex)
+	}
+	if bTex != nil {
+		texs = append(texs, *bTex)
+	}
+	if aTex != nil {
+		texs = append(texs, *aTex)
+	}
+
+	for i := 1; i < len(texs); i++ {
+		if texs[0].width != texs[i].width || texs[0].height != texs[i].height {
+			out.CaptureError(fmt.Errorf("mismatch texture dimensions"))
+			return
+		}
+	}
+
+	tex := NewTexture[coloring.WebColor](texs[0].width, texs[0].height)
+	for y := range texs[0].height {
+		for x := range texs[0].width {
+			c := coloring.WebColor{
+				R: rFill,
+				G: gFill,
+				B: bFill,
+				A: aFill,
+			}
+			if rTex != nil {
+				c.R = rTex.Get(x, y)
+			}
+
+			if gTex != nil {
+				c.G = gTex.Get(x, y)
+			}
+
+			if bTex != nil {
+				c.B = bTex.Get(x, y)
+			}
+
+			if aTex != nil {
+				c.A = aTex.Get(x, y)
+			}
+
+			tex.Set(x, y, c)
+		}
+	}
+
+	out.Set(tex.ToImage(func(c coloring.WebColor) color.Color {
+		return c
+	}))
+}
+
+// ============================================================================
+
+type ApplyMaskNode[T any] struct {
+	Texture nodes.Output[Texture[T]]
+	Mask    nodes.Output[Texture[bool]]
+	Fill    nodes.Output[T]
+}
+
+func (n ApplyMaskNode[T]) process(out *nodes.StructOutput[Texture[T]], keep bool) {
+	if n.Texture == nil {
+		return
+	}
+
+	if n.Mask == nil {
+		out.Set(nodes.GetOutputValue(out, n.Texture))
+		return
+	}
+
+	var fill T
+	if n.Fill != nil {
+		fill = nodes.GetOutputValue(out, n.Fill)
+	}
+
+	mask := nodes.GetOutputValue(out, n.Mask)
+	tex := nodes.GetOutputValue(out, n.Texture)
+
+	if mask.Height() != tex.Height() || tex.Width() != mask.Width() {
+		out.CaptureError(fmt.Errorf("mask and texture dimensions do not match"))
+		return
+	}
+
+	result := NewTexture[T](tex.width, tex.height)
+	for y := range result.height {
+		for x := range result.width {
+			if mask.Get(x, y) == keep {
+				result.Set(x, y, tex.Get(x, y))
+			} else {
+				result.Set(x, y, fill)
+			}
+		}
+	}
+	out.Set(result)
+}
+
+func (n ApplyMaskNode[T]) Kept(out *nodes.StructOutput[Texture[T]]) {
+	n.process(out, true)
+}
+
+func (n ApplyMaskNode[T]) Removed(out *nodes.StructOutput[Texture[T]]) {
+	n.process(out, false)
 }

@@ -291,6 +291,7 @@ requestManager.getNodeTypes((nodeTypes) => {
         loop: (delta) => {
             resize();
 
+            // threeApp.ViewerScene.rotateY(delta/8);
             threeApp.Composer.render(delta);
             producerViewManager.Render();
             threeApp.LabelRenderer.render(threeApp.Scene, threeApp.Camera);

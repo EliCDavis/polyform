@@ -20,6 +20,22 @@ func MultiplyRGBByConstant(c color.Color, amount float64) color.Color {
 	}
 }
 
+func MultiplyColorByConstant(c color.Color, amount float64) color.Color {
+	r, g, b, a := c.RGBA()
+
+	rVal := math.Round(float64(r>>8) * amount)
+	gVal := math.Round(float64(g>>8) * amount)
+	bVal := math.Round(float64(b>>8) * amount)
+	aVal := math.Round(float64(a>>8) * amount)
+
+	return color.RGBA{
+		R: uint8(rVal),
+		G: uint8(gVal),
+		B: uint8(bVal),
+		A: uint8(aVal),
+	}
+}
+
 func MultiplyRGBComponents(a, b color.Color) color.Color {
 	rA, gA, bA, _ := a.RGBA()
 	rB, gB, bB, _ := b.RGBA()
@@ -33,6 +49,23 @@ func MultiplyRGBComponents(a, b color.Color) color.Color {
 		G: uint8(gVal),
 		B: uint8(bVal),
 		A: 255,
+	}
+}
+
+func SubtractColor(a, b color.Color) color.Color {
+	rA, gA, bA, aA := a.RGBA()
+	rB, gB, bB, aB := b.RGBA()
+
+	rVal := (rA >> 8) - (rB >> 8)
+	gVal := (gA >> 8) - (gB >> 8)
+	bVal := (bA >> 8) - (bB >> 8)
+	aVal := (aA >> 8) - (aB >> 8)
+
+	return color.RGBA{
+		R: uint8(rVal),
+		G: uint8(gVal),
+		B: uint8(bVal),
+		A: uint8(aVal),
 	}
 }
 

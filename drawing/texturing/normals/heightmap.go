@@ -27,10 +27,10 @@ const ivec3 off = ivec3(-1,0,1);
 */
 
 // https://stackoverflow.com/questions/5281261/generating-a-normal-map-from-a-height-map
-func FromHeightmap(heightmap image.Image, scale float64) *image.RGBA {
+func ImageFromHeightmap(heightmap image.Image, scale float64) *image.RGBA {
 	dst := image.NewRGBA(heightmap.Bounds())
 
-	texturing.Convolve(heightmap, func(x, y int, values []color.Color) {
+	texturing.ConvolveImage(heightmap, func(x, y int, values []color.Color) {
 		// s11 := float64(colors.Red(values[4])) / 255
 
 		s01 := float64(coloring.Red(values[3])) / 255.
@@ -51,4 +51,35 @@ func FromHeightmap(heightmap image.Image, scale float64) *image.RGBA {
 	})
 
 	return dst
+}
+
+func FromHeightmap(heightmap texturing.Texture[float64], scale float64) texturing.Texture[vector3.Float64] {
+	dst := texturing.NewTexture[vector3.Float64](heightmap.Width(), heightmap.Height())
+
+	texturing.Convolve(heightmap, func(x, y int, values []float64) {
+		// s11 := float64(colors.Red(values[4])) / 255
+
+		s01 := values[3] / 255.
+		s21 := values[5] / 255.
+		s10 := values[1] / 255.
+		s12 := values[7] / 255.
+
+		va := vector3.New(2, 0, (s21-s01)*scale).Normalized()
+		vb := vector3.New(0, 2, (s12-s10)*scale).Normalized()
+
+		dst.Set(x, y, va.Cross(vb))
+	})
+
+	return dst
+}
+
+func ToNormalmap(normals texturing.Texture[vector3.Float64]) image.Image {
+	return normals.ToImage(func(n vector3.Float64) color.Color {
+		return color.RGBA{
+			R: uint8((0.5 + (n.X() / 2.)) * 255),
+			G: uint8((0.5 + (n.Y() / 2.)) * 255),
+			B: uint8((0.5 + (n.Z() / 2.)) * 255),
+			A: 255,
+		}
+	})
 }
