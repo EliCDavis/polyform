@@ -9,7 +9,7 @@ import { getFileExtension, getLastSegmentOfURL } from '../utils.js';
 import { Vector2ParameterNodeController } from './vector2_parameter.js';
 import { NodeInstance, NodeInstanceAssignedInput, NodeInstanceOutput, NodeDefinition, ExecutionReport } from '../schema.js';
 import { RequestManager, saveFileToDisk } from '../requests.js';
-import { FlowNode, GlobalWidgetFactory, ImageWidget, MessageType } from '@elicdavis/node-flow';
+import { FlowNode, GlobalWidgetFactory, ImageWidget, MessageType, StringWidget } from '@elicdavis/node-flow';
 import { ThreeApp } from '../three_app.js';
 import { ProducerViewManager } from '../ProducerView/producer_view_manager.js';
 
@@ -133,6 +133,8 @@ export class PolyNodeController {
 
     producerViewManager: ProducerViewManager;
 
+    nodeDefinition: NodeDefinition;
+
     constructor(
         flowNode: FlowNode,
         nodeManager: NodeManager,
@@ -141,7 +143,8 @@ export class PolyNodeController {
         app: ThreeApp,
         producerOutput: string,
         requestManager: RequestManager,
-        producerViewManager: ProducerViewManager
+        producerViewManager: ProducerViewManager,
+        nodeDefinition: NodeDefinition
     ) {
         // console.log(liteNode)
         this.flowNode = flowNode;
@@ -151,6 +154,7 @@ export class PolyNodeController {
         this.isProducer = !!producerOutput;
         this.requestManager = requestManager;
         this.producerViewManager = producerViewManager;
+        this.nodeDefinition = nodeDefinition;
 
         this.name = "";
         this.outputs = {};
@@ -254,7 +258,7 @@ export class PolyNodeController {
                 callback: () => {
                     saveFileToDisk("./zip/" + this.id + "/" + producerOutput, this.id);
                 }
-            })
+            });
             this.flowNode.addWidget(downloadButton);
         }
 
@@ -304,9 +308,59 @@ export class PolyNodeController {
         this.update(nodeData);
     }
 
+    fetchOutput(outputKey: string, version: number): void {
 
-    update(nodeData: NodeInstance) {
+        if (version === -1) {
+            return;
+        }
+
+        // Don't do anything if we're up to date
+        if (outputKey in this.outputs && this.outputs[outputKey].version === version) {
+            return;
+        }
+
+        let recognizeOutput = this.nodeDefinition?.outputs && outputKey in this.nodeDefinition.outputs;
+        if (!recognizeOutput) {
+            return
+        }
+
+        const types = [
+            "github.com/EliCDavis/polyform/drawing/texturing.Texture[bool]",
+            "github.com/EliCDavis/polyform/drawing/texturing.Texture[float64]",
+            "github.com/EliCDavis/polyform/drawing/texturing.Texture[image/color.Color]",
+            "image.Image",
+        ]
+
+
+        let found = false;
+        for (let i = 0; i < types.length; i++) {
+            if (this.nodeDefinition.outputs[outputKey].type == types[i]) {
+                found = true;
+                break;
+            }
+        }
+
+        if (!found) {
+            return;
+        }
+
+        // const stringWidget = GlobalWidgetFactory.create(this.flowNode, "string", {}) as StringWidget;
+        // this.flowNode.addWidget(stringWidget);
+        // stringWidget.Set("" + version);
+
+        const imageWidget = GlobalWidgetFactory.create(this.flowNode, "image", {}) as ImageWidget;
+        this.flowNode.addWidget(imageWidget);
+        imageWidget.SetUrl(`./node/output/${this.id}/${outputKey}`);
+    }
+
+    update(nodeData: NodeInstance): void {
         this.name = nodeData.name;
+
+        // Fetch updates for changed output
+        for (let outputKey in nodeData.output) {
+            this.fetchOutput(outputKey, nodeData.output[outputKey].version);
+        }
+
         this.outputs = nodeData.output;
         this.dependencies = nodeData.assignedInput;
 

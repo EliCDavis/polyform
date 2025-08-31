@@ -3,6 +3,10 @@ package modeling
 type VertexLUT map[int]map[int]struct{}
 
 func (vLUT VertexLUT) AddLookup(from, to int) {
+	if from == to {
+		panic("can't connect a vertice to itself")
+	}
+
 	if _, ok := vLUT[from]; !ok {
 		vLUT[from] = make(map[int]struct{})
 	}

@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"image"
+	"image/color"
 	"os"
 	"strings"
 
@@ -12,6 +14,7 @@ import (
 	// Import these so they register their nodes with the generator
 	"github.com/EliCDavis/polyform/drawing/coloring"
 	_ "github.com/EliCDavis/polyform/drawing/coloring"
+	"github.com/EliCDavis/polyform/drawing/texturing"
 	_ "github.com/EliCDavis/polyform/drawing/texturing"
 	_ "github.com/EliCDavis/polyform/drawing/texturing/normals"
 
@@ -24,9 +27,12 @@ import (
 	_ "github.com/EliCDavis/polyform/formats/spz"
 	_ "github.com/EliCDavis/polyform/formats/stl"
 
+	"github.com/EliCDavis/polyform/generator/manifest"
+	"github.com/EliCDavis/polyform/generator/manifest/basics"
 	_ "github.com/EliCDavis/polyform/generator/manifest/basics"
 	_ "github.com/EliCDavis/polyform/generator/parameter"
 	"github.com/EliCDavis/polyform/generator/schema"
+	"github.com/EliCDavis/polyform/generator/serialize"
 	"github.com/EliCDavis/polyform/generator/variable"
 
 	_ "github.com/EliCDavis/polyform/math"
@@ -54,6 +60,46 @@ import (
 )
 
 func main() {
+	outputSerialization := &serialize.TypeSwitch[manifest.Entry]{}
+
+	serialize.Register(outputSerialization, func(i image.Image) manifest.Entry {
+		return manifest.Entry{Artifact: basics.Image{Image: i}}
+	})
+
+	serialize.Register(outputSerialization, func(i texturing.Texture[float64]) manifest.Entry {
+		return manifest.Entry{Artifact: texturing.Artifact[float64]{
+			Texture: i,
+			Conversion: func(v float64) color.Color {
+				return color.RGBA{R: byte(v * 255), G: byte(v * 255), B: byte(v * 255), A: 255}
+			},
+		}}
+	})
+
+	serialize.Register(outputSerialization, func(i texturing.Texture[bool]) manifest.Entry {
+		return manifest.Entry{Artifact: texturing.Artifact[bool]{
+			Texture: i,
+			Conversion: func(b bool) color.Color {
+				var v byte = 0
+				if b {
+					v = 255
+				}
+				return color.RGBA{R: v, G: v, B: v, A: 255}
+			},
+		}}
+	})
+
+	serialize.Register(outputSerialization, func(i texturing.Texture[color.Color]) manifest.Entry {
+		return manifest.Entry{Artifact: texturing.Artifact[color.Color]{
+			Texture: i,
+			Conversion: func(b color.Color) color.Color {
+				if b == nil {
+					return color.RGBA{R: 0, G: 0, B: 0, A: 255}
+				}
+				return b
+			},
+		}}
+	})
+
 	app := generator.App{
 		Name:        "Polyform",
 		Description: "Immutable mesh processing pipelines",
@@ -66,7 +112,7 @@ func main() {
 				},
 			},
 		},
-
+		NodeOutputSerialization: outputSerialization,
 		VariableFactory: func(variableType string) (variable.Variable, error) {
 			switch strings.ToLower(variableType) {
 			case "float64":

@@ -16,6 +16,6 @@ func (se Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", string(method.ContentType()))
+	w.Header().Set("Content-Type", string(method.ContentType(r)))
 	method.Handle(w, r)
 }

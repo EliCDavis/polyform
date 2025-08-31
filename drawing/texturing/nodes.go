@@ -12,11 +12,11 @@ import (
 func init() {
 	factory := &refutil.TypeFactory{}
 
-	refutil.RegisterType[nodes.Struct[TextureNode[float64]]](factory)
-	refutil.RegisterType[nodes.Struct[TextureNode[vector2.Float64]]](factory)
-	refutil.RegisterType[nodes.Struct[TextureNode[vector3.Float64]]](factory)
-	refutil.RegisterType[nodes.Struct[TextureNode[bool]]](factory)
-	refutil.RegisterType[nodes.Struct[TextureNode[coloring.WebColor]]](factory)
+	refutil.RegisterType[nodes.Struct[UniformNode[float64]]](factory)
+	refutil.RegisterType[nodes.Struct[UniformNode[vector2.Float64]]](factory)
+	refutil.RegisterType[nodes.Struct[UniformNode[vector3.Float64]]](factory)
+	refutil.RegisterType[nodes.Struct[UniformNode[bool]]](factory)
+	refutil.RegisterType[nodes.Struct[UniformNode[coloring.WebColor]]](factory)
 
 	refutil.RegisterType[nodes.Struct[FromArrayNode[float64]]](factory)
 	refutil.RegisterType[nodes.Struct[FromArrayNode[vector2.Float64]]](factory)
@@ -46,6 +46,12 @@ func init() {
 	refutil.RegisterType[nodes.Struct[ColorToImageNode]](factory)
 	refutil.RegisterType[nodes.Struct[FloatToImageNode]](factory)
 	refutil.RegisterType[nodes.Struct[SeamlessPerlinNode]](factory)
+	refutil.RegisterType[nodes.Struct[PerlinNode]](factory)
+
+	refutil.RegisterType[nodes.Struct[AddFloat1Node]](factory)
+	refutil.RegisterType[nodes.Struct[AddFloat2Node]](factory)
+	refutil.RegisterType[nodes.Struct[AddFloat3Node]](factory)
+	refutil.RegisterType[nodes.Struct[AddFloat4Node]](factory)
 
 	generator.RegisterTypes(factory)
 }

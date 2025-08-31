@@ -16,8 +16,10 @@ import (
 
 	"github.com/EliCDavis/polyform/generator/endpoint"
 	"github.com/EliCDavis/polyform/generator/graph"
+	"github.com/EliCDavis/polyform/generator/manifest"
 	"github.com/EliCDavis/polyform/generator/room"
 	"github.com/EliCDavis/polyform/generator/schema"
+	"github.com/EliCDavis/polyform/generator/serialize"
 	"github.com/EliCDavis/polyform/generator/variable"
 )
 
@@ -52,13 +54,14 @@ type pageData struct {
 var htmlFs embed.FS
 
 type Server struct {
-	Graph            *graph.Instance
-	Host, Port       string
-	Tls              bool
-	CertPath         string
-	KeyPath          string
-	LaunchWebbrowser bool
-	VariableFactory  func(string) (variable.Variable, error)
+	Graph                   *graph.Instance
+	Host, Port              string
+	Tls                     bool
+	CertPath                string
+	KeyPath                 string
+	LaunchWebbrowser        bool
+	VariableFactory         func(string) (variable.Variable, error)
+	NodeOutputSerialization *serialize.TypeSwitch[manifest.Entry]
 
 	Autosave   bool
 	ConfigPath string
@@ -151,9 +154,10 @@ func (as *Server) Handler(indexFile string) (*http.ServeMux, error) {
 		},
 	})
 	mux.HandleFunc("/zip/", as.ZipEndpoint)
-	mux.HandleFunc("/node-types", as.NodeTypesEndpoint)
+	mux.Handle("/node-types", nodeTypesEndpoint(as.Graph, as.NodeOutputSerialization))
 	mux.Handle("/node", nodeEndpoint(as.Graph, graphSaver))
 	mux.Handle("/node/connection", nodeConnectionEndpoint(as.Graph, graphSaver))
+	mux.HandleFunc(nodeOutputEndpointPath, as.NodeOutputEndpoint)
 	mux.Handle("/parameter/value/", parameterValueEndpoint(as.Graph, graphSaver))
 	mux.Handle("/parameter/name/", parameterNameEndpoint(as.Graph, graphSaver))
 	mux.Handle("/parameter/description/", parameterDescriptionEndpoint(as.Graph, graphSaver))
@@ -195,15 +199,6 @@ func (as *Server) Handler(indexFile string) (*http.ServeMux, error) {
 func (as *Server) SchemaEndpoint(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	data, err := json.Marshal(as.Graph.Schema())
-	if err != nil {
-		panic(err)
-	}
-	w.Write(data)
-}
-
-func (as *Server) NodeTypesEndpoint(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	data, err := json.Marshal(as.Graph.BuildSchemaForAllNodeTypes())
 	if err != nil {
 		panic(err)
 	}

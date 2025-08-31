@@ -5,12 +5,16 @@ import (
 	"image"
 	"image/color"
 	"image/png"
+	"math"
 	"os"
 
 	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/vector"
+	"github.com/EliCDavis/vector/vector1"
 	"github.com/EliCDavis/vector/vector2"
+	"github.com/EliCDavis/vector/vector3"
+	"github.com/EliCDavis/vector/vector4"
 )
 
 func NewTexture[T any](width, height int) Texture[T] {
@@ -41,11 +45,7 @@ func (t Texture[T]) Fill(v T) {
 	}
 }
 
-func getTrailingDigits(f float64) float64 {
-	const precision = 10000
-	x := int(f*precision) % precision
-	return float64(x) / precision
-}
+func fract(v float64) float64 { return v - math.Floor(v) }
 
 func negativeWrap(f float64) float64 {
 	if f >= 0 {
@@ -56,8 +56,8 @@ func negativeWrap(f float64) float64 {
 
 func (t Texture[T]) UV(x, y float64) T {
 	return t.Get(
-		int(negativeWrap(getTrailingDigits(x))*float64(t.width)),
-		int(negativeWrap(getTrailingDigits(y))*float64(t.height)),
+		int(negativeWrap(fract(x))*float64(t.width)),
+		int(negativeWrap(fract(y))*float64(t.height)),
 	)
 }
 
@@ -128,13 +128,13 @@ func Convert[T, G any](in Texture[T], cb func(x int, y int, v T) G) Texture[G] {
 	return out
 }
 
-type TextureNode[T any] struct {
+type UniformNode[T any] struct {
 	Fill   nodes.Output[T]
 	Width  nodes.Output[int]
 	Height nodes.Output[int]
 }
 
-func (n TextureNode[T]) Texture(out *nodes.StructOutput[Texture[T]]) {
+func (n UniformNode[T]) Texture(out *nodes.StructOutput[Texture[T]]) {
 	t := NewTexture[T](
 		nodes.TryGetOutputValue(out, n.Width, 1),
 		nodes.TryGetOutputValue(out, n.Height, 1),
@@ -397,3 +397,70 @@ func (n ApplyMaskNode[T]) Kept(out *nodes.StructOutput[Texture[T]]) {
 func (n ApplyMaskNode[T]) Removed(out *nodes.StructOutput[Texture[T]]) {
 	n.process(out, false)
 }
+
+// ============================================================================
+
+func addTextures[T any](textures []Texture[T], out *nodes.StructOutput[Texture[T]], space vector.Space[T]) {
+	if len(textures) == 0 {
+		return
+	}
+
+	if len(textures) == 1 {
+		out.Set(textures[0])
+		return
+	}
+
+	for i := 1; i < len(textures); i++ {
+		if textures[0].width != textures[i].width || textures[0].height != textures[i].height {
+			out.CaptureError(fmt.Errorf("mismatch texture resolution"))
+			return
+		}
+	}
+
+	result := NewTexture[T](textures[0].Width(), textures[0].Height())
+	for y := range result.Height() {
+		for x := range result.Width() {
+			var v T
+			for _, tex := range textures {
+				v = space.Add(tex.Get(x, y), v)
+			}
+			result.Set(x, y, v)
+		}
+	}
+
+	out.Set(result)
+}
+
+type AddFloat1Node struct {
+	Textures []nodes.Output[Texture[float64]]
+}
+
+func (n AddFloat1Node) Result(out *nodes.StructOutput[Texture[float64]]) {
+	addTextures(nodes.GetOutputValues(out, n.Textures), out, vector1.Space[float64]{})
+}
+
+type AddFloat2Node struct {
+	Textures []nodes.Output[Texture[vector2.Float64]]
+}
+
+func (n AddFloat2Node) Result(out *nodes.StructOutput[Texture[vector2.Float64]]) {
+	addTextures(nodes.GetOutputValues(out, n.Textures), out, vector2.Space[float64]{})
+}
+
+type AddFloat3Node struct {
+	Textures []nodes.Output[Texture[vector3.Float64]]
+}
+
+func (n AddFloat3Node) Result(out *nodes.StructOutput[Texture[vector3.Float64]]) {
+	addTextures(nodes.GetOutputValues(out, n.Textures), out, vector3.Space[float64]{})
+}
+
+type AddFloat4Node struct {
+	Textures []nodes.Output[Texture[vector4.Float64]]
+}
+
+func (n AddFloat4Node) Result(out *nodes.StructOutput[Texture[vector4.Float64]]) {
+	addTextures(nodes.GetOutputValues(out, n.Textures), out, vector4.Space[float64]{})
+}
+
+// ============================================================================

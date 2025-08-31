@@ -14,18 +14,21 @@ import (
 	"github.com/EliCDavis/polyform/generator/cli"
 	"github.com/EliCDavis/polyform/generator/edit"
 	"github.com/EliCDavis/polyform/generator/graph"
+	"github.com/EliCDavis/polyform/generator/manifest"
 	"github.com/EliCDavis/polyform/generator/room"
 	"github.com/EliCDavis/polyform/generator/run"
 	"github.com/EliCDavis/polyform/generator/schema"
+	"github.com/EliCDavis/polyform/generator/serialize"
 	"github.com/EliCDavis/polyform/generator/variable"
 )
 
 type App struct {
-	Name            string
-	Version         string
-	Description     string
-	Authors         []schema.Author
-	VariableFactory func(variableType string) (variable.Variable, error)
+	Name                    string
+	Version                 string
+	Description             string
+	Authors                 []schema.Author
+	VariableFactory         func(variableType string) (variable.Variable, error)
+	NodeOutputSerialization *serialize.TypeSwitch[manifest.Entry]
 
 	Out   io.Writer
 	Err   io.Writer
@@ -278,11 +281,12 @@ func (a *App) Run(args []string) error {
 			},
 			Run: func(appState *cli.RunState) error {
 				server := edit.Server{
-					Graph:            a.Graph,
-					Host:             appState.String("host"),
-					Port:             appState.String("port"),
-					LaunchWebbrowser: appState.Bool("launch-browser"),
-					VariableFactory:  a.VariableFactory,
+					Graph:                   a.Graph,
+					Host:                    appState.String("host"),
+					Port:                    appState.String("port"),
+					LaunchWebbrowser:        appState.Bool("launch-browser"),
+					VariableFactory:         a.VariableFactory,
+					NodeOutputSerialization: a.NodeOutputSerialization,
 
 					Autosave:   appState.Bool("autosave"),
 					ConfigPath: appState.String(graphFlagName),

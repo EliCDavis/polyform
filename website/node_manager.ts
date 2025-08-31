@@ -1,7 +1,7 @@
 import { FlowNode, FlowNodeConfig, FlowNodeStyle, NodeFlowGraph, Publisher } from "@elicdavis/node-flow";
 import { InstanceIDProperty, PolyNodeController, camelCaseToWords } from "./nodes/node.js";
 import { RequestManager } from "./requests.js";
-import { GraphExecutionReport, GraphInstance, GraphInstanceNodes, NodeInstance } from "./schema.js";
+import { GraphExecutionReport, GraphInstance, GraphInstanceNodes, NodeInstance, RegisteredTypes } from "./schema.js";
 import { NodeDefinition } from './schema';
 import { ThreeApp } from "./three_app.js";
 import { ProducerViewManager } from './ProducerView/producer_view_manager';
@@ -82,13 +82,15 @@ export class NodeManager {
 
     serverUpdatingNodeConnections: boolean;
 
+    serializableOutputTypes: Array<string>;
+
     constructor(
         nodeFlowGraph: NodeFlowGraph,
         requestManager: RequestManager,
         nodesPublisher: Publisher,
         app: ThreeApp,
         producerViewManager: ProducerViewManager,
-        nodeTypes: Array<NodeDefinition>
+        registeredTypes: RegisteredTypes
     ) {
         this.nodeFlowGraph = nodeFlowGraph;
         this.requestManager = requestManager;
@@ -102,7 +104,7 @@ export class NodeManager {
         this.subscribers = [];
         this.serverUpdatingNodeConnections = false;
 
-        nodeTypes.forEach(type => {
+        registeredTypes.nodeTypes.forEach(type => {
             // We should have custom nodes already defined for parameters
             if (type.parameter) {
                 return;
@@ -112,6 +114,8 @@ export class NodeManager {
 
         nodeFlowGraph.addOnNodeAddedListener(this.onNodeAddedCallback.bind(this));
         nodeFlowGraph.addOnNodeRemovedListener(this.nodeRemoved.bind(this));
+
+        this.serializableOutputTypes = registeredTypes.serializableOutputTypes;
     }
 
     refreshExecutionReport(): void {
@@ -125,7 +129,7 @@ export class NodeManager {
                 const nodeToUpdate = this.nodeIdToNode.get(nodeID);
                 nodeToUpdate.flowNode.clearMessages();
 
-                for(let output in nodeExecutionReport.output) {
+                for (let output in nodeExecutionReport.output) {
                     nodeToUpdate.setOutputPortReport(output, nodeExecutionReport.output[output]);
                 }
             }
@@ -168,7 +172,8 @@ export class NodeManager {
                     this.app,
                     producerOutPort,
                     this.requestManager,
-                    this.producerViewManager
+                    this.producerViewManager,
+                    flowNode.metadata().typeData
                 )
             );
         })
@@ -429,7 +434,6 @@ export class NodeManager {
                 }
 
                 this.nodeFlowGraph.addNode(flowNode);
-
                 flowNode.setProperty(InstanceIDProperty, nodeID);
 
                 const controller = new PolyNodeController(
@@ -440,7 +444,8 @@ export class NodeManager {
                     this.app,
                     producerOutPort,
                     this.requestManager,
-                    this.producerViewManager
+                    this.producerViewManager,
+                    flowNode.metadata().typeData
                 );
                 this.nodeIdToNode.set(nodeID, controller);
             }
