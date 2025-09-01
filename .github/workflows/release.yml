@@ -45,7 +45,7 @@ jobs:
       - name: Restore Nix-cached Pages Artifacts
         run: |
           nix run .#sri-check-up --print-build-logs
-          nix build .#pages --print-build-logs --out-link=./dist
+          nix build .#pages --print-build-logs --out-link ./dist
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
