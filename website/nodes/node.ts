@@ -135,6 +135,10 @@ export class PolyNodeController {
 
     nodeDefinition: NodeDefinition;
 
+    serializableOutputTypes: Array<string>;
+
+    nodeOutputWidgets: Map<string, ImageWidget>;
+
     constructor(
         flowNode: FlowNode,
         nodeManager: NodeManager,
@@ -144,7 +148,8 @@ export class PolyNodeController {
         producerOutput: string,
         requestManager: RequestManager,
         producerViewManager: ProducerViewManager,
-        nodeDefinition: NodeDefinition
+        nodeDefinition: NodeDefinition,
+        serializableOutputTypes: Array<string>
     ) {
         // console.log(liteNode)
         this.flowNode = flowNode;
@@ -155,6 +160,8 @@ export class PolyNodeController {
         this.requestManager = requestManager;
         this.producerViewManager = producerViewManager;
         this.nodeDefinition = nodeDefinition;
+        this.serializableOutputTypes = serializableOutputTypes;
+        this.nodeOutputWidgets = new Map<string, ImageWidget>();
 
         this.name = "";
         this.outputs = {};
@@ -310,9 +317,9 @@ export class PolyNodeController {
 
     fetchOutput(outputKey: string, version: number): void {
 
-        if (version === -1) {
-            return;
-        }
+        // if (version === -1) {
+        //     return;
+        // }
 
         // Don't do anything if we're up to date
         if (outputKey in this.outputs && this.outputs[outputKey].version === version) {
@@ -324,17 +331,25 @@ export class PolyNodeController {
             return
         }
 
-        const types = [
-            "github.com/EliCDavis/polyform/drawing/texturing.Texture[bool]",
-            "github.com/EliCDavis/polyform/drawing/texturing.Texture[float64]",
-            "github.com/EliCDavis/polyform/drawing/texturing.Texture[image/color.Color]",
-            "image.Image",
-        ]
+        for (let i = 0; i < this.flowNode.outputs(); i++) {
+            const outputPort = this.flowNode.outputPort(i);
+            if (outputPort.getDisplayName() !== outputKey) {
+                continue;
+            }
+            if (outputPort.connections().length === 0) {
 
+                // If we were once connected and are no longer, clear image widget
+                if (this.nodeOutputWidgets.has(outputKey)) {
+                    this.flowNode.removeWidget(this.nodeOutputWidgets.get(outputKey));
+                }
+                return;
+            }
+            console.log("Woo", outputPort.connections().length)
+        }
 
         let found = false;
-        for (let i = 0; i < types.length; i++) {
-            if (this.nodeDefinition.outputs[outputKey].type == types[i]) {
+        for (let i = 0; i < this.serializableOutputTypes.length; i++) {
+            if (this.nodeDefinition.outputs[outputKey].type == this.serializableOutputTypes[i]) {
                 found = true;
                 break;
             }
@@ -348,20 +363,17 @@ export class PolyNodeController {
         // this.flowNode.addWidget(stringWidget);
         // stringWidget.Set("" + version);
 
-        const imageWidget = GlobalWidgetFactory.create(this.flowNode, "image", {}) as ImageWidget;
-        this.flowNode.addWidget(imageWidget);
-        imageWidget.SetUrl(`./node/output/${this.id}/${outputKey}`);
+        if (!this.nodeOutputWidgets.has(outputKey)) {
+            const imageWidget = GlobalWidgetFactory.create(this.flowNode, "image", {}) as ImageWidget;
+            this.flowNode.addWidget(imageWidget);
+            this.nodeOutputWidgets.set(outputKey, imageWidget)
+        }
+
+        this.nodeOutputWidgets.get(outputKey).SetUrl(`./node/output/${this.id}/${outputKey}`);
     }
 
     update(nodeData: NodeInstance): void {
         this.name = nodeData.name;
-
-        // Fetch updates for changed output
-        for (let outputKey in nodeData.output) {
-            this.fetchOutput(outputKey, nodeData.output[outputKey].version);
-        }
-
-        this.outputs = nodeData.output;
         this.dependencies = nodeData.assignedInput;
 
         if (nodeData.metadata) {
@@ -399,7 +411,13 @@ export class PolyNodeController {
         }
     }
 
-    updateConnections() {
+    updateConnections(nodeData: NodeInstance) {
+
+        // Fetch updates for changed output
+        for (let outputKey in nodeData.output) {
+            this.fetchOutput(outputKey, nodeData.output[outputKey].version);
+        }
+        this.outputs = nodeData.output;
 
     }
 }

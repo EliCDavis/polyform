@@ -58,7 +58,6 @@ export class ProducerViewManager {
 
     schemaManager: SchemaManager;
 
-
     constructor(
         app: ThreeApp,
         requestManager: RequestManager,

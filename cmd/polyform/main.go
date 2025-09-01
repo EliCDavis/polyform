@@ -60,24 +60,25 @@ import (
 )
 
 func main() {
-	outputSerialization := &serialize.TypeSwitch[manifest.Entry]{}
+	nodeSerializer := &serialize.TypeSwitch[manifest.Entry]{}
 
-	serialize.Register(outputSerialization, func(i image.Image) manifest.Entry {
+	serialize.Register(nodeSerializer, func(i image.Image) manifest.Entry {
 		return manifest.Entry{Artifact: basics.Image{Image: i}}
 	})
 
-	serialize.Register(outputSerialization, func(i texturing.Texture[float64]) manifest.Entry {
+	serialize.Register(nodeSerializer, func(tex texturing.Texture[float64]) manifest.Entry {
 		return manifest.Entry{Artifact: texturing.Artifact[float64]{
-			Texture: i,
+			Texture: tex,
 			Conversion: func(v float64) color.Color {
-				return color.RGBA{R: byte(v * 255), G: byte(v * 255), B: byte(v * 255), A: 255}
+				b := byte(v * 255)
+				return color.RGBA{R: b, G: b, B: b, A: 255}
 			},
 		}}
 	})
 
-	serialize.Register(outputSerialization, func(i texturing.Texture[bool]) manifest.Entry {
+	serialize.Register(nodeSerializer, func(tex texturing.Texture[bool]) manifest.Entry {
 		return manifest.Entry{Artifact: texturing.Artifact[bool]{
-			Texture: i,
+			Texture: tex,
 			Conversion: func(b bool) color.Color {
 				var v byte = 0
 				if b {
@@ -88,7 +89,7 @@ func main() {
 		}}
 	})
 
-	serialize.Register(outputSerialization, func(i texturing.Texture[color.Color]) manifest.Entry {
+	serialize.Register(nodeSerializer, func(i texturing.Texture[color.Color]) manifest.Entry {
 		return manifest.Entry{Artifact: texturing.Artifact[color.Color]{
 			Texture: i,
 			Conversion: func(b color.Color) color.Color {
@@ -112,7 +113,7 @@ func main() {
 				},
 			},
 		},
-		NodeOutputSerialization: outputSerialization,
+		NodeOutputSerialization: nodeSerializer,
 		VariableFactory: func(variableType string) (variable.Variable, error) {
 			switch strings.ToLower(variableType) {
 			case "float64":

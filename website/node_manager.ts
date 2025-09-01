@@ -173,7 +173,8 @@ export class NodeManager {
                     producerOutPort,
                     this.requestManager,
                     this.producerViewManager,
-                    flowNode.metadata().typeData
+                    flowNode.metadata().typeData,
+                    this.serializableOutputTypes
                 )
             );
         })
@@ -248,6 +249,16 @@ export class NodeManager {
                 )
             }
         }
+
+        nodes.forEach(node => {
+            const nodeID = node.id;
+            const nodeData = node.node;
+
+            if (this.nodeIdToNode.has(nodeID)) {
+                const nodeToUpdate = this.nodeIdToNode.get(nodeID);
+                nodeToUpdate.updateConnections(nodeData);
+            }
+        })
     }
 
     nodeTypeIsProducer(typeData: NodeDefinition): string {
@@ -445,7 +456,8 @@ export class NodeManager {
                     producerOutPort,
                     this.requestManager,
                     this.producerViewManager,
-                    flowNode.metadata().typeData
+                    flowNode.metadata().typeData,
+                    this.serializableOutputTypes
                 );
                 this.nodeIdToNode.set(nodeID, controller);
             }
