@@ -3,6 +3,7 @@ package nodes
 import (
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/EliCDavis/polyform/refutil"
@@ -15,7 +16,7 @@ type inputVersions interface {
 
 // ============================================================================
 type outputPortBuilder interface {
-	build(node Node, cache *structOutputCache, data any, functionName, displayName string) OutputPort
+	build(node Node, cache *structOutputCache, data any, functionName, displayName string, mutex *sync.Mutex) OutputPort
 }
 
 func NewStructOutput[T any](val T) StructOutput[T] {
@@ -95,6 +96,7 @@ type StructOutput[T any] struct {
 	val          T
 	cache        *structOutputCache
 	report       ExecutionReport
+	mutex        *sync.Mutex
 }
 
 func (so StructOutput[T]) Name() string {
@@ -106,6 +108,8 @@ func (so StructOutput[T]) Node() Node {
 }
 
 func (so *StructOutput[T]) Value() T {
+	so.mutex.Lock()
+	defer so.mutex.Unlock()
 	var val StructOutput[T]
 	if !so.cache.Outdated(so.functionName) {
 		val = so.cache.Get(so.functionName).(StructOutput[T])
@@ -185,13 +189,14 @@ func (so *StructOutput[T]) CaptureTiming(title string, timing time.Duration) {
 
 // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
-func (so *StructOutput[T]) build(node Node, cache *structOutputCache, data any, functionName, displayName string) OutputPort {
+func (so *StructOutput[T]) build(node Node, cache *structOutputCache, data any, functionName, displayName string, mutex *sync.Mutex) OutputPort {
 	return &StructOutput[T]{
 		node:         node,
 		data:         data,
 		functionName: functionName,
 		displayName:  displayName,
 		cache:        cache,
+		mutex:        mutex,
 	}
 }
 
@@ -307,6 +312,7 @@ type Struct[T any] struct {
 	Data T
 
 	outputCache *structOutputCache
+	mutex       sync.Mutex
 }
 
 func (s *Struct[T]) Outputs() map[string]OutputPort {
@@ -327,7 +333,7 @@ func (s *Struct[T]) Outputs() map[string]OutputPort {
 
 	for functionName, zero := range funcs {
 		portName := utils.CamelCaseToSpaceCase(functionName)
-		out[portName] = zero.build(s, s.outputCache, &s.Data, functionName, portName)
+		out[portName] = zero.build(s, s.outputCache, &s.Data, functionName, portName, &s.mutex)
 	}
 
 	return out

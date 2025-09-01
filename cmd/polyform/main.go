@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"math"
 	"os"
 	"strings"
 
@@ -70,7 +71,7 @@ func main() {
 		return manifest.Entry{Artifact: texturing.Artifact[float64]{
 			Texture: tex,
 			Conversion: func(v float64) color.Color {
-				b := byte(v * 255)
+				b := byte(math.Min(math.Max(v, 0), 1) * 255)
 				return color.RGBA{R: b, G: b, B: b, A: 255}
 			},
 		}}
