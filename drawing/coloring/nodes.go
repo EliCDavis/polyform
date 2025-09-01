@@ -39,7 +39,7 @@ type InterpolateNode struct {
 }
 
 func (n InterpolateNode) Out(out *nodes.StructOutput[WebColor]) {
-	out.Set(WebColor{R: 0, G: 0, B: 0, A: 255})
+	out.Set(WebColor{R: 0, G: 0, B: 0, A: 1})
 	if n.A == nil && n.B == nil {
 		return
 	}

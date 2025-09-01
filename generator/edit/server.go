@@ -206,7 +206,7 @@ func (as *Server) SchemaEndpoint(w http.ResponseWriter, r *http.Request) {
 }
 
 func (as *Server) ProducerEndpoint(w http.ResponseWriter, r *http.Request) {
-	w.Header().Add("Cache-Control", "no-cache")
+	w.Header().Add("Cache-Control", "no-store")
 
 	// Required for sharedMemoryForWorkers to work
 	w.Header().Add("Cross-Origin-Opener-Policy", "same-origin")

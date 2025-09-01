@@ -16,14 +16,14 @@ func TestInterpolateNode(t *testing.T) {
 
 		val coloring.WebColor
 	}{
-		"nil + nil = 0,0,0,255": {
-			val: coloring.WebColor{R: 0, G: 0, B: 0, A: 255},
+		"nil + nil = 0,0,0,1": {
+			val: coloring.WebColor{R: 0, G: 0, B: 0, A: 1},
 		},
 		"black + white = grey": {
 			a:   nodes.ConstOutput[coloring.WebColor]{Val: coloring.Black()},
 			b:   nodes.ConstOutput[coloring.WebColor]{Val: coloring.White()},
 			t:   nodes.ConstOutput[float64]{Val: 0.5},
-			val: coloring.WebColor{R: 128, G: 128, B: 128, A: 255},
+			val: coloring.WebColor{R: 128 / 255., G: 128 / 255., B: 128 / 255., A: 1},
 		},
 		"black = black": {
 			a:   nodes.ConstOutput[coloring.WebColor]{Val: coloring.Black()},
@@ -47,7 +47,11 @@ func TestInterpolateNode(t *testing.T) {
 				},
 			}
 			out := nodes.GetNodeOutputPort[coloring.WebColor](node, "Out").Value()
-			assert.Equal(t, tc.val, out)
+			assert.InDelta(t, tc.val.R, out.R, 0.01)
+			assert.InDelta(t, tc.val.G, out.G, 0.01)
+			assert.InDelta(t, tc.val.B, out.B, 0.01)
+			assert.InDelta(t, tc.val.A, out.A, 0.01)
+			// assert.Equal(t, tc.val, out)
 		})
 	}
 }
