@@ -36,7 +36,7 @@ func NewGradient4D(keys ...GradientKey[vector4.Float64]) Gradient[vector4.Float6
 	return NewGradient(vector4.Space[float64]{}, keys...)
 }
 
-func NewGradientColor(keys ...GradientKey[WebColor]) Gradient[WebColor] {
+func NewGradientColor(keys ...GradientKey[Color]) Gradient[Color] {
 	return NewGradient(Space{}, keys...)
 }
 

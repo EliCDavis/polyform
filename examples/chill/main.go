@@ -22,22 +22,22 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-func branchColorPallettes() map[string]coloring.Gradient[coloring.WebColor] {
-	return map[string]coloring.Gradient[coloring.WebColor]{
+func branchColorPallettes() map[string]coloring.Gradient[coloring.Color] {
+	return map[string]coloring.Gradient[coloring.Color]{
 		"green": coloring.NewGradientColor(
-			coloring.GradientKey[coloring.WebColor]{Time: 0, Value: coloring.WebColor{12 / 255., 89 / 255., 36 / 255., 1.}},
-			coloring.GradientKey[coloring.WebColor]{Time: 1, Value: coloring.WebColor{3 / 255., 191 / 255., 0 / 255., 1.}},
-			coloring.GradientKey[coloring.WebColor]{Time: 2, Value: coloring.WebColor{2 / 255., 69 / 255., 23 / 255., 1.}},
+			coloring.GradientKey[coloring.Color]{Time: 0, Value: coloring.Color{12 / 255., 89 / 255., 36 / 255., 1.}},
+			coloring.GradientKey[coloring.Color]{Time: 1, Value: coloring.Color{3 / 255., 191 / 255., 0 / 255., 1.}},
+			coloring.GradientKey[coloring.Color]{Time: 2, Value: coloring.Color{2 / 255., 69 / 255., 23 / 255., 1.}},
 		),
 		"dead": coloring.NewGradientColor(
-			coloring.GradientKey[coloring.WebColor]{Time: 0, Value: coloring.WebColor{234 / 255., 226 / 255., 126 / 255., 1.}},
-			coloring.GradientKey[coloring.WebColor]{Time: 1, Value: coloring.WebColor{228 / 255., 179 / 255., 95 / 255., 1.}},
-			coloring.GradientKey[coloring.WebColor]{Time: 2, Value: coloring.WebColor{171 / 255., 120 / 255., 52 / 255., 1.}},
+			coloring.GradientKey[coloring.Color]{Time: 0, Value: coloring.Color{234 / 255., 226 / 255., 126 / 255., 1.}},
+			coloring.GradientKey[coloring.Color]{Time: 1, Value: coloring.Color{228 / 255., 179 / 255., 95 / 255., 1.}},
+			coloring.GradientKey[coloring.Color]{Time: 2, Value: coloring.Color{171 / 255., 120 / 255., 52 / 255., 1.}},
 		),
 		"red": coloring.NewGradientColor(
-			coloring.GradientKey[coloring.WebColor]{Time: 0, Value: coloring.WebColor{168 / 255., 50 / 255., 62 / 255., 1.}},
-			coloring.GradientKey[coloring.WebColor]{Time: 1, Value: coloring.WebColor{224 / 255., 94 / 255., 107 / 255., 1.}},
-			coloring.GradientKey[coloring.WebColor]{Time: 2, Value: coloring.WebColor{204 / 255., 22 / 255., 86 / 255., 1.}},
+			coloring.GradientKey[coloring.Color]{Time: 0, Value: coloring.Color{168 / 255., 50 / 255., 62 / 255., 1.}},
+			coloring.GradientKey[coloring.Color]{Time: 1, Value: coloring.Color{224 / 255., 94 / 255., 107 / 255., 1.}},
+			coloring.GradientKey[coloring.Color]{Time: 2, Value: coloring.Color{204 / 255., 22 / 255., 86 / 255., 1.}},
 		),
 	}
 }
@@ -248,8 +248,8 @@ func main() {
 						1024,
 						coloring.NewGradientColor(
 							// coloring.NewColorStackEntry(1, 1, 1, color.RGBA{115, 87, 71, 255}),
-							coloring.GradientKey[coloring.WebColor]{Time: 0, Value: coloring.WebColor{71 / 255., 43 / 255., 6 / 255., 1.}},
-							coloring.GradientKey[coloring.WebColor]{Time: 1, Value: coloring.WebColor{94 / 255., 63 / 255., 21 / 255., 1.}},
+							coloring.GradientKey[coloring.Color]{Time: 0, Value: coloring.Color{71 / 255., 43 / 255., 6 / 255., 1.}},
+							coloring.GradientKey[coloring.Color]{Time: 1, Value: coloring.Color{94 / 255., 63 / 255., 21 / 255., 1.}},
 						),
 						sample.Vec2ToFloat(noise.PerlinStack(
 							noise.Stack2DEntry{Scalar: 1 / 50., Amplitude: 1. / 2},
@@ -405,9 +405,9 @@ func main() {
 					terrain, maxTerrainValue := Terrain(forestWidth, terrainHeight.Value, &terrainPBR)
 
 					snowColors := coloring.NewGradientColor(
-						coloring.GradientKey[coloring.WebColor]{Time: 0, Value: coloring.WebColor{1., 1., 1., 1.}},
-						coloring.GradientKey[coloring.WebColor]{Time: 10, Value: coloring.WebColor{1., 1., 1., 1.}},
-						coloring.GradientKey[coloring.WebColor]{Time: 11, Value: coloring.WebColor{245 / 255., 247 / 255., 1., 1.}},
+						coloring.GradientKey[coloring.Color]{Time: 0, Value: coloring.Color{1., 1., 1., 1.}},
+						coloring.GradientKey[coloring.Color]{Time: 10, Value: coloring.Color{1., 1., 1., 1.}},
+						coloring.GradientKey[coloring.Color]{Time: 11, Value: coloring.Color{245 / 255., 247 / 255., 1., 1.}},
 					)
 
 					terrainImageSize := 1024 * 4
@@ -505,8 +505,8 @@ func main() {
 					TrunkTexture(
 						1024,
 						coloring.NewGradientColor(
-							coloring.GradientKey[coloring.WebColor]{Time: 0, Value: coloring.WebColor{71 / 255., 43 / 255., 6 / 255., 1.}},
-							coloring.GradientKey[coloring.WebColor]{Time: 1, Value: coloring.WebColor{94 / 255., 63 / 255., 21 / 255., 1.}},
+							coloring.GradientKey[coloring.Color]{Time: 0, Value: coloring.Color{71 / 255., 43 / 255., 6 / 255., 1.}},
+							coloring.GradientKey[coloring.Color]{Time: 1, Value: coloring.Color{94 / 255., 63 / 255., 21 / 255., 1.}},
 						),
 						sample.Vec2ToFloat(noise.PerlinStack(
 							noise.Stack2DEntry{Scalar: 1 / 50., Amplitude: 1. / 2},

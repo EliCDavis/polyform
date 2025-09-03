@@ -7,14 +7,14 @@ import (
 )
 
 // Like color.RGBA but we can be serialized to JSON!
-type WebColor struct {
+type Color struct {
 	R float64
 	G float64
 	B float64
 	A float64
 }
 
-func (c WebColor) MarshalJSON() ([]byte, error) {
+func (c Color) MarshalJSON() ([]byte, error) {
 	if c.A != 1 {
 		return []byte(fmt.Sprintf(
 			"\"#%02x%02x%02x%02x\"",
@@ -33,7 +33,7 @@ func (c WebColor) MarshalJSON() ([]byte, error) {
 	)), nil
 }
 
-func (c WebColor) RGBA() (r, g, b, a uint32) {
+func (c Color) RGBA() (r, g, b, a uint32) {
 	r = uint32(c.R * 255)
 	r |= r << 8
 	g = uint32(c.G * 255)
@@ -45,7 +45,7 @@ func (c WebColor) RGBA() (r, g, b, a uint32) {
 	return
 }
 
-func (c WebColor) RGBA8() color.RGBA {
+func (c Color) RGBA8() color.RGBA {
 	return color.RGBA{
 		R: byte((c.R) * 255),
 		G: byte((c.G) * 255),
@@ -54,7 +54,7 @@ func (c WebColor) RGBA8() color.RGBA {
 	}
 }
 
-func (c *WebColor) unmarshalJson6Digit(data []byte) error {
+func (c *Color) unmarshalJson6Digit(data []byte) error {
 	hex := string(data)
 	r, err := strconv.ParseUint(hex[2:4], 16, 8)
 	if err != nil {
@@ -84,7 +84,7 @@ func (c *WebColor) unmarshalJson6Digit(data []byte) error {
 	return nil
 }
 
-func (c *WebColor) unmarshalJson3Digit(data []byte) error {
+func (c *Color) unmarshalJson3Digit(data []byte) error {
 	hex := string(data)
 	r, err := strconv.ParseUint(hex[2:3]+hex[2:3], 16, 8)
 	if err != nil {
@@ -115,16 +115,16 @@ func (c *WebColor) unmarshalJson3Digit(data []byte) error {
 	return nil
 }
 
-func (c *WebColor) UnmarshalJSON(data []byte) error {
+func (c *Color) UnmarshalJSON(data []byte) error {
 	if len(data) == 6 || len(data) == 7 {
 		return c.unmarshalJson3Digit(data)
 	}
 	return c.unmarshalJson6Digit(data)
 }
 
-func (c WebColor) Lerp(b WebColor, time float64) WebColor {
+func (c Color) Lerp(b Color, time float64) Color {
 	mt := 1 - time
-	return WebColor{
+	return Color{
 		R: (c.R * mt) + (b.R * time),
 		G: (c.G * mt) + (b.G * time),
 		B: (c.B * mt) + (b.B * time),

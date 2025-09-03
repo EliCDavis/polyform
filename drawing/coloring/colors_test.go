@@ -9,7 +9,7 @@ import (
 
 func TestColor(t *testing.T) {
 	tests := map[string]struct {
-		input coloring.WebColor
+		input coloring.Color
 		wantR float64
 		wantG float64
 		wantB float64

@@ -61,6 +61,10 @@ func (t Texture[T]) UV(x, y float64) T {
 	)
 }
 
+func (t Texture[T]) Pixels() int {
+	return t.width * t.height
+}
+
 func (t Texture[T]) Width() int {
 	return t.width
 }
@@ -250,14 +254,14 @@ func (n SelectNode[T]) Height(out *nodes.StructOutput[int]) {
 // ============================================================================
 
 type ColorToImageNode struct {
-	Texture nodes.Output[Texture[coloring.WebColor]]
+	Texture nodes.Output[Texture[coloring.Color]]
 }
 
 func (n ColorToImageNode) Image(out *nodes.StructOutput[image.Image]) {
 	if n.Texture == nil {
 		return
 	}
-	out.Set(nodes.GetOutputValue(out, n.Texture).ToImage(func(c coloring.WebColor) color.Color {
+	out.Set(nodes.GetOutputValue(out, n.Texture).ToImage(func(c coloring.Color) color.Color {
 		return c
 	}))
 }
@@ -312,10 +316,10 @@ func (n FloatToImageNode) Image(out *nodes.StructOutput[image.Image]) {
 		}
 	}
 
-	tex := NewTexture[coloring.WebColor](texs[0].width, texs[0].height)
+	tex := NewTexture[coloring.Color](texs[0].width, texs[0].height)
 	for y := range texs[0].height {
 		for x := range texs[0].width {
-			c := coloring.WebColor{
+			c := coloring.Color{
 				R: rFill,
 				G: gFill,
 				B: bFill,
@@ -341,7 +345,7 @@ func (n FloatToImageNode) Image(out *nodes.StructOutput[image.Image]) {
 		}
 	}
 
-	out.Set(tex.ToImage(func(c coloring.WebColor) color.Color {
+	out.Set(tex.ToImage(func(c coloring.Color) color.Color {
 		return c
 	}))
 }
@@ -410,11 +414,9 @@ func addTextures[T any](textures []Texture[T], out *nodes.StructOutput[Texture[T
 		return
 	}
 
-	for i := 1; i < len(textures); i++ {
-		if textures[0].width != textures[i].width || textures[0].height != textures[i].height {
-			out.CaptureError(fmt.Errorf("mismatch texture resolution"))
-			return
-		}
+	if !resolutionsMatch(textures) {
+		out.CaptureError(fmt.Errorf("mismatch texture resolution"))
+		return
 	}
 
 	result := NewTexture[T](textures[0].Width(), textures[0].Height())
@@ -464,3 +466,104 @@ func (n AddFloat4Node) Result(out *nodes.StructOutput[Texture[vector4.Float64]])
 }
 
 // ============================================================================
+
+func resolutionsMatch[T any](textures []Texture[T]) bool {
+	if len(textures) < 2 {
+		return true
+	}
+	for i := 1; i < len(textures); i++ {
+		if textures[0].width != textures[i].width || textures[0].height != textures[i].height {
+			return false
+		}
+	}
+	return true
+}
+
+type MultiplyFloat1Node struct {
+	Textures []nodes.Output[Texture[float64]]
+}
+
+func (n MultiplyFloat1Node) Result(out *nodes.StructOutput[Texture[float64]]) {
+	textures := nodes.GetOutputValues(out, n.Textures)
+	if len(textures) == 0 {
+		return
+	}
+
+	if len(textures) == 1 {
+		out.Set(textures[0])
+		return
+	}
+
+	if !resolutionsMatch(textures) {
+		out.CaptureError(fmt.Errorf("mismatch texture resolution"))
+		return
+	}
+
+	result := NewTexture[float64](textures[0].Width(), textures[0].Height())
+	for y := range result.Height() {
+		for x := range result.Width() {
+			v := textures[0].Get(x, y)
+			for i := 1; i < len(textures); i++ {
+				v *= textures[i].Get(x, y)
+			}
+			result.Set(x, y, v)
+		}
+	}
+
+	out.Set(result)
+}
+
+// ============================================================================
+
+func scaleTexture[T any](texturePort nodes.Output[Texture[T]], out *nodes.StructOutput[Texture[T]], space vector.Space[T], amount nodes.Output[float64]) {
+	if texturePort == nil {
+		return
+	}
+	texture := texturePort.Value()
+
+	amt := nodes.TryGetOutputValue(out, amount, 1)
+	result := NewTexture[T](texture.Width(), texture.Height())
+	for y := range result.Height() {
+		for x := range result.Width() {
+			result.Set(x, y, space.Scale(texture.Get(x, y), amt))
+		}
+	}
+
+	out.Set(result)
+}
+
+type ScaleFloat1Node struct {
+	Texture nodes.Output[Texture[float64]]
+	Scale   nodes.Output[float64]
+}
+
+func (n ScaleFloat1Node) Result(out *nodes.StructOutput[Texture[float64]]) {
+	scaleTexture(n.Texture, out, vector1.Space[float64]{}, n.Scale)
+}
+
+type ScaleFloat2Node struct {
+	Texture nodes.Output[Texture[vector2.Float64]]
+	Scale   nodes.Output[float64]
+}
+
+func (n ScaleFloat2Node) Result(out *nodes.StructOutput[Texture[vector2.Float64]]) {
+	scaleTexture(n.Texture, out, vector2.Space[float64]{}, n.Scale)
+}
+
+type ScaleFloat3Node struct {
+	Texture nodes.Output[Texture[vector3.Float64]]
+	Scale   nodes.Output[float64]
+}
+
+func (n ScaleFloat3Node) Result(out *nodes.StructOutput[Texture[vector3.Float64]]) {
+	scaleTexture(n.Texture, out, vector3.Space[float64]{}, n.Scale)
+}
+
+type ScaleFloat4Node struct {
+	Texture nodes.Output[Texture[vector4.Float64]]
+	Scale   nodes.Output[float64]
+}
+
+func (n ScaleFloat4Node) Result(out *nodes.StructOutput[Texture[vector4.Float64]]) {
+	scaleTexture(n.Texture, out, vector4.Space[float64]{}, n.Scale)
+}

@@ -1,6 +1,7 @@
 package meshops
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/EliCDavis/polyform/drawing/texturing"
@@ -66,6 +67,10 @@ func ScaleAttributeAlongNormalWithTexture(
 		panic(err)
 	}
 
+	if texture.Pixels() == 0 {
+		panic(fmt.Errorf("texture is empty"))
+	}
+
 	positionData := m.Float3Attribute(attributeToScale)
 	normalData := m.Float3Attribute(normalAttribute)
 	uvData := m.Float2Attribute(uvAttribute)
@@ -128,13 +133,19 @@ func (sa3dn ScaleAttributeAlongNormalNode) Out(out *nodes.StructOutput[modeling.
 		return
 	}
 
+	tex := nodes.GetOutputValue(out, sa3dn.Texture)
+	if tex.Pixels() == 0 {
+		out.CaptureError(errors.New("provided texture is empty"))
+		out.Set(mesh)
+		return
+	}
+
 	out.Set(ScaleAttributeAlongNormalWithTexture(
 		mesh,
 		attrToScale,
 		attrNormal,
 		attrUV,
 		nodes.TryGetOutputValue(out, sa3dn.Amount, 1.),
-		nodes.GetOutputValue(out, sa3dn.Texture),
+		tex,
 	))
-
 }

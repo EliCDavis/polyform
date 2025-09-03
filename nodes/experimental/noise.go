@@ -11,8 +11,8 @@ import (
 
 type SeamlessPerlinNode struct {
 	Dimensions nodes.Output[int]
-	Positive   nodes.Output[coloring.WebColor]
-	Negative   nodes.Output[coloring.WebColor]
+	Positive   nodes.Output[coloring.Color]
+	Negative   nodes.Output[coloring.Color]
 }
 
 func (an SeamlessPerlinNode) Out(out *nodes.StructOutput[image.Image]) {

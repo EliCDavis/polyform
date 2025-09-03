@@ -2,6 +2,7 @@ package modeling
 
 import (
 	"fmt"
+	"maps"
 	"math"
 	"runtime"
 	"sort"
@@ -1069,9 +1070,7 @@ func (m Mesh) Float2Attribute(attr string) *iter.ArrayIterator[vector2.Float64] 
 
 func (m Mesh) SetFloat2Attribute(attr string, data []vector2.Float64) Mesh {
 	finalV2Data := make(map[string][]vector2.Float64)
-	for key, val := range m.v2Data {
-		finalV2Data[key] = val
-	}
+	maps.Copy(finalV2Data, m.v2Data)
 	finalV2Data[attr] = data
 
 	if len(data) == 0 {

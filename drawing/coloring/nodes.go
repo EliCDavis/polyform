@@ -27,19 +27,19 @@ func init() {
 	refutil.RegisterType[nodes.Struct[GradientKeyNode[vector2.Float64]]](factory)
 	refutil.RegisterType[nodes.Struct[GradientKeyNode[vector3.Float64]]](factory)
 	refutil.RegisterType[nodes.Struct[GradientKeyNode[vector4.Float64]]](factory)
-	refutil.RegisterType[nodes.Struct[GradientKeyNode[WebColor]]](factory)
+	refutil.RegisterType[nodes.Struct[GradientKeyNode[Color]]](factory)
 
 	generator.RegisterTypes(factory)
 }
 
 type InterpolateNode struct {
-	A    nodes.Output[WebColor]
-	B    nodes.Output[WebColor]
+	A    nodes.Output[Color]
+	B    nodes.Output[Color]
 	Time nodes.Output[float64]
 }
 
-func (n InterpolateNode) Out(out *nodes.StructOutput[WebColor]) {
-	out.Set(WebColor{R: 0, G: 0, B: 0, A: 1})
+func (n InterpolateNode) Out(out *nodes.StructOutput[Color]) {
+	out.Set(Color{R: 0, G: 0, B: 0, A: 1})
 	if n.A == nil && n.B == nil {
 		return
 	}
@@ -61,19 +61,19 @@ func (n InterpolateNode) Out(out *nodes.StructOutput[WebColor]) {
 }
 
 type InterpolateToArrayNode struct {
-	A    nodes.Output[WebColor]
-	B    nodes.Output[WebColor]
+	A    nodes.Output[Color]
+	B    nodes.Output[Color]
 	Time nodes.Output[[]float64]
 }
 
-func (n InterpolateToArrayNode) Out(out *nodes.StructOutput[[]WebColor]) {
+func (n InterpolateToArrayNode) Out(out *nodes.StructOutput[[]Color]) {
 	if n.Time == nil {
 		return
 	}
 
 	times := nodes.GetOutputValue(out, n.Time)
 
-	arr := make([]WebColor, len(times))
+	arr := make([]Color, len(times))
 	out.Set(arr)
 
 	if n.A == nil && n.B == nil {
@@ -105,10 +105,10 @@ func (n InterpolateToArrayNode) Out(out *nodes.StructOutput[[]WebColor]) {
 }
 
 type ToVectorNode struct {
-	In nodes.Output[WebColor]
+	In nodes.Output[Color]
 }
 
-func (n ToVectorNode) vector4(c WebColor) vector4.Float64 {
+func (n ToVectorNode) vector4(c Color) vector4.Float64 {
 	if n.In == nil {
 		return vector4.Zero[float64]()
 	}
@@ -122,17 +122,17 @@ func (n ToVectorNode) vector4(c WebColor) vector4.Float64 {
 }
 
 func (n ToVectorNode) Vector3(out *nodes.StructOutput[vector3.Float64]) {
-	out.Set(n.vector4(nodes.TryGetOutputValue(out, n.In, WebColor{})).XYZ())
+	out.Set(n.vector4(nodes.TryGetOutputValue(out, n.In, Color{})).XYZ())
 }
 
 func (n ToVectorNode) Vector4(out *nodes.StructOutput[vector4.Float64]) {
-	out.Set(n.vector4(nodes.TryGetOutputValue(out, n.In, WebColor{})))
+	out.Set(n.vector4(nodes.TryGetOutputValue(out, n.In, Color{})))
 }
 
 // ============================================================================
 
 type ToVectorArrayNode struct {
-	In nodes.Output[[]WebColor]
+	In nodes.Output[[]Color]
 }
 
 func (n ToVectorArrayNode) Vector3(out *nodes.StructOutput[[]vector3.Float64]) {
@@ -205,10 +205,10 @@ func (n Gradient4DNode) Gradient(out *nodes.StructOutput[Gradient[vector4.Float6
 // ============================================================================
 
 type GradientColorNode struct {
-	In []nodes.Output[GradientKey[WebColor]]
+	In []nodes.Output[GradientKey[Color]]
 }
 
-func (n GradientColorNode) Gradient(out *nodes.StructOutput[Gradient[WebColor]]) {
+func (n GradientColorNode) Gradient(out *nodes.StructOutput[Gradient[Color]]) {
 	out.Set(NewGradientColor(nodes.GetOutputValues(out, n.In)...))
 }
 

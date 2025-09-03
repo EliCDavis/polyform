@@ -147,8 +147,8 @@ func main() {
 			case "geometry.aabb":
 				return &variable.TypeVariable[geometry.AABB]{}, nil
 
-			case "coloring.webcolor":
-				return &variable.TypeVariable[coloring.WebColor]{}, nil
+			case "coloring.color":
+				return &variable.TypeVariable[coloring.Color]{}, nil
 
 			case "image.image":
 				return &variable.ImageVariable{}, nil

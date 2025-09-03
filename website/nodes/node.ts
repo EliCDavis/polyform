@@ -43,7 +43,7 @@ function BuildParameter(
         case "int":
         case "bool":
         case "string":
-        case "coloring.WebColor":
+        case "coloring.Color":
             return new BasicParameterNodeController(flowNode, nodeManager, id, parameterData);
 
         case "vector2.Vector[float64]":

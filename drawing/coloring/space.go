@@ -21,12 +21,12 @@ type Space[T any] interface {
 type Space struct {
 }
 
-func (c Space) Distance(a, b WebColor) float64 {
+func (c Space) Distance(a, b Color) float64 {
 	return c.Length(c.Sub(b, a))
 }
 
-func (Space) Add(a, b WebColor) WebColor {
-	return WebColor{
+func (Space) Add(a, b Color) Color {
+	return Color{
 		R: a.R + b.R,
 		G: a.G + b.G,
 		B: a.B + b.B,
@@ -34,8 +34,8 @@ func (Space) Add(a, b WebColor) WebColor {
 	}
 }
 
-func (Space) Sub(a, b WebColor) WebColor {
-	return WebColor{
+func (Space) Sub(a, b Color) Color {
+	return Color{
 		R: a.R - b.R,
 		G: a.G - b.G,
 		B: a.B - b.B,
@@ -43,8 +43,8 @@ func (Space) Sub(a, b WebColor) WebColor {
 	}
 }
 
-func (Space) Scale(a WebColor, amount float64) WebColor {
-	return WebColor{
+func (Space) Scale(a Color, amount float64) Color {
+	return Color{
 		R: a.R * amount,
 		G: a.G * amount,
 		B: a.B * amount,
@@ -52,15 +52,15 @@ func (Space) Scale(a WebColor, amount float64) WebColor {
 	}
 }
 
-func (Space) Dot(a, b WebColor) float64 {
+func (Space) Dot(a, b Color) float64 {
 	return (a.R * b.R) + (a.G * b.G) + (a.B * b.B) + (a.A * b.A)
 }
 
-func (Space) Length(c WebColor) float64 {
+func (Space) Length(c Color) float64 {
 	return math.Sqrt((c.R * c.R) + (c.G * c.G) + (c.B * c.B) + (c.A * c.A))
 }
 
-func (Space) Normalized(a WebColor) WebColor {
+func (Space) Normalized(a Color) Color {
 	// Shit. uh. shit
 	// I'm not sure what we can do about this given we're not in floating point
 	// land.
@@ -72,6 +72,6 @@ func (Space) Normalized(a WebColor) WebColor {
 	return a
 }
 
-func (Space) Lerp(a, b WebColor, time float64) WebColor {
+func (Space) Lerp(a, b Color, time float64) Color {
 	return a.Lerp(b, time)
 }
