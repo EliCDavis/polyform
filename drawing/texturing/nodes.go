@@ -48,6 +48,7 @@ func init() {
 	refutil.RegisterType[nodes.Struct[SeamlessPerlinNode]](factory)
 	refutil.RegisterType[nodes.Struct[PerlinNode]](factory)
 	refutil.RegisterType[nodes.Struct[DebugUVNode]](factory)
+	refutil.RegisterType[nodes.Struct[NoiseNode]](factory)
 
 	refutil.RegisterType[nodes.Struct[AddFloat1Node]](factory)
 	refutil.RegisterType[nodes.Struct[AddFloat2Node]](factory)

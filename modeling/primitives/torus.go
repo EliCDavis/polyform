@@ -63,7 +63,6 @@ func (c Torus) ToMesh() modeling.Mesh {
 	result := modeling.NewTriangleMesh(indices).SetFloat3Attribute(modeling.PositionAttribute, verts)
 
 	if c.UVs != nil {
-
 		majorUVIncrement := 1.0 / float64(c.MajorResolution)
 		minorUVIncrement := 1.0 / float64(c.MinorResolution)
 
