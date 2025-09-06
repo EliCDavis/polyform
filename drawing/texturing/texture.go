@@ -262,7 +262,12 @@ func (n ColorToImageNode) Image(out *nodes.StructOutput[image.Image]) {
 		return
 	}
 	out.Set(nodes.GetOutputValue(out, n.Texture).ToImage(func(c coloring.Color) color.Color {
-		return c
+		return coloring.Color{
+			R: math.Max(0, math.Min(1, c.R)),
+			G: math.Max(0, math.Min(1, c.G)),
+			B: math.Max(0, math.Min(1, c.B)),
+			A: math.Max(0, math.Min(1, c.A)),
+		}
 	}))
 }
 
@@ -280,9 +285,9 @@ type FloatToImageNode struct {
 	AFill nodes.Output[float64]
 }
 
-func (n FloatToImageNode) Image(out *nodes.StructOutput[image.Image]) {
+func (n FloatToImageNode) tex(out nodes.ExecutionRecorder) Texture[coloring.Color] {
 	if n.R == nil && n.G == nil && n.B == nil && n.A == nil {
-		return
+		return NewTexture[coloring.Color](0, 0)
 	}
 
 	rFill := nodes.TryGetOutputValue(out, n.RFill, 0.)
@@ -312,7 +317,7 @@ func (n FloatToImageNode) Image(out *nodes.StructOutput[image.Image]) {
 	for i := 1; i < len(texs); i++ {
 		if texs[0].width != texs[i].width || texs[0].height != texs[i].height {
 			out.CaptureError(fmt.Errorf("mismatch texture dimensions"))
-			return
+			return NewTexture[coloring.Color](0, 0)
 		}
 	}
 
@@ -344,8 +349,16 @@ func (n FloatToImageNode) Image(out *nodes.StructOutput[image.Image]) {
 			tex.Set(x, y, c)
 		}
 	}
+	return tex
+}
 
-	out.Set(tex.ToImage(func(c coloring.Color) color.Color {
+func (n FloatToImageNode) Texture(out *nodes.StructOutput[Texture[coloring.Color]]) {
+	out.Set(n.tex(out))
+}
+
+func (n FloatToImageNode) Image(out *nodes.StructOutput[image.Image]) {
+	texture := n.tex(out)
+	out.Set(texture.ToImage(func(c coloring.Color) color.Color {
 		return c
 	}))
 }
@@ -465,6 +478,14 @@ func (n AddFloat4Node) Result(out *nodes.StructOutput[Texture[vector4.Float64]])
 	addTextures(nodes.GetOutputValues(out, n.Textures), out, vector4.Space[float64]{})
 }
 
+type AddColorNode struct {
+	Textures []nodes.Output[Texture[coloring.Color]]
+}
+
+func (n AddColorNode) Result(out *nodes.StructOutput[Texture[coloring.Color]]) {
+	addTextures(nodes.GetOutputValues(out, n.Textures), out, coloring.Space{})
+}
+
 // ============================================================================
 
 func resolutionsMatch[T any](textures []Texture[T]) bool {
@@ -566,4 +587,13 @@ type ScaleFloat4Node struct {
 
 func (n ScaleFloat4Node) Result(out *nodes.StructOutput[Texture[vector4.Float64]]) {
 	scaleTexture(n.Texture, out, vector4.Space[float64]{}, n.Scale)
+}
+
+type ScaleColorNode struct {
+	Texture nodes.Output[Texture[coloring.Color]]
+	Scale   nodes.Output[float64]
+}
+
+func (n ScaleColorNode) Result(out *nodes.StructOutput[Texture[coloring.Color]]) {
+	scaleTexture(n.Texture, out, coloring.Space{}, n.Scale)
 }

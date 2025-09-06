@@ -258,7 +258,7 @@ export class ProducerViewManager {
 
                 // We have to do this weird thing because the pivot of the scene
                 // Isn't always the center of the AABB
-                this.viewerContainer.position.set(0, - mid + aabbHalfHeight, 0)
+                this.viewerContainer.position.set(0, - mid + aabbHalfHeight + 0.001, 0)
 
                 const objects = [];
 

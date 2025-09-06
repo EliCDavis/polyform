@@ -18,6 +18,11 @@ func init() {
 	refutil.RegisterType[nodes.Struct[UniformNode[bool]]](factory)
 	refutil.RegisterType[nodes.Struct[UniformNode[coloring.Color]]](factory)
 
+	refutil.RegisterType[nodes.Struct[ApplyGradientNode[float64]]](factory)
+	refutil.RegisterType[nodes.Struct[ApplyGradientNode[vector2.Float64]]](factory)
+	refutil.RegisterType[nodes.Struct[ApplyGradientNode[vector3.Float64]]](factory)
+	refutil.RegisterType[nodes.Struct[ApplyGradientNode[coloring.Color]]](factory)
+
 	refutil.RegisterType[nodes.Struct[FromArrayNode[float64]]](factory)
 	refutil.RegisterType[nodes.Struct[FromArrayNode[vector2.Float64]]](factory)
 	refutil.RegisterType[nodes.Struct[FromArrayNode[vector3.Float64]]](factory)
@@ -31,6 +36,11 @@ func init() {
 	refutil.RegisterType[nodes.Struct[SelectNode[coloring.Color]]](factory)
 
 	refutil.RegisterType[nodes.Struct[CompareValueTextureNode[float64]]](factory)
+
+	refutil.RegisterType[nodes.Struct[RadialGradientNode[float64]]](factory)
+	refutil.RegisterType[nodes.Struct[RadialGradientNode[vector2.Float64]]](factory)
+	refutil.RegisterType[nodes.Struct[RadialGradientNode[vector3.Float64]]](factory)
+	refutil.RegisterType[nodes.Struct[RadialGradientNode[coloring.Color]]](factory)
 
 	refutil.RegisterType[nodes.Struct[LinearGradientNode[float64]]](factory)
 	refutil.RegisterType[nodes.Struct[LinearGradientNode[vector2.Float64]]](factory)
@@ -54,11 +64,13 @@ func init() {
 	refutil.RegisterType[nodes.Struct[AddFloat2Node]](factory)
 	refutil.RegisterType[nodes.Struct[AddFloat3Node]](factory)
 	refutil.RegisterType[nodes.Struct[AddFloat4Node]](factory)
+	refutil.RegisterType[nodes.Struct[AddColorNode]](factory)
 
 	refutil.RegisterType[nodes.Struct[ScaleFloat1Node]](factory)
 	refutil.RegisterType[nodes.Struct[ScaleFloat2Node]](factory)
 	refutil.RegisterType[nodes.Struct[ScaleFloat3Node]](factory)
 	refutil.RegisterType[nodes.Struct[ScaleFloat4Node]](factory)
+	refutil.RegisterType[nodes.Struct[ScaleColorNode]](factory)
 
 	refutil.RegisterType[nodes.Struct[MultiplyFloat1Node]](factory)
 
