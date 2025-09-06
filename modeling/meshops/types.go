@@ -15,6 +15,7 @@ func init() {
 	refutil.RegisterType[nodes.Struct[CropAttribute3DNode]](factory)
 	refutil.RegisterType[nodes.Struct[CenterAttribute3DNode]](factory)
 	refutil.RegisterType[nodes.Struct[LaplacianSmoothNode]](factory)
+	refutil.RegisterType[nodes.Struct[LaplacianSmoothImplicitWeldNode]](factory)
 	refutil.RegisterType[nodes.Struct[SrgbToLinearNode]](factory)
 	refutil.RegisterType[nodes.Struct[LinearToSRGBNode]](factory)
 

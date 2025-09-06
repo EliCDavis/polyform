@@ -5,10 +5,53 @@ import (
 	"image/color"
 )
 
+func Convolve[T any](tex Texture[T], f func(x, y int, kernel []T)) {
+	dx := tex.width
+	dy := tex.height
+
+	kernel := make([]T, 9)
+
+	for xIndex := 0; xIndex < dx; xIndex++ {
+		xLeft := xIndex - 1
+		if xIndex == 0 {
+			xLeft = xIndex + 1
+		}
+		xMid := xIndex
+		xRight := xIndex + 1
+		if xIndex == dx-1 {
+			xRight = xIndex - 1
+		}
+
+		for yIndex := 0; yIndex < dy; yIndex++ {
+			yBot := yIndex - 1
+			if yIndex == 0 {
+				yBot = yIndex + 1
+			}
+			yMid := yIndex
+			yTop := yIndex + 1
+			if yIndex == dy-1 {
+				yTop = yIndex - 1
+			}
+
+			kernel[0] = tex.Get(xLeft, yTop)
+			kernel[1] = tex.Get(xMid, yTop)
+			kernel[2] = tex.Get(xRight, yTop)
+			kernel[3] = tex.Get(xLeft, yMid)
+			kernel[4] = tex.Get(xMid, yMid)
+			kernel[5] = tex.Get(xRight, yMid)
+			kernel[6] = tex.Get(xLeft, yBot)
+			kernel[7] = tex.Get(xMid, yBot)
+			kernel[8] = tex.Get(xRight, yBot)
+
+			f(xIndex, yIndex, kernel)
+		}
+	}
+}
+
 // [0][1][2]
 // [3][4][5]
 // [6][7][8]
-func Convolve(src image.Image, f func(x, y int, values []color.Color)) {
+func ConvolveImage(src image.Image, f func(x, y int, values []color.Color)) {
 	kernel := make([]color.Color, 9)
 	for xIndex := 0; xIndex < src.Bounds().Dx(); xIndex++ {
 		xLeft := xIndex - 1

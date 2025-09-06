@@ -14,7 +14,15 @@ import (
 	"github.com/EliCDavis/polyform/nodes"
 )
 
-type resolvedNodeUrl[T any] struct {
+type resolvedNodeOutputUrl struct {
+	nodeID       string
+	node         nodes.Node
+	outputName   string
+	output       nodes.OutputPort
+	remainingUrl string
+}
+
+type resolvedTypedNodeOutputUrl[T any] struct {
 	nodeID       string
 	node         nodes.Node
 	outputName   string
@@ -22,9 +30,28 @@ type resolvedNodeUrl[T any] struct {
 	remainingUrl string
 }
 
-func getNodeOutputFromURLPath[T any](r *http.Request, base string, graph *graph.Instance) (*resolvedNodeUrl[T], error) {
+func getTypedNodeOutputFromURLPath[T any](r *http.Request, base string, graph *graph.Instance) (*resolvedTypedNodeOutputUrl[T], error) {
+	resolved, err := getNodeOutputFromURLPath(r, base, graph)
+	if err != nil {
+		return nil, err
+	}
+
+	manifestOutput, ok := resolved.output.(nodes.Output[T])
+	if !ok {
+		return nil, fmt.Errorf("Node %q output %q does not produce specified type", resolved.nodeID, resolved.outputName)
+	}
+	return &resolvedTypedNodeOutputUrl[T]{
+		nodeID:       resolved.nodeID,
+		node:         resolved.node,
+		outputName:   resolved.outputName,
+		output:       manifestOutput,
+		remainingUrl: resolved.remainingUrl,
+	}, nil
+}
+
+func getNodeOutputFromURLPath(r *http.Request, base string, graph *graph.Instance) (*resolvedNodeOutputUrl, error) {
 	if strings.Index(r.URL.Path, base) != 0 {
-		panic(fmt.Errorf("expected url to begin with manifest, instead: %q", r.URL.Path))
+		panic(fmt.Errorf("expected url to begin with %q, instead: %q", base, r.URL.Path))
 	}
 	components := strings.Split(r.URL.Path[len(base):], "/")
 
@@ -38,21 +65,17 @@ func getNodeOutputFromURLPath[T any](r *http.Request, base string, graph *graph.
 		return nil, fmt.Errorf("Node %q does not contain output %q", nodeID, outPortName)
 	}
 
-	manifestOutput, ok := output.(nodes.Output[T])
-	if !ok {
-		return nil, fmt.Errorf("Node %q output %q does not produce specified type", nodeID, outPortName)
-	}
-	return &resolvedNodeUrl[T]{
+	return &resolvedNodeOutputUrl{
 		nodeID:       nodeID,
 		node:         node,
 		outputName:   outPortName,
-		output:       manifestOutput,
+		output:       output,
 		remainingUrl: strings.Join(components[2:], "/"),
 	}, nil
 }
 
 func (as *Server) writeManifest(w http.ResponseWriter, r *http.Request) error {
-	resolvedNode, err := getNodeOutputFromURLPath[manifest.Manifest](r, "/manifest/", as.Graph)
+	resolvedNode, err := getTypedNodeOutputFromURLPath[manifest.Manifest](r, "/manifest/", as.Graph)
 	if err != nil {
 		return err
 	}
@@ -89,7 +112,7 @@ func (as *Server) ManifestEndpoint(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	w.Header().Add("Cache-Control", "no-cache")
+	w.Header().Add("Cache-Control", "no-store")
 
 	// Required for sharedMemoryForWorkers to work
 	w.Header().Add("Cross-Origin-Opener-Policy", "same-origin")

@@ -29,7 +29,7 @@ func (as *Server) zipEndpoint(w http.ResponseWriter, r *http.Request) error {
 		return writeZip(w, as.Graph)
 	}
 
-	resolvedNode, err := getNodeOutputFromURLPath[manifest.Manifest](r, "/zip/", as.Graph)
+	resolvedNode, err := getTypedNodeOutputFromURLPath[manifest.Manifest](r, "/zip/", as.Graph)
 	if err != nil {
 		return err
 	}

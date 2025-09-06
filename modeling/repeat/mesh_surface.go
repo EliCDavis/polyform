@@ -41,6 +41,10 @@ func (ms MeshSurface) TRS() []trs.TRS {
 	attr := ms.Attribute
 
 	triCount := ms.Mesh.PrimitiveCount()
+	if triCount == 0 {
+		return nil
+	}
+
 	items := make([]bias.ListItem[int], triCount)
 	for i := range triCount {
 		items = append(items, bias.ListItem[int]{

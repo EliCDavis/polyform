@@ -9,6 +9,11 @@ export interface NodeInput {
     description?: string;
 }
 
+export interface RegisteredTypes {
+    nodeTypes: Array<NodeDefinition>,
+    serializableOutputTypes: Array<string>
+}
+
 export interface NodeDefinition {
     displayName: string;
     info: string;

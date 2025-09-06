@@ -13,8 +13,8 @@ type GridNode struct {
 	HorizontalLines nodes.Output[int]
 	VerticalLines   nodes.Output[int]
 	Dimensions      nodes.Output[int]
-	Color           nodes.Output[coloring.WebColor]
-	LineColor       nodes.Output[coloring.WebColor]
+	Color           nodes.Output[coloring.Color]
+	LineColor       nodes.Output[coloring.Color]
 	LineWidth       nodes.Output[float64]
 }
 
@@ -48,8 +48,8 @@ func (gnd GridNode) Out(out *nodes.StructOutput[image.Image]) {
 
 type BrushedMetalNode struct {
 	Dimensions nodes.Output[int]
-	BaseColor  nodes.Output[coloring.WebColor]
-	BrushColor nodes.Output[coloring.WebColor]
+	BaseColor  nodes.Output[coloring.Color]
+	BrushColor nodes.Output[coloring.Color]
 	BrushSize  nodes.Output[float64]
 	Count      nodes.Output[int]
 }

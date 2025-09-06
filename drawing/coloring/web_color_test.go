@@ -12,26 +12,26 @@ func TestWebColor(t *testing.T) {
 	tests := map[string]struct {
 		input        string
 		remarshalled string
-		want         coloring.WebColor
+		want         coloring.Color
 	}{
-		"#000000":   {remarshalled: "\"#000000\"", input: "\"#000000\"", want: coloring.WebColor{R: 0, G: 0, B: 0, A: 255}},
-		"#ffffff":   {remarshalled: "\"#ffffff\"", input: "\"#ffffff\"", want: coloring.WebColor{R: 255, G: 255, B: 255, A: 255}},
-		"#00f100":   {remarshalled: "\"#00f100\"", input: "\"#00f100\"", want: coloring.WebColor{R: 0, G: 241, B: 0, A: 255}},
-		"#FFFFFF":   {remarshalled: "\"#ffffff\"", input: "\"#FFFFFF\"", want: coloring.WebColor{R: 255, G: 255, B: 255, A: 255}},
-		"#FFFFFFFF": {remarshalled: "\"#ffffff\"", input: "\"#FFFFFFFF\"", want: coloring.WebColor{R: 255, G: 255, B: 255, A: 255}},
-		"#FFFFFFf1": {remarshalled: "\"#fffffff1\"", input: "\"#FFFFFFf1\"", want: coloring.WebColor{R: 255, G: 255, B: 255, A: 241}},
+		"#000000":   {remarshalled: "\"#000000\"", input: "\"#000000\"", want: coloring.Color{R: 0, G: 0, B: 0, A: 1}},
+		"#ffffff":   {remarshalled: "\"#ffffff\"", input: "\"#ffffff\"", want: coloring.Color{R: 1, G: 1, B: 1, A: 1}},
+		"#00f100":   {remarshalled: "\"#00f100\"", input: "\"#00f100\"", want: coloring.Color{R: 0, G: 241 / 255., B: 0, A: 1}},
+		"#FFFFFF":   {remarshalled: "\"#ffffff\"", input: "\"#FFFFFF\"", want: coloring.Color{R: 1, G: 1, B: 1, A: 1}},
+		"#FFFFFFFF": {remarshalled: "\"#ffffff\"", input: "\"#FFFFFFFF\"", want: coloring.Color{R: 1, G: 1, B: 1, A: 1}},
+		"#FFFFFFf1": {remarshalled: "\"#fffffff1\"", input: "\"#FFFFFFf1\"", want: coloring.Color{R: 1, G: 1, B: 1, A: 241 / 255.}},
 
-		"#fff":  {remarshalled: "\"#ffffff\"", input: "\"#fff\"", want: coloring.WebColor{R: 255, G: 255, B: 255, A: 255}},
-		"#FFF":  {remarshalled: "\"#ffffff\"", input: "\"#FFF\"", want: coloring.WebColor{R: 255, G: 255, B: 255, A: 255}},
-		"#0F0":  {remarshalled: "\"#00ff00\"", input: "\"#0F0\"", want: coloring.WebColor{R: 0, G: 255, B: 0, A: 255}},
-		"#000":  {remarshalled: "\"#000000\"", input: "\"#000\"", want: coloring.WebColor{R: 0, G: 0, B: 0, A: 255}},
-		"#000F": {remarshalled: "\"#000000\"", input: "\"#000F\"", want: coloring.WebColor{R: 0, G: 0, B: 0, A: 255}},
-		"#0000": {remarshalled: "\"#00000000\"", input: "\"#0000\"", want: coloring.WebColor{R: 0, G: 0, B: 0, A: 0}},
+		"#fff":  {remarshalled: "\"#ffffff\"", input: "\"#fff\"", want: coloring.Color{R: 1, G: 1, B: 1, A: 1}},
+		"#FFF":  {remarshalled: "\"#ffffff\"", input: "\"#FFF\"", want: coloring.Color{R: 1, G: 1, B: 1, A: 1}},
+		"#0F0":  {remarshalled: "\"#00ff00\"", input: "\"#0F0\"", want: coloring.Color{R: 0, G: 1, B: 0, A: 1}},
+		"#000":  {remarshalled: "\"#000000\"", input: "\"#000\"", want: coloring.Color{R: 0, G: 0, B: 0, A: 1}},
+		"#000F": {remarshalled: "\"#000000\"", input: "\"#000F\"", want: coloring.Color{R: 0, G: 0, B: 0, A: 1}},
+		"#0000": {remarshalled: "\"#00000000\"", input: "\"#0000\"", want: coloring.Color{R: 0, G: 0, B: 0, A: 0}},
 	}
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			parsedColor := coloring.WebColor{}
+			parsedColor := coloring.Color{}
 
 			// Test Unmarshall
 			err := json.Unmarshal([]byte(tc.input), &parsedColor)
@@ -72,7 +72,7 @@ func TestUnmarshallWebColorErrors(t *testing.T) {
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			parsedColor := coloring.WebColor{}
+			parsedColor := coloring.Color{}
 			err := json.Unmarshal([]byte(tc.input), &parsedColor)
 
 			assert.EqualError(t, err, tc.want)

@@ -123,7 +123,7 @@ func Tree(
 		), branches
 }
 
-func TrunkTexture(imageSize int, colors coloring.Gradient, barkNoise sample.Vec2ToFloat, barkPBR *PBRTextures) {
+func TrunkTexture(imageSize int, colors coloring.Gradient[coloring.Color], barkNoise sample.Vec2ToFloat, barkPBR *PBRTextures) {
 	dc := gg.NewContext(imageSize, imageSize)
 	dc.SetRGBA(0, 0, 0, 0)
 	dc.Clear()

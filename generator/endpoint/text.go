@@ -28,6 +28,6 @@ func (jrw TextResponseWriter) Serialize(w http.ResponseWriter, response string) 
 	return err
 }
 
-func (jrw TextResponseWriter) ContentType() ContentType {
+func (jrw TextResponseWriter) ContentType(r *http.Request) ContentType {
 	return PlainTextContentType
 }

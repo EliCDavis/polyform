@@ -55,7 +55,7 @@ func (jrw JsonResponseWriter[Response]) Serialize(w http.ResponseWriter, respons
 	return err
 }
 
-func (jrw JsonResponseWriter[Response]) ContentType() ContentType {
+func (jrw JsonResponseWriter[Response]) ContentType(r *http.Request) ContentType {
 	return JsonContentType
 }
 

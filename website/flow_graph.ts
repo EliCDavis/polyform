@@ -205,7 +205,7 @@ const ColorParamter: FlowNodeConfig = {
     outputs: [
         {
             name: ParameterOutPortName,
-            type: "github.com/EliCDavis/polyform/drawing/coloring.WebColor"
+            type: "github.com/EliCDavis/polyform/drawing/coloring.Color"
         }
     ],
     widgets: [
@@ -219,7 +219,7 @@ const ColorParamter: FlowNodeConfig = {
     style: ParameterStyle,
     metadata: {
         typeData: {
-            type: "github.com/EliCDavis/polyform/generator/parameter.Value[github.com/EliCDavis/polyform/drawing/coloring.WebColor]"
+            type: "github.com/EliCDavis/polyform/generator/parameter.Value[github.com/EliCDavis/polyform/drawing/coloring.Color]"
         }
     }
 };
@@ -381,7 +381,7 @@ export function CreateNodeFlowGraph(): FlowGraphInit {
             "Parameters/bool": BoolParameters,
             "Parameters/int": IntParameter,
             "Parameters/float64": FloatParameter,
-            "Parameters/coloring.WebColor": ColorParamter,
+            "Parameters/coloring.Color": ColorParamter,
             "Parameters/string": StringParameter,
             "Parameters/geometry.AABB": AABBParameter,
             "Parameters/image.Image": ImageParameter,

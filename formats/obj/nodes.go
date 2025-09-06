@@ -85,9 +85,9 @@ func (pn EntryNode) Out(out *nodes.StructOutput[Entry]) {
 
 type MaterialNode struct {
 	Name              nodes.Output[string]
-	AmbientColor      nodes.Output[coloring.WebColor]
-	DiffuseColor      nodes.Output[coloring.WebColor]
-	SpecularColor     nodes.Output[coloring.WebColor]
+	AmbientColor      nodes.Output[coloring.Color]
+	DiffuseColor      nodes.Output[coloring.Color]
+	SpecularColor     nodes.Output[coloring.Color]
 	SpecularHighlight nodes.Output[float64]
 	OpticalDensity    nodes.Output[float64]
 	Transparency      nodes.Output[float64]

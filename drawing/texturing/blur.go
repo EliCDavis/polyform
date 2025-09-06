@@ -9,7 +9,7 @@ import (
 
 func GaussianBlur(src image.Image) image.Image {
 	dst := image.NewRGBA(src.Bounds())
-	Convolve(src, func(x, y int, vals []color.Color) {
+	ConvolveImage(src, func(x, y int, vals []color.Color) {
 		x1y1 := coloring.MultiplyRGBByConstant(vals[0], 1./16)
 		x2y1 := coloring.MultiplyRGBByConstant(vals[1], 2./16)
 		x3y1 := coloring.MultiplyRGBByConstant(vals[2], 1./16)
@@ -32,7 +32,7 @@ func GaussianBlur(src image.Image) image.Image {
 }
 
 func boxBlur(src image.Image, dst *image.RGBA) {
-	Convolve(src, func(x, y int, vals []color.Color) {
+	ConvolveImage(src, func(x, y int, vals []color.Color) {
 		x1y1 := coloring.MultiplyRGBByConstant(vals[0], 1./9)
 		x2y1 := coloring.MultiplyRGBByConstant(vals[1], 1./9)
 		x3y1 := coloring.MultiplyRGBByConstant(vals[2], 1./9)

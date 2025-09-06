@@ -8,7 +8,7 @@ type Request[Body any] struct {
 }
 
 type Method interface {
-	ContentType() ContentType
+	ContentType(r *http.Request) ContentType
 	Handle(w http.ResponseWriter, r *http.Request)
 }
 
@@ -18,5 +18,5 @@ type RequestReader[T any] interface {
 
 type ResponseWriter[Response any] interface {
 	Serialize(w http.ResponseWriter, response Response) (err error)
-	ContentType() ContentType
+	ContentType(r *http.Request) ContentType
 }

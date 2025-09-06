@@ -66,7 +66,7 @@ func TestParameterNodeSwaggerProperty(t *testing.T) {
 			ref:   "#/definitions/AABB",
 		},
 		"color": {
-			input:      &variable.TypeVariable[coloring.WebColor]{},
+			input:      &variable.TypeVariable[coloring.Color]{},
 			propType:   swagger.StringPropertyType,
 			propFormat: "color",
 		},

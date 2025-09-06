@@ -28,6 +28,9 @@ func init() {
 
 	refutil.RegisterType[nodes.Struct[StanfordBunny]](factory)
 
+	refutil.RegisterType[nodes.Struct[TorusNode]](factory)
+	refutil.RegisterType[nodes.Struct[TorusUVNode]](factory)
+
 	generator.RegisterTypes(factory)
 }
 

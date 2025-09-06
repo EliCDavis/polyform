@@ -118,12 +118,18 @@ func TestServer(t *testing.T) {
 			name: "Get Node Types",
 			req:  httptest.NewRequest(http.MethodGet, "/node-types", nil),
 			assert: func(rr *httptest.ResponseRecorder) {
-				out := make([]json.RawMessage, 0)
+
+				type RegisteredTypes struct {
+					NodeTypes            []json.RawMessage `json:"nodeTypes"`
+					SerializeOutputTypes []string          `json:"serializableOutputTypes"`
+				}
+
+				out := RegisteredTypes{}
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &out))
-				assert.Equal(t, `{"displayName":"parameter.Value[float64]","info":"","type":"Float64","path":"generator/parameter","outputs":{"Value":{"type":"float64"}},"parameter":{"name":"","description":"","type":"float64","currentValue":1}}`, string(out[0]))
-				assert.Equal(t, `{"displayName":"MyVariable","info":"Variable HTTP test","type":"MyVariable","path":"generator/variable","outputs":{"Value":{"type":"float64"}}}`, string(out[1]))
-				assert.Equal(t, `{"displayName":"Add[float64]","info":"","type":"Sum","path":"math","outputs":{"Float":{"type":"float64"},"Int":{"type":"int"}},"inputs":{"Values":{"type":"float64","isArray":true,"description":"The nodes to sum"}}}`, string(out[2]))
-				assert.Len(t, out, 3)
+				assert.Equal(t, `{"displayName":"parameter.Value[float64]","info":"","type":"Float64","path":"generator/parameter","outputs":{"Value":{"type":"float64"}},"parameter":{"name":"","description":"","type":"float64","currentValue":1}}`, string(out.NodeTypes[0]))
+				assert.Equal(t, `{"displayName":"MyVariable","info":"Variable HTTP test","type":"MyVariable","path":"generator/variable","outputs":{"Value":{"type":"float64"}}}`, string(out.NodeTypes[1]))
+				assert.Equal(t, `{"displayName":"Add[float64]","info":"","type":"Sum","path":"math","outputs":{"Float":{"type":"float64"},"Int":{"type":"int"}},"inputs":{"Values":{"type":"float64","isArray":true,"description":"The nodes to sum"}}}`, string(out.NodeTypes[2]))
+				assert.Len(t, out.NodeTypes, 3)
 			},
 		},
 

@@ -62,9 +62,9 @@ container.appendChild(stats.dom);
 const flowGraphStuff = CreateNodeFlowGraph();
 const requestManager = new RequestManager();
 
-requestManager.getNodeTypes((nodeTypes) => {
+requestManager.getNodeTypes((registeredTypes) => {
     const schemaManager = new SchemaManager(requestManager);
-    const producerViewManager = new ProducerViewManager(threeApp, requestManager, nodeTypes, schemaManager);
+    const producerViewManager = new ProducerViewManager(threeApp, requestManager, registeredTypes.nodeTypes, schemaManager);
 
     let initID = null
     setInterval(() => {
@@ -80,7 +80,7 @@ requestManager.getNodeTypes((nodeTypes) => {
         })
     }, 1000);
 
-    console.log(nodeTypes);
+    console.log(registeredTypes);
 
     const noteManager = new NoteManager(requestManager, flowGraphStuff.NodeFlowGraph)
 
@@ -90,7 +90,7 @@ requestManager.getNodeTypes((nodeTypes) => {
         flowGraphStuff.PolyformNodesPublisher,
         threeApp,
         producerViewManager,
-        nodeTypes
+        registeredTypes
     );
     new VariableManager(document.getElementById("sidebar-content"), schemaManager, nodeManager, flowGraphStuff.PolyformNodesPublisher, threeApp);
     new ProfileManager(document.getElementById("sidebar-content"), schemaManager);
@@ -291,6 +291,7 @@ requestManager.getNodeTypes((nodeTypes) => {
         loop: (delta) => {
             resize();
 
+            // threeApp.ViewerScene.rotateY(delta/8);
             threeApp.Composer.render(delta);
             producerViewManager.Render();
             threeApp.LabelRenderer.render(threeApp.Scene, threeApp.Camera);

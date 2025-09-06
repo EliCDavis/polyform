@@ -9,7 +9,7 @@ type BodyMethod[Body any] struct {
 	Handler func(request Request[Body]) error
 }
 
-func (jse BodyMethod[Body]) ContentType() ContentType {
+func (jse BodyMethod[Body]) ContentType(r *http.Request) ContentType {
 	return ""
 }
 

@@ -22,6 +22,6 @@ func (jrw BinaryResponseWriter) Serialize(w http.ResponseWriter, response []byte
 	return err
 }
 
-func (jrw BinaryResponseWriter) ContentType() ContentType {
+func (jrw BinaryResponseWriter) ContentType(r *http.Request) ContentType {
 	return BinaryContentType
 }

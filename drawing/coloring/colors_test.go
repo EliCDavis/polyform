@@ -9,17 +9,17 @@ import (
 
 func TestColor(t *testing.T) {
 	tests := map[string]struct {
-		input coloring.WebColor
-		wantR byte
-		wantG byte
-		wantB byte
-		wantA byte
+		input coloring.Color
+		wantR float64
+		wantG float64
+		wantB float64
+		wantA float64
 	}{
-		"black": {input: coloring.Black(), wantR: 0, wantG: 0, wantB: 0, wantA: 255},
-		"white": {input: coloring.White(), wantR: 255, wantG: 255, wantB: 255, wantA: 255},
-		// "red":   {input: coloring.Red(), wantR: 255, wantG: 0, wantB: 0, wantA: 255},
-		// "green": {input: coloring.Green(), wantR: 0, wantG: 255, wantB: 0, wantA: 255},
-		// "blue":  {input: coloring.Blue(), wantR: 0, wantG: 0, wantB: 255, wantA: 255},
+		"black": {input: coloring.Black(), wantR: 0, wantG: 0, wantB: 0, wantA: 1},
+		"white": {input: coloring.White(), wantR: 1, wantG: 1, wantB: 1, wantA: 1},
+		// "red":   {input: coloring.Red(), wantR: 1, wantG: 0, wantB: 0, wantA: 1},
+		// "green": {input: coloring.Green(), wantR: 0, wantG: 1, wantB: 0, wantA: 1},
+		// "blue":  {input: coloring.Blue(), wantR: 0, wantG: 0, wantB: 1, wantA: 1},
 	}
 
 	for name, tc := range tests {

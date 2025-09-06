@@ -171,46 +171,54 @@
               runHook postInstallPhase
             '';
           };
-      in
-      {
-        packages =
-          {
-            inherit pages release;
-          }
-          // cmd
-          // examples;
-
-        devShells = {
-          default = pkgs.mkShell {
-            packages = with pkgs; [
-              go
-              gopls
-              gotools
-              go-tools
-            ];
-          };
-        };
 
         apps = {
           # This can be run with:
-          #   nix run .#update-sris
+          #   nix run .#sri-check-up
           #
           # It generates the sub-resource integrity hashes for both go and node dependencies.
           # This should be run anytime dependendencies change in this project and the results checked-in to vcs.
-          update-sris = {
+          # In a remote build environment, it prints the SRI hash difference into logs for easy update.
+          sri-check-up = {
             type = "app";
             program = toString (
               pkgs.writeShellScript "update-sris" ''
                 OUT=$(mktemp -d -t nar-hash-XXXXXX)
                 rm -rf "$OUT"
 
-                echo "go.mod.sri: Compute and store hash..."
                 ${pkgs.go}/bin/go mod vendor -o "$OUT"
-                ${pkgs.go}/bin/go run tailscale.com/cmd/nardump@v1.86.4 --sri "$OUT" > go.mod.sri
+                GO_MOD_SRI=$(${pkgs.go}/bin/go run tailscale.com/cmd/nardump@v1.86.4 --sri "$OUT")
                 rm -rf "$OUT"
 
-                echo "package-lock.json.sri: Compute and store hash..."
-                ${pkgs.prefetch-npm-deps}/bin/prefetch-npm-deps ./package-lock.json > ./package-lock.json.sri
+                PACKAGE_LOCK_SRI=$(${pkgs.prefetch-npm-deps}/bin/prefetch-npm-deps ./package-lock.json)
+
+                # Print the SRI diff in CI, otherwise update SRI if run locally
+                if [ -n "$CI" ]; then
+                   CHECK_GO_MOD_SRI=$(<go.mod.sri)
+                   CHECK_PACKAGE_LOCK_SRI=$(<package-lock.json.sri)
+
+                   if [ "$GO_MOD_SRI" != "$CHECK_GO_MOD_SRI" ]; then
+                      echo "go.mod.sri mismatch"
+                      echo "specified: $CHECK_GO_MOD_SRI"
+                      echo "got: $GO_MOD_SRI"
+                      echo "If this difference is expected, please replace the SRI hash in this file with the one we got"
+                      exit 1
+                   fi
+
+                   if [ "$PACKAGE_LOCK_SRI" != "$CHECK_PACKAGE_LOCK_SRI" ]; then
+                      echo "package-lock.json.sri mismatch"
+                      echo "specified: $CHECK_PACKAGE_LOCK_SRI"
+                      echo "got: $PACKAGE_LOCK_SRI"
+                      echo "If this difference is expected, please replace the SRI hash in this file with the one we got"
+                      exit 1
+                   fi
+                else
+                   echo "go.mod.sri: Compute and store hash..."
+                   echo "$GO_MOD_SRI" > ./go.mod.sri
+
+                   echo "package-lock.json.sri: Compute and store hash..."
+                   echo "$PACKAGE_LOCK_SRI" > ./package-lock.json.sri
+                fi
               ''
             );
           };
@@ -224,6 +232,35 @@
                 ${pkgs.gh}/bin/gh cache delete --all --repo EliCDavis/polyform
               ''
             );
+          };
+
+          gh-release = {
+            type = "app";
+            program = toString (
+              pkgs.writeShellScript "gh-release" ''
+                ${pkgs.gh}/bin/gh release upload $GITHUB_REF_NAME ${release}/* --clobber
+              ''
+            );
+          };
+        };
+      in
+      {
+        inherit apps;
+
+        packages = {
+          inherit pages release website;
+        }
+        // cmd
+        // examples;
+
+        devShells = {
+          default = pkgs.mkShell {
+            packages = with pkgs; [
+              go
+              gopls
+              gotools
+              go-tools
+            ];
           };
         };
       }
