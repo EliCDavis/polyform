@@ -114,10 +114,10 @@ func (n ToVectorNode) vector4(c Color) vector4.Float64 {
 	}
 
 	return vector4.New(
-		float64(c.R)/255.,
-		float64(c.G)/255.,
-		float64(c.B)/255.,
-		float64(c.A)/255.,
+		c.R,
+		c.G,
+		c.B,
+		c.A,
 	)
 }
 
@@ -140,9 +140,9 @@ func (n ToVectorArrayNode) Vector3(out *nodes.StructOutput[[]vector3.Float64]) {
 	arr := make([]vector3.Float64, len(in))
 	for i, c := range in {
 		arr[i] = vector3.New(
-			float64(c.R)/255.,
-			float64(c.G)/255.,
-			float64(c.B)/255.,
+			c.R,
+			c.G,
+			c.B,
 		)
 	}
 	out.Set(arr)
@@ -153,10 +153,10 @@ func (n ToVectorArrayNode) Vector4(out *nodes.StructOutput[[]vector4.Float64]) {
 	arr := make([]vector4.Float64, len(in))
 	for i, c := range in {
 		arr[i] = vector4.New(
-			float64(c.R)/255.,
-			float64(c.G)/255.,
-			float64(c.B)/255.,
-			float64(c.A)/255.,
+			c.R,
+			c.G,
+			c.B,
+			c.A,
 		)
 	}
 	out.Set(arr)

@@ -57,8 +57,6 @@ func FromHeightmap(heightmap texturing.Texture[float64], scale float64) texturin
 	dst := texturing.NewTexture[vector3.Float64](heightmap.Width(), heightmap.Height())
 
 	texturing.Convolve(heightmap, func(x, y int, values []float64) {
-		// s11 := float64(colors.Red(values[4])) / 255
-
 		s01 := values[3]
 		s21 := values[5]
 		s10 := values[1]
@@ -67,7 +65,7 @@ func FromHeightmap(heightmap texturing.Texture[float64], scale float64) texturin
 		va := vector3.New(2, 0, (s21-s01)*scale).Normalized()
 		vb := vector3.New(0, 2, (s12-s10)*scale).Normalized()
 
-		dst.Set(x, y, va.Cross(vb))
+		dst.Set(x, y, va.Cross(vb).Normalized())
 	})
 
 	return dst

@@ -35,7 +35,7 @@ func init() {
 	refutil.RegisterType[nodes.Struct[SelectNode[bool]]](factory)
 	refutil.RegisterType[nodes.Struct[SelectNode[coloring.Color]]](factory)
 
-	refutil.RegisterType[nodes.Struct[CompareValueTextureNode[float64]]](factory)
+	refutil.RegisterType[nodes.Struct[CompareValueNode[float64]]](factory)
 
 	refutil.RegisterType[nodes.Struct[RadialGradientNode[float64]]](factory)
 	refutil.RegisterType[nodes.Struct[RadialGradientNode[vector2.Float64]]](factory)
@@ -66,13 +66,18 @@ func init() {
 	refutil.RegisterType[nodes.Struct[AddFloat4Node]](factory)
 	refutil.RegisterType[nodes.Struct[AddColorNode]](factory)
 
-	refutil.RegisterType[nodes.Struct[ScaleFloat1Node]](factory)
-	refutil.RegisterType[nodes.Struct[ScaleFloat2Node]](factory)
-	refutil.RegisterType[nodes.Struct[ScaleFloat3Node]](factory)
-	refutil.RegisterType[nodes.Struct[ScaleFloat4Node]](factory)
+	refutil.RegisterType[nodes.Struct[ScaleFloat1UniformNode]](factory)
+	refutil.RegisterType[nodes.Struct[ScaleFloat2UniformNode]](factory)
+	refutil.RegisterType[nodes.Struct[ScaleFloat3UniformNode]](factory)
+	refutil.RegisterType[nodes.Struct[ScaleFloat4UniformNode]](factory)
+	refutil.RegisterType[nodes.Struct[ScaleColorUniformNode]](factory)
+
 	refutil.RegisterType[nodes.Struct[ScaleColorNode]](factory)
 
 	refutil.RegisterType[nodes.Struct[MultiplyFloat1Node]](factory)
+	refutil.RegisterType[nodes.Struct[OneMinusNode]](factory)
+
+	refutil.RegisterType[nodes.Struct[DotProductNode]](factory)
 
 	generator.RegisterTypes(factory)
 }
