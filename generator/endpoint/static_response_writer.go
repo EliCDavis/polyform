@@ -18,7 +18,7 @@ func (srw StaticResponse) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (srw StaticResponse) ContentType() ContentType {
+func (srw StaticResponse) ContentType(r *http.Request) ContentType {
 	return ContentType(srw.Type)
 }
 

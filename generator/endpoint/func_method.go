@@ -6,7 +6,7 @@ import (
 
 type Func func(r *http.Request) error
 
-func (jse Func) ContentType() ContentType {
+func (jse Func) ContentType(r *http.Request) ContentType {
 	return JsonContentType
 }
 

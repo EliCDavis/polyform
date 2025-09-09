@@ -9,7 +9,7 @@ import { getFileExtension, getLastSegmentOfURL } from '../utils.js';
 import { Vector2ParameterNodeController } from './vector2_parameter.js';
 import { NodeInstance, NodeInstanceAssignedInput, NodeInstanceOutput, NodeDefinition, ExecutionReport } from '../schema.js';
 import { RequestManager, saveFileToDisk } from '../requests.js';
-import { FlowNode, GlobalWidgetFactory, ImageWidget, MessageType } from '@elicdavis/node-flow';
+import { FlowNode, GlobalWidgetFactory, ImageWidget, MessageType, StringWidget } from '@elicdavis/node-flow';
 import { ThreeApp } from '../three_app.js';
 import { ProducerViewManager } from '../ProducerView/producer_view_manager.js';
 
@@ -43,7 +43,7 @@ function BuildParameter(
         case "int":
         case "bool":
         case "string":
-        case "coloring.WebColor":
+        case "coloring.Color":
             return new BasicParameterNodeController(flowNode, nodeManager, id, parameterData);
 
         case "vector2.Vector[float64]":
@@ -133,6 +133,12 @@ export class PolyNodeController {
 
     producerViewManager: ProducerViewManager;
 
+    nodeDefinition: NodeDefinition;
+
+    serializableOutputTypes: Array<string>;
+
+    nodeOutputWidgets: Map<string, ImageWidget>;
+
     constructor(
         flowNode: FlowNode,
         nodeManager: NodeManager,
@@ -141,7 +147,9 @@ export class PolyNodeController {
         app: ThreeApp,
         producerOutput: string,
         requestManager: RequestManager,
-        producerViewManager: ProducerViewManager
+        producerViewManager: ProducerViewManager,
+        nodeDefinition: NodeDefinition,
+        serializableOutputTypes: Array<string>
     ) {
         // console.log(liteNode)
         this.flowNode = flowNode;
@@ -151,6 +159,9 @@ export class PolyNodeController {
         this.isProducer = !!producerOutput;
         this.requestManager = requestManager;
         this.producerViewManager = producerViewManager;
+        this.nodeDefinition = nodeDefinition;
+        this.serializableOutputTypes = serializableOutputTypes;
+        this.nodeOutputWidgets = new Map<string, ImageWidget>();
 
         this.name = "";
         this.outputs = {};
@@ -254,7 +265,7 @@ export class PolyNodeController {
                 callback: () => {
                     saveFileToDisk("./zip/" + this.id + "/" + producerOutput, this.id);
                 }
-            })
+            });
             this.flowNode.addWidget(downloadButton);
         }
 
@@ -304,10 +315,65 @@ export class PolyNodeController {
         this.update(nodeData);
     }
 
+    fetchOutput(outputKey: string, version: number): void {
 
-    update(nodeData: NodeInstance) {
+        // if (version === -1) {
+        //     return;
+        // }
+
+        // Don't do anything if we're up to date
+        if (outputKey in this.outputs && this.outputs[outputKey].version === version) {
+            return;
+        }
+
+        let recognizeOutput = this.nodeDefinition?.outputs && outputKey in this.nodeDefinition.outputs;
+        if (!recognizeOutput) {
+            return
+        }
+
+        for (let i = 0; i < this.flowNode.outputs(); i++) {
+            const outputPort = this.flowNode.outputPort(i);
+            if (outputPort.getDisplayName() !== outputKey) {
+                continue;
+            }
+            if (outputPort.connections().length === 0) {
+
+                // If we were once connected and are no longer, clear image widget
+                if (this.nodeOutputWidgets.has(outputKey)) {
+                    this.flowNode.removeWidget(this.nodeOutputWidgets.get(outputKey));
+                }
+                return;
+            }
+            console.log("Woo", outputPort.connections().length)
+        }
+
+        let found = false;
+        for (let i = 0; i < this.serializableOutputTypes.length; i++) {
+            if (this.nodeDefinition.outputs[outputKey].type == this.serializableOutputTypes[i]) {
+                found = true;
+                break;
+            }
+        }
+
+        if (!found) {
+            return;
+        }
+
+        // const stringWidget = GlobalWidgetFactory.create(this.flowNode, "string", {}) as StringWidget;
+        // this.flowNode.addWidget(stringWidget);
+        // stringWidget.Set("" + version);
+
+        if (!this.nodeOutputWidgets.has(outputKey)) {
+            const imageWidget = GlobalWidgetFactory.create(this.flowNode, "image", {}) as ImageWidget;
+            this.flowNode.addWidget(imageWidget);
+            this.nodeOutputWidgets.set(outputKey, imageWidget)
+        }
+
+        this.nodeOutputWidgets.get(outputKey).SetUrl(`./node/output/${this.id}/${outputKey}`);
+    }
+
+    update(nodeData: NodeInstance): void {
         this.name = nodeData.name;
-        this.outputs = nodeData.output;
         this.dependencies = nodeData.assignedInput;
 
         if (nodeData.metadata) {
@@ -345,7 +411,13 @@ export class PolyNodeController {
         }
     }
 
-    updateConnections() {
+    updateConnections(nodeData: NodeInstance) {
+
+        // Fetch updates for changed output
+        for (let outputKey in nodeData.output) {
+            this.fetchOutput(outputKey, nodeData.output[outputKey].version);
+        }
+        this.outputs = nodeData.output;
 
     }
 }

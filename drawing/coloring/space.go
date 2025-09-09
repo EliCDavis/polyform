@@ -1,21 +1,77 @@
 package coloring
 
-import "math"
+import (
+	"math"
+)
 
-// From Three.js
-// https://github.com/mrdoob/three.js/blob/e6f7c4e677cb8869502739da2640791d020d8d2f/src/math/ColorManagement.js#L6
-func SRGBToLinear(c float64) float64 {
-	if c < 0.04045 {
-		return c * 0.0773993808
-	}
-	return math.Pow(c*0.9478672986+0.0521327014, 2.4)
+/*
+type Space[T any] interface {
+	Distance(a, b T) float64
+	Add(a, b T) T
+	Sub(a, b T) T
+	Scale(a T, amount float64) T
+	Dot(a, b T) float64
+	Length(a T) float64
+	Normalized(a T) T
+	Lerp(a, b T, time float64) T
 }
 
-// From Three.js
-// https://github.com/mrdoob/three.js/blob/e6f7c4e677cb8869502739da2640791d020d8d2f/src/math/ColorManagement.js#L12
-func LinearToSRGB(c float64) float64 {
-	if c < 0.0031308 {
-		return c * 12.92
+*/
+
+type Space struct {
+}
+
+func (c Space) Distance(a, b Color) float64 {
+	return c.Length(c.Sub(b, a))
+}
+
+func (Space) Add(a, b Color) Color {
+	return Color{
+		R: a.R + b.R,
+		G: a.G + b.G,
+		B: a.B + b.B,
+		A: a.A + b.A,
 	}
-	return 1.055*(math.Pow(c, 0.41666)) - 0.055
+}
+
+func (Space) Sub(a, b Color) Color {
+	return Color{
+		R: a.R - b.R,
+		G: a.G - b.G,
+		B: a.B - b.B,
+		A: a.A - b.A,
+	}
+}
+
+func (Space) Scale(a Color, amount float64) Color {
+	return Color{
+		R: a.R * amount,
+		G: a.G * amount,
+		B: a.B * amount,
+		A: a.A * amount,
+	}
+}
+
+func (Space) Dot(a, b Color) float64 {
+	return (a.R * b.R) + (a.G * b.G) + (a.B * b.B) + (a.A * b.A)
+}
+
+func (Space) Length(c Color) float64 {
+	return math.Sqrt((c.R * c.R) + (c.G * c.G) + (c.B * c.B) + (c.A * c.A))
+}
+
+func (Space) Normalized(a Color) Color {
+	// Shit. uh. shit
+	// I'm not sure what we can do about this given we're not in floating point
+	// land.
+
+	// At the moment. I don't know when I'd used `ColorSpace` struct in vector
+	// math that would require normalizaiton. If it ever comes time, we probably
+	// will just change this function to do whatever it needs done.
+
+	return a
+}
+
+func (Space) Lerp(a, b Color, time float64) Color {
+	return a.Lerp(b, time)
 }

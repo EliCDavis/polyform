@@ -25,3 +25,8 @@ func (r Ray) Direction() vector3.Float64 {
 func (r Ray) At(t float64) vector3.Float64 {
 	return r.origin.Add(r.direction.Scale(t))
 }
+
+func (r Ray) TimeOnRay(v vector3.Float64) float64 {
+	adjusted := v.Sub(r.origin)
+	return adjusted.Dot(r.direction)
+}

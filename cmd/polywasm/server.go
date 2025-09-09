@@ -36,7 +36,7 @@ func serverCommand() *cli.Command {
 			fs := http.FileServer(http.Dir(dir))
 			log.Print("Serving " + dir + " on http://" + url)
 			return http.ListenAndServe(url, http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-				resp.Header().Add("Cache-Control", "no-cache")
+				resp.Header().Add("Cache-Control", "no-store")
 				if strings.HasSuffix(req.URL.Path, ".wasm") {
 					resp.Header().Set("content-type", "application/wasm")
 				}

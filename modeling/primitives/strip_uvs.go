@@ -25,6 +25,18 @@ func (suv StripUVs) AtXY(x, y float64) vector2.Float64 {
 		Add(suv.LeftToRight().Scale(x))
 }
 
+func (suv StripUVs) AtXYs(xys []vector2.Float64) []vector2.Float64 {
+	sl := suv.StartLeft()
+	dir := suv.Dir()
+	ltr := suv.LeftToRight()
+
+	result := make([]vector2.Float64, len(xys))
+	for i, v := range xys {
+		result[i] = sl.Add(dir.Scale(v.Y())).Add(ltr.Scale(v.X()))
+	}
+	return result
+}
+
 func (suv StripUVs) Dir() vector2.Float64 {
 	return suv.End.Sub(suv.Start)
 }

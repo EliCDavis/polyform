@@ -69,7 +69,7 @@ type Vector2 = Value[vector2.Float64]
 type Vector3 = Value[vector3.Float64]
 type Vector3Array = Value[[]vector3.Float64]
 type AABB = Value[geometry.AABB]
-type Color = Value[coloring.WebColor]
+type Color = Value[coloring.Color]
 
 type Value[T any] struct {
 	Name        string `json:"name"`

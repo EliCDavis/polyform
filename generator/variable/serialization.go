@@ -63,8 +63,8 @@ func DeserializePersistantVariableJSON(msg []byte, decoder jbtf.Decoder, variabl
 // 	case "geometry.aabb":
 // 		return &TypeVariable[geometry.AABB]{}, nil
 
-// 	case "coloring.webcolor":
-// 		return &TypeVariable[coloring.WebColor]{}, nil
+// 	case "coloring.Color":
+// 		return &TypeVariable[coloring.Color]{}, nil
 
 // 	case "image.image":
 // 		return &ImageVariable{}, nil

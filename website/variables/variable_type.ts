@@ -7,7 +7,7 @@ export enum VariableType {
     Int2 = "vector2.Vector[int]",
     Int3 = "vector3.Vector[int]",
     String = "string",
-    Color = "coloring.WebColor",
+    Color = "coloring.Color",
     Bool = "bool",
     AABB = "geometry.AABB",
     Image = "image.Image",

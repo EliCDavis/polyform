@@ -10,28 +10,28 @@ import (
 
 func TestInterpolateNode(t *testing.T) {
 	tests := map[string]struct {
-		a nodes.Output[coloring.WebColor]
-		b nodes.Output[coloring.WebColor]
+		a nodes.Output[coloring.Color]
+		b nodes.Output[coloring.Color]
 		t nodes.Output[float64]
 
-		val coloring.WebColor
+		val coloring.Color
 	}{
-		"nil + nil = 0,0,0,255": {
-			val: coloring.WebColor{R: 0, G: 0, B: 0, A: 255},
+		"nil + nil = 0,0,0,1": {
+			val: coloring.Color{R: 0, G: 0, B: 0, A: 1},
 		},
 		"black + white = grey": {
-			a:   nodes.ConstOutput[coloring.WebColor]{Val: coloring.Black()},
-			b:   nodes.ConstOutput[coloring.WebColor]{Val: coloring.White()},
+			a:   nodes.ConstOutput[coloring.Color]{Val: coloring.Black()},
+			b:   nodes.ConstOutput[coloring.Color]{Val: coloring.White()},
 			t:   nodes.ConstOutput[float64]{Val: 0.5},
-			val: coloring.WebColor{R: 128, G: 128, B: 128, A: 255},
+			val: coloring.Color{R: 128 / 255., G: 128 / 255., B: 128 / 255., A: 1},
 		},
 		"black = black": {
-			a:   nodes.ConstOutput[coloring.WebColor]{Val: coloring.Black()},
+			a:   nodes.ConstOutput[coloring.Color]{Val: coloring.Black()},
 			t:   nodes.ConstOutput[float64]{Val: 0.5},
 			val: coloring.Black(),
 		},
 		"white = white": {
-			a:   nodes.ConstOutput[coloring.WebColor]{Val: coloring.White()},
+			a:   nodes.ConstOutput[coloring.Color]{Val: coloring.White()},
 			t:   nodes.ConstOutput[float64]{Val: 0.5},
 			val: coloring.White(),
 		},
@@ -46,8 +46,12 @@ func TestInterpolateNode(t *testing.T) {
 					Time: tc.t,
 				},
 			}
-			out := nodes.GetNodeOutputPort[coloring.WebColor](node, "Out").Value()
-			assert.Equal(t, tc.val, out)
+			out := nodes.GetNodeOutputPort[coloring.Color](node, "Out").Value()
+			assert.InDelta(t, tc.val.R, out.R, 0.01)
+			assert.InDelta(t, tc.val.G, out.G, 0.01)
+			assert.InDelta(t, tc.val.B, out.B, 0.01)
+			assert.InDelta(t, tc.val.A, out.A, 0.01)
+			// assert.Equal(t, tc.val, out)
 		})
 	}
 }

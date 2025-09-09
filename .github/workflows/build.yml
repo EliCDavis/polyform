@@ -27,8 +27,10 @@ jobs:
       - uses: DeterminateSystems/nix-installer-action@main
       - uses: DeterminateSystems/flakehub-cache-action@main
 
-      - name: Restore Nix-cached Release Artifacts
-        run: nix build .#release -Lo ./artifacts
+      - name: Build Nix-cached Release Artifacts
+        run: |
+          nix run .#sri-check-up --print-build-logs
+          nix build .#release --print-build-logs --out-link ./artifacts
 
   pages:
     runs-on: ubuntu-latest
@@ -37,5 +39,7 @@ jobs:
       - uses: DeterminateSystems/nix-installer-action@main
       - uses: DeterminateSystems/flakehub-cache-action@main
 
-      - name: Restore Nix-cached Pages Artifacts
-        run: nix build .#pages -Lo ./dist
+      - name: Build Nix-cached Pages Artifacts
+        run: |
+          nix run .#sri-check-up --print-build-logs
+          nix build .#pages --print-build-logs --out-link ./dist

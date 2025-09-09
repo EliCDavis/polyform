@@ -10,8 +10,8 @@ type BodyResponseMethod[Body any, Response any] struct {
 	Handler        func(request Request[Body]) (Response, error)
 }
 
-func (jse BodyResponseMethod[Body, Response]) ContentType() ContentType {
-	return jse.ResponseWriter.ContentType()
+func (jse BodyResponseMethod[Body, Response]) ContentType(r *http.Request) ContentType {
+	return jse.ResponseWriter.ContentType(r)
 }
 
 func (jse BodyResponseMethod[Body, Response]) Handle(w http.ResponseWriter, r *http.Request) {

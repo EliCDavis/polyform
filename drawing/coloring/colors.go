@@ -1,25 +1,25 @@
 package coloring
 
-func Black() WebColor {
-	return WebColor{0, 0, 0, 255}
+func Black() Color {
+	return Color{0, 0, 0, 1}
 }
 
-func Grey(b byte) WebColor {
-	return WebColor{b, b, b, 255}
+func Grey(b float64) Color {
+	return Color{b, b, b, 1}
 }
 
-func White() WebColor {
-	return WebColor{255, 255, 255, 255}
+func White() Color {
+	return Color{1, 1, 1, 1}
 }
 
 // func Red() WebColor {
-// 	return WebColor{255, 0, 0, 255}
+// 	return WebColor{1, 0, 0, 1}
 // }
 
 // func Green() WebColor {
-// 	return WebColor{0, 255, 0, 255}
+// 	return WebColor{0, 1, 0, 1}
 // }
 
 // func Blue() WebColor {
-// 	return WebColor{0, 0, 255, 255}
+// 	return WebColor{0, 0, 1, 1}
 // }

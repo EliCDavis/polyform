@@ -181,7 +181,7 @@ func (tv *TypeVariable[T]) SwaggerProperty() swagger.Property {
 	case "geometry.AABB":
 		prop.Ref = "#/definitions/AABB"
 
-	case "coloring.WebColor":
+	case "coloring.Color":
 		prop.Type = swagger.StringPropertyType
 		prop.Format = "color"
 

@@ -13,7 +13,7 @@ import (
 
 type BerryConfig struct {
 	relativeBerrySize float64
-	colorPalette      coloring.Gradient
+	colorPalette      coloring.Gradient[coloring.Color]
 	chanceOfBerry     float64
 }
 
@@ -22,7 +22,7 @@ func Bristle(
 	specularContext *gg.Context,
 	start, end vector2.Float64,
 	branchWidth, chanceOfSnow float64,
-	colors coloring.Gradient,
+	colors coloring.Gradient[coloring.Color],
 	berry *BerryConfig,
 	depth int,
 ) {
@@ -131,7 +131,7 @@ func Bristle(
 }
 
 func BranchTexture(
-	colors coloring.Gradient,
+	colors coloring.Gradient[coloring.Color],
 	textures *PBRTextures,
 	imageSize float64,
 	minSnow float64,
@@ -169,18 +169,18 @@ func BranchTexture(
 
 	berryConfig := &BerryConfig{
 		relativeBerrySize: .5,
-		colorPalette: coloring.NewGradient(
-			coloring.GradientKey{
+		colorPalette: coloring.NewGradientColor(
+			coloring.GradientKey[coloring.Color]{
 				Time:  0,
-				Color: color.RGBA{235, 64, 52, 255},
+				Value: coloring.Color{235 / 255., 64 / 255., 52 / 255., 1.},
 			},
-			coloring.GradientKey{
+			coloring.GradientKey[coloring.Color]{
 				Time:  1,
-				Color: color.RGBA{235, 52, 98, 255},
+				Value: coloring.Color{235 / 255., 52 / 255., 98 / 255., 1.},
 			},
-			coloring.GradientKey{
+			coloring.GradientKey[coloring.Color]{
 				Time:  2,
-				Color: color.RGBA{255, 102, 140, 255},
+				Value: coloring.Color{1., 102 / 255., 140 / 255., 1.},
 			},
 		),
 		chanceOfBerry: .75,

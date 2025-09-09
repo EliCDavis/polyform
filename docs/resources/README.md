@@ -14,6 +14,9 @@ Resources either directly contributing to the code, or are just interesting find
   - Tiling Noise
     - [ _Tiling Noise_ by Ronja](https://www.ronja-tutorials.com/post/029-tiling-noise/)
     - [gamedev.stackexchange _How do you generate tileable Perlin noise?_](https://gamedev.stackexchange.com/questions/23625/how-do-you-generate-tileable-perlin-noise)
+  - Buncha noise functions
+    - https://github.com/RodZill4/material-maker/blob/3b18267f29f0ead260aae1d3cf0d731db492981a/addons/material_maker/nodes/fbm2.mmg#L449
+  - [_Fractional Brownian Motion_ by Inigo Quilez](https://iquilezles.org/articles/fbm/)
 - Sampling and Distribution
   - Quasirandom
     - [The Unreasonable Effectiveness of Quasirandom Sequences](https://extremelearning.com.au/unreasonable-effectiveness-of-quasirandom-sequences/)
