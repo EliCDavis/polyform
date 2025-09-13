@@ -3065,3 +3065,46 @@ func TestWriteEmptyMesh(t *testing.T) {
     }
 }`, buf.String())
 }
+
+func aTestWrite_NestedModels(t *testing.T) {
+	// ARRANGE ================================================================
+	tri := modeling.NewPointCloud(
+		nil,
+		map[string][]vector3.Float64{
+			modeling.PositionAttribute: {
+				vector3.New(0., 0, 0),
+			},
+		},
+		nil,
+		nil,
+	)
+	buf := bytes.Buffer{}
+
+	// ACT ====================================================================
+	err := gltf.WriteText(gltf.PolyformScene{
+		Models: []gltf.PolyformModel{
+			{
+				Name: "mesh",
+				Children: []gltf.PolyformModel{
+					{
+						Name: "child",
+						Mesh: &tri,
+					},
+				},
+			},
+		},
+	}, &buf, nil)
+
+	// ASSERT =================================================================
+	assert.NoError(t, err)
+	assert.Equal(t, `{
+    "asset": {
+        "version": "2.0",
+        "generator": "https://github.com/EliCDavis/polyform",
+        "nodes": [
+            [1],
+            [{something}]
+        ]
+    }
+}`, buf.String())
+}

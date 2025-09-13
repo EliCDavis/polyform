@@ -390,7 +390,7 @@ func TestLoadFile(t *testing.T) {
 				return doc
 			},
 			expectError: true,
-			errorMsg:    "is a directory",
+			errorMsg:    "empty uri is not a valid buffer location",
 		},
 	}
 
@@ -1746,7 +1746,7 @@ func TestParse(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			reader := strings.NewReader(tt.gltfData)
-			doc, err := gltf.Parse(reader)
+			doc, err := gltf.ParseGLTF(reader)
 
 			if tt.expectError {
 				require.Error(t, err)
@@ -1842,7 +1842,7 @@ func TestLoad(t *testing.T) {
 
 			reader := strings.NewReader(tt.gltfData)
 			opts := &gltf.ReaderOptions{BasePath: tempDir}
-			doc, buffers, err := gltf.Load(reader, opts)
+			doc, buffers, err := gltf.LoadGLTF(reader, opts)
 
 			if tt.expectError {
 				require.Error(t, err)
@@ -1902,7 +1902,7 @@ func TestCustomLoaders(t *testing.T) {
 			BufferLoader: loader,
 		}
 
-		doc, buffers, err := gltf.Load(strings.NewReader(gltfData), opts)
+		doc, buffers, err := gltf.LoadGLTF(strings.NewReader(gltfData), opts)
 		require.NoError(t, err)
 		require.NotNil(t, doc)
 		assert.Len(t, buffers, 1)
@@ -2004,7 +2004,7 @@ func TestBasePath(t *testing.T) {
 	opts := &gltf.ReaderOptions{
 		BasePath: subDir,
 	}
-	doc, buffers, err := gltf.Load(strings.NewReader(gltfData), opts)
+	doc, buffers, err := gltf.LoadGLTF(strings.NewReader(gltfData), opts)
 	require.NoError(t, err)
 	require.NotNil(t, doc)
 	assert.Len(t, buffers, 1)

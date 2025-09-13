@@ -48,6 +48,8 @@ type PolyformModel struct {
 	// Limitations on using GpuInstances still apply.
 	Skeleton   *animation.Skeleton
 	Animations []animation.Sequence
+
+	Children []PolyformModel
 }
 
 type PolyformMaterial struct {

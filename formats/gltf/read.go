@@ -31,7 +31,9 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"strings"
 
+	"github.com/EliCDavis/bitlib"
 	"github.com/EliCDavis/polyform/math/mat"
 	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/polyform/math/trs"
@@ -807,18 +809,18 @@ func processNodeHierarchy(doc *Gltf, buffers [][]byte, nodeIndex int, parentTran
 	return nil
 }
 
-// Parse reads and parses GLTF JSON from an io.Reader.
+// ParseGLTF reads and parses GLTF JSON from an io.Reader.
 // This only parses the JSON structure without loading any external resources like buffers or images.
 // Use Load or LoadFile if you need to load external resources.
 //
 // Example:
 //
 //	jsonData := strings.NewReader(gltfJSON)
-//	doc, err := gltf.Parse(jsonData)
+//	doc, err := gltf.ParseGLTF(jsonData)
 //	if err != nil {
 //	    log.Fatal(err)
 //	}
-func Parse(r io.Reader) (*Gltf, error) {
+func ParseGLTF(r io.Reader) (*Gltf, error) {
 	decoder := json.NewDecoder(r)
 	g := &Gltf{}
 
@@ -851,28 +853,28 @@ func ParseFile(gltfPath string) (*Gltf, error) {
 	}
 	defer file.Close()
 
-	return Parse(file)
+	return ParseGLTF(file)
 }
 
-// Load reads GLTF JSON from an io.Reader and loads all referenced buffers.
+// LoadGLTF reads GLTF JSON from an io.Reader and loads all referenced buffers.
 //
 // Example with embedded buffer:
 //
 //	jsonData := strings.NewReader(gltfJSON) // GLTF with data URI buffers
-//	doc, buffers, err := gltf.Load(jsonData, nil)
+//	doc, buffers, err := gltf.LoadGLTF(jsonData, nil)
 //
 // Example with custom loader:
 //
 //	opts := &gltf.ReaderOptions{
 //	    BufferLoader: myCustomLoader,
 //	}
-//	doc, buffers, err := gltf.Load(jsonData, opts)
+//	doc, buffers, err := gltf.LoadGLTF(jsonData, opts)
 //
 // If a custom BufferLoader is provided in options, it will be used to load buffers.
 // Otherwise, a StandardLoader is used with options.BasePath (or current directory).
-func Load(r io.Reader, options *ReaderOptions) (*Gltf, [][]byte, error) {
+func LoadGLTF(r io.Reader, options *ReaderOptions) (*Gltf, [][]byte, error) {
 	// Parse the GLTF JSON
-	g, err := Parse(r)
+	g, err := ParseGLTF(r)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to parse GLTF data: %w", err)
 	}
@@ -912,6 +914,76 @@ func Load(r io.Reader, options *ReaderOptions) (*Gltf, [][]byte, error) {
 	return g, allBuffers, nil
 }
 
+func LoadGLB(r io.Reader, options *ReaderOptions) (*Gltf, [][]byte, error) {
+	reader := bitlib.NewReader(r, binary.LittleEndian)
+
+	readMagic := reader.UInt32()
+	if readMagic != magicNumber {
+		return nil, nil, fmt.Errorf("unexpected read magic number %d", readMagic)
+	}
+
+	readVersion := reader.UInt32()
+	if readVersion != version {
+		return nil, nil, fmt.Errorf("unexpected version %d", readVersion)
+	}
+
+	documentLength := reader.UInt32()
+	jsonLength := reader.UInt32()
+	jsonIdentifier := reader.UInt32()
+	if jsonIdentifier != jsonChunkIdentifier {
+		return nil, nil, fmt.Errorf("unrecognized json chunk identifier: %d", jsonIdentifier)
+	}
+
+	jsonPayload := make([]byte, jsonLength)
+	reader.Read(jsonPayload)
+	doc := &Gltf{}
+	err := json.Unmarshal(jsonPayload, doc)
+	if err != nil {
+		return nil, nil, fmt.Errorf("unable to parse GLB embedded JSON doc: %w", err)
+	}
+
+	remainingLength := documentLength - jsonLength - 8 - 12
+	if remainingLength == 0 {
+		return doc, nil, nil
+	}
+
+	bufLen := reader.UInt32()
+	bufIdentifier := reader.UInt32()
+	if bufIdentifier != binChunkIdentifier {
+		return nil, nil, fmt.Errorf("unrecognized bin chunk identifier: %d", bufIdentifier)
+	}
+
+	binPayload := make([]byte, bufLen)
+	reader.Read(binPayload)
+
+	// Load buffers
+	allBuffers := make([][]byte, 0, len(doc.Buffers))
+	for bufIndex, buf := range doc.Buffers {
+
+		if buf.ByteLength <= 0 {
+			return nil, nil, fmt.Errorf("buffer %d has invalid byte length: %d", bufIndex, buf.ByteLength)
+		}
+
+		if buf.URI == "" {
+			allBuffers = append(allBuffers, binPayload)
+			continue
+		}
+
+		bufferData, err := options.BufferLoader.LoadBuffer(buf.URI)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to load buffer %d: %w", bufIndex, err)
+		}
+
+		if len(bufferData) != buf.ByteLength {
+			return nil, nil, fmt.Errorf("buffer %d: loaded size %d does not match expected length %d", bufIndex, len(bufferData), buf.ByteLength)
+		}
+
+		allBuffers = append(allBuffers, bufferData)
+	}
+
+	return doc, allBuffers, reader.Error()
+}
+
 // LoadFile reads a GLTF file from disk and loads all referenced buffers.
 // The directory containing the GLTF file is used as the base path for resolving relative URIs.
 //
@@ -946,7 +1018,16 @@ func LoadFile(gltfPath string, options *ReaderOptions) (*Gltf, [][]byte, error) 
 		opts.BasePath = filepath.Dir(gltfPath)
 	}
 
-	return Load(file, opts)
+	ext := strings.ToLower(filepath.Ext(gltfPath))
+	switch ext {
+	case ".gltf":
+		return LoadGLTF(file, opts)
+
+	case ".glb":
+		return LoadGLB(file, opts)
+	}
+
+	return nil, nil, fmt.Errorf("unrecognized flie: %s", ext)
 }
 
 // DecodeModels converts a GLTF document into a flat list of Polyform models.

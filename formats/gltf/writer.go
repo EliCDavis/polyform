@@ -22,6 +22,13 @@ import (
 	"github.com/EliCDavis/vector/vector4"
 )
 
+const (
+	magicNumber         uint32 = 0x46546C67
+	jsonChunkIdentifier uint32 = 0x4E4F534A
+	binChunkIdentifier  uint32 = 0x004E4942
+	version             uint32 = 2
+)
+
 var ErrInvalidInput = errors.New("invalid input")
 
 type Writer struct {
@@ -1145,10 +1152,10 @@ func (w Writer) WriteGLB(out io.Writer, opts WriterOptions) error {
 	// https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.pdf
 	// magic MUST be equal to equal 0x46546C67. It is ASCII string glTF and can
 	// be used to identify data as Binary glTF
-	bitWriter.UInt32(0x46546C67)
+	bitWriter.UInt32(magicNumber)
 
 	// GLB version
-	bitWriter.UInt32(2)
+	bitWriter.UInt32(version)
 
 	// Length of entire document
 	totalLen := jsonByteLen + binByteLen + 12 + 8
@@ -1163,7 +1170,7 @@ func (w Writer) WriteGLB(out io.Writer, opts WriterOptions) error {
 	bitWriter.UInt32(uint32(jsonByteLen))
 
 	// JSON Chunk Identifier
-	bitWriter.UInt32(0x4E4F534A)
+	bitWriter.UInt32(jsonChunkIdentifier)
 
 	// JSON data
 	bitWriter.ByteArray(jsonBytes)
@@ -1184,7 +1191,7 @@ func (w Writer) WriteGLB(out io.Writer, opts WriterOptions) error {
 	bitWriter.UInt32(uint32(binByteLen))
 
 	// BIN Chunk Identifier
-	bitWriter.UInt32(0x004E4942)
+	bitWriter.UInt32(binChunkIdentifier)
 
 	// Bin data
 	bitWriter.ByteArray(binBytes)
