@@ -70,7 +70,7 @@ func TestStandardBufferLoader_LoadBuffer(t *testing.T) {
 			basePath:    "",
 			uri:         "nonexistent.bin",
 			expectError: true,
-			errorMsg:    "no such file",
+			errorMsg:    "nonexistent.bin",
 		},
 		{
 			name:        "invalid_data_uri_no_comma",
@@ -94,13 +94,13 @@ func TestStandardBufferLoader_LoadBuffer(t *testing.T) {
 			name:        "invalid_data_uri_no_data_prefix",
 			uri:         "application/octet-stream;base64,SGVsbG8=",
 			expectError: true,
-			errorMsg:    "no such file",
+			errorMsg:    "octet-stream;base64,SGVsbG8=",
 		},
 		{
 			name:        "empty_uri",
 			uri:         "",
 			expectError: true,
-			errorMsg:    "is a directory",
+			errorMsg:    "empty uri is not a valid buffer location",
 		},
 	}
 
@@ -193,7 +193,7 @@ func TestStandardBufferLoader_DataURIEdgeCases(t *testing.T) {
 			name:        "malformed_data_uri_scheme",
 			uri:         "dat:application/octet-stream;base64,SGVsbG8=",
 			expectError: true,
-			errorMsg:    "no such file",
+			errorMsg:    "octet-stream;base64,SGVsbG8=",
 		},
 	}
 

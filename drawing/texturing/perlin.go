@@ -10,11 +10,17 @@ type SeamlessPerlinNode struct {
 	Dimensions nodes.Output[int]
 	Positive   nodes.Output[float64]
 	Negative   nodes.Output[float64]
+	Octaves    nodes.Output[int]
+	Frequency  nodes.Output[float64]
 }
 
 func (an SeamlessPerlinNode) Out(out *nodes.StructOutput[Texture[float64]]) {
 	dim := nodes.TryGetOutputValue(out, an.Dimensions, 256)
-	n := noise.NewTilingNoise(dim, 1/64., 5)
+	n := noise.NewTilingNoise(
+		dim,
+		nodes.TryGetOutputValue(out, an.Frequency, 1/64.),
+		nodes.TryGetOutputValue(out, an.Octaves, 3),
+	)
 
 	tex := NewTexture[float64](dim, dim)
 	negative := nodes.TryGetOutputValue(out, an.Negative, 0)

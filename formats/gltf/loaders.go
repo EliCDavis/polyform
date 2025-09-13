@@ -2,11 +2,11 @@ package gltf
 
 import (
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"image"
 	_ "image/jpeg" // Import for side effects to register JPEG decoder
 	_ "image/png"  // Import for side effects to register PNG decoder
-	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -28,6 +28,10 @@ type StandardLoader struct {
 // - Relative file paths (resolved against BasePath)
 // - Absolute file paths
 func (l *StandardLoader) LoadBuffer(uri string) ([]byte, error) {
+	if uri == "" {
+		return nil, errors.New("empty uri is not a valid buffer location")
+	}
+
 	// Handle data URIs
 	if strings.HasPrefix(uri, "data:") {
 		return decodeDataURI(uri)
@@ -56,12 +60,9 @@ func (l *StandardLoader) LoadImage(uri string) (image.Image, string, error) {
 
 	// Handle file:// URIs
 	actualPath := uri
-	if strings.HasPrefix(uri, "file://") {
-		resolvedPath, err := resolveImagePath(uri)
-		if err != nil {
-			return nil, "", fmt.Errorf("failed to resolve image path %q: %w", uri, err)
-		}
-		actualPath = resolvedPath
+	const fileProtocol = "file://"
+	if strings.HasPrefix(uri, fileProtocol) {
+		actualPath = uri[len(fileProtocol):]
 	} else if !filepath.IsAbs(uri) && l.BasePath != "" {
 		actualPath = filepath.Join(l.BasePath, uri)
 	}
@@ -90,21 +91,6 @@ type NoOpImageLoader struct{}
 // LoadImage always returns nil without error, effectively skipping image loading.
 func (l *NoOpImageLoader) LoadImage(_ string) (image.Image, string, error) {
 	return nil, "", nil
-}
-
-// resolveImagePath resolves a file:// URI to an absolute file path
-func resolveImagePath(fileURI string) (string, error) {
-	parsed, err := url.Parse(fileURI)
-	if err != nil {
-		return "", err
-	}
-
-	if parsed.Scheme != "file" {
-		return "", fmt.Errorf("expected 'file' scheme, got %q", parsed.Scheme)
-	}
-
-	// URL path is already unescaped
-	return parsed.Path, nil
 }
 
 // decodeDataURI extracts binary data from a data URI

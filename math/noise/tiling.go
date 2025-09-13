@@ -45,19 +45,17 @@ func (tn *TilingNoise) init() {
 	size := tn.size
 
 	tn.perm = make([]int, size)
-	for i := 0; i < size; i++ {
+	for i := range size {
 		tn.perm[i] = i
 	}
 	rand.Shuffle(len(tn.perm), func(i, j int) { tn.perm[i], tn.perm[j] = tn.perm[j], tn.perm[i] })
 	tn.perm = append(tn.perm, tn.perm...)
 
 	tn.dirs = make([]vector2.Float64, size)
-	for i := 0; i < size; i++ {
-		a := float64(i)
-		tn.dirs[i] = vector2.New(
-			math.Cos((a*2.*math.Pi)/float64(size)),
-			math.Sin((a*2.*math.Pi)/float64(size)),
-		)
+	r := (2. * math.Pi) / float64(size)
+	for i := range size {
+		a := float64(i) * r
+		tn.dirs[i] = vector2.New(math.Cos(a), math.Sin(a))
 	}
 }
 
@@ -84,16 +82,20 @@ func (tn *TilingNoise) NoiseAtPermutation(v vector2.Float64, per int) float64 {
 func (tn *TilingNoise) Noise(x, y int) float64 {
 	val := 0.
 	sf := int(float64(tn.size) * tn.frequncy)
-	for o := 0.; o < float64(tn.octaves); o++ {
-		op2 := math.Pow(2, o)
+	octaveFreq := 1.
+	octaveStrength := 1.
+	for range tn.octaves {
 		n := tn.NoiseAtPermutation(
 			vector2.New(
-				(float64(x)*tn.frequncy)*op2,
-				(float64(y)*tn.frequncy)*op2,
+				(float64(x)*tn.frequncy)*octaveFreq,
+				(float64(y)*tn.frequncy)*octaveFreq,
 			),
-			sf*int(op2),
+			sf*int(octaveFreq),
 		)
-		val += math.Pow(0.5, o) * n
+		val += n * octaveStrength
+
+		octaveStrength *= 0.5
+		octaveFreq *= 2
 	}
 	return val
 }
