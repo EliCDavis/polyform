@@ -2644,8 +2644,9 @@ func TestWrite_MeshesGpuInstanced(t *testing.T) {
 			{Name: "mesh_right", Mesh: &tri, Material: material, TRS: &trsRight},
 			{Name: "mesh_left", Mesh: &tri, Material: material, TRS: &trsLeft},
 		},
-		UseGpuInstancing: true,
-	}, &buf, nil)
+	}, &buf, &gltf.WriterOptions{
+		GpuInstancingStrategy: gltf.WriterInstancingStrategy_Collapse,
+	})
 
 	// ASSERT =================================================================
 	assert.NoError(t, err)

@@ -26,6 +26,11 @@ const (
 
 // WriterOptions configures GLTF export behavior
 type WriterOptions struct {
+	// GpuInstancingStrategy Determines how to utilize GLTF's
+	// EXT_mesh_gpu_instancing extension, if at all. The model mesh and material
+	// deduplication applies regardless.
+	GpuInstancingStrategy WriterInstancingStrategy
+
 	// EmbedTextures forces texture images to be embedded as data URIs instead of external file references
 	EmbedTextures bool
 
@@ -183,7 +188,7 @@ func WriteText(scene PolyformScene, out io.Writer, options *WriterOptions) error
 	}
 
 	writer := NewWriter()
-	writer.EmbedTextures = opts.EmbedTextures
+	writer.Options = opts
 
 	if err := writer.AddScene(scene); err != nil {
 		return fmt.Errorf("failed to add scene to writer: %w", err)
@@ -218,7 +223,7 @@ func WriteBinary(scene PolyformScene, out io.Writer, options *WriterOptions) err
 	}
 
 	writer := NewWriter()
-	writer.EmbedTextures = opts.EmbedTextures
+	writer.Options = opts
 
 	if err := writer.AddScene(scene); err != nil {
 		return fmt.Errorf("failed to add scene to writer: %w", err)

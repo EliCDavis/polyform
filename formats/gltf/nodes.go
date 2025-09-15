@@ -39,7 +39,8 @@ func init() {
 }
 
 type Artifact struct {
-	Scene PolyformScene
+	Scene   PolyformScene
+	Options WriterOptions
 }
 
 func (Artifact) Mime() string {
@@ -75,8 +76,10 @@ func (gad ManifestNode) Out(out *nodes.StructOutput[manifest.Manifest]) {
 	entry := manifest.Entry{
 		Artifact: &Artifact{
 			Scene: PolyformScene{
-				Models:           models,
-				UseGpuInstancing: true,
+				Models: models,
+			},
+			Options: WriterOptions{
+				GpuInstancingStrategy: WriterInstancingStrategy_Default,
 			},
 		},
 	}

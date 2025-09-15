@@ -3,9 +3,12 @@ package noise
 import (
 	"math"
 
-	vec "github.com/EliCDavis/vector/vector2"
+	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
 )
+
+// This is one big ass translation of this code into golang
+// https://github.com/RodZill4/material-maker/blob/3b18267f29f0ead260aae1d3cf0d731db492981a/addons/material_maker/nodes/fbm3.mmg
 
 const (
 	tau = math.Pi * 2
@@ -14,39 +17,38 @@ const (
 
 func fract(v float64) float64 { return v - math.Floor(v) }
 
-func mod2(a, b vec.Float64) vec.Float64 {
-	return vec.New(math.Mod(a.X(), b.X()), math.Mod(a.Y(), b.Y()))
+func mod2(a, b vector2.Float64) vector2.Float64 {
+	return vector2.New(math.Mod(a.X(), b.X()), math.Mod(a.Y(), b.Y()))
 }
 
 func mix(a, b, t float64) float64 { return a*(1.0-t) + b*t }
 
 // Quintic fade used by Perlin/simplex
-func fade2(f vec.Float64) vec.Float64 {
-	part := f.Scale(6.0).Sub(vec.New(15.0, 15.0))
-	part = f.MultByVector(part)
-	part = part.Add(vec.New(10.0, 10.0))
+func fade2(f vector2.Float64) vector2.Float64 {
+	part := f.Scale(6.0).Sub(vector2.New(15.0, 15.0))
+	part = f.MultByVector(part).Add(vector2.New(10.0, 10.0))
 
 	return f.MultByVector(f).MultByVector(f).MultByVector(part)
 }
 
 // ---------- hash / rand helpers (GLSL-style) ----------
 // Common 2D-to-N hash (not cryptographic), tuned to look like shader hashes.
-func hash2(v vec.Float64, a, b, k float64) float64 {
+func hash2(v vector2.Float64, a, b, k float64) float64 {
 	return fract(math.Sin(v.X()*a+v.Y()*b) * k)
 }
 
-func randf(v vec.Float64) float64 {
+func randf(v vector2.Float64) float64 {
 	return hash2(v, 12.9898, 78.233, 43758.5453123)
 }
 
-func rand2(v vec.Float64) vec.Float64 {
+func rand2(v vector2.Float64) vector2.Float64 {
 	// Use different coefficients to decorrelate components
 	rx := hash2(v, 127.1, 311.7, 43758.5453123)
 	ry := hash2(v, 269.5, 183.3, 43758.5453123)
-	return vec.New(rx, ry)
+	return vector2.New(rx, ry)
 }
 
-func rand3(v vec.Float64) vector3.Float64 {
+func rand3(v vector2.Float64) vector3.Float64 {
 	rx := hash2(v, 127.1, 311.7, 43758.5453123)
 	ry := hash2(v, 269.5, 183.3, 43758.5453123)
 	rz := hash2(v, 419.2, 371.9, 43758.5453123)
@@ -54,14 +56,14 @@ func rand3(v vec.Float64) vector3.Float64 {
 }
 
 // ---------- Value Noise ----------
-func value(coord, size vec.Float64, offset, seed float64) float64 {
-	o := coord.Floor().Add(rand2(vec.New(seed, 1.0-seed))).Add(size)
+func value(coord, size vector2.Float64, offset, seed float64) float64 {
+	o := coord.Floor().Add(rand2(vector2.New(seed, 1.0-seed))).Add(size)
 	f := coord.Fract()
 
 	p00 := randf(mod2(o, size))
-	p01 := randf(mod2(o.Add(vec.New(0.0, 1.0)), size))
-	p10 := randf(mod2(o.Add(vec.New(1.0, 0.0)), size))
-	p11 := randf(mod2(o.Add(vec.New(1.0, 1.0)), size))
+	p01 := randf(mod2(o.Add(vector2.New(0.0, 1.0)), size))
+	p10 := randf(mod2(o.Add(vector2.New(1.0, 0.0)), size))
+	p11 := randf(mod2(o.Add(vector2.New(1.0, 1.0)), size))
 
 	p00 = math.Sin((p00+offset)*tau)/2.0 + 0.5
 	p01 = math.Sin((p01+offset)*tau)/2.0 + 0.5
@@ -77,7 +79,7 @@ func value(coord, size vec.Float64, offset, seed float64) float64 {
 	)
 }
 
-func Value(coord, size vec.Float64, folds, octaves int, persistence, offset, seed float64) float64 {
+func Value(coord, size vector2.Float64, folds, octaves int, persistence, offset, seed float64) float64 {
 	norm, val, scale := 0.0, 0.0, 1.0
 	sz := size
 	for i := range octaves {
@@ -94,24 +96,24 @@ func Value(coord, size vec.Float64, folds, octaves int, persistence, offset, see
 }
 
 // ---------- Perlin Noise ----------
-func perlin(coord, size vec.Float64, offset, seed float64) float64 {
-	o := coord.Floor().Add(rand2(vec.New(seed, 1.0-seed))).Add(size)
+func perlin(coord, size vector2.Float64, offset, seed float64) float64 {
+	o := coord.Floor().Add(rand2(vector2.New(seed, 1.0-seed))).Add(size)
 
 	a00 := randf(mod2(o, size))*tau + offset*tau
-	a01 := randf(mod2(o.Add(vec.New(0.0, 1.0)), size))*tau + offset*tau
-	a10 := randf(mod2(o.Add(vec.New(1.0, 0.0)), size))*tau + offset*tau
-	a11 := randf(mod2(o.Add(vec.New(1.0, 1.0)), size))*tau + offset*tau
+	a01 := randf(mod2(o.Add(vector2.New(0.0, 1.0)), size))*tau + offset*tau
+	a10 := randf(mod2(o.Add(vector2.New(1.0, 0.0)), size))*tau + offset*tau
+	a11 := randf(mod2(o.Add(vector2.New(1.0, 1.0)), size))*tau + offset*tau
 
-	v00 := vec.New(math.Cos(a00), math.Sin(a00))
-	v01 := vec.New(math.Cos(a01), math.Sin(a01))
-	v10 := vec.New(math.Cos(a10), math.Sin(a10))
-	v11 := vec.New(math.Cos(a11), math.Sin(a11))
+	v00 := vector2.New(math.Cos(a00), math.Sin(a00))
+	v01 := vector2.New(math.Cos(a01), math.Sin(a01))
+	v10 := vector2.New(math.Cos(a10), math.Sin(a10))
+	v11 := vector2.New(math.Cos(a11), math.Sin(a11))
 
 	f := coord.Fract()
 	p00 := v00.Dot(f)
-	p01 := v01.Dot(f.Sub(vec.New(0.0, 1.0)))
-	p10 := v10.Dot(f.Sub(vec.New(1.0, 0.0)))
-	p11 := v11.Dot(f.Sub(vec.New(1.0, 1.0)))
+	p01 := v01.Dot(f.Sub(vector2.New(0.0, 1.0)))
+	p10 := v10.Dot(f.Sub(vector2.New(1.0, 0.0)))
+	p11 := v11.Dot(f.Sub(vector2.New(1.0, 1.0)))
 
 	t := fade2(f)
 
@@ -122,12 +124,12 @@ func perlin(coord, size vec.Float64, offset, seed float64) float64 {
 	)
 }
 
-func Perlin(coord, size vec.Float64, folds, octaves int, persistence, offset, seed float64) float64 {
+func Perlin(coord, size vector2.Float64, folds, octaves int, persistence, offset, seed float64) float64 {
 	norm, value, scale := 0.0, 0.0, 1.0
 	sz := size
 	for i := range octaves {
 		noise := perlin(coord.MultByVector(sz), sz, offset, seed+float64(i))
-		for f := 0; f < folds; f++ {
+		for range folds {
 			noise = math.Abs(2.0*noise - 1.0)
 		}
 		value += noise * scale
@@ -138,11 +140,11 @@ func Perlin(coord, size vec.Float64, folds, octaves int, persistence, offset, se
 	return value / max(norm, eps)
 }
 
-func perlinAbs(coord, size vec.Float64, offset, seed float64) float64 {
+func perlinAbs(coord, size vector2.Float64, offset, seed float64) float64 {
 	return math.Abs(2.0*perlin(coord, size, offset, seed) - 1.0)
 }
 
-func PerlinAbs(coord, size vec.Float64, folds, octaves int, persistence, offset, seed float64) float64 {
+func PerlinAbs(coord, size vector2.Float64, folds, octaves int, persistence, offset, seed float64) float64 {
 	norm, value, scale := 0.0, 0.0, 1.0
 	sz := size
 	for i := 0; i < octaves; i++ {
@@ -167,37 +169,37 @@ func permute(x float64) float64 {
 	return mod289(((x * 34.0) + 1.0) * x)
 }
 
-func rgrad2(p vec.Float64, rot, seed float64) vec.Float64 {
+func rgrad2(p vector2.Float64, rot, seed float64) vector2.Float64 {
 	u := permute(permute(p.X())+p.Y())*0.0243902439 + rot // /41
 	u = fract(u+seed) * tau
-	return vec.New(math.Cos(u), math.Sin(u))
+	return vector2.New(math.Cos(u), math.Sin(u))
 }
 
 // ---------- simplex Noise (tiling-aware as in shader) ----------
-func simplex(coord, size vec.Float64, offset, seed float64) float64 {
+func simplex(coord, size vector2.Float64, offset, seed float64) float64 {
 	// Make it tile by doubling
 	coord = coord.Scale(2.0)
-	coord = coord.Add(rand2(vec.New(seed, 1.0-seed)).Add(size))
+	coord = coord.Add(rand2(vector2.New(seed, 1.0-seed)).Add(size))
 	size = size.Scale(2.0)
-	coord = coord.Add(vec.New(0.0, 0.001)) // epsilon shift
+	coord = coord.Add(vector2.New(0.0, 0.001)) // epsilon shift
 
-	uv := vec.New(coord.X()+coord.Y()*0.5, coord.Y())
+	uv := vector2.New(coord.X()+coord.Y()*0.5, coord.Y())
 	i0 := uv.Floor()
 	f0 := uv.Fract()
 
-	var i1 vec.Float64
+	var i1 vector2.Float64
 	if f0.X() > f0.Y() {
-		i1 = vec.New(1.0, 0.0)
+		i1 = vector2.New(1.0, 0.0)
 	} else {
-		i1 = vec.New(0.0, 1.0)
+		i1 = vector2.New(0.0, 1.0)
 	}
 
-	p0 := vec.New(i0.X()-i0.Y()*0.5, i0.Y())
-	p1 := vec.New(p0.X()+i1.X()-i1.Y()*0.5, p0.Y()+i1.Y())
-	p2 := vec.New(p0.X()+0.5, p0.Y()+1.0)
+	p0 := vector2.New(i0.X()-i0.Y()*0.5, i0.Y())
+	p1 := vector2.New(p0.X()+i1.X()-i1.Y()*0.5, p0.Y()+i1.Y())
+	p2 := vector2.New(p0.X()+0.5, p0.Y()+1.0)
 
 	// i1sum := add2(i0, i1)
-	// i2 := add2(i0, vec.New(1.0, 1.0))
+	// i2 := add2(i0, vector2.New(1.0, 1.0))
 
 	d0 := coord.Sub(p0)
 	d1 := coord.Sub(p1)
@@ -208,9 +210,9 @@ func simplex(coord, size vec.Float64, offset, seed float64) float64 {
 	iuw := [3]float64{xw[0] + 0.5*yw[0], xw[1] + 0.5*yw[1], xw[2] + 0.5*yw[2]}
 	ivw := [3]float64{yw[0], yw[1], yw[2]}
 
-	g0 := rgrad2(vec.New(iuw[0], ivw[0]), offset, seed)
-	g1 := rgrad2(vec.New(iuw[1], ivw[1]), offset, seed)
-	g2 := rgrad2(vec.New(iuw[2], ivw[2]), offset, seed)
+	g0 := rgrad2(vector2.New(iuw[0], ivw[0]), offset, seed)
+	g1 := rgrad2(vector2.New(iuw[1], ivw[1]), offset, seed)
+	g2 := rgrad2(vector2.New(iuw[2], ivw[2]), offset, seed)
 
 	w0 := g0.Dot(d0)
 	w1 := g1.Dot(d1)
@@ -241,7 +243,7 @@ func simplex(coord, size vec.Float64, offset, seed float64) float64 {
 	return 0.5 + 5.5*n
 }
 
-func Simplex(coord, size vec.Float64, folds, octaves int, persistence, offset, seed float64) float64 {
+func Simplex(coord, size vector2.Float64, folds, octaves int, persistence, offset, seed float64) float64 {
 	norm, value, scale := 0.0, 0.0, 1.0
 	sz := size
 	for i := range octaves {
@@ -258,17 +260,17 @@ func Simplex(coord, size vec.Float64, folds, octaves int, persistence, offset, s
 }
 
 // ---------- Cellular / Worley variants ----------
-func cellular(coord, size vec.Float64, offset, seed float64) float64 {
+func cellular(coord, size vector2.Float64, offset, seed float64) float64 {
 	// _ = coord.Fract() // f in shader; not needed explicitly aside from diff computation
-	o := coord.Floor().Add(rand2(vec.New(seed, 1.0-seed))).Add(size)
+	o := coord.Floor().Add(rand2(vector2.New(seed, 1.0-seed))).Add(size)
 	f := coord.Fract()
 
 	minDist := 2.0
 	for ix := -1; ix <= 1; ix++ {
 		for iy := -1; iy <= 1; iy++ {
-			neighbor := vec.New(float64(ix), float64(iy))
+			neighbor := vector2.New(float64(ix), float64(iy))
 			node := rand2(mod2(o.Add(neighbor), size))
-			node = vec.New(0.5, 0.5).Add(vec.New(math.Sin(offset*tau+tau*node.X()), math.Sin(offset*tau+tau*node.Y())).Scale(0.25))
+			node = vector2.New(0.5, 0.5).Add(vector2.New(math.Sin(offset*tau+tau*node.X()), math.Sin(offset*tau+tau*node.Y())).Scale(0.25))
 			diff := neighbor.Add(node).Sub(f)
 			dist := diff.Length()
 			if dist < minDist {
@@ -279,7 +281,7 @@ func cellular(coord, size vec.Float64, offset, seed float64) float64 {
 	return minDist
 }
 
-func Cellular(coord, size vec.Float64, folds, octaves int, persistence, offset, seed float64) float64 {
+func Cellular(coord, size vector2.Float64, folds, octaves int, persistence, offset, seed float64) float64 {
 	norm, value, scale := 0.0, 0.0, 1.0
 	sz := size
 	for i := range octaves {
@@ -295,8 +297,8 @@ func Cellular(coord, size vec.Float64, folds, octaves int, persistence, offset, 
 	return value / max(norm, eps)
 }
 
-func cellular2(coord, size vec.Float64, offset, seed float64) float64 {
-	o := coord.Floor().Add(rand2(vec.New(seed, 1.0-seed))).Add(size)
+func cellular2(coord, size vector2.Float64, offset, seed float64) float64 {
+	o := coord.Floor().Add(rand2(vector2.New(seed, 1.0-seed))).Add(size)
 	f := coord.Fract()
 
 	ot := offset * tau
@@ -304,9 +306,9 @@ func cellular2(coord, size vec.Float64, offset, seed float64) float64 {
 	min1, min2 := 2.0, 2.0
 	for ix := -1; ix <= 1; ix++ {
 		for iy := -1; iy <= 1; iy++ {
-			neighbor := vec.New(float64(ix), float64(iy))
+			neighbor := vector2.New(float64(ix), float64(iy))
 			node := rand2(mod2(o.Add(neighbor), size))
-			node = vec.New(0.5, 0.5).Add(vec.New(math.Sin(ot+tau*node.X()), math.Sin(ot+tau*node.Y())).Scale(0.25))
+			node = vector2.New(0.5, 0.5).Add(vector2.New(math.Sin(ot+tau*node.X()), math.Sin(ot+tau*node.Y())).Scale(0.25))
 			diff := neighbor.Add(node).Sub(f)
 			dist := diff.Length()
 			if dist < min1 {
@@ -320,7 +322,7 @@ func cellular2(coord, size vec.Float64, offset, seed float64) float64 {
 	return min2 - min1
 }
 
-func Cellular2(coord, size vec.Float64, folds, octaves int, persistence, offset, seed float64) float64 {
+func Cellular2(coord, size vector2.Float64, folds, octaves int, persistence, offset, seed float64) float64 {
 	norm, value, scale := 0.0, 0.0, 1.0
 	sz := size
 	for i := 0; i < octaves; i++ {
@@ -336,16 +338,16 @@ func Cellular2(coord, size vec.Float64, folds, octaves int, persistence, offset,
 	return value / max(norm, eps)
 }
 
-func cellular3(coord, size vec.Float64, offset, seed float64) float64 {
-	o := coord.Floor().Add(rand2(vec.New(seed, 1.0-seed))).Add(size)
+func cellular3(coord, size vector2.Float64, offset, seed float64) float64 {
+	o := coord.Floor().Add(rand2(vector2.New(seed, 1.0-seed))).Add(size)
 	f := coord.Fract()
 
 	minDist := 2.0
 	for ix := -1; ix <= 1; ix++ {
 		for iy := -1; iy <= 1; iy++ {
-			neighbor := vec.New(float64(ix), float64(iy))
+			neighbor := vector2.New(float64(ix), float64(iy))
 			node := rand2(mod2(o.Add(neighbor), size))
-			node = vec.New(0.5, 0.5).Add(vec.New(math.Sin(offset*tau+tau*node.X()), math.Sin(offset*tau+tau*node.Y())).Scale(0.25))
+			node = vector2.New(0.5, 0.5).Add(vector2.New(math.Sin(offset*tau+tau*node.X()), math.Sin(offset*tau+tau*node.Y())).Scale(0.25))
 			diff := neighbor.Add(node).Sub(f)
 			// Manhattan distance
 			dist := math.Abs(diff.X()) + math.Abs(diff.Y())
@@ -357,7 +359,7 @@ func cellular3(coord, size vec.Float64, offset, seed float64) float64 {
 	return minDist
 }
 
-func Cellular3(coord, size vec.Float64, folds, octaves int, persistence, offset, seed float64) float64 {
+func Cellular3(coord, size vector2.Float64, folds, octaves int, persistence, offset, seed float64) float64 {
 	norm, value, scale := 0.0, 0.0, 1.0
 	sz := size
 	for i := 0; i < octaves; i++ {
@@ -373,16 +375,16 @@ func Cellular3(coord, size vec.Float64, folds, octaves int, persistence, offset,
 	return value / max(norm, eps)
 }
 
-func cellular4(coord, size vec.Float64, offset, seed float64) float64 {
-	o := coord.Floor().Add(rand2(vec.New(seed, 1.0-seed)).Add(size))
+func cellular4(coord, size vector2.Float64, offset, seed float64) float64 {
+	o := coord.Floor().Add(rand2(vector2.New(seed, 1.0-seed)).Add(size))
 	f := coord.Fract()
 
 	min1, min2 := 2.0, 2.0
 	for ix := -1; ix <= 1; ix++ {
 		for iy := -1; iy <= 1; iy++ {
-			neighbor := vec.New(float64(ix), float64(iy))
+			neighbor := vector2.New(float64(ix), float64(iy))
 			node := rand2(mod2(o.Add(neighbor), size))
-			node = vec.New(0.5, 0.5).Add(vec.New(math.Sin(offset*tau+tau*node.X()), math.Sin(offset*tau+tau*node.Y())).Scale(0.25))
+			node = vector2.New(0.5, 0.5).Add(vector2.New(math.Sin(offset*tau+tau*node.X()), math.Sin(offset*tau+tau*node.Y())).Scale(0.25))
 			diff := neighbor.Add(node).Sub(f)
 			dist := math.Abs(diff.X()) + math.Abs(diff.Y()) // Manhattan
 			if dist < min1 {
@@ -396,7 +398,7 @@ func cellular4(coord, size vec.Float64, offset, seed float64) float64 {
 	return min2 - min1
 }
 
-func Cellular4(coord, size vec.Float64, folds, octaves int, persistence, offset, seed float64) float64 {
+func Cellular4(coord, size vector2.Float64, folds, octaves int, persistence, offset, seed float64) float64 {
 	norm, value, scale := 0.0, 0.0, 1.0
 	sz := size
 	for i := 0; i < octaves; i++ {
@@ -412,16 +414,16 @@ func Cellular4(coord, size vec.Float64, folds, octaves int, persistence, offset,
 	return value / max(norm, eps)
 }
 
-func cellular5(coord, size vec.Float64, offset, seed float64) float64 {
-	o := coord.Floor().Add(rand2(vec.New(seed, 1.0-seed))).Add(size)
+func cellular5(coord, size vector2.Float64, offset, seed float64) float64 {
+	o := coord.Floor().Add(rand2(vector2.New(seed, 1.0-seed))).Add(size)
 	f := coord.Fract()
 
 	minDist := 2.0
 	for ix := -1; ix <= 1; ix++ {
 		for iy := -1; iy <= 1; iy++ {
-			neighbor := vec.New(float64(ix), float64(iy))
+			neighbor := vector2.New(float64(ix), float64(iy))
 			node := rand2(mod2(o.Add(neighbor), size))
-			node = vec.New(0.5, 0.5).Add(vec.New(math.Sin(offset*tau+tau*node.X()), math.Sin(offset*tau+tau*node.Y())).Scale(0.5))
+			node = vector2.New(0.5, 0.5).Add(vector2.New(math.Sin(offset*tau+tau*node.X()), math.Sin(offset*tau+tau*node.Y())).Scale(0.5))
 			diff := neighbor.Add(node).Sub(f)
 			// Chebyshev distance
 			ax := math.Abs(diff.X())
@@ -438,7 +440,7 @@ func cellular5(coord, size vec.Float64, offset, seed float64) float64 {
 	return minDist
 }
 
-func Cellular5(coord, size vec.Float64, folds, octaves int, persistence, offset, seed float64) float64 {
+func Cellular5(coord, size vector2.Float64, folds, octaves int, persistence, offset, seed float64) float64 {
 	norm, value, scale := 0.0, 0.0, 1.0
 	sz := size
 	for i := 0; i < octaves; i++ {
@@ -454,16 +456,16 @@ func Cellular5(coord, size vec.Float64, folds, octaves int, persistence, offset,
 	return value / max(norm, eps)
 }
 
-func cellular6(coord, size vec.Float64, offset, seed float64) float64 {
-	o := coord.Floor().Add(rand2(vec.New(seed, 1.0-seed))).Add(size)
+func cellular6(coord, size vector2.Float64, offset, seed float64) float64 {
+	o := coord.Floor().Add(rand2(vector2.New(seed, 1.0-seed))).Add(size)
 	f := coord.Fract()
 
 	min1, min2 := 2.0, 2.0
 	for ix := -1; ix <= 1; ix++ {
 		for iy := -1; iy <= 1; iy++ {
-			neighbor := vec.New(float64(ix), float64(iy))
+			neighbor := vector2.New(float64(ix), float64(iy))
 			node := rand2(mod2(o.Add(neighbor), size))
-			node = vec.New(0.5, 0.5).Add(vec.New(math.Sin(offset*tau+tau*node.X()), math.Sin(offset*tau+tau*node.Y())).Scale(0.25))
+			node = vector2.New(0.5, 0.5).Add(vector2.New(math.Sin(offset*tau+tau*node.X()), math.Sin(offset*tau+tau*node.Y())).Scale(0.25))
 			diff := neighbor.Add(node).Sub(f)
 			ax := math.Abs(diff.X())
 			ay := math.Abs(diff.Y())
@@ -482,7 +484,7 @@ func cellular6(coord, size vec.Float64, offset, seed float64) float64 {
 	return min2 - min1
 }
 
-func Cellular6(coord, size vec.Float64, folds, octaves int, persistence, offset, seed float64) float64 {
+func Cellular6(coord, size vector2.Float64, folds, octaves int, persistence, offset, seed float64) float64 {
 	norm, value, scale := 0.0, 0.0, 1.0
 	sz := size
 	for i := 0; i < octaves; i++ {
@@ -499,21 +501,21 @@ func Cellular6(coord, size vec.Float64, folds, octaves int, persistence, offset,
 }
 
 // ---------- Voronoise (Inigo Quilez MIT, adapted) ----------
-func voronoise(coord, size vec.Float64, offset, seed float64) float64 {
-	i := coord.Floor().Add(rand2(vec.New(seed, 1.0-seed))).Add(size)
+func voronoise(coord, size vector2.Float64, offset, seed float64) float64 {
+	i := coord.Floor().Add(rand2(vector2.New(seed, 1.0-seed))).Add(size)
 	f := coord.Fract()
 
 	aX, aY := 0.0, 0.0
 
 	for yy := -2; yy <= 2; yy++ {
 		for xx := -2; xx <= 2; xx++ {
-			g := vec.New(float64(xx), float64(yy))
-			o := rand3(mod2(i.Add(g), size).Add(vec.New(seed, seed)))
+			g := vector2.New(float64(xx), float64(yy))
+			o := rand3(mod2(i.Add(g), size).Add(vector2.New(seed, seed)))
 			ox := o.X()
 			oy := o.Y()
 			ox += 0.25 * math.Sin(offset*tau+tau*ox)
 			oy += 0.25 * math.Sin(offset*tau+tau*oy)
-			d := g.Sub(f).Sub(vec.New(-ox, -oy))                         // g - f + o.xy
+			d := g.Sub(f).Sub(vector2.New(-ox, -oy))                     // g - f + o.xy
 			w := math.Pow(1.0-math.Min(1.0, d.Length()/math.Sqrt2), 1.0) // smoothstep approx
 			aX += o.Z() * w
 			aY += w
@@ -522,7 +524,7 @@ func voronoise(coord, size vec.Float64, offset, seed float64) float64 {
 	return aX / max(aY, eps)
 }
 
-func Voronoise(coord, size vec.Float64, folds, octaves int, persistence, offset, seed float64) float64 {
+func Voronoise(coord, size vector2.Float64, folds, octaves int, persistence, offset, seed float64) float64 {
 	norm, value, scale := 0.0, 0.0, 1.0
 	sz := size
 	for i := range octaves {
