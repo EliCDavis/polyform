@@ -1,10 +1,13 @@
 package texturing
 
 import (
+	"cmp"
 	"image"
 	"image/color"
+	"math"
 
 	"github.com/EliCDavis/polyform/drawing/coloring"
+	"github.com/EliCDavis/vector"
 )
 
 func GaussianBlur(src image.Image) image.Image {
@@ -81,4 +84,66 @@ func BoxBlurNTimes(src image.Image, iterations int) image.Image {
 		return dst2
 	}
 	return dst
+}
+
+// Generates a normalized 1D Gaussian kernel
+func gaussianKernel(radius int, sigma float64) []float64 {
+	kernel := make([]float64, 2*radius+1)
+	var sum float64
+
+	sigma2 := sigma * sigma * 2
+	for i := -radius; i <= radius; i++ {
+		v := math.Exp(-(float64(i * i)) / sigma2)
+		kernel[i+radius] = v
+		sum += v
+	}
+	for i := range kernel {
+		kernel[i] /= sum
+	}
+	return kernel
+}
+
+func clamp[T cmp.Ordered](i, minimum, maximum T) T {
+	return max(min(i, maximum), minimum)
+}
+
+// Applies a 1D convolution along x or y
+func convolve1DGaussian[T any](space vector.Space[T], src Texture[T], dst Texture[T], kernel []float64, horizontal bool) {
+	radius := len(kernel) / 2
+
+	if horizontal {
+		src.ScanParallel(func(x, y int, v T) {
+			var accum T
+			for k := -radius; k <= radius; k++ {
+				sx := clamp(x+k, 0, src.width-1)
+				weighted := space.Scale(src.Get(sx, y), kernel[k+radius])
+				accum = space.Add(accum, weighted)
+			}
+			dst.Set(x, y, accum)
+		})
+	} else {
+		src.ScanParallel(func(x, y int, v T) {
+			var accum T
+			for k := -radius; k <= radius; k++ {
+				sy := clamp(y+k, 0, src.height-1)
+				weighted := space.Scale(src.Get(x, sy), kernel[k+radius])
+				accum = space.Add(accum, weighted)
+			}
+			dst.Set(x, y, accum)
+		})
+	}
+}
+
+// GaussianBlur applies a Gaussian blur to the texture
+func RadialGaussianBlur[T any](space vector.Space[T], src Texture[T], radius int, sigma float64) Texture[T] {
+	kernel := gaussianKernel(radius, sigma)
+
+	tmp := NewTexture[T](src.width, src.height)
+	out := NewTexture[T](src.width, src.height)
+
+	// Horizontal then vertical
+	convolve1DGaussian(space, src, tmp, kernel, true)
+	convolve1DGaussian(space, tmp, out, kernel, false)
+
+	return out
 }

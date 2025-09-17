@@ -1,13 +1,14 @@
 package texturing
 
 import (
-	"errors"
 	"fmt"
 	"image"
 	"image/color"
 	"image/png"
 	"math"
 	"os"
+	"runtime"
+	"sync"
 
 	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/nodes"
@@ -81,6 +82,51 @@ func (t Texture[T]) Scan(cb func(x int, y int, v T)) {
 			cb(x, y, t.data[x+yAdjust])
 		}
 	}
+}
+
+func (t Texture[T]) scanWorker(start, end int, cb func(x int, y int, v T), wg *sync.WaitGroup) {
+	defer wg.Done()
+	for i := start; i < end; i++ {
+		x := i % t.width
+		y := i / t.width
+		cb(x, y, t.data[i])
+	}
+}
+
+func (t Texture[T]) ScanParallelAcross(workers int, cb func(x int, y int, v T)) {
+	// Don't do anything
+	if workers <= 1 {
+		t.Scan(cb)
+		return
+	}
+
+	total := len(t.data)
+	base := total / workers
+	extra := total % workers // remainder to distribute
+
+	wg := &sync.WaitGroup{}
+	start := 0
+	for i := range workers {
+
+		// This happens whenever we have more workers than pixels
+		if start == total {
+			break
+		}
+
+		size := base
+		if i < extra {
+			size++
+		}
+		end := start + size
+		wg.Add(1)
+		go t.scanWorker(start, end, cb, wg)
+		start = end
+	}
+	wg.Wait()
+}
+
+func (t Texture[T]) ScanParallel(cb func(x int, y int, v T)) {
+	t.ScanParallelAcross(runtime.NumCPU(), cb)
 }
 
 func (t Texture[T]) ToImage(f func(T) color.Color) image.Image {
@@ -465,7 +511,7 @@ func addTextures[T any](textures []Texture[T], out *nodes.StructOutput[Texture[T
 	}
 
 	if !resolutionsMatch(textures) {
-		out.CaptureError(fmt.Errorf("mismatch texture resolution"))
+		out.CaptureError(ErrMismatchDimensions)
 		return
 	}
 
@@ -551,14 +597,22 @@ func scaleTextureUniform[T any](
 	texture := nodes.GetOutputValue(out, texturePort)
 
 	amt := nodes.TryGetOutputValue(out, amount, 1)
-	result := NewTexture[T](texture.Width(), texture.Height())
-	for y := range result.Height() {
-		for x := range result.Width() {
-			result.Set(x, y, space.Scale(texture.Get(x, y), amt))
-		}
+	if amt == 1 {
+		out.Set(texture)
+		return
 	}
 
-	out.Set(result)
+	out.Set(ScaleUniform(texture, amt, space))
+}
+
+func ScaleUniform[T any](tex Texture[T], amount float64, space vector.Space[T]) Texture[T] {
+	result := NewTexture[T](tex.Width(), tex.Height())
+	for y := range result.Height() {
+		for x := range result.Width() {
+			result.Set(x, y, space.Scale(tex.Get(x, y), amount))
+		}
+	}
+	return result
 }
 
 func scaleTexture[T any](
@@ -582,7 +636,7 @@ func scaleTexture[T any](
 
 	amt := nodes.GetOutputValue(out, amount)
 	if texture.width != amt.width || texture.height != amt.height {
-		out.CaptureError(errors.New("mismatch texture resolutions"))
+		out.CaptureError(ErrMismatchDimensions)
 		return
 	}
 
