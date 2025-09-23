@@ -260,6 +260,8 @@
               gopls
               gotools
               go-tools
+              pnpm_10
+              nodejs-slim_24
             ];
           };
         };

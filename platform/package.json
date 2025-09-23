@@ -1,0 +1,28 @@
+{
+  "name": "",
+  "type": "module",
+  "version": "0.0.1",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro build && wrangler dev",
+    "astro": "astro",
+    "wrangler:deploy": "astro build && wrangler deploy",
+    "cf-typegen": "wrangler types"
+  },
+  "dependencies": {
+    "@astrojs/check": "^0.9.4",
+    "@astrojs/cloudflare": "^12.6.9",
+    "@astrojs/node": "^9.4.4",
+    "@clerk/astro": "^2.13.2",
+    "@faker-js/faker": "^10.0.0",
+    "@tailwindcss/vite": "^4.1.13",
+    "astro": "^5.13.10",
+    "tailwindcss": "^4.1.13",
+    "typescript": "^5.9.2"
+  },
+  "devDependencies": {
+    "@types/node": "^24.5.2",
+    "wrangler": "^4.38.0"
+  }
+}

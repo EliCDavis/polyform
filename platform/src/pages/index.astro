@@ -1,0 +1,10 @@
+---
+import SiteLayout from "../layouts/SiteLayout.astro"
+import { generateRandomSHA256 } from '@/lib/util'
+
+const random256Hash = await generateRandomSHA256();
+---
+
+<SiteLayout title="Clerk + Astro">
+  <a href=`/graph/${random256Hash}`> Go-to random graph hash </a>
+</SiteLayout>
