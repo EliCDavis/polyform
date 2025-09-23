@@ -79,5 +79,10 @@ func init() {
 
 	refutil.RegisterType[nodes.Struct[DotProductNode]](factory)
 
+	refutil.RegisterType[nodes.Struct[GaussianBlurFloatNode]](factory)
+	refutil.RegisterType[nodes.Struct[GaussianBlurFloat2Node]](factory)
+	refutil.RegisterType[nodes.Struct[GaussianBlurFloat3Node]](factory)
+	refutil.RegisterType[nodes.Struct[GaussianBlurColorNode]](factory)
+
 	generator.RegisterTypes(factory)
 }

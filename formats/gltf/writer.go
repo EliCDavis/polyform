@@ -15,6 +15,7 @@ import (
 
 	"github.com/EliCDavis/bitlib"
 	"github.com/EliCDavis/iter"
+	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/polyform/math/trs"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/animation"
@@ -411,59 +412,73 @@ func (w *Writer) AddScene(scene PolyformScene) error {
 
 	sceneNodes := make([]GltfId, 0)
 
+	childInstanceGroups := make(instancesCachce)
+
 	for i, child := range scene.Models {
-		id, err := w.addModel(child)
-		if err != nil {
-			return fmt.Errorf("unable to add model[%d] %q to scene: %w", i, child.Name, err)
+		if w.Options.GpuInstancingStrategy == WriterInstancingStrategy_Collapse {
+			if canCollapseIntoInstance(child) {
+				meshIndex, err := w.getOrAddMeshIndex(child)
+				if err != nil {
+					return err
+				}
+				childInstanceGroups.Add(meshIndex, child)
+				continue
+			}
+		} else {
+			id, err := w.addModel(child)
+			if err != nil {
+				return fmt.Errorf("unable to add model[%d] %q to scene: %w", i, child.Name, err)
+			}
+			sceneNodes = append(sceneNodes, *id)
 		}
-		sceneNodes = append(sceneNodes, *id)
+
 	}
 
-	// var instances instanceTracker
+	if w.Options.GpuInstancingStrategy == WriterInstancingStrategy_Collapse {
 
-	// // First pass: process all models, collect mesh data and tracking instances
-	// for _, model := range scene.Models {
-	// 	// Validate that if GPU instances are provided, the UseGpuInstancing flag is set
-	// 	if len(model.GpuInstances) > 0 && !scene.UseGpuInstancing {
-	// 		return fmt.Errorf("model %q has GPU instances defined but scene.UseGpuInstancing is not set", model.Name)
-	// 	}
+		// Write all children that weren't instanced
+		for _, child := range scene.Models {
 
-	// 	meshIndex, err := w.addModel(model)
-	// 	if err != nil {
-	// 		return fmt.Errorf("failed to add model %q: %w", model.Name, err)
-	// 	} else if meshIndex == -1 {
-	// 		continue // mesh was not added to scene, ignore and continue
-	// 	}
+			if child.Mesh != nil {
+				meshIndex, err := w.getOrAddMeshIndex(child)
+				if err != nil {
+					return err
+				}
+				if childInstanceGroups.IsInstanced(meshIndex) {
+					continue
+				}
+			}
 
-	// 	// Handle GPU instances if present
-	// 	if len(model.GpuInstances) > 0 {
-	// 		for _, t := range model.GpuInstances {
-	// 			gpuInstance := modelInstance{
-	// 				meshIndex: meshIndex,
-	// 				trs:       &t,
-	// 				name:      model.Name,
-	// 			}
-	// 			instances.add(meshIndex, gpuInstance, model.Skeleton, model.Animations)
-	// 		}
-	// 	} else {
-	// 		// Create a model instance for the base model's TRS
-	// 		modelInst := modelInstance{
-	// 			meshIndex: meshIndex,
-	// 			trs:       model.TRS,
-	// 			name:      model.Name,
-	// 		}
+			childeNodeIndex, err := w.addModel(child)
+			if err != nil {
+				return fmt.Errorf("error adding scene node %q: %w", child.Name, err)
+			}
+			sceneNodes = append(sceneNodes, *childeNodeIndex)
+		}
 
-	// 		// Add to instance tracker - this will create a unique group for animated models
-	// 		instances.add(meshIndex, modelInst, model.Skeleton, model.Animations)
-	// 	}
-	// }
+		// Write all instance groups
+		for mesh, instances := range childInstanceGroups {
+			if len(instances) < 2 {
+				continue
+			}
+			childIndex := len(w.nodes)
+			childNode := Node{Name: "Instances", Mesh: &mesh.mesh}
 
-	// // Second pass: serialize instances, either as individual nodes or using GPU instancing
-	// for _, group := range instances.groups {
-	// 	if err := w.serializeInstances(group, scene.UseGpuInstancing); err != nil {
-	// 		return fmt.Errorf("failed to serialize instances: %w", err)
-	// 	}
-	// }
+			childRotations := make([]vector4.Float64, len(instances))
+			for i, instance := range instances {
+				childRotations[i] = instance.Rotation().Vector4()
+			}
+
+			childNode.Extensions = make(Extensions)
+			childNode.Extensions[extGpuInstancingID] = w.addExtGpuInstancing(
+				trs.Positions(instances),
+				trs.Scales(instances),
+				childRotations,
+			)
+			w.nodes = append(w.nodes, childNode)
+			sceneNodes = append(sceneNodes, childIndex)
+		}
+	}
 
 	// Add lights
 	for _, light := range scene.Lights {
@@ -481,141 +496,7 @@ func (w *Writer) AddScene(scene PolyformScene) error {
 	return nil
 }
 
-// func (w *Writer) applyInstancingStrategyToScene(scene Scene) Scene {
-// 	switch w.Options.GpuInstancingStrategy {
-// 	case WriterInstancingStrategy_Default:
-// 		for _, node := range scene.Nodes {
-// 			w.writeNodeInstancesRecursively(w.nodes[node])
-// 		}
-// 		return scene
-// 	}
-// }
-
-// serializeInstances processes the instance groups and serializes them as GLTF nodes
-// Returns an error if animation models with multiple instances are found when GPU instancing is disabled
-// func (w *Writer) serializeInstances(group modelInstanceGroup) error {
-// 	// Skip groups with no instances
-// 	if len(group.instances) == 0 {
-// 		return nil
-// 	}
-
-// 	if useGpuInstancing && len(group.instances) > 1 {
-// 		w.extensionsUsed[extGpuInstancingID] = true
-// 		w.extensionsRequired[extGpuInstancingID] = true
-
-// 		// Create a node for the animated model
-// 		nodeIndex := len(w.nodes)
-// 		newNode := Node{
-// 			Mesh: &group.meshIndex,
-// 			Name: group.instances[0].name, //In case of GPU instances all names will be the same.
-// 		}
-// 		newNode.Extensions = make(map[string]any)
-
-// 		positions := make([]vector3.Float64, 0, len(group.instances))
-// 		rotations := make([]vector4.Float64, 0, len(group.instances))
-// 		scales := make([]vector3.Float64, 0, len(group.instances))
-
-// 		for i := 0; i < len(group.instances); i++ {
-// 			if group.instances[i].trs != nil {
-// 				positions = append(positions, group.instances[i].trs.Position())
-// 				rotations = append(rotations, group.instances[i].trs.Rotation().Vector4())
-// 				scales = append(scales, group.instances[i].trs.Scale())
-// 			}
-// 		}
-
-// 		// Create instancing attributes
-// 		instances := ExtGpuInstancing{
-// 			Attributes: make(map[string]int),
-// 		}
-
-// 		instances.Attributes["TRANSLATION"] = len(w.accessors)
-// 		w.WriteVector3(AccessorComponentType_FLOAT, iter.Array(positions))
-
-// 		instances.Attributes["SCALE"] = len(w.accessors)
-// 		w.WriteVector3(AccessorComponentType_FLOAT, iter.Array(scales))
-
-// 		instances.Attributes["ROTATION"] = len(w.accessors)
-// 		w.WriteVector4(AccessorComponentType_FLOAT, iter.Array(rotations))
-
-// 		newNode.Extensions[extGpuInstancingID] = instances
-
-// 		w.nodes = append(w.nodes, newNode)
-// 		w.scene = append(w.scene, nodeIndex)
-
-// 		if group.isAnimated() {
-// 			skinNode := nodeIndex
-// 			if group.skeleton != nil {
-// 				var skinIndex *int
-// 				skinIndex, skinNode = w.AddSkin(*group.skeleton)
-// 				w.nodes[nodeIndex].Skin = skinIndex
-// 			}
-
-// 			if len(group.animations) > 0 {
-// 				w.AddAnimations(group.animations, *group.skeleton, skinNode)
-// 			}
-// 		}
-
-// 		return nil
-// 	}
-
-// 	if group.isAnimated() && len(group.instances) > 1 {
-// 		// This really has already been checked earlier and should never happen.
-// 		// This limitation can be lifted once node children mechanics is implemented.
-// 		return fmt.Errorf("animated model %q has multiple instances, but GPU instancing is disabled", group.instances[0].name)
-// 	}
-
-// 	// Create individual nodes for each instance
-// 	for _, instance := range group.instances {
-// 		nodeIndex := len(w.nodes)
-// 		newNode := Node{
-// 			Mesh: &group.meshIndex,
-// 			Name: instance.name,
-// 		}
-
-// 		// Set transformations
-// 		if instance.trs != nil {
-// 			// Only set position if it's not 0,0,0
-// 			posArr := instance.trs.Position().ToFixedArr()
-// 			if posArr[0] != 0 || posArr[1] != 0 || posArr[2] != 0 {
-// 				newNode.Translation = &posArr
-// 			}
-
-// 			// Only set rotation if it's not identity quaternion
-// 			rot := instance.trs.Rotation()
-// 			if rot.W() != 1 || rot.Dir().X() != 0 || rot.Dir().Y() != 0 || rot.Dir().Z() != 0 {
-// 				rotArr := rot.ToArr()
-// 				newNode.Rotation = &rotArr
-// 			}
-
-// 			// Only set scale if it's not 1,1,1
-// 			scaleArr := instance.trs.Scale().ToFixedArr()
-// 			if scaleArr[0] != 1 || scaleArr[1] != 1 || scaleArr[2] != 1 {
-// 				newNode.Scale = &scaleArr
-// 			}
-// 		}
-
-// 		w.nodes = append(w.nodes, newNode)
-// 		w.scene = append(w.scene, nodeIndex)
-
-// 		// If this triggers - there always only one instance
-// 		if group.isAnimated() {
-// 			skinNode := nodeIndex
-// 			if group.skeleton != nil {
-// 				var skinIndex *int
-// 				skinIndex, skinNode = w.AddSkin(*group.skeleton)
-// 				w.nodes[nodeIndex].Skin = skinIndex
-// 			}
-
-// 			if len(group.animations) > 0 {
-// 				w.AddAnimations(group.animations, *group.skeleton, skinNode)
-// 			}
-// 		}
-// 	}
-
-// 	return nil
-// }
-
-func (w *Writer) addMesh(model PolyformModel) (meshIndex int, err error) {
+func (w *Writer) getOrAddMeshIndex(model PolyformModel) (meshIndex int, err error) {
 	var matIndex *int
 	if model.Material != nil {
 		matIndex, err = w.AddMaterial(model.Material)
@@ -696,13 +577,38 @@ func (w *Writer) addMesh(model PolyformModel) (meshIndex int, err error) {
 	return meshIndex, nil
 }
 
-func canCollapseChildIntoParent(parent, child PolyformModel) bool {
+func canCollapseChildIntoParentAsInstance(parent, child PolyformModel) bool {
 	return len(child.Children) == 0 && child.Mesh == parent.Mesh && child.Material == parent.Material
+}
+
+func canCollapseIntoInstance(model PolyformModel) bool {
+	return len(model.Children) == 0 && model.Mesh != nil && model.Mesh.PrimitiveCount() > 0
+}
+
+func (w *Writer) addExtGpuInstancing(positions, scales []vector3.Float64, rotations []vector4.Float64) ExtGpuInstancing {
+	w.extensionsRequired[extGpuInstancingID] = true
+	w.extensionsUsed[extGpuInstancingID] = true
+	instances := ExtGpuInstancing{
+		Attributes: make(map[string]int),
+	}
+
+	instances.Attributes["TRANSLATION"] = len(w.accessors)
+	w.WriteVector3(AccessorComponentType_FLOAT, iter.Array(positions))
+
+	instances.Attributes["SCALE"] = len(w.accessors)
+	w.WriteVector3(AccessorComponentType_FLOAT, iter.Array(scales))
+
+	instances.Attributes["ROTATION"] = len(w.accessors)
+	w.WriteVector4(AccessorComponentType_FLOAT, iter.Array(rotations))
+
+	return instances
 }
 
 func (w *Writer) addModel(model PolyformModel) (nodeId *GltfId, err error) {
 
-	node := Node{}
+	node := Node{
+		Name: model.Name,
+	}
 
 	if model.Mesh == nil && len(model.Children) == 0 {
 		return nil, fmt.Errorf("%w: nil mesh in model %q", ErrInvalidInput, model.Name)
@@ -712,8 +618,26 @@ func (w *Writer) addModel(model PolyformModel) (nodeId *GltfId, err error) {
 		return nil, errors.New("model can not reference a material without also referencing a mesh")
 	}
 
+	if model.TRS != nil {
+		trs := *model.TRS
+		if trs.Position() != vector3.Zero[float64]() {
+			translation := trs.Position().ToFixedArr()
+			node.Translation = &translation
+		}
+
+		if trs.Scale() != vector3.One[float64]() {
+			scale := trs.Scale().ToFixedArr()
+			node.Scale = &scale
+		}
+
+		if trs.Rotation() != quaternion.Identity() {
+			rotation := trs.Rotation().ToArr()
+			node.Rotation = &rotation
+		}
+	}
+
 	if model.Mesh != nil && model.Mesh.PrimitiveCount() > 0 {
-		meshIndex, err := w.addMesh(model)
+		meshIndex, err := w.getOrAddMeshIndex(model)
 		if err != nil {
 			return nil, err
 		}
@@ -730,11 +654,12 @@ func (w *Writer) addModel(model PolyformModel) (nodeId *GltfId, err error) {
 		scales = append(scales, instance.Scale())
 	}
 
-	node.Children = make([]GltfId, len(model.Children))
+	node.Children = make([]GltfId, 0, len(model.Children))
+	childInstanceGroups := make(instancesCachce)
 
 	for i, child := range model.Children {
 		if w.Options.GpuInstancingStrategy == WriterInstancingStrategy_Collapse {
-			if canCollapseChildIntoParent(model, child) {
+			if canCollapseChildIntoParentAsInstance(model, child) {
 
 				childTRS := trs.Identity()
 				if child.TRS != nil {
@@ -756,32 +681,75 @@ func (w *Writer) addModel(model PolyformModel) (nodeId *GltfId, err error) {
 
 				continue
 			}
+
+			if canCollapseIntoInstance(child) {
+				meshIndex, err := w.getOrAddMeshIndex(child)
+				if err != nil {
+					return nil, err
+				}
+				childInstanceGroups.Add(meshIndex, child)
+				continue
+			}
 		}
 
 		childeNodeIndex, err := w.addModel(child)
 		if err != nil {
 			return nil, fmt.Errorf("error adding %q %d child %q: %w", model.Name, i, child.Name, err)
 		}
-		node.Children[i] = *childeNodeIndex
+		node.Children = append(node.Children, *childeNodeIndex)
 	}
 
 	if len(positions) > 0 {
 		switch w.Options.GpuInstancingStrategy {
 		case WriterInstancingStrategy_Default, WriterInstancingStrategy_Collapse:
-			instances := ExtGpuInstancing{
-				Attributes: make(map[string]int),
+			if node.Extensions == nil {
+				node.Extensions = make(Extensions)
+			}
+			node.Extensions[extGpuInstancingID] = w.addExtGpuInstancing(positions, scales, rotations)
+		}
+	}
+
+	if w.Options.GpuInstancingStrategy == WriterInstancingStrategy_Collapse {
+
+		// Write all children that weren't instanced
+		for i, child := range model.Children {
+			if child.Mesh != nil {
+				meshIndex, err := w.getOrAddMeshIndex(child)
+				if err != nil {
+					panic(err)
+				}
+				if childInstanceGroups.IsInstanced(meshIndex) {
+					continue
+				}
 			}
 
-			instances.Attributes["TRANSLATION"] = len(w.accessors)
-			w.WriteVector3(AccessorComponentType_FLOAT, iter.Array(positions))
+			childeNodeIndex, err := w.addModel(child)
+			if err != nil {
+				return nil, fmt.Errorf("error adding %q %d child %q: %w", model.Name, i, child.Name, err)
+			}
+			node.Children = append(node.Children, *childeNodeIndex)
+		}
 
-			instances.Attributes["SCALE"] = len(w.accessors)
-			w.WriteVector3(AccessorComponentType_FLOAT, iter.Array(scales))
+		// Write all instance groups
+		for mesh, instances := range childInstanceGroups {
+			if len(instances) < 2 {
+				continue
+			}
+			childIndex := len(w.nodes)
+			childNode := Node{Name: "Instances", Mesh: &mesh.mesh}
 
-			instances.Attributes["ROTATION"] = len(w.accessors)
-			w.WriteVector4(AccessorComponentType_FLOAT, iter.Array(rotations))
-
-			node.Extensions[extGpuInstancingID] = instances
+			childRotations := make([]vector4.Float64, len(instances))
+			for i, instance := range instances {
+				childRotations[i] = instance.Rotation().Vector4()
+			}
+			childNode.Extensions = make(Extensions)
+			childNode.Extensions[extGpuInstancingID] = w.addExtGpuInstancing(
+				trs.Positions(instances),
+				trs.Scales(instances),
+				childRotations,
+			)
+			w.nodes = append(w.nodes, childNode)
+			node.Children = append(node.Children, childIndex)
 		}
 	}
 

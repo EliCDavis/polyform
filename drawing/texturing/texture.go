@@ -84,6 +84,15 @@ func (t Texture[T]) Scan(cb func(x int, y int, v T)) {
 	}
 }
 
+func (t Texture[T]) Mutate(cb func(x int, y int, v T) T) {
+	for y := range t.height {
+		yAdjust := y * t.width
+		for x := range t.width {
+			t.data[x+yAdjust] = cb(x, y, t.data[x+yAdjust])
+		}
+	}
+}
+
 func (t Texture[T]) scanWorker(start, end int, cb func(x int, y int, v T), wg *sync.WaitGroup) {
 	defer wg.Done()
 	for i := start; i < end; i++ {
@@ -93,9 +102,17 @@ func (t Texture[T]) scanWorker(start, end int, cb func(x int, y int, v T), wg *s
 	}
 }
 
+func (t Texture[T]) mutateWorker(start, end int, cb func(x int, y int, v T) T, wg *sync.WaitGroup) {
+	defer wg.Done()
+	for i := start; i < end; i++ {
+		x := i % t.width
+		y := i / t.width
+		t.data[i] = cb(x, y, t.data[i])
+	}
+}
+
 func (t Texture[T]) ScanParallelAcross(workers int, cb func(x int, y int, v T)) {
-	// Don't do anything
-	if workers <= 1 {
+	if workers <= 1 || len(t.data) <= 1 {
 		t.Scan(cb)
 		return
 	}
@@ -125,8 +142,43 @@ func (t Texture[T]) ScanParallelAcross(workers int, cb func(x int, y int, v T)) 
 	wg.Wait()
 }
 
+func (t Texture[T]) MutateParallelAcross(workers int, cb func(x int, y int, v T) T) {
+	if workers <= 1 || len(t.data) <= 1 {
+		t.Mutate(cb)
+		return
+	}
+
+	total := len(t.data)
+	base := total / workers
+	extra := total % workers // remainder to distribute
+
+	wg := &sync.WaitGroup{}
+	start := 0
+	for i := range workers {
+
+		// This happens whenever we have more workers than pixels
+		if start == total {
+			break
+		}
+
+		size := base
+		if i < extra {
+			size++
+		}
+		end := start + size
+		wg.Add(1)
+		go t.mutateWorker(start, end, cb, wg)
+		start = end
+	}
+	wg.Wait()
+}
+
 func (t Texture[T]) ScanParallel(cb func(x int, y int, v T)) {
 	t.ScanParallelAcross(runtime.NumCPU(), cb)
+}
+
+func (t Texture[T]) MutateParallel(cb func(x int, y int, v T) T) {
+	t.MutateParallelAcross(runtime.NumCPU(), cb)
 }
 
 func (t Texture[T]) ToImage(f func(T) color.Color) image.Image {
@@ -399,39 +451,38 @@ func (n FloatToImageNode) tex(out nodes.ExecutionRecorder) Texture[coloring.Colo
 
 	for i := 1; i < len(texs); i++ {
 		if texs[0].width != texs[i].width || texs[0].height != texs[i].height {
-			out.CaptureError(fmt.Errorf("mismatch texture dimensions"))
+			out.CaptureError(ErrMismatchDimensions)
 			return NewTexture[coloring.Color](0, 0)
 		}
 	}
 
 	tex := NewTexture[coloring.Color](texs[0].width, texs[0].height)
-	for y := range texs[0].height {
-		for x := range texs[0].width {
-			c := coloring.Color{
-				R: rFill,
-				G: gFill,
-				B: bFill,
-				A: aFill,
-			}
-			if rTex != nil {
-				c.R = rTex.Get(x, y)
-			}
-
-			if gTex != nil {
-				c.G = gTex.Get(x, y)
-			}
-
-			if bTex != nil {
-				c.B = bTex.Get(x, y)
-			}
-
-			if aTex != nil {
-				c.A = aTex.Get(x, y)
-			}
-
-			tex.Set(x, y, c)
+	tex.MutateParallel(func(x, y int, v coloring.Color) coloring.Color {
+		c := coloring.Color{
+			R: rFill,
+			G: gFill,
+			B: bFill,
+			A: aFill,
 		}
-	}
+		if rTex != nil {
+			c.R = rTex.Get(x, y)
+		}
+
+		if gTex != nil {
+			c.G = gTex.Get(x, y)
+		}
+
+		if bTex != nil {
+			c.B = bTex.Get(x, y)
+		}
+
+		if aTex != nil {
+			c.A = aTex.Get(x, y)
+		}
+
+		return c
+	})
+
 	return tex
 }
 
