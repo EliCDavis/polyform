@@ -30,7 +30,7 @@ jobs:
       - name: Push Nix-cached Release Artifacts
         run: |
           nix run .#sri-check-up --print-build-logs
-          nix run .#release --print-build-logs
+          nix run .#gh-release --print-build-logs
 
   deploy:
     runs-on: ubuntu-latest

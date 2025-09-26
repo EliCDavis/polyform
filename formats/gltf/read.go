@@ -220,40 +220,28 @@ func decodeScalarAccessor(doc *Gltf, id GltfId, buffers [][]byte) ([]float64, er
 		}
 
 	case AccessorComponentType_UNSIGNED_BYTE:
-		div := 1.0
-		if accessor.Normalized {
-			div = 255.0
-		}
+		div := accessorDivisor(accessor)
 		for i := range accessor.Count {
 			offset := i * stride
 			values[i] = float64(buffer[offset]) / div
 		}
 
 	case AccessorComponentType_BYTE:
-		div := 1.0
-		if accessor.Normalized {
-			div = 127.0
-		}
+		div := accessorDivisor(accessor)
 		for i := range accessor.Count {
 			offset := i * stride
 			values[i] = float64(int8(buffer[offset])) / div
 		}
 
 	case AccessorComponentType_UNSIGNED_SHORT:
-		div := 1.0
-		if accessor.Normalized {
-			div = 65535.0
-		}
+		div := accessorDivisor(accessor)
 		for i := range accessor.Count {
 			offset := i * stride
 			values[i] = float64(binary.LittleEndian.Uint16(buffer[offset:])) / div
 		}
 
 	case AccessorComponentType_SHORT:
-		div := 1.0
-		if accessor.Normalized {
-			div = 32767.0
-		}
+		div := accessorDivisor(accessor)
 		for i := range accessor.Count {
 			offset := i * stride
 			values[i] = float64(int16(binary.LittleEndian.Uint16(buffer[offset:]))) / div
@@ -303,11 +291,7 @@ func decodeVector2Accessor(doc *Gltf, id GltfId, buffers [][]byte) ([]vector2.Fl
 		}
 
 	case AccessorComponentType_UNSIGNED_BYTE:
-		div := 1.
-		if accessor.Normalized {
-			div = 255.
-		}
-
+		div := accessorDivisor(accessor)
 		for i := range accessor.Count {
 			offset := i * stride
 			x := float64(buffer[offset]) / div
@@ -316,10 +300,7 @@ func decodeVector2Accessor(doc *Gltf, id GltfId, buffers [][]byte) ([]vector2.Fl
 		}
 
 	case AccessorComponentType_BYTE:
-		div := 1.0
-		if accessor.Normalized {
-			div = 127.0
-		}
+		div := accessorDivisor(accessor)
 		for i := range accessor.Count {
 			offset := i * stride
 			x := float64(int8(buffer[offset])) / div
@@ -328,10 +309,7 @@ func decodeVector2Accessor(doc *Gltf, id GltfId, buffers [][]byte) ([]vector2.Fl
 		}
 
 	case AccessorComponentType_UNSIGNED_SHORT:
-		div := 1.0
-		if accessor.Normalized {
-			div = 65535.0
-		}
+		div := accessorDivisor(accessor)
 		for i := range accessor.Count {
 			offset := i * stride
 			x := float64(binary.LittleEndian.Uint16(buffer[offset:])) / div
@@ -340,10 +318,7 @@ func decodeVector2Accessor(doc *Gltf, id GltfId, buffers [][]byte) ([]vector2.Fl
 		}
 
 	case AccessorComponentType_SHORT:
-		div := 1.0
-		if accessor.Normalized {
-			div = 32767.0
-		}
+		div := accessorDivisor(accessor)
 		for i := range accessor.Count {
 			offset := i * stride
 			x := float64(int16(binary.LittleEndian.Uint16(buffer[offset:]))) / div
@@ -356,6 +331,29 @@ func decodeVector2Accessor(doc *Gltf, id GltfId, buffers [][]byte) ([]vector2.Fl
 	}
 
 	return vectors, nil
+}
+
+func accessorDivisor(acc Accessor) float64 {
+	if !acc.Normalized {
+		return 1
+	}
+
+	switch acc.ComponentType {
+	case AccessorComponentType_UNSIGNED_BYTE:
+		return 255.
+
+	case AccessorComponentType_BYTE:
+		return 127.
+
+	case AccessorComponentType_UNSIGNED_SHORT:
+		return 65535.0
+
+	case AccessorComponentType_SHORT:
+		return 32767.0
+
+	default:
+		panic(fmt.Errorf("Accessord component type %d can not be normalized", acc.ComponentType))
+	}
 }
 
 func decodeVector3Accessor(doc *Gltf, id GltfId, buffers [][]byte) ([]vector3.Float64, error) {
@@ -390,11 +388,7 @@ func decodeVector3Accessor(doc *Gltf, id GltfId, buffers [][]byte) ([]vector3.Fl
 		}
 
 	case AccessorComponentType_UNSIGNED_BYTE:
-		div := 1.
-		if accessor.Normalized {
-			div = 255.
-		}
-
+		div := accessorDivisor(accessor)
 		for i := range accessor.Count {
 			offset := i * stride
 			x := float64(buffer[offset]) / div
@@ -404,10 +398,7 @@ func decodeVector3Accessor(doc *Gltf, id GltfId, buffers [][]byte) ([]vector3.Fl
 		}
 
 	case AccessorComponentType_BYTE:
-		div := 1.0
-		if accessor.Normalized {
-			div = 127.0
-		}
+		div := accessorDivisor(accessor)
 		for i := range accessor.Count {
 			offset := i * stride
 			x := float64(int8(buffer[offset])) / div
@@ -417,10 +408,7 @@ func decodeVector3Accessor(doc *Gltf, id GltfId, buffers [][]byte) ([]vector3.Fl
 		}
 
 	case AccessorComponentType_UNSIGNED_SHORT:
-		div := 1.0
-		if accessor.Normalized {
-			div = 65535.0
-		}
+		div := accessorDivisor(accessor)
 		for i := range accessor.Count {
 			offset := i * stride
 			x := float64(binary.LittleEndian.Uint16(buffer[offset:])) / div
@@ -430,10 +418,7 @@ func decodeVector3Accessor(doc *Gltf, id GltfId, buffers [][]byte) ([]vector3.Fl
 		}
 
 	case AccessorComponentType_SHORT:
-		div := 1.0
-		if accessor.Normalized {
-			div = 32767.0
-		}
+		div := accessorDivisor(accessor)
 		for i := range accessor.Count {
 			offset := i * stride
 			x := float64(int16(binary.LittleEndian.Uint16(buffer[offset:]))) / div
@@ -480,11 +465,7 @@ func decodeVector4Accessor(doc *Gltf, id GltfId, buffers [][]byte) ([]vector4.Fl
 		}
 
 	case AccessorComponentType_UNSIGNED_BYTE:
-		div := 1.
-		if accessor.Normalized {
-			div = 255.
-		}
-
+		div := accessorDivisor(accessor)
 		for i := range vectors {
 			offset := i * stride
 			x := float64(buffer[offset]) / div
@@ -495,10 +476,7 @@ func decodeVector4Accessor(doc *Gltf, id GltfId, buffers [][]byte) ([]vector4.Fl
 		}
 
 	case AccessorComponentType_BYTE:
-		div := 1.0
-		if accessor.Normalized {
-			div = 127.0
-		}
+		div := accessorDivisor(accessor)
 		for i := range vectors {
 			offset := i * stride
 			x := float64(int8(buffer[offset])) / div
@@ -509,10 +487,7 @@ func decodeVector4Accessor(doc *Gltf, id GltfId, buffers [][]byte) ([]vector4.Fl
 		}
 
 	case AccessorComponentType_UNSIGNED_SHORT:
-		div := 1.0
-		if accessor.Normalized {
-			div = 65535.0
-		}
+		div := accessorDivisor(accessor)
 		for i := range vectors {
 			offset := i * stride
 			x := float64(binary.LittleEndian.Uint16(buffer[offset:])) / div
@@ -523,10 +498,7 @@ func decodeVector4Accessor(doc *Gltf, id GltfId, buffers [][]byte) ([]vector4.Fl
 		}
 
 	case AccessorComponentType_SHORT:
-		div := 1.0
-		if accessor.Normalized {
-			div = 32767.0
-		}
+		div := accessorDivisor(accessor)
 		for i := range vectors {
 			offset := i * stride
 			x := float64(int16(binary.LittleEndian.Uint16(buffer[offset:]))) / div
@@ -687,64 +659,87 @@ func loadMaterial(doc *Gltf, materialId GltfId, opts ReaderOptions, buffers [][]
 	return material, nil
 }
 
-func decodePrimitive(doc *Gltf, buffers [][]byte, n Node, m Mesh, p Primitive, opts ReaderOptions, imgCache imgReaderCache) (*PolyformModel, error) {
-	// Handle indices - they might be nil for non-indexed geometry
-	var indices []int
-	var err error
-	if p.Indices != nil {
-		indices, err = decodeIndices(doc, p.Indices, buffers)
-		if err != nil {
-			return nil, fmt.Errorf("failed to decode indices: %w", err)
-		}
+func decodeNode(doc *Gltf, buffers [][]byte, n Node, opts ReaderOptions, imgCache imgReaderCache) (*PolyformModel, error) {
+	model := &PolyformModel{
+		Name: n.Name,
 	}
 
-	mesh := modeling.NewMesh(decodeTopology(p.Mode), indices)
-
-	// Process all attributes
-	for attr, gltfId := range p.Attributes {
-		if gltfId >= len(doc.Accessors) {
-			return nil, fmt.Errorf("attribute %s references invalid accessor %d", attr, gltfId)
+	if n.Mesh != nil {
+		mesh := doc.Meshes[*n.Mesh]
+		if len(mesh.Primitives) > 1 {
+			return nil, fmt.Errorf("unimplemented scenario: Node %s mesh %d has more than one primitive: %d", n.Name, *n.Mesh, len(mesh.Primitives))
 		}
 
-		accessor := doc.Accessors[gltfId]
-		attributeName := decodePrimitiveAttributeName(attr)
-
-		switch accessor.Type {
-		case AccessorType_SCALAR:
-			values, err := decodeScalarAccessor(doc, gltfId, buffers)
-			if err != nil {
-				return nil, fmt.Errorf("failed to decode scalar attribute %s: %w", attr, err)
+		if len(mesh.Primitives) == 1 { // Handle indices - they might be nil for non-indexed geometry
+			p := mesh.Primitives[0]
+			var indices []int
+			var err error
+			if p.Indices != nil {
+				indices, err = decodeIndices(doc, p.Indices, buffers)
+				if err != nil {
+					return nil, fmt.Errorf("failed to decode indices: %w", err)
+				}
 			}
-			mesh = mesh.SetFloat1Attribute(attributeName, values)
 
-		case AccessorType_VEC2:
-			v2, err := decodeVector2Accessor(doc, gltfId, buffers)
-			if err != nil {
-				return nil, fmt.Errorf("failed to decode vec2 attribute %s: %w", attr, err)
+			mesh := modeling.NewMesh(decodeTopology(p.Mode), indices)
+
+			// Process all attributes
+			for attr, gltfId := range p.Attributes {
+				if gltfId >= len(doc.Accessors) {
+					return nil, fmt.Errorf("attribute %s references invalid accessor %d", attr, gltfId)
+				}
+
+				accessor := doc.Accessors[gltfId]
+				attributeName := decodePrimitiveAttributeName(attr)
+
+				switch accessor.Type {
+				case AccessorType_SCALAR:
+					values, err := decodeScalarAccessor(doc, gltfId, buffers)
+					if err != nil {
+						return nil, fmt.Errorf("failed to decode scalar attribute %s: %w", attr, err)
+					}
+					mesh = mesh.SetFloat1Attribute(attributeName, values)
+
+				case AccessorType_VEC2:
+					v2, err := decodeVector2Accessor(doc, gltfId, buffers)
+					if err != nil {
+						return nil, fmt.Errorf("failed to decode vec2 attribute %s: %w", attr, err)
+					}
+					mesh = mesh.SetFloat2Attribute(attributeName, v2)
+
+				case AccessorType_VEC3:
+					v3, err := decodeVector3Accessor(doc, gltfId, buffers)
+					if err != nil {
+						return nil, fmt.Errorf("failed to decode vec3 attribute %s: %w", attr, err)
+					}
+					mesh = mesh.SetFloat3Attribute(attributeName, v3)
+
+				case AccessorType_VEC4:
+					v4, err := decodeVector4Accessor(doc, gltfId, buffers)
+					if err != nil {
+						return nil, fmt.Errorf("failed to decode vec4 attribute %s: %w", attr, err)
+					}
+					mesh = mesh.SetFloat4Attribute(attributeName, v4)
+
+				default:
+					return nil, fmt.Errorf("unsupported accessor type %s for attribute %s", accessor.Type, attr)
+				}
 			}
-			mesh = mesh.SetFloat2Attribute(attributeName, v2)
 
-		case AccessorType_VEC3:
-			v3, err := decodeVector3Accessor(doc, gltfId, buffers)
-			if err != nil {
-				return nil, fmt.Errorf("failed to decode vec3 attribute %s: %w", attr, err)
+			model.Mesh = &mesh
+
+			// Load material if present
+			if p.Material != nil {
+				m, err := loadMaterial(doc, *p.Material, opts, buffers, imgCache)
+				if err != nil {
+					return nil, fmt.Errorf("failed to load material: %w", err)
+				}
+				model.Material = m
 			}
-			mesh = mesh.SetFloat3Attribute(attributeName, v3)
-
-		case AccessorType_VEC4:
-			v4, err := decodeVector4Accessor(doc, gltfId, buffers)
-			if err != nil {
-				return nil, fmt.Errorf("failed to decode vec4 attribute %s: %w", attr, err)
-			}
-			mesh = mesh.SetFloat4Attribute(attributeName, v4)
-
-		default:
-			return nil, fmt.Errorf("unsupported accessor type %s for attribute %s", accessor.Type, attr)
 		}
 	}
 
 	transform := trs.Identity()
-
 	// Handle matrix transformation if present
 	if n.Matrix != nil {
 		transform = trs.FromMatrix(mat.FromColArray(*n.Matrix))
@@ -768,79 +763,34 @@ func decodePrimitive(doc *Gltf, buffers [][]byte, n Node, m Mesh, p Primitive, o
 			transform = transform.SetRotation(p)
 		}
 	}
+	model.TRS = &transform
 
-	// Load material if present
-	var material *PolyformMaterial
-	if p.Material != nil {
-		m, err := loadMaterial(doc, *p.Material, opts, buffers, imgCache)
-		if err != nil {
-			return nil, fmt.Errorf("failed to load material: %w", err)
-		}
-		material = m
-	}
-
-	return &PolyformModel{
-		Name:     n.Name,
-		Mesh:     &mesh,
-		Material: material,
-		TRS:      &transform,
-	}, nil
+	return model, nil
 }
 
 // processNodeHierarchy recursively processes a node and its children, accumulating transformations
-func processNodeHierarchy(doc *Gltf, buffers [][]byte, nodeIndex int, parentTransform trs.TRS, scene *PolyformScene, opts ReaderOptions, imgCache imgReaderCache) error {
+func processNodeHierarchy(doc *Gltf, buffers [][]byte, nodeIndex int, opts ReaderOptions, imgCache imgReaderCache) (*PolyformModel, error) {
 	if nodeIndex >= len(doc.Nodes) {
-		return fmt.Errorf("invalid node index: %d", nodeIndex)
+		return nil, fmt.Errorf("invalid node index: %d", nodeIndex)
 	}
 
 	node := doc.Nodes[nodeIndex]
 
-	// Calculate node transformation
-	nodeTransform := trs.Identity()
-	if node.Matrix != nil {
-		nodeTransform = trs.FromMatrix(mat.FromColArray(*node.Matrix))
-	} else {
-		if node.Translation != nil {
-			data := *node.Translation
-			nodeTransform = nodeTransform.SetTranslation(vector3.New(data[0], data[1], data[2]))
-		}
-		if node.Scale != nil {
-			data := *node.Scale
-			nodeTransform = nodeTransform.SetScale(vector3.New(data[0], data[1], data[2]))
-		}
-		if node.Rotation != nil {
-			data := *node.Rotation
-			nodeTransform = nodeTransform.SetRotation(quaternion.New(vector3.New(data[0], data[1], data[2]), data[3]))
-		}
-	}
-
-	// Combine with parent transformation
-	worldTransform := parentTransform.Multiply(nodeTransform)
-
-	// Process mesh if present
-	if node.Mesh != nil {
-		mesh := doc.Meshes[*node.Mesh]
-		for primitiveIndex, p := range mesh.Primitives {
-			model, err := decodePrimitive(doc, buffers, node, mesh, p, opts, imgCache)
-			if err != nil {
-				return fmt.Errorf("Node %d Meshes[%d].primitives[%d]: %w", nodeIndex, *node.Mesh, primitiveIndex, err)
-			}
-
-			// Apply world transformation
-			model.TRS = &worldTransform
-			scene.Models = append(scene.Models, *model)
-		}
+	model, err := decodeNode(doc, buffers, node, opts, imgCache)
+	if err != nil {
+		return nil, err
 	}
 
 	// Process children recursively
 	for _, childIndex := range node.Children {
-		err := processNodeHierarchy(doc, buffers, childIndex, worldTransform, scene, opts, imgCache)
+		childModel, err := processNodeHierarchy(doc, buffers, childIndex, opts, imgCache)
 		if err != nil {
-			return fmt.Errorf("failed to process child node %d of node %d: %w", childIndex, nodeIndex, err)
+			return nil, fmt.Errorf("failed to process child node %d of node %d: %w", childIndex, nodeIndex, err)
 		}
+		model.Children = append(model.Children, *childModel)
 	}
 
-	return nil
+	return model, nil
 }
 
 // ParseGLTF reads and parses GLTF JSON from an io.Reader.
@@ -1095,19 +1045,26 @@ func DecodeModels(doc *Gltf, buffers [][]byte, options *ReaderOptions) ([]Polyfo
 
 	models := make([]PolyformModel, 0)
 
-	for nodeIndex, node := range doc.Nodes {
-		if node.Mesh == nil {
-			continue
-		}
-
-		mesh := doc.Meshes[*node.Mesh]
-
-		for primitiveIndex, p := range mesh.Primitives {
-			model, err := decodePrimitive(doc, buffers, node, mesh, p, opts, imgCache)
+	if doc.Scene != nil {
+		scene := doc.Scenes[*doc.Scene]
+		for _, nodeIndex := range scene.Nodes {
+			node := doc.Nodes[nodeIndex]
+			model, err := decodeNode(doc, buffers, node, opts, imgCache)
 			if err != nil {
-				return nil, fmt.Errorf("Node %d Meshes[%d].primitives[%d]: %w", nodeIndex, *node.Mesh, primitiveIndex, err)
+				return nil, fmt.Errorf("Unable to decode node %d: %w", nodeIndex, err)
 			}
 			models = append(models, *model)
+		}
+	} else {
+		for _, scene := range doc.Scenes {
+			for _, nodeIndex := range scene.Nodes {
+				node := doc.Nodes[nodeIndex]
+				model, err := decodeNode(doc, buffers, node, opts, imgCache)
+				if err != nil {
+					return nil, fmt.Errorf("Unable to decode node %d: %w", nodeIndex, err)
+				}
+				models = append(models, *model)
+			}
 		}
 	}
 
@@ -1166,10 +1123,11 @@ func DecodeScene(doc *Gltf, buffers [][]byte, options *ReaderOptions) (*Polyform
 
 	// Process root nodes and their children recursively
 	for _, rootNodeIndex := range gltfScene.Nodes {
-		err := processNodeHierarchy(doc, buffers, rootNodeIndex, trs.Identity(), scene, opts, imgCache)
+		model, err := processNodeHierarchy(doc, buffers, rootNodeIndex, opts, imgCache)
 		if err != nil {
 			return nil, fmt.Errorf("failed to process root node %d: %w", rootNodeIndex, err)
 		}
+		scene.Models = append(scene.Models, *model)
 	}
 
 	return scene, nil

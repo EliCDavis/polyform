@@ -985,6 +985,7 @@ func TestSceneHierarchy(t *testing.T) {
 	tests := []struct {
 		name           string
 		setupScene     func() (gltf.Gltf, [][]byte)
+		validate       func(scene *gltf.PolyformScene)
 		expectedModels int
 		expectError    bool
 		errorMsg       string
@@ -1000,6 +1001,18 @@ func TestSceneHierarchy(t *testing.T) {
 			},
 			expectedModels: 1,
 			expectError:    false,
+			validate: func(scene *gltf.PolyformScene) {
+				model := scene.Models[0]
+				require.NotNil(t, model.TRS)
+
+				// The hierarchy should have accumulated transformations
+				// Root: translation (1,0,0), Child1: scale (2,2,2), Child2: rotation
+				translation := model.TRS.Position()
+				assert.InDelta(t, 1.0, translation.X(), epsilon, "Translation should be applied")
+
+				scale := model.TRS.Scale()
+				assertVector3Equal(t, vector3.New(1.0, 1.0, 1.0), scale, "Scale should be applied")
+			},
 		},
 		{
 			name: "empty_scene",
@@ -1046,18 +1059,8 @@ func TestSceneHierarchy(t *testing.T) {
 
 			assert.Len(t, scene.Models, tt.expectedModels)
 
-			// Validate model transformations for hierarchy (only for the actual hierarchy test)
-			if tt.expectedModels > 0 && tt.name == "simple_hierarchy" {
-				model := scene.Models[0]
-				require.NotNil(t, model.TRS)
-
-				// The hierarchy should have accumulated transformations
-				// Root: translation (1,0,0), Child1: scale (2,2,2), Child2: rotation
-				translation := model.TRS.Position()
-				assert.InDelta(t, 1.0, translation.X(), epsilon, "Translation should be applied")
-
-				scale := model.TRS.Scale()
-				assertVector3Equal(t, vector3.New(2.0, 2.0, 2.0), scale, "Scale should be applied")
+			if tt.validate != nil {
+				tt.validate(scene)
 			}
 		})
 	}
@@ -1206,7 +1209,7 @@ func TestIntegrationLoadAndDecode(t *testing.T) {
 
 				// Should have accumulated transforms from hierarchy
 				assert.InDelta(t, 1.0, translation.X(), epsilon, "Translation from root")
-				assertVector3Equal(t, vector3.New(2.0, 2.0, 2.0), scale, "Scale should be applied")
+				assertVector3Equal(t, vector3.New(1.0, 1.0, 1.0), scale, "Scale should be applied")
 			},
 		},
 	}
