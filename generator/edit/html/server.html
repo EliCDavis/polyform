@@ -140,8 +140,8 @@
 
         #three-viewer-container {
             display: flex;
-            margin:0;
-            padding:0;
+            margin: 0;
+            padding: 0;
             overflow: hidden;
             height: 40%;
             min-height: 0;
@@ -206,13 +206,13 @@
         }
 
         #three-canvas {
-            width: 100%; 
+            width: 100%;
             height: 100%;
             outline: none !important;
         }
 
         #three-canvas:focus {
-            width: 100%; 
+            width: 100%;
             height: 100%;
             outline: none !important;
             box-shadow: none;
@@ -221,11 +221,11 @@
         #full-page {
             /* flex-direction: column; */
             display: flex;
-            flex: 1;
+            /* flex: 1; */
 
             /* overflow: hidden; */
             height: 100%;
-            width: 100%;
+            /* width: 100%; */
         }
 
         #sidebar {
@@ -404,6 +404,15 @@
             border: 0;
             width: 100%;
         }
+
+        .toolbar {
+            height: 30px;
+            display: flex;
+            flex-direction: row;
+            gap: 12px;
+            padding: 8px;
+            background-color: #0e2931;
+        }
     </style>
 
     <script>
@@ -422,8 +431,6 @@
 </head>
 
 <body>
-
-
     <div id="watermark">
         <a href="https://github.com/EliCDavis/polyform">Polyform</a>
     </div>
@@ -432,64 +439,76 @@
         <div id="infoMessage"> </div>
     </div>
 
-    <div style="position: absolute; display: flex;">
-    </div>
 
-    <div id="full-page">
-        <div id="sidebar">
-            <!-- <div id="sidebar-icon-bar"></div> -->
-            <div id="sidebar-content">
-                <div id="info">
-                    <h1>{{.Title}}</h1>
-                    <h3 style="margin: 2px;">{{.Version}}</h3>
-                    {{.Description}}
-                </div>
-                <div class="sidebar-header">Graph</div>
-                <div class="sidebar-section-content" style="flex-direction: row;">
-                    <button style="flex: 1;" class="sidebar-button" id="new-graph-button">New</button>
-                    <button style="flex: 1;" class="sidebar-button" id="save-graph-button">Save</button>
-                    <button style="flex: 1;" class="sidebar-button" id="load-graph-button">Load</button>
-                </div>
-                <div class="sidebar-header">Export</div>
-                <div class="sidebar-section-content" style="flex-direction: row;">
-                    <button style="flex: 1;" class="sidebar-button" id="export-model-button">Model</button>
-                    <button style="flex: 1;" class="sidebar-button" id="export-mermaid-button">Mermaid</button>
-                    <button style="flex: 1;" class="sidebar-button" id="export-swagger-button">Swagger</button>
-                </div>
+    <div style="flex-direction: column; display: flex; height: 100%;">
+        <!-- <div class="toolbar">
+            <div>Graph</div>
+            <div>Export</div>
+            <div style="flex:1"></div>
+            <b>{{.Title}}</b>
+            <div style="margin: 2px;">{{.Version}}</div>
+            <div>{{.Description}}</div>
+            <div style="flex:1"></div>
+        </div> -->
 
-                <div class="sidebar-header">Profiles</div>
-                <div class="sidebar-section-content">
-                    <button id="new-profile">New Profile</button>
-                    <div id="profile-list"></div>
-                </div>
+        <div id="full-page">
+            <div id="sidebar">
+                <!-- <div id="sidebar-icon-bar"></div> -->
+                <div id="sidebar-content">
+                    <div id="info">
+                        <h1>{{.Title}}</h1>
+                        <h3 style="margin: 2px;">{{.Version}}</h3>
+                        {{.Description}}
+                    </div>
+                    <div class="sidebar-header">Graph</div>
+                    <div class="sidebar-section-content" style="flex-direction: row;">
+                        <button style="flex: 1;" class="sidebar-button" id="new-graph-button">New</button>
+                        <button style="flex: 1;" class="sidebar-button" id="save-graph-button">Save</button>
+                        <button style="flex: 1;" class="sidebar-button" id="load-graph-button">Load</button>
+                    </div>
+                    <div class="sidebar-header">Export</div>
+                    <div class="sidebar-section-content" style="flex-direction: row;">
+                        <button style="flex: 1;" class="sidebar-button" id="export-model-button">Model</button>
+                        <button style="flex: 1;" class="sidebar-button" id="export-mermaid-button">Mermaid</button>
+                        <button style="flex: 1;" class="sidebar-button" id="export-swagger-button">Swagger</button>
+                    </div>
 
-                <div class="sidebar-header">Variables</div>
-                <div class="sidebar-section-content">
-                    <button id="new-variable">New Variable</button>
-                    <div id="variable-list"></div>
-                </div>
+                    <div class="sidebar-header">Profiles</div>
+                    <div class="sidebar-section-content">
+                        <button id="new-profile">New Profile</button>
+                        <div id="profile-list"></div>
+                    </div>
 
-                
+                    <div class="sidebar-header">Variables</div>
+                    <div class="sidebar-section-content">
+                        <button id="new-variable">New Variable</button>
+                        <div id="variable-list"></div>
+                    </div>
+
+
+                </div>
             </div>
-        </div>
 
-        <div class="resizer" data-direction="horizontal"></div>
+            <div class="resizer" data-direction="horizontal"></div>
 
-        <div id="main-content">
-            <div id="three-viewer-container">
-                <canvas id="three-canvas"></canvas>
-            </div>
+            <div id="main-content">
+                <div id="three-viewer-container">
+                    <canvas id="three-canvas"></canvas>
+                </div>
 
-            <div class="resizer" data-direction="vertical"></div>
+                <div class="resizer" data-direction="vertical"></div>
 
-            <div id="light-container">
-                <canvas id="light-canvas"></canvas>
+                <div id="light-container">
+                    <canvas id="light-canvas"></canvas>
+                </div>
+
             </div>
         </div>
     </div>
 
     <script>
 
+        /*
         // https://phuoc.ng/collection/html-dom/create-resizable-split-views/
         document.addEventListener('DOMContentLoaded', function () {
             const resizable = (resizer) => {
@@ -573,6 +592,106 @@
                 resizable(ele);
             });
         });
+        */
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const resizable = (resizer) => {
+                const direction = resizer.getAttribute('data-direction') || 'horizontal';
+                const prevSibling = resizer.previousElementSibling;
+                const nextSibling = resizer.nextElementSibling;
+                const parent = resizer.parentNode;
+
+                let x = 0;
+                let y = 0;
+                let prevSiblingSize = 0;
+                let nextSiblingSize = 0;
+                let parentSize = 0;
+
+                const mouseDownHandler = function (e) {
+                    x = e.clientX;
+                    y = e.clientY;
+
+                    const parentRect = parent.getBoundingClientRect();
+                    const prevRect = prevSibling.getBoundingClientRect();
+                    const nextRect = nextSibling.getBoundingClientRect();
+
+                    if (direction === 'horizontal') {
+                        prevSiblingSize = prevRect.width;
+                        nextSiblingSize = nextRect.width;
+                        parentSize = parentRect.width;
+                    } else {
+                        prevSiblingSize = prevRect.height;
+                        nextSiblingSize = nextRect.height;
+                        parentSize = parentRect.height;
+                    }
+
+                    document.addEventListener('mousemove', mouseMoveHandler);
+                    document.addEventListener('mouseup', mouseUpHandler);
+                };
+
+                const mouseMoveHandler = function (e) {
+                    const dx = e.clientX - x;
+                    const dy = e.clientY - y;
+
+                    if (direction === 'horizontal') {
+                        let newPrev = prevSiblingSize + dx;
+                        let newNext = nextSiblingSize - dx;
+
+                        // Clamp so they don’t go negative or overflow
+                        if (newPrev < 50) { // min 50px
+                            newPrev = 50;
+                            newNext = parentSize - resizer.offsetWidth - newPrev;
+                        }
+                        if (newNext < 50) {
+                            newNext = 50;
+                            newPrev = parentSize - resizer.offsetWidth - newNext;
+                        }
+
+                        prevSibling.style.width = (newPrev / parentSize) * 100 + '%';
+                        nextSibling.style.width = (newNext / parentSize) * 100 + '%';
+                    } else {
+                        let newPrev = prevSiblingSize + dy;
+                        let newNext = nextSiblingSize - dy;
+
+                        if (newPrev < 50) {
+                            newPrev = 50;
+                            newNext = parentSize - resizer.offsetHeight - newPrev;
+                        }
+                        if (newNext < 50) {
+                            newNext = 50;
+                            newPrev = parentSize - resizer.offsetHeight - newNext;
+                        }
+
+                        prevSibling.style.height = (newPrev / parentSize) * 100 + '%';
+                        nextSibling.style.height = (newNext / parentSize) * 100 + '%';
+                    }
+
+                    const cursor = direction === 'horizontal' ? 'col-resize' : 'row-resize';
+                    resizer.style.cursor = cursor;
+                    document.body.style.cursor = cursor;
+
+                    prevSibling.style.userSelect = 'none';
+                    nextSibling.style.userSelect = 'none';
+                };
+
+                const mouseUpHandler = function () {
+                    resizer.style.removeProperty('cursor');
+                    document.body.style.removeProperty('cursor');
+                    prevSibling.style.removeProperty('user-select');
+                    nextSibling.style.removeProperty('user-select');
+
+                    document.removeEventListener('mousemove', mouseMoveHandler);
+                    document.removeEventListener('mouseup', mouseUpHandler);
+                };
+
+                resizer.addEventListener('mousedown', mouseDownHandler);
+            };
+
+            document.querySelectorAll('.resizer').forEach(function (ele) {
+                resizable(ele);
+            });
+        });
+
     </script>
 
     <script type="text/javascript" src="js/index.js"></script>

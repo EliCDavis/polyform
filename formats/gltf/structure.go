@@ -126,8 +126,8 @@ type Image struct {
 // https://github.com/KhronosGroup/glTF/blob/main/specification/2.0/schema/texture.schema.json
 type Texture struct {
 	ChildOfRootProperty
-	Sampler    *GltfId    `json:"sampler,omitempty"`
-	Source     *GltfId    `json:"source,omitempty"`
+	Sampler    *GltfId    `json:"sampler,omitempty"` //The index of the sampler used by this texture. When undefined, a sampler with repeat wrapping and auto filtering **SHOULD** be used.
+	Source     *GltfId    `json:"source,omitempty"`  // The index of the image used by this texture. When undefined, an extension or other mechanism **SHOULD** supply an alternate texture source, otherwise behavior is undefined.
 	Extensions Extensions `json:"extensions,omitempty"`
 }
 

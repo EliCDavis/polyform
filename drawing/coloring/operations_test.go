@@ -158,7 +158,7 @@ func TestAddRGB(t *testing.T) {
 }
 
 func TestMultiplyRGBByConstant(t *testing.T) {
-	scaled := coloring.MultiplyRGBByConstant(color.RGBA{R: 2, G: 100, B: 150, A: 200}, 0.5)
+	scaled := coloring.ScaleRGB(color.RGBA{R: 2, G: 100, B: 150, A: 200}, 0.5)
 
 	assert.True(t, coloring.RedEqual(scaled, 1))
 	assert.True(t, coloring.GreenEqual(scaled, 50))

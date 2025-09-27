@@ -467,3 +467,16 @@ func TestMeshAppend(t *testing.T) {
 	assert.Equal(t, vector4.New(0., 2., 0., 0.), attr4.At(4))
 	assert.Equal(t, vector4.New(0., 3., 0., 0.), attr4.At(5))
 }
+
+func TestHasUV(t *testing.T) {
+	m := modeling.NewMesh(modeling.PointTopology, []int{0})
+
+	assert.False(t, m.HasUV(0))
+	m = m.SetFloat2Attribute(modeling.TexCoordAttribute, []vector2.Float64{vector2.New(0., 0.)})
+	assert.True(t, m.HasUV(0))
+
+	assert.False(t, m.HasUV(1))
+	m = m.SetFloat2Attribute("TexCoord2", []vector2.Float64{vector2.New(0., 0.)})
+	assert.True(t, m.HasUV(1))
+
+}

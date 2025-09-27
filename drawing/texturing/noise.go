@@ -48,36 +48,31 @@ func texture(
 	if polar {
 		center := dimensions.Scale(0.5)
 		diagonal := center.Length()
-		for y := range height {
-			for x := range width {
-				p := vector2.New(x, y).ToFloat64().Sub(center)
-				cord := vector2.New(p.Length()/diagonal, math.Abs(math.Atan2(p.Y(), p.X())))
-				t.Set(x, y, noiseFunc(
-					cord,
-					scale,
-					folds,
-					octaves,
-					persistance,
-					offset,
-					seed,
-				))
-			}
-		}
+		t.MutateParallel(func(x, y int, v float64) float64 {
+			p := vector2.New(x, y).ToFloat64().Sub(center)
+			cord := vector2.New(p.Length()/diagonal, math.Abs(math.Atan2(p.Y(), p.X())))
+			return noiseFunc(
+				cord,
+				scale,
+				folds,
+				octaves,
+				persistance,
+				offset,
+				seed,
+			)
+		})
 	} else {
-		for y := range height {
-			for x := range width {
-				cord := vector2.New(x, y).ToFloat64().DivByVector(dimensions)
-				t.Set(x, y, noiseFunc(
-					cord,
-					scale,
-					folds,
-					octaves,
-					persistance,
-					offset,
-					seed,
-				))
-			}
-		}
+		t.MutateParallel(func(x, y int, v float64) float64 {
+			return noiseFunc(
+				vector2.New(x, y).ToFloat64().DivByVector(dimensions),
+				scale,
+				folds,
+				octaves,
+				persistance,
+				offset,
+				seed,
+			)
+		})
 	}
 
 	out.Set(t)

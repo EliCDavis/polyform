@@ -6,6 +6,25 @@ import (
 	"github.com/EliCDavis/vector/vector2"
 )
 
+const (
+	// Material extension ids
+	khr_materials_pbrSpecularGlossiness = "KHR_materials_pbrSpecularGlossiness"
+	khr_materials_transmission          = "KHR_materials_transmission"
+	khr_materials_ior                   = "KHR_materials_ior"
+	khr_materials_unlit                 = "KHR_materials_unlit"
+	khr_materials_emissive_strength     = "KHR_materials_emissive_strength"
+	khr_materials_dispersion            = "KHR_materials_dispersion"
+	khr_materials_volume                = "KHR_materials_volume"
+	khr_materials_iridescence           = "KHR_materials_iridescence"
+	khr_materials_specular              = "KHR_materials_specular"
+	khr_materials_clearcoat             = "KHR_materials_clearcoat"
+	khr_materials_sheen                 = "KHR_materials_sheen"
+	khr_materials_anisotropy            = "KHR_materials_anisotropy"
+
+	// Texture Extension IDs
+	khr_texture_transform = "KHR_texture_transform"
+)
+
 type MaterialExtension interface {
 	ExtensionID() string
 	ToMaterialExtensionData(w *Writer) map[string]any
@@ -52,7 +71,7 @@ type PolyformPbrSpecularGlossiness struct {
 }
 
 func (ppsg PolyformPbrSpecularGlossiness) ExtensionID() string {
-	return "KHR_materials_pbrSpecularGlossiness"
+	return khr_materials_pbrSpecularGlossiness
 }
 
 func (sg PolyformPbrSpecularGlossiness) ToMaterialExtensionData(w *Writer) map[string]any {
@@ -91,7 +110,7 @@ type PolyformTransmission struct {
 }
 
 func (tr PolyformTransmission) ExtensionID() string {
-	return "KHR_materials_transmission"
+	return khr_materials_transmission
 }
 
 func (tr PolyformTransmission) ToMaterialExtensionData(w *Writer) map[string]any {
@@ -132,7 +151,7 @@ type PolyformVolume struct {
 }
 
 func (v PolyformVolume) ExtensionID() string {
-	return "KHR_materials_volume"
+	return khr_materials_volume
 }
 
 func (v PolyformVolume) ToMaterialExtensionData(w *Writer) map[string]any {
@@ -170,7 +189,7 @@ type PolyformIndexOfRefraction struct {
 }
 
 func (sg PolyformIndexOfRefraction) ExtensionID() string {
-	return "KHR_materials_ior"
+	return khr_materials_ior
 }
 
 func (sg PolyformIndexOfRefraction) ToMaterialExtensionData(w *Writer) map[string]any {
@@ -204,7 +223,7 @@ type PolyformSpecular struct {
 }
 
 func (ps PolyformSpecular) ExtensionID() string {
-	return "KHR_materials_specular"
+	return khr_materials_specular
 }
 
 func (ps PolyformSpecular) ToMaterialExtensionData(w *Writer) map[string]any {
@@ -233,7 +252,7 @@ type PolyformUnlit struct {
 }
 
 func (ps PolyformUnlit) ExtensionID() string {
-	return "KHR_materials_unlit"
+	return khr_materials_unlit
 }
 
 func (ps PolyformUnlit) ToMaterialExtensionData(w *Writer) map[string]any {
@@ -251,7 +270,7 @@ type PolyformClearcoat struct {
 }
 
 func (pmc PolyformClearcoat) ExtensionID() string {
-	return "KHR_materials_clearcoat"
+	return khr_materials_clearcoat
 }
 
 func (pmc PolyformClearcoat) ToMaterialExtensionData(w *Writer) map[string]any {
@@ -283,7 +302,7 @@ type PolyformEmissiveStrength struct {
 }
 
 func (pmes PolyformEmissiveStrength) ExtensionID() string {
-	return "KHR_materials_emissive_strength"
+	return khr_materials_emissive_strength
 }
 
 func (pmes PolyformEmissiveStrength) ToMaterialExtensionData(w *Writer) map[string]any {
@@ -334,7 +353,7 @@ type PolyformIridescence struct {
 }
 
 func (pmi PolyformIridescence) ExtensionID() string {
-	return "KHR_materials_iridescence"
+	return khr_materials_iridescence
 }
 
 func (pmi PolyformIridescence) ToMaterialExtensionData(w *Writer) map[string]any {
@@ -385,7 +404,7 @@ type PolyformSheen struct {
 }
 
 func (ps PolyformSheen) ExtensionID() string {
-	return "KHR_materials_sheen"
+	return khr_materials_sheen
 }
 
 func (ps PolyformSheen) ToMaterialExtensionData(w *Writer) map[string]any {
@@ -430,7 +449,7 @@ type PolyformAnisotropy struct {
 }
 
 func (pa PolyformAnisotropy) ExtensionID() string {
-	return "KHR_materials_anisotropy"
+	return khr_materials_anisotropy
 }
 
 func (pa PolyformAnisotropy) ToMaterialExtensionData(w *Writer) map[string]any {
@@ -448,6 +467,8 @@ func (pa PolyformAnisotropy) ToMaterialExtensionData(w *Writer) map[string]any {
 
 // KHR_materials_dispersion ===================================================
 
+// https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_dispersion
+
 // glTF extension that defines the strength of dispersion.
 type PolyformDispersion struct {
 	// This parameter defines dispersion in terms of the 20/Abbe number
@@ -456,7 +477,7 @@ type PolyformDispersion struct {
 }
 
 func (pd PolyformDispersion) ExtensionID() string {
-	return "KHR_materials_dispersion"
+	return khr_materials_dispersion
 }
 
 func (pd PolyformDispersion) ToMaterialExtensionData(w *Writer) map[string]any {
@@ -483,7 +504,7 @@ type PolyformTextureTransform struct {
 }
 
 func (ptt PolyformTextureTransform) ExtensionID() string {
-	return "KHR_texture_transform"
+	return khr_texture_transform
 }
 
 func (ptt PolyformTextureTransform) IsRequired() bool { return ptt.Required }

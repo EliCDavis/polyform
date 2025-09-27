@@ -1186,6 +1186,15 @@ func (m Mesh) HasFloat1Attribute(attribute string) bool {
 	return ok
 }
 
+func (m Mesh) HasUV(channel int) bool {
+	if channel == 0 {
+		_, ok := m.v2Data[TexCoordAttribute]
+		return ok
+	}
+	_, ok := m.v2Data[fmt.Sprintf("%s%d", TexCoordAttribute, channel+1)]
+	return ok
+}
+
 func (m Mesh) requireV4Attribute(attr string) {
 	if !m.HasFloat4Attribute(attr) {
 		panic(fmt.Errorf("can not perform operation for a mesh without the attribute '%s'", attr))

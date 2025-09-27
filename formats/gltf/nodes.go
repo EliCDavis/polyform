@@ -39,7 +39,8 @@ func init() {
 }
 
 type Artifact struct {
-	Scene PolyformScene
+	Scene   PolyformScene
+	Options WriterOptions
 }
 
 func (Artifact) Mime() string {
@@ -75,8 +76,10 @@ func (gad ManifestNode) Out(out *nodes.StructOutput[manifest.Manifest]) {
 	entry := manifest.Entry{
 		Artifact: &Artifact{
 			Scene: PolyformScene{
-				Models:           models,
-				UseGpuInstancing: true,
+				Models: models,
+			},
+			Options: WriterOptions{
+				GpuInstancingStrategy: WriterInstancingStrategy_Default,
 			},
 		},
 	}
@@ -87,6 +90,7 @@ func (gad ManifestNode) Out(out *nodes.StructOutput[manifest.Manifest]) {
 type ModelNode struct {
 	Mesh     nodes.Output[modeling.Mesh]
 	Material nodes.Output[PolyformMaterial]
+	Children []nodes.Output[PolyformModel]
 
 	Translation nodes.Output[vector3.Float64]
 	Rotation    nodes.Output[quaternion.Quaternion]
@@ -108,6 +112,7 @@ func (gmnd ModelNode) Out(out *nodes.StructOutput[PolyformModel]) {
 		Material:     nodes.TryGetOutputReference(out, gmnd.Material, nil),
 		Mesh:         nodes.TryGetOutputReference(out, gmnd.Mesh, nil),
 		TRS:          &transform,
+		Children:     nodes.GetOutputValues(out, gmnd.Children),
 	})
 }
 
@@ -337,17 +342,23 @@ func (gmnd MaterialNode) Out(out *nodes.StructOutput[PolyformMaterial]) {
 	}
 
 	if gmnd.ColorTexture != nil {
-		if pbr == nil {
-			pbr = &PolyformPbrMetallicRoughness{}
+		tex := nodes.GetOutputReference(out, gmnd.ColorTexture)
+		if tex.canAddToGLTF() {
+			if pbr == nil {
+				pbr = &PolyformPbrMetallicRoughness{}
+			}
+			pbr.BaseColorTexture = tex
 		}
-		pbr.BaseColorTexture = nodes.GetOutputReference(out, gmnd.ColorTexture)
 	}
 
 	if gmnd.MetallicRoughnessTexture != nil {
-		if pbr == nil {
-			pbr = &PolyformPbrMetallicRoughness{}
+		tex := nodes.GetOutputReference(out, gmnd.MetallicRoughnessTexture)
+		if tex.canAddToGLTF() {
+			if pbr == nil {
+				pbr = &PolyformPbrMetallicRoughness{}
+			}
+			pbr.MetallicRoughnessTexture = tex
 		}
-		pbr.MetallicRoughnessTexture = nodes.GetOutputReference(out, gmnd.MetallicRoughnessTexture)
 	}
 
 	if gmnd.MetallicFactor != nil {
@@ -398,11 +409,19 @@ func (gmnd MaterialNode) Out(out *nodes.StructOutput[PolyformMaterial]) {
 		})
 	}
 
+	var normalTex *PolyformNormal
+	if gmnd.NormalTexture != nil {
+		tex := nodes.TryGetOutputReference(out, gmnd.NormalTexture, nil)
+		if tex.canAddToGLTF() {
+			normalTex = tex
+		}
+	}
+
 	out.Set(PolyformMaterial{
 		PbrMetallicRoughness: pbr,
 		Extensions:           extensions,
 		EmissiveFactor:       emissiveFactor,
-		NormalTexture:        nodes.TryGetOutputReference(out, gmnd.NormalTexture, nil),
+		NormalTexture:        normalTex,
 	})
 }
 

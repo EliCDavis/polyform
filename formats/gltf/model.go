@@ -9,19 +9,30 @@ import (
 	"github.com/EliCDavis/polyform/modeling/animation"
 )
 
+type WriterInstancingStrategy int
+
+const (
+	// WriterInstancingStrategy_Default effectively leaves the original scene
+	// untouched. Models that utilize the EXT_mesh_gpu_instancing extension
+	// will continue to do so. Models that share the same model and material
+	// will remain as individual models.
+	WriterInstancingStrategy_Default WriterInstancingStrategy = iota
+
+	// WriterInstancingStrategy_Collapse looks for models that share the same
+	// model and material references, and collapses them into a single model,
+	// utilizing the EXT_mesh_gpu_instancing extension.
+	WriterInstancingStrategy_Collapse
+
+	// WriterInstancingStrategy_Expand takes models that utilize the
+	// EXT_mesh_gpu_instancing extension, and creates a node per instance,
+	// removing the need for the extension. Useful for exporting geometry
+	// to viewers that don't support the extension.
+	WriterInstancingStrategy_Expand
+)
+
 type PolyformScene struct {
 	Models []PolyformModel
 	Lights []KHR_LightsPunctual
-
-	// UseGpuInstancing indicates that the EXT_mesh_gpu_instancing extension should be used
-	// when appropriate for mesh instances. This must be set if GPU instances are defined on any of the models in the scene.
-	// If not set while GPU instances are defined - the scene serialisation will fail.
-	// This is a global setting for the scene and cannot be set on a per-model basis.
-	//
-	// The model deduplication applies regardless, and models that have exactly the same mesh pointer reference,
-	// and material value will be collapsed into a single list.
-	// If this flag is set, this single list will be converted into GPU instances as well.
-	UseGpuInstancing bool
 }
 
 // PolyformModel is a utility structure for reading/writing to GLTF format within
@@ -48,6 +59,8 @@ type PolyformModel struct {
 	// Limitations on using GpuInstances still apply.
 	Skeleton   *animation.Skeleton
 	Animations []animation.Sequence
+
+	Children []PolyformModel
 }
 
 type PolyformMaterial struct {
@@ -85,6 +98,7 @@ type PolyformTexture struct {
 	URI        string
 	Image      image.Image
 	Sampler    *Sampler
+	TexCoord   int
 	Extensions []TextureExtension
 }
 
@@ -173,6 +187,10 @@ func (pt *PolyformTexture) equal(other *PolyformTexture) bool {
 	}
 
 	if pt == nil || other == nil {
+		return false
+	}
+
+	if pt.TexCoord != other.TexCoord {
 		return false
 	}
 

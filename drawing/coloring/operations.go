@@ -5,7 +5,7 @@ import (
 	"math"
 )
 
-func MultiplyRGBByConstant(c color.Color, amount float64) color.Color {
+func ScaleRGB(c color.Color, amount float64) color.Color {
 	r, g, b, a := c.RGBA()
 
 	rVal := math.Round(float64(r>>8) * amount)
@@ -20,7 +20,7 @@ func MultiplyRGBByConstant(c color.Color, amount float64) color.Color {
 	}
 }
 
-func MultiplyColorByConstant(c color.Color, amount float64) color.Color {
+func ScaleColor(c color.Color, amount float64) color.Color {
 	r, g, b, a := c.RGBA()
 
 	rVal := math.Round(float64(r>>8) * amount)

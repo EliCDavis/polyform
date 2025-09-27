@@ -198,3 +198,27 @@ func (trs TRS) WithinDelta(in TRS, delta float64) error {
 
 	return nil
 }
+
+func Positions(transforms []TRS) []vector3.Float64 {
+	positions := make([]vector3.Float64, len(transforms))
+	for i, v := range transforms {
+		positions[i] = v.position
+	}
+	return positions
+}
+
+func Scales(transforms []TRS) []vector3.Float64 {
+	scales := make([]vector3.Float64, len(transforms))
+	for i, v := range transforms {
+		scales[i] = v.scale
+	}
+	return scales
+}
+
+func Rotations(transforms []TRS) []quaternion.Quaternion {
+	rotations := make([]quaternion.Quaternion, len(transforms))
+	for i, v := range transforms {
+		rotations[i] = v.rotation
+	}
+	return rotations
+}

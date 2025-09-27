@@ -6,6 +6,16 @@ import (
 	"github.com/EliCDavis/polyform/nodes"
 )
 
+func OneMinus(in Texture[float64]) Texture[float64] {
+	result := NewTexture[float64](in.width, in.height)
+	for y := range in.height {
+		for x := range in.width {
+			result.Set(x, y, 1-in.Get(x, y))
+		}
+	}
+	return result
+}
+
 type OneMinusNode struct {
 	Texture nodes.Output[Texture[float64]]
 }
@@ -14,17 +24,7 @@ func (n OneMinusNode) Result(out *nodes.StructOutput[Texture[float64]]) {
 	if n.Texture == nil {
 		return
 	}
-
-	tex := nodes.GetOutputValue(out, n.Texture)
-	result := NewTexture[float64](tex.width, tex.height)
-
-	for y := range tex.height {
-		for x := range tex.width {
-			result.Set(x, y, 1-tex.Get(x, y))
-		}
-	}
-
-	out.Set(result)
+	out.Set(OneMinus(nodes.GetOutputValue(out, n.Texture)))
 }
 
 type MultiplyFloat1Node struct {

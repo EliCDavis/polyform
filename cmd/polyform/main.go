@@ -102,6 +102,32 @@ func main() {
 		}}
 	})
 
+	serialize.Register(nodeSerializer, func(g coloring.Gradient[float64]) manifest.Entry {
+		width := 100
+		height := 20
+		i := image.NewGray(image.Rect(0, 0, width, height))
+		for x := range width {
+			v := uint8(g.Sample(float64(x)/100.) * 255.)
+			for y := range height {
+				i.SetGray(x, y, color.Gray{Y: v})
+			}
+		}
+		return manifest.Entry{Artifact: basics.Image{Image: i}}
+	})
+
+	serialize.Register(nodeSerializer, func(g coloring.Gradient[coloring.Color]) manifest.Entry {
+		width := 100
+		height := 20
+		i := image.NewRGBA(image.Rect(0, 0, width, height))
+		for x := range width {
+			v := g.Sample(float64(x) / 100.)
+			for y := range height {
+				i.Set(x, y, v)
+			}
+		}
+		return manifest.Entry{Artifact: basics.Image{Image: i}}
+	})
+
 	app := generator.App{
 		Name:        "Polyform",
 		Description: "Immutable mesh processing pipelines",

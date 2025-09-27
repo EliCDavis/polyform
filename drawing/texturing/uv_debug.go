@@ -38,9 +38,9 @@ func (duvt DebugUV) Image() image.Image {
 
 				if duvt.XColorScale != nil && duvt.YColorScale != nil {
 					c = coloring.AddRGB(
-						coloring.MultiplyRGBByConstant(duvt.PositiveCheckerColor, 1-xPercent),
-						coloring.MultiplyRGBByConstant(duvt.XColorScale, xPercent),
-						coloring.MultiplyRGBByConstant(duvt.YColorScale, yPercent),
+						coloring.ScaleRGB(duvt.PositiveCheckerColor, 1-xPercent),
+						coloring.ScaleRGB(duvt.XColorScale, xPercent),
+						coloring.ScaleRGB(duvt.YColorScale, yPercent),
 					)
 				}
 			}

@@ -22,6 +22,7 @@
 package gltf
 
 import (
+	"bytes"
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
@@ -31,7 +32,10 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 
+	"github.com/EliCDavis/bitlib"
 	"github.com/EliCDavis/polyform/math/mat"
 	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/polyform/math/trs"
@@ -68,6 +72,8 @@ type ReaderOptions struct {
 	// BasePath overrides the base path for resolving relative URIs.
 	// If empty, uses the directory of the GLTF file (for file-based loading) or current directory.
 	BasePath string
+
+	MaterialExtensionLoaders map[string]MaterialExtensionLoader
 }
 
 func decodeTopology(mode *PrimitiveMode) modeling.Topology {
@@ -93,6 +99,31 @@ func decodeTopology(mode *PrimitiveMode) modeling.Topology {
 	}
 }
 
+type imgReaderCache map[int]image.Image
+
+func (irc imgReaderCache) Load(doc *Gltf, bufferView int, buffers [][]byte) (image.Image, error) {
+
+	if i, ok := irc[bufferView]; ok {
+		return i, nil
+	}
+
+	bufView := resolveBufferview(doc.BufferViews[bufferView], buffers)
+	img, _, err := image.Decode(bytes.NewReader(bufView))
+
+	if err != nil {
+		return nil, err
+	}
+	irc[bufferView] = img
+
+	return img, nil
+}
+
+func resolveBufferview(bufferView BufferView, buffers [][]byte) []byte {
+	start := bufferView.ByteOffset
+	end := bufferView.ByteOffset + bufferView.ByteLength
+	return buffers[bufferView.Buffer][start:end]
+}
+
 func decodeIndices(doc *Gltf, id *GltfId, buffers [][]byte) ([]int, error) {
 	accessor := doc.Accessors[*id]
 	if accessor.Type != AccessorType_SCALAR {
@@ -100,9 +131,7 @@ func decodeIndices(doc *Gltf, id *GltfId, buffers [][]byte) ([]int, error) {
 	}
 
 	bufferView := doc.BufferViews[*accessor.BufferView]
-	start := bufferView.ByteOffset + accessor.ByteOffset
-	end := bufferView.ByteOffset + bufferView.ByteLength
-	buffer := buffers[bufferView.Buffer][start:end]
+	buffer := resolveBufferview(bufferView, buffers)[accessor.ByteOffset:]
 
 	indices := make([]int, accessor.Count)
 	switch accessor.ComponentType {
@@ -130,6 +159,17 @@ func decodeIndices(doc *Gltf, id *GltfId, buffers [][]byte) ([]int, error) {
 }
 
 func decodePrimitiveAttributeName(name string) string {
+	const texcoord = "TEXCOORD_"
+	if strings.HasPrefix(name, texcoord) {
+		i, err := strconv.Atoi(name[len(texcoord):])
+		if err == nil {
+			if i == 0 {
+				return modeling.TexCoordAttribute
+			}
+			return fmt.Sprintf("%s%d", modeling.TexCoordAttribute, i+1)
+		}
+	}
+
 	switch name {
 	case POSITION:
 		return modeling.PositionAttribute
@@ -165,9 +205,7 @@ func decodeScalarAccessor(doc *Gltf, id GltfId, buffers [][]byte) ([]float64, er
 	}
 
 	bufferView := doc.BufferViews[*accessor.BufferView]
-	start := bufferView.ByteOffset + accessor.ByteOffset
-	end := bufferView.ByteOffset + bufferView.ByteLength
-	buffer := buffers[bufferView.Buffer][start:end]
+	buffer := resolveBufferview(bufferView, buffers)[accessor.ByteOffset:]
 
 	stride := accessor.ComponentType.Size()
 	if bufferView.ByteStride != nil {
@@ -184,40 +222,28 @@ func decodeScalarAccessor(doc *Gltf, id GltfId, buffers [][]byte) ([]float64, er
 		}
 
 	case AccessorComponentType_UNSIGNED_BYTE:
-		div := 1.0
-		if accessor.Normalized {
-			div = 255.0
-		}
+		div := accessorDivisor(accessor)
 		for i := range accessor.Count {
 			offset := i * stride
 			values[i] = float64(buffer[offset]) / div
 		}
 
 	case AccessorComponentType_BYTE:
-		div := 1.0
-		if accessor.Normalized {
-			div = 127.0
-		}
+		div := accessorDivisor(accessor)
 		for i := range accessor.Count {
 			offset := i * stride
 			values[i] = float64(int8(buffer[offset])) / div
 		}
 
 	case AccessorComponentType_UNSIGNED_SHORT:
-		div := 1.0
-		if accessor.Normalized {
-			div = 65535.0
-		}
+		div := accessorDivisor(accessor)
 		for i := range accessor.Count {
 			offset := i * stride
 			values[i] = float64(binary.LittleEndian.Uint16(buffer[offset:])) / div
 		}
 
 	case AccessorComponentType_SHORT:
-		div := 1.0
-		if accessor.Normalized {
-			div = 32767.0
-		}
+		div := accessorDivisor(accessor)
 		for i := range accessor.Count {
 			offset := i * stride
 			values[i] = float64(int16(binary.LittleEndian.Uint16(buffer[offset:]))) / div
@@ -247,9 +273,7 @@ func decodeVector2Accessor(doc *Gltf, id GltfId, buffers [][]byte) ([]vector2.Fl
 	}
 
 	bufferView := doc.BufferViews[*accessor.BufferView]
-	start := bufferView.ByteOffset + accessor.ByteOffset
-	end := bufferView.ByteOffset + bufferView.ByteLength
-	buffer := buffers[bufferView.Buffer][start:end]
+	buffer := resolveBufferview(bufferView, buffers)[accessor.ByteOffset:]
 
 	stride := accessor.ComponentType.Size() * 2
 	if bufferView.ByteStride != nil {
@@ -269,11 +293,7 @@ func decodeVector2Accessor(doc *Gltf, id GltfId, buffers [][]byte) ([]vector2.Fl
 		}
 
 	case AccessorComponentType_UNSIGNED_BYTE:
-		div := 1.
-		if accessor.Normalized {
-			div = 255.
-		}
-
+		div := accessorDivisor(accessor)
 		for i := range accessor.Count {
 			offset := i * stride
 			x := float64(buffer[offset]) / div
@@ -282,10 +302,7 @@ func decodeVector2Accessor(doc *Gltf, id GltfId, buffers [][]byte) ([]vector2.Fl
 		}
 
 	case AccessorComponentType_BYTE:
-		div := 1.0
-		if accessor.Normalized {
-			div = 127.0
-		}
+		div := accessorDivisor(accessor)
 		for i := range accessor.Count {
 			offset := i * stride
 			x := float64(int8(buffer[offset])) / div
@@ -294,10 +311,7 @@ func decodeVector2Accessor(doc *Gltf, id GltfId, buffers [][]byte) ([]vector2.Fl
 		}
 
 	case AccessorComponentType_UNSIGNED_SHORT:
-		div := 1.0
-		if accessor.Normalized {
-			div = 65535.0
-		}
+		div := accessorDivisor(accessor)
 		for i := range accessor.Count {
 			offset := i * stride
 			x := float64(binary.LittleEndian.Uint16(buffer[offset:])) / div
@@ -306,10 +320,7 @@ func decodeVector2Accessor(doc *Gltf, id GltfId, buffers [][]byte) ([]vector2.Fl
 		}
 
 	case AccessorComponentType_SHORT:
-		div := 1.0
-		if accessor.Normalized {
-			div = 32767.0
-		}
+		div := accessorDivisor(accessor)
 		for i := range accessor.Count {
 			offset := i * stride
 			x := float64(int16(binary.LittleEndian.Uint16(buffer[offset:]))) / div
@@ -324,6 +335,29 @@ func decodeVector2Accessor(doc *Gltf, id GltfId, buffers [][]byte) ([]vector2.Fl
 	return vectors, nil
 }
 
+func accessorDivisor(acc Accessor) float64 {
+	if !acc.Normalized {
+		return 1
+	}
+
+	switch acc.ComponentType {
+	case AccessorComponentType_UNSIGNED_BYTE:
+		return 255.
+
+	case AccessorComponentType_BYTE:
+		return 127.
+
+	case AccessorComponentType_UNSIGNED_SHORT:
+		return 65535.0
+
+	case AccessorComponentType_SHORT:
+		return 32767.0
+
+	default:
+		panic(fmt.Errorf("Accessord component type %d can not be normalized", acc.ComponentType))
+	}
+}
+
 func decodeVector3Accessor(doc *Gltf, id GltfId, buffers [][]byte) ([]vector3.Float64, error) {
 	accessor := doc.Accessors[id]
 	if accessor.Type != AccessorType_VEC3 {
@@ -335,9 +369,7 @@ func decodeVector3Accessor(doc *Gltf, id GltfId, buffers [][]byte) ([]vector3.Fl
 	}
 
 	bufferView := doc.BufferViews[*accessor.BufferView]
-	start := bufferView.ByteOffset + accessor.ByteOffset
-	end := bufferView.ByteOffset + bufferView.ByteLength
-	buffer := buffers[bufferView.Buffer][start:end]
+	buffer := resolveBufferview(bufferView, buffers)[accessor.ByteOffset:]
 
 	stride := accessor.ComponentType.Size() * 3
 	if bufferView.ByteStride != nil {
@@ -358,11 +390,7 @@ func decodeVector3Accessor(doc *Gltf, id GltfId, buffers [][]byte) ([]vector3.Fl
 		}
 
 	case AccessorComponentType_UNSIGNED_BYTE:
-		div := 1.
-		if accessor.Normalized {
-			div = 255.
-		}
-
+		div := accessorDivisor(accessor)
 		for i := range accessor.Count {
 			offset := i * stride
 			x := float64(buffer[offset]) / div
@@ -372,10 +400,7 @@ func decodeVector3Accessor(doc *Gltf, id GltfId, buffers [][]byte) ([]vector3.Fl
 		}
 
 	case AccessorComponentType_BYTE:
-		div := 1.0
-		if accessor.Normalized {
-			div = 127.0
-		}
+		div := accessorDivisor(accessor)
 		for i := range accessor.Count {
 			offset := i * stride
 			x := float64(int8(buffer[offset])) / div
@@ -385,10 +410,7 @@ func decodeVector3Accessor(doc *Gltf, id GltfId, buffers [][]byte) ([]vector3.Fl
 		}
 
 	case AccessorComponentType_UNSIGNED_SHORT:
-		div := 1.0
-		if accessor.Normalized {
-			div = 65535.0
-		}
+		div := accessorDivisor(accessor)
 		for i := range accessor.Count {
 			offset := i * stride
 			x := float64(binary.LittleEndian.Uint16(buffer[offset:])) / div
@@ -398,10 +420,7 @@ func decodeVector3Accessor(doc *Gltf, id GltfId, buffers [][]byte) ([]vector3.Fl
 		}
 
 	case AccessorComponentType_SHORT:
-		div := 1.0
-		if accessor.Normalized {
-			div = 32767.0
-		}
+		div := accessorDivisor(accessor)
 		for i := range accessor.Count {
 			offset := i * stride
 			x := float64(int16(binary.LittleEndian.Uint16(buffer[offset:]))) / div
@@ -428,9 +447,7 @@ func decodeVector4Accessor(doc *Gltf, id GltfId, buffers [][]byte) ([]vector4.Fl
 	}
 
 	bufferView := doc.BufferViews[*accessor.BufferView]
-	start := bufferView.ByteOffset + accessor.ByteOffset
-	bufferEnd := bufferView.ByteOffset + bufferView.ByteLength
-	buffer := buffers[bufferView.Buffer][start:bufferEnd]
+	buffer := resolveBufferview(bufferView, buffers)[accessor.ByteOffset:]
 
 	stride := accessor.ComponentType.Size() * 4
 	if bufferView.ByteStride != nil {
@@ -450,11 +467,7 @@ func decodeVector4Accessor(doc *Gltf, id GltfId, buffers [][]byte) ([]vector4.Fl
 		}
 
 	case AccessorComponentType_UNSIGNED_BYTE:
-		div := 1.
-		if accessor.Normalized {
-			div = 255.
-		}
-
+		div := accessorDivisor(accessor)
 		for i := range vectors {
 			offset := i * stride
 			x := float64(buffer[offset]) / div
@@ -465,10 +478,7 @@ func decodeVector4Accessor(doc *Gltf, id GltfId, buffers [][]byte) ([]vector4.Fl
 		}
 
 	case AccessorComponentType_BYTE:
-		div := 1.0
-		if accessor.Normalized {
-			div = 127.0
-		}
+		div := accessorDivisor(accessor)
 		for i := range vectors {
 			offset := i * stride
 			x := float64(int8(buffer[offset])) / div
@@ -479,10 +489,7 @@ func decodeVector4Accessor(doc *Gltf, id GltfId, buffers [][]byte) ([]vector4.Fl
 		}
 
 	case AccessorComponentType_UNSIGNED_SHORT:
-		div := 1.0
-		if accessor.Normalized {
-			div = 65535.0
-		}
+		div := accessorDivisor(accessor)
 		for i := range vectors {
 			offset := i * stride
 			x := float64(binary.LittleEndian.Uint16(buffer[offset:])) / div
@@ -493,10 +500,7 @@ func decodeVector4Accessor(doc *Gltf, id GltfId, buffers [][]byte) ([]vector4.Fl
 		}
 
 	case AccessorComponentType_SHORT:
-		div := 1.0
-		if accessor.Normalized {
-			div = 32767.0
-		}
+		div := accessorDivisor(accessor)
 		for i := range vectors {
 			offset := i * stride
 			x := float64(int16(binary.LittleEndian.Uint16(buffer[offset:]))) / div
@@ -514,13 +518,16 @@ func decodeVector4Accessor(doc *Gltf, id GltfId, buffers [][]byte) ([]vector4.Fl
 }
 
 // loadTexture loads a texture from the GLTF document
-func loadTexture(doc *Gltf, textureId GltfId, opts ReaderOptions) (*PolyformTexture, error) {
+func loadTexture(doc *Gltf, textureInfo TextureInfo, opts ReaderOptions, buffers [][]byte, imgCache imgReaderCache) (*PolyformTexture, error) {
+	textureId := textureInfo.Index
 	if textureId >= len(doc.Textures) || textureId < 0 {
 		return nil, fmt.Errorf("invalid texture ID: %d", textureId)
 	}
 
 	texture := doc.Textures[textureId]
-	polyformTexture := &PolyformTexture{}
+	polyformTexture := &PolyformTexture{
+		TexCoord: textureInfo.TexCoord,
+	}
 
 	// Load image if present
 	if texture.Source != nil {
@@ -537,8 +544,19 @@ func loadTexture(doc *Gltf, textureId GltfId, opts ReaderOptions) (*PolyformText
 			}
 			polyformTexture.Image = img
 			polyformTexture.URI = imageRef.URI
+		} else if imageRef.BufferView != nil {
+			if *imageRef.BufferView >= len(doc.BufferViews) {
+				return nil, fmt.Errorf("texture %d image %d references invalid buffer view %d", textureId, *texture.Source, *imageRef.BufferView)
+			}
+
+			img, err := imgCache.Load(doc, *imageRef.BufferView, buffers)
+			if err != nil {
+				return nil, fmt.Errorf("unable to interpret texture %d image %d: %w", textureId, *texture.Source, err)
+			}
+			polyformTexture.Image = img
+		} else {
+			return nil, fmt.Errorf("texture %d image %d does not reference a URI or Buffer View", textureId, *texture.Source)
 		}
-		// TODO: Handle embedded images via buffer views
 	}
 
 	// Load sampler if present
@@ -553,8 +571,26 @@ func loadTexture(doc *Gltf, textureId GltfId, opts ReaderOptions) (*PolyformText
 	return polyformTexture, nil
 }
 
+func decodeFixedRGBA(rgba [4]float64) color.RGBA {
+	return color.RGBA{
+		R: uint8(rgba[0] * 255),
+		G: uint8(rgba[1] * 255),
+		B: uint8(rgba[2] * 255),
+		A: uint8(rgba[3] * 255),
+	}
+}
+
+func decodeFixedRGB(rgb [3]float64) color.RGBA {
+	return color.RGBA{
+		R: uint8(rgb[0] * 255),
+		G: uint8(rgb[1] * 255),
+		B: uint8(rgb[2] * 255),
+		A: 255,
+	}
+}
+
 // loadMaterial loads a material from the GLTF document
-func loadMaterial(doc *Gltf, materialId GltfId, opts ReaderOptions) (*PolyformMaterial, error) {
+func loadMaterial(doc *Gltf, materialId GltfId, opts ReaderOptions, buffers [][]byte, imgCache imgReaderCache) (*PolyformMaterial, error) {
 	if materialId >= len(doc.Materials) || materialId < 0 {
 		return nil, fmt.Errorf("invalid material ID: %d", materialId)
 	}
@@ -570,18 +606,12 @@ func loadMaterial(doc *Gltf, materialId GltfId, opts ReaderOptions) (*PolyformMa
 
 		// Base color factor
 		if gltfMaterial.PbrMetallicRoughness.BaseColorFactor != nil {
-			factor := *gltfMaterial.PbrMetallicRoughness.BaseColorFactor
-			pbr.BaseColorFactor = color.RGBA{
-				R: uint8(factor[0] * 255),
-				G: uint8(factor[1] * 255),
-				B: uint8(factor[2] * 255),
-				A: uint8(factor[3] * 255),
-			}
+			pbr.BaseColorFactor = decodeFixedRGBA(*gltfMaterial.PbrMetallicRoughness.BaseColorFactor)
 		}
 
 		// Base color texture
 		if gltfMaterial.PbrMetallicRoughness.BaseColorTexture != nil {
-			texture, err := loadTexture(doc, gltfMaterial.PbrMetallicRoughness.BaseColorTexture.Index, opts)
+			texture, err := loadTexture(doc, *gltfMaterial.PbrMetallicRoughness.BaseColorTexture, opts, buffers, imgCache)
 			if err != nil {
 				return nil, fmt.Errorf("failed to load base color texture: %w", err)
 			}
@@ -598,7 +628,7 @@ func loadMaterial(doc *Gltf, materialId GltfId, opts ReaderOptions) (*PolyformMa
 
 		// Metallic-roughness texture
 		if gltfMaterial.PbrMetallicRoughness.MetallicRoughnessTexture != nil {
-			texture, err := loadTexture(doc, gltfMaterial.PbrMetallicRoughness.MetallicRoughnessTexture.Index, opts)
+			texture, err := loadTexture(doc, *gltfMaterial.PbrMetallicRoughness.MetallicRoughnessTexture, opts, buffers, imgCache)
 			if err != nil {
 				return nil, fmt.Errorf("failed to load metallic-roughness texture: %w", err)
 			}
@@ -610,7 +640,7 @@ func loadMaterial(doc *Gltf, materialId GltfId, opts ReaderOptions) (*PolyformMa
 
 	// Load normal texture
 	if gltfMaterial.NormalTexture != nil {
-		texture, err := loadTexture(doc, gltfMaterial.NormalTexture.Index, opts)
+		texture, err := loadTexture(doc, gltfMaterial.NormalTexture.TextureInfo, opts, buffers, imgCache)
 		if err != nil {
 			return nil, fmt.Errorf("failed to load normal texture: %w", err)
 		}
@@ -622,7 +652,7 @@ func loadMaterial(doc *Gltf, materialId GltfId, opts ReaderOptions) (*PolyformMa
 
 	// Load emissive texture
 	if gltfMaterial.EmissiveTexture != nil {
-		texture, err := loadTexture(doc, gltfMaterial.EmissiveTexture.Index, opts)
+		texture, err := loadTexture(doc, *gltfMaterial.EmissiveTexture, opts, buffers, imgCache)
 		if err != nil {
 			return nil, fmt.Errorf("failed to load emissive texture: %w", err)
 		}
@@ -631,34 +661,47 @@ func loadMaterial(doc *Gltf, materialId GltfId, opts ReaderOptions) (*PolyformMa
 
 	// Load emissive factor
 	if gltfMaterial.EmissiveFactor != nil {
-		factor := *gltfMaterial.EmissiveFactor
-		material.EmissiveFactor = color.RGBA{
-			R: uint8(factor[0] * 255),
-			G: uint8(factor[1] * 255),
-			B: uint8(factor[2] * 255),
-			A: 255,
-		}
+		material.EmissiveFactor = decodeFixedRGB(*gltfMaterial.EmissiveFactor)
 	}
 
-	// Set alpha mode and cutoff
-	if gltfMaterial.AlphaMode != nil {
-		material.AlphaMode = gltfMaterial.AlphaMode
-	}
-	if gltfMaterial.AlphaCutoff != nil {
-		material.AlphaCutoff = gltfMaterial.AlphaCutoff
+	material.AlphaMode = gltfMaterial.AlphaMode
+	material.AlphaCutoff = gltfMaterial.AlphaCutoff
+
+	if gltfMaterial.Extensions != nil && len(opts.MaterialExtensionLoaders) > 0 {
+		ctx := &MaterialExtensionLoaderContext{
+			doc:      doc,
+			opts:     opts,
+			buffers:  buffers,
+			imgCache: imgCache,
+		}
+
+		for extension, extensionData := range gltfMaterial.Extensions {
+			loader, ok := opts.MaterialExtensionLoaders[extension]
+			if !ok {
+				continue
+			}
+
+			ext, err := loader.LoadMaterialExtension(ctx, extensionData)
+			if err != nil {
+				return nil, fmt.Errorf("unable to load material extension %s: %w", extension, err)
+			}
+
+			if ext != nil {
+				material.Extensions = append(material.Extensions, ext)
+			}
+		}
 	}
 
 	return material, nil
 }
 
-func decodePrimitive(doc *Gltf, buffers [][]byte, n Node, m Mesh, p Primitive, opts ReaderOptions) (*PolyformModel, error) {
-	// Handle indices - they might be nil for non-indexed geometry
+func decodePrimitive(doc *Gltf, buffers [][]byte, p Primitive, opts ReaderOptions, imgCache imgReaderCache) (*modeling.Mesh, *PolyformMaterial, error) {
 	var indices []int
 	var err error
 	if p.Indices != nil {
 		indices, err = decodeIndices(doc, p.Indices, buffers)
 		if err != nil {
-			return nil, fmt.Errorf("failed to decode indices: %w", err)
+			return nil, nil, fmt.Errorf("failed to decode indices: %w", err)
 		}
 	}
 
@@ -667,7 +710,7 @@ func decodePrimitive(doc *Gltf, buffers [][]byte, n Node, m Mesh, p Primitive, o
 	// Process all attributes
 	for attr, gltfId := range p.Attributes {
 		if gltfId >= len(doc.Accessors) {
-			return nil, fmt.Errorf("attribute %s references invalid accessor %d", attr, gltfId)
+			return nil, nil, fmt.Errorf("attribute %s references invalid accessor %d", attr, gltfId)
 		}
 
 		accessor := doc.Accessors[gltfId]
@@ -677,43 +720,82 @@ func decodePrimitive(doc *Gltf, buffers [][]byte, n Node, m Mesh, p Primitive, o
 		case AccessorType_SCALAR:
 			values, err := decodeScalarAccessor(doc, gltfId, buffers)
 			if err != nil {
-				return nil, fmt.Errorf("failed to decode scalar attribute %s: %w", attr, err)
+				return nil, nil, fmt.Errorf("failed to decode scalar attribute %s: %w", attr, err)
 			}
 			mesh = mesh.SetFloat1Attribute(attributeName, values)
 
 		case AccessorType_VEC2:
 			v2, err := decodeVector2Accessor(doc, gltfId, buffers)
 			if err != nil {
-				return nil, fmt.Errorf("failed to decode vec2 attribute %s: %w", attr, err)
+				return nil, nil, fmt.Errorf("failed to decode vec2 attribute %s: %w", attr, err)
 			}
 			mesh = mesh.SetFloat2Attribute(attributeName, v2)
 
 		case AccessorType_VEC3:
 			v3, err := decodeVector3Accessor(doc, gltfId, buffers)
 			if err != nil {
-				return nil, fmt.Errorf("failed to decode vec3 attribute %s: %w", attr, err)
+				return nil, nil, fmt.Errorf("failed to decode vec3 attribute %s: %w", attr, err)
 			}
 			mesh = mesh.SetFloat3Attribute(attributeName, v3)
 
 		case AccessorType_VEC4:
 			v4, err := decodeVector4Accessor(doc, gltfId, buffers)
 			if err != nil {
-				return nil, fmt.Errorf("failed to decode vec4 attribute %s: %w", attr, err)
+				return nil, nil, fmt.Errorf("failed to decode vec4 attribute %s: %w", attr, err)
 			}
 			mesh = mesh.SetFloat4Attribute(attributeName, v4)
 
 		default:
-			return nil, fmt.Errorf("unsupported accessor type %s for attribute %s", accessor.Type, attr)
+			return nil, nil, fmt.Errorf("unsupported accessor type %s for attribute %s", accessor.Type, attr)
+		}
+	}
+
+	if p.Material == nil {
+		return &mesh, nil, nil
+	}
+
+	m, err := loadMaterial(doc, *p.Material, opts, buffers, imgCache)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to load material: %w", err)
+	}
+	return &mesh, m, nil
+}
+
+func decodeNode(doc *Gltf, buffers [][]byte, n Node, opts ReaderOptions, imgCache imgReaderCache) (*PolyformModel, error) {
+	model := &PolyformModel{
+		Name: n.Name,
+	}
+
+	if n.Mesh != nil {
+		mesh := doc.Meshes[*n.Mesh]
+
+		if len(mesh.Primitives) == 1 {
+			decodedMesh, decodedMat, err := decodePrimitive(doc, buffers, mesh.Primitives[0], opts, imgCache)
+			if err != nil {
+				return nil, fmt.Errorf("unable to decode node %s mesh %d primitive 0: %w", n.Name, *n.Mesh, err)
+			}
+
+			model.Material = decodedMat
+			model.Mesh = decodedMesh
+		} else if len(mesh.Primitives) > 1 {
+			geometryNode := PolyformModel{}
+			for primIndex, prim := range mesh.Primitives {
+				decodedMesh, decodedMat, err := decodePrimitive(doc, buffers, prim, opts, imgCache)
+				if err != nil {
+					return nil, fmt.Errorf("unable to decode node %s mesh %d primitive %d: %w", n.Name, *n.Mesh, primIndex, err)
+				}
+
+				geometryNode.Material = decodedMat
+				geometryNode.Mesh = decodedMesh
+			}
+			model.Children = append(model.Children, geometryNode)
 		}
 	}
 
 	transform := trs.Identity()
-
-	// Handle matrix transformation if present
 	if n.Matrix != nil {
 		transform = trs.FromMatrix(mat.FromColArray(*n.Matrix))
 	} else {
-		// Handle TRS components
 		if n.Translation != nil {
 			data := *n.Translation
 			p := vector3.New(data[0], data[1], data[2])
@@ -732,93 +814,48 @@ func decodePrimitive(doc *Gltf, buffers [][]byte, n Node, m Mesh, p Primitive, o
 			transform = transform.SetRotation(p)
 		}
 	}
+	model.TRS = &transform
 
-	// Load material if present
-	var material *PolyformMaterial
-	if p.Material != nil {
-		m, err := loadMaterial(doc, *p.Material, opts)
-		if err != nil {
-			return nil, fmt.Errorf("failed to load material: %w", err)
-		}
-		material = m
-	}
-
-	return &PolyformModel{
-		Name:     n.Name,
-		Mesh:     &mesh,
-		Material: material,
-		TRS:      &transform,
-	}, nil
+	return model, nil
 }
 
 // processNodeHierarchy recursively processes a node and its children, accumulating transformations
-func processNodeHierarchy(doc *Gltf, buffers [][]byte, nodeIndex int, parentTransform trs.TRS, scene *PolyformScene, opts ReaderOptions) error {
+func processNodeHierarchy(doc *Gltf, buffers [][]byte, nodeIndex int, opts ReaderOptions, imgCache imgReaderCache) (*PolyformModel, error) {
 	if nodeIndex >= len(doc.Nodes) {
-		return fmt.Errorf("invalid node index: %d", nodeIndex)
+		return nil, fmt.Errorf("invalid node index: %d", nodeIndex)
 	}
 
 	node := doc.Nodes[nodeIndex]
 
-	// Calculate node transformation
-	nodeTransform := trs.Identity()
-	if node.Matrix != nil {
-		nodeTransform = trs.FromMatrix(mat.FromColArray(*node.Matrix))
-	} else {
-		if node.Translation != nil {
-			data := *node.Translation
-			nodeTransform = nodeTransform.SetTranslation(vector3.New(data[0], data[1], data[2]))
-		}
-		if node.Scale != nil {
-			data := *node.Scale
-			nodeTransform = nodeTransform.SetScale(vector3.New(data[0], data[1], data[2]))
-		}
-		if node.Rotation != nil {
-			data := *node.Rotation
-			nodeTransform = nodeTransform.SetRotation(quaternion.New(vector3.New(data[0], data[1], data[2]), data[3]))
-		}
-	}
-
-	// Combine with parent transformation
-	worldTransform := parentTransform.Multiply(nodeTransform)
-
-	// Process mesh if present
-	if node.Mesh != nil {
-		mesh := doc.Meshes[*node.Mesh]
-		for primitiveIndex, p := range mesh.Primitives {
-			model, err := decodePrimitive(doc, buffers, node, mesh, p, opts)
-			if err != nil {
-				return fmt.Errorf("Node %d Meshes[%d].primitives[%d]: %w", nodeIndex, *node.Mesh, primitiveIndex, err)
-			}
-
-			// Apply world transformation
-			model.TRS = &worldTransform
-			scene.Models = append(scene.Models, *model)
-		}
+	model, err := decodeNode(doc, buffers, node, opts, imgCache)
+	if err != nil {
+		return nil, err
 	}
 
 	// Process children recursively
 	for _, childIndex := range node.Children {
-		err := processNodeHierarchy(doc, buffers, childIndex, worldTransform, scene, opts)
+		childModel, err := processNodeHierarchy(doc, buffers, childIndex, opts, imgCache)
 		if err != nil {
-			return fmt.Errorf("failed to process child node %d of node %d: %w", childIndex, nodeIndex, err)
+			return nil, fmt.Errorf("failed to process child node %d of node %d: %w", childIndex, nodeIndex, err)
 		}
+		model.Children = append(model.Children, *childModel)
 	}
 
-	return nil
+	return model, nil
 }
 
-// Parse reads and parses GLTF JSON from an io.Reader.
+// ParseGLTF reads and parses GLTF JSON from an io.Reader.
 // This only parses the JSON structure without loading any external resources like buffers or images.
 // Use Load or LoadFile if you need to load external resources.
 //
 // Example:
 //
 //	jsonData := strings.NewReader(gltfJSON)
-//	doc, err := gltf.Parse(jsonData)
+//	doc, err := gltf.ParseGLTF(jsonData)
 //	if err != nil {
 //	    log.Fatal(err)
 //	}
-func Parse(r io.Reader) (*Gltf, error) {
+func ParseGLTF(r io.Reader) (*Gltf, error) {
 	decoder := json.NewDecoder(r)
 	g := &Gltf{}
 
@@ -851,28 +888,28 @@ func ParseFile(gltfPath string) (*Gltf, error) {
 	}
 	defer file.Close()
 
-	return Parse(file)
+	return ParseGLTF(file)
 }
 
-// Load reads GLTF JSON from an io.Reader and loads all referenced buffers.
+// LoadGLTF reads GLTF JSON from an io.Reader and loads all referenced buffers.
 //
 // Example with embedded buffer:
 //
 //	jsonData := strings.NewReader(gltfJSON) // GLTF with data URI buffers
-//	doc, buffers, err := gltf.Load(jsonData, nil)
+//	doc, buffers, err := gltf.LoadGLTF(jsonData, nil)
 //
 // Example with custom loader:
 //
 //	opts := &gltf.ReaderOptions{
 //	    BufferLoader: myCustomLoader,
 //	}
-//	doc, buffers, err := gltf.Load(jsonData, opts)
+//	doc, buffers, err := gltf.LoadGLTF(jsonData, opts)
 //
 // If a custom BufferLoader is provided in options, it will be used to load buffers.
 // Otherwise, a StandardLoader is used with options.BasePath (or current directory).
-func Load(r io.Reader, options *ReaderOptions) (*Gltf, [][]byte, error) {
+func LoadGLTF(r io.Reader, options *ReaderOptions) (*Gltf, [][]byte, error) {
 	// Parse the GLTF JSON
-	g, err := Parse(r)
+	g, err := ParseGLTF(r)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to parse GLTF data: %w", err)
 	}
@@ -882,6 +919,7 @@ func Load(r io.Reader, options *ReaderOptions) (*Gltf, [][]byte, error) {
 	if options != nil {
 		opts = *options
 	}
+	initializeDefaultReaderOptions(&opts)
 
 	// Use standard buffer loader if none provided
 	if opts.BufferLoader == nil {
@@ -912,6 +950,88 @@ func Load(r io.Reader, options *ReaderOptions) (*Gltf, [][]byte, error) {
 	return g, allBuffers, nil
 }
 
+func LoadGLB(r io.Reader, options *ReaderOptions) (*Gltf, [][]byte, error) {
+	reader := bitlib.NewReader(r, binary.LittleEndian)
+
+	readMagic := reader.UInt32()
+	if readMagic != magicNumber {
+		return nil, nil, fmt.Errorf("unexpected read magic number %d", readMagic)
+	}
+
+	readVersion := reader.UInt32()
+	if readVersion != version {
+		return nil, nil, fmt.Errorf("unexpected version %d", readVersion)
+	}
+
+	documentLength := reader.UInt32()
+	jsonLength := reader.UInt32()
+	jsonIdentifier := reader.UInt32()
+	if jsonIdentifier != jsonChunkIdentifier {
+		return nil, nil, fmt.Errorf("unrecognized json chunk identifier: %d", jsonIdentifier)
+	}
+
+	jsonPayload := make([]byte, jsonLength)
+	reader.Read(jsonPayload)
+	doc := &Gltf{}
+	err := json.Unmarshal(jsonPayload, doc)
+	if err != nil {
+		return nil, nil, fmt.Errorf("unable to parse GLB embedded JSON doc: %w", err)
+	}
+
+	remainingLength := documentLength - jsonLength - 8 - 12
+	if remainingLength == 0 {
+		return doc, nil, nil
+	}
+
+	bufLen := reader.UInt32()
+	bufIdentifier := reader.UInt32()
+	if bufIdentifier != binChunkIdentifier {
+		return nil, nil, fmt.Errorf("unrecognized bin chunk identifier: %d", bufIdentifier)
+	}
+
+	binPayload := make([]byte, bufLen)
+	reader.Read(binPayload)
+
+	// Load buffers
+	allBuffers := make([][]byte, 0, len(doc.Buffers))
+	for bufIndex, buf := range doc.Buffers {
+
+		if buf.ByteLength <= 0 {
+			return nil, nil, fmt.Errorf("buffer %d has invalid byte length: %d", bufIndex, buf.ByteLength)
+		}
+
+		if buf.URI == "" {
+			allBuffers = append(allBuffers, binPayload)
+			continue
+		}
+
+		bufferData, err := options.BufferLoader.LoadBuffer(buf.URI)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to load buffer %d: %w", bufIndex, err)
+		}
+
+		if len(bufferData) != buf.ByteLength {
+			return nil, nil, fmt.Errorf("buffer %d: loaded size %d does not match expected length %d", bufIndex, len(bufferData), buf.ByteLength)
+		}
+
+		allBuffers = append(allBuffers, bufferData)
+	}
+
+	return doc, allBuffers, reader.Error()
+}
+
+func initializeDefaultReaderOptions(opts *ReaderOptions) {
+	if opts.MaterialExtensionLoaders == nil {
+		opts.MaterialExtensionLoaders = make(map[string]MaterialExtensionLoader)
+	}
+
+	for extension, loader := range defaultMaterialExtensionLoaders {
+		if _, ok := opts.MaterialExtensionLoaders[extension]; !ok {
+			opts.MaterialExtensionLoaders[extension] = loader
+		}
+	}
+}
+
 // LoadFile reads a GLTF file from disk and loads all referenced buffers.
 // The directory containing the GLTF file is used as the base path for resolving relative URIs.
 //
@@ -940,13 +1060,23 @@ func LoadFile(gltfPath string, options *ReaderOptions) (*Gltf, [][]byte, error) 
 	if options != nil {
 		*opts = *options
 	}
+	initializeDefaultReaderOptions(opts)
 
 	// Use the GLTF file's directory as base path if not specified
 	if opts.BasePath == "" {
 		opts.BasePath = filepath.Dir(gltfPath)
 	}
 
-	return Load(file, opts)
+	ext := strings.ToLower(filepath.Ext(gltfPath))
+	switch ext {
+	case ".gltf":
+		return LoadGLTF(file, opts)
+
+	case ".glb":
+		return LoadGLB(file, opts)
+	}
+
+	return nil, nil, fmt.Errorf("unrecognized flie: %s", ext)
 }
 
 // DecodeModels converts a GLTF document into a flat list of Polyform models.
@@ -969,6 +1099,7 @@ func DecodeModels(doc *Gltf, buffers [][]byte, options *ReaderOptions) ([]Polyfo
 	if options != nil {
 		opts = *options
 	}
+	initializeDefaultReaderOptions(&opts)
 
 	// Use standard image loader if none provided
 	if opts.ImageLoader == nil {
@@ -976,22 +1107,28 @@ func DecodeModels(doc *Gltf, buffers [][]byte, options *ReaderOptions) ([]Polyfo
 			BasePath: opts.BasePath,
 		}
 	}
+	imgCache := make(imgReaderCache)
 
 	models := make([]PolyformModel, 0)
 
-	for nodeIndex, node := range doc.Nodes {
-		if node.Mesh == nil {
-			continue
-		}
-
-		mesh := doc.Meshes[*node.Mesh]
-
-		for primitiveIndex, p := range mesh.Primitives {
-			model, err := decodePrimitive(doc, buffers, node, mesh, p, opts)
+	if doc.Scene != nil {
+		scene := doc.Scenes[*doc.Scene]
+		for _, nodeIndex := range scene.Nodes {
+			model, err := processNodeHierarchy(doc, buffers, nodeIndex, opts, imgCache)
 			if err != nil {
-				return nil, fmt.Errorf("Node %d Meshes[%d].primitives[%d]: %w", nodeIndex, *node.Mesh, primitiveIndex, err)
+				return nil, fmt.Errorf("unable to decode node %d: %w", nodeIndex, err)
 			}
 			models = append(models, *model)
+		}
+	} else {
+		for _, scene := range doc.Scenes {
+			for _, nodeIndex := range scene.Nodes {
+				model, err := processNodeHierarchy(doc, buffers, nodeIndex, opts, imgCache)
+				if err != nil {
+					return nil, fmt.Errorf("unable to decode node %d: %w", nodeIndex, err)
+				}
+				models = append(models, *model)
+			}
 		}
 	}
 
@@ -1016,6 +1153,7 @@ func DecodeScene(doc *Gltf, buffers [][]byte, options *ReaderOptions) (*Polyform
 	if options != nil {
 		opts = *options
 	}
+	initializeDefaultReaderOptions(&opts)
 
 	// Use standard image loader if none provided
 	if opts.ImageLoader == nil {
@@ -1029,6 +1167,8 @@ func DecodeScene(doc *Gltf, buffers [][]byte, options *ReaderOptions) (*Polyform
 		Models: make([]PolyformModel, 0),
 		Lights: make([]KHR_LightsPunctual, 0),
 	}
+
+	imgCache := make(imgReaderCache)
 
 	// Get the main scene or use the first one
 	var sceneIndex int
@@ -1048,10 +1188,11 @@ func DecodeScene(doc *Gltf, buffers [][]byte, options *ReaderOptions) (*Polyform
 
 	// Process root nodes and their children recursively
 	for _, rootNodeIndex := range gltfScene.Nodes {
-		err := processNodeHierarchy(doc, buffers, rootNodeIndex, trs.Identity(), scene, opts)
+		model, err := processNodeHierarchy(doc, buffers, rootNodeIndex, opts, imgCache)
 		if err != nil {
 			return nil, fmt.Errorf("failed to process root node %d: %w", rootNodeIndex, err)
 		}
+		scene.Models = append(scene.Models, *model)
 	}
 
 	return scene, nil

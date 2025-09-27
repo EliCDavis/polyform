@@ -2,7 +2,6 @@ package gltf_test
 
 import (
 	"bytes"
-	"errors"
 	"image/color"
 	"math"
 	"testing"
@@ -2607,6 +2606,7 @@ func TestWrite_MeshesDeduplicated(t *testing.T) {
     ]
 }`, buf.String())
 }
+
 func TestWrite_MeshesGpuInstanced(t *testing.T) {
 	// ARRANGE ================================================================
 	tri := modeling.NewTriangleMesh([]int{0, 1, 2}).
@@ -2644,8 +2644,9 @@ func TestWrite_MeshesGpuInstanced(t *testing.T) {
 			{Name: "mesh_right", Mesh: &tri, Material: material, TRS: &trsRight},
 			{Name: "mesh_left", Mesh: &tri, Material: material, TRS: &trsLeft},
 		},
-		UseGpuInstancing: true,
-	}, &buf, nil)
+	}, &buf, &gltf.WriterOptions{
+		GpuInstancingStrategy: gltf.WriterInstancingStrategy_Collapse,
+	})
 
 	// ASSERT =================================================================
 	assert.NoError(t, err)
@@ -2811,7 +2812,7 @@ func TestWrite_MeshesGpuInstanced(t *testing.T) {
                 }
             },
             "mesh": 0,
-            "name": "mesh_right"
+            "name": "Instances"
         }
     ],
     "scene": 0,
@@ -2819,6 +2820,408 @@ func TestWrite_MeshesGpuInstanced(t *testing.T) {
         {
             "nodes": [
                 0
+            ]
+        }
+    ]
+}`, buf.String())
+}
+
+func TestWrite_GpuInstancedMeshes_Expanded(t *testing.T) {
+	// ARRANGE ================================================================
+	tri := modeling.NewTriangleMesh([]int{0, 1, 2}).
+		SetFloat3Attribute(
+			modeling.PositionAttribute,
+			[]vector3.Float64{
+				vector3.New(0., 0., 0.),
+				vector3.New(0., 1., 0.),
+				vector3.New(1., 0., 0.),
+			},
+		)
+
+	buf := bytes.Buffer{}
+
+	// ACT ====================================================================
+	roughness := 0.
+	material := &gltf.PolyformMaterial{
+		Name: "My Material",
+		PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
+			BaseColorFactor: color.RGBA{255, 100, 80, 255},
+			RoughnessFactor: &roughness,
+		},
+	}
+	trsRight := trs.New(
+		vector3.New(2., 0, 0),
+		quaternion.Identity(),
+		vector3.New(1.5, 1.5, 1.5),
+	)
+	trsLeft := trs.New(
+		vector3.New(-2., 0, -0),
+		quaternion.FromTheta(-math.Pi/2, vector3.New(1., 0, 0)),
+		vector3.New(0.5, 2.5, 0.5),
+	)
+
+	err := gltf.WriteText(gltf.PolyformScene{
+		Models: []gltf.PolyformModel{
+			{
+				Name: "parent",
+				Mesh: &tri, Material: material,
+				GpuInstances: []trs.TRS{
+					trsRight,
+					trsLeft,
+				},
+			},
+		},
+	}, &buf, &gltf.WriterOptions{
+		GpuInstancingStrategy: gltf.WriterInstancingStrategy_Expand,
+	})
+
+	// ASSERT =================================================================
+	assert.NoError(t, err)
+	assert.Equal(t, `{
+    "accessors": [
+        {
+            "bufferView": 0,
+            "componentType": 5126,
+            "type": "VEC3",
+            "count": 3,
+            "max": [
+                1,
+                1,
+                0
+            ],
+            "min": [
+                0,
+                0,
+                0
+            ]
+        },
+        {
+            "bufferView": 1,
+            "componentType": 5123,
+            "type": "SCALAR",
+            "count": 3
+        }
+    ],
+    "asset": {
+        "version": "2.0",
+        "generator": "https://github.com/EliCDavis/polyform"
+    },
+    "buffers": [
+        {
+            "byteLength": 42,
+            "uri": "data:application/octet-stream;base64,AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAAAAAAABAAIA"
+        }
+    ],
+    "bufferViews": [
+        {
+            "buffer": 0,
+            "byteLength": 36,
+            "target": 34962
+        },
+        {
+            "buffer": 0,
+            "byteOffset": 36,
+            "byteLength": 6,
+            "target": 34963
+        }
+    ],
+    "materials": [
+        {
+            "name": "My Material",
+            "pbrMetallicRoughness": {
+                "baseColorFactor": [
+                    1,
+                    0.392,
+                    0.314,
+                    1
+                ],
+                "roughnessFactor": 0
+            }
+        }
+    ],
+    "meshes": [
+        {
+            "name": "parent",
+            "primitives": [
+                {
+                    "attributes": {
+                        "POSITION": 0
+                    },
+                    "indices": 1,
+                    "material": 0
+                }
+            ]
+        }
+    ],
+    "nodes": [
+        {
+            "mesh": 0,
+            "scale": [
+                1.5,
+                1.5,
+                1.5
+            ],
+            "translation": [
+                2,
+                0,
+                0
+            ],
+            "name": "parent"
+        },
+        {
+            "mesh": 0,
+            "rotation": [
+                -0.7071067811865475,
+                0,
+                0,
+                0.7071067811865476
+            ],
+            "scale": [
+                0.5,
+                2.5,
+                0.5
+            ],
+            "translation": [
+                -2,
+                0,
+                0
+            ],
+            "name": "parent"
+        }
+    ],
+    "scene": 0,
+    "scenes": [
+        {
+            "nodes": [
+                0,
+                1
+            ]
+        }
+    ]
+}`, buf.String())
+}
+
+func TestWrite_MeshesGpuInstanced_UnderChild(t *testing.T) {
+	// ARRANGE ================================================================
+	tri := modeling.NewTriangleMesh([]int{0, 1, 2}).
+		SetFloat3Attribute(
+			modeling.PositionAttribute,
+			[]vector3.Float64{
+				vector3.New(0., 0., 0.),
+				vector3.New(0., 1., 0.),
+				vector3.New(1., 0., 0.),
+			},
+		)
+
+	buf := bytes.Buffer{}
+
+	// ACT ====================================================================
+	roughness := 0.
+	material := &gltf.PolyformMaterial{
+		Name: "My Material",
+		PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
+			BaseColorFactor: color.RGBA{255, 100, 80, 255},
+			RoughnessFactor: &roughness,
+		},
+	}
+	rightV := vector3.New[float64](2, 0, 0)
+	leftV := vector3.New[float64](-2, 0, -0)
+	scaleUniform15 := vector3.New[float64](1.5, 1.5, 1.5)
+	scaleDistort := vector3.New[float64](0.5, 2.5, 0.5)
+	rotQuat := quaternion.FromTheta(-math.Pi/2, vector3.New[float64](1, 0, 0))
+
+	trsRight := trs.New(rightV, quaternion.Identity(), scaleUniform15)
+	trsLeft := trs.New(leftV, rotQuat, scaleDistort)
+
+	err := gltf.WriteText(gltf.PolyformScene{
+		Models: []gltf.PolyformModel{
+			{Name: "parent", Children: []gltf.PolyformModel{
+				{Name: "mesh_right", Mesh: &tri, Material: material, TRS: &trsRight},
+				{Name: "mesh_left", Mesh: &tri, Material: material, TRS: &trsLeft},
+			}},
+		},
+	}, &buf, &gltf.WriterOptions{
+		GpuInstancingStrategy: gltf.WriterInstancingStrategy_Collapse,
+	})
+
+	// ASSERT =================================================================
+	assert.NoError(t, err)
+	assert.Equal(t, `{
+    "extensionsUsed": [
+        "EXT_mesh_gpu_instancing"
+    ],
+    "extensionsRequired": [
+        "EXT_mesh_gpu_instancing"
+    ],
+    "accessors": [
+        {
+            "bufferView": 0,
+            "componentType": 5126,
+            "type": "VEC3",
+            "count": 3,
+            "max": [
+                1,
+                1,
+                0
+            ],
+            "min": [
+                0,
+                0,
+                0
+            ]
+        },
+        {
+            "bufferView": 1,
+            "componentType": 5123,
+            "type": "SCALAR",
+            "count": 3
+        },
+        {
+            "bufferView": 2,
+            "componentType": 5126,
+            "type": "VEC3",
+            "count": 2,
+            "max": [
+                2,
+                0,
+                0
+            ],
+            "min": [
+                -2,
+                0,
+                0
+            ]
+        },
+        {
+            "bufferView": 3,
+            "componentType": 5126,
+            "type": "VEC3",
+            "count": 2,
+            "max": [
+                1.5,
+                2.5,
+                1.5
+            ],
+            "min": [
+                0.5,
+                1.5,
+                0.5
+            ]
+        },
+        {
+            "bufferView": 4,
+            "componentType": 5126,
+            "type": "VEC4",
+            "count": 2,
+            "max": [
+                0,
+                0,
+                0,
+                1
+            ],
+            "min": [
+                -0.7071067811865475,
+                -0,
+                -0,
+                0.7071067811865476
+            ]
+        }
+    ],
+    "asset": {
+        "version": "2.0",
+        "generator": "https://github.com/EliCDavis/polyform"
+    },
+    "buffers": [
+        {
+            "byteLength": 124,
+            "uri": "data:application/octet-stream;base64,AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAAAAAAABAAIAAAAAAABAAAAAAAAAAAAAAADAAAAAAAAAAAAAAMA/AADAPwAAwD8AAAA/AAAgQAAAAD8AAAAAAAAAAAAAAAAAAIA/8wQ1vwAAAIAAAACA8wQ1Pw=="
+        }
+    ],
+    "bufferViews": [
+        {
+            "buffer": 0,
+            "byteLength": 36,
+            "target": 34962
+        },
+        {
+            "buffer": 0,
+            "byteOffset": 36,
+            "byteLength": 6,
+            "target": 34963
+        },
+        {
+            "buffer": 0,
+            "byteOffset": 44,
+            "byteLength": 24,
+            "target": 34962
+        },
+        {
+            "buffer": 0,
+            "byteOffset": 68,
+            "byteLength": 24,
+            "target": 34962
+        },
+        {
+            "buffer": 0,
+            "byteOffset": 92,
+            "byteLength": 32,
+            "target": 34962
+        }
+    ],
+    "materials": [
+        {
+            "name": "My Material",
+            "pbrMetallicRoughness": {
+                "baseColorFactor": [
+                    1,
+                    0.392,
+                    0.314,
+                    1
+                ],
+                "roughnessFactor": 0
+            }
+        }
+    ],
+    "meshes": [
+        {
+            "name": "mesh_right",
+            "primitives": [
+                {
+                    "attributes": {
+                        "POSITION": 0
+                    },
+                    "indices": 1,
+                    "material": 0
+                }
+            ]
+        }
+    ],
+    "nodes": [
+        {
+            "extensions": {
+                "EXT_mesh_gpu_instancing": {
+                    "attributes": {
+                        "ROTATION": 4,
+                        "SCALE": 3,
+                        "TRANSLATION": 2
+                    }
+                }
+            },
+            "mesh": 0,
+            "name": "Instances"
+        },
+        {
+            "children": [
+                0
+            ],
+            "name": "parent"
+        }
+    ],
+    "scene": 0,
+    "scenes": [
+        {
+            "nodes": [
+                1
             ]
         }
     ]
@@ -3022,25 +3425,6 @@ func TestWrite_MeshesDifferentMatsPreserved(t *testing.T) {
 }`, buf.String())
 }
 
-func TestWrite_NilMeshError(t *testing.T) {
-	// ARRANGE ================================================================
-	buf := bytes.Buffer{}
-
-	// ACT ====================================================================
-	err := gltf.WriteText(gltf.PolyformScene{
-		Models: []gltf.PolyformModel{
-			{
-				Name: "mesh",
-				Mesh: nil,
-			},
-		},
-	}, &buf, nil)
-
-	// ASSERT =================================================================
-	assert.Error(t, err)
-	assert.True(t, errors.Is(err, gltf.ErrInvalidInput))
-}
-
 func TestWriteEmptyMesh(t *testing.T) {
 	// ARRANGE ================================================================
 	tri := modeling.EmptyMesh(modeling.TriangleTopology)
@@ -3062,6 +3446,62 @@ func TestWriteEmptyMesh(t *testing.T) {
     "asset": {
         "version": "2.0",
         "generator": "https://github.com/EliCDavis/polyform"
+    },
+    "nodes": [
+        {
+            "name": "mesh"
+        }
+    ],
+    "scene": 0,
+    "scenes": [
+        {
+            "nodes": [
+                0
+            ]
+        }
+    ]
+}`, buf.String())
+}
+
+func aTestWrite_NestedModels(t *testing.T) {
+	// ARRANGE ================================================================
+	tri := modeling.NewPointCloud(
+		nil,
+		map[string][]vector3.Float64{
+			modeling.PositionAttribute: {
+				vector3.New(0., 0, 0),
+			},
+		},
+		nil,
+		nil,
+	)
+	buf := bytes.Buffer{}
+
+	// ACT ====================================================================
+	err := gltf.WriteText(gltf.PolyformScene{
+		Models: []gltf.PolyformModel{
+			{
+				Name: "mesh",
+				Children: []gltf.PolyformModel{
+					{
+						Name: "child",
+						Mesh: &tri,
+					},
+				},
+			},
+		},
+	}, &buf, nil)
+
+	// ASSERT =================================================================
+	assert.NoError(t, err)
+	assert.Equal(t, `{
+    "asset": {
+        "version": "2.0",
+        "generator": "https://github.com/EliCDavis/polyform",
+        "nodes": [
+            [1],
+            [{something}]
+        ]
     }
 }`, buf.String())
 }

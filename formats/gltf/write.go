@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"strconv"
+	"strings"
 
 	"github.com/EliCDavis/polyform/math/mat"
 	"github.com/EliCDavis/polyform/modeling"
@@ -26,6 +28,11 @@ const (
 
 // WriterOptions configures GLTF export behavior
 type WriterOptions struct {
+	// GpuInstancingStrategy Determines how to utilize GLTF's
+	// EXT_mesh_gpu_instancing extension, if at all. The model mesh and material
+	// deduplication applies regardless.
+	GpuInstancingStrategy WriterInstancingStrategy
+
 	// EmbedTextures forces texture images to be embedded as data URIs instead of external file references
 	EmbedTextures bool
 
@@ -70,6 +77,14 @@ func polyformToGLTFAttribute(key string) string {
 	case modeling.NormalAttribute:
 		return NORMAL
 	}
+
+	if strings.HasPrefix(key, modeling.TexCoordAttribute) {
+		i, err := strconv.Atoi(key[len(modeling.TexCoordAttribute):])
+		if err != nil {
+			return fmt.Sprintf("TEXCOORD_%d", i-1)
+		}
+	}
+
 	return key
 }
 
@@ -183,7 +198,7 @@ func WriteText(scene PolyformScene, out io.Writer, options *WriterOptions) error
 	}
 
 	writer := NewWriter()
-	writer.EmbedTextures = opts.EmbedTextures
+	writer.Options = opts
 
 	if err := writer.AddScene(scene); err != nil {
 		return fmt.Errorf("failed to add scene to writer: %w", err)
@@ -218,7 +233,7 @@ func WriteBinary(scene PolyformScene, out io.Writer, options *WriterOptions) err
 	}
 
 	writer := NewWriter()
-	writer.EmbedTextures = opts.EmbedTextures
+	writer.Options = opts
 
 	if err := writer.AddScene(scene); err != nil {
 		return fmt.Errorf("failed to add scene to writer: %w", err)

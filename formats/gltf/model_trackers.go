@@ -3,7 +3,6 @@ package gltf
 import (
 	"github.com/EliCDavis/polyform/math/trs"
 	"github.com/EliCDavis/polyform/modeling"
-	"github.com/EliCDavis/polyform/modeling/animation"
 )
 
 // materialEntry tracks a unique material and its corresponding GLTF material index
@@ -28,13 +27,13 @@ func (mt materialIndices) findExistingMaterialID(mat *PolyformMaterial) (*int, b
 	return nil, false
 }
 
-// materialEntry tracks a unique material and its corresponding GLTF material index
+// meshEntry tracks a unique material and its corresponding GLTF material index
 type meshEntry struct {
 	polyMesh      *modeling.Mesh
 	materialIndex int // -1 is a valid value for absence of material
 }
 
-// materialIndices handle deduplication of GLTF materials
+// meshIndices handle deduplication of GLTF meshes
 type meshIndices map[meshEntry]int
 
 // textureIndices handle deduplication of textures
@@ -47,66 +46,42 @@ type writtenMeshData struct {
 
 type attributeIndices map[*modeling.Mesh]writtenMeshData
 
-// modelInstance represents an instance of a model with specific transformation
-type modelInstance struct {
-	meshIndex int
-	name      string
-	trs       *trs.TRS // Holds the transformation data for this instance
+//=============================================================================
+
+type instancesCachceKey struct {
+	mesh int // Mesh is a combination of primitives and materials
 }
 
-// modelInstanceGroup contains instances of the same mesh that should be rendered together
-type modelInstanceGroup struct {
-	meshIndex  int
-	instances  []modelInstance
-	skeleton   *animation.Skeleton
-	animations []animation.Sequence
-}
+type instancesCachce map[instancesCachceKey][]trs.TRS
 
-func (g modelInstanceGroup) isAnimated() bool {
-	return g.skeleton != nil || len(g.animations) > 0
-}
+func (ic instancesCachce) Add(mesh int, model PolyformModel) {
+	key := instancesCachceKey{mesh: mesh}
+	arr := ic[key]
 
-// instanceTracker handles tracking and organizing model instances
-type instanceTracker struct {
-	groups []modelInstanceGroup
-}
-
-// findOrCreateGroup finds an existing group with matching mesh and material indices or creates a new one
-func (it *instanceTracker) findOrCreateGroup(meshIndex int, skeleton *animation.Skeleton, animations []animation.Sequence) *modelInstanceGroup {
-	// For models with skeletons or animations, we need to create a unique group
-	// because these can't be instanced with other models
-	hasAnimated := skeleton != nil || len(animations) > 0
-
-	if hasAnimated {
-		// Create a new unique group for this animated model
-		it.groups = append(it.groups, modelInstanceGroup{
-			meshIndex:  meshIndex,
-			instances:  make([]modelInstance, 0),
-			skeleton:   skeleton,
-			animations: animations,
-		})
-		return &it.groups[len(it.groups)-1]
-	}
-
-	// For standard models without animations, look for an existing group with the same mesh
-	for i := range it.groups {
-		g := &it.groups[i]
-		if g.meshIndex == meshIndex && !g.isAnimated() {
-			return g
+	if len(model.GpuInstances) == 0 {
+		if model.TRS != nil {
+			arr = append(arr, *model.TRS)
+		} else {
+			arr = append(arr, trs.Identity())
 		}
+		ic[key] = arr
+		return
 	}
 
-	// No existing group found, create a new one
-	it.groups = append(it.groups, modelInstanceGroup{
-		meshIndex: meshIndex,
-		instances: make([]modelInstance, 0),
-	})
+	if model.TRS == nil {
+		ic[key] = append(arr, model.GpuInstances...)
+		return
+	}
 
-	return &it.groups[len(it.groups)-1]
+	transformedInstances := make([]trs.TRS, len(model.GpuInstances))
+	for i, v := range model.GpuInstances {
+		transformedInstances[i] = model.TRS.Multiply(v)
+	}
+
+	ic[key] = append(arr, transformedInstances...)
 }
 
-// add adds a new instance to the appropriate group
-func (it *instanceTracker) add(meshIndex int, instance modelInstance, skeleton *animation.Skeleton, animations []animation.Sequence) {
-	group := it.findOrCreateGroup(meshIndex, skeleton, animations)
-	group.instances = append(group.instances, instance)
+func (ic instancesCachce) IsInstanced(mesh int) bool {
+	key := instancesCachceKey{mesh: mesh}
+	return len(ic[key]) > 1
 }
