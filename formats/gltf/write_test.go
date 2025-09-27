@@ -2607,6 +2607,7 @@ func TestWrite_MeshesDeduplicated(t *testing.T) {
     ]
 }`, buf.String())
 }
+
 func TestWrite_MeshesGpuInstanced(t *testing.T) {
 	// ARRANGE ================================================================
 	tri := modeling.NewTriangleMesh([]int{0, 1, 2}).
@@ -2820,6 +2821,181 @@ func TestWrite_MeshesGpuInstanced(t *testing.T) {
         {
             "nodes": [
                 0
+            ]
+        }
+    ]
+}`, buf.String())
+}
+
+func TestWrite_GpuInstancedMeshes_Expanded(t *testing.T) {
+	// ARRANGE ================================================================
+	tri := modeling.NewTriangleMesh([]int{0, 1, 2}).
+		SetFloat3Attribute(
+			modeling.PositionAttribute,
+			[]vector3.Float64{
+				vector3.New(0., 0., 0.),
+				vector3.New(0., 1., 0.),
+				vector3.New(1., 0., 0.),
+			},
+		)
+
+	buf := bytes.Buffer{}
+
+	// ACT ====================================================================
+	roughness := 0.
+	material := &gltf.PolyformMaterial{
+		Name: "My Material",
+		PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{
+			BaseColorFactor: color.RGBA{255, 100, 80, 255},
+			RoughnessFactor: &roughness,
+		},
+	}
+	trsRight := trs.New(
+		vector3.New(2., 0, 0),
+		quaternion.Identity(),
+		vector3.New(1.5, 1.5, 1.5),
+	)
+	trsLeft := trs.New(
+		vector3.New(-2., 0, -0),
+		quaternion.FromTheta(-math.Pi/2, vector3.New(1., 0, 0)),
+		vector3.New(0.5, 2.5, 0.5),
+	)
+
+	err := gltf.WriteText(gltf.PolyformScene{
+		Models: []gltf.PolyformModel{
+			{
+				Name: "parent",
+				Mesh: &tri, Material: material,
+				GpuInstances: []trs.TRS{
+					trsRight,
+					trsLeft,
+				},
+			},
+		},
+	}, &buf, &gltf.WriterOptions{
+		GpuInstancingStrategy: gltf.WriterInstancingStrategy_Expand,
+	})
+
+	// ASSERT =================================================================
+	assert.NoError(t, err)
+	assert.Equal(t, `{
+    "accessors": [
+        {
+            "bufferView": 0,
+            "componentType": 5126,
+            "type": "VEC3",
+            "count": 3,
+            "max": [
+                1,
+                1,
+                0
+            ],
+            "min": [
+                0,
+                0,
+                0
+            ]
+        },
+        {
+            "bufferView": 1,
+            "componentType": 5123,
+            "type": "SCALAR",
+            "count": 3
+        }
+    ],
+    "asset": {
+        "version": "2.0",
+        "generator": "https://github.com/EliCDavis/polyform"
+    },
+    "buffers": [
+        {
+            "byteLength": 42,
+            "uri": "data:application/octet-stream;base64,AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAAAAAAABAAIA"
+        }
+    ],
+    "bufferViews": [
+        {
+            "buffer": 0,
+            "byteLength": 36,
+            "target": 34962
+        },
+        {
+            "buffer": 0,
+            "byteOffset": 36,
+            "byteLength": 6,
+            "target": 34963
+        }
+    ],
+    "materials": [
+        {
+            "name": "My Material",
+            "pbrMetallicRoughness": {
+                "baseColorFactor": [
+                    1,
+                    0.392,
+                    0.314,
+                    1
+                ],
+                "roughnessFactor": 0
+            }
+        }
+    ],
+    "meshes": [
+        {
+            "name": "parent",
+            "primitives": [
+                {
+                    "attributes": {
+                        "POSITION": 0
+                    },
+                    "indices": 1,
+                    "material": 0
+                }
+            ]
+        }
+    ],
+    "nodes": [
+        {
+            "mesh": 0,
+            "scale": [
+                1.5,
+                1.5,
+                1.5
+            ],
+            "translation": [
+                2,
+                0,
+                0
+            ],
+            "name": "parent"
+        },
+        {
+            "mesh": 0,
+            "rotation": [
+                -0.7071067811865475,
+                0,
+                0,
+                0.7071067811865476
+            ],
+            "scale": [
+                0.5,
+                2.5,
+                0.5
+            ],
+            "translation": [
+                -2,
+                0,
+                0
+            ],
+            "name": "parent"
+        }
+    ],
+    "scene": 0,
+    "scenes": [
+        {
+            "nodes": [
+                0,
+                1
             ]
         }
     ]

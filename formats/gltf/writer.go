@@ -415,7 +415,8 @@ func (w *Writer) AddScene(scene PolyformScene) error {
 	childInstanceGroups := make(instancesCachce)
 
 	for i, child := range scene.Models {
-		if w.Options.GpuInstancingStrategy == WriterInstancingStrategy_Collapse {
+		switch w.Options.GpuInstancingStrategy {
+		case WriterInstancingStrategy_Collapse:
 			if canCollapseIntoInstance(child) {
 				meshIndex, err := w.getOrAddMeshIndex(child)
 				if err != nil {
@@ -424,14 +425,34 @@ func (w *Writer) AddScene(scene PolyformScene) error {
 				childInstanceGroups.Add(meshIndex, child)
 				continue
 			}
-		} else {
-			id, err := w.addModel(child)
+
+		case WriterInstancingStrategy_Expand:
+			if len(child.GpuInstances) > 0 {
+				for _, instance := range child.GpuInstances {
+					id, err := w.addModel(child, &instance)
+					if err != nil {
+						return fmt.Errorf("unable to add model[%d] %q to scene: %w", i, child.Name, err)
+					}
+					sceneNodes = append(sceneNodes, *id)
+				}
+			} else {
+				id, err := w.addModel(child, nil)
+				if err != nil {
+					return fmt.Errorf("unable to add model[%d] %q to scene: %w", i, child.Name, err)
+				}
+				sceneNodes = append(sceneNodes, *id)
+			}
+
+		case WriterInstancingStrategy_Default:
+			id, err := w.addModel(child, nil)
 			if err != nil {
 				return fmt.Errorf("unable to add model[%d] %q to scene: %w", i, child.Name, err)
 			}
 			sceneNodes = append(sceneNodes, *id)
-		}
 
+		default:
+			return fmt.Errorf("unimplemented writer instancing strategy: %d", WriterInstancingStrategy_Default)
+		}
 	}
 
 	if w.Options.GpuInstancingStrategy == WriterInstancingStrategy_Collapse {
@@ -449,7 +470,7 @@ func (w *Writer) AddScene(scene PolyformScene) error {
 				}
 			}
 
-			childeNodeIndex, err := w.addModel(child)
+			childeNodeIndex, err := w.addModel(child, nil)
 			if err != nil {
 				return fmt.Errorf("error adding scene node %q: %w", child.Name, err)
 			}
@@ -604,7 +625,7 @@ func (w *Writer) addExtGpuInstancing(positions, scales []vector3.Float64, rotati
 	return instances
 }
 
-func (w *Writer) addModel(model PolyformModel) (nodeId *GltfId, err error) {
+func (w *Writer) addModel(model PolyformModel, parentTransformOverride *trs.TRS) (nodeId *GltfId, err error) {
 
 	node := Node{
 		Name: model.Name,
@@ -618,8 +639,16 @@ func (w *Writer) addModel(model PolyformModel) (nodeId *GltfId, err error) {
 		return nil, errors.New("model can not reference a material without also referencing a mesh")
 	}
 
-	if model.TRS != nil {
-		trs := *model.TRS
+	if model.TRS != nil || parentTransformOverride != nil {
+		trs := trs.Identity()
+		if model.TRS != nil {
+			trs = *model.TRS
+		}
+
+		if parentTransformOverride != nil {
+			trs = trs.Multiply(*parentTransformOverride)
+		}
+
 		if trs.Position() != vector3.Zero[float64]() {
 			translation := trs.Position().ToFixedArr()
 			node.Translation = &translation
@@ -692,7 +721,18 @@ func (w *Writer) addModel(model PolyformModel) (nodeId *GltfId, err error) {
 			}
 		}
 
-		childeNodeIndex, err := w.addModel(child)
+		if w.Options.GpuInstancingStrategy == WriterInstancingStrategy_Expand && len(child.GpuInstances) > 0 {
+			for _, instance := range child.GpuInstances {
+				childeNodeIndex, err := w.addModel(child, &instance)
+				if err != nil {
+					return nil, fmt.Errorf("error adding %q %d child %q: %w", model.Name, i, child.Name, err)
+				}
+				node.Children = append(node.Children, *childeNodeIndex)
+			}
+			continue
+		}
+
+		childeNodeIndex, err := w.addModel(child, nil)
 		if err != nil {
 			return nil, fmt.Errorf("error adding %q %d child %q: %w", model.Name, i, child.Name, err)
 		}
@@ -723,7 +763,7 @@ func (w *Writer) addModel(model PolyformModel) (nodeId *GltfId, err error) {
 				}
 			}
 
-			childeNodeIndex, err := w.addModel(child)
+			childeNodeIndex, err := w.addModel(child, nil)
 			if err != nil {
 				return nil, fmt.Errorf("error adding %q %d child %q: %w", model.Name, i, child.Name, err)
 			}

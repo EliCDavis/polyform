@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"strconv"
+	"strings"
 
 	"github.com/EliCDavis/polyform/math/mat"
 	"github.com/EliCDavis/polyform/modeling"
@@ -75,6 +77,14 @@ func polyformToGLTFAttribute(key string) string {
 	case modeling.NormalAttribute:
 		return NORMAL
 	}
+
+	if strings.HasPrefix(key, modeling.TexCoordAttribute) {
+		i, err := strconv.Atoi(key[len(modeling.TexCoordAttribute):])
+		if err != nil {
+			return fmt.Sprintf("TEXCOORD_%d", i-1)
+		}
+	}
+
 	return key
 }
 
