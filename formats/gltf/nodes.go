@@ -90,6 +90,7 @@ func (gad ManifestNode) Out(out *nodes.StructOutput[manifest.Manifest]) {
 type ModelNode struct {
 	Mesh     nodes.Output[modeling.Mesh]
 	Material nodes.Output[PolyformMaterial]
+	Children []nodes.Output[PolyformModel]
 
 	Translation nodes.Output[vector3.Float64]
 	Rotation    nodes.Output[quaternion.Quaternion]
@@ -111,6 +112,7 @@ func (gmnd ModelNode) Out(out *nodes.StructOutput[PolyformModel]) {
 		Material:     nodes.TryGetOutputReference(out, gmnd.Material, nil),
 		Mesh:         nodes.TryGetOutputReference(out, gmnd.Mesh, nil),
 		TRS:          &transform,
+		Children:     nodes.GetOutputValues(out, gmnd.Children),
 	})
 }
 

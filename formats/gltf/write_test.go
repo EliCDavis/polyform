@@ -2,7 +2,6 @@ package gltf_test
 
 import (
 	"bytes"
-	"errors"
 	"image/color"
 	"math"
 	"testing"
@@ -3424,25 +3423,6 @@ func TestWrite_MeshesDifferentMatsPreserved(t *testing.T) {
         }
     ]
 }`, buf.String())
-}
-
-func TestWrite_NilMeshError(t *testing.T) {
-	// ARRANGE ================================================================
-	buf := bytes.Buffer{}
-
-	// ACT ====================================================================
-	err := gltf.WriteText(gltf.PolyformScene{
-		Models: []gltf.PolyformModel{
-			{
-				Name: "mesh",
-				Mesh: nil,
-			},
-		},
-	}, &buf, nil)
-
-	// ASSERT =================================================================
-	assert.Error(t, err)
-	assert.True(t, errors.Is(err, gltf.ErrInvalidInput))
 }
 
 func TestWriteEmptyMesh(t *testing.T) {

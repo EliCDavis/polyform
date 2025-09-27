@@ -631,9 +631,9 @@ func (w *Writer) addModel(model PolyformModel, parentTransformOverride *trs.TRS)
 		Name: model.Name,
 	}
 
-	if model.Mesh == nil && len(model.Children) == 0 {
-		return nil, fmt.Errorf("%w: nil mesh in model %q", ErrInvalidInput, model.Name)
-	}
+	// if model.Mesh == nil && len(model.Children) == 0 {
+	// 	return nil, fmt.Errorf("%w: nil mesh in model %q", ErrInvalidInput, model.Name)
+	// }
 
 	if model.Material != nil && model.Mesh == nil {
 		return nil, errors.New("model can not reference a material without also referencing a mesh")

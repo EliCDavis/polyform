@@ -730,8 +730,6 @@ func decodeNode(doc *Gltf, buffers [][]byte, n Node, opts ReaderOptions, imgCach
 		Name: n.Name,
 	}
 
-	fmt.Printf("Node: %s\n", n.Name)
-
 	if n.Mesh != nil {
 		mesh := doc.Meshes[*n.Mesh]
 
