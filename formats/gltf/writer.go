@@ -799,10 +799,6 @@ func (w *Writer) addModel(model PolyformModel, parentTransformOverride *trs.TRS)
 }
 
 func (w *Writer) AddTexture(polyTex *PolyformTexture) *TextureInfo {
-	texExt, texInfoExt := polyTex.prepareExtensions(w)
-
-	newTexInfo := &TextureInfo{Extensions: texInfoExt}
-
 	texIndex := -1
 	var texFound bool
 	for texPtr, index := range w.textureIndices {
@@ -813,6 +809,8 @@ func (w *Writer) AddTexture(polyTex *PolyformTexture) *TextureInfo {
 		}
 	}
 
+	texExt, texInfoExt := polyTex.prepareExtensions(w)
+	newTexInfo := &TextureInfo{Extensions: texInfoExt, TexCoord: polyTex.TexCoord}
 	if texFound { // This is exactly same texture object as was already added, reference it and return early
 		newTexInfo.Index = texIndex
 		return newTexInfo

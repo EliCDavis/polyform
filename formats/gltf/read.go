@@ -516,13 +516,16 @@ func decodeVector4Accessor(doc *Gltf, id GltfId, buffers [][]byte) ([]vector4.Fl
 }
 
 // loadTexture loads a texture from the GLTF document
-func loadTexture(doc *Gltf, textureId GltfId, opts ReaderOptions, buffers [][]byte, imgCache imgReaderCache) (*PolyformTexture, error) {
+func loadTexture(doc *Gltf, textureInfo TextureInfo, opts ReaderOptions, buffers [][]byte, imgCache imgReaderCache) (*PolyformTexture, error) {
+	textureId := textureInfo.Index
 	if textureId >= len(doc.Textures) || textureId < 0 {
 		return nil, fmt.Errorf("invalid texture ID: %d", textureId)
 	}
 
 	texture := doc.Textures[textureId]
-	polyformTexture := &PolyformTexture{}
+	polyformTexture := &PolyformTexture{
+		TexCoord: textureInfo.TexCoord,
+	}
 
 	// Load image if present
 	if texture.Source != nil {
@@ -566,6 +569,118 @@ func loadTexture(doc *Gltf, textureId GltfId, opts ReaderOptions, buffers [][]by
 	return polyformTexture, nil
 }
 
+func decodeFixedRGBA(rgba [4]float64) color.RGBA {
+	return color.RGBA{
+		R: uint8(rgba[0] * 255),
+		G: uint8(rgba[1] * 255),
+		B: uint8(rgba[2] * 255),
+		A: uint8(rgba[3] * 255),
+	}
+}
+
+func decodeFixedRGB(rgb [3]float64) color.RGBA {
+	return color.RGBA{
+		R: uint8(rgb[0] * 255),
+		G: uint8(rgb[1] * 255),
+		B: uint8(rgb[2] * 255),
+		A: 255,
+	}
+}
+
+func decodeRGBA(rgba []float64) color.RGBA {
+	return color.RGBA{
+		R: uint8(rgba[0] * 255),
+		G: uint8(rgba[1] * 255),
+		B: uint8(rgba[2] * 255),
+		A: uint8(rgba[3] * 255),
+	}
+}
+
+func decodeRGB(rgb []float64) color.RGBA {
+	return color.RGBA{
+		R: uint8(rgb[0] * 255),
+		G: uint8(rgb[1] * 255),
+		B: uint8(rgb[2] * 255),
+		A: 255,
+	}
+}
+
+func tryGetMapData[T any](m map[string]any, key string) (T, bool) {
+	var v T
+	val, ok := m[key]
+	if !ok {
+		return v, false
+	}
+
+	v, ok = val.(T)
+	return v, ok
+}
+
+func tryReinterpretMapData[T any](m map[string]any, key string) (T, bool) {
+	var v T
+	val, ok := m[key]
+	if !ok {
+		return v, false
+	}
+
+	marshallData, err := json.Marshal(val)
+	if err != nil {
+		return v, false
+	}
+
+	err = json.Unmarshal(marshallData, &v)
+	if err != nil {
+		return v, false
+	}
+	return v, true
+}
+
+func decodePbrSpecularGlossiness(extensionData any) (*PolyformPbrSpecularGlossiness, error) {
+	pbrSpecularData, ok := extensionData.(map[string]any)
+	if !ok {
+		return nil, fmt.Errorf("unable to interpret extension data")
+	}
+
+	ext := &PolyformPbrSpecularGlossiness{}
+
+	if diffuseFactor, ok := tryGetMapData[[]float64](pbrSpecularData, "diffuseFactor"); ok {
+		ext.DiffuseFactor = decodeRGBA(diffuseFactor)
+	}
+
+	if specularFactor, ok := tryGetMapData[[]float64](pbrSpecularData, "specularFactor"); ok {
+		ext.SpecularFactor = decodeRGB(specularFactor)
+	}
+
+	if glossinessFactor, ok := tryGetMapData[float64](pbrSpecularData, "glossinessFactor"); ok {
+		ext.GlossinessFactor = &glossinessFactor
+	}
+
+	return ext, nil
+}
+
+func decodeTransmission(doc *Gltf, opts ReaderOptions, buffers [][]byte, imgCache imgReaderCache, extensionData any) (*PolyformTransmission, error) {
+	pbrSpecularData, ok := extensionData.(map[string]any)
+	if !ok {
+		return nil, fmt.Errorf("unable to interpret extension data")
+	}
+
+	ext := &PolyformTransmission{}
+
+	if transmissionFactor, ok := tryGetMapData[float64](pbrSpecularData, "transmissionFactor"); ok {
+		ext.Factor = transmissionFactor
+	}
+
+	if transmissionTexture, ok := tryReinterpretMapData[TextureInfo](pbrSpecularData, "transmissionTexture"); ok {
+		loadedTex, err := loadTexture(doc, transmissionTexture, opts, buffers, imgCache)
+		if err != nil {
+			return nil, fmt.Errorf("unable to interpret transmission texture: %w", err)
+		}
+		ext.Texture = loadedTex
+	}
+
+	return ext, nil
+}
+
 // loadMaterial loads a material from the GLTF document
 func loadMaterial(doc *Gltf, materialId GltfId, opts ReaderOptions, buffers [][]byte, imgCache imgReaderCache) (*PolyformMaterial, error) {
 	if materialId >= len(doc.Materials) || materialId < 0 {
@@ -583,18 +698,12 @@ func loadMaterial(doc *Gltf, materialId GltfId, opts ReaderOptions, buffers [][]
 
 		// Base color factor
 		if gltfMaterial.PbrMetallicRoughness.BaseColorFactor != nil {
-			factor := *gltfMaterial.PbrMetallicRoughness.BaseColorFactor
-			pbr.BaseColorFactor = color.RGBA{
-				R: uint8(factor[0] * 255),
-				G: uint8(factor[1] * 255),
-				B: uint8(factor[2] * 255),
-				A: uint8(factor[3] * 255),
-			}
+			pbr.BaseColorFactor = decodeFixedRGBA(*gltfMaterial.PbrMetallicRoughness.BaseColorFactor)
 		}
 
 		// Base color texture
 		if gltfMaterial.PbrMetallicRoughness.BaseColorTexture != nil {
-			texture, err := loadTexture(doc, gltfMaterial.PbrMetallicRoughness.BaseColorTexture.Index, opts, buffers, imgCache)
+			texture, err := loadTexture(doc, *gltfMaterial.PbrMetallicRoughness.BaseColorTexture, opts, buffers, imgCache)
 			if err != nil {
 				return nil, fmt.Errorf("failed to load base color texture: %w", err)
 			}
@@ -611,7 +720,7 @@ func loadMaterial(doc *Gltf, materialId GltfId, opts ReaderOptions, buffers [][]
 
 		// Metallic-roughness texture
 		if gltfMaterial.PbrMetallicRoughness.MetallicRoughnessTexture != nil {
-			texture, err := loadTexture(doc, gltfMaterial.PbrMetallicRoughness.MetallicRoughnessTexture.Index, opts, buffers, imgCache)
+			texture, err := loadTexture(doc, *gltfMaterial.PbrMetallicRoughness.MetallicRoughnessTexture, opts, buffers, imgCache)
 			if err != nil {
 				return nil, fmt.Errorf("failed to load metallic-roughness texture: %w", err)
 			}
@@ -623,7 +732,7 @@ func loadMaterial(doc *Gltf, materialId GltfId, opts ReaderOptions, buffers [][]
 
 	// Load normal texture
 	if gltfMaterial.NormalTexture != nil {
-		texture, err := loadTexture(doc, gltfMaterial.NormalTexture.Index, opts, buffers, imgCache)
+		texture, err := loadTexture(doc, gltfMaterial.NormalTexture.TextureInfo, opts, buffers, imgCache)
 		if err != nil {
 			return nil, fmt.Errorf("failed to load normal texture: %w", err)
 		}
@@ -635,7 +744,7 @@ func loadMaterial(doc *Gltf, materialId GltfId, opts ReaderOptions, buffers [][]
 
 	// Load emissive texture
 	if gltfMaterial.EmissiveTexture != nil {
-		texture, err := loadTexture(doc, gltfMaterial.EmissiveTexture.Index, opts, buffers, imgCache)
+		texture, err := loadTexture(doc, *gltfMaterial.EmissiveTexture, opts, buffers, imgCache)
 		if err != nil {
 			return nil, fmt.Errorf("failed to load emissive texture: %w", err)
 		}
@@ -644,17 +753,33 @@ func loadMaterial(doc *Gltf, materialId GltfId, opts ReaderOptions, buffers [][]
 
 	// Load emissive factor
 	if gltfMaterial.EmissiveFactor != nil {
-		factor := *gltfMaterial.EmissiveFactor
-		material.EmissiveFactor = color.RGBA{
-			R: uint8(factor[0] * 255),
-			G: uint8(factor[1] * 255),
-			B: uint8(factor[2] * 255),
-			A: 255,
-		}
+		material.EmissiveFactor = decodeFixedRGB(*gltfMaterial.EmissiveFactor)
 	}
 
 	material.AlphaMode = gltfMaterial.AlphaMode
 	material.AlphaCutoff = gltfMaterial.AlphaCutoff
+
+	if gltfMaterial.Extensions != nil {
+		for extension, extensionData := range gltfMaterial.Extensions {
+			var ext MaterialExtension
+			var err error
+			switch extension {
+			case KHR_materials_pbrSpecularGlossiness:
+				ext, err = decodePbrSpecularGlossiness(extensionData)
+
+			case KHR_materials_transmission:
+				ext, err = decodeTransmission(doc, opts, buffers, imgCache, extensionData)
+
+			}
+
+			if err != nil {
+				return nil, fmt.Errorf("unable to decode %s: %w", extension, err)
+			}
+			if ext != nil {
+				material.Extensions = append(material.Extensions, ext)
+			}
+		}
+	}
 
 	return material, nil
 }

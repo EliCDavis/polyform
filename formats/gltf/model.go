@@ -98,6 +98,7 @@ type PolyformTexture struct {
 	URI        string
 	Image      image.Image
 	Sampler    *Sampler
+	TexCoord   int
 	Extensions []TextureExtension
 }
 
@@ -186,6 +187,10 @@ func (pt *PolyformTexture) equal(other *PolyformTexture) bool {
 	}
 
 	if pt == nil || other == nil {
+		return false
+	}
+
+	if pt.TexCoord != other.TexCoord {
 		return false
 	}
 
