@@ -659,92 +659,109 @@ func loadMaterial(doc *Gltf, materialId GltfId, opts ReaderOptions, buffers [][]
 	return material, nil
 }
 
+func decodePrimitive(doc *Gltf, buffers [][]byte, p Primitive, opts ReaderOptions, imgCache imgReaderCache) (*modeling.Mesh, *PolyformMaterial, error) {
+	var indices []int
+	var err error
+	if p.Indices != nil {
+		indices, err = decodeIndices(doc, p.Indices, buffers)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to decode indices: %w", err)
+		}
+	}
+
+	mesh := modeling.NewMesh(decodeTopology(p.Mode), indices)
+
+	// Process all attributes
+	for attr, gltfId := range p.Attributes {
+		if gltfId >= len(doc.Accessors) {
+			return nil, nil, fmt.Errorf("attribute %s references invalid accessor %d", attr, gltfId)
+		}
+
+		accessor := doc.Accessors[gltfId]
+		attributeName := decodePrimitiveAttributeName(attr)
+
+		switch accessor.Type {
+		case AccessorType_SCALAR:
+			values, err := decodeScalarAccessor(doc, gltfId, buffers)
+			if err != nil {
+				return nil, nil, fmt.Errorf("failed to decode scalar attribute %s: %w", attr, err)
+			}
+			mesh = mesh.SetFloat1Attribute(attributeName, values)
+
+		case AccessorType_VEC2:
+			v2, err := decodeVector2Accessor(doc, gltfId, buffers)
+			if err != nil {
+				return nil, nil, fmt.Errorf("failed to decode vec2 attribute %s: %w", attr, err)
+			}
+			mesh = mesh.SetFloat2Attribute(attributeName, v2)
+
+		case AccessorType_VEC3:
+			v3, err := decodeVector3Accessor(doc, gltfId, buffers)
+			if err != nil {
+				return nil, nil, fmt.Errorf("failed to decode vec3 attribute %s: %w", attr, err)
+			}
+			mesh = mesh.SetFloat3Attribute(attributeName, v3)
+
+		case AccessorType_VEC4:
+			v4, err := decodeVector4Accessor(doc, gltfId, buffers)
+			if err != nil {
+				return nil, nil, fmt.Errorf("failed to decode vec4 attribute %s: %w", attr, err)
+			}
+			mesh = mesh.SetFloat4Attribute(attributeName, v4)
+
+		default:
+			return nil, nil, fmt.Errorf("unsupported accessor type %s for attribute %s", accessor.Type, attr)
+		}
+	}
+
+	if p.Material == nil {
+		return &mesh, nil, nil
+	}
+
+	m, err := loadMaterial(doc, *p.Material, opts, buffers, imgCache)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to load material: %w", err)
+	}
+	return &mesh, m, nil
+}
+
 func decodeNode(doc *Gltf, buffers [][]byte, n Node, opts ReaderOptions, imgCache imgReaderCache) (*PolyformModel, error) {
 	model := &PolyformModel{
 		Name: n.Name,
 	}
 
+	fmt.Printf("Node: %s\n", n.Name)
+
 	if n.Mesh != nil {
 		mesh := doc.Meshes[*n.Mesh]
-		if len(mesh.Primitives) > 1 {
-			return nil, fmt.Errorf("unimplemented scenario: Node %s mesh %d has more than one primitive: %d", n.Name, *n.Mesh, len(mesh.Primitives))
-		}
 
-		if len(mesh.Primitives) == 1 { // Handle indices - they might be nil for non-indexed geometry
-			p := mesh.Primitives[0]
-			var indices []int
-			var err error
-			if p.Indices != nil {
-				indices, err = decodeIndices(doc, p.Indices, buffers)
+		if len(mesh.Primitives) == 1 {
+			decodedMesh, decodedMat, err := decodePrimitive(doc, buffers, mesh.Primitives[0], opts, imgCache)
+			if err != nil {
+				return nil, fmt.Errorf("unable to decode node %s mesh %d primitive 0: %w", n.Name, *n.Mesh, err)
+			}
+
+			model.Material = decodedMat
+			model.Mesh = decodedMesh
+		} else if len(mesh.Primitives) > 1 {
+			geometryNode := PolyformModel{}
+			for primIndex, prim := range mesh.Primitives {
+				decodedMesh, decodedMat, err := decodePrimitive(doc, buffers, prim, opts, imgCache)
 				if err != nil {
-					return nil, fmt.Errorf("failed to decode indices: %w", err)
+					return nil, fmt.Errorf("unable to decode node %s mesh %d primitive %d: %w", n.Name, *n.Mesh, primIndex, err)
 				}
+
+				geometryNode.Material = decodedMat
+				geometryNode.Mesh = decodedMesh
 			}
-
-			mesh := modeling.NewMesh(decodeTopology(p.Mode), indices)
-
-			// Process all attributes
-			for attr, gltfId := range p.Attributes {
-				if gltfId >= len(doc.Accessors) {
-					return nil, fmt.Errorf("attribute %s references invalid accessor %d", attr, gltfId)
-				}
-
-				accessor := doc.Accessors[gltfId]
-				attributeName := decodePrimitiveAttributeName(attr)
-
-				switch accessor.Type {
-				case AccessorType_SCALAR:
-					values, err := decodeScalarAccessor(doc, gltfId, buffers)
-					if err != nil {
-						return nil, fmt.Errorf("failed to decode scalar attribute %s: %w", attr, err)
-					}
-					mesh = mesh.SetFloat1Attribute(attributeName, values)
-
-				case AccessorType_VEC2:
-					v2, err := decodeVector2Accessor(doc, gltfId, buffers)
-					if err != nil {
-						return nil, fmt.Errorf("failed to decode vec2 attribute %s: %w", attr, err)
-					}
-					mesh = mesh.SetFloat2Attribute(attributeName, v2)
-
-				case AccessorType_VEC3:
-					v3, err := decodeVector3Accessor(doc, gltfId, buffers)
-					if err != nil {
-						return nil, fmt.Errorf("failed to decode vec3 attribute %s: %w", attr, err)
-					}
-					mesh = mesh.SetFloat3Attribute(attributeName, v3)
-
-				case AccessorType_VEC4:
-					v4, err := decodeVector4Accessor(doc, gltfId, buffers)
-					if err != nil {
-						return nil, fmt.Errorf("failed to decode vec4 attribute %s: %w", attr, err)
-					}
-					mesh = mesh.SetFloat4Attribute(attributeName, v4)
-
-				default:
-					return nil, fmt.Errorf("unsupported accessor type %s for attribute %s", accessor.Type, attr)
-				}
-			}
-
-			model.Mesh = &mesh
-
-			// Load material if present
-			if p.Material != nil {
-				m, err := loadMaterial(doc, *p.Material, opts, buffers, imgCache)
-				if err != nil {
-					return nil, fmt.Errorf("failed to load material: %w", err)
-				}
-				model.Material = m
-			}
+			model.Children = append(model.Children, geometryNode)
 		}
 	}
 
 	transform := trs.Identity()
-	// Handle matrix transformation if present
 	if n.Matrix != nil {
 		transform = trs.FromMatrix(mat.FromColArray(*n.Matrix))
 	} else {
-		// Handle TRS components
 		if n.Translation != nil {
 			data := *n.Translation
 			p := vector3.New(data[0], data[1], data[2])
@@ -1048,20 +1065,18 @@ func DecodeModels(doc *Gltf, buffers [][]byte, options *ReaderOptions) ([]Polyfo
 	if doc.Scene != nil {
 		scene := doc.Scenes[*doc.Scene]
 		for _, nodeIndex := range scene.Nodes {
-			node := doc.Nodes[nodeIndex]
-			model, err := decodeNode(doc, buffers, node, opts, imgCache)
+			model, err := processNodeHierarchy(doc, buffers, nodeIndex, opts, imgCache)
 			if err != nil {
-				return nil, fmt.Errorf("Unable to decode node %d: %w", nodeIndex, err)
+				return nil, fmt.Errorf("unable to decode node %d: %w", nodeIndex, err)
 			}
 			models = append(models, *model)
 		}
 	} else {
 		for _, scene := range doc.Scenes {
 			for _, nodeIndex := range scene.Nodes {
-				node := doc.Nodes[nodeIndex]
-				model, err := decodeNode(doc, buffers, node, opts, imgCache)
+				model, err := processNodeHierarchy(doc, buffers, nodeIndex, opts, imgCache)
 				if err != nil {
-					return nil, fmt.Errorf("Unable to decode node %d: %w", nodeIndex, err)
+					return nil, fmt.Errorf("unable to decode node %d: %w", nodeIndex, err)
 				}
 				models = append(models, *model)
 			}

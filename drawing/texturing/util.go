@@ -1,17 +1,12 @@
 package texturing
 
 import (
-	"errors"
 	"image"
 
 	"github.com/EliCDavis/polyform/drawing/coloring"
 )
 
-func FromImage(img image.Image) (*Texture[coloring.Color], error) {
-	if img == nil {
-		return nil, errors.New("can't create texture from nil image")
-	}
-
+func FromImage(img image.Image) Texture[coloring.Color] {
 	bounds := img.Bounds()
 	tex := NewTexture[coloring.Color](bounds.Dx(), bounds.Dy())
 
@@ -27,5 +22,5 @@ func FromImage(img image.Image) (*Texture[coloring.Color], error) {
 		}
 	}
 
-	return &tex, nil
+	return tex
 }
