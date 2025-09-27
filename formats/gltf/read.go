@@ -72,6 +72,8 @@ type ReaderOptions struct {
 	// BasePath overrides the base path for resolving relative URIs.
 	// If empty, uses the directory of the GLTF file (for file-based loading) or current directory.
 	BasePath string
+
+	MaterialExtensionLoaders map[string]MaterialExtensionLoader
 }
 
 func decodeTopology(mode *PrimitiveMode) modeling.Topology {
@@ -587,100 +589,6 @@ func decodeFixedRGB(rgb [3]float64) color.RGBA {
 	}
 }
 
-func decodeRGBA(rgba []float64) color.RGBA {
-	return color.RGBA{
-		R: uint8(rgba[0] * 255),
-		G: uint8(rgba[1] * 255),
-		B: uint8(rgba[2] * 255),
-		A: uint8(rgba[3] * 255),
-	}
-}
-
-func decodeRGB(rgb []float64) color.RGBA {
-	return color.RGBA{
-		R: uint8(rgb[0] * 255),
-		G: uint8(rgb[1] * 255),
-		B: uint8(rgb[2] * 255),
-		A: 255,
-	}
-}
-
-func tryGetMapData[T any](m map[string]any, key string) (T, bool) {
-	var v T
-	val, ok := m[key]
-	if !ok {
-		return v, false
-	}
-
-	v, ok = val.(T)
-	return v, ok
-}
-
-func tryReinterpretMapData[T any](m map[string]any, key string) (T, bool) {
-	var v T
-	val, ok := m[key]
-	if !ok {
-		return v, false
-	}
-
-	marshallData, err := json.Marshal(val)
-	if err != nil {
-		return v, false
-	}
-
-	err = json.Unmarshal(marshallData, &v)
-	if err != nil {
-		return v, false
-	}
-	return v, true
-}
-
-func decodePbrSpecularGlossiness(extensionData any) (*PolyformPbrSpecularGlossiness, error) {
-	pbrSpecularData, ok := extensionData.(map[string]any)
-	if !ok {
-		return nil, fmt.Errorf("unable to interpret extension data")
-	}
-
-	ext := &PolyformPbrSpecularGlossiness{}
-
-	if diffuseFactor, ok := tryGetMapData[[]float64](pbrSpecularData, "diffuseFactor"); ok {
-		ext.DiffuseFactor = decodeRGBA(diffuseFactor)
-	}
-
-	if specularFactor, ok := tryGetMapData[[]float64](pbrSpecularData, "specularFactor"); ok {
-		ext.SpecularFactor = decodeRGB(specularFactor)
-	}
-
-	if glossinessFactor, ok := tryGetMapData[float64](pbrSpecularData, "glossinessFactor"); ok {
-		ext.GlossinessFactor = &glossinessFactor
-	}
-
-	return ext, nil
-}
-
-func decodeTransmission(doc *Gltf, opts ReaderOptions, buffers [][]byte, imgCache imgReaderCache, extensionData any) (*PolyformTransmission, error) {
-	pbrSpecularData, ok := extensionData.(map[string]any)
-	if !ok {
-		return nil, fmt.Errorf("unable to interpret extension data")
-	}
-
-	ext := &PolyformTransmission{}
-
-	if transmissionFactor, ok := tryGetMapData[float64](pbrSpecularData, "transmissionFactor"); ok {
-		ext.Factor = transmissionFactor
-	}
-
-	if transmissionTexture, ok := tryReinterpretMapData[TextureInfo](pbrSpecularData, "transmissionTexture"); ok {
-		loadedTex, err := loadTexture(doc, transmissionTexture, opts, buffers, imgCache)
-		if err != nil {
-			return nil, fmt.Errorf("unable to interpret transmission texture: %w", err)
-		}
-		ext.Texture = loadedTex
-	}
-
-	return ext, nil
-}
-
 // loadMaterial loads a material from the GLTF document
 func loadMaterial(doc *Gltf, materialId GltfId, opts ReaderOptions, buffers [][]byte, imgCache imgReaderCache) (*PolyformMaterial, error) {
 	if materialId >= len(doc.Materials) || materialId < 0 {
@@ -759,22 +667,25 @@ func loadMaterial(doc *Gltf, materialId GltfId, opts ReaderOptions, buffers [][]
 	material.AlphaMode = gltfMaterial.AlphaMode
 	material.AlphaCutoff = gltfMaterial.AlphaCutoff
 
-	if gltfMaterial.Extensions != nil {
+	if gltfMaterial.Extensions != nil && len(opts.MaterialExtensionLoaders) > 0 {
+		ctx := &MaterialExtensionLoaderContext{
+			doc:      doc,
+			opts:     opts,
+			buffers:  buffers,
+			imgCache: imgCache,
+		}
+
 		for extension, extensionData := range gltfMaterial.Extensions {
-			var ext MaterialExtension
-			var err error
-			switch extension {
-			case KHR_materials_pbrSpecularGlossiness:
-				ext, err = decodePbrSpecularGlossiness(extensionData)
-
-			case KHR_materials_transmission:
-				ext, err = decodeTransmission(doc, opts, buffers, imgCache, extensionData)
-
+			loader, ok := opts.MaterialExtensionLoaders[extension]
+			if !ok {
+				continue
 			}
 
+			ext, err := loader.LoadMaterialExtension(ctx, extensionData)
 			if err != nil {
-				return nil, fmt.Errorf("unable to decode %s: %w", extension, err)
+				return nil, fmt.Errorf("unable to load material extension %s: %w", extension, err)
 			}
+
 			if ext != nil {
 				material.Extensions = append(material.Extensions, ext)
 			}
@@ -1008,6 +919,7 @@ func LoadGLTF(r io.Reader, options *ReaderOptions) (*Gltf, [][]byte, error) {
 	if options != nil {
 		opts = *options
 	}
+	initializeDefaultReaderOptions(&opts)
 
 	// Use standard buffer loader if none provided
 	if opts.BufferLoader == nil {
@@ -1108,6 +1020,18 @@ func LoadGLB(r io.Reader, options *ReaderOptions) (*Gltf, [][]byte, error) {
 	return doc, allBuffers, reader.Error()
 }
 
+func initializeDefaultReaderOptions(opts *ReaderOptions) {
+	if opts.MaterialExtensionLoaders == nil {
+		opts.MaterialExtensionLoaders = make(map[string]MaterialExtensionLoader)
+	}
+
+	for extension, loader := range defaultMaterialExtensionLoaders {
+		if _, ok := opts.MaterialExtensionLoaders[extension]; !ok {
+			opts.MaterialExtensionLoaders[extension] = loader
+		}
+	}
+}
+
 // LoadFile reads a GLTF file from disk and loads all referenced buffers.
 // The directory containing the GLTF file is used as the base path for resolving relative URIs.
 //
@@ -1136,6 +1060,7 @@ func LoadFile(gltfPath string, options *ReaderOptions) (*Gltf, [][]byte, error) 
 	if options != nil {
 		*opts = *options
 	}
+	initializeDefaultReaderOptions(opts)
 
 	// Use the GLTF file's directory as base path if not specified
 	if opts.BasePath == "" {
@@ -1174,6 +1099,7 @@ func DecodeModels(doc *Gltf, buffers [][]byte, options *ReaderOptions) ([]Polyfo
 	if options != nil {
 		opts = *options
 	}
+	initializeDefaultReaderOptions(&opts)
 
 	// Use standard image loader if none provided
 	if opts.ImageLoader == nil {
@@ -1227,6 +1153,7 @@ func DecodeScene(doc *Gltf, buffers [][]byte, options *ReaderOptions) (*Polyform
 	if options != nil {
 		opts = *options
 	}
+	initializeDefaultReaderOptions(&opts)
 
 	// Use standard image loader if none provided
 	if opts.ImageLoader == nil {

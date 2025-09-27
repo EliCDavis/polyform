@@ -106,7 +106,7 @@ func createTriangleBuffer() (string, int) {
 }
 
 // createMinimalValidGLTF creates a minimal valid GLTF document
-func createMinimalValidGLTF(t *testing.T) gltf.Gltf {
+func createMinimalValidGLTF() gltf.Gltf {
 	bufferData, bufferSize := createTriangleBuffer()
 
 	return gltf.Gltf{
@@ -157,7 +157,7 @@ func createMinimalValidGLTF(t *testing.T) gltf.Gltf {
 
 // createGLTFWithMaterials creates a GLTF with materials and textures
 func createGLTFWithMaterials(t *testing.T) gltf.Gltf {
-	doc := createMinimalValidGLTF(t)
+	doc := createMinimalValidGLTF()
 
 	// Create test images
 	baseColorImg := generateTestImage(64, 64, color.RGBA{255, 0, 0, 255})  // Red
@@ -207,7 +207,7 @@ func createGLTFWithMaterials(t *testing.T) gltf.Gltf {
 
 // createGLTFWithHierarchy creates a GLTF with node hierarchy
 func createGLTFWithHierarchy(t *testing.T) gltf.Gltf {
-	doc := createMinimalValidGLTF(t)
+	doc := createMinimalValidGLTF()
 
 	// Create hierarchy: Root -> Child1 -> Child2 (with mesh)
 	doc.Nodes = []gltf.Node{
@@ -260,12 +260,14 @@ func assertVector3Equal(t *testing.T, expected, actual vector3.Float64, msg stri
 }
 
 // assertColorEqual compares two color.RGBA values
-func assertColorEqual(t *testing.T, expected, actual color.RGBA, msg string) {
+func assertColorEqual(t *testing.T, expected, actual color.Color, msg string) {
 	t.Helper()
-	assert.Equal(t, expected.R, actual.R, msg+" R component")
-	assert.Equal(t, expected.G, actual.G, msg+" G component")
-	assert.Equal(t, expected.B, actual.B, msg+" B component")
-	assert.Equal(t, expected.A, actual.A, msg+" A component")
+	eR, eG, eB, eA := expected.RGBA()
+	aR, aG, aB, aA := actual.RGBA()
+	assert.Equal(t, eR, aR, msg+" R component")
+	assert.Equal(t, eG, aG, msg+" G component")
+	assert.Equal(t, eB, aB, msg+" B component")
+	assert.Equal(t, eA, aA, msg+" A component")
 }
 
 // assertMaterialEqual compares two PolyformMaterial structs
@@ -318,8 +320,10 @@ func TestLoadFile(t *testing.T) {
 		errorMsg    string
 	}{
 		{
-			name:        "valid_minimal_gltf",
-			setupGLTF:   createMinimalValidGLTF,
+			name: "valid_minimal_gltf",
+			setupGLTF: func(t *testing.T) gltf.Gltf {
+				return createMinimalValidGLTF()
+			},
 			expectError: false,
 		},
 		{
@@ -335,7 +339,7 @@ func TestLoadFile(t *testing.T) {
 		{
 			name: "missing_asset_version",
 			setupGLTF: func(t *testing.T) gltf.Gltf {
-				doc := createMinimalValidGLTF(t)
+				doc := createMinimalValidGLTF()
 				doc.Asset.Version = ""
 				return doc
 			},
@@ -345,7 +349,7 @@ func TestLoadFile(t *testing.T) {
 		{
 			name: "invalid_buffer_byte_length",
 			setupGLTF: func(t *testing.T) gltf.Gltf {
-				doc := createMinimalValidGLTF(t)
+				doc := createMinimalValidGLTF()
 				doc.Buffers[0].ByteLength = 0
 				return doc
 			},
@@ -355,7 +359,7 @@ func TestLoadFile(t *testing.T) {
 		{
 			name: "mismatched_buffer_length",
 			setupGLTF: func(t *testing.T) gltf.Gltf {
-				doc := createMinimalValidGLTF(t)
+				doc := createMinimalValidGLTF()
 				doc.Buffers[0].ByteLength = 999999 // Wrong length
 				return doc
 			},
@@ -365,7 +369,7 @@ func TestLoadFile(t *testing.T) {
 		{
 			name: "invalid_base64_data",
 			setupGLTF: func(t *testing.T) gltf.Gltf {
-				doc := createMinimalValidGLTF(t)
+				doc := createMinimalValidGLTF()
 				doc.Buffers[0].URI = "data:application/octet-stream;base64,invalid_base64_data!!!"
 				return doc
 			},
@@ -375,7 +379,7 @@ func TestLoadFile(t *testing.T) {
 		{
 			name: "unsupported_data_uri_encoding",
 			setupGLTF: func(t *testing.T) gltf.Gltf {
-				doc := createMinimalValidGLTF(t)
+				doc := createMinimalValidGLTF()
 				doc.Buffers[0].URI = "data:application/octet-stream;charset=utf-8,some_data"
 				return doc
 			},
@@ -385,7 +389,7 @@ func TestLoadFile(t *testing.T) {
 		{
 			name: "empty_buffer_uri",
 			setupGLTF: func(t *testing.T) gltf.Gltf {
-				doc := createMinimalValidGLTF(t)
+				doc := createMinimalValidGLTF()
 				doc.Buffers[0].URI = ""
 				return doc
 			},
@@ -619,7 +623,7 @@ func TestPrimitiveDecoding(t *testing.T) {
 		{
 			name: "triangle_primitive",
 			setupPrimitive: func() (gltf.Gltf, [][]byte) {
-				doc := createMinimalValidGLTF(t)
+				doc := createMinimalValidGLTF()
 				tempFile := writeGLTFToTempFile(t, doc)
 				loadedDoc, buffers, err := gltf.LoadFile(tempFile, nil)
 				require.NoError(t, err)
@@ -631,7 +635,7 @@ func TestPrimitiveDecoding(t *testing.T) {
 		{
 			name: "point_primitive",
 			setupPrimitive: func() (gltf.Gltf, [][]byte) {
-				doc := createMinimalValidGLTF(t)
+				doc := createMinimalValidGLTF()
 				mode := gltf.PrimitiveMode_POINTS
 				doc.Meshes[0].Primitives[0].Mode = &mode
 				tempFile := writeGLTFToTempFile(t, doc)
@@ -645,7 +649,7 @@ func TestPrimitiveDecoding(t *testing.T) {
 		{
 			name: "line_primitive",
 			setupPrimitive: func() (gltf.Gltf, [][]byte) {
-				doc := createMinimalValidGLTF(t)
+				doc := createMinimalValidGLTF()
 				mode := gltf.PrimitiveMode_LINES
 				doc.Meshes[0].Primitives[0].Mode = &mode
 				tempFile := writeGLTFToTempFile(t, doc)
@@ -718,7 +722,7 @@ func TestMaterialLoading(t *testing.T) {
 		{
 			name: "material_without_textures",
 			setupMaterial: func() (gltf.Gltf, [][]byte) {
-				doc := createMinimalValidGLTF(t)
+				doc := createMinimalValidGLTF()
 				doc.Materials = []gltf.Material{
 					{
 						ChildOfRootProperty: gltf.ChildOfRootProperty{
@@ -915,7 +919,7 @@ func TestFileURISupport(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create a GLTF document that references the image
-			doc := createMinimalValidGLTF(t)
+			doc := createMinimalValidGLTF()
 
 			// Add an image reference
 			doc.Images = []gltf.Image{
@@ -1017,7 +1021,7 @@ func TestSceneHierarchy(t *testing.T) {
 		{
 			name: "empty_scene",
 			setupScene: func() (gltf.Gltf, [][]byte) {
-				doc := createMinimalValidGLTF(t)
+				doc := createMinimalValidGLTF()
 				doc.Scenes[0].Nodes = []gltf.GltfId{} // Empty scene
 				tempFile := writeGLTFToTempFile(t, doc)
 				loadedDoc, buffers, err := gltf.LoadFile(tempFile, nil)
@@ -1030,7 +1034,7 @@ func TestSceneHierarchy(t *testing.T) {
 		{
 			name: "invalid_scene_index",
 			setupScene: func() (gltf.Gltf, [][]byte) {
-				doc := createMinimalValidGLTF(t)
+				doc := createMinimalValidGLTF()
 				doc.Scene = ptr(999) // Invalid scene index
 				tempFile := writeGLTFToTempFile(t, doc)
 				loadedDoc, buffers, err := gltf.LoadFile(tempFile, nil)
@@ -1082,7 +1086,7 @@ func TestTransformations(t *testing.T) {
 		{
 			name: "trs_components",
 			setupTransform: func() (gltf.Gltf, [][]byte) {
-				doc := createMinimalValidGLTF(t)
+				doc := createMinimalValidGLTF()
 				doc.Nodes[0].Translation = &[3]float64{1.0, 2.0, 3.0}
 				doc.Nodes[0].Scale = &[3]float64{2.0, 2.0, 2.0}
 				doc.Nodes[0].Rotation = &[4]float64{0.0, 0.0, 0.0, 1.0}
@@ -1098,7 +1102,7 @@ func TestTransformations(t *testing.T) {
 		{
 			name: "matrix_transform",
 			setupTransform: func() (gltf.Gltf, [][]byte) {
-				doc := createMinimalValidGLTF(t)
+				doc := createMinimalValidGLTF()
 				// Identity matrix with translation
 				doc.Nodes[0].Matrix = &[16]float64{
 					1.0, 0.0, 0.0, 0.0,
@@ -1118,7 +1122,7 @@ func TestTransformations(t *testing.T) {
 		{
 			name: "identity_transform",
 			setupTransform: func() (gltf.Gltf, [][]byte) {
-				doc := createMinimalValidGLTF(t)
+				doc := createMinimalValidGLTF()
 				// No explicit transform - should be identity
 				tempFile := writeGLTFToTempFile(t, doc)
 				loadedDoc, buffers, err := gltf.LoadFile(tempFile, nil)
@@ -1254,7 +1258,7 @@ func TestErrorHandling(t *testing.T) {
 		{
 			name: "invalid_accessor_reference",
 			setupError: func() (gltf.Gltf, [][]byte) {
-				doc := createMinimalValidGLTF(t)
+				doc := createMinimalValidGLTF()
 				// Reference non-existent accessor
 				doc.Meshes[0].Primitives[0].Attributes[gltf.POSITION] = 999
 				tempFile := writeGLTFToTempFile(t, doc)
@@ -1268,7 +1272,7 @@ func TestErrorHandling(t *testing.T) {
 		{
 			name: "invalid_buffer_view_reference",
 			setupError: func() (gltf.Gltf, [][]byte) {
-				doc := createMinimalValidGLTF(t)
+				doc := createMinimalValidGLTF()
 				// Reference non-existent buffer view
 				doc.Accessors[0].BufferView = ptr(999)
 				tempFile := writeGLTFToTempFile(t, doc)
@@ -1282,7 +1286,7 @@ func TestErrorHandling(t *testing.T) {
 		{
 			name: "invalid_material_reference",
 			setupError: func() (gltf.Gltf, [][]byte) {
-				doc := createMinimalValidGLTF(t)
+				doc := createMinimalValidGLTF()
 				// Reference non-existent material
 				doc.Meshes[0].Primitives[0].Material = ptr(999)
 				tempFile := writeGLTFToTempFile(t, doc)
@@ -1296,7 +1300,7 @@ func TestErrorHandling(t *testing.T) {
 		{
 			name: "invalid_node_reference",
 			setupError: func() (gltf.Gltf, [][]byte) {
-				doc := createMinimalValidGLTF(t)
+				doc := createMinimalValidGLTF()
 				// Reference non-existent node in scene
 				doc.Scenes[0].Nodes = []gltf.GltfId{999}
 				tempFile := writeGLTFToTempFile(t, doc)
@@ -1621,7 +1625,7 @@ func TestLoadImageFromDataURI(t *testing.T) {
 // testDataURIThroughGLTF tests data URI loading by creating a GLTF with embedded texture
 func testDataURIThroughGLTF(t *testing.T, dataURI string) error {
 	// Create a simple GLTF document with an embedded texture
-	doc := createMinimalValidGLTF(t)
+	doc := createMinimalValidGLTF()
 
 	// Add an image with the data URI
 	doc.Images = []gltf.Image{
@@ -1928,7 +1932,7 @@ func TestCustomLoaders(t *testing.T) {
 		}
 
 		// Create a minimal valid GLTF doc
-		gltfDoc := createMinimalValidGLTF(t)
+		gltfDoc := createMinimalValidGLTF()
 		gltfDoc.Images = []gltf.Image{{URI: "custom://image1"}}
 		gltfDoc.Textures = []gltf.Texture{{Source: ptr(0)}}
 		gltfDoc.Materials = []gltf.Material{
@@ -1956,7 +1960,7 @@ func TestCustomLoaders(t *testing.T) {
 }
 
 func TestNoOpImageLoader(t *testing.T) {
-	gltfDoc := createMinimalValidGLTF(t)
+	gltfDoc := createMinimalValidGLTF()
 	gltfDoc.Images = []gltf.Image{{URI: "nonexistent.png"}}
 	gltfDoc.Textures = []gltf.Texture{{Source: ptr(0)}}
 	gltfDoc.Materials = []gltf.Material{
@@ -2018,7 +2022,7 @@ func TestBackwardCompatibility(t *testing.T) {
 	tempDir := t.TempDir()
 	gltfPath := filepath.Join(tempDir, "test.gltf")
 
-	gltfDoc := createMinimalValidGLTF(t)
+	gltfDoc := createMinimalValidGLTF()
 	gltfData, err := json.Marshal(gltfDoc)
 	require.NoError(t, err)
 
@@ -2040,4 +2044,222 @@ func TestBackwardCompatibility(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotNil(t, scene)
 	assert.Len(t, scene.Models, 1)
+}
+
+func TestDecodeMaterialExtensions(t *testing.T) {
+
+	tests := map[string]struct {
+		ExtensionName string
+		ExtensionData map[string]any
+		Assert        func(t *testing.T, matExt gltf.MaterialExtension)
+	}{
+		"PbrSpecularGlossiness": {
+			ExtensionName: "KHR_materials_pbrSpecularGlossiness",
+			ExtensionData: map[string]any{
+				"diffuseFactor":             [4]float64{1., 1., 1., 1.},
+				"diffuseTexture":            map[string]any{"index": 0},
+				"specularFactor":            [3]float64{0.5, 0.5, 0.5},
+				"glossinessFactor":          1,
+				"specularGlossinessTexture": map[string]any{"index": 0},
+			},
+			Assert: func(t *testing.T, matExt gltf.MaterialExtension) {
+				ext, ok := matExt.(*gltf.PolyformPbrSpecularGlossiness)
+				require.True(t, ok, "can cast to specific extension")
+
+				assert.Equal(t, 1., *ext.GlossinessFactor)
+				assertColorEqual(t, color.RGBA{255, 255, 255, 255}, ext.DiffuseFactor, "Diffuse Color")
+				assertColorEqual(t, color.RGBA{127, 127, 127, 255}, ext.SpecularFactor, "SpecularFactor")
+				assert.NotNil(t, ext.DiffuseTexture)
+				assert.NotNil(t, ext.SpecularGlossinessTexture)
+			},
+		},
+		"IOR": {
+			ExtensionName: "KHR_materials_ior",
+			ExtensionData: map[string]any{
+				"ior": 1.33,
+			},
+			Assert: func(t *testing.T, matExt gltf.MaterialExtension) {
+				ext, ok := matExt.(*gltf.PolyformIndexOfRefraction)
+				require.True(t, ok, "can cast to specific extension")
+				assert.Equal(t, 1.33, *ext.IOR)
+			},
+		},
+		"Transmission": {
+			ExtensionName: "KHR_materials_transmission",
+			ExtensionData: map[string]any{
+				"transmissionFactor":  0.5,
+				"transmissionTexture": map[string]any{"index": 0},
+			},
+			Assert: func(t *testing.T, matExt gltf.MaterialExtension) {
+				ext, ok := matExt.(*gltf.PolyformTransmission)
+				require.True(t, ok, "can cast to specific extension")
+				assert.Equal(t, 0.5, ext.Factor)
+				assert.NotNil(t, ext.Texture)
+			},
+		},
+		"Volume": {
+			ExtensionName: "KHR_materials_volume",
+			ExtensionData: map[string]any{
+				"thicknessFactor":     0.5,
+				"attenuationDistance": 0.5,
+				"attenuationColor":    [3]float64{0.5, 0.5, 0.5},
+				"thicknessTexture":    map[string]any{"index": 0},
+			},
+			Assert: func(t *testing.T, matExt gltf.MaterialExtension) {
+				ext, ok := matExt.(*gltf.PolyformVolume)
+				require.True(t, ok, "can cast to specific extension")
+				assert.Equal(t, 0.5, ext.ThicknessFactor)
+				assert.Equal(t, 0.5, *ext.AttenuationDistance)
+				assert.NotNil(t, ext.ThicknessTexture)
+				assertColorEqual(t, color.RGBA{127, 127, 127, 255}, ext.AttenuationColor, "AttenuationColor")
+			},
+		},
+		"Specular": {
+			ExtensionName: "KHR_materials_specular",
+			ExtensionData: map[string]any{
+				"specularFactor":       0.5,
+				"specularColorFactor":  [3]float64{0.5, 0.5, 0.5},
+				"specularTexture":      map[string]any{"index": 0},
+				"specularColorTexture": map[string]any{"index": 0},
+			},
+			Assert: func(t *testing.T, matExt gltf.MaterialExtension) {
+				ext, ok := matExt.(*gltf.PolyformSpecular)
+				require.True(t, ok, "can cast to specific extension")
+				assert.Equal(t, 0.5, *ext.Factor)
+				assert.NotNil(t, ext.Texture)
+				assert.NotNil(t, ext.ColorTexture)
+				assertColorEqual(t, color.RGBA{127, 127, 127, 255}, ext.ColorFactor, "ColorFactor")
+			},
+		},
+		"Unlit": {
+			ExtensionName: "KHR_materials_unlit",
+			ExtensionData: map[string]any{},
+			Assert: func(t *testing.T, matExt gltf.MaterialExtension) {
+				_, ok := matExt.(gltf.PolyformUnlit)
+				require.True(t, ok, "can cast to specific extension")
+			},
+		},
+		"Clearcoat": {
+			ExtensionName: "KHR_materials_clearcoat",
+			ExtensionData: map[string]any{
+				"clearcoatFactor":           0.5,
+				"clearcoatTexture":          map[string]any{"index": 0},
+				"clearcoatRoughnessFactor":  0.5,
+				"clearcoatRoughnessTexture": map[string]any{"index": 0},
+			},
+			Assert: func(t *testing.T, matExt gltf.MaterialExtension) {
+				ext, ok := matExt.(*gltf.PolyformClearcoat)
+				require.True(t, ok, "can cast to specific extension")
+
+				assert.Equal(t, 0.5, ext.ClearcoatFactor)
+				assert.Equal(t, 0.5, ext.ClearcoatRoughnessFactor)
+				assert.NotNil(t, ext.ClearcoatTexture)
+				assert.NotNil(t, ext.ClearcoatRoughnessTexture)
+			},
+		},
+		"Emissive Strength": {
+			ExtensionName: "KHR_materials_emissive_strength",
+			ExtensionData: map[string]any{
+				"emissiveStrength": 0.5,
+			},
+			Assert: func(t *testing.T, matExt gltf.MaterialExtension) {
+				ext, ok := matExt.(*gltf.PolyformEmissiveStrength)
+				require.True(t, ok, "can cast to specific extension")
+
+				assert.Equal(t, 0.5, *ext.EmissiveStrength)
+			},
+		},
+		"Iridescence": {
+			ExtensionName: "KHR_materials_iridescence",
+			ExtensionData: map[string]any{
+				"iridescenceFactor":           0.5,
+				"iridescenceIor":              0.5,
+				"iridescenceThicknessMinimum": 0.5,
+				"iridescenceThicknessMaximum": 0.5,
+				"iridescenceTexture":          map[string]any{"index": 0},
+				"iridescenceThicknessTexture": map[string]any{"index": 0},
+			},
+			Assert: func(t *testing.T, matExt gltf.MaterialExtension) {
+				ext, ok := matExt.(*gltf.PolyformIridescence)
+				require.True(t, ok, "can cast to specific extension")
+
+				assert.Equal(t, 0.5, ext.IridescenceFactor)
+				assert.Equal(t, 0.5, *ext.IridescenceIor)
+				assert.Equal(t, 0.5, *ext.IridescenceThicknessMinimum)
+				assert.Equal(t, 0.5, *ext.IridescenceThicknessMaximum)
+				assert.NotNil(t, ext.IridescenceTexture)
+				assert.NotNil(t, ext.IridescenceThicknessTexture)
+			},
+		},
+		"Sheen": {
+			ExtensionName: "KHR_materials_sheen",
+			ExtensionData: map[string]any{
+				"sheenRoughnessFactor":  0.5,
+				"sheenColorTexture":     map[string]any{"index": 0},
+				"sheenRoughnessTexture": map[string]any{"index": 0},
+				"sheenColorFactor":      [3]float64{0.5, 0.5, 0.5},
+			},
+			Assert: func(t *testing.T, matExt gltf.MaterialExtension) {
+				ext, ok := matExt.(*gltf.PolyformSheen)
+				require.True(t, ok, "can cast to specific extension")
+
+				assert.Equal(t, 0.5, ext.SheenRoughnessFactor)
+				assert.NotNil(t, ext.SheenColorTexture)
+				assert.NotNil(t, ext.SheenRoughnessTexture)
+				assertColorEqual(t, color.RGBA{127, 127, 127, 255}, ext.SheenColorFactor, "SheenColorFactor")
+			},
+		},
+		"Anisotropy": {
+			ExtensionName: "KHR_materials_anisotropy",
+			ExtensionData: map[string]any{
+				"anisotropyStrength": 0.5,
+				"anisotropyRotation": 0.5,
+				"anisotropyTexture":  map[string]any{"index": 0},
+			},
+			Assert: func(t *testing.T, matExt gltf.MaterialExtension) {
+				ext, ok := matExt.(*gltf.PolyformAnisotropy)
+				require.True(t, ok, "can cast to specific extension")
+
+				assert.Equal(t, 0.5, ext.AnisotropyStrength)
+				assert.Equal(t, 0.5, ext.AnisotropyRotation)
+				assert.NotNil(t, ext.AnisotropyTexture)
+			},
+		},
+		"Dispersion": {
+			ExtensionName: "KHR_materials_dispersion",
+			ExtensionData: map[string]any{
+				"dispersion": 0.5,
+			},
+			Assert: func(t *testing.T, matExt gltf.MaterialExtension) {
+				ext, ok := matExt.(*gltf.PolyformDispersion)
+				require.True(t, ok, "can cast to specific extension")
+
+				assert.Equal(t, 0.5, ext.Dispersion)
+			},
+		},
+	}
+
+	for testName, tc := range tests {
+		t.Run(testName, func(t *testing.T) {
+			minimalGLTF := createGLTFWithMaterials(t)
+			minimalGLTF.Materials[0].Extensions = map[string]any{
+				tc.ExtensionName: tc.ExtensionData,
+			}
+
+			marshalledGLTF, err := json.Marshal(minimalGLTF)
+			require.NoError(t, err)
+
+			decodedGLTF, buffers, err := gltf.LoadGLTF(bytes.NewReader(marshalledGLTF), nil)
+			require.NoError(t, err)
+
+			models, err := gltf.DecodeModels(decodedGLTF, buffers, nil)
+			require.NoError(t, err)
+
+			require.Len(t, models, 1)
+			require.Len(t, models[0].Material.Extensions, 1)
+			assert.Equal(t, tc.ExtensionName, models[0].Material.Extensions[0].ExtensionID())
+			tc.Assert(t, models[0].Material.Extensions[0])
+		})
+	}
+
 }
