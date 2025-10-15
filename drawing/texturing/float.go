@@ -7,7 +7,7 @@ import (
 )
 
 func OneMinus(in Texture[float64]) Texture[float64] {
-	result := NewTexture[float64](in.width, in.height)
+	result := Empty[float64](in.width, in.height)
 	for y := range in.height {
 		for x := range in.width {
 			result.Set(x, y, 1-in.Get(x, y))
@@ -47,7 +47,7 @@ func (n MultiplyFloat1Node) Result(out *nodes.StructOutput[Texture[float64]]) {
 		return
 	}
 
-	result := NewTexture[float64](textures[0].Width(), textures[0].Height())
+	result := Empty[float64](textures[0].Width(), textures[0].Height())
 	for y := range result.Height() {
 		for x := range result.Width() {
 			v := textures[0].Get(x, y)

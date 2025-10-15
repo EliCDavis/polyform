@@ -1,9 +1,14 @@
 import { SchemaManager } from "../schema_manager";
 import { Popup, PopupButtonType, PopupConfig } from "../popups/popup";
+import { RequestManager } from "../requests";
 
 export class DeleteProfilePopup extends Popup {
 
-    constructor(private profile: string, private schemaManager: SchemaManager) {
+    constructor(
+        private profile: string, 
+        private schemaManager: SchemaManager,
+        private requestManager: RequestManager
+    ) {
         super();
     }
 
@@ -25,19 +30,11 @@ export class DeleteProfilePopup extends Popup {
 
     delete(): void {
         this.close();
-
-        fetch("./profile", {
-            method: "DELETE",
-            body: JSON.stringify({
-                name: this.profile,
-            })
-        }).then((resp) => {
-            if (!resp.ok) {
-                alert("unable to delete profile");
-            } else {
-                this.schemaManager.refreshSchema("deleted a variable profile");
-            }
-        });
+        this.requestManager.deleteProfile(
+            this.profile,
+            () => this.schemaManager.refreshSchema("deleted a variable profile"),
+            () => alert("unable to delete profile")
+        );
     }
 
 } 
