@@ -6,8 +6,13 @@ import { DropdownMenu } from "../components/dropdown";
 import { RenameProfilePopup } from "./rename_profile";
 import { OverwriteProfilePopup } from "./overwrite_profile";
 import { DeleteProfilePopup } from "./delete_profile";
+import { RequestManager } from "../requests";
 
-function ProfileElement(profileName: string, schemaManager: SchemaManager): ElementConfig {
+function ProfileElement(
+    profileName: string,
+    schemaManager: SchemaManager,
+    requestManager: RequestManager
+): ElementConfig {
     return {
         style: {
             // marginBottom: "16px",
@@ -23,16 +28,11 @@ function ProfileElement(profileName: string, schemaManager: SchemaManager): Elem
                         text: profileName,
                         classList: ["variable-name", "profile-item"],
                         onclick: () => {
-                            fetch("./profile/apply", {
-                                method: "POST",
-                                body: JSON.stringify({ name: profileName, })
-                            }).then((resp) => {
-                                if (!resp.ok) {
-                                    alert("unable to load profile");
-                                } else {
-                                    schemaManager.refreshSchema("Applied a profile");
-                                }
-                            });
+                            requestManager.applyProfile(
+                                profileName,
+                                () => schemaManager.refreshSchema("Applied a profile"),
+                                () => alert("unable to load profile")
+                            )
                         }
                     },
                     DropdownMenu({
@@ -45,26 +45,22 @@ function ProfileElement(profileName: string, schemaManager: SchemaManager): Elem
                             {
                                 text: "Rename",
                                 onclick: () => {
-                                    const popoup = new RenameProfilePopup(profileName, schemaManager);
+                                    const popoup = new RenameProfilePopup(profileName, schemaManager, requestManager);
                                     popoup.show();
                                 }
                             },
                             {
                                 text: "Overwrite",
                                 onclick: () => {
-                                    const popoup = new OverwriteProfilePopup(profileName, schemaManager);
+                                    const popoup = new OverwriteProfilePopup(profileName, schemaManager, requestManager);
                                     popoup.show();
-                                    // const popoup = new EditVariablePopup(this.key, this.variable);
-                                    // popoup.show();
                                 }
                             },
                             {
                                 text: "Delete",
                                 onclick: () => {
-                                    const popoup = new DeleteProfilePopup(profileName, schemaManager);
+                                    const popoup = new DeleteProfilePopup(profileName, schemaManager, requestManager);
                                     popoup.show();
-                                    // const deletePopoup = new DeleteVariablePopup(this.schemaManager, this.nodeManager, this.key, this.variable);
-                                    // deletePopoup.show();
                                 }
                             },
                         ]
@@ -72,32 +68,20 @@ function ProfileElement(profileName: string, schemaManager: SchemaManager): Elem
 
                 ]
             },
-            // {
-            //     tag: "button",
-            //     text: "Apply",
-            //     onclick: () => {
-            //         fetch("./profile-apply", {
-            //             method: "POST",
-            //             body: JSON.stringify({ name: profileName, })
-            //         }).then((resp) => {
-            //             if (!resp.ok) {
-            //                 alert("unable to load profile");
-            //             } else {
-            //                 schemaManager.refreshSchema();
-            //             }
-            //         });
-            //     }
-            // }
         ]
     };
 }
 
 export class ProfileManager {
-    constructor(parent: HTMLElement, schemaManager: SchemaManager) {
+    constructor(
+        parent: HTMLElement,
+        schemaManager: SchemaManager,
+        requestManager: RequestManager
+    ) {
         const newProfileButton = parent.querySelector("#new-profile");
 
         newProfileButton.addEventListener('click', (event) => {
-            const popup = new NewProfilePopup(schemaManager);
+            const popup = new NewProfilePopup(schemaManager, requestManager);
             popup.show();
         });
 
@@ -108,7 +92,7 @@ export class ProfileManager {
                 pipe(map((graph): Array<ElementConfig> => {
                     return graph.
                         profiles?.
-                        map((p) => ProfileElement(p, schemaManager))
+                        map((p) => ProfileElement(p, schemaManager, requestManager))
                 })),
         }));
     }

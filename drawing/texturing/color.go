@@ -9,7 +9,7 @@ func DivideColor(a, b Texture[coloring.Color]) (*Texture[coloring.Color], error)
 		return nil, ErrMismatchDimensions
 	}
 
-	result := NewTexture[coloring.Color](a.width, a.height)
+	result := Empty[coloring.Color](a.width, a.height)
 	a.ScanParallel(func(x, y int, v coloring.Color) {
 		other := b.Get(x, y)
 		result.Set(x, y, coloring.Color{
@@ -25,7 +25,7 @@ func DivideColor(a, b Texture[coloring.Color]) (*Texture[coloring.Color], error)
 
 func MaxColor(a Texture[coloring.Color], other float64) Texture[coloring.Color] {
 
-	result := NewTexture[coloring.Color](a.width, a.height)
+	result := Empty[coloring.Color](a.width, a.height)
 	a.ScanParallel(func(x, y int, v coloring.Color) {
 		result.Set(x, y, coloring.Color{
 			R: max(v.R, other),
@@ -40,7 +40,7 @@ func MaxColor(a Texture[coloring.Color], other float64) Texture[coloring.Color] 
 
 func ClampColor(a Texture[coloring.Color], minimum, maximum float64) Texture[coloring.Color] {
 
-	result := NewTexture[coloring.Color](a.width, a.height)
+	result := Empty[coloring.Color](a.width, a.height)
 	a.ScanParallel(func(x, y int, v coloring.Color) {
 		result.Set(x, y, coloring.Color{
 			R: min(max(v.R, minimum), maximum),

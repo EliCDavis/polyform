@@ -62,6 +62,20 @@ container.appendChild(stats.dom);
 const flowGraphStuff = CreateNodeFlowGraph();
 const requestManager = new RequestManager();
 
+(window as any).loadGraph = (content) => {
+    requestManager.setGraph(content, (_) => {
+        location.reload();
+    });
+}
+
+(window as any).getGraph = (cb) => {
+    requestManager.getGraph(cb)
+}
+
+(window as any).graphChangeCallback = (cb) => {
+    requestManager.subsribeToGraphChange(cb);
+}
+
 requestManager.getNodeTypes((registeredTypes) => {
     const schemaManager = new SchemaManager(requestManager);
     const producerViewManager = new ProducerViewManager(threeApp, requestManager, registeredTypes.nodeTypes, schemaManager);
@@ -92,8 +106,8 @@ requestManager.getNodeTypes((registeredTypes) => {
         producerViewManager,
         registeredTypes
     );
-    new VariableManager(document.getElementById("sidebar-content"), schemaManager, nodeManager, flowGraphStuff.PolyformNodesPublisher, threeApp);
-    new ProfileManager(document.getElementById("sidebar-content"), schemaManager);
+    new VariableManager(document.getElementById("sidebar-content"), schemaManager, nodeManager, threeApp, requestManager);
+    new ProfileManager(document.getElementById("sidebar-content"), schemaManager, requestManager);
 
     producerViewManager.SubscribeToCompleteRefresh(() => {
         nodeManager.refreshExecutionReport();

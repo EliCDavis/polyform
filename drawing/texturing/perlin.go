@@ -22,7 +22,7 @@ func (an SeamlessPerlinNode) Out(out *nodes.StructOutput[Texture[float64]]) {
 		nodes.TryGetOutputValue(out, an.Octaves, 3),
 	)
 
-	tex := NewTexture[float64](dim, dim)
+	tex := Empty[float64](dim, dim)
 	negative := nodes.TryGetOutputValue(out, an.Negative, 0)
 	positive := nodes.TryGetOutputValue(out, an.Positive, 1)
 	valueRange := positive - negative
@@ -48,7 +48,7 @@ type PerlinNode struct {
 }
 
 func (n PerlinNode) Out(out *nodes.StructOutput[Texture[float64]]) {
-	tex := NewTexture[float64](
+	tex := Empty[float64](
 		nodes.TryGetOutputValue(out, n.Width, 1),
 		nodes.TryGetOutputValue(out, n.Height, 1),
 	)

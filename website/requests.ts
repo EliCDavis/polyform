@@ -1,4 +1,36 @@
-import { GraphInstance, Manifest, NodeInstance, NodeDefinition, GraphExecutionReport, RegisteredTypes } from "./schema";
+import { Observable, Subject } from "rxjs";
+import { GraphInstance, Manifest, NodeInstance, NodeDefinition, GraphExecutionReport, RegisteredTypes, CreateVariableResponse } from "./schema";
+
+enum GraphChangeEventType {
+    // Node
+    Node_New = "Node_New",
+    Node_Connection = "Node_Connection",
+    Node_Metadata = "Node_Metadata",
+    Node_Delete = "Node_Delete",
+
+    // Note
+    Note_New = "Note_New",
+    Note_Metadata = "Note_Metadata",
+
+    // Variable
+    Variable_New = "Variable_New",
+    Variable_Delete = "Variable_Delete",
+    Variable_Info = "Variable_Info",
+    Variable_Set = "Variable_Set",
+
+    // Profile
+    Profile_New = "Profile_New",
+    Profile_Delete = "Profile_Delete",
+    Profile_Apply = "Profile_Apply",
+    Profile_Rename = "Profile_Rename",
+    Profile_Overwrite = "Profile_Overwrite",
+
+    // Graph
+    Parameter = "Parameter",
+    Producer = "Producer",
+    GraphMetadata = "GraphMetadata",
+    WholeGraph = "WholeGraph",
+}
 
 export function downloadBlob(theUrl: string, callback: (body: any) => void): void {
     const xmlHttp = new XMLHttpRequest();
@@ -42,7 +74,21 @@ export interface CreateNodeResponse {
 type ResponseCallback<T> = (responseBody: T) => void
 
 export class RequestManager {
+
+    graphChangeCallbacks: Array<(e: GraphChangeEventType) => void>;
+
     constructor() {
+        this.graphChangeCallbacks = new Array();
+    }
+
+    subsribeToGraphChange(cb: (e: GraphChangeEventType) => void): void {
+        this.graphChangeCallbacks.push(cb);
+    }
+
+    alertGraphHasChanged(e: GraphChangeEventType): void {
+        for (let i = 0; i < this.graphChangeCallbacks.length; i++) {
+            this.graphChangeCallbacks[i](e);
+        }
     }
 
     fetchImage(imgUrl: string, successCallback, errorCallback): void {
@@ -173,6 +219,17 @@ export class RequestManager {
         xmlHttp.send(JSON.stringify(requestBody));
     }
 
+    post$(url: string, body: BodyInit): Observable<Response> {
+        const out = new Subject<Response>();
+        fetch(url, {
+            method: "POST",
+            body: body
+        }).then((resp) => {
+            out.next(resp);
+        });
+        return out;
+    }
+
     getStartedTime(callback?: ResponseCallback<StartedResponse>): void {
         this.fetchJSON("./started", callback);
     }
@@ -188,22 +245,42 @@ export class RequestManager {
     setParameter(key: string, data, binary: boolean, callback): void {
         const url = "./parameter/value/" + key;
         if (binary) {
-            this.postBinaryEmptyResponse(url, data, callback);
+            this.postBinaryEmptyResponse(
+                url,
+                data,
+                this.wrapResponseCallbackForGraphChange(GraphChangeEventType.Parameter, callback)
+            );
         } else {
-            this.postJsonBodyEmptyResponse(url, data, callback);
+            this.postJsonBodyEmptyResponse(
+                url,
+                data,
+                this.wrapResponseCallbackForGraphChange(GraphChangeEventType.Parameter, callback)
+            );
         }
     }
 
     setParameterTitle(inNodeID: string, value: string, callback?: () => void): void {
-        this.postTextBodyEmptyResponse("./parameter/name/" + inNodeID, value, callback);
+        this.postTextBodyEmptyResponse(
+            "./parameter/name/" + inNodeID,
+            value,
+            this.wrapCallbackForGraphChange(GraphChangeEventType.Parameter, callback)
+        );
     }
 
-    setParameterInfo(inNodeID: string, value: string, callback): void {
-        this.postTextBodyEmptyResponse("./parameter/description/" + inNodeID, value, callback);
+    setParameterInfo(inNodeID: string, value: string, callback?: () => void): void {
+        this.postTextBodyEmptyResponse(
+            "./parameter/description/" + inNodeID,
+            value,
+            this.wrapCallbackForGraphChange(GraphChangeEventType.Parameter, callback)
+        );
     }
 
     setProducerTitle(inNodeID: string, value: SetProducerBody, callback): void {
-        this.postJsonBodyEmptyResponse("./producer/name/" + inNodeID, value, callback);
+        this.postJsonBodyEmptyResponse(
+            "./producer/name/" + inNodeID,
+            value,
+            this.wrapResponseCallbackForGraphChange(GraphChangeEventType.Producer, callback)
+        );
     }
 
     getParameterValue(key: string, callback): void {
@@ -214,7 +291,7 @@ export class RequestManager {
         this.deleteJSONBodyJSONResponse("node/connection", {
             "nodeId": nodeID,
             "inPortName": inputPortName
-        }, callback)
+        }, this.wrapResponseCallbackForGraphChange(GraphChangeEventType.Node_Connection, callback))
     }
 
     setNodeInputConnection(
@@ -229,40 +306,58 @@ export class RequestManager {
             "outPortName": outPortName,
             "nodeInId": inNodeID,
             "inPortName": inputPortName
-        }, callback)
+        }, this.wrapResponseCallbackForGraphChange(GraphChangeEventType.Node_Connection, callback))
     }
 
     setNodeMetadata(inNodeID: string, key: string, metadata: any, callback?: ResponseCallback<any>): void {
-        this.postJsonBodyJsonResponse(`graph/metadata/nodes/${inNodeID}/${key}`, metadata, callback)
+        this.postJsonBodyJsonResponse(
+            `graph/metadata/nodes/${inNodeID}/${key}`,
+            metadata,
+            this.wrapResponseCallbackForGraphChange(GraphChangeEventType.Node_Metadata, callback)
+        );
     }
-    
+
     deleteNodeMetadata(nodeID: string, callback?): void {
-        this.deleteMetadata(`nodes/${nodeID}`, callback)
+        this.deleteMetadata(
+            `nodes/${nodeID}`,
+            this.wrapResponseCallbackForGraphChange(GraphChangeEventType.Node_Metadata, callback)
+        );
     }
 
     createNote(noteID: string, note, callback?: ResponseCallback<any>): void {
-        this.postJsonBodyJsonResponse(`graph/metadata/notes/${noteID}`, note, callback)
+        this.postJsonBodyJsonResponse(
+            `graph/metadata/notes/${noteID}`,
+            note,
+            this.wrapResponseCallbackForGraphChange(GraphChangeEventType.Note_New, callback)
+        );
     }
 
     setNoteMetadata(noteID: string, key: string, metadata, callback?: ResponseCallback<any>): void {
-        this.postJsonBodyJsonResponse(`graph/metadata/notes/${noteID}/${key}`, metadata, callback)
+        this.postJsonBodyJsonResponse(
+            `graph/metadata/notes/${noteID}/${key}`,
+            metadata,
+            this.wrapResponseCallbackForGraphChange(GraphChangeEventType.Note_Metadata, callback)
+        )
     }
 
     deleteMetadata(path: string, callback?): void {
-        this.deleteEmptyBodyEmptyResponse(`graph/metadata/${path}`, callback)
+        this.deleteEmptyBodyEmptyResponse(
+            `graph/metadata/${path}`,
+            this.wrapResponseCallbackForGraphChange(GraphChangeEventType.GraphMetadata, callback)
+        )
     }
 
     createNode(nodeType: string, callback?: ResponseCallback<CreateNodeResponse>): void {
         this.postJsonBodyJsonResponse("node", {
             "nodeType": nodeType,
-        }, callback)
+        }, this.wrapResponseCallbackForGraphChange(GraphChangeEventType.Node_New, callback))
     }
 
     deleteNode(nodeId: string, callback?: ResponseCallback<any>): void {
         this.deleteNodeMetadata(nodeId);
         this.deleteJSONBodyJSONResponse("node", {
             "nodeID": nodeId,
-        }, callback)
+        }, this.wrapResponseCallbackForGraphChange(GraphChangeEventType.Node_Delete, callback))
     }
 
     getNodeTypes(callback?: ResponseCallback<RegisteredTypes>): void {
@@ -282,6 +377,156 @@ export class RequestManager {
     }
 
     setGraph(newGraph, callback?: ResponseCallback<any>): void {
-        this.postJsonBodyEmptyResponse("./graph", newGraph, callback)
+        this.postJsonBodyEmptyResponse(
+            "./graph",
+            newGraph,
+            this.wrapResponseCallbackForGraphChange(GraphChangeEventType.WholeGraph, callback)
+        );
+    }
+
+    deleteVariable(variableKey: string, success: ((r: Response) => void), error: ((r: Response) => void)): void {
+        fetch("./variable/instance/" + variableKey, {
+            method: "DELETE",
+        }).then((resp) => {
+            resp.ok ? success(resp) : error(resp);
+            this.alertGraphHasChanged(GraphChangeEventType.Variable_Delete);
+        });
+    }
+
+    newVariable(variableKey: string, body: any, success: ((r: CreateVariableResponse) => void), error: ((r: any) => void)): void {
+        fetch("./variable/instance/" + variableKey, {
+            method: "POST",
+            body: JSON.stringify(body)
+        }).
+            then(resp => resp.json()).
+            then((resp) => {
+                resp.ok ? success(resp) : error(resp);
+                this.alertGraphHasChanged(GraphChangeEventType.Variable_New);
+            });
+    }
+
+    updateVariable(variableKey: string, body: any, success: ((r: any) => void), error: ((r: any) => void)): void {
+        fetch(
+            "./variable/info/" + variableKey, {
+            method: "POST",
+            body: JSON.stringify(body)
+        }).
+            then(resp => resp.json()).
+            then((resp) => {
+                resp.ok ? success(resp) : error(resp);
+                this.alertGraphHasChanged(GraphChangeEventType.Variable_Info);
+            });
+    }
+
+    setVariableValue(variable: string, value: any): Observable<Response> {
+        return this.post$("./variable/value/" + variable, JSON.stringify(value))
+
+    }
+
+    setBinaryVariableValue(variableKey: string, cb): void {
+        const input = document.createElement('input');
+        input.type = 'file';
+
+        input.onchange = e => {
+            const file = (e.target as HTMLInputElement).files[0];
+
+            const reader = new FileReader();
+            reader.readAsArrayBuffer(file);
+
+            reader.onload = readerEvent => {
+                const content = readerEvent.target.result as string; // this is the content!
+                this.postBinaryEmptyResponse("./variable/value/" + variableKey, content, cb)
+            }
+        }
+
+        input.click();
+    }
+
+    newProfile(profileName: string, success: ((r: any) => void), error: ((r: any) => void)): void {
+        fetch("./profile", {
+            method: "POST",
+            body: JSON.stringify({
+                name: profileName,
+            })
+        }).then((resp) => {
+            resp.ok ? success(resp) : error(resp);
+            this.alertGraphHasChanged(GraphChangeEventType.Profile_New);
+        });
+    }
+
+    overwriteProfile(profileName: string, success: ((r: any) => void), error: ((r: any) => void)): void {
+        fetch("./profile/overwrite", {
+            method: "POST",
+            body: JSON.stringify({
+                name: profileName,
+            })
+        }).then((resp) => {
+            resp.ok ? success(resp) : error(resp);
+            this.alertGraphHasChanged(GraphChangeEventType.Profile_Overwrite);
+        });
+    }
+
+    deleteProfile(profileName: string, success: ((r: any) => void), error: ((r: any) => void)): void {
+        fetch("./profile", {
+            method: "DELETE",
+            body: JSON.stringify({
+                name: profileName,
+            })
+        }).then((resp) => {
+            resp.ok ? success(resp) : error(resp);
+            this.alertGraphHasChanged(GraphChangeEventType.Profile_Delete);
+        });
+    }
+
+    renameProfile(oldName: string, newName: string, success: ((r: any) => void), error: ((r: any) => void)): void {
+        fetch("./profile/rename", {
+            method: "POST",
+            body: JSON.stringify({
+                original: oldName,
+                new: newName,
+            })
+        }).then((resp) => {
+            resp.ok ? success(resp) : error(resp);
+            this.alertGraphHasChanged(GraphChangeEventType.Profile_Rename);
+        });
+    }
+
+    applyProfile(profileName: string, success: ((r: any) => void), error: ((r: any) => void)): void {
+        fetch("./profile/apply", {
+            method: "POST",
+            body: JSON.stringify({
+                name: profileName,
+            })
+        }).then((resp) => {
+            resp.ok ? success(resp) : error(resp);
+            this.alertGraphHasChanged(GraphChangeEventType.Profile_Apply);
+        });
+    }
+
+
+    private wrapCallbackForGraphChange<T>(e: GraphChangeEventType, callback?: () => void): (() => void) {
+        if (callback) {
+            return (): void => {
+                callback();
+                this.alertGraphHasChanged(e);
+            };
+        }
+
+        return (): void => {
+            this.alertGraphHasChanged(e);
+        };
+    }
+
+    private wrapResponseCallbackForGraphChange<T>(e: GraphChangeEventType, callback?: ResponseCallback<T>): ResponseCallback<T> {
+        if (callback) {
+            return (responseBody: T): void => {
+                callback(responseBody);
+                this.alertGraphHasChanged(e);
+            };
+        }
+
+        return (responseBody: T): void => {
+            this.alertGraphHasChanged(e);
+        };
     }
 }

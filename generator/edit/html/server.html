@@ -96,7 +96,6 @@
             padding: 4px;
         }
 
-
         #infoMessage {
             padding: 8px;
             box-sizing: border-box;
@@ -439,7 +438,6 @@
         <div id="infoMessage"> </div>
     </div>
 
-
     <div style="flex-direction: column; display: flex; height: 100%;">
         <!-- <div class="toolbar">
             <div>Graph</div>
@@ -450,7 +448,6 @@
             <div>{{.Description}}</div>
             <div style="flex:1"></div>
         </div> -->
-
         <div id="full-page">
             <div id="sidebar">
                 <!-- <div id="sidebar-icon-bar"></div> -->
@@ -460,11 +457,13 @@
                         <h3 style="margin: 2px;">{{.Version}}</h3>
                         {{.Description}}
                     </div>
-                    <div class="sidebar-header">Graph</div>
-                    <div class="sidebar-section-content" style="flex-direction: row;">
-                        <button style="flex: 1;" class="sidebar-button" id="new-graph-button">New</button>
-                        <button style="flex: 1;" class="sidebar-button" id="save-graph-button">Save</button>
-                        <button style="flex: 1;" class="sidebar-button" id="load-graph-button">Load</button>
+                    <div id="file-controls-section">
+                        <div class="sidebar-header">Graph</div>
+                        <div class="sidebar-section-content" style="flex-direction: row;">
+                            <button style="flex: 1;" class="sidebar-button" id="new-graph-button">New</button>
+                            <button style="flex: 1;" class="sidebar-button" id="save-graph-button">Save</button>
+                            <button style="flex: 1;" class="sidebar-button" id="load-graph-button">Load</button>
+                        </div>
                     </div>
                     <div class="sidebar-header">Export</div>
                     <div class="sidebar-section-content" style="flex-direction: row;">
@@ -484,8 +483,6 @@
                         <button id="new-variable">New Variable</button>
                         <div id="variable-list"></div>
                     </div>
-
-
                 </div>
             </div>
 
@@ -496,7 +493,7 @@
                     <canvas id="three-canvas"></canvas>
                 </div>
 
-                <div class="resizer" data-direction="vertical"></div>
+                <div class="resizer" id="verticle-resizer" data-direction="vertical"></div>
 
                 <div id="light-container">
                     <canvas id="light-canvas"></canvas>
@@ -507,7 +504,6 @@
     </div>
 
     <script>
-
         /*
         // https://phuoc.ng/collection/html-dom/create-resizable-split-views/
         document.addEventListener('DOMContentLoaded', function () {
@@ -593,7 +589,6 @@
             });
         });
         */
-
         document.addEventListener('DOMContentLoaded', function () {
             const resizable = (resizer) => {
                 const direction = resizer.getAttribute('data-direction') || 'horizontal';
@@ -692,10 +687,23 @@
             });
         });
 
+        const queryString = window.location.search;
+        const urlParams = new URLSearchParams(queryString);
+        if (urlParams.get('hide-info') === "true") {
+            document.getElementById("info").style.display = "none";
+        }
+        if (urlParams.get('hide-graph') === "true") {
+            document.getElementById("light-container").style.display = "none";
+            document.getElementById("verticle-resizer").remove();
+            document.getElementById("three-viewer-container").style.height = "100%";
+
+        }
+
+        if (urlParams.get('hide-file-controls') === "true") {
+            document.getElementById("file-controls-section").style.display = "none";
+        }
     </script>
-
     <script type="text/javascript" src="js/index.js"></script>
-
 </body>
 
 </html>

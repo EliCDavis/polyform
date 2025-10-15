@@ -3,6 +3,7 @@ import { SchemaManager } from "../schema_manager";
 import { GeneratorVariablePublisherPath, NodeManager } from "../node_manager";
 import { CreateVariableResponse, Variable } from "../schema";
 import { CreatePopupElement, PopupButtonType } from "./popup";
+import { RequestManager } from "../requests";
 
 interface EditVariableParameters {
     name: string,
@@ -26,7 +27,8 @@ export class EditVariablePopup {
 
     constructor(
         variableKey: string,
-        variable: Variable
+        variable: Variable,
+        private requestManager: RequestManager,
     ) {
         this.variableKey = variableKey;
         this.variable = variable;
@@ -51,7 +53,7 @@ export class EditVariablePopup {
                     {
                         type: "text",
                         name: "name",
-                        style: {flex: "1"},
+                        style: { flex: "1" },
                         value: variableKey,
                         change$: this.name
                     },
@@ -91,24 +93,11 @@ export class EditVariablePopup {
     }
 
     updateVariable(parameters: EditVariableParameters): void {
-        fetch("./variable/info/" + this.variableKey, {
-            method: "POST",
-            body: JSON.stringify(parameters)
-        }).then((resp) => {
-            resp.json().then((body) => {
-                if (!resp.ok) {
-                    alert(body.error);
-                } else {
-                    location.reload();
-                    // this.schemaManager.refreshSchema();
-                    // this.nodeManager.updateVariableInfo(
-                    //     GeneratorVariablePublisherPath + this.variableKey,
-                    //     GeneratorVariablePublisherPath + this.name.value,
-                    //     this.name.value,
-                    //     this.description.value
-                    // )
-                }
-            })
-        });
+        this.requestManager.updateVariable(
+            this.variableKey, 
+            parameters,
+            () => location.reload(),
+            (body) => alert(body.error)
+        )
     }
 } 

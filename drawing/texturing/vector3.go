@@ -6,7 +6,7 @@ import (
 )
 
 func DotProduct(texture Texture[vector3.Float64], v vector3.Float64) Texture[float64] {
-	result := NewTexture[float64](texture.width, texture.height)
+	result := Empty[float64](texture.width, texture.height)
 
 	for y := range texture.height {
 		for x := range texture.width {

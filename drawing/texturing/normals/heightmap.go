@@ -54,7 +54,7 @@ func ImageFromHeightmap(heightmap image.Image, scale float64) *image.RGBA {
 }
 
 func FromHeightmap(heightmap texturing.Texture[float64], scale float64) texturing.Texture[vector3.Float64] {
-	dst := texturing.NewTexture[vector3.Float64](heightmap.Width(), heightmap.Height())
+	dst := texturing.Empty[vector3.Float64](heightmap.Width(), heightmap.Height())
 
 	texturing.Convolve(heightmap, func(x, y int, values []float64) {
 		s01 := values[3]
