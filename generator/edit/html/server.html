@@ -465,11 +465,13 @@
                             <button style="flex: 1;" class="sidebar-button" id="load-graph-button">Load</button>
                         </div>
                     </div>
-                    <div class="sidebar-header">Export</div>
-                    <div class="sidebar-section-content" style="flex-direction: row;">
-                        <button style="flex: 1;" class="sidebar-button" id="export-model-button">Model</button>
-                        <button style="flex: 1;" class="sidebar-button" id="export-mermaid-button">Mermaid</button>
-                        <button style="flex: 1;" class="sidebar-button" id="export-swagger-button">Swagger</button>
+                    <div id="export-controls-section">
+                        <div class="sidebar-header">Export</div>
+                        <div class="sidebar-section-content" style="flex-direction: row;">
+                            <button style="flex: 1;" class="sidebar-button" id="export-model-button">Model</button>
+                            <button style="flex: 1;" class="sidebar-button" id="export-mermaid-button">Mermaid</button>
+                            <button style="flex: 1;" class="sidebar-button" id="export-swagger-button">Swagger</button>
+                        </div>
                     </div>
 
                     <div class="sidebar-header">Profiles</div>
@@ -692,15 +694,28 @@
         if (urlParams.get('hide-info') === "true") {
             document.getElementById("info").style.display = "none";
         }
+
         if (urlParams.get('hide-graph') === "true") {
             document.getElementById("light-container").style.display = "none";
             document.getElementById("verticle-resizer").remove();
             document.getElementById("three-viewer-container").style.height = "100%";
-
         }
 
         if (urlParams.get('hide-file-controls') === "true") {
             document.getElementById("file-controls-section").style.display = "none";
+        }
+
+        if (urlParams.get('hide-export-controls') === "true") {
+            document.getElementById("export-controls-section").style.display = "none";
+        }
+
+        if (urlParams.get('can-edit') === "false") {
+            document.getElementById("new-profile").style.display = "none";
+            document.getElementById("new-variable").style.display = "none";
+        }
+
+        if (urlParams.get('hide-watermark') === "true") {
+            document.getElementById("watermark").style.display = "none";
         }
     </script>
     <script type="text/javascript" src="js/index.js"></script>

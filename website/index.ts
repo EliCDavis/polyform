@@ -20,7 +20,6 @@ import { ArrayBufferToBase64, Compress, CopyToClipboard } from "./utils.js";
 import { VariableManager } from "./variables/variable_manager.js";
 import { ProfileManager } from "./profile/profile_manager.js";
 
-
 const graphPopup = new NewGraphPopup(globalThis.ExampleGraphs);
 
 if (globalThis.RenderingConfiguration.ShowNewGraphPopup) {
@@ -54,10 +53,15 @@ const threeApp: ThreeApp = CreateThreeApp(
     RenderingConfiguration.XrEnabled
 );
 
-const stats = new Stats();
-stats.dom.style.left = "unset";
-stats.dom.style.right = "0";
-container.appendChild(stats.dom);
+const queryString = window.location.search;
+const urlParams = new URLSearchParams(queryString);
+
+const stats: Stats = new Stats();
+if (urlParams.get('hide-stats') !== "true") {
+    stats.dom.style.left = "unset";
+    stats.dom.style.right = "0";
+    container.appendChild(stats.dom);
+}
 
 const flowGraphStuff = CreateNodeFlowGraph();
 const requestManager = new RequestManager();

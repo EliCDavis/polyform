@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/EliCDavis/polyform/drawing/texturing"
+	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/vector/vector2"
 )
 
@@ -85,4 +86,39 @@ func (c Circle[T]) Texture(dimensions vector2.Int) texturing.Texture[T] {
 	})
 
 	return tex
+}
+
+type CircleNode[T any] struct {
+	Dimensions nodes.Output[vector2.Int]
+	Radius     nodes.Output[float64]
+
+	Background nodes.Output[T]
+	Fill       nodes.Output[T]
+
+	InnerBorder          nodes.Output[T]
+	InnerBorderThickness nodes.Output[float64]
+
+	OuterBorder          nodes.Output[T]
+	OuterBorderThickness nodes.Output[float64]
+}
+
+func (c CircleNode[T]) Texture(out *nodes.StructOutput[texturing.Texture[T]]) {
+	dimensions := nodes.TryGetOutputValue(out, c.Dimensions, vector2.New(256, 256))
+	if dimensions.MinComponent() <= 0 {
+		out.CaptureError(texturing.InvalidDimension(dimensions))
+		return
+	}
+
+	var t T
+	circle := Circle[T]{
+		Background:           nodes.TryGetOutputValue(out, c.Background, t),
+		Radius:               nodes.TryGetOutputValue(out, c.Radius, 0.5),
+		Fill:                 nodes.TryGetOutputValue(out, c.Fill, t),
+		InnerBorder:          nodes.TryGetOutputValue(out, c.InnerBorder, t),
+		InnerBorderThickness: nodes.TryGetOutputValue(out, c.InnerBorderThickness, 0),
+		OuterBorder:          nodes.TryGetOutputValue(out, c.OuterBorder, t),
+		OuterBorderThickness: nodes.TryGetOutputValue(out, c.OuterBorderThickness, 0),
+	}
+
+	out.Set(circle.Texture(dimensions))
 }

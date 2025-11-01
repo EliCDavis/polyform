@@ -390,7 +390,7 @@ export class RequestManager {
         }).then((resp) => {
             resp.ok ? success(resp) : error(resp);
             this.alertGraphHasChanged(GraphChangeEventType.Variable_Delete);
-        });
+        })
     }
 
     newVariable(variableKey: string, body: any, success: ((r: CreateVariableResponse) => void), error: ((r: any) => void)): void {
@@ -400,8 +400,11 @@ export class RequestManager {
         }).
             then(resp => resp.json()).
             then((resp) => {
-                resp.ok ? success(resp) : error(resp);
+                success(resp);
                 this.alertGraphHasChanged(GraphChangeEventType.Variable_New);
+            }).
+            catch(err => {
+                error(err)
             });
     }
 
@@ -413,8 +416,11 @@ export class RequestManager {
         }).
             then(resp => resp.json()).
             then((resp) => {
-                resp.ok ? success(resp) : error(resp);
+                success(resp);
                 this.alertGraphHasChanged(GraphChangeEventType.Variable_Info);
+            }).
+            catch(err => {
+                error(err)
             });
     }
 

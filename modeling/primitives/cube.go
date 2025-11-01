@@ -287,12 +287,24 @@ type CubeNode struct {
 }
 
 func (c CubeNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
+	strip := &StripUVs{
+		Start: vector2.New(0, 0.5),
+		End:   vector2.New(1, 0.5),
+		Width: 1.,
+	}
 	cube := Cube{
 		Height:     nodes.TryGetOutputValue(out, c.Height, 1.),
 		Width:      nodes.TryGetOutputValue(out, c.Width, 1.),
 		Depth:      nodes.TryGetOutputValue(out, c.Depth, 1.),
 		Dimensions: max(1, nodes.TryGetOutputValue(out, c.Dimensions, 1)),
-		UVs:        nodes.TryGetOutputReference(out, c.UVs, nil),
+		UVs: nodes.TryGetOutputReference(out, c.UVs, &CubeUVs{
+			Top:    strip,
+			Bottom: strip,
+			Left:   strip,
+			Right:  strip,
+			Front:  strip,
+			Back:   strip,
+		}),
 	}
 	out.Set(cube.UnweldedQuads())
 }

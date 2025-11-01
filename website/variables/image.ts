@@ -53,7 +53,6 @@ export class ImageVariableElement extends VariableElement {
 
     onDestroy(): void {
         this.children$.complete();
-        // Left intentionally blank
     }
 
     set(data: Variable): void {

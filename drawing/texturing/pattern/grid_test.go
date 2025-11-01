@@ -9,45 +9,117 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGrid_Panic(t *testing.T) {
-	assert.PanicsWithError(t, "can not create grid: invalid texture dimensions -1x-1", func() {
-		pattern.Grid(texturing.Texture[float64]{}, vector2.New(1, 1), vector2.New(-1, -1))
-	})
-
-	assert.PanicsWithError(t, "can not repeat texture element on a grid 10x-1 times", func() {
-		pattern.Grid(texturing.Texture[float64]{}, vector2.New(10, -1), vector2.New(1, 1))
-	})
-}
-
 func TestGrid(t *testing.T) {
 
 	tests := map[string]struct {
-		element          texturing.Texture[float64]
-		repeat           vector2.Int
-		targetDimensions vector2.Int
 		expected         texturing.Texture[float64]
+		targetDimensions vector2.Int
+		grid             pattern.Grid[float64]
 	}{
-		"Simple 3x3": {
-			element:          texturing.FromArray([]float64{1, 2, 3, 4, 5, 6, 7, 8, 9}, 3, 3),
-			repeat:           vector2.New(3, 3),
-			targetDimensions: vector2.New(9, 9),
+		"Empty": {
+			targetDimensions: vector2.New(10, 10),
 			expected: texturing.FromArray([]float64{
-				1, 2, 3, 1, 2, 3, 1, 2, 3,
-				4, 5, 6, 4, 5, 6, 4, 5, 6,
-				7, 8, 9, 7, 8, 9, 7, 8, 9,
-				1, 2, 3, 1, 2, 3, 1, 2, 3,
-				4, 5, 6, 4, 5, 6, 4, 5, 6,
-				7, 8, 9, 7, 8, 9, 7, 8, 9,
-				1, 2, 3, 1, 2, 3, 1, 2, 3,
-				4, 5, 6, 4, 5, 6, 4, 5, 6,
-				7, 8, 9, 7, 8, 9, 7, 8, 9,
-			}, 9, 9),
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+			}, 10, 10),
+		},
+		"Line Filled": {
+			targetDimensions: vector2.New(10, 10),
+			grid: pattern.Grid[float64]{
+				VerticalLineWidth: 1,
+				VerticalLines:     1,
+				LineValue:         1,
+			},
+			expected: texturing.FromArray([]float64{
+				1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+				1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+				1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+				1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+				1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+				1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+				1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+				1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+				1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+				1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+			}, 10, 10),
+		},
+		"Single Verticle Line": {
+			targetDimensions: vector2.New(10, 10),
+			grid: pattern.Grid[float64]{
+				VerticalLineWidth: .1,
+				VerticalLines:     1,
+				LineValue:         1,
+			},
+			expected: texturing.FromArray([]float64{
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+			}, 10, 10),
+		},
+		"Single VerticleHorizontal Line": {
+			targetDimensions: vector2.New(10, 10),
+			grid: pattern.Grid[float64]{
+				VerticalLineWidth:   .1,
+				VerticalLines:       1,
+				HorizontalLineWidth: .1,
+				HorizontalLines:     1,
+				LineValue:           1,
+			},
+			expected: texturing.FromArray([]float64{
+				0, 0, 0, 0, 0, 1, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 1, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 1, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 1, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 1, 0, 0, 0, 0,
+				1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+				0, 0, 0, 0, 0, 1, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 1, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 1, 0, 0, 0, 0,
+				0, 0, 0, 0, 0, 1, 0, 0, 0, 0,
+			}, 10, 10),
+		},
+		"Two VerticleHorizontal Lines": {
+			targetDimensions: vector2.New(10, 10),
+			grid: pattern.Grid[float64]{
+				VerticalLineWidth:   .1,
+				VerticalLines:       2,
+				HorizontalLineWidth: .1,
+				HorizontalLines:     2,
+				LineValue:           1,
+			},
+			expected: texturing.FromArray([]float64{
+				0, 0, 0, 1, 0, 0, 0, 1, 0, 0,
+				0, 0, 0, 1, 0, 0, 0, 1, 0, 0,
+				0, 0, 0, 1, 0, 0, 0, 1, 0, 0,
+				1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+				0, 0, 0, 1, 0, 0, 0, 1, 0, 0,
+				0, 0, 0, 1, 0, 0, 0, 1, 0, 0,
+				0, 0, 0, 1, 0, 0, 0, 1, 0, 0,
+				1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+				0, 0, 0, 1, 0, 0, 0, 1, 0, 0,
+				0, 0, 0, 1, 0, 0, 0, 1, 0, 0,
+			}, 10, 10),
 		},
 	}
 
 	for testName, tc := range tests {
 		t.Run(testName, func(t *testing.T) {
-			assert.Equal(t, tc.expected, pattern.Grid(tc.element, tc.repeat, tc.targetDimensions))
+			assert.Equal(t, tc.expected, tc.grid.Texture(tc.targetDimensions))
 		})
 	}
 }

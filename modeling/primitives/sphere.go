@@ -6,8 +6,21 @@ import (
 
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/nodes"
+	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
 )
+
+func QuadSphere(radius float64, cube Cube, welded bool) modeling.Mesh {
+	var m modeling.Mesh
+	if welded {
+		m = cube.Welded()
+	} else {
+		m = cube.UnweldedQuads()
+	}
+	return m.ModifyFloat3Attribute(modeling.PositionAttribute, func(i int, v vector3.Float64) vector3.Float64 {
+		return v.Normalized().Scale(radius)
+	})
+}
 
 func UVSphere(radius float64, rows, columns int) modeling.Mesh {
 	if columns < 3 {
@@ -201,4 +214,38 @@ func (c UvSphereNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	} else {
 		out.Set(UVSphereUnwelded(radius, rows, columns))
 	}
+}
+
+type QuadSphereNode struct {
+	Radius     nodes.Output[float64]
+	Weld       nodes.Output[bool]
+	Resolution nodes.Output[int]
+	UVs        nodes.Output[CubeUVs]
+}
+
+func (c QuadSphereNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
+	strip := &StripUVs{
+		Start: vector2.New(0, 0.5),
+		End:   vector2.New(1, 0.5),
+		Width: 1.,
+	}
+
+	out.Set(QuadSphere(
+		nodes.TryGetOutputValue(out, c.Radius, .5),
+		Cube{
+			Height:     1,
+			Width:      1,
+			Depth:      1,
+			Dimensions: max(1, nodes.TryGetOutputValue(out, c.Resolution, 10)),
+			UVs: nodes.TryGetOutputReference(out, c.UVs, &CubeUVs{
+				Top:    strip,
+				Bottom: strip,
+				Left:   strip,
+				Right:  strip,
+				Front:  strip,
+				Back:   strip,
+			}),
+		},
+		nodes.TryGetOutputValue(out, c.Weld, false),
+	))
 }

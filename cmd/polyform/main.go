@@ -18,6 +18,7 @@ import (
 	"github.com/EliCDavis/polyform/drawing/texturing"
 	_ "github.com/EliCDavis/polyform/drawing/texturing"
 	_ "github.com/EliCDavis/polyform/drawing/texturing/normals"
+	_ "github.com/EliCDavis/polyform/drawing/texturing/pattern"
 
 	_ "github.com/EliCDavis/polyform/formats/colmap"
 	_ "github.com/EliCDavis/polyform/formats/gltf"
