@@ -1,10 +1,9 @@
 package normals
 
 import (
-	"image/color"
-	"image/draw"
 	"math"
 
+	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
 )
@@ -15,7 +14,7 @@ type Sphere struct {
 	Direction Direction
 }
 
-func (s Sphere) Draw(src draw.Image) {
+func (s Sphere) Draw(src NormalMap) {
 
 	center3 := vector3.New(s.Center.X(), 0, s.Center.Y())
 
@@ -42,10 +41,10 @@ func (s Sphere) Draw(src draw.Image) {
 	a := s.Center.X()
 	c := s.Center.Y()
 
-	for x := bottom.X(); x < top.X(); x++ {
+	for x := max(bottom.X(), 0); x < min(top.X(), float64(src.Width())); x++ {
 		xA := x - a
 		xAxA := xA * xA
-		for y := bottom.Y(); y < top.Y(); y++ {
+		for y := max(bottom.Y(), 0); y < min(top.Y(), float64(src.Height())); y++ {
 			pix := vector2.New(x, y)
 			dist := pix.Distance(s.Center)
 			if dist > s.Radius {
@@ -58,15 +57,48 @@ func (s Sphere) Draw(src draw.Image) {
 				Sub(center3).
 				Normalized().
 				MultByVector(vector3.Fill(circleYMultiplier)).
-				Scale(127).
-				Clamp(-127, 127)
-			c := color.RGBA{
-				R: byte(128 + pixNormal.X()),
-				G: byte(128 - pixNormal.Z()),
-				B: byte(128 + pixNormal.Y()),
-				A: 255,
-			}
-			src.Set(int(x), int(y), c)
+				Clamp(-1, 1)
+
+			src.Set(int(x), int(y), pixNormal)
 		}
 	}
+}
+
+type DrawSpheresNode struct {
+	Radii     nodes.Output[[]float64]
+	Positions nodes.Output[[]vector2.Float64]
+	Texture   nodes.Output[NormalMap] `description:"texture to draw on"`
+}
+
+func (n DrawSpheresNode) NormalMap(out *nodes.StructOutput[NormalMap]) {
+	if n.Texture == nil {
+		return
+	}
+	img := nodes.GetOutputValue(out, n.Texture).Copy()
+	dim := vector2.New(img.Width(), img.Height())
+
+	radii := nodes.TryGetOutputValue(out, n.Radii, nil)
+	positions := nodes.TryGetOutputValue(out, n.Positions, nil)
+
+	size := max(len(radii), len(positions))
+	for i := range size {
+		radius := 0.5
+		if i < len(radii) {
+			radius = radii[i]
+		}
+
+		position := vector2.New(0.5, 0.5)
+		if i < len(positions) {
+			position = positions[i]
+		}
+
+		s := Sphere{
+			Center:    position.MultByVector(dim.ToFloat64()),
+			Radius:    float64(dim.MinComponent()) * radius,
+			Direction: Additive,
+		}
+		s.Draw(img)
+	}
+
+	out.Set(img)
 }

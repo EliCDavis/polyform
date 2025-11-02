@@ -192,7 +192,7 @@ func (t Texture[T]) MutateParallel(cb func(x int, y int, v T) T) {
 	t.MutateParallelAcross(runtime.NumCPU(), cb)
 }
 
-func (t Texture[T]) ToImage(f func(T) color.Color) image.Image {
+func (t Texture[T]) ToImage(f func(T) color.Color) *image.RGBA {
 	img := image.NewRGBA(image.Rect(0, 0, t.width, t.height))
 	for y := range t.height {
 		yAdjust := y * t.width
@@ -204,7 +204,7 @@ func (t Texture[T]) ToImage(f func(T) color.Color) image.Image {
 }
 
 func (t Texture[T]) Copy() Texture[T] {
-	destination := make([]T, len(t.data))
+	destination := make([]T, t.width*t.height)
 	copy(destination, t.data)
 	return Texture[T]{
 		data:   destination,

@@ -29,9 +29,12 @@ func Repeat[T any](element texturing.Texture[T], repeat vector2.Int, targetDimen
 			DivByVector(targetElementDimensions).
 			Fract().
 			MultByVector(elementDimension).
-			FloorToInt()
+			RoundToInt()
 
-		return element.Get(pix.X(), pix.Y())
+		return element.Get(
+			min(pix.X(), element.Width()-1),
+			min(pix.Y(), element.Height()-1),
+		)
 	})
 
 	return tex
