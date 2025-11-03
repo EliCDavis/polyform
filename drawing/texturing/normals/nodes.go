@@ -18,6 +18,7 @@ func init() {
 	refutil.RegisterType[nodes.Struct[FromHeightMapNode]](factory)
 
 	refutil.RegisterType[nodes.Struct[DrawSpheresNode]](factory)
+	refutil.RegisterType[nodes.Struct[DrawLinesNode]](factory)
 
 	generator.RegisterTypes(factory)
 }
