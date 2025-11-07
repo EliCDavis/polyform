@@ -5,6 +5,7 @@ import { NodeManager } from "../node_manager";
 import { CreateVariableResponse } from "../schema";
 import { VariableTypeDropdown } from "./variable_type_dropdown";
 import { CreatePopupElement, PopupButtonType } from "./popup";
+import { RequestManager } from "../requests";
 
 interface NewVariableParameters {
     type: string
@@ -28,7 +29,11 @@ export class NewVariablePopup {
 
     nodeManager: NodeManager;
 
-    constructor(private schemaManager: SchemaManager, nodeManager: NodeManager) {
+    constructor(
+        private schemaManager: SchemaManager,
+        nodeManager: NodeManager,
+        private requestManager: RequestManager,
+    ) {
         this.name = new BehaviorSubject<string>("New Variable");
         this.nodeManager = nodeManager;
         this.type = new BehaviorSubject<string>(VariableType.Float);
@@ -79,19 +84,16 @@ export class NewVariablePopup {
     }
 
     newVariable(parameters: NewVariableParameters): void {
-        fetch("./variable/instance/" + this.name.value, {
-            method: "POST",
-            body: JSON.stringify(parameters)
-        }).then((resp) => {
-            resp.json().then((body) => {
-                if (!resp.ok) {
-                    alert(body.error);
-                } else {
-                    const createResp: CreateVariableResponse = body;
-                    this.schemaManager.refreshSchema("created a variable");
-                    this.nodeManager.registerCustomNodeType(createResp.nodeType)
-                }
-            })
-        });
+        this.requestManager.newVariable(
+            this.name.value,
+            parameters,
+            (createResp) => {
+                this.schemaManager.refreshSchema("created a variable");
+                this.nodeManager.registerCustomNodeType(createResp.nodeType)
+            },
+            (err) => {
+                alert(err.error);
+            }
+        )
     }
 } 

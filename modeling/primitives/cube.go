@@ -87,12 +87,12 @@ var cubeVertIndices = []int{
 }
 
 type CubeUVs struct {
-	Top    *StripUVs
-	Bottom *StripUVs
-	Left   *StripUVs
-	Right  *StripUVs
-	Front  *StripUVs
-	Back   *StripUVs
+	Top    EuclideanUVSpace
+	Bottom EuclideanUVSpace
+	Left   EuclideanUVSpace
+	Right  EuclideanUVSpace
+	Front  EuclideanUVSpace
+	Back   EuclideanUVSpace
 }
 
 type Cube struct {
@@ -128,7 +128,7 @@ func (c Cube) UnweldedQuads() modeling.Mesh {
 	halfW := c.Width / 2
 	halfH := c.Height / 2
 	halfD := c.Depth / 2
-	var topUV, bottomUV, leftUV, rightUV, frontUV, backUV *StripUVs
+	var topUV, bottomUV, leftUV, rightUV, frontUV, backUV EuclideanUVSpace
 	if c.UVs != nil {
 		topUV = c.UVs.Top
 		bottomUV = c.UVs.Bottom
@@ -234,45 +234,45 @@ func (c Cube) calcUVs() []vector2.Float64 {
 	uvs := make([]vector2.Float64, 8)
 
 	if c.UVs.Top != nil {
-		uvs[2] = c.UVs.Top.StartLeft()
-		uvs[6] = c.UVs.Top.StartRight()
-		uvs[3] = c.UVs.Top.EndLeft()
-		uvs[7] = c.UVs.Top.EndRight()
+		uvs[2] = c.UVs.Top.AtXY(vector2.New(0., 0.))
+		uvs[6] = c.UVs.Top.AtXY(vector2.New(1., 0.))
+		uvs[3] = c.UVs.Top.AtXY(vector2.New(0., 1.))
+		uvs[7] = c.UVs.Top.AtXY(vector2.New(1., 1.))
 	}
 
 	if c.UVs.Bottom != nil {
-		uvs[0] = c.UVs.Bottom.StartLeft()
-		uvs[4] = c.UVs.Bottom.StartRight()
-		uvs[1] = c.UVs.Bottom.EndLeft()
-		uvs[5] = c.UVs.Bottom.EndRight()
+		uvs[0] = c.UVs.Bottom.AtXY(vector2.New(0., 0.))
+		uvs[4] = c.UVs.Bottom.AtXY(vector2.New(1., 0.))
+		uvs[1] = c.UVs.Bottom.AtXY(vector2.New(0., 1.))
+		uvs[5] = c.UVs.Bottom.AtXY(vector2.New(1., 1.))
 	}
 
 	if c.UVs.Left != nil {
-		uvs[1] = c.UVs.Bottom.StartLeft()
-		uvs[0] = c.UVs.Bottom.StartRight()
-		uvs[3] = c.UVs.Bottom.EndLeft()
-		uvs[2] = c.UVs.Bottom.EndRight()
+		uvs[1] = c.UVs.Left.AtXY(vector2.New(0., 0.))
+		uvs[0] = c.UVs.Left.AtXY(vector2.New(1., 0.))
+		uvs[3] = c.UVs.Left.AtXY(vector2.New(0., 1.))
+		uvs[2] = c.UVs.Left.AtXY(vector2.New(1., 1.))
 	}
 
 	if c.UVs.Right != nil {
-		uvs[4] = c.UVs.Bottom.StartLeft()
-		uvs[5] = c.UVs.Bottom.StartRight()
-		uvs[6] = c.UVs.Bottom.EndLeft()
-		uvs[7] = c.UVs.Bottom.EndRight()
+		uvs[4] = c.UVs.Right.AtXY(vector2.New(0., 0.))
+		uvs[5] = c.UVs.Right.AtXY(vector2.New(1., 0.))
+		uvs[6] = c.UVs.Right.AtXY(vector2.New(0., 1.))
+		uvs[7] = c.UVs.Right.AtXY(vector2.New(1., 1.))
 	}
 
 	if c.UVs.Front != nil {
-		uvs[0] = c.UVs.Bottom.StartLeft()
-		uvs[4] = c.UVs.Bottom.StartRight()
-		uvs[2] = c.UVs.Bottom.EndLeft()
-		uvs[6] = c.UVs.Bottom.EndRight()
+		uvs[0] = c.UVs.Front.AtXY(vector2.New(0., 0.))
+		uvs[4] = c.UVs.Front.AtXY(vector2.New(1., 0.))
+		uvs[2] = c.UVs.Front.AtXY(vector2.New(0., 1.))
+		uvs[6] = c.UVs.Front.AtXY(vector2.New(1., 1.))
 	}
 
-	if c.UVs.Front != nil {
-		uvs[5] = c.UVs.Bottom.StartLeft()
-		uvs[1] = c.UVs.Bottom.StartRight()
-		uvs[7] = c.UVs.Bottom.EndLeft()
-		uvs[3] = c.UVs.Bottom.EndRight()
+	if c.UVs.Back != nil {
+		uvs[5] = c.UVs.Back.AtXY(vector2.New(0., 0.))
+		uvs[1] = c.UVs.Back.AtXY(vector2.New(1., 0.))
+		uvs[7] = c.UVs.Back.AtXY(vector2.New(0., 1.))
+		uvs[3] = c.UVs.Back.AtXY(vector2.New(1., 1.))
 	}
 
 	return uvs
@@ -287,12 +287,24 @@ type CubeNode struct {
 }
 
 func (c CubeNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
+	strip := &StripUVs{
+		Start: vector2.New(0, 0.5),
+		End:   vector2.New(1, 0.5),
+		Width: 1.,
+	}
 	cube := Cube{
 		Height:     nodes.TryGetOutputValue(out, c.Height, 1.),
 		Width:      nodes.TryGetOutputValue(out, c.Width, 1.),
 		Depth:      nodes.TryGetOutputValue(out, c.Depth, 1.),
 		Dimensions: max(1, nodes.TryGetOutputValue(out, c.Dimensions, 1)),
-		UVs:        nodes.TryGetOutputReference(out, c.UVs, nil),
+		UVs: nodes.TryGetOutputReference(out, c.UVs, &CubeUVs{
+			Top:    strip,
+			Bottom: strip,
+			Left:   strip,
+			Right:  strip,
+			Front:  strip,
+			Back:   strip,
+		}),
 	}
 	out.Set(cube.UnweldedQuads())
 }

@@ -19,10 +19,10 @@ func (suv StripUVs) At(time float64) vector2.Float64 {
 }
 
 // This is slow, shouldn't really use it if you're gonna be calling it a bunch
-func (suv StripUVs) AtXY(x, y float64) vector2.Float64 {
+func (suv StripUVs) AtXY(p vector2.Float64) vector2.Float64 {
 	return suv.StartLeft().
-		Add(suv.Dir().Scale(y)).
-		Add(suv.LeftToRight().Scale(x))
+		Add(suv.Dir().Scale(p.Y())).
+		Add(suv.LeftToRight().Scale(p.X()))
 }
 
 func (suv StripUVs) AtXYs(xys []vector2.Float64) []vector2.Float64 {

@@ -75,6 +75,10 @@ Packages that have spawned from polyform's undertaking and have since been refac
 - [sfm](https://github.com/EliCDavis/sfm) - Utilities for interacting with reconstruction data from different SFM programs
 - [bitlib](https://github.com/EliCDavis/bitlib) - Utilities for reading and writing binary data
 
+## Contributing
+
+Learn how to [create your own nodes](./docs/guides/CreatingNodes/README.md) for others to use.
+
 ## Procedural Generation Examples
 
 You can at the different projects under the [examples](/examples/) folder for different examples on how to procedurally generate meshes.

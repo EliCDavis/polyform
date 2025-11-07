@@ -116,7 +116,6 @@ export class NewGraphPopup {
         this.description = (evt.target as any).value;
     }
 
-
     newClicked(): void {
         this.newGraph({
             author: this.author,

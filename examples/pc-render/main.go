@@ -314,11 +314,11 @@ func loadMesh() (*modeling.Mesh, error) {
 
 func run(mesh modeling.Mesh, camera Camera, i int) {
 	start := time.Now()
-	colorTex := texturing.NewTexture[color.Color](Width, Height)
+	colorTex := texturing.Empty[color.Color](Width, Height)
 	colorTex.Fill(color.White)
 
-	depthTexture := texturing.NewTexture[float64](Width, Height)
-	positionTexture := texturing.NewTexture[vector3.Float64](Width, Height)
+	depthTexture := texturing.Empty[float64](Width, Height)
+	positionTexture := texturing.Empty[vector3.Float64](Width, Height)
 
 	points := mesh.Float3Attribute(modeling.PositionAttribute)
 	colors := iter.Array(make([]vector4.Float64, points.Len()))

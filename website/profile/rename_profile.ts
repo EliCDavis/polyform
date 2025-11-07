@@ -1,12 +1,17 @@
 import { BehaviorSubject } from "rxjs";
 import { SchemaManager } from "../schema_manager";
 import { Popup, PopupButtonType, PopupConfig } from "../popups/popup";
+import { RequestManager } from "../requests";
 
 export class RenameProfilePopup extends Popup {
 
     name: BehaviorSubject<string>;
 
-    constructor(private profile: string, private schemaManager: SchemaManager) {
+    constructor(
+        private profile: string,
+        private schemaManager: SchemaManager,
+        private requestManager: RequestManager
+    ) {
         super();
     }
 
@@ -47,19 +52,12 @@ export class RenameProfilePopup extends Popup {
             return;
         }
 
-        fetch("./profile/rename", {
-            method: "POST",
-            body: JSON.stringify({
-                original: this.profile,
-                new: this.name.value,
-            })
-        }).then((resp) => {
-            if (!resp.ok) {
-                alert("unable to rename profile");
-            } else {
-                this.schemaManager.refreshSchema("renamed a profile");
-            }
-        });
+        this.requestManager.renameProfile(
+            this.profile,
+            this.name.value,
+            () => this.schemaManager.refreshSchema("renamed a profile"),
+            () => alert("unable to rename profile")
+        );
     }
 
 } 

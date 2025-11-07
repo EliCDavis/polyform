@@ -118,8 +118,8 @@ func convolve1DGaussian[T any](space vector.Space[T], src Texture[T], dst Textur
 func RadialGaussianBlur[T any](space vector.Space[T], src Texture[T], radius int, sigma float64) Texture[T] {
 	kernel := gaussianKernel(radius, sigma)
 
-	tmp := NewTexture[T](src.width, src.height)
-	out := NewTexture[T](src.width, src.height)
+	tmp := Empty[T](src.width, src.height)
+	out := Empty[T](src.width, src.height)
 
 	// Horizontal then vertical
 	convolve1DGaussian(space, src, tmp, kernel, true)

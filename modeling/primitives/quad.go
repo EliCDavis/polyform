@@ -12,7 +12,7 @@ type Quad struct {
 	Depth   float64
 	Columns int
 	Rows    int
-	UVs     *StripUVs
+	UVs     EuclideanUVSpace
 }
 
 func (q Quad) simpleQuad() modeling.Mesh {
@@ -20,12 +20,12 @@ func (q Quad) simpleQuad() modeling.Mesh {
 
 	v2Data := make(map[string][]vector2.Float64)
 	if q.UVs != nil {
-		v2Data[modeling.TexCoordAttribute] = []vector2.Vector[float64]{
-			q.UVs.StartLeft(),
-			q.UVs.EndLeft(),
-			q.UVs.EndRight(),
-			q.UVs.StartRight(),
-		}
+		v2Data[modeling.TexCoordAttribute] = q.UVs.AtXYs([]vector2.Float64{
+			vector2.New(0., 0.),
+			vector2.New(0., 1.),
+			vector2.New(1., 1.),
+			vector2.New(1., 0.),
+		})
 	}
 
 	halfWidth := q.Width / 2
@@ -84,8 +84,10 @@ func (q Quad) ToMesh() modeling.Mesh {
 
 			if uvStrip != nil {
 				uvs = append(uvs, uvStrip.AtXY(
-					float64(x)/float64(q.Rows),
-					float64(y)/float64(q.Columns),
+					vector2.New(
+						float64(x)/float64(q.Rows),
+						float64(y)/float64(q.Columns),
+					),
 				))
 			}
 		}

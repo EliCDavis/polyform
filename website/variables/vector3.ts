@@ -1,6 +1,6 @@
 import { BehaviorSubject, combineLatestWith, map, mergeMap, skip, Subject } from "rxjs";
 import { Variable } from "../schema";
-import { inputContainerStyle, LabledField, setVariableValue } from "./variable_manager";
+import { inputContainerStyle, LabledField } from "./variable_manager";
 import { SchemaManager } from "../schema_manager";
 import { NodeManager } from "../node_manager";
 import { ElementConfig } from "../element";
@@ -9,6 +9,7 @@ import { ThreeApp } from "../three_app";
 import { Toggle } from "../components/toggle";
 import { VariableElement } from "./variable";
 import { GizmoToggle } from "./gizmo_toggle";
+import { RequestManager } from "../requests";
 
 export class Vector3VariableElement extends VariableElement {
 
@@ -24,6 +25,7 @@ export class Vector3VariableElement extends VariableElement {
         schemaManager: SchemaManager,
         nodeManager: NodeManager,
         private app: ThreeApp,
+        private requestManager: RequestManager,
         private mapper: (s: string) => number,
         private step: string
     ) {
@@ -42,7 +44,7 @@ export class Vector3VariableElement extends VariableElement {
             map(this.mapper),
             combineLatestWith(changeY$.pipe(map(this.mapper)), changeZ$.pipe(map(this.mapper))),
             skip(1),
-            mergeMap((val) => setVariableValue(this.key, { x: val[0], y: val[1], z: val[2] }))
+            mergeMap((val) => this.requestManager.setVariableValue(this.key, { x: val[0], y: val[1], z: val[2] }))
         ).subscribe((resp: Response) => {
             console.log(resp);
         }));
@@ -62,7 +64,7 @@ export class Vector3VariableElement extends VariableElement {
         });
         this.addSubscription(showGizmo.subscribe((show) => this.gizmo.setEnabled(show)));
         this.addSubscription(this.gizmo.position$().subscribe(pos => {
-            setVariableValue(this.key, { x: pos.x, y: pos.y, z: pos.z })
+            this.requestManager.setVariableValue(this.key, { x: pos.x, y: pos.y, z: pos.z })
         }))
 
         return {

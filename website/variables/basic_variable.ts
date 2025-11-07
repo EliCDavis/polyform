@@ -1,10 +1,10 @@
 import { map, mergeMap, Subject } from "rxjs";
 import { Variable } from "../schema";
-import { setVariableValue } from "./variable_manager";
 import { SchemaManager } from "../schema_manager";
 import { NodeManager } from "../node_manager";
 import { ElementConfig, HTMLInputTypeAttribute } from "../element";
 import { VariableElement } from "./variable";
+import { RequestManager } from "../requests";
 
 export class BasicVariableElement<T> extends VariableElement {
 
@@ -15,6 +15,7 @@ export class BasicVariableElement<T> extends VariableElement {
         variable: Variable,
         schemaManager: SchemaManager,
         nodeManager: NodeManager,
+        private requestManager: RequestManager,
         private mapper: (s: string) => T,
         private inputType: HTMLInputTypeAttribute,
         private step: string
@@ -28,7 +29,7 @@ export class BasicVariableElement<T> extends VariableElement {
 
         this.addSubscription(change$.pipe(
             map(this.mapper),
-            mergeMap((val) => setVariableValue(this.key, val))
+            mergeMap((val) => this.requestManager.setVariableValue(this.key, val))
         ).subscribe((resp: Response) => {
             console.log(resp);
         }))

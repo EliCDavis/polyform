@@ -19,11 +19,22 @@ import (
 	"github.com/EliCDavis/vector/vector4"
 )
 
-func NewTexture[T any](width, height int) Texture[T] {
+func Empty[T any](width, height int) Texture[T] {
 	return Texture[T]{
 		width:  width,
 		height: height,
 		data:   make([]T, width*height),
+	}
+}
+
+func FromArray[T any](arr []T, width, height int) Texture[T] {
+	if len(arr) < width*height {
+		panic(fmt.Errorf("can't create texture from array, array length %d less than provided dimensions %dx%d", len(arr), width, height))
+	}
+	return Texture[T]{
+		width:  width,
+		height: height,
+		data:   arr,
 	}
 }
 
@@ -181,7 +192,7 @@ func (t Texture[T]) MutateParallel(cb func(x int, y int, v T) T) {
 	t.MutateParallelAcross(runtime.NumCPU(), cb)
 }
 
-func (t Texture[T]) ToImage(f func(T) color.Color) image.Image {
+func (t Texture[T]) ToImage(f func(T) color.Color) *image.RGBA {
 	img := image.NewRGBA(image.Rect(0, 0, t.width, t.height))
 	for y := range t.height {
 		yAdjust := y * t.width
@@ -193,7 +204,7 @@ func (t Texture[T]) ToImage(f func(T) color.Color) image.Image {
 }
 
 func (t Texture[T]) Copy() Texture[T] {
-	destination := make([]T, len(t.data))
+	destination := make([]T, t.width*t.height)
 	copy(destination, t.data)
 	return Texture[T]{
 		data:   destination,
@@ -222,7 +233,7 @@ func (t Texture[T]) SearchNeighborhood(start vector2.Int, size int, cb func(x in
 }
 
 func Convert[T, G any](in Texture[T], cb func(x int, y int, v T) G) Texture[G] {
-	out := NewTexture[G](in.width, in.height)
+	out := Empty[G](in.width, in.height)
 	for y := 0; y < in.height; y++ {
 		for x := 0; x < in.width; x++ {
 			out.Set(x, y, cb(x, y, in.Get(x, y)))
@@ -238,7 +249,7 @@ type UniformNode[T any] struct {
 }
 
 func (n UniformNode[T]) Texture(out *nodes.StructOutput[Texture[T]]) {
-	t := NewTexture[T](
+	t := Empty[T](
 		nodes.TryGetOutputValue(out, n.Width, 1),
 		nodes.TryGetOutputValue(out, n.Height, 1),
 	)
@@ -422,7 +433,7 @@ type FloatToImageNode struct {
 
 func (n FloatToImageNode) tex(out nodes.ExecutionRecorder) Texture[coloring.Color] {
 	if n.R == nil && n.G == nil && n.B == nil && n.A == nil {
-		return NewTexture[coloring.Color](0, 0)
+		return Empty[coloring.Color](0, 0)
 	}
 
 	rFill := nodes.TryGetOutputValue(out, n.RFill, 0.)
@@ -452,11 +463,11 @@ func (n FloatToImageNode) tex(out nodes.ExecutionRecorder) Texture[coloring.Colo
 	for i := 1; i < len(texs); i++ {
 		if texs[0].width != texs[i].width || texs[0].height != texs[i].height {
 			out.CaptureError(ErrMismatchDimensions)
-			return NewTexture[coloring.Color](0, 0)
+			return Empty[coloring.Color](0, 0)
 		}
 	}
 
-	tex := NewTexture[coloring.Color](texs[0].width, texs[0].height)
+	tex := Empty[coloring.Color](texs[0].width, texs[0].height)
 	tex.MutateParallel(func(x, y int, v coloring.Color) coloring.Color {
 		c := coloring.Color{
 			R: rFill,
@@ -528,7 +539,7 @@ func (n ApplyMaskNode[T]) process(out *nodes.StructOutput[Texture[T]], keep bool
 		return
 	}
 
-	result := NewTexture[T](tex.width, tex.height)
+	result := Empty[T](tex.width, tex.height)
 	for y := range result.height {
 		for x := range result.width {
 			if mask.Get(x, y) == keep {
@@ -566,7 +577,7 @@ func addTextures[T any](textures []Texture[T], out *nodes.StructOutput[Texture[T
 		return
 	}
 
-	result := NewTexture[T](textures[0].Width(), textures[0].Height())
+	result := Empty[T](textures[0].Width(), textures[0].Height())
 	for y := range result.Height() {
 		for x := range result.Width() {
 			var v T
@@ -657,7 +668,7 @@ func scaleTextureUniform[T any](
 }
 
 func ScaleUniform[T any](tex Texture[T], amount float64, space vector.Space[T]) Texture[T] {
-	result := NewTexture[T](tex.Width(), tex.Height())
+	result := Empty[T](tex.Width(), tex.Height())
 	for y := range result.Height() {
 		for x := range result.Width() {
 			result.Set(x, y, space.Scale(tex.Get(x, y), amount))
@@ -691,7 +702,7 @@ func scaleTexture[T any](
 		return
 	}
 
-	result := NewTexture[T](texture.Width(), texture.Height())
+	result := Empty[T](texture.Width(), texture.Height())
 	for y := range result.Height() {
 		for x := range result.Width() {
 			result.Set(x, y, space.Scale(texture.Get(x, y), amt.Get(x, y)))

@@ -18,7 +18,7 @@ type RadialGradient[T any] struct {
 }
 
 func (rg RadialGradient[T]) Texture() Texture[T] {
-	tex := NewTexture[T](rg.Width, rg.Height)
+	tex := Empty[T](rg.Width, rg.Height)
 	center := vector2.New(rg.Width, rg.Height).
 		ToFloat64().
 		Scale(0.5)
@@ -45,7 +45,7 @@ func (n RadialGradientNode[T]) LinearGradient(out *nodes.StructOutput[Texture[T]
 	height := nodes.TryGetOutputValue(out, n.Height, 1)
 
 	if n.Gradient == nil {
-		out.Set(NewTexture[T](width, height))
+		out.Set(Empty[T](width, height))
 		return
 	}
 
@@ -69,7 +69,7 @@ type LinearGradient[T any] struct {
 }
 
 func (lg LinearGradient[T]) Texture() Texture[T] {
-	tex := NewTexture[T](lg.Width, lg.Height)
+	tex := Empty[T](lg.Width, lg.Height)
 
 	boxCenter := vector3.New(lg.Width, lg.Height, 0).
 		ToFloat64().
@@ -109,7 +109,7 @@ func (n LinearGradientNode[T]) LinearGradient(out *nodes.StructOutput[Texture[T]
 	height := nodes.TryGetOutputValue(out, n.Height, 1)
 
 	if n.Gradient == nil {
-		out.Set(NewTexture[T](width, height))
+		out.Set(Empty[T](width, height))
 		return
 	}
 
@@ -124,7 +124,7 @@ func (n LinearGradientNode[T]) LinearGradient(out *nodes.StructOutput[Texture[T]
 }
 
 func ApplyGradient[T any](time Texture[float64], gradient coloring.Gradient[T]) Texture[T] {
-	result := NewTexture[T](time.width, time.height)
+	result := Empty[T](time.width, time.height)
 	for y := range result.height {
 		for x := range result.width {
 			result.Set(x, y, gradient.Sample(time.Get(x, y)))
@@ -145,7 +145,7 @@ func (n ApplyGradientNode[T]) Texture(out *nodes.StructOutput[Texture[T]]) {
 
 	time := nodes.GetOutputValue(out, n.Time)
 	if n.Gradient == nil {
-		out.Set(NewTexture[T](time.Width(), time.Height()))
+		out.Set(Empty[T](time.Width(), time.Height()))
 		return
 	}
 

@@ -6,8 +6,140 @@ import (
 
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/nodes"
+	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
 )
+
+type QuadSphereWarpUV struct {
+	spaceToWarp EuclideanUVSpace
+}
+
+// SinArcLength computes the arc length of y = sin(x)
+// between x = t1 and x = t2 using numerical integration.
+func SinArcLength(t1, t2 float64) float64 {
+	const steps = 10000 // increase for higher precision
+	dx := (t2 - t1) / float64(steps)
+	sum := 0.0
+
+	for i := range steps {
+		x1 := t1 + float64(i)*dx
+		x2 := x1 + dx
+
+		f1 := math.Sqrt(1 + math.Pow(math.Cos(x1), 2))
+		f2 := math.Sqrt(1 + math.Pow(math.Cos(x2), 2))
+
+		sum += 0.5 * (f1 + f2) * dx // trapezoid area
+	}
+
+	return sum
+}
+
+func (q QuadSphereWarpUV) AtXY(p vector2.Float64) vector2.Float64 {
+	qPi := math.Pi / 4
+	sqPi := math.Sin(qPi)
+	qPi3 := qPi * 3
+	t := -math.Cos(qPi) - (sqPi * qPi)
+	total := (-math.Cos(qPi3) - (sqPi * qPi3)) - t
+
+	f := func(a float64) float64 {
+		p := ((math.Pi / 2) * a) + qPi
+		scaled := ((-math.Cos(p) - (sqPi * p)) - t) / total
+		return ((a - scaled) * 0.5) + scaled
+	}
+
+	r := q.spaceToWarp.AtXY(p)
+	return vector2.New(f(r.X()), f(r.Y()))
+
+	// qPi := math.Pi / 4
+	// qPi2 := qPi * 2
+	// qPi3 := qPi * 3
+	// total := SinArcLength(qPi, qPi3)
+	// return vector2.New(
+	// 	SinArcLength(qPi, (p.X()*qPi2)+qPi)/total,
+	// 	SinArcLength(qPi, (p.Y()*qPi2)+qPi)/total,
+	// )
+}
+
+func (q QuadSphereWarpUV) AtXYs(p []vector2.Float64) []vector2.Float64 {
+	qPi := math.Pi / 4
+	sqPi := math.Sin(qPi)
+	qPi3 := qPi * 3
+	t := -math.Cos(qPi) - (sqPi * qPi)
+	total := (-math.Cos(qPi3) - (sqPi * qPi3)) - t
+
+	f := func(a float64) float64 {
+		p := ((math.Pi / 2) * a) + qPi
+		scaled := ((-math.Cos(p) - (sqPi * p)) - t) / total
+		return ((a - scaled) * 0.5) + scaled
+	}
+
+	results := make([]vector2.Float64, len(p))
+	for i, v := range p {
+		r := q.spaceToWarp.AtXY(v)
+		results[i] = vector2.New(f(r.X()), f(r.Y()))
+	}
+
+	return results
+
+	// results := make([]vector2.Float64, len(p))
+	// for i, v := range p {
+	// 	results[i] = q.AtXY(v)
+	// }
+
+	// return results
+}
+
+func QuadSphere(radius float64, cube Cube, welded bool, dewarpUVs bool) modeling.Mesh {
+
+	cubeToRender := cube
+
+	if dewarpUVs {
+		cubeToRender = Cube{
+			Height:     cube.Height,
+			Width:      cube.Width,
+			Depth:      cube.Depth,
+			Dimensions: cube.Dimensions,
+		}
+
+		if cube.UVs != nil {
+			cubeToRender.UVs = &CubeUVs{}
+
+			if cube.UVs.Back != nil {
+				cubeToRender.UVs.Back = QuadSphereWarpUV{spaceToWarp: cube.UVs.Back}
+			}
+
+			if cube.UVs.Top != nil {
+				cubeToRender.UVs.Top = QuadSphereWarpUV{spaceToWarp: cube.UVs.Top}
+			}
+
+			if cube.UVs.Left != nil {
+				cubeToRender.UVs.Left = QuadSphereWarpUV{spaceToWarp: cube.UVs.Left}
+			}
+
+			if cube.UVs.Right != nil {
+				cubeToRender.UVs.Right = QuadSphereWarpUV{spaceToWarp: cube.UVs.Right}
+			}
+
+			if cube.UVs.Front != nil {
+				cubeToRender.UVs.Front = QuadSphereWarpUV{spaceToWarp: cube.UVs.Front}
+			}
+
+			if cube.UVs.Bottom != nil {
+				cubeToRender.UVs.Bottom = QuadSphereWarpUV{spaceToWarp: cube.UVs.Bottom}
+			}
+		}
+	}
+
+	var m modeling.Mesh
+	if welded {
+		m = cubeToRender.Welded()
+	} else {
+		m = cubeToRender.UnweldedQuads()
+	}
+	return m.ModifyFloat3Attribute(modeling.PositionAttribute, func(i int, v vector3.Float64) vector3.Float64 {
+		return v.Normalized().Scale(radius)
+	})
+}
 
 func UVSphere(radius float64, rows, columns int) modeling.Mesh {
 	if columns < 3 {
@@ -201,4 +333,40 @@ func (c UvSphereNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	} else {
 		out.Set(UVSphereUnwelded(radius, rows, columns))
 	}
+}
+
+type QuadSphereNode struct {
+	Radius     nodes.Output[float64]
+	Weld       nodes.Output[bool]
+	DewarpUVs  nodes.Output[bool]
+	Resolution nodes.Output[int]
+	UVs        nodes.Output[CubeUVs]
+}
+
+func (c QuadSphereNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
+	strip := &StripUVs{
+		Start: vector2.New(0, 0.5),
+		End:   vector2.New(1, 0.5),
+		Width: 1.,
+	}
+
+	out.Set(QuadSphere(
+		nodes.TryGetOutputValue(out, c.Radius, .5),
+		Cube{
+			Height:     1,
+			Width:      1,
+			Depth:      1,
+			Dimensions: max(1, nodes.TryGetOutputValue(out, c.Resolution, 10)),
+			UVs: nodes.TryGetOutputReference(out, c.UVs, &CubeUVs{
+				Top:    strip,
+				Bottom: strip,
+				Left:   strip,
+				Right:  strip,
+				Front:  strip,
+				Back:   strip,
+			}),
+		},
+		nodes.TryGetOutputValue(out, c.Weld, false),
+		nodes.TryGetOutputValue(out, c.DewarpUVs, true),
+	))
 }
