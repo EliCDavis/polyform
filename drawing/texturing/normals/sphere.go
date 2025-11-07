@@ -56,7 +56,9 @@ func (s Sphere) Draw(src NormalMap) {
 			pixNormal := vector3.New(x, circleY, y).
 				Sub(center3).
 				Normalized().
-				MultByVector(vector3.Fill(circleYMultiplier)).
+				Scale(circleYMultiplier).
+				XZY().
+				FlipY().
 				Clamp(-1, 1)
 
 			src.Set(int(x), int(y), pixNormal)
@@ -67,6 +69,7 @@ func (s Sphere) Draw(src NormalMap) {
 type DrawSpheresNode struct {
 	Radii     nodes.Output[[]float64]
 	Positions nodes.Output[[]vector2.Float64]
+	Subtract  nodes.Output[bool]
 	Texture   nodes.Output[NormalMap] `description:"texture to draw on"`
 }
 
@@ -79,6 +82,11 @@ func (n DrawSpheresNode) NormalMap(out *nodes.StructOutput[NormalMap]) {
 
 	radii := nodes.TryGetOutputValue(out, n.Radii, nil)
 	positions := nodes.TryGetOutputValue(out, n.Positions, nil)
+
+	dir := Additive
+	if nodes.TryGetOutputValue(out, n.Subtract, false) {
+		dir = Subtractive
+	}
 
 	size := max(len(radii), len(positions))
 	for i := range size {
@@ -95,7 +103,7 @@ func (n DrawSpheresNode) NormalMap(out *nodes.StructOutput[NormalMap]) {
 		s := Sphere{
 			Center:    position.MultByVector(dim.ToFloat64()),
 			Radius:    float64(dim.MinComponent()) * radius,
-			Direction: Additive,
+			Direction: dir,
 		}
 		s.Draw(img)
 	}

@@ -12,7 +12,7 @@ import (
 type TorusUVs struct {
 	MajorOffset float64
 	MinorOffset float64
-	Strip       StripUVs
+	Strip       EuclideanUVSpace
 }
 
 type Torus struct {
