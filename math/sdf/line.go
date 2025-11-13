@@ -3,6 +3,7 @@ package sdf
 import (
 	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/math/sample"
+	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/vector/vector3"
 )
 
@@ -33,4 +34,18 @@ func VarryingThicknessLine(linePoints []LinePoint) sample.Vec3ToFloat {
 	}
 
 	return Union(sdfs...)
+}
+
+type LineNode struct {
+	Start  nodes.Output[vector3.Float64]
+	End    nodes.Output[vector3.Float64]
+	Radius nodes.Output[float64]
+}
+
+func (cn LineNode) Field(out *nodes.StructOutput[sample.Vec3ToFloat]) {
+	out.Set(Line(
+		nodes.TryGetOutputValue(out, cn.Start, vector3.Zero[float64]()),
+		nodes.TryGetOutputValue(out, cn.End, vector3.One[float64]()),
+		nodes.TryGetOutputValue(out, cn.Radius, .25),
+	))
 }

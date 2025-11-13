@@ -12,6 +12,9 @@ type Sphere struct {
 	Center    vector2.Float64
 	Radius    float64
 	Direction Direction
+
+	Start *float64
+	End   *float64
 }
 
 func (s Sphere) Draw(src NormalMap) {
@@ -25,6 +28,16 @@ func (s Sphere) Draw(src NormalMap) {
 	circleYMultiplier := 1.
 	if s.Direction == Subtractive {
 		circleYMultiplier = -1
+	}
+
+	start := 0.
+	if s.Start != nil {
+		start = max(0, min(1, *s.Start))
+	}
+
+	end := 1.
+	if s.End != nil {
+		end = max(0, min(1, *s.End))
 	}
 
 	// a = center.X()
@@ -48,6 +61,11 @@ func (s Sphere) Draw(src NormalMap) {
 			pix := vector2.New(x, y)
 			dist := pix.Distance(s.Center)
 			if dist > s.Radius {
+				continue
+			}
+
+			p := dist / s.Radius
+			if p < start || p > end {
 				continue
 			}
 
@@ -107,6 +125,42 @@ func (n DrawSpheresNode) NormalMap(out *nodes.StructOutput[NormalMap]) {
 		}
 		s.Draw(img)
 	}
+
+	out.Set(img)
+}
+
+type DrawSphereNode struct {
+	Radius      nodes.Output[float64]
+	Position    nodes.Output[vector2.Float64]
+	Subtract    nodes.Output[bool]
+	StartRadius nodes.Output[float64]
+	EndRadius   nodes.Output[float64]
+	Texture     nodes.Output[NormalMap] `description:"texture to draw on"`
+}
+
+func (n DrawSphereNode) NormalMap(out *nodes.StructOutput[NormalMap]) {
+	if n.Texture == nil {
+		return
+	}
+	img := nodes.GetOutputValue(out, n.Texture).Copy()
+	dim := vector2.New(img.Width(), img.Height())
+
+	radii := nodes.TryGetOutputValue(out, n.Radius, 0.5)
+	positions := nodes.TryGetOutputValue(out, n.Position, vector2.New(0.5, 0.5))
+
+	dir := Additive
+	if nodes.TryGetOutputValue(out, n.Subtract, false) {
+		dir = Subtractive
+	}
+
+	s := Sphere{
+		Center:    positions.MultByVector(dim.ToFloat64()),
+		Radius:    float64(dim.MinComponent()) * radii,
+		Direction: dir,
+		Start:     nodes.TryGetOutputReference(out, n.StartRadius, nil),
+		End:       nodes.TryGetOutputReference(out, n.EndRadius, nil),
+	}
+	s.Draw(img)
 
 	out.Set(img)
 }

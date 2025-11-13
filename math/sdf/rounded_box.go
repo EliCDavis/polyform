@@ -4,6 +4,7 @@ import (
 	"math"
 
 	"github.com/EliCDavis/polyform/math/sample"
+	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/vector/vector3"
 )
 
@@ -18,4 +19,18 @@ func RoundedBox(position, bounds vector3.Float64, roundness float64) sample.Vec3
 		inside := math.Min(q.MaxComponent(), 0)
 		return vector3.Max(q, vector3.Zero[float64]()).Length() + inside - roundness
 	}
+}
+
+type RoundCubeNode struct {
+	Position  nodes.Output[vector3.Float64]
+	Size      nodes.Output[vector3.Float64]
+	Roundness nodes.Output[float64]
+}
+
+func (cn RoundCubeNode) Field(out *nodes.StructOutput[sample.Vec3ToFloat]) {
+	out.Set(RoundedBox(
+		nodes.TryGetOutputValue(out, cn.Position, vector3.Zero[float64]()),
+		nodes.TryGetOutputValue(out, cn.Size, vector3.One[float64]()),
+		nodes.TryGetOutputValue(out, cn.Roundness, 0.1),
+	))
 }

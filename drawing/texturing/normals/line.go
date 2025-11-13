@@ -39,6 +39,10 @@ func (l Line) normalLine(src NormalMap, start, end vector2.Float64) {
 	// y = math.sqrt(r^2 - (x - a)^2)
 	rr := len * len
 	for i := len; i >= 0; i -= 0.5 {
+		pix := start.Add(dir.Scale(i)).FloorToInt()
+		if pix.MinComponent() < 0 || pix.Y() >= src.Height() || pix.X() >= src.Width() {
+			continue
+		}
 
 		p := dir.Scale(i)
 
@@ -47,9 +51,10 @@ func (l Line) normalLine(src NormalMap, start, end vector2.Float64) {
 		pixNormal := vector3.New(p.X(), circleY, p.Y()).
 			Normalized().
 			MultByVector(vector3.Fill(circleYMultiplier)).
+			XZY().
+			FlipY().
 			Clamp(-1, 1)
 
-		pix := start.Add(dir.Scale(i)).FloorToInt()
 		src.Set(pix.X(), pix.Y(), pixNormal)
 	}
 }
@@ -104,6 +109,42 @@ func (n DrawLinesNode) NormalMap(out *nodes.StructOutput[NormalMap]) {
 		}
 		s.Round(img)
 	}
+
+	out.Set(img)
+}
+
+type DrawLineNode struct {
+	Thicknesses nodes.Output[float64]
+	Start       nodes.Output[vector2.Float64]
+	End         nodes.Output[vector2.Float64]
+	Subtract    nodes.Output[bool]
+	Texture     nodes.Output[NormalMap] `description:"texture to draw on"`
+}
+
+func (n DrawLineNode) NormalMap(out *nodes.StructOutput[NormalMap]) {
+	if n.Texture == nil {
+		return
+	}
+	img := nodes.GetOutputValue(out, n.Texture).Copy()
+	dim := vector2.New(img.Width(), img.Height()).ToFloat64()
+
+	start := nodes.TryGetOutputValue(out, n.Start, vector2.New(0., 0.))
+	end := nodes.TryGetOutputValue(out, n.End, vector2.New(1., 1.))
+
+	radius := nodes.TryGetOutputValue(out, n.Thicknesses, 0.5)
+
+	dir := Additive
+	if nodes.TryGetOutputValue(out, n.Subtract, false) {
+		dir = Subtractive
+	}
+
+	s := Line{
+		Start:           start.MultByVector(dim),
+		End:             end.MultByVector(dim),
+		Width:           radius * float64(dim.MinComponent()),
+		NormalDirection: dir,
+	}
+	s.Round(img)
 
 	out.Set(img)
 }

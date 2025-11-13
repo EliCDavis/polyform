@@ -4,6 +4,7 @@ import (
 	"math"
 
 	"github.com/EliCDavis/polyform/math/sample"
+	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/vector/vector3"
 )
 
@@ -55,4 +56,50 @@ func Subtract(base, subtraction sample.Vec3ToFloat) sample.Vec3ToFloat {
 	return func(f vector3.Float64) float64 {
 		return math.Max(base(f), -subtraction(f))
 	}
+}
+
+type UnionNode struct {
+	Fields []nodes.Output[sample.Vec3ToFloat]
+}
+
+func (n UnionNode) Union(out *nodes.StructOutput[sample.Vec3ToFloat]) {
+	fields := nodes.GetOutputValues(out, n.Fields)
+	out.Set(Union(fields...))
+}
+
+type IntersectionNode struct {
+	Fields []nodes.Output[sample.Vec3ToFloat]
+}
+
+func (n IntersectionNode) Intersection(out *nodes.StructOutput[sample.Vec3ToFloat]) {
+	fields := nodes.GetOutputValues(out, n.Fields)
+	out.Set(Intersect(fields...))
+}
+
+type SubtractionNode struct {
+	A nodes.Output[sample.Vec3ToFloat]
+	B nodes.Output[sample.Vec3ToFloat]
+}
+
+func (n SubtractionNode) Subtract(out *nodes.StructOutput[sample.Vec3ToFloat]) {
+	if n.A == nil && n.B == nil {
+		return
+	}
+
+	if n.A == nil {
+		b := nodes.GetOutputValue(out, n.B)
+		out.Set(func(f vector3.Float64) float64 {
+			return b(f)
+		})
+		return
+	}
+
+	if n.B == nil {
+		out.Set(nodes.GetOutputValue(out, n.A))
+		return
+	}
+
+	a := nodes.GetOutputValue(out, n.A)
+	b := nodes.GetOutputValue(out, n.B)
+	out.Set(Subtract(a, b))
 }
