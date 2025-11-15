@@ -20,6 +20,7 @@ func init() {
 	refutil.RegisterType[nodes.Struct[CubeNode]](factory)
 	refutil.RegisterType[nodes.Struct[RoundCubeNode]](factory)
 	refutil.RegisterType[nodes.Struct[LineNode]](factory)
+	refutil.RegisterType[nodes.Struct[LinesNode]](factory)
 	refutil.RegisterType[nodes.Struct[PlaneNode]](factory)
 	refutil.RegisterType[nodes.Struct[RoundedConeNode]](factory)
 	refutil.RegisterType[nodes.Struct[RoundedCylinderNode]](factory)
