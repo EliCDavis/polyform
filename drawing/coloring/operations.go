@@ -236,3 +236,11 @@ func Interpolate(a, b color.Color, t float64) color.Color {
 		A: uint8(aVal),
 	}
 }
+
+func Greyscale(c color.Color) float64 {
+	r, g, b, _ := c.RGBA()
+	rF := float64(r >> 8)
+	gF := float64(g >> 8)
+	bF := float64(b >> 8)
+	return (rF + gF + bF) / (255 * 3)
+}

@@ -1,6 +1,7 @@
 import { BehaviorSubject } from "rxjs";
 import { SchemaManager } from "../schema_manager";
 import { Popup, PopupButtonType, PopupConfig } from "../popups/popup";
+import { RequestManager } from '../requests';
 
 const defaultProfileName = "New Profile";
 
@@ -15,7 +16,10 @@ export class NewProfilePopup extends Popup {
 
     name: BehaviorSubject<string>;
 
-    constructor(private schemaManager: SchemaManager) {
+    constructor(
+        private schemaManager: SchemaManager,
+        private requestManager: RequestManager
+    ) {
         super();
     }
 
@@ -45,19 +49,11 @@ export class NewProfilePopup extends Popup {
 
     newClicked(): void {
         this.close();
-
-        fetch("./profile", {
-            method: "POST",
-            body: JSON.stringify({
-                name: inputValue(this.name.value, defaultProfileName),
-            })
-        }).then((resp) => {
-            if (!resp.ok) {
-                alert("unable to create profile");
-            } else {
-                this.schemaManager.refreshSchema("created a profile");
-            }
-        });
+        this.requestManager.newProfile(
+            inputValue(this.name.value, defaultProfileName),
+            () => this.schemaManager.refreshSchema("created a profile"),
+            () => alert("unable to create profile")
+        )
     }
 
 } 

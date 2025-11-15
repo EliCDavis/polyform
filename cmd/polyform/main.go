@@ -18,6 +18,7 @@ import (
 	"github.com/EliCDavis/polyform/drawing/texturing"
 	_ "github.com/EliCDavis/polyform/drawing/texturing"
 	_ "github.com/EliCDavis/polyform/drawing/texturing/normals"
+	_ "github.com/EliCDavis/polyform/drawing/texturing/pattern"
 
 	_ "github.com/EliCDavis/polyform/formats/colmap"
 	_ "github.com/EliCDavis/polyform/formats/gltf"
@@ -42,6 +43,7 @@ import (
 	_ "github.com/EliCDavis/polyform/math/geometry"
 	_ "github.com/EliCDavis/polyform/math/noise"
 	_ "github.com/EliCDavis/polyform/math/quaternion"
+	_ "github.com/EliCDavis/polyform/math/sdf"
 	_ "github.com/EliCDavis/polyform/math/trig"
 	_ "github.com/EliCDavis/polyform/math/trs"
 	_ "github.com/EliCDavis/polyform/math/unit"
@@ -50,6 +52,7 @@ import (
 
 	_ "github.com/EliCDavis/polyform/modeling"
 	_ "github.com/EliCDavis/polyform/modeling/extrude"
+	_ "github.com/EliCDavis/polyform/modeling/marching"
 	_ "github.com/EliCDavis/polyform/modeling/meshops"
 	_ "github.com/EliCDavis/polyform/modeling/meshops/gausops"
 	_ "github.com/EliCDavis/polyform/modeling/primitives"

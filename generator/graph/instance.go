@@ -63,6 +63,7 @@ func New(config Config) *Instance {
 		variableFactory: config.VariableFactory,
 		variables:       variable.NewSystem(),
 		nodeIDs:         make(map[nodes.Node]string),
+		profiles:        make(map[string]variable.Profile),
 		metadata:        sync.NewNestedSyncMap(),
 		namedManifests: &namedOutputManager[manifest.Manifest]{
 			namedPorts: make(map[string]namedOutputEntry[manifest.Manifest]),

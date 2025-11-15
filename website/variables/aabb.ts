@@ -1,6 +1,6 @@
 import { BehaviorSubject, combineLatestWith, map, mergeMap, skip, Subject } from "rxjs";
 import { Variable } from "../schema";
-import { inputContainerStyle, LabledField, setVariableValue } from "./variable_manager";
+import { inputContainerStyle, LabledField } from "./variable_manager";
 import { SchemaManager } from "../schema_manager";
 import { NodeManager } from "../node_manager";
 import { ElementConfig } from "../element";
@@ -9,6 +9,7 @@ import { BoxGizmo } from "../gizmo/box";
 import { ThreeApp } from "../three_app";
 import { Toggle } from "../components/toggle";
 import { GizmoToggle } from "./gizmo_toggle";
+import { RequestManager } from "../requests";
 
 export class AABBVariableElement extends VariableElement {
 
@@ -27,6 +28,7 @@ export class AABBVariableElement extends VariableElement {
         schemaManager: SchemaManager,
         nodeManager: NodeManager,
         private app: ThreeApp,
+        private requestManager: RequestManager,
     ) {
         super(key, variable, schemaManager, nodeManager);
     }
@@ -56,7 +58,7 @@ export class AABBVariableElement extends VariableElement {
                 extentsz.pipe(map(parseFloat))
             ),
             skip(1), // Ignore the first change, as it's just the initial value
-            mergeMap((val) => setVariableValue(this.key, {
+            mergeMap((val) => this.requestManager.setVariableValue(this.key, {
                 center: { x: val[0], y: val[1], z: val[2] },
                 extents: { x: val[3], y: val[4], z: val[5] },
             }))
@@ -75,7 +77,7 @@ export class AABBVariableElement extends VariableElement {
         });
         this.addSubscription(showGizmo.subscribe(show => this.gizmo.setEnabled(show)))
         this.addSubscription(this.gizmo.aabb$().subscribe(aabb => {
-            setVariableValue(this.key, aabb);
+            this.requestManager.setVariableValue(this.key, aabb);
         }))
         return {
             style: inputContainerStyle,

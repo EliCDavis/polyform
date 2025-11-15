@@ -163,3 +163,7 @@ Resources either directly contributing to the code, or are just interesting find
 - Morton Encoding
   - [_"Morton encoding/decoding through bit interleaving: Implementations"_ Jeroen Baert's Blog](https://www.forceflow.be/2013/10/07/morton-encodingdecoding-through-bit-interleaving-implementations/)
     - [Code](https://github.com/Forceflow/libmorton)
+- Quad Spheres
+  - [_"Wraparound square tile maps on a sphere"_ by Redblob](https://www.redblobgames.com/x/1938-square-tiling-of-sphere/)
+  - [_"Mapping a Cube to a Sphere"_ by Harry van Langen](https://hvlanalysis.blogspot.com/2023/05/mapping-cube-to-sphere.html?m=1)
+  - [_"Survey of Cube Mapping Methods in Interactive Computer Graphics"_ by M. Lambers](https://marlam.de/publications/cubemaps/lambers2019cubemaps.pdf)

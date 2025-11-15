@@ -8,7 +8,7 @@ import (
 
 func FromImage(img image.Image) Texture[coloring.Color] {
 	bounds := img.Bounds()
-	tex := NewTexture[coloring.Color](bounds.Dx(), bounds.Dy())
+	tex := Empty[coloring.Color](bounds.Dx(), bounds.Dy())
 
 	for y := range tex.Height() {
 		for x := range tex.Width() {

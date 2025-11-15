@@ -241,6 +241,7 @@ func (s Shape) IsInside(p vector2.Float64) bool {
 
 	// Create a point for line segment from p to infinite
 	extreme := vector2.New(math.MaxFloat64, p.Y())
+	otherLine := NewLine2D(p, extreme)
 
 	// Count intersections of the above line with sides of polygon
 	count := 0
@@ -250,7 +251,7 @@ func (s Shape) IsInside(p vector2.Float64) bool {
 
 		// Check if the line segment from 'p' to 'extreme' intersects
 		// with the line segment from 'polygon[i]' to 'polygon[next]'
-		if NewLine2D(s[i], s[next]).Intersects(NewLine2D(p, extreme)) {
+		if NewLine2D(s[i], s[next]).Intersects(otherLine) {
 			// If the point 'p' is colinear with line segment 'i-next',
 			// then check if it lies on segment. If it lies, return true,
 			// otherwise false

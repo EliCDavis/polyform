@@ -34,7 +34,7 @@ func texture(
 		out.CaptureError(fmt.Errorf("invalid height dimension: %d", height))
 		return
 	}
-	t := NewTexture[float64](width, height)
+	t := Empty[float64](width, height)
 
 	scale := nodes.TryGetOutputValue(out, Scale, vector2.One[float64]())
 	offset := nodes.TryGetOutputValue(out, Offset, 0)

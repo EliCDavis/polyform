@@ -1,10 +1,10 @@
 import { BehaviorSubject } from "rxjs";
 import { Variable } from "../schema";
-import { uploadBinaryAsVariableValue } from "./variable_manager";
 import { SchemaManager } from "../schema_manager";
 import { NodeManager } from "../node_manager";
 import { ElementConfig } from "../element";
 import { VariableElement } from "./variable";
+import { RequestManager } from "../requests";
 
 
 function formatFileSize(bytes: number): string {
@@ -27,7 +27,8 @@ export class FileVariableElement extends VariableElement {
         key: string,
         variable: Variable,
         schemaManager: SchemaManager,
-        nodeManager: NodeManager
+        nodeManager: NodeManager,
+        private requestManager: RequestManager,
     ) {
         super(key, variable, schemaManager, nodeManager);
     }
@@ -52,7 +53,7 @@ export class FileVariableElement extends VariableElement {
                     tag: "button",
                     text: "Set File",
                     onclick: () => {
-                        uploadBinaryAsVariableValue(this.key, () => { });
+                        this.requestManager.setBinaryVariableValue(this.key, () => { });
                     }
                 }
             ]

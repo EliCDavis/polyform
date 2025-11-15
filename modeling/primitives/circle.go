@@ -9,11 +9,6 @@ import (
 	"github.com/EliCDavis/vector/vector3"
 )
 
-type CircleUVs struct {
-	Center vector2.Float64
-	Radius float64
-}
-
 type Circle struct {
 	Sides  int
 	Radius float64

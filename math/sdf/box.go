@@ -4,6 +4,7 @@ import (
 	"math"
 
 	"github.com/EliCDavis/polyform/math/sample"
+	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/vector/vector3"
 )
 
@@ -18,4 +19,16 @@ func Box(position, bounds vector3.Float64) sample.Vec3ToFloat {
 		inside := math.Min(q.MaxComponent(), 0)
 		return vector3.Max(q, vector3.Zero[float64]()).Length() + inside
 	}
+}
+
+type CubeNode struct {
+	Position nodes.Output[vector3.Float64]
+	Size     nodes.Output[vector3.Float64]
+}
+
+func (cn CubeNode) Field(out *nodes.StructOutput[sample.Vec3ToFloat]) {
+	out.Set(Box(
+		nodes.TryGetOutputValue(out, cn.Position, vector3.Zero[float64]()),
+		nodes.TryGetOutputValue(out, cn.Size, vector3.One[float64]()),
+	))
 }

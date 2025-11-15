@@ -34,7 +34,7 @@ func interpolateVerts(v1, v2 vector3.Float64, v1v, v2v, cutoff float64) vector3.
 	return v2.Sub(v1).Scale(t).Add(v1)
 }
 
-func LookupOrAdd(data *workingData, vert vector3.Float64) int {
+func lookupOrAdd(data *workingData, vert vector3.Float64) int {
 	distritized := modeling.Vector3ToInt(vert, 4)
 
 	if foundIndex, ok := data.vertLookup[distritized]; ok {
@@ -646,9 +646,9 @@ func (d *MarchingCanvas) marchFloat1BlockPosition(
 
 					marchingWorkingData.tris = append(
 						marchingWorkingData.tris,
-						LookupOrAdd(marchingWorkingData, v1),
-						LookupOrAdd(marchingWorkingData, v2),
-						LookupOrAdd(marchingWorkingData, v3),
+						lookupOrAdd(marchingWorkingData, v1),
+						lookupOrAdd(marchingWorkingData, v2),
+						lookupOrAdd(marchingWorkingData, v3),
 					)
 				}
 			}

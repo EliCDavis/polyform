@@ -3,59 +3,88 @@ package normals
 import (
 	"image"
 
-	"github.com/EliCDavis/polyform/drawing/texturing"
 	"github.com/EliCDavis/polyform/generator"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
-	"github.com/EliCDavis/vector/vector3"
 )
 
 func init() {
 	factory := &refutil.TypeFactory{}
 
-	refutil.RegisterType[nodes.Struct[HeightmapFromImageNode]](factory)
-	refutil.RegisterType[nodes.Struct[ToNormalMapNode]](factory)
-	refutil.RegisterType[nodes.Struct[TextureFromHeightmapNode]](factory)
+	refutil.RegisterType[nodes.Struct[NewNode]](factory)
+
+	refutil.RegisterType[nodes.Struct[FromImageNode]](factory)
+	refutil.RegisterType[nodes.Struct[FromNormalMapNode]](factory)
+	refutil.RegisterType[nodes.Struct[FromHeightMapNode]](factory)
+
+	refutil.RegisterType[nodes.Struct[DrawSpheresNode]](factory)
+	refutil.RegisterType[nodes.Struct[DrawSphereNode]](factory)
+
+	refutil.RegisterType[nodes.Struct[DrawLinesNode]](factory)
+	refutil.RegisterType[nodes.Struct[DrawLineNode]](factory)
 
 	generator.RegisterTypes(factory)
 }
 
 // ============================================================================
 
-type HeightmapFromImageNode struct {
+type FromImageNode struct {
 	In    nodes.Output[image.Image]
 	Scale nodes.Output[float64]
 }
 
-func (n HeightmapFromImageNode) Out(out *nodes.StructOutput[image.Image]) {
+func (n FromImageNode) Heightmap(out *nodes.StructOutput[HeightMap]) {
 	img := nodes.TryGetOutputValue(out, n.In, nil)
 	if img == nil {
 		return
 	}
 
 	scale := nodes.TryGetOutputValue(out, n.Scale, 1.)
-	out.Set(image.Image(ImageFromHeightmap(img, scale)))
+	out.Set(ImageToHeightmap(img, scale))
+}
+
+func (n FromImageNode) Normalmap(out *nodes.StructOutput[NormalMap]) {
+	img := nodes.TryGetOutputValue(out, n.In, nil)
+	if img == nil {
+		return
+	}
+
+	scale := nodes.TryGetOutputValue(out, n.Scale, 1.)
+	heightmap := ImageToHeightmap(img, scale)
+	out.Set(FromHeightmap(heightmap, 1))
+}
+
+func (n FromImageNode) NormalMapImage(out *nodes.StructOutput[image.Image]) {
+	img := nodes.TryGetOutputValue(out, n.In, nil)
+	if img == nil {
+		return
+	}
+
+	scale := nodes.TryGetOutputValue(out, n.Scale, 1.)
+	heightmap := ImageToHeightmap(img, scale)
+	normalMap := FromHeightmap(heightmap, 1)
+	out.Set(image.Image(RasterizeNormalmap(normalMap)))
 }
 
 // ============================================================================
 
-type TextureFromHeightmapNode struct {
-	In    nodes.Output[texturing.Texture[float64]]
+type FromHeightMapNode struct {
+	In    nodes.Output[HeightMap]
 	Scale nodes.Output[float64]
 }
 
-func (n TextureFromHeightmapNode) Image(out *nodes.StructOutput[image.Image]) {
+func (n FromHeightMapNode) NormalMapImage(out *nodes.StructOutput[image.Image]) {
 	if n.In == nil {
 		return
 	}
 
-	out.Set(ToNormalmap(FromHeightmap(
+	out.Set(RasterizeNormalmap(FromHeightmap(
 		nodes.GetOutputValue(out, n.In),
 		nodes.TryGetOutputValue(out, n.Scale, 1.),
 	)))
 }
 
-func (n TextureFromHeightmapNode) Texture(out *nodes.StructOutput[texturing.Texture[vector3.Float64]]) {
+func (n FromHeightMapNode) NormalMap(out *nodes.StructOutput[NormalMap]) {
 	if n.In == nil {
 		return
 	}
@@ -68,14 +97,14 @@ func (n TextureFromHeightmapNode) Texture(out *nodes.StructOutput[texturing.Text
 
 // ============================================================================
 
-type ToNormalMapNode struct {
-	Normals nodes.Output[texturing.Texture[vector3.Float64]]
+type FromNormalMapNode struct {
+	Normals nodes.Output[NormalMap]
 }
 
-func (n ToNormalMapNode) NormalMap(out *nodes.StructOutput[image.Image]) {
+func (n FromNormalMapNode) Image(out *nodes.StructOutput[image.Image]) {
 	if n.Normals == nil {
 		return
 	}
 
-	out.Set(ToNormalmap(nodes.GetOutputValue(out, n.Normals)))
+	out.Set(RasterizeNormalmap(nodes.GetOutputValue(out, n.Normals)))
 }

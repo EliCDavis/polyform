@@ -2,6 +2,7 @@ import { SchemaManager } from "../schema_manager";
 import { GeneratorVariablePublisherPath, NodeManager } from "../node_manager";
 import { Variable } from "../schema";
 import { CreatePopupElement, PopupButtonType } from "./popup";
+import { RequestManager } from "../requests";
 
 export class DeleteVariablePopup {
 
@@ -15,6 +16,7 @@ export class DeleteVariablePopup {
 
     constructor(
         private schemaManager: SchemaManager,
+        private requestManager: RequestManager,
         nodeManager: NodeManager,
         variableKey: string,
         variable: Variable
@@ -51,16 +53,16 @@ export class DeleteVariablePopup {
     }
 
     deleteVariable(): void {
-        fetch("./variable/instance/" + this.variableKey, {
-            method: "DELETE",
-        }).then((resp) => {
-            if (!resp.ok) {
-                alert("Error deleting variable");
-                console.log(resp);
-            } else {
+        this.requestManager.deleteVariable(
+            this.variableKey,
+            () => {
                 this.schemaManager.refreshSchema("Deleted a variable");
                 this.nodeManager.unregisterNodeType(GeneratorVariablePublisherPath + this.variableKey)
+            },
+            (resp) => {
+                alert("Error deleting variable");
+                console.log(resp);
             }
-        });
+        )
     }
 }

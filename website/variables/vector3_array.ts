@@ -1,6 +1,6 @@
 import { BehaviorSubject, combineLatestWith, map, mergeMap, Observable, skip, Subject } from "rxjs";
 import { Variable } from "../schema";
-import { inputContainerStyle, LabledField, setVariableValue } from "./variable_manager";
+import { inputContainerStyle, LabledField } from "./variable_manager";
 import { SchemaManager } from "../schema_manager";
 import { NodeManager } from "../node_manager";
 import { ElementConfig } from "../element";
@@ -9,6 +9,7 @@ import { VariableElement } from "./variable";
 import { ElementInstance } from "./element_instance";
 import { TransformGizmo } from "../gizmo/transform";
 import { GizmoToggle } from "./gizmo_toggle";
+import { RequestManager } from "../requests";
 
 
 function bind(obj: any, field: string, mapper: (s: string) => any): Subject<string> {
@@ -82,9 +83,10 @@ export class Vector3ArrayVariableElement extends VariableElement {
         variable: Variable,
         schemaManager: SchemaManager,
         nodeManager: NodeManager,
+        private requestManager: RequestManager,
         private app: ThreeApp,
         private mapper: (s: string) => number,
-        private step: string
+        private step: string,
     ) {
         super(key, variable, schemaManager, nodeManager);
     }
@@ -117,7 +119,7 @@ export class Vector3ArrayVariableElement extends VariableElement {
                     text: "Add",
                     onclick: () => {
                         data.push({ x: 0, y: 0, z: 0 })
-                        setVariableValue(this.key, data).subscribe();
+                        this.requestManager.setVariableValue(this.key, data).subscribe();
                     }
                 },
                 GizmoToggle(this.showGizmo$)
@@ -157,14 +159,14 @@ export class Vector3ArrayVariableElement extends VariableElement {
                 }
             });
             this.builtGizmos.push(gizmo);
-            
+
             if (this.showGizmo$.value) {
                 gizmo.setEnabled(true);
             }
 
             this.addSubscription(gizmo.position$().subscribe(pos => {
                 data[i] = pos;
-                setVariableValue(this.key, data);
+                this.requestManager.setVariableValue(this.key, data);
             }))
 
 
@@ -175,7 +177,7 @@ export class Vector3ArrayVariableElement extends VariableElement {
             x.pipe(
                 combineLatestWith(y, z),
                 skip(1),
-                mergeMap(() => setVariableValue(this.key, data))
+                mergeMap(() => this.requestManager.setVariableValue(this.key, data))
             ).subscribe(() => { })
 
             dataDisplay.push({
@@ -198,7 +200,7 @@ export class Vector3ArrayVariableElement extends VariableElement {
                         text: "Delete",
                         onclick: () => {
                             data.splice(i, 1);
-                            setVariableValue(this.key, data).subscribe();
+                            this.requestManager.setVariableValue(this.key, data).subscribe();
                         }
                     }
                 ]

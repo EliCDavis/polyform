@@ -4,6 +4,7 @@ import (
 	"math"
 
 	"github.com/EliCDavis/polyform/math/sample"
+	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/vector/vector3"
 )
 
@@ -55,4 +56,20 @@ func RoundedCone(a, b vector3.Float64, r1, r2 float64) sample.Vec3ToFloat {
 		}
 		return (math.Sqrt(x2*a2*il2)+y*rr)*il2 - r1
 	}
+}
+
+type RoundedConeNode struct {
+	A       nodes.Output[vector3.Float64]
+	B       nodes.Output[vector3.Float64]
+	Radius1 nodes.Output[float64]
+	Radius2 nodes.Output[float64]
+}
+
+func (cn RoundedConeNode) Field(out *nodes.StructOutput[sample.Vec3ToFloat]) {
+	out.Set(RoundedCone(
+		nodes.TryGetOutputValue(out, cn.A, vector3.Zero[float64]()),
+		nodes.TryGetOutputValue(out, cn.B, vector3.Up[float64]()),
+		nodes.TryGetOutputValue(out, cn.Radius1, 1),
+		nodes.TryGetOutputValue(out, cn.Radius2, .1),
+	))
 }

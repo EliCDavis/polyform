@@ -9,7 +9,7 @@ import (
 
 func TestTexture(t *testing.T) {
 	// ARRANGE ================================================================
-	tex := texturing.NewTexture[float64](2, 3)
+	tex := texturing.Empty[float64](2, 3)
 
 	// ACT ====================================================================
 	tex.Fill(2)
@@ -33,7 +33,7 @@ func TestTexture(t *testing.T) {
 
 func TestTexture_Convert(t *testing.T) {
 	// ARRANGE ================================================================
-	tex := texturing.NewTexture[int](2, 2)
+	tex := texturing.Empty[int](2, 2)
 	tex.Set(0, 0, 1)
 	tex.Set(0, 1, 2)
 	tex.Set(1, 0, 3)
