@@ -30,20 +30,30 @@ func (cn MarchNode) Mesh(out *nodes.StructOutput[modeling.Mesh]) {
 		return
 	}
 
-	canvas := NewMarchingCanvas(
-		nodes.TryGetOutputValue(out, cn.Resolution, 1.),
-	)
+	// canvas := NewMarchingCanvas(
+	// 	nodes.TryGetOutputValue(out, cn.Resolution, 1.),
+	// )
 
-	canvas.AddField(Field{
-		Domain: nodes.TryGetOutputValue(
+	// canvas.AddField(Field{
+	// 	Domain: nodes.TryGetOutputValue(
+	// 		out,
+	// 		cn.Domain,
+	// 		geometry.NewAABB(vector3.Zero[float64](), vector3.One[float64]()),
+	// 	),
+	// 	Float1Functions: map[string]sample.Vec3ToFloat{
+	// 		modeling.PositionAttribute: nodes.GetOutputValue(out, cn.Field),
+	// 	},
+	// })
+
+	// out.Set(canvas.March(0))
+
+	out.Set(March(
+		nodes.GetOutputValue(out, cn.Field),
+		nodes.TryGetOutputValue(
 			out,
 			cn.Domain,
 			geometry.NewAABB(vector3.Zero[float64](), vector3.One[float64]()),
 		),
-		Float1Functions: map[string]sample.Vec3ToFloat{
-			modeling.PositionAttribute: nodes.GetOutputValue(out, cn.Field),
-		},
-	})
-
-	out.Set(canvas.March(0))
+		1/nodes.TryGetOutputValue(out, cn.Resolution, 1.),
+	))
 }
