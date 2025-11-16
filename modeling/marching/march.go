@@ -1,6 +1,7 @@
 package marching
 
 import (
+	"log"
 	"math"
 
 	"github.com/EliCDavis/polyform/math/geometry"
@@ -12,10 +13,11 @@ import (
 func marchRecurse(field sample.Vec3ToFloat, bounds geometry.AABB, cubeSize float64, res map[vector3.Int]float64) {
 	center := bounds.Center()
 	size := bounds.Size()
+	diagonal := size.Length()
 
 	// The closest surface is not within the bounds
 	fieldResult := field(center)
-	if math.Abs(fieldResult) > (size.MaxComponent()/2)+(cubeSize*2) {
+	if math.Abs(fieldResult) > (diagonal/2)+(cubeSize*2) {
 		return
 	}
 
@@ -33,11 +35,11 @@ func marchRecurse(field sample.Vec3ToFloat, bounds geometry.AABB, cubeSize float
 		return
 	}
 
-	res[center.DivByConstant(cubeSize).FloorToInt()] = fieldResult
+	res[center.DivByConstant(cubeSize).RoundToInt()] = fieldResult
 }
 
 func dedup(data *workingData, vert vector3.Float64, size float64) int {
-	distritized := vert.ToInt()
+	distritized := modeling.Vector3ToInt(vert, 8)
 
 	if foundIndex, ok := data.vertLookup[distritized]; ok {
 		return foundIndex
@@ -50,6 +52,8 @@ func dedup(data *workingData, vert vector3.Float64, size float64) int {
 }
 
 func March(field sample.Vec3ToFloat, domain geometry.AABB, cubeSize float64) modeling.Mesh {
+	format := "(%.2f, %.2f, %.2f)"
+	log.Printf("domain: center: %s size: %s", domain.Center().Format(format), domain.Size().Format(format))
 	results := make(map[vector3.Int]float64)
 	marchRecurse(field, domain, cubeSize, results)
 
