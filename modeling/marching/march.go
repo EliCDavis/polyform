@@ -1,45 +1,49 @@
 package marching
 
 import (
-	"log"
 	"math"
 
 	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/math/sample"
 	"github.com/EliCDavis/polyform/modeling"
+	"github.com/EliCDavis/polyform/modeling/meshops"
 	"github.com/EliCDavis/vector/vector3"
 )
 
-func marchRecurse(field sample.Vec3ToFloat, bounds geometry.AABB, cubeSize float64, res map[vector3.Int]float64) {
-	center := bounds.Center()
+func marchRecurse(field sample.Vec3ToFloat, bounds geometry.AABB, cubeSize, surface float64, res map[vector3.Int]float64) {
 	size := bounds.Size()
 	diagonal := size.Length()
 
+	center := bounds.Center()
+	centerIndex := center.DivByConstant(cubeSize).RoundToInt()
+	recentered := centerIndex.ToFloat64().Scale(cubeSize)
+
+	fieldResult := field(recentered) - surface
+
 	// The closest surface is not within the bounds
-	fieldResult := field(center)
-	if math.Abs(fieldResult) > (diagonal/2)+(cubeSize*2) {
+	if math.Abs(fieldResult) > (diagonal/2)+(cubeSize*2)+center.Distance(recentered) {
 		return
 	}
 
-	if size.MaxComponent() > cubeSize {
-		halfSize := size.Scale(0.5)
-		qs := halfSize.Scale(0.5)
-		marchRecurse(field, geometry.NewAABB(center.Add(vector3.New(qs.X(), qs.Y(), qs.Z())), halfSize), cubeSize, res)
-		marchRecurse(field, geometry.NewAABB(center.Add(vector3.New(qs.X(), qs.Y(), -qs.Z())), halfSize), cubeSize, res)
-		marchRecurse(field, geometry.NewAABB(center.Add(vector3.New(qs.X(), -qs.Y(), qs.Z())), halfSize), cubeSize, res)
-		marchRecurse(field, geometry.NewAABB(center.Add(vector3.New(qs.X(), -qs.Y(), -qs.Z())), halfSize), cubeSize, res)
-		marchRecurse(field, geometry.NewAABB(center.Add(vector3.New(-qs.X(), qs.Y(), qs.Z())), halfSize), cubeSize, res)
-		marchRecurse(field, geometry.NewAABB(center.Add(vector3.New(-qs.X(), qs.Y(), -qs.Z())), halfSize), cubeSize, res)
-		marchRecurse(field, geometry.NewAABB(center.Add(vector3.New(-qs.X(), -qs.Y(), qs.Z())), halfSize), cubeSize, res)
-		marchRecurse(field, geometry.NewAABB(center.Add(vector3.New(-qs.X(), -qs.Y(), -qs.Z())), halfSize), cubeSize, res)
+	res[centerIndex] = fieldResult
+	if size.MaxComponent() < cubeSize {
 		return
 	}
 
-	res[center.DivByConstant(cubeSize).RoundToInt()] = fieldResult
+	halfSize := size.Scale(0.5)
+	qs := halfSize.Scale(0.5)
+	marchRecurse(field, geometry.NewAABB(center.Add(vector3.New(qs.X(), qs.Y(), qs.Z())), halfSize), cubeSize, surface, res)
+	marchRecurse(field, geometry.NewAABB(center.Add(vector3.New(qs.X(), qs.Y(), -qs.Z())), halfSize), cubeSize, surface, res)
+	marchRecurse(field, geometry.NewAABB(center.Add(vector3.New(qs.X(), -qs.Y(), qs.Z())), halfSize), cubeSize, surface, res)
+	marchRecurse(field, geometry.NewAABB(center.Add(vector3.New(qs.X(), -qs.Y(), -qs.Z())), halfSize), cubeSize, surface, res)
+	marchRecurse(field, geometry.NewAABB(center.Add(vector3.New(-qs.X(), qs.Y(), qs.Z())), halfSize), cubeSize, surface, res)
+	marchRecurse(field, geometry.NewAABB(center.Add(vector3.New(-qs.X(), qs.Y(), -qs.Z())), halfSize), cubeSize, surface, res)
+	marchRecurse(field, geometry.NewAABB(center.Add(vector3.New(-qs.X(), -qs.Y(), qs.Z())), halfSize), cubeSize, surface, res)
+	marchRecurse(field, geometry.NewAABB(center.Add(vector3.New(-qs.X(), -qs.Y(), -qs.Z())), halfSize), cubeSize, surface, res)
 }
 
 func dedup(data *workingData, vert vector3.Float64, size float64) int {
-	distritized := modeling.Vector3ToInt(vert, 8)
+	distritized := modeling.Vector3ToInt(vert, 4)
 
 	if foundIndex, ok := data.vertLookup[distritized]; ok {
 		return foundIndex
@@ -51,20 +55,15 @@ func dedup(data *workingData, vert vector3.Float64, size float64) int {
 	return index
 }
 
-func March(field sample.Vec3ToFloat, domain geometry.AABB, cubeSize float64) modeling.Mesh {
-	format := "(%.2f, %.2f, %.2f)"
-	log.Printf("domain: center: %s size: %s", domain.Center().Format(format), domain.Size().Format(format))
+func March(field sample.Vec3ToFloat, domain geometry.AABB, cubeSize, surface float64) modeling.Mesh {
 	results := make(map[vector3.Int]float64)
-	marchRecurse(field, domain, cubeSize, results)
+	marchRecurse(field, domain, cubeSize, surface, results)
 
 	marchingWorkingData := &workingData{
 		tris:       make([]int, 0),
 		verts:      make([]vector3.Float64, 0),
 		vertLookup: make(map[vector3.Int]int),
 	}
-
-	// tris := make([]int, 0)
-	// verts := make([]vector3.Float64, 0)
 
 	cubeCorners := make([]float64, 8)
 	for key, nnn := range results {
@@ -157,15 +156,6 @@ func March(field sample.Vec3ToFloat, domain geometry.AABB, cubeSize float64) mod
 			v2 := interpolateVerts(cubeCornerPositions[a1], cubeCornerPositions[b1], cubeCorners[a1], cubeCorners[b1], 0)
 			v3 := interpolateVerts(cubeCornerPositions[a2], cubeCornerPositions[b2], cubeCorners[a2], cubeCorners[b2], 0)
 
-			// verts = append(
-			// 	verts,
-			// 	v1.Scale(cubeSize),
-			// 	v2.Scale(cubeSize),
-			// 	v3.Scale(cubeSize),
-			// )
-
-			// tris = append(tris, len(tris), len(tris)+1, len(tris)+2)
-
 			marchingWorkingData.tris = append(
 				marchingWorkingData.tris,
 				dedup(marchingWorkingData, v1, cubeSize),
@@ -175,6 +165,12 @@ func March(field sample.Vec3ToFloat, domain geometry.AABB, cubeSize float64) mod
 		}
 	}
 
-	return modeling.NewMesh(modeling.TriangleTopology, marchingWorkingData.tris).
+	m := modeling.NewMesh(modeling.TriangleTopology, marchingWorkingData.tris).
 		SetFloat3Attribute(modeling.PositionAttribute, marchingWorkingData.verts)
+
+	if len(marchingWorkingData.tris) == 0 {
+		return m
+	}
+
+	return meshops.RemoveNullFaces3D(m, modeling.PositionAttribute, 0)
 }

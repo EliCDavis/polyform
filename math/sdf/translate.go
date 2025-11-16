@@ -32,8 +32,9 @@ func (cn TranslateNode) Result(out *nodes.StructOutput[sample.Vec3ToFloat]) {
 // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
 func Transform(field sample.Vec3ToFloat, transformation trs.TRS) sample.Vec3ToFloat {
+	inverse := transformation.Inverse()
 	return func(v vector3.Float64) float64 {
-		return field(transformation.Transform(v))
+		return field(inverse.Transform(v))
 	}
 }
 

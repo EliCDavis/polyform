@@ -80,6 +80,22 @@
             z-index: 1;
         }
 
+        #running-message {
+            display: none;
+            position: absolute;
+            right: 20px;
+            bottom: 20px;
+            padding: 10px;
+            box-sizing: border-box;
+            text-align: center;
+            -moz-user-select: none;
+            -webkit-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            pointer-events: none;
+            z-index: 1;
+        }
+
         #messageContainer {
             position: absolute;
             left: 0px;
@@ -432,6 +448,9 @@
 <body>
     <div id="watermark">
         <a href="https://github.com/EliCDavis/polyform">Polyform</a>
+    </div>
+    <div id="running-message">
+        Running...
     </div>
 
     <div id="messageContainer">

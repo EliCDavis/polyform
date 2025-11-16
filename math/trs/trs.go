@@ -117,6 +117,10 @@ func (trs TRS) Multiply(other TRS) TRS {
 	return FromMatrix(trs.Matrix().Multiply(other.Matrix()))
 }
 
+func (trs TRS) Inverse() TRS {
+	return FromMatrix(trs.Matrix().Inverse())
+}
+
 // Transform an array of points by the TRS
 func (trs TRS) TransformArray(in []vector3.Float64) []vector3.Float64 {
 	out := make([]vector3.Float64, len(in))

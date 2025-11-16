@@ -1,8 +1,6 @@
 package sdf
 
 import (
-	"math"
-
 	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/math/sample"
 	"github.com/EliCDavis/polyform/nodes"
@@ -25,9 +23,7 @@ func MultipointLine(points []vector3.Float64, radius float64) sample.Vec3ToFloat
 
 	switch len(points) {
 	case 0:
-		return func(f vector3.Float64) float64 {
-			return math.Inf(1)
-		}
+		return nullField
 
 	case 1:
 		return Sphere(points[0], radius)
