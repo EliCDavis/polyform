@@ -20,8 +20,9 @@ func marchRecurse(field sample.Vec3ToFloat, bounds geometry.AABB, cubeSize, surf
 
 	fieldResult := field(recentered) - surface
 
+	// TODO: WE THIS IS OUR BIGGEST SPEEDUP, FIGURE OUT HOW TO PRUNE HARDER
 	// The closest surface is not within the bounds
-	if math.Abs(fieldResult) > (diagonal/2)+(cubeSize*2)+center.Distance(recentered) {
+	if math.Abs(fieldResult) > (diagonal/2)+(cubeSize)+center.Distance(recentered) {
 		return
 	}
 
@@ -57,8 +58,11 @@ func dedup(data *workingData, vert vector3.Float64, size float64) int {
 
 func March(field sample.Vec3ToFloat, domain geometry.AABB, cubeSize, surface float64) modeling.Mesh {
 	results := make(map[vector3.Int]float64)
+	// sdfCompute := time.Now()
 	marchRecurse(field, domain, cubeSize, surface, results)
+	// log.Printf("Time To Compute SDFs %s", time.Since(sdfCompute))
 
+	// marchCompute := time.Now()
 	marchingWorkingData := &workingData{
 		tris:       make([]int, 0),
 		verts:      make([]vector3.Float64, 0),
@@ -66,6 +70,7 @@ func March(field sample.Vec3ToFloat, domain geometry.AABB, cubeSize, surface flo
 	}
 
 	cubeCorners := make([]float64, 8)
+	cubeCornerPositions := make([]vector3.Float64, 8)
 	for key, nnn := range results {
 		cubeCorners[0] = nnn
 
@@ -125,32 +130,35 @@ func March(field sample.Vec3ToFloat, domain geometry.AABB, cubeSize, surface flo
 			lookupIndex |= 128
 		}
 
+		if lookupIndex == 0 || lookupIndex == 255 {
+			continue
+		}
+
 		xf := float64(key.X())
 		yf := float64(key.Y())
 		zf := float64(key.Z())
 
-		cubeCornerPositions := []vector3.Float64{
-			vector3.New(xf, yf, zf),
-			vector3.New(xf+1, yf, zf),
-			vector3.New(xf+1, yf, zf+1),
-			vector3.New(xf, yf, zf+1),
-			vector3.New(xf, yf+1, zf),
-			vector3.New(xf+1, yf+1, zf),
-			vector3.New(xf+1, yf+1, zf+1),
-			vector3.New(xf, yf+1, zf+1),
-		}
+		cubeCornerPositions[0] = vector3.New(xf, yf, zf)
+		cubeCornerPositions[1] = vector3.New(xf+1, yf, zf)
+		cubeCornerPositions[2] = vector3.New(xf+1, yf, zf+1)
+		cubeCornerPositions[3] = vector3.New(xf, yf, zf+1)
+		cubeCornerPositions[4] = vector3.New(xf, yf+1, zf)
+		cubeCornerPositions[5] = vector3.New(xf+1, yf+1, zf)
+		cubeCornerPositions[6] = vector3.New(xf+1, yf+1, zf+1)
+		cubeCornerPositions[7] = vector3.New(xf, yf+1, zf+1)
 
-		for i := 0; triangulation[lookupIndex][i] != -1; i += 3 {
+		tris := triangulation[lookupIndex]
+		for i := 0; tris[i] != -1; i += 3 {
 			// Get indices of corner points A and B for each of the three edges
 			// of the cube that need to be joined to form the triangle.
-			a0 := cornerIndexAFromEdge[triangulation[lookupIndex][i]]
-			b0 := cornerIndexBFromEdge[triangulation[lookupIndex][i]]
+			a0 := cornerIndexAFromEdge[tris[i]]
+			b0 := cornerIndexBFromEdge[tris[i]]
 
-			a1 := cornerIndexAFromEdge[triangulation[lookupIndex][i+1]]
-			b1 := cornerIndexBFromEdge[triangulation[lookupIndex][i+1]]
+			a1 := cornerIndexAFromEdge[tris[i+1]]
+			b1 := cornerIndexBFromEdge[tris[i+1]]
 
-			a2 := cornerIndexAFromEdge[triangulation[lookupIndex][i+2]]
-			b2 := cornerIndexBFromEdge[triangulation[lookupIndex][i+2]]
+			a2 := cornerIndexAFromEdge[tris[i+2]]
+			b2 := cornerIndexBFromEdge[tris[i+2]]
 
 			v1 := interpolateVerts(cubeCornerPositions[a0], cubeCornerPositions[b0], cubeCorners[a0], cubeCorners[b0], 0)
 			v2 := interpolateVerts(cubeCornerPositions[a1], cubeCornerPositions[b1], cubeCorners[a1], cubeCorners[b1], 0)
@@ -171,6 +179,8 @@ func March(field sample.Vec3ToFloat, domain geometry.AABB, cubeSize, surface flo
 	if len(marchingWorkingData.tris) == 0 {
 		return m
 	}
+
+	// log.Printf("Time To March Mesh %s", time.Since(marchCompute))
 
 	return meshops.RemoveNullFaces3D(m, modeling.PositionAttribute, 0)
 }
