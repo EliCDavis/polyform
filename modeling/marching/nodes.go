@@ -1,6 +1,8 @@
 package marching
 
 import (
+	"fmt"
+
 	"github.com/EliCDavis/polyform/generator"
 	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/math/sample"
@@ -19,9 +21,10 @@ func init() {
 }
 
 type MarchNode struct {
-	Field      nodes.Output[sample.Vec3ToFloat]
-	Resolution nodes.Output[float64]
-	Domain     nodes.Output[geometry.AABB]
+	Field      nodes.Output[sample.Vec3ToFloat] `description:"The SDF to tesselate"`
+	Resolution nodes.Output[float64]            `description:"Number of marching cube voxels contained in a single 'unit'"`
+	Surface    nodes.Output[float64]            `description:"value of the SDF that represents the surface (default: 0)"`
+	Domain     nodes.Output[geometry.AABB]      `description:"The region in which the marching cubes algorithm runs"`
 }
 
 func (cn MarchNode) Mesh(out *nodes.StructOutput[modeling.Mesh]) {
@@ -30,30 +33,23 @@ func (cn MarchNode) Mesh(out *nodes.StructOutput[modeling.Mesh]) {
 		return
 	}
 
-	// canvas := NewMarchingCanvas(
-	// 	nodes.TryGetOutputValue(out, cn.Resolution, 1.),
-	// )
-
-	// canvas.AddField(Field{
-	// 	Domain: nodes.TryGetOutputValue(
-	// 		out,
-	// 		cn.Domain,
-	// 		geometry.NewAABB(vector3.Zero[float64](), vector3.One[float64]()),
-	// 	),
-	// 	Float1Functions: map[string]sample.Vec3ToFloat{
-	// 		modeling.PositionAttribute: nodes.GetOutputValue(out, cn.Field),
-	// 	},
-	// })
-
-	// out.Set(canvas.March(0))
+	resolution := nodes.TryGetOutputValue(out, cn.Resolution, 1.)
+	if resolution <= 0 {
+		out.CaptureError(nodes.InvalidInputError{
+			Input:   cn.Resolution,
+			Message: fmt.Sprintf("value must be greater than 0 (recieved %f)", resolution),
+		})
+		return
+	}
 
 	out.Set(March(
 		nodes.GetOutputValue(out, cn.Field),
 		nodes.TryGetOutputValue(
 			out,
 			cn.Domain,
-			geometry.NewAABB(vector3.Zero[float64](), vector3.One[float64]()),
+			geometry.NewAABB(vector3.Zero[float64](), vector3.Fill(10.)),
 		),
-		1/nodes.TryGetOutputValue(out, cn.Resolution, 1.),
+		1/resolution,
+		nodes.TryGetOutputValue(out, cn.Surface, 0.),
 	))
 }

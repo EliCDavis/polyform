@@ -2,7 +2,6 @@ package meshops
 
 import (
 	"fmt"
-	"math"
 
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/nodes"
@@ -29,9 +28,6 @@ func SmoothNormals(m modeling.Mesh) modeling.Mesh {
 
 	vertices := m.Float3Attribute(modeling.PositionAttribute)
 	normals := make([]vector3.Float64, vertices.Len())
-	for i := range normals {
-		normals[i] = vector3.Zero[float64]()
-	}
 
 	tris := m.Indices()
 	for triIndex := 0; triIndex < tris.Len(); triIndex += 3 {
@@ -42,7 +38,7 @@ func SmoothNormals(m modeling.Mesh) modeling.Mesh {
 		normalized := vertices.At(p2).Sub(vertices.At(p1)).Cross(vertices.At(p3).Sub(vertices.At(p1)))
 
 		// This occurs whenever the given tri is actually just a line
-		if math.IsNaN(normalized.X()) {
+		if normalized.ContainsNaN() {
 			continue
 		}
 

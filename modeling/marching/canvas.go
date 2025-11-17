@@ -31,7 +31,8 @@ func interpolateV1(v1, v2, t float64) float64 {
 
 func interpolateVerts(v1, v2 vector3.Float64, v1v, v2v, cutoff float64) vector3.Float64 {
 	t := interpolationValueFromCutoff(v1v, v2v, cutoff)
-	return v2.Sub(v1).Scale(t).Add(v1)
+	// return v2.Sub(v1).Scale(t).Add(v1)
+	return v1.Scale(1 - t).Add(v2.Scale(t))
 }
 
 func lookupOrAdd(data *workingData, vert vector3.Float64) int {
@@ -628,17 +629,18 @@ func (d *MarchingCanvas) marchFloat1BlockPosition(
 					lookupIndex |= 128
 				}
 
-				for i := 0; triangulation[lookupIndex][i] != -1; i += 3 {
+				tris := triangulation[lookupIndex]
+				for i := 0; tris[i] != -1; i += 3 {
 					// Get indices of corner points A and B for each of the three edges
 					// of the cube that need to be joined to form the triangle.
-					a0 := cornerIndexAFromEdge[triangulation[lookupIndex][i]]
-					b0 := cornerIndexBFromEdge[triangulation[lookupIndex][i]]
+					a0 := cornerIndexAFromEdge[tris[i]]
+					b0 := cornerIndexBFromEdge[tris[i]]
 
-					a1 := cornerIndexAFromEdge[triangulation[lookupIndex][i+1]]
-					b1 := cornerIndexBFromEdge[triangulation[lookupIndex][i+1]]
+					a1 := cornerIndexAFromEdge[tris[i+1]]
+					b1 := cornerIndexBFromEdge[tris[i+1]]
 
-					a2 := cornerIndexAFromEdge[triangulation[lookupIndex][i+2]]
-					b2 := cornerIndexBFromEdge[triangulation[lookupIndex][i+2]]
+					a2 := cornerIndexAFromEdge[tris[i+2]]
+					b2 := cornerIndexBFromEdge[tris[i+2]]
 
 					v1 := interpolateVerts(cubeCornerPositions[a0], cubeCornerPositions[b0], cubeCorners[a0], cubeCorners[b0], cutoff).Add(offset)
 					v2 := interpolateVerts(cubeCornerPositions[a1], cubeCornerPositions[b1], cubeCorners[a1], cubeCorners[b1], cutoff).Add(offset)

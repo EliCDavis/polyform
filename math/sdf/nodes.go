@@ -11,6 +11,7 @@ func init() {
 
 	refutil.RegisterType[nodes.Struct[TranslateNode]](factory)
 	refutil.RegisterType[nodes.Struct[TransformNode]](factory)
+	refutil.RegisterType[nodes.Struct[RepeatNode]](factory)
 
 	refutil.RegisterType[nodes.Struct[UnionNode]](factory)
 	refutil.RegisterType[nodes.Struct[IntersectionNode]](factory)

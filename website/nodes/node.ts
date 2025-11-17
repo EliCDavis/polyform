@@ -344,7 +344,6 @@ export class PolyNodeController {
                 }
                 return;
             }
-            console.log("Woo", outputPort.connections().length)
         }
 
         let found = false;
