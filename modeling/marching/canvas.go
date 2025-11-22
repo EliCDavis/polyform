@@ -37,13 +37,14 @@ func interpolateVerts(v1, v2 vector3.Float64, v1v, v2v, cutoff float64) vector3.
 
 func lookupOrAdd(data *workingData, vert vector3.Float64) int {
 	distritized := modeling.Vector3ToInt(vert, 4)
+	key := vector3.New(int32(distritized.X()), int32(distritized.Y()), int32(distritized.Z()))
 
-	if foundIndex, ok := data.vertLookup[distritized]; ok {
+	if foundIndex, ok := data.vertLookup[key]; ok {
 		return foundIndex
 	}
 
 	index := len(data.verts)
-	data.vertLookup[distritized] = index
+	data.vertLookup[key] = index
 	data.verts = append(data.verts, vert)
 	return index
 }
@@ -430,7 +431,7 @@ func (d *MarchingCanvas) AddFieldParallel2(field Field) {
 type workingData struct {
 	tris       []int
 	verts      []vector3.Float64
-	vertLookup map[vector3.Int]int
+	vertLookup map[vector3.Int32]int
 }
 
 func (d *MarchingCanvas) marchFloat1BlockPosition(
@@ -464,7 +465,7 @@ func (d *MarchingCanvas) marchFloat1BlockPosition(
 	marchingWorkingData := &workingData{
 		tris:       make([]int, 0),
 		verts:      make([]vector3.Float64, 0),
-		vertLookup: make(map[vector3.Int]int),
+		vertLookup: make(map[vector3.Int32]int),
 	}
 	blockIndex := section.positions[blockPosition]
 

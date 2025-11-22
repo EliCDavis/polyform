@@ -14,6 +14,7 @@ const minHemisphereRows = 2
 
 type Hemisphere struct {
 	Radius float64
+	Height float64
 	Capped bool
 }
 
@@ -34,7 +35,7 @@ func (h Hemisphere) UV(rows, columns int) modeling.Mesh {
 	// generate vertices per stack / slice
 	for i := 0; i < rows-1; i++ {
 		phi := (-math.Pi * float64(i)) / float64(rows)
-		for j := 0; j < columns; j++ {
+		for j := range columns {
 			theta := 2.0 * math.Pi * (float64(j) / float64(columns))
 
 			ugh := (phi / 2) + (math.Pi / 2)
@@ -42,32 +43,35 @@ func (h Hemisphere) UV(rows, columns int) modeling.Mesh {
 			x := math.Sin(ugh) * math.Cos(theta)
 			y := math.Cos(ugh)
 			z := math.Sin(ugh) * math.Sin(theta)
-			positions = append(positions, vector3.New(x, y, z).Scale(h.Radius))
+			positions = append(positions, vector3.New(x*h.Radius, y*h.Height, z*h.Radius))
 		}
 	}
 
 	// add top vertex
 	v1i := len(positions)
-	v1 := vector3.New(0, h.Radius, 0)
+	v1 := vector3.New(0, h.Height, 0)
 	positions = append(positions, v1)
 
 	// add top / bottom triangles
 	tris := make([]int, 0)
-	for i := 0; i < columns; i++ {
-		i0 := i + 1
-		i1 := (i+1)%columns + 1
-		tris = append(tris, 0, i0, i1)
+	for i := range columns {
 
-		i0 = i + columns*(rows-2) + 1
-		i1 = (i+1)%columns + columns*(rows-2) + 1
+		i0 := i + columns*(rows-2) + 1
+		i1 := (i+1)%columns + columns*(rows-2) + 1
 		tris = append(tris, v1i, i1, i0)
+
+		if h.Capped {
+			i0 = i + 1
+			i1 = (i+1)%columns + 1
+			tris = append(tris, 0, i0, i1)
+		}
 	}
 
 	// add quads per stack / slice
 	for j := 0; j < rows-2; j++ {
 		j0 := j*columns + 1
 		j1 := (j+1)*columns + 1
-		for i := 0; i < columns; i++ {
+		for i := range columns {
 			i0 := j0 + i
 			i1 := j0 + (i+1)%columns
 			i2 := j1 + (i+1)%columns
@@ -82,10 +86,10 @@ func (h Hemisphere) UV(rows, columns int) modeling.Mesh {
 			)
 		}
 	}
+
 	return modeling.NewTriangleMesh(tris).
 		SetFloat3Data(map[string][]vector3.Float64{
 			modeling.PositionAttribute: positions,
-			modeling.NormalAttribute:   vector3.Array[float64](positions).Normalized(),
 		})
 }
 
@@ -93,12 +97,17 @@ type HemisphereNode struct {
 	Rows    nodes.Output[int]
 	Columns nodes.Output[int]
 	Radius  nodes.Output[float64]
+	Height  nodes.Output[float64]
 	Capped  nodes.Output[bool]
 }
 
 func (hnd HemisphereNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
+
+	radius := nodes.TryGetOutputValue(out, hnd.Radius, 0.5)
+
 	hemi := Hemisphere{
-		Radius: nodes.TryGetOutputValue(out, hnd.Radius, 0.5),
+		Radius: radius,
+		Height: nodes.TryGetOutputValue(out, hnd.Height, radius),
 		Capped: nodes.TryGetOutputValue(out, hnd.Capped, true),
 	}
 

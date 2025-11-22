@@ -19,6 +19,7 @@ func init() {
 	refutil.RegisterType[nodes.Struct[StripUVsNode]](factory)
 
 	refutil.RegisterType[nodes.Struct[CylinderNode]](factory)
+	refutil.RegisterType[nodes.Struct[CylinderUVsNode]](factory)
 	refutil.RegisterType[nodes.Struct[HemisphereNode]](factory)
 	refutil.RegisterType[nodes.Struct[UvSphereNode]](factory)
 	refutil.RegisterType[nodes.Struct[QuadSphereNode]](factory)
