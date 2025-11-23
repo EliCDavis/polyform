@@ -37,19 +37,19 @@ func (c Torus) ToMesh() modeling.Mesh {
 		for minorI := range c.MinorResolution + 1 {
 			minorAngle := float64(minorI) * minorAngleIncrement
 			minorPoint := vector3.New(
-				(math.Cos(minorAngle)*c.MinorRadius)*math.Cos(majorAngle),
-				math.Sin(minorAngle)*c.MinorRadius,
-				(math.Cos(minorAngle)*c.MinorRadius)*math.Sin(majorAngle),
+				math.Cos(minorAngle)*math.Cos(majorAngle),
+				math.Sin(minorAngle),
+				math.Cos(minorAngle)*math.Sin(majorAngle),
 			)
 
-			verts = append(verts, majorPoint.Add(minorPoint))
+			verts = append(verts, majorPoint.Add(minorPoint.Scale(c.MinorRadius)))
 		}
 	}
 
-	indices := make([]int, 0, c.MinorResolution*c.MajorResolution*2)
-	for row := 1; row <= c.MajorResolution+1; row++ {
-		currentRow := (row * c.MinorResolution) //% len(verts)
-		previousRow := (row - 1) * c.MinorResolution
+	indices := make([]int, 0)
+	for row := 1; row <= c.MajorResolution; row++ {
+		currentRow := (row * (c.MinorResolution + 1)) //% len(verts)
+		previousRow := (row - 1) * (c.MinorResolution + 1)
 
 		for i := 0; i < c.MinorResolution; i++ {
 			p1 := (i + 1) // % c.MinorResolution
@@ -57,6 +57,7 @@ func (c Torus) ToMesh() modeling.Mesh {
 				previousRow+i, currentRow+p1, currentRow+i,
 				previousRow+p1, currentRow+p1, previousRow+i,
 			)
+
 		}
 	}
 
