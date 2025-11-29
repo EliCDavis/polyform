@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"math"
 	"math/rand"
@@ -425,7 +424,7 @@ func main() {
 
 					if ctx.IsSet("trail") {
 
-						trailFileData, err := ioutil.ReadFile(ctx.String("trail"))
+						trailFileData, err := os.ReadFile(ctx.String("trail"))
 						if err != nil {
 							return err
 						}

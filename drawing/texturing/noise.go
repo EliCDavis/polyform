@@ -22,8 +22,8 @@ func texture(
 	Seed nodes.Output[float64],
 	Polar nodes.Output[bool],
 ) {
-	width := nodes.TryGetOutputValue(out, Width, 1)
-	height := nodes.TryGetOutputValue(out, Height, 1)
+	width := nodes.TryGetOutputValue(out, Width, 64)
+	height := nodes.TryGetOutputValue(out, Height, 64)
 
 	if width <= 0 {
 		out.CaptureError(fmt.Errorf("invalid width dimension: %d", width))
