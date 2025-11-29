@@ -3,7 +3,6 @@ package marching
 import (
 	"log"
 	"math"
-	"time"
 
 	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/math/sample"
@@ -16,27 +15,27 @@ import (
 // Must be power of 2 for bitwise modulus: x % n == x & (n - 1).
 const minQueueLen = 16
 
-// Queue represents a single instance of the queue data structure.
-type Queue[V any] struct {
+// queue represents a single instance of the queue data structure.
+type queue[V any] struct {
 	buf               []*V
 	head, tail, count int
 }
 
 // New constructs and returns a new Queue.
-func New[V any]() *Queue[V] {
-	return &Queue[V]{
+func New[V any]() *queue[V] {
+	return &queue[V]{
 		buf: make([]*V, minQueueLen),
 	}
 }
 
 // Length returns the number of elements currently stored in the queue.
-func (q *Queue[V]) Length() int {
+func (q *queue[V]) Length() int {
 	return q.count
 }
 
 // resizes the queue to fit exactly twice its current contents
 // this can result in shrinking if the queue is less than half-full
-func (q *Queue[V]) resize() {
+func (q *queue[V]) resize() {
 	newBuf := make([]*V, q.count<<1)
 
 	if q.tail > q.head {
@@ -52,7 +51,7 @@ func (q *Queue[V]) resize() {
 }
 
 // Add puts an element on the end of the queue.
-func (q *Queue[V]) Add(elem V) {
+func (q *queue[V]) Add(elem V) {
 	if q.count == len(q.buf) {
 		q.resize()
 	}
@@ -65,7 +64,7 @@ func (q *Queue[V]) Add(elem V) {
 
 // Peek returns the element at the head of the queue. This call panics
 // if the queue is empty.
-func (q *Queue[V]) Peek() V {
+func (q *queue[V]) Peek() V {
 	if q.count <= 0 {
 		panic("queue: Peek() called on empty queue")
 	}
@@ -76,7 +75,7 @@ func (q *Queue[V]) Peek() V {
 // invalid, the call will panic. This method accepts both positive and
 // negative index values. Index 0 refers to the first element, and
 // index -1 refers to the last.
-func (q *Queue[V]) Get(i int) V {
+func (q *queue[V]) Get(i int) V {
 	// If indexing backwards, convert to positive index.
 	if i < 0 {
 		i += q.count
@@ -90,7 +89,7 @@ func (q *Queue[V]) Get(i int) V {
 
 // Remove removes and returns the element from the front of the queue. If the
 // queue is empty, the call will panic.
-func (q *Queue[V]) Remove() V {
+func (q *queue[V]) Remove() V {
 	if q.count <= 0 {
 		panic("queue: Remove() called on empty queue")
 	}
@@ -297,11 +296,11 @@ func dedup(data *workingData, vert vector3.Float64, size float64) int {
 
 func March(field sample.Vec3ToFloat, domain geometry.AABB, cubeSize, surface float64) modeling.Mesh {
 	results := make(map[vector3.Int32]float64)
-	sdfCompute := time.Now()
+	// sdfCompute := time.Now()
 	marchRecurse(field, domain, cubeSize, surface, results)
-	log.Printf("Time To Compute SDFs %s", time.Since(sdfCompute))
+	// log.Printf("Time To Compute SDFs %s", time.Since(sdfCompute))
 
-	marchCompute := time.Now()
+	// marchCompute := time.Now()
 	marchingWorkingData := &workingData{
 		tris:       make([]int, 0),
 		verts:      make([]vector3.Float64, 0),
@@ -419,7 +418,7 @@ func March(field sample.Vec3ToFloat, domain geometry.AABB, cubeSize, surface flo
 		return m
 	}
 
-	log.Printf("Time To March Mesh %s", time.Since(marchCompute))
+	// log.Printf("Time To March Mesh %s", time.Since(marchCompute))
 
 	return meshops.RemoveNullFaces3D(m, modeling.PositionAttribute, 0)
 }

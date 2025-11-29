@@ -11,13 +11,7 @@ import (
 	"github.com/EliCDavis/vector/vector3"
 )
 
-type CylinderUVs struct {
-	Top    *CircleUVs
-	Bottom *CircleUVs
-	Side   *StripUVs
-}
-
-type Cylinder struct {
+type TruncatedCone struct {
 	Sides           int
 	Height          float64
 	TopRadius       float64
@@ -26,7 +20,13 @@ type Cylinder struct {
 	UVs             *CylinderUVs
 }
 
-func (c Cylinder) ToMesh() modeling.Mesh {
+type CylinderUVs struct {
+	Top    *CircleUVs
+	Bottom *CircleUVs
+	Side   *StripUVs
+}
+
+func (c TruncatedCone) ToMesh() modeling.Mesh {
 	halfHeight := c.Height / 2.
 
 	angleIncrement := (1.0 / float64(c.Sides)) * 2.0 * math.Pi
@@ -120,6 +120,26 @@ func (c Cylinder) ToMesh() modeling.Mesh {
 	return cylinderMesh
 }
 
+type Cylinder struct {
+	Sides           int
+	Height          float64
+	Radius          float64
+	NoTop, NoBottom bool // Optionally turn off generation of top and/or bottom and turn the cylinder into pipe
+	UVs             *CylinderUVs
+}
+
+func (c Cylinder) ToMesh() modeling.Mesh {
+	return TruncatedCone{
+		Sides:        c.Sides,
+		Height:       c.Height,
+		TopRadius:    c.Radius,
+		BottomRadius: c.Radius,
+		NoTop:        c.NoTop,
+		NoBottom:     c.NoBottom,
+		UVs:          c.UVs,
+	}.ToMesh()
+}
+
 type CylinderUVsNode struct {
 	Top    nodes.Output[CircleUVs]
 	Bottom nodes.Output[CircleUVs]
@@ -148,7 +168,7 @@ func (hnd CylinderNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	bottomRadius := nodes.TryGetOutputValue(out, hnd.Radius, 0.5)
 	topRadius := nodes.TryGetOutputValue(out, hnd.Radius2, bottomRadius)
 
-	hemi := Cylinder{
+	cone := TruncatedCone{
 		TopRadius:    topRadius,
 		BottomRadius: bottomRadius,
 		Height:       nodes.TryGetOutputValue(out, hnd.Height, 1),
@@ -157,5 +177,5 @@ func (hnd CylinderNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 		NoBottom:     !nodes.TryGetOutputValue(out, hnd.Bottom, true),
 		UVs:          nodes.TryGetOutputReference(out, hnd.UVs, nil),
 	}
-	out.Set(hemi.ToMesh())
+	out.Set(cone.ToMesh())
 }
