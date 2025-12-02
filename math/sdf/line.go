@@ -29,8 +29,10 @@ func MultipointLine(points []vector3.Float64, radius float64) sample.Vec3ToFloat
 		return Sphere(points[0], radius)
 
 	case 2:
+		if points[0] == points[1] {
+			return Sphere(points[0], radius)
+		}
 		return Line(points[0], points[1], radius)
-
 	}
 
 	lines := make([]geometry.Line3D, len(points)-1)

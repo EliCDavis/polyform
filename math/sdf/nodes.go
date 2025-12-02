@@ -26,6 +26,8 @@ func init() {
 	refutil.RegisterType[nodes.Struct[RoundedConeNode]](factory)
 	refutil.RegisterType[nodes.Struct[RoundedCylinderNode]](factory)
 	refutil.RegisterType[nodes.Struct[SphereNode]](factory)
+	refutil.RegisterType[nodes.Struct[CutSphereNode]](factory)
+	refutil.RegisterType[nodes.Struct[TorusNode]](factory)
 
 	generator.RegisterTypes(factory)
 }
