@@ -42,7 +42,7 @@ var ToGLTFCommand = &cli.Command{
 		)
 
 		return gltf.Save(meshPath, gltf.PolyformScene{
-			Models: []gltf.PolyformModel{
+			Models: []*gltf.PolyformModel{
 				{Name: "PLY", Mesh: &cleanedMesh},
 			},
 		}, nil)

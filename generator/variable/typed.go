@@ -93,20 +93,28 @@ func (tv *TypeVariable[T]) NodeReference() nodes.Node {
 }
 
 func (tv TypeVariable[T]) MarshalJSON() ([]byte, error) {
+	resolver := refutil.TypeResolution{
+		IncludePackage: false,
+		IncludePointer: false,
+	}
 	var t T
 	return json.Marshal(typedVariableSchema[T]{
 		variableSchemaBase: variableSchemaBase{
-			Type: refutil.GetTypeName(t),
+			Type: resolver.Resolve(t),
 		},
 		Value: tv.value,
 	})
 }
 
 func (tv TypeVariable[T]) runtimeSchema() schema.RuntimeVariable {
+	resolver := refutil.TypeResolution{
+		IncludePackage: false,
+		IncludePointer: false,
+	}
 	var t T
 	return schema.RuntimeVariable{
 		Description: tv.info.Description(),
-		Type:        refutil.GetTypeName(t),
+		Type:        resolver.Resolve(t),
 		Value:       tv.value,
 	}
 }
@@ -135,8 +143,13 @@ func (tv *TypeVariable[T]) SwaggerProperty() swagger.Property {
 
 	prop := swagger.Property{}
 
+	resolver := refutil.TypeResolution{
+		IncludePackage: false,
+		IncludePointer: false,
+	}
+
 	var t T
-	switch refutil.GetTypeName(t) {
+	switch resolver.Resolve(t) {
 	case "string":
 		prop.Type = swagger.StringPropertyType
 

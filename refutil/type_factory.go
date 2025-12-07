@@ -31,6 +31,10 @@ type TypeFactory struct {
 
 // }
 
+func getTypeWithPackage(v any) string {
+	return TypeResolution{IncludePackage: true, IncludePointer: true}.Resolve(v)
+}
+
 func (tf TypeFactory) Types() []string {
 	t := make([]string, 0, len(tf.types))
 	for key := range tf.types {
@@ -57,7 +61,7 @@ func (tf TypeFactory) TypeRegistered(v any) bool {
 	if tf.types == nil {
 		return false
 	}
-	_, ok := tf.types[GetTypeWithPackage(v)]
+	_, ok := tf.types[getTypeWithPackage(v)]
 	return ok
 }
 
@@ -81,7 +85,7 @@ func (factory *TypeFactory) RegisterType(v any) {
 		typeEle = typeEle.Elem()
 	}
 
-	factory.types[GetTypeWithPackage(v)] = typeEntry{
+	factory.types[getTypeWithPackage(v)] = typeEntry{
 		pkg: typeEle.PkgPath(),
 		builder: func() any {
 			return reflect.New(typeEle).Interface()
@@ -126,8 +130,9 @@ func RegisterType[T any](factory *TypeFactory) {
 		factory.types = make(map[string]typeEntry)
 	}
 
-	factory.types[GetTypeWithPackage(new(T))] = typeEntry{
-		pkg: GetPackagePath(new(T)),
+	v := new(T)
+	factory.types[getTypeWithPackage(*v)] = typeEntry{
+		pkg: GetPackagePath(v),
 		builder: func() any {
 			var v T
 			return &v
@@ -140,8 +145,9 @@ func RegisterTypeWithBuilder[T any](factory *TypeFactory, builder func() T) {
 		factory.types = make(map[string]typeEntry)
 	}
 
-	factory.types[GetTypeWithPackage(new(T))] = typeEntry{
-		pkg: GetPackagePath(new(T)),
+	t := new(T)
+	factory.types[getTypeWithPackage(*t)] = typeEntry{
+		pkg: GetPackagePath(t),
 		builder: func() any {
 			v := builder()
 			return &v
@@ -150,7 +156,8 @@ func RegisterTypeWithBuilder[T any](factory *TypeFactory, builder func() T) {
 }
 
 func BuildType[T any](factory *TypeFactory) *T {
-	typeName := GetTypeWithPackage(new(T))
+	t := new(T)
+	typeName := getTypeWithPackage(*t)
 	built := factory.New(typeName)
 	cast, ok := built.(*T)
 

@@ -64,7 +64,7 @@ func main() {
 			)
 
 			return gltf.SaveBinary(ctx.String("out"), gltf.PolyformScene{
-				Models: []gltf.PolyformModel{{Mesh: &out}},
+				Models: []*gltf.PolyformModel{{Mesh: &out}},
 			}, nil)
 		},
 	}

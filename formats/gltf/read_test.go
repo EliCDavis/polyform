@@ -1171,13 +1171,13 @@ func TestIntegrationLoadAndDecode(t *testing.T) {
 		name           string
 		setupDocument  func(t *testing.T) gltf.Gltf
 		expectedModels int
-		validateModel  func(t *testing.T, model gltf.PolyformModel)
+		validateModel  func(t *testing.T, model *gltf.PolyformModel)
 	}{
 		{
 			name:           "complete_scene_with_materials",
 			setupDocument:  createGLTFWithMaterials,
 			expectedModels: 1,
-			validateModel: func(t *testing.T, model gltf.PolyformModel) {
+			validateModel: func(t *testing.T, model *gltf.PolyformModel) {
 				// Validate mesh
 				require.NotNil(t, model.Mesh)
 				assert.Equal(t, modeling.TriangleTopology, model.Mesh.Topology())
@@ -1204,7 +1204,7 @@ func TestIntegrationLoadAndDecode(t *testing.T) {
 			name:           "hierarchical_scene",
 			setupDocument:  createGLTFWithHierarchy,
 			expectedModels: 1,
-			validateModel: func(t *testing.T, model gltf.PolyformModel) {
+			validateModel: func(t *testing.T, model *gltf.PolyformModel) {
 				// Validate transform hierarchy accumulation
 				require.NotNil(t, model.TRS)
 

@@ -357,9 +357,14 @@ func (a *Instance) NodeInstanceSchema(node nodes.Node) schema.NodeInstance {
 	// 	nodeType = refutil.GetTypeWithPackage(node)
 	// }
 
+	resolver := refutil.TypeResolution{
+		IncludePackage: true,
+		IncludePointer: false,
+	}
+
 	nodeInstance := schema.NodeInstance{
 		Name:          "Unamed",
-		Type:          refutil.GetTypeWithPackage(node),
+		Type:          resolver.Resolve(node),
 		AssignedInput: make(map[string]schema.PortReference),
 		Output:        make(map[string]schema.NodeInstanceOutputPort),
 		Metadata:      metadata,
@@ -851,8 +856,13 @@ func (a *Instance) EncodeToAppSchema() ([]byte, error) {
 
 func (a *Instance) buildNodeGraphInstanceSchema(node nodes.Node, encoder *jbtf.Encoder) schema.AppNodeInstance {
 
+	resolver := refutil.TypeResolution{
+		IncludePackage: true,
+		IncludePointer: false,
+	}
+
 	nodeInstance := schema.AppNodeInstance{
-		Type:          refutil.GetTypeWithPackage(node),
+		Type:          resolver.Resolve(node),
 		AssignedInput: make(map[string]schema.PortReference),
 	}
 

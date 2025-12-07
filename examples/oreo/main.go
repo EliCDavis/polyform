@@ -263,7 +263,7 @@ func main() {
 	gltf.SaveBinary(
 		"oreo.glb",
 		gltf.PolyformScene{
-			Models: []gltf.PolyformModel{
+			Models: []*gltf.PolyformModel{
 				{Mesh: &oreoCookieTop},
 				{Mesh: &icing,
 					Material: &gltf.PolyformMaterial{

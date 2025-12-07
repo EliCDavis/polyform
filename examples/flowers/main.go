@@ -139,7 +139,7 @@ func main() {
 	}
 
 	gltf.SaveText("tmp/flowers/flowers.gltf", gltf.PolyformScene{
-		Models: []gltf.PolyformModel{
+		Models: []*gltf.PolyformModel{
 			{
 				Name: "Flowers",
 				Mesh: &allFlowers,

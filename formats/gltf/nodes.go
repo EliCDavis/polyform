@@ -52,11 +52,11 @@ func (ga Artifact) Write(w io.Writer) error {
 }
 
 type ManifestNode struct {
-	Models []nodes.Output[PolyformModel]
+	Models []nodes.Output[*PolyformModel]
 }
 
 func (gad ManifestNode) Out(out *nodes.StructOutput[manifest.Manifest]) {
-	models := make([]PolyformModel, 0, len(gad.Models))
+	models := make([]*PolyformModel, 0, len(gad.Models))
 
 	for _, m := range gad.Models {
 		if m == nil {
@@ -90,7 +90,7 @@ func (gad ManifestNode) Out(out *nodes.StructOutput[manifest.Manifest]) {
 type ModelNode struct {
 	Mesh     nodes.Output[modeling.Mesh]
 	Material nodes.Output[PolyformMaterial]
-	Children []nodes.Output[PolyformModel]
+	Children []nodes.Output[*PolyformModel]
 
 	Translation nodes.Output[vector3.Float64]
 	Rotation    nodes.Output[quaternion.Quaternion]
@@ -99,14 +99,14 @@ type ModelNode struct {
 	GpuInstances nodes.Output[[]trs.TRS]
 }
 
-func (gmnd ModelNode) Out(out *nodes.StructOutput[PolyformModel]) {
+func (gmnd ModelNode) Out(out *nodes.StructOutput[*PolyformModel]) {
 	transform := trs.New(
 		nodes.TryGetOutputValue(out, gmnd.Translation, vector3.Zero[float64]()),
 		nodes.TryGetOutputValue(out, gmnd.Rotation, quaternion.Identity()),
 		nodes.TryGetOutputValue(out, gmnd.Scale, vector3.One[float64]()),
 	)
 
-	out.Set(PolyformModel{
+	out.Set(&PolyformModel{
 		Name:         "Mesh",
 		GpuInstances: nodes.TryGetOutputValue(out, gmnd.GpuInstances, nil),
 		Material:     nodes.TryGetOutputReference(out, gmnd.Material, nil),

@@ -134,7 +134,12 @@ func (so StructOutput[T]) Version() int {
 }
 
 func (so StructOutput[T]) Type() string {
-	return refutil.GetTypeWithPackage(new(T))
+	resolver := refutil.TypeResolution{
+		IncludePackage: true,
+		IncludePointer: true,
+	}
+	v := new(T)
+	return resolver.Resolve(*v)
 }
 
 func (so StructOutput[T]) Description() string {

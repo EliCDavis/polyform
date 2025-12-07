@@ -20,7 +20,15 @@ func GetPackagePath(v any) string {
 	return vType.PkgPath()
 }
 
-func GetTypeWithPackage(v any) string {
+type TypeResolution struct {
+	// Include the package the type comes from
+	IncludePackage bool
+
+	// Include whether or not the type is a pointer
+	IncludePointer bool
+}
+
+func (tr TypeResolution) Resolve(v any) string {
 	vType := reflect.TypeOf(v)
 	if vType == nil {
 
@@ -38,11 +46,16 @@ func GetTypeWithPackage(v any) string {
 
 	viewKind := vType.Kind()
 
-	arrayStr := ""
+	extraTypingStr := ""
 	// ptr := ""
 	for viewKind == reflect.Ptr || (viewKind == reflect.Slice && vType.Name() == "") {
-		if viewKind == reflect.Slice {
-			arrayStr += "[]"
+		switch viewKind {
+		case reflect.Slice:
+			extraTypingStr += "[]"
+		case reflect.Ptr:
+			if tr.IncludePointer {
+				extraTypingStr += "*"
+			}
 		}
 		vType = vType.Elem()
 		viewKind = vType.Kind()
@@ -51,26 +64,16 @@ func GetTypeWithPackage(v any) string {
 
 	pkgPath := vType.PkgPath()
 	if !strings.Contains(pkgPath, "/") {
-		return arrayStr + vType.String()
-	}
-	return arrayStr + path.Dir(pkgPath) + "/" + vType.String()
-}
-
-// GetTypeName returns the name of the type of the variable provided
-func GetTypeName(in any) string {
-	view := reflect.TypeOf(in)
-	if view == nil {
-		return "nil"
+		return extraTypingStr + vType.String()
 	}
 
-	// Dereference pointer
-	viewKind := view.Kind()
-	for viewKind == reflect.Ptr {
-		view = view.Elem()
-		viewKind = view.Kind()
+	finalType := extraTypingStr
+	if tr.IncludePackage {
+		finalType += path.Dir(pkgPath) + "/"
 	}
+	finalType += vType.String()
 
-	return view.String()
+	return finalType
 }
 
 func GetTypeNameWithoutPackage(in any) string {
@@ -80,11 +83,11 @@ func GetTypeNameWithoutPackage(in any) string {
 	}
 
 	// Dereference pointer
-	viewKind := view.Kind()
-	for viewKind == reflect.Ptr {
-		view = view.Elem()
-		viewKind = view.Kind()
-	}
+	// viewKind := view.Kind()
+	// for viewKind == reflect.Ptr {
+	// 	view = view.Elem()
+	// 	viewKind = view.Kind()
+	// }
 
 	str := view.String()
 	if !strings.Contains(str, ".") {

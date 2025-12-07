@@ -778,7 +778,7 @@ func decodeNode(doc *Gltf, buffers [][]byte, n Node, opts ReaderOptions, imgCach
 			model.Material = decodedMat
 			model.Mesh = decodedMesh
 		} else if len(mesh.Primitives) > 1 {
-			geometryNode := PolyformModel{}
+			geometryNode := &PolyformModel{}
 			for primIndex, prim := range mesh.Primitives {
 				decodedMesh, decodedMat, err := decodePrimitive(doc, buffers, prim, opts, imgCache)
 				if err != nil {
@@ -838,7 +838,7 @@ func processNodeHierarchy(doc *Gltf, buffers [][]byte, nodeIndex int, opts Reade
 		if err != nil {
 			return nil, fmt.Errorf("failed to process child node %d of node %d: %w", childIndex, nodeIndex, err)
 		}
-		model.Children = append(model.Children, *childModel)
+		model.Children = append(model.Children, childModel)
 	}
 
 	return model, nil
@@ -1093,7 +1093,7 @@ func LoadFile(gltfPath string, options *ReaderOptions) (*Gltf, [][]byte, error) 
 //	for _, model := range models {
 //	    fmt.Printf("Model: %s, Vertices: %d\n", model.Name, model.Mesh.AttributeLength())
 //	}
-func DecodeModels(doc *Gltf, buffers [][]byte, options *ReaderOptions) ([]PolyformModel, error) {
+func DecodeModels(doc *Gltf, buffers [][]byte, options *ReaderOptions) ([]*PolyformModel, error) {
 	// Set up options with defaults
 	var opts ReaderOptions
 	if options != nil {
@@ -1109,7 +1109,7 @@ func DecodeModels(doc *Gltf, buffers [][]byte, options *ReaderOptions) ([]Polyfo
 	}
 	imgCache := make(imgReaderCache)
 
-	models := make([]PolyformModel, 0)
+	models := make([]*PolyformModel, 0)
 
 	if doc.Scene != nil {
 		scene := doc.Scenes[*doc.Scene]
@@ -1118,7 +1118,7 @@ func DecodeModels(doc *Gltf, buffers [][]byte, options *ReaderOptions) ([]Polyfo
 			if err != nil {
 				return nil, fmt.Errorf("unable to decode node %d: %w", nodeIndex, err)
 			}
-			models = append(models, *model)
+			models = append(models, model)
 		}
 	} else {
 		for _, scene := range doc.Scenes {
@@ -1127,7 +1127,7 @@ func DecodeModels(doc *Gltf, buffers [][]byte, options *ReaderOptions) ([]Polyfo
 				if err != nil {
 					return nil, fmt.Errorf("unable to decode node %d: %w", nodeIndex, err)
 				}
-				models = append(models, *model)
+				models = append(models, model)
 			}
 		}
 	}
@@ -1164,7 +1164,7 @@ func DecodeScene(doc *Gltf, buffers [][]byte, options *ReaderOptions) (*Polyform
 
 	// Build scene hierarchy
 	scene := &PolyformScene{
-		Models: make([]PolyformModel, 0),
+		Models: make([]*PolyformModel, 0),
 		Lights: make([]KHR_LightsPunctual, 0),
 	}
 
@@ -1192,7 +1192,7 @@ func DecodeScene(doc *Gltf, buffers [][]byte, options *ReaderOptions) (*Polyform
 		if err != nil {
 			return nil, fmt.Errorf("failed to process root node %d: %w", rootNodeIndex, err)
 		}
-		scene.Models = append(scene.Models, *model)
+		scene.Models = append(scene.Models, model)
 	}
 
 	return scene, nil
@@ -1200,7 +1200,7 @@ func DecodeScene(doc *Gltf, buffers [][]byte, options *ReaderOptions) (*Polyform
 
 // Deprecated: Use DecodeModels instead.
 // ExperimentalDecodeModels converts a GLTF document into a flat list of Polyform models.
-func ExperimentalDecodeModels(doc *Gltf, buffers [][]byte, gltfDir string, options *ReaderOptions) ([]PolyformModel, error) {
+func ExperimentalDecodeModels(doc *Gltf, buffers [][]byte, gltfDir string, options *ReaderOptions) ([]*PolyformModel, error) {
 	opts := &ReaderOptions{}
 	if options != nil {
 		*opts = *options

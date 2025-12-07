@@ -44,7 +44,7 @@ func TestWriteBasicTri(t *testing.T) {
 
 	// ACT ====================================================================
 	err := gltf.WriteText(gltf.PolyformScene{
-		Models: []gltf.PolyformModel{
+		Models: []*gltf.PolyformModel{
 			{
 				Name: "mesh",
 				Mesh: &tri,
@@ -172,7 +172,7 @@ func TestWriteColorTri(t *testing.T) {
 
 	// ACT ====================================================================
 	err := gltf.WriteText(gltf.PolyformScene{
-		Models: []gltf.PolyformModel{
+		Models: []*gltf.PolyformModel{
 			{
 				Name: "mesh",
 				Mesh: &tri,
@@ -316,7 +316,7 @@ func TestWrite_TexturedTriWithMaterialWithColor(t *testing.T) {
 	// ACT ====================================================================
 	roughness := 0.
 	err := gltf.WriteText(gltf.PolyformScene{
-		Models: []gltf.PolyformModel{
+		Models: []*gltf.PolyformModel{
 			{
 				Name: "mesh",
 				Mesh: &tri,
@@ -548,7 +548,7 @@ func TestWrite_TexturedTriWithMaterialWithColor_ImageSampleDedupe(t *testing.T) 
 		MagFilter: gltf.SamplerMagFilter_LINEAR,
 	}
 	err := gltf.WriteText(gltf.PolyformScene{
-		Models: []gltf.PolyformModel{
+		Models: []*gltf.PolyformModel{
 			{
 				Name: "mesh",
 				Mesh: &tri1,
@@ -922,7 +922,7 @@ func TestWrite_TexturedTriWithMaterialWithColor_TextureValueDedupe(t *testing.T)
 	// ACT ====================================================================
 	roughness := 0.
 	err := gltf.WriteText(gltf.PolyformScene{
-		Models: []gltf.PolyformModel{
+		Models: []*gltf.PolyformModel{
 			{
 				Name: "mesh",
 				Mesh: &tri1,
@@ -1272,7 +1272,7 @@ func TestWrite_TexturedTriWithMaterialWithColor_NormalOcclusion(t *testing.T) {
 	scale := 1.1
 	strength := 0.1
 	err := gltf.WriteText(gltf.PolyformScene{
-		Models: []gltf.PolyformModel{
+		Models: []*gltf.PolyformModel{
 			{
 				Name: "mesh",
 				Mesh: &tri,
@@ -1503,7 +1503,7 @@ func TestWrite_TexturedTriWithTexExtension(t *testing.T) {
 	roughness := 0.
 	textureOffset := vector2.New[float64](1.1, 0.1)
 	err := gltf.WriteText(gltf.PolyformScene{
-		Models: []gltf.PolyformModel{
+		Models: []*gltf.PolyformModel{
 			{
 				Name: "mesh",
 				Mesh: &tri,
@@ -1736,7 +1736,7 @@ func TestWrite_TexturedTriWithTexExtension_Required(t *testing.T) {
 	roughness := 0.
 	textureOffset := vector2.New[float64](1.1, 0.1)
 	err := gltf.WriteText(gltf.PolyformScene{
-		Models: []gltf.PolyformModel{
+		Models: []*gltf.PolyformModel{
 			{
 				Name: "mesh",
 				Mesh: &tri,
@@ -1956,7 +1956,7 @@ func TestWrite_MaterialAlphaMode(t *testing.T) {
 	roughness := 0.
 	alphaBlend := gltf.MaterialAlphaMode_BLEND
 	err := gltf.WriteText(gltf.PolyformScene{
-		Models: []gltf.PolyformModel{
+		Models: []*gltf.PolyformModel{
 			{
 				Name: "mesh",
 				Mesh: &tri,
@@ -2087,7 +2087,7 @@ func TestWrite_MaterialAlphaModeWithCutOff(t *testing.T) {
 	alphaMode := gltf.MaterialAlphaMode_MASK
 	alphaCutOff := 0.8
 	err := gltf.WriteText(gltf.PolyformScene{
-		Models: []gltf.PolyformModel{
+		Models: []*gltf.PolyformModel{
 			{
 				Name: "mesh",
 				Mesh: &tri,
@@ -2236,7 +2236,7 @@ func TestWrite_MaterialAlphaCutOffError(t *testing.T) {
 	roughness := 0.
 	alphaCutOff := 0.8
 	err := gltf.WriteText(gltf.PolyformScene{
-		Models: []gltf.PolyformModel{
+		Models: []*gltf.PolyformModel{
 			{
 				Name: "mesh",
 				Mesh: &tri,
@@ -2290,7 +2290,7 @@ func TestWrite_MaterialsDeduplicated(t *testing.T) {
 		},
 	}
 	err := gltf.WriteText(gltf.PolyformScene{
-		Models: []gltf.PolyformModel{
+		Models: []*gltf.PolyformModel{
 			{Name: "mesh0", Mesh: &tri0, Material: material},
 			{Name: "mesh1", Mesh: &tri1, Material: material},
 		},
@@ -2475,7 +2475,7 @@ func TestWrite_MeshesDeduplicated(t *testing.T) {
 	trsLeft := trs.New(leftV, rotQuat, scaleDistort)
 
 	err := gltf.WriteText(gltf.PolyformScene{
-		Models: []gltf.PolyformModel{
+		Models: []*gltf.PolyformModel{
 			{Name: "mesh_right", Mesh: &tri, Material: material, TRS: &trsRight},
 			{Name: "mesh_left", Mesh: &tri, Material: material, TRS: &trsLeft},
 		},
@@ -2640,7 +2640,7 @@ func TestWrite_MeshesGpuInstanced(t *testing.T) {
 	trsLeft := trs.New(leftV, rotQuat, scaleDistort)
 
 	err := gltf.WriteText(gltf.PolyformScene{
-		Models: []gltf.PolyformModel{
+		Models: []*gltf.PolyformModel{
 			{Name: "mesh_right", Mesh: &tri, Material: material, TRS: &trsRight},
 			{Name: "mesh_left", Mesh: &tri, Material: material, TRS: &trsLeft},
 		},
@@ -2861,7 +2861,7 @@ func TestWrite_GpuInstancedMeshes_Expanded(t *testing.T) {
 	)
 
 	err := gltf.WriteText(gltf.PolyformScene{
-		Models: []gltf.PolyformModel{
+		Models: []*gltf.PolyformModel{
 			{
 				Name: "parent",
 				Mesh: &tri, Material: material,
@@ -3034,8 +3034,8 @@ func TestWrite_MeshesGpuInstanced_UnderChild(t *testing.T) {
 	trsLeft := trs.New(leftV, rotQuat, scaleDistort)
 
 	err := gltf.WriteText(gltf.PolyformScene{
-		Models: []gltf.PolyformModel{
-			{Name: "parent", Children: []gltf.PolyformModel{
+		Models: []*gltf.PolyformModel{
+			{Name: "parent", Children: []*gltf.PolyformModel{
 				{Name: "mesh_right", Mesh: &tri, Material: material, TRS: &trsRight},
 				{Name: "mesh_left", Mesh: &tri, Material: material, TRS: &trsLeft},
 			}},
@@ -3269,7 +3269,7 @@ func TestWrite_MeshesDifferentMatsPreserved(t *testing.T) {
 	trsLeft := trs.New(leftV, rotQuat, scaleDistort)
 
 	err := gltf.WriteText(gltf.PolyformScene{
-		Models: []gltf.PolyformModel{
+		Models: []*gltf.PolyformModel{
 			{Name: "mesh_right", Mesh: &tri, Material: materialLeft, TRS: &trsRight},
 			{Name: "mesh_left", Mesh: &tri, Material: materialRight, TRS: &trsLeft},
 		},
@@ -3432,7 +3432,7 @@ func TestWriteEmptyMesh(t *testing.T) {
 
 	// ACT ====================================================================
 	err := gltf.WriteText(gltf.PolyformScene{
-		Models: []gltf.PolyformModel{
+		Models: []*gltf.PolyformModel{
 			{
 				Name: "mesh",
 				Mesh: &tri,
@@ -3479,10 +3479,10 @@ func aTestWrite_NestedModels(t *testing.T) {
 
 	// ACT ====================================================================
 	err := gltf.WriteText(gltf.PolyformScene{
-		Models: []gltf.PolyformModel{
+		Models: []*gltf.PolyformModel{
 			{
 				Name: "mesh",
-				Children: []gltf.PolyformModel{
+				Children: []*gltf.PolyformModel{
 					{
 						Name: "child",
 						Mesh: &tri,

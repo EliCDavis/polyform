@@ -30,5 +30,9 @@ func (co ConstOutput[T]) Description() string {
 }
 
 func (so ConstOutput[T]) Type() string {
-	return refutil.GetTypeWithPackage(new(T))
+	resolver := refutil.TypeResolution{
+		IncludePackage: true,
+		IncludePointer: false,
+	}
+	return resolver.Resolve(new(T))
 }

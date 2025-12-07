@@ -37,7 +37,7 @@ type genericTestStruct[T any] struct {
 
 func (t genericTestStruct[T]) TypeWithPackage() string {
 	var v T
-	return refutil.GetTypeWithPackage(v)
+	return refutil.TypeResolution{IncludePackage: true, IncludePointer: true}.Resolve(v)
 }
 
 func TestFuncNamesOfType(t *testing.T) {
@@ -72,7 +72,7 @@ func TestGenericFieldValuesOfType(t *testing.T) {
 func TestGetTypeWithPackageGeneric(t *testing.T) {
 	assert.Equal(t, "int", genericTestStruct[int]{}.TypeWithPackage())
 	assert.Equal(t, "github.com/EliCDavis/vector/vector3.Array[float64]", genericTestStruct[vector3.Array[float64]]{}.TypeWithPackage())
-	assert.Equal(t, "github.com/EliCDavis/vector/vector3.Array[float64]", genericTestStruct[*vector3.Array[float64]]{}.TypeWithPackage())
+	assert.Equal(t, "*github.com/EliCDavis/vector/vector3.Array[float64]", genericTestStruct[*vector3.Array[float64]]{}.TypeWithPackage())
 	assert.Equal(t, "[]float64", genericTestStruct[[]float64]{}.TypeWithPackage())
 }
 
@@ -112,74 +112,71 @@ func TestGetPackagePath(t *testing.T) {
 	}
 }
 
-func TestGetTypeWithPackage(t *testing.T) {
+func TestTypeResolution(t *testing.T) {
+
+	includePackageAndPointer := refutil.TypeResolution{
+		IncludePackage: true,
+		IncludePointer: true,
+	}
+	var v *vector3.Vector[float64]
+
 	// var reader io.Reader
 	tests := map[string]struct {
-		input any
-		want  string
+		input    any
+		resolver refutil.TypeResolution
+		want     string
 	}{
 		"nil": {
-			input: nil,
-			want:  "nil",
+			input:    nil,
+			want:     "nil",
+			resolver: includePackageAndPointer,
 		},
 		"string": {
-			input: "test",
-			want:  "string",
+			input:    "test",
+			want:     "string",
+			resolver: includePackageAndPointer,
 		},
 		"std lib": {
-			input: io.Discard,
-			want:  "io.discard",
+			input:    io.Discard,
+			want:     "io.discard",
+			resolver: includePackageAndPointer,
 		},
 		"external lib": {
-			input: vector3.New(1, 2, 3),
-			want:  "github.com/EliCDavis/vector/vector3.Vector[int]",
+			input:    vector3.New(1, 2, 3),
+			want:     "github.com/EliCDavis/vector/vector3.Vector[int]",
+			resolver: includePackageAndPointer,
 		},
 		"pointer external lib": {
-			input: &vector3.Vector[float64]{},
-			want:  "github.com/EliCDavis/vector/vector3.Vector[float64]",
+			input:    &vector3.Vector[float64]{},
+			want:     "*github.com/EliCDavis/vector/vector3.Vector[float64]",
+			resolver: includePackageAndPointer,
 		},
 		"array external lib": {
-			input: []vector3.Vector[float64]{},
-			want:  "[]github.com/EliCDavis/vector/vector3.Vector[float64]",
+			input:    []vector3.Vector[float64]{},
+			want:     "[]github.com/EliCDavis/vector/vector3.Vector[float64]",
+			resolver: includePackageAndPointer,
 		},
-	}
-
-	for name, tc := range tests {
-		t.Run(name, func(t *testing.T) {
-			got := refutil.GetTypeWithPackage(tc.input)
-			assert.Equal(t, tc.want, got)
-		})
-	}
-}
-
-func TestGetName(t *testing.T) {
-	// var reader io.Reader
-	var v *vector3.Vector[float64]
-	tests := map[string]struct {
-		input any
-		want  string
-	}{
-		"nil": {
+		"no package or pointer/nil": {
 			input: nil,
 			want:  "nil",
 		},
-		"string": {
+		"no package or pointer/string": {
 			input: "test",
 			want:  "string",
 		},
-		"std lib": {
+		"no package or pointer/std lib": {
 			input: io.Discard,
 			want:  "io.discard",
 		},
-		"external lib": {
+		"no package or pointer/external lib": {
 			input: vector3.New(1, 2, 3),
 			want:  "vector3.Vector[int]",
 		},
-		"pointer external lib": {
+		"no package or pointer/pointer external lib": {
 			input: &vector3.Vector[float64]{},
 			want:  "vector3.Vector[float64]",
 		},
-		"nil pointer external lib": {
+		"no package or pointer/nil pointer external lib": {
 			input: v,
 			want:  "vector3.Vector[float64]",
 		},
@@ -187,7 +184,7 @@ func TestGetName(t *testing.T) {
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			got := refutil.GetTypeName(tc.input)
+			got := tc.resolver.Resolve(tc.input)
 			assert.Equal(t, tc.want, got)
 		})
 	}

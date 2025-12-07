@@ -517,7 +517,7 @@ func (w *Writer) AddScene(scene PolyformScene) error {
 	return nil
 }
 
-func (w *Writer) getOrAddMeshIndex(model PolyformModel) (meshIndex int, err error) {
+func (w *Writer) getOrAddMeshIndex(model *PolyformModel) (meshIndex int, err error) {
 	var matIndex *int
 	if model.Material != nil {
 		matIndex, err = w.AddMaterial(model.Material)
@@ -598,11 +598,11 @@ func (w *Writer) getOrAddMeshIndex(model PolyformModel) (meshIndex int, err erro
 	return meshIndex, nil
 }
 
-func canCollapseChildIntoParentAsInstance(parent, child PolyformModel) bool {
+func canCollapseChildIntoParentAsInstance(parent, child *PolyformModel) bool {
 	return len(child.Children) == 0 && child.Mesh == parent.Mesh && child.Material == parent.Material
 }
 
-func canCollapseIntoInstance(model PolyformModel) bool {
+func canCollapseIntoInstance(model *PolyformModel) bool {
 	return len(model.Children) == 0 && model.Mesh != nil && model.Mesh.PrimitiveCount() > 0
 }
 
@@ -625,7 +625,7 @@ func (w *Writer) addExtGpuInstancing(positions, scales []vector3.Float64, rotati
 	return instances
 }
 
-func (w *Writer) addModel(model PolyformModel, parentTransformOverride *trs.TRS) (nodeId *GltfId, err error) {
+func (w *Writer) addModel(model *PolyformModel, parentTransformOverride *trs.TRS) (nodeId *GltfId, err error) {
 
 	node := Node{
 		Name: model.Name,

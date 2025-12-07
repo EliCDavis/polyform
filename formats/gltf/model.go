@@ -31,7 +31,7 @@ const (
 )
 
 type PolyformScene struct {
-	Models []PolyformModel
+	Models []*PolyformModel
 	Lights []KHR_LightsPunctual
 }
 
@@ -60,7 +60,7 @@ type PolyformModel struct {
 	Skeleton   *animation.Skeleton
 	Animations []animation.Sequence
 
-	Children []PolyformModel
+	Children []*PolyformModel
 }
 
 type PolyformMaterial struct {
