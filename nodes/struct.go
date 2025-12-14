@@ -135,11 +135,12 @@ func (so StructOutput[T]) Version() int {
 
 func (so StructOutput[T]) Type() string {
 	resolver := refutil.TypeResolution{
-		IncludePackage: true,
-		IncludePointer: true,
+		IncludePackage:     true,
+		IncludePointer:     true,
+		StripSinglePointer: true,
 	}
 	v := new(T)
-	return resolver.Resolve(*v)
+	return resolver.Resolve(v)
 }
 
 func (so StructOutput[T]) Description() string {

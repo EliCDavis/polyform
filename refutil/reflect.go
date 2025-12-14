@@ -26,6 +26,10 @@ type TypeResolution struct {
 
 	// Include whether or not the type is a pointer
 	IncludePointer bool
+
+	// Derefence a pointer once, useful for dealing with pointers to
+	// interfaces (ie *image.Image)
+	StripSinglePointer bool
 }
 
 func (tr TypeResolution) Resolve(v any) string {
@@ -45,6 +49,10 @@ func (tr TypeResolution) Resolve(v any) string {
 	}
 
 	viewKind := vType.Kind()
+	if tr.StripSinglePointer && viewKind == reflect.Ptr {
+		vType = vType.Elem()
+		viewKind = vType.Kind()
+	}
 
 	extraTypingStr := ""
 	// ptr := ""

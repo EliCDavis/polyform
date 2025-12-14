@@ -1,6 +1,7 @@
 package refutil_test
 
 import (
+	"image"
 	"io"
 	"testing"
 
@@ -120,6 +121,8 @@ func TestTypeResolution(t *testing.T) {
 	}
 	var v *vector3.Vector[float64]
 
+	i := new(image.Image)
+
 	// var reader io.Reader
 	tests := map[string]struct {
 		input    any
@@ -155,6 +158,15 @@ func TestTypeResolution(t *testing.T) {
 			input:    []vector3.Vector[float64]{},
 			want:     "[]github.com/EliCDavis/vector/vector3.Vector[float64]",
 			resolver: includePackageAndPointer,
+		},
+		"std lib/interface": {
+			input: i,
+			want:  "image.Image",
+			resolver: refutil.TypeResolution{
+				IncludePackage:     false,
+				IncludePointer:     true,
+				StripSinglePointer: true,
+			},
 		},
 		"no package or pointer/nil": {
 			input: nil,
