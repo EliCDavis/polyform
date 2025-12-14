@@ -4,9 +4,13 @@ import (
 	"image"
 	"image/color"
 
+	"github.com/EliCDavis/iter"
+	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/polyform/math/trs"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/animation"
+	"github.com/EliCDavis/vector/vector3"
+	"github.com/EliCDavis/vector/vector4"
 )
 
 type WriterInstancingStrategy int
@@ -31,8 +35,9 @@ const (
 )
 
 type PolyformScene struct {
-	Models []*PolyformModel
-	Lights []KHR_LightsPunctual
+	Models     []*PolyformModel
+	Lights     []KHR_LightsPunctual
+	Animations []PolyformAnimation
 }
 
 // PolyformModel is a utility structure for reading/writing to GLTF format within
@@ -61,6 +66,43 @@ type PolyformModel struct {
 	Animations []animation.Sequence
 
 	Children []*PolyformModel
+}
+
+type PolyformAnimation struct {
+	Name     string
+	Channels []PolyformAnimationChannel
+}
+
+type PolyformAnimationSampler struct {
+	Interpolation AnimationSamplerInterpolation
+	Times         []float64
+	Data          PolyformAnimationSamplerData
+}
+
+type PolyformAnimationSamplerData interface {
+	Write(w *Writer) int
+}
+
+type Vector3AnimationSamplerData []vector3.Float64
+
+func (v Vector3AnimationSamplerData) Write(w *Writer) int {
+	return w.WriteVector3(AccessorComponentType_FLOAT, iter.Array(v), 0)
+}
+
+type RotationAnimationSamplerData []quaternion.Quaternion
+
+func (v RotationAnimationSamplerData) Write(w *Writer) int {
+	v4 := make([]vector4.Float64, len(v))
+	for i, e := range v {
+		v4[i] = e.Vector4()
+	}
+	return w.WriteVector4(AccessorComponentType_FLOAT, iter.Array(v4), 0)
+}
+
+type PolyformAnimationChannel struct {
+	TargetPath AnimationChannelTargetPath
+	Target     *PolyformModel
+	Sampler    PolyformAnimationSampler
 }
 
 type PolyformMaterial struct {

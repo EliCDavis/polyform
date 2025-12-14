@@ -423,6 +423,7 @@ func collapseCommonPackages(dirty string) string {
 	commonPackages := []string{
 		"github.com/EliCDavis/vector/",
 		"github.com/EliCDavis/polyform/drawing/",
+		"github.com/EliCDavis/polyform/math/",
 	}
 
 	for _, pack := range commonPackages {

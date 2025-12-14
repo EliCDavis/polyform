@@ -9,6 +9,7 @@ import {
   SRGBColorSpace,
   TextureLoader,
   WebGLRenderer,
+  AnimationMixer,
 } from "three";
 import { ErrorManager } from "../error_manager";
 import { InfoManager } from "../info_manager";
@@ -69,6 +70,8 @@ export class ProducerViewManager {
 
   readonly runningMessage: HTMLElement | undefined;
 
+  mixer: AnimationMixer | null;
+
   constructor(
     app: ThreeApp,
     requestManager: RequestManager,
@@ -80,6 +83,13 @@ export class ProducerViewManager {
     this.modelVersion = -1;
     this.schemaManager = schemaManager;
     this.nodeTypeManifestPorts = new Map<string, string>();
+    app.UpdateLoop.addToUpdate({
+      name: "Model Animation",
+      loop: (delta) => {
+        this.updateLoop(delta);
+      },
+    });
+
     for (let i = 0; i < nodeTypes.length; i++) {
       const nodeType = nodeTypes[i];
       if (!nodeType.outputs) {
@@ -108,6 +118,12 @@ export class ProducerViewManager {
     this.loadingCount = 0;
     this.cachedSchema = null;
     this.producerItemSubscriber = [];
+  }
+
+  private updateLoop(delta: number): void {
+    if (this.mixer) {
+      this.mixer.update(delta);
+    }
   }
 
   setModelVersion(newModelVersion: number): void {
@@ -300,6 +316,11 @@ export class ProducerViewManager {
         this.viewerContainer.position.set(0, -mid + aabbHalfHeight + 0.001, 0);
 
         const objects = [];
+
+        if (gltf.animations && gltf.animations.length > 0) {
+          this.mixer = new AnimationMixer(gltf.scene);
+          this.mixer.clipAction(gltf.animations[0]).play();
+        }
 
         gltf.scene.traverse((object) => {
           if (object.isMesh) {

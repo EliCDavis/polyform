@@ -13,7 +13,15 @@ const (
 // https://github.com/KhronosGroup/glTF/blob/main/specification/2.0/schema/animation.channel.target.schema.json
 type AnimationChannelTarget struct {
 	Property
-	Node GltfId                     `json:"node,omitempty"`
+	Node *GltfId `json:"node,omitempty"` // The index of the node to animate. When undefined, the animated object **MAY** be defined by an extension.
+
+	// The name of the node's TRS property to animate, or the "weights" of the
+	// Morph Targets it instantiates. For the "translation" property, the
+	// values that are provided by the sampler are the translation along the
+	// X, Y, and Z axes. For the `\"rotation\"` property, the values are a
+	// quaternion in the order (x, y, z, w), where w is the scalar. For the
+	// "scale" property, the values are the scaling factors along the
+	// X, Y, and Z axes.
 	Path AnimationChannelTargetPath `json:"path"`
 }
 

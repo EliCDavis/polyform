@@ -24,20 +24,20 @@ func GetOutputValues[G any](recorder ExecutionRecorder, output []Output[G]) []G 
 	return results
 }
 
-func TryGetOutputValue[G any](result ExecutionRecorder, output Output[G], fallback G) G {
+func TryGetOutputValue[G any](recorder ExecutionRecorder, output Output[G], fallback G) G {
 	if output == nil {
 		return fallback
 	}
 	start := time.Now()
 	v := output.Value()
-	result.CaptureTiming(output.Name(), time.Since(start))
+	recorder.CaptureTiming(output.Name(), time.Since(start))
 	return v
 }
 
-func GetOutputValue[G any](result ExecutionRecorder, output Output[G]) G {
+func GetOutputValue[G any](recorder ExecutionRecorder, output Output[G]) G {
 	start := time.Now()
 	v := output.Value()
-	result.CaptureTiming(output.Name(), time.Since(start))
+	recorder.CaptureTiming(output.Name(), time.Since(start))
 	return v
 }
 
