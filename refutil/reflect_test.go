@@ -121,8 +121,6 @@ func TestTypeResolution(t *testing.T) {
 	}
 	var v *vector3.Vector[float64]
 
-	i := new(image.Image)
-
 	// var reader io.Reader
 	tests := map[string]struct {
 		input    any
@@ -160,7 +158,7 @@ func TestTypeResolution(t *testing.T) {
 			resolver: includePackageAndPointer,
 		},
 		"std lib/interface": {
-			input: i,
+			input: new(image.Image),
 			want:  "image.Image",
 			resolver: refutil.TypeResolution{
 				IncludePackage:     false,
