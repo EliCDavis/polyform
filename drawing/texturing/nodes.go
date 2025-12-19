@@ -29,13 +29,18 @@ func init() {
 	refutil.RegisterType[nodes.Struct[FromArrayNode[bool]]](factory)
 	refutil.RegisterType[nodes.Struct[FromArrayNode[coloring.Color]]](factory)
 
+	refutil.RegisterType[nodes.Struct[FromImageNode]](factory)
+
 	refutil.RegisterType[nodes.Struct[SelectNode[float64]]](factory)
 	refutil.RegisterType[nodes.Struct[SelectNode[vector2.Float64]]](factory)
 	refutil.RegisterType[nodes.Struct[SelectNode[vector3.Float64]]](factory)
 	refutil.RegisterType[nodes.Struct[SelectNode[bool]]](factory)
-	refutil.RegisterType[nodes.Struct[SelectNode[coloring.Color]]](factory)
+	refutil.RegisterType[nodes.Struct[SelectColorNode]](factory)
 
 	refutil.RegisterType[nodes.Struct[CompareValueNode[float64]]](factory)
+
+	refutil.RegisterType[nodes.Struct[MaskToSDFNode]](factory)
+	refutil.RegisterType[nodes.Struct[SampleSDFNode]](factory)
 
 	refutil.RegisterType[nodes.Struct[RadialGradientNode[float64]]](factory)
 	refutil.RegisterType[nodes.Struct[RadialGradientNode[vector2.Float64]]](factory)

@@ -372,29 +372,82 @@ func (n FromArrayNode[T]) Texture(out *nodes.StructOutput[Texture[T]]) {
 }
 
 // ============================================================================
-type SelectNode[T any] struct {
-	Texture nodes.Output[Texture[T]]
+
+func selectArray[T any](out *nodes.StructOutput[[]T], texture nodes.Output[Texture[T]]) {
+	if texture == nil {
+		return
+	}
+	out.Set(nodes.GetOutputValue(out, texture).data)
 }
 
-func (n SelectNode[T]) Array(out *nodes.StructOutput[[]T]) {
+func selectWidth[T any](out *nodes.StructOutput[int], texture nodes.Output[Texture[T]]) {
+	if texture == nil {
+		return
+	}
+	out.Set(nodes.GetOutputValue(out, texture).Width())
+}
+
+func selectHeight[T any](out *nodes.StructOutput[int], texture nodes.Output[Texture[T]]) {
+	if texture == nil {
+		return
+	}
+	out.Set(nodes.GetOutputValue(out, texture).Height())
+}
+
+type SelectNode[T any] struct{ Texture nodes.Output[Texture[T]] }
+
+func (n SelectNode[T]) Array(out *nodes.StructOutput[[]T])  { selectArray(out, n.Texture) }
+func (n SelectNode[T]) Width(out *nodes.StructOutput[int])  { selectWidth(out, n.Texture) }
+func (n SelectNode[T]) Height(out *nodes.StructOutput[int]) { selectHeight(out, n.Texture) }
+
+type SelectColorNode struct {
+	Texture nodes.Output[Texture[coloring.Color]]
+}
+
+func (n SelectColorNode) Width(out *nodes.StructOutput[int])  { selectWidth(out, n.Texture) }
+func (n SelectColorNode) Height(out *nodes.StructOutput[int]) { selectHeight(out, n.Texture) }
+func (n SelectColorNode) Array(out *nodes.StructOutput[[]coloring.Color]) {
+	selectArray(out, n.Texture)
+}
+
+func (n SelectColorNode) R(out *nodes.StructOutput[Texture[float64]]) {
 	if n.Texture == nil {
 		return
 	}
-	out.Set(nodes.GetOutputValue(out, n.Texture).data)
+	tex := nodes.GetOutputValue(out, n.Texture)
+	out.Set(Convert(tex, func(x, y int, c coloring.Color) float64 {
+		return c.R
+	}))
 }
 
-func (n SelectNode[T]) Width(out *nodes.StructOutput[int]) {
+func (n SelectColorNode) G(out *nodes.StructOutput[Texture[float64]]) {
 	if n.Texture == nil {
 		return
 	}
-	out.Set(nodes.GetOutputValue(out, n.Texture).Width())
+	tex := nodes.GetOutputValue(out, n.Texture)
+	out.Set(Convert(tex, func(x, y int, c coloring.Color) float64 {
+		return c.G
+	}))
 }
 
-func (n SelectNode[T]) Height(out *nodes.StructOutput[int]) {
+func (n SelectColorNode) B(out *nodes.StructOutput[Texture[float64]]) {
 	if n.Texture == nil {
 		return
 	}
-	out.Set(nodes.GetOutputValue(out, n.Texture).Height())
+	tex := nodes.GetOutputValue(out, n.Texture)
+	out.Set(Convert(tex, func(x, y int, c coloring.Color) float64 {
+		return c.B
+	}))
+}
+
+func (n SelectColorNode) A(out *nodes.StructOutput[Texture[float64]]) {
+	if n.Texture == nil {
+		return
+	}
+	tex := nodes.GetOutputValue(out, n.Texture)
+	out.Set(Convert(tex, func(x, y int, c coloring.Color) float64 {
+		return c.A
+	}))
 }
 
 // ============================================================================

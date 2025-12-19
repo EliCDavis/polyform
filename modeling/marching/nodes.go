@@ -23,7 +23,7 @@ func init() {
 type MarchNode struct {
 	Field      nodes.Output[sample.Vec3ToFloat] `description:"The SDF to tesselate"`
 	Resolution nodes.Output[float64]            `description:"Number of marching cube voxels contained in a single 'unit'"`
-	Surface    nodes.Output[float64]            `description:"value of the SDF that represents the surface (default: 0)"`
+	Surface    nodes.Output[float64]            `description:"Value of the SDF that represents the surface (default: 0)"`
 	Domain     nodes.Output[geometry.AABB]      `description:"The region in which the marching cubes algorithm runs"`
 }
 

@@ -29,6 +29,15 @@ func init() {
 	refutil.RegisterType[nodes.Struct[GradientKeyNode[vector4.Float64]]](factory)
 	refutil.RegisterType[nodes.Struct[GradientKeyNode[Color]]](factory)
 
+	refutil.RegisterType[nodes.Struct[RedNode]](factory)
+	refutil.RegisterType[nodes.Struct[GreenNode]](factory)
+	refutil.RegisterType[nodes.Struct[BlueNode]](factory)
+	refutil.RegisterType[nodes.Struct[MagentaNode]](factory)
+	refutil.RegisterType[nodes.Struct[CyanNode]](factory)
+	refutil.RegisterType[nodes.Struct[YellowNode]](factory)
+	refutil.RegisterType[nodes.Struct[WhiteNode]](factory)
+	refutil.RegisterType[nodes.Struct[BlackNode]](factory)
+
 	generator.RegisterTypes(factory)
 }
 
@@ -230,3 +239,41 @@ func (n GradientKeyNode[T]) Gradient(out *nodes.StructOutput[GradientKey[T]]) {
 		Value: val,
 	})
 }
+
+// ============================================================================
+
+type RedNode struct{}
+
+func (n RedNode) Color(out *nodes.StructOutput[Color]) { out.Set(Color{1, 0, 0, 1}) }
+
+type GreenNode struct{}
+
+func (n GreenNode) Color(out *nodes.StructOutput[Color]) { out.Set(Color{0, 1, 0, 1}) }
+
+type BlueNode struct{}
+
+func (n BlueNode) Color(out *nodes.StructOutput[Color]) { out.Set(Color{0, 0, 1, 1}) }
+
+type YellowNode struct{}
+
+func (n YellowNode) Color(out *nodes.StructOutput[Color]) {
+	out.Set(Color{1, 1, 0, 1})
+}
+
+type MagentaNode struct{}
+
+func (n MagentaNode) Color(out *nodes.StructOutput[Color]) {
+	out.Set(Color{1, 0, 1, 1})
+}
+
+type CyanNode struct{}
+
+func (n CyanNode) Color(out *nodes.StructOutput[Color]) { out.Set(Color{0, 1, 1, 1}) }
+
+type BlackNode struct{}
+
+func (n BlackNode) Color(out *nodes.StructOutput[Color]) { out.Set(Color{0, 0, 0, 1}) }
+
+type WhiteNode struct{}
+
+func (n WhiteNode) Color(out *nodes.StructOutput[Color]) { out.Set(Color{0, 0, 0, 1}) }
