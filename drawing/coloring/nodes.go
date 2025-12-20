@@ -276,4 +276,4 @@ func (n BlackNode) Color(out *nodes.StructOutput[Color]) { out.Set(Color{0, 0, 0
 
 type WhiteNode struct{}
 
-func (n WhiteNode) Color(out *nodes.StructOutput[Color]) { out.Set(Color{0, 0, 0, 1}) }
+func (n WhiteNode) Color(out *nodes.StructOutput[Color]) { out.Set(Color{1, 1, 1, 1}) }
