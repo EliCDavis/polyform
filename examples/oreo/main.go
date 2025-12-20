@@ -23,7 +23,7 @@ import (
 
 func imageToEdgeData(src image.Image, fillValue float64) [][]float64 {
 	imageData := make([][]float64, src.Bounds().Dx())
-	for i := 0; i < len(imageData); i++ {
+	for i := range imageData {
 		imageData[i] = make([]float64, src.Bounds().Dy())
 	}
 
@@ -263,7 +263,7 @@ func main() {
 	gltf.SaveBinary(
 		"oreo.glb",
 		gltf.PolyformScene{
-			Models: []gltf.PolyformModel{
+			Models: []*gltf.PolyformModel{
 				{Mesh: &oreoCookieTop},
 				{Mesh: &icing,
 					Material: &gltf.PolyformMaterial{

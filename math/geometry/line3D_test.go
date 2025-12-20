@@ -8,6 +8,15 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestLine3D_ClosestPoint_LineOfZeroLength(t *testing.T) {
+	p1 := vector3.New(-1., 0., 0.)
+	p2 := vector3.New(-1., 0., 0.)
+	line := geometry.NewLine3D(p1, p2)
+
+	p := line.ClosestPointOnLine(vector3.New(12, 12, 12.))
+	assert.Equal(t, vector3.New(-1, 0, 0.), p)
+}
+
 func TestLine3D_ClosestPoint_HorizontalLine(t *testing.T) {
 	p1 := vector3.New(-1., 0., 0.)
 	p2 := vector3.New(1., 0., 0.)

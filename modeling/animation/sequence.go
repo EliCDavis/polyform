@@ -22,6 +22,24 @@ func (s Frame[T]) Val() T {
 	return s.val
 }
 
+func UniformFrames[T any](data []T, time float64) []Frame[T] {
+	if len(data) == 0 {
+		return nil
+	}
+
+	if len(data) == 1 {
+		return []Frame[T]{NewFrame(0, data[0])}
+	}
+
+	frames := make([]Frame[T], len(data))
+	timeStep := time / float64(len(data)-1)
+	for i, v := range data {
+		frames[i] = NewFrame(timeStep*float64(i), v)
+	}
+
+	return frames
+}
+
 // type Sequence interface{}
 
 type Sequence struct {

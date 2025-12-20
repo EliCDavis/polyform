@@ -134,7 +134,13 @@ func (so StructOutput[T]) Version() int {
 }
 
 func (so StructOutput[T]) Type() string {
-	return refutil.GetTypeWithPackage(new(T))
+	resolver := refutil.TypeResolution{
+		IncludePackage:     true,
+		IncludePointer:     true,
+		StripSinglePointer: true,
+	}
+	v := new(T)
+	return resolver.Resolve(v)
 }
 
 func (so StructOutput[T]) Description() string {
@@ -418,6 +424,7 @@ func collapseCommonPackages(dirty string) string {
 	commonPackages := []string{
 		"github.com/EliCDavis/vector/",
 		"github.com/EliCDavis/polyform/drawing/",
+		"github.com/EliCDavis/polyform/math/",
 	}
 
 	for _, pack := range commonPackages {

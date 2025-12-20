@@ -39,7 +39,12 @@ func (sno parameterNodeOutput[T]) Version() int {
 }
 
 func (sno parameterNodeOutput[T]) Type() string {
-	return refutil.GetTypeWithPackage(new(T))
+	resolver := refutil.TypeResolution{
+		IncludePackage: true,
+		IncludePointer: false,
+	}
+
+	return resolver.Resolve(new(T))
 }
 
 // ============================================================================

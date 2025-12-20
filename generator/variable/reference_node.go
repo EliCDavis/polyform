@@ -56,5 +56,11 @@ func (vrn *variableReferenceNodePort[T]) Value() T {
 }
 
 func (so variableReferenceNodePort[T]) Type() string {
-	return refutil.GetTypeWithPackage(new(T))
+
+	resolver := refutil.TypeResolution{
+		IncludePackage: true,
+		IncludePointer: false,
+	}
+
+	return resolver.Resolve(new(T))
 }

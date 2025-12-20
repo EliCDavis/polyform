@@ -25,14 +25,14 @@ func TestTypeFactory_RegisterType(t *testing.T) {
 
 	var reader io.Reader = &bytes.Buffer{}
 	factory.RegisterType(reader)
-	built2 := factory.New("bytes.Buffer")
+	built2 := factory.New("*bytes.Buffer")
 	cast2, ok := built2.(*bytes.Buffer)
 	assert.NotNil(t, cast2)
 	assert.True(t, ok)
 
 	types := factory.Types()
 	assert.Len(t, types, 2)
-	assert.Equal(t, "bytes.Buffer", types[0])
+	assert.Equal(t, "*bytes.Buffer", types[0])
 	assert.Equal(t, "int", types[1])
 
 	assert.True(t, factory.KeyRegistered("int"))

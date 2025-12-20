@@ -126,6 +126,12 @@ func (l Line3D) ClosestPointOnLine(p vector3.Float64) vector3.Float64 {
 
 	heading := l.p2.Sub(l.p1)
 	magnigutdeMax := heading.Length()
+
+	// Our line is actuall a dot/has 0 length. Just return one of the points
+	if magnigutdeMax == 0 {
+		return l.p1
+	}
+
 	heading = heading.Normalized()
 	lhs := p.Sub(l.p1)
 	t := lhs.Dot(heading) / magnigutdeMax

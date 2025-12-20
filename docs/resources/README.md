@@ -100,6 +100,10 @@ Resources either directly contributing to the code, or are just interesting find
   - [SDFs](https://iquilezles.org/articles/distfunctions/)
   - [Fast 2D SDF](https://stackoverflow.com/questions/68178747/fast-2d-signed-distance)
   - [Got Subtraction from Here](https://www.ronja-tutorials.com/post/035-2d-sdf-combination/)
+  - SDFs from images
+    - [_"Distance Transforms of Sampled Functions"_ by Pedro F. Felzenszwalb and Daniel P. Huttenlocher](https://cs.brown.edu/people/pfelzens/papers/dt-final.pdf)
+    - [The Fast Euclidean Distance Transform](https://hellorob.org/files/lectures/fast_euclidean_dt.pdf)
+    - [_"Euclidean Distance Transform (EDT) — An Introduction"_ by Kareim Tarek](https://medium.com/@kareimtarek1972/euclidean-distance-transform-edt-introduction-5d7d7c144aa)
 - Collisions
   - [Closest point on Triangle](https://gdbooks.gitbooks.io/3dcollisions/content/Chapter4/closest_point_to_triangle.html)
 - Ray Tracing

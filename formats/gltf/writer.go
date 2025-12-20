@@ -49,6 +49,7 @@ type Writer struct {
 	writtenMeshData     attributeIndices    // Tracks and deduplicate written mesh data
 	textureIndices      textureIndices      // Tracks and deduplicates unique textures
 	embededImageIndices map[image.Image]int // Tracks and deduplicates unique written images to our buffer
+	modelIndices        map[*PolyformModel]int
 
 	skins      []Skin
 	animations []Animation
@@ -84,6 +85,7 @@ func NewWriter() *Writer {
 		writtenMeshData:     make(attributeIndices),
 		textureIndices:      make(textureIndices),
 		embededImageIndices: make(map[image.Image]int),
+		modelIndices:        make(map[*PolyformModel]int),
 
 		// Extensions
 		lights: make([]KHR_LightsPunctual, 0),
@@ -149,7 +151,7 @@ func (w Writer) WriteVector2AsByte(v vector2.Float64) {
 	w.bitW.Byte(uint8(v.Y()))
 }
 
-func (w *Writer) WriteVector4(accessorComponentType AccessorComponentType, data *iter.ArrayIterator[vector4.Float64]) {
+func (w *Writer) WriteVector4(accessorComponentType AccessorComponentType, data *iter.ArrayIterator[vector4.Float64], bufferViewTarget BufferViewTarget) int {
 	w.Align(accessorComponentType.Size())
 
 	accessorType := AccessorType_VEC4
@@ -179,6 +181,7 @@ func (w *Writer) WriteVector4(accessorComponentType AccessorComponentType, data 
 	maxArr := []float64{max.X(), max.Y(), max.Z(), max.W()}
 	datasize := data.Len() * 4 * accessorComponentType.Size()
 
+	accessorIndex := len(w.accessors)
 	w.accessors = append(w.accessors, Accessor{
 		BufferView:    ptrI(len(w.bufferViews)),
 		ComponentType: accessorComponentType,
@@ -192,13 +195,14 @@ func (w *Writer) WriteVector4(accessorComponentType AccessorComponentType, data 
 		Buffer:     0,
 		ByteOffset: w.bytesWritten,
 		ByteLength: datasize,
-		Target:     ARRAY_BUFFER,
+		Target:     bufferViewTarget,
 	})
 
 	w.bytesWritten += datasize
+	return accessorIndex
 }
 
-func (w *Writer) WriteVector3(accessorComponentType AccessorComponentType, data *iter.ArrayIterator[vector3.Float64]) {
+func (w *Writer) WriteVector3(accessorComponentType AccessorComponentType, data *iter.ArrayIterator[vector3.Float64], bufferViewTarget BufferViewTarget) int {
 	w.Align(accessorComponentType.Size())
 
 	accessorType := AccessorType_VEC3
@@ -238,6 +242,7 @@ func (w *Writer) WriteVector3(accessorComponentType AccessorComponentType, data 
 	maxArr := []float64{max.X(), max.Y(), max.Z()}
 	datasize := data.Len() * 3 * accessorComponentType.Size()
 
+	accessorIndex := len(w.accessors)
 	w.accessors = append(w.accessors, Accessor{
 		BufferView:    ptrI(len(w.bufferViews)),
 		ComponentType: accessorComponentType,
@@ -251,10 +256,11 @@ func (w *Writer) WriteVector3(accessorComponentType AccessorComponentType, data 
 		Buffer:     0,
 		ByteOffset: w.bytesWritten,
 		ByteLength: datasize,
-		Target:     ARRAY_BUFFER,
+		Target:     bufferViewTarget,
 	})
 
 	w.bytesWritten += datasize
+	return accessorIndex
 }
 
 func (w *Writer) WriteVector2(accessorComponentType AccessorComponentType, data *iter.ArrayIterator[vector2.Float64]) {
@@ -314,6 +320,67 @@ func (w *Writer) WriteVector2(accessorComponentType AccessorComponentType, data 
 	})
 
 	w.bytesWritten += datasize
+}
+
+func (w *Writer) WriteScalar(accessorComponentType AccessorComponentType, data *iter.ArrayIterator[float64], bufferViewTarget BufferViewTarget) int {
+	w.Align(accessorComponentType.Size())
+
+	accessorType := AccessorType_SCALAR
+
+	min := math.MaxFloat64
+	max := -math.MaxFloat64
+
+	if accessorComponentType == AccessorComponentType_FLOAT {
+		for i := 0; i < data.Len(); i++ {
+			v := data.At(i)
+			w.bitW.Float32(float32(v))
+
+			// Don't contaminate min/max with NaNs
+			if math.IsNaN(v) {
+				continue
+			}
+			min = math.Min(min, v)
+			max = math.Max(max, v)
+		}
+	}
+
+	if accessorComponentType == AccessorComponentType_UNSIGNED_BYTE {
+		for i := 0; i < data.Len(); i++ {
+			v := data.At(i)
+			w.bitW.Byte(byte(v))
+
+			// Don't contaminate min/max with NaNs
+			if math.IsNaN(v) {
+				continue
+			}
+			min = math.Min(min, v)
+			max = math.Max(max, v)
+		}
+	}
+
+	minArr := []float64{min}
+	maxArr := []float64{max}
+	datasize := data.Len() * 1 * accessorComponentType.Size()
+
+	accessors := len(w.accessors)
+	w.accessors = append(w.accessors, Accessor{
+		BufferView:    ptrI(len(w.bufferViews)),
+		ComponentType: accessorComponentType,
+		Type:          accessorType,
+		Count:         data.Len(),
+		Min:           minArr,
+		Max:           maxArr,
+	})
+
+	w.bufferViews = append(w.bufferViews, BufferView{
+		Buffer:     0,
+		ByteOffset: w.bytesWritten,
+		ByteLength: datasize,
+		Target:     bufferViewTarget,
+	})
+
+	w.bytesWritten += datasize
+	return accessors
 }
 
 func (w *Writer) WriteIndices(indices *iter.ArrayIterator[int], attributeSize int) {
@@ -406,6 +473,35 @@ func rgbToFloatArr(c color.Color) [3]float64 {
 		roundFloat(float64(g)/math.MaxUint16, 3),
 		roundFloat(float64(b)/math.MaxUint16, 3),
 	}
+}
+
+func (w *Writer) writeAnimation(animation PolyformAnimation) error {
+	anim := Animation{
+		ChildOfRootProperty: ChildOfRootProperty{
+			Name: animation.Name,
+		},
+		Channels: make([]AnimationChannel, len(animation.Channels)),
+		Samplers: make([]AnimationSampler, 0),
+	}
+	for i, channel := range animation.Channels {
+		samplerIndex := len(anim.Samplers)
+		anim.Samplers = append(anim.Samplers, AnimationSampler{
+			Interpolation: channel.Sampler.Interpolation,
+			Input:         w.WriteScalar(AccessorComponentType_FLOAT, iter.Array(channel.Sampler.Times), 0),
+			Output:        channel.Sampler.Data.Write(w),
+		})
+
+		target := w.modelIndices[channel.Target]
+		anim.Channels[i] = AnimationChannel{
+			Sampler: samplerIndex,
+			Target: AnimationChannelTarget{
+				Path: channel.TargetPath,
+				Node: &target,
+			},
+		}
+	}
+	w.animations = append(w.animations, anim)
+	return w.bitW.Error()
 }
 
 func (w *Writer) AddScene(scene PolyformScene) error {
@@ -514,10 +610,16 @@ func (w *Writer) AddScene(scene PolyformScene) error {
 		Nodes: sceneNodes,
 	})
 
+	for _, animation := range scene.Animations {
+		if err := w.writeAnimation(animation); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
-func (w *Writer) getOrAddMeshIndex(model PolyformModel) (meshIndex int, err error) {
+func (w *Writer) getOrAddMeshIndex(model *PolyformModel) (meshIndex int, err error) {
 	var matIndex *int
 	if model.Material != nil {
 		matIndex, err = w.AddMaterial(model.Material)
@@ -555,12 +657,12 @@ func (w *Writer) getOrAddMeshIndex(model PolyformModel) (meshIndex int, err erro
 		primitiveAttributes = make(map[string]int)
 		for _, val := range model.Mesh.Float4Attributes() {
 			primitiveAttributes[polyformToGLTFAttribute(val)] = len(w.accessors)
-			w.WriteVector4(attributeType(val), model.Mesh.Float4Attribute(val))
+			w.WriteVector4(attributeType(val), model.Mesh.Float4Attribute(val), ARRAY_BUFFER)
 		}
 
 		for _, val := range model.Mesh.Float3Attributes() {
 			primitiveAttributes[polyformToGLTFAttribute(val)] = len(w.accessors)
-			w.WriteVector3(attributeType(val), model.Mesh.Float3Attribute(val))
+			w.WriteVector3(attributeType(val), model.Mesh.Float3Attribute(val), ARRAY_BUFFER)
 		}
 
 		for _, val := range model.Mesh.Float2Attributes() {
@@ -598,11 +700,11 @@ func (w *Writer) getOrAddMeshIndex(model PolyformModel) (meshIndex int, err erro
 	return meshIndex, nil
 }
 
-func canCollapseChildIntoParentAsInstance(parent, child PolyformModel) bool {
+func canCollapseChildIntoParentAsInstance(parent, child *PolyformModel) bool {
 	return len(child.Children) == 0 && child.Mesh == parent.Mesh && child.Material == parent.Material
 }
 
-func canCollapseIntoInstance(model PolyformModel) bool {
+func canCollapseIntoInstance(model *PolyformModel) bool {
 	return len(model.Children) == 0 && model.Mesh != nil && model.Mesh.PrimitiveCount() > 0
 }
 
@@ -614,18 +716,18 @@ func (w *Writer) addExtGpuInstancing(positions, scales []vector3.Float64, rotati
 	}
 
 	instances.Attributes["TRANSLATION"] = len(w.accessors)
-	w.WriteVector3(AccessorComponentType_FLOAT, iter.Array(positions))
+	w.WriteVector3(AccessorComponentType_FLOAT, iter.Array(positions), ARRAY_BUFFER)
 
 	instances.Attributes["SCALE"] = len(w.accessors)
-	w.WriteVector3(AccessorComponentType_FLOAT, iter.Array(scales))
+	w.WriteVector3(AccessorComponentType_FLOAT, iter.Array(scales), ARRAY_BUFFER)
 
 	instances.Attributes["ROTATION"] = len(w.accessors)
-	w.WriteVector4(AccessorComponentType_FLOAT, iter.Array(rotations))
+	w.WriteVector4(AccessorComponentType_FLOAT, iter.Array(rotations), ARRAY_BUFFER)
 
 	return instances
 }
 
-func (w *Writer) addModel(model PolyformModel, parentTransformOverride *trs.TRS) (nodeId *GltfId, err error) {
+func (w *Writer) addModel(model *PolyformModel, parentTransformOverride *trs.TRS) (nodeId *GltfId, err error) {
 
 	node := Node{
 		Name: model.Name,
@@ -794,6 +896,7 @@ func (w *Writer) addModel(model PolyformModel, parentTransformOverride *trs.TRS)
 	}
 
 	index := len(w.nodes)
+	w.modelIndices[model] = index
 	w.nodes = append(w.nodes, node)
 	return &index, nil
 }
@@ -1111,6 +1214,7 @@ func (w *Writer) AddAnimations(animations []animation.Sequence, skeleton animati
 
 		w.bytesWritten += datasize
 
+		target := skeleton.Lookup(animation.Joint()) + skeletonNode
 		w.animations = append(w.animations, Animation{
 			Samplers: []AnimationSampler{
 				{
@@ -1123,7 +1227,7 @@ func (w *Writer) AddAnimations(animations []animation.Sequence, skeleton animati
 				{
 					Target: AnimationChannelTarget{
 						Path: AnimationChannelTargetPath_TRANSLATION,
-						Node: skeleton.Lookup(animation.Joint()) + skeletonNode,
+						Node: &target,
 					},
 					Sampler: i,
 				},

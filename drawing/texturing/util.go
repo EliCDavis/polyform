@@ -4,6 +4,7 @@ import (
 	"image"
 
 	"github.com/EliCDavis/polyform/drawing/coloring"
+	"github.com/EliCDavis/polyform/nodes"
 )
 
 func FromImage(img image.Image) Texture[coloring.Color] {
@@ -23,4 +24,22 @@ func FromImage(img image.Image) Texture[coloring.Color] {
 	}
 
 	return tex
+}
+
+type FromImageNode struct {
+	Image nodes.Output[image.Image]
+}
+
+func (n FromImageNode) Texture(out *nodes.StructOutput[Texture[coloring.Color]]) {
+	if n.Image == nil {
+		return
+	}
+
+	img := nodes.GetOutputValue(out, n.Image)
+	if img == nil {
+		out.CaptureError(nodes.NilInputError{Input: n.Image})
+		return
+	}
+
+	out.Set(FromImage(img))
 }

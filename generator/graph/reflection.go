@@ -107,7 +107,11 @@ func BuildNodeTypeSchema(registeredType string, node nodes.Node) schema.NodeType
 	} else if typed, ok := node.(nodes.Typed); ok {
 		typeSchema.DisplayName = typed.Type()
 	} else {
-		typeSchema.DisplayName = refutil.GetTypeName(node)
+		resolver := refutil.TypeResolution{
+			IncludePackage: false,
+			IncludePointer: false,
+		}
+		typeSchema.DisplayName = resolver.Resolve(node)
 	}
 
 	if pathed, ok := node.(nodes.Pathed); ok {

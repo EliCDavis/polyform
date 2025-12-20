@@ -54,7 +54,7 @@ type instancesCachceKey struct {
 
 type instancesCachce map[instancesCachceKey][]trs.TRS
 
-func (ic instancesCachce) Add(mesh int, model PolyformModel) {
+func (ic instancesCachce) Add(mesh int, model *PolyformModel) {
 	key := instancesCachceKey{mesh: mesh}
 	arr := ic[key]
 

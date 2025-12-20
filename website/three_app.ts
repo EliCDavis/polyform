@@ -35,6 +35,7 @@ export interface ThreeApp {
     Lighting: ThreeAppLighting,
     Composer: EffectComposer,
     Fog: Fog,
+    UpdateLoop: UpdateManager
 }
 
 export function CreateThreeApp(
@@ -148,6 +149,7 @@ export function CreateThreeApp(
         },
         Composer: composer,
         LabelRenderer: labelRenderer,
-        Fog: fog
+        Fog: fog,
+        UpdateLoop: updateLoop
     };
 }

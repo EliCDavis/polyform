@@ -67,7 +67,12 @@ func Register[T, G any](factory *TypeSwitch[T], builder func(G) T) {
 		factory.types = make(map[string]switchEntry[T])
 	}
 
-	factory.types[refutil.GetTypeWithPackage(new(G))] = switchEntry[T]{
+	resolver := refutil.TypeResolution{
+		IncludePackage: true,
+		IncludePointer: false,
+	}
+
+	factory.types[resolver.Resolve(new(G))] = switchEntry[T]{
 		pkg: refutil.GetPackagePath(new(G)),
 		accepts: func(op nodes.OutputPort) bool {
 			_, ok := op.(nodes.Output[G])

@@ -219,7 +219,7 @@ func (c Circle) Extrude() modeling.Mesh {
 			Thickness: r,
 		}
 	}
-	return polygon(c.Resolution, points, false)
+	return polygon(c.Resolution, points, c.ClosePath)
 }
 
 type CircleAlongSpline struct {

@@ -185,7 +185,7 @@ func main() {
 	}
 
 	err := gltf.SaveBinary("tmp/gopher/gopher.glb", gltf.PolyformScene{
-		Models: []gltf.PolyformModel{
+		Models: []*gltf.PolyformModel{
 			{
 				Name:       "Gopher",
 				Mesh:       &mesh,

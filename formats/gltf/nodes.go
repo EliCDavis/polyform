@@ -11,6 +11,7 @@ import (
 	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/polyform/math/trs"
 	"github.com/EliCDavis/polyform/modeling"
+	"github.com/EliCDavis/polyform/modeling/animation"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
 	"github.com/EliCDavis/vector/vector3"
@@ -30,6 +31,11 @@ func init() {
 	refutil.RegisterType[nodes.Struct[TextureNode]](factory)
 	refutil.RegisterType[nodes.Struct[NormalTextureNode]](factory)
 	refutil.RegisterType[nodes.Struct[SamplerNode]](factory)
+
+	refutil.RegisterType[nodes.Struct[AnimationNode]](factory)
+	refutil.RegisterType[nodes.Struct[TranslationAnimationChannelNode]](factory)
+	refutil.RegisterType[nodes.Struct[RotationAnimationChannelNode]](factory)
+	refutil.RegisterType[nodes.Struct[ScaleAnimationChannelNode]](factory)
 
 	refutil.RegisterType[SamplerWrapNode](factory)
 	refutil.RegisterType[nodes.Struct[SamplerMinFilterNode]](factory)
@@ -52,11 +58,12 @@ func (ga Artifact) Write(w io.Writer) error {
 }
 
 type ManifestNode struct {
-	Models []nodes.Output[PolyformModel]
+	Models     []nodes.Output[*PolyformModel]
+	Animations []nodes.Output[PolyformAnimation]
 }
 
 func (gad ManifestNode) Out(out *nodes.StructOutput[manifest.Manifest]) {
-	models := make([]PolyformModel, 0, len(gad.Models))
+	models := make([]*PolyformModel, 0, len(gad.Models))
 
 	for _, m := range gad.Models {
 		if m == nil {
@@ -64,11 +71,11 @@ func (gad ManifestNode) Out(out *nodes.StructOutput[manifest.Manifest]) {
 		}
 		value := nodes.GetOutputValue(out, m)
 
-		// TechDebt: Skip nodes without meshes as at the moment it'll cause stuff
-		// to error out
-		if value.Mesh == nil {
-			continue
-		}
+		// // TechDebt: Skip nodes without meshes as at the moment it'll cause stuff
+		// // to error out
+		// if value.Mesh == nil {
+		// 	continue
+		// }
 
 		models = append(models, value)
 	}
@@ -76,7 +83,8 @@ func (gad ManifestNode) Out(out *nodes.StructOutput[manifest.Manifest]) {
 	entry := manifest.Entry{
 		Artifact: &Artifact{
 			Scene: PolyformScene{
-				Models: models,
+				Models:     models,
+				Animations: nodes.GetOutputValues(out, gad.Animations),
 			},
 			Options: WriterOptions{
 				GpuInstancingStrategy: WriterInstancingStrategy_Default,
@@ -88,9 +96,10 @@ func (gad ManifestNode) Out(out *nodes.StructOutput[manifest.Manifest]) {
 }
 
 type ModelNode struct {
+	Name     nodes.Output[string]
 	Mesh     nodes.Output[modeling.Mesh]
 	Material nodes.Output[PolyformMaterial]
-	Children []nodes.Output[PolyformModel]
+	Children []nodes.Output[*PolyformModel]
 
 	Translation nodes.Output[vector3.Float64]
 	Rotation    nodes.Output[quaternion.Quaternion]
@@ -99,15 +108,15 @@ type ModelNode struct {
 	GpuInstances nodes.Output[[]trs.TRS]
 }
 
-func (gmnd ModelNode) Out(out *nodes.StructOutput[PolyformModel]) {
+func (gmnd ModelNode) Out(out *nodes.StructOutput[*PolyformModel]) {
 	transform := trs.New(
 		nodes.TryGetOutputValue(out, gmnd.Translation, vector3.Zero[float64]()),
 		nodes.TryGetOutputValue(out, gmnd.Rotation, quaternion.Identity()),
 		nodes.TryGetOutputValue(out, gmnd.Scale, vector3.One[float64]()),
 	)
 
-	out.Set(PolyformModel{
-		Name:         "Mesh",
+	out.Set(&PolyformModel{
+		Name:         nodes.TryGetOutputValue(out, gmnd.Name, "Mesh"),
 		GpuInstances: nodes.TryGetOutputValue(out, gmnd.GpuInstances, nil),
 		Material:     nodes.TryGetOutputReference(out, gmnd.Material, nil),
 		Mesh:         nodes.TryGetOutputReference(out, gmnd.Mesh, nil),
@@ -493,4 +502,178 @@ func (node MaterialClearcoatExtensionNode) Out(out *nodes.StructOutput[PolyformC
 
 func (node MaterialClearcoatExtensionNode) Description() string {
 	return "A clear coat is a common technique used in Physically-Based Rendering to represent a protective layer applied to a base material."
+}
+
+type AnimationNode struct {
+	Name     nodes.Output[string]
+	Channels []nodes.Output[PolyformAnimationChannel]
+}
+
+func (node AnimationNode) Out(out *nodes.StructOutput[PolyformAnimation]) {
+	out.Set(PolyformAnimation{
+		Name:     nodes.TryGetOutputValue(out, node.Name, ""),
+		Channels: nodes.GetOutputValues(out, node.Channels),
+	})
+}
+
+func validateChannelNode[T any](
+	out nodes.ExecutionRecorder,
+	Target nodes.Output[*PolyformModel],
+	Frames nodes.Output[[]animation.Frame[T]],
+) (*PolyformModel, []animation.Frame[T], error) {
+	target := nodes.TryGetOutputValue(out, Target, nil)
+	if target == nil {
+		return nil, nil, nodes.NilInputError{Input: Target}
+	}
+
+	frames := nodes.TryGetOutputValue(out, Frames, nil)
+	if len(frames) == 0 {
+		return nil, nil, nodes.InvalidInputError{
+			Input:   Frames,
+			Message: "Can't create an animation with 0 frames",
+		}
+	}
+
+	return target, frames, nil
+}
+
+type TranslationAnimationChannelNode struct {
+	Target        nodes.Output[*PolyformModel]
+	Interpolation nodes.Output[AnimationSamplerInterpolation]
+	Frames        nodes.Output[[]animation.Frame[vector3.Float64]]
+}
+
+func (node TranslationAnimationChannelNode) Out(out *nodes.StructOutput[PolyformAnimationChannel]) {
+	target, frames, err := validateChannelNode(out, node.Target, node.Frames)
+	if err != nil {
+		out.CaptureError(err)
+		return
+	}
+
+	times := make([]float64, len(frames))
+	for i, v := range frames {
+		times[i] = v.Time()
+	}
+
+	interpolation := nodes.TryGetOutputValue(out, node.Interpolation, AnimationSamplerInterpolation_LINEAR)
+
+	var data []vector3.Float64
+	switch interpolation {
+	case AnimationSamplerInterpolation_LINEAR, AnimationSamplerInterpolation_STEP:
+		data = make([]vector3.Float64, len(times))
+		for i, v := range frames {
+			data[i] = v.Val()
+		}
+
+	default:
+		out.CaptureError(nodes.InvalidInputError{
+			Input:   node.Interpolation,
+			Message: "unimplemented interpolation",
+		})
+		return
+	}
+
+	out.Set(PolyformAnimationChannel{
+		TargetPath: AnimationChannelTargetPath_TRANSLATION,
+		Target:     target,
+		Sampler: PolyformAnimationSampler{
+			Interpolation: interpolation,
+			Times:         times,
+			Data:          Vector3AnimationSamplerData(data),
+		},
+	})
+}
+
+type RotationAnimationChannelNode struct {
+	Target        nodes.Output[*PolyformModel]
+	Interpolation nodes.Output[AnimationSamplerInterpolation]
+	Frames        nodes.Output[[]animation.Frame[quaternion.Quaternion]]
+}
+
+func (node RotationAnimationChannelNode) Out(out *nodes.StructOutput[PolyformAnimationChannel]) {
+	target, frames, err := validateChannelNode(out, node.Target, node.Frames)
+	if err != nil {
+		out.CaptureError(err)
+		return
+	}
+
+	times := make([]float64, len(frames))
+	for i, v := range frames {
+		times[i] = v.Time()
+	}
+
+	interpolation := nodes.TryGetOutputValue(out, node.Interpolation, AnimationSamplerInterpolation_LINEAR)
+
+	var data []quaternion.Quaternion
+	switch interpolation {
+	case AnimationSamplerInterpolation_LINEAR, AnimationSamplerInterpolation_STEP:
+		data = make([]quaternion.Quaternion, len(times))
+		for i, v := range frames {
+			data[i] = v.Val()
+		}
+
+	default:
+		out.CaptureError(nodes.InvalidInputError{
+			Input:   node.Interpolation,
+			Message: "unimplemented interpolation",
+		})
+		return
+	}
+
+	out.Set(PolyformAnimationChannel{
+		TargetPath: AnimationChannelTargetPath_ROTATION,
+		Target:     target,
+		Sampler: PolyformAnimationSampler{
+			Interpolation: interpolation,
+			Times:         times,
+			Data:          RotationAnimationSamplerData(data),
+		},
+	})
+}
+
+type ScaleAnimationChannelNode struct {
+	Target        nodes.Output[*PolyformModel]
+	Interpolation nodes.Output[AnimationSamplerInterpolation]
+	Frames        nodes.Output[[]animation.Frame[vector3.Float64]]
+}
+
+func (node ScaleAnimationChannelNode) Out(out *nodes.StructOutput[PolyformAnimationChannel]) {
+	target, frames, err := validateChannelNode(out, node.Target, node.Frames)
+	if err != nil {
+		out.CaptureError(err)
+		return
+	}
+
+	times := make([]float64, len(frames))
+	for i, v := range frames {
+		times[i] = v.Time()
+	}
+
+	interpolation := nodes.TryGetOutputValue(out, node.Interpolation, AnimationSamplerInterpolation_LINEAR)
+
+	var data []vector3.Float64
+	switch interpolation {
+	case AnimationSamplerInterpolation_LINEAR, AnimationSamplerInterpolation_STEP:
+		data = make([]vector3.Float64, len(times))
+		for i, v := range frames {
+			data[i] = v.Val()
+		}
+
+	default:
+		out.CaptureError(nodes.InvalidInputError{
+			Input:   node.Interpolation,
+			Message: "unimplemented interpolation",
+		})
+		return
+	}
+
+	out.Set(PolyformAnimationChannel{
+		TargetPath: AnimationChannelTargetPath_SCALE,
+		Target:     target,
+		Sampler: PolyformAnimationSampler{
+			Interpolation: interpolation,
+			Times:         times,
+			Data:          Vector3AnimationSamplerData(data),
+		},
+	})
 }
