@@ -2,13 +2,13 @@ package sequence
 
 import "github.com/EliCDavis/polyform/nodes"
 
-type UniformNode struct {
+type LinearNode struct {
 	Start   nodes.Output[float64]
 	End     nodes.Output[float64]
 	Samples nodes.Output[int]
 }
 
-func (snd UniformNode) Out(out *nodes.StructOutput[[]float64]) {
+func (snd LinearNode) Out(out *nodes.StructOutput[[]float64]) {
 	start := nodes.TryGetOutputValue(out, snd.Start, 0.)
 	end := nodes.TryGetOutputValue(out, snd.End, 1.)
 	samples := max(nodes.TryGetOutputValue(out, snd.Samples, 0), 0)

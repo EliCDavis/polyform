@@ -56,8 +56,13 @@ func (tv *FileVariable) ApplyMessage(msg []byte) (bool, error) {
 }
 
 func (tv *FileVariable) applyProfile(profile json.RawMessage) error {
+	data := make([]byte, 0)
+	err := json.Unmarshal(profile, &data)
+	if err != nil {
+		return err
+	}
 	tv.version++
-	tv.value = profile
+	tv.value = data
 	return nil
 }
 

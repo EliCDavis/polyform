@@ -9,7 +9,7 @@ import (
 func init() {
 	factory := &refutil.TypeFactory{}
 
-	refutil.RegisterType[nodes.Struct[UniformNode]](factory)
+	refutil.RegisterType[nodes.Struct[LinearNode]](factory)
 
 	generator.RegisterTypes(factory)
 }
