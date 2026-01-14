@@ -128,7 +128,7 @@ func (c Cube) UnweldedQuads() modeling.Mesh {
 	halfW := c.Width / 2
 	halfH := c.Height / 2
 	halfD := c.Depth / 2
-	var topUV, bottomUV, leftUV, rightUV, frontUV, backUV EuclideanUVSpace
+	var topUV, bottomUV, leftUV, rightUV, frontUV, backUV EuclideanUVSpace = nil, nil, nil, nil, nil, nil
 	if c.UVs != nil {
 		topUV = c.UVs.Top
 		bottomUV = c.UVs.Bottom
@@ -321,12 +321,31 @@ type CubeUVsNode struct {
 }
 
 func (cnd CubeUVsNode) Uv(out *nodes.StructOutput[CubeUVs]) {
-	out.Set(CubeUVs{
-		Top:    nodes.TryGetOutputReference(out, cnd.Top, nil),
-		Bottom: nodes.TryGetOutputReference(out, cnd.Bottom, nil),
-		Left:   nodes.TryGetOutputReference(out, cnd.Left, nil),
-		Right:  nodes.TryGetOutputReference(out, cnd.Right, nil),
-		Front:  nodes.TryGetOutputReference(out, cnd.Front, nil),
-		Back:   nodes.TryGetOutputReference(out, cnd.Back, nil),
-	})
+	uvs := CubeUVs{}
+
+	if cnd.Top != nil {
+		uvs.Top = nodes.GetOutputValue(out, cnd.Top)
+	}
+
+	if cnd.Bottom != nil {
+		uvs.Bottom = nodes.GetOutputValue(out, cnd.Bottom)
+	}
+
+	if cnd.Left != nil {
+		uvs.Left = nodes.GetOutputValue(out, cnd.Left)
+	}
+
+	if cnd.Right != nil {
+		uvs.Right = nodes.GetOutputValue(out, cnd.Right)
+	}
+
+	if cnd.Front != nil {
+		uvs.Front = nodes.GetOutputValue(out, cnd.Front)
+	}
+
+	if cnd.Back != nil {
+		uvs.Back = nodes.GetOutputValue(out, cnd.Back)
+	}
+
+	out.Set(uvs)
 }

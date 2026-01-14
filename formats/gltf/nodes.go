@@ -330,6 +330,7 @@ type MaterialNode struct {
 	MetallicFactor           nodes.Output[float64]         `description:"The factor for the metalness of the material. This value defines a linear multiplier for the sampled metalness values of the metallic-roughness texture."`
 	RoughnessFactor          nodes.Output[float64]         `description:"The factor for the roughness of the material. This value defines a linear multiplier for the sampled roughness values of the metallic-roughness texture."`
 	MetallicRoughnessTexture nodes.Output[PolyformTexture] `description:"The metallic-roughness texture. The metalness values are sampled from the B channel. The roughness values are sampled from the G channel. These values MUST be encoded with a linear transfer function. If other channels are present (R or A), they MUST be ignored for metallic-roughness calculations. When undefined, the texture MUST be sampled as having 1.0 in G and B components."`
+	EmissiveTexture          nodes.Output[PolyformTexture] `description:"The emissive texture. It controls the color and intensity of the light being emitted by the material. This texture contains RGB components encoded with the sRGB transfer function. If a fourth component (A) is present, it MUST be ignored. When undefined, the texture MUST be sampled as having 1.0 in RGB components."`
 	EmissiveFactor           nodes.Output[coloring.Color]  `description:"The factors for the emissive color of the material. This value defines linear multipliers for the sampled texels of the emissive texture."`
 	NormalTexture            nodes.Output[PolyformNormal]  `description:"The tangent space normal texture. The texture encodes RGB components with linear transfer function. Each texel represents the XYZ components of a normal vector in tangent space. The normal vectors use the convention +X is right and +Y is up. +Z points toward the viewer. If a fourth component (A) is present, it **MUST** be ignored. When undefined, the material does not have a tangent space normal texture."`
 
@@ -357,6 +358,14 @@ func (gmnd MaterialNode) Out(out *nodes.StructOutput[PolyformMaterial]) {
 				pbr = &PolyformPbrMetallicRoughness{}
 			}
 			pbr.BaseColorTexture = tex
+		}
+	}
+
+	var emissiveTexture *PolyformTexture
+	if gmnd.EmissiveTexture != nil {
+		tex := nodes.GetOutputReference(out, gmnd.EmissiveTexture)
+		if tex.canAddToGLTF() {
+			emissiveTexture = tex
 		}
 	}
 
@@ -431,6 +440,7 @@ func (gmnd MaterialNode) Out(out *nodes.StructOutput[PolyformMaterial]) {
 		Extensions:           extensions,
 		EmissiveFactor:       emissiveFactor,
 		NormalTexture:        normalTex,
+		EmissiveTexture:      emissiveTexture,
 	})
 }
 

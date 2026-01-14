@@ -248,6 +248,11 @@ func (cn SquareNode) Out(out *nodes.StructOutput[float64]) {
 	out.Set(v * v)
 }
 
+func (cn SquareNode) Int(out *nodes.StructOutput[int]) {
+	v := nodes.TryGetOutputValue(out, cn.In, 0)
+	out.Set(int(math.Round(v * v)))
+}
+
 type SquareRootNode struct {
 	In nodes.Output[float64]
 }
