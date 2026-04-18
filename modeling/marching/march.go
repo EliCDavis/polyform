@@ -259,7 +259,7 @@ func marchRecurse(field sample.Vec3ToFloat, bounds geometry.AABB, cubeSize, surf
 
 	// TODO: WE THIS IS OUR BIGGEST SPEEDUP, FIGURE OUT HOW TO PRUNE HARDER
 	// The closest surface is not within the bounds
-	if math.Abs(fieldResult) > (diagonal/2)+(cubeSize)+center.Distance(recentered) {
+	if math.Abs(fieldResult) > (diagonal*2)+(cubeSize)+center.Distance(recentered) {
 		return
 	}
 
