@@ -63,6 +63,7 @@ import (
 	_ "github.com/EliCDavis/polyform/modeling/voxelize"
 
 	_ "github.com/EliCDavis/polyform/nodes/experimental"
+	_ "github.com/EliCDavis/polyform/nodes/opearations"
 )
 
 func main() {

@@ -30,5 +30,11 @@ func init() {
 	refutil.RegisterType[nodes.Struct[CircleNode[bool]]](factory)
 	refutil.RegisterType[nodes.Struct[CircleNode[coloring.Color]]](factory)
 
+	refutil.RegisterType[nodes.Struct[RectanglesNode[float64]]](factory)
+	refutil.RegisterType[nodes.Struct[RectanglesNode[vector2.Float64]]](factory)
+	refutil.RegisterType[nodes.Struct[RectanglesNode[vector3.Float64]]](factory)
+	refutil.RegisterType[nodes.Struct[RectanglesNode[bool]]](factory)
+	refutil.RegisterType[nodes.Struct[RectanglesNode[coloring.Color]]](factory)
+
 	generator.RegisterTypes(factory)
 }

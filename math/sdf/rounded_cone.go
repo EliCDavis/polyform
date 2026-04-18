@@ -31,6 +31,11 @@ func RoundedCone(a, b vector3.Float64, r1, r2 float64) sample.Vec3ToFloat {
 	// sampling independent computations (only depend on shape)
 	ba := b.Sub(a)
 	l2 := ba.Dot(ba)
+
+	if l2 == 0 {
+		return Sphere(a, max(r1, r2))
+	}
+
 	rr := r1 - r2
 	rrr := rr * rr
 	signRRR := sign(rr) * rrr

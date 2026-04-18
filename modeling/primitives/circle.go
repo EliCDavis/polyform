@@ -64,8 +64,12 @@ func (c Circle) ToMesh() modeling.Mesh {
 		uvs := make([]vector2.Float64, c.Sides+1)
 		for sideIndex := 0; sideIndex < c.Sides; sideIndex++ {
 			angle := angleIncrement * float64(sideIndex)
-			uvs[sideIndex] = vector2.New(math.Cos(angle), math.Sin(angle)).Normalized().Scale(c.UVs.Radius)
+			uvs[sideIndex] = vector2.New(math.Cos(angle), math.Sin(angle)).
+				Normalized().
+				Scale(c.UVs.Radius).
+				Add(c.UVs.Center)
 		}
+		uvs[topMiddleVert] = c.UVs.Center
 		meshV2Data[modeling.TexCoordAttribute] = uvs
 	}
 
