@@ -20,6 +20,7 @@ To run it locally, you can download the latest [release](https://github.com/EliC
 polyform edit
 
 # If Golang is installed, clone and run:
+npm install && npm run build-dev
 go run ./cmd/polyform edit
 
 # If Nix is installed, run:
@@ -140,53 +141,120 @@ Results in:
 
 ## Local Development
 
-You can use [air](https://github.com/cosmtrek/air) to live reload.
+Polyform's visual editor is a **React + TypeScript** app in [`web/`](web/), built with **Vite** and served by the Go `edit` command. The Go binary embeds the built JS at compile time, so frontend changes require an npm build before `go build` picks them up.
+
+### Prerequisites
+
+- **Go** 1.21+ (to run the edit server and build the CLI)
+- **Node.js** 18+ and **npm** (to build the web UI)
+
+### First-time setup
+
+```bash
+git clone https://github.com/EliCDavis/polyform.git
+cd polyform
+npm install
+npm run build-dev   # writes generator/edit/html/js/index.js
+go run ./cmd/polyform edit
+```
+
+Open http://localhost:8080 (or whatever port the server prints).
+
+> `generator/edit/html/js/` is gitignored. A fresh clone has no bundled JS until you run `npm run build-dev`.
+
+### Web UI development
+
+For UI work, run the **Go API server** and the **Vite dev server** together. Vite gives you hot module replacement (HMR); API calls are proxied to Go.
+
+**Terminal 1 — Go backend:**
+
+```bash
+go run ./cmd/polyform edit
+# or, with live reload for Go changes:
+air edit
+```
+
+**Terminal 2 — React frontend:**
+
+```bash
+npm run watch-dev
+```
+
+The Vite dev server proxies REST and WebSocket traffic to `localhost:8080`. If your Go server uses a different port, update the proxy targets in [`web/vite.config.ts`](web/vite.config.ts).
+
+### Go-only development
+
+If you are only changing Go code and not the web UI, you can skip Vite and use the last built bundle:
+
+```bash
+npm run build-dev   # only when web/ changed
+go run ./cmd/polyform edit
+```
+
+### npm scripts
+
+| Script | Purpose |
+|--------|---------|
+| `npm run watch-dev` | Vite dev server with HMR (local UI development) |
+| `npm run build-dev` | Production bundle → `generator/edit/html/js/index.js` |
+| `npm run build-prod` | Same as `build-dev` with production mode |
+| `npm run lint` | ESLint on `web/src/` |
+
+### Live reload with Air
+
+[Air](https://github.com/cosmtrek/air) reloads the Go server when backend files change. Include frontend source extensions if you want Air to restart when you touch the web tree (you still need Vite for HMR):
 
 ```toml
 # .air.toml
 [build]
-  cmd = "go build -o ./tmp/main.exe ./cmd/polyform"
-  include_ext = ["go", "tpl", "tmpl", "html", "js"]
+  cmd = "npm run build-dev && go build -o ./tmp/main.exe ./cmd/polyform"
+  include_ext = ["go", "tpl", "tmpl", "html", "ts", "tsx"]
 ```
 
-The run:
+Then:
 
 ```bash
 air edit
 ```
 
-If you want to mess with modern web browser features and need https, I recommend taking a look at https://github.com/FiloSottile/mkcert
+For active UI work, prefer **`npm run watch-dev` + `go run ./cmd/polyform edit`** instead of rebuilding the bundle on every save.
 
+### HTTPS / WebXR
+
+Some browser features (WebXR, shared memory) need HTTPS. [mkcert](https://github.com/FiloSottile/mkcert) is a simple way to get local TLS certs:
 
 ```bash
 mkcert -install
 mkcert -key-file key.pem -cert-file cert.pem localhost
 air edit --port 8080 --ssl
 
-# If you want to connect to a vr headset
+# To reach a VR headset on your LAN:
 air edit --port 8080 --ssl --host 0.0.0.0
 ```
 
-### WASM Deployment
+When using Vite alongside TLS Go, point the Vite proxy at your HTTPS origin or run without Vite and use the embedded bundle from `polyform edit --ssl`.
 
-Compile the `polywasm` app
+### WASM deployment
+
+The same web bundle is embedded into a WASM build of the CLI. **Build the JS first**, then compile WASM:
 
 ```bash
+npm run build-dev
 go install ./cmd/polywasm
-```
-
-Build your app
-
-```bash
 GOOS=js GOARCH=wasm go build -ldflags="-w -s" -o main.wasm ./cmd/polyform
 polywasm build --wasm main.wasm
+polywasm serve   # serves the static wrapper (splash + service worker + main.wasm)
 ```
 
-Then serve
+Nix release builds run `npm run build-dev` automatically before `go build` (see [`flake.nix`](flake.nix)).
+
+### Nix
 
 ```bash
-polywasm edit
+nix run .#polyform edit
 ```
+
+The Nix derivation builds the website npm package and copies `generator/edit/html/*` into the Go build before compiling.
 
 ## Citation
 

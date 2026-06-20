@@ -1,0 +1,301 @@
+html {
+  height: 100%;
+}
+
+body {
+  height: 100%;
+  margin: 0;
+  background-color: #000;
+  color: #fff;
+  font-family: Monospace;
+  font-size: 13px;
+  line-height: 24px;
+  overscroll-behavior: none;
+}
+
+#root {
+  height: 100%;
+}
+
+a {
+  color: #ff0;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+button {
+  cursor: pointer;
+  text-transform: uppercase;
+  border: 0;
+  background-color: #196e6c;
+  color: white;
+  padding: 6px 14px;
+  border-radius: 2px;
+  text-transform: none;
+}
+
+button.secondary {
+  background-color: #122a34;
+}
+
+button.destructive {
+  background-color: #7f1d1d;
+}
+
+#info {
+  padding: 8px;
+  background-color: #003847;
+  margin: 12px;
+  border-radius: 4px;
+  box-sizing: border-box;
+  text-align: center;
+  user-select: none;
+  pointer-events: none;
+}
+
+#info h1 {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+input[type="number"] {
+  min-width: 0;
+}
+
+#watermark {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  padding: 10px;
+  user-select: none;
+  pointer-events: none;
+  z-index: 1;
+}
+
+#running-message {
+  display: none;
+  position: absolute;
+  right: 20px;
+  bottom: 20px;
+  padding: 10px;
+  user-select: none;
+  pointer-events: none;
+  z-index: 1;
+}
+
+#messageContainer {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  margin: 6px;
+  z-index: 1;
+}
+
+.errorMessage {
+  background-color: red;
+  margin-bottom: 6px;
+  padding: 4px;
+  text-align: center;
+}
+
+#infoMessage {
+  padding: 8px;
+  background-color: rgba(0, 0, 0, 0.496);
+  color: white;
+  border-radius: 12px;
+  display: none;
+}
+
+a,
+button,
+input,
+select {
+  pointer-events: auto;
+}
+
+#three-viewer-container {
+  display: flex;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  height: 100%;
+  min-height: 0;
+  width: 100%;
+}
+
+#three-viewer-container:focus {
+  outline: none !important;
+}
+
+#light-canvas {
+  width: 100%;
+  height: 100%;
+}
+
+#light-container {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+}
+
+.resizer[data-direction="horizontal"] {
+  background-color: #004359;
+  cursor: ew-resize;
+  height: 100%;
+  width: 2px;
+  flex-shrink: 0;
+}
+
+.resizer[data-direction="vertical"] {
+  background-color: #004359;
+  cursor: ns-resize;
+  height: 2px;
+  width: 100%;
+  flex-shrink: 0;
+}
+
+.profile-item:hover {
+  background-color: rgb(25 110 108);
+  cursor: pointer;
+}
+
+#three-canvas {
+  width: 100%;
+  height: 100%;
+  outline: none !important;
+}
+
+#full-page {
+  display: flex;
+  height: 100%;
+}
+
+#sidebar {
+  width: 100%;
+  height: 100%;
+  background-color: #00212b;
+  display: flex;
+}
+
+#sidebar-content {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  overflow: auto;
+  scrollbar-color: #196e6c #003847;
+  scrollbar-width: thin;
+  width: 100%;
+}
+
+#main-content {
+  flex-direction: column;
+  display: flex;
+  flex: 1;
+  height: 100%;
+  width: 100%;
+  min-width: 0;
+}
+
+.sidebar-header {
+  background-color: #003847;
+  text-align: center;
+  padding: 4px;
+  font-size: 14px;
+}
+
+.sidebar-section-content {
+  display: flex;
+  padding: 12px;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sidebar-button {
+  flex: 1;
+}
+
+.variable-name {
+  font-size: 18px;
+  flex: 1;
+}
+
+.variable-description {
+  line-height: normal;
+  margin-bottom: 8px;
+  color: #d8d8d8;
+}
+
+input {
+  border-style: solid;
+  padding: 2px;
+  padding-left: 4px;
+  border-radius: 2px;
+  color: #ffffff;
+  flex-shrink: 1;
+  background-color: #0a2e3d;
+  border-width: 2px;
+  border-color: #003847;
+  flex-grow: 1;
+  min-width: 0;
+  flex-basis: 0;
+}
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+textarea,
+select {
+  color: #ffffff;
+  background-color: #0a2e3d;
+  border-color: #003847;
+}
+
+button.icon-button {
+  background-color: unset;
+  width: 24px;
+  padding: 0;
+  border-radius: 50%;
+  height: 24px;
+}
+
+button.icon-button:hover {
+  background-color: rgba(0, 0, 0, 0.25);
+}
+
+button.dropdown-item {
+  background-color: unset;
+}
+
+button.dropdown-item:hover {
+  background-color: #122a34;
+}
+
+button.toggle {
+  width: 50px;
+  padding: 3px;
+  border-radius: 28px;
+  border-color: #003847;
+  background-color: #0a2e3d;
+  display: flex;
+  flex-direction: row;
+  border-style: solid;
+  border-width: 2px;
+}
+
+.toggle > .toggle-slider {
+  height: 20px;
+  width: 20px;
+  background-color: #003847;
+  border-radius: 20px;
+}
