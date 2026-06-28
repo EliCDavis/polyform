@@ -7,12 +7,15 @@ import { NodeManager } from '../node_manager.js';
 import { FileParameterNodeController } from './file_parameter';
 import { getFileExtension, getLastSegmentOfURL } from '../utils.js';
 import { Vector2ParameterNodeController } from './vector2_parameter';
-import { NodeInstance, NodeInstanceAssignedInput, NodeInstanceOutput, NodeDefinition, ExecutionReport } from '../schema.js';
+import { NodeInstance, NodeInstanceAssignedInput, NodeInstanceOutput, NodeDefinition, ExecutionReport, RegisteredTypes, subGraphBoundaryKind } from '../schema.js';
 import { RequestManager, saveFileToDisk } from '../requests.js';
-import { FlowNode, GlobalWidgetFactory, ImageWidget, MessageType, StringWidget } from '@elicdavis/node-flow';
+import { FlowNode, GlobalWidgetFactory, ImageWidget, MessageType } from '@elicdavis/node-flow';
 import { ThreeApp } from '../three_app.js';
 import { ProducerViewManager } from '../ProducerView/producer_view_manager.js';
 import type { NodeParameter } from '../../types/parameter.js';
+import { SubGraphBoundaryNodeController } from './boundary_node_controller.js';
+import { isSubGraphRuntimeType } from '../portTypes.js';
+import { useGraphTabStore } from '../../stores/graphTabStore.js';
 
 export const InstanceIDProperty: string = "instanceID"
 
@@ -73,43 +76,6 @@ function BuildParameter(
     }
 }
 
-// https://stackoverflow.com/a/35953318/4974261
-export function camelCaseToWords(str: string): string {
-    let title = str;
-
-    const endMatches = str.match(/\[[^\]]*\]$/g);
-    let end = "";
-    if (endMatches !== null && endMatches.length > 0) {
-        end = " " + endMatches[0];
-        title = title.substring(0, title.length - endMatches[0].length);
-    }
-
-    title = title
-        .replace(/(_)+/g, ' ')
-        .replace(/([a-z])([A-Z][a-z])/g, "$1 $2")
-        .replace(/([A-Z][a-z])([A-Z])/g, "$1 $2")
-        .replace(/([a-z])([A-Z]+[a-z])/g, "$1 $2")
-        .replace(/([A-Z]+)([A-Z][a-z][a-z])/g, "$1 $2")
-        .replace(/([a-z]+)([A-Z0-9]+)/g, "$1 $2")
-        .replace(/([A-Z]+)([A-Z][a-rt-z][a-z]*)/g, "$1 $2")
-        .replace(/([0-9])([A-Z][a-z]+)/g, "$1 $2")
-        .replace(/([A-Z]{2,})([0-9]{2,})/g, "$1 $2")
-        .replace(/([0-9]{2,})([A-Z]{2,})/g, "$1 $2")
-        .trim();
-
-    title = title.charAt(0).toUpperCase() + title.slice(1);
-    if (title.endsWith(" Node")) {
-        title = title.substring(0, title.length - 5);
-    }
-    if (title.endsWith(" Node Data")) {
-        title = title.substring(0, title.length - 10);
-    }
-    if (title.endsWith("NodeData")) {
-        title = title.substring(0, title.length - 8);
-    }
-    return title + end;
-}
-
 export class PolyNodeController {
 
     flowNode: FlowNode;
@@ -127,6 +93,8 @@ export class PolyNodeController {
     dependencies: NodeInstanceAssignedInput;
 
     parameter: ParameterController;
+
+    boundary: SubGraphBoundaryNodeController;
 
     requestManager: RequestManager;
 
@@ -150,7 +118,8 @@ export class PolyNodeController {
         requestManager: RequestManager,
         producerViewManager: ProducerViewManager,
         nodeDefinition: NodeDefinition,
-        serializableOutputTypes: Array<string>
+        serializableOutputTypes: Array<string>,
+        registeredTypes?: RegisteredTypes
     ) {
         // console.log(liteNode)
         this.flowNode = flowNode;
@@ -169,6 +138,7 @@ export class PolyNodeController {
         this.dependencies = {};
 
         this.parameter = null;
+        this.boundary = null;
 
         if (nodeData.metadata) {
             if (nodeData.metadata.position) {
@@ -206,10 +176,32 @@ export class PolyNodeController {
             if (nodeData.parameter.description) {
                 flowNode.setInfo(nodeData.parameter.description);
             }
+        } else if (subGraphBoundaryKind(nodeData) && registeredTypes) {
+            this.boundary = new SubGraphBoundaryNodeController(
+                flowNode,
+                this.nodeManager,
+                this.requestManager,
+                this.id,
+                nodeData,
+                registeredTypes
+            );
+        } else if (isSubGraphRuntimeType(nodeData.type) && nodeData.subGraphId) {
+            const subGraphId = nodeData.subGraphId;
+            const subGraphLabel = nodeData.name || nodeData.subGraphId;
+            const openSubGraphButton = GlobalWidgetFactory.create(flowNode, "button", {
+                text: "Open Sub-Graph",
+                callback: () => {
+                    useGraphTabStore.getState().openSubGraphTab(subGraphId, subGraphLabel);
+                },
+            });
+            flowNode.addWidget(openSubGraphButton);
         }
 
-        // type TitleChangeCallback = (node: FlowNode, oldTitle: string, newTitle: string) => void
         this.flowNode.addTitleChangeListener((_, __, newTitle) => {
+
+            if (this.boundary) {
+                return;
+            }
 
             // The only two times we can change title is if the node is a 
             // parameter, or if it's a producer.
@@ -270,7 +262,12 @@ export class PolyNodeController {
             this.flowNode.addWidget(downloadButton);
         }
 
-        // type ConnectionChangeCallback = (connection: Connection, connectionIndex: number, port: Port, portType: PortType, node: FlowNode) => void
+        this.attachInputConnectionListeners();
+
+        this.update(nodeData);
+    }
+
+    attachInputConnectionListeners(): void {
         for (let i = 0; i < this.flowNode.inputs(); i++) {
             const port = this.flowNode.inputPort(i);
             port.addConnectionAddedListener((connection, connectionIndex, port, portType, node) => {
@@ -312,8 +309,6 @@ export class PolyNodeController {
                 this.requestManager.deleteNodeInput(this.id, inputPort)
             });
         }
-
-        this.update(nodeData);
     }
 
     fetchOutput(outputKey: string, version: number): void {
@@ -384,6 +379,10 @@ export class PolyNodeController {
 
         if (nodeData.parameter) {
             this.parameter.update(nodeData.parameter)
+        }
+
+        if (this.boundary) {
+            this.boundary.update(nodeData);
         }
     }
 

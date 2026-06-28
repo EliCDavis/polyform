@@ -1,6 +1,7 @@
 import { GraphControls } from "@/features/graph/GraphControls";
 import { ProfileSection } from "@/features/profiles/ProfileSection";
 import { VariableSection } from "@/features/variables/VariableSection";
+import { SubGraphSection } from "@/features/subgraph/SubGraphSection";
 import { useUiStore } from "@/stores/uiStore";
 
 export function Sidebar() {
@@ -15,6 +16,7 @@ export function Sidebar() {
           </div>
         )}
         <GraphControls />
+        <SubGraphSection />
         <ProfileSection />
         <VariableSection />
       </div>

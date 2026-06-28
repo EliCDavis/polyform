@@ -1,7 +1,9 @@
 import { useEffect, useRef } from "react";
 import { NodeFlowGraph, Publisher } from "@elicdavis/node-flow";
 import { parameterNodeConfigs } from "./parameterNodeConfigs";
+import { subGraphNodeConfigs } from "./subGraphNodeConfigs";
 import { useFlowGraphBootstrap } from "./FlowGraphBootstrapContext";
+import styles from "./NodeFlowPanel.module.css";
 
 export function NodeFlowPanel() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -17,7 +19,7 @@ export function NodeFlowPanel() {
     const publisher = new Publisher({
       name: "Polyform",
       version: "1.0.0",
-      nodes: parameterNodeConfigs,
+      nodes: { ...parameterNodeConfigs, ...subGraphNodeConfigs },
     });
     const nodeFlowGraph = new NodeFlowGraph(canvas, {});
     nodeFlowGraph.addPublisher("polyform", publisher);
@@ -29,8 +31,8 @@ export function NodeFlowPanel() {
   }, [registerFlowGraph]);
 
   return (
-    <div id="light-container">
-      <canvas id="light-canvas" ref={canvasRef} />
+    <div className={styles.container}>
+      <canvas className={styles.canvas} ref={canvasRef} />
     </div>
   );
 }

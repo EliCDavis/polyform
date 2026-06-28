@@ -1,6 +1,7 @@
 import { createContext, useContext } from "react";
 import type { SchemaManager } from "@/lib/schema_manager";
 import type { NodeManager } from "@/lib/node_manager";
+import type { NoteManager } from "@/lib/note_manager";
 import type { ProducerViewManager } from "@/lib/ProducerView/producer_view_manager";
 import type { ThreeApp } from "@/lib/three_app";
 import type { RequestManager } from "@/lib/requests";
@@ -10,6 +11,7 @@ import type { NodeFlowGraph } from "@elicdavis/node-flow";
 export interface EditorContextValue {
   schemaManager: SchemaManager;
   nodeManager: NodeManager;
+  noteManager: NoteManager;
   producerViewManager: ProducerViewManager;
   requestManager: RequestManager;
   threeApp: ThreeApp;
