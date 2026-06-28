@@ -15,6 +15,7 @@ type App struct {
 	Metadata    map[string]any                 `json:"metadata,omitempty"`
 	Variables   NestedGroup[PersistedVariable] `json:"variables,omitempty"`
 	Profiles    map[string]AppProfile          `json:"profiles,omitempty"`
+	SubGraphs   map[string]SubGraphDefinition  `json:"subGraphs,omitempty"`
 }
 
 type AppProfile struct {

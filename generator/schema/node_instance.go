@@ -18,4 +18,8 @@ type NodeInstance struct {
 	Parameter Parameter      `json:"parameter,omitempty"`
 	Variable  any            `json:"variable,omitempty"`
 	Metadata  map[string]any `json:"metadata,omitempty"`
+
+	SubGraphInputBoundary  *SubGraphInputBoundary  `json:"subGraphInputBoundary,omitempty"`
+	SubGraphOutputBoundary *SubGraphOutputBoundary `json:"subGraphOutputBoundary,omitempty"`
+	SubGraphId       string            `json:"subGraphId,omitempty"`
 }

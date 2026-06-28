@@ -104,6 +104,7 @@ func (as *Server) NodeOutputEndpoint(w http.ResponseWriter, r *http.Request) {
 type RegisteredTypes struct {
 	NodeTypes            []schema.NodeType `json:"nodeTypes"`
 	SerializeOutputTypes []string          `json:"serializableOutputTypes"`
+	PortTypes            []string          `json:"portTypes"`
 }
 
 func nodeTypesEndpoint(graphInstance *graph.Instance, serializer *serialize.TypeSwitch[manifest.Entry]) endpoint.Handler {
@@ -111,8 +112,10 @@ func nodeTypesEndpoint(graphInstance *graph.Instance, serializer *serialize.Type
 		Methods: map[string]endpoint.Method{
 			http.MethodGet: endpoint.JsonResponseMethod(
 				func(r *http.Request) (RegisteredTypes, error) {
+					nodeTypes := graphInstance.BuildSchemaForAllNodeTypes()
 					b := RegisteredTypes{
-						NodeTypes: graphInstance.BuildSchemaForAllNodeTypes(),
+						NodeTypes: nodeTypes,
+						PortTypes: graph.CollectAllPortTypes(nodeTypes),
 					}
 					if serializer != nil {
 						b.SerializeOutputTypes = serializer.Types()

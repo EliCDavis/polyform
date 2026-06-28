@@ -10,6 +10,7 @@ import (
 	"github.com/EliCDavis/polyform/formats/swagger"
 	"github.com/EliCDavis/polyform/generator/manifest"
 	"github.com/EliCDavis/polyform/generator/schema"
+	"github.com/EliCDavis/polyform/generator/subgraph"
 	"github.com/EliCDavis/polyform/generator/sync"
 	"github.com/EliCDavis/polyform/generator/variable"
 	"github.com/EliCDavis/polyform/nodes"
@@ -37,6 +38,9 @@ type Instance struct {
 	variables      variable.System
 
 	profiles map[string]variable.Profile
+
+	subGraphs map[string]*subGraphRuntime
+	parent    *Instance
 
 	// TODO: Make this a lock across the entire instance
 	lock gsync.RWMutex
@@ -336,6 +340,10 @@ func (a *Instance) NodeIds() []string {
 }
 
 func (a *Instance) incModelVersion() {
+	if a.parent != nil {
+		a.parent.incModelVersion()
+		return
+	}
 	// TODO: Make thread safe
 	a.movelVersion++
 }
@@ -384,6 +392,31 @@ func (a *Instance) NodeInstanceSchema(node nodes.Node) schema.NodeInstance {
 		if ok {
 			nodeInstance.Name = named.Name()
 		}
+	}
+
+	if boundary, ok := subgraph.IsBoundaryNode(node); ok {
+		portName := boundary.BoundaryPortName()
+		portType := boundary.BoundaryPortType()
+		if _, isInput := subgraph.IsInputBoundary(node); isInput {
+			nodeInstance.SubGraphInputBoundary = &schema.SubGraphInputBoundary{
+				PortName: portName,
+				PortType: portType,
+			}
+		} else {
+			nodeInstance.SubGraphOutputBoundary = &schema.SubGraphOutputBoundary{
+				PortName: portName,
+				PortType: portType,
+			}
+		}
+		if named, ok := node.(nodes.Named); ok {
+			nodeInstance.Name = named.Name()
+		}
+	}
+
+	if runtime, ok := node.(*GraphInstanceNode); ok {
+		nodeInstance.SubGraphId = runtime.SubGraphID()
+		nodeInstance.Name = runtime.Name()
+		nodeInstance.Type = subgraph.RuntimeTypePath(runtime.SubGraphID())
 	}
 
 	for outputPortName, outputPort := range node.Outputs() {
@@ -493,6 +526,7 @@ func (a *Instance) Reset() {
 		namedPorts: make(map[string]namedOutputEntry[manifest.Manifest]),
 	}
 	a.profiles = make(map[string]variable.Profile)
+	a.subGraphs = make(map[string]*subGraphRuntime)
 }
 
 type sortedReference struct {
@@ -586,79 +620,34 @@ func (a *Instance) ApplyAppSchema(jsonPayload []byte) error {
 		a.profiles[profile] = data.Data
 	}
 
+	if err != nil {
+		return err
+	}
+
+	for subGraphID, subGraphDef := range appSchema.SubGraphs {
+		err = a.loadSubGraphDefinition(subGraphID, subGraphDef, decoder)
+		if err != nil {
+			return err
+		}
+	}
+
 	createdNodes := make(map[string]nodes.Node)
 
 	// Create the Nodes
 	for nodeID, instanceDetails := range appSchema.Nodes {
-		if nodeID == "" {
-			panic("attempting to create a node without an ID")
+		node, err := a.instantiateAppNode(nodeID, instanceDetails, createdNodes)
+		if err != nil {
+			return err
 		}
-
-		if instanceDetails.Variable != nil {
-			// We instantiate variables a different way
-			variable, err := a.variables.Variable(*instanceDetails.Variable)
-			if err != nil {
-				return err
-			}
-			node := variable.NodeReference()
+		if node != nil {
 			createdNodes[nodeID] = node
-			a.nodeIDs[node] = nodeID
-		} else {
-			newNode := a.typeFactory.New(instanceDetails.Type)
-			casted, ok := newNode.(nodes.Node)
-			if !ok {
-				panic(fmt.Errorf("graph definition contained type that instantiated a non node: %s", instanceDetails.Type))
-			}
-			createdNodes[nodeID] = casted
-			a.nodeIDs[casted] = nodeID
 		}
-
 	}
 
 	// Connect the nodes we just created
-	for nodeID, instanceDetails := range appSchema.Nodes {
-		node := createdNodes[nodeID]
-		inputs := node.Inputs()
-
-		sortedInput := sortPortReferences(instanceDetails.AssignedInput)
-
-		for _, sorted := range sortedInput {
-
-			dirtyInputName := sorted.name
-			dependency := sorted.port
-
-			inputName := dirtyInputName
-			components := strings.Split(inputName, ".")
-			if len(components) > 1 {
-				inputName = components[0]
-			}
-
-			input, ok := inputs[inputName]
-			if !ok {
-				panic(fmt.Errorf("Node %s has no input %s", nodeID, inputName))
-			}
-
-			outNode := createdNodes[dependency.NodeId]
-			outNodeOutputs := outNode.Outputs()
-			output, ok := outNodeOutputs[dependency.PortName]
-			if !ok {
-				panic(fmt.Errorf("Node %s has no output %s", dependency.NodeId, dependency.PortName))
-			}
-
-			if single, ok := input.(nodes.SingleValueInputPort); ok {
-				err := single.Set(output)
-				if err != nil {
-					panic(err)
-				}
-			} else if array, ok := input.(nodes.ArrayValueInputPort); ok {
-				err := array.Add(output)
-				if err != nil {
-					panic(err)
-				}
-			} else {
-				panic(fmt.Errorf("not sure how to assign node %q's input %q", nodeID, inputName))
-			}
-		}
+	err = a.connectAppNodes(appSchema.Nodes, createdNodes)
+	if err != nil {
+		return err
 	}
 
 	// Set the Producers
@@ -773,6 +762,18 @@ func (a *Instance) Schema() schema.GraphInstance {
 
 	appSchema.Nodes = appNodeSchema
 
+	if a.parent == nil {
+		a.initSubGraphs()
+		appSchema.SubGraphs = make(map[string]schema.RuntimeSubGraphDefinition, len(a.subGraphs))
+		for id := range a.subGraphs {
+			runtimeSchema, err := a.runtimeSubGraphSchema(id)
+			if err != nil {
+				panic(err)
+			}
+			appSchema.SubGraphs[id] = runtimeSchema
+		}
+	}
+
 	return appSchema
 }
 
@@ -847,6 +848,10 @@ func (a *Instance) EncodeToAppSchema() ([]byte, error) {
 
 	appSchema.Nodes = nodeInstances
 	appSchema.Variables = variableSchema
+	appSchema.SubGraphs, err = a.encodeSubGraphDefinitions(encoder)
+	if err != nil {
+		return nil, err
+	}
 
 	// TODO: Is this unsafe? Yes.
 	appSchema.Metadata = a.metadata.Data()
@@ -861,8 +866,13 @@ func (a *Instance) buildNodeGraphInstanceSchema(node nodes.Node, encoder *jbtf.E
 		IncludePointer: false,
 	}
 
+	nodeType := resolver.Resolve(node)
+	if runtime, ok := node.(*GraphInstanceNode); ok {
+		nodeType = subgraph.RuntimeTypePath(runtime.SubGraphID())
+	}
+
 	nodeInstance := schema.AppNodeInstance{
-		Type:          resolver.Resolve(node),
+		Type:          nodeType,
 		AssignedInput: make(map[string]schema.PortReference),
 	}
 
@@ -949,6 +959,12 @@ func (a *Instance) CreateNode(nodeType string) (nodes.Node, string, error) {
 	}
 	a.buildIDsForNode(casted)
 
+	if a.parent != nil {
+		if _, isBoundary := subgraph.IsBoundaryNode(casted); isBoundary {
+			a.parent.onSubGraphChildMutation(a.subGraphScopeID())
+		}
+	}
+
 	return casted, a.nodeIDs[casted], nil
 }
 
@@ -969,6 +985,11 @@ func (a *Instance) DeleteNodeById(nodeId string) {
 }
 
 func (a *Instance) DeleteNode(nodeToDelete nodes.Node) {
+	wasBoundary := false
+	if _, ok := subgraph.IsBoundaryNode(nodeToDelete); ok {
+		wasBoundary = true
+	}
+
 	a.namedManifests.DeleteNode(nodeToDelete)
 	delete(a.nodeIDs, nodeToDelete)
 
@@ -1005,6 +1026,10 @@ func (a *Instance) DeleteNode(nodeToDelete nodes.Node) {
 			}
 
 		}
+	}
+
+	if wasBoundary && a.parent != nil {
+		a.parent.onSubGraphChildMutation(a.subGraphScopeID())
 	}
 }
 
