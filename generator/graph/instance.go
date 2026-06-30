@@ -413,7 +413,7 @@ func (a *Instance) NodeInstanceSchema(node nodes.Node) schema.NodeInstance {
 		}
 	}
 
-	if runtime, ok := node.(*GraphInstanceNode); ok {
+	if runtime, ok := node.(*InstanceNode); ok {
 		nodeInstance.SubGraphId = runtime.SubGraphID()
 		nodeInstance.Name = runtime.Name()
 		nodeInstance.Type = subgraph.RuntimeTypePath(runtime.SubGraphID())
@@ -867,7 +867,7 @@ func (a *Instance) buildNodeGraphInstanceSchema(node nodes.Node, encoder *jbtf.E
 	}
 
 	nodeType := resolver.Resolve(node)
-	if runtime, ok := node.(*GraphInstanceNode); ok {
+	if runtime, ok := node.(*InstanceNode); ok {
 		nodeType = subgraph.RuntimeTypePath(runtime.SubGraphID())
 	}
 
@@ -961,7 +961,7 @@ func (a *Instance) CreateNode(nodeType string) (nodes.Node, string, error) {
 
 	if a.parent != nil {
 		if _, isBoundary := subgraph.IsBoundaryNode(casted); isBoundary {
-			a.parent.onSubGraphChildMutation(a.subGraphScopeID())
+			a.parent.onSubGraphChildMutation(a.SubGraphScopeID())
 		}
 	}
 
@@ -1029,7 +1029,7 @@ func (a *Instance) DeleteNode(nodeToDelete nodes.Node) {
 	}
 
 	if wasBoundary && a.parent != nil {
-		a.parent.onSubGraphChildMutation(a.subGraphScopeID())
+		a.parent.onSubGraphChildMutation(a.SubGraphScopeID())
 	}
 }
 

@@ -115,7 +115,7 @@ func (a *Instance) DeleteSubGraph(id string) error {
 func (a *Instance) countSubGraphNodeInstances(subGraphID string) int {
 	count := 0
 	for node := range a.nodeIDs {
-		runtime, ok := node.(*GraphInstanceNode)
+		runtime, ok := node.(*InstanceNode)
 		if ok && runtime.subGraphID == subGraphID {
 			count++
 		}
@@ -152,20 +152,6 @@ func (a *Instance) SubGraphInstance(id string) (*Instance, error) {
 	return runtime.instance, nil
 }
 
-func (a *Instance) ResolveScopeInstance(scope string) (*Instance, error) {
-	if scope == "" || scope == "root" {
-		return a.Root(), nil
-	}
-
-	const prefix = "subgraph/"
-	if len(scope) <= len(prefix) || scope[:len(prefix)] != prefix {
-		return nil, fmt.Errorf("unknown graph scope %q", scope)
-	}
-
-	subGraphID := scope[len(prefix):]
-	return a.Root().SubGraphInstance(subGraphID)
-}
-
 func (a *Instance) RegisterSubGraphNodeType(subGraphID string) (string, error) {
 	if err := a.assertRootGraph("register subgraph node type"); err != nil {
 		return "", err
@@ -184,7 +170,7 @@ func (a *Instance) CollectBoundaryPorts(subGraphID string) ([]BoundaryPort, erro
 	}
 
 	ports := make([]BoundaryPort, 0)
-	namesSeen := make(map[string]struct{})
+	seen := make(map[string]struct{})
 
 	for node := range child.nodeIDs {
 		boundary, ok := subgraph.IsBoundaryNode(node)
@@ -196,16 +182,17 @@ func (a *Instance) CollectBoundaryPorts(subGraphID string) ([]BoundaryPort, erro
 			continue
 		}
 
-		name := boundary.BoundaryPortName()
-		if _, dup := namesSeen[name]; dup {
-			continue
-		}
-		namesSeen[name] = struct{}{}
-
 		kind := "output"
 		if _, isInput := subgraph.IsInputBoundary(node); isInput {
 			kind = "input"
 		}
+
+		name := boundary.BoundaryPortName()
+		seenKey := kind + "/" + name
+		if _, dup := seen[seenKey]; dup {
+			continue
+		}
+		seen[seenKey] = struct{}{}
 
 		ports = append(ports, BoundaryPort{
 			Name: name,

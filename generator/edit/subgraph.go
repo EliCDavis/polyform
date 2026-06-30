@@ -88,7 +88,7 @@ func subGraphBoundaryEndpoint(graphInstance *graph.Instance, saver *GraphSaver) 
 	type BoundaryInfoRequest struct {
 		PortName string `json:"portName"`
 		PortType string `json:"portType"`
-		Scope    string `json:"scope"`
+		Scope    graph.Scope `json:"scope"`
 	}
 
 	type BoundaryInfoResponse struct {
@@ -107,7 +107,7 @@ func subGraphBoundaryEndpoint(graphInstance *graph.Instance, saver *GraphSaver) 
 					}
 					nodeID := parts[0]
 
-					scopeInstance, err := graphInstance.ResolveScopeInstance(request.Body.Scope)
+					scopeInstance, err := request.Body.Scope.ResolveInstance(graphInstance)
 					if err != nil {
 						return BoundaryInfoResponse{}, err
 					}
@@ -157,7 +157,7 @@ func scopedNodeEndpoint(graphInstance *graph.Instance, saver *GraphSaver) endpoi
 						return CreateResponse{}, err
 					}
 
-					scopeInstance, err := graphInstance.ResolveScopeInstance(scope)
+					scopeInstance, err := scope.ResolveInstance(graphInstance)
 					if err != nil {
 						return CreateResponse{}, err
 					}
@@ -181,7 +181,7 @@ func scopedNodeEndpoint(graphInstance *graph.Instance, saver *GraphSaver) endpoi
 						return EmptyResponse{}, err
 					}
 
-					scopeInstance, err := graphInstance.ResolveScopeInstance(scope)
+					scopeInstance, err := scope.ResolveInstance(graphInstance)
 					if err != nil {
 						return EmptyResponse{}, err
 					}
@@ -223,7 +223,7 @@ func scopedNodeConnectionEndpoint(graphInstance *graph.Instance, saver *GraphSav
 						return EmptyResponse{}, err
 					}
 
-					scopeInstance, err := graphInstance.ResolveScopeInstance(scope)
+					scopeInstance, err := scope.ResolveInstance(graphInstance)
 					if err != nil {
 						return EmptyResponse{}, err
 					}
@@ -245,7 +245,7 @@ func scopedNodeConnectionEndpoint(graphInstance *graph.Instance, saver *GraphSav
 						return EmptyResponse{}, err
 					}
 
-					scopeInstance, err := graphInstance.ResolveScopeInstance(scope)
+					scopeInstance, err := scope.ResolveInstance(graphInstance)
 					if err != nil {
 						return EmptyResponse{}, err
 					}
@@ -263,19 +263,24 @@ func scopedNodeConnectionEndpoint(graphInstance *graph.Instance, saver *GraphSav
 	}
 }
 
-func parseSubGraphScopeFromURL(urlPath string) (string, error) {
-	const prefix = "/graph/subgraph/"
-	idx := strings.Index(urlPath, prefix)
-	if idx == -1 {
+func parseSubGraphScopeFromURL(urlPath string) (graph.Scope, error) {
+	rest, err := pathSuffixAfterMarker(urlPath, "/graph/subgraph/")
+	if err != nil {
 		return "", fmt.Errorf("invalid scoped graph url: %s", urlPath)
 	}
-	rest := urlPath[idx+len(prefix):]
-	slash := strings.Index(rest, "/")
-	if slash == -1 {
+
+	subGraphID := rest
+	for _, suffix := range []string{"/node", "/connection", "/metadata/"} {
+		if idx := strings.Index(rest, suffix); idx != -1 {
+			subGraphID = rest[:idx]
+			break
+		}
+	}
+
+	if subGraphID == "" {
 		return "", fmt.Errorf("invalid scoped graph url: %s", urlPath)
 	}
-	subGraphID := rest[:slash]
-	return "subgraph/" + subGraphID, nil
+	return graph.SubGraphScope(subGraphID), nil
 }
 
 func scopedGraphHandler(graphInstance *graph.Instance, saver *GraphSaver) http.Handler {
@@ -283,26 +288,26 @@ func scopedGraphHandler(graphInstance *graph.Instance, saver *GraphSaver) http.H
 	connectionHandler := scopedNodeConnectionEndpoint(graphInstance, saver)
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if strings.Contains(r.URL.Path, "/metadata/") {
-			scope, err := parseSubGraphScopeFromURL(r.URL.Path)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusBadRequest)
-				return
-			}
-			scopeInstance, err := graphInstance.ResolveScopeInstance(scope)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusBadRequest)
-				return
-			}
-			graphMetadataEndpointForInstance(scopeInstance, saver).ServeHTTP(w, r)
-			return
-		}
 		if strings.HasSuffix(r.URL.Path, "/connection") {
 			connectionHandler.ServeHTTP(w, r)
 			return
 		}
 		if strings.HasSuffix(r.URL.Path, "/node") {
 			nodeHandler.ServeHTTP(w, r)
+			return
+		}
+		if strings.Contains(r.URL.Path, "/metadata/") {
+			scope, err := parseSubGraphScopeFromURL(r.URL.Path)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			scopeInstance, err := scope.ResolveInstance(graphInstance)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			graphMetadataEndpointForInstance(scopeInstance, saver).ServeHTTP(w, r)
 			return
 		}
 		http.NotFound(w, r)

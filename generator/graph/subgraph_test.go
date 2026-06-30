@@ -198,26 +198,26 @@ func TestSubGraphInstanceNotFound(t *testing.T) {
 	require.Error(t, err)
 }
 
-func TestResolveScopeInstance(t *testing.T) {
+func TestScopeResolveInstance(t *testing.T) {
 	inst := testInstanceWithSubGraphTypes(t)
 	require.NoError(t, inst.CreateSubGraph("scoped", "Scoped", ""))
 
-	root, err := inst.ResolveScopeInstance("root")
+	root, err := graph.RootScope.ResolveInstance(inst)
 	require.NoError(t, err)
 	assert.Equal(t, inst, root)
 
-	root, err = inst.ResolveScopeInstance("")
+	root, err = graph.Scope("").ResolveInstance(inst)
 	require.NoError(t, err)
 	assert.Equal(t, inst, root)
 
-	child, err := inst.ResolveScopeInstance("subgraph/scoped")
+	child, err := graph.SubGraphScope("scoped").ResolveInstance(inst)
 	require.NoError(t, err)
 	assert.True(t, child.IsSubGraphScope())
 
-	_, err = inst.ResolveScopeInstance("subgraph/missing")
+	_, err = graph.SubGraphScope("missing").ResolveInstance(inst)
 	require.Error(t, err)
 
-	_, err = inst.ResolveScopeInstance("invalid/scope")
+	_, err = graph.Scope("invalid/scope").ResolveInstance(inst)
 	require.Error(t, err)
 }
 
@@ -492,7 +492,7 @@ func TestRegisterSubGraphNodeType(t *testing.T) {
 
 	node, _, err := inst.CreateNode(typePath)
 	require.NoError(t, err)
-	runtime, ok := node.(*graph.GraphInstanceNode)
+	runtime, ok := node.(*graph.InstanceNode)
 	require.True(t, ok)
 	assert.Equal(t, "registered", runtime.SubGraphID())
 }
@@ -527,4 +527,76 @@ func TestRuntimeNodeOutputsReflectBoundaryTypes(t *testing.T) {
 	assert.Equal(t, "image.Image", typed.Type())
 }
 
-var _ nodes.Node = (*graph.GraphInstanceNode)(nil)
+var _ nodes.Node = (*graph.InstanceNode)(nil)
+
+func TestRuntimeNodeInputPersistedThroughConnectNodes(t *testing.T) {
+	inst := testInstanceWithSubGraphTypesExtended(t)
+	require.NoError(t, inst.CreateSubGraph("persist", "Persist", ""))
+
+	child, err := inst.SubGraphInstance("persist")
+	require.NoError(t, err)
+
+	_, inputID, err := child.CreateNode(subgraph.InputNodeTypeKey)
+	require.NoError(t, err)
+	require.NoError(t, child.SetBoundaryNodeInfo(inputID, "A", "float64"))
+
+	extParam, extID, err := inst.CreateNode("Float64")
+	require.NoError(t, err)
+
+	runtimeNode, runtimeID, err := inst.CreateNode(subgraph.RuntimeTypePath("persist"))
+	require.NoError(t, err)
+
+	inst.ConnectNodes(extID, "Value", runtimeID, "A")
+
+	runtimeIn := runtimeNode.Inputs()["A"].(nodes.SingleValueInputPort)
+	assert.Equal(t, extParam.Outputs()["Value"], runtimeIn.Value())
+
+	schema := inst.NodeInstanceSchema(runtimeNode)
+	require.Contains(t, schema.AssignedInput, "A")
+	assert.Equal(t, extID, schema.AssignedInput["A"].NodeId)
+}
+
+func TestCollectBoundaryPortsAllowsSameNameAcrossKinds(t *testing.T) {
+	inst := testInstanceWithSubGraphTypes(t)
+	require.NoError(t, inst.CreateSubGraph("shared-name", "Shared", ""))
+
+	child, err := inst.SubGraphInstance("shared-name")
+	require.NoError(t, err)
+
+	_, inID, err := child.CreateNode(subgraph.InputNodeTypeKey)
+	require.NoError(t, err)
+	_, outID, err := child.CreateNode(subgraph.OutputNodeTypeKey)
+	require.NoError(t, err)
+	require.NoError(t, child.SetBoundaryNodeInfo(inID, "Value", "float64"))
+	require.NoError(t, child.SetBoundaryNodeInfo(outID, "Value", "float64"))
+
+	ports, err := inst.CollectBoundaryPorts("shared-name")
+	require.NoError(t, err)
+	require.Len(t, ports, 2)
+
+	runtimeNode := graph.NewRuntimeNode(inst, "shared-name")
+	require.Contains(t, runtimeNode.Inputs(), "Value")
+	require.Contains(t, runtimeNode.Outputs(), "Value")
+}
+
+func TestNestedRuntimeTypeLoadsFromSubGraph(t *testing.T) {
+	root := testInstanceWithSubGraphTypes(t)
+	require.NoError(t, root.CreateSubGraph("inner", "Inner", ""))
+	require.NoError(t, root.CreateSubGraph("outer", "Outer", ""))
+
+	outer, err := root.SubGraphInstance("outer")
+	require.NoError(t, err)
+
+	_, _, err = outer.CreateNode(subgraph.RuntimeTypePath("inner"))
+	require.NoError(t, err)
+
+	payload, err := root.EncodeToAppSchema()
+	require.NoError(t, err)
+
+	fresh := testInstanceWithSubGraphTypes(t)
+	require.NoError(t, fresh.ApplyAppSchema(payload))
+
+	freshOuter, err := fresh.SubGraphInstance("outer")
+	require.NoError(t, err)
+	assert.Len(t, freshOuter.Schema().Nodes, 1)
+}

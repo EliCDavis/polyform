@@ -92,7 +92,9 @@ func (a *Instance) instantiateAppNode(nodeID string, instanceDetails schema.AppN
 	nodeType := instanceDetails.Type
 	if subgraph.IsRuntimeNodeType(nodeType) && !a.typeFactory.KeyRegistered(nodeType) {
 		subGraphID := subgraph.RuntimeTypeID(nodeType)
-		a.RegisterSubGraphNodeType(subGraphID)
+		if _, err := a.Root().RegisterSubGraphNodeType(subGraphID); err != nil {
+			return nil, err
+		}
 	}
 
 	newNode := a.typeFactory.New(nodeType)

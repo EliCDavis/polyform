@@ -492,3 +492,39 @@ func TestScopedSubGraphConnection(t *testing.T) {
 	outNode := child.Node(outputID).(*subgraph.OutputNode)
 	assert.NotNil(t, outNode.ConnectedSource())
 }
+
+func TestScopedSubGraphNamedMetadataCreatesNode(t *testing.T) {
+	handler, inst := subGraphTestServer(t)
+
+	create := httptest.NewRequest(http.MethodPost, "/subgraph/definition/metadata", strings.NewReader(`{"name":"Metadata"}`))
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, create)
+	require.Equal(t, http.StatusOK, rr.Code)
+
+	nodeReq := httptest.NewRequest(http.MethodPost, "/graph/subgraph/metadata/node", strings.NewReader(`{"nodeType":"`+subgraph.InputNodeTypeKey+`"}`))
+	rr2 := httptest.NewRecorder()
+	handler.ServeHTTP(rr2, nodeReq)
+	require.Equal(t, http.StatusOK, rr2.Code)
+
+	child, err := inst.SubGraphInstance("metadata")
+	require.NoError(t, err)
+	assert.Len(t, child.Schema().Nodes, 1)
+}
+
+func TestScopedSubGraphSlugWithSlash(t *testing.T) {
+	handler, inst := subGraphTestServer(t)
+
+	create := httptest.NewRequest(http.MethodPost, "/subgraph/definition/nested/id", strings.NewReader(`{"name":"Nested"}`))
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, create)
+	require.Equal(t, http.StatusOK, rr.Code)
+
+	nodeReq := httptest.NewRequest(http.MethodPost, "/graph/subgraph/nested/id/node", strings.NewReader(`{"nodeType":"`+subgraph.InputNodeTypeKey+`"}`))
+	rr2 := httptest.NewRecorder()
+	handler.ServeHTTP(rr2, nodeReq)
+	require.Equal(t, http.StatusOK, rr2.Code)
+
+	child, err := inst.SubGraphInstance("nested/id")
+	require.NoError(t, err)
+	assert.Len(t, child.Schema().Nodes, 1)
+}

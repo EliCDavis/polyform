@@ -9,15 +9,9 @@ import (
 )
 
 func metadataKeyFromRequestURL(url string) string {
-	const marker = "/metadata/"
-	idx := strings.Index(url, marker)
-	if idx == -1 {
-		panic("url should contain /metadata/")
-	}
-
-	metadataPath := url[idx+len(marker):]
-	if len(metadataPath) > 0 && metadataPath[0] == '/' {
-		metadataPath = metadataPath[1:]
+	metadataPath, err := pathSuffixAfterMarker(url, "/metadata/")
+	if err != nil {
+		panic(err.Error())
 	}
 
 	if len(metadataPath) > 0 {
@@ -48,8 +42,4 @@ func graphMetadataEndpointForInstance(target *graph.Instance, saver *GraphSaver)
 			}),
 		},
 	}
-}
-
-func graphMetadataEndpoint(graphInstance *graph.Instance, saver *GraphSaver) endpoint.Handler {
-	return graphMetadataEndpointForInstance(graphInstance, saver)
 }
