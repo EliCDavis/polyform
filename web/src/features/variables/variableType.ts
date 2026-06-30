@@ -1,0 +1,31 @@
+export enum VariableType {
+  Float = "float64",
+  Float2 = "vector2.Vector[float64]",
+  Float3 = "vector3.Vector[float64]",
+  Float3Array = "[]vector3.Vector[float64]",
+  Int = "int",
+  Int2 = "vector2.Vector[int]",
+  Int3 = "vector3.Vector[int]",
+  String = "string",
+  Color = "coloring.Color",
+  Bool = "bool",
+  AABB = "geometry.AABB",
+  Image = "image.Image",
+  File = "file",
+}
+
+export const VARIABLE_TYPE_OPTIONS: Array<{ value: VariableType; label: string }> = [
+  { value: VariableType.Float, label: "Float" },
+  { value: VariableType.Float2, label: "Float2" },
+  { value: VariableType.Float3, label: "Float3" },
+  { value: VariableType.Int, label: "Int" },
+  { value: VariableType.Int2, label: "Int2" },
+  { value: VariableType.Int3, label: "Int3" },
+  { value: VariableType.String, label: "String" },
+  { value: VariableType.Bool, label: "Bool" },
+  { value: VariableType.AABB, label: "AABB" },
+  { value: VariableType.Color, label: "Color" },
+  { value: VariableType.Float3Array, label: "Float3 Array" },
+  { value: VariableType.Image, label: "Image" },
+  { value: VariableType.File, label: "File" },
+];

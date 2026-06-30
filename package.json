@@ -4,11 +4,10 @@
   "description": "Polyform",
   "main": "index.js",
   "scripts": {
-    "build-prod": "ts-node ./esbuild.prod.ts",
-    "build-dev": "ts-node ./esbuild.ts",
-    "watch-prod": "npm run build-prod -- --watch",
-    "watch-dev": "npm run build-dev -- --watch",
-    "lint": "eslint src --ext ts"
+    "build-dev": "vite build --config web/vite.config.ts",
+    "build-prod": "vite build --config web/vite.config.ts --mode production",
+    "watch-dev": "vite --config web/vite.config.ts",
+    "lint": "eslint web/src --ext ts,tsx"
   },
   "author": "Eli C Davis",
   "license": "MIT",
@@ -17,7 +16,7 @@
     "@esbuild-plugins/node-modules-polyfill": "^0.1.4",
     "@types/glob": "^7.2.0",
     "@types/mocha": "^9.1.1",
-    "@types/node": "16.x",
+    "@types/node": "^20.0.0",
     "@typescript-eslint/eslint-plugin": "^5.31.0",
     "@typescript-eslint/parser": "^5.31.0",
     "abort-controller": "^3.0.0",
@@ -35,9 +34,18 @@
   },
   "dependencies": {
     "@elicdavis/node-flow": "^0.1.11",
+    "@fortawesome/fontawesome-free": "^7.2.0",
     "@mkkellogg/gaussian-splats-3d": "^0.4.7",
+    "@tanstack/react-query": "^5.101.0",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
     "@types/three": "^0.174.0",
+    "@vitejs/plugin-react": "^4.7.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
     "rxjs": "^7.8.2",
-    "three": "^0.174.0"
+    "three": "^0.174.0",
+    "vite": "^6.4.3",
+    "zustand": "^5.0.14"
   }
 }

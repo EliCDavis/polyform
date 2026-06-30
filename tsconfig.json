@@ -1,31 +1,16 @@
 {
     "compilerOptions": {
-        "lib": [
-            // "ES2024",
-            "DOM"
-        ],
-        // "outDir": "./generator/html/js",
-        // "allowJs": true,
-        "outFile": "./generator/edit/html/js/index.js",
-        // "target": "esnext",
-        // "moduleResolution": "bundler"
-        // "target": "ESNext",
-        // "moduleResolution": ""
-        // "module": "System",
-
-        // For local dev of node flow
-        // "paths": {
-        //     "@elicdavis/node-flow": [
-        //         "./node_modules/@elicdavis/node-flow/dist"
-        //     ],
-        //     "@elicdavis/node-flow/*": [
-        //         "./node_modules/@elicdavis/node-flow/dist/*"
-        //     ]
-        // }
+        "lib": ["DOM"],
+        "jsx": "react-jsx",
+        "moduleResolution": "bundler",
+        "paths": {
+            "@/*": ["./web/src/*"]
+        }
     },
     "include": [
-        "website/**/*.ts"
-, "website/gizmo"    ],
+        "web/src/**/*.ts",
+        "web/src/**/*.tsx"
+    ],
     "exclude": [
         "node_modules"
     ]

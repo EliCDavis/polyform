@@ -1,0 +1,114 @@
+.popup-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.popup {
+  background-color: rgba(0, 56, 71, 0.9);
+  backdrop-filter: blur(10px);
+  padding: 24px;
+  border-radius: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 400px;
+}
+
+.popup h2 {
+  margin-top: 0;
+}
+
+.popup input,
+.popup textarea,
+.popup select {
+  padding: 8px;
+  border: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.popup-actions {
+  margin-top: 20px;
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  gap: 12px;
+}
+
+.example-graph-item {
+  padding: 2px 2px 2px 8px;
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: white;
+  text-align: left;
+  width: 100%;
+}
+
+.example-graph-item:hover {
+  background-color: rgba(255, 255, 255, 0.496);
+}
+
+.example-graph-item:nth-child(odd) {
+  background-color: #0a2e3d;
+}
+
+.dropdown-menu {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdown-content {
+  display: none;
+  position: absolute;
+  right: 0;
+  background-color: #003847;
+  min-width: 120px;
+  z-index: 10;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.dropdown-menu.open .dropdown-content {
+  display: block;
+}
+
+.dropdown-content button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 8px 12px;
+}
+
+.variable-row {
+  margin-top: 16px;
+}
+
+.variable-header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.variable-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.labeled-field {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.labeled-field label {
+  margin-right: 8px;
+  white-space: nowrap;
+}
