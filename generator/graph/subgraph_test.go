@@ -5,8 +5,8 @@ import (
 
 	"github.com/EliCDavis/jbtf"
 	"github.com/EliCDavis/polyform/generator/graph"
+	"github.com/EliCDavis/polyform/generator/persistence"
 	"github.com/EliCDavis/polyform/generator/parameter"
-	"github.com/EliCDavis/polyform/generator/schema"
 	"github.com/EliCDavis/polyform/generator/subgraph"
 	"github.com/EliCDavis/polyform/math"
 	"github.com/EliCDavis/polyform/nodes"
@@ -441,7 +441,7 @@ func TestSubGraphDefinitionInAppSchema(t *testing.T) {
 	payload, err := inst.EncodeToAppSchema()
 	require.NoError(t, err)
 
-	app, err := jbtf.Unmarshal[schema.App](payload)
+	app, err := jbtf.Unmarshal[persistence.App](payload)
 	require.NoError(t, err)
 	require.Contains(t, app.SubGraphs, "json-check")
 	assert.Equal(t, "JSON", app.SubGraphs["json-check"].Name)

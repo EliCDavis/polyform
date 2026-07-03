@@ -15,16 +15,16 @@ func TestCollectAllPortTypes_Empty(t *testing.T) {
 func TestCollectAllPortTypes_DedupesAndSorts(t *testing.T) {
 	nodeTypes := []schema.NodeType{
 		{
-			Inputs: map[string]schema.NodeInput{
+			Inputs: map[string]schema.NodeTypeInput{
 				"B": {Type: "float64"},
 				"A": {Type: "int"},
 			},
-			Outputs: map[string]schema.NodeOutput{
+			Outputs: map[string]schema.NodeTypeOutput{
 				"Out": {Type: "float64"},
 			},
 		},
 		{
-			Inputs: map[string]schema.NodeInput{
+			Inputs: map[string]schema.NodeTypeInput{
 				"In": {Type: "string"},
 			},
 		},
@@ -37,12 +37,12 @@ func TestCollectAllPortTypes_DedupesAndSorts(t *testing.T) {
 func TestCollectAllPortTypes_SkipsAnyAndEmpty(t *testing.T) {
 	nodeTypes := []schema.NodeType{
 		{
-			Inputs: map[string]schema.NodeInput{
+			Inputs: map[string]schema.NodeTypeInput{
 				"A": {Type: "any"},
 				"B": {Type: ""},
 				"C": {Type: "bool"},
 			},
-			Outputs: map[string]schema.NodeOutput{
+			Outputs: map[string]schema.NodeTypeOutput{
 				"X": {Type: "any"},
 			},
 		},
@@ -55,7 +55,7 @@ func TestCollectAllPortTypes_SkipsAnyAndEmpty(t *testing.T) {
 func TestCollectAllPortTypes_MultipleOutputs(t *testing.T) {
 	nodeTypes := []schema.NodeType{
 		{
-			Outputs: map[string]schema.NodeOutput{
+			Outputs: map[string]schema.NodeTypeOutput{
 				"Z": {Type: "github.com/EliCDavis/polyform/generator/manifest.Manifest"},
 				"Y": {Type: "image.Image"},
 			},

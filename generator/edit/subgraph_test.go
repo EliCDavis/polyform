@@ -196,7 +196,6 @@ func TestSubGraphEditServerEndToEnd(t *testing.T) {
 	})
 	var schema struct {
 		SubGraphs map[string]struct {
-			Name  string `json:"name"`
 			Nodes map[string]struct {
 				SubGraphInputBoundary  *struct{ PortName string } `json:"subGraphInputBoundary"`
 				SubGraphOutputBoundary *struct{ PortName string } `json:"subGraphOutputBoundary"`
@@ -208,7 +207,6 @@ func TestSubGraphEditServerEndToEnd(t *testing.T) {
 	}
 	require.NoError(t, json.Unmarshal(schemaBody, &schema))
 	require.Contains(t, schema.SubGraphs, subGraphID)
-	assert.Equal(t, "Adder", schema.SubGraphs[subGraphID].Name)
 	assert.Len(t, schema.SubGraphs[subGraphID].Nodes, 4)
 	assert.Equal(t, subGraphID, schema.Nodes[runtimeNodeID].SubGraphId)
 
@@ -448,13 +446,10 @@ func TestSchemaIncludesSubGraphs(t *testing.T) {
 	require.Equal(t, http.StatusOK, rr2.Code)
 
 	var schema struct {
-		SubGraphs map[string]struct {
-			Name string `json:"name"`
-		} `json:"subGraphs"`
+		SubGraphs map[string]struct{} `json:"subGraphs"`
 	}
 	require.NoError(t, json.Unmarshal(rr2.Body.Bytes(), &schema))
 	require.Contains(t, schema.SubGraphs, "in-schema")
-	assert.Equal(t, "In Schema", schema.SubGraphs["in-schema"].Name)
 }
 
 func TestScopedSubGraphConnection(t *testing.T) {

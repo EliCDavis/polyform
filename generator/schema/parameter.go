@@ -11,10 +11,10 @@ type ParameterBase struct {
 	Type        string `json:"type"`
 }
 
-func (gps ParameterBase) DisplayName() string {
-	return gps.Name
+func (pb ParameterBase) DisplayName() string {
+	return pb.Name
 }
 
-func (gps ParameterBase) ValueType() string {
-	return gps.Type
+func (pb ParameterBase) ValueType() string {
+	return pb.Type
 }

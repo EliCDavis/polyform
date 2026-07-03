@@ -86,8 +86,8 @@ func subGraphDefinitionEndpoint(graphInstance *graph.Instance, saver *GraphSaver
 
 func subGraphBoundaryEndpoint(graphInstance *graph.Instance, saver *GraphSaver) endpoint.Handler {
 	type BoundaryInfoRequest struct {
-		PortName string `json:"portName"`
-		PortType string `json:"portType"`
+		PortName string      `json:"portName"`
+		PortType string      `json:"portType"`
 		Scope    graph.Scope `json:"scope"`
 	}
 
@@ -138,8 +138,8 @@ func scopedNodeEndpoint(graphInstance *graph.Instance, saver *GraphSaver) endpoi
 	}
 
 	type CreateResponse struct {
-		NodeID string              `json:"nodeID"`
-		Data   schema.NodeInstance `json:"data"`
+		NodeID string      `json:"nodeID"`
+		Data   schema.Node `json:"data"`
 	}
 
 	type DeleteRequest struct {

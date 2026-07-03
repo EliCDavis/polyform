@@ -17,8 +17,8 @@ import (
 	"github.com/EliCDavis/polyform/generator/endpoint"
 	"github.com/EliCDavis/polyform/generator/graph"
 	"github.com/EliCDavis/polyform/generator/manifest"
+	"github.com/EliCDavis/polyform/generator/persistence"
 	"github.com/EliCDavis/polyform/generator/room"
-	"github.com/EliCDavis/polyform/generator/schema"
 	"github.com/EliCDavis/polyform/generator/serialize"
 	"github.com/EliCDavis/polyform/generator/variable"
 )
@@ -66,7 +66,7 @@ type Server struct {
 	Autosave   bool
 	ConfigPath string
 
-	Webscene *schema.WebScene
+	Webscene *persistence.WebScene
 
 	ClientConfig *room.ClientConfig
 
@@ -145,9 +145,9 @@ func (as *Server) Handler(indexFile string) (*http.ServeMux, error) {
 	mux.HandleFunc("/schema", as.SchemaEndpoint)
 	mux.Handle("/scene", endpoint.Handler{
 		Methods: map[string]endpoint.Method{
-			http.MethodGet: endpoint.ResponseMethod[*schema.WebScene]{
-				ResponseWriter: endpoint.JsonResponseWriter[*schema.WebScene]{},
-				Handler: func(r *http.Request) (*schema.WebScene, error) {
+			http.MethodGet: endpoint.ResponseMethod[*persistence.WebScene]{
+				ResponseWriter: endpoint.JsonResponseWriter[*persistence.WebScene]{},
+				Handler: func(r *http.Request) (*persistence.WebScene, error) {
 					return as.Webscene, nil
 				},
 			},

@@ -9,6 +9,7 @@ import (
 	"github.com/EliCDavis/jbtf"
 	"github.com/EliCDavis/polyform/formats/swagger"
 	"github.com/EliCDavis/polyform/generator/manifest"
+	"github.com/EliCDavis/polyform/generator/persistence"
 	"github.com/EliCDavis/polyform/generator/schema"
 	"github.com/EliCDavis/polyform/generator/subgraph"
 	"github.com/EliCDavis/polyform/generator/sync"
@@ -23,7 +24,7 @@ type Details struct {
 	Name        string
 	Version     string
 	Description string
-	Authors     []schema.Author
+	Authors     []persistence.Author
 }
 
 type Instance struct {
@@ -50,7 +51,7 @@ type Config struct {
 	Name            string
 	Version         string
 	Description     string
-	Authors         []schema.Author
+	Authors         []persistence.Author
 	TypeFactory     *refutil.TypeFactory
 	VariableFactory func(string) (variable.Variable, error)
 }
@@ -98,7 +99,7 @@ func (a *Instance) GetDescription() string {
 	return a.details.Description
 }
 
-func (a *Instance) GetAuthors() []schema.Author {
+func (a *Instance) GetAuthors() []persistence.Author {
 	a.lock.RLock()
 	defer a.lock.RUnlock()
 	return a.details.Authors
@@ -348,7 +349,7 @@ func (a *Instance) incModelVersion() {
 	a.movelVersion++
 }
 
-func (a *Instance) NodeInstanceSchema(node nodes.Node) schema.NodeInstance {
+func (a *Instance) NodeInstanceSchema(node nodes.Node) schema.Node {
 	var metadata map[string]any
 	metadataPath := "nodes." + a.nodeIDs[node]
 
@@ -370,11 +371,11 @@ func (a *Instance) NodeInstanceSchema(node nodes.Node) schema.NodeInstance {
 		IncludePointer: false,
 	}
 
-	nodeInstance := schema.NodeInstance{
+	nodeInstance := schema.Node{
 		Name:          "Unamed",
 		Type:          resolver.Resolve(node),
 		AssignedInput: make(map[string]schema.PortReference),
-		Output:        make(map[string]schema.NodeInstanceOutputPort),
+		Output:        make(map[string]schema.NodeOutputPort),
 		Metadata:      metadata,
 	}
 
@@ -420,7 +421,7 @@ func (a *Instance) NodeInstanceSchema(node nodes.Node) schema.NodeInstance {
 	}
 
 	for outputPortName, outputPort := range node.Outputs() {
-		result := schema.NodeInstanceOutputPort{
+		result := schema.NodeOutputPort{
 			Version: outputPort.Version(),
 		}
 		nodeInstance.Output[outputPortName] = result
@@ -514,7 +515,7 @@ func (a *Instance) Reset() {
 		Name:        "New Graph",
 		Description: "",
 		Version:     "v0.0.0",
-		Authors:     []schema.Author{},
+		Authors:     []persistence.Author{},
 	}
 	a.nodeIDs = make(map[nodes.Node]string)
 	a.metadata = sync.NewNestedSyncMap()
@@ -581,7 +582,7 @@ func (a *Instance) ApplyAppSchema(jsonPayload []byte) error {
 	defer a.lock.Unlock()
 	a.Reset()
 
-	appSchema, err := jbtf.Unmarshal[schema.App](jsonPayload)
+	appSchema, err := jbtf.Unmarshal[persistence.App](jsonPayload)
 	if err != nil {
 		return fmt.Errorf("unable to parse graph as a jbtf: %w", err)
 	}
@@ -597,7 +598,7 @@ func (a *Instance) ApplyAppSchema(jsonPayload []byte) error {
 	}
 
 	a.metadata.OverwriteData(appSchema.Metadata)
-	appSchema.Variables.Traverse(func(path string, v schema.PersistedVariable) bool {
+	appSchema.Variables.Traverse(func(path string, v persistence.Variable) bool {
 		var varabl variable.Variable
 		varabl, err = variable.DeserializePersistantVariableJSON(v.Data, decoder, a.variableFactory)
 		if err == nil {
@@ -708,7 +709,7 @@ func (a *Instance) ExecutionReport() schema.GraphExecutionReport {
 	return schema.GraphExecutionReport{Nodes: appNodeSchema}
 }
 
-func (a *Instance) Schema() schema.GraphInstance {
+func (a *Instance) Schema() schema.Graph {
 	a.lock.RLock()
 	defer a.lock.RUnlock()
 
@@ -725,7 +726,7 @@ func (a *Instance) Schema() schema.GraphInstance {
 		panic(err)
 	}
 
-	appSchema := schema.GraphInstance{
+	appSchema := schema.Graph{
 		Producers: make(map[string]schema.Producer),
 		Notes:     noteMetadata,
 		Variables: variableSchema,
@@ -737,7 +738,7 @@ func (a *Instance) Schema() schema.GraphInstance {
 	}
 	sort.Strings(appSchema.Profiles)
 
-	appNodeSchema := make(map[string]schema.NodeInstance)
+	appNodeSchema := make(map[string]schema.Node)
 
 	for node, id := range a.nodeIDs {
 		if _, ok := appNodeSchema[id]; ok {
@@ -764,7 +765,7 @@ func (a *Instance) Schema() schema.GraphInstance {
 
 	if a.parent == nil {
 		a.initSubGraphs()
-		appSchema.SubGraphs = make(map[string]schema.RuntimeSubGraphDefinition, len(a.subGraphs))
+		appSchema.SubGraphs = make(map[string]schema.SubGraphInstance, len(a.subGraphs))
 		for id := range a.subGraphs {
 			runtimeSchema, err := a.runtimeSubGraphSchema(id)
 			if err != nil {
@@ -783,7 +784,7 @@ func (a *Instance) EncodeToAppSchema() ([]byte, error) {
 
 	encoder := &jbtf.Encoder{}
 
-	appSchema := schema.App{
+	appSchema := persistence.App{
 		Name:        a.details.Name,
 		Version:     a.details.Version,
 		Description: a.details.Description,
@@ -795,7 +796,7 @@ func (a *Instance) EncodeToAppSchema() ([]byte, error) {
 		variableLut[v] = path
 	})
 
-	nodeInstances := make(map[string]schema.AppNodeInstance)
+	nodeInstances := make(map[string]persistence.Node)
 	for node := range a.nodeIDs {
 		id, ok := a.nodeIDs[node]
 		if !ok {
@@ -817,10 +818,10 @@ func (a *Instance) EncodeToAppSchema() ([]byte, error) {
 	}
 
 	if appSchema.Profiles == nil {
-		appSchema.Profiles = make(map[string]schema.AppProfile)
+		appSchema.Profiles = make(map[string]persistence.Profile)
 	}
 	for name, data := range a.profiles {
-		appSchema.Profiles[name] = schema.AppProfile{
+		appSchema.Profiles[name] = persistence.Profile{
 			Data: data,
 		}
 	}
@@ -859,7 +860,7 @@ func (a *Instance) EncodeToAppSchema() ([]byte, error) {
 	return encoder.ToPgtf(appSchema)
 }
 
-func (a *Instance) buildNodeGraphInstanceSchema(node nodes.Node, encoder *jbtf.Encoder) schema.AppNodeInstance {
+func (a *Instance) buildNodeGraphInstanceSchema(node nodes.Node, encoder *jbtf.Encoder) persistence.Node {
 
 	resolver := refutil.TypeResolution{
 		IncludePackage: true,
@@ -871,7 +872,7 @@ func (a *Instance) buildNodeGraphInstanceSchema(node nodes.Node, encoder *jbtf.E
 		nodeType = subgraph.RuntimeTypePath(runtime.SubGraphID())
 	}
 
-	nodeInstance := schema.AppNodeInstance{
+	nodeInstance := persistence.Node{
 		Type:          nodeType,
 		AssignedInput: make(map[string]schema.PortReference),
 	}

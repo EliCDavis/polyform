@@ -9,6 +9,7 @@ import (
 
 	"github.com/EliCDavis/jbtf"
 	"github.com/EliCDavis/polyform/formats/swagger"
+	"github.com/EliCDavis/polyform/generator/persistence"
 	"github.com/EliCDavis/polyform/generator/schema"
 )
 
@@ -30,7 +31,7 @@ type System interface {
 	Remove(path string) error
 	Move(oldName, newName string) error
 	Traverse(func(path string, info Info, v Variable))
-	PersistedSchema(encoder *jbtf.Encoder) (schema.NestedGroup[schema.PersistedVariable], error)
+	PersistedSchema(encoder *jbtf.Encoder) (schema.NestedGroup[persistence.Variable], error)
 	RuntimeSchema() (schema.NestedGroup[schema.RuntimeVariable], error)
 	ApplyProfile(profile Profile) error
 	GetProfile() Profile
@@ -144,12 +145,12 @@ func (s *system) RuntimeSchema() (schema.NestedGroup[schema.RuntimeVariable], er
 	}, nil
 }
 
-func (s *system) PersistedSchema(encoder *jbtf.Encoder) (schema.NestedGroup[schema.PersistedVariable], error) {
+func (s *system) PersistedSchema(encoder *jbtf.Encoder) (schema.NestedGroup[persistence.Variable], error) {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 
-	variables := make(map[string]schema.PersistedVariable)
-	subgroups := make(map[string]schema.NestedGroup[schema.PersistedVariable])
+	variables := make(map[string]persistence.Variable)
+	subgroups := make(map[string]schema.NestedGroup[persistence.Variable])
 
 	for name, entry := range s.entries {
 		switch v := entry.(type) {
@@ -158,9 +159,9 @@ func (s *system) PersistedSchema(encoder *jbtf.Encoder) (schema.NestedGroup[sche
 			data, err := v.variable.toPersistantJSON(encoder)
 			// data, err := json.Marshal(v.variable)
 			if err != nil {
-				return schema.NestedGroup[schema.PersistedVariable]{}, err
+				return schema.NestedGroup[persistence.Variable]{}, err
 			}
-			variables[name] = schema.PersistedVariable{
+			variables[name] = persistence.Variable{
 				Description: v.info.description,
 				Data:        data,
 			}
@@ -170,7 +171,7 @@ func (s *system) PersistedSchema(encoder *jbtf.Encoder) (schema.NestedGroup[sche
 		}
 	}
 
-	return schema.NestedGroup[schema.PersistedVariable]{
+	return schema.NestedGroup[persistence.Variable]{
 		Variables: variables,
 		SubGroups: subgroups,
 	}, nil

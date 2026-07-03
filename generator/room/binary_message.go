@@ -8,7 +8,7 @@ import (
 	"io"
 
 	"github.com/EliCDavis/bitlib"
-	"github.com/EliCDavis/polyform/generator/schema"
+	"github.com/EliCDavis/polyform/generator/persistence"
 )
 
 type MessageType byte
@@ -74,11 +74,11 @@ func (m Message) ClientSetOrientation() (ClientSetOrientationMessage, error) {
 	}, err
 }
 
-func (m Message) ClientSetSceneData() schema.WebScene {
+func (m Message) ClientSetSceneData() persistence.WebScene {
 	data := bytes.NewBuffer(m.Data)
 	reader := bitlib.NewReader(data, binary.LittleEndian)
 
-	webScene, _ := bitlib.Read[schema.WebScene](reader)
+	webScene, _ := bitlib.Read[persistence.WebScene](reader)
 	return webScene
 }
 
@@ -99,7 +99,7 @@ func (m Message) ServerRoomStateUpdate() RoomState {
 	}
 
 	room.ModelVersion = reader.UInt32()
-	webScene, err := bitlib.Read[schema.WebScene](reader)
+	webScene, err := bitlib.Read[persistence.WebScene](reader)
 	if err != nil {
 		panic(err)
 	}

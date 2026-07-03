@@ -11,7 +11,7 @@ import (
 	"github.com/EliCDavis/polyform/generator/manifest"
 	"github.com/EliCDavis/polyform/generator/manifest/basics"
 	"github.com/EliCDavis/polyform/generator/parameter"
-	"github.com/EliCDavis/polyform/generator/schema"
+	"github.com/EliCDavis/polyform/generator/persistence"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/stretchr/testify/assert"
 )
@@ -310,10 +310,10 @@ func TestAppCommand_Help(t *testing.T) {
 		Name:        "Test App",
 		Version:     "test",
 		Description: "This is just a test app",
-		Authors: []schema.Author{
+		Authors: []persistence.Author{
 			{
 				Name: "Test Runner",
-				ContactInfo: []schema.AuthorContact{
+				ContactInfo: []persistence.AuthorContact{
 					{
 						Medium: "package",
 						Value:  "testing",

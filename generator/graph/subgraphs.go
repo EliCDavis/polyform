@@ -5,6 +5,7 @@ import (
 
 	"github.com/EliCDavis/jbtf"
 	"github.com/EliCDavis/polyform/generator/manifest"
+	"github.com/EliCDavis/polyform/generator/persistence"
 	"github.com/EliCDavis/polyform/generator/schema"
 	"github.com/EliCDavis/polyform/generator/subgraph"
 	"github.com/EliCDavis/polyform/generator/sync"
@@ -213,45 +214,37 @@ func (a *Instance) onSubGraphChildMutation(subGraphID string) {
 	a.Root().refreshSubGraphNodeType(subGraphID)
 }
 
-func (a *Instance) runtimeSubGraphSchema(id string) (schema.RuntimeSubGraphDefinition, error) {
+func (a *Instance) runtimeSubGraphSchema(id string) (schema.SubGraphInstance, error) {
 	if err := a.assertRootGraph("fetch subgraph schema"); err != nil {
-		return schema.RuntimeSubGraphDefinition{}, err
+		return schema.SubGraphInstance{}, err
 	}
 	a.initSubGraphs()
 
 	runtime, exists := a.subGraphs[id]
 	if !exists {
-		return schema.RuntimeSubGraphDefinition{}, fmt.Errorf("sub-graph %q does not exist", id)
+		return schema.SubGraphInstance{}, fmt.Errorf("sub-graph %q does not exist", id)
 	}
 
 	childSchema := runtime.instance.Schema()
-	return schema.RuntimeSubGraphDefinition{
-		Name:        runtime.name,
-		Description: runtime.description,
-		Nodes:       childSchema.Nodes,
-		Notes:       childSchema.Notes,
-		Variables:   childSchema.Variables,
+	return schema.SubGraphInstance{
+		Nodes: childSchema.Nodes,
+		Notes: childSchema.Notes,
 	}, nil
 }
 
-func (a *Instance) encodeSubGraphDefinitions(encoder *jbtf.Encoder) (map[string]schema.SubGraphDefinition, error) {
+func (a *Instance) encodeSubGraphDefinitions(encoder *jbtf.Encoder) (map[string]persistence.SubGraph, error) {
 	if err := a.assertRootGraph("encode subgraph definition"); err != nil {
 		return nil, err
 	}
 	a.initSubGraphs()
 
-	result := make(map[string]schema.SubGraphDefinition, len(a.subGraphs))
+	result := make(map[string]persistence.SubGraph, len(a.subGraphs))
 	for id, runtime := range a.subGraphs {
 		child := runtime.instance
-		nodeInstances := make(map[string]schema.AppNodeInstance)
+		nodeInstances := make(map[string]persistence.Node)
 		for node := range child.nodeIDs {
 			nodeID := child.nodeIDs[node]
 			nodeInstances[nodeID] = child.buildNodeGraphInstanceSchema(node, encoder)
-		}
-
-		variableSchema, err := child.variables.PersistedSchema(encoder)
-		if err != nil {
-			panic(err)
 		}
 
 		var noteMetadata map[string]any
@@ -261,12 +254,11 @@ func (a *Instance) encodeSubGraphDefinitions(encoder *jbtf.Encoder) (map[string]
 			}
 		}
 
-		result[id] = schema.SubGraphDefinition{
+		result[id] = persistence.SubGraph{
 			Name:        runtime.name,
 			Description: runtime.description,
 			Nodes:       nodeInstances,
 			Notes:       noteMetadata,
-			Variables:   variableSchema,
 			Metadata:    child.metadata.Data(),
 		}
 	}

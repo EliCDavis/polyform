@@ -6,7 +6,7 @@ import (
 
 	"github.com/EliCDavis/polyform/generator/endpoint"
 	"github.com/EliCDavis/polyform/generator/graph"
-	"github.com/EliCDavis/polyform/generator/schema"
+	"github.com/EliCDavis/polyform/generator/persistence"
 )
 
 func exampleGraphEndpoint(as *Server) endpoint.Handler {
@@ -54,7 +54,7 @@ func newGraphEndpoint(editServer *Server) endpoint.Handler {
 						Name:        clean(request.Body.Name, "New Graph"),
 						Description: clean(request.Body.Description, ""),
 						Version:     clean(request.Body.Version, "v0.0.1"),
-						Authors:     []schema.Author{{Name: clean(request.Body.Author, "")}},
+						Authors:     []persistence.Author{{Name: clean(request.Body.Author, "")}},
 					})
 					return nil
 				},

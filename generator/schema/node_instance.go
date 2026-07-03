@@ -5,15 +5,15 @@ type PortReference struct {
 	PortName string `json:"port"`
 }
 
-type NodeInstanceOutputPort struct {
+type NodeOutputPort struct {
 	Version int `json:"version"`
 }
 
-type NodeInstance struct {
-	Type          string                            `json:"type"`
-	Name          string                            `json:"name"`
-	AssignedInput map[string]PortReference          `json:"assignedInput"`
-	Output        map[string]NodeInstanceOutputPort `json:"output"`
+type Node struct {
+	Type          string                    `json:"type"`
+	Name          string                    `json:"name"`
+	AssignedInput map[string]PortReference  `json:"assignedInput"`
+	Output        map[string]NodeOutputPort `json:"output"`
 
 	Parameter Parameter      `json:"parameter,omitempty"`
 	Variable  any            `json:"variable,omitempty"`
@@ -21,5 +21,5 @@ type NodeInstance struct {
 
 	SubGraphInputBoundary  *SubGraphInputBoundary  `json:"subGraphInputBoundary,omitempty"`
 	SubGraphOutputBoundary *SubGraphOutputBoundary `json:"subGraphOutputBoundary,omitempty"`
-	SubGraphId       string            `json:"subGraphId,omitempty"`
+	SubGraphId             string                  `json:"subGraphId,omitempty"`
 }

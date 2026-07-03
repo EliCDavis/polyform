@@ -21,8 +21,8 @@ func nodeEndpoint(graphInstance *graph.Instance, saver *GraphSaver) endpoint.Han
 	}
 
 	type CreateResponse struct {
-		NodeID string              `json:"nodeID"`
-		Data   schema.NodeInstance `json:"data"`
+		NodeID string      `json:"nodeID"`
+		Data   schema.Node `json:"data"`
 	}
 
 	type DeleteRequest struct {

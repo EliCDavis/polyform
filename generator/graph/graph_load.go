@@ -5,13 +5,12 @@ import (
 	"strings"
 
 	"github.com/EliCDavis/jbtf"
-	"github.com/EliCDavis/polyform/generator/schema"
+	"github.com/EliCDavis/polyform/generator/persistence"
 	"github.com/EliCDavis/polyform/generator/subgraph"
-	"github.com/EliCDavis/polyform/generator/variable"
 	"github.com/EliCDavis/polyform/nodes"
 )
 
-func (a *Instance) loadSubGraphDefinition(subGraphID string, def schema.SubGraphDefinition, decoder jbtf.Decoder) error {
+func (a *Instance) loadSubGraphDefinition(subGraphID string, def persistence.SubGraph, decoder jbtf.Decoder) error {
 	err := a.CreateSubGraph(subGraphID, def.Name, def.Description)
 	if err != nil {
 		return err
@@ -28,23 +27,6 @@ func (a *Instance) loadSubGraphDefinition(subGraphID string, def schema.SubGraph
 
 	if def.Metadata != nil {
 		child.metadata.OverwriteData(def.Metadata)
-	}
-
-	def.Variables.Traverse(func(path string, v schema.PersistedVariable) bool {
-		var varabl variable.Variable
-		varabl, err = variable.DeserializePersistantVariableJSON(v.Data, decoder, child.variableFactory)
-		if err == nil {
-			child.NewVariable(path, varabl)
-			info, infoErr := child.variables.Info(path)
-			if infoErr != nil {
-				panic(fmt.Errorf("failed to add variable to sub-graph: %w", infoErr))
-			}
-			info.SetDescription(v.Description)
-		}
-		return err == nil
-	})
-	if err != nil {
-		return err
 	}
 
 	createdNodes := make(map[string]nodes.Node)
@@ -74,7 +56,7 @@ func (a *Instance) loadSubGraphDefinition(subGraphID string, def schema.SubGraph
 	return nil
 }
 
-func (a *Instance) instantiateAppNode(nodeID string, instanceDetails schema.AppNodeInstance, createdNodes map[string]nodes.Node) (nodes.Node, error) {
+func (a *Instance) instantiateAppNode(nodeID string, instanceDetails persistence.Node, createdNodes map[string]nodes.Node) (nodes.Node, error) {
 	if nodeID == "" {
 		panic("attempting to create a node without an ID")
 	}
@@ -106,7 +88,7 @@ func (a *Instance) instantiateAppNode(nodeID string, instanceDetails schema.AppN
 	return casted, nil
 }
 
-func (a *Instance) connectAppNodes(nodeDefs map[string]schema.AppNodeInstance, createdNodes map[string]nodes.Node) error {
+func (a *Instance) connectAppNodes(nodeDefs map[string]persistence.Node, createdNodes map[string]nodes.Node) error {
 	for nodeID, instanceDetails := range nodeDefs {
 		node := createdNodes[nodeID]
 		inputs := node.Inputs()

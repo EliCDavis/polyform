@@ -1,16 +1,9 @@
 package schema
 
-import "encoding/json"
-
 type RuntimeVariable struct {
 	Description string `json:"description"`
 	Type        string `json:"type"`
 	Value       any    `json:"value"`
-}
-
-type PersistedVariable struct {
-	Description string          `json:"description"`
-	Data        json.RawMessage `json:"data"`
 }
 
 type NestedGroup[T any] struct {
@@ -25,7 +18,7 @@ func (vg NestedGroup[T]) traverse(prepend string, f func(path string, variable T
 		}
 	}
 	for name, subgroup := range vg.SubGroups {
-		if !subgroup.traverse(name+"/", f) {
+		if !subgroup.traverse(prepend+name+"/", f) {
 			return false
 		}
 	}
