@@ -11,6 +11,7 @@ import (
 	"github.com/EliCDavis/polyform/math"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
+	"github.com/EliCDavis/vector/vector3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -29,6 +30,14 @@ func testInstanceWithSubGraphTypes(t *testing.T) *graph.Instance {
 	})
 }
 
+type vector3IdentityNode struct {
+	In nodes.Output[vector3.Float64]
+}
+
+func (n vector3IdentityNode) Out(out *nodes.StructOutput[vector3.Float64]) {
+	out.Set(nodes.GetOutputValue(out, n.In))
+}
+
 func testInstanceWithSubGraphTypesExtended(t *testing.T) *graph.Instance {
 	t.Helper()
 	factory := &refutil.TypeFactory{}
@@ -43,6 +52,26 @@ func testInstanceWithSubGraphTypesExtended(t *testing.T) *graph.Instance {
 	})
 	factory.RegisterBuilder("Sum", func() any {
 		return &nodes.Struct[math.AddNode[float64]]{}
+	})
+	return graph.New(graph.Config{
+		TypeFactory: factory,
+	})
+}
+
+func testInstanceWithVector3SubGraph(t *testing.T) *graph.Instance {
+	t.Helper()
+	factory := &refutil.TypeFactory{}
+	factory.RegisterBuilder(subgraph.InputNodeTypeKey, func() any {
+		return subgraph.NewInputNode("", "")
+	})
+	factory.RegisterBuilder(subgraph.OutputNodeTypeKey, func() any {
+		return subgraph.NewOutputNode("", "")
+	})
+	factory.RegisterBuilder("Vector3", func() any {
+		return &parameter.Vector3{}
+	})
+	factory.RegisterBuilder("Vector3Identity", func() any {
+		return &nodes.Struct[vector3IdentityNode]{}
 	})
 	return graph.New(graph.Config{
 		TypeFactory: factory,
@@ -577,6 +606,47 @@ func TestCollectBoundaryPortsAllowsSameNameAcrossKinds(t *testing.T) {
 	runtimeNode := graph.NewRuntimeNode(inst, "shared-name")
 	require.Contains(t, runtimeNode.Inputs(), "Value")
 	require.Contains(t, runtimeNode.Outputs(), "Value")
+}
+
+func TestSubGraphBoundaryVector3ValueFlow(t *testing.T) {
+	vector3Type := refutil.TypeResolution{
+		IncludePackage: true,
+		IncludePointer: false,
+	}.Resolve(vector3.New(0., 0., 0.))
+
+	inst := testInstanceWithVector3SubGraph(t)
+
+	require.NoError(t, inst.CreateSubGraph("v3", "Vector3", ""))
+	child, err := inst.SubGraphInstance("v3")
+	require.NoError(t, err)
+
+	_, inputID, err := child.CreateNode(subgraph.InputNodeTypeKey)
+	require.NoError(t, err)
+	_, outputID, err := child.CreateNode(subgraph.OutputNodeTypeKey)
+	require.NoError(t, err)
+	_, identityID, err := child.CreateNode("Vector3Identity")
+	require.NoError(t, err)
+
+	require.NoError(t, child.SetBoundaryNodeInfo(inputID, "Position", vector3Type))
+	require.NoError(t, child.SetBoundaryNodeInfo(outputID, "Result", vector3Type))
+
+	child.ConnectNodes(inputID, subgraph.ValuePortName, identityID, "In")
+	child.ConnectNodes(identityID, "Out", outputID, subgraph.ValuePortName)
+
+	want := vector3.New(4., 5., 6.)
+	v3Param, paramID, err := inst.CreateNode("Vector3")
+	require.NoError(t, err)
+	v3Param.(*parameter.Vector3).CurrentValue = want
+
+	_, runtimeID, err := inst.CreateNode(subgraph.RuntimeTypePath("v3"))
+	require.NoError(t, err)
+	inst.ConnectNodes(paramID, "Value", runtimeID, "Position")
+
+	identity := child.Node(identityID)
+	got := nodes.GetNodeOutputPort[vector3.Float64](identity, "Out").Value()
+	assert.Equal(t, want, got)
+
+	_ = outputID
 }
 
 func TestNestedRuntimeTypeLoadsFromSubGraph(t *testing.T) {

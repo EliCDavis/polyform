@@ -20,10 +20,17 @@ type subGraphRuntime struct {
 	instance    *Instance
 }
 
-type BoundaryPort struct {
+type BoundaryPortKind string
+
+const (
+	BoundaryPortKindInput  BoundaryPortKind = "input"
+	BoundaryPortKindOutput BoundaryPortKind = "output"
+)
+
+type SubgraphBoundaryPort struct {
 	Name string
 	Type string
-	Kind string // "input" | "output"
+	Kind BoundaryPortKind
 }
 
 func (a *Instance) initSubGraphs() {
@@ -167,13 +174,13 @@ func (a *Instance) RegisterSubGraphNodeType(subGraphID string) (string, error) {
 	return typePath, nil
 }
 
-func (a *Instance) CollectBoundaryPorts(subGraphID string) ([]BoundaryPort, error) {
+func (a *Instance) CollectBoundaryPorts(subGraphID string) ([]SubgraphBoundaryPort, error) {
 	child, err := a.SubGraphInstance(subGraphID)
 	if err != nil {
 		return nil, err
 	}
 
-	ports := make([]BoundaryPort, 0)
+	ports := make([]SubgraphBoundaryPort, 0)
 	seen := make(map[string]struct{})
 
 	for node := range child.nodeIDs {
@@ -186,19 +193,19 @@ func (a *Instance) CollectBoundaryPorts(subGraphID string) ([]BoundaryPort, erro
 			continue
 		}
 
-		kind := "output"
+		kind := BoundaryPortKindOutput
 		if _, isInput := subgraph.IsInputBoundary(node); isInput {
-			kind = "input"
+			kind = BoundaryPortKindInput
 		}
 
 		name := boundary.BoundaryPortName()
-		seenKey := kind + "/" + name
+		seenKey := string(kind) + "/" + name
 		if _, dup := seen[seenKey]; dup {
 			continue
 		}
 		seen[seenKey] = struct{}{}
 
-		ports = append(ports, BoundaryPort{
+		ports = append(ports, SubgraphBoundaryPort{
 			Name: name,
 			Type: boundary.BoundaryPortType(),
 			Kind: kind,

@@ -8,26 +8,26 @@ import (
 	"github.com/EliCDavis/polyform/nodes"
 )
 
-type instanceInputPort struct {
+type subgraphInstanceInputPort struct {
 	subgraphNode *SubgraphInstanceNode
 	portName     string
 	portType     string
 	external     nodes.OutputPort
 }
 
-func (p *instanceInputPort) Node() nodes.Node {
+func (p *subgraphInstanceInputPort) Node() nodes.Node {
 	return p.subgraphNode
 }
 
-func (p *instanceInputPort) Name() string {
+func (p *subgraphInstanceInputPort) Name() string {
 	return p.portName
 }
 
-func (p *instanceInputPort) Type() string {
+func (p *subgraphInstanceInputPort) Type() string {
 	return p.portType
 }
 
-func (p *instanceInputPort) Clear() {
+func (p *subgraphInstanceInputPort) Clear() {
 	p.external = nil
 	err := p.syncToBoundaryInput(nil)
 	if err != nil {
@@ -35,16 +35,16 @@ func (p *instanceInputPort) Clear() {
 	}
 }
 
-func (p *instanceInputPort) Value() nodes.OutputPort {
+func (p *subgraphInstanceInputPort) Value() nodes.OutputPort {
 	return p.external
 }
 
-func (p *instanceInputPort) Set(port nodes.OutputPort) error {
+func (p *subgraphInstanceInputPort) Set(port nodes.OutputPort) error {
 	p.external = port
 	return p.syncToBoundaryInput(port)
 }
 
-func (p *instanceInputPort) syncToBoundaryInput(port nodes.OutputPort) error {
+func (p *subgraphInstanceInputPort) syncToBoundaryInput(port nodes.OutputPort) error {
 	child, err := p.subgraphNode.owner.SubGraphInstance(p.subgraphNode.subGraphID)
 	if err != nil {
 		return fmt.Errorf("failed to get subgraph instance: %w", err)
@@ -63,25 +63,25 @@ func (p *instanceInputPort) syncToBoundaryInput(port nodes.OutputPort) error {
 	return fmt.Errorf("boundary input port %q not found", p.portName)
 }
 
-type instanceOutputPort struct {
+type subgraphInstanceOutputPort struct {
 	runtimeNode *SubgraphInstanceNode
 	portName    string
 	portType    string
 }
 
-func (p *instanceOutputPort) Node() nodes.Node {
+func (p *subgraphInstanceOutputPort) Node() nodes.Node {
 	return p.runtimeNode
 }
 
-func (p *instanceOutputPort) Name() string {
+func (p *subgraphInstanceOutputPort) Name() string {
 	return p.portName
 }
 
-func (p *instanceOutputPort) Type() string {
+func (p *subgraphInstanceOutputPort) Type() string {
 	return p.portType
 }
 
-func (p *instanceOutputPort) Version() int {
+func (p *subgraphInstanceOutputPort) Version() int {
 	source := p.connectedSource()
 	if source == nil {
 		return 0
@@ -89,7 +89,7 @@ func (p *instanceOutputPort) Version() int {
 	return source.Version()
 }
 
-func (p *instanceOutputPort) connectedSource() nodes.OutputPort {
+func (p *subgraphInstanceOutputPort) connectedSource() nodes.OutputPort {
 	child, err := p.runtimeNode.owner.SubGraphInstance(p.runtimeNode.subGraphID)
 	if err != nil {
 		return nil
@@ -137,14 +137,6 @@ func (r *SubgraphInstanceNode) Path() string {
 }
 
 func (r *SubgraphInstanceNode) Inputs() map[string]nodes.InputPort {
-	return r.syncInputPorts()
-}
-
-func (r *SubgraphInstanceNode) Outputs() map[string]nodes.OutputPort {
-	return r.syncOutputPorts()
-}
-
-func (r *SubgraphInstanceNode) syncInputPorts() map[string]nodes.InputPort {
 	if r.inputs == nil {
 		r.inputs = make(map[string]nodes.InputPort)
 	}
@@ -156,15 +148,15 @@ func (r *SubgraphInstanceNode) syncInputPorts() map[string]nodes.InputPort {
 
 	active := make(map[string]struct{})
 	for _, bp := range boundaryPorts {
-		if bp.Kind != "input" {
+		if bp.Kind != BoundaryPortKindInput {
 			continue
 		}
 		name := bp.Name
 		active[name] = struct{}{}
 
-		port, ok := r.inputs[name].(*instanceInputPort)
+		port, ok := r.inputs[name].(*subgraphInstanceInputPort)
 		if !ok {
-			port = &instanceInputPort{
+			port = &subgraphInstanceInputPort{
 				subgraphNode: r,
 				portName:     name,
 			}
@@ -182,7 +174,7 @@ func (r *SubgraphInstanceNode) syncInputPorts() map[string]nodes.InputPort {
 	return r.inputs
 }
 
-func (r *SubgraphInstanceNode) syncOutputPorts() map[string]nodes.OutputPort {
+func (r *SubgraphInstanceNode) Outputs() map[string]nodes.OutputPort {
 	if r.outputs == nil {
 		r.outputs = make(map[string]nodes.OutputPort)
 	}
@@ -194,15 +186,15 @@ func (r *SubgraphInstanceNode) syncOutputPorts() map[string]nodes.OutputPort {
 
 	active := make(map[string]struct{})
 	for _, bp := range boundaryPorts {
-		if bp.Kind != "output" {
+		if bp.Kind != BoundaryPortKindOutput {
 			continue
 		}
 		name := bp.Name
 		active[name] = struct{}{}
 
-		port, ok := r.outputs[name].(*instanceOutputPort)
+		port, ok := r.outputs[name].(*subgraphInstanceOutputPort)
 		if !ok {
-			port = &instanceOutputPort{
+			port = &subgraphInstanceOutputPort{
 				runtimeNode: r,
 				portName:    name,
 			}
@@ -228,7 +220,7 @@ func (r *SubgraphInstanceNode) Description() string {
 	return runtime.description
 }
 
-func validateBoundaryPortName(child *Instance, portName string, kind string, excludeNode nodes.Node) error {
+func validateBoundaryPortName(child *Instance, portName string, kind BoundaryPortKind, excludeNode nodes.Node) error {
 	for node := range child.nodeIDs {
 		if node == excludeNode {
 			continue
@@ -240,9 +232,9 @@ func validateBoundaryPortName(child *Instance, portName string, kind string, exc
 		if boundary.BoundaryPortName() != portName {
 			continue
 		}
-		existingKind := "output"
+		existingKind := BoundaryPortKindOutput
 		if _, isInput := subgraph.IsInputBoundary(node); isInput {
-			existingKind = "input"
+			existingKind = BoundaryPortKindInput
 		}
 		if existingKind == kind {
 			return fmt.Errorf("boundary port name %q already used by another %s node", portName, kind)
@@ -269,7 +261,7 @@ func (a *Instance) SetBoundaryNodeInfo(nodeID, portName, portType string) error 
 	node := a.Node(nodeID)
 
 	if inputNode, ok := node.(*subgraph.InputNode); ok {
-		if err := validateBoundaryPortName(a, portName, "input", node); err != nil {
+		if err := validateBoundaryPortName(a, portName, BoundaryPortKindInput, node); err != nil {
 			return err
 		}
 		inputNode.PortName = portName
@@ -279,7 +271,7 @@ func (a *Instance) SetBoundaryNodeInfo(nodeID, portName, portType string) error 
 	}
 
 	if outputNode, ok := node.(*subgraph.OutputNode); ok {
-		if err := validateBoundaryPortName(a, portName, "output", node); err != nil {
+		if err := validateBoundaryPortName(a, portName, BoundaryPortKindOutput, node); err != nil {
 			return err
 		}
 		outputNode.PortName = portName

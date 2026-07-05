@@ -7,6 +7,8 @@ import (
 	"github.com/EliCDavis/jbtf"
 	"github.com/EliCDavis/polyform/generator/subgraph"
 	"github.com/EliCDavis/polyform/nodes"
+	"github.com/EliCDavis/polyform/refutil"
+	"github.com/EliCDavis/vector/vector3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -43,6 +45,24 @@ func TestInputNodeCustomPort(t *testing.T) {
 	typedOut, ok := out.(nodes.Output[float64])
 	assert.True(t, ok)
 	assert.Equal(t, float64(0), typedOut.Value())
+}
+
+func TestInputNodeDomainTypeImplementsTypedOutput(t *testing.T) {
+	portType := refutil.TypeResolution{
+		IncludePackage: true,
+		IncludePointer: false,
+	}.Resolve(vector3.New(0., 0., 0.))
+
+	n := subgraph.NewInputNode("Position", portType)
+	out := n.Outputs()[subgraph.ValuePortName]
+
+	typedOut, ok := out.(nodes.Output[vector3.Float64])
+	require.True(t, ok, "InputNode.Value must implement nodes.Output[vector3.Float64] for port type %q", portType)
+
+	want := vector3.New(1., 2., 3.)
+	n.SetExternalSource(nodes.ConstOutput[vector3.Float64]{Val: want})
+
+	assert.Equal(t, want, typedOut.Value())
 }
 
 func TestInputNodeExternalSourceVersion(t *testing.T) {
