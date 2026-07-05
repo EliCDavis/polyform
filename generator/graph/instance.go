@@ -396,27 +396,19 @@ func (a *Instance) NodeInstanceSchema(node nodes.Node) schema.Node {
 	}
 
 	if boundary, ok := subgraph.IsBoundaryNode(node); ok {
-		portName := boundary.BoundaryPortName()
-		portType := boundary.BoundaryPortType()
-		if _, isInput := subgraph.IsInputBoundary(node); isInput {
-			nodeInstance.SubGraphInputBoundary = &schema.SubGraphInputBoundary{
-				PortName: portName,
-				PortType: portType,
-			}
-		} else {
-			nodeInstance.SubGraphOutputBoundary = &schema.SubGraphOutputBoundary{
-				PortName: portName,
-				PortType: portType,
-			}
+		portBoundary := &schema.SubGraphPortBoundary{
+			PortName: boundary.BoundaryPortName(),
+			PortType: boundary.BoundaryPortType(),
 		}
-		if named, ok := node.(nodes.Named); ok {
-			nodeInstance.Name = named.Name()
+		if _, isInput := subgraph.IsInputBoundary(node); isInput {
+			nodeInstance.SubGraphInputBoundary = portBoundary
+		} else {
+			nodeInstance.SubGraphOutputBoundary = portBoundary
 		}
 	}
 
-	if runtime, ok := node.(*InstanceNode); ok {
+	if runtime, ok := node.(*SubgraphInstanceNode); ok {
 		nodeInstance.SubGraphId = runtime.SubGraphID()
-		nodeInstance.Name = runtime.Name()
 		nodeInstance.Type = subgraph.RuntimeTypePath(runtime.SubGraphID())
 	}
 
@@ -621,10 +613,6 @@ func (a *Instance) ApplyAppSchema(jsonPayload []byte) error {
 		a.profiles[profile] = data.Data
 	}
 
-	if err != nil {
-		return err
-	}
-
 	for subGraphID, subGraphDef := range appSchema.SubGraphs {
 		err = a.loadSubGraphDefinition(subGraphID, subGraphDef, decoder)
 		if err != nil {
@@ -636,7 +624,7 @@ func (a *Instance) ApplyAppSchema(jsonPayload []byte) error {
 
 	// Create the Nodes
 	for nodeID, instanceDetails := range appSchema.Nodes {
-		node, err := a.instantiateAppNode(nodeID, instanceDetails, createdNodes)
+		node, err := a.instantiateAppNode(nodeID, instanceDetails)
 		if err != nil {
 			return err
 		}
@@ -765,7 +753,7 @@ func (a *Instance) Schema() schema.Graph {
 
 	if a.parent == nil {
 		a.initSubGraphs()
-		appSchema.SubGraphs = make(map[string]schema.SubGraphInstance, len(a.subGraphs))
+		appSchema.SubGraphs = make(map[string]schema.SubGraph, len(a.subGraphs))
 		for id := range a.subGraphs {
 			runtimeSchema, err := a.runtimeSubGraphSchema(id)
 			if err != nil {
@@ -868,7 +856,7 @@ func (a *Instance) buildNodeGraphInstanceSchema(node nodes.Node, encoder *jbtf.E
 	}
 
 	nodeType := resolver.Resolve(node)
-	if runtime, ok := node.(*InstanceNode); ok {
+	if runtime, ok := node.(*SubgraphInstanceNode); ok {
 		nodeType = subgraph.RuntimeTypePath(runtime.SubGraphID())
 	}
 

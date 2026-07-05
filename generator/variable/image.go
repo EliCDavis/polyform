@@ -121,8 +121,8 @@ func (tv *ImageVariable) NodeReference() nodes.Node {
 // 	})
 // }
 
-func (tv ImageVariable) runtimeSchema() schema.RuntimeVariable {
-	return schema.RuntimeVariable{
+func (tv ImageVariable) runtimeSchema() schema.Variable {
+	return schema.Variable{
 		Description: tv.info.Description(),
 		Type:        "image.Image", // refutil.GetTypeName(tv.value),
 		Value:       tv.value,

@@ -19,7 +19,7 @@ type Node struct {
 	Variable  any            `json:"variable,omitempty"`
 	Metadata  map[string]any `json:"metadata,omitempty"`
 
-	SubGraphInputBoundary  *SubGraphInputBoundary  `json:"subGraphInputBoundary,omitempty"`
-	SubGraphOutputBoundary *SubGraphOutputBoundary `json:"subGraphOutputBoundary,omitempty"`
-	SubGraphId             string                  `json:"subGraphId,omitempty"`
+	SubGraphInputBoundary  *SubGraphPortBoundary `json:"subGraphInputBoundary,omitempty"`
+	SubGraphOutputBoundary *SubGraphPortBoundary `json:"subGraphOutputBoundary,omitempty"`
+	SubGraphId             string                `json:"subGraphId,omitempty"`
 }

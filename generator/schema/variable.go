@@ -1,6 +1,6 @@
 package schema
 
-type RuntimeVariable struct {
+type Variable struct {
 	Description string `json:"description"`
 	Type        string `json:"type"`
 	Value       any    `json:"value"`

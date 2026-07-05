@@ -32,7 +32,7 @@ type System interface {
 	Move(oldName, newName string) error
 	Traverse(func(path string, info Info, v Variable))
 	PersistedSchema(encoder *jbtf.Encoder) (schema.NestedGroup[persistence.Variable], error)
-	RuntimeSchema() (schema.NestedGroup[schema.RuntimeVariable], error)
+	RuntimeSchema() (schema.NestedGroup[schema.Variable], error)
 	ApplyProfile(profile Profile) error
 	GetProfile() Profile
 	SwaggerDefinition() swagger.Definition
@@ -122,12 +122,12 @@ func (s *system) ApplyProfile(profile Profile) error {
 	return nil
 }
 
-func (s *system) RuntimeSchema() (schema.NestedGroup[schema.RuntimeVariable], error) {
+func (s *system) RuntimeSchema() (schema.NestedGroup[schema.Variable], error) {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 
-	variables := make(map[string]schema.RuntimeVariable)
-	subgroups := make(map[string]schema.NestedGroup[schema.RuntimeVariable])
+	variables := make(map[string]schema.Variable)
+	subgroups := make(map[string]schema.NestedGroup[schema.Variable])
 
 	for name, entry := range s.entries {
 		switch v := entry.(type) {
@@ -139,7 +139,7 @@ func (s *system) RuntimeSchema() (schema.NestedGroup[schema.RuntimeVariable], er
 		}
 	}
 
-	return schema.NestedGroup[schema.RuntimeVariable]{
+	return schema.NestedGroup[schema.Variable]{
 		Variables: variables,
 		SubGroups: subgroups,
 	}, nil

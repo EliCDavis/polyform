@@ -9,14 +9,14 @@ import (
 )
 
 type instanceInputPort struct {
-	runtimeNode *InstanceNode
-	portName    string
-	portType    string
-	external    nodes.OutputPort
+	subgraphNode *SubgraphInstanceNode
+	portName     string
+	portType     string
+	external     nodes.OutputPort
 }
 
 func (p *instanceInputPort) Node() nodes.Node {
-	return p.runtimeNode
+	return p.subgraphNode
 }
 
 func (p *instanceInputPort) Name() string {
@@ -29,7 +29,10 @@ func (p *instanceInputPort) Type() string {
 
 func (p *instanceInputPort) Clear() {
 	p.external = nil
-	p.syncToBoundaryInput(nil)
+	err := p.syncToBoundaryInput(nil)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func (p *instanceInputPort) Value() nodes.OutputPort {
@@ -38,14 +41,13 @@ func (p *instanceInputPort) Value() nodes.OutputPort {
 
 func (p *instanceInputPort) Set(port nodes.OutputPort) error {
 	p.external = port
-	p.syncToBoundaryInput(port)
-	return nil
+	return p.syncToBoundaryInput(port)
 }
 
-func (p *instanceInputPort) syncToBoundaryInput(port nodes.OutputPort) {
-	child, err := p.runtimeNode.owner.SubGraphInstance(p.runtimeNode.subGraphID)
+func (p *instanceInputPort) syncToBoundaryInput(port nodes.OutputPort) error {
+	child, err := p.subgraphNode.owner.SubGraphInstance(p.subgraphNode.subGraphID)
 	if err != nil {
-		return
+		return fmt.Errorf("failed to get subgraph instance: %w", err)
 	}
 	for node := range child.nodeIDs {
 		inputBoundary, ok := subgraph.IsInputBoundary(node)
@@ -54,13 +56,15 @@ func (p *instanceInputPort) syncToBoundaryInput(port nodes.OutputPort) {
 		}
 		if inputBoundary.BoundaryPortName() == p.portName {
 			inputBoundary.SetExternalSource(port)
-			return
+			return nil
 		}
 	}
+
+	return fmt.Errorf("boundary input port %q not found", p.portName)
 }
 
 type instanceOutputPort struct {
-	runtimeNode *InstanceNode
+	runtimeNode *SubgraphInstanceNode
 	portName    string
 	portType    string
 }
@@ -102,25 +106,25 @@ func (p *instanceOutputPort) connectedSource() nodes.OutputPort {
 	return nil
 }
 
-type InstanceNode struct {
+type SubgraphInstanceNode struct {
 	owner      *Instance
 	subGraphID string
 	inputs     map[string]nodes.InputPort
 	outputs    map[string]nodes.OutputPort
 }
 
-func NewRuntimeNode(owner *Instance, subGraphID string) *InstanceNode {
-	return &InstanceNode{
+func NewRuntimeNode(owner *Instance, subGraphID string) *SubgraphInstanceNode {
+	return &SubgraphInstanceNode{
 		owner:      owner,
 		subGraphID: subGraphID,
 	}
 }
 
-func (r *InstanceNode) SubGraphID() string {
+func (r *SubgraphInstanceNode) SubGraphID() string {
 	return r.subGraphID
 }
 
-func (r *InstanceNode) Name() string {
+func (r *SubgraphInstanceNode) Name() string {
 	runtime, ok := r.owner.subGraphs[r.subGraphID]
 	if !ok {
 		return "SubGraph"
@@ -128,19 +132,19 @@ func (r *InstanceNode) Name() string {
 	return runtime.name
 }
 
-func (r *InstanceNode) Path() string {
+func (r *SubgraphInstanceNode) Path() string {
 	return "SubGraph"
 }
 
-func (r *InstanceNode) Inputs() map[string]nodes.InputPort {
+func (r *SubgraphInstanceNode) Inputs() map[string]nodes.InputPort {
 	return r.syncInputPorts()
 }
 
-func (r *InstanceNode) Outputs() map[string]nodes.OutputPort {
+func (r *SubgraphInstanceNode) Outputs() map[string]nodes.OutputPort {
 	return r.syncOutputPorts()
 }
 
-func (r *InstanceNode) syncInputPorts() map[string]nodes.InputPort {
+func (r *SubgraphInstanceNode) syncInputPorts() map[string]nodes.InputPort {
 	if r.inputs == nil {
 		r.inputs = make(map[string]nodes.InputPort)
 	}
@@ -161,8 +165,8 @@ func (r *InstanceNode) syncInputPorts() map[string]nodes.InputPort {
 		port, ok := r.inputs[name].(*instanceInputPort)
 		if !ok {
 			port = &instanceInputPort{
-				runtimeNode: r,
-				portName:    name,
+				subgraphNode: r,
+				portName:     name,
 			}
 			r.inputs[name] = port
 		}
@@ -178,7 +182,7 @@ func (r *InstanceNode) syncInputPorts() map[string]nodes.InputPort {
 	return r.inputs
 }
 
-func (r *InstanceNode) syncOutputPorts() map[string]nodes.OutputPort {
+func (r *SubgraphInstanceNode) syncOutputPorts() map[string]nodes.OutputPort {
 	if r.outputs == nil {
 		r.outputs = make(map[string]nodes.OutputPort)
 	}
@@ -216,7 +220,7 @@ func (r *InstanceNode) syncOutputPorts() map[string]nodes.OutputPort {
 	return r.outputs
 }
 
-func (r *InstanceNode) Description() string {
+func (r *SubgraphInstanceNode) Description() string {
 	runtime, ok := r.owner.subGraphs[r.subGraphID]
 	if !ok {
 		return ""

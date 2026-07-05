@@ -87,7 +87,10 @@ func (a *Instance) CreateSubGraph(id, name, description string) error {
 		instance:    child,
 	}
 
-	a.RegisterSubGraphNodeType(id)
+	_, err := a.RegisterSubGraphNodeType(id)
+	if err != nil {
+		return fmt.Errorf("failed to register subgraph node type: %w", err)
+	}
 	a.incModelVersion()
 	return nil
 }
@@ -116,7 +119,7 @@ func (a *Instance) DeleteSubGraph(id string) error {
 func (a *Instance) countSubGraphNodeInstances(subGraphID string) int {
 	count := 0
 	for node := range a.nodeIDs {
-		runtime, ok := node.(*InstanceNode)
+		runtime, ok := node.(*SubgraphInstanceNode)
 		if ok && runtime.subGraphID == subGraphID {
 			count++
 		}
@@ -214,19 +217,19 @@ func (a *Instance) onSubGraphChildMutation(subGraphID string) {
 	a.Root().refreshSubGraphNodeType(subGraphID)
 }
 
-func (a *Instance) runtimeSubGraphSchema(id string) (schema.SubGraphInstance, error) {
+func (a *Instance) runtimeSubGraphSchema(id string) (schema.SubGraph, error) {
 	if err := a.assertRootGraph("fetch subgraph schema"); err != nil {
-		return schema.SubGraphInstance{}, err
+		return schema.SubGraph{}, err
 	}
 	a.initSubGraphs()
 
 	runtime, exists := a.subGraphs[id]
 	if !exists {
-		return schema.SubGraphInstance{}, fmt.Errorf("sub-graph %q does not exist", id)
+		return schema.SubGraph{}, fmt.Errorf("sub-graph %q does not exist", id)
 	}
 
 	childSchema := runtime.instance.Schema()
-	return schema.SubGraphInstance{
+	return schema.SubGraph{
 		Nodes: childSchema.Nodes,
 		Notes: childSchema.Notes,
 	}, nil

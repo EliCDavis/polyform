@@ -16,22 +16,22 @@ func (a *Instance) loadSubGraphDefinition(subGraphID string, def persistence.Sub
 		return err
 	}
 
-	child, err := a.SubGraphInstance(subGraphID)
+	subgraph, err := a.SubGraphInstance(subGraphID)
 	if err != nil {
 		return err
 	}
 
 	if def.Notes != nil {
-		child.metadata.Set("notes", def.Notes)
+		subgraph.metadata.Set("notes", def.Notes)
 	}
 
 	if def.Metadata != nil {
-		child.metadata.OverwriteData(def.Metadata)
+		subgraph.metadata.OverwriteData(def.Metadata)
 	}
 
 	createdNodes := make(map[string]nodes.Node)
 	for nodeID, instanceDetails := range def.Nodes {
-		node, instErr := child.instantiateAppNode(nodeID, instanceDetails, createdNodes)
+		node, instErr := subgraph.instantiateAppNode(nodeID, instanceDetails)
 		if instErr != nil {
 			return instErr
 		}
@@ -40,7 +40,7 @@ func (a *Instance) loadSubGraphDefinition(subGraphID string, def persistence.Sub
 		}
 	}
 
-	if err = child.connectAppNodes(def.Nodes, createdNodes); err != nil {
+	if err = subgraph.connectAppNodes(def.Nodes, createdNodes); err != nil {
 		return err
 	}
 
@@ -56,7 +56,7 @@ func (a *Instance) loadSubGraphDefinition(subGraphID string, def persistence.Sub
 	return nil
 }
 
-func (a *Instance) instantiateAppNode(nodeID string, instanceDetails persistence.Node, createdNodes map[string]nodes.Node) (nodes.Node, error) {
+func (a *Instance) instantiateAppNode(nodeID string, instanceDetails persistence.Node) (nodes.Node, error) {
 	if nodeID == "" {
 		panic("attempting to create a node without an ID")
 	}

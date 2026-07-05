@@ -39,8 +39,8 @@ type boundaryData struct {
 }
 
 type InputNode struct {
-	PortName string `json:"portName"`
-	PortType string `json:"portType"`
+	PortName string
+	PortType string
 
 	externalSource nodes.OutputPort
 	version        int
@@ -128,8 +128,8 @@ func (p *inputNodeOutputPort) Version() int {
 }
 
 type OutputNode struct {
-	PortName string `json:"portName"`
-	PortType string `json:"portType"`
+	PortName string
+	PortType string
 
 	inputPort *outputNodeInputPort
 }

@@ -492,7 +492,7 @@ func TestRegisterSubGraphNodeType(t *testing.T) {
 
 	node, _, err := inst.CreateNode(typePath)
 	require.NoError(t, err)
-	runtime, ok := node.(*graph.InstanceNode)
+	runtime, ok := node.(*graph.SubgraphInstanceNode)
 	require.True(t, ok)
 	assert.Equal(t, "registered", runtime.SubGraphID())
 }
@@ -527,7 +527,7 @@ func TestRuntimeNodeOutputsReflectBoundaryTypes(t *testing.T) {
 	assert.Equal(t, "image.Image", typed.Type())
 }
 
-var _ nodes.Node = (*graph.InstanceNode)(nil)
+var _ nodes.Node = (*graph.SubgraphInstanceNode)(nil)
 
 func TestRuntimeNodeInputPersistedThroughConnectNodes(t *testing.T) {
 	inst := testInstanceWithSubGraphTypesExtended(t)

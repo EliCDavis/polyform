@@ -106,13 +106,13 @@ func (tv TypeVariable[T]) MarshalJSON() ([]byte, error) {
 	})
 }
 
-func (tv TypeVariable[T]) runtimeSchema() schema.RuntimeVariable {
+func (tv TypeVariable[T]) runtimeSchema() schema.Variable {
 	resolver := refutil.TypeResolution{
 		IncludePackage: false,
 		IncludePointer: false,
 	}
 	var t T
-	return schema.RuntimeVariable{
+	return schema.Variable{
 		Description: tv.info.Description(),
 		Type:        resolver.Resolve(t),
 		Value:       tv.value,

@@ -166,3 +166,71 @@ func TestInstance_AddProducer_InitializeParameters_Artifacts(t *testing.T) {
 	}
 }`, string(appSchema))
 }
+
+func testInstanceWithTextProducer(t *testing.T) (*graph.Instance, *refutil.TypeFactory) {
+	t.Helper()
+
+	factory := &refutil.TypeFactory{}
+	refutil.RegisterType[parameter.String](factory)
+	refutil.RegisterType[nodes.Struct[basics.TextNode]](factory)
+
+	instance := graph.New(graph.Config{
+		TypeFactory: factory,
+	})
+
+	strParam := &parameter.String{
+		Name:         "Welp",
+		Description:  "I'm a description",
+		CurrentValue: "bruh",
+	}
+
+	textNode := nodes.Struct[basics.TextNode]{
+		Data: basics.TextNode{
+			In: nodes.GetNodeOutputPort[string](strParam, "Value"),
+		},
+	}
+
+	instance.SetName("Test App")
+	instance.SetDescription("A test graph")
+	instance.AddProducer("test.txt", nodes.GetNodeOutputPort[manifest.Manifest](&textNode, "Out"))
+
+	return instance, factory
+}
+
+func TestInstance_ApplyAppSchema_roundtrip(t *testing.T) {
+	source, factory := testInstanceWithTextProducer(t)
+
+	payload, err := source.EncodeToAppSchema()
+	assert.NoError(t, err)
+	assert.NotEmpty(t, payload)
+
+	restored := graph.New(graph.Config{
+		TypeFactory: factory,
+	})
+	assert.NoError(t, restored.ApplyAppSchema(payload))
+
+	assert.Equal(t, "Test App", restored.GetName())
+	assert.Equal(t, "A test graph", restored.GetDescription())
+	assert.Equal(t, []string{"test.txt"}, restored.ProducerNames())
+
+	buf := &bytes.Buffer{}
+	textManifest := restored.Manifest("test.txt")
+	assert.NoError(t, textManifest.Entries[textManifest.Main].Artifact.Write(buf))
+	assert.Equal(t, "bruh", buf.String())
+
+	reencoded, err := restored.EncodeToAppSchema()
+	assert.NoError(t, err)
+	assert.Equal(t, string(payload), string(reencoded))
+
+	restoredSchema := restored.Schema()
+	assert.Equal(t, "Node-0", restoredSchema.Nodes["Node-1"].AssignedInput["In"].NodeId)
+}
+
+func TestInstance_ApplyAppSchema_invalidPayload(t *testing.T) {
+	instance := graph.New(graph.Config{
+		TypeFactory: &refutil.TypeFactory{},
+	})
+
+	err := instance.ApplyAppSchema([]byte(`not valid jbtf`))
+	assert.Error(t, err)
+}
