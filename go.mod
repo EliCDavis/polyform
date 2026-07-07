@@ -1,8 +1,6 @@
 module github.com/EliCDavis/polyform
 
-go 1.23.0
-
-toolchain go1.23.4
+go 1.25.0
 
 require (
 	github.com/EliCDavis/vector v1.12.0
@@ -14,12 +12,12 @@ require (
 	github.com/EliCDavis/jbtf v0.2.0
 	github.com/EliCDavis/sfm v1.2.0
 	github.com/gorilla/websocket v1.5.3
+	github.com/nlepage/go-wasm-http-server/v2 v2.2.1
 )
 
 require (
 	github.com/hack-pad/safejs v0.1.1 // indirect
 	github.com/nlepage/go-js-promise v1.1.0 // indirect
-	github.com/nlepage/go-wasm-http-server/v2 v2.2.1 // indirect
 )
 
 require (
@@ -44,5 +42,5 @@ require (
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 // indirect
-	golang.org/x/image v0.27.0
+	golang.org/x/image v0.41.0
 )
