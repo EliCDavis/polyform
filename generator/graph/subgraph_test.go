@@ -395,11 +395,9 @@ func TestCollectBoundaryPortsUnknownSubGraph(t *testing.T) {
 	require.Error(t, err)
 }
 
-func TestCollectAllPortTypes(t *testing.T) {
-	inst := testInstanceWithSubGraphTypesExtended(t)
-	nodeTypes := inst.BuildSchemaForAllNodeTypes()
-	types := graph.CollectAllPortTypes(nodeTypes)
-	require.NotEmpty(t, types)
+func TestKnownPortTypes(t *testing.T) {
+	testInstanceWithSubGraphTypesExtended(t)
+	require.NotEmpty(t, subgraph.KnownPortTypes())
 }
 
 func TestSubGraphEncodeDecodeRoundtrip(t *testing.T) {

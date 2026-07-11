@@ -2,6 +2,7 @@ package subgraph
 
 import (
 	"reflect"
+	"sort"
 	"sync"
 
 	"github.com/EliCDavis/polyform/nodes"
@@ -62,6 +63,19 @@ func IsPortTypeKnown(portType string) bool {
 	defer portTypeMu.RUnlock()
 	_, ok := portTypeProxies[portType]
 	return ok
+}
+
+// KnownPortTypes returns every discovered port type, sorted. These are the
+// types sub-graph boundary nodes can be created with.
+func KnownPortTypes() []string {
+	portTypeMu.RLock()
+	defer portTypeMu.RUnlock()
+	types := make([]string, 0, len(portTypeProxies))
+	for t := range portTypeProxies {
+		types = append(types, t)
+	}
+	sort.Strings(types)
+	return types
 }
 
 // LookupPortTypeProxy returns a builder capable of constructing a strongly

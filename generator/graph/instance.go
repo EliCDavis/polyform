@@ -958,7 +958,7 @@ func (a *Instance) createNode(nodeType, portType string) (nodes.Node, string, er
 		if portType == "" {
 			return nil, "", fmt.Errorf("boundary port type is required")
 		}
-		if !a.isAllowedBoundaryPortType(portType) {
+		if !subgraph.IsPortTypeKnown(portType) {
 			return nil, "", fmt.Errorf("unknown boundary port type %q", portType)
 		}
 		if err := subgraph.ConfigureBoundaryPortType(casted, portType); err != nil {
@@ -977,18 +977,6 @@ func (a *Instance) createNode(nodeType, portType string) (nodes.Node, string, er
 	}
 
 	return casted, a.nodeIDs[casted], nil
-}
-
-func (a *Instance) isAllowedBoundaryPortType(portType string) bool {
-	if subgraph.IsPortTypeKnown(portType) {
-		return true
-	}
-	for _, known := range CollectAllPortTypes(a.BuildSchemaForAllNodeTypes()) {
-		if known == portType {
-			return true
-		}
-	}
-	return false
 }
 
 func (a *Instance) DeleteNodeById(nodeId string) {
