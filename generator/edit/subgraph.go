@@ -162,7 +162,7 @@ func scopedNodeEndpoint(graphInstance *graph.Instance, saver *GraphSaver) endpoi
 						return CreateResponse{}, err
 					}
 
-					node, id, err := scopeInstance.CreateNode(request.Body.NodeType, request.Body.PortType)
+					node, id, err := createNodeFromRequest(scopeInstance, request.Body.NodeType, request.Body.PortType)
 					if err != nil {
 						return CreateResponse{}, err
 					}

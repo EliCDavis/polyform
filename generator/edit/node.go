@@ -9,11 +9,21 @@ import (
 	"github.com/EliCDavis/polyform/generator/manifest"
 	"github.com/EliCDavis/polyform/generator/schema"
 	"github.com/EliCDavis/polyform/generator/serialize"
+	"github.com/EliCDavis/polyform/nodes"
 )
 
 const (
 	nodeOutputEndpointPath = "/node/output/"
 )
+
+// createNodeFromRequest routes node creation to the right constructor: only
+// sub-graph boundary nodes carry a port type.
+func createNodeFromRequest(instance *graph.Instance, nodeType, portType string) (nodes.Node, string, error) {
+	if portType != "" {
+		return instance.CreateBoundaryNode(nodeType, portType)
+	}
+	return instance.CreateNode(nodeType)
+}
 
 func nodeEndpoint(graphInstance *graph.Instance, saver *GraphSaver) endpoint.Handler {
 	type CreateRequest struct {
@@ -36,7 +46,7 @@ func nodeEndpoint(graphInstance *graph.Instance, saver *GraphSaver) endpoint.Han
 		Methods: map[string]endpoint.Method{
 			http.MethodPost: endpoint.JsonMethod(
 				func(request endpoint.Request[CreateRequest]) (CreateResponse, error) {
-					node, id, err := graphInstance.CreateNode(request.Body.NodeType, request.Body.PortType)
+					node, id, err := createNodeFromRequest(graphInstance, request.Body.NodeType, request.Body.PortType)
 					if err != nil {
 						return CreateResponse{}, err
 					}

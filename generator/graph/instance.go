@@ -931,7 +931,19 @@ func (a *Instance) Node(nodeId string) nodes.Node {
 	panic(fmt.Errorf("no node exists with id %q", nodeId))
 }
 
-func (a *Instance) CreateNode(nodeType, portType string) (nodes.Node, string, error) {
+func (a *Instance) CreateNode(nodeType string) (nodes.Node, string, error) {
+	return a.createNode(nodeType, "")
+}
+
+// CreateBoundaryNode instantiates a subgraph boundary node with a given port type.
+func (a *Instance) CreateBoundaryNode(nodeType, portType string) (nodes.Node, string, error) {
+	if strings.TrimSpace(portType) == "" {
+		return nil, "", fmt.Errorf("boundary port type is required")
+	}
+	return a.createNode(nodeType, portType)
+}
+
+func (a *Instance) createNode(nodeType, portType string) (nodes.Node, string, error) {
 	if !a.typeFactory.KeyRegistered(nodeType) {
 		return nil, "", fmt.Errorf("no factory registered with ID %s", nodeType)
 	}
