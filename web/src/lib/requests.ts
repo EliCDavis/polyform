@@ -392,8 +392,16 @@ export class RequestManager {
     });
   }
 
-  createNode(nodeType: string, callback?: ResponseCallback<CreateNodeResponse>): void {
-    void postJson<CreateNodeResponse>(this.scopedNodeUrl(), { nodeType }).then((response) => {
+  createNode(
+    nodeType: string,
+    callback?: ResponseCallback<CreateNodeResponse>,
+    portType?: string
+  ): void {
+    const body: { nodeType: string; portType?: string } = { nodeType };
+    if (portType) {
+      body.portType = portType;
+    }
+    void postJson<CreateNodeResponse>(this.scopedNodeUrl(), body).then((response) => {
       if (response !== undefined) {
         this.onGraphChangeResponse(GraphChangeEventType.Node_New, callback)(response);
       }
@@ -497,7 +505,7 @@ export class RequestManager {
 
   setBoundaryNodeInfo(
     nodeId: string,
-    body: { portName: string; portType: string; scope: string | null },
+    body: { portName: string; scope: string | null },
     callback?: ResponseCallback<{ nodeType?: import("./schema").NodeDefinition }>
   ): void {
     void postJson<{ nodeType?: import("./schema").NodeDefinition }>(

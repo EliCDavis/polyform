@@ -7,7 +7,7 @@ import { NodeManager } from '../node_manager.js';
 import { FileParameterNodeController } from './file_parameter';
 import { getFileExtension, getLastSegmentOfURL } from '../utils.js';
 import { Vector2ParameterNodeController } from './vector2_parameter';
-import { NodeInstance, NodeInstanceAssignedInput, NodeInstanceOutput, NodeDefinition, ExecutionReport, RegisteredTypes, subGraphBoundaryKind } from '../schema.js';
+import { NodeInstance, NodeInstanceAssignedInput, NodeInstanceOutput, NodeDefinition, ExecutionReport, subGraphBoundaryKind } from '../schema.js';
 import { RequestManager, saveFileToDisk } from '../requests.js';
 import { FlowNode, GlobalWidgetFactory, ImageWidget, MessageType } from '@elicdavis/node-flow';
 import { ThreeApp } from '../three_app.js';
@@ -119,7 +119,6 @@ export class PolyNodeController {
         producerViewManager: ProducerViewManager,
         nodeDefinition: NodeDefinition,
         serializableOutputTypes: Array<string>,
-        registeredTypes?: RegisteredTypes
     ) {
         // console.log(liteNode)
         this.flowNode = flowNode;
@@ -176,14 +175,13 @@ export class PolyNodeController {
             if (nodeData.parameter.description) {
                 flowNode.setInfo(nodeData.parameter.description);
             }
-        } else if (subGraphBoundaryKind(nodeData) && registeredTypes) {
+        } else if (subGraphBoundaryKind(nodeData)) {
             this.boundary = new SubGraphBoundaryNodeController(
                 flowNode,
                 this.nodeManager,
                 this.requestManager,
                 this.id,
                 nodeData,
-                registeredTypes
             );
         } else if (isSubGraphRuntimeType(nodeData.type) && nodeData.subGraphId) {
             const subGraphId = nodeData.subGraphId;

@@ -28,8 +28,10 @@ import {
 import {
   SubGraphRuntimeStyle,
   buildBoundaryFlowNodeConfig,
+  subGraphNodeConfigs,
   type BoundaryNodeKind,
 } from "@/features/nodeFlow/subGraphNodeConfigs";
+import { portTypePickerActions } from "@/stores/portTypePickerStore";
 
 export const GeneratorVariablePublisherPath = "Generator/Variable/";
 
@@ -115,6 +117,8 @@ export class NodeManager {
 
     private onSchemaRefreshNeeded: (() => void) | null = null;
 
+    private boundaryMenuRegistered = false;
+
     constructor(
         nodeFlowGraph: NodeFlowGraph,
         requestManager: RequestManager,
@@ -160,6 +164,24 @@ export class NodeManager {
     setGraphScope(scope: GraphScope): void {
         this.graphScope = scope;
         this.requestManager.setGraphScopePath(scopeToApiPath(scope));
+        this.syncBoundaryNodeMenuAvailability();
+    }
+
+    /** Input/Output boundary nodes are only creatable while editing a sub-graph. */
+    private syncBoundaryNodeMenuAvailability(): void {
+        const shouldRegister = this.graphScope.kind === GraphScopeKind.SubGraph;
+        if (shouldRegister === this.boundaryMenuRegistered) {
+            return;
+        }
+        this.boundaryMenuRegistered = shouldRegister;
+
+        for (const [path, config] of Object.entries(subGraphNodeConfigs)) {
+            if (shouldRegister) {
+                this.nodesPublisher.register(path, config);
+            } else {
+                this.nodesPublisher.unregister(path);
+            }
+        }
     }
 
     getScopeApiPath(): string | null {
@@ -246,6 +268,90 @@ export class NodeManager {
 
         const nodeType: string = flowNode.metadata().typeData.type
 
+        if (nodeType === SUBGRAPH_INPUT_TYPE || nodeType === SUBGRAPH_OUTPUT_TYPE) {
+            this.beginBoundaryNodeCreation(flowNode, nodeType);
+            return;
+        }
+
+        this.finishNodeCreation(flowNode, nodeType);
+    }
+
+    private removeUnfinishedCanvasNode(flowNode: FlowNode): void {
+        this.serverUpdatingNodeConnections = true;
+        this.nodeFlowGraph.removeNode(flowNode);
+        this.serverUpdatingNodeConnections = false;
+    }
+
+    private beginBoundaryNodeCreation(flowNode: FlowNode, nodeType: string): void {
+        const portTypes = this.registeredTypes?.portTypes ?? [];
+        if (portTypes.length === 0) {
+            this.removeUnfinishedCanvasNode(flowNode);
+            return;
+        }
+
+        const kind: BoundaryNodeKind =
+            nodeType === SUBGRAPH_INPUT_TYPE ? "input" : "output";
+
+        portTypePickerActions.show({
+            title: kind === "input" ? "Input Port Type" : "Output Port Type",
+            options: portTypes,
+            current: portTypes[0],
+            onCancel: () => {
+                this.removeUnfinishedCanvasNode(flowNode);
+            },
+            onSelect: (portType) => {
+                const typedNode = this.replacePlaceholderBoundaryNode(
+                    flowNode,
+                    kind,
+                    portType,
+                );
+                this.finishNodeCreation(typedNode, nodeType, portType, (nodeID, node) => {
+                    const portName = node.title();
+                    if (!portName.trim()) {
+                        return;
+                    }
+                    this.requestManager.setBoundaryNodeInfo(
+                        nodeID,
+                        { portName, scope: this.getScopeApiPath() },
+                        (resp) => {
+                            this.notifySubGraphDefinitionChanged(resp?.nodeType);
+                        },
+                    );
+                });
+            },
+        });
+    }
+
+    /** Swap the menu-created placeholder for a node whose ports use the chosen type. */
+    private replacePlaceholderBoundaryNode(
+        oldFlowNode: FlowNode,
+        kind: BoundaryNodeKind,
+        portType: string,
+    ): FlowNode {
+        const position = oldFlowNode.getPosition();
+        const title = oldFlowNode.title();
+        const config = buildBoundaryFlowNodeConfig(kind, portType);
+
+        this.serverUpdatingNodeConnections = true;
+        this.nodeFlowGraph.removeNode(oldFlowNode);
+
+        const newFlowNode = new FlowNode({
+            ...config,
+            title: title || config.title,
+            position,
+        });
+        this.nodeFlowGraph.addNode(newFlowNode);
+        newFlowNode.setProperty("portType", portType);
+        this.serverUpdatingNodeConnections = false;
+        return newFlowNode;
+    }
+
+    private finishNodeCreation(
+        flowNode: FlowNode,
+        nodeType: string,
+        portType?: string,
+        afterCreate?: (nodeID: string, flowNode: FlowNode) => void,
+    ): void {
         this.requestManager.createNode(nodeType, (resp) => {
             const nodeID = resp.nodeID
             const nodeData = resp.data;
@@ -270,10 +376,11 @@ export class NodeManager {
                     this.producerViewManager,
                     flowNode.metadata().typeData,
                     this.serializableOutputTypes,
-                    this.registeredTypes
                 )
             );
-        })
+
+            afterCreate?.(nodeID, flowNode);
+        }, portType)
     }
 
     sortNodesByName(nodesToSort: GraphInstanceNodes): Array<{ id: string, node: NodeInstance }> {
@@ -509,38 +616,6 @@ export class NodeManager {
         });
     }
 
-    /** Replaces a boundary node's canvas ports when its configured type changes. */
-    replaceBoundaryFlowNode(
-        nodeId: string,
-        oldFlowNode: FlowNode,
-        portName: string,
-        portType: string,
-        kind: BoundaryNodeKind,
-    ): FlowNode {
-        const position = oldFlowNode.getPosition();
-        const config = buildBoundaryFlowNodeConfig(kind, portType);
-
-        this.serverUpdatingNodeConnections = true;
-        this.nodeFlowGraph.removeNode(oldFlowNode);
-
-        const newFlowNode = new FlowNode({
-            ...config,
-            title: portName || config.title,
-            position,
-        });
-        this.nodeFlowGraph.addNode(newFlowNode);
-        newFlowNode.setProperty(InstanceIDProperty, nodeId);
-
-        const controller = this.nodeIdToNode.get(nodeId);
-        if (controller) {
-            controller.flowNode = newFlowNode;
-            controller.attachInputConnectionListeners();
-        }
-
-        this.serverUpdatingNodeConnections = false;
-        return newFlowNode;
-    }
-
     newNode(nodeData: NodeInstance): FlowNode {
         const isParameter = !!nodeData.parameter;
         const isVariable = !!nodeData.variable;
@@ -624,7 +699,6 @@ export class NodeManager {
                     this.producerViewManager,
                     flowNode.metadata().typeData,
                     this.serializableOutputTypes,
-                    this.registeredTypes
                 );
                 this.nodeIdToNode.set(nodeID, controller);
             }

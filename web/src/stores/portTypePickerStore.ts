@@ -5,6 +5,7 @@ export interface PortTypePickerRequest {
   options: string[];
   current: string;
   onSelect: (type: string) => void;
+  onCancel?: () => void;
 }
 
 interface PortTypePickerState {
@@ -17,10 +18,15 @@ interface PortTypePickerState {
 export const usePortTypePickerStore = create<PortTypePickerState>((set, get) => ({
   request: null,
   open: (request) => set({ request }),
-  close: () => set({ request: null }),
-  confirm: (type) => {
-    get().request?.onSelect(type);
+  close: () => {
+    const request = get().request;
     set({ request: null });
+    request?.onCancel?.();
+  },
+  confirm: (type) => {
+    const request = get().request;
+    set({ request: null });
+    request?.onSelect(type);
   },
 }));
 
