@@ -269,11 +269,18 @@ func parseSubGraphScopeFromURL(urlPath string) (graph.Scope, error) {
 		return "", fmt.Errorf("invalid scoped graph url: %s", urlPath)
 	}
 
+	// "/node" and "/connection" only terminate the path, while metadata keys
+	// (e.g. ".../metadata/nodes/Node-1/position") follow the "/metadata/"
+	// marker. Matching "/node" anywhere would misparse those metadata paths.
 	subGraphID := rest
-	for _, suffix := range []string{"/node", "/connection", "/metadata/"} {
-		if idx := strings.Index(rest, suffix); idx != -1 {
+	switch {
+	case strings.HasSuffix(rest, "/node"):
+		subGraphID = strings.TrimSuffix(rest, "/node")
+	case strings.HasSuffix(rest, "/connection"):
+		subGraphID = strings.TrimSuffix(rest, "/connection")
+	default:
+		if idx := strings.Index(rest, "/metadata/"); idx != -1 {
 			subGraphID = rest[:idx]
-			break
 		}
 	}
 

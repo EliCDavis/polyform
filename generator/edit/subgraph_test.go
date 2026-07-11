@@ -458,6 +458,37 @@ func TestSchemaIncludesSubGraphs(t *testing.T) {
 	require.Contains(t, schema.SubGraphs, "in-schema")
 }
 
+// Moving a node in the editor posts to ".../metadata/nodes/<id>/position".
+// The "/nodes/" segment must not be mistaken for the "/node" create route
+// when parsing the sub-graph scope from the URL.
+func TestScopedSubGraphNodePositionMetadata(t *testing.T) {
+	handler, inst := subGraphTestServer(t)
+
+	requireOK(t, handler, httpStep{
+		method: http.MethodPost,
+		url:    "/subgraph/definition/pole",
+		body:   `{"name":"Pole"}`,
+	})
+
+	nodeID := createScopedNode(t, handler, "pole", subgraph.InputNodeTypeKey, "float64")
+
+	requireOK(t, handler, httpStep{
+		method: http.MethodPost,
+		url:    "/graph/subgraph/pole/metadata/nodes/" + nodeID + "/position",
+		body:   `{"x":42,"y":7}`,
+	})
+
+	child, err := inst.SubGraphInstance("pole")
+	require.NoError(t, err)
+
+	nodeMeta, ok := child.Schema().Nodes[nodeID]
+	require.True(t, ok)
+	position, ok := nodeMeta.Metadata["position"].(map[string]any)
+	require.True(t, ok)
+	assert.Equal(t, 42.0, position["x"])
+	assert.Equal(t, 7.0, position["y"])
+}
+
 func TestScopedSubGraphConnection(t *testing.T) {
 	handler, inst := subGraphTestServer(t)
 
