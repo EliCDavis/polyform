@@ -3,6 +3,7 @@ package generator
 import (
 	"sync"
 
+	"github.com/EliCDavis/polyform/generator/subgraph"
 	"github.com/EliCDavis/polyform/refutil"
 )
 
@@ -14,6 +15,7 @@ func RegisterTypes(typesToRegister *refutil.TypeFactory) {
 	typeMutex.Lock()
 	defer typeMutex.Unlock()
 	types = types.Combine(typesToRegister)
+	subgraph.DiscoverPortTypes(typesToRegister)
 	// for _, t := range types.Types() {
 	// 	log.Printf("Registered: %s\n", t)
 	// }

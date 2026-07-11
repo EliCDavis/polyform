@@ -51,7 +51,7 @@ func TestServer_ProducesManifest(t *testing.T) {
 	graph := graph.New(graph.Config{
 		TypeFactory: typeFactory(),
 	})
-	_, _, err := graph.CreateNode("Text")
+	_, _, err := graph.CreateNode("Text", "")
 	assert.NoError(t, err)
 
 	server := run.Server{
@@ -78,7 +78,7 @@ func TestServer_FailureCases(t *testing.T) {
 		TypeFactory: typeFactory(),
 	})
 
-	_, _, err := graph.CreateNode("Text")
+	_, _, err := graph.CreateNode("Text", "")
 	require.NoError(t, err)
 
 	server := run.Server{
@@ -206,7 +206,7 @@ func TestServer_GetAllManifests(t *testing.T) {
 	graph := graph.New(graph.Config{
 		TypeFactory: typeFactory(),
 	})
-	_, _, err := graph.CreateNode("Text")
+	_, _, err := graph.CreateNode("Text", "")
 	require.NoError(t, err)
 
 	server := run.Server{
@@ -234,7 +234,7 @@ func TestServer_NamedManifest(t *testing.T) {
 	graph := graph.New(graph.Config{
 		TypeFactory: typeFactory(),
 	})
-	_, _, err := graph.CreateNode("Text")
+	_, _, err := graph.CreateNode("Text", "")
 	require.NoError(t, err)
 
 	graph.SetNodeAsProducer("Node-1", "Out", "CoolName")

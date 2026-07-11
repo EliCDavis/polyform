@@ -55,6 +55,10 @@ func (vrn *variableReferenceNodePort[T]) Value() T {
 	return vrn.node.variable.currentValue().(T)
 }
 
+func (vrn *variableReferenceNodePort[T]) BuildProxyOutput(source nodes.ProxySource) nodes.OutputPort {
+	return nodes.NewProxyOutput[T](source)
+}
+
 func (so variableReferenceNodePort[T]) Type() string {
 
 	resolver := refutil.TypeResolution{

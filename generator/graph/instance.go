@@ -57,6 +57,7 @@ type Config struct {
 }
 
 func New(config Config) *Instance {
+	subgraph.DiscoverPortTypes(config.TypeFactory)
 	return &Instance{
 		details: Details{
 			Name:        config.Name,
@@ -147,6 +148,7 @@ func (a *Instance) NewVariable(variablePath string, variable variable.Variable) 
 	a.typeFactory.RegisterBuilder(variablePath, func() any {
 		return variable.NodeReference()
 	})
+	subgraph.DiscoverNodePortTypes(variable.NodeReference())
 
 	return variablePath
 }
@@ -633,6 +635,10 @@ func (a *Instance) ApplyAppSchema(jsonPayload []byte) error {
 		}
 	}
 
+	if err = applyPersistedNodeData(appSchema.Nodes, createdNodes, decoder); err != nil {
+		return err
+	}
+
 	// Connect the nodes we just created
 	err = a.connectAppNodes(appSchema.Nodes, createdNodes)
 	if err != nil {
@@ -654,17 +660,6 @@ func (a *Instance) ApplyAppSchema(jsonPayload []byte) error {
 		}
 
 		a.namedManifests.NamePort(producerName, producerDetails.Port, producerNode, casted)
-	}
-
-	// Set Parameters
-	for nodeID, instanceDetails := range appSchema.Nodes {
-		nodeI := createdNodes[nodeID]
-		if p, ok := nodeI.(CustomGraphSerialization); ok {
-			err := p.FromJSON(decoder, instanceDetails.Data)
-			if err != nil {
-				return err
-			}
-		}
 	}
 
 	a.incModelVersion()
@@ -936,7 +931,7 @@ func (a *Instance) Node(nodeId string) nodes.Node {
 	panic(fmt.Errorf("no node exists with id %q", nodeId))
 }
 
-func (a *Instance) CreateNode(nodeType string) (nodes.Node, string, error) {
+func (a *Instance) CreateNode(nodeType, portType string) (nodes.Node, string, error) {
 	if !a.typeFactory.KeyRegistered(nodeType) {
 		return nil, "", fmt.Errorf("no factory registered with ID %s", nodeType)
 	}
@@ -946,6 +941,21 @@ func (a *Instance) CreateNode(nodeType string) (nodes.Node, string, error) {
 	if !ok {
 		panic(fmt.Errorf("Regiestered type did not create a node. How'd ya manage that: %s", nodeType))
 	}
+
+	if _, isBoundary := subgraph.IsBoundaryNode(casted); isBoundary {
+		if portType == "" {
+			return nil, "", fmt.Errorf("boundary port type is required")
+		}
+		if !a.isAllowedBoundaryPortType(portType) {
+			return nil, "", fmt.Errorf("unknown boundary port type %q", portType)
+		}
+		if err := subgraph.ConfigureBoundaryPortType(casted, portType); err != nil {
+			return nil, "", err
+		}
+	} else if portType != "" {
+		return nil, "", fmt.Errorf("port type cannot be set on non-boundary node type %q", nodeType)
+	}
+
 	a.buildIDsForNode(casted)
 
 	if a.parent != nil {
@@ -955,6 +965,18 @@ func (a *Instance) CreateNode(nodeType string) (nodes.Node, string, error) {
 	}
 
 	return casted, a.nodeIDs[casted], nil
+}
+
+func (a *Instance) isAllowedBoundaryPortType(portType string) bool {
+	if subgraph.IsPortTypeKnown(portType) {
+		return true
+	}
+	for _, known := range CollectAllPortTypes(a.BuildSchemaForAllNodeTypes()) {
+		if known == portType {
+			return true
+		}
+	}
+	return false
 }
 
 func (a *Instance) DeleteNodeById(nodeId string) {

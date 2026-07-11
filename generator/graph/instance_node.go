@@ -89,6 +89,10 @@ func (p *subgraphInstanceOutputPort) Version() int {
 	return source.Version()
 }
 
+func (p *subgraphInstanceOutputPort) CurrentSource() nodes.OutputPort {
+	return p.connectedSource()
+}
+
 func (p *subgraphInstanceOutputPort) connectedSource() nodes.OutputPort {
 	child, err := p.runtimeNode.owner.SubGraphInstance(p.runtimeNode.subGraphID)
 	if err != nil {
@@ -107,10 +111,11 @@ func (p *subgraphInstanceOutputPort) connectedSource() nodes.OutputPort {
 }
 
 type SubgraphInstanceNode struct {
-	owner      *Instance
-	subGraphID string
-	inputs     map[string]nodes.InputPort
-	outputs    map[string]nodes.OutputPort
+	owner         *Instance
+	subGraphID    string
+	inputs        map[string]nodes.InputPort
+	outputs       map[string]nodes.OutputPort
+	outputSources map[string]*subgraphInstanceOutputPort
 }
 
 func NewRuntimeNode(owner *Instance, subGraphID string) *SubgraphInstanceNode {
@@ -178,6 +183,9 @@ func (r *SubgraphInstanceNode) Outputs() map[string]nodes.OutputPort {
 	if r.outputs == nil {
 		r.outputs = make(map[string]nodes.OutputPort)
 	}
+	if r.outputSources == nil {
+		r.outputSources = make(map[string]*subgraphInstanceOutputPort)
+	}
 
 	boundaryPorts, err := r.owner.CollectBoundaryPorts(r.subGraphID)
 	if err != nil {
@@ -192,20 +200,32 @@ func (r *SubgraphInstanceNode) Outputs() map[string]nodes.OutputPort {
 		name := bp.Name
 		active[name] = struct{}{}
 
-		port, ok := r.outputs[name].(*subgraphInstanceOutputPort)
+		port, ok := r.outputSources[name]
 		if !ok {
 			port = &subgraphInstanceOutputPort{
 				runtimeNode: r,
 				portName:    name,
 			}
-			r.outputs[name] = port
+			r.outputSources[name] = port
 		}
+		typeChanged := port.portType != bp.Type
 		port.portType = bp.Type
+
+		// Expose the boundary as a strongly typed output when the port type
+		// is known, so downstream typed inputs can connect to it.
+		if _, ok := r.outputs[name]; !ok || typeChanged {
+			var exposed nodes.OutputPort = port
+			if builder, found := subgraph.LookupPortTypeProxy(bp.Type); found {
+				exposed = builder.BuildProxyOutput(port)
+			}
+			r.outputs[name] = exposed
+		}
 	}
 
 	for name := range r.outputs {
 		if _, ok := active[name]; !ok {
 			delete(r.outputs, name)
+			delete(r.outputSources, name)
 		}
 	}
 
@@ -243,18 +263,15 @@ func validateBoundaryPortName(child *Instance, portName string, kind BoundaryPor
 	return nil
 }
 
-func validateBoundaryPortInfo(portName, portType string) error {
-	if strings.TrimSpace(portType) == "" {
-		return fmt.Errorf("boundary port type is required")
-	}
+func validateBoundaryPortNameOnly(portName string) error {
 	if strings.TrimSpace(portName) == "" {
 		return fmt.Errorf("boundary port name is required")
 	}
 	return nil
 }
 
-func (a *Instance) SetBoundaryNodeInfo(nodeID, portName, portType string) error {
-	if err := validateBoundaryPortInfo(portName, portType); err != nil {
+func (a *Instance) SetBoundaryNodeInfo(nodeID, portName string) error {
+	if err := validateBoundaryPortNameOnly(portName); err != nil {
 		return err
 	}
 
@@ -265,7 +282,6 @@ func (a *Instance) SetBoundaryNodeInfo(nodeID, portName, portType string) error 
 			return err
 		}
 		inputNode.PortName = portName
-		inputNode.PortType = portType
 		a.Root().onSubGraphChildMutation(a.SubGraphScopeID())
 		return nil
 	}
@@ -275,7 +291,6 @@ func (a *Instance) SetBoundaryNodeInfo(nodeID, portName, portType string) error 
 			return err
 		}
 		outputNode.PortName = portName
-		outputNode.PortType = portType
 		a.Root().onSubGraphChildMutation(a.SubGraphScopeID())
 		return nil
 	}

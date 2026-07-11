@@ -192,6 +192,9 @@ func (a *Instance) CollectBoundaryPorts(subGraphID string) ([]SubgraphBoundaryPo
 		if portType := boundary.BoundaryPortType(); portType == "" {
 			continue
 		}
+		if !subgraph.BoundaryPortNameConfigured(node) {
+			continue
+		}
 
 		kind := BoundaryPortKindOutput
 		if _, isInput := subgraph.IsInputBoundary(node); isInput {

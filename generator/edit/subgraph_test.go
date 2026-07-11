@@ -10,6 +10,7 @@ import (
 
 	"github.com/EliCDavis/polyform/generator/edit"
 	"github.com/EliCDavis/polyform/generator/graph"
+	_ "github.com/EliCDavis/polyform/generator/parameter"
 	"github.com/EliCDavis/polyform/generator/parameter"
 	"github.com/EliCDavis/polyform/generator/subgraph"
 	"github.com/EliCDavis/polyform/math"
@@ -64,17 +65,22 @@ func requireOK(t *testing.T, handler http.Handler, step httpStep) []byte {
 	return body
 }
 
-func createScopedNode(t *testing.T, handler http.Handler, subGraphID, nodeType string) string {
+func createScopedNode(t *testing.T, handler http.Handler, subGraphID, nodeType, portType string) string {
 	t.Helper()
-	body := requireOK(t, handler, httpStep{
+	body := fmt.Sprintf(`{"nodeType":"%s"`, nodeType)
+	if portType != "" {
+		body += fmt.Sprintf(`,"portType":"%s"`, portType)
+	}
+	body += "}"
+	respBody := requireOK(t, handler, httpStep{
 		method: http.MethodPost,
 		url:    fmt.Sprintf("/graph/subgraph/%s/node", subGraphID),
-		body:   fmt.Sprintf(`{"nodeType":"%s"}`, nodeType),
+		body:   body,
 	})
 	var resp struct {
 		NodeID string `json:"nodeID"`
 	}
-	require.NoError(t, json.Unmarshal(body, &resp))
+	require.NoError(t, json.Unmarshal(respBody, &resp))
 	require.NotEmpty(t, resp.NodeID)
 	return resp.NodeID
 }
@@ -107,11 +113,11 @@ func connectNodes(t *testing.T, handler http.Handler, scopeURL, nodeOutID, outPo
 	})
 }
 
-func setBoundaryInfo(t *testing.T, handler http.Handler, nodeID, subGraphID, portName, portType string) {
+func setBoundaryInfo(t *testing.T, handler http.Handler, nodeID, subGraphID, portName string) {
 	t.Helper()
 	body := fmt.Sprintf(
-		`{"portName":"%s","portType":"%s","scope":"subgraph/%s"}`,
-		portName, portType, subGraphID,
+		`{"portName":"%s","scope":"subgraph/%s"}`,
+		portName, subGraphID,
 	)
 	requireOK(t, handler, httpStep{
 		method: http.MethodPost,
@@ -163,14 +169,14 @@ func TestSubGraphEditServerEndToEnd(t *testing.T) {
 		body:   `{"name":"Adder","description":"Adds two inputs"}`,
 	})
 
-	inputID := createScopedNode(t, handler, subGraphID, subgraph.InputNodeTypeKey)
-	inputBID := createScopedNode(t, handler, subGraphID, subgraph.InputNodeTypeKey)
-	outputID := createScopedNode(t, handler, subGraphID, subgraph.OutputNodeTypeKey)
-	sumID := createScopedNode(t, handler, subGraphID, "Sum")
+	inputID := createScopedNode(t, handler, subGraphID, subgraph.InputNodeTypeKey, "float64")
+	inputBID := createScopedNode(t, handler, subGraphID, subgraph.InputNodeTypeKey, "float64")
+	outputID := createScopedNode(t, handler, subGraphID, subgraph.OutputNodeTypeKey, "float64")
+	sumID := createScopedNode(t, handler, subGraphID, "Sum", "")
 
-	setBoundaryInfo(t, handler, inputID, subGraphID, "A", "float64")
-	setBoundaryInfo(t, handler, inputBID, subGraphID, "B", "float64")
-	setBoundaryInfo(t, handler, outputID, subGraphID, "Result", "float64")
+	setBoundaryInfo(t, handler, inputID, subGraphID, "A")
+	setBoundaryInfo(t, handler, inputBID, subGraphID, "B")
+	setBoundaryInfo(t, handler, outputID, subGraphID, "Result")
 
 	scopedConnectionURL := fmt.Sprintf("/graph/subgraph/%s/connection", subGraphID)
 	connectNodes(t, handler, scopedConnectionURL, inputID, subgraph.ValuePortName, sumID, "Values")
@@ -301,7 +307,7 @@ func TestScopedSubGraphCreateNode(t *testing.T) {
 	handler.ServeHTTP(rr, create)
 	require.Equal(t, http.StatusOK, rr.Code)
 
-	nodeReq := httptest.NewRequest(http.MethodPost, "/graph/subgraph/scoped/node", strings.NewReader(`{"nodeType":"`+subgraph.InputNodeTypeKey+`"}`))
+	nodeReq := httptest.NewRequest(http.MethodPost, "/graph/subgraph/scoped/node", strings.NewReader(`{"nodeType":"`+subgraph.InputNodeTypeKey+`","portType":"float64"}`))
 	rr2 := httptest.NewRecorder()
 	handler.ServeHTTP(rr2, nodeReq)
 	assert.Equal(t, http.StatusOK, rr2.Code)
@@ -325,7 +331,7 @@ func TestScopedSubGraphDeleteNode(t *testing.T) {
 	handler.ServeHTTP(rr, create)
 	require.Equal(t, http.StatusOK, rr.Code)
 
-	nodeReq := httptest.NewRequest(http.MethodPost, "/graph/subgraph/del-node/node", strings.NewReader(`{"nodeType":"`+subgraph.InputNodeTypeKey+`"}`))
+	nodeReq := httptest.NewRequest(http.MethodPost, "/graph/subgraph/del-node/node", strings.NewReader(`{"nodeType":"`+subgraph.InputNodeTypeKey+`","portType":"float64"}`))
 	rr2 := httptest.NewRecorder()
 	handler.ServeHTTP(rr2, nodeReq)
 	require.Equal(t, http.StatusOK, rr2.Code)
@@ -353,7 +359,7 @@ func TestSubGraphBoundaryInfoUpdate(t *testing.T) {
 	handler.ServeHTTP(rr, create)
 	require.Equal(t, http.StatusOK, rr.Code)
 
-	nodeReq := httptest.NewRequest(http.MethodPost, "/graph/subgraph/boundary/node", strings.NewReader(`{"nodeType":"`+subgraph.InputNodeTypeKey+`"}`))
+	nodeReq := httptest.NewRequest(http.MethodPost, "/graph/subgraph/boundary/node", strings.NewReader(`{"nodeType":"`+subgraph.InputNodeTypeKey+`","portType":"float64"}`))
 	rr2 := httptest.NewRecorder()
 	handler.ServeHTTP(rr2, nodeReq)
 	require.Equal(t, http.StatusOK, rr2.Code)
@@ -363,7 +369,7 @@ func TestSubGraphBoundaryInfoUpdate(t *testing.T) {
 	}
 	require.NoError(t, json.Unmarshal(rr2.Body.Bytes(), &createResp))
 
-	boundaryBody := `{"portName":"Scale","portType":"float64","scope":"subgraph/boundary"}`
+	boundaryBody := `{"portName":"Scale","scope":"subgraph/boundary"}`
 	boundaryReq := httptest.NewRequest(http.MethodPost, "/subgraph/boundary/"+createResp.NodeID+"/info", strings.NewReader(boundaryBody))
 	rr3 := httptest.NewRecorder()
 	handler.ServeHTTP(rr3, boundaryReq)
@@ -460,8 +466,13 @@ func TestScopedSubGraphConnection(t *testing.T) {
 	handler.ServeHTTP(rr, create)
 	require.Equal(t, http.StatusOK, rr.Code)
 
-	createNode := func(nodeType string) string {
-		req := httptest.NewRequest(http.MethodPost, "/graph/subgraph/conn/node", strings.NewReader(`{"nodeType":"`+nodeType+`"}`))
+	createNode := func(nodeType, portType string) string {
+		body := `{"nodeType":"` + nodeType + `"`
+		if portType != "" {
+			body += `,"portType":"` + portType + `"`
+		}
+		body += `}`
+		req := httptest.NewRequest(http.MethodPost, "/graph/subgraph/conn/node", strings.NewReader(body))
 		rec := httptest.NewRecorder()
 		handler.ServeHTTP(rec, req)
 		require.Equal(t, http.StatusOK, rec.Code)
@@ -472,8 +483,8 @@ func TestScopedSubGraphConnection(t *testing.T) {
 		return resp.NodeID
 	}
 
-	inputID := createNode(subgraph.InputNodeTypeKey)
-	outputID := createNode(subgraph.OutputNodeTypeKey)
+	inputID := createNode(subgraph.InputNodeTypeKey, "float64")
+	outputID := createNode(subgraph.OutputNodeTypeKey, "float64")
 
 	connBody := `{"nodeOutId":"` + inputID + `","outPortName":"Value","nodeInId":"` + outputID + `","inPortName":"Value"}`
 	connReq := httptest.NewRequest(http.MethodPost, "/graph/subgraph/conn/connection", strings.NewReader(connBody))
@@ -496,7 +507,7 @@ func TestScopedSubGraphNamedMetadataCreatesNode(t *testing.T) {
 	handler.ServeHTTP(rr, create)
 	require.Equal(t, http.StatusOK, rr.Code)
 
-	nodeReq := httptest.NewRequest(http.MethodPost, "/graph/subgraph/metadata/node", strings.NewReader(`{"nodeType":"`+subgraph.InputNodeTypeKey+`"}`))
+	nodeReq := httptest.NewRequest(http.MethodPost, "/graph/subgraph/metadata/node", strings.NewReader(`{"nodeType":"`+subgraph.InputNodeTypeKey+`","portType":"float64"}`))
 	rr2 := httptest.NewRecorder()
 	handler.ServeHTTP(rr2, nodeReq)
 	require.Equal(t, http.StatusOK, rr2.Code)
@@ -514,7 +525,7 @@ func TestScopedSubGraphSlugWithSlash(t *testing.T) {
 	handler.ServeHTTP(rr, create)
 	require.Equal(t, http.StatusOK, rr.Code)
 
-	nodeReq := httptest.NewRequest(http.MethodPost, "/graph/subgraph/nested/id/node", strings.NewReader(`{"nodeType":"`+subgraph.InputNodeTypeKey+`"}`))
+	nodeReq := httptest.NewRequest(http.MethodPost, "/graph/subgraph/nested/id/node", strings.NewReader(`{"nodeType":"`+subgraph.InputNodeTypeKey+`","portType":"float64"}`))
 	rr2 := httptest.NewRecorder()
 	handler.ServeHTTP(rr2, nodeReq)
 	require.Equal(t, http.StatusOK, rr2.Code)

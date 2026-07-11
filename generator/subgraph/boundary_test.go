@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/EliCDavis/jbtf"
+	_ "github.com/EliCDavis/polyform/generator/parameter"
 	"github.com/EliCDavis/polyform/generator/subgraph"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"

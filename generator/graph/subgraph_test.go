@@ -9,6 +9,7 @@ import (
 	"github.com/EliCDavis/polyform/generator/parameter"
 	"github.com/EliCDavis/polyform/generator/subgraph"
 	"github.com/EliCDavis/polyform/math"
+	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
 	"github.com/EliCDavis/vector/vector3"
@@ -87,23 +88,23 @@ func TestSubGraphCreateAndBoundaryPorts(t *testing.T) {
 	child, err := inst.SubGraphInstance("test-sub")
 	require.NoError(t, err)
 
-	inputNode, inputID, err := child.CreateNode(subgraph.InputNodeTypeKey)
+	inputNode, inputID, err := child.CreateNode(subgraph.InputNodeTypeKey, "github.com/EliCDavis/vector/vector3.Vector[float64]")
 	require.NoError(t, err)
 	require.NotEmpty(t, inputID)
 
-	outputNode, outputID, err := child.CreateNode(subgraph.OutputNodeTypeKey)
+	outputNode, outputID, err := child.CreateNode(subgraph.OutputNodeTypeKey, "float64")
 	require.NoError(t, err)
 	require.NotEmpty(t, outputID)
 
 	input, ok := inputNode.(*subgraph.InputNode)
 	require.True(t, ok)
-	err = child.SetBoundaryNodeInfo(inputID, "Position", "github.com/EliCDavis/vector/vector3.Vector[float64]")
+	err = child.SetBoundaryNodeInfo(inputID, "Position")
 	require.NoError(t, err)
 	require.Equal(t, "Position", input.BoundaryPortName())
 
 	output, ok := outputNode.(*subgraph.OutputNode)
 	require.True(t, ok)
-	err = child.SetBoundaryNodeInfo(outputID, "Result", "float64")
+	err = child.SetBoundaryNodeInfo(outputID, "Result")
 	require.NoError(t, err)
 	require.Equal(t, "Result", output.BoundaryPortName())
 
@@ -111,7 +112,7 @@ func TestSubGraphCreateAndBoundaryPorts(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, ports, 2)
 
-	runtimeNode, _, err := inst.CreateNode(subgraph.RuntimeTypePath("test-sub"))
+	runtimeNode, _, err := inst.CreateNode(subgraph.RuntimeTypePath("test-sub"), "")
 	require.NoError(t, err)
 
 	inputs := runtimeNode.Inputs()
@@ -128,35 +129,35 @@ func TestUnconfiguredBoundaryExcludedFromParentPorts(t *testing.T) {
 	child, err := inst.SubGraphInstance("test-sub")
 	require.NoError(t, err)
 
-	_, _, err = child.CreateNode(subgraph.InputNodeTypeKey)
+	_, _, err = child.CreateNode(subgraph.InputNodeTypeKey, "float64")
 	require.NoError(t, err)
-	_, _, err = child.CreateNode(subgraph.OutputNodeTypeKey)
+	_, _, err = child.CreateNode(subgraph.OutputNodeTypeKey, "float64")
 	require.NoError(t, err)
 
 	ports, err := inst.CollectBoundaryPorts("test-sub")
 	require.NoError(t, err)
 	assert.Empty(t, ports)
 
-	runtimeNode, _, err := inst.CreateNode(subgraph.RuntimeTypePath("test-sub"))
+	runtimeNode, _, err := inst.CreateNode(subgraph.RuntimeTypePath("test-sub"), "")
 	require.NoError(t, err)
 	assert.Empty(t, runtimeNode.Inputs())
 	assert.Empty(t, runtimeNode.Outputs())
 }
 
-func TestSetBoundaryNodeInfoRequiresPortType(t *testing.T) {
+func TestCreateBoundaryNodeRequiresPortType(t *testing.T) {
 	inst := testInstanceWithSubGraphTypes(t)
 	require.NoError(t, inst.CreateSubGraph("test-sub", "Test SubGraph", ""))
 	child, err := inst.SubGraphInstance("test-sub")
 	require.NoError(t, err)
 
-	_, inputID, err := child.CreateNode(subgraph.InputNodeTypeKey)
-	require.NoError(t, err)
-
-	err = child.SetBoundaryNodeInfo(inputID, "Width", "")
-	assert.Error(t, err)
+	_, _, err = child.CreateNode(subgraph.InputNodeTypeKey, "")
+	require.Error(t, err)
 	assert.Contains(t, err.Error(), "port type")
 
-	err = child.SetBoundaryNodeInfo(inputID, "", "float64")
+	_, inputID, err := child.CreateNode(subgraph.InputNodeTypeKey, "float64")
+	require.NoError(t, err)
+
+	err = child.SetBoundaryNodeInfo(inputID, "")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "port name")
 }
@@ -182,7 +183,7 @@ func TestSubGraphDeleteGuard(t *testing.T) {
 	err := inst.CreateSubGraph("guarded", "Guarded", "")
 	require.NoError(t, err)
 
-	_, _, err = inst.CreateNode(subgraph.RuntimeTypePath("guarded"))
+	_, _, err = inst.CreateNode(subgraph.RuntimeTypePath("guarded"), "")
 	require.NoError(t, err)
 
 	err = inst.DeleteSubGraph("guarded")
@@ -194,7 +195,7 @@ func TestSubGraphDeleteAfterRemovingInstances(t *testing.T) {
 	inst := testInstanceWithSubGraphTypes(t)
 	require.NoError(t, inst.CreateSubGraph("temp", "Temp", ""))
 
-	runtimeNode, nodeID, err := inst.CreateNode(subgraph.RuntimeTypePath("temp"))
+	runtimeNode, nodeID, err := inst.CreateNode(subgraph.RuntimeTypePath("temp"), "")
 	require.NoError(t, err)
 	require.NotNil(t, runtimeNode)
 
@@ -267,13 +268,13 @@ func TestBoundaryDuplicatePortNameRejected(t *testing.T) {
 	child, err := inst.SubGraphInstance("dup-ports")
 	require.NoError(t, err)
 
-	_, id1, err := child.CreateNode(subgraph.InputNodeTypeKey)
+	_, id1, err := child.CreateNode(subgraph.InputNodeTypeKey, "float64")
 	require.NoError(t, err)
-	_, id2, err := child.CreateNode(subgraph.InputNodeTypeKey)
+	_, id2, err := child.CreateNode(subgraph.InputNodeTypeKey, "float64")
 	require.NoError(t, err)
 
-	require.NoError(t, child.SetBoundaryNodeInfo(id1, "Shared", "float64"))
-	err = child.SetBoundaryNodeInfo(id2, "Shared", "int")
+	require.NoError(t, child.SetBoundaryNodeInfo(id1, "Shared"))
+	err = child.SetBoundaryNodeInfo(id2, "Shared")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "already used")
 }
@@ -285,10 +286,10 @@ func TestSetBoundaryNodeInfoNotBoundaryNode(t *testing.T) {
 	child, err := inst.SubGraphInstance("bad-boundary")
 	require.NoError(t, err)
 
-	_, paramID, err := child.CreateNode("Float64")
+	_, paramID, err := child.CreateNode("Float64", "")
 	require.NoError(t, err)
 
-	err = child.SetBoundaryNodeInfo(paramID, "X", "float64")
+	err = child.SetBoundaryNodeInfo(paramID, "X")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "not a sub-graph boundary node")
 }
@@ -300,16 +301,16 @@ func TestRuntimeInputSyncsToBoundaryInput(t *testing.T) {
 	child, err := inst.SubGraphInstance("sync")
 	require.NoError(t, err)
 
-	inputNode, inputID, err := child.CreateNode(subgraph.InputNodeTypeKey)
+	inputNode, inputID, err := child.CreateNode(subgraph.InputNodeTypeKey, "float64")
 	require.NoError(t, err)
-	require.NoError(t, child.SetBoundaryNodeInfo(inputID, "A", "float64"))
+	require.NoError(t, child.SetBoundaryNodeInfo(inputID, "A"))
 
 	boundary := inputNode.(*subgraph.InputNode)
 
-	extParam, extID, err := inst.CreateNode("Float64")
+	extParam, extID, err := inst.CreateNode("Float64", "")
 	require.NoError(t, err)
 
-	runtimeNode, runtimeID, err := inst.CreateNode(subgraph.RuntimeTypePath("sync"))
+	runtimeNode, runtimeID, err := inst.CreateNode(subgraph.RuntimeTypePath("sync"), "")
 	require.NoError(t, err)
 
 	extOut := extParam.Outputs()["Value"]
@@ -329,19 +330,19 @@ func TestSubGraphInnerConnections(t *testing.T) {
 	child, err := inst.SubGraphInstance("wired")
 	require.NoError(t, err)
 
-	_, inputID, err := child.CreateNode(subgraph.InputNodeTypeKey)
+	_, inputID, err := child.CreateNode(subgraph.InputNodeTypeKey, "float64")
 	require.NoError(t, err)
-	_, outputID, err := child.CreateNode(subgraph.OutputNodeTypeKey)
+	_, outputID, err := child.CreateNode(subgraph.OutputNodeTypeKey, "float64")
 	require.NoError(t, err)
-	_, sumID, err := child.CreateNode("Sum")
+	_, sumID, err := child.CreateNode("Sum", "")
 	require.NoError(t, err)
-	_, param1ID, err := child.CreateNode("Float64")
+	_, param1ID, err := child.CreateNode("Float64", "")
 	require.NoError(t, err)
-	_, param2ID, err := child.CreateNode("Float64")
+	_, param2ID, err := child.CreateNode("Float64", "")
 	require.NoError(t, err)
 
-	require.NoError(t, child.SetBoundaryNodeInfo(inputID, "A", "float64"))
-	require.NoError(t, child.SetBoundaryNodeInfo(outputID, "Sum", "float64"))
+	require.NoError(t, child.SetBoundaryNodeInfo(inputID, "A"))
+	require.NoError(t, child.SetBoundaryNodeInfo(outputID, "Sum"))
 
 	child.ConnectNodes(inputID, subgraph.ValuePortName, sumID, "Values.0")
 	child.ConnectNodes(param1ID, "Value", sumID, "Values.1")
@@ -364,9 +365,9 @@ func TestSubGraphSchemaIncludesBoundaryMetadata(t *testing.T) {
 	child, err := inst.SubGraphInstance("meta")
 	require.NoError(t, err)
 
-	_, inputID, err := child.CreateNode(subgraph.InputNodeTypeKey)
+	_, inputID, err := child.CreateNode(subgraph.InputNodeTypeKey, "float64")
 	require.NoError(t, err)
-	require.NoError(t, child.SetBoundaryNodeInfo(inputID, "Width", "float64"))
+	require.NoError(t, child.SetBoundaryNodeInfo(inputID, "Width"))
 
 	schema := inst.Schema()
 	nodeInst := schema.SubGraphs["meta"].Nodes[inputID]
@@ -379,7 +380,7 @@ func TestRuntimeNodeSchemaIncludesSubGraphId(t *testing.T) {
 	inst := testInstanceWithSubGraphTypes(t)
 	require.NoError(t, inst.CreateSubGraph("runtime-meta", "Runtime", ""))
 
-	_, runtimeID, err := inst.CreateNode(subgraph.RuntimeTypePath("runtime-meta"))
+	_, runtimeID, err := inst.CreateNode(subgraph.RuntimeTypePath("runtime-meta"), "")
 	require.NoError(t, err)
 
 	schema := inst.Schema()
@@ -408,16 +409,16 @@ func TestSubGraphEncodeDecodeRoundtrip(t *testing.T) {
 	child, err := inst.SubGraphInstance("roundtrip")
 	require.NoError(t, err)
 
-	_, inputID, err := child.CreateNode(subgraph.InputNodeTypeKey)
+	_, inputID, err := child.CreateNode(subgraph.InputNodeTypeKey, "float64")
 	require.NoError(t, err)
-	_, outputID, err := child.CreateNode(subgraph.OutputNodeTypeKey)
+	_, outputID, err := child.CreateNode(subgraph.OutputNodeTypeKey, "float64")
 	require.NoError(t, err)
 
-	require.NoError(t, child.SetBoundaryNodeInfo(inputID, "In", "float64"))
-	require.NoError(t, child.SetBoundaryNodeInfo(outputID, "Out", "float64"))
+	require.NoError(t, child.SetBoundaryNodeInfo(inputID, "In"))
+	require.NoError(t, child.SetBoundaryNodeInfo(outputID, "Out"))
 	child.ConnectNodes(inputID, subgraph.ValuePortName, outputID, subgraph.ValuePortName)
 
-	_, _, err = inst.CreateNode(subgraph.RuntimeTypePath("roundtrip"))
+	_, _, err = inst.CreateNode(subgraph.RuntimeTypePath("roundtrip"), "")
 	require.NoError(t, err)
 
 	payload, err := inst.EncodeToAppSchema()
@@ -506,7 +507,7 @@ func TestSubGraphModelVersionBubblesFromChild(t *testing.T) {
 	child, err := inst.SubGraphInstance("version")
 	require.NoError(t, err)
 
-	_, _, err = child.CreateNode(subgraph.InputNodeTypeKey)
+	_, _, err = child.CreateNode(subgraph.InputNodeTypeKey, "float64")
 	require.NoError(t, err)
 
 	assert.Greater(t, inst.ModelVersion(), v0)
@@ -519,7 +520,7 @@ func TestRegisterSubGraphNodeType(t *testing.T) {
 	typePath, _ := inst.RegisterSubGraphNodeType("registered")
 	assert.Equal(t, subgraph.RuntimeTypePath("registered"), typePath)
 
-	node, _, err := inst.CreateNode(typePath)
+	node, _, err := inst.CreateNode(typePath, "")
 	require.NoError(t, err)
 	runtime, ok := node.(*graph.SubgraphInstanceNode)
 	require.True(t, ok)
@@ -533,12 +534,12 @@ func TestRuntimeNodeOutputsReflectBoundaryTypes(t *testing.T) {
 	child, err := inst.SubGraphInstance("types")
 	require.NoError(t, err)
 
-	_, inID, err := child.CreateNode(subgraph.InputNodeTypeKey)
+	_, inID, err := child.CreateNode(subgraph.InputNodeTypeKey, "float64")
 	require.NoError(t, err)
-	_, outID, err := child.CreateNode(subgraph.OutputNodeTypeKey)
+	_, outID, err := child.CreateNode(subgraph.OutputNodeTypeKey, "image.Image")
 	require.NoError(t, err)
-	require.NoError(t, child.SetBoundaryNodeInfo(inID, "Scale", "float64"))
-	require.NoError(t, child.SetBoundaryNodeInfo(outID, "Image", "image.Image"))
+	require.NoError(t, child.SetBoundaryNodeInfo(inID, "Scale"))
+	require.NoError(t, child.SetBoundaryNodeInfo(outID, "Image"))
 
 	runtimeNode := graph.NewRuntimeNode(inst, "types")
 
@@ -565,14 +566,14 @@ func TestRuntimeNodeInputPersistedThroughConnectNodes(t *testing.T) {
 	child, err := inst.SubGraphInstance("persist")
 	require.NoError(t, err)
 
-	_, inputID, err := child.CreateNode(subgraph.InputNodeTypeKey)
+	_, inputID, err := child.CreateNode(subgraph.InputNodeTypeKey, "float64")
 	require.NoError(t, err)
-	require.NoError(t, child.SetBoundaryNodeInfo(inputID, "A", "float64"))
+	require.NoError(t, child.SetBoundaryNodeInfo(inputID, "A"))
 
-	extParam, extID, err := inst.CreateNode("Float64")
+	extParam, extID, err := inst.CreateNode("Float64", "")
 	require.NoError(t, err)
 
-	runtimeNode, runtimeID, err := inst.CreateNode(subgraph.RuntimeTypePath("persist"))
+	runtimeNode, runtimeID, err := inst.CreateNode(subgraph.RuntimeTypePath("persist"), "")
 	require.NoError(t, err)
 
 	inst.ConnectNodes(extID, "Value", runtimeID, "A")
@@ -592,12 +593,12 @@ func TestCollectBoundaryPortsAllowsSameNameAcrossKinds(t *testing.T) {
 	child, err := inst.SubGraphInstance("shared-name")
 	require.NoError(t, err)
 
-	_, inID, err := child.CreateNode(subgraph.InputNodeTypeKey)
+	_, inID, err := child.CreateNode(subgraph.InputNodeTypeKey, "float64")
 	require.NoError(t, err)
-	_, outID, err := child.CreateNode(subgraph.OutputNodeTypeKey)
+	_, outID, err := child.CreateNode(subgraph.OutputNodeTypeKey, "float64")
 	require.NoError(t, err)
-	require.NoError(t, child.SetBoundaryNodeInfo(inID, "Value", "float64"))
-	require.NoError(t, child.SetBoundaryNodeInfo(outID, "Value", "float64"))
+	require.NoError(t, child.SetBoundaryNodeInfo(inID, "Value"))
+	require.NoError(t, child.SetBoundaryNodeInfo(outID, "Value"))
 
 	ports, err := inst.CollectBoundaryPorts("shared-name")
 	require.NoError(t, err)
@@ -620,25 +621,25 @@ func TestSubGraphBoundaryVector3ValueFlow(t *testing.T) {
 	child, err := inst.SubGraphInstance("v3")
 	require.NoError(t, err)
 
-	_, inputID, err := child.CreateNode(subgraph.InputNodeTypeKey)
+	_, inputID, err := child.CreateNode(subgraph.InputNodeTypeKey, vector3Type)
 	require.NoError(t, err)
-	_, outputID, err := child.CreateNode(subgraph.OutputNodeTypeKey)
+	_, outputID, err := child.CreateNode(subgraph.OutputNodeTypeKey, vector3Type)
 	require.NoError(t, err)
-	_, identityID, err := child.CreateNode("Vector3Identity")
+	_, identityID, err := child.CreateNode("Vector3Identity", "")
 	require.NoError(t, err)
 
-	require.NoError(t, child.SetBoundaryNodeInfo(inputID, "Position", vector3Type))
-	require.NoError(t, child.SetBoundaryNodeInfo(outputID, "Result", vector3Type))
+	require.NoError(t, child.SetBoundaryNodeInfo(inputID, "Position"))
+	require.NoError(t, child.SetBoundaryNodeInfo(outputID, "Result"))
 
 	child.ConnectNodes(inputID, subgraph.ValuePortName, identityID, "In")
 	child.ConnectNodes(identityID, "Out", outputID, subgraph.ValuePortName)
 
 	want := vector3.New(4., 5., 6.)
-	v3Param, paramID, err := inst.CreateNode("Vector3")
+	v3Param, paramID, err := inst.CreateNode("Vector3", "")
 	require.NoError(t, err)
 	v3Param.(*parameter.Vector3).CurrentValue = want
 
-	_, runtimeID, err := inst.CreateNode(subgraph.RuntimeTypePath("v3"))
+	_, runtimeID, err := inst.CreateNode(subgraph.RuntimeTypePath("v3"), "")
 	require.NoError(t, err)
 	inst.ConnectNodes(paramID, "Value", runtimeID, "Position")
 
@@ -649,6 +650,85 @@ func TestSubGraphBoundaryVector3ValueFlow(t *testing.T) {
 	_ = outputID
 }
 
+type meshIdentityNode struct {
+	In nodes.Output[modeling.Mesh]
+}
+
+func (n meshIdentityNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
+	out.Set(nodes.TryGetOutputValue(out, n.In, modeling.EmptyMesh(modeling.TriangleTopology)))
+}
+
+// Mesh boundaries require no manual port-type registration; the type is
+// discovered from the registered node's output ports.
+func TestSubGraphBoundaryMeshValueFlow(t *testing.T) {
+	meshType := refutil.TypeResolution{
+		IncludePackage: true,
+		IncludePointer: false,
+	}.Resolve(modeling.EmptyMesh(modeling.TriangleTopology))
+
+	want := modeling.NewPointCloud(
+		nil,
+		map[string][]vector3.Float64{
+			modeling.PositionAttribute: {vector3.New(1., 2., 3.)},
+		},
+		nil,
+		nil,
+	)
+
+	factory := &refutil.TypeFactory{}
+	factory.RegisterBuilder(subgraph.InputNodeTypeKey, func() any {
+		return subgraph.NewInputNode("", "")
+	})
+	factory.RegisterBuilder(subgraph.OutputNodeTypeKey, func() any {
+		return subgraph.NewOutputNode("", "")
+	})
+	factory.RegisterBuilder("MeshIdentity", func() any {
+		return &nodes.Struct[meshIdentityNode]{}
+	})
+	factory.RegisterBuilder("MeshValue", func() any {
+		return nodes.NewValue(want)
+	})
+	inst := graph.New(graph.Config{TypeFactory: factory})
+
+	require.NoError(t, inst.CreateSubGraph("mesh", "Mesh", ""))
+	child, err := inst.SubGraphInstance("mesh")
+	require.NoError(t, err)
+
+	_, inputID, err := child.CreateNode(subgraph.InputNodeTypeKey, meshType)
+	require.NoError(t, err)
+	_, outputID, err := child.CreateNode(subgraph.OutputNodeTypeKey, meshType)
+	require.NoError(t, err)
+	_, identityID, err := child.CreateNode("MeshIdentity", "")
+	require.NoError(t, err)
+
+	require.NoError(t, child.SetBoundaryNodeInfo(inputID, "Mesh"))
+	require.NoError(t, child.SetBoundaryNodeInfo(outputID, "Result"))
+
+	child.ConnectNodes(inputID, subgraph.ValuePortName, identityID, "In")
+	child.ConnectNodes(identityID, "Out", outputID, subgraph.ValuePortName)
+
+	_, meshValueID, err := inst.CreateNode("MeshValue", "")
+	require.NoError(t, err)
+	_, runtimeID, err := inst.CreateNode(subgraph.RuntimeTypePath("mesh"), "")
+	require.NoError(t, err)
+	inst.ConnectNodes(meshValueID, "Value", runtimeID, "Mesh")
+
+	// Value flows into the sub-graph through the input boundary.
+	identity := child.Node(identityID)
+	got := nodes.GetNodeOutputPort[modeling.Mesh](identity, "Out").Value()
+	assert.Equal(t, want, got)
+
+	// The runtime node's output boundary is strongly typed, so parent-side
+	// typed inputs can consume it.
+	_, parentIdentityID, err := inst.CreateNode("MeshIdentity", "")
+	require.NoError(t, err)
+	inst.ConnectNodes(runtimeID, "Result", parentIdentityID, "In")
+
+	parentIdentity := inst.Node(parentIdentityID)
+	got = nodes.GetNodeOutputPort[modeling.Mesh](parentIdentity, "Out").Value()
+	assert.Equal(t, want, got)
+}
+
 func TestNestedRuntimeTypeLoadsFromSubGraph(t *testing.T) {
 	root := testInstanceWithSubGraphTypes(t)
 	require.NoError(t, root.CreateSubGraph("inner", "Inner", ""))
@@ -657,7 +737,7 @@ func TestNestedRuntimeTypeLoadsFromSubGraph(t *testing.T) {
 	outer, err := root.SubGraphInstance("outer")
 	require.NoError(t, err)
 
-	_, _, err = outer.CreateNode(subgraph.RuntimeTypePath("inner"))
+	_, _, err = outer.CreateNode(subgraph.RuntimeTypePath("inner"), "")
 	require.NoError(t, err)
 
 	payload, err := root.EncodeToAppSchema()

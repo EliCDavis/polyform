@@ -17,14 +17,4 @@ func init() {
 	})
 
 	generator.RegisterTypes(factory)
-
-	// subgraph.RegisterInputOutputType[vector2.Float64]()
-	// subgraph.RegisterInputOutputType[vector3.Float64]()
-	// subgraph.RegisterInputOutputType[[]vector3.Float64]()
-	// subgraph.RegisterInputOutputType[geometry.AABB]()
-	// subgraph.RegisterInputOutputType[coloring.Color]()
-	// subgraph.RegisterInputOutputType[image.Image]()
-	// subgraph.RegisterInputOutputType[manifest.Manifest]()
-	// subgraph.RegisterInputOutputType[modeling.Mesh]()
-	// subgraph.RegisterInputOutputType[[]byte]()
 }

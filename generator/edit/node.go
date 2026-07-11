@@ -18,6 +18,7 @@ const (
 func nodeEndpoint(graphInstance *graph.Instance, saver *GraphSaver) endpoint.Handler {
 	type CreateRequest struct {
 		NodeType string `json:"nodeType"`
+		PortType string `json:"portType,omitempty"`
 	}
 
 	type CreateResponse struct {
@@ -35,7 +36,7 @@ func nodeEndpoint(graphInstance *graph.Instance, saver *GraphSaver) endpoint.Han
 		Methods: map[string]endpoint.Method{
 			http.MethodPost: endpoint.JsonMethod(
 				func(request endpoint.Request[CreateRequest]) (CreateResponse, error) {
-					node, id, err := graphInstance.CreateNode(request.Body.NodeType)
+					node, id, err := graphInstance.CreateNode(request.Body.NodeType, request.Body.PortType)
 					if err != nil {
 						return CreateResponse{}, err
 					}

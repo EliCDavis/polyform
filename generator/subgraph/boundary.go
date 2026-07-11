@@ -2,6 +2,8 @@ package subgraph
 
 import (
 	"encoding/json"
+	"fmt"
+	"strings"
 
 	"github.com/EliCDavis/jbtf"
 	"github.com/EliCDavis/polyform/nodes"
@@ -50,6 +52,48 @@ func NewInputNode(portName, portType string) *InputNode {
 	return &InputNode{
 		PortName: portName,
 		PortType: portType,
+	}
+}
+
+func NewOutputNode(portName, portType string) *OutputNode {
+	n := &OutputNode{
+		PortName: portName,
+		PortType: portType,
+	}
+	n.inputPort = &outputNodeInputPort{node: n}
+	return n
+}
+
+func ConfigureBoundaryPortType(node nodes.Node, portType string) error {
+	portType = strings.TrimSpace(portType)
+	if portType == "" {
+		return fmt.Errorf("boundary port type is required")
+	}
+	switch n := node.(type) {
+	case *InputNode:
+		if n.PortType != "" && n.PortType != portType {
+			return fmt.Errorf("boundary port type cannot be changed")
+		}
+		n.PortType = portType
+	case *OutputNode:
+		if n.PortType != "" && n.PortType != portType {
+			return fmt.Errorf("boundary port type cannot be changed")
+		}
+		n.PortType = portType
+	default:
+		return fmt.Errorf("node is not a sub-graph boundary node")
+	}
+	return nil
+}
+
+func BoundaryPortNameConfigured(node nodes.Node) bool {
+	switch n := node.(type) {
+	case *InputNode:
+		return strings.TrimSpace(n.PortName) != ""
+	case *OutputNode:
+		return strings.TrimSpace(n.PortName) != ""
+	default:
+		return false
 	}
 }
 
@@ -104,6 +148,19 @@ func (n *InputNode) FromJSON(decoder jbtf.Decoder, body []byte) error {
 	return nil
 }
 
+// buildInputOutputPort exposes the boundary's value as a strongly typed
+// output when its port type has been discovered, falling back to an untyped
+// port otherwise.
+func buildInputOutputPort(n *InputNode) nodes.OutputPort {
+	source := &inputNodeOutputPort{node: n}
+	if builder, ok := LookupPortTypeProxy(n.PortType); ok {
+		return builder.BuildProxyOutput(source)
+	}
+	return source
+}
+
+// inputNodeOutputPort is the untyped fallback port for an input boundary. It
+// also acts as the nodes.ProxySource that typed proxy ports forward to.
 type inputNodeOutputPort struct {
 	node *InputNode
 }
@@ -127,20 +184,15 @@ func (p *inputNodeOutputPort) Version() int {
 	return p.node.version
 }
 
+func (p *inputNodeOutputPort) CurrentSource() nodes.OutputPort {
+	return p.node.externalSource
+}
+
 type OutputNode struct {
 	PortName string
 	PortType string
 
 	inputPort *outputNodeInputPort
-}
-
-func NewOutputNode(portName, portType string) *OutputNode {
-	n := &OutputNode{
-		PortName: portName,
-		PortType: portType,
-	}
-	n.inputPort = &outputNodeInputPort{node: n}
-	return n
 }
 
 func (n *OutputNode) BoundaryPortName() string {

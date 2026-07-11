@@ -143,6 +143,10 @@ func (so StructOutput[T]) Type() string {
 	return resolver.Resolve(v)
 }
 
+func (so StructOutput[T]) BuildProxyOutput(source ProxySource) OutputPort {
+	return NewProxyOutput[T](source)
+}
+
 func (so StructOutput[T]) Description() string {
 	name := so.functionName + "Description"
 	if refutil.HasMethod(so.data, name) {

@@ -40,19 +40,26 @@ func (a *Instance) loadSubGraphDefinition(subGraphID string, def persistence.Sub
 		}
 	}
 
+	if err = applyPersistedNodeData(def.Nodes, createdNodes, decoder); err != nil {
+		return err
+	}
+
 	if err = subgraph.connectAppNodes(def.Nodes, createdNodes); err != nil {
 		return err
 	}
 
-	for nodeID, instanceDetails := range def.Nodes {
+	return nil
+}
+
+func applyPersistedNodeData(nodeDefs map[string]persistence.Node, createdNodes map[string]nodes.Node, decoder jbtf.Decoder) error {
+	for nodeID, instanceDetails := range nodeDefs {
 		nodeI := createdNodes[nodeID]
 		if p, ok := nodeI.(CustomGraphSerialization); ok {
-			if err = p.FromJSON(decoder, instanceDetails.Data); err != nil {
+			if err := p.FromJSON(decoder, instanceDetails.Data); err != nil {
 				return err
 			}
 		}
 	}
-
 	return nil
 }
 

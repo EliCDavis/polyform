@@ -38,6 +38,10 @@ func (sno parameterNodeOutput[T]) Version() int {
 	return sno.Val.version
 }
 
+func (sno parameterNodeOutput[T]) BuildProxyOutput(source nodes.ProxySource) nodes.OutputPort {
+	return nodes.NewProxyOutput[T](source)
+}
+
 func (sno parameterNodeOutput[T]) Type() string {
 	resolver := refutil.TypeResolution{
 		IncludePackage: true,
