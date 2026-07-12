@@ -138,6 +138,10 @@ function EditorBootstrap({
         schemaManager.refreshSchema("sub-graph definition changed");
       });
 
+      requestManager.subscribeToEditorGraphMutations(() => {
+        schemaManager.refreshSchema("graph mutation");
+      });
+
       schemaManager.subscribe((g) => {
         producerViewManager.NewSchema(g);
         nodeManager.updateNodes(g);

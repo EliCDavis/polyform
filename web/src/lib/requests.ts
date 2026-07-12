@@ -145,6 +145,19 @@ async function deleteJson<T>(url: string, body: unknown): Promise<T | undefined>
   }
 }
 
+async function deleteJsonVoid(url: string, body: unknown): Promise<boolean> {
+  try {
+    const response = await fetch(url, {
+      method: "DELETE",
+      headers: JSON_HEADERS,
+      body: JSON.stringify(body),
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
 async function deleteVoid(url: string): Promise<boolean> {
   try {
     const response = await fetch(url, { method: "DELETE" });
@@ -195,6 +208,20 @@ export class RequestManager {
 
   subscribeToGraphChange(listener: (event: GraphChangeEventType) => void): void {
     this.graphChangeListeners.push(listener);
+  }
+
+  /** Refreshes the node editor when connections or node membership change. */
+  subscribeToEditorGraphMutations(listener: () => void): void {
+    const refreshEvents = new Set([
+      GraphChangeEventType.Node_Connection,
+      GraphChangeEventType.Node_New,
+      GraphChangeEventType.Node_Delete,
+    ]);
+    this.subscribeToGraphChange((event) => {
+      if (refreshEvents.has(event)) {
+        listener();
+      }
+    });
   }
 
   private notifyGraphChange(event: GraphChangeEventType): void {
@@ -314,14 +341,12 @@ export class RequestManager {
     this.fetchRaw(`./parameter/value/${key}`, callback);
   }
 
-  deleteNodeInput(nodeId: string, inputPortName: string, callback?: ResponseCallback<unknown>): void {
-    void deleteJson(this.scopedConnectionUrl(), {
+  deleteNodeInput(nodeId: string, inputPortName: string, callback?: () => void): void {
+    void deleteJsonVoid(this.scopedConnectionUrl(), {
       nodeId,
       inPortName: inputPortName,
-    }).then((response) => {
-      if (response !== undefined) {
-        this.onGraphChangeResponse(GraphChangeEventType.Node_Connection, callback)(response);
-      }
+    }).then((ok) => {
+      if (ok) this.onGraphChange(GraphChangeEventType.Node_Connection, callback)();
     });
   }
 
@@ -330,17 +355,15 @@ export class RequestManager {
     inputPortName: string,
     outNodeId: string,
     outPortName: string,
-    callback?: ResponseCallback<unknown>
+    callback?: () => void
   ): void {
-    void postJson(this.scopedConnectionUrl(), {
+    void postJsonVoid(this.scopedConnectionUrl(), {
       nodeOutId: outNodeId,
       outPortName,
       nodeInId: inNodeId,
       inPortName: inputPortName,
-    }).then((response) => {
-      if (response !== undefined) {
-        this.onGraphChangeResponse(GraphChangeEventType.Node_Connection, callback)(response);
-      }
+    }).then((ok) => {
+      if (ok) this.onGraphChange(GraphChangeEventType.Node_Connection, callback)();
     });
   }
 
@@ -408,12 +431,10 @@ export class RequestManager {
     });
   }
 
-  deleteNode(nodeId: string, callback?: ResponseCallback<unknown>): void {
+  deleteNode(nodeId: string, callback?: () => void): void {
     this.deleteNodeMetadata(nodeId);
-    void deleteJson(this.scopedNodeUrl(), { nodeID: nodeId }).then((response) => {
-      if (response !== undefined) {
-        this.onGraphChangeResponse(GraphChangeEventType.Node_Delete, callback)(response);
-      }
+    void deleteJsonVoid(this.scopedNodeUrl(), { nodeID: nodeId }).then((ok) => {
+      if (ok) this.onGraphChange(GraphChangeEventType.Node_Delete, callback)();
     });
   }
 
