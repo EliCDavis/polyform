@@ -300,7 +300,7 @@ export class RequestManager {
   }
 
   setParameter(key: string, data: unknown, binary: boolean, callback?: () => void): void {
-    const url = `./parameter/value/${key}`;
+    const url = this.scopedParameterUrl("value", key);
     const wrapped = this.onGraphChange(GraphChangeEventType.Parameter, callback);
     if (binary) {
       void postBinaryVoid(url, data as BodyInit).then((ok) => {
@@ -315,7 +315,7 @@ export class RequestManager {
 
   setParameterTitle(nodeId: string, value: string, callback?: () => void): void {
     void postTextVoid(
-      `./parameter/name/${nodeId}`,
+      this.scopedParameterUrl("name", nodeId),
       value,
     ).then((ok) => {
       if (ok) this.onGraphChange(GraphChangeEventType.Parameter, callback)();
@@ -324,7 +324,7 @@ export class RequestManager {
 
   setParameterInfo(nodeId: string, value: string, callback?: () => void): void {
     void postTextVoid(
-      `./parameter/description/${nodeId}`,
+      this.scopedParameterUrl("description", nodeId),
       value,
     ).then((ok) => {
       if (ok) this.onGraphChange(GraphChangeEventType.Parameter, callback)();
@@ -338,7 +338,7 @@ export class RequestManager {
   }
 
   getParameterValue(key: string, callback: (blob: Blob) => void): void {
-    this.fetchRaw(`./parameter/value/${key}`, callback);
+    this.fetchRaw(this.scopedParameterUrl("value", key), callback);
   }
 
   deleteNodeInput(nodeId: string, inputPortName: string, callback?: () => void): void {
@@ -369,6 +369,13 @@ export class RequestManager {
 
   private scopedMetadataUrl(): string {
     return this.graphScopePath ? `./${this.graphScopePath}/metadata` : "./graph/metadata";
+  }
+
+  private scopedParameterUrl(kind: "value" | "name" | "description", nodeId: string): string {
+    const base = this.graphScopePath
+      ? `./${this.graphScopePath}/parameter`
+      : "./parameter";
+    return `${base}/${kind}/${nodeId}`;
   }
 
   setNodeMetadata(
