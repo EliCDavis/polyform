@@ -33,6 +33,13 @@ type SubgraphBoundaryPort struct {
 	Kind BoundaryPortKind
 }
 
+func GetBoundaryKind(boundary subgraph.Boundary) BoundaryPortKind {
+	if _, isInput := subgraph.IsInputBoundary(boundary); isInput {
+		return BoundaryPortKindInput
+	}
+	return BoundaryPortKindOutput
+}
+
 func (a *Instance) initSubGraphs() {
 	if a.subGraphs == nil {
 		a.subGraphs = make(map[string]*subGraphRuntime)
@@ -189,18 +196,16 @@ func (a *Instance) CollectBoundaryPorts(subGraphID string) ([]SubgraphBoundaryPo
 			continue
 		}
 
-		if portType := boundary.BoundaryPortType(); portType == "" {
-			continue
-		}
-		if !subgraph.BoundaryPortNameConfigured(node) {
+		portType := boundary.BoundaryPortType()
+		if portType == "" {
 			continue
 		}
 
-		kind := BoundaryPortKindOutput
-		if _, isInput := subgraph.IsInputBoundary(node); isInput {
-			kind = BoundaryPortKindInput
+		if !subgraph.BoundaryPortNameConfigured(boundary) {
+			continue
 		}
 
+		kind := GetBoundaryKind(boundary)
 		name := boundary.BoundaryPortName()
 		seenKey := string(kind) + "/" + name
 		if _, dup := seen[seenKey]; dup {
@@ -210,7 +215,7 @@ func (a *Instance) CollectBoundaryPorts(subGraphID string) ([]SubgraphBoundaryPo
 
 		ports = append(ports, SubgraphBoundaryPort{
 			Name: name,
-			Type: boundary.BoundaryPortType(),
+			Type: portType,
 			Kind: kind,
 		})
 	}

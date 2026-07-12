@@ -252,11 +252,7 @@ func validateBoundaryPortName(child *Instance, portName string, kind BoundaryPor
 		if boundary.BoundaryPortName() != portName {
 			continue
 		}
-		existingKind := BoundaryPortKindOutput
-		if _, isInput := subgraph.IsInputBoundary(node); isInput {
-			existingKind = BoundaryPortKindInput
-		}
-		if existingKind == kind {
+		if GetBoundaryKind(boundary) == kind {
 			return fmt.Errorf("boundary port name %q already used by another %s node", portName, kind)
 		}
 	}

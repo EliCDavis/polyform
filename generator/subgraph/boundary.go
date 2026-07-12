@@ -64,12 +64,12 @@ func NewOutputNode(portName, portType string) *OutputNode {
 	return n
 }
 
-func ConfigureBoundaryPortType(node nodes.Node, portType string) error {
+func ConfigureBoundaryPortType(boundary Boundary, portType string) error {
 	portType = strings.TrimSpace(portType)
 	if portType == "" {
 		return fmt.Errorf("boundary port type is required")
 	}
-	switch n := node.(type) {
+	switch n := boundary.(type) {
 	case *InputNode:
 		if n.PortType != "" && n.PortType != portType {
 			return fmt.Errorf("boundary port type cannot be changed")
@@ -86,8 +86,8 @@ func ConfigureBoundaryPortType(node nodes.Node, portType string) error {
 	return nil
 }
 
-func BoundaryPortNameConfigured(node nodes.Node) bool {
-	switch n := node.(type) {
+func BoundaryPortNameConfigured(boundary Boundary) bool {
+	switch n := boundary.(type) {
 	case *InputNode:
 		return strings.TrimSpace(n.PortName) != ""
 	case *OutputNode:
@@ -242,7 +242,7 @@ func (n *OutputNode) FromJSON(decoder jbtf.Decoder, body []byte) error {
 }
 
 type outputNodeInputPort struct {
-	node     *OutputNode
+	node      *OutputNode
 	connected nodes.OutputPort
 }
 

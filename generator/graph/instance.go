@@ -954,14 +954,14 @@ func (a *Instance) createNode(nodeType, portType string) (nodes.Node, string, er
 		panic(fmt.Errorf("Regiestered type did not create a node. How'd ya manage that: %s", nodeType))
 	}
 
-	if _, isBoundary := subgraph.IsBoundaryNode(casted); isBoundary {
+	if boundary, isBoundary := subgraph.IsBoundaryNode(casted); isBoundary {
 		if portType == "" {
 			return nil, "", fmt.Errorf("boundary port type is required")
 		}
 		if !subgraph.IsPortTypeKnown(portType) {
 			return nil, "", fmt.Errorf("unknown boundary port type %q", portType)
 		}
-		if err := subgraph.ConfigureBoundaryPortType(casted, portType); err != nil {
+		if err := subgraph.ConfigureBoundaryPortType(boundary, portType); err != nil {
 			return nil, "", err
 		}
 	} else if portType != "" {
