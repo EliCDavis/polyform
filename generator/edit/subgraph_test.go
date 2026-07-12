@@ -10,8 +10,8 @@ import (
 
 	"github.com/EliCDavis/polyform/generator/edit"
 	"github.com/EliCDavis/polyform/generator/graph"
-	_ "github.com/EliCDavis/polyform/generator/parameter"
 	"github.com/EliCDavis/polyform/generator/parameter"
+	_ "github.com/EliCDavis/polyform/generator/parameter"
 	"github.com/EliCDavis/polyform/generator/subgraph"
 	"github.com/EliCDavis/polyform/math"
 	"github.com/EliCDavis/polyform/nodes"
