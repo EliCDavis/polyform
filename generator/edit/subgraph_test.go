@@ -135,28 +135,11 @@ func setParameterValue(t *testing.T, handler http.Handler, nodeID string, value 
 	})
 }
 
-func subgraphOutputResult(t *testing.T, inst *graph.Instance, subGraphID, outputPortName string) float64 {
+func runtimeSubgraphOutputResult(t *testing.T, inst *graph.Instance, runtimeNodeID, outputPortName string) float64 {
 	t.Helper()
-	child, err := inst.SubGraphInstance(subGraphID)
-	require.NoError(t, err)
-
-	for nodeID, nodeInst := range child.Schema().Nodes {
-		if nodeInst.SubGraphOutputBoundary == nil {
-			continue
-		}
-		if nodeInst.SubGraphOutputBoundary.PortName != outputPortName {
-			continue
-		}
-		outNode, ok := child.Node(nodeID).(*subgraph.OutputNode)
-		require.True(t, ok)
-		source := outNode.ConnectedSource()
-		require.NotNil(t, source)
-		typed, ok := source.(nodes.Output[float64])
-		require.True(t, ok)
-		return typed.Value()
-	}
-	t.Fatalf("no output boundary named %q in sub-graph %q", outputPortName, subGraphID)
-	return 0
+	runtimeNode := inst.Node(runtimeNodeID)
+	out := nodes.GetNodeOutputPort[float64](runtimeNode, outputPortName)
+	return out.Value()
 }
 
 func TestSubGraphEditServerEndToEnd(t *testing.T) {
@@ -193,7 +176,7 @@ func TestSubGraphEditServerEndToEnd(t *testing.T) {
 	connectNodes(t, handler, "/node/connection", paramAID, "Value", runtimeNodeID, "A")
 	connectNodes(t, handler, "/node/connection", paramBID, "Value", runtimeNodeID, "B")
 
-	assert.Equal(t, 8.0, subgraphOutputResult(t, inst, subGraphID, "Result"))
+	assert.Equal(t, 8.0, runtimeSubgraphOutputResult(t, inst, runtimeNodeID, "Result"))
 
 	schemaBody := requireOK(t, handler, httpStep{
 		method: http.MethodGet,
@@ -564,4 +547,30 @@ func TestScopedSubGraphSlugWithSlash(t *testing.T) {
 	child, err := inst.SubGraphInstance("nested/id")
 	require.NoError(t, err)
 	assert.Len(t, child.Schema().Nodes, 1)
+}
+
+func TestScopedSubGraphParameterValue(t *testing.T) {
+	handler, inst := subGraphTestServer(t)
+	const subGraphID = "params"
+
+	requireOK(t, handler, httpStep{
+		method: http.MethodPost,
+		url:    "/subgraph/definition/" + subGraphID,
+		body:   `{"name":"Params"}`,
+	})
+
+	paramID := createScopedNode(t, handler, subGraphID, "Float64", "")
+	createRootNode(t, handler, "Float64")
+
+	requireOK(t, handler, httpStep{
+		method: http.MethodPost,
+		url:    fmt.Sprintf("/graph/subgraph/%s/parameter/value/%s", subGraphID, paramID),
+		body:   "7.5",
+	})
+
+	child, err := inst.SubGraphInstance(subGraphID)
+	require.NoError(t, err)
+
+	param := child.Node(paramID).(*parameter.Float64)
+	assert.Equal(t, 7.5, param.CurrentValue)
 }

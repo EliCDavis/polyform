@@ -51,6 +51,7 @@ func newInstance(parent *Instance) *Instance {
 		typeFactory:     parent.typeFactory,
 		variableFactory: parent.variableFactory,
 		nodeIDs:         make(map[nodes.Node]string),
+		nodeTypeKeys:    make(map[nodes.Node]string),
 		variables:       variable.NewSystem(),
 		profiles:        make(map[string]variable.Profile),
 		metadata:        sync.NewNestedSyncMap(),
@@ -229,7 +230,9 @@ func (a *Instance) refreshSubGraphNodeType(subGraphID string) {
 }
 
 func (a *Instance) onSubGraphChildMutation(subGraphID string) {
-	a.Root().refreshSubGraphNodeType(subGraphID)
+	root := a.Root()
+	root.refreshSubGraphNodeType(subGraphID)
+	root.rebuildSubGraphClones(subGraphID)
 }
 
 func (a *Instance) runtimeSubGraphSchema(id string) (schema.SubGraph, error) {
@@ -257,28 +260,12 @@ func (a *Instance) encodeSubGraphDefinitions(encoder *jbtf.Encoder) (map[string]
 	a.initSubGraphs()
 
 	result := make(map[string]persistence.SubGraph, len(a.subGraphs))
-	for id, runtime := range a.subGraphs {
-		child := runtime.instance
-		nodeInstances := make(map[string]persistence.Node)
-		for node := range child.nodeIDs {
-			nodeID := child.nodeIDs[node]
-			nodeInstances[nodeID] = child.buildNodeGraphInstanceSchema(node, encoder)
+	for id := range a.subGraphs {
+		def, err := a.persistedSubGraphDefinition(id, encoder)
+		if err != nil {
+			return nil, err
 		}
-
-		var noteMetadata map[string]any
-		if notes := child.metadata.Get("notes"); notes != nil {
-			if casted, ok := notes.(map[string]any); ok {
-				noteMetadata = casted
-			}
-		}
-
-		result[id] = persistence.SubGraph{
-			Name:        runtime.name,
-			Description: runtime.description,
-			Nodes:       nodeInstances,
-			Notes:       noteMetadata,
-			Metadata:    child.metadata.Data(),
-		}
+		result[id] = def
 	}
 	return result, nil
 }

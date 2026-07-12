@@ -16,39 +16,12 @@ func (a *Instance) loadSubGraphDefinition(subGraphID string, def persistence.Sub
 		return err
 	}
 
-	subgraph, err := a.SubGraphInstance(subGraphID)
+	target, err := a.SubGraphInstance(subGraphID)
 	if err != nil {
 		return err
 	}
 
-	if def.Notes != nil {
-		subgraph.metadata.Set("notes", def.Notes)
-	}
-
-	if def.Metadata != nil {
-		subgraph.metadata.OverwriteData(def.Metadata)
-	}
-
-	createdNodes := make(map[string]nodes.Node)
-	for nodeID, instanceDetails := range def.Nodes {
-		node, instErr := subgraph.instantiateAppNode(nodeID, instanceDetails)
-		if instErr != nil {
-			return instErr
-		}
-		if node != nil {
-			createdNodes[nodeID] = node
-		}
-	}
-
-	if err = applyPersistedNodeData(def.Nodes, createdNodes, decoder); err != nil {
-		return err
-	}
-
-	if err = subgraph.connectAppNodes(def.Nodes, createdNodes); err != nil {
-		return err
-	}
-
-	return nil
+	return populateInstanceFromSubGraphDef(target, def, decoder)
 }
 
 func applyPersistedNodeData(nodeDefs map[string]persistence.Node, createdNodes map[string]nodes.Node, decoder jbtf.Decoder) error {
@@ -75,6 +48,7 @@ func (a *Instance) instantiateAppNode(nodeID string, instanceDetails persistence
 		}
 		node := variableInstance.NodeReference()
 		a.nodeIDs[node] = nodeID
+		a.nodeTypeKeys[node] = instanceDetails.Type
 		return node, nil
 	}
 
@@ -92,6 +66,7 @@ func (a *Instance) instantiateAppNode(nodeID string, instanceDetails persistence
 		panic(fmt.Errorf("graph definition contained type that instantiated a non node: %s", instanceDetails.Type))
 	}
 	a.nodeIDs[casted] = nodeID
+	a.nodeTypeKeys[casted] = nodeType
 	return casted, nil
 }
 

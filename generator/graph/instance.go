@@ -34,6 +34,7 @@ type Instance struct {
 
 	movelVersion   uint32
 	nodeIDs        map[nodes.Node]string
+	nodeTypeKeys   map[nodes.Node]string
 	metadata       *sync.NestedSyncMap
 	namedManifests *namedOutputManager[manifest.Manifest]
 	variables      variable.System
@@ -69,6 +70,7 @@ func New(config Config) *Instance {
 		variableFactory: config.VariableFactory,
 		variables:       variable.NewSystem(),
 		nodeIDs:         make(map[nodes.Node]string),
+		nodeTypeKeys:    make(map[nodes.Node]string),
 		profiles:        make(map[string]variable.Profile),
 		metadata:        sync.NewNestedSyncMap(),
 		namedManifests: &namedOutputManager[manifest.Manifest]{
@@ -512,6 +514,7 @@ func (a *Instance) Reset() {
 		Authors:     []persistence.Author{},
 	}
 	a.nodeIDs = make(map[nodes.Node]string)
+	a.nodeTypeKeys = make(map[nodes.Node]string)
 	a.metadata = sync.NewNestedSyncMap()
 	a.variables.Traverse(func(path string, info variable.Info, v variable.Variable) {
 		a.typeFactory.Unregister(path)
@@ -969,12 +972,8 @@ func (a *Instance) createNode(nodeType, portType string) (nodes.Node, string, er
 	}
 
 	a.buildIDsForNode(casted)
-
-	if a.parent != nil {
-		if _, isBoundary := subgraph.IsBoundaryNode(casted); isBoundary {
-			a.parent.onSubGraphChildMutation(a.SubGraphScopeID())
-		}
-	}
+	a.nodeTypeKeys[casted] = nodeType
+	a.notifyDefinitionMutation()
 
 	return casted, a.nodeIDs[casted], nil
 }
@@ -996,13 +995,9 @@ func (a *Instance) DeleteNodeById(nodeId string) {
 }
 
 func (a *Instance) DeleteNode(nodeToDelete nodes.Node) {
-	wasBoundary := false
-	if _, ok := subgraph.IsBoundaryNode(nodeToDelete); ok {
-		wasBoundary = true
-	}
-
 	a.namedManifests.DeleteNode(nodeToDelete)
 	delete(a.nodeIDs, nodeToDelete)
+	delete(a.nodeTypeKeys, nodeToDelete)
 
 	// Delete all nodes connecting to this
 	for node := range a.nodeIDs {
@@ -1039,9 +1034,7 @@ func (a *Instance) DeleteNode(nodeToDelete nodes.Node) {
 		}
 	}
 
-	if wasBoundary && a.parent != nil {
-		a.parent.onSubGraphChildMutation(a.SubGraphScopeID())
-	}
+	a.notifyDefinitionMutation()
 }
 
 // PARAMETER ==================================================================
@@ -1084,6 +1077,7 @@ func (a *Instance) UpdateParameter(nodeId string, data []byte) (bool, error) {
 
 	r, err := a.Parameter(nodeId).ApplyMessage(data)
 	a.incModelVersion()
+	a.notifyDefinitionMutation()
 	return r, err
 }
 
@@ -1145,6 +1139,7 @@ func (a *Instance) DeleteNodeInputConnection(nodeId, portName string) {
 	}
 
 	a.incModelVersion()
+	a.notifyDefinitionMutation()
 }
 
 func (a *Instance) ConnectNodes(nodeOutId, outPortName, nodeInId, inPortName string) {
@@ -1189,6 +1184,7 @@ func (a *Instance) ConnectNodes(nodeOutId, outPortName, nodeInId, inPortName str
 	}
 
 	a.incModelVersion()
+	a.notifyDefinitionMutation()
 }
 
 // PRODUCERS ==================================================================

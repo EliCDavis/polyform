@@ -281,6 +281,8 @@ func parseSubGraphScopeFromURL(urlPath string) (graph.Scope, error) {
 	default:
 		if idx := strings.Index(rest, "/metadata/"); idx != -1 {
 			subGraphID = rest[:idx]
+		} else if idx := strings.Index(rest, "/parameter/"); idx != -1 {
+			subGraphID = rest[:idx]
 		}
 	}
 
@@ -315,6 +317,29 @@ func scopedGraphHandler(graphInstance *graph.Instance, saver *GraphSaver) http.H
 				return
 			}
 			graphMetadataEndpointForInstance(scopeInstance, saver).ServeHTTP(w, r)
+			return
+		}
+		if strings.Contains(r.URL.Path, "/parameter/") {
+			scope, err := parseSubGraphScopeFromURL(r.URL.Path)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			scopeInstance, err := scope.ResolveInstance(graphInstance)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			switch {
+			case strings.Contains(r.URL.Path, "/parameter/value/"):
+				parameterValueEndpoint(scopeInstance, saver).ServeHTTP(w, r)
+			case strings.Contains(r.URL.Path, "/parameter/name/"):
+				parameterNameEndpoint(scopeInstance, saver).ServeHTTP(w, r)
+			case strings.Contains(r.URL.Path, "/parameter/description/"):
+				parameterDescriptionEndpoint(scopeInstance, saver).ServeHTTP(w, r)
+			default:
+				http.NotFound(w, r)
+			}
 			return
 		}
 		http.NotFound(w, r)

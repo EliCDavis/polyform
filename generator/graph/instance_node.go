@@ -29,10 +29,7 @@ func (p *subgraphInstanceInputPort) Type() string {
 
 func (p *subgraphInstanceInputPort) Clear() {
 	p.external = nil
-	err := p.syncToBoundaryInput(nil)
-	if err != nil {
-		panic(err)
-	}
+	_ = p.subgraphNode.syncInputToClone(p.portName, nil)
 }
 
 func (p *subgraphInstanceInputPort) Value() nodes.OutputPort {
@@ -41,26 +38,7 @@ func (p *subgraphInstanceInputPort) Value() nodes.OutputPort {
 
 func (p *subgraphInstanceInputPort) Set(port nodes.OutputPort) error {
 	p.external = port
-	return p.syncToBoundaryInput(port)
-}
-
-func (p *subgraphInstanceInputPort) syncToBoundaryInput(port nodes.OutputPort) error {
-	child, err := p.subgraphNode.owner.SubGraphInstance(p.subgraphNode.subGraphID)
-	if err != nil {
-		return fmt.Errorf("failed to get subgraph instance: %w", err)
-	}
-	for node := range child.nodeIDs {
-		inputBoundary, ok := subgraph.IsInputBoundary(node)
-		if !ok {
-			continue
-		}
-		if inputBoundary.BoundaryPortName() == p.portName {
-			inputBoundary.SetExternalSource(port)
-			return nil
-		}
-	}
-
-	return fmt.Errorf("boundary input port %q not found", p.portName)
+	return p.subgraphNode.syncInputToClone(p.portName, port)
 }
 
 type subgraphInstanceOutputPort struct {
@@ -94,11 +72,11 @@ func (p *subgraphInstanceOutputPort) CurrentSource() nodes.OutputPort {
 }
 
 func (p *subgraphInstanceOutputPort) connectedSource() nodes.OutputPort {
-	child, err := p.runtimeNode.owner.SubGraphInstance(p.runtimeNode.subGraphID)
-	if err != nil {
+	clone := p.runtimeNode.ensureClone()
+	if clone == nil {
 		return nil
 	}
-	for node := range child.nodeIDs {
+	for node := range clone.nodeIDs {
 		outputNode, ok := node.(*subgraph.OutputNode)
 		if !ok {
 			continue
@@ -110,23 +88,99 @@ func (p *subgraphInstanceOutputPort) connectedSource() nodes.OutputPort {
 	return nil
 }
 
+// SubgraphInstanceNode is a placement of a sub-graph on a parent graph. Each
+// placement owns a private clone of the definition so evaluation is isolated,
+// while edits to the shared definition rebuild every clone.
 type SubgraphInstanceNode struct {
 	owner         *Instance
 	subGraphID    string
+	clone         *Instance
 	inputs        map[string]nodes.InputPort
 	outputs       map[string]nodes.OutputPort
 	outputSources map[string]*subgraphInstanceOutputPort
 }
 
 func NewRuntimeNode(owner *Instance, subGraphID string) *SubgraphInstanceNode {
-	return &SubgraphInstanceNode{
+	n := &SubgraphInstanceNode{
 		owner:      owner,
 		subGraphID: subGraphID,
 	}
+	_ = n.rebuildClone()
+	return n
 }
 
 func (r *SubgraphInstanceNode) SubGraphID() string {
 	return r.subGraphID
+}
+
+func (r *SubgraphInstanceNode) ensureClone() *Instance {
+	if r.clone == nil {
+		_ = r.rebuildClone()
+	}
+	return r.clone
+}
+
+func (r *SubgraphInstanceNode) rebuildClone() error {
+	externals := r.snapshotExternals()
+
+	clone, err := r.owner.Root().cloneSubGraphDefinition(r.subGraphID)
+	if err != nil {
+		return err
+	}
+	r.clone = clone
+	r.outputs = nil
+	r.outputSources = nil
+
+	return r.applyExternals(externals)
+}
+
+func (r *SubgraphInstanceNode) snapshotExternals() map[string]nodes.OutputPort {
+	if r.inputs == nil {
+		return nil
+	}
+	out := make(map[string]nodes.OutputPort, len(r.inputs))
+	for name, input := range r.inputs {
+		sip, ok := input.(*subgraphInstanceInputPort)
+		if !ok || sip.external == nil {
+			continue
+		}
+		out[name] = sip.external
+	}
+	return out
+}
+
+func (r *SubgraphInstanceNode) applyExternals(externals map[string]nodes.OutputPort) error {
+	r.Inputs() // refresh port map against current definition boundaries
+	for name, port := range externals {
+		if err := r.syncInputToClone(name, port); err != nil {
+			// Port may have been removed from the definition; drop the wire.
+			if sip, ok := r.inputs[name].(*subgraphInstanceInputPort); ok {
+				sip.external = nil
+			}
+			continue
+		}
+		if sip, ok := r.inputs[name].(*subgraphInstanceInputPort); ok {
+			sip.external = port
+		}
+	}
+	return nil
+}
+
+func (r *SubgraphInstanceNode) syncInputToClone(portName string, port nodes.OutputPort) error {
+	clone := r.ensureClone()
+	if clone == nil {
+		return fmt.Errorf("sub-graph %q has no clone", r.subGraphID)
+	}
+
+	for node := range clone.nodeIDs {
+		inputBoundary, ok := subgraph.IsInputBoundary(node)
+		if !ok || inputBoundary.BoundaryPortName() != portName {
+			continue
+		}
+		inputBoundary.SetExternalSource(port)
+		return nil
+	}
+	return fmt.Errorf("boundary input port %q not found in clone of %q", portName, r.subGraphID)
 }
 
 func (r *SubgraphInstanceNode) Name() string {
@@ -278,7 +332,7 @@ func (a *Instance) SetBoundaryNodeInfo(nodeID, portName string) error {
 			return err
 		}
 		inputNode.PortName = portName
-		a.Root().onSubGraphChildMutation(a.SubGraphScopeID())
+		a.notifyDefinitionMutation()
 		return nil
 	}
 
@@ -287,7 +341,7 @@ func (a *Instance) SetBoundaryNodeInfo(nodeID, portName string) error {
 			return err
 		}
 		outputNode.PortName = portName
-		a.Root().onSubGraphChildMutation(a.SubGraphScopeID())
+		a.notifyDefinitionMutation()
 		return nil
 	}
 

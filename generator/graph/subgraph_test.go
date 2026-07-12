@@ -294,21 +294,24 @@ func TestSetBoundaryNodeInfoNotBoundaryNode(t *testing.T) {
 	assert.Contains(t, err.Error(), "not a sub-graph boundary node")
 }
 
-func TestRuntimeInputSyncsToBoundaryInput(t *testing.T) {
+func TestRuntimeInputWiredToClone(t *testing.T) {
 	inst := testInstanceWithSubGraphTypesExtended(t)
 	require.NoError(t, inst.CreateSubGraph("sync", "Sync", ""))
 
 	child, err := inst.SubGraphInstance("sync")
 	require.NoError(t, err)
 
-	inputNode, inputID, err := child.CreateBoundaryNode(subgraph.InputNodeTypeKey, "float64")
+	_, inputID, err := child.CreateBoundaryNode(subgraph.InputNodeTypeKey, "float64")
+	require.NoError(t, err)
+	_, outputID, err := child.CreateBoundaryNode(subgraph.OutputNodeTypeKey, "float64")
 	require.NoError(t, err)
 	require.NoError(t, child.SetBoundaryNodeInfo(inputID, "A"))
-
-	boundary := inputNode.(*subgraph.InputNode)
+	require.NoError(t, child.SetBoundaryNodeInfo(outputID, "Out"))
+	child.ConnectNodes(inputID, subgraph.ValuePortName, outputID, subgraph.ValuePortName)
 
 	extParam, extID, err := inst.CreateNode("Float64")
 	require.NoError(t, err)
+	extParam.(*parameter.Float64).CurrentValue = 5
 
 	runtimeNode, runtimeID, err := inst.CreateNode(subgraph.RuntimeTypePath("sync"))
 	require.NoError(t, err)
@@ -317,7 +320,7 @@ func TestRuntimeInputSyncsToBoundaryInput(t *testing.T) {
 	runtimeIn := runtimeNode.Inputs()["A"].(nodes.SingleValueInputPort)
 	require.NoError(t, runtimeIn.Set(extOut))
 
-	assert.Equal(t, extOut, boundary.ExternalSource())
+	assert.Equal(t, 5.0, nodes.GetNodeOutputPort[float64](runtimeNode, "Out").Value())
 
 	_ = runtimeID
 	_ = extID
@@ -641,10 +644,11 @@ func TestSubGraphBoundaryVector3ValueFlow(t *testing.T) {
 	require.NoError(t, err)
 	inst.ConnectNodes(paramID, "Value", runtimeID, "Position")
 
-	identity := child.Node(identityID)
-	got := nodes.GetNodeOutputPort[vector3.Float64](identity, "Out").Value()
+	runtimeNode := inst.Node(runtimeID)
+	got := nodes.GetNodeOutputPort[vector3.Float64](runtimeNode, "Result").Value()
 	assert.Equal(t, want, got)
 
+	_ = identityID
 	_ = outputID
 }
 
@@ -711,9 +715,9 @@ func TestSubGraphBoundaryMeshValueFlow(t *testing.T) {
 	require.NoError(t, err)
 	inst.ConnectNodes(meshValueID, "Value", runtimeID, "Mesh")
 
-	// Value flows into the sub-graph through the input boundary.
-	identity := child.Node(identityID)
-	got := nodes.GetNodeOutputPort[modeling.Mesh](identity, "Out").Value()
+	// Value flows into the sub-graph through the runtime node's input boundary.
+	runtimeNode := inst.Node(runtimeID)
+	got := nodes.GetNodeOutputPort[modeling.Mesh](runtimeNode, "Result").Value()
 	assert.Equal(t, want, got)
 
 	// The runtime node's output boundary is strongly typed, so parent-side
@@ -747,4 +751,96 @@ func TestNestedRuntimeTypeLoadsFromSubGraph(t *testing.T) {
 	freshOuter, err := fresh.SubGraphInstance("outer")
 	require.NoError(t, err)
 	assert.Len(t, freshOuter.Schema().Nodes, 1)
+}
+
+func TestTwoRuntimeSubGraphInstancesIndependent(t *testing.T) {
+	inst := testInstanceWithSubGraphTypesExtended(t)
+	require.NoError(t, inst.CreateSubGraph("adder", "Adder", ""))
+
+	child, err := inst.SubGraphInstance("adder")
+	require.NoError(t, err)
+
+	_, inputAID, err := child.CreateBoundaryNode(subgraph.InputNodeTypeKey, "float64")
+	require.NoError(t, err)
+	_, inputBID, err := child.CreateBoundaryNode(subgraph.InputNodeTypeKey, "float64")
+	require.NoError(t, err)
+	_, outputID, err := child.CreateBoundaryNode(subgraph.OutputNodeTypeKey, "float64")
+	require.NoError(t, err)
+	_, sumID, err := child.CreateNode("Sum")
+	require.NoError(t, err)
+
+	require.NoError(t, child.SetBoundaryNodeInfo(inputAID, "A"))
+	require.NoError(t, child.SetBoundaryNodeInfo(inputBID, "B"))
+	require.NoError(t, child.SetBoundaryNodeInfo(outputID, "Result"))
+
+	child.ConnectNodes(inputAID, subgraph.ValuePortName, sumID, "Values")
+	child.ConnectNodes(inputBID, subgraph.ValuePortName, sumID, "Values")
+	child.ConnectNodes(sumID, "Float", outputID, subgraph.ValuePortName)
+
+	makeParam := func(value float64) (string, nodes.Node) {
+		param, id, err := inst.CreateNode("Float64")
+		require.NoError(t, err)
+		param.(*parameter.Float64).CurrentValue = value
+		return id, param
+	}
+
+	param1ID, _ := makeParam(5)
+	param2ID, _ := makeParam(3)
+	param3ID, _ := makeParam(10)
+	param4ID, _ := makeParam(7)
+
+	_, runtime1ID, err := inst.CreateNode(subgraph.RuntimeTypePath("adder"))
+	require.NoError(t, err)
+	_, runtime2ID, err := inst.CreateNode(subgraph.RuntimeTypePath("adder"))
+	require.NoError(t, err)
+
+	inst.ConnectNodes(param1ID, "Value", runtime1ID, "A")
+	inst.ConnectNodes(param2ID, "Value", runtime1ID, "B")
+	inst.ConnectNodes(param3ID, "Value", runtime2ID, "A")
+	inst.ConnectNodes(param4ID, "Value", runtime2ID, "B")
+
+	runtime1 := inst.Node(runtime1ID)
+	runtime2 := inst.Node(runtime2ID)
+
+	got1 := nodes.GetNodeOutputPort[float64](runtime1, "Result").Value()
+	got2 := nodes.GetNodeOutputPort[float64](runtime2, "Result").Value()
+
+	assert.Equal(t, 8.0, got1)
+	assert.Equal(t, 17.0, got2)
+}
+
+func TestDefinitionEditRebuildsRuntimeClones(t *testing.T) {
+	inst := testInstanceWithSubGraphTypesExtended(t)
+	require.NoError(t, inst.CreateSubGraph("passthrough", "Passthrough", ""))
+
+	child, err := inst.SubGraphInstance("passthrough")
+	require.NoError(t, err)
+
+	_, inputID, err := child.CreateBoundaryNode(subgraph.InputNodeTypeKey, "float64")
+	require.NoError(t, err)
+	_, outputID, err := child.CreateBoundaryNode(subgraph.OutputNodeTypeKey, "float64")
+	require.NoError(t, err)
+	require.NoError(t, child.SetBoundaryNodeInfo(inputID, "In"))
+	require.NoError(t, child.SetBoundaryNodeInfo(outputID, "Out"))
+	child.ConnectNodes(inputID, subgraph.ValuePortName, outputID, subgraph.ValuePortName)
+
+	param, paramID, err := inst.CreateNode("Float64")
+	require.NoError(t, err)
+	param.(*parameter.Float64).CurrentValue = 4
+
+	runtimeNode, runtimeID, err := inst.CreateNode(subgraph.RuntimeTypePath("passthrough"))
+	require.NoError(t, err)
+	inst.ConnectNodes(paramID, "Value", runtimeID, "In")
+
+	assert.Equal(t, 4.0, nodes.GetNodeOutputPort[float64](runtimeNode, "Out").Value())
+
+	// Insert a Sum in the definition that doubles the input (in + in).
+	_, sumID, err := child.CreateNode("Sum")
+	require.NoError(t, err)
+	child.DeleteNodeInputConnection(outputID, subgraph.ValuePortName)
+	child.ConnectNodes(inputID, subgraph.ValuePortName, sumID, "Values")
+	child.ConnectNodes(inputID, subgraph.ValuePortName, sumID, "Values")
+	child.ConnectNodes(sumID, "Float", outputID, subgraph.ValuePortName)
+
+	assert.Equal(t, 8.0, nodes.GetNodeOutputPort[float64](runtimeNode, "Out").Value())
 }
