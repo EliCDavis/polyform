@@ -1,10 +1,7 @@
 import { GlobalWidgetFactory, type FlowNode } from "@elicdavis/node-flow";
 import type { NodeManager } from "@/lib/node_manager";
 import type { RequestManager } from "@/lib/requests";
-import {
-  subGraphBoundaryInfo,
-  type NodeInstance,
-} from "@/lib/schema";
+import { subGraphBoundaryInfo, type NodeInstance } from "@/lib/schema";
 import { formatPortTypeLabel } from "@/lib/portTypes";
 
 export class SubGraphBoundaryNodeController {
@@ -43,11 +40,6 @@ export class SubGraphBoundaryNodeController {
   private mountTypeWidgets(): void {
     this.flowNode.addWidget(
       GlobalWidgetFactory.create(this.flowNode, "text", {
-        value: "Type",
-      }),
-    );
-    this.flowNode.addWidget(
-      GlobalWidgetFactory.create(this.flowNode, "text", {
         value: this.portType ? formatPortTypeLabel(this.portType) : "—",
       }),
     );
@@ -67,12 +59,12 @@ export class SubGraphBoundaryNodeController {
 
   update(nodeData: NodeInstance): void {
     const boundary = subGraphBoundaryInfo(nodeData);
-    if (boundary?.portName) {
-      this.flowNode.setTitle(boundary.portName);
+    if (!boundary) {
+      console.error("Boundary node data is missing boundary information", nodeData);
+      return;
     }
-    if (boundary?.portType) {
-      this.portType = boundary.portType;
-      this.flowNode.setProperty("portType", boundary.portType);
-    }
+    this.flowNode.setTitle(boundary.portName);
+    this.portType = boundary.portType;
+    this.flowNode.setProperty("portType", boundary.portType);
   }
 }

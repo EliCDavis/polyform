@@ -1,4 +1,5 @@
 import type { FlowNodeConfig, FlowNodeStyle } from "@elicdavis/node-flow";
+import { BoundaryType } from "@/lib/schema";
 import {
   SUBGRAPH_INPUT_TYPE,
   SUBGRAPH_OUTPUT_TYPE,
@@ -56,16 +57,14 @@ const SubGraphOutputNodeConfig: FlowNodeConfig = {
   },
 };
 
-export type BoundaryNodeKind = "input" | "output";
-
 export function buildBoundaryFlowNodeConfig(
-  kind: BoundaryNodeKind,
+  kind: BoundaryType,
   portType: string,
 ): FlowNodeConfig {
-  const base = kind === "input" ? SubGraphInputNodeConfig : SubGraphOutputNodeConfig;
+  const base = kind === BoundaryType.Input ? SubGraphInputNodeConfig : SubGraphOutputNodeConfig;
   const resolvedType = portType || "any";
 
-  if (kind === "input") {
+  if (kind === BoundaryType.Input) {
     return {
       ...base,
       outputs: [{ name: "Value", type: resolvedType }],

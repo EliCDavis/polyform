@@ -29,7 +29,6 @@ import {
   SubGraphRuntimeStyle,
   buildBoundaryFlowNodeConfig,
   subGraphNodeConfigs,
-  type BoundaryNodeKind,
 } from "@/features/nodeFlow/subGraphNodeConfigs";
 import { portTypePickerActions } from "@/stores/portTypePickerStore";
 
@@ -289,11 +288,11 @@ export class NodeManager {
             return;
         }
 
-        const kind: BoundaryNodeKind =
-            nodeType === SUBGRAPH_INPUT_TYPE ? "input" : "output";
+        const kind =
+            nodeType === SUBGRAPH_INPUT_TYPE ? BoundaryType.Input : BoundaryType.Output;
 
         portTypePickerActions.show({
-            title: kind === "input" ? "Input Port Type" : "Output Port Type",
+            title: kind === BoundaryType.Input ? "Input Port Type" : "Output Port Type",
             options: portTypes,
             current: portTypes[0],
             onCancel: () => {
@@ -325,7 +324,7 @@ export class NodeManager {
     /** Swap the menu-created placeholder for a node whose ports use the chosen type. */
     private replacePlaceholderBoundaryNode(
         oldFlowNode: FlowNode,
-        kind: BoundaryNodeKind,
+        kind: BoundaryType,
         portType: string,
     ): FlowNode {
         const position = oldFlowNode.getPosition();
@@ -599,10 +598,8 @@ export class NodeManager {
         this.nodesPublisher.register(category, nodeConfig);
     }
 
-    private boundaryNodeKind(nodeData: NodeInstance): BoundaryNodeKind | null {
-        const kind = subGraphBoundaryKind(nodeData);
-        if (!kind) return null;
-        return kind === BoundaryType.Input ? "input" : "output";
+    private boundaryNodeKind(nodeData: NodeInstance): BoundaryType | null {
+        return subGraphBoundaryKind(nodeData) ?? null;
     }
 
     createBoundaryFlowNode(nodeData: NodeInstance): FlowNode {
