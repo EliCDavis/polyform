@@ -19,15 +19,7 @@ export function scopeToApiPath(scope: GraphScope): string | null {
 }
 
 export function formatPortTypeLabel(type: string): string {
-  const withoutPackage = type.includes("/") ? type.split("/").pop()! : type;
-  const genericMatch = withoutPackage.match(/^(.+)\[(.+)\]$/);
-  if (genericMatch) {
-    const base = genericMatch[1].split(".").pop() ?? genericMatch[1];
-    const param = genericMatch[2].split(".").pop() ?? genericMatch[2];
-    return `${base} (${param})`;
-  }
-  const shortName = withoutPackage.split(".").pop() ?? withoutPackage;
-  return shortName;
+  return type.split("github.com/EliCDavis/").join("");
 }
 
 export function isSubGraphRuntimeType(type: string): boolean {
