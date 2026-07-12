@@ -23,6 +23,10 @@ func (sno valueOutputPort[T]) Version() int {
 	return sno.Val.Version()
 }
 
+func (sno valueOutputPort[T]) BuildProxyOutput(source ProxySource) OutputPort {
+	return NewProxyOutput[T](source)
+}
+
 // ============================================================================
 
 type Value[T any] struct {

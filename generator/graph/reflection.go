@@ -52,8 +52,8 @@ func (i *Instance) BuildSchemaForAllNodeTypes() []schema.NodeType {
 func BuildNodeTypeSchema(registeredType string, node nodes.Node) schema.NodeType {
 	typeSchema := schema.NodeType{
 		DisplayName: "Untyped",
-		Outputs:     make(map[string]schema.NodeOutput),
-		Inputs:      make(map[string]schema.NodeInput),
+		Outputs:     make(map[string]schema.NodeTypeOutput),
+		Inputs:      make(map[string]schema.NodeTypeInput),
 	}
 
 	outputs := node.Outputs()
@@ -68,7 +68,7 @@ func BuildNodeTypeSchema(registeredType string, node nodes.Node) schema.NodeType
 			desc = description.Description()
 		}
 
-		typeSchema.Outputs[name] = schema.NodeOutput{
+		typeSchema.Outputs[name] = schema.NodeTypeOutput{
 			Type:        nodeType,
 			Description: desc,
 		}
@@ -91,7 +91,7 @@ func BuildNodeTypeSchema(registeredType string, node nodes.Node) schema.NodeType
 			desc = description.Description()
 		}
 
-		typeSchema.Inputs[name] = schema.NodeInput{
+		typeSchema.Inputs[name] = schema.NodeTypeInput{
 			Type:        nodeType,
 			IsArray:     array,
 			Description: desc,

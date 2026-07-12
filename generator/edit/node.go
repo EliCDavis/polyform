@@ -9,20 +9,32 @@ import (
 	"github.com/EliCDavis/polyform/generator/manifest"
 	"github.com/EliCDavis/polyform/generator/schema"
 	"github.com/EliCDavis/polyform/generator/serialize"
+	"github.com/EliCDavis/polyform/generator/subgraph"
+	"github.com/EliCDavis/polyform/nodes"
 )
 
 const (
 	nodeOutputEndpointPath = "/node/output/"
 )
 
+// createNodeFromRequest routes node creation to the right constructor: only
+// sub-graph boundary nodes carry a port type.
+func createNodeFromRequest(instance *graph.Instance, nodeType, portType string) (nodes.Node, string, error) {
+	if portType != "" {
+		return instance.CreateBoundaryNode(nodeType, portType)
+	}
+	return instance.CreateNode(nodeType)
+}
+
 func nodeEndpoint(graphInstance *graph.Instance, saver *GraphSaver) endpoint.Handler {
 	type CreateRequest struct {
 		NodeType string `json:"nodeType"`
+		PortType string `json:"portType,omitempty"`
 	}
 
 	type CreateResponse struct {
-		NodeID string              `json:"nodeID"`
-		Data   schema.NodeInstance `json:"data"`
+		NodeID string      `json:"nodeID"`
+		Data   schema.Node `json:"data"`
 	}
 
 	type DeleteRequest struct {
@@ -35,7 +47,7 @@ func nodeEndpoint(graphInstance *graph.Instance, saver *GraphSaver) endpoint.Han
 		Methods: map[string]endpoint.Method{
 			http.MethodPost: endpoint.JsonMethod(
 				func(request endpoint.Request[CreateRequest]) (CreateResponse, error) {
-					node, id, err := graphInstance.CreateNode(request.Body.NodeType)
+					node, id, err := createNodeFromRequest(graphInstance, request.Body.NodeType, request.Body.PortType)
 					if err != nil {
 						return CreateResponse{}, err
 					}
@@ -104,6 +116,7 @@ func (as *Server) NodeOutputEndpoint(w http.ResponseWriter, r *http.Request) {
 type RegisteredTypes struct {
 	NodeTypes            []schema.NodeType `json:"nodeTypes"`
 	SerializeOutputTypes []string          `json:"serializableOutputTypes"`
+	PortTypes            []string          `json:"portTypes"`
 }
 
 func nodeTypesEndpoint(graphInstance *graph.Instance, serializer *serialize.TypeSwitch[manifest.Entry]) endpoint.Handler {
@@ -113,6 +126,7 @@ func nodeTypesEndpoint(graphInstance *graph.Instance, serializer *serialize.Type
 				func(r *http.Request) (RegisteredTypes, error) {
 					b := RegisteredTypes{
 						NodeTypes: graphInstance.BuildSchemaForAllNodeTypes(),
+						PortTypes: subgraph.KnownPortTypes(),
 					}
 					if serializer != nil {
 						b.SerializeOutputTypes = serializer.Types()

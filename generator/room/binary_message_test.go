@@ -6,8 +6,8 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/EliCDavis/polyform/generator/persistence"
 	"github.com/EliCDavis/polyform/generator/room"
-	"github.com/EliCDavis/polyform/generator/schema"
 	"github.com/EliCDavis/vector/vector3"
 	"github.com/stretchr/testify/assert"
 )
@@ -328,18 +328,18 @@ func TestMessage_ServerRoomStateUpdate(t *testing.T) {
 						},
 					},
 				},
-				WebScene: &schema.WebScene{
+				WebScene: &persistence.WebScene{
 					AntiAlias:       true,
 					RenderWireframe: true,
 					XrEnabled:       true,
-					Fog: schema.WebSceneFog{
-						Color: schema.WebColor{R: 0, G: 255, B: 0, A: 255},
+					Fog: persistence.WebSceneFog{
+						Color: persistence.WebColor{R: 0, G: 255, B: 0, A: 255},
 						Near:  12,
 						Far:   25,
 					},
-					Background: schema.WebColor{R: 0, G: 0, B: 0, A: 255},
-					Lighting:   schema.WebColor{R: 255, G: 255, B: 255, A: 255},
-					Ground:     schema.WebColor{R: 0, G: 0, B: 255, A: 255},
+					Background: persistence.WebColor{R: 0, G: 0, B: 0, A: 255},
+					Lighting:   persistence.WebColor{R: 255, G: 255, B: 255, A: 255},
+					Ground:     persistence.WebColor{R: 0, G: 0, B: 255, A: 255},
 				},
 			},
 			want: []byte{

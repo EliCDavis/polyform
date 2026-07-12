@@ -26,6 +26,10 @@ func (sno fileNodeOutput) Version() int {
 	return sno.Val.version
 }
 
+func (sno fileNodeOutput) BuildProxyOutput(source nodes.ProxySource) nodes.OutputPort {
+	return nodes.NewProxyOutput[[]byte](source)
+}
+
 // ============================================================================
 
 type File struct {

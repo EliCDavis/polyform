@@ -9,7 +9,9 @@ import (
 	"github.com/EliCDavis/jbtf"
 	"github.com/EliCDavis/polyform/formats/swagger"
 	"github.com/EliCDavis/polyform/generator/manifest"
+	"github.com/EliCDavis/polyform/generator/persistence"
 	"github.com/EliCDavis/polyform/generator/schema"
+	"github.com/EliCDavis/polyform/generator/subgraph"
 	"github.com/EliCDavis/polyform/generator/sync"
 	"github.com/EliCDavis/polyform/generator/variable"
 	"github.com/EliCDavis/polyform/nodes"
@@ -22,7 +24,7 @@ type Details struct {
 	Name        string
 	Version     string
 	Description string
-	Authors     []schema.Author
+	Authors     []persistence.Author
 }
 
 type Instance struct {
@@ -32,11 +34,15 @@ type Instance struct {
 
 	movelVersion   uint32
 	nodeIDs        map[nodes.Node]string
+	nodeTypeKeys   map[nodes.Node]string
 	metadata       *sync.NestedSyncMap
 	namedManifests *namedOutputManager[manifest.Manifest]
 	variables      variable.System
 
 	profiles map[string]variable.Profile
+
+	subGraphs map[string]*subGraphRuntime
+	parent    *Instance
 
 	// TODO: Make this a lock across the entire instance
 	lock gsync.RWMutex
@@ -46,12 +52,13 @@ type Config struct {
 	Name            string
 	Version         string
 	Description     string
-	Authors         []schema.Author
+	Authors         []persistence.Author
 	TypeFactory     *refutil.TypeFactory
 	VariableFactory func(string) (variable.Variable, error)
 }
 
 func New(config Config) *Instance {
+	subgraph.DiscoverPortTypes(config.TypeFactory)
 	return &Instance{
 		details: Details{
 			Name:        config.Name,
@@ -63,6 +70,7 @@ func New(config Config) *Instance {
 		variableFactory: config.VariableFactory,
 		variables:       variable.NewSystem(),
 		nodeIDs:         make(map[nodes.Node]string),
+		nodeTypeKeys:    make(map[nodes.Node]string),
 		profiles:        make(map[string]variable.Profile),
 		metadata:        sync.NewNestedSyncMap(),
 		namedManifests: &namedOutputManager[manifest.Manifest]{
@@ -94,7 +102,7 @@ func (a *Instance) GetDescription() string {
 	return a.details.Description
 }
 
-func (a *Instance) GetAuthors() []schema.Author {
+func (a *Instance) GetAuthors() []persistence.Author {
 	a.lock.RLock()
 	defer a.lock.RUnlock()
 	return a.details.Authors
@@ -142,6 +150,7 @@ func (a *Instance) NewVariable(variablePath string, variable variable.Variable) 
 	a.typeFactory.RegisterBuilder(variablePath, func() any {
 		return variable.NodeReference()
 	})
+	subgraph.DiscoverNodePortTypes(variable.NodeReference())
 
 	return variablePath
 }
@@ -336,11 +345,15 @@ func (a *Instance) NodeIds() []string {
 }
 
 func (a *Instance) incModelVersion() {
+	if a.parent != nil {
+		a.parent.incModelVersion()
+		return
+	}
 	// TODO: Make thread safe
 	a.movelVersion++
 }
 
-func (a *Instance) NodeInstanceSchema(node nodes.Node) schema.NodeInstance {
+func (a *Instance) NodeInstanceSchema(node nodes.Node) schema.Node {
 	var metadata map[string]any
 	metadataPath := "nodes." + a.nodeIDs[node]
 
@@ -362,11 +375,11 @@ func (a *Instance) NodeInstanceSchema(node nodes.Node) schema.NodeInstance {
 		IncludePointer: false,
 	}
 
-	nodeInstance := schema.NodeInstance{
+	nodeInstance := schema.Node{
 		Name:          "Unamed",
 		Type:          resolver.Resolve(node),
 		AssignedInput: make(map[string]schema.PortReference),
-		Output:        make(map[string]schema.NodeInstanceOutputPort),
+		Output:        make(map[string]schema.NodeOutputPort),
 		Metadata:      metadata,
 	}
 
@@ -386,8 +399,25 @@ func (a *Instance) NodeInstanceSchema(node nodes.Node) schema.NodeInstance {
 		}
 	}
 
+	if boundary, ok := subgraph.IsBoundaryNode(node); ok {
+		portBoundary := &schema.SubGraphPortBoundary{
+			PortName: boundary.BoundaryPortName(),
+			PortType: boundary.BoundaryPortType(),
+		}
+		if _, isInput := subgraph.IsInputBoundary(node); isInput {
+			nodeInstance.SubGraphInputBoundary = portBoundary
+		} else {
+			nodeInstance.SubGraphOutputBoundary = portBoundary
+		}
+	}
+
+	if runtime, ok := node.(*SubgraphInstanceNode); ok {
+		nodeInstance.SubGraphId = runtime.SubGraphID()
+		nodeInstance.Type = subgraph.RuntimeTypePath(runtime.SubGraphID())
+	}
+
 	for outputPortName, outputPort := range node.Outputs() {
-		result := schema.NodeInstanceOutputPort{
+		result := schema.NodeOutputPort{
 			Version: outputPort.Version(),
 		}
 		nodeInstance.Output[outputPortName] = result
@@ -481,9 +511,10 @@ func (a *Instance) Reset() {
 		Name:        "New Graph",
 		Description: "",
 		Version:     "v0.0.0",
-		Authors:     []schema.Author{},
+		Authors:     []persistence.Author{},
 	}
 	a.nodeIDs = make(map[nodes.Node]string)
+	a.nodeTypeKeys = make(map[nodes.Node]string)
 	a.metadata = sync.NewNestedSyncMap()
 	a.variables.Traverse(func(path string, info variable.Info, v variable.Variable) {
 		a.typeFactory.Unregister(path)
@@ -493,6 +524,7 @@ func (a *Instance) Reset() {
 		namedPorts: make(map[string]namedOutputEntry[manifest.Manifest]),
 	}
 	a.profiles = make(map[string]variable.Profile)
+	a.subGraphs = make(map[string]*subGraphRuntime)
 }
 
 type sortedReference struct {
@@ -547,7 +579,7 @@ func (a *Instance) ApplyAppSchema(jsonPayload []byte) error {
 	defer a.lock.Unlock()
 	a.Reset()
 
-	appSchema, err := jbtf.Unmarshal[schema.App](jsonPayload)
+	appSchema, err := jbtf.Unmarshal[persistence.App](jsonPayload)
 	if err != nil {
 		return fmt.Errorf("unable to parse graph as a jbtf: %w", err)
 	}
@@ -563,7 +595,7 @@ func (a *Instance) ApplyAppSchema(jsonPayload []byte) error {
 	}
 
 	a.metadata.OverwriteData(appSchema.Metadata)
-	appSchema.Variables.Traverse(func(path string, v schema.PersistedVariable) bool {
+	appSchema.Variables.Traverse(func(path string, v persistence.Variable) bool {
 		var varabl variable.Variable
 		varabl, err = variable.DeserializePersistantVariableJSON(v.Data, decoder, a.variableFactory)
 		if err == nil {
@@ -586,79 +618,34 @@ func (a *Instance) ApplyAppSchema(jsonPayload []byte) error {
 		a.profiles[profile] = data.Data
 	}
 
+	for subGraphID, subGraphDef := range appSchema.SubGraphs {
+		err = a.loadSubGraphDefinition(subGraphID, subGraphDef, decoder)
+		if err != nil {
+			return err
+		}
+	}
+
 	createdNodes := make(map[string]nodes.Node)
 
 	// Create the Nodes
 	for nodeID, instanceDetails := range appSchema.Nodes {
-		if nodeID == "" {
-			panic("attempting to create a node without an ID")
+		node, err := a.instantiateAppNode(nodeID, instanceDetails)
+		if err != nil {
+			return err
 		}
-
-		if instanceDetails.Variable != nil {
-			// We instantiate variables a different way
-			variable, err := a.variables.Variable(*instanceDetails.Variable)
-			if err != nil {
-				return err
-			}
-			node := variable.NodeReference()
+		if node != nil {
 			createdNodes[nodeID] = node
-			a.nodeIDs[node] = nodeID
-		} else {
-			newNode := a.typeFactory.New(instanceDetails.Type)
-			casted, ok := newNode.(nodes.Node)
-			if !ok {
-				panic(fmt.Errorf("graph definition contained type that instantiated a non node: %s", instanceDetails.Type))
-			}
-			createdNodes[nodeID] = casted
-			a.nodeIDs[casted] = nodeID
 		}
+	}
 
+	if err = applyPersistedNodeData(appSchema.Nodes, createdNodes, decoder); err != nil {
+		return err
 	}
 
 	// Connect the nodes we just created
-	for nodeID, instanceDetails := range appSchema.Nodes {
-		node := createdNodes[nodeID]
-		inputs := node.Inputs()
-
-		sortedInput := sortPortReferences(instanceDetails.AssignedInput)
-
-		for _, sorted := range sortedInput {
-
-			dirtyInputName := sorted.name
-			dependency := sorted.port
-
-			inputName := dirtyInputName
-			components := strings.Split(inputName, ".")
-			if len(components) > 1 {
-				inputName = components[0]
-			}
-
-			input, ok := inputs[inputName]
-			if !ok {
-				panic(fmt.Errorf("Node %s has no input %s", nodeID, inputName))
-			}
-
-			outNode := createdNodes[dependency.NodeId]
-			outNodeOutputs := outNode.Outputs()
-			output, ok := outNodeOutputs[dependency.PortName]
-			if !ok {
-				panic(fmt.Errorf("Node %s has no output %s", dependency.NodeId, dependency.PortName))
-			}
-
-			if single, ok := input.(nodes.SingleValueInputPort); ok {
-				err := single.Set(output)
-				if err != nil {
-					panic(err)
-				}
-			} else if array, ok := input.(nodes.ArrayValueInputPort); ok {
-				err := array.Add(output)
-				if err != nil {
-					panic(err)
-				}
-			} else {
-				panic(fmt.Errorf("not sure how to assign node %q's input %q", nodeID, inputName))
-			}
-		}
+	err = a.connectAppNodes(appSchema.Nodes, createdNodes)
+	if err != nil {
+		return err
 	}
 
 	// Set the Producers
@@ -676,17 +663,6 @@ func (a *Instance) ApplyAppSchema(jsonPayload []byte) error {
 		}
 
 		a.namedManifests.NamePort(producerName, producerDetails.Port, producerNode, casted)
-	}
-
-	// Set Parameters
-	for nodeID, instanceDetails := range appSchema.Nodes {
-		nodeI := createdNodes[nodeID]
-		if p, ok := nodeI.(CustomGraphSerialization); ok {
-			err := p.FromJSON(decoder, instanceDetails.Data)
-			if err != nil {
-				return err
-			}
-		}
 	}
 
 	a.incModelVersion()
@@ -719,7 +695,7 @@ func (a *Instance) ExecutionReport() schema.GraphExecutionReport {
 	return schema.GraphExecutionReport{Nodes: appNodeSchema}
 }
 
-func (a *Instance) Schema() schema.GraphInstance {
+func (a *Instance) Schema() schema.Graph {
 	a.lock.RLock()
 	defer a.lock.RUnlock()
 
@@ -736,7 +712,7 @@ func (a *Instance) Schema() schema.GraphInstance {
 		panic(err)
 	}
 
-	appSchema := schema.GraphInstance{
+	appSchema := schema.Graph{
 		Producers: make(map[string]schema.Producer),
 		Notes:     noteMetadata,
 		Variables: variableSchema,
@@ -748,7 +724,7 @@ func (a *Instance) Schema() schema.GraphInstance {
 	}
 	sort.Strings(appSchema.Profiles)
 
-	appNodeSchema := make(map[string]schema.NodeInstance)
+	appNodeSchema := make(map[string]schema.Node)
 
 	for node, id := range a.nodeIDs {
 		if _, ok := appNodeSchema[id]; ok {
@@ -773,6 +749,18 @@ func (a *Instance) Schema() schema.GraphInstance {
 
 	appSchema.Nodes = appNodeSchema
 
+	if a.parent == nil {
+		a.initSubGraphs()
+		appSchema.SubGraphs = make(map[string]schema.SubGraph, len(a.subGraphs))
+		for id := range a.subGraphs {
+			runtimeSchema, err := a.runtimeSubGraphSchema(id)
+			if err != nil {
+				panic(err)
+			}
+			appSchema.SubGraphs[id] = runtimeSchema
+		}
+	}
+
 	return appSchema
 }
 
@@ -782,7 +770,7 @@ func (a *Instance) EncodeToAppSchema() ([]byte, error) {
 
 	encoder := &jbtf.Encoder{}
 
-	appSchema := schema.App{
+	appSchema := persistence.App{
 		Name:        a.details.Name,
 		Version:     a.details.Version,
 		Description: a.details.Description,
@@ -794,7 +782,7 @@ func (a *Instance) EncodeToAppSchema() ([]byte, error) {
 		variableLut[v] = path
 	})
 
-	nodeInstances := make(map[string]schema.AppNodeInstance)
+	nodeInstances := make(map[string]persistence.Node)
 	for node := range a.nodeIDs {
 		id, ok := a.nodeIDs[node]
 		if !ok {
@@ -816,10 +804,10 @@ func (a *Instance) EncodeToAppSchema() ([]byte, error) {
 	}
 
 	if appSchema.Profiles == nil {
-		appSchema.Profiles = make(map[string]schema.AppProfile)
+		appSchema.Profiles = make(map[string]persistence.Profile)
 	}
 	for name, data := range a.profiles {
-		appSchema.Profiles[name] = schema.AppProfile{
+		appSchema.Profiles[name] = persistence.Profile{
 			Data: data,
 		}
 	}
@@ -847,6 +835,10 @@ func (a *Instance) EncodeToAppSchema() ([]byte, error) {
 
 	appSchema.Nodes = nodeInstances
 	appSchema.Variables = variableSchema
+	appSchema.SubGraphs, err = a.encodeSubGraphDefinitions(encoder)
+	if err != nil {
+		return nil, err
+	}
 
 	// TODO: Is this unsafe? Yes.
 	appSchema.Metadata = a.metadata.Data()
@@ -854,15 +846,20 @@ func (a *Instance) EncodeToAppSchema() ([]byte, error) {
 	return encoder.ToPgtf(appSchema)
 }
 
-func (a *Instance) buildNodeGraphInstanceSchema(node nodes.Node, encoder *jbtf.Encoder) schema.AppNodeInstance {
+func (a *Instance) buildNodeGraphInstanceSchema(node nodes.Node, encoder *jbtf.Encoder) persistence.Node {
 
 	resolver := refutil.TypeResolution{
 		IncludePackage: true,
 		IncludePointer: false,
 	}
 
-	nodeInstance := schema.AppNodeInstance{
-		Type:          resolver.Resolve(node),
+	nodeType := resolver.Resolve(node)
+	if runtime, ok := node.(*SubgraphInstanceNode); ok {
+		nodeType = subgraph.RuntimeTypePath(runtime.SubGraphID())
+	}
+
+	nodeInstance := persistence.Node{
+		Type:          nodeType,
 		AssignedInput: make(map[string]schema.PortReference),
 	}
 
@@ -938,6 +935,18 @@ func (a *Instance) Node(nodeId string) nodes.Node {
 }
 
 func (a *Instance) CreateNode(nodeType string) (nodes.Node, string, error) {
+	return a.createNode(nodeType, "")
+}
+
+// CreateBoundaryNode instantiates a subgraph boundary node with a given port type.
+func (a *Instance) CreateBoundaryNode(nodeType, portType string) (nodes.Node, string, error) {
+	if strings.TrimSpace(portType) == "" {
+		return nil, "", fmt.Errorf("boundary port type is required")
+	}
+	return a.createNode(nodeType, portType)
+}
+
+func (a *Instance) createNode(nodeType, portType string) (nodes.Node, string, error) {
 	if !a.typeFactory.KeyRegistered(nodeType) {
 		return nil, "", fmt.Errorf("no factory registered with ID %s", nodeType)
 	}
@@ -947,7 +956,24 @@ func (a *Instance) CreateNode(nodeType string) (nodes.Node, string, error) {
 	if !ok {
 		panic(fmt.Errorf("Regiestered type did not create a node. How'd ya manage that: %s", nodeType))
 	}
+
+	if boundary, isBoundary := subgraph.IsBoundaryNode(casted); isBoundary {
+		if portType == "" {
+			return nil, "", fmt.Errorf("boundary port type is required")
+		}
+		if !subgraph.IsPortTypeKnown(portType) {
+			return nil, "", fmt.Errorf("unknown boundary port type %q", portType)
+		}
+		if err := subgraph.ConfigureBoundaryPortType(boundary, portType); err != nil {
+			return nil, "", err
+		}
+	} else if portType != "" {
+		return nil, "", fmt.Errorf("port type cannot be set on non-boundary node type %q", nodeType)
+	}
+
 	a.buildIDsForNode(casted)
+	a.nodeTypeKeys[casted] = nodeType
+	a.notifyDefinitionMutation()
 
 	return casted, a.nodeIDs[casted], nil
 }
@@ -971,6 +997,7 @@ func (a *Instance) DeleteNodeById(nodeId string) {
 func (a *Instance) DeleteNode(nodeToDelete nodes.Node) {
 	a.namedManifests.DeleteNode(nodeToDelete)
 	delete(a.nodeIDs, nodeToDelete)
+	delete(a.nodeTypeKeys, nodeToDelete)
 
 	// Delete all nodes connecting to this
 	for node := range a.nodeIDs {
@@ -1006,6 +1033,8 @@ func (a *Instance) DeleteNode(nodeToDelete nodes.Node) {
 
 		}
 	}
+
+	a.notifyDefinitionMutation()
 }
 
 // PARAMETER ==================================================================
@@ -1048,6 +1077,7 @@ func (a *Instance) UpdateParameter(nodeId string, data []byte) (bool, error) {
 
 	r, err := a.Parameter(nodeId).ApplyMessage(data)
 	a.incModelVersion()
+	a.notifyDefinitionMutation()
 	return r, err
 }
 
@@ -1109,6 +1139,7 @@ func (a *Instance) DeleteNodeInputConnection(nodeId, portName string) {
 	}
 
 	a.incModelVersion()
+	a.notifyDefinitionMutation()
 }
 
 func (a *Instance) ConnectNodes(nodeOutId, outPortName, nodeInId, inPortName string) {
@@ -1153,6 +1184,7 @@ func (a *Instance) ConnectNodes(nodeOutId, outPortName, nodeInId, inPortName str
 	}
 
 	a.incModelVersion()
+	a.notifyDefinitionMutation()
 }
 
 // PRODUCERS ==================================================================

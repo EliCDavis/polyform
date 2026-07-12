@@ -33,7 +33,8 @@ import (
 	"github.com/EliCDavis/polyform/generator/manifest/basics"
 	_ "github.com/EliCDavis/polyform/generator/manifest/basics"
 	_ "github.com/EliCDavis/polyform/generator/parameter"
-	"github.com/EliCDavis/polyform/generator/schema"
+	_ "github.com/EliCDavis/polyform/generator/subgraph/register"
+	"github.com/EliCDavis/polyform/generator/persistence"
 	"github.com/EliCDavis/polyform/generator/serialize"
 	"github.com/EliCDavis/polyform/generator/variable"
 
@@ -137,10 +138,10 @@ func main() {
 	app := generator.App{
 		Name:        "Polyform",
 		Description: "Immutable mesh processing pipelines",
-		Authors: []schema.Author{
+		Authors: []persistence.Author{
 			{
 				Name: "Eli C Davis",
-				ContactInfo: []schema.AuthorContact{
+				ContactInfo: []persistence.AuthorContact{
 					{Medium: "bsky.app", Value: "@elicdavis.bsky.social"},
 					{Medium: "github.com", Value: "EliCDavis"},
 				},

@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/EliCDavis/polyform/generator/graph"
-	"github.com/EliCDavis/polyform/generator/schema"
+	"github.com/EliCDavis/polyform/generator/persistence"
 	"github.com/EliCDavis/vector"
 	"github.com/EliCDavis/vector/vector3"
 )
@@ -66,7 +66,7 @@ type Player struct {
 
 type RoomState struct {
 	ModelVersion uint32
-	WebScene     *schema.WebScene
+	WebScene     *persistence.WebScene
 	Players      map[string]*Player
 }
 
@@ -101,7 +101,7 @@ type Hub struct {
 	graphInstance *graph.Instance
 }
 
-func NewHub(webScene *schema.WebScene, graphInstance *graph.Instance) *Hub {
+func NewHub(webScene *persistence.WebScene, graphInstance *graph.Instance) *Hub {
 	return &Hub{
 		broadcast:     make(chan []byte),
 		register:      make(chan *Client),

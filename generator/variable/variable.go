@@ -18,7 +18,7 @@ type Variable interface {
 	ApplyMessage(msg []byte) (bool, error)
 	ToMessage() []byte
 
-	runtimeSchema() schema.RuntimeVariable
+	runtimeSchema() schema.Variable
 
 	currentValue() any
 	currentVersion() int

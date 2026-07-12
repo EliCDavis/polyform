@@ -29,6 +29,10 @@ func (co ConstOutput[T]) Description() string {
 	return co.PortDescription
 }
 
+func (co ConstOutput[T]) BuildProxyOutput(source ProxySource) OutputPort {
+	return NewProxyOutput[T](source)
+}
+
 func (so ConstOutput[T]) Type() string {
 	resolver := refutil.TypeResolution{
 		IncludePackage: true,

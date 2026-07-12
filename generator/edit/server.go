@@ -17,8 +17,8 @@ import (
 	"github.com/EliCDavis/polyform/generator/endpoint"
 	"github.com/EliCDavis/polyform/generator/graph"
 	"github.com/EliCDavis/polyform/generator/manifest"
+	"github.com/EliCDavis/polyform/generator/persistence"
 	"github.com/EliCDavis/polyform/generator/room"
-	"github.com/EliCDavis/polyform/generator/schema"
 	"github.com/EliCDavis/polyform/generator/serialize"
 	"github.com/EliCDavis/polyform/generator/variable"
 )
@@ -66,7 +66,7 @@ type Server struct {
 	Autosave   bool
 	ConfigPath string
 
-	Webscene *schema.WebScene
+	Webscene *persistence.WebScene
 
 	ClientConfig *room.ClientConfig
 
@@ -145,9 +145,9 @@ func (as *Server) Handler(indexFile string) (*http.ServeMux, error) {
 	mux.HandleFunc("/schema", as.SchemaEndpoint)
 	mux.Handle("/scene", endpoint.Handler{
 		Methods: map[string]endpoint.Method{
-			http.MethodGet: endpoint.ResponseMethod[*schema.WebScene]{
-				ResponseWriter: endpoint.JsonResponseWriter[*schema.WebScene]{},
-				Handler: func(r *http.Request) (*schema.WebScene, error) {
+			http.MethodGet: endpoint.ResponseMethod[*persistence.WebScene]{
+				ResponseWriter: endpoint.JsonResponseWriter[*persistence.WebScene]{},
+				Handler: func(r *http.Request) (*persistence.WebScene, error) {
 					return as.Webscene, nil
 				},
 			},
@@ -157,6 +157,9 @@ func (as *Server) Handler(indexFile string) (*http.ServeMux, error) {
 	mux.Handle("/node-types", nodeTypesEndpoint(as.Graph, as.NodeOutputSerialization))
 	mux.Handle("/node", nodeEndpoint(as.Graph, graphSaver))
 	mux.Handle("/node/connection", nodeConnectionEndpoint(as.Graph, graphSaver))
+	mux.Handle(subGraphDefinitionEndpointPath, subGraphDefinitionEndpoint(as.Graph, graphSaver))
+	mux.Handle(subGraphBoundaryEndpointPath, subGraphBoundaryEndpoint(as.Graph, graphSaver))
+	mux.Handle("/graph/subgraph/", scopedGraphHandler(as.Graph, graphSaver))
 	mux.HandleFunc(nodeOutputEndpointPath, as.NodeOutputEndpoint)
 	mux.Handle("/parameter/value/", parameterValueEndpoint(as.Graph, graphSaver))
 	mux.Handle("/parameter/name/", parameterNameEndpoint(as.Graph, graphSaver))
@@ -171,7 +174,7 @@ func (as *Server) Handler(indexFile string) (*http.ServeMux, error) {
 	mux.Handle("/load-example", exampleGraphEndpoint(as))
 	mux.Handle("/graph", graphEndpoint(as))
 	mux.Handle("/graph/execution-report", executionReportEndpoint(as))
-	mux.Handle("/graph/metadata/", graphMetadataEndpoint(as.Graph, graphSaver))
+	mux.Handle("/graph/metadata/", graphMetadataEndpointForInstance(as.Graph, graphSaver))
 	mux.HandleFunc("/started", as.StartedEndpoint)
 	mux.HandleFunc("/mermaid", as.MermaidEndpoint)
 	mux.HandleFunc("/swagger", as.SwaggerEndpoint)

@@ -98,8 +98,8 @@ type fileDetails struct {
 	Size int `json:"size"`
 }
 
-func (tv FileVariable) runtimeSchema() schema.RuntimeVariable {
-	return schema.RuntimeVariable{
+func (tv FileVariable) runtimeSchema() schema.Variable {
+	return schema.Variable{
 		Description: tv.info.Description(),
 		Type:        "file", // refutil.GetTypeName(tv.value),
 		Value: fileDetails{

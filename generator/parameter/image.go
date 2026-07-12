@@ -35,6 +35,10 @@ func (sno imageNodeOutput) Version() int {
 	return sno.Val.version
 }
 
+func (sno imageNodeOutput) BuildProxyOutput(source nodes.ProxySource) nodes.OutputPort {
+	return nodes.NewProxyOutput[image.Image](source)
+}
+
 // ============================================================================
 
 type Image struct {

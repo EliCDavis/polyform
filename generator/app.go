@@ -17,7 +17,7 @@ import (
 	"github.com/EliCDavis/polyform/generator/manifest"
 	"github.com/EliCDavis/polyform/generator/room"
 	"github.com/EliCDavis/polyform/generator/run"
-	"github.com/EliCDavis/polyform/generator/schema"
+	"github.com/EliCDavis/polyform/generator/persistence"
 	"github.com/EliCDavis/polyform/generator/serialize"
 	"github.com/EliCDavis/polyform/generator/variable"
 )
@@ -26,7 +26,7 @@ type App struct {
 	Name                    string
 	Version                 string
 	Description             string
-	Authors                 []schema.Author
+	Authors                 []persistence.Author
 	VariableFactory         func(variableType string) (variable.Variable, error)
 	NodeOutputSerialization *serialize.TypeSwitch[manifest.Entry]
 
@@ -64,7 +64,7 @@ type appCLI struct {
 	Name        string
 	Version     string
 	Description string
-	Authors     []schema.Author
+	Authors     []persistence.Author
 	Commands    []*cli.Command
 }
 
@@ -172,7 +172,7 @@ func (a *App) Run(args []string) error {
 				},
 			},
 			Run: func(state *cli.RunState) error {
-				graph := schema.App{
+				graph := persistence.App{
 					Name:        state.String("name"),
 					Version:     state.String("version"),
 					Description: state.String("description"),
@@ -180,7 +180,7 @@ func (a *App) Run(args []string) error {
 
 				authorFlag := state.String("author")
 				if authorFlag != "" {
-					graph.Authors = append(graph.Authors, schema.Author{Name: authorFlag})
+					graph.Authors = append(graph.Authors, persistence.Author{Name: authorFlag})
 				}
 
 				data, err := json.MarshalIndent(graph, "", "\t")
