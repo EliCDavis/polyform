@@ -1,0 +1,40 @@
+.tabBar {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  padding: 4px 8px 0;
+  background: #1e1e1e;
+  border-bottom: 1px solid #333;
+  min-height: 32px;
+  flex-shrink: 0;
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 4px 4px 0 0;
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  font-size: 13px;
+  color: #aaa;
+}
+
+.tabActive {
+  background: #2a2a2a;
+  border-color: #444;
+  border-bottom-color: #2a2a2a;
+  color: #fff;
+}
+
+.closeButton {
+  border: none;
+  background: transparent;
+  color: #888;
+  cursor: pointer;
+  padding: 0 2px;
+  font-size: 14px;
+  line-height: 1;
+}

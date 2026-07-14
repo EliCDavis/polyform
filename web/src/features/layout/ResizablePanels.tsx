@@ -88,7 +88,7 @@ export function ResizablePanels({
         data-direction={direction}
         onMouseDown={onMouseDown}
       />
-      <div style={{ flex: 1, minHeight: 0, minWidth: 0, display: "flex" }}>
+      <div style={{ flex: 1, minHeight: 0, minWidth: 0, display: "flex", flexDirection: isHorizontal ? "row" : "column" }}>
         {second}
       </div>
     </div>

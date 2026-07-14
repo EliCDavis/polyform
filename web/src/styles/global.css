@@ -130,18 +130,6 @@ select {
   outline: none !important;
 }
 
-#light-canvas {
-  width: 100%;
-  height: 100%;
-}
-
-#light-container {
-  display: flex;
-  flex: 1;
-  min-height: 0;
-  width: 100%;
-}
-
 .resizer[data-direction="horizontal"] {
   background-color: #004359;
   cursor: ew-resize;

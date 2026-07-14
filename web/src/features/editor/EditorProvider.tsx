@@ -21,6 +21,7 @@ import {
   FlowGraphBootstrapProvider,
   useFlowGraphInit,
 } from "@/features/nodeFlow/FlowGraphBootstrapContext";
+import { useGraphTabStore, activeGraphScope } from "@/stores/graphTabStore";
 
 const viewportSettings: ViewportSettings = {
   renderWireframe: false,
@@ -35,6 +36,27 @@ function EditorModelVersionPoller() {
   useStartedPolling((modelVersion) => {
     editor?.producerViewManager.setModelVersion(modelVersion);
   });
+  return null;
+}
+
+function GraphTabScopeSync({
+  nodeManager,
+  noteManager,
+  schemaManager,
+}: {
+  nodeManager: NodeManager;
+  noteManager: NoteManager;
+  schemaManager: SchemaManager;
+}) {
+  const activeTabId = useGraphTabStore((s) => s.activeTabId);
+
+  useEffect(() => {
+    if (!schemaManager.currentGraph) return;
+    const scope = activeGraphScope(activeTabId);
+    nodeManager.switchGraphScope(scope, schemaManager.currentGraph);
+    noteManager.switchGraphScope(scope, schemaManager.currentGraph);
+  }, [activeTabId, nodeManager, noteManager, schemaManager]);
+
   return null;
 }
 
@@ -112,6 +134,14 @@ function EditorBootstrap({
         schemaManager.setParameter(param.id, param.data, param.binary);
       });
 
+      nodeManager.setOnSchemaRefreshNeeded(() => {
+        schemaManager.refreshSchema("sub-graph definition changed");
+      });
+
+      requestManager.subscribeToEditorGraphMutations(() => {
+        schemaManager.refreshSchema("graph mutation");
+      });
+
       schemaManager.subscribe((g) => {
         producerViewManager.NewSchema(g);
         nodeManager.updateNodes(g);
@@ -176,6 +206,7 @@ function EditorBootstrap({
       const value: EditorContextValue = {
         schemaManager,
         nodeManager,
+        noteManager,
         producerViewManager,
         requestManager,
         threeApp,
@@ -204,7 +235,16 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     <FlowGraphBootstrapProvider>
       <EditorContext.Provider value={ctx}>
         {children}
-        {ctx && <EditorModelVersionPoller />}
+        {ctx && (
+          <>
+            <GraphTabScopeSync
+              nodeManager={ctx.nodeManager}
+              noteManager={ctx.noteManager}
+              schemaManager={ctx.schemaManager}
+            />
+            <EditorModelVersionPoller />
+          </>
+        )}
         {registeredTypes && !ctx && (
           <EditorBootstrap registeredTypes={registeredTypes} onReady={setCtx} />
         )}

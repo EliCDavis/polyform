@@ -1,10 +1,36 @@
 import { FlowNode, FlowNodeConfig, FlowNodeStyle, NodeFlowGraph, Publisher } from "@elicdavis/node-flow";
-import { InstanceIDProperty, PolyNodeController, camelCaseToWords } from "./nodes/node";
+import { InstanceIDProperty, PolyNodeController } from "./nodes/node";
 import { RequestManager } from "./requests";
-import { GraphExecutionReport, GraphInstance, GraphInstanceNodes, NodeInstance, RegisteredTypes } from "./schema";
-import { NodeDefinition } from './schema';
+import {
+  BoundaryType,
+  GraphExecutionReport,
+  GraphInstance,
+  GraphInstanceNodes,
+  NodeDefinition,
+  NodeInstance,
+  RegisteredTypes,
+  subGraphBoundaryInfo,
+  subGraphBoundaryKind,
+} from "./schema";
 import { ThreeApp } from "./three_app";
 import { ProducerViewManager } from './ProducerView/producer_view_manager';
+import { getScopedNodes, getScopedProducers } from "./graphScope";
+import {
+  GraphScopeKind,
+  ROOT_SCOPE,
+  SUBGRAPH_INPUT_TYPE,
+  SUBGRAPH_OUTPUT_TYPE,
+    isSubGraphRuntimeType,
+    scopeToApiPath,
+    subGraphRuntimeType,
+    type GraphScope,
+} from "./portTypes";
+import {
+  SubGraphRuntimeStyle,
+  buildBoundaryFlowNodeConfig,
+  subGraphNodeConfigs,
+} from "@/features/nodeFlow/subGraphNodeConfigs";
+import { portTypePickerActions } from "@/stores/portTypePickerStore";
 
 export const GeneratorVariablePublisherPath = "Generator/Variable/";
 
@@ -84,6 +110,14 @@ export class NodeManager {
 
     serializableOutputTypes: Array<string>;
 
+    graphScope: GraphScope = ROOT_SCOPE;
+
+    registeredTypes: RegisteredTypes;
+
+    private onSchemaRefreshNeeded: (() => void) | null = null;
+
+    private boundaryMenuRegistered = false;
+
     constructor(
         nodeFlowGraph: NodeFlowGraph,
         requestManager: RequestManager,
@@ -104,18 +138,100 @@ export class NodeManager {
         this.subscribers = [];
         this.serverUpdatingNodeConnections = false;
 
-        registeredTypes.nodeTypes.forEach(type => {
-            // We should have custom nodes already defined for parameters
-            if (type.parameter) {
-                return;
-            }
-            this.registerCustomNodeType(type)
-        });
+        this.registerNodeTypesFromRegistry(registeredTypes);
 
         nodeFlowGraph.addOnNodeAddedListener(this.onNodeAddedCallback.bind(this));
         nodeFlowGraph.addOnNodeRemovedListener(this.nodeRemoved.bind(this));
 
         this.serializableOutputTypes = registeredTypes.serializableOutputTypes;
+    }
+
+    /** Registers node types from /node-types, including dynamic sub-graph runtime types (subgraph/*). */
+    registerNodeTypesFromRegistry(registeredTypes: RegisteredTypes): void {
+        this.registeredTypes = registeredTypes;
+        registeredTypes.nodeTypes.forEach((type) => {
+            if (type.parameter) {
+                return;
+            }
+            if (type.type === SUBGRAPH_INPUT_TYPE || type.type === SUBGRAPH_OUTPUT_TYPE) {
+                return;
+            }
+            this.registerCustomNodeType(type);
+        });
+    }
+
+    setGraphScope(scope: GraphScope): void {
+        this.graphScope = scope;
+        this.requestManager.setGraphScopePath(scopeToApiPath(scope));
+        this.syncBoundaryNodeMenuAvailability();
+    }
+
+    /** Input/Output boundary nodes are only creatable while editing a sub-graph. */
+    private syncBoundaryNodeMenuAvailability(): void {
+        const shouldRegister = this.graphScope.kind === GraphScopeKind.SubGraph;
+        if (shouldRegister === this.boundaryMenuRegistered) {
+            return;
+        }
+        this.boundaryMenuRegistered = shouldRegister;
+
+        for (const [path, config] of Object.entries(subGraphNodeConfigs)) {
+            if (shouldRegister) {
+                this.nodesPublisher.register(path, config);
+            } else {
+                this.nodesPublisher.unregister(path);
+            }
+        }
+    }
+
+    getScopeApiPath(): string | null {
+        if (this.graphScope.kind === GraphScopeKind.Root) return null;
+        return `subgraph/${this.graphScope.id}`;
+    }
+
+    setOnSchemaRefreshNeeded(callback: () => void): void {
+        this.onSchemaRefreshNeeded = callback;
+    }
+
+    notifySubGraphDefinitionChanged(nodeType?: NodeDefinition): void {
+        if (nodeType) {
+            this.registerCustomNodeType(nodeType);
+        }
+        this.onSchemaRefreshNeeded?.();
+    }
+
+    unregisterRuntimeSubGraphType(subGraphId: string): void {
+        const typePath = subGraphRuntimeType(subGraphId);
+        const publisherPath = this.nodeTypeToFlowNodePath.get(typePath);
+        if (publisherPath) {
+            this.unregisterNodeType(publisherPath);
+        }
+    }
+
+    refreshRuntimeSubGraphType(subGraphId: string, onComplete?: () => void): void {
+        this.requestManager.getNodeTypes((types) => {
+            const nodeType = types.nodeTypes.find(
+                (entry) => entry.type === subGraphRuntimeType(subGraphId)
+            );
+            if (nodeType) {
+                this.registerCustomNodeType(nodeType);
+            }
+            onComplete?.();
+        });
+    }
+
+    clearCanvasNodes(): void {
+        this.serverUpdatingNodeConnections = true;
+        this.nodeIdToNode.forEach((controller) => {
+            this.nodeFlowGraph.removeNode(controller.flowNode);
+        });
+        this.nodeIdToNode.clear();
+        this.serverUpdatingNodeConnections = false;
+    }
+
+    switchGraphScope(scope: GraphScope, schema: GraphInstance): void {
+        this.setGraphScope(scope);
+        this.clearCanvasNodes();
+        this.updateNodes(schema);
     }
 
     refreshExecutionReport(): void {
@@ -151,6 +267,90 @@ export class NodeManager {
 
         const nodeType: string = flowNode.metadata().typeData.type
 
+        if (nodeType === SUBGRAPH_INPUT_TYPE || nodeType === SUBGRAPH_OUTPUT_TYPE) {
+            this.beginBoundaryNodeCreation(flowNode, nodeType);
+            return;
+        }
+
+        this.finishNodeCreation(flowNode, nodeType);
+    }
+
+    private removeUnfinishedCanvasNode(flowNode: FlowNode): void {
+        this.serverUpdatingNodeConnections = true;
+        this.nodeFlowGraph.removeNode(flowNode);
+        this.serverUpdatingNodeConnections = false;
+    }
+
+    private beginBoundaryNodeCreation(flowNode: FlowNode, nodeType: string): void {
+        const portTypes = this.registeredTypes?.portTypes ?? [];
+        if (portTypes.length === 0) {
+            this.removeUnfinishedCanvasNode(flowNode);
+            return;
+        }
+
+        const kind =
+            nodeType === SUBGRAPH_INPUT_TYPE ? BoundaryType.Input : BoundaryType.Output;
+
+        portTypePickerActions.show({
+            title: kind === BoundaryType.Input ? "Input Port Type" : "Output Port Type",
+            options: portTypes,
+            current: portTypes[0],
+            onCancel: () => {
+                this.removeUnfinishedCanvasNode(flowNode);
+            },
+            onSelect: (portType) => {
+                const typedNode = this.replacePlaceholderBoundaryNode(
+                    flowNode,
+                    kind,
+                    portType,
+                );
+                this.finishNodeCreation(typedNode, nodeType, portType, (nodeID, node) => {
+                    const portName = node.title();
+                    if (!portName.trim()) {
+                        return;
+                    }
+                    this.requestManager.setBoundaryNodeInfo(
+                        nodeID,
+                        { portName, scope: this.getScopeApiPath() },
+                        (resp) => {
+                            this.notifySubGraphDefinitionChanged(resp?.nodeType);
+                        },
+                    );
+                });
+            },
+        });
+    }
+
+    /** Swap the menu-created placeholder for a node whose ports use the chosen type. */
+    private replacePlaceholderBoundaryNode(
+        oldFlowNode: FlowNode,
+        kind: BoundaryType,
+        portType: string,
+    ): FlowNode {
+        const position = oldFlowNode.getPosition();
+        const title = oldFlowNode.title();
+        const config = buildBoundaryFlowNodeConfig(kind, portType);
+
+        this.serverUpdatingNodeConnections = true;
+        this.nodeFlowGraph.removeNode(oldFlowNode);
+
+        const newFlowNode = new FlowNode({
+            ...config,
+            title: title || config.title,
+            position,
+        });
+        this.nodeFlowGraph.addNode(newFlowNode);
+        newFlowNode.setProperty("portType", portType);
+        this.serverUpdatingNodeConnections = false;
+        return newFlowNode;
+    }
+
+    private finishNodeCreation(
+        flowNode: FlowNode,
+        nodeType: string,
+        portType?: string,
+        afterCreate?: (nodeID: string, flowNode: FlowNode) => void,
+    ): void {
         this.requestManager.createNode(nodeType, (resp) => {
             const nodeID = resp.nodeID
             const nodeData = resp.data;
@@ -174,10 +374,12 @@ export class NodeManager {
                     this.requestManager,
                     this.producerViewManager,
                     flowNode.metadata().typeData,
-                    this.serializableOutputTypes
+                    this.serializableOutputTypes,
                 )
             );
-        })
+
+            afterCreate?.(nodeID, flowNode);
+        }, portType)
     }
 
     sortNodesByName(nodesToSort: GraphInstanceNodes): Array<{ id: string, node: NodeInstance }> {
@@ -327,6 +529,13 @@ export class NodeManager {
     }
 
     registerCustomNodeType(nodeDefinition: NodeDefinition): void {
+        const isRuntimeSubGraph = isSubGraphRuntimeType(nodeDefinition.type);
+
+        const existingPath = this.nodeTypeToFlowNodePath.get(nodeDefinition.type);
+        if (existingPath) {
+            this.unregisterNodeType(existingPath);
+        }
+
         const nodeConfig: FlowNodeConfig = {
             title: nodeDefinition.displayName, //camelCaseToWords(typeData.displayName),
             subTitle: nodeDefinition.path,
@@ -337,7 +546,7 @@ export class NodeManager {
                 typeData: nodeDefinition
             },
             canEditTitle: false,
-            style: null
+            style: isRuntimeSubGraph ? SubGraphRuntimeStyle : null
         };
 
         for (let inputName in nodeDefinition.inputs) {
@@ -377,14 +586,41 @@ export class NodeManager {
         // nm.onNodeCreateCallback(this, typeData.type);
 
         // const category = this.convertPathToUppercase(typeData.path) + "/" + camelCaseToWords(typeData.displayName);
+        if (isRuntimeSubGraph) {
+            const category = "SubGraph/" + nodeDefinition.displayName;
+            this.nodeTypeToFlowNodePath.set(nodeDefinition.type, category);
+            this.nodesPublisher.register(category, nodeConfig);
+            return;
+        }
+
         const category = this.convertPathToUppercase(nodeDefinition.path) + "/" + nodeDefinition.displayName;
         this.nodeTypeToFlowNodePath.set(nodeDefinition.type, category);
         this.nodesPublisher.register(category, nodeConfig);
     }
 
+    private boundaryNodeKind(nodeData: NodeInstance): BoundaryType | null {
+        return subGraphBoundaryKind(nodeData) ?? null;
+    }
+
+    createBoundaryFlowNode(nodeData: NodeInstance): FlowNode {
+        const kind = this.boundaryNodeKind(nodeData)!;
+        const boundary = subGraphBoundaryInfo(nodeData);
+        const portType = boundary?.portType ?? "";
+        const config = buildBoundaryFlowNodeConfig(kind, portType);
+        return new FlowNode({
+            ...config,
+            title: boundary?.portName || config.title,
+        });
+    }
+
     newNode(nodeData: NodeInstance): FlowNode {
         const isParameter = !!nodeData.parameter;
         const isVariable = !!nodeData.variable;
+
+        const boundaryKind = this.boundaryNodeKind(nodeData);
+        if (boundaryKind) {
+            return this.createBoundaryFlowNode(nodeData);
+        }
 
         // Not a parameter, just create a node that adhere's to the server's
         // reflection.
@@ -413,7 +649,9 @@ export class NodeManager {
     }
 
     updateNodes(newSchema: GraphInstance): void {
-        const sortedNodes = this.sortNodesByName(newSchema.nodes);
+        const scopedNodes = getScopedNodes(newSchema, this.graphScope);
+        const scopedProducers = getScopedProducers(newSchema, this.graphScope);
+        const sortedNodes = this.sortNodesByName(scopedNodes);
 
         const nodesSet = new Map<string, boolean>();
         this.nodeIdToNode.forEach((node, nodeId) => {
@@ -433,7 +671,7 @@ export class NodeManager {
             } else {
                 const flowNode = this.newNode(nodeData);
 
-                for (const [key, value] of Object.entries(newSchema.producers)) {
+                for (const [key, value] of Object.entries(scopedProducers)) {
                     if (value.nodeID === nodeID) {
                         flowNode.setTitle(key);
                     }
@@ -457,7 +695,7 @@ export class NodeManager {
                     this.requestManager,
                     this.producerViewManager,
                     flowNode.metadata().typeData,
-                    this.serializableOutputTypes
+                    this.serializableOutputTypes,
                 );
                 this.nodeIdToNode.set(nodeID, controller);
             }

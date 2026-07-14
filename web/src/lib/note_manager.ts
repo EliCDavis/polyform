@@ -1,6 +1,8 @@
 import { RequestManager } from "./requests";
 import { NodeFlowGraph, FlowNote } from "@elicdavis/node-flow";
 import { GraphInstance } from "./schema";
+import { getScopedNotes } from "./graphScope";
+import { ROOT_SCOPE, type GraphScope } from "./portTypes";
 
 const ID_PROPERTY: string = "id";
 
@@ -13,6 +15,8 @@ export class NoteManager {
     updating: boolean;
 
     notes: Map<string, FlowNote>;
+
+    graphScope: GraphScope = ROOT_SCOPE;
 
     constructor(requestManager: RequestManager, flowGraph: NodeFlowGraph) {
         this.requestManager = requestManager;
@@ -34,13 +38,32 @@ export class NoteManager {
         return "" + (maxID + 1);
     }
 
+    clearCanvasNotes(): void {
+        this.updating = true;
+        this.notes.forEach((note) => {
+            this.flowGraph.removeNote(note);
+        });
+        this.notes.clear();
+        this.updating = false;
+    }
+
+    switchGraphScope(scope: GraphScope, schema: GraphInstance): void {
+        this.graphScope = scope;
+        this.clearCanvasNotes();
+        this.schemaUpdate(schema);
+    }
+
     schemaUpdate(newSchema: GraphInstance) {
-        const schemaNotes = newSchema.notes;
-        if (!schemaNotes) {
-            return;
-        }
+        const schemaNotes = getScopedNotes(newSchema, this.graphScope) ?? {};
 
         this.updating = true;
+
+        for (const noteID of [...this.notes.keys()]) {
+            if (!(noteID in schemaNotes)) {
+                this.flowGraph.removeNote(this.notes.get(noteID)!);
+                this.notes.delete(noteID);
+            }
+        }
 
         for (const noteID in schemaNotes) {
             const noteData = schemaNotes[noteID];
@@ -68,8 +91,6 @@ export class NoteManager {
                 this.notes.set(noteID, note);
             }
         }
-
-        // TODO: Delete notes that aren't apart of the schema
 
         this.updating = false;
     }

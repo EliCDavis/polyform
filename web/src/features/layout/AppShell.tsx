@@ -1,8 +1,8 @@
-import { MessageOverlay } from "@/components/MessageOverlay";
+import { AppOverlays } from "@/components/AppOverlays";
 import { ResizablePanels } from "./ResizablePanels";
 import { Sidebar } from "./Sidebar";
 import { ViewportPanel } from "@/features/viewport/ViewportPanel";
-import { NodeFlowPanel } from "@/features/nodeFlow/NodeFlowPanel";
+import { GraphPanel } from "@/features/graph/GraphPanel";
 import { useUiStore } from "@/stores/uiStore";
 
 export function AppShell() {
@@ -17,7 +17,7 @@ export function AppShell() {
         </div>
       )}
       <div id="running-message">Running...</div>
-      <MessageOverlay />
+      <AppOverlays />
       <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
         <div id="full-page">
           <ResizablePanels
@@ -33,7 +33,7 @@ export function AppShell() {
                     direction="vertical"
                     initialFirstPercent={40}
                     first={<ViewportPanel />}
-                    second={<NodeFlowPanel />}
+                    second={<GraphPanel />}
                   />
                 )}
               </div>

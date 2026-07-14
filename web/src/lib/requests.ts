@@ -1,4 +1,5 @@
 import type {
+  CreateSubGraphResponse,
   CreateVariableResponse,
   GraphExecutionReport,
   GraphInstance,
@@ -26,6 +27,9 @@ enum GraphChangeEventType {
   Parameter = "Parameter",
   Producer = "Producer",
   GraphMetadata = "GraphMetadata",
+  SubGraph_New = "SubGraph_New",
+  SubGraph_Update = "SubGraph_Update",
+  SubGraph_Delete = "SubGraph_Delete",
   WholeGraph = "WholeGraph",
 }
 
@@ -141,6 +145,19 @@ async function deleteJson<T>(url: string, body: unknown): Promise<T | undefined>
   }
 }
 
+async function deleteJsonVoid(url: string, body: unknown): Promise<boolean> {
+  try {
+    const response = await fetch(url, {
+      method: "DELETE",
+      headers: JSON_HEADERS,
+      body: JSON.stringify(body),
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
 async function deleteVoid(url: string): Promise<boolean> {
   try {
     const response = await fetch(url, { method: "DELETE" });
@@ -169,9 +186,42 @@ export function saveFileToDisk(url: string, fileName: string): void {
 
 export class RequestManager {
   private graphChangeListeners: Array<(event: GraphChangeEventType) => void> = [];
+  private graphScopePath: string | null = null;
+
+  setGraphScopePath(path: string | null): void {
+    this.graphScopePath = path;
+  }
+
+  getGraphScopePath(): string | null {
+    return this.graphScopePath;
+  }
+
+  private scopedNodeUrl(): string {
+    return this.graphScopePath ? `./${this.graphScopePath}/node` : "./node";
+  }
+
+  private scopedConnectionUrl(): string {
+    return this.graphScopePath
+      ? `./${this.graphScopePath}/connection`
+      : "./node/connection";
+  }
 
   subscribeToGraphChange(listener: (event: GraphChangeEventType) => void): void {
     this.graphChangeListeners.push(listener);
+  }
+
+  /** Refreshes the node editor when connections or node membership change. */
+  subscribeToEditorGraphMutations(listener: () => void): void {
+    const refreshEvents = new Set([
+      GraphChangeEventType.Node_Connection,
+      GraphChangeEventType.Node_New,
+      GraphChangeEventType.Node_Delete,
+    ]);
+    this.subscribeToGraphChange((event) => {
+      if (refreshEvents.has(event)) {
+        listener();
+      }
+    });
   }
 
   private notifyGraphChange(event: GraphChangeEventType): void {
@@ -250,7 +300,7 @@ export class RequestManager {
   }
 
   setParameter(key: string, data: unknown, binary: boolean, callback?: () => void): void {
-    const url = `./parameter/value/${key}`;
+    const url = this.scopedParameterUrl("value", key);
     const wrapped = this.onGraphChange(GraphChangeEventType.Parameter, callback);
     if (binary) {
       void postBinaryVoid(url, data as BodyInit).then((ok) => {
@@ -265,7 +315,7 @@ export class RequestManager {
 
   setParameterTitle(nodeId: string, value: string, callback?: () => void): void {
     void postTextVoid(
-      `./parameter/name/${nodeId}`,
+      this.scopedParameterUrl("name", nodeId),
       value,
     ).then((ok) => {
       if (ok) this.onGraphChange(GraphChangeEventType.Parameter, callback)();
@@ -274,7 +324,7 @@ export class RequestManager {
 
   setParameterInfo(nodeId: string, value: string, callback?: () => void): void {
     void postTextVoid(
-      `./parameter/description/${nodeId}`,
+      this.scopedParameterUrl("description", nodeId),
       value,
     ).then((ok) => {
       if (ok) this.onGraphChange(GraphChangeEventType.Parameter, callback)();
@@ -288,17 +338,15 @@ export class RequestManager {
   }
 
   getParameterValue(key: string, callback: (blob: Blob) => void): void {
-    this.fetchRaw(`./parameter/value/${key}`, callback);
+    this.fetchRaw(this.scopedParameterUrl("value", key), callback);
   }
 
-  deleteNodeInput(nodeId: string, inputPortName: string, callback?: ResponseCallback<unknown>): void {
-    void deleteJson("node/connection", {
+  deleteNodeInput(nodeId: string, inputPortName: string, callback?: () => void): void {
+    void deleteJsonVoid(this.scopedConnectionUrl(), {
       nodeId,
       inPortName: inputPortName,
-    }).then((response) => {
-      if (response !== undefined) {
-        this.onGraphChangeResponse(GraphChangeEventType.Node_Connection, callback)(response);
-      }
+    }).then((ok) => {
+      if (ok) this.onGraphChange(GraphChangeEventType.Node_Connection, callback)();
     });
   }
 
@@ -307,18 +355,27 @@ export class RequestManager {
     inputPortName: string,
     outNodeId: string,
     outPortName: string,
-    callback?: ResponseCallback<unknown>
+    callback?: () => void
   ): void {
-    void postJson("node/connection", {
+    void postJsonVoid(this.scopedConnectionUrl(), {
       nodeOutId: outNodeId,
       outPortName,
       nodeInId: inNodeId,
       inPortName: inputPortName,
-    }).then((response) => {
-      if (response !== undefined) {
-        this.onGraphChangeResponse(GraphChangeEventType.Node_Connection, callback)(response);
-      }
+    }).then((ok) => {
+      if (ok) this.onGraphChange(GraphChangeEventType.Node_Connection, callback)();
     });
+  }
+
+  private scopedMetadataUrl(): string {
+    return this.graphScopePath ? `./${this.graphScopePath}/metadata` : "./graph/metadata";
+  }
+
+  private scopedParameterUrl(kind: "value" | "name" | "description", nodeId: string): string {
+    const base = this.graphScopePath
+      ? `./${this.graphScopePath}/parameter`
+      : "./parameter";
+    return `${base}/${kind}/${nodeId}`;
   }
 
   setNodeMetadata(
@@ -327,7 +384,7 @@ export class RequestManager {
     metadata: unknown,
     callback?: ResponseCallback<unknown>
   ): void {
-    void postJson(`graph/metadata/nodes/${nodeId}/${key}`, metadata).then((response) => {
+    void postJson(`${this.scopedMetadataUrl()}/nodes/${nodeId}/${key}`, metadata).then((response) => {
       if (response !== undefined) {
         this.onGraphChangeResponse(GraphChangeEventType.Node_Metadata, callback)(response);
       }
@@ -339,7 +396,7 @@ export class RequestManager {
   }
 
   createNote(noteId: string, note: unknown, callback?: ResponseCallback<unknown>): void {
-    void postJson(`graph/metadata/notes/${noteId}`, note).then((response) => {
+    void postJson(`${this.scopedMetadataUrl()}/notes/${noteId}`, note).then((response) => {
       if (response !== undefined) {
         this.onGraphChangeResponse(GraphChangeEventType.Note_New, callback)(response);
       }
@@ -352,7 +409,7 @@ export class RequestManager {
     metadata: unknown,
     callback?: ResponseCallback<unknown>
   ): void {
-    void postJson(`graph/metadata/notes/${noteId}/${key}`, metadata).then((response) => {
+    void postJson(`${this.scopedMetadataUrl()}/notes/${noteId}/${key}`, metadata).then((response) => {
       if (response !== undefined) {
         this.onGraphChangeResponse(GraphChangeEventType.Note_Metadata, callback)(response);
       }
@@ -360,25 +417,31 @@ export class RequestManager {
   }
 
   deleteMetadata(path: string, callback?: () => void): void {
-    void deleteVoid(`graph/metadata/${path}`).then((ok) => {
+    void deleteVoid(`${this.scopedMetadataUrl()}/${path}`).then((ok) => {
       if (ok) this.onGraphChange(GraphChangeEventType.GraphMetadata, callback)();
     });
   }
 
-  createNode(nodeType: string, callback?: ResponseCallback<CreateNodeResponse>): void {
-    void postJson<CreateNodeResponse>("node", { nodeType }).then((response) => {
+  createNode(
+    nodeType: string,
+    callback?: ResponseCallback<CreateNodeResponse>,
+    portType?: string
+  ): void {
+    const body: { nodeType: string; portType?: string } = { nodeType };
+    if (portType) {
+      body.portType = portType;
+    }
+    void postJson<CreateNodeResponse>(this.scopedNodeUrl(), body).then((response) => {
       if (response !== undefined) {
         this.onGraphChangeResponse(GraphChangeEventType.Node_New, callback)(response);
       }
     });
   }
 
-  deleteNode(nodeId: string, callback?: ResponseCallback<unknown>): void {
+  deleteNode(nodeId: string, callback?: () => void): void {
     this.deleteNodeMetadata(nodeId);
-    void deleteJson("node", { nodeID: nodeId }).then((response) => {
-      if (response !== undefined) {
-        this.onGraphChangeResponse(GraphChangeEventType.Node_Delete, callback)(response);
-      }
+    void deleteJsonVoid(this.scopedNodeUrl(), { nodeID: nodeId }).then((ok) => {
+      if (ok) this.onGraphChange(GraphChangeEventType.Node_Delete, callback)();
     });
   }
 
@@ -401,6 +464,85 @@ export class RequestManager {
   setGraph(newGraph: unknown, callback?: () => void): void {
     void postJsonVoid("./graph", newGraph).then((ok) => {
       if (ok) this.onGraphChange(GraphChangeEventType.WholeGraph, callback)();
+    });
+  }
+
+  createSubGraph(
+    subGraphId: string,
+    body: { name: string; description?: string },
+    success: (response: CreateSubGraphResponse) => void,
+    error: (err: unknown) => void
+  ): void {
+    void fetch(`./subgraph/definition/${subGraphId}`, {
+      method: "POST",
+      headers: JSON_HEADERS,
+      body: JSON.stringify(body),
+    })
+      .then(async (response) => {
+        if (!response.ok) {
+          error(await response.json().catch(() => ({ error: response.statusText })));
+          return;
+        }
+        const data = (await response.json()) as CreateSubGraphResponse;
+        success(data);
+        this.notifyGraphChange(GraphChangeEventType.SubGraph_New);
+      })
+      .catch(error);
+  }
+
+  updateSubGraphInfo(
+    subGraphId: string,
+    body: { name: string; description?: string },
+    success: () => void,
+    error: (err: unknown) => void
+  ): void {
+    void fetch(`./subgraph/definition/${subGraphId}`, {
+      method: "PUT",
+      headers: JSON_HEADERS,
+      body: JSON.stringify(body),
+    })
+      .then(async (response) => {
+        if (!response.ok) {
+          error(await response.json().catch(() => ({ error: response.statusText })));
+          return;
+        }
+        success();
+        this.notifyGraphChange(GraphChangeEventType.SubGraph_Update);
+      })
+      .catch(error);
+  }
+
+  deleteSubGraph(
+    subGraphId: string,
+    success: () => void,
+    error: (err: unknown) => void
+  ): void {
+    void fetch(`./subgraph/definition/${subGraphId}`, {
+      method: "DELETE",
+    })
+      .then(async (response) => {
+        if (!response.ok) {
+          error(await response.json().catch(() => ({ error: response.statusText })));
+          return;
+        }
+        success();
+        this.notifyGraphChange(GraphChangeEventType.SubGraph_Delete);
+      })
+      .catch(error);
+  }
+
+  setBoundaryNodeInfo(
+    nodeId: string,
+    body: { portName: string; scope: string | null },
+    callback?: ResponseCallback<{ nodeType?: import("./schema").NodeDefinition }>
+  ): void {
+    void postJson<{ nodeType?: import("./schema").NodeDefinition }>(
+      `./subgraph/boundary/${nodeId}/info`,
+      body
+    ).then((response) => {
+      if (response !== undefined) {
+        this.onGraphChangeResponse(GraphChangeEventType.Node_Metadata, callback)(response);
+      }
     });
   }
 
