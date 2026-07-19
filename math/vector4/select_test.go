@@ -4,82 +4,56 @@ import (
 	"testing"
 
 	"github.com/EliCDavis/polyform/math/vector4"
-	"github.com/EliCDavis/polyform/nodes"
+	"github.com/EliCDavis/polyform/nodes/nodetest"
 	v4 "github.com/EliCDavis/vector/vector4"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestSelectNode(t *testing.T) {
-	tests := map[string]struct {
-		in nodes.Output[v4.Vector[float64]]
-		x  float64
-		y  float64
-		z  float64
-		w  float64
-	}{
-		"(nil) => 0,0,0,0": {},
-		"(1,2,3,4) => 1,2,3,4": {
-			in: nodes.ConstOutput[v4.Vector[float64]]{Val: v4.New(1., 2., 3., 4.)},
-			x:  1.,
-			y:  2.,
-			z:  3.,
-			w:  4.,
-		},
-	}
-
-	for name, tc := range tests {
-		t.Run(name, func(t *testing.T) {
-			node := &nodes.Struct[vector4.Select[float64]]{
-				Data: vector4.Select[float64]{
-					In: tc.in,
-				},
-			}
-			assert.Equal(t, tc.x, nodes.GetNodeOutputPort[float64](node, "X").Value())
-			assert.Equal(t, tc.y, nodes.GetNodeOutputPort[float64](node, "Y").Value())
-			assert.Equal(t, tc.z, nodes.GetNodeOutputPort[float64](node, "Z").Value())
-			assert.Equal(t, tc.w, nodes.GetNodeOutputPort[float64](node, "W").Value())
-		})
-	}
+	suite := nodetest.NewSuite(
+		nodetest.NewTestCase(
+			"(nil) => 0,0,0,0",
+			nodetest.NewNode(vector4.Select[float64]{}),
+			nodetest.AssertOutput("X", 0.),
+			nodetest.AssertOutput("Y", 0.),
+			nodetest.AssertOutput("Z", 0.),
+			nodetest.AssertOutput("W", 0.),
+		),
+		nodetest.NewTestCase(
+			"(1,2,3,4) => 1,2,3,4",
+			nodetest.NewNode(vector4.Select[float64]{
+				In: nodetest.NewPortValue(v4.New(1., 2., 3., 4.)),
+			}),
+			nodetest.AssertOutput("X", 1.),
+			nodetest.AssertOutput("Y", 2.),
+			nodetest.AssertOutput("Z", 3.),
+			nodetest.AssertOutput("W", 4.),
+		),
+	)
+	suite.Run(t)
 }
 
 func TestSelectArrayNode(t *testing.T) {
-	tests := map[string]struct {
-		in nodes.Output[[]v4.Vector[float64]]
-		x  []float64
-		y  []float64
-		z  []float64
-		w  []float64
-	}{
-		"(nil) => empty": {
-			x: []float64{},
-			y: []float64{},
-			z: []float64{},
-			w: []float64{},
-		},
-		"(1,2,3,4) => []1, []2, []3, []4": {
-			in: nodes.ConstOutput[[]v4.Vector[float64]]{
-				Val: []v4.Vector[float64]{
+	suite := nodetest.NewSuite(
+		nodetest.NewTestCase(
+			"(nil) => empty",
+			nodetest.NewNode(vector4.SelectArray[float64]{}),
+			nodetest.AssertOutput("X", []float64{}),
+			nodetest.AssertOutput("Y", []float64{}),
+			nodetest.AssertOutput("Z", []float64{}),
+			nodetest.AssertOutput("W", []float64{}),
+		),
+		nodetest.NewTestCase(
+			"(1,2,3,4) => []1, []2, []3, []4",
+			nodetest.NewNode(vector4.SelectArray[float64]{
+				In: nodetest.NewPortValue([]v4.Vector[float64]{
 					v4.New(1., 2., 3., 4.),
-				},
-			},
-			x: []float64{1.},
-			y: []float64{2.},
-			z: []float64{3.},
-			w: []float64{4.},
-		},
-	}
-
-	for name, tc := range tests {
-		t.Run(name, func(t *testing.T) {
-			node := &nodes.Struct[vector4.SelectArray[float64]]{
-				Data: vector4.SelectArray[float64]{
-					In: tc.in,
-				},
-			}
-			assert.Equal(t, tc.x, nodes.GetNodeOutputPort[[]float64](node, "X").Value())
-			assert.Equal(t, tc.y, nodes.GetNodeOutputPort[[]float64](node, "Y").Value())
-			assert.Equal(t, tc.z, nodes.GetNodeOutputPort[[]float64](node, "Z").Value())
-			assert.Equal(t, tc.w, nodes.GetNodeOutputPort[[]float64](node, "W").Value())
-		})
-	}
+				}),
+			}),
+			nodetest.AssertOutput("X", []float64{1.}),
+			nodetest.AssertOutput("Y", []float64{2.}),
+			nodetest.AssertOutput("Z", []float64{3.}),
+			nodetest.AssertOutput("W", []float64{4.}),
+		),
+	)
+	suite.Run(t)
 }
