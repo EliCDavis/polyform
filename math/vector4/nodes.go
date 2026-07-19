@@ -1,4 +1,4 @@
-package vector2
+package vector4
 
 import (
 	"github.com/EliCDavis/polyform/generator"

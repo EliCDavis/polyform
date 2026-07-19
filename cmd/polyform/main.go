@@ -51,6 +51,7 @@ import (
 	_ "github.com/EliCDavis/polyform/math/unit"
 	_ "github.com/EliCDavis/polyform/math/vector2"
 	_ "github.com/EliCDavis/polyform/math/vector3"
+	_ "github.com/EliCDavis/polyform/math/vector4"
 
 	_ "github.com/EliCDavis/polyform/modeling"
 	_ "github.com/EliCDavis/polyform/modeling/animation"

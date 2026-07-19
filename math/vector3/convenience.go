@@ -188,6 +188,7 @@ func (cn NormalizeArray) Global(out *nodes.StructOutput[[]vector3.Float64]) {
 
 	if maxMagnitude == 0 {
 		out.CaptureError(fmt.Errorf("all vector data has a magnitude of 0"))
+		out.Set(in)
 		return
 	}
 
@@ -199,5 +200,5 @@ func (cn NormalizeArray) Global(out *nodes.StructOutput[[]vector3.Float64]) {
 }
 
 func (cn NormalizeArray) GlobalDescription() string {
-	return "Scales each vector by the inverse of the magniture of the longest vector"
+	return "Scales each vector by the inverse of the magnitude of the longest vector"
 }
