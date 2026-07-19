@@ -26,7 +26,10 @@ func init() {
 	refutil.RegisterType[nodes.Struct[MapEntryNode[[]vector3.Float64]]](factory)
 	refutil.RegisterType[nodes.Struct[MapEntryNode[[]vector4.Float64]]](factory)
 	refutil.RegisterType[nodes.Struct[NewMeshNode]](factory)
+	refutil.RegisterType[nodes.Struct[SetAttribute1DNode]](factory)
+	refutil.RegisterType[nodes.Struct[SetAttribute2DNode]](factory)
 	refutil.RegisterType[nodes.Struct[SetAttribute3DNode]](factory)
+	refutil.RegisterType[nodes.Struct[SetAttribute4DNode]](factory)
 	refutil.RegisterType[TopologyNode](factory)
 	refutil.RegisterType[AttributeNode](factory)
 	generator.RegisterTypes(factory)
@@ -233,6 +236,43 @@ func (p *AttributeNode) Outputs() map[string]nodes.OutputPort {
 
 // ============================================================================
 
+func setAttribute[T any](
+	out *nodes.StructOutput[Mesh],
+	mesh nodes.Output[Mesh],
+	attribute nodes.Output[string],
+	data nodes.Output[[]T],
+	setAttr func(Mesh, string, []T) Mesh,
+) {
+	if attribute == nil || data == nil {
+		out.Set(nodes.TryGetOutputValue(out, mesh, EmptyMesh(PointTopology)))
+		return
+	}
+
+	attr := nodes.GetOutputValue(out, attribute)
+	vals := nodes.GetOutputValue(out, data)
+	out.Set(setAttr(nodes.TryGetOutputValue(out, mesh, EmptyPointcloud()), attr, vals))
+}
+
+type SetAttribute1DNode struct {
+	Mesh      nodes.Output[Mesh]
+	Attribute nodes.Output[string]
+	Data      nodes.Output[[]float64]
+}
+
+func (n SetAttribute1DNode) Out(out *nodes.StructOutput[Mesh]) {
+	setAttribute(out, n.Mesh, n.Attribute, n.Data, Mesh.SetFloat1Attribute)
+}
+
+type SetAttribute2DNode struct {
+	Mesh      nodes.Output[Mesh]
+	Attribute nodes.Output[string]
+	Data      nodes.Output[[]vector2.Float64]
+}
+
+func (n SetAttribute2DNode) Out(out *nodes.StructOutput[Mesh]) {
+	setAttribute(out, n.Mesh, n.Attribute, n.Data, Mesh.SetFloat2Attribute)
+}
+
 type SetAttribute3DNode struct {
 	Mesh      nodes.Output[Mesh]
 	Attribute nodes.Output[string]
@@ -240,26 +280,15 @@ type SetAttribute3DNode struct {
 }
 
 func (n SetAttribute3DNode) Out(out *nodes.StructOutput[Mesh]) {
-	if n.Attribute == nil || n.Data == nil {
-		mesh := nodes.TryGetOutputValue(out, n.Mesh, EmptyMesh(PointTopology))
-		out.Set(mesh)
-		return
-	}
-	attr := nodes.GetOutputValue(out, n.Attribute)
-	data := nodes.GetOutputValue(out, n.Data)
+	setAttribute(out, n.Mesh, n.Attribute, n.Data, Mesh.SetFloat3Attribute)
+}
 
-	if n.Mesh == nil {
-		// create a new mesh with the attribute data
-		out.Set(NewPointCloud(
-			nil,
-			map[string][]vector3.Float64{
-				attr: data,
-			},
-			nil,
-			nil,
-		))
-		return
-	}
+type SetAttribute4DNode struct {
+	Mesh      nodes.Output[Mesh]
+	Attribute nodes.Output[string]
+	Data      nodes.Output[[]vector4.Float64]
+}
 
-	out.Set(nodes.GetOutputValue(out, n.Mesh).SetFloat3Attribute(attr, data))
+func (n SetAttribute4DNode) Out(out *nodes.StructOutput[Mesh]) {
+	setAttribute(out, n.Mesh, n.Attribute, n.Data, Mesh.SetFloat4Attribute)
 }
