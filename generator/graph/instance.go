@@ -794,6 +794,11 @@ func (a *Instance) EncodeToAppSchema() ([]byte, error) {
 		}
 
 		nodeSchema := a.buildNodeGraphInstanceSchema(node, encoder)
+		// Prefer the factory registration key so load uses the same CreateNode
+		// type path that authored the node (mirrors subgraph persistence).
+		if key, ok := a.nodeTypeKeys[node]; ok && key != "" {
+			nodeSchema.Type = key
+		}
 
 		if reference, ok := node.(variable.Reference); ok {
 			variablePath := variableLut[reference.Reference()]

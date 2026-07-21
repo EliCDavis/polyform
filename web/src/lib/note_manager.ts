@@ -53,6 +53,25 @@ export class NoteManager {
         this.schemaUpdate(schema);
     }
 
+    /** Keep in-memory note layout in sync before a tab/scope swap. */
+    syncLivePositionsIntoSchema(schema: GraphInstance): void {
+        const scopedNotes = getScopedNotes(schema, this.graphScope);
+        if (!scopedNotes) {
+            return;
+        }
+        this.notes.forEach((note, noteId) => {
+            const noteData = scopedNotes[noteId];
+            if (!noteData) {
+                return;
+            }
+            const pos = note.position();
+            noteData.position = {
+                x: Math.round(pos.x),
+                y: Math.round(pos.y),
+            };
+        });
+    }
+
     schemaUpdate(newSchema: GraphInstance) {
         const schemaNotes = getScopedNotes(newSchema, this.graphScope) ?? {};
 

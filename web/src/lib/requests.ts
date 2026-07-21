@@ -1,4 +1,5 @@
 import type {
+  ConvertSelectionToSubGraphResponse,
   CreateSubGraphResponse,
   CreateVariableResponse,
   GraphExecutionReport,
@@ -527,6 +528,33 @@ export class RequestManager {
         }
         success();
         this.notifyGraphChange(GraphChangeEventType.SubGraph_Delete);
+      })
+      .catch(error);
+  }
+
+  convertSelectionToSubGraph(
+    body: {
+      scope: string;
+      nodeIds: string[];
+      name: string;
+      description?: string;
+    },
+    success: (response: ConvertSelectionToSubGraphResponse) => void,
+    error: (err: unknown) => void
+  ): void {
+    void fetch("./convert-to-subgraph", {
+      method: "POST",
+      headers: JSON_HEADERS,
+      body: JSON.stringify(body),
+    })
+      .then(async (response) => {
+        if (!response.ok) {
+          error(await response.json().catch(() => ({ error: response.statusText })));
+          return;
+        }
+        const data = (await response.json()) as ConvertSelectionToSubGraphResponse;
+        success(data);
+        this.notifyGraphChange(GraphChangeEventType.WholeGraph);
       })
       .catch(error);
   }

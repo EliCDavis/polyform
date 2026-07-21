@@ -132,6 +132,13 @@ export interface CreateSubGraphResponse {
   nodeType: NodeDefinition;
 }
 
+export interface ConvertSelectionToSubGraphResponse {
+  subGraphId: string;
+  name: string;
+  runtimeNodeId: string;
+  nodeType: NodeDefinition;
+}
+
 export interface GraphInstanceNodes {
   [key: string]: NodeInstance;
 }
