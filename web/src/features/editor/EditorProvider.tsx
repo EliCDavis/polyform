@@ -22,6 +22,8 @@ import {
   useFlowGraphInit,
 } from "@/features/nodeFlow/FlowGraphBootstrapContext";
 import { useGraphTabStore, activeGraphScope } from "@/stores/graphTabStore";
+import { useConvertSubGraphStore } from "@/stores/convertSubGraphStore";
+import type { NodeFlowGraph } from "@elicdavis/node-flow";
 
 const viewportSettings: ViewportSettings = {
   renderWireframe: false,
@@ -43,19 +45,29 @@ function GraphTabScopeSync({
   nodeManager,
   noteManager,
   schemaManager,
+  nodeFlowGraph,
 }: {
   nodeManager: NodeManager;
   noteManager: NoteManager;
   schemaManager: SchemaManager;
+  nodeFlowGraph: NodeFlowGraph;
 }) {
   const activeTabId = useGraphTabStore((s) => s.activeTabId);
 
   useEffect(() => {
     if (!schemaManager.currentGraph) return;
+    // Persist live layout into the cached schema before tearing down the
+    // canvas — otherwise returning to this tab reloads stale positions.
+    nodeManager.syncLivePositionsIntoSchema(schemaManager.currentGraph);
+    noteManager.syncLivePositionsIntoSchema(schemaManager.currentGraph);
+
     const scope = activeGraphScope(activeTabId);
     nodeManager.switchGraphScope(scope, schemaManager.currentGraph);
     noteManager.switchGraphScope(scope, schemaManager.currentGraph);
-  }, [activeTabId, nodeManager, noteManager, schemaManager]);
+    if (useConvertSubGraphStore.getState().consumePendingCenterOnGraph()) {
+      nodeFlowGraph.centerOnGraph();
+    }
+  }, [activeTabId, nodeManager, noteManager, schemaManager, nodeFlowGraph]);
 
   return null;
 }
@@ -241,6 +253,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
               nodeManager={ctx.nodeManager}
               noteManager={ctx.noteManager}
               schemaManager={ctx.schemaManager}
+              nodeFlowGraph={ctx.nodeFlowGraph}
             />
             <EditorModelVersionPoller />
           </>

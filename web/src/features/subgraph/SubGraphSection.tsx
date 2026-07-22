@@ -4,6 +4,7 @@ import { useEditorOptional } from "@/features/editor/EditorContext";
 import { useGraphTabStore } from "@/stores/graphTabStore";
 import type { RuntimeSubGraphDefinition } from "@/lib/schema";
 import { NewSubGraphModal } from "@/features/popups/NewSubGraphModal";
+import { ConvertToSubGraphModal } from "@/features/popups/ConvertToSubGraphModal";
 import { SubGraphRow } from "./SubGraphRow";
 
 export function SubGraphSection() {
@@ -44,6 +45,10 @@ export function SubGraphSection() {
         onClose={() => setNewOpen(false)}
         nodeManager={editor.nodeManager}
         onCreated={(id, name) => openSubGraphTab(id, name)}
+      />
+      <ConvertToSubGraphModal
+        nodeManager={editor.nodeManager}
+        schemaManager={editor.schemaManager}
       />
     </>
   );

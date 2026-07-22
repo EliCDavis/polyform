@@ -574,3 +574,59 @@ func TestScopedSubGraphParameterValue(t *testing.T) {
 	param := child.Node(paramID).(*parameter.Float64)
 	assert.Equal(t, 7.5, param.CurrentValue)
 }
+
+func TestConvertSelectionToSubGraphEndpoint(t *testing.T) {
+	handler, inst := subGraphTestServer(t)
+
+	paramID := createRootNode(t, handler, "Float64")
+	sumID := createRootNode(t, handler, "Sum")
+	outID := createRootNode(t, handler, "Sum")
+	connectNodes(t, handler, "/node/connection", paramID, "Value", sumID, "Values")
+	connectNodes(t, handler, "/node/connection", sumID, "Float", outID, "Values")
+
+	body := requireOK(t, handler, httpStep{
+		method: http.MethodPost,
+		url:    "/convert-to-subgraph",
+		body: fmt.Sprintf(
+			`{"scope":"root","nodeIds":["%s"],"name":"Extracted","description":"from selection"}`,
+			sumID,
+		),
+	})
+
+	var resp struct {
+		SubGraphID    string `json:"subGraphId"`
+		Name          string `json:"name"`
+		RuntimeNodeID string `json:"runtimeNodeId"`
+		NodeType      struct {
+			Type string `json:"type"`
+		} `json:"nodeType"`
+	}
+	require.NoError(t, json.Unmarshal(body, &resp))
+	assert.Equal(t, "Extracted", resp.SubGraphID)
+	assert.Equal(t, "Extracted", resp.Name)
+	assert.NotEmpty(t, resp.RuntimeNodeID)
+	assert.Equal(t, "subgraph/Extracted", resp.NodeType.Type)
+
+	assert.False(t, inst.HasNodeWithId(sumID))
+	assert.True(t, inst.HasNodeWithId(resp.RuntimeNodeID))
+
+	child, err := inst.SubGraphInstance("Extracted")
+	require.NoError(t, err)
+	assert.True(t, child.HasNodeWithId(sumID))
+
+	got := nodes.GetNodeOutputPort[float64](inst.Node(outID), "Float").Value()
+	assert.Equal(t, 1.0, got) // Float64 default in edit test server is 1
+}
+
+func TestConvertSelectionToSubGraphEndpoint_RejectsEmptyName(t *testing.T) {
+	handler, _ := subGraphTestServer(t)
+	sumID := createRootNode(t, handler, "Sum")
+
+	code, body := serveStep(t, handler, httpStep{
+		method: http.MethodPost,
+		url:    "/convert-to-subgraph",
+		body:   fmt.Sprintf(`{"scope":"root","nodeIds":["%s"],"name":""}`, sumID),
+	})
+	assert.Equal(t, http.StatusInternalServerError, code)
+	assert.Contains(t, string(body), "name")
+}

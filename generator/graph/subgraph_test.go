@@ -844,3 +844,94 @@ func TestDefinitionEditRebuildsRuntimeClones(t *testing.T) {
 
 	assert.Equal(t, 8.0, nodes.GetNodeOutputPort[float64](runtimeNode, "Out").Value())
 }
+
+func TestRenameBoundaryInputPreservesRuntimeWiring(t *testing.T) {
+	inst := testInstanceWithSubGraphTypesExtended(t)
+	require.NoError(t, inst.CreateSubGraph("passthrough", "Passthrough", ""))
+
+	child, err := inst.SubGraphInstance("passthrough")
+	require.NoError(t, err)
+
+	_, inputID, err := child.CreateBoundaryNode(subgraph.InputNodeTypeKey, "float64")
+	require.NoError(t, err)
+	_, outputID, err := child.CreateBoundaryNode(subgraph.OutputNodeTypeKey, "float64")
+	require.NoError(t, err)
+	require.NoError(t, child.SetBoundaryNodeInfo(inputID, "In"))
+	require.NoError(t, child.SetBoundaryNodeInfo(outputID, "Out"))
+	child.ConnectNodes(inputID, subgraph.ValuePortName, outputID, subgraph.ValuePortName)
+
+	param, paramID, err := inst.CreateNode("Float64")
+	require.NoError(t, err)
+	param.(*parameter.Float64).CurrentValue = 4
+
+	runtimeNode, runtimeID, err := inst.CreateNode(subgraph.RuntimeTypePath("passthrough"))
+	require.NoError(t, err)
+	inst.ConnectNodes(paramID, "Value", runtimeID, "In")
+
+	require.Equal(t, 4.0, nodes.GetNodeOutputPort[float64](runtimeNode, "Out").Value())
+
+	require.NoError(t, child.SetBoundaryNodeInfo(inputID, "Scale"))
+
+	_, hasOld := runtimeNode.Inputs()["In"]
+	_, hasNew := runtimeNode.Inputs()["Scale"]
+	assert.False(t, hasOld)
+	assert.True(t, hasNew)
+
+	runtimeIn := runtimeNode.Inputs()["Scale"].(nodes.SingleValueInputPort)
+	assert.Equal(t, param.Outputs()["Value"], runtimeIn.Value())
+	assert.Equal(t, 4.0, nodes.GetNodeOutputPort[float64](runtimeNode, "Out").Value())
+
+	schema := inst.NodeInstanceSchema(runtimeNode)
+	require.Contains(t, schema.AssignedInput, "Scale")
+	assert.Equal(t, paramID, schema.AssignedInput["Scale"].NodeId)
+	assert.NotContains(t, schema.AssignedInput, "In")
+}
+
+func TestRenameBoundaryOutputPreservesDownstreamWiring(t *testing.T) {
+	inst := testInstanceWithSubGraphTypesExtended(t)
+	require.NoError(t, inst.CreateSubGraph("passthrough", "Passthrough", ""))
+
+	child, err := inst.SubGraphInstance("passthrough")
+	require.NoError(t, err)
+
+	_, inputID, err := child.CreateBoundaryNode(subgraph.InputNodeTypeKey, "float64")
+	require.NoError(t, err)
+	_, outputID, err := child.CreateBoundaryNode(subgraph.OutputNodeTypeKey, "float64")
+	require.NoError(t, err)
+	require.NoError(t, child.SetBoundaryNodeInfo(inputID, "In"))
+	require.NoError(t, child.SetBoundaryNodeInfo(outputID, "Out"))
+	child.ConnectNodes(inputID, subgraph.ValuePortName, outputID, subgraph.ValuePortName)
+
+	param, paramID, err := inst.CreateNode("Float64")
+	require.NoError(t, err)
+	param.(*parameter.Float64).CurrentValue = 7
+
+	runtimeNode, runtimeID, err := inst.CreateNode(subgraph.RuntimeTypePath("passthrough"))
+	require.NoError(t, err)
+	inst.ConnectNodes(paramID, "Value", runtimeID, "In")
+
+	_, sinkID, err := inst.CreateNode("Sum")
+	require.NoError(t, err)
+	inst.ConnectNodes(runtimeID, "Out", sinkID, "Values")
+
+	require.Equal(t, 7.0, nodes.GetNodeOutputPort[float64](inst.Node(sinkID), "Float").Value())
+
+	require.NoError(t, child.SetBoundaryNodeInfo(outputID, "Result"))
+
+	_, hasOld := runtimeNode.Outputs()["Out"]
+	_, hasNew := runtimeNode.Outputs()["Result"]
+	assert.False(t, hasOld)
+	assert.True(t, hasNew)
+
+	sinkIn := inst.Node(sinkID).Inputs()["Values"].(nodes.ArrayValueInputPort)
+	require.Len(t, sinkIn.Value(), 1)
+	assert.Equal(t, "Result", sinkIn.Value()[0].Name())
+	// Downstream must keep the live runtime output object, not an orphaned copy.
+	assert.Equal(t, runtimeNode.Outputs()["Result"], sinkIn.Value()[0])
+	assert.Equal(t, 7.0, nodes.GetNodeOutputPort[float64](inst.Node(sinkID), "Float").Value())
+
+	schema := inst.NodeInstanceSchema(inst.Node(sinkID))
+	require.Contains(t, schema.AssignedInput, "Values.0")
+	assert.Equal(t, "Result", schema.AssignedInput["Values.0"].PortName)
+	assert.Equal(t, runtimeID, schema.AssignedInput["Values.0"].NodeId)
+}

@@ -128,10 +128,51 @@ func (r *SubgraphInstanceNode) rebuildClone() error {
 		return err
 	}
 	r.clone = clone
-	r.outputs = nil
-	r.outputSources = nil
 
-	return r.applyExternals(externals)
+	if err := r.applyExternals(externals); err != nil {
+		return err
+	}
+	_ = r.Outputs()
+	return nil
+}
+
+// renameBoundaryPort: boundary rename. Move map key first. Keep same port
+// object so wires still hold it.
+func (r *SubgraphInstanceNode) renameBoundaryPort(oldName, newName string, kind BoundaryPortKind) {
+	if oldName == "" || oldName == newName {
+		return
+	}
+
+	switch kind {
+	case BoundaryPortKindInput:
+		if r.inputs == nil {
+			return
+		}
+		port, ok := r.inputs[oldName]
+		if !ok {
+			return
+		}
+		if sip, ok := port.(*subgraphInstanceInputPort); ok {
+			sip.portName = newName
+		}
+		delete(r.inputs, oldName)
+		r.inputs[newName] = port
+
+	case BoundaryPortKindOutput:
+		if r.outputSources != nil {
+			if src, ok := r.outputSources[oldName]; ok {
+				src.portName = newName
+				delete(r.outputSources, oldName)
+				r.outputSources[newName] = src
+			}
+		}
+		if r.outputs != nil {
+			if out, ok := r.outputs[oldName]; ok {
+				delete(r.outputs, oldName)
+				r.outputs[newName] = out
+			}
+		}
+	}
 }
 
 func (r *SubgraphInstanceNode) snapshotExternals() map[string]nodes.OutputPort {
@@ -328,24 +369,42 @@ func (a *Instance) SetBoundaryNodeInfo(nodeID, portName string) error {
 	node := a.Node(nodeID)
 
 	if inputNode, ok := node.(*subgraph.InputNode); ok {
+		oldName := inputNode.PortName
 		if err := validateBoundaryPortName(a, portName, BoundaryPortKindInput, node); err != nil {
 			return err
 		}
 		inputNode.PortName = portName
-		a.notifyDefinitionMutation()
-		return nil
+		a.migrateRuntimeBoundaryPortName(oldName, portName, BoundaryPortKindInput)
+		return a.notifyDefinitionMutation()
 	}
 
 	if outputNode, ok := node.(*subgraph.OutputNode); ok {
+		oldName := outputNode.PortName
 		if err := validateBoundaryPortName(a, portName, BoundaryPortKindOutput, node); err != nil {
 			return err
 		}
 		outputNode.PortName = portName
-		a.notifyDefinitionMutation()
-		return nil
+		a.migrateRuntimeBoundaryPortName(oldName, portName, BoundaryPortKindOutput)
+		return a.notifyDefinitionMutation()
 	}
 
 	return fmt.Errorf("node %q is not a sub-graph boundary node", nodeID)
+}
+
+// migrateRuntimeBoundaryPortName rewrites port keys on every live placement of
+// this definition before clones rebuild, so AssignedInput / externals keyed by
+// the old name are not dropped as "removed ports".
+func (a *Instance) migrateRuntimeBoundaryPortName(oldName, newName string, kind BoundaryPortKind) {
+	if oldName == "" || oldName == newName {
+		return
+	}
+	subGraphID := a.SubGraphScopeID()
+	if subGraphID == "" {
+		return
+	}
+	forEachSubGraphInstance(a.Root(), subGraphID, func(runtime *SubgraphInstanceNode) {
+		runtime.renameBoundaryPort(oldName, newName, kind)
+	})
 }
 
 func (a *Instance) SubGraphScopeID() string {
