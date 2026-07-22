@@ -229,10 +229,10 @@ func (a *Instance) refreshSubGraphNodeType(subGraphID string) {
 	a.incModelVersion()
 }
 
-func (a *Instance) onSubGraphChildMutation(subGraphID string) {
+func (a *Instance) onSubGraphChildMutation(subGraphID string) error {
 	root := a.Root()
 	root.refreshSubGraphNodeType(subGraphID)
-	root.rebuildSubGraphClones(subGraphID)
+	return root.rebuildSubGraphClones(subGraphID)
 }
 
 func (a *Instance) runtimeSubGraphSchema(id string) (schema.SubGraph, error) {

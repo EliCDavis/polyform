@@ -6,6 +6,7 @@ import { formatPortTypeLabel } from "@/lib/portTypes";
 
 export class SubGraphBoundaryNodeController {
   private portType: string;
+  private suppressTitleSync = false;
 
   constructor(
     private flowNode: FlowNode,
@@ -31,9 +32,10 @@ export class SubGraphBoundaryNodeController {
 
   private attachTitleListener(): void {
     this.flowNode.addTitleChangeListener((_, __, newTitle) => {
-      if (this.portType) {
-        this.syncBoundaryInfo(newTitle);
+      if (this.suppressTitleSync || !this.portType) {
+        return;
       }
+      this.syncBoundaryInfo(newTitle);
     });
   }
 
@@ -46,11 +48,12 @@ export class SubGraphBoundaryNodeController {
   }
 
   private syncBoundaryInfo(portName: string): void {
-    if (!portName.trim() || !this.portType) return;
+    const trimmed = portName.trim();
+    if (!trimmed || !this.portType) return;
 
     this.requestManager.setBoundaryNodeInfo(
       this.nodeId,
-      { portName, scope: this.nodeManager.getScopeApiPath() },
+      { portName: trimmed, scope: this.nodeManager.getScopeApiPath() },
       (resp) => {
         this.nodeManager.notifySubGraphDefinitionChanged(resp?.nodeType);
       },
@@ -63,8 +66,14 @@ export class SubGraphBoundaryNodeController {
       console.error("Boundary node data is missing boundary information", nodeData);
       return;
     }
-    this.flowNode.setTitle(boundary.portName);
+
     this.portType = boundary.portType;
     this.flowNode.setProperty("portType", boundary.portType);
+
+    if (boundary.portName && boundary.portName !== this.flowNode.title()) {
+      this.suppressTitleSync = true;
+      this.flowNode.setTitle(boundary.portName);
+      this.suppressTitleSync = false;
+    }
   }
 }

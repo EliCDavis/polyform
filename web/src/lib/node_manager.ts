@@ -689,8 +689,7 @@ export class NodeManager {
             nodesSet.set(nodeID, true);
 
             if (this.nodeIdToNode.has(nodeID)) {
-                const nodeToUpdate = this.nodeIdToNode.get(nodeID);
-                nodeToUpdate.update(nodeData);
+                this.nodeIdToNode.get(nodeID).update(nodeData);
             } else {
                 const flowNode = this.newNode(nodeData);
 

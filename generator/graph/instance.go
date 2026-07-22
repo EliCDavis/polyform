@@ -978,9 +978,9 @@ func (a *Instance) createNode(nodeType, portType string) (nodes.Node, string, er
 
 	a.buildIDsForNode(casted)
 	a.nodeTypeKeys[casted] = nodeType
-	a.notifyDefinitionMutation()
+	err := a.notifyDefinitionMutation()
 
-	return casted, a.nodeIDs[casted], nil
+	return casted, a.nodeIDs[casted], err
 }
 
 func (a *Instance) DeleteNodeById(nodeId string) {
@@ -1039,7 +1039,7 @@ func (a *Instance) DeleteNode(nodeToDelete nodes.Node) {
 		}
 	}
 
-	a.notifyDefinitionMutation()
+	_ = a.notifyDefinitionMutation()
 }
 
 // PARAMETER ==================================================================
@@ -1081,8 +1081,11 @@ func (a *Instance) UpdateParameter(nodeId string, data []byte) (bool, error) {
 	defer a.lock.Unlock()
 
 	r, err := a.Parameter(nodeId).ApplyMessage(data)
+	if err != nil {
+		return false, err
+	}
 	a.incModelVersion()
-	a.notifyDefinitionMutation()
+	err = a.notifyDefinitionMutation()
 	return r, err
 }
 
@@ -1144,7 +1147,7 @@ func (a *Instance) DeleteNodeInputConnection(nodeId, portName string) {
 	}
 
 	a.incModelVersion()
-	a.notifyDefinitionMutation()
+	_ = a.notifyDefinitionMutation()
 }
 
 func (a *Instance) ConnectNodes(nodeOutId, outPortName, nodeInId, inPortName string) {
@@ -1189,7 +1192,7 @@ func (a *Instance) ConnectNodes(nodeOutId, outPortName, nodeInId, inPortName str
 	}
 
 	a.incModelVersion()
-	a.notifyDefinitionMutation()
+	_ = a.notifyDefinitionMutation()
 }
 
 // PRODUCERS ==================================================================
