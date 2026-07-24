@@ -22,7 +22,6 @@ import {
   useFlowGraphInit,
 } from "@/features/nodeFlow/FlowGraphBootstrapContext";
 import { useGraphTabStore, activeGraphScope } from "@/stores/graphTabStore";
-import { useConvertSubGraphStore } from "@/stores/convertSubGraphStore";
 import type { NodeFlowGraph } from "@elicdavis/node-flow";
 
 const viewportSettings: ViewportSettings = {
@@ -53,9 +52,17 @@ function GraphTabScopeSync({
   nodeFlowGraph: NodeFlowGraph;
 }) {
   const activeTabId = useGraphTabStore((s) => s.activeTabId);
+  const previousTabId = useRef<string | null>(null);
 
   useEffect(() => {
     if (!schemaManager.currentGraph) return;
+
+    if (previousTabId.current !== null) {
+      useGraphTabStore
+        .getState()
+        .setTabCamera(previousTabId.current, nodeFlowGraph.getCamera());
+    }
+
     // Persist live layout into the cached schema before tearing down the
     // canvas — otherwise returning to this tab reloads stale positions.
     nodeManager.syncLivePositionsIntoSchema(schemaManager.currentGraph);
@@ -64,9 +71,15 @@ function GraphTabScopeSync({
     const scope = activeGraphScope(activeTabId);
     nodeManager.switchGraphScope(scope, schemaManager.currentGraph);
     noteManager.switchGraphScope(scope, schemaManager.currentGraph);
-    if (useConvertSubGraphStore.getState().consumePendingCenterOnGraph()) {
+
+    const saved = useGraphTabStore.getState().getTab(activeTabId)?.camera;
+    if (saved) {
+      nodeFlowGraph.setCamera(saved);
+    } else {
       nodeFlowGraph.centerOnGraph();
     }
+
+    previousTabId.current = activeTabId;
   }, [activeTabId, nodeManager, noteManager, schemaManager, nodeFlowGraph]);
 
   return null;

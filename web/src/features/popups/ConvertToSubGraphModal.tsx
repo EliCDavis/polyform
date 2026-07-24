@@ -49,11 +49,8 @@ export function ConvertToSubGraphModal({
         if (resp.nodeType) {
           nodeManager.registerCustomNodeType(resp.nodeType);
         }
-        // Load the post-convert schema, then open the new tab so scope sync
-        // paints the definition before we center the camera.
         requestManager.getSchema((graph) => {
           schemaManager.setGraph(graph);
-          useConvertSubGraphStore.getState().requestCenterOnGraph();
           openSubGraphTab(resp.subGraphId, resp.name);
           close();
         });
