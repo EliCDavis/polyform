@@ -115,27 +115,52 @@ func populateInstanceFromSubGraphDef(target *Instance, def persistence.SubGraph,
 	return target.connectAppNodes(def.Nodes, createdNodes)
 }
 
-func (a *Instance) rebuildSubGraphClones(subGraphID string) {
-	for node := range a.nodeIDs {
-		runtime, ok := node.(*SubgraphInstanceNode)
-		if !ok || runtime.subGraphID != subGraphID {
-			continue
+// forEachSubGraphInstance visits every live placement of subGraphID across the
+// root graph and all nested sub-graph definitions.
+func forEachSubGraphInstance(graph *Instance, subGraphID string, fn func(*SubgraphInstanceNode)) {
+	visit := func(inst *Instance) {
+		if inst == nil {
+			return
 		}
-		if err := runtime.rebuildClone(); err != nil {
-			panic(fmt.Errorf("rebuild clone for sub-graph %q: %w", subGraphID, err))
+		for node := range inst.nodeIDs {
+			runtime, ok := node.(*SubgraphInstanceNode)
+			if !ok || runtime.subGraphID != subGraphID {
+				continue
+			}
+			fn(runtime)
 		}
 	}
+
+	root := graph.Root()
+	visit(root)
+	root.initSubGraphs()
+	for _, sg := range root.subGraphs {
+		visit(sg.instance)
+	}
+}
+
+func (a *Instance) rebuildSubGraphClones(subGraphID string) error {
+	var firstErr error
+	forEachSubGraphInstance(a, subGraphID, func(runtime *SubgraphInstanceNode) {
+		if firstErr != nil {
+			return
+		}
+		if err := runtime.rebuildClone(); err != nil {
+			firstErr = fmt.Errorf("rebuild clone for sub-graph %q: %w", subGraphID, err)
+		}
+	})
+	return firstErr
 }
 
 // notifyDefinitionMutation rebuilds every runtime clone of this definition so
 // edits to the shared template are reflected in live placements.
-func (a *Instance) notifyDefinitionMutation() {
+func (a *Instance) notifyDefinitionMutation() error {
 	if a.parent == nil {
-		return
+		return nil
 	}
 	id := a.SubGraphScopeID()
 	if id == "" {
-		return
+		return nil
 	}
-	a.parent.onSubGraphChildMutation(id)
+	return a.parent.onSubGraphChildMutation(id)
 }

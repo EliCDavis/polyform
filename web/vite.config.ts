@@ -48,6 +48,8 @@ export default defineConfig({
       "/mermaid": { target: "http://localhost:8080", changeOrigin: true },
       "/new-graph": { target: "http://localhost:8080", changeOrigin: true },
       "/load-example": { target: "http://localhost:8080", changeOrigin: true },
+      "/subgraph": { target: "http://localhost:8080", changeOrigin: true },
+      "/convert-to-subgraph": { target: "http://localhost:8080", changeOrigin: true },
       "/live": { target: "ws://localhost:8080", ws: true },
     },
   },

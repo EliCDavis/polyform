@@ -6,6 +6,8 @@ type SubGraphPortBoundary struct {
 }
 
 type SubGraph struct {
-	Nodes map[string]Node `json:"nodes"`
-	Notes map[string]any  `json:"notes,omitempty"`
+	Name        string            `json:"name"`
+	Description string            `json:"description,omitempty"`
+	Nodes       map[string]Node   `json:"nodes"`
+	Notes       map[string]any    `json:"notes,omitempty"`
 }

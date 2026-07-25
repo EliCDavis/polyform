@@ -12,9 +12,51 @@ import (
 )
 
 const (
-	subGraphDefinitionEndpointPath = "/subgraph/definition/"
-	subGraphBoundaryEndpointPath   = "/subgraph/boundary/"
+	subGraphDefinitionEndpointPath         = "/subgraph/definition/"
+	subGraphBoundaryEndpointPath           = "/subgraph/boundary/"
+	convertSelectionToSubGraphEndpointPath = "/convert-to-subgraph"
 )
+
+func convertSelectionToSubGraphEndpoint(graphInstance *graph.Instance, saver *GraphSaver) endpoint.Handler {
+	type ConvertRequest struct {
+		Scope       graph.Scope `json:"scope"`
+		NodeIDs     []string    `json:"nodeIds"`
+		Name        string      `json:"name"`
+		Description string      `json:"description"`
+	}
+
+	type ConvertResponse struct {
+		SubGraphID    string          `json:"subGraphId"`
+		Name          string          `json:"name"`
+		RuntimeNodeID string          `json:"runtimeNodeId"`
+		NodeType      schema.NodeType `json:"nodeType"`
+	}
+
+	return endpoint.Handler{
+		Methods: map[string]endpoint.Method{
+			http.MethodPost: endpoint.JsonMethod(
+				func(request endpoint.Request[ConvertRequest]) (ConvertResponse, error) {
+					result, err := graphInstance.ConvertSelectionToSubGraph(
+						request.Body.Scope,
+						request.Body.NodeIDs,
+						request.Body.Name,
+						request.Body.Description,
+					)
+					if err != nil {
+						return ConvertResponse{}, err
+					}
+					saver.Save()
+					return ConvertResponse{
+						SubGraphID:    result.SubGraphID,
+						Name:          result.Name,
+						RuntimeNodeID: result.RuntimeNodeID,
+						NodeType:      result.NodeType,
+					}, nil
+				},
+			),
+		},
+	}
+}
 
 func subGraphDefinitionEndpoint(graphInstance *graph.Instance, saver *GraphSaver) endpoint.Handler {
 	type CreateRequest struct {

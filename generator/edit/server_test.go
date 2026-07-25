@@ -233,7 +233,7 @@ func TestServer(t *testing.T) {
 		"name": "HTTP Test",
 		"nodes": {
 			"Node-0": {
-				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
+				"type": "Float64",
 				"data": {
 					"name": "My Parameter Name",
 					"description": "My Parameter Description",
@@ -241,7 +241,7 @@ func TestServer(t *testing.T) {
 				}
 			},
 			"Node-1": {
-				"type": "github.com/EliCDavis/polyform/generator/parameter.Value[float64]",
+				"type": "Float64",
 				"data": {
 					"name": "",
 					"description": "",
@@ -249,7 +249,7 @@ func TestServer(t *testing.T) {
 				}
 			},
 			"Node-2": {
-				"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/math.AddNode[float64]]",
+				"type": "Sum",
 				"assignedInput": {
 					"Values.0": {
 						"id": "Node-0",

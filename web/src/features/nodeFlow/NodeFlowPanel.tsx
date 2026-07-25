@@ -1,7 +1,14 @@
 import { useEffect, useRef } from "react";
-import { NodeFlowGraph, Publisher } from "@elicdavis/node-flow";
+import {
+  ContextMenuItemState,
+  NodeFlowGraph,
+  Publisher,
+} from "@elicdavis/node-flow";
 import { parameterNodeConfigs } from "./parameterNodeConfigs";
 import { useFlowGraphBootstrap } from "./FlowGraphBootstrapContext";
+import { InstanceIDProperty } from "@/lib/nodes/node";
+import { useConvertSubGraphStore } from "@/stores/convertSubGraphStore";
+import { useGraphTabStore } from "@/stores/graphTabStore";
 import styles from "./NodeFlowPanel.module.css";
 
 export function NodeFlowPanel() {
@@ -22,7 +29,32 @@ export function NodeFlowPanel() {
       version: "1.0.0",
       nodes: { ...parameterNodeConfigs },
     });
-    const nodeFlowGraph = new NodeFlowGraph(canvas, {});
+
+    const nodeFlowGraph = new NodeFlowGraph(canvas, {
+      contextMenu: {
+        items: [
+          {
+            name: "Convert to Subgraph",
+            enabled: () =>
+              nodeFlowGraph.getSelectedNodes().length > 0
+                ? ContextMenuItemState.Enabled
+                : ContextMenuItemState.Hidden,
+            callback: () => {
+              const nodeIds = nodeFlowGraph
+                .getSelectedNodes()
+                .map((node) => node.getProperty(InstanceIDProperty) as string)
+                .filter((id) => typeof id === "string" && id.length > 0);
+              if (nodeIds.length === 0) return;
+
+              const activeTabId = useGraphTabStore.getState().activeTabId;
+              const scope =
+                activeTabId === "root" ? "root" : `subgraph/${activeTabId}`;
+              useConvertSubGraphStore.getState().openConvert(nodeIds, scope);
+            },
+          },
+        ],
+      },
+    });
     nodeFlowGraph.addPublisher("polyform", publisher);
 
     registerFlowGraph({

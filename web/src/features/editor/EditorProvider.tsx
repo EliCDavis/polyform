@@ -22,6 +22,7 @@ import {
   useFlowGraphInit,
 } from "@/features/nodeFlow/FlowGraphBootstrapContext";
 import { useGraphTabStore, activeGraphScope } from "@/stores/graphTabStore";
+import type { NodeFlowGraph } from "@elicdavis/node-flow";
 
 const viewportSettings: ViewportSettings = {
   renderWireframe: false,
@@ -43,19 +44,41 @@ function GraphTabScopeSync({
   nodeManager,
   noteManager,
   schemaManager,
+  nodeFlowGraph,
 }: {
   nodeManager: NodeManager;
   noteManager: NoteManager;
   schemaManager: SchemaManager;
+  nodeFlowGraph: NodeFlowGraph;
 }) {
   const activeTabId = useGraphTabStore((s) => s.activeTabId);
+  const previousTabId = useRef<string | null>(null);
 
   useEffect(() => {
     if (!schemaManager.currentGraph) return;
+
+    if (previousTabId.current !== null) {
+      useGraphTabStore
+        .getState()
+        .setTabCamera(previousTabId.current, nodeFlowGraph.getCamera());
+    }
+
+    nodeManager.syncLivePositionsIntoSchema(schemaManager.currentGraph);
+    noteManager.syncLivePositionsIntoSchema(schemaManager.currentGraph);
+
     const scope = activeGraphScope(activeTabId);
     nodeManager.switchGraphScope(scope, schemaManager.currentGraph);
     noteManager.switchGraphScope(scope, schemaManager.currentGraph);
-  }, [activeTabId, nodeManager, noteManager, schemaManager]);
+
+    const saved = useGraphTabStore.getState().getTab(activeTabId)?.camera;
+    if (saved) {
+      nodeFlowGraph.setCamera(saved);
+    } else {
+      nodeFlowGraph.centerOnGraph();
+    }
+
+    previousTabId.current = activeTabId;
+  }, [activeTabId, nodeManager, noteManager, schemaManager, nodeFlowGraph]);
 
   return null;
 }
@@ -241,6 +264,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
               nodeManager={ctx.nodeManager}
               noteManager={ctx.noteManager}
               schemaManager={ctx.schemaManager}
+              nodeFlowGraph={ctx.nodeFlowGraph}
             />
             <EditorModelVersionPoller />
           </>
