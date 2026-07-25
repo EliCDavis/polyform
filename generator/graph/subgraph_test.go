@@ -358,6 +358,7 @@ func TestSubGraphInnerConnections(t *testing.T) {
 
 	schema := inst.Schema()
 	require.Contains(t, schema.SubGraphs, "wired")
+	assert.Equal(t, "Wired", schema.SubGraphs["wired"].Name)
 	require.Contains(t, schema.SubGraphs["wired"].Nodes, sumID)
 }
 

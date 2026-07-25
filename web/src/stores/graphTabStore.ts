@@ -53,7 +53,10 @@ export const useGraphTabStore = create<GraphTabState>((set, get) => ({
     const { tabs } = get();
     const existing = tabs.find((t) => t.id === id);
     if (existing) {
-      set({ activeTabId: id });
+      set({
+        tabs: updateTab(tabs, id, { label }),
+        activeTabId: id,
+      });
       return;
     }
     set({

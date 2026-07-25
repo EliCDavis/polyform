@@ -435,10 +435,13 @@ func TestSchemaIncludesSubGraphs(t *testing.T) {
 	require.Equal(t, http.StatusOK, rr2.Code)
 
 	var schema struct {
-		SubGraphs map[string]struct{} `json:"subGraphs"`
+		SubGraphs map[string]struct {
+			Name string `json:"name"`
+		} `json:"subGraphs"`
 	}
 	require.NoError(t, json.Unmarshal(rr2.Body.Bytes(), &schema))
 	require.Contains(t, schema.SubGraphs, "in-schema")
+	assert.Equal(t, "In Schema", schema.SubGraphs["in-schema"].Name)
 }
 
 // Moving a node in the editor posts to ".../metadata/nodes/<id>/position".

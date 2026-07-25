@@ -234,11 +234,6 @@ export class NodeManager {
         this.updateNodes(schema);
     }
 
-    /**
-     * Write live canvas positions into the in-memory schema for the current
-     * scope. Drag-stop persists to the server, but tab switches rebuild from
-     * schemaManager.currentGraph — which otherwise stays stale until refresh.
-     */
     syncLivePositionsIntoSchema(schema: GraphInstance): void {
         const scopedNodes = getScopedNodes(schema, this.graphScope);
         this.nodeIdToNode.forEach((controller, nodeId) => {

@@ -1,4 +1,5 @@
 import type {
+  ConvertSelectionToSubGraphRequest,
   ConvertSelectionToSubGraphResponse,
   CreateSubGraphResponse,
   CreateVariableResponse,
@@ -533,12 +534,7 @@ export class RequestManager {
   }
 
   convertSelectionToSubGraph(
-    body: {
-      scope: string;
-      nodeIds: string[];
-      name: string;
-      description?: string;
-    },
+    body: ConvertSelectionToSubGraphRequest,
     success: (response: ConvertSelectionToSubGraphResponse) => void,
     error: (err: unknown) => void
   ): void {

@@ -63,8 +63,6 @@ function GraphTabScopeSync({
         .setTabCamera(previousTabId.current, nodeFlowGraph.getCamera());
     }
 
-    // Persist live layout into the cached schema before tearing down the
-    // canvas — otherwise returning to this tab reloads stale positions.
     nodeManager.syncLivePositionsIntoSchema(schemaManager.currentGraph);
     noteManager.syncLivePositionsIntoSchema(schemaManager.currentGraph);
 

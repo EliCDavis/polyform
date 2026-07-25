@@ -248,8 +248,10 @@ func (a *Instance) runtimeSubGraphSchema(id string) (schema.SubGraph, error) {
 
 	childSchema := runtime.instance.Schema()
 	return schema.SubGraph{
-		Nodes: childSchema.Nodes,
-		Notes: childSchema.Notes,
+		Name:        runtime.name,
+		Description: runtime.description,
+		Nodes:       childSchema.Nodes,
+		Notes:       childSchema.Notes,
 	}, nil
 }
 
