@@ -29,7 +29,8 @@ func TestInputNodeDefaults(t *testing.T) {
 	assert.Equal(t, "Input", n.BoundaryPortName())
 	assert.Equal(t, "", n.BoundaryPortType())
 	assert.Equal(t, "Input", n.Name())
-	assert.Nil(t, n.Inputs())
+	assert.Len(t, n.Inputs(), 1)
+	assert.Contains(t, n.Inputs(), subgraph.DefaultPortName)
 	assert.Len(t, n.Outputs(), 1)
 	assert.Contains(t, n.Outputs(), subgraph.ValuePortName)
 }
@@ -78,6 +79,50 @@ func TestInputNodeExternalSourceVersion(t *testing.T) {
 
 	ext.version = 99
 	assert.Equal(t, 99, out.Version())
+}
+
+func TestInputNodeDefaultFallback(t *testing.T) {
+	n := subgraph.NewInputNode("Scale", "float64")
+	out := n.Outputs()[subgraph.ValuePortName].(nodes.Output[float64])
+
+	// Both unset → typed zero, no error.
+	assert.Equal(t, float64(0), out.Value())
+
+	defaultSrc := nodes.ConstOutput[float64]{Val: 3.5}
+	defIn := n.Inputs()[subgraph.DefaultPortName].(nodes.SingleValueInputPort)
+	require.NoError(t, defIn.Set(defaultSrc))
+	assert.Equal(t, 3.5, out.Value())
+
+	ext := nodes.ConstOutput[float64]{Val: 9}
+	n.SetExternalSource(ext)
+	assert.Equal(t, 9.0, out.Value())
+
+	n.SetExternalSource(nil)
+	assert.Equal(t, 3.5, out.Value())
+
+	defIn.Clear()
+	assert.Equal(t, float64(0), out.Value())
+}
+
+func TestInputNodeDefaultVersion(t *testing.T) {
+	n := subgraph.NewInputNode("X", "float64")
+	out := n.Outputs()[subgraph.ValuePortName]
+	assert.Equal(t, 0, out.Version())
+
+	def := &stubOutputPort{version: 7, name: "Value"}
+	defIn := n.Inputs()[subgraph.DefaultPortName].(nodes.SingleValueInputPort)
+	require.NoError(t, defIn.Set(def))
+	assert.Equal(t, 7, out.Version())
+
+	def.version = 11
+	assert.Equal(t, 11, out.Version())
+
+	ext := &stubOutputPort{version: 42, name: "Value"}
+	n.SetExternalSource(ext)
+	assert.Equal(t, 42, out.Version())
+
+	n.SetExternalSource(nil)
+	assert.Equal(t, 11, out.Version())
 }
 
 func TestInputNodeJSONRoundtrip(t *testing.T) {
