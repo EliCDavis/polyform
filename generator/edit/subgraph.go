@@ -15,7 +15,49 @@ const (
 	subGraphDefinitionEndpointPath         = "/subgraph/definition/"
 	subGraphBoundaryEndpointPath           = "/subgraph/boundary/"
 	convertSelectionToSubGraphEndpointPath = "/convert-to-subgraph"
+	importSubGraphsEndpointPath            = "/subgraph/import"
 )
+
+func importSubGraphsEndpoint(graphInstance *graph.Instance, saver *GraphSaver) endpoint.Handler {
+	type ImportedEntry struct {
+		ID         string          `json:"id"`
+		Name       string          `json:"name"`
+		OriginalID string          `json:"originalId,omitempty"`
+		NodeType   schema.NodeType `json:"nodeType"`
+	}
+
+	type ImportResponse struct {
+		Imported []ImportedEntry `json:"imported"`
+	}
+
+	return endpoint.Handler{
+		Methods: map[string]endpoint.Method{
+			http.MethodPost: endpoint.BodyResponseMethod[[]byte, ImportResponse]{
+				Request:        endpoint.BinaryRequestReader{},
+				ResponseWriter: endpoint.JsonResponseWriter[ImportResponse]{},
+				Handler: func(request endpoint.Request[[]byte]) (ImportResponse, error) {
+					result, err := graphInstance.ImportSubGraphDefinitions(request.Body)
+					if err != nil {
+						return ImportResponse{}, err
+					}
+					saver.Save()
+					resp := ImportResponse{
+						Imported: make([]ImportedEntry, 0, len(result.Imported)),
+					}
+					for _, entry := range result.Imported {
+						resp.Imported = append(resp.Imported, ImportedEntry{
+							ID:         entry.ID,
+							Name:       entry.Name,
+							OriginalID: entry.OriginalID,
+							NodeType:   entry.NodeType,
+						})
+					}
+					return resp, nil
+				},
+			},
+		},
+	}
+}
 
 func convertSelectionToSubGraphEndpoint(graphInstance *graph.Instance, saver *GraphSaver) endpoint.Handler {
 	type ConvertRequest struct {

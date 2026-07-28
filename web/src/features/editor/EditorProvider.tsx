@@ -250,9 +250,22 @@ function EditorBootstrap({
   return null;
 }
 
-export function EditorProvider({ children }: { children: ReactNode }) {
+export function EditorProvider({
+  children,
+  onEditorReady,
+}: {
+  children: ReactNode;
+  onEditorReady?: (nodeManager: NodeManager) => void;
+}) {
   const { data: registeredTypes } = useNodeTypes();
   const [ctx, setCtx] = useState<EditorContextValue | null>(null);
+  const onEditorReadyRef = useRef(onEditorReady);
+  onEditorReadyRef.current = onEditorReady;
+
+  const handleReady = (value: EditorContextValue) => {
+    setCtx(value);
+    onEditorReadyRef.current?.(value.nodeManager);
+  };
 
   return (
     <FlowGraphBootstrapProvider>
@@ -270,7 +283,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
           </>
         )}
         {registeredTypes && !ctx && (
-          <EditorBootstrap registeredTypes={registeredTypes} onReady={setCtx} />
+          <EditorBootstrap registeredTypes={registeredTypes} onReady={handleReady} />
         )}
       </EditorContext.Provider>
     </FlowGraphBootstrapProvider>

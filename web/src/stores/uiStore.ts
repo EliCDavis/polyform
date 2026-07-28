@@ -6,6 +6,7 @@ export interface UiFlags {
   hideGraph: boolean;
   hideFileControls: boolean;
   hideWatermark: boolean;
+  hideImportSubGraphs: boolean;
   canEdit: boolean;
 }
 
@@ -24,6 +25,7 @@ function parseUrlFlags(): UiFlags {
     hideGraph: params.get("hide-graph") === "true",
     hideFileControls: params.get("hide-file-controls") === "true",
     hideWatermark: params.get("hide-watermark") === "true",
+    hideImportSubGraphs: params.get("hide-import-subgraphs") === "true",
     canEdit: params.get("can-edit") !== "false",
   };
 }

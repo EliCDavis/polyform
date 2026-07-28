@@ -1,3 +1,5 @@
+import type { ImportSubGraphsResult } from "@/lib/schema";
+
 export interface RenderingConfiguration {
   AntiAlias: boolean;
   XrEnabled: boolean;
@@ -12,6 +14,11 @@ declare global {
     loadGraph: (content: unknown) => void;
     getGraph: (cb: (graph: unknown) => void) => void;
     graphChangeCallback: (cb: (e: string) => void) => void;
+    importSubGraphs: (
+      content: unknown,
+      callback?: (result: ImportSubGraphsResult) => void,
+      error?: (err: unknown) => void
+    ) => void;
   }
 }
 
