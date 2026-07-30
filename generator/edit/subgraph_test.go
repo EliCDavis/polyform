@@ -334,6 +334,42 @@ func TestScopedSubGraphDeleteNode(t *testing.T) {
 	assert.False(t, child.HasNodeWithId(createResp.NodeID))
 }
 
+func TestScopedSubGraphDeleteBoundaryRemovesRuntimePort(t *testing.T) {
+	handler, inst := subGraphTestServer(t)
+
+	requireOK(t, handler, httpStep{
+		method: http.MethodPost,
+		url:    "/subgraph/definition/ports",
+		body:   `{"name":"Ports"}`,
+	})
+	inID := createScopedNode(t, handler, "ports", subgraph.InputNodeTypeKey, "float64")
+	outID := createScopedNode(t, handler, "ports", subgraph.OutputNodeTypeKey, "float64")
+	requireOK(t, handler, httpStep{
+		method: http.MethodPost,
+		url:    "/subgraph/boundary/" + inID + "/info",
+		body:   `{"portName":"A","scope":"subgraph/ports"}`,
+	})
+	requireOK(t, handler, httpStep{
+		method: http.MethodPost,
+		url:    "/subgraph/boundary/" + outID + "/info",
+		body:   `{"portName":"Out","scope":"subgraph/ports"}`,
+	})
+
+	runtimeID := createRootNode(t, handler, subgraph.RuntimeTypePath("ports"))
+	runtime := inst.Node(runtimeID)
+	require.Contains(t, runtime.Inputs(), "A")
+	require.Contains(t, runtime.Outputs(), "Out")
+
+	requireOK(t, handler, httpStep{
+		method: http.MethodDelete,
+		url:    "/graph/subgraph/ports/node",
+		body:   fmt.Sprintf(`{"nodeID":"%s"}`, inID),
+	})
+
+	assert.NotContains(t, runtime.Inputs(), "A")
+	assert.Contains(t, runtime.Outputs(), "Out")
+}
+
 func TestSubGraphBoundaryInfoUpdate(t *testing.T) {
 	handler, inst := subGraphTestServer(t)
 
