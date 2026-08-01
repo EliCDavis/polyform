@@ -325,6 +325,8 @@ func (p *SamplerMinFilterNode) Outputs() map[string]nodes.OutputPort {
 // https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#reference-material
 
 type MaterialNode struct {
+	Name nodes.Output[string] `description:"Name of the material"`
+
 	Color                    nodes.Output[coloring.Color]  `description:"The factors for the base color of the material. This value defines linear multipliers for the sampled texels of the base color texture."`
 	ColorTexture             nodes.Output[PolyformTexture] `description:"The base color texture. The first three components (RGB) MUST be encoded with the sRGB transfer function. They specify the base color of the material. If the fourth component (A) is present, it represents the linear alpha coverage of the material. Otherwise, the alpha coverage is equal to 1.0. The material.alphaMode property specifies how alpha is interpreted. The stored texels MUST NOT be premultiplied. When undefined, the texture MUST be sampled as having 1.0 in all components."`
 	MetallicFactor           nodes.Output[float64]         `description:"The factor for the metalness of the material. This value defines a linear multiplier for the sampled metalness values of the metallic-roughness texture."`
@@ -436,6 +438,7 @@ func (gmnd MaterialNode) Out(out *nodes.StructOutput[PolyformMaterial]) {
 	}
 
 	out.Set(PolyformMaterial{
+		Name:                 nodes.TryGetOutputValue(out, gmnd.Name, ""),
 		PbrMetallicRoughness: pbr,
 		Extensions:           extensions,
 		EmissiveFactor:       emissiveFactor,
