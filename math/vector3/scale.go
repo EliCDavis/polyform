@@ -1,38 +1,38 @@
-package vector4
+package vector3
 
 import (
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/vector"
-	"github.com/EliCDavis/vector/vector4"
+	"github.com/EliCDavis/vector/vector3"
 )
 
 type Scale[T vector.Number] struct {
-	Vector nodes.Output[vector4.Vector[T]] `description:"The vector to scale"`
+	Vector nodes.Output[vector3.Vector[T]] `description:"The vector to scale"`
 	Amount nodes.Output[float64]           `description:"The amount the scale by (defaults to 1.0)"`
 }
 
-func (cn Scale[T]) Float64(out *nodes.StructOutput[vector4.Float64]) {
-	vec := nodes.TryGetOutputValue(out, cn.Vector, vector4.Zero[T]())
+func (cn Scale[T]) Float64(out *nodes.StructOutput[vector3.Float64]) {
+	vec := nodes.TryGetOutputValue(out, cn.Vector, vector3.Zero[T]())
 	out.Set(vec.ToFloat64().Scale(nodes.TryGetOutputValue(out, cn.Amount, 1)))
 }
 
-func (cn Scale[T]) Int(out *nodes.StructOutput[vector4.Int]) {
-	vec := nodes.TryGetOutputValue(out, cn.Vector, vector4.Zero[T]())
+func (cn Scale[T]) Int(out *nodes.StructOutput[vector3.Int]) {
+	vec := nodes.TryGetOutputValue(out, cn.Vector, vector3.Zero[T]())
 	out.Set(vec.ToFloat64().Scale(nodes.TryGetOutputValue(out, cn.Amount, 1)).RoundToInt())
 }
 
 type ScaleArray[T vector.Number] struct {
-	Vector nodes.Output[[]vector4.Vector[T]] `description:"The vector array to scale"`
+	Vector nodes.Output[[]vector3.Vector[T]] `description:"The vector array to scale"`
 	Amount nodes.Output[float64]             `description:"The amount the scale by (defaults to 1.0)"`
 }
 
-func (cn ScaleArray[T]) Float64(out *nodes.StructOutput[[]vector4.Float64]) {
+func (cn ScaleArray[T]) Float64(out *nodes.StructOutput[[]vector3.Float64]) {
 	if cn.Vector == nil {
 		return
 	}
 
 	inV := nodes.GetOutputValue(out, cn.Vector)
-	outV := make([]vector4.Float64, len(inV))
+	outV := make([]vector3.Float64, len(inV))
 
 	if cn.Amount == nil {
 		for i, v := range inV {
@@ -49,13 +49,13 @@ func (cn ScaleArray[T]) Float64(out *nodes.StructOutput[[]vector4.Float64]) {
 	out.Set(outV)
 }
 
-func (cn ScaleArray[T]) Int(out *nodes.StructOutput[[]vector4.Int]) {
+func (cn ScaleArray[T]) Int(out *nodes.StructOutput[[]vector3.Int]) {
 	if cn.Vector == nil {
 		return
 	}
 
 	inV := nodes.GetOutputValue(out, cn.Vector)
-	outV := make([]vector4.Int, len(inV))
+	outV := make([]vector3.Int, len(inV))
 
 	if cn.Amount == nil {
 		for i, v := range inV {
