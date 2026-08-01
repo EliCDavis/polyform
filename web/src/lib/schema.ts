@@ -132,6 +132,17 @@ export interface CreateSubGraphResponse {
   nodeType: NodeDefinition;
 }
 
+export interface ImportedSubGraphEntry {
+  id: string;
+  name: string;
+  originalId?: string;
+  nodeType: NodeDefinition;
+}
+
+export interface ImportSubGraphsResult {
+  imported: ImportedSubGraphEntry[];
+}
+
 export interface ConvertSelectionToSubGraphRequest {
   scope: string;
   nodeIds: string[];

@@ -160,6 +160,7 @@ func (as *Server) Handler(indexFile string) (*http.ServeMux, error) {
 	mux.Handle(subGraphDefinitionEndpointPath, subGraphDefinitionEndpoint(as.Graph, graphSaver))
 	mux.Handle(subGraphBoundaryEndpointPath, subGraphBoundaryEndpoint(as.Graph, graphSaver))
 	mux.Handle(convertSelectionToSubGraphEndpointPath, convertSelectionToSubGraphEndpoint(as.Graph, graphSaver))
+	mux.Handle(importSubGraphsEndpointPath, importSubGraphsEndpoint(as.Graph, graphSaver))
 	mux.Handle("/graph/subgraph/", scopedGraphHandler(as.Graph, graphSaver))
 	mux.HandleFunc(nodeOutputEndpointPath, as.NodeOutputEndpoint)
 	mux.Handle("/parameter/value/", parameterValueEndpoint(as.Graph, graphSaver))

@@ -334,6 +334,42 @@ func TestScopedSubGraphDeleteNode(t *testing.T) {
 	assert.False(t, child.HasNodeWithId(createResp.NodeID))
 }
 
+func TestScopedSubGraphDeleteBoundaryRemovesRuntimePort(t *testing.T) {
+	handler, inst := subGraphTestServer(t)
+
+	requireOK(t, handler, httpStep{
+		method: http.MethodPost,
+		url:    "/subgraph/definition/ports",
+		body:   `{"name":"Ports"}`,
+	})
+	inID := createScopedNode(t, handler, "ports", subgraph.InputNodeTypeKey, "float64")
+	outID := createScopedNode(t, handler, "ports", subgraph.OutputNodeTypeKey, "float64")
+	requireOK(t, handler, httpStep{
+		method: http.MethodPost,
+		url:    "/subgraph/boundary/" + inID + "/info",
+		body:   `{"portName":"A","scope":"subgraph/ports"}`,
+	})
+	requireOK(t, handler, httpStep{
+		method: http.MethodPost,
+		url:    "/subgraph/boundary/" + outID + "/info",
+		body:   `{"portName":"Out","scope":"subgraph/ports"}`,
+	})
+
+	runtimeID := createRootNode(t, handler, subgraph.RuntimeTypePath("ports"))
+	runtime := inst.Node(runtimeID)
+	require.Contains(t, runtime.Inputs(), "A")
+	require.Contains(t, runtime.Outputs(), "Out")
+
+	requireOK(t, handler, httpStep{
+		method: http.MethodDelete,
+		url:    "/graph/subgraph/ports/node",
+		body:   fmt.Sprintf(`{"nodeID":"%s"}`, inID),
+	})
+
+	assert.NotContains(t, runtime.Inputs(), "A")
+	assert.Contains(t, runtime.Outputs(), "Out")
+}
+
 func TestSubGraphBoundaryInfoUpdate(t *testing.T) {
 	handler, inst := subGraphTestServer(t)
 
@@ -632,4 +668,72 @@ func TestConvertSelectionToSubGraphEndpoint_RejectsEmptyName(t *testing.T) {
 	})
 	assert.Equal(t, http.StatusInternalServerError, code)
 	assert.Contains(t, string(body), "name")
+}
+
+func TestImportSubGraphsEndpoint(t *testing.T) {
+	handler, inst := subGraphTestServer(t)
+
+	requireOK(t, handler, httpStep{
+		method: http.MethodPost,
+		url:    "/subgraph/definition/adder",
+		body:   `{"name":"Adder"}`,
+	})
+	inA := createScopedNode(t, handler, "adder", subgraph.InputNodeTypeKey, "float64")
+	inB := createScopedNode(t, handler, "adder", subgraph.InputNodeTypeKey, "float64")
+	outID := createScopedNode(t, handler, "adder", subgraph.OutputNodeTypeKey, "float64")
+	sumID := createScopedNode(t, handler, "adder", "Sum", "")
+	requireOK(t, handler, httpStep{
+		method: http.MethodPost,
+		url:    "/subgraph/boundary/" + inA + "/info",
+		body:   `{"portName":"A","scope":"subgraph/adder"}`,
+	})
+	requireOK(t, handler, httpStep{
+		method: http.MethodPost,
+		url:    "/subgraph/boundary/" + inB + "/info",
+		body:   `{"portName":"B","scope":"subgraph/adder"}`,
+	})
+	requireOK(t, handler, httpStep{
+		method: http.MethodPost,
+		url:    "/subgraph/boundary/" + outID + "/info",
+		body:   `{"portName":"Result","scope":"subgraph/adder"}`,
+	})
+	connectNodes(t, handler, "/graph/subgraph/adder/connection", inA, subgraph.ValuePortName, sumID, "Values")
+	connectNodes(t, handler, "/graph/subgraph/adder/connection", inB, subgraph.ValuePortName, sumID, "Values")
+	connectNodes(t, handler, "/graph/subgraph/adder/connection", sumID, "Float", outID, subgraph.ValuePortName)
+
+	payload, err := inst.EncodeToAppSchema()
+	require.NoError(t, err)
+
+	destHandler, dest := subGraphTestServer(t)
+	requireOK(t, destHandler, httpStep{
+		method: http.MethodPost,
+		url:    "/subgraph/definition/adder",
+		body:   `{"name":"Existing"}`,
+	})
+
+	body := requireOK(t, destHandler, httpStep{
+		method: http.MethodPost,
+		url:    "/subgraph/import",
+		body:   string(payload),
+	})
+
+	var resp struct {
+		Imported []struct {
+			ID         string `json:"id"`
+			Name       string `json:"name"`
+			OriginalID string `json:"originalId"`
+			NodeType   struct {
+				Type string `json:"type"`
+			} `json:"nodeType"`
+		} `json:"imported"`
+	}
+	require.NoError(t, json.Unmarshal(body, &resp))
+	require.Len(t, resp.Imported, 1)
+	assert.Equal(t, "adder_2", resp.Imported[0].ID)
+	assert.Equal(t, "adder", resp.Imported[0].OriginalID)
+	assert.Equal(t, "Adder", resp.Imported[0].Name)
+	assert.Equal(t, "subgraph/adder_2", resp.Imported[0].NodeType.Type)
+
+	_, err = dest.SubGraphInstance("adder_2")
+	require.NoError(t, err)
 }

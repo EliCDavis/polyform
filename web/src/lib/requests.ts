@@ -5,6 +5,7 @@ import type {
   CreateVariableResponse,
   GraphExecutionReport,
   GraphInstance,
+  ImportSubGraphsResult,
   Manifest,
   NodeInstance,
   RegisteredTypes,
@@ -486,6 +487,28 @@ export class RequestManager {
           return;
         }
         const data = (await response.json()) as CreateSubGraphResponse;
+        success(data);
+        this.notifyGraphChange(GraphChangeEventType.SubGraph_New);
+      })
+      .catch(error);
+  }
+
+  importSubGraphs(
+    graphPayload: unknown,
+    success: (response: ImportSubGraphsResult) => void,
+    error: (err: unknown) => void
+  ): void {
+    void fetch("./subgraph/import", {
+      method: "POST",
+      headers: JSON_HEADERS,
+      body: JSON.stringify(graphPayload),
+    })
+      .then(async (response) => {
+        if (!response.ok) {
+          error(await response.json().catch(() => ({ error: response.statusText })));
+          return;
+        }
+        const data = (await response.json()) as ImportSubGraphsResult;
         success(data);
         this.notifyGraphChange(GraphChangeEventType.SubGraph_New);
       })

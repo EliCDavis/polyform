@@ -26,7 +26,7 @@ const SubGraphInputNodeConfig: FlowNodeConfig = {
   subTitle: "SubGraph Boundary",
   canEditTitle: true,
   canEditInfo: false,
-  inputs: [],
+  inputs: [{ name: "default", type: "any" }],
   outputs: [{ name: "Value", type: "any" }],
   style: InputStyle,
   metadata: {
@@ -67,6 +67,7 @@ export function buildBoundaryFlowNodeConfig(
   if (kind === BoundaryType.Input) {
     return {
       ...base,
+      inputs: [{ name: "default", type: resolvedType }],
       outputs: [{ name: "Value", type: resolvedType }],
     };
   }

@@ -275,7 +275,22 @@ export class NodeManager {
             return;
         }
 
-        this.requestManager.deleteNode(flowNode.getProperty(InstanceIDProperty))
+        const nodeType: string | undefined = flowNode.metadata()?.typeData?.type;
+        const deletedBoundary =
+            this.graphScope.kind === GraphScopeKind.SubGraph &&
+            (nodeType === SUBGRAPH_INPUT_TYPE || nodeType === SUBGRAPH_OUTPUT_TYPE);
+        const subGraphId =
+            this.graphScope.kind === GraphScopeKind.SubGraph ? this.graphScope.id : null;
+
+        this.requestManager.deleteNode(flowNode.getProperty(InstanceIDProperty), () => {
+            // Backend already rebuilds instance ports; only the registered Flow
+            // type needs refreshing so parent placements pick up the change.
+            if (deletedBoundary && subGraphId) {
+                this.refreshRuntimeSubGraphType(subGraphId, () => {
+                    this.notifySubGraphDefinitionChanged();
+                });
+            }
+        });
     }
 
     onNodeAddedCallback(flowNode: FlowNode): void {

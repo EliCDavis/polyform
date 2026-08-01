@@ -10,7 +10,8 @@ import (
 )
 
 const (
-	ValuePortName = "Value"
+	ValuePortName   = "Value"
+	DefaultPortName = "default"
 )
 
 type Boundary interface {
@@ -45,14 +46,17 @@ type InputNode struct {
 	PortType string
 
 	externalSource nodes.OutputPort
+	defaultPort    *inputNodeDefaultPort
 	version        int
 }
 
 func NewInputNode(portName, portType string) *InputNode {
-	return &InputNode{
+	n := &InputNode{
 		PortName: portName,
 		PortType: portType,
 	}
+	n.defaultPort = &inputNodeDefaultPort{node: n}
+	return n
 }
 
 func NewOutputNode(portName, portType string) *OutputNode {
@@ -122,7 +126,9 @@ func (n *InputNode) ExternalSource() nodes.OutputPort {
 }
 
 func (n *InputNode) Inputs() map[string]nodes.InputPort {
-	return nil
+	return map[string]nodes.InputPort{
+		DefaultPortName: n.defaultPort,
+	}
 }
 
 func (n *InputNode) Outputs() map[string]nodes.OutputPort {
@@ -181,11 +187,52 @@ func (p *inputNodeOutputPort) Version() int {
 	if p.node.externalSource != nil {
 		return p.node.externalSource.Version()
 	}
+	if def := p.node.defaultPort.Value(); def != nil {
+		return def.Version()
+	}
 	return p.node.version
 }
 
 func (p *inputNodeOutputPort) CurrentSource() nodes.OutputPort {
-	return p.node.externalSource
+	if p.node.externalSource != nil {
+		return p.node.externalSource
+	}
+	return p.node.defaultPort.Value()
+}
+
+// inputNodeDefaultPort is the optional default input on an Input boundary.
+// When the parent runtime instance leaves the matching port unset, Value
+// falls back to whatever is connected here.
+type inputNodeDefaultPort struct {
+	node      *InputNode
+	connected nodes.OutputPort
+}
+
+func (p *inputNodeDefaultPort) Node() nodes.Node {
+	return p.node
+}
+
+func (p *inputNodeDefaultPort) Name() string {
+	return DefaultPortName
+}
+
+func (p *inputNodeDefaultPort) Type() string {
+	return p.node.PortType
+}
+
+func (p *inputNodeDefaultPort) Clear() {
+	p.connected = nil
+	p.node.version++
+}
+
+func (p *inputNodeDefaultPort) Value() nodes.OutputPort {
+	return p.connected
+}
+
+func (p *inputNodeDefaultPort) Set(port nodes.OutputPort) error {
+	p.connected = port
+	p.node.version++
+	return nil
 }
 
 type OutputNode struct {

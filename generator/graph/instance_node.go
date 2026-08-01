@@ -3,6 +3,7 @@ package graph
 import (
 	"fmt"
 	"strings"
+	"sync"
 
 	"github.com/EliCDavis/polyform/generator/subgraph"
 	"github.com/EliCDavis/polyform/nodes"
@@ -28,17 +29,23 @@ func (p *subgraphInstanceInputPort) Type() string {
 }
 
 func (p *subgraphInstanceInputPort) Clear() {
+	p.subgraphNode.mu.Lock()
+	defer p.subgraphNode.mu.Unlock()
 	p.external = nil
-	_ = p.subgraphNode.syncInputToClone(p.portName, nil)
+	_ = p.subgraphNode.syncInputToCloneLocked(p.portName, nil)
 }
 
 func (p *subgraphInstanceInputPort) Value() nodes.OutputPort {
+	p.subgraphNode.mu.Lock()
+	defer p.subgraphNode.mu.Unlock()
 	return p.external
 }
 
 func (p *subgraphInstanceInputPort) Set(port nodes.OutputPort) error {
+	p.subgraphNode.mu.Lock()
+	defer p.subgraphNode.mu.Unlock()
 	p.external = port
-	return p.subgraphNode.syncInputToClone(p.portName, port)
+	return p.subgraphNode.syncInputToCloneLocked(p.portName, port)
 }
 
 type subgraphInstanceOutputPort struct {
@@ -98,6 +105,8 @@ type SubgraphInstanceNode struct {
 	inputs        map[string]nodes.InputPort
 	outputs       map[string]nodes.OutputPort
 	outputSources map[string]*subgraphInstanceOutputPort
+
+	mu sync.Mutex
 }
 
 func NewRuntimeNode(owner *Instance, subGraphID string) *SubgraphInstanceNode {
@@ -114,31 +123,47 @@ func (r *SubgraphInstanceNode) SubGraphID() string {
 }
 
 func (r *SubgraphInstanceNode) ensureClone() *Instance {
-	if r.clone == nil {
-		_ = r.rebuildClone()
+	r.mu.Lock()
+	if r.clone != nil {
+		c := r.clone
+		r.mu.Unlock()
+		return c
 	}
-	return r.clone
+	r.mu.Unlock()
+	_ = r.rebuildClone()
+	r.mu.Lock()
+	c := r.clone
+	r.mu.Unlock()
+	return c
 }
 
 func (r *SubgraphInstanceNode) rebuildClone() error {
-	externals := r.snapshotExternals()
+	r.mu.Lock()
+	externals := r.snapshotExternalsLocked()
+	r.mu.Unlock()
 
 	clone, err := r.owner.Root().cloneSubGraphDefinition(r.subGraphID)
 	if err != nil {
 		return err
 	}
+
+	r.mu.Lock()
+	defer r.mu.Unlock()
 	r.clone = clone
 
-	if err := r.applyExternals(externals); err != nil {
+	if err := r.applyExternalsLocked(externals); err != nil {
 		return err
 	}
-	_ = r.Outputs()
+	r.refreshOutputsLocked()
 	return nil
 }
 
 // renameBoundaryPort: boundary rename. Move map key first. Keep same port
 // object so wires still hold it.
 func (r *SubgraphInstanceNode) renameBoundaryPort(oldName, newName string, kind BoundaryPortKind) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
 	if oldName == "" || oldName == newName {
 		return
 	}
@@ -175,7 +200,7 @@ func (r *SubgraphInstanceNode) renameBoundaryPort(oldName, newName string, kind 
 	}
 }
 
-func (r *SubgraphInstanceNode) snapshotExternals() map[string]nodes.OutputPort {
+func (r *SubgraphInstanceNode) snapshotExternalsLocked() map[string]nodes.OutputPort {
 	if r.inputs == nil {
 		return nil
 	}
@@ -190,10 +215,10 @@ func (r *SubgraphInstanceNode) snapshotExternals() map[string]nodes.OutputPort {
 	return out
 }
 
-func (r *SubgraphInstanceNode) applyExternals(externals map[string]nodes.OutputPort) error {
-	r.Inputs() // refresh port map against current definition boundaries
+func (r *SubgraphInstanceNode) applyExternalsLocked(externals map[string]nodes.OutputPort) error {
+	r.refreshInputsLocked()
 	for name, port := range externals {
-		if err := r.syncInputToClone(name, port); err != nil {
+		if err := r.syncInputToCloneLocked(name, port); err != nil {
 			// Port may have been removed from the definition; drop the wire.
 			if sip, ok := r.inputs[name].(*subgraphInstanceInputPort); ok {
 				sip.external = nil
@@ -207,13 +232,12 @@ func (r *SubgraphInstanceNode) applyExternals(externals map[string]nodes.OutputP
 	return nil
 }
 
-func (r *SubgraphInstanceNode) syncInputToClone(portName string, port nodes.OutputPort) error {
-	clone := r.ensureClone()
-	if clone == nil {
+func (r *SubgraphInstanceNode) syncInputToCloneLocked(portName string, port nodes.OutputPort) error {
+	if r.clone == nil {
 		return fmt.Errorf("sub-graph %q has no clone", r.subGraphID)
 	}
 
-	for node := range clone.nodeIDs {
+	for node := range r.clone.nodeIDs {
 		inputBoundary, ok := subgraph.IsInputBoundary(node)
 		if !ok || inputBoundary.BoundaryPortName() != portName {
 			continue
@@ -237,13 +261,20 @@ func (r *SubgraphInstanceNode) Path() string {
 }
 
 func (r *SubgraphInstanceNode) Inputs() map[string]nodes.InputPort {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.refreshInputsLocked()
+	return copyInputPortMap(r.inputs)
+}
+
+func (r *SubgraphInstanceNode) refreshInputsLocked() {
 	if r.inputs == nil {
 		r.inputs = make(map[string]nodes.InputPort)
 	}
 
 	boundaryPorts, err := r.owner.CollectBoundaryPorts(r.subGraphID)
 	if err != nil {
-		return r.inputs
+		return
 	}
 
 	active := make(map[string]struct{})
@@ -270,11 +301,16 @@ func (r *SubgraphInstanceNode) Inputs() map[string]nodes.InputPort {
 			delete(r.inputs, name)
 		}
 	}
-
-	return r.inputs
 }
 
 func (r *SubgraphInstanceNode) Outputs() map[string]nodes.OutputPort {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.refreshOutputsLocked()
+	return copyOutputPortMap(r.outputs)
+}
+
+func (r *SubgraphInstanceNode) refreshOutputsLocked() {
 	if r.outputs == nil {
 		r.outputs = make(map[string]nodes.OutputPort)
 	}
@@ -284,7 +320,7 @@ func (r *SubgraphInstanceNode) Outputs() map[string]nodes.OutputPort {
 
 	boundaryPorts, err := r.owner.CollectBoundaryPorts(r.subGraphID)
 	if err != nil {
-		return r.outputs
+		return
 	}
 
 	active := make(map[string]struct{})
@@ -323,8 +359,22 @@ func (r *SubgraphInstanceNode) Outputs() map[string]nodes.OutputPort {
 			delete(r.outputSources, name)
 		}
 	}
+}
 
-	return r.outputs
+func copyInputPortMap(in map[string]nodes.InputPort) map[string]nodes.InputPort {
+	out := make(map[string]nodes.InputPort, len(in))
+	for k, v := range in {
+		out[k] = v
+	}
+	return out
+}
+
+func copyOutputPortMap(in map[string]nodes.OutputPort) map[string]nodes.OutputPort {
+	out := make(map[string]nodes.OutputPort, len(in))
+	for k, v := range in {
+		out[k] = v
+	}
+	return out
 }
 
 func (r *SubgraphInstanceNode) Description() string {
