@@ -31,6 +31,7 @@ export function VariableSection() {
             threeApp={editor?.threeApp}
           />
         ))}
+        {variables.length === 0 && <div>No Variables Defined</div>}
       </div>
       {editor && (
         <NewVariableModal

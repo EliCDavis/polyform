@@ -22,7 +22,7 @@ export function AppShell() {
         <div id="full-page">
           <ResizablePanels
             direction="horizontal"
-            initialFirstPercent={20}
+            initialFirstPercent={25}
             first={<Sidebar />}
             second={
               <div id="main-content">

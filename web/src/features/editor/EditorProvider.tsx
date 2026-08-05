@@ -122,14 +122,14 @@ function EditorBootstrap({
       );
 
       if (!hideStats) {
-        const stats = new Stats();
-        stats.dom.style.left = "unset";
-        stats.dom.style.right = "0";
-        container.appendChild(stats.dom);
-        updateLoop.addToUpdate({
-          name: "Stats",
-          loop: () => stats.update(),
-        });
+        // const stats = new Stats();
+        // stats.dom.style.left = "unset";
+        // stats.dom.style.right = "0";
+        // container.appendChild(stats.dom);
+        // updateLoop.addToUpdate({
+        //   name: "Stats",
+        //   loop: () => stats.update(),
+        // });
       }
 
       const schemaManager = new SchemaManager(requestManager);
@@ -212,6 +212,7 @@ function EditorBootstrap({
           renderer.setSize(w, h, false);
           threeApp.Composer.setSize(w, h);
           threeApp.LabelRenderer.setSize(w, h);
+          threeApp.ViewportGizmo.update();
         }
       }
 
@@ -223,6 +224,7 @@ function EditorBootstrap({
           threeApp.Composer.render(delta);
           producerViewManager.Render();
           threeApp.LabelRenderer.render(threeApp.Scene, threeApp.Camera);
+          threeApp.ViewportGizmo.render();
         },
       });
 

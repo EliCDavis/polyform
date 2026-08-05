@@ -167,6 +167,7 @@ select {
   height: 100%;
   background-color: #00212b;
   display: flex;
+  flex-direction: row;
 }
 
 #sidebar-content {
@@ -177,6 +178,12 @@ select {
   scrollbar-color: #196e6c #003847;
   scrollbar-width: thin;
   width: 100%;
+}
+
+#sidebar-section-icons {
+  width: 63px;
+  height: 100%;
+  background-color: #003847;
 }
 
 #main-content {
@@ -230,6 +237,7 @@ input {
   flex-grow: 1;
   min-width: 0;
   flex-basis: 0;
+  width: 95%;
 }
 
 input::-webkit-outer-spin-button,

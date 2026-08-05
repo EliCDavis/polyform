@@ -41,10 +41,12 @@
     "@types/react-dom": "^19.2.3",
     "@types/three": "^0.174.0",
     "@vitejs/plugin-react": "^4.7.0",
+    "lucide-react": "^1.28.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "rxjs": "^7.8.2",
     "three": "^0.174.0",
+    "three-viewport-gizmo": "^2.2.0",
     "vite": "^6.4.3",
     "zustand": "^5.0.14"
   }

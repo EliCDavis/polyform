@@ -112,3 +112,21 @@
   margin-right: 8px;
   white-space: nowrap;
 }
+
+.rendering-group {
+  margin-top: 16px;
+  padding-left: 12px;
+  border-left: 2px solid #003847;
+}
+
+.rendering-group-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.rendering-group-content.disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}

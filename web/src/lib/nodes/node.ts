@@ -120,7 +120,6 @@ export class PolyNodeController {
         nodeDefinition: NodeDefinition,
         serializableOutputTypes: Array<string>,
     ) {
-        // console.log(liteNode)
         this.flowNode = flowNode;
         this.id = id;
         this.app = app;
