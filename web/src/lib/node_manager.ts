@@ -631,6 +631,27 @@ export class NodeManager {
         this.nodesPublisher.register(category, nodeConfig);
     }
 
+    /** Adds a node of the given type (as returned by /node-types) to the graph, roughly centered in the current view. */
+    createNodeFromType(nodeType: string): void {
+        const publisherPath = this.nodeTypeToFlowNodePath.get(nodeType);
+        if (!publisherPath) {
+            console.error("No registered flow node config for node type", nodeType);
+            return;
+        }
+
+        const flowNode = this.nodesPublisher.create(publisherPath);
+        flowNode.setPosition(this.centerOfViewInGraphSpace());
+        this.nodeFlowGraph.addNode(flowNode);
+    }
+
+    private centerOfViewInGraphSpace(): { x: number, y: number } {
+        const camera = this.nodeFlowGraph.getCamera();
+        return {
+            x: (window.innerWidth / 2 - camera.position.x) / camera.zoom,
+            y: (window.innerHeight / 2 - camera.position.y) / camera.zoom,
+        };
+    }
+
     private boundaryNodeKind(nodeData: NodeInstance): BoundaryType | null {
         return subGraphBoundaryKind(nodeData) ?? null;
     }

@@ -165,10 +165,16 @@ function EditorBootstrap({
         schemaManager.refreshSchema("graph mutation");
       });
 
+      let hasCenteredInitialGraph = false;
       schemaManager.subscribe((g) => {
         producerViewManager.NewSchema(g);
         nodeManager.updateNodes(g);
         noteManager.schemaUpdate(g);
+
+        if (!hasCenteredInitialGraph) {
+          hasCenteredInitialGraph = true;
+          flowGraphInit.NodeFlowGraph.centerOnGraph();
+        }
       });
 
       schemaManager.refreshSchema("initial load");
