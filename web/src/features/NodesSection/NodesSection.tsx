@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { X } from "lucide-react";
 import type { NodeDefinition, NodeInput, NodeOutput } from "@/lib/schema";
 import { SUBGRAPH_INPUT_TYPE, SUBGRAPH_OUTPUT_TYPE } from "@/lib/portTypes";
 import { useEditorOptional } from "../editor/EditorContext";
@@ -8,26 +9,60 @@ const PORT_TYPE_PREFIXES = [
   "github.com/EliCDavis/vector/",
 ];
 
-function shortenPortType(type: string): string {
-  let arrAppend = "";
-  let cleanedType = type;
-  if (type.startsWith("[]")) {
-    cleanedType = type.slice(2);
-    arrAppend = "[]";
-  }
-
-  let pointerAppend = "";
-  if (type.startsWith("*")) {
-    cleanedType = type.slice(1);
-    pointerAppend = "*";
-  }
-
+function stripKnownPrefix(type: string): string {
   for (const prefix of PORT_TYPE_PREFIXES) {
-    if (cleanedType.startsWith(prefix)) {
-      return arrAppend + pointerAppend + cleanedType.slice(prefix.length);
+    if (type.startsWith(prefix)) {
+      return type.slice(prefix.length);
     }
   }
   return type;
+}
+
+/** Splits the contents of a generic type's brackets on top-level commas, ignoring commas nested inside their own brackets. */
+function splitGenericParams(params: string): string[] {
+  const parts: string[] = [];
+  let depth = 0;
+  let start = 0;
+  for (let i = 0; i < params.length; i++) {
+    const char = params[i];
+    if (char === "[") depth++;
+    else if (char === "]") depth--;
+    else if (char === "," && depth === 0) {
+      parts.push(params.slice(start, i));
+      start = i + 1;
+    }
+  }
+  parts.push(params.slice(start));
+  return parts;
+}
+
+function shortenPortType(type: string): string {
+  let prefixSymbols = "";
+  let rest = type;
+
+  if (rest.startsWith("[]")) {
+    prefixSymbols += "[]";
+    rest = rest.slice(2);
+  }
+  if (rest.startsWith("*")) {
+    prefixSymbols += "*";
+    rest = rest.slice(1);
+  }
+
+  const bracketIndex = rest.indexOf("[");
+  if (bracketIndex !== -1 && rest.endsWith("]")) {
+    const base = rest.slice(0, bracketIndex);
+    const params = splitGenericParams(rest.slice(bracketIndex + 1, -1));
+    return (
+      prefixSymbols +
+      stripKnownPrefix(base) +
+      "[" +
+      params.map(shortenPortType).join(",") +
+      "]"
+    );
+  }
+
+  return prefixSymbols + stripKnownPrefix(rest);
 }
 
 function buildSearchableText(def: NodeDefinition): string {
@@ -60,11 +95,18 @@ function PortList({
     <div className="node-catalog-ports">
       <span className="node-catalog-ports-title">{title}</span>
       {entries.map(([name, def]) => (
-        <div className="node-catalog-port" key={name}>
-          <span>{name}</span>
-          <span className="node-catalog-port-type">
-            {shortenPortType(def.type)}
-          </span>
+        <div className="node-catalog-port-entry" key={name}>
+          <div className="node-catalog-port">
+            <span>{name}</span>
+            <span className="node-catalog-port-type">
+              {shortenPortType(def.type)}
+            </span>
+          </div>
+          {def.description && (
+            <div className="node-catalog-port-description">
+              {def.description}
+            </div>
+          )}
         </div>
       ))}
     </div>
@@ -94,6 +136,11 @@ function NodeCatalogEntry({ def, onAdd }: NodeCatalogEntryProps) {
 
 function pluralize(count: number, noun: string): string {
   return `${count} ${noun}${count === 1 ? "" : "s"}`;
+}
+
+function formatCount(matches: number, total: number, noun: string): string {
+  if (matches === total) return pluralize(total, noun);
+  return `${matches} of ${pluralize(total, noun)}`;
 }
 
 interface SearchableNode {
@@ -160,14 +207,26 @@ export function NodesSection() {
     <>
       <div className="sidebar-header">Nodes</div>
       <div className="sidebar-section-content">
-        <input
-          type="text"
-          placeholder="Search nodes..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+        <div className="node-catalog-search">
+          <input
+            type="text"
+            placeholder="Search nodes..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          {search.length > 0 && (
+            <button
+              type="button"
+              className="icon-button node-catalog-search-clear"
+              onClick={() => setSearch("")}
+              aria-label="Clear search"
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
         <div className="node-catalog-result-count">
-          {totalMatchCount} of {pluralize(addableNodeTypes.length, "node")}
+          {formatCount(totalMatchCount, addableNodeTypes.length, "node")}
         </div>
         {filteredGroups.length === 0 && (
           <div className="variable-description">
@@ -179,7 +238,7 @@ export function NodesSection() {
             <div className="node-catalog-group-header">
               <span className="node-catalog-group-name">{group.path}</span>
               <span className="node-catalog-group-count">
-                {group.matches.length} of {pluralize(group.total, "node")}
+                {formatCount(group.matches.length, group.total, "node")}
               </span>
             </div>
             {group.matches.map(({ def }) => (

@@ -157,6 +157,29 @@
   font-weight: bold;
 }
 
+.node-catalog-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.node-catalog-search input {
+  width: 100%;
+  padding-right: 28px;
+}
+
+.node-catalog-search-clear {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #8fa8b0;
+}
+
+.node-catalog-search-clear:hover {
+  color: #ffffff;
+}
+
 .node-catalog-group-count {
   font-size: 11px;
   color: #8fa8b0;
@@ -191,16 +214,25 @@
   text-transform: uppercase;
 }
 
+.node-catalog-port-entry {
+  padding-left: 8px;
+}
+
 .node-catalog-port {
   display: flex;
   flex-direction: row;
   justify-content: space-between;
   gap: 8px;
-  padding-left: 8px;
 }
 
 .node-catalog-port-type {
   color: #8fa8b0;
   text-align: right;
   overflow-wrap: anywhere;
+}
+
+.node-catalog-port-description {
+  font-size: 11px;
+  color: #8fa8b0;
+  line-height: normal;
 }
