@@ -14,12 +14,20 @@ require (
 	github.com/EliCDavis/jbtf v0.2.0
 	github.com/EliCDavis/sfm v1.2.0
 	github.com/gorilla/websocket v1.5.3
+	github.com/modelcontextprotocol/go-sdk v1.3.1
+	github.com/nlepage/go-wasm-http-server/v2 v2.2.1
 )
 
 require (
+	github.com/fogleman/fauxgl v0.0.0-20250110135958-abf826acbbbd // indirect
+	github.com/fogleman/simplify v0.0.0-20170216171241-d32f302d5046 // indirect
+	github.com/google/jsonschema-go v0.4.2 // indirect
 	github.com/hack-pad/safejs v0.1.1 // indirect
 	github.com/nlepage/go-js-promise v1.1.0 // indirect
-	github.com/nlepage/go-wasm-http-server/v2 v2.2.1 // indirect
+	github.com/segmentio/asm v1.1.3 // indirect
+	github.com/segmentio/encoding v0.5.3 // indirect
+	github.com/yosida95/uritemplate/v3 v3.0.2 // indirect
+	golang.org/x/oauth2 v0.30.0 // indirect
 )
 
 require (
@@ -27,7 +35,7 @@ require (
 	github.com/EliCDavis/iter v1.0.2
 	github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
-	golang.org/x/sys v0.33.0 // indirect
+	golang.org/x/sys v0.35.0 // indirect
 	golang.org/x/term v0.32.0 // indirect
 )
 
