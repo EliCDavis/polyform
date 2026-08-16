@@ -340,5 +340,8 @@ func (n RemapToArrayNode[T]) Out(out *nodes.StructOutput[[]T]) {
 }
 
 func clamp[T vector.Number](t, minV, maxV T) T {
+	if minV > maxV {
+		minV, maxV = maxV, minV
+	}
 	return min(max(t, minV), maxV)
 }

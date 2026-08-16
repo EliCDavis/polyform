@@ -53,12 +53,12 @@ func SplineExlusive(curve curves.Spline, inbetween int) []trs.TRS {
 }
 
 type SplineNode struct {
-	Curve nodes.Output[curves.Spline]
-	Times nodes.Output[int]
+	Curve nodes.Output[curves.Spline] `description:"The curve to sample along."`
+	Times nodes.Output[int]           `description:"How many transforms to produce along the curve's length, including its start and end points."`
 }
 
 func (rnd SplineNode) Description() string {
-	return "Creates an array of TRS matrices by sampling the curve"
+	return "Produces Times transforms evenly spaced along a curve's length, including its endpoints, each rotated to face along the curve's tangent at that point."
 }
 
 func (r SplineNode) Out(out *nodes.StructOutput[[]trs.TRS]) {

@@ -54,10 +54,14 @@ func (l Line) TRS() []trs.TRS {
 }
 
 type LineNode struct {
-	Start     nodes.Output[vector3.Float64]
-	End       nodes.Output[vector3.Float64]
-	Samples   nodes.Output[int]  `description:"How many TRS matrices to produce"`
-	Exclusive nodes.Output[bool] `description:"If true, the start and end points are not included in the resulting array of TRS values"`
+	Start     nodes.Output[vector3.Float64] `description:"Position of the first sample. Defaults to the origin. Not included in the output at all if Exclusive is true and Samples is 1."`
+	End       nodes.Output[vector3.Float64] `description:"Position of the last sample. Defaults to the origin."`
+	Samples   nodes.Output[int]             `description:"How many TRS matrices to produce, evenly spaced between Start and End (inclusive unless Exclusive is true). Defaults to 0, clamped to 0 minimum."`
+	Exclusive nodes.Output[bool]            `description:"If true, the start and end points are not included in the resulting array of TRS values, only the evenly-spaced points strictly between them. Defaults to false."`
+}
+
+func (r LineNode) Description() string {
+	return "Produces Samples transforms spaced evenly along a straight line from Start to End, identity rotation."
 }
 
 func (r LineNode) Out(out *nodes.StructOutput[[]trs.TRS]) {

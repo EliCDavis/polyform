@@ -792,6 +792,67 @@ func TestNestedRuntimeTypeLoadsFromSubGraph(t *testing.T) {
 	assert.Len(t, freshOuter.Schema().Nodes, 1)
 }
 
+// TestApplyAppSchema_WiredNestedSubGraph_LoadOrderIndependent guards against a
+// regression where ApplyAppSchema populated subgraph definitions in Go's
+// randomized map iteration order. A subgraph (outer) that wires a value into
+// a node whose type is itself another subgraph (inner) needs inner's
+// definition populated first: instantiating a subgraph-type node eagerly
+// clones its referenced subgraph's *current* definition, and if that
+// definition hasn't had its own nodes loaded yet, the clone comes back with
+// no boundary ports, so wiring "Width" into it panics with "Node <id> has no
+// input Width". Runs many round-trips since map order varies per iteration.
+func TestApplyAppSchema_WiredNestedSubGraph_LoadOrderIndependent(t *testing.T) {
+	newFactory := func() *refutil.TypeFactory {
+		factory := &refutil.TypeFactory{}
+		factory.RegisterBuilder(subgraph.InputNodeTypeKey, func() any {
+			return subgraph.NewInputNode("", "")
+		})
+		factory.RegisterBuilder(subgraph.OutputNodeTypeKey, func() any {
+			return subgraph.NewOutputNode("", "")
+		})
+		factory.RegisterBuilder("Float64", func() any {
+			return &parameter.Float64{}
+		})
+		return factory
+	}
+
+	for i := 0; i < 50; i++ {
+		root := graph.New(graph.Config{TypeFactory: newFactory()})
+
+		require.NoError(t, root.CreateSubGraph("inner", "Inner", ""))
+		inner, err := root.SubGraphInstance("inner")
+		require.NoError(t, err)
+		_, inID, err := inner.CreateBoundaryNode(subgraph.InputNodeTypeKey, "float64")
+		require.NoError(t, err)
+		require.NoError(t, inner.SetBoundaryNodeInfo(inID, "Width"))
+		_, outID, err := inner.CreateBoundaryNode(subgraph.OutputNodeTypeKey, "float64")
+		require.NoError(t, err)
+		require.NoError(t, inner.SetBoundaryNodeInfo(outID, "Result"))
+		inner.ConnectNodes(inID, subgraph.ValuePortName, outID, subgraph.ValuePortName)
+
+		require.NoError(t, root.CreateSubGraph("outer", "Outer", ""))
+		outer, err := root.SubGraphInstance("outer")
+		require.NoError(t, err)
+		paramNode, paramID, err := outer.CreateNode("Float64")
+		require.NoError(t, err)
+		paramNode.(*parameter.Float64).CurrentValue = 2
+		_, runtimeID, err := outer.CreateNode(subgraph.RuntimeTypePath("inner"))
+		require.NoError(t, err)
+		outer.ConnectNodes(paramID, "Value", runtimeID, "Width")
+
+		payload, err := root.EncodeToAppSchema()
+		require.NoError(t, err)
+
+		fresh := graph.New(graph.Config{TypeFactory: newFactory()})
+		require.NoError(t, fresh.ApplyAppSchema(payload), "iteration %d", i)
+
+		freshOuter, err := fresh.SubGraphInstance("outer")
+		require.NoError(t, err)
+		got := nodes.GetNodeOutputPort[float64](freshOuter.Node(runtimeID), "Result").Value()
+		require.Equal(t, 2.0, got, "iteration %d", i)
+	}
+}
+
 func TestTwoRuntimeSubGraphInstancesIndependent(t *testing.T) {
 	inst := testInstanceWithSubGraphTypesExtended(t)
 	require.NoError(t, inst.CreateSubGraph("adder", "Adder", ""))

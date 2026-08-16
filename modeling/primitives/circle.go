@@ -101,7 +101,10 @@ func (c CircleNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	circle := Circle{
 		Radius: nodes.TryGetOutputValue(out, c.Radius, 0.5),
 		Sides:  nodes.TryGetOutputValue(out, c.Sides, 12),
-		UVs:    nodes.TryGetOutputReference(out, c.UVs, nil),
+		UVs: nodes.TryGetOutputReference(out, c.UVs, &CircleUVs{
+			Center: vector2.Fill(0.5),
+			Radius: 0.5,
+		}),
 	}
 	out.Set(circle.ToMesh())
 }

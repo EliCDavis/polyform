@@ -22,8 +22,12 @@ func Box(position, bounds vector3.Float64) sample.Vec3ToFloat {
 }
 
 type CubeNode struct {
-	Position nodes.Output[vector3.Float64]
-	Size     nodes.Output[vector3.Float64]
+	Position nodes.Output[vector3.Float64] `description:"Center of the box. Defaults to the origin."`
+	Size     nodes.Output[vector3.Float64] `description:"Full width/height/depth of the box. Defaults to (1, 1, 1)."`
+}
+
+func (cn CubeNode) Description() string {
+	return "An axis-aligned box."
 }
 
 func (cn CubeNode) Field(out *nodes.StructOutput[sample.Vec3ToFloat]) {

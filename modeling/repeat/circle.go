@@ -39,9 +39,13 @@ func Circle(times int, radius, revolutions float64) []trs.TRS {
 }
 
 type CircleNode struct {
-	Radius      nodes.Output[float64]
-	Revolutions nodes.Output[float64]
-	Times       nodes.Output[int]
+	Radius      nodes.Output[float64] `description:"Distance from the center to each point. Defaults to 0.5."`
+	Revolutions nodes.Output[float64] `description:"How many full loops the points sweep through before reaching Times copies. 1 spaces them evenly around a single circle; other values spiral them around more than once. Defaults to 1."`
+	Times       nodes.Output[int]     `description:"How many copies to place evenly around the circle. Defaults to 1."`
+}
+
+func (r CircleNode) Description() string {
+	return "Produces Times transforms evenly spaced around a circle in the XZ plane, each rotated to face outward/tangent to the circle."
 }
 
 func (r CircleNode) Out(out *nodes.StructOutput[[]trs.TRS]) {

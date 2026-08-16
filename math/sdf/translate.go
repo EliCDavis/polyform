@@ -14,8 +14,12 @@ func Translate(field sample.Vec3ToFloat, translation vector3.Float64) sample.Vec
 }
 
 type TranslateNode struct {
-	Position nodes.Output[vector3.Float64]
-	Field    nodes.Output[sample.Vec3ToFloat]
+	Position nodes.Output[vector3.Float64]    `description:"Offset to shift the field by. Defaults to no movement."`
+	Field    nodes.Output[sample.Vec3ToFloat] `description:"The field to move."`
+}
+
+func (cn TranslateNode) Description() string {
+	return "Moves an SDF field by a fixed offset."
 }
 
 func (cn TranslateNode) Result(out *nodes.StructOutput[sample.Vec3ToFloat]) {
@@ -39,8 +43,12 @@ func Transform(field sample.Vec3ToFloat, transformation trs.TRS) sample.Vec3ToFl
 }
 
 type TransformNode struct {
-	Transform nodes.Output[trs.TRS]
-	Field     nodes.Output[sample.Vec3ToFloat]
+	Transform nodes.Output[trs.TRS]            `description:"The translation/rotation/scale to apply. Defaults to identity (no change)."`
+	Field     nodes.Output[sample.Vec3ToFloat] `description:"The field to transform."`
+}
+
+func (cn TransformNode) Description() string {
+	return "Moves/rotates/scales an SDF field by a TRS transform."
 }
 
 func (cn TransformNode) Result(out *nodes.StructOutput[sample.Vec3ToFloat]) {

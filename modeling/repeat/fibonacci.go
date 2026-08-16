@@ -64,8 +64,12 @@ func FibonacciSphere(samples int, radius float64) []trs.TRS {
 }
 
 type FibonacciSphereNode struct {
-	Count  nodes.Output[int]
-	Radius nodes.Output[float64]
+	Count  nodes.Output[int]     `description:"Number of points to place. Defaults to 10."`
+	Radius nodes.Output[float64] `description:"Radius of the sphere the points sit on. Defaults to 1."`
+}
+
+func (fpnd FibonacciSphereNode) Description() string {
+	return "Distributes Count points roughly evenly across the surface of a sphere using a Fibonacci/golden-angle spiral, each rotated to face outward from the sphere's center."
 }
 
 func (fpnd FibonacciSphereNode) Out(out *nodes.StructOutput[[]trs.TRS]) {
@@ -75,8 +79,12 @@ func (fpnd FibonacciSphereNode) Out(out *nodes.StructOutput[[]trs.TRS]) {
 }
 
 type FibonacciSpiralNode struct {
-	Count  nodes.Output[int]
-	Radius nodes.Output[float64]
+	Count  nodes.Output[int]     `description:"Number of points to place. Defaults to 10."`
+	Radius nodes.Output[float64] `description:"Radius of the outermost point of the spiral (the spiral grows from the center out to this radius). Defaults to 1."`
+}
+
+func (fpnd FibonacciSpiralNode) Description() string {
+	return "Distributes Count points across a flat (XZ-plane) golden-angle spiral, spreading from the center out to Radius. Each point is rotated to face outward, tangent to the spiral."
 }
 
 func (fpnd FibonacciSpiralNode) Out(out *nodes.StructOutput[[]trs.TRS]) {

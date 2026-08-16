@@ -85,7 +85,7 @@ func (a *Instance) ImportSubGraphDefinitions(payload []byte) (ImportSubGraphsRes
 		Imported: make([]ImportedSubGraph, 0, len(oldIDs)),
 	}
 
-	for _, oldID := range oldIDs {
+	for _, oldID := range subGraphLoadOrder(appSchema.SubGraphs) {
 		newID := remap[oldID]
 		remapped, err := remapSubGraphDefTypes(appSchema.SubGraphs[oldID], remap)
 		if err != nil {

@@ -59,12 +59,31 @@ func (tn *TilingNoise) init() {
 	}
 }
 
+// wrappedIndex reduces a into [0, per) and then into [0, size) so it can
+// safely index into tn.perm (length 2*size) regardless of how large per
+// (the requested tiling period) grows relative to the permutation table's
+// fixed period, and regardless of the sign of a.
+func wrappedIndex(a, per, size int) int {
+	r := a % per
+	if r < 0 {
+		r += per
+	}
+	r %= size
+	if r < 0 {
+		r += size
+	}
+	return r
+}
+
 func (tn *TilingNoise) surflet(v vector2.Float64, g vector2.Int, per int) float64 {
 	dist := v.Sub(g.ToFloat64()).Abs()
 	polyX := 1 - (6 * math.Pow(dist.X(), 5)) + (15 * math.Pow(dist.X(), 4)) - (10 * math.Pow(dist.X(), 3))
 	polyY := 1 - (6 * math.Pow(dist.Y(), 5)) + (15 * math.Pow(dist.Y(), 4)) - (10 * math.Pow(dist.Y(), 3))
 
-	hashed := tn.perm[tn.perm[g.X()%per]+(g.Y()%per)]
+	size := len(tn.dirs)
+	gx := wrappedIndex(g.X(), per, size)
+	gy := wrappedIndex(g.Y(), per, size)
+	hashed := tn.perm[tn.perm[gx]+gy]
 
 	hashedDir := tn.dirs[hashed]
 	grad := ((v.X() - float64(g.X())) * hashedDir.X()) + ((v.Y() - float64(g.Y())) * hashedDir.Y())
@@ -82,6 +101,9 @@ func (tn *TilingNoise) NoiseAtPermutation(v vector2.Float64, per int) float64 {
 func (tn *TilingNoise) Noise(x, y int) float64 {
 	val := 0.
 	sf := int(float64(tn.size) * tn.frequncy)
+	if sf < 1 {
+		sf = 1
+	}
 	octaveFreq := 1.
 	octaveStrength := 1.
 	for range tn.octaves {

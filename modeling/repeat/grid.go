@@ -69,10 +69,14 @@ func (g Grid) Vector2() []vector2.Float64 {
 }
 
 type GridNode struct {
-	Rows    nodes.Output[int]
-	Columns nodes.Output[int]
-	Width   nodes.Output[float64]
-	Height  nodes.Output[float64]
+	Rows    nodes.Output[int]     `description:"Number of rows (spread along Z). Defaults to 1, clamped to 0 minimum."`
+	Columns nodes.Output[int]     `description:"Number of columns (spread along X). Defaults to 1, clamped to 0 minimum."`
+	Width   nodes.Output[float64] `description:"Total span of the grid along X, center to center of the outer columns. Ignored (no spacing) if Columns is 1. Defaults to 1, clamped to 0 minimum."`
+	Height  nodes.Output[float64] `description:"Total span of the grid along Z, center to center of the outer rows. Ignored (no spacing) if Rows is 1. Defaults to 1, clamped to 0 minimum."`
+}
+
+func (g GridNode) Description() string {
+	return "Produces Rows x Columns positions arranged in a regular 2D grid centered on the origin, lying flat in the XZ plane."
 }
 
 func (g GridNode) grid(recorder nodes.ExecutionRecorder) Grid {
@@ -82,6 +86,10 @@ func (g GridNode) grid(recorder nodes.ExecutionRecorder) Grid {
 		Width:   max(nodes.TryGetOutputValue(recorder, g.Width, 1), 0),
 		Height:  max(nodes.TryGetOutputValue(recorder, g.Height, 1), 0),
 	}
+}
+
+func (g GridNode) TRSDescription() string {
+	return "Full transforms (identity rotation/scale) at each grid position."
 }
 
 func (g GridNode) TRS(out *nodes.StructOutput[[]trs.TRS]) {

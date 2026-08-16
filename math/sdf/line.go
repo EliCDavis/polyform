@@ -71,9 +71,13 @@ func VarryingThicknessLine(linePoints []LinePoint) sample.Vec3ToFloat {
 }
 
 type LineNode struct {
-	Start  nodes.Output[vector3.Float64]
-	End    nodes.Output[vector3.Float64]
-	Radius nodes.Output[float64]
+	Start  nodes.Output[vector3.Float64] `description:"One end of the line segment. Defaults to the origin."`
+	End    nodes.Output[vector3.Float64] `description:"The other end of the line segment. Defaults to (1, 1, 1)."`
+	Radius nodes.Output[float64]         `description:"Radius of the capsule around the segment. Defaults to 0.25."`
+}
+
+func (cn LineNode) Description() string {
+	return "A line segment with constant thickness rounded at both ends."
 }
 
 func (cn LineNode) Field(out *nodes.StructOutput[sample.Vec3ToFloat]) {
@@ -85,8 +89,12 @@ func (cn LineNode) Field(out *nodes.StructOutput[sample.Vec3ToFloat]) {
 }
 
 type LinesNode struct {
-	Points nodes.Output[[]vector3.Float64]
-	Radius nodes.Output[float64]
+	Points nodes.Output[[]vector3.Float64] `description:"Points to connect in order; each consecutive pair becomes a capsule segment, and all segments are unioned together. 0 points produces an empty field; 1 point, or 2 identical points, produces a single sphere."`
+	Radius nodes.Output[float64]           `description:"Radius of the capsule around every segment. Defaults to 0.25."`
+}
+
+func (cn LinesNode) Description() string {
+	return "A chain of capsule segments connecting a list of points in order, unioned into one field."
 }
 
 func (cn LinesNode) Field(out *nodes.StructOutput[sample.Vec3ToFloat]) {

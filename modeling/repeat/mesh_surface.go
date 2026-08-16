@@ -11,14 +11,12 @@ import (
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/vector/vector2"
-	"github.com/EliCDavis/vector/vector3"
 )
 
 type MeshSurface struct {
 	Mesh      modeling.Mesh
 	Attribute string
 	Samples   int
-	Up        vector3.Float64
 }
 
 func phi(d int) float64 {
@@ -85,10 +83,13 @@ func (ms MeshSurface) TRS() []trs.TRS {
 }
 
 type SampleMeshSurfaceNode struct {
-	Mesh      nodes.Output[modeling.Mesh]
-	Attribute nodes.Output[string]
-	Samples   nodes.Output[int]
-	Up        nodes.Output[vector3.Float64]
+	Mesh      nodes.Output[modeling.Mesh] `description:"The mesh to scatter points across. Must have triangle topology."`
+	Attribute nodes.Output[string]        `description:"Which mesh attribute to sample area/position/normal from. Defaults to modeling.PositionAttribute (\"Position\")."`
+	Samples   nodes.Output[int]           `description:"How many points to scatter, distributed so larger triangles get proportionally more samples (uniform per unit area, not per triangle). Defaults to 0."`
+}
+
+func (rnd SampleMeshSurfaceNode) Description() string {
+	return "Scatters Samples points across the surface of Mesh, weighted by triangle area, each rotated to face along the surface normal at that point. Non-deterministic — every call produces a different scatter."
 }
 
 func (rnd SampleMeshSurfaceNode) Out(out *nodes.StructOutput[[]trs.TRS]) {
@@ -106,7 +107,6 @@ func (rnd SampleMeshSurfaceNode) Out(out *nodes.StructOutput[[]trs.TRS]) {
 		Mesh:      mesh,
 		Attribute: nodes.TryGetOutputValue(out, rnd.Attribute, modeling.PositionAttribute),
 		Samples:   nodes.TryGetOutputValue(out, rnd.Samples, 0),
-		Up:        nodes.TryGetOutputValue(out, rnd.Up, vector3.Up[float64]()),
 	}
 	out.Set(surface.TRS())
 }

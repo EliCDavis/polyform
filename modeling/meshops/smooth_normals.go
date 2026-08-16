@@ -132,7 +132,11 @@ func SmoothNormalsImplicitWeld(m modeling.Mesh, distance float64) modeling.Mesh 
 }
 
 type SmoothNormalsNode struct {
-	Mesh nodes.Output[modeling.Mesh]
+	Mesh nodes.Output[modeling.Mesh] `description:"The mesh to recompute normals for."`
+}
+
+func (snn SmoothNormalsNode) Description() string {
+	return "Recomputes smooth per-vertex normals by averaging the face normals of every triangle touching each vertex. Vertices are only grouped together if their positions are exactly identical."
 }
 
 func (snn SmoothNormalsNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
@@ -151,8 +155,12 @@ func (snn SmoothNormalsNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 }
 
 type SmoothNormalsImplicitWeldNode struct {
-	Mesh     nodes.Output[modeling.Mesh]
-	Distance nodes.Output[float64]
+	Mesh     nodes.Output[modeling.Mesh] `description:"The mesh to recompute normals for."`
+	Distance nodes.Output[float64]       `description:"Vertices within this distance of each other have their face normals averaged together, even if their positions aren't exactly identical. Defaults to 0.01."`
+}
+
+func (snn SmoothNormalsImplicitWeldNode) Description() string {
+	return "Recomputes smooth per-vertex normals, welding together normals from any vertices within Distance of each other, not just exactly-identical positions."
 }
 
 func (snn SmoothNormalsImplicitWeldNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
@@ -169,6 +177,6 @@ func (snn SmoothNormalsImplicitWeldNode) Out(out *nodes.StructOutput[modeling.Me
 
 	out.Set(SmoothNormalsImplicitWeld(
 		mesh,
-		nodes.TryGetOutputValue(out, snn.Distance, 0.0001),
+		max(0, nodes.TryGetOutputValue(out, snn.Distance, 0.01)),
 	))
 }

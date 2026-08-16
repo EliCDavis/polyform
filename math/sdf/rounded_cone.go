@@ -64,10 +64,14 @@ func RoundedCone(a, b vector3.Float64, r1, r2 float64) sample.Vec3ToFloat {
 }
 
 type RoundedConeNode struct {
-	A       nodes.Output[vector3.Float64]
-	B       nodes.Output[vector3.Float64]
-	Radius1 nodes.Output[float64]
-	Radius2 nodes.Output[float64]
+	A       nodes.Output[vector3.Float64] `description:"One end of the cone's axis. Defaults to the origin."`
+	B       nodes.Output[vector3.Float64] `description:"The other end of the cone's axis. Defaults to (0, 1, 0)."`
+	Radius1 nodes.Output[float64]         `description:"Radius at A. Defaults to 1."`
+	Radius2 nodes.Output[float64]         `description:"Radius at B. Defaults to 0.1."`
+}
+
+func (cn RoundedConeNode) Description() string {
+	return "A capsule-like shape between two points with independent radii at each end. Degenerates to a sphere if A equals B."
 }
 
 func (cn RoundedConeNode) Field(out *nodes.StructOutput[sample.Vec3ToFloat]) {

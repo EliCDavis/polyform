@@ -23,8 +23,12 @@ func init() {
 }
 
 type PositionNode struct {
-	Spline   nodes.Output[Spline]
-	Distance nodes.Output[float64] `description:"distance along the spline where the point lies"`
+	Spline   nodes.Output[Spline]  `description:"The spline to sample."`
+	Distance nodes.Output[float64] `description:"Distance along the spline, from 0 at the start. Defaults to 0."`
+}
+
+func (tn PositionNode) Description() string {
+	return "The position at a given distance along a spline."
 }
 
 func (tn PositionNode) Position(out *nodes.StructOutput[vector3.Float64]) {
@@ -35,8 +39,12 @@ func (tn PositionNode) Position(out *nodes.StructOutput[vector3.Float64]) {
 }
 
 type PositionsForArrayNode struct {
-	Spline    nodes.Output[Spline]
-	Distances nodes.Output[[]float64] `description:"distances along the spline where the points lie"`
+	Spline    nodes.Output[Spline]    `description:"The spline to sample."`
+	Distances nodes.Output[[]float64] `description:"Distances along the spline to sample, one per output point."`
+}
+
+func (tn PositionsForArrayNode) Description() string {
+	return "Samples a spline's position at each given distance."
 }
 
 func (tn PositionsForArrayNode) Position(out *nodes.StructOutput[[]vector3.Float64]) {
@@ -62,7 +70,11 @@ func (tn PositionsForArrayNode) Position(out *nodes.StructOutput[[]vector3.Float
 }
 
 type LengthNode struct {
-	Spline nodes.Output[Spline]
+	Spline nodes.Output[Spline] `description:"The spline to measure."`
+}
+
+func (ln LengthNode) Description() string {
+	return "Total arc length of a spline."
 }
 
 func (ln LengthNode) Out(out *nodes.StructOutput[float64]) {
@@ -73,8 +85,12 @@ func (ln LengthNode) Out(out *nodes.StructOutput[float64]) {
 }
 
 type TangentNode struct {
-	Spline   nodes.Output[Spline]
-	Distance nodes.Output[float64] `description:"distance the point is along the spline where we take the tangent"`
+	Spline   nodes.Output[Spline]  `description:"The spline to sample."`
+	Distance nodes.Output[float64] `description:"Distance along the spline, from 0 at the start. Defaults to 0."`
+}
+
+func (tn TangentNode) Description() string {
+	return "The normalized direction a spline is heading at a given distance."
 }
 
 func (tn TangentNode) Tangent(out *nodes.StructOutput[vector3.Float64]) {
@@ -85,8 +101,12 @@ func (tn TangentNode) Tangent(out *nodes.StructOutput[vector3.Float64]) {
 }
 
 type TangentsForArrayNode struct {
-	Spline nodes.Output[Spline]
-	Times  nodes.Output[[]float64] `description:"distances the points are along the spline where we take the tangents"`
+	Spline nodes.Output[Spline]    `description:"The spline to sample."`
+	Times  nodes.Output[[]float64] `description:"Distances along the spline to sample, one per output tangent."`
+}
+
+func (tn TangentsForArrayNode) Description() string {
+	return "Samples a spline's tangent direction at each given distance."
 }
 
 func (tn TangentsForArrayNode) Tangents(out *nodes.StructOutput[[]vector3.Float64]) {

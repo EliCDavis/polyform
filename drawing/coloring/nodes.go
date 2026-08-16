@@ -42,9 +42,13 @@ func init() {
 }
 
 type InterpolateNode struct {
-	A    nodes.Output[Color]
-	B    nodes.Output[Color]
-	Time nodes.Output[float64]
+	A    nodes.Output[Color]   `description:"Color at Time=0."`
+	B    nodes.Output[Color]   `description:"Color at Time=1."`
+	Time nodes.Output[float64] `description:"Blend factor between A and B, 0 to 1. Defaults to 0.5"`
+}
+
+func (n InterpolateNode) Description() string {
+	return "Linearly interpolates between two colors."
 }
 
 func (n InterpolateNode) Out(out *nodes.StructOutput[Color]) {
@@ -65,14 +69,18 @@ func (n InterpolateNode) Out(out *nodes.StructOutput[Color]) {
 
 	out.Set(nodes.GetOutputValue(out, n.A).Lerp(
 		nodes.GetOutputValue(out, n.B),
-		nodes.TryGetOutputValue(out, n.Time, 0),
+		nodes.TryGetOutputValue(out, n.Time, 0.5),
 	))
 }
 
 type InterpolateToArrayNode struct {
-	A    nodes.Output[Color]
-	B    nodes.Output[Color]
-	Time nodes.Output[[]float64]
+	A    nodes.Output[Color]     `description:"Color at Time=0."`
+	B    nodes.Output[Color]     `description:"Color at Time=1."`
+	Time nodes.Output[[]float64] `description:"One blend factor per output color, each 0 to 1."`
+}
+
+func (n InterpolateToArrayNode) Description() string {
+	return "Linearly interpolates between two colors, once per entry in Time."
 }
 
 func (n InterpolateToArrayNode) Out(out *nodes.StructOutput[[]Color]) {

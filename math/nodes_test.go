@@ -407,6 +407,14 @@ func TestRemapToArrayNode(t *testing.T) {
 			value:  []float64{-1, 0, 1},
 			result: []float64{0, 5, 10},
 		},
+		"-1,1 => 10, 0 (descending out range)": {
+			inMin:  -1,
+			inMax:  1,
+			outMin: 10,
+			outMax: 0,
+			value:  []float64{-1, 0, 1},
+			result: []float64{10, 5, 0},
+		},
 	}
 
 	for name, tc := range tests {

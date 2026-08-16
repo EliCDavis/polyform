@@ -20,7 +20,7 @@ func CutSphere(position vector3.Float64, radius, cutDistance float64) sample.Vec
 		}
 
 		if q.X() < w {
-			return q.Y() - q.Y()
+			return cutDistance - q.Y()
 		}
 
 		return q.Sub(vector2.New(w, cutDistance)).Length()
@@ -28,9 +28,13 @@ func CutSphere(position vector3.Float64, radius, cutDistance float64) sample.Vec
 }
 
 type CutSphereNode struct {
-	Position    nodes.Output[vector3.Float64]
-	Radius      nodes.Output[float64]
-	CutDistance nodes.Output[float64]
+	Position    nodes.Output[vector3.Float64] `description:"Center of the uncut sphere. Defaults to the origin."`
+	Radius      nodes.Output[float64]         `description:"Radius of the sphere before cutting. Defaults to 0.5."`
+	CutDistance nodes.Output[float64]         `description:"Height (along +Y from Position) of the flat cut; the lower/larger portion of the sphere is kept. 0 cuts through the center; must be less than Radius. Defaults to 0.25."`
+}
+
+func (cn CutSphereNode) Description() string {
+	return "A sphere with a flat cap sliced off at a given height."
 }
 
 func (cn CutSphereNode) Field(out *nodes.StructOutput[sample.Vec3ToFloat]) {

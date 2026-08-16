@@ -279,11 +279,15 @@ func (c Cube) calcUVs() []vector2.Float64 {
 }
 
 type CubeNode struct {
-	Width      nodes.Output[float64]
-	Height     nodes.Output[float64]
-	Depth      nodes.Output[float64]
-	Dimensions nodes.Output[int]
-	UVs        nodes.Output[CubeUVs]
+	Width      nodes.Output[float64] `description:"Full size along X (left/right). Defaults to 1."`
+	Height     nodes.Output[float64] `description:"Full size along Y (up/down). Defaults to 1."`
+	Depth      nodes.Output[float64] `description:"Full size along Z (front/back). Defaults to 1."`
+	Dimensions nodes.Output[int]     `description:"Subdivisions per face edge. Defaults to 1 (a single quad per face)."`
+	UVs        nodes.Output[CubeUVs] `description:"Per-face UV layout. Defaults to a 6-strip atlas if unset."`
+}
+
+func (c CubeNode) Description() string {
+	return "An axis-aligned box, centered on the origin, built from 6 quads."
 }
 
 func (c CubeNode) Out(out *nodes.StructOutput[modeling.Mesh]) {

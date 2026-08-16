@@ -32,8 +32,12 @@ func RandomPointsInSphere(radius float64, count int) []vector3.Float64 {
 }
 
 type RandomPointsInSphereNode struct {
-	Radius nodes.Output[float64] `description:"Radius of the sphere containing the random points"`
-	Points nodes.Output[int]     `description:"number of points to generate"`
+	Radius nodes.Output[float64] `description:"Radius of the sphere containing the random points. Defaults to 0.5."`
+	Points nodes.Output[int]     `description:"number of points to generate. Defaults to 1. Must not be negative."`
+}
+
+func (g RandomPointsInSphereNode) Description() string {
+	return "Scatters Points points uniformly at random inside a solid sphere of radius Radius, not just on its surface. Non-deterministic — every call produces a different scatter."
 }
 
 func (g RandomPointsInSphereNode) points(recorder nodes.ExecutionRecorder) []vector3.Float64 {

@@ -424,9 +424,13 @@ func (crc *CatmullRomSpline) At(distance float64) vector3.Float64 {
 }
 
 type CatmullRomSplineNode struct {
-	Points nodes.Output[[]vector3.Float64] `description:"points that form the curve"`
-	Alpha  nodes.Output[float64]           `description:"0.5 for the centripetal spline, 0.0 for the uniform spline, 1.0 for the chordal spline"`
-	Closed nodes.Output[bool]              `description:"whether or not to close the curve to form a loop"`
+	Points nodes.Output[[]vector3.Float64] `description:"Control points the curve passes through, in order. Fewer than 2 points produces a degenerate spline."`
+	Alpha  nodes.Output[float64]           `description:"Interpolation parameterization: 0 for uniform, 0.5 for centripetal, 1 for chordal. Defaults to 0."`
+	Closed nodes.Output[bool]              `description:"If true, the curve loops back from the last point to the first instead of ending. Defaults to false."`
+}
+
+func (r CatmullRomSplineNode) Description() string {
+	return "A smooth spline that passes through every given Points control point, in order."
 }
 
 func (r CatmullRomSplineNode) Out(out *nodes.StructOutput[Spline]) {

@@ -15,12 +15,12 @@ func Mesh(mesh modeling.Mesh, transforms []trs.TRS) modeling.Mesh {
 }
 
 type MeshNode struct {
-	Mesh       nodes.Output[modeling.Mesh]
-	Transforms nodes.Output[[]trs.TRS]
+	Mesh       nodes.Output[modeling.Mesh] `description:"The mesh to duplicate. Empty mesh if unconnected."`
+	Transforms nodes.Output[[]trs.TRS]     `description:"One transform per copy to place. If unconnected, Mesh passes through unchanged (one copy, untransformed)."`
 }
 
 func (rnd MeshNode) Description() string {
-	return "Duplicates and transforms the input mesh for every TRS provided"
+	return "Duplicates Mesh once per entry in Transforms and bakes every copy into one combined mesh."
 }
 
 func (rnd MeshNode) Out(out *nodes.StructOutput[modeling.Mesh]) {

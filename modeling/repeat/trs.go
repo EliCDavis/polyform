@@ -16,12 +16,12 @@ func TRS(input, transforms []trs.TRS) []trs.TRS {
 }
 
 type TRSNode struct {
-	Input      nodes.Output[[]trs.TRS]
-	Transforms nodes.Output[[]trs.TRS]
+	Input      nodes.Output[[]trs.TRS] `description:"The base set of transforms to duplicate. Empty output if unconnected."`
+	Transforms nodes.Output[[]trs.TRS] `description:"One outer transform per group. Input is copied once per entry here and each copy is further transformed by it. If unconnected, Input passes through unchanged."`
 }
 
 func (rnd TRSNode) Description() string {
-	return "Duplicates the input transforms and transforms it for every TRS provided"
+	return "Combines two transform lists by cross product: every transform in Input is duplicated once per entry in Transforms, with that entry applied on top — producing len(Input) * len(Transforms) results."
 }
 
 func (rnd TRSNode) Out(out *nodes.StructOutput[[]trs.TRS]) {

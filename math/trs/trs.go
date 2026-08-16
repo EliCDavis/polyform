@@ -143,6 +143,12 @@ func (trs TRS) TransformInPlace(in []vector3.Float64) {
 func (trs TRS) LookAt(positionToLookAt vector3.Float64) TRS {
 	forward := positionToLookAt.Sub(trs.position).Normalized()
 	up := vector3.Up[float64]()
+	if math.Abs(forward.Dot(up)) > 0.9999 {
+		// forward is (anti-)parallel to the default up axis, so
+		// forward.Cross(up) degenerates to a zero vector and normalizing it
+		// produces NaN. Fall back to a different reference axis.
+		up = vector3.Right[float64]()
+	}
 	right := forward.Cross(up).Normalized()
 	up = forward.Cross(right).Normalized()
 

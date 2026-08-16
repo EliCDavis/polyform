@@ -2,6 +2,7 @@ package noise
 
 import (
 	"github.com/EliCDavis/polyform/generator"
+	"github.com/EliCDavis/polyform/math/sample"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
 	"github.com/EliCDavis/vector/vector2"
@@ -14,6 +15,7 @@ func init() {
 	refutil.RegisterType[nodes.Struct[Perlin1DNode]](factory)
 	refutil.RegisterType[nodes.Struct[Perlin2DNode]](factory)
 	refutil.RegisterType[nodes.Struct[Perlin3DNode]](factory)
+	refutil.RegisterType[nodes.Struct[Perlin3DFieldNode]](factory)
 
 	generator.RegisterTypes(factory)
 }
@@ -88,4 +90,20 @@ func (cn Perlin3DNode) Out(out *nodes.StructOutput[[]float64]) {
 		values[i] = Perlin3D(t.MultByVector(frequency).Add(shift)) * scale
 	}
 	out.Set(values)
+}
+
+type Perlin3DFieldNode struct {
+	Amplitude nodes.Output[float64]         `description:"Scales the noise's output range. Defaults to 1."`
+	Frequency nodes.Output[vector3.Float64] `description:"Scales input position before sampling. Defaults to (1,1,1)."`
+	Shift     nodes.Output[vector3.Float64] `description:"Offset added to position before sampling. Defaults to (0,0,0)."`
+}
+
+func (cn Perlin3DFieldNode) Field(out *nodes.StructOutput[sample.Vec3ToFloat]) {
+	amplitude := nodes.TryGetOutputValue(out, cn.Amplitude, 1.)
+	frequency := nodes.TryGetOutputValue(out, cn.Frequency, vector3.One[float64]())
+	shift := nodes.TryGetOutputValue(out, cn.Shift, vector3.Zero[float64]())
+
+	out.Set(func(v vector3.Float64) float64 {
+		return Perlin3D(v.MultByVector(frequency).Add(shift)) * amplitude
+	})
 }

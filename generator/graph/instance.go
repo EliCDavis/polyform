@@ -618,8 +618,8 @@ func (a *Instance) ApplyAppSchema(jsonPayload []byte) error {
 		a.profiles[profile] = data.Data
 	}
 
-	for subGraphID, subGraphDef := range appSchema.SubGraphs {
-		err = a.loadSubGraphDefinition(subGraphID, subGraphDef, decoder)
+	for _, subGraphID := range subGraphLoadOrder(appSchema.SubGraphs) {
+		err = a.loadSubGraphDefinition(subGraphID, appSchema.SubGraphs[subGraphID], decoder)
 		if err != nil {
 			return err
 		}

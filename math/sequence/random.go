@@ -7,9 +7,13 @@ import (
 )
 
 type RandomFloatNode struct {
-	Min     nodes.Output[float64]
-	Max     nodes.Output[float64]
-	Samples nodes.Output[int]
+	Min     nodes.Output[float64] `description:"Lower bound of the random range, inclusive. Defaults to 0."`
+	Max     nodes.Output[float64] `description:"Upper bound of the random range, exclusive. Defaults to 1."`
+	Samples nodes.Output[int]     `description:"How many values to produce. Defaults to 0."`
+}
+
+func (snd RandomFloatNode) Description() string {
+	return "Produces Samples random float64 values in [Min, Max). Uses a fixed seed — the same inputs always produce the same output."
 }
 
 func (snd RandomFloatNode) Out(out *nodes.StructOutput[[]float64]) {
@@ -32,7 +36,11 @@ func (snd RandomFloatNode) Out(out *nodes.StructOutput[[]float64]) {
 }
 
 type RandomBoolNode struct {
-	Samples nodes.Output[int]
+	Samples nodes.Output[int] `description:"How many values to produce. Defaults to 0."`
+}
+
+func (snd RandomBoolNode) Description() string {
+	return "Produces Samples random bool values (~50/50). Uses a fixed seed — the same inputs always produce the same output."
 }
 
 func (snd RandomBoolNode) Out(out *nodes.StructOutput[[]bool]) {

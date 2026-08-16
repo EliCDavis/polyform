@@ -22,9 +22,13 @@ func RoundedBox(position, bounds vector3.Float64, roundness float64) sample.Vec3
 }
 
 type RoundCubeNode struct {
-	Position  nodes.Output[vector3.Float64]
-	Size      nodes.Output[vector3.Float64]
-	Roundness nodes.Output[float64]
+	Position  nodes.Output[vector3.Float64] `description:"Center of the box. Defaults to the origin."`
+	Size      nodes.Output[vector3.Float64] `description:"Full width/height/depth of the box before rounding. Defaults to (1, 1, 1)."`
+	Roundness nodes.Output[float64]         `description:"Radius of the fillet applied to every edge and corner. Defaults to 0.1."`
+}
+
+func (cn RoundCubeNode) Description() string {
+	return "An axis-aligned box with rounded edges and corners."
 }
 
 func (cn RoundCubeNode) Field(out *nodes.StructOutput[sample.Vec3ToFloat]) {

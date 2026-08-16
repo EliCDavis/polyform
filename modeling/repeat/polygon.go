@@ -52,9 +52,13 @@ func Polygon(times, sides int, radius float64) []trs.TRS {
 }
 
 type polygonNode struct {
-	Radius nodes.Output[float64]
-	Sides  nodes.Output[int]
-	Times  nodes.Output[int]
+	Radius nodes.Output[float64] `description:"Distance from the center to each of the polygon's corners. Defaults to 0."`
+	Sides  nodes.Output[int]     `description:"Number of corners the polygon has (3 = triangle, 4 = square, ...). Defaults to 1, clamped to 3 minimum."`
+	Times  nodes.Output[int]     `description:"How many copies to place evenly spaced (by arc length) around the polygon's perimeter, including across its corners. Defaults to 1, clamped to 0 minimum."`
+}
+
+func (r polygonNode) Description() string {
+	return "Produces Times transforms evenly spaced by distance around the perimeter of a regular Sides-cornered polygon, each rotated to face outward from the nearest edge."
 }
 
 func (r polygonNode) Out(out *nodes.StructOutput[[]trs.TRS]) {

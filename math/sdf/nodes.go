@@ -14,9 +14,12 @@ func init() {
 	refutil.RegisterType[nodes.Struct[RepeatNode]](factory)
 
 	refutil.RegisterType[nodes.Struct[UnionNode]](factory)
+	refutil.RegisterType[nodes.Struct[SmoothUnionNode]](factory)
 	refutil.RegisterType[nodes.Struct[IntersectionNode]](factory)
 	refutil.RegisterType[nodes.Struct[SubtractionNode]](factory)
+	refutil.RegisterType[nodes.Struct[SmoothSubtractionNode]](factory)
 	refutil.RegisterType[nodes.Struct[MirrorNode]](factory)
+	refutil.RegisterType[nodes.Struct[DisplaceNode]](factory)
 
 	refutil.RegisterType[nodes.Struct[CubeNode]](factory)
 	refutil.RegisterType[nodes.Struct[RoundCubeNode]](factory)
