@@ -22,3 +22,5 @@ result
 
 dist/
 generator/edit/html/js/
+
+.claude/settings.local.json
