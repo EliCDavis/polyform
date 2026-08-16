@@ -27,6 +27,38 @@ export function RenderingOption({
   );
 }
 
+interface RenderingSelectOptionProps<T extends string> {
+  name: string;
+  description?: string;
+  value: T;
+  options: Array<{ label: string; value: T }>;
+  setValue: (value: T) => void;
+}
+
+export function RenderingSelectOption<T extends string>({
+  name,
+  description,
+  value,
+  options,
+  setValue,
+}: RenderingSelectOptionProps<T>) {
+  return (
+    <div className="variable-row">
+      <div className="variable-header">
+        <span className="variable-name">{name}</span>
+      </div>
+      {description && <div className="variable-description">{description}</div>}
+      <select value={value} onChange={(e) => setValue(e.target.value as T)}>
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
 interface RenderingColorOptionProps {
   name: string;
   description?: string;

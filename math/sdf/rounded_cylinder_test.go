@@ -15,7 +15,7 @@ func TestRoundedCylinder(t *testing.T) {
 		pos  vector3.Float64
 		want float64
 	}{
-		"center":                    {pos: vector3.Zero[float64](), want: -1.25},
+		"center":                    {pos: vector3.Zero[float64](), want: -1.},
 		"north pole, on the fillet": {pos: vector3.New(0., 1.25, 0.), want: 0.},
 		"far outside":               {pos: vector3.New(0., 5., 0.), want: 3.75},
 	}

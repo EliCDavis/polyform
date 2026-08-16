@@ -154,11 +154,13 @@ export function CreateThreeApp(
   labelRenderer.domElement.style.pointerEvents = "none";
   container.appendChild(labelRenderer.domElement);
 
-  const hemiLight = new HemisphereLight(viewportSettings.lighting, 0x8d8d8d, 1);
+  const defaultLightIntensity = 1.1;
+
+  const hemiLight = new HemisphereLight(viewportSettings.lighting, 0x8d8d8d, defaultLightIntensity);
   hemiLight.position.set(0, 20, 0);
   scene.add(hemiLight);
 
-  const dirLight = new DirectionalLight(viewportSettings.lighting, 1);
+  const dirLight = new DirectionalLight(viewportSettings.lighting, defaultLightIntensity);
   dirLight.position.set(100, 100, 100);
   dirLight.castShadow = true;
   dirLight.shadow.camera.top = 100;
@@ -169,8 +171,11 @@ export function CreateThreeApp(
   dirLight.shadow.camera.near = 0.1;
   dirLight.shadow.mapSize.width = shadowMapRes;
   dirLight.shadow.mapSize.height = shadowMapRes;
+  dirLight.shadow.bias = -0.0004;
+  dirLight.shadow.normalBias = 0.02;
   // progressiveSurfacemap.addObjectsToLightMap([dirLight])
   scene.add(dirLight);
+  scene.add(dirLight.target);
 
   const groundMat = new MeshPhongMaterial({
     color: viewportSettings.ground,

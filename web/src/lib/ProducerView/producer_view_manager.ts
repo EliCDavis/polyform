@@ -1,5 +1,6 @@
 import {
   Box3,
+  DirectionalLight,
   EquirectangularReflectionMapping,
   Group,
   Mesh,
@@ -8,6 +9,7 @@ import {
   Scene,
   SRGBColorSpace,
   TextureLoader,
+  Vector3,
   WebGLRenderer,
   AnimationMixer,
 } from "three";
@@ -18,6 +20,7 @@ import { getFileExtension } from "../utils";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
 import { PLYLoader } from "three/examples/jsm/loaders/PLYLoader.js";
+import { SSAOPass } from "three/examples/jsm/postprocessing/SSAOPass.js";
 import { RequestManager } from "../requests";
 import * as GaussianSplats3D from "@mkkellogg/gaussian-splats-3d";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
@@ -62,6 +65,10 @@ export class ProducerViewManager {
   requestManager: RequestManager;
 
   camera: PerspectiveCamera;
+
+  dirLight: DirectionalLight;
+
+  ssaoPass: SSAOPass;
 
   guassianSplatViewer: GaussianSplats3D.Viewer | null;
 
@@ -119,6 +126,8 @@ export class ProducerViewManager {
     this.requestManager = requestManager;
     this.renderer = app.Renderer;
     this.camera = app.Camera;
+    this.dirLight = app.Lighting.DirLight;
+    this.ssaoPass = app.PostProcessing.SSAO;
     this.orbitControls = app.OrbitControls;
     this.viewerContainer = app.ViewerScene;
     this.scene = app.Scene;
@@ -281,6 +290,83 @@ export class ProducerViewManager {
     }
   }
 
+  // Attempt to size the shadows to fit exactly the model to maximize the map 
+  // resolution
+  private fitShadowToViewerContainer(): void {
+    const box = new Box3().setFromObject(this.viewerContainer);
+    if (box.isEmpty() || !isFinite(box.min.x) || !isFinite(box.max.x)) {
+      return;
+    }
+
+    const center = new Vector3();
+    box.getCenter(center);
+    const size = new Vector3();
+    box.getSize(size);
+    const radius = Math.max(size.length() / 2, 0.01);
+
+    this.dirLight.target.position.copy(center);
+    this.dirLight.target.updateMatrixWorld();
+
+    // Orient the shadow camera exactly as WebGLShadowMap will at render
+    // time (same light position, same target, same up vector) so the
+    // frustum we compute below matches what's actually used.
+    const shadowCamera = this.dirLight.shadow.camera;
+    shadowCamera.position.copy(this.dirLight.position);
+    shadowCamera.lookAt(center);
+    shadowCamera.updateMatrixWorld(true);
+
+    // Add a bunch of padding cause this math sucks
+    const groundPadding = radius * 3;
+    const groundBox = new Box3(
+      new Vector3(center.x - groundPadding, box.min.y - 0.01, center.z - groundPadding),
+      new Vector3(center.x + groundPadding, box.min.y + 0.01, center.z + groundPadding),
+    );
+    const combined = box.clone().union(groundBox);
+
+    const corners = [
+      new Vector3(combined.min.x, combined.min.y, combined.min.z),
+      new Vector3(combined.min.x, combined.min.y, combined.max.z),
+      new Vector3(combined.min.x, combined.max.y, combined.min.z),
+      new Vector3(combined.min.x, combined.max.y, combined.max.z),
+      new Vector3(combined.max.x, combined.min.y, combined.min.z),
+      new Vector3(combined.max.x, combined.min.y, combined.max.z),
+      new Vector3(combined.max.x, combined.max.y, combined.min.z),
+      new Vector3(combined.max.x, combined.max.y, combined.max.z),
+    ];
+
+    let minX = Infinity, maxX = -Infinity;
+    let minY = Infinity, maxY = -Infinity;
+    let minZ = Infinity, maxZ = -Infinity;
+    for (const corner of corners) {
+      corner.applyMatrix4(shadowCamera.matrixWorldInverse);
+      minX = Math.min(minX, corner.x);
+      maxX = Math.max(maxX, corner.x);
+      minY = Math.min(minY, corner.y);
+      maxY = Math.max(maxY, corner.y);
+      minZ = Math.min(minZ, corner.z);
+      maxZ = Math.max(maxZ, corner.z);
+    }
+
+    const margin = radius * 0.05;
+    shadowCamera.left = minX - margin;
+    shadowCamera.right = maxX + margin;
+    shadowCamera.bottom = minY - margin;
+    shadowCamera.top = maxY + margin;
+    // The camera looks down its local -Z, so more-negative Z is farther away.
+    shadowCamera.near = Math.max(-maxZ - margin, 0.01);
+    shadowCamera.far = -minZ + margin;
+    shadowCamera.updateProjectionMatrix();
+
+    this.dirLight.shadow.normalBias = radius * 0.01;
+
+    // kernelRadius/minDistance/maxDistance are all absolute world-space
+    // units in SSAOPass, so they need the same scale-to-model treatment.
+    const aoRadius = Math.max(radius * 0.15, 0.005);
+    this.ssaoPass.kernelRadius = aoRadius;
+    this.ssaoPass.minDistance = aoRadius * 0.02;
+    this.ssaoPass.maxDistance = aoRadius * 1.5;
+  }
+
   loadObj(objLoader: OBJLoader, key: string, producerURL: string): void {
     this.AddLoading();
 
@@ -303,6 +389,7 @@ export class ProducerViewManager {
         this.viewerContainer.position.set(0, -mid + aabbHalfHeight, 0);
 
         this.viewAABB(aabb);
+        this.fitShadowToViewerContainer();
       },
       undefined,
       (err) => {
@@ -357,6 +444,7 @@ export class ProducerViewManager {
         // progressiveSurfacemap.addObjectsToLightMap(objects);
 
         this.viewAABB(aabb);
+        this.fitShadowToViewerContainer();
 
         this.UpdateSubscribers(producerURL, gltf);
 
@@ -408,6 +496,7 @@ export class ProducerViewManager {
         this.viewerContainer.position.set(0, -mid + aabbHalfHeight, 0);
 
         this.viewAABB(aabb);
+        this.fitShadowToViewerContainer();
       },
       undefined,
       (err) => {
