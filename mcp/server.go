@@ -39,6 +39,10 @@ func NewServer(g *graph.Instance) *Server {
 	s.registerVariableTools()
 	s.registerEquationTools()
 	s.registerFieldTools()
+	s.registerTaperedCurveTools()
+	s.registerVertexColorGradientTools()
+	s.registerFlushPositionTools()
+	s.registerSphereSurfacePointTools()
 	return s
 }
 

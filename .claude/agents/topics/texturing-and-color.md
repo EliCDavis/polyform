@@ -37,8 +37,15 @@ nothing to map onto. Write into the mesh's `"Color"` attribute instead:
 per vertex — a real, concrete starting point) -> colors ->
 `SetAttribute3DNode` with `inputs: {"Attribute": {"value": "\"Color\""}}`.
 
-To turn per-vertex float values into per-vertex colors — a flat
-dorsal/belly gradient, a noise-driven band/marking pattern — use
+**For a simple two-color gradient along one world axis** (a
+dorsal/belly fade, most organic coats), skip the manual wiring entirely —
+`create_vertex_color_gradient_subgraph` builds the whole
+select/remap/interpolate/write chain in one call and derives the
+gradient's range from the mesh's own actual extent, not a guessed one.
+
+For anything more elaborate (a noise-driven band/marking pattern, a
+gradient that isn't a straight world-axis fade), wire it manually: to
+turn per-vertex float values into per-vertex colors, use
 `drawing/coloring.InterpolateToArrayNode` (`Time` <- the per-vertex float
 array, `A`/`B` <- the two colors to blend between); it lives in
 `drawing/coloring`, not `drawing/texturing` (that package is 2D
@@ -49,8 +56,7 @@ blends, not one call.
 
 `render_preview` reads this `"Color"` attribute directly, so a correctly
 vertex-colored part renders with its real color, not flat gray — check it
-the same way you check any other geometry, no browser round trip needed
-for this specifically.
+the same way you check any other geometry.
 
 ## The metallic-factor gotcha (applies to any material, UV or vertex)
 
