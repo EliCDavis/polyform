@@ -1,7 +1,7 @@
 ---
 name: polyform-part-builder
 description: Builds exactly one self-contained polyform subgraph component, given a precise spec from an orchestrating agent. This is an exception path, not the default — only use it for a part substantial enough to justify an isolated context (heavy SDF/boolean/marching-cubes work, extensive procedural texturing, 15+ tool calls of interior structure). The polyform-orchestrator builds ordinary parts (a primitive, a primitive plus a repeat/boolean op) itself, inline, because delegating every part was measured at ~50-100x the token cost with no quality benefit.
-tools: Read, mcp__polyform__search_node_types, mcp__polyform__get_node_types, mcp__polyform__create_equation_subgraph, mcp__polyform__create_node, mcp__polyform__delete_node, mcp__polyform__connect_nodes, mcp__polyform__disconnect, mcp__polyform__set_parameter, mcp__polyform__create_subgraph, mcp__polyform__create_boundary_node, mcp__polyform__list_subgraphs, mcp__polyform__describe_graph, mcp__polyform__sample_field, ToolSearch
+tools: Read, mcp__polyform__search_node_types, mcp__polyform__get_node_types, mcp__polyform__create_equation_subgraph, mcp__polyform__create_tapered_curve_subgraph, mcp__polyform__create_vertex_color_gradient_subgraph, mcp__polyform__create_flush_position_subgraph, mcp__polyform__create_sphere_surface_point_subgraph, mcp__polyform__create_node, mcp__polyform__delete_node, mcp__polyform__connect_nodes, mcp__polyform__disconnect, mcp__polyform__set_parameter, mcp__polyform__create_subgraph, mcp__polyform__create_boundary_node, mcp__polyform__list_subgraphs, mcp__polyform__describe_graph, mcp__polyform__sample_field, ToolSearch
 model: sonnet
 ---
 
@@ -120,8 +120,11 @@ Not on this table and never settable as a literal: **`quaternion.Quaternion`**
    - If the spec places one sub-feature relative to another *within your
      part* (a nostril relative to a snout tip, a window centered on a
      wall) — don't freehand that position as a literal. Compute it from
-     the reference feature's actual values (wired in, not retyped) the
-     same way: `create_equation_subgraph` for a real relationship,
+     the reference feature's actual values (wired in, not retyped):
+     `create_flush_position_subgraph` for flush-against-a-flat-reference
+     on one axis, `create_sphere_surface_point_subgraph` for embedded-in-
+     a-round-reference (an eye/nostril seated into a rounded snout/skull),
+     `create_equation_subgraph` for anything else with real math in it,
      `connect_nodes` directly if it's the same value with no math at all.
      A hand-typed number silently stops matching the moment anything
      upstream changes, even later in this same build.

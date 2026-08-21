@@ -24,10 +24,58 @@ independent radius at each end — good for tapered limbs),
 `RoundedCylinderNode`, `PlaneNode` (infinite — best used as a cutting tool
 via `SubtractionNode`/`IntersectionNode`, not as visible geometry on its
 own), `LineNode` (single capsule between two points), `LinesNode` (a
-chain of capsules through an array of points, one shared radius — the
-tool for a snake/tentacle/tail/rope/chain body; see
-`repetition-and-instancing.md` for the point-array variable + curve-bend
-recipe).
+chain of capsules through an array of points, one shared radius — for a
+body that stays one constant thickness end to end: a rope, a chain link,
+a cable), `VaryingRadiusLinesNode` (the same chain, but a parallel `Radii`
+array gives every point its own radius, so the body can taper). **For a
+tail, tentacle, horn, or anything else that should read as a smoothly
+curving line getting thinner along its length, don't wire
+`VaryingRadiusLinesNode` directly — use the `create_tapered_curve_subgraph`
+tool instead** (see the very next section). Don't hand-build a tapering
+chain out of individual `RoundedConeNode`s glued together with
+`SmoothUnionNode` either — consecutive segments in a real chain already
+share an exact matching endpoint and radius, so smooth-unioning them adds
+unwanted extra blending at every joint (a visible lump right at each
+seam, worst at a sharp curl) instead of the clean taper a plain union of
+matching segments already gives for free.
+
+## Tapering a curve: `create_tapered_curve_subgraph`, not raw `VaryingRadiusLinesNode`
+
+`VaryingRadiusLinesNode` (and plain `LinesNode`) draws **straight**
+segments between consecutive points in `Points`. A tail/tentacle/horn
+needs that `Points` array **densely resampled along a curve**, not just
+the 4-6 points you'd naturally place by hand to rough out its shape —
+feeding those few points straight to `Points` produces a visibly
+straight-segmented, faceted chain, not a smooth one (worst exactly where
+the curve bends sharply, e.g. a curled tail tip). This applies regardless
+of where the points come from — a handful of hardcoded literal points and
+a short posable-variable array fail the exact same way.
+
+`create_tapered_curve_subgraph` does the whole thing — resample and
+taper — in one call: `create_tapered_curve_subgraph({"id": "tail"})`
+creates a reusable subgraph with four boundary inputs (`Points`, your few
+control points; `Base Radius`; `Tip Radius`; `Samples`, a generously
+large number like 12-20 — deliberately decoupled from and bigger than
+your control-point count, since it's the resample density, not the pose
+resolution) and one boundary output (`Field`, a ready-to-union
+`math/sdf` field). `instantiate_subgraph` it, wire the four inputs (a
+literal array, or a posable-variable reference, for `Points`), and wire
+`Field` straight into your body's `Union`/`SmoothUnionNode` like any
+other `math/sdf` node output.
+
+Reach for the manual pipeline instead only if you need something this
+tool doesn't expose (a non-default spline `Alpha`, a `Closed` loop, a
+non-linear radius profile): `math/curves.CatmullRomSplineNode` (`Points`
+-> a smooth `Spline`) -> `LengthNode` (`Spline` -> arc length) ->
+`math/sequence.LinearNode` (`Start: 0`, `End:` the length, `Samples:` a
+generously large fixed number) -> `Distances` -> `PositionsForArrayNode`
+(`Spline` + `Distances`) -> the dense point array that feeds
+`VaryingRadiusLinesNode.Points`; a second `LinearNode` sharing the same
+`Samples` builds the matching `Radii` for free (index *i* of one lines up
+with index *i* of the other automatically, no remap needed). This is
+exactly what `create_tapered_curve_subgraph` builds internally — see
+`repetition-and-instancing.md` for the posable-variable framing of the
+same recipe.
 
 **Combinators**: `UnionNode`/`IntersectionNode`/`SubtractionNode` (boolean
 ops — `UnionNode` is a **hard** min, a visible crease where shapes meet)
@@ -66,16 +114,27 @@ organizational choice for blend quality, not a workaround for a bug.
 ## Field to mesh
 
 An SDF node produces a distance *field*, not a mesh. Feed the final
-combined field into `modeling/marching.MarchNode` (`Domain`: an `AABB`
-covering the whole shape with margin; `Resolution` high enough that the
-surface doesn't look blocky — low single digits reads chunky/voxel-y),
-then run *that* mesh through
+combined field into `modeling/marching.MarchNode` (`Resolution` high
+enough that the surface doesn't look blocky — low single digits reads
+chunky/voxel-y), then run *that* mesh through
 `nodes.Struct[github.com/EliCDavis/polyform/modeling/meshops.SmoothNormalsImplicitWeldNode]`
 (`Distance` set explicitly — its own default, `0.0001`, is too small for
 real-world scale) before using it downstream. Use this node's output, not
 the raw `MarchNode` output — it recomputes smooth per-vertex normals
 across nearby vertices, which is what actually makes the surface read as
 smooth under lighting, cheaper than raising `Resolution` further.
+
+**Be generous with `Domain` — a too-small one silently clips the surface
+with no error, not a crash.** A curled tail, a raised limb, anything that
+reaches further than the torso's own bounds, gets a flat, cut-off end the
+moment it exceeds the `Domain` AABB — nothing in the tool chain warns
+you, it just looks wrong in the render. Marching is cheap relative to the
+cost of debugging a mysteriously truncated part, so don't tightly
+eyeball the domain to the geometry you *think* you built: estimate the
+whole assembly's extent and pad it generously, roughly 3x on each axis,
+especially on any axis a posable/variable part (a tail, a limb) can
+swing into. Oversizing costs a few idle voxels; undersizing costs a
+silently broken part.
 
 **A `Resolution` that looks fine on the body can still be too coarse for
 small, thin, or pointed features on the same field** — ears, claws,
@@ -128,12 +187,14 @@ grown from the body — a collar, a saddle, anything that visibly sits *on*
 the surface rather than merging into it.
 
 If the body has a vertex-color gradient keyed on a raw axis (e.g. Y for a
-cream-belly-to-coat-color fade), check it after merging limbs in: a
-gradient clamped to a Y range that assumed only the torso's own bounds
-will clip newly-added legs to a solid color instead of shading them. Use
-distance from the reference plane/line instead of the raw coordinate if
-parts now extend well outside the original range, so the color fades
-correctly in both directions instead of clamping.
+cream-belly-to-coat-color fade), building it with
+`create_vertex_color_gradient_subgraph` (see "Coloring a marched mesh"
+below) sidesteps this entirely, since it derives the gradient's range
+from the mesh's own current extent every time rather than a range fixed
+when the gradient was first wired. A hand-wired gradient with a
+hard-coded `In Min`/`In Max` doesn't get that for free — check it after
+merging limbs in, since a range that assumed only the torso's own bounds
+will clip newly-added legs to a solid color instead of shading them.
 
 ## Debugging a field without rendering
 
@@ -164,5 +225,13 @@ interrupts the investigation partway through.
 ## Coloring a marched mesh
 
 `MarchNode` never generates UVs, so `gltf.MaterialNode.ColorTexture` has
-nothing to map onto — a marched mesh needs vertex color instead. See
-`texturing-and-color.md` for the recipe.
+nothing to map onto — a marched mesh needs vertex color instead. For the
+common two-color gradient case (a cream belly fading into a coat color, a
+dark spine fading into a light belly), use
+`create_vertex_color_gradient_subgraph` — one call replaces the whole
+select/remap/interpolate chain, and it derives the gradient's range from
+the mesh's own actual extent automatically, so it can't clip newly-added
+geometry (a leg added after the gradient was tuned) to a solid color the
+way a hand-picked range can. See `texturing-and-color.md` for the manual
+recipe and anything more elaborate (3+ colors, a non-axis-aligned
+gradient).

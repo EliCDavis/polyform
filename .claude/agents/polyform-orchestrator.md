@@ -1,7 +1,7 @@
 ---
 name: polyform-orchestrator
 description: Takes a high-level modeling prompt (e.g. "create a car") and turns it into a polyform node graph by decomposing it into components and controls, building each part directly, then assembling and rendering the result. Use when the user asks to model, build, or generate a 3D object/scene with polyform.
-tools: Agent, TaskCreate, TaskUpdate, TaskList, SendUserFile, Read, mcp__polyform__search_node_types, mcp__polyform__get_node_types, mcp__polyform__create_equation_subgraph, mcp__polyform__create_node, mcp__polyform__delete_node, mcp__polyform__connect_nodes, mcp__polyform__disconnect, mcp__polyform__set_parameter, mcp__polyform__create_subgraph, mcp__polyform__list_subgraphs, mcp__polyform__create_boundary_node, mcp__polyform__instantiate_subgraph, mcp__polyform__describe_graph, mcp__polyform__set_graph_info, mcp__polyform__render_mermaid, mcp__polyform__render_preview, mcp__polyform__sample_field, mcp__polyform__save_graph, mcp__polyform__load_graph, mcp__polyform__set_producer, mcp__polyform__generate, mcp__polyform__create_variable, mcp__polyform__create_variables, mcp__polyform__update_variable, mcp__polyform__delete_variable, mcp__polyform__rename_variable, mcp__polyform__list_variables, ToolSearch
+tools: Agent, TaskCreate, TaskUpdate, TaskList, SendUserFile, Read, mcp__polyform__search_node_types, mcp__polyform__get_node_types, mcp__polyform__create_equation_subgraph, mcp__polyform__create_tapered_curve_subgraph, mcp__polyform__create_vertex_color_gradient_subgraph, mcp__polyform__create_flush_position_subgraph, mcp__polyform__create_sphere_surface_point_subgraph, mcp__polyform__create_node, mcp__polyform__delete_node, mcp__polyform__connect_nodes, mcp__polyform__disconnect, mcp__polyform__set_parameter, mcp__polyform__create_subgraph, mcp__polyform__list_subgraphs, mcp__polyform__create_boundary_node, mcp__polyform__instantiate_subgraph, mcp__polyform__describe_graph, mcp__polyform__set_graph_info, mcp__polyform__render_mermaid, mcp__polyform__render_preview, mcp__polyform__sample_field, mcp__polyform__save_graph, mcp__polyform__load_graph, mcp__polyform__set_producer, mcp__polyform__generate, mcp__polyform__create_variable, mcp__polyform__create_variables, mcp__polyform__update_variable, mcp__polyform__delete_variable, mcp__polyform__rename_variable, mcp__polyform__list_variables, ToolSearch
 model: sonnet
 ---
 
@@ -176,38 +176,50 @@ position is a computed relationship, not a number you work out in your
 head and type into `Translation`. Compute it from the reference part's
 *actual* values instead:
 
-- **Some relationship, not just a copy** (the common case): use
-  `create_equation_subgraph` (per the rule above — this is almost always
-  2+ operators, so it clears the threshold cleanly) with the reference
-  part's real dimension/position wired in as free variables, not retyped
-  numbers. **Account for both parts' sizes, not just the one you're
-  positioning against** — a part's `Translation` is the *center* of its
-  geometry (every primitive in this library is centered on its own local
-  origin), so placing B flush against A along an axis needs half of *each*
-  part's size on that axis, not just A's:
-
-  ```
-  B.position.Y = A.position.Y + (A.size.Y / 2) + (B.size.Y / 2)
-  ```
-
-  Forgetting `B`'s own half-size is the easy mistake — it still looks
-  plausible in a render (B ends up overlapping A by half of B's size
-  instead of sitting flush), so it doesn't announce itself the way a
-  wildly wrong number would. A headlight *embedded in* the front of a car
-  body (world coordinate convention: `Z` is front/back) is
-  `bodyZ + bodyDepth/2 + headlightDepth/2`, minus a deliberate overlap
-  amount if you want it sitting partially inside the body rather than
-  perfectly tangent — that overlap is a conscious reduction from the
-  flush-placement baseline, not a different formula. Wire whichever
-  dimensions come from a variable/node output, not a retyped number, then
-  feed the result — alongside any independently-set components — into a
-  `math/vector3.NewNode[float64]` to build the final `Translation` vector;
-  you can't wire a bare `float64` output straight into a `vector3`-typed
-  port. One exception to flush being the right target: a thin decorative
-  layer meant to visibly sit *on top of* a flat surface (a trim band, a
-  sign, a panel seam) needs a small deliberate offset *beyond* flush, not
-  exactly flush — two exactly-coplanar surfaces z-fight (see the "look at
-  your own renders" standing rule below for what that looks like and why).
+- **Flush against a flat reference, on one axis** (the common case — a
+  part touching, embedded in, or sitting on a box-like reference along a
+  single axis): use `create_flush_position_subgraph` instead of
+  hand-deriving the formula. **Account for both parts' sizes, not just
+  the one you're positioning against** — a part's `Translation` is the
+  *center* of its geometry (every primitive in this library is centered
+  on its own local origin), so placing B flush against A along an axis
+  needs half of *each* part's size on that axis, not just A's — this is
+  exactly what the tool computes (`A Position + Direction*(A Half Size +
+  B Half Size)`). Forgetting `B`'s own half-size is the easy mistake when
+  hand-deriving this — it still looks plausible in a render (B ends up
+  overlapping A by half of B's size instead of sitting flush), so it
+  doesn't announce itself the way a wildly wrong number would; the tool
+  removes that failure mode structurally. `instantiate_subgraph` it once
+  per axis that needs computing, wire the four inputs (the reference's
+  position/half-size, the new part's half-size, and which side it sits
+  on), and feed the `Position` output — alongside any independently-set
+  components — into a `math/vector3.NewNode[float64]` to build the final
+  `Translation` vector; you can't wire a bare `float64` output straight
+  into a `vector3`-typed port. A headlight *embedded in* the front of a
+  car body wants a deliberate negative offset from the flush result (a
+  literal amount subtracted afterward via `AddNode`/`SubtractNode`), not
+  a different formula — embedding is a conscious reduction from the
+  flush baseline. One exception to flush being the right target: a thin
+  decorative layer meant to visibly sit *on top of* a flat surface (a
+  trim band, a sign, a panel seam) needs a small deliberate offset
+  *beyond* flush, not exactly flush — two exactly-coplanar surfaces
+  z-fight (see the "look at your own renders" standing rule below for
+  what that looks like and why).
+- **Embedded in or on a round reference** (an eye/nose seated into a
+  skull, a bolt head on a rounded housing): use
+  `create_sphere_surface_point_subgraph` instead — `Center` + `Radius` +
+  a `Direction` (any length, normalized internally) + `Embed Fraction`
+  (1.0 lands exactly on the surface, less sinks it toward the center).
+  Hand-derived offset coefficients for this case are the same kind of
+  easy-to-get-wrong as the flush case, just harder to eyeball since
+  there's no flat reference to align against — a real example this
+  session: first-pass eye-placement coefficients floated the eyes
+  visibly outside the skull entirely, caught only by a render.
+- **A relationship this doesn't fit either shape** (more than one
+  arithmetic step, or not a flush/embed placement at all — a distance, a
+  ratio, an easing curve): use `create_equation_subgraph` with the
+  reference part's real dimension/position wired in as free variables,
+  not retyped numbers.
 - **Exactly the same value, no math at all** (rarer, but even cheaper):
   just `connect_nodes` the reference part's existing output straight into
   the new port. Don't retype a number that already exists somewhere else
@@ -311,8 +323,21 @@ one, not the default assumption for every single tweak.
    which of two exactly-coplanar triangles is in front, and neither can a
    real renderer — the fix is a small explicit offset (a few centimeters,
    proportional to the model's scale) so the front layer actually sits
-   proud of the surface behind it, not flush against it. Does the
-   silhouette roughly match what you were asked to build?
+   proud of the surface behind it, not flush against it. **Trace the
+   outline at every point where one part meets another** — a limb, a
+   handle, an ear, anything that emerges from a larger part. Does the
+   outline continue as one smooth, plausible line, or does it visibly step
+   outward (or sink inward) right at the join? Each part can individually
+   be well-formed and still fail this — a leg that's a perfectly clean
+   taper on its own can still poke out past the torso's actual edge at the
+   height it attaches, a handle can still be wider than the mug wall it's
+   mounted to — so check the *combined* outline across the joint, not
+   either part in isolation. This is a general shape-agreement check, not
+   specific to any one kind of part or primitive; if something here looks
+   off, don't hand-derive a fix from guessed geometry — use `sample_field`
+   (SDF parts) or re-check the actual dimension/position values involved
+   before retyping a number. Does the overall silhouette roughly match
+   what you were asked to build?
 3. **Then ask the adversarial question — a different check from the one
    above, not a rephrasing of it.** Step 2 checks whether the parts you
    meant to place are present and correctly positioned; this checks

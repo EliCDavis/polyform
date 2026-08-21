@@ -104,15 +104,34 @@ point), so it's the seed variable for any user-facing "add/remove/
 reposition points" control — a snake, tentacle, tail, rope, cable, spine.
 
 If the body also needs to *bend* into different smooth poses rather than
-stay a straight-segment chain, resample a curve through the pose points
-instead of feeding them to `LinesNode` directly:
-`math/curves.CatmullRomSplineNode` (`Points` <- the same pose variable —
-its own doc explains why Catmull-Rom, not Bezier, is the right curve type
-for this) produces a smooth `Spline` that passes through every pose point;
-`LengthNode` + `math/sequence.LinearNode` (`Start: 0`, `End:` the length,
-`Samples:` however many segments the body should actually have) build a
-distance range; `PositionsForArrayNode` resamples the spline at those
-distances into the dense point array `LinesNode.Points` actually consumes.
-This decouples "how many points does the user pose" (few) from "how many
-segments does the body mesh have" (many) — `get_node_types` on any node in
-`math/curves` for the full pipeline, every node in it is documented.
+stay a straight-segment chain — and especially if it should also *taper*
+(a tail, a tentacle — thick at the base, thin at the tip) — don't feed
+the pose variable to `LinesNode`/`VaryingRadiusLinesNode` directly.
+Resample it through a curve first, via `create_tapered_curve_subgraph`:
+`instantiate_subgraph` it, wire `Points` to the pose variable (not a
+literal — that's the whole point of a posable body), `Base Radius`/
+`Tip Radius` to your desired thickness (equal values give a constant-
+thickness bend, not a taper, so this tool covers both cases), and
+`Samples` to however many segments the body mesh should actually have —
+deliberately decoupled from and usually much bigger than how many pose
+points the user drags around. Wire its `Field` output straight into
+`LinesNode`'s replacement position, i.e. directly into your body's
+`Union`/`SmoothUnionNode` — the tool's output is already a complete
+`math/sdf` field, not a point array, so `LinesNode`/
+`VaryingRadiusLinesNode` aren't needed at all once you're using it. This
+decouples "how many points does the user pose" (few) from "how many
+segments does the body mesh have" (many), automatically.
+
+The tool builds this internally, for reference (or to hand-wire if you
+need something it doesn't expose — a non-default spline `Alpha`, a
+`Closed` loop): `math/curves.CatmullRomSplineNode` (`Points` <- the pose
+variable — its own doc explains why Catmull-Rom, not Bezier, is right
+here) -> `Spline`; `LengthNode` (`Spline`) -> arc length;
+`math/sequence.LinearNode` (`Start: 0`, `End:` the length, `Samples:` the
+segment count) -> `Distances`; `PositionsForArrayNode` (`Spline` +
+`Distances`) -> the dense point array; a second `LinearNode` sharing the
+same `Samples` builds the matching `Radii` for a taper, index-for-index,
+no remap needed. Don't build a taper by hand-chaining individual
+`RoundedConeNode`s and `SmoothUnionNode`-ing them together instead — see
+`organic-sdf-modeling.md` for why that produces a lumpy seam at every
+joint rather than a clean taper.

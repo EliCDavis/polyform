@@ -69,6 +69,6 @@ func (s *Server) createEquationSubgraph(ctx context.Context, req *mcpsdk.CallToo
 func (s *Server) registerEquationTools() {
 	mcpsdk.AddTool(s.sdk, &mcpsdk.Tool{
 		Name:        "create_equation_subgraph",
-		Description: "Compile a math equation (e.g. \"c = sqrt(a^2 + b^2)\") directly into a new subgraph with one float64 boundary input per free variable and a boundary output for the result — instead of hand-wiring AddNode/MultiplyNode/etc. one at a time. Use this any time you need arithmetic (distances, ratios, derived dimensions, easing) rather than manually creating and connecting individual math nodes.",
+		Description: "Compile a math equation (e.g. \"c = sqrt(a^2 + b^2)\") directly into a new subgraph with one float64 boundary input per free variable and a boundary output for the result — instead of hand-wiring several AddNode/SubtractNode/MultiplyNode/DivideNode/etc. one at a time and connecting them together. Use this for an expression combining two or more operations (distances, ratios, derived dimensions, easing). For a single operation - one multiply, one add, one subtract, one divide - use the corresponding plain node (MultiplyNode, AddNode, SubtractNode, DivideNode) directly instead: creating and naming a whole subgraph for one operation is unnecessary overhead a single node avoids.",
 	}, s.createEquationSubgraph)
 }
