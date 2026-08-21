@@ -18,8 +18,12 @@ func methodToArr[T any, G any](in T, arr []T, f func(a, arrI T) G) []G {
 }
 
 type SubtractNode[T vector.Number] struct {
-	A nodes.Output[T]
-	B nodes.Output[T]
+	A nodes.Output[T] `description:"The value being subtracted from."`
+	B nodes.Output[T] `description:"The value being subtracted."`
+}
+
+func (cn SubtractNode[T]) Description() string {
+	return "A - B"
 }
 
 func (cn SubtractNode[T]) val(out nodes.ExecutionRecorder) T {

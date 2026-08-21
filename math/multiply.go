@@ -8,7 +8,11 @@ import (
 )
 
 type MultiplyNode[T vector.Number] struct {
-	Values []nodes.Output[T]
+	Values []nodes.Output[T] `description:"The values to multiply together, in order."`
+}
+
+func (cn MultiplyNode[T]) Description() string {
+	return "Multiplies two or more values together."
 }
 
 func (cn MultiplyNode[T]) val(out nodes.ExecutionRecorder) T {

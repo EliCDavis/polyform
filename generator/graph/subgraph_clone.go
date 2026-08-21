@@ -116,18 +116,30 @@ func populateInstanceFromSubGraphDef(target *Instance, def persistence.SubGraph,
 }
 
 // forEachSubGraphInstance visits every live placement of subGraphID across the
-// root graph and all nested sub-graph definitions.
+// root graph and all recursively nested sub-graph definitions.
 func forEachSubGraphInstance(graph *Instance, subGraphID string, fn func(*SubgraphInstanceNode)) {
-	visit := func(inst *Instance) {
-		if inst == nil {
+	visited := map[*Instance]bool{}
+
+	var visit func(inst *Instance)
+	visit = func(inst *Instance) {
+		if inst == nil || visited[inst] {
 			return
 		}
+		visited[inst] = true
+
 		for node := range inst.nodeIDs {
 			runtime, ok := node.(*SubgraphInstanceNode)
-			if !ok || runtime.subGraphID != subGraphID {
+			if !ok {
 				continue
 			}
-			fn(runtime)
+			if runtime.subGraphID == subGraphID {
+				fn(runtime)
+			}
+
+			runtime.mu.Lock()
+			clone := runtime.clone
+			runtime.mu.Unlock()
+			visit(clone)
 		}
 	}
 

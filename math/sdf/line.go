@@ -1,6 +1,8 @@
 package sdf
 
 import (
+	"errors"
+
 	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/math/sample"
 	"github.com/EliCDavis/polyform/nodes"
@@ -102,4 +104,38 @@ func (cn LinesNode) Field(out *nodes.StructOutput[sample.Vec3ToFloat]) {
 		nodes.TryGetOutputValue(out, cn.Points, nil),
 		nodes.TryGetOutputValue(out, cn.Radius, .25),
 	))
+}
+
+type VaryingRadiusLinesNode struct {
+	Points nodes.Output[[]vector3.Float64] `description:"Points to connect in order; each consecutive pair becomes a straight tapered capsule segment. Must be the same length as Radii. 0 points produces an empty field; 1 point produces a single sphere."`
+	Radii  nodes.Output[[]float64]         `description:"Radius at each point, same length and order as Points, so the chain can taper along its length instead of staying one constant thickness."`
+}
+
+func (cn VaryingRadiusLinesNode) Description() string {
+	return "A chain of capsule segments connecting a list of points in order, each with its own radius, so the chain can taper along its length."
+}
+
+func (cn VaryingRadiusLinesNode) Field(out *nodes.StructOutput[sample.Vec3ToFloat]) {
+	points := nodes.TryGetOutputValue(out, cn.Points, nil)
+	radii := nodes.TryGetOutputValue(out, cn.Radii, nil)
+
+	if len(points) != len(radii) {
+		out.CaptureError(errors.New("Points and Radii must be the same length"))
+		return
+	}
+
+	switch len(points) {
+	case 0:
+		out.Set(nullField)
+		return
+	case 1:
+		out.Set(Sphere(points[0], radii[0]))
+		return
+	}
+
+	linePoints := make([]LinePoint, len(points))
+	for i := range points {
+		linePoints[i] = LinePoint{Point: points[i], Radius: radii[i]}
+	}
+	out.Set(VarryingThicknessLine(linePoints))
 }

@@ -17,7 +17,17 @@ func (snd LinearNode) Out(out *nodes.StructOutput[[]float64]) {
 	end := nodes.TryGetOutputValue(out, snd.End, 1.)
 	samples := max(nodes.TryGetOutputValue(out, snd.Samples, 0), 0)
 
+	if samples == 0 {
+		return
+	}
+
 	arr := make([]float64, samples)
+	if samples == 1 {
+		arr[0] = start
+		out.Set(arr)
+		return
+	}
+
 	inc := (end - start) / float64(samples-1)
 	for i := range samples {
 		v := start + (float64(i) * inc)

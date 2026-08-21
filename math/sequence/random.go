@@ -13,7 +13,7 @@ type RandomFloatNode struct {
 }
 
 func (snd RandomFloatNode) Description() string {
-	return "Produces Samples random float64 values in [Min, Max). Uses a fixed seed — the same inputs always produce the same output."
+	return "Produces Samples random float64 values in [Min, Max). Uses a fixed seed. The same inputs always produce the same output."
 }
 
 func (snd RandomFloatNode) Out(out *nodes.StructOutput[[]float64]) {

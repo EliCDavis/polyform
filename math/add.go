@@ -10,7 +10,11 @@ import (
 // ============================================================================
 
 type AddNode[T vector.Number] struct {
-	Values []nodes.Output[T] `description:"The nodes to sum"`
+	Values []nodes.Output[T] `description:"The values to sum."`
+}
+
+func (an AddNode[T]) Description() string {
+	return "Adds two or more values together."
 }
 
 func (an AddNode[T]) val(out nodes.ExecutionRecorder) T {
