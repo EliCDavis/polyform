@@ -33,6 +33,7 @@ import (
 	_ "github.com/EliCDavis/polyform/math/trs"
 	_ "github.com/EliCDavis/polyform/math/vector3"
 	_ "github.com/EliCDavis/polyform/modeling"
+	_ "github.com/EliCDavis/polyform/modeling/marching"
 	_ "github.com/EliCDavis/polyform/modeling/primitives"
 	_ "github.com/EliCDavis/polyform/modeling/repeat"
 )
