@@ -20,7 +20,7 @@ import { getFileExtension } from "../utils";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
 import { PLYLoader } from "three/examples/jsm/loaders/PLYLoader.js";
-import { SSAOPass } from "three/examples/jsm/postprocessing/SSAOPass.js";
+import { SSAOEffect } from "postprocessing";
 import { RequestManager } from "../requests";
 import * as GaussianSplats3D from "@mkkellogg/gaussian-splats-3d";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
@@ -68,7 +68,7 @@ export class ProducerViewManager {
 
   dirLight: DirectionalLight;
 
-  ssaoPass: SSAOPass;
+  ssaoEffect: SSAOEffect;
 
   guassianSplatViewer: GaussianSplats3D.Viewer | null;
 
@@ -127,7 +127,7 @@ export class ProducerViewManager {
     this.renderer = app.Renderer;
     this.camera = app.Camera;
     this.dirLight = app.Lighting.DirLight;
-    this.ssaoPass = app.PostProcessing.SSAO;
+    this.ssaoEffect = app.PostProcessing.SSAO;
     this.orbitControls = app.OrbitControls;
     this.viewerContainer = app.ViewerScene;
     this.scene = app.Scene;
@@ -359,12 +359,15 @@ export class ProducerViewManager {
 
     this.dirLight.shadow.normalBias = radius * 0.01;
 
-    // kernelRadius/minDistance/maxDistance are all absolute world-space
-    // units in SSAOPass, so they need the same scale-to-model treatment.
-    const aoRadius = Math.max(radius * 0.15, 0.005);
-    this.ssaoPass.kernelRadius = aoRadius;
-    this.ssaoPass.minDistance = aoRadius * 0.02;
-    this.ssaoPass.maxDistance = aoRadius * 1.5;
+    // SSAOEffect's `radius` is resolution-relative (a fraction of screen
+    // size), not world-space, so unlike SSAOPass's kernelRadius it doesn't
+    // need rescaling per model. worldProximityThreshold/Falloff are still
+    // absolute world-space distances though, so a tiny model (or a huge
+    // one) still needs them scaled or contact creases either get filtered
+    // out as noise or the occlusion washes out across the whole surface.
+    const ssaoMaterial = this.ssaoEffect.ssaoMaterial;
+    ssaoMaterial.worldProximityThreshold = radius * 0.15;
+    ssaoMaterial.worldProximityFalloff = radius * 0.05;
   }
 
   loadObj(objLoader: OBJLoader, key: string, producerURL: string): void {

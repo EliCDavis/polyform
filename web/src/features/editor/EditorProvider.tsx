@@ -24,12 +24,16 @@ import {
 import { useGraphTabStore, activeGraphScope } from "@/stores/graphTabStore";
 import type { NodeFlowGraph } from "@elicdavis/node-flow";
 
+// THREE.Color's string constructor only understands CSS syntax ("#rrggbb"),
+// not JS numeric-literal-style strings like "0xa0a0a0" — that silently
+// fails to parse and falls back to white, which was quietly nuking every
+// one of these colors (confirmed live: `new Color("0xa0a0a0")` -> white).
 const viewportSettings: ViewportSettings = {
   renderWireframe: false,
-  fog: { color: "0xa0a0a0", near: 100, far: 150 },
-  background: "0xa0a0a0",
-  lighting: "0xffffff",
-  ground: "0xcbcbcb",
+  fog: { color: "#a0a0a0", near: 100, far: 150 },
+  background: "#a0a0a0",
+  lighting: "#ffffff",
+  ground: "#cbcbcb",
 };
 
 function EditorModelVersionPoller() {
