@@ -97,10 +97,24 @@ the blend only activates within `Radius` of an actual overlap, it doesn't
 substitute for one.
 
 `MirrorNode` (7 output ports, one per axis/plane combination — wire only
-the one you need), `RepeatNode` (place copies of the field at a list of
-transforms and union them — see `repetition-and-instancing.md`),
-`TranslateNode`/`TransformNode` (move, or move+rotate+scale, a field
-before combining it with others).
+the one you need). **Its output already is the union of the original and
+the reflection** — e.g. for a single ear built on the `+X` side, the `X`
+output port alone gives you both ears; don't also wire the un-mirrored
+original into a separate `UnionNode`/`SmoothUnionNode` alongside it, that
+just re-adds a copy of what's already there for free. `Union` (bool,
+defaults `true`) controls *how* it does that: true evaluates the field on
+every mirrored side and combines the results, correct even if the field
+already has real, distinct content on more than one side of the axis
+(mirroring something other than a single one-sided limb/ear); false folds
+a query onto one canonical side and evaluates the field once, cheaper but
+only correct when the field is known to be one-sided along every mirrored
+axis. Leave it at the default unless you've specifically profiled mirror
+evaluation as a bottleneck.
+
+`RepeatNode` (place copies of the field at a list of transforms and union
+them — see `repetition-and-instancing.md`), `TranslateNode`/
+`TransformNode` (move, or move+rotate+scale, a field before combining it
+with others).
 
 ## Unioning many primitives at once
 
@@ -227,11 +241,58 @@ interrupts the investigation partway through.
 `MarchNode` never generates UVs, so `gltf.MaterialNode.ColorTexture` has
 nothing to map onto — a marched mesh needs vertex color instead. For the
 common two-color gradient case (a cream belly fading into a coat color, a
-dark spine fading into a light belly), use
-`create_vertex_color_gradient_subgraph` — one call replaces the whole
-select/remap/interpolate chain, and it derives the gradient's range from
-the mesh's own actual extent automatically, so it can't clip newly-added
-geometry (a leg added after the gradient was tuned) to a solid color the
-way a hand-picked range can. See `texturing-and-color.md` for the manual
-recipe and anything more elaborate (3+ colors, a non-axis-aligned
-gradient).
+dark spine fading into a light belly) — one smooth fade along a single
+world axis, nothing more — use `create_vertex_color_gradient_subgraph`:
+one call replaces the whole select/remap/interpolate chain, and it
+derives the gradient's range from the mesh's own actual extent
+automatically, so it can't clip newly-added geometry (a leg added after
+the gradient was tuned) to a solid color the way a hand-picked range can.
+See `texturing-and-color.md` for the fully manual version of that same
+recipe.
+
+If different *parts* need their own distinct color — not a fade, actual
+per-region coloring (white socks on a cat's paws, a dark mask around the
+eyes, a patch/marking pattern, any case where you'd describe the result
+as "this part is colored X" rather than "the color fades from X to Y") —
+a single global gradient can't express that, no matter how the axis or
+range is tuned. Use colored fields instead, from `math/sdf`:
+
+1. Build the body the same way as always — each anatomical region as one
+   or more overlapping primitives — but wrap **every leaf primitive that
+   needs its own distinct color** in `WithColorNode` (`Field` <- the
+   primitive's own `Field` output, `Color` <- that region's color)
+   *before* unioning it in. A primitive that should just blend into its
+   neighbor's color doesn't need its own wrap — share the neighbor's
+   `WithColorNode` output, or leave it out of the colored side of the
+   tree entirely if it's plain body color.
+2. Union the `ColoredField`s with `SmoothUnionColoredNode`/
+   `UnionColoredNode` instead of `SmoothUnionNode`/`UnionNode` — same
+   `Fields`(`/Radius`) shape as their plain-field counterparts, but they
+   blend (or don't) color the same way they blend shape. Use
+   `UnionColoredNode` deliberately for a crisp-edged marking (a hard seam
+   between two colors, no fade); `SmoothUnionColoredNode` blends color
+   using the *identical* blend weight it uses for the shape, so a soft
+   marking transitions over exactly the same region the geometry seam
+   does — the same choice `UnionNode` vs `SmoothUnionNode` already is for
+   geometry, just carried over to color. Nest these the same way you'd
+   nest ordinary `Union`/`SmoothUnionNode` calls for per-region blend
+   radii (see "Unioning many primitives at once" above) — either
+   combined-color node's own output is just another `ColoredField`, so it
+   composes into a bigger union the same way, and the two kinds can mix
+   (a `UnionColoredNode` feeding into a `SmoothUnionColoredNode`, or vice
+   versa).
+3. Once every part is combined into one final `ColoredField`, split it in
+   two: `ColoredFieldDistanceNode` extracts the plain distance half — wire
+   that into `MarchNode` exactly as before, nothing about marching
+   changes. Separately, wire the *same* final `ColoredField` (not the
+   distance-only extraction) into `modeling/marching.ApplyColorFieldNode`
+   alongside `MarchNode`'s `Mesh` output — it samples the color half at
+   each real vertex position and writes `"Color"` directly. This replaces
+   `create_vertex_color_gradient_subgraph`/the manual select-remap-
+   interpolate chain entirely for this mesh; don't also run a gradient
+   pass on top; the color is already baked in per region.
+
+`get_node_types` on `WithColorNode`/`UnionColoredNode`/
+`SmoothUnionColoredNode`/`ColoredFieldDistanceNode` (`math/sdf`) and
+`ApplyColorFieldNode` (`modeling/marching`) for exact ports — don't guess
+the wiring.
