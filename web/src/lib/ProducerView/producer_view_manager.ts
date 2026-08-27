@@ -359,12 +359,8 @@ export class ProducerViewManager {
 
     this.dirLight.shadow.normalBias = radius * 0.01;
 
-    // SSAOEffect's `radius` is resolution-relative (a fraction of screen
-    // size), not world-space, so unlike SSAOPass's kernelRadius it doesn't
-    // need rescaling per model. worldProximityThreshold/Falloff are still
-    // absolute world-space distances though, so a tiny model (or a huge
-    // one) still needs them scaled or contact creases either get filtered
-    // out as noise or the occlusion washes out across the whole surface.
+    // radius is resolution-relative and needs no rescaling.
+    // worldProximityThreshold/Falloff are world-space, so they do.
     const ssaoMaterial = this.ssaoEffect.ssaoMaterial;
     ssaoMaterial.worldProximityThreshold = radius * 0.15;
     ssaoMaterial.worldProximityFalloff = radius * 0.05;

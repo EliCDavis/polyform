@@ -49,14 +49,8 @@ func MirrorXYZ(f sample.Vec3ToFloat) sample.Vec3ToFloat {
 	}
 }
 
-// mirrorUnion reflects f across every axis flagged true and unions every
-// resulting copy together - evaluating f at each sign combination of the
-// mirrored axes and taking the minimum - rather than folding a query onto
-// one canonical side before evaluating f once. The fold (MirrorX etc.
-// above) silently discards whatever f actually defines on the non-
-// canonical side; this preserves it, at the cost of evaluating f once per
-// mirrored copy (2 calls for one axis, 4 for two, 8 for three) instead of
-// once.
+// mirrorUnion reflects f across the flagged axes and unions every
+// resulting copy together.
 func mirrorUnion(f sample.Vec3ToFloat, mirrorX, mirrorY, mirrorZ bool) sample.Vec3ToFloat {
 	xSigns := []float64{1}
 	if mirrorX {
@@ -85,8 +79,8 @@ func mirrorUnion(f sample.Vec3ToFloat, mirrorX, mirrorY, mirrorZ bool) sample.Ve
 }
 
 type MirrorNode struct {
-	Field nodes.Output[sample.Vec3ToFloat] `description:"The field to mirror. Each output port below reflects it across a different axis/plane through the origin; nothing is set on any output until this is connected."`
-	Union nodes.Output[bool]               `description:"When true (the default), every reflected copy is unioned with the original by evaluating the field on every mirrored side and combining the results, so real content already present on more than one side of the mirror plane is preserved instead of being silently overwritten. When false: cheaper but less safe - a query is folded onto one canonical side before the field is evaluated once, which discards whatever the field actually defines on the other side. Only set this false when the field being mirrored is known to have content on one side of every mirrored axis only, e.g. a single limb built entirely on the positive side."`
+	Field nodes.Output[sample.Vec3ToFloat] `description:"The field to mirror. Each output port reflects it across a different axis through the origin."`
+	Union nodes.Output[bool]               `description:"When true (default), unions every mirrored copy so content on both sides is preserved. When false, folds onto one side - cheaper, but only correct if the field has content on one side only."`
 }
 
 func (n MirrorNode) Description() string {

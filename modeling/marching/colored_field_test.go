@@ -21,10 +21,7 @@ func TestApplyColorFieldNode(t *testing.T) {
 	b := sdf.ColoredField{Distance: sdf.Sphere(vector3.New(1.5, 0., 0.), 1), Color: sdf.ConstantColor(blue)}
 	field := sdf.SmoothUnionColored(0.5, a, b)
 
-	// A synthetic 3-vertex "mesh" (a point cloud is enough - only the
-	// Position attribute matters here) standing in for what MarchNode
-	// would have produced: one vertex deep in A, one deep in B, one right
-	// on the seam.
+	// 3 vertices: one deep in A, one deep in B, one on the seam.
 	mesh := modeling.NewPointCloud(nil, map[string][]vector3.Float64{
 		modeling.PositionAttribute: {
 			vector3.New(0., 0., 0.),

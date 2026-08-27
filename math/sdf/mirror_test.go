@@ -10,10 +10,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// straddlingField has real, distinct content on both sides of every axis -
-// not the usual "one limb built on the positive side only" case - so a
-// fold-based mirror and a union-based mirror give genuinely different
-// answers.
+// straddlingField has real, different content on both sides of every
+// axis, so fold vs union mirroring gives different answers.
 func straddlingField() sample.Vec3ToFloat {
 	right := sdf.Sphere(vector3.New(2., 0., 0.), 0.5) // real content at x=+2
 	left := sdf.Sphere(vector3.New(-5., 0., 0.), 0.5) // real, different content at x=-5
@@ -55,9 +53,8 @@ func TestMirrorNodeXUnionFalseUsesCheapFold(t *testing.T) {
 }
 
 func TestMirrorNodeOneSidedFieldIdenticalEitherWay(t *testing.T) {
-	// A single ear/limb built entirely on the positive side - the common
-	// real case. Union true/false must agree here, or this would be a
-	// behavior change for every existing build.
+	// A one-sided field - Union true/false must agree here, or every
+	// existing build's behavior would change.
 	ear := sdf.Sphere(vector3.New(0.3, 2., 1.3), 0.15)
 
 	yes, no := true, false
@@ -77,8 +74,7 @@ func TestMirrorNodeOneSidedFieldIdenticalEitherWay(t *testing.T) {
 }
 
 func TestMirrorNodeXYUnionPreservesAllFourQuadrants(t *testing.T) {
-	// Four distinct spheres, one per quadrant of the XY plane - the
-	// multi-axis analog of the single-axis straddling test.
+	// Four distinct spheres, one per quadrant of the XY plane.
 	q1 := sdf.Sphere(vector3.New(3., 3., 0.), 0.4)
 	q2 := sdf.Sphere(vector3.New(-7., 3., 0.), 0.4)
 	q3 := sdf.Sphere(vector3.New(-7., -9., 0.), 0.4)

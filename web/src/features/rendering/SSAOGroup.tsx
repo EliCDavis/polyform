@@ -12,10 +12,8 @@ interface SSAOGroupProps {
 export function SSAOGroup({ threeApp, producerViewManager }: SSAOGroupProps) {
   const ssao = threeApp.PostProcessing.SSAO;
   const ssaoMaterial = ssao.ssaoMaterial;
-  // SSAO is merged into a shared EffectPass with Bloom, so there's no
-  // per-effect pass to flip `.enabled` on — disable by switching this
-  // effect's blend function to SKIP instead, remembering its real one so
-  // re-enabling restores it rather than guessing a blend mode.
+  // Disabling sets the blend function to SKIP instead of toggling
+  // .enabled; remember the real blend function to restore it later.
   const enabledBlendFunction = useRef(ssao.blendMode.blendFunction);
 
   const [enabled, setEnabled] = useState<boolean>(
@@ -27,9 +25,7 @@ export function SSAOGroup({ threeApp, producerViewManager }: SSAOGroupProps) {
   );
   const [intensity, setIntensity] = useState<number>(ssao.intensity);
 
-  // radius/proximityThreshold get rescaled to each newly loaded model's
-  // size, so pull the sliders back in sync whenever that happens instead
-  // of leaving them showing whatever they said on mount.
+  // Keeps the sliders in sync when a new model rescales these values.
   useEffect(() => {
     const onRefresh = () => {
       setRadius(ssaoMaterial.radius);

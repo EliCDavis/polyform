@@ -49,12 +49,8 @@ export interface ThreeAppPostProcessing {
   SSAO: SSAOEffect;
   Bloom: BloomEffect;
   ToneMapping: ToneMappingEffect;
-  // All effects are merged into this single EffectPass (the idiomatic
-  // pmndrs pattern — one shader instead of one per effect). Per-effect
-  // on/off must go through each effect's own blendMode, NOT this pass's
-  // `.enabled`: with only one pass in the chain, disabling the pass
-  // disables the whole chain, leaving nothing rendered to the screen at
-  // all rather than falling back to an earlier stage.
+  // All effects share this one EffectPass. Toggle each effect's own
+  // blendMode, not this pass's .enabled.
   EffectPass: EffectPass;
 }
 
@@ -135,27 +131,16 @@ export function CreateThreeApp(
   // renderer.setSize(threeCanvas.clientWidth, threeCanvas.clientHeight, false);
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = PCFSoftShadowMap; // default THREE.PCFShadowMap
-  // Tone mapping is done by ToneMappingEffect below, not here. Measured
-  // live: with renderer.toneMapping set to anything but NoToneMapping,
-  // materials gamma-encode their output during RenderPass's scene render,
-  // and that already-encoded result then lands in the composer's
-  // intermediate render target — which is itself SRGBColorSpace, so the
-  // GPU encodes it AGAIN on write. That double-encoding pushed every
-  // tonemapping mode toward identical saturated output, which is exactly
-  // why switching the "color grading" dropdown looked like it did nothing.
+  // Tone mapping happens in ToneMappingEffect below - leaving this on
+  // double-encodes colors.
   renderer.toneMapping = NoToneMapping;
   renderer.xr.enabled = xrEnabled;
   renderer.setAnimationLoop(updateLoop.run.bind(updateLoop));
 
-  // pmndrs/postprocessing instead of three's own examples/jsm postprocessing
-  // stack: three's SSAOPass/UnrealBloomPass are unmaintained example code
-  // (not part of three's stable API) and produced the AO artifacts we kept
-  // fighting. This library also merges effects into fewer shader passes and
-  // handles output color space automatically, so no OutputPass equivalent
-  // is needed here.
+  // Uses pmndrs/postprocessing instead of three's example
+  // SSAOPass/UnrealBloomPass, which are unmaintained.
   const composer = new EffectComposer(renderer, {
-    // The canvas's own antialias flag is a no-op once postprocessing reads
-    // from an offscreen render target, so AA has to come from the composer.
+    // AA comes from here; the canvas's own antialias flag is a no-op.
     multisampling: antiAlias ? 4 : 0,
   });
   composer.addPass(new RenderPass(scene, camera));
@@ -171,38 +156,23 @@ export function CreateThreeApp(
     luminanceInfluence: 0.7,
   });
 
-  // luminanceThreshold gates the bloom pass BEFORE blur/intensity ever run
-  // (true regardless of mipmapBlur). RenderPass now renders with
-  // NoToneMapping, so bloom sees true linear HDR scene values, not
-  // something pre-compressed into [0, 1) — which is the correct order
-  // (bloom is supposed to react to real overexposure, not a tonemapped
-  // approximation of it). Tuned against our actual lighting (dir + hemi
-  // ~1.1 intensity): low enough that ordinary lit surfaces still cross it,
-  // high enough that shadowed areas don't.
+  // luminanceThreshold gates which pixels bloom. Tuned so lit surfaces
+  // cross it but shadowed ones don't.
   const bloomEffect = new BloomEffect({
     intensity: 0.3,
     luminanceThreshold: 0.35,
     luminanceSmoothing: 0.3,
     mipmapBlur: true,
   });
-  // NOTE: mipmapBlurPass.radius is NOT the same knob as UnrealBloomPass's
-  // old "radius" arg (which was a mild kernel-shape tweak with blur always
-  // on) — here it's the mix factor between the blurred and unblurred
-  // image, so 0 fully disables the blur and kills bloom entirely. Leave it
-  // at the library default (0.85) so bloom actually spreads.
+  // mipmapBlurPass.radius is the blur/unblurred mix factor, not a kernel
+  // size - 0 disables the blur entirely.
 
   const toneMappingEffect = new ToneMappingEffect({
     mode: ToneMappingMode.ACES_FILMIC,
   });
 
-  // Merged into ONE EffectPass (not one each) — this is both the
-  // idiomatic pmndrs pattern (fewer shader passes) and required for
-  // correctness here: only the last pass added to the composer renders to
-  // the screen, so if these were separate passes and the last one got
-  // disabled, nothing would render at all instead of falling back to
-  // showing the stage before it. Order matters: tone mapping must run
-  // LAST, after SSAO/bloom have had a chance to operate on true linear
-  // HDR values.
+  // One shared EffectPass, in order - tone mapping must run last, after
+  // SSAO/bloom see linear HDR values.
   const effectPass = new EffectPass(camera, ssaoEffect, bloomEffect, toneMappingEffect);
   composer.addPass(effectPass);
 

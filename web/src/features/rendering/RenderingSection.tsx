@@ -32,9 +32,7 @@ const TONE_MAPPING_OPTIONS: Array<{ label: string; value: string }> = [
   { label: "Neutral", value: ToneMappingOption.Neutral },
 ];
 
-// "None" isn't a real ToneMappingMode — it's represented by skipping the
-// effect entirely (see the blendFunction handling below), so this map only
-// needs to cover the modes that actually get applied.
+// "None" has no ToneMappingMode - it's handled by skipping the effect.
 const TONE_MAPPING_TO_MODE: Partial<Record<ToneMappingOption, ToneMappingMode>> = {
   [ToneMappingOption.Linear]: ToneMappingMode.LINEAR,
   [ToneMappingOption.Reinhard]: ToneMappingMode.REINHARD,
@@ -70,9 +68,8 @@ export function RenderingSection() {
     `#${(editor.threeApp.Scene.background as Color).getHexString()}`,
   );
   const toneMappingEffect = editor.threeApp.PostProcessing.ToneMapping;
-  // "None" is represented by skipping the effect (BlendFunction.SKIP)
-  // rather than a real mode, so remember the last real blend function to
-  // restore when switching back to any actual tone-mapping mode.
+  // Remembers the last real blend function, since "None" skips the
+  // effect instead of using a mode.
   const enabledBlendFunction = useRef(
     toneMappingEffect.blendMode.blendFunction === BlendFunction.SKIP
       ? BlendFunction.SRC

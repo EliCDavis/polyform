@@ -10,36 +10,24 @@ import (
 	"github.com/EliCDavis/vector/vector3"
 )
 
-// ColorField is a color at every point in space, the color-channel
-// equivalent of sample.Vec3ToFloat.
+// ColorField is a color at every point in space.
 type ColorField func(vector3.Float64) coloring.Color
 
-// ConstantColor builds a ColorField that returns the same color
-// everywhere - the common case for a single primitive.
+// ConstantColor returns a ColorField that always returns c.
 func ConstantColor(c coloring.Color) ColorField {
 	return func(vector3.Float64) coloring.Color {
 		return c
 	}
 }
 
-// ColoredField pairs a distance field with a color field over the same
-// space, so a union combinator can blend both consistently using the same
-// "how far into the transition zone am I" weight for each.
+// ColoredField pairs a distance field with a color over the same space.
 type ColoredField struct {
 	Distance sample.Vec3ToFloat
 	Color    ColorField
 }
 
-// SmoothUnionColored combines two or more ColoredFields the same way
-// SmoothUnion combines their bare distance fields, and blends color using
-// the identical blend weight the distance union computes - so color
-// transitions over exactly the same physical region the geometry does,
-// instead of snapping at a hard edge or drifting independently of it.
-//
-// For 3+ fields, only the two nearest at a given point are blended - the
-// same nearest-two rule SmoothUnion's own N-ary case uses - so a point
-// deep inside one field is unaffected by a color on the far side of the
-// model, no matter how many other fields are in the union.
+// SmoothUnionColored blends colored fields, using one weight for both
+// shape and color.
 func SmoothUnionColored(radius float64, fields ...ColoredField) ColoredField {
 	if len(fields) == 0 {
 		panic("no fields to union")
@@ -84,10 +72,8 @@ func SmoothUnionColored(radius float64, fields ...ColoredField) ColoredField {
 	return ColoredField{Distance: distanceField, Color: colorField}
 }
 
-// UnionColored is the hard-union equivalent of SmoothUnionColored: at
-// each point, whichever field is nearest wins outright - both its
-// distance and its color - with a crisp seam and no blending, the same
-// relationship Union has to SmoothUnion for plain fields.
+// UnionColored combines colored fields with a hard union - the nearest
+// field's distance and color win outright, with no blending.
 func UnionColored(fields ...ColoredField) ColoredField {
 	if len(fields) == 0 {
 		panic("no fields to union")
@@ -124,7 +110,7 @@ type WithColorNode struct {
 }
 
 func (n WithColorNode) Description() string {
-	return "Pairs an existing field with a constant color, so it can be combined with other colored fields via SmoothUnionColoredNode."
+	return "Pairs a field with a constant color to make a colored field."
 }
 
 func (n WithColorNode) Out(out *nodes.StructOutput[ColoredField]) {
@@ -138,11 +124,11 @@ func (n WithColorNode) Out(out *nodes.StructOutput[ColoredField]) {
 
 type SmoothUnionColoredNode struct {
 	Fields []nodes.Output[ColoredField] `description:"The colored fields to combine."`
-	Radius nodes.Output[float64]        `description:"Width of the blend region in world units, same meaning as SmoothUnionNode's Radius. Zero or less is a hard union: color follows whichever field is nearer outright, with no blending. Defaults to 0.1."`
+	Radius nodes.Output[float64]        `description:"Width of the blend region in world units. Zero or less is a hard union. Defaults to 0.1."`
 }
 
 func (n SmoothUnionColoredNode) Description() string {
-	return "Combines two or more colored fields, blending both their shapes and their colors smoothly where they meet, using the same blend weight for each."
+	return "Blends two or more colored fields together, smoothing both shape and color where they meet."
 }
 
 func (n SmoothUnionColoredNode) Union(out *nodes.StructOutput[ColoredField]) {
@@ -159,7 +145,7 @@ type UnionColoredNode struct {
 }
 
 func (n UnionColoredNode) Description() string {
-	return "Boolean union of two or more colored fields - at each point, whichever field is nearest wins outright, both its shape and its color, with a crisp seam and no blending where they meet."
+	return "Union of two or more colored fields - the nearest field wins outright, shape and color, with a crisp seam."
 }
 
 func (n UnionColoredNode) Union(out *nodes.StructOutput[ColoredField]) {
@@ -176,7 +162,7 @@ type ColoredFieldDistanceNode struct {
 }
 
 func (n ColoredFieldDistanceNode) Description() string {
-	return "Extracts the plain distance field from a colored field, for wiring into MarchNode - a colored field's own color only becomes usable after marching, via ApplyColorFieldNode."
+	return "Extracts the distance field from a colored field."
 }
 
 func (n ColoredFieldDistanceNode) Out(out *nodes.StructOutput[sample.Vec3ToFloat]) {

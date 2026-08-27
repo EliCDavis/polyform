@@ -16,8 +16,7 @@ func TestSmoothUnionColoredTwoSpheres(t *testing.T) {
 	red := coloring.Color{R: 1, G: 0, B: 0, A: 1}
 	blue := coloring.Color{R: 0, G: 0, B: 1, A: 1}
 
-	// Two unit spheres 1.5 apart, so they overlap - a real blend region
-	// exists between them, not just tangency.
+	// Two unit spheres 1.5 apart, so they actually overlap.
 	a := sdf.ColoredField{
 		Distance: sdf.Sphere(vector3.New(0., 0., 0.), 1),
 		Color:    sdf.ConstantColor(red),
@@ -45,8 +44,7 @@ func TestSmoothUnionColoredTwoSpheres(t *testing.T) {
 			pos: vector3.New(0.75, 0., 0.), wantR: 0.5, wantB: 0.5, distSign: -1,
 		},
 		"far outside both, clearly on A's side": {
-			// (-10,0,0) is 9 units from A's surface and 10.5 from B's -
-			// A is unambiguously nearer, so its color should win outright.
+			// Nearer A's surface than B's, so A's color should win.
 			pos: vector3.New(-10., 0., 0.), wantR: 1, wantB: 0, distSign: 1,
 		},
 	}
@@ -74,8 +72,7 @@ func TestSmoothUnionColoredNearestTwoIgnoresDistantThirdField(t *testing.T) {
 
 	a := sdf.ColoredField{Distance: sdf.Sphere(vector3.New(0., 0., 0.), 1), Color: sdf.ConstantColor(red)}
 	b := sdf.ColoredField{Distance: sdf.Sphere(vector3.New(1.5, 0., 0.), 1), Color: sdf.ConstantColor(green)}
-	// Far away on the other side of the model - should have zero influence
-	// on A/B's own blend region.
+	// Far away - should have zero influence on A/B's blend.
 	c := sdf.ColoredField{Distance: sdf.Sphere(vector3.New(0., 0., 100.), 1), Color: sdf.ConstantColor(blue)}
 
 	union := sdf.SmoothUnionColored(0.5, a, b, c)
@@ -112,8 +109,7 @@ func TestUnionColoredTwoSpheres(t *testing.T) {
 		})
 	}
 
-	// A hard-union distance should exactly match the plain (uncolored)
-	// Union of the same two fields, at a real sample of points.
+	// Distance should match the plain Union of the same fields.
 	plainUnion := sdf.Union(a.Distance, b.Distance)
 	for _, p := range []vector3.Float64{
 		vector3.New(0., 0., 0.), vector3.New(0.75, 0., 0.), vector3.New(10., 10., 10.),
