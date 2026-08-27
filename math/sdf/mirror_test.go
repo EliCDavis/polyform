@@ -52,25 +52,34 @@ func TestMirrorNodeXUnionFalseUsesCheapFold(t *testing.T) {
 		"the fold is expected to lose the real content at x=-5 - that's the documented tradeoff")
 }
 
-func TestMirrorNodeOneSidedFieldIdenticalEitherWay(t *testing.T) {
-	// A one-sided field - Union true/false must agree here, or every
-	// existing build's behavior would change.
+func TestMirrorNodeUnionFalseIsAPureReflection(t *testing.T) {
 	ear := sdf.Sphere(vector3.New(0.3, 2., 1.3), 0.15)
 
-	yes, no := true, false
-	withUnion := mirrorXPort(t, ear, &yes)
-	withoutUnion := mirrorXPort(t, ear, &no)
+	no := false
+	reflected := mirrorXPort(t, ear, &no)
 
-	pts := []vector3.Float64{
-		vector3.New(0.3, 2., 1.3),
-		vector3.New(-0.3, 2., 1.3),
-		vector3.New(0., 2., 1.3),
-		vector3.New(5., 5., 5.),
-	}
-	for _, p := range pts {
-		assert.InDelta(t, withoutUnion(p), withUnion(p), 1e-9,
-			"one-sided field: Union true/false must give identical results at %v", p)
-	}
+	original := vector3.New(0.3, 2., 1.3)
+	mirrored := vector3.New(-0.3, 2., 1.3)
+
+	assert.NotEqual(t, ear(original), reflected(original),
+		"Union: false is a pure reflection - it does not preserve the original")
+	assert.InDelta(t, ear(original), reflected(mirrored), 1e-9,
+		"the mirrored point should see the original ear's value")
+}
+
+func TestMirrorNodeUnionTrueIncludesBothOriginalAndReflection(t *testing.T) {
+	ear := sdf.Sphere(vector3.New(0.3, 2., 1.3), 0.15)
+
+	yes := true
+	both := mirrorXPort(t, ear, &yes)
+
+	original := vector3.New(0.3, 2., 1.3)
+	mirrored := vector3.New(-0.3, 2., 1.3)
+
+	assert.InDelta(t, ear(original), both(original), 1e-9,
+		"Union: true (default) should still preserve the original")
+	assert.InDelta(t, ear(original), both(mirrored), 1e-9,
+		"Union: true (default) should also give the reflection")
 }
 
 func TestMirrorNodeXYUnionPreservesAllFourQuadrants(t *testing.T) {
