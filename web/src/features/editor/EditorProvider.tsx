@@ -26,10 +26,10 @@ import type { NodeFlowGraph } from "@elicdavis/node-flow";
 
 const viewportSettings: ViewportSettings = {
   renderWireframe: false,
-  fog: { color: "0xa0a0a0", near: 100, far: 150 },
-  background: "0xa0a0a0",
-  lighting: "0xffffff",
-  ground: "0xcbcbcb",
+  fog: { color: "#a0a0a0", near: 100, far: 150 },
+  background: "#a0a0a0",
+  lighting: "#ffffff",
+  ground: "#cbcbcb",
 };
 
 function EditorModelVersionPoller() {

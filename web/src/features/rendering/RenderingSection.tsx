@@ -1,15 +1,6 @@
-import { useEffect, useState } from "react";
-import {
-  ACESFilmicToneMapping,
-  AgXToneMapping,
-  CineonToneMapping,
-  LinearToneMapping,
-  NeutralToneMapping,
-  NoToneMapping,
-  ReinhardToneMapping,
-  type Color,
-  type ToneMapping,
-} from "three";
+import { useEffect, useRef, useState } from "react";
+import { BlendFunction, ToneMappingMode } from "postprocessing";
+import type { Color } from "three";
 import { useEditorOptional } from "../editor/EditorContext";
 import {
   RenderingOption,
@@ -41,24 +32,22 @@ const TONE_MAPPING_OPTIONS: Array<{ label: string; value: string }> = [
   { label: "Neutral", value: ToneMappingOption.Neutral },
 ];
 
-const TONE_MAPPING_TO_THREE: Record<ToneMappingOption, ToneMapping> = {
-  [ToneMappingOption.None]: NoToneMapping,
-  [ToneMappingOption.Linear]: LinearToneMapping,
-  [ToneMappingOption.Reinhard]: ReinhardToneMapping,
-  [ToneMappingOption.Cineon]: CineonToneMapping,
-  [ToneMappingOption.AcesFilmic]: ACESFilmicToneMapping,
-  [ToneMappingOption.AgX]: AgXToneMapping,
-  [ToneMappingOption.Neutral]: NeutralToneMapping,
+const TONE_MAPPING_TO_MODE: Partial<Record<ToneMappingOption, ToneMappingMode>> = {
+  [ToneMappingOption.Linear]: ToneMappingMode.LINEAR,
+  [ToneMappingOption.Reinhard]: ToneMappingMode.REINHARD,
+  [ToneMappingOption.Cineon]: ToneMappingMode.CINEON,
+  [ToneMappingOption.AcesFilmic]: ToneMappingMode.ACES_FILMIC,
+  [ToneMappingOption.AgX]: ToneMappingMode.AGX,
+  [ToneMappingOption.Neutral]: ToneMappingMode.NEUTRAL,
 };
 
-const THREE_TO_TONE_MAPPING: Record<number, ToneMappingOption> = {
-  [NoToneMapping]: ToneMappingOption.None,
-  [LinearToneMapping]: ToneMappingOption.Linear,
-  [ReinhardToneMapping]: ToneMappingOption.Reinhard,
-  [CineonToneMapping]: ToneMappingOption.Cineon,
-  [ACESFilmicToneMapping]: ToneMappingOption.AcesFilmic,
-  [AgXToneMapping]: ToneMappingOption.AgX,
-  [NeutralToneMapping]: ToneMappingOption.Neutral,
+const MODE_TO_TONE_MAPPING: Partial<Record<ToneMappingMode, ToneMappingOption>> = {
+  [ToneMappingMode.LINEAR]: ToneMappingOption.Linear,
+  [ToneMappingMode.REINHARD]: ToneMappingOption.Reinhard,
+  [ToneMappingMode.CINEON]: ToneMappingOption.Cineon,
+  [ToneMappingMode.ACES_FILMIC]: ToneMappingOption.AcesFilmic,
+  [ToneMappingMode.AGX]: ToneMappingOption.AgX,
+  [ToneMappingMode.NEUTRAL]: ToneMappingOption.Neutral,
 };
 
 export function RenderingSection() {
@@ -77,13 +66,18 @@ export function RenderingSection() {
   const [skyColor, setSkyColor] = useState<string>(
     `#${(editor.threeApp.Scene.background as Color).getHexString()}`,
   );
-  const [toneMapping, setToneMapping] = useState<string>(
-    THREE_TO_TONE_MAPPING[editor.threeApp.Renderer.toneMapping] ??
-      ToneMappingOption.AcesFilmic,
+  const toneMappingEffect = editor.threeApp.PostProcessing.ToneMapping;
+  const enabledBlendFunction = useRef(
+    toneMappingEffect.blendMode.blendFunction === BlendFunction.SKIP
+      ? BlendFunction.SRC
+      : toneMappingEffect.blendMode.blendFunction,
   );
-  const [exposure, setExposure] = useState<number>(
-    editor.threeApp.Renderer.toneMappingExposure,
-  );
+  const [toneMapping, setToneMapping] = useState<string>(() => {
+    if (toneMappingEffect.blendMode.blendFunction === BlendFunction.SKIP) {
+      return ToneMappingOption.None;
+    }
+    return MODE_TO_TONE_MAPPING[toneMappingEffect.mode] ?? ToneMappingOption.AcesFilmic;
+  });
 
   useEffect(() => {
     editor.threeApp.Camera.fov = fov;
@@ -109,12 +103,13 @@ export function RenderingSection() {
   }, [skyColor]);
 
   useEffect(() => {
-    editor.threeApp.Renderer.toneMapping = TONE_MAPPING_TO_THREE[toneMapping];
+    if (toneMapping === ToneMappingOption.None) {
+      toneMappingEffect.blendMode.blendFunction = BlendFunction.SKIP;
+      return;
+    }
+    toneMappingEffect.mode = TONE_MAPPING_TO_MODE[toneMapping as ToneMappingOption]!;
+    toneMappingEffect.blendMode.blendFunction = enabledBlendFunction.current;
   }, [toneMapping]);
-
-  useEffect(() => {
-    editor.threeApp.Renderer.toneMappingExposure = exposure;
-  }, [exposure]);
 
   return (
     <>
@@ -156,12 +151,6 @@ export function RenderingSection() {
           setValue={setToneMapping}
           value={toneMapping}
           options={TONE_MAPPING_OPTIONS}
-        />
-        <RenderingOption
-          name="exposure"
-          description="Overall brightness applied after color grading"
-          setValue={setExposure}
-          value={exposure}
         />
         <SSAOGroup
           threeApp={editor.threeApp}

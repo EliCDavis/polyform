@@ -16,6 +16,7 @@ func init() {
 	factory := &refutil.TypeFactory{}
 
 	refutil.RegisterType[nodes.Struct[MarchNode]](factory)
+	refutil.RegisterType[nodes.Struct[ApplyColorFieldNode]](factory)
 
 	generator.RegisterTypes(factory)
 }

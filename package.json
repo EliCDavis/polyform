@@ -42,6 +42,7 @@
     "@types/three": "^0.174.0",
     "@vitejs/plugin-react": "^4.7.0",
     "lucide-react": "^1.28.0",
+    "postprocessing": "^6.39.4",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "rxjs": "^7.8.2",

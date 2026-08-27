@@ -1,5 +1,4 @@
 import {
-  ACESFilmicToneMapping,
   Camera,
   Color,
   DirectionalLight,
@@ -8,22 +7,27 @@ import {
   HemisphereLight,
   Mesh,
   MeshPhongMaterial,
+  NoToneMapping,
   PCFSoftShadowMap,
   PerspectiveCamera,
   PlaneGeometry,
   Scene,
-  Vector2,
   WebGLRenderer,
 } from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { CSS2DRenderer } from "three/examples/jsm/renderers/CSS2DRenderer.js";
 // import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 
-import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
-import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
-import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
-import { SSAOPass } from "three/examples/jsm/postprocessing/SSAOPass.js";
-import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
+import {
+  BloomEffect,
+  EffectComposer,
+  EffectPass,
+  NormalPass,
+  RenderPass,
+  SSAOEffect,
+  ToneMappingEffect,
+  ToneMappingMode,
+} from "postprocessing";
 import { ViewportSettings } from "./viewport_settings";
 import { UpdateManager } from "./update_manager";
 import { ViewportGizmo } from "three-viewport-gizmo";
@@ -42,8 +46,10 @@ export interface ThreeAppGround {
 }
 
 export interface ThreeAppPostProcessing {
-  SSAO: SSAOPass;
-  Bloom: UnrealBloomPass;
+  SSAO: SSAOEffect;
+  Bloom: BloomEffect;
+  ToneMapping: ToneMappingEffect;
+  EffectPass: EffectPass;
 }
 
 export interface ThreeApp {
@@ -123,26 +129,49 @@ export function CreateThreeApp(
   // renderer.setSize(threeCanvas.clientWidth, threeCanvas.clientHeight, false);
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = PCFSoftShadowMap; // default THREE.PCFShadowMap
-  renderer.toneMapping = ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1;
+  // Tone mapping happens in ToneMappingEffect below - leaving this on
+  // double-encodes colors.
+  renderer.toneMapping = NoToneMapping;
   renderer.xr.enabled = xrEnabled;
   renderer.setAnimationLoop(updateLoop.run.bind(updateLoop));
 
-  const renderScene = new RenderPass(scene, camera);
-  const ssaoPass = new SSAOPass(scene, camera);
-  const bloomPass = new UnrealBloomPass(
-    new Vector2(window.innerWidth, window.innerHeight),
-    0.3,
-    0,
-    1.01,
-  );
-  const outputPass = new OutputPass();
+  // Uses pmndrs/postprocessing instead of three
+  const composer = new EffectComposer(renderer, {
+    // AA comes from here; the canvas's own antialias flag is a no-op.
+    multisampling: antiAlias ? 4 : 0,
+  });
+  composer.addPass(new RenderPass(scene, camera));
 
-  const composer = new EffectComposer(renderer);
-  composer.addPass(renderScene);
-  composer.addPass(ssaoPass);
-  composer.addPass(bloomPass);
-  composer.addPass(outputPass);
+  const normalPass = new NormalPass(scene, camera);
+  composer.addPass(normalPass);
+
+  const ssaoEffect = new SSAOEffect(camera, normalPass.texture, {
+    samples: 9,
+    rings: 7,
+    radius: 0.1825,
+    intensity: 1.0,
+    luminanceInfluence: 0.7,
+  });
+
+  // luminanceThreshold gates which pixels bloom. Tuned so lit surfaces
+  // cross it but shadowed ones don't.
+  const bloomEffect = new BloomEffect({
+    intensity: 0.3,
+    luminanceThreshold: 0.35,
+    luminanceSmoothing: 0.3,
+    mipmapBlur: true,
+  });
+  // mipmapBlurPass.radius is the blur/unblurred mix factor, not a kernel
+  // size - 0 disables the blur entirely.
+
+  const toneMappingEffect = new ToneMappingEffect({
+    mode: ToneMappingMode.ACES_FILMIC,
+  });
+
+  // One shared EffectPass, in order - tone mapping must run last, after
+  // SSAO/bloom see linear HDR values.
+  const effectPass = new EffectPass(camera, ssaoEffect, bloomEffect, toneMappingEffect);
+  composer.addPass(effectPass);
 
   // progressive lightmap
   // const progressiveSurfacemap = new ProgressiveLightMap(renderer, lightMapRes);
@@ -215,8 +244,10 @@ export function CreateThreeApp(
     },
     Composer: composer,
     PostProcessing: {
-      SSAO: ssaoPass,
-      Bloom: bloomPass,
+      SSAO: ssaoEffect,
+      Bloom: bloomEffect,
+      ToneMapping: toneMappingEffect,
+      EffectPass: effectPass,
     },
     LabelRenderer: labelRenderer,
     Fog: fog,
