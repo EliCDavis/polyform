@@ -361,9 +361,9 @@ export class ProducerViewManager {
 
     // radius is resolution-relative and needs no rescaling.
     // worldProximityThreshold/Falloff are world-space, so they do.
-    const ssaoMaterial = this.ssaoEffect.ssaoMaterial;
-    ssaoMaterial.worldProximityThreshold = radius * 0.15;
-    ssaoMaterial.worldProximityFalloff = radius * 0.05;
+    // const ssaoMaterial = this.ssaoEffect.ssaoMaterial;
+    // ssaoMaterial.worldProximityThreshold = radius * 0.15;
+    // ssaoMaterial.worldProximityFalloff = radius * 0.05;
   }
 
   loadObj(objLoader: OBJLoader, key: string, producerURL: string): void {

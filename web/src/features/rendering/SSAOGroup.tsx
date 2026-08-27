@@ -25,11 +25,10 @@ export function SSAOGroup({ threeApp, producerViewManager }: SSAOGroupProps) {
   );
   const [intensity, setIntensity] = useState<number>(ssao.intensity);
 
-  // Keeps the sliders in sync when a new model rescales these values.
   useEffect(() => {
     const onRefresh = () => {
-      setRadius(ssaoMaterial.radius);
-      setProximityThreshold(ssaoMaterial.worldProximityThreshold);
+      // setRadius(ssaoMaterial.radius);
+      // setProximityThreshold(ssaoMaterial.worldProximityThreshold);
     };
     producerViewManager.SubscribeToCompleteRefresh(onRefresh);
   }, [producerViewManager]);
