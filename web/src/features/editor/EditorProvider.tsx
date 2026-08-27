@@ -24,7 +24,6 @@ import {
 import { useGraphTabStore, activeGraphScope } from "@/stores/graphTabStore";
 import type { NodeFlowGraph } from "@elicdavis/node-flow";
 
-// THREE.Color only accepts CSS hex strings ("#rrggbb"), not "0xrrggbb".
 const viewportSettings: ViewportSettings = {
   renderWireframe: false,
   fog: { color: "#a0a0a0", near: 100, far: 150 },

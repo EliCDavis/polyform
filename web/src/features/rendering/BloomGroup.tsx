@@ -9,8 +9,6 @@ interface BloomGroupProps {
 
 export function BloomGroup({ threeApp }: BloomGroupProps) {
   const bloom = threeApp.PostProcessing.Bloom;
-  // Disabling sets the blend function to SKIP instead of toggling
-  // .enabled; remember the real blend function to restore it later.
   const enabledBlendFunction = useRef(bloom.blendMode.blendFunction);
 
   const [enabled, setEnabled] = useState<boolean>(

@@ -49,8 +49,6 @@ export interface ThreeAppPostProcessing {
   SSAO: SSAOEffect;
   Bloom: BloomEffect;
   ToneMapping: ToneMappingEffect;
-  // All effects share this one EffectPass. Toggle each effect's own
-  // blendMode, not this pass's .enabled.
   EffectPass: EffectPass;
 }
 
@@ -137,8 +135,7 @@ export function CreateThreeApp(
   renderer.xr.enabled = xrEnabled;
   renderer.setAnimationLoop(updateLoop.run.bind(updateLoop));
 
-  // Uses pmndrs/postprocessing instead of three's example
-  // SSAOPass/UnrealBloomPass, which are unmaintained.
+  // Uses pmndrs/postprocessing instead of three
   const composer = new EffectComposer(renderer, {
     // AA comes from here; the canvas's own antialias flag is a no-op.
     multisampling: antiAlias ? 4 : 0,

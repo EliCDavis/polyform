@@ -10,42 +10,42 @@ import (
 
 func MirrorX(f sample.Vec3ToFloat) sample.Vec3ToFloat {
 	return func(v vector3.Float64) float64 {
-		return f(vector3.New(math.Abs(v.X()), v.Y(), v.Z()))
+		return f(v.FlipX())
 	}
 }
 
 func MirrorY(f sample.Vec3ToFloat) sample.Vec3ToFloat {
 	return func(v vector3.Float64) float64 {
-		return f(vector3.New(v.X(), math.Abs(v.Y()), v.Z()))
+		return f(v.FlipY())
 	}
 }
 
 func MirrorZ(f sample.Vec3ToFloat) sample.Vec3ToFloat {
 	return func(v vector3.Float64) float64 {
-		return f(vector3.New(v.X(), v.Y(), math.Abs(v.Z())))
+		return f(v.FlipZ())
 	}
 }
 
 func MirrorXY(f sample.Vec3ToFloat) sample.Vec3ToFloat {
 	return func(v vector3.Float64) float64 {
-		return f(vector3.New(math.Abs(v.X()), math.Abs(v.Y()), v.Z()))
+		return f(vector3.New(v.X()*-1, v.Y()*-1, v.Z()))
 	}
 }
 
 func MirrorYZ(f sample.Vec3ToFloat) sample.Vec3ToFloat {
 	return func(v vector3.Float64) float64 {
-		return f(vector3.New(v.X(), math.Abs(v.Y()), math.Abs(v.Z())))
+		return f(vector3.New(v.X(), v.Y()*-1, v.Z()*-1))
 	}
 }
 func MirrorXZ(f sample.Vec3ToFloat) sample.Vec3ToFloat {
 	return func(v vector3.Float64) float64 {
-		return f(vector3.New(math.Abs(v.X()), v.Y(), math.Abs(v.Z())))
+		return f(vector3.New(v.X()*-1, v.Y(), v.Z()*-1))
 	}
 }
 
 func MirrorXYZ(f sample.Vec3ToFloat) sample.Vec3ToFloat {
 	return func(v vector3.Float64) float64 {
-		return f(v.Abs())
+		return f(v.Scale(-1))
 	}
 }
 
@@ -80,7 +80,7 @@ func mirrorUnion(f sample.Vec3ToFloat, mirrorX, mirrorY, mirrorZ bool) sample.Ve
 
 type MirrorNode struct {
 	Field nodes.Output[sample.Vec3ToFloat] `description:"The field to mirror. Each output port reflects it across a different axis through the origin."`
-	Union nodes.Output[bool]               `description:"When true (default), unions every mirrored copy so content on both sides is preserved. When false, folds onto one side - cheaper, but only correct if the field has content on one side only."`
+	Union nodes.Output[bool]               `description:"When true (default), unions every mirrored copy so content on both sides is preserved. When false, folds onto one side."`
 }
 
 func (n MirrorNode) Description() string {
