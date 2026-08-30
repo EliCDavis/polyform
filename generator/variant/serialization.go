@@ -10,13 +10,16 @@ import (
 )
 
 const (
-	typeDiscrete     = "discrete"
-	typeNumericRange = "numericRange"
-	typeVector2Range = "vector2Range"
-	typeVector3Range = "vector3Range"
-	typeRGBRange     = "rgbRange"
-	typeHSVRange     = "hsvRange"
-	typeCombination  = "combination"
+	typeDiscrete        = "discrete"
+	typeNumericRange    = "numericRange"
+	typeIntRange        = "intRange"
+	typeVector2Range    = "vector2Range"
+	typeVector3Range    = "vector3Range"
+	typeVector2IntRange = "vector2IntRange"
+	typeVector3IntRange = "vector3IntRange"
+	typeRGBRange        = "rgbRange"
+	typeHSVRange        = "hsvRange"
+	typeCombination     = "combination"
 )
 
 // dimensionEnvelope pairs a Dimension's type with its encoded data.
@@ -43,8 +46,11 @@ type rangeJSON[V any] struct {
 	Samples int `json:"samples"`
 }
 
+type intRangeJSON = rangeJSON[int]
 type vector2RangeJSON = rangeJSON[vector2.Float64]
 type vector3RangeJSON = rangeJSON[vector3.Float64]
+type vector2IntRangeJSON = rangeJSON[vector2.Int]
+type vector3IntRangeJSON = rangeJSON[vector3.Int]
 type rgbRangeJSON = rangeJSON[persistence.WebColor]
 type hsvRangeJSON = rangeJSON[HSVChannels]
 
@@ -74,6 +80,13 @@ func UnmarshalDimension(path string, data []byte) (Dimension, error) {
 		}
 		return NumericRange{path: path, axisRange: r}, nil
 
+	case typeIntRange:
+		var r intRangeJSON
+		if err := json.Unmarshal(envelope.Data, &r); err != nil {
+			return nil, err
+		}
+		return IntRange{path: path, Min: r.Min, Max: r.Max, Samples: r.Samples}, nil
+
 	case typeVector2Range:
 		var r vector2RangeJSON
 		if err := json.Unmarshal(envelope.Data, &r); err != nil {
@@ -87,6 +100,20 @@ func UnmarshalDimension(path string, data []byte) (Dimension, error) {
 			return nil, err
 		}
 		return Vector3Range{path: path, Min: r.Min, Max: r.Max, Samples: r.Samples}, nil
+
+	case typeVector2IntRange:
+		var r vector2IntRangeJSON
+		if err := json.Unmarshal(envelope.Data, &r); err != nil {
+			return nil, err
+		}
+		return Vector2IntRange{path: path, Min: r.Min, Max: r.Max, Samples: r.Samples}, nil
+
+	case typeVector3IntRange:
+		var r vector3IntRangeJSON
+		if err := json.Unmarshal(envelope.Data, &r); err != nil {
+			return nil, err
+		}
+		return Vector3IntRange{path: path, Min: r.Min, Max: r.Max, Samples: r.Samples}, nil
 
 	case typeRGBRange:
 		var r rgbRangeJSON

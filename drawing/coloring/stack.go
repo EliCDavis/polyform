@@ -95,7 +95,7 @@ func (cs ColorStack) Image(width, height int) *image.RGBA {
 }
 
 func (cs ColorStack) Debug(imgPath string, width, height int) error {
-	err := os.MkdirAll(path.Dir(imgPath), os.ModeDir)
+	err := os.MkdirAll(path.Dir(imgPath), os.ModePerm)
 	if err != nil {
 		return err
 	}

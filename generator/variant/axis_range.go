@@ -1,6 +1,9 @@
 package variant
 
-import "math/rand"
+import (
+	"math"
+	"math/rand"
+)
 
 // axisRange is a min/max/samples spec shared by range Dimensions - not
 // itself a Dimension.
@@ -47,4 +50,15 @@ func axisValue(min, max float64, samples, index int) float64 {
 	}
 	step := (max - min) / float64(n-1)
 	return min + step*float64(index)
+}
+
+// intAxisValue is axisValue rounded to the nearest whole number, so it can
+// back an int-typed Dimension without producing fractional JSON values.
+func intAxisValue(min, max, samples, index int) int {
+	return int(math.Round(axisValue(float64(min), float64(max), samples, index)))
+}
+
+// intLerp is lerp rounded to the nearest whole number.
+func intLerp(min, max int, t float64) int {
+	return int(math.Round(lerp(float64(min), float64(max), t)))
 }

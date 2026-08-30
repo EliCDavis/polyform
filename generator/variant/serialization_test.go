@@ -24,10 +24,25 @@ func TestUnmarshalDimension(t *testing.T) {
 			wantCount: 5,
 			wantValue: `0`,
 		},
+		"int range": {
+			json:      `{"type":"intRange","data":{"min":0,"max":10,"samples":5}}`,
+			wantCount: 5,
+			wantValue: `0`,
+		},
 		"vector2 range": {
 			json:      `{"type":"vector2Range","data":{"min":{"x":0,"y":0},"max":{"x":1,"y":1},"samples":2}}`,
 			wantCount: 2,
 			wantValue: `{"x":0,"y":0}`,
+		},
+		"vector2 int range": {
+			json:      `{"type":"vector2IntRange","data":{"min":{"x":0,"y":0},"max":{"x":10,"y":10},"samples":3}}`,
+			wantCount: 3,
+			wantValue: `{"x":0,"y":0}`,
+		},
+		"vector3 int range": {
+			json:      `{"type":"vector3IntRange","data":{"min":{"x":0,"y":0,"z":0},"max":{"x":10,"y":10,"z":10},"samples":3}}`,
+			wantCount: 3,
+			wantValue: `{"x":0,"y":0,"z":0}`,
 		},
 		"vector3 range": {
 			json:      `{"type":"vector3Range","data":{"min":{"x":0,"y":0,"z":0},"max":{"x":1,"y":1,"z":1},"samples":2}}`,

@@ -104,7 +104,7 @@ func texture(textureName string) error {
 	ctx.Stroke()
 
 	imgPath := path.Join("tmp/flowers/", textureName)
-	err := os.MkdirAll(path.Dir(imgPath), os.ModeDir)
+	err := os.MkdirAll(path.Dir(imgPath), os.ModePerm)
 	if err != nil {
 		return err
 	}

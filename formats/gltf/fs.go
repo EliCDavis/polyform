@@ -10,7 +10,7 @@ import (
 )
 
 func save(gltfPath string, scene PolyformScene, options *WriterOptions, saveFunc func(_ PolyformScene, out io.Writer, _ *WriterOptions) error) error {
-	err := os.MkdirAll(path.Dir(gltfPath), os.ModeDir)
+	err := os.MkdirAll(path.Dir(gltfPath), os.ModePerm)
 	if err != nil {
 		return err
 	}

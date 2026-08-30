@@ -17,7 +17,7 @@ func RunVariants(instance *graph.Instance, profiles []variable.Profile, root str
 		}
 
 		folder := filepath.Join(root, fmt.Sprintf("variant-%04d", i))
-		if err := os.MkdirAll(folder, os.ModeDir); err != nil {
+		if err := os.MkdirAll(folder, os.ModePerm); err != nil {
 			return err
 		}
 

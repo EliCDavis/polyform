@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+
+	"github.com/EliCDavis/vector"
 )
 
 // hexColor encodes r, g, b (0-1) as a "#rrggbb" string.
@@ -20,13 +22,7 @@ func byteToUnit(b byte) float64 {
 }
 
 func colorByte(v float64) byte {
-	if v < 0 {
-		v = 0
-	}
-	if v > 1 {
-		v = 1
-	}
-	return byte(v * 255)
+	return byte(vector.Clamp(v, 0, 1) * 255)
 }
 
 // hsvToRGB converts h (degrees), s, and v (0-1) into r, g, b (0-1).

@@ -12,7 +12,7 @@ import (
 
 // Save writes the mesh to the path specified in PLY format
 func Save(plyPath string, meshToSave modeling.Mesh, format Format) error {
-	err := os.MkdirAll(path.Dir(plyPath), os.ModeDir)
+	err := os.MkdirAll(path.Dir(plyPath), os.ModePerm)
 	if err != nil {
 		return err
 	}

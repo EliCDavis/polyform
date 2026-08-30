@@ -79,6 +79,45 @@ func TestNumericRangeRandomStaysInBounds(t *testing.T) {
 	}
 }
 
+func TestIntRangeSweepValues(t *testing.T) {
+	r := variant.NewIntRange("Count", 0, 10, 5)
+	assert.Equal(t, 5, r.Count())
+
+	want := []int{0, 3, 5, 8, 10}
+	for i, w := range want {
+		v, err := r.Value(i)
+		require.NoError(t, err)
+		var got int
+		require.NoError(t, json.Unmarshal(v, &got), "must decode as a whole number, not a float")
+		assert.Equal(t, w, got, "sample %d", i)
+	}
+}
+
+func TestIntRangeSingleSampleReturnsMin(t *testing.T) {
+	r := variant.NewIntRange("Count", 5, 10, 1)
+	assert.Equal(t, 1, r.Count())
+
+	v, err := r.Value(0)
+	require.NoError(t, err)
+	var got int
+	require.NoError(t, json.Unmarshal(v, &got))
+	assert.Equal(t, 5, got, "a single sample should not divide by zero and should return Min")
+}
+
+func TestIntRangeRandomStaysInBounds(t *testing.T) {
+	r := variant.NewIntRange("Count", 2, 4, 10)
+	rng := rand.New(rand.NewSource(42))
+
+	for range 50 {
+		v, err := r.Random(rng)
+		require.NoError(t, err)
+		var got int
+		require.NoError(t, json.Unmarshal(v, &got))
+		assert.GreaterOrEqual(t, got, 2)
+		assert.LessOrEqual(t, got, 4)
+	}
+}
+
 func TestVector2RangeLerpsMinAndMaxTogether(t *testing.T) {
 	r := variant.NewVector2Range("Position", 0, 10, 0, 100, 3)
 	assert.Equal(t, 3, r.Count(), "Samples describes the whole sweep, not a per-axis count")
@@ -115,6 +154,42 @@ func TestVector3RangeLerpsMinAndMaxTogether(t *testing.T) {
 		assert.InDelta(t, w.X(), got.X(), 1e-9, "sample %d", i)
 		assert.InDelta(t, w.Y(), got.Y(), 1e-9, "sample %d", i)
 		assert.InDelta(t, w.Z(), got.Z(), 1e-9, "sample %d", i)
+	}
+}
+
+func TestVector2IntRangeLerpsMinAndMaxTogether(t *testing.T) {
+	r := variant.NewVector2IntRange("Position", 0, 10, 0, 100, 3)
+	assert.Equal(t, 3, r.Count(), "Samples describes the whole sweep, not a per-axis count")
+
+	want := []vector2.Int{
+		vector2.New(0, 0),
+		vector2.New(5, 50),
+		vector2.New(10, 100),
+	}
+	for i, w := range want {
+		v, err := r.Value(i)
+		require.NoError(t, err)
+		var got vector2.Int
+		require.NoError(t, json.Unmarshal(v, &got))
+		assert.Equal(t, w, got, "sample %d", i)
+	}
+}
+
+func TestVector3IntRangeLerpsMinAndMaxTogether(t *testing.T) {
+	r := variant.NewVector3IntRange("Position", 0, 10, 0, 100, 0, 1000, 3)
+	assert.Equal(t, 3, r.Count(), "Samples describes the whole sweep, not a per-axis count")
+
+	want := []vector3.Int{
+		vector3.New(0, 0, 0),
+		vector3.New(5, 50, 500),
+		vector3.New(10, 100, 1000),
+	}
+	for i, w := range want {
+		v, err := r.Value(i)
+		require.NoError(t, err)
+		var got vector3.Int
+		require.NoError(t, json.Unmarshal(v, &got))
+		assert.Equal(t, w, got, "sample %d", i)
 	}
 }
 
@@ -243,12 +318,15 @@ func TestCombinationRandomRejectsEmptyDimensions(t *testing.T) {
 
 func TestDimensionRoundTripsThroughJSON(t *testing.T) {
 	tests := map[string]variant.Dimension{
-		"discrete":      variant.NewDiscrete("Color", rawFloat(t, 1), rawFloat(t, 2)),
-		"numeric range": variant.NewNumericRange("Scale", 0, 10, 5),
-		"vector2 range": variant.NewVector2Range("Position2D", 0, 1, 0, 1, 2),
-		"vector3 range": variant.NewVector3Range("Position3D", 0, 1, 0, 1, 0, 1, 2),
-		"rgb range":     variant.NewRGBRange("Fur Color", persistence.WebColor{}, persistence.WebColor{R: 255, G: 255, B: 255}, 2),
-		"hsv range":     variant.NewHSVRange("Fur Color", 0, 360, 0, 1, 0, 1, 2),
+		"discrete":          variant.NewDiscrete("Color", rawFloat(t, 1), rawFloat(t, 2)),
+		"numeric range":     variant.NewNumericRange("Scale", 0, 10, 5),
+		"int range":         variant.NewIntRange("Count", 0, 10, 5),
+		"vector2 range":     variant.NewVector2Range("Position2D", 0, 1, 0, 1, 2),
+		"vector3 range":     variant.NewVector3Range("Position3D", 0, 1, 0, 1, 0, 1, 2),
+		"vector2 int range": variant.NewVector2IntRange("Position2D", 0, 10, 0, 10, 2),
+		"vector3 int range": variant.NewVector3IntRange("Position3D", 0, 10, 0, 10, 0, 10, 2),
+		"rgb range":         variant.NewRGBRange("Fur Color", persistence.WebColor{}, persistence.WebColor{R: 255, G: 255, B: 255}, 2),
+		"hsv range":         variant.NewHSVRange("Fur Color", 0, 360, 0, 1, 0, 1, 2),
 		"combination": variant.NewCombination("Scale",
 			variant.NewDiscrete("Scale", rawFloat(t, -1), rawFloat(t, -2)),
 			variant.NewNumericRange("Scale", 0, 10, 5),
