@@ -4,56 +4,64 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/rand"
-
-	"github.com/EliCDavis/polyform/math/chance"
-	"github.com/EliCDavis/vector/vector3"
 )
 
-// HSVRange combines a range per Hue, Saturation, Value channel into one hex color.
-type HSVRange struct {
-	path    string
-	Min     vector3.Float64
-	Max     vector3.Float64
-	Samples vector3.Int
+// HSVChannels is a Hue (degrees), Saturation (0-1), Value (0-1) triple.
+type HSVChannels struct {
+	H float64 `json:"h"`
+	S float64 `json:"s"`
+	V float64 `json:"v"`
 }
 
-func NewHSVRange(path string, minH, maxH float64, samplesH int, minS, maxS float64, samplesS int, minV, maxV float64, samplesV int) HSVRange {
+// HSVRange combines a range per Hue, Saturation, Value channel into one hex
+// color, sampled the same number of times per channel.
+type HSVRange struct {
+	path    string
+	Min     HSVChannels
+	Max     HSVChannels
+	Samples int
+}
+
+func NewHSVRange(path string, minH, maxH, minS, maxS, minV, maxV float64, samples int) HSVRange {
 	return HSVRange{
 		path:    path,
-		Min:     vector3.New(minH, minS, minV),
-		Max:     vector3.New(maxH, maxS, maxV),
-		Samples: vector3.New(samplesH, samplesS, samplesV),
+		Min:     HSVChannels{H: minH, S: minS, V: minV},
+		Max:     HSVChannels{H: maxH, S: maxS, V: maxV},
+		Samples: samples,
 	}
 }
 
 func (r HSVRange) Path() string { return r.path }
 func (r HSVRange) Count() int {
-	return axisCount(r.Samples.X()) * axisCount(r.Samples.Y()) * axisCount(r.Samples.Z())
+	return axisCount(r.Samples) * axisCount(r.Samples) * axisCount(r.Samples)
 }
 
 func (r HSVRange) Value(index int) (json.RawMessage, error) {
 	if index < 0 || index >= r.Count() {
 		return nil, fmt.Errorf("index %d out of range [0,%d)", index, r.Count())
 	}
-	xCount := axisCount(r.Samples.X())
-	yCount := axisCount(r.Samples.Y())
-	ih := index % xCount
-	is := (index / xCount) % yCount
-	iv := index / (xCount * yCount)
+	hCount := axisCount(r.Samples)
+	sCount := axisCount(r.Samples)
+	ih := index % hCount
+	is := (index / hCount) % sCount
+	iv := index / (hCount * sCount)
 	red, green, blue := hsvToRGB(
-		axisValue(r.Min.X(), r.Max.X(), r.Samples.X(), ih),
-		axisValue(r.Min.Y(), r.Max.Y(), r.Samples.Y(), is),
-		axisValue(r.Min.Z(), r.Max.Z(), r.Samples.Z(), iv),
+		axisValue(r.Min.H, r.Max.H, r.Samples, ih),
+		axisValue(r.Min.S, r.Max.S, r.Samples, is),
+		axisValue(r.Min.V, r.Max.V, r.Samples, iv),
 	)
 	return hexColor(red, green, blue), nil
 }
 
 func (r HSVRange) Random(rng *rand.Rand) (json.RawMessage, error) {
-	v := chance.NewRange3D(r.Min, r.Max, rng).Value()
-	red, green, blue := hsvToRGB(v.X(), v.Y(), v.Z())
+	red, green, blue := hsvToRGB(
+		randomBetween(r.Min.H, r.Max.H, rng),
+		randomBetween(r.Min.S, r.Max.S, rng),
+		randomBetween(r.Min.V, r.Max.V, rng),
+	)
 	return hexColor(red, green, blue), nil
 }
 
 func (r HSVRange) MarshalJSON() ([]byte, error) {
-	return marshalDimension(typeHSVRange, vector3RangeJSON{Min: r.Min, Max: r.Max, Samples: r.Samples})
+	return marshalDimension(typeHSVRange, hsvRangeJSON{Min: r.Min, Max: r.Max, Samples: r.Samples})
 }

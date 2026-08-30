@@ -36,17 +36,16 @@ type discreteJSON struct {
 	Values []json.RawMessage `json:"values"`
 }
 
-type vector2RangeJSON struct {
-	Min     vector2.Float64 `json:"min"`
-	Max     vector2.Float64 `json:"max"`
-	Samples vector2.Int     `json:"samples"`
+type rangeJSON[V any] struct {
+	Min     V   `json:"min"`
+	Max     V   `json:"max"`
+	Samples int `json:"samples"`
 }
 
-type vector3RangeJSON struct {
-	Min     vector3.Float64 `json:"min"`
-	Max     vector3.Float64 `json:"max"`
-	Samples vector3.Int     `json:"samples"`
-}
+type vector2RangeJSON = rangeJSON[vector2.Float64]
+type vector3RangeJSON = rangeJSON[vector3.Float64]
+type rgbRangeJSON = rangeJSON[string]
+type hsvRangeJSON = rangeJSON[HSVChannels]
 
 type combinationJSON struct {
 	Dimensions []json.RawMessage `json:"dimensions"`
@@ -89,14 +88,14 @@ func UnmarshalDimension(path string, data []byte) (Dimension, error) {
 		return Vector3Range{path: path, Min: r.Min, Max: r.Max, Samples: r.Samples}, nil
 
 	case typeRGBRange:
-		var r vector3RangeJSON
+		var r rgbRangeJSON
 		if err := json.Unmarshal(envelope.Data, &r); err != nil {
 			return nil, err
 		}
 		return RGBRange{path: path, Min: r.Min, Max: r.Max, Samples: r.Samples}, nil
 
 	case typeHSVRange:
-		var r vector3RangeJSON
+		var r hsvRangeJSON
 		if err := json.Unmarshal(envelope.Data, &r); err != nil {
 			return nil, err
 		}

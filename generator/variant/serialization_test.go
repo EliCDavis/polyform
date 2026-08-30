@@ -25,22 +25,22 @@ func TestUnmarshalDimension(t *testing.T) {
 			wantValue: `0`,
 		},
 		"vector2 range": {
-			json:      `{"type":"vector2Range","data":{"min":{"x":0,"y":0},"max":{"x":1,"y":1},"samples":{"x":2,"y":2}}}`,
+			json:      `{"type":"vector2Range","data":{"min":{"x":0,"y":0},"max":{"x":1,"y":1},"samples":2}}`,
 			wantCount: 4,
 			wantValue: `{"x":0,"y":0}`,
 		},
 		"vector3 range": {
-			json:      `{"type":"vector3Range","data":{"min":{"x":0,"y":0,"z":0},"max":{"x":1,"y":1,"z":1},"samples":{"x":2,"y":2,"z":2}}}`,
+			json:      `{"type":"vector3Range","data":{"min":{"x":0,"y":0,"z":0},"max":{"x":1,"y":1,"z":1},"samples":2}}`,
 			wantCount: 8,
 			wantValue: `{"x":0,"y":0,"z":0}`,
 		},
 		"rgb range": {
-			json:      `{"type":"rgbRange","data":{"min":{"x":0,"y":0,"z":0},"max":{"x":1,"y":1,"z":1},"samples":{"x":2,"y":2,"z":2}}}`,
+			json:      `{"type":"rgbRange","data":{"min":"#000000","max":"#ffffff","samples":2}}`,
 			wantCount: 8,
 			wantValue: `"#000000"`,
 		},
 		"hsv range": {
-			json:      `{"type":"hsvRange","data":{"min":{"x":0,"y":1,"z":1},"max":{"x":0,"y":1,"z":1},"samples":{"x":1,"y":1,"z":1}}}`,
+			json:      `{"type":"hsvRange","data":{"min":{"h":0,"s":1,"v":1},"max":{"h":0,"s":1,"v":1},"samples":1}}`,
 			wantCount: 1,
 			wantValue: `"#ff0000"`,
 		},

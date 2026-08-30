@@ -80,7 +80,7 @@ func TestInstance_VariantSet_SurvivesEncodeAndApplyAppSchema(t *testing.T) {
 	source := graph.New(graph.Config{TypeFactory: &refutil.TypeFactory{}})
 	require.NoError(t, source.SaveVariantSet("sweep", map[string]variant.Dimension{
 		"Scale":    variant.NewNumericRange("Scale", 0, 10, 5),
-		"Position": variant.NewVector3Range("Position", 0, 1, 2, 0, 1, 2, 0, 1, 2),
+		"Position": variant.NewVector3Range("Position", 0, 1, 0, 1, 0, 1, 2),
 		"Fur":      variant.NewDiscrete("Fur", rawFloatForTest(t, 1), rawFloatForTest(t, 2)),
 	}))
 

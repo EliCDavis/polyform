@@ -9,36 +9,37 @@ import (
 	"github.com/EliCDavis/vector/vector2"
 )
 
-// Vector2Range combines an independent range per axis into one vector2.Float64.
+// Vector2Range combines an independent range per axis into one vector2.Float64,
+// sampled the same number of times per axis.
 type Vector2Range struct {
 	path    string
 	Min     vector2.Float64
 	Max     vector2.Float64
-	Samples vector2.Int
+	Samples int
 }
 
-func NewVector2Range(path string, minX, maxX float64, samplesX int, minY, maxY float64, samplesY int) Vector2Range {
+func NewVector2Range(path string, minX, maxX, minY, maxY float64, samples int) Vector2Range {
 	return Vector2Range{
 		path:    path,
 		Min:     vector2.New(minX, minY),
 		Max:     vector2.New(maxX, maxY),
-		Samples: vector2.New(samplesX, samplesY),
+		Samples: samples,
 	}
 }
 
 func (r Vector2Range) Path() string { return r.path }
-func (r Vector2Range) Count() int   { return axisCount(r.Samples.X()) * axisCount(r.Samples.Y()) }
+func (r Vector2Range) Count() int   { return axisCount(r.Samples) * axisCount(r.Samples) }
 
 func (r Vector2Range) Value(index int) (json.RawMessage, error) {
 	if index < 0 || index >= r.Count() {
 		return nil, fmt.Errorf("index %d out of range [0,%d)", index, r.Count())
 	}
-	xCount := axisCount(r.Samples.X())
+	xCount := axisCount(r.Samples)
 	ix := index % xCount
 	iy := index / xCount
 	return json.Marshal(vector2.New(
-		axisValue(r.Min.X(), r.Max.X(), r.Samples.X(), ix),
-		axisValue(r.Min.Y(), r.Max.Y(), r.Samples.Y(), iy),
+		axisValue(r.Min.X(), r.Max.X(), r.Samples, ix),
+		axisValue(r.Min.Y(), r.Max.Y(), r.Samples, iy),
 	))
 }
 

@@ -79,8 +79,8 @@ func TestNumericRangeRandomStaysInBounds(t *testing.T) {
 }
 
 func TestVector2RangeCombinesAxesIndependently(t *testing.T) {
-	r := variant.NewVector2Range("Position", 0, 10, 2, 0, 100, 3)
-	assert.Equal(t, 6, r.Count(), "2 x-samples * 3 y-samples")
+	r := variant.NewVector2Range("Position", 0, 10, 0, 100, 2)
+	assert.Equal(t, 4, r.Count(), "2 x-samples * 2 y-samples")
 
 	seen := map[string]bool{}
 	for i := range r.Count() {
@@ -90,14 +90,14 @@ func TestVector2RangeCombinesAxesIndependently(t *testing.T) {
 		require.NoError(t, json.Unmarshal(v, &got))
 
 		assert.Contains(t, []float64{0, 10}, got.X())
-		assert.Contains(t, []float64{0, 50, 100}, got.Y())
+		assert.Contains(t, []float64{0, 100}, got.Y())
 		seen[string(v)] = true
 	}
-	assert.Len(t, seen, 6, "all 6 combinations should be distinct")
+	assert.Len(t, seen, 4, "all 4 combinations should be distinct")
 }
 
 func TestVector3RangeCombinesAxesIndependently(t *testing.T) {
-	r := variant.NewVector3Range("Position", 0, 1, 2, 0, 1, 2, 0, 1, 2)
+	r := variant.NewVector3Range("Position", 0, 1, 0, 1, 0, 1, 2)
 	assert.Equal(t, 8, r.Count(), "2 x-samples * 2 y-samples * 2 z-samples")
 
 	seen := map[string]bool{}
@@ -112,7 +112,7 @@ func TestVector3RangeCombinesAxesIndependently(t *testing.T) {
 }
 
 func TestRGBRangeCombinesChannelsIndependently(t *testing.T) {
-	r := variant.NewRGBRange("Fur Color", 0, 1, 2, 0, 1, 2, 0, 1, 2)
+	r := variant.NewRGBRange("Fur Color", "#000000", "#ffffff", 2)
 	assert.Equal(t, 8, r.Count(), "2 samples per channel, 3 channels")
 
 	seen := map[string]bool{}
@@ -132,7 +132,7 @@ func TestRGBRangeCombinesChannelsIndependently(t *testing.T) {
 }
 
 func TestRGBRangeRandomStaysInBounds(t *testing.T) {
-	r := variant.NewRGBRange("Fur Color", 0, 0.5, 10, 0, 0.5, 10, 0, 0.5, 10)
+	r := variant.NewRGBRange("Fur Color", "#000000", "#7f7f7f", 10)
 	rng := rand.New(rand.NewSource(3))
 
 	for range 50 {
@@ -165,7 +165,7 @@ func TestHSVRangeKnownColors(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			r := variant.NewHSVRange("Fur Color", test.h, test.h, 1, test.s, test.s, 1, test.v, test.v, 1)
+			r := variant.NewHSVRange("Fur Color", test.h, test.h, test.s, test.s, test.v, test.v, 1)
 			value, err := r.Value(0)
 			require.NoError(t, err)
 
@@ -239,10 +239,10 @@ func TestDimensionRoundTripsThroughJSON(t *testing.T) {
 	tests := map[string]variant.Dimension{
 		"discrete":      variant.NewDiscrete("Color", rawFloat(t, 1), rawFloat(t, 2)),
 		"numeric range": variant.NewNumericRange("Scale", 0, 10, 5),
-		"vector2 range": variant.NewVector2Range("Position2D", 0, 1, 2, 0, 1, 2),
-		"vector3 range": variant.NewVector3Range("Position3D", 0, 1, 2, 0, 1, 2, 0, 1, 2),
-		"rgb range":     variant.NewRGBRange("Fur Color", 0, 1, 2, 0, 1, 2, 0, 1, 2),
-		"hsv range":     variant.NewHSVRange("Fur Color", 0, 360, 2, 0, 1, 2, 0, 1, 2),
+		"vector2 range": variant.NewVector2Range("Position2D", 0, 1, 0, 1, 2),
+		"vector3 range": variant.NewVector3Range("Position3D", 0, 1, 0, 1, 0, 1, 2),
+		"rgb range":     variant.NewRGBRange("Fur Color", "#000000", "#ffffff", 2),
+		"hsv range":     variant.NewHSVRange("Fur Color", 0, 360, 0, 1, 0, 1, 2),
 		"combination": variant.NewCombination("Scale",
 			variant.NewDiscrete("Scale", rawFloat(t, -1), rawFloat(t, -2)),
 			variant.NewNumericRange("Scale", 0, 10, 5),

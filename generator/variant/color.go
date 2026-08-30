@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"strconv"
 )
 
 // hexColor encodes r, g, b (0-1) as a "#rrggbb" string.
@@ -12,6 +13,26 @@ func hexColor(r, g, b float64) json.RawMessage {
 		"\"#%02x%02x%02x\"",
 		colorByte(r), colorByte(g), colorByte(b),
 	))
+}
+
+// decodeHexColor parses a "#rrggbb" string into r, g, b (0-1).
+func decodeHexColor(hex string) (r, g, b float64, err error) {
+	if len(hex) != 7 || hex[0] != '#' {
+		return 0, 0, 0, fmt.Errorf("invalid hex color %q, want \"#rrggbb\"", hex)
+	}
+	rb, err := strconv.ParseUint(hex[1:3], 16, 8)
+	if err != nil {
+		return 0, 0, 0, fmt.Errorf("invalid hex color %q: %w", hex, err)
+	}
+	gb, err := strconv.ParseUint(hex[3:5], 16, 8)
+	if err != nil {
+		return 0, 0, 0, fmt.Errorf("invalid hex color %q: %w", hex, err)
+	}
+	bb, err := strconv.ParseUint(hex[5:7], 16, 8)
+	if err != nil {
+		return 0, 0, 0, fmt.Errorf("invalid hex color %q: %w", hex, err)
+	}
+	return float64(rb) / 255, float64(gb) / 255, float64(bb) / 255, nil
 }
 
 func colorByte(v float64) byte {

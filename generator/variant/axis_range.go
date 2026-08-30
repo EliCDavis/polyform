@@ -20,7 +20,11 @@ func (r axisRange) value(index int) float64 {
 }
 
 func (r axisRange) random(rng *rand.Rand) float64 {
-	return r.Min + (r.Max-r.Min)*rng.Float64()
+	return randomBetween(r.Min, r.Max, rng)
+}
+
+func randomBetween(min, max float64, rng *rand.Rand) float64 {
+	return min + (max-min)*rng.Float64()
 }
 
 // axisCount is never less than 1.
