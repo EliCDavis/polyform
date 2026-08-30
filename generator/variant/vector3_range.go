@@ -5,12 +5,10 @@ import (
 	"fmt"
 	"math/rand"
 
-	"github.com/EliCDavis/polyform/math/chance"
 	"github.com/EliCDavis/vector/vector3"
 )
 
-// Vector3Range combines an independent range per axis into one vector3.Float64,
-// sampled the same number of times per axis.
+// Vector3Range lerps between Min and Max as a whole, sampled Samples times.
 type Vector3Range struct {
 	path    string
 	Min     vector3.Float64
@@ -28,29 +26,26 @@ func NewVector3Range(path string, minX, maxX, minY, maxY, minZ, maxZ float64, sa
 }
 
 func (r Vector3Range) Path() string { return r.path }
-func (r Vector3Range) Count() int {
-	return axisCount(r.Samples) * axisCount(r.Samples) * axisCount(r.Samples)
-}
+func (r Vector3Range) Count() int   { return axisCount(r.Samples) }
 
 func (r Vector3Range) Value(index int) (json.RawMessage, error) {
 	if index < 0 || index >= r.Count() {
 		return nil, fmt.Errorf("index %d out of range [0,%d)", index, r.Count())
 	}
-	xCount := axisCount(r.Samples)
-	yCount := axisCount(r.Samples)
-	ix := index % xCount
-	iy := (index / xCount) % yCount
-	iz := index / (xCount * yCount)
 	return json.Marshal(vector3.New(
-		axisValue(r.Min.X(), r.Max.X(), r.Samples, ix),
-		axisValue(r.Min.Y(), r.Max.Y(), r.Samples, iy),
-		axisValue(r.Min.Z(), r.Max.Z(), r.Samples, iz),
+		axisValue(r.Min.X(), r.Max.X(), r.Samples, index),
+		axisValue(r.Min.Y(), r.Max.Y(), r.Samples, index),
+		axisValue(r.Min.Z(), r.Max.Z(), r.Samples, index),
 	))
 }
 
 func (r Vector3Range) Random(rng *rand.Rand) (json.RawMessage, error) {
-	v := chance.NewRange3D(r.Min, r.Max, rng).Value()
-	return json.Marshal(v)
+	t := rng.Float64()
+	return json.Marshal(vector3.New(
+		lerp(r.Min.X(), r.Max.X(), t),
+		lerp(r.Min.Y(), r.Max.Y(), t),
+		lerp(r.Min.Z(), r.Max.Z(), t),
+	))
 }
 
 func (r Vector3Range) MarshalJSON() ([]byte, error) {

@@ -26,17 +26,17 @@ func TestUnmarshalDimension(t *testing.T) {
 		},
 		"vector2 range": {
 			json:      `{"type":"vector2Range","data":{"min":{"x":0,"y":0},"max":{"x":1,"y":1},"samples":2}}`,
-			wantCount: 4,
+			wantCount: 2,
 			wantValue: `{"x":0,"y":0}`,
 		},
 		"vector3 range": {
 			json:      `{"type":"vector3Range","data":{"min":{"x":0,"y":0,"z":0},"max":{"x":1,"y":1,"z":1},"samples":2}}`,
-			wantCount: 8,
+			wantCount: 2,
 			wantValue: `{"x":0,"y":0,"z":0}`,
 		},
 		"rgb range": {
 			json:      `{"type":"rgbRange","data":{"min":"#000000","max":"#ffffff","samples":2}}`,
-			wantCount: 8,
+			wantCount: 2,
 			wantValue: `"#000000"`,
 		},
 		"hsv range": {

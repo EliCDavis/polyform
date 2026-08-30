@@ -13,8 +13,8 @@ type HSVChannels struct {
 	V float64 `json:"v"`
 }
 
-// HSVRange combines a range per Hue, Saturation, Value channel into one hex
-// color, sampled the same number of times per channel.
+// HSVRange lerps between two Hue, Saturation, Value triples as a whole into
+// one hex color, sampled Samples times.
 type HSVRange struct {
 	path    string
 	Min     HSVChannels
@@ -32,32 +32,26 @@ func NewHSVRange(path string, minH, maxH, minS, maxS, minV, maxV float64, sample
 }
 
 func (r HSVRange) Path() string { return r.path }
-func (r HSVRange) Count() int {
-	return axisCount(r.Samples) * axisCount(r.Samples) * axisCount(r.Samples)
-}
+func (r HSVRange) Count() int   { return axisCount(r.Samples) }
 
 func (r HSVRange) Value(index int) (json.RawMessage, error) {
 	if index < 0 || index >= r.Count() {
 		return nil, fmt.Errorf("index %d out of range [0,%d)", index, r.Count())
 	}
-	hCount := axisCount(r.Samples)
-	sCount := axisCount(r.Samples)
-	ih := index % hCount
-	is := (index / hCount) % sCount
-	iv := index / (hCount * sCount)
 	red, green, blue := hsvToRGB(
-		axisValue(r.Min.H, r.Max.H, r.Samples, ih),
-		axisValue(r.Min.S, r.Max.S, r.Samples, is),
-		axisValue(r.Min.V, r.Max.V, r.Samples, iv),
+		axisValue(r.Min.H, r.Max.H, r.Samples, index),
+		axisValue(r.Min.S, r.Max.S, r.Samples, index),
+		axisValue(r.Min.V, r.Max.V, r.Samples, index),
 	)
 	return hexColor(red, green, blue), nil
 }
 
 func (r HSVRange) Random(rng *rand.Rand) (json.RawMessage, error) {
+	t := rng.Float64()
 	red, green, blue := hsvToRGB(
-		randomBetween(r.Min.H, r.Max.H, rng),
-		randomBetween(r.Min.S, r.Max.S, rng),
-		randomBetween(r.Min.V, r.Max.V, rng),
+		lerp(r.Min.H, r.Max.H, t),
+		lerp(r.Min.S, r.Max.S, t),
+		lerp(r.Min.V, r.Max.V, t),
 	)
 	return hexColor(red, green, blue), nil
 }

@@ -4,17 +4,19 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/rand"
+
+	"github.com/EliCDavis/polyform/generator/persistence"
 )
 
-// RGBRange spans two hex colors, sampled the same number of times per channel.
+// RGBRange lerps between two colors as a whole, sampled Samples times.
 type RGBRange struct {
 	path    string
-	Min     string
-	Max     string
+	Min     persistence.WebColor
+	Max     persistence.WebColor
 	Samples int
 }
 
-func NewRGBRange(path string, min, max string, samples int) RGBRange {
+func NewRGBRange(path string, min, max persistence.WebColor, samples int) RGBRange {
 	return RGBRange{
 		path:    path,
 		Min:     min,
@@ -24,48 +26,25 @@ func NewRGBRange(path string, min, max string, samples int) RGBRange {
 }
 
 func (r RGBRange) Path() string { return r.path }
-func (r RGBRange) Count() int {
-	return axisCount(r.Samples) * axisCount(r.Samples) * axisCount(r.Samples)
-}
+func (r RGBRange) Count() int   { return axisCount(r.Samples) }
 
 func (r RGBRange) Value(index int) (json.RawMessage, error) {
 	if index < 0 || index >= r.Count() {
 		return nil, fmt.Errorf("index %d out of range [0,%d)", index, r.Count())
 	}
-	minR, minG, minB, err := decodeHexColor(r.Min)
-	if err != nil {
-		return nil, err
-	}
-	maxR, maxG, maxB, err := decodeHexColor(r.Max)
-	if err != nil {
-		return nil, err
-	}
-
-	rCount := axisCount(r.Samples)
-	gCount := axisCount(r.Samples)
-	ir := index % rCount
-	ig := (index / rCount) % gCount
-	ib := index / (rCount * gCount)
 	return hexColor(
-		axisValue(minR, maxR, r.Samples, ir),
-		axisValue(minG, maxG, r.Samples, ig),
-		axisValue(minB, maxB, r.Samples, ib),
+		axisValue(byteToUnit(r.Min.R), byteToUnit(r.Max.R), r.Samples, index),
+		axisValue(byteToUnit(r.Min.G), byteToUnit(r.Max.G), r.Samples, index),
+		axisValue(byteToUnit(r.Min.B), byteToUnit(r.Max.B), r.Samples, index),
 	), nil
 }
 
 func (r RGBRange) Random(rng *rand.Rand) (json.RawMessage, error) {
-	minR, minG, minB, err := decodeHexColor(r.Min)
-	if err != nil {
-		return nil, err
-	}
-	maxR, maxG, maxB, err := decodeHexColor(r.Max)
-	if err != nil {
-		return nil, err
-	}
+	t := rng.Float64()
 	return hexColor(
-		randomBetween(minR, maxR, rng),
-		randomBetween(minG, maxG, rng),
-		randomBetween(minB, maxB, rng),
+		lerp(byteToUnit(r.Min.R), byteToUnit(r.Max.R), t),
+		lerp(byteToUnit(r.Min.G), byteToUnit(r.Max.G), t),
+		lerp(byteToUnit(r.Min.B), byteToUnit(r.Max.B), t),
 	), nil
 }
 

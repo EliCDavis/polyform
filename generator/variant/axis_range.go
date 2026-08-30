@@ -27,6 +27,11 @@ func randomBetween(min, max float64, rng *rand.Rand) float64 {
 	return min + (max-min)*rng.Float64()
 }
 
+// lerp interpolates between min and max by t, where t is typically in [0,1].
+func lerp(min, max, t float64) float64 {
+	return min + (max-min)*t
+}
+
 // axisCount is never less than 1.
 func axisCount(samples int) int {
 	if samples < 1 {

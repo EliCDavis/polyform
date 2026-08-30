@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/EliCDavis/polyform/generator/persistence"
 	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
 )
@@ -44,7 +45,7 @@ type rangeJSON[V any] struct {
 
 type vector2RangeJSON = rangeJSON[vector2.Float64]
 type vector3RangeJSON = rangeJSON[vector3.Float64]
-type rgbRangeJSON = rangeJSON[string]
+type rgbRangeJSON = rangeJSON[persistence.WebColor]
 type hsvRangeJSON = rangeJSON[HSVChannels]
 
 type combinationJSON struct {

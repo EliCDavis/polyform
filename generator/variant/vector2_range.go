@@ -5,12 +5,10 @@ import (
 	"fmt"
 	"math/rand"
 
-	"github.com/EliCDavis/polyform/math/chance"
 	"github.com/EliCDavis/vector/vector2"
 )
 
-// Vector2Range combines an independent range per axis into one vector2.Float64,
-// sampled the same number of times per axis.
+// Vector2Range lerps between Min and Max as a whole, sampled Samples times.
 type Vector2Range struct {
 	path    string
 	Min     vector2.Float64
@@ -28,24 +26,24 @@ func NewVector2Range(path string, minX, maxX, minY, maxY float64, samples int) V
 }
 
 func (r Vector2Range) Path() string { return r.path }
-func (r Vector2Range) Count() int   { return axisCount(r.Samples) * axisCount(r.Samples) }
+func (r Vector2Range) Count() int   { return axisCount(r.Samples) }
 
 func (r Vector2Range) Value(index int) (json.RawMessage, error) {
 	if index < 0 || index >= r.Count() {
 		return nil, fmt.Errorf("index %d out of range [0,%d)", index, r.Count())
 	}
-	xCount := axisCount(r.Samples)
-	ix := index % xCount
-	iy := index / xCount
 	return json.Marshal(vector2.New(
-		axisValue(r.Min.X(), r.Max.X(), r.Samples, ix),
-		axisValue(r.Min.Y(), r.Max.Y(), r.Samples, iy),
+		axisValue(r.Min.X(), r.Max.X(), r.Samples, index),
+		axisValue(r.Min.Y(), r.Max.Y(), r.Samples, index),
 	))
 }
 
 func (r Vector2Range) Random(rng *rand.Rand) (json.RawMessage, error) {
-	v := chance.NewRange2D(r.Min, r.Max, rng).Value()
-	return json.Marshal(v)
+	t := rng.Float64()
+	return json.Marshal(vector2.New(
+		lerp(r.Min.X(), r.Max.X(), t),
+		lerp(r.Min.Y(), r.Max.Y(), t),
+	))
 }
 
 func (r Vector2Range) MarshalJSON() ([]byte, error) {

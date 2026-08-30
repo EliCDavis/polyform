@@ -334,14 +334,9 @@ func (a *Instance) ApplyProfile(profile variable.Profile) error {
 // Variant Sets
 // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-// SaveVariantSet stores a named variant set, replacing any existing one
+// SetVariantSet stores a named variant set, replacing any existing one
 // with the same name.
-func (a *Instance) SaveVariantSet(name string, dimensions map[string]variant.Dimension) error {
-	set := variant.Set{Dimensions: make([]variant.Dimension, 0, len(dimensions))}
-	for _, dim := range dimensions {
-		set.Dimensions = append(set.Dimensions, dim)
-	}
-
+func (a *Instance) SetVariantSet(name string, set variant.Set) error {
 	a.lock.Lock()
 	defer a.lock.Unlock()
 	a.variantSets[name] = set

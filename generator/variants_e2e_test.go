@@ -42,8 +42,10 @@ func TestAppCommand_Sweep(t *testing.T) {
 		"Out",
 	))
 
-	require.NoError(t, g.SaveVariantSet("sweep", map[string]variant.Dimension{
-		"Message": variant.NewDiscrete("Message", rawStringForTest(t, "Hello"), rawStringForTest(t, "World")),
+	require.NoError(t, g.SetVariantSet("sweep", variant.Set{
+		Dimensions: []variant.Dimension{
+			variant.NewDiscrete("Message", rawStringForTest(t, "Hello"), rawStringForTest(t, "World")),
+		},
 	}))
 
 	tempDir := t.TempDir()
@@ -98,8 +100,10 @@ func TestAppCommand_Sweep_OverThresholdRequiresConfirm(t *testing.T) {
 		"Out",
 	))
 
-	require.NoError(t, g.SaveVariantSet("huge", map[string]variant.Dimension{
-		"Value": variant.NewNumericRange("Value", 0, 1, 1001),
+	require.NoError(t, g.SetVariantSet("huge", variant.Set{
+		Dimensions: []variant.Dimension{
+			variant.NewNumericRange("Value", 0, 1, 1001),
+		},
 	}))
 
 	tempDir := t.TempDir()
@@ -131,8 +135,10 @@ func TestAppCommand_Sample(t *testing.T) {
 		"Out",
 	))
 
-	require.NoError(t, g.SaveVariantSet("sample", map[string]variant.Dimension{
-		"Message": variant.NewDiscrete("Message", rawStringForTest(t, "Hello"), rawStringForTest(t, "World")),
+	require.NoError(t, g.SetVariantSet("sample", variant.Set{
+		Dimensions: []variant.Dimension{
+			variant.NewDiscrete("Message", rawStringForTest(t, "Hello"), rawStringForTest(t, "World")),
+		},
 	}))
 
 	tempDir := t.TempDir()
