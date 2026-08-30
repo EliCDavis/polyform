@@ -73,7 +73,7 @@ func buildCommand() *cli.Command {
 		},
 		Action: func(ctx *cli.Context) error {
 			outFolder := ctx.String("out")
-			err := os.MkdirAll(outFolder, os.ModeDir)
+			err := os.MkdirAll(outFolder, os.ModePerm)
 			if err != nil {
 				return err
 			}

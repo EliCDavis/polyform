@@ -6,5 +6,6 @@ type Graph struct {
 	Notes     map[string]any        `json:"notes"`
 	Variables NestedGroup[Variable] `json:"variables,omitempty"`
 	Profiles  []string              `json:"profiles,omitempty"`
+	Variants  []string              `json:"variants,omitempty"`
 	SubGraphs map[string]SubGraph   `json:"subGraphs,omitempty"`
 }

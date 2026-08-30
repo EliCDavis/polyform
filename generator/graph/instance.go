@@ -1,6 +1,7 @@
 package graph
 
 import (
+	"encoding/json"
 	"fmt"
 	"sort"
 	"strconv"
@@ -14,6 +15,7 @@ import (
 	"github.com/EliCDavis/polyform/generator/subgraph"
 	"github.com/EliCDavis/polyform/generator/sync"
 	"github.com/EliCDavis/polyform/generator/variable"
+	"github.com/EliCDavis/polyform/generator/variant"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
 
@@ -39,7 +41,8 @@ type Instance struct {
 	namedManifests *namedOutputManager[manifest.Manifest]
 	variables      variable.System
 
-	profiles map[string]variable.Profile
+	profiles    map[string]variable.Profile
+	variantSets map[string]variant.Set
 
 	subGraphs map[string]*subGraphRuntime
 	parent    *Instance
@@ -72,6 +75,7 @@ func New(config Config) *Instance {
 		nodeIDs:         make(map[nodes.Node]string),
 		nodeTypeKeys:    make(map[nodes.Node]string),
 		profiles:        make(map[string]variable.Profile),
+		variantSets:     make(map[string]variant.Set),
 		metadata:        sync.NewNestedSyncMap(),
 		namedManifests: &namedOutputManager[manifest.Manifest]{
 			namedPorts: make(map[string]namedOutputEntry[manifest.Manifest]),
@@ -326,6 +330,80 @@ func (a *Instance) ApplyProfile(profile variable.Profile) error {
 
 // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
+// >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+// Variant Sets
+// >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+// SetVariantSet stores a named variant set, replacing any existing one
+// with the same name.
+func (a *Instance) SetVariantSet(name string, set variant.Set) error {
+	a.lock.Lock()
+	defer a.lock.Unlock()
+	a.variantSets[name] = set
+	return nil
+}
+
+// VariantSet returns the named variant set as a runnable variant.Set.
+func (a *Instance) VariantSet(name string) (variant.Set, error) {
+	a.lock.RLock()
+	defer a.lock.RUnlock()
+
+	set, ok := a.variantSets[name]
+	if !ok {
+		return variant.Set{}, fmt.Errorf("no variant set exists with name %q", name)
+	}
+
+	return set, nil
+}
+
+func (a *Instance) RenameVariantSet(name, newName string) error {
+	a.lock.Lock()
+	defer a.lock.Unlock()
+
+	if _, ok := a.variantSets[name]; !ok {
+		return fmt.Errorf("variant set %q does not exist", name)
+	}
+
+	if _, ok := a.variantSets[newName]; ok {
+		return fmt.Errorf("variant set %q already exists", newName)
+	}
+
+	a.variantSets[newName] = a.variantSets[name]
+
+	delete(a.variantSets, name)
+
+	return nil
+}
+
+func (a *Instance) DeleteVariantSet(name string) error {
+	a.lock.Lock()
+	defer a.lock.Unlock()
+
+	if _, ok := a.variantSets[name]; !ok {
+		return fmt.Errorf("graph contains no variant set named %q", name)
+	}
+
+	delete(a.variantSets, name)
+	return nil
+}
+
+func (a *Instance) VariantSets() []string {
+	a.lock.RLock()
+	defer a.lock.RUnlock()
+
+	names := make([]string, 0, len(a.variantSets))
+
+	for name := range a.variantSets {
+		names = append(names, name)
+	}
+
+	sort.Strings(names)
+
+	return names
+}
+
+// <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
 func (a *Instance) IsPortNamed(node nodes.Node, portName string) (string, bool) {
 	return a.namedManifests.IsPortNamed(node, portName)
 }
@@ -524,6 +602,7 @@ func (a *Instance) Reset() {
 		namedPorts: make(map[string]namedOutputEntry[manifest.Manifest]),
 	}
 	a.profiles = make(map[string]variable.Profile)
+	a.variantSets = make(map[string]variant.Set)
 	a.subGraphs = make(map[string]*subGraphRuntime)
 }
 
@@ -616,6 +695,18 @@ func (a *Instance) ApplyAppSchema(jsonPayload []byte) error {
 
 	for profile, data := range appSchema.Profiles {
 		a.profiles[profile] = data.Data
+	}
+
+	for name, data := range appSchema.Variants {
+		dimensions := make([]variant.Dimension, 0, len(data.Dimensions))
+		for path, raw := range data.Dimensions {
+			dim, err := variant.UnmarshalDimension(path, raw)
+			if err != nil {
+				return fmt.Errorf("decoding variant dimension %q in set %q: %w", path, name, err)
+			}
+			dimensions = append(dimensions, dim)
+		}
+		a.variantSets[name] = variant.Set{Dimensions: dimensions}
 	}
 
 	for _, subGraphID := range subGraphLoadOrder(appSchema.SubGraphs) {
@@ -717,12 +808,18 @@ func (a *Instance) Schema() schema.Graph {
 		Notes:     noteMetadata,
 		Variables: variableSchema,
 		Profiles:  make([]string, 0, len(a.profiles)),
+		Variants:  make([]string, 0, len(a.variantSets)),
 	}
 
 	for profile := range a.profiles {
 		appSchema.Profiles = append(appSchema.Profiles, profile)
 	}
 	sort.Strings(appSchema.Profiles)
+
+	for name := range a.variantSets {
+		appSchema.Variants = append(appSchema.Variants, name)
+	}
+	sort.Strings(appSchema.Variants)
 
 	appNodeSchema := make(map[string]schema.Node)
 
@@ -814,6 +911,23 @@ func (a *Instance) EncodeToAppSchema() ([]byte, error) {
 	for name, data := range a.profiles {
 		appSchema.Profiles[name] = persistence.Profile{
 			Data: data,
+		}
+	}
+
+	if appSchema.Variants == nil {
+		appSchema.Variants = make(map[string]persistence.VariantSet)
+	}
+	for name, set := range a.variantSets {
+		encoded := make(map[string]json.RawMessage, len(set.Dimensions))
+		for _, dim := range set.Dimensions {
+			raw, err := json.Marshal(dim)
+			if err != nil {
+				return nil, fmt.Errorf("encoding variant dimension %q in set %q: %w", dim.Path(), name, err)
+			}
+			encoded[dim.Path()] = raw
+		}
+		appSchema.Variants[name] = persistence.VariantSet{
+			Dimensions: encoded,
 		}
 	}
 

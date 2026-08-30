@@ -58,7 +58,7 @@ func writeManifestToFolder(i *Instance, folder string, nodeId string, node nodes
 	manifestName := manifestFileName(i, nodeId, node, out)
 
 	manifestFolder := path.Join(folder, manifestName)
-	err := os.MkdirAll(manifestFolder, os.ModeDir)
+	err := os.MkdirAll(manifestFolder, os.ModePerm)
 	if err != nil {
 		return err
 	}

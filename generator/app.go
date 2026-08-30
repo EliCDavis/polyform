@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math/rand"
 	"os"
 	"strings"
 	"text/template"
@@ -21,6 +22,9 @@ import (
 	"github.com/EliCDavis/polyform/generator/serialize"
 	"github.com/EliCDavis/polyform/generator/variable"
 )
+
+// defaultSweepWarnThreshold is the default Sweep warning threshold.
+const defaultSweepWarnThreshold = 1000
 
 type App struct {
 	Name                    string
@@ -217,6 +221,102 @@ func (a *App) Run(args []string) error {
 			},
 			Run: func(appState *cli.RunState) error {
 				return graph.WriteToFolder(a.Graph, appState.String("folder"))
+			},
+		},
+		{
+			Name:        "Sweep",
+			Description: "Runs the graph once per combination of a saved variant set's ranges, writing each to its own subfolder",
+			Aliases:     []string{"sweep"},
+			Flags: []cli.Flag{
+				&cli.StringFlag{
+					Name:        "set",
+					Required:    true,
+					Description: "name of the saved variant set to sweep",
+				},
+				&cli.StringFlag{
+					Name:        "folder",
+					Value:       ".",
+					Description: "folder to save generated contents to",
+				},
+				&cli.BoolFlag{
+					Name:        "confirm",
+					Description: "required to proceed when the sweep would produce more than the warning threshold",
+				},
+				&cli.IntFlag{
+					Name:        "warn-threshold",
+					Value:       defaultSweepWarnThreshold,
+					Description: "combination count above which the sweep refuses to run without -confirm",
+				},
+				requiredGraphFlag,
+				profileFlag,
+			},
+			Run: func(appState *cli.RunState) error {
+				set, err := a.Graph.VariantSet(appState.String("set"))
+				if err != nil {
+					return err
+				}
+
+				total := set.TotalCombinations()
+				fmt.Fprintf(appState.Out, "This sweep will produce %d variants.\n", total)
+
+				warnThreshold := appState.Int("warn-threshold")
+				if total > warnThreshold && !appState.Bool("confirm") {
+					return fmt.Errorf("sweep would produce %d variants, over the %d warning threshold - pass -confirm to proceed anyway, or narrow the variant set's ranges", total, warnThreshold)
+				}
+
+				profiles, err := set.Sweep()
+				if err != nil {
+					return err
+				}
+
+				return RunVariants(a.Graph, profiles, appState.String("folder"))
+			},
+		},
+		{
+			Name:        "Sample",
+			Description: "Runs the graph against N random combinations of a saved variant set's ranges, writing each to its own subfolder",
+			Aliases:     []string{"sample"},
+			Flags: []cli.Flag{
+				&cli.StringFlag{
+					Name:        "set",
+					Required:    true,
+					Description: "name of the saved variant set to sample",
+				},
+				&cli.IntFlag{
+					Name:        "count",
+					Required:    true,
+					Description: "how many random combinations to generate",
+				},
+				&cli.Int64Flag{
+					Name:        "seed",
+					Description: "random seed, for a reproducible sample - defaults to a random seed each run",
+				},
+				&cli.StringFlag{
+					Name:        "folder",
+					Value:       ".",
+					Description: "folder to save generated contents to",
+				},
+				requiredGraphFlag,
+				profileFlag,
+			},
+			Run: func(appState *cli.RunState) error {
+				set, err := a.Graph.VariantSet(appState.String("set"))
+				if err != nil {
+					return err
+				}
+
+				seed := appState.Int64("seed")
+				if seed == 0 {
+					seed = time.Now().UnixNano()
+				}
+				fmt.Fprintf(appState.Out, "Sampling with seed %d.\n", seed)
+
+				profiles, err := set.Sample(appState.Int("count"), rand.New(rand.NewSource(seed)))
+				if err != nil {
+					return err
+				}
+
+				return RunVariants(a.Graph, profiles, appState.String("folder"))
 			},
 		},
 		{

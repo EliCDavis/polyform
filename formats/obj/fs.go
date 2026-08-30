@@ -82,7 +82,7 @@ func SaveMesh(objPath string, meshToSave modeling.Mesh) error {
 // Save writes all provided meshes to the path specified in OBJ format, optionally writing
 // an additional MTL file with all materials that are found across all meshes.
 func Save(objPath string, scene Scene) error {
-	if err := os.MkdirAll(path.Dir(objPath), os.ModeDir); err != nil {
+	if err := os.MkdirAll(path.Dir(objPath), os.ModePerm); err != nil {
 		return fmt.Errorf("failed to create all dirs for path %q: %w", objPath, err)
 	}
 

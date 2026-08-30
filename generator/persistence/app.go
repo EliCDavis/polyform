@@ -17,11 +17,16 @@ type App struct {
 	Metadata    map[string]any               `json:"metadata,omitempty"`
 	Variables   schema.NestedGroup[Variable] `json:"variables,omitempty"`
 	Profiles    map[string]Profile           `json:"profiles,omitempty"`
+	Variants    map[string]VariantSet        `json:"variants,omitempty"`
 	SubGraphs   map[string]SubGraph          `json:"subGraphs,omitempty"`
 }
 
 type Profile struct {
 	Data map[string]json.RawMessage `json:"data,omitempty"`
+}
+
+type VariantSet struct {
+	Dimensions map[string]json.RawMessage `json:"dimensions,omitempty"`
 }
 
 type Node struct {

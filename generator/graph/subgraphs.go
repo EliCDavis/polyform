@@ -10,6 +10,7 @@ import (
 	"github.com/EliCDavis/polyform/generator/subgraph"
 	"github.com/EliCDavis/polyform/generator/sync"
 	"github.com/EliCDavis/polyform/generator/variable"
+	"github.com/EliCDavis/polyform/generator/variant"
 	"github.com/EliCDavis/polyform/nodes"
 )
 
@@ -54,6 +55,7 @@ func newInstance(parent *Instance) *Instance {
 		nodeTypeKeys:    make(map[nodes.Node]string),
 		variables:       variable.NewSystem(),
 		profiles:        make(map[string]variable.Profile),
+		variantSets:     make(map[string]variant.Set),
 		metadata:        sync.NewNestedSyncMap(),
 		namedManifests: &namedOutputManager[manifest.Manifest]{
 			namedPorts: make(map[string]namedOutputEntry[manifest.Manifest]),

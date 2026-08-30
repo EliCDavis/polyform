@@ -345,6 +345,10 @@ COMMANDS:
         Create a new graph
     Generate: generate gen 
         Runs all producers the graph has defined and saves it to the file system
+    Sweep: sweep 
+        Runs the graph once per combination of a saved variant set's ranges, writing each to its own subfolder
+    Sample: sample 
+        Runs the graph against N random combinations of a saved variant set's ranges, writing each to its own subfolder
     Edit: edit 
         Starts an http server and hosts a webplayer for editing the execution graph
     Serve: serve 
