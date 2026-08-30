@@ -29,6 +29,8 @@ func (s Set) Sweep() ([]variable.Profile, error) {
 	for c := range total {
 		profile := make(variable.Profile, len(s.Dimensions))
 		remaining := c
+		// Mixed-radix decomposition of c: Dimensions[0] is the least
+		// significant digit, using each dimension's Count() as its base.
 		for _, d := range s.Dimensions {
 			count := d.Count()
 			index := remaining % count

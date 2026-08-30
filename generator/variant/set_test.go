@@ -57,6 +57,43 @@ func TestSetSweepProducesEveryDistinctCombination(t *testing.T) {
 	}
 }
 
+func TestSetSweepMixedRadixOrderAcrossThreeDimensions(t *testing.T) {
+	rawStr := func(v string) json.RawMessage {
+		data, err := json.Marshal(v)
+		require.NoError(t, err)
+		return data
+	}
+
+	set := variant.Set{
+		Dimensions: []variant.Dimension{
+			variant.NewDiscrete("A", rawStr("a0"), rawStr("a1")),
+			variant.NewDiscrete("B", rawStr("b0"), rawStr("b1"), rawStr("b2")),
+			variant.NewDiscrete("C", rawStr("c0"), rawStr("c1")),
+		},
+	}
+
+	profiles, err := set.Sweep()
+	require.NoError(t, err)
+
+	// A (count 2) is least significant, then B (count 3), then C (count 2)
+	// most significant - this is the exact digit order Sweep must produce.
+	want := [][3]string{
+		{"a0", "b0", "c0"}, {"a1", "b0", "c0"},
+		{"a0", "b1", "c0"}, {"a1", "b1", "c0"},
+		{"a0", "b2", "c0"}, {"a1", "b2", "c0"},
+		{"a0", "b0", "c1"}, {"a1", "b0", "c1"},
+		{"a0", "b1", "c1"}, {"a1", "b1", "c1"},
+		{"a0", "b2", "c1"}, {"a1", "b2", "c1"},
+	}
+	require.Len(t, profiles, len(want))
+
+	for i, w := range want {
+		assert.JSONEq(t, `"`+w[0]+`"`, string(profiles[i]["A"]), "profile %d, dimension A", i)
+		assert.JSONEq(t, `"`+w[1]+`"`, string(profiles[i]["B"]), "profile %d, dimension B", i)
+		assert.JSONEq(t, `"`+w[2]+`"`, string(profiles[i]["C"]), "profile %d, dimension C", i)
+	}
+}
+
 func TestSetSweepSingleDimension(t *testing.T) {
 	set := variant.Set{
 		Dimensions: []variant.Dimension{
