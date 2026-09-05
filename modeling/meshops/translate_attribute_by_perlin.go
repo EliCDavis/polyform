@@ -69,6 +69,10 @@ type TranslateAttributeByPerlinNoise3DNode struct {
 	Shift     nodes.Output[vector3.Float64]
 }
 
+func (ta3dn TranslateAttributeByPerlinNoise3DNode) Description() string {
+	return "Displaces vertices by 3D perlin noise, roughening a surface."
+}
+
 func (ta3dn TranslateAttributeByPerlinNoise3DNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	if ta3dn.Mesh == nil {
 		out.Set(modeling.EmptyMesh(modeling.TriangleTopology))

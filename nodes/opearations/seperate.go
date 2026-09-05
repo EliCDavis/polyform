@@ -27,6 +27,10 @@ type SeperateNode[T any] struct {
 	Selection nodes.Output[[]bool]
 }
 
+func (node SeperateNode[T]) Description() string {
+	return "Splits an array into selected and unselected entries."
+}
+
 func (node SeperateNode[T]) Selected(out *nodes.StructOutput[[]T]) {
 	kept, _ := Seperate(
 		nodes.TryGetOutputValue(out, node.Array, nil),

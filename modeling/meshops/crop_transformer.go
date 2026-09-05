@@ -94,6 +94,10 @@ type CropAttribute3DNode struct {
 	AABB      nodes.Output[geometry.AABB]
 }
 
+func (ca3dn CropAttribute3DNode) Description() string {
+	return "Deletes vertices whose attribute falls outside the given box."
+}
+
 func (ca3dn CropAttribute3DNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	if ca3dn.Mesh == nil {
 		out.Set(modeling.EmptyMesh(modeling.TriangleTopology))

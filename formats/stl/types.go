@@ -22,6 +22,10 @@ type ReadNode struct {
 	Data nodes.Output[[]byte]
 }
 
+func (gad ReadNode) Description() string {
+	return "Reads an STL file into a mesh."
+}
+
 func (gad ReadNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	if gad.Data == nil {
 		out.Set(modeling.EmptyMesh(modeling.TriangleTopology))

@@ -71,6 +71,10 @@ type StripUVsNode struct {
 	End   nodes.Output[vector2.Float64]
 }
 
+func (sund StripUVsNode) Description() string {
+	return "UV layout for geometry generated as a continuous strip."
+}
+
 func (sund StripUVsNode) Out(out *nodes.StructOutput[StripUVs]) {
 	out.Set(StripUVs{
 		Start: nodes.TryGetOutputValue(out, sund.Start, vector2.New(0, 0.5)),

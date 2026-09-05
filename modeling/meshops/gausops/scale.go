@@ -41,6 +41,10 @@ type ScaleNode struct {
 	Amount    nodes.Output[vector3.Float64]
 }
 
+func (sa3dn ScaleNode) Description() string {
+	return "Scales a gaussian splat attribute."
+}
+
 func (sa3dn ScaleNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	if sa3dn.Mesh == nil {
 		out.Set(modeling.EmptyPointcloud())

@@ -16,15 +16,15 @@ import (
 	"github.com/EliCDavis/polyform/generator/edit"
 	"github.com/EliCDavis/polyform/generator/graph"
 	"github.com/EliCDavis/polyform/generator/manifest"
+	"github.com/EliCDavis/polyform/generator/persistence"
 	"github.com/EliCDavis/polyform/generator/room"
 	"github.com/EliCDavis/polyform/generator/run"
-	"github.com/EliCDavis/polyform/generator/persistence"
 	"github.com/EliCDavis/polyform/generator/serialize"
 	"github.com/EliCDavis/polyform/generator/variable"
 )
 
-// defaultSweepWarnThreshold is the default Sweep warning threshold.
-const defaultSweepWarnThreshold = 1000
+// DefaultSweepWarnThreshold is the default Sweep warning threshold.
+const DefaultSweepWarnThreshold = 1000
 
 type App struct {
 	Name                    string
@@ -244,7 +244,7 @@ func (a *App) Run(args []string) error {
 				},
 				&cli.IntFlag{
 					Name:        "warn-threshold",
-					Value:       defaultSweepWarnThreshold,
+					Value:       DefaultSweepWarnThreshold,
 					Description: "combination count above which the sweep refuses to run without -confirm",
 				},
 				requiredGraphFlag,

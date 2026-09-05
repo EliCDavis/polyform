@@ -1264,6 +1264,84 @@ func (a *Instance) DeleteNodeInputConnection(nodeId, portName string) {
 	_ = a.notifyDefinitionMutation()
 }
 
+// dependsOn reports whether node's inputs lead back to target, directly or
+// through any chain of upstream nodes. Connecting target's output into
+// node when this is true closes a loop, which evaluates as infinite
+// recursion rather than a graph error.
+func dependsOn(node, target nodes.Node) bool {
+	visited := make(map[nodes.Node]bool)
+
+	var walk func(nodes.Node) bool
+	walk = func(n nodes.Node) bool {
+		if n == target {
+			return true
+		}
+		if n == nil || visited[n] {
+			return false
+		}
+		visited[n] = true
+
+		for _, input := range n.Inputs() {
+			switch port := input.(type) {
+			case nodes.SingleValueInputPort:
+				if v := port.Value(); v != nil && walk(v.Node()) {
+					return true
+				}
+			case nodes.ArrayValueInputPort:
+				for _, v := range port.Value() {
+					if v != nil && walk(v.Node()) {
+						return true
+					}
+				}
+			}
+		}
+		return false
+	}
+
+	return walk(node)
+}
+
+// checkPortTypes refuses a connection whose ends declare different types.
+// Both ends have to say what they are for this to apply: an untyped port
+// is left alone rather than guessed at.
+func checkPortTypes(outID, outPort string, output nodes.OutputPort, inID, inPort string, input nodes.InputPort) error {
+	outTyped, ok := output.(nodes.Typed)
+	if !ok {
+		return nil
+	}
+	inTyped, ok := input.(nodes.Typed)
+	if !ok {
+		return nil
+	}
+
+	from, to := outTyped.Type(), inTyped.Type()
+	if from == "" || to == "" || from == to {
+		return nil
+	}
+
+	hint := ""
+	if to == "[]"+from {
+		hint = fmt.Sprintf(" - %q takes the whole array as one value, so build the array first (e.g. an ArrayFromNodes node) and connect its single output, rather than connecting one element at a time", inPort)
+	}
+	return fmt.Errorf(
+		"node %q's %q output is %s, but node %q's %q input takes %s%s",
+		outID, outPort, from, inID, inPort, to, hint)
+}
+
+// mismatchError describes a connection the input port refused to hold,
+// naming both types so the caller can see which end to change.
+func mismatchError(outID, outPort string, output nodes.OutputPort, inID, inPort string, input nodes.InputPort) error {
+	describe := func(p any) string {
+		if typed, ok := p.(nodes.Typed); ok {
+			return typed.Type()
+		}
+		return "unknown type"
+	}
+	return fmt.Errorf(
+		"node %q's %q output (%s) doesn't fit node %q's %q input (%s), so the connection was refused; wire a node that produces the input's type instead",
+		outID, outPort, describe(output), inID, inPort, describe(input))
+}
+
 func (a *Instance) ConnectNodes(nodeOutId, outPortName, nodeInId, inPortName string) {
 
 	cleanedInputName := inPortName
@@ -1291,15 +1369,47 @@ func (a *Instance) ConnectNodes(nodeOutId, outPortName, nodeInId, inPortName str
 		panic(fmt.Errorf("node %q contains no out-port %q", nodeOutId, outPortName))
 	}
 
+	if nodeOutId == nodeInId {
+		panic(fmt.Errorf(
+			"connecting node %q's %q output into its own %q input would make it depend on itself",
+			nodeOutId, outPortName, cleanedInputName))
+	}
+
+	if dependsOn(outNode, inNode) {
+		panic(fmt.Errorf(
+			"connecting node %q into node %q's %q input would create a cycle: %q already feeds %q, directly or through other nodes",
+			nodeOutId, nodeInId, cleanedInputName, nodeInId, nodeOutId))
+	}
+
+	// A subgraph boundary port holds a plain OutputPort, so reflection
+	// accepts any output at all and the mismatch only surfaces later as a
+	// nil dereference deep in whatever consumed it - a build wired
+	// vector3 literals into a []vector3 boundary, was told the connection
+	// succeeded, and got a crash in MarchNode naming nothing.
+	if e := checkPortTypes(nodeOutId, outPortName, output, nodeInId, cleanedInputName, input); e != nil {
+		panic(e)
+	}
+
 	if single, ok := input.(nodes.SingleValueInputPort); ok {
 		err := single.Set(output)
 		if err != nil {
 			panic(err)
 		}
+		// Setting a port whose type doesn't match is silently dropped by
+		// the reflection underneath, leaving the input nil. Nothing
+		// complains until something far downstream dereferences it, and
+		// the crash names neither this port nor the type that didn't fit.
+		if single.Value() != output {
+			panic(mismatchError(nodeOutId, outPortName, output, nodeInId, cleanedInputName, input))
+		}
 	} else if array, ok := input.(nodes.ArrayValueInputPort); ok {
+		before := len(array.Value())
 		err := array.Add(output)
 		if err != nil {
 			panic(err)
+		}
+		if len(array.Value()) != before+1 {
+			panic(mismatchError(nodeOutId, outPortName, output, nodeInId, cleanedInputName, input))
 		}
 	} else {
 		panic(fmt.Errorf("can not determine type of node %q's input %q", nodeInId, cleanedInputName))

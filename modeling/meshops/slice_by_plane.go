@@ -48,6 +48,10 @@ type SliceAttributeByPlaneNode struct {
 	Attribute nodes.Output[string]
 }
 
+func (n SliceAttributeByPlaneNode) Description() string {
+	return "Cuts the mesh with an infinite plane, keeping geometry on one side."
+}
+
 func (n SliceAttributeByPlaneNode) slice(out *nodes.StructOutput[modeling.Mesh], above bool) {
 	if n.Mesh == nil {
 		out.Set(modeling.EmptyMesh(modeling.TriangleTopology))

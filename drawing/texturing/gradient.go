@@ -40,6 +40,10 @@ type RadialGradientNode[T any] struct {
 	Gradient    nodes.Output[coloring.Gradient[T]]
 }
 
+func (n RadialGradientNode[T]) Description() string {
+	return "Draws a gradient radiating out from the texture's center."
+}
+
 func (n RadialGradientNode[T]) LinearGradient(out *nodes.StructOutput[Texture[T]]) {
 	width := nodes.TryGetOutputValue(out, n.Width, 1)
 	height := nodes.TryGetOutputValue(out, n.Height, 1)
@@ -104,6 +108,10 @@ type LinearGradientNode[T any] struct {
 	Gradient    nodes.Output[coloring.Gradient[T]]
 }
 
+func (n LinearGradientNode[T]) Description() string {
+	return "Draws a gradient running across the texture at the given rotation."
+}
+
 func (n LinearGradientNode[T]) LinearGradient(out *nodes.StructOutput[Texture[T]]) {
 	width := nodes.TryGetOutputValue(out, n.Width, 1)
 	height := nodes.TryGetOutputValue(out, n.Height, 1)
@@ -136,6 +144,10 @@ func ApplyGradient[T any](time Texture[float64], gradient coloring.Gradient[T]) 
 type ApplyGradientNode[T any] struct {
 	Time     nodes.Output[Texture[float64]]
 	Gradient nodes.Output[coloring.Gradient[T]]
+}
+
+func (n ApplyGradientNode[T]) Description() string {
+	return "Maps a texture of 0-1 values through a gradient, turning numbers into colors."
 }
 
 func (n ApplyGradientNode[T]) Texture(out *nodes.StructOutput[Texture[T]]) {

@@ -83,6 +83,10 @@ type PlaneFromNormalNode struct {
 	Position nodes.Output[vector3.Float64]
 }
 
+func (n PlaneFromNormalNode) Description() string {
+	return "Builds an infinite plane from a point on it and its normal."
+}
+
 func (n PlaneFromNormalNode) Out(out *nodes.StructOutput[geometry.Plane]) {
 	out.Set(geometry.NewPlane(
 		nodes.TryGetOutputValue(out, n.Position, vector3.Zero[float64]()),
@@ -162,6 +166,10 @@ type IntToFloatNode struct {
 	In nodes.Output[int]
 }
 
+func (cn IntToFloatNode) Description() string {
+	return "Converts a whole number to a decimal one."
+}
+
 func (cn IntToFloatNode) Out(out *nodes.StructOutput[float64]) {
 	out.Set(float64(nodes.TryGetOutputValue(out, cn.In, 0)))
 }
@@ -183,6 +191,10 @@ func (cn NegateNode[T]) Description() string {
 // ============================================================================
 type InverseNode[T vector.Number] struct {
 	In nodes.Output[T] `description:"The number to take the inverse of"`
+}
+
+func (cn InverseNode[T]) Description() string {
+	return "Inverts a number, either by negating it (additive) or by dividing one by it (multiplicative)."
 }
 
 func (cn InverseNode[T]) Additive(out *nodes.StructOutput[T]) {
@@ -210,6 +222,10 @@ func (cn InverseNode[T]) MultiplicativeDescription() string {
 
 type RoundNode struct {
 	In nodes.Output[float64]
+}
+
+func (cn RoundNode) Description() string {
+	return "Rounds a number to the nearest whole number."
 }
 
 func (cn RoundNode) Int(out *nodes.StructOutput[int]) {
@@ -243,6 +259,10 @@ type SquareNode struct {
 	In nodes.Output[float64]
 }
 
+func (cn SquareNode) Description() string {
+	return "Multiplies a number by itself."
+}
+
 func (cn SquareNode) Out(out *nodes.StructOutput[float64]) {
 	v := nodes.TryGetOutputValue(out, cn.In, 0)
 	out.Set(v * v)
@@ -257,6 +277,10 @@ type SquareRootNode struct {
 	In nodes.Output[float64]
 }
 
+func (cn SquareRootNode) Description() string {
+	return "Square root of a number."
+}
+
 func (cn SquareRootNode) Out(out *nodes.StructOutput[float64]) {
 	out.Set(math.Sqrt(nodes.TryGetOutputValue(out, cn.In, 0)))
 }
@@ -266,6 +290,10 @@ func (cn SquareRootNode) Out(out *nodes.StructOutput[float64]) {
 type HypotenuseNode struct {
 	P nodes.Output[float64]
 	Q nodes.Output[float64]
+}
+
+func (cn HypotenuseNode) Description() string {
+	return "Length of a right triangle's hypotenuse from its two legs. Use Arc Tan 2 on the same legs for its angle."
 }
 
 func (cn HypotenuseNode) Out(out *nodes.StructOutput[float64]) {
@@ -285,6 +313,10 @@ type RemapNode[T vector.Number] struct {
 
 	OutMin nodes.Output[T]
 	OutMax nodes.Output[T]
+}
+
+func (n RemapNode[T]) Description() string {
+	return "Rescales a number from one range to another."
 }
 
 func (n RemapNode[T]) Out(out *nodes.StructOutput[T]) {
@@ -312,6 +344,10 @@ type RemapToArrayNode[T vector.Number] struct {
 	OutMax nodes.Output[T]
 
 	Clamp nodes.Output[bool]
+}
+
+func (n RemapToArrayNode[T]) Description() string {
+	return "Rescales every number in an array from one range to another."
 }
 
 func (n RemapToArrayNode[T]) Out(out *nodes.StructOutput[[]T]) {

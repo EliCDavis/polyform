@@ -20,6 +20,10 @@ type OneMinusNode struct {
 	Texture nodes.Output[Texture[float64]]
 }
 
+func (n OneMinusNode) Description() string {
+	return "Subtracts every value in a texture from 1, inverting it."
+}
+
 func (n OneMinusNode) Result(out *nodes.StructOutput[Texture[float64]]) {
 	if n.Texture == nil {
 		return
@@ -29,6 +33,10 @@ func (n OneMinusNode) Result(out *nodes.StructOutput[Texture[float64]]) {
 
 type MultiplyFloat1Node struct {
 	Textures []nodes.Output[Texture[float64]]
+}
+
+func (n MultiplyFloat1Node) Description() string {
+	return "Multiplies textures together pixel by pixel."
 }
 
 func (n MultiplyFloat1Node) Result(out *nodes.StructOutput[Texture[float64]]) {

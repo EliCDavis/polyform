@@ -11,6 +11,10 @@ type MinNode[T vector.Number] struct {
 	In []nodes.Output[T]
 }
 
+func (n MinNode[T]) Description() string {
+	return "Smallest of the given numbers."
+}
+
 func (n MinNode[T]) min(recorder nodes.ExecutionRecorder) T {
 	var v T
 
@@ -40,6 +44,10 @@ func (n MinNode[T]) Float64(out *nodes.StructOutput[float64]) {
 
 type MinArrayNode[T vector.Number] struct {
 	In nodes.Output[[]T]
+}
+
+func (n MinArrayNode[T]) Description() string {
+	return "Smallest number in an array."
 }
 
 func (n MinArrayNode[T]) min(recorder nodes.ExecutionRecorder) T {
@@ -72,6 +80,10 @@ type MaxNode[T vector.Number] struct {
 	In []nodes.Output[T]
 }
 
+func (n MaxNode[T]) Description() string {
+	return "Largest of the given numbers."
+}
+
 func (n MaxNode[T]) max(recorder nodes.ExecutionRecorder) T {
 	var v T
 
@@ -101,6 +113,10 @@ func (n MaxNode[T]) Float64(out *nodes.StructOutput[float64]) {
 
 type MaxArrayNode[T vector.Number] struct {
 	In nodes.Output[[]T]
+}
+
+func (n MaxArrayNode[T]) Description() string {
+	return "Largest number in an array."
 }
 
 func (n MaxArrayNode[T]) max(recorder nodes.ExecutionRecorder) T {

@@ -15,6 +15,10 @@ type ScaleWithinRegionNode struct {
 	Position nodes.Output[vector3.Float64]
 }
 
+func (swrnd ScaleWithinRegionNode) Description() string {
+	return "Scales gaussian splats inside a sphere, falling off toward its edge."
+}
+
 func (swrnd ScaleWithinRegionNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	if swrnd.Mesh == nil {
 		out.Set(modeling.EmptyPointcloud())

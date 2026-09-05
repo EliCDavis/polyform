@@ -24,6 +24,10 @@ type BinaryNode struct {
 	In nodes.Output[[]byte]
 }
 
+func (pn BinaryNode) Description() string {
+	return "Writes raw bytes out as a file."
+}
+
 func (pn BinaryNode) Out(out *nodes.StructOutput[manifest.Artifact]) {
 	out.Set(Binary{Data: nodes.TryGetOutputValue(out, pn.In, []byte{})})
 }

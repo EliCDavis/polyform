@@ -108,6 +108,10 @@ type ModelNode struct {
 	GpuInstances nodes.Output[[]trs.TRS]
 }
 
+func (gmnd ModelNode) Description() string {
+	return "A mesh placed in the scene with a material and a transform. Gpu Instances draws one copy per transform, each relative to this model's own."
+}
+
 func (gmnd ModelNode) Out(out *nodes.StructOutput[*PolyformModel]) {
 	transform := trs.New(
 		nodes.TryGetOutputValue(out, gmnd.Translation, vector3.Zero[float64]()),
@@ -160,6 +164,10 @@ func (gmnd TextureNode) Description() string {
 type NormalTextureNode struct {
 	Texture nodes.Output[PolyformTexture]
 	Scale   nodes.Output[float64]
+}
+
+func (tnd NormalTextureNode) Description() string {
+	return "A normal map plus how strongly it applies."
 }
 
 func (tnd NormalTextureNode) Out(out *nodes.StructOutput[PolyformNormal]) {
@@ -522,6 +530,10 @@ type AnimationNode struct {
 	Channels []nodes.Output[PolyformAnimationChannel]
 }
 
+func (node AnimationNode) Description() string {
+	return "An animation built from a set of channels."
+}
+
 func (node AnimationNode) Out(out *nodes.StructOutput[PolyformAnimation]) {
 	out.Set(PolyformAnimation{
 		Name:     nodes.TryGetOutputValue(out, node.Name, ""),
@@ -554,6 +566,10 @@ type TranslationAnimationChannelNode struct {
 	Target        nodes.Output[*PolyformModel]
 	Interpolation nodes.Output[AnimationSamplerInterpolation]
 	Frames        nodes.Output[[]animation.Frame[vector3.Float64]]
+}
+
+func (node TranslationAnimationChannelNode) Description() string {
+	return "Animates a model's position over a set of keyframes."
 }
 
 func (node TranslationAnimationChannelNode) Out(out *nodes.StructOutput[PolyformAnimationChannel]) {
@@ -603,6 +619,10 @@ type RotationAnimationChannelNode struct {
 	Frames        nodes.Output[[]animation.Frame[quaternion.Quaternion]]
 }
 
+func (node RotationAnimationChannelNode) Description() string {
+	return "Animates a model's rotation over a set of keyframes."
+}
+
 func (node RotationAnimationChannelNode) Out(out *nodes.StructOutput[PolyformAnimationChannel]) {
 	target, frames, err := validateChannelNode(out, node.Target, node.Frames)
 	if err != nil {
@@ -648,6 +668,10 @@ type ScaleAnimationChannelNode struct {
 	Target        nodes.Output[*PolyformModel]
 	Interpolation nodes.Output[AnimationSamplerInterpolation]
 	Frames        nodes.Output[[]animation.Frame[vector3.Float64]]
+}
+
+func (node ScaleAnimationChannelNode) Description() string {
+	return "Animates a model's scale over a set of keyframes."
 }
 
 func (node ScaleAnimationChannelNode) Out(out *nodes.StructOutput[PolyformAnimationChannel]) {

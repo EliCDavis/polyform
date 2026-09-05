@@ -11,6 +11,10 @@ type NormalizeArray struct {
 	In nodes.Output[[]vector2.Float64]
 }
 
+func (cn NormalizeArray) Description() string {
+	return "Normalizes an array of vectors. Local scales each to unit length; Global scales them all by the longest."
+}
+
 func (cn NormalizeArray) Local(out *nodes.StructOutput[[]vector2.Float64]) {
 	if cn.In == nil {
 		return

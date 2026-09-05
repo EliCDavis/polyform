@@ -115,7 +115,7 @@ func (so *StructOutput[T]) Value() T {
 		val = so.cache.Get(so.functionName).(StructOutput[T])
 	} else {
 		start := time.Now()
-		refutil.CallStructMethod(so.data, so.functionName, &val)
+		so.call(&val)
 		val.report.TotalTime = time.Since(start)
 		self := val.report.TotalTime
 		for _, v := range val.report.Steps {
@@ -127,6 +127,24 @@ func (so *StructOutput[T]) Value() T {
 		so.cache.Cache(so.functionName, val)
 	}
 	return val.val
+}
+
+// call runs the node's output method, tagging any panic with which node
+// and port it came from. Nothing recovers between a node's method and the
+// process boundary, so an unannotated panic reaches the caller as a bare
+// message like "attribute Position not found" - true, but useless against
+// a graph of a hundred nodes, since it names neither the node nor even the
+// kind of node that raised it.
+func (so *StructOutput[T]) call(val *StructOutput[T]) {
+	defer func() {
+		r := recover()
+		if r == nil {
+			return
+		}
+		resolver := refutil.TypeResolution{IncludePackage: true, StripSinglePointer: true}
+		panic(fmt.Errorf("%s.%s: %v", resolver.Resolve(so.data), so.functionName, r))
+	}()
+	refutil.CallStructMethod(so.data, so.functionName, val)
 }
 
 func (so StructOutput[T]) Version() int {

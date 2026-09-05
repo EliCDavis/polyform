@@ -30,6 +30,7 @@ func (c Torus) ToMesh() modeling.Mesh {
 
 	vertCount := (c.MinorResolution + 1) * (c.MajorResolution + 1)
 	verts := make([]vector3.Float64, 0, vertCount)
+	normals := make([]vector3.Float64, 0, vertCount)
 	for majorI := range c.MajorResolution + 1 {
 		majorAngle := float64(majorI) * majorAngleIncrement
 		majorPoint := vector3.New(math.Cos(majorAngle)*c.MajorRadius, 0, math.Sin(majorAngle)*c.MajorRadius)
@@ -43,6 +44,8 @@ func (c Torus) ToMesh() modeling.Mesh {
 			)
 
 			verts = append(verts, majorPoint.Add(minorPoint.Scale(c.MinorRadius)))
+
+			normals = append(normals, minorPoint)
 		}
 	}
 
@@ -61,7 +64,9 @@ func (c Torus) ToMesh() modeling.Mesh {
 		}
 	}
 
-	result := modeling.NewTriangleMesh(indices).SetFloat3Attribute(modeling.PositionAttribute, verts)
+	result := modeling.NewTriangleMesh(indices).
+		SetFloat3Attribute(modeling.PositionAttribute, verts).
+		SetFloat3Attribute(modeling.NormalAttribute, normals)
 
 	if c.UVs != nil {
 		majorUVIncrement := 1.0 / float64(c.MajorResolution)
@@ -92,6 +97,10 @@ type TorusUVNode struct {
 	Strip       nodes.Output[StripUVs]
 }
 
+func (c TorusUVNode) Description() string {
+	return "UV layout for the Torus primitive."
+}
+
 func (c TorusUVNode) Out(out *nodes.StructOutput[TorusUVs]) {
 	out.Set(TorusUVs{
 		MinorOffset: nodes.TryGetOutputValue(out, c.MinorOffset, 0),
@@ -110,6 +119,10 @@ type TorusNode struct {
 	MajorResolution nodes.Output[int]
 	MinorResolution nodes.Output[int]
 	UVs             nodes.Output[TorusUVs]
+}
+
+func (c TorusNode) Description() string {
+	return "A ring or doughnut in the XZ plane. Major Radius is the ring, Minor Radius its tube thickness."
 }
 
 func (c TorusNode) Out(out *nodes.StructOutput[modeling.Mesh]) {

@@ -91,6 +91,10 @@ type DrawSpheresNode struct {
 	Texture   nodes.Output[NormalMap] `description:"texture to draw on"`
 }
 
+func (n DrawSpheresNode) Description() string {
+	return "Draws spherical bumps into a normal map."
+}
+
 func (n DrawSpheresNode) NormalMap(out *nodes.StructOutput[NormalMap]) {
 	if n.Texture == nil {
 		return
@@ -136,6 +140,10 @@ type DrawSphereNode struct {
 	StartRadius nodes.Output[float64]
 	EndRadius   nodes.Output[float64]
 	Texture     nodes.Output[NormalMap] `description:"texture to draw on"`
+}
+
+func (n DrawSphereNode) Description() string {
+	return "Draws one spherical bump into a normal map. Subtract carves a dent instead."
 }
 
 func (n DrawSphereNode) NormalMap(out *nodes.StructOutput[NormalMap]) {

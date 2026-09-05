@@ -19,6 +19,10 @@ type ReadNode struct {
 	Data nodes.Output[[]byte]
 }
 
+func (gad ReadNode) Description() string {
+	return "Reads an SPZ gaussian splat file into a mesh."
+}
+
 func (gad ReadNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	out.Set(modeling.EmptyMesh(modeling.PointTopology))
 	if gad.Data == nil {

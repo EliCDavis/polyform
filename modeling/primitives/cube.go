@@ -324,6 +324,10 @@ type CubeUVsNode struct {
 	Back   nodes.Output[StripUVs]
 }
 
+func (cnd CubeUVsNode) Description() string {
+	return "UV layout for the Cube primitive."
+}
+
 func (cnd CubeUVsNode) Uv(out *nodes.StructOutput[CubeUVs]) {
 	uvs := CubeUVs{}
 

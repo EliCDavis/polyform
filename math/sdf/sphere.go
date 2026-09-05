@@ -17,6 +17,10 @@ type SphereNode struct {
 	Radius   nodes.Output[float64]         `description:"Radius of the sphere. Defaults to 0.5."`
 }
 
+func (cn SphereNode) Description() string {
+	return "Sphere field of a given radius, centered on Position."
+}
+
 func (cn SphereNode) Field(out *nodes.StructOutput[sample.Vec3ToFloat]) {
 	out.Set(Sphere(
 		nodes.TryGetOutputValue(out, cn.Position, vector3.Zero[float64]()),

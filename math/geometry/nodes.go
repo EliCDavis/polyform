@@ -13,5 +13,12 @@ func init() {
 	refutil.RegisterType[nodes.Struct[PositionsOnLinesAtTime3DNode]](factory)
 	refutil.RegisterType[nodes.Struct[PositionsOnLineAtTimes3DNode]](factory)
 	refutil.RegisterType[nodes.Struct[TrsFromLines3DNode]](factory)
+
+	refutil.RegisterType[nodes.Struct[AABBNode]](factory)
+	refutil.RegisterType[nodes.Struct[AABBFromMinMaxNode]](factory)
+	refutil.RegisterType[nodes.Struct[AABBFromPointsNode]](factory)
+	refutil.RegisterType[nodes.Struct[ExpandAABBNode]](factory)
+	refutil.RegisterType[nodes.Struct[AABBPropertiesNode]](factory)
+
 	generator.RegisterTypes(factory)
 }

@@ -30,6 +30,10 @@ type FromImageNode struct {
 	Image nodes.Output[image.Image]
 }
 
+func (n FromImageNode) Description() string {
+	return "Reads an image into a color texture."
+}
+
 func (n FromImageNode) Texture(out *nodes.StructOutput[Texture[coloring.Color]]) {
 	if n.Image == nil {
 		return

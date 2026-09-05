@@ -146,6 +146,10 @@ type CylinderUVsNode struct {
 	Side   nodes.Output[StripUVs]
 }
 
+func (n CylinderUVsNode) Description() string {
+	return "UV layout for the Cylinder primitive."
+}
+
 func (n CylinderUVsNode) Out(out *nodes.StructOutput[CylinderUVs]) {
 	out.Set(CylinderUVs{
 		Top:    nodes.TryGetOutputReference(out, n.Top, nil),
@@ -162,6 +166,10 @@ type CylinderNode struct {
 	Top     nodes.Output[bool]
 	Bottom  nodes.Output[bool]
 	UVs     nodes.Output[CylinderUVs]
+}
+
+func (hnd CylinderNode) Description() string {
+	return "A cylinder along the Y axis: pole, barrel, wheel, drum. Turning Top or Bottom off leaves an open shell whose wall has no thickness."
 }
 
 func (hnd CylinderNode) Out(out *nodes.StructOutput[modeling.Mesh]) {

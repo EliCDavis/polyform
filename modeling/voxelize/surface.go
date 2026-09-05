@@ -75,6 +75,10 @@ type SurfaceNode struct {
 	VoxelSize nodes.Output[float64]
 }
 
+func (sn SurfaceNode) Description() string {
+	return "Voxelizes a mesh's surface, returning a position per filled voxel."
+}
+
 func (sn SurfaceNode) Positions(out *nodes.StructOutput[[]vector3.Float64]) {
 	if sn.Mesh == nil || sn.VoxelSize == nil {
 		return

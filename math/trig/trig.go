@@ -36,6 +36,10 @@ type SinArray struct {
 	Shift     nodes.Output[float64]
 }
 
+func (n SinArray) Description() string {
+	return "Sine of every angle in an array, in radians."
+}
+
 func (n SinArray) Out(out *nodes.StructOutput[[]float64]) {
 	runFunction(out, n.Input, n.Amplitude, n.Shift, math.Sin)
 }
@@ -46,6 +50,10 @@ type CosArray struct {
 	Input     nodes.Output[[]float64]
 	Amplitude nodes.Output[float64]
 	Shift     nodes.Output[float64]
+}
+
+func (n CosArray) Description() string {
+	return "Cosine of every angle in an array, in radians."
 }
 
 func (n CosArray) Out(out *nodes.StructOutput[[]float64]) {
@@ -60,6 +68,10 @@ type TanArray struct {
 	Shift     nodes.Output[float64]
 }
 
+func (n TanArray) Description() string {
+	return "Tangent of every angle in an array, in radians."
+}
+
 func (n TanArray) Out(out *nodes.StructOutput[[]float64]) {
 	runFunction(out, n.Input, n.Amplitude, n.Shift, math.Tan)
 }
@@ -70,6 +82,10 @@ type ArcSinArray struct {
 	Input     nodes.Output[[]float64]
 	Amplitude nodes.Output[float64]
 	Shift     nodes.Output[float64]
+}
+
+func (n ArcSinArray) Description() string {
+	return "Arcsine of every number in an array, returned in radians."
 }
 
 func (n ArcSinArray) Out(out *nodes.StructOutput[[]float64]) {
@@ -84,6 +100,10 @@ type ArcCosArray struct {
 	Shift     nodes.Output[float64]
 }
 
+func (n ArcCosArray) Description() string {
+	return "Arccosine of every number in an array, returned in radians."
+}
+
 func (n ArcCosArray) Out(out *nodes.StructOutput[[]float64]) {
 	runFunction(out, n.Input, n.Amplitude, n.Shift, math.Acos)
 }
@@ -94,6 +114,10 @@ type ArcTanArray struct {
 	Input     nodes.Output[[]float64]
 	Amplitude nodes.Output[float64]
 	Shift     nodes.Output[float64]
+}
+
+func (n ArcTanArray) Description() string {
+	return "Arctangent of every number in an array, returned in radians."
 }
 
 func (n ArcTanArray) Out(out *nodes.StructOutput[[]float64]) {
