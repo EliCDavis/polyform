@@ -27,7 +27,7 @@ type CreateSphereSurfacePointSubgraphInput struct {
 
 type CreateSphereSurfacePointSubgraphOutput struct {
 	SubgraphId string   `json:"subgraphId"`
-	Inputs     []string `json:"inputs" jsonschema:"boundary input names, in the order they must be wired: Center (vector3, the sphere's center), Radius (float64), Direction (vector3, which way from Center to place the point - any length, normalized internally), Embed Fraction (float64, how far toward the surface as a fraction of Radius - 1.0 lands exactly on the surface, less than 1 sits embedded toward the center, more than 1 floats outside)"`
+	Inputs     []string `json:"inputs" jsonschema:"boundary input names, in the order they must be wired: Center (vector3, the sphere's center), Radius (float64), Direction (vector3, which way from Center to place the point - any length, normalized internally), Embed Fraction (float64, distance from Center as a fraction of Radius - 1.0 puts the point exactly on the surface). The point is where the part's ORIGIN goes, not where its outer face goes, so a part centered on its own origin at 1.0 ends up half buried. For a part reaching h from its own origin along Direction, use 1 - h/Radius to sit flush, and 1 - (h-p)/Radius to protrude by p. Values under that flush number bury the part entirely and it renders as nothing at all, with the reference surface looking untouched. Two things make h easy to get wrong: for a box it is the reach along Direction, |dx|*hx + |dy|*hy + |dz|*hz over the normalized direction, NOT any single axis's half-extent - those agree only when Direction is axis-aligned; and the whole formula treats the sphere as locally flat, so it drifts once the part is no longer small against Radius. When the part is large, the reference isn't a clean sphere, or you'd rather not derive h at all, use raycast_field instead - it measures the real surface point and normal rather than approximating them."`
 	Output     string   `json:"output" jsonschema:"boundary output name: Position (vector3)"`
 }
 
@@ -38,6 +38,11 @@ type CreateSphereSurfacePointSubgraphOutput struct {
 // on a skull, a nose on a muzzle) keeps getting positioned with hand-
 // derived offset coefficients that miss the actual surface - e.g. floating
 // visibly outside the sphere - needing a render-and-fix cycle to catch.
+//
+// Embed Fraction scales Radius and places the part's ORIGIN, not its outer
+// face. A fraction below 1 - h/Radius (h being the part's half-extent along
+// Direction) buries the part completely, and the render then shows an
+// intact reference surface with no sign the part exists at all.
 func (s *Server) createSphereSurfacePointSubgraph(ctx context.Context, req *mcpsdk.CallToolRequest, in CreateSphereSurfacePointSubgraphInput) (*mcpsdk.CallToolResult, CreateSphereSurfacePointSubgraphOutput, error) {
 	var out CreateSphereSurfacePointSubgraphOutput
 	var err error
@@ -138,6 +143,6 @@ func (s *Server) createSphereSurfacePointSubgraph(ctx context.Context, req *mcps
 func (s *Server) registerSphereSurfacePointTools() {
 	mcpsdk.AddTool(s.sdk, &mcpsdk.Tool{
 		Name:        "create_sphere_surface_point_subgraph",
-		Description: "Creates a reusable subgraph computing a point positioned relative to a sphere's surface along a direction - Center + Normalize(Direction) * (Radius * Embed Fraction). Use this for a small part meant to sit embedded in or on a larger round reference part (an eye/nose on a skull, a bolt head on a rounded housing) instead of hand-deriving offset coefficients, which easily misses the actual surface (floats outside, or sinks too far in) and needs a render-and-fix cycle to catch. After creating it, instantiate_subgraph and wire its four boundary inputs (Center, Radius, Direction - any length, normalized internally - and Embed Fraction, where 1.0 lands exactly on the surface), then use its Position output as the part's translation.",
+		Description: "Creates a reusable subgraph computing a point positioned relative to a sphere's surface along a direction - Center + Normalize(Direction) * (Radius * Embed Fraction). Use this for a small part meant to sit embedded in or on a larger round reference part (an eye/nose on a skull, a bolt head on a rounded housing) instead of hand-deriving offset coefficients, which easily misses the actual surface (floats outside, or sinks too far in) and needs a render-and-fix cycle to catch. After creating it, instantiate_subgraph and wire its four boundary inputs (Center, Radius, Direction - any length, normalized internally - and Embed Fraction), then use its Position output as the part's translation. Embed Fraction is a fraction of Radius and positions the part's origin, so 1.0 leaves a part centered on its own origin half buried: for a half-extent h along Direction, 1 - h/Radius sits flush and 1 - (h-p)/Radius protrudes by p. Going below the flush value sinks the part fully inside, which renders as an untouched reference surface rather than as anything obviously wrong.",
 	}, s.createSphereSurfacePointSubgraph)
 }

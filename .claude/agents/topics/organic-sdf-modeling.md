@@ -15,29 +15,61 @@ transforms.
 Every node in `math/sdf` has real documentation — `get_node_types` on a
 candidate before wiring it rather than assuming from the name.
 
-## The roster (`pathPrefix: "math/sdf"`)
+## The roster — exact type keys, do not search for these
 
-**Primitives**: `CubeNode`/`RoundCubeNode` (box, optionally filleted),
-`SphereNode`, `CutSphereNode` (sphere with a flat cap), `TorusNode`
-(donut), `RoundedConeNode` (capsule/cone between two points with an
-independent radius at each end — good for tapered limbs),
-`RoundedCylinderNode`, `PlaneNode` (infinite — best used as a cutting tool
-via `SubtractionNode`/`IntersectionNode`, not as visible geometry on its
-own), `LineNode` (single capsule between two points), `LinesNode` (a
-chain of capsules through an array of points, one shared radius — for a
-body that stays one constant thickness end to end: a rope, a chain link,
-a cable), `VaryingRadiusLinesNode` (the same chain, but a parallel `Radii`
-array gives every point its own radius, so the body can taper). **For a
-tail, tentacle, horn, or anything else that should read as a smoothly
-curving line getting thinner along its length, don't wire
-`VaryingRadiusLinesNode` directly — use the `create_tapered_curve_subgraph`
-tool instead** (see the very next section). Don't hand-build a tapering
-chain out of individual `RoundedConeNode`s glued together with
-`SmoothUnionNode` either — consecutive segments in a real chain already
-share an exact matching endpoint and radius, so smooth-unioning them adds
-unwanted extra blending at every joint (a visible lump right at each
-seam, worst at a sharp curl) instead of the clean taper a plain union of
-matching segments already gives for free.
+Every key below is the `PATH` inside the wrapper
+`github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/PATH]` — so `math/sdf.SphereNode`
+means the type key
+`github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/math/sdf.SphereNode]`.
+Port names are exact. **These are confirmed against the registry: use them
+directly, do not spend a `search_node_types`/`get_node_types` pair
+rediscovering them.** Search only for something genuinely not on this list.
+
+| PATH | inputs | outputs |
+| --- | --- | --- |
+| `math/sdf.SphereNode` | Position, Radius | Field |
+| `math/sdf.CubeNode` | Position, Size | Field |
+| `math/sdf.RoundCubeNode` | Position, Size, Roundness | Field |
+| `math/sdf.RoundedConeNode` | A, B, `Radius 1`, `Radius 2` | Field |
+| `math/sdf.RoundedCylinderNode` | Position, Radius, `Body Height`, `Rounding Radius` | Field |
+| `math/sdf.TorusNode` | Position, `Ring Radius`, `Tube Radius` | Field |
+| `math/sdf.LineNode` | Start, End, Radius | Field |
+| `math/sdf.PlaneNode` | Position, Normal, Height | Field |
+| `math/sdf.UnionNode` | Fields[] | **Union** |
+| `math/sdf.SmoothUnionNode` | Fields[], Radius | **Union** |
+| `math/sdf.IntersectionNode` | Fields[] | **Intersection** |
+| `math/sdf.SubtractionNode` | A, B | **Subtract** |
+| `math/sdf.SmoothSubtractionNode` | A, B, Radius | **Subtract** |
+| `math/sdf.TranslateNode` | Field, Position | **Result** |
+| `math/sdf.TransformNode` | Field, Transform | **Result** |
+| `math/sdf.RepeatNode` | Field, Transforms, Radius | **Result** |
+| `math/sdf.MirrorNode` | Field, Union | X, Y, Z, XY, XZ, YZ, XYZ |
+| `math/sdf.DisplaceNode` | Primitive, Displacement | Field |
+| `modeling/marching.MarchNode` | Field, Domain, Resolution, Surface | **Mesh** |
+| `modeling/meshops.SmoothNormalsImplicitWeldNode` | Mesh, Distance | Out |
+
+The output names are the trap: field nodes output `Field`, but the
+combinators do not — union outputs `Union`, subtraction `Subtract`,
+intersection `Intersection`, and the transforms `Result`. `MarchNode`
+outputs `Mesh`, and every `meshops` node outputs `Out`. `MirrorNode` has
+seven outputs, one per mirror-plane combination; pick the axis you want.
+
+**Also on this list and covered in its own section below**: `LinesNode`
+(a chain of capsules through an array of points at one shared radius — a
+rope, cable, or chain link) and `VaryingRadiusLinesNode` (the same chain
+with a parallel `Radii` array so it can taper). `CutSphereNode` is a
+sphere with a flat cap.
+
+For a tail, tentacle, horn, or anything else that should read as a
+smoothly curving line getting thinner along its length, **don't wire
+`VaryingRadiusLinesNode` directly — use `create_tapered_curve_subgraph`**
+(next section). Don't hand-build a tapering chain out of individual
+`RoundedConeNode`s glued together with `SmoothUnionNode` either:
+consecutive segments in a real chain already share an exact matching
+endpoint and radius, so smooth-unioning them adds unwanted extra blending
+at every joint — a visible lump at each seam, worst at a sharp curl —
+instead of the clean taper a plain union of matching segments gives for
+free.
 
 ## Tapering a curve: `create_tapered_curve_subgraph`, not raw `VaryingRadiusLinesNode`
 
@@ -131,12 +163,20 @@ An SDF node produces a distance *field*, not a mesh. Feed the final
 combined field into `modeling/marching.MarchNode` (`Resolution` high
 enough that the surface doesn't look blocky — low single digits reads
 chunky/voxel-y), then run *that* mesh through
-`nodes.Struct[github.com/EliCDavis/polyform/modeling/meshops.SmoothNormalsImplicitWeldNode]`
+`github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/modeling/meshops.SmoothNormalsImplicitWeldNode]`
 (`Distance` set explicitly — its own default, `0.0001`, is too small for
 real-world scale) before using it downstream. Use this node's output, not
 the raw `MarchNode` output — it recomputes smooth per-vertex normals
 across nearby vertices, which is what actually makes the surface read as
 smooth under lighting, cheaper than raising `Resolution` further.
+
+`Distance` is one of the softening lengths (see the budget section
+below): at or above a feature's thickness the weld averages that
+feature's front and back normals together and it shades like a rounded
+lump — geometry right, lighting wrong, which reads as a modeling failure
+and sends you back to the SDF looking for a problem that isn't there.
+Everything sharing one march shares one weld, so the value is set by the
+thinnest thing in the mesh, not the bulk of it.
 
 **Be generous with `Domain` — a too-small one silently clips the surface
 with no error, not a crash.** A curled tail, a raised limb, anything that
@@ -158,6 +198,121 @@ boundaries, reading as asymmetric in the render. **Don't assume a
 mirrored/symmetric part looking asymmetric means the SDF or the mirror is
 wrong** — check `Resolution` relative to the *smallest* feature in the
 field first, not just relative to the body's overall size.
+
+## Finding the surface of a field
+
+A field is queryable, which means you never have to estimate anything
+about it. Two tools, and the difference matters:
+
+- `sample_field` answers **"what is here"** — inside, outside, how far
+  from the surface. Use it to check a suspicion about a region.
+- `raycast_field` answers **"where is the surface, and which way does it
+  face"** — fire a ray, get back the point and the outward normal. Use it
+  whenever a number describes a *relationship* to this body: where
+  something attaches, how wide a part actually came out, where a cavity
+  wall sits.
+
+Both take many queries per call, so a whole row of attachment points, or
+the extents of a part along all three axes, is one call rather than one
+per number.
+
+March **outward from inside** to find a cavity wall, **inward from
+outside** to find the skin. This is the general case of the positioning
+rule in the orchestrator instructions — a blended body has no formula to
+solve, so it gets measured instead.
+
+## Primitives are stock, not answers
+
+The roster above is vocabulary, not a menu to pick a part off. Asking
+"which primitive *is* a fin" has no good answer and gets you the closest
+box; the question is "what form is this, and how do I get there from raw
+stock".
+
+**Describe the form before you reach for a node.** Three things, in
+ordinary words, none of which mention a primitive:
+
+- its **proportions** — the ratios, not the sizes. "About fifteen times
+  longer than it is thick" is a fact you can check later; "smallish" isn't.
+- its **cross-section** — round, flat, square, hollow.
+- **how that cross-section changes** along its length — constant,
+  tapering, swelling in the middle, splitting.
+
+That description is what you match a primitive to, and you match on
+**topology, not name**: something that tapers between two ends is a
+rounded cone whatever it depicts; something with a hole is a torus or
+tube; something with genuinely hard corners is a box. A sphere and a
+squashed sphere are the same primitive, and a fin, a leaf, a fluke and a
+gill cover are all the same *form* — thin, tapered, round-edged — so they
+are all the same construction with different numbers.
+
+**Then fix the proportions with a transform.** `TransformNode` with a
+non-uniform `Scale` is a first-class modeling operation, not a
+workaround: it is how a primitive whose topology is right but whose
+proportions are wrong becomes the shape you described. Reaching for a
+different primitive because the first one "isn't fin-shaped" is the
+mistake — none of them are, and scaling is the step you skipped.
+
+(Non-uniform `Scale` on a field was broken until recently: it returned the
+field's own local distances, which marched as speckle. If you have some
+recollection that squashing an SDF doesn't work, that was why, and it is
+fixed.)
+
+## The thinnest feature sets the budget for every softening length
+
+Several parameters across the pipeline are all secretly the same thing —
+a distance over which the model gets blurred:
+
+| parameter | blurs |
+| --- | --- |
+| `RoundCubeNode.Roundness` | edges, by inflating outward |
+| `SmoothUnionNode.Radius` | the joint between two fields |
+| `SmoothNormalsImplicitWeldNode.Distance` | normals across nearby surfaces |
+| the marching voxel size (`Domain` extent / `Resolution`) | everything, by sampling |
+
+**Every one of them has to be smaller than the thinnest feature it
+touches**, and they are all sized by the *thinnest* part of the model, not
+the average one. Above that threshold each fails in its own way and none
+of them error: rounding swells a thin panel until it is a lump, a smooth
+union bridges across a gap that was supposed to stay open, welding
+averages a thin blade's two faces together so it shades like a tube, and
+a voxel coarser than the feature drops it or speckles it.
+
+This is why thin parts are the hard case, and why "it looked fine on the
+body but wrong on the fins" keeps happening: the body tolerates a
+generous blur and the fins do not. When a model has both, every one of
+these is sized by the fins.
+
+So when something thin comes out chunky, blobby, or oddly lit, check
+these four before changing the geometry — the shape is usually right and
+one of the blur lengths is too big for it.
+
+## Ask the question in the form that answers it
+
+A render is the only way to judge *form*, and it is the worst way to
+answer anything factual. Two failures cost real time on every build so
+far, and neither is something a picture shows well:
+
+- **a part that isn't there.** Nothing looks like nothing, and among
+  fifteen parts that did appear, one that didn't is easy to miss.
+- **a part that didn't attach.** A tooth floating a hair off a jaw looks
+  correct from every angle that isn't exactly edge-on.
+
+`describe_mesh` answers both outright. It reports the triangle count, the
+bounding box, and **how many separate connected pieces the mesh is in** —
+so a part that failed to wire doesn't move the triangle count, and a part
+that failed to union is its own piece, listed with its size and centre so
+you know *which* one came adrift. A body that shares one march and is
+meant to be one body should report exactly 1 piece.
+
+It also settles proportion, which is the defect that survives every other
+check — parts all present, all attached, all correctly coloured, and the
+thing still doesn't read right. State the ratio you intended, then read
+the bounding box: 3:1 when you wanted 15:1 is a number, not a judgement.
+
+Reach for it whenever the question is factual rather than aesthetic. It
+costs the same evaluation as a render but skips the rasterizing and the
+image, so it is strictly cheaper than the render it replaces — and unlike
+the render, it cannot be misread.
 
 ## A body with limbs/tail/ears is one field, not several marched separately
 
@@ -216,25 +371,31 @@ When something about a union looks wrong and you need to isolate *why* —
 which primitive is responsible, whether a suspected point is really
 inside the merged field — reach for `sample_field` before reaching for
 `render_preview` in a loop or disconnecting nodes to test them one at a
-time. It evaluates any `math/sdf` node's `Field` output (a primitive, or
-the combined result of a `Union`/`SmoothUnionNode`/etc.) at explicit
-world-space points and returns the raw signed distance instantly — no
-marching, no rasterizing, no image to read. Negative means inside,
-positive means outside, zero is exactly on the surface. Compare a single
-field's value against the whole union's value at the same point to check
-whether that field is really the one determining the surface there; check
-a point that should be in open space (e.g. the midpoint between two
-clusters that shouldn't touch) for an unexpectedly negative value instead
-of rendering and squinting at the image. Faster and more precise than a
-render for anything where the question is really "what is the field's
-value here," not "what does this look like."
+time. Unlike the render-based techniques below, `sample_field` is
+available no matter which agent is reading this (the orchestrator and a
+spawned `polyform-part-builder` both have it) — the part-builder has no
+`render_preview` at all, so this is its primary way to verify a field
+numerically rather than guessing. It evaluates any `math/sdf` node's
+`Field` output (a primitive, or the combined result of a
+`Union`/`SmoothUnionNode`/etc.) at explicit world-space points and returns
+the raw signed distance instantly — no marching, no rasterizing, no image
+to read. Negative means inside, positive means outside, zero is exactly on
+the surface. Compare a single field's value against the whole union's
+value at the same point to check whether that field is really the one
+determining the surface there; check a point that should be in open space
+(e.g. the midpoint between two clusters that shouldn't touch) for an
+unexpectedly negative value instead of rendering and squinting at the
+image. Faster and more precise than a render for anything where the
+question is really "what is the field's value here," not "what does this
+look like."
 
-`render_preview` also takes an `exclude` list of node ids — parts left
-out of that one render only, without touching the graph. Use it instead
-of disconnecting a suspected part, rendering, and reconnecting it: pass
-the node id, compare against a render with nothing excluded, and the
-graph is never at risk of being left in a broken state if something
-interrupts the investigation partway through.
+If you have `render_preview` (the orchestrator does), it also takes an
+`exclude` list of node ids — parts left out of that one render only,
+without touching the graph. Use it instead of disconnecting a suspected
+part, rendering, and reconnecting it: pass the node id, compare against a
+render with nothing excluded, and the graph is never at risk of being left
+in a broken state if something interrupts the investigation partway
+through.
 
 ## Coloring a marched mesh
 

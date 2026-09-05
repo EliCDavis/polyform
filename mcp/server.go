@@ -9,6 +9,8 @@ package mcp
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 	"sync"
 
 	"github.com/EliCDavis/polyform/generator/graph"
@@ -21,6 +23,17 @@ type Server struct {
 	graph *graph.Instance
 	sdk   *mcpsdk.Server
 	mu    sync.Mutex
+
+	// projectDir, once set by start_project, is where autosaveLocked writes
+	// after every successful tool call. Empty means no project is active
+	// and autosaving is disabled.
+	projectDir string
+
+	// suppressNextAutosave skips exactly one post-call autosave - set right
+	// after save_graph deliberately deletes the autosave file, so that
+	// deletion isn't immediately undone by atomic()'s own post-call
+	// autosave for that same call.
+	suppressNextAutosave bool
 }
 
 // NewServer creates an MCP server backed by the given graph instance. The
@@ -37,6 +50,8 @@ func NewServer(g *graph.Instance) *Server {
 	s.registerIOTools()
 	s.registerRenderTools()
 	s.registerVariableTools()
+	s.registerVariantSetTools()
+	s.registerProjectTools()
 	s.registerEquationTools()
 	s.registerFieldTools()
 	s.registerTaperedCurveTools()
@@ -62,7 +77,10 @@ func (s *Server) Connect(ctx context.Context, t mcpsdk.Transport, opts *mcpsdk.S
 // atomic runs f while holding the server's lock, converting any panic
 // raised by the underlying graph.Instance (many of its methods panic on
 // invalid node/port names rather than returning an error) into a plain
-// error result instead of crashing the whole server process.
+// error result instead of crashing the whole server process. On success,
+// it also autosaves to the active project (if any) - this is the single
+// chokepoint every tool call already passes through, so hooking it here
+// covers every mutation without touching each tool individually.
 func (s *Server) atomic(err *error, f func() error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -74,8 +92,38 @@ func (s *Server) atomic(err *error, f func() error) {
 				*err = fmt.Errorf("%v", r)
 			}
 		}
+		if *err == nil {
+			s.autosaveLocked()
+		}
 	}()
 	*err = f()
+}
+
+// autosaveLocked writes the current graph state to the active project's
+// autosave file. A no-op if no project is active. Best-effort: a failure
+// here doesn't fail the tool call that triggered it - the safety net
+// having a problem shouldn't turn an otherwise-successful graph mutation
+// into a reported error. Caller must already hold s.mu.
+func (s *Server) autosaveLocked() {
+	if s.suppressNextAutosave {
+		s.suppressNextAutosave = false
+		return
+	}
+	if s.projectDir == "" {
+		return
+	}
+
+	data, err := s.graph.EncodeToAppSchema()
+	if err != nil {
+		return
+	}
+
+	path := filepath.Join(s.projectDir, autosaveFileName)
+	tmp := path + ".tmp"
+	if err := os.WriteFile(tmp, data, 0o644); err != nil {
+		return
+	}
+	os.Rename(tmp, path)
 }
 
 // resolveScope returns the graph.Instance a tool call should operate on:

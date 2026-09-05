@@ -66,11 +66,12 @@ type CreateBoundaryNodeInput struct {
 	SubgraphId string `json:"subgraphId"`
 	Kind       string `json:"kind" jsonschema:"either 'input' or 'output' — whether this port feeds a value into the subgraph or exposes one out of it"`
 	PortType   string `json:"portType" jsonschema:"the boundary port's data type key, e.g. float64, github.com/EliCDavis/vector/vector3.Vector[float64]"`
-	Name       string `json:"name" jsonschema:"the port name callers will see on nodes created by instantiate_subgraph"`
+	Name       string `json:"name" jsonschema:"the port name callers will see on nodes created by instantiate_subgraph. This is the OUTSIDE name only; the boundary node's own ports are always called 'Value' regardless of what you name it here"`
 }
 
 type CreateBoundaryNodeOutput struct {
 	NodeId string `json:"nodeId"`
+	Port   string `json:"port" jsonschema:"the port name to pass to connect_nodes for this boundary node inside the subgraph - always 'Value', never the name you gave it. An input boundary's 'Value' is an output port (wire it into the subgraph's interior); an output boundary's 'Value' is an input port (wire the interior into it)."`
 }
 
 func (s *Server) createBoundaryNode(ctx context.Context, req *mcpsdk.CallToolRequest, in CreateBoundaryNodeInput) (*mcpsdk.CallToolResult, CreateBoundaryNodeOutput, error) {
@@ -100,6 +101,7 @@ func (s *Server) createBoundaryNode(ctx context.Context, req *mcpsdk.CallToolReq
 			return e
 		}
 		out.NodeId = id
+		out.Port = subgraph.ValuePortName
 		return nil
 	})
 	return nil, out, err
@@ -146,7 +148,7 @@ func (s *Server) registerSubgraphTools() {
 
 	mcpsdk.AddTool(s.sdk, &mcpsdk.Tool{
 		Name:        "create_boundary_node",
-		Description: "Add an input or output boundary port to a subgraph's public interface. Must be created inside the subgraph (pass its id as subgraphId) before wiring the subgraph's interior nodes to it.",
+		Description: "Add an input or output boundary port to a subgraph's public interface. Must be created inside the subgraph (pass its id as subgraphId) before wiring the subgraph's interior nodes to it. The port you connect to on the boundary node itself is always called 'Value' - the 'name' argument only sets the port name seen from outside, on instances made by instantiate_subgraph.",
 	}, s.createBoundaryNode)
 
 	mcpsdk.AddTool(s.sdk, &mcpsdk.Tool{

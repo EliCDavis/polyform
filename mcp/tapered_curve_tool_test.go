@@ -49,9 +49,9 @@ func TestCreateTaperedCurveSubgraph(t *testing.T) {
 			{"x": 10, "y": 10, "z": 10},
 		},
 	}, &sampled)
-	require.Len(t, sampled.Values, 3)
+	require.Len(t, sampled.Samples, 3)
 
-	require.InDelta(t, -0.2, sampled.Values[0], 0.01, "distance at the curve's start should match Base Radius")
-	require.InDelta(t, -0.05, sampled.Values[1], 0.01, "distance at the curve's end should match Tip Radius")
-	require.Greater(t, sampled.Values[2], 0.0, "a point far from the curve should be outside the field")
+	require.InDelta(t, -0.2, sampled.Samples[0].Value, 0.01, "distance at the curve's start should match Base Radius")
+	require.InDelta(t, -0.05, sampled.Samples[1].Value, 0.01, "distance at the curve's end should match Tip Radius")
+	require.Greater(t, sampled.Samples[2].Value, 0.0, "a point far from the curve should be outside the field")
 }
