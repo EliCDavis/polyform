@@ -9,6 +9,7 @@ import (
 
 	"github.com/EliCDavis/polyform/generator/graph"
 	"github.com/EliCDavis/polyform/generator/schema"
+	"github.com/EliCDavis/polyform/nodes"
 	mcpsdk "github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -27,6 +28,7 @@ type NodeInstanceSummary struct {
 	Name          string                          `json:"name,omitempty"`
 	AssignedInput map[string]PortReferenceSummary `json:"assignedInput,omitempty" jsonschema:"input port name -> the output port feeding it"`
 	Outputs       []string                        `json:"outputs,omitempty" jsonschema:"names of this node's output ports"`
+	OpenInputs    map[string]string               `json:"openInputs,omitempty" jsonschema:"input ports with nothing wired into them yet, mapped to the type each accepts. This is the only place a subgraph instance's boundary inputs are listed, since get_node_types has no registered type to describe for one."`
 	IsParameter   bool                            `json:"isParameter,omitempty"`
 	SubGraphId    string                          `json:"subGraphId,omitempty" jsonschema:"set if this node is an instance of a subgraph"`
 }
@@ -108,6 +110,44 @@ func summarizeGraph(g schema.Graph) DescribeGraphOutput {
 	return out
 }
 
+// addOpenInputs fills in each node's still-unwired input ports and the
+// type each wants. The schema only carries inputs that already have a
+// connection, so a freshly placed node - and a subgraph instance in
+// particular, which has no registered type for get_node_types to describe
+// - showed up with its outputs and nothing else. A build wired guessed
+// ports into a tapered-curve instance for exactly this reason.
+func addOpenInputs(inst *graph.Instance, out *DescribeGraphOutput) {
+	for i := range out.Nodes {
+		node := inst.Node(out.Nodes[i].Id)
+		if node == nil {
+			continue
+		}
+		for name, port := range node.Inputs() {
+			if _, wired := out.Nodes[i].AssignedInput[name]; wired {
+				continue
+			}
+			if single, ok := port.(nodes.SingleValueInputPort); ok && single.Value() != nil {
+				continue
+			}
+			if array, ok := port.(nodes.ArrayValueInputPort); ok && len(array.Value()) > 0 {
+				continue
+			}
+
+			portType := "unknown"
+			if typed, ok := port.(nodes.Typed); ok {
+				portType = typed.Type()
+			}
+			if _, isArray := port.(nodes.ArrayValueInputPort); isArray {
+				portType += " (array port - connect one element at a time)"
+			}
+			if out.Nodes[i].OpenInputs == nil {
+				out.Nodes[i].OpenInputs = map[string]string{}
+			}
+			out.Nodes[i].OpenInputs[name] = portType
+		}
+	}
+}
+
 func (s *Server) describeGraph(ctx context.Context, req *mcpsdk.CallToolRequest, in DescribeGraphInput) (*mcpsdk.CallToolResult, DescribeGraphOutput, error) {
 	var out DescribeGraphOutput
 	var err error
@@ -117,6 +157,7 @@ func (s *Server) describeGraph(ctx context.Context, req *mcpsdk.CallToolRequest,
 			return e
 		}
 		out = summarizeGraph(inst.Schema())
+		addOpenInputs(inst, &out)
 		out.Name = inst.GetName()
 		out.Description = inst.GetDescription()
 		out.Version = inst.GetVersion()
@@ -197,6 +238,15 @@ func (s *Server) saveGraph(ctx context.Context, req *mcpsdk.CallToolRequest, in 
 		if e := os.WriteFile(in.Path, data, 0o644); e != nil {
 			return e
 		}
+
+		// A deliberate save covers everything the autosave was protecting,
+		// so it can go - suppress this same call's own post-success
+		// autosave (from atomic()) or it would immediately recreate it.
+		if s.projectDir != "" {
+			os.Remove(filepath.Join(s.projectDir, autosaveFileName))
+			s.suppressNextAutosave = true
+		}
+
 		out.Path = in.Path
 		return nil
 	})

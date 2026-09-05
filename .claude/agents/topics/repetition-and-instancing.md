@@ -39,6 +39,29 @@ on the package itself. Each one outputs a `[]trs.TRS` transform list:
   above.
 - **`TRSNode`** — compounds two patterns together (a ring x a grid).
 
+## Exact type keys, do not search for these
+
+Each `PATH` goes inside `github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/PATH]`.
+Confirmed against the registry; use them directly.
+
+| PATH | inputs | outputs |
+| --- | --- | --- |
+| `formats/gltf.ModelNode` | Mesh, Material, Translation, Rotation, Scale, `Gpu Instances`, Children[], Name | Out |
+| `formats/gltf.ManifestNode` | Models[], Animations[] | Out |
+| `math/trs.NewNode` | Position, Rotation, Scale | Out |
+| `math/quaternion.FromEulerAngleNode` | Angle | Out |
+| `math/quaternion.FromEulerAnglesNode` | Angles[] | Out |
+| `math/sdf.RepeatNode` | Field, Transforms, Radius | Result |
+| `math/sdf.MirrorNode` | Field, Union | X, Y, Z, XY, XZ, YZ, XYZ |
+| `math/vector3.NewNode[float64]` | X, Y, Z | Out |
+
+Rotation has no literal parameter node — build a quaternion node and
+reference it by `nodeId`/`port` rather than passing a quaternion as a
+`value`. Mind the singular/plural pair: **`FromEulerAngleNode` takes one
+`Angle` and returns one rotation**, which is what a `ModelNode.Rotation`
+wants. `FromEulerAnglesNode` takes an array and returns an array, for
+instancing.
+
 ## Placing the copies: three options, pick the cheapest that fits
 
 Once you have a `[]trs.TRS` list, there are three ways to actually draw
@@ -87,6 +110,34 @@ built with `math/sdf` (e.g. one SDF star point, repeated via a
 field together. `RepeatNode.Transforms` takes the exact same `[]trs.TRS`
 type every `modeling/repeat` node produces, so the same `CircleNode` feeds
 either an SDF repeat or a mesh repeat/instance — no glue code needed.
+
+## Scatter doesn't know about your features — mask it
+
+Every pattern node here is deterministic and blind: `FibonacciSphereNode`,
+`GridNode`, `RandomPointsInSphereNode` and the rest place copies from a
+count and a shape, with no idea which parts of the surface you care
+about. So scatter lands on faces, over doors, through windows, across the
+one panel that was supposed to stay clean — and because the placement is
+deterministic, it looks fine at one count and wrong at another, which
+makes it read as bad luck rather than a missing step.
+
+If a region has to stay clear, say so explicitly rather than tuning the
+count until it happens to miss:
+
+- **SDF**: subtract a keep-out volume from the scattered field — a sphere
+  or box covering the protected feature, `SubtractionNode`'d out of the
+  scatter before it is unioned into the body. The keep-out shape is
+  geometry like any other, so it can be sized off the feature it
+  protects.
+- **Meshes/instances**: filter the transform array before drawing it.
+  `math/trs.FilterPositionNode` splits a `[]TRS` by an axis-aligned box
+  (`MinX`/`MinY`/`MinZ`/`MaxX`/`MaxY`/`MaxZ`) into the transforms inside
+  it and those outside — take the outside set and the protected box stays
+  empty.
+
+Name the keep-out volume after what it protects, and check it in the same
+render where you check the scatter: a mask that is slightly too small
+reads exactly like no mask at all until you look at the boundary.
 
 ## The same anti-pattern applies to shape control points, not just copies
 

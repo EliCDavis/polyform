@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"image"
+	"image/color"
 	_ "image/png"
 	"math"
 	"os"
@@ -21,18 +22,22 @@ import (
 
 	// Blank-imported so their node types are registered for these tests.
 	_ "github.com/EliCDavis/polyform/drawing/coloring"
+	_ "github.com/EliCDavis/polyform/drawing/texturing"
 	_ "github.com/EliCDavis/polyform/formats/gltf"
 	_ "github.com/EliCDavis/polyform/generator/manifest/basics"
 	_ "github.com/EliCDavis/polyform/generator/parameter"
 	_ "github.com/EliCDavis/polyform/generator/subgraph/register"
 	_ "github.com/EliCDavis/polyform/math"
 	_ "github.com/EliCDavis/polyform/math/curves"
+	_ "github.com/EliCDavis/polyform/math/geometry"
 	_ "github.com/EliCDavis/polyform/math/quaternion"
 	_ "github.com/EliCDavis/polyform/math/sdf"
 	_ "github.com/EliCDavis/polyform/math/sequence"
+	_ "github.com/EliCDavis/polyform/math/trig"
 	_ "github.com/EliCDavis/polyform/math/trs"
 	_ "github.com/EliCDavis/polyform/math/vector3"
 	_ "github.com/EliCDavis/polyform/modeling"
+	_ "github.com/EliCDavis/polyform/modeling/extrude"
 	_ "github.com/EliCDavis/polyform/modeling/marching"
 	_ "github.com/EliCDavis/polyform/modeling/primitives"
 	_ "github.com/EliCDavis/polyform/modeling/repeat"
@@ -149,6 +154,212 @@ func TestSearchNodeTypesMatchesPortNames(t *testing.T) {
 	require.True(t, found, "expected searching a port name (\"depth\") to surface %s", cubeNodeType)
 }
 
+// TestSearchNodeTypesFallsBackToAnyTerm covers the dominant real-world
+// search failure: a list of synonyms, hoping one lands. Requiring every
+// term makes that a guaranteed zero (no one node contains all four
+// words), so the search retries on any term. Query taken verbatim from a
+// real session where it returned nothing.
+func TestSearchNodeTypesFallsBackToAnyTerm(t *testing.T) {
+	session := testSession(t)
+
+	// "wedge" matches nothing in the library (there is no wedge primitive),
+	// so no node can satisfy every term and the fallback has to carry this.
+	// Deliberately paired with a word that does exist, so the test keeps
+	// exercising the fallback even as node descriptions improve.
+	var out polyformmcp.SearchNodeTypesOutput
+	callTool(t, session, "search_node_types", map[string]any{
+		"query": "wedge cylinder",
+	}, &out)
+
+	require.NotEmpty(t, out.Results, "a synonym list should find candidates instead of dead-ending")
+	require.Equal(t, "any-term", out.MatchMode, "caller must be told the results are looser than asked for")
+
+	// Best-first: the top hit must match a query term in its own name, not
+	// merely mention one somewhere in its description or a port name.
+	top := strings.ToLower(out.Results[0].Type + " " + out.Results[0].DisplayName)
+	require.Contains(t, top, "cylinder",
+		"expected the term that actually exists to rank first, got %q", out.Results[0].Type)
+}
+
+// TestSearchNodeTypesFindsTrig is the other verbatim query from that
+// session - it wanted an arctangent node and got nothing, both because
+// "angle" never co-occurred with "atan" anywhere and because no scalar
+// arctangent node existed to find. Either route (all-terms now that the
+// scalar nodes describe themselves in both spellings, or the any-term
+// fallback) is fine; what matters is that atan2 surfaces.
+func TestSearchNodeTypesFindsTrig(t *testing.T) {
+	session := testSession(t)
+
+	var out polyformmcp.SearchNodeTypesOutput
+	callTool(t, session, "search_node_types", map[string]any{
+		"query":      "atan arctan angle",
+		"pathPrefix": "math",
+	}, &out)
+
+	found := map[string]bool{}
+	for _, r := range out.Results {
+		found[r.Type] = true
+	}
+	require.True(t, found["github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/math/trig.ArcTan2Node]"],
+		"expected the scalar atan2 node to surface for this query, got %+v", out.Results)
+}
+
+// TestSearchNodeTypesPrefersAllTerms confirms the fallback is only a
+// fallback - a query whose terms all match one node keeps the tighter
+// result set rather than being widened.
+func TestSearchNodeTypesPrefersAllTerms(t *testing.T) {
+	session := testSession(t)
+
+	var out polyformmcp.SearchNodeTypesOutput
+	callTool(t, session, "search_node_types", map[string]any{"query": "cube"}, &out)
+
+	require.NotEmpty(t, out.Results)
+	require.Empty(t, out.MatchMode, "an ordinary match must not be reported as a widened one")
+}
+
+func TestSearchNodeTypesSingleTermMissStillReturnsNothing(t *testing.T) {
+	session := testSession(t)
+
+	var out polyformmcp.SearchNodeTypesOutput
+	callTool(t, session, "search_node_types", map[string]any{"query": "zzzznotarealnode"}, &out)
+
+	require.Empty(t, out.Results, "one term that matches nothing has nothing looser to fall back to")
+	require.Equal(t, 0, out.TotalMatches)
+	require.Empty(t, out.MatchMode)
+}
+
+// TestSearchFindsNodesByIntent replays queries that came back empty in real
+// sessions. Each one is a case where the capability existed but was
+// reachable only by guessing its literal type name - the node library was
+// two thirds undescribed, so search had nothing but type keys to match on.
+func TestSearchFindsNodesByIntent(t *testing.T) {
+	session := testSession(t)
+
+	cases := []struct {
+		query string
+		want  string
+	}{
+		// Guitar session: searched four times for a way to move a mesh.
+		{"transform mesh", "modeling/meshops.TransformNode"},
+		// Guitar session: "Append" and "Combine merge" both came up short.
+		{"append meshes", "modeling/meshops.CombineNode"},
+		// Flashlight session: needed normals on a cone, found nothing.
+		{"faceted hard normals", "modeling/meshops.FlatNormalsNode"},
+		// The lathe that was invisible because it's named Screw.
+		{"lathe", "modeling/extrude.ScrewNode"},
+		// Tank session: wanted a wedge; a low-sided cone is the closest thing.
+		{"pyramid spike", "modeling/primitives.ConeNode"},
+		{"dome bowl", "modeling/primitives.HemisphereNode"},
+		{"doughnut ring", "modeling/primitives.TorusNode"},
+		// Diving helmet session: wanted a washer and fell back to a
+		// Cylinder with both caps off, which has no radial thickness and
+		// renders as a hairline edge-on.
+		{"washer annulus", "modeling/primitives.TubeNode"},
+		{"hollow cylinder pipe", "modeling/primitives.TubeNode"},
+		// Armchair session: three separate searches for a way to derive a
+		// darker shade from a color variable, all of which came back empty.
+		{"lighten darken shade tint", "drawing/coloring.AdjustHSVNode"},
+		{"hsv", "drawing/coloring.AdjustHSVNode"},
+		{"color adjust brightness", "drawing/coloring.AdjustHSVNode"},
+		{"brightness", "drawing/coloring.BrightnessNode"},
+		// Armchair session: needed a March domain that tracked its part's
+		// size variables. Searching "aabb" found only the literal parameter
+		// node, so the log showed a successful search and the gap was
+		// invisible until the agent reported it.
+		{"aabb from center size", "math/geometry.AABBNode"},
+		{"bounding box construct", "math/geometry.AABBNode"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.query, func(t *testing.T) {
+			var out polyformmcp.SearchNodeTypesOutput
+			callTool(t, session, "search_node_types", map[string]any{"query": tc.query}, &out)
+
+			for _, r := range out.Results {
+				if strings.Contains(r.Type, tc.want) {
+					return
+				}
+			}
+			t.Fatalf("searching %q did not surface %s; got %d results", tc.query, tc.want, len(out.Results))
+		})
+	}
+}
+
+// TestSearchNodeTypesRegexIsCaseInsensitive pins the diving-helmet
+// session's dead end. Every string a regex matches against is a Go
+// identifier, so a lowercase pattern used to match nothing at all: both
+// "torus" and "multiply" returned zero under regex:true while the very
+// same word returned results as a plain term.
+func TestSearchNodeTypesRegexIsCaseInsensitive(t *testing.T) {
+	session := testSession(t)
+
+	for _, tc := range []struct{ query, want string }{
+		{"torus", "modeling/primitives.TorusNode"},
+		{"multiply", "math.MultiplyNode"},
+	} {
+		t.Run(tc.query, func(t *testing.T) {
+			var out polyformmcp.SearchNodeTypesOutput
+			callTool(t, session, "search_node_types", map[string]any{
+				"query": tc.query,
+				"regex": true,
+			}, &out)
+
+			require.Empty(t, out.MatchMode, "a lowercase regex should match directly, not fall back")
+			for _, r := range out.Results {
+				if strings.Contains(r.Type, tc.want) {
+					return
+				}
+			}
+			t.Fatalf("regex %q did not surface %s; got %d results", tc.query, tc.want, len(out.Results))
+		})
+	}
+}
+
+// TestSearchNodeTypesRegexFallsBackToTerms covers the other half of that
+// session: "torus disc" sent with regex:true is a literal with a space in
+// it and can never match, even case-insensitively. Rather than dead-end,
+// the query is retried as ordinary terms.
+func TestSearchNodeTypesRegexFallsBackToTerms(t *testing.T) {
+	session := testSession(t)
+
+	var out polyformmcp.SearchNodeTypesOutput
+	callTool(t, session, "search_node_types", map[string]any{
+		"query": "torus disc",
+		"regex": true,
+	}, &out)
+
+	require.NotEmpty(t, out.Results, "a regex that matches nothing should retry as terms")
+	require.Contains(t, []string{"substring", "any-term"}, out.MatchMode,
+		"the loosened match must be reported so the caller knows to check it")
+
+	for _, r := range out.Results {
+		if strings.Contains(r.Type, "modeling/primitives.TorusNode") {
+			return
+		}
+	}
+	t.Fatalf("fallback did not surface TorusNode; got %d results", len(out.Results))
+}
+
+// TestSearchNodeTypesPathPrefixMath guards the filter the diving-helmet
+// report suspected. It was not at fault - the zero result there came from
+// regex case sensitivity - but nothing pinned math's one-segment path.
+func TestSearchNodeTypesPathPrefixMath(t *testing.T) {
+	session := testSession(t)
+
+	var out polyformmcp.SearchNodeTypesOutput
+	callTool(t, session, "search_node_types", map[string]any{
+		"query":      "multiply",
+		"pathPrefix": "math",
+	}, &out)
+
+	for _, r := range out.Results {
+		if strings.Contains(r.Type, "math.MultiplyNode") {
+			return
+		}
+	}
+	t.Fatalf("pathPrefix 'math' hid math.MultiplyNode; got %d results", len(out.Results))
+}
+
 const cylinderNodeType = "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/modeling/primitives.CylinderNode]"
 
 func TestSearchNodeTypesRegexAlternation(t *testing.T) {
@@ -185,22 +396,28 @@ func TestSearchNodeTypesRegexMatchesTypeKey(t *testing.T) {
 	require.Equal(t, cubeNodeType, out.Results[0].Type)
 }
 
-func TestSearchNodeTypesRegexCaseSensitiveByDefault(t *testing.T) {
+func TestSearchNodeTypesRegexCaseInsensitiveByDefault(t *testing.T) {
 	session := testSession(t)
 
-	var upper polyformmcp.SearchNodeTypesOutput
-	callTool(t, session, "search_node_types", map[string]any{"query": "CUBENODE", "regex": true}, &upper)
-	require.Empty(t, upper.Results, "regex mode should be case-sensitive by default")
+	for _, query := range []string{"CUBENODE", "cubenode", "(?i)CubeNode"} {
+		var out polyformmcp.SearchNodeTypesOutput
+		callTool(t, session, "search_node_types", map[string]any{"query": query, "regex": true}, &out)
 
-	var insensitive polyformmcp.SearchNodeTypesOutput
-	callTool(t, session, "search_node_types", map[string]any{"query": "(?i)CUBENODE", "regex": true}, &insensitive)
-	found := false
-	for _, r := range insensitive.Results {
-		if r.Type == cubeNodeType {
-			found = true
+		found := false
+		for _, r := range out.Results {
+			if r.Type == cubeNodeType {
+				found = true
+			}
 		}
+		require.True(t, found, "regex %q should match CubeNode regardless of case", query)
+		require.Empty(t, out.MatchMode, "regex %q should match directly, not fall back", query)
 	}
-	require.True(t, found, "(?i) prefix should make regex mode case-insensitive")
+
+	var sensitive polyformmcp.SearchNodeTypesOutput
+	callTool(t, session, "search_node_types", map[string]any{"query": "(?-i)CUBENODE", "regex": true}, &sensitive)
+	for _, r := range sensitive.Results {
+		require.NotEqual(t, cubeNodeType, r.Type, "(?-i) should restore case sensitivity")
+	}
 }
 
 func TestSearchNodeTypesRegexInvalidPatternIsToolError(t *testing.T) {
@@ -323,6 +540,97 @@ func TestCreateAndConnectNodes(t *testing.T) {
 	var del polyformmcp.DeleteNodeOutput
 	callTool(t, session, "delete_node", map[string]any{"nodeId": cube.NodeId}, &del)
 	require.True(t, del.Deleted)
+}
+
+// TestConnectNodesRejectsSelfCycle covers a silent footgun: connecting a
+// node's own output back into its own array input succeeded and created a
+// loop with no error at all.
+func TestConnectNodesRejectsSelfCycle(t *testing.T) {
+	session := testSession(t)
+
+	var mul polyformmcp.CreateNodeOutput
+	callTool(t, session, "create_node", map[string]any{
+		"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/math.MultiplyNode[float64]]",
+	}, &mul)
+
+	res, err := session.CallTool(context.Background(), &mcpsdk.CallToolParams{
+		Name: "connect_nodes",
+		Arguments: map[string]any{
+			"outNodeId": mul.NodeId, "outPort": "Float",
+			"inNodeId": mul.NodeId, "inPort": "Values",
+		},
+	})
+	require.NoError(t, err)
+	require.True(t, res.IsError, "a node feeding its own input should be refused, not silently accepted")
+}
+
+// TestConnectNodesRejectsIndirectCycle covers the same thing one hop out:
+// A feeds B, so B must not be allowed to feed A.
+func TestConnectNodesRejectsIndirectCycle(t *testing.T) {
+	session := testSession(t)
+
+	var a, b polyformmcp.CreateNodeOutput
+	mulType := "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/math.MultiplyNode[float64]]"
+	callTool(t, session, "create_node", map[string]any{"type": mulType}, &a)
+	callTool(t, session, "create_node", map[string]any{"type": mulType}, &b)
+
+	callTool(t, session, "connect_nodes", map[string]any{
+		"outNodeId": a.NodeId, "outPort": "Float",
+		"inNodeId": b.NodeId, "inPort": "Values",
+	}, &polyformmcp.ConnectNodesOutput{})
+
+	res, err := session.CallTool(context.Background(), &mcpsdk.CallToolParams{
+		Name: "connect_nodes",
+		Arguments: map[string]any{
+			"outNodeId": b.NodeId, "outPort": "Float",
+			"inNodeId": a.NodeId, "inPort": "Values",
+		},
+	})
+	require.NoError(t, err)
+	require.True(t, res.IsError, "closing a loop back to an upstream node should be refused")
+}
+
+// TestCreateNodeWiresArrayElementsInOneCall covers the ergonomics gap that
+// made every "literal times variable" multiply cost a create_node plus a
+// follow-up connect_nodes.
+func TestCreateNodeWiresArrayElementsInOneCall(t *testing.T) {
+	session, inst := testSessionWithInstance(t)
+
+	callTool(t, session, "create_variable", map[string]any{
+		"path": "Radius", "type": "float64", "value": "4",
+	}, &polyformmcp.CreateVariableOutput{})
+
+	var mul polyformmcp.CreateNodeOutput
+	callTool(t, session, "create_node", map[string]any{
+		"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/math.MultiplyNode[float64]]",
+		"inputs": map[string]any{
+			"Values": map[string]any{
+				"elements": []map[string]any{
+					{"variable": "Radius"},
+					{"value": "0.25"},
+				},
+			},
+		},
+	}, &mul)
+
+	require.InDelta(t, 1.0, evalFloat64Output(t, inst, mul.NodeId, "Float"), 1e-9,
+		"both array elements should have been wired: 4 * 0.25")
+}
+
+func TestCreateNodeElementsRejectsNonArrayPort(t *testing.T) {
+	session := testSession(t)
+
+	res, err := session.CallTool(context.Background(), &mcpsdk.CallToolParams{
+		Name: "create_node",
+		Arguments: map[string]any{
+			"type": subtractNodeType,
+			"inputs": map[string]any{
+				"A": map[string]any{"elements": []map[string]any{{"value": "1"}}},
+			},
+		},
+	})
+	require.NoError(t, err)
+	require.True(t, res.IsError, "elements on a single-value port should be rejected")
 }
 
 func TestConnectNodesInvalidPortReturnsToolError(t *testing.T) {
@@ -727,15 +1035,16 @@ func TestCreateEquationSubgraphNegativeAndFractionalPowers(t *testing.T) {
 func TestCreateEquationSubgraphRejectsUnsupportedFunction(t *testing.T) {
 	session := testSession(t)
 
+	// sin/cos/tan/atan2 are supported now; abs still has no backing node.
 	res, err := session.CallTool(context.Background(), &mcpsdk.CallToolParams{
 		Name: "create_equation_subgraph",
 		Arguments: map[string]any{
 			"id":       "bad",
-			"equation": "y = sin(x)",
+			"equation": "y = abs(x)",
 		},
 	})
 	require.NoError(t, err)
-	require.True(t, res.IsError, "sin() has no backing node and should be rejected, not silently approximated")
+	require.True(t, res.IsError, "abs() has no backing node and should be rejected, not silently approximated")
 }
 
 func TestCreateEquationSubgraphRejectsVariableExponent(t *testing.T) {
@@ -858,6 +1167,109 @@ func TestCreateEquationSubgraphUppercaseEIsAVariableNotEuler(t *testing.T) {
 
 	got := evalFloat64Output(t, inst, instantiated.NodeId, "y")
 	require.InDelta(t, 100.0, got, 1e-9)
+}
+
+// TestCreateEquationSubgraphAtan2 covers the case this was added for: a
+// sloped plate (a tank's glacis, a roof pitch, a ramp) whose length was
+// already parametric via hypot() while its matching angle had to be
+// hand-computed and frozen as a radian literal, so the two silently
+// disagreed as soon as a dimension changed.
+func TestCreateEquationSubgraphAtan2(t *testing.T) {
+	session, inst := testSessionWithInstance(t)
+
+	var eq polyformmcp.CreateEquationSubgraphOutput
+	callTool(t, session, "create_equation_subgraph", map[string]any{
+		"id":       "glacis_angle",
+		"equation": "angle = atan2(rise, run)",
+	}, &eq)
+	require.Equal(t, []string{"rise", "run"}, eq.Inputs)
+
+	var instantiated polyformmcp.InstantiateSubgraphOutput
+	callTool(t, session, "instantiate_subgraph", map[string]any{"subgraphId": "glacis_angle"}, &instantiated)
+
+	riseID := literalFloat64Node(t, session, 1)
+	runID := literalFloat64Node(t, session, 1)
+	callTool(t, session, "connect_nodes", map[string]any{
+		"outNodeId": riseID, "outPort": "Value",
+		"inNodeId": instantiated.NodeId, "inPort": "rise",
+	}, &polyformmcp.ConnectNodesOutput{})
+	callTool(t, session, "connect_nodes", map[string]any{
+		"outNodeId": runID, "outPort": "Value",
+		"inNodeId": instantiated.NodeId, "inPort": "run",
+	}, &polyformmcp.ConnectNodesOutput{})
+
+	require.InDelta(t, math.Pi/4, evalFloat64Output(t, inst, instantiated.NodeId, "angle"), 1e-9)
+}
+
+// TestCreateEquationSubgraphAtan2KeepsQuadrant confirms atan2 resolves the
+// full circle rather than collapsing to atan's [-pi/2, pi/2] - the whole
+// reason a rise/run angle needs two arguments instead of one ratio.
+func TestCreateEquationSubgraphAtan2KeepsQuadrant(t *testing.T) {
+	session, inst := testSessionWithInstance(t)
+
+	callTool(t, session, "create_equation_subgraph", map[string]any{
+		"id":       "back_slope",
+		"equation": "angle = atan2(rise, run)",
+	}, &polyformmcp.CreateEquationSubgraphOutput{})
+
+	var instantiated polyformmcp.InstantiateSubgraphOutput
+	callTool(t, session, "instantiate_subgraph", map[string]any{"subgraphId": "back_slope"}, &instantiated)
+
+	riseID := literalFloat64Node(t, session, 1)
+	runID := literalFloat64Node(t, session, -1)
+	callTool(t, session, "connect_nodes", map[string]any{
+		"outNodeId": riseID, "outPort": "Value",
+		"inNodeId": instantiated.NodeId, "inPort": "rise",
+	}, &polyformmcp.ConnectNodesOutput{})
+	callTool(t, session, "connect_nodes", map[string]any{
+		"outNodeId": runID, "outPort": "Value",
+		"inNodeId": instantiated.NodeId, "inPort": "run",
+	}, &polyformmcp.ConnectNodesOutput{})
+
+	// atan(1/-1) would be -pi/4; atan2(1,-1) is 3pi/4.
+	require.InDelta(t, 3*math.Pi/4, evalFloat64Output(t, inst, instantiated.NodeId, "angle"), 1e-9)
+}
+
+func TestCreateEquationSubgraphTrigFunctions(t *testing.T) {
+	session, inst := testSessionWithInstance(t)
+
+	cases := []struct {
+		name     string
+		equation string
+		input    float64
+		want     float64
+	}{
+		{"sin", "y = sin(x)", math.Pi / 2, 1},
+		{"cos", "y = cos(x)", 0, 1},
+		{"tan", "y = tan(x)", math.Pi / 4, 1},
+		{"asin", "y = asin(x)", 1, math.Pi / 2},
+		{"acos", "y = acos(x)", 1, 0},
+		{"atan", "y = atan(x)", 1, math.Pi / 4},
+		{"arctan_alias", "y = arctan(x)", 1, math.Pi / 4},
+		{"radians", "y = radians(x)", 180, math.Pi},
+		{"degrees", "y = degrees(x)", math.Pi, 180},
+		{"composed", "y = degrees(atan(x))", 1, 45},
+	}
+
+	for i, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			id := fmt.Sprintf("trig_%d", i)
+			callTool(t, session, "create_equation_subgraph", map[string]any{
+				"id": id, "equation": tc.equation,
+			}, &polyformmcp.CreateEquationSubgraphOutput{})
+
+			var instantiated polyformmcp.InstantiateSubgraphOutput
+			callTool(t, session, "instantiate_subgraph", map[string]any{"subgraphId": id}, &instantiated)
+
+			xID := literalFloat64Node(t, session, tc.input)
+			callTool(t, session, "connect_nodes", map[string]any{
+				"outNodeId": xID, "outPort": "Value",
+				"inNodeId": instantiated.NodeId, "inPort": "x",
+			}, &polyformmcp.ConnectNodesOutput{})
+
+			require.InDeltaf(t, tc.want, evalFloat64Output(t, inst, instantiated.NodeId, "y"), 1e-9, "equation %q", tc.equation)
+		})
+	}
 }
 
 const subtractNodeType = "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/math.SubtractNode[float64]]"
@@ -1080,6 +1492,291 @@ func TestCreateVariablesBatchStopsAtFirstError(t *testing.T) {
 	require.Equal(t, "Good", list.Variables[0].Path)
 }
 
+func TestCreateAndListVariantSet(t *testing.T) {
+	session := testSession(t)
+
+	callTool(t, session, "create_variable", map[string]any{"path": "Wheel Count", "type": "int", "value": "4"}, &polyformmcp.CreateVariableOutput{})
+	callTool(t, session, "create_variable", map[string]any{"path": "Body Color", "type": "coloring.color", "value": `"#ff0000"`}, &polyformmcp.CreateVariableOutput{})
+
+	var created polyformmcp.CreateVariantSetOutput
+	callTool(t, session, "create_variant_set", map[string]any{
+		"name": "Fleet",
+		"dimensions": []map[string]any{
+			{"path": "Wheel Count", "type": "numericRange", "data": `{"min":2,"max":8,"samples":4}`},
+			{"path": "Body Color", "type": "discrete", "data": `{"values":["#ff0000","#00ff00","#0000ff"]}`},
+		},
+	}, &created)
+	require.Equal(t, "Fleet", created.Name)
+	require.Equal(t, 12, created.TotalCombinations) // 4 * 3
+
+	var list polyformmcp.ListVariantSetsOutput
+	callTool(t, session, "list_variant_sets", map[string]any{}, &list)
+	require.Len(t, list.VariantSets, 1)
+
+	set := list.VariantSets[0]
+	require.Equal(t, "Fleet", set.Name)
+	require.Equal(t, 12, set.TotalCombinations)
+	require.Len(t, set.Dimensions, 2)
+
+	byPath := map[string]int{}
+	for _, d := range set.Dimensions {
+		byPath[d.Path] = d.Count
+	}
+	require.Equal(t, 4, byPath["Wheel Count"])
+	require.Equal(t, 3, byPath["Body Color"])
+}
+
+func TestCreateVariantSetReplacesExisting(t *testing.T) {
+	session := testSession(t)
+
+	callTool(t, session, "create_variant_set", map[string]any{
+		"name":       "Sizes",
+		"dimensions": []map[string]any{{"path": "Scale", "type": "numericRange", "data": `{"min":0,"max":1,"samples":5}`}},
+	}, &polyformmcp.CreateVariantSetOutput{})
+
+	var replaced polyformmcp.CreateVariantSetOutput
+	callTool(t, session, "create_variant_set", map[string]any{
+		"name":       "Sizes",
+		"dimensions": []map[string]any{{"path": "Scale", "type": "numericRange", "data": `{"min":0,"max":1,"samples":2}`}},
+	}, &replaced)
+	require.Equal(t, 2, replaced.TotalCombinations)
+
+	var list polyformmcp.ListVariantSetsOutput
+	callTool(t, session, "list_variant_sets", map[string]any{}, &list)
+	require.Len(t, list.VariantSets, 1, "creating a variant set with an existing name should replace it, not add a second one")
+}
+
+func TestVariantSetVectorAndColorDimensions(t *testing.T) {
+	session := testSession(t)
+
+	var created polyformmcp.CreateVariantSetOutput
+	callTool(t, session, "create_variant_set", map[string]any{
+		"name": "Placement",
+		"dimensions": []map[string]any{
+			{"path": "Position", "type": "vector3Range", "data": `{"min":{"x":0,"y":0,"z":0},"max":{"x":1,"y":2,"z":3},"samples":5}`},
+			{"path": "Tint", "type": "hsvRange", "data": `{"min":{"h":0,"s":0.5,"v":0.5},"max":{"h":360,"s":1,"v":1},"samples":3}`},
+		},
+	}, &created)
+	require.Equal(t, 15, created.TotalCombinations) // 5 * 3
+
+	var list polyformmcp.ListVariantSetsOutput
+	callTool(t, session, "list_variant_sets", map[string]any{}, &list)
+	require.Len(t, list.VariantSets, 1)
+	byPath := map[string]int{}
+	for _, d := range list.VariantSets[0].Dimensions {
+		byPath[d.Path] = d.Count
+	}
+	require.Equal(t, 5, byPath["Position"])
+	require.Equal(t, 3, byPath["Tint"])
+}
+
+func TestRenameAndDeleteVariantSet(t *testing.T) {
+	session := testSession(t)
+
+	callTool(t, session, "create_variant_set", map[string]any{
+		"name":       "Old Name",
+		"dimensions": []map[string]any{{"path": "Scale", "type": "numericRange", "data": `{"min":0,"max":1,"samples":3}`}},
+	}, &polyformmcp.CreateVariantSetOutput{})
+
+	var renamed polyformmcp.RenameVariantSetOutput
+	callTool(t, session, "rename_variant_set", map[string]any{"name": "Old Name", "newName": "New Name"}, &renamed)
+	require.Equal(t, "New Name", renamed.Name)
+
+	var list polyformmcp.ListVariantSetsOutput
+	callTool(t, session, "list_variant_sets", map[string]any{}, &list)
+	require.Len(t, list.VariantSets, 1)
+	require.Equal(t, "New Name", list.VariantSets[0].Name)
+
+	var deleted polyformmcp.DeleteVariantSetOutput
+	callTool(t, session, "delete_variant_set", map[string]any{"name": "New Name"}, &deleted)
+	require.True(t, deleted.Deleted)
+
+	list = polyformmcp.ListVariantSetsOutput{}
+	callTool(t, session, "list_variant_sets", map[string]any{}, &list)
+	require.Empty(t, list.VariantSets)
+}
+
+func TestCreateVariantSetRejectsUnknownType(t *testing.T) {
+	session := testSession(t)
+
+	res, err := session.CallTool(context.Background(), &mcpsdk.CallToolParams{
+		Name: "create_variant_set",
+		Arguments: map[string]any{
+			"name": "Bad",
+			"dimensions": []map[string]any{
+				{"path": "Scale", "type": "not-a-real-type", "data": `{}`},
+			},
+		},
+	})
+	require.NoError(t, err)
+	require.True(t, res.IsError)
+
+	var list polyformmcp.ListVariantSetsOutput
+	callTool(t, session, "list_variant_sets", map[string]any{}, &list)
+	require.Empty(t, list.VariantSets, "an invalid dimension should prevent the set from being created at all")
+}
+
+func TestCreateVariantSetRejectsMalformedData(t *testing.T) {
+	session := testSession(t)
+
+	res, err := session.CallTool(context.Background(), &mcpsdk.CallToolParams{
+		Name: "create_variant_set",
+		Arguments: map[string]any{
+			"name": "Bad",
+			"dimensions": []map[string]any{
+				{"path": "Scale", "type": "numericRange", "data": "not json"},
+			},
+		},
+	})
+	require.NoError(t, err)
+	require.True(t, res.IsError)
+}
+
+func TestSaveAndLoadGraphWithVariantSet(t *testing.T) {
+	session := testSession(t)
+
+	callTool(t, session, "create_variant_set", map[string]any{
+		"name": "Fleet",
+		"dimensions": []map[string]any{
+			{"path": "Wheel Count", "type": "intRange", "data": `{"min":2,"max":8,"samples":4}`},
+			{"path": "Body Color", "type": "discrete", "data": `{"values":["#ff0000","#00ff00"]}`},
+		},
+	}, &polyformmcp.CreateVariantSetOutput{})
+
+	path := filepath.Join(t.TempDir(), "graph-with-variant-set.json")
+	callTool(t, session, "save_graph", map[string]any{"path": path}, &polyformmcp.SaveGraphOutput{})
+
+	var load polyformmcp.LoadGraphOutput
+	callTool(t, session, "load_graph", map[string]any{"path": path}, &load)
+	require.True(t, load.Loaded)
+
+	var list polyformmcp.ListVariantSetsOutput
+	callTool(t, session, "list_variant_sets", map[string]any{}, &list)
+	require.Len(t, list.VariantSets, 1)
+	require.Equal(t, "Fleet", list.VariantSets[0].Name)
+	require.Equal(t, 8, list.VariantSets[0].TotalCombinations) // 4 * 2
+}
+
+const textNodeType = "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/generator/manifest/basics.TextNode]"
+
+func TestRunVariantSweep(t *testing.T) {
+	session := testSession(t)
+
+	callTool(t, session, "create_variable", map[string]any{"path": "Message", "type": "string", "value": `"unset"`}, &polyformmcp.CreateVariableOutput{})
+
+	var ref polyformmcp.CreateNodeOutput
+	callTool(t, session, "create_node", map[string]any{"type": "Message"}, &ref)
+
+	var text polyformmcp.CreateNodeOutput
+	callTool(t, session, "create_node", map[string]any{
+		"type":   textNodeType,
+		"inputs": map[string]any{"In": map[string]any{"nodeId": ref.NodeId, "port": "Value"}},
+	}, &text)
+
+	callTool(t, session, "set_producer", map[string]any{"nodeId": text.NodeId, "port": "Out", "name": "output"}, &polyformmcp.SetProducerOutput{})
+
+	callTool(t, session, "create_variant_set", map[string]any{
+		"name": "Messages",
+		"dimensions": []map[string]any{
+			{"path": "Message", "type": "discrete", "data": `{"values":["Hello","World"]}`},
+		},
+	}, &polyformmcp.CreateVariantSetOutput{})
+
+	outDir := t.TempDir()
+	var run polyformmcp.RunVariantSweepOutput
+	callTool(t, session, "run_variant_sweep", map[string]any{
+		"name":      "Messages",
+		"outputDir": outDir,
+	}, &run)
+	require.Equal(t, 2, run.TotalCombinations)
+	require.Len(t, run.Folders, 2)
+
+	hello, err := os.ReadFile(filepath.Join(outDir, "variant-0000", "output", "text.txt"))
+	require.NoError(t, err)
+	require.Equal(t, "Hello", string(hello))
+
+	world, err := os.ReadFile(filepath.Join(outDir, "variant-0001", "output", "text.txt"))
+	require.NoError(t, err)
+	require.Equal(t, "World", string(world))
+}
+
+// TestRunVariantSweepLeavesGraphAtLastCombination confirms the documented
+// caveat in run_variant_sweep's tool description - it applies each profile
+// straight to the live graph as it sweeps and doesn't restore the original
+// values afterward, so a caller relying on the graph's state post-sweep
+// needs to know it ends up at the last combination, not back to normal.
+func TestRunVariantSweepLeavesGraphAtLastCombination(t *testing.T) {
+	session := testSession(t)
+
+	callTool(t, session, "create_variable", map[string]any{"path": "Message", "type": "string", "value": `"unset"`}, &polyformmcp.CreateVariableOutput{})
+	callTool(t, session, "create_variant_set", map[string]any{
+		"name":       "Messages",
+		"dimensions": []map[string]any{{"path": "Message", "type": "discrete", "data": `{"values":["Hello","World"]}`}},
+	}, &polyformmcp.CreateVariantSetOutput{})
+
+	callTool(t, session, "run_variant_sweep", map[string]any{"name": "Messages", "outputDir": t.TempDir()}, &polyformmcp.RunVariantSweepOutput{})
+
+	var list polyformmcp.ListVariablesOutput
+	callTool(t, session, "list_variables", map[string]any{}, &list)
+	require.Equal(t, "World", list.Variables[0].Value)
+}
+
+func TestRunVariantSweepOverThresholdRequiresConfirm(t *testing.T) {
+	session := testSession(t)
+
+	callTool(t, session, "create_variable", map[string]any{"path": "Value", "type": "float64"}, &polyformmcp.CreateVariableOutput{})
+	callTool(t, session, "create_variant_set", map[string]any{
+		"name":       "Huge",
+		"dimensions": []map[string]any{{"path": "Value", "type": "numericRange", "data": `{"min":0,"max":1,"samples":1001}`}},
+	}, &polyformmcp.CreateVariantSetOutput{})
+
+	outDir := t.TempDir()
+	res, err := session.CallTool(context.Background(), &mcpsdk.CallToolParams{
+		Name:      "run_variant_sweep",
+		Arguments: map[string]any{"name": "Huge", "outputDir": outDir},
+	})
+	require.NoError(t, err)
+	require.True(t, res.IsError)
+
+	entries, _ := os.ReadDir(outDir)
+	require.Empty(t, entries, "no variants should have been written without confirm")
+}
+
+func TestRunVariantSweepCustomWarnThreshold(t *testing.T) {
+	session := testSession(t)
+
+	callTool(t, session, "create_variable", map[string]any{"path": "Value", "type": "float64"}, &polyformmcp.CreateVariableOutput{})
+	callTool(t, session, "create_variant_set", map[string]any{
+		"name":       "Small",
+		"dimensions": []map[string]any{{"path": "Value", "type": "numericRange", "data": `{"min":0,"max":1,"samples":3}`}},
+	}, &polyformmcp.CreateVariantSetOutput{})
+
+	outDir := t.TempDir()
+	res, err := session.CallTool(context.Background(), &mcpsdk.CallToolParams{
+		Name:      "run_variant_sweep",
+		Arguments: map[string]any{"name": "Small", "outputDir": outDir, "warnThreshold": 2},
+	})
+	require.NoError(t, err)
+	require.True(t, res.IsError, "3 combinations should exceed a warnThreshold of 2")
+
+	var run polyformmcp.RunVariantSweepOutput
+	callTool(t, session, "run_variant_sweep", map[string]any{
+		"name": "Small", "outputDir": outDir, "warnThreshold": 2, "confirm": true,
+	}, &run)
+	require.Equal(t, 3, run.TotalCombinations)
+}
+
+func TestRunVariantSweepUnknownSetIsToolError(t *testing.T) {
+	session := testSession(t)
+
+	res, err := session.CallTool(context.Background(), &mcpsdk.CallToolParams{
+		Name:      "run_variant_sweep",
+		Arguments: map[string]any{"name": "does-not-exist", "outputDir": t.TempDir()},
+	})
+	require.NoError(t, err)
+	require.True(t, res.IsError)
+}
+
 func decodePNGConfig(path string) (image.Config, error) {
 	f, err := os.Open(path)
 	if err != nil {
@@ -1240,10 +1937,56 @@ func TestSampleField(t *testing.T) {
 		},
 	}, &out)
 
-	require.Len(t, out.Values, 3)
-	require.InDelta(t, -0.5, out.Values[0], 1e-9)
-	require.InDelta(t, 0.0, out.Values[1], 1e-9)
-	require.InDelta(t, 0.5, out.Values[2], 1e-9)
+	require.Len(t, out.Samples, 3)
+	require.InDelta(t, -0.5, out.Samples[0].Value, 1e-9)
+	require.InDelta(t, 0.0, out.Samples[1].Value, 1e-9)
+	require.InDelta(t, 0.5, out.Samples[2].Value, 1e-9)
+	require.Empty(t, out.Warning, "a healthy field should report no warning")
+	for i, s := range out.Samples {
+		require.Emptyf(t, s.NonFinite, "sample %d should be a real number", i)
+	}
+}
+
+// TestSampleFieldReportsNaNInsteadOfFailing covers a real dead end: a field
+// that evaluated to NaN made the whole call fail with "json: unsupported
+// value: NaN", so the agent investigating broken geometry got nothing back
+// and abandoned the investigation. NaN is the finding, not an obstacle to
+// reporting one.
+func TestSampleFieldReportsNaNInsteadOfFailing(t *testing.T) {
+	session := testSession(t)
+
+	// A sphere with a NaN radius poisons every sample taken from it.
+	var sphere polyformmcp.CreateNodeOutput
+	callTool(t, session, "create_node", map[string]any{
+		"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/math/sdf.SphereNode]",
+		"inputs": map[string]any{
+			"Radius": map[string]any{"nodeId": nanFloatNode(t, session), "port": "Out"},
+		},
+	}, &sphere)
+
+	var out polyformmcp.SampleFieldOutput
+	callTool(t, session, "sample_field", map[string]any{
+		"nodeId": sphere.NodeId,
+		"points": []map[string]any{{"x": 0, "y": 0, "z": 0}},
+	}, &out)
+
+	require.Len(t, out.Samples, 1)
+	require.Equal(t, "NaN", out.Samples[0].NonFinite, "expected the NaN to be reported, not swallowed")
+	require.NotEmpty(t, out.Warning, "a non-finite result should come with an explanation of what it means")
+}
+
+// nanFloatNode builds a node whose float output is NaN. Division by zero
+// won't do it - DivideNode guards against that and returns 0 - but the
+// square root of a negative number will.
+func nanFloatNode(t *testing.T, session *mcpsdk.ClientSession) string {
+	t.Helper()
+
+	var sqrt polyformmcp.CreateNodeOutput
+	callTool(t, session, "create_node", map[string]any{
+		"type":   "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/math.SquareRootNode]",
+		"inputs": map[string]any{"In": map[string]any{"value": "-1"}},
+	}, &sqrt)
+	return sqrt.NodeId
 }
 
 // TestRenderPreviewReadsVertexColor confirms render_preview shades a mesh
@@ -1303,7 +2046,7 @@ func TestRenderPreviewReadsVertexColor(t *testing.T) {
 	callTool(t, session, "create_node", map[string]any{
 		"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/modeling.SetAttribute3DNode]",
 		"inputs": map[string]any{
-			"Mesh": map[string]any{"nodeId": cube.NodeId, "port": "Out"},
+			"Mesh":      map[string]any{"nodeId": cube.NodeId, "port": "Out"},
 			"Attribute": map[string]any{"value": `"Color"`},
 			"Data":      map[string]any{"nodeId": toVec.NodeId, "port": "Vector 3"},
 		},
@@ -1346,6 +2089,91 @@ func TestRenderPreviewReadsVertexColor(t *testing.T) {
 	require.Greater(t, topB, bottomB, "top of the gradient should be bluer than the bottom")
 	_ = topG
 	_ = bottomG
+}
+
+// TestRenderPreviewSamplesColorTexture confirms render_preview actually
+// samples a UV-mapped glTF ColorTexture per-pixel rather than falling back
+// to the material's flat BaseColorFactor - the gap flagged in
+// topics/texturing-and-color.md before texture support was added.
+func TestRenderPreviewSamplesColorTexture(t *testing.T) {
+	session := testSession(t)
+
+	var cube polyformmcp.CreateNodeOutput
+	callTool(t, session, "create_node", map[string]any{
+		"type": cubeNodeType,
+		"inputs": map[string]any{
+			"Width": map[string]any{"value": "2"}, "Height": map[string]any{"value": "2"}, "Depth": map[string]any{"value": "2"},
+		},
+	}, &cube)
+
+	var uvImage polyformmcp.CreateNodeOutput
+	callTool(t, session, "create_node", map[string]any{
+		"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/drawing/texturing.DebugUVNode]",
+		"inputs": map[string]any{
+			"Image Resolution":       map[string]any{"value": "64"},
+			"Board Resolution":       map[string]any{"value": "2"},
+			"Positive Checker Color": map[string]any{"value": `"#ff0000"`},
+			"Negative Checker Color": map[string]any{"value": `"#0000ff"`},
+		},
+	}, &uvImage)
+
+	var texture polyformmcp.CreateNodeOutput
+	callTool(t, session, "create_node", map[string]any{
+		"type":   "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.TextureNode]",
+		"inputs": map[string]any{"Image": map[string]any{"nodeId": uvImage.NodeId, "port": "Result"}},
+	}, &texture)
+
+	var material polyformmcp.CreateNodeOutput
+	callTool(t, session, "create_node", map[string]any{
+		"type":   "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.MaterialNode]",
+		"inputs": map[string]any{"Color Texture": map[string]any{"nodeId": texture.NodeId, "port": "Out"}},
+	}, &material)
+
+	var model polyformmcp.CreateNodeOutput
+	callTool(t, session, "create_node", map[string]any{
+		"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.ModelNode]",
+		"inputs": map[string]any{
+			"Mesh":     map[string]any{"nodeId": cube.NodeId, "port": "Out"},
+			"Material": map[string]any{"nodeId": material.NodeId, "port": "Out"},
+		},
+	}, &model)
+
+	var manifest polyformmcp.CreateNodeOutput
+	callTool(t, session, "create_node", map[string]any{
+		"type":   "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.ManifestNode]",
+		"inputs": map[string]any{"Models": map[string]any{"nodeId": model.NodeId, "port": "Out"}},
+	}, &manifest)
+
+	outPath := filepath.Join(t.TempDir(), "textured.png")
+	var out polyformmcp.RenderPreviewOutput
+	callTool(t, session, "render_preview", map[string]any{
+		"nodeId":     manifest.NodeId,
+		"outputPath": outPath,
+		"width":      200,
+		"height":     200,
+	}, &out)
+	require.Equal(t, 12, out.TriangleCount) // one cube
+
+	f, err := os.Open(outPath)
+	require.NoError(t, err)
+	defer f.Close()
+	img, _, err := image.Decode(f)
+	require.NoError(t, err)
+
+	// Sample a grid of pixels across the rendered image and count distinct
+	// colors. A flat BaseColorFactor fallback (or a solid vertex color)
+	// would render the visible cube faces as a small handful of smoothly
+	// lit, closely related colors; a sampled checkerboard texture must
+	// produce sharply different colors next to each other.
+	bounds := img.Bounds()
+	seen := map[color.RGBA]bool{}
+	for y := bounds.Min.Y; y < bounds.Max.Y; y += 4 {
+		for x := bounds.Min.X; x < bounds.Max.X; x += 4 {
+			r, g, b, a := img.At(x, y).RGBA()
+			seen[color.RGBA{R: uint8(r >> 8), G: uint8(g >> 8), B: uint8(b >> 8), A: uint8(a >> 8)}] = true
+		}
+	}
+	require.Greater(t, len(seen), 10, "expected a checkerboard-textured surface to show many distinct colors, not a flat fallback")
 }
 
 func TestRenderPreview(t *testing.T) {
@@ -1559,4 +2387,132 @@ func TestRenderPreviewMultiViewNoCaptions(t *testing.T) {
 	// No view has a name -> no caption strip, exact cell height.
 	require.Equal(t, 2*64, out.Width)
 	require.Equal(t, 48, out.Height)
+}
+
+func autosavePath(dir string) string {
+	return filepath.Join(dir, "autosave.json")
+}
+
+func TestStartProject_OmittedPathAutoGeneratesUniqueDir(t *testing.T) {
+	sessionA := testSession(t)
+	sessionB := testSession(t)
+
+	var outA, outB polyformmcp.StartProjectOutput
+	callTool(t, sessionA, "start_project", map[string]any{}, &outA)
+	callTool(t, sessionB, "start_project", map[string]any{}, &outB)
+	t.Cleanup(func() {
+		os.RemoveAll(outA.Path)
+		os.RemoveAll(outB.Path)
+	})
+
+	require.NotEmpty(t, outA.Path)
+	require.NotEmpty(t, outB.Path)
+	require.NotEqual(t, outA.Path, outB.Path, "two sessions that both omit path must never land in the same directory")
+	require.True(t, strings.HasPrefix(outA.Path, polyformmcp.DefaultOutputRoot()), "auto-generated projects should live under DefaultOutputRoot(), got %q", outA.Path)
+	require.Empty(t, outA.RecoveredFrom, "a freshly generated unique directory can never have a pre-existing autosave")
+
+	cwd, err := os.Getwd()
+	require.NoError(t, err)
+	require.False(t, strings.HasPrefix(outA.Path, cwd), "an auto-generated project must never land inside the repo/working directory, got %q under cwd %q", outA.Path, cwd)
+
+	_, statErr := os.Stat(outA.Path)
+	require.NoError(t, statErr)
+}
+
+func TestStartProject_NoExistingAutosaveIsCleanStart(t *testing.T) {
+	session := testSession(t)
+	dir := filepath.Join(t.TempDir(), "project")
+
+	var out polyformmcp.StartProjectOutput
+	callTool(t, session, "start_project", map[string]any{"path": dir}, &out)
+
+	require.Equal(t, dir, out.Path)
+	require.Equal(t, autosavePath(dir), out.AutosavePath)
+	require.Empty(t, out.RecoveredFrom)
+
+	_, statErr := os.Stat(dir)
+	require.NoError(t, statErr, "start_project should create the directory")
+}
+
+func TestAutosave_WritesAfterEveryCall(t *testing.T) {
+	session := testSession(t)
+	dir := t.TempDir()
+
+	callTool(t, session, "start_project", map[string]any{"path": dir}, &polyformmcp.StartProjectOutput{})
+
+	// start_project's own successful call should already have produced an
+	// autosave - the mechanism runs through atomic() unconditionally, not
+	// just for tools that obviously mutate the graph.
+	_, statErr := os.Stat(autosavePath(dir))
+	require.NoError(t, statErr, "expected an autosave right after start_project")
+
+	callTool(t, session, "create_variable", map[string]any{
+		"path": "Radius", "type": "float64", "value": "3",
+	}, &polyformmcp.CreateVariableOutput{})
+
+	data, err := os.ReadFile(autosavePath(dir))
+	require.NoError(t, err)
+
+	restored := graph.New(graph.Config{TypeFactory: generator.Types(), VariableFactory: polyformmcp.NewTypedVariable})
+	require.NoError(t, restored.ApplyAppSchema(data))
+	require.NotPanics(t, func() { restored.GetVariable("Radius") }, "expected the autosaved graph to contain the variable created before it")
+}
+
+func TestAutosave_RecoversAfterSimulatedCrash(t *testing.T) {
+	dir := t.TempDir()
+
+	// Session A: does some work, then "crashes" (no save_graph, no clean
+	// shutdown - we just stop using it, same as a killed process).
+	sessionA := testSession(t)
+	callTool(t, sessionA, "start_project", map[string]any{"path": dir}, &polyformmcp.StartProjectOutput{})
+	callTool(t, sessionA, "create_variable", map[string]any{
+		"path": "Body Color", "type": "coloring.color", "value": `"#cc3333"`,
+	}, &polyformmcp.CreateVariableOutput{})
+
+	// Session B: a fresh server/graph, as if the process restarted.
+	sessionB := testSession(t)
+	var recovered polyformmcp.StartProjectOutput
+	callTool(t, sessionB, "start_project", map[string]any{"path": dir}, &recovered)
+
+	require.NotEmpty(t, recovered.RecoveredFrom, "expected session B to find session A's autosave")
+	require.NotEmpty(t, recovered.RecoveredModifiedAt)
+
+	// The recovered file must be untouched by session B's own start_project
+	// autosave (which would land at the live autosave.json path instead).
+	require.NotEqual(t, autosavePath(dir), recovered.RecoveredFrom)
+
+	var load polyformmcp.LoadGraphOutput
+	callTool(t, sessionB, "load_graph", map[string]any{"path": recovered.RecoveredFrom}, &load)
+	require.True(t, load.Loaded)
+
+	var list polyformmcp.ListVariablesOutput
+	callTool(t, sessionB, "list_variables", map[string]any{}, &list)
+	require.Len(t, list.Variables, 1)
+	require.Equal(t, "Body Color", list.Variables[0].Path)
+}
+
+func TestSaveGraph_DeletesAutosaveThenNextCallRecreatesIt(t *testing.T) {
+	session := testSession(t)
+	dir := t.TempDir()
+
+	callTool(t, session, "start_project", map[string]any{"path": dir}, &polyformmcp.StartProjectOutput{})
+	callTool(t, session, "create_variable", map[string]any{
+		"path": "Radius", "type": "float64", "value": "3",
+	}, &polyformmcp.CreateVariableOutput{})
+
+	_, statErr := os.Stat(autosavePath(dir))
+	require.NoError(t, statErr, "sanity check: autosave should exist before save_graph")
+
+	realSavePath := filepath.Join(t.TempDir(), "graph.json")
+	callTool(t, session, "save_graph", map[string]any{"path": realSavePath}, &polyformmcp.SaveGraphOutput{})
+
+	_, statErr = os.Stat(autosavePath(dir))
+	require.True(t, os.IsNotExist(statErr), "autosave should be gone immediately after a deliberate save_graph")
+
+	// Any further call resumes normal autosaving - the deletion only
+	// covers the gap up to the last deliberate save, not forever.
+	callTool(t, session, "list_variables", map[string]any{}, &polyformmcp.ListVariablesOutput{})
+
+	_, statErr = os.Stat(autosavePath(dir))
+	require.NoError(t, statErr, "autosave should be recreated by the next call after save_graph")
 }

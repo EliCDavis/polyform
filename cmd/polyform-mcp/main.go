@@ -70,8 +70,8 @@ import (
 
 func main() {
 	graphPath := flag.String("graph", "", "optional path to an existing graph JSON file to preload")
-	logPath := flag.String("log", filepath.Join("tmp", "mcp-logs", "calls-"+time.Now().Format("20060102-150405")+".jsonl"),
-		"path to append a JSON-lines log of every tool call to (name, arguments, duration, error status, result preview) - for diagnosing agent behavior after a run. Defaults under tmp/, which is gitignored. Pass an empty string to disable.")
+	logPath := flag.String("log", filepath.Join(mcp.DefaultOutputRoot(), "mcp-logs", "calls-"+time.Now().Format("20060102-150405")+".jsonl"),
+		"path to append a JSON-lines log of every tool call to (name, arguments, duration, error status, result preview) - for diagnosing agent behavior after a run. Defaults outside this repo, under your home directory. Pass an empty string to disable.")
 	flag.Parse()
 
 	inst := graph.New(graph.Config{

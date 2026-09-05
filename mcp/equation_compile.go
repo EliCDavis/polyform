@@ -25,6 +25,16 @@ const (
 	eqSqrtNodeType   = "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/math.SquareRootNode]"
 	eqSquareNodeType = "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/math.SquareNode]"
 	eqHypotNodeType  = "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/math.HypotenuseNode]"
+
+	eqSinNodeType   = "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/math/trig.SinNode]"
+	eqCosNodeType   = "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/math/trig.CosNode]"
+	eqTanNodeType   = "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/math/trig.TanNode]"
+	eqAsinNodeType  = "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/math/trig.ArcSinNode]"
+	eqAcosNodeType  = "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/math/trig.ArcCosNode]"
+	eqAtanNodeType  = "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/math/trig.ArcTanNode]"
+	eqAtan2NodeType = "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/math/trig.ArcTan2Node]"
+	eqRadNodeType   = "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/math/trig.DegreesToRadiansNode]"
+	eqDegNodeType   = "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/math/trig.RadiansToDegreesNode]"
 )
 
 // eqPort identifies a specific node's output port within the subgraph
@@ -260,8 +270,29 @@ func (c *equationCompiler) call(name string, argExprs []*eqExpr) (eqPort, error)
 		}
 		return c.nary(eqMaxNodeType, "In", "Float 64", args)
 
+	// Trig. Angles are radians throughout, matching what
+	// quaternion.FromEulerAngleNode expects; radians()/degrees() convert.
+	case "atan2":
+		if len(args) != 2 {
+			return eqPort{}, fmt.Errorf("atan2() takes exactly 2 arguments (y, x), got %d", len(args))
+		}
+		return c.binary(eqAtan2NodeType, "Y", "X", "Out", args[0], args[1])
+
+	case "sin", "cos", "tan", "asin", "arcsin", "acos", "arccos", "atan", "arctan", "radians", "degrees":
+		if len(args) != 1 {
+			return eqPort{}, fmt.Errorf("%s() takes exactly 1 argument, got %d", name, len(args))
+		}
+		unaryTypes := map[string]string{
+			"sin": eqSinNodeType, "cos": eqCosNodeType, "tan": eqTanNodeType,
+			"asin": eqAsinNodeType, "arcsin": eqAsinNodeType,
+			"acos": eqAcosNodeType, "arccos": eqAcosNodeType,
+			"atan": eqAtanNodeType, "arctan": eqAtanNodeType,
+			"radians": eqRadNodeType, "degrees": eqDegNodeType,
+		}
+		return c.unary(unaryTypes[strings.ToLower(name)], "In", "Out", args[0])
+
 	default:
-		return eqPort{}, fmt.Errorf("unsupported function %q — supported: sqrt(x), hypot(a,b)/hypotenuse(a,b), min(a,b,...), max(a,b,...). polyform has no scalar sin/cos/tan/abs/pow node yet", name)
+		return eqPort{}, fmt.Errorf("unsupported function %q — supported: sqrt(x), hypot(a,b)/hypotenuse(a,b), min(a,b,...), max(a,b,...), sin(x), cos(x), tan(x), asin(x), acos(x), atan(x), atan2(y,x), radians(deg), degrees(rad). polyform has no abs/pow node yet", name)
 	}
 }
 

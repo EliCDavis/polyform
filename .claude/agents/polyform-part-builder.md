@@ -1,7 +1,7 @@
 ---
 name: polyform-part-builder
 description: Builds exactly one self-contained polyform subgraph component, given a precise spec from an orchestrating agent. This is an exception path, not the default — only use it for a part substantial enough to justify an isolated context (heavy SDF/boolean/marching-cubes work, extensive procedural texturing, 15+ tool calls of interior structure). The polyform-orchestrator builds ordinary parts (a primitive, a primitive plus a repeat/boolean op) itself, inline, because delegating every part was measured at ~50-100x the token cost with no quality benefit.
-tools: Read, mcp__polyform__search_node_types, mcp__polyform__get_node_types, mcp__polyform__create_equation_subgraph, mcp__polyform__create_tapered_curve_subgraph, mcp__polyform__create_vertex_color_gradient_subgraph, mcp__polyform__create_flush_position_subgraph, mcp__polyform__create_sphere_surface_point_subgraph, mcp__polyform__create_node, mcp__polyform__delete_node, mcp__polyform__connect_nodes, mcp__polyform__disconnect, mcp__polyform__set_parameter, mcp__polyform__create_subgraph, mcp__polyform__create_boundary_node, mcp__polyform__list_subgraphs, mcp__polyform__describe_graph, mcp__polyform__sample_field, ToolSearch
+tools: Read, mcp__polyform__search_node_types, mcp__polyform__get_node_types, mcp__polyform__create_equation_subgraph, mcp__polyform__create_tapered_curve_subgraph, mcp__polyform__create_vertex_color_gradient_subgraph, mcp__polyform__create_flush_position_subgraph, mcp__polyform__create_sphere_surface_point_subgraph, mcp__polyform__create_node, mcp__polyform__create_nodes, mcp__polyform__delete_node, mcp__polyform__connect_nodes, mcp__polyform__disconnect, mcp__polyform__set_parameter, mcp__polyform__create_subgraph, mcp__polyform__create_boundary_node, mcp__polyform__list_subgraphs, mcp__polyform__describe_graph, mcp__polyform__sample_field, mcp__polyform__raycast_field, mcp__polyform__describe_mesh, ToolSearch
 model: sonnet
 ---
 
@@ -85,14 +85,37 @@ Not on this table and never settable as a literal: **`quaternion.Quaternion`**
    that word is never in the description — and returns lightweight
    results with no port lists), then `get_node_types` on the 1-3
    candidates that look right to see their actual inputs/outputs before
-   you `create_node` one. Multi-word `search_node_types` queries match
-   each word independently, so e.g. "cylinder wheel" won't work as well as
-   just "cylinder". For alternation or matching a specific generic
-   instantiation, set `regex: true` and pass a Go regex (RE2) instead —
-   matched against the same text including the type key, case-sensitive
-   unless prefixed with `(?i)`.
-4. Build the subgraph's interior with `create_node` / `connect_nodes` /
-   `set_parameter`, always passing `scope` as your subgraph id.
+   you `create_node` one. A multi-word `search_node_types` query requires
+   **every** term to match the same node — AND, not a bag of synonyms — so
+   "cylinder wheel" is narrower than plain "cylinder". If nothing matches
+   all terms it retries on any one of them, ranked, and flags that with
+   `matchMode: "any-term"` (looser than you asked for — check the results).
+   Prefer one or two precise words. For alternation or matching a specific
+   generic instantiation, set `regex: true` and pass a Go regex (RE2)
+   instead — matched case-insensitively against the same text including
+   the type key. Whitespace in a regex is literal, so `"torus disc"` with
+   `regex: true` is one pattern containing a space and matches nothing;
+   write `"torus|disc"` or drop `regex`. A regex matching nothing falls
+   back to plain terms and reports `matchMode: "substring"`.
+4. Build the subgraph's interior with **`create_nodes`** (plural),
+   always passing `scope` as your subgraph id. Default to the batch form
+   and reach for singular `create_node` only when adding one node to
+   something that already exists: a node's id only exists after the call
+   that made it, so one-at-a-time creation puts every node on its own
+   round trip, and each round trip re-sends the whole conversation.
+   Give each entry an `alias` you pick; any entry's `inputs` can
+   reference another entry by that alias wherever a node id goes, **in
+   either direction**, since every node is created before any wiring
+   happens — so the batch needs no topological ordering. A whole part
+   usually fits in one call. Check the result's `errors` field: a bad
+   entry doesn't stop the rest, so you keep the ids that worked and fix
+   only what's named. A `nodeId` matching no alias is treated as a real
+   id, so a batch can wire into what you built earlier — but an alias
+   lasts only for the call that declares it, so reference an earlier
+   batch's nodes by the real ids that call returned, not by the alias you
+   gave them there. `connect_nodes` likewise takes a `connections` array,
+   and `set_parameter` a `parameters` array — use them for more than one
+   edge or value.
    - `create_node` takes an optional `inputs` map so you don't need a
      separate `connect_nodes`/`set_parameter` call per port: `{"PortName":
      {"nodeId": ..., "port": ...}}` to reference an existing node's output,
@@ -103,6 +126,16 @@ Not on this table and never settable as a literal: **`quaternion.Quaternion`**
      else, e.g. a quaternion, build it as its own node and reference it by
      `nodeId`/`port` instead). Use this by default instead of a
      create-then-connect-then-connect dance.
+   - To change a literal you already set through `inputs`, address it by
+     port — `set_parameter` with `nodeId` + `port` sets whatever feeds
+     that port, creating and wiring a literal if the port is still empty.
+     The parameter node behind an `inputs: {"Port": {"value": ...}}` never
+     has its id reported to you, so this is the only way to reach it
+     without a `describe_graph` to go hunting first.
+   - `RoundCubeNode`'s `Roundness` is added outward, not carved off: the
+     final half-extent per axis is `Size/2 + Roundness`, so a thin panel
+     needs a `Roundness` below its intended half-thickness or that axis
+     swells to match the others and the part reads as a lump.
    - If any part of what you're building needs a computed number that
      chains **2 or more arithmetic operations together** (a distance, a
      derived dimension, an overlap amount), use `create_equation_subgraph`
@@ -110,9 +143,12 @@ Not on this table and never settable as a literal: **`quaternion.Quaternion`**
      instead of hand-wiring `AddNode`/`MultiplyNode`/etc. one at a time — it
      builds the whole thing in one call. Supports `+ - * / ^`
      (compile-time-constant exponents only), `sqrt`, `hypot`/`hypotenuse`,
-     `min`, `max`, `pi`/`e` — no `sin`/`cos`/`tan`/`abs`/general `pow`,
-     since polyform has no scalar nodes for those; you'll get a clear error
-     naming what's unsupported. For a **single** operation (one multiply,
+     `min`, `max`, `sin`/`cos`/`tan`, `asin`/`acos`/`atan`, `atan2(y,x)`,
+     `radians`/`degrees`, `pi`/`e` — no `abs`/general `pow`; you'll get a
+     clear error naming what's unsupported. For any sloped surface, get
+     its angle from `atan2(rise, run)` rather than working one out by hand
+     and typing it in as a radian literal — `hypot` and `atan2` on the
+     same two legs keep a slope's length and its angle tracking together. For a **single** operation (one multiply,
      one add), skip the equation tool entirely — `search_node_types` for
      the matching node (`MultiplyNode`, `AddNode`, etc.) and `create_node`
      it directly with both operands in its `inputs` map; a whole subgraph
@@ -139,7 +175,12 @@ Not on this table and never settable as a literal: **`quaternion.Quaternion`**
      just coincidentally equal today.
 5. Add the boundary ports the spec calls for with `create_boundary_node`
    (`kind` is `"input"` or `"output"`), and wire them into your interior
-   nodes with `connect_nodes` (still scoped to your subgraph id).
+   nodes with `connect_nodes` (still scoped to your subgraph id). **The
+   port name on a boundary node is always `"Value"`**, never the `name`
+   you gave it — that name is only what the port is called from outside,
+   on instances made by `instantiate_subgraph`. An input boundary's
+   `"Value"` is an output port (wire it *into* your interior); an output
+   boundary's `"Value"` is an input port (wire your interior *into* it).
 6. Verify your own work with `describe_graph` (scoped to your subgraph id)
    before reporting done — confirm every node you meant to wire up actually
    has its inputs connected.
@@ -221,3 +262,18 @@ End with:
 - the subgraph id you built
 - the exact boundary port names and types you exposed (input and output)
 - any deviations from the spec, or issues you hit, stated plainly
+- **a "friction" section: what the tools or node library made harder than
+  it should have been.** The orchestrator passes this up to the human, who
+  uses it to decide what to build or fix next — it is the only way a gap
+  you hit becomes a gap that gets closed, and without it the same wall
+  gets re-hit build after build. Worth reporting: a node that doesn't
+  exist and what you did instead; a `search_node_types` query that
+  returned nothing (quote the query); a number you had to hard-code
+  because nothing in the graph could compute it; a node whose actual
+  behavior differed from what its name/description implied; anything in
+  your instructions that turned out to be wrong or missing. Be specific
+  and quote real values — "no wedge/prism primitive exists, so I used a
+  rotated `CubeNode`" is actionable; "some things were awkward" is not.
+  Your own mistakes that you then fixed are not friction — the signal is
+  the toolchain fighting you, not you fumbling. If genuinely nothing got
+  in your way, say so in one line rather than inventing something.
