@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "polyform": {
+      "command": "go",
+      "args": ["run", "./cmd/polyform-mcp"]
+    }
+  }
+}
