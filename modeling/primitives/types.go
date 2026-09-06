@@ -31,6 +31,7 @@ func init() {
 	refutil.RegisterType[nodes.Struct[StanfordBunny]](factory)
 
 	refutil.RegisterType[nodes.Struct[TubeNode]](factory)
+	refutil.RegisterType[nodes.Struct[TubeUVsNode]](factory)
 
 	refutil.RegisterType[nodes.Struct[TorusNode]](factory)
 	refutil.RegisterType[nodes.Struct[TorusUVNode]](factory)
