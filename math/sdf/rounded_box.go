@@ -28,7 +28,7 @@ type RoundCubeNode struct {
 }
 
 func (cn RoundCubeNode) Description() string {
-	return "An axis-aligned box with rounded edges and corners. Rounding inflates: the final half-extent on each axis is Size/2 + Roundness, so for a target half-extent set Size = 2*(target - Roundness). Roundness larger than the thinnest half-extent you wanted swells that axis out to match the others, turning a thin panel into a lump."
+	return "An axis-aligned box with rounded edges and corners. Rounding inflates: the final half-extent on each axis is Size/2 + Roundness, so for a target half-extent set Size = 2*(target - Roundness). Roundness larger than the thinnest half-extent you wanted swells that axis out to match the others."
 }
 
 func (cn RoundCubeNode) Field(out *nodes.StructOutput[sample.Vec3ToFloat]) {

@@ -6,11 +6,6 @@ import (
 	"github.com/EliCDavis/polyform/nodes"
 )
 
-// Scalar counterparts to this package's array nodes, for the common
-// geometry case of computing one angle (or one ratio) rather than
-// transforming a whole array. All angles are in radians, matching
-// quaternion.FromEulerAngleNode's inputs.
-
 // ============================================================================
 
 type SinNode struct {
@@ -97,12 +92,6 @@ func (n ArcTanNode) Out(out *nodes.StructOutput[float64]) {
 
 // ============================================================================
 
-// ArcTan2Node is the angle companion to math.HypotenuseNode: given the same
-// two legs of a right triangle, Hypotenuse gives its length and this gives
-// its angle. The pair is what makes a sloped surface (a vehicle's glacis
-// plate, a roof pitch, a ramp) fully parametric - without it, the length
-// tracks its inputs while the angle has to be hand-computed and frozen as a
-// literal, so the two silently disagree the moment a dimension changes.
 type ArcTan2Node struct {
 	Y nodes.Output[float64]
 	X nodes.Output[float64]

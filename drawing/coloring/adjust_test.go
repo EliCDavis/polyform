@@ -62,9 +62,6 @@ func adjustHSV(t *testing.T, in coloring.Color, hue, sat, val float64) coloring.
 	}, "Out").Value()
 }
 
-// TestAdjustHSVDerivesAShade covers the case this was built for: deriving a
-// slightly darker version of a color variable, so a palette stays tied to
-// one control instead of needing a second hand-picked literal.
 func TestAdjustHSVDerivesAShade(t *testing.T) {
 	upholstery := coloring.Color{R: 0.4, G: 0.5, B: 0.7, A: 1}
 
@@ -103,8 +100,6 @@ func TestAdjustHSVShiftsHueAndWraps(t *testing.T) {
 	assert.InDelta(t, 0, wrapped.G, 1e-9)
 }
 
-// TestFromVectorNodeCompletesTheRoundTrip covers the gap that made vector
-// color math a dead end: colors could be taken apart but never reassembled.
 func TestFromVectorNodeCompletesTheRoundTrip(t *testing.T) {
 	original := coloring.Color{R: 0.25, G: 0.5, B: 0.75, A: 1}
 

@@ -14,10 +14,6 @@ func (explodingNode) Out(out *nodes.StructOutput[int]) {
 	panic("attribute Position not found")
 }
 
-// TestNodePanicNamesTheNode pins that a panic escaping a node's output
-// method says which node and port produced it. Nothing recovers between a
-// node's method and the caller, so without this a graph-wide failure
-// arrives as a bare message with nothing to bisect on.
 func TestNodePanicNamesTheNode(t *testing.T) {
 	port := nodes.GetNodeOutputPort[int](&nodes.Struct[explodingNode]{}, "Out")
 
@@ -27,8 +23,6 @@ func TestNodePanicNamesTheNode(t *testing.T) {
 	)
 }
 
-// TestNodePanicPreservesErrorText keeps the original message intact so
-// callers matching on it still work.
 func TestNodePanicPreservesErrorText(t *testing.T) {
 	port := nodes.GetNodeOutputPort[int](&nodes.Struct[explodingNode]{}, "Out")
 

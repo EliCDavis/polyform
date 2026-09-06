@@ -293,7 +293,7 @@ type HypotenuseNode struct {
 }
 
 func (cn HypotenuseNode) Description() string {
-	return "Length of a right triangle's hypotenuse from its two legs. Use Arc Tan 2 on the same legs for its angle."
+	return "Length of a right triangle's hypotenuse from its two legs."
 }
 
 func (cn HypotenuseNode) Out(out *nodes.StructOutput[float64]) {

@@ -9,12 +9,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// A build once reported that this function's X rotation had a flipped
-// sign, having inferred the convention from where a rotated part landed
-// rather than from the rotation itself. It does not: these are the
-// standard right-handed rotations. Pinning each axis here means the next
-// build can be pointed at a fact instead of re-deriving one, and means a
-// real sign regression would be caught rather than absorbed as folklore.
 func TestFromEulerAngleFollowsTheRightHandRule(t *testing.T) {
 	const quarter = math.Pi / 2
 
@@ -46,8 +40,6 @@ func TestFromEulerAngleFollowsTheRightHandRule(t *testing.T) {
 	}
 }
 
-// The consequence callers actually reason about: a point out along +Z,
-// rotated about X, moves to -Y for a positive angle.
 func TestFromEulerAngleXMovesForwardPointsDown(t *testing.T) {
 	arm := vector3.New(0., 0., 2.)
 	for _, angle := range []float64{0.2, 0.5, 1.0} {

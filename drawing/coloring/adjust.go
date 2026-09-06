@@ -211,9 +211,6 @@ func (n ToHSVNode) Value(out *nodes.StructOutput[float64]) {
 
 // ============================================================================
 
-// FromVectorNode is the inverse of ToVectorNode. Without it a color could be
-// taken apart into numbers and operated on, but never reassembled, so any
-// color computed with vector math was a dead end.
 type FromVectorNode struct {
 	Vector3 nodes.Output[vector3.Float64] `description:"RGB as x/y/z in 0-1. Alpha becomes 1."`
 	Vector4 nodes.Output[vector4.Float64] `description:"RGBA as x/y/z/w in 0-1. Takes priority over Vector3 when both are wired."`

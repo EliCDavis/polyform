@@ -160,7 +160,7 @@ type SmoothNormalsImplicitWeldNode struct {
 }
 
 func (snn SmoothNormalsImplicitWeldNode) Description() string {
-	return "Recomputes smooth per-vertex normals, welding together normals from any vertices within Distance of each other, not just exactly-identical positions. Keep Distance smaller than the thinnest feature in the mesh: at or above a feature's thickness it averages the normals of its front and back faces together, which shades a thin fin or blade as though it were a rounded lump. One mesh carrying both a bulky body and thin fins is sized by the fins, not the body."
+	return "Recomputes smooth per-vertex normals, welding together normals from any vertices within Distance of each other, not just exactly-identical positions."
 }
 
 func (snn SmoothNormalsImplicitWeldNode) Out(out *nodes.StructOutput[modeling.Mesh]) {

@@ -122,7 +122,7 @@ type TorusNode struct {
 }
 
 func (c TorusNode) Description() string {
-	return "A ring or doughnut in the XZ plane. Major Radius is the ring, Minor Radius its tube thickness."
+	return "A ring in the XZ plane. Major Radius is the ring, Minor Radius its tube thickness."
 }
 
 func (c TorusNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
@@ -134,4 +134,8 @@ func (c TorusNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 		UVs:             nodes.TryGetOutputReference(out, c.UVs, nil),
 	}
 	out.Set(circle.ToMesh())
+}
+
+func (c TorusNode) Keywords() []string {
+	return []string{"doughnut"}
 }

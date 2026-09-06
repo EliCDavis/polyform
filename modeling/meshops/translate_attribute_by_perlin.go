@@ -70,7 +70,7 @@ type TranslateAttributeByPerlinNoise3DNode struct {
 }
 
 func (ta3dn TranslateAttributeByPerlinNoise3DNode) Description() string {
-	return "Displaces vertices by 3D perlin noise, roughening a surface."
+	return "Displaces vertices by 3D perlin noise."
 }
 
 func (ta3dn TranslateAttributeByPerlinNoise3DNode) Out(out *nodes.StructOutput[modeling.Mesh]) {

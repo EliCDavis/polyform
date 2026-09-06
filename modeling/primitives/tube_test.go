@@ -10,8 +10,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestTubeWindingMatchesNormals catches a flipped surface on any of the
-// tube's four faces at once: outer wall, inner wall, and both caps.
 func TestTubeWindingMatchesNormals(t *testing.T) {
 	mesh := primitives.Tube{Sides: 16, Height: 2, InnerRadius: 0.4, OuterRadius: 1}.ToMesh()
 
@@ -35,8 +33,6 @@ func TestTubeWindingMatchesNormals(t *testing.T) {
 	}
 }
 
-// TestTubeIsHollow pins that the wall has real radial thickness, which a
-// Cylinder with its caps turned off does not.
 func TestTubeIsHollow(t *testing.T) {
 	mesh := primitives.Tube{Sides: 12, Height: 1, InnerRadius: 0.4, OuterRadius: 1}.ToMesh()
 	positions := mesh.Float3Attribute(modeling.PositionAttribute)
@@ -53,8 +49,6 @@ func TestTubeIsHollow(t *testing.T) {
 	assert.InDelta(t, 1.0, maxRadius, 1e-9)
 }
 
-// TestTubeSwappedRadiiStillBuilds guards against a caller passing inner and
-// outer the wrong way round and getting inside-out geometry.
 func TestTubeSwappedRadiiStillBuilds(t *testing.T) {
 	swapped := primitives.Tube{Sides: 12, Height: 1, InnerRadius: 1, OuterRadius: 0.4}.ToMesh()
 	normal := primitives.Tube{Sides: 12, Height: 1, InnerRadius: 0.4, OuterRadius: 1}.ToMesh()

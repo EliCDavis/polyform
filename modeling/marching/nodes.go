@@ -24,13 +24,13 @@ func init() {
 
 type MarchNode struct {
 	Field      nodes.Output[sample.Vec3ToFloat] `description:"The SDF to tesselate"`
-	Resolution nodes.Output[float64]            `description:"Marching cube voxels per unit of space. Voxel size is 1/Resolution, so higher means finer detail and more triangles. Must be large enough that 1/Resolution is smaller than the Domain, or nothing is produced."`
+	Resolution nodes.Output[float64]            `description:"Marching cube voxels per unit of space. Voxel size is 1/Resolution, so higher means finer detail. Must be large enough that 1/Resolution is smaller than the Domain, or nothing is produced."`
 	Surface    nodes.Output[float64]            `description:"Value of the SDF that represents the surface (default: 0)"`
 	Domain     nodes.Output[geometry.AABB]      `description:"The region in which the marching cubes algorithm runs"`
 }
 
 func (cn MarchNode) Description() string {
-	return "Turns a distance field into a mesh with marching cubes. Domain is the box that gets scanned; anything outside it is cut off. Higher Resolution gives finer detail and more triangles: voxel size is 1/Resolution, so a Resolution smaller than 1/Domain size makes voxels bigger than the whole domain and yields an empty mesh."
+	return "Turns a distance field into a mesh with marching cubes. Domain is the box that gets scanned; anything outside it is cut off. Higher Resolution gives finer detail: voxel size is 1/Resolution, so a Resolution smaller than 1/Domain size makes voxels bigger than the whole domain and yields an empty mesh."
 }
 
 func (cn MarchNode) Mesh(out *nodes.StructOutput[modeling.Mesh]) {
@@ -67,9 +67,6 @@ func (cn MarchNode) Mesh(out *nodes.StructOutput[modeling.Mesh]) {
 		return
 	}
 
-	// An empty mesh is almost never intended, and everything downstream of
-	// it fails somewhere else entirely with a missing-attribute error that
-	// says nothing about March.
 	size := domain.Size()
 	smallestSide := math.Min(size.X(), math.Min(size.Y(), size.Z()))
 	if voxelSize >= smallestSide {

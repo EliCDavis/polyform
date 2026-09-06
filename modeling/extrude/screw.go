@@ -21,7 +21,11 @@ type ScrewNode struct {
 }
 
 func (snd ScrewNode) Description() string {
-	return "Sweeps a profile line around the Y axis: a lathe / revolve / surface of revolution. Distance 0 gives a closed round shape; non-zero screws it into a helix like a spring or thread. Normals come out smoothed."
+	return "Sweeps a profile line around the Y axis. Distance 0 gives a closed round shape; non-zero screws it into a helix like a spring."
+}
+
+func (snd ScrewNode) Keywords() []string {
+	return []string{"lathe", "revolve"}
 }
 
 func (snd ScrewNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
@@ -111,9 +115,6 @@ func (snd ScrewNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 		}
 	}
 
-	// Swept geometry without normals renders unlit and blows up anything
-	// downstream that transforms them, so derive them from the triangles we
-	// just built rather than leaving the mesh to fend for itself.
 	out.Set(meshops.SmoothNormals(modeling.NewTriangleMesh(indices).
 		SetFloat3Attribute(modeling.PositionAttribute, verts).
 		SetFloat2Attribute(modeling.TexCoordAttribute, uvs)))

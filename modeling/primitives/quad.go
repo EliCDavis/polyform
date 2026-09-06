@@ -126,7 +126,7 @@ type QuadNode struct {
 }
 
 func (c QuadNode) Description() string {
-	return "A single flat rectangle: plane, ground, billboard, panel."
+	return "A single flat rectangle."
 }
 
 func (c QuadNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
@@ -138,4 +138,8 @@ func (c QuadNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 		UVs:     nodes.TryGetOutputReference(out, c.UVs, nil),
 	}
 	out.Set(quad.ToMesh())
+}
+
+func (c QuadNode) Keywords() []string {
+	return []string{"plane", "billboard"}
 }

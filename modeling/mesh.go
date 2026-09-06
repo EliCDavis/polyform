@@ -356,12 +356,6 @@ func (m Mesh) ApplyTRS(transform trs.TRS) Mesh {
 	oldData := m.v3Data[PositionAttribute]
 	result := m.SetFloat3Attribute(PositionAttribute, transform.TransformArray(oldData))
 
-	// Normals are directions, not points: they rotate with the transform
-	// but must not pick up its translation, or every copy of a repeated
-	// mesh ends up lit as though it were still sitting at the origin in
-	// its original orientation. Scale is deliberately not applied - only a
-	// non-uniform scale would bend a normal, and correcting for that needs
-	// the inverse transpose rather than the scale itself.
 	normals, hasNormals := m.v3Data[NormalAttribute]
 	if !hasNormals {
 		return result

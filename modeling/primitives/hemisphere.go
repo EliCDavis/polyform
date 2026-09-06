@@ -94,15 +94,9 @@ func (h Hemisphere) UV(rows, columns int) modeling.Mesh {
 		})
 }
 
-// normals for the hemisphere's surface. Radius and Height are independent,
-// so this is an ellipsoid rather than a sphere and the normal is not just
-// the normalized position - it's the gradient of x^2/r^2 + y^2/h^2 +
-// z^2/r^2, which only coincides with the position when radius == height.
 func (h Hemisphere) normals(positions []vector3.Float64) []vector3.Float64 {
 	normals := make([]vector3.Float64, len(positions))
 	for i, p := range positions {
-		// Index 0 is the center of the flat bottom cap, where the gradient
-		// is degenerate. It faces straight down.
 		if i == 0 {
 			normals[i] = vector3.Down[float64]()
 			continue
@@ -134,7 +128,11 @@ type HemisphereNode struct {
 }
 
 func (hnd HemisphereNode) Description() string {
-	return "Half a sphere: a dome or bowl. Radius and Height are independent, so it can be squashed or stretched."
+	return "Half a sphere. Radius and Height are independent, so it can be squashed or stretched."
+}
+
+func (hnd HemisphereNode) Keywords() []string {
+	return []string{"dome", "bowl"}
 }
 
 func (hnd HemisphereNode) Out(out *nodes.StructOutput[modeling.Mesh]) {

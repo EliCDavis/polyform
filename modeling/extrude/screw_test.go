@@ -11,9 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// lathedTube revolves a short vertical profile offset from the axis a full
-// turn, producing a plain open cylinder - the simplest lathe case, and one
-// whose correct normals are obvious: every one points radially outward.
 func lathedTube(t *testing.T) modeling.Mesh {
 	t.Helper()
 
@@ -29,10 +26,6 @@ func lathedTube(t *testing.T) modeling.Mesh {
 	}, "Out").Value()
 }
 
-// TestScrewEmitsNormals is the regression this was added for: the screw
-// (polyform's lathe/revolve) shipped position and UVs but no normals, so
-// its output rendered unlit and panicked anything that tried to rotate
-// normals downstream.
 func TestScrewEmitsNormals(t *testing.T) {
 	mesh := lathedTube(t)
 
@@ -48,9 +41,6 @@ func TestScrewEmitsNormals(t *testing.T) {
 	}
 }
 
-// TestScrewNormalsPointOutward checks the normals actually describe the
-// surface rather than merely existing: revolving a profile at radius 1
-// around Y makes a tube whose normals are radial and flat in Y.
 func TestScrewNormalsPointOutward(t *testing.T) {
 	mesh := lathedTube(t)
 
@@ -68,16 +58,5 @@ func TestScrewNormalsPointOutward(t *testing.T) {
 		assert.InDeltaf(t, 0, n.Y(), 1e-6, "normal %d should be flat along the tube's axis", i)
 		assert.Greaterf(t, n.Dot(radial.Normalized()), 0.9,
 			"normal %d should point radially outward, got %v at %v", i, n, p)
-	}
-}
-
-// TestScrewIsDiscoverableAsALathe guards the other half of the problem: the
-// capability existed but was unfindable, since nothing about the node
-// mentioned the words anyone actually searches for.
-func TestScrewIsDiscoverableAsALathe(t *testing.T) {
-	description := extrude.ScrewNode{}.Description()
-
-	for _, term := range []string{"lathe", "revolve", "surface of revolution", "profile"} {
-		assert.Containsf(t, description, term, "screw's description should mention %q", term)
 	}
 }

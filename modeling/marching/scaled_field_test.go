@@ -15,16 +15,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// Scaling a primitive is how you get an oval or lens shape out of a
-// sphere, and it used to return the field's own local distances rather
-// than world ones. An isolated shape still marched to roughly the right
-// surface, which is what made this hard to see - the damage showed up once
-// the scaled field met another one, because a smooth union blends by
-// comparing field *values* against its radius, and those were off by
-// 1/scale.
-//
-// The invariant: a uniformly scaled primitive must behave exactly like the
-// equivalent unscaled primitive, in a blend as much as alone.
 func scaledUnitSphere(center vector3.Float64, scale float64) sample.Vec3ToFloat {
 	return sdf.Transform(
 		sdf.Sphere(vector3.Zero[float64](), 1),
@@ -52,7 +42,6 @@ func TestSmoothUnionTreatsAScaledPrimitiveLikeAnEquivalentOne(t *testing.T) {
 	}
 }
 
-// The same guarantee at the level the caller actually works at: the mesh.
 func TestMarchingAScaledPrimitiveMatchesAnEquivalentOne(t *testing.T) {
 	const (
 		radius = 0.3
@@ -73,28 +62,15 @@ func TestMarchingAScaledPrimitiveMatchesAnEquivalentOne(t *testing.T) {
 	assert.Equal(t, direct.PrimitiveCount(), viaScale.PrimitiveCount(),
 		"a scaled primitive should march to the same surface as the one it equals")
 
-	// Vertex-by-vertex equality is over-specified here: March accumulates
-	// into a map, so it emits the same surface in a different order every
-	// run, and the two fields agree to 1e-9 rather than bit-for-bit, which
-	// interpolation turns into sub-voxel differences. The exact claim is
-	// the field-level one above. What the mesh has to show is that the two
-	// occupy the same space.
 	wantMin, wantMax := direct.BoundingBox(modeling.PositionAttribute).Min(), direct.BoundingBox(modeling.PositionAttribute).Max()
 	gotMin, gotMax := viaScale.BoundingBox(modeling.PositionAttribute).Min(), viaScale.BoundingBox(modeling.PositionAttribute).Max()
 	assert.InDelta(t, 0, wantMin.Sub(gotMin).Length(), 0.01, "lower bound differs")
 	assert.InDelta(t, 0, wantMax.Sub(gotMax).Length(), 0.01, "upper bound differs")
 
-	// The blend is the part that broke: an unscaled field made the small
-	// sphere read as 4x deeper than it is, which widened the join into the
-	// body. The bounding box alone wouldn't catch that, but the waist
-	// where the two meet would move.
 	assert.InDelta(t, 0, direct.BoundingBox(modeling.PositionAttribute).Size().Sub(viaScale.BoundingBox(modeling.PositionAttribute).Size()).Length(), 0.01,
 		"the blended shape's extent differs")
 }
 
-// A non-uniform scale has no exact equivalent primitive, so the guarantee
-// there is the weaker one that still matters: a finite field, a real
-// surface, and every vertex on the ellipsoid it describes.
 func TestMarchingANonUniformlyScaledPrimitive(t *testing.T) {
 	for _, tc := range []struct {
 		name  string

@@ -169,7 +169,11 @@ type CylinderNode struct {
 }
 
 func (hnd CylinderNode) Description() string {
-	return "A cylinder along the Y axis: pole, barrel, wheel, drum. Turning Top or Bottom off leaves an open shell whose wall has no thickness."
+	return "A cylinder along the Y axis. Turning Top or Bottom off leaves an open shell whose wall has no thickness."
+}
+
+func (hnd CylinderNode) Keywords() []string {
+	return []string{"pole", "barrel", "wheel", "drum"}
 }
 
 func (hnd CylinderNode) Out(out *nodes.StructOutput[modeling.Mesh]) {

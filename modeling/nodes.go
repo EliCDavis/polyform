@@ -296,7 +296,7 @@ type SetAttribute3DNode struct {
 }
 
 func (n SetAttribute3DNode) Description() string {
-	return "Writes an array of 3D vectors onto a mesh as a named attribute. This is how vertex colors get set, using the attribute name Color."
+	return "Writes an array of 3D vectors onto a mesh as a named attribute."
 }
 
 func (n SetAttribute3DNode) Out(out *nodes.StructOutput[Mesh]) {

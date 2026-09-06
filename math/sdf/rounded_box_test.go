@@ -8,8 +8,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// surfaceAlong bisects for where field crosses zero walking out from the
-// origin along dir.
 func surfaceAlong(field func(vector3.Float64) float64, dir vector3.Float64) float64 {
 	lo, hi := 0., 100.
 	for i := 0; i < 80; i++ {
@@ -23,9 +21,6 @@ func surfaceAlong(field func(vector3.Float64) float64, dir vector3.Float64) floa
 	return lo
 }
 
-// Roundness is added outward, it is not carved off the corners. Callers
-// keep reading Size as the finished dimension and then wonder why a thin
-// panel came out as a lump, so pin the arithmetic that governs it.
 func TestRoundedBoxRoundnessInflates(t *testing.T) {
 	size := vector3.New(0.02, 0.30, 0.20)
 	roundness := 0.06
@@ -46,9 +41,6 @@ func TestRoundedBoxRoundnessInflates(t *testing.T) {
 	}
 }
 
-// Roundness exceeding half the smallest Size component is legal, not
-// degenerate: the shape stays a well-formed solid, just fatter than a
-// caller reading Size as the final dimension expects.
 func TestRoundedBoxStaysSolidWhenRoundnessExceedsHalfSize(t *testing.T) {
 	field := sdf.RoundedBox(vector3.Zero[float64](), vector3.New(0.02, 0.30, 0.20), 0.5)
 
@@ -57,7 +49,6 @@ func TestRoundedBoxStaysSolidWhenRoundnessExceedsHalfSize(t *testing.T) {
 	assert.Positive(t, field(vector3.New(2., 0., 0.)), "far outside must be outside")
 }
 
-// Size = 2*(target - Roundness) is the inverse callers actually need.
 func TestRoundedBoxSizingForATargetExtent(t *testing.T) {
 	target := vector3.New(0.01, 0.15, 0.10)
 	roundness := 0.005

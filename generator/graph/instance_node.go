@@ -124,13 +124,6 @@ func (r *SubgraphInstanceNode) SubGraphID() string {
 
 // LiveGraph is this instance's own copy of the subgraph, with whatever is
 // wired into its boundary inputs applied.
-//
-// It is the graph that actually gets evaluated, and so the only one worth
-// probing. The shared definition returned by SubGraphInstance has nothing
-// upstream of its boundary inputs, so anything read from it comes back as
-// a type zero value - a plausible-looking number rather than an obviously
-// missing one. Node ids match the definition's, so an id taken from a
-// scoped describe_graph can be looked up here directly.
 func (r *SubgraphInstanceNode) LiveGraph() *Instance {
 	return r.ensureClone()
 }

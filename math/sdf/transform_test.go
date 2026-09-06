@@ -45,10 +45,6 @@ func scaledSphere(s vector3.Float64) func(vector3.Float64) float64 {
 	)
 }
 
-// A scaled field used to answer in its own local units, which made it
-// invalid as a distance field even though the surface sat in the right
-// place - the defect showed up as speckled marched geometry, not as an
-// obviously wrong shape.
 func TestTransformKeepsFieldValidUnderScale(t *testing.T) {
 	for _, tc := range []struct {
 		name  string
@@ -67,7 +63,6 @@ func TestTransformKeepsFieldValidUnderScale(t *testing.T) {
 	}
 }
 
-// Correcting the magnitude must not move the surface itself.
 func TestTransformKeepsSurfaceInPlace(t *testing.T) {
 	field := scaledSphere(vector3.New(1., 0.25, 1.))
 
@@ -77,8 +72,6 @@ func TestTransformKeepsSurfaceInPlace(t *testing.T) {
 	assert.Positive(t, field(vector3.New(0., 0.5, 0.)), "above the squashed top is outside")
 }
 
-// Under a uniform scale the correction is exact, so distances should be
-// the real ones rather than merely bounded.
 func TestTransformReportsTrueDistanceWhenUniform(t *testing.T) {
 	field := scaledSphere(vector3.New(0.25, 0.25, 0.25))
 
@@ -88,9 +81,6 @@ func TestTransformReportsTrueDistanceWhenUniform(t *testing.T) {
 	assert.InDelta(t, 0.75, field(vector3.New(0., 0., 1.)), 1e-9)
 }
 
-// The speckling this guards against came from the field, not the mesher,
-// so the check is that the field stays finite and its sign agrees with the
-// ellipsoid the transform describes.
 func TestTransformedFieldIsCleanToMarch(t *testing.T) {
 	scale := vector3.New(1., 0.35, 1.)
 	field := scaledSphere(scale)

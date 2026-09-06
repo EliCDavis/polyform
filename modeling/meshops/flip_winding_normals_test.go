@@ -11,11 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestFlipTriangleWindingNegatesNormals pins that flipping a mesh inside
-// out flips its shading too. Reversing winding alone leaves every normal
-// pointing at the side that is no longer the front face, so the result
-// renders lit from within - which matters most for the one job this node
-// has, turning a surface around.
 func TestFlipTriangleWindingNegatesNormals(t *testing.T) {
 	original := primitives.Cylinder{Sides: 12, Height: 1, Radius: 1}.ToMesh()
 	require.True(t, original.HasFloat3Attribute(modeling.NormalAttribute))
@@ -32,9 +27,6 @@ func TestFlipTriangleWindingNegatesNormals(t *testing.T) {
 	}
 }
 
-// TestFlipTriangleWindingKeepsWindingAndNormalsAgreeing is the property
-// that actually matters: after flipping, each triangle's geometric normal
-// still agrees with its stored vertex normals.
 func TestFlipTriangleWindingKeepsWindingAndNormalsAgreeing(t *testing.T) {
 	flipped := meshops.FlipTriangleWinding(primitives.Cylinder{Sides: 12, Height: 1, Radius: 1}.ToMesh())
 
@@ -53,8 +45,6 @@ func TestFlipTriangleWindingKeepsWindingAndNormalsAgreeing(t *testing.T) {
 	}
 }
 
-// TestFlipTriangleWindingWithoutNormals guards the mesh types that carry
-// no normals at all.
 func TestFlipTriangleWindingWithoutNormals(t *testing.T) {
 	mesh := modeling.NewTriangleMesh([]int{0, 1, 2}).
 		SetFloat3Attribute(modeling.PositionAttribute, []vector3.Float64{

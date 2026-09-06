@@ -104,7 +104,11 @@ type TubeNode struct {
 }
 
 func (t TubeNode) Description() string {
-	return "A hollow cylinder along the Y axis: pipe, washer, ring, rim. Unlike a capped-off Cylinder this has real wall thickness, so it stays visible edge-on. A short Height gives a flat annulus."
+	return "A hollow cylinder along the Y axis."
+}
+
+func (t TubeNode) Keywords() []string {
+	return []string{"pipe", "washer", "ring"}
 }
 
 func (t TubeNode) Out(out *nodes.StructOutput[modeling.Mesh]) {

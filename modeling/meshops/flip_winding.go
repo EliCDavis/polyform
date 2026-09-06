@@ -35,9 +35,6 @@ func FlipTriangleWinding(m modeling.Mesh) modeling.Mesh {
 
 	flipped := m.SetIndices(finalTris)
 
-	// Winding decides the geometric facing, normals decide the shaded
-	// facing. Reversing one without the other leaves the mesh lit from
-	// the side it no longer faces.
 	if !m.HasFloat3Attribute(modeling.NormalAttribute) {
 		return flipped
 	}

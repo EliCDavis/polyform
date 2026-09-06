@@ -344,7 +344,7 @@ type QuadSphereNode struct {
 }
 
 func (c QuadSphereNode) Description() string {
-	return "A sphere built by subdividing a cube: even quads, no pole pinching, no UVs."
+	return "A sphere built by subdividing a cube: even quads, no pole pinching."
 }
 
 func (c QuadSphereNode) Out(out *nodes.StructOutput[modeling.Mesh]) {

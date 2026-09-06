@@ -13,8 +13,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// singleTriangleFacingUp is a minimal mesh whose one normal points +Y, so
-// any change in orientation is unambiguous.
 func singleTriangleFacingUp() modeling.Mesh {
 	return modeling.NewTriangleMesh([]int{0, 1, 2}).
 		SetFloat3Attribute(modeling.PositionAttribute, []vector3.Float64{
@@ -29,11 +27,7 @@ func singleTriangleFacingUp() modeling.Mesh {
 		})
 }
 
-// TestMeshRotatesNormalsWithCopies covers a silent correctness bug: every
-// copy was placed by transforming positions only, so a rotated copy kept
-// the original's normals and was lit as though it had never turned.
 func TestMeshRotatesNormalsWithCopies(t *testing.T) {
-	// Second copy is rolled a quarter turn about Z, taking +Y to -X.
 	quarterTurnZ := quaternion.FromEulerAngle(vector3.New(0., 0., math.Pi/2))
 
 	result := repeat.Mesh(singleTriangleFacingUp(), []trs.TRS{
@@ -54,9 +48,6 @@ func TestMeshRotatesNormalsWithCopies(t *testing.T) {
 	}
 }
 
-// TestMeshDoesNotTranslateNormals pins the other half of the rule: a
-// normal is a direction, so a copy that is only moved keeps its
-// orientation and stays unit length.
 func TestMeshDoesNotTranslateNormals(t *testing.T) {
 	result := repeat.Mesh(singleTriangleFacingUp(), []trs.TRS{
 		trs.Position(vector3.New(100., -50., 25.)),
@@ -71,8 +62,6 @@ func TestMeshDoesNotTranslateNormals(t *testing.T) {
 	}
 }
 
-// TestMeshWithoutNormalsStillRepeats guards the other direction: meshes
-// carrying no normal attribute must keep working, not start erroring.
 func TestMeshWithoutNormalsStillRepeats(t *testing.T) {
 	noNormals := modeling.NewTriangleMesh([]int{0, 1, 2}).
 		SetFloat3Attribute(modeling.PositionAttribute, []vector3.Float64{

@@ -44,9 +44,6 @@ func marchSphere(t *testing.T, resolution float64, domainSize float64) *nodes.St
 	}
 }
 
-// TestMarchResolutionDirection pins which way Resolution runs. Its docstring
-// claimed lower meant finer, which is backwards: voxel size is 1/Resolution,
-// so higher Resolution means smaller voxels and more triangles.
 func TestMarchResolutionDirection(t *testing.T) {
 	coarse := nodes.GetNodeOutputPort[modeling.Mesh](marchSphere(t, 5, 4), "Mesh").Value()
 	fine := nodes.GetNodeOutputPort[modeling.Mesh](marchSphere(t, 20, 4), "Mesh").Value()
@@ -56,11 +53,6 @@ func TestMarchResolutionDirection(t *testing.T) {
 		"raising Resolution must give more triangles, not fewer")
 }
 
-// TestMarchReportsEmptyMeshFromTooLowResolution reproduces the turbine
-// build's failure: a Resolution far below 1/domain makes voxels larger than
-// the whole domain, so nothing is ever produced. March used to return an
-// empty mesh and report nothing, and the only symptom appeared much later
-// as a missing-Position error from whatever consumed it.
 func TestMarchReportsEmptyMeshFromTooLowResolution(t *testing.T) {
 	// Resolution 0.05 over a ~4 unit domain: voxels 20 units across.
 	port := nodes.GetNodeOutputPort[modeling.Mesh](marchSphere(t, 0.05, 4), "Mesh")
@@ -74,8 +66,6 @@ func TestMarchReportsEmptyMeshFromTooLowResolution(t *testing.T) {
 	assert.Contains(t, errs[0], "Resolution", "the message should name the input that caused it")
 }
 
-// TestMarchReportsEmptyMeshFromMissedDomain covers the other way to get
-// nothing: a domain that simply doesn't contain the shape.
 func TestMarchReportsEmptyMeshFromMissedDomain(t *testing.T) {
 	field := nodes.GetNodeOutputPort[sample.Vec3ToFloat](&nodes.Struct[sdf.SphereNode]{
 		Data: sdf.SphereNode{
