@@ -37,8 +37,8 @@ export class Vector3ParameterNodeController {
             scene: app.Scene,
             initialPosition: {
                 x: curVal.x,
-                y: curVal.x,
-                z: curVal.x
+                y: curVal.y,
+                z: curVal.z
             }
         })
 

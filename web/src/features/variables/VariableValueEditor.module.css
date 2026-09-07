@@ -1,0 +1,50 @@
+.pointRow {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px 6px;
+  border-left: 2px solid transparent;
+  border-radius: 3px;
+}
+
+.pointRowFocused {
+  border-left-color: #ffc95c;
+  background-color: #0a2e3d;
+}
+
+.pointIndex {
+  font-size: 11px;
+  color: #8fa8b0;
+  font-family: monospace;
+}
+
+.insert {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 0;
+  margin: 0;
+  background: none;
+  border: none;
+  opacity: 0.25;
+  cursor: pointer;
+}
+
+.insert:hover,
+.insert:focus-visible {
+  opacity: 1;
+}
+
+.insertRule {
+  flex: 1;
+  height: 1px;
+  background-color: #ffc95c;
+}
+
+.insertIcon {
+  color: #ffc95c;
+  font-size: 12px;
+  line-height: 1;
+}

@@ -129,12 +129,6 @@ func (so *StructOutput[T]) Value() T {
 	return val.val
 }
 
-// call runs the node's output method, tagging any panic with which node
-// and port it came from. Nothing recovers between a node's method and the
-// process boundary, so an unannotated panic reaches the caller as a bare
-// message like "attribute Position not found" - true, but useless against
-// a graph of a hundred nodes, since it names neither the node nor even the
-// kind of node that raised it.
 func (so *StructOutput[T]) call(val *StructOutput[T]) {
 	defer func() {
 		r := recover()

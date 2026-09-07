@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import type { Variable } from "@/types/schema";
 import type { ThreeApp } from "@/lib/three_app";
 import { setBinaryVariableValue, setVariableValue } from "@/api/variables";
@@ -7,6 +7,8 @@ import { GizmoToggle } from "@/components/GizmoToggle";
 import { VariableType } from "./variableType";
 import { TransformGizmo } from "@/lib/gizmo/transform";
 import { BoxGizmo } from "@/lib/gizmo/box";
+import { PointPathGizmo, pathInsertionPoint } from "@/lib/gizmo/point_path";
+import styles from "./VariableValueEditor.module.css";
 
 function formatFileSize(bytes: number): string {
   if (bytes === 0) return "0 B";
@@ -307,55 +309,102 @@ function Vector3ArrayEditor({
 }) {
   const [items, setItems] = useState<Array<{ x: number; y: number; z: number }>>(value ?? []);
   const [gizmoOn, setGizmoOn] = useState(false);
+  const [focused, setFocused] = useState<number | null>(null);
+  const [insertAt, setInsertAt] = useState<number | null>(null);
+  const gizmoRef = useRef<PointPathGizmo | null>(null);
+  const itemsRef = useRef(items);
+  itemsRef.current = items;
+  const pendingWrites = useRef(0);
 
   useEffect(() => {
+    // A refetch that raced one of our own writes carries a stale array; taking
+    // it would snap the points back to where they were before the edit.
+    if (pendingWrites.current > 0) return;
     setItems(value ?? []);
   }, [value]);
 
-  useEffect(() => {
-    if (!threeApp || !gizmoOn) return;
-    const gizmos = items.map((item, i) => {
-      const gizmo = new TransformGizmo({
-        camera: threeApp.Camera,
-        domElement: threeApp.Renderer.domElement,
-        orbitControls: threeApp.OrbitControls,
-        parent: threeApp.ViewerScene,
-        scene: threeApp.Scene,
-        initialPosition: item,
-      });
-      gizmo.setEnabled(true);
-      const sub = gizmo.position$().subscribe((pos) => {
-        setItems((prev) => {
-          const next = [...prev];
-          next[i] = { x: pos.x, y: pos.y, z: pos.z };
-          void setVariableValue(variableKey, next);
-          return next;
-        });
-      });
-      return { gizmo, sub };
-    });
-    return () => {
-      for (const { gizmo, sub } of gizmos) {
-        sub.unsubscribe();
-        gizmo.dispose();
-      }
-    };
-  }, [threeApp, gizmoOn, items.length, variableKey]);
-
-  const updateItem = (index: number, field: "x" | "y" | "z", val: number) => {
-    setItems((prev) => {
-      const next = [...prev];
-      next[index] = { ...next[index], [field]: val };
-      void setVariableValue(variableKey, next);
-      return next;
+  const commit = (next: Array<{ x: number; y: number; z: number }>) => {
+    itemsRef.current = next;
+    setItems(next);
+    pendingWrites.current += 1;
+    void setVariableValue(variableKey, next).finally(() => {
+      pendingWrites.current -= 1;
     });
   };
+
+  useEffect(() => {
+    if (!threeApp || !gizmoOn) return;
+    const gizmo = new PointPathGizmo({
+      camera: threeApp.Camera,
+      domElement: threeApp.Renderer.domElement,
+      orbitControls: threeApp.OrbitControls,
+      parent: threeApp.ViewerScene,
+      scene: threeApp.Scene,
+      points: itemsRef.current,
+    });
+    gizmoRef.current = gizmo;
+    const sub = gizmo.changes$().subscribe(({ index, position }) => {
+      commit(itemsRef.current.map((p, i) => (i === index ? position : p)));
+    });
+    return () => {
+      sub.unsubscribe();
+      gizmo.dispose();
+      gizmoRef.current = null;
+    };
+  }, [threeApp, gizmoOn, variableKey]);
+
+  useEffect(() => {
+    gizmoRef.current?.setPoints(items);
+  }, [items]);
+
+  useEffect(() => {
+    gizmoRef.current?.setFocus(focused);
+  }, [focused]);
+
+  useEffect(() => {
+    gizmoRef.current?.setInsertPreview(insertAt);
+  }, [insertAt, items]);
+
+  const updateItem = (index: number, field: "x" | "y" | "z", val: number) => {
+    if (Number.isNaN(val)) return;
+    commit(items.map((p, i) => (i === index ? { ...p, [field]: val } : p)));
+  };
+
+  const insertItem = (index: number) => {
+    const next = [...items];
+    next.splice(index, 0, pathInsertionPoint(items, index));
+    setInsertAt(null);
+    setFocused(index);
+    commit(next);
+  };
+
+  const insertControl = (index: number, label: string) => (
+    <button
+      type="button"
+      className={styles.insert}
+      title={label}
+      onClick={() => insertItem(index)}
+      onPointerEnter={() => setInsertAt(index)}
+      onPointerLeave={() => setInsertAt((at) => (at === index ? null : at))}
+    >
+      <span className={styles.insertRule} />
+      <span className={styles.insertIcon}>+</span>
+      <span className={styles.insertRule} />
+    </button>
+  );
 
   return (
     <div className="variable-inputs">
       <span>{items.length} items</span>
       {items.map((item, i) => (
-        <div key={i}>
+        <Fragment key={i}>
+          {insertControl(i, `Insert a point before ${i}`)}
+        <div
+          className={`${styles.pointRow} ${focused === i ? styles.pointRowFocused : ""}`}
+          onPointerEnter={() => setFocused(i)}
+          onPointerLeave={() => setFocused((f) => (f === i ? null : f))}
+        >
+          <span className={styles.pointIndex}>{i}</span>
           <LabeledField label="X:">
             <input type="number" value={item.x} onChange={(e) => updateItem(i, "x", parseFloat(e.target.value))} />
           </LabeledField>
@@ -368,22 +417,20 @@ function Vector3ArrayEditor({
           <button
             type="button"
             onClick={() => {
-              const next = items.filter((_, j) => j !== i);
-              setItems(next);
-              void setVariableValue(variableKey, next);
+              setFocused(null);
+              commit(items.filter((_, j) => j !== i));
             }}
           >
             Delete
           </button>
         </div>
+        </Fragment>
       ))}
       <button
         type="button"
-        onClick={() => {
-          const next = [...items, { x: 0, y: 0, z: 0 }];
-          setItems(next);
-          void setVariableValue(variableKey, next);
-        }}
+        onClick={() => insertItem(items.length)}
+        onPointerEnter={() => setInsertAt(items.length)}
+        onPointerLeave={() => setInsertAt((at) => (at === items.length ? null : at))}
       >
         Add
       </button>

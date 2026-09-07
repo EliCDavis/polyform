@@ -122,8 +122,6 @@ func (r *SubgraphInstanceNode) SubGraphID() string {
 	return r.subGraphID
 }
 
-// LiveGraph is this instance's own copy of the subgraph, with whatever is
-// wired into its boundary inputs applied.
 func (r *SubgraphInstanceNode) LiveGraph() *Instance {
 	return r.ensureClone()
 }
