@@ -1,18 +1,24 @@
 package repeat
 
 import (
+	"fmt"
+
 	"github.com/EliCDavis/polyform/math/trs"
 	"github.com/EliCDavis/polyform/nodes"
 )
 
-func TRS(input, transforms []trs.TRS) []trs.TRS {
+func TRS(input, transforms []trs.TRS) ([]trs.TRS, error) {
 	result := make([]trs.TRS, 0, len(transforms)*len(input))
-	for _, transform := range transforms {
-		for _, i := range input {
-			result = append(result, i.Multiply(transform))
+	for ti, transform := range transforms {
+		for ii, i := range input {
+			composed, err := trs.FromMatrix(i.Multiply(transform))
+			if err != nil {
+				return nil, fmt.Errorf("input %d against transform %d: %w", ii, ti, err)
+			}
+			result = append(result, composed)
 		}
 	}
-	return result
+	return result, nil
 }
 
 type TRSNode struct {
@@ -36,5 +42,10 @@ func (rnd TRSNode) Out(out *nodes.StructOutput[[]trs.TRS]) {
 		return
 	}
 	transforms := nodes.GetOutputValue(out, rnd.Transforms)
-	out.Set(TRS(mesh, transforms))
+	result, err := TRS(mesh, transforms)
+	if err != nil {
+		out.CaptureError(err)
+		return
+	}
+	out.Set(result)
 }

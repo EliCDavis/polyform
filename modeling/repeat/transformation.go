@@ -1,6 +1,8 @@
 package repeat
 
 import (
+	"fmt"
+
 	"github.com/EliCDavis/polyform/math/trs"
 	"github.com/EliCDavis/polyform/nodes"
 )
@@ -11,16 +13,20 @@ type Transformation struct {
 	Samples        int
 }
 
-func (t Transformation) TRS() []trs.TRS {
+func (t Transformation) TRS() ([]trs.TRS, error) {
 	results := make([]trs.TRS, t.Samples)
 
 	previous := t.Initial
 	for i := range t.Samples {
-		results[i] = t.Transformation.Multiply(previous)
+		composed, err := trs.FromMatrix(t.Transformation.Multiply(previous))
+		if err != nil {
+			return nil, fmt.Errorf("sample %d: %w", i, err)
+		}
+		results[i] = composed
 		previous = results[i]
 	}
 
-	return results
+	return results, nil
 }
 
 type TransformationNode struct {
@@ -34,9 +40,14 @@ func (rnd TransformationNode) Description() string {
 }
 
 func (rnd TransformationNode) Out(out *nodes.StructOutput[[]trs.TRS]) {
-	out.Set(Transformation{
+	result, err := Transformation{
 		Initial:        nodes.TryGetOutputValue(out, rnd.Initial, trs.Identity()),
 		Transformation: nodes.TryGetOutputValue(out, rnd.Transformation, trs.Identity()),
 		Samples:        nodes.TryGetOutputValue(out, rnd.Samples, 0),
-	}.TRS())
+	}.TRS()
+	if err != nil {
+		out.CaptureError(err)
+		return
+	}
+	out.Set(result)
 }

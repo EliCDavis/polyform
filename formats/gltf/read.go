@@ -794,7 +794,11 @@ func decodeNode(doc *Gltf, buffers [][]byte, n Node, opts ReaderOptions, imgCach
 
 	transform := trs.Identity()
 	if n.Matrix != nil {
-		transform = trs.FromMatrix(mat.FromColArray(*n.Matrix))
+		decomposed, err := trs.FromMatrix(mat.FromColArray(*n.Matrix))
+		if err != nil {
+			return nil, fmt.Errorf("node %q: %w", n.Name, err)
+		}
+		transform = decomposed
 	} else {
 		if n.Translation != nil {
 			data := *n.Translation

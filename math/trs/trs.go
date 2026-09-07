@@ -113,12 +113,16 @@ func (trs TRS) SetTranslation(in vector3.Float64) TRS {
 	}
 }
 
-func (trs TRS) Multiply(other TRS) TRS {
-	return FromMatrix(trs.Matrix().Multiply(other.Matrix()))
+// Multiply composes two transforms. The result is exact, and is a matrix
+// because composing a non-uniform scale with a rotation can produce shear,
+// which no TRS holds. Call FromMatrix to get a TRS back.
+func (trs TRS) Multiply(other TRS) mat.Matrix4x4 {
+	return trs.Matrix().Multiply(other.Matrix())
 }
 
-func (trs TRS) Inverse() TRS {
-	return FromMatrix(trs.Matrix().Inverse())
+// Inverse is exact, and is a matrix for the same reason as Multiply.
+func (trs TRS) Inverse() mat.Matrix4x4 {
+	return trs.Matrix().Inverse()
 }
 
 // Transform an array of points by the TRS

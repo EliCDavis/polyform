@@ -171,7 +171,8 @@ func TestConstructor_FromMatrix(t *testing.T) {
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			transform := trs.FromMatrix(tc.matrix)
+			transform, err := trs.FromMatrix(tc.matrix)
+			require.NoError(t, err)
 			assert.Equal(t, tc.want.Position(), transform.Position())
 			assert.Equal(t, tc.want.Rotation(), transform.Rotation())
 			assert.Equal(t, tc.want.Scale(), transform.Scale())
@@ -258,8 +259,9 @@ func TestConstructor_ToFromMatrix(t *testing.T) {
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			delta := 0.000000000001
-			matrix := trs.FromMatrix(tc.matrix).Matrix()
-			AssertMatrixInDelta(t, tc.matrix, matrix, delta)
+			decomposed, err := trs.FromMatrix(tc.matrix)
+			require.NoError(t, err)
+			AssertMatrixInDelta(t, tc.matrix, decomposed.Matrix(), delta)
 		})
 	}
 }
@@ -303,7 +305,8 @@ func FuzzToFromMatrix_RotationAndScale(f *testing.F) {
 		rotation := quaternion.FromTheta(w, vector3.New(rx, ry, rz).Normalized())
 
 		delta := 0.000000001
-		back := trs.FromMatrix(trs.New(vector3.Float64{}, rotation, scale).Matrix())
+		back, err := trs.FromMatrix(trs.New(vector3.Float64{}, rotation, scale).Matrix())
+		require.NoError(t, err)
 
 		require.InDelta(t, scale.X(), back.Scale().X(), delta, "Scale-X")
 		require.InDelta(t, scale.Y(), back.Scale().Y(), delta, "Scale-Y")

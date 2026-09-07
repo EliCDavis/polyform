@@ -4,6 +4,7 @@ import (
 	"math"
 	"testing"
 
+	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/polyform/math/sdf"
 	"github.com/EliCDavis/polyform/math/trs"
 	"github.com/EliCDavis/vector/vector3"
@@ -102,4 +103,34 @@ func TestTransformedFieldIsCleanToMarch(t *testing.T) {
 			assert.Equal(t, inside(at), v < 0, "sign disagrees with the ellipsoid at %v", at)
 		}
 	}
+}
+
+func TestTransformKeepsTheSquashUnderRotation(t *testing.T) {
+	const angle = math.Pi / 4
+	field := sdf.Transform(
+		sdf.Sphere(vector3.Zero[float64](), 1),
+		trs.New(
+			vector3.Zero[float64](),
+			quaternion.FromEulerAngle(vector3.New(0., angle, 0.)),
+			vector3.New(0.25, 1., 1.),
+		),
+	)
+
+	thin := vector3.New(math.Cos(angle), 0., -math.Sin(angle))
+	fat := vector3.New(math.Sin(angle), 0., math.Cos(angle))
+
+	assert.InDelta(t, 0.25, surfaceAlong(field, thin), 1e-6)
+	assert.InDelta(t, 1.0, surfaceAlong(field, fat), 1e-6)
+	assert.LessOrEqual(t, worstGradient(field), 1.0001)
+}
+
+func TestTransformWithTranslationAndRotation(t *testing.T) {
+	offset := vector3.New(2., -1., 0.5)
+	field := sdf.Transform(
+		sdf.Sphere(vector3.Zero[float64](), 1),
+		trs.New(offset, quaternion.FromEulerAngle(vector3.New(0.3, 0.7, -0.2)), vector3.Fill(0.5)),
+	)
+
+	assert.InDelta(t, -0.5, field(offset), 1e-9)
+	assert.InDelta(t, 0, field(offset.Add(vector3.New(0.5, 0., 0.))), 1e-9)
 }
