@@ -14,6 +14,8 @@ import {
   AnimationMixer,
 } from "three";
 import { messageActions } from "@/stores/messageStore";
+import { modelStatsActions } from "@/stores/modelStatsStore";
+import { countModelStats } from "./model_stats";
 import { getApiErrorMessage } from "@/api/client";
 import { GraphInstance, Manifest, NodeDefinition } from "../schema";
 import { getFileExtension } from "../utils";
@@ -198,6 +200,7 @@ export class ProducerViewManager {
       } else {
         // We're all done loading!!!
         this.hideRunningMessage();
+        this.publishModelStats();
         for (let i = 0; i < this.completeRefreshSubscriber.length; i++) {
           this.completeRefreshSubscriber[i]();
         }
@@ -621,6 +624,11 @@ export class ProducerViewManager {
       //     this.loadImage(manifestUrl + fileToLoad);
       //     break;
     }
+  }
+
+  private publishModelStats(): void {
+    const stats = countModelStats(this.producerScene);
+    modelStatsActions.set(stats.vertices > 0 ? stats : null);
   }
 
   private cleanProducerScene() {
