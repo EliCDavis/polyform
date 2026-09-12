@@ -19,29 +19,24 @@ func (ot OctTree) BoundingBox() geometry.AABB {
 }
 
 type slabRay struct {
-	originX, originY, originZ    float64
-	inverseX, inverseY, inverseZ float64
+	origin, inverse vector3.Float64
 }
 
 func newSlabRay(ray geometry.Ray) slabRay {
-	origin, direction := ray.Origin(), ray.Direction()
-	return slabRay{
-		originX: origin.X(), originY: origin.Y(), originZ: origin.Z(),
-		inverseX: 1 / direction.X(), inverseY: 1 / direction.Y(), inverseZ: 1 / direction.Z(),
-	}
+	return slabRay{origin: ray.Origin(), inverse: ray.Direction().Reciprocal()}
 }
 
 func (r slabRay) hits(box geometry.AABB, tMin, tMax float64) bool {
 	const kEpsilon = 0.0000000001
 	low, high := box.Min(), box.Max()
 
-	if slab(low.X()-kEpsilon, high.X()+kEpsilon, r.originX, r.inverseX, &tMin, &tMax) {
+	if slab(low.X()-kEpsilon, high.X()+kEpsilon, r.origin.X(), r.inverse.X(), &tMin, &tMax) {
 		return false
 	}
-	if slab(low.Y()-kEpsilon, high.Y()+kEpsilon, r.originY, r.inverseY, &tMin, &tMax) {
+	if slab(low.Y()-kEpsilon, high.Y()+kEpsilon, r.origin.Y(), r.inverse.Y(), &tMin, &tMax) {
 		return false
 	}
-	return !slab(low.Z()-kEpsilon, high.Z()+kEpsilon, r.originZ, r.inverseZ, &tMin, &tMax)
+	return !slab(low.Z()-kEpsilon, high.Z()+kEpsilon, r.origin.Z(), r.inverse.Z(), &tMin, &tMax)
 }
 
 func slab(low, high, origin, inverse float64, tMin, tMax *float64) bool {
@@ -299,7 +294,7 @@ func octreeIndex(center, item vector3.Float64) int {
 
 const retainedOctant = 8
 
-func newOctree(elements, scratch []elementReference, octants []uint8, maxDepth int, tolerance float64) *OctTree {
+func newOctree(elements, scratch []elementReference, elementAssignedOctant []uint8, maxDepth int, tolerance float64) *OctTree {
 	if len(elements) == 0 {
 		return nil
 	}
@@ -317,46 +312,46 @@ func newOctree(elements, scratch []elementReference, octants []uint8, maxDepth i
 	globalCenter := bounds.Center()
 	nodeSize := bounds.Size()
 
-	var counts [9]int
+	var bucketSizes [9]int
 	for i := 0; i < len(elements); i++ {
 		bucket := retainedOctant
 		if !spansNode(nodeSize, elements[i].bounds.Size(), tolerance) {
 			bucket = octantOf(globalCenter, elements[i].bounds)
 		}
-		octants[i] = uint8(bucket)
-		counts[bucket]++
+		elementAssignedOctant[i] = uint8(bucket)
+		bucketSizes[bucket]++
 	}
 
-	var cursor [9]int
-	at := 0
-	for i, count := range counts {
-		cursor[i] = at
-		at += count
+	var bucketOffset [9]int
+	currentOffset := 0
+	for i, size := range bucketSizes {
+		bucketOffset[i] = currentOffset
+		currentOffset += size
 	}
 
 	for i := 0; i < len(elements); i++ {
-		octant := octants[i]
-		scratch[cursor[octant]] = elements[i]
-		cursor[octant]++
+		octant := elementAssignedOctant[i]
+		scratch[bucketOffset[octant]] = elements[i]
+		bucketOffset[octant]++
 	}
 	copy(elements, scratch)
 
-	found := 0
-	for _, count := range counts[:retainedOctant] {
+	nonEmptyOctants := 0
+	for _, count := range bucketSizes[:retainedOctant] {
 		if count > 0 {
-			found++
+			nonEmptyOctants++
 		}
 	}
 
-	children := make([]*OctTree, 0, found)
+	children := make([]*OctTree, 0, nonEmptyOctants)
 	first := 0
-	for _, count := range counts[:retainedOctant] {
-		last := first + count
-		if count > 0 {
+	for _, octantSize := range bucketSizes[:retainedOctant] {
+		last := first + octantSize
+		if octantSize > 0 {
 			children = append(children, newOctree(
 				elements[first:last:last],
 				scratch[first:last:last],
-				octants[first:last:last],
+				elementAssignedOctant[first:last:last],
 				maxDepth-1,
 				tolerance,
 			))
@@ -401,7 +396,7 @@ func NewOctree(elements []Element, settings ...OctreeConsturctionSetting) *OctTr
 	}
 
 	primitives := make([]elementReference, len(elements))
-	for i := 0; i < len(elements); i++ {
+	for i := range elements {
 		primitives[i] = elementReference{
 			primitive:     elements[i],
 			originalIndex: i,
