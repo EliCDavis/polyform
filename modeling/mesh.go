@@ -1273,5 +1273,5 @@ func (m Mesh) OctTreeWithAttributeAndDepth(atr string, depth int) *trees.OctTree
 		primitives[i] = p.Scope(atr)
 	})
 
-	return trees.NewOctreeWithDepth(primitives, depth)
+	return trees.NewOctree(primitives, trees.MaxDepth(depth))
 }
