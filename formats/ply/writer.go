@@ -234,15 +234,15 @@ func writeBinaryTriTopo(out io.Writer, model modeling.Mesh, format Format) error
 			endian.PutUint32(buf[5:], uint32(indices.At(i+1)))
 			endian.PutUint32(buf[9:], uint32(indices.At(i+2)))
 
-			p1 := texData.At(i).ToFloat32()
+			p1 := texData.At(indices.At(i)).ToFloat32()
 			endian.PutUint32(buf[14:], math.Float32bits(p1.X()))
 			endian.PutUint32(buf[18:], math.Float32bits(p1.Y()))
 
-			p2 := texData.At(i + 1).ToFloat32()
+			p2 := texData.At(indices.At(i + 1)).ToFloat32()
 			endian.PutUint32(buf[22:], math.Float32bits(p2.X()))
 			endian.PutUint32(buf[26:], math.Float32bits(p2.Y()))
 
-			p3 := texData.At(i + 2).ToFloat32()
+			p3 := texData.At(indices.At(i + 2)).ToFloat32()
 			endian.PutUint32(buf[30:], math.Float32bits(p3.X()))
 			endian.PutUint32(buf[34:], math.Float32bits(p3.Y()))
 

@@ -2,9 +2,10 @@ package obj
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
-	"path"
 	"path/filepath"
 
 	"github.com/EliCDavis/polyform/modeling"
@@ -26,8 +27,11 @@ func Load(objPath string) (*Scene, error) {
 
 	loadedMaterials := make(map[string]*Material)
 	for _, matPath := range matPaths {
-		matFilePath := path.Join(path.Dir(objPath), matPath)
+		matFilePath := filepath.Join(filepath.Dir(objPath), matPath)
 		matFile, err := os.Open(matFilePath)
+		if errors.Is(err, fs.ErrNotExist) {
+			continue
+		}
 		if err != nil {
 			return nil, fmt.Errorf("failed to open material file %q: %w", matFilePath, err)
 		}
@@ -47,7 +51,9 @@ func Load(objPath string) (*Scene, error) {
 			if e.Material == nil {
 				continue
 			}
-			o.Entries[i].Material = loadedMaterials[e.Material.Name]
+			if loaded, ok := loadedMaterials[e.Material.Name]; ok {
+				o.Entries[i].Material = loaded
+			}
 		}
 	}
 
@@ -82,7 +88,7 @@ func SaveMesh(objPath string, meshToSave modeling.Mesh) error {
 // Save writes all provided meshes to the path specified in OBJ format, optionally writing
 // an additional MTL file with all materials that are found across all meshes.
 func Save(objPath string, scene Scene) error {
-	if err := os.MkdirAll(path.Dir(objPath), os.ModePerm); err != nil {
+	if err := os.MkdirAll(filepath.Dir(objPath), os.ModePerm); err != nil {
 		return fmt.Errorf("failed to create all dirs for path %q: %w", objPath, err)
 	}
 
@@ -106,7 +112,7 @@ func Save(objPath string, scene Scene) error {
 		if err = WriteMaterials(scene, mtlFile); err != nil {
 			return fmt.Errorf("failed to write materials: %w", err)
 		}
-		mtlPath = path.Base(mtlName)
+		mtlPath = filepath.Base(mtlName)
 	}
 
 	out := bufio.NewWriter(objFile)

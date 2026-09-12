@@ -580,3 +580,75 @@ func TestWriteBinary_TriWithUVData(t *testing.T) {
 	assert.Equal(t, float32(5.), tri.Uvs[4])
 	assert.Equal(t, float32(6.), tri.Uvs[5])
 }
+
+func TestWriteBinary_TriWithUVData_SharedVertices(t *testing.T) {
+	// ARRANGE ================================================================
+	writer := ply.MeshWriter{
+		Format: ply.BinaryLittleEndian,
+		Properties: []ply.PropertyWriter{
+			ply.Vector3PropertyWriter{
+				ModelAttribute: modeling.PositionAttribute,
+				PlyPropertyX:   "x",
+				PlyPropertyY:   "y",
+				PlyPropertyZ:   "z",
+				Type:           ply.Float,
+			},
+		},
+	}
+
+	type point struct {
+		X float32
+		Y float32
+		Z float32
+	}
+
+	type triangle struct {
+		IndiceCount byte
+		Indices     [3]uint32
+		UvCount     byte
+		Uvs         [6]float32
+	}
+
+	mesh := modeling.NewTriangleMesh([]int{0, 1, 2, 0, 2, 3}).
+		SetFloat3Data(map[string][]vector3.Float64{
+			modeling.PositionAttribute: {
+				vector3.New(0., 0., 0.),
+				vector3.New(1., 0., 0.),
+				vector3.New(1., 1., 0.),
+				vector3.New(0., 1., 0.),
+			},
+		}).
+		SetFloat2Data(map[string][]vector2.Float64{
+			modeling.TexCoordAttribute: {
+				vector2.New(10., 11.),
+				vector2.New(20., 21.),
+				vector2.New(30., 31.),
+				vector2.New(40., 41.),
+			},
+		})
+
+	// ACT ====================================================================
+	buf := &bytes.Buffer{}
+	err := writer.Write(mesh, "", buf)
+	assert.NoError(t, err)
+
+	buf = bytes.NewBuffer(buf.Bytes())
+	_, err = ply.ReadHeader(buf)
+	assert.NoError(t, err)
+
+	pt := make([]point, 4)
+	err = binary.Read(buf, binary.LittleEndian, pt)
+	assert.NoError(t, err)
+
+	tris := make([]triangle, 2)
+	err = binary.Read(buf, binary.LittleEndian, tris)
+
+	// ASSERT =================================================================
+	assert.NoError(t, err)
+
+	assert.Equal(t, [3]uint32{0, 1, 2}, tris[0].Indices)
+	assert.Equal(t, [6]float32{10, 11, 20, 21, 30, 31}, tris[0].Uvs)
+
+	assert.Equal(t, [3]uint32{0, 2, 3}, tris[1].Indices)
+	assert.Equal(t, [6]float32{10, 11, 30, 31, 40, 41}, tris[1].Uvs)
+}
