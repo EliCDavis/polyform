@@ -220,9 +220,10 @@ select {
 }
 
 .variable-description {
-  line-height: normal;
+  font-size: 11px;
+  line-height: 16px;
   margin-bottom: 8px;
-  color: #d8d8d8;
+  color: #8fa8b0;
 }
 
 input {
@@ -239,6 +240,12 @@ input {
   min-width: 0;
   flex-basis: 0;
   width: 95%;
+}
+
+input[type="checkbox"] {
+  flex: 0 0 auto;
+  width: auto;
+  cursor: pointer;
 }
 
 input::-webkit-outer-spin-button,

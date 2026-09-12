@@ -22,6 +22,10 @@ export function ModelStats() {
         <span className={styles.value}>{stats.vertices.toLocaleString()}</span>
         <span className={styles.unit}>verts</span>
       </span>
+      <span>
+        <span className={styles.value}>{stats.draws.toLocaleString()}</span>
+        <span className={styles.unit}>draws</span>
+      </span>
     </div>
   );
 }

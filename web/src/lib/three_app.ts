@@ -60,6 +60,7 @@ export interface ThreeApp {
   Scene: Scene;
   ViewerScene: Group;
   Ground: ThreeAppGround;
+  Grid: Group;
   Lighting: ThreeAppLighting;
   Composer: EffectComposer;
   PostProcessing: ThreeAppPostProcessing;
@@ -215,6 +216,12 @@ export function CreateThreeApp(
   groundMesh.receiveShadow = true;
   scene.add(groundMesh);
 
+  // Holder only. ProducerViewManager builds the helper inside it once a model
+  // is loaded, since extent and cell count both depend on the model's bounds.
+  const grid = new Group();
+  grid.visible = false;
+  scene.add(grid);
+
   const orbitControls = new OrbitControls(camera, renderer.domElement);
   orbitControls.minDistance = 0;
   orbitControls.maxDistance = 100;
@@ -238,6 +245,7 @@ export function CreateThreeApp(
       Material: groundMat,
       Mesh: groundMesh,
     },
+    Grid: grid,
     Lighting: {
       DirLight: dirLight,
       HemiLight: hemiLight,

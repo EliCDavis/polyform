@@ -3,10 +3,11 @@ import { InstancedMesh, Mesh, Object3D, Points } from "three";
 export interface ModelStats {
     vertices: number;
     triangles: number;
+    draws: number;
 }
 
 export function countModelStats(root: Object3D | null): ModelStats {
-    const stats: ModelStats = { vertices: 0, triangles: 0 };
+    const stats: ModelStats = { vertices: 0, triangles: 0, draws: 0 };
     if (!root) {
         return stats;
     }
@@ -27,6 +28,7 @@ export function countModelStats(root: Object3D | null): ModelStats {
         const instances = object instanceof InstancedMesh ? object.count : 1;
 
         if (object instanceof Points) {
+            stats.draws += 1;
             stats.vertices += position.count * instances;
             return;
         }
@@ -35,6 +37,8 @@ export function countModelStats(root: Object3D | null): ModelStats {
             return;
         }
 
+        // A mesh split across material groups is submitted once per group.
+        stats.draws += Array.isArray(object.material) ? object.material.length : 1;
         stats.vertices += position.count * instances;
         const indices = geometry.getIndex();
         stats.triangles += ((indices ? indices.count : position.count) / 3) * instances;

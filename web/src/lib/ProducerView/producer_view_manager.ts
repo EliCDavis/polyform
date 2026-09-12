@@ -1,6 +1,8 @@
 import {
   Box3,
   DirectionalLight,
+  GridHelper,
+  Material,
   EquirectangularReflectionMapping,
   Group,
   Mesh,
@@ -16,6 +18,7 @@ import {
 import { messageActions } from "@/stores/messageStore";
 import { modelStatsActions } from "@/stores/modelStatsStore";
 import { countModelStats } from "./model_stats";
+import { ShadingMode, debugMaterialFor } from "./debug_materials";
 import { getApiErrorMessage } from "@/api/client";
 import { GraphInstance, Manifest, NodeDefinition } from "../schema";
 import { getFileExtension } from "../utils";
@@ -42,6 +45,9 @@ function loadFailureMessage(error: unknown, fallback: string): string {
   return fallback;
 }
 
+const GRID_SLACK = 1.15;
+const GRID_MAX_DIVISIONS = 100;
+
 const textureLoader = new TextureLoader();
 const textureEquirec = textureLoader.load(
   "https://i.imgur.com/Ev4X4yY_d.webp?maxwidth=1520&fidelity=grand"
@@ -53,6 +59,12 @@ export class ProducerViewManager {
   loadingCount: number;
 
   wireframe: boolean;
+
+  shading: ShadingMode;
+
+  grid: Group;
+
+  gridHelper: GridHelper | null;
 
   producerItemSubscriber: Array<ProducerRefreshCallback>;
 
@@ -132,11 +144,14 @@ export class ProducerViewManager {
     this.ssaoEffect = app.PostProcessing.SSAO;
     this.orbitControls = app.OrbitControls;
     this.viewerContainer = app.ViewerScene;
+    this.grid = app.Grid;
+    this.gridHelper = null;
     this.scene = app.Scene;
 
     this.producerScene = null;
     this.guassianSplatViewer = null;
     this.wireframe = false;
+    this.shading = ShadingMode.Shaded;
     this.firstTimeLoadingScene = true;
     this.loadingCount = 0;
     this.cachedSchema = null;
@@ -200,6 +215,9 @@ export class ProducerViewManager {
       } else {
         // We're all done loading!!!
         this.hideRunningMessage();
+        this.fitGridToModel();
+        this.applyShading();
+        this.applyWireframe();
         this.publishModelStats();
         for (let i = 0; i < this.completeRefreshSubscriber.length; i++) {
           this.completeRefreshSubscriber[i]();
@@ -375,7 +393,6 @@ export class ProducerViewManager {
     objLoader.load(
       producerURL,
       (obj) => {
-        this.RemoveLoading();
         this.cleanProducerScene();
 
         const aabb = new Box3();
@@ -392,6 +409,8 @@ export class ProducerViewManager {
 
         this.viewAABB(aabb);
         this.fitShadowToViewerContainer();
+
+        this.RemoveLoading();
       },
       undefined,
       (err) => {
@@ -432,7 +451,6 @@ export class ProducerViewManager {
           if (object.isMesh) {
             object.castShadow = true;
             object.receiveShadow = true;
-            object.material.wireframe = this.wireframe;
             object.material.envMap = textureEquirec;
             object.material.needsUpdate = true;
             // object.material.transparent = true;
@@ -477,7 +495,6 @@ export class ProducerViewManager {
       (geometry) => {
         this.cleanProducerScene();
 
-        this.RemoveLoading();
         geometry.computeVertexNormals();
 
         const material = new MeshStandardMaterial({});
@@ -499,6 +516,8 @@ export class ProducerViewManager {
 
         this.viewAABB(aabb);
         this.fitShadowToViewerContainer();
+
+        this.RemoveLoading();
       },
       undefined,
       (err) => {
@@ -570,12 +589,94 @@ export class ProducerViewManager {
       });
   }
 
+  SetShading(shading: ShadingMode): void {
+    this.shading = shading;
+    this.applyShading();
+    this.applyWireframe();
+  }
+
+  private applyShading(): void {
+    const override = debugMaterialFor(this.shading);
+    this.producerScene?.traverse((object) => {
+      if (!(object instanceof Mesh)) {
+        return;
+      }
+      if (object.userData.polyformMaterial === undefined) {
+        object.userData.polyformMaterial = object.material;
+      }
+      object.material = override ?? object.userData.polyformMaterial;
+    });
+  }
+
+  /** Re-aims the shadow camera after the light has been moved. */
+  RefitShadowCamera(): void {
+    this.fitShadowToViewerContainer();
+  }
+
+  /**
+   * The grid marks the model's own origin, not the shift applied to stand the
+   * model on the floor, so it answers "where is 0,0,0" rather than "where is
+   * the bottom of this mesh". Cells land on a power of ten so it reads as a
+   * ruler, and it spans far enough to reach the model's bounds from origin.
+   */
+  private fitGridToModel(): void {
+    const box = new Box3().setFromObject(this.producerScene);
+    if (box.isEmpty() || !isFinite(box.min.x) || !isFinite(box.max.x)) {
+      return;
+    }
+
+    // Measured from origin rather than across the model, so a mesh authored
+    // far off-centre still has the origin and itself on the same grid.
+    const reach = Math.max(
+      Math.abs(box.min.x),
+      Math.abs(box.max.x),
+      Math.abs(box.min.z),
+      Math.abs(box.max.z)
+    );
+    if (!isFinite(reach) || reach <= 0) {
+      return;
+    }
+
+    const extent = reach * GRID_SLACK;
+    const cell = Math.pow(10, Math.round(Math.log10(extent / 10)));
+    const divisions = Math.min(
+      Math.max(Math.ceil(extent / cell) * 2, 4),
+      GRID_MAX_DIVISIONS
+    );
+
+    this.buildGrid(divisions * cell, divisions);
+    this.grid.position.y = this.viewerContainer.position.y + cell * 0.001;
+  }
+
+  private buildGrid(size: number, divisions: number): void {
+    if (this.gridHelper) {
+      this.gridHelper.removeFromParent();
+      this.gridHelper.geometry.dispose();
+      (this.gridHelper.material as Material).dispose();
+    }
+    this.gridHelper = new GridHelper(size, divisions, 0x6b6b6b, 0xb4b4b4);
+    (this.gridHelper.material as Material).depthWrite = false;
+    this.grid.add(this.gridHelper);
+  }
+
   SetWireframe(wireframe: boolean): void {
     this.wireframe = wireframe;
-    this.producerScene.traverse((object) => {
+    this.applyWireframe();
+  }
+
+  private applyWireframe(): void {
+    this.producerScene?.traverse((object) => {
       // https://discourse.threejs.org/t/gltf-scene-traverse-property-ismesh-does-not-exist-on-type-object3d/27212
-      if (object instanceof Mesh) {
-        object.material.wireframe = wireframe;
+      if (!(object instanceof Mesh)) {
+        return;
+      }
+      const materials = Array.isArray(object.material)
+        ? object.material
+        : [object.material];
+      for (const material of materials) {
+        if (material && "wireframe" in material) {
+          material.wireframe = this.wireframe;
+        }
       }
     });
   }

@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import styles from "./RenderingControls.module.css";
 
 interface RenderingOptionProps {
   name: string;
@@ -23,6 +24,78 @@ export function RenderingOption({
         value={value}
         onChange={(e) => setValue(parseFloat(e.target.value))}
       ></input>
+    </div>
+  );
+}
+
+interface RenderingToggleOptionProps {
+  name: string;
+  description?: string;
+  value: boolean;
+  setValue: (value: boolean) => void;
+}
+
+export function RenderingToggleOption({
+  name,
+  description,
+  value,
+  setValue,
+}: RenderingToggleOptionProps) {
+  return (
+    <div className="variable-row">
+      <div className="variable-header">
+        <span className="variable-name">{name}</span>
+        <input
+          type="checkbox"
+          checked={value}
+          onChange={(e) => setValue(e.target.checked)}
+        />
+      </div>
+      {description && <div className="variable-description">{description}</div>}
+    </div>
+  );
+}
+
+interface RenderingSliderOptionProps {
+  name: string;
+  description?: string;
+  value: number;
+  min: number;
+  max: number;
+  step?: number;
+  unit?: string;
+  setValue: (value: number) => void;
+}
+
+export function RenderingSliderOption({
+  name,
+  description,
+  value,
+  min,
+  max,
+  step = 1,
+  unit = "",
+  setValue,
+}: RenderingSliderOptionProps) {
+  return (
+    <div className="variable-row">
+      <div className="variable-header">
+        <span className="variable-name">{name}</span>
+        <span className={styles.sliderValue}>
+          {value}
+          {unit}
+        </span>
+      </div>
+      {description && <div className="variable-description">{description}</div>}
+      <input
+        className={styles.slider}
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={(e) => setValue(parseFloat(e.target.value))}
+      />
     </div>
   );
 }
@@ -94,8 +167,9 @@ export function RenderingColorOption({
 interface RenderingGroupProps {
   name: string;
   description?: string;
-  enabled: boolean;
-  setEnabled: (enabled: boolean) => void;
+  /** Omit both to get a plain heading rather than a switchable feature. */
+  enabled?: boolean;
+  setEnabled?: (enabled: boolean) => void;
   children: ReactNode;
 }
 
@@ -106,18 +180,22 @@ export function RenderingGroup({
   setEnabled,
   children,
 }: RenderingGroupProps) {
+  const switchable = setEnabled !== undefined;
+  const active = !switchable || enabled === true;
   return (
-    <div className="rendering-group">
+    <div className={styles.group}>
       <div className="variable-header">
-        <span className="variable-name">{name}</span>
-        <input
-          type="checkbox"
-          checked={enabled}
-          onChange={(e) => setEnabled(e.target.checked)}
-        />
+        <span className={styles.groupName}>{name}</span>
+        {switchable && (
+          <input
+            type="checkbox"
+            checked={enabled === true}
+            onChange={(e) => setEnabled(e.target.checked)}
+          />
+        )}
       </div>
       {description && <div className="variable-description">{description}</div>}
-      <div className={`rendering-group-content${enabled ? "" : " disabled"}`}>
+      <div className={`${styles.groupContent} ${active ? "" : styles.disabled}`}>
         {children}
       </div>
     </div>
