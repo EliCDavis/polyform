@@ -21,6 +21,10 @@ type ReadReconstructionNode struct {
 	In nodes.Output[[]byte]
 }
 
+func (pn ReadReconstructionNode) Description() string {
+	return "Reads an OpenSfM reconstruction into a mesh."
+}
+
 func (pn ReadReconstructionNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	if pn.In == nil {
 		out.Set(modeling.EmptyMesh(modeling.PointTopology))

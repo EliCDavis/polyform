@@ -1,6 +1,8 @@
 package gltf
 
 import (
+	"fmt"
+
 	"github.com/EliCDavis/polyform/math/trs"
 	"github.com/EliCDavis/polyform/modeling"
 )
@@ -54,7 +56,7 @@ type instancesCachceKey struct {
 
 type instancesCachce map[instancesCachceKey][]trs.TRS
 
-func (ic instancesCachce) Add(mesh int, model *PolyformModel) {
+func (ic instancesCachce) Add(mesh int, model *PolyformModel) error {
 	key := instancesCachceKey{mesh: mesh}
 	arr := ic[key]
 
@@ -65,20 +67,25 @@ func (ic instancesCachce) Add(mesh int, model *PolyformModel) {
 			arr = append(arr, trs.Identity())
 		}
 		ic[key] = arr
-		return
+		return nil
 	}
 
 	if model.TRS == nil {
 		ic[key] = append(arr, model.GpuInstances...)
-		return
+		return nil
 	}
 
 	transformedInstances := make([]trs.TRS, len(model.GpuInstances))
 	for i, v := range model.GpuInstances {
-		transformedInstances[i] = model.TRS.Multiply(v)
+		composed, err := trs.FromMatrix(model.TRS.Multiply(v))
+		if err != nil {
+			return fmt.Errorf("instance %d of model %q: %w", i, model.Name, err)
+		}
+		transformedInstances[i] = composed
 	}
 
 	ic[key] = append(arr, transformedInstances...)
+	return nil
 }
 
 func (ic instancesCachce) IsInstanced(mesh int) bool {

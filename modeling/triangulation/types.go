@@ -21,6 +21,10 @@ type BowyerWatsonNode struct {
 	Constraints nodes.Output[[]vector2.Float64]
 }
 
+func (node BowyerWatsonNode) Description() string {
+	return "Triangulates a set of 2D points into a mesh."
+}
+
 func (node BowyerWatsonNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	out.Set(modeling.EmptyMesh(modeling.TriangleTopology))
 	if node.Points == nil {

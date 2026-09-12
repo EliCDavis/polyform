@@ -1,6 +1,9 @@
 package trs
 
 import (
+	"fmt"
+	"math"
+
 	"github.com/EliCDavis/polyform/math/mat"
 	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/vector/vector3"
@@ -51,35 +54,53 @@ func Rotation(rotation quaternion.Quaternion) TRS {
 	}
 }
 
-func FromMatrix(m mat.Matrix4x4) TRS {
+// ShearTolerance is how far from perpendicular a matrix's axes may drift
+// before FromMatrix refuses it.
+const ShearTolerance = 1e-9
+
+// Shear reports how far m is from being a rotation and an axis-aligned
+// scale, as the largest cosine between its axes. Zero means the axes are
+// perpendicular and the matrix is a TRS.
+func Shear(m mat.Matrix4x4) float64 {
+	axes := [3]vector3.Float64{
+		vector3.New(m.X00, m.X10, m.X20),
+		vector3.New(m.X01, m.X11, m.X21),
+		vector3.New(m.X02, m.X12, m.X22),
+	}
+
+	worst := 0.
+	for i := 0; i < 3; i++ {
+		for j := i + 1; j < 3; j++ {
+			lengths := axes[i].Length() * axes[j].Length()
+			if lengths == 0 {
+				continue
+			}
+			worst = math.Max(worst, math.Abs(axes[i].Dot(axes[j]))/lengths)
+		}
+	}
+	return worst
+}
+
+// FromMatrix decomposes m into a TRS.
+//
+// Errors on matrixes with shear
+func FromMatrix(m mat.Matrix4x4) (TRS, error) {
 	// https://github.com/CedricGuillemet/ImGuizmo/blob/cf287a3fd48d503ad19a8f8ca81a1a15b63bccf1/ImGuizmo.cpp#L2359
 	// https://github.com/UltravioletFramework/ultraviolet/blob/main/Source/Ultraviolet/Mathematics/Matrix.cs#L2251
-
-	// TODO: Do we panic when any component of scale is 0?
-
-	// xNeg := (m.X00 * m.X10 * m.X20) < 0
-	// xSign := 1.
-	// if xNeg {
-	// 	xSign = -1
-	// }
-
-	// yNeg := (m.X01 * m.X11 * m.X21) < 0
-	// ySign := 1.
-	// if yNeg {
-	// 	ySign = -1
-	// }
-
-	// zNeg := (m.X02 * m.X12 * m.X22) < 0
-	// zSign := 1.
-	// if zNeg {
-	// 	zSign = -1
-	// }
 
 	scale := vector3.New(
 		vector3.New(m.X00, m.X10, m.X20).Length(),
 		vector3.New(m.X01, m.X11, m.X21).Length(),
 		vector3.New(m.X02, m.X12, m.X22).Length(),
 	)
+
+	if scale.X() == 0 || scale.Y() == 0 || scale.Z() == 0 {
+		return TRS{}, fmt.Errorf("matrix collapses an axis (scale %v), leaving no rotation to extract", scale)
+	}
+
+	if shear := Shear(m); shear > ShearTolerance {
+		return TRS{}, fmt.Errorf("matrix contains shear (%.4f off perpendicular) and is not a TRS; a non-uniform scale composed with a rotation produces this", shear)
+	}
 
 	rotM := mat.Matrix4x4{}
 	rotM.X00 = m.X00 / scale.X()
@@ -96,15 +117,9 @@ func FromMatrix(m mat.Matrix4x4) TRS {
 
 	rotM.X33 = 1
 
-	// scale = vector3.New(
-	// 	vector3.New(m.X00, m.X10, m.X20).Length(),
-	// 	vector3.New(m.X01, m.X11, m.X21).Length(),
-	// 	vector3.New(m.X02, m.X12, m.X22).Length(),
-	// )
-
 	return TRS{
 		position: vector3.New(m.X03, m.X13, m.X23),
 		scale:    scale,
 		rotation: quaternion.FromMatrix(rotM),
-	}
+	}, nil
 }

@@ -518,7 +518,9 @@ func (w *Writer) AddScene(scene PolyformScene) error {
 				if err != nil {
 					return err
 				}
-				childInstanceGroups.Add(meshIndex, child)
+				if err := childInstanceGroups.Add(meshIndex, child); err != nil {
+					return err
+				}
 				continue
 			}
 
@@ -742,27 +744,31 @@ func (w *Writer) addModel(model *PolyformModel, parentTransformOverride *trs.TRS
 	}
 
 	if model.TRS != nil || parentTransformOverride != nil {
-		trs := trs.Identity()
+		transform := trs.Identity()
 		if model.TRS != nil {
-			trs = *model.TRS
+			transform = *model.TRS
 		}
 
 		if parentTransformOverride != nil {
-			trs = trs.Multiply(*parentTransformOverride)
+			composed, err := trs.FromMatrix(transform.Multiply(*parentTransformOverride))
+			if err != nil {
+				return nil, fmt.Errorf("model %q: glTF nodes can not hold this transform: %w", model.Name, err)
+			}
+			transform = composed
 		}
 
-		if trs.Position() != vector3.Zero[float64]() {
-			translation := trs.Position().ToFixedArr()
+		if transform.Position() != vector3.Zero[float64]() {
+			translation := transform.Position().ToFixedArr()
 			node.Translation = &translation
 		}
 
-		if trs.Scale() != vector3.One[float64]() {
-			scale := trs.Scale().ToFixedArr()
+		if transform.Scale() != vector3.One[float64]() {
+			scale := transform.Scale().ToFixedArr()
 			node.Scale = &scale
 		}
 
-		if trs.Rotation() != quaternion.Identity() {
-			rotation := trs.Rotation().ToArr()
+		if transform.Rotation() != quaternion.Identity() {
+			rotation := transform.Rotation().ToArr()
 			node.Rotation = &rotation
 		}
 	}
@@ -798,8 +804,11 @@ func (w *Writer) addModel(model *PolyformModel, parentTransformOverride *trs.TRS
 				}
 
 				if len(child.GpuInstances) > 0 {
-					for _, childInstance := range child.GpuInstances {
-						adjustedTRS := childTRS.Multiply(childInstance)
+					for i, childInstance := range child.GpuInstances {
+						adjustedTRS, err := trs.FromMatrix(childTRS.Multiply(childInstance))
+						if err != nil {
+							return nil, fmt.Errorf("model %q instance %d: glTF nodes can not hold this transform: %w", child.Name, i, err)
+						}
 						positions = append(positions, adjustedTRS.Position())
 						rotations = append(rotations, adjustedTRS.Rotation().Vector4())
 						scales = append(scales, adjustedTRS.Scale())
@@ -818,7 +827,9 @@ func (w *Writer) addModel(model *PolyformModel, parentTransformOverride *trs.TRS
 				if err != nil {
 					return nil, err
 				}
-				childInstanceGroups.Add(meshIndex, child)
+				if err := childInstanceGroups.Add(meshIndex, child); err != nil {
+					return nil, err
+				}
 				continue
 			}
 		}

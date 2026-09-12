@@ -27,6 +27,10 @@ type IONode struct {
 	In nodes.Output[io.Reader]
 }
 
+func (pn IONode) Description() string {
+	return "Writes whatever a reader produces out as a file."
+}
+
 func (pn IONode) Out(out *nodes.StructOutput[manifest.Artifact]) {
 	out.Set(IO{Reader: nodes.TryGetOutputValue(out, pn.In, nil)})
 }

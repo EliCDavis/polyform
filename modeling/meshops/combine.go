@@ -9,6 +9,10 @@ type CombineNode struct {
 	Meshes []nodes.Output[modeling.Mesh]
 }
 
+func (cnd CombineNode) Description() string {
+	return "Merges several meshes into one. Append, join, combine. Not a boolean union: overlapping geometry is kept."
+}
+
 func (cnd CombineNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	fallback := modeling.EmptyMesh(modeling.TriangleTopology)
 

@@ -10,6 +10,10 @@ type SampleNode struct {
 	Samples nodes.Output[int]
 }
 
+func (snd SampleNode) Description() string {
+	return "Evenly spaced numbers from Start to End."
+}
+
 func (snd SampleNode) Out(out *nodes.StructOutput[[]float64]) {
 	start := nodes.TryGetOutputValue(out, snd.Start, 0.)
 	end := nodes.TryGetOutputValue(out, snd.End, 1.)
@@ -28,6 +32,10 @@ func (snd SampleNode) Out(out *nodes.StructOutput[[]float64]) {
 type ShiftNode struct {
 	In    nodes.Output[[]float64]
 	Shift nodes.Output[float64]
+}
+
+func (snd ShiftNode) Description() string {
+	return "Adds a number to every entry of an array."
 }
 
 func (snd ShiftNode) Out(out *nodes.StructOutput[[]float64]) {

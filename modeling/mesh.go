@@ -354,8 +354,20 @@ func (m Mesh) ApplyTRS(transform trs.TRS) Mesh {
 	m.requireV3Attribute(PositionAttribute)
 
 	oldData := m.v3Data[PositionAttribute]
+	result := m.SetFloat3Attribute(PositionAttribute, transform.TransformArray(oldData))
 
-	return m.SetFloat3Attribute(PositionAttribute, transform.TransformArray(oldData))
+	normals, hasNormals := m.v3Data[NormalAttribute]
+	if !hasNormals {
+		return result
+	}
+
+	rotation := transform.Rotation()
+	rotated := make([]vector3.Float64, len(normals))
+	for i, n := range normals {
+		rotated[i] = rotation.Rotate(n)
+	}
+
+	return result.SetFloat3Attribute(NormalAttribute, rotated)
 }
 
 func (m Mesh) Scale(amount vector3.Float64) Mesh {

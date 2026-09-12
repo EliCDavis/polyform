@@ -296,6 +296,10 @@ type CircleAlongSplineNode struct {
 	UVs              nodes.Output[primitives.StripUVs]
 }
 
+func (pnd CircleAlongSplineNode) Description() string {
+	return "Sweeps a circle along a spline, making a tube. Radii varies the thickness along its length."
+}
+
 func (pnd CircleAlongSplineNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	if pnd.Spline == nil {
 		out.Set(modeling.EmptyMesh(modeling.TriangleTopology))

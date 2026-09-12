@@ -9,6 +9,7 @@ import {
 } from "./RenderingControls";
 import { SSAOGroup } from "./SSAOGroup";
 import { BloomGroup } from "./BloomGroup";
+import { AutoRotateGroup } from "./AutoRotateGroup";
 
 interface RenderingSectionProps {}
 
@@ -157,6 +158,7 @@ export function RenderingSection() {
           producerViewManager={editor.producerViewManager}
         />
         <BloomGroup threeApp={editor.threeApp} />
+        <AutoRotateGroup threeApp={editor.threeApp} />
       </div>
     </>
   );

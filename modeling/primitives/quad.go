@@ -125,6 +125,10 @@ type QuadNode struct {
 	UVs     nodes.Output[StripUVs]
 }
 
+func (c QuadNode) Description() string {
+	return "A single flat rectangle."
+}
+
 func (c QuadNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	quad := Quad{
 		Width:   nodes.TryGetOutputValue(out, c.Width, 1.),
@@ -134,4 +138,8 @@ func (c QuadNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 		UVs:     nodes.TryGetOutputReference(out, c.UVs, nil),
 	}
 	out.Set(quad.ToMesh())
+}
+
+func (c QuadNode) Keywords() []string {
+	return []string{"plane", "billboard"}
 }

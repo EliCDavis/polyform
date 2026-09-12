@@ -44,6 +44,10 @@ type DivideToArrayNode[T vector.Number] struct {
 	Array nodes.Output[[]T]
 }
 
+func (cn DivideToArrayNode[T]) Description() string {
+	return "Divides a number by every entry of an array."
+}
+
 func (cn DivideToArrayNode[T]) Quotients(out *nodes.StructOutput[[]T]) {
 	arr := nodes.TryGetOutputValue(out, cn.Array, nil)
 	if len(arr) == 0 {

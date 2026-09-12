@@ -27,6 +27,10 @@ type Perlin1DNode struct {
 	Frequency nodes.Output[float64]
 }
 
+func (cn Perlin1DNode) Description() string {
+	return "Perlin noise sampled along one dimension."
+}
+
 func (cn Perlin1DNode) Out(out *nodes.StructOutput[[]float64]) {
 	if cn.Time == nil {
 		return
@@ -49,6 +53,10 @@ type Perlin2DNode struct {
 	Amplitude nodes.Output[float64]
 	Frequency nodes.Output[vector2.Float64]
 	Shift     nodes.Output[vector2.Float64]
+}
+
+func (cn Perlin2DNode) Description() string {
+	return "Perlin noise sampled at 2D points."
 }
 
 func (cn Perlin2DNode) Out(out *nodes.StructOutput[[]float64]) {
@@ -75,6 +83,10 @@ type Perlin3DNode struct {
 	Shift     nodes.Output[vector3.Float64]
 }
 
+func (cn Perlin3DNode) Description() string {
+	return "Perlin noise sampled at 3D points. Takes an array of positions and returns one value per position."
+}
+
 func (cn Perlin3DNode) Out(out *nodes.StructOutput[[]float64]) {
 	if cn.Time == nil {
 		return
@@ -96,6 +108,10 @@ type Perlin3DFieldNode struct {
 	Amplitude nodes.Output[float64]         `description:"Scales the noise's output range. Defaults to 1."`
 	Frequency nodes.Output[vector3.Float64] `description:"Scales input position before sampling. Defaults to (1,1,1)."`
 	Shift     nodes.Output[vector3.Float64] `description:"Offset added to position before sampling. Defaults to (0,0,0)."`
+}
+
+func (cn Perlin3DFieldNode) Description() string {
+	return "Perlin noise as a field that can be sampled anywhere in 3D space."
 }
 
 func (cn Perlin3DFieldNode) Field(out *nodes.StructOutput[sample.Vec3ToFloat]) {

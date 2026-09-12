@@ -94,6 +94,10 @@ type ScaleAttributeAlongNormalNode struct {
 	UvAttribute nodes.Output[string]
 }
 
+func (sa3dn ScaleAttributeAlongNormalNode) Description() string {
+	return "Pushes vertices along their own normals, inflating or shrinking the surface. With a texture, displaces it into a relief."
+}
+
 func (sa3dn ScaleAttributeAlongNormalNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	if sa3dn.Mesh == nil {
 		out.Set(modeling.EmptyMesh(modeling.TriangleTopology))

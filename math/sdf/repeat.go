@@ -3,6 +3,7 @@ package sdf
 import (
 	"math"
 
+	"github.com/EliCDavis/polyform/math/mat"
 	"github.com/EliCDavis/polyform/math/sample"
 	"github.com/EliCDavis/polyform/math/trs"
 	"github.com/EliCDavis/polyform/nodes"
@@ -15,22 +16,22 @@ func Repeat(field sample.Vec3ToFloat, transforms []trs.TRS, radius float64) samp
 	}
 
 	if len(transforms) == 1 {
-		inverted := trs.FromMatrix(transforms[0].Matrix().Inverse())
+		inverted := transforms[0].Inverse()
 		return func(f vector3.Float64) float64 {
-			return field(inverted.Transform(f))
+			return field(inverted.MulPosition(f))
 		}
 	}
 
-	invertedTRS := make([]trs.TRS, len(transforms))
+	invertedTRS := make([]mat.Matrix4x4, len(transforms))
 	for i, v := range transforms {
-		invertedTRS[i] = trs.FromMatrix(v.Matrix().Inverse())
+		invertedTRS[i] = v.Inverse()
 	}
 
 	if radius <= 0 {
 		return func(v vector3.Float64) float64 {
-			closestPoint := field(invertedTRS[0].Transform(v))
+			closestPoint := field(invertedTRS[0].MulPosition(v))
 			for i := 1; i < len(invertedTRS); i++ {
-				closestPoint = min(closestPoint, field(invertedTRS[i].Transform(v)))
+				closestPoint = min(closestPoint, field(invertedTRS[i].MulPosition(v)))
 			}
 			return closestPoint
 		}
@@ -39,7 +40,7 @@ func Repeat(field sample.Vec3ToFloat, transforms []trs.TRS, radius float64) samp
 	return func(v vector3.Float64) float64 {
 		min1, min2 := math.Inf(1), math.Inf(1)
 		for i := range invertedTRS {
-			val := field(invertedTRS[i].Transform(v))
+			val := field(invertedTRS[i].MulPosition(v))
 			if val < min1 {
 				min1, min2 = val, min1
 			} else if val < min2 {

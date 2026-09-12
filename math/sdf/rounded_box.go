@@ -23,12 +23,12 @@ func RoundedBox(position, bounds vector3.Float64, roundness float64) sample.Vec3
 
 type RoundCubeNode struct {
 	Position  nodes.Output[vector3.Float64] `description:"Center of the box. Defaults to the origin."`
-	Size      nodes.Output[vector3.Float64] `description:"Full width/height/depth of the box before rounding. Defaults to (1, 1, 1)."`
-	Roundness nodes.Output[float64]         `description:"Radius of the fillet applied to every edge and corner. Defaults to 0.1."`
+	Size      nodes.Output[vector3.Float64] `description:"Full width/height/depth of the box before rounding, which grows by 2x Roundness on every axis. Defaults to (1, 1, 1)."`
+	Roundness nodes.Output[float64]         `description:"Radius of the fillet, added outward on every axis rather than carved off the corners. Defaults to 0.1."`
 }
 
 func (cn RoundCubeNode) Description() string {
-	return "An axis-aligned box with rounded edges and corners."
+	return "An axis-aligned box with rounded edges and corners. Rounding inflates: the final half-extent on each axis is Size/2 + Roundness, so for a target half-extent set Size = 2*(target - Roundness). Roundness larger than the thinnest half-extent you wanted swells that axis out to match the others."
 }
 
 func (cn RoundCubeNode) Field(out *nodes.StructOutput[sample.Vec3ToFloat]) {

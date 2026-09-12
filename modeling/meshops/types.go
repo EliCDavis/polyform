@@ -20,6 +20,7 @@ func init() {
 	refutil.RegisterType[nodes.Struct[LinearToSRGBNode]](factory)
 
 	refutil.RegisterType[nodes.Struct[CombineNode]](factory)
+	refutil.RegisterType[nodes.Struct[TransformNode]](factory)
 
 	refutil.RegisterType[nodes.Struct[SmoothNormalsNode]](factory)
 	refutil.RegisterType[nodes.Struct[SmoothNormalsImplicitWeldNode]](factory)

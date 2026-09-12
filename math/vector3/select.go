@@ -10,6 +10,10 @@ type Select[T vector.Number] struct {
 	In nodes.Output[vector3.Vector[T]]
 }
 
+func (node Select[T]) Description() string {
+	return "Splits a vector into its X, Y and Z components."
+}
+
 func (node Select[T]) X(out *nodes.StructOutput[T]) {
 	out.Set(nodes.TryGetOutputValue(out, node.In, vector3.Zero[T]()).X())
 }
@@ -24,6 +28,10 @@ func (node Select[T]) Z(out *nodes.StructOutput[T]) {
 
 type SelectArray[T vector.Number] struct {
 	In nodes.Output[[]vector3.Vector[T]]
+}
+
+func (node SelectArray[T]) Description() string {
+	return "Splits an array of vectors into arrays of X, Y and Z components."
 }
 
 func (node SelectArray[T]) arr(out *nodes.StructOutput[[]T], component int) []T {

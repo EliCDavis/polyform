@@ -90,7 +90,33 @@ func (h Hemisphere) UV(rows, columns int) modeling.Mesh {
 	return modeling.NewTriangleMesh(tris).
 		SetFloat3Data(map[string][]vector3.Float64{
 			modeling.PositionAttribute: positions,
+			modeling.NormalAttribute:   h.normals(positions),
 		})
+}
+
+func (h Hemisphere) normals(positions []vector3.Float64) []vector3.Float64 {
+	normals := make([]vector3.Float64, len(positions))
+	for i, p := range positions {
+		if i == 0 {
+			normals[i] = vector3.Down[float64]()
+			continue
+		}
+
+		n := vector3.New(p.X(), 0., p.Z())
+		if h.Radius != 0 {
+			n = n.DivByConstant(h.Radius * h.Radius)
+		}
+		if h.Height != 0 {
+			n = n.SetY(p.Y() / (h.Height * h.Height))
+		}
+
+		if n.Length() == 0 {
+			normals[i] = vector3.Up[float64]()
+			continue
+		}
+		normals[i] = n.Normalized()
+	}
+	return normals
 }
 
 type HemisphereNode struct {
@@ -99,6 +125,14 @@ type HemisphereNode struct {
 	Radius  nodes.Output[float64]
 	Height  nodes.Output[float64]
 	Capped  nodes.Output[bool]
+}
+
+func (hnd HemisphereNode) Description() string {
+	return "Half a sphere. Radius and Height are independent, so it can be squashed or stretched."
+}
+
+func (hnd HemisphereNode) Keywords() []string {
+	return []string{"dome", "bowl"}
 }
 
 func (hnd HemisphereNode) Out(out *nodes.StructOutput[modeling.Mesh]) {

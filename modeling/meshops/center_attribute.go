@@ -52,6 +52,10 @@ type CenterAttribute3DNode struct {
 	Mesh      nodes.Output[modeling.Mesh]
 }
 
+func (ca3dn CenterAttribute3DNode) Description() string {
+	return "Recenters a mesh so the chosen attribute's bounding box is centered on the origin."
+}
+
 func (ca3dn CenterAttribute3DNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	if ca3dn.Mesh == nil {
 		out.Set(modeling.EmptyMesh(modeling.TriangleTopology))

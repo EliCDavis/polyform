@@ -27,6 +27,10 @@ type FeetToMetersNode[T vector.Number] struct {
 	Feet nodes.Output[T]
 }
 
+func (ftm FeetToMetersNode[T]) Description() string {
+	return "Converts feet to meters."
+}
+
 func (ftm FeetToMetersNode[T]) Float64(out *nodes.StructOutput[float64]) {
 	out.Set(float64(nodes.TryGetOutputValue(out, ftm.Feet, 0)) * FeetToMeters)
 }
@@ -39,6 +43,10 @@ type MeterToFeetNode[T vector.Number] struct {
 	Meters nodes.Output[T]
 }
 
+func (ftm MeterToFeetNode[T]) Description() string {
+	return "Converts meters to feet."
+}
+
 func (ftm MeterToFeetNode[T]) Float64(out *nodes.StructOutput[float64]) {
 	out.Set(float64(nodes.TryGetOutputValue(out, ftm.Meters, 0)) * MetersToFeet)
 }
@@ -49,6 +57,10 @@ func (ftm MeterToFeetNode[T]) Int(out *nodes.StructOutput[int]) {
 
 type ParseFeetNode struct {
 	Feet nodes.Output[string]
+}
+
+func (ftm ParseFeetNode) Description() string {
+	return "Parses a feet and inches string like 5'11\" into a number."
 }
 
 func (ftm ParseFeetNode) Float64(out *nodes.StructOutput[float64]) {

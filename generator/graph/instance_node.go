@@ -122,6 +122,10 @@ func (r *SubgraphInstanceNode) SubGraphID() string {
 	return r.subGraphID
 }
 
+func (r *SubgraphInstanceNode) LiveGraph() *Instance {
+	return r.ensureClone()
+}
+
 func (r *SubgraphInstanceNode) ensureClone() *Instance {
 	r.mu.Lock()
 	if r.clone != nil {

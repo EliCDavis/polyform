@@ -130,6 +130,10 @@ type ReadNode struct {
 	In nodes.Output[[]byte]
 }
 
+func (pn ReadNode) Description() string {
+	return "Reads a PLY file into a mesh."
+}
+
 func (pn ReadNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	if pn.In == nil {
 		out.Set(modeling.EmptyMesh(modeling.PointTopology))

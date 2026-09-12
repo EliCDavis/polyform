@@ -136,7 +136,7 @@ func TestAppCommand_Swagger(t *testing.T) {
         "/manifest/test/Out": {
             "post": {
                 "summary": "",
-                "description": "",
+                "description": "Writes text out as a file.",
                 "produces": [
                     "application/json"
                 ],

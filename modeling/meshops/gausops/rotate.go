@@ -32,6 +32,10 @@ type RotateAttributeNode struct {
 	Amount    nodes.Output[quaternion.Quaternion]
 }
 
+func (rand RotateAttributeNode) Description() string {
+	return "Rotates a gaussian splat attribute."
+}
+
 func (rand RotateAttributeNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	if rand.Mesh == nil {
 		out.Set(modeling.EmptyPointcloud())

@@ -11,6 +11,10 @@ type Subtract[T vector.Number] struct {
 	B nodes.Output[vector4.Vector[T]]
 }
 
+func (d Subtract[T]) Description() string {
+	return "Subtracts vector B from vector A."
+}
+
 func (d Subtract[T]) Out(out *nodes.StructOutput[vector4.Vector[T]]) {
 	a := nodes.TryGetOutputValue(out, d.A, vector4.Zero[T]())
 	b := nodes.TryGetOutputValue(out, d.B, vector4.Zero[T]())
@@ -20,6 +24,10 @@ func (d Subtract[T]) Out(out *nodes.StructOutput[vector4.Vector[T]]) {
 type SubtractToArrayNode[T vector.Number] struct {
 	Amount nodes.Output[vector4.Vector[T]]
 	Array  nodes.Output[[]vector4.Vector[T]]
+}
+
+func (cn SubtractToArrayNode[T]) Description() string {
+	return "Subtracts a vector from every entry of an array."
 }
 
 func (cn SubtractToArrayNode[T]) Out(out *nodes.StructOutput[[]vector4.Vector[T]]) {

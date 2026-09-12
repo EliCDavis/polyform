@@ -46,6 +46,10 @@ type RotateAttribute3DNode struct {
 	Amount    nodes.Output[quaternion.Quaternion]
 }
 
+func (ra3dn RotateAttribute3DNode) Description() string {
+	return "Rotates one named vector attribute of a mesh. Use Transform to rotate a whole mesh including its normals."
+}
+
 func (ra3dn RotateAttribute3DNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	if ra3dn.Mesh == nil {
 		out.Set(modeling.EmptyMesh(modeling.TriangleTopology))

@@ -134,6 +134,10 @@ type GaussianBlurFloatNode struct {
 	Signma  nodes.Output[float64]          `description:"standard deviation of the gaussian"`
 }
 
+func (n GaussianBlurFloatNode) Description() string {
+	return "Gaussian blurs a texture of numbers."
+}
+
 func (n GaussianBlurFloatNode) Value(out *nodes.StructOutput[Texture[float64]]) {
 	if n.Texture == nil {
 		return
@@ -150,6 +154,10 @@ type GaussianBlurFloat2Node struct {
 	Texture nodes.Output[Texture[vector2.Float64]] `description:"Texture to blur"`
 	Radius  nodes.Output[int]                      `description:"Size of the kernel in pixels"`
 	Signma  nodes.Output[float64]                  `description:"standard deviation of the gaussian"`
+}
+
+func (n GaussianBlurFloat2Node) Description() string {
+	return "Gaussian blurs a texture of 2D vectors."
 }
 
 func (n GaussianBlurFloat2Node) Value(out *nodes.StructOutput[Texture[vector2.Float64]]) {
@@ -170,6 +178,10 @@ type GaussianBlurFloat3Node struct {
 	Signma  nodes.Output[float64]                  `description:"standard deviation of the gaussian"`
 }
 
+func (n GaussianBlurFloat3Node) Description() string {
+	return "Gaussian blurs a texture of 3D vectors."
+}
+
 func (n GaussianBlurFloat3Node) Value(out *nodes.StructOutput[Texture[vector3.Float64]]) {
 	if n.Texture == nil {
 		return
@@ -186,6 +198,10 @@ type GaussianBlurColorNode struct {
 	Texture nodes.Output[Texture[coloring.Color]] `description:"Texture to blur"`
 	Radius  nodes.Output[int]                     `description:"Size of the kernel in pixels"`
 	Signma  nodes.Output[float64]                 `description:"standard deviation of the gaussian"`
+}
+
+func (n GaussianBlurColorNode) Description() string {
+	return "Gaussian blurs a color texture."
 }
 
 func (n GaussianBlurColorNode) Value(out *nodes.StructOutput[Texture[coloring.Color]]) {

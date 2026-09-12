@@ -83,6 +83,10 @@ type DrawLinesNode struct {
 	Texture     nodes.Output[NormalMap] `description:"texture to draw on"`
 }
 
+func (n DrawLinesNode) Description() string {
+	return "Draws rounded lines into a normal map."
+}
+
 func (n DrawLinesNode) NormalMap(out *nodes.StructOutput[NormalMap]) {
 	if n.Texture == nil {
 		return
@@ -119,6 +123,10 @@ type DrawLineNode struct {
 	End         nodes.Output[vector2.Float64]
 	Subtract    nodes.Output[bool]
 	Texture     nodes.Output[NormalMap] `description:"texture to draw on"`
+}
+
+func (n DrawLineNode) Description() string {
+	return "Draws one rounded line into a normal map. Subtract carves it in instead of raising it."
 }
 
 func (n DrawLineNode) NormalMap(out *nodes.StructOutput[NormalMap]) {

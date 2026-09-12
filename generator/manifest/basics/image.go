@@ -26,6 +26,10 @@ type ImageNode struct {
 	Name  nodes.Output[string]      `description:"Name of the image file, defaults to 'image.png'"`
 }
 
+func (pn ImageNode) Description() string {
+	return "Writes an image out as a file."
+}
+
 func (pn ImageNode) Out(out *nodes.StructOutput[manifest.Manifest]) {
 	entry := manifest.Entry{Artifact: Image{Image: nodes.TryGetOutputValue(out, pn.Image, nil)}}
 	name := nodes.TryGetOutputValue(out, pn.Name, "image.png")

@@ -45,6 +45,10 @@ type TranslateAttribute3DNode struct {
 	Amount    nodes.Output[vector3.Float64]
 }
 
+func (ta3dn TranslateAttribute3DNode) Description() string {
+	return "Moves one named vector attribute of a mesh by an offset."
+}
+
 func (ta3dn TranslateAttribute3DNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	if ta3dn.Mesh == nil {
 		out.Set(modeling.EmptyMesh(modeling.TriangleTopology))

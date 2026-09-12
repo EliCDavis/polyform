@@ -22,6 +22,10 @@ type UniformFramesNode[T any] struct {
 	Duration nodes.Output[float64]
 }
 
+func (node UniformFramesNode[T]) Description() string {
+	return "Spreads values evenly across a duration as animation keyframes."
+}
+
 func (node UniformFramesNode[T]) Out(out *nodes.StructOutput[[]Frame[T]]) {
 	out.Set(UniformFrames(
 		nodes.TryGetOutputValue(out, node.Data, nil),

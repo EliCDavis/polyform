@@ -204,6 +204,10 @@ type LinesFromPoints3DNode struct {
 	Points nodes.Output[[]vector3.Float64]
 }
 
+func (n LinesFromPoints3DNode) Description() string {
+	return "Builds line segments connecting a sequence of points."
+}
+
 func (n LinesFromPoints3DNode) LineStrips(out *nodes.StructOutput[[]Line3D]) {
 	out.Set(LineStripsFromPoints3D(nodes.TryGetOutputValue(out, n.Points, nil)))
 }
@@ -216,6 +220,10 @@ func (n LinesFromPoints3DNode) Lines(out *nodes.StructOutput[[]Line3D]) {
 
 type LineLengths3DNode struct {
 	Lines nodes.Output[[]Line3D]
+}
+
+func (n LineLengths3DNode) Description() string {
+	return "Length of each line."
 }
 
 func (n LineLengths3DNode) Lengths(out *nodes.StructOutput[[]float64]) {
@@ -232,6 +240,10 @@ func (n LineLengths3DNode) Lengths(out *nodes.StructOutput[[]float64]) {
 type PositionsOnLinesAtTime3DNode struct {
 	Lines nodes.Output[[]Line3D]
 	Time  nodes.Output[float64]
+}
+
+func (n PositionsOnLinesAtTime3DNode) Description() string {
+	return "Point at the same 0-1 position along each line."
 }
 
 func (n PositionsOnLinesAtTime3DNode) Positions(out *nodes.StructOutput[[]vector3.Float64]) {
@@ -253,6 +265,10 @@ func (n PositionsOnLinesAtTime3DNode) Positions(out *nodes.StructOutput[[]vector
 type PositionsOnLineAtTimes3DNode struct {
 	Line  nodes.Output[Line3D]
 	Times nodes.Output[[]float64]
+}
+
+func (n PositionsOnLineAtTimes3DNode) Description() string {
+	return "Points at each 0-1 position along a single line."
 }
 
 func (n PositionsOnLineAtTimes3DNode) Positions(out *nodes.StructOutput[[]vector3.Float64]) {
@@ -278,6 +294,10 @@ type TrsFromLines3DNode struct {
 	ScaleY  nodes.Output[bool]
 	ScaleZ  nodes.Output[bool]
 	Forward nodes.Output[vector3.Float64]
+}
+
+func (n TrsFromLines3DNode) Description() string {
+	return "Builds a transform per line, positioned at its start and oriented along it."
 }
 
 func (n TrsFromLines3DNode) TRS(out *nodes.StructOutput[[]trs.TRS]) {

@@ -44,6 +44,10 @@ type FromThetaNode struct {
 	Direction nodes.Output[vector3.Float64]
 }
 
+func (cn FromThetaNode) Description() string {
+	return "Rotation of an angle in radians about an axis."
+}
+
 func (cn FromThetaNode) Out(out *nodes.StructOutput[Quaternion]) {
 	out.Set(FromTheta(
 		nodes.TryGetOutputValue(out, cn.Theta, 0),
@@ -56,6 +60,10 @@ func (cn FromThetaNode) Out(out *nodes.StructOutput[Quaternion]) {
 type FromThetaArrayNode struct {
 	Direction nodes.Output[[]vector3.Float64]
 	Theta     nodes.Output[[]float64]
+}
+
+func (snd FromThetaArrayNode) Description() string {
+	return "One rotation per angle and axis pair."
 }
 
 func (snd FromThetaArrayNode) Out(out *nodes.StructOutput[[]Quaternion]) {
@@ -85,12 +93,20 @@ type FromEulerAngleNode struct {
 	Angle nodes.Output[vector3.Float64]
 }
 
+func (cn FromEulerAngleNode) Description() string {
+	return "Rotation from euler angles in radians."
+}
+
 func (cn FromEulerAngleNode) Out(out *nodes.StructOutput[Quaternion]) {
 	out.Set(FromEulerAngle(nodes.TryGetOutputValue(out, cn.Angle, vector3.Zero[float64]())))
 }
 
 type FromEulerAnglesNode struct {
 	Angles nodes.Output[[]vector3.Float64]
+}
+
+func (cn FromEulerAnglesNode) Description() string {
+	return "One rotation per set of euler angles."
 }
 
 func (cn FromEulerAnglesNode) Out(out *nodes.StructOutput[[]Quaternion]) {

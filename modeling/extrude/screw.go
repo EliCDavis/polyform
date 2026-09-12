@@ -5,6 +5,7 @@ import (
 
 	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/polyform/modeling"
+	"github.com/EliCDavis/polyform/modeling/meshops"
 	"github.com/EliCDavis/polyform/modeling/primitives"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/vector/vector2"
@@ -17,6 +18,14 @@ type ScrewNode struct {
 	Revolutions nodes.Output[float64]
 	Distance    nodes.Output[float64]
 	UVs         nodes.Output[primitives.StripUVs]
+}
+
+func (snd ScrewNode) Description() string {
+	return "Sweeps a profile line around the Y axis. Distance 0 gives a closed round shape; non-zero screws it into a helix like a spring."
+}
+
+func (snd ScrewNode) Keywords() []string {
+	return []string{"lathe", "revolve"}
 }
 
 func (snd ScrewNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
@@ -106,7 +115,7 @@ func (snd ScrewNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 		}
 	}
 
-	out.Set(modeling.NewTriangleMesh(indices).
+	out.Set(meshops.SmoothNormals(modeling.NewTriangleMesh(indices).
 		SetFloat3Attribute(modeling.PositionAttribute, verts).
-		SetFloat2Attribute(modeling.TexCoordAttribute, uvs))
+		SetFloat2Attribute(modeling.TexCoordAttribute, uvs)))
 }

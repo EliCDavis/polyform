@@ -39,6 +39,10 @@ type SelectFromMeshNode struct {
 	Mesh nodes.Output[Mesh]
 }
 
+func (n SelectFromMeshNode) Description() string {
+	return "Pulls a mesh apart into its indices, positions, normals, colors and UVs."
+}
+
 func (n SelectFromMeshNode) Float3(recorder nodes.ExecutionRecorder, attr string) []vector3.Float64 {
 	if n.Mesh == nil {
 		return nil
@@ -130,6 +134,10 @@ func collapseMapEntries[T any](recorder nodes.ExecutionRecorder, entries []nodes
 		result[val.Name] = val.Data
 	}
 	return result
+}
+
+func (nmn NewMeshNode) Description() string {
+	return "Builds a mesh from indices and attribute arrays."
 }
 
 func (nmn NewMeshNode) Mesh(out *nodes.StructOutput[Mesh]) {
@@ -259,6 +267,10 @@ type SetAttribute1DNode struct {
 	Data      nodes.Output[[]float64]
 }
 
+func (n SetAttribute1DNode) Description() string {
+	return "Writes an array of numbers onto a mesh as a named attribute."
+}
+
 func (n SetAttribute1DNode) Out(out *nodes.StructOutput[Mesh]) {
 	setAttribute(out, n.Mesh, n.Attribute, n.Data, Mesh.SetFloat1Attribute)
 }
@@ -267,6 +279,10 @@ type SetAttribute2DNode struct {
 	Mesh      nodes.Output[Mesh]
 	Attribute nodes.Output[string]
 	Data      nodes.Output[[]vector2.Float64]
+}
+
+func (n SetAttribute2DNode) Description() string {
+	return "Writes an array of 2D vectors onto a mesh as a named attribute."
 }
 
 func (n SetAttribute2DNode) Out(out *nodes.StructOutput[Mesh]) {
@@ -279,6 +295,10 @@ type SetAttribute3DNode struct {
 	Data      nodes.Output[[]vector3.Float64]
 }
 
+func (n SetAttribute3DNode) Description() string {
+	return "Writes an array of 3D vectors onto a mesh as a named attribute."
+}
+
 func (n SetAttribute3DNode) Out(out *nodes.StructOutput[Mesh]) {
 	setAttribute(out, n.Mesh, n.Attribute, n.Data, Mesh.SetFloat3Attribute)
 }
@@ -287,6 +307,10 @@ type SetAttribute4DNode struct {
 	Mesh      nodes.Output[Mesh]
 	Attribute nodes.Output[string]
 	Data      nodes.Output[[]vector4.Float64]
+}
+
+func (n SetAttribute4DNode) Description() string {
+	return "Writes an array of 4D vectors onto a mesh as a named attribute."
 }
 
 func (n SetAttribute4DNode) Out(out *nodes.StructOutput[Mesh]) {

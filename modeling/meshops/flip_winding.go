@@ -5,6 +5,7 @@ import (
 
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/nodes"
+	"github.com/EliCDavis/vector/vector3"
 )
 
 type FlipTriangleWindingTransformer struct {
@@ -32,11 +33,25 @@ func FlipTriangleWinding(m modeling.Mesh) modeling.Mesh {
 		finalTris[triIndex+2] = tris.At(triIndex + 2)
 	}
 
-	return m.SetIndices(finalTris)
+	flipped := m.SetIndices(finalTris)
+
+	if !m.HasFloat3Attribute(modeling.NormalAttribute) {
+		return flipped
+	}
+	normals := m.Float3Attribute(modeling.NormalAttribute)
+	negated := make([]vector3.Float64, normals.Len())
+	for i := 0; i < normals.Len(); i++ {
+		negated[i] = normals.At(i).Scale(-1)
+	}
+	return flipped.SetFloat3Attribute(modeling.NormalAttribute, negated)
 }
 
 type FlipTriangleWindingNode struct {
 	Mesh nodes.Output[modeling.Mesh]
+}
+
+func (n FlipTriangleWindingNode) Description() string {
+	return "Reverses every triangle's winding, flipping which side is the front face. Negates normals too, so the mesh shades from its new front."
 }
 
 func (n FlipTriangleWindingNode) Flipped(out *nodes.StructOutput[modeling.Mesh]) {

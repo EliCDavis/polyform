@@ -55,6 +55,10 @@ type SceneNode struct {
 	Objects []nodes.Output[Object]
 }
 
+func (pn SceneNode) Description() string {
+	return "An OBJ scene built from objects."
+}
+
 func (pn SceneNode) Out(out *nodes.StructOutput[Scene]) {
 	out.Set(Scene{Objects: nodes.GetOutputValues(out, pn.Objects)})
 }
@@ -62,6 +66,10 @@ func (pn SceneNode) Out(out *nodes.StructOutput[Scene]) {
 type ObjectNode struct {
 	Name   nodes.Output[string]
 	Entrys []nodes.Output[Entry]
+}
+
+func (pn ObjectNode) Description() string {
+	return "A named OBJ object built from entries."
 }
 
 func (pn ObjectNode) Out(out *nodes.StructOutput[Object]) {
@@ -74,6 +82,10 @@ func (pn ObjectNode) Out(out *nodes.StructOutput[Object]) {
 type EntryNode struct {
 	Mesh     nodes.Output[modeling.Mesh]
 	Material nodes.Output[Material]
+}
+
+func (pn EntryNode) Description() string {
+	return "Pairs a mesh with a material for OBJ output."
 }
 
 func (pn EntryNode) Out(out *nodes.StructOutput[Entry]) {
@@ -107,6 +119,10 @@ func (pn MaterialNode) Out(out *nodes.StructOutput[Material]) {
 
 type ReadNode struct {
 	In nodes.Output[[]byte]
+}
+
+func (pn ReadNode) Description() string {
+	return "Reads an OBJ file into a mesh."
 }
 
 func (pn ReadNode) Out(out *nodes.StructOutput[modeling.Mesh]) {

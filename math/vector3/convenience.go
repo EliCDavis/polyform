@@ -14,6 +14,10 @@ type Half[T vector.Number] struct {
 	In nodes.Output[vector3.Vector[T]]
 }
 
+func (cn Half[T]) Description() string {
+	return "Halves a vector."
+}
+
 func (cn Half[T]) Float64(out *nodes.StructOutput[vector3.Float64]) {
 	out.Set(nodes.TryGetOutputValue(out, cn.In, vector3.Zero[T]()).ToFloat64().Scale(0.5))
 }
@@ -28,6 +32,10 @@ type Double[T vector.Number] struct {
 	In nodes.Output[vector3.Vector[T]]
 }
 
+func (cn Double[T]) Description() string {
+	return "Doubles a vector."
+}
+
 func (cn Double[T]) Float64(out *nodes.StructOutput[vector3.Float64]) {
 	out.Set(nodes.TryGetOutputValue(out, cn.In, vector3.Zero[T]()).ToFloat64().Scale(2))
 }
@@ -40,6 +48,10 @@ func (cn Double[T]) Int(out *nodes.StructOutput[vector3.Int]) {
 
 type Length[T vector.Number] struct {
 	In nodes.Output[vector3.Vector[T]]
+}
+
+func (cn Length[T]) Description() string {
+	return "Length of a vector."
 }
 
 func (cn Length[T]) Float64(out *nodes.StructOutput[float64]) {
@@ -57,6 +69,10 @@ type Dot struct {
 	B nodes.Output[vector3.Float64]
 }
 
+func (cn Dot) Description() string {
+	return "Dot product of two vectors."
+}
+
 func (cn Dot) Dot(out *nodes.StructOutput[float64]) {
 	if cn.A == nil || cn.B == nil {
 		return
@@ -72,6 +88,10 @@ func (cn Dot) DotDescription() string {
 
 type Inverse[T vector.Number] struct {
 	Vector nodes.Output[vector3.Vector[T]]
+}
+
+func (cn Inverse[T]) Description() string {
+	return "Inverts a vector, either by negating it (additive) or by dividing one by each component (multiplicative)."
 }
 
 func (cn Inverse[T]) additive(in vector3.Float64) vector3.Float64 {
@@ -121,6 +141,10 @@ type Normalize struct {
 	In nodes.Output[vector3.Float64]
 }
 
+func (cn Normalize) Description() string {
+	return "Scales a vector to unit length."
+}
+
 func (cn Normalize) Normalized(out *nodes.StructOutput[vector3.Float64]) {
 	if cn.In != nil {
 		out.Set(nodes.GetOutputValue(out, cn.In).Normalized())
@@ -135,6 +159,10 @@ func (cn Normalize) NormalizeDescription() string {
 
 type NormalizeArray struct {
 	In nodes.Output[[]vector3.Float64]
+}
+
+func (cn NormalizeArray) Description() string {
+	return "Normalizes an array of vectors. Local scales each to unit length; Global scales them all by the longest."
 }
 
 func (cn NormalizeArray) Local(out *nodes.StructOutput[[]vector3.Float64]) {

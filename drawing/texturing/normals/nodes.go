@@ -33,6 +33,10 @@ type FromImageNode struct {
 	Scale nodes.Output[float64]
 }
 
+func (n FromImageNode) Description() string {
+	return "Reads an image as a height map and derives a normal map from it."
+}
+
 func (n FromImageNode) Heightmap(out *nodes.StructOutput[HeightMap]) {
 	img := nodes.TryGetOutputValue(out, n.In, nil)
 	if img == nil {
@@ -73,6 +77,10 @@ type FromHeightMapNode struct {
 	Scale nodes.Output[float64]
 }
 
+func (n FromHeightMapNode) Description() string {
+	return "Derives a normal map from a height map."
+}
+
 func (n FromHeightMapNode) NormalMapImage(out *nodes.StructOutput[image.Image]) {
 	if n.In == nil {
 		return
@@ -99,6 +107,10 @@ func (n FromHeightMapNode) NormalMap(out *nodes.StructOutput[NormalMap]) {
 
 type FromNormalMapNode struct {
 	Normals nodes.Output[NormalMap]
+}
+
+func (n FromNormalMapNode) Description() string {
+	return "Converts a normal map into an image."
 }
 
 func (n FromNormalMapNode) Image(out *nodes.StructOutput[image.Image]) {

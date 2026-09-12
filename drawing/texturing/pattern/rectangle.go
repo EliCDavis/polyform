@@ -13,6 +13,10 @@ type RectanglesNode[T any] struct {
 	In        nodes.Output[texturing.Texture[T]]
 }
 
+func (node RectanglesNode[T]) Description() string {
+	return "Draws rectangles of a uniform size at the given positions."
+}
+
 func (node RectanglesNode[T]) Out(out *nodes.StructOutput[texturing.Texture[T]]) {
 	if node.In == nil {
 		out.CaptureError(nodes.UnsetInputError{

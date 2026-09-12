@@ -66,6 +66,10 @@ type ColorGradingLutNode struct {
 	LUT       nodes.Output[image.Image]
 }
 
+func (ca3dn ColorGradingLutNode) Description() string {
+	return "Recolors gaussian splats through a lookup table image."
+}
+
 func (ca3dn ColorGradingLutNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	if ca3dn.Mesh == nil {
 		out.Set(modeling.EmptyMesh(modeling.PointTopology))

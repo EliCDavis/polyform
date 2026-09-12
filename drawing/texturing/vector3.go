@@ -22,6 +22,10 @@ type DotProductNode struct {
 	Vector  nodes.Output[vector3.Float64]
 }
 
+func (n DotProductNode) Description() string {
+	return "Dot product of every vector in a texture against one vector."
+}
+
 func (n DotProductNode) DotProduct(out *nodes.StructOutput[Texture[float64]]) {
 	if n.Texture == nil {
 		return

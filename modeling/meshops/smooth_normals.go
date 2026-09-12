@@ -156,7 +156,7 @@ func (snn SmoothNormalsNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 
 type SmoothNormalsImplicitWeldNode struct {
 	Mesh     nodes.Output[modeling.Mesh] `description:"The mesh to recompute normals for."`
-	Distance nodes.Output[float64]       `description:"Vertices within this distance of each other have their face normals averaged together, even if their positions aren't exactly identical. Defaults to 0.01."`
+	Distance nodes.Output[float64]       `description:"Vertices within this distance of each other have their face normals averaged together, even if their positions aren't exactly identical. Must stay below the thinnest feature's thickness. Defaults to 0.01."`
 }
 
 func (snn SmoothNormalsImplicitWeldNode) Description() string {

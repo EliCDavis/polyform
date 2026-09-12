@@ -75,6 +75,10 @@ type SrgbToLinearNode struct {
 	Mesh      nodes.Output[modeling.Mesh]
 }
 
+func (n SrgbToLinearNode) Description() string {
+	return "Converts a color attribute from sRGB to linear space."
+}
+
 func (n SrgbToLinearNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	if n.Mesh == nil {
 		out.Set(modeling.EmptyMesh(modeling.TriangleTopology))
@@ -90,6 +94,10 @@ func (n SrgbToLinearNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 type LinearToSRGBNode struct {
 	Attribute nodes.Output[string]
 	Mesh      nodes.Output[modeling.Mesh]
+}
+
+func (n LinearToSRGBNode) Description() string {
+	return "Converts a color attribute from linear space to sRGB."
 }
 
 func (n LinearToSRGBNode) Out(out *nodes.StructOutput[modeling.Mesh]) {

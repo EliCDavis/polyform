@@ -90,6 +90,10 @@ type NoiseNode struct {
 	Polar       nodes.Output[bool]            `description:"Whether or not to use polar coordinates to sample the random function"`
 }
 
+func (n NoiseNode) Description() string {
+	return "Generates a noise texture. Separate outputs for perlin, simplex, cellular and voronoise."
+}
+
 func (n NoiseNode) Value(out *nodes.StructOutput[Texture[float64]]) {
 	texture(
 		out,

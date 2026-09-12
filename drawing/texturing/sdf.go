@@ -15,6 +15,10 @@ type SampleSDFNode struct {
 	Size    nodes.Output[vector3.Float64]
 }
 
+func (n SampleSDFNode) Description() string {
+	return "Treats a texture as a height field and turns it into a 3D distance field."
+}
+
 func (n SampleSDFNode) SDF(out *nodes.StructOutput[sample.Vec3ToFloat]) {
 	if n.Texture == nil {
 		return
@@ -37,6 +41,10 @@ func (n SampleSDFNode) SDF(out *nodes.StructOutput[sample.Vec3ToFloat]) {
 
 type MaskToSDFNode struct {
 	Mask nodes.Output[Texture[bool]]
+}
+
+func (n MaskToSDFNode) Description() string {
+	return "Turns a black and white mask into a distance field measuring how far each pixel is from the edge."
 }
 
 func (n MaskToSDFNode) SDF(out *nodes.StructOutput[Texture[float64]]) {

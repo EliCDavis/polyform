@@ -10,6 +10,10 @@ type SumNode[T vector.Number] struct {
 	Values []nodes.Output[vector2.Vector[T]]
 }
 
+func (cn SumNode[T]) Description() string {
+	return "Adds vectors together."
+}
+
 func (cn SumNode[T]) Out(out *nodes.StructOutput[vector2.Vector[T]]) {
 	values := nodes.GetOutputValues(out, cn.Values)
 	var total vector2.Vector[T]
@@ -22,6 +26,10 @@ func (cn SumNode[T]) Out(out *nodes.StructOutput[vector2.Vector[T]]) {
 type AddToArrayNode[T vector.Number] struct {
 	Array  nodes.Output[[]vector2.Vector[T]]
 	Amount nodes.Output[vector2.Vector[T]]
+}
+
+func (cn AddToArrayNode[T]) Description() string {
+	return "Adds a vector to every entry of an array."
 }
 
 func (cn AddToArrayNode[T]) Out(out *nodes.StructOutput[[]vector2.Vector[T]]) {

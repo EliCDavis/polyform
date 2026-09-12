@@ -68,6 +68,10 @@ type DebugUVNode struct {
 	YColorScale          nodes.Output[coloring.Color]
 }
 
+func (n DebugUVNode) Description() string {
+	return "Checkerboard test texture for inspecting how UVs are laid out on a mesh."
+}
+
 func (n DebugUVNode) Result(out *nodes.StructOutput[image.Image]) {
 	out.Set(DebugUV{
 		ImageResolution:      nodes.TryGetOutputValue(out, n.ImageResolution, 256),

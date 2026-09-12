@@ -343,6 +343,10 @@ type QuadSphereNode struct {
 	UVs        nodes.Output[CubeUVs]
 }
 
+func (c QuadSphereNode) Description() string {
+	return "A sphere built by subdividing a cube: even quads, no pole pinching."
+}
+
 func (c QuadSphereNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	strip := &StripUVs{
 		Start: vector2.New(0, 0.5),

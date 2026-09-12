@@ -27,6 +27,10 @@ type TextNode struct {
 	Name nodes.Output[string]
 }
 
+func (tand TextNode) Description() string {
+	return "Writes text out as a file."
+}
+
 func (tand TextNode) Out(out *nodes.StructOutput[manifest.Manifest]) {
 	name := nodes.TryGetOutputValue(out, tand.Name, "text.txt")
 	entry := manifest.Entry{Artifact: TextArtifact{Data: nodes.TryGetOutputValue(out, tand.In, "")}}

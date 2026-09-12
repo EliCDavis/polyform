@@ -29,8 +29,11 @@ export class TransformGizmo {
 
     private change$: Subject<Vector3>;
 
+    private drag$: Subject<Vector3>;
+
     constructor(config: TransformGizmoConfig) {
         this.change$ = new Subject<Vector3>();
+        this.drag$ = new Subject<Vector3>();
 
         this.controls = new TransformControls(config.camera, config.domElement);
         this.controls.setMode('translate');
@@ -49,6 +52,10 @@ export class TransformGizmo {
             }
 
             this.change$.next(this.mesh.position);
+        });
+
+        this.controls.addEventListener('objectChange', () => {
+            this.drag$.next(this.mesh.position);
         });
 
         config.parent.add(this.mesh);
@@ -104,10 +111,17 @@ export class TransformGizmo {
         return this.change$.asObservable();
     }
 
+    dragging$(): Observable<Vector3> {
+        return this.drag$.asObservable();
+    }
+
     dispose(): void {
         this.setEnabled(false);
         this.change$.complete();
+        this.drag$.complete();
         this.mesh.removeFromParent();
         this.helper.removeFromParent();
+        this.controls.detach();
+        this.controls.dispose();
     }
 }

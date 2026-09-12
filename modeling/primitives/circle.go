@@ -84,6 +84,10 @@ type CircleUVsNode struct {
 	Radius nodes.Output[float64]
 }
 
+func (c CircleUVsNode) Description() string {
+	return "UV layout for the Circle primitive."
+}
+
 func (c CircleUVsNode) Out(out *nodes.StructOutput[CircleUVs]) {
 	out.Set(CircleUVs{
 		Radius: nodes.TryGetOutputValue(out, c.Radius, 0.5),
@@ -95,6 +99,10 @@ type CircleNode struct {
 	Radius nodes.Output[float64]
 	Sides  nodes.Output[int]
 	UVs    nodes.Output[CircleUVs]
+}
+
+func (c CircleNode) Description() string {
+	return "A flat filled disc in the XZ plane. Low Sides gives a regular polygon."
 }
 
 func (c CircleNode) Out(out *nodes.StructOutput[modeling.Mesh]) {

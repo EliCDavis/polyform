@@ -20,6 +20,10 @@ type BrushedMetalNode struct {
 // func (gnd BrushedMetalNodeNode) Out(out *nodes.StructOutput[image.Image]) {
 // func (gnd BrushedMetalNodeNode) Out(out *nodes.StructOutput[image.Image]) {
 
+func (gnd BrushedMetalNode) Description() string {
+	return "Generates a brushed metal image."
+}
+
 func (gnd BrushedMetalNode) Out(out *nodes.StructOutput[image.Image]) {
 	dimensions := nodes.TryGetOutputValue(out, gnd.Dimensions, 512)
 	img := image.NewRGBA(image.Rect(0, 0, dimensions, dimensions))

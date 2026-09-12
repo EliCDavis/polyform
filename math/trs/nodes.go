@@ -1,10 +1,12 @@
 package trs
 
 import (
+	"fmt"
 	"math"
 	"math/rand/v2"
 
 	"github.com/EliCDavis/polyform/generator"
+	"github.com/EliCDavis/polyform/math/mat"
 	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
@@ -58,6 +60,10 @@ type RandomizeArrayNode struct {
 	Array              nodes.Output[[]TRS]
 }
 
+func (tnd RandomizeArrayNode) Description() string {
+	return "Randomly offsets each transform's position, scale and rotation within the given ranges."
+}
+
 func (tnd RandomizeArrayNode) Out(out *nodes.StructOutput[[]TRS]) {
 	input := nodes.TryGetOutputValue(out, tnd.Array, nil)
 	if len(input) == 0 {
@@ -95,7 +101,12 @@ func (tnd RandomizeArrayNode) Out(out *nodes.StructOutput[[]TRS]) {
 				rangeS.Z()*rand.Float64(),
 			)),
 		)
-		arr[i] = input[i].Multiply(sample)
+		composed, err := FromMatrix(input[i].Multiply(sample))
+		if err != nil {
+			out.CaptureError(fmt.Errorf("entry %d: %w", i, err))
+			return
+		}
+		arr[i] = composed
 	}
 
 	out.Set(arr)
@@ -105,6 +116,10 @@ func (tnd RandomizeArrayNode) Out(out *nodes.StructOutput[[]TRS]) {
 
 type SelectNode struct {
 	TRS nodes.Output[TRS]
+}
+
+func (tnd SelectNode) Description() string {
+	return "Splits a transform into its position, scale and rotation."
 }
 
 func (tnd SelectNode) Position(out *nodes.StructOutput[vector3.Float64]) {
@@ -123,6 +138,10 @@ func (tnd SelectNode) Rotation(out *nodes.StructOutput[quaternion.Quaternion]) {
 
 type SelectArrayNode struct {
 	TRS nodes.Output[[]TRS]
+}
+
+func (tnd SelectArrayNode) Description() string {
+	return "Splits an array of transforms into arrays of positions, scales and rotations."
 }
 
 func (tnd SelectArrayNode) Position(out *nodes.StructOutput[[]vector3.Float64]) {
@@ -168,7 +187,12 @@ type MultiplyNode struct {
 func (tnd MultiplyNode) Out(out *nodes.StructOutput[TRS]) {
 	a := nodes.TryGetOutputValue(out, tnd.A, Identity())
 	b := nodes.TryGetOutputValue(out, tnd.B, Identity())
-	out.Set(a.Multiply(b))
+	composed, err := FromMatrix(a.Multiply(b))
+	if err != nil {
+		out.CaptureError(err)
+		return
+	}
+	out.Set(composed)
 }
 
 // ============================================================================
@@ -176,6 +200,10 @@ func (tnd MultiplyNode) Out(out *nodes.StructOutput[TRS]) {
 type MultiplyArrayNode struct {
 	A nodes.Output[[]TRS]
 	B nodes.Output[[]TRS]
+}
+
+func (tnd MultiplyArrayNode) Description() string {
+	return "Multiplies matching pairs of transforms from two arrays."
 }
 
 func (tnd MultiplyArrayNode) Out(out *nodes.StructOutput[[]TRS]) {
@@ -197,7 +225,12 @@ func (tnd MultiplyArrayNode) Out(out *nodes.StructOutput[[]TRS]) {
 			b = bVal[i]
 		}
 
-		arr[i] = a.Multiply(b)
+		composed, err := FromMatrix(a.Multiply(b))
+		if err != nil {
+			out.CaptureError(fmt.Errorf("entry %d: %w", i, err))
+			return
+		}
+		arr[i] = composed
 	}
 
 	out.Set(arr)
@@ -227,21 +260,42 @@ func (n MultiplyToArrayNode) Out(out *nodes.StructOutput[[]TRS]) {
 	}
 
 	arr := make([]TRS, len(in))
+	assign := func(i int, m mat.Matrix4x4) bool {
+		composed, err := FromMatrix(m)
+		if err != nil {
+			out.CaptureError(fmt.Errorf("entry %d: %w", i, err))
+			return false
+		}
+		arr[i] = composed
+		return true
+	}
+
 	if n.Left == nil && n.Right != nil {
 		right := nodes.GetOutputValue(out, n.Right)
 		for i, v := range in {
-			arr[i] = v.Multiply(right)
+			if !assign(i, v.Multiply(right)) {
+				return
+			}
 		}
 	} else if n.Left != nil && n.Right == nil {
 		left := nodes.GetOutputValue(out, n.Left)
 		for i, v := range in {
-			arr[i] = left.Multiply(v)
+			if !assign(i, left.Multiply(v)) {
+				return
+			}
 		}
 	} else {
 		right := nodes.GetOutputValue(out, n.Right)
 		left := nodes.GetOutputValue(out, n.Left)
 		for i, v := range in {
-			arr[i] = left.Multiply(v.Multiply(right))
+			inner, err := FromMatrix(v.Multiply(right))
+			if err != nil {
+				out.CaptureError(fmt.Errorf("entry %d: %w", i, err))
+				return
+			}
+			if !assign(i, left.Multiply(inner)) {
+				return
+			}
 		}
 	}
 
@@ -255,6 +309,10 @@ type TransformArrayNode struct {
 	Array     nodes.Output[[]TRS]
 }
 
+func (tnd TransformArrayNode) Description() string {
+	return "Applies one transform to every entry of an array, as the outer parent: each entry is treated as a local offset underneath Transform. To instead add a fixed local tweak to entries that are already world placements, bake it into the geometry."
+}
+
 func (tnd TransformArrayNode) Out(out *nodes.StructOutput[[]TRS]) {
 	if tnd.Transform == nil {
 		out.Set(nodes.TryGetOutputValue(out, tnd.Array, nil))
@@ -265,7 +323,12 @@ func (tnd TransformArrayNode) Out(out *nodes.StructOutput[[]TRS]) {
 	inArr := nodes.TryGetOutputValue(out, tnd.Array, nil)
 	outArr := make([]TRS, len(inArr))
 	for i, e := range inArr {
-		outArr[i] = v.Multiply(e)
+		composed, err := FromMatrix(v.Multiply(e))
+		if err != nil {
+			out.CaptureError(fmt.Errorf("entry %d: %w", i, err))
+			return
+		}
+		outArr[i] = composed
 	}
 
 	out.Set(outArr)
@@ -276,6 +339,10 @@ func (tnd TransformArrayNode) Out(out *nodes.StructOutput[[]TRS]) {
 type RotateDirectionNode struct {
 	TRS       nodes.Output[TRS]
 	Direction nodes.Output[vector3.Float64]
+}
+
+func (tnd RotateDirectionNode) Description() string {
+	return "Rotates a direction by a transform's rotation, ignoring its position and scale."
 }
 
 func (tnd RotateDirectionNode) Out(out *nodes.StructOutput[vector3.Float64]) {
@@ -292,6 +359,10 @@ func (tnd RotateDirectionNode) Out(out *nodes.StructOutput[vector3.Float64]) {
 type RotateDirectionsNode struct {
 	TRS       nodes.Output[[]TRS]
 	Direction nodes.Output[[]vector3.Float64]
+}
+
+func (tnd RotateDirectionsNode) Description() string {
+	return "Rotates each direction by the matching transform's rotation."
 }
 
 func (tnd RotateDirectionsNode) Out(out *nodes.StructOutput[[]vector3.Float64]) {
@@ -318,6 +389,10 @@ type ArrayNode struct {
 	Position nodes.Output[[]vector3.Float64]
 	Scale    nodes.Output[[]vector3.Float64]
 	Rotation nodes.Output[[]quaternion.Quaternion]
+}
+
+func (tnd ArrayNode) Description() string {
+	return "Builds transforms from arrays of positions, scales and rotations."
 }
 
 func (tnd ArrayNode) Out(out *nodes.StructOutput[[]TRS]) {
@@ -444,6 +519,10 @@ type FilterPositionNode struct {
 	MaxZ  nodes.Output[float64]
 }
 
+func (tnd FilterPositionNode) Description() string {
+	return "Splits transforms into those whose position falls inside the given bounds and those that don't."
+}
+
 func (tnd FilterPositionNode) Filter(out *nodes.StructOutput[[]TRS]) ([]TRS, []TRS) {
 	return filter(
 		out,
@@ -472,6 +551,10 @@ type FilterScaleNode struct {
 	MaxX  nodes.Output[float64]
 	MaxY  nodes.Output[float64]
 	MaxZ  nodes.Output[float64]
+}
+
+func (tnd FilterScaleNode) Description() string {
+	return "Splits transforms into those whose scale falls inside the given bounds and those that don't."
 }
 
 func (tnd FilterScaleNode) Filter(out *nodes.StructOutput[[]TRS]) ([]TRS, []TRS) {

@@ -17,6 +17,10 @@ type FilterNode struct {
 	MaxVolume  nodes.Output[float64]
 }
 
+func (fnd FilterNode) Description() string {
+	return "Removes gaussian splats whose opacity or volume falls outside the given range."
+}
+
 func (fnd FilterNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	if fnd.Splat == nil {
 		out.Set(modeling.EmptyPointcloud())

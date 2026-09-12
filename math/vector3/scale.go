@@ -11,6 +11,10 @@ type Scale[T vector.Number] struct {
 	Amount nodes.Output[float64]           `description:"The amount the scale by (defaults to 1.0)"`
 }
 
+func (cn Scale[T]) Description() string {
+	return "Multiplies a vector by a number."
+}
+
 func (cn Scale[T]) Float64(out *nodes.StructOutput[vector3.Float64]) {
 	vec := nodes.TryGetOutputValue(out, cn.Vector, vector3.Zero[T]())
 	out.Set(vec.ToFloat64().Scale(nodes.TryGetOutputValue(out, cn.Amount, 1)))
@@ -24,6 +28,10 @@ func (cn Scale[T]) Int(out *nodes.StructOutput[vector3.Int]) {
 type ScaleArray[T vector.Number] struct {
 	Vector nodes.Output[[]vector3.Vector[T]] `description:"The vector array to scale"`
 	Amount nodes.Output[float64]             `description:"The amount the scale by (defaults to 1.0)"`
+}
+
+func (cn ScaleArray[T]) Description() string {
+	return "Multiplies every vector in an array by a number."
 }
 
 func (cn ScaleArray[T]) Float64(out *nodes.StructOutput[[]vector3.Float64]) {

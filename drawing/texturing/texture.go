@@ -248,6 +248,10 @@ type UniformNode[T any] struct {
 	Height nodes.Output[int]
 }
 
+func (n UniformNode[T]) Description() string {
+	return "A texture filled entirely with one value."
+}
+
 func (n UniformNode[T]) Texture(out *nodes.StructOutput[Texture[T]]) {
 	t := Empty[T](
 		nodes.TryGetOutputValue(out, n.Width, 1),
@@ -266,6 +270,10 @@ func (n UniformNode[T]) Texture(out *nodes.StructOutput[Texture[T]]) {
 type CompareValueNode[T vector.Number] struct {
 	Texture nodes.Output[Texture[T]]
 	Value   nodes.Output[T]
+}
+
+func (n CompareValueNode[T]) Description() string {
+	return "Compares every pixel against a value, giving masks and filtered textures for each comparison."
 }
 
 func (n CompareValueNode[T]) compareMask(out *nodes.StructOutput[Texture[bool]], f func(in, value T) bool) {
@@ -344,6 +352,10 @@ type FromArrayNode[T any] struct {
 	Height nodes.Output[int]
 }
 
+func (n FromArrayNode[T]) Description() string {
+	return "Builds a texture of the given size from a flat array of values."
+}
+
 func (n FromArrayNode[T]) Texture(out *nodes.StructOutput[Texture[T]]) {
 	if n.Width == nil && n.Height == nil {
 		return
@@ -404,6 +416,10 @@ type SelectColorNode struct {
 	Texture nodes.Output[Texture[coloring.Color]]
 }
 
+func (n SelectColorNode) Description() string {
+	return "Splits a color texture into separate red, green, blue and alpha textures."
+}
+
 func (n SelectColorNode) Width(out *nodes.StructOutput[int])  { selectWidth(out, n.Texture) }
 func (n SelectColorNode) Height(out *nodes.StructOutput[int]) { selectHeight(out, n.Texture) }
 func (n SelectColorNode) Array(out *nodes.StructOutput[[]coloring.Color]) {
@@ -456,6 +472,10 @@ type ColorToImageNode struct {
 	Texture nodes.Output[Texture[coloring.Color]]
 }
 
+func (n ColorToImageNode) Description() string {
+	return "Converts a color texture into an image."
+}
+
 func (n ColorToImageNode) Image(out *nodes.StructOutput[image.Image]) {
 	if n.Texture == nil {
 		return
@@ -482,6 +502,10 @@ type FloatToImageNode struct {
 	GFill nodes.Output[float64]
 	BFill nodes.Output[float64]
 	AFill nodes.Output[float64]
+}
+
+func (n FloatToImageNode) Description() string {
+	return "Combines separate red, green, blue and alpha textures into one color texture and image."
 }
 
 func (n FloatToImageNode) tex(out nodes.ExecutionRecorder) Texture[coloring.Color] {
@@ -569,6 +593,10 @@ type ApplyMaskNode[T any] struct {
 	Fill    nodes.Output[T]
 }
 
+func (n ApplyMaskNode[T]) Description() string {
+	return "Splits a texture by a mask into the pixels kept and the pixels removed."
+}
+
 func (n ApplyMaskNode[T]) process(out *nodes.StructOutput[Texture[T]], keep bool) {
 	if n.Texture == nil {
 		return
@@ -648,12 +676,20 @@ type AddFloat1Node struct {
 	Textures []nodes.Output[Texture[float64]]
 }
 
+func (n AddFloat1Node) Description() string {
+	return "Adds textures of numbers together pixel by pixel."
+}
+
 func (n AddFloat1Node) Result(out *nodes.StructOutput[Texture[float64]]) {
 	addTextures(nodes.GetOutputValues(out, n.Textures), out, vector1.Space[float64]{})
 }
 
 type AddFloat2Node struct {
 	Textures []nodes.Output[Texture[vector2.Float64]]
+}
+
+func (n AddFloat2Node) Description() string {
+	return "Adds textures of 2D vectors together pixel by pixel."
 }
 
 func (n AddFloat2Node) Result(out *nodes.StructOutput[Texture[vector2.Float64]]) {
@@ -664,6 +700,10 @@ type AddFloat3Node struct {
 	Textures []nodes.Output[Texture[vector3.Float64]]
 }
 
+func (n AddFloat3Node) Description() string {
+	return "Adds textures of 3D vectors together pixel by pixel."
+}
+
 func (n AddFloat3Node) Result(out *nodes.StructOutput[Texture[vector3.Float64]]) {
 	addTextures(nodes.GetOutputValues(out, n.Textures), out, vector3.Space[float64]{})
 }
@@ -672,12 +712,20 @@ type AddFloat4Node struct {
 	Textures []nodes.Output[Texture[vector4.Float64]]
 }
 
+func (n AddFloat4Node) Description() string {
+	return "Adds textures of 4D vectors together pixel by pixel."
+}
+
 func (n AddFloat4Node) Result(out *nodes.StructOutput[Texture[vector4.Float64]]) {
 	addTextures(nodes.GetOutputValues(out, n.Textures), out, vector4.Space[float64]{})
 }
 
 type AddColorNode struct {
 	Textures []nodes.Output[Texture[coloring.Color]]
+}
+
+func (n AddColorNode) Description() string {
+	return "Adds color textures together pixel by pixel."
 }
 
 func (n AddColorNode) Result(out *nodes.StructOutput[Texture[coloring.Color]]) {
@@ -770,6 +818,10 @@ type ScaleFloat1UniformNode struct {
 	Scale   nodes.Output[float64]
 }
 
+func (n ScaleFloat1UniformNode) Description() string {
+	return "Multiplies every value in a texture by a number."
+}
+
 func (n ScaleFloat1UniformNode) Result(out *nodes.StructOutput[Texture[float64]]) {
 	scaleTextureUniform(n.Texture, out, vector1.Space[float64]{}, n.Scale)
 }
@@ -777,6 +829,10 @@ func (n ScaleFloat1UniformNode) Result(out *nodes.StructOutput[Texture[float64]]
 type ScaleFloat2UniformNode struct {
 	Texture nodes.Output[Texture[vector2.Float64]]
 	Scale   nodes.Output[float64]
+}
+
+func (n ScaleFloat2UniformNode) Description() string {
+	return "Multiplies every 2D vector in a texture by a number."
 }
 
 func (n ScaleFloat2UniformNode) Result(out *nodes.StructOutput[Texture[vector2.Float64]]) {
@@ -788,6 +844,10 @@ type ScaleFloat3UniformNode struct {
 	Scale   nodes.Output[float64]
 }
 
+func (n ScaleFloat3UniformNode) Description() string {
+	return "Multiplies every 3D vector in a texture by a number."
+}
+
 func (n ScaleFloat3UniformNode) Result(out *nodes.StructOutput[Texture[vector3.Float64]]) {
 	scaleTextureUniform(n.Texture, out, vector3.Space[float64]{}, n.Scale)
 }
@@ -795,6 +855,10 @@ func (n ScaleFloat3UniformNode) Result(out *nodes.StructOutput[Texture[vector3.F
 type ScaleFloat4UniformNode struct {
 	Texture nodes.Output[Texture[vector4.Float64]]
 	Scale   nodes.Output[float64]
+}
+
+func (n ScaleFloat4UniformNode) Description() string {
+	return "Multiplies every 4D vector in a texture by a number."
 }
 
 func (n ScaleFloat4UniformNode) Result(out *nodes.StructOutput[Texture[vector4.Float64]]) {
@@ -806,6 +870,10 @@ type ScaleColorUniformNode struct {
 	Scale   nodes.Output[float64]
 }
 
+func (n ScaleColorUniformNode) Description() string {
+	return "Multiplies every color in a texture by a number, brightening or darkening it."
+}
+
 func (n ScaleColorUniformNode) Result(out *nodes.StructOutput[Texture[coloring.Color]]) {
 	scaleTextureUniform(n.Texture, out, coloring.Space{}, n.Scale)
 }
@@ -813,6 +881,10 @@ func (n ScaleColorUniformNode) Result(out *nodes.StructOutput[Texture[coloring.C
 type ScaleColorNode struct {
 	Texture nodes.Output[Texture[coloring.Color]]
 	Scale   nodes.Output[Texture[float64]]
+}
+
+func (n ScaleColorNode) Description() string {
+	return "Multiplies every color in a texture by the matching pixel of another texture."
 }
 
 func (n ScaleColorNode) Result(out *nodes.StructOutput[Texture[coloring.Color]]) {

@@ -14,6 +14,10 @@ type Distance[T vector.Number] struct {
 	B nodes.Output[vector3.Vector[T]]
 }
 
+func (d Distance[T]) Description() string {
+	return "Distance between two points."
+}
+
 func (d Distance[T]) distance(recorder nodes.ExecutionRecorder) float64 {
 	a := nodes.TryGetOutputValue(recorder, d.A, vector3.Zero[T]()).ToFloat64()
 	b := nodes.TryGetOutputValue(recorder, d.B, vector3.Zero[T]()).ToFloat64()
@@ -36,6 +40,10 @@ type DistancesToArray[T vector.Number] struct {
 	Array nodes.Output[[]vector3.Vector[T]]
 }
 
+func (d DistancesToArray[T]) Description() string {
+	return "Distance from one point to every point in an array."
+}
+
 func (d DistancesToArray[T]) Distances(out *nodes.StructOutput[[]float64]) {
 	a := nodes.TryGetOutputValue(out, d.In, vector3.Zero[T]()).ToFloat64()
 	arr := nodes.TryGetOutputValue(out, d.Array, nil)
@@ -56,6 +64,10 @@ type DistancesToNodes[T vector.Number] struct {
 	Nodes []nodes.Output[vector3.Vector[T]]
 }
 
+func (d DistancesToNodes[T]) Description() string {
+	return "Distance from one point to each of several other points."
+}
+
 func (d DistancesToNodes[T]) Distances(out *nodes.StructOutput[[]float64]) {
 	a := nodes.TryGetOutputValue(out, d.In, vector3.Zero[T]()).ToFloat64()
 
@@ -74,6 +86,10 @@ func (d DistancesToNodes[T]) Distances(out *nodes.StructOutput[[]float64]) {
 type Distances[T vector.Number] struct {
 	A nodes.Output[[]vector3.Vector[T]]
 	B nodes.Output[[]vector3.Vector[T]]
+}
+
+func (d Distances[T]) Description() string {
+	return "Distance between each matching pair of points in two arrays."
 }
 
 func (d Distances[T]) Distances(out *nodes.StructOutput[[]float64]) {

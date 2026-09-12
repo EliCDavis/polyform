@@ -193,6 +193,10 @@ type LaplacianSmoothNode struct {
 	SmoothingFactor nodes.Output[float64]
 }
 
+func (lp LaplacianSmoothNode) Description() string {
+	return "Relaxes a mesh by pulling each vertex toward the average of its neighbours."
+}
+
 func (lp LaplacianSmoothNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	if lp.Mesh == nil {
 		out.Set(modeling.EmptyMesh(modeling.TriangleTopology))
@@ -221,6 +225,10 @@ type LaplacianSmoothImplicitWeldNode struct {
 	Iterations      nodes.Output[int]
 	SmoothingFactor nodes.Output[float64]
 	WeldDistance    nodes.Output[float64]
+}
+
+func (lp LaplacianSmoothImplicitWeldNode) Description() string {
+	return "Laplacian smoothing that first treats vertices closer than Weld Distance as one, so seams smooth across."
 }
 
 func (lp LaplacianSmoothImplicitWeldNode) Out(out *nodes.StructOutput[modeling.Mesh]) {

@@ -21,6 +21,10 @@ type ReadPointsNode struct {
 	In nodes.Output[[]byte]
 }
 
+func (pn ReadPointsNode) Description() string {
+	return "Reads a COLMAP points file into a mesh."
+}
+
 func (pn ReadPointsNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	if pn.In == nil {
 		out.Set(modeling.EmptyMesh(modeling.PointTopology))

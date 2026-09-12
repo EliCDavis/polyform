@@ -56,6 +56,10 @@ type FlatNormalsNode struct {
 	Mesh nodes.Output[modeling.Mesh]
 }
 
+func (fnnd FlatNormalsNode) Description() string {
+	return "Computes hard faceted normals, one per triangle, so edges read as sharp creases."
+}
+
 func (fnnd FlatNormalsNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	out.Set(modeling.EmptyMesh(modeling.TriangleTopology))
 	if fnnd.Mesh == nil {

@@ -30,6 +30,9 @@ func init() {
 
 	refutil.RegisterType[nodes.Struct[StanfordBunny]](factory)
 
+	refutil.RegisterType[nodes.Struct[TubeNode]](factory)
+	refutil.RegisterType[nodes.Struct[TubeUVsNode]](factory)
+
 	refutil.RegisterType[nodes.Struct[TorusNode]](factory)
 	refutil.RegisterType[nodes.Struct[TorusUVNode]](factory)
 
@@ -40,6 +43,10 @@ func init() {
 var bunnyPLY []byte
 
 type StanfordBunny struct {
+}
+
+func (c StanfordBunny) Description() string {
+	return "The Stanford Bunny test mesh."
 }
 
 func (c StanfordBunny) Bunny(out *nodes.StructOutput[modeling.Mesh]) {

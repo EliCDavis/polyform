@@ -14,6 +14,10 @@ type SeamlessPerlinNode struct {
 	Frequency  nodes.Output[float64]
 }
 
+func (an SeamlessPerlinNode) Description() string {
+	return "Perlin noise texture that tiles without a visible seam."
+}
+
 func (an SeamlessPerlinNode) Out(out *nodes.StructOutput[Texture[float64]]) {
 	dim := nodes.TryGetOutputValue(out, an.Dimensions, 256)
 	n := noise.NewTilingNoise(
@@ -45,6 +49,10 @@ type PerlinNode struct {
 	Positive  nodes.Output[float64]
 	Negative  nodes.Output[float64]
 	Frequency nodes.Output[vector2.Float64]
+}
+
+func (n PerlinNode) Description() string {
+	return "Perlin noise texture."
 }
 
 func (n PerlinNode) Out(out *nodes.StructOutput[Texture[float64]]) {

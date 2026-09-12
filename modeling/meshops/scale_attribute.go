@@ -86,6 +86,10 @@ type ScaleAttribute3DNode struct {
 	Origin    nodes.Output[vector3.Float64]
 }
 
+func (sa3dn ScaleAttribute3DNode) Description() string {
+	return "Scales one named vector attribute of a mesh, per axis."
+}
+
 func (sa3dn ScaleAttribute3DNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	if sa3dn.Mesh == nil {
 		out.Set(modeling.EmptyMesh(modeling.TriangleTopology))
