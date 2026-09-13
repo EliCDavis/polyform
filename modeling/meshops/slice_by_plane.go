@@ -187,13 +187,13 @@ func sliceTrianglesByPlaneWithAttribute(m modeling.Mesh, plane geometry.Plane, a
 			newKeepIndice1 := len(abovePlaneVertices)
 			newKeepIndice2 := newKeepIndice1 + 1
 
-			abovePlaneVertices = append(abovePlaneVertices, newV1, newV2)
+			abovePlaneVertices = append(abovePlaneVertices, newV1, newV2) //nolint:makezero
 			abovePlaneIndices = alignWithNormal(triNormal, abovePlaneVertices, abovePlaneIndices, keepIndices[0], newKeepIndice1, newKeepIndice2)
 
 			newRemoveIndice1 := len(belowPlaneVertices)
 			newRemoveIndice2 := newRemoveIndice1 + 1
 
-			belowPlaneVertices = append(belowPlaneVertices, newV1, newV2)
+			belowPlaneVertices = append(belowPlaneVertices, newV1, newV2) //nolint:makezero
 			belowPlaneIndices = alignWithNormal(triNormal, belowPlaneVertices, belowPlaneIndices, newRemoveIndice1, removedIndices[0], newRemoveIndice2)
 			belowPlaneIndices = alignWithNormal(triNormal, belowPlaneVertices, belowPlaneIndices, newRemoveIndice2, removedIndices[0], removedIndices[1])
 
@@ -206,13 +206,13 @@ func sliceTrianglesByPlaneWithAttribute(m modeling.Mesh, plane geometry.Plane, a
 			newKeepIndice1 := len(belowPlaneVertices)
 			newKeepIndice2 := newKeepIndice1 + 1
 
-			belowPlaneVertices = append(belowPlaneVertices, newV1, newV2)
+			belowPlaneVertices = append(belowPlaneVertices, newV1, newV2) //nolint:makezero
 			belowPlaneIndices = alignWithNormal(triNormal, belowPlaneVertices, belowPlaneIndices, removedIndices[0], newKeepIndice1, newKeepIndice2)
 
 			newRemoveIndice1 := len(abovePlaneVertices)
 			newRemoveIndice2 := newRemoveIndice1 + 1
 
-			abovePlaneVertices = append(abovePlaneVertices, newV1, newV2)
+			abovePlaneVertices = append(abovePlaneVertices, newV1, newV2) //nolint:makezero
 			abovePlaneIndices = alignWithNormal(triNormal, abovePlaneVertices, abovePlaneIndices, newRemoveIndice1, keepIndices[0], newRemoveIndice2)
 			abovePlaneIndices = alignWithNormal(triNormal, abovePlaneVertices, abovePlaneIndices, newRemoveIndice2, keepIndices[0], keepIndices[1])
 

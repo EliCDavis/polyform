@@ -424,7 +424,7 @@ func (f Field) March(atr string, cubesPerUnit, cutoff float64) modeling.Mesh {
 					lookupIndex |= 128
 				}
 
-				for i := 0; triangulation[lookupIndex][i] != -1; i += 3 {
+				for i := 0; i < len(triangulation[lookupIndex]); i += 3 {
 					// Get indices of corner points A and B for each of the three edges
 					// of the cube that need to be joined to form the triangle.
 					a0 := cornerIndexAFromEdge[triangulation[lookupIndex][i]]
@@ -491,7 +491,7 @@ func (f Field) March(atr string, cubesPerUnit, cutoff float64) modeling.Mesh {
 		SetFloat1Data(v1Data)
 
 	if mesh.HasFloat3Attribute(modeling.PositionAttribute) {
-		return mesh.WeldByFloat3Attribute(modeling.PositionAttribute, 3)
+		return mesh.WeldByFloat3Attribute(modeling.PositionAttribute, weldPrecisionFor(cubesPerUnit))
 	}
 
 	return mesh

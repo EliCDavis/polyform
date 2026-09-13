@@ -181,7 +181,7 @@ func (s *system) Variables() []Info {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 
-	out := make([]Info, len(s.entries))
+	out := make([]Info, 0, len(s.entries))
 	for _, entry := range s.entries {
 		switch v := entry.(type) {
 

@@ -210,6 +210,7 @@ func (s Mesh) Hit(ray *TemporalRay, minDistance, maxDistance float64, hitRecord 
 		if rayIntersectsTri(tri, geoRay, minDistance, maxStartDistance, hitRecord) {
 			closestTriIndex = i
 			maxStartDistance = hitRecord.Distance
+			*max = hitRecord.Distance
 		}
 	})
 

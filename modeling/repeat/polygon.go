@@ -29,7 +29,7 @@ func Polygon(times, sides int, radius float64) []trs.TRS {
 		polygonPoints[i] = vector3.New(math.Cos(angle)*radius, 0, math.Sin(angle)*radius)
 		polygonRotations[i] = quaternion.FromTheta((angle+(angleIncrement/2))-(math.Pi/2), vector3.Down[float64]())
 	}
-	polygonPoints = append(polygonPoints, polygonPoints[0])
+	polygonPoints = append(polygonPoints, polygonPoints[0]) //nolint:makezero
 
 	transforms := make([]trs.TRS, times)
 	timeIncrement := 1. / float64(times)

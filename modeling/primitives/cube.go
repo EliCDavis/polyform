@@ -175,6 +175,10 @@ func (c Cube) UnweldedQuads() modeling.Mesh {
 }
 
 func (c Cube) Welded() modeling.Mesh {
+	if c.Dimensions > 1 {
+		return c.weldedGrid()
+	}
+
 	halfW := c.Width / 2
 	halfH := c.Height / 2
 	halfD := c.Depth / 2
@@ -211,6 +215,94 @@ func (c Cube) Welded() modeling.Mesh {
 		}).
 		SetFloat2Data(v2Data)
 
+}
+
+func windTowards(verts []vector3.Float64, a, b, c int, out vector3.Float64) []int {
+	if verts[b].Sub(verts[a]).Cross(verts[c].Sub(verts[a])).Dot(out) < 0 {
+		return []int{a, c, b}
+	}
+	return []int{a, b, c}
+}
+
+func (c Cube) weldedGrid() modeling.Mesh {
+	steps := c.Dimensions
+
+	index := make(map[vector3.Int]int, (steps*steps*6)+2)
+	verts := make([]vector3.Float64, 0, (steps*steps*6)+2)
+	uvs := make([]vector2.Float64, 0, (steps*steps*6)+2)
+
+	corner := func(grid vector3.Int) int {
+		if existing, ok := index[grid]; ok {
+			return existing
+		}
+		index[grid] = len(verts)
+		verts = append(verts, vector3.New(
+			c.Width*((float64(grid.X())/float64(steps))-0.5),
+			c.Height*((float64(grid.Y())/float64(steps))-0.5),
+			c.Depth*((float64(grid.Z())/float64(steps))-0.5),
+		))
+		uvs = append(uvs, vector2.Zero[float64]())
+		return index[grid]
+	}
+
+	var top, bottom, left, right, front, back EuclideanUVSpace
+	if c.UVs != nil {
+		top, bottom = c.UVs.Top, c.UVs.Bottom
+		left, right = c.UVs.Left, c.UVs.Right
+		front, back = c.UVs.Front, c.UVs.Back
+	}
+
+	sides := []struct {
+		space EuclideanUVSpace
+		out   vector3.Float64
+		at    func(a, b int) vector3.Int
+	}{
+		{top, vector3.New(0., 1., 0.), func(a, b int) vector3.Int { return vector3.New(a, steps, b) }},
+		{bottom, vector3.New(0., -1., 0.), func(a, b int) vector3.Int { return vector3.New(a, 0, b) }},
+		{left, vector3.New(-1., 0., 0.), func(a, b int) vector3.Int { return vector3.New(0, a, b) }},
+		{right, vector3.New(1., 0., 0.), func(a, b int) vector3.Int { return vector3.New(steps, a, b) }},
+		{front, vector3.New(0., 0., 1.), func(a, b int) vector3.Int { return vector3.New(a, b, steps) }},
+		{back, vector3.New(0., 0., -1.), func(a, b int) vector3.Int { return vector3.New(a, b, 0) }},
+	}
+
+	tris := make([]int, 0, steps*steps*36)
+	for _, side := range sides {
+		for a := range steps {
+			for b := range steps {
+				lower := corner(side.at(a, b))
+				alongA := corner(side.at(a+1, b))
+				far := corner(side.at(a+1, b+1))
+				alongB := corner(side.at(a, b+1))
+
+				if side.space != nil {
+					for _, mark := range [][3]int{
+						{lower, a, b}, {alongA, a + 1, b},
+						{far, a + 1, b + 1}, {alongB, a, b + 1},
+					} {
+						uvs[mark[0]] = side.space.AtXY(vector2.New(
+							float64(mark[1])/float64(steps),
+							float64(mark[2])/float64(steps),
+						))
+					}
+				}
+
+				tris = append(tris, windTowards(verts, lower, alongA, far, side.out)...)
+				tris = append(tris, windTowards(verts, lower, far, alongB, side.out)...)
+			}
+		}
+	}
+
+	float2 := make(map[string][]vector2.Float64)
+	if c.UVs != nil {
+		float2[modeling.TexCoordAttribute] = uvs
+	}
+
+	return modeling.NewTriangleMesh(tris).
+		SetFloat3Data(map[string][]vector3.Float64{
+			modeling.PositionAttribute: verts,
+			modeling.NormalAttribute:   vector3.Array[float64](verts).Normalized(),
+		}).
+		SetFloat2Data(float2)
 }
 
 func (c Cube) calcUVs() []vector2.Float64 {
@@ -284,6 +376,7 @@ type CubeNode struct {
 	Depth      nodes.Output[float64] `description:"Full size along Z (front/back). Defaults to 1."`
 	Dimensions nodes.Output[int]     `description:"Subdivisions per face edge. Defaults to 1 (a single quad per face)."`
 	UVs        nodes.Output[CubeUVs] `description:"Per-face UV layout. Defaults to a 6-strip atlas if unset."`
+	Welded     nodes.Output[bool]    `description:"Whether or not the vertices are welded. Defaults to false."`
 }
 
 func (c CubeNode) Description() string {
@@ -310,6 +403,12 @@ func (c CubeNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 			Back:   strip,
 		}),
 	}
+
+	if nodes.TryGetOutputValue(out, c.Welded, false) {
+		out.Set(cube.Welded())
+		return
+	}
+
 	out.Set(cube.UnweldedQuads())
 }
 

@@ -45,7 +45,7 @@ func Surface(mesh modeling.Mesh, attribute string, voxelSize float64) []vector3.
 			abMid := curTri.a.Midpoint(curTri.b)
 			acMid := curTri.a.Midpoint(curTri.c)
 			bcMid := curTri.b.Midpoint(curTri.c)
-			work = append(
+			work = append( //nolint:makezero
 				work,
 				tri{curTri.a, abMid, acMid},
 				tri{curTri.b, abMid, bcMid},

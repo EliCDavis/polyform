@@ -631,7 +631,7 @@ func (d *MarchingCanvas) marchFloat1BlockPosition(
 				}
 
 				tris := triangulation[lookupIndex]
-				for i := 0; tris[i] != -1; i += 3 {
+				for i := 0; i < len(tris); i += 3 {
 					// Get indices of corner points A and B for each of the three edges
 					// of the cube that need to be joined to form the triangle.
 					a0 := cornerIndexAFromEdge[tris[i]]
@@ -718,7 +718,7 @@ func (d MarchingCanvas) MarchOnAttribute(attribute string, cutoff float64) model
 						Amount: vector3.One[float64]().DivByConstant(d.cubesPerUnit),
 					},
 				).
-				WeldByFloat3Attribute(attribute, 3)
+				WeldByFloat3Attribute(attribute, weldPrecisionFor(d.cubesPerUnit))
 		}
 	}
 	panic(fmt.Errorf("canvas did not contain Float1 attribute %s", attribute))
@@ -741,7 +741,7 @@ func (d MarchingCanvas) MarchOnAttributeParallel(attribute string, cutoff float6
 						Amount: vector3.One[float64]().DivByConstant(d.cubesPerUnit),
 					},
 				).
-				WeldByFloat3Attribute(attribute, 3)
+				WeldByFloat3Attribute(attribute, weldPrecisionFor(d.cubesPerUnit))
 		}
 	}
 	panic(fmt.Errorf("canvas did not contain Float1 attribute %s", attribute))

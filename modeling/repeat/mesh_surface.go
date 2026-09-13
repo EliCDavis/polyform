@@ -43,7 +43,7 @@ func (ms MeshSurface) TRS() []trs.TRS {
 		return nil
 	}
 
-	items := make([]bias.ListItem[int], triCount)
+	items := make([]bias.ListItem[int], 0, triCount)
 	for i := range triCount {
 		items = append(items, bias.ListItem[int]{
 			Item:   i,

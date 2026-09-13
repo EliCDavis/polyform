@@ -93,7 +93,7 @@ func (q Quad) ToMesh() modeling.Mesh {
 		}
 	}
 
-	indices := make([]int, q.Rows*q.Columns*6)
+	indices := make([]int, 0, q.Rows*q.Columns*6)
 	for x := range q.Rows {
 		for y := range q.Columns {
 			indices = append(

@@ -130,7 +130,7 @@ func flattenJoints(index int, curPath string, root Joint, parent *Joint) []skele
 		flattened[0].children = append(flattened[0].children, offset)
 		nodes := flattenJoints(offset, combinedName, child, &root)
 		offset += len(nodes)
-		flattened = append(flattened, nodes...)
+		flattened = append(flattened, nodes...) //nolint:makezero
 	}
 
 	return flattened
