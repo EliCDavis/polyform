@@ -2,8 +2,11 @@ package triangulation
 
 import (
 	"math"
+	"sort"
 
+	"github.com/EliCDavis/polyform/math/sfc"
 	"github.com/EliCDavis/polyform/modeling"
+	"github.com/EliCDavis/polyform/modeling/predicate"
 	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
 )
@@ -11,11 +14,11 @@ import (
 type Edge [2]int
 
 func (e Edge) Length(points []vector2.Float64) float64 {
-	return points[e[0]].Sub(points[e[1]]).Length()
+	return points[e[0]].Distance(points[e[1]])
 }
 
 func (e Edge) Connected(other Edge) bool {
-	return e[1] == other[0] || e[0] == other[1]
+	return e[0] == other[0] || e[0] == other[1] || e[1] == other[0] || e[1] == other[1]
 }
 
 type Triangle [3]int
@@ -25,69 +28,36 @@ func (t Triangle) Edges() []Edge {
 }
 
 func (t Triangle) CounterClockwise(points []vector2.Float64) bool {
-	a := points[t[0]]
-	b := points[t[1]]
-	c := points[t[2]]
-	return (b.X()-a.X())*(c.Y()-a.Y())-(c.X()-a.X())*(b.Y()-a.Y()) > 0
+	return ccw(points[t[0]], points[t[1]], points[t[2]])
 }
 
-func (t Triangle) Intersects(points []vector2.Float64, start, end vector2.Float64) []vector2.Float64 {
-	intersections := make([]vector2.Float64, 0)
-
-	intersects, point := intersection(points[t[0]], points[t[1]], start, end)
-	if intersects {
-		intersections = append(intersections, point)
+// Points map to 3D as (x, 0, y), where clockwise in 2D is what puts the
+// face normal on +Y. Every triangle reaching a mesh goes through here, so
+// flips and hole filling can not drift into disagreeing about winding.
+func (t Triangle) clockwise(points []vector2.Float64) Triangle {
+	if ccw(points[t[0]], points[t[1]], points[t[2]]) {
+		return Triangle{t[0], t[2], t[1]}
 	}
-
-	intersects, point = intersection(points[t[1]], points[t[2]], start, end)
-	if intersects {
-		intersections = append(intersections, point)
-	}
-
-	intersects, point = intersection(points[t[2]], points[t[0]], start, end)
-	if intersects {
-		intersections = append(intersections, point)
-	}
-
-	return intersections
+	return t
 }
 
 func (t Triangle) InsideCircumcircle(p vector2.Float64, points []vector2.Float64) bool {
-	// edges := t.Edges()
-	// a := edges[0].Length(points)
-	// b := edges[1].Length(points)
-	// c := edges[2].Length(points)
-	// radius := (a * b * c) / math.Sqrt((a+b+c)*(b+c-a)*(c+a-b)*(a+b-c))
-
-	// https://stackoverflow.com/questions/39984709/how-can-i-check-wether-a-point-is-inside-the-circumcircle-of-3-points
-	a := points[t[0]]
-	b := points[t[1]]
-	c := points[t[2]]
-
-	ax_ := a.X() - p.X()
-	ay_ := a.Y() - p.Y()
-	bx_ := b.X() - p.X()
-	by_ := b.Y() - p.Y()
-	cx_ := c.X() - p.X()
-	cy_ := c.Y() - p.Y()
-
-	det := ((ax_*ax_+ay_*ay_)*(bx_*cy_-cx_*by_) -
-		(bx_*bx_+by_*by_)*(ax_*cy_-cx_*ay_) +
-		(cx_*cx_+cy_*cy_)*(ax_*by_-bx_*ay_))
-
-	// log.Print(a, b, c, p, det, ccw(a, b, c))
-
-	return det < 0
+	a, b, c := points[t[0]], points[t[1]], points[t[2]]
+	if predicate.Orient2D(a, b, c) < 0 {
+		a, c = c, a
+	}
+	return predicate.InCircle(a, b, c, p) > 0
 }
 
 func ccw(a, b, c vector2.Float64) bool {
-	return (b.X()-a.X())*(c.Y()-a.Y())-(c.X()-a.X())*(b.Y()-a.Y()) > 0
+	return predicate.Orient2D(a, b, c) > 0
 }
 
-// SuperTriangle large enough to completely contain all the points in pointList
+// SuperTriangle is an equilateral triangle containing every point in the
+// set, built around the bounding circle.
 //
-// TODO: This is just a guess. I've never really taken time to confirm this is
-// a valid construction
+// Its vertices are culled at the end, so any circumcircle test they win
+// costs a real triangle at the hull. Shrinking the margin reopens that.
 func SuperTriangle(points []vector2.Float64) []vector2.Float64 {
 	min := vector2.New(math.Inf(1), math.Inf(1))
 	max := vector2.New(math.Inf(-1), math.Inf(-1))
@@ -103,274 +73,380 @@ func SuperTriangle(points []vector2.Float64) []vector2.Float64 {
 		)
 	}
 
-	height := max.Y() - min.Y()
-	min = vector2.New(min.X(), min.Y()-2)
+	center := min.Add(max).Scale(0.5)
+	radius := (max.Sub(min).Length()/2 + 1) * superTriangleMargin
 
-	xMiddle := (min.X() + max.X()) / 2.
-	width := max.X() - min.X()
-
-	top := vector2.New(
-		xMiddle,
-		min.Y()+(height*20),
-	)
-
-	left := vector2.New(
-		xMiddle-(width*20),
-		min.Y(),
-	)
-
-	right := vector2.New(
-		xMiddle+(width*20),
-		min.Y(),
-	)
-	return []vector2.Float64{left, top, right}
+	return []vector2.Float64{
+		vector2.New(center.X()-radius*math.Sqrt(3), center.Y()-radius),
+		vector2.New(center.X(), center.Y()+2*radius),
+		vector2.New(center.X()+radius*math.Sqrt(3), center.Y()-radius),
+	}
 }
 
-func containsSuperTriangleVertex(t Triangle, points []vector2.Float64) bool {
-	superStart := len(points) - 3
+const superTriangleMargin = 1e6
 
-	if t[0] >= superStart {
-		return true
-	}
-	if t[1] >= superStart {
-		return true
+// A sliver along the hull of a thin point set can have a circumradius beyond
+// any super triangle margin, which hands it to the super vertices and culls
+// it. Squashing each axis to a unit square bounds that, but is not a Delaunay
+// preserving transform; the result owes a flip pass in original coordinates.
+func normalize(points []vector2.Float64) []vector2.Float64 {
+	min := vector2.New(math.Inf(1), math.Inf(1))
+	max := vector2.New(math.Inf(-1), math.Inf(-1))
+	for _, v := range points {
+		min = vector2.New(math.Min(v.X(), min.X()), math.Min(v.Y(), min.Y()))
+		max = vector2.New(math.Max(v.X(), max.X()), math.Max(v.Y(), max.Y()))
 	}
 
-	return t[2] >= superStart
+	center := min.Add(max).Scale(0.5)
+	span := max.Sub(min)
+	sx, sy := span.X(), span.Y()
+	if sx == 0 {
+		sx = 1
+	}
+	if sy == 0 {
+		sy = 1
+	}
+
+	out := make([]vector2.Float64, len(points))
+	for i, p := range points {
+		d := p.Sub(center)
+		out[i] = vector2.New(d.X()/sx, d.Y()/sy)
+	}
+	return out
 }
 
 var exists = struct{}{}
 
-type SortByXComponent []vector2.Float64
+// Insertion order decides how far each point-location walk has to travel.
+// Points sorted along a space filling curve land next to the last one
+// inserted, so the walk is a few steps rather than a crossing of the set.
+func hilbertOrder(points []vector2.Float64) []int {
+	min := vector2.New(math.Inf(1), math.Inf(1))
+	max := vector2.New(math.Inf(-1), math.Inf(-1))
+	for _, p := range points {
+		min = vector2.New(math.Min(p.X(), min.X()), math.Min(p.Y(), min.Y()))
+		max = vector2.New(math.Max(p.X(), max.X()), math.Max(p.Y(), max.Y()))
+	}
+	span := math.Max(max.X()-min.X(), max.Y()-min.Y())
+	if span == 0 {
+		span = 1
+	}
 
-func (a SortByXComponent) Len() int           { return len(a) }
-func (a SortByXComponent) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-func (a SortByXComponent) Less(i, j int) bool { return a[i].X() < a[j].X() }
+	keys := sfc.Hilbert2D{
+		Min:        min,
+		Max:        min.Add(vector2.Fill(span)),
+		Resolution: 16,
+	}.EncodeArray(points)
 
-func fillHole(polygon []Edge, point int, triangulation map[Triangle]struct{}, points []vector2.Float64) {
-	for _, edge := range polygon {
+	order := make([]int, len(points))
+	for i := range order {
+		order[i] = i
+	}
+	sort.SliceStable(order, func(i, j int) bool {
+		return keys[order[i]] < keys[order[j]]
+	})
+	return order
+}
 
-		if edge[0] == point || edge[1] == point {
+// Triangles live in flat arrays three entries wide. Vertices wind counter
+// clockwise, and edge k runs from vertex k to vertex k+1 with the triangle
+// across it recorded in the matching neighbour slot.
+type delaunay struct {
+	points     []vector2.Float64
+	vertices   []int
+	neighbours []int
+	dead       []bool
+	free       []int
+	last       int
+
+	stamp    []int
+	startsAt []int
+}
+
+func newDelaunay(points []vector2.Float64) *delaunay {
+	super := SuperTriangle(points)
+	all := make([]vector2.Float64, 0, len(points)+3)
+	all = append(all, points...)
+	all = append(all, super...)
+
+	d := &delaunay{
+		points:     all,
+		vertices:   make([]int, 0, len(points)*6),
+		neighbours: make([]int, 0, len(points)*6),
+		dead:       make([]bool, 0, len(points)*2),
+		startsAt:   make([]int, len(all)),
+	}
+	d.newTriangle(len(all)-3, len(all)-1, len(all)-2)
+	return d
+}
+
+func (d *delaunay) newTriangle(a, b, c int) int {
+	if n := len(d.free); n > 0 {
+		t := d.free[n-1]
+		d.free = d.free[:n-1]
+		d.vertices[3*t], d.vertices[3*t+1], d.vertices[3*t+2] = a, b, c
+		d.neighbours[3*t], d.neighbours[3*t+1], d.neighbours[3*t+2] = -1, -1, -1
+		d.dead[t] = false
+		return t
+	}
+	d.vertices = append(d.vertices, a, b, c)
+	d.neighbours = append(d.neighbours, -1, -1, -1)
+	d.dead = append(d.dead, false)
+	d.stamp = append(d.stamp, 0)
+	return len(d.dead) - 1
+}
+
+func (d *delaunay) edgeIndex(t, from, to int) int {
+	for k := 0; k < 3; k++ {
+		if d.vertices[3*t+k] == from && d.vertices[3*t+(k+1)%3] == to {
+			return k
+		}
+	}
+	return -1
+}
+
+func (d *delaunay) inCircumcircle(t int, p vector2.Float64) bool {
+	return predicate.InCircle(
+		d.points[d.vertices[3*t]],
+		d.points[d.vertices[3*t+1]],
+		d.points[d.vertices[3*t+2]],
+		p,
+	) > 0
+}
+
+// Walks from the last triangle touched, crossing whichever edge has the
+// point on its far side, until no edge does. Delaunay triangulations are the
+// case where this walk is known to terminate; the budget covers the rest.
+func (d *delaunay) locate(p vector2.Float64) int {
+	t, previous := d.last, -1
+	for step := 0; step < len(d.dead); step++ {
+		next := -1
+		for k := 0; k < 3; k++ {
+			across := d.neighbours[3*t+k]
+			if across < 0 || across == previous {
+				continue
+			}
+			a, b := d.points[d.vertices[3*t+k]], d.points[d.vertices[3*t+(k+1)%3]]
+			if predicate.Orient2D(a, b, p) < 0 {
+				next = across
+				break
+			}
+		}
+		if next < 0 {
+			return t
+		}
+		t, previous = next, t
+	}
+
+	for t := range d.dead {
+		if !d.dead[t] && d.contains(t, p) {
+			return t
+		}
+	}
+	return -1
+}
+
+func (d *delaunay) contains(t int, p vector2.Float64) bool {
+	for k := 0; k < 3; k++ {
+		a, b := d.points[d.vertices[3*t+k]], d.points[d.vertices[3*t+(k+1)%3]]
+		if predicate.Orient2D(a, b, p) < 0 {
+			return false
+		}
+	}
+	return true
+}
+
+type cavityEdge struct {
+	from, to, across int
+}
+
+func (d *delaunay) insert(index int) {
+	p := d.points[index]
+
+	start := d.locate(p)
+	if start < 0 || !d.inCircumcircle(start, p) {
+		return
+	}
+
+	mark := index + 1
+	bad := []int{start}
+	d.stamp[start] = mark
+	for i := 0; i < len(bad); i++ {
+		t := bad[i]
+		for k := 0; k < 3; k++ {
+			n := d.neighbours[3*t+k]
+			if n < 0 || d.stamp[n] == mark {
+				continue
+			}
+			if d.inCircumcircle(n, p) {
+				d.stamp[n] = mark
+				bad = append(bad, n)
+			}
+		}
+	}
+
+	boundary := make([]cavityEdge, 0, len(bad)+2)
+	for _, t := range bad {
+		for k := 0; k < 3; k++ {
+			n := d.neighbours[3*t+k]
+			if n >= 0 && d.stamp[n] == mark {
+				continue
+			}
+			boundary = append(boundary, cavityEdge{
+				from:   d.vertices[3*t+k],
+				to:     d.vertices[3*t+(k+1)%3],
+				across: n,
+			})
+		}
+	}
+
+	for _, t := range bad {
+		d.dead[t] = true
+		d.free = append(d.free, t)
+	}
+
+	created := make([]int, 0, len(boundary))
+	for _, e := range boundary {
+		t := d.newTriangle(e.from, e.to, index)
+		d.neighbours[3*t] = e.across
+		if e.across >= 0 {
+			d.neighbours[3*e.across+d.edgeIndex(e.across, e.to, e.from)] = t
+		}
+		d.startsAt[e.from] = t
+		created = append(created, t)
+	}
+
+	for _, t := range created {
+		next := d.startsAt[d.vertices[3*t+1]]
+		d.neighbours[3*t+1] = next
+		d.neighbours[3*next+2] = t
+	}
+
+	d.last = created[0]
+}
+
+func (d *delaunay) cullSuperTriangle(count int) {
+	for t := range d.dead {
+		if d.dead[t] {
+			continue
+		}
+		if d.vertices[3*t] < count && d.vertices[3*t+1] < count && d.vertices[3*t+2] < count {
+			continue
+		}
+		d.dead[t] = true
+		for k := 0; k < 3; k++ {
+			if n := d.neighbours[3*t+k]; n >= 0 {
+				d.neighbours[3*n+d.edgeIndex(n, d.vertices[3*t+(k+1)%3], d.vertices[3*t+k])] = -1
+			}
+		}
+	}
+}
+
+// Lawson's flip queue over the arrays, in whatever coordinates are handed
+// in: every shared edge is checked once, and a flip only puts the four edges
+// around it back on the queue.
+func (d *delaunay) restoreDelaunay(points []vector2.Float64) {
+	type edge struct{ t, k int }
+
+	queue := make([]edge, 0, len(d.dead)*3/2)
+	for t := range d.dead {
+		if d.dead[t] {
+			continue
+		}
+		for k := 0; k < 3; k++ {
+			if d.neighbours[3*t+k] > t {
+				queue = append(queue, edge{t, k})
+			}
+		}
+	}
+
+	budget := len(d.dead) * len(d.dead)
+	for head := 0; head < len(queue) && budget > 0; head++ {
+		t, k := queue[head].t, queue[head].k
+		n := d.neighbours[3*t+k]
+		if n < 0 {
 			continue
 		}
 
-		triToAdd := Triangle{edge[0], edge[1], point}
-		if triToAdd.CounterClockwise(points) {
-			triToAdd = Triangle{edge[0], point, edge[1]}
-			// log.Print(triToAdd.CounterClockwise(points))
+		a, b, c := d.vertices[3*t+k], d.vertices[3*t+(k+1)%3], d.vertices[3*t+(k+2)%3]
+		j := d.edgeIndex(n, b, a)
+		opposite := d.vertices[3*n+(j+2)%3]
+		if predicate.InCircle(points[a], points[b], points[c], points[opposite]) <= 0 {
+			continue
+		}
+		budget--
+
+		acrossAD := d.neighbours[3*n+(j+1)%3]
+		acrossDB := d.neighbours[3*n+(j+2)%3]
+		acrossBC := d.neighbours[3*t+(k+1)%3]
+		acrossCA := d.neighbours[3*t+(k+2)%3]
+
+		d.vertices[3*t], d.vertices[3*t+1], d.vertices[3*t+2] = a, opposite, c
+		d.neighbours[3*t], d.neighbours[3*t+1], d.neighbours[3*t+2] = acrossAD, n, acrossCA
+		d.vertices[3*n], d.vertices[3*n+1], d.vertices[3*n+2] = opposite, b, c
+		d.neighbours[3*n], d.neighbours[3*n+1], d.neighbours[3*n+2] = acrossDB, acrossBC, t
+
+		if acrossAD >= 0 {
+			d.neighbours[3*acrossAD+d.edgeIndex(acrossAD, opposite, a)] = t
+		}
+		if acrossBC >= 0 {
+			d.neighbours[3*acrossBC+d.edgeIndex(acrossBC, c, b)] = n
 		}
 
-		triangulation[triToAdd] = exists
-
+		queue = append(queue, edge{t, 0}, edge{t, 2}, edge{n, 0}, edge{n, 1})
 	}
 }
 
-func bowyerWatson(pointsDirty []vector2.Float64) map[Triangle]struct{} {
-	if len(pointsDirty) < 3 {
+func (d *delaunay) triangles() []Triangle {
+	out := make([]Triangle, 0, len(d.dead))
+	for t := range d.dead {
+		if d.dead[t] {
+			continue
+		}
+		out = append(out, Triangle{d.vertices[3*t], d.vertices[3*t+1], d.vertices[3*t+2]})
+	}
+	sort.Slice(out, func(i, j int) bool {
+		for k := 0; k < 3; k++ {
+			if out[i][k] != out[j][k] {
+				return out[i][k] < out[j][k]
+			}
+		}
+		return false
+	})
+	return out
+}
+
+func bowyerWatson(points []vector2.Float64) *delaunay {
+	if len(points) < 3 {
 		panic("can not tesselate without at least 3 points")
 	}
 
-	// TODO: Eli do a copy of the array instead so passed in points are not
-	// effected by the sort
-	points := pointsDirty
-	// sort.Sort(SortByXComponent(points))
-
-	points = append(pointsDirty, SuperTriangle(pointsDirty)...)
-	triangulation := make(map[Triangle]struct{})
-	triangulation[Triangle{len(points) - 3, len(points) - 2, len(points) - 1}] = exists
-
-	for pi, point := range points {
-
-		// We're at super triangle now
-		if pi >= len(points)-3 {
-			break
-		}
-
-		badTriangles := make([]Triangle, 0)
-
-		// first find all the triangles that are no longer valid due to the insertion
-		for triangle := range triangulation {
-			if triangle.InsideCircumcircle(point, points) {
-				badTriangles = append(badTriangles, triangle)
-			}
-		}
-
-		polygon := make([]Edge, 0)
-
-		// find the boundary of the polygonal hole
-		for ti, triangle := range badTriangles {
-			// edge is not shared by any other triangles in badTriangles
-			for _, edge := range triangle.Edges() {
-
-				notShared := true
-
-				for oti, otherTriangle := range badTriangles {
-					if ti != oti && notShared {
-						for _, otherEdge := range otherTriangle.Edges() {
-							if edge[0] == otherEdge[0] {
-								if edge[1] == otherEdge[1] {
-									notShared = false
-								}
-							}
-
-							if edge[0] == otherEdge[1] {
-								if edge[1] == otherEdge[0] {
-									notShared = false
-								}
-							}
-						}
-
-						// if !notShared {
-						// 	break
-						// }
-					}
-				}
-
-				if notShared {
-					polygon = append(polygon, edge)
-				}
-			}
-		}
-
-		// remove them from the data structure
-		for _, triangle := range badTriangles {
-			delete(triangulation, triangle)
-		}
-
-		// re-triangulate the polygonal hole
-		fillHole(polygon, pi, triangulation, points)
+	normalized := normalize(points)
+	d := newDelaunay(normalized)
+	for _, i := range hilbertOrder(normalized) {
+		d.insert(i)
 	}
-
-	// done inserting points, now clean up
-	for triangle := range triangulation {
-		if containsSuperTriangleVertex(triangle, points) {
-			delete(triangulation, triangle)
-		}
-	}
-
-	return triangulation
+	d.cullSuperTriangle(len(points))
+	d.restoreDelaunay(points)
+	return d
 }
 
-func ConstrainedBowyerWatson(pointsDirty []vector2.Float64, constraints []Constraint) modeling.Mesh {
-	finalPoints := pointsDirty
-	// finalPoints = append(finalPoints, constraints[0].shape...)
-	triangulation := bowyerWatson(finalPoints)
-	trisToAdd := make(map[Triangle]struct{})
+// Triangles wind counter clockwise throughout, and the mesh wants clockwise,
+// so each one is emitted reversed.
+func BowyerWatson(points []vector2.Float64) modeling.Mesh {
+	d := bowyerWatson(points)
 
-	for _, constraint := range constraints {
-		for triangle := range triangulation {
-
-			containsP1 := constraint.contains(finalPoints[triangle[0]])
-			containsP2 := constraint.contains(finalPoints[triangle[1]])
-			containsP3 := constraint.contains(finalPoints[triangle[2]])
-
-			totalPointsContained := containsP1 + containsP2 + containsP3
-
-			if totalPointsContained == 0 {
-				delete(triangulation, triangle)
-				continue
-			}
-
-			if totalPointsContained == 3 {
-				continue
-			}
-
-			for i := range constraint.shape {
-				edgeEnd := constraint.shape[i]
-
-				left := i - 1
-				if i == 0 {
-					left = len(constraint.shape) - 1
-				}
-
-				edgeStart := constraint.shape[left]
-
-				intersections := triangle.Intersects(
-					finalPoints,
-					edgeStart,
-					edgeEnd,
-				)
-
-				if len(intersections) != 2 {
-					continue
-				}
-
-				delete(triangulation, triangle)
-
-				// log.Println(totalPointsContained, len(intersections))
-
-				if totalPointsContained == 1 {
-					finalPoints = append(finalPoints, intersections...)
-					pointContained := triangle[0]
-					if containsP2 == 1 {
-						pointContained = triangle[1]
-					}
-					if containsP3 == 1 {
-						pointContained = triangle[2]
-					}
-					tri := Triangle{pointContained, len(finalPoints) - 1, len(finalPoints) - 2}
-					if tri.CounterClockwise(finalPoints) {
-						tri = Triangle{pointContained, len(finalPoints) - 2, len(finalPoints) - 1}
-					}
-					trisToAdd[tri] = exists
-				} else {
-
-					km1 := triangle[2]
-					k := triangle[0]
-					kp1 := triangle[1]
-
-					if containsP2 == 0 {
-						km1 = triangle[0]
-						k = triangle[1]
-						kp1 = triangle[2]
-					}
-					if containsP3 == 0 {
-						km1 = triangle[1]
-						k = triangle[2]
-						kp1 = triangle[0]
-					}
-
-					_, cPoint := intersection(finalPoints[km1], finalPoints[k], edgeStart, edgeEnd)
-					_, dPoint := intersection(finalPoints[k], finalPoints[kp1], edgeStart, edgeEnd)
-					finalPoints = append(finalPoints, cPoint, dPoint)
-
-					trisToAdd[Triangle{km1, len(finalPoints) - 2, kp1}] = exists
-					trisToAdd[Triangle{len(finalPoints) - 2, len(finalPoints) - 1, kp1}] = exists
-				}
-			}
+	tris := make([]int, 0, len(d.dead)*3)
+	for t := range d.dead {
+		if d.dead[t] {
+			continue
 		}
+		tris = append(tris, d.vertices[3*t], d.vertices[3*t+2], d.vertices[3*t+1])
 	}
 
-	tris := make([]int, 0, len(triangulation)*3)
-	for triangle := range triangulation {
-		tris = append(tris, triangle[0], triangle[1], triangle[2])
-	}
-	for triangle := range trisToAdd {
-		tris = append(tris, triangle[0], triangle[1], triangle[2])
-	}
-
-	verts := make([]vector3.Float64, len(finalPoints))
-	uvs := make([]vector2.Float64, len(finalPoints))
-	for i, p := range finalPoints {
-		verts[i] = vector3.New(p.X(), 0, p.Y())
-		uvs[i] = vector2.Zero[float64]()
-	}
-
-	return modeling.NewTriangleMesh(tris).
-		SetFloat3Attribute(modeling.PositionAttribute, verts).
-		SetFloat2Attribute(modeling.TexCoordAttribute, uvs)
-}
-
-func BowyerWatson(pointsDirty []vector2.Float64) modeling.Mesh {
-	triangulation := bowyerWatson(pointsDirty)
-	tris := make([]int, 0, len(triangulation)*3)
-	for triangle := range triangulation {
-		tris = append(tris, triangle[0], triangle[1], triangle[2])
-	}
-
-	verts := make([]vector3.Float64, len(pointsDirty))
-	uvs := make([]vector2.Float64, len(pointsDirty))
-	for i, p := range pointsDirty {
+	verts := make([]vector3.Float64, len(points))
+	uvs := make([]vector2.Float64, len(points))
+	for i, p := range points {
 		verts[i] = vector3.New(p.X(), 0, p.Y())
 		uvs[i] = vector2.Zero[float64]()
 	}
