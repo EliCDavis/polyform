@@ -1,12 +1,12 @@
-package morton
+package sfc
 
 import (
 	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/vector/vector3"
 )
 
-// Encoder3D provides 3D Morton encoding/decoding functionality for float64 coordinates
-type Encoder3D struct {
+// Morton3D provides 3D Morton encoding/decoding functionality for float64 coordinates
+type Morton3D struct {
 	// Bounds define the space that will be mapped to Morton codes
 	Bounds geometry.AABB
 
@@ -15,7 +15,7 @@ type Encoder3D struct {
 }
 
 // Encode converts a 3D float64 point to a Morton code
-func (m *Encoder3D) Encode(point vector3.Float64) uint64 {
+func (m *Morton3D) Encode(point vector3.Float64) uint64 {
 	min := m.Bounds.Min()
 	max := m.Bounds.Max()
 	maxVal := (1 << m.Resolution) - 1
@@ -32,7 +32,7 @@ func (m *Encoder3D) Encode(point vector3.Float64) uint64 {
 	)
 }
 
-func (m *Encoder3D) EncodeArray(points []vector3.Float64) []uint64 {
+func (m *Morton3D) EncodeArray(points []vector3.Float64) []uint64 {
 	min := m.Bounds.Min()
 	max := m.Bounds.Max()
 
@@ -54,7 +54,7 @@ func (m *Encoder3D) EncodeArray(points []vector3.Float64) []uint64 {
 }
 
 // Decode converts a Morton code back to a 3D float64 point
-func (m *Encoder3D) Decode(morton uint64) vector3.Float64 {
+func (m *Morton3D) Decode(morton uint64) vector3.Float64 {
 	// Deinterleave the bits
 	x, y, z := deinterleaveBits3D(morton, m.Resolution)
 
@@ -70,7 +70,7 @@ func (m *Encoder3D) Decode(morton uint64) vector3.Float64 {
 }
 
 // Decode converts a Morton code back to a 3D float64 point
-func (m *Encoder3D) DecodeArray(mortons []uint64) []vector3.Float64 {
+func (m *Morton3D) DecodeArray(mortons []uint64) []vector3.Float64 {
 	maxVal := float64((uint64(1) << m.Resolution) - 1)
 	min := m.Bounds.Min()
 	max := m.Bounds.Max()

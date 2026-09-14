@@ -1,25 +1,25 @@
-package morton_test
+package sfc_test
 
 import (
 	"testing"
 
 	"github.com/EliCDavis/polyform/math/geometry"
-	"github.com/EliCDavis/polyform/math/morton"
+	"github.com/EliCDavis/polyform/math/sfc"
 	"github.com/EliCDavis/vector/vector3"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestEncoder3D(t *testing.T) {
+func TestMorton3D(t *testing.T) {
 
 	tests := map[string]struct {
 		Position vector3.Float64
-		Encoder  morton.Encoder3D
+		Encoder  sfc.Morton3D
 		Delta    float64
 		Encoded  uint64
 	}{
 		"Bottom Back Left": {
 			Position: vector3.New(-1, -1, -1.),
-			Encoder: morton.Encoder3D{
+			Encoder: sfc.Morton3D{
 				Bounds:     geometry.NewAABB(vector3.Float64{}, vector3.Fill(2.)),
 				Resolution: 2,
 			},
@@ -28,7 +28,7 @@ func TestEncoder3D(t *testing.T) {
 		},
 		"Top Right Forward": {
 			Position: vector3.New(1, 1, 1.),
-			Encoder: morton.Encoder3D{
+			Encoder: sfc.Morton3D{
 				Bounds:     geometry.NewAABB(vector3.Float64{}, vector3.Fill(2.)),
 				Resolution: 2,
 			},
@@ -52,17 +52,17 @@ func TestEncoder3D(t *testing.T) {
 
 }
 
-func TestEncoder3D_Array(t *testing.T) {
+func TestMorton3D_Array(t *testing.T) {
 
 	tests := map[string]struct {
 		Positions []vector3.Float64
-		Encoder   morton.Encoder3D
+		Encoder   sfc.Morton3D
 		Delta     float64
 		Encoded   []uint64
 	}{
 		"Bottom Back Left": {
 			Positions: []vector3.Float64{vector3.New(-1, -1, -1.)},
-			Encoder: morton.Encoder3D{
+			Encoder: sfc.Morton3D{
 				Bounds:     geometry.NewAABB(vector3.Float64{}, vector3.Fill(2.)),
 				Resolution: 2,
 			},
@@ -71,7 +71,7 @@ func TestEncoder3D_Array(t *testing.T) {
 		},
 		"Top Right Forward": {
 			Positions: []vector3.Float64{vector3.New(1, 1, 1.)},
-			Encoder: morton.Encoder3D{
+			Encoder: sfc.Morton3D{
 				Bounds:     geometry.NewAABB(vector3.Float64{}, vector3.Fill(2.)),
 				Resolution: 2,
 			},
@@ -140,8 +140,8 @@ func TestExpand21(t *testing.T) {
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			encoded := morton.ExpandBits21(tc.In)
-			back := morton.CompactBits21(encoded)
+			encoded := sfc.ExpandBits21(tc.In)
+			back := sfc.CompactBits21(encoded)
 
 			assert.Equal(t, tc.Expected, encoded, "Encoded Index")
 			assert.Equal(t, tc.In, back, "Decoded Index")

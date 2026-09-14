@@ -57,11 +57,11 @@ nix run .#polyform edit
   - [geometry](/math/geometry/) - AABB, Line2D, Line3D, Plane, and Rays.
   - [kmeans](/math/kmeans/) - Generic k-means clustering algorithm across 1D to 4D vector spaces.
   - [mat](/math/mat/) - 4x4 Matrix implementation
-  - [morton](/math/morton/) - 3D Morton encoder that maps floating-point vectors to and from compact 64-bit Morton codes with configurable spatial bounds and resolution.
   - [noise](/math/noise/) - Utilities around noise functions for common usecases like stacking multiple samples of perlin noise from different frequencies.
   - [quaternion](/math/quaternion/) - Quaternion math and helper functions.
   - [sdf](/math/sdf/) - SDF implementations of different geometry primitives, along with common math functions. Basically slowly picking through [Inigo Quilez's Distfunction](https://iquilezles.org/articles/distfunctions/) article as I need them in my different projects.
   - [sample](/math/sample/) - Serves as a group of definitions for defining a mapping from one numeric value to another.
+  - [sfc](/math/sfc/) - Space-filling curves. Hilbert (2D) and Morton / Z-order (3D) encoders that map points to and from 64-bit keys that keep spatial neighbours close together.
   - [trs](/math/trs/) - Math and utilities around TRS transformations.
 - [Generator](/generator/) - Application scaffolding for editing and creating meshes.
 - [Trees](/trees/) - Implementation of common spatial partitioning trees.

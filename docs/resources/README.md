@@ -104,6 +104,32 @@ Resources either directly contributing to the code, or are just interesting find
     - [_"Distance Transforms of Sampled Functions"_ by Pedro F. Felzenszwalb and Daniel P. Huttenlocher](https://cs.brown.edu/people/pfelzens/papers/dt-final.pdf)
     - [The Fast Euclidean Distance Transform](https://hellorob.org/files/lectures/fast_euclidean_dt.pdf)
     - [_"Euclidean Distance Transform (EDT) — An Introduction"_ by Kareim Tarek](https://medium.com/@kareimtarek1972/euclidean-distance-transform-edt-introduction-5d7d7c144aa)
+- Constructive Solid Geometry
+  - [_"Constructive Solid Geometry for Polyhedral Objects"_ David H. Laidlaw, W. Benjamin Trumbore, John F. Hughes (SIGGRAPH 1986)](https://dl.acm.org/doi/10.1145/15922.15904)
+    - [Full Text](https://cs.brown.edu/people/jhughes/papers/Laidlaw-CSG-1986/main.htm)
+  - [_"Mesh Arrangements for Solid Geometry"_ Qingnan Zhou, Eitan Grinspun, Denis Zorin, Alec Jacobson (SIGGRAPH 2016)](https://dl.acm.org/doi/10.1145/2897824.2925901)
+  - [_"QuickCSG: Fast Arbitrary Boolean Combinations of N Solids"_ Matthijs Douze, Jean-Sébastien Franco, Bruno Raffin](https://arxiv.org/abs/1706.01558)
+  - [_"Fast and Robust Mesh Arrangements using Floating-point Arithmetic"_ G. Cherchi, M. Livesu, R. Scateni, M. Attene (SIGGRAPH Asia 2020)](https://dl.acm.org/doi/10.1145/3414685.3417818)
+    - [Source Code](https://github.com/gcherchi/FastAndRobustMeshArrangements)
+  - [_"EMBER: Exact Mesh Booleans via Efficient & Robust Local Arrangements"_ Philip Trettner, Julius Nehring-Wirxel, Leif Kobbelt (SIGGRAPH 2022)](https://dl.acm.org/doi/10.1145/3528223.3530181)
+  - [_"Interactive and Robust Mesh Booleans"_ G. Cherchi, F. Pellacini, M. Attene, M. Livesu (SIGGRAPH Asia 2022)](https://dl.acm.org/doi/10.1145/3550454.3555460)
+    - [Source Code](https://github.com/gcherchi/InteractiveAndRobustMeshBooleans)
+  - [_"Exact predicates, exact constructions and combinatorics for mesh CSG"_ Bruno Lévy](https://arxiv.org/abs/2405.12949)
+  - [Manifold](https://github.com/elalish/manifold)
+  - Exact Predicates
+    - [_"Adaptive Precision Floating-Point Arithmetic and Fast Robust Geometric Predicates"_ Jonathan Richard Shewchuk (Discrete & Computational Geometry 18, 1997)](https://doi.org/10.1007/PL00009321)
+      - [Paper and predicates.c](https://www.cs.cmu.edu/~quake/robust.html)
+      - [robust-predicates, JavaScript port with test fixtures](https://github.com/mourner/robust-predicates)
+      - [robust, Rust port](https://github.com/georust/robust)
+    - [_"Lecture Notes on Geometric Robustness"_ Jonathan Richard Shewchuk](https://people.eecs.berkeley.edu/~jrs/meshpapers/robnotes.pdf)
+    - [_"Indirect Predicates for Geometric Constructions"_ Marco Attene](https://doi.org/10.1016/j.cad.2020.102856)
+      - [Source Code](https://github.com/MarcoAttene/Indirect_Predicates)
+- Winding Numbers
+  - [_"The Solid Angle of a Plane Triangle"_ A. van Oosterom, J. Strackee](https://doi.org/10.1109/TBME.1983.325207)
+  - [_"Robust Inside-Outside Segmentation using Generalized Winding Numbers"_ Alec Jacobson, Ladislav Kavan, Olga Sorkine-Hornung (SIGGRAPH 2013)](https://dl.acm.org/doi/10.1145/2461912.2461916)
+  - [_"Fast Winding Numbers for Soups and Clouds"_ Gavin Barill, Neil G. Dickson, Ryan Schmidt, David I.W. Levin, Alec Jacobson (SIGGRAPH 2018)](https://dl.acm.org/doi/10.1145/3197517.3201337)
+  - [_"Fast and Exact Winding Numbers for Triangle Meshes"_ Peiyuan Xie, Christian Hafner, Chris Wojtan (SIGGRAPH 2026)](https://dl.acm.org/doi/10.1145/3811339)
+    - [Project Page](https://visualcomputing.ist.ac.at/publications/2026/FEWN/)
 - Collisions
   - [Closest point on Triangle](https://gdbooks.gitbooks.io/3dcollisions/content/Chapter4/closest_point_to_triangle.html)
 - Ray Tracing
