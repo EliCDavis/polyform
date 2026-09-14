@@ -18,7 +18,7 @@ func init() {
 
 type BowyerWatsonNode struct {
 	Points      nodes.Output[[]vector2.Float64]
-	Constraints nodes.Output[[]vector2.Float64]
+	Constraints nodes.Output[[]vector2.Float64] `description:"Closed boundary the triangulation must respect. Every edge of it survives in the result, and triangles outside it are discarded. Fewer than 3 points leaves the triangulation unconstrained."`
 }
 
 func (node BowyerWatsonNode) Description() string {
@@ -37,14 +37,16 @@ func (node BowyerWatsonNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 		return
 	}
 
-	contraints := nodes.TryGetOutputValue(out, node.Constraints, nil)
-	if len(contraints) < 3 {
+	constraints := nodes.TryGetOutputValue(out, node.Constraints, nil)
+	if len(constraints) < 3 {
 		out.Set(BowyerWatson(val))
 		return
 	}
 
-	out.Set(ConstrainedBowyerWatson(
-		val,
-		[]Constraint{NewConstraint(contraints)},
-	))
+	mesh, err := ConstrainedDelaunay(val, []Constraint{NewConstraint(constraints)})
+	if err != nil {
+		out.CaptureError(err)
+		return
+	}
+	out.Set(mesh)
 }
