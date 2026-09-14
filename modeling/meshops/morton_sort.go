@@ -5,7 +5,7 @@ import (
 
 	"github.com/EliCDavis/iter"
 	"github.com/EliCDavis/polyform/math/geometry"
-	"github.com/EliCDavis/polyform/math/morton"
+	"github.com/EliCDavis/polyform/math/sfc"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/vector/vector3"
 )
@@ -23,7 +23,7 @@ func (mst MortonSortTransformer) attribute() string {
 }
 
 func MortonSortIndices(indices *iter.ArrayIterator[int], positions *iter.ArrayIterator[vector3.Float64], resolution uint) []int {
-	encoder := morton.Encoder3D{
+	encoder := sfc.Morton3D{
 		Bounds:     geometry.NewAABBFromIter(positions),
 		Resolution: resolution,
 	}
