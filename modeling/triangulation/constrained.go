@@ -20,11 +20,15 @@ func newEdgeKey(a, b int) edgeKey {
 	return edgeKey{a, b}
 }
 
+// winding counts constraint segments along an edge, +1 for each running from
+// the lower index to the higher and -1 for the reverse.
 type tessellation struct {
 	pts         []vector2.Float64
 	tris        map[Triangle]struct{}
 	adj         map[edgeKey][]Triangle
+	incident    map[int][]Triangle
 	constrained map[edgeKey]struct{}
+	winding     map[edgeKey]int
 }
 
 // Which rotation of a triangle gets stored decides which of its neighbours
@@ -35,7 +39,9 @@ func newTessellation(pts []vector2.Float64, tris []Triangle) *tessellation {
 		pts:         pts,
 		tris:        make(map[Triangle]struct{}, len(tris)),
 		adj:         make(map[edgeKey][]Triangle, len(tris)*3),
+		incident:    make(map[int][]Triangle, len(pts)),
 		constrained: make(map[edgeKey]struct{}),
+		winding:     make(map[edgeKey]int),
 	}
 	for _, tri := range tris {
 		t.add(tri)
@@ -49,24 +55,52 @@ func (t *tessellation) add(tri Triangle) {
 		k := newEdgeKey(e[0], e[1])
 		t.adj[k] = append(t.adj[k], tri)
 	}
+	for _, v := range tri {
+		t.incident[v] = append(t.incident[v], tri)
+	}
+}
+
+func without(tris []Triangle, tri Triangle) []Triangle {
+	kept := tris[:0]
+	for _, other := range tris {
+		if other != tri {
+			kept = append(kept, other)
+		}
+	}
+	return kept
 }
 
 func (t *tessellation) remove(tri Triangle) {
 	delete(t.tris, tri)
 	for _, e := range tri.Edges() {
 		k := newEdgeKey(e[0], e[1])
-		kept := t.adj[k][:0]
-		for _, other := range t.adj[k] {
-			if other != tri {
-				kept = append(kept, other)
-			}
-		}
-		if len(kept) == 0 {
+		if kept := without(t.adj[k], tri); len(kept) == 0 {
 			delete(t.adj, k)
 		} else {
 			t.adj[k] = kept
 		}
 	}
+	for _, v := range tri {
+		t.incident[v] = without(t.incident[v], tri)
+	}
+}
+
+func (t *tessellation) third(tri Triangle, a, b int) int {
+	for _, v := range tri {
+		if v != a && v != b {
+			return v
+		}
+	}
+	return -1
+}
+
+func (t *tessellation) across(e edgeKey, from Triangle) (Triangle, bool) {
+	for _, tri := range t.adj[e] {
+		if tri != from {
+			return tri, true
+		}
+	}
+	return Triangle{}, false
 }
 
 func (t *tessellation) hasEdge(a, b int) bool {
@@ -79,15 +113,7 @@ func (t *tessellation) opposites(e edgeKey) (Triangle, Triangle, int, int, bool)
 	if len(tris) != 2 {
 		return Triangle{}, Triangle{}, 0, 0, false
 	}
-	off := func(tri Triangle) int {
-		for _, v := range tri {
-			if v != e[0] && v != e[1] {
-				return v
-			}
-		}
-		return -1
-	}
-	p, q := off(tris[0]), off(tris[1])
+	p, q := t.third(tris[0], e[0], e[1]), t.third(tris[1], e[0], e[1])
 	if p < 0 || q < 0 {
 		return Triangle{}, Triangle{}, 0, 0, false
 	}
@@ -137,50 +163,62 @@ func (t *tessellation) edges() []edgeKey {
 	return out
 }
 
-// Ordered by where each one cuts a-b. Index order is just as deterministic
-// but leaves forceEdge flipping in an order that can stall; walking the
-// crossings along the segment is the order the flips actually want.
+// Walks triangle to triangle along a-b, so the edges come back in the order
+// the segment meets them, which is the order forceEdge wants to flip them.
 func (t *tessellation) crossing(a, b int) []edgeKey {
 	pa, pb := t.pts[a], t.pts[b]
 
-	type crossed struct {
-		edge edgeKey
-		at   float64
+	var tri Triangle
+	u, v := -1, -1
+	for _, candidate := range t.incident[a] {
+		var rest [2]int
+		n := 0
+		for _, vertex := range candidate {
+			if vertex != a {
+				rest[n] = vertex
+				n++
+			}
+		}
+		if predicate.SegmentsCross(pa, pb, t.pts[rest[0]], t.pts[rest[1]]) {
+			tri, u, v = candidate, rest[0], rest[1]
+			break
+		}
+	}
+	if u < 0 {
+		return nil
 	}
 
-	found := []crossed{}
-	for _, e := range t.edges() {
-		if e[0] == a || e[1] == a || e[0] == b || e[1] == b {
-			continue
+	out := []edgeKey{newEdgeKey(u, v)}
+	for {
+		next, ok := t.across(newEdgeKey(u, v), tri)
+		if !ok {
+			return out
 		}
-		if !predicate.SegmentsCross(pa, pb, t.pts[e[0]], t.pts[e[1]]) {
-			continue
+		w := t.third(next, u, v)
+		if w == b {
+			return out
 		}
-
-		from := predicate.Orient2D(t.pts[e[0]], t.pts[e[1]], pa)
-		to := predicate.Orient2D(t.pts[e[0]], t.pts[e[1]], pb)
-		at := 0.
-		if from != to {
-			at = from / (from - to)
+		switch {
+		case predicate.SegmentsCross(pa, pb, t.pts[u], t.pts[w]):
+			v = w
+		case predicate.SegmentsCross(pa, pb, t.pts[w], t.pts[v]):
+			u = w
+		default:
+			return out
 		}
-		found = append(found, crossed{e, at})
+		tri = next
+		out = append(out, newEdgeKey(u, v))
 	}
+}
 
-	sort.Slice(found, func(i, j int) bool {
-		if found[i].at != found[j].at {
-			return found[i].at < found[j].at
-		}
-		if found[i].edge[0] != found[j].edge[0] {
-			return found[i].edge[0] < found[j].edge[0]
-		}
-		return found[i].edge[1] < found[j].edge[1]
-	})
-
-	out := make([]edgeKey, len(found))
-	for i, c := range found {
-		out[i] = c.edge
+func (t *tessellation) lock(a, b int) {
+	k := newEdgeKey(a, b)
+	t.constrained[k] = exists
+	if a < b {
+		t.winding[k]++
+	} else {
+		t.winding[k]--
 	}
-	return out
 }
 
 func (t *tessellation) forceEdge(a, b int) error {
@@ -188,7 +226,7 @@ func (t *tessellation) forceEdge(a, b int) error {
 		return nil
 	}
 	if t.hasEdge(a, b) {
-		t.constrained[newEdgeKey(a, b)] = exists
+		t.lock(a, b)
 		return nil
 	}
 
@@ -222,7 +260,7 @@ func (t *tessellation) forceEdge(a, b int) error {
 		}
 	}
 
-	t.constrained[newEdgeKey(a, b)] = exists
+	t.lock(a, b)
 	return nil
 }
 
@@ -269,22 +307,36 @@ func (t *tessellation) restoreDelaunay() {
 	}
 }
 
-// Flood from outside the hull rather than testing centroids: a centroid on
-// the line through a boundary edge gets misclassified by ray casting.
+// Change in winding number on entering tri across e.
+func (t *tessellation) step(e edgeKey, tri Triangle) int {
+	w := t.winding[e]
+	if w == 0 {
+		return 0
+	}
+	third := t.third(tri, e[0], e[1])
+	if predicate.Orient2D(t.pts[e[0]], t.pts[e[1]], t.pts[third]) > 0 {
+		return w
+	}
+	return -w
+}
+
+// Winding numbers flood in from the hull, where they are zero, and only
+// change across constraint edges. Nonzero is kept, so overlapping outlines
+// union and an outline wound against the one around it is a hole.
 func (t *tessellation) discardOutside() {
-	outside := make(map[Triangle]struct{})
-	queue := make([]Triangle, 0)
+	winding := make(map[Triangle]int, len(t.tris))
+	queue := make([]Triangle, 0, len(t.tris))
+	visit := func(tri Triangle, w int) {
+		if _, seen := winding[tri]; seen {
+			return
+		}
+		winding[tri] = w
+		queue = append(queue, tri)
+	}
 
 	for e, tris := range t.adj {
-		if len(tris) != 1 {
-			continue
-		}
-		if _, locked := t.constrained[e]; locked {
-			continue
-		}
-		if _, seen := outside[tris[0]]; !seen {
-			outside[tris[0]] = exists
-			queue = append(queue, tris[0])
+		if len(tris) == 1 {
+			visit(tris[0], t.step(e, tris[0]))
 		}
 	}
 
@@ -294,24 +346,16 @@ func (t *tessellation) discardOutside() {
 
 		for _, edge := range tri.Edges() {
 			k := newEdgeKey(edge[0], edge[1])
-			if _, locked := t.constrained[k]; locked {
-				continue
-			}
-			for _, neighbor := range t.adj[k] {
-				if neighbor == tri {
-					continue
-				}
-				if _, seen := outside[neighbor]; seen {
-					continue
-				}
-				outside[neighbor] = exists
-				queue = append(queue, neighbor)
+			if neighbor, ok := t.across(k, tri); ok {
+				visit(neighbor, winding[tri]+t.step(k, neighbor))
 			}
 		}
 	}
 
-	for tri := range outside {
-		t.remove(tri)
+	for tri, w := range winding {
+		if w == 0 {
+			t.remove(tri)
+		}
 	}
 }
 
@@ -360,7 +404,7 @@ func segmentIntersection(p1, p2, p3, p4 vector2.Float64) (vector2.Float64, bool)
 
 // No triangulation holds two crossing constraints whole, so the crossing
 // becomes a vertex and splitAtVertices breaks both on it.
-func splitCrossingConstraints(pts *[]vector2.Float64, segments [][2]int) {
+func splitCrossingConstraints(pts *[]vector2.Float64, segments [][2]int, tolerance float64) {
 	for i := 0; i < len(segments); i++ {
 		for j := i + 1; j < len(segments); j++ {
 			a, b := segments[i], segments[j]
@@ -372,7 +416,7 @@ func splitCrossingConstraints(pts *[]vector2.Float64, segments [][2]int) {
 			if !ok {
 				continue
 			}
-			indexOfPoint(pts, p)
+			indexOfPoint(pts, p, tolerance)
 		}
 	}
 }
@@ -420,9 +464,9 @@ func splitAtVertices(pts []vector2.Float64, a, b int) []int {
 	return append(out, b)
 }
 
-func indexOfPoint(pts *[]vector2.Float64, p vector2.Float64) int {
+func indexOfPoint(pts *[]vector2.Float64, p vector2.Float64, tolerance float64) int {
 	for i, existing := range *pts {
-		if existing.Sub(p).Length() < 1e-9 {
+		if existing.Sub(p).Length() < tolerance {
 			return i
 		}
 	}
@@ -430,17 +474,43 @@ func indexOfPoint(pts *[]vector2.Float64, p vector2.Float64) int {
 	return len(*pts) - 1
 }
 
+// Distance under which two points count as the same, relative to the
+// extent of everything being triangulated.
+func mergeTolerance(sets ...[]vector2.Float64) float64 {
+	min := vector2.New(math.Inf(1), math.Inf(1))
+	max := vector2.New(math.Inf(-1), math.Inf(-1))
+	for _, set := range sets {
+		for _, p := range set {
+			min = vector2.New(math.Min(p.X(), min.X()), math.Min(p.Y(), min.Y()))
+			max = vector2.New(math.Max(p.X(), max.X()), math.Max(p.Y(), max.Y()))
+		}
+	}
+	extent := math.Max(max.X()-min.X(), max.Y()-min.Y())
+	if extent <= 0 || math.IsInf(extent, 0) || math.IsNaN(extent) {
+		return 0
+	}
+	return 1e-9 * extent
+}
+
 // ConstrainedDelaunay triangulates points so every constraint edge survives,
-// then discards the triangles outside the constraints.
+// then keeps only the triangles with a nonzero winding number: overlapping
+// outlines union, and an outline wound against the one around it is a hole.
 func ConstrainedDelaunay(points []vector2.Float64, constraints []Constraint) (modeling.Mesh, error) {
 	pts := make([]vector2.Float64, len(points))
 	copy(pts, points)
 
+	sets := make([][]vector2.Float64, 0, len(constraints)+1)
+	sets = append(sets, points)
+	for _, c := range constraints {
+		sets = append(sets, c.shape)
+	}
+	tolerance := mergeTolerance(sets...)
+
 	segments := make([][2]int, 0)
 	for _, c := range constraints {
 		for i := range c.shape {
-			a := indexOfPoint(&pts, c.shape[i])
-			b := indexOfPoint(&pts, c.shape[(i+1)%len(c.shape)])
+			a := indexOfPoint(&pts, c.shape[i], tolerance)
+			b := indexOfPoint(&pts, c.shape[(i+1)%len(c.shape)], tolerance)
 			if a != b {
 				segments = append(segments, [2]int{a, b})
 			}
@@ -472,7 +542,7 @@ func ConstrainedDelaunayEdges(points []vector2.Float64, edges [][2]int) (modelin
 }
 
 func triangulate(pts []vector2.Float64, segments [][2]int, discard bool) (modeling.Mesh, error) {
-	splitCrossingConstraints(&pts, segments)
+	splitCrossingConstraints(&pts, segments, mergeTolerance(pts))
 
 	if len(pts) < 3 {
 		return modeling.EmptyMesh(modeling.TriangleTopology),

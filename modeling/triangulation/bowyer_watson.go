@@ -57,7 +57,9 @@ func ccw(a, b, c vector2.Float64) bool {
 // set, built around the bounding circle.
 //
 // Its vertices are culled at the end, so any circumcircle test they win
-// costs a real triangle at the hull. Shrinking the margin reopens that.
+// costs a real triangle at the hull. A hull sliver of relative width w has a
+// circumradius near 1/(8w) times the extent, so the margin has to beat that
+// for the thinnest sliver double precision can represent.
 func SuperTriangle(points []vector2.Float64) []vector2.Float64 {
 	min := vector2.New(math.Inf(1), math.Inf(1))
 	max := vector2.New(math.Inf(-1), math.Inf(-1))
@@ -74,7 +76,10 @@ func SuperTriangle(points []vector2.Float64) []vector2.Float64 {
 	}
 
 	center := min.Add(max).Scale(0.5)
-	radius := (max.Sub(min).Length()/2 + 1) * superTriangleMargin
+	radius := max.Sub(min).Length() * superTriangleMargin
+	if radius == 0 {
+		radius = superTriangleMargin
+	}
 
 	return []vector2.Float64{
 		vector2.New(center.X()-radius*math.Sqrt(3), center.Y()-radius),
@@ -83,37 +88,7 @@ func SuperTriangle(points []vector2.Float64) []vector2.Float64 {
 	}
 }
 
-const superTriangleMargin = 1e6
-
-// A sliver along the hull of a thin point set can have a circumradius beyond
-// any super triangle margin, which hands it to the super vertices and culls
-// it. Squashing each axis to a unit square bounds that, but is not a Delaunay
-// preserving transform; the result owes a flip pass in original coordinates.
-func normalize(points []vector2.Float64) []vector2.Float64 {
-	min := vector2.New(math.Inf(1), math.Inf(1))
-	max := vector2.New(math.Inf(-1), math.Inf(-1))
-	for _, v := range points {
-		min = vector2.New(math.Min(v.X(), min.X()), math.Min(v.Y(), min.Y()))
-		max = vector2.New(math.Max(v.X(), max.X()), math.Max(v.Y(), max.Y()))
-	}
-
-	center := min.Add(max).Scale(0.5)
-	span := max.Sub(min)
-	sx, sy := span.X(), span.Y()
-	if sx == 0 {
-		sx = 1
-	}
-	if sy == 0 {
-		sy = 1
-	}
-
-	out := make([]vector2.Float64, len(points))
-	for i, p := range points {
-		d := p.Sub(center)
-		out[i] = vector2.New(d.X()/sx, d.Y()/sy)
-	}
-	return out
-}
+const superTriangleMargin = 1e20
 
 var exists = struct{}{}
 
@@ -342,61 +317,6 @@ func (d *delaunay) cullSuperTriangle(count int) {
 	}
 }
 
-// Lawson's flip queue over the arrays, in whatever coordinates are handed
-// in: every shared edge is checked once, and a flip only puts the four edges
-// around it back on the queue.
-func (d *delaunay) restoreDelaunay(points []vector2.Float64) {
-	type edge struct{ t, k int }
-
-	queue := make([]edge, 0, len(d.dead)*3/2)
-	for t := range d.dead {
-		if d.dead[t] {
-			continue
-		}
-		for k := 0; k < 3; k++ {
-			if d.neighbours[3*t+k] > t {
-				queue = append(queue, edge{t, k})
-			}
-		}
-	}
-
-	budget := len(d.dead) * len(d.dead)
-	for head := 0; head < len(queue) && budget > 0; head++ {
-		t, k := queue[head].t, queue[head].k
-		n := d.neighbours[3*t+k]
-		if n < 0 {
-			continue
-		}
-
-		a, b, c := d.vertices[3*t+k], d.vertices[3*t+(k+1)%3], d.vertices[3*t+(k+2)%3]
-		j := d.edgeIndex(n, b, a)
-		opposite := d.vertices[3*n+(j+2)%3]
-		if predicate.InCircle(points[a], points[b], points[c], points[opposite]) <= 0 {
-			continue
-		}
-		budget--
-
-		acrossAD := d.neighbours[3*n+(j+1)%3]
-		acrossDB := d.neighbours[3*n+(j+2)%3]
-		acrossBC := d.neighbours[3*t+(k+1)%3]
-		acrossCA := d.neighbours[3*t+(k+2)%3]
-
-		d.vertices[3*t], d.vertices[3*t+1], d.vertices[3*t+2] = a, opposite, c
-		d.neighbours[3*t], d.neighbours[3*t+1], d.neighbours[3*t+2] = acrossAD, n, acrossCA
-		d.vertices[3*n], d.vertices[3*n+1], d.vertices[3*n+2] = opposite, b, c
-		d.neighbours[3*n], d.neighbours[3*n+1], d.neighbours[3*n+2] = acrossDB, acrossBC, t
-
-		if acrossAD >= 0 {
-			d.neighbours[3*acrossAD+d.edgeIndex(acrossAD, opposite, a)] = t
-		}
-		if acrossBC >= 0 {
-			d.neighbours[3*acrossBC+d.edgeIndex(acrossBC, c, b)] = n
-		}
-
-		queue = append(queue, edge{t, 0}, edge{t, 2}, edge{n, 0}, edge{n, 1})
-	}
-}
-
 func (d *delaunay) triangles() []Triangle {
 	out := make([]Triangle, 0, len(d.dead))
 	for t := range d.dead {
@@ -421,13 +341,11 @@ func bowyerWatson(points []vector2.Float64) *delaunay {
 		panic("can not tesselate without at least 3 points")
 	}
 
-	normalized := normalize(points)
-	d := newDelaunay(normalized)
-	for _, i := range hilbertOrder(normalized) {
+	d := newDelaunay(points)
+	for _, i := range hilbertOrder(points) {
 		d.insert(i)
 	}
 	d.cullSuperTriangle(len(points))
-	d.restoreDelaunay(points)
 	return d
 }
 

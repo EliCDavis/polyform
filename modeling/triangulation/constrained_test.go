@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/EliCDavis/polyform/modeling"
+	"github.com/EliCDavis/polyform/modeling/predicate"
 	"github.com/EliCDavis/polyform/modeling/triangulation"
 	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
@@ -299,6 +300,104 @@ func TestConstrainedDelaunayHandlesTouchingButNotCrossingShapes(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.InDelta(t, 8, area(mesh), 1e-9, "two squares sharing an edge")
+}
+
+func TestConstrainedDelaunayCarvesAnOutlineWoundTheOtherWayAsAHole(t *testing.T) {
+	outer := []vector2.Float64{
+		vector2.New(0., 0.), vector2.New(6., 0.), vector2.New(6., 6.), vector2.New(0., 6.),
+	}
+	hole := []vector2.Float64{
+		vector2.New(2., 2.), vector2.New(2., 4.), vector2.New(4., 4.), vector2.New(4., 2.),
+	}
+
+	mesh, err := triangulation.ConstrainedDelaunay(
+		append(append([]vector2.Float64{}, outer...), hole...),
+		[]triangulation.Constraint{
+			triangulation.NewConstraint(outer), triangulation.NewConstraint(hole)})
+
+	require.NoError(t, err)
+	assert.InDelta(t, 32, area(mesh), 1e-9)
+	assertNoEdgeCrossesConstraint(t, mesh, outer)
+	assertNoEdgeCrossesConstraint(t, mesh, hole)
+}
+
+func TestConstrainedDelaunayKeepsANestedOutlineWoundTheSameWay(t *testing.T) {
+	outer := []vector2.Float64{
+		vector2.New(0., 0.), vector2.New(6., 0.), vector2.New(6., 6.), vector2.New(0., 6.),
+	}
+	inner := []vector2.Float64{
+		vector2.New(2., 2.), vector2.New(4., 2.), vector2.New(4., 4.), vector2.New(2., 4.),
+	}
+
+	mesh, err := triangulation.ConstrainedDelaunay(
+		append(append([]vector2.Float64{}, outer...), inner...),
+		[]triangulation.Constraint{
+			triangulation.NewConstraint(outer), triangulation.NewConstraint(inner)})
+
+	require.NoError(t, err)
+	assert.InDelta(t, 36, area(mesh), 1e-9)
+}
+
+func TestConstrainedDelaunayIsScaleInvariant(t *testing.T) {
+	for _, scale := range []float64{1e-12, 1e-9, 1e-6, 1., 1e6, 1e9} {
+		shape := lShape()
+		for i := range shape {
+			shape[i] = shape[i].Scale(scale)
+		}
+
+		mesh, err := triangulation.ConstrainedDelaunay(shape,
+			[]triangulation.Constraint{triangulation.NewConstraint(shape)})
+
+		require.NoError(t, err)
+		assert.InDeltaf(t, 3, area(mesh)/(scale*scale), 1e-9, "scale %g", scale)
+	}
+}
+
+func TestConstrainedDelaunayCoversExactlyTheOutline(t *testing.T) {
+	rng := rand.New(rand.NewSource(1))
+
+	for trial := 0; trial < 1000; trial++ {
+		n := 4 + rng.Intn(10)
+		poly := make([]vector2.Float64, n)
+		for i := range poly {
+			angle := 2 * math.Pi * float64(i) / float64(n)
+			radius := 0.5 + rng.Float64()*1.5
+			poly[i] = vector2.New(math.Cos(angle)*radius, math.Sin(angle)*radius)
+		}
+
+		pts := append([]vector2.Float64{}, poly...)
+		for i := 0; i < rng.Intn(25); i++ {
+			pts = append(pts, vector2.New(rng.Float64()*4-2, rng.Float64()*4-2))
+		}
+
+		mesh, err := triangulation.ConstrainedDelaunay(pts,
+			[]triangulation.Constraint{triangulation.NewConstraint(poly)})
+		require.NoErrorf(t, err, "trial %d", trial)
+		require.InDeltaf(t, math.Abs(predicate.SignedArea(poly)), area(mesh), 1e-9, "trial %d", trial)
+	}
+}
+
+// Widths stop above the relative merge tolerance, below which the outline's
+// own corners are the same point.
+func TestConstrainedDelaunayForcesAThinDiagonalOutline(t *testing.T) {
+	for _, width := range []float64{1e-3, 1e-5, 1e-7} {
+		rng := rand.New(rand.NewSource(5))
+		pts := make([]vector2.Float64, 200)
+		for i := range pts {
+			x := rng.Float64()
+			pts[i] = vector2.New(x, x+(rng.Float64()-0.5)*width)
+		}
+		outline := []vector2.Float64{
+			vector2.New(0., -width), vector2.New(1., 1-width),
+			vector2.New(1., 1+width), vector2.New(0., width),
+		}
+
+		mesh, err := triangulation.ConstrainedDelaunay(pts,
+			[]triangulation.Constraint{triangulation.NewConstraint(outline)})
+
+		require.NoErrorf(t, err, "width %g", width)
+		assert.InDeltaf(t, 2*width, area(mesh), 1e-9*width, "width %g", width)
+	}
 }
 
 func TestConstrainedDelaunaySurvivesRandomOutlines(t *testing.T) {

@@ -75,9 +75,6 @@ func TestBowyerWatsonCoversTheConvexHull(t *testing.T) {
 	}
 }
 
-// Points are normalized before triangulating, so the result depends on the
-// shape of the set and not on where it sits or how big it is. A set at 1e-9
-// and the same set at 1e11 must come out identically.
 func TestBowyerWatsonIsScaleInvariant(t *testing.T) {
 	rng := rand.New(rand.NewSource(3))
 	base := make([]vector2.Float64, 20)
@@ -125,9 +122,21 @@ func TestBowyerWatsonCoversTheHullOfThinPointSets(t *testing.T) {
 	}
 }
 
-// Points are squashed to a unit square before triangulating, which is not a
-// Delaunay preserving transform. Only the flip pass afterwards makes the
-// result Delaunay again, and a sliver is where it would show first.
+func TestBowyerWatsonCoversTheHullOfDiagonallyThinPointSets(t *testing.T) {
+	for _, width := range []float64{1e-3, 1e-6, 1e-9, 1e-12, 1e-14} {
+		rng := rand.New(rand.NewSource(5))
+		pts := make([]vector2.Float64, 200)
+		for i := range pts {
+			x := rng.Float64()
+			pts[i] = vector2.New(x, x+(rng.Float64()-0.5)*width)
+		}
+
+		want := 2*len(pts) - 2 - hullSize(pts)
+		got := triangulation.BowyerWatson(pts).Indices().Len() / 3
+		assert.Equalf(t, want, got, "width %g", width)
+	}
+}
+
 func TestBowyerWatsonIsDelaunayOnThinPointSets(t *testing.T) {
 	for _, aspect := range []float64{1, 100, 2000} {
 		rng := rand.New(rand.NewSource(8))
