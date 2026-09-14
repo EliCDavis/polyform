@@ -71,6 +71,22 @@ func RequireV1Attribute(m modeling.Mesh, attr string) error {
 	return fmt.Errorf("mesh is required to have the vector1 attribute: '%s'", attr)
 }
 
+// Rebuilds every attribute from a list of the vertices to keep, in the order
+// they should end up in. Vertices named more than once are duplicated, and
+// vertices left out are dropped.
+func gatherByIndex[T any](order []int, attrs []string, reader func(string) *iter.ArrayIterator[T]) map[string][]T {
+	gathered := make(map[string][]T)
+	for _, attr := range attrs {
+		data := reader(attr)
+		values := make([]T, len(order))
+		for i, from := range order {
+			values[i] = data.At(from)
+		}
+		gathered[attr] = values
+	}
+	return gathered
+}
+
 func readAllFloatXData[T any](attrs []string, reader func(string) *iter.ArrayIterator[T]) map[string][]T {
 	data := make(map[string][]T)
 	for _, attr := range attrs {
