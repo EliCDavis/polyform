@@ -24,14 +24,14 @@ func dominantAxis(normal vector3.Float64) int {
 // dropAxis flattens by deleting one coordinate. The remaining pair is taken
 // in cyclic order so the projection's handedness only depends on the sign of
 // the deleted component, and no arithmetic touches the numbers that survive.
-func dropAxis(p vector3.Float64, axis int) vector2.Float64 {
+func dropAxis(point vector3.Float64, axis int) vector2.Float64 {
 	switch axis {
 	case 0:
-		return vector2.New(p.Y(), p.Z())
+		return vector2.New(point.Y(), point.Z())
 	case 1:
-		return vector2.New(p.Z(), p.X())
+		return vector2.New(point.Z(), point.X())
 	}
-	return vector2.New(p.X(), p.Y())
+	return vector2.New(point.X(), point.Y())
 }
 
 // liftOntoPlane recovers the deleted coordinate from the face's plane. Only
@@ -41,17 +41,17 @@ func dropAxis(p vector3.Float64, axis int) vector2.Float64 {
 // The axis deleted was the one the face faces most squarely, so the divisor
 // here is the largest component of the normal and never small.
 func liftOntoPlane(flat vector2.Float64, axis int, f face) vector3.Float64 {
-	n := f.normal
-	d := n.Dot(f.verts[0])
+	normal := f.normal
+	offset := normal.Dot(f.verts[0])
 
 	switch axis {
 	case 0:
 		y, z := flat.X(), flat.Y()
-		return vector3.New((d-n.Y()*y-n.Z()*z)/n.X(), y, z)
+		return vector3.New((offset-normal.Y()*y-normal.Z()*z)/normal.X(), y, z)
 	case 1:
 		z, x := flat.X(), flat.Y()
-		return vector3.New(x, (d-n.Z()*z-n.X()*x)/n.Y(), z)
+		return vector3.New(x, (offset-normal.Z()*z-normal.X()*x)/normal.Y(), z)
 	}
 	x, y := flat.X(), flat.Y()
-	return vector3.New(x, y, (d-n.X()*x-n.Y()*y)/n.Z())
+	return vector3.New(x, y, (offset-normal.X()*x-normal.Y()*y)/normal.Z())
 }

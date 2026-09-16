@@ -26,7 +26,7 @@ func (node UnionNode) Description() string {
 }
 
 func (node UnionNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
-	fold(out, nodes.GetOutputValues(out, node.Meshes), meshPort("Meshes"), Union)
+	fold(out, connected(out, "Meshes", node.Meshes), Union)
 }
 
 type IntersectionNode struct {
@@ -38,7 +38,7 @@ func (node IntersectionNode) Description() string {
 }
 
 func (node IntersectionNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
-	fold(out, nodes.GetOutputValues(out, node.Meshes), meshPort("Meshes"), Intersect)
+	fold(out, connected(out, "Meshes", node.Meshes), Intersect)
 }
 
 type SubtractNode struct {
@@ -56,31 +56,38 @@ func (node SubtractNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 		return
 	}
 
-	label := func(i int) string {
-		if i == 0 {
-			return "Base"
-		}
-		return fmt.Sprintf("Remove.%d", i-1)
-	}
-
-	fold(out, append(
-		[]modeling.Mesh{nodes.GetOutputValue(out, node.Base)},
-		nodes.GetOutputValues(out, node.Remove)...,
-	), label, Subtract)
+	base := input{mesh: nodes.GetOutputValue(out, node.Base), port: "Base"}
+	fold(out, append([]input{base}, connected(out, "Remove", node.Remove)...), Subtract)
 }
 
-func meshPort(name string) func(int) string {
-	return func(i int) string { return fmt.Sprintf("%s.%d", name, i) }
+type input struct {
+	mesh modeling.Mesh
+	port string
+}
+
+// Named by the port each mesh arrived on, unconnected ports included in the
+// count, so an error points at the port the user can see.
+func connected(out *nodes.StructOutput[modeling.Mesh], name string, ports []nodes.Output[modeling.Mesh]) []input {
+	inputs := make([]input, 0, len(ports))
+	for i, port := range ports {
+		if port == nil {
+			continue
+		}
+		inputs = append(inputs, input{
+			mesh: nodes.GetOutputValue(out, port),
+			port: fmt.Sprintf("%s.%d", name, i),
+		})
+	}
+	return inputs
 }
 
 func fold(
 	out *nodes.StructOutput[modeling.Mesh],
-	meshes []modeling.Mesh,
-	label func(int) string,
+	inputs []input,
 	op func(a, b modeling.Mesh) (modeling.Mesh, error),
 ) {
 	empty := modeling.EmptyMesh(modeling.TriangleTopology)
-	if len(meshes) == 0 {
+	if len(inputs) == 0 {
 		out.Set(empty)
 		return
 	}
@@ -89,9 +96,9 @@ func fold(
 	// carries the bad mesh gets named. Folding pairwise otherwise reports the
 	// third input of five as "the second mesh".
 	broken := false
-	for i, m := range meshes {
-		if err := CheckClosed(m); err != nil {
-			out.CaptureError(fmt.Errorf("%s: %w", label(i), err))
+	for _, in := range inputs {
+		if err := CheckClosed(in.mesh); err != nil {
+			out.CaptureError(fmt.Errorf("%s: %w", in.port, err))
 			broken = true
 		}
 	}
@@ -100,11 +107,11 @@ func fold(
 		return
 	}
 
-	result := meshes[0]
-	for i, next := range meshes[1:] {
-		combined, err := op(result, next)
+	result := inputs[0].mesh
+	for _, next := range inputs[1:] {
+		combined, err := op(result, next.mesh)
 		if err != nil {
-			out.CaptureError(fmt.Errorf("combining %s: %w", label(i+1), err))
+			out.CaptureError(fmt.Errorf("combining %s: %w", next.port, err))
 			out.Set(result)
 			return
 		}

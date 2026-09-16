@@ -14,21 +14,12 @@ package csg
 // and because a region is large the rays can be fired from faces well clear of
 // any edge.
 
-import "github.com/EliCDavis/vector/vector3"
-
 // Rays are cheap once there are only a few of them, so a region is sampled
-// rather than trusted to a single face. An even number would risk a tie.
+// rather than trusted to a single face.
 const votesPerPatch = 5
 
-func curvePoints(weld *welder, corners []vector3.Float64) map[int]bool {
-	onCurve := make(map[int]bool, len(corners))
-	for _, c := range corners {
-		onCurve[weld.Index(c)] = true
-	}
-	return onCurve
-}
-
-// Faces sharing an edge that does not sit on the intersection curve.
+// Faces sharing an edge that does not sit on the intersection curve. Each
+// patch is a list of face indices.
 //
 // Marking an edge by whether both its ends lie on the curve is a slight over
 // count: an edge can join two curve points without lying on the curve itself.
@@ -38,64 +29,64 @@ func curvePoints(weld *welder, corners []vector3.Float64) map[int]bool {
 // A face lying on the other solid's surface registers no edge at all, so
 // nothing joins to it and it answers for itself. No cut separates it from its
 // neighbours, but it classifies as same or opposite where they do not.
-func patchesOf(ids [][3]int, onCurve map[int]bool, touching []bool) [][]int {
-	parent := make([]int, len(ids))
+func patchesOf(cornerIDs [][3]int, onCurve map[int]bool, touching []bool) [][]int {
+	parent := make([]int, len(cornerIDs))
 	for i := range parent {
 		parent[i] = i
 	}
 
-	root := func(x int) int {
-		for parent[x] != x {
-			parent[x] = parent[parent[x]]
-			x = parent[x]
+	root := func(faceIndex int) int {
+		for parent[faceIndex] != faceIndex {
+			parent[faceIndex] = parent[parent[faceIndex]]
+			faceIndex = parent[faceIndex]
 		}
-		return x
+		return faceIndex
 	}
 
 	// Only which faces end up together matters, so edges are joined as they
 	// are met and never stored. Holding a face list per edge costs more than
 	// the answer is worth.
-	first := make(map[[2]int]int, len(ids)*3)
-	for i, corners := range ids {
-		if touching[i] {
+	firstFaceOnEdge := make(map[[2]int]int, len(cornerIDs)*3)
+	for faceIndex, corners := range cornerIDs {
+		if touching[faceIndex] {
 			continue
 		}
 		for k := 0; k < 3; k++ {
-			a, b := corners[k], corners[(k+1)%3]
-			if a == b || (onCurve[a] && onCurve[b]) {
+			from, to := corners[k], corners[(k+1)%3]
+			if from == to || (onCurve[from] && onCurve[to]) {
 				continue
 			}
-			if a > b {
-				a, b = b, a
+			if from > to {
+				from, to = to, from
 			}
 
-			edge := [2]int{a, b}
-			seen, known := first[edge]
-			if !known {
-				first[edge] = i
+			edge := [2]int{from, to}
+			earlierFace, seen := firstFaceOnEdge[edge]
+			if !seen {
+				firstFaceOnEdge[edge] = faceIndex
 				continue
 			}
-			if left, right := root(seen), root(i); left != right {
-				parent[left] = right
+			if earlierRoot, thisRoot := root(earlierFace), root(faceIndex); earlierRoot != thisRoot {
+				parent[earlierRoot] = thisRoot
 			}
 		}
 	}
 
-	grouped := make(map[int][]int)
-	for i := range ids {
-		r := root(i)
-		grouped[r] = append(grouped[r], i)
+	byRoot := make(map[int][]int)
+	for faceIndex := range cornerIDs {
+		r := root(faceIndex)
+		byRoot[r] = append(byRoot[r], faceIndex)
 	}
 
-	patches := make([][]int, 0, len(grouped))
-	for _, group := range grouped {
-		patches = append(patches, group)
+	patches := make([][]int, 0, len(byRoot))
+	for _, patch := range byRoot {
+		patches = append(patches, patch)
 	}
 	return patches
 }
 
-func sampleStride(group []int) int {
-	if stride := len(group) / votesPerPatch; stride > 1 {
+func sampleStride(patch []int) int {
+	if stride := len(patch) / votesPerPatch; stride > 1 {
 		return stride
 	}
 	return 1
@@ -105,9 +96,9 @@ func sampleStride(group []int) int {
 // whether the solid being cast against is worth indexing.
 func rayBudget(patches [][]int) int {
 	total := 0
-	for _, group := range patches {
-		stride := sampleStride(group)
-		for i := 0; i < len(group); i += stride {
+	for _, patch := range patches {
+		stride := sampleStride(patch)
+		for i := 0; i < len(patch); i += stride {
 			total++
 		}
 	}
@@ -117,23 +108,23 @@ func rayBudget(patches [][]int) int {
 func classifyPatches(faces []face, patches [][]int, against *solid) []classification {
 	answers := make([]classification, len(faces))
 
-	for _, group := range patches {
-		stride := sampleStride(group)
+	for _, patch := range patches {
+		stride := sampleStride(patch)
 
 		votes := make(map[classification]int, 4)
-		for i := 0; i < len(group); i += stride {
-			votes[against.classify(faces[group[i]])]++
+		for i := 0; i < len(patch); i += stride {
+			votes[against.classify(faces[patch[i]])]++
 		}
 
-		winner, best := outside, -1
+		winner, mostVotes := outside, -1
 		for answer, count := range votes {
-			if count > best || (count == best && answer < winner) {
-				winner, best = answer, count
+			if count > mostVotes || (count == mostVotes && answer < winner) {
+				winner, mostVotes = answer, count
 			}
 		}
 
-		for _, i := range group {
-			answers[i] = winner
+		for _, faceIndex := range patch {
+			answers[faceIndex] = winner
 		}
 	}
 

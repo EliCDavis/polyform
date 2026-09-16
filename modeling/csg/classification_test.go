@@ -11,12 +11,8 @@ import (
 )
 
 type splitPair struct {
-	facesA, facesB       []face
-	idsA, idsB           [][3]int
-	touchingA, touchingB []bool
-	weldA, weldB         *welder
-	corners              []vector3.Float64
-	tolerance            float64
+	a, b      half
+	tolerance float64
 }
 
 // Everything combine builds before it classifies.
@@ -36,18 +32,12 @@ func splitBoth(t *testing.T, a, b modeling.Mesh) splitPair {
 	cutsB, cornersB, touchingB := cutsAgainst(facesB, facesA, tolerance)
 	corners := append(cornersA, cornersB...)
 
-	splitA, splitIDsA, splitTouchingA, err := splitAll(facesA, idsA, cutsA, corners, touchingA, tolerance, weldA)
+	halfA, err := splitAll(facesA, idsA, cutsA, corners, touchingA, tolerance, weldA)
 	require.NoError(t, err)
-	splitB, splitIDsB, splitTouchingB, err := splitAll(facesB, idsB, cutsB, corners, touchingB, tolerance, weldB)
+	halfB, err := splitAll(facesB, idsB, cutsB, corners, touchingB, tolerance, weldB)
 	require.NoError(t, err)
 
-	return splitPair{
-		facesA: splitA, facesB: splitB,
-		idsA: splitIDsA, idsB: splitIDsB,
-		touchingA: splitTouchingA, touchingB: splitTouchingB,
-		weldA: weldA, weldB: weldB,
-		corners: corners, tolerance: tolerance,
-	}
+	return splitPair{a: halfA, b: halfB, tolerance: tolerance}
 }
 
 // Section 7 read on its own: every face gets its own ray. Grouping has to
@@ -108,21 +98,14 @@ func TestGroupingAgreesWithPerFaceClassification(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			p := splitBoth(t, pair[0], pair[1])
 
-			grouped := func() ([]classification, []classification) {
-				return classifyBoth(
-					p.facesA, p.idsA, p.touchingA, p.weldA,
-					p.facesB, p.idsB, p.touchingB, p.weldB,
-					p.corners, p.tolerance,
-				)
-			}
-			groupedA, groupedB := grouped()
+			groupedA, groupedB := classifyBoth(p.a, p.b, p.tolerance)
 
-			solidA := newSolid(p.facesA, p.tolerance, len(p.facesB))
-			solidB := newSolid(p.facesB, p.tolerance, len(p.facesA))
+			solidA := newSolid(p.a.faces, p.tolerance, len(p.b.faces))
+			solidB := newSolid(p.b.faces, p.tolerance, len(p.a.faces))
 
-			require.Greater(t, len(p.facesA), 0, "sanity: this pair should split into faces")
-			assert.Equal(t, classifyEachFace(p.facesA, solidB), groupedA, "first solid")
-			assert.Equal(t, classifyEachFace(p.facesB, solidA), groupedB, "second solid")
+			require.Greater(t, len(p.a.faces), 0, "sanity: this pair should split into faces")
+			assert.Equal(t, classifyEachFace(p.a.faces, solidB), groupedA, "first solid")
+			assert.Equal(t, classifyEachFace(p.b.faces, solidA), groupedB, "second solid")
 		})
 	}
 }
@@ -133,11 +116,11 @@ func TestGroupingSpendsFarFewerRaysThanFaces(t *testing.T) {
 		primitives.UVSphere(1.28, 24, 36).Translate(vector3.New(0.6, 0.4, 0.3)),
 	)
 
-	patches := patchesOf(p.idsA, curvePoints(p.weldA, p.corners), p.touchingA)
+	patches := patchesOf(p.a.cornerIDs, p.a.onCurve, p.a.touching)
 	rays := rayBudget(patches)
 
-	require.Greater(t, len(p.facesA), 1000, "sanity: this should be a mesh worth grouping")
-	assert.Less(t, rays, len(p.facesA)/50,
+	require.Greater(t, len(p.a.faces), 1000, "sanity: this should be a mesh worth grouping")
+	assert.Less(t, rays, len(p.a.faces)/50,
 		"grouping fired %d rays for %d faces, which is not the saving it exists for",
-		rays, len(p.facesA))
+		rays, len(p.a.faces))
 }

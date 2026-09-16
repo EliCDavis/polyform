@@ -20,7 +20,15 @@ import (
 type face struct {
 	verts  [3]vector3.Float64
 	normal vector3.Float64
+
+	// The triangle of the source mesh this was cut from, and each corner as
+	// barycentric weights over that triangle's corners, which is all vertex
+	// data needs to follow the cut.
+	parent  int
+	weights [3][3]float64
 }
+
+var ownCorners = [3][3]float64{{1, 0, 0}, {0, 1, 0}, {0, 0, 1}}
 
 // A triangle enclosing no area contributes no surface, and its normal is
 // either undefined or, for one thin enough to underflow, junk. Section 7
@@ -46,14 +54,19 @@ func newFace(a, b, c vector3.Float64) (face, bool) {
 
 func (f face) reversed() face {
 	return face{
-		verts:  [3]vector3.Float64{f.verts[0], f.verts[2], f.verts[1]},
-		normal: f.normal.Scale(-1),
+		verts:   [3]vector3.Float64{f.verts[0], f.verts[2], f.verts[1]},
+		normal:  f.normal.Scale(-1),
+		parent:  f.parent,
+		weights: [3][3]float64{f.weights[0], f.weights[2], f.weights[1]},
 	}
 }
 
 // Section 7 calls the average of a polygon's vertices its barycenter.
 func (f face) barycenter() vector3.Float64 {
-	return f.verts[0].Add(f.verts[1]).Add(f.verts[2]).Scale(1. / 3.)
+	return f.verts[0].
+		Add(f.verts[1]).
+		Add(f.verts[2]).
+		Scale(1. / 3.)
 }
 
 func (f face) bounds() geometry.AABB {
@@ -66,26 +79,21 @@ func (f face) bounds() geometry.AABB {
 // quietly misses points sitting on the face's own edges.
 func (f face) reach() float64 {
 	center := f.barycenter()
-	return math.Max(
+	return max(
 		f.verts[0].Sub(center).Length(),
-		math.Max(
-			f.verts[1].Sub(center).Length(),
-			f.verts[2].Sub(center).Length(),
-		),
+		f.verts[1].Sub(center).Length(),
+		f.verts[2].Sub(center).Length(),
 	)
 }
 
-// Which side of other's plane each of this face's corners falls on.
-//
-// Not a distance: a determinant, exact in sign, scaled by twice other's area.
-// Callers only read its sign and the ratio of two of them, both of which that
-// scaling leaves alone.
-func (f face) distancesTo(other face) [3]float64 {
-	var out [3]float64
-	for i, v := range f.verts {
-		out[i] = predicate.Orient3D(other.verts[0], other.verts[1], other.verts[2], v)
+// Which side of other's plane each corner falls on. Not a distance: the
+// magnitude carries other's area, which cancels in the ratios callers take.
+func (f face) sidesOf(other face) [3]float64 {
+	var sides [3]float64
+	for i, corner := range f.verts {
+		sides[i] = predicate.Orient3D(other.verts[0], other.verts[1], other.verts[2], corner)
 	}
-	return out
+	return sides
 }
 
 type segment [2]vector3.Float64
@@ -96,8 +104,8 @@ type faceElement struct {
 
 func (e faceElement) BoundingBox() geometry.AABB { return e.bounds }
 
-func (e faceElement) ClosestPoint(p vector3.Float64) vector3.Float64 {
-	return e.bounds.ClosestPoint(p)
+func (e faceElement) ClosestPoint(point vector3.Float64) vector3.Float64 {
+	return e.bounds.ClosestPoint(point)
 }
 
 func facesOf(m modeling.Mesh) ([]face, error) {
@@ -119,162 +127,124 @@ func facesOf(m modeling.Mesh) ([]face, error) {
 			positions.At(indices.At(i+2)),
 		)
 		if ok {
+			f.parent, f.weights = i/3, ownCorners
 			faces = append(faces, f)
 		}
 	}
 	return faces, nil
 }
 
-func meshOf(faces []face) modeling.Mesh {
-	tris := make([]int, 0, len(faces)*3)
-	verts := make([]vector3.Float64, 0, len(faces)*3)
-	normals := make([]vector3.Float64, 0, len(faces)*3)
-
-	for _, f := range faces {
-		tris = append(tris, len(verts), len(verts)+1, len(verts)+2)
-		verts = append(verts, f.verts[0], f.verts[1], f.verts[2])
-		normals = append(normals, f.normal, f.normal, f.normal)
-	}
-
-	return modeling.NewTriangleMesh(tris).
-		SetFloat3Data(map[string][]vector3.Float64{
-			modeling.PositionAttribute: verts,
-			modeling.NormalAttribute:   normals,
-		})
-}
-
 // Every comparison against zero here is really a comparison against the size
 // of what is being cut, so a millimetre model and a kilometre one behave the
-// same.
-func toleranceFor(a, b []face) float64 {
-	low := vector3.Fill(math.Inf(1))
-	high := vector3.Fill(math.Inf(-1))
-
-	// Walked in place. Copying both face slices into one to range over cost
-	// more memory than everything else in the operation put together.
-	stretch := func(faces []face) {
-		for _, f := range faces {
-			for _, v := range f.verts {
-				low = vector3.New(
-					math.Min(low.X(), v.X()),
-					math.Min(low.Y(), v.Y()),
-					math.Min(low.Z(), v.Z()))
-				high = vector3.New(
-					math.Max(high.X(), v.X()),
-					math.Max(high.Y(), v.Y()),
-					math.Max(high.Z(), v.Z()))
-			}
-		}
-	}
-	stretch(a)
-	stretch(b)
-
-	span := high.Sub(low).Length()
+// same. Each mesh's own span, never the pair's: a mesh CheckClosed accepted
+// alone must be accepted here, however far from its partner it sits.
+func toleranceFor(first, second []face) float64 {
+	span := max(spanOf(first), spanOf(second))
 	if span == 0 || math.IsInf(span, 0) || math.IsNaN(span) {
 		return 1e-9
 	}
 	return span * 1e-9
 }
 
+func spanOf(faces []face) float64 {
+	if len(faces) == 0 {
+		return 0
+	}
+	bounds := faces[0].bounds()
+	for _, f := range faces[1:] {
+		bounds.EncapsulateBounds(f.bounds())
+	}
+	return bounds.Size().Length()
+}
+
 // Section 5, "Do Two Polygons Intersect?": the segment shared by two faces.
 //
 // Reports false for coplanar pairs. Section 4's outer loop leaves those
 // alone, expecting the faces around them to do the cutting.
-func sharedSegment(a, b face, tolerance float64) (segment, bool) {
-	toB := a.distancesTo(b)
-	toA := b.distancesTo(a)
+func sharedSegment(f, other face, tolerance float64) (segment, bool) {
+	faceSides := f.sidesOf(other)
+	otherSides := other.sidesOf(f)
 
-	if entirelyOneSide(toB) || entirelyOneSide(toA) {
+	if entirelyOneSide(faceSides) || entirelyOneSide(otherSides) {
 		return segment{}, false
 	}
-	if coplanar(toB) {
+	// Within tolerance counts as coplanar: any closer and the cut direction
+	// below is a cross product made of rounding error.
+	if sharesPlane(f, other, tolerance) || sharesPlane(other, f, tolerance) {
 		return segment{}, false
 	}
 
-	onB, ok := crossesPlane(a, toB, tolerance)
+	faceCrossing, ok := crossesPlane(f, faceSides, tolerance)
 	if !ok {
 		return segment{}, false
 	}
-	onA, ok := crossesPlane(b, toA, tolerance)
+	otherCrossing, ok := crossesPlane(other, otherSides, tolerance)
 	if !ok {
 		return segment{}, false
 	}
 
 	// Both segments lie on the line where the two planes meet, so they can be
 	// compared as intervals along it.
-	direction := a.normal.Cross(b.normal)
+	direction := f.normal.Cross(other.normal)
 	if direction.Length() == 0 {
 		return segment{}, false
 	}
 	direction = direction.Normalized()
 
-	base := onB[0]
-	at := func(p vector3.Float64) float64 { return p.Sub(base).Dot(direction) }
+	base := faceCrossing[0]
+	along := func(point vector3.Float64) float64 { return point.Sub(base).Dot(direction) }
 
 	// The overlap always ends on one of the four crossing points already in
 	// hand, so the answer is which one, not where. Rebuilding it from a
 	// parameter would round it through a normalized direction and a scale,
 	// and the same point reached from the other face would land elsewhere -
 	// which is the drift the snapping tolerances downstream exist to absorb.
-	ends := func(p [2]vector3.Float64) (low, high vector3.Float64, lowAt, highAt float64) {
-		first, second := at(p[0]), at(p[1])
+	orderedAlong := func(crossing [2]vector3.Float64) (start, end vector3.Float64, startAt, endAt float64) {
+		first, second := along(crossing[0]), along(crossing[1])
 		if first <= second {
-			return p[0], p[1], first, second
+			return crossing[0], crossing[1], first, second
 		}
-		return p[1], p[0], second, first
+		return crossing[1], crossing[0], second, first
 	}
 
-	aLow, aHigh, aLowAt, aHighAt := ends(onB)
-	bLow, bHigh, bLowAt, bHighAt := ends(onA)
+	faceStart, faceEnd, faceStartAt, faceEndAt := orderedAlong(faceCrossing)
+	otherStart, otherEnd, otherStartAt, otherEndAt := orderedAlong(otherCrossing)
 
-	low, lowAt := aLow, aLowAt
-	if bLowAt > lowAt {
-		low, lowAt = bLow, bLowAt
+	start, startAt := faceStart, faceStartAt
+	if otherStartAt > startAt {
+		start, startAt = otherStart, otherStartAt
 	}
 
-	high, highAt := aHigh, aHighAt
-	if bHighAt < highAt {
-		high, highAt = bHigh, bHighAt
+	end, endAt := faceEnd, faceEndAt
+	if otherEndAt < endAt {
+		end, endAt = otherEnd, otherEndAt
 	}
 
-	if highAt-lowAt <= tolerance {
+	if endAt-startAt <= tolerance {
 		return segment{}, false
 	}
 
-	return segment{low, high}, true
+	return segment{start, end}, true
 }
 
-// Compared against zero rather than a tolerance: sideOfPlane is exact, so
-// there is no band of uncertainty left to allow for.
-func entirelyOneSide(distances [3]float64) bool {
+// Against zero, not a tolerance: Orient3D is exact in sign.
+func entirelyOneSide(sides [3]float64) bool {
 	positive, negative := 0, 0
-	for _, d := range distances {
-		if d > 0 {
+	for _, side := range sides {
+		if side > 0 {
 			positive++
 		}
-		if d < 0 {
+		if side < 0 {
 			negative++
 		}
 	}
 	return positive == 3 || negative == 3
 }
 
-// Whether a lies on b's plane closely enough that classification will call it
-// a boundary face. coplanar is exact and answers a different question: it
-// decides whether to cut, where being a rounding error off the plane really
-// does mean the two faces cross.
-func sharesPlane(a, b face, tolerance float64) bool {
-	for _, v := range a.verts {
-		if math.Abs(b.planeDistance(v)) > tolerance {
-			return false
-		}
-	}
-	return true
-}
-
-func coplanar(distances [3]float64) bool {
-	for _, d := range distances {
-		if d != 0 {
+// Every corner of f within tolerance of other's plane.
+func sharesPlane(f, other face, tolerance float64) bool {
+	for _, corner := range f.verts {
+		if math.Abs(other.planeDistance(corner)) > tolerance {
 			return false
 		}
 	}
@@ -282,147 +252,151 @@ func coplanar(distances [3]float64) bool {
 }
 
 // Where a face meets a plane: two points, or nothing when it only grazes a
-// single corner.
-func crossesPlane(f face, distances [3]float64, tolerance float64) ([2]vector3.Float64, bool) {
-	found := make([]vector3.Float64, 0, 2)
+// single corner. sides is which side of that plane each corner falls on.
+func crossesPlane(f face, sides [3]float64, tolerance float64) ([2]vector3.Float64, bool) {
+	crossings := make([]vector3.Float64, 0, 2)
 
-	add := func(p vector3.Float64) {
-		for _, existing := range found {
-			if existing.Sub(p).Length() <= tolerance {
+	record := func(point vector3.Float64) {
+		for _, existing := range crossings {
+			if existing.Sub(point).Length() <= tolerance {
 				return
 			}
 		}
-		found = append(found, p)
+		crossings = append(crossings, point)
 	}
 
 	for i := 0; i < 3; i++ {
 		j := (i + 1) % 3
-		from, to := distances[i], distances[j]
+		startSide, endSide := sides[i], sides[j]
 
-		if from == 0 {
-			add(f.verts[i])
+		if startSide == 0 {
+			record(f.verts[i])
 			continue
 		}
-		if to == 0 || (from > 0) == (to > 0) {
+		if endSide == 0 || (startSide > 0) == (endSide > 0) {
 			continue
 		}
 
-		// Both are determinants carrying the same area factor, so it cancels
-		// and the ratio is the true fraction along the edge.
-
-		along := from / (from - to)
-		add(f.verts[i].Add(f.verts[j].Sub(f.verts[i]).Scale(along)))
+		// The area factor in both cancels, leaving the true fraction.
+		fraction := startSide / (startSide - endSide)
+		record(f.verts[i].Add(f.verts[j].Sub(f.verts[i]).Scale(fraction)))
 	}
 
-	if len(found) != 2 {
+	if len(crossings) != 2 {
 		return [2]vector3.Float64{}, false
 	}
-	return [2]vector3.Float64{found[0], found[1]}, true
+	return [2]vector3.Float64{crossings[0], crossings[1]}, true
 }
 
 // Section 4, "Intersecting the Objects": where the faces of against cross
 // each face of target.
 //
-// The endpoints come back alongside the cuts because both solids have to be
-// split at all of them, not just at their own. The curve where the two meet
-// belongs to both, and a point only one of them splits at leaves the other
-// with an edge running straight past it.
+// The endpoints come back as curvePoints because both solids have to be split
+// at all of them, not just at their own. The curve where the two meet belongs
+// to both, and a point only one of them splits at leaves the other with an
+// edge running straight past it.
 // touching reports the target faces that share a plane with a face of the
 // other solid. Section 4 leaves such pairs unsplit, so no cut ever separates
 // them from their neighbours even though they classify differently.
-func cutsAgainst(target, against []face, tolerance float64) (cuts [][]segment, corners []vector3.Float64, touching []bool) {
-	elements := make([]trees.Element, len(against))
+func cutsAgainst(target, against []face, tolerance float64) (cuts [][]segment, curvePoints []vector3.Float64, touching []bool) {
+	boxes := make([]trees.Element, len(against))
 	for i, f := range against {
-		elements[i] = faceElement{bounds: f.bounds()}
+		boxes[i] = faceElement{bounds: f.bounds()}
 	}
-	tree := trees.NewOctree(elements)
+	tree := trees.NewOctree(boxes)
 
 	cuts = make([][]segment, len(target))
-	corners = make([]vector3.Float64, 0)
+	curvePoints = make([]vector3.Float64, 0)
 	touching = make([]bool, len(target))
 
 	for i, f := range target {
 		reach := f.reach()
 		for _, j := range tree.ElementsWithinRange(f.barycenter(), reach+tolerance) {
-			cut, ok := sharedSegment(f, against[j], tolerance)
+			other := against[j]
+			cut, ok := sharedSegment(f, other, tolerance)
 			if !ok {
-				if sharesPlane(f, against[j], tolerance) {
+				if sharesPlane(f, other, tolerance) {
 					touching[i] = true
 				}
 				continue
 			}
 			cuts[i] = append(cuts[i], cut)
-			corners = append(corners, cut[0], cut[1])
+			curvePoints = append(curvePoints, cut[0], cut[1])
 		}
 	}
 
-	return cuts, corners, touching
+	return cuts, curvePoints, touching
 }
 
-// Splits every face along its own cuts, and at any corner from either solid
-// that happens to land on it.
+// Splits every face along its own cuts, and at any curve point from either
+// solid that happens to land on it. onCurve collects the ids the pieces carry
+// at those points, so the curve is known by id and never by position.
 func splitAll(
 	target []face,
-	ids [][3]int,
+	cornerIDs [][3]int,
 	cuts [][]segment,
-	corners []vector3.Float64,
+	curvePoints []vector3.Float64,
 	touching []bool,
 	tolerance float64,
 	weld *welder,
-) ([]face, [][3]int, []bool, error) {
-	if len(corners) == 0 {
-		return target, ids, touching, nil
+) (half, error) {
+	onCurve := make(map[int]bool, len(curvePoints))
+	if len(curvePoints) == 0 {
+		return half{target, cornerIDs, touching, onCurve}, nil
 	}
 
-	elements := make([]trees.Element, len(corners))
-	for i, c := range corners {
-		elements[i] = faceElement{bounds: geometry.NewAABBFromPoints(c)}
+	boxes := make([]trees.Element, len(curvePoints))
+	for i, point := range curvePoints {
+		boxes[i] = faceElement{bounds: geometry.NewAABBFromPoints(point)}
 	}
-	tree := trees.NewOctree(elements)
+	tree := trees.NewOctree(boxes)
 
-	out := make([]face, 0, len(target))
-	outIDs := make([][3]int, 0, len(target))
-	outTouching := make([]bool, 0, len(target))
+	out := half{
+		faces:     make([]face, 0, len(target)),
+		cornerIDs: make([][3]int, 0, len(target)),
+		touching:  make([]bool, 0, len(target)),
+		onCurve:   onCurve,
+	}
 
 	for i, f := range target {
 		reach := f.reach()
-		landed := make([]vector3.Float64, 0)
+		landedPoints := make([]vector3.Float64, 0)
 		for _, j := range tree.ElementsWithinRange(f.barycenter(), reach+tolerance) {
-			if onFace(f, corners[j], tolerance) {
-				landed = append(landed, corners[j])
+			if onFace(f, curvePoints[j], tolerance) {
+				landedPoints = append(landedPoints, curvePoints[j])
 			}
 		}
 
 		// An uncut face keeps the ids it came in with, which is most of them.
-		if len(cuts[i]) == 0 && len(landed) == 0 {
-			out = append(out, f)
-			outIDs = append(outIDs, ids[i])
-			outTouching = append(outTouching, touching[i])
+		if len(cuts[i]) == 0 && len(landedPoints) == 0 {
+			out.faces = append(out.faces, f)
+			out.cornerIDs = append(out.cornerIDs, cornerIDs[i])
+			out.touching = append(out.touching, touching[i])
 			continue
 		}
 
-		pieces, pieceIDs, err := splitFace(f, ids[i], cuts[i], landed, tolerance, weld)
+		pieces, pieceIDs, err := splitFace(f, cornerIDs[i], cuts[i], landedPoints, tolerance, weld, onCurve)
 		if err != nil {
-			return nil, nil, nil, err
+			return half{}, err
 		}
-		out = append(out, pieces...)
-		outIDs = append(outIDs, pieceIDs...)
+		out.faces = append(out.faces, pieces...)
+		out.cornerIDs = append(out.cornerIDs, pieceIDs...)
 		for range pieces {
-			outTouching = append(outTouching, touching[i])
+			out.touching = append(out.touching, touching[i])
 		}
 	}
 
-	return out, outIDs, outTouching, nil
+	return out, nil
 }
 
-func onFace(f face, p vector3.Float64, tolerance float64) bool {
-	if math.Abs(p.Sub(f.verts[0]).Dot(f.normal)) > tolerance {
+func onFace(f face, point vector3.Float64, tolerance float64) bool {
+	if math.Abs(point.Sub(f.verts[0]).Dot(f.normal)) > tolerance {
 		return false
 	}
 	for i := 0; i < 3; i++ {
 		j := (i + 1) % 3
 		edge := f.verts[j].Sub(f.verts[i])
-		if edge.Cross(p.Sub(f.verts[i])).Dot(f.normal) < -tolerance*edge.Length() {
+		if edge.Cross(point.Sub(f.verts[i])).Dot(f.normal) < -tolerance*edge.Length() {
 			return false
 		}
 	}
@@ -436,80 +410,104 @@ func onFace(f face, p vector3.Float64, tolerance float64) bool {
 // out convex anyway, so the cuts are handed over as edges it has to keep.
 func splitFace(
 	f face,
-	ids [3]int,
+	cornerIDs [3]int,
 	cuts []segment,
-	landed []vector3.Float64,
+	landedPoints []vector3.Float64,
 	tolerance float64,
 	weld *welder,
+	onCurve map[int]bool,
 ) ([]face, [][3]int, error) {
 	axis := dominantAxis(f.normal)
 
-	points := make([]vector2.Float64, 0, 3+len(cuts)*2+len(landed))
-	source := make([]vector3.Float64, 0, 3+len(cuts)*2+len(landed))
-	global := make([]int, 0, 3+len(cuts)*2+len(landed))
+	// One entry per point handed to the triangulator: where it sits in the
+	// plane, where it sits in space, the welded id it carries, and whether it
+	// came from a cut.
+	capacity := 3 + len(cuts)*2 + len(landedPoints)
+	flat := make([]vector2.Float64, 0, capacity)
+	world := make([]vector3.Float64, 0, capacity)
+	weldedIDs := make([]int, 0, capacity)
+	onCut := make([]bool, 0, capacity)
 
-	// Every point keeps the 3D coordinates it arrived with. Flattening and
-	// lifting a point back is not a round trip, and there is no reason to put
-	// one through it when the original is right here.
-	indexOf := func(p vector3.Float64, id int) int {
-		flat := dropAxis(p, axis)
-		for i, existing := range points {
-			if existing.Sub(flat).Length() <= tolerance {
-				return i
+	// Identity is decided in 3D, the way the welder decides it, so a point
+	// that is a corner here is the same corner in every face that has it.
+	indexOf := func(point vector3.Float64) (int, bool) {
+		for i, existing := range world {
+			if existing.Distance(point) <= tolerance {
+				return i, true
 			}
 		}
-		points = append(points, flat)
-		source = append(source, p)
-		global = append(global, id)
-		return len(points) - 1
+		return -1, false
+	}
+	record := func(point vector3.Float64, weldedID int) int {
+		flat = append(flat, dropAxis(point, axis))
+		world = append(world, point)
+		weldedIDs = append(weldedIDs, weldedID)
+		onCut = append(onCut, false)
+		return len(flat) - 1
+	}
+	place := func(point vector3.Float64) int {
+		point = snapToEdge(f, point, tolerance)
+		i, known := indexOf(point)
+		if !known {
+			i = record(point, weld.Index(point))
+		}
+		onCut[i] = true
+		return i
 	}
 
-	for k, v := range f.verts {
-		indexOf(v, ids[k])
+	for k, corner := range f.verts {
+		record(corner, cornerIDs[k])
 	}
-	if len(points) != 3 {
-		return []face{f}, [][3]int{ids}, nil
+	if len(flat) != 3 {
+		return []face{f}, [][3]int{cornerIDs}, nil
 	}
 
-	corners := [3]vector2.Float64{points[0], points[1], points[2]}
-	edges := [][2]int{{0, 1}, {1, 2}, {2, 0}}
+	outline := [3]vector2.Float64{flat[0], flat[1], flat[2]}
+	constraints := [][2]int{{0, 1}, {1, 2}, {2, 0}}
 
 	for _, cut := range cuts {
-		from, to := indexOf(cut[0], weld.Index(cut[0])), indexOf(cut[1], weld.Index(cut[1]))
+		from, to := place(cut[0]), place(cut[1])
 		if from != to {
-			edges = append(edges, [2]int{from, to})
+			constraints = append(constraints, [2]int{from, to})
 		}
 	}
 
 	// Carried by no edge of their own; they are here so the triangulator
 	// splits whatever edge they sit on.
-	for _, p := range landed {
-		indexOf(p, weld.Index(p))
+	for _, point := range landedPoints {
+		place(point)
 	}
 
-	if len(points) == 3 {
-		return []face{f}, [][3]int{ids}, nil
+	for i, fromCut := range onCut {
+		if fromCut {
+			onCurve[weldedIDs[i]] = true
+		}
 	}
 
-	flat, err := triangulation.ConstrainedDelaunayEdges(points, edges)
+	if len(flat) == 3 {
+		return []face{f}, [][3]int{cornerIDs}, nil
+	}
+
+	triangulated, err := triangulation.ConstrainedDelaunayEdges(flat, constraints)
 	if err != nil {
 		return nil, nil, fmt.Errorf("cutting a face along %d segments: %w", len(cuts), err)
 	}
 
-	indices := flat.Indices()
-	positions := flat.Float3Attribute(modeling.PositionAttribute)
+	indices := triangulated.Indices()
+	positions := triangulated.Float3Attribute(modeling.PositionAttribute)
 
 	// Input indices survive the triangulation, so anything past what was fed
-	// in is a point it invented and the only one needing a coordinate built
-	// for it.
-	resolve := func(index int) (vector2.Float64, vector3.Float64, int) {
-		v := positions.At(index)
-		flattened := vector2.New(v.X(), v.Z())
-		if index < len(source) {
-			return flattened, source[index], global[index]
+	// in is a point it invented where two cuts cross, and lies on the curve.
+	pointAt := func(index int) (vector2.Float64, vector3.Float64, int) {
+		position := positions.At(index)
+		inPlane := vector2.New(position.X(), position.Z())
+		if index < len(world) {
+			return inPlane, world[index], weldedIDs[index]
 		}
-		lifted := liftOntoPlane(flattened, axis, f)
-		return flattened, lifted, weld.Index(lifted)
+		lifted := liftOntoPlane(inPlane, axis, f)
+		weldedID := weld.Index(lifted)
+		onCurve[weldedID] = true
+		return inPlane, lifted, weldedID
 	}
 
 	pieces := make([]face, 0, indices.Len()/3)
@@ -517,64 +515,106 @@ func splitFace(
 
 	for i := 0; i+2 < indices.Len(); i += 3 {
 		var flatCorners [3]vector2.Float64
-		var solid [3]vector3.Float64
-		var corner [3]int
+		var worldCorners [3]vector3.Float64
+		var pieceCornerIDs [3]int
 		for k := 0; k < 3; k++ {
-			flatCorners[k], solid[k], corner[k] = resolve(indices.At(i + k))
+			flatCorners[k], worldCorners[k], pieceCornerIDs[k] = pointAt(indices.At(i + k))
 		}
 
 		// A cut endpoint landing a hair outside the triangle would widen the
 		// hull the triangulator fills, so anything beyond the original face
 		// is dropped rather than carried into the result.
-		middle := flatCorners[0].Add(flatCorners[1]).Add(flatCorners[2]).Scale(1. / 3.)
-		if !within(corners, middle, tolerance) {
+		centroid := flatCorners[0].Add(flatCorners[1]).Add(flatCorners[2]).Scale(1. / 3.)
+		if !withinOutline(outline, centroid, tolerance) {
 			continue
 		}
 
-		// A point a rounding error off an edge makes a triangle with no
-		// height, and the face across that edge does not see it.
-		if heightless(flatCorners, tolerance) {
+		// A point on the outline leaves the triangulator a zero-area triangle
+		// along that edge, which the face across the edge never sees.
+		if heightless(worldCorners, tolerance) {
 			continue
 		}
 
-		piece, ok := newFace(solid[0], solid[1], solid[2])
+		piece, ok := newFace(worldCorners[0], worldCorners[1], worldCorners[2])
 		if !ok {
 			continue
 		}
+		piece.parent = f.parent
+		for k := 0; k < 3; k++ {
+			piece.weights[k] = f.blend(barycentric(outline, flatCorners[k]))
+		}
 		if piece.normal.Dot(f.normal) < 0 {
 			piece = piece.reversed()
-			corner[1], corner[2] = corner[2], corner[1]
+			pieceCornerIDs[1], pieceCornerIDs[2] = pieceCornerIDs[2], pieceCornerIDs[1]
 		}
 		pieces = append(pieces, piece)
-		pieceIDs = append(pieceIDs, corner)
+		pieceIDs = append(pieceIDs, pieceCornerIDs)
 	}
 
 	if len(pieces) == 0 {
-		return []face{f}, [][3]int{ids}, nil
+		return []face{f}, [][3]int{cornerIDs}, nil
 	}
 	return pieces, pieceIDs, nil
 }
 
-func heightless(corners [3]vector2.Float64, tolerance float64) bool {
-	longest := 0.
-	for i := range corners {
-		longest = math.Max(longest, corners[i].Distance(corners[(i+1)%3]))
+// Barycentric coordinates survive the axis drop, the projection being linear
+// and the outline non-degenerate, so they are read off the flattened points.
+func barycentric(outline [3]vector2.Float64, point vector2.Float64) [3]float64 {
+	twiceArea := func(a, b, c vector2.Float64) float64 {
+		return (b.X()-a.X())*(c.Y()-a.Y()) - (c.X()-a.X())*(b.Y()-a.Y())
 	}
-	return math.Abs(predicate.Orient2D(corners[0], corners[1], corners[2])) <= tolerance*longest
+	whole := twiceArea(outline[0], outline[1], outline[2])
+	return [3]float64{
+		twiceArea(point, outline[1], outline[2]) / whole,
+		twiceArea(outline[0], point, outline[2]) / whole,
+		twiceArea(outline[0], outline[1], point) / whole,
+	}
 }
 
-func within(corners [3]vector2.Float64, p vector2.Float64, tolerance float64) bool {
-	side := func(a, b vector2.Float64) float64 {
-		return (b.X()-a.X())*(p.Y()-a.Y()) - (p.X()-a.X())*(b.Y()-a.Y())
+// Weights over this face's corners re-expressed over its parent's.
+func (f face) blend(local [3]float64) [3]float64 {
+	var out [3]float64
+	for k := 0; k < 3; k++ {
+		for j := 0; j < 3; j++ {
+			out[j] += local[k] * f.weights[k][j]
+		}
 	}
+	return out
+}
 
+// A point within tolerance of an edge is moved onto it, so the face across
+// that edge sees the same point and no sliver forms between the two.
+func snapToEdge(f face, point vector3.Float64, tolerance float64) vector3.Float64 {
+	nearest, nearestDistance := point, tolerance
+	for i := 0; i < 3; i++ {
+		onEdge := geometry.NewLine3D(f.verts[i], f.verts[(i+1)%3]).ClosestPointOnLine(point)
+		if distance := onEdge.Distance(point); distance <= nearestDistance {
+			nearest, nearestDistance = onEdge, distance
+		}
+	}
+	return nearest
+}
+
+func heightless(corners [3]vector3.Float64, tolerance float64) bool {
+	longest := 0.
+	for i := range corners {
+		longest = max(longest, corners[i].Distance(corners[(i+1)%3]))
+	}
+	twiceArea := corners[1].Sub(corners[0]).Cross(corners[2].Sub(corners[0])).Length()
+	return twiceArea <= tolerance*longest
+}
+
+// Orient2D carries the edge's length, so the band is tolerance in distance.
+func withinOutline(outline [3]vector2.Float64, point vector2.Float64, tolerance float64) bool {
 	positive, negative := false, false
 	for i := 0; i < 3; i++ {
-		d := side(corners[i], corners[(i+1)%3])
-		if d > tolerance {
+		start, end := outline[i], outline[(i+1)%3]
+		side := predicate.Orient2D(start, end, point)
+		band := tolerance * start.Distance(end)
+		if side > band {
 			positive = true
 		}
-		if d < -tolerance {
+		if side < -band {
 			negative = true
 		}
 	}

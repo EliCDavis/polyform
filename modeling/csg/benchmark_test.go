@@ -77,45 +77,46 @@ func TestBenchmarkStages(t *testing.T) {
 		cutting := time.Since(mark)
 
 		mark = time.Now()
-		splitA, splitIDsA, splitTouchingA, err := splitAll(facesA, idsA, cutsA, corners, touchingA, tolerance, weldA)
+		halfA, err := splitAll(facesA, idsA, cutsA, corners, touchingA, tolerance, weldA)
 		if err != nil {
 			t.Fatal(err)
 		}
-		splitB, splitIDsB, splitTouchingB, err := splitAll(facesB, idsB, cutsB, corners, touchingB, tolerance, weldB)
+		halfB, err := splitAll(facesB, idsB, cutsB, corners, touchingB, tolerance, weldB)
 		if err != nil {
 			t.Fatal(err)
 		}
 		splitting := time.Since(mark)
 
 		mark = time.Now()
-		patchesA := patchesOf(splitIDsA, curvePoints(weldA, corners), splitTouchingA)
-		patchesB := patchesOf(splitIDsB, curvePoints(weldB, corners), splitTouchingB)
+		patchesA := patchesOf(halfA.cornerIDs, halfA.onCurve, halfA.touching)
+		patchesB := patchesOf(halfB.cornerIDs, halfB.onCurve, halfB.touching)
 		grouping := time.Since(mark)
 
 		mark = time.Now()
-		solidA := newSolid(splitA, tolerance, rayBudget(patchesB))
-		solidB := newSolid(splitB, tolerance, rayBudget(patchesA))
+		solidA := newSolid(halfA.faces, tolerance, rayBudget(patchesB))
+		solidB := newSolid(halfB.faces, tolerance, rayBudget(patchesA))
 		building := time.Since(mark)
 
 		mark = time.Now()
-		answersA := classifyPatches(splitA, patchesA, solidB)
-		answersB := classifyPatches(splitB, patchesB, solidA)
+		answersA := classifyPatches(halfA.faces, patchesA, solidB)
+		answersB := classifyPatches(halfB.faces, patchesB, solidA)
 		classifying := time.Since(mark)
 
-		kept := make([]face, 0, len(splitA)+len(splitB))
-		for i, f := range splitA {
+		fromA := kept{source: a}
+		fromB := kept{source: b, inverted: true}
+		for i, f := range halfA.faces {
 			if keepFromA[difference][answersA[i]] {
-				kept = append(kept, f)
+				fromA.faces = append(fromA.faces, f)
 			}
 		}
-		for i, f := range splitB {
+		for i, f := range halfB.faces {
 			if keepFromB[difference][answersB[i]] {
-				kept = append(kept, f.reversed())
+				fromB.faces = append(fromB.faces, f.reversed())
 			}
 		}
 
 		mark = time.Now()
-		out := meshOf(kept)
+		out := meshFromFaces(fromA, fromB)
 		emitting := time.Since(mark)
 
 		total := time.Since(wall)

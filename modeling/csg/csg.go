@@ -26,7 +26,6 @@ import (
 	"fmt"
 
 	"github.com/EliCDavis/polyform/modeling"
-	"github.com/EliCDavis/vector/vector3"
 )
 
 type operation int
@@ -123,9 +122,6 @@ func combine(a, b modeling.Mesh, op operation) (modeling.Mesh, error) {
 
 	tolerance := toleranceFor(facesA, facesB)
 
-	// One welder for the whole operation. It pays for itself validating the
-	// inputs, and every vertex identity found here is carried through the
-	// split rather than rediscovered from coordinates afterwards.
 	weldA, weldB := newWelder(tolerance), newWelder(tolerance)
 	idsA, idsB := weldFaces(weldA, facesA), weldFaces(weldB, facesB)
 
@@ -139,65 +135,67 @@ func combine(a, b modeling.Mesh, op operation) (modeling.Mesh, error) {
 	// Section 4: "The first step in the algorithm is splitting both objects."
 	// Both are cut before either is split, so each can be split at every
 	// point on the curve they share rather than only its own.
-	cutsA, cornersA, touchingA := cutsAgainst(facesA, facesB, tolerance)
-	cutsB, cornersB, touchingB := cutsAgainst(facesB, facesA, tolerance)
-	corners := append(cornersA, cornersB...)
+	cutsA, curvePointsA, touchingA := cutsAgainst(facesA, facesB, tolerance)
+	cutsB, curvePointsB, touchingB := cutsAgainst(facesB, facesA, tolerance)
+	curvePoints := append(curvePointsA, curvePointsB...)
 
-	splitA, splitIDsA, splitTouchingA, err := splitAll(facesA, idsA, cutsA, corners, touchingA, tolerance, weldA)
+	splitA, err := splitAll(facesA, idsA, cutsA, curvePoints, touchingA, tolerance, weldA)
 	if err != nil {
 		return empty, fmt.Errorf("splitting the first mesh: %w", err)
 	}
-	splitB, splitIDsB, splitTouchingB, err := splitAll(facesB, idsB, cutsB, corners, touchingB, tolerance, weldB)
+	splitB, err := splitAll(facesB, idsB, cutsB, curvePoints, touchingB, tolerance, weldB)
 	if err != nil {
 		return empty, fmt.Errorf("splitting the second mesh: %w", err)
 	}
 
-	answersA, answersB := classifyBoth(
-		splitA, splitIDsA, splitTouchingA, weldA,
-		splitB, splitIDsB, splitTouchingB, weldB,
-		corners, tolerance,
-	)
+	answersA, answersB := classifyBoth(splitA, splitB, tolerance)
 
-	kept := make([]face, 0, len(splitA)+len(splitB))
+	fromA := kept{source: a, faces: make([]face, 0, len(splitA.faces))}
+	fromB := kept{source: b, faces: make([]face, 0, len(splitB.faces)), inverted: flipsFromB(op)}
 
 	// Section 9, first row of figure 9.1.
-	for i, f := range splitA {
+	for i, f := range splitA.faces {
 		if keepFromA[op][answersA[i]] {
-			kept = append(kept, f)
+			fromA.faces = append(fromA.faces, f)
 		}
 	}
 
 	// Section 9, second row.
-	for i, f := range splitB {
+	for i, f := range splitB.faces {
 		if !keepFromB[op][answersB[i]] {
 			continue
 		}
-		if flipsFromB(op) {
+		if fromB.inverted {
 			f = f.reversed()
 		}
-		kept = append(kept, f)
+		fromB.faces = append(fromB.faces, f)
 	}
 
-	return meshOf(kept), nil
+	return meshFromFaces(fromA, fromB), nil
+}
+
+// One solid after splitting: its pieces, their welded corner ids, which
+// pieces lie on the other solid's surface, and which ids sit on the curve
+// where the two meet.
+type half struct {
+	faces     []face
+	cornerIDs [][3]int
+	touching  []bool
+	onCurve   map[int]bool
 }
 
 // Section 8 groups faces into regions the intersection curve does not cross
 // and settles each with a handful of rays, rather than giving every face its
 // own ray as section 7 reads on its own.
-func classifyBoth(
-	splitA []face, idsA [][3]int, touchingA []bool, weldA *welder,
-	splitB []face, idsB [][3]int, touchingB []bool, weldB *welder,
-	corners []vector3.Float64,
-	tolerance float64,
-) (answersA, answersB []classification) {
-	patchesA := patchesOf(idsA, curvePoints(weldA, corners), touchingA)
-	patchesB := patchesOf(idsB, curvePoints(weldB, corners), touchingB)
+func classifyBoth(splitA, splitB half, tolerance float64) (answersA, answersB []classification) {
+	patchesA := patchesOf(splitA.cornerIDs, splitA.onCurve, splitA.touching)
+	patchesB := patchesOf(splitB.cornerIDs, splitB.onCurve, splitB.touching)
 
 	// Each solid is cast against by the other's patches, so that is the count
 	// that decides whether indexing it pays.
-	solidA := newSolid(splitA, tolerance, rayBudget(patchesB))
-	solidB := newSolid(splitB, tolerance, rayBudget(patchesA))
+	solidA := newSolid(splitA.faces, tolerance, rayBudget(patchesB))
+	solidB := newSolid(splitB.faces, tolerance, rayBudget(patchesA))
 
-	return classifyPatches(splitA, patchesA, solidB),
-		classifyPatches(splitB, patchesB, solidA)
+	return classifyPatches(splitA.faces, patchesA, solidB),
+		classifyPatches(splitB.faces, patchesB, solidA)
 }

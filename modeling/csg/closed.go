@@ -2,6 +2,8 @@ package csg
 
 import (
 	"fmt"
+	"slices"
+	"strings"
 
 	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/modeling"
@@ -17,8 +19,8 @@ func newWelder(tolerance float64) *welder {
 }
 
 // CheckClosed reports why a mesh cannot be used as a solid, or nil when it
-// can. A mesh qualifies when every edge is shared by exactly two triangles,
-// which is what makes "inside" mean anything.
+// can. A mesh qualifies when every edge is shared by exactly two triangles of
+// nonzero area, wound so the edge runs opposite ways in the two.
 func CheckClosed(m modeling.Mesh) error {
 	faces, err := facesOf(m)
 	if err != nil {
@@ -27,17 +29,14 @@ func CheckClosed(m modeling.Mesh) error {
 	if len(faces) == 0 {
 		return fmt.Errorf("mesh has no triangles")
 	}
-	return closed(faces, toleranceFor(faces, nil))
+
+	err = closed(faces, toleranceFor(faces, nil))
+	if dropped := m.PrimitiveCount() - len(faces); err != nil && dropped > 0 {
+		return fmt.Errorf("%w (%d zero-area triangles were dropped first)", err, dropped)
+	}
+	return err
 }
 
-// Section 7 decides inside from outside by what a ray leaving a face hits
-// first. Through a hole that answer is whatever happens to be behind it, so
-// an open mesh does not fail loudly further down - it quietly returns
-// nonsense. Hence the check up front.
-// The ids outlive the check. Section 3 holds one vertex array with polygons
-// pointing into it, so which faces meet is known without asking where their
-// corners are; everything downstream that needs adjacency reads these rather
-// than paying to rediscover them by position.
 func weldFaces(weld *welder, faces []face) [][3]int {
 	ids := make([][3]int, len(faces))
 	for i, f := range faces {
@@ -54,43 +53,60 @@ func closed(faces []face, tolerance float64) error {
 	return closedFrom(weldFaces(newWelder(tolerance), faces))
 }
 
-func closedFrom(ids [][3]int) error {
-	edges := make(map[[2]int]int, len(ids)*3)
-
-	for _, corners := range ids {
+// Directed, not unordered: section 7 reads normals, so two neighbours wound
+// the same way are as broken as a hole.
+func closedFrom(cornerIDs [][3]int) error {
+	// Packed as (low, high, runs low to high), so sorting brings the two
+	// directions of one edge together.
+	edges := make([]uint64, 0, len(cornerIDs)*3)
+	for _, corners := range cornerIDs {
 		for k := 0; k < 3; k++ {
-			a, b := corners[k], corners[(k+1)%3]
-			if a == b {
+			from, to := corners[k], corners[(k+1)%3]
+			if from == to {
 				continue
 			}
-			if a > b {
-				a, b = b, a
+			runsUpward := uint64(1)
+			if from > to {
+				from, to, runsUpward = to, from, 0
 			}
-			edges[[2]int{a, b}]++
+			edges = append(edges, uint64(from)<<33|uint64(to)<<1|runsUpward)
 		}
 	}
+	slices.Sort(edges)
 
-	dangling, crowded := 0, 0
-	for _, shared := range edges {
+	dangling, crowded, flipped := 0, 0, 0
+	for i := 0; i < len(edges); {
+		edge := edges[i] >> 1
+		upward, downward := 0, 0
+		for ; i < len(edges) && edges[i]>>1 == edge; i++ {
+			if edges[i]&1 == 1 {
+				upward++
+			} else {
+				downward++
+			}
+		}
 		switch {
-		case shared == 1:
-			dangling++
-		case shared > 2:
+		case upward+downward > 2:
 			crowded++
+		case upward+downward == 1:
+			dangling++
+		case upward != downward:
+			flipped++
 		}
 	}
 
-	switch {
-	case dangling > 0 && crowded > 0:
-		return fmt.Errorf(
-			"mesh is not a closed solid: %d edges border a hole and %d are shared by more than two faces",
-			dangling, crowded)
-	case dangling > 0:
-		return fmt.Errorf("mesh is not a closed solid: %d edges border a hole", dangling)
-	case crowded > 0:
-		return fmt.Errorf(
-			"mesh is not a closed solid: %d edges are shared by more than two faces",
-			crowded)
+	problems := make([]string, 0, 3)
+	if dangling > 0 {
+		problems = append(problems, fmt.Sprintf("%d edges border a hole", dangling))
 	}
-	return nil
+	if crowded > 0 {
+		problems = append(problems, fmt.Sprintf("%d edges are shared by more than two faces", crowded))
+	}
+	if flipped > 0 {
+		problems = append(problems, fmt.Sprintf("%d edges are shared by two faces wound the same way", flipped))
+	}
+	if len(problems) == 0 {
+		return nil
+	}
+	return fmt.Errorf("mesh is not a closed solid: %s", strings.Join(problems, ", "))
 }
