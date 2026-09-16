@@ -1,0 +1,135 @@
+package csg
+
+import (
+	"fmt"
+	"os"
+	"runtime"
+	"testing"
+	"time"
+
+	"github.com/EliCDavis/polyform/modeling"
+	"github.com/EliCDavis/polyform/modeling/primitives"
+	"github.com/EliCDavis/vector/vector3"
+)
+
+// 12 triangles per cell squared, so dimensions 92 lands near 100k and 289
+// near a million.
+func benchSphere(dimensions int, offset vector3.Float64) modeling.Mesh {
+	return primitives.QuadSphere(0.5, primitives.Cube{
+		Width: 1, Height: 1, Depth: 1, Dimensions: dimensions,
+	}, false, true).Translate(offset)
+}
+
+func megabytes() float64 {
+	var stats runtime.MemStats
+	runtime.ReadMemStats(&stats)
+	return float64(stats.HeapAlloc) / (1 << 20)
+}
+
+func TestBenchmarkStages(t *testing.T) {
+	if os.Getenv("BENCH") == "" {
+		t.Skip("set BENCH=1")
+	}
+
+	sizes := []int{10, 30, 92}
+	if os.Getenv("BENCH_BIG") != "" {
+		sizes = append(sizes, 160, 289)
+	}
+
+	fmt.Printf("%9s %10s %9s %10s %9s %9s %9s %9s %9s %9s %10s %8s\n",
+		"tris/in", "read", "weld", "closed", "cuts", "split", "patches", "trees",
+		"classify", "emit", "TOTAL", "heapMB")
+
+	for _, dimensions := range sizes {
+		a := benchSphere(dimensions, vector3.Zero[float64]())
+		b := benchSphere(dimensions, vector3.New(0.31, 0.27, 0.19))
+
+		runtime.GC()
+		wall := time.Now()
+
+		mark := time.Now()
+		facesA, err := facesOf(a)
+		if err != nil {
+			t.Fatal(err)
+		}
+		facesB, _ := facesOf(b)
+		read := time.Since(mark)
+
+		mark = time.Now()
+		tolerance := toleranceFor(facesA, facesB)
+		weldA, weldB := newWelder(tolerance), newWelder(tolerance)
+		idsA, idsB := weldFaces(weldA, facesA), weldFaces(weldB, facesB)
+		welding := time.Since(mark)
+
+		mark = time.Now()
+		if err := closedFrom(idsA); err != nil {
+			t.Fatal(err)
+		}
+		if err := closedFrom(idsB); err != nil {
+			t.Fatal(err)
+		}
+		checked := time.Since(mark)
+
+		mark = time.Now()
+		cutsA, cornersA, touchingA := cutsAgainst(facesA, facesB, tolerance)
+		cutsB, cornersB, touchingB := cutsAgainst(facesB, facesA, tolerance)
+		corners := append(cornersA, cornersB...)
+		cutting := time.Since(mark)
+
+		mark = time.Now()
+		splitA, splitIDsA, splitTouchingA, err := splitAll(facesA, idsA, cutsA, corners, touchingA, tolerance, weldA)
+		if err != nil {
+			t.Fatal(err)
+		}
+		splitB, splitIDsB, splitTouchingB, err := splitAll(facesB, idsB, cutsB, corners, touchingB, tolerance, weldB)
+		if err != nil {
+			t.Fatal(err)
+		}
+		splitting := time.Since(mark)
+
+		mark = time.Now()
+		patchesA := patchesOf(splitIDsA, curvePoints(weldA, corners), splitTouchingA)
+		patchesB := patchesOf(splitIDsB, curvePoints(weldB, corners), splitTouchingB)
+		grouping := time.Since(mark)
+
+		mark = time.Now()
+		solidA := newSolid(splitA, tolerance, rayBudget(patchesB))
+		solidB := newSolid(splitB, tolerance, rayBudget(patchesA))
+		building := time.Since(mark)
+
+		mark = time.Now()
+		answersA := classifyPatches(splitA, patchesA, solidB)
+		answersB := classifyPatches(splitB, patchesB, solidA)
+		classifying := time.Since(mark)
+
+		kept := make([]face, 0, len(splitA)+len(splitB))
+		for i, f := range splitA {
+			if keepFromA[difference][answersA[i]] {
+				kept = append(kept, f)
+			}
+		}
+		for i, f := range splitB {
+			if keepFromB[difference][answersB[i]] {
+				kept = append(kept, f.reversed())
+			}
+		}
+
+		mark = time.Now()
+		out := meshOf(kept)
+		emitting := time.Since(mark)
+
+		total := time.Since(wall)
+		round := func(d time.Duration) string {
+			if d > time.Second {
+				return fmt.Sprintf("%.2fs", d.Seconds())
+			}
+			return fmt.Sprintf("%dms", d.Milliseconds())
+		}
+
+		fmt.Printf("%9d %10s %9s %10s %9s %9s %9s %9s %9s %9s %10s %8.0f   (%d patches, %d rays, %d out)\n",
+			len(facesA), round(read), round(welding), round(checked), round(cutting), round(splitting),
+			round(grouping), round(building), round(classifying), round(emitting), round(total),
+			megabytes(), len(patchesA)+len(patchesB),
+			rayBudget(patchesA)+rayBudget(patchesB), out.Indices().Len()/3)
+	}
+}
