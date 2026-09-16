@@ -6,6 +6,7 @@ import (
 
 	"github.com/EliCDavis/iter"
 	"github.com/EliCDavis/polyform/modeling"
+	"github.com/EliCDavis/vector"
 	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
 	"github.com/EliCDavis/vector/vector4"
@@ -85,6 +86,14 @@ func gatherByIndex[T any](order []int, attrs []string, reader func(string) *iter
 		gathered[attr] = values
 	}
 	return gathered
+}
+
+func average[G any, T vector.Space[G]](data []G, indices []int, space T) G {
+	var sum G
+	for _, i := range indices {
+		sum = space.Add(sum, data[i])
+	}
+	return space.Scale(sum, 1./float64(len(indices)))
 }
 
 func readAllFloatXData[T any](attrs []string, reader func(string) *iter.ArrayIterator[T]) map[string][]T {

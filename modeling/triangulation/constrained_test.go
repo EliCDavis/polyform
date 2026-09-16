@@ -5,8 +5,8 @@ import (
 	"math/rand"
 	"testing"
 
+	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/modeling"
-	"github.com/EliCDavis/polyform/modeling/predicate"
 	"github.com/EliCDavis/polyform/modeling/triangulation"
 	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
@@ -373,7 +373,7 @@ func TestConstrainedDelaunayCoversExactlyTheOutline(t *testing.T) {
 		mesh, err := triangulation.ConstrainedDelaunay(pts,
 			[]triangulation.Constraint{triangulation.NewConstraint(poly)})
 		require.NoErrorf(t, err, "trial %d", trial)
-		require.InDeltaf(t, math.Abs(predicate.SignedArea(poly)), area(mesh), 1e-9, "trial %d", trial)
+		require.InDeltaf(t, math.Abs(geometry.Shape(poly).SignedArea()), area(mesh), 1e-9, "trial %d", trial)
 	}
 }
 

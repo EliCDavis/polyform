@@ -31,6 +31,8 @@ func init() {
 
 	refutil.RegisterType[nodes.Struct[SliceAttributeByPlaneNode]](factory)
 	refutil.RegisterType[nodes.Struct[FlipTriangleWindingNode]](factory)
+	refutil.RegisterType[nodes.Struct[WeldNode]](factory)
+	refutil.RegisterType[nodes.Struct[FillHolesNode]](factory)
 
 	generator.RegisterTypes(factory)
 }

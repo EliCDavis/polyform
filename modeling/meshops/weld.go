@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/EliCDavis/iter"
+	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/vector/vector2"
@@ -34,65 +35,19 @@ func (wt WeldTransformer) Transform(m modeling.Mesh) (results modeling.Mesh, err
 // first one seen, and drops any primitive left with a repeated corner.
 func Weld(m modeling.Mesh, attribute string, tolerance float64) modeling.Mesh {
 	positions := m.Float3Attribute(attribute)
+	weld := geometry.NewPointWelder3D(tolerance)
 
+	firstVertex := make([]int, 0, positions.Len())
 	representative := make([]int, positions.Len())
 	for i := range representative {
-		representative[i] = -1
-	}
-
-	if tolerance > 0 {
-		weldByDistance(positions, tolerance, representative)
-	} else {
-		weldByExactMatch(positions, representative)
+		id := weld.Index(positions.At(i))
+		if id == len(firstVertex) {
+			firstVertex = append(firstVertex, i)
+		}
+		representative[i] = firstVertex[id]
 	}
 
 	return rebuild(m, representative)
-}
-
-func weldByDistance(positions *iter.ArrayIterator[vector3.Float64], tolerance float64, representative []int) {
-	// A cell per tolerance means anything close enough to merge is either in
-	// the point's own cell or one of the 26 around it.
-	cells := make(map[vector3.Int][]int)
-
-	for i := 0; i < positions.Len(); i++ {
-		v := positions.At(i)
-		home := v.DivByConstant(tolerance).FloorToInt()
-
-		found := -1
-		for x := -1; x <= 1 && found < 0; x++ {
-			for y := -1; y <= 1 && found < 0; y++ {
-				for z := -1; z <= 1 && found < 0; z++ {
-					neighbour := home.Add(vector3.New(x, y, z))
-					for _, candidate := range cells[neighbour] {
-						if positions.At(candidate).Distance(v) <= tolerance {
-							found = candidate
-							break
-						}
-					}
-				}
-			}
-		}
-
-		if found >= 0 {
-			representative[i] = found
-			continue
-		}
-		representative[i] = i
-		cells[home] = append(cells[home], i)
-	}
-}
-
-func weldByExactMatch(positions *iter.ArrayIterator[vector3.Float64], representative []int) {
-	seen := make(map[vector3.Float64]int, positions.Len())
-	for i := 0; i < positions.Len(); i++ {
-		v := positions.At(i)
-		if first, ok := seen[v]; ok {
-			representative[i] = first
-			continue
-		}
-		seen[v] = i
-		representative[i] = i
-	}
 }
 
 // Keeps only the primitives that survive the merge and only the vertices

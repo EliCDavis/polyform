@@ -5,8 +5,9 @@ import (
 	"math"
 	"sort"
 
+	"github.com/EliCDavis/polyform/math/geometry"
+	"github.com/EliCDavis/polyform/math/predicate"
 	"github.com/EliCDavis/polyform/modeling"
-	"github.com/EliCDavis/polyform/modeling/predicate"
 	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
 )
@@ -390,33 +391,22 @@ func (t *tessellation) mesh() modeling.Mesh {
 		SetFloat2Attribute(modeling.TexCoordAttribute, uvs)
 }
 
-func segmentIntersection(p1, p2, p3, p4 vector2.Float64) (vector2.Float64, bool) {
-	if !predicate.SegmentsCross(p1, p2, p3, p4) {
-		return vector2.Zero[float64](), false
-	}
-	d1 := predicate.Orient2D(p3, p4, p1)
-	d2 := predicate.Orient2D(p3, p4, p2)
-	if d1 == d2 {
-		return vector2.Zero[float64](), false
-	}
-	return p1.Add(p2.Sub(p1).Scale(d1 / (d1 - d2))), true
-}
-
 // No triangulation holds two crossing constraints whole, so the crossing
 // becomes a vertex and splitAtVertices breaks both on it.
-func splitCrossingConstraints(pts *[]vector2.Float64, segments [][2]int, tolerance float64) {
+func splitCrossingConstraints(weld *geometry.PointWelder2D, segments [][2]int) {
 	for i := 0; i < len(segments); i++ {
 		for j := i + 1; j < len(segments); j++ {
 			a, b := segments[i], segments[j]
 			if a[0] == b[0] || a[0] == b[1] || a[1] == b[0] || a[1] == b[1] {
 				continue
 			}
-			p, ok := segmentIntersection(
-				(*pts)[a[0]], (*pts)[a[1]], (*pts)[b[0]], (*pts)[b[1]])
-			if !ok {
+			pts := weld.Points()
+			p, err := geometry.NewLine2D(pts[a[0]], pts[a[1]]).
+				Intersection(geometry.NewLine2D(pts[b[0]], pts[b[1]]))
+			if err != nil {
 				continue
 			}
-			indexOfPoint(pts, p, tolerance)
+			weld.Index(p)
 		}
 	}
 }
@@ -464,26 +454,15 @@ func splitAtVertices(pts []vector2.Float64, a, b int) []int {
 	return append(out, b)
 }
 
-func indexOfPoint(pts *[]vector2.Float64, p vector2.Float64, tolerance float64) int {
-	for i, existing := range *pts {
-		if existing.Sub(p).Length() < tolerance {
-			return i
-		}
-	}
-	*pts = append(*pts, p)
-	return len(*pts) - 1
-}
-
 // Distance under which two points count as the same, relative to the
 // extent of everything being triangulated.
 func mergeTolerance(sets ...[]vector2.Float64) float64 {
 	min := vector2.New(math.Inf(1), math.Inf(1))
 	max := vector2.New(math.Inf(-1), math.Inf(-1))
 	for _, set := range sets {
-		for _, p := range set {
-			min = vector2.New(math.Min(p.X(), min.X()), math.Min(p.Y(), min.Y()))
-			max = vector2.New(math.Max(p.X(), max.X()), math.Max(p.Y(), max.Y()))
-		}
+		lo, hi := geometry.Shape(set).GetBounds()
+		min = vector2.New(math.Min(lo.X(), min.X()), math.Min(lo.Y(), min.Y()))
+		max = vector2.New(math.Max(hi.X(), max.X()), math.Max(hi.Y(), max.Y()))
 	}
 	extent := math.Max(max.X()-min.X(), max.Y()-min.Y())
 	if extent <= 0 || math.IsInf(extent, 0) || math.IsNaN(extent) {
@@ -492,57 +471,62 @@ func mergeTolerance(sets ...[]vector2.Float64) float64 {
 	return 1e-9 * extent
 }
 
+// Input points keep their indices even when two coincide; only the points
+// added later are merged into them.
+func welderOver(points []vector2.Float64, tolerance float64) *geometry.PointWelder2D {
+	weld := geometry.NewPointWelder2D(tolerance)
+	for _, p := range points {
+		weld.Add(p)
+	}
+	return weld
+}
+
 // ConstrainedDelaunay triangulates points so every constraint edge survives,
 // then keeps only the triangles with a nonzero winding number: overlapping
 // outlines union, and an outline wound against the one around it is a hole.
 func ConstrainedDelaunay(points []vector2.Float64, constraints []Constraint) (modeling.Mesh, error) {
-	pts := make([]vector2.Float64, len(points))
-	copy(pts, points)
-
 	sets := make([][]vector2.Float64, 0, len(constraints)+1)
 	sets = append(sets, points)
 	for _, c := range constraints {
 		sets = append(sets, c.shape)
 	}
-	tolerance := mergeTolerance(sets...)
+	weld := welderOver(points, mergeTolerance(sets...))
 
 	segments := make([][2]int, 0)
 	for _, c := range constraints {
 		for i := range c.shape {
-			a := indexOfPoint(&pts, c.shape[i], tolerance)
-			b := indexOfPoint(&pts, c.shape[(i+1)%len(c.shape)], tolerance)
+			a := weld.Index(c.shape[i])
+			b := weld.Index(c.shape[(i+1)%len(c.shape)])
 			if a != b {
 				segments = append(segments, [2]int{a, b})
 			}
 		}
 	}
 
-	return triangulate(pts, segments, len(segments) > 0)
+	return triangulate(weld, segments, len(segments) > 0)
 }
 
 // ConstrainedDelaunayEdges triangulates the convex hull of points, forcing
 // every listed edge to survive. The edges are open segments rather than a
 // closed boundary, so nothing is discarded and the result covers the hull.
 func ConstrainedDelaunayEdges(points []vector2.Float64, edges [][2]int) (modeling.Mesh, error) {
-	pts := make([]vector2.Float64, len(points))
-	copy(pts, points)
-
 	segments := make([][2]int, 0, len(edges))
 	for _, e := range edges {
-		if e[0] < 0 || e[0] >= len(pts) || e[1] < 0 || e[1] >= len(pts) {
+		if e[0] < 0 || e[0] >= len(points) || e[1] < 0 || e[1] >= len(points) {
 			return modeling.EmptyMesh(modeling.TriangleTopology),
-				fmt.Errorf("edge %v refers to a point outside the set of %d", e, len(pts))
+				fmt.Errorf("edge %v refers to a point outside the set of %d", e, len(points))
 		}
 		if e[0] != e[1] {
 			segments = append(segments, e)
 		}
 	}
 
-	return triangulate(pts, segments, false)
+	return triangulate(welderOver(points, mergeTolerance(points)), segments, false)
 }
 
-func triangulate(pts []vector2.Float64, segments [][2]int, discard bool) (modeling.Mesh, error) {
-	splitCrossingConstraints(&pts, segments, mergeTolerance(pts))
+func triangulate(weld *geometry.PointWelder2D, segments [][2]int, discard bool) (modeling.Mesh, error) {
+	splitCrossingConstraints(weld, segments)
+	pts := weld.Points()
 
 	if len(pts) < 3 {
 		return modeling.EmptyMesh(modeling.TriangleTopology),

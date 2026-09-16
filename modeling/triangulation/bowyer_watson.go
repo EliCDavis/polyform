@@ -4,9 +4,10 @@ import (
 	"math"
 	"sort"
 
+	"github.com/EliCDavis/polyform/math/geometry"
+	"github.com/EliCDavis/polyform/math/predicate"
 	"github.com/EliCDavis/polyform/math/sfc"
 	"github.com/EliCDavis/polyform/modeling"
-	"github.com/EliCDavis/polyform/modeling/predicate"
 	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
 )
@@ -61,19 +62,7 @@ func ccw(a, b, c vector2.Float64) bool {
 // circumradius near 1/(8w) times the extent, so the margin has to beat that
 // for the thinnest sliver double precision can represent.
 func SuperTriangle(points []vector2.Float64) []vector2.Float64 {
-	min := vector2.New(math.Inf(1), math.Inf(1))
-	max := vector2.New(math.Inf(-1), math.Inf(-1))
-
-	for _, v := range points {
-		min = vector2.New(
-			math.Min(v.X(), min.X()),
-			math.Min(v.Y(), min.Y()),
-		)
-		max = vector2.New(
-			math.Max(v.X(), max.X()),
-			math.Max(v.Y(), max.Y()),
-		)
-	}
+	min, max := geometry.Shape(points).GetBounds()
 
 	center := min.Add(max).Scale(0.5)
 	radius := max.Sub(min).Length() * superTriangleMargin
@@ -96,12 +85,7 @@ var exists = struct{}{}
 // Points sorted along a space filling curve land next to the last one
 // inserted, so the walk is a few steps rather than a crossing of the set.
 func hilbertOrder(points []vector2.Float64) []int {
-	min := vector2.New(math.Inf(1), math.Inf(1))
-	max := vector2.New(math.Inf(-1), math.Inf(-1))
-	for _, p := range points {
-		min = vector2.New(math.Min(p.X(), min.X()), math.Min(p.Y(), min.Y()))
-		max = vector2.New(math.Max(p.X(), max.X()), math.Max(p.Y(), max.Y()))
-	}
+	min, max := geometry.Shape(points).GetBounds()
 	span := math.Max(max.X()-min.X(), max.Y()-min.Y())
 	if span == 0 {
 		span = 1

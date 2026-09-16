@@ -4,7 +4,7 @@ import (
 	"math"
 	"testing"
 
-	"github.com/EliCDavis/polyform/modeling/predicate"
+	"github.com/EliCDavis/polyform/math/predicate"
 	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
 	"github.com/stretchr/testify/assert"
@@ -91,19 +91,4 @@ func TestSegmentsCrossSeparatesCrossingFromTouching(t *testing.T) {
 		vector2.New(0., 0.), vector2.New(1., 1.),
 		vector2.New(1., 1.), vector2.New(2., 0.))
 	assert.False(t, shared, "segments meeting end to end do not cross")
-}
-
-func TestSignedAreaCarriesTheWinding(t *testing.T) {
-	square := []vector2.Float64{
-		vector2.New(0., 0.), vector2.New(2., 0.),
-		vector2.New(2., 2.), vector2.New(0., 2.),
-	}
-
-	assert.InDelta(t, 4., predicate.SignedArea(square), 1e-12)
-
-	reversed := make([]vector2.Float64, len(square))
-	for i, p := range square {
-		reversed[len(square)-1-i] = p
-	}
-	assert.InDelta(t, -4., predicate.SignedArea(reversed), 1e-12)
 }

@@ -49,6 +49,13 @@ Resources either directly contributing to the code, or are just interesting find
       ](http://homepages.math.uic.edu/~jan/mcs481/triangulating.pdf)
   - Spheres
     - [UV, Ico, Quad](https://www.danielsieger.com/blog/2021/03/27/generating-spheres.html)
+- Hole Filling
+  - Triangulating the rim directly in 3D, so no flattening and no fan fallback
+    - [_"Filling Holes in Meshes"_ Peter Liepa (SGP 2003)](https://doi.org/10.2312/SGP/SGP03/200-206): minimum-area / minimum-dihedral-angle dynamic programming over the rim, then refinement and fairing of the patch
+    - [_"Filling gaps in the boundary of a polyhedron"_ Gill Barequet, Micha Sharir (CAGD 1995)](https://doi.org/10.1016/0167-8396(94)00011-G): the minimum-area triangulation Liepa builds on
+    - [_"Minimal triangulations of polygonal domains"_ G. T. Klincsek (Annals of Discrete Mathematics 1980)](https://doi.org/10.1016/S0167-5060(08)70044-X): the O(n³) dynamic program itself
+  - [_"A robust hole-filling algorithm for triangular mesh"_ Wei Zhao, Shuming Gao, Hongwei Lin (The Visual Computer 2007)](https://doi.org/10.1007/s00371-007-0167-y): advancing front, grows the patch inward from the rim
+  - [Newell's method for a polygon's plane, Graphics Gems III](https://www.realtimerendering.com/resources/GraphicsGems/gemsiii/newell.c)
 - Texturing
   - [Normal Map From Color Map](https://stackoverflow.com/questions/5281261/generating-a-normal-map-from-a-height-map)
 - Formats
@@ -138,6 +145,9 @@ Resources either directly contributing to the code, or are just interesting find
   - [Möller-Trumbore Ray-Triangle Intersection](https://www.scratchapixel.com/lessons/3d-basic-rendering/ray-tracing-rendering-a-triangle/moller-trumbore-ray-triangle-intersection.html)
   - [Simulating the Colors of The Sky](https://www.scratchapixel.com/lessons/procedural-generation-virtual-worlds/simulating-sky/simulating-colors-of-the-sky.html)
 - Math
+  - Orthonormal basis from a single vector, branchless and without normalization
+    - [_"Building an Orthonormal Basis, Revisited"_ Tom Duff, James Burgess, Per Christensen, Christophe Hery, Andrew Kensler, Max Liani, Ryusuke Villemin (JCGT 2017)](https://jcgt.org/published/0006/01/01/)
+    - [_"Building an Orthonormal Basis from a 3D Unit Vector Without Normalization"_ Jeppe Revall Frisvad (JGT 2012)](https://doi.org/10.1080/2165347X.2012.689606): the construction the above fixes near the pole
   - [Mat3x3 => Quaternion from Blender Source](https://github.com/blender/blender/blob/756538b4a117cb51a15e848fa6170143b6aafcd8/source/blender/blenlib/intern/math_rotation.c#L272)
 - Skinning
   [Volumetric Heat Diffusion Skinning by Wolfire Games](http://blog.wolfire.com/2009/11/volumetric-heat-diffusion-skinning/)

@@ -4,7 +4,7 @@ import (
 	"math"
 	"testing"
 
-	"github.com/EliCDavis/polyform/modeling/predicate"
+	"github.com/EliCDavis/polyform/math/predicate"
 	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
 	"github.com/stretchr/testify/assert"

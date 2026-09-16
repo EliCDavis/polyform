@@ -204,14 +204,3 @@ func SegmentsCross(firstStart, firstEnd, secondStart, secondEnd vector2.Float64)
 		secondStartSide != 0 && secondEndSide != 0 &&
 		firstStartSide != 0 && firstEndSide != 0
 }
-
-// SignedArea is positive for a counter clockwise outline and negative for
-// clockwise. Self-intersecting outlines cancel where they cross.
-func SignedArea(outline []vector2.Float64) float64 {
-	twice := 0.
-	for i, p := range outline {
-		q := outline[(i+1)%len(outline)]
-		twice += p.X()*q.Y() - q.X()*p.Y()
-	}
-	return twice / 2
-}

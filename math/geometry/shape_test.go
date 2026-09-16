@@ -35,6 +35,24 @@ func TestGetPointtInShape(t *testing.T) {
 	}
 }
 
+func TestSignedAreaCarriesTheWinding(t *testing.T) {
+	square := geometry.Shape{
+		vector2.New(0., 0.), vector2.New(2., 0.),
+		vector2.New(2., 2.), vector2.New(0., 2.),
+	}
+	if got := square.SignedArea(); got != 4 {
+		t.Errorf("counter clockwise square should have area 4, got %g", got)
+	}
+
+	reversed := make(geometry.Shape, len(square))
+	for i, p := range square {
+		reversed[len(square)-1-i] = p
+	}
+	if got := reversed.SignedArea(); got != -4 {
+		t.Errorf("clockwise square should have area -4, got %g", got)
+	}
+}
+
 func TestSplit(t *testing.T) {
 	shape := geometry.Shape([]vector2.Float64{
 		vector2.New(0., 0.),

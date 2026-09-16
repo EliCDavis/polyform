@@ -4,11 +4,23 @@ import (
 	"math"
 	"math/rand"
 
+	"github.com/EliCDavis/polyform/math/predicate"
 	"github.com/EliCDavis/vector/vector2"
 )
 
 // Shape is a flat (2D) arrangement of points.
 type Shape []vector2.Float64
+
+// SignedArea is positive for a counter clockwise outline and negative for
+// clockwise. Self-intersecting outlines cancel where they cross.
+func (s Shape) SignedArea() float64 {
+	twice := 0.
+	for i, p := range s {
+		q := s[(i+1)%len(s)]
+		twice += p.X()*q.Y() - q.X()*p.Y()
+	}
+	return twice / 2
+}
 
 func (s Shape) GetBounds() (vector2.Float64, vector2.Float64) {
 	bottomLeftX := math.Inf(1)
@@ -249,13 +261,8 @@ func (s Shape) IsInside(p vector2.Float64) bool {
 	for {
 		next := (i + 1) % len(s)
 
-		// Check if the line segment from 'p' to 'extreme' intersects
-		// with the line segment from 'polygon[i]' to 'polygon[next]'
 		if NewLine2D(s[i], s[next]).Intersects(otherLine) {
-			// If the point 'p' is colinear with line segment 'i-next',
-			// then check if it lies on segment. If it lies, return true,
-			// otherwise false
-			if calculateOrientation(s[i], p, s[next]) == Colinear {
+			if predicate.Orient2D(s[i], p, s[next]) == 0 {
 				return onSegment(s[i], p, s[next])
 			}
 
