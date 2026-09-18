@@ -18,8 +18,8 @@ func TestTriangleRayHit(t *testing.T) {
 	hit, ok := cast(vector3.New(0.5, 0.5, 3.), down)
 	assert.True(t, ok)
 	assert.InDelta(t, 3, hit.Distance, 1e-12)
-	assert.InDelta(t, 0.25, hit.U, 1e-12)
-	assert.InDelta(t, 0.25, hit.V, 1e-12)
+	assert.InDelta(t, 0.25, hit.UV.X(), 1e-12)
+	assert.InDelta(t, 0.25, hit.UV.Y(), 1e-12)
 	assert.True(t, hit.Inside(0))
 	assert.InDelta(t, 0.25, hit.Margin(), 1e-12)
 

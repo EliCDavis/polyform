@@ -18,7 +18,7 @@ func init() {
 }
 
 type UnionNode struct {
-	Meshes []nodes.Output[modeling.Mesh] `description:"Solids to merge. Each must be closed."`
+	Meshes []nodes.Output[modeling.Mesh] `description:"Solids to merge."`
 }
 
 func (node UnionNode) Description() string {
@@ -30,7 +30,7 @@ func (node UnionNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 }
 
 type IntersectionNode struct {
-	Meshes []nodes.Output[modeling.Mesh] `description:"Solids to overlap. Each must be closed."`
+	Meshes []nodes.Output[modeling.Mesh] `description:"Solids to overlap."`
 }
 
 func (node IntersectionNode) Description() string {
@@ -47,7 +47,7 @@ type SubtractNode struct {
 }
 
 func (node SubtractNode) Description() string {
-	return "Carves solids out of another, leaving the volume that only the first one covered."
+	return "Carves solids out of another."
 }
 
 func (node SubtractNode) Out(out *nodes.StructOutput[modeling.Mesh]) {

@@ -22,10 +22,14 @@ type face struct {
 	// The source triangle this was cut from, and each corner as barycentric
 	// weights over it, which is all vertex data needs to follow the cut.
 	parent  int
-	weights [3][3]float64
+	weights [3]vector3.Float64
 }
 
-var ownCorners = [3][3]float64{{1, 0, 0}, {0, 1, 0}, {0, 0, 1}}
+var ownCorners = [3]vector3.Float64{
+	vector3.New(1., 0., 0.),
+	vector3.New(0., 1., 0.),
+	vector3.New(0., 0., 1.),
+}
 
 // A triangle enclosing no area contributes no surface and has no normal to
 // steer section 7's ray by, so it is dropped rather than carried.
@@ -42,15 +46,13 @@ func (f face) reversed() face {
 		verts:   geometry.Triangle{f.verts[0], f.verts[2], f.verts[1]},
 		normal:  f.normal.Scale(-1),
 		parent:  f.parent,
-		weights: [3][3]float64{f.weights[0], f.weights[2], f.weights[1]},
+		weights: [3]vector3.Float64{f.weights[0], f.weights[2], f.weights[1]},
 	}
 }
 
 func (f face) plane() geometry.Plane {
 	return geometry.NewPlane(f.verts[0], f.normal)
 }
-
-type segment [2]vector3.Float64
 
 type faceElement struct {
 	bounds geometry.AABB
@@ -111,14 +113,14 @@ func spanOf(faces []face) float64 {
 
 // Section 4: where faces of against cross each face of target. Both solids
 // split at every curvePoint. touching marks target faces coplanar with against.
-func cutsAgainst(target, against []face, tolerance float64) (cuts [][]segment, curvePoints []vector3.Float64, touching []bool) {
+func cutsAgainst(target, against []face, tolerance float64) (cuts [][]geometry.Line3D, curvePoints []vector3.Float64, touching []bool) {
 	boxes := make([]trees.Element, len(against))
 	for i, f := range against {
 		boxes[i] = faceElement{bounds: f.verts.BoundingBox()}
 	}
 	tree := trees.NewOctree(boxes)
 
-	cuts = make([][]segment, len(target))
+	cuts = make([][]geometry.Line3D, len(target))
 	curvePoints = make([]vector3.Float64, 0)
 	touching = make([]bool, len(target))
 
@@ -133,9 +135,8 @@ func cutsAgainst(target, against []face, tolerance float64) (cuts [][]segment, c
 				}
 				continue
 			}
-			cut := segment{shared.GetStartPoint(), shared.GetEndPoint()}
-			cuts[i] = append(cuts[i], cut)
-			curvePoints = append(curvePoints, cut[0], cut[1])
+			cuts[i] = append(cuts[i], shared)
+			curvePoints = append(curvePoints, shared.GetStartPoint(), shared.GetEndPoint())
 		}
 	}
 
@@ -147,7 +148,7 @@ func cutsAgainst(target, against []face, tolerance float64) (cuts [][]segment, c
 func splitAll(
 	target []face,
 	cornerIDs [][3]int,
-	cuts [][]segment,
+	cuts [][]geometry.Line3D,
 	curvePoints []vector3.Float64,
 	touching []bool,
 	tolerance float64,
@@ -207,7 +208,7 @@ func splitAll(
 func splitFace(
 	f face,
 	cornerIDs [3]int,
-	cuts []segment,
+	cuts []geometry.Line3D,
 	landedPoints []vector3.Float64,
 	tolerance float64,
 	ids *idSpace,
@@ -261,7 +262,7 @@ func splitFace(
 	constraints := [][2]int{{0, 1}, {1, 2}, {2, 0}}
 
 	for _, cut := range cuts {
-		from, to := place(cut[0]), place(cut[1])
+		from, to := place(cut.GetStartPoint()), place(cut.GetEndPoint())
 		if from != to {
 			constraints = append(constraints, [2]int{from, to})
 		}
@@ -354,14 +355,10 @@ func splitFace(
 }
 
 // Weights over this face's corners re-expressed over its parent's.
-func (f face) blend(local [3]float64) [3]float64 {
-	var out [3]float64
-	for k := 0; k < 3; k++ {
-		for j := 0; j < 3; j++ {
-			out[j] += local[k] * f.weights[k][j]
-		}
-	}
-	return out
+func (f face) blend(local vector3.Float64) vector3.Float64 {
+	return f.weights[0].Scale(local.X()).
+		Add(f.weights[1].Scale(local.Y())).
+		Add(f.weights[2].Scale(local.Z()))
 }
 
 // A point within tolerance of an edge is moved onto it, so the face across

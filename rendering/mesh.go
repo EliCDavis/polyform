@@ -21,7 +21,8 @@ func recordHit(hitRecord *HitRecord, hit geometry.TriangleHit, tri geometry.Tria
 	hitRecord.Normal = tri.Normal().Scale(-1)
 	hitRecord.Distance = hit.Distance
 	hitRecord.Point = ray.At(hit.Distance)
-	hitRecord.Float3Data["barycentric"] = vector3.New(1-hit.U-hit.V, hit.U, hit.V)
+	u, v := hit.UV.X(), hit.UV.Y()
+	hitRecord.Float3Data["barycentric"] = vector3.New(1-u-v, u, v)
 }
 
 type Mesh struct {

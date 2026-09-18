@@ -24,12 +24,10 @@ type blendable[V any] interface {
 
 // The corner data of a face's parent triangle, blended by the weights of one
 // of its corners.
-func blend[V blendable[V]](data *iter.ArrayIterator[V], corners [3]int, weights [3]float64) V {
-	var out V
-	for k := 0; k < 3; k++ {
-		out = out.Add(data.At(corners[k]).Scale(weights[k]))
-	}
-	return out
+func blend[V blendable[V]](data *iter.ArrayIterator[V], corners [3]int, weights vector3.Float64) V {
+	return data.At(corners[0]).Scale(weights.X()).
+		Add(data.At(corners[1]).Scale(weights.Y())).
+		Add(data.At(corners[2]).Scale(weights.Z()))
 }
 
 // Each corner blends its source triangle's corner data by weight. Attributes a
@@ -112,9 +110,11 @@ func meshFromFaces(halves ...kept) (modeling.Mesh, []face) {
 					value := 0.
 					if h.source.HasFloat1Attribute(name) {
 						data := h.source.Float1Attribute(name)
-						for j := 0; j < 3; j++ {
-							value += data.At(corners[j]) * f.weights[k][j]
-						}
+						value = f.weights[k].Dot(vector3.New(
+							data.At(corners[0]),
+							data.At(corners[1]),
+							data.At(corners[2]),
+						))
 					}
 					v1[name] = append(v1[name], value)
 				}

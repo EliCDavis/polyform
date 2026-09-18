@@ -1,6 +1,9 @@
 package geometry
 
-import "github.com/EliCDavis/vector/vector3"
+import (
+	"github.com/EliCDavis/vector/vector2"
+	"github.com/EliCDavis/vector/vector3"
+)
 
 type Ray struct {
 	origin    vector3.Float64
@@ -31,22 +34,25 @@ func (r Ray) TimeOnRay(v vector3.Float64) float64 {
 	return adjusted.Dot(r.direction)
 }
 
-// TriangleHit is where a ray meets a triangle's plane: the distance along the
-// ray and the barycentric weights U and V. The hit may fall outside the triangle.
+// TriangleHit is where a ray meets a triangle's plane, which may be outside
+// the triangle.
 type TriangleHit struct {
+	// How far along the ray the hit is.
 	Distance float64
-	U, V     float64
+
+	// Barycentric weights of the second and third corners.
+	UV vector2.Float64
 }
 
 // Inside allows the weights to fall short of the rim by slack.
 func (h TriangleHit) Inside(slack float64) bool {
-	return h.U >= -slack && h.V >= -slack && h.U+h.V <= 1+slack
+	return h.UV.X() >= -slack && h.UV.Y() >= -slack && h.UV.X()+h.UV.Y() <= 1+slack
 }
 
 // Margin is how far inside the rim the hit lies in barycentric terms,
 // negative when outside.
 func (h TriangleHit) Margin() float64 {
-	return min(h.U, h.V, 1-h.U-h.V)
+	return min(h.UV.X(), h.UV.Y(), 1-h.UV.X()-h.UV.Y())
 }
 
 // RayHit is Möller-Trumbore. Not ok when the ray is parallel to the triangle.
@@ -67,7 +73,9 @@ func (t *Triangle) RayHit(r Ray) (TriangleHit, bool) {
 
 	return TriangleHit{
 		Distance: edge2.Dot(crossed) * inverse,
-		U:        fromCorner.Dot(perpendicular) * inverse,
-		V:        r.direction.Dot(crossed) * inverse,
+		UV: vector2.New(
+			fromCorner.Dot(perpendicular)*inverse,
+			r.direction.Dot(crossed)*inverse,
+		),
 	}, true
 }

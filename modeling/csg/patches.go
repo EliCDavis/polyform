@@ -3,9 +3,7 @@ package csg
 // Section 8. Faces that can reach each other without crossing the
 // intersection curve share one answer, so a region needs only a few rays.
 
-// Rays are cheap once there are only a few of them, so a region is sampled
-// rather than trusted to a single face.
-const votesPerPatch = 5
+const patchRayHueristic = 5
 
 // Groups faces sharing an edge off the intersection curve, as lists of face
 // indices. A face on the other solid's surface joins nothing and stands alone.
@@ -64,19 +62,17 @@ func patchesOf(cornerIDs [][3]int, onCurve map[int]bool, touching []bool) [][]in
 	return patches
 }
 
-func sampleStride(patch []int) int {
-	if stride := len(patch) / votesPerPatch; stride > 1 {
+func sampleHueristic(patch []int) int {
+	if stride := len(patch) / patchRayHueristic; stride > 1 {
 		return stride
 	}
 	return 1
 }
 
-// How many rays classifying these patches will cost, which is what decides
-// whether the solid being cast against is worth indexing.
 func rayBudget(patches [][]int) int {
 	total := 0
 	for _, patch := range patches {
-		stride := sampleStride(patch)
+		stride := sampleHueristic(patch)
 		for i := 0; i < len(patch); i += stride {
 			total++
 		}
@@ -88,7 +84,7 @@ func classifyPatches(faces []face, patches [][]int, against *target) []classific
 	answers := make([]classification, len(faces))
 
 	for _, patch := range patches {
-		stride := sampleStride(patch)
+		stride := sampleHueristic(patch)
 
 		votes := make(map[classification]int, 4)
 		for i := 0; i < len(patch); i += stride {

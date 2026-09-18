@@ -158,17 +158,17 @@ func (t Triangle) Intersect(other Triangle, tolerance float64) (Line3D, bool) {
 	}
 	direction = direction.Normalized()
 
-	base := crossing[0]
+	base := crossing.GetStartPoint()
 	along := func(point vector3.Float64) float64 { return point.Sub(base).Dot(direction) }
 
 	// The overlap ends on two of the four crossing points already computed.
 	// Rebuilding one from a parameter would round it differently.
-	ordered := func(pair [2]vector3.Float64) (start, end vector3.Float64, startAt, endAt float64) {
-		first, second := along(pair[0]), along(pair[1])
+	ordered := func(line Line3D) (start, end vector3.Float64, startAt, endAt float64) {
+		first, second := along(line.GetStartPoint()), along(line.GetEndPoint())
 		if first <= second {
-			return pair[0], pair[1], first, second
+			return line.GetStartPoint(), line.GetEndPoint(), first, second
 		}
-		return pair[1], pair[0], second, first
+		return line.GetEndPoint(), line.GetStartPoint(), second, first
 	}
 
 	start, end, startAt, endAt := ordered(crossing)
@@ -203,7 +203,7 @@ func entirelyOneSide(sides [3]float64) bool {
 
 // Where the triangle meets a plane: two points, or nothing when it only
 // touches at a corner. sides is which side of the plane each corner is on.
-func (t Triangle) crossesPlane(sides [3]float64, tolerance float64) ([2]vector3.Float64, bool) {
+func (t Triangle) crossesPlane(sides [3]float64, tolerance float64) (Line3D, bool) {
 	crossings := make([]vector3.Float64, 0, 2)
 
 	record := func(point vector3.Float64) {
@@ -233,7 +233,7 @@ func (t Triangle) crossesPlane(sides [3]float64, tolerance float64) ([2]vector3.
 	}
 
 	if len(crossings) != 2 {
-		return [2]vector3.Float64{}, false
+		return Line3D{}, false
 	}
-	return [2]vector3.Float64{crossings[0], crossings[1]}, true
+	return NewLine3D(crossings[0], crossings[1]), true
 }

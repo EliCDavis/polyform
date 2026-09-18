@@ -3,22 +3,23 @@ package geometry
 import (
 	"github.com/EliCDavis/polyform/math/predicate"
 	"github.com/EliCDavis/vector/vector2"
+	"github.com/EliCDavis/vector/vector3"
 )
 
 type Triangle2D [3]vector2.Float64
 
 // Barycentric are the weights of the corners that add up to point. They
 // carry outside the triangle, where one goes negative.
-func (t Triangle2D) Barycentric(point vector2.Float64) [3]float64 {
+func (t Triangle2D) Barycentric(point vector2.Float64) vector3.Float64 {
 	twiceArea := func(a, b, c vector2.Float64) float64 {
 		return (b.X()-a.X())*(c.Y()-a.Y()) - (c.X()-a.X())*(b.Y()-a.Y())
 	}
 	whole := twiceArea(t[0], t[1], t[2])
-	return [3]float64{
-		twiceArea(point, t[1], t[2]) / whole,
-		twiceArea(t[0], point, t[2]) / whole,
-		twiceArea(t[0], t[1], point) / whole,
-	}
+	return vector3.New(
+		twiceArea(point, t[1], t[2])/whole,
+		twiceArea(t[0], point, t[2])/whole,
+		twiceArea(t[0], t[1], point)/whole,
+	)
 }
 
 // Contains allows point to sit up to tolerance outside any edge, whichever

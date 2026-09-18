@@ -36,7 +36,7 @@ func TestACutEndpointNearACornerIsThatCornerOnBothSides(t *testing.T) {
 		onCurve := map[int]bool{}
 
 		near := f.verts[0].Add(inward.Scale(gap))
-		pieces, pieceIDs, err := splitFace(f, ids, []segment{{near, across}}, nil, tolerance, newIDSpace(weld, tolerance), onCurve)
+		pieces, pieceIDs, err := splitFace(f, ids, []geometry.Line3D{geometry.NewLine3D(near, across)}, nil, tolerance, newIDSpace(weld, tolerance), onCurve)
 		require.NoErrorf(t, err, "gap %g", gap)
 		require.Greaterf(t, len(pieces), 1, "gap %g", gap)
 
@@ -71,8 +71,8 @@ func TestANeedleFaceIsStillSplit(t *testing.T) {
 	// Across the needle near its wide end, where the pieces on both sides
 	// are still taller than the tolerance.
 	onCurve := map[int]bool{}
-	cut := segment{c.Add(a.Sub(c).Scale(0.95)), c.Add(b.Sub(c).Scale(0.95))}
-	pieces, pieceIDs, err := splitFace(f, ids, []segment{cut}, nil, tolerance, newIDSpace(weld, tolerance), onCurve)
+	cut := geometry.NewLine3D(c.Add(a.Sub(c).Scale(0.95)), c.Add(b.Sub(c).Scale(0.95)))
+	pieces, pieceIDs, err := splitFace(f, ids, []geometry.Line3D{cut}, nil, tolerance, newIDSpace(weld, tolerance), onCurve)
 	require.NoError(t, err)
 	assert.GreaterOrEqual(t, len(pieces), 2)
 

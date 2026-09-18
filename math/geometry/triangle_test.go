@@ -104,13 +104,13 @@ func TestTriangle2D(t *testing.T) {
 	tri := geometry.Triangle2D{vector2.New(0., 0.), vector2.New(2., 0.), vector2.New(0., 2.)}
 
 	weights := tri.Barycentric(vector2.New(0.5, 0.5))
-	assert.InDelta(t, 0.5, weights[0], 1e-12)
-	assert.InDelta(t, 0.25, weights[1], 1e-12)
-	assert.InDelta(t, 0.25, weights[2], 1e-12)
+	assert.InDelta(t, 0.5, weights.X(), 1e-12)
+	assert.InDelta(t, 0.25, weights.Y(), 1e-12)
+	assert.InDelta(t, 0.25, weights.Z(), 1e-12)
 
 	outside := tri.Barycentric(vector2.New(3., 0.))
-	assert.Negative(t, outside[0])
-	assert.InDelta(t, 1, outside[0]+outside[1]+outside[2], 1e-12)
+	assert.Negative(t, outside.X())
+	assert.InDelta(t, 1, outside.X()+outside.Y()+outside.Z(), 1e-12)
 
 	assert.True(t, tri.Contains(vector2.New(0.5, 0.5), 0))
 	assert.False(t, tri.Contains(vector2.New(2., 2.), 0))
