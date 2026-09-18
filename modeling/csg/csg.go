@@ -1,28 +1,10 @@
-// Package csg performs constructive solid geometry on triangle meshes.
-//
-// The algorithm is Laidlaw, Trumbore and Hughes, "Constructive Solid Geometry
-// for Polyhedral Objects", SIGGRAPH 1986, ACM SIGGRAPH Computer Graphics
-// 20(4), pages 161-170.
+// Package csg does constructive solid geometry on triangle meshes, following
+// Laidlaw, Trumbore and Hughes (SIGGRAPH 1986). Section numbers refer to it.
 //
 //	https://dl.acm.org/doi/10.1145/15922.15904
-//	https://cs.brown.edu/people/jhughes/papers/Laidlaw-CSG-1986/main.htm
-//
-// Section numbers throughout this package refer to that paper. It runs in
-// three stages: both meshes are split along the curve where they meet
-// (sections 4 to 6), every resulting face is classified against the opposing
-// solid (section 7), and each operation keeps a different set of those
-// classifications (section 9).
-//
-// Two departures from the paper are worth knowing about. Section 6 subdivides
-// a polygon by hand, case by case, to keep it convex; this package feeds the
-// cut segments to a constrained Delaunay triangulator instead, which reaches
-// the same place without the case analysis. And section 4 leaves coplanar
-// pairs alone, relying on neighbouring faces to cut them, which this package
-// also does - see the note on Subtract.
 package csg
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/EliCDavis/polyform/modeling"
@@ -36,9 +18,8 @@ const (
 	difference
 )
 
-// Where a face sits relative to the opposing solid, per section 7. SAME and
-// OPPOSITE mean the face lies on that solid's boundary, with its normal
-// pointing the same way or against.
+// Where a face sits relative to the other solid. SAME and OPPOSITE mean it
+// lies on that solid's boundary, with its normal along or against.
 type classification int
 
 const (
@@ -60,10 +41,8 @@ func (c classification) String() string {
 	return "opposite"
 }
 
-// Figure 9.1. A face survives only where its own solid's row says yes.
-//
-// The paper never keeps a SAME or OPPOSITE face from B: a face on the shared
-// boundary exists in both solids, and the copy from A already covers it.
+// Figure 9.1. A face survives only where its own solid's row says yes. SAME
+// and OPPOSITE faces from B are never kept; A's copy already covers them.
 type rule map[classification]bool
 
 var keepFromA = map[operation]rule{
@@ -78,80 +57,69 @@ var keepFromB = map[operation]rule{
 	difference:   {inside: true},
 }
 
-// Section 9: "each polygonB inside objectA must have the order of its
-// vertices reversed, and its normal vector must be inverted, since the
-// interior of objectB becomes the exterior of the resulting object."
+// Section 9: faces of B inside A are flipped, since B's interior becomes the
+// result's exterior.
 func flipsFromB(op operation) bool {
 	return op == difference
 }
 
 // Union returns the mesh enclosing every point in either solid.
 func Union(a, b modeling.Mesh) (modeling.Mesh, error) {
-	return combine(a, b, union)
+	return meshes(a, b, union)
 }
 
 // Intersect returns the mesh enclosing the points inside both solids.
 func Intersect(a, b modeling.Mesh) (modeling.Mesh, error) {
-	return combine(a, b, intersection)
+	return meshes(a, b, intersection)
 }
 
 // Subtract returns the mesh enclosing the points of a that lie outside b.
-//
-// Faces the two solids share exactly are carried over from a, following
-// section 4's decision to leave coplanar pairs unsplit. Where such a face
-// only partly overlaps and no other face cuts it, the seam there is the
-// paper's known weak spot rather than anything this package adds.
+// Coplanar faces are carried over from a unsplit, the paper's known weak spot.
 func Subtract(a, b modeling.Mesh) (modeling.Mesh, error) {
-	return combine(a, b, difference)
+	return meshes(a, b, difference)
 }
 
-func combine(a, b modeling.Mesh, op operation) (modeling.Mesh, error) {
+func meshes(a, b modeling.Mesh, op operation) (modeling.Mesh, error) {
 	empty := modeling.EmptyMesh(modeling.TriangleTopology)
-
-	facesA, err := facesOf(a)
+	first, err := NewSolid(a)
 	if err != nil {
-		return empty, fmt.Errorf("first mesh: %w", err)
-	}
-	facesB, err := facesOf(b)
-	if err != nil {
-		return empty, fmt.Errorf("second mesh: %w", err)
-	}
-	if len(facesA) == 0 || len(facesB) == 0 {
-		return empty, errors.New("both meshes need at least one triangle")
-	}
-
-	tolerance := toleranceFor(facesA, facesB)
-
-	weldA, weldB := newWelder(tolerance), newWelder(tolerance)
-	idsA, idsB := weldFaces(weldA, facesA), weldFaces(weldB, facesB)
-
-	if err := closedFrom(idsA); err != nil {
 		return empty, fmt.Errorf("first %w", err)
 	}
-	if err := closedFrom(idsB); err != nil {
+	second, err := NewSolid(b)
+	if err != nil {
 		return empty, fmt.Errorf("second %w", err)
 	}
+	mesh, _, err := combine(first, second, op)
+	if err != nil {
+		return empty, err
+	}
+	return mesh, nil
+}
 
-	// Section 4: "The first step in the algorithm is splitting both objects."
-	// Both are cut before either is split, so each can be split at every
-	// point on the curve they share rather than only its own.
-	cutsA, curvePointsA, touchingA := cutsAgainst(facesA, facesB, tolerance)
-	cutsB, curvePointsB, touchingB := cutsAgainst(facesB, facesA, tolerance)
+// The pieces come back alongside the mesh, parented to it, so a result can
+// become a Solid without reading its own faces back out.
+func combine(a, b *Solid, op operation) (modeling.Mesh, []face, error) {
+	tolerance := max(a.tolerance, b.tolerance)
+
+	// Section 4. Both are cut before either is split, so each can be split at
+	// every point on the shared curve rather than only its own.
+	cutsA, curvePointsA, touchingA := cutsAgainst(a.faces, b.faces, tolerance)
+	cutsB, curvePointsB, touchingB := cutsAgainst(b.faces, a.faces, tolerance)
 	curvePoints := append(curvePointsA, curvePointsB...)
 
-	splitA, err := splitAll(facesA, idsA, cutsA, curvePoints, touchingA, tolerance, weldA)
+	splitA, err := splitAll(a.faces, a.cornerIDs, cutsA, curvePoints, touchingA, tolerance, newIDSpace(a.weld, tolerance))
 	if err != nil {
-		return empty, fmt.Errorf("splitting the first mesh: %w", err)
+		return modeling.EmptyMesh(modeling.TriangleTopology), nil, fmt.Errorf("splitting the first mesh: %w", err)
 	}
-	splitB, err := splitAll(facesB, idsB, cutsB, curvePoints, touchingB, tolerance, weldB)
+	splitB, err := splitAll(b.faces, b.cornerIDs, cutsB, curvePoints, touchingB, tolerance, newIDSpace(b.weld, tolerance))
 	if err != nil {
-		return empty, fmt.Errorf("splitting the second mesh: %w", err)
+		return modeling.EmptyMesh(modeling.TriangleTopology), nil, fmt.Errorf("splitting the second mesh: %w", err)
 	}
 
 	answersA, answersB := classifyBoth(splitA, splitB, tolerance)
 
-	fromA := kept{source: a, faces: make([]face, 0, len(splitA.faces))}
-	fromB := kept{source: b, faces: make([]face, 0, len(splitB.faces)), inverted: flipsFromB(op)}
+	fromA := kept{source: a.mesh, faces: make([]face, 0, len(splitA.faces))}
+	fromB := kept{source: b.mesh, faces: make([]face, 0, len(splitB.faces)), inverted: flipsFromB(op)}
 
 	// Section 9, first row of figure 9.1.
 	for i, f := range splitA.faces {
@@ -171,12 +139,12 @@ func combine(a, b modeling.Mesh, op operation) (modeling.Mesh, error) {
 		fromB.faces = append(fromB.faces, f)
 	}
 
-	return meshFromFaces(fromA, fromB), nil
+	mesh, faces := meshFromFaces(fromA, fromB)
+	return mesh, faces, nil
 }
 
-// One solid after splitting: its pieces, their welded corner ids, which
-// pieces lie on the other solid's surface, and which ids sit on the curve
-// where the two meet.
+// One solid after splitting: its pieces, their welded corner ids, which lie
+// on the other solid's surface, and which ids sit on the shared curve.
 type half struct {
 	faces     []face
 	cornerIDs [][3]int
@@ -185,17 +153,16 @@ type half struct {
 }
 
 // Section 8 groups faces into regions the intersection curve does not cross
-// and settles each with a handful of rays, rather than giving every face its
-// own ray as section 7 reads on its own.
+// and settles each with a few rays instead of one per face.
 func classifyBoth(splitA, splitB half, tolerance float64) (answersA, answersB []classification) {
 	patchesA := patchesOf(splitA.cornerIDs, splitA.onCurve, splitA.touching)
 	patchesB := patchesOf(splitB.cornerIDs, splitB.onCurve, splitB.touching)
 
 	// Each solid is cast against by the other's patches, so that is the count
 	// that decides whether indexing it pays.
-	solidA := newSolid(splitA.faces, tolerance, rayBudget(patchesB))
-	solidB := newSolid(splitB.faces, tolerance, rayBudget(patchesA))
+	targetA := newTarget(splitA.faces, tolerance, rayBudget(patchesB))
+	targetB := newTarget(splitB.faces, tolerance, rayBudget(patchesA))
 
-	return classifyPatches(splitA.faces, patchesA, solidB),
-		classifyPatches(splitB.faces, patchesB, solidA)
+	return classifyPatches(splitA.faces, patchesA, targetB),
+		classifyPatches(splitB.faces, patchesB, targetA)
 }

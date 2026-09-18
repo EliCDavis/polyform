@@ -19,22 +19,20 @@ type splitPair struct {
 func splitBoth(t *testing.T, a, b modeling.Mesh) splitPair {
 	t.Helper()
 
-	facesA, err := facesOf(a)
+	first, err := NewSolid(a)
 	require.NoError(t, err)
-	facesB, err := facesOf(b)
+	second, err := NewSolid(b)
 	require.NoError(t, err)
 
-	tolerance := toleranceFor(facesA, facesB)
-	weldA, weldB := newWelder(tolerance), newWelder(tolerance)
-	idsA, idsB := weldFaces(weldA, facesA), weldFaces(weldB, facesB)
+	tolerance := max(first.tolerance, second.tolerance)
 
-	cutsA, cornersA, touchingA := cutsAgainst(facesA, facesB, tolerance)
-	cutsB, cornersB, touchingB := cutsAgainst(facesB, facesA, tolerance)
+	cutsA, cornersA, touchingA := cutsAgainst(first.faces, second.faces, tolerance)
+	cutsB, cornersB, touchingB := cutsAgainst(second.faces, first.faces, tolerance)
 	corners := append(cornersA, cornersB...)
 
-	halfA, err := splitAll(facesA, idsA, cutsA, corners, touchingA, tolerance, weldA)
+	halfA, err := splitAll(first.faces, first.cornerIDs, cutsA, corners, touchingA, tolerance, newIDSpace(first.weld, tolerance))
 	require.NoError(t, err)
-	halfB, err := splitAll(facesB, idsB, cutsB, corners, touchingB, tolerance, weldB)
+	halfB, err := splitAll(second.faces, second.cornerIDs, cutsB, corners, touchingB, tolerance, newIDSpace(second.weld, tolerance))
 	require.NoError(t, err)
 
 	return splitPair{a: halfA, b: halfB, tolerance: tolerance}
@@ -42,7 +40,7 @@ func splitBoth(t *testing.T, a, b modeling.Mesh) splitPair {
 
 // Section 7 read on its own: every face gets its own ray. Grouping has to
 // agree with this, which is the whole reason it is allowed to skip rays.
-func classifyEachFace(faces []face, against *solid) []classification {
+func classifyEachFace(faces []face, against *target) []classification {
 	answers := make([]classification, len(faces))
 	for i, f := range faces {
 		answers[i] = against.classify(f)
@@ -100,12 +98,12 @@ func TestGroupingAgreesWithPerFaceClassification(t *testing.T) {
 
 			groupedA, groupedB := classifyBoth(p.a, p.b, p.tolerance)
 
-			solidA := newSolid(p.a.faces, p.tolerance, len(p.b.faces))
-			solidB := newSolid(p.b.faces, p.tolerance, len(p.a.faces))
+			targetA := newTarget(p.a.faces, p.tolerance, len(p.b.faces))
+			targetB := newTarget(p.b.faces, p.tolerance, len(p.a.faces))
 
 			require.Greater(t, len(p.a.faces), 0, "sanity: this pair should split into faces")
-			assert.Equal(t, classifyEachFace(p.a.faces, solidB), groupedA, "first solid")
-			assert.Equal(t, classifyEachFace(p.b.faces, solidA), groupedB, "second solid")
+			assert.Equal(t, classifyEachFace(p.a.faces, targetB), groupedA, "first solid")
+			assert.Equal(t, classifyEachFace(p.b.faces, targetA), groupedB, "second solid")
 		})
 	}
 }

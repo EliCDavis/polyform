@@ -27,6 +27,44 @@ func TestCheckClosedRejectsAFaceWoundAgainstItsNeighbours(t *testing.T) {
 	require.Error(t, err)
 }
 
+func TestCheckClosedRejectsAMeshWoundInsideOut(t *testing.T) {
+	indices := iter.ReadFull(cube(vector3.Zero[float64](), 2).Indices())
+	for i := 0; i+2 < len(indices); i += 3 {
+		indices[i+1], indices[i+2] = indices[i+2], indices[i+1]
+	}
+	insideOut := cube(vector3.Zero[float64](), 2).SetIndices(indices)
+
+	err := csg.CheckClosed(insideOut)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "inside out")
+
+	_, err = csg.Union(insideOut, cube(vector3.New(1., 1., 1.), 2))
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "inside out")
+}
+
+func TestOperationsNameTheDroppedTrianglesToo(t *testing.T) {
+	a := vector3.New(0., 0., 0.)
+	b := vector3.New(1., 0., 0.)
+	c := vector3.New(0., 1., 0.)
+	d := vector3.New(0., 0., 1.)
+	m := vector3.New(0.5, 0., 0.)
+	sealed := modeling.NewTriangleMesh([]int{
+		0, 2, 1,
+		0, 4, 3,
+		4, 1, 3,
+		0, 1, 4,
+		0, 3, 2,
+		1, 2, 3,
+	}).SetFloat3Data(map[string][]vector3.Float64{
+		modeling.PositionAttribute: {a, b, c, d, m},
+	})
+
+	_, err := csg.Union(cube(vector3.New(3., 3., 3.), 2), sealed)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "1 zero-area triangles were dropped")
+}
+
 func TestCheckClosedCountsTheZeroAreaTrianglesItDropped(t *testing.T) {
 	a := vector3.New(0., 0., 0.)
 	b := vector3.New(1., 0., 0.)
@@ -64,9 +102,8 @@ func TestToleranceIgnoresHowFarApartTheMeshesSit(t *testing.T) {
 	assert.Equal(t, 24, union.PrimitiveCount())
 }
 
-// A cube turned 45 degrees, placed so one vertical edge runs two nanometres
-// inside the other cube's face: the intersection curve then has corners
-// within tolerance of that face's edges without any faces being coplanar.
+// A cube turned 45 degrees with one vertical edge two nanometres inside the
+// other cube's face: curve corners near that face's edges, nothing coplanar.
 func TestCornersLandingJustOffAnEdgeLeaveNoHole(t *testing.T) {
 	a := cube(vector3.Zero[float64](), 2)
 	b := cube(vector3.Zero[float64](), 2).

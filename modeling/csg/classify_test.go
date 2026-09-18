@@ -17,8 +17,8 @@ func TestScanningAgreesWithTheTree(t *testing.T) {
 
 	tolerance := toleranceFor(a, b)
 	enough := scanBudget/len(b) + 1
-	indexed := newSolid(b, tolerance, enough)
-	scanned := newSolid(b, tolerance, 0)
+	indexed := newTarget(b, tolerance, enough)
+	scanned := newTarget(b, tolerance, 0)
 
 	require.NotNil(t, indexed.tree, "sanity: the high query count should build a tree")
 	require.Nil(t, scanned.tree, "sanity: no queries should skip it")

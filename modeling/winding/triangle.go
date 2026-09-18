@@ -8,7 +8,11 @@ import (
 )
 
 type TriangleSampler struct {
-	tris [][3]vector3.Float64
+	tris []geometry.Triangle
+}
+
+func FromTriangles(tris []geometry.Triangle) *TriangleSampler {
+	return &TriangleSampler{tris: tris}
 }
 
 func (s TriangleSampler) Number(p vector3.Float64) float64 {

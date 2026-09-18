@@ -26,7 +26,7 @@ func (node UnionNode) Description() string {
 }
 
 func (node UnionNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
-	fold(out, connected(out, "Meshes", node.Meshes), Union)
+	runCSG(out, connected(out, "Meshes", node.Meshes), (*Solid).Union)
 }
 
 type IntersectionNode struct {
@@ -38,7 +38,7 @@ func (node IntersectionNode) Description() string {
 }
 
 func (node IntersectionNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
-	fold(out, connected(out, "Meshes", node.Meshes), Intersect)
+	runCSG(out, connected(out, "Meshes", node.Meshes), (*Solid).Intersect)
 }
 
 type SubtractNode struct {
@@ -57,7 +57,7 @@ func (node SubtractNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	}
 
 	base := input{mesh: nodes.GetOutputValue(out, node.Base), port: "Base"}
-	fold(out, append([]input{base}, connected(out, "Remove", node.Remove)...), Subtract)
+	runCSG(out, append([]input{base}, connected(out, "Remove", node.Remove)...), (*Solid).Subtract)
 }
 
 type input struct {
@@ -81,10 +81,11 @@ func connected(out *nodes.StructOutput[modeling.Mesh], name string, ports []node
 	return inputs
 }
 
-func fold(
+// Applies op to the inputs left to right, naming the port of any that fails.
+func runCSG(
 	out *nodes.StructOutput[modeling.Mesh],
 	inputs []input,
-	op func(a, b modeling.Mesh) (modeling.Mesh, error),
+	op func(a, b *Solid) (*Solid, error),
 ) {
 	empty := modeling.EmptyMesh(modeling.TriangleTopology)
 	if len(inputs) == 0 {
@@ -92,30 +93,29 @@ func fold(
 		return
 	}
 
-	// Checked here as well as inside the operation so the port that actually
-	// carries the bad mesh gets named. Folding pairwise otherwise reports the
-	// third input of five as "the second mesh".
-	broken := false
+	solids := make([]*Solid, 0, len(inputs))
 	for _, in := range inputs {
-		if err := CheckClosed(in.mesh); err != nil {
+		solid, err := NewSolid(in.mesh)
+		if err != nil {
 			out.CaptureError(fmt.Errorf("%s: %w", in.port, err))
-			broken = true
+			continue
 		}
+		solids = append(solids, solid)
 	}
-	if broken {
+	if len(solids) < len(inputs) {
 		out.Set(empty)
 		return
 	}
 
-	result := inputs[0].mesh
-	for _, next := range inputs[1:] {
-		combined, err := op(result, next.mesh)
+	result := solids[0]
+	for i, next := range solids[1:] {
+		combined, err := op(result, next)
 		if err != nil {
-			out.CaptureError(fmt.Errorf("combining %s: %w", next.port, err))
-			out.Set(result)
+			out.CaptureError(fmt.Errorf("combining %s: %w", inputs[i+1].port, err))
+			out.Set(empty)
 			return
 		}
 		result = combined
 	}
-	out.Set(result)
+	out.Set(result.Mesh())
 }

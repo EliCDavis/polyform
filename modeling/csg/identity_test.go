@@ -3,6 +3,7 @@ package csg
 import (
 	"testing"
 
+	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/primitives"
 	"github.com/EliCDavis/vector/vector3"
@@ -14,7 +15,7 @@ import (
 // direction (2,-1,-1) to 58% of its length.
 func slantedFace(t *testing.T) face {
 	t.Helper()
-	f, ok := newFace(vector3.New(0., 0., 0.), vector3.New(1., -1., 0.), vector3.New(1., 0., -1.))
+	f, ok := newFace(geometry.Triangle{vector3.New(0., 0., 0.), vector3.New(1., -1., 0.), vector3.New(1., 0., -1.)})
 	require.True(t, ok)
 	return f
 }
@@ -35,7 +36,7 @@ func TestACutEndpointNearACornerIsThatCornerOnBothSides(t *testing.T) {
 		onCurve := map[int]bool{}
 
 		near := f.verts[0].Add(inward.Scale(gap))
-		pieces, pieceIDs, err := splitFace(f, ids, []segment{{near, across}}, nil, tolerance, weld, onCurve)
+		pieces, pieceIDs, err := splitFace(f, ids, []segment{{near, across}}, nil, tolerance, newIDSpace(weld, tolerance), onCurve)
 		require.NoErrorf(t, err, "gap %g", gap)
 		require.Greaterf(t, len(pieces), 1, "gap %g", gap)
 
@@ -52,16 +53,15 @@ func TestACutEndpointNearACornerIsThatCornerOnBothSides(t *testing.T) {
 	}
 }
 
-// A right-angled sliver 1.5 tolerances wide, laid along the direction that
-// dropping the dominant axis shrinks most, so it is under a tolerance wide in
-// projection but not in space.
+// A sliver 1.5 tolerances wide, laid so dropping the dominant axis shrinks
+// it below a tolerance in projection but not in space.
 func TestANeedleFaceIsStillSplit(t *testing.T) {
 	const tolerance = 1e-6
 	across := vector3.New(2., -1., -1.).Normalized()
 	a := vector3.New(0., 0., 0.)
 	b := a.Add(across.Scale(1.5 * tolerance))
 	c := vector3.New(0., 1., -1.)
-	f, ok := newFace(a, b, c)
+	f, ok := newFace(geometry.Triangle{a, b, c})
 	require.True(t, ok)
 
 	weld := newWelder(tolerance)
@@ -72,7 +72,7 @@ func TestANeedleFaceIsStillSplit(t *testing.T) {
 	// are still taller than the tolerance.
 	onCurve := map[int]bool{}
 	cut := segment{c.Add(a.Sub(c).Scale(0.95)), c.Add(b.Sub(c).Scale(0.95))}
-	pieces, pieceIDs, err := splitFace(f, ids, []segment{cut}, nil, tolerance, weld, onCurve)
+	pieces, pieceIDs, err := splitFace(f, ids, []segment{cut}, nil, tolerance, newIDSpace(weld, tolerance), onCurve)
 	require.NoError(t, err)
 	assert.GreaterOrEqual(t, len(pieces), 2)
 
@@ -96,7 +96,7 @@ func TestAFaceTouchedAtItsBarycenterByAnApexIsOutside(t *testing.T) {
 			break
 		}
 	}
-	apex := top.barycenter()
+	apex := top.verts.Centroid()
 
 	base := [4]vector3.Float64{
 		apex.Add(vector3.New(-1., 2., -1.)),
@@ -118,7 +118,7 @@ func TestAFaceTouchedAtItsBarycenterByAnApexIsOutside(t *testing.T) {
 
 	faces, err := facesOf(pyramid)
 	require.NoError(t, err)
-	against := newSolid(faces, toleranceFor(box, faces), 0)
+	against := newTarget(faces, toleranceFor(box, faces), 0)
 
 	assert.Equal(t, outside, against.classify(top))
 }

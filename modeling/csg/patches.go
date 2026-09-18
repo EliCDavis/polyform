@@ -1,34 +1,14 @@
 package csg
 
-// Section 8, "Marking Vertices".
-//
-// "The polygon classification routine could be called to classify each polygon
-// in both objects, but this would be time-consuming. Instead, all the vertices
-// of the object are classified by classifying just a few of the polygons."
-//
-// The paper propagates through vertices. The same argument works a level up
-// and is easier to reason about: a face's answer can only differ from its
-// neighbour's where the two surfaces actually cross, so faces reachable from
-// each other without stepping over the intersection curve share one answer.
-// Whole regions then cost a handful of rays between them rather than one each,
-// and because a region is large the rays can be fired from faces well clear of
-// any edge.
+// Section 8. Faces that can reach each other without crossing the
+// intersection curve share one answer, so a region needs only a few rays.
 
 // Rays are cheap once there are only a few of them, so a region is sampled
 // rather than trusted to a single face.
 const votesPerPatch = 5
 
-// Faces sharing an edge that does not sit on the intersection curve. Each
-// patch is a list of face indices.
-//
-// Marking an edge by whether both its ends lie on the curve is a slight over
-// count: an edge can join two curve points without lying on the curve itself.
-// That only ever splits a region in two, costing a few more rays, where the
-// opposite mistake would hand one region's answer to another.
-//
-// A face lying on the other solid's surface registers no edge at all, so
-// nothing joins to it and it answers for itself. No cut separates it from its
-// neighbours, but it classifies as same or opposite where they do not.
+// Groups faces sharing an edge off the intersection curve, as lists of face
+// indices. A face on the other solid's surface joins nothing and stands alone.
 func patchesOf(cornerIDs [][3]int, onCurve map[int]bool, touching []bool) [][]int {
 	parent := make([]int, len(cornerIDs))
 	for i := range parent {
@@ -44,8 +24,7 @@ func patchesOf(cornerIDs [][3]int, onCurve map[int]bool, touching []bool) [][]in
 	}
 
 	// Only which faces end up together matters, so edges are joined as they
-	// are met and never stored. Holding a face list per edge costs more than
-	// the answer is worth.
+	// are met and never stored.
 	firstFaceOnEdge := make(map[[2]int]int, len(cornerIDs)*3)
 	for faceIndex, corners := range cornerIDs {
 		if touching[faceIndex] {
@@ -105,7 +84,7 @@ func rayBudget(patches [][]int) int {
 	return total
 }
 
-func classifyPatches(faces []face, patches [][]int, against *solid) []classification {
+func classifyPatches(faces []face, patches [][]int, against *target) []classification {
 	answers := make([]classification, len(faces))
 
 	for _, patch := range patches {

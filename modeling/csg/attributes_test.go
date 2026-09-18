@@ -84,10 +84,10 @@ func TestCarriedNormalsFaceTheWayTheSurfaceDoes(t *testing.T) {
 }
 
 func TestOutputCarriesEveryAttributeOfEitherInput(t *testing.T) {
-	box := cube(vector3.Zero[float64](), 2).
-		SetFloat1Attribute("only on a", make([]float64, 24))
-	ball := primitives.UVSphere(1.28, 12, 18).
-		SetFloat2Attribute("only on b", make([]vector2.Float64, primitives.UVSphere(1.28, 12, 18).AttributeLength()))
+	box := cube(vector3.Zero[float64](), 2)
+	box = box.SetFloat1Attribute("only on a", make([]float64, box.AttributeLength()))
+	ball := primitives.UVSphere(1.28, 12, 18)
+	ball = ball.SetFloat2Attribute("only on b", make([]vector2.Float64, ball.AttributeLength()))
 
 	out, err := csg.Union(box, ball)
 	require.NoError(t, err)

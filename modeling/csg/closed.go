@@ -9,32 +9,47 @@ import (
 	"github.com/EliCDavis/polyform/modeling"
 )
 
-// Faces arrive unwelded and two of them meeting at a seam rarely carry bit
-// identical corners, so positions are merged within the same tolerance the
-// rest of the package works to.
+// Faces meeting at a seam rarely have bit-identical corners, so positions are
+// merged within the package tolerance.
 type welder = geometry.PointWelder3D
 
 func newWelder(tolerance float64) *welder {
 	return geometry.NewPointWelder3D(tolerance)
 }
 
-// CheckClosed reports why a mesh cannot be used as a solid, or nil when it
-// can. A mesh qualifies when every edge is shared by exactly two triangles of
-// nonzero area, wound so the edge runs opposite ways in the two.
+// CheckClosed reports why a mesh cannot be a solid, or nil. Every edge must
+// be shared by two triangles wound opposite ways, and the surface must face out.
 func CheckClosed(m modeling.Mesh) error {
 	faces, err := facesOf(m)
 	if err != nil {
 		return err
 	}
-	if len(faces) == 0 {
-		return fmt.Errorf("mesh has no triangles")
-	}
+	return validate(m, faces, weldFaces(newWelder(toleranceFor(faces, nil)), faces))
+}
 
-	err = closed(faces, toleranceFor(faces, nil))
+// Zero-area triangles facesOf dropped are named in the error: they are how a
+// mesh that looks sealed turns out not to be.
+func validate(m modeling.Mesh, faces []face, cornerIDs [][3]int) error {
+	var err error
+	if len(faces) == 0 {
+		err = fmt.Errorf("mesh has no triangles")
+	} else if err = edgesPairUp(cornerIDs); err == nil && signedVolume(faces) < 0 {
+		err = fmt.Errorf("mesh is wound inside out")
+	}
 	if dropped := m.PrimitiveCount() - len(faces); err != nil && dropped > 0 {
 		return fmt.Errorf("%w (%d zero-area triangles were dropped first)", err, dropped)
 	}
 	return err
+}
+
+// Divergence theorem: positive when the faces wind outward, which is what
+// lets section 7 read a normal as pointing away from the inside.
+func signedVolume(faces []face) float64 {
+	total := 0.
+	for _, f := range faces {
+		total += f.verts[0].Dot(f.verts[1].Cross(f.verts[2]))
+	}
+	return total / 6
 }
 
 func weldFaces(weld *welder, faces []face) [][3]int {
@@ -49,15 +64,11 @@ func weldFaces(weld *welder, faces []face) [][3]int {
 	return ids
 }
 
-func closed(faces []face, tolerance float64) error {
-	return closedFrom(weldFaces(newWelder(tolerance), faces))
-}
-
-// Directed, not unordered: section 7 reads normals, so two neighbours wound
-// the same way are as broken as a hole.
-func closedFrom(cornerIDs [][3]int) error {
-	// Packed as (low, high, runs low to high), so sorting brings the two
-	// directions of one edge together.
+// Every edge must be used by exactly two faces running opposite ways.
+// Neighbours wound the same way are as broken as a hole.
+func edgesPairUp(cornerIDs [][3]int) error {
+	// One integer per directed edge: low id, high id, and a direction bit.
+	// Sorting lands both directions of an edge side by side.
 	edges := make([]uint64, 0, len(cornerIDs)*3)
 	for _, corners := range cornerIDs {
 		for k := 0; k < 3; k++ {
@@ -74,6 +85,7 @@ func closedFrom(cornerIDs [][3]int) error {
 	}
 	slices.Sort(edges)
 
+	// Each run of equal ids is one edge; a sound one has one of each direction.
 	dangling, crowded, flipped := 0, 0, 0
 	for i := 0; i < len(edges); {
 		edge := edges[i] >> 1

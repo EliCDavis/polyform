@@ -32,11 +32,9 @@ func blend[V blendable[V]](data *iter.ArrayIterator[V], corners [3]int, weights 
 	return out
 }
 
-// Every corner is a point on one triangle of its source, so its data is that
-// triangle's corner data blended by the corner's weights. The output carries
-// every attribute either input has, zero where a source lacks it, except
-// Normal, which falls back to the flat face normal.
-func meshFromFaces(halves ...kept) modeling.Mesh {
+// Each corner blends its source triangle's corner data by weight. Attributes a
+// source lacks are zero, except Normal, which falls back to the face normal.
+func meshFromFaces(halves ...kept) (modeling.Mesh, []face) {
 	count := 0
 	for _, h := range halves {
 		count += len(h.faces) * 3
@@ -46,6 +44,7 @@ func meshFromFaces(halves ...kept) modeling.Mesh {
 	for i := range tris {
 		tris[i] = i
 	}
+	own := make([]face, 0, count/3)
 
 	v4 := make(map[string][]vector4.Float64)
 	v3 := map[string][]vector3.Float64{
@@ -78,6 +77,7 @@ func meshFromFaces(halves ...kept) modeling.Mesh {
 				indices.At(f.parent*3 + 1),
 				indices.At(f.parent*3 + 2),
 			}
+			own = append(own, face{verts: f.verts, normal: f.normal, parent: len(own), weights: ownCorners})
 
 			for k := 0; k < 3; k++ {
 				v3[modeling.PositionAttribute] = append(v3[modeling.PositionAttribute], f.verts[k])
@@ -126,7 +126,7 @@ func meshFromFaces(halves ...kept) modeling.Mesh {
 		SetFloat4Data(v4).
 		SetFloat3Data(v3).
 		SetFloat2Data(v2).
-		SetFloat1Data(v1)
+		SetFloat1Data(v1), own
 }
 
 func normalAt(h kept, f face, corners [3]int, k int) vector3.Float64 {

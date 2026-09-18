@@ -10,15 +10,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func benchSolid(t testing.TB, dimensions int) *solid {
+func benchTarget(t testing.TB, dimensions int) *target {
 	t.Helper()
 	faces, err := facesOf(benchSphere(dimensions, vector3.Zero[float64]()))
 	require.NoError(t, err)
-	return newSolid(faces, toleranceFor(faces, nil), 0)
+	return newTarget(faces, toleranceFor(faces, nil), 0)
 }
 
 func TestEnclosed(t *testing.T) {
-	sphere := benchSolid(t, 10)
+	sphere := benchTarget(t, 10)
 
 	assert.Equal(t, inside, sphere.enclosed(vector3.Zero[float64]()))
 	assert.Equal(t, inside, sphere.enclosed(vector3.New(0.3, 0.2, -0.1)))
@@ -27,7 +27,7 @@ func TestEnclosed(t *testing.T) {
 
 	// A whisker inside and outside a face, closer than any ray would trust.
 	f := sphere.faces[0]
-	at := f.barycenter()
+	at := f.verts.Centroid()
 	assert.Equal(t, inside, sphere.enclosed(at.Sub(f.normal.Scale(1e-9))))
 	assert.Equal(t, outside, sphere.enclosed(at.Add(f.normal.Scale(1e-9))))
 }
@@ -39,7 +39,7 @@ func BenchmarkEnclosed(b *testing.B) {
 	}
 
 	for _, dimensions := range sizes {
-		sphere := benchSolid(b, dimensions)
+		sphere := benchTarget(b, dimensions)
 		b.Run(fmt.Sprintf("%d faces", len(sphere.faces)), func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
 				sphere.enclosed(vector3.New(0.1, 0.2, 0.3))

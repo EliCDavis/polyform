@@ -56,19 +56,30 @@ func TestBenchmarkStages(t *testing.T) {
 		read := time.Since(mark)
 
 		mark = time.Now()
-		tolerance := toleranceFor(facesA, facesB)
-		weldA, weldB := newWelder(tolerance), newWelder(tolerance)
-		idsA, idsB := weldFaces(weldA, facesA), weldFaces(weldB, facesB)
+		first := &Solid{mesh: a, faces: facesA}
+		second := &Solid{mesh: b, faces: facesB}
+		first.once.Do(func() {
+			first.tolerance = toleranceFor(facesA, nil)
+			first.weld = newWelder(first.tolerance)
+			first.cornerIDs = weldFaces(first.weld, facesA)
+		})
+		second.once.Do(func() {
+			second.tolerance = toleranceFor(facesB, nil)
+			second.weld = newWelder(second.tolerance)
+			second.cornerIDs = weldFaces(second.weld, facesB)
+		})
 		welding := time.Since(mark)
 
 		mark = time.Now()
-		if err := closedFrom(idsA); err != nil {
+		if err := validate(a, facesA, first.cornerIDs); err != nil {
 			t.Fatal(err)
 		}
-		if err := closedFrom(idsB); err != nil {
+		if err := validate(b, facesB, second.cornerIDs); err != nil {
 			t.Fatal(err)
 		}
 		checked := time.Since(mark)
+
+		tolerance := max(first.tolerance, second.tolerance)
 
 		mark = time.Now()
 		cutsA, cornersA, touchingA := cutsAgainst(facesA, facesB, tolerance)
@@ -77,11 +88,11 @@ func TestBenchmarkStages(t *testing.T) {
 		cutting := time.Since(mark)
 
 		mark = time.Now()
-		halfA, err := splitAll(facesA, idsA, cutsA, corners, touchingA, tolerance, weldA)
+		halfA, err := splitAll(facesA, first.cornerIDs, cutsA, corners, touchingA, tolerance, newIDSpace(first.weld, tolerance))
 		if err != nil {
 			t.Fatal(err)
 		}
-		halfB, err := splitAll(facesB, idsB, cutsB, corners, touchingB, tolerance, weldB)
+		halfB, err := splitAll(facesB, second.cornerIDs, cutsB, corners, touchingB, tolerance, newIDSpace(second.weld, tolerance))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -93,13 +104,13 @@ func TestBenchmarkStages(t *testing.T) {
 		grouping := time.Since(mark)
 
 		mark = time.Now()
-		solidA := newSolid(halfA.faces, tolerance, rayBudget(patchesB))
-		solidB := newSolid(halfB.faces, tolerance, rayBudget(patchesA))
+		targetA := newTarget(halfA.faces, tolerance, rayBudget(patchesB))
+		targetB := newTarget(halfB.faces, tolerance, rayBudget(patchesA))
 		building := time.Since(mark)
 
 		mark = time.Now()
-		answersA := classifyPatches(halfA.faces, patchesA, solidB)
-		answersB := classifyPatches(halfB.faces, patchesB, solidA)
+		answersA := classifyPatches(halfA.faces, patchesA, targetB)
+		answersB := classifyPatches(halfB.faces, patchesB, targetA)
 		classifying := time.Since(mark)
 
 		fromA := kept{source: a}
@@ -116,7 +127,7 @@ func TestBenchmarkStages(t *testing.T) {
 		}
 
 		mark = time.Now()
-		out := meshFromFaces(fromA, fromB)
+		out, _ := meshFromFaces(fromA, fromB)
 		emitting := time.Since(mark)
 
 		total := time.Since(wall)
