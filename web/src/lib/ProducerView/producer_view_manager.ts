@@ -45,8 +45,11 @@ function loadFailureMessage(error: unknown, fallback: string): string {
   return fallback;
 }
 
+// Cells are sized to the model; the grid then runs well past it so the model
+// sits on a floor rather than a mat cut to fit.
 const GRID_SLACK = 1.15;
-const GRID_MAX_DIVISIONS = 100;
+const GRID_REACH = 5;
+const GRID_MAX_DIVISIONS = 500;
 
 const textureLoader = new TextureLoader();
 const textureEquirec = textureLoader.load(
@@ -617,7 +620,7 @@ export class ProducerViewManager {
    * The grid marks the model's own origin, not the shift applied to stand the
    * model on the floor, so it answers "where is 0,0,0" rather than "where is
    * the bottom of this mesh". Cells land on a power of ten so it reads as a
-   * ruler, and it spans far enough to reach the model's bounds from origin.
+   * ruler, and it spans several times the model's reach from origin.
    */
   private fitGridToModel(): void {
     const box = new Box3().setFromObject(this.producerScene);
@@ -640,7 +643,7 @@ export class ProducerViewManager {
     const extent = reach * GRID_SLACK;
     const cell = Math.pow(10, Math.round(Math.log10(extent / 10)));
     const divisions = Math.min(
-      Math.max(Math.ceil(extent / cell) * 2, 4),
+      Math.max(Math.ceil((extent * GRID_REACH) / cell) * 2, 4),
       GRID_MAX_DIVISIONS
     );
 
