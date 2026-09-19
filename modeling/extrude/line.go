@@ -23,6 +23,17 @@ func directionsOfLinePoints(points []LinePoint) []vector3.Float64 {
 	return directionOfPoints(pointVec)
 }
 
+func facingUp(v, up vector3.Float64) vector3.Float64 {
+	if v.Length() == 0 {
+		return up
+	}
+	v = v.Normalized()
+	if v.Dot(up) < 0 {
+		return v.Scale(-1)
+	}
+	return v
+}
+
 func Line(linePoints []LinePoint) modeling.Mesh {
 	if len(linePoints) < 2 {
 		panic("extruding a line requires 2 or more points")
@@ -44,8 +55,8 @@ func Line(linePoints []LinePoint) modeling.Mesh {
 		leftNormal := p.Up
 
 		if p.Width != 0 {
-			rightNormal = rightPoint.Sub(p.Point).Normalized().Cross(directions[i]).Scale(-1)
-			leftNormal = leftPoint.Sub(p.Point).Normalized().Cross(directions[i]).Scale(-1)
+			rightNormal = facingUp(rightPoint.Sub(p.Point).Cross(directions[i]), p.Up)
+			leftNormal = facingUp(leftPoint.Sub(p.Point).Cross(directions[i]), p.Up)
 		}
 
 		vertices = append(

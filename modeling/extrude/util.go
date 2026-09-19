@@ -3,38 +3,49 @@ package extrude
 import (
 	"math"
 
+	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/math/quaternion"
-	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
 )
 
-// TODO
-//
-//			Pretty sure normal calculation is wrong. Need to determine what is and
-//	     isn't a convex / concave point
+// One normal per shape vertex means creases get averaged away. Callers that
+// need a hard edge have to duplicate the vertex themselves.
 func ProjectFace(center, normal, perpendicular vector3.Float64, shape []vector2.Float64) ([]vector3.Float64, []vector3.Float64) {
 	cross := normal.Cross(perpendicular)
-	transformation := modeling.Matrix{
-		{cross.X(), perpendicular.X(), normal.X()},
-		{cross.Y(), perpendicular.Y(), normal.Y()},
-		{cross.Z(), perpendicular.Z(), normal.Z()},
-	}
 
 	outerPoints := make([]vector3.Float64, len(shape))
-	outerNormals := make([]vector3.Float64, len(shape))
-
-	for i := 0; i < len(shape); i++ {
-		v := modeling.Multiply3x3by3x1(transformation, vector3.New(shape[i].X(), shape[i].Y(), 0))
-		outerPoints[i] = v.Add(center)
+	for i := range shape {
+		outerPoints[i] = center.
+			Add(cross.Scale(shape[i].X())).
+			Add(perpendicular.Scale(shape[i].Y()))
 	}
 
-	for i := 0; i < len(shape); i++ {
-		previous := i - 1
-		if i == 0 {
-			previous = len(shape) - 1
+	// Which side is outward flips with the outline's winding, so it is read
+	// off the signed area instead of assumed.
+	facing := 1.
+	if geometry.Shape(shape).SignedArea() < 0 {
+		facing = -1
+	}
+
+	edges := make([]vector2.Float64, len(shape))
+	for i := range shape {
+		along := shape[(i+1)%len(shape)].Sub(shape[i])
+		if along.Length() == 0 {
+			continue
 		}
-		outerNormals[i] = outerPoints[i].Sub(outerPoints[previous]).Normalized()
+		edges[i] = vector2.New(along.Y(), -along.X()).Normalized().Scale(facing)
+	}
+
+	outerNormals := make([]vector3.Float64, len(shape))
+	for i := range shape {
+		averaged := edges[(i+len(shape)-1)%len(shape)].Add(edges[i])
+		if averaged.Length() == 0 {
+			continue
+		}
+		averaged = averaged.Normalized()
+		outerNormals[i] = cross.Scale(averaged.X()).
+			Add(perpendicular.Scale(averaged.Y()))
 	}
 
 	return outerPoints, outerNormals
