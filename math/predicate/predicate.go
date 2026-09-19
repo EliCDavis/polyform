@@ -1,3 +1,5 @@
+// Package predicate answers geometric questions with an exact sign: which
+// side, which way round, inside or out. Names follow Shewchuk's predicates.
 package predicate
 
 import (
@@ -65,8 +67,7 @@ func (a arithmetic) minus(x, y *big.Float) *big.Float {
 }
 
 // Orient2D is positive when a, b, c wind counter clockwise, negative when
-// clockwise, and exactly zero when collinear. The magnitude is twice the
-// signed area of abc.
+// clockwise, and exactly zero when collinear: twice the signed area of abc.
 func Orient2D(a, b, c vector2.Float64) float64 {
 	left := (b.X() - a.X()) * (c.Y() - a.Y())
 	right := (c.X() - a.X()) * (b.Y() - a.Y())
@@ -91,8 +92,8 @@ func orient2DExact(a, b, c vector2.Float64) float64 {
 	return answer
 }
 
-// Orient3D reports which side of the plane through the corners the point
-// falls on: positive, negative, or exactly zero when it lies in the plane.
+// Orient3D is positive when point is on the side the corners' normal points
+// to, negative on the other side, and exactly zero when in their plane.
 func Orient3D(corner1, corner2, corner3, point vector3.Float64) float64 {
 	toPointX, toPointY, toPointZ := point.X()-corner1.X(), point.Y()-corner1.Y(), point.Z()-corner1.Z()
 	toCorner2X, toCorner2Y, toCorner2Z := corner2.X()-corner1.X(), corner2.Y()-corner1.Y(), corner2.Z()-corner1.Z()
@@ -134,8 +135,7 @@ func orient3DExact(corner1, corner2, corner3, point vector3.Float64) float64 {
 }
 
 // InCircle is positive when point is inside the circle through the corners,
-// negative when outside, and exactly zero when all four are cocircular. The
-// corners must wind counter clockwise or the sign inverts.
+// negative outside, exactly zero on it. Corners must wind counter clockwise.
 func InCircle(corner1, corner2, corner3, point vector2.Float64) float64 {
 	toCorner1X, toCorner1Y := corner1.X()-point.X(), corner1.Y()-point.Y()
 	toCorner2X, toCorner2Y := corner2.X()-point.X(), corner2.Y()-point.Y()

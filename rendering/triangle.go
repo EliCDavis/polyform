@@ -17,14 +17,12 @@ func (tri Triangle) BoundingBox(start, stop float64) *geometry.AABB {
 }
 
 func (tri Triangle) Hit(ray *TemporalRay, minDistance, maxDistance float64, hitRecord *HitRecord) bool {
-	intersects := rayIntersectsTri(intersectingTri{
-		p1: tri.p1,
-		p2: tri.p2,
-		p3: tri.p3,
-	}, ray.Ray(), minDistance, maxDistance, hitRecord)
-	if !intersects {
+	corners := geometry.Triangle{tri.p1, tri.p2, tri.p3}
+	hit, ok := corners.RayHit(ray.Ray())
+	if !accepted(hit, ok, minDistance, maxDistance) {
 		return false
 	}
+	recordHit(hitRecord, hit, corners, ray.Ray())
 
 	hitRecord.Material = tri.mat
 	hitRecord.SetFaceNormal(*ray, hitRecord.Normal)

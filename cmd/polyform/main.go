@@ -56,6 +56,7 @@ import (
 
 	_ "github.com/EliCDavis/polyform/modeling"
 	_ "github.com/EliCDavis/polyform/modeling/animation"
+	_ "github.com/EliCDavis/polyform/modeling/csg"
 	_ "github.com/EliCDavis/polyform/modeling/extrude"
 	_ "github.com/EliCDavis/polyform/modeling/marching"
 	_ "github.com/EliCDavis/polyform/modeling/meshops"

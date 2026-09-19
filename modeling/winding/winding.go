@@ -13,6 +13,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/vector/vector3"
 )
@@ -33,14 +34,14 @@ func FromMesh(m modeling.Mesh) (Sampler, error) {
 	indices := m.Indices()
 	positions := m.Float3Attribute(modeling.PositionAttribute)
 
-	tris := make([][3]vector3.Float64, 0, indices.Len()/3)
+	tris := make([]geometry.Triangle, 0, indices.Len()/3)
 	for i := 0; i+2 < indices.Len(); i += 3 {
-		tris = append(tris, [3]vector3.Float64{
+		tris = append(tris, geometry.Triangle{
 			positions.At(indices.At(i)),
 			positions.At(indices.At(i + 1)),
 			positions.At(indices.At(i + 2)),
 		})
 	}
 
-	return &TriangleSampler{tris: tris}, nil
+	return FromTriangles(tris), nil
 }

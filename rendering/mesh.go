@@ -1,8 +1,6 @@
 package rendering
 
 import (
-	"math"
-
 	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/trees"
@@ -10,78 +8,25 @@ import (
 	"github.com/EliCDavis/vector/vector3"
 )
 
-// Moller-Trumbor method
-// https://www.scratchapixel.com/lessons/3d-basic-rendering/ray-tracing-rendering-a-triangle/moller-trumbore-ray-triangle-intersection.html
-// https://github.com/scratchapixel/code/blob/main/introduction-acceleration-structure/acceleration.cpp#L299
-func rayIntersectsTri(tri intersectingTri, ray geometry.Ray, minDistance, maxDistance float64, hitRecord *HitRecord) bool {
+// Whether a hit counts: past the guard against a bounce dying in the triangle
+// it left, and within range. maxDistance is measured from minDistance.
+func accepted(hit geometry.TriangleHit, ok bool, minDistance, maxDistance float64) bool {
 	const kEpsilon = 0.000001
-
-	dir := ray.Direction()
-	orig := ray.At(minDistance)
-
-	v0v1 := tri.p2.Sub(tri.p1)
-	v0v2 := tri.p3.Sub(tri.p1)
-	pvec := dir.Cross(v0v2)
-	det := v0v1.Dot(pvec)
-
-	// ray and triangle are parallel if det is close to 0
-	if math.Abs(det) < kEpsilon {
-		return false
-	}
-
-	invDet := 1. / det
-
-	tvec := orig.Sub(tri.p1)
-	u := tvec.Dot(pvec) * invDet
-	if u < 0 || u > 1 {
-		return false
-	}
-
-	qvec := tvec.Cross(v0v1)
-	v := dir.Dot(qvec) * invDet
-	if v < 0 || u+v > 1 {
-		return false
-	}
-
-	tVal := v0v2.Dot(qvec) * invDet
-
-	// Prevents us from bouncing around and dying inside the triangle itself
-	if tVal < kEpsilon {
-		return false
-	}
-
-	if tVal > maxDistance {
-		return false
-	}
-
-	w := 1. - u - v
-	// normal := tri.n1.Scale(w).
-	// 	Add(tri.n2.Scale(u)).
-	// 	Add(tri.n3.Scale(v)).
-	// 	Normalized()
-
-	hitRecord.Normal = tri.p1.Sub(tri.p2).Cross(tri.p3.Sub(tri.p2)).Normalized()
-	hitRecord.Distance = tVal + minDistance
-	hitRecord.Point = ray.At(tVal + minDistance)
-	hitRecord.Float3Data["barycentric"] = vector3.New(w, u, v)
-
-	return true
+	along := hit.Distance - minDistance
+	return ok && hit.Inside(0) && along >= kEpsilon && along <= maxDistance
 }
 
-type intersectingTri struct {
-	p1, p2, p3 vector3.Float64
-}
-
-func (it intersectingTri) BoundingBox() geometry.AABB {
-	return geometry.NewAABBFromPoints(it.p1, it.p2, it.p3)
-}
-
-func (it intersectingTri) ClosestPoint(p vector3.Float64) vector3.Float64 {
-	panic("unimplemented")
+func recordHit(hitRecord *HitRecord, hit geometry.TriangleHit, tri geometry.Triangle, ray geometry.Ray) {
+	// Against the winding, as the renderer has always had it.
+	hitRecord.Normal = tri.Normal().Scale(-1)
+	hitRecord.Distance = hit.Distance
+	hitRecord.Point = ray.At(hit.Distance)
+	u, v := hit.UV.X(), hit.UV.Y()
+	hitRecord.Float3Data["barycentric"] = vector3.New(1-u-v, u, v)
 }
 
 type Mesh struct {
-	tris            []intersectingTri
+	tris            []geometry.Triangle
 	ancillaryV3Data []map[string]vector3.Float64
 	ancillaryV2Data []map[string]vector2.Float64
 	mat             Material
@@ -106,7 +51,7 @@ func NewMesh(mesh modeling.Mesh, mat Material) Mesh {
 }
 
 func NewMeshWithAttributes(mesh modeling.Mesh, mat Material, v3Data, v2Data []string) Mesh {
-	its := make([]intersectingTri, mesh.PrimitiveCount())
+	its := make([]geometry.Triangle, mesh.PrimitiveCount())
 	eles := make([]trees.Element, mesh.PrimitiveCount())
 
 	ancillaryV3Data := make([]map[string]vector3.Float64, 0)
@@ -114,11 +59,7 @@ func NewMeshWithAttributes(mesh modeling.Mesh, mat Material, v3Data, v2Data []st
 
 	for i := 0; i < mesh.PrimitiveCount(); i++ {
 		tri := mesh.Tri(i)
-		its[i] = intersectingTri{
-			p1: tri.P1Vec3Attr(modeling.PositionAttribute),
-			p2: tri.P2Vec3Attr(modeling.PositionAttribute),
-			p3: tri.P3Vec3Attr(modeling.PositionAttribute),
-		}
+		its[i] = tri.Triangle(modeling.PositionAttribute)
 
 		ancillaryV3Data = append(
 			ancillaryV3Data,
@@ -177,8 +118,8 @@ func (s Mesh) Hit2(ray *TemporalRay, minDistance, maxDistance float64, hitRecord
 	geoRay = ray.Ray()
 
 	for _, itemIndex := range intersections {
-		tri := s.tris[itemIndex]
-		if rayIntersectsTri(tri, geoRay, minDistance, closestSoFar, hitRecord) {
+		if hit, ok := s.tris[itemIndex].RayHit(geoRay); accepted(hit, ok, minDistance, closestSoFar) {
+			recordHit(hitRecord, hit, s.tris[itemIndex], geoRay)
 			hitAnything = true
 			closestSoFar = hitRecord.Distance
 		}
@@ -206,8 +147,8 @@ func (s Mesh) Hit(ray *TemporalRay, minDistance, maxDistance float64, hitRecord 
 	geoRay := ray.Ray()
 	closestTriIndex := -1
 	s.tree.TraverseIntersectingRay(geoRay, minStartDistance, maxStartDistance, func(i int, min, max *float64) {
-		tri := s.tris[i]
-		if rayIntersectsTri(tri, geoRay, minDistance, maxStartDistance, hitRecord) {
+		if hit, ok := s.tris[i].RayHit(geoRay); accepted(hit, ok, minDistance, maxStartDistance) {
+			recordHit(hitRecord, hit, s.tris[i], geoRay)
 			closestTriIndex = i
 			maxStartDistance = hitRecord.Distance
 			*max = hitRecord.Distance
