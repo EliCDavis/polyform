@@ -7,6 +7,8 @@ const Float2DefinitionName = "Float2"
 const Float3DefinitionName = "Float3"
 const Float4DefinitionName = "Float4"
 const AABBDefinitionName = "AABB"
+const TRSDefinitionName = "TRS"
+const ColorGradientDefinitionName = "ColorGradient"
 
 var floatComponent = Property{
 	Type:    NumberPropertyType,
@@ -54,6 +56,37 @@ var AABBDefinition = Definition{
 		},
 		"max": {
 			Ref: DefinitionRefPath(Float3DefinitionName),
+		},
+	},
+}
+
+var TRSDefinition = Definition{
+	Type: "object",
+	Properties: map[string]Property{
+		"position": {
+			Ref: DefinitionRefPath(Float3DefinitionName),
+		},
+		"rotation": {
+			Ref: DefinitionRefPath(Float4DefinitionName),
+		},
+		"scale": {
+			Ref: DefinitionRefPath(Float3DefinitionName),
+		},
+	},
+}
+
+var ColorGradientDefinition = Definition{
+	Type: "object",
+	Properties: map[string]Property{
+		"keys": {
+			Type: ArrayPropertyType,
+			Items: map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"time":  map[string]any{"type": NumberPropertyType, "format": DoublePropertyFormat},
+					"value": map[string]any{"type": StringPropertyType, "format": "color"},
+				},
+			},
 		},
 	},
 }

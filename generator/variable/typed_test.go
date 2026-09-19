@@ -9,6 +9,7 @@ import (
 	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
+	"github.com/EliCDavis/vector/vector4"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -74,15 +75,41 @@ func TestParameterNodeSwaggerProperty(t *testing.T) {
 			input:    &variable.TypeVariable[[]vector3.Float64]{},
 			propType: swagger.ArrayPropertyType,
 			items: map[string]any{
-				"$ref": "#/definitions/Vector3",
+				"$ref": "#/definitions/Float3",
 			},
 		},
 		"vector2 array parameter": {
 			input:    &variable.TypeVariable[[]vector2.Float64]{},
 			propType: swagger.ArrayPropertyType,
 			items: map[string]any{
-				"$ref": "#/definitions/Vector2",
+				"$ref": "#/definitions/Float2",
 			},
+		},
+		"vector3 int array parameter": {
+			input:    &variable.TypeVariable[[]vector3.Int]{},
+			propType: swagger.ArrayPropertyType,
+			items: map[string]any{
+				"$ref": "#/definitions/Int3",
+			},
+		},
+		"float array parameter": {
+			input:    &variable.TypeVariable[[]float64]{},
+			propType: swagger.ArrayPropertyType,
+			items: map[string]any{
+				"type":   swagger.NumberPropertyType,
+				"format": swagger.DoublePropertyFormat,
+			},
+		},
+		"string array parameter": {
+			input:    &variable.TypeVariable[[]string]{},
+			propType: swagger.ArrayPropertyType,
+			items: map[string]any{
+				"type": swagger.StringPropertyType,
+			},
+		},
+		"vector4 parameter": {
+			input: &variable.TypeVariable[vector4.Float64]{},
+			ref:   "#/definitions/Float4",
 		},
 	}
 

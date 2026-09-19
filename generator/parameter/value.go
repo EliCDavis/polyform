@@ -8,10 +8,13 @@ import (
 	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/generator/schema"
 	"github.com/EliCDavis/polyform/math/geometry"
+	"github.com/EliCDavis/polyform/math/quaternion"
+	"github.com/EliCDavis/polyform/math/trs"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
 	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
+	"github.com/EliCDavis/vector/vector4"
 )
 
 // ============================================================================
@@ -76,9 +79,21 @@ type String = Value[string]
 type Bool = Value[bool]
 type Vector2 = Value[vector2.Float64]
 type Vector3 = Value[vector3.Float64]
+type Vector4 = Value[vector4.Float64]
+type Float64Array = Value[[]float64]
+type IntArray = Value[[]int]
+type StringArray = Value[[]string]
+type Vector2Array = Value[[]vector2.Float64]
+type Vector2IntArray = Value[[]vector2.Int]
 type Vector3Array = Value[[]vector3.Float64]
+type Vector3IntArray = Value[[]vector3.Int]
 type AABB = Value[geometry.AABB]
 type Color = Value[coloring.Color]
+type ColorArray = Value[[]coloring.Color]
+type ColorGradient = Value[coloring.Gradient[coloring.Color]]
+type Quaternion = Value[quaternion.Quaternion]
+type TRS = Value[trs.TRS]
+type TRSArray = Value[[]trs.TRS]
 
 type Value[T any] struct {
 	Name        string `json:"name"`

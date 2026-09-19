@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { Variable } from "@/types/schema";
 import type { ThreeApp } from "@/lib/three_app";
 import { DropdownMenu } from "@/components/DropdownMenu";
-import { VariableValueEditor } from "./VariableValueEditor";
+import { VariableValueEditor } from "./editors";
 import { EditVariableModal } from "@/features/popups/EditVariableModal";
 import { DeleteVariableModal } from "@/features/popups/DeleteVariableModal";
 
