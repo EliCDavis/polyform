@@ -7,6 +7,11 @@ import { NodeManager } from '../node_manager.js';
 import { FileParameterNodeController } from './file_parameter';
 import { getFileExtension, getLastSegmentOfURL } from '../utils.js';
 import { Vector2ParameterNodeController } from './vector2_parameter';
+import { Vector4ParameterNodeController } from './vector4_parameter';
+import { ArrayParameterNodeController, colorItem, floatItem, intItem, stringItem, trsItem, vec2Item, vec2IntItem, vec3IntItem } from './array_parameter';
+import { GradientParameterNodeController } from './gradient_parameter';
+import { TRSParameterNodeController } from './trs_parameter';
+import { QuaternionParameterNodeController } from './quaternion_parameter';
 import { NodeInstance, NodeInstanceAssignedInput, NodeInstanceOutput, NodeDefinition, ExecutionReport, subGraphBoundaryKind } from '../schema.js';
 import { RequestManager, saveFileToDisk } from '../requests.js';
 import { FlowNode, GlobalWidgetFactory, ImageWidget, MessageType } from '@elicdavis/node-flow';
@@ -58,9 +63,46 @@ function BuildParameter(
         case "vector3.Vector[float32]":
             return new Vector3ParameterNodeController(flowNode, nodeManager, id, parameterData, app);
 
+        case "vector4.Vector[float64]":
+        case "vector4.Vector[float32]":
+            return new Vector4ParameterNodeController(flowNode, nodeManager, id, parameterData);
+
         case "[]vector3.Vector[float64]":
         case "[]vector3.Vector[float32]":
             return new Vector3ArrayParameterNodeController(flowNode, nodeManager, id, parameterData, app);
+
+        case "[]float64":
+            return new ArrayParameterNodeController(flowNode, nodeManager, id, parameterData, floatItem);
+
+        case "[]int":
+            return new ArrayParameterNodeController(flowNode, nodeManager, id, parameterData, intItem);
+
+        case "[]string":
+            return new ArrayParameterNodeController(flowNode, nodeManager, id, parameterData, stringItem);
+
+        case "[]vector2.Vector[float64]":
+            return new ArrayParameterNodeController(flowNode, nodeManager, id, parameterData, vec2Item, app);
+
+        case "[]vector2.Vector[int]":
+            return new ArrayParameterNodeController(flowNode, nodeManager, id, parameterData, vec2IntItem, app);
+
+        case "[]vector3.Vector[int]":
+            return new ArrayParameterNodeController(flowNode, nodeManager, id, parameterData, vec3IntItem, app);
+
+        case "quaternion.Quaternion":
+            return new QuaternionParameterNodeController(flowNode, nodeManager, id, parameterData, app);
+
+        case "trs.TRS":
+            return new TRSParameterNodeController(flowNode, nodeManager, id, parameterData, app);
+
+        case "[]trs.TRS":
+            return new ArrayParameterNodeController(flowNode, nodeManager, id, parameterData, trsItem, app);
+
+        case "[]coloring.Color":
+            return new ArrayParameterNodeController(flowNode, nodeManager, id, parameterData, colorItem);
+
+        case "coloring.Gradient[github.com/EliCDavis/polyform/drawing/coloring.Color]":
+            return new GradientParameterNodeController(flowNode, nodeManager, id, parameterData);
 
         case "image.Image":
             return new ImageParameterNodeController(flowNode, nodeManager, requestManager, id, parameterData);

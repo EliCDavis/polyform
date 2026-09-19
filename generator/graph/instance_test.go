@@ -203,26 +203,36 @@ func TestInstance_MutationsThatChangeOutputsBumpTheModelVersion(t *testing.T) {
 	factory.RegisterBuilder("Param", func() any { return &parameter.String{CurrentValue: "bruh"} })
 	factory.RegisterBuilder("Text", func() any { return &nodes.Struct[basics.TextNode]{} })
 
-	instance := graph.New(graph.Config{TypeFactory: factory})
-	_, paramID, err := instance.CreateNode("Param")
-	assert.NoError(t, err)
-	_, textID, err := instance.CreateNode("Text")
-	assert.NoError(t, err)
-	instance.ConnectNodes(paramID, "Value", textID, "In")
-	instance.NewVariable("greeting", &variable.TypeVariable[string]{})
-	instance.SaveProfile("saved")
+	type fixture struct {
+		instance        *graph.Instance
+		paramID, textID string
+	}
+	build := func() fixture {
+		instance := graph.New(graph.Config{TypeFactory: factory})
+		_, paramID, err := instance.CreateNode("Param")
+		assert.NoError(t, err)
+		_, textID, err := instance.CreateNode("Text")
+		assert.NoError(t, err)
+		instance.ConnectNodes(paramID, "Value", textID, "In")
+		instance.NewVariable("greeting", &variable.TypeVariable[string]{})
+		instance.SaveProfile("saved")
+		return fixture{instance, paramID, textID}
+	}
 
-	steps := map[string]func(){
-		"delete a node":       func() { instance.DeleteNodeById(paramID) },
-		"load a profile":      func() { assert.NoError(t, instance.LoadProfile("saved")) },
-		"delete a variable":   func() { instance.DeleteVariable("greeting") },
-		"disconnect an input": func() { instance.DeleteNodeInputConnection(textID, "In") },
+	steps := map[string]func(f fixture){
+		"load a profile":      func(f fixture) { assert.NoError(t, f.instance.LoadProfile("saved")) },
+		"delete a variable":   func(f fixture) { f.instance.DeleteVariable("greeting") },
+		"disconnect an input": func(f fixture) { f.instance.DeleteNodeInputConnection(f.textID, "In") },
+		"delete a node":       func(f fixture) { f.instance.DeleteNodeById(f.paramID) },
 	}
 
 	for name, step := range steps {
-		before := instance.ModelVersion()
-		step()
-		assert.NotEqualf(t, before, instance.ModelVersion(), "%s left the model version at %d", name, before)
+		t.Run(name, func(t *testing.T) {
+			f := build()
+			before := f.instance.ModelVersion()
+			step(f)
+			assert.NotEqualf(t, before, f.instance.ModelVersion(), "left the model version at %d", before)
+		})
 	}
 }
 

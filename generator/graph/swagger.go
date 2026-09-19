@@ -18,27 +18,15 @@ func findAllRefernecesObjects(allDefs map[string]swagger.Definition, def swagger
 }
 
 func recursivelyFindCommonSwaggerProperties(allDefs map[string]swagger.Definition, prop swagger.Property) {
-	switch prop.Ref {
-	case "#/definitions/AABB":
-		allDefs[swagger.AABBDefinitionName] = swagger.AABBDefinition
-
-	case "#/definitions/Float2":
-		allDefs[swagger.Float2DefinitionName] = swagger.Float2Definition
-
-	case "#/definitions/Float3":
-		allDefs[swagger.Float3DefinitionName] = swagger.Float3Definition
-
-	case "#/definitions/Float4":
-		allDefs[swagger.Float4DefinitionName] = swagger.Float4Definition
-
-	case "#/definitions/Int2":
-		allDefs[swagger.Int2DefinitionName] = swagger.Int2Definition
-
-	case "#/definitions/Int3":
-		allDefs[swagger.Int3DefinitionName] = swagger.Int3Definition
-
-	case "#/definitions/Int4":
-		allDefs[swagger.Int4DefinitionName] = swagger.Int4Definition
+	ref, _ := prop.Ref.(string)
+	if items, ok := prop.Items.(map[string]any); ok && ref == "" {
+		ref, _ = items["$ref"].(string)
+	}
+	if def, ok := commonSwaggerDefinitions[ref]; ok {
+		if _, seen := allDefs[def.name]; !seen {
+			allDefs[def.name] = def.definition
+			findAllRefernecesObjects(allDefs, def.definition)
+		}
 	}
 
 	for _, p := range prop.Properties {
@@ -46,7 +34,23 @@ func recursivelyFindCommonSwaggerProperties(allDefs map[string]swagger.Definitio
 			recursivelyFindCommonSwaggerProperties(allDefs, p)
 		}
 	}
+}
 
+type namedDefinition struct {
+	name       string
+	definition swagger.Definition
+}
+
+var commonSwaggerDefinitions = map[string]namedDefinition{
+	swagger.DefinitionRefPath(swagger.AABBDefinitionName):          {swagger.AABBDefinitionName, swagger.AABBDefinition},
+	swagger.DefinitionRefPath(swagger.TRSDefinitionName):           {swagger.TRSDefinitionName, swagger.TRSDefinition},
+	swagger.DefinitionRefPath(swagger.ColorGradientDefinitionName): {swagger.ColorGradientDefinitionName, swagger.ColorGradientDefinition},
+	swagger.DefinitionRefPath(swagger.Float2DefinitionName):        {swagger.Float2DefinitionName, swagger.Float2Definition},
+	swagger.DefinitionRefPath(swagger.Float3DefinitionName):        {swagger.Float3DefinitionName, swagger.Float3Definition},
+	swagger.DefinitionRefPath(swagger.Float4DefinitionName):        {swagger.Float4DefinitionName, swagger.Float4Definition},
+	swagger.DefinitionRefPath(swagger.Int2DefinitionName):          {swagger.Int2DefinitionName, swagger.Int2Definition},
+	swagger.DefinitionRefPath(swagger.Int3DefinitionName):          {swagger.Int3DefinitionName, swagger.Int3Definition},
+	swagger.DefinitionRefPath(swagger.Int4DefinitionName):          {swagger.Int4DefinitionName, swagger.Int4Definition},
 }
 
 func swaggerDefinitionNameFromProducerPath(producerPath string) string {

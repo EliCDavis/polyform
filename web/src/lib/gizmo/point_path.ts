@@ -30,6 +30,9 @@ export interface PointPathGizmoConfig {
     orbitControls: OrbitControls;
     points?: Array<PointPathPoint>;
     closed?: boolean;
+
+    // For Vec2
+    planar?: boolean;
 }
 
 export interface PointPathChange {
@@ -224,6 +227,7 @@ export class PointPathGizmo {
             parent: this.config.parent,
             scene: this.config.scene,
             initialPosition: point,
+            hideY: this.config.planar,
         });
 
         const material = new MeshBasicMaterial({

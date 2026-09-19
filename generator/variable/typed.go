@@ -191,24 +191,60 @@ func (tv *TypeVariable[T]) SwaggerProperty() swagger.Property {
 	case "vector2.Vector[int]":
 		prop.Ref = "#/definitions/Int2"
 
+	case "vector4.Vector[float64]":
+		prop.Ref = "#/definitions/Float4"
+
 	case "geometry.AABB":
 		prop.Ref = "#/definitions/AABB"
+
+	case "quaternion.Quaternion":
+		prop.Ref = "#/definitions/Float4"
+
+	case "trs.TRS":
+		prop.Ref = "#/definitions/TRS"
+
+	case "[]trs.TRS":
+		prop.Type = swagger.ArrayPropertyType
+		prop.Items = map[string]any{"$ref": "#/definitions/TRS"}
 
 	case "coloring.Color":
 		prop.Type = swagger.StringPropertyType
 		prop.Format = "color"
 
-	case "[]vector3.Vector[float64]":
+	case "[]coloring.Color":
 		prop.Type = swagger.ArrayPropertyType
-		prop.Items = map[string]any{
-			"$ref": "#/definitions/Vector3",
-		}
+		prop.Items = map[string]any{"type": swagger.StringPropertyType, "format": "color"}
+
+	case "coloring.Gradient[github.com/EliCDavis/polyform/drawing/coloring.Color]":
+		prop.Ref = "#/definitions/ColorGradient"
+
+	case "[]float64":
+		prop.Type = swagger.ArrayPropertyType
+		prop.Items = map[string]any{"type": swagger.NumberPropertyType, "format": swagger.DoublePropertyFormat}
+
+	case "[]int":
+		prop.Type = swagger.ArrayPropertyType
+		prop.Items = map[string]any{"type": swagger.IntegerPropertyType}
+
+	case "[]string":
+		prop.Type = swagger.ArrayPropertyType
+		prop.Items = map[string]any{"type": swagger.StringPropertyType}
 
 	case "[]vector2.Vector[float64]":
 		prop.Type = swagger.ArrayPropertyType
-		prop.Items = map[string]any{
-			"$ref": "#/definitions/Vector2",
-		}
+		prop.Items = map[string]any{"$ref": "#/definitions/Float2"}
+
+	case "[]vector2.Vector[int]":
+		prop.Type = swagger.ArrayPropertyType
+		prop.Items = map[string]any{"$ref": "#/definitions/Int2"}
+
+	case "[]vector3.Vector[float64]":
+		prop.Type = swagger.ArrayPropertyType
+		prop.Items = map[string]any{"$ref": "#/definitions/Float3"}
+
+	case "[]vector3.Vector[int]":
+		prop.Type = swagger.ArrayPropertyType
+		prop.Items = map[string]any{"$ref": "#/definitions/Int3"}
 	}
 
 	if tv != nil && tv.info != nil {
