@@ -1,5 +1,3 @@
-// Package predicate answers geometric questions with an exact sign: which
-// side, which way round, inside or out. Names follow Shewchuk's predicates.
 package predicate
 
 import (
@@ -9,8 +7,6 @@ import (
 	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
 )
-
-const filter = 1e-10
 
 // big.Float panics on NaN/infinity
 func representable(values ...float64) bool {
@@ -22,9 +18,8 @@ func representable(values ...float64) bool {
 	return true
 }
 
-// Derive required precision based on inputs
-//
-// TODO: replace with Shewchuk's adaptive predicates.
+// The last stage for orient3D and inCircle, which stop at stage C. Precision
+// is derived from the inputs' exponent spread.
 type arithmetic struct {
 	precision uint
 }
@@ -69,17 +64,11 @@ func (a arithmetic) minus(x, y *big.Float) *big.Float {
 // Orient2D is positive when a, b, c wind counter clockwise, negative when
 // clockwise, and exactly zero when collinear: twice the signed area of abc.
 func Orient2D(a, b, c vector2.Float64) float64 {
-	left := (b.X() - a.X()) * (c.Y() - a.Y())
-	right := (c.X() - a.X()) * (b.Y() - a.Y())
-	det := left - right
-
-	if magnitude := math.Abs(left) + math.Abs(right); math.Abs(det) > filter*magnitude {
-		return det
-	}
-	if !representable(a.X(), a.Y(), b.X(), b.Y(), c.X(), c.Y()) {
+	det := orient2D(a, b, c)
+	if math.IsInf(det, 0) {
 		return math.NaN()
 	}
-	return orient2DExact(a, b, c)
+	return det
 }
 
 func orient2DExact(a, b, c vector2.Float64) float64 {
@@ -95,18 +84,7 @@ func orient2DExact(a, b, c vector2.Float64) float64 {
 // Orient3D is positive when point is on the side the corners' normal points
 // to, negative on the other side, and exactly zero when in their plane.
 func Orient3D(corner1, corner2, corner3, point vector3.Float64) float64 {
-	toPointX, toPointY, toPointZ := point.X()-corner1.X(), point.Y()-corner1.Y(), point.Z()-corner1.Z()
-	toCorner2X, toCorner2Y, toCorner2Z := corner2.X()-corner1.X(), corner2.Y()-corner1.Y(), corner2.Z()-corner1.Z()
-	toCorner3X, toCorner3Y, toCorner3Z := corner3.X()-corner1.X(), corner3.Y()-corner1.Y(), corner3.Z()-corner1.Z()
-
-	normalX := toCorner2Y*toCorner3Z - toCorner2Z*toCorner3Y
-	normalY := toCorner2Z*toCorner3X - toCorner2X*toCorner3Z
-	normalZ := toCorner2X*toCorner3Y - toCorner2Y*toCorner3X
-
-	det := toPointX*normalX + toPointY*normalY + toPointZ*normalZ
-	magnitude := math.Abs(toPointX*normalX) + math.Abs(toPointY*normalY) + math.Abs(toPointZ*normalZ)
-
-	if math.Abs(det) > filter*magnitude {
+	if det, ok := orient3D(corner1, corner2, corner3, point); ok {
 		return det
 	}
 	if !representable(
@@ -137,25 +115,7 @@ func orient3DExact(corner1, corner2, corner3, point vector3.Float64) float64 {
 // InCircle is positive when point is inside the circle through the corners,
 // negative outside, exactly zero on it. Corners must wind counter clockwise.
 func InCircle(corner1, corner2, corner3, point vector2.Float64) float64 {
-	toCorner1X, toCorner1Y := corner1.X()-point.X(), corner1.Y()-point.Y()
-	toCorner2X, toCorner2Y := corner2.X()-point.X(), corner2.Y()-point.Y()
-	toCorner3X, toCorner3Y := corner3.X()-point.X(), corner3.Y()-point.Y()
-
-	minor1 := toCorner2X*toCorner3Y - toCorner3X*toCorner2Y
-	minor2 := toCorner3X*toCorner1Y - toCorner1X*toCorner3Y
-	minor3 := toCorner1X*toCorner2Y - toCorner2X*toCorner1Y
-
-	lift1 := toCorner1X*toCorner1X + toCorner1Y*toCorner1Y
-	lift2 := toCorner2X*toCorner2X + toCorner2Y*toCorner2Y
-	lift3 := toCorner3X*toCorner3X + toCorner3Y*toCorner3Y
-
-	det := lift1*minor1 + lift2*minor2 + lift3*minor3
-
-	magnitude := lift1*(math.Abs(toCorner2X*toCorner3Y)+math.Abs(toCorner3X*toCorner2Y)) +
-		lift2*(math.Abs(toCorner3X*toCorner1Y)+math.Abs(toCorner1X*toCorner3Y)) +
-		lift3*(math.Abs(toCorner1X*toCorner2Y)+math.Abs(toCorner2X*toCorner1Y))
-
-	if math.Abs(det) > filter*magnitude {
+	if det, ok := inCircle(corner1, corner2, corner3, point); ok {
 		return det
 	}
 	if !representable(

@@ -60,6 +60,7 @@ nix run .#polyform edit
   - [noise](/math/noise/) - Utilities around noise functions for common usecases like stacking multiple samples of perlin noise from different frequencies.
   - [quaternion](/math/quaternion/) - Quaternion math and helper functions.
   - [sdf](/math/sdf/) - SDF implementations of different geometry primitives, along with common math functions. Basically slowly picking through [Inigo Quilez's Distfunction](https://iquilezles.org/articles/distfunctions/) article as I need them in my different projects.
+  - [predicate](/math/predicate/) - Shewchuk's adaptive precision predicates: which side of a line or plane a point is on, and whether it lies in a circle, with a sign that is exact.
   - [sample](/math/sample/) - Serves as a group of definitions for defining a mapping from one numeric value to another.
   - [sfc](/math/sfc/) - Space-filling curves. Hilbert (2D) and Morton / Z-order (3D) encoders that map points to and from 64-bit keys that keep spatial neighbours close together.
   - [trs](/math/trs/) - Math and utilities around TRS transformations.
