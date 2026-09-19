@@ -11,5 +11,6 @@ func init() {
 	refutil.RegisterType[nodes.Struct[ScrewNode]](factory)
 	refutil.RegisterType[nodes.Struct[CircleNode]](factory)
 	refutil.RegisterType[nodes.Struct[CircleAlongSplineNode]](factory)
+	refutil.RegisterType[nodes.Struct[OutlineNode]](factory)
 	generator.RegisterTypes(factory)
 }
