@@ -56,7 +56,8 @@ func (h TriangleHit) Margin() float64 {
 }
 
 // RayHit is Möller-Trumbore. Not ok when the ray is parallel to the triangle.
-// Pointer receiver for speed: passing the triangle by value halves throughput.
+//
+// Pointer receiver for perf (passing the triangle by value halves throughput)
 func (t *Triangle) RayHit(r Ray) (TriangleHit, bool) {
 	edge1 := t[1].Sub(t[0])
 	edge2 := t[2].Sub(t[0])

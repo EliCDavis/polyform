@@ -40,6 +40,10 @@ func (p proxyOutput[T]) Version() int {
 	return p.source.Version()
 }
 
+func (p proxyOutput[T]) CurrentSource() OutputPort {
+	return p.source.CurrentSource()
+}
+
 func (p proxyOutput[T]) Type() string {
 	return p.source.Type()
 }

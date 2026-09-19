@@ -185,6 +185,7 @@ func (a *Instance) DeleteVariable(variablePath string) {
 		panic(err)
 	}
 	a.typeFactory.Unregister(variablePath)
+	a.incModelVersion()
 }
 
 func (a *Instance) GetVariable(variablePath string) variable.Variable {
@@ -270,6 +271,7 @@ func (a *Instance) LoadProfile(profileName string) error {
 	defer a.lock.Unlock()
 
 	if profile, ok := a.profiles[profileName]; ok {
+		a.incModelVersion()
 		return a.variables.ApplyProfile(profile)
 	}
 
@@ -325,6 +327,7 @@ func (a *Instance) Profiles() []string {
 func (a *Instance) ApplyProfile(profile variable.Profile) error {
 	a.lock.Lock()
 	defer a.lock.Unlock()
+	a.incModelVersion()
 	return a.variables.ApplyProfile(profile)
 }
 
@@ -1153,6 +1156,7 @@ func (a *Instance) DeleteNode(nodeToDelete nodes.Node) {
 		}
 	}
 
+	a.incModelVersion()
 	_ = a.notifyDefinitionMutation()
 }
 

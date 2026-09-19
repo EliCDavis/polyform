@@ -737,3 +737,51 @@ func TestImportSubGraphsEndpoint(t *testing.T) {
 	_, err = dest.SubGraphInstance("adder_2")
 	require.NoError(t, err)
 }
+
+func TestReconnectingASubGraphInputToAPeerAtTheSameVersionRecomputes(t *testing.T) {
+	handler, inst := subGraphTestServer(t)
+	const subGraphID = "adder"
+
+	requireOK(t, handler, httpStep{
+		method: http.MethodPost,
+		url:    "/subgraph/definition/" + subGraphID,
+		body:   `{"name":"Adder","description":""}`,
+	})
+
+	inputID := createScopedNode(t, handler, subGraphID, subgraph.InputNodeTypeKey, "float64")
+	inputBID := createScopedNode(t, handler, subGraphID, subgraph.InputNodeTypeKey, "float64")
+	outputID := createScopedNode(t, handler, subGraphID, subgraph.OutputNodeTypeKey, "float64")
+	sumID := createScopedNode(t, handler, subGraphID, "Sum", "")
+	setBoundaryInfo(t, handler, inputID, subGraphID, "A")
+	setBoundaryInfo(t, handler, inputBID, subGraphID, "B")
+	setBoundaryInfo(t, handler, outputID, subGraphID, "Result")
+
+	scoped := fmt.Sprintf("/graph/subgraph/%s/connection", subGraphID)
+	connectNodes(t, handler, scoped, inputID, subgraph.ValuePortName, sumID, "Values")
+	connectNodes(t, handler, scoped, inputBID, subgraph.ValuePortName, sumID, "Values")
+	connectNodes(t, handler, scoped, sumID, "Float", outputID, subgraph.ValuePortName)
+
+	runtimeID := createRootNode(t, handler, subgraph.RuntimeTypePath(subGraphID))
+	first := createRootNode(t, handler, "Float64")
+	second := createRootNode(t, handler, "Float64")
+	other := createRootNode(t, handler, "Float64")
+	setParameterValue(t, handler, first, "5")
+	setParameterValue(t, handler, second, "3")
+	setParameterValue(t, handler, other, "100")
+
+	// A root node consuming the instance, so the instance's own output port
+	// is what sits in a cache key.
+	consumerID := createRootNode(t, handler, "Sum")
+	connectNodes(t, handler, "/node/connection", runtimeID, "Result", consumerID, "Values")
+	connectNodes(t, handler, "/node/connection", first, "Value", runtimeID, "A")
+	connectNodes(t, handler, "/node/connection", second, "Value", runtimeID, "B")
+
+	consumer := nodes.GetNodeOutputPort[float64](inst.Node(consumerID), "Float")
+	require.Equal(t, 8.0, consumer.Value())
+	require.Equal(t, 8.0, runtimeSubgraphOutputResult(t, inst, runtimeID, "Result"))
+
+	connectNodes(t, handler, "/node/connection", other, "Value", runtimeID, "A")
+
+	assert.Equal(t, 103.0, runtimeSubgraphOutputResult(t, inst, runtimeID, "Result"))
+	assert.Equal(t, 103.0, consumer.Value())
+}

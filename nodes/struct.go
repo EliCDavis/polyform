@@ -397,6 +397,24 @@ func (s *Struct[T]) Inputs() map[string]InputPort {
 	return nodeInputs
 }
 
+func identity(port OutputPort) string {
+	for {
+		proxy, ok := port.(interface{ CurrentSource() OutputPort })
+		if !ok {
+			return fmt.Sprintf("%p:%d", port.Node(), port.Version())
+		}
+
+		// A proxy reports its own node but forwards the version of whatever sits
+		// behind it, so two sources at the same version look identical through it.
+		// The key has to name the port the value actually comes from.
+		source := proxy.CurrentSource()
+		if source == nil {
+			return fmt.Sprintf("%p:unset:%d", port.Node(), port.Version())
+		}
+		port = source
+	}
+}
+
 func (s *Struct[T]) inputVersions() string {
 	builder := strings.Builder{}
 	inputs := utils.SortMapByKey(s.Inputs())
@@ -407,7 +425,7 @@ func (s *Struct[T]) inputVersions() string {
 		case SingleValueInputPort:
 			val := v.Value()
 			if val != nil {
-				builder.WriteString(fmt.Sprintf("%p:%d", val.Node(), val.Version()))
+				builder.WriteString(identity(val))
 			} else {
 				builder.WriteString("nil")
 			}
@@ -417,7 +435,7 @@ func (s *Struct[T]) inputVersions() string {
 
 			for _, val := range v.Value() {
 				if val != nil {
-					builder.WriteString(fmt.Sprintf("%p:%d", val.Node(), val.Version()))
+					builder.WriteString(identity(val))
 					builder.WriteString(",")
 				} else {
 					builder.WriteString("nil,")

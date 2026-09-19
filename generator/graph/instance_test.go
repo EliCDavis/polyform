@@ -9,6 +9,7 @@ import (
 	"github.com/EliCDavis/polyform/generator/manifest"
 	"github.com/EliCDavis/polyform/generator/manifest/basics"
 	"github.com/EliCDavis/polyform/generator/parameter"
+	"github.com/EliCDavis/polyform/generator/variable"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
 	"github.com/stretchr/testify/assert"
@@ -195,6 +196,34 @@ func testInstanceWithTextProducer(t *testing.T) (*graph.Instance, *refutil.TypeF
 	instance.AddProducer("test.txt", nodes.GetNodeOutputPort[manifest.Manifest](&textNode, "Out"))
 
 	return instance, factory
+}
+
+func TestInstance_MutationsThatChangeOutputsBumpTheModelVersion(t *testing.T) {
+	factory := &refutil.TypeFactory{}
+	factory.RegisterBuilder("Param", func() any { return &parameter.String{CurrentValue: "bruh"} })
+	factory.RegisterBuilder("Text", func() any { return &nodes.Struct[basics.TextNode]{} })
+
+	instance := graph.New(graph.Config{TypeFactory: factory})
+	_, paramID, err := instance.CreateNode("Param")
+	assert.NoError(t, err)
+	_, textID, err := instance.CreateNode("Text")
+	assert.NoError(t, err)
+	instance.ConnectNodes(paramID, "Value", textID, "In")
+	instance.NewVariable("greeting", &variable.TypeVariable[string]{})
+	instance.SaveProfile("saved")
+
+	steps := map[string]func(){
+		"delete a node":       func() { instance.DeleteNodeById(paramID) },
+		"load a profile":      func() { assert.NoError(t, instance.LoadProfile("saved")) },
+		"delete a variable":   func() { instance.DeleteVariable("greeting") },
+		"disconnect an input": func() { instance.DeleteNodeInputConnection(textID, "In") },
+	}
+
+	for name, step := range steps {
+		before := instance.ModelVersion()
+		step()
+		assert.NotEqualf(t, before, instance.ModelVersion(), "%s left the model version at %d", name, before)
+	}
 }
 
 func TestInstance_ApplyAppSchema_roundtrip(t *testing.T) {
