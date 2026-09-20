@@ -1257,7 +1257,11 @@ func (a *Instance) DeleteNodeInputConnection(nodeId, portName string) {
 			panic(fmt.Errorf("Treating node %q port %q like array, when it isn't", nodeId, portName))
 		}
 
-		err := array.Remove(array.Value()[portIndex])
+		elements := array.Value()
+		if portIndex < 0 || portIndex >= len(elements) {
+			panic(fmt.Errorf("node %q port %q has %d element(s), so there is no index %d to remove", nodeId, cleanPortName, len(elements), portIndex))
+		}
+		err := array.Remove(elements[portIndex])
 		if err != nil {
 			panic(err)
 		}
@@ -1349,13 +1353,15 @@ func mismatchError(outID, outPort string, output nodes.OutputPort, inID, inPort 
 func (a *Instance) ConnectNodes(nodeOutId, outPortName, nodeInId, inPortName string) {
 
 	cleanedInputName := inPortName
+	elementIndex := -1
 	components := strings.Split(inPortName, ".")
 	if len(components) > 1 {
 		cleanedInputName = components[0]
-		_, err := strconv.ParseInt(components[1], 10, 64)
+		index, err := strconv.Atoi(components[1])
 		if err != nil {
 			panic(fmt.Errorf("unable to parse index from %s: %w", inPortName, err))
 		}
+		elementIndex = index
 	}
 
 	inNode := a.Node(nodeInId)
@@ -1395,6 +1401,9 @@ func (a *Instance) ConnectNodes(nodeOutId, outPortName, nodeInId, inPortName str
 	}
 
 	if single, ok := input.(nodes.SingleValueInputPort); ok {
+		if elementIndex != -1 {
+			panic(fmt.Errorf("node %q's input %q takes a single value, so %q has no element to replace", nodeInId, cleanedInputName, inPortName))
+		}
 		err := single.Set(output)
 		if err != nil {
 			panic(err)
@@ -1408,12 +1417,28 @@ func (a *Instance) ConnectNodes(nodeOutId, outPortName, nodeInId, inPortName str
 		}
 	} else if array, ok := input.(nodes.ArrayValueInputPort); ok {
 		before := len(array.Value())
-		err := array.Add(output)
-		if err != nil {
-			panic(err)
-		}
-		if len(array.Value()) != before+1 {
-			panic(mismatchError(nodeOutId, outPortName, output, nodeInId, cleanedInputName, input))
+		// "Port.N" sets element N: in place when it exists, appended when
+		// N is the next free slot. The editor and convert_to_subgraph
+		// both connect with N == len, so append must stay reachable
+		// through an index.
+		if elementIndex != -1 && elementIndex < before {
+			if err := array.Replace(elementIndex, output); err != nil {
+				panic(fmt.Errorf("node %q: %w", nodeInId, err))
+			}
+			if array.Value()[elementIndex] != output {
+				panic(mismatchError(nodeOutId, outPortName, output, nodeInId, cleanedInputName, input))
+			}
+		} else {
+			if elementIndex > before {
+				panic(fmt.Errorf("node %q's input %q has %d element(s), so %q would leave a gap; use index %d to append", nodeInId, cleanedInputName, before, inPortName, before))
+			}
+			err := array.Add(output)
+			if err != nil {
+				panic(err)
+			}
+			if len(array.Value()) != before+1 {
+				panic(mismatchError(nodeOutId, outPortName, output, nodeInId, cleanedInputName, input))
+			}
 		}
 	} else {
 		panic(fmt.Errorf("can not determine type of node %q's input %q", nodeInId, cleanedInputName))

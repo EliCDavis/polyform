@@ -15,3 +15,7 @@ type Pathed interface {
 type Describable interface {
 	Description() string
 }
+
+type Keyworded interface {
+	Keywords() []string
+}

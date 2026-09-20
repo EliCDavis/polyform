@@ -63,6 +63,19 @@ func init() {
 	refutil.RegisterType[nodes.Struct[MaxArrayNode[int]]](factory)
 	refutil.RegisterType[nodes.Struct[MaxArrayNode[float64]]](factory)
 
+	refutil.RegisterType[nodes.Struct[AddArraysNode[int]]](factory)
+	refutil.RegisterType[nodes.Struct[AddArraysNode[float64]]](factory)
+	refutil.RegisterType[nodes.Struct[SubtractArraysNode[int]]](factory)
+	refutil.RegisterType[nodes.Struct[SubtractArraysNode[float64]]](factory)
+	refutil.RegisterType[nodes.Struct[MultiplyArraysNode[int]]](factory)
+	refutil.RegisterType[nodes.Struct[MultiplyArraysNode[float64]]](factory)
+	refutil.RegisterType[nodes.Struct[DivideArraysNode[int]]](factory)
+	refutil.RegisterType[nodes.Struct[DivideArraysNode[float64]]](factory)
+	refutil.RegisterType[nodes.Struct[MinArraysNode[int]]](factory)
+	refutil.RegisterType[nodes.Struct[MinArraysNode[float64]]](factory)
+	refutil.RegisterType[nodes.Struct[MaxArraysNode[int]]](factory)
+	refutil.RegisterType[nodes.Struct[MaxArraysNode[float64]]](factory)
+
 	refutil.RegisterType[nodes.Struct[IntToFloatNode]](factory)
 
 	refutil.RegisterType[nodes.Struct[PlaneFromNormalNode]](factory)

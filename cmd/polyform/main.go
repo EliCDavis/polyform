@@ -6,12 +6,9 @@ import (
 	"image/color"
 	"math"
 	"os"
-	"strings"
 
 	"github.com/EliCDavis/polyform/generator"
-	"github.com/EliCDavis/vector/vector2"
-	"github.com/EliCDavis/vector/vector3"
-	"github.com/EliCDavis/vector/vector4"
+	"github.com/EliCDavis/polyform/generator/variable/variabletypes"
 
 	// Import these so they register their nodes with the generator
 	"github.com/EliCDavis/polyform/drawing/coloring"
@@ -37,19 +34,17 @@ import (
 	"github.com/EliCDavis/polyform/generator/persistence"
 	"github.com/EliCDavis/polyform/generator/serialize"
 	_ "github.com/EliCDavis/polyform/generator/subgraph/register"
-	"github.com/EliCDavis/polyform/generator/variable"
 
 	_ "github.com/EliCDavis/polyform/math"
 	_ "github.com/EliCDavis/polyform/math/constant"
-	"github.com/EliCDavis/polyform/math/geometry"
 	_ "github.com/EliCDavis/polyform/math/geometry"
 	_ "github.com/EliCDavis/polyform/math/geometry/aabb"
 	_ "github.com/EliCDavis/polyform/math/noise"
-	"github.com/EliCDavis/polyform/math/quaternion"
+	_ "github.com/EliCDavis/polyform/math/quaternion"
 	_ "github.com/EliCDavis/polyform/math/sdf"
 	_ "github.com/EliCDavis/polyform/math/sequence"
 	_ "github.com/EliCDavis/polyform/math/trig"
-	"github.com/EliCDavis/polyform/math/trs"
+	_ "github.com/EliCDavis/polyform/math/trs"
 	_ "github.com/EliCDavis/polyform/math/unit"
 	_ "github.com/EliCDavis/polyform/math/vector2"
 	_ "github.com/EliCDavis/polyform/math/vector3"
@@ -152,96 +147,7 @@ func main() {
 			},
 		},
 		NodeOutputSerialization: nodeSerializer,
-		VariableFactory: func(variableType string) (variable.Variable, error) {
-			switch strings.ToLower(variableType) {
-			case "float64":
-				return &variable.TypeVariable[float64]{}, nil
-
-			case "string":
-				return &variable.TypeVariable[string]{}, nil
-
-			case "int":
-				return &variable.TypeVariable[int]{}, nil
-
-			case "bool":
-				return &variable.TypeVariable[bool]{}, nil
-
-			case "vector2.vector[float64]":
-				return &variable.TypeVariable[vector2.Float64]{}, nil
-
-			case "vector2.vector[int]":
-				return &variable.TypeVariable[vector2.Int]{}, nil
-
-			case "vector3.vector[float64]":
-				return &variable.TypeVariable[vector3.Float64]{}, nil
-
-			case "vector3.vector[int]":
-				return &variable.TypeVariable[vector3.Int]{}, nil
-
-			case "vector4.vector[float64]":
-				return &variable.TypeVariable[vector4.Float64]{}, nil
-
-			case "[]float64":
-				return &variable.TypeVariable[[]float64]{}, nil
-
-			case "[]int":
-				return &variable.TypeVariable[[]int]{}, nil
-
-			case "[]string":
-				return &variable.TypeVariable[[]string]{}, nil
-
-			case "[]vector2.vector[float64]":
-				return &variable.TypeVariable[[]vector2.Float64]{}, nil
-
-			case "[]vector2.vector[int]":
-				return &variable.TypeVariable[[]vector2.Int]{}, nil
-
-			case "[]vector3.vector[float64]":
-				return &variable.TypeVariable[[]vector3.Float64]{}, nil
-
-			case "[]vector3.vector[int]":
-				return &variable.TypeVariable[[]vector3.Int]{}, nil
-
-			case "geometry.aabb":
-				return &variable.TypeVariable[geometry.AABB]{}, nil
-
-			case "quaternion.quaternion":
-				v := &variable.TypeVariable[quaternion.Quaternion]{}
-				v.SetValue(quaternion.Identity())
-				return v, nil
-
-			case "trs.trs":
-				v := &variable.TypeVariable[trs.TRS]{}
-				v.SetValue(trs.Identity())
-				return v, nil
-
-			case "[]trs.trs":
-				return &variable.TypeVariable[[]trs.TRS]{}, nil
-
-			case "coloring.color":
-				return &variable.TypeVariable[coloring.Color]{}, nil
-
-			case "[]coloring.color":
-				return &variable.TypeVariable[[]coloring.Color]{}, nil
-
-			case "coloring.gradient[github.com/elicdavis/polyform/drawing/coloring.color]":
-				v := &variable.TypeVariable[coloring.Gradient[coloring.Color]]{}
-				v.SetValue(coloring.NewGradientColor(
-					coloring.GradientKey[coloring.Color]{Time: 0, Value: coloring.Black()},
-					coloring.GradientKey[coloring.Color]{Time: 1, Value: coloring.White()},
-				))
-				return v, nil
-
-			case "image.image":
-				return &variable.ImageVariable{}, nil
-
-			case "file":
-				return &variable.FileVariable{}, nil
-
-			default:
-				return nil, fmt.Errorf("unrecognized variable type: %q", variableType)
-			}
-		},
+		VariableFactory:         variabletypes.New,
 
 		Out: os.Stdout,
 		Err: os.Stderr,

@@ -269,6 +269,15 @@ func (si structArrayInput) Remove(port OutputPort) error {
 	return fmt.Errorf("array input port %s does not contain a reference to output port %s", si.Name(), port.Name())
 }
 
+func (si structArrayInput) Replace(index int, port OutputPort) error {
+	count := len(si.Value())
+	if index < 0 || index >= count {
+		return fmt.Errorf("array input port %s has %d element(s), so there is no index %d to replace", si.Name(), count, index)
+	}
+	refutil.SetStructFieldArrayElement(si.data.Data(), si.structField, index, port)
+	return nil
+}
+
 func (si structArrayInput) Description() string {
 	return refutil.GetStructTag(si.data.Data(), si.structField, "description")
 }
@@ -501,6 +510,13 @@ func (sn Struct[T]) Description() string {
 		return described.Description()
 	}
 	return ""
+}
+
+func (sn Struct[T]) Keywords() []string {
+	if keyworded, ok := any(sn.Data).(Keyworded); ok {
+		return keyworded.Keywords()
+	}
+	return nil
 }
 
 func (sn Struct[T]) Type() string {

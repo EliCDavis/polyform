@@ -30,6 +30,10 @@ func init() {
 	refutil.RegisterType[nodes.Struct[SetAttribute2DNode]](factory)
 	refutil.RegisterType[nodes.Struct[SetAttribute3DNode]](factory)
 	refutil.RegisterType[nodes.Struct[SetAttribute4DNode]](factory)
+	refutil.RegisterType[nodes.Struct[FillAttribute1DNode]](factory)
+	refutil.RegisterType[nodes.Struct[FillAttribute2DNode]](factory)
+	refutil.RegisterType[nodes.Struct[FillAttribute3DNode]](factory)
+	refutil.RegisterType[nodes.Struct[FillAttribute4DNode]](factory)
 	refutil.RegisterType[TopologyNode](factory)
 	refutil.RegisterType[AttributeNode](factory)
 	generator.RegisterTypes(factory)
@@ -315,4 +319,84 @@ func (n SetAttribute4DNode) Description() string {
 
 func (n SetAttribute4DNode) Out(out *nodes.StructOutput[Mesh]) {
 	setAttribute(out, n.Mesh, n.Attribute, n.Data, Mesh.SetFloat4Attribute)
+}
+
+// ============================================================================
+
+func fillAttribute[T any](
+	out *nodes.StructOutput[Mesh],
+	mesh nodes.Output[Mesh],
+	attribute nodes.Output[string],
+	value nodes.Output[T],
+	setAttr func(Mesh, string, []T) Mesh,
+) {
+	m := nodes.TryGetOutputValue(out, mesh, EmptyMesh(PointTopology))
+	if attribute == nil {
+		out.Set(m)
+		return
+	}
+
+	var zero T
+	v := nodes.TryGetOutputValue(out, value, zero)
+	data := make([]T, m.AttributeLength())
+	for i := range data {
+		data[i] = v
+	}
+	out.Set(setAttr(m, nodes.GetOutputValue(out, attribute), data))
+}
+
+type FillAttribute1DNode struct {
+	Mesh      nodes.Output[Mesh]
+	Attribute nodes.Output[string]
+	Value     nodes.Output[float64] `description:"The number every vertex receives."`
+}
+
+func (n FillAttribute1DNode) Description() string {
+	return "Sets a named attribute to the same number on every vertex of a mesh, creating the attribute if it doesn't exist."
+}
+
+func (n FillAttribute1DNode) Out(out *nodes.StructOutput[Mesh]) {
+	fillAttribute(out, n.Mesh, n.Attribute, n.Value, Mesh.SetFloat1Attribute)
+}
+
+type FillAttribute2DNode struct {
+	Mesh      nodes.Output[Mesh]
+	Attribute nodes.Output[string]
+	Value     nodes.Output[vector2.Float64] `description:"The 2D vector every vertex receives."`
+}
+
+func (n FillAttribute2DNode) Description() string {
+	return "Sets a named attribute to the same 2D vector on every vertex of a mesh, creating the attribute if it doesn't exist."
+}
+
+func (n FillAttribute2DNode) Out(out *nodes.StructOutput[Mesh]) {
+	fillAttribute(out, n.Mesh, n.Attribute, n.Value, Mesh.SetFloat2Attribute)
+}
+
+type FillAttribute3DNode struct {
+	Mesh      nodes.Output[Mesh]
+	Attribute nodes.Output[string]
+	Value     nodes.Output[vector3.Float64] `description:"The 3D vector every vertex receives."`
+}
+
+func (n FillAttribute3DNode) Description() string {
+	return "Sets a named attribute to the same 3D vector on every vertex of a mesh, creating the attribute if it doesn't exist."
+}
+
+func (n FillAttribute3DNode) Out(out *nodes.StructOutput[Mesh]) {
+	fillAttribute(out, n.Mesh, n.Attribute, n.Value, Mesh.SetFloat3Attribute)
+}
+
+type FillAttribute4DNode struct {
+	Mesh      nodes.Output[Mesh]
+	Attribute nodes.Output[string]
+	Value     nodes.Output[vector4.Float64] `description:"The 4D vector every vertex receives."`
+}
+
+func (n FillAttribute4DNode) Description() string {
+	return "Sets a named attribute to the same 4D vector on every vertex of a mesh, creating the attribute if it doesn't exist."
+}
+
+func (n FillAttribute4DNode) Out(out *nodes.StructOutput[Mesh]) {
+	fillAttribute(out, n.Mesh, n.Attribute, n.Value, Mesh.SetFloat4Attribute)
 }

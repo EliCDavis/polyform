@@ -14,6 +14,7 @@ type NodeTypeInput struct {
 type NodeType struct {
 	DisplayName string                    `json:"displayName"`
 	Info        string                    `json:"info"`
+	Keywords    []string                  `json:"keywords,omitempty"`
 	Type        string                    `json:"type"`
 	Path        string                    `json:"path"`
 	Outputs     map[string]NodeTypeOutput `json:"outputs,omitempty"`

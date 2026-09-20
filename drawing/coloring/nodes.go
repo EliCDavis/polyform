@@ -1,6 +1,8 @@
 package coloring
 
 import (
+	"fmt"
+
 	"github.com/EliCDavis/polyform/generator"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
@@ -14,6 +16,7 @@ func init() {
 
 	refutil.RegisterType[nodes.Struct[InterpolateNode]](factory)
 	refutil.RegisterType[nodes.Struct[InterpolateToArrayNode]](factory)
+	refutil.RegisterType[nodes.Struct[InterpolateArraysNode]](factory)
 	refutil.RegisterType[nodes.Struct[ToVectorNode]](factory)
 	refutil.RegisterType[nodes.Struct[ToVectorArrayNode]](factory)
 	refutil.RegisterType[nodes.Struct[FromVectorNode]](factory)
@@ -24,6 +27,8 @@ func init() {
 	refutil.RegisterType[nodes.Struct[MultiplyNode]](factory)
 	refutil.RegisterType[nodes.Struct[FromHSVNode]](factory)
 	refutil.RegisterType[nodes.Struct[ToHSVNode]](factory)
+	refutil.RegisterType[nodes.Struct[SRGBToLinearNode]](factory)
+	refutil.RegisterType[nodes.Struct[LinearToSRGBNode]](factory)
 
 	refutil.RegisterType[nodes.Struct[Gradient1DNode]](factory)
 	refutil.RegisterType[nodes.Struct[Gradient2DNode]](factory)
@@ -127,6 +132,35 @@ func (n InterpolateToArrayNode) Out(out *nodes.StructOutput[[]Color]) {
 	for i, t := range times {
 		arr[i] = aV.Lerp(bV, t)
 	}
+}
+
+// ============================================================================
+
+type InterpolateArraysNode struct {
+	A    nodes.Output[[]Color]   `description:"Colors at Time=0, one per output."`
+	B    nodes.Output[[]Color]   `description:"Colors at Time=1, one per output."`
+	Time nodes.Output[[]float64] `description:"Blend factor per output, each 0 to 1."`
+}
+
+func (n InterpolateArraysNode) Description() string {
+	return "Linearly interpolates two color arrays element by element: Out[i] = A[i] blended toward B[i] by Time[i]."
+}
+
+func (n InterpolateArraysNode) Out(out *nodes.StructOutput[[]Color]) {
+	a := nodes.TryGetOutputValue(out, n.A, nil)
+	b := nodes.TryGetOutputValue(out, n.B, nil)
+	times := nodes.TryGetOutputValue(out, n.Time, nil)
+
+	count := min(len(a), len(b), len(times))
+	if len(a) != len(b) || len(b) != len(times) {
+		out.CaptureError(fmt.Errorf("A has %d elements, B has %d and Time has %d; only the first %d were blended", len(a), len(b), len(times), count))
+	}
+
+	arr := make([]Color, count)
+	for i := range arr {
+		arr[i] = a[i].Lerp(b[i], times[i])
+	}
+	out.Set(arr)
 }
 
 type ToVectorNode struct {

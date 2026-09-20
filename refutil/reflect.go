@@ -483,6 +483,14 @@ func RemoveFromStructFieldArray(structToSet any, field string, index int) {
 	viewFieldValue.Set(newSlice)
 }
 
+func SetStructFieldArrayElement(structToSet any, field string, index int, val any) {
+	viewFieldValue := findStructFieldValue(structToSet, field)
+	if !viewFieldValue.CanSet() {
+		panic(fmt.Errorf("field '%s' was found but can not be set", field))
+	}
+	viewFieldValue.Index(index).Set(reflect.ValueOf(val))
+}
+
 func AddToStructFieldArray(structToSet any, field string, val any) {
 	viewFieldValue := findStructFieldValue(structToSet, field)
 	if !viewFieldValue.CanSet() {

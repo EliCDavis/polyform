@@ -3,6 +3,7 @@ package graph
 import (
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/EliCDavis/jbtf"
@@ -476,7 +477,15 @@ func createInboundBoundaries(child *Instance, inbound []inboundCut, positions ma
 		if err := child.SetBoundaryNodeInfo(boundaryID, portName); err != nil {
 			return nil, err
 		}
-		child.ConnectNodes(boundaryID, subgraph.ValuePortName, cut.destNodeID, cut.destPortName)
+		// Interior array elements were re-appended by the copy, so the
+		// original index no longer names a slot; append behind them.
+		destPort := cut.destPortName
+		if base, suffix, indexed := strings.Cut(destPort, "."); indexed {
+			if _, err := strconv.Atoi(suffix); err == nil {
+				destPort = base
+			}
+		}
+		child.ConnectNodes(boundaryID, subgraph.ValuePortName, cut.destNodeID, destPort)
 		if hasBounds {
 			setNodePositionMetadata(child, boundaryID, nodePosition{
 				x: minX - boundaryLayoutGapX,

@@ -138,6 +138,10 @@ func BuildNodeTypeSchema(registeredType string, node nodes.Node) schema.NodeType
 		typeSchema.Info = described.Description()
 	}
 
+	if keyworded, ok := node.(nodes.Keyworded); ok {
+		typeSchema.Keywords = keyworded.Keywords()
+	}
+
 	typeSchema.Type = registeredType
 
 	return typeSchema

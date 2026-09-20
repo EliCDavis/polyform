@@ -45,6 +45,7 @@ type ArrayValueInputPort interface {
 	Value() []OutputPort
 	Add(port OutputPort) error
 	Remove(port OutputPort) error
+	Replace(index int, port OutputPort) error
 }
 
 type Node interface {
