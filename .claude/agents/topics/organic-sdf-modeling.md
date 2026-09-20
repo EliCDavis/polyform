@@ -190,6 +190,12 @@ especially on any axis a posable/variable part (a tail, a limb) can
 swing into. Oversizing costs a few idle voxels; undersizing costs a
 silently broken part.
 
+A `Domain` that should track the part's size variables rather than be a
+typed literal is `math/geometry/aabb.NewNode` (`Center`, `Size` — the
+**full** size, unlike a literal AABB's half-extent `extents`), fed from
+the same variables the geometry uses; `aabb.ExpandNode` pads it, and
+`aabb.FromPointsNode` bounds a pose's point list.
+
 **A `Resolution` that looks fine on the body can still be too coarse for
 small, thin, or pointed features on the same field** — ears, claws,
 spikes, fingers: marching-cubes voxel quantization can land the two sides
@@ -457,3 +463,68 @@ range is tuned. Use colored fields instead, from `math/sdf`:
 `SmoothUnionColoredNode`/`ColoredFieldDistanceNode` (`math/sdf`) and
 `ApplyColorFieldNode` (`modeling/marching`) for exact ports — don't guess
 the wiring.
+
+### The cheaper route for markings on an existing body: a separate paint field
+
+`ApplyColorFieldNode` reads **only the color half** of the colored field
+it is given, at each vertex of the mesh it is given. Nothing requires
+that field's *shape* to be the body. So an already-built plain-SDF body
+(union → march → weld) keeps its whole tree untouched, and the markings
+come from a second, color-only field:
+
+1. `WithColorNode(Field: <the body's final union or transform output>,
+   Color: <coat color>)` — the base coat. Its distance is ~0 at every
+   vertex, which is what makes the rest work.
+2. One `WithColorNode` per marking, wrapping a cheap blob (a sphere, a
+   squashed sphere, a box half-space, a `MirrorNode` of one of those) that
+   *encloses the surface region* to be recolored. A vertex inside the blob
+   sees a negative distance there, beats the coat's ~0, and takes the
+   blob's color. Cream muzzle/chest/belly, socks, a pink inner ear (a
+   box half-space intersected with the ear's own cone, in the ear's local
+   frame, then pushed through the ear's own transform), a blush spot, a
+   darker saddle along the spine — each is 1-3 nodes.
+3. `SmoothUnionColoredNode(Fields: [coat, markings...], Radius: r)`, then
+   `ApplyColorFieldNode(Mesh: <the welded mesh>, Field: that union)` in
+   place of the gradient subgraph. `Radius` is the fade width at each
+   blob's edge (0.02 on a ~0.4-unit dog gave soft-but-clear edges; 0.03
+   was mushy).
+
+Two rules of that blend to know before placing blobs. **Deepest wins**:
+the color comes from the field the vertex is *most inside*, so a small
+blob (a freckle) placed inside a big one (the cream muzzle) never shows —
+put small marks on as separate tiny meshes instead. **Only the surface
+matters**: a blob may extend far inside the body with no effect, so size
+it to the patch of *surface* it should cover, and check the far end
+(a muzzle blob that stopped 0.02 short of the nose tip left the tip
+coat-colored at ~80%).
+
+Blobs live in the same space as the vertices, so a blob for a part that
+is moved by a transform (a tilted head, a posed leg) goes through a copy
+of that same transform before its `WithColorNode`, and through the whole
+body's `Overall Scale` transform after it, or it drifts off the part
+when the variable changes.
+
+## Reflection and grouped rigid transforms
+
+`sdf.TransformNode` treats a negative scale as a clean reflection (the
+distance factor is the absolute scale), so `scale {-1,1,1}` on one leg's
+sub-union is the *other* leg — the way to turn a mirrored pair into two
+independently posable limbs without duplicating the leg's node tree:
+`UnionNode(Transform(leg, reflect), Transform(leg, rotate-about-shoulder))`
+in place of the `MirrorNode`.
+
+To rotate a part about a pivot `P` (a head about the neck, a leg about
+its shoulder) with a TRS that only knows position/rotation/scale, the
+position is `P - R·P`: `quaternion.FromEulerAngleNode` → `trs.NewNode`
+(rotation only) → `trs.RotateDirectionNode(TRS, Direction: P)` →
+`vector3.Subtract(A: P, B: that)` → `trs.NewNode(Position, Rotation)`.
+Seven nodes, one batch, and the angle stays a live variable.
+
+Separate meshes attached to that part (eyes, nose, tongue, anything
+placed by a surface point) follow it for free if they are `Children` of
+one mesh-less `gltf.ModelNode` carrying the same `Translation`/`Rotation`
+(the previewer and the glTF writer both accept a `ModelNode` with no
+`Mesh` as a pure group). Build the same `P - R·P` TRS at root from the
+same variable, and measure any new attachment points with `raycast_field`
+against the *pre*-transform sub-union (the head+muzzle union, not the
+whole body) so the point is in the group's local frame.

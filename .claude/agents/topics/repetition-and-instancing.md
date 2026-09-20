@@ -55,12 +55,21 @@ Confirmed against the registry; use them directly.
 | `math/sdf.MirrorNode` | Field, Union | X, Y, Z, XY, XZ, YZ, XYZ |
 | `math/vector3.NewNode[float64]` | X, Y, Z | Out |
 
-Rotation has no literal parameter node — build a quaternion node and
-reference it by `nodeId`/`port` rather than passing a quaternion as a
-`value`. Mind the singular/plural pair: **`FromEulerAngleNode` takes one
-`Angle` and returns one rotation**, which is what a `ModelNode.Rotation`
-wants. `FromEulerAnglesNode` takes an array and returns an array, for
-instancing.
+A fixed rotation can be a quaternion literal (`{"x","y","z","w"}`, see
+the orchestrator's value-encoding table for the 90°/180° values); a
+rotation computed from a variable is a quaternion node referenced by
+`nodeId`/`port`. Mind the singular/plural pair: **`FromEulerAngleNode`
+takes one `Angle` and returns one rotation**, which is what a
+`ModelNode.Rotation` wants. `FromEulerAnglesNode` takes an array and
+returns an array, for instancing.
+
+**Two or three art-directed placements of one thing** — not a formula,
+each one hand-posed (a chair pulled out from a table, a couple of rocks)
+— are the one case the pattern nodes above don't cover. That is a
+`[]trs.TRS` variable (`create_variables` type `"[]trs.TRS"`), wired
+straight into `GpuInstances`: the user gets one move/rotate/scale gizmo
+per entry in the web UI, and the graph stays one `ModelNode` instead of
+N copies.
 
 ## Placing the copies: three options, pick the cheapest that fits
 
@@ -160,7 +169,9 @@ stay a straight-segment chain — and especially if it should also *taper*
 the pose variable to `LinesNode`/`VaryingRadiusLinesNode` directly.
 Resample it through a curve first, via `create_tapered_curve_subgraph`:
 `instantiate_subgraph` it, wire `Points` to the pose variable (not a
-literal — that's the whole point of a posable body), `Base Radius`/
+literal — that's the whole point of a posable body; and it is one
+`variable`/`value` carrying the list, never `elements`, which is only for
+many-connection ports like `Meshes[]`), `Base Radius`/
 `Tip Radius` to your desired thickness (equal values give a constant-
 thickness bend, not a taper, so this tool covers both cases), and
 `Samples` to however many segments the body mesh should actually have —

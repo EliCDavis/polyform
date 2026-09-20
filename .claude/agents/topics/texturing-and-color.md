@@ -22,8 +22,16 @@ than spending a `search_node_types`/`get_node_types` pair.**
 | `formats/gltf.MaterialNode` | Color, `Color Texture`, `Metallic Factor`, `Roughness Factor`, `Emissive Factor`, `Emissive Strength`, `Normal Texture`, Name, ... | Out |
 | `math/noise.Perlin3DNode` | Amplitude, Frequency, Shift, Time | Out |
 | `modeling.SetAttribute3DNode` | Mesh, Attribute, Data | Out |
+| `modeling.FillAttribute3DNode` | Mesh, Attribute, Value | Out |
+| `modeling/meshops.FillVertexColorNode` | Mesh, Color | Out |
 | `drawing/coloring.MultiplyNode` | A, B | Out |
 | `drawing/coloring.InterpolateToArrayNode` | A, B, Time | Out |
+| `drawing/coloring.InterpolateArraysNode` | A, B, Time | Out |
+| `math.MultiplyArraysNode[float64]` | A, B | Products |
+| `math.AddArraysNode[float64]` | A, B | Sums |
+| `math.SubtractArraysNode[float64]` | A, B | Differences |
+| `math.MinArraysNode[float64]` | A, B | Minimums |
+| `math.MaxArraysNode[float64]` | A, B | Maximums |
 | `drawing/coloring.ToVectorNode` | In | `Vector 3`, `Vector 4` |
 | `math.RemapNode[float64]` | Value, `In Min`, `In Max`, `Out Min`, `Out Max` | Out |
 | `math.RemapToArrayNode[float64]` | Value, `In Min`, `In Max`, `Out Min`, `Out Max` | Out |
@@ -55,8 +63,13 @@ flat/gradient `MaterialNode.Color`.
 
 Where UVs do exist, the proven pipeline is `drawing/texturing.NoiseNode`
 (or `SeamlessPerlinNode`) -> `texturing.ApplyGradientNode[coloring.Color]`
-(sampling a `coloring.GradientColorNode`) -> `texturing.ColorToImageNode`
--> `gltf.TextureNode` -> `MaterialNode.ColorTexture`. Don't guess the
+-> `texturing.ColorToImageNode` -> `gltf.TextureNode` ->
+`MaterialNode.ColorTexture`. `ApplyGradientNode.Gradient` takes a
+`coloring.Gradient[...coloring.Color]` **literal or variable** directly —
+`{"keys":[{"time":0,"value":"#2a4d1e"},{"time":1,"value":"#9bbf6a"}]}` —
+so a colour ramp the user should be able to tune is one variable with a
+gradient-bar editor, not a `GradientColorNode` fed by `GradientKeyNode`s
+(that chain still works and is what the example graphs do). Don't guess the
 wiring — `Read` an existing example graph that already does exactly this
 (`generator/edit/examples/terrain.json`, `doughnut.json`, or
 `snowglobe.json`, which also shows the matching normal-map half via
@@ -65,8 +78,19 @@ wiring — `Read` an existing example graph that already does exactly this
 ## Vertex-colored parts (marched/SDF meshes, or anything without UVs)
 
 `MarchNode` never generates UVs, so `gltf.MaterialNode.ColorTexture` has
-nothing to map onto. Write into the mesh's `"Color"` attribute instead:
+nothing to map onto. Write into the mesh's `"Color"` attribute instead.
 
+**One flat color per part is a single node**:
+`modeling/meshops.FillVertexColorNode` (`Mesh`, `Color`) writes that
+color to every vertex — no `SelectFromMeshNode`, no `ToVectorNode`, no
+attribute name to spell. Use it whenever a part is one color and only
+the *assembly* is multi-colored (a red collar on a brown dog): each part
+gets its own fill, and `MaterialNode.Color` stays white. The generic
+form, `modeling.FillAttribute3DNode` (`Mesh`, `Attribute`, `Value`),
+fills any named attribute with one vector; `1D`/`2D`/`4D` variants take
+a float / `vector2` / `vector4`.
+
+**Color that varies across a part** is the per-vertex pipeline:
 `SelectFromMeshNode`'s `Position` output -> per-vertex values
 (`math/noise.Perlin3DNode` takes an array of positions, returns one float
 per vertex — a real, concrete starting point) -> colors ->
@@ -84,10 +108,19 @@ turn per-vertex float values into per-vertex colors, use
 `drawing/coloring.InterpolateToArrayNode` (`Time` <- the per-vertex float
 array, `A`/`B` <- the two colors to blend between); it lives in
 `drawing/coloring`, not `drawing/texturing` (that package is 2D
-image-space, not per-vertex arrays). It only blends between one pair of
-colors by a factor array — there's no node that blends two full color
-arrays together elementwise, so a 3+-color pattern needs multiple chained
-blends, not one call.
+image-space, not per-vertex arrays). It blends between one pair of
+colors by a factor array; to blend two full *color arrays* under a mask
+(a base-coat array against a marking array), use
+`InterpolateArraysNode`, whose `A`, `B` and `Time` are all per-vertex.
+
+**Combining two per-vertex signals is elementwise array math**, not a
+chain of `*ToArrayNode`s (those broadcast one scalar over an array).
+`math.MultiplyArraysNode[float64]` gives `A[i]*B[i]` — a Y-gradient
+times a radial mask is one node. `AddArraysNode`, `SubtractArraysNode`,
+`MinArraysNode`, `MaxArraysNode` do the same for `+ - min max`. All of
+them expect equal lengths; a mismatch truncates to the shorter and
+records an error on the node, which is almost always two arrays sampled
+from different meshes.
 
 `render_preview` reads this `"Color"` attribute directly, so a correctly
 vertex-colored part renders with its real color, not flat gray. If you
@@ -129,3 +162,28 @@ never touched. Any material that should read as shiny *and* non-metal
 needs `MetallicFactor` explicitly wired to `0` — a literal `{"value":
 "0"}` is enough, it doesn't need to be a variable unless you want it
 tunable.
+
+## Hex colors are sRGB; glTF wants linear (applies to every color you set)
+
+glTF reads `baseColorFactor` and the vertex `Color` attribute as **linear**
+multipliers, and every viewer (the web editor, model-viewer, Blender)
+applies the sRGB curve on output. Polyform passes color values through
+unchanged, so a hex pick like `#c8322f` wired straight into a
+`MaterialNode.Color` exports as linear (0.78, 0.20, 0.18) and displays as
+pale salmon, not the red you picked; a fawn `#d3a468` coat comes out
+near-white. `render_preview` treats colors the same way, so if the preview
+looks washed out, the export will too — that is the signal, not a preview
+bug.
+
+Convert at the last step, keep the variables human:
+
+- one color → `drawing/coloring.SRGBToLinearNode` (`In` → `Out`) between
+  the color variable/literal and the `MaterialNode`/`WithColorNode`;
+- a marched mesh's vertex colors → `modeling/meshops.SrgbToLinearNode`
+  (`Mesh`, `Attribute: "Color"`) after `ApplyColorFieldNode` or the
+  gradient subgraph, if the colors that went in were sRGB picks.
+
+Don't do both on the same color (a colored-field body converted per
+`WithColorNode` *and* again on the mesh) — it double-darkens. White,
+black and greys near either end survive unconverted; saturated mid-tones
+are where the difference is large.

@@ -3,9 +3,11 @@ package mcp
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 
 	"github.com/EliCDavis/polyform/generator/graph"
 	"github.com/EliCDavis/polyform/generator/schema"
@@ -14,7 +16,8 @@ import (
 )
 
 type DescribeGraphInput struct {
-	Scope string `json:"scope,omitempty" jsonschema:"the root graph if omitted, or a subgraph id to inspect its interior"`
+	Scope   string   `json:"scope,omitempty" jsonschema:"the root graph if omitted, or a subgraph id to inspect its interior"`
+	NodeIds []string `json:"nodeIds,omitempty" jsonschema:"only describe these nodes (plus, for each, the nodes feeding its inputs so the wiring is readable in one call). Omit for every node. Use this instead of reading the whole graph to check one node's wiring."`
 }
 
 type PortReferenceSummary struct {
@@ -148,6 +151,46 @@ func addOpenInputs(inst *graph.Instance, out *DescribeGraphOutput) {
 	}
 }
 
+// filterNodes narrows out.Nodes to the requested ids and their direct
+// upstream nodes. Producers, variables and subgraphs are dropped: a caller
+// asking about specific nodes wants their wiring, not the graph header.
+func filterNodes(out *DescribeGraphOutput, ids []string) error {
+	byID := make(map[string]NodeInstanceSummary, len(out.Nodes))
+	for _, n := range out.Nodes {
+		byID[n.Id] = n
+	}
+
+	keep := map[string]bool{}
+	var missing []string
+	for _, id := range ids {
+		n, ok := byID[id]
+		if !ok {
+			missing = append(missing, id)
+			continue
+		}
+		keep[id] = true
+		for _, ref := range n.AssignedInput {
+			keep[ref.NodeId] = true
+		}
+	}
+	if len(missing) > 0 {
+		sort.Strings(missing)
+		return fmt.Errorf("no node exists with id %s", strings.Join(missing, ", "))
+	}
+
+	filtered := out.Nodes[:0]
+	for _, n := range out.Nodes {
+		if keep[n.Id] {
+			filtered = append(filtered, n)
+		}
+	}
+	out.Nodes = filtered
+	out.Producers = nil
+	out.Variables = nil
+	out.SubGraphs = nil
+	return nil
+}
+
 func (s *Server) describeGraph(ctx context.Context, req *mcpsdk.CallToolRequest, in DescribeGraphInput) (*mcpsdk.CallToolResult, DescribeGraphOutput, error) {
 	var out DescribeGraphOutput
 	var err error
@@ -158,6 +201,11 @@ func (s *Server) describeGraph(ctx context.Context, req *mcpsdk.CallToolRequest,
 		}
 		out = summarizeGraph(inst.Schema())
 		addOpenInputs(inst, &out)
+		if len(in.NodeIds) > 0 {
+			if e := filterNodes(&out, in.NodeIds); e != nil {
+				return e
+			}
+		}
 		out.Name = inst.GetName()
 		out.Description = inst.GetDescription()
 		out.Version = inst.GetVersion()
@@ -300,21 +348,30 @@ func (s *Server) setProducer(ctx context.Context, req *mcpsdk.CallToolRequest, i
 }
 
 type GenerateInput struct {
-	OutputDir string `json:"outputDir" jsonschema:"folder to write every producer's output artifacts into, one subfolder per producer"`
+	OutputDir string `json:"outputDir,omitempty" jsonschema:"folder to write every producer's output artifacts into, one subfolder per producer. Omit while a project is active to write to <project>/dist."`
 }
 
 type GenerateOutput struct {
-	Files []string `json:"files" jsonschema:"paths of every file written"`
+	OutputDir string   `json:"outputDir" jsonschema:"the folder written to"`
+	Files     []string `json:"files" jsonschema:"paths of every file written"`
 }
 
 func (s *Server) generate(ctx context.Context, req *mcpsdk.CallToolRequest, in GenerateInput) (*mcpsdk.CallToolResult, GenerateOutput, error) {
 	var out GenerateOutput
 	var err error
 	s.atomic(&err, func() error {
-		if e := graph.WriteToFolder(s.graph, in.OutputDir); e != nil {
+		dir := in.OutputDir
+		if dir == "" {
+			if s.projectDir == "" {
+				return fmt.Errorf("pass 'outputDir', or start_project first so it can default to <project>/dist")
+			}
+			dir = filepath.Join(s.projectDir, "dist")
+		}
+		out.OutputDir = dir
+		if e := graph.WriteToFolder(s.graph, dir); e != nil {
 			return e
 		}
-		return filepath.Walk(in.OutputDir, func(p string, info os.FileInfo, walkErr error) error {
+		return filepath.Walk(dir, func(p string, info os.FileInfo, walkErr error) error {
 			if walkErr != nil {
 				return walkErr
 			}
@@ -330,7 +387,7 @@ func (s *Server) generate(ctx context.Context, req *mcpsdk.CallToolRequest, in G
 func (s *Server) registerIOTools() {
 	mcpsdk.AddTool(s.sdk, &mcpsdk.Tool{
 		Name:        "describe_graph",
-		Description: "Inspect the current state of the graph (or a subgraph's interior): its name/description/version, every node, its type, connections, and named producers.",
+		Description: "Inspect the current state of the graph (or a subgraph's interior): its name/description/version, every node, its type, connections, and named producers. The full listing is large; pass nodeIds to see just the nodes you care about and what feeds them.",
 	}, s.describeGraph)
 
 	mcpsdk.AddTool(s.sdk, &mcpsdk.Tool{
@@ -360,6 +417,6 @@ func (s *Server) registerIOTools() {
 
 	mcpsdk.AddTool(s.sdk, &mcpsdk.Tool{
 		Name:        "generate",
-		Description: "Execute every manifest-producing output in the graph and write the resulting artifacts to a folder on disk.",
+		Description: "Execute every manifest-producing output in the graph and write the resulting artifacts to a folder on disk. With a project active, no arguments are needed: output goes to <project>/dist.",
 	}, s.generate)
 }

@@ -42,6 +42,7 @@ import (
 	_ "github.com/EliCDavis/polyform/math"
 	_ "github.com/EliCDavis/polyform/math/constant"
 	_ "github.com/EliCDavis/polyform/math/geometry"
+	_ "github.com/EliCDavis/polyform/math/geometry/aabb"
 	_ "github.com/EliCDavis/polyform/math/noise"
 	_ "github.com/EliCDavis/polyform/math/quaternion"
 	_ "github.com/EliCDavis/polyform/math/sdf"
@@ -55,6 +56,7 @@ import (
 
 	_ "github.com/EliCDavis/polyform/modeling"
 	_ "github.com/EliCDavis/polyform/modeling/animation"
+	_ "github.com/EliCDavis/polyform/modeling/csg"
 	_ "github.com/EliCDavis/polyform/modeling/extrude"
 	_ "github.com/EliCDavis/polyform/modeling/marching"
 	_ "github.com/EliCDavis/polyform/modeling/meshops"

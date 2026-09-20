@@ -11,6 +11,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
+	"strings"
 	"sync"
 
 	"github.com/EliCDavis/polyform/generator/graph"
@@ -134,4 +136,44 @@ func (s *Server) resolveScope(scope string) (*graph.Instance, error) {
 		return s.graph, nil
 	}
 	return s.graph.SubGraphInstance(scope)
+}
+
+// explainMissingNode appends, to a graph-layer "no node with id X" error,
+// the scopes that do hold an X. Node ids restart at Node-0 inside every
+// subgraph, so the most common way to hit this is a call that named a
+// subgraph's node and forgot 'scope' - which the bare error reads as the
+// node not existing at all.
+func (s *Server) explainMissingNode(scope, nodeID string, err error) error {
+	if err == nil || nodeID == "" {
+		return err
+	}
+	msg := err.Error()
+	if !strings.Contains(msg, "no node exists with id") && !strings.Contains(msg, "no node registered with ID") {
+		return err
+	}
+	if !strings.Contains(msg, nodeID) {
+		return err
+	}
+
+	var elsewhere []string
+	if scope != "" && s.graph.HasNodeWithId(nodeID) {
+		elsewhere = append(elsewhere, "the root graph")
+	}
+	for id := range s.graph.Schema().SubGraphs {
+		if id == scope {
+			continue
+		}
+		if inst, e := s.graph.SubGraphInstance(id); e == nil && inst.HasNodeWithId(nodeID) {
+			elsewhere = append(elsewhere, fmt.Sprintf("subgraph %q", id))
+		}
+	}
+	if len(elsewhere) == 0 {
+		return err
+	}
+	sort.Strings(elsewhere)
+	where := "the root graph"
+	if scope != "" {
+		where = fmt.Sprintf("subgraph %q", scope)
+	}
+	return fmt.Errorf("%w - not in %s, but %s does have a %s; node ids restart inside every subgraph, so pass the right 'scope'", err, where, strings.Join(elsewhere, " and "), nodeID)
 }

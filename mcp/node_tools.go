@@ -108,6 +108,10 @@ func nodeTypeHaystack(nt schema.NodeType) string {
 	b.WriteString(nt.Path)
 	b.WriteByte(' ')
 	b.WriteString(nt.Info)
+	for _, keyword := range nt.Keywords {
+		b.WriteByte(' ')
+		b.WriteString(keyword)
+	}
 	for name := range nt.Inputs {
 		b.WriteByte(' ')
 		b.WriteString(name)
@@ -363,13 +367,20 @@ func wireCreatedNodeInputs(inst *graph.Instance, node nodes.Node, nodeID string,
 		// Texture") - see resolvePortName's own doc for why this comes up.
 		portName := resolveInputPortName(node, rawPortName)
 
+		if base, _, indexed := splitPortIndex(rawPortName); indexed {
+			if _, isPort := ports[portName]; !isPort {
+				failures = append(failures, fmt.Sprintf("input %q: a new node has no elements to index; pass %q with 'elements' listing every element in order", rawPortName, resolveInputPortName(node, base)))
+				continue
+			}
+		}
+
 		if len(spec.Elements) > 0 {
 			if spec.NodeId != "" || spec.Value != "" || spec.Variable != "" {
 				failures = append(failures, fmt.Sprintf("input %q: use either elements or one of nodeId/value/variable, not both", rawPortName))
 				continue
 			}
 			if _, ok := ports[portName].(nodes.ArrayValueInputPort); !ok {
-				failures = append(failures, fmt.Sprintf("input %q: elements only applies to an array input port", rawPortName))
+				failures = append(failures, fmt.Sprintf("input %q: elements only applies to a port that takes many connections (isArray:true, like Meshes[]); this port takes one connection%s, so pass the whole list as a single value or variable", rawPortName, describePortType(ports[portName])))
 				continue
 			}
 			for i, element := range spec.Elements {
@@ -396,6 +407,14 @@ func wireCreatedNodeInputs(inst *graph.Instance, node nodes.Node, nodeID string,
 		return fmt.Errorf("%s (every other input on this node was wired)", strings.Join(failures, "; "))
 	}
 	return nil
+}
+
+func describePortType(port nodes.InputPort) string {
+	typed, ok := port.(nodes.Typed)
+	if !ok {
+		return ""
+	}
+	return fmt.Sprintf(" of type %s", typed.Type())
 }
 
 // wireOneInput makes a single connection into portName. Called once per
@@ -507,25 +526,49 @@ func (s *Server) createNode(ctx context.Context, req *mcpsdk.CallToolRequest, in
 	return nil, out, err
 }
 
-type DeleteNodeInput struct {
+type DeleteNodeEntry struct {
 	NodeId string `json:"nodeId"`
-	Scope  string `json:"scope,omitempty"`
+	Scope  string `json:"scope,omitempty" jsonschema:"subgraph id this node lives in; omit to use the call's top-level scope"`
+}
+
+type DeleteNodeInput struct {
+	NodeId string            `json:"nodeId,omitempty" jsonschema:"id of the one node to delete; ignored when 'nodes' is set"`
+	Scope  string            `json:"scope,omitempty" jsonschema:"subgraph id the node lives in; omit for the root graph"`
+	Nodes  []DeleteNodeEntry `json:"nodes,omitempty" jsonschema:"delete several nodes in one call, in order. Preferred over one call per node. When set, the single-node fields are ignored."`
 }
 
 type DeleteNodeOutput struct {
-	Deleted bool `json:"deleted"`
+	Deleted int `json:"deleted"`
 }
 
 func (s *Server) deleteNode(ctx context.Context, req *mcpsdk.CallToolRequest, in DeleteNodeInput) (*mcpsdk.CallToolResult, DeleteNodeOutput, error) {
+	entries := in.Nodes
+	if len(entries) == 0 {
+		if in.NodeId == "" {
+			return nil, DeleteNodeOutput{}, fmt.Errorf("pass 'nodeId' or a 'nodes' list")
+		}
+		entries = []DeleteNodeEntry{{NodeId: in.NodeId, Scope: in.Scope}}
+	}
+
 	var out DeleteNodeOutput
 	var err error
 	s.atomic(&err, func() error {
-		inst, e := s.resolveScope(in.Scope)
-		if e != nil {
-			return e
+		for i, entry := range entries {
+			scope := entry.Scope
+			if scope == "" {
+				scope = in.Scope
+			}
+			inst, e := s.resolveScope(scope)
+			if e != nil {
+				return fmt.Errorf("node %d (%s): %w", i, entry.NodeId, e)
+			}
+			if !inst.HasNodeWithId(entry.NodeId) {
+				return s.explainMissingNode(scope, entry.NodeId,
+					fmt.Errorf("node %d: can't delete, no node registered with ID %s", i, entry.NodeId))
+			}
+			inst.DeleteNodeById(entry.NodeId)
+			out.Deleted++
 		}
-		inst.DeleteNodeById(in.NodeId)
-		out.Deleted = true
 		return nil
 	})
 	return nil, out, err
@@ -533,20 +576,22 @@ func (s *Server) deleteNode(ctx context.Context, req *mcpsdk.CallToolRequest, in
 
 // NodeConnection is one edge in a connect_nodes batch.
 type NodeConnection struct {
-	OutNodeId string `json:"outNodeId" jsonschema:"id of the node providing the value"`
-	OutPort   string `json:"outPort" jsonschema:"name of the output port on outNodeId"`
+	OutNodeId string `json:"outNodeId,omitempty" jsonschema:"id of the node providing the value; mutually exclusive with 'variable'"`
+	OutPort   string `json:"outPort,omitempty" jsonschema:"name of the output port on outNodeId; required when outNodeId is set"`
+	Variable  string `json:"variable,omitempty" jsonschema:"path of an existing variable to feed the input instead of a node; a reference node is created and wired in, and follows the variable's value from then on. Mutually exclusive with outNodeId/outPort."`
 	InNodeId  string `json:"inNodeId" jsonschema:"id of the node receiving the value"`
-	InPort    string `json:"inPort" jsonschema:"name of the input port on inNodeId"`
+	InPort    string `json:"inPort" jsonschema:"input port on inNodeId. A single-value port is replaced; a bare array port name appends; 'Port.N' replaces element N in place."`
 	Scope     string `json:"scope,omitempty" jsonschema:"subgraph id both nodes live in; omit to use the call's top-level scope"`
 }
 
 type ConnectNodesInput struct {
 	Connections []NodeConnection `json:"connections,omitempty" jsonschema:"wire several edges in one call, in order. Preferred over one call per edge. When set, the single-edge fields are ignored."`
 
-	OutNodeId string `json:"outNodeId,omitempty" jsonschema:"id of the node providing the value"`
-	OutPort   string `json:"outPort,omitempty" jsonschema:"name of the output port on outNodeId"`
+	OutNodeId string `json:"outNodeId,omitempty" jsonschema:"id of the node providing the value; mutually exclusive with 'variable'"`
+	OutPort   string `json:"outPort,omitempty" jsonschema:"name of the output port on outNodeId; required when outNodeId is set"`
+	Variable  string `json:"variable,omitempty" jsonschema:"path of an existing variable to feed the input instead of a node; a reference node is created and wired in, and follows the variable's value from then on. Mutually exclusive with outNodeId/outPort."`
 	InNodeId  string `json:"inNodeId,omitempty" jsonschema:"id of the node receiving the value"`
-	InPort    string `json:"inPort,omitempty" jsonschema:"input port on inNodeId. A single-value port is replaced; an array port appends. Use disconnect with 'Port.N' to remove one element."`
+	InPort    string `json:"inPort,omitempty" jsonschema:"input port on inNodeId. A single-value port is replaced; a bare array port name appends; 'Port.N' replaces element N in place. Use disconnect with 'Port.N' to remove one element."`
 	Scope     string `json:"scope,omitempty" jsonschema:"subgraph id both nodes live in; omit for the root graph"`
 }
 
@@ -567,12 +612,13 @@ func (s *Server) connectNodes(ctx context.Context, req *mcpsdk.CallToolRequest, 
 
 		connections := in.Connections
 		if len(connections) == 0 {
-			if in.OutNodeId == "" && in.InNodeId == "" {
-				return fmt.Errorf("pass either 'connections' or a single outNodeId/outPort/inNodeId/inPort")
+			if in.OutNodeId == "" && in.Variable == "" && in.InNodeId == "" {
+				return fmt.Errorf("pass either 'connections' or a single outNodeId/outPort (or variable) plus inNodeId/inPort")
 			}
 			connections = []NodeConnection{{
 				OutNodeId: in.OutNodeId,
 				OutPort:   in.OutPort,
+				Variable:  in.Variable,
 				InNodeId:  in.InNodeId,
 				InPort:    in.InPort,
 				Scope:     in.Scope,
@@ -597,17 +643,38 @@ func (s *Server) connectNodes(ctx context.Context, req *mcpsdk.CallToolRequest, 
 				if e != nil {
 					return e
 				}
-				outPort := resolveOutputPortName(inst.Node(c.OutNodeId), c.OutPort)
-				inPort := resolveInputPortName(inst.Node(c.InNodeId), c.InPort)
-				inst.ConnectNodes(c.OutNodeId, outPort, c.InNodeId, inPort)
+				outNodeID, outPort := c.OutNodeId, c.OutPort
+				switch {
+				case c.Variable != "" && c.OutNodeId != "":
+					return fmt.Errorf("pass either outNodeId/outPort or variable, not both")
+				case c.Variable != "":
+					_, varNodeID, e := inst.CreateNode(c.Variable)
+					if e != nil {
+						return fmt.Errorf("no variable at path %q: %w", c.Variable, e)
+					}
+					outNodeID, outPort = varNodeID, "Value"
+				case c.OutPort == "":
+					return fmt.Errorf("outPort is required when outNodeId is set")
+				default:
+					outPort = resolveOutputPortName(inst.Node(c.OutNodeId), c.OutPort)
+				}
+				inPort := resolveInputPortNameWithIndex(inst.Node(c.InNodeId), c.InPort)
+				inst.ConnectNodes(outNodeID, outPort, c.InNodeId, inPort)
 				return nil
 			}()
 			if e != nil {
+				for _, id := range []string{c.OutNodeId, c.InNodeId} {
+					e = s.explainMissingNode(scope, id, e)
+				}
 				if !batched {
 					return e
 				}
-				out.Errors = append(out.Errors, fmt.Sprintf("connection %d (%s.%s -> %s.%s): %v",
-					i, c.OutNodeId, c.OutPort, c.InNodeId, c.InPort, e))
+				source := c.OutNodeId + "." + c.OutPort
+				if c.Variable != "" {
+					source = "variable " + c.Variable
+				}
+				out.Errors = append(out.Errors, fmt.Sprintf("connection %d (%s -> %s.%s): %v",
+					i, source, c.InNodeId, c.InPort, e))
 				continue
 			}
 			out.Made++
@@ -625,7 +692,8 @@ type DisconnectInput struct {
 }
 
 type DisconnectOutput struct {
-	Disconnected bool `json:"disconnected"`
+	Disconnected bool                   `json:"disconnected"`
+	Remaining    []PortReferenceSummary `json:"remaining,omitempty" jsonschema:"for an array port: what is still wired in, in order, after the removal. Index i here is now 'Port.i'."`
 }
 
 func (s *Server) disconnect(ctx context.Context, req *mcpsdk.CallToolRequest, in DisconnectInput) (*mcpsdk.CallToolResult, DisconnectOutput, error) {
@@ -636,9 +704,24 @@ func (s *Server) disconnect(ctx context.Context, req *mcpsdk.CallToolRequest, in
 		if e != nil {
 			return e
 		}
-		port := resolveInputPortNameWithIndex(inst.Node(in.NodeId), in.Port)
+		if !inst.HasNodeWithId(in.NodeId) {
+			return s.explainMissingNode(in.Scope, in.NodeId, fmt.Errorf("no node exists with id %q", in.NodeId))
+		}
+		node := inst.Node(in.NodeId)
+		port := resolveInputPortNameWithIndex(node, in.Port)
 		inst.DeleteNodeInputConnection(in.NodeId, port)
 		out.Disconnected = true
+
+		base, _, _ := splitPortIndex(port)
+		if array, ok := node.Inputs()[base].(nodes.ArrayValueInputPort); ok {
+			out.Remaining = []PortReferenceSummary{}
+			for _, element := range array.Value() {
+				out.Remaining = append(out.Remaining, PortReferenceSummary{
+					NodeId: inst.NodeId(element.Node()),
+					Port:   element.Name(),
+				})
+			}
+		}
 		return nil
 	})
 	return nil, out, err
@@ -829,6 +912,7 @@ func (s *Server) setParameter(ctx context.Context, req *mcpsdk.CallToolRequest, 
 				return setOneParameter(inst, a.NodeId, a.Port, a.Value)
 			}()
 			if e != nil {
+				e = s.explainMissingNode(scope, a.NodeId, e)
 				if !batched {
 					return e
 				}
@@ -875,22 +959,22 @@ func (s *Server) registerNodeTools() {
 
 	mcpsdk.AddTool(s.sdk, &mcpsdk.Tool{
 		Name:        "delete_node",
-		Description: "Delete a node, clearing any connections other nodes had to it.",
+		Description: "Delete a node, clearing any connections other nodes had to it. Pass 'nodes' to delete many in one call (each with its own scope); the single-node fields are then ignored. Deleting a node does not delete what fed it - list the whole dead chain.",
 	}, s.deleteNode)
 
 	mcpsdk.AddTool(s.sdk, &mcpsdk.Tool{
 		Name:        "connect_nodes",
-		Description: "Connect one node's output port to another's input port. Connecting into an array port appends rather than replaces, so repeated calls build it up in order. A connection that would create a cycle is refused. Pass 'connections' to make many in one call; the single-edge fields are then ignored.",
+		Description: "Connect one node's output port to another's input port. Connecting into a bare array port name appends; 'Port.N' sets element N in place (or appends when N is the next free slot; anything beyond is an error), so an existing element can be swapped without renumbering the rest. A connection that would create a cycle is refused. The source may be a variable (by path) instead of a node. Pass 'connections' to make many in one call; the single-edge fields are then ignored.",
 	}, s.connectNodes)
 
 	mcpsdk.AddTool(s.sdk, &mcpsdk.Tool{
 		Name:        "disconnect",
-		Description: "Remove an existing connection from a node's input port.",
+		Description: "Remove an existing connection from a node's input port. Removing 'Port.N' from an array port shifts every later element down by one; the result lists what remains, in their new positions, so a later 'Port.N' can be addressed from the reply instead of from memory.",
 	}, s.disconnect)
 
 	mcpsdk.AddTool(s.sdk, &mcpsdk.Tool{
 		Name:        "set_parameter",
-		Description: "Set the literal value held by a parameter node, addressed by its own node id, or by 'nodeId' plus 'port' to set whatever feeds that port (wiring a literal in if the port is empty). Pass 'parameters' to set many values in one call; the single-value fields are then ignored.",
+		Description: "Set the literal value held by a parameter node, addressed by its own node id, or by 'nodeId' plus 'port' to set whatever feeds that port (wiring a literal in if the port is empty). A port fed by a computing node (not a literal) is refused, never silently replaced: disconnect it first, or set the literal upstream of it. Pass 'parameters' to set many values in one call; the single-value fields are then ignored.",
 	}, s.setParameter)
 }
 
@@ -937,83 +1021,107 @@ func (s *Server) createNodes(ctx context.Context, req *mcpsdk.CallToolRequest, i
 			return e
 		}
 
-		label := func(i int) string {
-			if in.Nodes[i].Alias != "" {
-				return in.Nodes[i].Alias
-			}
-			return strconv.Itoa(i)
-		}
-
-		seen := make(map[string]int, len(in.Nodes))
-		for i, entry := range in.Nodes {
-			if entry.Alias == "" {
-				continue
-			}
-			if prev, dup := seen[entry.Alias]; dup {
-				return fmt.Errorf("alias %q used by both entry %d and entry %d; aliases must be unique within a batch", entry.Alias, prev, i)
-			}
-			seen[entry.Alias] = i
-		}
-
-		out.Nodes = make(map[string]string, len(in.Nodes))
-		created := make([]nodes.Node, len(in.Nodes))
-		ids := make([]string, len(in.Nodes))
-
-		for i, entry := range in.Nodes {
-			node, id, e := inst.CreateNode(entry.Type)
-			if e != nil {
-				out.Errors = append(out.Errors, fmt.Sprintf("entry %s: %v", label(i), s.explainCreateFailure(entry.Type, e)))
-				continue
-			}
-			created[i], ids[i] = node, id
-			out.Nodes[label(i)] = id
-		}
-
-		// Second pass: every id exists now, so an entry can reference an
-		// alias regardless of where it sits in the list.
-		for i, entry := range in.Nodes {
-			if created[i] == nil {
-				continue
-			}
-
-			// Wiring reaches inst.ConnectNodes, which panics rather than
-			// returning an error for things like an unknown node id. Left
-			// unrecovered that panic escapes to s.atomic and fails the
-			// whole call, which discards the structured content - taking
-			// down every id the batch just created, the exact outcome the
-			// per-entry errors field exists to avoid.
-			e := func() (e error) {
-				defer func() {
-					if r := recover(); r != nil {
-						e = fmt.Errorf("%v", r)
-					}
-				}()
-				// Wire whatever resolved even when some references
-				// didn't, so one stale alias can't silently strip a node
-				// of every other input it was given.
-				resolved, resolveErr := resolveAliasedInputs(entry.Inputs, out.Nodes, seen, inst)
-				wireErr := wireCreatedNodeInputs(inst, created[i], ids[i], resolved)
-
-				problems := []string{}
-				if resolveErr != nil {
-					problems = append(problems, resolveErr.Error())
-				}
-				if wireErr != nil {
-					problems = append(problems, wireErr.Error())
-				}
-				if len(problems) == 0 {
-					return nil
-				}
-				return fmt.Errorf("%s (every other input on this node was wired)",
-					strings.Join(problems, "; "))
-			}()
-			if e != nil {
-				out.Errors = append(out.Errors, fmt.Sprintf("entry %s: %v", label(i), e))
-			}
-		}
-		return nil
+		var e2 error
+		out.Nodes, out.Errors, e2 = s.createNodeBatch(inst, in.Nodes, nil)
+		return e2
 	})
 	return nil, out, err
+}
+
+// createNodeBatch creates every entry, then wires them, so entries can
+// reference each other's aliases in any order. aliases seeds the alias
+// map with names already bound to node ids (create_subgraph passes its
+// boundary ports this way); those names are reserved, and an entry that
+// reuses one is a hard error since the reference would be ambiguous.
+func (s *Server) createNodeBatch(inst *graph.Instance, entries []CreateNodesEntry, aliases map[string]string) (map[string]string, []string, error) {
+	var errs []string
+
+	label := func(i int) string {
+		if entries[i].Alias != "" {
+			return entries[i].Alias
+		}
+		return strconv.Itoa(i)
+	}
+
+	seen := make(map[string]int, len(entries))
+	for i, entry := range entries {
+		if entry.Alias == "" {
+			continue
+		}
+		if _, reserved := aliases[entry.Alias]; reserved {
+			return nil, nil, fmt.Errorf("alias %q on entry %d is already the name of a boundary port; pick another", entry.Alias, i)
+		}
+		if prev, dup := seen[entry.Alias]; dup {
+			return nil, nil, fmt.Errorf("alias %q used by both entry %d and entry %d; aliases must be unique within a batch", entry.Alias, prev, i)
+		}
+		seen[entry.Alias] = i
+	}
+
+	named := make(map[string]string, len(entries)+len(aliases))
+	for k, v := range aliases {
+		named[k] = v
+	}
+	created := make([]nodes.Node, len(entries))
+	ids := make([]string, len(entries))
+
+	for i, entry := range entries {
+		node, id, e := inst.CreateNode(entry.Type)
+		if e != nil {
+			errs = append(errs, fmt.Sprintf("entry %s: %v", label(i), s.explainCreateFailure(entry.Type, e)))
+			continue
+		}
+		created[i], ids[i] = node, id
+		named[label(i)] = id
+	}
+
+	// Second pass: every id exists now, so an entry can reference an
+	// alias regardless of where it sits in the list.
+	for i, entry := range entries {
+		if created[i] == nil {
+			continue
+		}
+
+		// Wiring reaches inst.ConnectNodes, which panics rather than
+		// returning an error for things like an unknown node id. Left
+		// unrecovered that panic escapes to s.atomic and fails the
+		// whole call, which discards the structured content - taking
+		// down every id the batch just created, the exact outcome the
+		// per-entry errors field exists to avoid.
+		e := func() (e error) {
+			defer func() {
+				if r := recover(); r != nil {
+					e = fmt.Errorf("%v", r)
+				}
+			}()
+			// Wire whatever resolved even when some references
+			// didn't, so one stale alias can't silently strip a node
+			// of every other input it was given.
+			resolved, resolveErr := resolveAliasedInputs(entry.Inputs, named, seen, inst)
+			wireErr := wireCreatedNodeInputs(inst, created[i], ids[i], resolved)
+
+			// wireErr already carries the "every other input was
+			// wired" suffix; only the alias failures need it added.
+			switch {
+			case resolveErr != nil && wireErr != nil:
+				return fmt.Errorf("%s; %w", resolveErr, wireErr)
+			case resolveErr != nil:
+				return fmt.Errorf("%s (every other input on this node was wired)", resolveErr)
+			default:
+				return wireErr
+			}
+		}()
+		if e != nil {
+			errs = append(errs, fmt.Sprintf("entry %s: %v", label(i), e))
+		}
+	}
+
+	result := make(map[string]string, len(entries))
+	for i := range entries {
+		if created[i] != nil {
+			result[label(i)] = ids[i]
+		}
+	}
+	return result, errs, nil
 }
 
 // resolveAliasedInputs rewrites any nodeId naming a batch alias into the

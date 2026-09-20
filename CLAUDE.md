@@ -23,3 +23,8 @@ For building or editing an actual 3D model/scene, prefer spawning the
 `polyform-orchestrator` (or `polyform-part-builder` for a single
 substantial part) subagent over calling the tools directly — see that
 file's own header for when each is appropriate.
+
+A spawned subagent can't reach `SendUserFile`, so the orchestrator lists
+its render paths under a `Renders:` heading in its final report. When that
+report comes back, `SendUserFile` those paths to the user yourself, with
+their captions — the render is the deliverable, not the report.

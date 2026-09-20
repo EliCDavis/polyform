@@ -30,6 +30,7 @@ import (
 	_ "github.com/EliCDavis/polyform/math"
 	_ "github.com/EliCDavis/polyform/math/curves"
 	_ "github.com/EliCDavis/polyform/math/geometry"
+	_ "github.com/EliCDavis/polyform/math/geometry/aabb"
 	_ "github.com/EliCDavis/polyform/math/quaternion"
 	_ "github.com/EliCDavis/polyform/math/sdf"
 	_ "github.com/EliCDavis/polyform/math/sequence"
@@ -37,6 +38,7 @@ import (
 	_ "github.com/EliCDavis/polyform/math/trs"
 	_ "github.com/EliCDavis/polyform/math/vector3"
 	_ "github.com/EliCDavis/polyform/modeling"
+	_ "github.com/EliCDavis/polyform/modeling/csg"
 	_ "github.com/EliCDavis/polyform/modeling/extrude"
 	_ "github.com/EliCDavis/polyform/modeling/marching"
 	_ "github.com/EliCDavis/polyform/modeling/primitives"
@@ -266,8 +268,8 @@ func TestSearchFindsNodesByIntent(t *testing.T) {
 		// size variables. Searching "aabb" found only the literal parameter
 		// node, so the log showed a successful search and the gap was
 		// invisible until the agent reported it.
-		{"aabb from center size", "math/geometry.AABBNode"},
-		{"bounding box construct", "math/geometry.AABBNode"},
+		{"aabb from center size", "math/geometry/aabb.NewNode"},
+		{"bounding box construct", "math/geometry/aabb.NewNode"},
 	}
 
 	for _, tc := range cases {
@@ -539,7 +541,7 @@ func TestCreateAndConnectNodes(t *testing.T) {
 
 	var del polyformmcp.DeleteNodeOutput
 	callTool(t, session, "delete_node", map[string]any{"nodeId": cube.NodeId}, &del)
-	require.True(t, del.Deleted)
+	require.Equal(t, 1, del.Deleted)
 }
 
 // TestConnectNodesRejectsSelfCycle covers a silent footgun: connecting a
@@ -706,6 +708,22 @@ func TestSubgraphComposition(t *testing.T) {
 	var desc polyformmcp.DescribeGraphOutput
 	callTool(t, session, "describe_graph", map[string]any{}, &desc)
 	require.Len(t, desc.Nodes, 2)
+
+	res, err := session.CallTool(context.Background(), &mcpsdk.CallToolParams{
+		Name:      "delete_subgraph",
+		Arguments: map[string]any{"id": "wheel"},
+	})
+	require.NoError(t, err)
+	require.True(t, res.IsError, "a subgraph with live instances must not be deletable")
+
+	callTool(t, session, "delete_node", map[string]any{
+		"nodes": []map[string]any{{"nodeId": inst1.NodeId}, {"nodeId": inst2.NodeId}},
+	}, nil)
+	var del polyformmcp.DeleteSubgraphOutput
+	callTool(t, session, "delete_subgraph", map[string]any{"id": "wheel"}, &del)
+	require.True(t, del.Deleted)
+	callTool(t, session, "list_subgraphs", map[string]any{}, &list)
+	require.Empty(t, list.Subgraphs)
 }
 
 func TestSetGraphInfo(t *testing.T) {
@@ -1351,15 +1369,15 @@ func TestCreateNodeInputsRejectsUnknownPort(t *testing.T) {
 func TestCreateNodeInputsRejectsUnsupportedLiteralType(t *testing.T) {
 	session := testSession(t)
 
-	// gltf.ModelNode's Rotation input is a quaternion.Quaternion, which
-	// has no registered generator/parameter.Value[T] instantiation — the
-	// tool should fail clearly rather than silently skip the wiring.
+	// gltf.ModelNode's Material input is a gltf.PolyformMaterial, which has
+	// no registered generator/parameter.Value[T] instantiation — the tool
+	// should fail clearly rather than silently skip the wiring.
 	res, err := session.CallTool(context.Background(), &mcpsdk.CallToolParams{
 		Name: "create_node",
 		Arguments: map[string]any{
 			"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.ModelNode]",
 			"inputs": map[string]any{
-				"Rotation": map[string]any{"value": `{"x":0,"y":0,"z":0,"w":1}`},
+				"Material": map[string]any{"value": `{}`},
 			},
 		},
 	})

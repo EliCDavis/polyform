@@ -64,7 +64,7 @@ type StartProjectInput struct {
 type StartProjectOutput struct {
 	Path                string `json:"path"`
 	AutosavePath        string `json:"autosavePath" jsonschema:"where the graph will be continuously autosaved from now on - not meant to be loaded directly, it's overwritten after every call; see recoveredFrom for a one-time exception"`
-	RecoveredFrom       string `json:"recoveredFrom,omitempty" jsonschema:"set only if an autosave already existed at this path from a previous session - it's been moved here (out of the way of future autosaves) so it's safe to load_graph and resume, instead of starting the build over"`
+	RecoveredFrom       string `json:"recoveredFrom,omitempty" jsonschema:"set whenever an autosave already existed at this path - it's been moved here, out of the way of future autosaves. This is normal on a deliberate resume of a cleanly saved project, not a sign of a crash: if you already have a saved graph.json, load that; load this only when the last save may have been lost"`
 	RecoveredModifiedAt string `json:"recoveredModifiedAt,omitempty" jsonschema:"last-modified time (RFC3339) of the recovered autosave, so staleness can be judged before deciding to resume it"`
 }
 
@@ -101,6 +101,6 @@ func (s *Server) startProject(ctx context.Context, req *mcpsdk.CallToolRequest, 
 func (s *Server) registerProjectTools() {
 	mcpsdk.AddTool(s.sdk, &mcpsdk.Tool{
 		Name:        "start_project",
-		Description: "Start (or resume) a project directory for this build. While active, the graph is autosaved to a fixed file in this directory after every successful tool call - crash/token-exhaustion insurance beyond whatever was last saved with save_graph. If an autosave already exists here from an earlier session, it's reported back (recoveredFrom) instead of being silently overwritten - load_graph it to resume that work rather than rebuilding from scratch.",
+		Description: "Start (or resume) a project directory for this build. While active, the graph is autosaved to a fixed file in this directory after every successful tool call - crash/token-exhaustion insurance beyond whatever was last saved with save_graph. If an autosave already exists here from an earlier session, it's moved aside and reported back (recoveredFrom) instead of being silently overwritten. That happens on every resume, clean or not; load_graph your saved graph.json if you have one, and fall back to the recovered autosave only if the last save was lost.",
 	}, s.startProject)
 }

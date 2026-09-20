@@ -10,7 +10,9 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/formats/gltf"
+	"github.com/EliCDavis/polyform/math/mat"
 	"github.com/EliCDavis/polyform/math/trs"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/nodes"
@@ -135,19 +137,19 @@ func modelProducedBy(node nodes.Node) (*gltf.PolyformModel, error) {
 // TRS the same way the real glTF writer does
 // (formats/gltf/model_trackers.go's instancesCachce.Add:
 // model.TRS.Multiply(instance)), not as an additional single draw.
-func flattenModel(model *gltf.PolyformModel, parent trs.TRS, out *[]renderablePart, excluded map[*gltf.PolyformModel]bool) {
+func flattenModel(model *gltf.PolyformModel, parent mat.Matrix4x4, out *[]renderablePart, excluded map[*gltf.PolyformModel]bool) {
 	if excluded[model] {
 		return
 	}
 
-	local := trs.Identity()
+	local := mat.Identity()
 	if model.TRS != nil {
-		local = *model.TRS
+		local = model.TRS.Matrix()
 	}
 
 	if len(model.GpuInstances) > 0 {
 		for _, instance := range model.GpuInstances {
-			flattenModelAt(model, parent.Multiply(local.Multiply(instance)), out, excluded)
+			flattenModelAt(model, parent.Multiply(local).Multiply(instance.Matrix()), out, excluded)
 		}
 		return
 	}
@@ -159,13 +161,13 @@ func flattenModel(model *gltf.PolyformModel, parent trs.TRS, out *[]renderablePa
 // an already-fully-composed world transform - the per-instance body of
 // flattenModel, factored out so a GpuInstances-bearing model can call it
 // once per instance instead of once total.
-func flattenModelAt(model *gltf.PolyformModel, world trs.TRS, out *[]renderablePart, excluded map[*gltf.PolyformModel]bool) {
+func flattenModelAt(model *gltf.PolyformModel, world mat.Matrix4x4, out *[]renderablePart, excluded map[*gltf.PolyformModel]bool) {
 	// An empty mesh has no Position attribute, and transforming one panics
 	// deep in meshops with a message that names neither the model nor the
 	// node that produced it. Skipping it here lets the caller report which
 	// models were empty instead.
 	if model.Mesh != nil && model.Mesh.HasFloat3Attribute(modeling.PositionAttribute) {
-		baked := model.Mesh.ApplyTRS(world)
+		baked := bakeTransform(*model.Mesh, world)
 		color, explicit := materialColor(model.Material)
 		*out = append(*out, renderablePart{
 			Mesh:          baked,
@@ -178,6 +180,21 @@ func flattenModelAt(model *gltf.PolyformModel, world trs.TRS, out *[]renderableP
 	for _, child := range model.Children {
 		flattenModel(child, world, out, excluded)
 	}
+}
+
+// Composed transforms can shear, which no TRS holds, so positions go through
+// the matrix itself. Normals only follow when the matrix decomposes cleanly;
+// a sheared instance keeps its authored normals, which is fine for a preview.
+func bakeTransform(mesh modeling.Mesh, world mat.Matrix4x4) modeling.Mesh {
+	if t, err := trs.FromMatrix(world); err == nil {
+		return mesh.ApplyTRS(t)
+	}
+	positions := mesh.Float3Attribute(modeling.PositionAttribute)
+	moved := make([]vector3.Float64, positions.Len())
+	for i := range moved {
+		moved[i] = world.MulPosition(positions.At(i))
+	}
+	return mesh.SetFloat3Attribute(modeling.PositionAttribute, moved)
 }
 
 // azimuthElevationDirection returns the unit vector from a target toward a
@@ -280,7 +297,14 @@ func (s previewShader) Fragment(v fauxgl.Vertex) fauxgl.Color {
 // Reinhard over a fixed exposure does that in one cheap step. It only
 // touches model pixels; the background comes from the cleared buffer and
 // keeps its exact color.
-const previewExposure = 3.0
+//
+// Material factors and vertex colors are linear in glTF, and every viewer
+// applies the sRGB transfer curve on output. Skipping that curve here made a
+// #c8322f collar preview as the saturated red of the hex while the exported
+// GLB showed pale salmon - a whole session tuned colors against the wrong
+// picture. The curve lifts midtones on its own, so the exposure that used to
+// stand in for it comes down.
+const previewExposure = 1.6
 
 func toneMap(c fauxgl.Color) fauxgl.Color {
 	// Compress luminance and carry the color along at the same ratio.
@@ -293,19 +317,19 @@ func toneMap(c fauxgl.Color) fauxgl.Color {
 	exposed := lum * previewExposure
 	scale := (exposed / (1 + exposed)) / lum
 
-	clamp := func(v float64) float64 {
+	encode := func(v float64) float64 {
 		if v > 1 {
-			return 1
+			v = 1
 		}
 		if v < 0 {
-			return 0
+			v = 0
 		}
-		return v
+		return coloring.LinearToSRGB(v)
 	}
 	return fauxgl.Color{
-		R: clamp(c.R * scale),
-		G: clamp(c.G * scale),
-		B: clamp(c.B * scale),
+		R: encode(c.R * scale),
+		G: encode(c.G * scale),
+		B: encode(c.B * scale),
 		A: c.A,
 	}
 }
@@ -419,7 +443,7 @@ func (s *Server) renderPreview(ctx context.Context, req *mcpsdk.CallToolRequest,
 			if !ok || modelOut.Value() == nil {
 				continue
 			}
-			flattenModel(modelOut.Value(), trs.Identity(), &parts, excluded)
+			flattenModel(modelOut.Value(), mat.Identity(), &parts, excluded)
 		}
 		if len(parts) == 0 {
 			return fmt.Errorf("no renderable meshes found feeding node %q (excluding %d node(s)). Every model reaching it is empty - if any come from a March node, that usually means its Resolution is too low for its Domain (voxel size is 1/Resolution, and must be smaller than the domain) or the field never crosses the surface inside the domain", in.NodeId, len(in.Exclude))
@@ -573,6 +597,6 @@ func (s *Server) renderPreview(ctx context.Context, req *mcpsdk.CallToolRequest,
 func (s *Server) registerRenderTools() {
 	mcpsdk.AddTool(s.sdk, &mcpsdk.Tool{
 		Name:        "render_preview",
-		Description: "Rasterize a fast preview PNG of a gltf Manifest/Model scene with a CPU rasterizer. Surface color is the mesh's per-vertex \"Color\" attribute multiplied by the material's BaseColorFactor (as glTF combines COLOR_0 with baseColorFactor), or the flat factor alone with no vertex colors; a ColorTexture replaces both where the mesh has UVs, and is NOT multiplied by the factor here as a real viewer would, so keep a textured part's factor white. Output is tone mapped, so a near-black surface still shows readable form rather than a flat silhouette; it will look lighter than its raw color, which is what a real viewer shows too. With no views, auto-frames one default angle - use that for routine checkpoints. Pass views to composite several angles into one grid image, or target+zoom to inspect a detail. Pass exclude (node ids of Model-producing nodes) to drop parts from just this render, the non-destructive way to find which part causes a defect; it applies to nested Children as well as top-level Models, and an id that isn't a part is an error rather than a silently identical render.",
+		Description: "Rasterize a fast preview PNG of a gltf Manifest/Model scene with a CPU rasterizer. Surface color is the mesh's per-vertex \"Color\" attribute multiplied by the material's BaseColorFactor (as glTF combines COLOR_0 with baseColorFactor), or the flat factor alone with no vertex colors; a ColorTexture replaces both where the mesh has UVs, and is NOT multiplied by the factor here as a real viewer would, so keep a textured part's factor white. Colors are treated as glTF does - linear multipliers, then sRGB-encoded on output - so the preview matches a real viewer: a raw hex pick like #c8322f renders pale (it is being read as linear); run screen-picked colors through coloring.SRGBToLinearNode (single colors) or meshops.SrgbToLinearNode (a vertex Color attribute) to get the color you see in the hex. Output is also tone mapped, so a near-black surface still shows readable form rather than a flat silhouette. With no views, auto-frames one default angle - use that for routine checkpoints. Pass views to composite several angles into one grid image, or target+zoom to inspect a detail. Pass exclude (node ids of Model-producing nodes) to drop parts from just this render, the non-destructive way to find which part causes a defect; it applies to nested Children as well as top-level Models, and an id that isn't a part is an error rather than a silently identical render.",
 	}, s.renderPreview)
 }

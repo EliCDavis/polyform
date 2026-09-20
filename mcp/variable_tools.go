@@ -5,64 +5,22 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
-	"strings"
 
-	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/generator/schema"
 	"github.com/EliCDavis/polyform/generator/variable"
-	"github.com/EliCDavis/polyform/math/geometry"
-	"github.com/EliCDavis/vector/vector2"
-	"github.com/EliCDavis/vector/vector3"
+	"github.com/EliCDavis/polyform/generator/variable/variabletypes"
 	mcpsdk "github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-// variableTypeKeys documents (and NewTypedVariable enforces) the set of
-// variable types this server knows how to construct. It mirrors the
-// VariableFactory wired up in cmd/polyform-mcp/main.go, which is what lets
-// load_graph reconstruct variables from an existing graph file, so the two
-// must stay in sync.
-const variableTypeKeys = "float64, string, int, bool, vector2.vector[float64], vector2.vector[int], vector3.vector[float64], vector3.vector[int], []vector3.vector[float64], geometry.aabb, coloring.color, image.image, file"
-
-// NewTypedVariable constructs an empty variable.Variable for the given type
-// key. It's exported so cmd/polyform-mcp/main.go can also use it as the
-// graph.Config.VariableFactory, keeping variable creation (this file) and
-// variable deserialization (on load_graph) backed by the same type table.
+// NewTypedVariable is the same table the editor uses, so anything a graph
+// file from either app can hold, load_graph can reconstruct.
 func NewTypedVariable(typeKey string) (variable.Variable, error) {
-	switch strings.ToLower(typeKey) {
-	case "float64":
-		return &variable.TypeVariable[float64]{}, nil
-	case "string":
-		return &variable.TypeVariable[string]{}, nil
-	case "int":
-		return &variable.TypeVariable[int]{}, nil
-	case "bool":
-		return &variable.TypeVariable[bool]{}, nil
-	case "vector2.vector[float64]":
-		return &variable.TypeVariable[vector2.Float64]{}, nil
-	case "vector2.vector[int]":
-		return &variable.TypeVariable[vector2.Int]{}, nil
-	case "vector3.vector[float64]":
-		return &variable.TypeVariable[vector3.Float64]{}, nil
-	case "vector3.vector[int]":
-		return &variable.TypeVariable[vector3.Int]{}, nil
-	case "[]vector3.vector[float64]":
-		return &variable.TypeVariable[[]vector3.Float64]{}, nil
-	case "geometry.aabb":
-		return &variable.TypeVariable[geometry.AABB]{}, nil
-	case "coloring.color":
-		return &variable.TypeVariable[coloring.Color]{}, nil
-	case "image.image":
-		return &variable.ImageVariable{}, nil
-	case "file":
-		return &variable.FileVariable{}, nil
-	default:
-		return nil, fmt.Errorf("unsupported variable type %q, expected one of: %s", typeKey, variableTypeKeys)
-	}
+	return variabletypes.New(typeKey)
 }
 
 type CreateVariableInput struct {
 	Path        string `json:"path" jsonschema:"unique variable path, e.g. 'Radius'; this is also the type key passed to create_node to place a reference to this variable in the graph"`
-	Type        string `json:"type" jsonschema:"one of: float64, string, int, bool, vector2.vector[float64], vector2.vector[int], vector3.vector[float64], vector3.vector[int], []vector3.vector[float64], geometry.aabb, coloring.color, image.image, file"`
+	Type        string `json:"type" jsonschema:"one of: float64, int, string, bool, vector2.Vector[float64], vector2.Vector[int], vector3.Vector[float64], vector3.Vector[int], vector4.Vector[float64], []float64, []int, []string, []vector2.Vector[float64], []vector2.Vector[int], []vector3.Vector[float64], []vector3.Vector[int], geometry.AABB, quaternion.Quaternion, trs.TRS, []trs.TRS, coloring.Color, []coloring.Color, coloring.Gradient[github.com/EliCDavis/polyform/drawing/coloring.Color], image.Image, file"`
 	Description string `json:"description,omitempty" jsonschema:"shown to whoever edits this variable's value later; explain what it controls"`
 	Value       string `json:"value,omitempty" jsonschema:"literal JSON text for the initial value, e.g. 5, \"red\", {\"x\":1,\"y\":2,\"z\":3}; omit to use the type's zero value"`
 }
