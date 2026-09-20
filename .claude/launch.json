@@ -1,0 +1,43 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "polyform-edit",
+      "runtimeExecutable": "go",
+      "runtimeArgs": [
+        "run",
+        "./cmd/polyform",
+        "edit",
+        "-port",
+        "8087",
+        "-launch-browser=false"
+      ],
+      "port": 8087
+    },
+    {
+      "name": "glb-viewer",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "C:/Users/elida/AppData/Local/Temp/claude/C--dev-projects-EliCDavis-polyform/92434700-1218-4219-855b-e89468f6cd35/scratchpad/viewer/server.py",
+        "8092",
+        "C:/Users/elida/polyform-output/c75619e6-1d87-4110-876d-cfec1b5d5987/renders"
+      ],
+      "port": 8092
+    },
+    {
+      "name": "polyform-edit-chihuahua",
+      "runtimeExecutable": "go",
+      "runtimeArgs": [
+        "run",
+        "./cmd/polyform",
+        "edit",
+        "-port",
+        "8093",
+        "-launch-browser=false",
+        "-graph",
+        "C:/Users/elida/polyform-output/c75619e6-1d87-4110-876d-cfec1b5d5987/graph.json"
+      ],
+      "port": 8093
+    }
+  ]
+}
