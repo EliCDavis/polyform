@@ -25,6 +25,7 @@ type ImageVariable struct {
 func (tv *ImageVariable) SetValue(v image.Image) {
 	tv.value = v
 	tv.version++
+	nodes.Touch()
 }
 
 func (tv *ImageVariable) GetValue() image.Image {
@@ -60,6 +61,7 @@ func (tv *ImageVariable) ApplyMessage(msg []byte) (bool, error) {
 		changed := tv.value == nil
 		tv.value = nil
 		tv.version++
+		nodes.Touch()
 		return changed, nil
 	}
 
@@ -69,6 +71,7 @@ func (tv *ImageVariable) ApplyMessage(msg []byte) (bool, error) {
 	}
 
 	tv.version++
+	nodes.Touch()
 	tv.value = img
 	return true, nil
 }
@@ -97,6 +100,7 @@ func (tv *ImageVariable) applyProfile(profile json.RawMessage) error {
 		return err
 	}
 	tv.version++
+	nodes.Touch()
 	img, _, err := image.Decode(bytes.NewReader(data))
 	if err != nil {
 		return err

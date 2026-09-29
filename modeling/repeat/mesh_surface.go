@@ -3,10 +3,9 @@ package repeat
 import (
 	"fmt"
 	"math"
-	"math/rand/v2"
-	"time"
 
 	"github.com/EliCDavis/polyform/math/bias"
+	"github.com/EliCDavis/polyform/math/chance"
 	"github.com/EliCDavis/polyform/math/trs"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/nodes"
@@ -17,6 +16,7 @@ type MeshSurface struct {
 	Mesh      modeling.Mesh
 	Attribute string
 	Samples   int
+	Seed      int
 }
 
 func phi(d int) float64 {
@@ -51,8 +51,7 @@ func (ms MeshSurface) TRS() []trs.TRS {
 		})
 	}
 
-	r := rand.New(rand.NewPCG(uint64(time.Now().UnixNano()), uint64(time.Now().UnixNano())))
-	list := bias.NewList(items, bias.ListConfig{Seed: r})
+	list := bias.NewList(items, bias.ListConfig{Seed: chance.FromSeed(ms.Seed)})
 
 	samplesPerTri := make([]int, triCount)
 	for range ms.Samples {
@@ -86,10 +85,11 @@ type SampleMeshSurfaceNode struct {
 	Mesh      nodes.Output[modeling.Mesh] `description:"The mesh to scatter points across. Must have triangle topology."`
 	Attribute nodes.Output[string]        `description:"Which mesh attribute to sample area/position/normal from. Defaults to modeling.PositionAttribute (\"Position\")."`
 	Samples   nodes.Output[int]           `description:"How many points to scatter, distributed so larger triangles get proportionally more samples (uniform per unit area, not per triangle). Defaults to 0."`
+	Seed      nodes.Output[int]           `description:"The same seed always produces the same scatter. Defaults to 0."`
 }
 
 func (rnd SampleMeshSurfaceNode) Description() string {
-	return "Scatters Samples points across the surface of Mesh, weighted by triangle area, each rotated to face along the surface normal at that point. Non-deterministic — every call produces a different scatter."
+	return "Scatters Samples points across the surface of Mesh, weighted by triangle area, each rotated to face along the surface normal at that point."
 }
 
 func (rnd SampleMeshSurfaceNode) Out(out *nodes.StructOutput[[]trs.TRS]) {
@@ -107,6 +107,7 @@ func (rnd SampleMeshSurfaceNode) Out(out *nodes.StructOutput[[]trs.TRS]) {
 		Mesh:      mesh,
 		Attribute: nodes.TryGetOutputValue(out, rnd.Attribute, modeling.PositionAttribute),
 		Samples:   nodes.TryGetOutputValue(out, rnd.Samples, 0),
+		Seed:      nodes.TryGetOutputValue(out, rnd.Seed, 0),
 	}
 	out.Set(surface.TRS())
 }

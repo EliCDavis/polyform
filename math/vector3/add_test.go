@@ -5,99 +5,67 @@ import (
 
 	"github.com/EliCDavis/polyform/math/vector3"
 	"github.com/EliCDavis/polyform/nodes"
+	"github.com/EliCDavis/polyform/nodes/nodetest"
 	v3 "github.com/EliCDavis/vector/vector3"
-	"github.com/stretchr/testify/assert"
+)
+
+const (
+	vec3Type      = "github.com/EliCDavis/vector/vector3.Vector[float64]"
+	vec3ArrayType = "[]" + vec3Type
 )
 
 func TestSumNode(t *testing.T) {
-	tests := map[string]struct {
-		in  []nodes.Output[v3.Vector[float64]]
-		out v3.Vector[float64]
-	}{
-		"nil => 0": {in: nil, out: v3.Zero[float64]()},
-		"[(1,2,3)] => (1,2,3)": {
-			in: []nodes.Output[v3.Vector[float64]]{
-				nodes.ConstOutput[v3.Vector[float64]]{Val: v3.New(1., 2., 3.)},
-			},
-			out: v3.New(1., 2., 3.),
-		},
-		"[(1,2,3), (4,5,6)] => (5,7,9)": {
-			in: []nodes.Output[v3.Vector[float64]]{
-				nodes.ConstOutput[v3.Vector[float64]]{Val: v3.New(1., 2., 3.)},
-				nodes.ConstOutput[v3.Vector[float64]]{Val: v3.New(4., 5., 6.)},
-			},
-			out: v3.New(5., 7., 9.),
-		},
-		"[(1,2,3), nil] => (1,2,3)": {
-			in: []nodes.Output[v3.Vector[float64]]{
-				nodes.ConstOutput[v3.Vector[float64]]{Val: v3.New(1., 2., 3.)},
-				nil,
-			},
-			out: v3.New(1., 2., 3.),
-		},
-	}
-
-	for name, tc := range tests {
-		t.Run(name, func(t *testing.T) {
-			node := &nodes.Struct[vector3.SumNode[float64]]{
-				Data: vector3.SumNode[float64]{
-					Values: tc.in,
+	nodetest.NewSuite(
+		nodetest.NewTestCase(
+			"nothing wired => 0",
+			nodetest.NewNode(vector3.SumNode[float64]{}),
+			nodetest.AssertOutput("Out", v3.Zero[float64]()),
+			nodetest.AssertLiftedInput("Values", vec3Type),
+		),
+		nodetest.NewTestCase(
+			"one vector is itself",
+			nodetest.NewNode(vector3.SumNode[float64]{
+				Values: nodetest.NewPortValues(v3.New(1., 2., 3.)),
+			}),
+			nodetest.AssertOutput("Out", v3.New(1., 2., 3.)),
+		),
+		nodetest.NewTestCase(
+			"two vectors add",
+			nodetest.NewNode(vector3.SumNode[float64]{
+				Values: nodetest.NewPortValues(v3.New(1., 2., 3.), v3.New(4., 5., 6.)),
+			}),
+			nodetest.AssertOutput("Out", v3.New(5., 7., 9.)),
+		),
+		nodetest.NewTestCase(
+			"an unwired connection is skipped",
+			nodetest.NewNode(vector3.SumNode[float64]{
+				Values: []nodes.LiftedPort[v3.Vector[float64]]{
+					nodetest.NewPortValue(v3.New(1., 2., 3.)),
+					nil,
 				},
-			}
-			out := nodes.GetNodeOutputPort[v3.Vector[float64]](node, "Out").Value()
-			assert.Equal(t, tc.out, out)
-		})
-	}
-}
-
-func TestAddToArrayNode(t *testing.T) {
-	tests := map[string]struct {
-		amount nodes.Output[v3.Vector[float64]]
-		array  nodes.Output[[]v3.Vector[float64]]
-		out    []v3.Vector[float64]
-	}{
-		"(nil + nil) => nil": {amount: nil, array: nil, out: nil},
-		"((1,2,3) + nil) => nil": {
-			amount: nodes.ConstOutput[v3.Vector[float64]]{Val: v3.New(1., 2., 3.)},
-			array:  nil,
-			out:    nil,
-		},
-		"(nil + [(1,2,3)]) => [(1,2,3)]": {
-			amount: nil,
-			array: nodes.ConstOutput[[]v3.Vector[float64]]{
-				Val: []v3.Float64{
-					v3.New(1., 2., 3.),
+			}),
+			nodetest.AssertOutput("Out", v3.New(1., 2., 3.)),
+		),
+		nodetest.NewTestCase(
+			"one vector added to every entry of an array",
+			nodetest.NewNode(vector3.SumNode[float64]{
+				Values: []nodes.LiftedPort[v3.Vector[float64]]{
+					nodetest.NewPortValue([]v3.Float64{v3.New(1., 1., 1.), v3.New(2., 2., 2.)}),
+					nodetest.NewPortValue(v3.New(1., 2., 3.)),
 				},
-			},
-			out: []v3.Float64{
-				v3.New(1., 2., 3.),
-			},
-		},
-		"((1,2,3) + [(1,1,1), (2,2,2)]) => [(2,3,4), (3,4,5)]": {
-			amount: nodes.ConstOutput[v3.Vector[float64]]{Val: v3.New(1., 2., 3.)},
-			array: nodes.ConstOutput[[]v3.Vector[float64]]{
-				Val: []v3.Float64{
-					v3.New(1., 1., 1.),
-					v3.New(2., 2., 2.),
+			}),
+			nodetest.AssertOutput("Out", []v3.Float64{v3.New(2., 3., 4.), v3.New(3., 4., 5.)}),
+			nodetest.AssertOutputType("Out", vec3ArrayType),
+		),
+		nodetest.NewTestCase(
+			"two arrays add pair by pair",
+			nodetest.NewNode(vector3.SumNode[float64]{
+				Values: []nodes.LiftedPort[v3.Vector[float64]]{
+					nodetest.NewPortValue([]v3.Float64{v3.New(1., 1., 1.), v3.New(2., 2., 2.)}),
+					nodetest.NewPortValue([]v3.Float64{v3.New(0., 1., 0.), v3.New(1., 0., 1.)}),
 				},
-			},
-			out: []v3.Float64{
-				v3.New(2., 3., 4.),
-				v3.New(3., 4., 5.),
-			},
-		},
-	}
-
-	for name, tc := range tests {
-		t.Run(name, func(t *testing.T) {
-			node := &nodes.Struct[vector3.AddToArrayNode[float64]]{
-				Data: vector3.AddToArrayNode[float64]{
-					Amount: tc.amount,
-					Array:  tc.array,
-				},
-			}
-			out := nodes.GetNodeOutputPort[[]v3.Vector[float64]](node, "Out").Value()
-			assert.Equal(t, tc.out, out)
-		})
-	}
+			}),
+			nodetest.AssertOutput("Out", []v3.Float64{v3.New(1., 2., 1.), v3.New(3., 2., 3.)}),
+		),
+	).Run(t)
 }

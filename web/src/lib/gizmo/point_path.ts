@@ -1,4 +1,5 @@
 import { Observable, Subject } from "rxjs";
+import { requestRender } from "../render_scheduler";
 import {
     BufferAttribute,
     BufferGeometry,
@@ -301,6 +302,9 @@ export class PointPathGizmo {
         });
         this.line.visible = this.enabled && this.entries.length > 1;
         this.preview.visible = this.enabled && this.previewIndex !== null;
+        // Changes the scene without the camera moving, so nothing else asks
+        // for the frame that draws it.
+        requestRender();
     }
 
     private positionPreview(): void {

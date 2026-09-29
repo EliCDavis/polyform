@@ -7,6 +7,7 @@ import (
 
 	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/modeling"
+	"github.com/EliCDavis/polyform/modeling/primitives"
 	"github.com/EliCDavis/polyform/modeling/triangulation"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/vector/vector2"
@@ -21,6 +22,10 @@ type Outline struct {
 	// Outline corners turning at least this many degrees keep a hard edge.
 	// Nil smooths anything under defaultSmoothingAngle.
 	SmoothingAngle *float64
+
+	// Lays the sweep out as a strip: across is the outline's perimeter,
+	// along is the path. Nil writes no texture coordinates at all.
+	UVs *primitives.StripUVs
 }
 
 const defaultSmoothingAngle = 45.
@@ -41,7 +46,12 @@ type outlineSlot struct {
 // actually turns one. Splitting every vertex leaves a spline sampled outline
 // carrying twice the vertices it needs and a seam of split normals at every
 // sample, which reads as faceting rather than a smooth sweep.
-func outlineSlots(shape []vector2.Float64, smoothing float64) (slots []outlineSlot, edges []vector2.Float64, start, end []int) {
+//
+// splitSeam gives the loop's closing point two slots even where the outline
+// runs smoothly through it, so one can carry perimeter 0 and the other 1.
+// Both keep the averaged normal, so the split shows in the UVs and not in
+// the shading.
+func outlineSlots(shape []vector2.Float64, smoothing float64, splitSeam bool) (slots []outlineSlot, edges []vector2.Float64, start, end []int) {
 	count := len(shape)
 	edges = make([]vector2.Float64, count)
 	for j := range shape {
@@ -70,7 +80,15 @@ func outlineSlots(shape []vector2.Float64, smoothing float64) (slots []outlineSl
 		// a regular octagon against the 45 degree default, resolves the same
 		// way at every one of them instead of splitting half of them.
 		if incoming.Length() > 0 && incoming.Angle(outgoing) < smoothing-1e-9 {
-			slots = append(slots, outlineSlot{j, incoming.Add(outgoing).Normalized()})
+			averaged := incoming.Add(outgoing).Normalized()
+			if splitSeam && j == 0 {
+				slots = append(slots, outlineSlot{j, averaged})
+				end[previous] = len(slots) - 1
+				slots = append(slots, outlineSlot{j, averaged})
+				start[j] = len(slots) - 1
+				continue
+			}
+			slots = append(slots, outlineSlot{j, averaged})
 			start[j] = len(slots) - 1
 			end[previous] = len(slots) - 1
 			continue
@@ -169,18 +187,69 @@ func tessellate(shape []vector2.Float64) ([]vector2.Float64, []int, error) {
 	return points, tris, nil
 }
 
+func perimeterFractions(shape []vector2.Float64, slots []outlineSlot, seam int) []float64 {
+	count := len(shape)
+	walked := make([]float64, count+1)
+	for j := 0; j < count; j++ {
+		walked[j+1] = walked[j] + shape[(j+1)%count].Sub(shape[j]).Length()
+	}
+
+	fractions := make([]float64, len(slots))
+	if perimeter := walked[count]; perimeter > 0 {
+		for i, slot := range slots {
+			fractions[i] = walked[slot.point] / perimeter
+		}
+		if seam >= 0 && seam < len(fractions) {
+			fractions[seam] = 1
+		}
+	}
+	return fractions
+}
+
+func pathFractions(path []vector3.Float64, rings int) []float64 {
+	walked := make([]float64, rings)
+	for i := 1; i < rings; i++ {
+		walked[i] = walked[i-1] + path[i%len(path)].Sub(path[(i-1)%len(path)]).Length()
+	}
+
+	total := walked[rings-1]
+	if total == 0 {
+		return walked
+	}
+	for i := range walked {
+		walked[i] /= total
+	}
+	return walked
+}
+
 func (o Outline) shell(shape []vector2.Float64, frames []ringFrame) modeling.Mesh {
-	slots, edges, start, end := outlineSlots(shape, o.smoothing())
+	slots, edges, start, end := outlineSlots(shape, o.smoothing(), o.UVs != nil)
 	perRing := len(slots)
 
-	vertices := make([]vector3.Float64, 0, len(o.Path)*perRing)
-	normals := make([]vector3.Float64, 0, len(o.Path)*perRing)
+	rings := len(o.Path)
+	if o.UVs != nil && o.Closed {
+		rings++
+	}
 
-	for i := range o.Path {
-		basis := basisAt(o.Path, frames, i)
-		for _, slot := range slots {
+	var across, along []float64
+	var uvs []vector2.Float64
+	if o.UVs != nil {
+		across = perimeterFractions(shape, slots, end[len(shape)-1])
+		along = pathFractions(o.Path, rings)
+		uvs = make([]vector2.Float64, 0, rings*perRing)
+	}
+
+	vertices := make([]vector3.Float64, 0, rings*perRing)
+	normals := make([]vector3.Float64, 0, rings*perRing)
+
+	for i := 0; i < rings; i++ {
+		basis := basisAt(o.Path, frames, i%len(o.Path))
+		for s, slot := range slots {
 			vertices = append(vertices, basis.place(shape[slot.point]))
 			normals = append(normals, basis.direction(slot.normal).Normalized())
+			if o.UVs != nil {
+				uvs = append(uvs, o.UVs.AtXY(vector2.New(across[s], along[i])))
+			}
 		}
 	}
 
@@ -192,7 +261,7 @@ func (o Outline) shell(shape []vector2.Float64, frames []ringFrame) modeling.Mes
 	tris := make([]int, 0, segments*len(shape)*6)
 	for i := 0; i < segments; i++ {
 		lower := i * perRing
-		upper := ((i + 1) % len(o.Path)) * perRing
+		upper := ((i + 1) % rings) * perRing
 		basis := basisAt(o.Path, frames, i)
 
 		for j := range shape {
@@ -211,11 +280,15 @@ func (o Outline) shell(shape []vector2.Float64, frames []ringFrame) modeling.Mes
 		}
 	}
 
-	return modeling.NewTriangleMesh(tris).
+	mesh := modeling.NewTriangleMesh(tris).
 		SetFloat3Data(map[string][]vector3.Float64{
 			modeling.PositionAttribute: vertices,
 			modeling.NormalAttribute:   normals,
 		})
+	if o.UVs == nil {
+		return mesh
+	}
+	return mesh.SetFloat2Attribute(modeling.TexCoordAttribute, uvs)
 }
 
 func (o Outline) cap(points []vector2.Float64, tris []int, frames []ringFrame, at int, facing float64) modeling.Mesh {
@@ -238,11 +311,36 @@ func (o Outline) cap(points []vector2.Float64, tris []int, frames []ringFrame, a
 		wound = append(wound, a, b, c)
 	}
 
-	return modeling.NewTriangleMesh(wound).
+	mesh := modeling.NewTriangleMesh(wound).
 		SetFloat3Data(map[string][]vector3.Float64{
 			modeling.PositionAttribute: vertices,
 			modeling.NormalAttribute:   normals,
 		})
+	if o.UVs == nil {
+		return mesh
+	}
+
+	// The strip has no room for a cap, so each one takes the whole of it,
+	// the profile's bounding box stretched over the strip's quad.
+	min, max := points[0], points[0]
+	for _, p := range points {
+		min = vector2.New(math.Min(min.X(), p.X()), math.Min(min.Y(), p.Y()))
+		max = vector2.New(math.Max(max.X(), p.X()), math.Max(max.Y(), p.Y()))
+	}
+	size := max.Sub(min)
+
+	uvs := make([]vector2.Float64, len(points))
+	for i, p := range points {
+		unit := p.Sub(min)
+		if size.X() > 0 {
+			unit = vector2.New(unit.X()/size.X(), unit.Y())
+		}
+		if size.Y() > 0 {
+			unit = vector2.New(unit.X(), unit.Y()/size.Y())
+		}
+		uvs[i] = o.UVs.AtXY(unit)
+	}
+	return mesh.SetFloat2Attribute(modeling.TexCoordAttribute, uvs)
 }
 
 func (o Outline) Extrude() (modeling.Mesh, error) {
@@ -297,10 +395,11 @@ func (o Outline) Extrude() (modeling.Mesh, error) {
 }
 
 type OutlineNode struct {
-	Outline        nodes.Output[[]vector2.Float64] `description:"Closed 2D outline to sweep. Winding does not matter."`
-	Path           nodes.Output[[]vector3.Float64] `description:"Points the outline is swept through."`
-	Closed         nodes.Output[bool]              `description:"Joins the last path point back to the first and leaves the ends uncapped."`
-	SmoothingAngle nodes.Output[float64]           `description:"Outline corners turning at least this many degrees keep a hard edge. Defaults to 45."`
+	Outline        nodes.Output[[]vector2.Float64]   `description:"Closed 2D outline to sweep. Winding does not matter. Its frame is set by the path direction: swept along +Y, x lies on +X and y on +Z; along -Z (toward the viewer), x on +X and y on +Y; along +Z, x on -X (mirrored) and y on +Y; along +X, x on -Y and y on +Z."`
+	Path           nodes.Output[[]vector3.Float64]   `description:"Points the outline is swept through. For a flat plate facing +Z, run the path from +Z toward -Z so the outline's x keeps world +X."`
+	Closed         nodes.Output[bool]                `description:"Joins the last path point back to the first and leaves the ends uncapped."`
+	SmoothingAngle nodes.Output[float64]             `description:"Outline corners turning at least this many degrees keep a hard edge. Defaults to 45."`
+	UVs            nodes.Output[primitives.StripUVs] `description:"Lays the sweep out as a strip: the outline's perimeter runs across it, the path along it. Each cap takes the whole strip separately. Unconnected, the mesh carries no texture coordinates at all."`
 }
 
 func (node OutlineNode) Description() string {
@@ -315,11 +414,17 @@ func (node OutlineNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	}
 
 	smoothing := nodes.TryGetOutputValue(out, node.SmoothingAngle, defaultSmoothingAngle)
+	var uvs *primitives.StripUVs
+	if node.UVs != nil {
+		strip := nodes.GetOutputValue(out, node.UVs)
+		uvs = &strip
+	}
 	mesh, err := Outline{
 		Shape:          nodes.GetOutputValue(out, node.Outline),
 		Path:           nodes.GetOutputValue(out, node.Path),
 		Closed:         nodes.TryGetOutputValue(out, node.Closed, false),
 		SmoothingAngle: &smoothing,
+		UVs:            uvs,
 	}.Extrude()
 	if err != nil {
 		out.CaptureError(err)

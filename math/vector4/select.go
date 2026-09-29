@@ -7,69 +7,25 @@ import (
 )
 
 type Select[T vector.Number] struct {
-	In nodes.Output[vector4.Vector[T]]
+	In nodes.LiftedPort[vector4.Vector[T]]
 }
 
 func (node Select[T]) Description() string {
 	return "Splits a vector into its X, Y, Z and W components."
 }
 
-func (node Select[T]) X(out *nodes.StructOutput[T]) {
-	out.Set(nodes.TryGetOutputValue(out, node.In, vector4.Zero[T]()).X())
+func (node Select[T]) X(out *nodes.Lifted[T]) {
+	nodes.Zip1(out, node.In, vector4.Vector[T].X)
 }
 
-func (node Select[T]) Y(out *nodes.StructOutput[T]) {
-	out.Set(nodes.TryGetOutputValue(out, node.In, vector4.Zero[T]()).Y())
+func (node Select[T]) Y(out *nodes.Lifted[T]) {
+	nodes.Zip1(out, node.In, vector4.Vector[T].Y)
 }
 
-func (node Select[T]) Z(out *nodes.StructOutput[T]) {
-	out.Set(nodes.TryGetOutputValue(out, node.In, vector4.Zero[T]()).Z())
+func (node Select[T]) Z(out *nodes.Lifted[T]) {
+	nodes.Zip1(out, node.In, vector4.Vector[T].Z)
 }
 
-func (node Select[T]) W(out *nodes.StructOutput[T]) {
-	out.Set(nodes.TryGetOutputValue(out, node.In, vector4.Zero[T]()).W())
-}
-
-type SelectArray[T vector.Number] struct {
-	In nodes.Output[[]vector4.Vector[T]]
-}
-
-func (node SelectArray[T]) Description() string {
-	return "Splits an array of vectors into arrays of X, Y, Z and W components."
-}
-
-func (node SelectArray[T]) X(out *nodes.StructOutput[[]T]) {
-	in := nodes.TryGetOutputValue(out, node.In, nil)
-	arr := make([]T, len(in))
-	for i, v := range in {
-		arr[i] = v.X()
-	}
-	out.Set(arr)
-}
-
-func (node SelectArray[T]) Y(out *nodes.StructOutput[[]T]) {
-	in := nodes.TryGetOutputValue(out, node.In, nil)
-	arr := make([]T, len(in))
-	for i, v := range in {
-		arr[i] = v.Y()
-	}
-	out.Set(arr)
-}
-
-func (node SelectArray[T]) Z(out *nodes.StructOutput[[]T]) {
-	in := nodes.TryGetOutputValue(out, node.In, nil)
-	arr := make([]T, len(in))
-	for i, v := range in {
-		arr[i] = v.Z()
-	}
-	out.Set(arr)
-}
-
-func (node SelectArray[T]) W(out *nodes.StructOutput[[]T]) {
-	in := nodes.TryGetOutputValue(out, node.In, nil)
-	arr := make([]T, len(in))
-	for i, v := range in {
-		arr[i] = v.W()
-	}
-	out.Set(arr)
+func (node Select[T]) W(out *nodes.Lifted[T]) {
+	nodes.Zip1(out, node.In, vector4.Vector[T].W)
 }

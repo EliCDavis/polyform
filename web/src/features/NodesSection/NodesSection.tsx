@@ -66,7 +66,12 @@ function shortenPortType(type: string): string {
 }
 
 function buildSearchableText(def: NodeDefinition): string {
-  const parts: string[] = [def.displayName, def.path, def.info ?? ""];
+  const parts: string[] = [
+    def.displayName,
+    def.path,
+    def.info ?? "",
+    ...(def.keywords ?? []),
+  ];
 
 //   const addPorts = (ports?: { [key: string]: NodeOutput | NodeInput }) => {
 //     if (!ports) return;

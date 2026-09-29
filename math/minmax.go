@@ -1,6 +1,8 @@
 package math
 
 import (
+	"slices"
+
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/vector"
 )
@@ -8,36 +10,27 @@ import (
 // ============================================================================
 
 type MinNode[T vector.Number] struct {
-	In []nodes.Output[T]
+	In []nodes.LiftedPort[T] `description:"The values to compare. Arrays are compared element by element."`
 }
 
 func (n MinNode[T]) Description() string {
 	return "Smallest of the given numbers."
 }
 
-func (n MinNode[T]) min(recorder nodes.ExecutionRecorder) T {
-	var v T
-
-	in := nodes.GetOutputValues(recorder, n.In)
-
-	set := false
-	for _, node := range in {
-		if !set {
-			set = true
-			v = node
-			continue
-		}
-		v = min(v, node)
+func (n MinNode[T]) smallest(vals []T) T {
+	if len(vals) == 0 {
+		var zero T
+		return zero
 	}
-	return v
+	return slices.Min(vals)
 }
 
-func (n MinNode[T]) Int(out *nodes.StructOutput[int]) {
-	out.Set(int(n.min(out)))
+func (n MinNode[T]) Int(out *nodes.Lifted[int]) {
+	nodes.ZipAll(out, n.In, func(vals []T) int { return int(n.smallest(vals)) })
 }
 
-func (n MinNode[T]) Float64(out *nodes.StructOutput[float64]) {
-	out.Set(float64(n.min(out)))
+func (n MinNode[T]) Float64(out *nodes.Lifted[float64]) {
+	nodes.ZipAll(out, n.In, func(vals []T) float64 { return float64(n.smallest(vals)) })
 }
 
 // ============================================================================
@@ -47,23 +40,16 @@ type MinArrayNode[T vector.Number] struct {
 }
 
 func (n MinArrayNode[T]) Description() string {
-	return "Smallest number in an array."
+	return "Smallest number in an array, reduced to a single value."
 }
 
 func (n MinArrayNode[T]) min(recorder nodes.ExecutionRecorder) T {
 	arr := nodes.TryGetOutputValue(recorder, n.In, nil)
-
-	var v T
 	if len(arr) == 0 {
-		return v
+		var zero T
+		return zero
 	}
-
-	v = arr[0]
-	for i := 1; i < len(arr); i++ {
-		v = min(v, arr[i])
-	}
-
-	return v
+	return slices.Min(arr)
 }
 
 func (n MinArrayNode[T]) Int(out *nodes.StructOutput[int]) {
@@ -77,36 +63,27 @@ func (n MinArrayNode[T]) Float64(out *nodes.StructOutput[float64]) {
 // ============================================================================
 
 type MaxNode[T vector.Number] struct {
-	In []nodes.Output[T]
+	In []nodes.LiftedPort[T] `description:"The values to compare. Arrays are compared element by element."`
 }
 
 func (n MaxNode[T]) Description() string {
 	return "Largest of the given numbers."
 }
 
-func (n MaxNode[T]) max(recorder nodes.ExecutionRecorder) T {
-	var v T
-
-	in := nodes.GetOutputValues(recorder, n.In)
-
-	set := false
-	for _, node := range in {
-		if !set {
-			set = true
-			v = node
-			continue
-		}
-		v = max(v, node)
+func (n MaxNode[T]) largest(vals []T) T {
+	if len(vals) == 0 {
+		var zero T
+		return zero
 	}
-	return v
+	return slices.Max(vals)
 }
 
-func (n MaxNode[T]) Int(out *nodes.StructOutput[int]) {
-	out.Set(int(n.max(out)))
+func (n MaxNode[T]) Int(out *nodes.Lifted[int]) {
+	nodes.ZipAll(out, n.In, func(vals []T) int { return int(n.largest(vals)) })
 }
 
-func (n MaxNode[T]) Float64(out *nodes.StructOutput[float64]) {
-	out.Set(float64(n.max(out)))
+func (n MaxNode[T]) Float64(out *nodes.Lifted[float64]) {
+	nodes.ZipAll(out, n.In, func(vals []T) float64 { return float64(n.largest(vals)) })
 }
 
 // ============================================================================
@@ -116,23 +93,16 @@ type MaxArrayNode[T vector.Number] struct {
 }
 
 func (n MaxArrayNode[T]) Description() string {
-	return "Largest number in an array."
+	return "Largest number in an array, reduced to a single value."
 }
 
 func (n MaxArrayNode[T]) max(recorder nodes.ExecutionRecorder) T {
 	arr := nodes.TryGetOutputValue(recorder, n.In, nil)
-
-	var v T
 	if len(arr) == 0 {
-		return v
+		var zero T
+		return zero
 	}
-
-	v = arr[0]
-	for i := 1; i < len(arr); i++ {
-		v = max(v, arr[i])
-	}
-
-	return v
+	return slices.Max(arr)
 }
 
 func (n MaxArrayNode[T]) Int(out *nodes.StructOutput[int]) {

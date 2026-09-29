@@ -23,6 +23,35 @@ func TestSuite(t *testing.T) {
 			}),
 			nodetest.AssertOutput("Normalized", v3.Up[float64]()),
 		),
+		nodetest.NewTestCase(
+			"Normalize: every vector in an array",
+			nodetest.NewNode(vector3.Normalize{
+				In: nodetest.NewPortValue([]v3.Float64{
+					v3.New(0., 10., 0.),
+					v3.New(4., 0., 0.),
+					v3.New(3., 0., 4.),
+				}),
+			}),
+			nodetest.AssertOutput("Normalized", []v3.Float64{
+				v3.Up[float64](),
+				v3.New(1., 0., 0.),
+				v3.New(3., 0., 4.).Normalized(),
+			}),
+			nodetest.AssertOutputType("Normalized", vec3ArrayType),
+		),
+		nodetest.NewTestCase(
+			"Normalize: a zero vector inside an array stays zero rather than NaN",
+			nodetest.NewNode(vector3.Normalize{
+				In: nodetest.NewPortValue([]v3.Float64{
+					v3.New(0., 10., 0.),
+					v3.Zero[float64](),
+				}),
+			}),
+			nodetest.AssertOutput("Normalized", []v3.Float64{
+				v3.Up[float64](),
+				v3.Zero[float64](),
+			}),
+		),
 	)
 	suite.Run(t)
 }
@@ -33,51 +62,9 @@ func TestNormalizeArray(t *testing.T) {
 			"descriptions",
 			nodetest.NewNode(vector3.NormalizeArray{}),
 			nodetest.AssertNodeOutputPortDescription{
-				Port:        "Local",
-				Description: "Normalizes each component of the array",
-			},
-			nodetest.AssertNodeOutputPortDescription{
 				Port:        "Global",
 				Description: "Scales each vector by the inverse of the magnitude of the longest vector",
 			},
-		),
-		nodetest.NewTestCase(
-			"Local: nil => nil",
-			nodetest.NewNode(vector3.NormalizeArray{}),
-			nodetest.AssertOutput[[]v3.Float64]("Local", nil),
-		),
-		nodetest.NewTestCase(
-			"Local: empty => empty",
-			nodetest.NewNode(vector3.NormalizeArray{
-				In: nodetest.NewPortValue([]v3.Float64{}),
-			}),
-			nodetest.AssertOutput("Local", []v3.Float64{}),
-		),
-		nodetest.NewTestCase(
-			"Local: single vector",
-			nodetest.NewNode(vector3.NormalizeArray{
-				In: nodetest.NewPortValue([]v3.Float64{
-					v3.New(0., 10., 0.),
-				}),
-			}),
-			nodetest.AssertOutput("Local", []v3.Float64{
-				v3.Up[float64](),
-			}),
-		),
-		nodetest.NewTestCase(
-			"Local: multiple vectors",
-			nodetest.NewNode(vector3.NormalizeArray{
-				In: nodetest.NewPortValue([]v3.Float64{
-					v3.New(0., 10., 0.),
-					v3.New(4., 0., 0.),
-					v3.New(3., 0., 4.),
-				}),
-			}),
-			nodetest.AssertOutput("Local", []v3.Float64{
-				v3.Up[float64](),
-				v3.New(1., 0., 0.),
-				v3.New(3., 0., 4.).Normalized(),
-			}),
 		),
 		nodetest.NewTestCase(
 			"Global: nil => nil",

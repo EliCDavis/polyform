@@ -3,6 +3,7 @@ package graph
 import (
 	"encoding/json"
 	"fmt"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -34,12 +35,13 @@ type Instance struct {
 	typeFactory     *refutil.TypeFactory
 	variableFactory func(string) (variable.Variable, error)
 
-	movelVersion   uint32
-	nodeIDs        map[nodes.Node]string
-	nodeTypeKeys   map[nodes.Node]string
-	metadata       *sync.NestedSyncMap
-	namedManifests *namedOutputManager[manifest.Manifest]
-	variables      variable.System
+	movelVersion    uint32
+	nodeIDs         map[nodes.Node]string
+	nodeIDHighWater int // so a deleted id is never handed out again
+	nodeTypeKeys    map[nodes.Node]string
+	metadata        *sync.NestedSyncMap
+	namedManifests  *namedOutputManager[manifest.Manifest]
+	variables       variable.System
 
 	profiles    map[string]variable.Profile
 	variantSets map[string]variant.Set
@@ -61,7 +63,7 @@ type Config struct {
 }
 
 func New(config Config) *Instance {
-	subgraph.DiscoverPortTypes(config.TypeFactory)
+	nodes.DiscoverPortTypes(config.TypeFactory)
 	return &Instance{
 		details: Details{
 			Name:        config.Name,
@@ -154,7 +156,7 @@ func (a *Instance) NewVariable(variablePath string, variable variable.Variable) 
 	a.typeFactory.RegisterBuilder(variablePath, func() any {
 		return variable.NodeReference()
 	})
-	subgraph.DiscoverNodePortTypes(variable.NodeReference())
+	nodes.DiscoverNodePortTypes(variable.NodeReference())
 
 	return variablePath
 }
@@ -324,6 +326,24 @@ func (a *Instance) Profiles() []string {
 	return profiles
 }
 
+// A profile only covers what existed when it was saved, so applying it
+// leaves every variable outside this list alone.
+func (a *Instance) ProfileVariables(profileName string) []string {
+	a.lock.RLock()
+	defer a.lock.RUnlock()
+
+	profile, ok := a.profiles[profileName]
+	if !ok {
+		return nil
+	}
+	paths := make([]string, 0, len(profile))
+	for path := range profile {
+		paths = append(paths, path)
+	}
+	sort.Strings(paths)
+	return paths
+}
+
 func (a *Instance) ApplyProfile(profile variable.Profile) error {
 	a.lock.Lock()
 	defer a.lock.Unlock()
@@ -456,9 +476,15 @@ func (a *Instance) NodeInstanceSchema(node nodes.Node) schema.Node {
 		IncludePointer: false,
 	}
 
+	var dynamicTypes map[string]string
+	if dynamic, ok := node.(nodes.DynamicallyTyped); ok {
+		dynamicTypes = dynamic.DynamicTypes()
+	}
+
 	nodeInstance := schema.Node{
 		Name:          "Unamed",
 		Type:          resolver.Resolve(node),
+		DynamicTypes:  dynamicTypes,
 		AssignedInput: make(map[string]schema.PortReference),
 		Output:        make(map[string]schema.NodeOutputPort),
 		Metadata:      metadata,
@@ -500,6 +526,9 @@ func (a *Instance) NodeInstanceSchema(node nodes.Node) schema.Node {
 	for outputPortName, outputPort := range node.Outputs() {
 		result := schema.NodeOutputPort{
 			Version: outputPort.Version(),
+		}
+		if instance, ok := outputPort.(nodes.InstanceTyped); ok {
+			result.Type = instance.InstanceType()
 		}
 		nodeInstance.Output[outputPortName] = result
 	}
@@ -566,7 +595,7 @@ func (a *Instance) buildIDsForNode(node nodes.Node) {
 	}
 
 	// TODO: UGLY UGLY UGLY UGLY
-	highestInded := len(a.nodeIDs)
+	highestInded := max(len(a.nodeIDs), a.nodeIDHighWater)
 	for {
 		id := fmt.Sprintf("Node-%d", highestInded)
 
@@ -581,9 +610,19 @@ func (a *Instance) buildIDsForNode(node nodes.Node) {
 		}
 		if !taken {
 			a.nodeIDs[node] = id
+			a.nodeIDHighWater = highestInded + 1
 			break
 		}
 		highestInded++
+	}
+}
+
+// noteNodeID raises the high-water mark past an id that came from a file
+// rather than from buildIDsForNode.
+func (a *Instance) noteNodeID(nodeID string) {
+	var n int
+	if _, err := fmt.Sscanf(nodeID, "Node-%d", &n); err == nil && n+1 > a.nodeIDHighWater {
+		a.nodeIDHighWater = n + 1
 	}
 }
 
@@ -1083,7 +1122,7 @@ func (a *Instance) createNode(nodeType, portType string) (nodes.Node, string, er
 		if portType == "" {
 			return nil, "", fmt.Errorf("boundary port type is required")
 		}
-		if !subgraph.IsPortTypeKnown(portType) {
+		if !nodes.IsPortTypeKnown(portType) {
 			return nil, "", fmt.Errorf("unknown boundary port type %q", portType)
 		}
 		if err := subgraph.ConfigureBoundaryPortType(boundary, portType); err != nil {
@@ -1121,6 +1160,9 @@ func (a *Instance) DeleteNode(nodeToDelete nodes.Node) {
 	delete(a.nodeIDs, nodeToDelete)
 	delete(a.nodeTypeKeys, nodeToDelete)
 
+	// Whatever fed the deleted node may now be feeding nothing at all.
+	affected := upstreamNodes(nodeToDelete)
+
 	// Delete all nodes connecting to this
 	for node := range a.nodeIDs {
 		for inputName, input := range node.Inputs() {
@@ -1133,6 +1175,7 @@ func (a *Instance) DeleteNode(nodeToDelete nodes.Node) {
 				}
 				if value.Node() == nodeToDelete {
 					v.Clear()
+					affected = append(affected, node)
 				}
 
 			case nodes.ArrayValueInputPort:
@@ -1146,6 +1189,7 @@ func (a *Instance) DeleteNode(nodeToDelete nodes.Node) {
 						if err != nil {
 							panic(err)
 						}
+						affected = append(affected, node)
 					}
 				}
 
@@ -1154,6 +1198,10 @@ func (a *Instance) DeleteNode(nodeToDelete nodes.Node) {
 			}
 
 		}
+	}
+
+	for _, node := range affected {
+		a.releaseUnheldDynamicTypes(node)
 	}
 
 	a.incModelVersion()
@@ -1219,6 +1267,13 @@ func (a *Instance) SetMetadata(key string, value any) {
 	a.metadata.Set(key, value)
 }
 
+func (a *Instance) Metadata(key string) any {
+	if !a.metadata.PathExists(key) {
+		return nil
+	}
+	return a.metadata.Get(key)
+}
+
 func (a *Instance) DeleteMetadata(key string) {
 	a.metadata.Delete(key)
 }
@@ -1246,6 +1301,8 @@ func (a *Instance) DeleteNodeInputConnection(nodeId, portName string) {
 		panic(fmt.Errorf("node %s contains no input port %s", nodeId, cleanPortName))
 	}
 
+	upstream := upstreamNodes(node)
+
 	if portIndex == -1 {
 		input.Clear()
 	} else {
@@ -1266,6 +1323,11 @@ func (a *Instance) DeleteNodeInputConnection(nodeId, portName string) {
 			panic(err)
 		}
 
+	}
+
+	a.releaseUnheldDynamicTypes(node)
+	for _, producer := range upstream {
+		a.releaseUnheldDynamicTypes(producer)
 	}
 
 	a.incModelVersion()
@@ -1309,6 +1371,191 @@ func dependsOn(node, target nodes.Node) bool {
 	return walk(node)
 }
 
+func portTypeOf(port any) string {
+	typed, ok := port.(nodes.Typed)
+	if !ok {
+		return ""
+	}
+	return typed.Type()
+}
+
+// A port cannot tell on its own whether its type is still held: the variable
+// is shared by every connection using it, including a downstream consumer.
+func (a *Instance) releaseUnheldDynamicTypes(node nodes.Node) {
+	if node == nil {
+		return
+	}
+	dynamic, ok := node.(nodes.DynamicallyTyped)
+	if !ok || len(dynamic.DynamicTypes()) == 0 {
+		return
+	}
+
+	held := make(map[string]bool)
+	ports := make(map[string][]nodes.DynamicallyTypedPort)
+
+	note := func(port any, connected bool) {
+		dynamic, ok := port.(nodes.DynamicallyTypedPort)
+		if !ok {
+			return
+		}
+		variable := nodes.DynamicVariable(dynamic.DynamicPattern())
+		ports[variable] = append(ports[variable], dynamic)
+		if connected {
+			held[variable] = true
+		}
+	}
+
+	for _, input := range node.Inputs() {
+		switch v := input.(type) {
+		case nodes.SingleValueInputPort:
+			note(input, v.Value() != nil)
+		case nodes.ArrayValueInputPort:
+			note(input, len(v.Value()) > 0)
+		}
+	}
+
+	// Cheap check first - outputIsConsumed walks the whole graph.
+	for outputName, output := range node.Outputs() {
+		if _, ok := output.(nodes.DynamicallyTypedPort); !ok {
+			continue
+		}
+		note(output, a.outputIsConsumed(node, outputName))
+	}
+
+	for variable, releasable := range ports {
+		if held[variable] {
+			continue
+		}
+		releasable[0].ReleaseType()
+	}
+}
+
+func (a *Instance) outputIsConsumed(producer nodes.Node, outputName string) bool {
+	for node := range a.nodeIDs {
+		for _, input := range node.Inputs() {
+			switch v := input.(type) {
+			case nodes.SingleValueInputPort:
+				if referencesOutput(v.Value(), producer, outputName) {
+					return true
+				}
+			case nodes.ArrayValueInputPort:
+				for _, val := range v.Value() {
+					if referencesOutput(val, producer, outputName) {
+						return true
+					}
+				}
+			}
+		}
+	}
+	return false
+}
+
+func referencesOutput(port nodes.OutputPort, producer nodes.Node, outputName string) bool {
+	return port != nil && port.Node() == producer && port.Name() == outputName
+}
+
+func outputTypesOf(node nodes.Node) map[string]string {
+	types := make(map[string]string)
+	for name, port := range node.Outputs() {
+		if typed, ok := port.(nodes.Typed); ok {
+			types[name] = typed.Type()
+		}
+	}
+	return types
+}
+
+// A retyped output never reaches a consumer already holding the port object
+// it was handed, so it would silently read zeros.
+func (a *Instance) consumersBrokenBy(producer nodes.Node, before map[string]string) error {
+	for name, was := range outputTypesOf(producer) {
+		if was == before[name] {
+			continue
+		}
+
+		for node, id := range a.nodeIDs {
+			for inputName, input := range node.Inputs() {
+				if !inputReads(input, producer, name) {
+					continue
+				}
+				typed, ok := input.(nodes.Typed)
+				if !ok {
+					continue
+				}
+				if takes := typed.Type(); takes != "" && takes != was {
+					return fmt.Errorf(
+						"that would make the %q output carry %s, but node %q's %q input is reading it as %s; disconnect that first",
+						name, was, id, inputName, takes)
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func inputReads(input nodes.InputPort, producer nodes.Node, outputName string) bool {
+	switch v := input.(type) {
+	case nodes.SingleValueInputPort:
+		return referencesOutput(v.Value(), producer, outputName)
+
+	case nodes.ArrayValueInputPort:
+		for _, val := range v.Value() {
+			if referencesOutput(val, producer, outputName) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func upstreamNodes(node nodes.Node) []nodes.Node {
+	var out []nodes.Node
+	add := func(port nodes.OutputPort) {
+		if port != nil {
+			out = append(out, port.Node())
+		}
+	}
+
+	for _, input := range node.Inputs() {
+		switch v := input.(type) {
+		case nodes.SingleValueInputPort:
+			add(v.Value())
+		case nodes.ArrayValueInputPort:
+			for _, val := range v.Value() {
+				add(val)
+			}
+		}
+	}
+	return out
+}
+
+// An untyped end takes the other end's type. Only an unbound variable is
+// ever bound here, so the returned undo cannot disturb another connection.
+func bindDynamicPorts(output nodes.OutputPort, input nodes.InputPort) (func(), error) {
+	outType, inType := portTypeOf(output), portTypeOf(input)
+
+	switch {
+	case outType == "" && inType != "":
+		return bindPortType(output, inType)
+	case inType == "" && outType != "":
+		return bindPortType(input, outType)
+	}
+	return nil, nil
+}
+
+func bindPortType(port any, to string) (func(), error) {
+	dynamic, ok := port.(nodes.DynamicallyTypedPort)
+	if !ok {
+		return nil, nil
+	}
+	if err := dynamic.BindType(to); err != nil {
+		return nil, err
+	}
+
+	// Ports are rebuilt on every Inputs/Outputs call, but the variable lives
+	// on the node, so this stale port still releases the right binding.
+	return dynamic.ReleaseType, nil
+}
+
 // checkPortTypes refuses a connection whose ends declare different types.
 // Both ends have to say what they are for this to apply: an untyped port
 // is left alone rather than guessed at.
@@ -1317,6 +1564,21 @@ func checkPortTypes(outID, outPort string, output nodes.OutputPort, inID, inPort
 	if !ok {
 		return nil
 	}
+
+	// A port taking more than one type reports whichever it holds now, so
+	// asking for "the" type would pin it there and refuse the other.
+	if options, ok := input.(nodes.TypeOptions); ok {
+		if accepted := options.AcceptedTypes(); len(accepted) > 0 {
+			from := outTyped.Type()
+			if from == "" || slices.Contains(accepted, from) {
+				return nil
+			}
+			return fmt.Errorf(
+				"node %q's %q output is %s, but node %q's %q input takes %s",
+				outID, outPort, from, inID, inPort, strings.Join(accepted, " or "))
+		}
+	}
+
 	inTyped, ok := input.(nodes.Typed)
 	if !ok {
 		return nil
@@ -1328,8 +1590,13 @@ func checkPortTypes(outID, outPort string, output nodes.OutputPort, inID, inPort
 	}
 
 	hint := ""
-	if to == "[]"+from {
-		hint = fmt.Sprintf(" - %q takes the whole array as one value, so build the array first (e.g. an ArrayFromNodes node) and connect its single output, rather than connecting one element at a time", inPort)
+	switch {
+	case to == "[]"+from:
+		hint = fmt.Sprintf(" - %q takes the whole array as one value, so build the array first (an arrays.FromElements node) and connect its single output, rather than connecting one element at a time", inPort)
+	case from == "int" && to == "float64":
+		hint = " - put a math.IntToFloatNode between them, or feed a float64 source (a float64 parameter or boundary input) in the first place"
+	case from == "float64" && to == "int":
+		hint = " - put a math.RoundNode (its Int output) between them, or feed an int source in the first place"
 	}
 	return fmt.Errorf(
 		"node %q's %q output is %s, but node %q's %q input takes %s%s",
@@ -1391,6 +1658,25 @@ func (a *Instance) ConnectNodes(nodeOutId, outPortName, nodeInId, inPortName str
 			nodeOutId, nodeInId, cleanedInputName, nodeInId, nodeOutId))
 	}
 
+	release, e := bindDynamicPorts(output, input)
+	if e != nil {
+		panic(fmt.Errorf("connecting node %q's %q output into node %q's %q input: %w",
+			nodeOutId, outPortName, nodeInId, cleanedInputName, e))
+	}
+
+	// Make sure to disconnect if we bail/panic
+	connected := false
+	if release != nil {
+		defer func() {
+			if !connected {
+				release()
+			}
+		}()
+	}
+
+	output = outNode.Outputs()[outPortName]
+	input = inNode.Inputs()[cleanedInputName]
+
 	// A subgraph boundary port holds a plain OutputPort, so reflection
 	// accepts any output at all and the mismatch only surfaces later as a
 	// nil dereference deep in whatever consumed it - a build wired
@@ -1404,9 +1690,23 @@ func (a *Instance) ConnectNodes(nodeOutId, outPortName, nodeInId, inPortName str
 		if elementIndex != -1 {
 			panic(fmt.Errorf("node %q's input %q takes a single value, so %q has no element to replace", nodeInId, cleanedInputName, inPortName))
 		}
+
+		typesBefore := outputTypesOf(inNode)
+		previous := single.Value()
+
 		err := single.Set(output)
 		if err != nil {
 			panic(err)
+		}
+
+		if e := a.consumersBrokenBy(inNode, typesBefore); e != nil {
+			if previous == nil {
+				single.Clear()
+			} else {
+				_ = single.Set(previous)
+			}
+			panic(fmt.Errorf("connecting node %q's %q output into node %q's %q input: %w",
+				nodeOutId, outPortName, nodeInId, cleanedInputName, e))
 		}
 		// Setting a port whose type doesn't match is silently dropped by
 		// the reflection underneath, leaving the input nil. Nothing
@@ -1421,12 +1721,23 @@ func (a *Instance) ConnectNodes(nodeOutId, outPortName, nodeInId, inPortName str
 		// N is the next free slot. The editor and convert_to_subgraph
 		// both connect with N == len, so append must stay reachable
 		// through an index.
+		// An array input retypes its node too: a lifted output goes to an
+		// array as soon as any element carries one.
+		typesBefore := outputTypesOf(inNode)
+
 		if elementIndex != -1 && elementIndex < before {
+			previous := array.Value()[elementIndex]
+
 			if err := array.Replace(elementIndex, output); err != nil {
 				panic(fmt.Errorf("node %q: %w", nodeInId, err))
 			}
 			if array.Value()[elementIndex] != output {
 				panic(mismatchError(nodeOutId, outPortName, output, nodeInId, cleanedInputName, input))
+			}
+			if e := a.consumersBrokenBy(inNode, typesBefore); e != nil {
+				_ = array.Replace(elementIndex, previous)
+				panic(fmt.Errorf("connecting node %q's %q output into node %q's %q input: %w",
+					nodeOutId, outPortName, nodeInId, cleanedInputName, e))
 			}
 		} else {
 			if elementIndex > before {
@@ -1439,10 +1750,17 @@ func (a *Instance) ConnectNodes(nodeOutId, outPortName, nodeInId, inPortName str
 			if len(array.Value()) != before+1 {
 				panic(mismatchError(nodeOutId, outPortName, output, nodeInId, cleanedInputName, input))
 			}
+			if e := a.consumersBrokenBy(inNode, typesBefore); e != nil {
+				_ = array.Remove(output)
+				panic(fmt.Errorf("connecting node %q's %q output into node %q's %q input: %w",
+					nodeOutId, outPortName, nodeInId, cleanedInputName, e))
+			}
 		}
 	} else {
 		panic(fmt.Errorf("can not determine type of node %q's input %q", nodeInId, cleanedInputName))
 	}
+
+	connected = true
 
 	a.incModelVersion()
 	_ = a.notifyDefinitionMutation()

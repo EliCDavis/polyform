@@ -24,35 +24,39 @@ func init() {
 }
 
 type FeetToMetersNode[T vector.Number] struct {
-	Feet nodes.Output[T]
+	Feet nodes.LiftedPort[T]
 }
 
 func (ftm FeetToMetersNode[T]) Description() string {
 	return "Converts feet to meters."
 }
 
-func (ftm FeetToMetersNode[T]) Float64(out *nodes.StructOutput[float64]) {
-	out.Set(float64(nodes.TryGetOutputValue(out, ftm.Feet, 0)) * FeetToMeters)
+func (ftm FeetToMetersNode[T]) Float64(out *nodes.Lifted[float64]) {
+	nodes.Zip1(out, ftm.Feet, func(v T) float64 { return float64(v) * FeetToMeters })
 }
 
-func (ftm FeetToMetersNode[T]) Int(out *nodes.StructOutput[int]) {
-	out.Set(int(math.Round(float64(nodes.TryGetOutputValue(out, ftm.Feet, 0)) * FeetToMeters)))
+func (ftm FeetToMetersNode[T]) Int(out *nodes.Lifted[int]) {
+	nodes.Zip1(out, ftm.Feet, func(v T) int {
+		return int(math.Round(float64(v) * FeetToMeters))
+	})
 }
 
 type MeterToFeetNode[T vector.Number] struct {
-	Meters nodes.Output[T]
+	Meters nodes.LiftedPort[T]
 }
 
 func (ftm MeterToFeetNode[T]) Description() string {
 	return "Converts meters to feet."
 }
 
-func (ftm MeterToFeetNode[T]) Float64(out *nodes.StructOutput[float64]) {
-	out.Set(float64(nodes.TryGetOutputValue(out, ftm.Meters, 0)) * MetersToFeet)
+func (ftm MeterToFeetNode[T]) Float64(out *nodes.Lifted[float64]) {
+	nodes.Zip1(out, ftm.Meters, func(v T) float64 { return float64(v) * MetersToFeet })
 }
 
-func (ftm MeterToFeetNode[T]) Int(out *nodes.StructOutput[int]) {
-	out.Set(int(math.Round(float64(nodes.TryGetOutputValue(out, ftm.Meters, 0)) * MetersToFeet)))
+func (ftm MeterToFeetNode[T]) Int(out *nodes.Lifted[int]) {
+	nodes.Zip1(out, ftm.Meters, func(v T) int {
+		return int(math.Round(float64(v) * MetersToFeet))
+	})
 }
 
 type ParseFeetNode struct {

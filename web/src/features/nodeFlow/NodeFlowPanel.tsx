@@ -3,6 +3,7 @@ import {
   ContextMenuItemState,
   NodeFlowGraph,
   Publisher,
+  Theme,
 } from "@elicdavis/node-flow";
 import { parameterNodeConfigs } from "./parameterNodeConfigs";
 import { useFlowGraphBootstrap } from "./FlowGraphBootstrapContext";
@@ -22,6 +23,9 @@ export function NodeFlowPanel() {
 
     initialized.current = true;
 
+    Theme.Minimap.BackgroundColor = "rgba(15, 49, 60, 0.9)";
+    Theme.Minimap.BorderColor = "#154050";
+
     // SubGraph Input/Output are registered by NodeManager only while a
     // sub-graph tab is active (they require a port type at create time).
     const publisher = new Publisher({
@@ -31,6 +35,7 @@ export function NodeFlowPanel() {
     });
 
     const nodeFlowGraph = new NodeFlowGraph(canvas, {
+      minimap: { enabled: true },
       contextMenu: {
         items: [
           {

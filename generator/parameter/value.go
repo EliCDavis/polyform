@@ -133,6 +133,7 @@ func (pn *Value[T]) ApplyMessage(msg []byte) (bool, error) {
 	}
 
 	pn.version++
+	nodes.Touch()
 	pn.CurrentValue = val
 
 	return true, nil

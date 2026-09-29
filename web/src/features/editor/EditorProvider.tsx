@@ -5,6 +5,7 @@ import { NodeManager } from "@/lib/node_manager";
 import { WebSocketManager, WebSocketRepresentationManager } from "@/lib/websocket";
 import { XRManager } from "@/lib/xr";
 import { UpdateManager } from "@/lib/update_manager";
+import { consumeRenderRequest, renderContinuously, requestRender } from "@/lib/render_scheduler";
 import { NoteManager } from "@/lib/note_manager";
 import { ViewportManager } from "@/lib/viewport_manager";
 import { SchemaManager } from "@/lib/schema_manager";
@@ -207,26 +208,55 @@ function EditorBootstrap({
         });
       }
 
+      let sizedWidth = -1;
+      let sizedHeight = -1;
+
       function resize() {
         const renderer = threeApp.Renderer;
         const rect = renderer.domElement.getBoundingClientRect();
         const w = Math.floor(rect.width);
         const h = Math.floor(rect.height);
-        if (renderer.domElement.width !== w || renderer.domElement.height !== h) {
-          threeApp.Camera.aspect = w / h;
-          threeApp.Camera.updateProjectionMatrix();
-          renderer.setSize(w, h, false);
-          threeApp.Composer.setSize(w, h);
-          threeApp.LabelRenderer.setSize(w, h);
-          threeApp.ViewportGizmo.update();
+        if (w === sizedWidth && h === sizedHeight) {
+          return;
         }
+        if (w === 0 || h === 0) {
+          return;
+        }
+
+        sizedWidth = w;
+        sizedHeight = h;
+
+        threeApp.Camera.aspect = w / h;
+        threeApp.Camera.updateProjectionMatrix();
+        renderer.setSize(w, h, false);
+        threeApp.Composer.setSize(w, h);
+        threeApp.LabelRenderer.setSize(w, h);
+        threeApp.ViewportGizmo.update();
+        requestRender();
       }
+
+      let releaseXR: (() => void) | null = null;
+      threeApp.Renderer.xr.addEventListener("sessionstart", () => {
+        releaseXR = renderContinuously();
+      });
+      threeApp.Renderer.xr.addEventListener("sessionend", () => {
+        releaseXR?.();
+        releaseXR = null;
+      });
+
+      threeApp.OrbitControls.addEventListener("change", requestRender);
 
       updateLoop.addToUpdate({
         name: "Rendering",
         loop: (delta) => {
           resize();
+
           threeApp.OrbitControls.update();
+
+          if (!consumeRenderRequest()) {
+            return;
+          }
+
           threeApp.Composer.render(delta);
           producerViewManager.Render();
           threeApp.LabelRenderer.render(threeApp.Scene, threeApp.Camera);

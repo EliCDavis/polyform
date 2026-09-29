@@ -22,6 +22,16 @@ func TestQuaternionJSONRoundTrip(t *testing.T) {
 	assert.Equal(t, original, back)
 }
 
+func TestQuaternionJSONRenormalizesRoundedComponents(t *testing.T) {
+	var q quaternion.Quaternion
+	require.NoError(t, json.Unmarshal([]byte(`{"y":0.7071068,"w":0.7071068}`), &q))
+	assert.InDelta(t, 1, q.Dot(q), 1e-15)
+
+	var zero quaternion.Quaternion
+	require.NoError(t, json.Unmarshal([]byte(`{"w":0}`), &zero))
+	assert.Zero(t, zero.Dot(zero))
+}
+
 func TestQuaternionJSONMissingFieldsIsIdentity(t *testing.T) {
 	var q quaternion.Quaternion
 	require.NoError(t, json.Unmarshal([]byte(`{}`), &q))

@@ -33,6 +33,14 @@ func (co ConstOutput[T]) BuildProxyOutput(source ProxySource) OutputPort {
 	return NewProxyOutput[T](source)
 }
 
+func (co ConstOutput[T]) BuildDynamicOutput(source DynamicSource) OutputPort {
+	return NewDynamicOutput[T](source)
+}
+
+func (co ConstOutput[T]) BuildDynamicArrayOutput(source DynamicSource) OutputPort {
+	return NewDynamicOutput[[]T](source)
+}
+
 func (so ConstOutput[T]) Type() string {
 	resolver := refutil.TypeResolution{
 		IncludePackage: true,

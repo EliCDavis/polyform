@@ -19,6 +19,7 @@ type FileVariable struct {
 func (tv *FileVariable) SetValue(v []byte) {
 	tv.value = v
 	tv.version++
+	nodes.Touch()
 }
 
 func (tv *FileVariable) GetValue() []byte {
@@ -51,6 +52,7 @@ func (tv *FileVariable) currentVersion() int {
 
 func (tv *FileVariable) ApplyMessage(msg []byte) (bool, error) {
 	tv.version++
+	nodes.Touch()
 	tv.value = msg
 	return true, nil
 }
@@ -62,6 +64,7 @@ func (tv *FileVariable) applyProfile(profile json.RawMessage) error {
 		return err
 	}
 	tv.version++
+	nodes.Touch()
 	tv.value = data
 	return nil
 }

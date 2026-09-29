@@ -14,5 +14,6 @@ func (v VersionData) Version() int {
 
 func (v *VersionData) Increment() int {
 	v.version++
+	Touch()
 	return v.version
 }

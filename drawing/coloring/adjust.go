@@ -212,45 +212,23 @@ func (n ToHSVNode) Value(out *nodes.StructOutput[float64]) {
 // ============================================================================
 
 type FromVectorNode struct {
-	Vector3 nodes.Output[vector3.Float64] `description:"RGB as x/y/z in 0-1. Alpha becomes 1."`
-	Vector4 nodes.Output[vector4.Float64] `description:"RGBA as x/y/z/w in 0-1. Takes priority over Vector3 when both are wired."`
+	Vector3 nodes.LiftedPort[vector3.Float64] `description:"RGB as x/y/z in 0-1. Alpha becomes 1."`
+	Vector4 nodes.LiftedPort[vector4.Float64] `description:"RGBA as x/y/z/w in 0-1. Takes priority over Vector3 when both are wired."`
 }
 
 func (n FromVectorNode) Description() string {
 	return "Builds a color from a vector's components. Inverse of To Vector."
 }
 
-func (n FromVectorNode) Out(out *nodes.StructOutput[Color]) {
+func (n FromVectorNode) Out(out *nodes.Lifted[Color]) {
 	if n.Vector4 != nil {
-		v := nodes.GetOutputValue(out, n.Vector4)
-		out.Set(Color{R: clamp01(v.X()), G: clamp01(v.Y()), B: clamp01(v.Z()), A: clamp01(v.W())})
+		nodes.Zip1(out, n.Vector4, func(v vector4.Float64) Color {
+			return Color{R: clamp01(v.X()), G: clamp01(v.Y()), B: clamp01(v.Z()), A: clamp01(v.W())}
+		})
 		return
 	}
 
-	if n.Vector3 != nil {
-		v := nodes.GetOutputValue(out, n.Vector3)
-		out.Set(Color{R: clamp01(v.X()), G: clamp01(v.Y()), B: clamp01(v.Z()), A: 1})
-		return
-	}
-
-	out.Set(Color{R: 0, G: 0, B: 0, A: 1})
-}
-
-// ============================================================================
-
-type FromVectorArrayNode struct {
-	Vector3 nodes.Output[[]vector3.Float64] `description:"One RGB triple per color, components in 0-1."`
-}
-
-func (n FromVectorArrayNode) Description() string {
-	return "Builds an array of colors from an array of vectors. Inverse of To Vector Array."
-}
-
-func (n FromVectorArrayNode) Out(out *nodes.StructOutput[[]Color]) {
-	in := nodes.TryGetOutputValue(out, n.Vector3, nil)
-	arr := make([]Color, len(in))
-	for i, v := range in {
-		arr[i] = Color{R: clamp01(v.X()), G: clamp01(v.Y()), B: clamp01(v.Z()), A: 1}
-	}
-	out.Set(arr)
+	nodes.Zip1(out, nodes.LiftedOr(n.Vector3, vector3.Zero[float64]()), func(v vector3.Float64) Color {
+		return Color{R: clamp01(v.X()), G: clamp01(v.Y()), B: clamp01(v.Z()), A: 1}
+	})
 }

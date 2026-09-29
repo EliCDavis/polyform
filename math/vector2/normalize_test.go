@@ -9,72 +9,78 @@ import (
 	v2 "github.com/EliCDavis/vector/vector2"
 )
 
-func TestNormalizeArray(t *testing.T) {
-	suite := nodetest.NewSuite(
+func TestNormalize(t *testing.T) {
+	nodetest.NewSuite(
 		nodetest.NewTestCase(
-			"descriptions",
-			nodetest.NewNode(vector2.NormalizeArray{}),
-			nodetest.AssertNodeOutputPortDescription{
-				Port:        "Local",
-				Description: "Normalizes each component of the array",
-			},
-			nodetest.AssertNodeOutputPortDescription{
-				Port:        "Global",
-				Description: "Scales each vector by the inverse of the magnitude of the longest vector",
-			},
+			"nothing wired => 0,0",
+			nodetest.NewNode(vector2.Normalize{}),
+			nodetest.AssertOutput("Normalized", v2.Zero[float64]()),
+			nodetest.AssertLiftedInput("In", vec2Type),
 		),
 		nodetest.NewTestCase(
-			"Local: nil => nil",
-			nodetest.NewNode(vector2.NormalizeArray{}),
-			nodetest.AssertOutput[[]v2.Float64]("Local", nil),
-		),
-		nodetest.NewTestCase(
-			"Local: empty => empty",
-			nodetest.NewNode(vector2.NormalizeArray{
-				In: nodetest.NewPortValue([]v2.Float64{}),
+			"a single vector",
+			nodetest.NewNode(vector2.Normalize{
+				In: nodetest.NewPortValue(v2.New(0., 10.)),
 			}),
-			nodetest.AssertOutput("Local", []v2.Float64{}),
+			nodetest.AssertOutput("Normalized", v2.New(0., 1.)),
 		),
 		nodetest.NewTestCase(
-			"Local: single vector",
-			nodetest.NewNode(vector2.NormalizeArray{
-				In: nodetest.NewPortValue([]v2.Float64{
-					v2.New(0., 10.),
-				}),
-			}),
-			nodetest.AssertOutput("Local", []v2.Float64{
-				v2.New(0., 1.),
-			}),
-		),
-		nodetest.NewTestCase(
-			"Local: multiple vectors",
-			nodetest.NewNode(vector2.NormalizeArray{
+			"every vector in an array",
+			nodetest.NewNode(vector2.Normalize{
 				In: nodetest.NewPortValue([]v2.Float64{
 					v2.New(0., 10.),
 					v2.New(4., 0.),
 					v2.New(3., 4.),
 				}),
 			}),
-			nodetest.AssertOutput("Local", []v2.Float64{
+			nodetest.AssertOutput("Normalized", []v2.Float64{
 				v2.New(0., 1.),
 				v2.New(1., 0.),
 				v2.New(3., 4.).Normalized(),
 			}),
+			nodetest.AssertOutputType("Normalized", vec2ArrayType),
 		),
 		nodetest.NewTestCase(
-			"Global: nil => nil",
+			"a zero vector inside an array stays zero rather than NaN",
+			nodetest.NewNode(vector2.Normalize{
+				In: nodetest.NewPortValue([]v2.Float64{v2.New(0., 10.), v2.Zero[float64]()}),
+			}),
+			nodetest.AssertOutput("Normalized", []v2.Float64{v2.New(0., 1.), v2.Zero[float64]()}),
+		),
+		nodetest.NewTestCase(
+			"an empty array stays empty",
+			nodetest.NewNode(vector2.Normalize{
+				In: nodetest.NewPortValue([]v2.Float64{}),
+			}),
+			nodetest.AssertOutput("Normalized", []v2.Float64{}),
+		),
+	).Run(t)
+}
+
+func TestNormalizeArray(t *testing.T) {
+	nodetest.NewSuite(
+		nodetest.NewTestCase(
+			"descriptions",
+			nodetest.NewNode(vector2.NormalizeArray{}),
+			nodetest.AssertNodeOutputPortDescription{
+				Port:        "Global",
+				Description: "Scales each vector by the inverse of the magnitude of the longest vector",
+			},
+		),
+		nodetest.NewTestCase(
+			"nil => nil",
 			nodetest.NewNode(vector2.NormalizeArray{}),
 			nodetest.AssertOutput[[]v2.Float64]("Global", nil),
 		),
 		nodetest.NewTestCase(
-			"Global: empty => nil",
+			"empty => nil",
 			nodetest.NewNode(vector2.NormalizeArray{
 				In: nodetest.NewPortValue([]v2.Float64{}),
 			}),
 			nodetest.AssertOutput[[]v2.Float64]("Global", nil),
 		),
 		nodetest.NewTestCase(
-			"Global: all zero => error",
+			"all zero => error",
 			nodetest.NewNode(vector2.NormalizeArray{
 				In: nodetest.NewPortValue([]v2.Float64{
 					v2.Zero[float64](),
@@ -93,7 +99,7 @@ func TestNormalizeArray(t *testing.T) {
 			},
 		),
 		nodetest.NewTestCase(
-			"Global: scale by longest magnitude",
+			"scale by longest magnitude",
 			nodetest.NewNode(vector2.NormalizeArray{
 				In: nodetest.NewPortValue([]v2.Float64{
 					v2.New(0., 10.),
@@ -107,6 +113,5 @@ func TestNormalizeArray(t *testing.T) {
 				v2.New(3., 4.).DivByConstant(10.),
 			}),
 		),
-	)
-	suite.Run(t)
+	).Run(t)
 }

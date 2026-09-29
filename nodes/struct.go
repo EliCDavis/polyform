@@ -2,8 +2,10 @@ package nodes
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/EliCDavis/polyform/refutil"
@@ -12,6 +14,7 @@ import (
 
 type inputVersions interface {
 	inputVersions() string
+	refreshInputVersions() string
 }
 
 // ============================================================================
@@ -61,6 +64,10 @@ func (soc structOutputCache) InputString() string {
 }
 
 func (soc *structOutputCache) Cache(key string, val any) {
+	// Every input has just been evaluated, so their versions are settled;
+	// a memo taken before they ran could still hold a first-run -1.
+	inputVersions := soc.versioner.refreshInputVersions()
+
 	version := soc.Version(key)
 	newVersion := version + 1
 
@@ -72,7 +79,7 @@ func (soc *structOutputCache) Cache(key string, val any) {
 	}
 
 	soc.cache[key] = cachedStructOutput{
-		nodeInputVersions: soc.versioner.inputVersions(),
+		nodeInputVersions: inputVersions,
 		val:               val,
 		version:           newVersion,
 	}
@@ -159,6 +166,14 @@ func (so StructOutput[T]) BuildProxyOutput(source ProxySource) OutputPort {
 	return NewProxyOutput[T](source)
 }
 
+func (so StructOutput[T]) BuildDynamicOutput(source DynamicSource) OutputPort {
+	return NewDynamicOutput[T](source)
+}
+
+func (so StructOutput[T]) BuildDynamicArrayOutput(source DynamicSource) OutputPort {
+	return NewDynamicOutput[[]T](source)
+}
+
 func (so StructOutput[T]) Description() string {
 	name := so.functionName + "Description"
 	if refutil.HasMethod(so.data, name) {
@@ -234,6 +249,7 @@ type structArrayInput struct {
 
 func (si *structArrayInput) Clear() {
 	refutil.SetStructField(si.data.Data(), si.structField, nil)
+	Touch()
 }
 
 func (si structArrayInput) Node() Node {
@@ -255,6 +271,7 @@ func (si structArrayInput) Value() []OutputPort {
 
 func (si structArrayInput) Add(port OutputPort) error {
 	refutil.AddToStructFieldArray(si.data.Data(), si.structField, port)
+	Touch()
 	return nil
 }
 
@@ -263,6 +280,7 @@ func (si structArrayInput) Remove(port OutputPort) error {
 	for i, v := range vals {
 		if v == port {
 			refutil.RemoveFromStructFieldArray(si.data.Data(), si.structField, i)
+			Touch()
 			return nil
 		}
 	}
@@ -275,6 +293,7 @@ func (si structArrayInput) Replace(index int, port OutputPort) error {
 		return fmt.Errorf("array input port %s has %d element(s), so there is no index %d to replace", si.Name(), count, index)
 	}
 	refutil.SetStructFieldArrayElement(si.data.Data(), si.structField, index, port)
+	Touch()
 	return nil
 }
 
@@ -294,6 +313,7 @@ type structInput struct {
 
 func (si *structInput) Clear() {
 	refutil.SetStructField(si.data.Data(), si.structField, nil)
+	Touch()
 }
 
 func (si structInput) Node() Node {
@@ -314,6 +334,7 @@ func (si structInput) Value() OutputPort {
 
 func (si structInput) Set(port OutputPort) error {
 	refutil.SetStructField(si.data.Data(), si.structField, port)
+	Touch()
 	return nil
 }
 
@@ -344,6 +365,27 @@ type Struct[T any] struct {
 
 	outputCache *structOutputCache
 	mutex       sync.Mutex
+	versions    atomic.Pointer[versionsMemo]
+	dynamic     atomic.Pointer[dynamicBindings]
+}
+
+// Inputs and Outputs both reach this under nothing stronger than a read
+// lock, and two callers must not leave with different sets.
+func (s *Struct[T]) bindings() *dynamicBindings {
+	if existing := s.dynamic.Load(); existing != nil {
+		return existing
+	}
+	s.dynamic.CompareAndSwap(nil, &dynamicBindings{})
+	return s.dynamic.Load()
+}
+
+func (s *Struct[T]) DynamicTypes() map[string]string {
+	return s.bindings().all()
+}
+
+type versionsMemo struct {
+	generation uint64
+	key        string
 }
 
 func (s *Struct[T]) Outputs() map[string]OutputPort {
@@ -362,8 +404,60 @@ func (s *Struct[T]) Outputs() map[string]OutputPort {
 		}
 	}
 
+	var handleTypes map[string]reflect.Type
+
 	for functionName, zero := range funcs {
 		portName := utils.CamelCaseToSpaceCase(functionName)
+
+		if _, isLifted := zero.(liftedHandle); isLifted {
+			if handleTypes == nil {
+				handleTypes = refutil.FuncArgumentTypes(s.Data)
+			}
+			handleType := handleTypes[functionName]
+			elem, ok := patternOfLiftedHandle(handleType)
+			if !ok {
+				panic(fmt.Errorf("output %q takes %s, which no element type can be read out of", functionName, handleType))
+			}
+
+			port := &liftedOutput{
+				node:         s,
+				data:         &s.Data,
+				functionName: functionName,
+				displayName:  portName,
+				elem:         elem,
+				handleType:   handleType,
+				cache:        s.outputCache,
+				mutex:        &s.mutex,
+			}
+			out[portName] = port.buildPort()
+			continue
+		}
+
+		if _, isDynamic := zero.(dynamicHandle); isDynamic {
+			if handleTypes == nil {
+				handleTypes = refutil.FuncArgumentTypes(s.Data)
+			}
+			handleType := handleTypes[functionName]
+			pattern, ok := patternOfHandle(handleType)
+			if !ok {
+				panic(fmt.Errorf("output %q takes %s, which no type variable can be read out of", functionName, handleType))
+			}
+
+			port := &dynamicOutput{
+				node:         s,
+				data:         &s.Data,
+				functionName: functionName,
+				displayName:  portName,
+				pattern:      pattern,
+				handleType:   handleType,
+				cache:        s.outputCache,
+				mutex:        &s.mutex,
+				bindings:     s.bindings(),
+			}
+			out[portName] = port.buildPort()
+			continue
+		}
+
 		out[portName] = zero.build(s, s.outputCache, &s.Data, functionName, portName, &s.mutex)
 	}
 
@@ -403,6 +497,52 @@ func (s *Struct[T]) Inputs() map[string]InputPort {
 		}
 	}
 
+	for name, elem := range refutil.GenericFieldTypes(liftedPortFieldType, s.Data) {
+		portName := utils.CamelCaseToSpaceCase(name)
+		nodeInputs[portName] = &liftedInput{
+			node:        s,
+			data:        &structDataProvider[T]{Node: s},
+			structField: name,
+			displayName: portName,
+			elem:        elem,
+		}
+	}
+
+	for name, elem := range refutil.GenericFieldTypes(liftedPortArrayFieldType, s.Data) {
+		portName := utils.CamelCaseToSpaceCase(name)
+		nodeInputs[portName] = &liftedArrayInput{
+			node:        s,
+			data:        &structDataProvider[T]{Node: s},
+			structField: name,
+			displayName: portName,
+			elem:        elem,
+		}
+	}
+
+	for name, variable := range refutil.GenericFieldTypes(dynamicPortFieldType, s.Data) {
+		portName := utils.CamelCaseToSpaceCase(name)
+		nodeInputs[portName] = &dynamicInput{
+			node:        s,
+			data:        &structDataProvider[T]{Node: s},
+			structField: name,
+			displayName: portName,
+			pattern:     dynamicPattern(variable),
+			bindings:    s.bindings(),
+		}
+	}
+
+	for name, variable := range refutil.GenericFieldTypes(dynamicPortArrayFieldType, s.Data) {
+		portName := utils.CamelCaseToSpaceCase(name)
+		nodeInputs[portName] = &dynamicArrayInput{
+			node:        s,
+			data:        &structDataProvider[T]{Node: s},
+			structField: name,
+			displayName: portName,
+			pattern:     dynamicPattern(variable),
+			bindings:    s.bindings(),
+		}
+	}
+
 	return nodeInputs
 }
 
@@ -424,7 +564,24 @@ func identity(port OutputPort) string {
 	}
 }
 
+// Memoized against the mutation generation: the walk to the leaves is
+// exponential where upstream nodes are shared.
 func (s *Struct[T]) inputVersions() string {
+	generation := Generation()
+	if memo := s.versions.Load(); memo != nil && memo.generation == generation {
+		return memo.key
+	}
+	return s.refreshInputVersions()
+}
+
+func (s *Struct[T]) refreshInputVersions() string {
+	generation := Generation()
+	key := s.computeInputVersions()
+	s.versions.Store(&versionsMemo{generation: generation, key: key})
+	return key
+}
+
+func (s *Struct[T]) computeInputVersions() string {
 	builder := strings.Builder{}
 	inputs := utils.SortMapByKey(s.Inputs())
 

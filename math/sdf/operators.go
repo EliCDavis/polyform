@@ -93,6 +93,46 @@ func Intersect(fields ...sample.Vec3ToFloat) sample.Vec3ToFloat {
 	}
 }
 
+func smoothIntersectBlend(a, b, radius float64) float64 {
+	h := math.Max(radius-math.Abs(a-b), 0) / radius
+	return math.Max(a, b) + (h * h * radius * 0.25)
+}
+
+func SmoothIntersect(radius float64, fields ...sample.Vec3ToFloat) sample.Vec3ToFloat {
+	if len(fields) == 0 {
+		panic("no fields to intersect")
+	}
+
+	if len(fields) == 1 {
+		return fields[0]
+	}
+
+	if radius <= 0 {
+		return Intersect(fields...)
+	}
+
+	if len(fields) == 2 {
+		a := fields[0]
+		b := fields[1]
+		return func(v vector3.Float64) float64 {
+			return smoothIntersectBlend(a(v), b(v), radius)
+		}
+	}
+
+	return func(v vector3.Float64) float64 {
+		max1, max2 := math.Inf(-1), math.Inf(-1)
+		for _, f := range fields {
+			val := f(v)
+			if val > max1 {
+				max1, max2 = val, max1
+			} else if val > max2 {
+				max2 = val
+			}
+		}
+		return smoothIntersectBlend(max1, max2, radius)
+	}
+}
+
 func Subtract(base, subtraction sample.Vec3ToFloat) sample.Vec3ToFloat {
 	return func(f vector3.Float64) float64 {
 		return math.Max(base(f), -subtraction(f))
@@ -162,6 +202,24 @@ func (n IntersectionNode) Intersection(out *nodes.StructOutput[sample.Vec3ToFloa
 		return
 	}
 	out.Set(Intersect(fields...))
+}
+
+type SmoothIntersectionNode struct {
+	Fields []nodes.Output[sample.Vec3ToFloat] `description:"The fields to combine."`
+	Radius nodes.Output[float64]              `description:"Width of the blend region in world units. Zero or less is a regular intersection. Defaults to 0.1."`
+}
+
+func (n SmoothIntersectionNode) Description() string {
+	return "Keeps only where every field overlaps, rounding the crease where their surfaces meet instead of leaving a sharp edge."
+}
+
+func (n SmoothIntersectionNode) Intersection(out *nodes.StructOutput[sample.Vec3ToFloat]) {
+	fields := nodes.GetOutputValues(out, n.Fields)
+	if len(fields) == 0 {
+		out.CaptureError(errors.New("No fields provided to intersect"))
+		return
+	}
+	out.Set(SmoothIntersect(nodes.TryGetOutputValue(out, n.Radius, .1), fields...))
 }
 
 type SubtractionNode struct {

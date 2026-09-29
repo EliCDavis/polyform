@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { BlendFunction } from "postprocessing";
 import type { ThreeApp } from "@/lib/three_app";
+import { requestRender } from "@/lib/render_scheduler";
 import type { ProducerViewManager } from "@/lib/ProducerView/producer_view_manager";
 import { RenderingGroup, RenderingOption } from "./RenderingControls";
 
@@ -32,6 +33,10 @@ export function SSAOGroup({ threeApp, producerViewManager }: SSAOGroupProps) {
     };
     producerViewManager.SubscribeToCompleteRefresh(onRefresh);
   }, [producerViewManager]);
+
+  useEffect(() => {
+    requestRender();
+  });
 
   useEffect(() => {
     ssao.blendMode.blendFunction = enabled

@@ -9,7 +9,6 @@ import (
 	"github.com/EliCDavis/polyform/generator/manifest"
 	"github.com/EliCDavis/polyform/generator/schema"
 	"github.com/EliCDavis/polyform/generator/serialize"
-	"github.com/EliCDavis/polyform/generator/subgraph"
 	"github.com/EliCDavis/polyform/nodes"
 )
 
@@ -126,7 +125,7 @@ func nodeTypesEndpoint(graphInstance *graph.Instance, serializer *serialize.Type
 				func(r *http.Request) (RegisteredTypes, error) {
 					b := RegisteredTypes{
 						NodeTypes: graphInstance.BuildSchemaForAllNodeTypes(),
-						PortTypes: subgraph.KnownPortTypes(),
+						PortTypes: nodes.KnownPortTypes(),
 					}
 					if serializer != nil {
 						b.SerializeOutputTypes = serializer.Types()

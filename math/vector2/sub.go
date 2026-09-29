@@ -7,44 +7,16 @@ import (
 )
 
 type Subtract[T vector.Number] struct {
-	A nodes.Output[vector2.Vector[T]]
-	B nodes.Output[vector2.Vector[T]]
+	A nodes.LiftedPort[vector2.Vector[T]]
+	B nodes.LiftedPort[vector2.Vector[T]]
 }
 
 func (d Subtract[T]) Description() string {
 	return "Subtracts vector B from vector A."
 }
 
-func (d Subtract[T]) Out(out *nodes.StructOutput[vector2.Vector[T]]) {
-	a := nodes.TryGetOutputValue(out, d.A, vector2.Zero[T]())
-	b := nodes.TryGetOutputValue(out, d.B, vector2.Zero[T]())
-	out.Set(a.Sub(b))
-}
-
-type SubtractToArrayNode[T vector.Number] struct {
-	Amount nodes.Output[vector2.Vector[T]]
-	Array  nodes.Output[[]vector2.Vector[T]]
-}
-
-func (cn SubtractToArrayNode[T]) Description() string {
-	return "Subtracts a vector from every entry of an array."
-}
-
-func (cn SubtractToArrayNode[T]) Out(out *nodes.StructOutput[[]vector2.Vector[T]]) {
-	if cn.Array == nil {
-		return
-	}
-
-	original := nodes.GetOutputValue(out, cn.Array)
-	if cn.Amount == nil {
-		out.Set(original)
-		return
-	}
-
-	amount := nodes.GetOutputValue(out, cn.Amount)
-	total := make([]vector2.Vector[T], len(original))
-	for i, v := range original {
-		total[i] = v.Sub(amount)
-	}
-	out.Set(total)
+func (d Subtract[T]) Out(out *nodes.Lifted[vector2.Vector[T]]) {
+	nodes.Zip2(out, d.A, d.B, func(a, b vector2.Vector[T]) vector2.Vector[T] {
+		return a.Sub(b)
+	})
 }

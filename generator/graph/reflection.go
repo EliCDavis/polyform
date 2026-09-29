@@ -68,9 +68,20 @@ func BuildNodeTypeSchema(registeredType string, node nodes.Node) schema.NodeType
 			desc = description.Description()
 		}
 
+		dynamic := false
+		if port, ok := o.(nodes.DynamicallyTypedPort); ok {
+			if pattern := port.DynamicPattern(); pattern != "" {
+				dynamic = true
+				if nodeType == "" {
+					nodeType = pattern
+				}
+			}
+		}
+
 		typeSchema.Outputs[name] = schema.NodeTypeOutput{
 			Type:        nodeType,
 			Description: desc,
+			Dynamic:     dynamic,
 		}
 	}
 
@@ -91,10 +102,28 @@ func BuildNodeTypeSchema(registeredType string, node nodes.Node) schema.NodeType
 			desc = description.Description()
 		}
 
+		dynamic := false
+		if pattern, ok := input.(nodes.DynamicallyTypedPort); ok {
+			dynamic = true
+			if nodeType == "" {
+				nodeType = pattern.DynamicPattern()
+			}
+		}
+
+		var accepted []string
+		if options, ok := input.(nodes.TypeOptions); ok {
+			accepted = options.AcceptedTypes()
+			if nodeType == "" && len(accepted) > 0 {
+				nodeType = accepted[0]
+			}
+		}
+
 		typeSchema.Inputs[name] = schema.NodeTypeInput{
-			Type:        nodeType,
-			IsArray:     array,
-			Description: desc,
+			Type:          nodeType,
+			IsArray:       array,
+			Description:   desc,
+			Dynamic:       dynamic,
+			AcceptedTypes: accepted,
 		}
 	}
 

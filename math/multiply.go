@@ -8,21 +8,16 @@ import (
 )
 
 type MultiplyNode[T vector.Number] struct {
-	Values []nodes.Output[T] `description:"The values to multiply together, in order."`
+	Values []nodes.LiftedPort[T] `description:"The values to multiply together, in order. Arrays are multiplied element by element."`
 }
 
 func (cn MultiplyNode[T]) Description() string {
 	return "Multiplies two or more values together."
 }
 
-func (cn MultiplyNode[T]) val(out nodes.ExecutionRecorder) T {
-	vals := nodes.GetOutputValues(out, cn.Values)
+func (cn MultiplyNode[T]) product(vals []T) T {
 	if len(vals) == 0 {
 		return 0
-	}
-
-	if len(vals) == 1 {
-		return vals[0]
 	}
 
 	total := vals[0]
@@ -32,27 +27,14 @@ func (cn MultiplyNode[T]) val(out nodes.ExecutionRecorder) T {
 	return total
 }
 
-func (an MultiplyNode[T]) Float(out *nodes.StructOutput[float64]) {
-	out.Set(float64(an.val(out)))
+func (cn MultiplyNode[T]) Float(out *nodes.Lifted[float64]) {
+	nodes.ZipAll(out, cn.Values, func(vals []T) float64 {
+		return float64(cn.product(vals))
+	})
 }
 
-func (an MultiplyNode[T]) Int(out *nodes.StructOutput[int]) {
-	out.Set(int(gomath.Round(float64(an.val(out)))))
-}
-
-// ============================================================================
-
-type MultiplyToArrayNode[T vector.Number] struct {
-	In    nodes.Output[T]
-	Array nodes.Output[[]T]
-}
-
-func (cn MultiplyToArrayNode[T]) Products(out *nodes.StructOutput[[]T]) {
-	out.Set(methodToArr(
-		nodes.TryGetOutputValue(out, cn.In, 0),
-		nodes.TryGetOutputValue(out, cn.Array, nil),
-		func(a, b T) T {
-			return a * b
-		},
-	))
+func (cn MultiplyNode[T]) Int(out *nodes.Lifted[int]) {
+	nodes.ZipAll(out, cn.Values, func(vals []T) int {
+		return int(gomath.Round(float64(cn.product(vals))))
+	})
 }

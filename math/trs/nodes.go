@@ -3,9 +3,10 @@ package trs
 import (
 	"fmt"
 	"math"
-	"math/rand/v2"
+	"time"
 
 	"github.com/EliCDavis/polyform/generator"
+	"github.com/EliCDavis/polyform/math/chance"
 	"github.com/EliCDavis/polyform/math/mat"
 	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/polyform/nodes"
@@ -16,17 +17,15 @@ import (
 func init() {
 	factory := &refutil.TypeFactory{}
 
-	refutil.RegisterType[nodes.Struct[ArrayNode]](factory)
 	refutil.RegisterType[nodes.Struct[NewNode]](factory)
 	refutil.RegisterType[nodes.Struct[RotateDirectionNode]](factory)
-	refutil.RegisterType[nodes.Struct[RotateDirectionsNode]](factory)
+	refutil.RegisterType[nodes.Struct[TransformPointNode]](factory)
+	refutil.RegisterType[nodes.Struct[LookAtNode]](factory)
+	refutil.RegisterType[nodes.Struct[PivotNode]](factory)
 	refutil.RegisterType[nodes.Struct[RandomizeArrayNode]](factory)
-	refutil.RegisterType[nodes.Struct[TransformArrayNode]](factory)
 	refutil.RegisterType[nodes.Struct[MultiplyNode]](factory)
 	refutil.RegisterType[nodes.Struct[MultiplyToArrayNode]](factory)
-	refutil.RegisterType[nodes.Struct[MultiplyArrayNode]](factory)
 	refutil.RegisterType[nodes.Struct[SelectNode]](factory)
-	refutil.RegisterType[nodes.Struct[SelectArrayNode]](factory)
 	refutil.RegisterType[nodes.Struct[FilterPositionNode]](factory)
 	refutil.RegisterType[nodes.Struct[FilterScaleNode]](factory)
 	generator.RegisterTypes(factory)
@@ -35,17 +34,23 @@ func init() {
 // ============================================================================
 
 type NewNode struct {
-	Position nodes.Output[vector3.Float64]
-	Rotation nodes.Output[quaternion.Quaternion]
-	Scale    nodes.Output[vector3.Float64]
+	Position nodes.LiftedPort[vector3.Float64]
+	Rotation nodes.LiftedPort[quaternion.Quaternion]
+	Scale    nodes.LiftedPort[vector3.Float64]
 }
 
-func (tnd NewNode) Out(out *nodes.StructOutput[TRS]) {
-	out.Set(New(
-		nodes.TryGetOutputValue(out, tnd.Position, vector3.Zero[float64]()),
-		nodes.TryGetOutputValue(out, tnd.Rotation, quaternion.Identity()),
-		nodes.TryGetOutputValue(out, tnd.Scale, vector3.One[float64]()),
-	))
+func (tnd NewNode) Description() string {
+	return "Builds a transform from a position, rotation and scale."
+}
+
+func (tnd NewNode) Out(out *nodes.Lifted[TRS]) {
+	nodes.Zip3(
+		out,
+		nodes.LiftedOr(tnd.Position, vector3.Zero[float64]()),
+		nodes.LiftedOr(tnd.Rotation, quaternion.Identity()),
+		nodes.LiftedOr(tnd.Scale, vector3.One[float64]()),
+		New,
+	)
 }
 
 // ============================================================================
@@ -58,6 +63,7 @@ type RandomizeArrayNode struct {
 	RotationMinimum    nodes.Output[vector3.Float64]
 	RotationMaximum    nodes.Output[vector3.Float64]
 	Array              nodes.Output[[]TRS]
+	Seed               nodes.Output[int] `description:"The same seed always produces the same offsets. Defaults to 0."`
 }
 
 func (tnd RandomizeArrayNode) Description() string {
@@ -82,23 +88,25 @@ func (tnd RandomizeArrayNode) Out(out *nodes.StructOutput[[]TRS]) {
 	maxR := nodes.TryGetOutputValue(out, tnd.RotationMaximum, vector3.Zero[float64]())
 	rangeR := maxR.Sub(minR)
 
+	rnd := chance.FromSeed(nodes.TryGetOutputValue(out, tnd.Seed, 0))
+
 	arr := make([]TRS, len(input))
 	for i := range input {
 		sample := New(
 			minT.Add(vector3.New(
-				rangeT.X()*rand.Float64(),
-				rangeT.Y()*rand.Float64(),
-				rangeT.Z()*rand.Float64(),
+				rangeT.X()*rnd.Float64(),
+				rangeT.Y()*rnd.Float64(),
+				rangeT.Z()*rnd.Float64(),
 			)),
 			quaternion.FromEulerAngle(minR.Add(vector3.New(
-				rangeR.X()*rand.Float64(),
-				rangeR.Y()*rand.Float64(),
-				rangeR.Z()*rand.Float64(),
+				rangeR.X()*rnd.Float64(),
+				rangeR.Y()*rnd.Float64(),
+				rangeR.Z()*rnd.Float64(),
 			))),
 			minS.Add(vector3.New(
-				rangeS.X()*rand.Float64(),
-				rangeS.Y()*rand.Float64(),
-				rangeS.Z()*rand.Float64(),
+				rangeS.X()*rnd.Float64(),
+				rangeS.Y()*rnd.Float64(),
+				rangeS.Z()*rnd.Float64(),
 			)),
 		)
 		composed, err := FromMatrix(input[i].Multiply(sample))
@@ -115,313 +123,203 @@ func (tnd RandomizeArrayNode) Out(out *nodes.StructOutput[[]TRS]) {
 // ============================================================================
 
 type SelectNode struct {
-	TRS nodes.Output[TRS]
+	TRS nodes.LiftedPort[TRS]
 }
 
 func (tnd SelectNode) Description() string {
 	return "Splits a transform into its position, scale and rotation."
 }
 
-func (tnd SelectNode) Position(out *nodes.StructOutput[vector3.Float64]) {
-	out.Set(nodes.TryGetOutputValue(out, tnd.TRS, Identity()).Position())
+func (tnd SelectNode) Position(out *nodes.Lifted[vector3.Float64]) {
+	nodes.Zip1(out, nodes.LiftedOr(tnd.TRS, Identity()), TRS.Position)
 }
 
-func (tnd SelectNode) Scale(out *nodes.StructOutput[vector3.Float64]) {
-	out.Set(nodes.TryGetOutputValue(out, tnd.TRS, Identity()).Scale())
+func (tnd SelectNode) Scale(out *nodes.Lifted[vector3.Float64]) {
+	nodes.Zip1(out, nodes.LiftedOr(tnd.TRS, Identity()), TRS.Scale)
 }
 
-func (tnd SelectNode) Rotation(out *nodes.StructOutput[quaternion.Quaternion]) {
-	out.Set(nodes.TryGetOutputValue(out, tnd.TRS, Identity()).Rotation())
-}
-
-// ============================================================================
-
-type SelectArrayNode struct {
-	TRS nodes.Output[[]TRS]
-}
-
-func (tnd SelectArrayNode) Description() string {
-	return "Splits an array of transforms into arrays of positions, scales and rotations."
-}
-
-func (tnd SelectArrayNode) Position(out *nodes.StructOutput[[]vector3.Float64]) {
-	trss := nodes.TryGetOutputValue(out, tnd.TRS, nil)
-	arr := make([]vector3.Float64, len(trss))
-
-	for i, trs := range trss {
-		arr[i] = trs.Position()
-	}
-
-	out.Set(arr)
-}
-
-func (tnd SelectArrayNode) Scale(out *nodes.StructOutput[[]vector3.Float64]) {
-	trss := nodes.TryGetOutputValue(out, tnd.TRS, nil)
-	arr := make([]vector3.Float64, len(trss))
-
-	for i, trs := range trss {
-		arr[i] = trs.Scale()
-	}
-
-	out.Set(arr)
-}
-
-func (tnd SelectArrayNode) Rotation(out *nodes.StructOutput[[]quaternion.Quaternion]) {
-	trss := nodes.TryGetOutputValue(out, tnd.TRS, nil)
-	arr := make([]quaternion.Quaternion, len(trss))
-
-	for i, trs := range trss {
-		arr[i] = trs.Rotation()
-	}
-
-	out.Set(arr)
+func (tnd SelectNode) Rotation(out *nodes.Lifted[quaternion.Quaternion]) {
+	nodes.Zip1(out, nodes.LiftedOr(tnd.TRS, Identity()), TRS.Rotation)
 }
 
 // ============================================================================
 
 type MultiplyNode struct {
-	A nodes.Output[TRS]
-	B nodes.Output[TRS]
+	A nodes.LiftedPort[TRS]
+	B nodes.LiftedPort[TRS]
 }
 
-func (tnd MultiplyNode) Out(out *nodes.StructOutput[TRS]) {
-	a := nodes.TryGetOutputValue(out, tnd.A, Identity())
-	b := nodes.TryGetOutputValue(out, tnd.B, Identity())
-	composed, err := FromMatrix(a.Multiply(b))
-	if err != nil {
-		out.CaptureError(err)
-		return
-	}
-	out.Set(composed)
+func (MultiplyNode) Description() string {
+	return "Composes two transforms into one, with A as the parent of B: a point goes through B first, then A."
 }
 
-// ============================================================================
-
-type MultiplyArrayNode struct {
-	A nodes.Output[[]TRS]
-	B nodes.Output[[]TRS]
+func (MultiplyNode) Keywords() []string {
+	return []string{"compose", "parent"}
 }
 
-func (tnd MultiplyArrayNode) Description() string {
-	return "Multiplies matching pairs of transforms from two arrays."
-}
-
-func (tnd MultiplyArrayNode) Out(out *nodes.StructOutput[[]TRS]) {
-	aVal := nodes.TryGetOutputValue(out, tnd.A, nil)
-	bVal := nodes.TryGetOutputValue(out, tnd.B, nil)
-
-	arr := make([]TRS, max(len(aVal), len(bVal)))
-
-	identity := Identity()
-	for i := range arr {
-		a := identity
-		b := identity
-
-		if i < len(aVal) {
-			a = aVal[i]
-		}
-
-		if i < len(bVal) {
-			b = bVal[i]
-		}
-
-		composed, err := FromMatrix(a.Multiply(b))
-		if err != nil {
-			out.CaptureError(fmt.Errorf("entry %d: %w", i, err))
-			return
-		}
-		arr[i] = composed
-	}
-
-	out.Set(arr)
+func (tnd MultiplyNode) Out(out *nodes.Lifted[TRS]) {
+	compose(out, func(recorder nodes.ExecutionRecorder) {
+		nodes.Zip2(
+			out,
+			nodes.LiftedOr(tnd.A, Identity()),
+			nodes.LiftedOr(tnd.B, Identity()),
+			func(a, b TRS) TRS {
+				return decompose(recorder, a.Multiply(b))
+			},
+		)
+	})
 }
 
 // ============================================================================
 
 type MultiplyToArrayNode struct {
-	Left  nodes.Output[TRS]
-	Array nodes.Output[[]TRS]
-	Right nodes.Output[TRS]
+	Left   nodes.LiftedPort[TRS]
+	Middle nodes.LiftedPort[TRS]
+	Right  nodes.LiftedPort[TRS]
 }
 
 func (n MultiplyToArrayNode) Description() string {
-	return "Multiplies each element by the left and right values provided. If left or right is not defined, they are considered the identity matrix. Each value in the resulting array is computed by `left * arr[i] * right`"
+	return "Composes three transforms as `Left * Middle * Right`. An unwired end is the identity."
 }
 
-func (n MultiplyToArrayNode) Out(out *nodes.StructOutput[[]TRS]) {
-	if n.Array == nil {
-		return
-	}
+func (n MultiplyToArrayNode) Out(out *nodes.Lifted[TRS]) {
+	compose(out, func(recorder nodes.ExecutionRecorder) {
+		nodes.Zip3(
+			out,
+			nodes.LiftedOr(n.Left, Identity()),
+			nodes.LiftedOr(n.Middle, Identity()),
+			nodes.LiftedOr(n.Right, Identity()),
+			func(left, middle, right TRS) TRS {
+				inner := decompose(recorder, middle.Multiply(right))
+				return decompose(recorder, left.Multiply(inner))
+			},
+		)
+	})
+}
 
-	in := nodes.GetOutputValue(out, n.Array)
-	if n.Left == nil && n.Right == nil {
-		out.Set(in)
-		return
-	}
+// A matrix that cannot be split back into a position, rotation and scale is
+// reported once for the whole output rather than once per element, which for
+// a long array would otherwise be thousands of identical errors.
+type composeFailure struct {
+	err error
+}
 
-	arr := make([]TRS, len(in))
-	assign := func(i int, m mat.Matrix4x4) bool {
-		composed, err := FromMatrix(m)
-		if err != nil {
-			out.CaptureError(fmt.Errorf("entry %d: %w", i, err))
-			return false
-		}
-		arr[i] = composed
-		return true
+func (c *composeFailure) CaptureError(err error) {
+	if err != nil && c.err == nil {
+		c.err = err
 	}
+}
 
-	if n.Left == nil && n.Right != nil {
-		right := nodes.GetOutputValue(out, n.Right)
-		for i, v := range in {
-			if !assign(i, v.Multiply(right)) {
-				return
-			}
-		}
-	} else if n.Left != nil && n.Right == nil {
-		left := nodes.GetOutputValue(out, n.Left)
-		for i, v := range in {
-			if !assign(i, left.Multiply(v)) {
-				return
-			}
-		}
-	} else {
-		right := nodes.GetOutputValue(out, n.Right)
-		left := nodes.GetOutputValue(out, n.Left)
-		for i, v := range in {
-			inner, err := FromMatrix(v.Multiply(right))
-			if err != nil {
-				out.CaptureError(fmt.Errorf("entry %d: %w", i, err))
-				return
-			}
-			if !assign(i, left.Multiply(inner)) {
-				return
-			}
-		}
+func (c *composeFailure) CaptureTiming(string, time.Duration) {}
+
+func compose(out *nodes.Lifted[TRS], run func(nodes.ExecutionRecorder)) {
+	failure := &composeFailure{}
+	run(failure)
+	out.CaptureError(failure.err)
+}
+
+func decompose(recorder nodes.ExecutionRecorder, m mat.Matrix4x4) TRS {
+	composed, err := FromMatrix(m)
+	if err != nil {
+		recorder.CaptureError(err)
+		return Identity()
 	}
-
-	out.Set(arr)
+	return composed
 }
 
 // ============================================================================
 
-type TransformArrayNode struct {
-	Transform nodes.Output[TRS]
-	Array     nodes.Output[[]TRS]
+type PivotNode struct {
+	Pivot    nodes.Output[vector3.Float64]
+	Rotation nodes.Output[quaternion.Quaternion]
+	Scale    nodes.Output[vector3.Float64] `description:"Defaults to (1,1,1); applied about the pivot as well"`
 }
 
-func (tnd TransformArrayNode) Description() string {
-	return "Applies one transform to every entry of an array, as the outer parent: each entry is treated as a local offset underneath Transform. To instead add a fixed local tweak to entries that are already world placements, bake it into the geometry."
+func (PivotNode) Description() string {
+	return "A transform that rotates and scales about a point instead of the origin: the position works out to Pivot - R·S·Pivot."
 }
 
-func (tnd TransformArrayNode) Out(out *nodes.StructOutput[[]TRS]) {
-	if tnd.Transform == nil {
-		out.Set(nodes.TryGetOutputValue(out, tnd.Array, nil))
+func (PivotNode) Keywords() []string {
+	return []string{"rotate about", "hinge"}
+}
+
+func (n PivotNode) Out(out *nodes.StructOutput[TRS]) {
+	pivot := nodes.TryGetOutputValue(out, n.Pivot, vector3.Zero[float64]())
+	rotation := nodes.TryGetOutputValue(out, n.Rotation, quaternion.Identity())
+	scale := nodes.TryGetOutputValue(out, n.Scale, vector3.One[float64]())
+	moved := rotation.Rotate(pivot.MultByVector(scale))
+	out.Set(New(pivot.Sub(moved), rotation, scale))
+}
+
+// ============================================================================
+
+type LookAtNode struct {
+	Position nodes.Output[vector3.Float64]
+	Target   nodes.Output[vector3.Float64]
+	Scale    nodes.Output[vector3.Float64] `description:"Defaults to (1,1,1)"`
+}
+
+func (LookAtNode) Description() string {
+	return "A transform placed at Position and turned so its local +Z points at Target, with +Y kept up."
+}
+
+func (LookAtNode) Keywords() []string {
+	return []string{"aim", "orient"}
+}
+
+func (n LookAtNode) Out(out *nodes.StructOutput[TRS]) {
+	position := nodes.TryGetOutputValue(out, n.Position, vector3.Zero[float64]())
+	target := nodes.TryGetOutputValue(out, n.Target, vector3.Forward[float64]())
+	scale := nodes.TryGetOutputValue(out, n.Scale, vector3.One[float64]())
+	if target.Sub(position).LengthSquared() == 0 {
+		out.Set(New(position, quaternion.Identity(), scale))
 		return
 	}
+	out.Set(New(position, quaternion.Identity(), scale).LookAt(target))
+}
 
-	v := nodes.GetOutputValue(out, tnd.Transform)
-	inArr := nodes.TryGetOutputValue(out, tnd.Array, nil)
-	outArr := make([]TRS, len(inArr))
-	for i, e := range inArr {
-		composed, err := FromMatrix(v.Multiply(e))
-		if err != nil {
-			out.CaptureError(fmt.Errorf("entry %d: %w", i, err))
-			return
-		}
-		outArr[i] = composed
-	}
+// ============================================================================
 
-	out.Set(outArr)
+type TransformPointNode struct {
+	TRS   nodes.LiftedPort[TRS]
+	Point nodes.LiftedPort[vector3.Float64]
+}
+
+func (TransformPointNode) Description() string {
+	return "Moves a point through a transform: scaled, rotated, then translated."
+}
+
+func (TransformPointNode) Keywords() []string {
+	return []string{"local to world"}
+}
+
+func (n TransformPointNode) Out(out *nodes.Lifted[vector3.Float64]) {
+	nodes.Zip2(
+		out,
+		nodes.LiftedOr(n.TRS, Identity()),
+		n.Point,
+		TRS.Transform,
+	)
 }
 
 // ============================================================================
 
 type RotateDirectionNode struct {
-	TRS       nodes.Output[TRS]
-	Direction nodes.Output[vector3.Float64]
+	TRS       nodes.LiftedPort[TRS]
+	Direction nodes.LiftedPort[vector3.Float64]
 }
 
 func (tnd RotateDirectionNode) Description() string {
 	return "Rotates a direction by a transform's rotation, ignoring its position and scale."
 }
 
-func (tnd RotateDirectionNode) Out(out *nodes.StructOutput[vector3.Float64]) {
-	if tnd.TRS == nil || tnd.Direction == nil {
-		out.Set(nodes.TryGetOutputValue(out, tnd.Direction, vector3.Zero[float64]()))
-		return
-	}
-
-	out.Set(nodes.GetOutputValue(out, tnd.TRS).RotateDirection(nodes.GetOutputValue(out, tnd.Direction)))
-}
-
-// ============================================================================
-
-type RotateDirectionsNode struct {
-	TRS       nodes.Output[[]TRS]
-	Direction nodes.Output[[]vector3.Float64]
-}
-
-func (tnd RotateDirectionsNode) Description() string {
-	return "Rotates each direction by the matching transform's rotation."
-}
-
-func (tnd RotateDirectionsNode) Out(out *nodes.StructOutput[[]vector3.Float64]) {
-	trss := nodes.TryGetOutputValue(out, tnd.TRS, nil)
-	directions := nodes.TryGetOutputValue(out, tnd.Direction, nil)
-	arr := make([]vector3.Float64, max(len(trss), len(directions)))
-
-	for i := 0; i < len(arr); i++ {
-		val := vector3.Zero[float64]()
-
-		if i < len(trss) && i < len(directions) {
-			val = trss[i].RotateDirection(directions[i])
-		}
-
-		arr[i] = val
-	}
-
-	out.Set(arr)
-}
-
-// ============================================================================
-
-type ArrayNode struct {
-	Position nodes.Output[[]vector3.Float64]
-	Scale    nodes.Output[[]vector3.Float64]
-	Rotation nodes.Output[[]quaternion.Quaternion]
-}
-
-func (tnd ArrayNode) Description() string {
-	return "Builds transforms from arrays of positions, scales and rotations."
-}
-
-func (tnd ArrayNode) Out(out *nodes.StructOutput[[]TRS]) {
-	positions := nodes.TryGetOutputValue(out, tnd.Position, nil)
-	rotations := nodes.TryGetOutputValue(out, tnd.Rotation, nil)
-	scales := nodes.TryGetOutputValue(out, tnd.Scale, nil)
-
-	transforms := make([]TRS, max(len(positions), len(rotations), len(scales)))
-	for i := 0; i < len(transforms); i++ {
-		p := vector3.Zero[float64]()
-		r := quaternion.Identity()
-		s := vector3.One[float64]()
-
-		if i < len(positions) {
-			p = positions[i]
-		}
-
-		if i < len(rotations) {
-			r = rotations[i]
-		}
-
-		if i < len(scales) {
-			s = scales[i]
-		}
-
-		transforms[i] = New(p, r, s)
-	}
-
-	out.Set(transforms)
+func (tnd RotateDirectionNode) Out(out *nodes.Lifted[vector3.Float64]) {
+	nodes.Zip2(
+		out,
+		nodes.LiftedOr(tnd.TRS, Identity()),
+		tnd.Direction,
+		TRS.RotateDirection,
+	)
 }
 
 // ============================================================================

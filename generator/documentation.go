@@ -5,6 +5,7 @@ import (
 	"io"
 	"sort"
 	"strconv"
+	"strings"
 
 	"github.com/EliCDavis/polyform/formats/markdown"
 	"github.com/EliCDavis/polyform/generator/graph"
@@ -13,6 +14,13 @@ import (
 	"github.com/EliCDavis/polyform/refutil"
 	"github.com/EliCDavis/polyform/utils"
 )
+
+func inputTypes(input schema.NodeTypeInput) string {
+	if len(input.AcceptedTypes) < 2 {
+		return input.Type
+	}
+	return strings.Join(input.AcceptedTypes, " or ")
+}
 
 type DocumentationWriter struct {
 	Title       string
@@ -125,7 +133,7 @@ func (dw DocumentationWriter) writeSingle(writer markdown.Writer) error {
 					writer.Text(input.Key)
 					writer.EndBold()
 
-					writer.Text(fmt.Sprintf(": %s", input.Val.Type))
+					writer.Text(fmt.Sprintf(": %s", inputTypes(input.Val)))
 
 					if input.Val.Description != "" {
 						writer.Text(" - ")

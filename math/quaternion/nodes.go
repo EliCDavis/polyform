@@ -12,109 +12,117 @@ func init() {
 
 	refutil.RegisterType[nodes.Struct[NewNode]](factory)
 	refutil.RegisterType[nodes.Struct[FromThetaNode]](factory)
-	refutil.RegisterType[nodes.Struct[FromThetaArrayNode]](factory)
+	refutil.RegisterType[nodes.Struct[RotationToNode]](factory)
+	refutil.RegisterType[nodes.Struct[MultiplyNode]](factory)
 	refutil.RegisterType[nodes.Struct[FromEulerAngleNode]](factory)
-	refutil.RegisterType[nodes.Struct[FromEulerAnglesNode]](factory)
 
 	generator.RegisterTypes(factory)
 }
 
 type NewNode struct {
-	X nodes.Output[float64]
-	Y nodes.Output[float64]
-	Z nodes.Output[float64]
-	W nodes.Output[float64]
+	X nodes.LiftedPort[float64]
+	Y nodes.LiftedPort[float64]
+	Z nodes.LiftedPort[float64]
+	W nodes.LiftedPort[float64]
 }
 
-func (cn NewNode) Out(out *nodes.StructOutput[Quaternion]) {
-	out.Set(New(
-		vector3.New(
-			nodes.TryGetOutputValue(out, cn.X, 0.),
-			nodes.TryGetOutputValue(out, cn.Y, 0.),
-			nodes.TryGetOutputValue(out, cn.Z, 0.),
-		),
-		nodes.TryGetOutputValue(out, cn.W, 0),
-	))
+func (cn NewNode) Description() string {
+	return "Builds a rotation from its raw X/Y/Z/W components."
+}
+
+func (cn NewNode) Out(out *nodes.Lifted[Quaternion]) {
+	nodes.ZipAll(
+		out,
+		[]nodes.LiftedPort[float64]{
+			nodes.LiftedOr(cn.X, 0.),
+			nodes.LiftedOr(cn.Y, 0.),
+			nodes.LiftedOr(cn.Z, 0.),
+			nodes.LiftedOr(cn.W, 0.),
+		},
+		func(v []float64) Quaternion {
+			return New(vector3.New(v[0], v[1], v[2]), v[3])
+		},
+	)
 }
 
 // From Theta =================================================================
 
 type FromThetaNode struct {
-	Theta     nodes.Output[float64]
-	Direction nodes.Output[vector3.Float64]
+	Theta     nodes.LiftedPort[float64]
+	Direction nodes.LiftedPort[vector3.Float64]
 }
 
 func (cn FromThetaNode) Description() string {
 	return "Rotation of an angle in radians about an axis."
 }
 
-func (cn FromThetaNode) Out(out *nodes.StructOutput[Quaternion]) {
-	out.Set(FromTheta(
-		nodes.TryGetOutputValue(out, cn.Theta, 0),
-		nodes.TryGetOutputValue(out, cn.Direction, vector3.Zero[float64]()),
-	))
+func (cn FromThetaNode) Out(out *nodes.Lifted[Quaternion]) {
+	nodes.Zip2(out, cn.Theta, cn.Direction, FromTheta)
 }
 
 // ============================================================================
 
-type FromThetaArrayNode struct {
-	Direction nodes.Output[[]vector3.Float64]
-	Theta     nodes.Output[[]float64]
+type RotationToNode struct {
+	From nodes.LiftedPort[vector3.Float64]
+	To   nodes.LiftedPort[vector3.Float64]
 }
 
-func (snd FromThetaArrayNode) Description() string {
-	return "One rotation per angle and axis pair."
+func (RotationToNode) Description() string {
+	return "The shortest rotation that turns the From direction into the To direction."
 }
 
-func (snd FromThetaArrayNode) Out(out *nodes.StructOutput[[]Quaternion]) {
-	directions := nodes.TryGetOutputValue(out, snd.Direction, nil)
-	thetaArr := nodes.TryGetOutputValue(out, snd.Theta, nil)
+func (RotationToNode) Keywords() []string {
+	return []string{"look at", "aim"}
+}
 
-	arr := make([]Quaternion, max(len(directions), len(directions)))
-	for i := range arr {
-		direction := vector3.Zero[float64]()
-		theta := 0.
+func (n RotationToNode) Out(out *nodes.Lifted[Quaternion]) {
+	forward := vector3.Forward[float64]()
+	nodes.Zip2(
+		out,
+		nodes.LiftedOr(n.From, forward),
+		nodes.LiftedOr(n.To, forward),
+		func(from, to vector3.Float64) Quaternion {
+			return RotationTo(from.Normalized(), to.Normalized())
+		},
+	)
+}
 
-		if i < len(directions) {
-			direction = directions[i]
-		}
+// ============================================================================
 
-		if i < len(thetaArr) {
-			theta = thetaArr[i]
-		}
+type MultiplyNode struct {
+	First nodes.LiftedPort[Quaternion]
+	Then  nodes.LiftedPort[Quaternion]
+}
 
-		arr[i] = FromTheta(theta, direction)
-	}
-	out.Set(arr)
+func (MultiplyNode) Description() string {
+	return "Composes two rotations into one: the result applies First, then Then."
+}
+
+func (MultiplyNode) Keywords() []string {
+	return []string{"compose", "chain"}
+}
+
+func (n MultiplyNode) Out(out *nodes.Lifted[Quaternion]) {
+	nodes.Zip2(
+		out,
+		nodes.LiftedOr(n.First, Identity()),
+		nodes.LiftedOr(n.Then, Identity()),
+		func(first, then Quaternion) Quaternion {
+			return then.Multiply(first)
+		},
+	)
 }
 
 // From Euler Angles ==========================================================
+
 type FromEulerAngleNode struct {
-	Angle nodes.Output[vector3.Float64]
+	Angle nodes.LiftedPort[vector3.Float64]
 }
 
 func (cn FromEulerAngleNode) Description() string {
 	return "Rotation from euler angles in radians."
 }
 
-func (cn FromEulerAngleNode) Out(out *nodes.StructOutput[Quaternion]) {
-	out.Set(FromEulerAngle(nodes.TryGetOutputValue(out, cn.Angle, vector3.Zero[float64]())))
-}
-
-type FromEulerAnglesNode struct {
-	Angles nodes.Output[[]vector3.Float64]
-}
-
-func (cn FromEulerAnglesNode) Description() string {
-	return "One rotation per set of euler angles."
-}
-
-func (cn FromEulerAnglesNode) Out(out *nodes.StructOutput[[]Quaternion]) {
-	angles := nodes.TryGetOutputValue(out, cn.Angles, nil)
-
-	arr := make([]Quaternion, len(angles))
-	for i, v := range angles {
-		arr[i] = FromEulerAngle(v)
-	}
-	out.Set(arr)
+func (cn FromEulerAngleNode) Out(out *nodes.Lifted[Quaternion]) {
+	nodes.Zip1(out, cn.Angle, FromEulerAngle)
 }

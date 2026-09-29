@@ -11,73 +11,82 @@ import (
 // ============================================================================
 
 type Half[T vector.Number] struct {
-	In nodes.Output[vector3.Vector[T]]
+	In nodes.LiftedPort[vector3.Vector[T]]
 }
 
 func (cn Half[T]) Description() string {
 	return "Halves a vector."
 }
 
-func (cn Half[T]) Float64(out *nodes.StructOutput[vector3.Float64]) {
-	out.Set(nodes.TryGetOutputValue(out, cn.In, vector3.Zero[T]()).ToFloat64().Scale(0.5))
+func (cn Half[T]) Float64(out *nodes.Lifted[vector3.Float64]) {
+	nodes.Zip1(out, cn.In, func(v vector3.Vector[T]) vector3.Float64 {
+		return v.ToFloat64().Scale(0.5)
+	})
 }
 
-func (cn Half[T]) Int(out *nodes.StructOutput[vector3.Int]) {
-	out.Set(nodes.TryGetOutputValue(out, cn.In, vector3.Zero[T]()).ToFloat64().Scale(0.5).ToInt())
+func (cn Half[T]) Int(out *nodes.Lifted[vector3.Int]) {
+	nodes.Zip1(out, cn.In, func(v vector3.Vector[T]) vector3.Int {
+		return v.ToFloat64().Scale(0.5).ToInt()
+	})
 }
 
 // ============================================================================
 
 type Double[T vector.Number] struct {
-	In nodes.Output[vector3.Vector[T]]
+	In nodes.LiftedPort[vector3.Vector[T]]
 }
 
 func (cn Double[T]) Description() string {
 	return "Doubles a vector."
 }
 
-func (cn Double[T]) Float64(out *nodes.StructOutput[vector3.Float64]) {
-	out.Set(nodes.TryGetOutputValue(out, cn.In, vector3.Zero[T]()).ToFloat64().Scale(2))
+func (cn Double[T]) Float64(out *nodes.Lifted[vector3.Float64]) {
+	nodes.Zip1(out, cn.In, func(v vector3.Vector[T]) vector3.Float64 {
+		return v.ToFloat64().Scale(2)
+	})
 }
 
-func (cn Double[T]) Int(out *nodes.StructOutput[vector3.Int]) {
-	out.Set(nodes.TryGetOutputValue(out, cn.In, vector3.Zero[T]()).ToFloat64().Scale(2).ToInt())
+func (cn Double[T]) Int(out *nodes.Lifted[vector3.Int]) {
+	nodes.Zip1(out, cn.In, func(v vector3.Vector[T]) vector3.Int {
+		return v.ToFloat64().Scale(2).ToInt()
+	})
 }
 
 // ============================================================================
 
 type Length[T vector.Number] struct {
-	In nodes.Output[vector3.Vector[T]]
+	In nodes.LiftedPort[vector3.Vector[T]]
 }
 
 func (cn Length[T]) Description() string {
 	return "Length of a vector."
 }
 
-func (cn Length[T]) Float64(out *nodes.StructOutput[float64]) {
-	out.Set(nodes.TryGetOutputValue(out, cn.In, vector3.Zero[T]()).ToFloat64().Length())
+func (cn Length[T]) Float64(out *nodes.Lifted[float64]) {
+	nodes.Zip1(out, cn.In, func(v vector3.Vector[T]) float64 {
+		return v.ToFloat64().Length()
+	})
 }
 
-func (cn Length[T]) Int(out *nodes.StructOutput[int]) {
-	out.Set(int(nodes.TryGetOutputValue(out, cn.In, vector3.Zero[T]()).ToFloat64().Length()))
+func (cn Length[T]) Int(out *nodes.Lifted[int]) {
+	nodes.Zip1(out, cn.In, func(v vector3.Vector[T]) int {
+		return int(v.ToFloat64().Length())
+	})
 }
 
 // ============================================================================
 
 type Dot struct {
-	A nodes.Output[vector3.Float64]
-	B nodes.Output[vector3.Float64]
+	A nodes.LiftedPort[vector3.Float64]
+	B nodes.LiftedPort[vector3.Float64]
 }
 
 func (cn Dot) Description() string {
 	return "Dot product of two vectors."
 }
 
-func (cn Dot) Dot(out *nodes.StructOutput[float64]) {
-	if cn.A == nil || cn.B == nil {
-		return
-	}
-	out.Set(nodes.GetOutputValue(out, cn.A).Dot(nodes.GetOutputValue(out, cn.B)))
+func (cn Dot) Dot(out *nodes.Lifted[float64]) {
+	nodes.Zip2(out, cn.A, cn.B, vector3.Float64.Dot)
 }
 
 func (cn Dot) DotDescription() string {
@@ -87,18 +96,19 @@ func (cn Dot) DotDescription() string {
 // ============================================================================
 
 type Inverse[T vector.Number] struct {
-	Vector nodes.Output[vector3.Vector[T]]
+	Vector nodes.LiftedPort[vector3.Vector[T]]
 }
 
 func (cn Inverse[T]) Description() string {
 	return "Inverts a vector, either by negating it (additive) or by dividing one by each component (multiplicative)."
 }
 
-func (cn Inverse[T]) additive(in vector3.Float64) vector3.Float64 {
+func (cn Inverse[T]) additive(in vector3.Vector[T]) vector3.Float64 {
 	return in.ToFloat64().Scale(-1)
 }
 
-func (cn Inverse[T]) multiplicative(in vector3.Float64) vector3.Float64 {
+func (cn Inverse[T]) multiplicative(v vector3.Vector[T]) vector3.Float64 {
+	in := v.ToFloat64()
 	out := vector3.Float64{}
 	if in.X() != 0 {
 		out = out.SetX(1. / in.X())
@@ -115,40 +125,44 @@ func (cn Inverse[T]) multiplicative(in vector3.Float64) vector3.Float64 {
 	return out
 }
 
-func (cn Inverse[T]) Additive(out *nodes.StructOutput[vector3.Float64]) {
-	in := nodes.TryGetOutputValue(out, cn.Vector, vector3.Zero[T]())
-	out.Set(cn.additive(in.ToFloat64()))
+func (cn Inverse[T]) Additive(out *nodes.Lifted[vector3.Float64]) {
+	nodes.Zip1(out, cn.Vector, cn.additive)
 }
 
-func (cn Inverse[T]) AdditiveInt(out *nodes.StructOutput[vector3.Int]) {
-	in := nodes.TryGetOutputValue(out, cn.Vector, vector3.Zero[T]())
-	out.Set(cn.additive(in.ToFloat64()).RoundToInt())
+func (cn Inverse[T]) AdditiveInt(out *nodes.Lifted[vector3.Int]) {
+	nodes.Zip1(out, cn.Vector, func(v vector3.Vector[T]) vector3.Int {
+		return cn.additive(v).RoundToInt()
+	})
 }
 
-func (cn Inverse[T]) Multiplicative(out *nodes.StructOutput[vector3.Float64]) {
-	in := nodes.TryGetOutputValue(out, cn.Vector, vector3.Zero[T]())
-	out.Set(cn.multiplicative(in.ToFloat64()))
+func (cn Inverse[T]) Multiplicative(out *nodes.Lifted[vector3.Float64]) {
+	nodes.Zip1(out, cn.Vector, cn.multiplicative)
 }
 
-func (cn Inverse[T]) MultiplicativeInt(out *nodes.StructOutput[vector3.Int]) {
-	in := nodes.TryGetOutputValue(out, cn.Vector, vector3.Zero[T]())
-	out.Set(cn.multiplicative(in.ToFloat64()).RoundToInt())
+func (cn Inverse[T]) MultiplicativeInt(out *nodes.Lifted[vector3.Int]) {
+	nodes.Zip1(out, cn.Vector, func(v vector3.Vector[T]) vector3.Int {
+		return cn.multiplicative(v).RoundToInt()
+	})
 }
 
 // ============================================================================
 
 type Normalize struct {
-	In nodes.Output[vector3.Float64]
+	In nodes.LiftedPort[vector3.Float64]
 }
 
 func (cn Normalize) Description() string {
 	return "Scales a vector to unit length."
 }
 
-func (cn Normalize) Normalized(out *nodes.StructOutput[vector3.Float64]) {
-	if cn.In != nil {
-		out.Set(nodes.GetOutputValue(out, cn.In).Normalized())
-	}
+func (cn Normalize) Normalized(out *nodes.Lifted[vector3.Float64]) {
+	nodes.Zip1(out, cn.In, func(v vector3.Float64) vector3.Float64 {
+		// Dividing by its own length would make a zero vector NaN.
+		if v.Length() == 0 {
+			return vector3.Zero[float64]()
+		}
+		return v.Normalized()
+	})
 }
 
 func (cn Normalize) NormalizeDescription() string {
@@ -162,24 +176,7 @@ type NormalizeArray struct {
 }
 
 func (cn NormalizeArray) Description() string {
-	return "Normalizes an array of vectors. Local scales each to unit length; Global scales them all by the longest."
-}
-
-func (cn NormalizeArray) Local(out *nodes.StructOutput[[]vector3.Float64]) {
-	if cn.In == nil {
-		return
-	}
-
-	in := nodes.GetOutputValue(out, cn.In)
-	arr := make([]vector3.Float64, len(in))
-	for i, v := range in {
-		arr[i] = v.Normalized()
-	}
-	out.Set(arr)
-}
-
-func (cn NormalizeArray) LocalDescription() string {
-	return "Normalizes each component of the array"
+	return "Scales a whole array of vectors by the length of the longest one, so their relative lengths survive."
 }
 
 func (cn NormalizeArray) Global(out *nodes.StructOutput[[]vector3.Float64]) {

@@ -401,7 +401,7 @@ func TestCollectBoundaryPortsUnknownSubGraph(t *testing.T) {
 
 func TestKnownPortTypes(t *testing.T) {
 	testInstanceWithSubGraphTypesExtended(t)
-	require.NotEmpty(t, subgraph.KnownPortTypes())
+	require.NotEmpty(t, nodes.KnownPortTypes())
 }
 
 func TestSubGraphEncodeDecodeRoundtrip(t *testing.T) {

@@ -1,4 +1,5 @@
 import { FlowNode, FlowNodeConfig, FlowNodeStyle, NodeFlowGraph, Publisher } from "@elicdavis/node-flow";
+import { AfterNodeCreated, GraphClipboard } from "./graph_clipboard";
 import { InstanceIDProperty, PolyNodeController } from "./nodes/node";
 import { RequestManager } from "./requests";
 import {
@@ -7,7 +8,9 @@ import {
   GraphInstance,
   GraphInstanceNodes,
   NodeDefinition,
+  NodeInput,
   NodeInstance,
+  NodeOutput,
   RegisteredTypes,
   subGraphBoundaryInfo,
   subGraphBoundaryKind,
@@ -22,6 +25,7 @@ import {
   SUBGRAPH_OUTPUT_TYPE,
     isSubGraphRuntimeType,
     scopeToApiPath,
+    shortDynamicPattern,
     subGraphRuntimeType,
     type GraphScope,
 } from "./portTypes";
@@ -33,6 +37,17 @@ import {
 import { portTypePickerActions } from "@/stores/portTypePickerStore";
 
 export const GeneratorVariablePublisherPath = "Generator/Variable/";
+
+function flowPortConfig(name: string, port: NodeInput | NodeOutput) {
+    const dynamic = port.dynamic === true;
+    return {
+        name: name,
+        type: dynamic ? shortDynamicPattern(port.type) : port.type,
+        anyType: dynamic,
+        acceptedTypes: "acceptedTypes" in port ? port.acceptedTypes : undefined,
+        description: port.description,
+    };
+}
 
 
 const VariableNodeBackgroundColor = "#233";
@@ -114,6 +129,8 @@ export class NodeManager {
 
     registeredTypes: RegisteredTypes;
 
+    private clipboard: GraphClipboard;
+
     private onSchemaRefreshNeeded: (() => void) | null = null;
 
     private boundaryMenuRegistered = false;
@@ -142,6 +159,14 @@ export class NodeManager {
 
         nodeFlowGraph.addOnNodeAddedListener(this.onNodeAddedCallback.bind(this));
         nodeFlowGraph.addOnNodeRemovedListener(this.nodeRemoved.bind(this));
+        this.clipboard = new GraphClipboard(
+            nodeFlowGraph,
+            nodesPublisher,
+            requestManager,
+            (nodeType) => this.nodeTypeToFlowNodePath.get(nodeType),
+        );
+        nodeFlowGraph.addCopyListener(this.clipboard.copy.bind(this.clipboard));
+        nodeFlowGraph.addPasteListener(this.clipboard.paste.bind(this.clipboard));
 
         this.serializableOutputTypes = registeredTypes.serializableOutputTypes;
     }
@@ -294,18 +319,21 @@ export class NodeManager {
     }
 
     onNodeAddedCallback(flowNode: FlowNode): void {
+        const afterCreate = this.clipboard.takePendingCreate(flowNode);
+
         if (this.serverUpdatingNodeConnections) {
+            afterCreate?.(null, flowNode);
             return;
         }
 
         const nodeType: string = flowNode.metadata().typeData.type
 
         if (nodeType === SUBGRAPH_INPUT_TYPE || nodeType === SUBGRAPH_OUTPUT_TYPE) {
-            this.beginBoundaryNodeCreation(flowNode, nodeType);
+            this.beginBoundaryNodeCreation(flowNode, nodeType, afterCreate);
             return;
         }
 
-        this.finishNodeCreation(flowNode, nodeType);
+        this.finishNodeCreation(flowNode, nodeType, undefined, afterCreate);
     }
 
     private removeUnfinishedCanvasNode(flowNode: FlowNode): void {
@@ -314,10 +342,15 @@ export class NodeManager {
         this.serverUpdatingNodeConnections = false;
     }
 
-    private beginBoundaryNodeCreation(flowNode: FlowNode, nodeType: string): void {
+    private beginBoundaryNodeCreation(
+        flowNode: FlowNode,
+        nodeType: string,
+        afterCreate?: AfterNodeCreated,
+    ): void {
         const portTypes = this.registeredTypes?.portTypes ?? [];
         if (portTypes.length === 0) {
             this.removeUnfinishedCanvasNode(flowNode);
+            afterCreate?.(null, flowNode);
             return;
         }
 
@@ -330,6 +363,7 @@ export class NodeManager {
             current: portTypes[0],
             onCancel: () => {
                 this.removeUnfinishedCanvasNode(flowNode);
+                afterCreate?.(null, flowNode);
             },
             onSelect: (portType) => {
                 const typedNode = this.replacePlaceholderBoundaryNode(
@@ -338,8 +372,10 @@ export class NodeManager {
                     portType,
                 );
                 this.finishNodeCreation(typedNode, nodeType, portType, (nodeID, node) => {
+                    afterCreate?.(nodeID, node);
+
                     const portName = node.title();
-                    if (!portName.trim()) {
+                    if (nodeID === null || !portName.trim()) {
                         return;
                     }
                     this.requestManager.setBoundaryNodeInfo(
@@ -382,7 +418,7 @@ export class NodeManager {
         flowNode: FlowNode,
         nodeType: string,
         portType?: string,
-        afterCreate?: (nodeID: string, flowNode: FlowNode) => void,
+        afterCreate?: AfterNodeCreated,
     ): void {
         this.requestManager.createNode(nodeType, (resp) => {
             const nodeID = resp.nodeID
@@ -411,8 +447,26 @@ export class NodeManager {
                 )
             );
 
+            this.persistNodePosition(flowNode);
+
             afterCreate?.(nodeID, flowNode);
-        }, portType)
+        }, portType, () => {
+            afterCreate?.(null, flowNode);
+        })
+    }
+
+    /** Rounded, because the precision is not worth the file size. */
+    persistNodePosition(flowNode: FlowNode): void {
+        const nodeID = flowNode.getProperty(InstanceIDProperty) as string;
+        if (!nodeID) {
+            return;
+        }
+
+        const position = flowNode.getPosition();
+        this.requestManager.setNodeMetadata(nodeID, "position", {
+            x: Math.round(position.x),
+            y: Math.round(position.y),
+        });
     }
 
     sortNodesByName(nodesToSort: GraphInstanceNodes): Array<{ id: string, node: NodeInstance }> {
@@ -584,10 +638,8 @@ export class NodeManager {
 
         for (let inputName in nodeDefinition.inputs) {
             nodeConfig.inputs.push({
-                name: inputName,
-                type: nodeDefinition.inputs[inputName].type,
+                ...flowPortConfig(inputName, nodeDefinition.inputs[inputName]),
                 array: nodeDefinition.inputs[inputName].isArray,
-                description: nodeDefinition.inputs[inputName].description
             });
         }
 
@@ -599,11 +651,7 @@ export class NodeManager {
 
         if (nodeDefinition.outputs) {
             for (let outName in nodeDefinition.outputs) {
-                nodeConfig.outputs.push({
-                    name: outName,
-                    type: nodeDefinition.outputs[outName].type,
-                    description: nodeDefinition.outputs[outName].description
-                });
+                nodeConfig.outputs.push(flowPortConfig(outName, nodeDefinition.outputs[outName]));
             }
         }
 
@@ -718,6 +766,7 @@ export class NodeManager {
             const nodeID = node.id;
             const nodeData = node.node;
             nodesSet.set(nodeID, true);
+            this.clipboard.rememberNodeData(nodeID, nodeData);
 
             if (this.nodeIdToNode.has(nodeID)) {
                 this.nodeIdToNode.get(nodeID).update(nodeData);
@@ -752,6 +801,12 @@ export class NodeManager {
                 );
                 this.nodeIdToNode.set(nodeID, controller);
             }
+
+            // A pasted parameter node only reaches the canvas here, so this
+            // is the first chance to select it.
+            if (this.clipboard.claimPastedNode(nodeID)) {
+                this.nodeIdToNode.get(nodeID)?.flowNode.select();
+            }
         }
 
         this.updateNodeConnections(sortedNodes);
@@ -764,6 +819,7 @@ export class NodeManager {
             const node = this.nodeIdToNode.get(nodeId)
             this.nodeFlowGraph.removeNode(node.flowNode);
             this.nodeIdToNode.delete(nodeId);
+            this.clipboard.forgetNode(nodeId);
         });
 
         this.serverUpdatingNodeConnections = false;

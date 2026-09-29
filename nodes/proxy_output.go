@@ -61,3 +61,7 @@ func (p proxyOutput[T]) Value() T {
 func (p proxyOutput[T]) BuildProxyOutput(source ProxySource) OutputPort {
 	return proxyOutput[T]{source: source}
 }
+
+func (p proxyOutput[T]) BuildDynamicOutput(source DynamicSource) OutputPort {
+	return NewDynamicOutput[T](source)
+}

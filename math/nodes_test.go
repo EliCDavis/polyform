@@ -64,20 +64,30 @@ func TestNodes(t *testing.T) {
 			},
 		},
 		"Difference: []{1,2,3} - nil = []{1,2,3}": {
-			node: nodetest.NewNode(math.SubtractToArrayNode[float64]{
-				Array: nodetest.NewPortValue([]float64{1., 2., 3.}),
+			node: nodetest.NewNode(math.SubtractNode[float64]{
+				A: nodetest.NewPortValue([]float64{1., 2., 3.}),
 			}),
 			assertions: []nodetest.Assertion{
-				nodetest.AssertOutput("Differences", []float64{1., 2., 3.}),
+				nodetest.AssertOutput("Float", []float64{1., 2., 3.}),
 			},
 		},
 		"Difference: []{1,2,3} - 1 = []{0,1,2}": {
-			node: nodetest.NewNode(math.SubtractToArrayNode[float64]{
-				In:    nodetest.NewPortValue(1.),
-				Array: nodetest.NewPortValue([]float64{1., 2., 3.}),
+			node: nodetest.NewNode(math.SubtractNode[float64]{
+				A: nodetest.NewPortValue([]float64{1., 2., 3.}),
+				B: nodetest.NewPortValue(1.),
 			}),
 			assertions: []nodetest.Assertion{
-				nodetest.AssertOutput("Differences", []float64{0., 1., 2.}),
+				nodetest.AssertOutput("Float", []float64{0., 1., 2.}),
+			},
+		},
+		"Difference: 1 - []{1,2,3} = []{0,-1,-2}": {
+			node: nodetest.NewNode(math.SubtractNode[float64]{
+				A: nodetest.NewPortValue(1.),
+				B: nodetest.NewPortValue([]float64{1., 2., 3.}),
+			}),
+			assertions: []nodetest.Assertion{
+				// The hand written twin could only broadcast one way round.
+				nodetest.AssertOutput("Float", []float64{0., -1., -2.}),
 			},
 		},
 		"Divide: nil / nil = 0": {
@@ -122,23 +132,13 @@ func TestNodes(t *testing.T) {
 				},
 			},
 		},
-		"Divide: []nil / nil = nil": {
-			node: nodetest.NewNode(math.DivideToArrayNode[float64]{}),
-			assertions: []nodetest.Assertion{
-				nodetest.AssertOutputPortValue[[]float64]{
-					Port:            "Quotients",
-					Value:           nil,
-					ExecutionReport: &nodes.ExecutionReport{},
-				},
-			},
-		},
 		"Divide: []{1, 2, 3} / nil = []{0, 0, 0}": {
-			node: nodetest.NewNode(math.DivideToArrayNode[float64]{
-				Array: nodetest.NewPortValue([]float64{1, 2, 3}),
+			node: nodetest.NewNode(math.DivideNode[float64]{
+				Dividend: nodetest.NewPortValue([]float64{1, 2, 3}),
 			}),
 			assertions: []nodetest.Assertion{
 				nodetest.AssertOutputPortValue[[]float64]{
-					Port:  "Quotients",
+					Port:  "Float",
 					Value: []float64{0, 0, 0},
 					ExecutionReport: &nodes.ExecutionReport{
 						Errors: []string{"can't divide by 0"},
@@ -147,28 +147,36 @@ func TestNodes(t *testing.T) {
 			},
 		},
 		"Divide: []{1, 2, 4} / 2 = []{0.5, 1, 2}": {
-			node: nodetest.NewNode(math.DivideToArrayNode[float64]{
-				Array: nodetest.NewPortValue([]float64{1, 2, 4}),
-				In:    nodetest.NewPortValue(2.),
+			node: nodetest.NewNode(math.DivideNode[float64]{
+				Dividend: nodetest.NewPortValue([]float64{1, 2, 4}),
+				Divisor:  nodetest.NewPortValue(2.),
 			}),
 			assertions: []nodetest.Assertion{
 				nodetest.AssertOutputPortValue[[]float64]{
-					Port:            "Quotients",
+					Port:            "Float",
 					Value:           []float64{0.5, 1, 2},
 					ExecutionReport: &nodes.ExecutionReport{},
 				},
+				nodetest.AssertOutputType("Float", "[]float64"),
 			},
 		},
-		"Divide: []nil / 2 = []nil": {
-			node: nodetest.NewNode(math.DivideToArrayNode[float64]{
-				In: nodetest.NewPortValue(2.),
+		"Divide: 8 / []{2, 4} = []{4, 2}": {
+			node: nodetest.NewNode(math.DivideNode[float64]{
+				Dividend: nodetest.NewPortValue(8.),
+				Divisor:  nodetest.NewPortValue([]float64{2, 4}),
 			}),
 			assertions: []nodetest.Assertion{
-				nodetest.AssertOutputPortValue[[]float64]{
-					Port:            "Quotients",
-					Value:           nil,
-					ExecutionReport: &nodes.ExecutionReport{},
-				},
+				nodetest.AssertOutput("Float", []float64{4, 2}),
+			},
+		},
+		"Divide: []{1, 2, 3} / []{1, 2} is refused": {
+			node: nodetest.NewNode(math.DivideNode[float64]{
+				Dividend: nodetest.NewPortValue([]float64{1, 2, 3}),
+				Divisor:  nodetest.NewPortValue([]float64{1, 2}),
+			}),
+			assertions: []nodetest.Assertion{
+				nodetest.AssertOutput("Float", []float64{}),
+				nodetest.AssertOutputError("Float", "3 and 2"),
 			},
 		},
 		"Inverse Multiplicative(nil) = 0, Additive(nil) = 0": {
@@ -389,49 +397,206 @@ func TestRemapNode(t *testing.T) {
 	}
 }
 
-func TestRemapToArrayNode(t *testing.T) {
-	tests := map[string]struct {
-		value  []float64
-		inMin  float64
-		inMax  float64
-		outMin float64
-		outMax float64
+func remap(value nodes.LiftedPort[float64], inMin, inMax, outMin, outMax float64) nodes.Node {
+	return nodetest.NewNode(math.RemapNode[float64]{
+		Value:  value,
+		InMin:  nodetest.NewPortValue(inMin),
+		InMax:  nodetest.NewPortValue(inMax),
+		OutMin: nodetest.NewPortValue(outMin),
+		OutMax: nodetest.NewPortValue(outMax),
+	})
+}
 
-		result []float64
-	}{
-		"-1,1 => 0, 10": {
-			inMin:  -1,
-			inMax:  1,
-			outMin: 0,
-			outMax: 10,
-			value:  []float64{-1, 0, 1},
-			result: []float64{0, 5, 10},
-		},
-		"-1,1 => 10, 0 (descending out range)": {
-			inMin:  -1,
-			inMax:  1,
-			outMin: 10,
-			outMax: 0,
-			value:  []float64{-1, 0, 1},
-			result: []float64{10, 5, 0},
-		},
-	}
+func TestRemapNodeOverArrays(t *testing.T) {
+	nodetest.NewSuite(
+		nodetest.NewTestCase(
+			"-1,1 => 0,10",
+			remap(nodetest.NewPortValue([]float64{-1, 0, 1}), -1, 1, 0, 10),
+			nodetest.AssertOutput("Out", []float64{0, 5, 10}),
+			nodetest.AssertOutputType("Out", "[]float64"),
+			nodetest.AssertLiftedInput("Value", "float64"),
+		),
+		nodetest.NewTestCase(
+			"-1,1 => 10,0 (descending out range)",
+			remap(nodetest.NewPortValue([]float64{-1, 0, 1}), -1, 1, 10, 0),
+			nodetest.AssertOutput("Out", []float64{10, 5, 0}),
+		),
+		nodetest.NewTestCase(
+			"clamps to the output range by default",
+			remap(nodetest.NewPortValue([]float64{-2, 2}), -1, 1, 0, 10),
+			nodetest.AssertOutput("Out", []float64{0, 10}),
+		),
+		nodetest.NewTestCase(
+			"a range end can itself be an array",
+			nodetest.NewNode(math.RemapNode[float64]{
+				Value:  nodetest.NewPortValue(1.),
+				InMin:  nodetest.NewPortValue(0.),
+				InMax:  nodetest.NewPortValue(1.),
+				OutMin: nodetest.NewPortValue(0.),
+				OutMax: nodetest.NewPortValue([]float64{10, 100}),
+			}),
+			nodetest.AssertOutput("Out", []float64{10, 100}),
+		),
+		nodetest.NewTestCase(
+			"unclamped keeps values outside the range",
+			nodetest.NewNode(math.RemapNode[float64]{
+				Value:  nodetest.NewPortValue([]float64{-2, 2}),
+				InMin:  nodetest.NewPortValue(-1.),
+				InMax:  nodetest.NewPortValue(1.),
+				OutMin: nodetest.NewPortValue(0.),
+				OutMax: nodetest.NewPortValue(10.),
+				Clamp:  nodetest.NewPortValue(false),
+			}),
+			nodetest.AssertOutput("Out", []float64{-5, 15}),
+		),
+	).Run(t)
+}
 
-	for name, tc := range tests {
-		t.Run(name, func(t *testing.T) {
-			node := &nodes.Struct[math.RemapToArrayNode[float64]]{
-				Data: math.RemapToArrayNode[float64]{
-					InMin:  nodes.ConstOutput[float64]{Val: tc.inMin},
-					InMax:  nodes.ConstOutput[float64]{Val: tc.inMax},
-					OutMin: nodes.ConstOutput[float64]{Val: tc.outMin},
-					OutMax: nodes.ConstOutput[float64]{Val: tc.outMax},
-					Value:  nodes.ConstOutput[[]float64]{Val: tc.value},
-				},
-			}
-			out := nodes.GetNodeOutputPort[[]float64](node, "Out").Value()
-			assert.Equal(t, tc.result, out)
-		})
-	}
+func TestSquareRootNodeOverArrays(t *testing.T) {
+	nodetest.NewSuite(
+		nodetest.NewTestCase(
+			"scalar stays scalar",
+			nodetest.NewNode(math.SquareRootNode{In: nodetest.NewPortValue(100.)}),
+			nodetest.AssertOutput("Out", 10.),
+			nodetest.AssertOutputType("Out", "float64"),
+		),
+		nodetest.NewTestCase(
+			"array of roots",
+			nodetest.NewNode(math.SquareRootNode{In: nodetest.NewPortValue([]float64{1, 4, 9})}),
+			nodetest.AssertOutput("Out", []float64{1, 2, 3}),
+			nodetest.AssertOutputType("Out", "[]float64"),
+		),
+	).Run(t)
+}
+
+func TestAddAndMultiplyOverArrays(t *testing.T) {
+	nodetest.NewSuite(
+		nodetest.NewTestCase(
+			"Add: 1 + 2 + 4 => 7",
+			nodetest.NewNode(math.AddNode[float64]{Values: nodetest.NewPortValues(1., 2., 4.)}),
+			nodetest.AssertOutput("Float", 7.),
+			nodetest.AssertOutputType("Float", "float64"),
+			nodetest.AssertLiftedInput("Values", "float64"),
+		),
+		nodetest.NewTestCase(
+			"Add: []{1,2,3} + 10 => []{11,12,13}",
+			nodetest.NewNode(math.AddNode[float64]{Values: []nodes.LiftedPort[float64]{
+				nodetest.NewPortValue([]float64{1, 2, 3}),
+				nodetest.NewPortValue(10.),
+			}}),
+			nodetest.AssertOutput("Float", []float64{11, 12, 13}),
+			nodetest.AssertOutputType("Float", "[]float64"),
+		),
+		nodetest.NewTestCase(
+			"Add: []{1,2,3} + []{10,20,30} => []{11,22,33}",
+			nodetest.NewNode(math.AddNode[float64]{Values: []nodes.LiftedPort[float64]{
+				nodetest.NewPortValue([]float64{1, 2, 3}),
+				nodetest.NewPortValue([]float64{10, 20, 30}),
+			}}),
+			nodetest.AssertOutput("Float", []float64{11, 22, 33}),
+		),
+		nodetest.NewTestCase(
+			"Multiply: 2 * 3 * 4 => 24",
+			nodetest.NewNode(math.MultiplyNode[float64]{Values: nodetest.NewPortValues(2., 3., 4.)}),
+			nodetest.AssertOutput("Float", 24.),
+		),
+		nodetest.NewTestCase(
+			"Multiply: []{1,2,3} * 2 => []{2,4,6}",
+			nodetest.NewNode(math.MultiplyNode[float64]{Values: []nodes.LiftedPort[float64]{
+				nodetest.NewPortValue([]float64{1, 2, 3}),
+				nodetest.NewPortValue(2.),
+			}}),
+			nodetest.AssertOutput("Float", []float64{2, 4, 6}),
+		),
+		nodetest.NewTestCase(
+			"Multiply: mismatched lengths are refused",
+			nodetest.NewNode(math.MultiplyNode[float64]{Values: []nodes.LiftedPort[float64]{
+				nodetest.NewPortValue([]float64{1, 2, 3}),
+				nodetest.NewPortValue([]float64{1, 2}),
+			}}),
+			nodetest.AssertOutput("Float", []float64{}),
+			nodetest.AssertOutputError("Float", "3 and 2"),
+		),
+	).Run(t)
+}
+
+func TestUnaryNodesFollowTheirInput(t *testing.T) {
+	nodetest.NewSuite(
+		nodetest.NewTestCase(
+			"Abs over an array",
+			nodetest.NewNode(math.AbsNode{In: nodetest.NewPortValue([]float64{-1, 2, -3})}),
+			nodetest.AssertOutput("Out", []float64{1, 2, 3}),
+		),
+		nodetest.NewTestCase(
+			"Round over an array",
+			nodetest.NewNode(math.RoundNode{In: nodetest.NewPortValue([]float64{1.4, 1.5, -1.5})}),
+			nodetest.AssertOutput("Float", []float64{1, 2, -2}),
+			nodetest.AssertOutput("Down", []float64{1, 1, -2}),
+			nodetest.AssertOutput("Up", []float64{2, 2, -1}),
+			nodetest.AssertOutput("Int", []int{1, 2, -2}),
+		),
+		nodetest.NewTestCase(
+			"Square over an array",
+			nodetest.NewNode(math.SquareNode{In: nodetest.NewPortValue([]float64{2, 3})}),
+			nodetest.AssertOutput("Out", []float64{4, 9}),
+		),
+		nodetest.NewTestCase(
+			"Negate over an array",
+			nodetest.NewNode(math.NegateNode[float64]{In: nodetest.NewPortValue([]float64{1, -2})}),
+			nodetest.AssertOutput("Out", []float64{-1, 2}),
+		),
+		nodetest.NewTestCase(
+			"Not over an array",
+			nodetest.NewNode(math.NotNode{In: nodetest.NewPortValue([]bool{true, false})}),
+			nodetest.AssertOutput("Out", []bool{false, true}),
+			nodetest.AssertLiftedInput("In", "bool"),
+		),
+		nodetest.NewTestCase(
+			"Bool to number over an array",
+			nodetest.NewNode(math.BoolToNumberNode{In: nodetest.NewPortValue([]bool{true, false})}),
+			nodetest.AssertOutput("Float 64", []float64{1, 0}),
+			nodetest.AssertOutput("Int", []int{1, 0}),
+		),
+		nodetest.NewTestCase(
+			"Int to float over an array",
+			nodetest.NewNode(math.IntToFloatNode{In: nodetest.NewPortValue([]int{1, 2})}),
+			nodetest.AssertOutput("Out", []float64{1, 2}),
+		),
+		nodetest.NewTestCase(
+			"Inverse over an array reports the zero it could not divide by",
+			nodetest.NewNode(math.InverseNode[float64]{In: nodetest.NewPortValue([]float64{2, 0})}),
+			nodetest.AssertOutput("Multiplicative", []float64{0.5, 0}),
+			nodetest.AssertOutputError("Multiplicative", "can't divide by 0"),
+			nodetest.AssertOutput("Additive", []float64{-2, 0}),
+		),
+		nodetest.NewTestCase(
+			"Compare over an array",
+			nodetest.NewNode(math.CompareNode[float64]{
+				A: nodetest.NewPortValue([]float64{1, 2, 3}),
+				B: nodetest.NewPortValue(2.),
+			}),
+			nodetest.AssertOutput("Less", []bool{true, false, false}),
+			nodetest.AssertOutput("Equal", []bool{false, true, false}),
+			nodetest.AssertOutput("Greater", []bool{false, false, true}),
+			nodetest.AssertOutputType("Greater", "[]bool"),
+		),
+		nodetest.NewTestCase(
+			"Modulo over an array",
+			nodetest.NewNode(math.ModuloNode{
+				A: nodetest.NewPortValue([]float64{-1, 3, 5}),
+				B: nodetest.NewPortValue(4.),
+			}),
+			nodetest.AssertOutput("Out", []float64{3, 3, 1}),
+		),
+		nodetest.NewTestCase(
+			"Hypotenuse over an array",
+			nodetest.NewNode(math.HypotenuseNode{
+				P: nodetest.NewPortValue([]float64{3, 5}),
+				Q: nodetest.NewPortValue([]float64{4, 12}),
+			}),
+			nodetest.AssertOutput("Out", []float64{5, 13}),
+		),
+	).Run(t)
 }
 
 func TestDivideNode(t *testing.T) {

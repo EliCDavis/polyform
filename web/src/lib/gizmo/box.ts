@@ -1,4 +1,5 @@
 import { BoxHelper } from '../box.js';
+import { requestRender } from '../render_scheduler.js';
 import { Group, PerspectiveCamera, Scene, Vector3 } from 'three';
 import { TransformGizmo } from '../gizmo/transform.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
@@ -123,6 +124,7 @@ export class BoxGizmo {
     }
 
     setEnabled(enabled: boolean): void {
+        requestRender();
         this.box.visible = enabled;
         this.up.setEnabled(enabled);
         this.down.setEnabled(enabled);

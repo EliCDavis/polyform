@@ -128,7 +128,7 @@ func TrunkTexture(imageSize int, colors coloring.Gradient[coloring.Color], barkN
 	dc.SetRGBA(0, 0, 0, 0)
 	dc.Clear()
 
-	df := noise.NewDistanceField(10, 10, vector2.Fill(float64(imageSize)))
+	df := noise.NewDistanceField(10, 10, vector2.Fill(float64(imageSize)), nil)
 
 	for x := 0; x < imageSize; x++ {
 		for y := 0; y < imageSize; y++ {

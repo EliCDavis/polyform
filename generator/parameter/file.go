@@ -54,6 +54,7 @@ func (pn *File) DisplayName() string {
 
 func (pn *File) ApplyMessage(msg []byte) (bool, error) {
 	pn.version++
+	nodes.Touch()
 	pn.appliedValue = msg
 	return true, nil
 }

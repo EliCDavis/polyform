@@ -21,87 +21,75 @@ func init() {
 }
 
 type Perlin1DNode struct {
-	Time      nodes.Output[[]float64]
-	Shift     nodes.Output[float64]
-	Amplitude nodes.Output[float64]
-	Frequency nodes.Output[float64]
+	Time      nodes.LiftedPort[float64]
+	Shift     nodes.LiftedPort[float64]
+	Amplitude nodes.LiftedPort[float64]
+	Frequency nodes.LiftedPort[float64]
 }
 
 func (cn Perlin1DNode) Description() string {
 	return "Perlin noise sampled along one dimension."
 }
 
-func (cn Perlin1DNode) Out(out *nodes.StructOutput[[]float64]) {
-	if cn.Time == nil {
-		return
-	}
-
-	scale := nodes.TryGetOutputValue(out, cn.Amplitude, 1.)
-	frequency := nodes.TryGetOutputValue(out, cn.Frequency, 1.)
-	shift := nodes.TryGetOutputValue(out, cn.Shift, 0.)
-	times := nodes.GetOutputValue(out, cn.Time)
-
-	values := make([]float64, len(times))
-	for i, t := range times {
-		values[i] = Perlin1D((t*frequency)+shift) * scale
-	}
-	out.Set(values)
+func (cn Perlin1DNode) Out(out *nodes.Lifted[float64]) {
+	nodes.Zip4(
+		out,
+		nodes.LiftedOr(cn.Time, 0.),
+		nodes.LiftedOr(cn.Frequency, 1.),
+		nodes.LiftedOr(cn.Shift, 0.),
+		nodes.LiftedOr(cn.Amplitude, 1.),
+		func(time, frequency, shift, amplitude float64) float64 {
+			return Perlin1D((time*frequency)+shift) * amplitude
+		},
+	)
 }
 
 type Perlin2DNode struct {
-	Time      nodes.Output[[]vector2.Float64]
-	Amplitude nodes.Output[float64]
-	Frequency nodes.Output[vector2.Float64]
-	Shift     nodes.Output[vector2.Float64]
+	Time      nodes.LiftedPort[vector2.Float64]
+	Amplitude nodes.LiftedPort[float64]
+	Frequency nodes.LiftedPort[vector2.Float64]
+	Shift     nodes.LiftedPort[vector2.Float64]
 }
 
 func (cn Perlin2DNode) Description() string {
 	return "Perlin noise sampled at 2D points."
 }
 
-func (cn Perlin2DNode) Out(out *nodes.StructOutput[[]float64]) {
-	if cn.Time == nil {
-		return
-	}
-
-	times := nodes.GetOutputValue(out, cn.Time)
-	scale := nodes.TryGetOutputValue(out, cn.Amplitude, 1.)
-	frequency := nodes.TryGetOutputValue(out, cn.Frequency, vector2.One[float64]())
-	shift := nodes.TryGetOutputValue(out, cn.Shift, vector2.Zero[float64]())
-
-	values := make([]float64, len(times))
-	for i, t := range times {
-		values[i] = Perlin2D(t.MultByVector(frequency).Add(shift)) * scale
-	}
-	out.Set(values)
+func (cn Perlin2DNode) Out(out *nodes.Lifted[float64]) {
+	nodes.Zip4(
+		out,
+		nodes.LiftedOr(cn.Time, vector2.Zero[float64]()),
+		nodes.LiftedOr(cn.Frequency, vector2.One[float64]()),
+		nodes.LiftedOr(cn.Shift, vector2.Zero[float64]()),
+		nodes.LiftedOr(cn.Amplitude, 1.),
+		func(time, frequency, shift vector2.Float64, amplitude float64) float64 {
+			return Perlin2D(time.MultByVector(frequency).Add(shift)) * amplitude
+		},
+	)
 }
 
 type Perlin3DNode struct {
-	Time      nodes.Output[[]vector3.Float64]
-	Amplitude nodes.Output[float64]
-	Frequency nodes.Output[vector3.Float64]
-	Shift     nodes.Output[vector3.Float64]
+	Time      nodes.LiftedPort[vector3.Float64]
+	Amplitude nodes.LiftedPort[float64]
+	Frequency nodes.LiftedPort[vector3.Float64]
+	Shift     nodes.LiftedPort[vector3.Float64]
 }
 
 func (cn Perlin3DNode) Description() string {
-	return "Perlin noise sampled at 3D points. Takes an array of positions and returns one value per position."
+	return "Perlin noise sampled at 3D points."
 }
 
-func (cn Perlin3DNode) Out(out *nodes.StructOutput[[]float64]) {
-	if cn.Time == nil {
-		return
-	}
-
-	scale := nodes.TryGetOutputValue(out, cn.Amplitude, 1.)
-
-	times := nodes.GetOutputValue(out, cn.Time)
-	frequency := nodes.TryGetOutputValue(out, cn.Frequency, vector3.One[float64]())
-	shift := nodes.TryGetOutputValue(out, cn.Shift, vector3.Zero[float64]())
-	values := make([]float64, len(times))
-	for i, t := range times {
-		values[i] = Perlin3D(t.MultByVector(frequency).Add(shift)) * scale
-	}
-	out.Set(values)
+func (cn Perlin3DNode) Out(out *nodes.Lifted[float64]) {
+	nodes.Zip4(
+		out,
+		nodes.LiftedOr(cn.Time, vector3.Zero[float64]()),
+		nodes.LiftedOr(cn.Frequency, vector3.One[float64]()),
+		nodes.LiftedOr(cn.Shift, vector3.Zero[float64]()),
+		nodes.LiftedOr(cn.Amplitude, 1.),
+		func(time, frequency, shift vector3.Float64, amplitude float64) float64 {
+			return Perlin3D(time.MultByVector(frequency).Add(shift)) * amplitude
+		},
+	)
 }
 
 type Perlin3DFieldNode struct {

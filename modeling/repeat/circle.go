@@ -45,7 +45,7 @@ type CircleNode struct {
 }
 
 func (r CircleNode) Description() string {
-	return "Produces Times transforms evenly spaced around a circle in the XZ plane, each rotated to face outward/tangent to the circle."
+	return "Produces Times transforms evenly spaced around a circle in the XZ plane, each rotated so its local +Z points outward from the center."
 }
 
 func (r CircleNode) Out(out *nodes.StructOutput[[]trs.TRS]) {

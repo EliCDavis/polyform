@@ -4,29 +4,30 @@ import (
 	"math"
 	"math/rand/v2"
 
+	"github.com/EliCDavis/polyform/math/chance"
 	"github.com/EliCDavis/polyform/math/trs"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/vector/vector3"
 )
 
-func RandomPointInSphere(radius float64) vector3.Float64 {
+func RandomPointInSphere(radius float64, rnd *rand.Rand) vector3.Float64 {
 	// Sample random direction (normalized Gaussian)
-	x := rand.NormFloat64()
-	y := rand.NormFloat64()
-	z := rand.NormFloat64()
+	x := rnd.NormFloat64()
+	y := rnd.NormFloat64()
+	z := rnd.NormFloat64()
 	len := math.Sqrt(x*x + y*y + z*z)
 
 	// Uniform random radius
-	u := rand.Float64()
+	u := rnd.Float64()
 	r := radius * math.Cbrt(u)
 
 	return vector3.New(x, y, z).DivByConstant(len).Scale(r)
 }
 
-func RandomPointsInSphere(radius float64, count int) []vector3.Float64 {
+func RandomPointsInSphere(radius float64, count int, rnd *rand.Rand) []vector3.Float64 {
 	results := make([]vector3.Float64, count)
 	for i := range results {
-		results[i] = RandomPointInSphere(radius)
+		results[i] = RandomPointInSphere(radius, rnd)
 	}
 	return results
 }
@@ -34,10 +35,11 @@ func RandomPointsInSphere(radius float64, count int) []vector3.Float64 {
 type RandomPointsInSphereNode struct {
 	Radius nodes.Output[float64] `description:"Radius of the sphere containing the random points. Defaults to 0.5."`
 	Points nodes.Output[int]     `description:"number of points to generate. Defaults to 1. Must not be negative."`
+	Seed   nodes.Output[int]     `description:"The same seed always produces the same scatter. Defaults to 0."`
 }
 
 func (g RandomPointsInSphereNode) Description() string {
-	return "Scatters Points points uniformly at random inside a solid sphere of radius Radius, not just on its surface. Non-deterministic — every call produces a different scatter."
+	return "Scatters Points points uniformly at random inside a solid sphere of radius Radius, not just on its surface."
 }
 
 func (g RandomPointsInSphereNode) points(recorder nodes.ExecutionRecorder) []vector3.Float64 {
@@ -53,6 +55,7 @@ func (g RandomPointsInSphereNode) points(recorder nodes.ExecutionRecorder) []vec
 	return RandomPointsInSphere(
 		nodes.TryGetOutputValue(recorder, g.Radius, 0.5),
 		points,
+		chance.FromSeed(nodes.TryGetOutputValue(recorder, g.Seed, 0)),
 	)
 }
 

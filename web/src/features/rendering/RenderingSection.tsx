@@ -14,6 +14,7 @@ import {
 import { SSAOGroup } from "./SSAOGroup";
 import { BloomGroup } from "./BloomGroup";
 import { AutoRotateGroup } from "./AutoRotateGroup";
+import { requestRender } from "@/lib/render_scheduler";
 
 interface RenderingSectionProps {}
 
@@ -109,6 +110,10 @@ export function RenderingSection() {
       return ToneMappingOption.None;
     }
     return MODE_TO_TONE_MAPPING[toneMappingEffect.mode] ?? ToneMappingOption.AcesFilmic;
+  });
+
+  useEffect(() => {
+    requestRender();
   });
 
   useEffect(() => {
