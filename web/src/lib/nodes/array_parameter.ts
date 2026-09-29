@@ -1,5 +1,4 @@
-import { FlowNode, GlobalWidgetFactory } from '@elicdavis/node-flow';
-import type { Widget } from './widget';
+import { FlowNode, GlobalWidgetFactory, type Widget } from '@elicdavis/node-flow';
 import { NodeManager } from '../node_manager';
 import { ThreeApp } from '../three_app';
 import { ColorWidgets } from './color_widget';

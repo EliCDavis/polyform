@@ -26,3 +26,11 @@ func TestTorus(t *testing.T) {
 		})
 	}
 }
+
+func TestTorusIsCenteredOnItsPosition(t *testing.T) {
+	torus := sdf.Torus(vector3.New(0., 5., 0.), 1, 0.25)
+
+	assert.InDelta(t, -0.25, torus(vector3.New(1., 5., 0.)), 1e-9, "tube center at the torus's own height")
+	assert.InDelta(t, 0.75, torus(vector3.New(0., 5., 0.)), 1e-9, "the hole is at the position, not the origin")
+	assert.Greater(t, torus(vector3.New(1., 0., 0.)), 4.0, "the origin is far from a torus placed 5 up")
+}

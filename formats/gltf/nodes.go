@@ -69,13 +69,11 @@ func (gad ManifestNode) Out(out *nodes.StructOutput[manifest.Manifest]) {
 		if m == nil {
 			continue
 		}
-		value := nodes.GetOutputValue(out, m)
 
-		// // TechDebt: Skip nodes without meshes as at the moment it'll cause stuff
-		// // to error out
-		// if value.Mesh == nil {
-		// 	continue
-		// }
+		value := nodes.GetOutputValue(out, m)
+		if value == nil {
+			continue
+		}
 
 		models = append(models, value)
 	}
@@ -472,7 +470,7 @@ func (node MaterialTransmissionExtensionNode) Out(out *nodes.StructOutput[Polyfo
 }
 
 func (node MaterialTransmissionExtensionNode) Description() string {
-	return "The KHR_materials_transmission extension provides a way to define glTF 2.0 materials that are transparent to light in a physically plausible way. That is, it enables the creation of transparent materials that absorb, reflect and transmit light depending on the incident angle and the wavelength of light. Common uses cases for thin-surface transmissive materials include plastics and glass."
+	return "The KHR_materials_transmission extension provides a way to define glTF 2.0 materials that are transparent to light in a physically plausible way. That is, it enables the creation of transparent materials that absorb, reflect and transmit light depending on the incident angle and the wavelength of light."
 }
 
 type MaterialVolumeExtensionNode struct {

@@ -10,8 +10,7 @@ func init() {
 	factory := &refutil.TypeFactory{}
 	refutil.RegisterType[nodes.Struct[LinesFromPoints3DNode]](factory)
 	refutil.RegisterType[nodes.Struct[LineLengths3DNode]](factory)
-	refutil.RegisterType[nodes.Struct[PositionsOnLinesAtTime3DNode]](factory)
-	refutil.RegisterType[nodes.Struct[PositionsOnLineAtTimes3DNode]](factory)
+	refutil.RegisterType[nodes.Struct[PositionOnLine3DNode]](factory)
 	refutil.RegisterType[nodes.Struct[TrsFromLines3DNode]](factory)
 	generator.RegisterTypes(factory)
 }

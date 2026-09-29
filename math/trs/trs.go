@@ -153,7 +153,7 @@ func (trs TRS) LookAt(positionToLookAt vector3.Float64) TRS {
 		// produces NaN. Fall back to a different reference axis.
 		up = vector3.Right[float64]()
 	}
-	right := forward.Cross(up).Normalized()
+	right := up.Cross(forward).Normalized()
 	up = forward.Cross(right).Normalized()
 
 	trs.rotation = quaternion.FromMatrix(mat.Matrix4x4{

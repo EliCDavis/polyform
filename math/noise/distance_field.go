@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
-	"time"
 
 	"github.com/EliCDavis/vector/vector2"
 )
@@ -16,7 +15,7 @@ type DistanceField struct {
 	spacing        vector2.Float64
 }
 
-func NewDistanceField(xCells, yCells int, size vector2.Float64) *DistanceField {
+func NewDistanceField(xCells, yCells int, size vector2.Float64, rnd *rand.Rand) *DistanceField {
 	if xCells <= 0 {
 		panic(fmt.Errorf("invalid distance field x cell count: %d", xCells))
 	}
@@ -40,7 +39,10 @@ func NewDistanceField(xCells, yCells int, size vector2.Float64) *DistanceField {
 
 	points := make([]vector2.Float64, xCells*yCells)
 
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	r := rnd
+	if r == nil {
+		r = rand.New(rand.NewSource(0))
+	}
 	for y := 0; y < yCells; y++ {
 		for x := 0; x < xCells; x++ {
 			points[(xCells*y)+x] = vector2.

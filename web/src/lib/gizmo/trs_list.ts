@@ -1,4 +1,5 @@
 import { Observable, Subject } from "rxjs";
+import { requestRender } from "../render_scheduler";
 import {
     AxesHelper,
     BufferAttribute,
@@ -263,6 +264,7 @@ export class TRSListGizmo {
         });
         this.line.visible = this.enabled && this.entries.length > 1;
         this.preview.visible = this.enabled && this.previewIndex !== null;
+        requestRender();
     }
 
     private redraw(): void {

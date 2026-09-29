@@ -9,7 +9,8 @@ import (
 
 func Torus(position vector3.Float64, majorRadius, minorRadius float64) sample.Vec3ToFloat {
 	return func(v vector3.Float64) float64 {
-		q := vector2.New(v.XZ().Length()-majorRadius, v.Y())
+		p := v.Sub(position)
+		q := vector2.New(p.XZ().Length()-majorRadius, p.Y())
 		return q.Length() - minorRadius
 	}
 }

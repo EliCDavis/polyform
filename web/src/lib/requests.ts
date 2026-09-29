@@ -428,16 +428,19 @@ export class RequestManager {
   createNode(
     nodeType: string,
     callback?: ResponseCallback<CreateNodeResponse>,
-    portType?: string
+    portType?: string,
+    onFailure?: () => void
   ): void {
     const body: { nodeType: string; portType?: string } = { nodeType };
     if (portType) {
       body.portType = portType;
     }
     void postJson<CreateNodeResponse>(this.scopedNodeUrl(), body).then((response) => {
-      if (response !== undefined) {
-        this.onGraphChangeResponse(GraphChangeEventType.Node_New, callback)(response);
+      if (response === undefined) {
+        onFailure?.();
+        return;
       }
+      this.onGraphChangeResponse(GraphChangeEventType.Node_New, callback)(response);
     });
   }
 

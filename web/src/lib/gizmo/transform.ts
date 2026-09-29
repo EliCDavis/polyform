@@ -2,6 +2,7 @@ import { Observable, Subject } from "rxjs";
 import { Group, PerspectiveCamera, Scene, Vector3 } from "three";
 import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { requestRender } from '../render_scheduler';
 
 export interface TransformGizmoConfig {
     camera: PerspectiveCamera;
@@ -47,6 +48,7 @@ export class TransformGizmo {
 
         this.controls.addEventListener('dragging-changed', (event) => {
             config.orbitControls.enabled = !event.value;
+            requestRender();
             if (!config.orbitControls.enabled) {
                 return;
             }
@@ -56,6 +58,7 @@ export class TransformGizmo {
 
         this.controls.addEventListener('objectChange', () => {
             this.drag$.next(this.mesh.position);
+            requestRender();
         });
 
         config.parent.add(this.mesh);
@@ -77,6 +80,7 @@ export class TransformGizmo {
     setEnabled(enabled: boolean): void {
         this.helper.visible = enabled;
         this.controls.enabled = enabled;
+        requestRender();
     }
 
     setPosition(x: number, y: number, z: number): void {

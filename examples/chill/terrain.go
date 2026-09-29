@@ -37,12 +37,12 @@ func TerrainTexture(
 	normalSourceTex := image.NewRGBA(image.Rect(0, 0, textureSize, textureSize))
 
 	imageDimensions := vector2.Fill(float64(textureSize))
-	df := noise.NewDistanceField(30, 30, imageDimensions)
-	df2 := noise.NewDistanceField(60, 60, imageDimensions)
-	df3 := noise.NewDistanceField(80, 80, imageDimensions)
-	df4 := noise.NewDistanceField(160, 160, imageDimensions)
-	df5 := noise.NewDistanceField(240, 240, imageDimensions)
-	df6 := noise.NewDistanceField(480, 480, imageDimensions)
+	df := noise.NewDistanceField(30, 30, imageDimensions, nil)
+	df2 := noise.NewDistanceField(60, 60, imageDimensions, nil)
+	df3 := noise.NewDistanceField(80, 80, imageDimensions, nil)
+	df4 := noise.NewDistanceField(160, 160, imageDimensions, nil)
+	df5 := noise.NewDistanceField(240, 240, imageDimensions, nil)
+	df6 := noise.NewDistanceField(480, 480, imageDimensions, nil)
 
 	colorSampleFunc := func(samplePos vector2.Float64) float64 {
 		return df.Sample(samplePos) -

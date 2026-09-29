@@ -1,5 +1,4 @@
-import { FlowNode, GlobalWidgetFactory } from '@elicdavis/node-flow';
-import type { Widget } from './widget';
+import { FlowNode, GlobalWidgetFactory, type Widget } from '@elicdavis/node-flow';
 
 export class ColorWidgets {
 
@@ -24,15 +23,10 @@ export class ColorWidgets {
                 }
             });
         }
-        const widget = GlobalWidgetFactory.create(this.node, "color", { property });
-
-        // TODO: Fix in Node Flow
-        // A fresh widget starts black and only follows the property when it
-        // changes, so a rebuild with the same colour has to step through black.
         this.updating = true;
-        this.node.setProperty(property, "#000000");
         this.node.setProperty(property, value);
         this.updating = false;
-        return widget;
+
+        return GlobalWidgetFactory.create(this.node, "color", { property });
     }
 }

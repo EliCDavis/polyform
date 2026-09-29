@@ -3,12 +3,17 @@ package schema
 type NodeTypeOutput struct {
 	Type        string `json:"type"`
 	Description string `json:"description,omitempty"`
+	Dynamic     bool   `json:"dynamic,omitempty"`
 }
 
 type NodeTypeInput struct {
 	Type        string `json:"type"`
 	IsArray     bool   `json:"isArray"`
 	Description string `json:"description,omitempty"`
+	Dynamic     bool   `json:"dynamic,omitempty"`
+
+	// Lifted port stuff
+	AcceptedTypes []string `json:"acceptedTypes,omitempty"`
 }
 
 type NodeType struct {

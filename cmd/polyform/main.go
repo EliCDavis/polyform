@@ -35,6 +35,10 @@ import (
 	"github.com/EliCDavis/polyform/generator/serialize"
 	_ "github.com/EliCDavis/polyform/generator/subgraph/register"
 
+	_ "github.com/EliCDavis/polyform/arrays"
+	_ "github.com/EliCDavis/polyform/debug"
+	_ "github.com/EliCDavis/polyform/logic"
+
 	_ "github.com/EliCDavis/polyform/math"
 	_ "github.com/EliCDavis/polyform/math/constant"
 	_ "github.com/EliCDavis/polyform/math/geometry"

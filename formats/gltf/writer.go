@@ -511,6 +511,9 @@ func (w *Writer) AddScene(scene PolyformScene) error {
 	childInstanceGroups := make(instancesCachce)
 
 	for i, child := range scene.Models {
+		if child == nil {
+			continue
+		}
 		switch w.Options.GpuInstancingStrategy {
 		case WriterInstancingStrategy_Collapse:
 			if canCollapseIntoInstance(child) {
@@ -557,6 +560,9 @@ func (w *Writer) AddScene(scene PolyformScene) error {
 
 		// Write all children that weren't instanced
 		for _, child := range scene.Models {
+			if child == nil {
+				continue
+			}
 
 			if child.Mesh != nil {
 				meshIndex, err := w.getOrAddMeshIndex(child)

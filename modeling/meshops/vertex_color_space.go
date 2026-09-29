@@ -1,6 +1,8 @@
 package meshops
 
 import (
+	"fmt"
+
 	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/nodes"
@@ -80,15 +82,24 @@ func (n SrgbToLinearNode) Description() string {
 }
 
 func (n SrgbToLinearNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
-	if n.Mesh == nil {
+	convertVertexColorSpace(out, n.Mesh, n.Attribute, VertexColorSpaceSRGBToLinear)
+}
+
+func convertVertexColorSpace(out *nodes.StructOutput[modeling.Mesh], meshIn nodes.Output[modeling.Mesh], attrIn nodes.Output[string], transformation VertexColorSpaceTransformation) {
+	if meshIn == nil {
 		out.Set(modeling.EmptyMesh(modeling.TriangleTopology))
 		return
 	}
 
-	mesh := nodes.GetOutputValue(out, n.Mesh)
-	attr := nodes.TryGetOutputValue(out, n.Attribute, modeling.ColorAttribute)
+	mesh := nodes.GetOutputValue(out, meshIn)
+	attr := nodes.TryGetOutputValue(out, attrIn, modeling.ColorAttribute)
+	if mesh.AttributeLength() == 0 {
+		out.CaptureError(fmt.Errorf("mesh has no %s vertex data to convert", attr))
+		out.Set(mesh)
+		return
+	}
 
-	out.Set(VertexColorSpace(mesh, attr, VertexColorSpaceSRGBToLinear))
+	out.Set(VertexColorSpace(mesh, attr, transformation))
 }
 
 type LinearToSRGBNode struct {
@@ -101,13 +112,5 @@ func (n LinearToSRGBNode) Description() string {
 }
 
 func (n LinearToSRGBNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
-	if n.Mesh == nil {
-		out.Set(modeling.EmptyMesh(modeling.TriangleTopology))
-		return
-	}
-
-	mesh := nodes.GetOutputValue(out, n.Mesh)
-	attr := nodes.TryGetOutputValue(out, n.Attribute, modeling.ColorAttribute)
-
-	out.Set(VertexColorSpace(mesh, attr, VertexColorSpaceLinearToSRGB))
+	convertVertexColorSpace(out, n.Mesh, n.Attribute, VertexColorSpaceLinearToSRGB)
 }

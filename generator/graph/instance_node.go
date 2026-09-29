@@ -350,7 +350,7 @@ func (r *SubgraphInstanceNode) refreshOutputsLocked() {
 		// is known, so downstream typed inputs can connect to it.
 		if _, ok := r.outputs[name]; !ok || typeChanged {
 			var exposed nodes.OutputPort = port
-			if builder, found := subgraph.LookupPortTypeProxy(bp.Type); found {
+			if builder, found := nodes.LookupPortTypeProxy(bp.Type); found {
 				exposed = builder.BuildProxyOutput(port)
 			}
 			r.outputs[name] = exposed

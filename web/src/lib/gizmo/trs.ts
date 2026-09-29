@@ -2,6 +2,7 @@ import { Observable, Subject } from "rxjs";
 import { Group, PerspectiveCamera, Scene } from "three";
 import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { requestRender } from '../render_scheduler';
 
 export interface TRSValue {
     position: { x: number; y: number; z: number };
@@ -42,9 +43,14 @@ export class TRSGizmo {
 
         this.controls.addEventListener('dragging-changed', (event) => {
             config.orbitControls.enabled = !event.value;
+            requestRender();
             if (config.orbitControls.enabled) {
                 this.change$.next(this.value());
             }
+        });
+
+        this.controls.addEventListener('objectChange', () => {
+            requestRender();
         });
 
         config.parent.add(this.mesh);
@@ -62,6 +68,7 @@ export class TRSGizmo {
     setEnabled(enabled: boolean): void {
         this.helper.visible = enabled;
         this.controls.enabled = enabled;
+        requestRender();
     }
 
     setMode(mode: TRSGizmoMode): void {

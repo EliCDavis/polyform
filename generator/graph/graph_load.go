@@ -2,6 +2,7 @@ package graph
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/EliCDavis/jbtf"
@@ -48,6 +49,7 @@ func (a *Instance) instantiateAppNode(nodeID string, instanceDetails persistence
 		}
 		node := variableInstance.NodeReference()
 		a.nodeIDs[node] = nodeID
+		a.noteNodeID(nodeID)
 		a.nodeTypeKeys[node] = instanceDetails.Type
 		return node, nil
 	}
@@ -66,12 +68,101 @@ func (a *Instance) instantiateAppNode(nodeID string, instanceDetails persistence
 		panic(fmt.Errorf("graph definition contained type that instantiated a non node: %s", instanceDetails.Type))
 	}
 	a.nodeIDs[casted] = nodeID
+	a.noteNodeID(nodeID)
 	a.nodeTypeKeys[casted] = nodeType
+
 	return casted, nil
 }
 
+func (a *Instance) bindDynamicTypes(nodeDefs map[string]persistence.Node, createdNodes map[string]nodes.Node) error {
+	order := connectionOrder(nodeDefs)
+
+	for range len(order) {
+		bound := false
+
+		for _, nodeID := range order {
+			node := createdNodes[nodeID]
+			inputs := node.Inputs()
+
+			for _, sorted := range sortPortReferences(nodeDefs[nodeID].AssignedInput) {
+				input, ok := inputs[strings.Split(sorted.name, ".")[0]]
+				if !ok {
+					continue
+				}
+				outNode, ok := createdNodes[sorted.port.NodeId]
+				if !ok {
+					continue
+				}
+				output, ok := outNode.Outputs()[sorted.port.PortName]
+				if !ok {
+					continue
+				}
+
+				release, err := bindDynamicPorts(output, input)
+				if err != nil {
+					return fmt.Errorf("node %s: %w", nodeID, err)
+				}
+				if release != nil {
+					bound = true
+				}
+			}
+		}
+
+		if !bound {
+			return nil
+		}
+	}
+	return nil
+}
+
+// connectionOrder wires a node's own inputs before anything reads its
+// outputs: a lifted output's type follows the rank of what is connected to
+// it, and a consumer keeps the port object it was handed rather than asking
+// again. A cycle is broken at whichever edge closes it.
+func connectionOrder(nodeDefs map[string]persistence.Node) []string {
+	ids := make([]string, 0, len(nodeDefs))
+	for id := range nodeDefs {
+		ids = append(ids, id)
+	}
+	slices.Sort(ids)
+
+	const (
+		unvisited = iota
+		visiting
+		done
+	)
+
+	state := make(map[string]int, len(ids))
+	ordered := make([]string, 0, len(ids))
+
+	var visit func(id string)
+	visit = func(id string) {
+		if state[id] != unvisited {
+			return
+		}
+		state[id] = visiting
+		for _, ref := range sortPortReferences(nodeDefs[id].AssignedInput) {
+			if _, known := nodeDefs[ref.port.NodeId]; known {
+				visit(ref.port.NodeId)
+			}
+		}
+		state[id] = done
+		ordered = append(ordered, id)
+	}
+
+	for _, id := range ids {
+		visit(id)
+	}
+	return ordered
+}
+
 func (a *Instance) connectAppNodes(nodeDefs map[string]persistence.Node, createdNodes map[string]nodes.Node) error {
-	for nodeID, instanceDetails := range nodeDefs {
+	if err := a.bindDynamicTypes(nodeDefs, createdNodes); err != nil {
+		return err
+	}
+
+	for _, nodeID := range connectionOrder(nodeDefs) {
+		instanceDetails := nodeDefs[nodeID]
 		node := createdNodes[nodeID]
 		inputs := node.Inputs()
 

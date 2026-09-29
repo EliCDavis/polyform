@@ -7,67 +7,27 @@ import (
 )
 
 type NewNode[T vector.Number] struct {
-	X nodes.Output[T]
-	Y nodes.Output[T]
-	Z nodes.Output[T]
-	W nodes.Output[T]
+	X nodes.LiftedPort[T] `description:"Defaults to 0."`
+	Y nodes.LiftedPort[T] `description:"Defaults to 0."`
+	Z nodes.LiftedPort[T] `description:"Defaults to 0."`
+	W nodes.LiftedPort[T] `description:"Defaults to 0."`
 }
 
-func (cn NewNode[T]) Out(out *nodes.StructOutput[vector4.Vector[T]]) {
-	out.Set(vector4.New(
-		nodes.TryGetOutputValue(out, cn.X, 0),
-		nodes.TryGetOutputValue(out, cn.Y, 0),
-		nodes.TryGetOutputValue(out, cn.Z, 0),
-		nodes.TryGetOutputValue(out, cn.W, 0),
-	))
+func (cn NewNode[T]) Description() string {
+	return "Builds a vector4 from its X/Y/Z/W scalar components."
 }
 
-type ArrayFromComponentsNode[T vector.Number] struct {
-	X nodes.Output[[]T]
-	Y nodes.Output[[]T]
-	Z nodes.Output[[]T]
-	W nodes.Output[[]T]
-}
-
-func (snd ArrayFromComponentsNode[T]) Out(out *nodes.StructOutput[[]vector4.Vector[T]]) {
-	xArr := nodes.TryGetOutputValue(out, snd.X, nil)
-	yArr := nodes.TryGetOutputValue(out, snd.Y, nil)
-	zArr := nodes.TryGetOutputValue(out, snd.Z, nil)
-	wArr := nodes.TryGetOutputValue(out, snd.W, nil)
-
-	arr := make([]vector4.Vector[T], max(len(xArr), len(yArr), len(zArr), len(wArr)))
-	for i := range arr {
-		var x T
-		var y T
-		var z T
-		var w T
-
-		if i < len(xArr) {
-			x = xArr[i]
-		}
-
-		if i < len(yArr) {
-			y = yArr[i]
-		}
-
-		if i < len(zArr) {
-			z = zArr[i]
-		}
-
-		if i < len(wArr) {
-			w = wArr[i]
-		}
-
-		arr[i] = vector4.New(x, y, z, w)
-	}
-
-	out.Set(arr)
-}
-
-type ArrayFromNodesNode[T vector.Number] struct {
-	In []nodes.Output[vector4.Vector[T]]
-}
-
-func (node ArrayFromNodesNode[T]) Out(out *nodes.StructOutput[[]vector4.Vector[T]]) {
-	out.Set(nodes.GetOutputValues(out, node.In))
+func (cn NewNode[T]) Out(out *nodes.Lifted[vector4.Vector[T]]) {
+	nodes.ZipAll(
+		out,
+		[]nodes.LiftedPort[T]{
+			nodes.LiftedOr[T](cn.X, 0),
+			nodes.LiftedOr[T](cn.Y, 0),
+			nodes.LiftedOr[T](cn.Z, 0),
+			nodes.LiftedOr[T](cn.W, 0),
+		},
+		func(v []T) vector4.Vector[T] {
+			return vector4.New(v[0], v[1], v[2], v[3])
+		},
+	)
 }

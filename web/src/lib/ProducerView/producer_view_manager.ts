@@ -30,6 +30,7 @@ import { RequestManager } from "../requests";
 import * as GaussianSplats3D from "@mkkellogg/gaussian-splats-3d";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { ThreeApp } from "../three_app";
+import { requestRender } from "../render_scheduler";
 import { SchemaManager } from "../schema_manager";
 
 type ProducerRefreshCallback = (string: string, thing: any) => void;
@@ -164,6 +165,11 @@ export class ProducerViewManager {
   private updateLoop(delta: number): void {
     if (this.mixer) {
       this.mixer.update(delta);
+      requestRender();
+    }
+
+    if (this.guassianSplatViewer) {
+      requestRender();
     }
   }
 
@@ -405,6 +411,7 @@ export class ProducerViewManager {
         const mid = (aabb.max.y + aabb.min.y) / 2;
 
         this.producerScene.add(obj);
+        requestRender();
 
         // We have to do this weird thing because the pivot of the scene
         // Isn't always the center of the AABB
@@ -438,6 +445,7 @@ export class ProducerViewManager {
         const mid = (aabb.max.y + aabb.min.y) / 2;
 
         this.producerScene.add(gltf.scene);
+        requestRender();
 
         // We have to do this weird thing because the pivot of the scene
         // Isn't always the center of the AABB
@@ -512,6 +520,7 @@ export class ProducerViewManager {
         const mid = (aabb.max.y + aabb.min.y) / 2;
 
         this.producerScene.add(mesh);
+        requestRender();
 
         // We have to do this weird thing because the pivot of the scene
         // Isn't always the center of the AABB
@@ -742,6 +751,7 @@ export class ProducerViewManager {
 
     this.producerScene = new Group();
     this.viewerContainer.add(this.producerScene);
+    requestRender();
   }
 
   Refresh(schema: GraphInstance) {

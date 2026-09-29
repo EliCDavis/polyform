@@ -7,18 +7,15 @@ import (
 	"github.com/EliCDavis/vector"
 )
 
-// ============================================================================
-
 type AddNode[T vector.Number] struct {
-	Values []nodes.Output[T] `description:"The values to sum."`
+	Values []nodes.LiftedPort[T] `description:"The values to sum. Arrays are summed element by element."`
 }
 
 func (an AddNode[T]) Description() string {
 	return "Adds two or more values together."
 }
 
-func (an AddNode[T]) val(out nodes.ExecutionRecorder) T {
-	vals := nodes.GetOutputValues(out, an.Values)
+func (an AddNode[T]) sum(vals []T) T {
 	var total T
 	for _, v := range vals {
 		total += v
@@ -26,27 +23,14 @@ func (an AddNode[T]) val(out nodes.ExecutionRecorder) T {
 	return total
 }
 
-func (an AddNode[T]) Float(out *nodes.StructOutput[float64]) {
-	out.Set(float64(an.val(out)))
+func (an AddNode[T]) Float(out *nodes.Lifted[float64]) {
+	nodes.ZipAll(out, an.Values, func(vals []T) float64 {
+		return float64(an.sum(vals))
+	})
 }
 
-func (an AddNode[T]) Int(out *nodes.StructOutput[int]) {
-	out.Set(int(gomath.Round(float64(an.val(out)))))
-}
-
-// ============================================================================
-
-type AddToArrayNode[T vector.Number] struct {
-	In    nodes.Output[T]
-	Array nodes.Output[[]T]
-}
-
-func (cn AddToArrayNode[T]) Sums(out *nodes.StructOutput[[]T]) {
-	out.Set(methodToArr(
-		nodes.TryGetOutputValue(out, cn.In, 0),
-		nodes.TryGetOutputValue(out, cn.Array, nil),
-		func(a, b T) T {
-			return a + b
-		},
-	))
+func (an AddNode[T]) Int(out *nodes.Lifted[int]) {
+	nodes.ZipAll(out, an.Values, func(vals []T) int {
+		return int(gomath.Round(float64(an.sum(vals))))
+	})
 }

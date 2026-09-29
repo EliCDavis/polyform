@@ -2,6 +2,7 @@ package quaternion
 
 import (
 	"encoding/json"
+	"math"
 
 	"github.com/EliCDavis/vector/vector3"
 )
@@ -18,11 +19,17 @@ func (q Quaternion) MarshalJSON() ([]byte, error) {
 }
 
 // Fields left out read as the identity, so "{}" is a valid rotation.
+// Hand-typed components like 0.7071068 are renormalized: Rotate assumes
+// unit length, and the residual skews a box's quads enough for CSG to
+// reject them as non-planar.
 func (q *Quaternion) UnmarshalJSON(data []byte) error {
 	parsed := jsonQuaternion{W: 1}
 	if err := json.Unmarshal(data, &parsed); err != nil {
 		return err
 	}
 	*q = New(vector3.New(parsed.X, parsed.Y, parsed.Z), parsed.W)
+	if length := q.Dot(*q); length > 0 && math.Abs(length-1) > 1e-12 {
+		*q = q.Normalize()
+	}
 	return nil
 }

@@ -1,5 +1,7 @@
 package nodes
 
+import "github.com/EliCDavis/polyform/refutil"
+
 const valueOutputPortName = "Value"
 
 // Implements Output[T any]
@@ -23,8 +25,25 @@ func (sno valueOutputPort[T]) Version() int {
 	return sno.Val.Version()
 }
 
+func (sno valueOutputPort[T]) Type() string {
+	resolver := refutil.TypeResolution{
+		IncludePackage:     true,
+		IncludePointer:     true,
+		StripSinglePointer: true,
+	}
+	return resolver.Resolve(new(T))
+}
+
 func (sno valueOutputPort[T]) BuildProxyOutput(source ProxySource) OutputPort {
 	return NewProxyOutput[T](source)
+}
+
+func (sno valueOutputPort[T]) BuildDynamicOutput(source DynamicSource) OutputPort {
+	return NewDynamicOutput[T](source)
+}
+
+func (sno valueOutputPort[T]) BuildDynamicArrayOutput(source DynamicSource) OutputPort {
+	return NewDynamicOutput[[]T](source)
 }
 
 // ============================================================================

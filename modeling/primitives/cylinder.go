@@ -161,8 +161,8 @@ func (n CylinderUVsNode) Out(out *nodes.StructOutput[CylinderUVs]) {
 type CylinderNode struct {
 	Sides   nodes.Output[int]
 	Height  nodes.Output[float64]
-	Radius  nodes.Output[float64]
-	Radius2 nodes.Output[float64]
+	Radius  nodes.Output[float64] `description:"Radius at the bottom (-Y) end"`
+	Radius2 nodes.Output[float64] `description:"Radius at the top (+Y) end; defaults to Radius, so setting it makes a truncated cone"`
 	Top     nodes.Output[bool]
 	Bottom  nodes.Output[bool]
 	UVs     nodes.Output[CylinderUVs]
@@ -170,10 +170,6 @@ type CylinderNode struct {
 
 func (hnd CylinderNode) Description() string {
 	return "A cylinder along the Y axis. Turning Top or Bottom off leaves an open shell whose wall has no thickness."
-}
-
-func (hnd CylinderNode) Keywords() []string {
-	return []string{"pole", "barrel", "wheel", "drum"}
 }
 
 func (hnd CylinderNode) Out(out *nodes.StructOutput[modeling.Mesh]) {

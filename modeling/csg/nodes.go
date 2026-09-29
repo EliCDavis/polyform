@@ -18,7 +18,7 @@ func init() {
 }
 
 type UnionNode struct {
-	Meshes []nodes.Output[modeling.Mesh] `description:"Solids to merge."`
+	Meshes []nodes.Output[modeling.Mesh] `description:"Solids to merge. Empty meshes are skipped."`
 }
 
 func (node UnionNode) Description() string {
@@ -26,11 +26,11 @@ func (node UnionNode) Description() string {
 }
 
 func (node UnionNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
-	runCSG(out, connected(out, "Meshes", node.Meshes), (*Solid).Union)
+	runCSG(out, nonEmpty(connected(out, "Meshes", node.Meshes)), (*Solid).Union)
 }
 
 type IntersectionNode struct {
-	Meshes []nodes.Output[modeling.Mesh] `description:"Solids to overlap."`
+	Meshes []nodes.Output[modeling.Mesh] `description:"Solids to overlap. An empty mesh makes the result empty."`
 }
 
 func (node IntersectionNode) Description() string {
@@ -38,12 +38,17 @@ func (node IntersectionNode) Description() string {
 }
 
 func (node IntersectionNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
-	runCSG(out, connected(out, "Meshes", node.Meshes), (*Solid).Intersect)
+	inputs := connected(out, "Meshes", node.Meshes)
+	if len(nonEmpty(inputs)) < len(inputs) {
+		out.Set(modeling.EmptyMesh(modeling.TriangleTopology))
+		return
+	}
+	runCSG(out, inputs, (*Solid).Intersect)
 }
 
 type SubtractNode struct {
 	Base   nodes.Output[modeling.Mesh]   `description:"Solid to carve into."`
-	Remove []nodes.Output[modeling.Mesh] `description:"Solids to carve away, applied in order."`
+	Remove []nodes.Output[modeling.Mesh] `description:"Solids to carve away, applied in order. Empty meshes are skipped."`
 }
 
 func (node SubtractNode) Description() string {
@@ -57,12 +62,30 @@ func (node SubtractNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	}
 
 	base := input{mesh: nodes.GetOutputValue(out, node.Base), port: "Base"}
-	runCSG(out, append([]input{base}, connected(out, "Remove", node.Remove)...), (*Solid).Subtract)
+	if base.empty() {
+		out.Set(modeling.EmptyMesh(modeling.TriangleTopology))
+		return
+	}
+	runCSG(out, append([]input{base}, nonEmpty(connected(out, "Remove", node.Remove))...), (*Solid).Subtract)
 }
 
 type input struct {
 	mesh modeling.Mesh
 	port string
+}
+
+func (in input) empty() bool {
+	return in.mesh.Topology() == modeling.TriangleTopology && in.mesh.PrimitiveCount() == 0
+}
+
+func nonEmpty(inputs []input) []input {
+	kept := make([]input, 0, len(inputs))
+	for _, in := range inputs {
+		if !in.empty() {
+			kept = append(kept, in)
+		}
+	}
+	return kept
 }
 
 // Named by the port each mesh arrived on, unconnected ports included in the

@@ -36,7 +36,18 @@ type inboundCut struct {
 	destPortName string // may be indexed for arrays ("Values.0")
 	srcNodeID    string
 	srcPortName  string
+	srcKey       string // what makes two cuts share one input port
 	portType     string
+}
+
+// inboundSourceKey identifies the outside value a cut reads. Separate
+// reference nodes to the same variable are one value, so they share a
+// boundary port instead of becoming "Input 1", "Input 2", ... each.
+func inboundSourceKey(srcID string, port nodes.OutputPort) string {
+	if ref, ok := port.Node().(variable.Reference); ok {
+		return fmt.Sprintf("var:%p", ref.Reference())
+	}
+	return outboundSourceKey(srcID, port.Name())
 }
 
 type outboundCut struct {
@@ -53,8 +64,8 @@ type nodePosition struct {
 }
 
 const (
-	boundaryLayoutGapX  = 220.0
-	boundaryLayoutGapY  = 100.0
+	boundaryLayoutGapX = 220.0
+	boundaryLayoutGapY = 100.0
 )
 
 func convertSelectionToSubGraph(root *Instance, scope Scope, nodeIDs []string, name, description string) (ConvertSelectionResult, error) {
@@ -85,6 +96,10 @@ func convertSelectionToSubGraph(root *Instance, scope Scope, nodeIDs []string, n
 		return ConvertSelectionResult{}, err
 	}
 
+	if err := refuseConvertCycles(parent, selection, inbound); err != nil {
+		return ConvertSelectionResult{}, err
+	}
+
 	subGraphID, err := allocateSubGraphID(root, name)
 	if err != nil {
 		return ConvertSelectionResult{}, err
@@ -103,7 +118,7 @@ func convertSelectionToSubGraph(root *Instance, scope Scope, nodeIDs []string, n
 		return ConvertSelectionResult{}, err
 	}
 
-	inputPortNames, err := createInboundBoundaries(child, inbound, resolvedPositions)
+	inputPortBySource, err := createInboundBoundaries(child, inbound, resolvedPositions)
 	if err != nil {
 		_ = root.DeleteSubGraph(subGraphID)
 		return ConvertSelectionResult{}, err
@@ -127,8 +142,14 @@ func convertSelectionToSubGraph(root *Instance, scope Scope, nodeIDs []string, n
 
 	setRuntimeNodePosition(parent, runtimeNodeID, resolvedPositions)
 
-	for i, cut := range inbound {
-		parent.ConnectNodes(cut.srcNodeID, cut.srcPortName, runtimeNodeID, inputPortNames[i])
+	connected := map[string]bool{}
+	for _, cut := range inbound {
+		key := cut.srcKey
+		if connected[key] {
+			continue
+		}
+		connected[key] = true
+		parent.ConnectNodes(cut.srcNodeID, cut.srcPortName, runtimeNodeID, inputPortBySource[key])
 	}
 
 	for _, cut := range outbound {
@@ -160,6 +181,67 @@ func convertSelectionToSubGraph(root *Instance, scope Scope, nodeIDs []string, n
 		RuntimeNodeID: runtimeNodeID,
 		NodeType:      nodeType,
 	}, nil
+}
+
+func refuseConvertCycles(inst *Instance, selection map[string]nodes.Node, inbound []inboundCut) error {
+	selected := make(map[nodes.Node]bool, len(selection))
+	for _, n := range selection {
+		selected[n] = true
+	}
+	checked := map[string]bool{}
+	for _, cut := range inbound {
+		if checked[cut.srcNodeID] {
+			continue
+		}
+		checked[cut.srcNodeID] = true
+		src := inst.Node(cut.srcNodeID)
+		if via, ok := pathBackToSelection(src, selected, inst); ok {
+			return fmt.Errorf("converting would create a cycle: %s feeds %s.%s, but %s itself depends on selected node %s (through %s); include %s in the selection or leave %s out",
+				cut.srcNodeID, cut.destNodeID, cut.destPortName, cut.srcNodeID, via.selectedID, strings.Join(via.path, " -> "), cut.srcNodeID, cut.destNodeID)
+		}
+	}
+	return nil
+}
+
+type cyclePath struct {
+	selectedID string
+	path       []string
+}
+
+// pathBackToSelection walks upstream from start (an outside node) and
+// reports the first selected node it reaches, with the outside ids on
+// the way, or false when none is reachable.
+func pathBackToSelection(start nodes.Node, selected map[nodes.Node]bool, inst *Instance) (cyclePath, bool) {
+	visited := map[nodes.Node]bool{}
+	var walk func(n nodes.Node, trail []string) (cyclePath, bool)
+	walk = func(n nodes.Node, trail []string) (cyclePath, bool) {
+		if n == nil || visited[n] {
+			return cyclePath{}, false
+		}
+		visited[n] = true
+		for _, input := range n.Inputs() {
+			var upstreams []nodes.OutputPort
+			switch port := input.(type) {
+			case nodes.SingleValueInputPort:
+				upstreams = append(upstreams, port.Value())
+			case nodes.ArrayValueInputPort:
+				upstreams = append(upstreams, port.Value()...)
+			}
+			for _, up := range upstreams {
+				if up == nil {
+					continue
+				}
+				if selected[up.Node()] {
+					return cyclePath{selectedID: inst.NodeId(up.Node()), path: trail}, true
+				}
+				if found, ok := walk(up.Node(), append(trail, inst.NodeId(up.Node()))); ok {
+					return found, true
+				}
+			}
+		}
+		return cyclePath{}, false
+	}
+	return walk(start, []string{inst.NodeId(start)})
 }
 
 func validateConvertSelection(inst *Instance, nodeIDs []string) (map[string]nodes.Node, error) {
@@ -223,6 +305,7 @@ func classifyConvertCuts(inst *Instance, selection map[string]nodes.Node) ([]inb
 					destPortName: inputName,
 					srcNodeID:    srcID,
 					srcPortName:  val.Name(),
+					srcKey:       inboundSourceKey(srcID, val),
 					portType:     portType,
 				})
 
@@ -247,6 +330,7 @@ func classifyConvertCuts(inst *Instance, selection map[string]nodes.Node) ([]inb
 						destPortName: fmt.Sprintf("%s.%d", inputName, index),
 						srcNodeID:    srcID,
 						srcPortName:  val.Name(),
+						srcKey:       inboundSourceKey(srcID, val),
 						portType:     portType,
 					})
 				}
@@ -465,17 +549,31 @@ func cloneMetadataMap(in map[string]any) map[string]any {
 	return out
 }
 
-func createInboundBoundaries(child *Instance, inbound []inboundCut, positions map[string]nodePosition) ([]string, error) {
+func createInboundBoundaries(child *Instance, inbound []inboundCut, positions map[string]nodePosition) (map[string]string, error) {
 	minX, minY, _, _, hasBounds := selectionBounds(positions)
-	portNames := make([]string, len(inbound))
-	for i, cut := range inbound {
-		portName := fmt.Sprintf("Input %d", i+1)
-		_, boundaryID, err := child.CreateBoundaryNode(subgraph.InputNodeTypeKey, cut.portType)
-		if err != nil {
-			return nil, fmt.Errorf("create input boundary %q: %w", portName, err)
-		}
-		if err := child.SetBoundaryNodeInfo(boundaryID, portName); err != nil {
-			return nil, err
+	result := make(map[string]string)
+	boundaries := make(map[string]string)
+	for _, cut := range inbound {
+		key := cut.srcKey
+		boundaryID, ok := boundaries[key]
+		if !ok {
+			portName := fmt.Sprintf("Input %d", len(boundaries)+1)
+			var err error
+			_, boundaryID, err = child.CreateBoundaryNode(subgraph.InputNodeTypeKey, cut.portType)
+			if err != nil {
+				return nil, fmt.Errorf("create input boundary %q: %w", portName, err)
+			}
+			if err := child.SetBoundaryNodeInfo(boundaryID, portName); err != nil {
+				return nil, err
+			}
+			if hasBounds {
+				setNodePositionMetadata(child, boundaryID, nodePosition{
+					x: minX - boundaryLayoutGapX,
+					y: minY + float64(len(boundaries))*boundaryLayoutGapY,
+				})
+			}
+			boundaries[key] = boundaryID
+			result[key] = portName
 		}
 		// Interior array elements were re-appended by the copy, so the
 		// original index no longer names a slot; append behind them.
@@ -486,15 +584,8 @@ func createInboundBoundaries(child *Instance, inbound []inboundCut, positions ma
 			}
 		}
 		child.ConnectNodes(boundaryID, subgraph.ValuePortName, cut.destNodeID, destPort)
-		if hasBounds {
-			setNodePositionMetadata(child, boundaryID, nodePosition{
-				x: minX - boundaryLayoutGapX,
-				y: minY + float64(i)*boundaryLayoutGapY,
-			})
-		}
-		portNames[i] = portName
 	}
-	return portNames, nil
+	return result, nil
 }
 
 func createOutboundBoundaries(child *Instance, outbound []outboundCut, positions map[string]nodePosition) (map[string]string, error) {

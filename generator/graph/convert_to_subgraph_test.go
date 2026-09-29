@@ -120,6 +120,46 @@ func TestConvertSelectionToSubGraph_FanOut(t *testing.T) {
 	assert.Equal(t, runtime.Outputs()["Output 1"], rightIn.Value()[0])
 }
 
+func TestConvertSelectionToSubGraph_FanInSharesOneInput(t *testing.T) {
+	inst := testInstanceWithSubGraphTypesExtended(t)
+
+	param, paramID, err := inst.CreateNode("Float64")
+	require.NoError(t, err)
+	_, leftID, err := inst.CreateNode("Sum")
+	require.NoError(t, err)
+	_, rightID, err := inst.CreateNode("Sum")
+	require.NoError(t, err)
+
+	inst.ConnectNodes(paramID, "Value", leftID, "Values")
+	inst.ConnectNodes(paramID, "Value", rightID, "Values")
+
+	result, err := inst.ConvertSelectionToSubGraph(graph.RootScope, []string{leftID, rightID}, "Pair", "")
+	require.NoError(t, err)
+
+	ports, err := inst.CollectBoundaryPorts(result.SubGraphID)
+	require.NoError(t, err)
+	inputs := 0
+	for _, p := range ports {
+		if p.Kind == graph.BoundaryPortKindInput {
+			inputs++
+		}
+	}
+	assert.Equal(t, 1, inputs, "one outside source feeding two selected nodes is one port, not two")
+
+	runtime := inst.Node(result.RuntimeNodeID)
+	runtimeIn := runtime.Inputs()["Input 1"].(nodes.SingleValueInputPort)
+	assert.Equal(t, param.Outputs()["Value"], runtimeIn.Value())
+
+	child, err := inst.SubGraphInstance(result.SubGraphID)
+	require.NoError(t, err)
+	for _, id := range []string{leftID, rightID} {
+		in := child.Node(id).Inputs()["Values"].(nodes.ArrayValueInputPort)
+		require.Len(t, in.Value(), 1, id)
+		_, isBoundary := in.Value()[0].Node().(*subgraph.InputNode)
+		assert.True(t, isBoundary, "%s reads the shared boundary", id)
+	}
+}
+
 func TestConvertSelectionToSubGraph_InternalEdgesPreserved(t *testing.T) {
 	inst := testInstanceWithSubGraphTypesExtended(t)
 
@@ -254,4 +294,35 @@ func TestConvertSelectionToSubGraph_RoundTrip(t *testing.T) {
 
 	got := nodes.GetNodeOutputPort[float64](restored.Node(outID), "Float").Value()
 	assert.Equal(t, 2.0, got)
+}
+
+func TestConvertSelectionToSubGraph_RefusesACycleBeforeChangingAnything(t *testing.T) {
+	inst := testInstanceWithSubGraphTypesExtended(t)
+
+	// a -> mid -> b -> a's input: selecting {a, b} without mid would need
+	// mid to both read from and feed the new instance.
+	_, aID, err := inst.CreateNode("Sum")
+	require.NoError(t, err)
+	_, midID, err := inst.CreateNode("Sum")
+	require.NoError(t, err)
+	_, bID, err := inst.CreateNode("Sum")
+	require.NoError(t, err)
+	inst.ConnectNodes(aID, "Float", midID, "Values")
+	inst.ConnectNodes(midID, "Float", bID, "Values")
+
+	before := len(inst.NodeIds())
+	subgraphsBefore := len(inst.Schema().SubGraphs)
+
+	_, err = inst.ConvertSelectionToSubGraph(graph.RootScope, []string{aID, bID}, "Loop", "")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "cycle")
+	assert.Contains(t, err.Error(), midID)
+
+	assert.Len(t, inst.NodeIds(), before, "a refused conversion creates no instance")
+	assert.Len(t, inst.Schema().SubGraphs, subgraphsBefore, "and no definition")
+	assert.True(t, inst.HasNodeWithId(aID))
+	assert.True(t, inst.HasNodeWithId(bID))
+	bIn := inst.Node(bID).Inputs()["Values"].(nodes.ArrayValueInputPort)
+	require.Len(t, bIn.Value(), 1)
+	assert.Equal(t, inst.Node(midID).Outputs()["Float"], bIn.Value()[0], "b still reads mid, not a dead instance")
 }

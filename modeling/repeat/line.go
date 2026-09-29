@@ -54,9 +54,9 @@ func (l Line) TRS() []trs.TRS {
 }
 
 type LineNode struct {
-	Start     nodes.Output[vector3.Float64] `description:"Position of the first sample. Defaults to the origin. Not included in the output at all if Exclusive is true and Samples is 1."`
+	Start     nodes.Output[vector3.Float64] `description:"Position of the first sample. Defaults to the origin."`
 	End       nodes.Output[vector3.Float64] `description:"Position of the last sample. Defaults to the origin."`
-	Samples   nodes.Output[int]             `description:"How many TRS matrices to produce, evenly spaced between Start and End (inclusive unless Exclusive is true). Defaults to 0, clamped to 0 minimum."`
+	Samples   nodes.Output[int]             `description:"How many TRS matrices to produce, evenly spaced between Start and End (inclusive unless Exclusive is true). A single sample sits at the midpoint, Exclusive or not. Defaults to 0, clamped to 0 minimum."`
 	Exclusive nodes.Output[bool]            `description:"If true, the start and end points are not included in the resulting array of TRS values, only the evenly-spaced points strictly between them. Defaults to false."`
 }
 

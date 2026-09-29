@@ -22,6 +22,7 @@ func init() {
 	refutil.RegisterType[nodes.Struct[SmoothUnionColoredNode]](factory)
 	refutil.RegisterType[nodes.Struct[ColoredFieldDistanceNode]](factory)
 	refutil.RegisterType[nodes.Struct[IntersectionNode]](factory)
+	refutil.RegisterType[nodes.Struct[SmoothIntersectionNode]](factory)
 	refutil.RegisterType[nodes.Struct[SubtractionNode]](factory)
 	refutil.RegisterType[nodes.Struct[SmoothSubtractionNode]](factory)
 	refutil.RegisterType[nodes.Struct[MirrorNode]](factory)

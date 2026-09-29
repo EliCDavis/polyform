@@ -8,97 +8,25 @@ import (
 	"github.com/EliCDavis/vector/vector3"
 )
 
-// Returns a single float, representing the distance between A and B
 type Distance[T vector.Number] struct {
-	A nodes.Output[vector3.Vector[T]]
-	B nodes.Output[vector3.Vector[T]]
+	A nodes.LiftedPort[vector3.Vector[T]]
+	B nodes.LiftedPort[vector3.Vector[T]]
 }
 
 func (d Distance[T]) Description() string {
-	return "Distance between two points."
+	return "Distance between two points. One point against an array measures to each of them; two arrays measure pair by pair."
 }
 
-func (d Distance[T]) distance(recorder nodes.ExecutionRecorder) float64 {
-	a := nodes.TryGetOutputValue(recorder, d.A, vector3.Zero[T]()).ToFloat64()
-	b := nodes.TryGetOutputValue(recorder, d.B, vector3.Zero[T]()).ToFloat64()
-	return a.Distance(b)
+func (d Distance[T]) between(a, b vector3.Vector[T]) float64 {
+	return a.ToFloat64().Distance(b.ToFloat64())
 }
 
-func (d Distance[T]) Float64(out *nodes.StructOutput[float64]) {
-	out.Set(d.distance(out))
+func (d Distance[T]) Float64(out *nodes.Lifted[float64]) {
+	nodes.Zip2(out, d.A, d.B, d.between)
 }
 
-func (d Distance[T]) Int(out *nodes.StructOutput[int]) {
-	out.Set(int(math.Round(d.distance(out))))
-}
-
-// ============================================================================
-
-// Returns an array of floats, representing the distance between A to every element in B
-type DistancesToArray[T vector.Number] struct {
-	In    nodes.Output[vector3.Vector[T]]
-	Array nodes.Output[[]vector3.Vector[T]]
-}
-
-func (d DistancesToArray[T]) Description() string {
-	return "Distance from one point to every point in an array."
-}
-
-func (d DistancesToArray[T]) Distances(out *nodes.StructOutput[[]float64]) {
-	a := nodes.TryGetOutputValue(out, d.In, vector3.Zero[T]()).ToFloat64()
-	arr := nodes.TryGetOutputValue(out, d.Array, nil)
-	result := make([]float64, len(arr))
-
-	for i, v := range arr {
-		result[i] = a.Distance(v.ToFloat64())
-	}
-
-	out.Set(result)
-}
-
-// ============================================================================
-
-// Returns an array of floats, representing the distance between A to every node connected to B
-type DistancesToNodes[T vector.Number] struct {
-	In    nodes.Output[vector3.Vector[T]]
-	Nodes []nodes.Output[vector3.Vector[T]]
-}
-
-func (d DistancesToNodes[T]) Description() string {
-	return "Distance from one point to each of several other points."
-}
-
-func (d DistancesToNodes[T]) Distances(out *nodes.StructOutput[[]float64]) {
-	a := nodes.TryGetOutputValue(out, d.In, vector3.Zero[T]()).ToFloat64()
-
-	resolvedNodes := nodes.GetOutputValues(out, d.Nodes)
-	arr := make([]float64, len(resolvedNodes))
-	for i, v := range resolvedNodes {
-		arr[i] = a.Distance(v.ToFloat64())
-	}
-
-	out.Set(arr)
-}
-
-// ============================================================================
-
-// Returns an array of floats, representing distance(a[i], b[i])
-type Distances[T vector.Number] struct {
-	A nodes.Output[[]vector3.Vector[T]]
-	B nodes.Output[[]vector3.Vector[T]]
-}
-
-func (d Distances[T]) Description() string {
-	return "Distance between each matching pair of points in two arrays."
-}
-
-func (d Distances[T]) Distances(out *nodes.StructOutput[[]float64]) {
-	a := nodes.TryGetOutputValue(out, d.A, nil)
-	b := nodes.TryGetOutputValue(out, d.B, nil)
-	result := make([]float64, max(len(a), len(b)))
-
-	for i := range min(len(a), len(b)) {
-		result[i] = a[i].ToFloat64().Distance(b[i].ToFloat64())
-	}
-	out.Set(result)
+func (d Distance[T]) Int(out *nodes.Lifted[int]) {
+	nodes.Zip2(out, d.A, d.B, func(a, b vector3.Vector[T]) int {
+		return int(math.Round(d.between(a, b)))
+	})
 }

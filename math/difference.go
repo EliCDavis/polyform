@@ -7,50 +7,23 @@ import (
 	"github.com/EliCDavis/vector"
 )
 
-func methodToArr[T any, G any](in T, arr []T, f func(a, arrI T) G) []G {
-	out := make([]G, len(arr))
-
-	for i, v := range arr {
-		out[i] = f(in, v)
-	}
-
-	return out
-}
-
 type SubtractNode[T vector.Number] struct {
-	A nodes.Output[T] `description:"The value being subtracted from."`
-	B nodes.Output[T] `description:"The value being subtracted."`
+	A nodes.LiftedPort[T] `description:"The value being subtracted from."`
+	B nodes.LiftedPort[T] `description:"The value being subtracted."`
 }
 
 func (cn SubtractNode[T]) Description() string {
 	return "A - B"
 }
 
-func (cn SubtractNode[T]) val(out nodes.ExecutionRecorder) T {
-	return nodes.TryGetOutputValue(out, cn.A, 0) - nodes.TryGetOutputValue(out, cn.B, 0)
+func (an SubtractNode[T]) Float(out *nodes.Lifted[float64]) {
+	nodes.Zip2(out, an.A, an.B, func(a, b T) float64 {
+		return float64(a - b)
+	})
 }
 
-func (an SubtractNode[T]) Float(out *nodes.StructOutput[float64]) {
-	out.Set(float64(an.val(out)))
-}
-
-func (an SubtractNode[T]) Int(out *nodes.StructOutput[int]) {
-	out.Set(int(gomath.Round(float64(an.val(out)))))
-}
-
-// ============================================================================
-
-type SubtractToArrayNode[T vector.Number] struct {
-	In    nodes.Output[T]
-	Array nodes.Output[[]T]
-}
-
-func (cn SubtractToArrayNode[T]) Differences(out *nodes.StructOutput[[]T]) {
-	out.Set(methodToArr(
-		nodes.TryGetOutputValue(out, cn.In, 0),
-		nodes.TryGetOutputValue(out, cn.Array, nil),
-		func(a, b T) T {
-			return b - a
-		},
-	))
+func (an SubtractNode[T]) Int(out *nodes.Lifted[int]) {
+	nodes.Zip2(out, an.A, an.B, func(a, b T) int {
+		return int(gomath.Round(float64(a - b)))
+	})
 }

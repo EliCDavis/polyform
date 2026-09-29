@@ -2,6 +2,7 @@ package variant_test
 
 import (
 	"encoding/json"
+	"math"
 	"math/rand"
 	"testing"
 
@@ -19,6 +20,14 @@ func TestSetTotalCombinationsMultipliesAcrossDimensions(t *testing.T) {
 		},
 	}
 	assert.Equal(t, 2*3*4, set.TotalCombinations())
+}
+
+func TestSetTotalCombinationsSaturatesInsteadOfWrapping(t *testing.T) {
+	var set variant.Set
+	for i := 0; i < 70; i++ {
+		set.Dimensions = append(set.Dimensions, variant.NewNumericRange("D", 0, 1, 2))
+	}
+	assert.Equal(t, math.MaxInt, set.TotalCombinations())
 }
 
 func TestSetSweepProducesEveryDistinctCombination(t *testing.T) {

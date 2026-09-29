@@ -3,12 +3,18 @@ import { NodeParameter } from "../types/parameter";
 export interface NodeOutput {
   type: string;
   description?: string;
+  dynamic?: boolean;
 }
 
 export interface NodeInput {
   type: string;
   isArray: boolean;
   description?: string;
+  dynamic?: boolean;
+
+  // Set when the port takes more than one type, because `type` is only the
+  // one it happens to be showing.
+  acceptedTypes?: Array<string>;
 }
 
 export interface RegisteredTypes {
@@ -22,6 +28,7 @@ export interface NodeDefinition {
   info: string;
   type: string;
   path: string;
+  keywords?: Array<string>;
   outputs?: { [key: string]: NodeOutput };
   inputs?: { [key: string]: NodeInput };
   parameter?: NodeParameter;
@@ -34,6 +41,10 @@ export interface PortReference {
 
 export interface NodeInstanceOutputPort {
   version: number;
+
+  // Sent only when it differs from the node type's declaration: a lifted
+  // output becomes an array once one is wired in.
+  type?: string;
 }
 
 export interface NodeInstanceOutput {
@@ -84,6 +95,10 @@ export interface NodeInstance {
   subGraphInputBoundary?: SubGraphInputBoundary;
   subGraphOutputBoundary?: SubGraphOutputBoundary;
   subGraphId?: string;
+
+  // For a node with dynamic ports, what each of its type variables settled
+  // on, keyed by the variable the ports were declared with.
+  dynamicTypes?: { [variable: string]: string };
 }
 
 export interface RuntimeSubGraphDefinition {

@@ -20,6 +20,7 @@ type TypeVariable[T any] struct {
 func (tv *TypeVariable[T]) SetValue(v T) {
 	tv.value = v
 	tv.version++
+	nodes.Touch()
 }
 
 func (tv *TypeVariable[T]) GetValue() T {
@@ -58,6 +59,7 @@ func (tv *TypeVariable[T]) ApplyMessage(msg []byte) (bool, error) {
 	}
 
 	tv.version++
+	nodes.Touch()
 	tv.value = val
 	return true, nil
 }
@@ -70,6 +72,7 @@ func (tv *TypeVariable[T]) applyProfile(profile json.RawMessage) error {
 	}
 
 	tv.version++
+	nodes.Touch()
 	tv.value = val
 	return nil
 }

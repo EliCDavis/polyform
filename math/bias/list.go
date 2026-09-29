@@ -4,7 +4,8 @@ import (
 	"errors"
 	"math"
 	"math/rand/v2"
-	"time"
+
+	"github.com/EliCDavis/polyform/math/chance"
 )
 
 type ListItem[T any] struct {
@@ -64,7 +65,7 @@ func NewList[T any](dirtyItems []ListItem[T], config ListConfig) *List[T] {
 
 	var seed *rand.Rand = config.Seed
 	if seed == nil {
-		seed = rand.New(rand.NewPCG(uint64(time.Now().UnixNano()), uint64(time.Now().UnixNano())))
+		seed = chance.FromSeed(0)
 	}
 
 	weights, vals, average := unzipAndAverage(items)

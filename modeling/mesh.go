@@ -338,6 +338,9 @@ func (m Mesh) Append(other Mesh) Mesh {
 }
 
 func (m Mesh) Rotate(q quaternion.Quaternion) Mesh {
+	if !m.HasFloat3Attribute(PositionAttribute) && m.AttributeLength() == 0 {
+		return m
+	}
 	m.requireV3Attribute(PositionAttribute)
 
 	finalMesh := m
@@ -351,6 +354,9 @@ func (m Mesh) Rotate(q quaternion.Quaternion) Mesh {
 }
 
 func (m Mesh) ApplyTRS(transform trs.TRS) Mesh {
+	if !m.HasFloat3Attribute(PositionAttribute) && m.AttributeLength() == 0 {
+		return m
+	}
 	m.requireV3Attribute(PositionAttribute)
 
 	oldData := m.v3Data[PositionAttribute]
@@ -371,6 +377,9 @@ func (m Mesh) ApplyTRS(transform trs.TRS) Mesh {
 }
 
 func (m Mesh) Scale(amount vector3.Float64) Mesh {
+	if !m.HasFloat3Attribute(PositionAttribute) && m.AttributeLength() == 0 {
+		return m
+	}
 	m.requireV3Attribute(PositionAttribute)
 	return m.ModifyFloat3Attribute(PositionAttribute, func(i int, v vector3.Float64) vector3.Float64 {
 		return v.MultByVector(amount)
@@ -1248,6 +1257,9 @@ func (m Mesh) AttributeLength() int {
 }
 
 func (m Mesh) Translate(v vector3.Float64) Mesh {
+	if !m.HasFloat3Attribute(PositionAttribute) && m.AttributeLength() == 0 {
+		return m
+	}
 	m.requireV3Attribute(PositionAttribute)
 	oldData := m.v3Data[PositionAttribute]
 	finalVerts := make([]vector3.Float64, len(oldData))

@@ -218,6 +218,22 @@ func HasMethod(in any, methodName string) bool {
 	return method != reflect.Value{}
 }
 
+func FuncArgumentTypes(in any) map[string]reflect.Type {
+	viewType := reflect.ValueOf(in).Type()
+
+	out := make(map[string]reflect.Type)
+	for i := range viewType.NumMethod() {
+		method := viewType.Method(i)
+		methodType := method.Func.Type()
+		if methodType.NumOut() != 0 || methodType.NumIn() != 2 {
+			continue
+		}
+		out[method.Name] = methodType.In(1)
+	}
+
+	return out
+}
+
 func CallStructMethod(in any, methodName string, args ...any) []any {
 	method := reflect.ValueOf(in).MethodByName(methodName)
 	bitch := reflect.Value{}

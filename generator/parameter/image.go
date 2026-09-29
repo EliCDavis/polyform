@@ -68,6 +68,7 @@ func (pn *Image) ApplyMessage(msg []byte) (bool, error) {
 	}
 
 	pn.version++
+	nodes.Touch()
 	pn.appliedValue = val
 
 	return true, nil

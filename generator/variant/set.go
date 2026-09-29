@@ -2,6 +2,7 @@ package variant
 
 import (
 	"fmt"
+	"math"
 	"math/rand"
 
 	"github.com/EliCDavis/polyform/generator/variable"
@@ -12,11 +13,15 @@ type Set struct {
 	Dimensions []Dimension
 }
 
-// TotalCombinations is the product of every Dimension's Count().
+// TotalCombinations is the product of every Dimension's Count()
 func (s Set) TotalCombinations() int {
 	total := 1
 	for _, d := range s.Dimensions {
-		total *= d.Count()
+		count := d.Count()
+		if count != 0 && total > math.MaxInt/count {
+			return math.MaxInt
+		}
+		total *= count
 	}
 	return total
 }

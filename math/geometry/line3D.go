@@ -219,77 +219,36 @@ func (n LinesFromPoints3DNode) Lines(out *nodes.StructOutput[[]Line3D]) {
 // ============================================================================
 
 type LineLengths3DNode struct {
-	Lines nodes.Output[[]Line3D]
+	Lines nodes.LiftedPort[Line3D]
 }
 
 func (n LineLengths3DNode) Description() string {
 	return "Length of each line."
 }
 
-func (n LineLengths3DNode) Lengths(out *nodes.StructOutput[[]float64]) {
-	lines := nodes.TryGetOutputValue(out, n.Lines, nil)
-	result := make([]float64, len(lines))
-	for i, line := range lines {
-		result[i] = line.Length()
-	}
-	out.Set(result)
+func (n LineLengths3DNode) Lengths(out *nodes.Lifted[float64]) {
+	nodes.Zip1(out, n.Lines, Line3D.Length)
 }
 
 // ============================================================================
 
-type PositionsOnLinesAtTime3DNode struct {
-	Lines nodes.Output[[]Line3D]
-	Time  nodes.Output[float64]
+type PositionOnLine3DNode struct {
+	Line nodes.LiftedPort[Line3D]
+	Time nodes.LiftedPort[float64] `description:"0 at the line's start, 1 at its end. Defaults to 0."`
 }
 
-func (n PositionsOnLinesAtTime3DNode) Description() string {
-	return "Point at the same 0-1 position along each line."
+func (n PositionOnLine3DNode) Description() string {
+	return "Point at a 0-1 position along a line."
 }
 
-func (n PositionsOnLinesAtTime3DNode) Positions(out *nodes.StructOutput[[]vector3.Float64]) {
-	lines := nodes.TryGetOutputValue(out, n.Lines, nil)
-	if len(lines) == 0 {
-		return
-	}
-
-	time := nodes.TryGetOutputValue(out, n.Time, 0)
-	result := make([]vector3.Float64, len(lines))
-	for i, line := range lines {
-		result[i] = line.AtTime(time)
-	}
-	out.Set(result)
-}
-
-// ============================================================================
-
-type PositionsOnLineAtTimes3DNode struct {
-	Line  nodes.Output[Line3D]
-	Times nodes.Output[[]float64]
-}
-
-func (n PositionsOnLineAtTimes3DNode) Description() string {
-	return "Points at each 0-1 position along a single line."
-}
-
-func (n PositionsOnLineAtTimes3DNode) Positions(out *nodes.StructOutput[[]vector3.Float64]) {
-	if n.Line == nil || n.Times == nil {
-		return
-	}
-
-	line := nodes.GetOutputValue(out, n.Line)
-	times := nodes.GetOutputValue(out, n.Times)
-
-	result := make([]vector3.Float64, len(times))
-	for i, time := range times {
-		result[i] = line.AtTime(time)
-	}
-	out.Set(result)
+func (n PositionOnLine3DNode) Positions(out *nodes.Lifted[vector3.Float64]) {
+	nodes.Zip2(out, n.Line, n.Time, Line3D.AtTime)
 }
 
 // ============================================================================
 
 type TrsFromLines3DNode struct {
-	Lines   nodes.Output[[]Line3D]
+	Lines   nodes.LiftedPort[Line3D]
 	ScaleX  nodes.Output[bool]
 	ScaleY  nodes.Output[bool]
 	ScaleZ  nodes.Output[bool]
@@ -300,19 +259,13 @@ func (n TrsFromLines3DNode) Description() string {
 	return "Builds a transform per line, positioned at its start and oriented along it."
 }
 
-func (n TrsFromLines3DNode) TRS(out *nodes.StructOutput[[]trs.TRS]) {
-	lines := nodes.TryGetOutputValue(out, n.Lines, nil)
-	if len(lines) == 0 {
-		return
-	}
-
+func (n TrsFromLines3DNode) TRS(out *nodes.Lifted[trs.TRS]) {
 	scaleX := nodes.TryGetOutputValue(out, n.ScaleX, false)
 	scaleY := nodes.TryGetOutputValue(out, n.ScaleY, false)
 	scaleZ := nodes.TryGetOutputValue(out, n.ScaleZ, false)
 	fwd := nodes.TryGetOutputValue(out, n.Forward, vector3.Forward[float64]())
 
-	result := make([]trs.TRS, len(lines))
-	for i, line := range lines {
+	nodes.Zip1(out, n.Lines, func(line Line3D) trs.TRS {
 		direction := line.p2.Sub(line.p1)
 		length := direction.Length()
 		scale := vector3.One[float64]()
@@ -328,11 +281,10 @@ func (n TrsFromLines3DNode) TRS(out *nodes.StructOutput[[]trs.TRS]) {
 			scale = scale.SetZ(length)
 		}
 
-		result[i] = trs.New(
+		return trs.New(
 			line.AtTime(0.5),
 			quaternion.RotationTo(fwd, direction.Normalized()),
 			scale,
 		)
-	}
-	out.Set(result)
+	})
 }

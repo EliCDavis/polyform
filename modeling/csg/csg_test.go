@@ -251,6 +251,48 @@ func TestNodesFoldOverEveryInput(t *testing.T) {
 	})
 }
 
+func TestNodesTreatEmptyMeshesAsIdentity(t *testing.T) {
+	a := cube(vector3.Zero[float64](), 2)
+	b := cube(vector3.New(1., 1., 1.), 2)
+	empty := modeling.EmptyMesh(modeling.TriangleTopology)
+
+	t.Run("union skips them", func(t *testing.T) {
+		mesh := meshFromNode(t, csg.UnionNode{Meshes: constMeshes(empty, a, empty, b)})
+		requireWatertight(t, mesh)
+		assert.InDelta(t, 15., volume(mesh), 1e-9)
+		assert.Empty(t, errorsFromNode(t, csg.UnionNode{Meshes: constMeshes(a, empty)}))
+	})
+
+	t.Run("union of only empties is empty", func(t *testing.T) {
+		mesh := meshFromNode(t, csg.UnionNode{Meshes: constMeshes(empty, empty)})
+		assert.Zero(t, mesh.Indices().Len())
+	})
+
+	t.Run("subtraction skips empty removals", func(t *testing.T) {
+		mesh := meshFromNode(t, csg.SubtractNode{
+			Base:   nodes.ConstOutput[modeling.Mesh]{Val: a},
+			Remove: constMeshes(empty, b),
+		})
+		requireWatertight(t, mesh)
+		assert.InDelta(t, 7., volume(mesh), 1e-9)
+	})
+
+	t.Run("subtraction from an empty base is empty", func(t *testing.T) {
+		node := csg.SubtractNode{
+			Base:   nodes.ConstOutput[modeling.Mesh]{Val: empty},
+			Remove: constMeshes(a),
+		}
+		assert.Zero(t, meshFromNode(t, node).Indices().Len())
+		assert.Empty(t, errorsFromNode(t, node))
+	})
+
+	t.Run("intersection with an empty mesh is empty", func(t *testing.T) {
+		node := csg.IntersectionNode{Meshes: constMeshes(a, empty)}
+		assert.Zero(t, meshFromNode(t, node).Indices().Len())
+		assert.Empty(t, errorsFromNode(t, node))
+	})
+}
+
 // Results have to be usable as inputs, which is what makes the operations
 // worth having. Four in a row, each one cutting into the last.
 func TestOperationsChain(t *testing.T) {

@@ -12,14 +12,14 @@ import { ArrayParameterNodeController, colorItem, floatItem, intItem, stringItem
 import { GradientParameterNodeController } from './gradient_parameter';
 import { TRSParameterNodeController } from './trs_parameter';
 import { QuaternionParameterNodeController } from './quaternion_parameter';
-import { NodeInstance, NodeInstanceAssignedInput, NodeInstanceOutput, NodeDefinition, ExecutionReport, subGraphBoundaryKind } from '../schema.js';
+import { NodeInstance, NodeInstanceAssignedInput, NodeInstanceOutput, NodeDefinition, NodeInput, NodeOutput, ExecutionReport, subGraphBoundaryKind } from '../schema.js';
 import { RequestManager, saveFileToDisk } from '../requests.js';
-import { FlowNode, GlobalWidgetFactory, ImageWidget, MessageType } from '@elicdavis/node-flow';
+import { FlowNode, GlobalWidgetFactory, ImageWidget, MessageType, Port } from '@elicdavis/node-flow';
 import { ThreeApp } from '../three_app.js';
 import { ProducerViewManager } from '../ProducerView/producer_view_manager.js';
 import type { NodeParameter } from '../../types/parameter.js';
 import { SubGraphBoundaryNodeController } from './boundary_node_controller.js';
-import { isSubGraphRuntimeType } from '../portTypes.js';
+import { isSubGraphRuntimeType, resolveDynamicType, shortDynamicPattern } from '../portTypes.js';
 import { useGraphTabStore } from '../../stores/graphTabStore.js';
 
 export const InstanceIDProperty: string = "instanceID"
@@ -265,7 +265,7 @@ export class PolyNodeController {
 
 
         // Only parameters can change their info
-        if (!this.isProducer) {
+        if (!this.isProducer && this.parameter) {
             this.flowNode.addInfoChangeListener((_, __, newTitle) => {
                 this.requestManager.setParameterInfo(
                     this.flowNode.getProperty(InstanceIDProperty),
@@ -406,9 +406,65 @@ export class PolyNodeController {
         this.nodeOutputWidgets.get(outputKey).SetUrl(`./node/output/${this.id}/${outputKey}`);
     }
 
+    // A dynamic port has no type until something is wired into it
+    applyDynamicTypes(nodeData: NodeInstance): void {
+        const definition = this.nodeDefinition;
+        if (!definition) {
+            return;
+        }
+
+        const bound = nodeData.dynamicTypes ?? {};
+        const carrying = new Set<string>();
+
+        const settle = (port: Port, declared: NodeInput | NodeOutput | undefined) => {
+            if (!declared?.dynamic) {
+                return;
+            }
+            const concrete = resolveDynamicType(declared.type, bound);
+            port.setDataType(concrete ?? shortDynamicPattern(declared.type));
+            port.setAnyType(concrete === undefined);
+            if (concrete) {
+                carrying.add(concrete);
+            }
+        };
+
+        for (let i = 0; i < this.flowNode.inputs(); i++) {
+            const port = this.flowNode.inputPort(i);
+            settle(port, definition.inputs?.[port.getDisplayName()]);
+        }
+
+        for (let i = 0; i < this.flowNode.outputs(); i++) {
+            const port = this.flowNode.outputPort(i);
+            settle(port, definition.outputs?.[port.getDisplayName()]);
+
+            // A lifted output turns into an array as soon as an array is
+            // wired into its node, so the type belongs to the instance
+            // rather than to the node type every instance was stamped from.
+            const actual = nodeData.output?.[port.getDisplayName()]?.type;
+            if (actual && actual !== port.getDataType()) {
+                port.settleOn(actual);
+            }
+        }
+
+        this.showDynamicType(carrying);
+    }
+
+    // A node with dynamic ports looks identical whatever it is carrying, so
+    // the types it settled on go in its info where they can be read.
+    showDynamicType(carrying: Set<string>): void {
+        if (carrying.size === 0) {
+            return;
+        }
+
+        const short = Array.from(carrying).map((type) => type.split("/").pop()).join(", ");
+        const info = this.nodeDefinition?.info ?? "";
+        this.flowNode.setInfo(info ? `${info}\n\nCarrying ${short}` : `Carrying ${short}`);
+    }
+
     update(nodeData: NodeInstance): void {
         this.name = nodeData.name;
         this.dependencies = nodeData.assignedInput;
+        this.applyDynamicTypes(nodeData);
 
         if (nodeData.metadata) {
             if (nodeData.metadata.position) {

@@ -9,53 +9,42 @@ import (
 )
 
 func TestScaleNode(t *testing.T) {
-	suite := nodetest.NewSuite(
+	nodetest.NewSuite(
 		nodetest.NewTestCase(
-			"empty empty",
-			nodetest.NewNode(vector4.ScaleArray[float64]{}),
-			nodetest.AssertOutput[[]v4.Float64]("Float 64", nil),
-			nodetest.AssertOutput[[]v4.Int]("Int", nil),
+			"nothing wired",
+			nodetest.NewNode(vector4.Scale[float64]{}),
+			nodetest.AssertOutput("Float 64", v4.Zero[float64]()),
+			nodetest.AssertLiftedInput("Vector", vec4Type),
+			nodetest.AssertLiftedInput("Amount", "float64"),
 		),
-
 		nodetest.NewTestCase(
-			"empty empty w/ amount",
-			nodetest.NewNode(vector4.ScaleArray[float64]{
-				Amount: nodetest.NewPortValue(1.),
+			"an array without an amount is unchanged",
+			nodetest.NewNode(vector4.Scale[float64]{
+				Vector: nodetest.NewPortValue([]v4.Float64{v4.New(1.1, 2.2, 3.3, 4.4)}),
 			}),
-			nodetest.AssertOutput[[]v4.Float64]("Float 64", nil),
-			nodetest.AssertOutput[[]v4.Int]("Int", nil),
+			nodetest.AssertOutput("Float 64", []v4.Float64{v4.New(1.1, 2.2, 3.3, 4.4)}),
+			nodetest.AssertOutputType("Float 64", vec4ArrayType),
 		),
-
 		nodetest.NewTestCase(
-			"arr w/o amount",
-			nodetest.NewNode(vector4.ScaleArray[float64]{
-				Vector: nodetest.NewPortValue([]v4.Float64{
-					v4.New(1.1, 2.2, 3.7, 4.8),
-				}),
-			}),
-			nodetest.AssertOutput("Float 64", []v4.Float64{
-				v4.New(1.1, 2.2, 3.7, 4.8),
-			}),
-			nodetest.AssertOutput("Int", []v4.Int{
-				v4.New(1, 2, 4, 5),
-			}),
-		),
-
-		nodetest.NewTestCase(
-			"arr w/ amount",
-			nodetest.NewNode(vector4.ScaleArray[float64]{
-				Vector: nodetest.NewPortValue([]v4.Float64{
-					v4.New(1.1, 2.3, 3.7, 4.8),
-				}),
+			"one amount scales every vector in an array",
+			nodetest.NewNode(vector4.Scale[float64]{
+				Vector: nodetest.NewPortValue([]v4.Float64{v4.New(1., 2., 3., 4.)}),
 				Amount: nodetest.NewPortValue(2.),
 			}),
-			nodetest.AssertOutput("Float 64", []v4.Float64{
-				v4.New(2.2, 4.6, 7.4, 9.6),
+			nodetest.AssertOutput("Float 64", []v4.Float64{v4.New(2., 4., 6., 8.)}),
+			nodetest.AssertOutput("Int", []v4.Int{v4.New(2, 4, 6, 8)}),
+		),
+		nodetest.NewTestCase(
+			"an array of amounts scales index for index",
+			nodetest.NewNode(vector4.Scale[float64]{
+				Vector: nodetest.NewPortValue([]v4.Float64{
+					v4.New(1., 1., 1., 1.), v4.New(2., 2., 2., 2.),
+				}),
+				Amount: nodetest.NewPortValue([]float64{0.5, 2}),
 			}),
-			nodetest.AssertOutput("Int", []v4.Int{
-				v4.New(2, 5, 7, 10),
+			nodetest.AssertOutput("Float 64", []v4.Float64{
+				v4.New(0.5, 0.5, 0.5, 0.5), v4.New(4., 4., 4., 4.),
 			}),
 		),
-	)
-	suite.Run(t)
+	).Run(t)
 }

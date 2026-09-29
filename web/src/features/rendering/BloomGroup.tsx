@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { BlendFunction } from "postprocessing";
 import type { ThreeApp } from "@/lib/three_app";
+import { requestRender } from "@/lib/render_scheduler";
 import { RenderingGroup, RenderingOption } from "./RenderingControls";
 
 interface BloomGroupProps {
@@ -19,6 +20,10 @@ export function BloomGroup({ threeApp }: BloomGroupProps) {
   const [threshold, setThreshold] = useState<number>(
     bloom.luminanceMaterial.threshold,
   );
+
+  useEffect(() => {
+    requestRender();
+  });
 
   useEffect(() => {
     bloom.blendMode.blendFunction = enabled

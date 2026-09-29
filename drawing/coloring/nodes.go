@@ -1,8 +1,6 @@
 package coloring
 
 import (
-	"fmt"
-
 	"github.com/EliCDavis/polyform/generator"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
@@ -15,12 +13,8 @@ func init() {
 	factory := &refutil.TypeFactory{}
 
 	refutil.RegisterType[nodes.Struct[InterpolateNode]](factory)
-	refutil.RegisterType[nodes.Struct[InterpolateToArrayNode]](factory)
-	refutil.RegisterType[nodes.Struct[InterpolateArraysNode]](factory)
 	refutil.RegisterType[nodes.Struct[ToVectorNode]](factory)
-	refutil.RegisterType[nodes.Struct[ToVectorArrayNode]](factory)
 	refutil.RegisterType[nodes.Struct[FromVectorNode]](factory)
-	refutil.RegisterType[nodes.Struct[FromVectorArrayNode]](factory)
 
 	refutil.RegisterType[nodes.Struct[AdjustHSVNode]](factory)
 	refutil.RegisterType[nodes.Struct[BrightnessNode]](factory)
@@ -55,178 +49,52 @@ func init() {
 }
 
 type InterpolateNode struct {
-	A    nodes.Output[Color]   `description:"Color at Time=0."`
-	B    nodes.Output[Color]   `description:"Color at Time=1."`
-	Time nodes.Output[float64] `description:"Blend factor between A and B, 0 to 1. Defaults to 0.5"`
+	A    nodes.LiftedPort[Color]   `description:"Color at Time=0."`
+	B    nodes.LiftedPort[Color]   `description:"Color at Time=1."`
+	Time nodes.LiftedPort[float64] `description:"Blend factor between A and B, 0 to 1. Defaults to 0.5"`
 }
 
 func (n InterpolateNode) Description() string {
 	return "Linearly interpolates between two colors."
 }
 
-func (n InterpolateNode) Out(out *nodes.StructOutput[Color]) {
-	out.Set(Color{R: 0, G: 0, B: 0, A: 1})
-	if n.A == nil && n.B == nil {
-		return
+func (n InterpolateNode) Out(out *nodes.Lifted[Color]) {
+	// One end left unwired is the other end rather than black, so that a
+	// half-built blend shows the color that is wired up.
+	a, b := n.A, n.B
+	switch {
+	case a == nil && b == nil:
+		opaqueBlack := nodes.ConstOutput[Color]{Val: Color{A: 1}}
+		a, b = opaqueBlack, opaqueBlack
+	case a == nil:
+		a = b
+	case b == nil:
+		b = a
 	}
 
-	if n.A == nil {
-		out.Set(nodes.GetOutputValue(out, n.B))
-		return
-	}
-
-	if n.B == nil {
-		out.Set(nodes.GetOutputValue(out, n.A))
-		return
-	}
-
-	out.Set(nodes.GetOutputValue(out, n.A).Lerp(
-		nodes.GetOutputValue(out, n.B),
-		nodes.TryGetOutputValue(out, n.Time, 0.5),
-	))
-}
-
-type InterpolateToArrayNode struct {
-	A    nodes.Output[Color]     `description:"Color at Time=0."`
-	B    nodes.Output[Color]     `description:"Color at Time=1."`
-	Time nodes.Output[[]float64] `description:"One blend factor per output color, each 0 to 1."`
-}
-
-func (n InterpolateToArrayNode) Description() string {
-	return "Linearly interpolates between two colors, once per entry in Time."
-}
-
-func (n InterpolateToArrayNode) Out(out *nodes.StructOutput[[]Color]) {
-	if n.Time == nil {
-		return
-	}
-
-	times := nodes.GetOutputValue(out, n.Time)
-
-	arr := make([]Color, len(times))
-	out.Set(arr)
-
-	if n.A == nil && n.B == nil {
-		return
-	}
-
-	if n.A == nil {
-		v := nodes.GetOutputValue(out, n.B)
-		for i := range arr {
-			arr[i] = v
-		}
-		return
-	}
-
-	if n.B == nil {
-		v := nodes.GetOutputValue(out, n.A)
-		for i := range arr {
-			arr[i] = v
-		}
-		return
-	}
-
-	aV := nodes.GetOutputValue(out, n.A)
-	bV := nodes.GetOutputValue(out, n.B)
-
-	for i, t := range times {
-		arr[i] = aV.Lerp(bV, t)
-	}
+	nodes.Zip3(out, a, b, nodes.LiftedOr(n.Time, 0.5), Color.Lerp)
 }
 
 // ============================================================================
 
-type InterpolateArraysNode struct {
-	A    nodes.Output[[]Color]   `description:"Colors at Time=0, one per output."`
-	B    nodes.Output[[]Color]   `description:"Colors at Time=1, one per output."`
-	Time nodes.Output[[]float64] `description:"Blend factor per output, each 0 to 1."`
-}
-
-func (n InterpolateArraysNode) Description() string {
-	return "Linearly interpolates two color arrays element by element: Out[i] = A[i] blended toward B[i] by Time[i]."
-}
-
-func (n InterpolateArraysNode) Out(out *nodes.StructOutput[[]Color]) {
-	a := nodes.TryGetOutputValue(out, n.A, nil)
-	b := nodes.TryGetOutputValue(out, n.B, nil)
-	times := nodes.TryGetOutputValue(out, n.Time, nil)
-
-	count := min(len(a), len(b), len(times))
-	if len(a) != len(b) || len(b) != len(times) {
-		out.CaptureError(fmt.Errorf("A has %d elements, B has %d and Time has %d; only the first %d were blended", len(a), len(b), len(times), count))
-	}
-
-	arr := make([]Color, count)
-	for i := range arr {
-		arr[i] = a[i].Lerp(b[i], times[i])
-	}
-	out.Set(arr)
-}
-
 type ToVectorNode struct {
-	In nodes.Output[Color]
+	In nodes.LiftedPort[Color]
 }
 
 func (n ToVectorNode) Description() string {
 	return "Splits a color into its components as a vector."
 }
 
-func (n ToVectorNode) vector4(c Color) vector4.Float64 {
-	if n.In == nil {
-		return vector4.Zero[float64]()
-	}
-
-	return vector4.New(
-		c.R,
-		c.G,
-		c.B,
-		c.A,
-	)
+func (n ToVectorNode) Vector3(out *nodes.Lifted[vector3.Float64]) {
+	nodes.Zip1(out, n.In, func(c Color) vector3.Float64 {
+		return vector3.New(c.R, c.G, c.B)
+	})
 }
 
-func (n ToVectorNode) Vector3(out *nodes.StructOutput[vector3.Float64]) {
-	out.Set(n.vector4(nodes.TryGetOutputValue(out, n.In, Color{})).XYZ())
-}
-
-func (n ToVectorNode) Vector4(out *nodes.StructOutput[vector4.Float64]) {
-	out.Set(n.vector4(nodes.TryGetOutputValue(out, n.In, Color{})))
-}
-
-// ============================================================================
-
-type ToVectorArrayNode struct {
-	In nodes.Output[[]Color]
-}
-
-func (n ToVectorArrayNode) Description() string {
-	return "Splits an array of colors into an array of vectors."
-}
-
-func (n ToVectorArrayNode) Vector3(out *nodes.StructOutput[[]vector3.Float64]) {
-	in := nodes.TryGetOutputValue(out, n.In, nil)
-	arr := make([]vector3.Float64, len(in))
-	for i, c := range in {
-		arr[i] = vector3.New(
-			c.R,
-			c.G,
-			c.B,
-		)
-	}
-	out.Set(arr)
-}
-
-func (n ToVectorArrayNode) Vector4(out *nodes.StructOutput[[]vector4.Float64]) {
-	in := nodes.TryGetOutputValue(out, n.In, nil)
-	arr := make([]vector4.Float64, len(in))
-	for i, c := range in {
-		arr[i] = vector4.New(
-			c.R,
-			c.G,
-			c.B,
-			c.A,
-		)
-	}
-	out.Set(arr)
+func (n ToVectorNode) Vector4(out *nodes.Lifted[vector4.Float64]) {
+	nodes.Zip1(out, n.In, func(c Color) vector4.Float64 {
+		return vector4.New(c.R, c.G, c.B, c.A)
+	})
 }
 
 // ============================================================================

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type { ThreeApp } from "@/lib/three_app";
+import { requestRender } from "@/lib/render_scheduler";
 import { RenderingGroup, RenderingOption } from "./RenderingControls";
 
 interface AutoRotateGroupProps {
@@ -14,10 +15,12 @@ export function AutoRotateGroup({ threeApp }: AutoRotateGroupProps) {
 
   useEffect(() => {
     controls.autoRotate = enabled;
+    requestRender();
   }, [enabled]);
 
   useEffect(() => {
     controls.autoRotateSpeed = speed;
+    requestRender();
   }, [speed]);
 
   return (

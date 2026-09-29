@@ -119,6 +119,7 @@ func (n *InputNode) Name() string {
 func (n *InputNode) SetExternalSource(port nodes.OutputPort) {
 	n.externalSource = port
 	n.version++
+	nodes.Touch()
 }
 
 func (n *InputNode) ExternalSource() nodes.OutputPort {
@@ -159,7 +160,7 @@ func (n *InputNode) FromJSON(decoder jbtf.Decoder, body []byte) error {
 // port otherwise.
 func buildInputOutputPort(n *InputNode) nodes.OutputPort {
 	source := &inputNodeOutputPort{node: n}
-	if builder, ok := LookupPortTypeProxy(n.PortType); ok {
+	if builder, ok := nodes.LookupPortTypeProxy(n.PortType); ok {
 		return builder.BuildProxyOutput(source)
 	}
 	return source
@@ -223,6 +224,7 @@ func (p *inputNodeDefaultPort) Type() string {
 func (p *inputNodeDefaultPort) Clear() {
 	p.connected = nil
 	p.node.version++
+	nodes.Touch()
 }
 
 func (p *inputNodeDefaultPort) Value() nodes.OutputPort {
@@ -232,6 +234,7 @@ func (p *inputNodeDefaultPort) Value() nodes.OutputPort {
 func (p *inputNodeDefaultPort) Set(port nodes.OutputPort) error {
 	p.connected = port
 	p.node.version++
+	nodes.Touch()
 	return nil
 }
 
