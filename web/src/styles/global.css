@@ -45,6 +45,14 @@ button.destructive {
   background-color: #7f1d1d;
 }
 
+button:disabled,
+button:disabled:hover {
+  cursor: default;
+  opacity: 0.4;
+  background-color: #122a34;
+  color: #8fa8b0;
+}
+
 #info {
   padding: 8px;
   background-color: #003847;
@@ -246,6 +254,14 @@ input[type="checkbox"] {
   flex: 0 0 auto;
   width: auto;
   cursor: pointer;
+}
+
+input:disabled,
+select:disabled,
+textarea:disabled {
+  cursor: default;
+  opacity: 0.4;
+  color: #8fa8b0;
 }
 
 input::-webkit-outer-spin-button,

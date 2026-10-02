@@ -17,6 +17,12 @@ export interface NodeInput {
   acceptedTypes?: Array<string>;
 }
 
+export interface GraphHistory {
+  undo: Array<string>;
+  redo: Array<string>;
+  applied?: string;
+}
+
 export interface RegisteredTypes {
   nodeTypes: Array<NodeDefinition>;
   serializableOutputTypes: Array<string>;

@@ -21,8 +21,8 @@ func RoundedCylinder(pos vector3.Float64, radius, roundingRadius, bodyHeight flo
 type RoundedCylinderNode struct {
 	Position       nodes.Output[vector3.Float64] `description:"Center of the cylinder. Defaults to the origin."`
 	Radius         nodes.Output[float64]         `description:"Radius of the cylinder's body. Defaults to 0.5."`
-	RoundingRadius nodes.Output[float64]         `description:"Radius of the fillet rounding the top/bottom rim edges. Defaults to 0.25."`
-	BodyHeight     nodes.Output[float64]         `description:"Half the cylinder's total height (distance from Position to each flat cap along Y). Defaults to 1."`
+	RoundingRadius nodes.Output[float64]         `description:"Radius of the fillet rounding the top/bottom rim edges. It extends the cylinder along Y but not outward: Radius stays the true side-wall radius. Defaults to 0.25."`
+	BodyHeight     nodes.Output[float64]         `description:"Half the height of the straight section, before rounding. The rounding adds to it at each end, so the total height is 2*(BodyHeight + RoundingRadius). Defaults to 1."`
 }
 
 func (cn RoundedCylinderNode) Description() string {

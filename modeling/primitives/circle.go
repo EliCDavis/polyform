@@ -13,45 +13,48 @@ type Circle struct {
 	Sides  int
 	Radius float64
 	UVs    *CircleUVs
+
+	StartAngle float64
+	EndAngle   float64
+}
+
+func (c Circle) sweep() (start, span float64, closed bool) {
+	span = c.EndAngle - c.StartAngle
+	if span == 0 || math.Abs(span) >= 2*math.Pi {
+		return 0, 2 * math.Pi, true
+	}
+	return c.StartAngle, span, false
 }
 
 func (c Circle) ToMesh() modeling.Mesh {
+	start, span, closed := c.sweep()
 
-	angleIncrement := (1.0 / float64(c.Sides)) * 2.0 * math.Pi
-	vertices := make([]vector3.Float64, c.Sides+1)
-	normals := make([]vector3.Float64, c.Sides+1)
+	perimeter := c.Sides
+	if !closed {
+		perimeter = c.Sides + 1
+	}
+	angleIncrement := span / float64(c.Sides)
 
-	for sideIndex := 0; sideIndex < c.Sides; sideIndex++ {
-		angle := angleIncrement * float64(sideIndex)
+	vertices := make([]vector3.Float64, perimeter+1)
+	normals := make([]vector3.Float64, perimeter+1)
+
+	for sideIndex := range perimeter {
+		angle := start + (angleIncrement * float64(sideIndex))
 		vertices[sideIndex] = vector3.New(math.Cos(angle)*c.Radius, 0, math.Sin(angle)*c.Radius)
-		// normals[sideIndex] = vector3.New(math.Cos(angle), .1, math.Sin(angle)).Normalized()
 		normals[sideIndex] = vector3.New(0., 1., 0.)
 	}
 
-	topMiddleVert := c.Sides
+	topMiddleVert := perimeter
 	vertices[topMiddleVert] = vector3.Zero[float64]()
 	normals[topMiddleVert] = vector3.New(0., 1., 0.)
 
 	tris := make([]int, 0, c.Sides*3)
-	for sideIndex := 1; sideIndex < c.Sides; sideIndex++ {
-		topLeft := sideIndex - 1
-		topRight := sideIndex
-		tris = append(
-			tris,
-
-			topLeft,
-			topMiddleVert,
-			topRight,
-		)
+	for sideIndex := 1; sideIndex < perimeter; sideIndex++ {
+		tris = append(tris, sideIndex-1, topMiddleVert, sideIndex)
 	}
-
-	tris = append(
-		tris,
-
-		c.Sides-1,
-		topMiddleVert,
-		0,
-	)
+	if closed {
+		tris = append(tris, perimeter-1, topMiddleVert, 0)
+	}
 
 	meshV3Data := map[string][]vector3.Float64{
 		modeling.PositionAttribute: vertices,
@@ -61,9 +64,9 @@ func (c Circle) ToMesh() modeling.Mesh {
 	meshV2Data := map[string][]vector2.Float64{}
 
 	if c.UVs != nil {
-		uvs := make([]vector2.Float64, c.Sides+1)
-		for sideIndex := 0; sideIndex < c.Sides; sideIndex++ {
-			angle := angleIncrement * float64(sideIndex)
+		uvs := make([]vector2.Float64, perimeter+1)
+		for sideIndex := range perimeter {
+			angle := start + (angleIncrement * float64(sideIndex))
 			uvs[sideIndex] = vector2.New(math.Cos(angle), math.Sin(angle)).
 				Normalized().
 				Scale(c.UVs.Radius).
@@ -96,19 +99,23 @@ func (c CircleUVsNode) Out(out *nodes.StructOutput[CircleUVs]) {
 }
 
 type CircleNode struct {
-	Radius nodes.Output[float64]
-	Sides  nodes.Output[int]
-	UVs    nodes.Output[CircleUVs]
+	Radius     nodes.Output[float64]
+	Sides      nodes.Output[int]
+	UVs        nodes.Output[CircleUVs]
+	StartAngle nodes.Output[float64] `description:"Where the arc begins, in radians counterclockwise from +X. Defaults to 0."`
+	EndAngle   nodes.Output[float64] `description:"Where the arc ends. Equal to Start, or a full turn apart, gives the whole disc."`
 }
 
 func (c CircleNode) Description() string {
-	return "A flat filled disc in the XZ plane. Low Sides gives a regular polygon."
+	return "A flat filled disc in the XZ plane, or a sector of one. Low Sides gives a regular polygon."
 }
 
 func (c CircleNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	circle := Circle{
-		Radius: nodes.TryGetOutputValue(out, c.Radius, 0.5),
-		Sides:  nodes.TryGetOutputValue(out, c.Sides, 12),
+		Radius:     nodes.TryGetOutputValue(out, c.Radius, 0.5),
+		Sides:      nodes.TryGetOutputValue(out, c.Sides, 12),
+		StartAngle: nodes.TryGetOutputValue(out, c.StartAngle, 0),
+		EndAngle:   nodes.TryGetOutputValue(out, c.EndAngle, 0),
 		UVs: nodes.TryGetOutputReference(out, c.UVs, &CircleUVs{
 			Center: vector2.Fill(0.5),
 			Radius: 0.5,

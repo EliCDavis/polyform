@@ -25,7 +25,16 @@ func (p *subgraphInstanceInputPort) Name() string {
 }
 
 func (p *subgraphInstanceInputPort) Type() string {
+	if typed, ok := p.external.(nodes.Typed); ok {
+		if name := typed.Type(); name == subgraph.ArrayOf(p.portType) {
+			return name
+		}
+	}
 	return p.portType
+}
+
+func (p *subgraphInstanceInputPort) AcceptedTypes() []string {
+	return subgraph.AcceptedBoundaryTypes(p.portType)
 }
 
 func (p *subgraphInstanceInputPort) Clear() {
@@ -42,16 +51,30 @@ func (p *subgraphInstanceInputPort) Value() nodes.OutputPort {
 }
 
 func (p *subgraphInstanceInputPort) Set(port nodes.OutputPort) error {
+	return p.sync(port)
+}
+
+// Re-clones on a rank change: the inside was wired for the rank it had.
+func (p *subgraphInstanceInputPort) sync(port nodes.OutputPort) error {
 	p.subgraphNode.mu.Lock()
-	defer p.subgraphNode.mu.Unlock()
 	p.external = port
-	return p.subgraphNode.syncInputToCloneLocked(p.portName, port)
+	err := p.subgraphNode.syncInputToCloneLocked(p.portName, port)
+	rankChanged := p.subgraphNode.rankDirty
+	p.subgraphNode.rankDirty = false
+	p.subgraphNode.mu.Unlock()
+
+	if err != nil || !rankChanged {
+		return err
+	}
+	return p.subgraphNode.rebuildClone()
 }
 
 type subgraphInstanceOutputPort struct {
 	runtimeNode *SubgraphInstanceNode
 	portName    string
 	portType    string
+
+	exposedType string
 }
 
 func (p *subgraphInstanceOutputPort) Node() nodes.Node {
@@ -63,6 +86,11 @@ func (p *subgraphInstanceOutputPort) Name() string {
 }
 
 func (p *subgraphInstanceOutputPort) Type() string {
+	if typed, ok := p.connectedSource().(nodes.Typed); ok {
+		if name := typed.Type(); name == subgraph.ArrayOf(p.portType) {
+			return name
+		}
+	}
 	return p.portType
 }
 
@@ -99,9 +127,11 @@ func (p *subgraphInstanceOutputPort) connectedSource() nodes.OutputPort {
 // placement owns a private clone of the definition so evaluation is isolated,
 // while edits to the shared definition rebuild every clone.
 type SubgraphInstanceNode struct {
-	owner         *Instance
-	subGraphID    string
-	clone         *Instance
+	owner      *Instance
+	subGraphID string
+	clone      *Instance
+
+	rankDirty     bool
 	inputs        map[string]nodes.InputPort
 	outputs       map[string]nodes.OutputPort
 	outputSources map[string]*subgraphInstanceOutputPort
@@ -146,7 +176,10 @@ func (r *SubgraphInstanceNode) rebuildClone() error {
 	externals := r.snapshotExternalsLocked()
 	r.mu.Unlock()
 
-	clone, err := r.owner.Root().cloneSubGraphDefinition(r.subGraphID)
+	clone, err := r.owner.Root().cloneSubGraphDefinitionWith(r.subGraphID, func(c *Instance) error {
+		applyExternalsTo(c, externals)
+		return nil
+	})
 	if err != nil {
 		return err
 	}
@@ -246,7 +279,11 @@ func (r *SubgraphInstanceNode) syncInputToCloneLocked(portName string, port node
 		if !ok || inputBoundary.BoundaryPortName() != portName {
 			continue
 		}
+		before := boundaryRank(inputBoundary)
 		inputBoundary.SetExternalSource(port)
+		if boundaryRank(inputBoundary) != before {
+			r.rankDirty = true
+		}
 		return nil
 	}
 	return fmt.Errorf("boundary input port %q not found in clone of %q", portName, r.subGraphID)
@@ -346,14 +383,15 @@ func (r *SubgraphInstanceNode) refreshOutputsLocked() {
 		typeChanged := port.portType != bp.Type
 		port.portType = bp.Type
 
-		// Expose the boundary as a strongly typed output when the port type
-		// is known, so downstream typed inputs can connect to it.
-		if _, ok := r.outputs[name]; !ok || typeChanged {
+		// The cached port is rebuilt when an array starts or stops arriving.
+		effective := r.effectiveOutputTypeLocked(name, bp.Type)
+		if _, ok := r.outputs[name]; !ok || typeChanged || port.exposedType != effective {
 			var exposed nodes.OutputPort = port
-			if builder, found := nodes.LookupPortTypeProxy(bp.Type); found {
+			if builder, found := nodes.LookupPortTypeProxy(effective); found {
 				exposed = builder.BuildProxyOutput(port)
 			}
 			r.outputs[name] = exposed
+			port.exposedType = effective
 		}
 	}
 
@@ -471,4 +509,46 @@ func (a *Instance) SubGraphScopeID() string {
 		}
 	}
 	return ""
+}
+
+// Reads r.clone directly: callers hold r.mu, and ensureClone would deadlock.
+func (r *SubgraphInstanceNode) effectiveOutputTypeLocked(portName, declared string) string {
+	if r.clone == nil {
+		return declared
+	}
+	for node := range r.clone.nodeIDs {
+		outputNode, ok := node.(*subgraph.OutputNode)
+		if !ok || outputNode.BoundaryPortName() != portName {
+			continue
+		}
+		if typed, ok := outputNode.ConnectedSource().(nodes.Typed); ok {
+			if name := typed.Type(); name == subgraph.ArrayOf(declared) {
+				return name
+			}
+		}
+		return declared
+	}
+	return declared
+}
+
+func boundaryRank(boundary subgraph.Boundary) string {
+	if ranked, ok := boundary.(interface{ EffectiveType() string }); ok {
+		return ranked.EffectiveType()
+	}
+	return boundary.BoundaryPortType()
+}
+
+func applyExternalsTo(clone *Instance, externals map[string]nodes.OutputPort) {
+	if clone == nil || len(externals) == 0 {
+		return
+	}
+	for node := range clone.nodeIDs {
+		inputBoundary, ok := subgraph.IsInputBoundary(node)
+		if !ok {
+			continue
+		}
+		if port, found := externals[inputBoundary.BoundaryPortName()]; found {
+			inputBoundary.SetExternalSource(port)
+		}
+	}
 }

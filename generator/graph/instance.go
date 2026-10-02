@@ -49,6 +49,11 @@ type Instance struct {
 	subGraphs map[string]*subGraphRuntime
 	parent    *Instance
 
+	mutations definitionMutations
+
+	// Only the root's is used: a snapshot is the whole graph.
+	history history
+
 	// TODO: Make this a lock across the entire instance
 	lock gsync.RWMutex
 }
@@ -63,7 +68,14 @@ type Config struct {
 }
 
 func New(config Config) *Instance {
-	nodes.DiscoverPortTypes(config.TypeFactory)
+	// Cloned, not shared: a subgraph's runtime builder captures this
+	// instance, and callers hand over a registry they reuse.
+	factory := &refutil.TypeFactory{}
+	if config.TypeFactory != nil {
+		factory = factory.Combine(config.TypeFactory)
+	}
+
+	nodes.DiscoverPortTypes(factory)
 	return &Instance{
 		details: Details{
 			Name:        config.Name,
@@ -71,7 +83,7 @@ func New(config Config) *Instance {
 			Version:     config.Version,
 			Authors:     config.Authors,
 		},
-		typeFactory:     config.TypeFactory,
+		typeFactory:     factory,
 		variableFactory: config.VariableFactory,
 		variables:       variable.NewSystem(),
 		nodeIDs:         make(map[nodes.Node]string),
@@ -698,22 +710,24 @@ func sortPortReferences(ports map[string]schema.PortReference) []sortedReference
 func (a *Instance) ApplyAppSchema(jsonPayload []byte) error {
 	a.lock.Lock()
 	defer a.lock.Unlock()
-	a.Reset()
 
+	// Parsed before anything is cleared: loading is destructive from here on.
 	appSchema, err := jbtf.Unmarshal[persistence.App](jsonPayload)
 	if err != nil {
 		return fmt.Errorf("unable to parse graph as a jbtf: %w", err)
 	}
 
-	a.details.Name = appSchema.Name
-	a.details.Authors = appSchema.Authors
-	a.details.Version = appSchema.Version
-	a.details.Description = appSchema.Description
-
 	decoder, err := jbtf.NewDecoder(jsonPayload)
 	if err != nil {
 		return fmt.Errorf("unable to build a jbtf decoder: %w", err)
 	}
+
+	a.Reset()
+
+	a.details.Name = appSchema.Name
+	a.details.Authors = appSchema.Authors
+	a.details.Version = appSchema.Version
+	a.details.Description = appSchema.Description
 
 	a.metadata.OverwriteData(appSchema.Metadata)
 	appSchema.Variables.Traverse(func(path string, v persistence.Variable) bool {
@@ -1573,9 +1587,16 @@ func checkPortTypes(outID, outPort string, output nodes.OutputPort, inID, inPort
 			if from == "" || slices.Contains(accepted, from) {
 				return nil
 			}
+			hint := ""
+			for _, want := range accepted {
+				if h := connectionHint(from, want, inPort); h != "" {
+					hint = h
+					break
+				}
+			}
 			return fmt.Errorf(
-				"node %q's %q output is %s, but node %q's %q input takes %s",
-				outID, outPort, from, inID, inPort, strings.Join(accepted, " or "))
+				"node %q's %q output is %s, but node %q's %q input takes %s%s",
+				outID, outPort, from, inID, inPort, strings.Join(accepted, " or "), hint)
 		}
 	}
 
@@ -1589,18 +1610,21 @@ func checkPortTypes(outID, outPort string, output nodes.OutputPort, inID, inPort
 		return nil
 	}
 
-	hint := ""
-	switch {
-	case to == "[]"+from:
-		hint = fmt.Sprintf(" - %q takes the whole array as one value, so build the array first (an arrays.FromElements node) and connect its single output, rather than connecting one element at a time", inPort)
-	case from == "int" && to == "float64":
-		hint = " - put a math.IntToFloatNode between them, or feed a float64 source (a float64 parameter or boundary input) in the first place"
-	case from == "float64" && to == "int":
-		hint = " - put a math.RoundNode (its Int output) between them, or feed an int source in the first place"
-	}
 	return fmt.Errorf(
 		"node %q's %q output is %s, but node %q's %q input takes %s%s",
-		outID, outPort, from, inID, inPort, to, hint)
+		outID, outPort, from, inID, inPort, to, connectionHint(from, to, inPort))
+}
+
+func connectionHint(from, to, inPort string) string {
+	switch {
+	case to == "[]"+from:
+		return fmt.Sprintf(" - %q takes the whole array as one value, so build the array first (an arrays.FromElements node) and connect its single output, rather than connecting one element at a time", inPort)
+	case from == "int" && to == "float64":
+		return " - put a math.IntToFloatNode between them, or feed a float64 source (a float64 parameter or boundary input) in the first place"
+	case from == "float64" && to == "int":
+		return " - put a math.RoundNode (its Int output) between them, or feed an int source in the first place"
+	}
+	return ""
 }
 
 // mismatchError describes a connection the input port refused to hold,

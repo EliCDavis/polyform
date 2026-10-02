@@ -8,12 +8,12 @@ import (
 	"github.com/EliCDavis/polyform/nodes"
 )
 
-// cloneSubGraphDefinition builds a private Instance that mirrors the editable
-// sub-graph definition. Runtime nodes own these clones so each placement can
-// evaluate independently while the definition remains the single edit target.
-func (a *Instance) cloneSubGraphDefinition(subGraphID string) (*Instance, error) {
+// beforeConnect runs once the clone has its nodes but before they are
+// wired, because an array at an input lifts them as they are connected.
+func (a *Instance) cloneSubGraphDefinitionWith(subGraphID string, beforeConnect func(*Instance) error) (*Instance, error) {
 	root := a.Root()
 	encoder := &jbtf.Encoder{}
+
 	def, err := root.persistedSubGraphDefinition(subGraphID, encoder)
 	if err != nil {
 		return nil, err
@@ -44,7 +44,7 @@ func (a *Instance) cloneSubGraphDefinition(subGraphID string) (*Instance, error)
 	}
 
 	clone := newInstance(root)
-	if err := populateInstanceFromSubGraphDef(clone, clonedDef, decoder); err != nil {
+	if err := populateInstanceFromSubGraphDef(clone, clonedDef, decoder, beforeConnect); err != nil {
 		return nil, err
 	}
 	return clone, nil
@@ -90,7 +90,7 @@ func (a *Instance) persistedSubGraphDefinition(id string, encoder *jbtf.Encoder)
 	}, nil
 }
 
-func populateInstanceFromSubGraphDef(target *Instance, def persistence.SubGraph, decoder jbtf.Decoder) error {
+func populateInstanceFromSubGraphDef(target *Instance, def persistence.SubGraph, decoder jbtf.Decoder, beforeConnect func(*Instance) error) error {
 	if def.Notes != nil {
 		target.metadata.Set("notes", def.Notes)
 	}
@@ -111,6 +111,11 @@ func populateInstanceFromSubGraphDef(target *Instance, def persistence.SubGraph,
 
 	if err := applyPersistedNodeData(def.Nodes, createdNodes, decoder); err != nil {
 		return err
+	}
+	if beforeConnect != nil {
+		if err := beforeConnect(target); err != nil {
+			return err
+		}
 	}
 	return target.connectAppNodes(def.Nodes, createdNodes)
 }
@@ -164,9 +169,38 @@ func (a *Instance) rebuildSubGraphClones(subGraphID string) error {
 	return firstErr
 }
 
+type definitionMutations struct {
+	depth   int
+	pending bool
+}
+
+func (m *definitionMutations) hold() {
+	m.depth++
+}
+
+func (m *definitionMutations) release() (fire bool) {
+	m.depth--
+	if m.depth > 0 || !m.pending {
+		return false
+	}
+	m.pending = false
+	return true
+}
+
+func (m *definitionMutations) deferred() bool {
+	if m.depth > 0 {
+		m.pending = true
+		return true
+	}
+	return false
+}
+
 // notifyDefinitionMutation rebuilds every runtime clone of this definition so
 // edits to the shared template are reflected in live placements.
 func (a *Instance) notifyDefinitionMutation() error {
+	if a.mutations.deferred() {
+		return nil
+	}
 	if a.parent == nil {
 		return nil
 	}
@@ -175,4 +209,16 @@ func (a *Instance) notifyDefinitionMutation() error {
 		return nil
 	}
 	return a.parent.onSubGraphChildMutation(id)
+}
+
+// A multi-step edit passes through states a graph would never be allowed to
+// reach, and a clone built from one gets a lifted producer at the wrong rank.
+func (a *Instance) deferDefinitionMutations() func() error {
+	a.mutations.hold()
+	return func() error {
+		if !a.mutations.release() {
+			return nil
+		}
+		return a.notifyDefinitionMutation()
+	}
 }

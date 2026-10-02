@@ -124,10 +124,9 @@ func RotationTo(from, to vector3.Float64) Quaternion {
 	dot := from.Dot(to)
 
 	if dot < -0.999999 {
-		cross := vector3.Right[float64]().Cross(from).Normalized()
-
+		cross := vector3.Right[float64]().Cross(from)
 		if cross.Length() < 0.000001 {
-			cross = vector3.Up[float64]().Cross(from).Normalized()
+			cross = vector3.Up[float64]().Cross(from)
 		}
 
 		return FromTheta(math.Pi, cross.Normalized())

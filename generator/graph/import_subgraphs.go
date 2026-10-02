@@ -98,7 +98,7 @@ func (a *Instance) ImportSubGraphDefinitions(payload []byte) (ImportSubGraphsRes
 			rollback()
 			return ImportSubGraphsResult{}, err
 		}
-		if err := populateInstanceFromSubGraphDef(target, remapped, decoder); err != nil {
+		if err := populateInstanceFromSubGraphDef(target, remapped, decoder, nil); err != nil {
 			rollback()
 			return ImportSubGraphsResult{}, fmt.Errorf("populate imported sub-graph %q: %w", newID, err)
 		}

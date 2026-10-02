@@ -156,6 +156,18 @@ Resources either directly contributing to the code, or are just interesting find
   - [Threejs Colorspace conversion](https://github.com/mrdoob/three.js/blob/e6f7c4e677cb8869502739da2640791d020d8d2f/src/math/ColorManagement.js#L5)
   - [Bartosz Ciechanowski on Color Spaces](https://ciechanow.ski/color-spaces/)
 - UV Unwrapping
+  - [_"Mesh Parameterization Methods and their Applications"_ Alla Sheffer, Emil Praun, Kenneth Rose](https://www.cs.ubc.ca/~sheffa/papers/param_survey06.pdf)
+  - Chart segmentation
+    - [_"Variational Shape Approximation"_ David Cohen-Steiner, Pierre Alliez, Mathieu Desbrun (SIGGRAPH 2004)](https://www.geometry.caltech.edu/pubs/CAD04.pdf)
+    - [_"D-Charts: Quasi-Developable Mesh Segmentation"_ Dan Julius, Vladislav Kraevoy, Alla Sheffer (EG 2005)](https://www.cs.ubc.ca/~sheffa/papers/EG05.pdf)
+    - [xatlas](https://github.com/jpcy/xatlas/blob/master/source/xatlas/xatlas.h)
+  - Atlas packing
+    - [_"A Thousand Ways to Pack the Bin - A Practical Approach to Two-Dimensional Rectangle Bin Packing"_ Jukka Jylänki](https://core.ac.uk/reader/103387426)
+    - [juj/RectangleBinPack](https://github.com/juj/RectangleBinPack)
+  - Unwrapping with no artist intent
+    - [Blender Smart UV Project](https://docs.blender.org/manual/en/latest/modeling/meshes/editing/uv.html)
+    - [Unreal — Generating Lightmap UVs](https://dev.epicgames.com/documentation/en-us/unreal-engine/generating-lightmap-uvs-in-unreal-engine)
+    - [Unity — Generating lightmap UVs](https://docs.unity3d.com/2022.3/Documentation/Manual/LightingGiUvs-GeneratingLightmappingUVs.html)
   - [_"ABF++ : Fast and Robust Angle Based Flattening"_ Alla Sheffer  Bruno Levy   Maxim Mogilnitsky  Alexander Bogomyakov](https://www.cs.ubc.ca/~sheffa/papers/abf_plus_plus.pdf)
   - OptCuts: Joint Optimization of Surface Cuts and Parameterization
     - [Source Code](https://github.com/liminchen/OptCuts)

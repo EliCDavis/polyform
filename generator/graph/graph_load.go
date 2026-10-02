@@ -7,6 +7,7 @@ import (
 
 	"github.com/EliCDavis/jbtf"
 	"github.com/EliCDavis/polyform/generator/persistence"
+	"github.com/EliCDavis/polyform/generator/schema"
 	"github.com/EliCDavis/polyform/generator/subgraph"
 	"github.com/EliCDavis/polyform/nodes"
 )
@@ -22,7 +23,7 @@ func (a *Instance) loadSubGraphDefinition(subGraphID string, def persistence.Sub
 		return err
 	}
 
-	return populateInstanceFromSubGraphDef(target, def, decoder)
+	return populateInstanceFromSubGraphDef(target, def, decoder, nil)
 }
 
 func applyPersistedNodeData(nodeDefs map[string]persistence.Node, createdNodes map[string]nodes.Node, decoder jbtf.Decoder) error {
@@ -191,17 +192,37 @@ func (a *Instance) connectAppNodes(nodeDefs map[string]persistence.Node, created
 			}
 
 			if single, ok := input.(nodes.SingleValueInputPort); ok {
-				if err := single.Set(output); err != nil {
+				if err := assignPort(nodeID, dirtyInputName, dependency, output, single.Set); err != nil {
 					panic(err)
 				}
 			} else if array, ok := input.(nodes.ArrayValueInputPort); ok {
-				if err := array.Add(output); err != nil {
+				if err := assignPort(nodeID, dirtyInputName, dependency, output, array.Add); err != nil {
 					panic(err)
 				}
 			} else {
 				panic(fmt.Errorf("not sure how to assign node %q's input %q", nodeID, inputName))
 			}
 		}
+	}
+	return nil
+}
+
+func assignPort(
+	nodeID, inputName string,
+	dependency schema.PortReference,
+	output nodes.OutputPort,
+	assign func(nodes.OutputPort) error,
+) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("connecting %s.%s to %s.%s: %v",
+				dependency.NodeId, dependency.PortName, nodeID, inputName, r)
+		}
+	}()
+
+	if err := assign(output); err != nil {
+		return fmt.Errorf("connecting %s.%s to %s.%s: %w",
+			dependency.NodeId, dependency.PortName, nodeID, inputName, err)
 	}
 	return nil
 }

@@ -68,7 +68,7 @@ const (
 	boundaryLayoutGapY = 100.0
 )
 
-func convertSelectionToSubGraph(root *Instance, scope Scope, nodeIDs []string, name, description string) (ConvertSelectionResult, error) {
+func convertSelectionToSubGraph(root *Instance, scope Scope, nodeIDs []string, name, description string) (result ConvertSelectionResult, err error) {
 	name = strings.TrimSpace(name)
 	if name == "" {
 		return ConvertSelectionResult{}, fmt.Errorf("name is required")
@@ -88,6 +88,15 @@ func convertSelectionToSubGraph(root *Instance, scope Scope, nodeIDs []string, n
 	if err != nil {
 		return ConvertSelectionResult{}, err
 	}
+
+	// Moving a selection out takes many edits, and the scope is a half
+	// wired graph in between. Clones of it wait until it is whole again.
+	resume := parent.deferDefinitionMutations()
+	defer func() {
+		if resumeErr := resume(); resumeErr != nil && err == nil {
+			err = resumeErr
+		}
+	}()
 
 	resolvedPositions := selectionPositionsFromMetadata(parent, selection)
 

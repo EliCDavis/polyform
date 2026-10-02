@@ -1,30 +1,21 @@
-import { useState } from "react";
 import { setVariableValue } from "@/api/variables";
 import { NumberInput } from "@/components/NumberInput";
+import { useLiveValue } from "@/components/useLiveValue";
 import { ListEditor } from "./ListEditor";
 
 export function BoolEditor({ variableKey, value }: { variableKey: string; value: boolean }) {
-  const [checked, setChecked] = useState(!!value);
-  return (
-    <input
-      type="checkbox"
-      checked={checked}
-      onChange={(e) => {
-        setChecked(e.target.checked);
-        void setVariableValue(variableKey, e.target.checked);
-      }}
-    />
-  );
+  const [checked, , commit] = useLiveValue(!!value, (v) => setVariableValue(variableKey, v));
+  return <input type="checkbox" checked={checked} onChange={(e) => commit(e.target.checked)} />;
 }
 
 export function TextEditor({ variableKey, value }: { variableKey: string; value: string }) {
-  const [text, setText] = useState(value);
+  const [text, setText, commit] = useLiveValue(value, (v) => setVariableValue(variableKey, v));
   return (
     <input
       type="text"
       value={text}
       onChange={(e) => setText(e.target.value)}
-      onBlur={() => void setVariableValue(variableKey, text)}
+      onBlur={() => commit(text)}
     />
   );
 }
@@ -79,15 +70,21 @@ export function StringListEditor({ variableKey, value }: { variableKey: string; 
       variableKey={variableKey}
       value={value}
       blank={() => ""}
-      renderItem={(item, update) => (
-        <input
-          type="text"
-          defaultValue={item}
-          onBlur={(e) => {
-            if (e.target.value !== item) update(e.target.value);
-          }}
-        />
-      )}
+      renderItem={(item, update) => <StringListItem value={item} onCommit={update} />}
+    />
+  );
+}
+
+function StringListItem({ value, onCommit }: { value: string; onCommit: (next: string) => void }) {
+  const [text, setText, commit] = useLiveValue(value, async (next) => onCommit(next));
+  return (
+    <input
+      type="text"
+      value={text}
+      onChange={(e) => setText(e.target.value)}
+      onBlur={() => {
+        if (text !== value) commit(text);
+      }}
     />
   );
 }

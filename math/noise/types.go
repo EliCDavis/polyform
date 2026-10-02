@@ -21,10 +21,10 @@ func init() {
 }
 
 type Perlin1DNode struct {
-	Time      nodes.LiftedPort[float64]
-	Shift     nodes.LiftedPort[float64]
-	Amplitude nodes.LiftedPort[float64]
-	Frequency nodes.LiftedPort[float64]
+	Time      nodes.LiftedPort[float64] `description:"The values to sample the noise at."`
+	Shift     nodes.LiftedPort[float64] `description:"Offset added before sampling, for a different slice of the same noise. Defaults to 0."`
+	Amplitude nodes.LiftedPort[float64] `description:"Scales the noise's output range. Defaults to 1."`
+	Frequency nodes.LiftedPort[float64] `description:"Scales the input before sampling, so higher means finer noise. Defaults to 1."`
 }
 
 func (cn Perlin1DNode) Description() string {
@@ -45,10 +45,10 @@ func (cn Perlin1DNode) Out(out *nodes.Lifted[float64]) {
 }
 
 type Perlin2DNode struct {
-	Time      nodes.LiftedPort[vector2.Float64]
-	Amplitude nodes.LiftedPort[float64]
-	Frequency nodes.LiftedPort[vector2.Float64]
-	Shift     nodes.LiftedPort[vector2.Float64]
+	Time      nodes.LiftedPort[vector2.Float64] `description:"The points to sample the noise at, despite the name - pass positions here."`
+	Amplitude nodes.LiftedPort[float64]         `description:"Scales the noise's output range. Defaults to 1."`
+	Frequency nodes.LiftedPort[vector2.Float64] `description:"Scales each point before sampling, so higher means finer noise. Defaults to (1,1)."`
+	Shift     nodes.LiftedPort[vector2.Float64] `description:"Offset added to each point before sampling, for a different slice of the same noise. Defaults to (0,0)."`
 }
 
 func (cn Perlin2DNode) Description() string {
@@ -69,10 +69,10 @@ func (cn Perlin2DNode) Out(out *nodes.Lifted[float64]) {
 }
 
 type Perlin3DNode struct {
-	Time      nodes.LiftedPort[vector3.Float64]
-	Amplitude nodes.LiftedPort[float64]
-	Frequency nodes.LiftedPort[vector3.Float64]
-	Shift     nodes.LiftedPort[vector3.Float64]
+	Time      nodes.LiftedPort[vector3.Float64] `description:"The points to sample the noise at, despite the name - pass positions here."`
+	Amplitude nodes.LiftedPort[float64]         `description:"Scales the noise's output range. Defaults to 1."`
+	Frequency nodes.LiftedPort[vector3.Float64] `description:"Scales each point before sampling, so higher means finer noise. Defaults to (1,1,1)."`
+	Shift     nodes.LiftedPort[vector3.Float64] `description:"Offset added to each point before sampling, for a different slice of the same noise. Defaults to (0,0,0)."`
 }
 
 func (cn Perlin3DNode) Description() string {
