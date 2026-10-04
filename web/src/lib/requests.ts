@@ -4,6 +4,7 @@ import type {
   CreateSubGraphResponse,
   CreateVariableResponse,
   GraphExecutionReport,
+  GraphHistory,
   GraphInstance,
   ImportSubGraphsResult,
   Manifest,
@@ -465,6 +466,26 @@ export class RequestManager {
 
   getSwagger(callback: ResponseCallback<unknown>): void {
     this.fetchJSON("./swagger", callback);
+  }
+
+  getHistory(callback: ResponseCallback<GraphHistory>): void {
+    this.fetchJSON("./graph/history", callback);
+  }
+
+  undo(callback?: ResponseCallback<GraphHistory>): void {
+    void postJson<GraphHistory>("./graph/history/undo", {}).then((response) => {
+      if (response !== undefined) {
+        callback?.(response);
+      }
+    });
+  }
+
+  redo(callback?: ResponseCallback<GraphHistory>): void {
+    void postJson<GraphHistory>("./graph/history/redo", {}).then((response) => {
+      if (response !== undefined) {
+        callback?.(response);
+      }
+    });
   }
 
   setGraph(newGraph: unknown, callback?: () => void): void {

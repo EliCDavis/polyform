@@ -15,8 +15,16 @@ export function NumberInput({ value, onCommit, integer, step, min, max, disabled
   const [editing, setEditing] = useState(false);
   const lastCommitted = useRef(value);
 
+  const inFlight = useRef(false);
+
   useEffect(() => {
     if (editing) return;
+    if (inFlight.current) {
+      if (value === lastCommitted.current) {
+        inFlight.current = false;
+      }
+      return;
+    }
     setText(String(value));
     lastCommitted.current = value;
   }, [value, editing]);
@@ -27,6 +35,7 @@ export function NumberInput({ value, onCommit, integer, step, min, max, disabled
     const n = parse(s);
     if (!Number.isFinite(n) || n === lastCommitted.current) return;
     lastCommitted.current = n;
+    inFlight.current = true;
     onCommit(n);
   };
 
@@ -46,7 +55,7 @@ export function NumberInput({ value, onCommit, integer, step, min, max, disabled
       onBlur={() => {
         setEditing(false);
         const n = parse(text);
-        setText(String(Number.isFinite(n) ? n : value));
+        setText(String(Number.isFinite(n) ? n : lastCommitted.current));
       }}
       onKeyDown={(e) => {
         if (e.key === "Enter") (e.target as HTMLInputElement).blur();

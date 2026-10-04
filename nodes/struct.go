@@ -22,18 +22,18 @@ type outputPortBuilder interface {
 	build(node Node, cache *structOutputCache, data any, functionName, displayName string, mutex *sync.Mutex) OutputPort
 }
 
-func NewStructOutput[T any](val T) StructOutput[T] {
-	return StructOutput[T]{
-		val: val,
-	}
-}
-
 type structOutputCache struct {
 	versioner inputVersions
 	cache     map[string]cachedStructOutput
+	rank      atomic.Pointer[rankMemo]
 }
 
-func (soc structOutputCache) Version(key string) int {
+type rankMemo struct {
+	generation uint64
+	rank       int
+}
+
+func (soc *structOutputCache) Version(key string) int {
 	val, ok := soc.cache[key]
 
 	if !ok {
@@ -48,7 +48,7 @@ func (soc structOutputCache) Version(key string) int {
 	return version
 }
 
-func (soc structOutputCache) Outdated(key string) bool {
+func (soc *structOutputCache) Outdated(key string) bool {
 	val, ok := soc.cache[key]
 
 	if !ok {
@@ -57,10 +57,6 @@ func (soc structOutputCache) Outdated(key string) bool {
 
 	newVersion := soc.versioner.inputVersions()
 	return val.nodeInputVersions != newVersion
-}
-
-func (soc structOutputCache) InputString() string {
-	return soc.versioner.inputVersions()
 }
 
 func (soc *structOutputCache) Cache(key string, val any) {
@@ -85,7 +81,7 @@ func (soc *structOutputCache) Cache(key string, val any) {
 	}
 }
 
-func (soc structOutputCache) Get(key string) any {
+func (soc *structOutputCache) Get(key string) any {
 	return soc.cache[key].val
 }
 
@@ -129,8 +125,6 @@ func (so *StructOutput[T]) Value() T {
 			self -= v.Duration
 		}
 		val.report.SelfTime = &self
-		// val.report.Errors = append(val.report.Errors, fmt.Sprintf("Version: %d", so.cache.Version(so.functionName)))
-		// val.report.Errors = append(val.report.Errors, fmt.Sprintf("Input: %s", so.cache.InputString()))
 		so.cache.Cache(so.functionName, val)
 	}
 	return val.val

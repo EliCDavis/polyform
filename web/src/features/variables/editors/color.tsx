@@ -1,21 +1,19 @@
 import { useEffect, useRef, useState } from "react";
 import { setVariableValue } from "@/api/variables";
 import { NumberInput } from "@/components/NumberInput";
+import { useLiveValue } from "@/components/useLiveValue";
 import { ListEditor } from "./ListEditor";
 import styles from "./editors.module.css";
 
 export function ColorEditor({ variableKey, value }: { variableKey: string; value: string }) {
-  const [color, setColor] = useState(value);
+  const [color, , commit] = useLiveValue(value, (v) => setVariableValue(variableKey, v));
   return (
     <div style={{ display: "flex", flexDirection: "row", gap: 16, alignItems: "center" }}>
       <input
         type="color"
         value={color}
         style={{ minHeight: 25, width: 25, maxWidth: 25, padding: 0, cursor: "pointer" }}
-        onChange={(e) => {
-          setColor(e.target.value);
-          void setVariableValue(variableKey, e.target.value);
-        }}
+        onChange={(e) => commit(e.target.value)}
       />
       <span>{color}</span>
     </div>

@@ -2,6 +2,7 @@ package graph
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/EliCDavis/polyform/generator/subgraph"
 )
@@ -27,22 +28,21 @@ func (s Scope) SubGraphID() (string, error) {
 		return "", fmt.Errorf("scope %q is not a sub-graph scope", s)
 	}
 
-	prefix := subgraph.RuntimeTypePrefix
-	scope := string(s)
-	if len(scope) <= len(prefix) || scope[:len(prefix)] != prefix {
+	id, ok := strings.CutPrefix(string(s), subgraph.RuntimeTypePrefix)
+	if !ok || id == "" {
 		return "", fmt.Errorf("unknown graph scope %q", s)
 	}
-	return scope[len(prefix):], nil
+	return id, nil
 }
 
-func (s Scope) ResolveInstance(graph *Instance) (*Instance, error) {
+func (s Scope) ResolveInstance(project *Instance) (*Graph, error) {
 	if s.IsRoot() {
-		return graph.Root(), nil
+		return project.Graph, nil
 	}
 
 	subGraphID, err := s.SubGraphID()
 	if err != nil {
 		return nil, err
 	}
-	return graph.Root().SubGraphInstance(subGraphID)
+	return project.SubGraphInstance(subGraphID)
 }

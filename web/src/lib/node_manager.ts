@@ -504,7 +504,53 @@ export class NodeManager {
         return -1;
     }
 
+    removeStaleConnections(nodes: Array<{ id: string, node: NodeInstance }>): void {
+        for (const node of nodes) {
+            const controller = this.nodeIdToNode.get(node.id);
+            if (!controller) {
+                continue;
+            }
+
+            // A list, not a set: one output can feed two elements of an array port.
+            const wanted = new Map<string, Array<string>>();
+            for (const dirtyInputPortName in node.node.assignedInput) {
+                const portName = dirtyInputPortName.split(".")[0];
+                const source = node.node.assignedInput[dirtyInputPortName];
+                const forPort = wanted.get(portName) ?? [];
+                forPort.push(`${source.id}\u0000${source.port}`);
+                wanted.set(portName, forPort);
+            }
+
+            const flowNode = controller.flowNode;
+            for (let i = 0; i < flowNode.inputs(); i++) {
+                const port = flowNode.inputPort(i);
+                const portName = port.getDisplayName();
+
+                const drawn = port.connections()
+                    .map((connection) => {
+                        const sourceNode = connection.outNode();
+                        const sourcePort = connection.outPort();
+                        if (!sourceNode || !sourcePort) {
+                            return "";
+                        }
+                        return `${sourceNode.getProperty(InstanceIDProperty)}\u0000${sourcePort.getDisplayName()}`;
+                    })
+                    .sort();
+
+                const expected = (wanted.get(portName) ?? []).slice().sort();
+                if (drawn.length === expected.length && drawn.every((k, j) => k === expected[j])) {
+                    continue;
+                }
+
+                // Whole port, not the odd edge: the pass after re-adds them.
+                this.nodeFlowGraph.clearNodeInputConnection(flowNode, i);
+            }
+        }
+    }
+
     updateNodeConnections(nodes: Array<{ id: string, node: NodeInstance }>): void {
+        this.removeStaleConnections(nodes);
+
         for (let node of nodes) {
             const nodeID = node.id;
             const nodeData = node.node;

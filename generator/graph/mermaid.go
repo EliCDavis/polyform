@@ -3,6 +3,8 @@ package graph
 import (
 	"fmt"
 	"io"
+	"maps"
+	"slices"
 	"strings"
 )
 
@@ -26,10 +28,8 @@ func WriteMermaid(a *Instance, out io.Writer) error {
 			fmt.Fprintf(out, "\t%s%s\n", id, sanitizeMermaidName(n.Name))
 		}
 
-		depIndex := 0
-		for name := range n.AssignedInput {
-			fmt.Fprintf(out, "\t%s-%d(%s)\n", id, depIndex, sanitizeMermaidName(name))
-			depIndex++
+		for i, name := range slices.Sorted(maps.Keys(n.AssignedInput)) {
+			fmt.Fprintf(out, "\t%s-%d(%s)\n", id, i, sanitizeMermaidName(name))
 		}
 
 		if len(n.AssignedInput) > 0 {
@@ -39,9 +39,8 @@ func WriteMermaid(a *Instance, out io.Writer) error {
 	}
 
 	for id, n := range schema.Nodes {
-		depIndex := 0
-		for _, d := range n.AssignedInput {
-			fmt.Fprintf(out, "\t%s --> %s-%d\n", d.NodeId, id, depIndex)
+		for i, name := range slices.Sorted(maps.Keys(n.AssignedInput)) {
+			fmt.Fprintf(out, "\t%s --> %s-%d\n", n.AssignedInput[name].NodeId, id, i)
 		}
 	}
 

@@ -237,7 +237,7 @@ func TestServer_NamedManifest(t *testing.T) {
 	_, _, err := graph.CreateNode("Text")
 	require.NoError(t, err)
 
-	graph.SetNodeAsProducer("Node-1", "Out", "CoolName")
+	require.NoError(t, graph.SetNodeAsProducer("Node-1", "Out", "CoolName"))
 
 	server := run.Server{
 		Graph:     graph,
@@ -265,7 +265,7 @@ func TestServer_VariableProfile(t *testing.T) {
 		TypeFactory: typeFactory(),
 	})
 
-	graph.NewVariable("Test Variable", &variable.TypeVariable[float64]{})
+	require.NoError(t, errOf(graph.NewVariable("Test Variable", &variable.TypeVariable[float64]{})))
 
 	server := run.Server{
 		Graph:     graph,
@@ -285,4 +285,8 @@ func TestServer_VariableProfile(t *testing.T) {
 	assert.Equal(t, 200, rr.Code)
 	require.NoError(t, err)
 	require.Equal(t, `{"Test Variable":{"type":"number","format":"double"}}`, string(rawResponse))
+}
+
+func errOf[T any](_ T, err error) error {
+	return err
 }

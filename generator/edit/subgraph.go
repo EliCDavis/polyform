@@ -274,7 +274,9 @@ func scopedNodeEndpoint(graphInstance *graph.Instance, saver *GraphSaver) endpoi
 						return EmptyResponse{}, fmt.Errorf("no node exists with id %s", request.Body.NodeID)
 					}
 
-					scopeInstance.DeleteNodeById(request.Body.NodeID)
+					if _, err := scopeInstance.DeleteNodeById(request.Body.NodeID); err != nil {
+						return EmptyResponse{}, err
+					}
 					saver.Save()
 					return EmptyResponse{}, nil
 				},
@@ -312,12 +314,15 @@ func scopedNodeConnectionEndpoint(graphInstance *graph.Instance, saver *GraphSav
 						return EmptyResponse{}, err
 					}
 
-					scopeInstance.ConnectNodes(
+					err = scopeInstance.ConnectNodes(
 						request.Body.NodeOutId,
 						request.Body.OutPortName,
 						request.Body.NodeInId,
 						request.Body.InPortName,
 					)
+					if err != nil {
+						return EmptyResponse{}, err
+					}
 					saver.Save()
 					return EmptyResponse{}, nil
 				},
@@ -338,7 +343,9 @@ func scopedNodeConnectionEndpoint(graphInstance *graph.Instance, saver *GraphSav
 						return EmptyResponse{}, fmt.Errorf("no node exists with id %s", request.Body.NodeId)
 					}
 
-					scopeInstance.DeleteNodeInputConnection(request.Body.NodeId, request.Body.InPortName)
+					if _, err := scopeInstance.DeleteNodeInputConnection(request.Body.NodeId, request.Body.InPortName); err != nil {
+						return EmptyResponse{}, err
+					}
 					saver.Save()
 					return EmptyResponse{}, nil
 				},

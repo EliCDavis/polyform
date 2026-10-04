@@ -3,14 +3,17 @@ package graph
 import "github.com/EliCDavis/polyform/nodes"
 
 type namedOutputEntry[T any] struct {
-	manifestName string
-	node         nodes.Node
-	portName     string
-	port         nodes.Output[T]
+	node     nodes.Node
+	portName string
+	port     nodes.Output[T]
 }
 
 type namedOutputManager[T any] struct {
 	namedPorts map[string]namedOutputEntry[T]
+}
+
+func newNamedOutputManager[T any]() *namedOutputManager[T] {
+	return &namedOutputManager[T]{namedPorts: make(map[string]namedOutputEntry[T])}
 }
 
 func (pd *namedOutputManager[T]) NamePort(name, portName string, node nodes.Node, port nodes.Output[T]) {
@@ -23,10 +26,9 @@ func (pd *namedOutputManager[T]) NamePort(name, portName string, node nodes.Node
 	}
 
 	pd.namedPorts[name] = namedOutputEntry[T]{
-		manifestName: name,
-		node:         node,
-		portName:     portName,
-		port:         port,
+		node:     node,
+		portName: portName,
+		port:     port,
 	}
 }
 

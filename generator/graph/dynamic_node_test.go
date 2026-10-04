@@ -72,7 +72,7 @@ func TestConnectNodesBindsADynamicPortFromTheUpstreamType(t *testing.T) {
 	_, pick, err := instance.CreateNode(pickType)
 	require.NoError(t, err)
 
-	instance.ConnectNodes(param, "Value", pick, "A")
+	require.NoError(t, instance.ConnectNodes(param, "Value", pick, "A"))
 
 	assert.Equal(t, map[string]string{pickVariable: vector3Type}, dynamicTypesOf(t, instance, pick))
 }
@@ -87,7 +87,7 @@ func TestConnectNodesBindsADynamicPortFromTheDownstreamType(t *testing.T) {
 	_, consumer, err := instance.CreateNode(consumerType)
 	require.NoError(t, err)
 
-	instance.ConnectNodes(pick, "Out", consumer, "In")
+	require.NoError(t, instance.ConnectNodes(pick, "Out", consumer, "In"))
 
 	assert.Equal(t, map[string]string{pickVariable: vector3Type}, dynamicTypesOf(t, instance, pick))
 
@@ -105,12 +105,10 @@ func TestConnectNodesRefusesAMismatchOnABoundDynamicPort(t *testing.T) {
 	_, other, err := instance.CreateNode(consumerType)
 	require.NoError(t, err)
 
-	instance.ConnectNodes(param, "Value", pick, "A")
+	require.NoError(t, instance.ConnectNodes(param, "Value", pick, "A"))
 
 	// Out is a vector3 now, so it cannot also be whatever B is offered.
-	require.Panics(t, func() {
-		instance.ConnectNodes(other, "Out", pick, "Condition")
-	})
+	require.Error(t, instance.ConnectNodes(other, "Out", pick, "Condition"))
 }
 
 func TestARefusedConnectionLeavesNoDynamicTypeBound(t *testing.T) {
@@ -123,9 +121,7 @@ func TestARefusedConnectionLeavesNoDynamicTypeBound(t *testing.T) {
 
 	// In takes a single value, so an element index is nonsense - but the
 	// type has already been offered to Out by the time anything says so.
-	require.Panics(t, func() {
-		instance.ConnectNodes(pick, "Out", consumer, "In.0")
-	})
+	require.Error(t, instance.ConnectNodes(pick, "Out", consumer, "In.0"))
 
 	assert.Empty(t, dynamicTypesOf(t, instance, pick),
 		"no connection was made, so nothing may be holding a type")
@@ -134,9 +130,7 @@ func TestARefusedConnectionLeavesNoDynamicTypeBound(t *testing.T) {
 	// to get the node back, so a leftover binding would be permanent.
 	_, param, err := instance.CreateNode(vector3Param)
 	require.NoError(t, err)
-	require.NotPanics(t, func() {
-		instance.ConnectNodes(param, "Value", pick, "A")
-	})
+	require.NoError(t, instance.ConnectNodes(param, "Value", pick, "A"))
 }
 
 func TestDisconnectingTheLastPortReleasesTheDynamicType(t *testing.T) {
@@ -147,19 +141,17 @@ func TestDisconnectingTheLastPortReleasesTheDynamicType(t *testing.T) {
 	_, pick, err := instance.CreateNode(pickType)
 	require.NoError(t, err)
 
-	instance.ConnectNodes(param, "Value", pick, "A")
+	require.NoError(t, instance.ConnectNodes(param, "Value", pick, "A"))
 	require.NotEmpty(t, dynamicTypesOf(t, instance, pick))
 
-	instance.DeleteNodeInputConnection(pick, "A")
+	require.NoError(t, errOf(instance.DeleteNodeInputConnection(pick, "A")))
 	assert.Empty(t, dynamicTypesOf(t, instance, pick), "nothing holds the type any more")
 
 	// The whole point of releasing it: the node can be rewired rather than
 	// thrown away.
 	_, other, err := instance.CreateNode(consumerType)
 	require.NoError(t, err)
-	require.NotPanics(t, func() {
-		instance.ConnectNodes(other, "Out", pick, "A")
-	})
+	require.NoError(t, instance.ConnectNodes(other, "Out", pick, "A"))
 }
 
 func TestDisconnectingOnePortKeepsATypeAnotherStillHolds(t *testing.T) {
@@ -170,10 +162,10 @@ func TestDisconnectingOnePortKeepsATypeAnotherStillHolds(t *testing.T) {
 	_, pick, err := instance.CreateNode(pickType)
 	require.NoError(t, err)
 
-	instance.ConnectNodes(param, "Value", pick, "A")
-	instance.ConnectNodes(param, "Value", pick, "B")
+	require.NoError(t, instance.ConnectNodes(param, "Value", pick, "A"))
+	require.NoError(t, instance.ConnectNodes(param, "Value", pick, "B"))
 
-	instance.DeleteNodeInputConnection(pick, "A")
+	require.NoError(t, errOf(instance.DeleteNodeInputConnection(pick, "A")))
 	assert.Equal(t, map[string]string{pickVariable: vector3Type}, dynamicTypesOf(t, instance, pick),
 		"B is still carrying it")
 }
@@ -186,10 +178,10 @@ func TestADownstreamConsumerHoldsTheDynamicTypeOnItsOwn(t *testing.T) {
 	_, consumer, err := instance.CreateNode(consumerType)
 	require.NoError(t, err)
 
-	instance.ConnectNodes(pick, "Out", consumer, "In")
+	require.NoError(t, instance.ConnectNodes(pick, "Out", consumer, "In"))
 	require.NotEmpty(t, dynamicTypesOf(t, instance, pick))
 
-	instance.DeleteNodeInputConnection(consumer, "In")
+	require.NoError(t, errOf(instance.DeleteNodeInputConnection(consumer, "In")))
 	assert.Empty(t, dynamicTypesOf(t, instance, pick),
 		"the output was the only thing holding the type, and it is now unwired")
 }
@@ -202,10 +194,10 @@ func TestDeletingTheUpstreamNodeReleasesTheDynamicType(t *testing.T) {
 	_, pick, err := instance.CreateNode(pickType)
 	require.NoError(t, err)
 
-	instance.ConnectNodes(param, "Value", pick, "A")
+	require.NoError(t, instance.ConnectNodes(param, "Value", pick, "A"))
 	require.NotEmpty(t, dynamicTypesOf(t, instance, pick))
 
-	instance.DeleteNodeById(param)
+	require.NoError(t, errOf(instance.DeleteNodeById(param)))
 	assert.Empty(t, dynamicTypesOf(t, instance, pick))
 }
 
@@ -216,7 +208,7 @@ func TestDynamicTypeSurvivesASaveAndLoad(t *testing.T) {
 	require.NoError(t, err)
 	_, consumer, err := instance.CreateNode(consumerType)
 	require.NoError(t, err)
-	instance.ConnectNodes(pick, "Out", consumer, "In")
+	require.NoError(t, instance.ConnectNodes(pick, "Out", consumer, "In"))
 
 	saved, err := instance.EncodeToAppSchema()
 	require.NoError(t, err)
@@ -241,8 +233,8 @@ func TestDynamicTypeSurvivesASaveAndLoadThroughAChain(t *testing.T) {
 	_, consumer, err := instance.CreateNode(consumerType)
 	require.NoError(t, err)
 
-	instance.ConnectNodes(second, "Out", consumer, "In")
-	instance.ConnectNodes(first, "Out", second, "A")
+	require.NoError(t, instance.ConnectNodes(second, "Out", consumer, "In"))
+	require.NoError(t, instance.ConnectNodes(first, "Out", second, "A"))
 	require.Equal(t, map[string]string{pickVariable: vector3Type}, dynamicTypesOf(t, instance, first))
 
 	saved, err := instance.EncodeToAppSchema()

@@ -157,6 +157,8 @@ export class ArrayParameterNodeController<T> {
 
     gizmo: ListGizmo<T> | null;
 
+    private rebuilding = false;
+
     constructor(flowNode: FlowNode, nodeManager: NodeManager, id: string, parameterData: NodeParameterBase<string, Array<T>>, kind: ArrayItemKind<T>, app?: ThreeApp) {
         this.id = id;
         this.nodeManager = nodeManager;
@@ -188,6 +190,15 @@ export class ArrayParameterNodeController<T> {
     }
 
     private rebuildWidgets(): void {
+        this.rebuilding = true;
+        try {
+            this.buildWidgets();
+        } finally {
+            this.rebuilding = false;
+        }
+    }
+
+    private buildWidgets(): void {
         for (const w of this.widgets) {
             this.flowNode.removeWidget(w);
         }
@@ -240,6 +251,11 @@ export class ArrayParameterNodeController<T> {
     }
 
     private commit(items: Array<T>): void {
+        // A widget reports its starting value while being built; acting on
+        // that re-enters the rebuild until the stack blows.
+        if (this.rebuilding) {
+            return;
+        }
         this.setItems(items);
         this.nodeManager.nodeParameterChanged({
             id: this.id,

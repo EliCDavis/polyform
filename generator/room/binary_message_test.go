@@ -264,8 +264,7 @@ func TestMessage_ClientSetSceneMessage(t *testing.T) {
 				return
 			}
 
-			msg := fromClient.ClientSetScene()
-			assert.Equal(t, tc.want, msg)
+			assert.Equal(t, tc.want, json.RawMessage(fromClient.Data))
 		})
 	}
 }

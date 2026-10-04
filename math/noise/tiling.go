@@ -2,8 +2,8 @@ package noise
 
 import (
 	"math"
-	"math/rand"
 
+	"github.com/EliCDavis/polyform/math/chance"
 	"github.com/EliCDavis/vector/vector2"
 )
 
@@ -25,13 +25,19 @@ type TilingNoise struct {
 	size     int
 	frequncy float64
 	octaves  int
+	seed     int
 }
 
 func NewTilingNoise(size int, frequncy float64, octaves int) *TilingNoise {
+	return NewTilingNoiseWithSeed(size, frequncy, octaves, 0)
+}
+
+func NewTilingNoiseWithSeed(size int, frequncy float64, octaves, seed int) *TilingNoise {
 	tn := &TilingNoise{
 		size:     size,
 		frequncy: frequncy,
 		octaves:  octaves,
+		seed:     seed,
 	}
 	tn.init()
 	return tn
@@ -48,7 +54,8 @@ func (tn *TilingNoise) init() {
 	for i := range size {
 		tn.perm[i] = i
 	}
-	rand.Shuffle(len(tn.perm), func(i, j int) { tn.perm[i], tn.perm[j] = tn.perm[j], tn.perm[i] })
+	random := chance.FromSeed(tn.seed)
+	random.Shuffle(len(tn.perm), func(i, j int) { tn.perm[i], tn.perm[j] = tn.perm[j], tn.perm[i] })
 	tn.perm = append(tn.perm, tn.perm...)
 
 	tn.dirs = make([]vector2.Float64, size)

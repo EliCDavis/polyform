@@ -1,4 +1,5 @@
 import { GraphControls } from "@/features/graph/GraphControls";
+import { HistoryControls } from "@/features/graph/HistoryControls";
 import { ProfileSection } from "@/features/profiles/ProfileSection";
 import { VariableSection } from "@/features/variables/VariableSection";
 import { SubGraphSection } from "@/features/subgraph/SubGraphSection";
@@ -100,6 +101,7 @@ export function Sidebar({}: SidebarProps) {
           </div>
         )}
         <GraphControls />
+        <HistoryControls />
         {sectionShown == SidebarSection.Variables && <VariableSection />}
         {sectionShown == SidebarSection.Subgraphs && <SubGraphSection />}
         {sectionShown == SidebarSection.Profiles && <ProfileSection />}

@@ -6,11 +6,12 @@ import (
 )
 
 func WriteOutline(graph *Instance, out io.Writer) error {
-	fmt.Fprintf(out, "# %s\n\n", graph.GetName())
-	if graph.GetVersion() != "" {
-		fmt.Fprintf(out, "%s\n\n", graph.GetVersion())
+	details := graph.Details()
+	fmt.Fprintf(out, "# %s\n\n", details.Name)
+	if details.Version != "" {
+		fmt.Fprintf(out, "%s\n\n", details.Version)
 	}
-	fmt.Fprintf(out, "%s\n\n", graph.GetDescription())
+	fmt.Fprintf(out, "%s\n\n", details.Description)
 
 	fmt.Fprintf(out, "## Variables\n\n")
 
@@ -29,7 +30,7 @@ func WriteOutline(graph *Instance, out io.Writer) error {
 
 	fmt.Fprintf(out, "\n## Profiles\n\n")
 
-	profiles := graph.Profiles()
+	profiles := graph.Profiles().Names()
 	if len(profiles) == 0 {
 		fmt.Fprintf(out, "(none)\n\n")
 	}

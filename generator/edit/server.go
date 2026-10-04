@@ -96,8 +96,8 @@ func (as *Server) Handler(indexFile string) (*http.ServeMux, error) {
 	}
 
 	mux.HandleFunc(indexFile, func(w http.ResponseWriter, r *http.Request) {
-		title := as.Graph.GetName()
-		description := as.Graph.GetDescription()
+		details := as.Graph.Details()
+		title, description := details.Name, details.Description
 
 		if description == "" && title == "" {
 			title = "Polyform"
@@ -106,7 +106,7 @@ func (as *Server) Handler(indexFile string) (*http.ServeMux, error) {
 
 		pageToServe := pageData{
 			Title:             title,
-			Version:           as.Graph.GetVersion(),
+			Version:           details.Version,
 			Description:       description,
 			AntiAlias:         as.Webscene.AntiAlias,
 			XrEnabled:         as.Webscene.XrEnabled,
@@ -155,37 +155,41 @@ func (as *Server) Handler(indexFile string) (*http.ServeMux, error) {
 	})
 	mux.HandleFunc("/zip/", as.ZipEndpoint)
 	mux.Handle("/node-types", nodeTypesEndpoint(as.Graph, as.NodeOutputSerialization))
-	mux.Handle("/node", nodeEndpoint(as.Graph, graphSaver))
-	mux.Handle("/node/connection", nodeConnectionEndpoint(as.Graph, graphSaver))
-	mux.Handle(subGraphDefinitionEndpointPath, subGraphDefinitionEndpoint(as.Graph, graphSaver))
-	mux.Handle(subGraphBoundaryEndpointPath, subGraphBoundaryEndpoint(as.Graph, graphSaver))
-	mux.Handle(convertSelectionToSubGraphEndpointPath, convertSelectionToSubGraphEndpoint(as.Graph, graphSaver))
-	mux.Handle(importSubGraphsEndpointPath, importSubGraphsEndpoint(as.Graph, graphSaver))
-	mux.Handle("/graph/subgraph/", scopedGraphHandler(as.Graph, graphSaver))
+	mux.Handle("/node", undoable(as.Graph, "node", nodeEndpoint(as.Graph, graphSaver)))
+	mux.Handle("/node/connection", undoable(as.Graph, "connection", nodeConnectionEndpoint(as.Graph, graphSaver)))
+	mux.Handle(subGraphDefinitionEndpointPath, undoable(as.Graph, "subgraph", subGraphDefinitionEndpoint(as.Graph, graphSaver)))
+	mux.Handle(subGraphBoundaryEndpointPath, undoable(as.Graph, "boundary port", subGraphBoundaryEndpoint(as.Graph, graphSaver)))
+	mux.Handle(convertSelectionToSubGraphEndpointPath, undoable(as.Graph, "subgraph conversion", convertSelectionToSubGraphEndpoint(as.Graph, graphSaver)))
+	mux.Handle(importSubGraphsEndpointPath, undoable(as.Graph, "imported subgraphs", importSubGraphsEndpoint(as.Graph, graphSaver)))
+	mux.Handle("/graph/subgraph/", undoable(as.Graph, "subgraph", scopedGraphHandler(as.Graph, graphSaver)))
 	mux.HandleFunc(nodeOutputEndpointPath, as.NodeOutputEndpoint)
-	mux.Handle("/parameter/value/", parameterValueEndpoint(as.Graph, graphSaver))
-	mux.Handle("/parameter/name/", parameterNameEndpoint(as.Graph, graphSaver))
-	mux.Handle("/parameter/description/", parameterDescriptionEndpoint(as.Graph, graphSaver))
+	mux.Handle("/parameter/value/", undoable(as.Graph, "parameter", parameterValueEndpoint(as.Graph.Graph, graphSaver)))
+	mux.Handle("/parameter/name/", undoable(as.Graph, "parameter name", parameterNameEndpoint(as.Graph.Graph, graphSaver)))
+	mux.Handle("/parameter/description/", undoable(as.Graph, "parameter description", parameterDescriptionEndpoint(as.Graph.Graph, graphSaver)))
 
-	mux.Handle("/profile", profileEndpoint(as.Graph, graphSaver))
-	mux.Handle("/profile/apply", applyProfileEndpoint(as.Graph, graphSaver))
-	mux.Handle("/profile/rename", renameProfileEndpoint(as.Graph, graphSaver))
-	mux.Handle("/profile/overwrite", overwriteProfileEndpoint(as.Graph, graphSaver))
+	mux.Handle("/profile", undoable(as.Graph, "profile", profileEndpoint(as.Graph, graphSaver)))
+	mux.Handle("/profile/apply", undoable(as.Graph, "applied profile", applyProfileEndpoint(as.Graph, graphSaver)))
+	mux.Handle("/profile/rename", undoable(as.Graph, "profile name", renameProfileEndpoint(as.Graph, graphSaver)))
+	mux.Handle("/profile/overwrite", undoable(as.Graph, "profile", overwriteProfileEndpoint(as.Graph, graphSaver)))
+
+	mux.Handle("/graph/history", historyEndpoint(as.Graph, graphSaver))
+	mux.Handle("/graph/history/undo", undoEndpoint(as.Graph, graphSaver))
+	mux.Handle("/graph/history/redo", redoEndpoint(as.Graph, graphSaver))
 
 	mux.Handle("/new-graph", newGraphEndpoint(as))
 	mux.Handle("/load-example", exampleGraphEndpoint(as))
 	mux.Handle("/graph", graphEndpoint(as))
 	mux.Handle("/graph/execution-report", executionReportEndpoint(as))
-	mux.Handle("/graph/metadata/", graphMetadataEndpointForInstance(as.Graph, graphSaver))
+	mux.Handle("/graph/metadata/", undoable(as.Graph, "layout", graphMetadataEndpointForInstance(as.Graph.Graph, graphSaver)))
 	mux.HandleFunc("/started", as.StartedEndpoint)
 	mux.HandleFunc("/mermaid", as.MermaidEndpoint)
 	mux.HandleFunc("/swagger", as.SwaggerEndpoint)
 	mux.HandleFunc("/producer/value/", as.ProducerEndpoint)
-	mux.Handle("/producer/name/", producerNameEndpoint(as.Graph, graphSaver))
+	mux.Handle("/producer/name/", undoable(as.Graph, "producer name", producerNameEndpoint(as.Graph, graphSaver)))
 	mux.HandleFunc("/manifest/", as.ManifestEndpoint)
-	mux.Handle(variableInstanceEndpointPath, variableInstanceEndpoint(as, as.Graph, graphSaver))
-	mux.Handle(variableValueEndpointPath, variableValueEndpoint(as.Graph, graphSaver))
-	mux.Handle(variableNameDescriptionEndpointPath, variableInfoEndpoint(as.Graph, graphSaver))
+	mux.Handle(variableInstanceEndpointPath, undoable(as.Graph, "variable", variableInstanceEndpoint(as, as.Graph, graphSaver)))
+	mux.Handle(variableValueEndpointPath, undoable(as.Graph, "variable", variableValueEndpoint(as.Graph, graphSaver)))
+	mux.Handle(variableNameDescriptionEndpointPath, undoable(as.Graph, "variable name", variableInfoEndpoint(as.Graph, graphSaver)))
 
 	hub := room.NewHub(as.Webscene, as.Graph)
 	go hub.Run()
@@ -235,7 +239,10 @@ func (as *Server) writeProducerDataToRequest(producerToLoad, file string, w http
 		}
 	}()
 
-	manifest := as.Graph.Manifest(producerToLoad)
+	manifest, err := as.Graph.Manifest(producerToLoad)
+	if err != nil {
+		return err
+	}
 	artifact := manifest.Entries[file].Artifact
 
 	w.Header().Set("Content-Type", artifact.Mime())
@@ -268,11 +275,3 @@ func (as *Server) SwaggerEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (as *Server) SceneEndpoint(w http.ResponseWriter, r *http.Request) {
-	data, err := json.Marshal(as.Webscene)
-	if err != nil {
-		panic(err)
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(data)
-}

@@ -37,7 +37,10 @@ func variableInstanceEndpoint(server *Server, graphInstance *graph.Instance, sav
 					return CreateVariableResponse{}, err
 				}
 
-				registeredType := graphInstance.NewVariable(variablePath, variableInstance)
+				registeredType, err := graphInstance.NewVariable(variablePath, variableInstance)
+				if err != nil {
+					return CreateVariableResponse{}, err
+				}
 				err = graphInstance.SetVariableDescription(variablePath, request.Body.Description)
 				if err != nil {
 					return CreateVariableResponse{}, err
@@ -52,15 +55,16 @@ func variableInstanceEndpoint(server *Server, graphInstance *graph.Instance, sav
 				ResponseWriter: endpoint.JsonResponseWriter[variable.Variable]{},
 				Handler: func(request *http.Request) (variable.Variable, error) {
 					variablePath := request.URL.Path[len(variableInstanceEndpointPath):]
-					graphInstance.GetVariable(variablePath)
-					return graphInstance.GetVariable(variablePath), nil
+					return graphInstance.GetVariable(variablePath)
 				},
 			},
 
 			http.MethodDelete: endpoint.Func(
 				func(request *http.Request) error {
 					variablePath := request.URL.Path[len(variableInstanceEndpointPath):]
-					graphInstance.DeleteVariable(variablePath)
+					if err := graphInstance.DeleteVariable(variablePath); err != nil {
+						return err
+					}
 					saver.Save()
 					return nil
 				},

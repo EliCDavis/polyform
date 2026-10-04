@@ -11,7 +11,8 @@ type SeamlessPerlinNode struct {
 	Positive   nodes.Output[float64]
 	Negative   nodes.Output[float64]
 	Octaves    nodes.Output[int]
-	Frequency  nodes.Output[float64]
+	Frequency  nodes.Output[float64] `description:"Cycles per pixel, so a larger texture at the same frequency shows more of the pattern. Defaults to 1/64."`
+	Seed       nodes.Output[int]
 }
 
 func (an SeamlessPerlinNode) Description() string {
@@ -20,10 +21,11 @@ func (an SeamlessPerlinNode) Description() string {
 
 func (an SeamlessPerlinNode) Out(out *nodes.StructOutput[Texture[float64]]) {
 	dim := nodes.TryGetOutputValue(out, an.Dimensions, 256)
-	n := noise.NewTilingNoise(
+	n := noise.NewTilingNoiseWithSeed(
 		dim,
 		nodes.TryGetOutputValue(out, an.Frequency, 1/64.),
 		nodes.TryGetOutputValue(out, an.Octaves, 3),
+		nodes.TryGetOutputValue(out, an.Seed, 0),
 	)
 
 	tex := Empty[float64](dim, dim)

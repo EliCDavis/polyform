@@ -1,7 +1,9 @@
 package variable
 
 import (
+	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/EliCDavis/jbtf"
@@ -52,6 +54,11 @@ func (tv *TypeVariable[T]) setInfo(i Info) error {
 }
 
 func (tv *TypeVariable[T]) ApplyMessage(msg []byte) (bool, error) {
+	// Unmarshalling null is a no-op, not an error.
+	if bytes.Equal(bytes.TrimSpace(msg), []byte("null")) {
+		return false, errors.New("a variable can't be set to null")
+	}
+
 	var val T
 	err := json.Unmarshal(msg, &val)
 	if err != nil {

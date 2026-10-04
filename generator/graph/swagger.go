@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"unicode"
 
 	"github.com/EliCDavis/polyform/formats/swagger"
 	"github.com/EliCDavis/polyform/generator/manifest"
@@ -53,21 +52,6 @@ var commonSwaggerDefinitions = map[string]namedDefinition{
 	swagger.DefinitionRefPath(swagger.Int4DefinitionName):          {swagger.Int4DefinitionName, swagger.Int4Definition},
 }
 
-func swaggerDefinitionNameFromProducerPath(producerPath string) string {
-	var output []rune //create an output slice
-	isWord := true
-	for _, val := range producerPath {
-		if isWord && unicode.IsLetter(val) { //check if character is a letter convert the first character to upper case
-			output = append(output, unicode.ToUpper(val))
-			isWord = false
-		} else if unicode.IsLetter(val) {
-			output = append(output, unicode.ToLower(val))
-		} else {
-			isWord = true
-		}
-	}
-	return string(output) + "Request"
-}
 
 func WriteSwagger(instance *Instance, out io.Writer) error {
 	jsonData, err := json.MarshalIndent(SwaggerSpec(instance), "", "    ")
@@ -216,9 +200,9 @@ func SwaggerSpec(instance *Instance) swagger.Spec {
 	return swagger.Spec{
 		Version: "2.0",
 		Info: &swagger.Info{
-			Title:       instance.GetName(),
-			Description: instance.GetDescription(),
-			Version:     instance.GetVersion(),
+			Title:       instance.Details().Name,
+			Description: instance.Details().Description,
+			Version:     instance.Details().Version,
 		},
 		Paths:       paths,
 		Definitions: definitions,

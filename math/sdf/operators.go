@@ -171,7 +171,7 @@ func (n UnionNode) Union(out *nodes.StructOutput[sample.Vec3ToFloat]) {
 
 type SmoothUnionNode struct {
 	Fields []nodes.Output[sample.Vec3ToFloat] `description:"The fields to combine."`
-	Radius nodes.Output[float64]              `description:"Width of the blend region in world units. Zero or less is a regular union. Defaults to 0.1."`
+	Radius nodes.Output[float64]              `description:"Width of the blend region in world units. Zero or less is a regular union. Surfaces that nearly coincide swell outward by up to Radius/4. Defaults to 0.1."`
 }
 
 func (n SmoothUnionNode) Description() string {

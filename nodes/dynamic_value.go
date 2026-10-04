@@ -2,20 +2,6 @@ package nodes
 
 import "reflect"
 
-// DynamicValue reads a dynamic input as a concrete type. It reports false
-// when nothing is connected, or when the port carries something else.
-func DynamicValue[T any](port OutputPort) (T, bool) {
-	if port == nil {
-		var zero T
-		return zero, false
-	}
-	if typed, ok := port.(Output[T]); ok {
-		return typed.Value(), true
-	}
-	var zero T
-	return zero, false
-}
-
 // DynamicAnyValue reads a dynamic input without knowing its type, which is
 // what a node generic over every type has to do.
 func DynamicAnyValue(port OutputPort) (any, bool) {

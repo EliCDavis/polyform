@@ -23,7 +23,6 @@ type Boundary interface {
 type InputBoundary interface {
 	Boundary
 	SetExternalSource(port nodes.OutputPort)
-	ExternalSource() nodes.OutputPort
 }
 
 func IsBoundaryNode(node nodes.Node) (Boundary, bool) {
@@ -112,6 +111,43 @@ func (n *InputNode) BoundaryPortType() string {
 	return n.PortType
 }
 
+func ArrayOf(portType string) string {
+	return "[]" + portType
+}
+
+// Rank only goes one level: an array boundary does not take arrays of arrays.
+func AcceptedBoundaryTypes(portType string) []string {
+	if strings.HasPrefix(portType, "[]") {
+		return []string{portType}
+	}
+	return []string{portType, ArrayOf(portType)}
+}
+
+func effectivePortType(declared string, source nodes.OutputPort) string {
+	if source == nil {
+		return declared
+	}
+	typed, ok := source.(nodes.Typed)
+	if !ok {
+		return declared
+	}
+	if strings.TrimSpace(typed.Type()) == ArrayOf(declared) {
+		return ArrayOf(declared)
+	}
+	return declared
+}
+
+func (n *InputNode) EffectiveType() string {
+	return effectivePortType(n.PortType, n.source())
+}
+
+func (n *InputNode) source() nodes.OutputPort {
+	if n.externalSource != nil {
+		return n.externalSource
+	}
+	return n.defaultPort.Value()
+}
+
 func (n *InputNode) Name() string {
 	return n.BoundaryPortName()
 }
@@ -120,10 +156,6 @@ func (n *InputNode) SetExternalSource(port nodes.OutputPort) {
 	n.externalSource = port
 	n.version++
 	nodes.Touch()
-}
-
-func (n *InputNode) ExternalSource() nodes.OutputPort {
-	return n.externalSource
 }
 
 func (n *InputNode) Inputs() map[string]nodes.InputPort {
@@ -160,7 +192,7 @@ func (n *InputNode) FromJSON(decoder jbtf.Decoder, body []byte) error {
 // port otherwise.
 func buildInputOutputPort(n *InputNode) nodes.OutputPort {
 	source := &inputNodeOutputPort{node: n}
-	if builder, ok := nodes.LookupPortTypeProxy(n.PortType); ok {
+	if builder, ok := nodes.LookupPortTypeProxy(n.EffectiveType()); ok {
 		return builder.BuildProxyOutput(source)
 	}
 	return source
@@ -181,7 +213,7 @@ func (p *inputNodeOutputPort) Name() string {
 }
 
 func (p *inputNodeOutputPort) Type() string {
-	return p.node.PortType
+	return p.node.EffectiveType()
 }
 
 func (p *inputNodeOutputPort) Version() int {
@@ -218,7 +250,11 @@ func (p *inputNodeDefaultPort) Name() string {
 }
 
 func (p *inputNodeDefaultPort) Type() string {
-	return p.node.PortType
+	return p.node.EffectiveType()
+}
+
+func (p *inputNodeDefaultPort) AcceptedTypes() []string {
+	return AcceptedBoundaryTypes(p.node.PortType)
 }
 
 func (p *inputNodeDefaultPort) Clear() {
@@ -254,6 +290,10 @@ func (n *OutputNode) BoundaryPortName() string {
 
 func (n *OutputNode) BoundaryPortType() string {
 	return n.PortType
+}
+
+func (n *OutputNode) EffectiveType() string {
+	return effectivePortType(n.PortType, n.inputPort.Value())
 }
 
 func (n *OutputNode) Name() string {
@@ -305,11 +345,16 @@ func (p *outputNodeInputPort) Name() string {
 }
 
 func (p *outputNodeInputPort) Type() string {
-	return p.node.PortType
+	return p.node.EffectiveType()
+}
+
+func (p *outputNodeInputPort) AcceptedTypes() []string {
+	return AcceptedBoundaryTypes(p.node.PortType)
 }
 
 func (p *outputNodeInputPort) Clear() {
 	p.connected = nil
+	nodes.Touch()
 }
 
 func (p *outputNodeInputPort) Value() nodes.OutputPort {
@@ -318,5 +363,6 @@ func (p *outputNodeInputPort) Value() nodes.OutputPort {
 
 func (p *outputNodeInputPort) Set(port nodes.OutputPort) error {
 	p.connected = port
+	nodes.Touch()
 	return nil
 }

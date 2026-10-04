@@ -72,7 +72,6 @@ func TestInputNodeExternalSourceVersion(t *testing.T) {
 	ext := &stubOutputPort{version: 42, name: "Value"}
 
 	n.SetExternalSource(ext)
-	assert.Equal(t, ext, n.ExternalSource())
 
 	out := n.Outputs()[subgraph.ValuePortName]
 	assert.Equal(t, 42, out.Version())

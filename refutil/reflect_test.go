@@ -41,23 +41,6 @@ func (t genericTestStruct[T]) TypeWithPackage() string {
 	return refutil.TypeResolution{IncludePackage: true, IncludePointer: true}.Resolve(v)
 }
 
-func TestFuncNamesOfType(t *testing.T) {
-	ts := TestStruct{}
-	v := refutil.FuncNamesOfType[error](ts)
-
-	assert.Len(t, v, 1)
-	assert.Contains(t, v, "ABC")
-}
-
-func TestFuncNamesOfType_Interface(t *testing.T) {
-	ts := TestStruct{}
-	var reader io.Reader = &ts
-	v := refutil.FuncNamesOfType[error](reader)
-
-	assert.Len(t, v, 1)
-	assert.Contains(t, v, "ABC")
-}
-
 func TestGenericFieldValuesOfType(t *testing.T) {
 	ts := TestStruct{}
 

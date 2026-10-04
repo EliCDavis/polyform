@@ -2,7 +2,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
 
-const webRoot = path.resolve(__dirname);
+const webRoot = import.meta.dirname;
 
 export default defineConfig({
   root: webRoot,
@@ -18,11 +18,11 @@ export default defineConfig({
     emptyOutDir: true,
     sourcemap: true,
     cssCodeSplit: false,
-    rollupOptions: {
+    rolldownOptions: {
       input: path.resolve(webRoot, "src/main.tsx"),
       output: {
         entryFileNames: "index.js",
-        inlineDynamicImports: true,
+        codeSplitting: false,
         assetFileNames: "assets/[name][extname]",
       },
     },
