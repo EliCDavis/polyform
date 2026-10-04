@@ -76,10 +76,14 @@ func (a *Instance) SetVariableInfo(variablePath, newPath, description string) er
 	if err := a.SetVariableDescription(variablePath, description); err != nil {
 		return err
 	}
+	a.mu().Lock()
+	defer a.mu().Unlock()
 	return a.variables.Move(variablePath, newPath)
 }
 
 func (a *Instance) SetVariableDescription(variablePath, description string) error {
+	a.mu().Lock()
+	defer a.mu().Unlock()
 	variable, err := a.variables.Variable(variablePath)
 	if err != nil {
 		return err
@@ -120,7 +124,7 @@ func (a *Instance) SwaggerDefinition() swagger.Definition {
 }
 
 func (a *Instance) Profiles() *named.Collection[variable.Profile] {
-	return a.Root().profiles
+	return a.profiles
 }
 
 func (a *Instance) SaveProfile(profileName string) {
@@ -145,5 +149,5 @@ func (a *Instance) ApplyProfile(profile variable.Profile) error {
 }
 
 func (a *Instance) VariantSets() *named.Collection[variant.Set] {
-	return a.Root().variantSets
+	return a.variantSets
 }

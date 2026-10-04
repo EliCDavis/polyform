@@ -175,11 +175,7 @@ func compareInputNames(x, y string) int {
 
 // The order is complete even when cyclic names a key that depends on itself.
 func dependenciesFirst[V any](items map[string]V, dependencies func(V) []string) (ordered []string, cyclic string) {
-	ids := make([]string, 0, len(items))
-	for id := range items {
-		ids = append(ids, id)
-	}
-	slices.Sort(ids)
+	ids := slices.Sorted(maps.Keys(items))
 
 	const (
 		visiting = iota + 1

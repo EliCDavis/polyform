@@ -2,6 +2,8 @@ package graph
 
 import (
 	"fmt"
+	"maps"
+	"slices"
 
 	"github.com/EliCDavis/polyform/generator/manifest"
 	"github.com/EliCDavis/polyform/generator/schema"
@@ -59,16 +61,8 @@ func (a *Instance) Manifest(producerName string) (result manifest.Manifest, err 
 	return result, err
 }
 
-func (a *Instance) Producer(producerName string) nodes.Output[manifest.Manifest] {
-	return a.namedManifests.namedPorts[producerName].port
-}
-
 func (a *Instance) ProducerNames() []string {
-	names := make([]string, 0, len(a.namedManifests.namedPorts))
-	for name := range a.namedManifests.namedPorts {
-		names = append(names, name)
-	}
-	return names
+	return slices.Collect(maps.Keys(a.namedManifests.namedPorts))
 }
 
 func (a *Instance) IsPortNamed(node nodes.Node, portName string) (string, bool) {

@@ -1,7 +1,7 @@
 package graph
 
 import (
-	"fmt"
+	"cmp"
 	"maps"
 	"sync"
 
@@ -21,25 +21,16 @@ type SubgraphInstanceNode struct {
 	owner      *Instance
 	subGraphID string
 
-	mu     sync.Mutex
-	copied *placementCopy
-
-	// Kept across refreshes: an edge holds the port object it was made with.
-	inputs  map[string]*subgraphInstanceInputPort
-	outputs map[string]*subgraphInstanceOutputPort
-}
-
-type placementCopy struct {
-	graph *Graph
-	boundaryIndex
+	mu        sync.Mutex
+	copied    *Graph
+	externals map[string]nodes.OutputPort
 }
 
 func NewRuntimeNode(owner *Instance, subGraphID string) *SubgraphInstanceNode {
 	return &SubgraphInstanceNode{
 		owner:      owner,
 		subGraphID: subGraphID,
-		inputs:     make(map[string]*subgraphInstanceInputPort),
-		outputs:    make(map[string]*subgraphInstanceOutputPort),
+		externals:  make(map[string]nodes.OutputPort),
 	}
 }
 
@@ -47,18 +38,19 @@ func (r *SubgraphInstanceNode) SubGraphID() string {
 	return r.subGraphID
 }
 
-func (r *SubgraphInstanceNode) Name() string {
+func (r *SubgraphInstanceNode) runtime() subGraphRuntime {
 	if definition, ok := r.owner.subGraphs[r.subGraphID]; ok {
-		return definition.name
+		return *definition
 	}
-	return "SubGraph"
+	return subGraphRuntime{name: "SubGraph"}
+}
+
+func (r *SubgraphInstanceNode) Name() string {
+	return r.runtime().name
 }
 
 func (r *SubgraphInstanceNode) Description() string {
-	if definition, ok := r.owner.subGraphs[r.subGraphID]; ok {
-		return definition.description
-	}
-	return ""
+	return r.runtime().description
 }
 
 func (r *SubgraphInstanceNode) Path() string {
@@ -66,52 +58,31 @@ func (r *SubgraphInstanceNode) Path() string {
 }
 
 func (r *SubgraphInstanceNode) definition() boundaryIndex {
-	if definition, ok := r.owner.subGraphs[r.subGraphID]; ok {
-		return definition.instance.boundaries()
+	if graph := r.runtime().instance; graph != nil {
+		return graph.boundaries()
 	}
 	return boundaryIndex{}
-}
-
-// LiveGraph is this placement's copy of the definition, built if it has to be.
-func (r *SubgraphInstanceNode) LiveGraph() *Graph {
-	if copied := r.ensureCopy(); copied != nil {
-		return copied.graph
-	}
-	return nil
 }
 
 // BuiltGraph is this placement's copy if anything has needed one yet.
 func (r *SubgraphInstanceNode) BuiltGraph() *Graph {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	if r.copied == nil {
-		return nil
-	}
-	return r.copied.graph
+	return r.copied
 }
 
-func (r *SubgraphInstanceNode) ensureCopy() *placementCopy {
-	r.mu.Lock()
-	copied := r.copied
-	r.mu.Unlock()
-	if copied != nil {
-		return copied
+// LiveGraph is this placement's copy of the definition, built if it has to
+// be. It is nil when the definition cannot be copied.
+func (r *SubgraphInstanceNode) LiveGraph() *Graph {
+	if r.BuiltGraph() == nil {
+		_ = r.build()
 	}
-
-	_ = r.build()
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	return r.copied
+	return r.BuiltGraph()
 }
 
 func (r *SubgraphInstanceNode) build() error {
 	r.mu.Lock()
-	externals := make(map[string]nodes.OutputPort, len(r.inputs))
-	for name, input := range r.inputs {
-		if input.external != nil {
-			externals[name] = input.external
-		}
-	}
+	externals := maps.Clone(r.externals)
 	r.mu.Unlock()
 
 	graph, err := r.owner.cloneSubGraphDefinition(r.subGraphID, externals)
@@ -120,7 +91,7 @@ func (r *SubgraphInstanceNode) build() error {
 	}
 
 	r.mu.Lock()
-	r.copied = &placementCopy{graph: graph, boundaryIndex: graph.boundaries()}
+	r.copied = graph
 	r.mu.Unlock()
 	nodes.Touch()
 	return nil
@@ -141,9 +112,9 @@ func (r *SubgraphInstanceNode) needsCopy() bool {
 
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	for name, input := range r.inputs {
+	for name, external := range r.externals {
 		boundary, ok := definition.inputs[name]
-		if ok && input.external != nil && input.Type() != boundaryRank(boundary) {
+		if ok && fedType(boundary.BoundaryPortType(), external) != boundaryRank(boundary) {
 			return true
 		}
 	}
@@ -157,32 +128,23 @@ func (r *SubgraphInstanceNode) buildIfNeeded() error {
 	return nil
 }
 
-// feed has input read port. A source the inside cannot be wired around is
-// refused, and the one before it put back.
-func (r *SubgraphInstanceNode) feed(input *subgraphInstanceInputPort, port nodes.OutputPort) error {
-	previous := input.Value()
-	err := r.take(input, port)
-	if err != nil && previous != port {
-		if restoreErr := r.take(input, previous); restoreErr != nil {
-			err = fmt.Errorf("%w (and the previous source could not be put back: %v)", err, restoreErr)
-		}
-	}
-	return err
-}
-
-func (r *SubgraphInstanceNode) take(input *subgraphInstanceInputPort, port nodes.OutputPort) error {
+// feed has an input read port, or nothing when port is nil. A copy stays
+// only while it is still wired for what it is fed.
+func (r *SubgraphInstanceNode) feed(input string, port nodes.OutputPort) error {
 	r.mu.Lock()
-	input.external = port
+	if port == nil {
+		delete(r.externals, input)
+	} else {
+		r.externals[input] = port
+	}
 	if r.copied != nil {
-		// A copy stays only while it is still wired for what it is fed.
-		boundary, ok := r.copied.inputs[input.portName]
-		keep := false
+		boundary, ok := r.copied.boundaries().inputs[input]
 		if ok {
 			before := boundaryRank(boundary)
 			boundary.SetExternalSource(port)
-			keep = boundaryRank(boundary) == before
+			ok = boundaryRank(boundary) == before
 		}
-		if !keep {
+		if !ok {
 			r.copied = nil
 		}
 	}
@@ -193,102 +155,34 @@ func (r *SubgraphInstanceNode) take(input *subgraphInstanceInputPort, port nodes
 }
 
 func (r *SubgraphInstanceNode) Inputs() map[string]nodes.InputPort {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	r.refreshInputsLocked()
-
-	ports := make(map[string]nodes.InputPort, len(r.inputs))
-	for name, port := range r.inputs {
-		ports[name] = port
-	}
-	return ports
-}
-
-func (r *SubgraphInstanceNode) refreshInputsLocked() {
 	definition := r.definition()
 
-	for name, boundary := range definition.inputs {
-		port, ok := r.inputs[name]
-		if !ok {
-			port = &subgraphInstanceInputPort{subgraphNode: r, portName: name}
-			r.inputs[name] = port
-		}
-		port.portType = boundary.BoundaryPortType()
-	}
+	r.mu.Lock()
+	maps.DeleteFunc(r.externals, func(name string, _ nodes.OutputPort) bool {
+		_, ok := definition.inputs[name]
+		return !ok
+	})
+	r.mu.Unlock()
 
-	for name := range r.inputs {
-		if _, ok := definition.inputs[name]; !ok {
-			delete(r.inputs, name)
-		}
+	ports := make(map[string]nodes.InputPort, len(definition.inputs))
+	for name, boundary := range definition.inputs {
+		ports[name] = subgraphInstanceInputPort{node: r, name: name, portType: boundary.BoundaryPortType()}
 	}
+	return ports
 }
 
 func (r *SubgraphInstanceNode) Outputs() map[string]nodes.OutputPort {
 	definition := r.definition()
 
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
+	ports := make(map[string]nodes.OutputPort, len(definition.outputs))
 	for name, boundary := range definition.outputs {
-		port, ok := r.outputs[name]
-		if !ok {
-			port = &subgraphInstanceOutputPort{runtimeNode: r, portName: name}
-			r.outputs[name] = port
+		port := subgraphInstanceOutputPort{node: r, name: name, portType: boundary.BoundaryPortType()}
+		ports[name] = port
+		if builder, found := nodes.LookupPortTypeProxy(port.Type()); found {
+			ports[name] = builder.BuildProxyOutput(port)
 		}
-		port.portType = boundary.BoundaryPortType()
-
-		// What consumers hold is rebuilt when an array starts or stops arriving.
-		if effective := r.outputTypeLocked(name, definition); port.exposed == nil || port.exposedType != effective {
-			port.exposed = port
-			if builder, found := nodes.LookupPortTypeProxy(effective); found {
-				port.exposed = builder.BuildProxyOutput(port)
-			}
-			port.exposedType = effective
-		}
-	}
-	maps.DeleteFunc(r.outputs, func(name string, _ *subgraphInstanceOutputPort) bool {
-		_, ok := definition.outputs[name]
-		return !ok
-	})
-
-	ports := make(map[string]nodes.OutputPort, len(r.outputs))
-	for name, port := range r.outputs {
-		ports[name] = port.exposed
 	}
 	return ports
-}
-
-func (r *SubgraphInstanceNode) outputTypeLocked(name string, definition boundaryIndex) string {
-	outputs := definition.outputs
-	if r.copied != nil {
-		outputs = r.copied.outputs
-	}
-	if output, ok := outputs[name]; ok {
-		return output.EffectiveType()
-	}
-	return ""
-}
-
-// renameBoundaryPort keeps the port objects, which edges already hold.
-func (r *SubgraphInstanceNode) renameBoundaryPort(oldName, newName string, kind BoundaryPortKind) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
-	switch kind {
-	case BoundaryPortKindInput:
-		if port, ok := r.inputs[oldName]; ok {
-			port.portName = newName
-			delete(r.inputs, oldName)
-			r.inputs[newName] = port
-		}
-
-	case BoundaryPortKindOutput:
-		if port, ok := r.outputs[oldName]; ok {
-			port.portName = newName
-			delete(r.outputs, oldName)
-			r.outputs[newName] = port
-		}
-	}
 }
 
 func boundaryRank(boundary subgraph.Boundary) string {
@@ -298,48 +192,50 @@ func boundaryRank(boundary subgraph.Boundary) string {
 	return boundary.BoundaryPortType()
 }
 
+// An input takes on the array of its type while an array feeds it.
+func fedType(portType string, external nodes.OutputPort) string {
+	if typed, ok := external.(nodes.Typed); ok && typed.Type() == subgraph.ArrayOf(portType) {
+		return typed.Type()
+	}
+	return portType
+}
+
 // ============================================================================
 
 type subgraphInstanceInputPort struct {
-	subgraphNode *SubgraphInstanceNode
-	portName     string
-	portType     string
-	external     nodes.OutputPort
+	node     *SubgraphInstanceNode
+	name     string
+	portType string
 }
 
-func (p *subgraphInstanceInputPort) Node() nodes.Node {
-	return p.subgraphNode
+func (p subgraphInstanceInputPort) Node() nodes.Node {
+	return p.node
 }
 
-func (p *subgraphInstanceInputPort) Name() string {
-	return p.portName
+func (p subgraphInstanceInputPort) Name() string {
+	return p.name
 }
 
-func (p *subgraphInstanceInputPort) Type() string {
-	if typed, ok := p.external.(nodes.Typed); ok {
-		if name := typed.Type(); name == subgraph.ArrayOf(p.portType) {
-			return name
-		}
-	}
-	return p.portType
+func (p subgraphInstanceInputPort) Type() string {
+	return fedType(p.portType, p.Value())
 }
 
-func (p *subgraphInstanceInputPort) AcceptedTypes() []string {
+func (p subgraphInstanceInputPort) AcceptedTypes() []string {
 	return subgraph.AcceptedBoundaryTypes(p.portType)
 }
 
-func (p *subgraphInstanceInputPort) Value() nodes.OutputPort {
-	p.subgraphNode.mu.Lock()
-	defer p.subgraphNode.mu.Unlock()
-	return p.external
+func (p subgraphInstanceInputPort) Value() nodes.OutputPort {
+	p.node.mu.Lock()
+	defer p.node.mu.Unlock()
+	return p.node.externals[p.name]
 }
 
-func (p *subgraphInstanceInputPort) Set(port nodes.OutputPort) error {
-	return p.subgraphNode.feed(p, port)
+func (p subgraphInstanceInputPort) Set(port nodes.OutputPort) error {
+	return p.node.feed(p.name, port)
 }
 
-func (p *subgraphInstanceInputPort) Clear() {
-	if err := p.subgraphNode.feed(p, nil); err != nil {
+func (p subgraphInstanceInputPort) Clear() {
+	if err := p.node.feed(p.name, nil); err != nil {
 		panic(err)
 	}
 }
@@ -348,34 +244,31 @@ func (p *subgraphInstanceInputPort) Clear() {
 
 // What a typed proxy handed to consumers reads through.
 type subgraphInstanceOutputPort struct {
-	runtimeNode *SubgraphInstanceNode
-	portName    string
-	portType    string
-
-	exposed     nodes.OutputPort
-	exposedType string
+	node     *SubgraphInstanceNode
+	name     string
+	portType string
 }
 
-func (p *subgraphInstanceOutputPort) Node() nodes.Node {
-	return p.runtimeNode
+func (p subgraphInstanceOutputPort) Node() nodes.Node {
+	return p.node
 }
 
-func (p *subgraphInstanceOutputPort) Name() string {
-	return p.portName
+func (p subgraphInstanceOutputPort) Name() string {
+	return p.name
 }
 
-func (p *subgraphInstanceOutputPort) Type() string {
-	definition := p.runtimeNode.definition()
-
-	p.runtimeNode.mu.Lock()
-	defer p.runtimeNode.mu.Unlock()
-	if effective := p.runtimeNode.outputTypeLocked(p.portName, definition); effective != "" {
-		return effective
+func (p subgraphInstanceOutputPort) Type() string {
+	outputs := p.node.definition().outputs
+	if copied := p.node.BuiltGraph(); copied != nil {
+		outputs = copied.boundaries().outputs
+	}
+	if output, ok := outputs[p.name]; ok {
+		return cmp.Or(output.EffectiveType(), p.portType)
 	}
 	return p.portType
 }
 
-func (p *subgraphInstanceOutputPort) Version() int {
+func (p subgraphInstanceOutputPort) Version() int {
 	if source := p.CurrentSource(); source != nil {
 		return source.Version()
 	}
@@ -383,23 +276,20 @@ func (p *subgraphInstanceOutputPort) Version() int {
 }
 
 // CurrentSource is nil until something has evaluated through the placement.
-func (p *subgraphInstanceOutputPort) CurrentSource() nodes.OutputPort {
-	p.runtimeNode.mu.Lock()
-	copied := p.runtimeNode.copied
-	p.runtimeNode.mu.Unlock()
-	return copied.source(p.portName)
+func (p subgraphInstanceOutputPort) CurrentSource() nodes.OutputPort {
+	return p.readFrom(p.node.BuiltGraph())
 }
 
-func (p *subgraphInstanceOutputPort) SourceForValue() nodes.OutputPort {
-	return p.runtimeNode.ensureCopy().source(p.portName)
+func (p subgraphInstanceOutputPort) SourceForValue() nodes.OutputPort {
+	return p.readFrom(p.node.LiveGraph())
 }
 
-func (c *placementCopy) source(output string) nodes.OutputPort {
-	if c == nil {
+func (p subgraphInstanceOutputPort) readFrom(copied *Graph) nodes.OutputPort {
+	if copied == nil {
 		return nil
 	}
-	if node, ok := c.outputs[output]; ok {
-		return node.ConnectedSource()
+	if output, ok := copied.boundaries().outputs[p.name]; ok {
+		return output.ConnectedSource()
 	}
 	return nil
 }

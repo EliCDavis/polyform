@@ -21,13 +21,7 @@ func (i *Instance) BuildSchemaForAllNodeTypes() []schema.NodeType {
 		if !ok {
 			panic(fmt.Errorf("Registered type %q is not a node: %s", registeredType, instance))
 		}
-		if nodeInstance == nil {
-			panic("New registered type is nil")
-		}
-		// log.Printf("%T: %+v\n", nodeInstance, nodeInstance)
-		// log.Print(registeredType)
-		b := BuildNodeTypeSchema(registeredType, nodeInstance)
-		nodeTypes = append(nodeTypes, b)
+		nodeTypes = append(nodeTypes, BuildNodeTypeSchema(registeredType, nodeInstance))
 	}
 	return nodeTypes
 }

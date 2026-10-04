@@ -2,6 +2,7 @@ package graph
 
 import (
 	"fmt"
+	"maps"
 	"slices"
 	"strconv"
 	"strings"
@@ -74,11 +75,7 @@ func (a *Graph) NodeId(node nodes.Node) string {
 }
 
 func (a *Graph) NodeIds() []string {
-	ids := make([]string, 0, len(a.nodesByID))
-	for id := range a.nodesByID {
-		ids = append(ids, id)
-	}
-	return ids
+	return slices.Collect(maps.Keys(a.nodesByID))
 }
 
 func (a *Graph) HasNodeWithId(nodeId string) bool {

@@ -76,8 +76,12 @@ func (a *Graph) settleOnce() error {
 		offered := offers{}
 		var waiting *edgeConflict
 		for _, seat := range seats {
-			if err := seat.fill(offered, &waiting); err != nil {
+			untyped, err := seat.fill(offered)
+			if err != nil {
 				return err
+			}
+			if waiting == nil {
+				waiting = untyped
 			}
 		}
 
@@ -115,62 +119,61 @@ type seat struct {
 	inputs map[string]nodes.InputPort
 }
 
-func (s seat) conflict(input string, i int, format string, args ...any) *edgeConflict {
-	e := s.graph.edgeAt(s.node, input, s.inputs[input], i)
-	return &edgeConflict{edge: e, err: fmt.Errorf(format, args...)}
+func (s seat) edge(input string, i int) edge {
+	return s.graph.edgeAt(s.node, input, s.inputs[input], i)
 }
 
 // fill has each of the node's inputs hold what its sources offer, first
 // taking any dynamic type they pin down. An input reading an output that
-// has no type yet is left for waiting.
-func (s seat) fill(offered offers, waiting **edgeConflict) error {
+// has no type yet is left alone and returned as untyped.
+func (s seat) fill(offered offers) (untyped *edgeConflict, err error) {
 	reads := s.graph.reads[s.node]
 	for _, input := range slices.Sorted(maps.Keys(reads)) {
 		if _, ok := s.inputs[input]; !ok {
-			return s.conflict(input, 0, "node %q no longer has an input %q", s.graph.nodeIDs[s.node], input)
+			e := s.edge(input, 0)
+			return nil, &edgeConflict{e, fmt.Errorf("node %q no longer has an input %q", e.consumerID, input)}
 		}
 	}
 
 	for _, input := range slices.Sorted(maps.Keys(s.inputs)) {
 		in := s.inputs[input]
 		want := make([]nodes.OutputPort, len(reads[input]))
-		untyped := -1
+		typed := true
 
 		for i, from := range reads[input] {
-			out := offered.of(from)
-			if out == nil {
-				return s.conflict(input, i, "node %q no longer has an output %q for node %q's %q input to read",
-					s.graph.nodeIDs[from.node], from.port, s.graph.nodeIDs[s.node], input)
+			want[i] = offered.of(from)
+			if want[i] == nil {
+				e := s.edge(input, i)
+				return nil, &edgeConflict{e, fmt.Errorf("node %q no longer has an output %q for node %q's %q input to read",
+					e.producerID, e.output, e.consumerID, input)}
 			}
-			want[i] = out
 
-			outType := portTypeOf(out)
+			outType := portTypeOf(want[i])
 			switch {
-			case outType == "" && isDynamic(out) && portTypeOf(in) != "":
-				untyped = i
+			case outType == "" && isDynamic(want[i]) && portTypeOf(in) != "":
+				typed = false
+				if e := s.edge(input, i); untyped == nil {
+					untyped = &edgeConflict{e, fmt.Errorf("node %q's %q output has no type for node %q's %q input to take",
+						e.producerID, e.output, e.consumerID, input)}
+				}
 			case outType != "" && isDynamic(in) && portTypeOf(in) == "":
 				if err := in.(nodes.DynamicallyTypedPort).BindType(outType); err != nil {
-					c := s.conflict(input, i, "")
-					c.err = fmt.Errorf("%s: %w", c.edge, err)
-					return c
+					e := s.edge(input, i)
+					return nil, &edgeConflict{e, fmt.Errorf("%s: %w", e, err)}
 				}
 			}
 		}
 
-		if untyped != -1 {
-			if *waiting == nil {
-				*waiting = s.conflict(input, untyped, "node %q's %q output has no type for node %q's %q input to take",
-					s.graph.nodeIDs[reads[input][untyped].node], reads[input][untyped].port, s.graph.nodeIDs[s.node], input)
-			}
+		if !typed {
 			continue
 		}
 		if i, err := hold(in, want); err != nil {
-			from := reads[input][i]
-			return s.conflict(input, i, "node %q's %q output now carries %s, which node %q's %q input cannot take (%v)",
-				s.graph.nodeIDs[from.node], from.port, portTypeOf(want[i]), s.graph.nodeIDs[s.node], input, err)
+			e := s.edge(input, i)
+			return nil, &edgeConflict{e, fmt.Errorf("node %q's %q output now carries %s, which node %q's %q input cannot take (%v)",
+				e.producerID, e.output, portTypeOf(want[i]), e.consumerID, input, err)}
 		}
 	}
-	return nil
+	return untyped, nil
 }
 
 // typeProducers gives each untyped output the node reads the type of the
@@ -187,9 +190,8 @@ func (s seat) typeProducers(offered offers) (bound int, err error) {
 				continue
 			}
 			if err := out.(nodes.DynamicallyTypedPort).BindType(inType); err != nil {
-				c := s.conflict(input, i, "")
-				c.err = fmt.Errorf("%s: %w", c.edge, err)
-				return bound, c
+				e := s.edge(input, i)
+				return bound, &edgeConflict{e, fmt.Errorf("%s: %w", e, err)}
 			}
 			bound++
 		}

@@ -63,22 +63,18 @@ func New(config Config) *Instance {
 
 	nodes.DiscoverPortTypes(factory)
 	instance := &Instance{
-		details: Details{
-			Name:        config.Name,
-			Description: config.Description,
-			Version:     config.Version,
-			Authors:     config.Authors,
-		},
 		typeFactory:     factory,
 		variableFactory: config.VariableFactory,
 		variables:       variable.NewSystem(),
-		subGraphs:       make(map[string]*subGraphRuntime),
-		copySources:     make(map[string]savedGraph),
-		profiles:        named.New[variable.Profile]("profile"),
-		variantSets:     named.New[variant.Set]("variant set"),
-		namedManifests:  newNamedOutputManager[manifest.Manifest](),
 	}
 	instance.Graph = newGraph(instance)
+	instance.Reset()
+	instance.details = Details{
+		Name:        config.Name,
+		Description: config.Description,
+		Version:     config.Version,
+		Authors:     config.Authors,
+	}
 	instance.history = history.New(instance.EncodeToAppSchema, instance.ApplyAppSchema)
 	return instance
 }
