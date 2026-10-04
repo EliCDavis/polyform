@@ -40,9 +40,11 @@ func TestGetAndApplyGraph(t *testing.T) {
 	}
 
 	// ACT ====================================================================
-	graphData := app.Schema()
-	err := app.ApplySchema(graphData)
-	graphAgain := app.Schema()
+	graphData, err := app.Graph.EncodeToAppSchema()
+	assert.NoError(t, err)
+	err = app.ApplySchema(graphData)
+	assert.NoError(t, err)
+	graphAgain, err := app.Graph.EncodeToAppSchema()
 
 	// ASSERT =================================================================
 	assert.NoError(t, err)

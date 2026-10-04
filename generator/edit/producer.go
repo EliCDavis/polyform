@@ -21,7 +21,9 @@ func producerNameEndpoint(graphInstance *graph.Instance, saver *GraphSaver) endp
 				Request: endpoint.JsonRequestReader[SetProducer]{},
 				Handler: func(req endpoint.Request[SetProducer]) error {
 					nodeId := path.Base(req.Url)
-					graphInstance.SetNodeAsProducer(nodeId, req.Body.NodePort, req.Body.Producer)
+					if err := graphInstance.SetNodeAsProducer(nodeId, req.Body.NodePort, req.Body.Producer); err != nil {
+						return err
+					}
 					saver.Save()
 
 					return nil

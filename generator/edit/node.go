@@ -18,7 +18,7 @@ const (
 
 // createNodeFromRequest routes node creation to the right constructor: only
 // sub-graph boundary nodes carry a port type.
-func createNodeFromRequest(instance *graph.Instance, nodeType, portType string) (nodes.Node, string, error) {
+func createNodeFromRequest(instance *graph.Graph, nodeType, portType string) (nodes.Node, string, error) {
 	if portType != "" {
 		return instance.CreateBoundaryNode(nodeType, portType)
 	}
@@ -46,7 +46,7 @@ func nodeEndpoint(graphInstance *graph.Instance, saver *GraphSaver) endpoint.Han
 		Methods: map[string]endpoint.Method{
 			http.MethodPost: endpoint.JsonMethod(
 				func(request endpoint.Request[CreateRequest]) (CreateResponse, error) {
-					node, id, err := createNodeFromRequest(graphInstance, request.Body.NodeType, request.Body.PortType)
+					node, id, err := createNodeFromRequest(graphInstance.Graph, request.Body.NodeType, request.Body.PortType)
 					if err != nil {
 						return CreateResponse{}, err
 					}
@@ -60,7 +60,9 @@ func nodeEndpoint(graphInstance *graph.Instance, saver *GraphSaver) endpoint.Han
 			),
 			http.MethodDelete: endpoint.JsonMethod(
 				func(request endpoint.Request[DeleteRequest]) (EmptyResponse, error) {
-					graphInstance.DeleteNodeById(request.Body.NodeID)
+					if _, err := graphInstance.DeleteNodeById(request.Body.NodeID); err != nil {
+						return EmptyResponse{}, err
+					}
 					saver.Save()
 					return EmptyResponse{}, nil
 				},

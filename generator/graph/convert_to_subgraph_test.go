@@ -22,8 +22,8 @@ func TestConvertSelectionToSubGraph_SimpleChain(t *testing.T) {
 	_, outSumID, err := inst.CreateNode("Sum")
 	require.NoError(t, err)
 
-	inst.ConnectNodes(paramID, "Value", sumID, "Values")
-	inst.ConnectNodes(sumID, "Float", outSumID, "Values")
+	require.NoError(t, inst.ConnectNodes(paramID, "Value", sumID, "Values"))
+	require.NoError(t, inst.ConnectNodes(sumID, "Float", outSumID, "Values"))
 
 	result, err := inst.ConvertSelectionToSubGraph(graph.RootScope, []string{sumID}, "Adder", "adds things")
 	require.NoError(t, err)
@@ -100,9 +100,9 @@ func TestConvertSelectionToSubGraph_FanOut(t *testing.T) {
 	_, rightID, err := inst.CreateNode("Sum")
 	require.NoError(t, err)
 
-	inst.ConnectNodes(paramID, "Value", midID, "Values")
-	inst.ConnectNodes(midID, "Float", leftID, "Values")
-	inst.ConnectNodes(midID, "Float", rightID, "Values")
+	require.NoError(t, inst.ConnectNodes(paramID, "Value", midID, "Values"))
+	require.NoError(t, inst.ConnectNodes(midID, "Float", leftID, "Values"))
+	require.NoError(t, inst.ConnectNodes(midID, "Float", rightID, "Values"))
 
 	result, err := inst.ConvertSelectionToSubGraph(graph.RootScope, []string{midID}, "Fan", "")
 	require.NoError(t, err)
@@ -130,8 +130,8 @@ func TestConvertSelectionToSubGraph_FanInSharesOneInput(t *testing.T) {
 	_, rightID, err := inst.CreateNode("Sum")
 	require.NoError(t, err)
 
-	inst.ConnectNodes(paramID, "Value", leftID, "Values")
-	inst.ConnectNodes(paramID, "Value", rightID, "Values")
+	require.NoError(t, inst.ConnectNodes(paramID, "Value", leftID, "Values"))
+	require.NoError(t, inst.ConnectNodes(paramID, "Value", rightID, "Values"))
 
 	result, err := inst.ConvertSelectionToSubGraph(graph.RootScope, []string{leftID, rightID}, "Pair", "")
 	require.NoError(t, err)
@@ -172,9 +172,9 @@ func TestConvertSelectionToSubGraph_InternalEdgesPreserved(t *testing.T) {
 	_, dID, err := inst.CreateNode("Sum")
 	require.NoError(t, err)
 
-	inst.ConnectNodes(aID, "Value", bID, "Values")
-	inst.ConnectNodes(bID, "Float", cID, "Values")
-	inst.ConnectNodes(cID, "Float", dID, "Values")
+	require.NoError(t, inst.ConnectNodes(aID, "Value", bID, "Values"))
+	require.NoError(t, inst.ConnectNodes(bID, "Float", cID, "Values"))
+	require.NoError(t, inst.ConnectNodes(cID, "Float", dID, "Values"))
 
 	result, err := inst.ConvertSelectionToSubGraph(graph.RootScope, []string{bID, cID}, "Inner", "")
 	require.NoError(t, err)
@@ -237,8 +237,8 @@ func TestConvertSelectionToSubGraph_ScopedParent(t *testing.T) {
 	require.NoError(t, err)
 	_, outID, err := child.CreateNode("Sum")
 	require.NoError(t, err)
-	child.ConnectNodes(paramID, "Value", sumID, "Values")
-	child.ConnectNodes(sumID, "Float", outID, "Values")
+	require.NoError(t, child.ConnectNodes(paramID, "Value", sumID, "Values"))
+	require.NoError(t, child.ConnectNodes(sumID, "Float", outID, "Values"))
 
 	result, err := inst.ConvertSelectionToSubGraph(graph.SubGraphScope("outer"), []string{sumID}, "Nested", "")
 	require.NoError(t, err)
@@ -275,8 +275,8 @@ func TestConvertSelectionToSubGraph_RoundTrip(t *testing.T) {
 	require.NoError(t, err)
 	_, outID, err := inst.CreateNode("Sum")
 	require.NoError(t, err)
-	inst.ConnectNodes(paramID, "Value", sumID, "Values")
-	inst.ConnectNodes(sumID, "Float", outID, "Values")
+	require.NoError(t, inst.ConnectNodes(paramID, "Value", sumID, "Values"))
+	require.NoError(t, inst.ConnectNodes(sumID, "Float", outID, "Values"))
 
 	result, err := inst.ConvertSelectionToSubGraph(graph.RootScope, []string{sumID}, "Round", "trip")
 	require.NoError(t, err)
@@ -307,8 +307,8 @@ func TestConvertSelectionToSubGraph_RefusesACycleBeforeChangingAnything(t *testi
 	require.NoError(t, err)
 	_, bID, err := inst.CreateNode("Sum")
 	require.NoError(t, err)
-	inst.ConnectNodes(aID, "Float", midID, "Values")
-	inst.ConnectNodes(midID, "Float", bID, "Values")
+	require.NoError(t, inst.ConnectNodes(aID, "Float", midID, "Values"))
+	require.NoError(t, inst.ConnectNodes(midID, "Float", bID, "Values"))
 
 	before := len(inst.NodeIds())
 	subgraphsBefore := len(inst.Schema().SubGraphs)

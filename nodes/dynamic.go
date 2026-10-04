@@ -62,12 +62,6 @@ func (p dynamicPattern) solve(concrete string) (string, bool) {
 	return concrete[len(prefix):], true
 }
 
-// DynamicVariable is the type variable a port's pattern is written in terms
-// of, which is the key its binding appears under in DynamicTypes.
-func DynamicVariable(pattern string) string {
-	return dynamicPattern(pattern).variable()
-}
-
 // patternOfHandle reads the pattern off an output method's argument, which
 // reflection renders as "*nodes.Dynamic[pkg.Variable]".
 func patternOfHandle(handle reflect.Type) (dynamicPattern, bool) {

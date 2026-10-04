@@ -23,8 +23,8 @@ func TestALiftedChainInsideASubgraphClonesWithItsRank(t *testing.T) {
 	_, sum, err := child.CreateNode(floatArraySumType)
 	require.NoError(t, err)
 
-	child.ConnectNodes(source, "Out", double, "In")
-	child.ConnectNodes(double, "Out", sum, "In")
+	require.NoError(t, child.ConnectNodes(source, "Out", double, "In"))
+	require.NoError(t, child.ConnectNodes(double, "Out", sum, "In"))
 	require.InDelta(t, 12, nodes.GetNodeOutputPort[float64](child.Node(sum), "Out").Value(), 1e-12)
 
 	typePath, err := inst.RegisterSubGraphNodeType("mottle")
@@ -52,8 +52,8 @@ func TestALiftedChainInsideASubgraphSurvivesASaveAndLoad(t *testing.T) {
 	_, sum, err := child.CreateNode(floatArraySumType)
 	require.NoError(t, err)
 
-	child.ConnectNodes(source, "Out", double, "In")
-	child.ConnectNodes(double, "Out", sum, "In")
+	require.NoError(t, child.ConnectNodes(source, "Out", double, "In"))
+	require.NoError(t, child.ConnectNodes(double, "Out", sum, "In"))
 
 	saved, err := inst.EncodeToAppSchema()
 	require.NoError(t, err)
@@ -80,8 +80,8 @@ func TestConvertingALiftedChainIntoASubgraph(t *testing.T) {
 	_, sum, err := inst.CreateNode(floatArraySumType)
 	require.NoError(t, err)
 
-	inst.ConnectNodes(source, "Out", double, "In")
-	inst.ConnectNodes(double, "Out", sum, "In")
+	require.NoError(t, inst.ConnectNodes(source, "Out", double, "In"))
+	require.NoError(t, inst.ConnectNodes(double, "Out", sum, "In"))
 	require.InDelta(t, 12, nodes.GetNodeOutputPort[float64](inst.Node(sum), "Out").Value(), 1e-12)
 
 	var result graph.ConvertSelectionResult
@@ -104,9 +104,9 @@ func TestAMixedScalarAndArrayLiftedListSurvivesASaveAndLoad(t *testing.T) {
 	_, sum, err := inst.CreateNode(floatArraySumType)
 	require.NoError(t, err)
 
-	inst.ConnectNodes(scalar, "Out", total, "In.0")
-	inst.ConnectNodes(array, "Out", total, "In.1")
-	inst.ConnectNodes(total, "Out", sum, "In")
+	require.NoError(t, inst.ConnectNodes(scalar, "Out", total, "In.0"))
+	require.NoError(t, inst.ConnectNodes(array, "Out", total, "In.1"))
+	require.NoError(t, inst.ConnectNodes(total, "Out", sum, "In"))
 
 	saved, err := inst.EncodeToAppSchema()
 	require.NoError(t, err)
@@ -131,9 +131,9 @@ func TestConvertingAMixedScalarAndArrayLiftedListIntoASubgraph(t *testing.T) {
 	_, sum, err := inst.CreateNode(floatArraySumType)
 	require.NoError(t, err)
 
-	inst.ConnectNodes(scalar, "Out", total, "In.0")
-	inst.ConnectNodes(array, "Out", total, "In.1")
-	inst.ConnectNodes(total, "Out", sum, "In")
+	require.NoError(t, inst.ConnectNodes(scalar, "Out", total, "In.0"))
+	require.NoError(t, inst.ConnectNodes(array, "Out", total, "In.1"))
+	require.NoError(t, inst.ConnectNodes(total, "Out", sum, "In"))
 
 	require.NotPanics(t, func() {
 		_, err = inst.ConvertSelectionToSubGraph(graph.RootScope,
@@ -155,8 +155,8 @@ func TestConvertingALiftedChainOutOfAClonedSubgraph(t *testing.T) {
 	require.NoError(t, err)
 	_, sum, err := child.CreateNode(floatArraySumType)
 	require.NoError(t, err)
-	child.ConnectNodes(source, "Out", double, "In")
-	child.ConnectNodes(double, "Out", sum, "In")
+	require.NoError(t, child.ConnectNodes(source, "Out", double, "In"))
+	require.NoError(t, child.ConnectNodes(double, "Out", sum, "In"))
 
 	typePath, err := inst.RegisterSubGraphNodeType("outer")
 	require.NoError(t, err)

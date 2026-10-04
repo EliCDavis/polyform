@@ -80,7 +80,8 @@ func (as *Server) writeManifest(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	manifest := resolvedNode.output.Value()
+	var manifest manifest.Manifest
+	as.Graph.Evaluate(func() { manifest = resolvedNode.output.Value() })
 
 	// We're just trying to get the manifest of the node's output manifest
 	if resolvedNode.remainingUrl == "" {

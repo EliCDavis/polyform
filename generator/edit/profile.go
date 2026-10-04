@@ -31,7 +31,7 @@ func profileEndpoint(graphInstance *graph.Instance, saver *GraphSaver) endpoint.
 			}),
 
 			http.MethodDelete: endpoint.JsonBodyMethod(func(request endpoint.Request[ProfileRequest]) error {
-				err := graphInstance.DeleteProfile(request.Body.Name)
+				err := graphInstance.Profiles().Delete(request.Body.Name)
 				if err != nil {
 					return err
 				}
@@ -71,7 +71,7 @@ func renameProfileEndpoint(graphInstance *graph.Instance, saver *GraphSaver) end
 	return endpoint.Handler{
 		Methods: map[string]endpoint.Method{
 			http.MethodPost: endpoint.JsonBodyMethod(func(request endpoint.Request[RenameProfileRequest]) error {
-				err := graphInstance.RenameProfile(request.Body.Original, request.Body.New)
+				err := graphInstance.Profiles().Rename(request.Body.Original, request.Body.New)
 				if err != nil {
 					return err
 				}

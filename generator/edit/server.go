@@ -96,8 +96,8 @@ func (as *Server) Handler(indexFile string) (*http.ServeMux, error) {
 	}
 
 	mux.HandleFunc(indexFile, func(w http.ResponseWriter, r *http.Request) {
-		title := as.Graph.GetName()
-		description := as.Graph.GetDescription()
+		details := as.Graph.Details()
+		title, description := details.Name, details.Description
 
 		if description == "" && title == "" {
 			title = "Polyform"
@@ -106,7 +106,7 @@ func (as *Server) Handler(indexFile string) (*http.ServeMux, error) {
 
 		pageToServe := pageData{
 			Title:             title,
-			Version:           as.Graph.GetVersion(),
+			Version:           details.Version,
 			Description:       description,
 			AntiAlias:         as.Webscene.AntiAlias,
 			XrEnabled:         as.Webscene.XrEnabled,
@@ -163,9 +163,9 @@ func (as *Server) Handler(indexFile string) (*http.ServeMux, error) {
 	mux.Handle(importSubGraphsEndpointPath, undoable(as.Graph, "imported subgraphs", importSubGraphsEndpoint(as.Graph, graphSaver)))
 	mux.Handle("/graph/subgraph/", undoable(as.Graph, "subgraph", scopedGraphHandler(as.Graph, graphSaver)))
 	mux.HandleFunc(nodeOutputEndpointPath, as.NodeOutputEndpoint)
-	mux.Handle("/parameter/value/", undoable(as.Graph, "parameter", parameterValueEndpoint(as.Graph, graphSaver)))
-	mux.Handle("/parameter/name/", undoable(as.Graph, "parameter name", parameterNameEndpoint(as.Graph, graphSaver)))
-	mux.Handle("/parameter/description/", undoable(as.Graph, "parameter description", parameterDescriptionEndpoint(as.Graph, graphSaver)))
+	mux.Handle("/parameter/value/", undoable(as.Graph, "parameter", parameterValueEndpoint(as.Graph.Graph, graphSaver)))
+	mux.Handle("/parameter/name/", undoable(as.Graph, "parameter name", parameterNameEndpoint(as.Graph.Graph, graphSaver)))
+	mux.Handle("/parameter/description/", undoable(as.Graph, "parameter description", parameterDescriptionEndpoint(as.Graph.Graph, graphSaver)))
 
 	mux.Handle("/profile", undoable(as.Graph, "profile", profileEndpoint(as.Graph, graphSaver)))
 	mux.Handle("/profile/apply", undoable(as.Graph, "applied profile", applyProfileEndpoint(as.Graph, graphSaver)))
@@ -180,7 +180,7 @@ func (as *Server) Handler(indexFile string) (*http.ServeMux, error) {
 	mux.Handle("/load-example", exampleGraphEndpoint(as))
 	mux.Handle("/graph", graphEndpoint(as))
 	mux.Handle("/graph/execution-report", executionReportEndpoint(as))
-	mux.Handle("/graph/metadata/", undoable(as.Graph, "layout", graphMetadataEndpointForInstance(as.Graph, graphSaver)))
+	mux.Handle("/graph/metadata/", undoable(as.Graph, "layout", graphMetadataEndpointForInstance(as.Graph.Graph, graphSaver)))
 	mux.HandleFunc("/started", as.StartedEndpoint)
 	mux.HandleFunc("/mermaid", as.MermaidEndpoint)
 	mux.HandleFunc("/swagger", as.SwaggerEndpoint)
@@ -239,7 +239,10 @@ func (as *Server) writeProducerDataToRequest(producerToLoad, file string, w http
 		}
 	}()
 
-	manifest := as.Graph.Manifest(producerToLoad)
+	manifest, err := as.Graph.Manifest(producerToLoad)
+	if err != nil {
+		return err
+	}
 	artifact := manifest.Entries[file].Artifact
 
 	w.Header().Set("Content-Type", artifact.Mime())
@@ -272,11 +275,3 @@ func (as *Server) SwaggerEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (as *Server) SceneEndpoint(w http.ResponseWriter, r *http.Request) {
-	data, err := json.Marshal(as.Webscene)
-	if err != nil {
-		panic(err)
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(data)
-}

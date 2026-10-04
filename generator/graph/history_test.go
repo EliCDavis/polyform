@@ -16,46 +16,46 @@ func nodeCount(t *testing.T, instance *graph.Instance) int {
 
 func TestTransactRecordsAnUndoableStep(t *testing.T) {
 	instance := testInstanceWithLiftedNodes(t)
-	require.False(t, instance.CanUndo())
+	require.False(t, instance.History().CanUndo())
 
-	require.NoError(t, instance.Transact("add a source", func() error {
+	require.NoError(t, instance.History().Transact("add a source", func() error {
 		_, _, err := instance.CreateNode(floatSourceType)
 		return err
 	}))
 
 	assert.Equal(t, 1, nodeCount(t, instance))
-	require.True(t, instance.CanUndo())
-	assert.Equal(t, []string{"add a source"}, instance.History().Undo)
+	require.True(t, instance.History().CanUndo())
+	assert.Equal(t, []string{"add a source"}, instance.History().Steps().Undo)
 }
 
 func TestUndoAndRedoWalkTheStack(t *testing.T) {
 	instance := testInstanceWithLiftedNodes(t)
 
-	require.NoError(t, instance.Transact("first", func() error {
+	require.NoError(t, instance.History().Transact("first", func() error {
 		_, _, err := instance.CreateNode(floatSourceType)
 		return err
 	}))
-	require.NoError(t, instance.Transact("second", func() error {
+	require.NoError(t, instance.History().Transact("second", func() error {
 		_, _, err := instance.CreateNode(floatSourceType)
 		return err
 	}))
 	require.Equal(t, 2, nodeCount(t, instance))
 
-	label, err := instance.Undo()
+	label, err := instance.History().Undo()
 	require.NoError(t, err)
 	assert.Equal(t, "second", label)
 	assert.Equal(t, 1, nodeCount(t, instance))
 
-	label, err = instance.Undo()
+	label, err = instance.History().Undo()
 	require.NoError(t, err)
 	assert.Equal(t, "first", label)
 	assert.Equal(t, 0, nodeCount(t, instance))
 
-	require.False(t, instance.CanUndo())
-	_, err = instance.Undo()
+	require.False(t, instance.History().CanUndo())
+	_, err = instance.History().Undo()
 	assert.Error(t, err)
 
-	label, err = instance.Redo()
+	label, err = instance.History().Redo()
 	require.NoError(t, err)
 	assert.Equal(t, "first", label)
 	assert.Equal(t, 1, nodeCount(t, instance))
@@ -64,21 +64,21 @@ func TestUndoAndRedoWalkTheStack(t *testing.T) {
 func TestActingAfterAnUndoAbandonsTheRedoBranch(t *testing.T) {
 	instance := testInstanceWithLiftedNodes(t)
 
-	require.NoError(t, instance.Transact("first", func() error {
+	require.NoError(t, instance.History().Transact("first", func() error {
 		_, _, err := instance.CreateNode(floatSourceType)
 		return err
 	}))
-	_, err := instance.Undo()
+	_, err := instance.History().Undo()
 	require.NoError(t, err)
-	require.True(t, instance.CanRedo())
+	require.True(t, instance.History().CanRedo())
 
-	require.NoError(t, instance.Transact("different", func() error {
+	require.NoError(t, instance.History().Transact("different", func() error {
 		_, _, err := instance.CreateNode(floatArraySourceType)
 		return err
 	}))
 
-	assert.False(t, instance.CanRedo(), "the undone branch is gone")
-	assert.Equal(t, []string{"different"}, instance.History().Undo)
+	assert.False(t, instance.History().CanRedo(), "the undone branch is gone")
+	assert.Equal(t, []string{"different"}, instance.History().Steps().Undo)
 }
 
 func TestATransactionThatFailsPartwayLeavesNothingBehind(t *testing.T) {
@@ -87,7 +87,7 @@ func TestATransactionThatFailsPartwayLeavesNothingBehind(t *testing.T) {
 	require.NoError(t, err)
 
 	failure := errors.New("the second half went wrong")
-	err = instance.Transact("two changes", func() error {
+	err = instance.History().Transact("two changes", func() error {
 		if _, _, e := instance.CreateNode(floatSourceType); e != nil {
 			return e
 		}
@@ -97,25 +97,24 @@ func TestATransactionThatFailsPartwayLeavesNothingBehind(t *testing.T) {
 	require.ErrorIs(t, err, failure)
 	assert.Equal(t, 1, nodeCount(t, instance), "the first change was rolled back too")
 	assert.NotNil(t, instance.Node(existing), "and what was already there survives")
-	assert.False(t, instance.CanUndo(), "a failed step is not an undoable one")
+	assert.False(t, instance.History().CanUndo(), "a failed step is not an undoable one")
 }
 
 func TestATransactionThatPanicsIsRolledBack(t *testing.T) {
 	instance := testInstanceWithLiftedNodes(t)
 
-	err := instance.Transact("connect something impossible", func() error {
+	err := instance.History().Transact("connect something impossible", func() error {
 		_, consumer, e := instance.CreateNode(floatConsumerType)
 		if e != nil {
 			return e
 		}
-		instance.ConnectNodes(consumer, "Out", consumer, "In")
-		return nil
+		panic(instance.ConnectNodes(consumer, "Out", consumer, "In"))
 	})
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "itself")
 	assert.Equal(t, 0, nodeCount(t, instance))
-	assert.False(t, instance.CanUndo())
+	assert.False(t, instance.History().CanUndo())
 }
 
 func TestUndoRestoresConnectionsNotJustNodes(t *testing.T) {
@@ -126,13 +125,13 @@ func TestUndoRestoresConnectionsNotJustNodes(t *testing.T) {
 	_, consumer, err := instance.CreateNode(floatConsumerType)
 	require.NoError(t, err)
 
-	require.NoError(t, instance.Transact("wire them", func() error {
-		instance.ConnectNodes(source, "Out", consumer, "In")
+	require.NoError(t, instance.History().Transact("wire them", func() error {
+		require.NoError(t, instance.ConnectNodes(source, "Out", consumer, "In"))
 		return nil
 	}))
 	require.NotNil(t, instance.Schema().Nodes[consumer].AssignedInput["In"])
 
-	_, err = instance.Undo()
+	_, err = instance.History().Undo()
 	require.NoError(t, err)
 	assert.Empty(t, instance.Schema().Nodes[consumer].AssignedInput,
 		"the connection went away with the step that made it")
@@ -142,12 +141,12 @@ func TestHistoryIsBoundedByDepth(t *testing.T) {
 	instance := testInstanceWithLiftedNodes(t)
 
 	for range 80 {
-		require.NoError(t, instance.Transact("step", func() error {
+		require.NoError(t, instance.History().Transact("step", func() error {
 			_, _, err := instance.CreateNode(floatSourceType)
 			return err
 		}))
 	}
 
-	assert.LessOrEqual(t, len(instance.History().Undo), 64)
-	assert.Greater(t, len(instance.History().Undo), 0)
+	assert.LessOrEqual(t, len(instance.History().Steps().Undo), 64)
+	assert.Greater(t, len(instance.History().Steps().Undo), 0)
 }

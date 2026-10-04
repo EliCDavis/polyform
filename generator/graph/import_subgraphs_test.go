@@ -31,9 +31,9 @@ func buildSimpleAdderPayload(t *testing.T) []byte {
 	require.NoError(t, child.SetBoundaryNodeInfo(inputAID, "A"))
 	require.NoError(t, child.SetBoundaryNodeInfo(inputBID, "B"))
 	require.NoError(t, child.SetBoundaryNodeInfo(outputID, "Result"))
-	child.ConnectNodes(inputAID, subgraph.ValuePortName, sumID, "Values")
-	child.ConnectNodes(inputBID, subgraph.ValuePortName, sumID, "Values")
-	child.ConnectNodes(sumID, "Float", outputID, subgraph.ValuePortName)
+	require.NoError(t, child.ConnectNodes(inputAID, subgraph.ValuePortName, sumID, "Values"))
+	require.NoError(t, child.ConnectNodes(inputBID, subgraph.ValuePortName, sumID, "Values"))
+	require.NoError(t, child.ConnectNodes(sumID, "Float", outputID, subgraph.ValuePortName))
 
 	// Root noise that must not be imported.
 	_, _, err = src.CreateNode("Float64")
@@ -122,7 +122,7 @@ func TestImportSubGraphDefinitions_NestedTypeRemap(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, inner.SetBoundaryNodeInfo(inID, "In"))
 	require.NoError(t, inner.SetBoundaryNodeInfo(outID, "Out"))
-	inner.ConnectNodes(inID, subgraph.ValuePortName, outID, subgraph.ValuePortName)
+	require.NoError(t, inner.ConnectNodes(inID, subgraph.ValuePortName, outID, subgraph.ValuePortName))
 
 	outer, err := src.SubGraphInstance("outer")
 	require.NoError(t, err)
@@ -180,8 +180,8 @@ func TestImportSubGraphDefinitions_EvaluatesAfterImport(t *testing.T) {
 
 	runtime, runtimeID, err := dest.CreateNode(subgraph.RuntimeTypePath("adder"))
 	require.NoError(t, err)
-	dest.ConnectNodes(paramAID, "Value", runtimeID, "A")
-	dest.ConnectNodes(paramBID, "Value", runtimeID, "B")
+	require.NoError(t, dest.ConnectNodes(paramAID, "Value", runtimeID, "A"))
+	require.NoError(t, dest.ConnectNodes(paramBID, "Value", runtimeID, "B"))
 
 	assert.Equal(t, 8.0, nodes.GetNodeOutputPort[float64](runtime, "Result").Value())
 }

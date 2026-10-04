@@ -13,6 +13,7 @@ import (
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type TestNode struct {
@@ -63,7 +64,8 @@ func TestInstance_AddProducer_InitializeParameters_Artifacts(t *testing.T) {
 	instance.AddProducer("test.txt", nodes.GetNodeOutputPort[manifest.Manifest](&textNode, "Out"))
 	producerNames := instance.ProducerNames()
 	// assert.NoError(t, flags.Parse([]string{"-yeet", contentToSetViaFlag}))
-	textManifest := instance.Manifest("test.txt")
+	textManifest, err := instance.Manifest("test.txt")
+	require.NoError(t, err)
 
 	buf := &bytes.Buffer{}
 	assert.NoError(t, textManifest.Entries[textManifest.Main].Artifact.Write(buf))
@@ -191,8 +193,7 @@ func testInstanceWithTextProducer(t *testing.T) (*graph.Instance, *refutil.TypeF
 		},
 	}
 
-	instance.SetName("Test App")
-	instance.SetDescription("A test graph")
+	instance.SetDetails(graph.Details{Name: "Test App", Description: "A test graph"})
 	instance.AddProducer("test.txt", nodes.GetNodeOutputPort[manifest.Manifest](&textNode, "Out"))
 
 	return instance, factory
@@ -213,17 +214,17 @@ func TestInstance_MutationsThatChangeOutputsBumpTheModelVersion(t *testing.T) {
 		assert.NoError(t, err)
 		_, textID, err := instance.CreateNode("Text")
 		assert.NoError(t, err)
-		instance.ConnectNodes(paramID, "Value", textID, "In")
-		instance.NewVariable("greeting", &variable.TypeVariable[string]{})
+		require.NoError(t, instance.ConnectNodes(paramID, "Value", textID, "In"))
+		require.NoError(t, errOf(instance.NewVariable("greeting", &variable.TypeVariable[string]{})))
 		instance.SaveProfile("saved")
 		return fixture{instance, paramID, textID}
 	}
 
 	steps := map[string]func(f fixture){
 		"load a profile":      func(f fixture) { assert.NoError(t, f.instance.LoadProfile("saved")) },
-		"delete a variable":   func(f fixture) { f.instance.DeleteVariable("greeting") },
-		"disconnect an input": func(f fixture) { f.instance.DeleteNodeInputConnection(f.textID, "In") },
-		"delete a node":       func(f fixture) { f.instance.DeleteNodeById(f.paramID) },
+		"delete a variable":   func(f fixture) { assert.NoError(t, f.instance.DeleteVariable("greeting")) },
+		"disconnect an input": func(f fixture) { assert.NoError(t, errOf(f.instance.DeleteNodeInputConnection(f.textID, "In"))) },
+		"delete a node":       func(f fixture) { assert.NoError(t, errOf(f.instance.DeleteNodeById(f.paramID))) },
 	}
 
 	for name, step := range steps {
@@ -248,12 +249,13 @@ func TestInstance_ApplyAppSchema_roundtrip(t *testing.T) {
 	})
 	assert.NoError(t, restored.ApplyAppSchema(payload))
 
-	assert.Equal(t, "Test App", restored.GetName())
-	assert.Equal(t, "A test graph", restored.GetDescription())
+	assert.Equal(t, "Test App", restored.Details().Name)
+	assert.Equal(t, "A test graph", restored.Details().Description)
 	assert.Equal(t, []string{"test.txt"}, restored.ProducerNames())
 
 	buf := &bytes.Buffer{}
-	textManifest := restored.Manifest("test.txt")
+	textManifest, err := restored.Manifest("test.txt")
+	require.NoError(t, err)
 	assert.NoError(t, textManifest.Entries[textManifest.Main].Artifact.Write(buf))
 	assert.Equal(t, "bruh", buf.String())
 

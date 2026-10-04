@@ -3,7 +3,6 @@ package room
 import (
 	"bytes"
 	"encoding/binary"
-	"encoding/json"
 	"errors"
 	"io"
 
@@ -125,10 +124,6 @@ func (m Message) ServerRoomStateUpdate() RoomState {
 	}
 
 	return room
-}
-
-func (m Message) ClientSetScene() json.RawMessage {
-	return json.RawMessage(m.Data)
 }
 
 func MessageFromClient(data []byte) Message {

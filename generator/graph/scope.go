@@ -35,14 +35,14 @@ func (s Scope) SubGraphID() (string, error) {
 	return scope[len(prefix):], nil
 }
 
-func (s Scope) ResolveInstance(graph *Instance) (*Instance, error) {
+func (s Scope) ResolveInstance(project *Instance) (*Graph, error) {
 	if s.IsRoot() {
-		return graph.Root(), nil
+		return project.Graph, nil
 	}
 
 	subGraphID, err := s.SubGraphID()
 	if err != nil {
 		return nil, err
 	}
-	return graph.Root().SubGraphInstance(subGraphID)
+	return project.SubGraphInstance(subGraphID)
 }

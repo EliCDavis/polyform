@@ -27,13 +27,15 @@ func nodeConnectionEndpoint(graphInstance *graph.Instance, saver *GraphSaver) en
 		Methods: map[string]endpoint.Method{
 			http.MethodPost: endpoint.JsonMethod(
 				func(request endpoint.Request[CreateRequest]) (EmptyResponse, error) {
-					graphInstance.
-						ConnectNodes(
-							request.Body.NodeOutId,
-							request.Body.OutPortName,
-							request.Body.NodeInId,
-							request.Body.InPortName,
-						)
+					err := graphInstance.ConnectNodes(
+						request.Body.NodeOutId,
+						request.Body.OutPortName,
+						request.Body.NodeInId,
+						request.Body.InPortName,
+					)
+					if err != nil {
+						return EmptyResponse{}, err
+					}
 					saver.Save()
 					return EmptyResponse{}, nil
 				},
@@ -44,11 +46,9 @@ func nodeConnectionEndpoint(graphInstance *graph.Instance, saver *GraphSaver) en
 						return EmptyResponse{}, fmt.Errorf("no node exists with id %s", request.Body.NodeId)
 					}
 
-					graphInstance.
-						DeleteNodeInputConnection(
-							request.Body.NodeId,
-							request.Body.InPortName,
-						)
+					if _, err := graphInstance.DeleteNodeInputConnection(request.Body.NodeId, request.Body.InPortName); err != nil {
+						return EmptyResponse{}, err
+					}
 					saver.Save()
 					return EmptyResponse{}, nil
 				},

@@ -29,11 +29,6 @@ type ImportSubGraphsResult struct {
 // numeric suffix (Adder → Adder_2); nested subgraph/<id> type references are
 // rewritten to match.
 func (a *Instance) ImportSubGraphDefinitions(payload []byte) (ImportSubGraphsResult, error) {
-	if err := a.assertRootGraph("import subgraph definitions"); err != nil {
-		return ImportSubGraphsResult{}, err
-	}
-	a.initSubGraphs()
-
 	appSchema, err := jbtf.Unmarshal[persistence.App](payload)
 	if err != nil {
 		return ImportSubGraphsResult{}, fmt.Errorf("unable to parse graph as a jbtf: %w", err)
@@ -47,6 +42,9 @@ func (a *Instance) ImportSubGraphDefinitions(payload []byte) (ImportSubGraphsRes
 	if len(appSchema.SubGraphs) == 0 {
 		return ImportSubGraphsResult{}, nil
 	}
+
+	a.mu().Lock()
+	defer a.mu().Unlock()
 
 	oldIDs := make([]string, 0, len(appSchema.SubGraphs))
 	for id := range appSchema.SubGraphs {
@@ -65,7 +63,7 @@ func (a *Instance) ImportSubGraphDefinitions(payload []byte) (ImportSubGraphsRes
 	created := make([]string, 0, len(oldIDs))
 	rollback := func() {
 		for i := len(created) - 1; i >= 0; i-- {
-			_ = a.DeleteSubGraph(created[i])
+			_ = a.deleteSubGraph(created[i])
 		}
 	}
 
@@ -74,7 +72,7 @@ func (a *Instance) ImportSubGraphDefinitions(payload []byte) (ImportSubGraphsRes
 	for _, oldID := range oldIDs {
 		newID := remap[oldID]
 		def := appSchema.SubGraphs[oldID]
-		if err := a.CreateSubGraph(newID, def.Name, def.Description); err != nil {
+		if err := a.createSubGraph(newID, def.Name, def.Description); err != nil {
 			rollback()
 			return ImportSubGraphsResult{}, err
 		}
@@ -98,7 +96,7 @@ func (a *Instance) ImportSubGraphDefinitions(payload []byte) (ImportSubGraphsRes
 			rollback()
 			return ImportSubGraphsResult{}, err
 		}
-		if err := populateInstanceFromSubGraphDef(target, remapped, decoder, nil); err != nil {
+		if err := target.loadSubGraphContents(remapped, decoder); err != nil {
 			rollback()
 			return ImportSubGraphsResult{}, fmt.Errorf("populate imported sub-graph %q: %w", newID, err)
 		}
@@ -122,7 +120,6 @@ func (a *Instance) ImportSubGraphDefinitions(payload []byte) (ImportSubGraphsRes
 }
 
 func allocateImportSubGraphID(root *Instance, base string, reserved map[string]struct{}) string {
-	root.initSubGraphs()
 	if base == "" {
 		base = "Subgraph"
 	}

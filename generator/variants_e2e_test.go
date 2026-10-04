@@ -31,7 +31,7 @@ func TestAppCommand_Sweep(t *testing.T) {
 	g := graph.New(graph.Config{Name: "Test Graph", TypeFactory: &refutil.TypeFactory{}})
 
 	messageVar := &variable.TypeVariable[string]{}
-	g.NewVariable("Message", messageVar)
+	require.NoError(t, errOf(g.NewVariable("Message", messageVar)))
 
 	g.AddProducer("output", nodes.GetNodeOutputPort[manifest.Manifest](
 		&nodes.Struct[basics.TextNode]{
@@ -42,11 +42,11 @@ func TestAppCommand_Sweep(t *testing.T) {
 		"Out",
 	))
 
-	require.NoError(t, g.SetVariantSet("sweep", variant.Set{
+	g.VariantSets().Set("sweep", variant.Set{
 		Dimensions: []variant.Dimension{
 			variant.NewDiscrete("Message", rawStringForTest(t, "Hello"), rawStringForTest(t, "World")),
 		},
-	}))
+	})
 
 	tempDir := t.TempDir()
 	outBuf := &bytes.Buffer{}
@@ -86,7 +86,7 @@ func TestAppCommand_Sweep_OverThresholdRequiresConfirm(t *testing.T) {
 	g := graph.New(graph.Config{Name: "Test Graph", TypeFactory: &refutil.TypeFactory{}})
 
 	valueVar := &variable.TypeVariable[float64]{}
-	g.NewVariable("Value", valueVar)
+	require.NoError(t, errOf(g.NewVariable("Value", valueVar)))
 
 	g.AddProducer("output", nodes.GetNodeOutputPort[manifest.Manifest](
 		&nodes.Struct[basics.TextNode]{
@@ -100,11 +100,11 @@ func TestAppCommand_Sweep_OverThresholdRequiresConfirm(t *testing.T) {
 		"Out",
 	))
 
-	require.NoError(t, g.SetVariantSet("huge", variant.Set{
+	g.VariantSets().Set("huge", variant.Set{
 		Dimensions: []variant.Dimension{
 			variant.NewNumericRange("Value", 0, 1, 1001),
 		},
-	}))
+	})
 
 	tempDir := t.TempDir()
 	outBuf := &bytes.Buffer{}
@@ -124,7 +124,7 @@ func TestAppCommand_Sample(t *testing.T) {
 	g := graph.New(graph.Config{Name: "Test Graph", TypeFactory: &refutil.TypeFactory{}})
 
 	messageVar := &variable.TypeVariable[string]{}
-	g.NewVariable("Message", messageVar)
+	require.NoError(t, errOf(g.NewVariable("Message", messageVar)))
 
 	g.AddProducer("output", nodes.GetNodeOutputPort[manifest.Manifest](
 		&nodes.Struct[basics.TextNode]{
@@ -135,11 +135,11 @@ func TestAppCommand_Sample(t *testing.T) {
 		"Out",
 	))
 
-	require.NoError(t, g.SetVariantSet("sample", variant.Set{
+	g.VariantSets().Set("sample", variant.Set{
 		Dimensions: []variant.Dimension{
 			variant.NewDiscrete("Message", rawStringForTest(t, "Hello"), rawStringForTest(t, "World")),
 		},
-	}))
+	})
 
 	tempDir := t.TempDir()
 	outBuf := &bytes.Buffer{}
@@ -157,4 +157,8 @@ func TestAppCommand_Sample(t *testing.T) {
 		require.NoError(t, err)
 		assert.Contains(t, []string{"Hello", "World"}, string(contents))
 	}
+}
+
+func errOf[T any](_ T, err error) error {
+	return err
 }

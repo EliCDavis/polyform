@@ -1,0 +1,230 @@
+package graph
+
+import (
+	"fmt"
+	"strconv"
+	"strings"
+
+	"github.com/EliCDavis/polyform/generator/persistence"
+	"github.com/EliCDavis/polyform/generator/subgraph"
+	"github.com/EliCDavis/polyform/nodes"
+)
+
+func (a *Graph) register(node nodes.Node, id, typeKey string) {
+	a.boundariesChanged()
+	a.nodeIDs[node] = id
+	a.nodesByID[id] = node
+	if typeKey != "" {
+		a.nodeTypeKeys[node] = typeKey
+	}
+
+	number, isNumbered := strings.CutPrefix(id, "Node-")
+	if n, err := strconv.Atoi(number); isNumbered && err == nil && n+1 > a.nodeIDHighWater {
+		a.nodeIDHighWater = n + 1
+	}
+}
+
+func (a *Graph) forget(node nodes.Node) {
+	a.boundariesChanged()
+	delete(a.nodesByID, a.nodeIDs[node])
+	delete(a.nodeIDs, node)
+	delete(a.nodeTypeKeys, node)
+}
+
+func (a *Graph) nextNodeID() string {
+	number := max(len(a.nodeIDs), a.nodeIDHighWater)
+	for a.nodesByID[fmt.Sprintf("Node-%d", number)] != nil {
+		number++
+	}
+	return fmt.Sprintf("Node-%d", number)
+}
+
+// A node built in code can arrive already reading others, which get ids first.
+func (a *Graph) registerWithInputs(node nodes.Node, typeKey string) {
+	if _, ok := a.nodeIDs[node]; ok {
+		return
+	}
+	for _, read := range flattenNodeInputReferences(node) {
+		a.registerWithInputs(read, "")
+	}
+	a.register(node, a.nextNodeID(), typeKey)
+}
+
+func (a *Graph) NodeId(node nodes.Node) string {
+	return a.nodeIDs[node]
+}
+
+func (a *Graph) NodeIds() []string {
+	ids := make([]string, 0, len(a.nodesByID))
+	for id := range a.nodesByID {
+		ids = append(ids, id)
+	}
+	return ids
+}
+
+func (a *Graph) HasNodeWithId(nodeId string) bool {
+	_, ok := a.nodesByID[nodeId]
+	return ok
+}
+
+func (a *Graph) Node(nodeId string) nodes.Node {
+	node, ok := a.nodesByID[nodeId]
+	if !ok {
+		panic(fmt.Errorf("no node exists with id %q", nodeId))
+	}
+	return node
+}
+
+func (a *Graph) CreateNode(nodeType string) (nodes.Node, string, error) {
+	a.mu().Lock()
+	defer a.mu().Unlock()
+	return a.createNode(nodeType, "")
+}
+
+func (a *Graph) CreateBoundaryNode(nodeType, portType string) (nodes.Node, string, error) {
+	if strings.TrimSpace(portType) == "" {
+		return nil, "", fmt.Errorf("boundary port type is required")
+	}
+	a.mu().Lock()
+	defer a.mu().Unlock()
+	return a.createNode(nodeType, portType)
+}
+
+func (a *Graph) createNode(nodeType, portType string) (nodes.Node, string, error) {
+	factory := a.project.typeFactory
+	if !factory.KeyRegistered(nodeType) {
+		return nil, "", fmt.Errorf("no factory registered with ID %s", nodeType)
+	}
+
+	node, ok := factory.New(nodeType).(nodes.Node)
+	if !ok {
+		panic(fmt.Errorf("registered type %s did not create a node", nodeType))
+	}
+
+	if boundary, isBoundary := subgraph.IsBoundaryNode(node); isBoundary {
+		if portType == "" {
+			return nil, "", fmt.Errorf("boundary port type is required")
+		}
+		if !nodes.IsPortTypeKnown(portType) {
+			return nil, "", fmt.Errorf("unknown boundary port type %q", portType)
+		}
+		if err := subgraph.ConfigureBoundaryPortType(boundary, portType); err != nil {
+			return nil, "", err
+		}
+	} else if portType != "" {
+		return nil, "", fmt.Errorf("port type cannot be set on non-boundary node type %q", nodeType)
+	}
+
+	a.registerWithInputs(node, nodeType)
+	id := a.nodeIDs[node]
+
+	// A boundary is not a port until it is named, so nothing is reshaped yet.
+	err := a.updateCopies(func(copied *Graph) error {
+		created, err := copied.instantiateAppNode(id, persistence.Node{Type: nodeType})
+		if boundary, isBoundary := subgraph.IsBoundaryNode(created); isBoundary && err == nil {
+			err = subgraph.ConfigureBoundaryPortType(boundary, portType)
+		}
+		return err
+	})
+	return node, id, err
+}
+
+// DeleteNodeById returns the edges elsewhere that no longer fit without it.
+func (a *Graph) DeleteNodeById(nodeId string) ([]DroppedEdge, error) {
+	a.mu().Lock()
+	defer a.mu().Unlock()
+	return a.deleteNodeByID(nodeId)
+}
+
+func (a *Graph) deleteNodeByID(nodeId string) ([]DroppedEdge, error) {
+	node, ok := a.nodesByID[nodeId]
+	if !ok {
+		return nil, fmt.Errorf("can't delete, no node registered with ID %s", nodeId)
+	}
+	return a.deleteNode(node)
+}
+
+func (a *Graph) deleteNode(nodeToDelete nodes.Node) (dropped []DroppedEdge, err error) {
+	if _, ok := a.nodeIDs[nodeToDelete]; !ok {
+		return nil, fmt.Errorf("can't delete a node that is not in the graph")
+	}
+
+	stop := a.watchDrops()
+	defer func() { dropped = stop() }()
+
+	a.project.namedManifests.DeleteNode(nodeToDelete)
+	a.forget(nodeToDelete)
+
+	for node := range a.nodeIDs {
+		for _, input := range node.Inputs() {
+			switch v := input.(type) {
+			case nodes.SingleValueInputPort:
+				if value := v.Value(); value != nil && value.Node() == nodeToDelete {
+					v.Clear()
+				}
+
+			case nodes.ArrayValueInputPort:
+				for _, val := range v.Value() {
+					if val == nil || val.Node() != nodeToDelete {
+						continue
+					}
+					if err := v.Remove(val); err != nil {
+						return nil, err
+					}
+				}
+			}
+		}
+	}
+
+	if err := a.commitEdit(dropConflicts); err != nil {
+		return nil, err
+	}
+	a.incModelVersion()
+	return nil, nil
+}
+
+func (a *Graph) Parameter(nodeId string) (Parameter, error) {
+	node, ok := a.nodesByID[nodeId]
+	if !ok {
+		return nil, fmt.Errorf("no node exists with id %q", nodeId)
+	}
+	param, ok := node.(Parameter)
+	if !ok {
+		return nil, fmt.Errorf("node %q is not a parameter", nodeId)
+	}
+	return param, nil
+}
+
+func (a *Graph) UpdateParameter(nodeId string, data []byte) (bool, error) {
+	a.mu().Lock()
+	defer a.mu().Unlock()
+
+	param, err := a.Parameter(nodeId)
+	if err != nil {
+		return false, err
+	}
+	changed, err := param.ApplyMessage(data)
+	if err != nil {
+		return false, err
+	}
+	a.incModelVersion()
+	return changed, a.updateCopies(func(copied *Graph) error {
+		param, err := copied.Parameter(nodeId)
+		if err != nil {
+			return err
+		}
+		_, err = param.ApplyMessage(data)
+		return err
+	})
+}
+
+func (a *Graph) ParameterData(nodeId string) ([]byte, error) {
+	a.mu().Lock()
+	defer a.mu().Unlock()
+
+	param, err := a.Parameter(nodeId)
+	if err != nil {
+		return nil, err
+	}
+	return param.ToMessage(), nil
+}

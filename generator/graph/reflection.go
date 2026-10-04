@@ -9,26 +9,9 @@ import (
 	"github.com/EliCDavis/polyform/refutil"
 )
 
-func RecurseDependenciesType[T any](dependent nodes.Node) []T {
-	allDependencies := make([]T, 0)
-	inputReferences := flattenNodeInputReferences(dependent)
-
-	for _, input := range inputReferences {
-		subDependencies := RecurseDependenciesType[T](input)
-		allDependencies = append(allDependencies, subDependencies...)
-
-		ofT, ok := input.(T)
-		if ok {
-			allDependencies = append(allDependencies, ofT)
-		}
-	}
-
-	return allDependencies
-}
-
 func (i *Instance) BuildSchemaForAllNodeTypes() []schema.NodeType {
-	i.lock.Lock()
-	defer i.lock.Unlock()
+	i.mu().Lock()
+	defer i.mu().Unlock()
 
 	registeredTypes := i.typeFactory.Types()
 	nodeTypes := make([]schema.NodeType, 0, len(registeredTypes))
