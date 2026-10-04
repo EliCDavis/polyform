@@ -2,6 +2,7 @@ package graph
 
 import (
 	"fmt"
+	"maps"
 	"slices"
 	"strings"
 
@@ -76,22 +77,21 @@ func (a *Instance) ApplyAppSchema(jsonPayload []byte) error {
 	}
 
 	for name, saved := range app.Producers {
-		producer, err := a.portEnd(saved.NodeID, saved.Port)
-		if err != nil {
-			return fmt.Errorf("producer %q: %w", name, err)
+		producer, ok := a.nodesByID[saved.NodeID]
+		if !ok {
+			return fmt.Errorf("producer %q: no node exists with id %q", name, saved.NodeID)
 		}
-		output, ok := producer.node.Outputs()[saved.Port].(nodes.Output[manifest.Manifest])
+		output, ok := producer.Outputs()[saved.Port].(nodes.Output[manifest.Manifest])
 		if !ok {
 			return fmt.Errorf("producer %q: node %q has no %q output producing a manifest", name, saved.NodeID, saved.Port)
 		}
-		a.namedManifests.NamePort(name, saved.Port, producer.node, output)
+		a.namedManifests.NamePort(name, saved.Port, producer, output)
 	}
 
 	a.incModelVersion()
 	return nil
 }
 
-// A node is built and wired after everything it reads, so every output has its final type when first read.
 func (a *Graph) loadNodes(saved savedGraph, externals map[string]nodes.OutputPort) error {
 	a.definitionChanged()
 	order, cyclic := dependenciesFirst(saved.nodes, func(node persistence.Node) []string {
@@ -105,11 +105,9 @@ func (a *Graph) loadNodes(saved savedGraph, externals map[string]nodes.OutputPor
 		return fmt.Errorf("node %s reads its own output, directly or through other nodes", cyclic)
 	}
 
-	unsettled := false
 	created := make(map[string]nodes.Node, len(saved.nodes))
 	for _, id := range order {
-		details := saved.nodes[id]
-		node, err := a.instantiateAppNode(id, details)
+		node, err := a.instantiateAppNode(id, saved.nodes[id])
 		if err != nil {
 			return err
 		}
@@ -124,38 +122,26 @@ func (a *Graph) loadNodes(saved savedGraph, externals map[string]nodes.OutputPor
 				boundary.SetExternalSource(external)
 			}
 		}
+	}
 
+	for _, id := range order {
+		details := saved.nodes[id]
+		reads := make(map[string][]source)
 		// Sorted, so an array's elements are appended by index.
-		inputs := make([]string, 0, len(details.AssignedInput))
-		for input := range details.AssignedInput {
-			inputs = append(inputs, input)
-		}
-		slices.SortFunc(inputs, compareInputNames)
-
-		for _, input := range inputs {
+		for _, input := range slices.SortedFunc(maps.Keys(details.AssignedInput), compareInputNames) {
 			from := details.AssignedInput[input]
 			producer, ok := created[from.NodeId]
 			if !ok {
 				return fmt.Errorf("node %s's %q input reads node %s, which does not exist", id, input, from.NodeId)
 			}
 			port, _ := splitElement(input)
-			_, untyped, err := a.wire(edge{
-				from:    portEnd{id: from.NodeId, node: producer, port: from.PortName},
-				to:      portEnd{id: id, node: node, port: port},
-				element: nextElement,
-			})
-			if err != nil {
-				return err
-			}
-			unsettled = unsettled || untyped
+			reads[port] = append(reads[port], source{node: producer, port: from.PortName})
 		}
+		a.reads[created[id]] = reads
 	}
 
-	// Only an output wired before it had a type is left for settle to work out.
-	if unsettled {
-		return a.settle()
-	}
-	return nil
+	_, err := a.settle(refuseConflicts)
+	return err
 }
 
 type savedGraph struct {

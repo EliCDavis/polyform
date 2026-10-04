@@ -1,8 +1,10 @@
 package graph
 
 import (
+	"cmp"
 	"fmt"
-	"sort"
+	"maps"
+	"slices"
 
 	"github.com/EliCDavis/jbtf"
 	"github.com/EliCDavis/polyform/generator/persistence"
@@ -10,162 +12,84 @@ import (
 	"github.com/EliCDavis/polyform/generator/subgraph"
 )
 
-// ImportedSubGraph describes one definition merged into the live graph.
 type ImportedSubGraph struct {
-	ID         string
+	ID string
+	// Set when ID had to differ from the id in the payload.
 	OriginalID string
 	Name       string
 	NodeType   schema.NodeType
 }
 
-// ImportSubGraphsResult is returned by ImportSubGraphDefinitions.
 type ImportSubGraphsResult struct {
 	Imported []ImportedSubGraph
 }
 
-// ImportSubGraphDefinitions merges every sub-graph definition from a persisted
-// app payload into this (root) instance. Root nodes, variables, producers, and
-// profiles in the payload are ignored. Conflicting IDs are renamed with a
-// numeric suffix (Adder → Adder_2); nested subgraph/<id> type references are
-// rewritten to match.
-func (a *Instance) ImportSubGraphDefinitions(payload []byte) (ImportSubGraphsResult, error) {
-	appSchema, err := jbtf.Unmarshal[persistence.App](payload)
+// ImportSubGraphDefinitions adds every subgraph definition in a saved graph
+// to this one, and nothing else from it. An id already taken gets a numeric
+// suffix (Adder becomes Adder_2), and placements of it inside the other
+// imported definitions follow.
+func (a *Instance) ImportSubGraphDefinitions(payload []byte) (result ImportSubGraphsResult, err error) {
+	app, err := jbtf.Unmarshal[persistence.App](payload)
 	if err != nil {
-		return ImportSubGraphsResult{}, fmt.Errorf("unable to parse graph as a jbtf: %w", err)
+		return result, fmt.Errorf("unable to parse graph as a jbtf: %w", err)
 	}
-
 	decoder, err := jbtf.NewDecoder(payload)
 	if err != nil {
-		return ImportSubGraphsResult{}, fmt.Errorf("unable to build a jbtf decoder: %w", err)
-	}
-
-	if len(appSchema.SubGraphs) == 0 {
-		return ImportSubGraphsResult{}, nil
+		return result, fmt.Errorf("unable to build a jbtf decoder: %w", err)
 	}
 
 	a.mu().Lock()
 	defer a.mu().Unlock()
 
-	oldIDs := make([]string, 0, len(appSchema.SubGraphs))
-	for id := range appSchema.SubGraphs {
-		oldIDs = append(oldIDs, id)
-	}
-	sort.Strings(oldIDs)
-
-	remap := make(map[string]string, len(oldIDs))
-	reserved := make(map[string]struct{}, len(oldIDs))
-	for _, oldID := range oldIDs {
-		newID := allocateImportSubGraphID(a, oldID, reserved)
-		remap[oldID] = newID
-		reserved[newID] = struct{}{}
-	}
-
-	created := make([]string, 0, len(oldIDs))
-	rollback := func() {
-		for i := len(created) - 1; i >= 0; i-- {
-			_ = a.deleteSubGraph(created[i])
-		}
-	}
-
-	// Register all definitions first so nested runtime types resolve while
-	// populating dependents.
-	for _, oldID := range oldIDs {
-		newID := remap[oldID]
-		def := appSchema.SubGraphs[oldID]
-		if err := a.createSubGraph(newID, def.Name, def.Description); err != nil {
-			rollback()
-			return ImportSubGraphsResult{}, err
-		}
-		created = append(created, newID)
-	}
-
-	result := ImportSubGraphsResult{
-		Imported: make([]ImportedSubGraph, 0, len(oldIDs)),
-	}
-
-	for _, oldID := range subGraphLoadOrder(appSchema.SubGraphs) {
-		newID := remap[oldID]
-		remapped, err := remapSubGraphDefTypes(appSchema.SubGraphs[oldID], remap)
+	// Every definition exists before any is filled in, so one that places
+	// another finds its type.
+	newIDs := make(map[string]string, len(app.SubGraphs))
+	defer func() {
 		if err != nil {
-			rollback()
-			return ImportSubGraphsResult{}, err
+			for _, id := range newIDs {
+				_ = a.deleteSubGraph(id)
+			}
 		}
-
-		target, err := a.SubGraphInstance(newID)
-		if err != nil {
-			rollback()
-			return ImportSubGraphsResult{}, err
+	}()
+	for _, id := range slices.Sorted(maps.Keys(app.SubGraphs)) {
+		newID := a.freeSubGraphID(cmp.Or(id, "Subgraph"))
+		if err := a.createSubGraph(newID, app.SubGraphs[id].Name, app.SubGraphs[id].Description); err != nil {
+			return result, err
 		}
-		if err := target.loadSubGraphContents(remapped, decoder); err != nil {
-			rollback()
-			return ImportSubGraphsResult{}, fmt.Errorf("populate imported sub-graph %q: %w", newID, err)
+		newIDs[id] = newID
+	}
+
+	for _, id := range subGraphLoadOrder(app.SubGraphs) {
+		def, newID := app.SubGraphs[id], newIDs[id]
+
+		renamed := make(map[string]persistence.Node, len(def.Nodes))
+		for nodeID, node := range def.Nodes {
+			if subgraph.IsRuntimeNodeType(node.Type) {
+				placed, ok := newIDs[subgraph.RuntimeTypeID(node.Type)]
+				if !ok {
+					return result, fmt.Errorf("imported sub-graph %q references unknown sub-graph %q", def.Name, subgraph.RuntimeTypeID(node.Type))
+				}
+				node.Type = subgraph.RuntimeTypePath(placed)
+			}
+			renamed[nodeID] = node
 		}
+		def.Nodes = renamed
 
-		a.refreshSubGraphNodeType(newID)
-		typePath := subgraph.RuntimeTypePath(newID)
-		nodeType := BuildNodeTypeSchema(typePath, NewRuntimeNode(a, newID))
+		if err := a.subGraphs[newID].instance.loadSubGraphContents(def, decoder); err != nil {
+			return result, fmt.Errorf("populate imported sub-graph %q: %w", newID, err)
+		}
+		a.incModelVersion()
 
-		entry := ImportedSubGraph{
+		imported := ImportedSubGraph{
 			ID:       newID,
-			Name:     remapped.Name,
-			NodeType: nodeType,
+			Name:     def.Name,
+			NodeType: BuildNodeTypeSchema(subgraph.RuntimeTypePath(newID), NewRuntimeNode(a, newID)),
 		}
-		if newID != oldID {
-			entry.OriginalID = oldID
+		if newID != id {
+			imported.OriginalID = id
 		}
-		result.Imported = append(result.Imported, entry)
+		result.Imported = append(result.Imported, imported)
 	}
 
 	return result, nil
-}
-
-func allocateImportSubGraphID(root *Instance, base string, reserved map[string]struct{}) string {
-	if base == "" {
-		base = "Subgraph"
-	}
-	if importIDAvailable(root, base, reserved) {
-		return base
-	}
-	for i := 2; ; i++ {
-		candidate := fmt.Sprintf("%s_%d", base, i)
-		if importIDAvailable(root, candidate, reserved) {
-			return candidate
-		}
-	}
-}
-
-func importIDAvailable(root *Instance, id string, reserved map[string]struct{}) bool {
-	if _, exists := root.subGraphs[id]; exists {
-		return false
-	}
-	if _, taken := reserved[id]; taken {
-		return false
-	}
-	return true
-}
-
-func remapSubGraphDefTypes(def persistence.SubGraph, idRemap map[string]string) (persistence.SubGraph, error) {
-	out := persistence.SubGraph{
-		Name:        def.Name,
-		Description: def.Description,
-		Notes:       def.Notes,
-		Metadata:    def.Metadata,
-		Nodes:       make(map[string]persistence.Node, len(def.Nodes)),
-	}
-	for nodeID, node := range def.Nodes {
-		n := node
-		if subgraph.IsRuntimeNodeType(n.Type) {
-			oldRef := subgraph.RuntimeTypeID(n.Type)
-			newRef, ok := idRemap[oldRef]
-			if !ok {
-				return persistence.SubGraph{}, fmt.Errorf(
-					"imported sub-graph %q references unknown sub-graph %q",
-					def.Name, oldRef,
-				)
-			}
-			n.Type = subgraph.RuntimeTypePath(newRef)
-		}
-		out.Nodes[nodeID] = n
-	}
-	return out, nil
 }

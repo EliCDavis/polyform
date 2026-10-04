@@ -86,7 +86,7 @@ func (a *Instance) persistedSubGraphDefinition(id string, encoder *jbtf.Encoder)
 
 // forEachSubGraphInstance visits every live placement of subGraphID across the
 // root graph and all recursively nested sub-graph definitions.
-func forEachSubGraphInstance(root *Instance, subGraphID string, fn func(*SubgraphInstanceNode)) {
+func forEachSubGraphInstance(root *Instance, subGraphID string, fn func(holder *Graph, placement *SubgraphInstanceNode)) {
 	visited := map[*Graph]bool{}
 
 	var visit func(inst *Graph)
@@ -102,7 +102,7 @@ func forEachSubGraphInstance(root *Instance, subGraphID string, fn func(*Subgrap
 				continue
 			}
 			if runtime.subGraphID == subGraphID {
-				fn(runtime)
+				fn(inst, runtime)
 			}
 
 			visit(runtime.BuiltGraph())

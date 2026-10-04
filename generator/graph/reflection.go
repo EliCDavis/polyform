@@ -159,33 +159,3 @@ func BuildNodeTypeSchema(registeredType string, node nodes.Node) schema.NodeType
 	return typeSchema
 }
 
-func flattenNodeInputReferences(node nodes.Node) []nodes.Node {
-
-	references := make([]nodes.Node, 0)
-
-	for inputName, input := range node.Inputs() {
-
-		switch v := input.(type) {
-		case nodes.SingleValueInputPort:
-			value := v.Value()
-			if value == nil {
-				continue
-			}
-			references = append(references, value.Node())
-
-		case nodes.ArrayValueInputPort:
-			for _, val := range v.Value() {
-				if val == nil {
-					continue
-				}
-				references = append(references, val.Node())
-			}
-
-		default:
-			panic(fmt.Errorf("unable to recursive %v's input %q", node, inputName))
-		}
-
-	}
-
-	return references
-}

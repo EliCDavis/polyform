@@ -86,9 +86,11 @@ func (a *Graph) setBoundaryNodeInfo(nodeID, portName string) error {
 	// Renamed on every placement first, so what feeds the old name is kept
 	// rather than dropped as feeding a port that is gone.
 	if scope := a.SubGraphScopeID(); scope != "" && oldName != "" && oldName != portName {
-		forEachSubGraphInstance(a.Root(), scope, func(placement *SubgraphInstanceNode) {
+		forEachSubGraphInstance(a.Root(), scope, func(holder *Graph, placement *SubgraphInstanceNode) {
 			placement.renameBoundaryPort(oldName, portName, kind)
+			holder.renamePort(placement, kind, oldName, portName)
 		})
 	}
-	return a.refreshPlacers(refuseConflicts)
+	_, err := a.commitEdit(refuseConflicts)
+	return err
 }

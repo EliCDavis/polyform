@@ -2,6 +2,7 @@ package graph
 
 import (
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -29,6 +30,7 @@ func (a *Graph) forget(node nodes.Node) {
 	delete(a.nodesByID, a.nodeIDs[node])
 	delete(a.nodeIDs, node)
 	delete(a.nodeTypeKeys, node)
+	delete(a.reads, node)
 }
 
 func (a *Graph) nextNodeID() string {
@@ -39,15 +41,32 @@ func (a *Graph) nextNodeID() string {
 	return fmt.Sprintf("Node-%d", number)
 }
 
-// A node built in code can arrive already reading others, which get ids first.
+// A node built in code can arrive already holding the outputs of others.
+// Those get ids first, and what it holds becomes its edges.
 func (a *Graph) registerWithInputs(node nodes.Node, typeKey string) {
 	if _, ok := a.nodeIDs[node]; ok {
 		return
 	}
-	for _, read := range flattenNodeInputReferences(node) {
-		a.registerWithInputs(read, "")
+
+	reads := make(map[string][]source)
+	for name, input := range node.Inputs() {
+		var held []nodes.OutputPort
+		switch slot := input.(type) {
+		case nodes.SingleValueInputPort:
+			held = []nodes.OutputPort{slot.Value()}
+		case nodes.ArrayValueInputPort:
+			held = slot.Value()
+		}
+		for _, port := range held {
+			if port != nil {
+				a.registerWithInputs(port.Node(), "")
+				reads[name] = append(reads[name], source{node: port.Node(), port: port.Name()})
+			}
+		}
 	}
+
 	a.register(node, a.nextNodeID(), typeKey)
+	a.reads[node] = reads
 }
 
 func (a *Graph) NodeId(node nodes.Node) string {
@@ -144,43 +163,29 @@ func (a *Graph) deleteNodeByID(nodeId string) ([]DroppedEdge, error) {
 	return a.deleteNode(node)
 }
 
-func (a *Graph) deleteNode(nodeToDelete nodes.Node) (dropped []DroppedEdge, err error) {
+func (a *Graph) deleteNode(nodeToDelete nodes.Node) ([]DroppedEdge, error) {
 	if _, ok := a.nodeIDs[nodeToDelete]; !ok {
 		return nil, fmt.Errorf("can't delete a node that is not in the graph")
 	}
 
-	stop := a.watchDrops()
-	defer func() { dropped = stop() }()
-
 	a.project.namedManifests.DeleteNode(nodeToDelete)
 	a.forget(nodeToDelete)
 
-	for node := range a.nodeIDs {
-		for _, input := range node.Inputs() {
-			switch v := input.(type) {
-			case nodes.SingleValueInputPort:
-				if value := v.Value(); value != nil && value.Node() == nodeToDelete {
-					v.Clear()
-				}
-
-			case nodes.ArrayValueInputPort:
-				for _, val := range v.Value() {
-					if val == nil || val.Node() != nodeToDelete {
-						continue
-					}
-					if err := v.Remove(val); err != nil {
-						return nil, err
-					}
-				}
+	for consumer, inputs := range a.reads {
+		for input, sources := range inputs {
+			kept := slices.DeleteFunc(slices.Clone(sources), func(from source) bool { return from.node == nodeToDelete })
+			if len(kept) != len(sources) {
+				a.setSources(consumer, input, kept)
 			}
 		}
 	}
 
-	if err := a.commitEdit(dropConflicts); err != nil {
+	dropped, err := a.commitEdit(dropConflicts)
+	if err != nil {
 		return nil, err
 	}
 	a.incModelVersion()
-	return nil, nil
+	return dropped, nil
 }
 
 func (a *Graph) Parameter(nodeId string) (Parameter, error) {

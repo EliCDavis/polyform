@@ -40,7 +40,6 @@ type Instance struct {
 	history        *history.History
 
 	compound    compoundEdit
-	drops       dropLog
 	copySources map[string]savedGraph
 	lock        gsync.RWMutex
 }

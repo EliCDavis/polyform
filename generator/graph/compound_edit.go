@@ -58,24 +58,15 @@ func (a *Graph) deferredToCompoundEdit() bool {
 }
 
 func (root *Instance) closeCompoundEdit(edited []*Graph) error {
-	stop := root.watchDrops()
-	err := func() error {
+	var dropped []DroppedEdge
+	for _, finish := range []func(*Graph, conflictPolicy) ([]DroppedEdge, error){(*Graph).settle, (*Graph).refreshPlacers} {
 		for _, graph := range edited {
-			if _, err := graph.settleUnder(dropConflicts); err != nil {
+			unfit, err := finish(graph, dropConflicts)
+			if err != nil {
 				return err
 			}
+			dropped = append(dropped, unfit...)
 		}
-		for _, graph := range edited {
-			if err := graph.refreshPlacers(dropConflicts); err != nil {
-				return err
-			}
-		}
-		return nil
-	}()
-	dropped := stop()
-
-	if err != nil {
-		return err
 	}
 	if len(dropped) == 0 {
 		return nil

@@ -66,7 +66,7 @@ func (a *Instance) ConvertSelectionToSubGraph(scope Scope, nodeIDs []string, nam
 		}
 	}()
 
-	id := a.freeSubGraphID(name)
+	id := a.freeSubGraphID(strings.Join(strings.Fields(name), "_"))
 	if err := a.createSubGraph(id, name, strings.TrimSpace(description)); err != nil {
 		return result, err
 	}
@@ -192,8 +192,8 @@ func (a *Graph) convertibleNodes(nodeIDs []string) (map[string]nodes.Node, error
 // edgesCrossing splits the edges with one end in selection into those read
 // by it and those read from it. Both come back in a fixed order, which is
 // the order their ports are numbered in.
-func (a *Graph) edgesCrossing(selection map[string]nodes.Node) (inbound, outbound []heldEdge, err error) {
-	for _, held := range a.heldEdges() {
+func (a *Graph) edgesCrossing(selection map[string]nodes.Node) (inbound, outbound []edge, err error) {
+	for _, held := range a.edges() {
 		_, producerSelected := selection[held.producerID]
 		_, consumerSelected := selection[held.consumerID]
 		if producerSelected == consumerSelected {
@@ -209,22 +209,18 @@ func (a *Graph) edgesCrossing(selection map[string]nodes.Node) (inbound, outboun
 		}
 	}
 
-	slices.SortStableFunc(outbound, func(x, y heldEdge) int {
+	slices.SortStableFunc(outbound, func(x, y edge) int {
 		return strings.Compare(sourceKey(x), sourceKey(y))
 	})
 	return inbound, outbound, nil
 }
 
-func (e heldEdge) inputName() string {
-	return edge{to: portEnd{port: e.input}, element: e.element}.inputName()
-}
-
-func sourceKey(e heldEdge) string {
+func sourceKey(e edge) string {
 	return e.producerID + "\x00" + e.output
 }
 
 // Separate reference nodes to one variable are one value, so they share a port.
-func inboundSourceKey(e heldEdge) string {
+func inboundSourceKey(e edge) string {
 	if ref, ok := e.producer.(variable.Reference); ok {
 		return fmt.Sprintf("var:%p", ref.Reference())
 	}
@@ -233,7 +229,7 @@ func inboundSourceKey(e heldEdge) string {
 
 // refuseConvertCycles refuses a selection that an outside node both reads
 // and feeds: as one subgraph it would have to read its own output.
-func (a *Graph) refuseConvertCycles(selection map[string]nodes.Node, inbound []heldEdge) error {
+func (a *Graph) refuseConvertCycles(selection map[string]nodes.Node, inbound []edge) error {
 	selected := make(map[nodes.Node]bool, len(selection))
 	for _, node := range selection {
 		selected[node] = true
@@ -266,7 +262,7 @@ func (a *Graph) pathBackTo(selected map[nodes.Node]bool, start nodes.Node) (reac
 		}
 		visited[node] = true
 
-		for _, read := range flattenNodeInputReferences(node) {
+		for _, read := range a.readBy(node) {
 			if selected[read] {
 				reached, through = a.nodeIDs[read], trail
 				return true
@@ -282,8 +278,7 @@ func (a *Graph) pathBackTo(selected map[nodes.Node]bool, start nodes.Node) (reac
 	return reached, through, found
 }
 
-func (root *Instance) freeSubGraphID(name string) string {
-	base := strings.Join(strings.Fields(name), "_")
+func (root *Instance) freeSubGraphID(base string) string {
 	if _, taken := root.subGraphs[base]; !taken {
 		return base
 	}

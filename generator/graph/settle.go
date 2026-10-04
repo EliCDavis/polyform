@@ -1,197 +1,253 @@
 package graph
 
 import (
+	"errors"
 	"fmt"
 	"maps"
 	"reflect"
 	"slices"
-	"sort"
 
 	"github.com/EliCDavis/polyform/nodes"
 )
 
-// settle derives every type the edges imply, from nothing, and has each
-// input hold the port its producer offers for that type. The result depends
-// only on which edges exist, never on the order they were made in.
-//
-//  1. forget: release every dynamic type.
-//  2. infer:  bind each dynamic type an edge pins down.
-//  3. reseat: swap each held port for the one its producer offers now.
-//
-// Reseating changes what inputs report, which can pin down more types, so 2
-// and 3 repeat until a reseat changes nothing.
-func (a *Graph) settle() error {
-	edges := a.heldEdges()
-	a.forgetDynamicTypes()
+type conflictPolicy int
 
-	rounds := len(edges) + 2
-	for range rounds {
-		if err := inferTypes(edges); err != nil {
-			return err
-		}
-		reseated, err := reseat(edges)
-		if err != nil {
-			return err
-		}
-		if !reseated {
-			return nil
-		}
-	}
-	return fmt.Errorf("the graph's types did not settle after %d rounds", rounds)
-}
+const (
+	// An edit that adds refuses instead of costing an existing edge.
+	refuseConflicts conflictPolicy = iota
+	// An edit that removes drops the edges that depended on what it took,
+	// and reports them.
+	dropConflicts
+)
 
-func (a *Graph) settleDroppingConflicts() ([]DroppedEdge, error) {
+// settle makes every node's fields agree with the edges: each dynamic type
+// is derived from nothing, and each input holds the port its sources offer
+// for those types. The result depends only on which edges exist. An edge
+// that cannot hold is an error, or under dropConflicts is removed and
+// returned.
+func (a *Graph) settle(policy conflictPolicy) ([]DroppedEdge, error) {
 	var dropped []DroppedEdge
 	for {
-		err := a.settle()
-		if err == nil {
-			return dropped, nil
-		}
-		conflict, ok := err.(*edgeConflict)
-		if !ok {
+		err := a.settleOnce()
+
+		var conflict *edgeConflict
+		if policy == refuseConflicts || !errors.As(err, &conflict) {
 			return dropped, err
 		}
-		if err := conflict.edge.unhold(); err != nil {
-			return dropped, fmt.Errorf("removing %s: %w", conflict.edge, err)
-		}
 
-		drop := conflict.edge.dropped(a.SubGraphScopeID(), conflict.Error())
-		a.recordDrop(drop)
-		dropped = append(dropped, drop)
+		e := conflict.edge
+		at := max(e.element, 0)
+		a.setSources(e.consumer, e.input, slices.Delete(slices.Clone(a.reads[e.consumer][e.input]), at, at+1))
+		dropped = append(dropped, DroppedEdge{
+			Scope: a.SubGraphScopeID(),
+			From:  e.producerID, FromPort: e.output,
+			To: e.consumerID, ToPort: e.inputName(),
+			Reason: conflict.Error(),
+		})
 	}
 }
 
 type edgeConflict struct {
-	edge *heldEdge
+	edge edge
 	err  error
 }
 
 func (c *edgeConflict) Error() string { return c.err.Error() }
 
-// Its ports are built once and may go stale; their types and bindings are
-// read live, so that is safe.
-type heldEdge struct {
-	consumerID string
-	input      string
-	element    int
-	in         nodes.InputPort
+// A node takes its type from what feeds it, so nodes are seated producers
+// first. Only a node nothing typed feeds takes its type from what it feeds,
+// which can then seat what was waiting on it, hence the rounds.
+func (a *Graph) settleOnce() error {
+	ids, _ := dependenciesFirst(a.nodesByID, func(node nodes.Node) []string {
+		var producers []string
+		for _, read := range a.readBy(node) {
+			producers = append(producers, a.nodeIDs[read])
+		}
+		return producers
+	})
+	seats := make([]seat, len(ids))
+	for i, id := range ids {
+		seats[i] = seat{graph: a, node: a.nodesByID[id], inputs: a.nodesByID[id].Inputs()}
+	}
 
-	producerID string
-	producer   nodes.Node
-	output     string
-	out        nodes.OutputPort
+	a.forgetDynamicTypes()
 
-	// Whether either end is a dynamic port, and so has a type to bind.
-	bindable bool
+	for range len(seats) + 2 {
+		offered := offers{}
+		var waiting *edgeConflict
+		for _, seat := range seats {
+			if err := seat.fill(offered, &waiting); err != nil {
+				return err
+			}
+		}
+
+		bound := 0
+		for _, seat := range slices.Backward(seats) {
+			n, err := seat.typeProducers(offered)
+			if err != nil {
+				return err
+			}
+			bound += n
+		}
+		if bound == 0 {
+			if waiting != nil {
+				return waiting
+			}
+			return nil
+		}
+	}
+	return fmt.Errorf("the graph's types did not settle after %d rounds", len(seats)+2)
 }
 
-func (e *heldEdge) String() string {
-	return edge{
-		from:    portEnd{id: e.producerID, port: e.output},
-		to:      portEnd{id: e.consumerID, port: e.input},
-		element: e.element,
-	}.String()
+// What each producer's outputs are right now, asked for once per round.
+type offers map[nodes.Node]map[string]nodes.OutputPort
+
+func (o offers) of(from source) nodes.OutputPort {
+	if _, built := o[from.node]; !built {
+		o[from.node] = from.node.Outputs()
+	}
+	return o[from.node][from.port]
 }
 
-func (e *heldEdge) held() nodes.OutputPort {
-	switch slot := e.in.(type) {
-	case nodes.SingleValueInputPort:
-		return slot.Value()
-	case nodes.ArrayValueInputPort:
-		return slot.Value()[e.element]
+type seat struct {
+	graph  *Graph
+	node   nodes.Node
+	inputs map[string]nodes.InputPort
+}
+
+func (s seat) conflict(input string, i int, format string, args ...any) *edgeConflict {
+	e := s.graph.edgeAt(s.node, input, s.inputs[input], i)
+	return &edgeConflict{edge: e, err: fmt.Errorf(format, args...)}
+}
+
+// fill has each of the node's inputs hold what its sources offer, first
+// taking any dynamic type they pin down. An input reading an output that
+// has no type yet is left for waiting.
+func (s seat) fill(offered offers, waiting **edgeConflict) error {
+	reads := s.graph.reads[s.node]
+	for _, input := range slices.Sorted(maps.Keys(reads)) {
+		if _, ok := s.inputs[input]; !ok {
+			return s.conflict(input, 0, "node %q no longer has an input %q", s.graph.nodeIDs[s.node], input)
+		}
+	}
+
+	for _, input := range slices.Sorted(maps.Keys(s.inputs)) {
+		in := s.inputs[input]
+		want := make([]nodes.OutputPort, len(reads[input]))
+		untyped := -1
+
+		for i, from := range reads[input] {
+			out := offered.of(from)
+			if out == nil {
+				return s.conflict(input, i, "node %q no longer has an output %q for node %q's %q input to read",
+					s.graph.nodeIDs[from.node], from.port, s.graph.nodeIDs[s.node], input)
+			}
+			want[i] = out
+
+			outType := portTypeOf(out)
+			switch {
+			case outType == "" && isDynamic(out) && portTypeOf(in) != "":
+				untyped = i
+			case outType != "" && isDynamic(in) && portTypeOf(in) == "":
+				if err := in.(nodes.DynamicallyTypedPort).BindType(outType); err != nil {
+					c := s.conflict(input, i, "")
+					c.err = fmt.Errorf("%s: %w", c.edge, err)
+					return c
+				}
+			}
+		}
+
+		if untyped != -1 {
+			if *waiting == nil {
+				*waiting = s.conflict(input, untyped, "node %q's %q output has no type for node %q's %q input to take",
+					s.graph.nodeIDs[reads[input][untyped].node], reads[input][untyped].port, s.graph.nodeIDs[s.node], input)
+			}
+			continue
+		}
+		if i, err := hold(in, want); err != nil {
+			from := reads[input][i]
+			return s.conflict(input, i, "node %q's %q output now carries %s, which node %q's %q input cannot take (%v)",
+				s.graph.nodeIDs[from.node], from.port, portTypeOf(want[i]), s.graph.nodeIDs[s.node], input, err)
+		}
 	}
 	return nil
 }
 
-func (e *heldEdge) hold(port nodes.OutputPort) (err error) {
+// typeProducers gives each untyped output the node reads the type of the
+// input reading it.
+func (s seat) typeProducers(offered offers) (bound int, err error) {
+	for _, input := range slices.Sorted(maps.Keys(s.graph.reads[s.node])) {
+		for i, from := range s.graph.reads[s.node][input] {
+			out := offered.of(from)
+			if !isDynamic(out) || portTypeOf(out) != "" {
+				continue
+			}
+			inType := portTypeOf(s.inputs[input])
+			if inType == "" {
+				continue
+			}
+			if err := out.(nodes.DynamicallyTypedPort).BindType(inType); err != nil {
+				c := s.conflict(input, i, "")
+				c.err = fmt.Errorf("%s: %w", c.edge, err)
+				return bound, c
+			}
+			bound++
+		}
+	}
+	return bound, nil
+}
+
+// hold has an input hold exactly the given ports, touching nothing when it
+// already does. It reports which of them the input would not take.
+func hold(in nodes.InputPort, want []nodes.OutputPort) (refused int, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("%v", r)
 		}
 	}()
 
-	switch slot := e.in.(type) {
+	switch slot := in.(type) {
 	case nodes.SingleValueInputPort:
-		err = slot.Set(port)
+		held := slot.Value()
+		switch {
+		case len(want) == 0:
+			if held != nil {
+				slot.Clear()
+			}
+		case !samePort(held, want[0]):
+			if err := slot.Set(want[0]); err != nil {
+				return 0, err
+			}
+			// Reflection drops a port of the wrong type rather than complaining.
+			if slot.Value() != want[0] {
+				return 0, fmt.Errorf("the input dropped it")
+			}
+		}
+
 	case nodes.ArrayValueInputPort:
-		err = slot.Replace(e.element, port)
-	}
-	if err != nil {
-		return err
-	}
-	if e.held() != port {
-		return fmt.Errorf("the input dropped it")
-	}
-	e.out = port
-	return nil
-}
-
-func (e *heldEdge) dropped(scope, reason string) DroppedEdge {
-	return DroppedEdge{
-		Scope: scope,
-		From:  e.producerID, FromPort: e.output,
-		To: e.consumerID, ToPort: edge{to: portEnd{port: e.input}, element: e.element}.inputName(),
-		Reason: reason,
-	}
-}
-
-func (e *heldEdge) unhold() error {
-	switch slot := e.in.(type) {
-	case nodes.SingleValueInputPort:
+		if slices.EqualFunc(slot.Value(), want, samePort) {
+			return 0, nil
+		}
 		slot.Clear()
-		if slot.Value() != nil {
-			return fmt.Errorf("the input kept it")
-		}
-	case nodes.ArrayValueInputPort:
-		count := len(slot.Value())
-		if err := slot.Remove(slot.Value()[e.element]); err != nil {
-			return err
-		}
-		if len(slot.Value()) != count-1 {
-			return fmt.Errorf("the input kept it")
+		for i, port := range want {
+			if err := slot.Add(port); err != nil {
+				return i, err
+			}
+			if len(slot.Value()) != i+1 {
+				return i, fmt.Errorf("the input dropped it")
+			}
 		}
 	}
-	return nil
+	return 0, nil
 }
 
-// Sorted: which edge binds or drops first must not depend on map order.
-func (a *Graph) heldEdges() []heldEdge {
-	ids := slices.Sorted(maps.Keys(a.nodesByID))
-
-	var edges []heldEdge
-	for _, id := range ids {
-		inputs := a.nodesByID[id].Inputs()
-
-		names := make([]string, 0, len(inputs))
-		for name := range inputs {
-			names = append(names, name)
-		}
-		sort.Strings(names)
-
-		for _, name := range names {
-			in := inputs[name]
-			add := func(element int, out nodes.OutputPort) {
-				if out == nil {
-					return
-				}
-				edges = append(edges, heldEdge{
-					consumerID: id, input: name, element: element, in: in,
-					producerID: a.nodeIDs[out.Node()], producer: out.Node(), output: out.Name(), out: out,
-					bindable: isDynamic(in) || isDynamic(out),
-				})
-			}
-
-			switch slot := in.(type) {
-			case nodes.SingleValueInputPort:
-				add(nextElement, slot.Value())
-			case nodes.ArrayValueInputPort:
-				for element, out := range slot.Value() {
-					add(element, out)
-				}
-			}
-		}
-	}
-	return edges
+// A port is rebuilt on every Outputs call, so the one held is never the one
+// offered; what matters is that it reads the same output as the same type.
+func samePort(held, offered nodes.OutputPort) bool {
+	return held != nil &&
+		reflect.TypeOf(held) == reflect.TypeOf(offered) &&
+		held.Node() == offered.Node() &&
+		held.Name() == offered.Name()
 }
 
 func isDynamic(port any) bool {
@@ -217,91 +273,4 @@ func (a *Graph) forgetDynamicTypes() {
 			release(port)
 		}
 	}
-}
-
-type bindDirection int
-
-const (
-	// A node takes its type from what feeds it...
-	fromProducer bindDirection = iota
-	// ...and only a node nothing typed feeds takes it from what it feeds.
-	fromConsumer
-)
-
-// Downstream reaches a fixed point before anything binds upstream, so a
-// producer's type wins wherever both directions could type a node.
-func inferTypes(edges []heldEdge) error {
-	for {
-		bound, err := bindAcross(edges, fromProducer)
-		if err != nil {
-			return err
-		}
-		if bound == 0 {
-			bound, err = bindAcross(edges, fromConsumer)
-			if err != nil {
-				return err
-			}
-		}
-		if bound == 0 {
-			return nil
-		}
-	}
-}
-
-func bindAcross(edges []heldEdge, direction bindDirection) (int, error) {
-	bound := 0
-	for i := range edges {
-		e := &edges[i]
-		if !e.bindable {
-			continue
-		}
-		outType, inType := portTypeOf(e.out), portTypeOf(e.in)
-
-		var untyped any
-		var to string
-		switch {
-		case direction == fromProducer && inType == "" && outType != "":
-			untyped, to = e.in, outType
-		case direction == fromConsumer && outType == "" && inType != "":
-			untyped, to = e.out, inType
-		default:
-			continue
-		}
-
-		if !isDynamic(untyped) {
-			continue
-		}
-		if err := untyped.(nodes.DynamicallyTypedPort).BindType(to); err != nil {
-			return bound, &edgeConflict{edge: e, err: fmt.Errorf("%s: %w", e, err)}
-		}
-		bound++
-	}
-	return bound, nil
-}
-
-func reseat(edges []heldEdge) (bool, error) {
-	offers := map[nodes.Node]map[string]nodes.OutputPort{}
-	changed := false
-	for i := range edges {
-		e := &edges[i]
-		if _, built := offers[e.producer]; !built {
-			offers[e.producer] = e.producer.Outputs()
-		}
-		offered := offers[e.producer][e.output]
-		if offered == nil {
-			return changed, &edgeConflict{edge: e, err: fmt.Errorf(
-				"node %q no longer has an output %q for node %q's %q input to read",
-				e.producerID, e.output, e.consumerID, e.input)}
-		}
-		if reflect.TypeOf(offered) == reflect.TypeOf(e.out) {
-			continue
-		}
-		if err := e.hold(offered); err != nil {
-			return changed, &edgeConflict{edge: e, err: fmt.Errorf(
-				"node %q's %q output now carries %s, which node %q's %q input cannot take (%v)",
-				e.producerID, e.output, portTypeOf(offered), e.consumerID, e.input, err)}
-		}
-		changed = true
-	}
-	return changed, nil
 }

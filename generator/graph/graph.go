@@ -19,6 +19,10 @@ type Graph struct {
 	nodeTypeKeys    map[nodes.Node]string
 	nodeIDHighWater int // so a deleted id is never handed out again
 
+	// Every edge: what each input of each node reads, an array input's
+	// sources in element order.
+	reads map[nodes.Node]map[string][]source
+
 	metadata *sync.NestedSyncMap
 
 	boundaryCache atomic.Pointer[boundaryIndex]
@@ -34,6 +38,7 @@ func (a *Graph) clear() {
 	a.nodeIDs = make(map[nodes.Node]string)
 	a.nodesByID = make(map[string]nodes.Node)
 	a.nodeTypeKeys = make(map[nodes.Node]string)
+	a.reads = make(map[nodes.Node]map[string][]source)
 	a.nodeIDHighWater = 0
 	a.metadata = sync.NewNestedSyncMap()
 	a.boundariesChanged()

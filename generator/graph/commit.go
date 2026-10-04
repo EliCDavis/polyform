@@ -2,40 +2,43 @@ package graph
 
 import (
 	"fmt"
+	"maps"
 	"slices"
-	"sort"
 )
 
-type conflictPolicy int
+// A DroppedEdge was removed because an edit left its producer carrying a
+// type its input cannot take, or took the port it was wired to.
+type DroppedEdge struct {
+	// The subgraph the edge was in; empty for the root graph.
+	Scope string
 
-const (
-	// An edit that adds refuses instead of costing an existing edge.
-	refuseConflicts conflictPolicy = iota
-	// An edit that removes drops the edges that depended on what it took,
-	// and reports them.
-	dropConflicts
-)
+	From     string
+	FromPort string
+	To       string
+	// "Port", or "Port.N" for an element of an array input.
+	ToPort string
 
-func (a *Graph) settleUnder(policy conflictPolicy) ([]DroppedEdge, error) {
-	if policy == refuseConflicts {
-		return nil, a.settle()
-	}
-	return a.settleDroppingConflicts()
+	Reason string
 }
 
-func (a *Graph) commitEdit(policy conflictPolicy) error {
+// commitEdit settles a after an edit to its nodes or edges, then brings
+// every graph placing it back in line. It returns the edges that had to go.
+func (a *Graph) commitEdit(policy conflictPolicy) ([]DroppedEdge, error) {
 	a.definitionChanged()
 	if a.deferredToCompoundEdit() {
-		return nil
+		return nil, nil
 	}
-	if _, err := a.settleUnder(policy); err != nil {
-		return err
+
+	dropped, err := a.settle(policy)
+	if err != nil {
+		return dropped, err
 	}
-	return a.refreshPlacers(policy)
+	elsewhere, err := a.refreshPlacers(policy)
+	return append(dropped, elsewhere...), err
 }
 
 // updateCopies repeats an edit in every copy of this definition. Only for an
-// edit that cannot change a type: anything else has to go through refreshPlacers.
+// edit that cannot change a type: anything else has to go through commitEdit.
 func (a *Graph) updateCopies(edit func(copied *Graph) error) error {
 	a.definitionChanged()
 	scope := a.SubGraphScopeID()
@@ -47,7 +50,7 @@ func (a *Graph) updateCopies(edit func(copied *Graph) error) error {
 	root.incModelVersion()
 
 	var err error
-	forEachSubGraphInstance(root, scope, func(placement *SubgraphInstanceNode) {
+	forEachSubGraphInstance(root, scope, func(_ *Graph, placement *SubgraphInstanceNode) {
 		if copied := placement.BuiltGraph(); copied != nil && err == nil {
 			err = edit(copied)
 		}
@@ -57,34 +60,32 @@ func (a *Graph) updateCopies(edit func(copied *Graph) error) error {
 
 // refreshPlacers brings every graph that places this definition, directly
 // or through another definition, back in line with it.
-func (a *Graph) refreshPlacers(policy conflictPolicy) error {
-	a.definitionChanged()
-	if a.deferredToCompoundEdit() {
-		return nil
-	}
+func (a *Graph) refreshPlacers(policy conflictPolicy) ([]DroppedEdge, error) {
 	changed := a.SubGraphScopeID()
 	if changed == "" {
-		return nil
+		return nil, nil
 	}
 
 	root := a.Root()
-	root.refreshSubGraphNodeType(changed)
+	root.incModelVersion()
 
+	var dropped []DroppedEdge
 	placers, affected := root.placersOf(changed)
 	for _, placer := range placers {
-		lost, err := placer.refreshPlacements(affected, policy)
-		if err != nil {
-			return err
+		var lost []DroppedEdge
+		err := placer.refreshPlacements(affected)
+		if err == nil {
+			lost, err = placer.settle(policy)
 		}
-		dropped, err := placer.settleUnder(policy)
-		if err != nil {
-			return err
-		}
-		if len(lost)+len(dropped) > 0 {
+		if len(lost) > 0 {
 			placer.definitionChanged()
 		}
+		dropped = append(dropped, lost...)
+		if err != nil {
+			return dropped, err
+		}
 	}
-	return nil
+	return dropped, nil
 }
 
 // Innermost first: a graph's placements may only be rebuilt once every
@@ -118,43 +119,17 @@ func (root *Instance) placersOf(changed string) (innermostFirst []*Graph, affect
 }
 
 // refreshPlacements drops the copy held by each of a's placements of an
-// affected definition, and unwires what fed any input that is gone.
-func (a *Graph) refreshPlacements(affected map[string]bool, policy conflictPolicy) ([]DroppedEdge, error) {
-	ids := make([]string, 0)
-	for node, id := range a.nodeIDs {
-		if placement, ok := node.(*SubgraphInstanceNode); ok && affected[placement.subGraphID] {
-			ids = append(ids, id)
+// affected definition.
+func (a *Graph) refreshPlacements(affected map[string]bool) error {
+	for _, id := range slices.Sorted(maps.Keys(a.nodesByID)) {
+		placement, ok := a.nodesByID[id].(*SubgraphInstanceNode)
+		if !ok || !affected[placement.subGraphID] {
+			continue
 		}
-	}
-	sort.Strings(ids)
-
-	var lost []DroppedEdge
-	for _, id := range ids {
-		placement := a.Node(id).(*SubgraphInstanceNode)
-
-		unwired := placement.invalidate()
+		placement.invalidate()
 		if err := placement.buildIfNeeded(); err != nil {
-			return lost, fmt.Errorf("rebuilding placement %s of subgraph %q: %w", id, placement.subGraphID, err)
-		}
-		inputs := make([]string, 0, len(unwired))
-		for input := range unwired {
-			inputs = append(inputs, input)
-		}
-		sort.Strings(inputs)
-		for _, input := range inputs {
-			source := unwired[input]
-			drop := DroppedEdge{
-				Scope: a.SubGraphScopeID(),
-				From:  a.nodeIDs[source.Node()], FromPort: source.Name(),
-				To: id, ToPort: input,
-				Reason: fmt.Sprintf("subgraph %q no longer has an input %q", placement.subGraphID, input),
-			}
-			if policy == refuseConflicts {
-				return lost, fmt.Errorf("%s", drop.Reason)
-			}
-			a.recordDrop(drop)
-			lost = append(lost, drop)
+			return fmt.Errorf("rebuilding placement %s of subgraph %q: %w", id, placement.subGraphID, err)
 		}
 	}
-	return lost, nil
+	return nil
 }

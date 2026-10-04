@@ -114,11 +114,6 @@ func (a *Instance) RegisterSubGraphNodeType(subGraphID string) (string, error) {
 	return typePath, nil
 }
 
-func (a *Instance) refreshSubGraphNodeType(subGraphID string) {
-	a.RegisterSubGraphNodeType(subGraphID)
-	a.incModelVersion()
-}
-
 func (a *Instance) CollectBoundaryPorts(subGraphID string) ([]SubgraphBoundaryPort, error) {
 	child, err := a.SubGraphInstance(subGraphID)
 	if err != nil {

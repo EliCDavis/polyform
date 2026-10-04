@@ -126,14 +126,12 @@ func (r *SubgraphInstanceNode) build() error {
 	return nil
 }
 
-// invalidate drops the copy, which no longer matches the definition, and
-// returns what was feeding any input the definition no longer has.
-func (r *SubgraphInstanceNode) invalidate() (lost map[string]nodes.OutputPort) {
+// invalidate drops the copy, which no longer matches the definition.
+func (r *SubgraphInstanceNode) invalidate() {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.copied = nil
 	nodes.Touch()
-	return r.refreshInputsLocked()
 }
 
 // needsCopy reports an input fed a different rank than the definition is
@@ -206,7 +204,7 @@ func (r *SubgraphInstanceNode) Inputs() map[string]nodes.InputPort {
 	return ports
 }
 
-func (r *SubgraphInstanceNode) refreshInputsLocked() (lost map[string]nodes.OutputPort) {
+func (r *SubgraphInstanceNode) refreshInputsLocked() {
 	definition := r.definition()
 
 	for name, boundary := range definition.inputs {
@@ -218,19 +216,11 @@ func (r *SubgraphInstanceNode) refreshInputsLocked() (lost map[string]nodes.Outp
 		port.portType = boundary.BoundaryPortType()
 	}
 
-	for name, port := range r.inputs {
-		if _, ok := definition.inputs[name]; ok {
-			continue
+	for name := range r.inputs {
+		if _, ok := definition.inputs[name]; !ok {
+			delete(r.inputs, name)
 		}
-		if port.external != nil {
-			if lost == nil {
-				lost = make(map[string]nodes.OutputPort)
-			}
-			lost[name] = port.external
-		}
-		delete(r.inputs, name)
 	}
-	return lost
 }
 
 func (r *SubgraphInstanceNode) Outputs() map[string]nodes.OutputPort {

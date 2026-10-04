@@ -23,7 +23,7 @@ func TRS(input, transforms []trs.TRS) ([]trs.TRS, error) {
 
 type TRSNode struct {
 	Input      nodes.Output[[]trs.TRS] `description:"The parent transforms. Empty output if unconnected."`
-	Transforms nodes.Output[[]trs.TRS] `description:"Applied inside each Input transform's own frame, so a rotation here turns each copy about its Input transform, not about the origin. To arrange a whole group around the origin, swap the two ports. If unconnected, Input passes through unchanged."`
+	Transforms nodes.Output[[]trs.TRS] `description:"Applied inside each Input transform's own frame, so a rotation here turns each copy about its Input transform. If unconnected, Input passes through unchanged."`
 }
 
 func (rnd TRSNode) Description() string {

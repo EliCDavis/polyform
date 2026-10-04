@@ -14,26 +14,19 @@ import (
 // element of an array input.
 func (a *Graph) assignedInputs(node nodes.Node) map[string]schema.PortReference {
 	assigned := make(map[string]schema.PortReference)
-	reference := func(port nodes.OutputPort) schema.PortReference {
-		return schema.PortReference{NodeId: a.nodeIDs[port.Node()], PortName: port.Name()}
+	if len(a.reads[node]) == 0 {
+		return assigned
 	}
 
-	for name, input := range node.Inputs() {
-		switch slot := input.(type) {
-		case nodes.SingleValueInputPort:
-			if port := slot.Value(); port != nil {
-				assigned[name] = reference(port)
+	inputs := node.Inputs()
+	for name, sources := range a.reads[node] {
+		_, isArray := inputs[name].(nodes.ArrayValueInputPort)
+		for i, from := range sources {
+			key := name
+			if isArray {
+				key = fmt.Sprintf("%s.%d", name, i)
 			}
-
-		case nodes.ArrayValueInputPort:
-			for index, port := range slot.Value() {
-				if port != nil {
-					assigned[fmt.Sprintf("%s.%d", name, index)] = reference(port)
-				}
-			}
-
-		default:
-			panic(fmt.Errorf("unable to interpret %v's input %q", node, name))
+			assigned[key] = schema.PortReference{NodeId: a.nodeIDs[from.node], PortName: from.port}
 		}
 	}
 	return assigned

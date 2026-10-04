@@ -120,7 +120,6 @@ type funcArgumentsKey struct {
 	argument reflect.Type
 }
 
-// Keyed by type, and shared: callers must not modify what they are handed.
 var (
 	funcArgumentsCache     sync.Map
 	funcArgumentTypesCache sync.Map
@@ -474,7 +473,6 @@ type genericFieldsKey struct {
 	genericType string
 }
 
-// Keyed by type, and shared: callers must not modify what they are handed.
 var genericFieldsCache sync.Map
 
 func GenericFieldTypes(genericType string, in any) map[string]string {
