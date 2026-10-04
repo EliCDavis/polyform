@@ -24,7 +24,7 @@ type DroppedEdge struct {
 // commitEdit settles a after an edit to its nodes or edges, then brings
 // every graph placing it back in line. It returns the edges that had to go.
 func (a *Graph) commitEdit(policy conflictPolicy) ([]DroppedEdge, error) {
-	a.definitionChanged()
+	a.clearCopySource()
 	if a.deferredToCompoundEdit() {
 		return nil, nil
 	}
@@ -40,7 +40,7 @@ func (a *Graph) commitEdit(policy conflictPolicy) ([]DroppedEdge, error) {
 // updateCopies repeats an edit in every copy of this definition. Only for an
 // edit that cannot change a type: anything else has to go through commitEdit.
 func (a *Graph) updateCopies(edit func(copied *Graph) error) error {
-	a.definitionChanged()
+	a.clearCopySource()
 	scope := a.SubGraphScopeID()
 	if scope == "" || a.deferredToCompoundEdit() {
 		return nil
@@ -78,7 +78,7 @@ func (a *Graph) refreshPlacers(policy conflictPolicy) ([]DroppedEdge, error) {
 			lost, err = placer.settle(policy)
 		}
 		if len(lost) > 0 {
-			placer.definitionChanged()
+			placer.clearCopySource()
 		}
 		dropped = append(dropped, lost...)
 		if err != nil {

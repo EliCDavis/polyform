@@ -23,7 +23,7 @@ func (root *Instance) cloneSubGraphDefinition(subGraphID string, externals map[s
 }
 
 // A definition is encoded once and every copy is built from that, until an
-// edit to it calls definitionChanged.
+// edit to it calls clearCopySource.
 func (root *Instance) copySource(subGraphID string) (savedGraph, error) {
 	if source, ok := root.copySources[subGraphID]; ok {
 		return source, nil
@@ -58,9 +58,9 @@ func decoderOf(encoder *jbtf.Encoder) (jbtf.Decoder, error) {
 	return jbtf.NewDecoder(payload)
 }
 
-// definitionChanged has to be called by every edit to a definition's nodes
+// clearCopySource has to be called by every edit to a definition's nodes
 // or edges: copies are built from what copySource remembers of it.
-func (a *Graph) definitionChanged() {
+func (a *Graph) clearCopySource() {
 	if scope := a.SubGraphScopeID(); scope != "" {
 		delete(a.project.copySources, scope)
 	}

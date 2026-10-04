@@ -12,7 +12,7 @@ import (
 )
 
 func (a *Graph) register(node nodes.Node, id, typeKey string) {
-	a.boundariesChanged()
+	a.clearBoundaryCache()
 	a.nodeIDs[node] = id
 	a.nodesByID[id] = node
 	if typeKey != "" {
@@ -26,7 +26,7 @@ func (a *Graph) register(node nodes.Node, id, typeKey string) {
 }
 
 func (a *Graph) forget(node nodes.Node) {
-	a.boundariesChanged()
+	a.clearBoundaryCache()
 	delete(a.nodesByID, a.nodeIDs[node])
 	delete(a.nodeIDs, node)
 	delete(a.nodeTypeKeys, node)

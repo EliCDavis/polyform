@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "polyform-editor",
+      "runtimeExecutable": "go",
+      "runtimeArgs": ["run", "./cmd/polyform", "edit", "--launch-browser=false", "--port", "8091"],
+      "port": 8091
+    }
+  ]
+}

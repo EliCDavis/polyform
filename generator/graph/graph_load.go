@@ -93,7 +93,7 @@ func (a *Instance) ApplyAppSchema(jsonPayload []byte) error {
 }
 
 func (a *Graph) loadNodes(saved savedGraph, externals map[string]nodes.OutputPort) error {
-	a.definitionChanged()
+	a.clearCopySource()
 	order, cyclic := dependenciesFirst(saved.nodes, func(node persistence.Node) []string {
 		producers := make([]string, 0, len(node.AssignedInput))
 		for _, from := range node.AssignedInput {
@@ -116,7 +116,7 @@ func (a *Graph) loadNodes(saved savedGraph, externals map[string]nodes.OutputPor
 		if err := saved.restore(id, node); err != nil {
 			return fmt.Errorf("node %s: %w", id, err)
 		}
-		a.boundariesChanged()
+		a.clearBoundaryCache()
 		if boundary, ok := subgraph.IsInputBoundary(node); ok {
 			if external, fed := externals[boundary.BoundaryPortName()]; fed {
 				boundary.SetExternalSource(external)

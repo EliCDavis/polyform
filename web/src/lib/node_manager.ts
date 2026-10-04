@@ -543,11 +543,7 @@ export class NodeManager {
                 }
 
                 // Whole port, not the odd edge: the pass after re-adds them.
-                // connections() is live and clearPorts splices it.
-                // TODO: swap to nodeFlowGraph.clearNodeInputConnection once published.
-                for (const connection of port.connections().slice()) {
-                    connection.clearPorts();
-                }
+                this.nodeFlowGraph.clearNodeInputConnection(flowNode, i);
             }
         }
     }

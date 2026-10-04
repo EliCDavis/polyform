@@ -8,7 +8,7 @@ import {
   Mesh,
   MeshPhongMaterial,
   NoToneMapping,
-  PCFSoftShadowMap,
+  PCFShadowMap,
   PerspectiveCamera,
   PlaneGeometry,
   Scene,
@@ -129,7 +129,7 @@ export function CreateThreeApp(
   renderer.setPixelRatio(window.devicePixelRatio);
   // renderer.setSize(threeCanvas.clientWidth, threeCanvas.clientHeight, false);
   renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = PCFSoftShadowMap; // default THREE.PCFShadowMap
+  renderer.shadowMap.type = PCFShadowMap;
   // Tone mapping happens in ToneMappingEffect below - leaving this on
   // double-encodes colors.
   renderer.toneMapping = NoToneMapping;

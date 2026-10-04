@@ -14,7 +14,7 @@ type boundaryIndex struct {
 }
 
 // A boundary is a port once it has both a type and a name. The index is
-// kept until boundariesChanged, and must not be modified.
+// kept until clearBoundaryCache, and must not be modified.
 func (a *Graph) boundaries() boundaryIndex {
 	if cached := a.boundaryCache.Load(); cached != nil {
 		return *cached
@@ -41,9 +41,9 @@ func (a *Graph) boundaries() boundaryIndex {
 	return index
 }
 
-// boundariesChanged has to follow anything that adds, removes, names or
+// clearBoundaryCache has to follow anything that adds, removes, names or
 // types a boundary node.
-func (a *Graph) boundariesChanged() {
+func (a *Graph) clearBoundaryCache() {
 	a.boundaryCache.Store(nil)
 }
 
@@ -81,7 +81,7 @@ func (a *Graph) setBoundaryNodeInfo(nodeID, portName string) error {
 	default:
 		return fmt.Errorf("node %q is not a sub-graph boundary node", nodeID)
 	}
-	a.boundariesChanged()
+	a.clearBoundaryCache()
 
 	// Renamed on every placement first, so what feeds the old name is kept
 	// rather than dropped as feeding a port that is gone.

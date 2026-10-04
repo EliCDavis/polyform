@@ -41,7 +41,7 @@ func (a *Graph) clear() {
 	a.reads = make(map[nodes.Node]map[string][]source)
 	a.nodeIDHighWater = 0
 	a.metadata = sync.NewNestedSyncMap()
-	a.boundariesChanged()
+	a.clearBoundaryCache()
 }
 
 // Root is the project this graph belongs to.
