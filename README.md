@@ -147,7 +147,7 @@ Polyform's visual editor is a **React + TypeScript** app in [`web/`](web/), buil
 ### Prerequisites
 
 - **Go** 1.21+ (to run the edit server and build the CLI)
-- **Node.js** 18+ and **npm** (to build the web UI)
+- **Node.js** 20.19+ or 22.12+ and **npm** (to build the web UI)
 
 ### First-time setup
 
@@ -181,7 +181,7 @@ air edit
 npm run watch-dev
 ```
 
-The Vite dev server proxies REST and WebSocket traffic to `localhost:8080`. If your Go server uses a different port, update the proxy targets in [`web/vite.config.ts`](web/vite.config.ts).
+The Vite dev server proxies REST and WebSocket traffic to `localhost:8080`. If your Go server uses a different port, update the proxy targets in [`web/vite.config.mts`](web/vite.config.mts).
 
 ### Go-only development
 
@@ -199,7 +199,6 @@ go run ./cmd/polyform edit
 | `npm run watch-dev` | Vite dev server with HMR (local UI development) |
 | `npm run build-dev` | Production bundle → `generator/edit/html/js/index.js` |
 | `npm run build-prod` | Same as `build-dev` with production mode |
-| `npm run lint` | ESLint on `web/src/` |
 
 ### Live reload with Air
 

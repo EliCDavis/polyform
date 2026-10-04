@@ -9,7 +9,6 @@ import (
 type cliConfig[T any] struct {
 	FlagName string `json:"flagName"`
 	Usage    string `json:"usage"`
-	value    *T
 }
 
 type variableSchemaBase struct {

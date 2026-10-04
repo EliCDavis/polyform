@@ -23,7 +23,6 @@ type Boundary interface {
 type InputBoundary interface {
 	Boundary
 	SetExternalSource(port nodes.OutputPort)
-	ExternalSource() nodes.OutputPort
 }
 
 func IsBoundaryNode(node nodes.Node) (Boundary, bool) {
@@ -157,10 +156,6 @@ func (n *InputNode) SetExternalSource(port nodes.OutputPort) {
 	n.externalSource = port
 	n.version++
 	nodes.Touch()
-}
-
-func (n *InputNode) ExternalSource() nodes.OutputPort {
-	return n.externalSource
 }
 
 func (n *InputNode) Inputs() map[string]nodes.InputPort {
@@ -359,6 +354,7 @@ func (p *outputNodeInputPort) AcceptedTypes() []string {
 
 func (p *outputNodeInputPort) Clear() {
 	p.connected = nil
+	nodes.Touch()
 }
 
 func (p *outputNodeInputPort) Value() nodes.OutputPort {
@@ -367,5 +363,6 @@ func (p *outputNodeInputPort) Value() nodes.OutputPort {
 
 func (p *outputNodeInputPort) Set(port nodes.OutputPort) error {
 	p.connected = port
+	nodes.Touch()
 	return nil
 }

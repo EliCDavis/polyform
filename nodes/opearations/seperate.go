@@ -8,26 +8,6 @@ import (
 
 type Element nodes.DynamicType
 
-func Seperate[T any](in []T, keep []bool) (kept, removed []T) {
-	keptLen := 0
-	removedLen := 0
-	seperated := make([]T, len(in))
-
-	for i, v := range in {
-		if i < len(keep) && keep[i] {
-			seperated[keptLen] = v
-			keptLen++
-		} else {
-			seperated[len(in)-removedLen-1] = v
-			removedLen++
-		}
-	}
-
-	kept = seperated[:keptLen]
-	removed = seperated[keptLen:]
-	return
-}
-
 type SeperateNode struct {
 	Array     nodes.DynamicPort[[]Element]
 	Selection nodes.Output[[]bool] `description:"One flag per entry. Entries past its end count as unselected."`
@@ -55,8 +35,7 @@ func (node SeperateNode) split(recorder nodes.ExecutionRecorder) (nodes.DynamicA
 		removed = append(removed, array.At(i))
 	}
 
-	// Seperate packs the removed entries from the end of one buffer, so they
-	// come back reversed. Kept here so both paths agree.
+	// Last first: the order this node has always returned them in.
 	slices.Reverse(removed)
 
 	return array, kept, removed, true

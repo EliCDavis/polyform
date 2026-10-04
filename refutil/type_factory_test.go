@@ -90,16 +90,3 @@ func TestTypeFactory_RegisterTypeWithBuilder(t *testing.T) {
 	assert.True(t, ok)
 }
 
-func TestTypeFactory_BuildType(t *testing.T) {
-	// ARRANGE ================================================================
-	factory := &refutil.TypeFactory{}
-	refutil.RegisterTypeWithBuilder(factory, func() int {
-		return 7
-	})
-
-	// ACT ====================================================================
-	built := refutil.BuildType[int](factory)
-
-	// ASSERT =================================================================
-	assert.Equal(t, 7, *built)
-}

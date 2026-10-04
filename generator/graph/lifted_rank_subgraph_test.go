@@ -41,7 +41,7 @@ func onlyPort(t *testing.T, ports map[string]struct{}) string {
 	return ""
 }
 
-func instancePorts(t *testing.T, inst *graph.Instance, id string) (in, out string) {
+func instancePorts(t *testing.T, inst interface{ Node(string) nodes.Node }, id string) (in, out string) {
 	t.Helper()
 	node := inst.Node(id)
 
@@ -72,8 +72,8 @@ func liftedPassThroughSubgraph(t *testing.T, inst *graph.Instance, id string) (t
 
 	require.NoError(t, child.SetBoundaryNodeInfo(boundaryIn, "Value In"))
 	require.NoError(t, child.SetBoundaryNodeInfo(boundaryOut, "Value Out"))
-	child.ConnectNodes(boundaryIn, subgraph.ValuePortName, double, "In")
-	child.ConnectNodes(double, "Out", boundaryOut, subgraph.ValuePortName)
+	require.NoError(t, child.ConnectNodes(boundaryIn, subgraph.ValuePortName, double, "In"))
+	require.NoError(t, child.ConnectNodes(double, "Out", boundaryOut, subgraph.ValuePortName))
 
 	typePath, err = inst.RegisterSubGraphNodeType(id)
 	require.NoError(t, err)
@@ -94,12 +94,8 @@ func TestAnArrayIntoASubgraphLiftsWhatIsInside(t *testing.T) {
 
 	inName, outName := instancePorts(t, inst, placed)
 
-	require.NotPanics(t, func() {
-		inst.ConnectNodes(array, "Out", placed, inName)
-	})
-	require.NotPanics(t, func() {
-		inst.ConnectNodes(placed, outName, sum, "In")
-	})
+	require.NoError(t, inst.ConnectNodes(array, "Out", placed, inName))
+	require.NoError(t, inst.ConnectNodes(placed, outName, sum, "In"))
 
 	assert.InDelta(t, 12, nodes.GetNodeOutputPort[float64](inst.Node(sum), "Out").Value(), 1e-12,
 		"1+2+3 doubled is 12, so the array lifted all the way through")
@@ -118,8 +114,8 @@ func TestASubgraphFedAnArraySurvivesASaveAndLoad(t *testing.T) {
 	require.NoError(t, err)
 
 	inName, outName := instancePorts(t, inst, placed)
-	inst.ConnectNodes(array, "Out", placed, inName)
-	inst.ConnectNodes(placed, outName, sum, "In")
+	require.NoError(t, inst.ConnectNodes(array, "Out", placed, inName))
+	require.NoError(t, inst.ConnectNodes(placed, outName, sum, "In"))
 
 	saved, err := inst.EncodeToAppSchema()
 	require.NoError(t, err)
@@ -147,16 +143,10 @@ func TestASubgraphRefusesAnArrayConsumerUntilItCarriesOne(t *testing.T) {
 
 	inName, outName := instancePorts(t, inst, placed)
 
-	require.Panics(t, func() {
-		inst.ConnectNodes(placed, outName, sum, "In")
-	}, "the instance is still scalar, so a []float64 consumer does not fit yet")
+	require.Error(t, inst.ConnectNodes(placed, outName, sum, "In"), "the instance is still scalar, so a []float64 consumer does not fit yet")
 
-	require.NotPanics(t, func() {
-		inst.ConnectNodes(array, "Out", placed, inName)
-	})
-	require.NotPanics(t, func() {
-		inst.ConnectNodes(placed, outName, sum, "In")
-	})
+	require.NoError(t, inst.ConnectNodes(array, "Out", placed, inName))
+	require.NoError(t, inst.ConnectNodes(placed, outName, sum, "In"))
 
 	assert.InDelta(t, 12, nodes.GetNodeOutputPort[float64](inst.Node(sum), "Out").Value(), 1e-12)
 }
@@ -189,8 +179,8 @@ func TestAnArrayLiftsThroughTwoNestedSubgraphs(t *testing.T) {
 	for name := range nestedNode.Outputs() {
 		nOut = name
 	}
-	outer.ConnectNodes(outerIn, subgraph.ValuePortName, nested, nIn)
-	outer.ConnectNodes(nested, nOut, outerOut, subgraph.ValuePortName)
+	require.NoError(t, outer.ConnectNodes(outerIn, subgraph.ValuePortName, nested, nIn))
+	require.NoError(t, outer.ConnectNodes(nested, nOut, outerOut, subgraph.ValuePortName))
 
 	outerType, err := inst.RegisterSubGraphNodeType("outer")
 	require.NoError(t, err)
@@ -205,8 +195,8 @@ func TestAnArrayLiftsThroughTwoNestedSubgraphs(t *testing.T) {
 	pIn, pOut := instancePorts(t, inst, placed)
 
 	require.NotPanics(t, func() {
-		inst.ConnectNodes(array, "Out", placed, pIn)
-		inst.ConnectNodes(placed, pOut, sum, "In")
+		require.NoError(t, inst.ConnectNodes(array, "Out", placed, pIn))
+		require.NoError(t, inst.ConnectNodes(placed, pOut, sum, "In"))
 	})
 	assert.InDelta(t, 12, nodes.GetNodeOutputPort[float64](inst.Node(sum), "Out").Value(), 1e-12)
 }

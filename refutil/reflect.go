@@ -5,6 +5,7 @@ import (
 	"path"
 	"reflect"
 	"strings"
+	"sync"
 )
 
 func GetPackagePath(v any) string {
@@ -114,73 +115,26 @@ func GetTypeNameWithoutPackage(in any) string {
 	return parts[len(parts)-1] + genericType
 }
 
-func FuncNamesOfType[T any](in any) []string {
-	viewPointerValue := reflect.ValueOf(in)
-
-	view := viewPointerValue
-	out := make([]string, 0)
-
-	viewType := view.Type()
-	for i := range viewType.NumMethod() {
-		method := viewType.Method(i)
-
-		methodType := method.Func.Type()
-		if methodType.NumOut() != 1 {
-			continue
-		}
-
-		methodOutType := methodType.Out(0)
-		var exampleVal *T
-		if !methodOutType.Implements(reflect.TypeOf(exampleVal).Elem()) {
-			continue
-		}
-
-		out = append(out, method.Name)
-	}
-
-	return out
+type funcArgumentsKey struct {
+	receiver reflect.Type
+	argument reflect.Type
 }
 
-func FuncReturnOfType[T any](in any) map[string]T {
-	viewPointerValue := reflect.ValueOf(in)
-
-	view := viewPointerValue
-	out := make(map[string]T)
-
-	viewType := view.Type()
-	for i := range viewType.NumMethod() {
-		method := viewType.Method(i)
-
-		methodType := method.Func.Type()
-		if methodType.NumOut() != 1 {
-			continue
-		}
-
-		methodOutType := methodType.Out(0)
-		var exampleVal *T
-		if !methodOutType.Implements(reflect.TypeOf(exampleVal).Elem()) {
-			continue
-		}
-
-		cast, ok := reflect.Zero(methodOutType).Interface().(T)
-		if !ok {
-			panic("what happened")
-		}
-		// log.Printf("cast: %v\b", cast)
-
-		out[method.Name] = cast
-	}
-
-	return out
-}
+var (
+	funcArgumentsCache     sync.Map
+	funcArgumentTypesCache sync.Map
+)
 
 func FuncArgumentsOfType[T any](in any) map[string]T {
-	viewPointerValue := reflect.ValueOf(in)
+	viewType := reflect.TypeOf(in)
+	key := funcArgumentsKey{receiver: viewType, argument: reflect.TypeFor[T]()}
+	if cached, ok := funcArgumentsCache.Load(key); ok {
+		return cached.(map[string]T)
+	}
 
-	view := viewPointerValue
 	out := make(map[string]T)
+	defer funcArgumentsCache.Store(key, out)
 
-	viewType := view.Type()
 	for i := range viewType.NumMethod() {
 		method := viewType.Method(i)
 
@@ -219,7 +173,10 @@ func HasMethod(in any, methodName string) bool {
 }
 
 func FuncArgumentTypes(in any) map[string]reflect.Type {
-	viewType := reflect.ValueOf(in).Type()
+	viewType := reflect.TypeOf(in)
+	if cached, ok := funcArgumentTypesCache.Load(viewType); ok {
+		return cached.(map[string]reflect.Type)
+	}
 
 	out := make(map[string]reflect.Type)
 	for i := range viewType.NumMethod() {
@@ -231,6 +188,7 @@ func FuncArgumentTypes(in any) map[string]reflect.Type {
 		out[method.Name] = methodType.In(1)
 	}
 
+	funcArgumentTypesCache.Store(viewType, out)
 	return out
 }
 
@@ -325,55 +283,6 @@ func FieldValue[T any](in any, field string) T {
 
 	var t T
 	panic(fmt.Errorf("%T contains no field %q of type %T", in, field, t))
-}
-
-func FieldValuesOfType[T any](in any) map[string]T {
-	viewPointerValue := reflect.ValueOf(in)
-
-	view := viewPointerValue
-	viewKind := view.Kind()
-
-	// Dereference pointer
-	if viewKind == reflect.Ptr {
-		view = view.Elem()
-		viewKind = view.Kind()
-	}
-
-	if viewKind != reflect.Struct {
-		panic(fmt.Errorf("views of type: '%s' can not be populated", viewKind.String()))
-	}
-
-	viewType := view.Type()
-
-	out := make(map[string]T)
-
-	for i := 0; i < viewType.NumField(); i++ {
-		viewFieldValue := view.Field(i)
-		structField := viewType.Field(i)
-
-		viewFieldValueKind := viewFieldValue.Kind()
-		if viewFieldValue.CanInterface() && viewFieldValueKind == reflect.Interface {
-
-			// Skip nodes that have not been set....
-			// TODO: Is this really what we want to do here?
-			if viewFieldValue.IsNil() {
-				continue
-			}
-
-			i := viewFieldValue.Interface()
-			perm, ok := i.(T)
-			if !ok {
-				// panic(fmt.Errorf("view field '%s' is an interface but not a permission which is not allowed", structField.Name))
-				continue
-			}
-			out[structField.Name] = perm
-			continue
-		}
-
-		// panic(fmt.Errorf("unimplemented scenario where view's field '%s' is type %s", structField.Name, viewFieldValueKind.String()))
-	}
-
-	return out
 }
 
 func SetStructField(structToSet any, field string, val any) {
@@ -559,7 +468,19 @@ func StructFieldTypes(in any) map[string]string {
 	return out
 }
 
+type genericFieldsKey struct {
+	structType  reflect.Type
+	genericType string
+}
+
+var genericFieldsCache sync.Map
+
 func GenericFieldTypes(genericType string, in any) map[string]string {
+	key := genericFieldsKey{structType: reflect.TypeOf(in), genericType: genericType}
+	if cached, ok := genericFieldsCache.Load(key); ok {
+		return cached.(map[string]string)
+	}
+
 	fields := StructFieldTypes(in)
 	result := make(map[string]string)
 
@@ -572,6 +493,7 @@ func GenericFieldTypes(genericType string, in any) map[string]string {
 		}
 	}
 
+	genericFieldsCache.Store(key, result)
 	return result
 }
 

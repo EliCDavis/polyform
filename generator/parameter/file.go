@@ -74,22 +74,6 @@ func (pn *File) Schema() schema.Parameter {
 	}
 }
 
-type FileNodeOutput struct {
-	Val *File
-}
-
-func (sno FileNodeOutput) Value() []byte {
-	return sno.Val.Value()
-}
-
-func (sno FileNodeOutput) Node() nodes.Node {
-	return sno.Val
-}
-
-func (sno FileNodeOutput) Port() string {
-	return "Out"
-}
-
 func (tn *File) Outputs() map[string]nodes.OutputPort {
 	return map[string]nodes.OutputPort{
 		valueOutputPortName: fileNodeOutput{Val: tn},

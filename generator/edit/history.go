@@ -44,7 +44,7 @@ func undoable(g *graph.Instance, noun string, next http.Handler) http.Handler {
 		}
 
 		recorder := &statusRecorder{ResponseWriter: w}
-		_ = g.Transact(undoVerb(r.Method)+" "+noun, func() error {
+		_ = g.History().Transact(undoVerb(r.Method)+" "+noun, func() error {
 			next.ServeHTTP(recorder, r)
 			if recorder.status >= http.StatusBadRequest {
 				return fmt.Errorf("%s %s answered %d", r.Method, r.URL.Path, recorder.status)
@@ -63,7 +63,7 @@ type historyResponse struct {
 
 func historyEndpoint(g *graph.Instance, saver *GraphSaver) endpoint.Handler {
 	state := func(applied string) historyResponse {
-		h := g.History()
+		h := g.History().Steps()
 		return historyResponse{Undo: h.Undo, Redo: h.Redo, Applied: applied}
 	}
 
@@ -80,11 +80,11 @@ func historyEndpoint(g *graph.Instance, saver *GraphSaver) endpoint.Handler {
 }
 
 func undoEndpoint(g *graph.Instance, saver *GraphSaver) endpoint.Handler {
-	return historyStepEndpoint(g, saver, g.Undo)
+	return historyStepEndpoint(g, saver, g.History().Undo)
 }
 
 func redoEndpoint(g *graph.Instance, saver *GraphSaver) endpoint.Handler {
-	return historyStepEndpoint(g, saver, g.Redo)
+	return historyStepEndpoint(g, saver, g.History().Redo)
 }
 
 func historyStepEndpoint(g *graph.Instance, saver *GraphSaver, walk func() (string, error)) endpoint.Handler {
@@ -98,7 +98,7 @@ func historyStepEndpoint(g *graph.Instance, saver *GraphSaver, walk func() (stri
 						return historyResponse{}, err
 					}
 					saver.Save()
-					h := g.History()
+					h := g.History().Steps()
 					return historyResponse{Undo: h.Undo, Redo: h.Redo, Applied: applied}, nil
 				},
 			},

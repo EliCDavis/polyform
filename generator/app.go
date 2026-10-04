@@ -44,18 +44,6 @@ func (a *App) ApplySchema(jsonPayload []byte) error {
 	return a.Graph.ApplyAppSchema(jsonPayload)
 }
 
-func (a *App) Schema() []byte {
-	a.initGraphInstance()
-
-	data, err := a.Graph.EncodeToAppSchema()
-
-	if err != nil {
-		panic(err)
-	}
-
-	return data
-}
-
 func (a *App) applyProfileToGraph(profile variable.Profile) error {
 	a.initGraphInstance()
 	return a.Graph.ApplyProfile(profile)
@@ -251,7 +239,7 @@ func (a *App) Run(args []string) error {
 				profileFlag,
 			},
 			Run: func(appState *cli.RunState) error {
-				set, err := a.Graph.VariantSet(appState.String("set"))
+				set, err := a.Graph.VariantSets().Get(appState.String("set"))
 				if err != nil {
 					return err
 				}
@@ -300,7 +288,7 @@ func (a *App) Run(args []string) error {
 				profileFlag,
 			},
 			Run: func(appState *cli.RunState) error {
-				set, err := a.Graph.VariantSet(appState.String("set"))
+				set, err := a.Graph.VariantSets().Get(appState.String("set"))
 				if err != nil {
 					return err
 				}
@@ -550,9 +538,8 @@ func (a *App) Run(args []string) error {
 					out = f
 				}
 
-				name := a.Graph.GetName()
-				description := a.Graph.GetDescription()
-				version := a.Graph.GetVersion()
+				details := a.Graph.Details()
+				name, description, version := details.Name, details.Description, details.Version
 				if name == "" {
 					name = a.Name
 					description = a.Description

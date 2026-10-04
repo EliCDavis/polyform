@@ -33,7 +33,7 @@ func TestARollbackThatCannotLoadDoesNotEmptyTheGraph(t *testing.T) {
 	_, _, err := instance.CreateNode(floatSourceType)
 	require.NoError(t, err)
 
-	err = instance.Transact("a step that fails", func() error {
+	err = instance.History().Transact("a step that fails", func() error {
 		if _, _, e := instance.CreateNode(floatSourceType); e != nil {
 			return e
 		}
@@ -47,18 +47,18 @@ func TestARollbackThatCannotLoadDoesNotEmptyTheGraph(t *testing.T) {
 func TestUndoStillWorksAfterTheRestoreGuard(t *testing.T) {
 	instance := testInstanceWithLiftedNodes(t)
 
-	require.NoError(t, instance.Transact("add", func() error {
+	require.NoError(t, instance.History().Transact("add", func() error {
 		_, _, e := instance.CreateNode(floatSourceType)
 		return e
 	}))
 	require.Len(t, instance.Schema().Nodes, 1)
 
-	label, err := instance.Undo()
+	label, err := instance.History().Undo()
 	require.NoError(t, err)
 	assert.Equal(t, "add", label)
 	assert.Empty(t, instance.Schema().Nodes)
 
-	_, err = instance.Redo()
+	_, err = instance.History().Redo()
 	require.NoError(t, err)
 	assert.Len(t, instance.Schema().Nodes, 1)
 }

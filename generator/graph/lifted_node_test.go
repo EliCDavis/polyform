@@ -100,15 +100,13 @@ func TestConnectNodesRefusesAnArrayThatRetypesAConsumedLiftedOutput(t *testing.T
 	_, consumer, err := instance.CreateNode(floatConsumerType)
 	require.NoError(t, err)
 
-	instance.ConnectNodes(scalar, "Out", total, "In.0")
-	instance.ConnectNodes(total, "Out", consumer, "In")
+	require.NoError(t, instance.ConnectNodes(scalar, "Out", total, "In.0"))
+	require.NoError(t, instance.ConnectNodes(total, "Out", consumer, "In"))
 	require.InDelta(t, 2, nodes.GetNodeOutputPort[float64](instance.Node(consumer), "Out").Value(), 1e-12)
 
 	// A second element carrying an array makes Out an []float64, and the
 	// consumer is still holding the float64 port it was handed.
-	require.Panics(t, func() {
-		instance.ConnectNodes(array, "Out", total, "In.1")
-	})
+	require.Error(t, instance.ConnectNodes(array, "Out", total, "In.1"))
 
 	assert.Len(t, instance.Node(total).Inputs()["In"].(nodes.ArrayValueInputPort).Value(), 1,
 		"the refused element came back off")
@@ -126,8 +124,8 @@ func TestLiftedOutputRankSurvivesASaveAndLoad(t *testing.T) {
 	_, sum, err := instance.CreateNode(floatArraySumType)
 	require.NoError(t, err)
 
-	instance.ConnectNodes(source, "Out", double, "In")
-	instance.ConnectNodes(double, "Out", sum, "In")
+	require.NoError(t, instance.ConnectNodes(source, "Out", double, "In"))
+	require.NoError(t, instance.ConnectNodes(double, "Out", sum, "In"))
 
 	require.InDelta(t, 12, nodes.GetNodeOutputPort[float64](instance.Node(sum), "Out").Value(), 1e-12)
 

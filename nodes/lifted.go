@@ -291,10 +291,22 @@ func (o *liftedOutput) Node() Node   { return o.node }
 func (o *liftedOutput) Name() string { return o.displayName }
 
 func (o *liftedOutput) Type() string {
-	if liftedRank(o.data) == rankArray {
+	if o.rank() == rankArray {
 		return arrayOf(o.elem)
 	}
 	return o.elem
+}
+
+// Memoized against the mutation generation: the rank is read off the types
+// upstream, and that walk is exponential where upstream nodes are shared.
+func (o *liftedOutput) rank() int {
+	generation := Generation()
+	if memo := o.cache.rank.Load(); memo != nil && memo.generation == generation {
+		return memo.rank
+	}
+	rank := liftedRank(o.data)
+	o.cache.rank.Store(&rankMemo{generation: generation, rank: rank})
+	return rank
 }
 
 func (o *liftedOutput) Description() string {
@@ -331,7 +343,7 @@ func (o *liftedOutput) evaluate() liftedResult {
 
 	handleValue := reflect.New(o.handleType.Elem())
 	handle := handleValue.Interface().(liftedHandle)
-	handle.attachRank(liftedRank(o.data))
+	handle.attachRank(o.rank())
 
 	start := time.Now()
 	o.call(handleValue.Interface())
@@ -365,7 +377,7 @@ func (o *liftedOutput) call(handle any) {
 func (o *liftedOutput) buildPort() OutputPort {
 	builder := reflect.Zero(o.handleType).Interface()
 
-	if liftedRank(o.data) == rankArray {
+	if o.rank() == rankArray {
 		if array, ok := builder.(DynamicArrayOutputBuilder); ok {
 			return array.BuildDynamicArrayOutput(o)
 		}

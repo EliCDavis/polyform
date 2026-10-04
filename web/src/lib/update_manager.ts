@@ -1,4 +1,4 @@
-import { Clock } from 'three';
+import { Timer } from 'three';
 
 export interface UpdateEntry {
     name: string;
@@ -7,12 +7,12 @@ export interface UpdateEntry {
 
 export class UpdateManager {
 
-    clock: Clock;
+    timer: Timer;
 
     funcs: Array<UpdateEntry>;
 
     constructor() {
-        this.clock = new Clock();
+        this.timer = new Timer();
         this.funcs = [];
     }
 
@@ -27,8 +27,8 @@ export class UpdateManager {
         }
     }
 
-    run() {
-        const delta = this.clock.getDelta();
+    run(timestamp?: number) {
+        const delta = this.timer.update(timestamp).getDelta();
         this.funcs.forEach(f => f.loop(delta));
     }
 }

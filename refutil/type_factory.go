@@ -155,15 +155,3 @@ func RegisterTypeWithBuilder[T any](factory *TypeFactory, builder func() T) {
 	}
 }
 
-func BuildType[T any](factory *TypeFactory) *T {
-	t := new(T)
-	typeName := getTypeWithPackage(*t)
-	built := factory.New(typeName)
-	cast, ok := built.(*T)
-
-	if !ok {
-		panic(fmt.Errorf("unable to construct type %s, instead constructed %v", typeName, built))
-	}
-
-	return cast
-}

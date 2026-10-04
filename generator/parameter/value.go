@@ -174,6 +174,17 @@ func (pn *Value[T]) FromJSON(decoder jbtf.Decoder, body []byte) (err error) {
 	return
 }
 
+func (pn *Value[T]) CopyStateFrom(original nodes.Node) bool {
+	from, ok := original.(*Value[T])
+	if !ok {
+		return false
+	}
+	pn.Name = from.Name
+	pn.Description = from.Description
+	pn.CurrentValue = from.CurrentValue
+	return true
+}
+
 // ============================================================================
 
 func (pn *Value[T]) Schema() schema.Parameter {

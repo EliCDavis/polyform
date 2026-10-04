@@ -20,7 +20,7 @@ func metadataKeyFromRequestURL(url string) string {
 	return metadataPath
 }
 
-func graphMetadataEndpointForInstance(target *graph.Instance, saver *GraphSaver) endpoint.Handler {
+func graphMetadataEndpointForInstance(target *graph.Graph, saver *GraphSaver) endpoint.Handler {
 	type EditRequest any
 
 	type EmptyResponse struct{}

@@ -2,227 +2,278 @@ package graph
 
 import (
 	"fmt"
+	"maps"
 	"slices"
 	"strings"
 
 	"github.com/EliCDavis/jbtf"
+	"github.com/EliCDavis/polyform/generator/manifest"
 	"github.com/EliCDavis/polyform/generator/persistence"
-	"github.com/EliCDavis/polyform/generator/schema"
 	"github.com/EliCDavis/polyform/generator/subgraph"
+	"github.com/EliCDavis/polyform/generator/variable"
+	"github.com/EliCDavis/polyform/generator/variant"
 	"github.com/EliCDavis/polyform/nodes"
 )
 
-func (a *Instance) loadSubGraphDefinition(subGraphID string, def persistence.SubGraph, decoder jbtf.Decoder) error {
-	err := a.CreateSubGraph(subGraphID, def.Name, def.Description)
+func (a *Instance) ApplyAppSchema(jsonPayload []byte) error {
+	a.mu().Lock()
+	defer a.mu().Unlock()
+
+	// Parsed before anything is cleared: loading is destructive from here on.
+	app, err := jbtf.Unmarshal[persistence.App](jsonPayload)
+	if err != nil {
+		return fmt.Errorf("unable to parse graph as a jbtf: %w", err)
+	}
+	decoder, err := jbtf.NewDecoder(jsonPayload)
+	if err != nil {
+		return fmt.Errorf("unable to build a jbtf decoder: %w", err)
+	}
+
+	a.Reset()
+
+	a.details = Details{Name: app.Name, Version: app.Version, Description: app.Description, Authors: app.Authors}
+	a.metadata.OverwriteData(app.Metadata)
+
+	app.Variables.Traverse(func(path string, saved persistence.Variable) bool {
+		var loaded variable.Variable
+		loaded, err = variable.DeserializePersistantVariableJSON(saved.Data, decoder, a.variableFactory)
+		if err != nil {
+			return false
+		}
+		if _, err = a.newVariable(path, loaded); err != nil {
+			return false
+		}
+		loaded.Info().SetDescription(saved.Description)
+		return true
+	})
 	if err != nil {
 		return err
 	}
 
-	target, err := a.SubGraphInstance(subGraphID)
-	if err != nil {
-		return err
+	for name, profile := range app.Profiles {
+		a.profiles.Set(name, profile.Data)
 	}
 
-	return populateInstanceFromSubGraphDef(target, def, decoder, nil)
-}
-
-func applyPersistedNodeData(nodeDefs map[string]persistence.Node, createdNodes map[string]nodes.Node, decoder jbtf.Decoder) error {
-	for nodeID, instanceDetails := range nodeDefs {
-		nodeI := createdNodes[nodeID]
-		if p, ok := nodeI.(CustomGraphSerialization); ok {
-			if err := p.FromJSON(decoder, instanceDetails.Data); err != nil {
-				return err
+	for name, saved := range app.Variants {
+		dimensions := make([]variant.Dimension, 0, len(saved.Dimensions))
+		for path, raw := range saved.Dimensions {
+			dimension, err := variant.UnmarshalDimension(path, raw)
+			if err != nil {
+				return fmt.Errorf("decoding variant dimension %q in set %q: %w", path, name, err)
 			}
+			dimensions = append(dimensions, dimension)
+		}
+		a.variantSets.Set(name, variant.Set{Dimensions: dimensions})
+	}
+
+	for _, id := range subGraphLoadOrder(app.SubGraphs) {
+		if err := a.loadSubGraphDefinition(id, app.SubGraphs[id], decoder); err != nil {
+			return err
 		}
 	}
+
+	if err := a.loadNodes(savedGraph{nodes: app.Nodes, decoder: decoder}, nil); err != nil {
+		return err
+	}
+
+	for name, saved := range app.Producers {
+		producer, ok := a.nodesByID[saved.NodeID]
+		if !ok {
+			return fmt.Errorf("producer %q: no node exists with id %q", name, saved.NodeID)
+		}
+		output, ok := producer.Outputs()[saved.Port].(nodes.Output[manifest.Manifest])
+		if !ok {
+			return fmt.Errorf("producer %q: node %q has no %q output producing a manifest", name, saved.NodeID, saved.Port)
+		}
+		a.namedManifests.NamePort(name, saved.Port, producer, output)
+	}
+
+	a.incModelVersion()
 	return nil
 }
 
-func (a *Instance) instantiateAppNode(nodeID string, instanceDetails persistence.Node) (nodes.Node, error) {
-	if nodeID == "" {
-		panic("attempting to create a node without an ID")
+func (a *Graph) loadNodes(saved savedGraph, externals map[string]nodes.OutputPort) error {
+	a.clearCopySource()
+	order, cyclic := dependenciesFirst(saved.nodes, func(node persistence.Node) []string {
+		producers := make([]string, 0, len(node.AssignedInput))
+		for _, from := range node.AssignedInput {
+			producers = append(producers, from.NodeId)
+		}
+		return producers
+	})
+	if cyclic != "" {
+		return fmt.Errorf("node %s reads its own output, directly or through other nodes", cyclic)
 	}
 
-	if instanceDetails.Variable != nil {
-		variableInstance, err := a.variables.Variable(*instanceDetails.Variable)
+	created := make(map[string]nodes.Node, len(saved.nodes))
+	for _, id := range order {
+		node, err := a.instantiateAppNode(id, saved.nodes[id])
 		if err != nil {
-			return nil, err
+			return err
 		}
-		node := variableInstance.NodeReference()
-		a.nodeIDs[node] = nodeID
-		a.noteNodeID(nodeID)
-		a.nodeTypeKeys[node] = instanceDetails.Type
-		return node, nil
-	}
+		created[id] = node
 
-	nodeType := instanceDetails.Type
-	if subgraph.IsRuntimeNodeType(nodeType) && !a.typeFactory.KeyRegistered(nodeType) {
-		subGraphID := subgraph.RuntimeTypeID(nodeType)
-		if _, err := a.Root().RegisterSubGraphNodeType(subGraphID); err != nil {
-			return nil, err
+		if err := saved.restore(id, node); err != nil {
+			return fmt.Errorf("node %s: %w", id, err)
 		}
-	}
-
-	newNode := a.typeFactory.New(nodeType)
-	casted, ok := newNode.(nodes.Node)
-	if !ok {
-		panic(fmt.Errorf("graph definition contained type that instantiated a non node: %s", instanceDetails.Type))
-	}
-	a.nodeIDs[casted] = nodeID
-	a.noteNodeID(nodeID)
-	a.nodeTypeKeys[casted] = nodeType
-
-	return casted, nil
-}
-
-func (a *Instance) bindDynamicTypes(nodeDefs map[string]persistence.Node, createdNodes map[string]nodes.Node) error {
-	order := connectionOrder(nodeDefs)
-
-	for range len(order) {
-		bound := false
-
-		for _, nodeID := range order {
-			node := createdNodes[nodeID]
-			inputs := node.Inputs()
-
-			for _, sorted := range sortPortReferences(nodeDefs[nodeID].AssignedInput) {
-				input, ok := inputs[strings.Split(sorted.name, ".")[0]]
-				if !ok {
-					continue
-				}
-				outNode, ok := createdNodes[sorted.port.NodeId]
-				if !ok {
-					continue
-				}
-				output, ok := outNode.Outputs()[sorted.port.PortName]
-				if !ok {
-					continue
-				}
-
-				release, err := bindDynamicPorts(output, input)
-				if err != nil {
-					return fmt.Errorf("node %s: %w", nodeID, err)
-				}
-				if release != nil {
-					bound = true
-				}
+		a.clearBoundaryCache()
+		if boundary, ok := subgraph.IsInputBoundary(node); ok {
+			if external, fed := externals[boundary.BoundaryPortName()]; fed {
+				boundary.SetExternalSource(external)
 			}
 		}
+	}
 
-		if !bound {
+	for _, id := range order {
+		details := saved.nodes[id]
+		reads := make(map[string][]source)
+		// Sorted, so an array's elements are appended by index.
+		for _, input := range slices.SortedFunc(maps.Keys(details.AssignedInput), compareInputNames) {
+			from := details.AssignedInput[input]
+			producer, ok := created[from.NodeId]
+			if !ok {
+				return fmt.Errorf("node %s's %q input reads node %s, which does not exist", id, input, from.NodeId)
+			}
+			port, _ := splitElement(input)
+			reads[port] = append(reads[port], source{node: producer, port: from.PortName})
+		}
+		a.reads[created[id]] = reads
+	}
+
+	_, err := a.settle(refuseConflicts)
+	return err
+}
+
+type savedGraph struct {
+	nodes   map[string]persistence.Node
+	decoder jbtf.Decoder
+
+	// The live nodes this was encoded from, when it is being copied.
+	originals map[string]nodes.Node
+}
+
+func (saved savedGraph) restore(id string, node nodes.Node) error {
+	if copier, ok := node.(stateCopier); ok {
+		if original, ok := saved.originals[id]; ok && copier.CopyStateFrom(original) {
 			return nil
 		}
 	}
+	if custom, ok := node.(CustomGraphSerialization); ok {
+		return custom.FromJSON(saved.decoder, saved.nodes[id].Data)
+	}
 	return nil
 }
 
-// connectionOrder wires a node's own inputs before anything reads its
-// outputs: a lifted output's type follows the rank of what is connected to
-// it, and a consumer keeps the port object it was handed rather than asking
-// again. A cycle is broken at whichever edge closes it.
-func connectionOrder(nodeDefs map[string]persistence.Node) []string {
-	ids := make([]string, 0, len(nodeDefs))
-	for id := range nodeDefs {
-		ids = append(ids, id)
+func compareInputNames(x, y string) int {
+	xPort, xElement := splitElement(x)
+	yPort, yElement := splitElement(y)
+	if xPort != yPort {
+		return strings.Compare(xPort, yPort)
 	}
-	slices.Sort(ids)
+	return xElement - yElement
+}
+
+// The order is complete even when cyclic names a key that depends on itself.
+func dependenciesFirst[V any](items map[string]V, dependencies func(V) []string) (ordered []string, cyclic string) {
+	ids := slices.Sorted(maps.Keys(items))
 
 	const (
-		unvisited = iota
-		visiting
-		done
+		visiting = iota + 1
+		visited
 	)
-
 	state := make(map[string]int, len(ids))
-	ordered := make([]string, 0, len(ids))
+	ordered = make([]string, 0, len(ids))
 
 	var visit func(id string)
 	visit = func(id string) {
-		if state[id] != unvisited {
+		item, known := items[id]
+		if !known || state[id] == visited {
+			return
+		}
+		if state[id] == visiting {
+			if cyclic == "" {
+				cyclic = id
+			}
 			return
 		}
 		state[id] = visiting
-		for _, ref := range sortPortReferences(nodeDefs[id].AssignedInput) {
-			if _, known := nodeDefs[ref.port.NodeId]; known {
-				visit(ref.port.NodeId)
-			}
+
+		needs := dependencies(item)
+		slices.Sort(needs)
+		for _, need := range needs {
+			visit(need)
 		}
-		state[id] = done
+
+		state[id] = visited
 		ordered = append(ordered, id)
 	}
 
 	for _, id := range ids {
 		visit(id)
 	}
+	return ordered, cyclic
+}
+
+// Placing a definition copies it as it stands, so it has to be loaded first.
+func subGraphLoadOrder(subGraphs map[string]persistence.SubGraph) []string {
+	ordered, _ := dependenciesFirst(subGraphs, func(def persistence.SubGraph) []string {
+		var placed []string
+		for _, node := range def.Nodes {
+			if subgraph.IsRuntimeNodeType(node.Type) {
+				placed = append(placed, subgraph.RuntimeTypeID(node.Type))
+			}
+		}
+		return placed
+	})
 	return ordered
 }
 
-func (a *Instance) connectAppNodes(nodeDefs map[string]persistence.Node, createdNodes map[string]nodes.Node) error {
-	if err := a.bindDynamicTypes(nodeDefs, createdNodes); err != nil {
+func (a *Instance) loadSubGraphDefinition(id string, def persistence.SubGraph, decoder jbtf.Decoder) error {
+	if err := a.createSubGraph(id, def.Name, def.Description); err != nil {
 		return err
 	}
-
-	for _, nodeID := range connectionOrder(nodeDefs) {
-		instanceDetails := nodeDefs[nodeID]
-		node := createdNodes[nodeID]
-		inputs := node.Inputs()
-
-		sortedInput := sortPortReferences(instanceDetails.AssignedInput)
-
-		for _, sorted := range sortedInput {
-			dirtyInputName := sorted.name
-			dependency := sorted.port
-
-			inputName := dirtyInputName
-			components := strings.Split(inputName, ".")
-			if len(components) > 1 {
-				inputName = components[0]
-			}
-
-			input, ok := inputs[inputName]
-			if !ok {
-				panic(fmt.Errorf("Node %s has no input %s", nodeID, inputName))
-			}
-
-			outNode := createdNodes[dependency.NodeId]
-			outNodeOutputs := outNode.Outputs()
-			output, ok := outNodeOutputs[dependency.PortName]
-			if !ok {
-				panic(fmt.Errorf("Node %s has no output %s", dependency.NodeId, dependency.PortName))
-			}
-
-			if single, ok := input.(nodes.SingleValueInputPort); ok {
-				if err := assignPort(nodeID, dirtyInputName, dependency, output, single.Set); err != nil {
-					panic(err)
-				}
-			} else if array, ok := input.(nodes.ArrayValueInputPort); ok {
-				if err := assignPort(nodeID, dirtyInputName, dependency, output, array.Add); err != nil {
-					panic(err)
-				}
-			} else {
-				panic(fmt.Errorf("not sure how to assign node %q's input %q", nodeID, inputName))
-			}
-		}
+	definition := a.subGraphs[id].instance
+	if err := definition.loadSubGraphContents(def, decoder); err != nil {
+		return err
 	}
+	a.copySources[id] = savedGraph{nodes: def.Nodes, decoder: decoder, originals: definition.nodesByID}
 	return nil
 }
 
-func assignPort(
-	nodeID, inputName string,
-	dependency schema.PortReference,
-	output nodes.OutputPort,
-	assign func(nodes.OutputPort) error,
-) (err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("connecting %s.%s to %s.%s: %v",
-				dependency.NodeId, dependency.PortName, nodeID, inputName, r)
-		}
-	}()
-
-	if err := assign(output); err != nil {
-		return fmt.Errorf("connecting %s.%s to %s.%s: %w",
-			dependency.NodeId, dependency.PortName, nodeID, inputName, err)
+func (a *Graph) loadSubGraphContents(def persistence.SubGraph, decoder jbtf.Decoder) error {
+	if def.Notes != nil {
+		a.metadata.Set("notes", def.Notes)
 	}
-	return nil
+	if def.Metadata != nil {
+		a.metadata.OverwriteData(def.Metadata)
+	}
+	return a.loadNodes(savedGraph{nodes: def.Nodes, decoder: decoder}, nil)
+}
+
+func (a *Graph) instantiateAppNode(nodeID string, saved persistence.Node) (nodes.Node, error) {
+	if nodeID == "" {
+		return nil, fmt.Errorf("attempting to create a node without an ID")
+	}
+
+	project := a.project
+	var node nodes.Node
+	if saved.Variable != nil {
+		variable, err := project.variables.Variable(*saved.Variable)
+		if err != nil {
+			return nil, err
+		}
+		node = variable.NodeReference()
+	} else {
+		if subgraph.IsRuntimeNodeType(saved.Type) && !project.typeFactory.KeyRegistered(saved.Type) {
+			project.RegisterSubGraphNodeType(subgraph.RuntimeTypeID(saved.Type))
+		}
+		built, ok := project.typeFactory.New(saved.Type).(nodes.Node)
+		if !ok {
+			return nil, fmt.Errorf("graph definition contained type that instantiated a non node: %s", saved.Type)
+		}
+		node = built
+	}
+
+	a.register(node, nodeID, saved.Type)
+	return node, nil
 }

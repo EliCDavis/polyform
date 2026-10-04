@@ -9,26 +9,9 @@ import (
 	"github.com/EliCDavis/polyform/refutil"
 )
 
-func RecurseDependenciesType[T any](dependent nodes.Node) []T {
-	allDependencies := make([]T, 0)
-	inputReferences := flattenNodeInputReferences(dependent)
-
-	for _, input := range inputReferences {
-		subDependencies := RecurseDependenciesType[T](input)
-		allDependencies = append(allDependencies, subDependencies...)
-
-		ofT, ok := input.(T)
-		if ok {
-			allDependencies = append(allDependencies, ofT)
-		}
-	}
-
-	return allDependencies
-}
-
 func (i *Instance) BuildSchemaForAllNodeTypes() []schema.NodeType {
-	i.lock.Lock()
-	defer i.lock.Unlock()
+	i.mu().Lock()
+	defer i.mu().Unlock()
 
 	registeredTypes := i.typeFactory.Types()
 	nodeTypes := make([]schema.NodeType, 0, len(registeredTypes))
@@ -38,13 +21,7 @@ func (i *Instance) BuildSchemaForAllNodeTypes() []schema.NodeType {
 		if !ok {
 			panic(fmt.Errorf("Registered type %q is not a node: %s", registeredType, instance))
 		}
-		if nodeInstance == nil {
-			panic("New registered type is nil")
-		}
-		// log.Printf("%T: %+v\n", nodeInstance, nodeInstance)
-		// log.Print(registeredType)
-		b := BuildNodeTypeSchema(registeredType, nodeInstance)
-		nodeTypes = append(nodeTypes, b)
+		nodeTypes = append(nodeTypes, BuildNodeTypeSchema(registeredType, nodeInstance))
 	}
 	return nodeTypes
 }
@@ -176,33 +153,3 @@ func BuildNodeTypeSchema(registeredType string, node nodes.Node) schema.NodeType
 	return typeSchema
 }
 
-func flattenNodeInputReferences(node nodes.Node) []nodes.Node {
-
-	references := make([]nodes.Node, 0)
-
-	for inputName, input := range node.Inputs() {
-
-		switch v := input.(type) {
-		case nodes.SingleValueInputPort:
-			value := v.Value()
-			if value == nil {
-				continue
-			}
-			references = append(references, value.Node())
-
-		case nodes.ArrayValueInputPort:
-			for _, val := range v.Value() {
-				if val == nil {
-					continue
-				}
-				references = append(references, val.Node())
-			}
-
-		default:
-			panic(fmt.Errorf("unable to recursive %v's input %q", node, inputName))
-		}
-
-	}
-
-	return references
-}

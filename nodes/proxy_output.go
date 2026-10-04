@@ -48,8 +48,18 @@ func (p proxyOutput[T]) Type() string {
 	return p.source.Type()
 }
 
+// LazyProxySource has nothing behind it until a value is asked for, so
+// CurrentSource can be nil where SourceForValue is not.
+type LazyProxySource interface {
+	SourceForValue() OutputPort
+}
+
 func (p proxyOutput[T]) Value() T {
-	if src := p.source.CurrentSource(); src != nil {
+	src := p.source.CurrentSource()
+	if lazy, ok := p.source.(LazyProxySource); ok {
+		src = lazy.SourceForValue()
+	}
+	if src != nil {
 		if typed, ok := src.(Output[T]); ok {
 			return typed.Value()
 		}
