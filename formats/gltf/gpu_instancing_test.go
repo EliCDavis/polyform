@@ -57,5 +57,5 @@ func TestWrite_GpuInstancesOnAGroupWithNoMeshAreRefused(t *testing.T) {
 	err := gltf.WriteText(gltf.PolyformScene{Models: []*gltf.PolyformModel{group}}, &buf, nil)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), `"resistor"`)
-	assert.Contains(t, err.Error(), "give each child the instances")
+	assert.Contains(t, err.Error(), "has GPU instances but no mesh")
 }

@@ -58,5 +58,5 @@ func TestTextNamesWhatItCannotSet(t *testing.T) {
 	assert.Positive(t, mesh.PrimitiveCount(), "the rest is still set")
 
 	_, err = extrude.Text{Text: "A", Height: 1, Font: "comic"}.Mesh()
-	assert.ErrorContains(t, err, "sans bold")
+	assert.ErrorContains(t, err, `unknown font "comic"`)
 }

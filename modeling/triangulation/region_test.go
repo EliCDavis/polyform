@@ -60,7 +60,7 @@ func TestFillDifferenceNamesOutlinesThatEncloseNothing(t *testing.T) {
 		[]geometry.Shape{{vector2.New(0., 0.), vector2.New(1., 0.), vector2.New(2., 0.)}},
 		nil,
 	)
-	assert.ErrorContains(t, err, "encloses any area")
+	assert.ErrorContains(t, err, "no outline encloses any area")
 
 	empty, err := triangulation.FillDifference(nil, []geometry.Shape{square(1, vector2.New(0., 0.))})
 	require.NoError(t, err)

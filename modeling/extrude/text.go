@@ -2,7 +2,6 @@ package extrude
 
 import (
 	"fmt"
-	"maps"
 	"slices"
 	"strings"
 	"sync"
@@ -36,7 +35,7 @@ func loadFont(name string) (*truetype.Font, error) {
 	}
 	data, ok := fontData[name]
 	if !ok {
-		return nil, fmt.Errorf("no font %q; there is %s", name, strings.Join(slices.Sorted(maps.Keys(fontData)), ", "))
+		return nil, fmt.Errorf("unknown font %q", name)
 	}
 	f, err := truetype.Parse(data)
 	if err != nil {
@@ -134,7 +133,7 @@ func (t Text) Mesh() (modeling.Mesh, error) {
 		case "right":
 			start = -pen
 		default:
-			return empty, fmt.Errorf("align must be left, center or right, not %q", t.Align)
+			return empty, fmt.Errorf("unknown align %q", t.Align)
 		}
 
 		baseline := -float64(line) * lineHeight
@@ -145,7 +144,7 @@ func (t Text) Mesh() (modeling.Mesh, error) {
 			origin := vector2.New(start+p.x, baseline)
 			first := 0
 			for _, end := range glyph.Ends {
-				contours = append(contours, flattenContourText(glyph.Points[first:end], segments, func(p truetype.Point) vector2.Float64 {
+				contours = append(contours, glyphContour(glyph.Points[first:end], segments, func(p truetype.Point) vector2.Float64 {
 					return origin.Add(vector2.New(float64(p.X)/64, float64(p.Y)/64)).Scale(scale)
 				}))
 				first = end
@@ -164,10 +163,7 @@ func (t Text) Mesh() (modeling.Mesh, error) {
 	return Region(region, t.Depth), missingErr
 }
 
-// flattenContourText walks one TrueType contour: a point off the curve is the
-// control of a quadratic between its neighbours, and two in a row imply an
-// on-curve point midway between them.
-func flattenContourText(points []truetype.Point, segments int, at func(truetype.Point) vector2.Float64) []vector2.Float64 {
+func glyphContour(points []truetype.Point, segments int, at func(truetype.Point) vector2.Float64) []vector2.Float64 {
 	type anchor struct {
 		p  vector2.Float64
 		on bool

@@ -228,9 +228,6 @@ export function CreateThreeApp(
   orbitControls.target.set(0, 0, 0);
   orbitControls.update();
 
-  // Clipping follows the camera's distance to what it orbits, so a
-  // millimetre part up close and a building from afar both stay in view.
-  // The 10^4 spread keeps depth precise enough for layers microns apart.
   updateLoop.addToUpdate({
     name: "camera clipping",
     loop: () => {

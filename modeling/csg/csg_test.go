@@ -484,7 +484,7 @@ func TestSubtractNodeReportsCutsThatOnlyTouch(t *testing.T) {
 	})
 	require.Len(t, errs, 1)
 	assert.Contains(t, errs[0], "Remove.1")
-	assert.Contains(t, errs[0], "not one closed solid")
+	assert.Contains(t, errs[0], "unclosed solid")
 
 	clear := drill.Translate(vector3.New(-1e-6, 0., 0.))
 	assert.Empty(t, errorsFromNode(t, csg.SubtractNode{

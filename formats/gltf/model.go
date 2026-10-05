@@ -52,9 +52,8 @@ type PolyformModel struct {
 	// This is optional and it will be used if the models are deduplicated and collapsed into a list of instances.
 	TRS *trs.TRS
 
-	// Utilizes the EXT_mesh_gpu_instancing extension to repeat this model's
-	// mesh, never its children, without increasing the mesh data footprint
-	// on the GPU.
+	// Utilizes the EXT_mesh_gpu_instancing extension to duplicate the model
+	// without increasing the mesh data footprint on the GPU.
 	// This is a list of transformations where this model should be repeated.
 	// This can only used if the UseGpuInstancing flag is set on the scene.
 	// If flag is not set, populating this list will cause the scene writing to fail.
@@ -77,7 +76,7 @@ func checkInstancedGroup(model *PolyformModel) error {
 	if model.Mesh != nil && model.Mesh.PrimitiveCount() > 0 {
 		return nil
 	}
-	return fmt.Errorf("model %q has Gpu Instances but no mesh of its own; instancing repeats a model's mesh and never its children, so give each child the instances instead", model.Name)
+	return fmt.Errorf("model %q has GPU instances but no mesh", model.Name)
 }
 
 type PolyformAnimation struct {

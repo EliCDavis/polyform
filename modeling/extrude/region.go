@@ -82,11 +82,11 @@ type RegionNode struct {
 }
 
 func (RegionNode) Description() string {
-	return "A flat solid: the area inside the outlines minus the holes, lying in the XY plane facing +Z. A board with cut-outs, a gasket, a copper pour."
+	return "A flat solid: the area inside the outlines minus the holes, lying in the XY plane facing +Z."
 }
 
 func (RegionNode) Keywords() []string {
-	return []string{"plate", "sheet", "board", "panel", "cutout", "pour", "polygon", "boolean"}
+	return []string{"cutout", "polygon", "boolean"}
 }
 
 func (n RegionNode) Out(out *nodes.StructOutput[modeling.Mesh]) {

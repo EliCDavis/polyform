@@ -1,7 +1,7 @@
 package triangulation
 
 import (
-	"fmt"
+	"errors"
 	"slices"
 
 	"github.com/EliCDavis/polyform/math/geometry"
@@ -36,7 +36,7 @@ func FillDifference(keep, cut []geometry.Shape) (Region, error) {
 		return Region{}, nil
 	}
 	if !slices.ContainsFunc(keep, func(s geometry.Shape) bool { return s.SignedArea() != 0 }) {
-		return Region{}, fmt.Errorf("none of the %d outlines to fill encloses any area", len(keep))
+		return Region{}, errors.New("no outline encloses any area")
 	}
 
 	tess, err := triangulate(contourSegments(append(slices.Clone(keep), cut...)))

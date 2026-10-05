@@ -35,9 +35,9 @@ export function eulerToQuat(e: EulerDegrees): Quat {
 export function quatToEuler(q: Quat): EulerDegrees {
   const deg = 180 / Math.PI;
   const x = Math.atan2(2 * (q.w * q.x + q.y * q.z), 1 - 2 * (q.x * q.x + q.y * q.y));
-  // At ±90 degrees of pitch rounding can leave these a hair below zero.
-  const sinp = Math.sqrt(Math.max(0, 1 + 2 * (q.w * q.y - q.x * q.z)));
-  const cosp = Math.sqrt(Math.max(0, 1 - 2 * (q.w * q.y - q.x * q.z)));
+  const t = Math.max(-1, Math.min(1, 2 * (q.w * q.y - q.x * q.z)));
+  const sinp = Math.sqrt(1 + t);
+  const cosp = Math.sqrt(1 - t);
   const y = 2 * Math.atan2(sinp, cosp) - Math.PI / 2;
   const z = Math.atan2(2 * (q.w * q.z + q.x * q.y), 1 - 2 * (q.y * q.y + q.z * q.z));
   return { x: x * deg, y: y * deg, z: z * deg };

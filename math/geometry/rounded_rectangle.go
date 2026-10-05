@@ -7,9 +7,6 @@ import (
 	"github.com/EliCDavis/vector/vector2"
 )
 
-// RoundedRectangle is a closed outline wound counter-clockwise. The radius is
-// capped at half the shorter side, where the rectangle becomes a stadium and
-// a square a circle.
 func RoundedRectangle(size vector2.Float64, radius float64, center vector2.Float64, segments int) Shape {
 	half := vector2.New(math.Abs(size.X())/2, math.Abs(size.Y())/2)
 	radius = math.Min(math.Max(radius, 0), math.Min(half.X(), half.Y()))
@@ -53,7 +50,7 @@ func (RoundedRectangleNode) Description() string {
 }
 
 func (RoundedRectangleNode) Keywords() []string {
-	return []string{"rectangle", "rounded", "fillet", "outline", "stadium", "slot", "circle", "pad"}
+	return []string{"rectangle", "rounded", "fillet", "outline"}
 }
 
 func (n RoundedRectangleNode) Out(out *nodes.Lifted[[]vector2.Float64]) {
