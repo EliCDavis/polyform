@@ -360,10 +360,10 @@ func (t *tessellation) discardOutside() {
 	}
 }
 
-func (t *tessellation) mesh() modeling.Mesh {
+func (t *tessellation) ordered(orient func(Triangle) Triangle) []Triangle {
 	ordered := make([]Triangle, 0, len(t.tris))
 	for tri := range t.tris {
-		ordered = append(ordered, tri.clockwise(t.pts))
+		ordered = append(ordered, orient(tri))
 	}
 	sort.Slice(ordered, func(i, j int) bool {
 		for k := 0; k < 3; k++ {
@@ -373,9 +373,12 @@ func (t *tessellation) mesh() modeling.Mesh {
 		}
 		return false
 	})
+	return ordered
+}
 
-	tris := make([]int, 0, len(ordered)*3)
-	for _, tri := range ordered {
+func (t *tessellation) mesh() modeling.Mesh {
+	tris := make([]int, 0, len(t.tris)*3)
+	for _, tri := range t.ordered(func(tri Triangle) Triangle { return tri.clockwise(t.pts) }) {
 		tris = append(tris, tri[0], tri[1], tri[2])
 	}
 
@@ -503,7 +506,14 @@ func ConstrainedDelaunay(points []vector2.Float64, constraints []Constraint) (mo
 		}
 	}
 
-	return triangulate(weld, segments, len(segments) > 0)
+	tess, err := triangulate(weld, segments)
+	if err != nil {
+		return modeling.EmptyMesh(modeling.TriangleTopology), err
+	}
+	if len(segments) > 0 {
+		tess.discardOutside()
+	}
+	return tess.mesh(), nil
 }
 
 // ConstrainedDelaunayEdges triangulates the convex hull of points, forcing
@@ -521,16 +531,19 @@ func ConstrainedDelaunayEdges(points []vector2.Float64, edges [][2]int) (modelin
 		}
 	}
 
-	return triangulate(welderOver(points, mergeTolerance(points)), segments, false)
+	tess, err := triangulate(welderOver(points, mergeTolerance(points)), segments)
+	if err != nil {
+		return modeling.EmptyMesh(modeling.TriangleTopology), err
+	}
+	return tess.mesh(), nil
 }
 
-func triangulate(weld *geometry.PointWelder2D, segments [][2]int, discard bool) (modeling.Mesh, error) {
+func triangulate(weld *geometry.PointWelder2D, segments [][2]int) (*tessellation, error) {
 	splitCrossingConstraints(weld, segments)
 	pts := weld.Points()
 
 	if len(pts) < 3 {
-		return modeling.EmptyMesh(modeling.TriangleTopology),
-			fmt.Errorf("need at least 3 distinct points, got %d", len(pts))
+		return nil, fmt.Errorf("need at least 3 distinct points, got %d", len(pts))
 	}
 
 	tess := newTessellation(pts, bowyerWatson(pts).triangles())
@@ -539,16 +552,11 @@ func triangulate(weld *geometry.PointWelder2D, segments [][2]int, discard bool) 
 		chain := splitAtVertices(pts, s[0], s[1])
 		for i := 0; i < len(chain)-1; i++ {
 			if err := tess.forceEdge(chain[i], chain[i+1]); err != nil {
-				return modeling.EmptyMesh(modeling.TriangleTopology), err
+				return nil, err
 			}
 		}
 	}
 
 	tess.restoreDelaunay()
-
-	if discard {
-		tess.discardOutside()
-	}
-
-	return tess.mesh(), nil
+	return tess, nil
 }

@@ -66,6 +66,11 @@ export class TRSGizmo {
     }
 
     setEnabled(enabled: boolean): void {
+        // Disabled controls ignore pointerup, so a drag cut off here would
+        // never end and would leave the camera locked.
+        if (!enabled && this.controls.dragging) {
+            this.controls.pointerUp(null);
+        }
         this.helper.visible = enabled;
         this.controls.enabled = enabled;
         requestRender();

@@ -50,6 +50,17 @@ func TestToFromEulerAngles(t *testing.T) {
 	}
 }
 
+func TestToEulerAnglesAtAQuarterTurnOfPitch(t *testing.T) {
+	quarter := quaternion.New(vector3.New(0., -0.7071067811865476, 0.), 0.7071067811865476)
+
+	eulerAngles := quarter.ToEulerAngles()
+	assert.False(t, math.IsNaN(eulerAngles.X()) || math.IsNaN(eulerAngles.Y()) || math.IsNaN(eulerAngles.Z()))
+	assert.InDelta(t, -math.Pi/2, eulerAngles.Y(), 1e-7)
+
+	v := vector3.New(1., 2., 3.)
+	assert.InDelta(t, 0, quaternion.FromEulerAngle(eulerAngles).Rotate(v).Distance(quarter.Rotate(v)), 1e-7)
+}
+
 func TestQuaternion_Rotate(t *testing.T) {
 
 	// ARRANGE

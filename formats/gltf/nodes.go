@@ -107,7 +107,7 @@ type ModelNode struct {
 }
 
 func (gmnd ModelNode) Description() string {
-	return "A mesh placed in the scene with a material and a transform. Gpu Instances draws one copy per transform, each relative to this model's own."
+	return "A mesh placed in the scene with a material and a transform. Gpu Instances draws one copy of the mesh per transform, each relative to this model's own; children are not repeated."
 }
 
 func (gmnd ModelNode) Out(out *nodes.StructOutput[*PolyformModel]) {
@@ -117,14 +117,16 @@ func (gmnd ModelNode) Out(out *nodes.StructOutput[*PolyformModel]) {
 		nodes.TryGetOutputValue(out, gmnd.Scale, vector3.One[float64]()),
 	)
 
-	out.Set(&PolyformModel{
+	model := &PolyformModel{
 		Name:         nodes.TryGetOutputValue(out, gmnd.Name, "Mesh"),
 		GpuInstances: nodes.TryGetOutputValue(out, gmnd.GpuInstances, nil),
 		Material:     nodes.TryGetOutputReference(out, gmnd.Material, nil),
 		Mesh:         nodes.TryGetOutputReference(out, gmnd.Mesh, nil),
 		TRS:          &transform,
 		Children:     nodes.GetOutputValues(out, gmnd.Children),
-	})
+	}
+	out.CaptureError(checkInstancedGroup(model))
+	out.Set(model)
 }
 
 type TextureReferenceNode struct {

@@ -49,12 +49,25 @@ func TestFromMatrixAcceptsWhatItCanRepresent(t *testing.T) {
 	}
 }
 
-func TestFromMatrixRefusesACollapsedAxis(t *testing.T) {
-	flat := trs.New(vector3.Zero[float64](), trs.Identity().Rotation(), vector3.New(1., 0., 1.))
+func TestFromMatrixKeepsACollapsedAxis(t *testing.T) {
+	for name, scale := range map[string]vector3.Float64{
+		"one axis":   vector3.New(1., 0., 2.),
+		"two axes":   vector3.New(0., 3., 0.),
+		"every axis": vector3.Zero[float64](),
+	} {
+		t.Run(name, func(t *testing.T) {
+			collapsed := trs.New(vector3.New(1., 2., 3.), rot(math.Pi/3), scale)
 
-	_, err := trs.FromMatrix(flat.Matrix())
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "collapses an axis")
+			decomposed, err := trs.FromMatrix(collapsed.Matrix())
+			require.NoError(t, err)
+			assert.InDelta(t, 0, decomposed.Scale().Sub(scale).Length(), 1e-9)
+			for _, p := range []vector3.Float64{
+				vector3.New(1., 0., 0.), vector3.New(0., 1., 0.), vector3.New(1., -2., 3.),
+			} {
+				assert.InDelta(t, 0, decomposed.Transform(p).Sub(collapsed.Transform(p)).Length(), 1e-9)
+			}
+		})
+	}
 }
 
 func TestMultiplyOrderDecidesRepresentability(t *testing.T) {

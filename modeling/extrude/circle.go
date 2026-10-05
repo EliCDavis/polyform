@@ -5,7 +5,6 @@ import (
 	"math"
 
 	"github.com/EliCDavis/polyform/math/curves"
-	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/primitives"
 	"github.com/EliCDavis/polyform/nodes"
@@ -13,189 +12,73 @@ import (
 	"github.com/EliCDavis/vector/vector3"
 )
 
-func directionOfPoints(points []vector3.Float64) []vector3.Float64 {
-
-	if len(points) == 0 {
-		return nil
+func tube(sides int, path []vector3.Float64, radii []float64, closed bool, uv func(point int, across, along float64) vector2.Float64) (modeling.Mesh, error) {
+	if len(path) < 2 {
+		return modeling.EmptyMesh(modeling.TriangleTopology), fmt.Errorf("path needs at least 2 points, got %d", len(path))
 	}
-
-	if len(points) == 1 {
-		return []vector3.Vector[float64]{
-			vector3.Up[float64](),
-		}
-	}
-
-	directions := make([]vector3.Float64, len(points))
-
-	for i, point := range points {
-		if i == 0 {
-			directions[i] = points[1].Sub(point).Normalized()
-			continue
-		}
-
-		if i == len(points)-1 {
-			directions[i] = point.Sub(points[i-1]).Normalized()
-			continue
-		}
-
-		dirA := point.Sub(points[i-1]).Normalized()
-		dirB := points[i+1].Sub(point).Normalized()
-		directions[i] = dirA.Add(dirB).Normalized()
-	}
-
-	return directions
-}
-
-// TODO: Pretty sure this breaks for paths that have multiple points in the
-// same direction.
-func polygon(sides int, points []ExtrusionPoint, closed bool) modeling.Mesh {
-	if len(points) < 2 {
-		panic(fmt.Errorf("can not extrude polygon with %d points", len(points)))
-	}
-
 	if sides < 3 {
-		panic(fmt.Errorf("can not extrude polygon with %d sides", sides))
+		return modeling.EmptyMesh(modeling.TriangleTopology), fmt.Errorf("a tube needs at least 3 sides, got %d", sides)
 	}
 
-	vertCount := sides + 1
-	vertices := make([]vector3.Float64, 0, len(points)*vertCount)
-	normals := make([]vector3.Float64, 0, len(points)*vertCount)
-
-	circlePoints := make([]vector3.Float64, vertCount)
-	circlePoints[0] = vector3.Right[float64]()
-
-	angleIncrement := (math.Pi * 2) / float64(sides)
-
-	for i := 1; i < sides+1; i++ {
-		rot := quaternion.FromTheta(angleIncrement*float64(i), vector3.Up[float64]())
-		circlePoints[i] = rot.Rotate(vector3.Right[float64]())
+	profile := make([]vector2.Float64, sides)
+	for i := range profile {
+		angle := math.Pi * 2 * float64(i) / float64(sides)
+		profile[i] = vector2.New(math.Cos(angle), math.Sin(angle))
 	}
 
-	pointDirections := directionsOfExtrusionPoints(points)
-
-	float2Data := map[string][]vector2.Float64{}
-
-	lastDir := vector3.Up[float64]()
-	lastRot := quaternion.New(vector3.Zero[float64](), 1)
-
-	validUVs := true
-
-	// Vertices and normals ===================================================
-	for i, p := range points {
-		if p.UV == nil {
-			validUVs = false
-		}
-
-		dir := pointDirections[i]
-
-		rot := quaternion.RotationTo(lastDir, dir)
-
-		for sideIndex := 0; sideIndex < vertCount; sideIndex++ {
-			point := circlePoints[sideIndex]
-			point = lastRot.Rotate(point)
-			point = rot.Rotate(point)
-
-			vertices = append(vertices, point.Scale(p.Thickness).Add(p.Point))
-			normals = append(normals, point)
-		}
-
-		lastRot = rot.Multiply(lastRot)
-		lastDir = dir
-	}
-
-	// UVs ====================================================================
-	if validUVs {
-		uvs := make([]vector2.Float64, 0, len(points)*vertCount)
-		for i, p := range points {
-
-			var dirA vector2.Float64
-			var dirB vector2.Float64
-
-			if i == 0 {
-				dirA = points[0].UV.Point
-				dirB = points[1].UV.Point
-			} else {
-				dirA = points[i-1].UV.Point
-				dirB = p.UV.Point
-			}
-
-			dir := dirB.Sub(dirA).Normalized()
-			perp := vector2.New(dir.Y(), -dir.X()).
-				Scale(p.UV.Thickness / 2.)
-
-			// log.Print(perp)
-			for sideIndex := 0; sideIndex < vertCount; sideIndex++ {
-				percentUsed := ((float64(sideIndex) / float64(sides)) * 2) - 1.
-				uvPoint := p.UV.Point.Add(perp.Scale(percentUsed))
-				// log.Print(percentUsed, uvPoint)
-				uvs = append(uvs, uvPoint)
-			}
-		}
-		float2Data[modeling.TexCoordAttribute] = uvs
-	}
-
-	// Triangles ==============================================================
-	tris := make([]int, 0, sides*2*3)
-
-	for pathIndex, pathPoint := range points {
-		bottom := pathIndex * vertCount
-		top := (pathIndex + 1) * vertCount
-		if pathIndex == len(points)-1 {
-			if closed {
-				top = 0
-			} else {
-				continue
-			}
-		}
-		for sideIndex := 0; sideIndex < sides; sideIndex++ {
-			topRight := top + sideIndex
-			bottomRight := bottom + sideIndex
-
-			topLeft := topRight + 1
-			bottomLeft := bottomRight + 1
-
-			// Figure out the normal of the triangle we're about to make, and
-			// whether or not we need to flip it to point away from the center
-			// of the extrusion
-			dir := vertices[bottomLeft].Sub(vertices[topLeft]).
-				Cross(vertices[topLeft].Sub(vertices[topRight]))
-
-			a1 := topLeft
-			a2 := topRight
-
-			b1 := topRight
-			b2 := bottomRight
-
-			// we need to flip the windings...
-			if dir.Dot(vertices[bottomLeft].Sub(pathPoint.Point)) < 0 {
-				a1, a2 = a2, a1
-				b1, b2 = b2, b1
-			}
-
-			tris = append(
-				tris,
-
-				bottomLeft,
-				a1,
-				a2,
-
-				bottomLeft,
-				b1,
-				b2,
-			)
-		}
-	}
-
-	return modeling.NewTriangleMesh(tris).
-		SetFloat3Data(map[string][]vector3.Float64{
-			modeling.PositionAttribute: vertices,
-			modeling.NormalAttribute:   normals,
-		}).
-		SetFloat2Data(float2Data)
+	return sweep{
+		profile:   profile,
+		frames:    pathFrames(path, closed),
+		closed:    closed,
+		scales:    radii,
+		smoothing: allSmooth,
+		uv:        uv,
+	}.shell(), nil
 }
 
+// Polygon sweeps a regular polygon through the points, each Thickness its
+// radius there. Points may repeat to step the radius in place.
 func Polygon(sides int, points []ExtrusionPoint) modeling.Mesh {
-	return polygon(sides, points, false)
+	path := make([]vector3.Float64, len(points))
+	radii := make([]float64, len(points))
+	textured := len(points) > 1
+	for i, p := range points {
+		path[i] = p.Point
+		radii[i] = p.Thickness
+		textured = textured && p.UV != nil
+	}
+
+	var uv func(point int, across, along float64) vector2.Float64
+	if textured {
+		uv = func(point int, across, _ float64) vector2.Float64 {
+			at := points[point].UV
+			dir := points[max(point, 1)].UV.Point.Sub(points[max(point-1, 0)].UV.Point)
+			if dir.Length() == 0 {
+				return at.Point
+			}
+			return at.Point.Add(dir.Perpendicular().Normalized().Scale(at.Thickness * (across - 0.5)))
+		}
+	}
+
+	mesh, err := tube(sides, path, radii, false, uv)
+	if err != nil {
+		panic(err)
+	}
+	return mesh
+}
+
+func radiiAlong(count int, radius float64, radii []float64) ([]float64, error) {
+	if len(radii) == count {
+		return radii, nil
+	}
+	if len(radii) != 0 {
+		return nil, fmt.Errorf("got %d radii for %d path points", len(radii), count)
+	}
+	constant := make([]float64, count)
+	for i := range constant {
+		constant[i] = radius
+	}
+	return constant, nil
 }
 
 type Circle struct {
@@ -206,20 +89,12 @@ type Circle struct {
 	Path       []vector3.Float64
 }
 
-func (c Circle) Extrude() modeling.Mesh {
-	points := make([]ExtrusionPoint, len(c.Path))
-	varrying := len(c.Radii) == len(c.Path)
-	r := c.Radius
-	for i, p := range c.Path {
-		if varrying {
-			r = c.Radii[i]
-		}
-		points[i] = ExtrusionPoint{
-			Point:     p,
-			Thickness: r,
-		}
+func (c Circle) Extrude() (modeling.Mesh, error) {
+	radii, err := radiiAlong(len(c.Path), c.Radius, c.Radii)
+	if err != nil {
+		return modeling.EmptyMesh(modeling.TriangleTopology), err
 	}
-	return polygon(c.Resolution, points, c.ClosePath)
+	return tube(c.Resolution, c.Path, radii, c.ClosePath, nil)
 }
 
 type CircleAlongSpline struct {
@@ -233,33 +108,35 @@ type CircleAlongSpline struct {
 	UVs              *primitives.StripUVs
 }
 
-func (c CircleAlongSpline) Extrude() modeling.Mesh {
-	points := make([]ExtrusionPoint, c.SplineResolution)
-	varrying := len(c.Radii) == c.SplineResolution
-	r := c.Radius
-	inc := c.Spline.Length() / float64(c.SplineResolution-1)
-	for i := 0; i < c.SplineResolution; i++ {
-		if varrying {
-			r = c.Radii[i]
-		}
-		points[i] = ExtrusionPoint{
-			Point:     c.Spline.At(inc * float64(i)),
-			Thickness: r,
-		}
+func (c CircleAlongSpline) Extrude() (modeling.Mesh, error) {
+	empty := modeling.EmptyMesh(modeling.TriangleTopology)
+	if c.SplineResolution < 2 {
+		return empty, fmt.Errorf("spline resolution needs to be at least 2, got %d", c.SplineResolution)
+	}
+	radii, err := radiiAlong(c.SplineResolution, c.Radius, c.Radii)
+	if err != nil {
+		return empty, err
 	}
 
+	path := make([]vector3.Float64, c.SplineResolution)
+	step := c.Spline.Length() / float64(c.SplineResolution-1)
+	for i := range path {
+		path[i] = c.Spline.At(step * float64(i))
+	}
+
+	// A spline that is itself a loop ends where it began, and closing the
+	// path over that would put two rings on the same spot.
+	if last := len(path) - 1; c.ClosePath && last > 1 && path[last].Distance(path[0]) < step*1e-6 {
+		path, radii = path[:last], radii[:last]
+	}
+
+	var uv func(point int, across, along float64) vector2.Float64
 	if c.UVs != nil {
-		uvInc := 1. / float64(c.SplineResolution-1)
-
-		for i := range c.SplineResolution {
-			points[i].UV = &ExtrusionPointUV{
-				Point:     c.UVs.At(uvInc * float64(i)),
-				Thickness: c.UVs.Width,
-			}
+		uv = func(_ int, across, along float64) vector2.Float64 {
+			return c.UVs.AtXY(vector2.New(across, along))
 		}
 	}
-
-	return polygon(c.CircleResolution, points, c.ClosePath)
+	return tube(c.CircleResolution, path, radii, c.ClosePath, uv)
 }
 
 type CircleNode struct {
@@ -271,19 +148,23 @@ type CircleNode struct {
 }
 
 func (pnd CircleNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
+	out.Set(modeling.EmptyMesh(modeling.TriangleTopology))
 	if pnd.Path == nil {
-		out.Set(modeling.EmptyMesh(modeling.TriangleTopology))
 		return
 	}
 
-	circle := Circle{
+	mesh, err := Circle{
 		Radius:     nodes.TryGetOutputValue(out, pnd.Radius, 1.0),
 		Resolution: max(3, nodes.TryGetOutputValue(out, pnd.Resolution, 3)),
 		ClosePath:  nodes.TryGetOutputValue(out, pnd.Closed, false),
 		Path:       nodes.GetOutputValue(out, pnd.Path),
 		Radii:      nodes.TryGetOutputValue(out, pnd.Radii, nil),
+	}.Extrude()
+	if err != nil {
+		out.CaptureError(err)
+		return
 	}
-	out.Set(circle.Extrude())
+	out.Set(mesh)
 }
 
 type CircleAlongSplineNode struct {
@@ -301,18 +182,16 @@ func (pnd CircleAlongSplineNode) Description() string {
 }
 
 func (pnd CircleAlongSplineNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
+	out.Set(modeling.EmptyMesh(modeling.TriangleTopology))
 	if pnd.Spline == nil {
-		out.Set(modeling.EmptyMesh(modeling.TriangleTopology))
 		return
 	}
-
 	spline := nodes.GetOutputValue(out, pnd.Spline)
 	if spline == nil {
-		out.Set(modeling.EmptyMesh(modeling.TriangleTopology))
 		return
 	}
 
-	circle := CircleAlongSpline{
+	mesh, err := CircleAlongSpline{
 		Radius:           nodes.TryGetOutputValue(out, pnd.Radius, 1.0),
 		CircleResolution: max(3, nodes.TryGetOutputValue(out, pnd.CircleResolution, 3)),
 		ClosePath:        nodes.TryGetOutputValue(out, pnd.Closed, false),
@@ -320,7 +199,10 @@ func (pnd CircleAlongSplineNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 		SplineResolution: max(3, nodes.TryGetOutputValue(out, pnd.SplineResolution, 3)),
 		Radii:            nodes.TryGetOutputValue(out, pnd.Radii, nil),
 		UVs:              nodes.TryGetOutputReference(out, pnd.UVs, nil),
+	}.Extrude()
+	if err != nil {
+		out.CaptureError(err)
+		return
 	}
-
-	out.Set(circle.Extrude())
+	out.Set(mesh)
 }

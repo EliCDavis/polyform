@@ -138,6 +138,11 @@ func runCSG(
 			out.Set(empty)
 			return
 		}
+		if err := combined.prepare(); err != nil {
+			out.CaptureError(fmt.Errorf("combining %s left a result that is not one closed solid (%w); solids meeting exactly along an edge or at a point do this - overlap them a little or leave a gap", inputs[i+1].port, err))
+			out.Set(combined.Mesh())
+			return
+		}
 		result = combined
 	}
 	out.Set(result.Mesh())

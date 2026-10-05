@@ -21,6 +21,23 @@ func TestPointInShape(t *testing.T) {
 	}
 }
 
+func TestPointInShapeLevelWithACorner(t *testing.T) {
+	diamond := geometry.Shape{
+		vector2.New(1., 0.), vector2.New(2., 1.),
+		vector2.New(1., 2.), vector2.New(0., 1.),
+	}
+
+	if !diamond.IsInside(vector2.New(0.5, 1.)) {
+		t.Error("a point level with the right corner should still be inside")
+	}
+	if diamond.IsInside(vector2.New(2.5, 1.)) {
+		t.Error("a point past the right corner should be outside")
+	}
+	if !diamond.IsInside(vector2.New(2., 1.)) {
+		t.Error("a point on the corner itself counts as inside")
+	}
+}
+
 func TestGetPointtInShape(t *testing.T) {
 	shape := geometry.Shape([]vector2.Float64{
 		vector2.New(0., 0.),

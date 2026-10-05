@@ -85,9 +85,10 @@ func (q Quaternion) ToEulerAngles() vector3.Float64 {
 	cosr_cosp := 1 - 2*(v.X()*v.X()+v.Y()*v.Y())
 	x := math.Atan2(sinr_cosp, cosr_cosp)
 
-	// pitch (y-axis rotation)
-	sinp := math.Sqrt(1 + 2*(q.w*v.Y()-v.X()*v.Z()))
-	cosp := math.Sqrt(1 - 2*(q.w*v.Y()-v.X()*v.Z()))
+	// pitch (y-axis rotation). At ±90 degrees rounding can leave these a
+	// hair below zero, and the square root of that is NaN.
+	sinp := math.Sqrt(math.Max(0, 1+2*(q.w*v.Y()-v.X()*v.Z())))
+	cosp := math.Sqrt(math.Max(0, 1-2*(q.w*v.Y()-v.X()*v.Z())))
 	y := 2*math.Atan2(sinp, cosp) - math.Pi/2
 
 	// yaw (z-axis rotation)

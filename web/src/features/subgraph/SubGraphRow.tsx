@@ -9,9 +9,13 @@ interface SubGraphRowProps {
   id: string;
   name: string;
   description?: string;
+  nodeCount: number;
+  instanceCount: number;
 }
 
-export function SubGraphRow({ id, name, description }: SubGraphRowProps) {
+const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? "" : "s"}`;
+
+export function SubGraphRow({ id, name, description, nodeCount, instanceCount }: SubGraphRowProps) {
   const editor = useEditorOptional();
   const openSubGraphTab = useGraphTabStore((s) => s.openSubGraphTab);
   const renameSubGraphTab = useGraphTabStore((s) => s.renameSubGraphTab);
@@ -28,9 +32,18 @@ export function SubGraphRow({ id, name, description }: SubGraphRowProps) {
           type="button"
           className="variable-name profile-item"
           onClick={() => openSubGraphTab(id, name)}
-          style={isActive ? { backgroundColor: "rgb(25 110 108)" } : undefined}
+          style={{
+            display: "flex",
+            alignItems: "baseline",
+            justifyContent: "space-between",
+            gap: 8,
+            ...(isActive ? { backgroundColor: "rgb(25 110 108)" } : {}),
+          }}
         >
-          {name}
+          <span>{name}</span>
+          <span style={{ fontSize: 12, opacity: 0.7, whiteSpace: "nowrap" }}>
+            {plural(nodeCount, "node")} · {plural(instanceCount, "instance")}
+          </span>
         </button>
         <DropdownMenu
           items={[

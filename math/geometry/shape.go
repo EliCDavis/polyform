@@ -244,39 +244,26 @@ func (s Shape) shapesOnSide(vericalLineX float64, side int) []Shape {
 	return resultingShapes
 }
 
-// IsInside returns true if the point p lies inside the polygon[] with n vertices
+// IsInside reports whether p lies inside the polygon or on its edge.
 func (s Shape) IsInside(p vector2.Float64) bool {
-	// There must be at least 3 vertices in polygon[]
 	if len(s) < 3 {
 		return false
 	}
 
-	// Create a point for line segment from p to infinite
-	extreme := vector2.New(math.MaxFloat64, p.Y())
-	otherLine := NewLine2D(p, extreme)
-
-	// Count intersections of the above line with sides of polygon
-	count := 0
-	i := 0
-	for {
-		next := (i + 1) % len(s)
-
-		if NewLine2D(s[i], s[next]).Intersects(otherLine) {
-			if predicate.Orient2D(s[i], p, s[next]) == 0 {
-				return onSegment(s[i], p, s[next])
-			}
-
-			count++
+	inside := false
+	for i, a := range s {
+		b := s[(i+1)%len(s)]
+		if predicate.Orient2D(a, p, b) == 0 && onSegment(a, p, b) {
+			return true
 		}
-		i = next
-		if i == 0 {
-			break
+		// Half-open in y, so a ray through a vertex counts it once rather
+		// than once for each edge meeting there.
+		if (a.Y() > p.Y()) != (b.Y() > p.Y()) &&
+			p.X() < a.X()+(p.Y()-a.Y())*(b.X()-a.X())/(b.Y()-a.Y()) {
+			inside = !inside
 		}
 	}
-
-	// log.Print(count)
-	// Return true if count is odd, false otherwise
-	return count%2 == 1
+	return inside
 }
 
 // Translate Moves all points over by the specified amount

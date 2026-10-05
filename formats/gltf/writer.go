@@ -787,6 +787,10 @@ func (w *Writer) addModel(model *PolyformModel, parentTransformOverride *trs.TRS
 		node.Mesh = &meshIndex
 	}
 
+	if err := checkInstancedGroup(model); err != nil && w.Options.GpuInstancingStrategy != WriterInstancingStrategy_Expand {
+		return nil, err
+	}
+
 	positions := make([]vector3.Float64, 0, len(model.GpuInstances))
 	rotations := make([]vector4.Float64, 0, len(model.GpuInstances))
 	scales := make([]vector3.Float64, 0, len(model.GpuInstances))
@@ -858,7 +862,7 @@ func (w *Writer) addModel(model *PolyformModel, parentTransformOverride *trs.TRS
 		node.Children = append(node.Children, *childeNodeIndex)
 	}
 
-	if len(positions) > 0 {
+	if len(positions) > 0 && node.Mesh != nil {
 		switch w.Options.GpuInstancingStrategy {
 		case WriterInstancingStrategy_Default, WriterInstancingStrategy_Collapse:
 			if node.Extensions == nil {

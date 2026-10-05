@@ -83,43 +83,60 @@ func Shear(m mat.Matrix4x4) float64 {
 
 // FromMatrix decomposes m into a TRS.
 //
-// Errors on matrixes with shear
+// Errors on matrixes with shear. An axis m collapses keeps a scale of zero,
+// and the rotation comes from the axes that are left.
 func FromMatrix(m mat.Matrix4x4) (TRS, error) {
 	// https://github.com/CedricGuillemet/ImGuizmo/blob/cf287a3fd48d503ad19a8f8ca81a1a15b63bccf1/ImGuizmo.cpp#L2359
 	// https://github.com/UltravioletFramework/ultraviolet/blob/main/Source/Ultraviolet/Mathematics/Matrix.cs#L2251
 
-	scale := vector3.New(
-		vector3.New(m.X00, m.X10, m.X20).Length(),
-		vector3.New(m.X01, m.X11, m.X21).Length(),
-		vector3.New(m.X02, m.X12, m.X22).Length(),
-	)
-
-	if scale.X() == 0 || scale.Y() == 0 || scale.Z() == 0 {
-		return TRS{}, fmt.Errorf("matrix collapses an axis (scale %v), leaving no rotation to extract", scale)
+	columns := [3]vector3.Float64{
+		vector3.New(m.X00, m.X10, m.X20),
+		vector3.New(m.X01, m.X11, m.X21),
+		vector3.New(m.X02, m.X12, m.X22),
 	}
+	scale := vector3.New(columns[0].Length(), columns[1].Length(), columns[2].Length())
 
 	if shear := Shear(m); shear > ShearTolerance {
 		return TRS{}, fmt.Errorf("matrix contains shear (%.4f off perpendicular) and is not a TRS; a non-uniform scale composed with a rotation produces this", shear)
 	}
 
-	rotM := mat.Matrix4x4{}
-	rotM.X00 = m.X00 / scale.X()
-	rotM.X10 = m.X10 / scale.X()
-	rotM.X20 = m.X20 / scale.X()
-
-	rotM.X01 = m.X01 / scale.Y()
-	rotM.X11 = m.X11 / scale.Y()
-	rotM.X21 = m.X21 / scale.Y()
-
-	rotM.X02 = m.X02 / scale.Z()
-	rotM.X12 = m.X12 / scale.Z()
-	rotM.X22 = m.X22 / scale.Z()
-
-	rotM.X33 = 1
+	axes := rotationAxes(columns)
+	rotM := mat.Matrix4x4{
+		X00: axes[0].X(), X01: axes[1].X(), X02: axes[2].X(),
+		X10: axes[0].Y(), X11: axes[1].Y(), X12: axes[2].Y(),
+		X20: axes[0].Z(), X21: axes[1].Z(), X22: axes[2].Z(),
+		X33: 1,
+	}
 
 	return TRS{
 		position: vector3.New(m.X03, m.X13, m.X23),
 		scale:    scale,
 		rotation: quaternion.FromMatrix(rotM),
 	}, nil
+}
+
+// rotationAxes normalizes each column with any length and rebuilds the
+// collapsed ones square to them, so the axes always form a rotation.
+func rotationAxes(columns [3]vector3.Float64) [3]vector3.Float64 {
+	var axes [3]vector3.Float64
+	var kept []int
+	for i, column := range columns {
+		if length := column.Length(); length > 0 {
+			axes[i] = column.Scale(1 / length)
+			kept = append(kept, i)
+		}
+	}
+
+	switch len(kept) {
+	case 0:
+		return [3]vector3.Float64{vector3.Right[float64](), vector3.Up[float64](), vector3.Forward[float64]()}
+	case 1:
+		i := kept[0]
+		axes[(i+1)%3] = axes[i].Perpendicular().Normalized()
+		axes[(i+2)%3] = axes[i].Cross(axes[(i+1)%3])
+	case 2:
+		missing := 3 - kept[0] - kept[1]
+		axes[missing] = axes[(missing+1)%3].Cross(axes[(missing+2)%3])
+	}
+	return axes
 }

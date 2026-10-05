@@ -1,12 +1,15 @@
 package graph_test
 
 import (
+	"maps"
+	"slices"
 	"testing"
 
 	"github.com/EliCDavis/jbtf"
 	"github.com/EliCDavis/polyform/generator/graph"
 	"github.com/EliCDavis/polyform/generator/persistence"
 	"github.com/EliCDavis/polyform/generator/subgraph"
+	"github.com/EliCDavis/polyform/generator/variable"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -49,22 +52,49 @@ func TestConvertSelectionToSubGraph_SimpleChain(t *testing.T) {
 	for _, p := range ports {
 		names[p.Name] = p.Kind
 	}
-	assert.Equal(t, graph.BoundaryPortKindInput, names["Input 1"])
-	assert.Equal(t, graph.BoundaryPortKindOutput, names["Output 1"])
+	assert.Equal(t, graph.BoundaryPortKindInput, names["Value"])
+	assert.Equal(t, graph.BoundaryPortKindOutput, names["Float"])
 
 	runtime := inst.Node(result.RuntimeNodeID)
-	require.Contains(t, runtime.Inputs(), "Input 1")
-	require.Contains(t, runtime.Outputs(), "Output 1")
+	require.Contains(t, runtime.Inputs(), "Value")
+	require.Contains(t, runtime.Outputs(), "Float")
 
-	runtimeIn := runtime.Inputs()["Input 1"].(nodes.SingleValueInputPort)
+	runtimeIn := runtime.Inputs()["Value"].(nodes.SingleValueInputPort)
 	assert.Equal(t, param.Outputs()["Value"], runtimeIn.Value())
 
 	outIn := inst.Node(outSumID).Inputs()["Values"].(nodes.ArrayValueInputPort)
 	require.Len(t, outIn.Value(), 1)
-	assert.Equal(t, runtime.Outputs()["Output 1"], outIn.Value()[0])
+	assert.Equal(t, runtime.Outputs()["Float"], outIn.Value()[0])
 
 	got := nodes.GetNodeOutputPort[float64](inst.Node(outSumID), "Float").Value()
 	assert.Equal(t, 2.0, got) // Float64 default CurrentValue is 2 in test factory
+}
+
+func TestConvertSelectionToSubGraph_NamesPortsAfterWhatTheyCarry(t *testing.T) {
+	inst := testInstanceWithSubGraphTypesExtended(t)
+	require.NoError(t, errOf(inst.NewVariable("Board/Width", &variable.TypeVariable[float64]{})))
+
+	_, widthID, err := inst.CreateNode("Board/Width")
+	require.NoError(t, err)
+	_, firstID, err := inst.CreateNode("Float64")
+	require.NoError(t, err)
+	_, secondID, err := inst.CreateNode("Float64")
+	require.NoError(t, err)
+	_, sumID, err := inst.CreateNode("Sum")
+	require.NoError(t, err)
+	_, totalID, err := inst.CreateNode("Sum")
+	require.NoError(t, err)
+	for _, from := range []string{widthID, firstID, secondID} {
+		require.NoError(t, inst.ConnectNodes(from, "Value", sumID, "Values"))
+	}
+	require.NoError(t, inst.ConnectNodes(sumID, "Float", totalID, "Values"))
+
+	result, err := inst.ConvertSelectionToSubGraph(graph.RootScope, []string{sumID}, "Adder", "")
+	require.NoError(t, err)
+
+	runtime := inst.Node(result.RuntimeNodeID)
+	assert.ElementsMatch(t, []string{"Width", "Value", "Value 2"}, slices.Collect(maps.Keys(runtime.Inputs())))
+	assert.ElementsMatch(t, []string{"Float"}, slices.Collect(maps.Keys(runtime.Outputs())))
 }
 
 func TestConvertSelectionToSubGraph_NameAndDescription(t *testing.T) {
@@ -109,15 +139,15 @@ func TestConvertSelectionToSubGraph_FanOut(t *testing.T) {
 
 	ports, err := inst.CollectBoundaryPorts(result.SubGraphID)
 	require.NoError(t, err)
-	require.Len(t, ports, 2) // Input 1 + Output 1 (shared fan-out)
+	require.Len(t, ports, 2) // one input, and one output shared by the fan-out
 
 	runtime := inst.Node(result.RuntimeNodeID)
 	leftIn := inst.Node(leftID).Inputs()["Values"].(nodes.ArrayValueInputPort)
 	rightIn := inst.Node(rightID).Inputs()["Values"].(nodes.ArrayValueInputPort)
 	require.Len(t, leftIn.Value(), 1)
 	require.Len(t, rightIn.Value(), 1)
-	assert.Equal(t, runtime.Outputs()["Output 1"], leftIn.Value()[0])
-	assert.Equal(t, runtime.Outputs()["Output 1"], rightIn.Value()[0])
+	assert.Equal(t, runtime.Outputs()["Float"], leftIn.Value()[0])
+	assert.Equal(t, runtime.Outputs()["Float"], rightIn.Value()[0])
 }
 
 func TestConvertSelectionToSubGraph_FanInSharesOneInput(t *testing.T) {
@@ -147,7 +177,7 @@ func TestConvertSelectionToSubGraph_FanInSharesOneInput(t *testing.T) {
 	assert.Equal(t, 1, inputs, "one outside source feeding two selected nodes is one port, not two")
 
 	runtime := inst.Node(result.RuntimeNodeID)
-	runtimeIn := runtime.Inputs()["Input 1"].(nodes.SingleValueInputPort)
+	runtimeIn := runtime.Inputs()["Value"].(nodes.SingleValueInputPort)
 	assert.Equal(t, param.Outputs()["Value"], runtimeIn.Value())
 
 	child, err := inst.SubGraphInstance(result.SubGraphID)

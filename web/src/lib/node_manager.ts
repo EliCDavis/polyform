@@ -720,7 +720,11 @@ export class NodeManager {
             return;
         }
 
-        const category = this.convertPathToUppercase(nodeDefinition.path) + "/" + nodeDefinition.displayName;
+        // A variable's type is its full path; its display name can repeat
+        // across groups.
+        const category = isVariable
+            ? GeneratorVariablePublisherPath + nodeDefinition.type
+            : this.convertPathToUppercase(nodeDefinition.path) + "/" + nodeDefinition.displayName;
         this.nodeTypeToFlowNodePath.set(nodeDefinition.type, category);
         this.nodesPublisher.register(category, nodeConfig);
     }
@@ -790,7 +794,7 @@ export class NodeManager {
             if (parameterType === "[]uint8") {
                 parameterType = "File";
             }
-            return this.nodesPublisher.create(GeneratorVariablePublisherPath + nodeData.name);
+            return this.nodesPublisher.create(GeneratorVariablePublisherPath + (nodeData.variablePath ?? nodeData.name));
         }
 
         throw new Error("what tf is this.")

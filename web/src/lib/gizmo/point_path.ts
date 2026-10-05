@@ -336,7 +336,7 @@ export class PointPathGizmo {
         }
 
         const diagonal = max.sub(min).length();
-        const radius = diagonal > 0 ? Math.max(diagonal * 0.02, 0.01) : 0.05;
+        const radius = diagonal > 0 ? diagonal * 0.02 : 0.05;
         for (const entry of this.entries) {
             entry.marker.scale.setScalar(radius);
         }

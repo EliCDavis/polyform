@@ -20,7 +20,7 @@ func directionsOfLinePoints(points []LinePoint) []vector3.Float64 {
 	for i, point := range points {
 		pointVec[i] = point.Point
 	}
-	return directionOfPoints(pointVec)
+	return tangents(pointVec)
 }
 
 func facingUp(v, up vector3.Float64) vector3.Float64 {
@@ -73,22 +73,11 @@ func Line(linePoints []LinePoint) modeling.Mesh {
 			leftNormal,
 		)
 
-		var uvAPoint vector2.Float64
-		var uvBPoint vector2.Float64
-		if i == 0 {
-			uvAPoint = linePoints[0].Uv
-			uvBPoint = linePoints[1].Uv
-		} else {
-			uvAPoint = linePoints[i-1].Uv
-			uvBPoint = linePoints[i].Uv
+		var uvOut vector2.Float64
+		if uvDir := linePoints[max(i, 1)].Uv.Sub(linePoints[max(i-1, 0)].Uv); uvDir.Length() > 0 {
+			uvOut = uvDir.Perpendicular().Normalized().Scale(p.UvWidth / 2)
 		}
-		uvDir := uvBPoint.Sub(uvAPoint)
-		uvs = append(
-			uvs,
-			linePoints[i].Uv,
-			linePoints[i].Uv.Add(uvDir.Perpendicular().Normalized().Scale(linePoints[i].UvWidth/2)),
-			linePoints[i].Uv.Add(uvDir.Perpendicular().Normalized().Scale(-linePoints[i].UvWidth/2)),
-		)
+		uvs = append(uvs, p.Uv, p.Uv.Add(uvOut), p.Uv.Sub(uvOut))
 	}
 
 	tris := make([]int, 0)

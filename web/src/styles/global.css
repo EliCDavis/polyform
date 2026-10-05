@@ -73,16 +73,6 @@ input[type="number"] {
   min-width: 0;
 }
 
-#watermark {
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  padding: 10px;
-  user-select: none;
-  pointer-events: none;
-  z-index: 1;
-}
-
 #running-message {
   display: none;
   position: absolute;
@@ -193,6 +183,24 @@ select {
   width: 63px;
   height: 100%;
   background-color: #003847;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+#sidebar-github {
+  margin-top: auto;
+  width: 52px;
+  padding: 10px 0;
+  text-align: center;
+  font-size: 24px;
+  line-height: 24px;
+  color: #8fa8b0;
+}
+
+#sidebar-github:hover {
+  color: #fff;
+  text-decoration: none;
 }
 
 #main-content {
