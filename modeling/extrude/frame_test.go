@@ -9,9 +9,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// The frame may only rotate as much as the path itself turns. Deriving per
-// from the cross product of neighbouring segments instead flips it a full
-// 180 degrees where a straight run meets a bend.
 func TestPathFramesTurnOnlyAsMuchAsThePath(t *testing.T) {
 	straight := []vector3.Float64{}
 	for i := 0; i <= 6; i++ {
@@ -47,6 +44,10 @@ func TestPathFramesTurnOnlyAsMuchAsThePath(t *testing.T) {
 			vector3.New(0., 1.3001528736574441, -0.37084847944351573),
 			vector3.New(0., 2.6003057473148883, -0.7416969588870315),
 		}, false},
+		"arch": {[]vector3.Float64{
+			vector3.New(0., 0., 0.), vector3.New(0., 5., 0.),
+			vector3.New(5., 5., 0.), vector3.New(5., 0., 0.),
+		}, false},
 		"helix":                  {helix, false},
 		"closed loop":            {loop, true},
 		"closed non planar loop": {saddle, true},
@@ -57,12 +58,11 @@ func TestPathFramesTurnOnlyAsMuchAsThePath(t *testing.T) {
 			require.Len(t, frames, len(tc.path))
 
 			for i, f := range frames {
-				require.InDeltaf(t, 1, f.per.Length(), 1e-9, "ring %d per is not a unit vector", i)
-				require.InDeltaf(t, 1, f.dir.Length(), 1e-9, "ring %d dir is not a unit vector", i)
-				assert.InDeltaf(t, 0, f.per.Dot(f.dir), 1e-9, "ring %d per is not square to dir", i)
+				require.InDeltaf(t, 1, f.x.Length(), 1e-9, "ring %d x is not a unit vector", i)
+				require.InDeltaf(t, 1, f.tangent.Length(), 1e-9, "ring %d tangent is not a unit vector", i)
+				assert.InDeltaf(t, 0, f.x.Dot(f.tangent), 1e-9, "ring %d x is not square to the tangent", i)
+				assert.InDeltaf(t, 0, f.y.Sub(f.x.Cross(f.tangent)).Length(), 1e-9, "ring %d is mirrored", i)
 
-				// A closed path has to hold at the seam too, where the last
-				// ring meets the first.
 				previous := i - 1
 				if i == 0 {
 					if !tc.closed {
@@ -79,12 +79,47 @@ func TestPathFramesTurnOnlyAsMuchAsThePath(t *testing.T) {
 					allowed = 1 * math.Pi / 180
 				}
 
-				turned := frames[previous].dir.Angle(f.dir)
-				twisted := frames[previous].per.Angle(f.per)
+				chord := f.origin.Sub(frames[previous].origin).Normalized()
+				turned := frames[previous].tangent.Angle(chord) + chord.Angle(f.tangent)
+				twisted := frames[previous].x.Angle(f.x)
 				assert.LessOrEqualf(t, twisted, turned+allowed,
 					"ring %d twisted %.2f degrees while the path only turned %.2f",
 					i, twisted*180/math.Pi, turned*180/math.Pi)
 			}
 		})
 	}
+}
+
+func TestPathFramesLayAProfileFlatHoweverALevelPathStarts(t *testing.T) {
+	for name, path := range map[string][]vector3.Float64{
+		"along +X":       {vector3.New(0., 0., 0.), vector3.New(5., 0., 0.)},
+		"along -X":       {vector3.New(0., 0., 0.), vector3.New(-5., 0., 0.)},
+		"along +Z":       {vector3.New(0., 0., 0.), vector3.New(0., 0., 5.)},
+		"along -Z":       {vector3.New(0., 0., 0.), vector3.New(0., 0., -5.)},
+		"turning":        {vector3.New(0., 0., 0.), vector3.New(5., 0., 0.), vector3.New(5., 0., 5.)},
+		"doubling back":  {vector3.New(0., 0., 0.), vector3.New(5., 0., 0.), vector3.New(5., 0., 1.), vector3.New(0., 0., 1.)},
+		"climbing first": {vector3.New(0., 0., 0.), vector3.New(0., 3., 0.), vector3.New(4., 3., 0.)},
+		"with a hairpin": {vector3.New(0., 0., 0.), vector3.New(5., 0., 0.), vector3.New(0., 0., .1)},
+	} {
+		t.Run(name, func(t *testing.T) {
+			for i, f := range pathFrames(path, false) {
+				if math.Abs(f.tangent.Y()) > 1e-9 {
+					continue
+				}
+				assert.InDeltaf(t, 1, f.y.Y(), 1e-9, "ring %d does not point the profile's y up", i)
+			}
+		})
+	}
+}
+
+func TestPathFramesBevelATurnTooSharpToMiter(t *testing.T) {
+	frames := pathFrames([]vector3.Float64{
+		vector3.New(0., 0., 0.), vector3.New(5., 0., 0.), vector3.New(0., 0., .1),
+	}, false)
+
+	require.Len(t, frames, 4, "the hairpin is two rings")
+	for i, f := range frames {
+		assert.LessOrEqualf(t, f.stretch, maxMiterStretch, "ring %d", i)
+	}
+	assert.Equal(t, frames[1].origin, frames[2].origin)
 }

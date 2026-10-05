@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/EliCDavis/polyform/modeling"
+	"github.com/EliCDavis/polyform/modeling/csg"
 	"github.com/EliCDavis/polyform/modeling/extrude"
 	"github.com/EliCDavis/polyform/modeling/meshops"
 	"github.com/EliCDavis/polyform/modeling/triangulation"
@@ -95,6 +96,72 @@ func TestOutlineFollowsABentPath(t *testing.T) {
 	assert.Positive(t, signedVolume(mesh))
 }
 
+func TestOutlineStaysASolidThroughASharpUnevenBend(t *testing.T) {
+	trace := []vector2.Float64{
+		vector2.New(-.3, -.375), vector2.New(.3, -.375),
+		vector2.New(.3, .375), vector2.New(-.3, .375),
+	}
+	mesh, err := extrude.Outline{
+		Shape: trace,
+		Path:  []vector3.Float64{vector3.New(14.5, 0., 6.95), vector3.New(11.45, 0., 6.95), vector3.New(11.45, 0., 8.)},
+	}.Extrude()
+	require.NoError(t, err)
+
+	require.NoError(t, csg.CheckClosed(mesh))
+	assert.InDelta(t, .6*.75*(3.05+1.05), signedVolume(mesh), 1e-9, "a mitred tube holds its section along the whole centreline")
+	box := mesh.BoundingBox(modeling.PositionAttribute)
+	assert.InDelta(t, 11.15, box.Min().X(), 1e-9, "full width through the corner")
+	assert.InDelta(t, 6.65, box.Min().Z(), 1e-9)
+	assert.InDelta(t, .75, box.Size().Y(), 1e-9, "the outline's y stands up on a level path")
+}
+
+func TestOutlineLaysAFlatTraceFlatHoweverItsPathStarts(t *testing.T) {
+	flat := []vector2.Float64{
+		vector2.New(-1., -.1), vector2.New(1., -.1),
+		vector2.New(1., .1), vector2.New(-1., .1),
+	}
+	for name, path := range map[string][]vector3.Float64{
+		"along X":  {vector3.New(0., 0., 0.), vector3.New(5., 0., 0.)},
+		"along -X": {vector3.New(0., 0., 0.), vector3.New(-5., 0., 0.)},
+		"along Z":  {vector3.New(0., 0., 0.), vector3.New(0., 0., 5.)},
+		"turning":  {vector3.New(0., 0., 0.), vector3.New(5., 0., 0.), vector3.New(5., 0., 5.), vector3.New(9., 0., 7.)},
+	} {
+		t.Run(name, func(t *testing.T) {
+			mesh, err := extrude.Outline{Shape: flat, Path: path}.Extrude()
+			require.NoError(t, err)
+
+			require.NoError(t, csg.CheckClosed(mesh))
+			assert.InDelta(t, .2, mesh.BoundingBox(modeling.PositionAttribute).Size().Y(), 1e-9)
+		})
+	}
+}
+
+func TestOutlineBevelsAHairpin(t *testing.T) {
+	mesh, err := extrude.Outline{
+		Shape: circleOutline(12, .2),
+		Path:  []vector3.Float64{vector3.New(0., 0., 0.), vector3.New(5., 0., 0.), vector3.New(0., 0., .1)},
+	}.Extrude()
+	require.NoError(t, err)
+
+	requireWatertight(t, mesh)
+	pos := mesh.Float3Attribute(modeling.PositionAttribute)
+	for i := 0; i < pos.Len(); i++ {
+		assert.Lessf(t, pos.At(i).X(), 5.2+1e-9, "vertex %d overshoots the turn", i)
+	}
+}
+
+func TestOutlineKeepsAHardEdgeWhereThePathTurnsSharply(t *testing.T) {
+	mesh, err := extrude.Outline{
+		Shape: circleOutline(32, .2),
+		Path:  []vector3.Float64{vector3.New(0., 0., 0.), vector3.New(3., 0., 0.), vector3.New(3., 0., 3.)},
+	}.Extrude()
+	require.NoError(t, err)
+
+	requireWatertight(t, mesh)
+	requireNormalsAgreeWithFaces(t, mesh)
+	assert.InDelta(t, math.Pi/2, worstSplitNormal(t, mesh), 1e-9)
+}
+
 func TestOutlineLeavesAClosedPathUncapped(t *testing.T) {
 	small := []vector2.Float64{
 		vector2.New(-.3, -.3), vector2.New(.3, -.3),
@@ -111,9 +178,9 @@ func TestOutlineLeavesAClosedPathUncapped(t *testing.T) {
 	require.NoError(t, err)
 
 	requireWatertight(t, mesh)
-	// Two vertices per outline edge per ring, and nothing beyond that: a cap
-	// would carry its own.
-	assert.Equal(t, len(path)*len(small)*2,
+	// Two vertices per outline corner and two rings per path corner, and
+	// nothing beyond that: a cap would carry its own.
+	assert.Equal(t, len(path)*2*len(small)*2,
 		mesh.Float3Attribute(modeling.PositionAttribute).Len())
 }
 
@@ -212,20 +279,6 @@ func TestOutlineHandlesAStraightRunMeetingABend(t *testing.T) {
 
 	requireWatertight(t, mesh)
 	assert.Positive(t, signedVolume(mesh))
-}
-
-func TestShapeSweepsAStraightPathWithoutNaN(t *testing.T) {
-	mesh := extrude.Shape(unitSquare, []vector3.Float64{
-		vector3.New(0., 0., 0.), vector3.New(0., 1., 0.), vector3.New(0., 2., 0.),
-	})
-
-	pos := mesh.Float3Attribute(modeling.PositionAttribute)
-	require.Positive(t, pos.Len())
-	for i := 0; i < pos.Len(); i++ {
-		v := pos.At(i)
-		require.Falsef(t, math.IsNaN(v.X()) || math.IsNaN(v.Y()) || math.IsNaN(v.Z()),
-			"vertex %d is NaN", i)
-	}
 }
 
 // An outline swept straight up has to keep the x and z it was handed. The
@@ -384,7 +437,7 @@ func worstSplitNormal(t *testing.T, m modeling.Mesh) float64 {
 // sweep.
 func TestOutlineMergesVerticesAlongASmoothOutline(t *testing.T) {
 	outline := circleOutline(100, 0.6)
-	path := ringPath(8, 3)
+	path := ringPath(16, 3)
 
 	mesh, err := extrude.Outline{Shape: outline, Path: path, Closed: true}.Extrude()
 	require.NoError(t, err)
@@ -402,7 +455,7 @@ func TestOutlineKeepsCreasesAtRealCorners(t *testing.T) {
 		vector2.New(-.4, -.4), vector2.New(.4, -.4),
 		vector2.New(.4, .4), vector2.New(-.4, .4),
 	}
-	path := ringPath(8, 3)
+	path := ringPath(16, 3)
 
 	mesh, err := extrude.Outline{Shape: square, Path: path, Closed: true}.Extrude()
 	require.NoError(t, err)
@@ -419,11 +472,11 @@ func TestOutlineKeepsCreasesAtRealCorners(t *testing.T) {
 // others on a shape whose corners are all identical.
 func TestOutlineTreatsIdenticalCornersIdentically(t *testing.T) {
 	mesh, err := extrude.Outline{
-		Shape: circleOutline(8, 0.6), Path: ringPath(8, 3), Closed: true,
+		Shape: circleOutline(8, 0.6), Path: ringPath(16, 3), Closed: true,
 	}.Extrude()
 	require.NoError(t, err)
 
-	perRing := mesh.Float3Attribute(modeling.PositionAttribute).Len() / 8
+	perRing := mesh.Float3Attribute(modeling.PositionAttribute).Len() / 16
 	assert.Contains(t, []int{8, 16}, perRing,
 		"every corner is the same, so they should all split or none should")
 }
@@ -436,7 +489,7 @@ func TestOutlineHonoursTheSmoothingAngle(t *testing.T) {
 		angle   float64
 		perRing int
 	}{
-		"nothing smooths":    {0, 16},
+		"nothing smooths":    {0, 2 * 16},
 		"everything smooths": {180, 8},
 	} {
 		t.Run(name, func(t *testing.T) {
@@ -452,10 +505,10 @@ func TestOutlineHonoursTheSmoothingAngle(t *testing.T) {
 	}
 }
 
-// Repeating the first point at the end is the natural way to draw a loop, and
-// it used to land two rings on the same spot instead of saying so.
-func TestOutlineRejectsAPathThatRepeatsAPoint(t *testing.T) {
+func TestOutlineIgnoresAClosedPathRepeatingItsFirstPoint(t *testing.T) {
 	path := ringPath(8, 3)
+	clean, err := extrude.Outline{Shape: circleOutline(6, 0.4), Path: path, Closed: true}.Extrude()
+	require.NoError(t, err)
 
 	mesh, err := extrude.Outline{
 		Shape:  circleOutline(6, 0.4),
@@ -463,9 +516,9 @@ func TestOutlineRejectsAPathThatRepeatsAPoint(t *testing.T) {
 		Closed: true,
 	}.Extrude()
 
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "same point")
-	assert.Zero(t, mesh.Indices().Len())
+	require.NoError(t, err)
+	assert.Equal(t, clean.PrimitiveCount(), mesh.PrimitiveCount())
+	requireNormalsAgreeWithFaces(t, mesh)
 }
 
 func TestOutlineIgnoresRepeatedPoints(t *testing.T) {

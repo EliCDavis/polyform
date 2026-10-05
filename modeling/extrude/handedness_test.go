@@ -11,8 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// The outline's frame follows the path direction; the OutlineNode port
-// description states each mapping, and this pins them.
 func TestOutlineFrameByPathDirection(t *testing.T) {
 	// A triangle whose only far point is at outline x = +2.
 	pointer := []vector2.Float64{vector2.New(0., -1.), vector2.New(2., 0.), vector2.New(0., 1.)}
@@ -25,7 +23,8 @@ func TestOutlineFrameByPathDirection(t *testing.T) {
 		"up":            {vector3.Up[float64](), vector3.Right[float64](), vector3.Forward[float64]()},
 		"toward viewer": {vector3.Backwards[float64](), vector3.Right[float64](), vector3.Up[float64]()},
 		"away":          {vector3.Forward[float64](), vector3.Left[float64](), vector3.Up[float64]()},
-		"right":         {vector3.Right[float64](), vector3.Down[float64](), vector3.Forward[float64]()},
+		"right":         {vector3.Right[float64](), vector3.Forward[float64](), vector3.Up[float64]()},
+		"left":          {vector3.Left[float64](), vector3.Backwards[float64](), vector3.Up[float64]()},
 	}
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {

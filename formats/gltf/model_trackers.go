@@ -22,7 +22,7 @@ type materialIndices []materialEntry
 // instead of simple pointer equality.
 func (mt materialIndices) findExistingMaterialID(mat *PolyformMaterial) (*int, bool) {
 	for _, entry := range mt {
-		if entry.polyMaterial.equal(mat) {
+		if entry.polyMaterial.Equal(mat) {
 			return &entry.index, true
 		}
 	}

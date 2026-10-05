@@ -46,6 +46,12 @@ function loadFailureMessage(error: unknown, fallback: string): string {
   return fallback;
 }
 
+// Stands the model on the floor. An empty model's box runs from +Infinity to
+// -Infinity, and shifting by that would put every gizmo at NaN.
+function floorShift(aabb: Box3): number {
+  return aabb.isEmpty() ? 0 : -aabb.min.y;
+}
+
 // Cells are sized to the model; the grid then runs well past it so the model
 // sits on a floor rather than a mat cut to fit.
 const GRID_SLACK = 1.15;
@@ -293,6 +299,11 @@ export class ProducerViewManager {
     const aabbHeight = aabb.max.y - aabb.min.y;
     const aabbHalfHeight = aabbHeight / 2;
     const mid = (aabb.max.y + aabb.min.y) / 2;
+    const diagonal = Math.sqrt(aabbWidth * aabbWidth + aabbDepth * aabbDepth + aabbHeight * aabbHeight);
+
+    if (isFinite(diagonal) && diagonal > 0) {
+      this.orbitControls.maxDistance = diagonal * 20;
+    }
 
     if (
       this.firstTimeLoadingScene &&
@@ -304,12 +315,7 @@ export class ProducerViewManager {
       this.firstTimeLoadingScene = false;
 
       this.camera.position.y = (-mid + aabbHalfHeight) * (3 / 2);
-      this.camera.position.z =
-        Math.sqrt(
-          aabbWidth * aabbWidth +
-            aabbDepth * aabbDepth +
-            aabbHeight * aabbHeight
-        ) / 2;
+      this.camera.position.z = diagonal / 2;
 
       this.orbitControls.target.set(
         (aabb.max.x + aabb.min.x) / 2,
@@ -406,16 +412,11 @@ export class ProducerViewManager {
 
         const aabb = new Box3();
         aabb.setFromObject(obj);
-        const aabbHeight = aabb.max.y - aabb.min.y;
-        const aabbHalfHeight = aabbHeight / 2;
-        const mid = (aabb.max.y + aabb.min.y) / 2;
 
         this.producerScene.add(obj);
         requestRender();
 
-        // We have to do this weird thing because the pivot of the scene
-        // Isn't always the center of the AABB
-        this.viewerContainer.position.set(0, -mid + aabbHalfHeight, 0);
+        this.viewerContainer.position.set(0, floorShift(aabb), 0);
 
         this.viewAABB(aabb);
         this.fitShadowToViewerContainer();
@@ -440,16 +441,11 @@ export class ProducerViewManager {
 
         const aabb = new Box3();
         aabb.setFromObject(gltf.scene);
-        const aabbHeight = aabb.max.y - aabb.min.y;
-        const aabbHalfHeight = aabbHeight / 2;
-        const mid = (aabb.max.y + aabb.min.y) / 2;
 
         this.producerScene.add(gltf.scene);
         requestRender();
 
-        // We have to do this weird thing because the pivot of the scene
-        // Isn't always the center of the AABB
-        this.viewerContainer.position.set(0, -mid + aabbHalfHeight + 0.001, 0);
+        this.viewerContainer.position.set(0, floorShift(aabb) + 0.001, 0);
 
         const objects = [];
 
@@ -515,16 +511,11 @@ export class ProducerViewManager {
 
         const aabb = new Box3();
         aabb.setFromObject(mesh);
-        const aabbHeight = aabb.max.y - aabb.min.y;
-        const aabbHalfHeight = aabbHeight / 2;
-        const mid = (aabb.max.y + aabb.min.y) / 2;
 
         this.producerScene.add(mesh);
         requestRender();
 
-        // We have to do this weird thing because the pivot of the scene
-        // Isn't always the center of the AABB
-        this.viewerContainer.position.set(0, -mid + aabbHalfHeight, 0);
+        this.viewerContainer.position.set(0, floorShift(aabb), 0);
 
         this.viewAABB(aabb);
         this.fitShadowToViewerContainer();
@@ -573,11 +564,7 @@ export class ProducerViewManager {
             const tree = splatTree.subTrees[0];
             const aabb = new Box3();
             aabb.setFromPoints([tree.sceneMin, tree.sceneMax]);
-            const aabbHeight = aabb.max.y - aabb.min.y;
-            const aabbHalfHeight = aabbHeight / 2;
-            const mid = (aabb.max.y + aabb.min.y) / 2;
-
-            const shiftY = -mid + aabbHalfHeight;
+            const shiftY = floorShift(aabb);
             this.guassianSplatViewer.splatMesh.position.set(0, shiftY, 0);
             this.viewerContainer.position.set(0, shiftY, 0);
 

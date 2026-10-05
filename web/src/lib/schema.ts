@@ -105,6 +105,8 @@ export interface NodeInstance {
   // For a node with dynamic ports, what each of its type variables settled
   // on, keyed by the variable the ports were declared with.
   dynamicTypes?: { [variable: string]: string };
+
+  variablePath?: string;
 }
 
 export interface RuntimeSubGraphDefinition {

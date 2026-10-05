@@ -60,9 +60,14 @@ func (a *Graph) NodeInstanceSchema(node nodes.Node) schema.Node {
 	}
 
 	if reference, ok := node.(variable.Reference); ok {
-		variable := reference.Reference()
-		nodeInstance.Name = variable.Info().Name()
-		nodeInstance.Variable = variable
+		referenced := reference.Reference()
+		nodeInstance.Name = referenced.Info().Name()
+		nodeInstance.Variable = referenced
+		a.project.variables.Traverse(func(path string, _ variable.Info, v variable.Variable) {
+			if v == referenced {
+				nodeInstance.VariablePath = path
+			}
+		})
 	}
 
 	if param, ok := node.(Parameter); ok {

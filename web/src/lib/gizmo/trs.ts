@@ -66,6 +66,9 @@ export class TRSGizmo {
     }
 
     setEnabled(enabled: boolean): void {
+        if (!enabled && this.controls.dragging) {
+            this.controls.pointerUp(null);
+        }
         this.helper.visible = enabled;
         this.controls.enabled = enabled;
         requestRender();

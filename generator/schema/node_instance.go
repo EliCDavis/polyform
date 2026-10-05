@@ -22,6 +22,9 @@ type Node struct {
 	Variable  any            `json:"variable,omitempty"`
 	Metadata  map[string]any `json:"metadata,omitempty"`
 
+	// Variables in different groups can share a name; the path tells them apart.
+	VariablePath string `json:"variablePath,omitempty"`
+
 	// What each of this instance's type variables settled on, empty for a
 	// node without dynamic ports or when nothing has been connected to yet.
 	DynamicTypes map[string]string `json:"dynamicTypes,omitempty"`

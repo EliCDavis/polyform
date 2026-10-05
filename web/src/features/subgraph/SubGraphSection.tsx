@@ -10,7 +10,6 @@ import {
   formatImportRemapSummary,
 } from "@/lib/importSubGraphs";
 import { NewSubGraphModal } from "@/features/popups/NewSubGraphModal";
-import { ConvertToSubGraphModal } from "@/features/popups/ConvertToSubGraphModal";
 import { SubGraphRow } from "./SubGraphRow";
 
 export function SubGraphSection() {
@@ -29,6 +28,19 @@ export function SubGraphSection() {
       (a.name || "").localeCompare(b.name || "")
     );
   }, [graph?.subGraphs]);
+
+  const instanceCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    const scopes = [graph?.nodes ?? {}, ...subGraphs.map(([, def]) => def.nodes ?? {})];
+    for (const nodes of scopes) {
+      for (const node of Object.values(nodes)) {
+        if (node.subGraphId) {
+          counts[node.subGraphId] = (counts[node.subGraphId] ?? 0) + 1;
+        }
+      }
+    }
+    return counts;
+  }, [graph?.nodes, subGraphs]);
 
   if (!editor) return null;
 
@@ -97,6 +109,8 @@ export function SubGraphSection() {
             id={id}
             name={def.name || id}
             description={def.description}
+            nodeCount={Object.keys(def.nodes ?? {}).length}
+            instanceCount={instanceCounts[id] ?? 0}
           />
         ))}
       </div>
@@ -105,10 +119,6 @@ export function SubGraphSection() {
         onClose={() => setNewOpen(false)}
         nodeManager={editor.nodeManager}
         onCreated={(id, name) => openSubGraphTab(id, name)}
-      />
-      <ConvertToSubGraphModal
-        nodeManager={editor.nodeManager}
-        schemaManager={editor.schemaManager}
       />
     </>
   );

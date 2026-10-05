@@ -138,6 +138,11 @@ func runCSG(
 			out.Set(empty)
 			return
 		}
+		if err := combined.prepare(); err != nil {
+			out.CaptureError(fmt.Errorf("combining %s left an unclosed solid: %w", inputs[i+1].port, err))
+			out.Set(combined.Mesh())
+			return
+		}
 		result = combined
 	}
 	out.Set(result.Mesh())

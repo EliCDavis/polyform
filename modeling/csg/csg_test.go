@@ -472,6 +472,27 @@ func TestNodesReportAnOpenMesh(t *testing.T) {
 	})
 }
 
+func TestSubtractNodeReportsCutsThatOnlyTouch(t *testing.T) {
+	board := primitives.Cube{Width: 4, Height: 1, Depth: 4}.Welded()
+	square := primitives.Cube{Width: 1, Height: 2, Depth: 1}.Welded().Translate(vector3.New(1., 0., 0.))
+	// A vertex column of the drill lies exactly on the square hole's wall.
+	drill := primitives.Cylinder{Sides: 24, Height: 2, Radius: .5}.ToMesh()
+
+	errs := errorsFromNode(t, csg.SubtractNode{
+		Base:   nodes.ConstOutput[modeling.Mesh]{Val: board},
+		Remove: constMeshes(square, drill),
+	})
+	require.Len(t, errs, 1)
+	assert.Contains(t, errs[0], "Remove.1")
+	assert.Contains(t, errs[0], "unclosed solid")
+
+	clear := drill.Translate(vector3.New(-1e-6, 0., 0.))
+	assert.Empty(t, errorsFromNode(t, csg.SubtractNode{
+		Base:   nodes.ConstOutput[modeling.Mesh]{Val: board},
+		Remove: constMeshes(square, clear),
+	}), "a hair apart is two clean holes")
+}
+
 // Meshes arrive from all sorts of generators, and an empty triangle among
 // them should change nothing: it covers no surface, and its normal is
 // meaningless to steer a classification ray by.

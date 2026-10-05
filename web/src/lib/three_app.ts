@@ -228,6 +228,21 @@ export function CreateThreeApp(
   orbitControls.target.set(0, 0, 0);
   orbitControls.update();
 
+  updateLoop.addToUpdate({
+    name: "camera clipping",
+    loop: () => {
+      if (renderer.xr.isPresenting) {
+        return;
+      }
+      const distance = Math.max(camera.position.distanceTo(orbitControls.target), 1e-6);
+      if (camera.near !== distance / 100) {
+        camera.near = distance / 100;
+        camera.far = distance * 100;
+        camera.updateProjectionMatrix();
+      }
+    },
+  });
+
   const viewportGizmo = new ViewportGizmo(camera, renderer, {
     size: Math.round(Math.min(window.innerWidth, window.innerHeight) * 0.1),
   });

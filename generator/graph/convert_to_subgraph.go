@@ -85,10 +85,11 @@ func (a *Instance) ConvertSelectionToSubGraph(scope Scope, nodeIDs []string, nam
 	// One input per outside value, however many selected nodes read it.
 	inputs := map[string]string{}
 	inputBoundaries := map[string]string{}
+	inputNames := portNames{}
 	for _, cut := range inbound {
 		key := inboundSourceKey(cut)
 		if _, made := inputs[key]; !made {
-			port := fmt.Sprintf("Input %d", len(inputs)+1)
+			port := inputNames.claim(inboundPortName(cut))
 			at := vector2.New(layout.min.X()-boundaryLayoutGap.X(), layout.min.Y()+float64(len(inputs))*boundaryLayoutGap.Y())
 			boundary, err := child.addBoundary(subgraph.InputNodeTypeKey, portTypeOf(cut.out), port, layout, at)
 			if err != nil {
@@ -105,12 +106,13 @@ func (a *Instance) ConvertSelectionToSubGraph(scope Scope, nodeIDs []string, nam
 
 	// One output per selected port read from outside.
 	outputs := map[string]string{}
+	outputNames := portNames{}
 	for _, cut := range outbound {
 		key := sourceKey(cut)
 		if _, made := outputs[key]; made {
 			continue
 		}
-		port := fmt.Sprintf("Output %d", len(outputs)+1)
+		port := outputNames.claim(cut.output)
 		at := vector2.New(layout.max.X()+boundaryLayoutGap.X(), layout.min.Y()+float64(len(outputs))*boundaryLayoutGap.Y())
 		boundary, err := child.addBoundary(subgraph.OutputNodeTypeKey, portTypeOf(cut.out), port, layout, at)
 		if err != nil {
@@ -217,6 +219,27 @@ func (a *Graph) edgesCrossing(selection map[string]nodes.Node) (inbound, outboun
 
 func sourceKey(e edge) string {
 	return e.producerID + "\x00" + e.output
+}
+
+func inboundPortName(e edge) string {
+	if ref, ok := e.producer.(variable.Reference); ok {
+		return ref.Reference().Info().Name()
+	}
+	if _, isArray := e.in.(nodes.ArrayValueInputPort); isArray {
+		return e.output
+	}
+	return e.input
+}
+
+type portNames map[string]bool
+
+func (taken portNames) claim(name string) string {
+	unique := name
+	for i := 2; taken[unique]; i++ {
+		unique = fmt.Sprintf("%s %d", name, i)
+	}
+	taken[unique] = true
+	return unique
 }
 
 // Separate reference nodes to one variable are one value, so they share a port.

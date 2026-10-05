@@ -53,18 +53,21 @@ func TestExtrudersEmitUsableNormals(t *testing.T) {
 
 	outline, err := extrude.Outline{Shape: square, Path: bent}.Extrude()
 	require.NoError(t, err)
+	closedOutline, err := extrude.Outline{Shape: square, Closed: true, Path: []vector3.Float64{
+		vector3.New(6., 0., 0.), vector3.New(-3., 0., 5.1), vector3.New(-3., 0., -5.1),
+	}}.Extrude()
+	require.NoError(t, err)
+	circle, err := extrude.Circle{Radius: 1, Resolution: 12, Path: bent}.Extrude()
+	require.NoError(t, err)
 
 	for name, mesh := range map[string]modeling.Mesh{
-		"shape": extrude.Shape(square, bent),
-		"closed shape": extrude.ClosedShape(square, []vector3.Float64{
-			vector3.New(2., 0., 0.), vector3.New(-1., 0., 1.7), vector3.New(-1., 0., -1.7),
-		}),
+		"closed outline": closedOutline,
 		"polygon": extrude.Polygon(8, []extrude.ExtrusionPoint{
 			{Point: vector3.New(0., 0., 0.), Thickness: 1},
 			{Point: vector3.New(0., 2., 0.), Thickness: 1},
 			{Point: vector3.New(1.5, 3.5, 0.), Thickness: .7},
 		}),
-		"circle": extrude.Circle{Radius: 1, Resolution: 12, Path: bent}.Extrude(),
+		"circle": circle,
 		"line": extrude.Line([]extrude.LinePoint{
 			{Point: vector3.New(0., 0., 0.), Up: vector3.Up[float64](), Width: 1, Height: .2},
 			{Point: vector3.New(0., 0., 2.), Up: vector3.Up[float64](), Width: 1, Height: .2},
@@ -77,9 +80,7 @@ func TestExtrudersEmitUsableNormals(t *testing.T) {
 	}
 }
 
-// The outline decides which way is out, so the same shape wound either way
-// has to produce normals pointing the same direction.
-func TestProjectFaceFacesOutwardEitherWinding(t *testing.T) {
+func TestOutlineFacesOutwardEitherWinding(t *testing.T) {
 	square := []vector2.Float64{
 		vector2.New(-1., -1.), vector2.New(1., -1.),
 		vector2.New(1., 1.), vector2.New(-1., 1.),
@@ -89,18 +90,21 @@ func TestProjectFaceFacesOutwardEitherWinding(t *testing.T) {
 		backwards[len(square)-1-i] = p
 	}
 
-	center := vector3.New(0., 0., 0.)
-	up := vector3.Up[float64]()
-	perpendicular := vector3.Forward[float64]()
+	for name, shape := range map[string][]vector2.Float64{"forwards": square, "backwards": backwards} {
+		t.Run(name, func(t *testing.T) {
+			mesh, err := extrude.Outline{Shape: shape, Path: []vector3.Float64{vector3.New(0., 0., 0.), vector3.New(0., 2., 0.)}}.Extrude()
+			require.NoError(t, err)
+			requireNormalsAgreeWithFaces(t, mesh)
 
-	points, normals := extrude.ProjectFace(center, up, perpendicular, square)
-	flippedPoints, flippedNormals := extrude.ProjectFace(center, up, perpendicular, backwards)
-
-	for i, p := range points {
-		assert.Positivef(t, normals[i].Dot(p.Sub(center).Normalized()), "vertex %d points inward", i)
-	}
-	for i, p := range flippedPoints {
-		assert.Positivef(t, flippedNormals[i].Dot(p.Sub(center).Normalized()),
-			"reversed winding, vertex %d points inward", i)
+			positions := mesh.Float3Attribute(modeling.PositionAttribute)
+			normals := mesh.Float3Attribute(modeling.NormalAttribute)
+			for i := 0; i < positions.Len(); i++ {
+				p, n := positions.At(i), normals.At(i)
+				if n.Y() != 0 {
+					continue
+				}
+				assert.Positivef(t, n.Dot(vector3.New(p.X(), 0., p.Z())), "vertex %d points inward", i)
+			}
+		})
 	}
 }

@@ -300,7 +300,7 @@ export class TRSListGizmo {
         }
         const diagonal = max.sub(min).length();
         const size = diagonal > 0 ? Math.max(diagonal * 0.08, 0.05) : 0.25;
-        this.markerRadius = diagonal > 0 ? Math.max(diagonal * 0.02, 0.01) : 0.05;
+        this.markerRadius = diagonal > 0 ? diagonal * 0.02 : 0.05;
         for (const entry of this.entries) {
             entry.axes.scale.setScalar(size);
             entry.marker.scale.setScalar(this.markerRadius);

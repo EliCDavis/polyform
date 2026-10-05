@@ -6,16 +6,10 @@ import { GraphPanel } from "@/features/graph/GraphPanel";
 import { useUiStore } from "@/stores/uiStore";
 
 export function AppShell() {
-  const hideWatermark = useUiStore((s) => s.hideWatermark);
   const hideGraph = useUiStore((s) => s.hideGraph);
 
   return (
     <>
-      {!hideWatermark && (
-        <div id="watermark">
-          <a href="https://github.com/EliCDavis/polyform">Polyform</a>
-        </div>
-      )}
       <div id="running-message">Running...</div>
       <AppOverlays />
       <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>

@@ -55,6 +55,7 @@ interface SidebarProps {}
 
 export function Sidebar({}: SidebarProps) {
   const hideInfo = useUiStore((s) => s.hideInfo);
+  const hideWatermark = useUiStore((s) => s.hideWatermark);
 
   const [sectionShown, setSectionShown] = useState<SidebarSection>(
     SidebarSection.Variables,
@@ -93,6 +94,17 @@ export function Sidebar({}: SidebarProps) {
           click={setSectionShown}
           icon={<Video />}
         />
+        {!hideWatermark && (
+          <a
+            id="sidebar-github"
+            href="https://github.com/EliCDavis/polyform"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Polyform on GitHub"
+          >
+            <i className="fa-brands fa-github" />
+          </a>
+        )}
       </div>
       <div id="sidebar-content">
         {!hideInfo && (

@@ -1,6 +1,7 @@
 package gltf
 
 import (
+	"fmt"
 	"image"
 	"image/color"
 
@@ -66,6 +67,16 @@ type PolyformModel struct {
 	Animations []animation.Sequence
 
 	Children []*PolyformModel
+}
+
+func checkInstancedGroup(model *PolyformModel) error {
+	if len(model.GpuInstances) == 0 || len(model.Children) == 0 {
+		return nil
+	}
+	if model.Mesh != nil && model.Mesh.PrimitiveCount() > 0 {
+		return nil
+	}
+	return fmt.Errorf("model %q has GPU instances but no mesh", model.Name)
 }
 
 type PolyformAnimation struct {
@@ -181,7 +192,7 @@ func (pm *PolyformTexture) prepareExtensions(w *Writer) (map[string]any, map[str
 	return texExt, texInfoExt
 }
 
-func (pm *PolyformMaterial) equal(other *PolyformMaterial) bool {
+func (pm *PolyformMaterial) Equal(other *PolyformMaterial) bool {
 	if pm == other {
 		return true
 	}
