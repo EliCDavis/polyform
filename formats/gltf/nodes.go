@@ -117,13 +117,20 @@ func (gmnd ModelNode) Out(out *nodes.StructOutput[*PolyformModel]) {
 		nodes.TryGetOutputValue(out, gmnd.Scale, vector3.One[float64]()),
 	)
 
+	children := make([]*PolyformModel, 0, len(gmnd.Children))
+	for _, child := range nodes.GetOutputValues(out, gmnd.Children) {
+		if child != nil {
+			children = append(children, child)
+		}
+	}
+
 	model := &PolyformModel{
 		Name:         nodes.TryGetOutputValue(out, gmnd.Name, "Mesh"),
 		GpuInstances: nodes.TryGetOutputValue(out, gmnd.GpuInstances, nil),
 		Material:     nodes.TryGetOutputReference(out, gmnd.Material, nil),
 		Mesh:         nodes.TryGetOutputReference(out, gmnd.Mesh, nil),
 		TRS:          &transform,
-		Children:     nodes.GetOutputValues(out, gmnd.Children),
+		Children:     children,
 	}
 	out.CaptureError(checkInstancedGroup(model))
 	out.Set(model)

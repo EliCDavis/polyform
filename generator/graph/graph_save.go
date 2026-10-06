@@ -28,19 +28,6 @@ func (a *Instance) EncodeToAppSchema() ([]byte, error) {
 		Metadata:    a.metadata.Data(),
 	}
 
-	variablePaths := make(map[variable.Variable]string)
-	a.variables.Traverse(func(path string, info variable.Info, v variable.Variable) {
-		variablePaths[v] = path
-	})
-	for id, node := range a.nodesByID {
-		if reference, ok := node.(variable.Reference); ok {
-			saved := app.Nodes[id]
-			path := variablePaths[reference.Reference()]
-			saved.Variable = &path
-			app.Nodes[id] = saved
-		}
-	}
-
 	for name, data := range a.profiles.All() {
 		app.Profiles[name] = persistence.Profile{Data: data}
 	}
@@ -85,6 +72,13 @@ func (a *Graph) savedNode(node nodes.Node, encoder *jbtf.Encoder) persistence.No
 	// The key the node was created under is what load can create it from again.
 	if key := a.nodeTypeKeys[node]; key != "" {
 		saved.Type = key
+	}
+
+	// A reference's creation key goes stale when its variable is renamed.
+	if reference, ok := node.(variable.Reference); ok {
+		path := a.project.variablePath(reference.Reference())
+		saved.Type = path
+		saved.Variable = &path
 	}
 
 	if custom, ok := node.(CustomGraphSerialization); ok {

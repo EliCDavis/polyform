@@ -241,6 +241,17 @@ func TestZipAllInputReportsBothRanks(t *testing.T) {
 	assert.Equal(t, []string{"float64", "[]float64"}, accepted)
 }
 
+func TestLiftedTimesItsInputsAsStepsNotSelf(t *testing.T) {
+	upstream := &nodes.Struct[negateNode]{}
+	array(t, upstream, "In", 1, 2, 3)
+	node := &nodes.Struct[negateNode]{}
+	connect(t, node, "In", upstream.Outputs()["Out"])
+
+	report := node.Outputs()["Out"].(nodes.ObservableExecution).ExecutionReport()
+	require.Len(t, report.Steps, 1)
+	assert.Equal(t, "Out", report.Steps[0].Label)
+}
+
 func TestZipAllInputRefusesAnUnrelatedType(t *testing.T) {
 	node := &nodes.Struct[sumNode]{}
 	input := node.Inputs()["Values"].(nodes.ArrayValueInputPort)

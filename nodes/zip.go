@@ -1,18 +1,26 @@
 package nodes
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+)
 
 // []T is checked for first so that a T which is itself a slice still
 // resolves: a port satisfies exactly one of the two interfaces.
-func liftedValues[T any](port OutputPort) ([]T, int, bool) {
+func liftedValues[T any](recorder ExecutionRecorder, port OutputPort) ([]T, int, bool) {
 	if port == nil {
 		return nil, rankScalar, false
 	}
+	start := time.Now()
 	if typed, ok := port.(Output[[]T]); ok {
-		return typed.Value(), rankArray, true
+		values := typed.Value()
+		recorder.CaptureTiming(port.Name(), time.Since(start))
+		return values, rankArray, true
 	}
 	if typed, ok := port.(Output[T]); ok {
-		return []T{typed.Value()}, rankScalar, true
+		value := typed.Value()
+		recorder.CaptureTiming(port.Name(), time.Since(start))
+		return []T{value}, rankScalar, true
 	}
 	return nil, rankScalar, false
 }
@@ -24,8 +32,8 @@ type liftedOperand[T any] struct {
 	rank   int
 }
 
-func operandOf[T any](port OutputPort) liftedOperand[T] {
-	values, rank, ok := liftedValues[T](port)
+func operandOf[T any](recorder ExecutionRecorder, port OutputPort) liftedOperand[T] {
+	values, rank, ok := liftedValues[T](recorder, port)
 	if !ok {
 		// Nothing connected reads as a single zero, which keeps an
 		// unwired node scalar rather than erroring.
@@ -90,7 +98,7 @@ func finish[R any](out *Lifted[R], rank int, results []R) {
 }
 
 func Zip1[A, R any](out *Lifted[R], a LiftedPort[A], kernel func(A) R) {
-	operand := operandOf[A](a)
+	operand := operandOf[A](out, a)
 
 	results := make([]R, len(operand.values))
 	for i := range results {
@@ -100,7 +108,7 @@ func Zip1[A, R any](out *Lifted[R], a LiftedPort[A], kernel func(A) R) {
 }
 
 func Zip2[A, B, R any](out *Lifted[R], a LiftedPort[A], b LiftedPort[B], kernel func(A, B) R) {
-	left, right := operandOf[A](a), operandOf[B](b)
+	left, right := operandOf[A](out, a), operandOf[B](out, b)
 
 	rank := max(left.rank, right.rank)
 	count, err := broadcastLength(len(left.values), len(right.values))
@@ -118,7 +126,7 @@ func Zip2[A, B, R any](out *Lifted[R], a LiftedPort[A], b LiftedPort[B], kernel 
 }
 
 func Zip3[A, B, C, R any](out *Lifted[R], a LiftedPort[A], b LiftedPort[B], c LiftedPort[C], kernel func(A, B, C) R) {
-	left, middle, right := operandOf[A](a), operandOf[B](b), operandOf[C](c)
+	left, middle, right := operandOf[A](out, a), operandOf[B](out, b), operandOf[C](out, c)
 
 	rank := max(left.rank, middle.rank, right.rank)
 	count, err := broadcastLength(len(left.values), len(middle.values), len(right.values))
@@ -143,7 +151,7 @@ func Zip4[A, B, C, D, R any](
 	d LiftedPort[D],
 	kernel func(A, B, C, D) R,
 ) {
-	first, second, third, fourth := operandOf[A](a), operandOf[B](b), operandOf[C](c), operandOf[D](d)
+	first, second, third, fourth := operandOf[A](out, a), operandOf[B](out, b), operandOf[C](out, c), operandOf[D](out, d)
 
 	rank := max(first.rank, second.rank, third.rank, fourth.rank)
 	count, err := broadcastLength(
@@ -181,7 +189,7 @@ func ZipAll[A, R any](out *Lifted[R], ports []LiftedPort[A], kernel func([]A) R)
 		if port == nil {
 			continue
 		}
-		operand := operandOf[A](port)
+		operand := operandOf[A](out, port)
 		operands = append(operands, operand)
 		lengths = append(lengths, len(operand.values))
 		rank = max(rank, operand.rank)

@@ -52,3 +52,21 @@ func TestManifestNodeDropsNilModels(t *testing.T) {
 	require.Len(t, artifact.Scene.Models, 1, "the nil never reached the scene")
 	assert.Equal(t, "real", artifact.Scene.Models[0].Name)
 }
+
+func TestModelNodeDropsNilChildren(t *testing.T) {
+	mesh := cube()
+
+	node := &nodes.Struct[gltf.ModelNode]{Data: gltf.ModelNode{
+		Children: []nodes.Output[*gltf.PolyformModel]{
+			nodes.ConstOutput[*gltf.PolyformModel]{Val: nil},
+			nodes.ConstOutput[*gltf.PolyformModel]{Val: &gltf.PolyformModel{Name: "real", Mesh: &mesh}},
+		},
+	}}
+
+	model := nodes.GetNodeOutputPort[*gltf.PolyformModel](node, "Out").Value()
+	require.Len(t, model.Children, 1, "the nil never reached the model")
+	assert.Equal(t, "real", model.Children[0].Name)
+
+	buf := &bytes.Buffer{}
+	require.NoError(t, gltf.WriteBinary(gltf.PolyformScene{Models: []*gltf.PolyformModel{model}}, buf, nil))
+}

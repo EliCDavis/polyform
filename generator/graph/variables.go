@@ -2,6 +2,7 @@ package graph
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/EliCDavis/polyform/formats/swagger"
 	"github.com/EliCDavis/polyform/generator/named"
@@ -78,7 +79,28 @@ func (a *Instance) SetVariableInfo(variablePath, newPath, description string) er
 	}
 	a.mu().Lock()
 	defer a.mu().Unlock()
-	return a.variables.Move(variablePath, newPath)
+	if err := a.variables.Move(variablePath, newPath); err != nil {
+		return err
+	}
+	moved, err := a.variables.Variable(strings.TrimSpace(newPath))
+	if err != nil {
+		return err
+	}
+	a.typeFactory.Unregister(variablePath)
+	a.typeFactory.RegisterBuilder(strings.TrimSpace(newPath), func() any {
+		return moved.NodeReference()
+	})
+	return nil
+}
+
+func (a *Instance) variablePath(v variable.Variable) string {
+	path := ""
+	a.variables.Traverse(func(candidatePath string, _ variable.Info, candidate variable.Variable) {
+		if candidate == v {
+			path = candidatePath
+		}
+	})
+	return path
 }
 
 func (a *Instance) SetVariableDescription(variablePath, description string) error {
