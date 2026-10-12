@@ -57,7 +57,7 @@ func testInstanceWithDynamicNodes(t *testing.T) *graph.Instance {
 	return instance
 }
 
-func dynamicTypesOf(t *testing.T, instance *graph.Instance, nodeID string) map[string]string {
+func dynamicTypesOf(t *testing.T, instance interface{ Node(string) nodes.Node }, nodeID string) map[string]string {
 	t.Helper()
 	dynamic, ok := instance.Node(nodeID).(nodes.DynamicallyTyped)
 	require.True(t, ok)

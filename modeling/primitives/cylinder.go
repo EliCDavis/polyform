@@ -29,6 +29,12 @@ type CylinderUVs struct {
 func (c TruncatedCone) ToMesh() modeling.Mesh {
 	halfHeight := c.Height / 2.
 
+	slant := vector2.New(c.Height, c.BottomRadius-c.TopRadius)
+	if slant.LengthSquared() == 0 {
+		slant = vector2.Right[float64]()
+	}
+	slant = slant.Normalized()
+
 	angleIncrement := (1.0 / float64(c.Sides)) * 2.0 * math.Pi
 	vertices := make([]vector3.Float64, (c.Sides*2)+2)
 	normals := make([]vector3.Float64, (c.Sides*2)+2)
@@ -37,8 +43,9 @@ func (c TruncatedCone) ToMesh() modeling.Mesh {
 		vertices[sideIndex*2] = vector3.New(math.Cos(angle)*c.TopRadius, halfHeight, math.Sin(angle)*c.TopRadius)
 		vertices[(sideIndex*2)+1] = vector3.New(math.Cos(angle)*c.BottomRadius, -halfHeight, math.Sin(angle)*c.BottomRadius)
 
-		normals[sideIndex*2] = vector3.New(math.Cos(angle), .1, math.Sin(angle)).Normalized()
-		normals[(sideIndex*2)+1] = vector3.New(math.Cos(angle), -.1, math.Sin(angle)).Normalized()
+		normal := vector3.New(math.Cos(angle)*slant.X(), slant.Y(), math.Sin(angle)*slant.X())
+		normals[sideIndex*2] = normal
+		normals[(sideIndex*2)+1] = normal
 	}
 
 	tris := make([]int, 0, c.Sides*2*3)

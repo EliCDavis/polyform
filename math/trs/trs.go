@@ -80,6 +80,25 @@ func (trs TRS) Transform(in vector3.Float64) vector3.Float64 {
 	return trs.rotation.Rotate(trs.scale.MultByVector(in)).Add(trs.position)
 }
 
+func (trs TRS) TransformNormal(in vector3.Float64) vector3.Float64 {
+	s := trs.scale
+	if s == vector3.One[float64]() {
+		return trs.rotation.Rotate(in)
+	}
+
+	// Cofactors rather than 1/scale, so a collapsed axis still gives a normal.
+	cofactor := vector3.New(s.Y()*s.Z(), s.X()*s.Z(), s.X()*s.Y())
+	if s.X()*s.Y()*s.Z() < 0 {
+		cofactor = cofactor.Scale(-1)
+	}
+
+	scaled := in.MultByVector(cofactor)
+	if scaled.LengthSquared() == 0 {
+		return trs.rotation.Rotate(in)
+	}
+	return trs.rotation.Rotate(scaled).Normalized()
+}
+
 // Create a new TRS with the position translated by "in"
 func (trs TRS) Translate(in vector3.Float64) TRS {
 	return TRS{

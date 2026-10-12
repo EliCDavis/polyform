@@ -2,6 +2,8 @@ package graph
 
 import (
 	"fmt"
+	"maps"
+	"slices"
 	"strings"
 
 	"github.com/EliCDavis/polyform/generator/subgraph"
@@ -51,6 +53,66 @@ func (a *Graph) SetBoundaryNodeInfo(nodeID, portName string) error {
 	a.mu().Lock()
 	defer a.mu().Unlock()
 	return a.setBoundaryNodeInfo(nodeID, portName)
+}
+
+// Names may trade places: each is checked against the state after all of them.
+func (a *Graph) RenameBoundaryPorts(names map[string]string) (err error) {
+	a.mu().Lock()
+	defer a.mu().Unlock()
+
+	final := map[BoundaryPortKind]map[string]string{}
+	for node, id := range a.nodeIDs {
+		boundary, ok := subgraph.IsBoundaryNode(node)
+		if !ok {
+			continue
+		}
+		name, renamed := names[id]
+		name = strings.TrimSpace(name)
+		switch {
+		case renamed && name == "":
+			return fmt.Errorf("boundary port name is required for %q", id)
+		case !renamed && !subgraph.BoundaryPortNameConfigured(boundary):
+			continue
+		case !renamed:
+			name = boundary.BoundaryPortName()
+		}
+		kind := GetBoundaryKind(boundary)
+		if final[kind] == nil {
+			final[kind] = map[string]string{}
+		}
+		if other, taken := final[kind][name]; taken {
+			return fmt.Errorf("boundary port name %q would be used by both %s nodes %q and %q", name, kind, other, id)
+		}
+		final[kind][name] = id
+	}
+	for id := range names {
+		node, exists := a.nodesByID[id]
+		if !exists {
+			return fmt.Errorf("no node exists with id %q", id)
+		}
+		if _, ok := subgraph.IsBoundaryNode(node); !ok {
+			return fmt.Errorf("node %q is not a sub-graph boundary node", id)
+		}
+	}
+
+	end := a.beginCompoundEdit()
+	defer func() {
+		if endErr := end(); endErr != nil && err == nil {
+			err = endErr
+		}
+	}()
+	ordered := slices.Sorted(maps.Keys(names))
+	for _, id := range ordered {
+		if err := a.setBoundaryNodeInfo(id, "\x00renaming "+id); err != nil {
+			return err
+		}
+	}
+	for _, id := range ordered {
+		if err := a.setBoundaryNodeInfo(id, strings.TrimSpace(names[id])); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (a *Graph) setBoundaryNodeInfo(nodeID, portName string) error {

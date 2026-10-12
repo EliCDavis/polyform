@@ -81,6 +81,18 @@ func (a DynamicArray) Build(values []any) any {
 	return buildSlice(a.slice.Type().Elem(), values)
 }
 
+// Flatten joins an array of arrays into one array of the inner element type.
+func (a DynamicArray) Flatten() (any, bool) {
+	if !a.slice.IsValid() || a.slice.Type().Elem().Kind() != reflect.Slice {
+		return nil, false
+	}
+	flat := reflect.MakeSlice(a.slice.Type().Elem(), 0, 0)
+	for i := range a.slice.Len() {
+		flat = reflect.AppendSlice(flat, a.slice.Index(i))
+	}
+	return flat.Interface(), true
+}
+
 // Range is Build for a contiguous run, clamped to what is actually there.
 func (a DynamicArray) Range(from, to int) any {
 	if !a.slice.IsValid() {

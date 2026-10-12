@@ -172,14 +172,17 @@ func (l Line3D) IntersectionTimeOnPlane(plane Plane) (float64, bool) {
 	return -1, false
 }
 
-func LineStripsFromPoints3D(points []vector3.Float64) []Line3D {
+func LineStripsFromPoints3D(points []vector3.Float64, closed bool) []Line3D {
 	if len(points) < 2 {
 		return nil
 	}
 
-	lines := make([]Line3D, len(points)-1)
+	lines := make([]Line3D, 0, len(points))
 	for i := 0; i < len(points)-1; i++ {
-		lines[i] = NewLine3D(points[i], points[i+1])
+		lines = append(lines, NewLine3D(points[i], points[i+1]))
+	}
+	if closed && len(points) > 2 {
+		lines = append(lines, NewLine3D(points[len(points)-1], points[0]))
 	}
 
 	return lines
@@ -201,19 +204,20 @@ func LinesFromPoints3D(points []vector3.Float64) []Line3D {
 // ============================================================================
 
 type LinesFromPoints3DNode struct {
-	Points nodes.Output[[]vector3.Float64]
+	Points nodes.LiftedPort[[]vector3.Float64]
+	Closed nodes.LiftedPort[bool] `description:"Line Strips also joins the last point back to the first."`
 }
 
 func (n LinesFromPoints3DNode) Description() string {
 	return "Builds line segments connecting a sequence of points."
 }
 
-func (n LinesFromPoints3DNode) LineStrips(out *nodes.StructOutput[[]Line3D]) {
-	out.Set(LineStripsFromPoints3D(nodes.TryGetOutputValue(out, n.Points, nil)))
+func (n LinesFromPoints3DNode) LineStrips(out *nodes.Lifted[[]Line3D]) {
+	nodes.Zip2(out, n.Points, n.Closed, LineStripsFromPoints3D)
 }
 
-func (n LinesFromPoints3DNode) Lines(out *nodes.StructOutput[[]Line3D]) {
-	out.Set(LinesFromPoints3D(nodes.TryGetOutputValue(out, n.Points, nil)))
+func (n LinesFromPoints3DNode) Lines(out *nodes.Lifted[[]Line3D]) {
+	nodes.Zip1(out, n.Points, LinesFromPoints3D)
 }
 
 // ============================================================================

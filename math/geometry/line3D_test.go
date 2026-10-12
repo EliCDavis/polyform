@@ -4,6 +4,8 @@ import (
 	"testing"
 
 	"github.com/EliCDavis/polyform/math/geometry"
+	"github.com/EliCDavis/polyform/nodes"
+	"github.com/EliCDavis/polyform/nodes/nodetest"
 	"github.com/EliCDavis/vector/vector3"
 	"github.com/stretchr/testify/assert"
 )
@@ -99,10 +101,41 @@ func TestLineStripsFromPoints3D(t *testing.T) {
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			result := geometry.LineStripsFromPoints3D(tc.points)
+			result := geometry.LineStripsFromPoints3D(tc.points, false)
 			assert.Equal(t, tc.lines, result)
 		})
 	}
+}
+
+func TestClosedLineStripsJoinTheLastPointToTheFirst(t *testing.T) {
+	a, b, c := vector3.Zero[float64](), vector3.Up[float64](), vector3.Right[float64]()
+
+	assert.Equal(t, []geometry.Line3D{
+		geometry.NewLine3D(a, b),
+		geometry.NewLine3D(b, c),
+		geometry.NewLine3D(c, a),
+	}, geometry.LineStripsFromPoints3D([]vector3.Float64{a, b, c}, true))
+
+	assert.Equal(t, []geometry.Line3D{geometry.NewLine3D(a, b)},
+		geometry.LineStripsFromPoints3D([]vector3.Float64{a, b}, true),
+		"two points close to the same segment, not a doubled one")
+}
+
+func TestLinesFromPoints3DNodeTakesManyPathsAndClosesThem(t *testing.T) {
+	a, b, c := vector3.Zero[float64](), vector3.Up[float64](), vector3.Right[float64]()
+	paths := [][]vector3.Float64{{a, b, c}, {c, b}}
+
+	nodetest.NewTestCase(
+		"closed strips per path",
+		nodetest.NewNode(geometry.LinesFromPoints3DNode{
+			Points: nodes.ConstOutput[[][]vector3.Float64]{Val: paths},
+			Closed: nodes.ConstOutput[bool]{Val: true},
+		}),
+		nodetest.AssertOutput("Line Strips", [][]geometry.Line3D{
+			geometry.LineStripsFromPoints3D(paths[0], true),
+			geometry.LineStripsFromPoints3D(paths[1], true),
+		}),
+	).Run(t)
 }
 
 func TestLinesFromPoints3D(t *testing.T) {

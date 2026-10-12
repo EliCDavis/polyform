@@ -2,6 +2,7 @@ package meshops
 
 import (
 	"github.com/EliCDavis/polyform/modeling"
+	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
 	"github.com/EliCDavis/vector/vector4"
@@ -11,6 +12,16 @@ type UnweldTransformer struct{}
 
 func (fnt UnweldTransformer) Transform(m modeling.Mesh) (results modeling.Mesh, err error) {
 	return Unweld(m), nil
+}
+
+type UnweldNode struct {
+	Mesh nodes.LiftedPort[modeling.Mesh]
+}
+
+func (n UnweldNode) Out(out *nodes.Lifted[modeling.Mesh]) {
+	nodes.Zip1(out, n.Mesh, func(a modeling.Mesh) modeling.Mesh {
+		return Unweld(a)
+	})
 }
 
 // Unweld duplicates all vertex data such that no two primitive indices share

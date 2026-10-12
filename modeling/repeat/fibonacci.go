@@ -12,10 +12,11 @@ import (
 func FibonacciSpherePoints(samples int, offsetRadius float64) []vector3.Float64 {
 	points := make([]vector3.Float64, samples)
 	phi := math.Pi * (3.0 - math.Sqrt(5.0)) // golden angle in radians
+	last := float64(max(samples-1, 1))
 
 	for i := 0; i < samples; i++ {
-		y := 1 - (float64(i)/float64(samples-1))*2. // y goes from 1 to -1
-		radius := math.Sqrt(1 - y*y)                // radius at y
+		y := 1 - (float64(i)/last)*2. // y goes from 1 to -1
+		radius := math.Sqrt(1 - y*y)  // radius at y
 
 		theta := phi * float64(i) // golden angle increment
 
@@ -32,11 +33,12 @@ func FibonacciSpiral(samples int, radius float64) []trs.TRS {
 
 	points := make([]trs.TRS, samples)
 	phi := math.Pi * (3.0 - math.Sqrt(5.0)) // golden angle in radians
+	last := float64(max(samples-1, 1))
 
 	for i := range samples {
 		theta := phi * float64(i) // golden angle increment
 
-		d := math.Sqrt(float64(i) / float64(samples-1))
+		d := math.Sqrt(float64(i) / last)
 		x := math.Cos(theta) * radius * d
 		z := math.Sin(theta) * radius * d
 

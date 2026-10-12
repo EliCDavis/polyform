@@ -2,6 +2,7 @@ package graph
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/EliCDavis/jbtf"
 	"github.com/EliCDavis/polyform/generator/persistence"
@@ -79,6 +80,41 @@ func (a *Instance) deleteSubGraph(id string) error {
 	a.typeFactory.Unregister(subgraph.RuntimeTypePath(id))
 	delete(a.subGraphs, id)
 	delete(a.copySources, id)
+	a.incModelVersion()
+	return nil
+}
+
+func (a *Instance) RenameSubGraph(oldID, newID string) error {
+	a.mu().Lock()
+	defer a.mu().Unlock()
+
+	newID = strings.TrimSpace(newID)
+	runtime, exists := a.subGraphs[oldID]
+	if !exists {
+		return fmt.Errorf("sub-graph %q does not exist", oldID)
+	}
+	if newID == "" {
+		return fmt.Errorf("new sub-graph id is required")
+	}
+	if newID == oldID {
+		return nil
+	}
+	if _, taken := a.subGraphs[newID]; taken {
+		return fmt.Errorf("sub-graph %q already exists", newID)
+	}
+
+	delete(a.subGraphs, oldID)
+	a.subGraphs[newID] = runtime
+	a.typeFactory.Unregister(subgraph.RuntimeTypePath(oldID))
+	a.RegisterSubGraphNodeType(newID)
+
+	typePath := subgraph.RuntimeTypePath(newID)
+	forEachSubGraphInstance(a, oldID, func(holder *Graph, placement *SubgraphInstanceNode) {
+		placement.subGraphID = newID
+		holder.nodeTypeKeys[placement] = typePath
+	})
+	// Copy sources name placements by the old type path.
+	a.copySources = make(map[string]savedGraph)
 	a.incModelVersion()
 	return nil
 }

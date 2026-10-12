@@ -26,11 +26,9 @@ func FlatNormals(m modeling.Mesh) modeling.Mesh {
 	check(RequireTopology(m, modeling.TriangleTopology))
 	check(RequireV3Attribute(m, modeling.PositionAttribute))
 
+	m = Unweld(m)
 	vertices := m.Float3Attribute(modeling.PositionAttribute)
 	normals := make([]vector3.Float64, vertices.Len())
-	for i := range normals {
-		normals[i] = vector3.One[float64]()
-	}
 
 	tris := m.Indices()
 	for triIndex := 0; triIndex < tris.Len(); triIndex += 3 {
@@ -38,15 +36,10 @@ func FlatNormals(m modeling.Mesh) modeling.Mesh {
 		p2 := tris.At(triIndex + 1)
 		p3 := tris.At(triIndex + 2)
 
-		// normalize(cross(B-A, C-A))
 		normalized := vertices.At(p2).Sub(vertices.At(p1)).Cross(vertices.At(p3).Sub(vertices.At(p1))).Normalized()
 		normals[p1] = normalized
 		normals[p2] = normalized
 		normals[p3] = normalized
-	}
-
-	for i, n := range normals {
-		normals[i] = n.Normalized()
 	}
 
 	return m.SetFloat3Attribute(modeling.NormalAttribute, normals)
@@ -57,7 +50,7 @@ type FlatNormalsNode struct {
 }
 
 func (fnnd FlatNormalsNode) Description() string {
-	return "Computes hard faceted normals, one per triangle, so edges read as sharp creases."
+	return "Computes hard faceted normals, one per triangle, so edges read as sharp creases. Splits shared vertices first, so the output has three vertices per triangle."
 }
 
 func (fnnd FlatNormalsNode) Out(out *nodes.StructOutput[modeling.Mesh]) {

@@ -37,6 +37,14 @@ func (l Line2D) Dir() vector2.Float64 {
 	return l.p2.Sub(l.p1)
 }
 
+func (l Line2D) Length() float64 {
+	return l.p2.Sub(l.p1).Length()
+}
+
+func (l Line2D) AtTime(time float64) vector2.Float64 {
+	return l.p2.Sub(l.p1).Scale(time).Add(l.p1)
+}
+
 // ScaleOutwards multiplies the current length of the line by extending it out
 // further in the two different directions it's heading
 func (l Line2D) ScaleOutwards(amount float64) Line2D {

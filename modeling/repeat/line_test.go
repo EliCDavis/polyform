@@ -61,7 +61,7 @@ func TestLine(t *testing.T) {
 				trs.Position(vector3.New(0., 1., 0.)),
 			},
 		},
-		"2 sample/exclusive/33 and 66": {
+		"2 sample/exclusive/25 and 75": {
 			line: repeat.Line{
 				Start:     vector3.Zero[float64](),
 				End:       vector3.Up[float64](),
@@ -69,8 +69,22 @@ func TestLine(t *testing.T) {
 				Samples:   2,
 			},
 			want: []trs.TRS{
-				trs.Position(vector3.New(0., 1./3., 0.)),
-				trs.Position(vector3.New(0., 2./3., 0.)),
+				trs.Position(vector3.New(0., 0.25, 0.)),
+				trs.Position(vector3.New(0., 0.75, 0.)),
+			},
+		},
+		"4 sample/exclusive/segment centers": {
+			line: repeat.Line{
+				Start:     vector3.New(0., 1., 0.),
+				End:       vector3.New(0., 3., 0.),
+				Exclusive: true,
+				Samples:   4,
+			},
+			want: []trs.TRS{
+				trs.Position(vector3.New(0., 1.25, 0.)),
+				trs.Position(vector3.New(0., 1.75, 0.)),
+				trs.Position(vector3.New(0., 2.25, 0.)),
+				trs.Position(vector3.New(0., 2.75, 0.)),
 			},
 		},
 		"3 sample/nonexclusive/start middle end": {

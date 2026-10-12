@@ -29,6 +29,10 @@ var boundaryLayoutGap = vector2.New(220., 100.)
 // ConvertSelectionToSubGraph moves the given nodes out of scope into a new
 // subgraph definition and puts one placement of it where they were. Every
 // edge that crossed the selection becomes a port on the new subgraph.
+//
+// A selected variable reference is copied in rather than cut: reading a
+// variable is free anywhere, so it stays behind as well while anything
+// outside still reads it, and it never becomes a port.
 func (a *Instance) ConvertSelectionToSubGraph(scope Scope, nodeIDs []string, name, description string) (result ConvertSelectionResult, err error) {
 	name = strings.TrimSpace(name)
 	if name == "" {
@@ -56,6 +60,10 @@ func (a *Instance) ConvertSelectionToSubGraph(scope Scope, nodeIDs []string, nam
 	if err := parent.refuseConvertCycles(selection, inbound); err != nil {
 		return result, err
 	}
+	ports, err := planPorts(selection, inbound, outbound, parent.layoutOf(selection))
+	if err != nil {
+		return result, err
+	}
 
 	// The scope is a half wired graph until the last edit here, so nothing
 	// placing it is brought in line until then.
@@ -77,51 +85,10 @@ func (a *Instance) ConvertSelectionToSubGraph(scope Scope, nodeIDs []string, nam
 	}()
 	child := a.subGraphs[id].instance
 
-	if err := copySelection(parent, child, selection); err != nil {
+	// Loaded as one graph, boundaries included, so a node typed by what
+	// feeds it from outside settles with that in place.
+	if err := copySelection(parent, child, selection, ports); err != nil {
 		return result, err
-	}
-	layout := parent.layoutOf(selection)
-
-	// One input per outside value, however many selected nodes read it.
-	inputs := map[string]string{}
-	inputBoundaries := map[string]string{}
-	inputNames := portNames{}
-	for _, cut := range inbound {
-		key := inboundSourceKey(cut)
-		if _, made := inputs[key]; !made {
-			port := inputNames.claim(inboundPortName(cut))
-			at := vector2.New(layout.min.X()-boundaryLayoutGap.X(), layout.min.Y()+float64(len(inputs))*boundaryLayoutGap.Y())
-			boundary, err := child.addBoundary(subgraph.InputNodeTypeKey, portTypeOf(cut.out), port, layout, at)
-			if err != nil {
-				return result, err
-			}
-			inputs[key], inputBoundaries[key] = port, boundary
-		}
-		// Elements inside the selection were appended by the copy, so this
-		// one is appended behind them rather than put back at its index.
-		if err := child.connectNodes(inputBoundaries[key], subgraph.ValuePortName, cut.consumerID, cut.input); err != nil {
-			return result, err
-		}
-	}
-
-	// One output per selected port read from outside.
-	outputs := map[string]string{}
-	outputNames := portNames{}
-	for _, cut := range outbound {
-		key := sourceKey(cut)
-		if _, made := outputs[key]; made {
-			continue
-		}
-		port := outputNames.claim(cut.output)
-		at := vector2.New(layout.max.X()+boundaryLayoutGap.X(), layout.min.Y()+float64(len(outputs))*boundaryLayoutGap.Y())
-		boundary, err := child.addBoundary(subgraph.OutputNodeTypeKey, portTypeOf(cut.out), port, layout, at)
-		if err != nil {
-			return result, err
-		}
-		if err := child.connectNodes(cut.producerID, cut.output, boundary, subgraph.ValuePortName); err != nil {
-			return result, err
-		}
-		outputs[key] = port
 	}
 
 	typePath := subgraph.RuntimeTypePath(id)
@@ -129,8 +96,8 @@ func (a *Instance) ConvertSelectionToSubGraph(scope Scope, nodeIDs []string, nam
 	if err != nil {
 		return result, err
 	}
-	if layout.known {
-		parent.setNodePosition(placed, layout.center)
+	if ports.layout.known {
+		parent.setNodePosition(placed, ports.layout.center)
 	}
 
 	fed := map[string]bool{}
@@ -140,19 +107,27 @@ func (a *Instance) ConvertSelectionToSubGraph(scope Scope, nodeIDs []string, nam
 			continue
 		}
 		fed[key] = true
-		if err := parent.connectNodes(cut.producerID, cut.output, placed, inputs[key]); err != nil {
+		if err := parent.connectNodes(cut.producerID, cut.output, placed, ports.inputs[key].name); err != nil {
 			return result, err
 		}
 	}
 	for _, cut := range outbound {
-		if err := parent.connectNodes(placed, outputs[sourceKey(cut)], cut.consumerID, cut.inputName()); err != nil {
+		if err := parent.connectNodes(placed, ports.outputs[sourceKey(cut)].name, cut.consumerID, cut.inputName()); err != nil {
 			return result, err
 		}
 	}
 
 	// Deleted only now: an array reader keeps its slot by having the new edge
-	// replace the old one in place.
-	for _, selected := range slices.Sorted(maps.Keys(selection)) {
+	// replace the old one in place. References go last, once only outside
+	// readers can be left holding them.
+	ordered := slices.Sorted(maps.Keys(selection))
+	slices.SortStableFunc(ordered, func(x, y string) int {
+		return boolToInt(isVariableReference(selection[x])) - boolToInt(isVariableReference(selection[y]))
+	})
+	for _, selected := range ordered {
+		if isVariableReference(selection[selected]) && parent.isRead(selection[selected]) {
+			continue
+		}
 		if _, err := parent.deleteNodeByID(selected); err != nil {
 			return result, err
 		}
@@ -183,12 +158,32 @@ func (a *Graph) convertibleNodes(nodeIDs []string) (map[string]nodes.Node, error
 		if _, isBoundary := subgraph.IsBoundaryNode(node); isBoundary {
 			return nil, fmt.Errorf("cannot convert boundary node %q into a sub-graph", id)
 		}
-		if _, isVar := node.(variable.Reference); isVar {
-			return nil, fmt.Errorf("cannot convert variable reference node %q into a sub-graph", id)
-		}
 		selection[id] = node
 	}
 	return selection, nil
+}
+
+func isVariableReference(node nodes.Node) bool {
+	_, ok := node.(variable.Reference)
+	return ok
+}
+
+func boolToInt(b bool) int {
+	if b {
+		return 1
+	}
+	return 0
+}
+
+func (a *Graph) isRead(node nodes.Node) bool {
+	for _, inputs := range a.reads {
+		for _, sources := range inputs {
+			if slices.ContainsFunc(sources, func(from source) bool { return from.node == node }) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // edgesCrossing splits the edges with one end in selection into those read
@@ -199,6 +194,9 @@ func (a *Graph) edgesCrossing(selection map[string]nodes.Node) (inbound, outboun
 		_, producerSelected := selection[held.producerID]
 		_, consumerSelected := selection[held.consumerID]
 		if producerSelected == consumerSelected {
+			continue
+		}
+		if producerSelected && isVariableReference(held.producer) {
 			continue
 		}
 		if portTypeOf(held.out) == "" {
@@ -221,14 +219,82 @@ func sourceKey(e edge) string {
 	return e.producerID + "\x00" + e.output
 }
 
-func inboundPortName(e edge) string {
-	if ref, ok := e.producer.(variable.Reference); ok {
-		return ref.Reference().Info().Name()
+var genericOutputNames = map[string]bool{
+	"Out": true, "Value": true, "Output": true, "Result": true,
+	"Float": true, "Int": true, "Bool": true, "String": true,
+}
+
+func givenNodeName(node nodes.Node) string {
+	switch n := node.(type) {
+	case variable.Reference:
+		return n.Reference().Info().Name()
+	case *SubgraphInstanceNode:
+		return n.Name()
+	case Parameter:
+		return strings.TrimSpace(n.DisplayName())
+	}
+	if boundary, ok := subgraph.IsInputBoundary(node); ok {
+		if subgraph.BoundaryPortNameConfigured(boundary) {
+			return boundary.BoundaryPortName()
+		}
+		return ""
+	}
+	port, ok := node.Inputs()["Name"].(nodes.SingleValueInputPort)
+	if !ok || port.Value() == nil {
+		return ""
+	}
+	if _, isLiteral := port.Value().Node().(Parameter); !isLiteral {
+		return ""
+	}
+	if named, ok := port.Value().(nodes.Output[string]); ok {
+		return strings.TrimSpace(named.Value())
+	}
+	return ""
+}
+
+// A named producer crossing through several outputs is told apart by output.
+type portNamer struct {
+	outputsCrossing map[string]int
+}
+
+func newPortNamer(cuts []edge) portNamer {
+	seen := map[string]bool{}
+	namer := portNamer{outputsCrossing: map[string]int{}}
+	for _, cut := range cuts {
+		if key := sourceKey(cut); !seen[key] {
+			seen[key] = true
+			namer.outputsCrossing[cut.producerID]++
+		}
+	}
+	return namer
+}
+
+func (namer portNamer) producerName(e edge) string {
+	name := givenNodeName(e.producer)
+	if name != "" && namer.outputsCrossing[e.producerID] > 1 {
+		return name + " " + e.output
+	}
+	return name
+}
+
+func (namer portNamer) inbound(e edge) string {
+	if name := namer.producerName(e); name != "" {
+		return name
+	}
+	if !genericOutputNames[e.output] {
+		return e.output
 	}
 	if _, isArray := e.in.(nodes.ArrayValueInputPort); isArray {
 		return e.output
 	}
 	return e.input
+}
+
+func (namer portNamer) outbound(e edge) string {
+	if name := namer.producerName(e); name != "" {
+		return name
+	}
+	return e.output
 }
 
 type portNames map[string]bool
@@ -255,7 +321,9 @@ func inboundSourceKey(e edge) string {
 func (a *Graph) refuseConvertCycles(selection map[string]nodes.Node, inbound []edge) error {
 	selected := make(map[nodes.Node]bool, len(selection))
 	for _, node := range selection {
-		selected[node] = true
+		if !isVariableReference(node) {
+			selected[node] = true
+		}
 	}
 
 	checked := map[string]bool{}
@@ -313,21 +381,153 @@ func (root *Instance) freeSubGraphID(base string) string {
 	}
 }
 
-// copySelection copies the selected nodes, their layout, and the edges
-// between them. Edges to anything outside are left for boundaries.
-func copySelection(parent, child *Graph, selection map[string]nodes.Node) error {
+// A boundary node the conversion will create, with everything decided
+// before anything is touched.
+type plannedPort struct {
+	id, kind, portType, name string
+	at                       vector2.Float64
+}
+
+type portPlan struct {
+	layout selectionLayout
+	// Input ports by inboundSourceKey, output ports by sourceKey.
+	inputs, outputs map[string]plannedPort
+	// The boundary each cut input reads, by consumer id and "Port" or "Port.N".
+	rewired map[string]string
+}
+
+func planPorts(selection map[string]nodes.Node, inbound, outbound []edge, layout selectionLayout) (portPlan, error) {
+	plan := portPlan{
+		layout:  layout,
+		inputs:  map[string]plannedPort{},
+		outputs: map[string]plannedPort{},
+		rewired: map[string]string{},
+	}
+	ids := boundaryIDs{taken: map[string]bool{}, next: len(selection)}
+	for id := range selection {
+		ids.taken[id] = true
+	}
+
+	namer := newPortNamer(slices.Concat(inbound, outbound))
+
+	// One input per outside value, however many selected nodes read it.
+	inputNames := portNames{}
+	for _, cut := range inbound {
+		key := inboundSourceKey(cut)
+		if _, made := plan.inputs[key]; !made {
+			port := plannedPort{
+				id:       ids.claim(),
+				kind:     subgraph.InputNodeTypeKey,
+				portType: portTypeOf(cut.out),
+				name:     inputNames.claim(namer.inbound(cut)),
+				at:       vector2.New(layout.min.X()-boundaryLayoutGap.X(), layout.min.Y()+float64(len(plan.inputs))*boundaryLayoutGap.Y()),
+			}
+			if err := port.check(); err != nil {
+				return plan, err
+			}
+			plan.inputs[key] = port
+		}
+		plan.rewired[cut.consumerID+"\x00"+cut.inputName()] = plan.inputs[key].id
+	}
+
+	// One output per selected port read from outside.
+	outputNames := portNames{}
+	for _, cut := range outbound {
+		key := sourceKey(cut)
+		if _, made := plan.outputs[key]; made {
+			continue
+		}
+		port := plannedPort{
+			id:       ids.claim(),
+			kind:     subgraph.OutputNodeTypeKey,
+			portType: portTypeOf(cut.out),
+			name:     outputNames.claim(namer.outbound(cut)),
+			at:       vector2.New(layout.max.X()+boundaryLayoutGap.X(), layout.min.Y()+float64(len(plan.outputs))*boundaryLayoutGap.Y()),
+		}
+		if err := port.check(); err != nil {
+			return plan, err
+		}
+		plan.outputs[key] = port
+	}
+	return plan, nil
+}
+
+func (port plannedPort) check() error {
+	if !nodes.IsPortTypeKnown(port.portType) {
+		return fmt.Errorf("create boundary %q: unknown boundary port type %q", port.name, port.portType)
+	}
+	return nil
+}
+
+func (port plannedPort) saved(encoder *jbtf.Encoder) (persistence.Node, error) {
+	var boundary CustomGraphSerialization
+	switch port.kind {
+	case subgraph.InputNodeTypeKey:
+		boundary = subgraph.NewInputNode(port.name, port.portType)
+	default:
+		boundary = subgraph.NewOutputNode(port.name, port.portType)
+	}
+	data, err := boundary.ToJSON(encoder)
+	return persistence.Node{Type: port.kind, Data: data}, err
+}
+
+// Ids for the boundaries, clear of the ids the selection keeps.
+type boundaryIDs struct {
+	taken map[string]bool
+	next  int
+}
+
+func (ids *boundaryIDs) claim() string {
+	for ; ; ids.next++ {
+		candidate := fmt.Sprintf("Node-%d", ids.next)
+		if !ids.taken[candidate] {
+			ids.taken[candidate] = true
+			return candidate
+		}
+	}
+}
+
+// copySelection loads the selected nodes, their layout, the edges between
+// them and the boundaries at every cut edge into child as one graph.
+func copySelection(parent, child *Graph, selection map[string]nodes.Node, ports portPlan) error {
 	encoder := &jbtf.Encoder{}
-	saved := make(map[string]persistence.Node, len(selection))
+	saved := make(map[string]persistence.Node, len(selection)+len(ports.inputs)+len(ports.outputs))
 	for id, node := range selection {
 		copied := parent.savedNode(node, encoder)
-		maps.DeleteFunc(copied.AssignedInput, func(_ string, from schema.PortReference) bool {
-			_, inside := selection[from.NodeId]
-			return !inside
-		})
+		for input, from := range copied.AssignedInput {
+			if _, inside := selection[from.NodeId]; inside {
+				continue
+			}
+			copied.AssignedInput[input] = schema.PortReference{NodeId: ports.rewired[id+"\x00"+input], PortName: subgraph.ValuePortName}
+		}
 		saved[id] = copied
 
 		if layout, ok := parent.Metadata("nodes." + id).(map[string]any); ok {
 			child.metadata.Set("nodes."+id, cloneMetadataMap(layout))
+		}
+	}
+	for _, port := range ports.inputs {
+		node, err := port.saved(encoder)
+		if err != nil {
+			return err
+		}
+		saved[port.id] = node
+	}
+	for key, port := range ports.outputs {
+		node, err := port.saved(encoder)
+		if err != nil {
+			return err
+		}
+		producerID, output, _ := strings.Cut(key, "\x00")
+		node.AssignedInput = map[string]schema.PortReference{subgraph.ValuePortName: {NodeId: producerID, PortName: output}}
+		saved[port.id] = node
+	}
+	if ports.layout.known {
+		for _, port := range ports.inputs {
+			child.setNodePosition(port.id, port.at)
+		}
+		for _, port := range ports.outputs {
+			child.setNodePosition(port.id, port.at)
 		}
 	}
 
@@ -347,20 +547,6 @@ func cloneMetadataMap(in map[string]any) map[string]any {
 		out[k] = v
 	}
 	return out
-}
-
-func (a *Graph) addBoundary(typeKey, portType, name string, layout selectionLayout, at vector2.Float64) (string, error) {
-	_, id, err := a.createNode(typeKey, portType)
-	if err != nil {
-		return "", fmt.Errorf("create boundary %q: %w", name, err)
-	}
-	if err := a.setBoundaryNodeInfo(id, name); err != nil {
-		return "", err
-	}
-	if layout.known {
-		a.setNodePosition(id, at)
-	}
-	return id, nil
 }
 
 // Where the selection sat in the editor. Not known when none of it had been

@@ -254,9 +254,9 @@ func (n PivotNode) Out(out *nodes.StructOutput[TRS]) {
 // ============================================================================
 
 type LookAtNode struct {
-	Position nodes.Output[vector3.Float64]
-	Target   nodes.Output[vector3.Float64]
-	Scale    nodes.Output[vector3.Float64] `description:"Defaults to (1,1,1)"`
+	Position nodes.LiftedPort[vector3.Float64]
+	Target   nodes.LiftedPort[vector3.Float64]
+	Scale    nodes.LiftedPort[vector3.Float64] `description:"Defaults to (1,1,1)"`
 }
 
 func (LookAtNode) Description() string {
@@ -267,15 +267,17 @@ func (LookAtNode) Keywords() []string {
 	return []string{"aim", "orient"}
 }
 
-func (n LookAtNode) Out(out *nodes.StructOutput[TRS]) {
-	position := nodes.TryGetOutputValue(out, n.Position, vector3.Zero[float64]())
-	target := nodes.TryGetOutputValue(out, n.Target, vector3.Forward[float64]())
-	scale := nodes.TryGetOutputValue(out, n.Scale, vector3.One[float64]())
-	if target.Sub(position).LengthSquared() == 0 {
-		out.Set(New(position, quaternion.Identity(), scale))
-		return
-	}
-	out.Set(New(position, quaternion.Identity(), scale).LookAt(target))
+func (n LookAtNode) Out(out *nodes.Lifted[TRS]) {
+	nodes.Zip3(out, n.Position, n.Target, n.Scale, func(position, target, scale vector3.Float64) TRS {
+		cleanScale := scale
+		if scale == vector3.Zero[float64]() {
+			cleanScale = vector3.One[float64]()
+		}
+		if target.Sub(position).LengthSquared() == 0 {
+			return New(position, quaternion.Identity(), cleanScale)
+		}
+		return New(position, quaternion.Identity(), cleanScale).LookAt(target)
+	})
 }
 
 // ============================================================================

@@ -49,9 +49,10 @@ func init() {
 }
 
 type InterpolateNode struct {
-	A    nodes.LiftedPort[Color]   `description:"Color at Time=0."`
-	B    nodes.LiftedPort[Color]   `description:"Color at Time=1."`
-	Time nodes.LiftedPort[float64] `description:"Blend factor between A and B, 0 to 1. Defaults to 0.5"`
+	A     nodes.LiftedPort[Color]   `description:"Color at Time=0."`
+	B     nodes.LiftedPort[Color]   `description:"Color at Time=1."`
+	Time  nodes.LiftedPort[float64] `description:"Blend factor between A and B, 0 to 1. Defaults to 0.5"`
+	Clamp nodes.Output[bool]        `description:"Defaults to false."`
 }
 
 func (n InterpolateNode) Description() string {
@@ -72,7 +73,13 @@ func (n InterpolateNode) Out(out *nodes.Lifted[Color]) {
 		b = a
 	}
 
-	nodes.Zip3(out, a, b, nodes.LiftedOr(n.Time, 0.5), Color.Lerp)
+	clamp := nodes.TryGetOutputValue(out, n.Clamp, false)
+	nodes.Zip3(out, a, b, nodes.LiftedOr(n.Time, 0.5), func(a, b Color, time float64) Color {
+		if clamp {
+			time = min(max(time, 0), 1)
+		}
+		return a.Lerp(b, time)
+	})
 }
 
 // ============================================================================

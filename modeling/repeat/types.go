@@ -20,5 +20,7 @@ func init() {
 	refutil.RegisterType[nodes.Struct[polygonNode]](factory)
 	refutil.RegisterType[nodes.Struct[GridNode]](factory)
 	refutil.RegisterType[nodes.Struct[RandomPointsInSphereNode]](factory)
+	refutil.RegisterType[nodes.Struct[LineBySpacingNode]](factory)
+
 	generator.RegisterTypes(factory)
 }

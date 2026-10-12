@@ -25,6 +25,8 @@ func init() {
 
 	refutil.RegisterType[nodes.Struct[AddNode[int]]](factory)
 	refutil.RegisterType[nodes.Struct[AddNode[float64]]](factory)
+	refutil.RegisterType[nodes.Struct[SumArrayNode[int]]](factory)
+	refutil.RegisterType[nodes.Struct[SumArrayNode[float64]]](factory)
 
 	refutil.RegisterType[nodes.Struct[DivideNode[int]]](factory)
 	refutil.RegisterType[nodes.Struct[DivideNode[float64]]](factory)
@@ -229,23 +231,43 @@ type RoundNode struct {
 }
 
 func (cn RoundNode) Description() string {
-	return "Rounds a number to the nearest whole number."
+	return "Rounds a number to a whole number: Float and Int are the nearest, Down is the floor, Up is the ceiling. Arrays round element by element."
+}
+
+func (cn RoundNode) Keywords() []string {
+	return []string{"floor", "ceil", "ceiling", "truncate", "int", "integer", "nearest", "whole"}
 }
 
 func (cn RoundNode) Int(out *nodes.Lifted[int]) {
 	nodes.Zip1(out, cn.In, func(v float64) int { return int(math.Round(v)) })
 }
 
+func (cn RoundNode) IntDescription() string {
+	return "The nearest whole number, as an int: the float-to-int conversion for counts and segment inputs."
+}
+
 func (cn RoundNode) Float(out *nodes.Lifted[float64]) {
 	nodes.Zip1(out, cn.In, math.Round)
+}
+
+func (cn RoundNode) FloatDescription() string {
+	return "The nearest whole number, still a float."
 }
 
 func (cn RoundNode) Down(out *nodes.Lifted[float64]) {
 	nodes.Zip1(out, cn.In, math.Floor)
 }
 
+func (cn RoundNode) DownDescription() string {
+	return "Floor: the largest whole number not above the input."
+}
+
 func (cn RoundNode) Up(out *nodes.Lifted[float64]) {
 	nodes.Zip1(out, cn.In, math.Ceil)
+}
+
+func (cn RoundNode) UpDescription() string {
+	return "Ceiling: the smallest whole number not below the input."
 }
 
 // ============================================================================
@@ -368,7 +390,7 @@ type RemapNode[T vector.Number] struct {
 	OutMin nodes.LiftedPort[T]
 	OutMax nodes.LiftedPort[T]
 
-	Clamp nodes.Output[bool] `description:"Holds results inside the output range. Defaults to true."`
+	Clamp nodes.Output[bool] `description:"Holds results inside Out Min..Out Max (not 0..1). Defaults to true."`
 }
 
 func (n RemapNode[T]) Description() string {
@@ -389,6 +411,12 @@ func (n RemapNode[T]) Out(out *nodes.Lifted[T]) {
 		},
 		func(v []T) T {
 			value, inMin, inMax, outMin, outMax := v[0], v[1], v[2], v[3], v[4]
+			if inMin == inMax {
+				if value < inMin {
+					return outMin
+				}
+				return outMax
+			}
 			scaled := ((value - inMin) / (inMax - inMin) * (outMax - outMin)) + outMin
 			if clamped {
 				return clamp(scaled, outMin, outMax)

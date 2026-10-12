@@ -367,13 +367,12 @@ func (m Mesh) ApplyTRS(transform trs.TRS) Mesh {
 		return result
 	}
 
-	rotation := transform.Rotation()
-	rotated := make([]vector3.Float64, len(normals))
+	transformed := make([]vector3.Float64, len(normals))
 	for i, n := range normals {
-		rotated[i] = rotation.Rotate(n)
+		transformed[i] = transform.TransformNormal(n)
 	}
 
-	return result.SetFloat3Attribute(NormalAttribute, rotated)
+	return result.SetFloat3Attribute(NormalAttribute, transformed)
 }
 
 func (m Mesh) Scale(amount vector3.Float64) Mesh {

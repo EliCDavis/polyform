@@ -36,6 +36,38 @@ func TestChunkRefusesASizeBelowOne(t *testing.T) {
 	assert.NotEmpty(t, out.ExecutionReport().Errors, "a zero size would never terminate")
 }
 
+func TestFlattenJoinsInnerArraysInOrder(t *testing.T) {
+	node := &nodes.Struct[arrays.FlattenNode]{}
+	wire(t, node, "Arrays", nodes.ConstOutput[[][]string]{Val: [][]string{{"a", "b"}, {}, {"c"}, {"d", "e"}}})
+
+	out := node.Outputs()["Out"]
+	assert.Equal(t, "[]string", out.(nodes.Typed).Type())
+
+	typed, ok := out.(nodes.Output[[]string])
+	require.True(t, ok, "got %T", out)
+	assert.Equal(t, []string{"a", "b", "c", "d", "e"}, typed.Value())
+}
+
+func TestFlattenOfNoArraysIsEmpty(t *testing.T) {
+	node := &nodes.Struct[arrays.FlattenNode]{}
+	wire(t, node, "Arrays", nodes.ConstOutput[[][]string]{Val: [][]string{}})
+
+	value := nodes.GetNodeOutputPort[[]string](node, "Out").Value()
+	assert.NotNil(t, value)
+	assert.Empty(t, value)
+}
+
+func TestFlattenUndoesChunk(t *testing.T) {
+	chunk := &nodes.Struct[arrays.ChunkNode]{}
+	wire(t, chunk, "Array", letters())
+	wire(t, chunk, "Size", nodes.ConstOutput[int]{Val: 2})
+
+	flatten := &nodes.Struct[arrays.FlattenNode]{}
+	wire(t, flatten, "Arrays", chunk.Outputs()["Out"])
+
+	assert.Equal(t, letters().Val, nodes.GetNodeOutputPort[[]string](flatten, "Out").Value())
+}
+
 func TestPartitionSplitsInTwo(t *testing.T) {
 	node := &nodes.Struct[arrays.PartitionNode]{}
 	wire(t, node, "Array", letters())

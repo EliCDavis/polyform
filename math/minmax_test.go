@@ -96,5 +96,22 @@ func TestMinMaxNodes(t *testing.T) {
 			nodetest.NewNode(math.MaxArrayNode[float64]{In: nodetest.NewPortValue([]float64{})}),
 			nodetest.AssertOutput("Float 64", 0.),
 		),
+		nodetest.NewTestCase(
+			"Sum Array: reduces to one value",
+			nodetest.NewNode(math.SumArrayNode[float64]{In: nodetest.NewPortValue([]float64{1.5, 2, -0.5})}),
+			nodetest.AssertOutput("Float", 3.),
+			nodetest.AssertOutput("Int", 3),
+			nodetest.AssertOutputType("Float", "float64"),
+		),
+		nodetest.NewTestCase(
+			"Sum Array: empty => 0",
+			nodetest.NewNode(math.SumArrayNode[float64]{In: nodetest.NewPortValue([]float64{})}),
+			nodetest.AssertOutput("Float", 0.),
+		),
+		nodetest.NewTestCase(
+			"Sum Array: ints",
+			nodetest.NewNode(math.SumArrayNode[int]{In: nodetest.NewPortValue([]int{4, 5, 6})}),
+			nodetest.AssertOutput("Int", 15),
+		),
 	).Run(t)
 }

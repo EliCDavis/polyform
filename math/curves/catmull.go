@@ -200,6 +200,12 @@ func (crcp CatmullRomSplineParameters) Spline() CatmullRomSpline {
 		epsilon = crcp.Epsilon
 	}
 
+	if crcp.Closed {
+		for len(crcp.Points) > 1 && crcp.Points[len(crcp.Points)-1].Distance(crcp.Points[0]) <= epsilon {
+			crcp.Points = crcp.Points[:len(crcp.Points)-1]
+		}
+	}
+
 	if len(crcp.Points) == 0 {
 		return CatmullRomSpline{
 			alpha: crcp.Alpha,
@@ -224,99 +230,52 @@ func (crcp CatmullRomSplineParameters) Spline() CatmullRomSpline {
 		}
 	}
 
-	if len(crcp.Points) == 2 {
-		return CatmullRomSpline{
-			alpha: crcp.Alpha,
-			curves: []*CatmullRomCurve{{
+	if crcp.Closed {
+		n := len(crcp.Points)
+		curves := make([]*CatmullRomCurve, n)
+		for i := range n {
+			curves[i] = &CatmullRomCurve{
+				p0:      crcp.Points[(i+n-1)%n],
+				p1:      crcp.Points[i],
+				p2:      crcp.Points[(i+1)%n],
+				p3:      crcp.Points[(i+2)%n],
 				alpha:   crcp.Alpha,
 				epsilon: epsilon,
-				p0:      crcp.Points[0],
-				p1:      crcp.Points[0],
-				p2:      crcp.Points[1],
-				p3:      crcp.Points[1],
-			}},
-		}
-	}
-
-	if len(crcp.Points) == 3 {
-
-		var curves []*CatmullRomCurve
-		if crcp.Closed {
-			curves = []*CatmullRomCurve{
-				{
-					alpha:   crcp.Alpha,
-					epsilon: epsilon,
-					p0:      crcp.Points[2],
-					p1:      crcp.Points[0],
-					p2:      crcp.Points[1],
-					p3:      crcp.Points[2],
-				},
-				{
-					alpha:   crcp.Alpha,
-					epsilon: epsilon,
-					p0:      crcp.Points[0],
-					p1:      crcp.Points[1],
-					p2:      crcp.Points[2],
-					p3:      crcp.Points[0],
-				},
-				{
-					alpha:   crcp.Alpha,
-					epsilon: epsilon,
-					p0:      crcp.Points[1],
-					p1:      crcp.Points[2],
-					p2:      crcp.Points[0],
-					p3:      crcp.Points[1],
-				},
-			}
-		} else {
-			curves = []*CatmullRomCurve{
-				{
-					alpha:   crcp.Alpha,
-					epsilon: epsilon,
-					p0:      crcp.Points[0],
-					p1:      crcp.Points[0],
-					p2:      crcp.Points[1],
-					p3:      crcp.Points[2],
-				},
-				{
-					alpha:   crcp.Alpha,
-					epsilon: epsilon,
-					p0:      crcp.Points[0],
-					p1:      crcp.Points[1],
-					p2:      crcp.Points[2],
-					p3:      crcp.Points[2],
-				},
 			}
 		}
-
 		return CatmullRomSpline{
 			alpha:  crcp.Alpha,
 			curves: curves,
 		}
 	}
 
+	// End points are mirrored past the ends rather than repeated: a repeated
+	// point has a zero knot interval, which is a divide by zero for any Alpha > 0.
+	if len(crcp.Points) == 2 {
+		return CatmullRomSpline{
+			alpha: crcp.Alpha,
+			curves: []*CatmullRomCurve{{
+				alpha:   crcp.Alpha,
+				epsilon: epsilon,
+				p0:      crcp.Points[0].Scale(2).Sub(crcp.Points[1]),
+				p1:      crcp.Points[0],
+				p2:      crcp.Points[1],
+				p3:      crcp.Points[1].Scale(2).Sub(crcp.Points[0]),
+			}},
+		}
+	}
+
 	last := len(crcp.Points) - 1
 	curves := make([]*CatmullRomCurve, 0, len(crcp.Points)-1)
 
-	if crcp.Closed {
-		curves = append(curves, &CatmullRomCurve{
-			p0:      crcp.Points[last-1],
-			p1:      crcp.Points[0],
-			p2:      crcp.Points[1],
-			p3:      crcp.Points[2],
-			alpha:   crcp.Alpha,
-			epsilon: epsilon,
-		})
-	} else {
-		curves = append(curves, &CatmullRomCurve{
-			p0:      crcp.Points[0].Sub(crcp.Points[1]).Add(crcp.Points[0]),
-			p1:      crcp.Points[0],
-			p2:      crcp.Points[1],
-			p3:      crcp.Points[2],
-			alpha:   crcp.Alpha,
-			epsilon: epsilon,
-		})
-	}
+	curves = append(curves, &CatmullRomCurve{
+		p0:      crcp.Points[0].Sub(crcp.Points[1]).Add(crcp.Points[0]),
+		p1:      crcp.Points[0],
+		p2:      crcp.Points[1],
+		p3:      crcp.Points[2],
+		alpha:   crcp.Alpha,
+		epsilon: epsilon,
+	})
 
 	for i := range len(crcp.Points) - 3 {
 		curves = append(curves, &CatmullRomCurve{
@@ -329,36 +288,16 @@ func (crcp CatmullRomSplineParameters) Spline() CatmullRomSpline {
 		})
 	}
 
-	if crcp.Closed {
-		curves = append(curves,
-			&CatmullRomCurve{
-				p0:      crcp.Points[last-2],
-				p1:      crcp.Points[last-1],
-				p2:      crcp.Points[last],
-				p3:      crcp.Points[0],
-				alpha:   crcp.Alpha,
-				epsilon: epsilon,
-			}, &CatmullRomCurve{
-				p0:      crcp.Points[last-1],
-				p1:      crcp.Points[last],
-				p2:      crcp.Points[0],
-				p3:      crcp.Points[1],
-				alpha:   crcp.Alpha,
-				epsilon: epsilon,
-			},
-		)
-	} else {
-		curves = append(curves, &CatmullRomCurve{
-			p0: crcp.Points[last-2],
-			p1: crcp.Points[last-1],
-			p2: crcp.Points[last],
-			p3: crcp.Points[last].
-				Sub(crcp.Points[last-1]).
-				Add(crcp.Points[last]),
-			alpha:   crcp.Alpha,
-			epsilon: epsilon,
-		})
-	}
+	curves = append(curves, &CatmullRomCurve{
+		p0: crcp.Points[last-2],
+		p1: crcp.Points[last-1],
+		p2: crcp.Points[last],
+		p3: crcp.Points[last].
+			Sub(crcp.Points[last-1]).
+			Add(crcp.Points[last]),
+		alpha:   crcp.Alpha,
+		epsilon: epsilon,
+	})
 
 	return CatmullRomSpline{
 		alpha:  crcp.Alpha,

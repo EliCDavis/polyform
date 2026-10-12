@@ -31,6 +31,7 @@ func init() {
 	refutil.RegisterType[nodes.Struct[ShuffleNode]](factory)
 	refutil.RegisterType[nodes.Struct[SampleNode]](factory)
 	refutil.RegisterType[nodes.Struct[PadNode]](factory)
+	refutil.RegisterType[nodes.Struct[FlattenNode]](factory)
 
 	generator.RegisterTypes(factory)
 }
@@ -251,6 +252,33 @@ func (c ConcatNode) Out(out *nodes.Dynamic[[]Element]) {
 		return
 	}
 	out.Set(first.Build(joined))
+}
+
+// ============================================================================
+
+type FlattenNode struct {
+	Arrays nodes.DynamicPort[[][]Element] `description:"The array of arrays to flatten."`
+}
+
+func (FlattenNode) Description() string {
+	return "Joins an array of arrays into one array, in order."
+}
+
+func (FlattenNode) Keywords() []string {
+	return []string{"join", "unchunk"}
+}
+
+func (f FlattenNode) Out(out *nodes.Dynamic[[]Element]) {
+	values, ok := nodes.DynamicArrayValue(f.Arrays)
+	if !ok {
+		return
+	}
+
+	flat, ok := values.Flatten()
+	if !ok {
+		return
+	}
+	out.Set(flat)
 }
 
 // ============================================================================

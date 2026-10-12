@@ -23,6 +23,10 @@ func init() {
 	refutil.RegisterType[nodes.Struct[ManifestNode]](factory)
 	refutil.RegisterType[nodes.Struct[MaterialAnisotropyExtensionNode]](factory)
 	refutil.RegisterType[nodes.Struct[MaterialClearcoatExtensionNode]](factory)
+	refutil.RegisterType[nodes.Struct[MaterialSheenExtensionNode]](factory)
+	refutil.RegisterType[nodes.Struct[MaterialSpecularExtensionNode]](factory)
+	refutil.RegisterType[nodes.Struct[MaterialIridescenceExtensionNode]](factory)
+	refutil.RegisterType[nodes.Struct[MaterialDispersionExtensionNode]](factory)
 	refutil.RegisterType[nodes.Struct[MaterialNode]](factory)
 	refutil.RegisterType[nodes.Struct[MaterialTransmissionExtensionNode]](factory)
 	refutil.RegisterType[nodes.Struct[MaterialVolumeExtensionNode]](factory)
@@ -357,6 +361,10 @@ type MaterialNode struct {
 	Volume            nodes.Output[PolyformVolume]
 	Anisotropy        nodes.Output[PolyformAnisotropy]
 	Clearcoat         nodes.Output[PolyformClearcoat]
+	Sheen             nodes.Output[PolyformSheen]
+	Specular          nodes.Output[PolyformSpecular]
+	Iridescence       nodes.Output[PolyformIridescence]
+	Dispersion        nodes.Output[PolyformDispersion]
 	EmissiveStrength  nodes.Output[float64]
 }
 
@@ -436,6 +444,22 @@ func (gmnd MaterialNode) Out(out *nodes.StructOutput[PolyformMaterial]) {
 
 	if gmnd.Clearcoat != nil {
 		extensions = append(extensions, nodes.GetOutputValue(out, gmnd.Clearcoat))
+	}
+
+	if gmnd.Sheen != nil {
+		extensions = append(extensions, nodes.GetOutputValue(out, gmnd.Sheen))
+	}
+
+	if gmnd.Specular != nil {
+		extensions = append(extensions, nodes.GetOutputValue(out, gmnd.Specular))
+	}
+
+	if gmnd.Iridescence != nil {
+		extensions = append(extensions, nodes.GetOutputValue(out, gmnd.Iridescence))
+	}
+
+	if gmnd.Dispersion != nil {
+		extensions = append(extensions, nodes.GetOutputValue(out, gmnd.Dispersion))
 	}
 
 	if gmnd.EmissiveStrength != nil {
@@ -530,6 +554,106 @@ func (node MaterialClearcoatExtensionNode) Out(out *nodes.StructOutput[PolyformC
 
 func (node MaterialClearcoatExtensionNode) Description() string {
 	return "A clear coat is a common technique used in Physically-Based Rendering to represent a protective layer applied to a base material."
+}
+
+type MaterialSheenExtensionNode struct {
+	ColorFactor      nodes.Output[coloring.Color]  `description:"Color of the sheen layer, in linear space. Defaults to black, which is no sheen."`
+	ColorTexture     nodes.Output[PolyformTexture] `description:"Sheen color texture, RGB in sRGB; multiplied by the color factor."`
+	RoughnessFactor  nodes.Output[float64]         `description:"Roughness of the sheen layer, 0 to 1. Defaults to 0."`
+	RoughnessTexture nodes.Output[PolyformTexture] `description:"Sheen roughness texture, read from the alpha channel, linear; multiplied by the roughness factor."`
+}
+
+func (node MaterialSheenExtensionNode) Out(out *nodes.StructOutput[PolyformSheen]) {
+	sheen := PolyformSheen{
+		SheenColorTexture:     nodes.TryGetOutputReference(out, node.ColorTexture, nil),
+		SheenRoughnessFactor:  nodes.TryGetOutputValue(out, node.RoughnessFactor, 0),
+		SheenRoughnessTexture: nodes.TryGetOutputReference(out, node.RoughnessTexture, nil),
+	}
+	if c := nodes.TryGetOutputReference(out, node.ColorFactor, nil); c != nil {
+		sheen.SheenColorFactor = *c
+	}
+	out.Set(sheen)
+}
+
+func (node MaterialSheenExtensionNode) Description() string {
+	return "KHR_materials_sheen: a soft specular layer over the base material for cloth like velvet, satin and felt. Set it on MaterialNode's Sheen port."
+}
+
+func (node MaterialSheenExtensionNode) Keywords() []string {
+	return []string{"velvet", "cloth", "fabric", "satin", "felt", "fuzz"}
+}
+
+type MaterialSpecularExtensionNode struct {
+	Factor       nodes.Output[float64]         `description:"Strength of the specular reflection, 0 to 1. Defaults to 1."`
+	Texture      nodes.Output[PolyformTexture] `description:"Specular strength texture, read from the alpha channel; multiplied by Factor."`
+	ColorFactor  nodes.Output[coloring.Color]  `description:"F0 color of the specular reflection, linear RGB. Defaults to white."`
+	ColorTexture nodes.Output[PolyformTexture] `description:"Specular color texture, RGB in sRGB; multiplied by the color factor."`
+}
+
+func (node MaterialSpecularExtensionNode) Out(out *nodes.StructOutput[PolyformSpecular]) {
+	specular := PolyformSpecular{
+		Factor:       nodes.TryGetOutputReference(out, node.Factor, nil),
+		Texture:      nodes.TryGetOutputReference(out, node.Texture, nil),
+		ColorTexture: nodes.TryGetOutputReference(out, node.ColorTexture, nil),
+	}
+	if c := nodes.TryGetOutputReference(out, node.ColorFactor, nil); c != nil {
+		specular.ColorFactor = *c
+	}
+	out.Set(specular)
+}
+
+func (node MaterialSpecularExtensionNode) Description() string {
+	return "KHR_materials_specular: the strength and F0 color of a dielectric's specular reflection, for tinted or dulled highlights that metallic/roughness alone cannot express. Set it on MaterialNode's Specular port."
+}
+
+func (node MaterialSpecularExtensionNode) Keywords() []string {
+	return []string{"f0", "reflectance", "highlight", "dielectric"}
+}
+
+type MaterialIridescenceExtensionNode struct {
+	Factor            nodes.Output[float64]         `description:"Iridescence intensity, 0 to 1. Defaults to 0."`
+	Texture           nodes.Output[PolyformTexture] `description:"Iridescence intensity texture, read from the R channel, linear; multiplied by Factor."`
+	IndexOfRefraction nodes.Output[float64]         `description:"Index of refraction of the thin film. glTF's default is 1.3."`
+	ThicknessMinimum  nodes.Output[float64]         `description:"Minimum thin-film thickness in nanometers. glTF's default is 100."`
+	ThicknessMaximum  nodes.Output[float64]         `description:"Maximum thin-film thickness in nanometers. glTF's default is 400."`
+	ThicknessTexture  nodes.Output[PolyformTexture] `description:"Thin-film thickness texture, read from the G channel, interpolating between the minimum and maximum thickness."`
+}
+
+func (node MaterialIridescenceExtensionNode) Out(out *nodes.StructOutput[PolyformIridescence]) {
+	out.Set(PolyformIridescence{
+		IridescenceFactor:           nodes.TryGetOutputValue(out, node.Factor, 0),
+		IridescenceTexture:          nodes.TryGetOutputReference(out, node.Texture, nil),
+		IridescenceIor:              nodes.TryGetOutputReference(out, node.IndexOfRefraction, nil),
+		IridescenceThicknessMinimum: nodes.TryGetOutputReference(out, node.ThicknessMinimum, nil),
+		IridescenceThicknessMaximum: nodes.TryGetOutputReference(out, node.ThicknessMaximum, nil),
+		IridescenceThicknessTexture: nodes.TryGetOutputReference(out, node.ThicknessTexture, nil),
+	})
+}
+
+func (node MaterialIridescenceExtensionNode) Description() string {
+	return "KHR_materials_iridescence: thin-film interference colors like soap bubbles, oil slicks, beetle shells and pearl. Set it on MaterialNode's Iridescence port."
+}
+
+func (node MaterialIridescenceExtensionNode) Keywords() []string {
+	return []string{"thin film", "pearl", "oil slick", "soap bubble", "rainbow", "pearlescent"}
+}
+
+type MaterialDispersionExtensionNode struct {
+	Dispersion nodes.Output[float64] `description:"Dispersion as 20 / Abbe number: about 0.36 for diamond (Abbe 55), 0.33 for crown glass (Abbe 60), 0.5 for dense flint glass, 0 for none. Defaults to 0."`
+}
+
+func (node MaterialDispersionExtensionNode) Out(out *nodes.StructOutput[PolyformDispersion]) {
+	out.Set(PolyformDispersion{
+		Dispersion: nodes.TryGetOutputValue(out, node.Dispersion, 0),
+	})
+}
+
+func (node MaterialDispersionExtensionNode) Description() string {
+	return "KHR_materials_dispersion: the spread of the index of refraction across wavelengths, which gives gems and glass their fire. Needs a transmissive material with an IOR to show. Set it on MaterialNode's Dispersion port."
+}
+
+func (node MaterialDispersionExtensionNode) Keywords() []string {
+	return []string{"abbe", "fire", "diamond", "gem", "prism", "chromatic"}
 }
 
 type AnimationNode struct {

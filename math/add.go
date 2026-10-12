@@ -34,3 +34,25 @@ func (an AddNode[T]) Int(out *nodes.Lifted[int]) {
 		return int(gomath.Round(float64(an.sum(vals))))
 	})
 }
+
+// ============================================================================
+
+type SumArrayNode[T vector.Number] struct {
+	In nodes.Output[[]T]
+}
+
+func (SumArrayNode[T]) Description() string {
+	return "Sum of every number in an array."
+}
+
+func (n SumArrayNode[T]) total(recorder nodes.ExecutionRecorder) T {
+	return AddNode[T]{}.sum(nodes.TryGetOutputValue(recorder, n.In, nil))
+}
+
+func (n SumArrayNode[T]) Float(out *nodes.StructOutput[float64]) {
+	out.Set(float64(n.total(out)))
+}
+
+func (n SumArrayNode[T]) Int(out *nodes.StructOutput[int]) {
+	out.Set(int(gomath.Round(float64(n.total(out)))))
+}
