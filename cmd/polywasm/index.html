@@ -187,9 +187,9 @@
 		.then(registration => {
 			document.getElementById("status-display").innerText = "Initializing"
 
-			const sw = registration.active ?? registration.installing ?? registration.waiting
+			const sw = registration.installing ?? registration.waiting ?? registration.active
 
-			if (registration.active) {
+			if (sw.state === 'activated') {
 				document.getElementById("status-display").innerText = "Activated"
 				replacePage();
 				return

@@ -17,19 +17,26 @@ function registerWasmHTTPListener(wasm, { base, passthroughFunc, cacheName, args
     let path = new URL(registration.scope).pathname
     if (base && base !== '') path = `${trimEnd(path, '/')}/${trimStart(base, '/')}`
 
-    const handlerPromise = new Promise(setHandler => {
-        self.wasmhttp = {
-            path,
-            setHandler,
-        }
-    })
+    // Lazy: fetch events only reach an activated worker, so install has populated cacheName by now.
+    let handlerPromise
+    const getHandler = () => {
+        if (handlerPromise) return handlerPromise
 
-    const go = new Go()
-    go.argv = [wasm, ...args]
-    const source = cacheName
-        ? caches.open(cacheName).then((cache) => cache.match(wasm)).then((response) => response ?? fetch(wasm))
-        : caches.match(wasm).then(response => (response) ?? fetch(wasm))
-    WebAssembly.instantiateStreaming(source, go.importObject).then(({ instance }) => go.run(instance))
+        handlerPromise = new Promise(setHandler => {
+            self.wasmhttp = {
+                path,
+                setHandler,
+            }
+        })
+
+        const go = new Go()
+        go.argv = [wasm, ...args]
+        const source = cacheName
+            ? caches.open(cacheName).then((cache) => cache.match(wasm)).then((response) => response ?? fetch(wasm))
+            : caches.match(wasm).then(response => (response) ?? fetch(wasm))
+        WebAssembly.instantiateStreaming(source, go.importObject).then(({ instance }) => go.run(instance))
+        return handlerPromise
+    }
 
     addEventListener('fetch', e => {
         const { pathname } = new URL(e.request.url);
@@ -44,7 +51,7 @@ function registerWasmHTTPListener(wasm, { base, passthroughFunc, cacheName, args
             return;
         }
 
-        e.respondWith(handlerPromise.then(handler => handler(e.request)))
+        e.respondWith(getHandler().then(handler => handler(e.request)))
     })
 }
 
@@ -66,7 +73,8 @@ const WASM = 'main.wasm'
 
 addEventListener("install", (event) => {
     console.log("installed", event)
-    event.waitUntil(caches.open(CURRENT_VERSION).then((cache) => cache.add(WASM)))
+    self.skipWaiting()
+    event.waitUntil(caches.open(CURRENT_VERSION).then((cache) => cache.add(new Request(WASM, { cache: 'reload' }))))
 });
 
 const deleteCache = async (key) => {
@@ -82,8 +90,7 @@ const deleteOldCaches = async () => {
 
 addEventListener('activate', event => {
     console.log("activate", event)
-    event.waitUntil(deleteOldCaches());
-    event.waitUntil(clients.claim())
+    event.waitUntil(Promise.all([deleteOldCaches(), clients.claim()]))
 })
 
 addEventListener('message', (event) => {
@@ -113,6 +120,7 @@ function urlIsRootServiceWorkerInstall(urlString) {
 registerWasmHTTPListener(
     WASM,
     {
+        cacheName: CURRENT_VERSION,
         passthroughFunc: (request) => {
             let url = new URL(request.url);
 
