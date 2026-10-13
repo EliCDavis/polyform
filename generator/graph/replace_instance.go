@@ -40,8 +40,8 @@ func (a *Graph) ReplaceSubgraphInstance(nodeID, subGraphID string) (result Repla
 	if _, exists := a.project.subGraphs[subGraphID]; !exists {
 		return result, fmt.Errorf("sub-graph %q does not exist", subGraphID)
 	}
-	if a.SubGraphScopeID() == subGraphID {
-		return result, fmt.Errorf("sub-graph %q cannot place itself", subGraphID)
+	if scope := a.SubGraphScopeID(); scope != "" && a.project.wouldContainItself(scope, subGraphID) {
+		return result, refuseSelfContainment(scope, subGraphID)
 	}
 	if old.subGraphID == subGraphID {
 		return result, fmt.Errorf("node %q is already an instance of %q", nodeID, subGraphID)

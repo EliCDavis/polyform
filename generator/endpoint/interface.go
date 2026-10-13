@@ -1,10 +1,14 @@
 package endpoint
 
-import "net/http"
+import (
+	"net/http"
+	"net/url"
+)
 
 type Request[Body any] struct {
-	Body Body
-	Url  string
+	Body  Body
+	Url   string
+	Query url.Values
 }
 
 type Method interface {

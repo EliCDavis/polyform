@@ -79,9 +79,12 @@ export function Vector3Editor({
 
   const commit = (next: Point3) => {
     setCurrent(next);
-    gizmoRef.current?.setPosition(next.x, next.y, next.z);
     void setVariableValue(variableKey, next);
   };
+
+  useEffect(() => {
+    gizmoRef.current?.setPosition(current.x, current.y, current.z);
+  }, [current]);
 
   useEffect(() => {
     if (!threeApp || !gizmoOn) return;
@@ -136,6 +139,16 @@ export function AABBEditor({
   const [center, setCenter] = useState(value?.center ?? { x: 0, y: 0, z: 0 });
   const [extents, setExtents] = useState(value?.extents ?? { x: 1, y: 1, z: 1 });
   const [gizmoOn, setGizmoOn] = useState(false);
+  const gizmoRef = useRef<BoxGizmo | null>(null);
+
+  useEffect(() => {
+    setCenter(value?.center ?? { x: 0, y: 0, z: 0 });
+    setExtents(value?.extents ?? { x: 1, y: 1, z: 1 });
+  }, [value]);
+
+  useEffect(() => {
+    gizmoRef.current?.set({ center, extents });
+  }, [center, extents]);
 
   const commit = (c = center, e = extents) => {
     void setVariableValue(variableKey, { center: c, extents: e });
@@ -152,6 +165,7 @@ export function AABBEditor({
       initial: { center, extents },
     });
     gizmo.setEnabled(true);
+    gizmoRef.current = gizmo;
     const sub = gizmo.aabb$().subscribe((aabb) => {
       setCenter(aabb.center);
       setExtents(aabb.extents);
@@ -160,6 +174,7 @@ export function AABBEditor({
     return () => {
       sub.unsubscribe();
       gizmo.dispose();
+      gizmoRef.current = null;
     };
   }, [threeApp, gizmoOn, variableKey]);
 

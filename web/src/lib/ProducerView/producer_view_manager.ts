@@ -3,6 +3,7 @@ import {
   DirectionalLight,
   GridHelper,
   Material,
+  MathUtils,
   EquirectangularReflectionMapping,
   Group,
   Mesh,
@@ -294,36 +295,57 @@ export class ProducerViewManager {
   }
 
   viewAABB(aabb: Box3): void {
-    const aabbDepth = aabb.max.z - aabb.min.z;
-    const aabbWidth = aabb.max.x - aabb.min.x;
-    const aabbHeight = aabb.max.y - aabb.min.y;
-    const aabbHalfHeight = aabbHeight / 2;
-    const mid = (aabb.max.y + aabb.min.y) / 2;
-    const diagonal = Math.sqrt(aabbWidth * aabbWidth + aabbDepth * aabbDepth + aabbHeight * aabbHeight);
-
-    if (isFinite(diagonal) && diagonal > 0) {
-      this.orbitControls.maxDistance = diagonal * 20;
+    const diagonal = aabb.getSize(new Vector3()).length();
+    if (aabb.isEmpty() || !isFinite(diagonal) || diagonal <= 0) {
+      return;
     }
 
-    if (
-      this.firstTimeLoadingScene &&
-      isFinite(aabbWidth) &&
-      isFinite(aabbDepth) &&
-      isFinite(aabbHeight)
-    ) {
-      // console.log("Camera position intialized", aabbWidth, aabbDepth, aabbHeight);
+    this.orbitControls.maxDistance = diagonal * 20;
+
+    if (this.firstTimeLoadingScene) {
       this.firstTimeLoadingScene = false;
-
-      this.camera.position.y = (-mid + aabbHalfHeight) * (3 / 2);
-      this.camera.position.z = diagonal / 2;
-
-      this.orbitControls.target.set(
-        (aabb.max.x + aabb.min.x) / 2,
-        -mid + aabbHalfHeight,
-        (aabb.max.z + aabb.min.z) / 2
-      );
-      this.orbitControls.update();
+      this.frameModel(aabb);
     }
+  }
+
+  // aabb is in the model's own space; the model is drawn lifted by floorShift.
+  private frameModel(aabb: Box3): void {
+    const center = aabb.getCenter(new Vector3());
+    const half = aabb.getSize(new Vector3()).multiplyScalar(0.5);
+    center.y += floorShift(aabb);
+
+    const azimuth = MathUtils.degToRad(35);
+    const elevation = MathUtils.degToRad(25);
+    const back = new Vector3(
+      Math.sin(azimuth) * Math.cos(elevation),
+      Math.sin(elevation),
+      Math.cos(azimuth) * Math.cos(elevation),
+    );
+    const right = new Vector3(0, 1, 0).cross(back).normalize();
+    const up = back.clone().cross(right);
+
+    const tanV = Math.tan(MathUtils.degToRad(this.camera.fov) / 2);
+    const tanH = tanV * this.camera.aspect;
+    let distance = 0;
+    const corner = new Vector3();
+    for (const sx of [-1, 1]) {
+      for (const sy of [-1, 1]) {
+        for (const sz of [-1, 1]) {
+          corner.set(sx * half.x, sy * half.y, sz * half.z);
+          const depth = corner.dot(back);
+          distance = Math.max(
+            distance,
+            Math.abs(corner.dot(right)) / tanH + depth,
+            Math.abs(corner.dot(up)) / tanV + depth,
+          );
+        }
+      }
+    }
+
+    this.orbitControls.target.copy(center);
+    this.camera.position.copy(center).addScaledVector(back, distance * 1.1);
+    this.orbitControls.update();
+    requestRender();
   }
 
   // Attempt to size the shadows to fit exactly the model to maximize the map 
@@ -552,6 +574,7 @@ export class ProducerViewManager {
       threeScene: this.scene,
       camera: this.camera,
       gpuAcceleratedSort: !wasm,
+      sharedMemoryForWorkers: self.crossOriginIsolated,
     };
 
     this.guassianSplatViewer = new GaussianSplats3D.Viewer(splatViewerOptions);

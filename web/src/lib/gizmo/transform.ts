@@ -88,6 +88,7 @@ export class TransformGizmo {
 
     setPosition(x: number, y: number, z: number): void {
         this.mesh.position.set(x, y, z);
+        requestRender();
     }
 
     setX(x: number): void {

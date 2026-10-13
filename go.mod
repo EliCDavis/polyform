@@ -11,7 +11,7 @@ require (
 )
 
 require (
-	github.com/EliCDavis/jbtf v0.2.0
+	github.com/EliCDavis/jbtf v0.3.0
 	github.com/EliCDavis/sfm v1.2.0
 	github.com/gorilla/websocket v1.5.3
 )

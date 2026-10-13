@@ -112,6 +112,7 @@ export interface NodeInstance {
 export interface RuntimeSubGraphDefinition {
   name: string;
   description?: string;
+  group?: string;
   nodes: GraphInstanceNodes;
   notes?: { [key: string]: any };
   variables?: VariableGroup;
@@ -160,9 +161,17 @@ export interface ImportedSubGraphEntry {
   name: string;
   originalId?: string;
   nodeType: NodeDefinition;
+  inputs?: ImportedVariableInput[];
+}
+
+export interface ImportedVariableInput {
+  variable: string;
+  port: string;
+  hasDefault: boolean;
 }
 
 export interface ImportSubGraphsResult {
+  group?: string;
   imported: ImportedSubGraphEntry[];
 }
 

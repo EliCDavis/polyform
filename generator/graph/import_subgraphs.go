@@ -6,7 +6,6 @@ import (
 	"maps"
 	"slices"
 
-	"github.com/EliCDavis/jbtf"
 	"github.com/EliCDavis/polyform/generator/persistence"
 	"github.com/EliCDavis/polyform/generator/schema"
 	"github.com/EliCDavis/polyform/generator/subgraph"
@@ -18,28 +17,36 @@ type ImportedSubGraph struct {
 	OriginalID string
 	Name       string
 	NodeType   schema.NodeType
+	Inputs     []VariableInput
 }
 
 type ImportSubGraphsResult struct {
+	Group    string
 	Imported []ImportedSubGraph
 }
 
 // ImportSubGraphDefinitions adds every subgraph definition in a saved graph
 // to this one, and nothing else from it. An id already taken gets a numeric
 // suffix (Adder becomes Adder_2), and placements of it inside the other
-// imported definitions follow.
-func (a *Instance) ImportSubGraphDefinitions(payload []byte) (result ImportSubGraphsResult, err error) {
-	app, err := jbtf.Unmarshal[persistence.App](payload)
+// imported definitions follow. Variables they read become inputs, and they
+// are all filed under group, or the saved graph's name when group is empty.
+func (a *Instance) ImportSubGraphDefinitions(payload []byte, group string) (result ImportSubGraphsResult, err error) {
+	app, decoder, err := parseSavedGraph(payload)
 	if err != nil {
-		return result, fmt.Errorf("unable to parse graph as a jbtf: %w", err)
+		return result, err
 	}
-	decoder, err := jbtf.NewDecoder(payload)
-	if err != nil {
-		return result, fmt.Errorf("unable to build a jbtf decoder: %w", err)
+	result.Group = cmp.Or(group, app.Name)
+	if _, cyclic := dependenciesFirst(app.SubGraphs, placedSubGraphs); cyclic != "" {
+		return result, fmt.Errorf("imported sub-graph %q contains itself through its placements", cyclic)
 	}
 
 	a.mu().Lock()
 	defer a.mu().Unlock()
+
+	defs, inputs, err := a.liftVariables(app)
+	if err != nil {
+		return result, err
+	}
 
 	// Every definition exists before any is filled in, so one that places
 	// another finds its type.
@@ -56,11 +63,12 @@ func (a *Instance) ImportSubGraphDefinitions(payload []byte) (result ImportSubGr
 		if err := a.createSubGraph(newID, app.SubGraphs[id].Name, app.SubGraphs[id].Description); err != nil {
 			return result, err
 		}
+		a.subGraphs[newID].group = result.Group
 		newIDs[id] = newID
 	}
 
 	for _, id := range subGraphLoadOrder(app.SubGraphs) {
-		def, newID := app.SubGraphs[id], newIDs[id]
+		def, newID := defs[id], newIDs[id]
 
 		renamed := make(map[string]persistence.Node, len(def.Nodes))
 		for nodeID, node := range def.Nodes {
@@ -84,6 +92,7 @@ func (a *Instance) ImportSubGraphDefinitions(payload []byte) (result ImportSubGr
 			ID:       newID,
 			Name:     def.Name,
 			NodeType: BuildNodeTypeSchema(subgraph.RuntimeTypePath(newID), NewRuntimeNode(a, newID)),
+			Inputs:   inputs[id],
 		}
 		if newID != id {
 			imported.OriginalID = id

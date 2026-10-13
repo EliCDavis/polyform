@@ -54,6 +54,7 @@ type Variable struct {
 type SubGraph struct {
 	Name        string          `json:"name"`
 	Description string          `json:"description,omitempty"`
+	Group       string          `json:"group,omitempty"`
 	Nodes       map[string]Node `json:"nodes"`
 	Notes       map[string]any  `json:"notes,omitempty"`
 	Metadata    map[string]any  `json:"metadata,omitempty"`

@@ -1,10 +1,7 @@
 import { requestManager } from "./client";
 
 export function setVariableValue(key: string, value: unknown): Promise<Response> {
-  return fetch(`./variable/value/${key}`, {
-    method: "POST",
-    body: JSON.stringify(value),
-  });
+  return requestManager.setVariableValue(key, value);
 }
 
 export function setBinaryVariableValue(key: string, onSuccess?: () => void): void {

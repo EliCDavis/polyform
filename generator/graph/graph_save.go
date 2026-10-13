@@ -13,7 +13,10 @@ import (
 func (a *Instance) EncodeToAppSchema() ([]byte, error) {
 	a.mu().RLock()
 	defer a.mu().RUnlock()
+	return a.encodeToAppSchema()
+}
 
+func (a *Instance) encodeToAppSchema() ([]byte, error) {
 	encoder := &jbtf.Encoder{}
 
 	app := persistence.App{

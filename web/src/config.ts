@@ -1,4 +1,5 @@
 import type { ImportSubGraphsResult } from "@/lib/schema";
+import type { ViewportCapture } from "@/lib/viewport_capture";
 
 export interface RenderingConfiguration {
   AntiAlias: boolean;
@@ -17,8 +18,10 @@ declare global {
     importSubGraphs: (
       content: unknown,
       callback?: (result: ImportSubGraphsResult) => void,
-      error?: (err: unknown) => void
+      error?: (err: unknown) => void,
+      group?: string
     ) => void;
+    captureViewport: (capture: ViewportCapture) => void;
   }
 }
 

@@ -15,18 +15,45 @@ import (
 	"github.com/EliCDavis/polyform/nodes"
 )
 
-func (a *Instance) ApplyAppSchema(jsonPayload []byte) error {
+// A load that fails, even after it has started replacing the open graph,
+// leaves the open graph as it was.
+func (a *Instance) ApplyAppSchema(jsonPayload []byte) (err error) {
 	a.mu().Lock()
 	defer a.mu().Unlock()
 
-	// Parsed before anything is cleared: loading is destructive from here on.
-	app, err := jbtf.Unmarshal[persistence.App](jsonPayload)
+	before, err := a.encodeToAppSchema()
 	if err != nil {
-		return fmt.Errorf("unable to parse graph as a jbtf: %w", err)
+		return fmt.Errorf("saving the open graph before loading over it: %w", err)
 	}
-	decoder, err := jbtf.NewDecoder(jsonPayload)
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("loading graph: %v", r)
+		}
+		if err == nil {
+			return
+		}
+		if restoreErr := a.applyAppSchema(before); restoreErr != nil {
+			err = fmt.Errorf("%w (and restoring the open graph failed: %v)", err, restoreErr)
+		}
+	}()
+	return a.applyAppSchema(jsonPayload)
+}
+
+func parseSavedGraph(payload []byte) (app persistence.App, decoder jbtf.Decoder, err error) {
+	if app, err = jbtf.Unmarshal[persistence.App](payload); err != nil {
+		return app, decoder, fmt.Errorf("unable to parse graph as a jbtf: %w", err)
+	}
+	if decoder, err = jbtf.NewDecoder(payload); err != nil {
+		return app, decoder, fmt.Errorf("unable to build a jbtf decoder: %w", err)
+	}
+	return app, decoder, nil
+}
+
+func (a *Instance) applyAppSchema(jsonPayload []byte) error {
+	// Parsed before anything is cleared: loading is destructive from here on.
+	app, decoder, err := parseSavedGraph(jsonPayload)
 	if err != nil {
-		return fmt.Errorf("unable to build a jbtf decoder: %w", err)
+		return err
 	}
 
 	a.Reset()
@@ -216,22 +243,25 @@ func dependenciesFirst[V any](items map[string]V, dependencies func(V) []string)
 
 // Placing a definition copies it as it stands, so it has to be loaded first.
 func subGraphLoadOrder(subGraphs map[string]persistence.SubGraph) []string {
-	ordered, _ := dependenciesFirst(subGraphs, func(def persistence.SubGraph) []string {
-		var placed []string
-		for _, node := range def.Nodes {
-			if subgraph.IsRuntimeNodeType(node.Type) {
-				placed = append(placed, subgraph.RuntimeTypeID(node.Type))
-			}
-		}
-		return placed
-	})
+	ordered, _ := dependenciesFirst(subGraphs, placedSubGraphs)
 	return ordered
+}
+
+func placedSubGraphs(def persistence.SubGraph) []string {
+	var placed []string
+	for _, node := range def.Nodes {
+		if subgraph.IsRuntimeNodeType(node.Type) {
+			placed = append(placed, subgraph.RuntimeTypeID(node.Type))
+		}
+	}
+	return placed
 }
 
 func (a *Instance) loadSubGraphDefinition(id string, def persistence.SubGraph, decoder jbtf.Decoder) error {
 	if err := a.createSubGraph(id, def.Name, def.Description); err != nil {
 		return err
 	}
+	a.subGraphs[id].group = def.Group
 	definition := a.subGraphs[id].instance
 	if err := definition.loadSubGraphContents(def, decoder); err != nil {
 		return err
@@ -266,6 +296,9 @@ func (a *Graph) instantiateAppNode(nodeID string, saved persistence.Node) (nodes
 	} else {
 		if subgraph.IsRuntimeNodeType(saved.Type) && !project.typeFactory.KeyRegistered(saved.Type) {
 			project.RegisterSubGraphNodeType(subgraph.RuntimeTypeID(saved.Type))
+		}
+		if !project.typeFactory.KeyRegistered(saved.Type) {
+			return nil, fmt.Errorf("node %q has unknown type %q", nodeID, saved.Type)
 		}
 		built, ok := project.typeFactory.New(saved.Type).(nodes.Node)
 		if !ok {

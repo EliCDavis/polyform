@@ -6,6 +6,7 @@ import { WebSocketManager, WebSocketRepresentationManager } from "@/lib/websocke
 import { XRManager } from "@/lib/xr";
 import { UpdateManager } from "@/lib/update_manager";
 import { consumeRenderRequest, renderContinuously, requestRender } from "@/lib/render_scheduler";
+import { flushViewportCaptures } from "@/lib/viewport_capture";
 import { NoteManager } from "@/lib/note_manager";
 import { ViewportManager } from "@/lib/viewport_manager";
 import { SchemaManager } from "@/lib/schema_manager";
@@ -246,6 +247,29 @@ function EditorBootstrap({
 
       threeApp.OrbitControls.addEventListener("change", requestRender);
 
+      // The gizmo's tween only advances in render(), and orbit controls stay disabled until "end".
+      const gizmo = threeApp.ViewportGizmo;
+      let releaseGizmo: (() => void) | null = null;
+      const settleGizmo = () => {
+        releaseGizmo?.();
+        releaseGizmo = null;
+      };
+      gizmo.addEventListener("start", () => {
+        if (releaseGizmo) {
+          return;
+        }
+        releaseGizmo = renderContinuously();
+        // A click that misses every axis never fires "end".
+        document.addEventListener("pointerup", () => {
+          if (!gizmo.animating) {
+            threeApp.OrbitControls.enabled = true;
+            settleGizmo();
+          }
+        }, { once: true });
+      });
+      gizmo.addEventListener("end", settleGizmo);
+      gizmo.addEventListener("change", requestRender);
+
       updateLoop.addToUpdate({
         name: "Rendering",
         loop: (delta) => {
@@ -259,6 +283,7 @@ function EditorBootstrap({
 
           threeApp.Composer.render(delta);
           producerViewManager.Render();
+          flushViewportCaptures(threeApp.Renderer.domElement);
           threeApp.LabelRenderer.render(threeApp.Scene, threeApp.Camera);
           threeApp.ViewportGizmo.render();
         },

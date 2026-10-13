@@ -78,6 +78,7 @@ func (a *Instance) persistedSubGraphDefinition(id string, encoder *jbtf.Encoder)
 	return persistence.SubGraph{
 		Name:        runtime.name,
 		Description: runtime.description,
+		Group:       runtime.group,
 		Nodes:       child.savedNodes(encoder),
 		Notes:       notes,
 		Metadata:    child.metadata.Data(),

@@ -48,7 +48,7 @@ func TestImportSubGraphDefinitions_KeepsIDsWhenFree(t *testing.T) {
 	payload := buildSimpleAdderPayload(t)
 	dest := testInstanceWithSubGraphTypesExtended(t)
 
-	result, err := dest.ImportSubGraphDefinitions(payload)
+	result, err := dest.ImportSubGraphDefinitions(payload, "")
 	require.NoError(t, err)
 	require.Len(t, result.Imported, 1)
 	assert.Equal(t, "adder", result.Imported[0].ID)
@@ -68,7 +68,7 @@ func TestImportSubGraphDefinitions_EmptySubGraphs(t *testing.T) {
 	require.NoError(t, err)
 
 	dest := testInstanceWithSubGraphTypesExtended(t)
-	result, err := dest.ImportSubGraphDefinitions(payload)
+	result, err := dest.ImportSubGraphDefinitions(payload, "")
 	require.NoError(t, err)
 	assert.Empty(t, result.Imported)
 }
@@ -79,7 +79,7 @@ func TestImportSubGraphDefinitions_ConflictRenames(t *testing.T) {
 	dest := testInstanceWithSubGraphTypesExtended(t)
 	require.NoError(t, dest.CreateSubGraph("adder", "Existing", ""))
 
-	result, err := dest.ImportSubGraphDefinitions(payload)
+	result, err := dest.ImportSubGraphDefinitions(payload, "")
 	require.NoError(t, err)
 	require.Len(t, result.Imported, 1)
 	assert.Equal(t, "adder_2", result.Imported[0].ID)
@@ -100,7 +100,7 @@ func TestImportSubGraphDefinitions_DoesNotTouchRoot(t *testing.T) {
 	require.NoError(t, err)
 	param.(*parameter.Float64).CurrentValue = 42
 
-	result, err := dest.ImportSubGraphDefinitions(payload)
+	result, err := dest.ImportSubGraphDefinitions(payload, "")
 	require.NoError(t, err)
 	require.Len(t, result.Imported, 1)
 
@@ -135,7 +135,7 @@ func TestImportSubGraphDefinitions_NestedTypeRemap(t *testing.T) {
 	dest := testInstanceWithSubGraphTypesExtended(t)
 	require.NoError(t, dest.CreateSubGraph("inner", "Taken", ""))
 
-	result, err := dest.ImportSubGraphDefinitions(payload)
+	result, err := dest.ImportSubGraphDefinitions(payload, "")
 	require.NoError(t, err)
 	require.Len(t, result.Imported, 2)
 
@@ -167,7 +167,7 @@ func TestImportSubGraphDefinitions_EvaluatesAfterImport(t *testing.T) {
 	payload := buildSimpleAdderPayload(t)
 	dest := testInstanceWithSubGraphTypesExtended(t)
 
-	result, err := dest.ImportSubGraphDefinitions(payload)
+	result, err := dest.ImportSubGraphDefinitions(payload, "")
 	require.NoError(t, err)
 	require.Len(t, result.Imported, 1)
 

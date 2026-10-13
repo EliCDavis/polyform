@@ -26,12 +26,14 @@ interface PopupButtonProps {
   children: ReactNode;
   onClick?: () => void;
   variant?: "primary" | "secondary" | "destructive";
+  disabled?: boolean;
 }
 
 export function PopupButton({
   children,
   onClick,
   variant = "secondary",
+  disabled,
 }: PopupButtonProps) {
   const className =
     variant === "destructive"
@@ -40,7 +42,7 @@ export function PopupButton({
         ? "secondary"
         : "";
   return (
-    <button type="button" className={className} onClick={onClick}>
+    <button type="button" className={className} onClick={onClick} disabled={disabled}>
       {children}
     </button>
   );

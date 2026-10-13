@@ -19,14 +19,22 @@ const (
 )
 
 func importSubGraphsEndpoint(graphInstance *graph.Instance, saver *GraphSaver) endpoint.Handler {
+	type VariableInput struct {
+		Variable   string `json:"variable"`
+		Port       string `json:"port"`
+		HasDefault bool   `json:"hasDefault"`
+	}
+
 	type ImportedEntry struct {
 		ID         string          `json:"id"`
 		Name       string          `json:"name"`
 		OriginalID string          `json:"originalId,omitempty"`
 		NodeType   schema.NodeType `json:"nodeType"`
+		Inputs     []VariableInput `json:"inputs,omitempty"`
 	}
 
 	type ImportResponse struct {
+		Group    string          `json:"group,omitempty"`
 		Imported []ImportedEntry `json:"imported"`
 	}
 
@@ -36,20 +44,26 @@ func importSubGraphsEndpoint(graphInstance *graph.Instance, saver *GraphSaver) e
 				Request:        endpoint.BinaryRequestReader{},
 				ResponseWriter: endpoint.JsonResponseWriter[ImportResponse]{},
 				Handler: func(request endpoint.Request[[]byte]) (ImportResponse, error) {
-					result, err := graphInstance.ImportSubGraphDefinitions(request.Body)
+					result, err := graphInstance.ImportSubGraphDefinitions(request.Body, request.Query.Get("group"))
 					if err != nil {
 						return ImportResponse{}, err
 					}
 					saver.Save()
 					resp := ImportResponse{
+						Group:    result.Group,
 						Imported: make([]ImportedEntry, 0, len(result.Imported)),
 					}
 					for _, entry := range result.Imported {
+						inputs := make([]VariableInput, 0, len(entry.Inputs))
+						for _, input := range entry.Inputs {
+							inputs = append(inputs, VariableInput(input))
+						}
 						resp.Imported = append(resp.Imported, ImportedEntry{
 							ID:         entry.ID,
 							Name:       entry.Name,
 							OriginalID: entry.OriginalID,
 							NodeType:   entry.NodeType,
+							Inputs:     inputs,
 						})
 					}
 					return resp, nil

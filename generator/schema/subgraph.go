@@ -8,6 +8,7 @@ type SubGraphPortBoundary struct {
 type SubGraph struct {
 	Name        string            `json:"name"`
 	Description string            `json:"description,omitempty"`
-	Nodes       map[string]Node   `json:"nodes"`
+	Group       string            `json:"group,omitempty"`
+	Nodes      map[string]Node   `json:"nodes"`
 	Notes       map[string]any    `json:"notes,omitempty"`
 }

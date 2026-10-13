@@ -111,6 +111,11 @@ func (a *Graph) createNode(nodeType, portType string) (nodes.Node, string, error
 	if !factory.KeyRegistered(nodeType) {
 		return nil, "", fmt.Errorf("no factory registered with ID %s", nodeType)
 	}
+	if placed := subgraph.RuntimeTypeID(nodeType); placed != "" {
+		if scope := a.SubGraphScopeID(); scope != "" && a.project.wouldContainItself(scope, placed) {
+			return nil, "", refuseSelfContainment(scope, placed)
+		}
+	}
 
 	node, ok := factory.New(nodeType).(nodes.Node)
 	if !ok {

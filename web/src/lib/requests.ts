@@ -473,17 +473,19 @@ export class RequestManager {
   }
 
   undo(callback?: ResponseCallback<GraphHistory>): void {
+    const done = this.onGraphChangeResponse(GraphChangeEventType.WholeGraph, callback);
     void postJson<GraphHistory>("./graph/history/undo", {}).then((response) => {
       if (response !== undefined) {
-        callback?.(response);
+        done(response);
       }
     });
   }
 
   redo(callback?: ResponseCallback<GraphHistory>): void {
+    const done = this.onGraphChangeResponse(GraphChangeEventType.WholeGraph, callback);
     void postJson<GraphHistory>("./graph/history/redo", {}).then((response) => {
       if (response !== undefined) {
-        callback?.(response);
+        done(response);
       }
     });
   }
@@ -520,9 +522,11 @@ export class RequestManager {
   importSubGraphs(
     graphPayload: unknown,
     success: (response: ImportSubGraphsResult) => void,
-    error: (err: unknown) => void
+    error: (err: unknown) => void,
+    group?: string
   ): void {
-    void fetch("./subgraph/import", {
+    const query = group ? `?group=${encodeURIComponent(group)}` : "";
+    void fetch(`./subgraph/import${query}`, {
       method: "POST",
       headers: JSON_HEADERS,
       body: JSON.stringify(graphPayload),
@@ -664,6 +668,18 @@ export class RequestManager {
         this.notifyGraphChange(GraphChangeEventType.Variable_Info);
       })
       .catch(error);
+  }
+
+  setVariableValue(variableKey: string, value: unknown): Promise<Response> {
+    return fetch(`./variable/value/${variableKey}`, {
+      method: "POST",
+      body: JSON.stringify(value),
+    }).then((response) => {
+      if (response.ok) {
+        this.notifyGraphChange(GraphChangeEventType.Variable_Set);
+      }
+      return response;
+    });
   }
 
   newProfile(

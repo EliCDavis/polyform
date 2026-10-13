@@ -166,6 +166,7 @@ func (a *Instance) Schema() schema.Graph {
 		graph.SubGraphs[id] = schema.SubGraph{
 			Name:        definition.name,
 			Description: definition.description,
+			Group:       definition.group,
 			Nodes:       inside.Nodes,
 			Notes:       inside.Notes,
 		}

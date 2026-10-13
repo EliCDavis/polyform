@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import { useInvalidateSchema } from "@/api/hooks";
 import { requestManager } from "@/api/client";
 import { applyImportedSubGraphs } from "@/lib/importSubGraphs";
+import { captureViewport } from "@/lib/viewport_capture";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -23,14 +24,15 @@ function AppInner() {
   return (
     <EditorProvider
       onEditorReady={(nodeManager) => {
-        window.importSubGraphs = (content, callback, error) => {
+        window.importSubGraphs = (content, callback, error, group) => {
           requestManager.importSubGraphs(
             content,
             (result) => {
               applyImportedSubGraphs(nodeManager, result);
               callback?.(result);
             },
-            (err) => error?.(err)
+            (err) => error?.(err),
+            group
           );
         };
       }}
@@ -58,6 +60,7 @@ export function setupGlobalHooks() {
   window.graphChangeCallback = (cb) => {
     requestManager.subscribeToGraphChange(cb);
   };
+  window.captureViewport = captureViewport;
   // Overwritten by EditorProvider once NodeManager is ready so imported
   // runtime types can be registered without a full page reload.
   window.importSubGraphs = (_content, _callback, error) => {

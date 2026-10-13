@@ -23,8 +23,9 @@ func (jse BodyMethod[Body]) Handle(w http.ResponseWriter, r *http.Request) {
 
 	err = safeRun(func() error {
 		return jse.Handler(Request[Body]{
-			Body: request,
-			Url:  r.URL.Path,
+			Body:  request,
+			Url:   r.URL.Path,
+			Query: r.URL.Query(),
 		})
 	})
 

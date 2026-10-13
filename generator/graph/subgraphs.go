@@ -12,6 +12,7 @@ import (
 type subGraphRuntime struct {
 	name        string
 	description string
+	group       string
 	instance    *Graph
 }
 
@@ -140,6 +141,34 @@ func (a *Instance) SubGraphInstance(id string) (*Graph, error) {
 		return nil, fmt.Errorf("sub-graph %q does not exist", id)
 	}
 	return runtime.instance, nil
+}
+
+// wouldContainItself reports whether placing placed inside the definition
+// scope lets scope reach itself through placements.
+func (a *Instance) wouldContainItself(scope, placed string) bool {
+	seen := map[string]bool{}
+	var reaches func(id string) bool
+	reaches = func(id string) bool {
+		if id == scope {
+			return true
+		}
+		runtime, exists := a.subGraphs[id]
+		if seen[id] || !exists {
+			return false
+		}
+		seen[id] = true
+		for node := range runtime.instance.nodeIDs {
+			if placement, ok := node.(*SubgraphInstanceNode); ok && reaches(placement.subGraphID) {
+				return true
+			}
+		}
+		return false
+	}
+	return reaches(placed)
+}
+
+func refuseSelfContainment(scope, placed string) error {
+	return fmt.Errorf("sub-graph %q cannot be placed inside %q: it would contain itself", placed, scope)
 }
 
 func (a *Instance) RegisterSubGraphNodeType(subGraphID string) (string, error) {

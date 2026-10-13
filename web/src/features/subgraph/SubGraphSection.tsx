@@ -7,7 +7,7 @@ import { useUiStore } from "@/stores/uiStore";
 import type { RuntimeSubGraphDefinition } from "@/lib/schema";
 import {
   applyImportedSubGraphs,
-  formatImportRemapSummary,
+  formatImportSummary,
 } from "@/lib/importSubGraphs";
 import { NewSubGraphModal } from "@/features/popups/NewSubGraphModal";
 import { SubGraphRow } from "./SubGraphRow";
@@ -28,6 +28,15 @@ export function SubGraphSection() {
       (a.name || "").localeCompare(b.name || "")
     );
   }, [graph?.subGraphs]);
+
+  const groups = useMemo(() => {
+    const byGroup = new Map<string, [string, RuntimeSubGraphDefinition][]>();
+    for (const entry of subGraphs) {
+      const group = entry[1].group ?? "";
+      byGroup.set(group, [...(byGroup.get(group) ?? []), entry]);
+    }
+    return [...byGroup.entries()].sort(([a], [b]) => a.localeCompare(b));
+  }, [subGraphs]);
 
   const instanceCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -63,18 +72,15 @@ export function SubGraphSection() {
         return;
       }
 
+      const savedName = (payload as { data?: { name?: string } })?.data?.name;
       requestManager.importSubGraphs(
         payload,
         (result) => {
           applyImportedSubGraphs(editor.nodeManager, result);
-          const remaps = formatImportRemapSummary(result);
-          if (remaps) {
-            alert(`Imported ${result.imported.length} sub-graph(s).\n\nRenamed due to conflicts:\n${remaps}`);
-          } else if (result.imported.length === 0) {
-            alert("No sub-graph definitions found in the file.");
-          }
+          alert(formatImportSummary(result));
         },
-        (err) => alert(getApiErrorMessage(err, "Failed to import sub-graphs"))
+        (err) => alert(getApiErrorMessage(err, "Failed to import sub-graphs")),
+        savedName || file.name.replace(/\.json$/i, "")
       );
     };
     reader.readAsText(file);
@@ -103,16 +109,25 @@ export function SubGraphSection() {
             onChange={onFileSelected}
           />
         )}
-        {subGraphs.map(([id, def]) => (
-          <SubGraphRow
-            key={id}
-            id={id}
-            name={def.name || id}
-            description={def.description}
-            nodeCount={Object.keys(def.nodes ?? {}).length}
-            instanceCount={instanceCounts[id] ?? 0}
-          />
-        ))}
+        {groups.map(([group, entries]) => {
+          const rows = entries.map(([id, def]) => (
+            <SubGraphRow
+              key={id}
+              id={id}
+              name={def.name || id}
+              description={def.description}
+              nodeCount={Object.keys(def.nodes ?? {}).length}
+              instanceCount={instanceCounts[id] ?? 0}
+            />
+          ));
+          if (!group) return rows;
+          return (
+            <details key={group} open>
+              <summary>{group}</summary>
+              {rows}
+            </details>
+          );
+        })}
       </div>
       <NewSubGraphModal
         open={newOpen}
