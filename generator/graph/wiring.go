@@ -163,10 +163,10 @@ func (a *Graph) connectNodes(nodeOutId, outPortName, nodeInId, inPortName string
 			e.producerID, e.consumerID, e.input, e.consumerID, e.producerID)
 	}
 	// Types are unsettled until a compound edit closes; settling then refuses misfits.
-	if !a.inCompoundEdit() {
-		if err := checkPortTypes(e); err != nil {
-			return err
-		}
+	if a.inCompoundEdit() {
+		a.Root().compound.noteAdded(a, e)
+	} else if err := checkPortTypes(e); err != nil {
+		return err
 	}
 
 	previous := a.reads[e.consumer][e.input]
@@ -295,25 +295,32 @@ func checkPortTypes(e edge) error {
 		return nil
 	}
 
-	// A port taking more than one type reports whichever it holds now, so
-	// asking for "the" type would pin it there and refuse the other.
-	accepted := []string{portTypeOf(e.in)}
-	if options, ok := e.in.(nodes.TypeOptions); ok && len(options.AcceptedTypes()) > 0 {
-		accepted = options.AcceptedTypes()
-	}
+	accepted := acceptedTypes(e.in)
 	if accepted[0] == "" || slices.Contains(accepted, from) {
 		return nil
 	}
-
-	hint := ""
-	for _, want := range accepted {
-		if hint = connectionHint(from, want, e.input); hint != "" {
-			break
-		}
-	}
 	return fmt.Errorf(
 		"node %q's %q output is %s, but node %q's %q input takes %s%s",
-		e.producerID, e.output, from, e.consumerID, e.input, strings.Join(accepted, " or "), hint)
+		e.producerID, e.output, from, e.consumerID, e.input, strings.Join(accepted, " or "), edgeHint(e))
+}
+
+// A port taking more than one type reports whichever it holds now, so
+// asking for "the" type would pin it there and refuse the other.
+func acceptedTypes(in nodes.InputPort) []string {
+	if options, ok := in.(nodes.TypeOptions); ok && len(options.AcceptedTypes()) > 0 {
+		return options.AcceptedTypes()
+	}
+	return []string{portTypeOf(in)}
+}
+
+func edgeHint(e edge) string {
+	from := portTypeOf(e.out)
+	for _, want := range acceptedTypes(e.in) {
+		if hint := connectionHint(from, want, e.input); hint != "" {
+			return hint
+		}
+	}
+	return ""
 }
 
 func connectionHint(from, to, inPort string) string {

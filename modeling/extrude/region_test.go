@@ -65,7 +65,7 @@ func TestRegionWithoutDepthIsOneFaceForward(t *testing.T) {
 	assert.Equal(t, 2, face.PrimitiveCount())
 }
 
-func TestRegionNodeTakesASpreadListOfHoles(t *testing.T) {
+func TestAreaNodeExtrudesAFilledAreaWithASpreadListOfHoles(t *testing.T) {
 	pads := nodes.GetNodeOutputPort[[][]vector2.Float64](&nodes.Struct[sketch.RoundedRectangleNode]{
 		Data: sketch.RoundedRectangleNode{
 			Size:   nodes.ConstOutput[vector2.Float64]{Val: vector2.New(1., 1.)},
@@ -77,25 +77,28 @@ func TestRegionNodeTakesASpreadListOfHoles(t *testing.T) {
 	holes, ok := spread.Outputs()["Out"].(nodes.Output[[]vector2.Float64])
 	require.True(t, ok, "a spread of outlines is typed as one outline")
 
-	solid := nodes.GetNodeOutputPort[modeling.Mesh](&nodes.Struct[extrude.RegionNode]{
-		Data: extrude.RegionNode{
+	board := nodes.GetNodeOutputPort[sketch.Area](&nodes.Struct[sketch.FillNode]{
+		Data: sketch.FillNode{
 			Outlines: []nodes.Output[[]vector2.Float64]{nodes.ConstOutput[[]vector2.Float64]{Val: square(10, vector2.New(0., 0.))}},
 			Holes:    []nodes.Output[[]vector2.Float64]{holes},
-			Depth:    nodes.ConstOutput[float64]{Val: 1},
 		},
+	}, "Out")
+	solid := nodes.GetNodeOutputPort[modeling.Mesh](&nodes.Struct[extrude.AreaNode]{
+		Data: extrude.AreaNode{Area: board, Depth: nodes.ConstOutput[float64]{Val: 1}},
 	}, "Out").Value()
 
+	require.NoError(t, csg.CheckClosed(solid))
 	assert.InDelta(t, 100.-2, signedVolume(solid), 1e-9)
 }
 
-func TestRegionNodeExtrudesAStrokedRingAsARing(t *testing.T) {
+func TestAreaNodeExtrudesAStrokedRingAsARing(t *testing.T) {
 	path := []vector2.Float64{vector2.New(0., 0.), vector2.New(10., 0.), vector2.New(10., 10.), vector2.New(0., 10.)}
 	ring, err := sketch.Stroke(path, 2, 16, true)
 	require.NoError(t, err)
 
-	solid := nodes.GetNodeOutputPort[modeling.Mesh](&nodes.Struct[extrude.RegionNode]{
-		Data: extrude.RegionNode{
-			Areas: []nodes.Output[sketch.Area]{nodes.ConstOutput[sketch.Area]{Val: ring}},
+	solid := nodes.GetNodeOutputPort[modeling.Mesh](&nodes.Struct[extrude.AreaNode]{
+		Data: extrude.AreaNode{
+			Area:  nodes.ConstOutput[sketch.Area]{Val: ring},
 			Depth: nodes.ConstOutput[float64]{Val: 1},
 		},
 	}, "Out").Value()
@@ -104,37 +107,43 @@ func TestRegionNodeExtrudesAStrokedRingAsARing(t *testing.T) {
 	assert.InDelta(t, ring.Size(), signedVolume(solid), 1e-6)
 }
 
-func TestRegionNodeUnionsAreasWithOutlinesAndCutsHolesThroughBoth(t *testing.T) {
-	right, err := sketch.Fill([]geometry.Shape{square(4, vector2.New(2., 0.))}, nil)
+func TestAreaNodeKeepsAnIslandInsideAHole(t *testing.T) {
+	frame, err := sketch.Fill([]geometry.Shape{square(10, vector2.New(0., 0.))}, []geometry.Shape{square(6, vector2.New(0., 0.))})
+	require.NoError(t, err)
+	island, err := sketch.Fill([]geometry.Shape{square(2, vector2.New(0., 0.))}, nil)
+	require.NoError(t, err)
+	both, err := sketch.Union(frame, island)
 	require.NoError(t, err)
 
-	solid := nodes.GetNodeOutputPort[modeling.Mesh](&nodes.Struct[extrude.RegionNode]{
-		Data: extrude.RegionNode{
-			Outlines: []nodes.Output[[]vector2.Float64]{nodes.ConstOutput[[]vector2.Float64]{Val: square(4, vector2.New(-2., 0.))}},
-			Areas:    []nodes.Output[sketch.Area]{nodes.ConstOutput[sketch.Area]{Val: right}},
-			Holes:    []nodes.Output[[]vector2.Float64]{nodes.ConstOutput[[]vector2.Float64]{Val: square(2, vector2.New(0., 0.))}},
-			Depth:    nodes.ConstOutput[float64]{Val: 1},
-		},
-	}, "Out").Value()
+	solid, err := extrude.Area(both, 1)
+	require.NoError(t, err)
 
 	require.NoError(t, csg.CheckClosed(solid))
-	assert.InDelta(t, 32.-4, signedVolume(solid), 1e-9)
+	assert.InDelta(t, 100.-36+4, signedVolume(solid), 1e-9)
 }
 
-func TestRegionNodeCutsHoleAreasThroughEverything(t *testing.T) {
-	board, err := sketch.Fill([]geometry.Shape{square(10, vector2.New(0., 0.))}, nil)
+func TestAreaNodeGivesOneSolidPerArea(t *testing.T) {
+	small, err := sketch.Fill([]geometry.Shape{square(2, vector2.New(0., 0.))}, nil)
 	require.NoError(t, err)
-	drill, err := sketch.Fill([]geometry.Shape{square(2, vector2.New(0., 0.))}, nil)
+	large, err := sketch.Fill([]geometry.Shape{square(4, vector2.New(0., 0.))}, nil)
 	require.NoError(t, err)
 
-	solid := nodes.GetNodeOutputPort[modeling.Mesh](&nodes.Struct[extrude.RegionNode]{
-		Data: extrude.RegionNode{
-			Areas:     []nodes.Output[sketch.Area]{nodes.ConstOutput[sketch.Area]{Val: board}},
-			HoleAreas: []nodes.Output[sketch.Area]{nodes.ConstOutput[sketch.Area]{Val: drill}},
-			Depth:     nodes.ConstOutput[float64]{Val: 1},
+	solids := nodes.GetNodeOutputPort[[]modeling.Mesh](&nodes.Struct[extrude.AreaNode]{
+		Data: extrude.AreaNode{
+			Area:  nodes.ConstOutput[[]sketch.Area]{Val: []sketch.Area{small, large}},
+			Depth: nodes.ConstOutput[float64]{Val: 1},
 		},
 	}, "Out").Value()
 
-	require.NoError(t, csg.CheckClosed(solid))
-	assert.InDelta(t, 96, signedVolume(solid), 1e-9)
+	require.Len(t, solids, 2)
+	assert.InDelta(t, 4, signedVolume(solids[0]), 1e-9)
+	assert.InDelta(t, 16, signedVolume(solids[1]), 1e-9)
+}
+
+func TestAreaRefusesANegativeDepth(t *testing.T) {
+	board, err := sketch.Fill([]geometry.Shape{square(2, vector2.New(0., 0.))}, nil)
+	require.NoError(t, err)
+
+	_, err = extrude.Area(board, -1)
+	assert.Error(t, err)
 }

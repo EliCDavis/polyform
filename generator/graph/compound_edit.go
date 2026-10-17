@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+
+	"github.com/EliCDavis/polyform/nodes"
 )
 
 // While a compound edit is open, an edit anywhere in the graph is only
@@ -11,6 +13,35 @@ import (
 type compoundEdit struct {
 	depth  int
 	edited []*Graph
+	added  map[addedInput]bool
+}
+
+type addedInput struct {
+	graph    *Graph
+	consumer nodes.Node
+	input    string
+}
+
+func (c *compoundEdit) noteAdded(graph *Graph, e edge) {
+	if c.added == nil {
+		c.added = make(map[addedInput]bool)
+	}
+	c.added[addedInput{graph, e.consumer, e.input}] = true
+}
+
+// The connect-time hint for an edge this edit added, which was not checked
+// against types then.
+func (c *compoundEdit) hintFor(edited []*Graph, drop DroppedEdge) string {
+	for _, graph := range edited {
+		if graph.SubGraphScopeID() != drop.Scope {
+			continue
+		}
+		e, err := graph.edgeBetween(drop.From, drop.FromPort, drop.To, drop.ToPort)
+		if err == nil && c.added[addedInput{graph, e.consumer, e.input}] {
+			return edgeHint(e)
+		}
+	}
+	return ""
 }
 
 // Batch runs f as one compound edit. Edges that no longer fit when f is
@@ -40,6 +71,7 @@ func (a *Graph) beginCompoundEdit() (end func() error) {
 		}
 		edited := root.compound.edited
 		root.compound.edited = nil
+		defer func() { root.compound.added = nil }()
 		return root.closeCompoundEdit(edited)
 	}
 }
@@ -74,6 +106,9 @@ func (root *Instance) closeCompoundEdit(edited []*Graph) error {
 	}
 	if len(dropped) == 0 {
 		return nil
+	}
+	for i := range dropped {
+		dropped[i].Reason += root.compound.hintFor(edited, dropped[i])
 	}
 	return &UnfitEdges{Edges: dropped}
 }

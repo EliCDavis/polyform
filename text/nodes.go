@@ -26,7 +26,7 @@ func (ConcatNode) Description() string {
 }
 
 func (ConcatNode) Keywords() []string {
-	return []string{"concatenate", "join", "append", "format", "name"}
+	return []string{"format"}
 }
 
 func (n ConcatNode) Out(out *nodes.Lifted[string]) {

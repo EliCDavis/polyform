@@ -63,7 +63,7 @@ func (StrokeNode) Description() string {
 }
 
 func (StrokeNode) Keywords() []string {
-	return []string{"polyline", "thicken", "line", "offset", "strip", "width"}
+	return []string{"polyline", "thicken"}
 }
 
 func (n StrokeNode) Out(out *nodes.Lifted[Area]) {

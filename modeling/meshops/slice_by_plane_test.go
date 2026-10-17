@@ -6,6 +6,7 @@ import (
 	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/meshops"
+	"github.com/EliCDavis/polyform/modeling/primitives"
 	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
 	"github.com/stretchr/testify/assert"
@@ -96,4 +97,16 @@ func TestSliceByPlaneOfAnEmptyMeshIsEmpty(t *testing.T) {
 	})
 	assert.Zero(t, again.PrimitiveCount())
 	assert.Zero(t, rest.PrimitiveCount())
+}
+
+func TestSliceByPlaneGivesAFaceOnThePlaneToTheSolidItBounds(t *testing.T) {
+	cube := primitives.Cube{Width: 2, Height: 2, Depth: 2}.Welded()
+
+	aboveTop, belowTop := meshops.SliceByPlaneWithAttribute(cube, geometry.NewPlane(vector3.New(0., 1., 0.), vector3.New(0., 1., 0.)), modeling.PositionAttribute)
+	assert.Zero(t, aboveTop.PrimitiveCount())
+	assert.Equal(t, cube.PrimitiveCount(), belowTop.PrimitiveCount())
+
+	aboveBottom, belowBottom := meshops.SliceByPlaneWithAttribute(cube, geometry.NewPlane(vector3.New(0., -1., 0.), vector3.New(0., 1., 0.)), modeling.PositionAttribute)
+	assert.Equal(t, cube.PrimitiveCount(), aboveBottom.PrimitiveCount())
+	assert.Zero(t, belowBottom.PrimitiveCount())
 }

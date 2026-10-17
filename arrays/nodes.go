@@ -293,7 +293,7 @@ func (SpreadNode) Description() string {
 }
 
 func (SpreadNode) Keywords() []string {
-	return []string{"unpack", "splat", "expand", "each"}
+	return []string{"unpack", "splat"}
 }
 
 func (s SpreadNode) Out(out *nodes.Dynamic[Element]) {

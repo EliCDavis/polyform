@@ -384,11 +384,8 @@ func (c CubeNode) Description() string {
 }
 
 func (c CubeNode) Out(out *nodes.Lifted[modeling.Mesh]) {
-	strip := &StripUVs{
-		Start: vector2.New(0, 0.5),
-		End:   vector2.New(1, 0.5),
-		Width: 1.,
-	}
+	unit := UnitStripUVs()
+	strip := &unit
 	dimensions := max(1, nodes.TryGetOutputValue(out, c.Dimensions, 1))
 	uvs := nodes.TryGetOutputReference(out, c.UVs, &CubeUVs{
 		Top:    strip,

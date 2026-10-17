@@ -665,7 +665,7 @@ func (node MaterialSheenExtensionNode) Description() string {
 }
 
 func (node MaterialSheenExtensionNode) Keywords() []string {
-	return []string{"fuzz", "soft", "grazing"}
+	return []string{"fuzz"}
 }
 
 type MaterialSpecularExtensionNode struct {
@@ -692,7 +692,7 @@ func (node MaterialSpecularExtensionNode) Description() string {
 }
 
 func (node MaterialSpecularExtensionNode) Keywords() []string {
-	return []string{"f0", "reflectance", "highlight", "dielectric"}
+	return []string{"f0", "reflectance"}
 }
 
 type MaterialIridescenceExtensionNode struct {
@@ -720,7 +720,7 @@ func (node MaterialIridescenceExtensionNode) Description() string {
 }
 
 func (node MaterialIridescenceExtensionNode) Keywords() []string {
-	return []string{"thin film", "interference", "rainbow", "color shift"}
+	return []string{"rainbow"}
 }
 
 type MaterialDispersionExtensionNode struct {
@@ -738,7 +738,7 @@ func (node MaterialDispersionExtensionNode) Description() string {
 }
 
 func (node MaterialDispersionExtensionNode) Keywords() []string {
-	return []string{"abbe", "fire", "prism", "chromatic", "refraction"}
+	return []string{"abbe", "prism"}
 }
 
 type AnimationNode struct {

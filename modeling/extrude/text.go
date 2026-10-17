@@ -212,7 +212,7 @@ func (TextNode) Description() string {
 }
 
 func (TextNode) Keywords() []string {
-	return []string{"lettering", "font", "glyph", "engrave", "emboss"}
+	return []string{"lettering", "emboss"}
 }
 
 func (n TextNode) Out(out *nodes.Lifted[modeling.Mesh]) {

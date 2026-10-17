@@ -121,7 +121,7 @@ func (CylinderProjectUVNode) Description() string {
 }
 
 func (CylinderProjectUVNode) Keywords() []string {
-	return []string{"unwrap", "wrap", "cylindrical", "tube"}
+	return []string{"unwrap"}
 }
 
 func (n CylinderProjectUVNode) Out(out *nodes.StructOutput[modeling.Mesh]) {

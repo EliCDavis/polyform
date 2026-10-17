@@ -91,10 +91,6 @@ func (BevelNode) Description() string {
 	return "Cuts every corner of a 2D path or outline, straight (a chamfer) or round (a fillet). A list gives one result each."
 }
 
-func (BevelNode) Keywords() []string {
-	return []string{"chamfer", "fillet", "round corners", "miter", "corner"}
-}
-
 func (n BevelNode) Out(out *nodes.Lifted[[]vector2.Float64]) {
 	round := nodes.TryGetOutputValue(out, n.Round, false)
 	segments := max(nodes.TryGetOutputValue(out, n.Segments, 8), 1)

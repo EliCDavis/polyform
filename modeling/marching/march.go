@@ -300,8 +300,7 @@ func marchGrid(field sample.Vec3ToFloat, r gridRange, cubeSize, surface float64,
 		return
 	}
 
-	// Halve only the axes still spanning several points; halving every axis
-	// together resamples the short ones many times over on a long domain.
+	// Only axes still spanning several points are halved.
 	var halves [3][2]gridRange
 	var counts [3]int
 	for i := range 3 {

@@ -217,6 +217,9 @@ func hold(in nodes.InputPort, want []nodes.OutputPort) (refused int, err error) 
 				slot.Clear()
 			}
 		case !samePort(held, want[0]):
+			if err := nodes.RefuseSpread(want[0], in.Name()); err != nil {
+				return 0, err
+			}
 			if err := slot.Set(want[0]); err != nil {
 				return 0, err
 			}
@@ -232,6 +235,8 @@ func hold(in nodes.InputPort, want []nodes.OutputPort) (refused int, err error) 
 		}
 		slot.Clear()
 		for i, port := range want {
+			// Set before Add, so a panic the deferred recover catches names this element.
+			refused = i
 			if err := slot.Add(port); err != nil {
 				return i, err
 			}

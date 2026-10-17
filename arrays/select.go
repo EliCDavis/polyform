@@ -16,7 +16,7 @@ func (GatherNode) Description() string {
 }
 
 func (GatherNode) Keywords() []string {
-	return []string{"pick", "lookup", "take", "select", "index"}
+	return []string{"pick"}
 }
 
 func (g GatherNode) Out(out *nodes.Dynamic[[]Element]) {
@@ -53,7 +53,7 @@ func (FilterNode) Description() string {
 }
 
 func (FilterNode) Keywords() []string {
-	return []string{"mask", "where", "select", "remove", "partition"}
+	return []string{"mask", "where"}
 }
 
 func (f FilterNode) split(recorder nodes.ExecutionRecorder, keep bool) (nodes.DynamicArray, []any, bool) {
@@ -108,7 +108,7 @@ func (SplitNode) Description() string {
 }
 
 func (SplitNode) Keywords() []string {
-	return []string{"runs", "group", "unflatten", "paths", "chunk"}
+	return []string{"unflatten"}
 }
 
 func (s SplitNode) Out(out *nodes.Dynamic[[][]Element]) {
@@ -156,7 +156,7 @@ func (ZipNode) Description() string {
 }
 
 func (ZipNode) Keywords() []string {
-	return []string{"transpose", "interleave", "columns", "rows", "paths"}
+	return []string{"transpose"}
 }
 
 func (z ZipNode) Out(out *nodes.Dynamic[[][]Element]) {

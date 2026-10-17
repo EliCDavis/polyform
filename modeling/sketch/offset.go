@@ -89,7 +89,7 @@ func (OffsetNode) Description() string {
 }
 
 func (OffsetNode) Keywords() []string {
-	return []string{"inflate", "deflate", "buffer", "inset", "outset", "margin", "grow", "shrink"}
+	return []string{"buffer", "inflate"}
 }
 
 func (n OffsetNode) Out(out *nodes.Lifted[Area]) {

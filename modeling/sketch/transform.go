@@ -31,10 +31,6 @@ func (TransformNode) Description() string {
 	return "Scales, rotates about the origin, then moves a 2D outline or path. Lists give one each."
 }
 
-func (TransformNode) Keywords() []string {
-	return []string{"rotate", "translate", "move", "scale", "place"}
-}
-
 func (n TransformNode) Out(out *nodes.Lifted[[]vector2.Float64]) {
 	nodes.Zip4(
 		out,

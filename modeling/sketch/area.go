@@ -183,12 +183,12 @@ func (FillNode) Description() string {
 }
 
 func (n FillNode) Out(out *nodes.StructOutput[Area]) {
-	area, err := Fill(toShapes(nodes.GetOutputValues(out, n.Outlines)), toShapes(nodes.GetOutputValues(out, n.Holes)))
+	area, err := Fill(Shapes(nodes.GetOutputValues(out, n.Outlines)), Shapes(nodes.GetOutputValues(out, n.Holes)))
 	out.CaptureError(err)
 	out.Set(area)
 }
 
-func toShapes(outlines [][]vector2.Float64) []geometry.Shape {
+func Shapes(outlines [][]vector2.Float64) []geometry.Shape {
 	shapes := make([]geometry.Shape, len(outlines))
 	for i, outline := range outlines {
 		shapes[i] = outline
@@ -234,7 +234,7 @@ func (SubtractNode) Description() string {
 }
 
 func (SubtractNode) Keywords() []string {
-	return []string{"difference", "cut", "hole", "boolean"}
+	return []string{"difference", "boolean"}
 }
 
 func (n SubtractNode) Out(out *nodes.StructOutput[Area]) {
@@ -259,7 +259,7 @@ func (TransformAreaNode) Description() string {
 }
 
 func (TransformAreaNode) Keywords() []string {
-	return []string{"rotate", "translate", "move", "scale", "place", "mirror"}
+	return []string{"mirror"}
 }
 
 func (n TransformAreaNode) Out(out *nodes.Lifted[Area]) {

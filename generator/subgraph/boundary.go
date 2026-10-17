@@ -268,9 +268,6 @@ func (p *inputNodeDefaultPort) Value() nodes.OutputPort {
 }
 
 func (p *inputNodeDefaultPort) Set(port nodes.OutputPort) error {
-	if err := nodes.RefuseSpread(port, DefaultPortName); err != nil {
-		return err
-	}
 	p.connected = port
 	p.node.version++
 	nodes.Touch()
@@ -365,9 +362,6 @@ func (p *outputNodeInputPort) Value() nodes.OutputPort {
 }
 
 func (p *outputNodeInputPort) Set(port nodes.OutputPort) error {
-	if err := nodes.RefuseSpread(port, p.node.BoundaryPortName()); err != nil {
-		return err
-	}
 	p.connected = port
 	nodes.Touch()
 	return nil

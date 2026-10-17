@@ -8,7 +8,6 @@ import (
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
-	"github.com/EliCDavis/vector/vector4"
 )
 
 var errProjectionNeedsTriangles = errors.New("projection needs a triangle mesh")
@@ -32,48 +31,11 @@ func splitByGroup(m modeling.Mesh, group func(corner int) int) (modeling.Mesh, [
 		remapped[corner] = index
 	}
 
-	v4 := map[string][]vector4.Float64{}
-	for _, attr := range m.Float4Attributes() {
-		data := m.Float4Attribute(attr)
-		values := make([]vector4.Float64, len(sources))
-		for i, source := range sources {
-			values[i] = data.At(source)
-		}
-		v4[attr] = values
-	}
-	v3 := map[string][]vector3.Float64{}
-	for _, attr := range m.Float3Attributes() {
-		data := m.Float3Attribute(attr)
-		values := make([]vector3.Float64, len(sources))
-		for i, source := range sources {
-			values[i] = data.At(source)
-		}
-		v3[attr] = values
-	}
-	v2 := map[string][]vector2.Float64{}
-	for _, attr := range m.Float2Attributes() {
-		data := m.Float2Attribute(attr)
-		values := make([]vector2.Float64, len(sources))
-		for i, source := range sources {
-			values[i] = data.At(source)
-		}
-		v2[attr] = values
-	}
-	v1 := map[string][]float64{}
-	for _, attr := range m.Float1Attributes() {
-		data := m.Float1Attribute(attr)
-		values := make([]float64, len(sources))
-		for i, source := range sources {
-			values[i] = data.At(source)
-		}
-		v1[attr] = values
-	}
-
 	split := modeling.NewMesh(m.Topology(), remapped).
-		SetFloat4Data(v4).
-		SetFloat3Data(v3).
-		SetFloat2Data(v2).
-		SetFloat1Data(v1)
+		SetFloat4Data(gatherByIndex(sources, m.Float4Attributes(), m.Float4Attribute)).
+		SetFloat3Data(gatherByIndex(sources, m.Float3Attributes(), m.Float3Attribute)).
+		SetFloat2Data(gatherByIndex(sources, m.Float2Attributes(), m.Float2Attribute)).
+		SetFloat1Data(gatherByIndex(sources, m.Float1Attributes(), m.Float1Attribute))
 	return split, sources, groups
 }
 
@@ -172,7 +134,7 @@ func (BoxProjectUVNode) Description() string {
 }
 
 func (BoxProjectUVNode) Keywords() []string {
-	return []string{"unwrap", "triplanar", "cube"}
+	return []string{"unwrap", "triplanar"}
 }
 
 func (n BoxProjectUVNode) Out(out *nodes.StructOutput[modeling.Mesh]) {

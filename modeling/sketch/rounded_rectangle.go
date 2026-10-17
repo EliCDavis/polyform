@@ -51,7 +51,7 @@ func (RoundedRectangleNode) Description() string {
 }
 
 func (RoundedRectangleNode) Keywords() []string {
-	return []string{"rectangle", "rounded", "fillet", "outline"}
+	return []string{"fillet"}
 }
 
 func (n RoundedRectangleNode) Out(out *nodes.Lifted[[]vector2.Float64]) {

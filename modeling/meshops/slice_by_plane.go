@@ -198,6 +198,16 @@ func sliceTrianglesByPlaneWithAttribute(m modeling.Mesh, plane geometry.Plane, a
 	below := make([]int, 0, indices.Len())
 	for i := 0; i < indices.Len(); i += 3 {
 		tri := [3]int{indices.At(i), indices.At(i + 1), indices.At(i + 2)}
+		// A face on the plane belongs to the solid behind it, the side its normal points away from.
+		if cuts.distances[tri[0]] == 0 && cuts.distances[tri[1]] == 0 && cuts.distances[tri[2]] == 0 {
+			a, b, c := positions.At(tri[0]), positions.At(tri[1]), positions.At(tri[2])
+			if b.Sub(a).Cross(c.Sub(a)).Dot(plane.Normal()) > 0 {
+				below = append(below, tri[:]...)
+			} else {
+				above = append(above, tri[:]...)
+			}
+			continue
+		}
 		above = cuts.clip(above, tri, 1)
 		below = cuts.clip(below, tri, -1)
 	}

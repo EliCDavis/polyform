@@ -179,9 +179,6 @@ func (i *liftedInput) Clear() {
 }
 
 func (i *liftedInput) Set(port OutputPort) error {
-	if err := RefuseSpread(port, i.displayName); err != nil {
-		return err
-	}
 	if port != nil {
 		concrete := portValueTypeName(port)
 		if concrete != "" && concrete != i.elem && concrete != arrayOf(i.elem) {

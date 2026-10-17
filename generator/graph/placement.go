@@ -240,9 +240,6 @@ func (p subgraphInstanceInputPort) Value() nodes.OutputPort {
 }
 
 func (p subgraphInstanceInputPort) Set(port nodes.OutputPort) error {
-	if err := nodes.RefuseSpread(port, p.name); err != nil {
-		return err
-	}
 	return p.node.feed(p.name, port)
 }
 

@@ -5,8 +5,6 @@ import (
 	"runtime/debug"
 )
 
-// PanicError is a recovered panic, kept with the stack it was raised on.
-// Its message is the panic's own, so callers see what they saw before.
 type PanicError struct {
 	Value any
 	Stack string
