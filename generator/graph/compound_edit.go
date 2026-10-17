@@ -14,7 +14,7 @@ type compoundEdit struct {
 }
 
 // Batch runs f as one compound edit. Edges that no longer fit when f is
-// done are dropped and returned as an error.
+// done are dropped and returned as an *UnfitEdges.
 func (a *Instance) Batch(f func() error) (err error) {
 	a.mu().Lock()
 	end := a.beginCompoundEdit()
@@ -44,6 +44,10 @@ func (a *Graph) beginCompoundEdit() (end func() error) {
 	}
 }
 
+func (a *Graph) inCompoundEdit() bool {
+	return a.Root().compound.depth > 0
+}
+
 // deferredToCompoundEdit reports whether a compound edit is open, noting a
 // as edited if so.
 func (a *Graph) deferredToCompoundEdit() bool {
@@ -71,9 +75,19 @@ func (root *Instance) closeCompoundEdit(edited []*Graph) error {
 	if len(dropped) == 0 {
 		return nil
 	}
-	reasons := make([]string, len(dropped))
-	for i, drop := range dropped {
+	return &UnfitEdges{Edges: dropped}
+}
+
+// UnfitEdges refuses a compound edit. A caller that keeps the edit anyway
+// has had Edges removed.
+type UnfitEdges struct {
+	Edges []DroppedEdge
+}
+
+func (u *UnfitEdges) Error() string {
+	reasons := make([]string, len(u.Edges))
+	for i, drop := range u.Edges {
 		reasons[i] = drop.Reason
 	}
-	return fmt.Errorf("the edit left edges whose types no longer fit, and they were removed: %s", strings.Join(reasons, "; "))
+	return fmt.Sprintf("refused, edges would no longer fit: %s", strings.Join(reasons, "; "))
 }

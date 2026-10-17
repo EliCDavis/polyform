@@ -76,6 +76,34 @@ func TestCircleAlongAClosedSplineHasNoDoubledRing(t *testing.T) {
 	assert.InDelta(t, 1, high, 1e-9)
 }
 
+func TestCircleAlongSplineNodeDefaultsToTheUnitStrip(t *testing.T) {
+	spline := curves.CatmullRomSplineParameters{
+		Points: []vector3.Float64{
+			vector3.New(0., 0., 0.), vector3.New(1., 0., 0.), vector3.New(2., 1., 0.), vector3.New(3., 1., 0.),
+		},
+		Alpha: 0.5,
+	}.Spline()
+
+	mesh := nodes.GetNodeOutputPort[modeling.Mesh](&nodes.Struct[extrude.CircleAlongSplineNode]{
+		Data: extrude.CircleAlongSplineNode{
+			Spline:           nodes.ConstOutput[curves.Spline]{Val: &spline},
+			SplineResolution: nodes.ConstOutput[int]{Val: 8},
+			CircleResolution: nodes.ConstOutput[int]{Val: 6},
+		},
+	}, "Out").Value()
+
+	expected, err := extrude.CircleAlongSpline{
+		CircleResolution: 6,
+		Radius:           1,
+		Spline:           &spline,
+		SplineResolution: 8,
+		UVs:              &primitives.StripUVs{Start: vector2.New(0, 0.5), End: vector2.New(1, 0.5), Width: 1},
+	}.Extrude()
+	require.NoError(t, err)
+	require.True(t, mesh.HasFloat2Attribute(modeling.TexCoordAttribute))
+	assert.Equal(t, expected.Float2Attribute(modeling.TexCoordAttribute), mesh.Float2Attribute(modeling.TexCoordAttribute))
+}
+
 func TestLineWithoutUVsWritesFiniteOnes(t *testing.T) {
 	mesh := extrude.Line([]extrude.LinePoint{
 		{Point: vector3.New(0., 0., 0.), Up: vector3.Up[float64](), Width: 1},

@@ -96,6 +96,12 @@ func connected(out *nodes.StructOutput[modeling.Mesh], name string, ports []node
 		if port == nil {
 			continue
 		}
+		if spread, ok := nodes.SpreadValues[modeling.Mesh](port); ok {
+			for j, mesh := range spread {
+				inputs = append(inputs, input{mesh: mesh, port: fmt.Sprintf("%s.%d[%d]", name, i, j)})
+			}
+			continue
+		}
 		inputs = append(inputs, input{
 			mesh: nodes.GetOutputValue(out, port),
 			port: fmt.Sprintf("%s.%d", name, i),
@@ -135,6 +141,10 @@ func runCSG(
 		combined, err := op(result, next)
 		if err != nil {
 			out.CaptureError(fmt.Errorf("combining %s: %w", inputs[i+1].port, err))
+			out.Set(empty)
+			return
+		}
+		if combined.Mesh().PrimitiveCount() == 0 {
 			out.Set(empty)
 			return
 		}

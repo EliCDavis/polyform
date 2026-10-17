@@ -277,18 +277,21 @@ func (pmc PolyformClearcoat) ToMaterialExtensionData(w *Writer) map[string]any {
 	metadata := make(map[string]any)
 
 	metadata["clearcoatFactor"] = pmc.ClearcoatFactor
-	if pmc.ClearcoatTexture != nil {
+	if pmc.ClearcoatTexture.canAddToGLTF() {
 		metadata["clearcoatTexture"] = w.AddTexture(pmc.ClearcoatTexture)
 	}
 
 	metadata["clearcoatRoughnessFactor"] = pmc.ClearcoatRoughnessFactor
-	if pmc.ClearcoatRoughnessTexture != nil {
+	if pmc.ClearcoatRoughnessTexture.canAddToGLTF() {
 		metadata["clearcoatRoughnessTexture"] = w.AddTexture(pmc.ClearcoatRoughnessTexture)
 	}
 
-	// if pmc.ClearcoatNormalTexture != nil {
-	// 	metadata["clearcoatNormalTexture"] = w.AddTexture(*pmc.ClearcoatNormalTexture)
-	// }
+	if pmc.ClearcoatNormalTexture != nil && pmc.ClearcoatNormalTexture.canAddToGLTF() {
+		metadata["clearcoatNormalTexture"] = &NormalTexture{
+			TextureInfo: *w.AddTexture(pmc.ClearcoatNormalTexture.PolyformTexture),
+			Scale:       pmc.ClearcoatNormalTexture.Scale,
+		}
+	}
 
 	return metadata
 }

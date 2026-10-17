@@ -44,11 +44,7 @@ func (h *History) Transact(label string, f func() error) (err error) {
 
 	defer func() {
 		if r := recover(); r != nil {
-			if e, ok := r.(error); ok {
-				err = e
-			} else {
-				err = fmt.Errorf("%v", r)
-			}
+			err = Recovered(r)
 		}
 
 		if err == nil {

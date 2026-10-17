@@ -240,6 +240,13 @@ export function CreateThreeApp(
         camera.far = distance * 100;
         camera.updateProjectionMatrix();
       }
+
+      // SSAOEffect only snapshots the camera on resize; stale near/far
+      // reconstructs garbage depth once the clip planes leave their startup values.
+      const ssaoUniforms = ssaoEffect.ssaoMaterial.uniforms;
+      ssaoUniforms.cameraNearFar.value.set(camera.near, camera.far);
+      ssaoUniforms.projectionMatrix.value.copy(camera.projectionMatrix);
+      ssaoUniforms.inverseProjectionMatrix.value.copy(camera.projectionMatrixInverse);
     },
   });
 

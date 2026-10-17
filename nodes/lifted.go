@@ -11,6 +11,7 @@ import (
 
 // Takes either a T or an array of them, so a node written once against a
 // single T works both ways. Only the count is decided at runtime, not the type.
+// Unwired, it reads as T's zero value; wrap it in LiftedOr for any other default.
 type LiftedPort[T any] interface {
 	OutputPort
 }
@@ -96,7 +97,17 @@ func (l *Lifted[T]) build(Node, *structOutputCache, any, string, string, *sync.M
 // The handle is its own port factory, so a lifted output never consults the
 // type registry: its element type is known at compile time.
 func (l *Lifted[T]) BuildDynamicOutput(source DynamicSource) OutputPort {
-	return NewDynamicOutput[T](source)
+	return liftedScalar[T]{dynamicTyped[T]{source: source}}
+}
+
+// A lifted node can be the only producer of its type, so its port has to be
+// able to build the array form the way a StructOutput can.
+type liftedScalar[T any] struct {
+	dynamicTyped[T]
+}
+
+func (l liftedScalar[T]) BuildDynamicArrayOutput(source DynamicSource) OutputPort {
+	return NewDynamicOutput[[]T](source)
 }
 
 func (l *Lifted[T]) BuildDynamicArrayOutput(source DynamicSource) OutputPort {
@@ -168,6 +179,9 @@ func (i *liftedInput) Clear() {
 }
 
 func (i *liftedInput) Set(port OutputPort) error {
+	if err := RefuseSpread(port, i.displayName); err != nil {
+		return err
+	}
 	if port != nil {
 		concrete := portValueTypeName(port)
 		if concrete != "" && concrete != i.elem && concrete != arrayOf(i.elem) {

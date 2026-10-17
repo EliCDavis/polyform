@@ -12,6 +12,5 @@ func init() {
 	refutil.RegisterType[nodes.Struct[LineLengths3DNode]](factory)
 	refutil.RegisterType[nodes.Struct[PositionOnLine3DNode]](factory)
 	refutil.RegisterType[nodes.Struct[TrsFromLines3DNode]](factory)
-	refutil.RegisterType[nodes.Struct[RoundedRectangleNode]](factory)
 	generator.RegisterTypes(factory)
 }

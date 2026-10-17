@@ -167,7 +167,7 @@ func (t TubeNode) Description() string {
 }
 
 func (t TubeNode) Keywords() []string {
-	return []string{"pipe", "washer", "ring"}
+	return []string{"annulus", "hollow cylinder", "ring"}
 }
 
 func (t TubeNode) Out(out *nodes.StructOutput[modeling.Mesh]) {

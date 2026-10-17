@@ -43,6 +43,32 @@ func operandOf[T any](recorder ExecutionRecorder, port OutputPort) liftedOperand
 	return liftedOperand[T]{values: values, rank: rank}
 }
 
+// Each element of a spread is its own operand: a spread of values or a spread
+// of arrays.
+func spreadOperands[T any](recorder ExecutionRecorder, port OutputPort) ([]liftedOperand[T], bool) {
+	if !IsSpread(port) {
+		return nil, false
+	}
+	start := time.Now()
+	defer func() { recorder.CaptureTiming(port.Name(), time.Since(start)) }()
+
+	if values, ok := SpreadValues[T](port); ok {
+		operands := make([]liftedOperand[T], len(values))
+		for i, value := range values {
+			operands[i] = liftedOperand[T]{values: []T{value}, rank: rankScalar}
+		}
+		return operands, true
+	}
+	if arrays, ok := SpreadValues[[]T](port); ok {
+		operands := make([]liftedOperand[T], len(arrays))
+		for i, values := range arrays {
+			operands[i] = liftedOperand[T]{values: values, rank: rankArray}
+		}
+		return operands, true
+	}
+	return nil, false
+}
+
 // A length of one broadcasts across the whole result.
 func (o liftedOperand[T]) at(i int) T {
 	if len(o.values) == 1 {
@@ -169,6 +195,34 @@ func Zip4[A, B, C, D, R any](
 	finish(out, rank, results)
 }
 
+func Zip5[A, B, C, D, E, R any](
+	out *Lifted[R],
+	a LiftedPort[A],
+	b LiftedPort[B],
+	c LiftedPort[C],
+	d LiftedPort[D],
+	e LiftedPort[E],
+	kernel func(A, B, C, D, E) R,
+) {
+	first, second, third := operandOf[A](out, a), operandOf[B](out, b), operandOf[C](out, c)
+	fourth, fifth := operandOf[D](out, d), operandOf[E](out, e)
+
+	rank := max(first.rank, second.rank, third.rank, fourth.rank, fifth.rank)
+	count, err := broadcastLength(
+		len(first.values), len(second.values), len(third.values), len(fourth.values), len(fifth.values))
+	if err != nil {
+		out.CaptureError(err)
+		finish(out, rank, nil)
+		return
+	}
+
+	results := make([]R, count)
+	for i := range results {
+		results[i] = kernel(first.at(i), second.at(i), third.at(i), fourth.at(i), fifth.at(i))
+	}
+	finish(out, rank, results)
+}
+
 // An absent port is indistinguishable from one carrying the zero value, so a
 // default has to be substituted here rather than inside the kernel.
 func LiftedOr[T any](port LiftedPort[T], value T) LiftedPort[T] {
@@ -187,6 +241,14 @@ func ZipAll[A, R any](out *Lifted[R], ports []LiftedPort[A], kernel func([]A) R)
 
 	for _, port := range ports {
 		if port == nil {
+			continue
+		}
+		if spread, ok := spreadOperands[A](out, port); ok {
+			for _, operand := range spread {
+				operands = append(operands, operand)
+				lengths = append(lengths, len(operand.values))
+				rank = max(rank, operand.rank)
+			}
 			continue
 		}
 		operand := operandOf[A](out, port)

@@ -327,6 +327,9 @@ func (si structInput) Value() OutputPort {
 }
 
 func (si structInput) Set(port OutputPort) error {
+	if err := RefuseSpread(port, si.displayName); err != nil {
+		return err
+	}
 	refutil.SetStructField(si.data.Data(), si.structField, port)
 	Touch()
 	return nil

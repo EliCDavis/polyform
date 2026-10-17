@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"reflect"
 
 	"github.com/EliCDavis/iter"
 	"github.com/EliCDavis/polyform/math/quaternion"
@@ -210,6 +211,12 @@ func (pm *PolyformMaterial) Equal(other *PolyformMaterial) bool {
 	if !pm.EmissiveTexture.equal(other.EmissiveTexture) {
 		return false
 	}
+	if !pm.NormalTexture.equal(other.NormalTexture) {
+		return false
+	}
+	if !pm.OcclusionTexture.equal(other.OcclusionTexture) {
+		return false
+	}
 	if !colorsEqual(pm.EmissiveFactor, other.EmissiveFactor) {
 		return false
 	}
@@ -251,6 +258,19 @@ func (pt *PolyformTexture) equal(other *PolyformTexture) bool {
 		return false
 	}
 
+	if !comparableEqual(pt.Image, other.Image) {
+		return false
+	}
+
+	if len(pt.Extensions) != len(other.Extensions) {
+		return false
+	}
+	for i, ext := range pt.Extensions {
+		if !comparableEqual(ext, other.Extensions[i]) {
+			return false
+		}
+	}
+
 	if pt.Sampler == other.Sampler {
 		return true
 	} else if pt.Sampler == nil || other.Sampler == nil {
@@ -280,6 +300,32 @@ func (pt *PolyformNormal) equal(other *PolyformNormal) bool {
 		return false
 	}
 	return float64PtrsEqual(pt.Scale, other.Scale)
+}
+
+func (pt *PolyformOcclusion) equal(other *PolyformOcclusion) bool {
+	if pt == other {
+		return true
+	}
+
+	if pt == nil || other == nil {
+		return false
+	}
+
+	if !pt.PolyformTexture.equal(other.PolyformTexture) {
+		return false
+	}
+	return float64PtrsEqual(pt.Strength, other.Strength)
+}
+
+// == panics on an uncomparable dynamic type; those count as different.
+func comparableEqual(a, b any) bool {
+	if a == nil || b == nil {
+		return a == b
+	}
+	if !reflect.TypeOf(a).Comparable() || !reflect.TypeOf(b).Comparable() {
+		return false
+	}
+	return a == b
 }
 
 func (pmr *PolyformPbrMetallicRoughness) equal(other *PolyformPbrMetallicRoughness) bool {

@@ -1,13 +1,14 @@
-package geometry
+package sketch
 
 import (
 	"math"
 
+	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/vector/vector2"
 )
 
-func RoundedRectangle(size vector2.Float64, radius float64, center vector2.Float64, segments int) Shape {
+func RoundedRectangle(size vector2.Float64, radius float64, center vector2.Float64, segments int) geometry.Shape {
 	half := vector2.New(math.Abs(size.X())/2, math.Abs(size.Y())/2)
 	radius = math.Min(math.Max(radius, 0), math.Min(half.X(), half.Y()))
 	inner := half.Sub(vector2.New(radius, radius))
@@ -25,17 +26,17 @@ func RoundedRectangle(size vector2.Float64, radius float64, center vector2.Float
 		segments = 0
 	}
 
-	outline := make(Shape, 0, 4*(segments+1))
+	shape := make(geometry.Shape, 0, 4*(segments+1))
 	for k, corner := range corners {
 		for j := 0; j <= segments; j++ {
 			if j == 0 && corner.straightIn == 0 && segments > 0 {
 				continue
 			}
 			angle := (float64(k) - 1 + float64(j)/math.Max(float64(segments), 1)) * math.Pi / 2
-			outline = append(outline, center.Add(corner.at).Add(vector2.New(math.Cos(angle), math.Sin(angle)).Scale(radius)))
+			shape = append(shape, center.Add(corner.at).Add(vector2.New(math.Cos(angle), math.Sin(angle)).Scale(radius)))
 		}
 	}
-	return outline
+	return shape
 }
 
 type RoundedRectangleNode struct {

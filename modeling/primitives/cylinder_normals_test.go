@@ -5,9 +5,24 @@ import (
 
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/primitives"
+	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/vector/vector3"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
+
+func TestCylinderNodeTopRadiusFollowsEachListedRadius(t *testing.T) {
+	cylinders := nodes.GetNodeOutputPort[[]modeling.Mesh](&nodes.Struct[primitives.CylinderNode]{Data: primitives.CylinderNode{
+		Radius: nodes.ConstOutput[[]float64]{Val: []float64{1, 2}},
+	}}, "Out").Value()
+
+	require.Len(t, cylinders, 2)
+	for i, radius := range []float64{1, 2} {
+		box := cylinders[i].BoundingBox(modeling.PositionAttribute)
+		assert.InDelta(t, 2*radius, box.Size().X(), 1e-9)
+		assert.InDelta(t, 2*radius, box.Size().Z(), 0.05*radius, "no taper")
+	}
+}
 
 func TestFrustumSideNormalsArePerpendicularToTheSlant(t *testing.T) {
 	const sides = 12

@@ -15,7 +15,7 @@ type chunkNode struct {
 }
 
 func (c chunkNode) Out(out *nodes.Dynamic[[][]elemType]) {
-	values, ok := nodes.DynamicArrayValue(c.Values)
+	values, ok := nodes.DynamicArrayValue(out, c.Values)
 	if !ok {
 		return
 	}

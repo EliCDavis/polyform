@@ -64,9 +64,17 @@ func splitElement(name string) (port string, element int) {
 	return name[:dot], element
 }
 
+// A port whose own name ends in ".N", like one named after "Switch 6x3.5", is
+// that port, not element N of another.
+func splitElementOf(inputs map[string]nodes.InputPort, name string) (port string, element int) {
+	if _, whole := inputs[name]; whole {
+		return name, nextElement
+	}
+	return splitElement(name)
+}
+
 func (a *Graph) edgeBetween(fromID, fromPort, toID, toInput string) (e edge, err error) {
-	e = edge{producerID: fromID, output: fromPort, consumerID: toID}
-	e.input, e.element = splitElement(toInput)
+	e = edge{producerID: fromID, output: fromPort, consumerID: toID, input: toInput, element: nextElement}
 
 	var ok bool
 	if e.producer, ok = a.nodesByID[fromID]; !ok {
@@ -75,7 +83,9 @@ func (a *Graph) edgeBetween(fromID, fromPort, toID, toInput string) (e edge, err
 	if e.consumer, ok = a.nodesByID[toID]; !ok {
 		return e, fmt.Errorf("no node exists with id %q", toID)
 	}
-	if e.in, ok = e.consumer.Inputs()[e.input]; !ok {
+	inputs := e.consumer.Inputs()
+	e.input, e.element = splitElementOf(inputs, toInput)
+	if e.in, ok = inputs[e.input]; !ok {
 		return e, fmt.Errorf("node %q contains no in-port %q", e.consumerID, e.input)
 	}
 	if e.out, ok = e.producer.Outputs()[e.output]; !ok {
@@ -152,8 +162,11 @@ func (a *Graph) connectNodes(nodeOutId, outPortName, nodeInId, inPortName string
 			"connecting node %q into node %q's %q input would create a cycle: %q already feeds %q, directly or through other nodes",
 			e.producerID, e.consumerID, e.input, e.consumerID, e.producerID)
 	}
-	if err := checkPortTypes(e); err != nil {
-		return err
+	// Types are unsettled until a compound edit closes; settling then refuses misfits.
+	if !a.inCompoundEdit() {
+		if err := checkPortTypes(e); err != nil {
+			return err
+		}
 	}
 
 	previous := a.reads[e.consumer][e.input]
@@ -206,8 +219,9 @@ func (a *Graph) DeleteNodeInputConnection(nodeId, portName string) ([]DroppedEdg
 	if !ok {
 		return nil, fmt.Errorf("no node exists with id %q", nodeId)
 	}
-	port, element := splitElement(portName)
-	input, ok := node.Inputs()[port]
+	inputs := node.Inputs()
+	port, element := splitElementOf(inputs, portName)
+	input, ok := inputs[port]
 	if !ok {
 		return nil, fmt.Errorf("node %s contains no input port %s", nodeId, port)
 	}
@@ -315,6 +329,7 @@ func connectionHint(from, to, inPort string) string {
 }
 
 func (a *Graph) renamePort(node nodes.Node, kind BoundaryPortKind, from, to string) {
+	a.clearCopySource()
 	if kind == BoundaryPortKindInput {
 		if sources, ok := a.reads[node][from]; ok {
 			a.reads[node][to] = sources
