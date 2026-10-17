@@ -1,9 +1,11 @@
 package gltf
 
 import (
+	"fmt"
 	"image"
 	"image/color"
 	"io"
+	"strings"
 
 	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/generator"
@@ -14,6 +16,7 @@ import (
 	"github.com/EliCDavis/polyform/modeling/animation"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
+	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
 )
 
@@ -34,6 +37,7 @@ func init() {
 	refutil.RegisterType[nodes.Struct[TextureReferenceNode]](factory)
 	refutil.RegisterType[nodes.Struct[TextureNode]](factory)
 	refutil.RegisterType[nodes.Struct[NormalTextureNode]](factory)
+	refutil.RegisterType[nodes.Struct[OcclusionTextureNode]](factory)
 	refutil.RegisterType[nodes.Struct[SamplerNode]](factory)
 
 	refutil.RegisterType[nodes.Struct[AnimationNode]](factory)
@@ -68,18 +72,10 @@ type ManifestNode struct {
 
 func (gad ManifestNode) Out(out *nodes.StructOutput[manifest.Manifest]) {
 	models := make([]*PolyformModel, 0, len(gad.Models))
-
-	for _, m := range gad.Models {
-		if m == nil {
-			continue
+	for _, model := range nodes.GetOutputValues(out, gad.Models) {
+		if model != nil {
+			models = append(models, model)
 		}
-
-		value := nodes.GetOutputValue(out, m)
-		if value == nil {
-			continue
-		}
-
-		models = append(models, value)
 	}
 
 	entry := manifest.Entry{
@@ -98,57 +94,81 @@ func (gad ManifestNode) Out(out *nodes.StructOutput[manifest.Manifest]) {
 }
 
 type ModelNode struct {
-	Name     nodes.Output[string]
-	Mesh     nodes.Output[modeling.Mesh]
+	Name     nodes.LiftedPort[string]
+	Mesh     nodes.LiftedPort[modeling.Mesh]
 	Material nodes.Output[PolyformMaterial]
 	Children []nodes.Output[*PolyformModel]
 
-	Translation nodes.Output[vector3.Float64]
-	Rotation    nodes.Output[quaternion.Quaternion]
-	Scale       nodes.Output[vector3.Float64]
+	Translation nodes.LiftedPort[vector3.Float64]
+	Rotation    nodes.LiftedPort[quaternion.Quaternion]
+	Scale       nodes.LiftedPort[vector3.Float64]
 
 	GpuInstances nodes.Output[[]trs.TRS]
 }
 
 func (gmnd ModelNode) Description() string {
-	return "A mesh placed in the scene with a material and a transform. Gpu Instances draws one copy of the mesh per transform, each relative to this model's own; children are not repeated."
+	return "A mesh placed in the scene with a material and a transform. Gpu Instances draws one copy of the mesh per transform, each relative to this model's own; children are not repeated. Lists of names, meshes or transforms give one model each, sharing the material and children."
 }
 
-func (gmnd ModelNode) Out(out *nodes.StructOutput[*PolyformModel]) {
-	transform := trs.New(
-		nodes.TryGetOutputValue(out, gmnd.Translation, vector3.Zero[float64]()),
-		nodes.TryGetOutputValue(out, gmnd.Rotation, quaternion.Identity()),
-		nodes.TryGetOutputValue(out, gmnd.Scale, vector3.One[float64]()),
-	)
-
+func (gmnd ModelNode) Out(out *nodes.Lifted[*PolyformModel]) {
 	children := make([]*PolyformModel, 0, len(gmnd.Children))
 	for _, child := range nodes.GetOutputValues(out, gmnd.Children) {
 		if child != nil {
 			children = append(children, child)
 		}
 	}
+	instances := nodes.TryGetOutputValue(out, gmnd.GpuInstances, nil)
+	material := nodes.TryGetOutputReference(out, gmnd.Material, nil)
 
-	model := &PolyformModel{
-		Name:         nodes.TryGetOutputValue(out, gmnd.Name, "Mesh"),
-		GpuInstances: nodes.TryGetOutputValue(out, gmnd.GpuInstances, nil),
-		Material:     nodes.TryGetOutputReference(out, gmnd.Material, nil),
-		Mesh:         nodes.TryGetOutputReference(out, gmnd.Mesh, nil),
-		TRS:          &transform,
-		Children:     children,
+	nodes.Zip5(
+		out,
+		nodes.LiftedOr(gmnd.Name, "Mesh"),
+		gmnd.Mesh,
+		nodes.LiftedOr(gmnd.Translation, vector3.Zero[float64]()),
+		nodes.LiftedOr(gmnd.Rotation, quaternion.Identity()),
+		nodes.LiftedOr(gmnd.Scale, vector3.One[float64]()),
+		func(name string, mesh modeling.Mesh, translation vector3.Float64, rotation quaternion.Quaternion, scale vector3.Float64) *PolyformModel {
+			transform := trs.New(translation, rotation, scale)
+			model := &PolyformModel{
+				Name:         name,
+				GpuInstances: instances,
+				Material:     material,
+				TRS:          &transform,
+				Children:     children,
+			}
+			if gmnd.Mesh != nil {
+				model.Mesh = &mesh
+			}
+			out.CaptureError(checkInstancedGroup(model))
+			return model
+		},
+	)
+}
+
+func textureTransform(recorder nodes.ExecutionRecorder, offset nodes.Output[vector2.Float64], rotation nodes.Output[float64], scale nodes.Output[vector2.Float64]) []TextureExtension {
+	if offset == nil && rotation == nil && scale == nil {
+		return nil
 	}
-	out.CaptureError(checkInstancedGroup(model))
-	out.Set(model)
+	return []TextureExtension{PolyformTextureTransform{
+		Offset:   nodes.TryGetOutputReference(recorder, offset, nil),
+		Rotation: nodes.TryGetOutputReference(recorder, rotation, nil),
+		Scale:    nodes.TryGetOutputReference(recorder, scale, nil),
+	}}
 }
 
 type TextureReferenceNode struct {
-	URI     nodes.Output[string]
-	Sampler nodes.Output[Sampler]
+	URI      nodes.Output[string]
+	Sampler  nodes.Output[Sampler]
+	Offset   nodes.Output[vector2.Float64] `description:"Shifts the texture, in texture repeats. Written as KHR_texture_transform."`
+	Rotation nodes.Output[float64]         `description:"Turns the texture counter-clockwise, in radians. Written as KHR_texture_transform."`
+	Scale    nodes.Output[vector2.Float64] `description:"Repeats the texture this many times along u and v. Written as KHR_texture_transform."`
 }
 
 func (tnd TextureReferenceNode) Out(out *nodes.StructOutput[PolyformTexture]) {
 	out.Set(PolyformTexture{
-		Sampler: nodes.TryGetOutputReference(out, tnd.Sampler, nil),
-		URI:     nodes.TryGetOutputValue(out, tnd.URI, ""),
+		Sampler:    nodes.TryGetOutputReference(out, tnd.Sampler, nil),
+		URI:        nodes.TryGetOutputValue(out, tnd.URI, ""),
+		Extensions: textureTransform(out, tnd.Offset, tnd.Rotation, tnd.Scale),
 	})
 }
 
@@ -157,14 +177,18 @@ func (gmnd TextureReferenceNode) Description() string {
 }
 
 type TextureNode struct {
-	Image   nodes.Output[image.Image]
-	Sampler nodes.Output[Sampler]
+	Image    nodes.Output[image.Image]
+	Sampler  nodes.Output[Sampler]
+	Offset   nodes.Output[vector2.Float64] `description:"Shifts the texture, in texture repeats. Written as KHR_texture_transform."`
+	Rotation nodes.Output[float64]         `description:"Turns the texture counter-clockwise, in radians. Written as KHR_texture_transform."`
+	Scale    nodes.Output[vector2.Float64] `description:"Repeats the texture this many times along u and v. Written as KHR_texture_transform."`
 }
 
 func (tnd TextureNode) Out(out *nodes.StructOutput[PolyformTexture]) {
 	out.Set(PolyformTexture{
-		Sampler: nodes.TryGetOutputReference(out, tnd.Sampler, nil),
-		Image:   nodes.TryGetOutputValue(out, tnd.Image, nil),
+		Sampler:    nodes.TryGetOutputReference(out, tnd.Sampler, nil),
+		Image:      nodes.TryGetOutputValue(out, tnd.Image, nil),
+		Extensions: textureTransform(out, tnd.Offset, tnd.Rotation, tnd.Scale),
 	})
 }
 
@@ -184,6 +208,22 @@ func (tnd NormalTextureNode) Description() string {
 func (tnd NormalTextureNode) Out(out *nodes.StructOutput[PolyformNormal]) {
 	out.Set(PolyformNormal{
 		Scale:           nodes.TryGetOutputReference(out, tnd.Scale, nil),
+		PolyformTexture: nodes.TryGetOutputReference(out, tnd.Texture, nil),
+	})
+}
+
+type OcclusionTextureNode struct {
+	Texture  nodes.Output[PolyformTexture] `description:"Ambient occlusion, read from the red channel: 0 fully occluded, 1 open."`
+	Strength nodes.Output[float64]         `description:"How much of the occlusion applies, 0 to 1. Defaults to 1."`
+}
+
+func (tnd OcclusionTextureNode) Description() string {
+	return "An ambient occlusion map plus how strongly it applies."
+}
+
+func (tnd OcclusionTextureNode) Out(out *nodes.StructOutput[PolyformOcclusion]) {
+	out.Set(PolyformOcclusion{
+		Strength:        nodes.TryGetOutputReference(out, tnd.Strength, nil),
 		PolyformTexture: nodes.TryGetOutputReference(out, tnd.Texture, nil),
 	})
 }
@@ -346,14 +386,18 @@ func (p *SamplerMinFilterNode) Outputs() map[string]nodes.OutputPort {
 type MaterialNode struct {
 	Name nodes.Output[string] `description:"Name of the material"`
 
-	Color                    nodes.Output[coloring.Color]  `description:"The factors for the base color of the material. This value defines linear multipliers for the sampled texels of the base color texture."`
-	ColorTexture             nodes.Output[PolyformTexture] `description:"The base color texture. The first three components (RGB) MUST be encoded with the sRGB transfer function. They specify the base color of the material. If the fourth component (A) is present, it represents the linear alpha coverage of the material. Otherwise, the alpha coverage is equal to 1.0. The material.alphaMode property specifies how alpha is interpreted. The stored texels MUST NOT be premultiplied. When undefined, the texture MUST be sampled as having 1.0 in all components."`
-	MetallicFactor           nodes.Output[float64]         `description:"The factor for the metalness of the material. This value defines a linear multiplier for the sampled metalness values of the metallic-roughness texture."`
-	RoughnessFactor          nodes.Output[float64]         `description:"The factor for the roughness of the material. This value defines a linear multiplier for the sampled roughness values of the metallic-roughness texture."`
-	MetallicRoughnessTexture nodes.Output[PolyformTexture] `description:"The metallic-roughness texture. The metalness values are sampled from the B channel. The roughness values are sampled from the G channel. These values MUST be encoded with a linear transfer function. If other channels are present (R or A), they MUST be ignored for metallic-roughness calculations. When undefined, the texture MUST be sampled as having 1.0 in G and B components."`
-	EmissiveTexture          nodes.Output[PolyformTexture] `description:"The emissive texture. It controls the color and intensity of the light being emitted by the material. This texture contains RGB components encoded with the sRGB transfer function. If a fourth component (A) is present, it MUST be ignored. When undefined, the texture MUST be sampled as having 1.0 in RGB components."`
-	EmissiveFactor           nodes.Output[coloring.Color]  `description:"The factors for the emissive color of the material. This value defines linear multipliers for the sampled texels of the emissive texture."`
-	NormalTexture            nodes.Output[PolyformNormal]  `description:"The tangent space normal texture. The texture encodes RGB components with linear transfer function. Each texel represents the XYZ components of a normal vector in tangent space. The normal vectors use the convention +X is right and +Y is up. +Z points toward the viewer. If a fourth component (A) is present, it **MUST** be ignored. When undefined, the material does not have a tangent space normal texture."`
+	Color                    nodes.Output[coloring.Color]    `description:"The factors for the base color of the material. This value defines linear multipliers for the sampled texels of the base color texture."`
+	ColorTexture             nodes.Output[PolyformTexture]   `description:"The base color texture. The first three components (RGB) MUST be encoded with the sRGB transfer function. They specify the base color of the material. If the fourth component (A) is present, it represents the linear alpha coverage of the material. Otherwise, the alpha coverage is equal to 1.0. The material.alphaMode property specifies how alpha is interpreted. The stored texels MUST NOT be premultiplied. When undefined, the texture MUST be sampled as having 1.0 in all components."`
+	MetallicFactor           nodes.Output[float64]           `description:"The factor for the metalness of the material. This value defines a linear multiplier for the sampled metalness values of the metallic-roughness texture."`
+	RoughnessFactor          nodes.Output[float64]           `description:"The factor for the roughness of the material. This value defines a linear multiplier for the sampled roughness values of the metallic-roughness texture."`
+	MetallicRoughnessTexture nodes.Output[PolyformTexture]   `description:"The metallic-roughness texture. The metalness values are sampled from the B channel. The roughness values are sampled from the G channel. These values MUST be encoded with a linear transfer function. If other channels are present (R or A), they MUST be ignored for metallic-roughness calculations. When undefined, the texture MUST be sampled as having 1.0 in G and B components."`
+	EmissiveTexture          nodes.Output[PolyformTexture]   `description:"The emissive texture. It controls the color and intensity of the light being emitted by the material. This texture contains RGB components encoded with the sRGB transfer function. If a fourth component (A) is present, it MUST be ignored. When undefined, the texture MUST be sampled as having 1.0 in RGB components."`
+	EmissiveFactor           nodes.Output[coloring.Color]    `description:"The factors for the emissive color of the material. This value defines linear multipliers for the sampled texels of the emissive texture."`
+	NormalTexture            nodes.Output[PolyformNormal]    `description:"The tangent space normal texture. The texture encodes RGB components with linear transfer function. Each texel represents the XYZ components of a normal vector in tangent space. The normal vectors use the convention +X is right and +Y is up. +Z points toward the viewer. If a fourth component (A) is present, it **MUST** be ignored. When undefined, the material does not have a tangent space normal texture."`
+	OcclusionTexture         nodes.Output[PolyformOcclusion] `description:"Ambient occlusion map, darkening crevices under ambient light."`
+	AlphaMode                nodes.Output[string]            `description:"OPAQUE (default) ignores alpha, MASK cuts at Alpha Cutoff, BLEND blends by alpha. Alpha comes from Color and Color Texture."`
+	AlphaCutoff              nodes.Output[float64]           `description:"With alpha mode MASK: alpha below this is cut away. glTF's default is 0.5."`
+	Unlit                    nodes.Output[bool]              `description:"Shows Color as is, ignoring lighting. Written as KHR_materials_unlit."`
 
 	// Extensions
 	IndexOfRefraction nodes.Output[float64]
@@ -468,6 +512,10 @@ func (gmnd MaterialNode) Out(out *nodes.StructOutput[PolyformMaterial]) {
 		})
 	}
 
+	if nodes.TryGetOutputValue(out, gmnd.Unlit, false) {
+		extensions = append(extensions, PolyformUnlit{})
+	}
+
 	var normalTex *PolyformNormal
 	if gmnd.NormalTexture != nil {
 		tex := nodes.TryGetOutputReference(out, gmnd.NormalTexture, nil)
@@ -476,13 +524,40 @@ func (gmnd MaterialNode) Out(out *nodes.StructOutput[PolyformMaterial]) {
 		}
 	}
 
+	var occlusionTex *PolyformOcclusion
+	if gmnd.OcclusionTexture != nil {
+		tex := nodes.TryGetOutputReference(out, gmnd.OcclusionTexture, nil)
+		if tex.canAddToGLTF() {
+			occlusionTex = tex
+		}
+	}
+
+	var alphaMode *MaterialAlphaMode
+	if raw := nodes.TryGetOutputValue(out, gmnd.AlphaMode, ""); raw != "" {
+		mode := MaterialAlphaMode(strings.ToUpper(strings.TrimSpace(raw)))
+		switch mode {
+		case MaterialAlphaMode_OPAQUE, MaterialAlphaMode_MASK, MaterialAlphaMode_BLEND:
+			alphaMode = &mode
+		default:
+			out.CaptureError(fmt.Errorf("alpha mode %q is not OPAQUE, MASK or BLEND", raw))
+		}
+	}
+	alphaCutoff := nodes.TryGetOutputReference(out, gmnd.AlphaCutoff, nil)
+	if alphaCutoff != nil && (alphaMode == nil || *alphaMode != MaterialAlphaMode_MASK) {
+		out.CaptureError(fmt.Errorf("alpha cutoff only applies with alpha mode MASK"))
+		alphaCutoff = nil
+	}
+
 	out.Set(PolyformMaterial{
 		Name:                 nodes.TryGetOutputValue(out, gmnd.Name, ""),
 		PbrMetallicRoughness: pbr,
 		Extensions:           extensions,
 		EmissiveFactor:       emissiveFactor,
 		NormalTexture:        normalTex,
+		OcclusionTexture:     occlusionTex,
 		EmissiveTexture:      emissiveTexture,
+		AlphaMode:            alphaMode,
+		AlphaCutoff:          alphaCutoff,
 	})
 }
 
@@ -507,14 +582,16 @@ func (node MaterialTransmissionExtensionNode) Description() string {
 }
 
 type MaterialVolumeExtensionNode struct {
-	ThicknessFactor     nodes.Output[float64]        `description:"The thickness of the volume beneath the surface. The value is given in the coordinate space of the mesh. If the value is 0 the material is thin-walled. Otherwise the material is a volume boundary. The doubleSided property has no effect on volume boundaries. Range is [0, +inf)."`
-	AttenuationDistance nodes.Output[float64]        `description:"Density of the medium given as the average distance that light travels in the medium before interacting with a particle. The value is given in world space. Range is (0, +inf)."`
-	AttenuationColor    nodes.Output[coloring.Color] `description:"The color that white light turns into due to absorption when reaching the attenuation distance."`
+	ThicknessFactor     nodes.Output[float64]         `description:"The thickness of the volume beneath the surface. The value is given in the coordinate space of the mesh. If the value is 0 the material is thin-walled. Otherwise the material is a volume boundary. The doubleSided property has no effect on volume boundaries. Range is [0, +inf)."`
+	AttenuationDistance nodes.Output[float64]         `description:"Density of the medium given as the average distance that light travels in the medium before interacting with a particle. The value is given in world space. Range is (0, +inf)."`
+	AttenuationColor    nodes.Output[coloring.Color]  `description:"The color that white light turns into due to absorption when reaching the attenuation distance."`
+	ThicknessTexture    nodes.Output[PolyformTexture] `description:"Thickness across the surface, read from the G channel; multiplied by Thickness Factor."`
 }
 
 func (node MaterialVolumeExtensionNode) Out(out *nodes.StructOutput[PolyformVolume]) {
 	out.Set(PolyformVolume{
 		ThicknessFactor:     nodes.TryGetOutputValue(out, node.ThicknessFactor, 0),
+		ThicknessTexture:    nodes.TryGetOutputReference(out, node.ThicknessTexture, nil),
 		AttenuationColor:    nodes.TryGetOutputValue(out, node.AttenuationColor, coloring.White()),
 		AttenuationDistance: nodes.TryGetOutputReference(out, node.AttenuationDistance, nil),
 	})
@@ -525,30 +602,38 @@ func (node MaterialVolumeExtensionNode) Description() string {
 }
 
 type MaterialAnisotropyExtensionNode struct {
-	AnisotropyStrength nodes.Output[float64] `description:"The anisotropy strength. When the anisotropy texture is present, this value is multiplied by the texture's blue channel."`
-	AnisotropyRotation nodes.Output[float64] `description:"The rotation of the anisotropy in tangent, bitangent space, measured in radians counter-clockwise from the tangent. When the anisotropy texture is present, this value provides additional rotation to the vectors in the texture."`
+	AnisotropyStrength nodes.Output[float64]         `description:"The anisotropy strength. When the anisotropy texture is present, this value is multiplied by the texture's blue channel."`
+	AnisotropyRotation nodes.Output[float64]         `description:"The rotation of the anisotropy in tangent, bitangent space, measured in radians counter-clockwise from the tangent. When the anisotropy texture is present, this value provides additional rotation to the vectors in the texture."`
+	AnisotropyTexture  nodes.Output[PolyformTexture] `description:"Per-texel direction in red and green (tangent and bitangent, -1 to 1 stored as 0 to 1) and strength in blue, linear."`
 }
 
 func (node MaterialAnisotropyExtensionNode) Out(out *nodes.StructOutput[PolyformAnisotropy]) {
 	out.Set(PolyformAnisotropy{
 		AnisotropyStrength: nodes.TryGetOutputValue(out, node.AnisotropyStrength, 0),
 		AnisotropyRotation: nodes.TryGetOutputValue(out, node.AnisotropyRotation, 0),
+		AnisotropyTexture:  nodes.TryGetOutputReference(out, node.AnisotropyTexture, nil),
 	})
 }
 
 func (node MaterialAnisotropyExtensionNode) Description() string {
-	return "This extension defines the anisotropic property of a material as observable with brushed metals for example. An asymmetric specular lobe model is introduced to allow for such phenomena. The visually distinct feature of that lobe is the elongated appearance of the specular reflection."
+	return "This extension defines the anisotropic property of a material. An asymmetric specular lobe model is introduced to allow for such phenomena. The visually distinct feature of that lobe is the elongated appearance of the specular reflection."
 }
 
 type MaterialClearcoatExtensionNode struct {
-	ClearcoatFactor          nodes.Output[float64]
-	ClearcoatRoughnessFactor nodes.Output[float64]
+	ClearcoatFactor           nodes.Output[float64]
+	ClearcoatRoughnessFactor  nodes.Output[float64]
+	ClearcoatTexture          nodes.Output[PolyformTexture] `description:"Coat strength across the surface, read from the R channel; multiplied by Clearcoat Factor."`
+	ClearcoatRoughnessTexture nodes.Output[PolyformTexture] `description:"Coat roughness across the surface, read from the G channel; multiplied by Clearcoat Roughness Factor."`
+	ClearcoatNormalTexture    nodes.Output[PolyformNormal]  `description:"Normal map for the coat alone; the base keeps its own Normal Texture."`
 }
 
 func (node MaterialClearcoatExtensionNode) Out(out *nodes.StructOutput[PolyformClearcoat]) {
 	out.Set(PolyformClearcoat{
-		ClearcoatFactor:          nodes.TryGetOutputValue(out, node.ClearcoatFactor, 0),
-		ClearcoatRoughnessFactor: nodes.TryGetOutputValue(out, node.ClearcoatRoughnessFactor, 0),
+		ClearcoatFactor:           nodes.TryGetOutputValue(out, node.ClearcoatFactor, 0),
+		ClearcoatRoughnessFactor:  nodes.TryGetOutputValue(out, node.ClearcoatRoughnessFactor, 0),
+		ClearcoatTexture:          nodes.TryGetOutputReference(out, node.ClearcoatTexture, nil),
+		ClearcoatRoughnessTexture: nodes.TryGetOutputReference(out, node.ClearcoatRoughnessTexture, nil),
+		ClearcoatNormalTexture:    nodes.TryGetOutputReference(out, node.ClearcoatNormalTexture, nil),
 	})
 }
 
@@ -576,11 +661,11 @@ func (node MaterialSheenExtensionNode) Out(out *nodes.StructOutput[PolyformSheen
 }
 
 func (node MaterialSheenExtensionNode) Description() string {
-	return "KHR_materials_sheen: a soft specular layer over the base material for cloth like velvet, satin and felt. Set it on MaterialNode's Sheen port."
+	return "KHR_materials_sheen: a soft specular layer over the base material that brightens toward grazing angles. Set it on MaterialNode's Sheen port."
 }
 
 func (node MaterialSheenExtensionNode) Keywords() []string {
-	return []string{"velvet", "cloth", "fabric", "satin", "felt", "fuzz"}
+	return []string{"fuzz", "soft", "grazing"}
 }
 
 type MaterialSpecularExtensionNode struct {
@@ -631,15 +716,15 @@ func (node MaterialIridescenceExtensionNode) Out(out *nodes.StructOutput[Polyfor
 }
 
 func (node MaterialIridescenceExtensionNode) Description() string {
-	return "KHR_materials_iridescence: thin-film interference colors like soap bubbles, oil slicks, beetle shells and pearl. Set it on MaterialNode's Iridescence port."
+	return "KHR_materials_iridescence: thin-film interference colors that shift with viewing angle. Set it on MaterialNode's Iridescence port."
 }
 
 func (node MaterialIridescenceExtensionNode) Keywords() []string {
-	return []string{"thin film", "pearl", "oil slick", "soap bubble", "rainbow", "pearlescent"}
+	return []string{"thin film", "interference", "rainbow", "color shift"}
 }
 
 type MaterialDispersionExtensionNode struct {
-	Dispersion nodes.Output[float64] `description:"Dispersion as 20 / Abbe number: about 0.36 for diamond (Abbe 55), 0.33 for crown glass (Abbe 60), 0.5 for dense flint glass, 0 for none. Defaults to 0."`
+	Dispersion nodes.Output[float64] `description:"Dispersion as 20 / Abbe number: about 0.33 at Abbe 60, 0.5 at Abbe 40, 0 for none. Defaults to 0."`
 }
 
 func (node MaterialDispersionExtensionNode) Out(out *nodes.StructOutput[PolyformDispersion]) {
@@ -649,11 +734,11 @@ func (node MaterialDispersionExtensionNode) Out(out *nodes.StructOutput[Polyform
 }
 
 func (node MaterialDispersionExtensionNode) Description() string {
-	return "KHR_materials_dispersion: the spread of the index of refraction across wavelengths, which gives gems and glass their fire. Needs a transmissive material with an IOR to show. Set it on MaterialNode's Dispersion port."
+	return "KHR_materials_dispersion: the spread of the index of refraction across wavelengths, which splits refracted light into colors. Needs a transmissive material with an IOR to show. Set it on MaterialNode's Dispersion port."
 }
 
 func (node MaterialDispersionExtensionNode) Keywords() []string {
-	return []string{"abbe", "fire", "diamond", "gem", "prism", "chromatic"}
+	return []string{"abbe", "fire", "prism", "chromatic", "refraction"}
 }
 
 type AnimationNode struct {

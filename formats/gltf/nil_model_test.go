@@ -17,6 +17,21 @@ func cube() modeling.Mesh {
 	return primitives.Cube{Width: 1, Height: 1, Depth: 1}.UnweldedQuads()
 }
 
+func TestModelNodeMakesOneModelPerNameSharingTheMesh(t *testing.T) {
+	models := nodes.GetNodeOutputPort[[]*gltf.PolyformModel](&nodes.Struct[gltf.ModelNode]{Data: gltf.ModelNode{
+		Name: nodes.ConstOutput[[]string]{Val: []string{"R1", "R2"}},
+		Mesh: nodes.ConstOutput[modeling.Mesh]{Val: cube()},
+	}}, "Out").Value()
+
+	require.Len(t, models, 2)
+	assert.Equal(t, "R1", models[0].Name)
+	assert.Equal(t, "R2", models[1].Name)
+	for _, model := range models {
+		require.NotNil(t, model.Mesh)
+		assert.Equal(t, 12, model.Mesh.PrimitiveCount())
+	}
+}
+
 func TestWriterSkipsNilModels(t *testing.T) {
 	mesh := cube()
 

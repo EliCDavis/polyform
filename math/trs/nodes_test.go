@@ -83,6 +83,20 @@ func TestLookAtNodeAimsLocalZAtTheTarget(t *testing.T) {
 	assert.InDelta(t, 1, up.Y(), 1e-9, "Y stays up for a level look")
 }
 
+func TestLookAtNodeScaleDefaultsToOneOnlyWhenUnwired(t *testing.T) {
+	look := func(scale nodes.Output[vector3.Float64]) trs.TRS {
+		return nodes.GetNodeOutputPort[trs.TRS](&nodes.Struct[trs.LookAtNode]{
+			Data: trs.LookAtNode{
+				Target: nodes.ConstOutput[vector3.Float64]{Val: vector3.New(0., 0., 1.)},
+				Scale:  scale,
+			},
+		}, "Out").Value()
+	}
+
+	assert.Equal(t, vector3.One[float64](), look(nil).Scale())
+	assert.Equal(t, vector3.Zero[float64](), look(nodes.ConstOutput[vector3.Float64]{Val: vector3.Zero[float64]()}).Scale())
+}
+
 func TestLookAtNodeAtItsOwnTargetIsIdentityRotation(t *testing.T) {
 	p := vector3.New(1., 2., 3.)
 	got := nodes.GetNodeOutputPort[trs.TRS](&nodes.Struct[trs.LookAtNode]{

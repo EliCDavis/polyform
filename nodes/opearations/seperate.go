@@ -18,7 +18,7 @@ func (node SeperateNode) Description() string {
 }
 
 func (node SeperateNode) split(recorder nodes.ExecutionRecorder) (nodes.DynamicArray, []any, []any, bool) {
-	array, ok := nodes.DynamicArrayValue(node.Array)
+	array, ok := nodes.DynamicArrayValue(recorder, node.Array)
 	if !ok {
 		return array, nil, nil, false
 	}

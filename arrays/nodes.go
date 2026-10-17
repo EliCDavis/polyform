@@ -32,6 +32,11 @@ func init() {
 	refutil.RegisterType[nodes.Struct[SampleNode]](factory)
 	refutil.RegisterType[nodes.Struct[PadNode]](factory)
 	refutil.RegisterType[nodes.Struct[FlattenNode]](factory)
+	refutil.RegisterType[nodes.Struct[SpreadNode]](factory)
+	refutil.RegisterType[nodes.Struct[GatherNode]](factory)
+	refutil.RegisterType[nodes.Struct[FilterNode]](factory)
+	refutil.RegisterType[nodes.Struct[SplitNode]](factory)
+	refutil.RegisterType[nodes.Struct[ZipNode]](factory)
 
 	generator.RegisterTypes(factory)
 }
@@ -52,7 +57,7 @@ func (IndexNode) Keywords() []string {
 }
 
 func (i IndexNode) Out(out *nodes.Dynamic[Element]) {
-	values, ok := nodes.DynamicArrayValue(i.Array)
+	values, ok := nodes.DynamicArrayValue(out, i.Array)
 	if !ok {
 		return
 	}
@@ -81,7 +86,7 @@ func (FirstNode) Description() string {
 func (FirstNode) Keywords() []string { return []string{"head", "front"} }
 
 func (f FirstNode) Out(out *nodes.Dynamic[Element]) {
-	values, ok := nodes.DynamicArrayValue(f.Array)
+	values, ok := nodes.DynamicArrayValue(out, f.Array)
 	if !ok || values.Len() == 0 {
 		return
 	}
@@ -101,7 +106,7 @@ func (LastNode) Description() string {
 func (LastNode) Keywords() []string { return []string{"tail", "end"} }
 
 func (l LastNode) Out(out *nodes.Dynamic[Element]) {
-	values, ok := nodes.DynamicArrayValue(l.Array)
+	values, ok := nodes.DynamicArrayValue(out, l.Array)
 	if !ok || values.Len() == 0 {
 		return
 	}
@@ -121,7 +126,7 @@ func (LengthNode) Description() string {
 func (LengthNode) Keywords() []string { return []string{"count", "size"} }
 
 func (l LengthNode) Out(out *nodes.StructOutput[int]) {
-	values, ok := nodes.DynamicArrayValue(l.Array)
+	values, ok := nodes.DynamicArrayValue(out, l.Array)
 	if !ok {
 		out.Set(0)
 		return
@@ -144,7 +149,7 @@ func (SliceNode) Description() string {
 func (SliceNode) Keywords() []string { return []string{"range", "trim"} }
 
 func (s SliceNode) Out(out *nodes.Dynamic[[]Element]) {
-	values, ok := nodes.DynamicArrayValue(s.Array)
+	values, ok := nodes.DynamicArrayValue(out, s.Array)
 	if !ok {
 		return
 	}
@@ -176,7 +181,7 @@ func (ReverseNode) Description() string {
 func (ReverseNode) Keywords() []string { return []string{"flip", "backwards"} }
 
 func (r ReverseNode) Out(out *nodes.Dynamic[[]Element]) {
-	values, ok := nodes.DynamicArrayValue(r.Array)
+	values, ok := nodes.DynamicArrayValue(out, r.Array)
 	if !ok {
 		return
 	}
@@ -202,18 +207,14 @@ func (AppendNode) Description() string {
 func (AppendNode) Keywords() []string { return []string{"add", "push"} }
 
 func (a AppendNode) Out(out *nodes.Dynamic[[]Element]) {
-	values, ok := nodes.DynamicArrayValue(a.Array)
+	values, ok := nodes.DynamicArrayValue(out, a.Array)
 	if !ok {
 		return
 	}
 
 	appended := values.Values()
 	for _, element := range a.Elements {
-		value, ok := nodes.DynamicAnyValue(element)
-		if !ok {
-			continue
-		}
-		appended = append(appended, value)
+		appended = append(appended, nodes.DynamicAnyValues(out, element)...)
 	}
 	out.Set(values.Build(appended))
 }
@@ -238,14 +239,12 @@ func (c ConcatNode) Out(out *nodes.Dynamic[[]Element]) {
 	found := false
 
 	for _, port := range c.Arrays {
-		values, ok := nodes.DynamicArrayValue(port)
-		if !ok {
-			continue
+		for _, values := range nodes.DynamicArrayValues(out, port) {
+			if !found {
+				first, found = values, true
+			}
+			joined = append(joined, values.Values()...)
 		}
-		if !found {
-			first, found = values, true
-		}
-		joined = append(joined, values.Values()...)
 	}
 
 	if !found {
@@ -269,7 +268,7 @@ func (FlattenNode) Keywords() []string {
 }
 
 func (f FlattenNode) Out(out *nodes.Dynamic[[]Element]) {
-	values, ok := nodes.DynamicArrayValue(f.Arrays)
+	values, ok := nodes.DynamicArrayValue(out, f.Arrays)
 	if !ok {
 		return
 	}
@@ -279,6 +278,30 @@ func (f FlattenNode) Out(out *nodes.Dynamic[[]Element]) {
 		return
 	}
 	out.Set(flat)
+}
+
+// ============================================================================
+
+type SpreadNode struct {
+	Array nodes.DynamicPort[[]Element] `description:"The array whose elements to hand over one by one."`
+}
+
+func (SpreadNode) SpreadsOutputs() {}
+
+func (SpreadNode) Description() string {
+	return "Feeds every element of an array into a list input as if each had its own wire. Only list inputs accept it."
+}
+
+func (SpreadNode) Keywords() []string {
+	return []string{"unpack", "splat", "expand", "each"}
+}
+
+func (s SpreadNode) Out(out *nodes.Dynamic[Element]) {
+	values, ok := nodes.DynamicAnyValue(out, s.Array)
+	if !ok {
+		return
+	}
+	out.Set(values)
 }
 
 // ============================================================================
@@ -302,11 +325,7 @@ func (f FromElementsNode) Out(out *nodes.Dynamic[[]Element]) {
 
 	values := make([]any, 0, len(f.Elements))
 	for _, element := range f.Elements {
-		value, ok := nodes.DynamicAnyValue(element)
-		if !ok {
-			continue
-		}
-		values = append(values, value)
+		values = append(values, nodes.DynamicAnyValues(out, element)...)
 	}
 
 	built, ok := nodes.DynamicArrayOf(f.Elements[0], values)
@@ -330,7 +349,7 @@ func (RepeatNode) Description() string {
 func (RepeatNode) Keywords() []string { return []string{"duplicate", "fill"} }
 
 func (r RepeatNode) Out(out *nodes.Dynamic[[]Element]) {
-	value, ok := nodes.DynamicAnyValue(r.Value)
+	value, ok := nodes.DynamicAnyValue(out, r.Value)
 	if !ok {
 		return
 	}
@@ -364,7 +383,7 @@ func (ChunkNode) Keywords() []string {
 }
 
 func (c ChunkNode) Out(out *nodes.Dynamic[[][]Element]) {
-	values, ok := nodes.DynamicArrayValue(c.Array)
+	values, ok := nodes.DynamicArrayValue(out, c.Array)
 	if !ok {
 		return
 	}
@@ -411,7 +430,7 @@ func (p PartitionNode) at(recorder nodes.ExecutionRecorder, length int) int {
 }
 
 func (p PartitionNode) Before(out *nodes.Dynamic[[]Element]) {
-	values, ok := nodes.DynamicArrayValue(p.Array)
+	values, ok := nodes.DynamicArrayValue(out, p.Array)
 	if !ok {
 		return
 	}
@@ -423,7 +442,7 @@ func (PartitionNode) BeforeDescription() string {
 }
 
 func (p PartitionNode) After(out *nodes.Dynamic[[]Element]) {
-	values, ok := nodes.DynamicArrayValue(p.Array)
+	values, ok := nodes.DynamicArrayValue(out, p.Array)
 	if !ok {
 		return
 	}
@@ -449,13 +468,13 @@ func (IndexOfNode) Keywords() []string {
 	return []string{"find", "search"}
 }
 
-func (i IndexOfNode) search() int {
-	values, ok := nodes.DynamicArrayValue(i.Array)
+func (i IndexOfNode) search(out nodes.ExecutionRecorder) int {
+	values, ok := nodes.DynamicArrayValue(out, i.Array)
 	if !ok {
 		return -1
 	}
 
-	target, ok := nodes.DynamicAnyValue(i.Value)
+	target, ok := nodes.DynamicAnyValue(out, i.Value)
 	if !ok {
 		return -1
 	}
@@ -469,7 +488,7 @@ func (i IndexOfNode) search() int {
 }
 
 func (i IndexOfNode) Index(out *nodes.StructOutput[int]) {
-	out.Set(i.search())
+	out.Set(i.search(out))
 }
 
 func (IndexOfNode) IndexDescription() string {
@@ -477,7 +496,7 @@ func (IndexOfNode) IndexDescription() string {
 }
 
 func (i IndexOfNode) Found(out *nodes.StructOutput[bool]) {
-	out.Set(i.search() >= 0)
+	out.Set(i.search(out) >= 0)
 }
 
 func (IndexOfNode) FoundDescription() string {
@@ -500,7 +519,7 @@ func (ShuffleNode) Keywords() []string {
 }
 
 func (s ShuffleNode) Out(out *nodes.Dynamic[[]Element]) {
-	values, ok := nodes.DynamicArrayValue(s.Array)
+	values, ok := nodes.DynamicArrayValue(out, s.Array)
 	if !ok {
 		return
 	}
@@ -531,7 +550,7 @@ func (SampleNode) Keywords() []string {
 }
 
 func (s SampleNode) Out(out *nodes.Dynamic[[]Element]) {
-	values, ok := nodes.DynamicArrayValue(s.Array)
+	values, ok := nodes.DynamicArrayValue(out, s.Array)
 	if !ok {
 		return
 	}
@@ -567,7 +586,7 @@ func (PadNode) Keywords() []string {
 }
 
 func (p PadNode) Out(out *nodes.Dynamic[[]Element]) {
-	values, ok := nodes.DynamicArrayValue(p.Array)
+	values, ok := nodes.DynamicArrayValue(out, p.Array)
 	if !ok {
 		return
 	}
@@ -575,7 +594,7 @@ func (p PadNode) Out(out *nodes.Dynamic[[]Element]) {
 	padded := values.Values()
 	length := nodes.TryGetOutputValue(out, p.Length, 0)
 	if length > len(padded) {
-		value, _ := nodes.DynamicAnyValue(p.Value)
+		value, _ := nodes.DynamicAnyValue(out, p.Value)
 		for len(padded) < length {
 			padded = append(padded, value)
 		}

@@ -52,7 +52,7 @@ func (p ProbeNode) Type(out *nodes.StructOutput[string]) {
 		}
 	}
 
-	value, ok := nodes.DynamicAnyValue(p.In)
+	value, ok := nodes.DynamicAnyValue(out, p.In)
 	if !ok || value == nil {
 		return
 	}
@@ -64,7 +64,7 @@ func (ProbeNode) TypeDescription() string {
 }
 
 func (p ProbeNode) Value(out *nodes.StructOutput[string]) {
-	value, ok := nodes.DynamicAnyValue(p.In)
+	value, ok := nodes.DynamicAnyValue(out, p.In)
 	if !ok {
 		return
 	}

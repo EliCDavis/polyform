@@ -60,10 +60,26 @@ func (SwitchNode) Keywords() []string {
 
 func (s SwitchNode) Out(out *nodes.Dynamic[SwitchType]) {
 	index := nodes.TryGetOutputValue(out, s.Index, 0)
-	if index < 0 || index >= len(s.Cases) {
+	if index < 0 {
 		out.Forward(s.Fallback)
 		return
 	}
-	out.Forward(s.Cases[index])
+	for _, c := range s.Cases {
+		if !nodes.IsSpread(c) {
+			if index == 0 {
+				out.Forward(c)
+				return
+			}
+			index--
+			continue
+		}
+		values := nodes.DynamicAnyValues(out, c)
+		if index < len(values) {
+			out.Set(values[index])
+			return
+		}
+		index -= len(values)
+	}
+	out.Forward(s.Fallback)
 }
 

@@ -1,9 +1,11 @@
 package triangulation_test
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/EliCDavis/polyform/math/geometry"
+	"github.com/EliCDavis/polyform/modeling/sketch"
 	"github.com/EliCDavis/polyform/modeling/triangulation"
 	"github.com/EliCDavis/vector/vector2"
 	"github.com/stretchr/testify/assert"
@@ -11,7 +13,7 @@ import (
 )
 
 func square(size float64, center vector2.Float64) geometry.Shape {
-	return geometry.RoundedRectangle(vector2.New(size, size), 0, center, 1)
+	return sketch.RoundedRectangle(vector2.New(size, size), 0, center, 1)
 }
 
 func requireCounterClockwiseArea(t *testing.T, region triangulation.Region) float64 {
@@ -93,4 +95,29 @@ func TestFillKeepsOnlyThePointsItsTrianglesUse(t *testing.T) {
 	}
 	assert.Len(t, used, len(region.Points))
 	assert.InDelta(t, 8., requireCounterClockwiseArea(t, region), 1e-9)
+}
+
+func TestFillWindingKeepsWhatTheRuleAsksOfEachGroup(t *testing.T) {
+	a := []geometry.Shape{square(4, vector2.New(0., 0.))}
+	b := []geometry.Shape{square(4, vector2.New(2., 0.))}
+
+	onlyA, err := triangulation.FillWinding([][]geometry.Shape{a, b}, func(w []int) bool { return w[0] != 0 && w[1] == 0 })
+	require.NoError(t, err)
+	both, err := triangulation.FillWinding([][]geometry.Shape{a, b}, func(w []int) bool { return w[0] != 0 && w[1] != 0 })
+	require.NoError(t, err)
+
+	assert.InDelta(t, 8, requireCounterClockwiseArea(t, onlyA), 1e-9)
+	assert.InDelta(t, 8, requireCounterClockwiseArea(t, both), 1e-9)
+}
+
+func TestFillDifferenceTakesOutlinesWoundEitherWay(t *testing.T) {
+	clockwise := square(4, vector2.New(0., 0.))
+	slices.Reverse(clockwise)
+	hole := square(2, vector2.New(0., 0.))
+	slices.Reverse(hole)
+
+	region, err := triangulation.FillDifference([]geometry.Shape{clockwise}, []geometry.Shape{hole})
+	require.NoError(t, err)
+
+	assert.InDelta(t, 12, requireCounterClockwiseArea(t, region), 1e-9)
 }

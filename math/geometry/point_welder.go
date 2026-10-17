@@ -43,6 +43,8 @@ func newPointWelder[T comparable](
 	return w
 }
 
+func (w *pointWelder[T]) Tolerance() float64 { return w.tolerance }
+
 func (w *pointWelder[T]) cellOf(c [3]float64) [3]int64 {
 	var key [3]int64
 	for i := 0; i < w.dims; i++ {

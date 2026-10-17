@@ -11,6 +11,14 @@ type StripUVs struct {
 	Width float64
 }
 
+func UnitStripUVs() StripUVs {
+	return StripUVs{
+		Start: vector2.New(0, 0.5),
+		End:   vector2.New(1, 0.5),
+		Width: 1,
+	}
+}
+
 func (suv StripUVs) At(time float64) vector2.Float64 {
 	return suv.End.
 		Sub(suv.Start).

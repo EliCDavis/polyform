@@ -377,6 +377,17 @@ func (clearcoatExtensionLoader) LoadMaterialExtension(ctx *MaterialExtensionLoad
 		ext.ClearcoatRoughnessTexture = loadedTex
 	}
 
+	if clearcoatNormalTexture, ok := tryReinterpretMapData[NormalTexture](specularData, "clearcoatNormalTexture"); ok {
+		loadedTex, err := ctx.LoadTexture(clearcoatNormalTexture.TextureInfo)
+		if err != nil {
+			return nil, fmt.Errorf("unable to interpret clearcoatNormalTexture texture: %w", err)
+		}
+		ext.ClearcoatNormalTexture = &PolyformNormal{
+			PolyformTexture: loadedTex,
+			Scale:           clearcoatNormalTexture.Scale,
+		}
+	}
+
 	return ext, nil
 }
 

@@ -132,7 +132,7 @@ func (hnd HemisphereNode) Description() string {
 }
 
 func (hnd HemisphereNode) Keywords() []string {
-	return []string{"dome", "bowl"}
+	return []string{"dome", "half sphere"}
 }
 
 func (hnd HemisphereNode) Out(out *nodes.StructOutput[modeling.Mesh]) {

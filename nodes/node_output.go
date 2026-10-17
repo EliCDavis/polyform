@@ -16,6 +16,11 @@ func GetOutputValues[G any](recorder ExecutionRecorder, output []Output[G]) []G 
 			continue
 		}
 		start := time.Now()
+		if spread, ok := SpreadValues[G](out); ok {
+			recorder.CaptureTiming(out.Name(), time.Since(start))
+			results = append(results, spread...)
+			continue
+		}
 		v := out.Value()
 		recorder.CaptureTiming(out.Name(), time.Since(start))
 		results = append(results, v)

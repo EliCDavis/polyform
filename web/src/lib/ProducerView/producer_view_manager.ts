@@ -93,6 +93,8 @@ export class ProducerViewManager {
 
   dirLight: DirectionalLight;
 
+  ground: Mesh;
+
   ssaoEffect: SSAOEffect;
 
   guassianSplatViewer: GaussianSplats3D.Viewer | null;
@@ -152,6 +154,7 @@ export class ProducerViewManager {
     this.renderer = app.Renderer;
     this.camera = app.Camera;
     this.dirLight = app.Lighting.DirLight;
+    this.ground = app.Ground.Mesh;
     this.ssaoEffect = app.PostProcessing.SSAO;
     this.orbitControls = app.OrbitControls;
     this.viewerContainer = app.ViewerScene;
@@ -380,6 +383,11 @@ export class ProducerViewManager {
       new Vector3(center.x + groundPadding, box.min.y + 0.01, center.z + groundPadding),
     );
     const combined = box.clone().union(groundBox);
+
+    // Shadow coords are interpolated per vertex, so ground corners far outside
+    // the shadow frustum lose enough precision to make the shadow jump.
+    this.ground.position.set(center.x, 0, center.z);
+    this.ground.scale.setScalar(radius / 2);
 
     const corners = [
       new Vector3(combined.min.x, combined.min.y, combined.min.z),

@@ -17,7 +17,7 @@ type lastOfNode struct {
 }
 
 func (n lastOfNode) Out(out *nodes.Dynamic[lastElement]) {
-	values, ok := nodes.DynamicArrayValue(n.Array)
+	values, ok := nodes.DynamicArrayValue(out, n.Array)
 	if !ok || values.Len() == 0 {
 		return
 	}

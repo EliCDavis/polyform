@@ -38,7 +38,7 @@ type countNode struct {
 }
 
 func (c countNode) Out(out *nodes.StructOutput[int]) {
-	values, ok := nodes.DynamicArrayValue(c.Values)
+	values, ok := nodes.DynamicArrayValue(out, c.Values)
 	if !ok {
 		out.Set(-1)
 		return
@@ -51,7 +51,7 @@ type firstNode struct {
 }
 
 func (f firstNode) Out(out *nodes.Dynamic[elemType]) {
-	values, ok := nodes.DynamicArrayValue(f.Values)
+	values, ok := nodes.DynamicArrayValue(out, f.Values)
 	if !ok || values.Len() == 0 {
 		return
 	}

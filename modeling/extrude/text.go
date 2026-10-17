@@ -199,31 +199,42 @@ func glyphContour(points []truetype.Point, segments int, at func(truetype.Point)
 }
 
 type TextNode struct {
-	Text          nodes.Output[string]  `description:"Text to render."`
-	Height        nodes.Output[float64] `description:"Height of a capital letter. Defaults to 1."`
-	Depth         nodes.Output[float64] `description:"Thickness, extruded toward -Z. 0 (the default) gives a single face."`
-	Font          nodes.Output[string]  `description:"sans (the default), sans bold, mono or mono bold."`
-	Align         nodes.Output[string]  `description:"Which end of each line sits at x = 0: left (the default), center or right."`
-	CurveSegments nodes.Output[int]     `description:"Straight segments per letter curve. Defaults to 6."`
+	Text          nodes.LiftedPort[string]  `description:"Text to render."`
+	Height        nodes.LiftedPort[float64] `description:"Height of a capital letter. Defaults to 1."`
+	Depth         nodes.LiftedPort[float64] `description:"Thickness: the solid spans z = 0 to Depth, face at z = Depth. 0 (the default) gives a single face."`
+	Font          nodes.Output[string]      `description:"sans (the default), sans bold, mono or mono bold."`
+	Align         nodes.LiftedPort[string]  `description:"Which end of each line sits at x = 0: left (the default), center or right."`
+	CurveSegments nodes.Output[int]         `description:"Straight segments per letter curve. Defaults to 6."`
 }
 
 func (TextNode) Description() string {
-	return "Text as a mesh in a built-in font, lying in the XY plane facing +Z with the first baseline on y = 0."
+	return "Text as a mesh in a built-in font, lying in the XY plane facing +Z with the first baseline on y = 0. A list of texts gives one mesh each."
 }
 
 func (TextNode) Keywords() []string {
-	return []string{"label", "lettering", "font", "glyph", "engrave", "emboss"}
+	return []string{"lettering", "font", "glyph", "engrave", "emboss"}
 }
 
-func (n TextNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
-	mesh, err := Text{
-		Text:          nodes.TryGetOutputValue(out, n.Text, ""),
-		Height:        nodes.TryGetOutputValue(out, n.Height, 1.),
-		Depth:         nodes.TryGetOutputValue(out, n.Depth, 0.),
-		Font:          nodes.TryGetOutputValue(out, n.Font, ""),
-		Align:         nodes.TryGetOutputValue(out, n.Align, ""),
-		CurveSegments: nodes.TryGetOutputValue(out, n.CurveSegments, 6),
-	}.Mesh()
-	out.CaptureError(err)
-	out.Set(mesh)
+func (n TextNode) Out(out *nodes.Lifted[modeling.Mesh]) {
+	font := nodes.TryGetOutputValue(out, n.Font, "")
+	segments := nodes.TryGetOutputValue(out, n.CurveSegments, 6)
+	nodes.Zip4(
+		out,
+		n.Text,
+		nodes.LiftedOr(n.Height, 1.),
+		n.Depth,
+		n.Align,
+		func(text string, height, depth float64, align string) modeling.Mesh {
+			mesh, err := Text{
+				Text:          text,
+				Height:        height,
+				Depth:         depth,
+				Font:          font,
+				Align:         align,
+				CurveSegments: segments,
+			}.Mesh()
+			out.CaptureError(err)
+			return mesh
+		},
+	)
 }

@@ -560,3 +560,16 @@ func TestSubtractingASolidFromItselfOffset(t *testing.T) {
 		})
 	}
 }
+
+func TestNodesReturnAnEmptyMeshWithoutErrorWhenNothingIsLeft(t *testing.T) {
+	apart := csg.IntersectionNode{Meshes: constMeshes(cube(vector3.New(-3., 0., 0.), 2), cube(vector3.New(3., 0., 0.), 2))}
+	swallowed := csg.SubtractNode{
+		Base:   nodes.ConstOutput[modeling.Mesh]{Val: cube(vector3.Zero[float64](), 2)},
+		Remove: constMeshes(cube(vector3.Zero[float64](), 4)),
+	}
+
+	assert.Zero(t, meshFromNode(t, apart).PrimitiveCount())
+	assert.Empty(t, errorsFromNode(t, apart))
+	assert.Zero(t, meshFromNode(t, swallowed).PrimitiveCount())
+	assert.Empty(t, errorsFromNode(t, swallowed))
+}

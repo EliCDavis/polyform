@@ -77,136 +77,121 @@ func clamp01(v float64) float64 {
 // ============================================================================
 
 type AdjustHSVNode struct {
-	In         nodes.Output[Color]   `description:"Color to adjust."`
-	Hue        nodes.Output[float64] `description:"Degrees to rotate the hue by, positive or negative. Wraps around the color wheel. Defaults to 0."`
-	Saturation nodes.Output[float64] `description:"Multiplier on saturation - below 1 washes the color out toward grey, above 1 makes it more vivid. Defaults to 1."`
-	Value      nodes.Output[float64] `description:"Multiplier on brightness - below 1 darkens, above 1 lightens. Defaults to 1."`
+	In         nodes.LiftedPort[Color]   `description:"Color to adjust."`
+	Hue        nodes.LiftedPort[float64] `description:"Degrees to rotate the hue by, positive or negative. Wraps around the color wheel. Defaults to 0."`
+	Saturation nodes.LiftedPort[float64] `description:"Multiplier on saturation - below 1 washes the color out toward grey, above 1 makes it more vivid. Defaults to 1."`
+	Value      nodes.LiftedPort[float64] `description:"Multiplier on brightness - below 1 darkens, above 1 lightens. Defaults to 1."`
 }
 
 func (n AdjustHSVNode) Description() string {
 	return "Shifts a color's hue and scales its saturation and brightness. Lighten, darken, tint, or desaturate a color."
 }
 
-func (n AdjustHSVNode) Out(out *nodes.StructOutput[Color]) {
-	if n.In == nil {
-		out.Set(Color{R: 0, G: 0, B: 0, A: 1})
-		return
-	}
-
-	in := nodes.GetOutputValue(out, n.In)
-	h, s, v := RGBToHSV(in.R, in.G, in.B)
-
-	h += nodes.TryGetOutputValue(out, n.Hue, 0)
-	s = clamp01(s * nodes.TryGetOutputValue(out, n.Saturation, 1))
-	v = clamp01(v * nodes.TryGetOutputValue(out, n.Value, 1))
-
-	r, g, b := HSVToRGB(h, s, v)
-	out.Set(Color{R: r, G: g, B: b, A: in.A})
+func (n AdjustHSVNode) Out(out *nodes.Lifted[Color]) {
+	nodes.Zip4(
+		out,
+		nodes.LiftedOr(n.In, Color{A: 1}),
+		n.Hue,
+		nodes.LiftedOr(n.Saturation, 1.),
+		nodes.LiftedOr(n.Value, 1.),
+		func(in Color, hue, saturation, value float64) Color {
+			h, s, v := RGBToHSV(in.R, in.G, in.B)
+			r, g, b := HSVToRGB(h+hue, clamp01(s*saturation), clamp01(v*value))
+			return Color{R: r, G: g, B: b, A: in.A}
+		},
+	)
 }
 
 // ============================================================================
 
 type BrightnessNode struct {
-	In     nodes.Output[Color]   `description:"Color to lighten or darken."`
-	Amount nodes.Output[float64] `description:"Multiplier on each color channel - 0.5 is half as bright, 2 is twice. Defaults to 1."`
+	In     nodes.LiftedPort[Color]   `description:"Color to lighten or darken."`
+	Amount nodes.LiftedPort[float64] `description:"Multiplier on each color channel - 0.5 is half as bright, 2 is twice. Defaults to 1."`
 }
 
 func (n BrightnessNode) Description() string {
 	return "Lightens or darkens a color by scaling its red, green and blue channels."
 }
 
-func (n BrightnessNode) Out(out *nodes.StructOutput[Color]) {
-	if n.In == nil {
-		out.Set(Color{R: 0, G: 0, B: 0, A: 1})
-		return
-	}
-
-	in := nodes.GetOutputValue(out, n.In)
-	amount := nodes.TryGetOutputValue(out, n.Amount, 1)
-
-	out.Set(Color{
-		R: clamp01(in.R * amount),
-		G: clamp01(in.G * amount),
-		B: clamp01(in.B * amount),
-		A: in.A,
+func (n BrightnessNode) Out(out *nodes.Lifted[Color]) {
+	nodes.Zip2(out, nodes.LiftedOr(n.In, Color{A: 1}), nodes.LiftedOr(n.Amount, 1.), func(in Color, amount float64) Color {
+		return Color{
+			R: clamp01(in.R * amount),
+			G: clamp01(in.G * amount),
+			B: clamp01(in.B * amount),
+			A: in.A,
+		}
 	})
 }
 
 // ============================================================================
 
 type MultiplyNode struct {
-	A nodes.Output[Color] `description:"First color."`
-	B nodes.Output[Color] `description:"Second color, multiplied into the first channel by channel."`
+	A nodes.LiftedPort[Color] `description:"First color."`
+	B nodes.LiftedPort[Color] `description:"Second color, multiplied into the first channel by channel."`
 }
 
 func (n MultiplyNode) Description() string {
 	return "Multiplies two colors channel by channel, tinting one by the other."
 }
 
-func (n MultiplyNode) Out(out *nodes.StructOutput[Color]) {
-	a := nodes.TryGetOutputValue(out, n.A, Color{R: 1, G: 1, B: 1, A: 1})
-	b := nodes.TryGetOutputValue(out, n.B, Color{R: 1, G: 1, B: 1, A: 1})
-
-	out.Set(Color{
-		R: a.R * b.R,
-		G: a.G * b.G,
-		B: a.B * b.B,
-		A: a.A * b.A,
+func (n MultiplyNode) Out(out *nodes.Lifted[Color]) {
+	white := Color{R: 1, G: 1, B: 1, A: 1}
+	nodes.Zip2(out, nodes.LiftedOr(n.A, white), nodes.LiftedOr(n.B, white), func(a, b Color) Color {
+		return Color{
+			R: a.R * b.R,
+			G: a.G * b.G,
+			B: a.B * b.B,
+			A: a.A * b.A,
+		}
 	})
 }
 
 // ============================================================================
 
 type FromHSVNode struct {
-	Hue        nodes.Output[float64] `description:"Hue in degrees, 0-360. Defaults to 0."`
-	Saturation nodes.Output[float64] `description:"Saturation, 0 (grey) to 1 (fully vivid). Defaults to 1."`
-	Value      nodes.Output[float64] `description:"Brightness, 0 (black) to 1. Defaults to 1."`
+	Hue        nodes.LiftedPort[float64] `description:"Hue in degrees, 0-360. Defaults to 0."`
+	Saturation nodes.LiftedPort[float64] `description:"Saturation, 0 (grey) to 1 (fully vivid). Defaults to 1."`
+	Value      nodes.LiftedPort[float64] `description:"Brightness, 0 (black) to 1. Defaults to 1."`
 }
 
 func (n FromHSVNode) Description() string {
-	return "Builds a color from hue, saturation and value."
+	return "Builds a color from hue, saturation and value. A list of hues gives a palette."
 }
 
-func (n FromHSVNode) Out(out *nodes.StructOutput[Color]) {
-	r, g, b := HSVToRGB(
-		nodes.TryGetOutputValue(out, n.Hue, 0),
-		clamp01(nodes.TryGetOutputValue(out, n.Saturation, 1)),
-		clamp01(nodes.TryGetOutputValue(out, n.Value, 1)),
-	)
-	out.Set(Color{R: r, G: g, B: b, A: 1})
+func (n FromHSVNode) Out(out *nodes.Lifted[Color]) {
+	nodes.Zip3(out, n.Hue, nodes.LiftedOr(n.Saturation, 1.), nodes.LiftedOr(n.Value, 1.), func(hue, saturation, value float64) Color {
+		r, g, b := HSVToRGB(hue, clamp01(saturation), clamp01(value))
+		return Color{R: r, G: g, B: b, A: 1}
+	})
 }
 
 // ============================================================================
 
 type ToHSVNode struct {
-	In nodes.Output[Color] `description:"Color to break apart."`
+	In nodes.LiftedPort[Color] `description:"Color to break apart."`
 }
 
 func (n ToHSVNode) Description() string {
 	return "Splits a color into hue, saturation and value."
 }
 
-func (n ToHSVNode) hsv(out *nodes.StructOutput[float64]) (h, s, v float64) {
-	if n.In == nil {
-		return 0, 0, 0
-	}
-	in := nodes.GetOutputValue(out, n.In)
-	return RGBToHSV(in.R, in.G, in.B)
+func (n ToHSVNode) channel(out *nodes.Lifted[float64], pick func(h, s, v float64) float64) {
+	nodes.Zip1(out, nodes.LiftedOr(n.In, Color{A: 1}), func(in Color) float64 {
+		return pick(RGBToHSV(in.R, in.G, in.B))
+	})
 }
 
-func (n ToHSVNode) Hue(out *nodes.StructOutput[float64]) {
-	h, _, _ := n.hsv(out)
-	out.Set(h)
+func (n ToHSVNode) Hue(out *nodes.Lifted[float64]) {
+	n.channel(out, func(h, _, _ float64) float64 { return h })
 }
 
-func (n ToHSVNode) Saturation(out *nodes.StructOutput[float64]) {
-	_, s, _ := n.hsv(out)
-	out.Set(s)
+func (n ToHSVNode) Saturation(out *nodes.Lifted[float64]) {
+	n.channel(out, func(_, s, _ float64) float64 { return s })
 }
 
-func (n ToHSVNode) Value(out *nodes.StructOutput[float64]) {
-	_, _, v := n.hsv(out)
-	out.Set(v)
+func (n ToHSVNode) Value(out *nodes.Lifted[float64]) {
+	n.channel(out, func(_, _, v float64) float64 { return v })
 }
 
 // ============================================================================

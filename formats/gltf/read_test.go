@@ -2146,6 +2146,7 @@ func TestDecodeMaterialExtensions(t *testing.T) {
 				"clearcoatTexture":          map[string]any{"index": 0},
 				"clearcoatRoughnessFactor":  0.5,
 				"clearcoatRoughnessTexture": map[string]any{"index": 0},
+				"clearcoatNormalTexture":    map[string]any{"index": 0, "scale": 0.4},
 			},
 			Assert: func(t *testing.T, matExt gltf.MaterialExtension) {
 				ext, ok := matExt.(*gltf.PolyformClearcoat)
@@ -2155,6 +2156,10 @@ func TestDecodeMaterialExtensions(t *testing.T) {
 				assert.Equal(t, 0.5, ext.ClearcoatRoughnessFactor)
 				assert.NotNil(t, ext.ClearcoatTexture)
 				assert.NotNil(t, ext.ClearcoatRoughnessTexture)
+				require.NotNil(t, ext.ClearcoatNormalTexture)
+				assert.NotNil(t, ext.ClearcoatNormalTexture.PolyformTexture)
+				require.NotNil(t, ext.ClearcoatNormalTexture.Scale)
+				assert.Equal(t, 0.4, *ext.ClearcoatNormalTexture.Scale)
 			},
 		},
 		"Emissive Strength": {

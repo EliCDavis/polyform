@@ -21,6 +21,8 @@ func init() {
 
 	refutil.RegisterType[nodes.Struct[CombineNode]](factory)
 	refutil.RegisterType[nodes.Struct[ProjectUVNode]](factory)
+	refutil.RegisterType[nodes.Struct[BoxProjectUVNode]](factory)
+	refutil.RegisterType[nodes.Struct[CylinderProjectUVNode]](factory)
 	refutil.RegisterType[nodes.Struct[TransformNode]](factory)
 
 	refutil.RegisterType[nodes.Struct[SmoothNormalsNode]](factory)

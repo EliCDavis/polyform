@@ -247,37 +247,85 @@ func marchCracked(field sample.Vec3ToFloat, initialBounds geometry.AABB, cubeSiz
 	log.Printf("Total Results: %d\n", len(res))
 }
 
+// Grid indices, Last included.
+type gridRange struct {
+	First, Last [3]int
+}
+
+func floorHalf(v int) int {
+	if v >= 0 {
+		return v / 2
+	}
+	return -((1 - v) / 2)
+}
+
+// Covers grid points up to half a voxel outside bounds.
 func marchRecurse(field sample.Vec3ToFloat, bounds geometry.AABB, cubeSize, surface float64, res map[vector3.Int32]float64) {
+	lo := bounds.Min().DivByConstant(cubeSize)
+	hi := bounds.Max().DivByConstant(cubeSize)
+	r := gridRange{
+		First: [3]int{int(math.Ceil(lo.X() - 0.5)), int(math.Ceil(lo.Y() - 0.5)), int(math.Ceil(lo.Z() - 0.5))},
+		Last:  [3]int{int(math.Floor(hi.X() + 0.5)), int(math.Floor(hi.Y() + 0.5)), int(math.Floor(hi.Z() + 0.5))},
+	}
+	for i := range 3 {
+		if r.First[i] > r.Last[i] {
+			return
+		}
+	}
+	marchGrid(field, r, cubeSize, surface, res)
+}
 
-	center := bounds.Center()
-	centerIndex := center.DivByConstant(cubeSize).RoundToInt()
-	recentered := centerIndex.ToFloat64().Scale(cubeSize)
+func marchGrid(field sample.Vec3ToFloat, r gridRange, cubeSize, surface float64, res map[vector3.Int32]float64) {
+	var mid [3]int
+	for i := range 3 {
+		mid[i] = floorHalf(r.First[i] + r.Last[i])
+	}
+	key := vector3.New(int32(mid[0]), int32(mid[1]), int32(mid[2]))
+	point := vector3.New(float64(mid[0]), float64(mid[1]), float64(mid[2])).Scale(cubeSize)
 
-	fieldResult := field(recentered) - surface
-	size := bounds.Size()
-	diagonal := size.Length()
+	value, sampled := res[key]
+	if !sampled {
+		value = field(point) - surface
+	}
 
-	// TODO: WE THIS IS OUR BIGGEST SPEEDUP, FIGURE OUT HOW TO PRUNE HARDER
-	// The closest surface is not within the bounds
-	if math.Abs(fieldResult) > (diagonal*2)+(cubeSize)+center.Distance(recentered) {
+	boxMin := vector3.New(float64(r.First[0])-0.5, float64(r.First[1])-0.5, float64(r.First[2])-0.5).Scale(cubeSize)
+	boxMax := vector3.New(float64(r.Last[0])+0.5, float64(r.Last[1])+0.5, float64(r.Last[2])+0.5).Scale(cubeSize)
+	center := boxMin.Add(boxMax).Scale(0.5)
+	if math.Abs(value) > boxMax.Sub(boxMin).Length()*2+cubeSize+center.Distance(point) {
 		return
 	}
 
-	res[vector3.New(int32(centerIndex.X()), int32(centerIndex.Y()), int32(centerIndex.Z()))] = fieldResult
-	if size.MaxComponent() < cubeSize {
+	res[key] = value
+	if r.First == r.Last {
 		return
 	}
 
-	halfSize := size.Scale(0.5)
-	qs := halfSize.Scale(0.5)
-	marchRecurse(field, geometry.NewAABB(center.Add(vector3.New(qs.X(), qs.Y(), qs.Z())), halfSize), cubeSize, surface, res)
-	marchRecurse(field, geometry.NewAABB(center.Add(vector3.New(qs.X(), qs.Y(), -qs.Z())), halfSize), cubeSize, surface, res)
-	marchRecurse(field, geometry.NewAABB(center.Add(vector3.New(qs.X(), -qs.Y(), qs.Z())), halfSize), cubeSize, surface, res)
-	marchRecurse(field, geometry.NewAABB(center.Add(vector3.New(qs.X(), -qs.Y(), -qs.Z())), halfSize), cubeSize, surface, res)
-	marchRecurse(field, geometry.NewAABB(center.Add(vector3.New(-qs.X(), qs.Y(), qs.Z())), halfSize), cubeSize, surface, res)
-	marchRecurse(field, geometry.NewAABB(center.Add(vector3.New(-qs.X(), qs.Y(), -qs.Z())), halfSize), cubeSize, surface, res)
-	marchRecurse(field, geometry.NewAABB(center.Add(vector3.New(-qs.X(), -qs.Y(), qs.Z())), halfSize), cubeSize, surface, res)
-	marchRecurse(field, geometry.NewAABB(center.Add(vector3.New(-qs.X(), -qs.Y(), -qs.Z())), halfSize), cubeSize, surface, res)
+	// Halve only the axes still spanning several points; halving every axis
+	// together resamples the short ones many times over on a long domain.
+	var halves [3][2]gridRange
+	var counts [3]int
+	for i := range 3 {
+		if r.First[i] == r.Last[i] {
+			halves[i][0] = r
+			counts[i] = 1
+			continue
+		}
+		split := floorHalf(r.First[i] + r.Last[i])
+		halves[i][0], halves[i][1] = r, r
+		halves[i][0].Last[i] = split
+		halves[i][1].First[i] = split + 1
+		counts[i] = 2
+	}
+	for x := range counts[0] {
+		for y := range counts[1] {
+			for z := range counts[2] {
+				marchGrid(field, gridRange{
+					First: [3]int{halves[0][x].First[0], halves[1][y].First[1], halves[2][z].First[2]},
+					Last:  [3]int{halves[0][x].Last[0], halves[1][y].Last[1], halves[2][z].Last[2]},
+				}, cubeSize, surface, res)
+			}
+		}
+	}
 }
 
 func dedup(data *workingData, vert vector3.Float64, size float64) int {
@@ -296,11 +344,11 @@ func dedup(data *workingData, vert vector3.Float64, size float64) int {
 
 func March(field sample.Vec3ToFloat, domain geometry.AABB, cubeSize, surface float64) modeling.Mesh {
 	results := make(map[vector3.Int32]float64)
-	// sdfCompute := time.Now()
 	marchRecurse(field, domain, cubeSize, surface, results)
-	// log.Printf("Time To Compute SDFs %s", time.Since(sdfCompute))
+	return meshFromSamples(results, cubeSize)
+}
 
-	// marchCompute := time.Now()
+func meshFromSamples(results map[vector3.Int32]float64, cubeSize float64) modeling.Mesh {
 	marchingWorkingData := &workingData{
 		tris:       make([]int, 0),
 		verts:      make([]vector3.Float64, 0),
@@ -417,8 +465,6 @@ func March(field sample.Vec3ToFloat, domain geometry.AABB, cubeSize, surface flo
 	if len(marchingWorkingData.tris) == 0 {
 		return m
 	}
-
-	// log.Printf("Time To March Mesh %s", time.Since(marchCompute))
 
 	return meshops.RemoveNullFaces3D(m, modeling.PositionAttribute, 0)
 }

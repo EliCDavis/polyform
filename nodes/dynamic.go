@@ -445,6 +445,9 @@ func (i *dynamicInput) Clear() {
 }
 
 func (i *dynamicInput) Set(port OutputPort) error {
+	if err := RefuseSpread(port, i.displayName); err != nil {
+		return err
+	}
 	if err := bindPortToVariable(i.pattern, i.bindings, port, i.displayName); err != nil {
 		return err
 	}

@@ -154,6 +154,7 @@ func (a *Graph) loadNodes(saved savedGraph, externals map[string]nodes.OutputPor
 	for _, id := range order {
 		details := saved.nodes[id]
 		reads := make(map[string][]source)
+		inputs := created[id].Inputs()
 		// Sorted, so an array's elements are appended by index.
 		for _, input := range slices.SortedFunc(maps.Keys(details.AssignedInput), compareInputNames) {
 			from := details.AssignedInput[input]
@@ -161,7 +162,7 @@ func (a *Graph) loadNodes(saved savedGraph, externals map[string]nodes.OutputPor
 			if !ok {
 				return fmt.Errorf("node %s's %q input reads node %s, which does not exist", id, input, from.NodeId)
 			}
-			port, _ := splitElement(input)
+			port, _ := splitElementOf(inputs, input)
 			reads[port] = append(reads[port], source{node: producer, port: from.PortName})
 		}
 		a.reads[created[id]] = reads

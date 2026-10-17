@@ -50,7 +50,10 @@ func (a *Graph) registerWithInputs(node nodes.Node, typeKey string) {
 	}
 
 	reads := make(map[string][]source)
-	for name, input := range node.Inputs() {
+	inputs := node.Inputs()
+	// Sorted: the nodes this registers take ids in this order.
+	for _, name := range slices.Sorted(maps.Keys(inputs)) {
+		input := inputs[name]
 		var held []nodes.OutputPort
 		switch slot := input.(type) {
 		case nodes.SingleValueInputPort:
