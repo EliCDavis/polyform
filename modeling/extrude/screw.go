@@ -20,7 +20,7 @@ type ScrewNode struct {
 }
 
 func (snd ScrewNode) Description() string {
-	return "Sweeps a profile line around the Y axis. Distance 0 gives a closed round shape; non-zero screws it into a helix like a spring."
+	return "Sweeps a profile line around the Y axis. Distance 0 gives a closed round shape; non-zero screws it into a helix."
 }
 
 func (snd ScrewNode) Keywords() []string {
@@ -40,11 +40,7 @@ func (snd ScrewNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 
 	turn := math.Pi * 2 * nodes.TryGetOutputValue(out, snd.Revolutions, 1.)
 	climb := nodes.TryGetOutputValue(out, snd.Distance, 0.)
-	strip := nodes.TryGetOutputValue(out, snd.UVs, primitives.StripUVs{
-		Start: vector2.New(0, 0.5),
-		End:   vector2.New(1, 0.5),
-		Width: 1,
-	})
+	strip := nodes.TryGetOutputValue(out, snd.UVs, primitives.UnitStripUVs())
 	axis := vector3.Up[float64]()
 
 	// The surface's normal is the way a point moves through the sweep

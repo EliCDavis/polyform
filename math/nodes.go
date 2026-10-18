@@ -231,7 +231,7 @@ type RoundNode struct {
 }
 
 func (cn RoundNode) Description() string {
-	return "Rounds a number to a whole number: Float and Int are the nearest, Down is the floor, Up is the ceiling. Arrays round element by element."
+	return "Rounds a number to a whole number: Float and Int are the nearest, Down is the floor, Up is the ceiling."
 }
 
 func (cn RoundNode) Keywords() []string {

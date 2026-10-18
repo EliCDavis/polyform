@@ -989,6 +989,49 @@ func TestRenameBoundaryInputPreservesRuntimeWiring(t *testing.T) {
 	assert.NotContains(t, schema.AssignedInput, "In")
 }
 
+func TestRenamingAnInputOfANestedSubGraphKeepsTheOuterPlacementBuildable(t *testing.T) {
+	inst := testInstanceWithSubGraphTypesExtended(t)
+	require.NoError(t, inst.CreateSubGraph("passthrough", "Passthrough", ""))
+	require.NoError(t, inst.CreateSubGraph("wrap", "Wrap", ""))
+
+	inner, err := inst.SubGraphInstance("passthrough")
+	require.NoError(t, err)
+	_, innerIn, err := inner.CreateBoundaryNode(subgraph.InputNodeTypeKey, "float64")
+	require.NoError(t, err)
+	_, innerOut, err := inner.CreateBoundaryNode(subgraph.OutputNodeTypeKey, "float64")
+	require.NoError(t, err)
+	require.NoError(t, inner.SetBoundaryNodeInfo(innerIn, "In"))
+	require.NoError(t, inner.SetBoundaryNodeInfo(innerOut, "Out"))
+	require.NoError(t, inner.ConnectNodes(innerIn, subgraph.ValuePortName, innerOut, subgraph.ValuePortName))
+
+	outer, err := inst.SubGraphInstance("wrap")
+	require.NoError(t, err)
+	_, outerIn, err := outer.CreateBoundaryNode(subgraph.InputNodeTypeKey, "float64")
+	require.NoError(t, err)
+	_, outerOut, err := outer.CreateBoundaryNode(subgraph.OutputNodeTypeKey, "float64")
+	require.NoError(t, err)
+	require.NoError(t, outer.SetBoundaryNodeInfo(outerIn, "X"))
+	require.NoError(t, outer.SetBoundaryNodeInfo(outerOut, "Y"))
+	_, placedID, err := outer.CreateNode(subgraph.RuntimeTypePath("passthrough"))
+	require.NoError(t, err)
+	require.NoError(t, outer.ConnectNodes(outerIn, subgraph.ValuePortName, placedID, "In"))
+	require.NoError(t, outer.ConnectNodes(placedID, "Out", outerOut, subgraph.ValuePortName))
+
+	param, paramID, err := inst.CreateNode("Float64")
+	require.NoError(t, err)
+	param.(*parameter.Float64).CurrentValue = 3
+	wrapNode, wrapID, err := inst.CreateNode(subgraph.RuntimeTypePath("wrap"))
+	require.NoError(t, err)
+	require.NoError(t, inst.ConnectNodes(paramID, "Value", wrapID, "X"))
+	require.Equal(t, 3.0, nodes.GetNodeOutputPort[float64](wrapNode, "Y").Value())
+
+	require.NoError(t, inner.SetBoundaryNodeInfo(innerIn, "Scale"))
+
+	_, err = wrapNode.(*graph.SubgraphInstanceNode).Live()
+	require.NoError(t, err)
+	assert.Equal(t, 3.0, nodes.GetNodeOutputPort[float64](wrapNode, "Y").Value())
+}
+
 func TestRenameBoundaryOutputPreservesDownstreamWiring(t *testing.T) {
 	inst := testInstanceWithSubGraphTypesExtended(t)
 	require.NoError(t, inst.CreateSubGraph("passthrough", "Passthrough", ""))

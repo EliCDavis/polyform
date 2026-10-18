@@ -74,10 +74,19 @@ func (r *SubgraphInstanceNode) BuiltGraph() *Graph {
 // LiveGraph is this placement's copy of the definition, built if it has to
 // be. It is nil when the definition cannot be copied.
 func (r *SubgraphInstanceNode) LiveGraph() *Graph {
-	if r.BuiltGraph() == nil {
-		_ = r.build()
+	live, _ := r.Live()
+	return live
+}
+
+// Live is LiveGraph with the reason a copy could not be built.
+func (r *SubgraphInstanceNode) Live() (*Graph, error) {
+	if built := r.BuiltGraph(); built != nil {
+		return built, nil
 	}
-	return r.BuiltGraph()
+	if err := r.build(); err != nil {
+		return nil, err
+	}
+	return r.BuiltGraph(), nil
 }
 
 func (r *SubgraphInstanceNode) build() error {

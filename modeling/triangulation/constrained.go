@@ -6,404 +6,37 @@ import (
 	"sort"
 
 	"github.com/EliCDavis/polyform/math/geometry"
-	"github.com/EliCDavis/polyform/math/predicate"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/vector/vector2"
-	"github.com/EliCDavis/vector/vector3"
 )
-
-type edgeKey [2]int
-
-func newEdgeKey(a, b int) edgeKey {
-	if a > b {
-		a, b = b, a
-	}
-	return edgeKey{a, b}
-}
-
-// winding counts constraint segments along an edge, +1 for each running from
-// the lower index to the higher and -1 for the reverse.
-type tessellation struct {
-	pts         []vector2.Float64
-	tris        map[Triangle]struct{}
-	adj         map[edgeKey][]Triangle
-	incident    map[int][]Triangle
-	constrained map[edgeKey]struct{}
-	winding     map[edgeKey]int
-}
-
-// Which rotation of a triangle gets stored decides which of its neighbours
-// opposites reports first, and that leaks all the way out as the order faces
-// come back in, so tris has to arrive in a deterministic order.
-func newTessellation(pts []vector2.Float64, tris []Triangle) *tessellation {
-	t := &tessellation{
-		pts:         pts,
-		tris:        make(map[Triangle]struct{}, len(tris)),
-		adj:         make(map[edgeKey][]Triangle, len(tris)*3),
-		incident:    make(map[int][]Triangle, len(pts)),
-		constrained: make(map[edgeKey]struct{}),
-		winding:     make(map[edgeKey]int),
-	}
-	for _, tri := range tris {
-		t.add(tri)
-	}
-	return t
-}
-
-func (t *tessellation) add(tri Triangle) {
-	t.tris[tri] = exists
-	for _, e := range tri.Edges() {
-		k := newEdgeKey(e[0], e[1])
-		t.adj[k] = append(t.adj[k], tri)
-	}
-	for _, v := range tri {
-		t.incident[v] = append(t.incident[v], tri)
-	}
-}
-
-func without(tris []Triangle, tri Triangle) []Triangle {
-	kept := tris[:0]
-	for _, other := range tris {
-		if other != tri {
-			kept = append(kept, other)
-		}
-	}
-	return kept
-}
-
-func (t *tessellation) remove(tri Triangle) {
-	delete(t.tris, tri)
-	for _, e := range tri.Edges() {
-		k := newEdgeKey(e[0], e[1])
-		if kept := without(t.adj[k], tri); len(kept) == 0 {
-			delete(t.adj, k)
-		} else {
-			t.adj[k] = kept
-		}
-	}
-	for _, v := range tri {
-		t.incident[v] = without(t.incident[v], tri)
-	}
-}
-
-func (t *tessellation) third(tri Triangle, a, b int) int {
-	for _, v := range tri {
-		if v != a && v != b {
-			return v
-		}
-	}
-	return -1
-}
-
-func (t *tessellation) across(e edgeKey, from Triangle) (Triangle, bool) {
-	for _, tri := range t.adj[e] {
-		if tri != from {
-			return tri, true
-		}
-	}
-	return Triangle{}, false
-}
-
-func (t *tessellation) hasEdge(a, b int) bool {
-	_, ok := t.adj[newEdgeKey(a, b)]
-	return ok
-}
-
-func (t *tessellation) opposites(e edgeKey) (Triangle, Triangle, int, int, bool) {
-	tris := t.adj[e]
-	if len(tris) != 2 {
-		return Triangle{}, Triangle{}, 0, 0, false
-	}
-	p, q := t.third(tris[0], e[0], e[1]), t.third(tris[1], e[0], e[1])
-	if p < 0 || q < 0 {
-		return Triangle{}, Triangle{}, 0, 0, false
-	}
-	return tris[0], tris[1], p, q, true
-}
-
-func (t *tessellation) wind(a, b, c int) Triangle {
-	return Triangle{a, b, c}.clockwise(t.pts)
-}
-
-func (t *tessellation) flip(e edgeKey) (edgeKey, bool) {
-	t1, t2, p, q, ok := t.opposites(e)
-	if !ok {
-		return edgeKey{}, false
-	}
-	if predicate.Orient2D(t.pts[p], t.pts[q], t.pts[e[0]]) == 0 ||
-		predicate.Orient2D(t.pts[p], t.pts[q], t.pts[e[1]]) == 0 {
-		return edgeKey{}, false
-	}
-	if (predicate.Orient2D(t.pts[p], t.pts[q], t.pts[e[0]]) > 0) ==
-		(predicate.Orient2D(t.pts[p], t.pts[q], t.pts[e[1]]) > 0) {
-		return edgeKey{}, false
-	}
-
-	t.remove(t1)
-	t.remove(t2)
-	t.add(t.wind(p, q, e[0]))
-	t.add(t.wind(p, q, e[1]))
-	return newEdgeKey(p, q), true
-}
-
-// Cocircular points are a genuine tie that leaves more than one correct
-// Delaunay triangulation, so which one comes out is decided by the order
-// edges are visited. Ranging a map would make that the runtime's choice and
-// the same input would not give the same mesh twice.
-func (t *tessellation) edges() []edgeKey {
-	out := make([]edgeKey, 0, len(t.adj))
-	for e := range t.adj {
-		out = append(out, e)
-	}
-	sort.Slice(out, func(i, j int) bool {
-		if out[i][0] != out[j][0] {
-			return out[i][0] < out[j][0]
-		}
-		return out[i][1] < out[j][1]
-	})
-	return out
-}
-
-// Walks triangle to triangle along a-b, so the edges come back in the order
-// the segment meets them, which is the order forceEdge wants to flip them.
-func (t *tessellation) crossing(a, b int) []edgeKey {
-	pa, pb := t.pts[a], t.pts[b]
-
-	var tri Triangle
-	u, v := -1, -1
-	for _, candidate := range t.incident[a] {
-		var rest [2]int
-		n := 0
-		for _, vertex := range candidate {
-			if vertex != a {
-				rest[n] = vertex
-				n++
-			}
-		}
-		if predicate.SegmentsCross(pa, pb, t.pts[rest[0]], t.pts[rest[1]]) {
-			tri, u, v = candidate, rest[0], rest[1]
-			break
-		}
-	}
-	if u < 0 {
-		return nil
-	}
-
-	out := []edgeKey{newEdgeKey(u, v)}
-	for {
-		next, ok := t.across(newEdgeKey(u, v), tri)
-		if !ok {
-			return out
-		}
-		w := t.third(next, u, v)
-		if w == b {
-			return out
-		}
-		switch {
-		case predicate.SegmentsCross(pa, pb, t.pts[u], t.pts[w]):
-			v = w
-		case predicate.SegmentsCross(pa, pb, t.pts[w], t.pts[v]):
-			u = w
-		default:
-			return out
-		}
-		tri = next
-		out = append(out, newEdgeKey(u, v))
-	}
-}
-
-func (t *tessellation) lock(a, b int) {
-	k := newEdgeKey(a, b)
-	t.constrained[k] = exists
-	if a < b {
-		t.winding[k]++
-	} else {
-		t.winding[k]--
-	}
-}
-
-func (t *tessellation) forceEdge(a, b int) error {
-	if a == b {
-		return nil
-	}
-	if t.hasEdge(a, b) {
-		t.lock(a, b)
-		return nil
-	}
-
-	// Recomputed each round, not hoisted: flipping one edge reshapes its
-	// neighbours, so an upfront list empties with the edge still missing.
-	budget := len(t.pts)*len(t.pts) + 64
-
-	for !t.hasEdge(a, b) {
-		budget--
-		if budget < 0 {
-			return fmt.Errorf("could not force edge %d-%d after exhausting the flip budget", a, b)
-		}
-
-		blocking := t.crossing(a, b)
-		if len(blocking) == 0 {
-			return fmt.Errorf("could not force edge %d-%d; nothing crosses it yet it is absent", a, b)
-		}
-
-		flippedAny := false
-		for _, e := range blocking {
-			if _, locked := t.constrained[e]; locked {
-				return fmt.Errorf("constraint edge %d-%d crosses another constraint edge", a, b)
-			}
-			if _, ok := t.flip(e); ok {
-				flippedAny = true
-			}
-		}
-
-		if !flippedAny {
-			return fmt.Errorf("could not force edge %d-%d; every crossing edge sits in a concave quad", a, b)
-		}
-	}
-
-	t.lock(a, b)
-	return nil
-}
-
-// Lawson's flip queue: every edge is checked once, and a flip only puts the
-// four edges around it back on the queue.
-func (t *tessellation) restoreDelaunay() {
-	queue := t.edges()
-	queued := make(map[edgeKey]struct{}, len(queue))
-	for _, e := range queue {
-		queued[e] = exists
-	}
-
-	budget := len(t.tris)*len(t.tris) + 64
-	for len(queue) > 0 && budget > 0 {
-		e := queue[0]
-		queue = queue[1:]
-		delete(queued, e)
-
-		if _, locked := t.constrained[e]; locked {
-			continue
-		}
-		_, _, p, q, ok := t.opposites(e)
-		if !ok {
-			continue
-		}
-		if !t.wind(e[0], e[1], p).InsideCircumcircle(t.pts[q], t.pts) {
-			continue
-		}
-		if _, ok := t.flip(e); !ok {
-			continue
-		}
-		budget--
-
-		for _, around := range [4]edgeKey{
-			newEdgeKey(e[0], p), newEdgeKey(e[1], p),
-			newEdgeKey(e[0], q), newEdgeKey(e[1], q),
-		} {
-			if _, already := queued[around]; already {
-				continue
-			}
-			queued[around] = exists
-			queue = append(queue, around)
-		}
-	}
-}
-
-// Change in winding number on entering tri across e.
-func (t *tessellation) step(e edgeKey, tri Triangle) int {
-	w := t.winding[e]
-	if w == 0 {
-		return 0
-	}
-	third := t.third(tri, e[0], e[1])
-	if predicate.Orient2D(t.pts[e[0]], t.pts[e[1]], t.pts[third]) > 0 {
-		return w
-	}
-	return -w
-}
-
-// Winding numbers flood in from the hull, where they are zero, and only
-// change across constraint edges. Nonzero is kept, so overlapping outlines
-// union and an outline wound against the one around it is a hole.
-func (t *tessellation) discardOutside() {
-	winding := make(map[Triangle]int, len(t.tris))
-	queue := make([]Triangle, 0, len(t.tris))
-	visit := func(tri Triangle, w int) {
-		if _, seen := winding[tri]; seen {
-			return
-		}
-		winding[tri] = w
-		queue = append(queue, tri)
-	}
-
-	for e, tris := range t.adj {
-		if len(tris) == 1 {
-			visit(tris[0], t.step(e, tris[0]))
-		}
-	}
-
-	for len(queue) > 0 {
-		tri := queue[0]
-		queue = queue[1:]
-
-		for _, edge := range tri.Edges() {
-			k := newEdgeKey(edge[0], edge[1])
-			if neighbor, ok := t.across(k, tri); ok {
-				visit(neighbor, winding[tri]+t.step(k, neighbor))
-			}
-		}
-	}
-
-	for tri, w := range winding {
-		if w == 0 {
-			t.remove(tri)
-		}
-	}
-}
-
-func (t *tessellation) ordered(orient func(Triangle) Triangle) []Triangle {
-	ordered := make([]Triangle, 0, len(t.tris))
-	for tri := range t.tris {
-		ordered = append(ordered, orient(tri))
-	}
-	sort.Slice(ordered, func(i, j int) bool {
-		for k := 0; k < 3; k++ {
-			if ordered[i][k] != ordered[j][k] {
-				return ordered[i][k] < ordered[j][k]
-			}
-		}
-		return false
-	})
-	return ordered
-}
-
-func (t *tessellation) mesh() modeling.Mesh {
-	tris := make([]int, 0, len(t.tris)*3)
-	for _, tri := range t.ordered(func(tri Triangle) Triangle { return tri.clockwise(t.pts) }) {
-		tris = append(tris, tri[0], tri[1], tri[2])
-	}
-
-	verts := make([]vector3.Float64, len(t.pts))
-	uvs := make([]vector2.Float64, len(t.pts))
-	for i, p := range t.pts {
-		verts[i] = vector3.New(p.X(), 0, p.Y())
-		uvs[i] = vector2.Zero[float64]()
-	}
-
-	return modeling.NewTriangleMesh(tris).
-		SetFloat3Attribute(modeling.PositionAttribute, verts).
-		SetFloat2Attribute(modeling.TexCoordAttribute, uvs)
-}
 
 // No triangulation holds two crossing constraints whole, so the crossing
 // becomes a vertex and splitAtVertices breaks both on it.
 func splitCrossingConstraints(weld *geometry.PointWelder2D, segments [][2]int) {
-	for i := 0; i < len(segments); i++ {
-		for j := i + 1; j < len(segments); j++ {
+	pts := weld.Points()
+	lo := make([]vector2.Float64, len(segments))
+	hi := make([]vector2.Float64, len(segments))
+	order := make([]int, len(segments))
+	for i, s := range segments {
+		a, b := pts[s[0]], pts[s[1]]
+		lo[i] = vector2.New(min(a.X(), b.X()), min(a.Y(), b.Y()))
+		hi[i] = vector2.New(max(a.X(), b.X()), max(a.Y(), b.Y()))
+		order[i] = i
+	}
+	sort.Slice(order, func(x, y int) bool { return lo[order[x]].X() < lo[order[y]].X() })
+
+	for n, i := range order {
+		for _, j := range order[n+1:] {
+			if lo[j].X() > hi[i].X() {
+				break
+			}
+			if lo[j].Y() > hi[i].Y() || hi[j].Y() < lo[i].Y() {
+				continue
+			}
 			a, b := segments[i], segments[j]
 			if a[0] == b[0] || a[0] == b[1] || a[1] == b[0] || a[1] == b[1] {
 				continue
 			}
-			pts := weld.Points()
 			p, err := geometry.NewLine2D(pts[a[0]], pts[a[1]]).
 				Intersection(geometry.NewLine2D(pts[b[0]], pts[b[1]]))
 			if err != nil {
@@ -414,27 +47,45 @@ func splitCrossingConstraints(weld *geometry.PointWelder2D, segments [][2]int) {
 	}
 }
 
-// A segment running through an existing vertex has nothing properly
-// crossing it, so no sequence of flips can produce it whole.
-func splitAtVertices(pts []vector2.Float64, a, b int) []int {
+type pointsByX struct {
+	pts   []vector2.Float64
+	order []int
+}
+
+func newPointsByX(pts []vector2.Float64) pointsByX {
+	order := make([]int, len(pts))
+	for i := range order {
+		order[i] = i
+	}
+	sort.Slice(order, func(a, b int) bool { return pts[order[a]].X() < pts[order[b]].X() })
+	return pointsByX{pts: pts, order: order}
+}
+
+func (p pointsByX) between(minX, maxX float64) []int {
+	from := sort.Search(len(p.order), func(i int) bool { return p.pts[p.order[i]].X() >= minX })
+	to := sort.Search(len(p.order), func(i int) bool { return p.pts[p.order[i]].X() > maxX })
+	return p.order[from:to]
+}
+
+// No flips produce a segment through a vertex; never below the weld tolerance, or welded crossings don't split.
+func splitAtVertices(byX pointsByX, a, b int, weldTolerance float64) []int {
+	pts := byX.pts
 	pa, pb := pts[a], pts[b]
 	ab := pb.Sub(pa)
 	lengthSq := ab.LengthSquared()
 	if lengthSq == 0 {
 		return []int{a, b}
 	}
-	tolerance := 1e-9 * math.Sqrt(lengthSq)
+	tolerance := max(weldTolerance, 1e-9*math.Sqrt(lengthSq))
 
 	type hit struct {
 		index int
 		t     float64
 	}
 	hits := []hit{}
-	for i, p := range pts {
+	for _, i := range byX.between(min(pa.X(), pb.X())-tolerance, max(pa.X(), pb.X())+tolerance) {
+		p := pts[i]
 		if i == a || i == b {
-			continue
-		}
-		if math.Abs(predicate.Orient2D(pa, pb, p)) > tolerance*math.Sqrt(lengthSq) {
 			continue
 		}
 		t := p.Sub(pa).Dot(ab) / lengthSq
@@ -457,8 +108,7 @@ func splitAtVertices(pts []vector2.Float64, a, b int) []int {
 	return append(out, b)
 }
 
-// Distance under which two points count as the same, relative to the
-// extent of everything being triangulated.
+// Must stay well above csg's weld tolerance, or a solid built from the result reads as open.
 func mergeTolerance(sets ...[]vector2.Float64) float64 {
 	min := vector2.New(math.Inf(1), math.Inf(1))
 	max := vector2.New(math.Inf(-1), math.Inf(-1))
@@ -471,7 +121,7 @@ func mergeTolerance(sets ...[]vector2.Float64) float64 {
 	if extent <= 0 || math.IsInf(extent, 0) || math.IsNaN(extent) {
 		return 0
 	}
-	return 1e-9 * extent
+	return 1e-8 * extent
 }
 
 // Input points keep their indices even when two coincide; only the points
@@ -506,14 +156,15 @@ func ConstrainedDelaunay(points []vector2.Float64, constraints []Constraint) (mo
 		}
 	}
 
-	tess, err := triangulate(weld, segments)
+	tess, err := triangulate(weld, segments, nil, 1)
 	if err != nil {
 		return modeling.EmptyMesh(modeling.TriangleTopology), err
 	}
-	if len(segments) > 0 {
-		tess.discardOutside()
+	if len(segments) == 0 {
+		return tess.mesh(nil), nil
 	}
-	return tess.mesh(), nil
+	windings := tess.windings()
+	return tess.mesh(func(tri int) bool { return windings[tri] != 0 }), nil
 }
 
 // ConstrainedDelaunayEdges triangulates the convex hull of points, forcing
@@ -531,14 +182,15 @@ func ConstrainedDelaunayEdges(points []vector2.Float64, edges [][2]int) (modelin
 		}
 	}
 
-	tess, err := triangulate(welderOver(points, mergeTolerance(points)), segments)
+	tess, err := triangulate(welderOver(points, mergeTolerance(points)), segments, nil, 1)
 	if err != nil {
 		return modeling.EmptyMesh(modeling.TriangleTopology), err
 	}
-	return tess.mesh(), nil
+	return tess.mesh(nil), nil
 }
 
-func triangulate(weld *geometry.PointWelder2D, segments [][2]int) (*tessellation, error) {
+// groupOf[i] is segments[i]'s winding group; nil puts every segment in group 0.
+func triangulate(weld *geometry.PointWelder2D, segments [][2]int, groupOf []int, groups int) (*tessellation, error) {
 	splitCrossingConstraints(weld, segments)
 	pts := weld.Points()
 
@@ -546,12 +198,17 @@ func triangulate(weld *geometry.PointWelder2D, segments [][2]int) (*tessellation
 		return nil, fmt.Errorf("need at least 3 distinct points, got %d", len(pts))
 	}
 
-	tess := newTessellation(pts, bowyerWatson(pts).triangles())
+	tess := newTessellation(pts, bowyerWatson(pts), groups)
 
-	for _, s := range segments {
-		chain := splitAtVertices(pts, s[0], s[1])
+	byX := newPointsByX(pts)
+	for si, s := range segments {
+		group := 0
+		if groupOf != nil {
+			group = groupOf[si]
+		}
+		chain := splitAtVertices(byX, s[0], s[1], weld.Tolerance())
 		for i := 0; i < len(chain)-1; i++ {
-			if err := tess.forceEdge(chain[i], chain[i+1]); err != nil {
+			if err := tess.forceEdge(chain[i], chain[i+1], group); err != nil {
 				return nil, err
 			}
 		}

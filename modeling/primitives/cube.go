@@ -371,45 +371,45 @@ func (c Cube) calcUVs() []vector2.Float64 {
 }
 
 type CubeNode struct {
-	Width      nodes.Output[float64] `description:"Full size along X (left/right). Defaults to 1."`
-	Height     nodes.Output[float64] `description:"Full size along Y (up/down). Defaults to 1."`
-	Depth      nodes.Output[float64] `description:"Full size along Z (front/back). Defaults to 1."`
-	Dimensions nodes.Output[int]     `description:"Subdivisions per face edge. Defaults to 1 (a single quad per face)."`
-	UVs        nodes.Output[CubeUVs] `description:"Per-face UV layout. Defaults to a 6-strip atlas if unset."`
-	Welded     nodes.Output[bool]    `description:"Whether or not the vertices are welded. Defaults to false."`
+	Width      nodes.LiftedPort[float64] `description:"Full size along X (left/right). Defaults to 1."`
+	Height     nodes.LiftedPort[float64] `description:"Full size along Y (up/down). Defaults to 1."`
+	Depth      nodes.LiftedPort[float64] `description:"Full size along Z (front/back). Defaults to 1."`
+	Dimensions nodes.Output[int]         `description:"Subdivisions per face edge. Defaults to 1 (a single quad per face)."`
+	UVs        nodes.Output[CubeUVs]     `description:"Per-face UV layout. Defaults to a 6-strip atlas if unset."`
+	Welded     nodes.Output[bool]        `description:"Whether or not the vertices are welded. Defaults to false."`
 }
 
 func (c CubeNode) Description() string {
 	return "An axis-aligned box, centered on the origin, built from 6 quads."
 }
 
-func (c CubeNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
-	strip := &StripUVs{
-		Start: vector2.New(0, 0.5),
-		End:   vector2.New(1, 0.5),
-		Width: 1.,
-	}
-	cube := Cube{
-		Height:     nodes.TryGetOutputValue(out, c.Height, 1.),
-		Width:      nodes.TryGetOutputValue(out, c.Width, 1.),
-		Depth:      nodes.TryGetOutputValue(out, c.Depth, 1.),
-		Dimensions: max(1, nodes.TryGetOutputValue(out, c.Dimensions, 1)),
-		UVs: nodes.TryGetOutputReference(out, c.UVs, &CubeUVs{
-			Top:    strip,
-			Bottom: strip,
-			Left:   strip,
-			Right:  strip,
-			Front:  strip,
-			Back:   strip,
-		}),
-	}
+func (c CubeNode) Out(out *nodes.Lifted[modeling.Mesh]) {
+	unit := UnitStripUVs()
+	strip := &unit
+	dimensions := max(1, nodes.TryGetOutputValue(out, c.Dimensions, 1))
+	uvs := nodes.TryGetOutputReference(out, c.UVs, &CubeUVs{
+		Top:    strip,
+		Bottom: strip,
+		Left:   strip,
+		Right:  strip,
+		Front:  strip,
+		Back:   strip,
+	})
+	welded := nodes.TryGetOutputValue(out, c.Welded, false)
 
-	if nodes.TryGetOutputValue(out, c.Welded, false) {
-		out.Set(cube.Welded())
-		return
-	}
-
-	out.Set(cube.UnweldedQuads())
+	nodes.Zip3(
+		out,
+		nodes.LiftedOr(c.Width, 1.),
+		nodes.LiftedOr(c.Height, 1.),
+		nodes.LiftedOr(c.Depth, 1.),
+		func(width, height, depth float64) modeling.Mesh {
+			cube := Cube{Height: height, Width: width, Depth: depth, Dimensions: dimensions, UVs: uvs}
+			if welded {
+				return cube.Welded()
+			}
+			return cube.UnweldedQuads()
+		},
+	)
 }
 
 // CubeUVs

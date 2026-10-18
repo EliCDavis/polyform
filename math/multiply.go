@@ -8,7 +8,7 @@ import (
 )
 
 type MultiplyNode[T vector.Number] struct {
-	Values []nodes.LiftedPort[T] `description:"The values to multiply together, in order. Arrays are multiplied element by element."`
+	Values []nodes.LiftedPort[T] `description:"The values to multiply together, in order."`
 }
 
 func (cn MultiplyNode[T]) Description() string {

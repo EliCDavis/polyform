@@ -207,6 +207,22 @@ func TestABatchReportsTheEdgesItHadToDrop(t *testing.T) {
 	assert.Nil(t, instance.Node(sum).Inputs()["In"].(nodes.SingleValueInputPort).Value())
 }
 
+func TestABatchNamesHowToFixAnEdgeItAddedThatDoesNotFit(t *testing.T) {
+	instance := testInstanceWithLiftedNodes(t)
+	_, source, err := instance.CreateNode(floatSourceType)
+	require.NoError(t, err)
+	_, sum, err := instance.CreateNode(floatArraySumType)
+	require.NoError(t, err)
+
+	err = instance.Batch(func() error {
+		return instance.ConnectNodes(source, "Out", sum, "In")
+	})
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "cannot take")
+	assert.Contains(t, err.Error(), "build the array first")
+}
+
 func TestLoadingAGraphWhereANodeReadsItsOwnOutputIsRefused(t *testing.T) {
 	instance := testInstanceWithLiftedNodes(t)
 	_, first, err := instance.CreateNode(liftedDoubleType)

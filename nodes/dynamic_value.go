@@ -1,15 +1,28 @@
 package nodes
 
-import "reflect"
+import (
+	"reflect"
+	"time"
+)
 
-// DynamicAnyValue reads a dynamic input without knowing its type, which is
-// what a node generic over every type has to do.
-func DynamicAnyValue(port OutputPort) (any, bool) {
+// Timed against recorder, like GetOutputValue, so upstream work isn't billed to the node.
+func DynamicAnyValue(recorder ExecutionRecorder, port OutputPort) (any, bool) {
+	defer timeRead(recorder, port, time.Now())
+	return dynamicAnyValue(port)
+}
+
+func dynamicAnyValue(port OutputPort) (any, bool) {
 	value, ok := dynamicValueMethod(port)
 	if !ok {
 		return nil, false
 	}
 	return value.Interface(), true
+}
+
+func timeRead(recorder ExecutionRecorder, port OutputPort, start time.Time) {
+	if recorder != nil && port != nil {
+		recorder.CaptureTiming(port.Name(), time.Since(start))
+	}
 }
 
 func dynamicValueMethod(port OutputPort) (reflect.Value, bool) {
@@ -40,7 +53,12 @@ type DynamicArray struct {
 }
 
 // DynamicArrayValue reads a port declared DynamicPort[[]V].
-func DynamicArrayValue(port OutputPort) (DynamicArray, bool) {
+func DynamicArrayValue(recorder ExecutionRecorder, port OutputPort) (DynamicArray, bool) {
+	defer timeRead(recorder, port, time.Now())
+	return dynamicArrayValue(port)
+}
+
+func dynamicArrayValue(port OutputPort) (DynamicArray, bool) {
 	value, ok := dynamicValueMethod(port)
 	if !ok {
 		return DynamicArray{}, false
@@ -49,6 +67,14 @@ func DynamicArrayValue(port OutputPort) (DynamicArray, bool) {
 		return DynamicArray{}, false
 	}
 	return DynamicArray{slice: value}, true
+}
+
+func dynamicArrayFrom(value any) (DynamicArray, bool) {
+	rv := reflect.ValueOf(value)
+	if !rv.IsValid() || rv.Kind() != reflect.Slice {
+		return DynamicArray{}, false
+	}
+	return DynamicArray{slice: rv}, true
 }
 
 func (a DynamicArray) Len() int {

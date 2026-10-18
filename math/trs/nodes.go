@@ -230,9 +230,9 @@ func decompose(recorder nodes.ExecutionRecorder, m mat.Matrix4x4) TRS {
 // ============================================================================
 
 type PivotNode struct {
-	Pivot    nodes.Output[vector3.Float64]
-	Rotation nodes.Output[quaternion.Quaternion]
-	Scale    nodes.Output[vector3.Float64] `description:"Defaults to (1,1,1); applied about the pivot as well"`
+	Pivot    nodes.LiftedPort[vector3.Float64]
+	Rotation nodes.LiftedPort[quaternion.Quaternion]
+	Scale    nodes.LiftedPort[vector3.Float64] `description:"Defaults to (1,1,1); applied about the pivot as well"`
 }
 
 func (PivotNode) Description() string {
@@ -240,15 +240,20 @@ func (PivotNode) Description() string {
 }
 
 func (PivotNode) Keywords() []string {
-	return []string{"rotate about", "hinge"}
+	return []string{"rotate about", "rotate around"}
 }
 
-func (n PivotNode) Out(out *nodes.StructOutput[TRS]) {
-	pivot := nodes.TryGetOutputValue(out, n.Pivot, vector3.Zero[float64]())
-	rotation := nodes.TryGetOutputValue(out, n.Rotation, quaternion.Identity())
-	scale := nodes.TryGetOutputValue(out, n.Scale, vector3.One[float64]())
-	moved := rotation.Rotate(pivot.MultByVector(scale))
-	out.Set(New(pivot.Sub(moved), rotation, scale))
+func (n PivotNode) Out(out *nodes.Lifted[TRS]) {
+	nodes.Zip3(
+		out,
+		nodes.LiftedOr(n.Pivot, vector3.Zero[float64]()),
+		nodes.LiftedOr(n.Rotation, quaternion.Identity()),
+		nodes.LiftedOr(n.Scale, vector3.One[float64]()),
+		func(pivot vector3.Float64, rotation quaternion.Quaternion, scale vector3.Float64) TRS {
+			moved := rotation.Rotate(pivot.MultByVector(scale))
+			return New(pivot.Sub(moved), rotation, scale)
+		},
+	)
 }
 
 // ============================================================================
@@ -268,15 +273,11 @@ func (LookAtNode) Keywords() []string {
 }
 
 func (n LookAtNode) Out(out *nodes.Lifted[TRS]) {
-	nodes.Zip3(out, n.Position, n.Target, n.Scale, func(position, target, scale vector3.Float64) TRS {
-		cleanScale := scale
-		if scale == vector3.Zero[float64]() {
-			cleanScale = vector3.One[float64]()
-		}
+	nodes.Zip3(out, n.Position, n.Target, nodes.LiftedOr(n.Scale, vector3.One[float64]()), func(position, target, scale vector3.Float64) TRS {
 		if target.Sub(position).LengthSquared() == 0 {
-			return New(position, quaternion.Identity(), cleanScale)
+			return New(position, quaternion.Identity(), scale)
 		}
-		return New(position, quaternion.Identity(), cleanScale).LookAt(target)
+		return New(position, quaternion.Identity(), scale).LookAt(target)
 	})
 }
 

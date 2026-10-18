@@ -4,11 +4,13 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/json"
+	"image"
 	"testing"
 
 	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/formats/gltf"
 	"github.com/EliCDavis/polyform/nodes"
+	"github.com/EliCDavis/vector/vector2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -83,4 +85,127 @@ func TestMaterialNodeCarriesSheenSpecularIridescenceAndDispersion(t *testing.T) 
 func TestMaterialNodeWithoutTheNewPortsWritesNoneOfThem(t *testing.T) {
 	material := materialWith(t, func(m *gltf.MaterialNode) {})
 	assert.Empty(t, extensionIDs(material))
+	assert.Nil(t, material.AlphaMode)
+	assert.Nil(t, material.OcclusionTexture)
+}
+
+func texture(t *testing.T, data gltf.TextureNode) gltf.PolyformTexture {
+	t.Helper()
+	data.Image = nodes.ConstOutput[image.Image]{Val: image.NewRGBA(image.Rect(0, 0, 2, 2))}
+	return nodes.GetNodeOutputPort[gltf.PolyformTexture](&nodes.Struct[gltf.TextureNode]{Data: data}, "Out").Value()
+}
+
+func textureOutput(t *testing.T) nodes.Output[gltf.PolyformTexture] {
+	return nodes.ConstOutput[gltf.PolyformTexture]{Val: texture(t, gltf.TextureNode{})}
+}
+
+func TestMaterialNodeWritesAlphaModeOcclusionAndUnlit(t *testing.T) {
+	occlusion := nodes.GetNodeOutputPort[gltf.PolyformOcclusion](&nodes.Struct[gltf.OcclusionTextureNode]{Data: gltf.OcclusionTextureNode{
+		Texture:  textureOutput(t),
+		Strength: nodes.ConstOutput[float64]{Val: 0.7},
+	}}, "Out").Value()
+
+	material := materialWith(t, func(m *gltf.MaterialNode) {
+		m.AlphaMode = nodes.ConstOutput[string]{Val: "mask"}
+		m.AlphaCutoff = nodes.ConstOutput[float64]{Val: 0.3}
+		m.Unlit = nodes.ConstOutput[bool]{Val: true}
+		m.OcclusionTexture = nodes.ConstOutput[gltf.PolyformOcclusion]{Val: occlusion}
+	})
+
+	doc := glbJSON(t, material)
+	mat := doc["materials"].([]any)[0].(map[string]any)
+	assert.Equal(t, "MASK", mat["alphaMode"])
+	assert.InDelta(t, 0.3, mat["alphaCutoff"], 1e-9)
+	assert.InDelta(t, 0.7, mat["occlusionTexture"].(map[string]any)["strength"], 1e-9)
+	assert.Contains(t, mat["extensions"], "KHR_materials_unlit")
+	assert.Contains(t, doc["extensionsUsed"], "KHR_materials_unlit")
+}
+
+func TestMaterialNodeRefusesAnUnknownAlphaModeAndAStrayCutoff(t *testing.T) {
+	for name, set := range map[string]func(m *gltf.MaterialNode){
+		"unknown mode": func(m *gltf.MaterialNode) { m.AlphaMode = nodes.ConstOutput[string]{Val: "cutout"} },
+		"cutoff with blend": func(m *gltf.MaterialNode) {
+			m.AlphaMode = nodes.ConstOutput[string]{Val: "BLEND"}
+			m.AlphaCutoff = nodes.ConstOutput[float64]{Val: 0.5}
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			data := gltf.MaterialNode{}
+			set(&data)
+			node := &nodes.Struct[gltf.MaterialNode]{Data: data}
+			material := nodes.GetNodeOutputPort[gltf.PolyformMaterial](node, "Out").Value()
+			assert.Nil(t, material.AlphaCutoff)
+			assert.NotEmpty(t, node.Outputs()["Out"].(nodes.ObservableExecution).ExecutionReport().Errors)
+		})
+	}
+}
+
+func TestExtensionNodesWriteTheirTextures(t *testing.T) {
+	coatNormal := texture(t, gltf.TextureNode{})
+	coatNormalScale := 0.4
+	anisotropy := nodes.GetNodeOutputPort[gltf.PolyformAnisotropy](&nodes.Struct[gltf.MaterialAnisotropyExtensionNode]{Data: gltf.MaterialAnisotropyExtensionNode{
+		AnisotropyStrength: nodes.ConstOutput[float64]{Val: 0.6},
+		AnisotropyTexture:  textureOutput(t),
+	}}, "Out").Value()
+	volume := nodes.GetNodeOutputPort[gltf.PolyformVolume](&nodes.Struct[gltf.MaterialVolumeExtensionNode]{Data: gltf.MaterialVolumeExtensionNode{
+		ThicknessFactor:  nodes.ConstOutput[float64]{Val: 0.1},
+		ThicknessTexture: textureOutput(t),
+	}}, "Out").Value()
+	clearcoat := nodes.GetNodeOutputPort[gltf.PolyformClearcoat](&nodes.Struct[gltf.MaterialClearcoatExtensionNode]{Data: gltf.MaterialClearcoatExtensionNode{
+		ClearcoatFactor:           nodes.ConstOutput[float64]{Val: 1},
+		ClearcoatTexture:          textureOutput(t),
+		ClearcoatRoughnessTexture: textureOutput(t),
+		ClearcoatNormalTexture:    nodes.ConstOutput[gltf.PolyformNormal]{Val: gltf.PolyformNormal{PolyformTexture: &coatNormal, Scale: &coatNormalScale}},
+	}}, "Out").Value()
+
+	material := materialWith(t, func(m *gltf.MaterialNode) {
+		m.Anisotropy = nodes.ConstOutput[gltf.PolyformAnisotropy]{Val: anisotropy}
+		m.Volume = nodes.ConstOutput[gltf.PolyformVolume]{Val: volume}
+		m.Clearcoat = nodes.ConstOutput[gltf.PolyformClearcoat]{Val: clearcoat}
+	})
+
+	ext := glbJSON(t, material)["materials"].([]any)[0].(map[string]any)["extensions"].(map[string]any)
+	assert.Contains(t, ext["KHR_materials_anisotropy"], "anisotropyTexture")
+	assert.Contains(t, ext["KHR_materials_volume"], "thicknessTexture")
+	assert.Contains(t, ext["KHR_materials_clearcoat"], "clearcoatTexture")
+	assert.Contains(t, ext["KHR_materials_clearcoat"], "clearcoatRoughnessTexture")
+	coatNormalInfo := ext["KHR_materials_clearcoat"].(map[string]any)["clearcoatNormalTexture"].(map[string]any)
+	assert.InDelta(t, 0.4, coatNormalInfo["scale"], 1e-9)
+	assert.Contains(t, coatNormalInfo, "index")
+}
+
+func TestTextureNodeWritesATextureTransform(t *testing.T) {
+	tex := texture(t, gltf.TextureNode{
+		Scale:    nodes.ConstOutput[vector2.Float64]{Val: vector2.New(4., 2.)},
+		Rotation: nodes.ConstOutput[float64]{Val: 0.5},
+	})
+	material := materialWith(t, func(m *gltf.MaterialNode) {
+		m.ColorTexture = nodes.ConstOutput[gltf.PolyformTexture]{Val: tex}
+	})
+
+	doc := glbJSON(t, material)
+	info := doc["materials"].([]any)[0].(map[string]any)["pbrMetallicRoughness"].(map[string]any)["baseColorTexture"].(map[string]any)
+	transform := info["extensions"].(map[string]any)["KHR_texture_transform"].(map[string]any)
+	assert.Equal(t, []any{4.0, 2.0}, transform["scale"])
+	assert.InDelta(t, 0.5, transform["rotation"], 1e-9)
+	assert.NotContains(t, transform, "offset")
+	assert.Contains(t, doc["extensionsUsed"], "KHR_texture_transform")
+}
+
+func TestMaterialsDifferingOnlyInTheirImagesAreNotMerged(t *testing.T) {
+	first := texture(t, gltf.TextureNode{})
+	second := texture(t, gltf.TextureNode{})
+	mesh := cube()
+	scene := gltf.PolyformScene{Models: []*gltf.PolyformModel{
+		{Name: "a", Mesh: &mesh, Material: &gltf.PolyformMaterial{Name: "Wood", PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{BaseColorTexture: &first}}},
+		{Name: "b", Mesh: &mesh, Material: &gltf.PolyformMaterial{Name: "Wood", PbrMetallicRoughness: &gltf.PolyformPbrMetallicRoughness{BaseColorTexture: &second}}},
+		{Name: "c", Mesh: &mesh, Material: &gltf.PolyformMaterial{Name: "Wood", NormalTexture: &gltf.PolyformNormal{PolyformTexture: &first}}},
+	}}
+	buf := &bytes.Buffer{}
+	require.NoError(t, gltf.WriteBinary(scene, buf, nil))
+	raw := buf.Bytes()
+	jsonLen := binary.LittleEndian.Uint32(raw[12:16])
+	var doc map[string]any
+	require.NoError(t, json.Unmarshal(raw[20:20+jsonLen], &doc))
+	assert.Len(t, doc["materials"], 3)
 }

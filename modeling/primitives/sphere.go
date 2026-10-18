@@ -348,11 +348,8 @@ func (c QuadSphereNode) Description() string {
 }
 
 func (c QuadSphereNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
-	strip := &StripUVs{
-		Start: vector2.New(0, 0.5),
-		End:   vector2.New(1, 0.5),
-		Width: 1.,
-	}
+	unit := UnitStripUVs()
+	strip := &unit
 
 	out.Set(QuadSphere(
 		nodes.TryGetOutputValue(out, c.Radius, .5),

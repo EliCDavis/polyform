@@ -137,5 +137,5 @@ func (c TorusNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 }
 
 func (c TorusNode) Keywords() []string {
-	return []string{"doughnut"}
+	return []string{"ring", "toroid"}
 }

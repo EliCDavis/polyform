@@ -1,7 +1,10 @@
 package meshops
 
 import (
+	"encoding/binary"
 	"fmt"
+	"math"
+	"slices"
 
 	"github.com/EliCDavis/iter"
 	"github.com/EliCDavis/polyform/math/geometry"
@@ -13,8 +16,9 @@ import (
 )
 
 type WeldTransformer struct {
-	Attribute string
-	Tolerance float64
+	Attribute       string
+	Tolerance       float64
+	MatchAttributes bool
 }
 
 func (wt WeldTransformer) attribute() string {
@@ -28,6 +32,9 @@ func (wt WeldTransformer) Transform(m modeling.Mesh) (results modeling.Mesh, err
 		return
 	}
 
+	if wt.MatchAttributes {
+		return WeldIdentical(m, attribute, wt.Tolerance), nil
+	}
 	return Weld(m, attribute, wt.Tolerance), nil
 }
 
@@ -48,6 +55,77 @@ func Weld(m modeling.Mesh, attribute string, tolerance float64) modeling.Mesh {
 	}
 
 	return rebuild(m, representative)
+}
+
+// WeldIdentical merges only vertices whose other attributes are all equal.
+func WeldIdentical(m modeling.Mesh, attribute string, tolerance float64) modeling.Mesh {
+	positions := m.Float3Attribute(attribute)
+	weld := geometry.NewPointWelder3D(tolerance)
+	components := vertexComponentsOf(m, attribute)
+
+	first := make(map[string]int)
+	representative := make([]int, positions.Len())
+	var values []float64
+	var key []byte
+	for i := range representative {
+		representative[i] = i
+		key = binary.LittleEndian.AppendUint64(key[:0], uint64(weld.Index(positions.At(i))))
+
+		values = values[:0]
+		for _, read := range components {
+			values = read(values, i)
+		}
+		if slices.ContainsFunc(values, math.IsNaN) {
+			continue
+		}
+		for _, v := range values {
+			// +0 turns -0 into 0, so equal values share a key.
+			key = binary.LittleEndian.AppendUint64(key, math.Float64bits(v+0))
+		}
+
+		if seen, ok := first[string(key)]; ok {
+			representative[i] = seen
+		} else {
+			first[string(key)] = i
+		}
+	}
+
+	return rebuild(m, representative)
+}
+
+func vertexComponentsOf(m modeling.Mesh, skip string) []func(dst []float64, i int) []float64 {
+	var components []func(dst []float64, i int) []float64
+	for _, attr := range m.Float1Attributes() {
+		data := m.Float1Attribute(attr)
+		components = append(components, func(dst []float64, i int) []float64 {
+			return append(dst, data.At(i))
+		})
+	}
+	for _, attr := range m.Float2Attributes() {
+		data := m.Float2Attribute(attr)
+		components = append(components, func(dst []float64, i int) []float64 {
+			v := data.At(i)
+			return append(dst, v.X(), v.Y())
+		})
+	}
+	for _, attr := range m.Float3Attributes() {
+		if attr == skip {
+			continue
+		}
+		data := m.Float3Attribute(attr)
+		components = append(components, func(dst []float64, i int) []float64 {
+			v := data.At(i)
+			return append(dst, v.X(), v.Y(), v.Z())
+		})
+	}
+	for _, attr := range m.Float4Attributes() {
+		data := m.Float4Attribute(attr)
+		components = append(components, func(dst []float64, i int) []float64 {
+			v := data.At(i)
+			return append(dst, v.X(), v.Y(), v.Z(), v.W())
+		})
+	}
+	return components
 }
 
 // Keeps only the primitives that survive the merge and only the vertices
@@ -99,9 +177,10 @@ func rebuild(m modeling.Mesh, representative []int) modeling.Mesh {
 }
 
 type WeldNode struct {
-	Mesh      nodes.Output[modeling.Mesh]
-	Attribute nodes.Output[string]  `description:"Attribute whose values decide which vertices are the same point (default: Position)."`
-	Tolerance nodes.Output[float64] `description:"How far apart two vertices can be and still merge. Zero merges only exact matches."`
+	Mesh            nodes.Output[modeling.Mesh]
+	Attribute       nodes.Output[string]  `description:"Attribute whose values decide which vertices are the same point (default: Position)."`
+	Tolerance       nodes.Output[float64] `description:"How far apart two vertices can be and still merge. Zero merges only exact matches."`
+	MatchAttributes nodes.Output[bool]    `description:"When true, vertices merge only if every other attribute is also identical, so no vertex data is lost. Defaults to false, which keeps the first vertex's data."`
 }
 
 func (n WeldNode) Description() string {
@@ -129,5 +208,9 @@ func (n WeldNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 		return
 	}
 
+	if nodes.TryGetOutputValue(out, n.MatchAttributes, false) {
+		out.Set(WeldIdentical(mesh, attribute, tolerance))
+		return
+	}
 	out.Set(Weld(mesh, attribute, tolerance))
 }

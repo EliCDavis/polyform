@@ -1,0 +1,146 @@
+package meshops
+
+import (
+	"errors"
+
+	"github.com/EliCDavis/polyform/modeling"
+	"github.com/EliCDavis/polyform/nodes"
+	"github.com/EliCDavis/vector/vector2"
+	"github.com/EliCDavis/vector/vector3"
+)
+
+var errProjectionNeedsTriangles = errors.New("projection needs a triangle mesh")
+
+// Returns each new vertex's source vertex and group alongside the mesh.
+func splitByGroup(m modeling.Mesh, group func(corner int) int) (modeling.Mesh, []int, []int) {
+	type key struct{ vertex, group int }
+	indices := m.Indices()
+	remapped := make([]int, indices.Len())
+	seen := map[key]int{}
+	var sources, groups []int
+	for corner := 0; corner < indices.Len(); corner++ {
+		k := key{indices.At(corner), group(corner)}
+		index, ok := seen[k]
+		if !ok {
+			index = len(sources)
+			seen[k] = index
+			sources = append(sources, k.vertex)
+			groups = append(groups, k.group)
+		}
+		remapped[corner] = index
+	}
+
+	split := modeling.NewMesh(m.Topology(), remapped).
+		SetFloat4Data(gatherByIndex(sources, m.Float4Attributes(), m.Float4Attribute)).
+		SetFloat3Data(gatherByIndex(sources, m.Float3Attributes(), m.Float3Attribute)).
+		SetFloat2Data(gatherByIndex(sources, m.Float2Attributes(), m.Float2Attribute)).
+		SetFloat1Data(gatherByIndex(sources, m.Float1Attributes(), m.Float1Attribute))
+	return split, sources, groups
+}
+
+const (
+	facePosX = iota
+	faceNegX
+	facePosY
+	faceNegY
+	facePosZ
+	faceNegZ
+)
+
+func dominantFace(n vector3.Float64) int {
+	x, y, z := n.Abs().Values()
+	switch {
+	case x >= y && x >= z && x > 0:
+		if n.X() > 0 {
+			return facePosX
+		}
+		return faceNegX
+	case y >= z && y > 0:
+		if n.Y() > 0 {
+			return facePosY
+		}
+		return faceNegY
+	case n.Z() < 0:
+		return faceNegZ
+	}
+	return facePosZ
+}
+
+// Each face reads its texture upright and unmirrored when seen from outside.
+func boxFaceUV(p vector3.Float64, face int) vector2.Float64 {
+	switch face {
+	case facePosX:
+		return vector2.New(-p.Z(), p.Y())
+	case faceNegX:
+		return p.ZY()
+	case facePosY:
+		return vector2.New(p.X(), -p.Z())
+	case faceNegY:
+		return p.XZ()
+	case faceNegZ:
+		return vector2.New(-p.X(), p.Y())
+	}
+	return p.XY()
+}
+
+func BoxProjectUV(m modeling.Mesh, scale, offset vector2.Float64) (modeling.Mesh, error) {
+	if !m.HasFloat3Attribute(modeling.PositionAttribute) || m.PrimitiveCount() == 0 {
+		return m, nil
+	}
+	if m.Topology() != modeling.TriangleTopology {
+		return m, errProjectionNeedsTriangles
+	}
+
+	positions := m.Float3Attribute(modeling.PositionAttribute)
+	faces := make([]int, m.PrimitiveCount())
+	m.ScanPrimitivesParallel(func(triangle int, p modeling.Primitive) {
+		faces[triangle] = dominantFace(p.(modeling.Tri).Normal(modeling.PositionAttribute))
+	})
+
+	split, sources, groups := splitByGroup(m, func(corner int) int { return faces[corner/3] })
+	su, sv := nonZero(scale.X()), nonZero(scale.Y())
+	uvs := make([]vector2.Float64, len(sources))
+	for i, source := range sources {
+		uv := boxFaceUV(positions.At(source), groups[i])
+		uvs[i] = vector2.New(uv.X()/su+offset.X(), uv.Y()/sv+offset.Y())
+	}
+	return split.SetFloat2Attribute(modeling.TexCoordAttribute, uvs), nil
+}
+
+func nonZero(v float64) float64 {
+	if v == 0 {
+		return 1
+	}
+	return v
+}
+
+type BoxProjectUVNode struct {
+	Mesh   nodes.Output[modeling.Mesh]
+	Scale  nodes.Output[vector2.Float64] `description:"World size of one texture repeat along u and v, in meters. Defaults to 1 x 1."`
+	Offset nodes.Output[vector2.Float64] `description:"Added to every uv after scaling. Defaults to zero."`
+}
+
+func (BoxProjectUVNode) Description() string {
+	return "Gives a mesh UVs by projecting each face from the axis it faces most, like a box around it, so no side is left edge-on."
+}
+
+func (BoxProjectUVNode) Keywords() []string {
+	return []string{"unwrap", "triplanar"}
+}
+
+func (n BoxProjectUVNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
+	out.Set(modeling.EmptyMesh(modeling.TriangleTopology))
+	if n.Mesh == nil {
+		return
+	}
+	mesh, err := BoxProjectUV(
+		nodes.GetOutputValue(out, n.Mesh),
+		nodes.TryGetOutputValue(out, n.Scale, vector2.One[float64]()),
+		nodes.TryGetOutputValue(out, n.Offset, vector2.Zero[float64]()),
+	)
+	if err != nil {
+		out.CaptureError(err)
+		return
+	}
+	out.Set(mesh)
+}

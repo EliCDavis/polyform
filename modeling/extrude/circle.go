@@ -142,29 +142,35 @@ func (c CircleAlongSpline) Extrude() (modeling.Mesh, error) {
 type CircleNode struct {
 	Closed     nodes.Output[bool]
 	Resolution nodes.Output[int]
-	Radius     nodes.Output[float64]
-	Radii      nodes.Output[[]float64]
-	Path       nodes.Output[[]vector3.Float64]
+	Radius     nodes.LiftedPort[float64]
+	Radii      nodes.LiftedPort[[]float64]
+	Path       nodes.LiftedPort[[]vector3.Float64]
 }
 
-func (pnd CircleNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
-	out.Set(modeling.EmptyMesh(modeling.TriangleTopology))
-	if pnd.Path == nil {
-		return
-	}
+func (pnd CircleNode) Description() string {
+	return "Sweeps a circle along a path, making a tube."
+}
 
-	mesh, err := Circle{
-		Radius:     nodes.TryGetOutputValue(out, pnd.Radius, 1.0),
-		Resolution: max(3, nodes.TryGetOutputValue(out, pnd.Resolution, 3)),
-		ClosePath:  nodes.TryGetOutputValue(out, pnd.Closed, false),
-		Path:       nodes.GetOutputValue(out, pnd.Path),
-		Radii:      nodes.TryGetOutputValue(out, pnd.Radii, nil),
-	}.Extrude()
-	if err != nil {
-		out.CaptureError(err)
-		return
-	}
-	out.Set(mesh)
+func (pnd CircleNode) Out(out *nodes.Lifted[modeling.Mesh]) {
+	resolution := max(3, nodes.TryGetOutputValue(out, pnd.Resolution, 3))
+	closed := nodes.TryGetOutputValue(out, pnd.Closed, false)
+	nodes.Zip3(out, nodes.LiftedOr(pnd.Radius, 1.0), pnd.Radii, pnd.Path, func(radius float64, radii []float64, path []vector3.Float64) modeling.Mesh {
+		if pnd.Path == nil {
+			return modeling.EmptyMesh(modeling.TriangleTopology)
+		}
+		mesh, err := Circle{
+			Radius:     radius,
+			Resolution: resolution,
+			ClosePath:  closed,
+			Path:       path,
+			Radii:      radii,
+		}.Extrude()
+		if err != nil {
+			out.CaptureError(err)
+			return modeling.EmptyMesh(modeling.TriangleTopology)
+		}
+		return mesh
+	})
 }
 
 type CircleAlongSplineNode struct {
@@ -174,7 +180,7 @@ type CircleAlongSplineNode struct {
 	Radii            nodes.Output[[]float64]
 	Spline           nodes.Output[curves.Spline]
 	SplineResolution nodes.Output[int]
-	UVs              nodes.Output[primitives.StripUVs]
+	UVs              nodes.Output[primitives.StripUVs] `description:"Lays the tube out as a strip: around the circle runs across it, the spline along it. Defaults to the unit strip, 0 to 1 both ways."`
 }
 
 func (pnd CircleAlongSplineNode) Description() string {
@@ -191,6 +197,7 @@ func (pnd CircleAlongSplineNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 		return
 	}
 
+	strip := nodes.TryGetOutputValue(out, pnd.UVs, primitives.UnitStripUVs())
 	mesh, err := CircleAlongSpline{
 		Radius:           nodes.TryGetOutputValue(out, pnd.Radius, 1.0),
 		CircleResolution: max(3, nodes.TryGetOutputValue(out, pnd.CircleResolution, 3)),
@@ -198,7 +205,7 @@ func (pnd CircleAlongSplineNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 		Spline:           spline,
 		SplineResolution: max(3, nodes.TryGetOutputValue(out, pnd.SplineResolution, 3)),
 		Radii:            nodes.TryGetOutputValue(out, pnd.Radii, nil),
-		UVs:              nodes.TryGetOutputReference(out, pnd.UVs, nil),
+		UVs:              &strip,
 	}.Extrude()
 	if err != nil {
 		out.CaptureError(err)

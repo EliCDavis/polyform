@@ -3,16 +3,15 @@ package extrude
 import (
 	"fmt"
 
-	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/modeling"
+	"github.com/EliCDavis/polyform/modeling/sketch"
 	"github.com/EliCDavis/polyform/modeling/triangulation"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
 )
 
-// Region lays the region in the XY plane facing +Z and, given depth,
-// extrudes it back to z=0 into a closed solid.
+// The face sits at z = depth facing +Z, closed into a solid down to z = 0.
 func Region(region triangulation.Region, depth float64) modeling.Mesh {
 	if len(region.Triangles) == 0 {
 		return modeling.EmptyMesh(modeling.TriangleTopology)
@@ -75,46 +74,38 @@ func Region(region triangulation.Region, depth float64) modeling.Mesh {
 		})
 }
 
-type RegionNode struct {
-	Outlines []nodes.LiftedPort[[]vector2.Float64] `description:"Closed 2D outlines to fill; overlapping ones merge. Each connection is one outline or a list."`
-	Holes    []nodes.LiftedPort[[]vector2.Float64] `description:"Closed 2D outlines to cut out. Each connection is one outline or a list."`
-	Depth    nodes.Output[float64]                 `description:"Thickness, extruded toward -Z. 0 (the default) gives a single face."`
-}
-
-func (RegionNode) Description() string {
-	return "A flat solid: the area inside the outlines minus the holes, lying in the XY plane facing +Z."
-}
-
-func (RegionNode) Keywords() []string {
-	return []string{"cutout", "polygon", "boolean"}
-}
-
-func (n RegionNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
-	out.Set(modeling.EmptyMesh(modeling.TriangleTopology))
-	depth := nodes.TryGetOutputValue(out, n.Depth, 0.)
+func Area(area sketch.Area, depth float64) (modeling.Mesh, error) {
+	empty := modeling.EmptyMesh(modeling.TriangleTopology)
 	if depth < 0 {
-		out.CaptureError(fmt.Errorf("depth can not be negative, got %g", depth))
-		return
+		return empty, fmt.Errorf("depth can not be negative, got %g", depth)
 	}
-	region, err := triangulation.FillDifference(liftedOutlines(out, n.Outlines), liftedOutlines(out, n.Holes))
+	if len(area.Polygons) == 0 {
+		return empty, nil
+	}
+	region, err := triangulation.Fill(area.Loops()...)
 	if err != nil {
-		out.CaptureError(err)
-		return
+		return empty, err
 	}
-	out.Set(Region(region, depth))
+	return Region(region, depth), nil
 }
 
-func liftedOutlines(recorder nodes.ExecutionRecorder, ports []nodes.LiftedPort[[]vector2.Float64]) []geometry.Shape {
-	var outlines []geometry.Shape
-	for _, port := range ports {
-		switch connected := port.(type) {
-		case nodes.Output[[][]vector2.Float64]:
-			for _, outline := range nodes.GetOutputValue(recorder, connected) {
-				outlines = append(outlines, outline)
-			}
-		case nodes.Output[[]vector2.Float64]:
-			outlines = append(outlines, nodes.GetOutputValue(recorder, connected))
-		}
-	}
-	return outlines
+type AreaNode struct {
+	Area  nodes.LiftedPort[sketch.Area] `description:"The area to extrude."`
+	Depth nodes.LiftedPort[float64]     `description:"Thickness: the solid spans z = 0 to Depth, face at z = Depth. 0 (the default) gives a single face."`
+}
+
+func (AreaNode) Description() string {
+	return "A flat solid: an area lying in the XY plane facing +Z, given a thickness."
+}
+
+func (AreaNode) Keywords() []string {
+	return []string{"slab"}
+}
+
+func (n AreaNode) Out(out *nodes.Lifted[modeling.Mesh]) {
+	nodes.Zip2(out, n.Area, n.Depth, func(area sketch.Area, depth float64) modeling.Mesh {
+		mesh, err := Area(area, depth)
+		out.CaptureError(err)
+		return mesh
+	})
 }

@@ -104,40 +104,36 @@ func (o Outline) capUVs(shape []vector2.Float64) func(vector2.Float64) vector2.F
 }
 
 type OutlineNode struct {
-	Outline        nodes.Output[[]vector2.Float64]   `description:"Closed 2D outline to sweep. Winding does not matter. Looking along the path, x is to the right and y is up wherever the path runs level."`
-	Path           nodes.Output[[]vector3.Float64]   `description:"Points to sweep through. Sharp turns are mitred, keeping the sweep's width."`
-	Closed         nodes.Output[bool]                `description:"Joins the last path point back to the first and leaves the ends uncapped."`
-	SmoothingAngle nodes.Output[float64]             `description:"Corners in the outline or the path turning at least this many degrees keep a hard edge. Defaults to 45."`
-	UVs            nodes.Output[primitives.StripUVs] `description:"Lays the sweep out as a strip: the outline's perimeter runs across it, the path along it. Each cap takes the whole strip separately. Unconnected, the mesh carries no texture coordinates at all."`
+	Outline        nodes.LiftedPort[[]vector2.Float64] `description:"Closed 2D outline to sweep. Winding does not matter. Looking along the path, x is to the right and y is up wherever the path runs level."`
+	Path           nodes.LiftedPort[[]vector3.Float64] `description:"Points to sweep through. Sharp turns are mitred, keeping the sweep's width."`
+	Closed         nodes.Output[bool]                  `description:"Joins the last path point back to the first and leaves the ends uncapped."`
+	SmoothingAngle nodes.Output[float64]               `description:"Corners in the outline or the path turning at least this many degrees keep a hard edge. Defaults to 45."`
+	UVs            nodes.Output[primitives.StripUVs]   `description:"Lays the sweep out as a strip: the outline's perimeter runs across it, the path along it. Each cap takes the whole strip separately. Defaults to the unit strip, 0 to 1 both ways."`
 }
 
 func (node OutlineNode) Description() string {
 	return "Sweeps a 2D outline along a path, capping each end with a triangulation of the outline."
 }
 
-func (node OutlineNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
-	out.Set(modeling.EmptyMesh(modeling.TriangleTopology))
-
-	if node.Outline == nil || node.Path == nil {
-		return
-	}
-
+func (node OutlineNode) Out(out *nodes.Lifted[modeling.Mesh]) {
 	smoothing := nodes.TryGetOutputValue(out, node.SmoothingAngle, defaultSmoothingAngle)
-	var uvs *primitives.StripUVs
-	if node.UVs != nil {
-		strip := nodes.GetOutputValue(out, node.UVs)
-		uvs = &strip
-	}
-	mesh, err := Outline{
-		Shape:          nodes.GetOutputValue(out, node.Outline),
-		Path:           nodes.GetOutputValue(out, node.Path),
-		Closed:         nodes.TryGetOutputValue(out, node.Closed, false),
-		SmoothingAngle: &smoothing,
-		UVs:            uvs,
-	}.Extrude()
-	if err != nil {
-		out.CaptureError(err)
-		return
-	}
-	out.Set(mesh)
+	strip := nodes.TryGetOutputValue(out, node.UVs, primitives.UnitStripUVs())
+	closed := nodes.TryGetOutputValue(out, node.Closed, false)
+	nodes.Zip2(out, node.Outline, node.Path, func(shape []vector2.Float64, path []vector3.Float64) modeling.Mesh {
+		if node.Outline == nil || node.Path == nil {
+			return modeling.EmptyMesh(modeling.TriangleTopology)
+		}
+		mesh, err := Outline{
+			Shape:          shape,
+			Path:           path,
+			Closed:         closed,
+			SmoothingAngle: &smoothing,
+			UVs:            &strip,
+		}.Extrude()
+		if err != nil {
+			out.CaptureError(err)
+			return modeling.EmptyMesh(modeling.TriangleTopology)
+		}
+		return mesh
+	})
 }

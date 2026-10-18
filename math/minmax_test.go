@@ -11,9 +11,10 @@ import (
 func TestMinMaxNodes(t *testing.T) {
 	nodetest.NewSuite(
 		nodetest.NewTestCase(
-			"Min: nothing wired => 0",
+			"Min: nothing wired => 0 and an error",
 			nodetest.NewNode(math.MinNode[float64]{}),
 			nodetest.AssertOutput("Float 64", 0.),
+			nodetest.AssertOutputError("Float 64", "no values to compare"),
 			nodetest.AssertOutputType("Float 64", "float64"),
 			nodetest.AssertLiftedInput("In", "float64"),
 		),
@@ -56,9 +57,10 @@ func TestMinMaxNodes(t *testing.T) {
 		),
 
 		nodetest.NewTestCase(
-			"Max: nothing wired => 0",
+			"Max: nothing wired => 0 and an error",
 			nodetest.NewNode(math.MaxNode[float64]{}),
 			nodetest.AssertOutput("Float 64", 0.),
+			nodetest.AssertOutputError("Float 64", "no values to compare"),
 		),
 		nodetest.NewTestCase(
 			"Max: 1, 2 => 2",
@@ -82,9 +84,10 @@ func TestMinMaxNodes(t *testing.T) {
 			nodetest.AssertOutputType("Float 64", "float64"),
 		),
 		nodetest.NewTestCase(
-			"Min Array: empty => 0",
+			"Min Array: empty => 0 and an error",
 			nodetest.NewNode(math.MinArrayNode[float64]{In: nodetest.NewPortValue([]float64{})}),
 			nodetest.AssertOutput("Float 64", 0.),
+			nodetest.AssertOutputError("Float 64", "no values to compare"),
 		),
 		nodetest.NewTestCase(
 			"Max Array: reduces to one value",
@@ -92,9 +95,10 @@ func TestMinMaxNodes(t *testing.T) {
 			nodetest.AssertOutput("Float 64", 1.),
 		),
 		nodetest.NewTestCase(
-			"Max Array: empty => 0",
+			"Max Array: empty => 0 and an error",
 			nodetest.NewNode(math.MaxArrayNode[float64]{In: nodetest.NewPortValue([]float64{})}),
 			nodetest.AssertOutput("Float 64", 0.),
+			nodetest.AssertOutputError("Float 64", "no values to compare"),
 		),
 		nodetest.NewTestCase(
 			"Sum Array: reduces to one value",

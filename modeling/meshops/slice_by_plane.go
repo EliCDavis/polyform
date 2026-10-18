@@ -4,7 +4,9 @@ import (
 	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/nodes"
+	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
+	"github.com/EliCDavis/vector/vector4"
 )
 
 type SliceByPlaneTransformerSide int
@@ -45,11 +47,11 @@ func SliceByPlaneWithAttribute(m modeling.Mesh, plane geometry.Plane, attribute 
 type SliceAttributeByPlaneNode struct {
 	Mesh      nodes.Output[modeling.Mesh]
 	Plane     nodes.Output[geometry.Plane]
-	Attribute nodes.Output[string]
+	Attribute nodes.Output[string] `description:"The vector3 attribute measured against the plane. Defaults to Position."`
 }
 
 func (n SliceAttributeByPlaneNode) Description() string {
-	return "Cuts the mesh with an infinite plane, keeping geometry on one side."
+	return "Cuts the mesh with an infinite plane. Above Plane is the side the plane's normal points to."
 }
 
 func (n SliceAttributeByPlaneNode) slice(out *nodes.StructOutput[modeling.Mesh], above bool) {
@@ -85,168 +87,129 @@ func (n SliceAttributeByPlaneNode) BelowPlane(out *nodes.StructOutput[modeling.M
 	n.slice(out, false)
 }
 
-func trianglePlaneIntersectionPoints(s1p1, s2p1, s2p2 vector3.Float64, plane geometry.Plane) (vector3.Float64, vector3.Float64) {
-	l1 := geometry.NewLine3D(s1p1, s2p1)
-	l2 := geometry.NewLine3D(s1p1, s2p2)
-
-	time1, intersects := l1.IntersectionTimeOnPlane(plane)
-	if !intersects {
-		panic("unsupported scenario where triangle doesn't intersect plane")
-	}
-
-	time2, intersects := l2.IntersectionTimeOnPlane(plane)
-	if !intersects {
-		panic("unsupported scenario where triangle doesn't intersect plane")
-	}
-
-	return l1.AtTime(time1), l2.AtTime(time2)
+type planeCut struct {
+	from, to int
+	t        float64
 }
 
-func alignWithNormal(normal vector3.Float64, vertices []vector3.Float64, indices []int, i1, i2, i3 int) []int {
-	normalized := vertices[i2].Sub(vertices[i1]).Cross(vertices[i3].Sub(vertices[i1])).Normalized()
-	if normal.Dot(normalized) > 0 {
-		return append(indices, i1, i2, i3)
+type planeCuts struct {
+	distances []float64
+	byEdge    map[[2]int]int
+	cuts      []planeCut
+}
+
+func (c *planeCuts) vertex(a, b int) int {
+	from, to := min(a, b), max(a, b)
+	key := [2]int{from, to}
+	if index, ok := c.byEdge[key]; ok {
+		return index
 	}
-	return append(indices, i1, i3, i2)
+	index := len(c.distances) + len(c.cuts)
+	c.byEdge[key] = index
+	c.cuts = append(c.cuts, planeCut{
+		from: from,
+		to:   to,
+		t:    c.distances[from] / (c.distances[from] - c.distances[to]),
+	})
+	return index
+}
+
+func (c *planeCuts) clip(indices []int, tri [3]int, side float64) []int {
+	polygon := make([]int, 0, 4)
+	for k := range 3 {
+		a, b := tri[k], tri[(k+1)%3]
+		da, db := side*c.distances[a], side*c.distances[b]
+		if da >= 0 {
+			polygon = append(polygon, a)
+		}
+		if (da > 0 && db < 0) || (da < 0 && db > 0) {
+			polygon = append(polygon, c.vertex(a, b))
+		}
+	}
+	for j := 1; j+1 < len(polygon); j++ {
+		indices = append(indices, polygon[0], polygon[j], polygon[j+1])
+	}
+	return indices
+}
+
+func appendCuts[T any](data []T, cuts []planeCut, lerp func(a, b T, t float64) T) []T {
+	for _, cut := range cuts {
+		data = append(data, lerp(data[cut.from], data[cut.to], cut.t))
+	}
+	return data
+}
+
+func (c *planeCuts) extend(m modeling.Mesh) modeling.Mesh {
+	for attr, data := range readAllFloat4Data(m) {
+		m = m.SetFloat4Attribute(attr, appendCuts(data, c.cuts, func(a, b vector4.Float64, t float64) vector4.Float64 {
+			return a.Scale(1 - t).Add(b.Scale(t))
+		}))
+	}
+	for attr, data := range readAllFloat3Data(m) {
+		data = appendCuts(data, c.cuts, func(a, b vector3.Float64, t float64) vector3.Float64 {
+			return a.Scale(1 - t).Add(b.Scale(t))
+		})
+		if attr == modeling.NormalAttribute {
+			for i := len(data) - len(c.cuts); i < len(data); i++ {
+				if length := data[i].Length(); length > 0 {
+					data[i] = data[i].Scale(1 / length)
+				}
+			}
+		}
+		m = m.SetFloat3Attribute(attr, data)
+	}
+	for attr, data := range readAllFloat2Data(m) {
+		m = m.SetFloat2Attribute(attr, appendCuts(data, c.cuts, func(a, b vector2.Float64, t float64) vector2.Float64 {
+			return a.Scale(1 - t).Add(b.Scale(t))
+		}))
+	}
+	for attr, data := range readAllFloat1Data(m) {
+		m = m.SetFloat1Attribute(attr, appendCuts(data, c.cuts, func(a, b float64, t float64) float64 {
+			return a*(1-t) + b*t
+		}))
+	}
+	return m
 }
 
 func sliceTrianglesByPlaneWithAttribute(m modeling.Mesh, plane geometry.Plane, attribute string) (modeling.Mesh, modeling.Mesh) {
 	if err := RequireTopology(m, modeling.TriangleTopology); err != nil {
 		panic(err)
 	}
+	if m.PrimitiveCount() == 0 {
+		return m, m
+	}
 	if err := RequireV3Attribute(m, attribute); err != nil {
 		panic(err)
 	}
 
-	originalIndices := m.Indices()
-	numFaces := originalIndices.Len() / 3
-
-	belowPlaneIndices := make([]int, 0)
-	abovePlaneIndices := make([]int, 0)
-
-	attributeData := m.Float3Attribute(attribute)
-	belowPlaneVertices := make([]vector3.Float64, attributeData.Len())
-	abovePlaneVertices := make([]vector3.Float64, attributeData.Len())
-	for i := range attributeData.Len() {
-		belowPlaneVertices[i] = attributeData.At(i)
-		abovePlaneVertices[i] = attributeData.At(i)
+	positions := m.Float3Attribute(attribute)
+	cuts := planeCuts{
+		distances: make([]float64, positions.Len()),
+		byEdge:    make(map[[2]int]int),
+	}
+	for i := range cuts.distances {
+		cuts.distances[i] = plane.Normal().Dot(positions.At(i).Sub(plane.Origin()))
 	}
 
-	// Mark which tris belong in retained or clipped
-	for t := range numFaces {
-		tri := m.Tri(t)
-		triNormal := tri.Normal(attribute)
-
-		a := tri.P1Vec3Attr(attribute)
-		b := tri.P2Vec3Attr(attribute)
-		c := tri.P3Vec3Attr(attribute)
-
-		aClip := plane.Normal().Dot(a.Sub(plane.Origin())) < 0
-		bClip := plane.Normal().Dot(b.Sub(plane.Origin())) < 0
-		cClip := plane.Normal().Dot(c.Sub(plane.Origin())) < 0
-
-		keepVertices := make([]vector3.Float64, 0, 3)
-		removedVertices := make([]vector3.Float64, 0, 3)
-
-		keepIndices := make([]int, 0, 3)
-		removedIndices := make([]int, 0, 3)
-		if aClip {
-			keepVertices = append(keepVertices, a)
-			keepIndices = append(keepIndices, tri.P1())
-		} else {
-			removedVertices = append(removedVertices, a)
-			removedIndices = append(removedIndices, tri.P1())
+	indices := m.Indices()
+	above := make([]int, 0, indices.Len())
+	below := make([]int, 0, indices.Len())
+	for i := 0; i < indices.Len(); i += 3 {
+		tri := [3]int{indices.At(i), indices.At(i + 1), indices.At(i + 2)}
+		// A face on the plane belongs to the solid behind it, the side its normal points away from.
+		if cuts.distances[tri[0]] == 0 && cuts.distances[tri[1]] == 0 && cuts.distances[tri[2]] == 0 {
+			a, b, c := positions.At(tri[0]), positions.At(tri[1]), positions.At(tri[2])
+			if b.Sub(a).Cross(c.Sub(a)).Dot(plane.Normal()) > 0 {
+				below = append(below, tri[:]...)
+			} else {
+				above = append(above, tri[:]...)
+			}
+			continue
 		}
-
-		if bClip {
-			keepVertices = append(keepVertices, b)
-			keepIndices = append(keepIndices, tri.P2())
-		} else {
-			removedVertices = append(removedVertices, b)
-			removedIndices = append(removedIndices, tri.P2())
-		}
-
-		if cClip {
-			keepVertices = append(keepVertices, c)
-			keepIndices = append(keepIndices, tri.P3())
-		} else {
-			removedVertices = append(removedVertices, c)
-			removedIndices = append(removedIndices, tri.P3())
-		}
-
-		switch len(keepVertices) {
-		case 0:
-			belowPlaneIndices = append(belowPlaneIndices, tri.P1(), tri.P2(), tri.P3())
-
-		case 1:
-			// One point is kept
-			// The triangle is discarded, and a new one generated
-			// The two new points of the new clip triangle are the intersection of the plane.
-			newV1, newV2 := trianglePlaneIntersectionPoints(keepVertices[0], removedVertices[0], removedVertices[1], plane)
-
-			newKeepIndice1 := len(abovePlaneVertices)
-			newKeepIndice2 := newKeepIndice1 + 1
-
-			abovePlaneVertices = append(abovePlaneVertices, newV1, newV2) //nolint:makezero
-			abovePlaneIndices = alignWithNormal(triNormal, abovePlaneVertices, abovePlaneIndices, keepIndices[0], newKeepIndice1, newKeepIndice2)
-
-			newRemoveIndice1 := len(belowPlaneVertices)
-			newRemoveIndice2 := newRemoveIndice1 + 1
-
-			belowPlaneVertices = append(belowPlaneVertices, newV1, newV2) //nolint:makezero
-			belowPlaneIndices = alignWithNormal(triNormal, belowPlaneVertices, belowPlaneIndices, newRemoveIndice1, removedIndices[0], newRemoveIndice2)
-			belowPlaneIndices = alignWithNormal(triNormal, belowPlaneVertices, belowPlaneIndices, newRemoveIndice2, removedIndices[0], removedIndices[1])
-
-		case 2:
-			// Two points are kept.
-			// The triangle is discarded, and two new triangles are generated
-			// This is just the inverse of case 1:
-			newV1, newV2 := trianglePlaneIntersectionPoints(removedVertices[0], keepVertices[0], keepVertices[1], plane)
-
-			newKeepIndice1 := len(belowPlaneVertices)
-			newKeepIndice2 := newKeepIndice1 + 1
-
-			belowPlaneVertices = append(belowPlaneVertices, newV1, newV2) //nolint:makezero
-			belowPlaneIndices = alignWithNormal(triNormal, belowPlaneVertices, belowPlaneIndices, removedIndices[0], newKeepIndice1, newKeepIndice2)
-
-			newRemoveIndice1 := len(abovePlaneVertices)
-			newRemoveIndice2 := newRemoveIndice1 + 1
-
-			abovePlaneVertices = append(abovePlaneVertices, newV1, newV2) //nolint:makezero
-			abovePlaneIndices = alignWithNormal(triNormal, abovePlaneVertices, abovePlaneIndices, newRemoveIndice1, keepIndices[0], newRemoveIndice2)
-			abovePlaneIndices = alignWithNormal(triNormal, abovePlaneVertices, abovePlaneIndices, newRemoveIndice2, keepIndices[0], keepIndices[1])
-
-		case 3:
-			abovePlaneIndices = append(abovePlaneIndices, tri.P1(), tri.P2(), tri.P3())
-
-		}
-
+		above = cuts.clip(above, tri, 1)
+		below = cuts.clip(below, tri, -1)
 	}
 
-	// v4Data := readAllFloat4Data(m)
-	// v3Data := readAllFloat3Data(m)
-	// v2Data := readAllFloat2Data(m)
-	// v1Data := readAllFloat1Data(m)
-
-	// above := modeling.NewMesh(m.Topology(), abovePlaneIndices).
-	// 	SetFloat4Data(v4Data).
-	// 	SetFloat3Data(v3Data).
-	// 	SetFloat2Data(v2Data).
-	// 	SetFloat1Data(v1Data)
-
-	// below := modeling.NewMesh(m.Topology(), belowPlaneIndices).
-	// 	SetFloat4Data(v4Data).
-	// 	SetFloat3Data(v3Data).
-	// 	SetFloat2Data(v2Data).
-	// 	SetFloat1Data(v1Data)
-
-	// return RemovedUnreferencedVertices(above), RemovedUnreferencedVertices(below)
-
-	aboveMesh := modeling.NewTriangleMesh(abovePlaneIndices).
-		SetFloat3Attribute(attribute, abovePlaneVertices)
-
-	belowMesh := modeling.NewTriangleMesh(belowPlaneIndices).
-		SetFloat3Attribute(attribute, belowPlaneVertices)
-
-	return RemovedUnreferencedVertices(aboveMesh), RemovedUnreferencedVertices(belowMesh)
+	m = cuts.extend(m)
+	return RemovedUnreferencedVertices(m.SetIndices(above)), RemovedUnreferencedVertices(m.SetIndices(below))
 }

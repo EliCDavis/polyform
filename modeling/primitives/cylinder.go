@@ -167,9 +167,9 @@ func (n CylinderUVsNode) Out(out *nodes.StructOutput[CylinderUVs]) {
 
 type CylinderNode struct {
 	Sides   nodes.Output[int]
-	Height  nodes.Output[float64]
-	Radius  nodes.Output[float64] `description:"Radius at the bottom (-Y) end"`
-	Radius2 nodes.Output[float64] `description:"Radius at the top (+Y) end; defaults to Radius, so setting it makes a truncated cone"`
+	Height  nodes.LiftedPort[float64]
+	Radius  nodes.LiftedPort[float64] `description:"Radius at the bottom (-Y) end"`
+	Radius2 nodes.LiftedPort[float64] `description:"Radius at the top (+Y) end; defaults to Radius, so setting it makes a truncated cone"`
 	Top     nodes.Output[bool]
 	Bottom  nodes.Output[bool]
 	UVs     nodes.Output[CylinderUVs]
@@ -179,18 +179,26 @@ func (hnd CylinderNode) Description() string {
 	return "A cylinder along the Y axis. Turning Top or Bottom off leaves an open shell whose wall has no thickness."
 }
 
-func (hnd CylinderNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
-	bottomRadius := nodes.TryGetOutputValue(out, hnd.Radius, 0.5)
-	topRadius := nodes.TryGetOutputValue(out, hnd.Radius2, bottomRadius)
-
-	cone := TruncatedCone{
-		TopRadius:    topRadius,
-		BottomRadius: bottomRadius,
-		Height:       nodes.TryGetOutputValue(out, hnd.Height, 1),
-		Sides:        max(nodes.TryGetOutputValue(out, hnd.Sides, 20), 3),
-		NoTop:        !nodes.TryGetOutputValue(out, hnd.Top, true),
-		NoBottom:     !nodes.TryGetOutputValue(out, hnd.Bottom, true),
-		UVs:          nodes.TryGetOutputReference(out, hnd.UVs, nil),
+func (hnd CylinderNode) Out(out *nodes.Lifted[modeling.Mesh]) {
+	bottom := nodes.LiftedOr(hnd.Radius, 0.5)
+	top := hnd.Radius2
+	if top == nil {
+		top = bottom
 	}
-	out.Set(cone.ToMesh())
+	sides := max(nodes.TryGetOutputValue(out, hnd.Sides, 20), 3)
+	noTop := !nodes.TryGetOutputValue(out, hnd.Top, true)
+	noBottom := !nodes.TryGetOutputValue(out, hnd.Bottom, true)
+	uvs := nodes.TryGetOutputReference(out, hnd.UVs, nil)
+
+	nodes.Zip3(out, nodes.LiftedOr(hnd.Height, 1.), bottom, top, func(height, bottomRadius, topRadius float64) modeling.Mesh {
+		return TruncatedCone{
+			TopRadius:    topRadius,
+			BottomRadius: bottomRadius,
+			Height:       height,
+			Sides:        sides,
+			NoTop:        noTop,
+			NoBottom:     noBottom,
+			UVs:          uvs,
+		}.ToMesh()
+	})
 }

@@ -2,6 +2,7 @@ package triangulation
 
 import (
 	"errors"
+	"math"
 	"slices"
 
 	"github.com/EliCDavis/polyform/math/geometry"
@@ -17,16 +18,7 @@ type Region struct {
 // overlapping contours union, and a contour wound against the one around it
 // is a hole.
 func Fill(contours ...geometry.Shape) (Region, error) {
-	weld, segments := contourSegments(contours)
-	if len(segments) == 0 {
-		return Region{}, nil
-	}
-	tess, err := triangulate(weld, segments)
-	if err != nil {
-		return Region{}, err
-	}
-	tess.discardOutside()
-	return tess.region(nil), nil
+	return FillWinding([][]geometry.Shape{contours}, func(w []int) bool { return w[0] != 0 })
 }
 
 // FillDifference triangulates the area inside any of keep and outside every
@@ -39,52 +31,142 @@ func FillDifference(keep, cut []geometry.Shape) (Region, error) {
 		return Region{}, errors.New("no outline encloses any area")
 	}
 
-	tess, err := triangulate(contourSegments(append(slices.Clone(keep), cut...)))
+	return FillWinding(
+		[][]geometry.Shape{CounterClockwise(keep), CounterClockwise(cut)},
+		func(w []int) bool { return w[0] != 0 && w[1] == 0 },
+	)
+}
+
+// FillWinding keeps the triangles keep accepts, given each group's winding number there.
+func FillWinding(groups [][]geometry.Shape, keep func(winding []int) bool) (Region, error) {
+	weld, segments, groupOf := contourSegments(groups)
+	if len(segments) == 0 {
+		return Region{}, nil
+	}
+	tess, err := triangulate(weld, segments, groupOf, len(groups))
 	if err != nil {
 		return Region{}, err
 	}
 
-	// Every contour edge survives whole, so no triangle straddles one and a
-	// single point inside it decides for all of it.
-	return tess.region(func(tri Triangle) bool {
-		centroid := tess.pts[tri[0]].Add(tess.pts[tri[1]]).Add(tess.pts[tri[2]]).Scale(1. / 3)
-		return insideAny(keep, centroid) && !insideAny(cut, centroid)
+	windings := tess.windings()
+	g := tess.groups
+	return tess.region(func(tri int) bool {
+		return keep(windings[tri*g : (tri+1)*g])
 	}), nil
 }
 
-func insideAny(shapes []geometry.Shape, p vector2.Float64) bool {
-	return slices.ContainsFunc(shapes, func(s geometry.Shape) bool { return s.IsInside(p) })
+func CounterClockwise(shapes []geometry.Shape) []geometry.Shape {
+	out := make([]geometry.Shape, len(shapes))
+	for i, s := range shapes {
+		out[i] = s
+		if s.SignedArea() < 0 {
+			out[i] = slices.Clone(s)
+			slices.Reverse(out[i])
+		}
+	}
+	return out
 }
 
-func contourSegments(contours []geometry.Shape) (*geometry.PointWelder2D, [][2]int) {
-	sets := make([][]vector2.Float64, len(contours))
-	for i, contour := range contours {
-		sets[i] = contour
+// Outer loops run counter-clockwise, holes clockwise; points on straight runs are dropped.
+func (r Region) Boundaries() []geometry.Shape {
+	uses := map[[2]int]int{}
+	for _, tri := range r.Triangles {
+		for k := range tri {
+			a, b := tri[k], tri[(k+1)%3]
+			uses[[2]int{min(a, b), max(a, b)}]++
+		}
+	}
+
+	next := map[int][]int{}
+	for _, tri := range r.Triangles {
+		for k := range tri {
+			a, b := tri[k], tri[(k+1)%3]
+			if uses[[2]int{min(a, b), max(a, b)}] == 1 {
+				next[a] = append(next[a], b)
+			}
+		}
+	}
+
+	starts := make([]int, 0, len(next))
+	for v := range next {
+		starts = append(starts, v)
+	}
+	slices.Sort(starts)
+
+	var loops []geometry.Shape
+	for _, start := range starts {
+		for len(next[start]) > 0 {
+			var loop []int
+			for v := start; ; {
+				loop = append(loop, v)
+				to := next[v][0]
+				next[v] = next[v][1:]
+				v = to
+				if v == start {
+					break
+				}
+				if len(next[v]) == 0 {
+					loop = nil
+					break
+				}
+			}
+			if len(loop) >= 3 {
+				loops = append(loops, r.withoutStraightRuns(loop))
+			}
+		}
+	}
+	return loops
+}
+
+func (r Region) withoutStraightRuns(loop []int) geometry.Shape {
+	tolerance := mergeTolerance(r.Points)
+	kept := make(geometry.Shape, 0, len(loop))
+	for i, v := range loop {
+		prev, at, next := r.Points[loop[(i+len(loop)-1)%len(loop)]], r.Points[v], r.Points[loop[(i+1)%len(loop)]]
+		span := next.Sub(prev)
+		if length := span.Length(); length > 0 {
+			offLine := math.Abs(span.X()*at.Sub(prev).Y()-span.Y()*at.Sub(prev).X()) / length
+			if offLine <= tolerance && at.Sub(prev).Dot(span) > 0 && next.Sub(at).Dot(span) > 0 {
+				continue
+			}
+		}
+		kept = append(kept, at)
+	}
+	return kept
+}
+
+func contourSegments(groups [][]geometry.Shape) (*geometry.PointWelder2D, [][2]int, []int) {
+	var sets [][]vector2.Float64
+	for _, contours := range groups {
+		for _, contour := range contours {
+			sets = append(sets, contour)
+		}
 	}
 	weld := geometry.NewPointWelder2D(mergeTolerance(sets...))
 
 	var segments [][2]int
-	for _, contour := range contours {
-		for i := range contour {
-			a, b := weld.Index(contour[i]), weld.Index(contour[(i+1)%len(contour)])
-			if a != b {
-				segments = append(segments, [2]int{a, b})
+	var groupOf []int
+	for g, contours := range groups {
+		for _, contour := range contours {
+			for i := range contour {
+				a, b := weld.Index(contour[i]), weld.Index(contour[(i+1)%len(contour)])
+				if a != b {
+					segments = append(segments, [2]int{a, b})
+					groupOf = append(groupOf, g)
+				}
 			}
 		}
 	}
-	return weld, segments
+	return weld, segments, groupOf
 }
 
-func (t *tessellation) region(kept func(Triangle) bool) Region {
+func (t *tessellation) region(kept func(tri int) bool) Region {
 	var triangles []Triangle
 	used := make([]bool, len(t.pts))
 	for _, tri := range t.ordered(func(tri Triangle) Triangle {
 		clockwise := tri.clockwise(t.pts)
 		return Triangle{clockwise[0], clockwise[2], clockwise[1]}
-	}) {
-		if kept != nil && !kept(tri) {
-			continue
-		}
+	}, kept) {
 		triangles = append(triangles, tri)
 		for _, v := range tri {
 			used[v] = true

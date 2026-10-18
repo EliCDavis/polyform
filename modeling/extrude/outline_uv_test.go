@@ -7,6 +7,7 @@ import (
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/extrude"
 	"github.com/EliCDavis/polyform/modeling/primitives"
+	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
 	"github.com/stretchr/testify/assert"
@@ -27,6 +28,20 @@ func TestOutlineWritesNoUVsUnlessAsked(t *testing.T) {
 	mesh, err := extrude.Outline{Shape: unitSquare, Path: straightUp}.Extrude()
 	require.NoError(t, err)
 	assert.False(t, mesh.HasFloat2Attribute(modeling.TexCoordAttribute))
+}
+
+func TestOutlineNodeDefaultsToTheUnitStrip(t *testing.T) {
+	mesh := nodes.GetNodeOutputPort[modeling.Mesh](&nodes.Struct[extrude.OutlineNode]{
+		Data: extrude.OutlineNode{
+			Outline: nodes.ConstOutput[[]vector2.Float64]{Val: unitSquare},
+			Path:    nodes.ConstOutput[[]vector3.Float64]{Val: straightUp},
+		},
+	}, "Out").Value()
+
+	expected, err := extrude.Outline{Shape: unitSquare, Path: straightUp, UVs: unitStrip()}.Extrude()
+	require.NoError(t, err)
+	require.True(t, mesh.HasFloat2Attribute(modeling.TexCoordAttribute))
+	assert.Equal(t, expected.Float2Attribute(modeling.TexCoordAttribute), mesh.Float2Attribute(modeling.TexCoordAttribute))
 }
 
 func TestOutlineStripUVsSpanTheSweep(t *testing.T) {

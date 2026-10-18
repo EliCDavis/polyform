@@ -7,7 +7,7 @@ import (
 )
 
 type SumNode[T vector.Number] struct {
-	Values []nodes.LiftedPort[vector3.Vector[T]] `description:"The vectors to add. Arrays are added element by element."`
+	Values []nodes.LiftedPort[vector3.Vector[T]] `description:"The vectors to add."`
 }
 
 func (cn SumNode[T]) Description() string {
