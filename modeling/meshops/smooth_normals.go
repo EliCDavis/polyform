@@ -167,11 +167,12 @@ func SmoothNormalsByAngle(m modeling.Mesh, smoothingAngle float64) modeling.Mesh
 	vertexCount := positions.Len()
 	assigned := make(map[corner]int)
 	claimed := make([]bool, vertexCount)
-	order := make([]int, vertexCount)
-	for v := range order {
-		order[v] = v
+	order := make([]int, 0, vertexCount)
+	normals := make([]vector3.Float64, 0, vertexCount)
+	for v := range vertexCount {
+		order = append(order, v)
+		normals = append(normals, vector3.Zero[float64]())
 	}
-	normals := make([]vector3.Float64, vertexCount)
 	indices := make([]int, corners)
 	for c := range corners {
 		key := corner{vertex: tris.At(c), fan: -1}
