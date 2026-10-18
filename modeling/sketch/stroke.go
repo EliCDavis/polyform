@@ -59,7 +59,7 @@ type StrokeNode struct {
 }
 
 func (StrokeNode) Description() string {
-	return "The area a path covers drawn at a width, with round ends and bends: a strip along a path. A gap the path encloses stays open. A list of paths gives one area each."
+	return "The area a path covers drawn at a width, with round ends and bends: a strip along a path. A gap the path encloses stays open."
 }
 
 func (StrokeNode) Keywords() []string {

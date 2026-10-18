@@ -19,17 +19,13 @@ func newEdgeKey(a, b int) edgeKey {
 	return edgeKey{a, b}
 }
 
-// Triangles live in flat arrays three entries wide, wound counter clockwise:
-// edge k runs from vertex k to vertex k+1, with the triangle across it in the
-// matching neighbour slot, or -1 on the hull. winding holds one count per
-// group for each constraint edge: +1 for every piece running from the lower
-// index to the higher, -1 for the reverse.
+// Counter-clockwise triangles, three entries each: edge k runs vertex k→k+1, neighbour k is across it (-1 on the hull).
 type tessellation struct {
 	pts        []vector2.Float64
 	vertices   []int
 	neighbours []int
 	startsAt   []int
-	winding    map[edgeKey][]int
+	winding    map[edgeKey][]int // per group: +1 per piece running low index to high, -1 the reverse
 	groups     int
 	reshaped   []edgeKey
 }
@@ -96,8 +92,6 @@ func (t *tessellation) third(tri, a, b int) int {
 	return -1
 }
 
-// aroundVertex visits every triangle holding a, with a's index in it, until
-// visit returns false.
 func (t *tessellation) aroundVertex(a int, visit func(tri, i int) bool) {
 	start := t.startsAt[a]
 	if start < 0 {
@@ -129,8 +123,7 @@ func (t *tessellation) aroundVertex(a int, visit func(tri, i int) bool) {
 	}
 }
 
-// slot finds the triangle holding the directed edge a→b and the edge's index
-// in it.
+// slot finds the triangle holding the directed edge a→b.
 func (t *tessellation) slot(a, b int) (tri, k int, ok bool) {
 	t.aroundVertex(a, func(candidate, i int) bool {
 		if t.vertices[3*candidate+(i+1)%3] == b {
@@ -155,8 +148,7 @@ func (t *tessellation) locked(e edgeKey) bool {
 	return ok
 }
 
-// sides returns the triangle with e running a→b, its slot, and the triangle
-// and apex across it.
+// sides returns the triangle with e running a→b, its slot, and the triangle and apex across it.
 func (t *tessellation) sides(e edgeKey) (tri, k, across, p, q int, ok bool) {
 	tri, k, ok = t.slot(e[0], e[1])
 	if !ok {
@@ -208,8 +200,7 @@ func (t *tessellation) flip(e edgeKey) bool {
 	return true
 }
 
-// Walks triangle to triangle along a-b, so the edges come back in the order
-// the segment meets them, which is the order forceEdge wants to flip them.
+// Edges come back in the order the segment meets them, the order forceEdge flips them in.
 func (t *tessellation) crossing(a, b int) []edgeKey {
 	pa, pb := t.pts[a], t.pts[b]
 
@@ -275,8 +266,7 @@ func (t *tessellation) forceEdge(a, b, group int) error {
 		return nil
 	}
 
-	// Recomputed each round, not hoisted: flipping one edge reshapes its
-	// neighbours, so an upfront list empties with the edge still missing.
+	// The crossings are recomputed each round: a flip reshapes its neighbours.
 	budget := len(t.pts)*len(t.pts) + 64
 
 	for !t.hasEdge(a, b) {
@@ -309,9 +299,7 @@ func (t *tessellation) forceEdge(a, b, group int) error {
 	return nil
 }
 
-// Lawson's flip queue. The triangulation was Delaunay before constraints
-// were forced, and an edge's Delaunay test only reads the two triangles
-// beside it, so only edges whose triangles a flip reshaped need checking.
+// Only edges whose triangles a flip reshaped can have lost the Delaunay property.
 func (t *tessellation) restoreDelaunay() {
 	queue := make([]edgeKey, 0, len(t.reshaped))
 	queued := make(map[edgeKey]struct{}, len(t.reshaped))
@@ -359,17 +347,14 @@ func (t *tessellation) restoreDelaunay() {
 	t.reshaped = nil
 }
 
-// Winding numbers flood in from the hull, where they are zero, and only
-// change across constraint edges. Triangle tri's count for each group is at
-// [tri*groups, (tri+1)*groups).
+// Triangle tri's count for group g is at tri*groups+g.
 func (t *tessellation) windings() []int {
 	g := t.groups
 	windings := make([]int, t.count()*g)
 	seen := make([]bool, t.count())
 	queue := make([]int, 0, t.count())
 
-	// tri lies to the left of its own edge k, so entering across it adds the
-	// pieces running the same way as that edge.
+	// tri lies left of its edge k, so entering across it adds the pieces running that edge's way.
 	enter := func(tri, k int, from []int) {
 		if seen[tri] {
 			return
@@ -410,8 +395,7 @@ func (t *tessellation) windings() []int {
 	return windings
 }
 
-// ordered applies orient to every triangle kept accepts, then sorts them so
-// the same input always comes back in the same order.
+// Sorted, so the same input always comes back in the same order.
 func (t *tessellation) ordered(orient func(Triangle) Triangle, kept func(tri int) bool) []Triangle {
 	ordered := make([]Triangle, 0, t.count())
 	for tri := 0; tri < t.count(); tri++ {

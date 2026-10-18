@@ -37,8 +37,7 @@ func FillDifference(keep, cut []geometry.Shape) (Region, error) {
 	)
 }
 
-// FillWinding triangulates every group's contours together and keeps the
-// triangles keep accepts, given the winding number of each group there.
+// FillWinding keeps the triangles keep accepts, given each group's winding number there.
 func FillWinding(groups [][]geometry.Shape, keep func(winding []int) bool) (Region, error) {
 	weld, segments, groupOf := contourSegments(groups)
 	if len(segments) == 0 {
@@ -56,8 +55,6 @@ func FillWinding(groups [][]geometry.Shape, keep func(winding []int) bool) (Regi
 	}), nil
 }
 
-// CounterClockwise returns the shapes with every clockwise one reversed, so
-// each adds one to the winding number inside it.
 func CounterClockwise(shapes []geometry.Shape) []geometry.Shape {
 	out := make([]geometry.Shape, len(shapes))
 	for i, s := range shapes {
@@ -70,9 +67,7 @@ func CounterClockwise(shapes []geometry.Shape) []geometry.Shape {
 	return out
 }
 
-// Boundaries traces the region's edge back into closed loops: outer loops
-// counter-clockwise, holes clockwise. Points lying on a straight run are left
-// out.
+// Outer loops run counter-clockwise, holes clockwise; points on straight runs are dropped.
 func (r Region) Boundaries() []geometry.Shape {
 	uses := map[[2]int]int{}
 	for _, tri := range r.Triangles {

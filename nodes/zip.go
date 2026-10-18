@@ -43,8 +43,7 @@ func operandOf[T any](recorder ExecutionRecorder, port OutputPort) liftedOperand
 	return liftedOperand[T]{values: values, rank: rank}
 }
 
-// Each element of a spread is its own operand: a spread of values or a spread
-// of arrays.
+// Each element of a spread, of values or of arrays, is its own operand.
 func spreadOperands[T any](recorder ExecutionRecorder, port OutputPort) ([]liftedOperand[T], bool) {
 	if !IsSpread(port) {
 		return nil, false

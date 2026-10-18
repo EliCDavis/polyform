@@ -2,7 +2,6 @@ package meshops
 
 import (
 	"errors"
-	"math"
 
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/nodes"
@@ -39,14 +38,6 @@ func splitByGroup(m modeling.Mesh, group func(corner int) int) (modeling.Mesh, [
 	return split, sources, groups
 }
 
-func triangleNormal(m modeling.Mesh, triangle int) vector3.Float64 {
-	tri := m.Tri(triangle)
-	a := tri.P1Vec3Attr(modeling.PositionAttribute)
-	b := tri.P2Vec3Attr(modeling.PositionAttribute)
-	c := tri.P3Vec3Attr(modeling.PositionAttribute)
-	return b.Sub(a).Cross(c.Sub(a))
-}
-
 const (
 	facePosX = iota
 	faceNegX
@@ -57,7 +48,7 @@ const (
 )
 
 func dominantFace(n vector3.Float64) int {
-	x, y, z := math.Abs(n.X()), math.Abs(n.Y()), math.Abs(n.Z())
+	x, y, z := n.Abs().Values()
 	switch {
 	case x >= y && x >= z && x > 0:
 		if n.X() > 0 {
@@ -81,15 +72,15 @@ func boxFaceUV(p vector3.Float64, face int) vector2.Float64 {
 	case facePosX:
 		return vector2.New(-p.Z(), p.Y())
 	case faceNegX:
-		return vector2.New(p.Z(), p.Y())
+		return p.ZY()
 	case facePosY:
 		return vector2.New(p.X(), -p.Z())
 	case faceNegY:
-		return vector2.New(p.X(), p.Z())
+		return p.XZ()
 	case faceNegZ:
 		return vector2.New(-p.X(), p.Y())
 	}
-	return vector2.New(p.X(), p.Y())
+	return p.XY()
 }
 
 func BoxProjectUV(m modeling.Mesh, scale, offset vector2.Float64) (modeling.Mesh, error) {
@@ -102,9 +93,9 @@ func BoxProjectUV(m modeling.Mesh, scale, offset vector2.Float64) (modeling.Mesh
 
 	positions := m.Float3Attribute(modeling.PositionAttribute)
 	faces := make([]int, m.PrimitiveCount())
-	for triangle := range faces {
-		faces[triangle] = dominantFace(triangleNormal(m, triangle))
-	}
+	m.ScanPrimitivesParallel(func(triangle int, p modeling.Primitive) {
+		faces[triangle] = dominantFace(p.(modeling.Tri).Normal(modeling.PositionAttribute))
+	})
 
 	split, sources, groups := splitByGroup(m, func(corner int) int { return faces[corner/3] })
 	su, sv := nonZero(scale.X()), nonZero(scale.Y())

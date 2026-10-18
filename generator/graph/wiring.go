@@ -64,8 +64,7 @@ func splitElement(name string) (port string, element int) {
 	return name[:dot], element
 }
 
-// A port whose own name ends in ".N", like one named after "Switch 6x3.5", is
-// that port, not element N of another.
+// A port whose own name ends in ".N" is that port, not element N of another.
 func splitElementOf(inputs map[string]nodes.InputPort, name string) (port string, element int) {
 	if _, whole := inputs[name]; whole {
 		return name, nextElement
@@ -304,8 +303,7 @@ func checkPortTypes(e edge) error {
 		e.producerID, e.output, from, e.consumerID, e.input, strings.Join(accepted, " or "), edgeHint(e))
 }
 
-// A port taking more than one type reports whichever it holds now, so
-// asking for "the" type would pin it there and refuse the other.
+// A port taking several types reports only the one it holds now.
 func acceptedTypes(in nodes.InputPort) []string {
 	if options, ok := in.(nodes.TypeOptions); ok && len(options.AcceptedTypes()) > 0 {
 		return options.AcceptedTypes()

@@ -10,8 +10,7 @@ type PanicError struct {
 	Stack string
 }
 
-// Recovered must be called from the deferred function that recovered value,
-// while the panicking frames are still on the stack.
+// Recovered must be called in the deferred function, while the panicking frames are on the stack.
 func Recovered(value any) *PanicError {
 	return &PanicError{Value: value, Stack: string(debug.Stack())}
 }

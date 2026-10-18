@@ -380,7 +380,7 @@ type CubeNode struct {
 }
 
 func (c CubeNode) Description() string {
-	return "An axis-aligned box, centered on the origin, built from 6 quads. A list of sizes gives one box each."
+	return "An axis-aligned box, centered on the origin, built from 6 quads."
 }
 
 func (c CubeNode) Out(out *nodes.Lifted[modeling.Mesh]) {

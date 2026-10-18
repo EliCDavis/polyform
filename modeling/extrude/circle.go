@@ -148,7 +148,7 @@ type CircleNode struct {
 }
 
 func (pnd CircleNode) Description() string {
-	return "Sweeps a circle along a path, making a tube. A list of paths gives one tube each."
+	return "Sweeps a circle along a path, making a tube."
 }
 
 func (pnd CircleNode) Out(out *nodes.Lifted[modeling.Mesh]) {

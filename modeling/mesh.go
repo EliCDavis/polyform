@@ -390,14 +390,14 @@ func (m Mesh) BoundingBox(atr string) geometry.AABB {
 	return geometry.NewAABBFromPoints(m.v3Data[atr]...)
 }
 
-func (m Mesh) scanTrisPrimitives(start, size int, f func(i int, p Primitive)) {
-	for i := start; i < size; i++ {
+func (m Mesh) scanTrisPrimitives(start, end int, f func(i int, p Primitive)) {
+	for i := start; i < end; i++ {
 		f(i, m.Tri(i))
 	}
 }
 
-func (m Mesh) scanPointPrimitives(start, size int, f func(i int, p Primitive)) {
-	for i := start; i < size; i++ {
+func (m Mesh) scanPointPrimitives(start, end int, f func(i int, p Primitive)) {
+	for i := start; i < end; i++ {
 		f(i, &Point{
 			mesh:  &m,
 			index: i,
@@ -405,8 +405,8 @@ func (m Mesh) scanPointPrimitives(start, size int, f func(i int, p Primitive)) {
 	}
 }
 
-func (m Mesh) scanLinePrimitives(start, size int, f func(i int, p Primitive)) {
-	for i := start; i < size; i++ {
+func (m Mesh) scanLinePrimitives(start, end int, f func(i int, p Primitive)) {
+	for i := start; i < end; i++ {
 		f(i, &Line{
 			mesh:          &m,
 			startingIndex: i,
@@ -459,22 +459,22 @@ func (m Mesh) ScanPrimitivesParallelWithPoolSize(size int, f func(i int, p Primi
 			jobSize = totalWork - (workSize * i)
 		}
 
-		go func(start, size int) {
+		go func(start, end int) {
 			defer wg.Done()
 			switch m.topology {
 			case TriangleTopology:
-				m.scanTrisPrimitives(start, size, f)
+				m.scanTrisPrimitives(start, end, f)
 
 			case PointTopology:
-				m.scanPointPrimitives(start, size, f)
+				m.scanPointPrimitives(start, end, f)
 
 			case LineStripTopology:
-				m.scanLinePrimitives(start, size, f)
+				m.scanLinePrimitives(start, end, f)
 
 			default:
 				panic(fmt.Errorf("unimplemented topology: %s", m.topology.String()))
 			}
-		}(workSize*i, jobSize)
+		}(workSize*i, workSize*i+jobSize)
 	}
 
 	wg.Wait()

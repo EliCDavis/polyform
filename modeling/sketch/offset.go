@@ -9,8 +9,6 @@ import (
 	"github.com/EliCDavis/vector/vector2"
 )
 
-// Offset grows the area by distance, or shrinks it when distance is
-// negative, keeping it round where it grows around a corner.
 func Offset(area Area, distance float64, segments int) (Area, error) {
 	if distance == 0 || len(area.Polygons) == 0 {
 		return area, nil
@@ -24,8 +22,7 @@ func Offset(area Area, distance float64, segments int) (Area, error) {
 		}
 	}
 
-	// Only positive winding is kept: it drops the loops concave corners
-	// leave and every piece a shrink turned inside out.
+	// Positive winding only: drops concave-corner loops and pieces a shrink turned inside out.
 	region, err := triangulation.FillWinding([][]geometry.Shape{curves}, func(w []int) bool { return w[0] > 0 })
 	if err != nil {
 		return Area{}, err
@@ -33,10 +30,7 @@ func Offset(area Area, distance float64, segments int) (Area, error) {
 	return areaOf(region), nil
 }
 
-// offsetLoop moves every edge of the loop distance to its right, which is
-// away from the area for outlines and holes alike. Where moved edges pull
-// apart an arc joins them; where they overlap the path runs back through
-// the corner.
+// Each edge moves to its right, which is away from the area for outlines and holes alike.
 func offsetLoop(loop geometry.Shape, distance float64, segments int) geometry.Shape {
 	pts := withoutRepeats(loop, true)
 	n := len(pts)

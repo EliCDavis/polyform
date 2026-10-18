@@ -60,18 +60,15 @@ func CylinderProjectUV(m modeling.Mesh, center, axis vector3.Float64, around, he
 	positions := m.Float3Attribute(modeling.PositionAttribute)
 	groups := make([]int, m.PrimitiveCount())
 	for triangle := range groups {
-		n := triangleNormal(m, triangle)
-		if length := n.Length(); length > 0 {
-			switch along := n.Dot(frame.axis) / length; {
-			case along > cylinderCapCos:
-				groups[triangle] = cylinderCapTop
-				continue
-			case along < -cylinderCapCos:
-				groups[triangle] = cylinderCapBottom
-				continue
-			}
-		}
 		tri := m.Tri(triangle)
+		switch along := tri.Normal(modeling.PositionAttribute).Dot(frame.axis); {
+		case along > cylinderCapCos:
+			groups[triangle] = cylinderCapTop
+			continue
+		case along < -cylinderCapCos:
+			groups[triangle] = cylinderCapBottom
+			continue
+		}
 		lo, hi := 1.0, 0.0
 		for _, p := range []vector3.Float64{
 			tri.P1Vec3Attr(modeling.PositionAttribute),

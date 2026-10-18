@@ -123,8 +123,8 @@ func (n ArcTanNode) Out(out *nodes.Lifted[float64]) {
 // ============================================================================
 
 type ArcTan2Node struct {
-	Y nodes.LiftedPort[float64] `description:"Rise of the direction, or an array of rises."`
-	X nodes.LiftedPort[float64] `description:"Run of the direction, or an array of runs."`
+	Y nodes.LiftedPort[float64] `description:"Rise of the direction."`
+	X nodes.LiftedPort[float64] `description:"Run of the direction."`
 }
 
 func (n ArcTan2Node) Description() string {

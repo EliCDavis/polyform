@@ -15,8 +15,7 @@ type Polygon struct {
 	Holes   [][]vector2.Float64 `json:"holes,omitempty"`
 }
 
-// Area is a filled region of the plane. Outlines run counter-clockwise,
-// holes clockwise, and no two polygons overlap.
+// Outlines run counter-clockwise, holes clockwise, and no two polygons overlap.
 type Area struct {
 	Polygons []Polygon `json:"polygons"`
 }
@@ -255,7 +254,7 @@ type TransformAreaNode struct {
 }
 
 func (TransformAreaNode) Description() string {
-	return "Scales, rotates about the origin, then moves an area. Lists give one each."
+	return "Scales, rotates about the origin, then moves an area."
 }
 
 func (TransformAreaNode) Keywords() []string {

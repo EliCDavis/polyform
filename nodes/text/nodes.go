@@ -17,7 +17,7 @@ func init() {
 }
 
 type ConcatNode struct {
-	Strings   []nodes.LiftedPort[string] `description:"The strings to join, in order. Lists are joined element by element."`
+	Strings   []nodes.LiftedPort[string] `description:"The strings to join, in order."`
 	Separator nodes.Output[string]       `description:"Placed between each pair of strings. Defaults to nothing."`
 }
 

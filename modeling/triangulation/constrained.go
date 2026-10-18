@@ -67,9 +67,7 @@ func (p pointsByX) between(minX, maxX float64) []int {
 	return p.order[from:to]
 }
 
-// A segment running through an existing vertex has nothing properly
-// crossing it, so no sequence of flips can produce it whole. Never below the
-// weld tolerance: a crossing welded onto a nearby vertex must split here.
+// No flips produce a segment through a vertex; never below the weld tolerance, or welded crossings don't split.
 func splitAtVertices(byX pointsByX, a, b int, weldTolerance float64) []int {
 	pts := byX.pts
 	pa, pb := pts[a], pts[b]
@@ -110,9 +108,7 @@ func splitAtVertices(byX pointsByX, a, b int, weldTolerance float64) []int {
 	return append(out, b)
 }
 
-// Distance under which two points count as the same, relative to the
-// extent of everything being triangulated. Must stay well above csg's weld
-// tolerance, or a solid built from the result reads as open there.
+// Must stay well above csg's weld tolerance, or a solid built from the result reads as open.
 func mergeTolerance(sets ...[]vector2.Float64) float64 {
 	min := vector2.New(math.Inf(1), math.Inf(1))
 	max := vector2.New(math.Inf(-1), math.Inf(-1))
@@ -193,8 +189,7 @@ func ConstrainedDelaunayEdges(points []vector2.Float64, edges [][2]int) (modelin
 	return tess.mesh(nil), nil
 }
 
-// groupOf[i] is the group segments[i] counts toward; nil puts every segment
-// in group 0.
+// groupOf[i] is segments[i]'s winding group; nil puts every segment in group 0.
 func triangulate(weld *geometry.PointWelder2D, segments [][2]int, groupOf []int, groups int) (*tessellation, error) {
 	splitCrossingConstraints(weld, segments)
 	pts := weld.Points()

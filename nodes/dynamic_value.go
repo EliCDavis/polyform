@@ -5,9 +5,7 @@ import (
 	"time"
 )
 
-// DynamicAnyValue reads a dynamic input without knowing its type, which is
-// what a node generic over every type has to do. Like GetOutputValue, the
-// read is timed against recorder so upstream work isn't billed to the node.
+// Timed against recorder, like GetOutputValue, so upstream work isn't billed to the node.
 func DynamicAnyValue(recorder ExecutionRecorder, port OutputPort) (any, bool) {
 	defer timeRead(recorder, port, time.Now())
 	return dynamicAnyValue(port)

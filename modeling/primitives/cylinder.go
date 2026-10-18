@@ -176,7 +176,7 @@ type CylinderNode struct {
 }
 
 func (hnd CylinderNode) Description() string {
-	return "A cylinder along the Y axis. Turning Top or Bottom off leaves an open shell whose wall has no thickness. A list of sizes gives one cylinder each."
+	return "A cylinder along the Y axis. Turning Top or Bottom off leaves an open shell whose wall has no thickness."
 }
 
 func (hnd CylinderNode) Out(out *nodes.Lifted[modeling.Mesh]) {

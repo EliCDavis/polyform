@@ -14,8 +14,7 @@ type Corners struct {
 	Closed   bool
 }
 
-// Each side gives at most half its length to a corner, or all of it next
-// to an open end, so neighbouring cuts never cross.
+// A side gives at most half its length to each corner, so neighbouring cuts never cross.
 func (c Corners) Apply(shape []vector2.Float64) []vector2.Float64 {
 	points := withoutRepeats(shape, c.Closed)
 	n := len(points)
@@ -88,7 +87,7 @@ type BevelNode struct {
 }
 
 func (BevelNode) Description() string {
-	return "Cuts every corner of a 2D path or outline, straight (a chamfer) or round (a fillet). A list gives one result each."
+	return "Cuts every corner of a 2D path or outline, straight (a chamfer) or round (a fillet)."
 }
 
 func (n BevelNode) Out(out *nodes.Lifted[[]vector2.Float64]) {

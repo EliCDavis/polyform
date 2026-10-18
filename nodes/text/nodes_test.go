@@ -5,7 +5,7 @@ import (
 
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/nodes/nodetest"
-	"github.com/EliCDavis/polyform/text"
+	"github.com/EliCDavis/polyform/nodes/text"
 )
 
 func TestConcatNode(t *testing.T) {

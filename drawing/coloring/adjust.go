@@ -156,7 +156,7 @@ type FromHSVNode struct {
 }
 
 func (n FromHSVNode) Description() string {
-	return "Builds a color from hue, saturation and value. A list of hues gives a palette."
+	return "Builds a color from hue, saturation and value."
 }
 
 func (n FromHSVNode) Out(out *nodes.Lifted[Color]) {

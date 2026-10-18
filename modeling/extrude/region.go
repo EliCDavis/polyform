@@ -11,8 +11,7 @@ import (
 	"github.com/EliCDavis/vector/vector3"
 )
 
-// Region lays the region facing +Z at z = depth and, given depth, closes
-// it into a solid down to z = 0.
+// The face sits at z = depth facing +Z, closed into a solid down to z = 0.
 func Region(region triangulation.Region, depth float64) modeling.Mesh {
 	if len(region.Triangles) == 0 {
 		return modeling.EmptyMesh(modeling.TriangleTopology)
@@ -75,8 +74,6 @@ func Region(region triangulation.Region, depth float64) modeling.Mesh {
 		})
 }
 
-// Area lays the area facing +Z at z = depth and, given depth, closes it into
-// a solid down to z = 0.
 func Area(area sketch.Area, depth float64) (modeling.Mesh, error) {
 	empty := modeling.EmptyMesh(modeling.TriangleTopology)
 	if depth < 0 {
@@ -98,7 +95,7 @@ type AreaNode struct {
 }
 
 func (AreaNode) Description() string {
-	return "A flat solid: an area lying in the XY plane facing +Z, given a thickness. A list of areas gives one solid each."
+	return "A flat solid: an area lying in the XY plane facing +Z, given a thickness."
 }
 
 func (AreaNode) Keywords() []string {

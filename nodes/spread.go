@@ -5,8 +5,7 @@ import (
 	"time"
 )
 
-// A node whose dynamic outputs each carry a whole array while typed as one
-// element, so a list input reads every element as if it had its own wire.
+// Its outputs carry a whole array typed as one element, so a list input reads each element as its own wire.
 type SpreadingNode interface {
 	SpreadsOutputs()
 }
@@ -24,8 +23,7 @@ func IsSpread(port OutputPort) bool {
 	return ok && spread.Spreads()
 }
 
-// RefuseSpread is for any input that reads one value, where a spread would
-// silently collapse to a single element.
+// RefuseSpread is for inputs that read one value, where a spread would collapse to one element.
 func RefuseSpread(port OutputPort, input string) error {
 	if IsSpread(port) {
 		return fmt.Errorf("input %q takes one value, not a spread", input)
@@ -48,8 +46,7 @@ type spreadAnyPort interface {
 	SpreadAny() any
 }
 
-// DynamicAnyValues is every value one wire carries: each element of a
-// spread, or its one value.
+// DynamicAnyValues is every value one wire carries: each element of a spread, or its one value.
 func DynamicAnyValues(recorder ExecutionRecorder, port OutputPort) []any {
 	defer timeRead(recorder, port, time.Now())
 	return dynamicAnyValues(port)

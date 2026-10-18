@@ -8,7 +8,7 @@ import (
 )
 
 type AddNode[T vector.Number] struct {
-	Values []nodes.LiftedPort[T] `description:"The values to sum. Arrays are summed element by element."`
+	Values []nodes.LiftedPort[T] `description:"The values to sum."`
 }
 
 func (an AddNode[T]) Description() string {

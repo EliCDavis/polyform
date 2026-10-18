@@ -69,8 +69,7 @@ import (
 
 	_ "github.com/EliCDavis/polyform/nodes/experimental"
 	_ "github.com/EliCDavis/polyform/nodes/opearations"
-
-	_ "github.com/EliCDavis/polyform/text"
+	_ "github.com/EliCDavis/polyform/nodes/text"
 )
 
 func main() {

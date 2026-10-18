@@ -41,12 +41,10 @@ func SmoothNormals(m modeling.Mesh) modeling.Mesh {
 		p3 := tris.At(triIndex + 2)
 		v1, v2, v3 := vertices.At(p1), vertices.At(p2), vertices.At(p3)
 
-		cross := v2.Sub(v1).Cross(v3.Sub(v1))
-		length := cross.Length()
-		if length == 0 || math.IsNaN(length) {
+		normal := m.Tri(triIndex / 3).Normal(modeling.PositionAttribute)
+		if normal == vector3.Zero[float64]() {
 			continue
 		}
-		normal := cross.Scale(1 / length)
 
 		a1 := cornerAngle(v2.Sub(v1), v3.Sub(v1))
 		a2 := cornerAngle(v3.Sub(v2), v1.Sub(v2))
@@ -86,11 +84,6 @@ func (f cornerFans) union(a, b int) {
 	f[f.find(a)] = f.find(b)
 }
 
-// SmoothNormalsByAngle smooths across edges where faces meet at less than
-// smoothingAngle degrees and keeps the rest hard. Vertices that share a
-// position are smoothed together whether or not they share an index.
-// Vertices are never merged; one is copied only where a hard edge runs
-// through it.
 func SmoothNormalsByAngle(m modeling.Mesh, smoothingAngle float64) modeling.Mesh {
 	check(RequireTopology(m, modeling.TriangleTopology))
 	check(RequireV3Attribute(m, modeling.PositionAttribute))
@@ -109,13 +102,12 @@ func SmoothNormalsByAngle(m modeling.Mesh, smoothingAngle float64) modeling.Mesh
 	angles := make([]float64, corners)
 	for f := range faceNormals {
 		v1, v2, v3 := positions.At(tris.At(3*f)), positions.At(tris.At(3*f+1)), positions.At(tris.At(3*f+2))
-		cross := v2.Sub(v1).Cross(v3.Sub(v1))
-		length := cross.Length()
-		if length == 0 || math.IsNaN(length) {
+		normal := m.Tri(f).Normal(modeling.PositionAttribute)
+		if normal == vector3.Zero[float64]() {
 			continue
 		}
 		valid[f] = true
-		faceNormals[f] = cross.Scale(1 / length)
+		faceNormals[f] = normal
 		angles[3*f] = cornerAngle(v2.Sub(v1), v3.Sub(v1))
 		angles[3*f+1] = cornerAngle(v3.Sub(v2), v1.Sub(v2))
 		angles[3*f+2] = math.Pi - angles[3*f] - angles[3*f+1]
@@ -258,12 +250,10 @@ func SmoothNormalsImplicitWeld(m modeling.Mesh, distance float64) modeling.Mesh 
 		p3 := tris.At(triIndex + 2)
 		v1, v2, v3 := vertices.At(p1), vertices.At(p2), vertices.At(p3)
 
-		cross := v2.Sub(v1).Cross(v3.Sub(v1))
-		length := cross.Length()
-		if length == 0 || math.IsNaN(length) {
+		normal := m.Tri(triIndex / 3).Normal(modeling.PositionAttribute)
+		if normal == vector3.Zero[float64]() {
 			continue
 		}
-		normal := cross.Scale(1 / length)
 
 		a1 := cornerAngle(v2.Sub(v1), v3.Sub(v1))
 		a2 := cornerAngle(v3.Sub(v2), v1.Sub(v2))

@@ -40,8 +40,6 @@ func (sbpt SliceByPlaneTransformer) Transform(m modeling.Mesh) (results modeling
 	return below, nil
 }
 
-// SliceByPlaneWithAttribute returns the part of the mesh on the side the
-// plane's normal points to, then the part behind it.
 func SliceByPlaneWithAttribute(m modeling.Mesh, plane geometry.Plane, attribute string) (modeling.Mesh, modeling.Mesh) {
 	return sliceTrianglesByPlaneWithAttribute(m, plane, attribute)
 }

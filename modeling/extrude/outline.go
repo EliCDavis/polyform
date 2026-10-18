@@ -112,7 +112,7 @@ type OutlineNode struct {
 }
 
 func (node OutlineNode) Description() string {
-	return "Sweeps a 2D outline along a path, capping each end with a triangulation of the outline. A list of paths or outlines gives one sweep each."
+	return "Sweeps a 2D outline along a path, capping each end with a triangulation of the outline."
 }
 
 func (node OutlineNode) Out(out *nodes.Lifted[modeling.Mesh]) {

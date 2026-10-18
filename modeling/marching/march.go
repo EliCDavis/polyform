@@ -247,7 +247,6 @@ func marchCracked(field sample.Vec3ToFloat, initialBounds geometry.AABB, cubeSiz
 	log.Printf("Total Results: %d\n", len(res))
 }
 
-// Grid indices, Last included.
 type gridRange struct {
 	First, Last [3]int
 }
@@ -259,7 +258,6 @@ func floorHalf(v int) int {
 	return -((1 - v) / 2)
 }
 
-// Covers grid points up to half a voxel outside bounds.
 func marchRecurse(field sample.Vec3ToFloat, bounds geometry.AABB, cubeSize, surface float64, res map[vector3.Int32]float64) {
 	lo := bounds.Min().DivByConstant(cubeSize)
 	hi := bounds.Max().DivByConstant(cubeSize)
@@ -275,7 +273,7 @@ func marchRecurse(field sample.Vec3ToFloat, bounds geometry.AABB, cubeSize, surf
 	marchGrid(field, r, cubeSize, surface, res)
 }
 
-func marchGrid(field sample.Vec3ToFloat, r gridRange, cubeSize, surface float64, res map[vector3.Int32]float64) {
+func marchGrid(field sample.Vec3ToFloat, r gridRange, cubeSize, surface float64, results map[vector3.Int32]float64) {
 	var mid [3]int
 	for i := range 3 {
 		mid[i] = floorHalf(r.First[i] + r.Last[i])
@@ -283,7 +281,7 @@ func marchGrid(field sample.Vec3ToFloat, r gridRange, cubeSize, surface float64,
 	key := vector3.New(int32(mid[0]), int32(mid[1]), int32(mid[2]))
 	point := vector3.New(float64(mid[0]), float64(mid[1]), float64(mid[2])).Scale(cubeSize)
 
-	value, sampled := res[key]
+	value, sampled := results[key]
 	if !sampled {
 		value = field(point) - surface
 	}
@@ -295,7 +293,7 @@ func marchGrid(field sample.Vec3ToFloat, r gridRange, cubeSize, surface float64,
 		return
 	}
 
-	res[key] = value
+	results[key] = value
 	if r.First == r.Last {
 		return
 	}
@@ -321,7 +319,7 @@ func marchGrid(field sample.Vec3ToFloat, r gridRange, cubeSize, surface float64,
 				marchGrid(field, gridRange{
 					First: [3]int{halves[0][x].First[0], halves[1][y].First[1], halves[2][z].First[2]},
 					Last:  [3]int{halves[0][x].Last[0], halves[1][y].Last[1], halves[2][z].Last[2]},
-				}, cubeSize, surface, res)
+				}, cubeSize, surface, results)
 			}
 		}
 	}

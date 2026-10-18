@@ -29,8 +29,6 @@ func (c *compoundEdit) noteAdded(graph *Graph, e edge) {
 	c.added[addedInput{graph, e.consumer, e.input}] = true
 }
 
-// The connect-time hint for an edge this edit added, which was not checked
-// against types then.
 func (c *compoundEdit) hintFor(edited []*Graph, drop DroppedEdge) string {
 	for _, graph := range edited {
 		if graph.SubGraphScopeID() != drop.Scope {
@@ -44,8 +42,7 @@ func (c *compoundEdit) hintFor(edited []*Graph, drop DroppedEdge) string {
 	return ""
 }
 
-// Batch runs f as one compound edit. Edges that no longer fit when f is
-// done are dropped and returned as an *UnfitEdges.
+// Batch runs f as one compound edit; edges left unfit are dropped and returned as *UnfitEdges.
 func (a *Instance) Batch(f func() error) (err error) {
 	a.mu().Lock()
 	end := a.beginCompoundEdit()
@@ -113,8 +110,7 @@ func (root *Instance) closeCompoundEdit(edited []*Graph) error {
 	return &UnfitEdges{Edges: dropped}
 }
 
-// UnfitEdges refuses a compound edit. A caller that keeps the edit anyway
-// has had Edges removed.
+// UnfitEdges refuses a compound edit; a caller that keeps the edit has had Edges removed.
 type UnfitEdges struct {
 	Edges []DroppedEdge
 }

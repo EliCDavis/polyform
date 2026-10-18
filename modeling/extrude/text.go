@@ -208,7 +208,7 @@ type TextNode struct {
 }
 
 func (TextNode) Description() string {
-	return "Text as a mesh in a built-in font, lying in the XY plane facing +Z with the first baseline on y = 0. A list of texts gives one mesh each."
+	return "Text as a mesh in a built-in font, lying in the XY plane facing +Z with the first baseline on y = 0."
 }
 
 func (TextNode) Keywords() []string {

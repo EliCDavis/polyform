@@ -9,9 +9,7 @@ import (
 	"github.com/EliCDavis/polyform/refutil"
 )
 
-// Takes either a T or an array of them, so a node written once against a
-// single T works both ways. Only the count is decided at runtime, not the type.
-// Unwired, it reads as T's zero value; wrap it in LiftedOr for any other default.
+// Takes a T or an array of them; unwired it reads as T's zero value, so wrap it in LiftedOr for another default.
 type LiftedPort[T any] interface {
 	OutputPort
 }
@@ -100,8 +98,7 @@ func (l *Lifted[T]) BuildDynamicOutput(source DynamicSource) OutputPort {
 	return liftedScalar[T]{dynamicTyped[T]{source: source}}
 }
 
-// A lifted node can be the only producer of its type, so its port has to be
-// able to build the array form the way a StructOutput can.
+// A lifted node may be the only producer of its type, so its port must build the array form too.
 type liftedScalar[T any] struct {
 	dynamicTyped[T]
 }

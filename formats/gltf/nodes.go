@@ -107,7 +107,7 @@ type ModelNode struct {
 }
 
 func (gmnd ModelNode) Description() string {
-	return "A mesh placed in the scene with a material and a transform. Gpu Instances draws one copy of the mesh per transform, each relative to this model's own; children are not repeated. Lists of names, meshes or transforms give one model each, sharing the material and children."
+	return "A mesh placed in the scene with a material and a transform. Gpu Instances draws one copy of the mesh per transform, each relative to this model's own; children are not repeated."
 }
 
 func (gmnd ModelNode) Out(out *nodes.Lifted[*PolyformModel]) {

@@ -11,7 +11,7 @@ import (
 // ============================================================================
 
 type MinNode[T vector.Number] struct {
-	In []nodes.LiftedPort[T] `description:"The values to compare. Arrays are compared element by element."`
+	In []nodes.LiftedPort[T] `description:"The values to compare."`
 }
 
 func (n MinNode[T]) Description() string {
@@ -62,7 +62,7 @@ func (n MinArrayNode[T]) Float64(out *nodes.StructOutput[float64]) {
 // ============================================================================
 
 type MaxNode[T vector.Number] struct {
-	In []nodes.LiftedPort[T] `description:"The values to compare. Arrays are compared element by element."`
+	In []nodes.LiftedPort[T] `description:"The values to compare."`
 }
 
 func (n MaxNode[T]) Description() string {

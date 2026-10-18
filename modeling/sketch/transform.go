@@ -28,7 +28,7 @@ type TransformNode struct {
 }
 
 func (TransformNode) Description() string {
-	return "Scales, rotates about the origin, then moves a 2D outline or path. Lists give one each."
+	return "Scales, rotates about the origin, then moves a 2D outline or path."
 }
 
 func (n TransformNode) Out(out *nodes.Lifted[[]vector2.Float64]) {

@@ -57,8 +57,7 @@ func Weld(m modeling.Mesh, attribute string, tolerance float64) modeling.Mesh {
 	return rebuild(m, representative)
 }
 
-// WeldIdentical merges vertices closer together than tolerance only when
-// every other attribute they carry is equal, so no data is lost.
+// WeldIdentical merges only vertices whose other attributes are all equal.
 func WeldIdentical(m modeling.Mesh, attribute string, tolerance float64) modeling.Mesh {
 	positions := m.Float3Attribute(attribute)
 	weld := geometry.NewPointWelder3D(tolerance)

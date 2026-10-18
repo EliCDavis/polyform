@@ -47,7 +47,7 @@ type RoundedRectangleNode struct {
 }
 
 func (RoundedRectangleNode) Description() string {
-	return "A closed 2D rounded-rectangle outline. An array of sizes, radii or centers gives one outline each."
+	return "A closed 2D rounded-rectangle outline."
 }
 
 func (RoundedRectangleNode) Keywords() []string {

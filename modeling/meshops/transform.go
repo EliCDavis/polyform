@@ -12,7 +12,7 @@ type TransformNode struct {
 }
 
 func (tnd TransformNode) Description() string {
-	return "Applies a TRS to an entire mesh, rotating its normals along with its positions. Lists of meshes or TRSs give one mesh each."
+	return "Applies a TRS to an entire mesh, rotating its normals along with its positions."
 }
 
 func (tnd TransformNode) Out(out *nodes.Lifted[modeling.Mesh]) {

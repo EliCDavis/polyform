@@ -24,6 +24,25 @@ func TestSetFloat3Attribute_EmptyArr_Clears(t *testing.T) {
 	assert.False(t, newMesh.HasFloat3Attribute(modeling.PositionAttribute))
 }
 
+func TestScanPrimitivesParallel_VisitsEveryPrimitiveOnce(t *testing.T) {
+	indices := make([]int, 0, 30)
+	for i := 0; i < 30; i++ {
+		indices = append(indices, 0)
+	}
+	m := modeling.NewTriangleMesh(indices).
+		SetFloat3Attribute(modeling.PositionAttribute, []vector3.Float64{vector3.Zero[float64]()})
+
+	for _, pool := range []int{1, 2, 3, 4, 7} {
+		visits := make([]int, m.PrimitiveCount())
+		m.ScanPrimitivesParallelWithPoolSize(pool, func(i int, p modeling.Primitive) {
+			visits[i]++
+		})
+		for i, v := range visits {
+			assert.Equal(t, 1, v, "pool %d primitive %d", pool, i)
+		}
+	}
+}
+
 func TestCopyFloat4FromMesh(t *testing.T) {
 	// ARRANGE ================================================================
 
