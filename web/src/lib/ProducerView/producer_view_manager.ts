@@ -15,10 +15,18 @@ import {
   Vector3,
   WebGLRenderer,
   AnimationMixer,
+  BoxHelper,
+  DoubleSide,
+  InstancedMesh,
+  LessEqualDepth,
+  MeshBasicMaterial,
+  Object3D,
+  SkinnedMesh,
 } from "three";
 import { messageActions } from "@/stores/messageStore";
 import { modelStatsActions } from "@/stores/modelStatsStore";
 import { countModelStats } from "./model_stats";
+import { buildHierarchy, walkHierarchy } from "./model_hierarchy";
 import { ShadingMode, debugMaterialFor } from "./debug_materials";
 import { getApiErrorMessage } from "@/api/client";
 import { GraphInstance, Manifest, NodeDefinition } from "../schema";
@@ -58,6 +66,8 @@ function floorShift(aabb: Box3): number {
 const GRID_SLACK = 1.15;
 const GRID_REACH = 5;
 const GRID_MAX_DIVISIONS = 500;
+
+const HIGHLIGHT_COLOR = 0xff9f1c;
 
 const textureLoader = new TextureLoader();
 const textureEquirec = textureLoader.load(
@@ -117,6 +127,21 @@ export class ProducerViewManager {
 
   mixer: AnimationMixer | null;
 
+  private readonly hiddenParts = new Set<string>();
+
+  private highlightedPart: string | null = null;
+
+  private readonly highlightGroup = new Group();
+
+  private readonly highlightMaterial = new MeshBasicMaterial({
+    color: HIGHLIGHT_COLOR,
+    transparent: true,
+    opacity: 0.4,
+    depthWrite: false,
+    depthFunc: LessEqualDepth,
+    side: DoubleSide,
+  });
+
   constructor(
     app: ThreeApp,
     requestManager: RequestManager,
@@ -161,6 +186,7 @@ export class ProducerViewManager {
     this.grid = app.Grid;
     this.gridHelper = null;
     this.scene = app.Scene;
+    this.scene.add(this.highlightGroup);
 
     this.producerScene = null;
     this.guassianSplatViewer = null;
@@ -234,10 +260,12 @@ export class ProducerViewManager {
       } else {
         // We're all done loading!!!
         this.hideRunningMessage();
+        this.applyHiddenParts();
         this.fitGridToModel();
         this.applyShading();
         this.applyWireframe();
         this.publishModelStats();
+        this.rebuildHighlight();
         for (let i = 0; i < this.completeRefreshSubscriber.length; i++) {
           this.completeRefreshSubscriber[i]();
         }
@@ -758,11 +786,124 @@ export class ProducerViewManager {
   }
 
   private publishModelStats(): void {
-    const stats = countModelStats(this.producerScene);
-    modelStatsActions.set(stats.vertices > 0 ? stats : null);
+    const stats = countModelStats(this.producerScene, false);
+    if (stats.vertices === 0) {
+      modelStatsActions.set(null, []);
+      return;
+    }
+    modelStatsActions.set(countModelStats(this.producerScene), buildHierarchy(this.producerScene));
+  }
+
+  private findPart(path: string): Object3D | null {
+    let found: Object3D | null = null;
+    walkHierarchy(this.producerScene, (p, object) => {
+      if (p === path) {
+        found = object;
+      }
+    });
+    return found;
+  }
+
+  private applyHiddenParts(): void {
+    walkHierarchy(this.producerScene, (path, object) => {
+      if (this.hiddenParts.has(path)) {
+        object.visible = false;
+      }
+    });
+  }
+
+  SetPartVisible(path: string, visible: boolean): void {
+    if (visible) {
+      this.hiddenParts.delete(path);
+    } else {
+      this.hiddenParts.add(path);
+    }
+    const part = this.findPart(path);
+    if (part) {
+      part.visible = visible;
+    }
+    this.publishModelStats();
+    this.rebuildHighlight();
+    requestRender();
+  }
+
+  HighlightPart(path: string | null): void {
+    if (path === this.highlightedPart) {
+      return;
+    }
+    this.highlightedPart = path;
+    this.rebuildHighlight();
+    requestRender();
+  }
+
+  private clearHighlight(): void {
+    for (const child of [...this.highlightGroup.children]) {
+      if (child instanceof BoxHelper) {
+        child.geometry.dispose();
+        (child.material as Material).dispose();
+      }
+      this.highlightGroup.remove(child);
+    }
+  }
+
+  private rebuildHighlight(): void {
+    this.clearHighlight();
+    const target = this.highlightedPart ? this.findPart(this.highlightedPart) : null;
+    if (!target) {
+      return;
+    }
+
+    const box = new BoxHelper(target, HIGHLIGHT_COLOR);
+    box.frustumCulled = false;
+    box.onBeforeRender = () => box.update();
+    this.highlightGroup.add(box);
+
+    for (let o: Object3D | null = target; o; o = o.parent) {
+      if (!o.visible) {
+        return;
+      }
+    }
+
+    this.highlightMaterial.wireframe = this.wireframe;
+    target.traverseVisible((object) => {
+      if (object instanceof Mesh) {
+        this.highlightGroup.add(this.highlightOverlay(object));
+      }
+    });
+  }
+
+  // Must stay outside producerScene: shading, wireframe and stat passes traverse it.
+  private highlightOverlay(source: Mesh): Mesh {
+    let overlay: Mesh;
+    if (source instanceof SkinnedMesh) {
+      const skinned = new SkinnedMesh(source.geometry, this.highlightMaterial);
+      skinned.bind(source.skeleton, source.bindMatrix);
+      skinned.bindMode = source.bindMode;
+      overlay = skinned;
+    } else if (source instanceof InstancedMesh) {
+      const instanced = new InstancedMesh(source.geometry, this.highlightMaterial, source.count);
+      instanced.instanceMatrix = source.instanceMatrix;
+      overlay = instanced;
+    } else {
+      overlay = new Mesh(source.geometry, this.highlightMaterial);
+    }
+    overlay.morphTargetInfluences = source.morphTargetInfluences;
+    overlay.morphTargetDictionary = source.morphTargetDictionary;
+    overlay.matrixAutoUpdate = false;
+    overlay.matrixWorldAutoUpdate = false;
+    overlay.frustumCulled = false;
+    overlay.renderOrder = 1;
+    overlay.onBeforeRender = () => {
+      overlay.matrixWorld.copy(source.matrixWorld);
+      if (overlay instanceof SkinnedMesh && source instanceof SkinnedMesh) {
+        overlay.bindMatrixInverse.copy(source.bindMatrixInverse);
+      }
+    };
+    return overlay;
   }
 
   private cleanProducerScene() {
+    this.clearHighlight();
     if (this.producerScene != null) {
       this.viewerContainer.remove(this.producerScene);
     }

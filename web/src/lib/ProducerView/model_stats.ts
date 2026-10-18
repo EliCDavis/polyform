@@ -6,13 +6,14 @@ export interface ModelStats {
     draws: number;
 }
 
-export function countModelStats(root: Object3D | null): ModelStats {
+export function countModelStats(root: Object3D | null, visibleOnly = true): ModelStats {
     const stats: ModelStats = { vertices: 0, triangles: 0, draws: 0 };
     if (!root) {
         return stats;
     }
 
-    root.traverse((object) => {
+    const traverse = visibleOnly ? root.traverseVisible.bind(root) : root.traverse.bind(root);
+    traverse((object: Object3D) => {
         const geometry = (object as Mesh).geometry;
         if (!geometry || !geometry.getAttribute) {
             return;

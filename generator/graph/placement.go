@@ -63,6 +63,11 @@ func (r *SubgraphInstanceNode) definition() *Graph {
 	return r.runtime().instance
 }
 
+// BuiltGraph is the copy if something has evaluated through the placement since the last edit.
+func (r *SubgraphInstanceNode) BuiltGraph() *Graph {
+	return r.current("")
+}
+
 func (r *SubgraphInstanceNode) LiveGraph() *Graph {
 	live, _ := r.Live()
 	return live

@@ -256,7 +256,7 @@ func newPortNamer(cuts []edge) portNamer {
 func (namer portNamer) producerName(e edge) string {
 	name := givenNodeName(e.producer)
 	if name != "" && namer.outputsCrossing[e.producerID] > 1 {
-		return name + " " + e.output
+		return name + " " + e.outputLabel()
 	}
 	return name
 }
@@ -265,20 +265,20 @@ func (namer portNamer) inbound(e edge) string {
 	if name := namer.producerName(e); name != "" {
 		return name
 	}
-	if !genericOutputNames[e.output] {
-		return e.output
+	if !genericOutputNames[e.outputLabel()] {
+		return e.outputLabel()
 	}
 	if _, isArray := e.in.(nodes.ArrayValueInputPort); isArray {
-		return e.output
+		return e.outputLabel()
 	}
-	return e.input
+	return label(e.in)
 }
 
 func (namer portNamer) outbound(e edge) string {
 	if name := namer.producerName(e); name != "" {
 		return name
 	}
-	return e.output
+	return e.outputLabel()
 }
 
 type portNames map[string]bool
