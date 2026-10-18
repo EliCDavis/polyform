@@ -69,7 +69,7 @@ func (a *Graph) savedNodes(encoder *jbtf.Encoder) map[string]persistence.Node {
 func (a *Graph) savedNode(node nodes.Node, encoder *jbtf.Encoder) persistence.Node {
 	saved := persistence.Node{
 		Type:          nodeTypeName(node),
-		AssignedInput: a.assignedInputs(node),
+		AssignedInput: a.assignedInputs(node, nodes.Port.Name),
 	}
 
 	// The key the node was created under is what load can create it from again.

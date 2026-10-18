@@ -2,34 +2,34 @@ package graph
 
 import (
 	gsync "sync"
-	"sync/atomic"
 
+	"github.com/EliCDavis/polyform/generator/subgraph"
 	"github.com/EliCDavis/polyform/generator/sync"
 	"github.com/EliCDavis/polyform/nodes"
 )
 
-// A Graph is nodes and the edges between them: the root graph, a subgraph
-// definition, or the copy of a definition one of its placements holds.
 type Graph struct {
 	project *Instance
+
+	// The definition this is; empty for the root and for copies.
+	scope string
 
 	// Written only through register and forget, which keep them in step.
 	nodeIDs         map[nodes.Node]string
 	nodesByID       map[string]nodes.Node
 	nodeTypeKeys    map[nodes.Node]string
+	boundaryNodes   map[string]subgraph.Boundary
 	nodeIDHighWater int // so a deleted id is never handed out again
 
-	// Every edge: what each input of each node reads, an array input's
-	// sources in element order.
+	// Every edge, an array input's sources in element order; a placement's
+	// inputs keyed by boundary node id. Node fields follow this, via settle only.
 	reads map[nodes.Node]map[string][]source
 
 	metadata *sync.NestedSyncMap
-
-	boundaryCache atomic.Pointer[boundaryIndex]
 }
 
-func newGraph(project *Instance) *Graph {
-	graph := &Graph{project: project}
+func newGraph(project *Instance, scope string) *Graph {
+	graph := &Graph{project: project, scope: scope}
 	graph.clear()
 	return graph
 }
@@ -38,13 +38,12 @@ func (a *Graph) clear() {
 	a.nodeIDs = make(map[nodes.Node]string)
 	a.nodesByID = make(map[string]nodes.Node)
 	a.nodeTypeKeys = make(map[nodes.Node]string)
+	a.boundaryNodes = make(map[string]subgraph.Boundary)
 	a.reads = make(map[nodes.Node]map[string][]source)
 	a.nodeIDHighWater = 0
 	a.metadata = sync.NewNestedSyncMap()
-	a.clearBoundaryCache()
 }
 
-// Root is the project this graph belongs to.
 func (a *Graph) Root() *Instance {
 	return a.project
 }
@@ -59,19 +58,8 @@ func (a *Graph) mu() *gsync.RWMutex {
 	return &a.project.lock
 }
 
-func (a *Graph) incModelVersion() {
-	a.project.modelVersion++
-}
-
-// SubGraphScopeID is the id of the definition this graph is, or empty for
-// the root graph and for a placement's copy.
 func (a *Graph) SubGraphScopeID() string {
-	for id, definition := range a.project.subGraphs {
-		if definition.instance == a {
-			return id
-		}
-	}
-	return ""
+	return a.scope
 }
 
 func (a *Graph) SetMetadata(key string, value any) {

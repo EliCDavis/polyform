@@ -41,16 +41,14 @@ func TestTheEdgeDroppedFromAListInputIsTheOneThatDoesNotFit(t *testing.T) {
 	fill, fillID, err := instance.CreateNode(fillType)
 	require.NoError(t, err)
 
-	err = instance.Batch(func() error {
+	dropped, err := instance.Batch(func() error {
 		require.NoError(t, instance.ConnectNodes(one, "Out", fillID, "Outlines"))
 		require.NoError(t, instance.ConnectNodes(many, "Out", fillID, "Outlines"))
 		return nil
 	})
-
-	var unfit *graph.UnfitEdges
-	require.ErrorAs(t, err, &unfit)
-	require.Len(t, unfit.Edges, 1)
-	assert.Equal(t, many, unfit.Edges[0].From)
+	require.NoError(t, err)
+	require.Len(t, dropped, 1)
+	assert.Equal(t, many, dropped[0].From)
 	kept := fill.Inputs()["Outlines"].(nodes.ArrayValueInputPort).Value()
 	require.Len(t, kept, 1)
 	assert.Equal(t, instance.Node(one), kept[0].Node())

@@ -13,11 +13,7 @@ import (
 func manifestFileName(i *Instance, nodeId string, node nodes.Node, out nodes.Output[manifest.Manifest]) string {
 	portName := out.Name()
 
-	// TODO - There's gonna be an issue if anyone ever names a manifest
-	// output the same name as a nodeID-port combo
-	//
-	// IE: Naming a manifest "Node-8-Out", could conflict with Node-8's
-	// out port
+	// A manifest named like "Node-8-Out" collides with that node's port.
 	if name, named := i.IsPortNamed(node, portName); named {
 		return name
 	}

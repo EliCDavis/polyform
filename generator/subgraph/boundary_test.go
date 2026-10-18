@@ -62,7 +62,7 @@ func TestInputNodeDomainTypeImplementsTypedOutput(t *testing.T) {
 	require.True(t, ok, "InputNode.Value must implement nodes.Output[vector3.Float64] for port type %q", portType)
 
 	want := vector3.New(1., 2., 3.)
-	n.SetExternalSource(nodes.ConstOutput[vector3.Float64]{Val: want})
+	n.ReadFrom(fed{nodes.ConstOutput[vector3.Float64]{Val: want}})
 
 	assert.Equal(t, want, typedOut.Value())
 }
@@ -71,7 +71,7 @@ func TestInputNodeExternalSourceVersion(t *testing.T) {
 	n := subgraph.NewInputNode("X", "float64")
 	ext := &stubOutputPort{version: 42, name: "Value"}
 
-	n.SetExternalSource(ext)
+	n.ReadFrom(fed{ext})
 
 	out := n.Outputs()[subgraph.ValuePortName]
 	assert.Equal(t, 42, out.Version())
@@ -93,10 +93,10 @@ func TestInputNodeDefaultFallback(t *testing.T) {
 	assert.Equal(t, 3.5, out.Value())
 
 	ext := nodes.ConstOutput[float64]{Val: 9}
-	n.SetExternalSource(ext)
+	n.ReadFrom(fed{ext})
 	assert.Equal(t, 9.0, out.Value())
 
-	n.SetExternalSource(nil)
+	n.ReadFrom(fed{nil})
 	assert.Equal(t, 3.5, out.Value())
 
 	defIn.Clear()
@@ -117,10 +117,10 @@ func TestInputNodeDefaultVersion(t *testing.T) {
 	assert.Equal(t, 11, out.Version())
 
 	ext := &stubOutputPort{version: 42, name: "Value"}
-	n.SetExternalSource(ext)
+	n.ReadFrom(fed{ext})
 	assert.Equal(t, 42, out.Version())
 
-	n.SetExternalSource(nil)
+	n.ReadFrom(fed{nil})
 	assert.Equal(t, 11, out.Version())
 }
 
@@ -218,3 +218,7 @@ func TestBoundaryDataJSONShape(t *testing.T) {
 	assert.Equal(t, "Foo", n.BoundaryPortName())
 	assert.Equal(t, "int", n.BoundaryPortType())
 }
+
+type fed struct{ port nodes.OutputPort }
+
+func (f fed) Value() nodes.OutputPort { return f.port }

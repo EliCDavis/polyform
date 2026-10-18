@@ -14,6 +14,10 @@ type subGraphRuntime struct {
 	description string
 	group       string
 	instance    *Graph
+
+	// Bumped by every edit to the definition and to anything it places;
+	// a copy built from an older version is stale.
+	version uint64
 }
 
 type BoundaryPortKind string
@@ -24,6 +28,8 @@ const (
 )
 
 type SubgraphBoundaryPort struct {
+	// The boundary node's id, which is the port's key on a placement.
+	ID   string
 	Name string
 	Type string
 	Kind BoundaryPortKind
@@ -37,9 +43,10 @@ func GetBoundaryKind(boundary subgraph.Boundary) BoundaryPortKind {
 }
 
 func (a *Instance) CreateSubGraph(id, name, description string) error {
-	a.mu().Lock()
-	defer a.mu().Unlock()
-	return a.createSubGraph(id, name, description)
+	_, err := a.write(refuseConflicts, func() error {
+		return a.createSubGraph(id, name, description)
+	})
+	return err
 }
 
 func (a *Instance) createSubGraph(id, name, description string) error {
@@ -50,17 +57,17 @@ func (a *Instance) createSubGraph(id, name, description string) error {
 	a.subGraphs[id] = &subGraphRuntime{
 		name:        name,
 		description: description,
-		instance:    newGraph(a),
+		instance:    newGraph(a, id),
 	}
 	a.RegisterSubGraphNodeType(id)
-	a.incModelVersion()
 	return nil
 }
 
 func (a *Instance) DeleteSubGraph(id string) error {
-	a.mu().Lock()
-	defer a.mu().Unlock()
-	return a.deleteSubGraph(id)
+	_, err := a.write(refuseConflicts, func() error {
+		return a.deleteSubGraph(id)
+	})
+	return err
 }
 
 func (a *Instance) deleteSubGraph(id string) error {
@@ -80,61 +87,63 @@ func (a *Instance) deleteSubGraph(id string) error {
 
 	a.typeFactory.Unregister(subgraph.RuntimeTypePath(id))
 	delete(a.subGraphs, id)
-	delete(a.copySources, id)
-	a.incModelVersion()
 	return nil
 }
 
 func (a *Instance) RenameSubGraph(oldID, newID string) error {
-	a.mu().Lock()
-	defer a.mu().Unlock()
+	_, err := a.write(refuseConflicts, func() error {
+		newID = strings.TrimSpace(newID)
+		runtime, exists := a.subGraphs[oldID]
+		if !exists {
+			return fmt.Errorf("sub-graph %q does not exist", oldID)
+		}
+		if newID == "" {
+			return fmt.Errorf("new sub-graph id is required")
+		}
+		if newID == oldID {
+			return nil
+		}
+		if _, taken := a.subGraphs[newID]; taken {
+			return fmt.Errorf("sub-graph %q already exists", newID)
+		}
 
-	newID = strings.TrimSpace(newID)
-	runtime, exists := a.subGraphs[oldID]
-	if !exists {
-		return fmt.Errorf("sub-graph %q does not exist", oldID)
-	}
-	if newID == "" {
-		return fmt.Errorf("new sub-graph id is required")
-	}
-	if newID == oldID {
+		delete(a.subGraphs, oldID)
+		a.subGraphs[newID] = runtime
+		runtime.instance.scope = newID
+		a.typeFactory.Unregister(subgraph.RuntimeTypePath(oldID))
+		a.RegisterSubGraphNodeType(newID)
+
+		typePath := subgraph.RuntimeTypePath(newID)
+		for _, scope := range a.scopes() {
+			for node := range scope.graph.nodeIDs {
+				if placement, ok := node.(*SubgraphInstanceNode); ok && placement.subGraphID == oldID {
+					placement.subGraphID = newID
+					scope.graph.nodeTypeKeys[placement] = typePath
+				}
+			}
+		}
+		// Copies hold placements by the old id.
+		for _, definition := range a.subGraphs {
+			definition.version++
+		}
 		return nil
-	}
-	if _, taken := a.subGraphs[newID]; taken {
-		return fmt.Errorf("sub-graph %q already exists", newID)
-	}
-
-	delete(a.subGraphs, oldID)
-	a.subGraphs[newID] = runtime
-	a.typeFactory.Unregister(subgraph.RuntimeTypePath(oldID))
-	a.RegisterSubGraphNodeType(newID)
-
-	typePath := subgraph.RuntimeTypePath(newID)
-	forEachSubGraphInstance(a, oldID, func(holder *Graph, placement *SubgraphInstanceNode) {
-		placement.subGraphID = newID
-		holder.nodeTypeKeys[placement] = typePath
 	})
-	// Copy sources name placements by the old type path.
-	a.copySources = make(map[string]savedGraph)
-	a.incModelVersion()
-	return nil
+	return err
 }
 
 func (a *Instance) SetSubGraphInfo(id, name, description string) error {
-	a.mu().Lock()
-	defer a.mu().Unlock()
-
-	runtime, exists := a.subGraphs[id]
-	if !exists {
-		return fmt.Errorf("sub-graph %q does not exist", id)
-	}
-	runtime.name = name
-	runtime.description = description
-	a.incModelVersion()
-	return nil
+	_, err := a.write(refuseConflicts, func() error {
+		runtime, exists := a.subGraphs[id]
+		if !exists {
+			return fmt.Errorf("sub-graph %q does not exist", id)
+		}
+		runtime.name = name
+		runtime.description = description
+		return nil
+	})
+	return err
 }
 
-// SubGraphInstance is the definition every placement of the subgraph copies.
 func (a *Instance) SubGraphInstance(id string) (*Graph, error) {
 	runtime, exists := a.subGraphs[id]
 	if !exists {
@@ -143,8 +152,6 @@ func (a *Instance) SubGraphInstance(id string) (*Graph, error) {
 	return runtime.instance, nil
 }
 
-// wouldContainItself reports whether placing placed inside the definition
-// scope lets scope reach itself through placements.
 func (a *Instance) wouldContainItself(scope, placed string) bool {
 	seen := map[string]bool{}
 	var reaches func(id string) bool
@@ -185,15 +192,32 @@ func (a *Instance) CollectBoundaryPorts(subGraphID string) ([]SubgraphBoundaryPo
 		return nil, err
 	}
 
-	index := child.boundaries()
-	ports := make([]SubgraphBoundaryPort, 0, len(index.inputs)+len(index.outputs))
-	for name, boundary := range index.inputs {
-		ports = append(ports, SubgraphBoundaryPort{Name: name, Type: boundary.BoundaryPortType(), Kind: BoundaryPortKindInput})
-	}
-	for name, boundary := range index.outputs {
-		ports = append(ports, SubgraphBoundaryPort{Name: name, Type: boundary.BoundaryPortType(), Kind: BoundaryPortKindOutput})
+	ports := make([]SubgraphBoundaryPort, 0, len(child.boundaryNodes))
+	for id, boundary := range child.boundaryNodes {
+		if isPort(boundary) {
+			ports = append(ports, SubgraphBoundaryPort{ID: id, Name: boundary.BoundaryPortName(), Type: boundary.BoundaryPortType(), Kind: GetBoundaryKind(boundary)})
+		}
 	}
 	return ports, nil
+}
+
+func (a *Instance) persistedSubGraphDefinition(id string, encoder *jbtf.Encoder) (persistence.SubGraph, error) {
+	runtime, exists := a.subGraphs[id]
+	if !exists {
+		return persistence.SubGraph{}, fmt.Errorf("sub-graph %q does not exist", id)
+	}
+
+	child := runtime.instance
+	notes, _ := child.metadata.Get("notes").(map[string]any)
+
+	return persistence.SubGraph{
+		Name:        runtime.name,
+		Description: runtime.description,
+		Group:       runtime.group,
+		Nodes:       child.savedNodes(encoder),
+		Notes:       notes,
+		Metadata:    child.metadata.Data(),
+	}, nil
 }
 
 func (a *Instance) encodeSubGraphDefinitions(encoder *jbtf.Encoder) (map[string]persistence.SubGraph, error) {

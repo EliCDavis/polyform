@@ -22,7 +22,12 @@ type Boundary interface {
 
 type InputBoundary interface {
 	Boundary
-	SetExternalSource(port nodes.OutputPort)
+	ReadFrom(external External)
+}
+
+// What a placement feeds the boundary, read when asked; nil Value means unfed.
+type External interface {
+	Value() nodes.OutputPort
 }
 
 func IsBoundaryNode(node nodes.Node) (Boundary, bool) {
@@ -44,9 +49,9 @@ type InputNode struct {
 	PortName string
 	PortType string
 
-	externalSource nodes.OutputPort
-	defaultPort    *inputNodeDefaultPort
-	version        int
+	external    External
+	defaultPort *inputNodeDefaultPort
+	version     int
 }
 
 func NewInputNode(portName, portType string) *InputNode {
@@ -142,8 +147,10 @@ func (n *InputNode) EffectiveType() string {
 }
 
 func (n *InputNode) source() nodes.OutputPort {
-	if n.externalSource != nil {
-		return n.externalSource
+	if n.external != nil {
+		if fed := n.external.Value(); fed != nil {
+			return fed
+		}
 	}
 	return n.defaultPort.Value()
 }
@@ -152,8 +159,8 @@ func (n *InputNode) Name() string {
 	return n.BoundaryPortName()
 }
 
-func (n *InputNode) SetExternalSource(port nodes.OutputPort) {
-	n.externalSource = port
+func (n *InputNode) ReadFrom(external External) {
+	n.external = external
 	n.version++
 	nodes.Touch()
 }
@@ -187,9 +194,6 @@ func (n *InputNode) FromJSON(decoder jbtf.Decoder, body []byte) error {
 	return nil
 }
 
-// buildInputOutputPort exposes the boundary's value as a strongly typed
-// output when its port type has been discovered, falling back to an untyped
-// port otherwise.
 func buildInputOutputPort(n *InputNode) nodes.OutputPort {
 	source := &inputNodeOutputPort{node: n}
 	if builder, ok := nodes.LookupPortTypeProxy(n.EffectiveType()); ok {
@@ -217,25 +221,17 @@ func (p *inputNodeOutputPort) Type() string {
 }
 
 func (p *inputNodeOutputPort) Version() int {
-	if p.node.externalSource != nil {
-		return p.node.externalSource.Version()
-	}
-	if def := p.node.defaultPort.Value(); def != nil {
-		return def.Version()
+	if source := p.node.source(); source != nil {
+		return source.Version()
 	}
 	return p.node.version
 }
 
 func (p *inputNodeOutputPort) CurrentSource() nodes.OutputPort {
-	if p.node.externalSource != nil {
-		return p.node.externalSource
-	}
-	return p.node.defaultPort.Value()
+	return p.node.source()
 }
 
-// inputNodeDefaultPort is the optional default input on an Input boundary.
-// When the parent runtime instance leaves the matching port unset, Value
-// falls back to whatever is connected here.
+// Read when the placement leaves the input unfed.
 type inputNodeDefaultPort struct {
 	node      *InputNode
 	connected nodes.OutputPort

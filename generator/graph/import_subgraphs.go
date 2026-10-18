@@ -6,6 +6,7 @@ import (
 	"maps"
 	"slices"
 
+	"github.com/EliCDavis/jbtf"
 	"github.com/EliCDavis/polyform/generator/persistence"
 	"github.com/EliCDavis/polyform/generator/schema"
 	"github.com/EliCDavis/polyform/generator/subgraph"
@@ -25,11 +26,8 @@ type ImportSubGraphsResult struct {
 	Imported []ImportedSubGraph
 }
 
-// ImportSubGraphDefinitions adds every subgraph definition in a saved graph
-// to this one, and nothing else from it. An id already taken gets a numeric
-// suffix (Adder becomes Adder_2), and placements of it inside the other
-// imported definitions follow. Variables they read become inputs, and they
-// are all filed under group, or the saved graph's name when group is empty.
+// A taken id gets a numeric suffix (Adder_2); variables the definitions read
+// become inputs; the group defaults to the saved graph's name.
 func (a *Instance) ImportSubGraphDefinitions(payload []byte, group string) (result ImportSubGraphsResult, err error) {
 	app, decoder, err := parseSavedGraph(payload)
 	if err != nil {
@@ -40,16 +38,20 @@ func (a *Instance) ImportSubGraphDefinitions(payload []byte, group string) (resu
 		return result, fmt.Errorf("imported sub-graph %q contains itself through its placements", cyclic)
 	}
 
-	a.mu().Lock()
-	defer a.mu().Unlock()
+	_, err = a.write(refuseConflicts, func() error {
+		result, err = a.importSubGraphDefinitions(app, decoder, result)
+		return err
+	})
+	return result, err
+}
 
+func (a *Instance) importSubGraphDefinitions(app persistence.App, decoder jbtf.Decoder, result ImportSubGraphsResult) (_ ImportSubGraphsResult, err error) {
 	defs, inputs, err := a.liftVariables(app)
 	if err != nil {
 		return result, err
 	}
 
-	// Every definition exists before any is filled in, so one that places
-	// another finds its type.
+	// All created before any is filled in, so one placing another finds its type.
 	newIDs := make(map[string]string, len(app.SubGraphs))
 	defer func() {
 		if err != nil {
@@ -86,7 +88,6 @@ func (a *Instance) ImportSubGraphDefinitions(payload []byte, group string) (resu
 		if err := a.subGraphs[newID].instance.loadSubGraphContents(def, decoder); err != nil {
 			return result, fmt.Errorf("populate imported sub-graph %q: %w", newID, err)
 		}
-		a.incModelVersion()
 
 		imported := ImportedSubGraph{
 			ID:       newID,

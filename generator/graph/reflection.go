@@ -34,7 +34,8 @@ func BuildNodeTypeSchema(registeredType string, node nodes.Node) schema.NodeType
 	}
 
 	outputs := node.Outputs()
-	for name, o := range outputs {
+	for _, o := range outputs {
+		name := label(o)
 		nodeType := "any"
 		if typed, ok := o.(nodes.Typed); ok {
 			nodeType = typed.Type()
@@ -63,7 +64,8 @@ func BuildNodeTypeSchema(registeredType string, node nodes.Node) schema.NodeType
 	}
 
 	inputs := node.Inputs()
-	for name, input := range inputs {
+	for _, input := range inputs {
+		name := label(input)
 		nodeType := "any"
 		if typed, ok := input.(nodes.Typed); ok {
 			nodeType = typed.Type()

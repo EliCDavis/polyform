@@ -161,7 +161,7 @@ func TestImportedVariableInputAvoidsTakenPortNames(t *testing.T) {
 
 	assert.Equal(t, "Size_2", result.Imported[0].Inputs[0].Port)
 	placement, _ := place(t, dest, "scaled")
-	assert.Contains(t, placement.Inputs(), "Size_2")
+	assert.Contains(t, inputLabels(placement), "Size_2")
 }
 
 func TestImportedSubGraphsAreGroupedUnderTheirSource(t *testing.T) {

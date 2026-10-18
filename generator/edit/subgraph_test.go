@@ -204,9 +204,20 @@ func TestSubGraphEditServerEndToEnd(t *testing.T) {
 	require.Len(t, ports, 3)
 
 	runtimeNode := inst.Node(runtimeNodeID)
-	assert.Contains(t, runtimeNode.Inputs(), "A")
-	assert.Contains(t, runtimeNode.Inputs(), "B")
-	assert.Contains(t, runtimeNode.Outputs(), "Result")
+	assert.ElementsMatch(t, []string{"A", "B"}, portLabels(runtimeNode.Inputs()))
+	assert.ElementsMatch(t, []string{"Result"}, portLabels(runtimeNode.Outputs()))
+}
+
+func portLabels[P nodes.Port](ports map[string]P) []string {
+	var labels []string
+	for _, port := range ports {
+		name := port.Name()
+		if labeled, ok := any(port).(nodes.Labeled); ok {
+			name = labeled.Label()
+		}
+		labels = append(labels, name)
+	}
+	return labels
 }
 
 func TestSubGraphDefinitionCreate(t *testing.T) {
@@ -357,8 +368,8 @@ func TestScopedSubGraphDeleteBoundaryRemovesRuntimePort(t *testing.T) {
 
 	runtimeID := createRootNode(t, handler, subgraph.RuntimeTypePath("ports"))
 	runtime := inst.Node(runtimeID)
-	require.Contains(t, runtime.Inputs(), "A")
-	require.Contains(t, runtime.Outputs(), "Out")
+	require.Contains(t, portLabels(runtime.Inputs()), "A")
+	require.Contains(t, portLabels(runtime.Outputs()), "Out")
 
 	requireOK(t, handler, httpStep{
 		method: http.MethodDelete,
@@ -366,8 +377,8 @@ func TestScopedSubGraphDeleteBoundaryRemovesRuntimePort(t *testing.T) {
 		body:   fmt.Sprintf(`{"nodeID":"%s"}`, inID),
 	})
 
-	assert.NotContains(t, runtime.Inputs(), "A")
-	assert.Contains(t, runtime.Outputs(), "Out")
+	assert.NotContains(t, portLabels(runtime.Inputs()), "A")
+	assert.Contains(t, portLabels(runtime.Outputs()), "Out")
 }
 
 func TestSubGraphBoundaryInfoUpdate(t *testing.T) {

@@ -2,70 +2,42 @@ package graph
 
 import (
 	"fmt"
-	"maps"
-	"slices"
 	"strings"
 
 	"github.com/EliCDavis/polyform/generator/subgraph"
 )
 
-// The ports a graph offers wherever it is placed, by name.
-type boundaryIndex struct {
-	inputs  map[string]subgraph.InputBoundary
-	outputs map[string]*subgraph.OutputNode
+// A boundary is a port once it has both a type and a name.
+func isPort(boundary subgraph.Boundary) bool {
+	return boundary.BoundaryPortType() != "" && subgraph.BoundaryPortNameConfigured(boundary)
 }
 
-// A boundary is a port once it has both a type and a name. The index is
-// kept until clearBoundaryCache, and must not be modified.
-func (a *Graph) boundaries() boundaryIndex {
-	if cached := a.boundaryCache.Load(); cached != nil {
-		return *cached
-	}
-
-	index := boundaryIndex{
-		inputs:  make(map[string]subgraph.InputBoundary),
-		outputs: make(map[string]*subgraph.OutputNode),
-	}
-	defer a.boundaryCache.Store(&index)
-
-	for node := range a.nodeIDs {
-		boundary, ok := subgraph.IsBoundaryNode(node)
-		if !ok || boundary.BoundaryPortType() == "" || !subgraph.BoundaryPortNameConfigured(boundary) {
-			continue
-		}
-		switch boundary := boundary.(type) {
-		case *subgraph.OutputNode:
-			index.outputs[boundary.BoundaryPortName()] = boundary
-		case subgraph.InputBoundary:
-			index.inputs[boundary.BoundaryPortName()] = boundary
-		}
-	}
-	return index
+// inputPort is the input boundary with this id, if it is a port.
+func (a *Graph) inputPort(id string) (subgraph.InputBoundary, bool) {
+	boundary, ok := a.boundaryNodes[id].(subgraph.InputBoundary)
+	return boundary, ok && isPort(boundary)
 }
 
-// clearBoundaryCache has to follow anything that adds, removes, names or
-// types a boundary node.
-func (a *Graph) clearBoundaryCache() {
-	a.boundaryCache.Store(nil)
+func (a *Graph) outputPort(id string) (*subgraph.OutputNode, bool) {
+	boundary, ok := a.boundaryNodes[id].(*subgraph.OutputNode)
+	return boundary, ok && isPort(boundary)
 }
 
 func (a *Graph) SetBoundaryNodeInfo(nodeID, portName string) error {
-	a.mu().Lock()
-	defer a.mu().Unlock()
-	return a.setBoundaryNodeInfo(nodeID, portName)
+	return a.RenameBoundaryPorts(map[string]string{nodeID: portName})
 }
 
 // Names may trade places: each is checked against the state after all of them.
-func (a *Graph) RenameBoundaryPorts(names map[string]string) (err error) {
-	a.mu().Lock()
-	defer a.mu().Unlock()
+func (a *Graph) RenameBoundaryPorts(names map[string]string) error {
+	_, err := a.project.write(refuseConflicts, func() error {
+		return a.renameBoundaryPorts(names)
+	})
+	return err
+}
 
+func (a *Graph) renameBoundaryPorts(names map[string]string) error {
 	final := map[BoundaryPortKind]map[string]string{}
-	for node, id := range a.nodeIDs {
-		boundary, ok := subgraph.IsBoundaryNode(node)
-		if !ok {
-			continue
-		}
+	for id, boundary := range a.boundaryNodes {
 		name, renamed := names[id]
 		name = strings.TrimSpace(name)
 		switch {
@@ -85,73 +57,20 @@ func (a *Graph) RenameBoundaryPorts(names map[string]string) (err error) {
 		}
 		final[kind][name] = id
 	}
-	for id := range names {
-		node, exists := a.nodesByID[id]
-		if !exists {
+
+	for id, name := range names {
+		if _, exists := a.nodesByID[id]; !exists {
 			return fmt.Errorf("no node exists with id %q", id)
 		}
-		if _, ok := subgraph.IsBoundaryNode(node); !ok {
+		switch boundary := a.boundaryNodes[id].(type) {
+		case *subgraph.InputNode:
+			boundary.PortName = strings.TrimSpace(name)
+		case *subgraph.OutputNode:
+			boundary.PortName = strings.TrimSpace(name)
+		default:
 			return fmt.Errorf("node %q is not a sub-graph boundary node", id)
 		}
 	}
-
-	end := a.beginCompoundEdit()
-	defer func() {
-		if endErr := end(); endErr != nil && err == nil {
-			err = endErr
-		}
-	}()
-	ordered := slices.Sorted(maps.Keys(names))
-	for _, id := range ordered {
-		if err := a.setBoundaryNodeInfo(id, "\x00renaming "+id); err != nil {
-			return err
-		}
-	}
-	for _, id := range ordered {
-		if err := a.setBoundaryNodeInfo(id, strings.TrimSpace(names[id])); err != nil {
-			return err
-		}
-	}
+	a.dirty()
 	return nil
-}
-
-func (a *Graph) setBoundaryNodeInfo(nodeID, portName string) error {
-	if strings.TrimSpace(portName) == "" {
-		return fmt.Errorf("boundary port name is required")
-	}
-
-	node := a.Node(nodeID)
-	boundary, ok := subgraph.IsBoundaryNode(node)
-	if !ok {
-		return fmt.Errorf("node %q is not a sub-graph boundary node", nodeID)
-	}
-	kind := GetBoundaryKind(boundary)
-
-	for other := range a.nodeIDs {
-		taken, ok := subgraph.IsBoundaryNode(other)
-		if ok && other != node && GetBoundaryKind(taken) == kind && taken.BoundaryPortName() == portName {
-			return fmt.Errorf("boundary port name %q already used by another %s node", portName, kind)
-		}
-	}
-
-	var oldName string
-	switch boundary := boundary.(type) {
-	case *subgraph.InputNode:
-		oldName, boundary.PortName = boundary.PortName, portName
-	case *subgraph.OutputNode:
-		oldName, boundary.PortName = boundary.PortName, portName
-	default:
-		return fmt.Errorf("node %q is not a sub-graph boundary node", nodeID)
-	}
-	a.clearBoundaryCache()
-
-	// Renamed wherever it is placed first, so the edges on the old name are
-	// kept rather than dropped as reading a port that is gone.
-	if scope := a.SubGraphScopeID(); scope != "" && oldName != "" && oldName != portName {
-		forEachSubGraphInstance(a.Root(), scope, func(holder *Graph, placement *SubgraphInstanceNode) {
-			holder.renamePort(placement, kind, oldName, portName)
-		})
-	}
-	_, err := a.commitEdit(refuseConflicts)
-	return err
 }

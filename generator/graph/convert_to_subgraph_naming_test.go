@@ -62,8 +62,7 @@ func createNode(t *testing.T, scope nodeScope, nodeType string) (nodes.Node, str
 
 func convertedPortNames(t *testing.T, scope nodeScope, result graph.ConvertSelectionResult) (inputs, outputs []string) {
 	t.Helper()
-	runtime := scope.Node(result.RuntimeNodeID)
-	return slices.Sorted(maps.Keys(runtime.Inputs())), slices.Sorted(maps.Keys(runtime.Outputs()))
+	return slices.Sorted(maps.Keys(result.NodeType.Inputs)), slices.Sorted(maps.Keys(result.NodeType.Outputs))
 }
 
 func TestConvertSelection_InputNamedAfterFeedingParameterLabel(t *testing.T) {
@@ -199,7 +198,7 @@ func TestRenameBoundaryPorts_NamesTradePlacesAndInstancesFollow(t *testing.T) {
 
 	assert.Equal(t, "B", child.Node(a).(*subgraph.InputNode).PortName)
 	assert.Equal(t, "A", child.Node(b).(*subgraph.InputNode).PortName)
-	fed := inst.Node(placed).Inputs()["B"].(nodes.SingleValueInputPort)
+	fed := inputByLabel(t, inst.Node(placed), "B").(nodes.SingleValueInputPort)
 	assert.Equal(t, param.Outputs()["Value"], fed.Value(), "the wire follows the port it was on")
 }
 

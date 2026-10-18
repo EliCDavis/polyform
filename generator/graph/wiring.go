@@ -10,15 +10,12 @@ import (
 	"github.com/EliCDavis/polyform/nodes"
 )
 
-// A source is the output an input reads. Graph.reads holds every edge as
-// one; the port objects in the nodes' own fields are what settle makes of it.
+// Graph.reads holds every edge as one; node fields are what settle makes of it.
 type source struct {
 	node nodes.Node
 	port string
 }
 
-// An edge is one source of one input, with everything needed to act on it or
-// describe it.
 type edge struct {
 	producerID string
 	producer   nodes.Node
@@ -39,19 +36,41 @@ type edge struct {
 const nextElement = -1
 
 func (e edge) String() string {
-	return fmt.Sprintf("%s.%s -> %s.%s", e.producerID, e.output, e.consumerID, e.inputName())
+	return fmt.Sprintf("%s.%s -> %s.%s", e.producerID, e.outputLabel(), e.consumerID, e.inputLabel())
 }
 
-// The "Port" or "Port.N" form ConnectNodes is called with.
+// The "Port" or "Port.N" form of the input's key.
 func (e edge) inputName() string {
-	if e.element == nextElement {
-		return e.input
-	}
-	return e.input + "." + strconv.Itoa(e.element)
+	return elementName(e.input, e.element)
 }
 
-// splitElement reads "Port.N" as element N of Port. Any other name is a
-// whole port name, dots and all.
+func elementName(port string, element int) string {
+	if element == nextElement {
+		return port
+	}
+	return port + "." + strconv.Itoa(element)
+}
+
+// What to call the ports in a message: a placement's are labeled by name.
+func (e edge) inputLabel() string {
+	if e.in == nil {
+		return e.inputName()
+	}
+	return elementName(label(e.in), e.element)
+}
+
+func (e edge) outputLabel() string {
+	if e.out == nil {
+		return e.output
+	}
+	return label(e.out)
+}
+
+func (e edge) dropped(scope, reason string) DroppedEdge {
+	return DroppedEdge{Scope: scope, From: e.producerID, FromPort: e.outputLabel(), To: e.consumerID, ToPort: e.inputLabel(), Reason: reason}
+}
+
+// Any name not ending in ".N" is a whole port name, dots and all.
 func splitElement(name string) (port string, element int) {
 	dot := strings.LastIndex(name, ".")
 	if dot == -1 {
@@ -64,12 +83,35 @@ func splitElement(name string) (port string, element int) {
 	return name[:dot], element
 }
 
-// A port whose own name ends in ".N" is that port, not element N of another.
-func splitElementOf(inputs map[string]nodes.InputPort, name string) (port string, element int) {
+func inputKey(inputs map[string]nodes.InputPort, name string) (key string, element int, ok bool) {
 	if _, whole := inputs[name]; whole {
-		return name, nextElement
+		return name, nextElement, true
 	}
-	return splitElement(name)
+	port, element := splitElement(name)
+	if _, ok := inputs[port]; ok {
+		return port, element, true
+	}
+	for key, in := range inputs {
+		if label(in) == name {
+			return key, nextElement, true
+		}
+		if label(in) == port {
+			return key, element, true
+		}
+	}
+	return name, nextElement, false
+}
+
+func outputKey(outputs map[string]nodes.OutputPort, name string) (string, bool) {
+	if _, ok := outputs[name]; ok {
+		return name, true
+	}
+	for key, out := range outputs {
+		if label(out) == name {
+			return key, true
+		}
+	}
+	return name, false
 }
 
 func (a *Graph) edgeBetween(fromID, fromPort, toID, toInput string) (e edge, err error) {
@@ -83,13 +125,15 @@ func (a *Graph) edgeBetween(fromID, fromPort, toID, toInput string) (e edge, err
 		return e, fmt.Errorf("no node exists with id %q", toID)
 	}
 	inputs := e.consumer.Inputs()
-	e.input, e.element = splitElementOf(inputs, toInput)
-	if e.in, ok = inputs[e.input]; !ok {
+	if e.input, e.element, ok = inputKey(inputs, toInput); !ok {
 		return e, fmt.Errorf("node %q contains no in-port %q", e.consumerID, e.input)
 	}
-	if e.out, ok = e.producer.Outputs()[e.output]; !ok {
+	e.in = inputs[e.input]
+	outputs := e.producer.Outputs()
+	if e.output, ok = outputKey(outputs, fromPort); !ok {
 		return e, fmt.Errorf("node %q contains no out-port %q", e.producerID, e.output)
 	}
+	e.out = outputs[e.output]
 	return e, nil
 }
 
@@ -120,9 +164,9 @@ func (a *Graph) edgeAt(consumer nodes.Node, input string, in nodes.InputPort, i 
 	return e
 }
 
-// setSources replaces what an input reads. The input's own field follows
-// when it can; settle has the last word on whether it fits.
+// The input's field follows when the edit closes.
 func (a *Graph) setSources(consumer nodes.Node, input string, sources []source) {
+	a.dirty()
 	if a.reads[consumer] == nil {
 		a.reads[consumer] = make(map[string][]source)
 	}
@@ -130,20 +174,13 @@ func (a *Graph) setSources(consumer nodes.Node, input string, sources []source) 
 	if len(sources) == 0 {
 		delete(a.reads[consumer], input)
 	}
-
-	if in, ok := consumer.Inputs()[input]; ok {
-		want := make([]nodes.OutputPort, len(sources))
-		for i, from := range sources {
-			want[i] = from.node.Outputs()[from.port]
-		}
-		_, _ = hold(in, want)
-	}
 }
 
 func (a *Graph) ConnectNodes(nodeOutId, outPortName, nodeInId, inPortName string) error {
-	a.mu().Lock()
-	defer a.mu().Unlock()
-	return a.connectNodes(nodeOutId, outPortName, nodeInId, inPortName)
+	_, err := a.project.write(refuseConflicts, func() error {
+		return a.connectNodes(nodeOutId, outPortName, nodeInId, inPortName)
+	})
+	return err
 }
 
 func (a *Graph) connectNodes(nodeOutId, outPortName, nodeInId, inPortName string) error {
@@ -154,36 +191,19 @@ func (a *Graph) connectNodes(nodeOutId, outPortName, nodeInId, inPortName string
 	if e.producer == e.consumer {
 		return fmt.Errorf(
 			"connecting node %q's %q output into its own %q input would make it depend on itself",
-			e.producerID, e.output, e.input)
+			e.producerID, e.outputLabel(), e.inputLabel())
 	}
 	if a.dependsOn(e.producer, e.consumer) {
 		return fmt.Errorf(
 			"connecting node %q into node %q's %q input would create a cycle: %q already feeds %q, directly or through other nodes",
-			e.producerID, e.consumerID, e.input, e.consumerID, e.producerID)
-	}
-	// Types are unsettled until a compound edit closes; settling then refuses misfits.
-	if a.inCompoundEdit() {
-		a.Root().compound.noteAdded(a, e)
-	} else if err := checkPortTypes(e); err != nil {
-		return err
+			e.producerID, e.consumerID, e.inputLabel(), e.consumerID, e.producerID)
 	}
 
-	previous := a.reads[e.consumer][e.input]
-	next, err := withEdge(previous, e)
+	next, err := withEdge(a.reads[e.consumer][e.input], e)
 	if err != nil {
 		return err
 	}
-
 	a.setSources(e.consumer, e.input, next)
-	if _, err := a.commitEdit(refuseConflicts); err != nil {
-		a.setSources(e.consumer, e.input, previous)
-		if _, restoreErr := a.commitEdit(refuseConflicts); restoreErr != nil {
-			err = fmt.Errorf("%w (and the graph could not be restored: %v)", err, restoreErr)
-		}
-		return fmt.Errorf("connecting %s: %w", e, err)
-	}
-
-	a.incModelVersion()
 	return nil
 }
 
@@ -193,7 +213,7 @@ func withEdge(sources []source, e edge) ([]source, error) {
 
 	switch {
 	case !isArray && e.element != nextElement:
-		return nil, fmt.Errorf("node %q's input %q takes a single value, so %q has no element to replace", e.consumerID, e.input, e.inputName())
+		return nil, fmt.Errorf("node %q's input %q takes a single value, so %q has no element to replace", e.consumerID, label(e.in), e.inputLabel())
 	case !isArray:
 		return []source{added}, nil
 
@@ -205,50 +225,39 @@ func withEdge(sources []source, e edge) ([]source, error) {
 		replaced[e.element] = added
 		return replaced, nil
 	}
-	return nil, fmt.Errorf("node %q's input %q has %d element(s), so %q would leave a gap; use index %d to append", e.consumerID, e.input, len(sources), e.inputName(), len(sources))
+	return nil, fmt.Errorf("node %q's input %q has %d element(s), so %q would leave a gap; use index %d to append", e.consumerID, label(e.in), len(sources), e.inputLabel(), len(sources))
 }
 
-// DeleteNodeInputConnection returns the other edges that no longer fit
-// without this one.
+// Returns the other edges that no longer fit without this one.
 func (a *Graph) DeleteNodeInputConnection(nodeId, portName string) ([]DroppedEdge, error) {
-	a.mu().Lock()
-	defer a.mu().Unlock()
-
-	node, ok := a.nodesByID[nodeId]
-	if !ok {
-		return nil, fmt.Errorf("no node exists with id %q", nodeId)
-	}
-	inputs := node.Inputs()
-	port, element := splitElementOf(inputs, portName)
-	input, ok := inputs[port]
-	if !ok {
-		return nil, fmt.Errorf("node %s contains no input port %s", nodeId, port)
-	}
-
-	var remaining []source
-	if element != nextElement {
-		if _, ok := input.(nodes.ArrayValueInputPort); !ok {
-			return nil, fmt.Errorf("node %q port %q is not an array, so it has no element %d to remove", nodeId, port, element)
+	return a.project.write(dropConflicts, func() error {
+		node, ok := a.nodesByID[nodeId]
+		if !ok {
+			return fmt.Errorf("no node exists with id %q", nodeId)
 		}
-		sources := a.reads[node][port]
-		if element >= len(sources) {
-			return nil, fmt.Errorf("node %q port %q has %d element(s), so there is no index %d to remove", nodeId, port, len(sources), element)
+		inputs := node.Inputs()
+		port, element, ok := inputKey(inputs, portName)
+		if !ok {
+			return fmt.Errorf("node %s contains no input port %s", nodeId, port)
 		}
-		remaining = slices.Delete(slices.Clone(sources), element, element+1)
-	}
-	a.setSources(node, port, remaining)
 
-	dropped, err := a.commitEdit(dropConflicts)
-	if err != nil {
-		return nil, err
-	}
-	a.incModelVersion()
-	return dropped, nil
+		var remaining []source
+		if element != nextElement {
+			if _, ok := inputs[port].(nodes.ArrayValueInputPort); !ok {
+				return fmt.Errorf("node %q port %q is not an array, so it has no element %d to remove", nodeId, portName, element)
+			}
+			sources := a.reads[node][port]
+			if element >= len(sources) {
+				return fmt.Errorf("node %q port %q has %d element(s), so there is no index %d to remove", nodeId, portName, len(sources), element)
+			}
+			remaining = slices.Delete(slices.Clone(sources), element, element+1)
+		}
+		a.setSources(node, port, remaining)
+		return nil
+	})
 }
 
-// dependsOn reports whether node reads target, directly or through any
-// chain of nodes. An edge from node into target would then close a loop,
-// which evaluates as infinite recursion rather than a graph error.
+// A loop evaluates as infinite recursion, not a graph error, so it is refused here.
 func (a *Graph) dependsOn(node, target nodes.Node) bool {
 	visited := make(map[nodes.Node]bool)
 
@@ -283,72 +292,4 @@ func portTypeOf(port any) string {
 		return ""
 	}
 	return typed.Type()
-}
-
-// checkPortTypes refuses a connection whose ends declare different types.
-// Both ends have to say what they are for this to apply: an untyped port
-// is left alone rather than guessed at.
-func checkPortTypes(e edge) error {
-	from := portTypeOf(e.out)
-	if from == "" {
-		return nil
-	}
-
-	accepted := acceptedTypes(e.in)
-	if accepted[0] == "" || slices.Contains(accepted, from) {
-		return nil
-	}
-	return fmt.Errorf(
-		"node %q's %q output is %s, but node %q's %q input takes %s%s",
-		e.producerID, e.output, from, e.consumerID, e.input, strings.Join(accepted, " or "), edgeHint(e))
-}
-
-// A port taking several types reports only the one it holds now.
-func acceptedTypes(in nodes.InputPort) []string {
-	if options, ok := in.(nodes.TypeOptions); ok && len(options.AcceptedTypes()) > 0 {
-		return options.AcceptedTypes()
-	}
-	return []string{portTypeOf(in)}
-}
-
-func edgeHint(e edge) string {
-	from := portTypeOf(e.out)
-	for _, want := range acceptedTypes(e.in) {
-		if hint := connectionHint(from, want, e.input); hint != "" {
-			return hint
-		}
-	}
-	return ""
-}
-
-func connectionHint(from, to, inPort string) string {
-	switch {
-	case to == "[]"+from:
-		return fmt.Sprintf(" - %q takes the whole array as one value, so build the array first (an arrays.FromElements node) and connect its single output, rather than connecting one element at a time", inPort)
-	case from == "int" && to == "float64":
-		return " - put a math.IntToFloatNode between them, or feed a float64 source (a float64 parameter or boundary input) in the first place"
-	case from == "float64" && to == "int":
-		return " - put a math.RoundNode (its Int output) between them, or feed an int source in the first place"
-	}
-	return ""
-}
-
-func (a *Graph) renamePort(node nodes.Node, kind BoundaryPortKind, from, to string) {
-	a.clearCopySource()
-	if kind == BoundaryPortKindInput {
-		if sources, ok := a.reads[node][from]; ok {
-			a.reads[node][to] = sources
-			delete(a.reads[node], from)
-		}
-		return
-	}
-	for _, inputs := range a.reads {
-		for _, sources := range inputs {
-			for i, read := range sources {
-				if read.node == node && read.port == from {
-					sources[i].port = to
-				}
-			}
-		}
-	}
 }
