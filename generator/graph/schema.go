@@ -8,9 +8,7 @@ import (
 	"github.com/EliCDavis/polyform/refutil"
 )
 
-// assignedInputs is every edge into node, keyed "Port" or "Port.N" for an
-// element of an array input. Ports are named by key when saving and by
-// label when shown.
+// Keyed "Port" or "Port.N"; ports are named by key when saved and by label when shown.
 func (a *Graph) assignedInputs(node nodes.Node, name func(nodes.Port) string) map[string]schema.PortReference {
 	assigned := make(map[string]schema.PortReference)
 	if len(a.reads[node]) == 0 {

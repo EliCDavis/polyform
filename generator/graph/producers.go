@@ -39,9 +39,7 @@ func (a *Instance) AddProducer(producerName string, producer nodes.Output[manife
 	})
 }
 
-// Evaluate runs f with the graph held still. Reading a node's value while
-// the graph could be edited has to go through it: evaluating can build the
-// copy a subgraph placement evaluates through.
+// Reading a value has to go through here: evaluating can build a placement's copy.
 func (a *Instance) Evaluate(f func()) {
 	a.mu().Lock()
 	defer a.mu().Unlock()

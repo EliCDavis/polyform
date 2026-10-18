@@ -25,8 +25,7 @@ type outboundEdge struct {
 	output   string
 }
 
-// The id stays; an edge stays when both placements have a port of that
-// name with a fitting type.
+// The id stays; an edge stays when the new placement has a fitting port of that name.
 func (a *Graph) ReplaceSubgraphInstance(nodeID, subGraphID string) (result ReplacedInstance, err error) {
 	result.Dropped, err = a.project.write(dropConflicts, func() error {
 		return a.replaceSubgraphInstance(nodeID, subGraphID, &result)

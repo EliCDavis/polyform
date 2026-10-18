@@ -14,8 +14,6 @@ import (
 	"github.com/EliCDavis/polyform/nodes"
 )
 
-// VariableInput is an input boundary that replaced a variable an imported
-// sub-graph read from the graph it was exported from.
 type VariableInput struct {
 	Variable string
 	Port     string
@@ -42,10 +40,8 @@ type variableLifter struct {
 	constants map[string]string
 }
 
-// liftVariables rewrites every imported definition so that each variable it
-// reads becomes an input boundary defaulting to the variable's value, and
-// every placement of a lifted definition feeds those inputs from the
-// placing definition's own, so one input still drives all of them.
+// Each variable read becomes an input defaulting to its value; placements
+// feed it from the placing definition's own input, so one input drives all.
 func (a *Instance) liftVariables(app persistence.App) (map[string]persistence.SubGraph, map[string][]VariableInput, error) {
 	lifter := variableLifter{instance: a, variables: app.Variables}
 	defs := make(map[string]persistence.SubGraph, len(app.SubGraphs))
@@ -142,8 +138,6 @@ func (s *liftScope) feedPlacements(lifted map[string]map[string]liftedVariable) 
 	return nil
 }
 
-// lift returns the input boundary standing in for path, creating it under
-// boundaryID (a fresh id when empty) the first time path is seen.
 func (s *liftScope) lift(path, boundaryID string) (liftedVariable, error) {
 	if existing, ok := s.lifted[path]; ok {
 		return existing, nil
@@ -222,8 +216,6 @@ func (l *variableLifter) portType(saved persistence.Variable) (string, error) {
 	return typed.Type(), nil
 }
 
-// constant builds a node holding the variable's value, if its value is plain
-// JSON and some registered value node produces portType.
 func (l *variableLifter) constant(saved persistence.Variable, portType, name string) (persistence.Node, bool) {
 	var fields map[string]json.RawMessage
 	if json.Unmarshal(saved.Data, &fields) != nil {

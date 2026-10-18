@@ -21,10 +21,7 @@ type Details struct {
 	Authors     []persistence.Author
 }
 
-// An Instance is a whole project: the root graph, the subgraph definitions
-// it can place, and everything saved alongside them.
 type Instance struct {
-	// The root graph.
 	*Graph
 
 	details         Details

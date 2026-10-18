@@ -54,9 +54,7 @@ func (a *Instance) DeleteVariable(variablePath string) error {
 	return err
 }
 
-// RemoveVariable deletes a variable, every node referencing it in the root
-// graph and in every subgraph definition, and its key in every profile and
-// variant set.
+// Also removes every reference node and the variable's key in profiles and variant sets.
 func (a *Instance) RemoveVariable(variablePath string) (report VariableDeletion, err error) {
 	_, err = a.write(dropConflicts, func() error {
 		return a.removeVariable(variablePath, &report)

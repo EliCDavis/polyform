@@ -23,17 +23,9 @@ type ConvertSelectionResult struct {
 	Dropped       []DroppedEdge
 }
 
-// How far a new boundary node sits from the nodes it was cut from, and from
-// the boundary before it.
 var boundaryLayoutGap = vector2.New(220., 100.)
 
-// ConvertSelectionToSubGraph moves the given nodes out of scope into a new
-// subgraph definition and puts one placement of it where they were. Every
-// edge that crossed the selection becomes a port on the new subgraph.
-//
-// A selected variable reference is copied in rather than cut: reading a
-// variable is free anywhere, so it stays behind as well while anything
-// outside still reads it, and it never becomes a port.
+// A selected variable reference is copied in, never cut, and never becomes a port.
 func (a *Instance) ConvertSelectionToSubGraph(scope Scope, nodeIDs []string, name, description string) (result ConvertSelectionResult, err error) {
 	name = strings.TrimSpace(name)
 	if name == "" {
@@ -82,8 +74,7 @@ func (a *Instance) convertSelectionToSubGraph(scope Scope, nodeIDs []string, nam
 	}()
 	child := a.subGraphs[id].instance
 
-	// Loaded as one graph, boundaries included, so a node typed by what
-	// feeds it from outside settles with that in place.
+	// Boundaries load with the selection, so a node typed from outside settles with them.
 	if err := copySelection(parent, child, selection, ports); err != nil {
 		return result, err
 	}
@@ -114,9 +105,7 @@ func (a *Instance) convertSelectionToSubGraph(scope Scope, nodeIDs []string, nam
 		}
 	}
 
-	// Deleted only now: an array reader keeps its slot by having the new edge
-	// replace the old one in place. References go last, once only outside
-	// readers can be left holding them.
+	// Deleted after rewiring, so array readers keep their slots; references last.
 	ordered := slices.Sorted(maps.Keys(selection))
 	slices.SortStableFunc(ordered, func(x, y string) int {
 		return boolToInt(isVariableReference(selection[x])) - boolToInt(isVariableReference(selection[y]))
@@ -183,9 +172,7 @@ func (a *Graph) isRead(node nodes.Node) bool {
 	return false
 }
 
-// edgesCrossing splits the edges with one end in selection into those read
-// by it and those read from it. Both come back in a fixed order, which is
-// the order their ports are numbered in.
+// The order is the order the ports are numbered in.
 func (a *Graph) edgesCrossing(selection map[string]nodes.Node) (inbound, outbound []edge, err error) {
 	for _, held := range a.edges() {
 		_, producerSelected := selection[held.producerID]
@@ -313,8 +300,6 @@ func inboundSourceKey(e edge) string {
 	return sourceKey(e)
 }
 
-// refuseConvertCycles refuses a selection that an outside node both reads
-// and feeds: as one subgraph it would have to read its own output.
 func (a *Graph) refuseConvertCycles(selection map[string]nodes.Node, inbound []edge) error {
 	selected := make(map[nodes.Node]bool, len(selection))
 	for _, node := range selection {
@@ -338,8 +323,6 @@ func (a *Graph) refuseConvertCycles(selection map[string]nodes.Node, inbound []e
 	return nil
 }
 
-// pathBackTo walks upstream from start and reports the first selected node
-// it reaches, with the ids on the way there.
 func (a *Graph) pathBackTo(selected map[nodes.Node]bool, start nodes.Node) (reached string, through []string, found bool) {
 	visited := map[nodes.Node]bool{}
 
@@ -378,8 +361,6 @@ func (root *Instance) freeSubGraphID(base string) string {
 	}
 }
 
-// A boundary node the conversion will create, with everything decided
-// before anything is touched.
 type plannedPort struct {
 	id, kind, portType, name string
 	at                       vector2.Float64
@@ -484,8 +465,6 @@ func (ids *boundaryIDs) claim() string {
 	}
 }
 
-// copySelection loads the selected nodes, their layout, the edges between
-// them and the boundaries at every cut edge into child as one graph.
 func copySelection(parent, child *Graph, selection map[string]nodes.Node, ports portPlan) error {
 	encoder := &jbtf.Encoder{}
 	saved := make(map[string]persistence.Node, len(selection)+len(ports.inputs)+len(ports.outputs))
@@ -555,8 +534,7 @@ func cloneMetadataMap(in map[string]any) map[string]any {
 	return out
 }
 
-// Where the selection sat in the editor. Not known when none of it had been
-// laid out, and then nothing new is given a position either.
+// Unknown when nothing was laid out; then nothing new gets a position either.
 type selectionLayout struct {
 	min, max, center vector2.Float64
 	known            bool

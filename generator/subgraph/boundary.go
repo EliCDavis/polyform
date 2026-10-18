@@ -194,9 +194,6 @@ func (n *InputNode) FromJSON(decoder jbtf.Decoder, body []byte) error {
 	return nil
 }
 
-// buildInputOutputPort exposes the boundary's value as a strongly typed
-// output when its port type has been discovered, falling back to an untyped
-// port otherwise.
 func buildInputOutputPort(n *InputNode) nodes.OutputPort {
 	source := &inputNodeOutputPort{node: n}
 	if builder, ok := nodes.LookupPortTypeProxy(n.EffectiveType()); ok {
@@ -234,9 +231,7 @@ func (p *inputNodeOutputPort) CurrentSource() nodes.OutputPort {
 	return p.node.source()
 }
 
-// inputNodeDefaultPort is the optional default input on an Input boundary.
-// When the parent runtime instance leaves the matching port unset, Value
-// falls back to whatever is connected here.
+// Read when the placement leaves the input unfed.
 type inputNodeDefaultPort struct {
 	node      *InputNode
 	connected nodes.OutputPort

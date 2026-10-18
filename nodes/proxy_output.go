@@ -10,12 +10,8 @@ type ProxySource interface {
 	CurrentSource() OutputPort
 }
 
-// ProxyOutputBuilder is implemented by typed output ports that can
-// manufacture a proxy output port carrying the same value type. Because the
-// implementations are generic, every value type produced by any registered
-// node automatically has a proxy implementation compiled into the binary,
-// which lets runtime-typed ports (like sub-graph boundaries) expose a
-// strongly typed nodes.Output[T] without per-type registration.
+// Every typed output can build a proxy of its own type, so runtime-typed
+// ports get a real Output[T] with no per-type registration.
 type ProxyOutputBuilder interface {
 	BuildProxyOutput(source ProxySource) OutputPort
 }

@@ -7,31 +7,20 @@ import (
 	"github.com/EliCDavis/polyform/generator/subgraph"
 )
 
-// The ports a graph offers wherever it is placed, by boundary node id.
-type boundaryIndex struct {
-	inputs  map[string]subgraph.InputBoundary
-	outputs map[string]*subgraph.OutputNode
+// A boundary is a port once it has both a type and a name.
+func isPort(boundary subgraph.Boundary) bool {
+	return boundary.BoundaryPortType() != "" && subgraph.BoundaryPortNameConfigured(boundary)
 }
 
-// A boundary is a port once it has both a type and a name.
-func (a *Graph) boundaries() boundaryIndex {
-	index := boundaryIndex{
-		inputs:  make(map[string]subgraph.InputBoundary),
-		outputs: make(map[string]*subgraph.OutputNode),
-	}
-	for node, id := range a.nodeIDs {
-		boundary, ok := subgraph.IsBoundaryNode(node)
-		if !ok || boundary.BoundaryPortType() == "" || !subgraph.BoundaryPortNameConfigured(boundary) {
-			continue
-		}
-		switch boundary := boundary.(type) {
-		case *subgraph.OutputNode:
-			index.outputs[id] = boundary
-		case subgraph.InputBoundary:
-			index.inputs[id] = boundary
-		}
-	}
-	return index
+// inputPort is the input boundary with this id, if it is a port.
+func (a *Graph) inputPort(id string) (subgraph.InputBoundary, bool) {
+	boundary, ok := a.boundaryNodes[id].(subgraph.InputBoundary)
+	return boundary, ok && isPort(boundary)
+}
+
+func (a *Graph) outputPort(id string) (*subgraph.OutputNode, bool) {
+	boundary, ok := a.boundaryNodes[id].(*subgraph.OutputNode)
+	return boundary, ok && isPort(boundary)
 }
 
 func (a *Graph) SetBoundaryNodeInfo(nodeID, portName string) error {
@@ -48,11 +37,7 @@ func (a *Graph) RenameBoundaryPorts(names map[string]string) error {
 
 func (a *Graph) renameBoundaryPorts(names map[string]string) error {
 	final := map[BoundaryPortKind]map[string]string{}
-	for node, id := range a.nodeIDs {
-		boundary, ok := subgraph.IsBoundaryNode(node)
-		if !ok {
-			continue
-		}
+	for id, boundary := range a.boundaryNodes {
 		name, renamed := names[id]
 		name = strings.TrimSpace(name)
 		switch {
@@ -74,11 +59,10 @@ func (a *Graph) renameBoundaryPorts(names map[string]string) error {
 	}
 
 	for id, name := range names {
-		node, exists := a.nodesByID[id]
-		if !exists {
+		if _, exists := a.nodesByID[id]; !exists {
 			return fmt.Errorf("no node exists with id %q", id)
 		}
-		switch boundary := node.(type) {
+		switch boundary := a.boundaryNodes[id].(type) {
 		case *subgraph.InputNode:
 			boundary.PortName = strings.TrimSpace(name)
 		case *subgraph.OutputNode:

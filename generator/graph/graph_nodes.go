@@ -17,6 +17,9 @@ func (a *Graph) register(node nodes.Node, id, typeKey string) {
 	if typeKey != "" {
 		a.nodeTypeKeys[node] = typeKey
 	}
+	if boundary, ok := subgraph.IsBoundaryNode(node); ok {
+		a.boundaryNodes[id] = boundary
+	}
 
 	number, isNumbered := strings.CutPrefix(id, "Node-")
 	if n, err := strconv.Atoi(number); isNumbered && err == nil && n+1 > a.nodeIDHighWater {
@@ -25,6 +28,7 @@ func (a *Graph) register(node nodes.Node, id, typeKey string) {
 }
 
 func (a *Graph) forget(node nodes.Node) {
+	delete(a.boundaryNodes, a.nodeIDs[node])
 	delete(a.nodesByID, a.nodeIDs[node])
 	delete(a.nodeIDs, node)
 	delete(a.nodeTypeKeys, node)
@@ -39,8 +43,7 @@ func (a *Graph) nextNodeID() string {
 	return fmt.Sprintf("Node-%d", number)
 }
 
-// A node built in code can arrive already holding the outputs of others.
-// Those get ids first, and what it holds becomes its edges.
+// What a code-built node already holds becomes its edges; those nodes get ids first.
 func (a *Graph) registerWithInputs(node nodes.Node, typeKey string) {
 	if _, ok := a.nodeIDs[node]; ok {
 		return
@@ -68,7 +71,11 @@ func (a *Graph) registerWithInputs(node nodes.Node, typeKey string) {
 
 	a.register(node, a.nextNodeID(), typeKey)
 	a.reads[node] = reads
-	a.dirty()
+	if len(reads) > 0 {
+		a.dirty()
+	} else {
+		a.changed()
+	}
 }
 
 func (a *Graph) NodeId(node nodes.Node) string {
@@ -166,7 +173,12 @@ func (a *Graph) deleteNode(nodeToDelete nodes.Node) error {
 	}
 
 	a.project.namedManifests.DeleteNode(nodeToDelete)
-	a.dirty()
+	// A boundary is a port wherever the graph is placed.
+	if _, isBoundary := subgraph.IsBoundaryNode(nodeToDelete); isBoundary {
+		a.dirty()
+	} else {
+		a.changed()
+	}
 	a.forget(nodeToDelete)
 
 	for consumer, inputs := range a.reads {
@@ -192,8 +204,7 @@ func (a *Graph) Parameter(nodeId string) (Parameter, error) {
 	return param, nil
 }
 
-// A parameter inside a definition is the same node in every copy, so the
-// change reaches every placement without an edit to the graph.
+// Copies share the parameter node, so there is nothing to propagate.
 func (a *Graph) UpdateParameter(nodeId string, data []byte) (changed bool, err error) {
 	_, err = a.project.write(refuseConflicts, func() (err error) {
 		param, err := a.Parameter(nodeId)

@@ -3,12 +3,11 @@ package graph
 import (
 	gsync "sync"
 
+	"github.com/EliCDavis/polyform/generator/subgraph"
 	"github.com/EliCDavis/polyform/generator/sync"
 	"github.com/EliCDavis/polyform/nodes"
 )
 
-// A Graph is nodes and the edges between them: the root graph, a subgraph
-// definition, or the copy of a definition one of its placements holds.
 type Graph struct {
 	project *Instance
 
@@ -19,11 +18,11 @@ type Graph struct {
 	nodeIDs         map[nodes.Node]string
 	nodesByID       map[string]nodes.Node
 	nodeTypeKeys    map[nodes.Node]string
+	boundaryNodes   map[string]subgraph.Boundary
 	nodeIDHighWater int // so a deleted id is never handed out again
 
-	// Every edge: what each input of each node reads, an array input's
-	// sources in element order. A placement's inputs are keyed by boundary
-	// node id. Node fields are a projection of this, written only by settle.
+	// Every edge, an array input's sources in element order; a placement's
+	// inputs keyed by boundary node id. Node fields follow this, via settle only.
 	reads map[nodes.Node]map[string][]source
 
 	metadata *sync.NestedSyncMap
@@ -39,12 +38,12 @@ func (a *Graph) clear() {
 	a.nodeIDs = make(map[nodes.Node]string)
 	a.nodesByID = make(map[string]nodes.Node)
 	a.nodeTypeKeys = make(map[nodes.Node]string)
+	a.boundaryNodes = make(map[string]subgraph.Boundary)
 	a.reads = make(map[nodes.Node]map[string][]source)
 	a.nodeIDHighWater = 0
 	a.metadata = sync.NewNestedSyncMap()
 }
 
-// Root is the project this graph belongs to.
 func (a *Graph) Root() *Instance {
 	return a.project
 }
@@ -59,8 +58,6 @@ func (a *Graph) mu() *gsync.RWMutex {
 	return &a.project.lock
 }
 
-// SubGraphScopeID is the id of the definition this graph is, or empty for
-// the root graph and for a placement's copy.
 func (a *Graph) SubGraphScopeID() string {
 	return a.scope
 }

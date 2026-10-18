@@ -17,8 +17,6 @@ func newNamedOutputManager[T any]() *namedOutputManager[T] {
 }
 
 func (pd *namedOutputManager[T]) NamePort(name, portName string, node nodes.Node, port nodes.Output[T]) {
-	// Make sure this node + portName isn't already named something else. If so,
-	// delete it
 	for name, entry := range pd.namedPorts {
 		if entry.node == node && entry.portName == portName {
 			delete(pd.namedPorts, name)

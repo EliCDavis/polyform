@@ -15,8 +15,7 @@ import (
 	"github.com/EliCDavis/polyform/nodes"
 )
 
-// A load that fails, even after it has started replacing the open graph,
-// leaves the open graph as it was.
+// A failed load leaves the open graph as it was.
 func (a *Instance) ApplyAppSchema(jsonPayload []byte) (err error) {
 	a.mu().Lock()
 	defer a.mu().Unlock()

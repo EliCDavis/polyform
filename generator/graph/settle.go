@@ -16,16 +16,12 @@ type conflictPolicy int
 const (
 	// An edit that adds refuses instead of costing an existing edge.
 	refuseConflicts conflictPolicy = iota
-	// An edit that removes drops the edges that depended on what it took,
-	// and reports them.
+	// An edit that removes drops what no longer fits, and reports it.
 	dropConflicts
 )
 
-// settle makes every node's fields agree with the edges: each dynamic type
-// is derived from nothing, and each input holds the port its sources offer
-// for those types. The result depends only on which edges exist. An edge
-// that cannot hold is an error, or under dropConflicts is removed and
-// returned.
+// Derives every type and held port from the edges alone, so the result
+// depends only on which edges exist.
 func (a *Graph) settle(policy conflictPolicy) ([]DroppedEdge, error) {
 	var dropped []DroppedEdge
 	for {
@@ -53,9 +49,8 @@ type edgeConflict struct {
 
 func (c *edgeConflict) Error() string { return c.err.Error() }
 
-// A node takes its type from what feeds it, so nodes are seated producers
-// first. Only a node nothing typed feeds takes its type from what it feeds,
-// which can then seat what was waiting on it, hence the rounds.
+// Producers first; rounds because a node nothing typed feeds takes its type
+// from what it feeds, which can then seat what was waiting on it.
 func (a *Graph) settleOnce() error {
 	ids, _ := dependenciesFirst(a.nodesByID, func(node nodes.Node) []string {
 		var producers []string
@@ -122,9 +117,7 @@ func (s seat) edge(input string, i int) edge {
 	return s.graph.edgeAt(s.node, input, s.inputs[input], i)
 }
 
-// fill has each of the node's inputs hold what its sources offer, first
-// taking any dynamic type they pin down. An input reading an output that
-// has no type yet is left alone and returned as untyped.
+// An input reading an output that has no type yet is left alone and returned as untyped.
 func (s seat) fill(offered offers) (untyped *edgeConflict, err error) {
 	reads := s.graph.reads[s.node]
 	for _, input := range slices.Sorted(maps.Keys(reads)) {
@@ -161,10 +154,9 @@ func (s seat) fill(offered offers) (untyped *edgeConflict, err error) {
 					return nil, &edgeConflict{e, fmt.Errorf("%s: %w", e, err)}
 				}
 			}
-			if outType != "" {
-				if err := checkPortTypes(s.edge(input, i)); err != nil {
-					return nil, &edgeConflict{s.edge(input, i), err}
-				}
+			if outType != "" && !accepts(in, outType) {
+				e := s.edge(input, i)
+				return nil, &edgeConflict{e, typeMismatch(e)}
 			}
 		}
 
@@ -187,8 +179,6 @@ func (s seat) fill(offered offers) (untyped *edgeConflict, err error) {
 	return untyped, nil
 }
 
-// typeProducers gives each untyped output the node reads the type of the
-// input reading it.
 func (s seat) typeProducers(offered offers) (bound int, err error) {
 	for _, input := range slices.Sorted(maps.Keys(s.graph.reads[s.node])) {
 		for i, from := range s.graph.reads[s.node][input] {
@@ -210,8 +200,7 @@ func (s seat) typeProducers(offered offers) (bound int, err error) {
 	return bound, nil
 }
 
-// hold has an input hold exactly the given ports, touching nothing when it
-// already does. It reports which of them the input would not take.
+// Touches nothing the input already holds; reports which port it would not take.
 func hold(in nodes.InputPort, want []nodes.OutputPort) (refused int, err error) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -259,9 +248,7 @@ func hold(in nodes.InputPort, want []nodes.OutputPort) (refused int, err error) 
 	return 0, nil
 }
 
-// A port is rebuilt on every Outputs call, so the one held is never the one
-// offered; what matters is that it reads the same output as the same type,
-// under the same label.
+// Ports are rebuilt on every Outputs call, so identity is by what they read, not by pointer.
 func samePort(held, offered nodes.OutputPort) bool {
 	return held != nil &&
 		reflect.TypeOf(held) == reflect.TypeOf(offered) &&
@@ -295,22 +282,15 @@ func (a *Graph) forgetDynamicTypes() {
 	}
 }
 
-// checkPortTypes refuses an edge whose ends declare different types. Both
-// ends have to say what they are for this to apply: an untyped port is
-// left alone rather than guessed at.
-func checkPortTypes(e edge) error {
-	from := portTypeOf(e.out)
-	if from == "" {
-		return nil
-	}
+func accepts(in nodes.InputPort, outType string) bool {
+	accepted := acceptedTypes(in)
+	return accepted[0] == "" || slices.Contains(accepted, outType)
+}
 
-	accepted := acceptedTypes(e.in)
-	if accepted[0] == "" || slices.Contains(accepted, from) {
-		return nil
-	}
+func typeMismatch(e edge) error {
 	return fmt.Errorf(
 		"node %q's %q output is %s, but node %q's %q input takes %s%s",
-		e.producerID, e.outputLabel(), from, e.consumerID, label(e.in), strings.Join(accepted, " or "), edgeHint(e))
+		e.producerID, e.outputLabel(), portTypeOf(e.out), e.consumerID, label(e.in), strings.Join(acceptedTypes(e.in), " or "), edgeHint(e))
 }
 
 // A port taking several types reports only the one it holds now.

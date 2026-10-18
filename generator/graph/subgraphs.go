@@ -144,7 +144,6 @@ func (a *Instance) SetSubGraphInfo(id, name, description string) error {
 	return err
 }
 
-// SubGraphInstance is the definition every placement of the subgraph copies.
 func (a *Instance) SubGraphInstance(id string) (*Graph, error) {
 	runtime, exists := a.subGraphs[id]
 	if !exists {
@@ -153,8 +152,6 @@ func (a *Instance) SubGraphInstance(id string) (*Graph, error) {
 	return runtime.instance, nil
 }
 
-// wouldContainItself reports whether placing placed inside the definition
-// scope lets scope reach itself through placements.
 func (a *Instance) wouldContainItself(scope, placed string) bool {
 	seen := map[string]bool{}
 	var reaches func(id string) bool
@@ -195,13 +192,11 @@ func (a *Instance) CollectBoundaryPorts(subGraphID string) ([]SubgraphBoundaryPo
 		return nil, err
 	}
 
-	index := child.boundaries()
-	ports := make([]SubgraphBoundaryPort, 0, len(index.inputs)+len(index.outputs))
-	for id, boundary := range index.inputs {
-		ports = append(ports, SubgraphBoundaryPort{ID: id, Name: boundary.BoundaryPortName(), Type: boundary.BoundaryPortType(), Kind: BoundaryPortKindInput})
-	}
-	for id, boundary := range index.outputs {
-		ports = append(ports, SubgraphBoundaryPort{ID: id, Name: boundary.BoundaryPortName(), Type: boundary.BoundaryPortType(), Kind: BoundaryPortKindOutput})
+	ports := make([]SubgraphBoundaryPort, 0, len(child.boundaryNodes))
+	for id, boundary := range child.boundaryNodes {
+		if isPort(boundary) {
+			ports = append(ports, SubgraphBoundaryPort{ID: id, Name: boundary.BoundaryPortName(), Type: boundary.BoundaryPortType(), Kind: GetBoundaryKind(boundary)})
+		}
 	}
 	return ports, nil
 }

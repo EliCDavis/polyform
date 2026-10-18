@@ -8,8 +8,6 @@ import (
 	"github.com/EliCDavis/polyform/nodes"
 )
 
-// A DroppedEdge was removed because an edit left its producer carrying a
-// type its input cannot take, or took the port it was wired to.
 type DroppedEdge struct {
 	// The subgraph the edge was in; empty for the root graph.
 	Scope string
@@ -23,12 +21,13 @@ type DroppedEdge struct {
 	Reason string
 }
 
-// Every edit, or batch of edits, is one of these: the graphs it touched are
-// settled once when it closes. A refused edit leaves the edges as they were.
 type editState struct {
-	depth  int
-	dirty  map[*Graph]bool
-	before map[*Graph]map[nodes.Node]map[string][]source
+	depth int
+	// Settled on close, with everything placing them.
+	dirty map[*Graph]bool
+	// Copies go stale; nothing to settle.
+	changed map[*Graph]bool
+	before  map[*Graph]map[nodes.Node]map[string][]source
 }
 
 // dirty has the edit settle this graph, and everything placing it, on close.
@@ -44,6 +43,14 @@ func (a *Graph) dirty() {
 	}
 }
 
+func (a *Graph) changed() {
+	edit := &a.project.edit
+	if edit.changed == nil {
+		edit.changed = map[*Graph]bool{}
+	}
+	edit.changed[a] = true
+}
+
 func cloneReads(reads map[nodes.Node]map[string][]source) map[nodes.Node]map[string][]source {
 	cloned := make(map[nodes.Node]map[string][]source, len(reads))
 	for node, inputs := range reads {
@@ -52,8 +59,7 @@ func cloneReads(reads map[nodes.Node]map[string][]source) map[nodes.Node]map[str
 	return cloned
 }
 
-// write runs f as one edit under the lock. Inside a Batch it only runs f;
-// the batch closes the edit.
+// Inside a Batch it only runs f; the batch closes the edit.
 func (a *Instance) write(policy conflictPolicy, f func() error) ([]DroppedEdge, error) {
 	a.lock.Lock()
 	defer a.lock.Unlock()
@@ -67,9 +73,7 @@ func (a *Instance) write(policy conflictPolicy, f func() error) ([]DroppedEdge, 
 	return a.close(policy)
 }
 
-// Batch runs f as one edit. Every edit f makes through the exported methods
-// is settled once at the end, and the edges that no longer fit are dropped
-// and returned.
+// Batch settles once at the end; the edges that no longer fit are dropped and returned.
 func (a *Instance) Batch(f func() error) ([]DroppedEdge, error) {
 	a.lock.Lock()
 	a.edit.depth++
@@ -88,17 +92,20 @@ func (a *Instance) Batch(f func() error) ([]DroppedEdge, error) {
 }
 
 func (a *Instance) close(policy conflictPolicy) ([]DroppedEdge, error) {
-	dirty, before := a.edit.dirty, a.edit.before
-	a.edit.dirty, a.edit.before = nil, nil
+	dirty, changed, before := a.edit.dirty, a.edit.changed, a.edit.before
+	a.edit = editState{}
 	a.modelVersion++
 
-	order := a.affectedOrder(dirty)
-	for _, graph := range order {
+	stale := map[*Graph]bool{}
+	maps.Copy(stale, dirty)
+	maps.Copy(stale, changed)
+	for _, graph := range a.affectedOrder(stale) {
 		if definition, ok := a.subGraphs[graph.scope]; ok {
 			definition.version++
 		}
 	}
 
+	order := a.affectedOrder(dirty)
 	var dropped []DroppedEdge
 	for _, graph := range order {
 		lost, err := graph.settle(policy)
@@ -126,10 +133,11 @@ func (a *Instance) restore(dirty map[*Graph]bool, before map[*Graph]map[nodes.No
 	}
 }
 
-// The dirty graphs and every graph placing one of them, directly or through
-// other definitions, innermost first: a placement's types are only right
-// once the definition it places is settled.
+// Innermost first: a placement's types are only right once what it places is settled.
 func (a *Instance) affectedOrder(dirty map[*Graph]bool) []*Graph {
+	if len(dirty) == 0 {
+		return nil
+	}
 	graphs := map[string]*Graph{"": a.Graph}
 	for id, definition := range a.subGraphs {
 		graphs[id] = definition.instance

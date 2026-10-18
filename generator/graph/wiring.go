@@ -10,15 +10,12 @@ import (
 	"github.com/EliCDavis/polyform/nodes"
 )
 
-// A source is the output an input reads. Graph.reads holds every edge as
-// one; the port objects in the nodes' own fields are what settle makes of it.
+// Graph.reads holds every edge as one; node fields are what settle makes of it.
 type source struct {
 	node nodes.Node
 	port string
 }
 
-// An edge is one source of one input, with everything needed to act on it or
-// describe it.
 type edge struct {
 	producerID string
 	producer   nodes.Node
@@ -73,8 +70,7 @@ func (e edge) dropped(scope, reason string) DroppedEdge {
 	return DroppedEdge{Scope: scope, From: e.producerID, FromPort: e.outputLabel(), To: e.consumerID, ToPort: e.inputLabel(), Reason: reason}
 }
 
-// splitElement reads "Port.N" as element N of Port. Any other name is a
-// whole port name, dots and all.
+// Any name not ending in ".N" is a whole port name, dots and all.
 func splitElement(name string) (port string, element int) {
 	dot := strings.LastIndex(name, ".")
 	if dot == -1 {
@@ -87,8 +83,6 @@ func splitElement(name string) (port string, element int) {
 	return name[:dot], element
 }
 
-// inputKey resolves "Port" or "Port.N", by key or by label, to the key of
-// one of inputs.
 func inputKey(inputs map[string]nodes.InputPort, name string) (key string, element int, ok bool) {
 	if _, whole := inputs[name]; whole {
 		return name, nextElement, true
@@ -170,8 +164,7 @@ func (a *Graph) edgeAt(consumer nodes.Node, input string, in nodes.InputPort, i 
 	return e
 }
 
-// setSources replaces what an input reads. Settle makes the input's own
-// field follow when the edit closes.
+// The input's field follows when the edit closes.
 func (a *Graph) setSources(consumer nodes.Node, input string, sources []source) {
 	a.dirty()
 	if a.reads[consumer] == nil {
@@ -235,8 +228,7 @@ func withEdge(sources []source, e edge) ([]source, error) {
 	return nil, fmt.Errorf("node %q's input %q has %d element(s), so %q would leave a gap; use index %d to append", e.consumerID, label(e.in), len(sources), e.inputLabel(), len(sources))
 }
 
-// DeleteNodeInputConnection returns the other edges that no longer fit
-// without this one.
+// Returns the other edges that no longer fit without this one.
 func (a *Graph) DeleteNodeInputConnection(nodeId, portName string) ([]DroppedEdge, error) {
 	return a.project.write(dropConflicts, func() error {
 		node, ok := a.nodesByID[nodeId]
@@ -265,9 +257,7 @@ func (a *Graph) DeleteNodeInputConnection(nodeId, portName string) ([]DroppedEdg
 	})
 }
 
-// dependsOn reports whether node reads target, directly or through any
-// chain of nodes. An edge from node into target would then close a loop,
-// which evaluates as infinite recursion rather than a graph error.
+// A loop evaluates as infinite recursion, not a graph error, so it is refused here.
 func (a *Graph) dependsOn(node, target nodes.Node) bool {
 	visited := make(map[nodes.Node]bool)
 

@@ -11,15 +11,8 @@ import (
 	"github.com/EliCDavis/polyform/nodes"
 )
 
-// SubgraphInstanceNode is a placement of a subgraph in another graph. Its
-// ports are the definition's boundary nodes, keyed by their node id; the
-// boundary's name is the port's label.
-//
-// Evaluating through it needs a private copy of the definition, derived
-// from the definition's version and from what the placement is fed. The
-// definition itself answers for the ports' types as long as every input is
-// fed the rank it was wired for; an array arriving where the definition has
-// a single value changes how the inside is typed, so that needs the copy.
+// A placement of a subgraph. Ports are the definition's boundary nodes keyed
+// by node id; the copy it evaluates through is derived, never maintained.
 type SubgraphInstanceNode struct {
 	owner      *Instance
 	subGraphID string
@@ -47,11 +40,11 @@ func (r *SubgraphInstanceNode) SubGraphID() string {
 	return r.subGraphID
 }
 
-func (r *SubgraphInstanceNode) runtime() subGraphRuntime {
+func (r *SubgraphInstanceNode) runtime() *subGraphRuntime {
 	if definition, ok := r.owner.subGraphs[r.subGraphID]; ok {
-		return *definition
+		return definition
 	}
-	return subGraphRuntime{name: "SubGraph"}
+	return &subGraphRuntime{name: "SubGraph", instance: newGraph(r.owner, "")}
 }
 
 func (r *SubgraphInstanceNode) Name() string {
@@ -66,41 +59,35 @@ func (r *SubgraphInstanceNode) Path() string {
 	return "SubGraph"
 }
 
-func (r *SubgraphInstanceNode) definition() boundaryIndex {
-	if graph := r.runtime().instance; graph != nil {
-		return graph.boundaries()
-	}
-	return boundaryIndex{}
+func (r *SubgraphInstanceNode) definition() *Graph {
+	return r.runtime().instance
 }
 
-// LiveGraph is this placement's copy of the definition, built if it has to
-// be. It is nil when the definition cannot be copied.
 func (r *SubgraphInstanceNode) LiveGraph() *Graph {
 	live, _ := r.Live()
 	return live
 }
 
-// Live is LiveGraph with the reason a copy could not be built.
 func (r *SubgraphInstanceNode) Live() (*Graph, error) {
-	if current := r.current(); current != nil {
+	signature, _ := r.signature()
+	if current := r.current(signature); current != nil {
 		return current, nil
 	}
-	return r.build()
+	return r.build(signature)
 }
 
-// current is the copy if it was built from the definition as it is now and
-// what the placement is fed now.
-func (r *SubgraphInstanceNode) current() *Graph {
+// An empty signature skips the fed-type check: settle leaves no copy fed something else.
+func (r *SubgraphInstanceNode) current(signature string) *Graph {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	if r.copied == nil || r.copied.version != r.runtime().version || r.copied.signature != r.signature() {
+	if r.copied == nil || r.copied.version != r.runtime().version || (signature != "" && r.copied.signature != signature) {
 		return nil
 	}
 	return r.copied.graph
 }
 
-func (r *SubgraphInstanceNode) build() (*Graph, error) {
-	version, signature := r.runtime().version, r.signature()
+func (r *SubgraphInstanceNode) build(signature string) (*Graph, error) {
+	version := r.runtime().version
 	graph, err := r.owner.copyDefinition(r)
 	if err != nil {
 		return nil, err
@@ -112,54 +99,59 @@ func (r *SubgraphInstanceNode) build() (*Graph, error) {
 	return graph, nil
 }
 
-// refresh builds the copy when the placement is fed something the
-// definition is not wired for, so its output types can be read. settle
-// calls it before asking for the outputs.
+// Called by settle once the inputs are held; a copy is built only when an
+// array is fed where the definition has a single value.
 func (r *SubgraphInstanceNode) refresh() error {
-	if !r.lifts() || r.current() != nil {
+	signature, lifted := r.signature()
+	if r.current(signature) != nil {
 		return nil
 	}
-	_, err := r.build()
+	r.mu.Lock()
+	r.copied = nil
+	r.mu.Unlock()
+	if !lifted {
+		return nil
+	}
+	_, err := r.build(signature)
 	return err
 }
 
-// The effective type of each input, which is what the inside's types
-// depend on. Callers hold r.mu or are settle-time reads under the lock.
-func (r *SubgraphInstanceNode) signature() string {
-	definition := r.definition()
-	var parts []string
-	for _, id := range slices.Sorted(maps.Keys(definition.inputs)) {
-		parts = append(parts, id+":"+fedType(definition.inputs[id].BoundaryPortType(), r.inputs[id]))
-	}
-	return strings.Join(parts, ";")
-}
-
-// lifts reports an input fed an array where the definition has a single value.
-func (r *SubgraphInstanceNode) lifts() bool {
+func (r *SubgraphInstanceNode) signature() (signature string, lifted bool) {
 	definition := r.definition()
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	for id, boundary := range definition.inputs {
-		if fedType(boundary.BoundaryPortType(), r.inputs[id]) != boundary.BoundaryPortType() {
-			return true
+	var parts []string
+	for _, id := range slices.Sorted(maps.Keys(definition.boundaryNodes)) {
+		boundary, ok := definition.inputPort(id)
+		if !ok {
+			continue
 		}
+		fed := fedType(boundary.BoundaryPortType(), r.inputs[id])
+		lifted = lifted || fed != boundary.BoundaryPortType()
+		parts = append(parts, id+":"+fed)
 	}
-	return false
+	return strings.Join(parts, ";"), lifted
 }
 
 func (r *SubgraphInstanceNode) Inputs() map[string]nodes.InputPort {
 	definition := r.definition()
-	ports := make(map[string]nodes.InputPort, len(definition.inputs))
-	for id, boundary := range definition.inputs {
-		ports[id] = subgraphInstanceInputPort{node: r, id: id, label: boundary.BoundaryPortName(), portType: boundary.BoundaryPortType()}
+	ports := make(map[string]nodes.InputPort, len(definition.boundaryNodes))
+	for id := range definition.boundaryNodes {
+		if boundary, ok := definition.inputPort(id); ok {
+			ports[id] = subgraphInstanceInputPort{node: r, id: id, label: boundary.BoundaryPortName(), portType: boundary.BoundaryPortType()}
+		}
 	}
 	return ports
 }
 
 func (r *SubgraphInstanceNode) Outputs() map[string]nodes.OutputPort {
 	definition := r.definition()
-	ports := make(map[string]nodes.OutputPort, len(definition.outputs))
-	for id, boundary := range definition.outputs {
+	ports := make(map[string]nodes.OutputPort, len(definition.boundaryNodes))
+	for id := range definition.boundaryNodes {
+		boundary, ok := definition.outputPort(id)
+		if !ok {
+			continue
+		}
 		port := subgraphInstanceOutputPort{node: r, id: id, label: boundary.BoundaryPortName(), portType: boundary.BoundaryPortType()}
 		ports[id] = port
 		if builder, found := nodes.LookupPortTypeProxy(port.Type()); found {
@@ -257,11 +249,11 @@ func (p subgraphInstanceOutputPort) Label() string {
 }
 
 func (p subgraphInstanceOutputPort) Type() string {
-	outputs := p.node.definition().outputs
-	if copied := p.node.current(); copied != nil {
-		outputs = copied.boundaries().outputs
+	graph := p.node.definition()
+	if copied := p.node.current(""); copied != nil {
+		graph = copied
 	}
-	if output, ok := outputs[p.id]; ok {
+	if output, ok := graph.outputPort(p.id); ok {
 		return cmp.Or(output.EffectiveType(), p.portType)
 	}
 	return p.portType
@@ -276,7 +268,7 @@ func (p subgraphInstanceOutputPort) Version() int {
 
 // CurrentSource is nil until something has evaluated through the placement.
 func (p subgraphInstanceOutputPort) CurrentSource() nodes.OutputPort {
-	return p.readFrom(p.node.current())
+	return p.readFrom(p.node.current(""))
 }
 
 func (p subgraphInstanceOutputPort) SourceForValue() nodes.OutputPort {
@@ -287,7 +279,7 @@ func (p subgraphInstanceOutputPort) readFrom(copied *Graph) nodes.OutputPort {
 	if copied == nil {
 		return nil
 	}
-	if output, ok := copied.boundaries().outputs[p.id]; ok {
+	if output, ok := copied.outputPort(p.id); ok {
 		return output.ConnectedSource()
 	}
 	return nil

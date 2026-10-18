@@ -9,13 +9,8 @@ import (
 	"github.com/EliCDavis/polyform/nodes"
 )
 
-// copyDefinition builds the graph a placement evaluates through: the
-// definition's nodes under the same ids, wired the same way, with each input
-// boundary reading what the placement is fed.
-//
-// A node with no inputs and no dynamic types is the definition's own node,
-// not a copy: its outputs depend on nothing wired, so one instance serves
-// every placement. That is every node with state of its own.
+// A node with no inputs and no dynamic types is shared, not copied: its
+// outputs depend on nothing wired, and that is every node with state.
 func (root *Instance) copyDefinition(placement *SubgraphInstanceNode) (*Graph, error) {
 	definition, ok := root.subGraphs[placement.subGraphID]
 	if !ok {

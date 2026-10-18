@@ -26,11 +26,8 @@ type ImportSubGraphsResult struct {
 	Imported []ImportedSubGraph
 }
 
-// ImportSubGraphDefinitions adds every subgraph definition in a saved graph
-// to this one, and nothing else from it. An id already taken gets a numeric
-// suffix (Adder becomes Adder_2), and placements of it inside the other
-// imported definitions follow. Variables they read become inputs, and they
-// are all filed under group, or the saved graph's name when group is empty.
+// A taken id gets a numeric suffix (Adder_2); variables the definitions read
+// become inputs; the group defaults to the saved graph's name.
 func (a *Instance) ImportSubGraphDefinitions(payload []byte, group string) (result ImportSubGraphsResult, err error) {
 	app, decoder, err := parseSavedGraph(payload)
 	if err != nil {
@@ -54,8 +51,7 @@ func (a *Instance) importSubGraphDefinitions(app persistence.App, decoder jbtf.D
 		return result, err
 	}
 
-	// Every definition exists before any is filled in, so one that places
-	// another finds its type.
+	// All created before any is filled in, so one placing another finds its type.
 	newIDs := make(map[string]string, len(app.SubGraphs))
 	defer func() {
 		if err != nil {
