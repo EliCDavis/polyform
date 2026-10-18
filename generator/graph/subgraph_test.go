@@ -115,11 +115,8 @@ func TestSubGraphCreateAndBoundaryPorts(t *testing.T) {
 	runtimeNode, _, err := inst.CreateNode(subgraph.RuntimeTypePath("test-sub"))
 	require.NoError(t, err)
 
-	inputs := runtimeNode.Inputs()
-	require.Contains(t, inputs, "Position")
-
-	outputs := runtimeNode.Outputs()
-	require.Contains(t, outputs, "Result")
+	inputByLabel(t, runtimeNode, "Position")
+	outputByLabel(t, runtimeNode, "Result")
 }
 
 func TestUnconfiguredBoundaryExcludedFromParentPorts(t *testing.T) {
@@ -276,7 +273,7 @@ func TestBoundaryDuplicatePortNameRejected(t *testing.T) {
 	require.NoError(t, child.SetBoundaryNodeInfo(id1, "Shared"))
 	err = child.SetBoundaryNodeInfo(id2, "Shared")
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "already used")
+	assert.Contains(t, err.Error(), "used by")
 }
 
 func TestSetBoundaryNodeInfoNotBoundaryNode(t *testing.T) {
@@ -317,7 +314,7 @@ func TestRuntimeInputWiredToClone(t *testing.T) {
 	require.NoError(t, err)
 
 	extOut := extParam.Outputs()["Value"]
-	runtimeIn := runtimeNode.Inputs()["A"].(nodes.SingleValueInputPort)
+	runtimeIn := inputByLabel(t, runtimeNode, "A").(nodes.SingleValueInputPort)
 	require.NoError(t, runtimeIn.Set(extOut))
 
 	assert.Equal(t, 5.0, nodes.GetNodeOutputPort[float64](runtimeNode, "Out").Value())
@@ -545,14 +542,12 @@ func TestRuntimeNodeOutputsReflectBoundaryTypes(t *testing.T) {
 
 	runtimeNode := graph.NewRuntimeNode(inst, "types")
 
-	in := runtimeNode.Inputs()["Scale"]
-	require.NotNil(t, in)
+	in := inputByLabel(t, runtimeNode, "Scale")
 	typedIn, ok := in.(interface{ Type() string })
 	require.True(t, ok)
 	assert.Equal(t, "float64", typedIn.Type())
 
-	out := runtimeNode.Outputs()["Image"]
-	require.NotNil(t, out)
+	out := outputByLabel(t, runtimeNode, "Image")
 
 	typed, ok := out.(interface{ Type() string })
 	require.True(t, ok)
@@ -620,7 +615,7 @@ func TestRuntimeNodeInputPersistedThroughConnectNodes(t *testing.T) {
 
 	require.NoError(t, inst.ConnectNodes(extID, "Value", runtimeID, "A"))
 
-	runtimeIn := runtimeNode.Inputs()["A"].(nodes.SingleValueInputPort)
+	runtimeIn := inputByLabel(t, runtimeNode, "A").(nodes.SingleValueInputPort)
 	assert.Equal(t, extParam.Outputs()["Value"], runtimeIn.Value())
 
 	schema := inst.NodeInstanceSchema(runtimeNode)
@@ -647,8 +642,8 @@ func TestCollectBoundaryPortsAllowsSameNameAcrossKinds(t *testing.T) {
 	require.Len(t, ports, 2)
 
 	runtimeNode := graph.NewRuntimeNode(inst, "shared-name")
-	require.Contains(t, runtimeNode.Inputs(), "Value")
-	require.Contains(t, runtimeNode.Outputs(), "Value")
+	inputByLabel(t, runtimeNode, "Value")
+	outputByLabel(t, runtimeNode, "Value")
 }
 
 func TestSubGraphBoundaryVector3ValueFlow(t *testing.T) {
@@ -974,12 +969,7 @@ func TestRenameBoundaryInputPreservesRuntimeWiring(t *testing.T) {
 
 	require.NoError(t, child.SetBoundaryNodeInfo(inputID, "Scale"))
 
-	_, hasOld := runtimeNode.Inputs()["In"]
-	_, hasNew := runtimeNode.Inputs()["Scale"]
-	assert.False(t, hasOld)
-	assert.True(t, hasNew)
-
-	runtimeIn := runtimeNode.Inputs()["Scale"].(nodes.SingleValueInputPort)
+	runtimeIn := inputByLabel(t, runtimeNode, "Scale").(nodes.SingleValueInputPort)
 	assert.Equal(t, param.Outputs()["Value"], runtimeIn.Value())
 	assert.Equal(t, 4.0, nodes.GetNodeOutputPort[float64](runtimeNode, "Out").Value())
 
@@ -1063,16 +1053,10 @@ func TestRenameBoundaryOutputPreservesDownstreamWiring(t *testing.T) {
 
 	require.NoError(t, child.SetBoundaryNodeInfo(outputID, "Result"))
 
-	_, hasOld := runtimeNode.Outputs()["Out"]
-	_, hasNew := runtimeNode.Outputs()["Result"]
-	assert.False(t, hasOld)
-	assert.True(t, hasNew)
-
 	sinkIn := inst.Node(sinkID).Inputs()["Values"].(nodes.ArrayValueInputPort)
 	require.Len(t, sinkIn.Value(), 1)
-	assert.Equal(t, "Result", sinkIn.Value()[0].Name())
-	// Downstream must keep the live runtime output object, not an orphaned copy.
-	assert.Equal(t, runtimeNode.Outputs()["Result"], sinkIn.Value()[0])
+	assert.Equal(t, "Result", portLabel(sinkIn.Value()[0]))
+	assert.Equal(t, outputByLabel(t, runtimeNode, "Result"), sinkIn.Value()[0])
 	assert.Equal(t, 7.0, nodes.GetNodeOutputPort[float64](inst.Node(sinkID), "Float").Value())
 
 	schema := inst.NodeInstanceSchema(inst.Node(sinkID))

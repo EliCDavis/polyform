@@ -20,6 +20,7 @@ type ConvertSelectionResult struct {
 	Name          string
 	RuntimeNodeID string
 	NodeType      schema.NodeType
+	Dropped       []DroppedEdge
 }
 
 // How far a new boundary node sits from the nodes it was cut from, and from
@@ -42,9 +43,14 @@ func (a *Instance) ConvertSelectionToSubGraph(scope Scope, nodeIDs []string, nam
 		return result, fmt.Errorf("at least one node id is required")
 	}
 
-	a.mu().Lock()
-	defer a.mu().Unlock()
+	result.Dropped, err = a.write(dropConflicts, func() (err error) {
+		result, err = a.convertSelectionToSubGraph(scope, nodeIDs, name, description)
+		return err
+	})
+	return result, err
+}
 
+func (a *Instance) convertSelectionToSubGraph(scope Scope, nodeIDs []string, name, description string) (result ConvertSelectionResult, err error) {
 	parent, err := scope.ResolveInstance(a)
 	if err != nil {
 		return result, err
@@ -64,15 +70,6 @@ func (a *Instance) ConvertSelectionToSubGraph(scope Scope, nodeIDs []string, nam
 	if err != nil {
 		return result, err
 	}
-
-	// The scope is a half wired graph until the last edit here, so nothing
-	// placing it is brought in line until then.
-	end := parent.beginCompoundEdit()
-	defer func() {
-		if endErr := end(); endErr != nil && err == nil {
-			err = endErr
-		}
-	}()
 
 	id := a.freeSubGraphID(strings.Join(strings.Fields(name), "_"))
 	if err := a.createSubGraph(id, name, strings.TrimSpace(description)); err != nil {
@@ -107,12 +104,12 @@ func (a *Instance) ConvertSelectionToSubGraph(scope Scope, nodeIDs []string, nam
 			continue
 		}
 		fed[key] = true
-		if err := parent.connectNodes(cut.producerID, cut.output, placed, ports.inputs[key].name); err != nil {
+		if err := parent.connectNodes(cut.producerID, cut.output, placed, ports.inputs[key].id); err != nil {
 			return result, err
 		}
 	}
 	for _, cut := range outbound {
-		if err := parent.connectNodes(placed, ports.outputs[sourceKey(cut)].name, cut.consumerID, cut.inputName()); err != nil {
+		if err := parent.connectNodes(placed, ports.outputs[sourceKey(cut)].id, cut.consumerID, cut.inputName()); err != nil {
 			return result, err
 		}
 	}
@@ -128,7 +125,7 @@ func (a *Instance) ConvertSelectionToSubGraph(scope Scope, nodeIDs []string, nam
 		if isVariableReference(selection[selected]) && parent.isRead(selection[selected]) {
 			continue
 		}
-		if _, err := parent.deleteNodeByID(selected); err != nil {
+		if err := parent.deleteNodeByID(selected); err != nil {
 			return result, err
 		}
 	}
@@ -535,7 +532,16 @@ func copySelection(parent, child *Graph, selection map[string]nodes.Node, ports 
 	if err != nil {
 		return fmt.Errorf("copying the selection: %w", err)
 	}
-	return child.loadNodes(savedGraph{nodes: saved, decoder: decoder, originals: selection}, nil)
+	return child.loadNodes(saved, decoder)
+}
+
+// Through bytes: what nodes encoded can only be read back out of a decoder.
+func decoderOf(encoder *jbtf.Encoder) (jbtf.Decoder, error) {
+	payload, err := encoder.ToPgtf(persistence.App{})
+	if err != nil {
+		return jbtf.Decoder{}, err
+	}
+	return jbtf.NewDecoder(payload)
 }
 
 func cloneMetadataMap(in map[string]any) map[string]any {

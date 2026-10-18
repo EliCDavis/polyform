@@ -39,9 +39,8 @@ type Instance struct {
 	subGraphs      map[string]*subGraphRuntime
 	history        *history.History
 
-	compound    compoundEdit
-	copySources map[string]savedGraph
-	lock        gsync.RWMutex
+	edit editState
+	lock gsync.RWMutex
 }
 
 type Config struct {
@@ -67,7 +66,7 @@ func New(config Config) *Instance {
 		variableFactory: config.VariableFactory,
 		variables:       variable.NewSystem(),
 	}
-	instance.Graph = newGraph(instance)
+	instance.Graph = newGraph(instance, "")
 	instance.Reset()
 	instance.details = Details{
 		Name:        config.Name,
@@ -96,7 +95,6 @@ func (a *Instance) Reset() {
 	a.profiles = named.New[variable.Profile]("profile")
 	a.variantSets = named.New[variant.Set]("variant set")
 	a.subGraphs = make(map[string]*subGraphRuntime)
-	a.copySources = make(map[string]savedGraph)
 
 	// A snapshot is restored into a registry holding only what it defines.
 	for _, key := range a.typeFactory.Types() {

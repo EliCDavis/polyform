@@ -57,6 +57,7 @@ func (a *Instance) applyAppSchema(jsonPayload []byte) error {
 	}
 
 	a.Reset()
+	a.modelVersion++
 
 	a.details = Details{Name: app.Name, Version: app.Version, Description: app.Description, Authors: app.Authors}
 	a.metadata.OverwriteData(app.Metadata)
@@ -99,7 +100,7 @@ func (a *Instance) applyAppSchema(jsonPayload []byte) error {
 		}
 	}
 
-	if err := a.loadNodes(savedGraph{nodes: app.Nodes, decoder: decoder}, nil); err != nil {
+	if err := a.loadNodes(app.Nodes, decoder); err != nil {
 		return err
 	}
 
@@ -114,14 +115,12 @@ func (a *Instance) applyAppSchema(jsonPayload []byte) error {
 		}
 		a.namedManifests.NamePort(name, saved.Port, producer, output)
 	}
-
-	a.incModelVersion()
 	return nil
 }
 
-func (a *Graph) loadNodes(saved savedGraph, externals map[string]nodes.OutputPort) error {
-	a.clearCopySource()
-	order, cyclic := dependenciesFirst(saved.nodes, func(node persistence.Node) []string {
+// loadNodes fills an empty graph from its saved nodes and settles it.
+func (a *Graph) loadNodes(saved map[string]persistence.Node, decoder jbtf.Decoder) error {
+	order, cyclic := dependenciesFirst(saved, func(node persistence.Node) []string {
 		producers := make([]string, 0, len(node.AssignedInput))
 		for _, from := range node.AssignedInput {
 			producers = append(producers, from.NodeId)
@@ -132,27 +131,22 @@ func (a *Graph) loadNodes(saved savedGraph, externals map[string]nodes.OutputPor
 		return fmt.Errorf("node %s reads its own output, directly or through other nodes", cyclic)
 	}
 
-	created := make(map[string]nodes.Node, len(saved.nodes))
+	created := make(map[string]nodes.Node, len(saved))
 	for _, id := range order {
-		node, err := a.instantiateAppNode(id, saved.nodes[id])
+		node, err := a.instantiateAppNode(id, saved[id])
 		if err != nil {
 			return err
 		}
 		created[id] = node
-
-		if err := saved.restore(id, node); err != nil {
-			return fmt.Errorf("node %s: %w", id, err)
-		}
-		a.clearBoundaryCache()
-		if boundary, ok := subgraph.IsInputBoundary(node); ok {
-			if external, fed := externals[boundary.BoundaryPortName()]; fed {
-				boundary.SetExternalSource(external)
+		if custom, ok := node.(CustomGraphSerialization); ok {
+			if err := custom.FromJSON(decoder, saved[id].Data); err != nil {
+				return fmt.Errorf("node %s: %w", id, err)
 			}
 		}
 	}
 
 	for _, id := range order {
-		details := saved.nodes[id]
+		details := saved[id]
 		reads := make(map[string][]source)
 		inputs := created[id].Inputs()
 		// Sorted, so an array's elements are appended by index.
@@ -162,7 +156,7 @@ func (a *Graph) loadNodes(saved savedGraph, externals map[string]nodes.OutputPor
 			if !ok {
 				return fmt.Errorf("node %s's %q input reads node %s, which does not exist", id, input, from.NodeId)
 			}
-			port, _ := splitElementOf(inputs, input)
+			port, _, _ := inputKey(inputs, input)
 			reads[port] = append(reads[port], source{node: producer, port: from.PortName})
 		}
 		a.reads[created[id]] = reads
@@ -170,26 +164,6 @@ func (a *Graph) loadNodes(saved savedGraph, externals map[string]nodes.OutputPor
 
 	_, err := a.settle(refuseConflicts)
 	return err
-}
-
-type savedGraph struct {
-	nodes   map[string]persistence.Node
-	decoder jbtf.Decoder
-
-	// The live nodes this was encoded from, when it is being copied.
-	originals map[string]nodes.Node
-}
-
-func (saved savedGraph) restore(id string, node nodes.Node) error {
-	if copier, ok := node.(stateCopier); ok {
-		if original, ok := saved.originals[id]; ok && copier.CopyStateFrom(original) {
-			return nil
-		}
-	}
-	if custom, ok := node.(CustomGraphSerialization); ok {
-		return custom.FromJSON(saved.decoder, saved.nodes[id].Data)
-	}
-	return nil
 }
 
 func compareInputNames(x, y string) int {
@@ -263,12 +237,7 @@ func (a *Instance) loadSubGraphDefinition(id string, def persistence.SubGraph, d
 		return err
 	}
 	a.subGraphs[id].group = def.Group
-	definition := a.subGraphs[id].instance
-	if err := definition.loadSubGraphContents(def, decoder); err != nil {
-		return err
-	}
-	a.copySources[id] = savedGraph{nodes: def.Nodes, decoder: decoder, originals: definition.nodesByID}
-	return nil
+	return a.subGraphs[id].instance.loadSubGraphContents(def, decoder)
 }
 
 func (a *Graph) loadSubGraphContents(def persistence.SubGraph, decoder jbtf.Decoder) error {
@@ -278,7 +247,7 @@ func (a *Graph) loadSubGraphContents(def persistence.SubGraph, decoder jbtf.Deco
 	if def.Metadata != nil {
 		a.metadata.OverwriteData(def.Metadata)
 	}
-	return a.loadNodes(savedGraph{nodes: def.Nodes, decoder: decoder}, nil)
+	return a.loadNodes(def.Nodes, decoder)
 }
 
 func (a *Graph) instantiateAppNode(nodeID string, saved persistence.Node) (nodes.Node, error) {

@@ -56,15 +56,12 @@ func TestConvertSelectionToSubGraph_SimpleChain(t *testing.T) {
 	assert.Equal(t, graph.BoundaryPortKindOutput, names["Float"])
 
 	runtime := inst.Node(result.RuntimeNodeID)
-	require.Contains(t, runtime.Inputs(), "Value")
-	require.Contains(t, runtime.Outputs(), "Float")
-
-	runtimeIn := runtime.Inputs()["Value"].(nodes.SingleValueInputPort)
+	runtimeIn := inputByLabel(t, runtime, "Value").(nodes.SingleValueInputPort)
 	assert.Equal(t, param.Outputs()["Value"], runtimeIn.Value())
 
 	outIn := inst.Node(outSumID).Inputs()["Values"].(nodes.ArrayValueInputPort)
 	require.Len(t, outIn.Value(), 1)
-	assert.Equal(t, runtime.Outputs()["Float"], outIn.Value()[0])
+	assert.Equal(t, outputByLabel(t, runtime, "Float"), outIn.Value()[0])
 
 	got := nodes.GetNodeOutputPort[float64](inst.Node(outSumID), "Float").Value()
 	assert.Equal(t, 2.0, got) // Float64 default CurrentValue is 2 in test factory
@@ -92,9 +89,8 @@ func TestConvertSelectionToSubGraph_NamesPortsAfterWhatTheyCarry(t *testing.T) {
 	result, err := inst.ConvertSelectionToSubGraph(graph.RootScope, []string{sumID}, "Adder", "")
 	require.NoError(t, err)
 
-	runtime := inst.Node(result.RuntimeNodeID)
-	assert.ElementsMatch(t, []string{"Width", "Value", "Value 2"}, slices.Collect(maps.Keys(runtime.Inputs())))
-	assert.ElementsMatch(t, []string{"Float"}, slices.Collect(maps.Keys(runtime.Outputs())))
+	assert.ElementsMatch(t, []string{"Width", "Value", "Value 2"}, slices.Collect(maps.Keys(result.NodeType.Inputs)))
+	assert.ElementsMatch(t, []string{"Float"}, slices.Collect(maps.Keys(result.NodeType.Outputs)))
 }
 
 func TestConvertSelectionToSubGraph_NameAndDescription(t *testing.T) {
@@ -146,8 +142,8 @@ func TestConvertSelectionToSubGraph_FanOut(t *testing.T) {
 	rightIn := inst.Node(rightID).Inputs()["Values"].(nodes.ArrayValueInputPort)
 	require.Len(t, leftIn.Value(), 1)
 	require.Len(t, rightIn.Value(), 1)
-	assert.Equal(t, runtime.Outputs()["Float"], leftIn.Value()[0])
-	assert.Equal(t, runtime.Outputs()["Float"], rightIn.Value()[0])
+	assert.Equal(t, outputByLabel(t, runtime, "Float"), leftIn.Value()[0])
+	assert.Equal(t, outputByLabel(t, runtime, "Float"), rightIn.Value()[0])
 }
 
 func TestConvertSelectionToSubGraph_FanInSharesOneInput(t *testing.T) {
@@ -177,7 +173,7 @@ func TestConvertSelectionToSubGraph_FanInSharesOneInput(t *testing.T) {
 	assert.Equal(t, 1, inputs, "one outside source feeding two selected nodes is one port, not two")
 
 	runtime := inst.Node(result.RuntimeNodeID)
-	runtimeIn := runtime.Inputs()["Value"].(nodes.SingleValueInputPort)
+	runtimeIn := inputByLabel(t, runtime, "Value").(nodes.SingleValueInputPort)
 	assert.Equal(t, param.Outputs()["Value"], runtimeIn.Value())
 
 	child, err := inst.SubGraphInstance(result.SubGraphID)

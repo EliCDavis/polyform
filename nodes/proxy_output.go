@@ -40,6 +40,13 @@ func (p proxyOutput[T]) Version() int {
 	return p.source.Version()
 }
 
+func (p proxyOutput[T]) Label() string {
+	if labeled, ok := p.source.(Labeled); ok {
+		return labeled.Label()
+	}
+	return p.source.Name()
+}
+
 func (p proxyOutput[T]) CurrentSource() OutputPort {
 	return p.source.CurrentSource()
 }

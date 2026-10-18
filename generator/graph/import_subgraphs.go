@@ -6,6 +6,7 @@ import (
 	"maps"
 	"slices"
 
+	"github.com/EliCDavis/jbtf"
 	"github.com/EliCDavis/polyform/generator/persistence"
 	"github.com/EliCDavis/polyform/generator/schema"
 	"github.com/EliCDavis/polyform/generator/subgraph"
@@ -40,9 +41,14 @@ func (a *Instance) ImportSubGraphDefinitions(payload []byte, group string) (resu
 		return result, fmt.Errorf("imported sub-graph %q contains itself through its placements", cyclic)
 	}
 
-	a.mu().Lock()
-	defer a.mu().Unlock()
+	_, err = a.write(refuseConflicts, func() error {
+		result, err = a.importSubGraphDefinitions(app, decoder, result)
+		return err
+	})
+	return result, err
+}
 
+func (a *Instance) importSubGraphDefinitions(app persistence.App, decoder jbtf.Decoder, result ImportSubGraphsResult) (_ ImportSubGraphsResult, err error) {
 	defs, inputs, err := a.liftVariables(app)
 	if err != nil {
 		return result, err
@@ -86,7 +92,6 @@ func (a *Instance) ImportSubGraphDefinitions(payload []byte, group string) (resu
 		if err := a.subGraphs[newID].instance.loadSubGraphContents(def, decoder); err != nil {
 			return result, fmt.Errorf("populate imported sub-graph %q: %w", newID, err)
 		}
-		a.incModelVersion()
 
 		imported := ImportedSubGraph{
 			ID:       newID,

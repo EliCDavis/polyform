@@ -15,10 +15,12 @@ import (
 )
 
 // NewVariable returns the node type its reference nodes are created with.
-func (a *Instance) NewVariable(variablePath string, variable variable.Variable) (string, error) {
-	a.mu().Lock()
-	defer a.mu().Unlock()
-	return a.newVariable(variablePath, variable)
+func (a *Instance) NewVariable(variablePath string, variable variable.Variable) (nodeType string, err error) {
+	_, err = a.write(refuseConflicts, func() (err error) {
+		nodeType, err = a.newVariable(variablePath, variable)
+		return err
+	})
+	return nodeType, err
 }
 
 func (a *Instance) newVariable(variablePath string, variable variable.Variable) (string, error) {
@@ -55,23 +57,20 @@ func (a *Instance) DeleteVariable(variablePath string) error {
 // RemoveVariable deletes a variable, every node referencing it in the root
 // graph and in every subgraph definition, and its key in every profile and
 // variant set.
-func (a *Instance) RemoveVariable(variablePath string) (VariableDeletion, error) {
-	a.mu().Lock()
-	defer a.mu().Unlock()
+func (a *Instance) RemoveVariable(variablePath string) (report VariableDeletion, err error) {
+	_, err = a.write(dropConflicts, func() error {
+		return a.removeVariable(variablePath, &report)
+	})
+	return report, err
+}
 
-	var report VariableDeletion
+func (a *Instance) removeVariable(variablePath string, report *VariableDeletion) error {
 	deleted, err := a.variables.Variable(variablePath)
 	if err != nil {
-		return report, fmt.Errorf("trying to delete a variable at the path %q which doesn't contain a variable", variablePath)
+		return fmt.Errorf("trying to delete a variable at the path %q which doesn't contain a variable", variablePath)
 	}
-
-	end := a.beginCompoundEdit()
-	err = a.removeReferences(deleted, &report)
-	if endErr := end(); err == nil {
-		err = endErr
-	}
-	if err != nil {
-		return report, err
+	if err := a.removeReferences(deleted, report); err != nil {
+		return err
 	}
 
 	for _, name := range a.profiles.Names() {
@@ -100,11 +99,10 @@ func (a *Instance) RemoveVariable(variablePath string) (VariableDeletion, error)
 	}
 
 	if err := a.variables.Remove(variablePath); err != nil {
-		return report, err
+		return err
 	}
 	a.typeFactory.Unregister(variablePath)
-	a.incModelVersion()
-	return report, nil
+	return nil
 }
 
 func (a *Instance) removeReferences(deleted variable.Variable, report *VariableDeletion) error {
@@ -117,7 +115,7 @@ func (a *Instance) removeReferences(deleted variable.Variable, report *VariableD
 			}
 			report.References = append(report.References, scope.prefix+id)
 			report.Unfed = append(report.Unfed, scope.graph.readersOf(node, scope.prefix)...)
-			if _, err := scope.graph.deleteNode(node); err != nil {
+			if err := scope.graph.deleteNode(node); err != nil {
 				return err
 			}
 		}
@@ -171,33 +169,26 @@ func (a *Instance) SetVariableInfo(variablePath, newPath, description string) er
 	if err := a.SetVariableDescription(variablePath, description); err != nil {
 		return err
 	}
-	a.mu().Lock()
-	defer a.mu().Unlock()
-	clean := strings.TrimSpace(newPath)
-	if err := a.variables.Move(variablePath, clean); err != nil {
-		return err
-	}
-	if clean == variablePath {
-		return nil
-	}
-	moved, err := a.variables.Variable(clean)
-	if err != nil {
-		return err
-	}
-	a.typeFactory.Unregister(variablePath)
-	a.typeFactory.RegisterBuilder(clean, func() any {
-		return moved.NodeReference()
+	_, err := a.write(refuseConflicts, func() error {
+		clean := strings.TrimSpace(newPath)
+		if err := a.variables.Move(variablePath, clean); err != nil {
+			return err
+		}
+		if clean == variablePath {
+			return nil
+		}
+		moved, err := a.variables.Variable(clean)
+		if err != nil {
+			return err
+		}
+		a.typeFactory.Unregister(variablePath)
+		a.typeFactory.RegisterBuilder(clean, func() any {
+			return moved.NodeReference()
+		})
+		a.renameInProfiles(variablePath, clean)
+		return a.renameInVariantSets(variablePath, clean)
 	})
-
-	// Copy sources hold reference nodes by the path they had when encoded.
-	clear(a.copySources)
-
-	a.renameInProfiles(variablePath, clean)
-	if err := a.renameInVariantSets(variablePath, clean); err != nil {
-		return err
-	}
-	a.incModelVersion()
-	return nil
+	return err
 }
 
 func (a *Instance) renameInProfiles(oldPath, newPath string) {
@@ -259,18 +250,16 @@ func (a *Instance) SetVariableDescription(variablePath, description string) erro
 	return nil
 }
 
-func (a *Instance) UpdateVariable(variablePath string, data []byte) (bool, error) {
-	a.mu().Lock()
-	defer a.mu().Unlock()
-
-	variable, err := a.variables.Variable(variablePath)
-	if err != nil {
-		return false, err
-	}
-
-	r, err := variable.ApplyMessage(data)
-	a.incModelVersion()
-	return r, err
+func (a *Instance) UpdateVariable(variablePath string, data []byte) (changed bool, err error) {
+	_, err = a.write(refuseConflicts, func() error {
+		variable, err := a.variables.Variable(variablePath)
+		if err != nil {
+			return err
+		}
+		changed, err = variable.ApplyMessage(data)
+		return err
+	})
+	return changed, err
 }
 
 func (a *Instance) VariableData(variablePath string) ([]byte, error) {
@@ -317,10 +306,10 @@ func (a *Instance) LoadProfile(profileName string) error {
 }
 
 func (a *Instance) ApplyProfile(profile variable.Profile) error {
-	a.mu().Lock()
-	defer a.mu().Unlock()
-	a.incModelVersion()
-	return a.variables.ApplyProfile(profile)
+	_, err := a.write(refuseConflicts, func() error {
+		return a.variables.ApplyProfile(profile)
+	})
+	return err
 }
 
 func (a *Instance) VariantSets() *named.Collection[variant.Set] {

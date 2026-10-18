@@ -11,33 +11,32 @@ import (
 )
 
 func (a *Instance) SetNodeAsProducer(nodeId, nodePort, producerName string) error {
-	a.mu().Lock()
-	defer a.mu().Unlock()
-
-	node, ok := a.nodesByID[nodeId]
-	if !ok {
-		return fmt.Errorf("no node exists with id %q", nodeId)
-	}
-	output, ok := node.Outputs()[nodePort]
-	if !ok {
-		return fmt.Errorf("node %q does not contain output %q", nodeId, nodePort)
-	}
-	producer, ok := output.(nodes.Output[manifest.Manifest])
-	if !ok {
-		return fmt.Errorf("node %q output %q does not produce artifacts", nodeId, nodePort)
-	}
-
-	a.namedManifests.NamePort(producerName, nodePort, node, producer)
-	a.incModelVersion()
-	return nil
+	_, err := a.write(refuseConflicts, func() error {
+		node, ok := a.nodesByID[nodeId]
+		if !ok {
+			return fmt.Errorf("no node exists with id %q", nodeId)
+		}
+		outputs := node.Outputs()
+		key, ok := outputKey(outputs, nodePort)
+		if !ok {
+			return fmt.Errorf("node %q does not contain output %q", nodeId, nodePort)
+		}
+		producer, ok := outputs[key].(nodes.Output[manifest.Manifest])
+		if !ok {
+			return fmt.Errorf("node %q output %q does not produce artifacts", nodeId, nodePort)
+		}
+		a.namedManifests.NamePort(producerName, key, node, producer)
+		return nil
+	})
+	return err
 }
 
 func (a *Instance) AddProducer(producerName string, producer nodes.Output[manifest.Manifest]) {
-	a.mu().Lock()
-	defer a.mu().Unlock()
-
-	a.registerWithInputs(producer.Node(), "")
-	a.namedManifests.NamePort(producerName, producer.Name(), producer.Node(), producer)
+	a.write(refuseConflicts, func() error {
+		a.registerWithInputs(producer.Node(), "")
+		a.namedManifests.NamePort(producerName, producer.Name(), producer.Node(), producer)
+		return nil
+	})
 }
 
 // Evaluate runs f with the graph held still. Reading a node's value while

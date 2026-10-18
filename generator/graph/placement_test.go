@@ -195,15 +195,16 @@ func TestABatchReportsTheEdgesItHadToDrop(t *testing.T) {
 	_, sum, err := instance.CreateNode(floatArraySumType)
 	require.NoError(t, err)
 
-	err = instance.Batch(func() error {
+	dropped, err := instance.Batch(func() error {
 		require.NoError(t, instance.ConnectNodes(source, "Out", double, "In"))
 		require.NoError(t, instance.ConnectNodes(double, "Out", sum, "In"))
 		require.NoError(t, errOf(instance.DeleteNodeInputConnection(double, "In")))
 		return nil
 	})
 
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "cannot take")
+	require.NoError(t, err)
+	require.Len(t, dropped, 1)
+	assert.Contains(t, dropped[0].Reason, "takes")
 	assert.Nil(t, instance.Node(sum).Inputs()["In"].(nodes.SingleValueInputPort).Value())
 }
 
@@ -214,13 +215,14 @@ func TestABatchNamesHowToFixAnEdgeItAddedThatDoesNotFit(t *testing.T) {
 	_, sum, err := instance.CreateNode(floatArraySumType)
 	require.NoError(t, err)
 
-	err = instance.Batch(func() error {
+	dropped, err := instance.Batch(func() error {
 		return instance.ConnectNodes(source, "Out", sum, "In")
 	})
 
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "cannot take")
-	assert.Contains(t, err.Error(), "build the array first")
+	require.NoError(t, err)
+	require.Len(t, dropped, 1)
+	assert.Contains(t, dropped[0].Reason, "takes")
+	assert.Contains(t, dropped[0].Reason, "build the array first")
 }
 
 func TestLoadingAGraphWhereANodeReadsItsOwnOutputIsRefused(t *testing.T) {

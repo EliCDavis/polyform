@@ -15,6 +15,7 @@ type ReplacedInstance struct {
 	KeptOutputs []string
 	LostInputs  []string
 	LostOutputs []string
+	Dropped     []DroppedEdge
 }
 
 type outboundEdge struct {
@@ -24,35 +25,41 @@ type outboundEdge struct {
 	output   string
 }
 
-// The id stays; an edge stays when both placements have its port with a fitting type.
+// The id stays; an edge stays when both placements have a port of that
+// name with a fitting type.
 func (a *Graph) ReplaceSubgraphInstance(nodeID, subGraphID string) (result ReplacedInstance, err error) {
-	a.mu().Lock()
-	defer a.mu().Unlock()
+	result.Dropped, err = a.project.write(dropConflicts, func() error {
+		return a.replaceSubgraphInstance(nodeID, subGraphID, &result)
+	})
+	return result, err
+}
 
+func (a *Graph) replaceSubgraphInstance(nodeID, subGraphID string, result *ReplacedInstance) error {
 	node, ok := a.nodesByID[nodeID]
 	if !ok {
-		return result, fmt.Errorf("no node exists with id %q", nodeID)
+		return fmt.Errorf("no node exists with id %q", nodeID)
 	}
 	old, ok := node.(*SubgraphInstanceNode)
 	if !ok {
-		return result, fmt.Errorf("node %q is not a subgraph instance", nodeID)
+		return fmt.Errorf("node %q is not a subgraph instance", nodeID)
 	}
 	if _, exists := a.project.subGraphs[subGraphID]; !exists {
-		return result, fmt.Errorf("sub-graph %q does not exist", subGraphID)
+		return fmt.Errorf("sub-graph %q does not exist", subGraphID)
 	}
-	if scope := a.SubGraphScopeID(); scope != "" && a.project.wouldContainItself(scope, subGraphID) {
-		return result, refuseSelfContainment(scope, subGraphID)
+	if a.scope != "" && a.project.wouldContainItself(a.scope, subGraphID) {
+		return refuseSelfContainment(a.scope, subGraphID)
 	}
 	if old.subGraphID == subGraphID {
-		return result, fmt.Errorf("node %q is already an instance of %q", nodeID, subGraphID)
+		return fmt.Errorf("node %q is already an instance of %q", nodeID, subGraphID)
 	}
 
 	typePath := subgraph.RuntimeTypePath(subGraphID)
 	fresh, ok := a.project.typeFactory.New(typePath).(*SubgraphInstanceNode)
 	if !ok {
-		return result, fmt.Errorf("sub-graph %q has no registered node type", subGraphID)
+		return fmt.Errorf("sub-graph %q has no registered node type", subGraphID)
 	}
 
+	oldInputs, oldOutputs := old.Inputs(), old.Outputs()
 	inbound := a.reads[old]
 	var outbound []outboundEdge
 	for _, consumerID := range slices.Sorted(maps.Keys(a.nodesByID)) {
@@ -76,51 +83,36 @@ func (a *Graph) ReplaceSubgraphInstance(nodeID, subGraphID string) (result Repla
 		}
 	}
 
-	end := a.beginCompoundEdit()
-	defer func() {
-		if endErr := end(); endErr != nil && err == nil {
-			err = endErr
-		}
-	}()
-
 	a.project.namedManifests.DeleteNode(old)
 	a.forget(old)
 	a.register(fresh, nodeID, typePath)
 	a.reads[fresh] = map[string][]source{}
-	a.deferredToCompoundEdit()
+	a.dirty()
 
-	freshInputs := fresh.Inputs()
 	for _, input := range slices.Sorted(maps.Keys(inbound)) {
-		if _, has := freshInputs[input]; !has {
-			result.LostInputs = append(result.LostInputs, fmt.Sprintf("%s: %q has no input named %q", input, subGraphID, input))
-			continue
-		}
+		name := label(oldInputs[input])
 		var failed error
 		for _, from := range inbound[input] {
-			if failed = a.connectNodes(a.nodeIDs[from.node], from.port, nodeID, input); failed != nil {
+			if failed = a.connectNodes(a.nodeIDs[from.node], from.port, nodeID, name); failed != nil {
 				break
 			}
 		}
 		if failed != nil {
-			result.LostInputs = append(result.LostInputs, fmt.Sprintf("%s: %v", input, failed))
+			result.LostInputs = append(result.LostInputs, fmt.Sprintf("%s: %v", name, failed))
 			continue
 		}
-		result.KeptInputs = append(result.KeptInputs, input)
+		result.KeptInputs = append(result.KeptInputs, name)
 	}
 
-	freshOutputs := fresh.Outputs()
 	for _, o := range outbound {
 		consumerID := a.nodeIDs[o.consumer]
 		target := o.input
 		if _, isArray := o.consumer.Inputs()[o.input].(nodes.ArrayValueInputPort); isArray {
 			target = fmt.Sprintf("%s.%d", o.input, o.index)
 		}
-		label := fmt.Sprintf("%s -> %s.%s", o.output, consumerID, target)
-		if _, has := freshOutputs[o.output]; !has {
-			result.LostOutputs = append(result.LostOutputs, fmt.Sprintf("%s: %q has no output named %q", label, subGraphID, o.output))
-			continue
-		}
-		if e := a.connectNodes(nodeID, o.output, consumerID, target); e != nil {
+		name := label(oldOutputs[o.output])
+		label := fmt.Sprintf("%s -> %s.%s", name, consumerID, target)
+		if e := a.connectNodes(nodeID, name, consumerID, target); e != nil {
 			result.LostOutputs = append(result.LostOutputs, fmt.Sprintf("%s: %v", label, e))
 			continue
 		}
@@ -135,15 +127,14 @@ func (a *Graph) ReplaceSubgraphInstance(nodeID, subGraphID string) (result Repla
 		}
 	}
 
+	freshOutputs := fresh.Outputs()
 	for _, p := range producers {
-		if port, ok := freshOutputs[p.port].(nodes.Output[manifest.Manifest]); ok {
-			a.project.namedManifests.NamePort(p.name, p.port, fresh, port)
+		key, _ := outputKey(freshOutputs, label(oldOutputs[p.port]))
+		if port, ok := freshOutputs[key].(nodes.Output[manifest.Manifest]); ok {
+			a.project.namedManifests.NamePort(p.name, key, fresh, port)
 			continue
 		}
-		result.LostOutputs = append(result.LostOutputs, fmt.Sprintf("producer %q read %s, which %q does not produce a manifest on", p.name, p.port, subGraphID))
+		result.LostOutputs = append(result.LostOutputs, fmt.Sprintf("producer %q read %s, which %q does not produce a manifest on", p.name, label(oldOutputs[p.port]), subGraphID))
 	}
-
-	a.clearCopySource()
-	a.incModelVersion()
-	return result, nil
+	return nil
 }

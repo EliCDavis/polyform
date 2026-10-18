@@ -7,13 +7,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/EliCDavis/polyform/generator/persistence"
 	"github.com/EliCDavis/polyform/generator/subgraph"
 	"github.com/EliCDavis/polyform/nodes"
 )
 
 func (a *Graph) register(node nodes.Node, id, typeKey string) {
-	a.clearBoundaryCache()
 	a.nodeIDs[node] = id
 	a.nodesByID[id] = node
 	if typeKey != "" {
@@ -27,7 +25,6 @@ func (a *Graph) register(node nodes.Node, id, typeKey string) {
 }
 
 func (a *Graph) forget(node nodes.Node) {
-	a.clearBoundaryCache()
 	delete(a.nodesByID, a.nodeIDs[node])
 	delete(a.nodeIDs, node)
 	delete(a.nodeTypeKeys, node)
@@ -71,6 +68,7 @@ func (a *Graph) registerWithInputs(node nodes.Node, typeKey string) {
 
 	a.register(node, a.nextNodeID(), typeKey)
 	a.reads[node] = reads
+	a.dirty()
 }
 
 func (a *Graph) NodeId(node nodes.Node) string {
@@ -94,19 +92,23 @@ func (a *Graph) Node(nodeId string) nodes.Node {
 	return node
 }
 
-func (a *Graph) CreateNode(nodeType string) (nodes.Node, string, error) {
-	a.mu().Lock()
-	defer a.mu().Unlock()
-	return a.createNode(nodeType, "")
+func (a *Graph) CreateNode(nodeType string) (node nodes.Node, id string, err error) {
+	_, err = a.project.write(refuseConflicts, func() (err error) {
+		node, id, err = a.createNode(nodeType, "")
+		return err
+	})
+	return node, id, err
 }
 
-func (a *Graph) CreateBoundaryNode(nodeType, portType string) (nodes.Node, string, error) {
+func (a *Graph) CreateBoundaryNode(nodeType, portType string) (node nodes.Node, id string, err error) {
 	if strings.TrimSpace(portType) == "" {
 		return nil, "", fmt.Errorf("boundary port type is required")
 	}
-	a.mu().Lock()
-	defer a.mu().Unlock()
-	return a.createNode(nodeType, portType)
+	_, err = a.project.write(refuseConflicts, func() (err error) {
+		node, id, err = a.createNode(nodeType, portType)
+		return err
+	})
+	return node, id, err
 }
 
 func (a *Graph) createNode(nodeType, portType string) (nodes.Node, string, error) {
@@ -115,8 +117,8 @@ func (a *Graph) createNode(nodeType, portType string) (nodes.Node, string, error
 		return nil, "", fmt.Errorf("no factory registered with ID %s", nodeType)
 	}
 	if placed := subgraph.RuntimeTypeID(nodeType); placed != "" {
-		if scope := a.SubGraphScopeID(); scope != "" && a.project.wouldContainItself(scope, placed) {
-			return nil, "", refuseSelfContainment(scope, placed)
+		if a.scope != "" && a.project.wouldContainItself(a.scope, placed) {
+			return nil, "", refuseSelfContainment(a.scope, placed)
 		}
 	}
 
@@ -140,40 +142,31 @@ func (a *Graph) createNode(nodeType, portType string) (nodes.Node, string, error
 	}
 
 	a.registerWithInputs(node, nodeType)
-	id := a.nodeIDs[node]
-
-	// A boundary is not a port until it is named, so nothing is reshaped yet.
-	err := a.updateCopies(func(copied *Graph) error {
-		created, err := copied.instantiateAppNode(id, persistence.Node{Type: nodeType})
-		if boundary, isBoundary := subgraph.IsBoundaryNode(created); isBoundary && err == nil {
-			err = subgraph.ConfigureBoundaryPortType(boundary, portType)
-		}
-		return err
-	})
-	return node, id, err
+	return node, a.nodeIDs[node], nil
 }
 
 // DeleteNodeById returns the edges elsewhere that no longer fit without it.
 func (a *Graph) DeleteNodeById(nodeId string) ([]DroppedEdge, error) {
-	a.mu().Lock()
-	defer a.mu().Unlock()
-	return a.deleteNodeByID(nodeId)
+	return a.project.write(dropConflicts, func() error {
+		return a.deleteNodeByID(nodeId)
+	})
 }
 
-func (a *Graph) deleteNodeByID(nodeId string) ([]DroppedEdge, error) {
+func (a *Graph) deleteNodeByID(nodeId string) error {
 	node, ok := a.nodesByID[nodeId]
 	if !ok {
-		return nil, fmt.Errorf("can't delete, no node registered with ID %s", nodeId)
+		return fmt.Errorf("can't delete, no node registered with ID %s", nodeId)
 	}
 	return a.deleteNode(node)
 }
 
-func (a *Graph) deleteNode(nodeToDelete nodes.Node) ([]DroppedEdge, error) {
+func (a *Graph) deleteNode(nodeToDelete nodes.Node) error {
 	if _, ok := a.nodeIDs[nodeToDelete]; !ok {
-		return nil, fmt.Errorf("can't delete a node that is not in the graph")
+		return fmt.Errorf("can't delete a node that is not in the graph")
 	}
 
 	a.project.namedManifests.DeleteNode(nodeToDelete)
+	a.dirty()
 	a.forget(nodeToDelete)
 
 	for consumer, inputs := range a.reads {
@@ -184,13 +177,7 @@ func (a *Graph) deleteNode(nodeToDelete nodes.Node) ([]DroppedEdge, error) {
 			}
 		}
 	}
-
-	dropped, err := a.commitEdit(dropConflicts)
-	if err != nil {
-		return nil, err
-	}
-	a.incModelVersion()
-	return dropped, nil
+	return nil
 }
 
 func (a *Graph) Parameter(nodeId string) (Parameter, error) {
@@ -205,27 +192,18 @@ func (a *Graph) Parameter(nodeId string) (Parameter, error) {
 	return param, nil
 }
 
-func (a *Graph) UpdateParameter(nodeId string, data []byte) (bool, error) {
-	a.mu().Lock()
-	defer a.mu().Unlock()
-
-	param, err := a.Parameter(nodeId)
-	if err != nil {
-		return false, err
-	}
-	changed, err := param.ApplyMessage(data)
-	if err != nil {
-		return false, err
-	}
-	a.incModelVersion()
-	return changed, a.updateCopies(func(copied *Graph) error {
-		param, err := copied.Parameter(nodeId)
+// A parameter inside a definition is the same node in every copy, so the
+// change reaches every placement without an edit to the graph.
+func (a *Graph) UpdateParameter(nodeId string, data []byte) (changed bool, err error) {
+	_, err = a.project.write(refuseConflicts, func() (err error) {
+		param, err := a.Parameter(nodeId)
 		if err != nil {
 			return err
 		}
-		_, err = param.ApplyMessage(data)
+		changed, err = param.ApplyMessage(data)
 		return err
 	})
+	return changed, err
 }
 
 func (a *Graph) ParameterData(nodeId string) ([]byte, error) {

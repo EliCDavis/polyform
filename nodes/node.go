@@ -22,6 +22,11 @@ type OutputPort interface {
 	Version() int
 }
 
+// A port whose Name is a key rather than what to show.
+type Labeled interface {
+	Label() string
+}
+
 type Output[T any] interface {
 	OutputPort
 	Value() T

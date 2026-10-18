@@ -66,7 +66,15 @@ func GetOutputReference[G any](result ExecutionRecorder, output Output[G]) *G {
 func GetNodeOutputPort[T any](node Node, portName string) Output[T] {
 	outputs := node.Outputs()
 
-	if port, ok := outputs[portName]; ok {
+	port, ok := outputs[portName]
+	if !ok {
+		for _, candidate := range outputs {
+			if labeled, isLabeled := candidate.(Labeled); isLabeled && labeled.Label() == portName {
+				port, ok = candidate, true
+			}
+		}
+	}
+	if ok {
 		if cast, ok := port.(Output[T]); ok {
 			return cast
 		}

@@ -90,7 +90,7 @@ func TestTakingTheArrayOffALiftedNodeDropsAReaderThatOnlyTakesArrays(t *testing.
 	assert.Equal(t, graph.DroppedEdge{
 		From: double, FromPort: "Out", To: sum, ToPort: "In", Reason: dropped[0].Reason,
 	}, dropped[0])
-	assert.Contains(t, dropped[0].Reason, "cannot take")
+	assert.Contains(t, dropped[0].Reason, "takes []float64")
 
 	saved, err := instance.EncodeToAppSchema()
 	require.NoError(t, err)

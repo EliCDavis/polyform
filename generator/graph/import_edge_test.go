@@ -187,7 +187,7 @@ func TestAVariableReadThreeLevelsDownIsOneInputAtTheTop(t *testing.T) {
 
 	top, topID := place(t, dest, "top")
 	assert.Equal(t, 7.0, out(t, top))
-	assert.Equal(t, []string{"Size"}, slices.Collect(maps.Keys(top.Inputs())))
+	assert.Equal(t, []string{"Size"}, inputLabels(top))
 	feed(t, dest, topID, "Size", 3)
 	assert.Equal(t, 3.0, out(t, top))
 }
@@ -275,7 +275,7 @@ func TestAVariableWithNoValueNodeStillBecomesAnInputWithoutADefault(t *testing.T
 
 	assert.Equal(t, []graph.VariableInput{{Variable: "Flag", Port: "Flag", HasDefault: false}}, result.Imported[0].Inputs)
 	placement, _ := place(t, dest, "flagged")
-	assert.Contains(t, placement.Inputs(), "Flag")
+	assert.Contains(t, inputLabels(placement), "Flag")
 }
 
 func TestAVariableReadOnlyByTheRootIsNotLifted(t *testing.T) {

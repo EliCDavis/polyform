@@ -132,7 +132,7 @@ func (s *liftScope) feedPlacements(lifted map[string]map[string]liftedVariable) 
 			if err != nil {
 				return err
 			}
-			node.AssignedInput[needed[path].input.Port] = schema.PortReference{
+			node.AssignedInput[needed[path].boundaryID] = schema.PortReference{
 				NodeId:   own.boundaryID,
 				PortName: subgraph.ValuePortName,
 			}

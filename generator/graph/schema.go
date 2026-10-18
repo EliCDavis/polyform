@@ -1,8 +1,6 @@
 package graph
 
 import (
-	"fmt"
-
 	"github.com/EliCDavis/polyform/generator/schema"
 	"github.com/EliCDavis/polyform/generator/subgraph"
 	"github.com/EliCDavis/polyform/generator/variable"
@@ -11,22 +9,24 @@ import (
 )
 
 // assignedInputs is every edge into node, keyed "Port" or "Port.N" for an
-// element of an array input.
-func (a *Graph) assignedInputs(node nodes.Node) map[string]schema.PortReference {
+// element of an array input. Ports are named by key when saving and by
+// label when shown.
+func (a *Graph) assignedInputs(node nodes.Node, name func(nodes.Port) string) map[string]schema.PortReference {
 	assigned := make(map[string]schema.PortReference)
 	if len(a.reads[node]) == 0 {
 		return assigned
 	}
 
 	inputs := node.Inputs()
-	for name, sources := range a.reads[node] {
-		_, isArray := inputs[name].(nodes.ArrayValueInputPort)
+	for input, sources := range a.reads[node] {
+		_, isArray := inputs[input].(nodes.ArrayValueInputPort)
 		for i, from := range sources {
-			key := name
+			element := nextElement
 			if isArray {
-				key = fmt.Sprintf("%s.%d", name, i)
+				element = i
 			}
-			assigned[key] = schema.PortReference{NodeId: a.nodeIDs[from.node], PortName: from.port}
+			out := from.node.Outputs()[from.port]
+			assigned[elementName(name(inputs[input]), element)] = schema.PortReference{NodeId: a.nodeIDs[from.node], PortName: name(out)}
 		}
 	}
 	return assigned
@@ -54,7 +54,7 @@ func (a *Graph) NodeInstanceSchema(node nodes.Node) schema.Node {
 		Name:          "Unamed",
 		Type:          nodeTypeName(node),
 		DynamicTypes:  dynamicTypes,
-		AssignedInput: a.assignedInputs(node),
+		AssignedInput: a.assignedInputs(node, label),
 		Output:        make(map[string]schema.NodeOutputPort),
 		Metadata:      metadata,
 	}
@@ -89,12 +89,12 @@ func (a *Graph) NodeInstanceSchema(node nodes.Node) schema.Node {
 		nodeInstance.SubGraphId = placement.SubGraphID()
 	}
 
-	for name, port := range node.Outputs() {
+	for _, port := range node.Outputs() {
 		output := schema.NodeOutputPort{Version: port.Version()}
 		if instance, ok := port.(nodes.InstanceTyped); ok {
 			output.Type = instance.InstanceType()
 		}
-		nodeInstance.Output[name] = output
+		nodeInstance.Output[label(port)] = output
 	}
 
 	return nodeInstance
@@ -107,9 +107,9 @@ func (a *Graph) ExecutionReport() schema.GraphExecutionReport {
 	reports := make(map[string]schema.NodeExecutionReport, len(a.nodesByID))
 	for id, node := range a.nodesByID {
 		report := schema.NodeExecutionReport{Output: make(map[string]nodes.ExecutionReport)}
-		for name, port := range node.Outputs() {
+		for _, port := range node.Outputs() {
 			if observable, ok := port.(nodes.ObservableExecution); ok {
-				report.Output[name] = observable.ExecutionReport()
+				report.Output[label(port)] = observable.ExecutionReport()
 			}
 		}
 		reports[id] = report
