@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Box, ChevronDown, ChevronRight, CircleDot, Eye, EyeOff, Layers } from "lucide-react";
 import { useModelStatsStore } from "@/stores/modelStatsStore";
+import { useAnimationStore } from "@/stores/animationStore";
 import { useUiStore } from "@/stores/uiStore";
 import { useEditorOptional } from "@/features/editor/EditorContext";
 import type { HierarchyEntry, HierarchyKind } from "@/lib/ProducerView/model_hierarchy";
@@ -84,6 +85,7 @@ export function ModelStats() {
   const stats = useModelStatsStore((s) => s.stats);
   const hierarchy = useModelStatsStore((s) => s.hierarchy);
   const hideStats = useUiStore((s) => s.hideStats);
+  const animated = useAnimationStore((s) => s.clips.length > 0);
   const editor = useEditorOptional();
   const [open, setOpen] = useState(false);
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
@@ -120,7 +122,7 @@ export function ModelStats() {
   };
 
   return (
-    <div className={styles.root}>
+    <div className={`${styles.root} ${animated ? styles.aboveAnimation : ""}`}>
       <button className={styles.stats} onClick={toggleOpen} aria-expanded={open} title="Model hierarchy">
         {stats.triangles > 0 && (
           <span>

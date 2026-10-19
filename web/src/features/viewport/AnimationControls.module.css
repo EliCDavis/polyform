@@ -1,0 +1,79 @@
+.controls {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  z-index: 1;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 4px 8px;
+  box-sizing: border-box;
+  border: 2px solid #003847;
+  border-radius: 4px;
+  background-color: #00212b;
+  color: #ffffff;
+  font-family: monospace;
+  font-size: 11px;
+  line-height: 1.4;
+  user-select: none;
+}
+
+.iconButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 2px;
+  background-color: #0a2e3d;
+  color: #8fa8b0;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.iconButton:hover {
+  background-color: #0f4152;
+}
+
+.primary,
+.primary:hover,
+.active,
+.active:hover {
+  background-color: #196e6c;
+  color: #ffffff;
+}
+
+.slider {
+  flex: 1;
+  min-width: 60px;
+  padding: 0;
+  border: none;
+  accent-color: #196d6d;
+  cursor: pointer;
+}
+
+.time {
+  font-weight: bold;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.unit {
+  color: #8fa8b0;
+  font-weight: normal;
+  margin-left: 4px;
+}
+
+.select {
+  max-width: 160px;
+  padding: 1px 4px;
+  border: 2px solid #003847;
+  border-radius: 2px;
+  font: inherit;
+}

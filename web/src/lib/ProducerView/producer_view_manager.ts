@@ -15,6 +15,9 @@ import {
   Vector3,
   WebGLRenderer,
   AnimationMixer,
+  AnimationAction,
+  AnimationClip,
+  LoopOnce,
   BoxHelper,
   DoubleSide,
   InstancedMesh,
@@ -25,6 +28,7 @@ import {
 } from "three";
 import { messageActions } from "@/stores/messageStore";
 import { modelStatsActions } from "@/stores/modelStatsStore";
+import { animationActions } from "@/stores/animationStore";
 import { countModelStats } from "./model_stats";
 import { buildHierarchy, walkHierarchy } from "./model_hierarchy";
 import { ShadingMode, debugMaterialFor } from "./debug_materials";
@@ -67,7 +71,7 @@ const GRID_SLACK = 1.15;
 const GRID_REACH = 5;
 const GRID_MAX_DIVISIONS = 500;
 
-const HIGHLIGHT_COLOR = 0xff9f1c;
+const HIGHLIGHT_COLOR = 0x4fb3b3;
 
 const textureLoader = new TextureLoader();
 const textureEquirec = textureLoader.load(
@@ -126,6 +130,18 @@ export class ProducerViewManager {
   readonly runningMessage: HTMLElement | undefined;
 
   mixer: AnimationMixer | null;
+
+  private animationClips: AnimationClip[] = [];
+
+  private animationAction: AnimationAction | null = null;
+
+  private animationIndex = 0;
+
+  private animationPlaying = true;
+
+  private animationLoop = true;
+
+  private animationTime = 0;
 
   private readonly hiddenParts = new Set<string>();
 
@@ -199,8 +215,18 @@ export class ProducerViewManager {
   }
 
   private updateLoop(delta: number): void {
-    if (this.mixer) {
-      this.mixer.update(delta);
+    if (this.animationAction && this.animationPlaying) {
+      const duration = this.animationAction.getClip().duration;
+      let time = this.animationTime + delta;
+      if (time >= duration) {
+        if (this.animationLoop && duration > 0) {
+          time %= duration;
+        } else {
+          time = duration;
+          this.animationPlaying = false;
+        }
+      }
+      this.applyAnimationTime(time);
       requestRender();
     }
 
@@ -509,7 +535,8 @@ export class ProducerViewManager {
 
         if (gltf.animations && gltf.animations.length > 0) {
           this.mixer = new AnimationMixer(gltf.scene);
-          this.mixer.clipAction(gltf.animations[0]).play();
+          this.animationClips = gltf.animations;
+          this.PlayAnimationClip(Math.min(this.animationIndex, gltf.animations.length - 1));
         }
 
         gltf.scene.traverse((object) => {
@@ -902,8 +929,69 @@ export class ProducerViewManager {
     return overlay;
   }
 
+  PlayAnimationClip(index: number): void {
+    const clip = this.animationClips[index];
+    if (!this.mixer || !clip) {
+      return;
+    }
+    this.mixer.stopAllAction();
+    if (index !== this.animationIndex) {
+      this.animationTime = 0;
+    }
+    this.animationIndex = index;
+    this.animationAction = this.mixer.clipAction(clip);
+    this.animationAction.setLoop(LoopOnce, 1);
+    this.animationAction.clampWhenFinished = true;
+    this.animationAction.play();
+    this.animationAction.paused = true;
+    animationActions.set({
+      clips: this.animationClips.map((c, i) => ({ name: c.name || `Animation ${i + 1}`, duration: c.duration })),
+      active: index,
+      playing: this.animationPlaying,
+      loop: this.animationLoop,
+    });
+    this.applyAnimationTime(Math.min(this.animationTime, clip.duration));
+    requestRender();
+  }
+
+  SetAnimationPlaying(playing: boolean): void {
+    if (playing && this.animationAction && this.animationTime >= this.animationAction.getClip().duration) {
+      this.applyAnimationTime(0);
+    }
+    this.animationPlaying = playing;
+    animationActions.set({ playing });
+  }
+
+  SetAnimationLoop(loop: boolean): void {
+    this.animationLoop = loop;
+    animationActions.set({ loop });
+  }
+
+  SeekAnimation(time: number): void {
+    this.applyAnimationTime(time);
+    requestRender();
+  }
+
+  private applyAnimationTime(time: number): void {
+    this.animationTime = time;
+    if (this.animationAction && this.mixer) {
+      this.animationAction.time = time;
+      this.mixer.update(0);
+    }
+    animationActions.set({ time, playing: this.animationPlaying });
+  }
+
+  private clearAnimation(): void {
+    this.mixer?.stopAllAction();
+    this.mixer = null;
+    this.animationAction = null;
+    this.animationClips = [];
+    animationActions.set({ clips: [] });
+  }
+
   private cleanProducerScene() {
     this.clearHighlight();
+    this.clearAnimation();
     if (this.producerScene != null) {
       this.viewerContainer.remove(this.producerScene);
     }

@@ -8,14 +8,20 @@
   align-items: stretch;
   max-width: min(360px, calc(100% - 16px));
   max-height: calc(100% - 16px);
-  border-radius: 6px;
-  background-color: rgba(0, 33, 43, 0.6);
+  box-sizing: border-box;
+  border: 2px solid #003847;
+  border-radius: 4px;
+  background-color: #00212b;
   overflow: hidden;
-  color: #d8f4f4;
+  color: #ffffff;
   font-family: monospace;
   font-size: 11px;
   line-height: 1.4;
   user-select: none;
+}
+
+.aboveAnimation {
+  max-height: calc(100% - 60px);
 }
 
 .stats {
@@ -25,18 +31,15 @@
   gap: 10px;
   padding: 4px 8px;
   border: none;
+  border-radius: 0;
   background: none;
   color: inherit;
   font: inherit;
   cursor: pointer;
 }
 
-.root:has(.panel) {
-  background-color: rgba(0, 33, 43, 0.85);
-}
-
 .stats:hover {
-  background-color: rgba(216, 244, 244, 0.08);
+  background-color: #0a2e3d;
 }
 
 .value {
@@ -49,7 +52,7 @@
 }
 
 .arrow {
-  color: #8fa8b0;
+  color: #4fb3b3;
   margin-left: auto;
   transition: transform 0.15s;
 }
@@ -63,7 +66,9 @@
   min-height: 0;
   overflow: auto;
   padding: 4px 0;
-  border-top: 1px solid rgba(216, 244, 244, 0.15);
+  border-top: 2px solid #003847;
+  scrollbar-color: #196e6c #003847;
+  scrollbar-width: thin;
 }
 
 .row {
@@ -76,11 +81,11 @@
 }
 
 .row:hover {
-  background-color: rgba(255, 159, 28, 0.2);
+  background-color: #0f4152;
 }
 
 .hidden {
-  opacity: 0.45;
+  opacity: 0.4;
 }
 
 .iconButton {
@@ -91,7 +96,7 @@
   height: 16px;
   padding: 0;
   border: none;
-  border-radius: 3px;
+  border-radius: 2px;
   background: none;
   color: inherit;
   cursor: pointer;
@@ -99,11 +104,11 @@
 }
 
 .iconButton:hover {
-  background-color: rgba(216, 244, 244, 0.15);
+  background-color: #196e6c;
 }
 
 .kind {
-  color: #8fa8b0;
+  color: #4fb3b3;
   flex-shrink: 0;
 }
 
@@ -116,7 +121,6 @@
 
 .count {
   margin-left: 8px;
-  color: #d8f4f4;
 }
 
 .empty {
