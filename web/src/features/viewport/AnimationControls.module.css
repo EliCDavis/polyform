@@ -71,9 +71,42 @@
 }
 
 .select {
+  min-width: 0;
   max-width: 160px;
   padding: 1px 4px;
   border: 2px solid #003847;
   border-radius: 2px;
   font: inherit;
+}
+
+@container (max-width: 480px) {
+  .controls {
+    flex-wrap: wrap;
+    row-gap: 4px;
+  }
+
+  .slider {
+    order: 1;
+    flex-basis: 100%;
+  }
+
+  .select {
+    flex: 1;
+    max-width: none;
+  }
+}
+
+@media (pointer: coarse) {
+  .iconButton {
+    width: 36px;
+    height: 32px;
+  }
+
+  .slider {
+    height: 28px;
+  }
+
+  .select {
+    min-height: 32px;
+  }
 }

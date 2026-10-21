@@ -25,6 +25,7 @@ import {
   MeshBasicMaterial,
   Object3D,
   SkinnedMesh,
+  Sphere,
 } from "three";
 import { messageActions } from "@/stores/messageStore";
 import { modelStatsActions } from "@/stores/modelStatsStore";
@@ -70,6 +71,20 @@ function floorShift(aabb: Box3): number {
 const GRID_SLACK = 1.15;
 const GRID_REACH = 5;
 const GRID_MAX_DIVISIONS = 500;
+const CAPTURE_PADDING = 1.1;
+const CAPTURE_FIT_PASSES = 3;
+
+function boxCorners(box: Box3): Vector3[] {
+  const corners: Vector3[] = [];
+  for (const x of [box.min.x, box.max.x]) {
+    for (const y of [box.min.y, box.max.y]) {
+      for (const z of [box.min.z, box.max.z]) {
+        corners.push(new Vector3(x, y, z));
+      }
+    }
+  }
+  return corners;
+}
 
 const HIGHLIGHT_COLOR = 0x4fb3b3;
 
@@ -309,6 +324,107 @@ export class ProducerViewManager {
       return;
     }
     this.Refresh(schema);
+  }
+
+  // Fits the visible model inside the centre square of the frame; call the result to undo.
+  FrameForCapture(): () => void {
+    const box = this.visibleModelBounds();
+    if (box.isEmpty()) {
+      return () => {};
+    }
+
+    const camera = this.camera;
+    const target = this.orbitControls.target;
+    const savedPosition = camera.position.clone();
+    const savedNear = camera.near;
+    const savedFar = camera.far;
+    const savedFog = this.scene.fog;
+
+    const hidden: Object3D[] = [];
+    for (const child of this.scene.children) {
+      if (child.visible && child !== this.viewerContainer && !(child as { isLight?: boolean }).isLight) {
+        child.visible = false;
+        hidden.push(child);
+      }
+    }
+    this.scene.fog = null;
+
+    const sphere = box.getBoundingSphere(new Sphere());
+    const halfFov = MathUtils.degToRad(camera.fov / 2);
+    const fitHalfAngle = camera.aspect >= 1 ? halfFov : Math.atan(Math.tan(halfFov) * camera.aspect);
+    let distance = (sphere.radius * CAPTURE_PADDING) / Math.sin(fitHalfAngle);
+
+    const direction = savedPosition.clone().sub(target);
+    if (direction.lengthSq() === 0) {
+      direction.set(0, 0.5, 1);
+    }
+    direction.normalize();
+
+    const cropX = camera.aspect >= 1 ? 1 / camera.aspect : 1;
+    const cropY = camera.aspect >= 1 ? 1 : camera.aspect;
+    const corners = boxCorners(box);
+    const projected = new Vector3();
+    for (let i = 0; i < CAPTURE_FIT_PASSES; i++) {
+      camera.position.copy(sphere.center).addScaledVector(direction, distance);
+      camera.lookAt(sphere.center);
+      this.setClipPlanes(distance / 100, distance + sphere.radius * 4);
+      camera.updateMatrixWorld();
+      let extent = 0;
+      for (const corner of corners) {
+        projected.copy(corner).project(camera);
+        extent = Math.max(extent, Math.abs(projected.x) / cropX, Math.abs(projected.y) / cropY);
+      }
+      distance = Math.max(distance * extent * CAPTURE_PADDING, sphere.radius * 1.2);
+    }
+    camera.position.copy(sphere.center).addScaledVector(direction, distance);
+    camera.lookAt(sphere.center);
+    this.setClipPlanes(distance / 100, distance + sphere.radius * 4);
+
+    return () => {
+      for (const child of hidden) {
+        child.visible = true;
+      }
+      this.scene.fog = savedFog;
+      camera.position.copy(savedPosition);
+      camera.lookAt(target);
+      this.setClipPlanes(savedNear, savedFar);
+    };
+  }
+
+  private setClipPlanes(near: number, far: number): void {
+    this.camera.near = near;
+    this.camera.far = far;
+    this.camera.updateProjectionMatrix();
+    const ssao = this.ssaoEffect.ssaoMaterial.uniforms;
+    ssao.cameraNearFar.value.set(near, far);
+    ssao.projectionMatrix.value.copy(this.camera.projectionMatrix);
+    ssao.inverseProjectionMatrix.value.copy(this.camera.projectionMatrixInverse);
+  }
+
+  private visibleModelBounds(): Box3 {
+    const box = new Box3();
+    if (!this.producerScene) {
+      return box;
+    }
+    const part = new Box3();
+    this.producerScene.updateWorldMatrix(true, true);
+    this.producerScene.traverseVisible((obj) => {
+      if (obj instanceof InstancedMesh) {
+        obj.computeBoundingBox();
+        part.copy(obj.boundingBox!);
+      } else {
+        const geometry = (obj as Mesh).geometry;
+        if (!geometry) {
+          return;
+        }
+        geometry.computeBoundingBox();
+        part.copy(geometry.boundingBox!);
+      }
+      if (!part.isEmpty()) {
+        box.union(part.applyMatrix4(obj.matrixWorld));
+      }
+    });
+    return box;
   }
 
   Render(): void {

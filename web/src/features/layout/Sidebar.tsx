@@ -6,7 +6,7 @@ import { SubGraphSection } from "@/features/subgraph/SubGraphSection";
 import { useUiStore } from "@/stores/uiStore";
 import { ReactNode, useState } from "react";
 
-import { Puzzle, Variable, BookMarked, Video, Workflow } from "lucide-react";
+import { Puzzle, Variable, BookMarked, Video, Workflow, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { RenderingSection } from "../rendering/RenderingSection";
 import { ThreeApp } from "@/lib/three_app";
 import { NodesSection } from "../NodesSection/NodesSection";
@@ -22,7 +22,7 @@ enum SidebarSection {
 interface SideBarIconProps {
   icon: ReactNode;
   section: SidebarSection;
-  currentState: SidebarSection;
+  currentState: SidebarSection | null;
   click: (v: SidebarSection) => void;
 }
 
@@ -56,13 +56,26 @@ interface SidebarProps {}
 export function Sidebar({}: SidebarProps) {
   const hideInfo = useUiStore((s) => s.hideInfo);
   const hideWatermark = useUiStore((s) => s.hideWatermark);
+  const collapsed = useUiStore((s) => s.sidebarCollapsed);
+  const setCollapsed = useUiStore((s) => s.setSidebarCollapsed);
+  const drawer = useUiStore((s) => s.compactLayout) && !collapsed;
 
-  const [sectionShown, setSectionShown] = useState<SidebarSection>(
+  const [shown, setShown] = useState<SidebarSection>(
     SidebarSection.Variables,
   );
+  const sectionShown = collapsed ? null : shown;
+
+  const setSectionShown = (section: SidebarSection) => {
+    if (section === sectionShown) {
+      setCollapsed(true);
+      return;
+    }
+    setShown(section);
+    setCollapsed(false);
+  };
 
   return (
-    <div id="sidebar">
+    <div id="sidebar" className={drawer ? "drawer" : undefined}>
       <div id="sidebar-section-icons">
         <SideBarIcon
           section={SidebarSection.Nodes}
@@ -94,6 +107,14 @@ export function Sidebar({}: SidebarProps) {
           click={setSectionShown}
           icon={<Video />}
         />
+        <button
+          id="sidebar-collapse"
+          onClick={() => setCollapsed(!collapsed)}
+          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          {collapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
+        </button>
         {!hideWatermark && (
           <a
             id="sidebar-github"
@@ -106,7 +127,7 @@ export function Sidebar({}: SidebarProps) {
           </a>
         )}
       </div>
-      <div id="sidebar-content">
+      <div id="sidebar-content" style={collapsed ? { display: "none" } : undefined}>
         {!hideInfo && (
           <div id="info">
             <h1>{document.title || "Polyform"}</h1>

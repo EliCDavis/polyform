@@ -115,6 +115,7 @@ select {
 }
 
 #three-viewer-container {
+  container-type: inline-size;
   display: flex;
   position: relative;
   margin: 0;
@@ -129,20 +130,57 @@ select {
   outline: none !important;
 }
 
-.resizer[data-direction="horizontal"] {
+.resizer {
+  position: relative;
+  z-index: 5;
+  flex-shrink: 0;
+  touch-action: none;
   background-color: #004359;
+  transition: background-color 0.15s;
+}
+
+.resizer::before {
+  content: "";
+  position: absolute;
+}
+
+.resizer:hover,
+.resizer.dragging {
+  background-color: #196e6c;
+}
+
+.resizer[data-collapsed="true"] {
+  pointer-events: none;
+}
+
+.resizer[data-direction="horizontal"] {
   cursor: ew-resize;
   height: 100%;
-  width: 2px;
-  flex-shrink: 0;
+  width: 4px;
+}
+
+.resizer[data-direction="horizontal"]::before {
+  inset: 0 -6px;
 }
 
 .resizer[data-direction="vertical"] {
-  background-color: #004359;
   cursor: ns-resize;
-  height: 2px;
+  height: 4px;
   width: 100%;
-  flex-shrink: 0;
+}
+
+.resizer[data-direction="vertical"]::before {
+  inset: -6px 0;
+}
+
+@media (pointer: coarse) {
+  .resizer[data-direction="horizontal"]::before {
+    inset: 0 -14px;
+  }
+
+  .resizer[data-direction="vertical"]::before {
+    inset: -14px 0;
+  }
 }
 
 .profile-item:hover {
@@ -169,6 +207,24 @@ select {
   flex-direction: row;
 }
 
+#sidebar.drawer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: min(420px, calc(100vw - 24px));
+  height: auto;
+  z-index: 20;
+  box-shadow: 4px 0 16px rgba(0, 0, 0, 0.5);
+}
+
+#sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 19;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
 #sidebar-content {
   display: flex;
   flex-direction: column;
@@ -188,8 +244,21 @@ select {
   align-items: flex-start;
 }
 
-#sidebar-github {
+#sidebar-collapse {
   margin-top: auto;
+  width: 52px;
+  padding: 10px 0;
+  display: flex;
+  justify-content: center;
+  background-color: transparent;
+  color: #8fa8b0;
+}
+
+#sidebar-collapse:hover {
+  color: #fff;
+}
+
+#sidebar-github {
   width: 52px;
   padding: 10px 0;
   text-align: center;

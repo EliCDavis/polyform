@@ -15,6 +15,21 @@ interface UiState extends UiFlags {
   viewportHeightPercent: number;
   showNewGraphPopup: boolean;
   setShowNewGraphPopup: (show: boolean) => void;
+  sidebarCollapsed: boolean;
+  setSidebarCollapsed: (collapsed: boolean) => void;
+  compactLayout: boolean;
+}
+
+const SIDEBAR_COLLAPSED_KEY = "polyform.sidebarCollapsed";
+
+const compactQuery = window.matchMedia("(max-width: 768px)");
+
+function loadSidebarCollapsed(): boolean {
+  try {
+    return localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "true";
+  } catch {
+    return false;
+  }
 }
 
 function parseUrlFlags(): UiFlags {
@@ -30,10 +45,28 @@ function parseUrlFlags(): UiFlags {
   };
 }
 
-export const useUiStore = create<UiState>((set) => ({
+export const useUiStore = create<UiState>((set, get) => ({
   ...parseUrlFlags(),
   sidebarWidthPercent: 20,
   viewportHeightPercent: 40,
   showNewGraphPopup: globalThis.RenderingConfiguration?.ShowNewGraphPopup ?? false,
   setShowNewGraphPopup: (show) => set({ showNewGraphPopup: show }),
+  compactLayout: compactQuery.matches,
+  sidebarCollapsed: compactQuery.matches || loadSidebarCollapsed(),
+  setSidebarCollapsed: (collapsed) => {
+    if (!get().compactLayout) {
+      try {
+        localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(collapsed));
+      } catch {}
+    }
+    set({ sidebarCollapsed: collapsed });
+  },
 }));
+
+compactQuery.addEventListener("change", (e) => {
+  useUiStore.setState(
+    e.matches
+      ? { compactLayout: true, sidebarCollapsed: true }
+      : { compactLayout: false, sidebarCollapsed: loadSidebarCollapsed() },
+  );
+});

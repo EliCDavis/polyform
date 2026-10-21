@@ -6,7 +6,7 @@ import { WebSocketManager, WebSocketRepresentationManager } from "@/lib/websocke
 import { XRManager } from "@/lib/xr";
 import { UpdateManager } from "@/lib/update_manager";
 import { consumeRenderRequest, renderContinuously, requestRender } from "@/lib/render_scheduler";
-import { flushViewportCaptures } from "@/lib/viewport_capture";
+import { flushViewportCaptures, hasViewportCaptures } from "@/lib/viewport_capture";
 import { NoteManager } from "@/lib/note_manager";
 import { ViewportManager } from "@/lib/viewport_manager";
 import { SchemaManager } from "@/lib/schema_manager";
@@ -281,9 +281,16 @@ function EditorBootstrap({
             return;
           }
 
+          if (hasViewportCaptures()) {
+            const restore = producerViewManager.FrameForCapture();
+            threeApp.Composer.render(0);
+            producerViewManager.Render();
+            flushViewportCaptures(threeApp.Renderer.domElement);
+            restore();
+          }
+
           threeApp.Composer.render(delta);
           producerViewManager.Render();
-          flushViewportCaptures(threeApp.Renderer.domElement);
           threeApp.LabelRenderer.render(threeApp.Scene, threeApp.Camera);
           threeApp.ViewportGizmo.render();
         },
