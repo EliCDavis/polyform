@@ -12,6 +12,7 @@ import (
 	"github.com/EliCDavis/polyform/modeling/triangulation"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/vector/vector2"
+	"github.com/EliCDavis/vector/vector3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -27,7 +28,7 @@ func TestRegionWithDepthIsAClosedSolid(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	solid := extrude.Region(region, 1)
+	solid := extrude.RegionZ(region, 1)
 	require.NoError(t, csg.CheckClosed(solid))
 	assert.InDelta(t, 100.-6*4, signedVolume(solid), 1e-9)
 }
@@ -45,11 +46,11 @@ func TestRegionStaysClosedWhenOutlineEdgesNearlyCoincide(t *testing.T) {
 
 		filled, err := triangulation.FillDifference(nearlyFlush, nil)
 		require.NoError(t, err, "outlines off by %g", offset)
-		assert.NoError(t, csg.CheckClosed(extrude.Region(filled, 0.3)), "outlines off by %g", offset)
+		assert.NoError(t, csg.CheckClosed(extrude.RegionZ(filled, 0.3)), "outlines off by %g", offset)
 
 		cut, err := triangulation.FillDifference([]geometry.Shape{box(-2, -2, 6, 4)}, nearlyFlush)
 		require.NoError(t, err, "holes off by %g", offset)
-		assert.NoError(t, csg.CheckClosed(extrude.Region(cut, 0.3)), "holes off by %g", offset)
+		assert.NoError(t, csg.CheckClosed(extrude.RegionZ(cut, 0.3)), "holes off by %g", offset)
 	}
 }
 
@@ -57,7 +58,7 @@ func TestRegionWithoutDepthIsOneFaceForward(t *testing.T) {
 	region, err := triangulation.Fill(square(2, vector2.New(0., 0.)))
 	require.NoError(t, err)
 
-	face := extrude.Region(region, 0)
+	face := extrude.RegionZ(region, 0)
 	normals := face.Float3Attribute(modeling.NormalAttribute)
 	for i := 0; i < normals.Len(); i++ {
 		assert.Equal(t, 1., normals.At(i).Z())
@@ -79,13 +80,13 @@ func TestAreaNodeExtrudesAFilledAreaWithASpreadListOfHoles(t *testing.T) {
 
 	board := nodes.GetNodeOutputPort[sketch.Area](&nodes.Struct[sketch.FillNode]{
 		Data: sketch.FillNode{
-			Outlines: []nodes.Output[[]vector2.Float64]{nodes.ConstOutput[[]vector2.Float64]{Val: square(10, vector2.New(0., 0.))}},
-			Holes:    []nodes.Output[[]vector2.Float64]{holes},
+			Outlines: []nodes.LiftedPort[[]vector2.Float64]{nodes.ConstOutput[[]vector2.Float64]{Val: square(10, vector2.New(0., 0.))}},
+			Holes:    []nodes.LiftedPort[[]vector2.Float64]{holes},
 		},
 	}, "Out")
 	solid := nodes.GetNodeOutputPort[modeling.Mesh](&nodes.Struct[extrude.AreaNode]{
 		Data: extrude.AreaNode{Area: board, Depth: nodes.ConstOutput[float64]{Val: 1}},
-	}, "Out").Value()
+	}, "Z").Value()
 
 	require.NoError(t, csg.CheckClosed(solid))
 	assert.InDelta(t, 100.-2, signedVolume(solid), 1e-9)
@@ -101,7 +102,7 @@ func TestAreaNodeExtrudesAStrokedRingAsARing(t *testing.T) {
 			Area:  nodes.ConstOutput[sketch.Area]{Val: ring},
 			Depth: nodes.ConstOutput[float64]{Val: 1},
 		},
-	}, "Out").Value()
+	}, "Z").Value()
 
 	require.NoError(t, csg.CheckClosed(solid))
 	assert.InDelta(t, ring.Size(), signedVolume(solid), 1e-6)
@@ -115,7 +116,7 @@ func TestAreaNodeKeepsAnIslandInsideAHole(t *testing.T) {
 	both, err := sketch.Union(frame, island)
 	require.NoError(t, err)
 
-	solid, err := extrude.Area(both, 1)
+	solid, err := extrude.AreaZ(both, 1)
 	require.NoError(t, err)
 
 	require.NoError(t, csg.CheckClosed(solid))
@@ -133,17 +134,65 @@ func TestAreaNodeGivesOneSolidPerArea(t *testing.T) {
 			Area:  nodes.ConstOutput[[]sketch.Area]{Val: []sketch.Area{small, large}},
 			Depth: nodes.ConstOutput[float64]{Val: 1},
 		},
-	}, "Out").Value()
+	}, "Z").Value()
 
 	require.Len(t, solids, 2)
 	assert.InDelta(t, 4, signedVolume(solids[0]), 1e-9)
 	assert.InDelta(t, 16, signedVolume(solids[1]), 1e-9)
 }
 
-func TestAreaRefusesANegativeDepth(t *testing.T) {
-	board, err := sketch.Fill([]geometry.Shape{square(2, vector2.New(0., 0.))}, nil)
+func TestAreaNodeExtrudesAlongEachAxis(t *testing.T) {
+	plate, err := sketch.Fill([]geometry.Shape{box(1, 2, 4, 6)}, nil)
 	require.NoError(t, err)
+	node := &nodes.Struct[extrude.AreaNode]{
+		Data: extrude.AreaNode{
+			Area:  nodes.ConstOutput[sketch.Area]{Val: plate},
+			Depth: nodes.ConstOutput[float64]{Val: 0.5},
+		},
+	}
 
-	_, err = extrude.Area(board, -1)
-	assert.Error(t, err)
+	for name, tc := range map[string]struct {
+		min vector3.Float64
+		max vector3.Float64
+	}{
+		"X": {vector3.New(0., 1., 2.), vector3.New(0.5, 4., 6.)},
+		"Y": {vector3.New(1., 0., 2.), vector3.New(4., 0.5, 6.)},
+		"Z": {vector3.New(1., 2., 0.), vector3.New(4., 6., 0.5)},
+	} {
+		solid := nodes.GetNodeOutputPort[modeling.Mesh](node, name).Value()
+		require.NoError(t, csg.CheckClosed(solid), name)
+		assert.InDelta(t, 6, signedVolume(solid), 1e-9, name)
+
+		bounds := solid.BoundingBox(modeling.PositionAttribute)
+		assert.InDelta(t, 0, bounds.Min().Distance(tc.min), 1e-9, name)
+		assert.InDelta(t, 0, bounds.Max().Distance(tc.max), 1e-9, name)
+	}
+}
+
+func TestAreaNodeNegativeDepthExtrudesDownEachAxis(t *testing.T) {
+	plate, err := sketch.Fill([]geometry.Shape{box(1, 2, 4, 6)}, nil)
+	require.NoError(t, err)
+	node := &nodes.Struct[extrude.AreaNode]{
+		Data: extrude.AreaNode{
+			Area:  nodes.ConstOutput[sketch.Area]{Val: plate},
+			Depth: nodes.ConstOutput[float64]{Val: -0.5},
+		},
+	}
+
+	for name, tc := range map[string]struct {
+		min vector3.Float64
+		max vector3.Float64
+	}{
+		"X": {vector3.New(-0.5, 1., 2.), vector3.New(0., 4., 6.)},
+		"Y": {vector3.New(1., -0.5, 2.), vector3.New(4., 0., 6.)},
+		"Z": {vector3.New(1., 2., -0.5), vector3.New(4., 6., 0.)},
+	} {
+		solid := nodes.GetNodeOutputPort[modeling.Mesh](node, name).Value()
+		require.NoError(t, csg.CheckClosed(solid), name)
+		assert.InDelta(t, 6, signedVolume(solid), 1e-9, name)
+
+		bounds := solid.BoundingBox(modeling.PositionAttribute)
+		assert.InDelta(t, 0, bounds.Min().Distance(tc.min), 1e-9, name)
+		assert.InDelta(t, 0, bounds.Max().Distance(tc.max), 1e-9, name)
+	}
 }

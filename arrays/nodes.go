@@ -30,6 +30,7 @@ func init() {
 	refutil.RegisterType[nodes.Struct[IndexOfNode]](factory)
 	refutil.RegisterType[nodes.Struct[ShuffleNode]](factory)
 	refutil.RegisterType[nodes.Struct[SampleNode]](factory)
+	refutil.RegisterType[nodes.Struct[RandomPickNode]](factory)
 	refutil.RegisterType[nodes.Struct[PadNode]](factory)
 	refutil.RegisterType[nodes.Struct[FlattenNode]](factory)
 	refutil.RegisterType[nodes.Struct[SpreadNode]](factory)
@@ -566,6 +567,42 @@ func (s SampleNode) Out(out *nodes.Dynamic[[]Element]) {
 		pool = append(pool[:index], pool[index+1:]...)
 	}
 
+	out.Set(values.Build(picked))
+}
+
+// ============================================================================
+
+type RandomPickNode struct {
+	Array nodes.DynamicPort[[]Element] `description:"The array to pick from."`
+	Count nodes.Output[int]            `description:"How many elements to pick. Can be more than the array holds."`
+	Seed  nodes.Output[int]            `description:"The same seed always picks the same elements."`
+}
+
+func (RandomPickNode) Description() string {
+	return "Picks elements at random from an array, each pick independent of the others, so an element can come up more than once."
+}
+
+func (RandomPickNode) Keywords() []string {
+	return []string{"random", "sample", "choose", "replacement"}
+}
+
+func (p RandomPickNode) Out(out *nodes.Dynamic[[]Element]) {
+	values, ok := nodes.DynamicArrayValue(out, p.Array)
+	if !ok {
+		return
+	}
+
+	count := max(nodes.TryGetOutputValue(out, p.Count, 0), 0)
+	if count > 0 && values.Len() == 0 {
+		out.CaptureError(fmt.Errorf("can not pick %d element(s) from an empty array", count))
+		return
+	}
+
+	random := chance.FromSeed(nodes.TryGetOutputValue(out, p.Seed, 0))
+	picked := make([]any, count)
+	for i := range picked {
+		picked[i] = values.At(random.IntN(values.Len()))
+	}
 	out.Set(values.Build(picked))
 }
 

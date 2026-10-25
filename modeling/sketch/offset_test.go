@@ -74,10 +74,10 @@ func TestOffsetNodeGivesOneAreaPerDistance(t *testing.T) {
 	assert.Greater(t, areas[1].Size(), 100.)
 }
 
-func TestBoundaryNodeSplitsOutlinesFromHoles(t *testing.T) {
+func TestSelectNodeSplitsOutlinesFromHoles(t *testing.T) {
 	ring, err := sketch.Stroke(squarePath(10), 2, 16, true)
 	require.NoError(t, err)
-	node := &nodes.Struct[sketch.BoundaryNode]{Data: sketch.BoundaryNode{Area: nodes.ConstOutput[sketch.Area]{Val: ring}}}
+	node := &nodes.Struct[sketch.SelectNode]{Data: sketch.SelectNode{Area: nodes.ConstOutput[sketch.Area]{Val: ring}}}
 
 	outlines := nodes.GetNodeOutputPort[[][]vector2.Float64](node, "Outlines").Value()
 	holes := nodes.GetNodeOutputPort[[][]vector2.Float64](node, "Holes").Value()
@@ -86,6 +86,26 @@ func TestBoundaryNodeSplitsOutlinesFromHoles(t *testing.T) {
 	require.Len(t, holes, 1)
 	assert.Positive(t, geometry.Shape(outlines[0]).SignedArea())
 	assert.Negative(t, geometry.Shape(holes[0]).SignedArea())
+	assert.InDelta(t, ring.Size(), nodes.GetNodeOutputPort[float64](node, "Size").Value(), 1e-12)
+}
+
+func TestSelectNodeSplitsEachAreaOfAList(t *testing.T) {
+	ring, err := sketch.Stroke(squarePath(10), 2, 16, true)
+	require.NoError(t, err)
+	solid, err := sketch.Fill([]geometry.Shape{squarePath(4)}, nil)
+	require.NoError(t, err)
+	node := &nodes.Struct[sketch.SelectNode]{Data: sketch.SelectNode{
+		Area: nodes.ConstOutput[[]sketch.Area]{Val: []sketch.Area{ring, solid}},
+	}}
+
+	outlines := nodes.GetNodeOutputPort[[][][]vector2.Float64](node, "Outlines").Value()
+	holes := nodes.GetNodeOutputPort[[][][]vector2.Float64](node, "Holes").Value()
+	sizes := nodes.GetNodeOutputPort[[]float64](node, "Size").Value()
+
+	require.Len(t, outlines, 2)
+	assert.Len(t, holes[0], 1)
+	assert.Empty(t, holes[1])
+	assert.InDelta(t, 16., sizes[1], 1e-12)
 }
 
 func offsetReference(t *testing.T, area sketch.Area, distance float64, segments int) sketch.Area {

@@ -173,18 +173,20 @@ func Subtract(base Area, remove ...Area) (Area, error) {
 }
 
 type FillNode struct {
-	Outlines []nodes.Output[[]vector2.Float64] `description:"Closed outlines to fill, one per connection; overlapping ones merge."`
-	Holes    []nodes.Output[[]vector2.Float64] `description:"Closed outlines to cut out, one per connection."`
+	Outlines []nodes.LiftedPort[[]vector2.Float64] `description:"Closed outlines to fill, one per connection; overlapping ones merge. A list of outlines gives one area per outline."`
+	Holes    []nodes.LiftedPort[[]vector2.Float64] `description:"Closed outlines to cut out, one per connection. A list of outlines pairs one hole with each area."`
 }
 
 func (FillNode) Description() string {
 	return "An area: everything inside any outline and outside every hole."
 }
 
-func (n FillNode) Out(out *nodes.StructOutput[Area]) {
-	area, err := Fill(Shapes(nodes.GetOutputValues(out, n.Outlines)), Shapes(nodes.GetOutputValues(out, n.Holes)))
-	out.CaptureError(err)
-	out.Set(area)
+func (n FillNode) Out(out *nodes.Lifted[Area]) {
+	nodes.ZipAll2(out, n.Outlines, n.Holes, func(outlines, holes [][]vector2.Float64) Area {
+		area, err := Fill(Shapes(outlines), Shapes(holes))
+		out.CaptureError(err)
+		return area
+	})
 }
 
 func Shapes(outlines [][]vector2.Float64) []geometry.Shape {
@@ -270,4 +272,48 @@ func (n TransformAreaNode) Out(out *nodes.Lifted[Area]) {
 		nodes.LiftedOr(n.Scale, vector2.One[float64]()),
 		Area.Transform,
 	)
+}
+
+type SelectNode struct {
+	Area nodes.LiftedPort[Area] `description:"The area to break apart."`
+}
+
+func (SelectNode) Description() string {
+	return "Splits an area into its loops and the size it covers."
+}
+
+func (n SelectNode) Outlines(out *nodes.Lifted[[][]vector2.Float64]) {
+	nodes.Zip1(out, n.Area, func(area Area) [][]vector2.Float64 {
+		var outlines [][]vector2.Float64
+		for _, polygon := range area.Polygons {
+			outlines = append(outlines, polygon.Outline)
+		}
+		return outlines
+	})
+}
+
+func (SelectNode) OutlinesDescription() string {
+	return "One loop per separate piece, counter-clockwise."
+}
+
+func (n SelectNode) Holes(out *nodes.Lifted[[][]vector2.Float64]) {
+	nodes.Zip1(out, n.Area, func(area Area) [][]vector2.Float64 {
+		var holes [][]vector2.Float64
+		for _, polygon := range area.Polygons {
+			holes = append(holes, polygon.Holes...)
+		}
+		return holes
+	})
+}
+
+func (SelectNode) HolesDescription() string {
+	return "Every hole of every piece, clockwise."
+}
+
+func (n SelectNode) Size(out *nodes.Lifted[float64]) {
+	nodes.Zip1(out, n.Area, Area.Size)
+}
+
+func (SelectNode) SizeDescription() string {
+	return "The area covered, holes excluded."
 }

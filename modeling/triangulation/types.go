@@ -13,6 +13,7 @@ import (
 func init() {
 	factory := &refutil.TypeFactory{}
 	refutil.RegisterType[nodes.Struct[BowyerWatsonNode]](factory)
+	refutil.RegisterType[nodes.Struct[VoronoiNode]](factory)
 	generator.RegisterTypes(factory)
 }
 

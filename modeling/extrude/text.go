@@ -11,6 +11,7 @@ import (
 	"github.com/EliCDavis/polyform/modeling/triangulation"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/vector/vector2"
+	"github.com/EliCDavis/vector/vector3"
 	"github.com/golang/freetype/truetype"
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/gofont/gobold"
@@ -51,14 +52,14 @@ type Text struct {
 	// Height of a capital letter.
 	Height float64
 
-	// How far the letters extrude back from their face, which sits at
-	// z = Depth. Zero leaves a single face.
+	// The solid spans 0 to Depth along the extrusion axis; negative goes the
+	// other way. Zero leaves a single face.
 	Depth float64
 
 	// sans, sans bold, mono or mono bold. Empty is sans.
 	Font string
 
-	// "left", "center" or "right": which end of each line sits at x = 0.
+	// "left", "center" or "right": which end of each line sits on the origin.
 	Align string
 
 	// Straight segments each curve of a letter's outline is drawn with.
@@ -70,16 +71,33 @@ type placedGlyph struct {
 	x     float64
 }
 
-// Mesh lays the text in the XY plane facing +Z, the first line's baseline on
-// y = 0 and each further line below it. Characters the font has no glyph for
-// are left blank and named in the error, which still comes with the mesh.
-func (t Text) Mesh() (modeling.Mesh, error) {
+// The text lies in the YZ plane facing +X, its lines running along Y.
+func (t Text) MeshX() (modeling.Mesh, error) {
+	return t.mesh(RegionX)
+}
+
+// The text lies in the XZ plane facing +Y, its lines running along X and the
+// tops of its letters toward -Z.
+func (t Text) MeshY() (modeling.Mesh, error) {
+	return t.mesh(func(region triangulation.Region, depth float64) modeling.Mesh {
+		return extrudeRegion(region, depth, func(v vector3.Float64) vector3.Float64 {
+			return vector3.New(v.X(), v.Z(), -v.Y())
+		})
+	})
+}
+
+// The text lies in the XY plane facing +Z, its lines running along X.
+func (t Text) MeshZ() (modeling.Mesh, error) {
+	return t.mesh(RegionZ)
+}
+
+// The first line's baseline runs through the origin and each further line
+// sits below it. Characters the font has no glyph for are left blank and
+// named in the error, which still comes with the mesh.
+func (t Text) mesh(extrude func(triangulation.Region, float64) modeling.Mesh) (modeling.Mesh, error) {
 	empty := modeling.EmptyMesh(modeling.TriangleTopology)
 	if t.Height <= 0 {
 		return empty, fmt.Errorf("height must be positive, got %g", t.Height)
-	}
-	if t.Depth < 0 {
-		return empty, fmt.Errorf("depth can not be negative, got %g", t.Depth)
 	}
 	name := t.Font
 	if name == "" {
@@ -160,7 +178,7 @@ func (t Text) Mesh() (modeling.Mesh, error) {
 	if err != nil {
 		return empty, err
 	}
-	return Region(region, t.Depth), missingErr
+	return extrude(region, t.Depth), missingErr
 }
 
 func glyphContour(points []truetype.Point, segments int, at func(truetype.Point) vector2.Float64) []vector2.Float64 {
@@ -201,21 +219,45 @@ func glyphContour(points []truetype.Point, segments int, at func(truetype.Point)
 type TextNode struct {
 	Text          nodes.LiftedPort[string]  `description:"Text to render."`
 	Height        nodes.LiftedPort[float64] `description:"Height of a capital letter. Defaults to 1."`
-	Depth         nodes.LiftedPort[float64] `description:"Thickness: the solid spans z = 0 to Depth, face at z = Depth. 0 (the default) gives a single face."`
+	Depth         nodes.LiftedPort[float64] `description:"Thickness: the solid spans 0 to Depth along the output's axis; negative goes the other way. 0 (the default) gives a single face."`
 	Font          nodes.Output[string]      `description:"sans (the default), sans bold, mono or mono bold."`
-	Align         nodes.LiftedPort[string]  `description:"Which end of each line sits at x = 0: left (the default), center or right."`
+	Align         nodes.LiftedPort[string]  `description:"Which end of each line sits on the origin: left (the default), center or right."`
 	CurveSegments nodes.Output[int]         `description:"Straight segments per letter curve. Defaults to 6."`
 }
 
 func (TextNode) Description() string {
-	return "Text as a mesh in a built-in font, lying in the XY plane facing +Z with the first baseline on y = 0."
+	return "Text as a mesh in a built-in font with the first baseline through the origin."
 }
 
 func (TextNode) Keywords() []string {
 	return []string{"lettering", "emboss"}
 }
 
-func (n TextNode) Out(out *nodes.Lifted[modeling.Mesh]) {
+func (n TextNode) X(out *nodes.Lifted[modeling.Mesh]) {
+	n.out(out, Text.MeshX)
+}
+
+func (TextNode) XDescription() string {
+	return "The text in the YZ plane facing +X: lines along Y, letters standing up along Z."
+}
+
+func (n TextNode) Y(out *nodes.Lifted[modeling.Mesh]) {
+	n.out(out, Text.MeshY)
+}
+
+func (TextNode) YDescription() string {
+	return "The text in the XZ plane facing +Y: lines along X, the tops of the letters toward -Z."
+}
+
+func (n TextNode) Z(out *nodes.Lifted[modeling.Mesh]) {
+	n.out(out, Text.MeshZ)
+}
+
+func (TextNode) ZDescription() string {
+	return "The text in the XY plane facing +Z: lines along X, letters standing up along Y."
+}
+
+func (n TextNode) out(out *nodes.Lifted[modeling.Mesh], mesh func(Text) (modeling.Mesh, error)) {
 	font := nodes.TryGetOutputValue(out, n.Font, "")
 	segments := nodes.TryGetOutputValue(out, n.CurveSegments, 6)
 	nodes.Zip4(
@@ -225,16 +267,16 @@ func (n TextNode) Out(out *nodes.Lifted[modeling.Mesh]) {
 		n.Depth,
 		n.Align,
 		func(text string, height, depth float64, align string) modeling.Mesh {
-			mesh, err := Text{
+			m, err := mesh(Text{
 				Text:          text,
 				Height:        height,
 				Depth:         depth,
 				Font:          font,
 				Align:         align,
 				CurveSegments: segments,
-			}.Mesh()
+			})
 			out.CaptureError(err)
-			return mesh
+			return m
 		},
 	)
 }

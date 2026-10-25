@@ -73,6 +73,50 @@ func TestSetAttribute1DNode(t *testing.T) {
 	})
 }
 
+func TestSetAttributeNodeWritesTheSameDataOntoEveryMeshInAList(t *testing.T) {
+	first := modeling.NewPointCloud(nil, nil, nil, map[string][]float64{"first": {0.}})
+	second := modeling.NewPointCloud(nil, nil, nil, map[string][]float64{"second": {0.}})
+
+	out := nodes.GetNodeOutputPort[[]modeling.Mesh](nodetest.NewNode(modeling.SetAttribute3DNode{
+		Mesh:      nodetest.NewPortValue([]modeling.Mesh{first, second}),
+		Attribute: nodetest.NewPortValue("a"),
+		Data:      nodetest.NewPortValue([]vector3.Float64{vector3.New(1., 2., 3.)}),
+	}), "Out").Value()
+
+	require.Len(t, out, 2)
+	for _, mesh := range out {
+		require.True(t, mesh.HasFloat3Attribute("a"))
+		assert.Equal(t, vector3.New(1., 2., 3.), mesh.Float3Attribute("a").At(0))
+	}
+	assert.True(t, out[0].HasFloat1Attribute("first"))
+	assert.True(t, out[1].HasFloat1Attribute("second"))
+}
+
+func TestSetAttributeNodePairsEachDataArrayWithItsOwnMesh(t *testing.T) {
+	out := nodes.GetNodeOutputPort[[]modeling.Mesh](nodetest.NewNode(modeling.SetAttribute1DNode{
+		Attribute: nodetest.NewPortValue("a"),
+		Data:      nodetest.NewPortValue([][]float64{{1.}, {2., 3.}}),
+	}), "Out").Value()
+
+	require.Len(t, out, 2)
+	assert.Equal(t, 1, out[0].Float1Attribute("a").Len())
+	assert.Equal(t, 3., out[1].Float1Attribute("a").At(1))
+}
+
+func TestSetAttributeNodePassesAListOfMeshesThroughWithoutData(t *testing.T) {
+	meshes := []modeling.Mesh{
+		modeling.NewPointCloud(nil, nil, nil, map[string][]float64{"keep": {1.}}),
+		modeling.EmptyPointcloud(),
+	}
+
+	out := nodes.GetNodeOutputPort[[]modeling.Mesh](nodetest.NewNode(modeling.SetAttribute2DNode{
+		Mesh:      nodetest.NewPortValue(meshes),
+		Attribute: nodetest.NewPortValue("a"),
+	}), "Out").Value()
+
+	assert.Equal(t, meshes, out)
+}
+
 func TestSetAttribute2DNode(t *testing.T) {
 	t.Run("nil attribute or data returns mesh or empty point mesh", func(t *testing.T) {
 		existing := modeling.NewPointCloud(nil, nil, map[string][]vector2.Float64{

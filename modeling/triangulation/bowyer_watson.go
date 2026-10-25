@@ -32,6 +32,22 @@ func (t Triangle) CounterClockwise(points []vector2.Float64) bool {
 	return ccw(points[t[0]], points[t[1]], points[t[2]])
 }
 
+func (t Triangle) Center(points []vector2.Float64) vector2.Float64 {
+	return points[t[0]].Add(points[t[1]]).Add(points[t[2]]).DivByConstant(3.)
+}
+
+func (t Triangle) Circumcenter(points []vector2.Float64) vector2.Float64 {
+	a := points[t[0]]
+	b := points[t[1]].Sub(a)
+	c := points[t[2]].Sub(a)
+	d := 2 * (b.X()*c.Y() - b.Y()*c.X())
+	bb, cc := b.LengthSquared(), c.LengthSquared()
+	return a.Add(vector2.New(
+		(c.Y()*bb-b.Y()*cc)/d,
+		(b.X()*cc-c.X()*bb)/d,
+	))
+}
+
 // Points map to 3D as (x, 0, y), where clockwise in 2D is what puts the
 // face normal on +Y. Every triangle reaching a mesh goes through here, so
 // flips and hole filling can not drift into disagreeing about winding.

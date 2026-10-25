@@ -94,34 +94,3 @@ func (n OffsetNode) Out(out *nodes.Lifted[Area]) {
 		return offset
 	})
 }
-
-type BoundaryNode struct {
-	Area nodes.Output[Area] `description:"The area whose loops to return."`
-}
-
-func (BoundaryNode) Description() string {
-	return "The loops around an area: Outlines run counter-clockwise, Holes clockwise. Each output is a list, ready for a path, a stroke or a sweep."
-}
-
-func (n BoundaryNode) loops(out *nodes.StructOutput[[][]vector2.Float64], holes bool) {
-	if n.Area == nil {
-		return
-	}
-	var loops [][]vector2.Float64
-	for _, polygon := range nodes.GetOutputValue(out, n.Area).Polygons {
-		if holes {
-			loops = append(loops, polygon.Holes...)
-		} else {
-			loops = append(loops, polygon.Outline)
-		}
-	}
-	out.Set(loops)
-}
-
-func (n BoundaryNode) Outlines(out *nodes.StructOutput[[][]vector2.Float64]) {
-	n.loops(out, false)
-}
-
-func (n BoundaryNode) Holes(out *nodes.StructOutput[[][]vector2.Float64]) {
-	n.loops(out, true)
-}
