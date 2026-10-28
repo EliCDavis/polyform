@@ -59,6 +59,38 @@ func TestFillAttribute3DNode(t *testing.T) {
 	})
 }
 
+func TestFillAttributeNodeGivesEachMeshInAListItsOwnValue(t *testing.T) {
+	single := modeling.NewPointCloud(nil, map[string][]vector3.Float64{
+		modeling.PositionAttribute: {vector3.Zero[float64]()},
+	}, nil, nil)
+	red, blue := vector3.New(1., 0., 0.), vector3.New(0., 0., 1.)
+
+	out := nodes.GetNodeOutputPort[[]modeling.Mesh](nodetest.NewNode(modeling.FillAttribute3DNode{
+		Mesh:      nodetest.NewPortValue([]modeling.Mesh{threePointCloud(), single}),
+		Attribute: nodetest.NewPortValue(modeling.ColorAttribute),
+		Value:     nodetest.NewPortValue([]vector3.Float64{red, blue}),
+	}), "Out").Value()
+
+	require.Len(t, out, 2)
+	assert.Equal(t, 3, out[0].Float3Attribute(modeling.ColorAttribute).Len())
+	assert.Equal(t, red, out[0].Float3Attribute(modeling.ColorAttribute).At(2))
+	assert.Equal(t, 1, out[1].Float3Attribute(modeling.ColorAttribute).Len())
+	assert.Equal(t, blue, out[1].Float3Attribute(modeling.ColorAttribute).At(0))
+}
+
+func TestFillAttributeNodeFillsEveryMeshInAListWithOneValue(t *testing.T) {
+	out := nodes.GetNodeOutputPort[[]modeling.Mesh](nodetest.NewNode(modeling.FillAttribute1DNode{
+		Mesh:      nodetest.NewPortValue([]modeling.Mesh{threePointCloud(), threePointCloud()}),
+		Attribute: nodetest.NewPortValue(modeling.OpacityAttribute),
+		Value:     nodetest.NewPortValue(0.5),
+	}), "Out").Value()
+
+	require.Len(t, out, 2)
+	for _, mesh := range out {
+		assert.Equal(t, 0.5, mesh.Float1Attribute(modeling.OpacityAttribute).At(1))
+	}
+}
+
 func TestFillAttribute1DNode(t *testing.T) {
 	node := nodetest.NewNode(modeling.FillAttribute1DNode{
 		Mesh:      nodetest.NewPortValue(threePointCloud()),

@@ -27,5 +27,7 @@ func init() {
 	refutil.RegisterType[nodes.Struct[Normalize]](factory)
 	refutil.RegisterType[nodes.Struct[NormalizeArray]](factory)
 
+	refutil.RegisterType[nodes.Struct[BoundsNode]](factory)
+
 	generator.RegisterTypes(factory)
 }

@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
-	"sort"
 	"testing"
 
+	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/triangulation"
 	"github.com/EliCDavis/vector/vector2"
@@ -19,39 +19,7 @@ func turn(a, b, c vector2.Float64) float64 {
 }
 
 func convexHullArea(pts []vector2.Float64) float64 {
-	p := append([]vector2.Float64{}, pts...)
-	sort.Slice(p, func(i, j int) bool {
-		if p[i].X() != p[j].X() {
-			return p[i].X() < p[j].X()
-		}
-		return p[i].Y() < p[j].Y()
-	})
-
-	build := func(in []vector2.Float64) []vector2.Float64 {
-		out := []vector2.Float64{}
-		for _, q := range in {
-			for len(out) >= 2 && turn(out[len(out)-2], out[len(out)-1], q) <= 0 {
-				out = out[:len(out)-1]
-			}
-			out = append(out, q)
-		}
-		return out
-	}
-
-	lower := build(p)
-	reversed := append([]vector2.Float64{}, p...)
-	for i, j := 0, len(reversed)-1; i < j; i, j = i+1, j-1 {
-		reversed[i], reversed[j] = reversed[j], reversed[i]
-	}
-	upper := build(reversed)
-
-	hull := append(lower[:len(lower)-1], upper[:len(upper)-1]...)
-	total := 0.
-	for i := range hull {
-		j := (i + 1) % len(hull)
-		total += hull[i].X()*hull[j].Y() - hull[j].X()*hull[i].Y()
-	}
-	return math.Abs(total) / 2
+	return geometry.Shape(geometry.ConvexHull(pts)).SignedArea()
 }
 
 // A Delaunay triangulation tiles the convex hull of its points exactly. A
@@ -308,29 +276,7 @@ func TestBowyerWatsonIsDelaunayAtScale(t *testing.T) {
 }
 
 func hullSize(pts []vector2.Float64) int {
-	p := append([]vector2.Float64{}, pts...)
-	sort.Slice(p, func(i, j int) bool {
-		if p[i].X() != p[j].X() {
-			return p[i].X() < p[j].X()
-		}
-		return p[i].Y() < p[j].Y()
-	})
-	build := func(in []vector2.Float64) []vector2.Float64 {
-		out := []vector2.Float64{}
-		for _, q := range in {
-			for len(out) >= 2 && turn(out[len(out)-2], out[len(out)-1], q) <= 0 {
-				out = out[:len(out)-1]
-			}
-			out = append(out, q)
-		}
-		return out
-	}
-	lower := build(p)
-	reversed := append([]vector2.Float64{}, p...)
-	for i, j := 0, len(reversed)-1; i < j; i, j = i+1, j-1 {
-		reversed[i], reversed[j] = reversed[j], reversed[i]
-	}
-	return len(lower) - 1 + len(build(reversed)) - 1
+	return len(geometry.ConvexHull(pts))
 }
 
 func TestBowyerWatsonIsDeterministic(t *testing.T) {

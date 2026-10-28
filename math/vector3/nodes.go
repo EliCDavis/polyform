@@ -47,5 +47,7 @@ func init() {
 	refutil.RegisterType[nodes.Struct[Multiply[int]]](factory)
 	refutil.RegisterType[nodes.Struct[Multiply[float64]]](factory)
 
+	refutil.RegisterType[nodes.Struct[BoundsNode]](factory)
+
 	generator.RegisterTypes(factory)
 }

@@ -5,7 +5,9 @@ import (
 	"math"
 
 	"github.com/EliCDavis/polyform/math/predicate"
+	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/vector/vector2"
+	"github.com/EliCDavis/vector/vector3"
 )
 
 // Line2D represents a line segment
@@ -109,4 +111,152 @@ func (l Line2D) Intersection(other Line2D) (vector2.Float64, error) {
 func (l Line2D) Intersects(other Line2D) bool {
 	_, err := l.Intersection(other)
 	return err == nil
+}
+
+// The plane layouts match extrude's X, Y and Z outputs, so promoted lines
+// land on an area extruded from the same points.
+func onPlaneX(p vector2.Float64, offset float64) vector3.Float64 {
+	return vector3.New(offset, p.X(), p.Y())
+}
+
+func onPlaneY(p vector2.Float64, offset float64) vector3.Float64 {
+	return vector3.New(p.X(), offset, p.Y())
+}
+
+func onPlaneZ(p vector2.Float64, offset float64) vector3.Float64 {
+	return vector3.New(p.X(), p.Y(), offset)
+}
+
+func (l Line2D) promote(offset float64, place func(vector2.Float64, float64) vector3.Float64) Line3D {
+	return NewLine3D(place(l.p1, offset), place(l.p2, offset))
+}
+
+// PlaneX lays the line on the YZ plane at x = offset: its X along Y, its Y along Z.
+func (l Line2D) PlaneX(offset float64) Line3D { return l.promote(offset, onPlaneX) }
+
+// PlaneY lays the line on the XZ plane at y = offset: its X along X, its Y along Z.
+func (l Line2D) PlaneY(offset float64) Line3D { return l.promote(offset, onPlaneY) }
+
+// PlaneZ lays the line on the XY plane at z = offset.
+func (l Line2D) PlaneZ(offset float64) Line3D { return l.promote(offset, onPlaneZ) }
+
+func LineStripsFromPoints2D(points []vector2.Float64, closed bool) []Line2D {
+	if len(points) < 2 {
+		return nil
+	}
+
+	lines := make([]Line2D, 0, len(points))
+	for i := 0; i < len(points)-1; i++ {
+		lines = append(lines, NewLine2D(points[i], points[i+1]))
+	}
+	if closed && len(points) > 2 {
+		lines = append(lines, NewLine2D(points[len(points)-1], points[0]))
+	}
+
+	return lines
+}
+
+func LinesFromPoints2D(points []vector2.Float64) []Line2D {
+	if len(points) < 2 {
+		return nil
+	}
+
+	lines := make([]Line2D, 0, len(points)/2)
+	for i := 0; i < len(points)-1; i += 2 {
+		lines = append(lines, NewLine2D(points[i], points[i+1]))
+	}
+
+	return lines
+}
+
+// ============================================================================
+
+type LinesFromPoints2DNode struct {
+	Points nodes.LiftedPort[[]vector2.Float64]
+	Closed nodes.LiftedPort[bool] `description:"Line Strips also joins the last point back to the first."`
+}
+
+func (n LinesFromPoints2DNode) Description() string {
+	return "Builds 2D line segments connecting a sequence of points."
+}
+
+func (n LinesFromPoints2DNode) LineStrips(out *nodes.Lifted[[]Line2D]) {
+	nodes.Zip2(out, n.Points, n.Closed, LineStripsFromPoints2D)
+}
+
+func (n LinesFromPoints2DNode) Lines(out *nodes.Lifted[[]Line2D]) {
+	nodes.Zip1(out, n.Points, LinesFromPoints2D)
+}
+
+// ============================================================================
+
+type TrimLines2DNode struct {
+	Lines  nodes.Output[[]Line2D]
+	Amount nodes.Output[float64] `description:"How much to cut off each end. Lines shorter than twice this are dropped."`
+}
+
+func (n TrimLines2DNode) Description() string {
+	return "Shortens lines by the same amount at both ends, dropping any too short to keep."
+}
+
+func (n TrimLines2DNode) Trimmed(out *nodes.StructOutput[[]Line2D]) {
+	amount := nodes.TryGetOutputValue(out, n.Amount, 0.)
+	lines := nodes.TryGetOutputValue(out, n.Lines, nil)
+	trimmed := make([]Line2D, 0, len(lines))
+	for _, line := range lines {
+		if line.Length() <= 2*amount {
+			continue
+		}
+		trimmed = append(trimmed, line.ExtendStart(-amount).ExtendEnd(-amount))
+	}
+	out.Set(trimmed)
+}
+
+// ============================================================================
+
+type Lines2DTo3DNode struct {
+	Lines  nodes.LiftedPort[[]Line2D] `description:"The 2D lines to place in 3D."`
+	Offset nodes.LiftedPort[float64]  `description:"How far along the output's axis the plane sits. Defaults to 0."`
+}
+
+func (n Lines2DTo3DNode) Description() string {
+	return "Places 2D lines on an axis-aligned plane in 3D, laid out the same way as an extruded area."
+}
+
+func (n Lines2DTo3DNode) Keywords() []string {
+	return []string{"promote", "lift", "plane"}
+}
+
+func (n Lines2DTo3DNode) promote(out *nodes.Lifted[[]Line3D], place func(Line2D, float64) Line3D) {
+	nodes.Zip2(out, n.Lines, n.Offset, func(lines []Line2D, offset float64) []Line3D {
+		promoted := make([]Line3D, len(lines))
+		for i, line := range lines {
+			promoted[i] = place(line, offset)
+		}
+		return promoted
+	})
+}
+
+func (n Lines2DTo3DNode) X(out *nodes.Lifted[[]Line3D]) {
+	n.promote(out, Line2D.PlaneX)
+}
+
+func (Lines2DTo3DNode) XDescription() string {
+	return "On the YZ plane at x = Offset: each line's X along Y, its Y along Z."
+}
+
+func (n Lines2DTo3DNode) Y(out *nodes.Lifted[[]Line3D]) {
+	n.promote(out, Line2D.PlaneY)
+}
+
+func (Lines2DTo3DNode) YDescription() string {
+	return "On the XZ plane at y = Offset: each line's X along X, its Y along Z."
+}
+
+func (n Lines2DTo3DNode) Z(out *nodes.Lifted[[]Line3D]) {
+	n.promote(out, Line2D.PlaneZ)
+}
+
+func (Lines2DTo3DNode) ZDescription() string {
+	return "On the XY plane at z = Offset."
 }

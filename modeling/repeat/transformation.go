@@ -30,24 +30,29 @@ func (t Transformation) TRS() ([]trs.TRS, error) {
 }
 
 type TransformationNode struct {
-	Initial        nodes.Output[trs.TRS] `description:"Starting transform (the first copy's placement before any repetition is applied). Defaults to identity."`
-	Transformation nodes.Output[trs.TRS] `description:"The transform applied on top of the previous copy to produce the next one. Applied once for copy 1, twice for copy 2, and so on (cumulative, not reset each time). Defaults to identity (no change between copies)."`
-	Samples        nodes.Output[int]     `description:"How many copies to produce. Defaults to 0."`
+	Initial        nodes.LiftedPort[trs.TRS] `description:"Starting transform (the first copy's placement before any repetition is applied). Defaults to identity."`
+	Transformation nodes.LiftedPort[trs.TRS] `description:"The transform applied on top of the previous copy to produce the next one. Applied once for copy 1, twice for copy 2, and so on (cumulative, not reset each time). Defaults to identity (no change between copies)."`
+	Samples        nodes.LiftedPort[int]     `description:"How many copies to produce. Defaults to 0."`
 }
 
 func (rnd TransformationNode) Description() string {
 	return "Produces Samples transforms by repeatedly applying Transformation on top of the previous result, starting from Initial (Cumulative). Each copy's placement depends on all the ones before it."
 }
 
-func (rnd TransformationNode) Out(out *nodes.StructOutput[[]trs.TRS]) {
-	result, err := Transformation{
-		Initial:        nodes.TryGetOutputValue(out, rnd.Initial, trs.Identity()),
-		Transformation: nodes.TryGetOutputValue(out, rnd.Transformation, trs.Identity()),
-		Samples:        nodes.TryGetOutputValue(out, rnd.Samples, 0),
-	}.TRS()
-	if err != nil {
-		out.CaptureError(err)
-		return
-	}
-	out.Set(result)
+func (rnd TransformationNode) Out(out *nodes.Lifted[[]trs.TRS]) {
+	nodes.Zip3(
+		out,
+		nodes.LiftedOr(rnd.Initial, trs.Identity()),
+		nodes.LiftedOr(rnd.Transformation, trs.Identity()),
+		rnd.Samples,
+		func(initial, transformation trs.TRS, samples int) []trs.TRS {
+			result, err := Transformation{
+				Initial:        initial,
+				Transformation: transformation,
+				Samples:        samples,
+			}.TRS()
+			out.CaptureError(err)
+			return result
+		},
+	)
 }

@@ -152,6 +152,46 @@ func TestSampleCapsAtWhatTheArrayHolds(t *testing.T) {
 	assert.Len(t, nodes.GetNodeOutputPort[[]string](node, "Out").Value(), 5)
 }
 
+func TestRandomPickCanPickMoreThanTheArrayHolds(t *testing.T) {
+	node := &nodes.Struct[arrays.RandomPickNode]{}
+	wire(t, node, "Array", letters())
+	wire(t, node, "Count", nodes.ConstOutput[int]{Val: 200})
+	wire(t, node, "Seed", nodes.ConstOutput[int]{Val: 1})
+
+	picked := nodes.GetNodeOutputPort[[]string](node, "Out").Value()
+	require.Len(t, picked, 200)
+
+	seen := map[string]int{}
+	for _, value := range picked {
+		require.Contains(t, letters().Val, value)
+		seen[value]++
+	}
+	assert.Len(t, seen, len(letters().Val), "200 picks from 5 letters should land on every letter")
+}
+
+func TestRandomPickIsTheSameForTheSameSeed(t *testing.T) {
+	pick := func(seed int) []string {
+		node := &nodes.Struct[arrays.RandomPickNode]{}
+		wire(t, node, "Array", letters())
+		wire(t, node, "Count", nodes.ConstOutput[int]{Val: 8})
+		wire(t, node, "Seed", nodes.ConstOutput[int]{Val: seed})
+		return nodes.GetNodeOutputPort[[]string](node, "Out").Value()
+	}
+
+	assert.Equal(t, pick(3), pick(3))
+	assert.NotEqual(t, pick(3), pick(4))
+}
+
+func TestRandomPickFromAnEmptyArrayIsAnError(t *testing.T) {
+	node := &nodes.Struct[arrays.RandomPickNode]{}
+	wire(t, node, "Array", nodes.ConstOutput[[]string]{Val: nil})
+	wire(t, node, "Count", nodes.ConstOutput[int]{Val: 2})
+
+	port := node.Outputs()["Out"]
+	assert.Empty(t, nodes.GetNodeOutputPort[[]string](node, "Out").Value())
+	assert.NotEmpty(t, port.(nodes.ObservableExecution).ExecutionReport().Errors)
+}
+
 func TestPadExtendsWithAValue(t *testing.T) {
 	node := &nodes.Struct[arrays.PadNode]{}
 	wire(t, node, "Array", nodes.ConstOutput[[]string]{Val: []string{"a", "b"}})

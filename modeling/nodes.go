@@ -249,154 +249,151 @@ func (p *AttributeNode) Outputs() map[string]nodes.OutputPort {
 // ============================================================================
 
 func setAttribute[T any](
-	out *nodes.StructOutput[Mesh],
-	mesh nodes.Output[Mesh],
-	attribute nodes.Output[string],
-	data nodes.Output[[]T],
+	out *nodes.Lifted[Mesh],
+	mesh nodes.LiftedPort[Mesh],
+	attribute nodes.LiftedPort[string],
+	data nodes.LiftedPort[[]T],
 	setAttr func(Mesh, string, []T) Mesh,
 ) {
 	if attribute == nil || data == nil {
-		out.Set(nodes.TryGetOutputValue(out, mesh, EmptyMesh(PointTopology)))
+		nodes.Zip1(out, nodes.LiftedOr(mesh, EmptyMesh(PointTopology)), func(m Mesh) Mesh { return m })
 		return
 	}
-
-	attr := nodes.GetOutputValue(out, attribute)
-	vals := nodes.GetOutputValue(out, data)
-	out.Set(setAttr(nodes.TryGetOutputValue(out, mesh, EmptyPointcloud()), attr, vals))
+	nodes.Zip3(out, nodes.LiftedOr(mesh, EmptyPointcloud()), attribute, data, setAttr)
 }
 
 type SetAttribute1DNode struct {
-	Mesh      nodes.Output[Mesh]
-	Attribute nodes.Output[string]
-	Data      nodes.Output[[]float64]
+	Mesh      nodes.LiftedPort[Mesh]
+	Attribute nodes.LiftedPort[string]
+	Data      nodes.LiftedPort[[]float64]
 }
 
 func (n SetAttribute1DNode) Description() string {
 	return "Writes an array of numbers onto a mesh as a named attribute."
 }
 
-func (n SetAttribute1DNode) Out(out *nodes.StructOutput[Mesh]) {
+func (n SetAttribute1DNode) Out(out *nodes.Lifted[Mesh]) {
 	setAttribute(out, n.Mesh, n.Attribute, n.Data, Mesh.SetFloat1Attribute)
 }
 
 type SetAttribute2DNode struct {
-	Mesh      nodes.Output[Mesh]
-	Attribute nodes.Output[string]
-	Data      nodes.Output[[]vector2.Float64]
+	Mesh      nodes.LiftedPort[Mesh]
+	Attribute nodes.LiftedPort[string]
+	Data      nodes.LiftedPort[[]vector2.Float64]
 }
 
 func (n SetAttribute2DNode) Description() string {
 	return "Writes an array of 2D vectors onto a mesh as a named attribute."
 }
 
-func (n SetAttribute2DNode) Out(out *nodes.StructOutput[Mesh]) {
+func (n SetAttribute2DNode) Out(out *nodes.Lifted[Mesh]) {
 	setAttribute(out, n.Mesh, n.Attribute, n.Data, Mesh.SetFloat2Attribute)
 }
 
 type SetAttribute3DNode struct {
-	Mesh      nodes.Output[Mesh]
-	Attribute nodes.Output[string]
-	Data      nodes.Output[[]vector3.Float64]
+	Mesh      nodes.LiftedPort[Mesh]
+	Attribute nodes.LiftedPort[string]
+	Data      nodes.LiftedPort[[]vector3.Float64]
 }
 
 func (n SetAttribute3DNode) Description() string {
 	return "Writes an array of 3D vectors onto a mesh as a named attribute."
 }
 
-func (n SetAttribute3DNode) Out(out *nodes.StructOutput[Mesh]) {
+func (n SetAttribute3DNode) Out(out *nodes.Lifted[Mesh]) {
 	setAttribute(out, n.Mesh, n.Attribute, n.Data, Mesh.SetFloat3Attribute)
 }
 
 type SetAttribute4DNode struct {
-	Mesh      nodes.Output[Mesh]
-	Attribute nodes.Output[string]
-	Data      nodes.Output[[]vector4.Float64]
+	Mesh      nodes.LiftedPort[Mesh]
+	Attribute nodes.LiftedPort[string]
+	Data      nodes.LiftedPort[[]vector4.Float64]
 }
 
 func (n SetAttribute4DNode) Description() string {
 	return "Writes an array of 4D vectors onto a mesh as a named attribute."
 }
 
-func (n SetAttribute4DNode) Out(out *nodes.StructOutput[Mesh]) {
+func (n SetAttribute4DNode) Out(out *nodes.Lifted[Mesh]) {
 	setAttribute(out, n.Mesh, n.Attribute, n.Data, Mesh.SetFloat4Attribute)
 }
 
 // ============================================================================
 
 func fillAttribute[T any](
-	out *nodes.StructOutput[Mesh],
-	mesh nodes.Output[Mesh],
-	attribute nodes.Output[string],
-	value nodes.Output[T],
+	out *nodes.Lifted[Mesh],
+	mesh nodes.LiftedPort[Mesh],
+	attribute nodes.LiftedPort[string],
+	value nodes.LiftedPort[T],
 	setAttr func(Mesh, string, []T) Mesh,
 ) {
-	m := nodes.TryGetOutputValue(out, mesh, EmptyMesh(PointTopology))
+	meshes := nodes.LiftedOr(mesh, EmptyMesh(PointTopology))
 	if attribute == nil {
-		out.Set(m)
+		nodes.Zip1(out, meshes, func(m Mesh) Mesh { return m })
 		return
 	}
 
-	var zero T
-	v := nodes.TryGetOutputValue(out, value, zero)
-	data := make([]T, m.AttributeLength())
-	for i := range data {
-		data[i] = v
-	}
-	out.Set(setAttr(m, nodes.GetOutputValue(out, attribute), data))
+	nodes.Zip3(out, meshes, attribute, value, func(m Mesh, attr string, v T) Mesh {
+		data := make([]T, m.AttributeLength())
+		for i := range data {
+			data[i] = v
+		}
+		return setAttr(m, attr, data)
+	})
 }
 
 type FillAttribute1DNode struct {
-	Mesh      nodes.Output[Mesh]
-	Attribute nodes.Output[string]
-	Value     nodes.Output[float64] `description:"The number every vertex receives."`
+	Mesh      nodes.LiftedPort[Mesh]
+	Attribute nodes.LiftedPort[string]
+	Value     nodes.LiftedPort[float64] `description:"The number every vertex receives."`
 }
 
 func (n FillAttribute1DNode) Description() string {
 	return "Sets a named attribute to the same number on every vertex of a mesh, creating the attribute if it doesn't exist."
 }
 
-func (n FillAttribute1DNode) Out(out *nodes.StructOutput[Mesh]) {
+func (n FillAttribute1DNode) Out(out *nodes.Lifted[Mesh]) {
 	fillAttribute(out, n.Mesh, n.Attribute, n.Value, Mesh.SetFloat1Attribute)
 }
 
 type FillAttribute2DNode struct {
-	Mesh      nodes.Output[Mesh]
-	Attribute nodes.Output[string]
-	Value     nodes.Output[vector2.Float64] `description:"The 2D vector every vertex receives."`
+	Mesh      nodes.LiftedPort[Mesh]
+	Attribute nodes.LiftedPort[string]
+	Value     nodes.LiftedPort[vector2.Float64] `description:"The 2D vector every vertex receives."`
 }
 
 func (n FillAttribute2DNode) Description() string {
 	return "Sets a named attribute to the same 2D vector on every vertex of a mesh, creating the attribute if it doesn't exist."
 }
 
-func (n FillAttribute2DNode) Out(out *nodes.StructOutput[Mesh]) {
+func (n FillAttribute2DNode) Out(out *nodes.Lifted[Mesh]) {
 	fillAttribute(out, n.Mesh, n.Attribute, n.Value, Mesh.SetFloat2Attribute)
 }
 
 type FillAttribute3DNode struct {
-	Mesh      nodes.Output[Mesh]
-	Attribute nodes.Output[string]
-	Value     nodes.Output[vector3.Float64] `description:"The 3D vector every vertex receives."`
+	Mesh      nodes.LiftedPort[Mesh]
+	Attribute nodes.LiftedPort[string]
+	Value     nodes.LiftedPort[vector3.Float64] `description:"The 3D vector every vertex receives."`
 }
 
 func (n FillAttribute3DNode) Description() string {
 	return "Sets a named attribute to the same 3D vector on every vertex of a mesh, creating the attribute if it doesn't exist."
 }
 
-func (n FillAttribute3DNode) Out(out *nodes.StructOutput[Mesh]) {
+func (n FillAttribute3DNode) Out(out *nodes.Lifted[Mesh]) {
 	fillAttribute(out, n.Mesh, n.Attribute, n.Value, Mesh.SetFloat3Attribute)
 }
 
 type FillAttribute4DNode struct {
-	Mesh      nodes.Output[Mesh]
-	Attribute nodes.Output[string]
-	Value     nodes.Output[vector4.Float64] `description:"The 4D vector every vertex receives."`
+	Mesh      nodes.LiftedPort[Mesh]
+	Attribute nodes.LiftedPort[string]
+	Value     nodes.LiftedPort[vector4.Float64] `description:"The 4D vector every vertex receives."`
 }
 
 func (n FillAttribute4DNode) Description() string {
 	return "Sets a named attribute to the same 4D vector on every vertex of a mesh, creating the attribute if it doesn't exist."
 }
 
-func (n FillAttribute4DNode) Out(out *nodes.StructOutput[Mesh]) {
+func (n FillAttribute4DNode) Out(out *nodes.Lifted[Mesh]) {
 	fillAttribute(out, n.Mesh, n.Attribute, n.Value, Mesh.SetFloat4Attribute)
 }

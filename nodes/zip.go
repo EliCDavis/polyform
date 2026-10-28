@@ -1,6 +1,7 @@
 package nodes
 
 import (
+	"errors"
 	"fmt"
 	"time"
 )
@@ -234,29 +235,9 @@ func LiftedOr[T any](port LiftedPort[T], value T) LiftedPort[T] {
 // Hands the kernel one element from each connection, unwired holes left out.
 // The slice is reused between elements, so a kernel keeping it has to copy.
 func ZipAll[A, R any](out *Lifted[R], ports []LiftedPort[A], kernel func([]A) R) {
-	operands := make([]liftedOperand[A], 0, len(ports))
-	lengths := make([]int, 0, len(ports))
-	rank := rankScalar
+	operands := operandsOf[A](out, ports)
 
-	for _, port := range ports {
-		if port == nil {
-			continue
-		}
-		if spread, ok := spreadOperands[A](out, port); ok {
-			for _, operand := range spread {
-				operands = append(operands, operand)
-				lengths = append(lengths, len(operand.values))
-				rank = max(rank, operand.rank)
-			}
-			continue
-		}
-		operand := operandOf[A](out, port)
-		operands = append(operands, operand)
-		lengths = append(lengths, len(operand.values))
-		rank = max(rank, operand.rank)
-	}
-
-	count, err := broadcastLength(lengths...)
+	count, rank, err := alignOperands(operands)
 	if err != nil {
 		out.CaptureError(err)
 		finish(out, rank, nil)
@@ -272,4 +253,59 @@ func ZipAll[A, R any](out *Lifted[R], ports []LiftedPort[A], kernel func([]A) R)
 		results[i] = kernel(row)
 	}
 	finish(out, rank, results)
+}
+
+// ZipAll over two lists of connections at once, each handed to the kernel
+// separately. The slices are reused between elements, as with ZipAll.
+func ZipAll2[A, B, R any](out *Lifted[R], a []LiftedPort[A], b []LiftedPort[B], kernel func([]A, []B) R) {
+	left, right := operandsOf[A](out, a), operandsOf[B](out, b)
+
+	leftCount, leftRank, leftErr := alignOperands(left)
+	rightCount, rightRank, rightErr := alignOperands(right)
+	rank := max(leftRank, rightRank)
+	count, err := broadcastLength(leftCount, rightCount)
+	if err = errors.Join(leftErr, rightErr, err); err != nil {
+		out.CaptureError(err)
+		finish(out, rank, nil)
+		return
+	}
+
+	results := make([]R, count)
+	leftRow, rightRow := make([]A, len(left)), make([]B, len(right))
+	for i := range results {
+		for j := range left {
+			leftRow[j] = left[j].at(i)
+		}
+		for j := range right {
+			rightRow[j] = right[j].at(i)
+		}
+		results[i] = kernel(leftRow, rightRow)
+	}
+	finish(out, rank, results)
+}
+
+func operandsOf[A any](recorder ExecutionRecorder, ports []LiftedPort[A]) []liftedOperand[A] {
+	operands := make([]liftedOperand[A], 0, len(ports))
+	for _, port := range ports {
+		if port == nil {
+			continue
+		}
+		if spread, ok := spreadOperands[A](recorder, port); ok {
+			operands = append(operands, spread...)
+			continue
+		}
+		operands = append(operands, operandOf[A](recorder, port))
+	}
+	return operands
+}
+
+func alignOperands[A any](operands []liftedOperand[A]) (int, int, error) {
+	lengths := make([]int, len(operands))
+	rank := rankScalar
+	for i, operand := range operands {
+		lengths[i] = len(operand.values)
+		rank = max(rank, operand.rank)
+	}
+	count, err := broadcastLength(lengths...)
+	return count, rank, err
 }

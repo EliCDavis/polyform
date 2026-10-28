@@ -57,6 +57,7 @@ func init() {
 	refutil.RegisterType[nodes.Struct[MaxNode[float64]]](factory)
 	refutil.RegisterType[nodes.Struct[MaxArrayNode[int]]](factory)
 	refutil.RegisterType[nodes.Struct[MaxArrayNode[float64]]](factory)
+	refutil.RegisterType[nodes.Struct[BoundsNode]](factory)
 
 	refutil.RegisterType[nodes.Struct[IntToFloatNode]](factory)
 	refutil.RegisterType[nodes.Struct[CompareNode[int]]](factory)
