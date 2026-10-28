@@ -163,3 +163,39 @@ func (node VoronoiNode) Out(out *nodes.StructOutput[[][]vector2.Float64]) {
 	}
 	out.Set(cells)
 }
+
+func (node VoronoiNode) Edges(out *nodes.StructOutput[[]geometry.Line2D]) {
+	points := nodes.TryGetOutputValue(out, node.Points, nil)
+	domain := nodes.TryGetOutputValue(out, node.Domain, nil)
+
+	cells, err := Voronoi(points, domain)
+	if err != nil {
+		out.CaptureError(err)
+		return
+	}
+	out.Set(VoronoiEdges(cells))
+}
+
+func (VoronoiNode) EdgesDescription() string {
+	return "Every edge two cells share, once each; the domain's own border is left out."
+}
+
+func VoronoiEdges(cells [][]vector2.Float64) []geometry.Line2D {
+	type key [2]vector2.Float64
+	seen := map[key]bool{}
+	var shared []geometry.Line2D
+	for _, cell := range cells {
+		for i, a := range cell {
+			b := cell[(i+1)%len(cell)]
+			k := key{a, b}
+			if b.X() < a.X() || (b.X() == a.X() && b.Y() < a.Y()) {
+				k = key{b, a}
+			}
+			if seen[k] {
+				shared = append(shared, geometry.NewLine2D(k[0], k[1]))
+			}
+			seen[k] = true
+		}
+	}
+	return shared
+}

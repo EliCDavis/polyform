@@ -190,6 +190,30 @@ func (n LinesFromPoints2DNode) Lines(out *nodes.Lifted[[]Line2D]) {
 
 // ============================================================================
 
+type TrimLines2DNode struct {
+	Lines  nodes.Output[[]Line2D]
+	Amount nodes.Output[float64] `description:"How much to cut off each end. Lines shorter than twice this are dropped."`
+}
+
+func (n TrimLines2DNode) Description() string {
+	return "Shortens lines by the same amount at both ends, dropping any too short to keep."
+}
+
+func (n TrimLines2DNode) Trimmed(out *nodes.StructOutput[[]Line2D]) {
+	amount := nodes.TryGetOutputValue(out, n.Amount, 0.)
+	lines := nodes.TryGetOutputValue(out, n.Lines, nil)
+	trimmed := make([]Line2D, 0, len(lines))
+	for _, line := range lines {
+		if line.Length() <= 2*amount {
+			continue
+		}
+		trimmed = append(trimmed, line.ExtendStart(-amount).ExtendEnd(-amount))
+	}
+	out.Set(trimmed)
+}
+
+// ============================================================================
+
 type Lines2DTo3DNode struct {
 	Lines  nodes.LiftedPort[[]Line2D] `description:"The 2D lines to place in 3D."`
 	Offset nodes.LiftedPort[float64]  `description:"How far along the output's axis the plane sits. Defaults to 0."`

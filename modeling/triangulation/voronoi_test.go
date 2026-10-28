@@ -146,3 +146,23 @@ func TestVoronoiNodeGivesOneCellPerPoint(t *testing.T) {
 	assert.InDelta(t, 8., geometry.Shape(cells[0]).SignedArea(), 1e-9)
 	assert.InDelta(t, 8., geometry.Shape(cells[1]).SignedArea(), 1e-9)
 }
+
+func TestVoronoiEdgesAreTheOnesTwoCellsShare(t *testing.T) {
+	sites := []vector2.Float64{vector2.New(1., 1.), vector2.New(3., 1.), vector2.New(1., 3.), vector2.New(3., 3.)}
+	cells, err := triangulation.Voronoi(sites, voronoiSquare(4))
+	require.NoError(t, err)
+
+	edges := triangulation.VoronoiEdges(cells)
+
+	require.Len(t, edges, 4)
+	total := 0.
+	for _, edge := range edges {
+		total += edge.Length()
+		assert.True(t, edge.GetStartPoint().X() == 2 || edge.GetStartPoint().Y() == 2, "edge %v is not on a bisector", edge)
+	}
+	assert.InDelta(t, 8, total, 1e-9)
+
+	one, err := triangulation.Voronoi(sites[:1], voronoiSquare(4))
+	require.NoError(t, err)
+	assert.Empty(t, triangulation.VoronoiEdges(one))
+}

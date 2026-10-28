@@ -15,5 +15,6 @@ func init() {
 	refutil.RegisterType[nodes.Struct[ConvexHullNode]](factory)
 	refutil.RegisterType[nodes.Struct[LinesFromPoints2DNode]](factory)
 	refutil.RegisterType[nodes.Struct[Lines2DTo3DNode]](factory)
+	refutil.RegisterType[nodes.Struct[TrimLines2DNode]](factory)
 	generator.RegisterTypes(factory)
 }

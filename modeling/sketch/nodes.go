@@ -12,6 +12,7 @@ func init() {
 	refutil.RegisterType[nodes.Struct[TransformNode]](factory)
 	refutil.RegisterType[nodes.Struct[StrokeNode]](factory)
 	refutil.RegisterType[nodes.Struct[BevelNode]](factory)
+	refutil.RegisterType[nodes.Struct[BevelPathNode]](factory)
 	refutil.RegisterType[nodes.Struct[FillNode]](factory)
 	refutil.RegisterType[nodes.Struct[UnionNode]](factory)
 	refutil.RegisterType[nodes.Struct[IntersectionNode]](factory)
