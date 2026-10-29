@@ -8,6 +8,7 @@ import (
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/csg"
 	"github.com/EliCDavis/polyform/modeling/extrude"
+	"github.com/EliCDavis/polyform/modeling/primitives"
 	"github.com/EliCDavis/polyform/modeling/sketch"
 	"github.com/EliCDavis/polyform/modeling/triangulation"
 	"github.com/EliCDavis/polyform/nodes"
@@ -28,7 +29,7 @@ func TestRegionWithDepthIsAClosedSolid(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	solid := extrude.RegionZ(region, 1)
+	solid := extrude.RegionZ(region, 1, nil)
 	require.NoError(t, csg.CheckClosed(solid))
 	assert.InDelta(t, 100.-6*4, signedVolume(solid), 1e-9)
 }
@@ -46,11 +47,11 @@ func TestRegionStaysClosedWhenOutlineEdgesNearlyCoincide(t *testing.T) {
 
 		filled, err := triangulation.FillDifference(nearlyFlush, nil)
 		require.NoError(t, err, "outlines off by %g", offset)
-		assert.NoError(t, csg.CheckClosed(extrude.RegionZ(filled, 0.3)), "outlines off by %g", offset)
+		assert.NoError(t, csg.CheckClosed(extrude.RegionZ(filled, 0.3, nil)), "outlines off by %g", offset)
 
 		cut, err := triangulation.FillDifference([]geometry.Shape{box(-2, -2, 6, 4)}, nearlyFlush)
 		require.NoError(t, err, "holes off by %g", offset)
-		assert.NoError(t, csg.CheckClosed(extrude.RegionZ(cut, 0.3)), "holes off by %g", offset)
+		assert.NoError(t, csg.CheckClosed(extrude.RegionZ(cut, 0.3, nil)), "holes off by %g", offset)
 	}
 }
 
@@ -58,7 +59,7 @@ func TestRegionWithoutDepthIsOneFaceForward(t *testing.T) {
 	region, err := triangulation.Fill(square(2, vector2.New(0., 0.)))
 	require.NoError(t, err)
 
-	face := extrude.RegionZ(region, 0)
+	face := extrude.RegionZ(region, 0, nil)
 	normals := face.Float3Attribute(modeling.NormalAttribute)
 	for i := 0; i < normals.Len(); i++ {
 		assert.Equal(t, 1., normals.At(i).Z())
@@ -116,7 +117,7 @@ func TestAreaNodeKeepsAnIslandInsideAHole(t *testing.T) {
 	both, err := sketch.Union(frame, island)
 	require.NoError(t, err)
 
-	solid, err := extrude.AreaZ(both, 1)
+	solid, err := extrude.AreaZ(both, 1, nil)
 	require.NoError(t, err)
 
 	require.NoError(t, csg.CheckClosed(solid))
@@ -194,5 +195,35 @@ func TestAreaNodeNegativeDepthExtrudesDownEachAxis(t *testing.T) {
 		bounds := solid.BoundingBox(modeling.PositionAttribute)
 		assert.InDelta(t, 0, bounds.Min().Distance(tc.min), 1e-9, name)
 		assert.InDelta(t, 0, bounds.Max().Distance(tc.max), 1e-9, name)
+	}
+}
+
+func TestRegionWallsAndCapsTakeStripUVsInWorldUnits(t *testing.T) {
+	region, err := triangulation.Fill(box(0, 0, 3, 1))
+	require.NoError(t, err)
+	strip := primitives.UnitStripUVs()
+
+	solid := extrude.RegionZ(region, 2, &strip)
+
+	require.True(t, solid.HasFloat2Attribute(modeling.TexCoordAttribute))
+	positions := solid.Float3Attribute(modeling.PositionAttribute)
+	normals := solid.Float3Attribute(modeling.NormalAttribute)
+	uvs := solid.Float2Attribute(modeling.TexCoordAttribute)
+	perimeter := map[vector2.Float64]float64{
+		vector2.New(0., 0.): 0, vector2.New(3., 0.): 3, vector2.New(3., 1.): 4, vector2.New(0., 1.): 7,
+	}
+	for i := range positions.Len() {
+		p, n, uv := positions.At(i), normals.At(i), uvs.At(i)
+		if n.Z() != 0 {
+			assert.Equal(t, strip.AtXY(vector2.New(p.X(), p.Y())), uv, "cap vertex %d at %v", i, p)
+			continue
+		}
+		corner := vector2.New(p.X(), p.Y())
+		across := perimeter[corner]
+		// The wall after the last corner comes back to the first at the full perimeter, not 0.
+		if corner == vector2.New(0., 0.) && n.X() < 0 {
+			across = 8
+		}
+		assert.Equal(t, strip.AtXY(vector2.New(across, p.Z())), uv, "wall vertex %d at %v facing %v", i, p, n)
 	}
 }
