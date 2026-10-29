@@ -273,26 +273,27 @@ func scopedNodeEndpoint(graphInstance *graph.Instance, saver *GraphSaver) endpoi
 				},
 			),
 			http.MethodDelete: endpoint.JsonMethod(
-				func(request endpoint.Request[DeleteRequest]) (EmptyResponse, error) {
+				func(request endpoint.Request[DeleteRequest]) (DroppedResponse, error) {
 					scope, err := parseSubGraphScopeFromURL(request.Url)
 					if err != nil {
-						return EmptyResponse{}, err
+						return DroppedResponse{}, err
 					}
 
 					scopeInstance, err := scope.ResolveInstance(graphInstance)
 					if err != nil {
-						return EmptyResponse{}, err
+						return DroppedResponse{}, err
 					}
 
 					if !scopeInstance.HasNodeWithId(request.Body.NodeID) {
-						return EmptyResponse{}, fmt.Errorf("no node exists with id %s", request.Body.NodeID)
+						return DroppedResponse{}, fmt.Errorf("no node exists with id %s", request.Body.NodeID)
 					}
 
-					if _, err := scopeInstance.DeleteNodeById(request.Body.NodeID); err != nil {
-						return EmptyResponse{}, err
+					dropped, err := scopeInstance.DeleteNodeById(request.Body.NodeID)
+					if err != nil {
+						return DroppedResponse{}, err
 					}
 					saver.Save()
-					return EmptyResponse{}, nil
+					return DroppedResponse{Dropped: dropped}, nil
 				},
 			),
 		},
@@ -310,6 +311,7 @@ func scopedNodeConnectionEndpoint(graphInstance *graph.Instance, saver *GraphSav
 		OutPortName string `json:"outPortName"`
 		NodeInId    string `json:"nodeInId"`
 		InPortName  string `json:"inPortName"`
+		Insert      bool   `json:"insert,omitempty"`
 	}
 
 	type EmptyResponse struct{}
@@ -328,7 +330,11 @@ func scopedNodeConnectionEndpoint(graphInstance *graph.Instance, saver *GraphSav
 						return EmptyResponse{}, err
 					}
 
-					err = scopeInstance.ConnectNodes(
+					connect := scopeInstance.ConnectNodes
+					if request.Body.Insert {
+						connect = scopeInstance.InsertNodeConnection
+					}
+					err = connect(
 						request.Body.NodeOutId,
 						request.Body.OutPortName,
 						request.Body.NodeInId,
@@ -342,26 +348,27 @@ func scopedNodeConnectionEndpoint(graphInstance *graph.Instance, saver *GraphSav
 				},
 			),
 			http.MethodDelete: endpoint.JsonMethod(
-				func(request endpoint.Request[DeleteRequest]) (EmptyResponse, error) {
+				func(request endpoint.Request[DeleteRequest]) (DroppedResponse, error) {
 					scope, err := parseSubGraphScopeFromURL(request.Url)
 					if err != nil {
-						return EmptyResponse{}, err
+						return DroppedResponse{}, err
 					}
 
 					scopeInstance, err := scope.ResolveInstance(graphInstance)
 					if err != nil {
-						return EmptyResponse{}, err
+						return DroppedResponse{}, err
 					}
 
 					if !scopeInstance.HasNodeWithId(request.Body.NodeId) {
-						return EmptyResponse{}, fmt.Errorf("no node exists with id %s", request.Body.NodeId)
+						return DroppedResponse{}, fmt.Errorf("no node exists with id %s", request.Body.NodeId)
 					}
 
-					if _, err := scopeInstance.DeleteNodeInputConnection(request.Body.NodeId, request.Body.InPortName); err != nil {
-						return EmptyResponse{}, err
+					dropped, err := scopeInstance.DeleteNodeInputConnection(request.Body.NodeId, request.Body.InPortName)
+					if err != nil {
+						return DroppedResponse{}, err
 					}
 					saver.Save()
-					return EmptyResponse{}, nil
+					return DroppedResponse{Dropped: dropped}, nil
 				},
 			),
 		},

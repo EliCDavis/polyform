@@ -59,12 +59,13 @@ func nodeEndpoint(graphInstance *graph.Instance, saver *GraphSaver) endpoint.Han
 				},
 			),
 			http.MethodDelete: endpoint.JsonMethod(
-				func(request endpoint.Request[DeleteRequest]) (EmptyResponse, error) {
-					if _, err := graphInstance.DeleteNodeById(request.Body.NodeID); err != nil {
-						return EmptyResponse{}, err
+				func(request endpoint.Request[DeleteRequest]) (DroppedResponse, error) {
+					dropped, err := graphInstance.DeleteNodeById(request.Body.NodeID)
+					if err != nil {
+						return DroppedResponse{}, err
 					}
 					saver.Save()
-					return EmptyResponse{}, nil
+					return DroppedResponse{Dropped: dropped}, nil
 				},
 			),
 		},
