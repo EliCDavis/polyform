@@ -19,7 +19,7 @@ import (
 	_ "github.com/EliCDavis/polyform/drawing/texturing/pattern"
 
 	_ "github.com/EliCDavis/polyform/formats/colmap"
-	_ "github.com/EliCDavis/polyform/formats/gltf"
+	"github.com/EliCDavis/polyform/formats/gltf"
 	_ "github.com/EliCDavis/polyform/formats/obj"
 	_ "github.com/EliCDavis/polyform/formats/opensfm"
 	_ "github.com/EliCDavis/polyform/formats/ply"
@@ -74,6 +74,7 @@ import (
 
 func main() {
 	nodeSerializer := &serialize.TypeSwitch[manifest.Entry]{}
+	gltf.RegisterOutputSerializers(nodeSerializer)
 
 	serialize.Register(nodeSerializer, func(i image.Image) manifest.Entry {
 		return manifest.Entry{Artifact: basics.Image{Image: i}}
