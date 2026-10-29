@@ -784,7 +784,9 @@ func (w *Writer) addModel(model *PolyformModel, parentTransformOverride *trs.TRS
 		}
 	}
 
-	if model.Mesh != nil && model.Mesh.PrimitiveCount() > 0 {
+	// nil gpu instances = regular placement/rendering. 0 gpu insances = DONT RENDER ANYTHING
+	placedNowhere := model.GpuInstances != nil && len(model.GpuInstances) == 0
+	if model.Mesh != nil && model.Mesh.PrimitiveCount() > 0 && !placedNowhere {
 		meshIndex, err := w.getOrAddMeshIndex(model)
 		if err != nil {
 			return nil, err
