@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"path"
+	"reflect"
 	"strings"
 	"sync"
 
@@ -115,11 +116,23 @@ func (s *system) ApplyProfile(profile Profile) error {
 			return fmt.Errorf("unable to apply %q from profile, variable does not exist", key)
 		}
 
+		if sameJSON(entry.GetProfile(), data) {
+			continue
+		}
+
 		if err := entry.ApplyProfile(data); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+func sameJSON(a, b json.RawMessage) bool {
+	var left, right any
+	if json.Unmarshal(a, &left) != nil || json.Unmarshal(b, &right) != nil {
+		return false
+	}
+	return reflect.DeepEqual(left, right)
 }
 
 func (s *system) RuntimeSchema() (schema.NestedGroup[schema.Variable], error) {
