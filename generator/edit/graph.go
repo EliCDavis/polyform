@@ -63,6 +63,62 @@ func newGraphEndpoint(editServer *Server) endpoint.Handler {
 	}
 }
 
+type graphDetails struct {
+	Name        string               `json:"name"`
+	Version     string               `json:"version"`
+	Description string               `json:"description"`
+	Authors     []persistence.Author `json:"authors"`
+}
+
+func cleanAuthors(authors []persistence.Author) []persistence.Author {
+	var cleaned []persistence.Author
+	for _, author := range authors {
+		name := strings.TrimSpace(author.Name)
+		if name == "" {
+			continue
+		}
+		var contacts []persistence.AuthorContact
+		for _, contact := range author.ContactInfo {
+			medium, value := strings.TrimSpace(contact.Medium), strings.TrimSpace(contact.Value)
+			if medium == "" && value == "" {
+				continue
+			}
+			contacts = append(contacts, persistence.AuthorContact{Medium: medium, Value: value})
+		}
+		cleaned = append(cleaned, persistence.Author{Name: name, ContactInfo: contacts})
+	}
+	return cleaned
+}
+
+func graphDetailsEndpoint(as *Server, saver *GraphSaver) endpoint.Handler {
+	read := func() graphDetails {
+		details := as.Graph.Details()
+		return graphDetails{
+			Name:        details.Name,
+			Version:     details.Version,
+			Description: details.Description,
+			Authors:     details.Authors,
+		}
+	}
+	return endpoint.Handler{
+		Methods: map[string]endpoint.Method{
+			http.MethodGet: endpoint.JsonResponseMethod(func(r *http.Request) (graphDetails, error) {
+				return read(), nil
+			}),
+			http.MethodPost: endpoint.JsonMethod(func(request endpoint.Request[graphDetails]) (graphDetails, error) {
+				as.Graph.SetDetails(graph.Details{
+					Name:        strings.TrimSpace(request.Body.Name),
+					Version:     strings.TrimSpace(request.Body.Version),
+					Description: strings.TrimSpace(request.Body.Description),
+					Authors:     cleanAuthors(request.Body.Authors),
+				})
+				saver.Save()
+				return read(), nil
+			}),
+		},
+	}
+}
+
 func graphEndpoint(as *Server) endpoint.Handler {
 	return endpoint.Handler{
 		Methods: map[string]endpoint.Method{
