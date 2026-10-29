@@ -44,11 +44,11 @@ type Writer struct {
 	nodes       []Node
 	materials   []Material
 
-	matIndices          materialIndices     // Tracks and deduplicates unique materials
-	meshIndices         meshIndices         // Tracks and deduplicates unique meshes&materials
-	writtenMeshData     attributeIndices    // Tracks and deduplicate written mesh data
-	textureIndices      textureIndices      // Tracks and deduplicates unique textures
-	embededImageIndices map[image.Image]int // Tracks and deduplicates unique written images to our buffer
+	matIndices          materialIndices      // Tracks and deduplicates unique materials
+	meshIndices         meshIndices          // Tracks and deduplicates unique meshes&materials
+	writtenMeshData     attributeIndices     // Tracks and deduplicate written mesh data
+	textureIndices      textureIndices       // Tracks and deduplicates unique textures
+	embededImageIndices map[encodedImage]int // Tracks and deduplicates unique written images to our buffer
 	modelIndices        map[*PolyformModel]int
 
 	skins      []Skin
@@ -84,7 +84,7 @@ func NewWriter() *Writer {
 		meshIndices:         make(meshIndices),
 		writtenMeshData:     make(attributeIndices),
 		textureIndices:      make(textureIndices),
-		embededImageIndices: make(map[image.Image]int),
+		embededImageIndices: make(map[encodedImage]int),
 		modelIndices:        make(map[*PolyformModel]int),
 
 		// Extensions
@@ -419,9 +419,14 @@ func (w *Writer) WriteIndices(indices *iter.ArrayIterator[int], attributeSize in
 	w.bytesWritten += indiceSize
 }
 
-func (w *Writer) writeImageAsPng(image image.Image) (int, error) {
+type encodedImage struct {
+	image       image.Image
+	compression ImageCompression
+}
+
+func (w *Writer) writeImageAsPng(image image.Image, compression ImageCompression) (int, error) {
 	buf := &bytes.Buffer{}
-	err := png.Encode(buf, image)
+	err := (&png.Encoder{CompressionLevel: compression.pngLevel()}).Encode(buf, image)
 	if err != nil {
 		return -1, err
 	}
@@ -446,9 +451,9 @@ func (w *Writer) writeImageAsPng(image image.Image) (int, error) {
 	return bufferViewIndex, nil
 }
 
-func (w *Writer) imageToDataURI(img image.Image) (string, error) {
+func (w *Writer) imageToDataURI(img image.Image, compression ImageCompression) (string, error) {
 	buf := &bytes.Buffer{}
-	if err := png.Encode(buf, img); err != nil {
+	if err := (&png.Encoder{CompressionLevel: compression.pngLevel()}).Encode(buf, img); err != nil {
 		return "", fmt.Errorf("failed to encode PNG image: %w", err)
 	}
 
@@ -946,19 +951,20 @@ func (w *Writer) AddTexture(polyTex *PolyformTexture) *TextureInfo {
 	imageIndex := len(w.images)
 
 	// If EmbedTextures is enabled and we have image data, prioritize embedding over URI
+	encoded := encodedImage{image: polyTex.Image, compression: polyTex.Compression}
 	if w.Options.EmbedTextures && polyTex.Image != nil {
-		foundIndex, ok := w.embededImageIndices[polyTex.Image]
+		foundIndex, ok := w.embededImageIndices[encoded]
 		if ok {
 			imageIndex = foundIndex
 		} else {
 			// Encode image as data URI instead of writing to buffer
-			dataURI, err := w.imageToDataURI(polyTex.Image)
+			dataURI, err := w.imageToDataURI(polyTex.Image, polyTex.Compression)
 			if err != nil {
 				panic(err)
 			}
 
 			w.images = append(w.images, Image{URI: dataURI})
-			w.embededImageIndices[polyTex.Image] = imageIndex
+			w.embededImageIndices[encoded] = imageIndex
 		}
 	} else if polyTex.URI != "" { // check if an image with this URI was already added before
 		var imageFound bool
@@ -974,11 +980,11 @@ func (w *Writer) AddTexture(polyTex *PolyformTexture) *TextureInfo {
 		}
 	} else if polyTex.Image != nil {
 
-		foundIndex, ok := w.embededImageIndices[polyTex.Image]
+		foundIndex, ok := w.embededImageIndices[encoded]
 		if ok {
 			imageIndex = foundIndex
 		} else {
-			bufferView, err := w.writeImageAsPng(polyTex.Image)
+			bufferView, err := w.writeImageAsPng(polyTex.Image, polyTex.Compression)
 			if err != nil {
 				panic(err)
 			}
@@ -987,7 +993,7 @@ func (w *Writer) AddTexture(polyTex *PolyformTexture) *TextureInfo {
 				MimeType:   ImageMimeType_PNG,
 				BufferView: &bufferView,
 			})
-			w.embededImageIndices[polyTex.Image] = imageIndex
+			w.embededImageIndices[encoded] = imageIndex
 		}
 	} else {
 		panic(fmt.Errorf("no uri or image"))
