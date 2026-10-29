@@ -336,7 +336,13 @@ func (o *liftedOutput) AnyValue() any {
 }
 
 func (o *liftedOutput) ExecutionReport() ExecutionReport {
-	return o.evaluate().report
+	o.mutex.Lock()
+	defer o.mutex.Unlock()
+	if o.cache.Outdated(o.functionName) {
+		return ExecutionReport{}
+	}
+	cached, _ := o.cache.Get(o.functionName).(liftedResult)
+	return cached.report
 }
 
 func (o *liftedOutput) evaluate() liftedResult {

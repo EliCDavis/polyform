@@ -172,6 +172,7 @@ func (ape AssertOutputPortError) Assert(t *testing.T, node nodes.Node) {
 		t.Error("node does not contain output port", ape.Port)
 		return
 	}
+	nodes.DynamicAnyValue(nil, port)
 
 	observable, ok := port.(nodes.ObservableExecution)
 	if !ok {

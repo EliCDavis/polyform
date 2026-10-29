@@ -32,8 +32,7 @@ func TestChunkRefusesASizeBelowOne(t *testing.T) {
 	wire(t, node, "Array", letters())
 	wire(t, node, "Size", nodes.ConstOutput[int]{Val: 0})
 
-	out := node.Outputs()["Out"].(nodes.ObservableExecution)
-	assert.NotEmpty(t, out.ExecutionReport().Errors, "a zero size would never terminate")
+	assert.NotEmpty(t, errorsOf(node, "Out"), "a zero size would never terminate")
 }
 
 func TestFlattenJoinsInnerArraysInOrder(t *testing.T) {

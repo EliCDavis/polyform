@@ -246,6 +246,7 @@ func TestLiftedTimesItsInputsAsStepsNotSelf(t *testing.T) {
 	array(t, upstream, "In", 1, 2, 3)
 	node := &nodes.Struct[negateNode]{}
 	connect(t, node, "In", upstream.Outputs()["Out"])
+	nodes.GetNodeOutputPort[[]float64](node, "Out").Value()
 
 	report := node.Outputs()["Out"].(nodes.ObservableExecution).ExecutionReport()
 	require.Len(t, report.Steps, 1)

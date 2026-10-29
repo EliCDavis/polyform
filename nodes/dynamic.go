@@ -339,7 +339,13 @@ func (d *dynamicOutput) AnyValue() any {
 }
 
 func (d *dynamicOutput) ExecutionReport() ExecutionReport {
-	return d.evaluate().report
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+	if d.cache.Outdated(d.functionName) {
+		return ExecutionReport{}
+	}
+	cached, _ := d.cache.Get(d.functionName).(dynamicResult)
+	return cached.report
 }
 
 func (d *dynamicOutput) BindType(concrete string) error {
