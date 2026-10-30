@@ -1,6 +1,5 @@
 import { BasicParameterNodeController } from './basic_parameter';
 import { Vector3ParameterNodeController } from './vector3_parameter';
-import { Vector3ArrayParameterNodeController } from './vector3_array_parameter';
 import { ImageParameterNodeController } from './image_parameter';
 import { AABBParameterNodeController } from './aabb_parameter';
 import { NodeManager } from '../node_manager.js';
@@ -8,21 +7,32 @@ import { FileParameterNodeController } from './file_parameter';
 import { getFileExtension, getLastSegmentOfURL } from '../utils.js';
 import { Vector2ParameterNodeController } from './vector2_parameter';
 import { Vector4ParameterNodeController } from './vector4_parameter';
-import { ArrayParameterNodeController, colorItem, floatItem, intItem, stringItem, trsItem, vec2Item, vec2IntItem, vec3IntItem } from './array_parameter';
+import { ArrayParameterNodeController, colorItem, floatItem, intItem, stringItem, trsItem, vec2Item, vec2IntItem, vec3Item, vec3IntItem } from './array_parameter';
 import { GradientParameterNodeController } from './gradient_parameter';
 import { TRSParameterNodeController } from './trs_parameter';
 import { QuaternionParameterNodeController } from './quaternion_parameter';
 import { NodeInstance, NodeInstanceAssignedInput, NodeInstanceOutput, NodeDefinition, NodeInput, NodeOutput, ExecutionReport, subGraphBoundaryKind } from '../schema.js';
 import { RequestManager, saveFileToDisk } from '../requests.js';
-import { FlowNode, GlobalWidgetFactory, ImageWidget, MessageType, Port } from '@elicdavis/node-flow';
+import { FlowNode, GlobalWidgetFactory, ImageWidget, MessageType, Port, ToggleWidget, type Widget } from '@elicdavis/node-flow';
 import { ThreeApp } from '../three_app.js';
 import { ProducerViewManager } from '../ProducerView/producer_view_manager.js';
 import type { NodeParameter } from '../../types/parameter.js';
 import { SubGraphBoundaryNodeController } from './boundary_node_controller.js';
 import { isSubGraphRuntimeType, resolveDynamicType, shortDynamicPattern } from '../portTypes.js';
 import { useGraphTabStore } from '../../stores/graphTabStore.js';
+import { nodeOutputUrl } from '../../features/preview/PreviewPanel.js';
+import { thumbnails } from '../../features/preview/thumbnail_renderer.js';
+import { lockIfReadOnly } from './read_only.js';
 
 export const InstanceIDProperty: string = "instanceID"
+
+// Output types the server serves as a GLB, previewed in a tab of their own.
+const PREVIEW_3D_TYPES = new Set([
+    "github.com/EliCDavis/polyform/modeling.Mesh",
+    "[]github.com/EliCDavis/polyform/modeling.Mesh",
+    "*github.com/EliCDavis/polyform/formats/gltf.PolyformModel",
+    "[]*github.com/EliCDavis/polyform/formats/gltf.PolyformModel",
+]);
 
 interface ParameterController {
     update(parameterData: NodeParameter): void
@@ -69,7 +79,7 @@ function BuildParameter(
 
         case "[]vector3.Vector[float64]":
         case "[]vector3.Vector[float32]":
-            return new Vector3ArrayParameterNodeController(flowNode, nodeManager, id, parameterData, app);
+            return new ArrayParameterNodeController(flowNode, nodeManager, id, parameterData, vec3Item, app);
 
         case "[]float64":
             return new ArrayParameterNodeController(flowNode, nodeManager, id, parameterData, floatItem);
@@ -138,6 +148,10 @@ export class PolyNodeController {
 
     boundary: SubGraphBoundaryNodeController;
 
+    forEach: boolean;
+
+    forEachToggle: ToggleWidget | null;
+
     requestManager: RequestManager;
 
     app: ThreeApp;
@@ -149,6 +163,10 @@ export class PolyNodeController {
     serializableOutputTypes: Array<string>;
 
     nodeOutputWidgets: Map<string, ImageWidget>;
+
+    previewButtons: Map<string, Widget>;
+
+    thumbnailVersions: Map<string, number>;
 
     constructor(
         flowNode: FlowNode,
@@ -172,6 +190,8 @@ export class PolyNodeController {
         this.nodeDefinition = nodeDefinition;
         this.serializableOutputTypes = serializableOutputTypes;
         this.nodeOutputWidgets = new Map<string, ImageWidget>();
+        this.previewButtons = new Map<string, Widget>();
+        this.thumbnailVersions = new Map<string, number>();
 
         this.name = "";
         this.outputs = {};
@@ -179,6 +199,8 @@ export class PolyNodeController {
 
         this.parameter = null;
         this.boundary = null;
+        this.forEach = false;
+        this.forEachToggle = null;
 
         if (nodeData.metadata) {
             if (nodeData.metadata.position) {
@@ -234,6 +256,20 @@ export class PolyNodeController {
                 },
             });
             flowNode.addWidget(openSubGraphButton);
+
+            this.forEach = !!nodeData.forEach;
+            this.forEachToggle = GlobalWidgetFactory.create(flowNode, "toggle", {
+                label: "For Each",
+                value: this.forEach,
+                callback: (each) => {
+                    this.forEach = each;
+                    this.requestManager.setSubGraphInstanceForEach(
+                        this.id,
+                        { each, scope: this.nodeManager.getScopeApiPath() },
+                    );
+                },
+            });
+            flowNode.addWidget(this.forEachToggle);
         }
 
         this.flowNode.addTitleChangeListener((_, __, newTitle) => {
@@ -278,7 +314,7 @@ export class PolyNodeController {
         if (!!producerOutput) {
             const ext = getFileExtension(nodeData.name);
             if (ext === "png") {
-                const imageWidget = GlobalWidgetFactory.create(flowNode, "image", {}) as ImageWidget;
+                const imageWidget = GlobalWidgetFactory.create(flowNode, "image", {});
                 flowNode.addWidget(imageWidget);
                 producerViewManager.SubscribeToProducerRefresh((url, image) => {
                     // console.log(url, image)
@@ -301,6 +337,8 @@ export class PolyNodeController {
             this.flowNode.addWidget(downloadButton);
         }
 
+        this.flowNode.widgets().forEach(lockIfReadOnly);
+
         this.attachInputConnectionListeners();
 
         this.update(nodeData);
@@ -316,7 +354,8 @@ export class PolyNodeController {
                 console.log("connection ADDED", connection, connectionIndex, port, portType, node);
 
                 let inputPort = connection.inPort().getDisplayName();
-                if (portType === "INPUTARRAY") {
+                const array = portType === "INPUTARRAY";
+                if (array) {
                     inputPort += "." + connectionIndex;
                 }
 
@@ -325,6 +364,8 @@ export class PolyNodeController {
                     inputPort,
                     connection.outNode().getProperty(InstanceIDProperty),
                     connection.outPort().getDisplayName(),
+                    undefined,
+                    array,
                 )
             });
 
@@ -350,35 +391,95 @@ export class PolyNodeController {
         }
     }
 
-    fetchOutput(outputKey: string, version: number): void {
-
-        // if (version === -1) {
-        //     return;
-        // }
-
-        // Don't do anything if we're up to date
-        if (outputKey in this.outputs && this.outputs[outputKey].version === version) {
+    // A thumbnail of the geometry sits above a button that opens it in a tab.
+    private ensurePreviewButton(outputKey: string): void {
+        if (this.previewButtons.has(outputKey)) {
             return;
         }
+        const thumbnail = GlobalWidgetFactory.create(this.flowNode, "image", { maxWidth: 180 });
+        this.flowNode.addWidget(thumbnail);
+        this.nodeOutputWidgets.set(outputKey, thumbnail);
 
+        const single = Object.keys(this.nodeDefinition.outputs).length === 1;
+        const button = GlobalWidgetFactory.create(this.flowNode, "button", {
+            text: single ? "Open" : `Open ${outputKey}`,
+            callback: () => {
+                const title = this.name || this.nodeDefinition.displayName || this.id;
+                useGraphTabStore.getState().openPreviewTab(
+                    this.id,
+                    outputKey,
+                    single ? title : `${title} · ${outputKey}`,
+                    this.nodeManager.getScopeApiPath(),
+                );
+            },
+        });
+        this.flowNode.addWidget(button);
+        this.previewButtons.set(outputKey, button);
+    }
+
+    private refreshThumbnail(outputKey: string, version: number): void {
+        if (this.thumbnailVersions.get(outputKey) === version) {
+            return;
+        }
+        this.thumbnailVersions.set(outputKey, version);
+        const scope = this.nodeManager.getScopeApiPath();
+        const url = nodeOutputUrl(this.id, outputKey, scope);
+        thumbnails
+            .request(`${scope ?? "root"}:${this.id}:${outputKey}`, `${url}${url.includes("?") ? "&" : "?"}v=${version}`)
+            .then((dataUrl) => {
+                const widget = this.nodeOutputWidgets.get(outputKey);
+                if (!widget || dataUrl === null) {
+                    return;
+                }
+                widget.SetUrl(dataUrl);
+            })
+            .catch((err) => console.warn(`thumbnail for ${this.id}.${outputKey}:`, err));
+    }
+
+    private outputConnected(outputKey: string): boolean {
+        for (let i = 0; i < this.flowNode.outputs(); i++) {
+            const outputPort = this.flowNode.outputPort(i);
+            if (outputPort.getDisplayName() === outputKey) {
+                return outputPort.connections().length > 0;
+            }
+        }
+        return false;
+    }
+
+    private removePreview(outputKey: string): void {
+        const image = this.nodeOutputWidgets.get(outputKey);
+        if (image) {
+            this.flowNode.removeWidget(image);
+            this.nodeOutputWidgets.delete(outputKey);
+        }
+        const button = this.previewButtons.get(outputKey);
+        if (button) {
+            this.flowNode.removeWidget(button);
+            this.previewButtons.delete(outputKey);
+        }
+        this.thumbnailVersions.delete(outputKey);
+    }
+
+    fetchOutput(outputKey: string, version: number): void {
         let recognizeOutput = this.nodeDefinition?.outputs && outputKey in this.nodeDefinition.outputs;
         if (!recognizeOutput) {
             return
         }
 
-        for (let i = 0; i < this.flowNode.outputs(); i++) {
-            const outputPort = this.flowNode.outputPort(i);
-            if (outputPort.getDisplayName() !== outputKey) {
-                continue;
-            }
-            if (outputPort.connections().length === 0) {
+        if (!this.outputConnected(outputKey)) {
+            this.removePreview(outputKey);
+            return;
+        }
 
-                // If we were once connected and are no longer, clear image widget
-                if (this.nodeOutputWidgets.has(outputKey)) {
-                    this.flowNode.removeWidget(this.nodeOutputWidgets.get(outputKey));
-                }
-                return;
-            }
+        if (PREVIEW_3D_TYPES.has(this.nodeDefinition.outputs[outputKey].type)) {
+            this.ensurePreviewButton(outputKey);
+            this.refreshThumbnail(outputKey, version);
+            return;
+        }
+
+        // Don't do anything if we're up to date
+        if (this.nodeOutputWidgets.has(outputKey) && outputKey in this.outputs && this.outputs[outputKey].version === version) {
+            return;
         }
 
         let found = false;
@@ -398,12 +499,12 @@ export class PolyNodeController {
         // stringWidget.Set("" + version);
 
         if (!this.nodeOutputWidgets.has(outputKey)) {
-            const imageWidget = GlobalWidgetFactory.create(this.flowNode, "image", {}) as ImageWidget;
+            const imageWidget = GlobalWidgetFactory.create(this.flowNode, "image", {});
             this.flowNode.addWidget(imageWidget);
             this.nodeOutputWidgets.set(outputKey, imageWidget)
         }
 
-        this.nodeOutputWidgets.get(outputKey).SetUrl(`./node/output/${this.id}/${outputKey}`);
+        this.nodeOutputWidgets.get(outputKey).SetUrl(nodeOutputUrl(this.id, outputKey, this.nodeManager.getScopeApiPath()));
     }
 
     // A dynamic port has no type until something is wired into it
@@ -478,6 +579,11 @@ export class PolyNodeController {
 
         if (this.boundary) {
             this.boundary.update(nodeData);
+        }
+
+        if (this.forEachToggle) {
+            this.forEach = !!nodeData.forEach;
+            this.forEachToggle.setValue(this.forEach);
         }
     }
 

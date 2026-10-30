@@ -1,4 +1,5 @@
 import { requestManager } from "./client";
+import { variableValueUrl } from "@/lib/requests";
 
 export function setVariableValue(key: string, value: unknown): Promise<Response> {
   return requestManager.setVariableValue(key, value);
@@ -14,7 +15,7 @@ export function setBinaryVariableValue(key: string, onSuccess?: () => void): voi
     reader.onload = (ev) => {
       const content = ev.target?.result;
       requestManager.postBinaryEmptyResponse(
-        `./variable/value/${key}`,
+        variableValueUrl(key),
         content,
         onSuccess ?? (() => {})
       );

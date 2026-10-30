@@ -97,11 +97,17 @@ func BuildNodeTypeSchema(registeredType string, node nodes.Node) schema.NodeType
 			}
 		}
 
+		advanced := false
+		if a, ok := input.(nodes.Advanced); ok {
+			advanced = a.Advanced()
+		}
+
 		typeSchema.Inputs[name] = schema.NodeTypeInput{
 			Type:          nodeType,
 			IsArray:       array,
 			Description:   desc,
 			Dynamic:       dynamic,
+			Advanced:      advanced,
 			AcceptedTypes: accepted,
 		}
 	}

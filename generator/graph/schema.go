@@ -85,6 +85,7 @@ func (a *Graph) NodeInstanceSchema(node nodes.Node) schema.Node {
 
 	if placement, ok := node.(*SubgraphInstanceNode); ok {
 		nodeInstance.SubGraphId = placement.SubGraphID()
+		nodeInstance.ForEach = placement.ForEach()
 	}
 
 	for _, port := range node.Outputs() {

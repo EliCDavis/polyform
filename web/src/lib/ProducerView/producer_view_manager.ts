@@ -46,6 +46,7 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { ThreeApp } from "../three_app";
 import { requestRender } from "../render_scheduler";
 import { SchemaManager } from "../schema_manager";
+import { thumbnails } from "../../features/preview/thumbnail_renderer";
 
 type ProducerRefreshCallback = (string: string, thing: any) => void;
 
@@ -112,6 +113,10 @@ export class ProducerViewManager {
 
   cachedSchema: GraphInstance;
 
+  private readonly shownVersions = new Map<string, number>();
+
+  private loadFailed = false;
+
   firstTimeLoadingScene: boolean;
 
   renderer: WebGLRenderer;
@@ -143,6 +148,10 @@ export class ProducerViewManager {
   readonly schemaManager: SchemaManager;
 
   readonly runningMessage: HTMLElement | undefined;
+
+  private runningTimer: number | null = null;
+
+  private runningClock: number | null = null;
 
   mixer: AnimationMixer | null;
 
@@ -273,12 +282,28 @@ export class ProducerViewManager {
   }
 
   private showRunningMessage() {
-    if (this.runningMessage) {
-      this.runningMessage.style.display = "block";
+    if (!this.runningMessage || this.runningTimer !== null) {
+      return;
     }
+    const started = performance.now();
+    this.runningTimer = window.setTimeout(() => {
+      this.runningMessage!.style.display = "flex";
+      this.runningClock = window.setInterval(() => {
+        const seconds = (performance.now() - started) / 1000;
+        this.runningMessage!.querySelector(".running-elapsed")!.textContent = `${seconds.toFixed(seconds < 10 ? 1 : 0)}s`;
+      }, 100);
+    }, 500);
   }
 
   private hideRunningMessage() {
+    if (this.runningTimer !== null) {
+      window.clearTimeout(this.runningTimer);
+      this.runningTimer = null;
+    }
+    if (this.runningClock !== null) {
+      window.clearInterval(this.runningClock);
+      this.runningClock = null;
+    }
     if (this.runningMessage) {
       this.runningMessage.style.display = "none";
     }
@@ -288,29 +313,37 @@ export class ProducerViewManager {
     this.loadingCount += 1;
   }
 
-  RemoveLoading(): void {
+  RemoveLoading(failed = false): void {
     if (this.loadingCount === 0) {
       throw new Error("loading count already 0");
     }
     this.loadingCount -= 1;
+    this.loadFailed ||= failed;
 
-    if (this.loadingCount === 0) {
-      if (this.cachedSchema) {
-        this.Refresh(this.cachedSchema);
-        this.cachedSchema = null;
-      } else {
-        // We're all done loading!!!
-        this.hideRunningMessage();
-        this.applyHiddenParts();
-        this.fitGridToModel();
-        this.applyShading();
-        this.applyWireframe();
-        this.publishModelStats();
-        this.rebuildHighlight();
-        for (let i = 0; i < this.completeRefreshSubscriber.length; i++) {
-          this.completeRefreshSubscriber[i]();
-        }
-      }
+    if (this.loadingCount !== 0) {
+      return;
+    }
+
+    if (this.loadFailed) {
+      this.shownVersions.clear();
+    }
+    const cached = this.cachedSchema;
+    this.cachedSchema = null;
+    if (cached && this.Refresh(cached)) {
+      return;
+    }
+
+    // We're all done loading!!!
+    this.hideRunningMessage();
+    thumbnails.release();
+    this.applyHiddenParts();
+    this.fitGridToModel();
+    this.applyShading();
+    this.applyWireframe();
+    this.publishModelStats();
+    this.rebuildHighlight();
+    for (let i = 0; i < this.completeRefreshSubscriber.length; i++) {
+      this.completeRefreshSubscriber[i]();
     }
   }
 
@@ -444,7 +477,7 @@ export class ProducerViewManager {
         this.UpdateSubscribers(producerURL, data);
       },
       (error) => {
-        this.RemoveLoading();
+        this.RemoveLoading(true);
         console.error("unable to load text", producerURL, error);
         messageActions.showError(producerURL, loadFailureMessage(error, "Failed to load text"));
       }
@@ -460,7 +493,7 @@ export class ProducerViewManager {
         this.UpdateSubscribers(producerURL, data);
       },
       (error) => {
-        this.RemoveLoading();
+        this.RemoveLoading(true);
         console.error("unable to load image", producerURL, error);
         messageActions.showError(producerURL, loadFailureMessage(error, "Failed to load image"));
       }
@@ -627,7 +660,7 @@ export class ProducerViewManager {
       (err) => {
         this.cleanProducerScene();
         console.error(err);
-        this.RemoveLoading();
+        this.RemoveLoading(true);
       }
     );
   }
@@ -680,7 +713,7 @@ export class ProducerViewManager {
       }).bind(this),
       undefined,
       (error) => {
-        this.RemoveLoading();
+        this.RemoveLoading(true);
         this.cleanProducerScene();
 
         if (typeof error === "object" && "response" in error) {
@@ -727,7 +760,7 @@ export class ProducerViewManager {
       (err) => {
         console.error(err);
         this.cleanProducerScene();
-        this.RemoveLoading();
+        this.RemoveLoading(true);
       }
     );
   }
@@ -782,7 +815,7 @@ export class ProducerViewManager {
       )
       .catch((x) => {
         console.error(x);
-        this.RemoveLoading();
+        this.RemoveLoading(true);
         messageActions.showError(
           key,
           loadFailureMessage(x, "Failed to load splat")
@@ -1117,29 +1150,48 @@ export class ProducerViewManager {
     requestRender();
   }
 
-  Refresh(schema: GraphInstance) {
+  Refresh(schema: GraphInstance): boolean {
     // this.cleanProducerScene();
     messageActions.clearInfo();
 
-    this.showRunningMessage();
-
-    let hasManifests = false;
-
+    const producers: Array<[string, string, number]> = [];
     for (const [nodeID, nodeInstance] of Object.entries(schema.nodes)) {
-      // This node doesn't have a manifest output, continue
-      if (!this.nodeTypeManifestPorts.has(nodeInstance.type)) {
+      const portName = this.nodeTypeManifestPorts.get(nodeInstance.type);
+      if (portName === undefined) {
         continue;
       }
+      producers.push([nodeID, portName, nodeInstance.output?.[portName]?.version ?? 0]);
+    }
 
-      hasManifests = true;
-      const portName = this.nodeTypeManifestPorts.get(nodeInstance.type);
-      this.requestManager.getManifest(nodeID, portName, (manifest) => {
-        this.ManifestLoaded(nodeID, portName, manifest);
+    const shown =
+      producers.length > 0 &&
+      producers.length === this.shownVersions.size &&
+      producers.every(([nodeID, portName, version]) => this.shownVersions.get(`${nodeID}/${portName}`) === version);
+    if (shown) {
+      return false;
+    }
+    this.shownVersions.clear();
+    this.loadFailed = false;
+
+    for (const [nodeID, portName] of producers) {
+      this.AddLoading();
+      void this.requestManager.getManifest(nodeID, portName).then((loaded) => {
+        if (loaded !== undefined) {
+          this.shownVersions.set(`${nodeID}/${portName}`, loaded.version);
+          this.ManifestLoaded(nodeID, portName, loaded.manifest);
+        }
+        this.RemoveLoading(loaded === undefined);
       });
     }
-    if (hasManifests) {
+    // Nothing to load means nothing will ever call the loading done.
+    if (producers.length > 0) {
+      thumbnails.hold();
       this.showRunningMessage();
+    } else {
+      this.hideRunningMessage();
+      thumbnails.release();
     }
+    return producers.length > 0;
   }
 
   UpdateSubscribers(url: string, thing: any) {

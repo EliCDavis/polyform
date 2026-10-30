@@ -32,4 +32,5 @@ type Node struct {
 	SubGraphInputBoundary  *SubGraphPortBoundary `json:"subGraphInputBoundary,omitempty"`
 	SubGraphOutputBoundary *SubGraphPortBoundary `json:"subGraphOutputBoundary,omitempty"`
 	SubGraphId             string                `json:"subGraphId,omitempty"`
+	ForEach                bool                  `json:"forEach,omitempty"`
 }

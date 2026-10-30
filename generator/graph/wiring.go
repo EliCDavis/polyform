@@ -183,7 +183,19 @@ func (a *Graph) ConnectNodes(nodeOutId, outPortName, nodeInId, inPortName string
 	return err
 }
 
+// "Port.N" pushes element N and the ones after it back rather than replacing it.
+func (a *Graph) InsertNodeConnection(nodeOutId, outPortName, nodeInId, inPortName string) error {
+	_, err := a.project.write(refuseConflicts, func() error {
+		return a.wire(nodeOutId, outPortName, nodeInId, inPortName, insertedEdge)
+	})
+	return err
+}
+
 func (a *Graph) connectNodes(nodeOutId, outPortName, nodeInId, inPortName string) error {
+	return a.wire(nodeOutId, outPortName, nodeInId, inPortName, withEdge)
+}
+
+func (a *Graph) wire(nodeOutId, outPortName, nodeInId, inPortName string, place func([]source, edge) ([]source, error)) error {
 	e, err := a.edgeBetween(nodeOutId, outPortName, nodeInId, inPortName)
 	if err != nil {
 		return err
@@ -199,12 +211,26 @@ func (a *Graph) connectNodes(nodeOutId, outPortName, nodeInId, inPortName string
 			e.producerID, e.consumerID, e.inputLabel(), e.consumerID, e.producerID)
 	}
 
-	next, err := withEdge(a.reads[e.consumer][e.input], e)
+	next, err := place(a.reads[e.consumer][e.input], e)
 	if err != nil {
 		return err
 	}
 	a.setSources(e.consumer, e.input, next)
 	return nil
+}
+
+func insertedEdge(sources []source, e edge) ([]source, error) {
+	added := source{node: e.producer, port: e.output}
+	if _, isArray := e.in.(nodes.ArrayValueInputPort); !isArray {
+		return nil, fmt.Errorf("node %q's input %q takes a single value, so there is nothing to insert %q between", e.consumerID, label(e.in), e.inputLabel())
+	}
+	if e.element == nextElement {
+		return append(slices.Clone(sources), added), nil
+	}
+	if e.element > len(sources) {
+		return nil, fmt.Errorf("node %q's input %q has %d element(s), so inserting at %q would leave a gap", e.consumerID, label(e.in), len(sources), e.inputLabel())
+	}
+	return slices.Insert(slices.Clone(sources), e.element, added), nil
 }
 
 func withEdge(sources []source, e edge) ([]source, error) {

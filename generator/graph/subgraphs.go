@@ -131,7 +131,7 @@ func (a *Instance) RenameSubGraph(oldID, newID string) error {
 	return err
 }
 
-func (a *Instance) SetSubGraphInfo(id, name, description string) error {
+func (a *Instance) SetSubGraphInfo(id, name, description, group string) error {
 	_, err := a.write(refuseConflicts, func() error {
 		runtime, exists := a.subGraphs[id]
 		if !exists {
@@ -139,6 +139,7 @@ func (a *Instance) SetSubGraphInfo(id, name, description string) error {
 		}
 		runtime.name = name
 		runtime.description = description
+		runtime.group = group
 		return nil
 	})
 	return err

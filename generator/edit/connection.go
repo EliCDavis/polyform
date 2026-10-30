@@ -19,6 +19,7 @@ func nodeConnectionEndpoint(graphInstance *graph.Instance, saver *GraphSaver) en
 		OutPortName string `json:"outPortName"`
 		NodeInId    string `json:"nodeInId"`
 		InPortName  string `json:"inPortName"`
+		Insert      bool   `json:"insert,omitempty"`
 	}
 
 	type EmptyResponse struct{}
@@ -27,7 +28,11 @@ func nodeConnectionEndpoint(graphInstance *graph.Instance, saver *GraphSaver) en
 		Methods: map[string]endpoint.Method{
 			http.MethodPost: endpoint.JsonMethod(
 				func(request endpoint.Request[CreateRequest]) (EmptyResponse, error) {
-					err := graphInstance.ConnectNodes(
+					connect := graphInstance.ConnectNodes
+					if request.Body.Insert {
+						connect = graphInstance.InsertNodeConnection
+					}
+					err := connect(
 						request.Body.NodeOutId,
 						request.Body.OutPortName,
 						request.Body.NodeInId,
@@ -41,18 +46,23 @@ func nodeConnectionEndpoint(graphInstance *graph.Instance, saver *GraphSaver) en
 				},
 			),
 			http.MethodDelete: endpoint.JsonMethod(
-				func(request endpoint.Request[DeleteRequest]) (EmptyResponse, error) {
+				func(request endpoint.Request[DeleteRequest]) (DroppedResponse, error) {
 					if !graphInstance.HasNodeWithId(request.Body.NodeId) {
-						return EmptyResponse{}, fmt.Errorf("no node exists with id %s", request.Body.NodeId)
+						return DroppedResponse{}, fmt.Errorf("no node exists with id %s", request.Body.NodeId)
 					}
 
-					if _, err := graphInstance.DeleteNodeInputConnection(request.Body.NodeId, request.Body.InPortName); err != nil {
-						return EmptyResponse{}, err
+					dropped, err := graphInstance.DeleteNodeInputConnection(request.Body.NodeId, request.Body.InPortName)
+					if err != nil {
+						return DroppedResponse{}, err
 					}
 					saver.Save()
-					return EmptyResponse{}, nil
+					return DroppedResponse{Dropped: dropped}, nil
 				},
 			),
 		},
 	}
+}
+
+type DroppedResponse struct {
+	Dropped []graph.DroppedEdge `json:"dropped,omitempty"`
 }

@@ -1,10 +1,58 @@
-import { Fragment, useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState, type ReactNode } from "react";
 import { setVariableValue } from "@/api/variables";
 import styles from "./editors.module.css";
 
 export interface ListHandle<T> {
   items: () => T[];
   commit: (next: T[]) => void;
+}
+
+export function ListToggle({ label, open, onToggle }: { label: string; open: boolean; onToggle: () => void }) {
+  return (
+    <button
+      type="button"
+      className={`${styles.listToggle} ${open ? styles.listToggleOpen : ""}`}
+      aria-expanded={open}
+      onClick={onToggle}
+    >
+      <span className={styles.listToggleIcon}>▶</span>
+      {label}
+    </button>
+  );
+}
+
+export function RemoveButton({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button type="button" className={styles.remove} title={label} aria-label={label} onClick={onClick}>
+      −
+    </button>
+  );
+}
+
+export function ListItem({
+  index,
+  focused,
+  onFocus,
+  onRemove,
+  children,
+}: {
+  index: ReactNode;
+  focused?: boolean;
+  onFocus?: (focused: boolean) => void;
+  onRemove: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <div
+      className={`${styles.listItem} ${focused ? styles.pointRowFocused : ""}`}
+      onPointerEnter={() => onFocus?.(true)}
+      onPointerLeave={() => onFocus?.(false)}
+    >
+      <span className={styles.listIndex}>{index}</span>
+      <div className={styles.listBody}>{children}</div>
+      <RemoveButton label={`Remove ${index}`} onClick={onRemove} />
+    </div>
+  );
 }
 
 // Owns the list, its writes, and the insert/delete controls; the caller only
@@ -34,6 +82,7 @@ export function ListEditor<T>({
   footer?: React.ReactNode;
 }) {
   const [items, setItems] = useState<T[]>(value ?? []);
+  const [open, setOpen] = useState(false);
   const [focused, setFocusedState] = useState<number | null>(null);
   const itemsRef = useRef(items);
   itemsRef.current = items;
@@ -91,37 +140,28 @@ export function ListEditor<T>({
 
   return (
     <div className="variable-inputs">
-      <span>{items.length} items</span>
-      {items.map((item, i) => (
-        <Fragment key={i}>
-          {insertControl(i, `Insert before ${i}`)}
-          <div
-            className={`${styles.pointRow} ${focused === i ? styles.pointRowFocused : ""}`}
-            onPointerEnter={() => setFocused(i)}
-            onPointerLeave={() => setFocused(null)}
-          >
-            <span className={styles.pointIndex}>{i}</span>
-            {renderItem(item, (next) => commit(items.map((it, j) => (j === i ? next : it))))}
-            <button
-              type="button"
-              onClick={() => {
-                setFocused(null);
-                commit(items.filter((_, j) => j !== i));
-              }}
-            >
-              Delete
-            </button>
-          </div>
-        </Fragment>
-      ))}
-      <button
-        type="button"
-        onClick={() => insertItem(items.length)}
-        onPointerEnter={() => previewInsert(items.length)}
-        onPointerLeave={() => previewInsert(null)}
-      >
-        Add
-      </button>
+      <ListToggle label={`${items.length} items`} open={open} onToggle={() => setOpen(!open)} />
+      {open && (
+        <>
+          {items.map((item, i) => (
+            <Fragment key={i}>
+              {insertControl(i, `Insert before ${i}`)}
+              <ListItem
+                index={i}
+                focused={focused === i}
+                onFocus={(on) => setFocused(on ? i : null)}
+                onRemove={() => {
+                  setFocused(null);
+                  commit(items.filter((_, j) => j !== i));
+                }}
+              >
+                {renderItem(item, (next) => commit(items.map((it, j) => (j === i ? next : it))))}
+              </ListItem>
+            </Fragment>
+          ))}
+          {insertControl(items.length, "Add at the end")}
+        </>
+      )}
       {footer}
     </div>
   );

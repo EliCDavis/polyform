@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"image/png"
 	"reflect"
 
 	"github.com/EliCDavis/iter"
@@ -148,12 +149,36 @@ type PolyformOcclusion struct {
 	Strength *float64
 }
 
+type ImageCompression int
+
+const (
+	ImageCompressionFast ImageCompression = iota
+	ImageCompressionBalanced
+	ImageCompressionSmallest
+	ImageCompressionNone
+)
+
+func (c ImageCompression) pngLevel() png.CompressionLevel {
+	switch c {
+	case ImageCompressionBalanced:
+		return png.DefaultCompression
+	case ImageCompressionSmallest:
+		return png.BestCompression
+	case ImageCompressionNone:
+		return png.NoCompression
+	}
+	return png.BestSpeed
+}
+
 type PolyformTexture struct {
 	URI        string
 	Image      image.Image
 	Sampler    *Sampler
 	TexCoord   int
 	Extensions []TextureExtension
+
+	// How Image is encoded when written; ignored for URI textures.
+	Compression ImageCompression
 }
 
 func (pt *PolyformTexture) canAddToGLTF() bool {

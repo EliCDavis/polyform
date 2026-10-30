@@ -23,13 +23,10 @@ export class QuaternionParameterNodeController {
 
     gizmo: TRSGizmo;
 
-    updating: boolean;
-
     constructor(flowNode: FlowNode, nodeManager: NodeManager, id: string, parameterData: QuaternionNodeParameter, app: ThreeApp) {
         this.id = id;
         this.nodeManager = nodeManager;
         this.flowNode = flowNode;
-        this.updating = false;
 
         this.gizmo = new TRSGizmo({
             camera: app.Camera,
@@ -52,23 +49,18 @@ export class QuaternionParameterNodeController {
         this.flowNode.addUnselectListener(() => this.gizmo.setEnabled(false));
 
         for (const axis of axes) {
-            this.flowNode.addPropertyChangeListener(axis, this.propertyChange.bind(this));
+            this.flowNode.addPropertyEditListener(axis, this.propertyChange.bind(this));
         }
     }
 
     private setProperties(rotation: Quat): void {
-        this.updating = true;
         const euler = quatToEuler(rotation);
         for (const axis of axes) {
             this.flowNode.setProperty(axis, Number(euler[axis].toFixed(4)));
         }
-        this.updating = false;
     }
 
     propertyChange() {
-        if (this.updating) {
-            return;
-        }
         const rotation = eulerToQuat({
             x: Number(this.flowNode.getProperty("x")),
             y: Number(this.flowNode.getProperty("y")),

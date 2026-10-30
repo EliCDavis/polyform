@@ -11,7 +11,8 @@ import (
 
 // A node with no inputs and no dynamic types is shared, not copied: its
 // outputs depend on nothing wired, and that is every node with state.
-func (root *Instance) copyDefinition(placement *SubgraphInstanceNode) (*Graph, error) {
+// feed is what each input boundary reads, by boundary id and declared type.
+func (root *Instance) copyDefinition(placement *SubgraphInstanceNode, feed func(id, portType string) subgraph.External) (*Graph, error) {
 	definition, ok := root.subGraphs[placement.subGraphID]
 	if !ok {
 		return nil, fmt.Errorf("sub-graph %q does not exist", placement.subGraphID)
@@ -22,7 +23,7 @@ func (root *Instance) copyDefinition(placement *SubgraphInstanceNode) (*Graph, e
 	copied := make(map[nodes.Node]nodes.Node, len(from.nodesByID))
 	for _, id := range slices.Sorted(maps.Keys(from.nodesByID)) {
 		original := from.nodesByID[id]
-		node, err := root.copyNode(original, from.nodeTypeKeys[original], placement, id)
+		node, err := root.copyNode(original, from.nodeTypeKeys[original], feed, id)
 		if err != nil {
 			return nil, fmt.Errorf("copying sub-graph %q: node %s: %w", placement.subGraphID, id, err)
 		}
@@ -48,14 +49,18 @@ func (root *Instance) copyDefinition(placement *SubgraphInstanceNode) (*Graph, e
 	return clone, nil
 }
 
-func (root *Instance) copyNode(original nodes.Node, typeKey string, placement *SubgraphInstanceNode, id string) (nodes.Node, error) {
-	switch boundary := original.(type) {
+func (root *Instance) copyNode(original nodes.Node, typeKey string, feed func(id, portType string) subgraph.External, id string) (nodes.Node, error) {
+	switch n := original.(type) {
 	case *subgraph.InputNode:
-		in := subgraph.NewInputNode(boundary.PortName, boundary.PortType)
-		in.ReadFrom(subgraphInstanceInputPort{node: placement, id: id})
+		in := subgraph.NewInputNode(n.PortName, n.PortType)
+		in.ReadFrom(feed(id, n.PortType))
 		return in, nil
 	case *subgraph.OutputNode:
-		return subgraph.NewOutputNode(boundary.PortName, boundary.PortType), nil
+		return subgraph.NewOutputNode(n.PortName, n.PortType), nil
+	case *SubgraphInstanceNode:
+		placed := NewRuntimeNode(root, n.subGraphID)
+		placed.each = n.ForEach()
+		return placed, nil
 	}
 
 	if len(original.Inputs()) == 0 {

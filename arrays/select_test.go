@@ -22,8 +22,7 @@ func TestGatherNamesAnIndexOutsideTheArray(t *testing.T) {
 	wire(t, node, "Array", letters())
 	wire(t, node, "Indices", nodes.ConstOutput[[]int]{Val: []int{1, 5}})
 
-	out := node.Outputs()["Out"].(nodes.ObservableExecution)
-	assert.Contains(t, out.ExecutionReport().Errors, "index 5 is outside an array of 5 element(s)")
+	assert.Contains(t, errorsOf(node, "Out"), "index 5 is outside an array of 5 element(s)")
 }
 
 func TestFilterKeepsFlaggedElementsAndDropsTheRest(t *testing.T) {
@@ -40,8 +39,7 @@ func TestFilterRefusesFlagsOfTheWrongLength(t *testing.T) {
 	wire(t, node, "Array", letters())
 	wire(t, node, "Keep", nodes.ConstOutput[[]bool]{Val: []bool{true}})
 
-	out := node.Outputs()["Kept"].(nodes.ObservableExecution)
-	assert.Contains(t, out.ExecutionReport().Errors, "1 flag(s) for 5 element(s)")
+	assert.Contains(t, errorsOf(node, "Kept"), "1 flag(s) for 5 element(s)")
 }
 
 func TestSplitCutsConsecutiveRunsOfTheGivenLengths(t *testing.T) {
@@ -57,8 +55,7 @@ func TestSplitRefusesLengthsThatDoNotCoverTheArray(t *testing.T) {
 	wire(t, node, "Array", letters())
 	wire(t, node, "Lengths", nodes.ConstOutput[[]int]{Val: []int{2, 2}})
 
-	out := node.Outputs()["Out"].(nodes.ObservableExecution)
-	assert.Contains(t, out.ExecutionReport().Errors, "lengths add up to 4, not 5")
+	assert.Contains(t, errorsOf(node, "Out"), "lengths add up to 4, not 5")
 }
 
 func TestZipTurnsParallelPointArraysIntoOnePathEach(t *testing.T) {
@@ -79,6 +76,5 @@ func TestZipRefusesArraysOfDifferentLengths(t *testing.T) {
 	node := &nodes.Struct[arrays.ZipNode]{}
 	wireAll(t, node, "Arrays", letters(), nodes.ConstOutput[[]string]{Val: []string{"x"}})
 
-	out := node.Outputs()["Out"].(nodes.ObservableExecution)
-	assert.Contains(t, out.ExecutionReport().Errors, "arrays of 5 and 1 element(s) cannot be zipped")
+	assert.Contains(t, errorsOf(node, "Out"), "arrays of 5 and 1 element(s) cannot be zipped")
 }

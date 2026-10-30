@@ -2,8 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { setVariableValue } from "@/api/variables";
 import { NumberInput } from "@/components/NumberInput";
 import { useLiveValue } from "@/components/useLiveValue";
-import { ListEditor } from "./ListEditor";
-import styles from "./editors.module.css";
+import { ListEditor, ListItem, ListToggle } from "./ListEditor";
 
 export function ColorEditor({ variableKey, value }: { variableKey: string; value: string }) {
   const [color, , commit] = useLiveValue(value, (v) => setVariableValue(variableKey, v));
@@ -67,6 +66,7 @@ function gradientCSS(keys: GradientKey[]): string {
 // first and last stops are pinned and only the ones between them move.
 export function GradientEditor({ variableKey, value }: { variableKey: string; value: GradientValue }) {
   const [keys, setKeys] = useState<GradientKey[]>(value?.keys ?? []);
+  const [open, setOpen] = useState(false);
   const pendingWrites = useRef(0);
 
   useEffect(() => {
@@ -96,27 +96,26 @@ export function GradientEditor({ variableKey, value }: { variableKey: string; va
   return (
     <div className="variable-inputs">
       <div style={{ height: 18, borderRadius: 3, background: gradientCSS(keys) }} />
-      {keys.map((key, i) => (
-        <div key={i} className={styles.pointRow}>
-          <div style={{ display: "flex", flexDirection: "row", gap: 8, alignItems: "center" }}>
-            <ColorSwatch value={key.value} onChange={(hex) => commit(keys.map((k, j) => (j === i ? { ...k, value: hex } : k)))} />
-            <NumberInput
-              step="0.01"
-              min={0}
-              max={1}
-              value={key.time}
-              disabled={pinned(i)}
-              onCommit={(t) => commit(keys.map((k, j) => (j === i ? { ...k, time: t } : k)))}
-            />
-            <button type="button" title="Insert a stop after this one" onClick={() => insertAfter(i)}>
-              +
-            </button>
-            <button type="button" onClick={() => commit(keys.filter((_, j) => j !== i))}>
-              Delete
-            </button>
-          </div>
-        </div>
-      ))}
+      <ListToggle label={`${keys.length} stops`} open={open} onToggle={() => setOpen(!open)} />
+      {open &&
+        keys.map((key, i) => (
+          <ListItem key={i} index={i} onRemove={() => commit(keys.filter((_, j) => j !== i))}>
+            <div style={{ display: "flex", flexDirection: "row", gap: 8, alignItems: "center" }}>
+              <ColorSwatch value={key.value} onChange={(hex) => commit(keys.map((k, j) => (j === i ? { ...k, value: hex } : k)))} />
+              <NumberInput
+                step="0.01"
+                min={0}
+                max={1}
+                value={key.time}
+                disabled={pinned(i)}
+                onCommit={(t) => commit(keys.map((k, j) => (j === i ? { ...k, time: t } : k)))}
+              />
+              <button type="button" title="Insert a stop after this one" onClick={() => insertAfter(i)}>
+                +
+              </button>
+            </div>
+          </ListItem>
+        ))}
       {keys.length === 0 && (
         <button type="button" onClick={() => commit([{ time: 0, value: "#000000" }, { time: 1, value: "#ffffff" }])}>
           Add

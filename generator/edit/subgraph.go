@@ -14,6 +14,7 @@ import (
 const (
 	subGraphDefinitionEndpointPath         = "/subgraph/definition/"
 	subGraphBoundaryEndpointPath           = "/subgraph/boundary/"
+	subGraphInstanceEndpointPath           = "/subgraph/instance/"
 	convertSelectionToSubGraphEndpointPath = "/convert-to-subgraph"
 	importSubGraphsEndpointPath            = "/subgraph/import"
 )
@@ -127,6 +128,7 @@ func subGraphDefinitionEndpoint(graphInstance *graph.Instance, saver *GraphSaver
 	type InfoRequest struct {
 		Name        string `json:"name"`
 		Description string `json:"description"`
+		Group       string `json:"group"`
 	}
 
 	type EmptyResponse struct{}
@@ -159,7 +161,7 @@ func subGraphDefinitionEndpoint(graphInstance *graph.Instance, saver *GraphSaver
 			http.MethodPut: endpoint.JsonMethod(
 				func(request endpoint.Request[InfoRequest]) (EmptyResponse, error) {
 					subGraphID := strings.TrimPrefix(request.Url, subGraphDefinitionEndpointPath)
-					err := graphInstance.SetSubGraphInfo(subGraphID, request.Body.Name, request.Body.Description)
+					err := graphInstance.SetSubGraphInfo(subGraphID, request.Body.Name, request.Body.Description, request.Body.Group)
 					if err != nil {
 						return EmptyResponse{}, err
 					}
@@ -229,6 +231,41 @@ func subGraphBoundaryEndpoint(graphInstance *graph.Instance, saver *GraphSaver) 
 	}
 }
 
+// POST /subgraph/instance/{nodeId}/for-each sets whether the placement runs once per item.
+func subGraphInstanceEndpoint(graphInstance *graph.Instance, saver *GraphSaver) endpoint.Handler {
+	type ForEachRequest struct {
+		Each  bool        `json:"each"`
+		Scope graph.Scope `json:"scope"`
+	}
+
+	return endpoint.Handler{
+		Methods: map[string]endpoint.Method{
+			http.MethodPost: endpoint.JsonMethod(
+				func(request endpoint.Request[ForEachRequest]) (DroppedResponse, error) {
+					nodeID, setting, _ := strings.Cut(strings.TrimPrefix(request.Url, subGraphInstanceEndpointPath), "/")
+					if nodeID == "" {
+						return DroppedResponse{}, fmt.Errorf("node id is required")
+					}
+					if setting != "for-each" {
+						return DroppedResponse{}, fmt.Errorf("a subgraph instance has no setting %q", setting)
+					}
+
+					scopeInstance, err := request.Body.Scope.ResolveInstance(graphInstance)
+					if err != nil {
+						return DroppedResponse{}, err
+					}
+					dropped, err := scopeInstance.SetForEach(nodeID, request.Body.Each)
+					if err != nil {
+						return DroppedResponse{}, err
+					}
+					saver.Save()
+					return DroppedResponse{Dropped: dropped}, nil
+				},
+			),
+		},
+	}
+}
+
 func scopedNodeEndpoint(graphInstance *graph.Instance, saver *GraphSaver) endpoint.Handler {
 	type CreateRequest struct {
 		NodeType string `json:"nodeType"`
@@ -273,26 +310,27 @@ func scopedNodeEndpoint(graphInstance *graph.Instance, saver *GraphSaver) endpoi
 				},
 			),
 			http.MethodDelete: endpoint.JsonMethod(
-				func(request endpoint.Request[DeleteRequest]) (EmptyResponse, error) {
+				func(request endpoint.Request[DeleteRequest]) (DroppedResponse, error) {
 					scope, err := parseSubGraphScopeFromURL(request.Url)
 					if err != nil {
-						return EmptyResponse{}, err
+						return DroppedResponse{}, err
 					}
 
 					scopeInstance, err := scope.ResolveInstance(graphInstance)
 					if err != nil {
-						return EmptyResponse{}, err
+						return DroppedResponse{}, err
 					}
 
 					if !scopeInstance.HasNodeWithId(request.Body.NodeID) {
-						return EmptyResponse{}, fmt.Errorf("no node exists with id %s", request.Body.NodeID)
+						return DroppedResponse{}, fmt.Errorf("no node exists with id %s", request.Body.NodeID)
 					}
 
-					if _, err := scopeInstance.DeleteNodeById(request.Body.NodeID); err != nil {
-						return EmptyResponse{}, err
+					dropped, err := scopeInstance.DeleteNodeById(request.Body.NodeID)
+					if err != nil {
+						return DroppedResponse{}, err
 					}
 					saver.Save()
-					return EmptyResponse{}, nil
+					return DroppedResponse{Dropped: dropped}, nil
 				},
 			),
 		},
@@ -310,6 +348,7 @@ func scopedNodeConnectionEndpoint(graphInstance *graph.Instance, saver *GraphSav
 		OutPortName string `json:"outPortName"`
 		NodeInId    string `json:"nodeInId"`
 		InPortName  string `json:"inPortName"`
+		Insert      bool   `json:"insert,omitempty"`
 	}
 
 	type EmptyResponse struct{}
@@ -328,7 +367,11 @@ func scopedNodeConnectionEndpoint(graphInstance *graph.Instance, saver *GraphSav
 						return EmptyResponse{}, err
 					}
 
-					err = scopeInstance.ConnectNodes(
+					connect := scopeInstance.ConnectNodes
+					if request.Body.Insert {
+						connect = scopeInstance.InsertNodeConnection
+					}
+					err = connect(
 						request.Body.NodeOutId,
 						request.Body.OutPortName,
 						request.Body.NodeInId,
@@ -342,26 +385,27 @@ func scopedNodeConnectionEndpoint(graphInstance *graph.Instance, saver *GraphSav
 				},
 			),
 			http.MethodDelete: endpoint.JsonMethod(
-				func(request endpoint.Request[DeleteRequest]) (EmptyResponse, error) {
+				func(request endpoint.Request[DeleteRequest]) (DroppedResponse, error) {
 					scope, err := parseSubGraphScopeFromURL(request.Url)
 					if err != nil {
-						return EmptyResponse{}, err
+						return DroppedResponse{}, err
 					}
 
 					scopeInstance, err := scope.ResolveInstance(graphInstance)
 					if err != nil {
-						return EmptyResponse{}, err
+						return DroppedResponse{}, err
 					}
 
 					if !scopeInstance.HasNodeWithId(request.Body.NodeId) {
-						return EmptyResponse{}, fmt.Errorf("no node exists with id %s", request.Body.NodeId)
+						return DroppedResponse{}, fmt.Errorf("no node exists with id %s", request.Body.NodeId)
 					}
 
-					if _, err := scopeInstance.DeleteNodeInputConnection(request.Body.NodeId, request.Body.InPortName); err != nil {
-						return EmptyResponse{}, err
+					dropped, err := scopeInstance.DeleteNodeInputConnection(request.Body.NodeId, request.Body.InPortName)
+					if err != nil {
+						return DroppedResponse{}, err
 					}
 					saver.Save()
-					return EmptyResponse{}, nil
+					return DroppedResponse{Dropped: dropped}, nil
 				},
 			),
 		},

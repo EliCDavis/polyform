@@ -10,7 +10,7 @@ import {
   formatImportSummary,
 } from "@/lib/importSubGraphs";
 import { NewSubGraphModal } from "@/features/popups/NewSubGraphModal";
-import { SubGraphRow } from "./SubGraphRow";
+import { SubGraphRow, type SubGraphPlacement } from "./SubGraphRow";
 
 export function SubGraphSection() {
   const { data: graph } = useSchema();
@@ -37,18 +37,21 @@ export function SubGraphSection() {
     }
     return [...byGroup.entries()].sort(([a], [b]) => a.localeCompare(b));
   }, [subGraphs]);
+  const groupNames = groups.map(([group]) => group).filter((group) => group !== "");
 
-  const instanceCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    const scopes = [graph?.nodes ?? {}, ...subGraphs.map(([, def]) => def.nodes ?? {})];
-    for (const nodes of scopes) {
-      for (const node of Object.values(nodes)) {
-        if (node.subGraphId) {
-          counts[node.subGraphId] = (counts[node.subGraphId] ?? 0) + 1;
-        }
+  const placements = useMemo(() => {
+    const byDefinition: Record<string, SubGraphPlacement[]> = {};
+    const scopes: [string, string, RuntimeSubGraphDefinition["nodes"]][] = [
+      ["root", "Main Graph", graph?.nodes ?? {}],
+      ...subGraphs.map(([id, def]): [string, string, RuntimeSubGraphDefinition["nodes"]] => [id, def.name || id, def.nodes ?? {}]),
+    ];
+    for (const [tabId, label, nodes] of scopes) {
+      for (const [nodeId, node] of Object.entries(nodes)) {
+        if (!node.subGraphId) continue;
+        (byDefinition[node.subGraphId] ??= []).push({ tabId, label, nodeId });
       }
     }
-    return counts;
+    return byDefinition;
   }, [graph?.nodes, subGraphs]);
 
   if (!editor) return null;
@@ -116,15 +119,17 @@ export function SubGraphSection() {
               id={id}
               name={def.name || id}
               description={def.description}
+              group={def.group}
+              groups={groupNames}
               nodeCount={Object.keys(def.nodes ?? {}).length}
-              instanceCount={instanceCounts[id] ?? 0}
+              placements={placements[id] ?? []}
             />
           ));
           if (!group) return rows;
           return (
-            <details key={group} open>
+            <details key={group} className="sidebar-group" open>
               <summary>{group}</summary>
-              {rows}
+              <div className="sidebar-group-body">{rows}</div>
             </details>
           );
         })}

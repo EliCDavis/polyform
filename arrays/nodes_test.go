@@ -19,6 +19,12 @@ func wire(t *testing.T, node nodes.Node, port string, source nodes.OutputPort) {
 	require.NoError(t, input.Set(source))
 }
 
+func errorsOf(node nodes.Node, port string) []string {
+	out := node.Outputs()[port]
+	nodes.DynamicAnyValue(nil, out)
+	return out.(nodes.ObservableExecution).ExecutionReport().Errors
+}
+
 func wireAll(t *testing.T, node nodes.Node, port string, sources ...nodes.OutputPort) {
 	t.Helper()
 	input, ok := node.Inputs()[port].(nodes.ArrayValueInputPort)

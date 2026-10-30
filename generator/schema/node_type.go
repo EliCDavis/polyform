@@ -11,6 +11,7 @@ type NodeTypeInput struct {
 	IsArray     bool   `json:"isArray"`
 	Description string `json:"description,omitempty"`
 	Dynamic     bool   `json:"dynamic,omitempty"`
+	Advanced    bool   `json:"advanced,omitempty"`
 
 	// Lifted port stuff
 	AcceptedTypes []string `json:"acceptedTypes,omitempty"`

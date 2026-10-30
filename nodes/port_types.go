@@ -140,13 +140,12 @@ func portTypeKeys(port OutputPort) []string {
 	return keys
 }
 
-// Falls back to Value()'s return type, because a port need not implement
-// Typed and a dynamic port wired to one still has to learn its type.
+// A port that says its type is believed, empty included: a typed wrapper
+// around an output that lost its binding must not keep its old type through
+// Value()'s signature. Only a port with no Type() is read by reflection.
 func portValueTypeName(port OutputPort) string {
 	if typed, ok := port.(Typed); ok {
-		if name := typed.Type(); name != "" {
-			return name
-		}
+		return typed.Type()
 	}
 	rt, ok := outputValueReturnType(port)
 	if !ok {

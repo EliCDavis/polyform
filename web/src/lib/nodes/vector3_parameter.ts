@@ -14,8 +14,6 @@ export class Vector3ParameterNodeController {
 
     gizmo: TransformGizmo;
 
-    updating: boolean;
-
     constructor(
         flowNode: FlowNode,
         nodeManager: NodeManager,
@@ -26,7 +24,6 @@ export class Vector3ParameterNodeController {
         this.id = id;
         this.nodeManager = nodeManager;
         this.flowNode = flowNode;
-        this.updating = false;
 
         const curVal = parameterData.currentValue;
         this.gizmo = new TransformGizmo({
@@ -69,15 +66,12 @@ export class Vector3ParameterNodeController {
             this.gizmo.setEnabled(false);
         });
 
-        this.flowNode.addPropertyChangeListener("x", this.propertyChange.bind(this));
-        this.flowNode.addPropertyChangeListener("y", this.propertyChange.bind(this));
-        this.flowNode.addPropertyChangeListener("z", this.propertyChange.bind(this));
+        this.flowNode.addPropertyEditListener("x", this.propertyChange.bind(this));
+        this.flowNode.addPropertyEditListener("y", this.propertyChange.bind(this));
+        this.flowNode.addPropertyEditListener("z", this.propertyChange.bind(this));
     }
 
     propertyChange() {
-        if (this.updating) {
-            return
-        }
         this.nodeManager.nodeParameterChanged({
             id: this.id,
             data: {
@@ -90,12 +84,10 @@ export class Vector3ParameterNodeController {
     }
 
     update(parameterData: Vector3NodeParameter) {
-        this.updating = true;
         const curVal = parameterData.currentValue;
         this.gizmo.setPosition(curVal.x, curVal.y, curVal.z)
         this.flowNode.setProperty("x", curVal.x);
         this.flowNode.setProperty("y", curVal.y);
         this.flowNode.setProperty("z", curVal.z);
-        this.updating = false;
     }
 }     

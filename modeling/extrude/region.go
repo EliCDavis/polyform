@@ -1,10 +1,15 @@
 package extrude
 
 import (
+	"maps"
+	"slices"
+
 	"github.com/EliCDavis/polyform/modeling"
+	"github.com/EliCDavis/polyform/modeling/primitives"
 	"github.com/EliCDavis/polyform/modeling/sketch"
 	"github.com/EliCDavis/polyform/modeling/triangulation"
 	"github.com/EliCDavis/polyform/nodes"
+	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
 )
 
@@ -14,24 +19,19 @@ func alongY(v vector3.Float64) vector3.Float64 { return vector3.New(v.X(), v.Z()
 
 func alongZ(v vector3.Float64) vector3.Float64 { return v }
 
-// The solid spans x = 0 to depth, which may be negative; a depth of 0 is one face facing +X.
-// The region's X runs along Y and its Y along Z.
-func RegionX(region triangulation.Region, depth float64) modeling.Mesh {
-	return extrudeRegion(region, depth, alongX)
+func RegionX(region triangulation.Region, depth float64, uvs *primitives.StripUVs) modeling.Mesh {
+	return extrudeRegion(region, depth, alongX, uvs)
 }
 
-// The solid spans y = 0 to depth, which may be negative; a depth of 0 is one face facing +Y.
-// The region's X runs along X and its Y along Z.
-func RegionY(region triangulation.Region, depth float64) modeling.Mesh {
-	return extrudeRegion(region, depth, alongY)
+func RegionY(region triangulation.Region, depth float64, uvs *primitives.StripUVs) modeling.Mesh {
+	return extrudeRegion(region, depth, alongY, uvs)
 }
 
-// The solid spans z = 0 to depth, which may be negative; a depth of 0 is one face facing +Z.
-func RegionZ(region triangulation.Region, depth float64) modeling.Mesh {
-	return extrudeRegion(region, depth, alongZ)
+func RegionZ(region triangulation.Region, depth float64, uvs *primitives.StripUVs) modeling.Mesh {
+	return extrudeRegion(region, depth, alongZ, uvs)
 }
 
-func extrudeRegion(region triangulation.Region, depth float64, place func(vector3.Float64) vector3.Float64) modeling.Mesh {
+func extrudeRegion(region triangulation.Region, depth float64, place func(vector3.Float64) vector3.Float64, uvs *primitives.StripUVs) modeling.Mesh {
 	if len(region.Triangles) == 0 {
 		return modeling.EmptyMesh(modeling.TriangleTopology)
 	}
@@ -43,11 +43,15 @@ func extrudeRegion(region triangulation.Region, depth float64, place func(vector
 
 	positions := make([]vector3.Float64, 0, len(region.Points)*2)
 	normals := make([]vector3.Float64, 0, len(region.Points)*2)
+	var texcoords []vector2.Float64
 	indices := make([]int, 0, len(region.Triangles)*6)
 	front := place(vector3.Forward[float64]())
 	for i := range region.Points {
 		positions = append(positions, at(i, top))
 		normals = append(normals, front)
+		if uvs != nil {
+			texcoords = append(texcoords, uvs.AtXY(region.Points[i]))
+		}
 	}
 	for _, tri := range region.Triangles {
 		indices = append(indices, tri[0], tri[1], tri[2])
@@ -59,6 +63,9 @@ func extrudeRegion(region triangulation.Region, depth float64, place func(vector
 		for i := range region.Points {
 			positions = append(positions, at(i, bottom))
 			normals = append(normals, backward)
+			if uvs != nil {
+				texcoords = append(texcoords, uvs.AtXY(region.Points[i]))
+			}
 		}
 		for _, tri := range region.Triangles {
 			indices = append(indices, back+tri[0], back+tri[2], back+tri[1])
@@ -71,10 +78,12 @@ func extrudeRegion(region triangulation.Region, depth float64, place func(vector
 				uses[[2]int{min(a, b), max(a, b)}]++
 			}
 		}
+		boundary := func(a, b int) bool { return uses[[2]int{min(a, b), max(a, b)}] == 1 }
+		across := perimeterDistances(region, boundary)
 		for _, tri := range region.Triangles {
 			for k := range tri {
 				a, b := tri[k], tri[(k+1)%3]
-				if uses[[2]int{min(a, b), max(a, b)}] != 1 {
+				if !boundary(a, b) {
 					continue
 				}
 				along := region.Points[b].Sub(region.Points[a])
@@ -83,6 +92,12 @@ func extrudeRegion(region triangulation.Region, depth float64, place func(vector
 				positions = append(positions, at(a, bottom), at(b, bottom), at(b, top), at(a, top))
 				normals = append(normals, outward, outward, outward, outward)
 				indices = append(indices, wall, wall+1, wall+2, wall, wall+2, wall+3)
+				if uvs != nil {
+					from, to := across[a], across[a]+along.Length()
+					texcoords = append(texcoords,
+						uvs.AtXY(vector2.New(from, bottom)), uvs.AtXY(vector2.New(to, bottom)),
+						uvs.AtXY(vector2.New(to, top)), uvs.AtXY(vector2.New(from, top)))
+				}
 			}
 		}
 	}
@@ -94,26 +109,61 @@ func extrudeRegion(region triangulation.Region, depth float64, place func(vector
 		}
 	}
 
-	return modeling.NewTriangleMesh(indices).
+	mesh := modeling.NewTriangleMesh(indices).
 		SetFloat3Data(map[string][]vector3.Float64{
 			modeling.PositionAttribute: positions,
 			modeling.NormalAttribute:   normals,
 		})
+	if uvs == nil {
+		return mesh
+	}
+	return mesh.SetFloat2Attribute(modeling.TexCoordAttribute, texcoords)
 }
 
-func AreaX(area sketch.Area, depth float64) (modeling.Mesh, error) {
-	return extrudeArea(area, depth, RegionX)
+// How far around its loop each boundary point is, following the triangles' winding.
+func perimeterDistances(region triangulation.Region, boundary func(a, b int) bool) map[int]float64 {
+	next := map[int]int{}
+	for _, tri := range region.Triangles {
+		for k := range tri {
+			if a, b := tri[k], tri[(k+1)%3]; boundary(a, b) {
+				next[a] = b
+			}
+		}
+	}
+	across := map[int]float64{}
+	for _, start := range slices.Sorted(maps.Keys(next)) {
+		if _, walked := across[start]; walked {
+			continue
+		}
+		distance := 0.
+		for a := start; ; {
+			across[a] = distance
+			b := next[a]
+			distance += region.Points[b].Sub(region.Points[a]).Length()
+			if a = b; a == start {
+				break
+			}
+			if _, walked := across[a]; walked {
+				break
+			}
+		}
+	}
+	return across
 }
 
-func AreaY(area sketch.Area, depth float64) (modeling.Mesh, error) {
-	return extrudeArea(area, depth, RegionY)
+func AreaX(area sketch.Area, depth float64, uvs *primitives.StripUVs) (modeling.Mesh, error) {
+	return extrudeArea(area, depth, uvs, RegionX)
 }
 
-func AreaZ(area sketch.Area, depth float64) (modeling.Mesh, error) {
-	return extrudeArea(area, depth, RegionZ)
+func AreaY(area sketch.Area, depth float64, uvs *primitives.StripUVs) (modeling.Mesh, error) {
+	return extrudeArea(area, depth, uvs, RegionY)
 }
 
-func extrudeArea(area sketch.Area, depth float64, extrude func(triangulation.Region, float64) modeling.Mesh) (modeling.Mesh, error) {
+func AreaZ(area sketch.Area, depth float64, uvs *primitives.StripUVs) (modeling.Mesh, error) {
+	return extrudeArea(area, depth, uvs, RegionZ)
+}
+
+func extrudeArea(area sketch.Area, depth float64, uvs *primitives.StripUVs, extrude func(triangulation.Region, float64, *primitives.StripUVs) modeling.Mesh) (modeling.Mesh, error) {
 	empty := modeling.EmptyMesh(modeling.TriangleTopology)
 	if len(area.Polygons) == 0 {
 		return empty, nil
@@ -122,12 +172,13 @@ func extrudeArea(area sketch.Area, depth float64, extrude func(triangulation.Reg
 	if err != nil {
 		return empty, err
 	}
-	return extrude(region, depth), nil
+	return extrude(region, depth, uvs), nil
 }
 
 type AreaNode struct {
-	Area  nodes.LiftedPort[sketch.Area] `description:"The area to extrude."`
-	Depth nodes.LiftedPort[float64]     `description:"Thickness: the solid spans 0 to Depth along the output's axis; negative goes the other way. 0 (the default) gives a single face."`
+	Area  nodes.LiftedPort[sketch.Area]     `description:"The area to extrude."`
+	Depth nodes.LiftedPort[float64]         `description:"Thickness: the solid spans 0 to Depth along the output's axis; negative goes the other way. 0 (the default) gives a single face."`
+	UVs   nodes.Output[primitives.StripUVs] `description:"Lays each wall loop out as a strip in world units: the distance around the loop runs across it, the depth along it. A cap takes the area's own X and Y. Defaults to the unit strip, so a texture repeats once per unit."`
 }
 
 func (AreaNode) Description() string {
@@ -138,9 +189,10 @@ func (AreaNode) Keywords() []string {
 	return []string{"slab"}
 }
 
-func (n AreaNode) out(out *nodes.Lifted[modeling.Mesh], extrude func(sketch.Area, float64) (modeling.Mesh, error)) {
+func (n AreaNode) out(out *nodes.Lifted[modeling.Mesh], extrude func(sketch.Area, float64, *primitives.StripUVs) (modeling.Mesh, error)) {
+	strip := nodes.TryGetOutputValue(out, n.UVs, primitives.UnitStripUVs())
 	nodes.Zip2(out, n.Area, n.Depth, func(area sketch.Area, depth float64) modeling.Mesh {
-		mesh, err := extrude(area, depth)
+		mesh, err := extrude(area, depth, &strip)
 		out.CaptureError(err)
 		return mesh
 	})

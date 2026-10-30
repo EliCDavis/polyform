@@ -265,6 +265,7 @@ type dynamicTyped[T any] struct {
 
 func (d dynamicTyped[T]) Node() Node                { return d.source.Node() }
 func (d dynamicTyped[T]) Name() string              { return d.source.Name() }
+func (d dynamicTyped[T]) Label() string             { return labelOf(d.source) }
 func (d dynamicTyped[T]) Version() int              { return d.source.Version() }
 func (d dynamicTyped[T]) Type() string              { return d.source.Type() }
 func (d dynamicTyped[T]) CurrentSource() OutputPort { return d.source.CurrentSource() }
@@ -339,7 +340,13 @@ func (d *dynamicOutput) AnyValue() any {
 }
 
 func (d *dynamicOutput) ExecutionReport() ExecutionReport {
-	return d.evaluate().report
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+	if d.cache.Outdated(d.functionName) {
+		return ExecutionReport{}
+	}
+	cached, _ := d.cache.Get(d.functionName).(dynamicResult)
+	return cached.report
 }
 
 func (d *dynamicOutput) BindType(concrete string) error {
@@ -435,6 +442,10 @@ func (i *dynamicInput) Description() string {
 	return refutil.GetStructTag(i.data.Data(), i.structField, "description")
 }
 
+func (i *dynamicInput) Advanced() bool {
+	return advancedTag(i.data.Data(), i.structField)
+}
+
 func (i *dynamicInput) Value() OutputPort {
 	return refutil.FieldValue[OutputPort](i.data.Data(), i.structField)
 }
@@ -485,6 +496,10 @@ func (i *dynamicArrayInput) Type() string {
 
 func (i *dynamicArrayInput) Description() string {
 	return refutil.GetStructTag(i.data.Data(), i.structField, "description")
+}
+
+func (i *dynamicArrayInput) Advanced() bool {
+	return advancedTag(i.data.Data(), i.structField)
 }
 
 func (i *dynamicArrayInput) Value() []OutputPort {

@@ -73,7 +73,7 @@ type placedGlyph struct {
 
 // The text lies in the YZ plane facing +X, its lines running along Y.
 func (t Text) MeshX() (modeling.Mesh, error) {
-	return t.mesh(RegionX)
+	return t.mesh(func(region triangulation.Region, depth float64) modeling.Mesh { return RegionX(region, depth, nil) })
 }
 
 // The text lies in the XZ plane facing +Y, its lines running along X and the
@@ -82,13 +82,13 @@ func (t Text) MeshY() (modeling.Mesh, error) {
 	return t.mesh(func(region triangulation.Region, depth float64) modeling.Mesh {
 		return extrudeRegion(region, depth, func(v vector3.Float64) vector3.Float64 {
 			return vector3.New(v.X(), v.Z(), -v.Y())
-		})
+		}, nil)
 	})
 }
 
 // The text lies in the XY plane facing +Z, its lines running along X.
 func (t Text) MeshZ() (modeling.Mesh, error) {
-	return t.mesh(RegionZ)
+	return t.mesh(func(region triangulation.Region, depth float64) modeling.Mesh { return RegionZ(region, depth, nil) })
 }
 
 // The first line's baseline runs through the origin and each further line

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"path"
+	"reflect"
 	"strings"
 	"sync"
 
@@ -115,6 +116,10 @@ func (s *system) ApplyProfile(profile Profile) error {
 			return fmt.Errorf("unable to apply %q from profile, variable does not exist", key)
 		}
 
+		if sameJSON(entry.GetProfile(), data) {
+			continue
+		}
+
 		if err := entry.ApplyProfile(data); err != nil {
 			return err
 		}
@@ -122,12 +127,19 @@ func (s *system) ApplyProfile(profile Profile) error {
 	return nil
 }
 
+func sameJSON(a, b json.RawMessage) bool {
+	var left, right any
+	if json.Unmarshal(a, &left) != nil || json.Unmarshal(b, &right) != nil {
+		return false
+	}
+	return reflect.DeepEqual(left, right)
+}
+
 func (s *system) RuntimeSchema() (schema.NestedGroup[schema.Variable], error) {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 
 	variables := make(map[string]schema.Variable)
-	subgroups := make(map[string]schema.NestedGroup[schema.Variable])
 
 	for name, entry := range s.entries {
 		switch v := entry.(type) {
@@ -139,10 +151,7 @@ func (s *system) RuntimeSchema() (schema.NestedGroup[schema.Variable], error) {
 		}
 	}
 
-	return schema.NestedGroup[schema.Variable]{
-		Variables: variables,
-		SubGroups: subgroups,
-	}, nil
+	return schema.Nest(variables), nil
 }
 
 func (s *system) PersistedSchema(encoder *jbtf.Encoder) (schema.NestedGroup[persistence.Variable], error) {
@@ -150,7 +159,6 @@ func (s *system) PersistedSchema(encoder *jbtf.Encoder) (schema.NestedGroup[pers
 	defer s.mutex.RUnlock()
 
 	variables := make(map[string]persistence.Variable)
-	subgroups := make(map[string]schema.NestedGroup[persistence.Variable])
 
 	for name, entry := range s.entries {
 		switch v := entry.(type) {
@@ -171,10 +179,7 @@ func (s *system) PersistedSchema(encoder *jbtf.Encoder) (schema.NestedGroup[pers
 		}
 	}
 
-	return schema.NestedGroup[persistence.Variable]{
-		Variables: variables,
-		SubGroups: subgroups,
-	}, nil
+	return schema.Nest(variables), nil
 }
 
 func (s *system) Variables() []Info {

@@ -6,6 +6,7 @@ import (
 	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/extrude"
+	"github.com/EliCDavis/polyform/modeling/primitives"
 	"github.com/EliCDavis/polyform/modeling/sketch"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/nodes/nodetest"
@@ -50,7 +51,7 @@ func TestPromotedLinesLandOnTheAreaExtrudedFromTheSamePoints(t *testing.T) {
 	lines := geometry.LineStripsFromPoints2D(outline, true)
 
 	planes := map[string]struct {
-		extrude func(sketch.Area, float64) (modeling.Mesh, error)
+		extrude func(sketch.Area, float64, *primitives.StripUVs) (modeling.Mesh, error)
 		promote func(geometry.Line2D, float64) geometry.Line3D
 	}{
 		"X": {extrude.AreaX, geometry.Line2D.PlaneX},
@@ -59,7 +60,7 @@ func TestPromotedLinesLandOnTheAreaExtrudedFromTheSamePoints(t *testing.T) {
 	}
 	for name, plane := range planes {
 		t.Run(name, func(t *testing.T) {
-			face, err := plane.extrude(area, 0)
+			face, err := plane.extrude(area, 0, nil)
 			require.NoError(t, err)
 			positions := face.Float3Attribute(modeling.PositionAttribute)
 			vertices := make([]vector3.Float64, positions.Len())

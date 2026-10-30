@@ -1,4 +1,18 @@
-import type { FlowNodeConfig } from "@elicdavis/node-flow";
+import type { FlowNodeConfig, WidgetConfig } from "@elicdavis/node-flow";
+
+const AXES = ["X", "Y", "Z", "W"];
+
+function vectorRow(...properties: Array<string>): WidgetConfig {
+  return {
+    type: "row",
+    config: {
+      widgets: properties.map((property, i): WidgetConfig => ({
+        type: "number",
+        config: { property, label: AXES[i], width: 72 },
+      })),
+    },
+  };
+}
 
 interface ColorScheme {
   Background: string;
@@ -33,7 +47,7 @@ const IntParameter: FlowNodeConfig = {
   canEditTitle: true,
   canEditInfo: true,
   outputs: [{ name: ParameterOutPortName, type: "int" }],
-  widgets: [{ type: "number", config: { property: "value" } }],
+  widgets: [{ type: "number", config: { property: "value", integer: true } }],
   style: ParameterStyle,
   metadata: {
     typeData: { type: "github.com/EliCDavis/polyform/generator/parameter.Value[int]" },
@@ -63,13 +77,9 @@ const AABBParameter: FlowNodeConfig = {
   ],
   widgets: [
     { type: "text", config: { value: "min" } },
-    { type: "number", config: { property: "min-x" } },
-    { type: "number", config: { property: "min-y" } },
-    { type: "number", config: { property: "min-z" } },
+    vectorRow("min-x", "min-y", "min-z"),
     { type: "text", config: { value: "max" } },
-    { type: "number", config: { property: "max-x" } },
-    { type: "number", config: { property: "max-y" } },
-    { type: "number", config: { property: "max-z" } },
+    vectorRow("max-x", "max-y", "max-z"),
   ],
   style: ParameterStyle,
   metadata: {
@@ -127,11 +137,7 @@ const Vector3Parameter: FlowNodeConfig = {
   outputs: [
     { name: ParameterOutPortName, type: "github.com/EliCDavis/vector/vector3.Vector[float64]" },
   ],
-  widgets: [
-    { type: "number", config: { property: "x" } },
-    { type: "number", config: { property: "y" } },
-    { type: "number", config: { property: "z" } },
-  ],
+  widgets: [vectorRow("x", "y", "z")],
   style: ParameterStyle,
   metadata: {
     typeData: {
@@ -164,10 +170,7 @@ const Vector2Parameter: FlowNodeConfig = {
   outputs: [
     { name: ParameterOutPortName, type: "github.com/EliCDavis/vector/vector2.Vector[float64]" },
   ],
-  widgets: [
-    { type: "number", config: { property: "x" } },
-    { type: "number", config: { property: "y" } },
-  ],
+  widgets: [vectorRow("x", "y")],
   style: ParameterStyle,
   metadata: {
     typeData: {
@@ -211,12 +214,7 @@ const Vector4Parameter: FlowNodeConfig = {
   canEditTitle: true,
   canEditInfo: true,
   outputs: [{ name: ParameterOutPortName, type: vector(4, "float64") }],
-  widgets: [
-    { type: "number", config: { property: "x" } },
-    { type: "number", config: { property: "y" } },
-    { type: "number", config: { property: "z" } },
-    { type: "number", config: { property: "w" } },
-  ],
+  widgets: [vectorRow("x", "y", "z", "w")],
   style: ParameterStyle,
   metadata: { typeData: { type: valueType(vector(4, "float64")) } },
 };
@@ -237,19 +235,13 @@ function arrayParameter(title: string, itemType: string): FlowNodeConfig {
 const quaternionType = "github.com/EliCDavis/polyform/math/quaternion.Quaternion";
 const trsType = "github.com/EliCDavis/polyform/math/trs.TRS";
 
-const eulerWidgets = [
-  { type: "number", config: { property: "x" } },
-  { type: "number", config: { property: "y" } },
-  { type: "number", config: { property: "z" } },
-];
-
 const QuaternionParameter: FlowNodeConfig = {
   title: "Rotation Parameter",
   subTitle: "Rotation (degrees)",
   canEditTitle: true,
   canEditInfo: true,
   outputs: [{ name: ParameterOutPortName, type: quaternionType }],
-  widgets: eulerWidgets,
+  widgets: [vectorRow("x", "y", "z")],
   style: ParameterStyle,
   metadata: { typeData: { type: valueType(quaternionType) } },
 };
@@ -262,17 +254,11 @@ const TRSParameter: FlowNodeConfig = {
   outputs: [{ name: ParameterOutPortName, type: trsType }],
   widgets: [
     { type: "text", config: { value: "position" } },
-    { type: "number", config: { property: "px" } },
-    { type: "number", config: { property: "py" } },
-    { type: "number", config: { property: "pz" } },
+    vectorRow("px", "py", "pz"),
     { type: "text", config: { value: "rotation (degrees)" } },
-    { type: "number", config: { property: "rx" } },
-    { type: "number", config: { property: "ry" } },
-    { type: "number", config: { property: "rz" } },
+    vectorRow("rx", "ry", "rz"),
     { type: "text", config: { value: "scale" } },
-    { type: "number", config: { property: "sx" } },
-    { type: "number", config: { property: "sy" } },
-    { type: "number", config: { property: "sz" } },
+    vectorRow("sx", "sy", "sz"),
   ],
   style: ParameterStyle,
   metadata: { typeData: { type: valueType(trsType) } },

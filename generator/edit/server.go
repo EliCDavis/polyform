@@ -72,6 +72,7 @@ type Server struct {
 
 	serverStarted     time.Time
 	showNewGraphPopup bool
+	built             builtOutputs
 }
 
 func (as *Server) Handler(indexFile string) (*http.ServeMux, error) {
@@ -159,6 +160,7 @@ func (as *Server) Handler(indexFile string) (*http.ServeMux, error) {
 	mux.Handle("/node/connection", undoable(as.Graph, "connection", nodeConnectionEndpoint(as.Graph, graphSaver)))
 	mux.Handle(subGraphDefinitionEndpointPath, undoable(as.Graph, "subgraph", subGraphDefinitionEndpoint(as.Graph, graphSaver)))
 	mux.Handle(subGraphBoundaryEndpointPath, undoable(as.Graph, "boundary port", subGraphBoundaryEndpoint(as.Graph, graphSaver)))
+	mux.Handle(subGraphInstanceEndpointPath, undoable(as.Graph, "for each", subGraphInstanceEndpoint(as.Graph, graphSaver)))
 	mux.Handle(convertSelectionToSubGraphEndpointPath, undoable(as.Graph, "subgraph conversion", convertSelectionToSubGraphEndpoint(as.Graph, graphSaver)))
 	mux.Handle(importSubGraphsEndpointPath, undoable(as.Graph, "imported subgraphs", importSubGraphsEndpoint(as.Graph, graphSaver)))
 	mux.Handle("/graph/subgraph/", undoable(as.Graph, "subgraph", scopedGraphHandler(as.Graph, graphSaver)))
@@ -179,6 +181,7 @@ func (as *Server) Handler(indexFile string) (*http.ServeMux, error) {
 	mux.Handle("/new-graph", newGraphEndpoint(as))
 	mux.Handle("/load-example", exampleGraphEndpoint(as))
 	mux.Handle("/graph", graphEndpoint(as))
+	mux.Handle("/graph/details", undoable(as.Graph, "graph details", graphDetailsEndpoint(as, graphSaver)))
 	mux.Handle("/graph/execution-report", executionReportEndpoint(as))
 	mux.Handle("/graph/metadata/", undoable(as.Graph, "layout", graphMetadataEndpointForInstance(as.Graph.Graph, graphSaver)))
 	mux.HandleFunc("/started", as.StartedEndpoint)

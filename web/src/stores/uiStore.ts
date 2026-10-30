@@ -5,6 +5,7 @@ export interface UiFlags {
   hideInfo: boolean;
   hideGraph: boolean;
   hideFileControls: boolean;
+  hideExportControls: boolean;
   hideWatermark: boolean;
   hideImportSubGraphs: boolean;
   canEdit: boolean;
@@ -18,6 +19,8 @@ interface UiState extends UiFlags {
   sidebarCollapsed: boolean;
   setSidebarCollapsed: (collapsed: boolean) => void;
   compactLayout: boolean;
+  graphTitle: string;
+  setGraphTitle: (title: string) => void;
 }
 
 const SIDEBAR_COLLAPSED_KEY = "polyform.sidebarCollapsed";
@@ -39,6 +42,7 @@ function parseUrlFlags(): UiFlags {
     hideInfo: params.get("hide-info") === "true",
     hideGraph: params.get("hide-graph") === "true",
     hideFileControls: params.get("hide-file-controls") === "true",
+    hideExportControls: params.get("hide-export-controls") === "true",
     hideWatermark: params.get("hide-watermark") === "true",
     hideImportSubGraphs: params.get("hide-import-subgraphs") === "true",
     canEdit: params.get("can-edit") !== "false",
@@ -60,6 +64,12 @@ export const useUiStore = create<UiState>((set, get) => ({
       } catch {}
     }
     set({ sidebarCollapsed: collapsed });
+  },
+  graphTitle: document.title || "Polyform",
+  setGraphTitle: (title) => {
+    const shown = title || "Polyform";
+    document.title = shown;
+    set({ graphTitle: shown });
   },
 }));
 

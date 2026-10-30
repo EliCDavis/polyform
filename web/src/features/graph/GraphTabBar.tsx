@@ -1,4 +1,5 @@
 import { useGraphTabStore } from "@/stores/graphTabStore";
+import { HistoryButtons } from "./HistoryButtons";
 import styles from "./GraphTabBar.module.css";
 
 export function GraphTabBar() {
@@ -34,6 +35,7 @@ export function GraphTabBar() {
           </div>
         );
       })}
+      <HistoryButtons />
     </div>
   );
 }

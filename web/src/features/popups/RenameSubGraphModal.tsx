@@ -9,6 +9,8 @@ interface RenameSubGraphModalProps {
   subGraphId: string;
   name: string;
   description?: string;
+  group?: string;
+  groups?: string[];
   schemaManager: SchemaManager;
   nodeManager: NodeManager;
   onRenamed: (name: string) => void;
@@ -20,6 +22,8 @@ export function RenameSubGraphModal({
   subGraphId,
   name,
   description = "",
+  group = "",
+  groups = [],
   schemaManager,
   nodeManager,
   onRenamed,
@@ -27,12 +31,14 @@ export function RenameSubGraphModal({
 }: RenameSubGraphModalProps) {
   const [nextName, setNextName] = useState(name);
   const [nextDescription, setNextDescription] = useState(description);
+  const [nextGroup, setNextGroup] = useState(group);
 
   useEffect(() => {
     if (!open) return;
     setNextName(name);
     setNextDescription(description);
-  }, [open, name, description]);
+    setNextGroup(group);
+  }, [open, name, description, group]);
 
   const rename = () => {
     const trimmedName = nextName.trim();
@@ -41,14 +47,14 @@ export function RenameSubGraphModal({
       return;
     }
 
-    if (trimmedName === name && nextDescription.trim() === description.trim()) {
+    if (trimmedName === name && nextDescription.trim() === description.trim() && nextGroup.trim() === group) {
       onClose();
       return;
     }
 
     requestManager.updateSubGraphInfo(
       subGraphId,
-      { name: trimmedName, description: nextDescription.trim() },
+      { name: trimmedName, description: nextDescription.trim(), group: nextGroup.trim() },
       () => {
         nodeManager.refreshRuntimeSubGraphType(subGraphId, () => {
           schemaManager.refreshSchema("renamed sub-graph");
@@ -62,7 +68,7 @@ export function RenameSubGraphModal({
 
   return (
     <Modal
-      title="Rename Sub-Graph"
+      title="Edit Sub-Graph"
       open={open}
       onClose={onClose}
       actions={
@@ -77,6 +83,19 @@ export function RenameSubGraphModal({
       <div style={{ display: "flex", flexDirection: "column", gap: 12, width: 400 }}>
         <label>Name</label>
         <input type="text" value={nextName} onChange={(e) => setNextName(e.target.value)} />
+        <label>Group</label>
+        <input
+          type="text"
+          list="subgraph-groups"
+          value={nextGroup}
+          onChange={(e) => setNextGroup(e.target.value)}
+          placeholder="Optional heading it is listed under"
+        />
+        <datalist id="subgraph-groups">
+          {groups.map((g) => (
+            <option key={g} value={g} />
+          ))}
+        </datalist>
         <label>Description</label>
         <textarea
           value={nextDescription}

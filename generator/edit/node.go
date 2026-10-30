@@ -59,12 +59,13 @@ func nodeEndpoint(graphInstance *graph.Instance, saver *GraphSaver) endpoint.Han
 				},
 			),
 			http.MethodDelete: endpoint.JsonMethod(
-				func(request endpoint.Request[DeleteRequest]) (EmptyResponse, error) {
-					if _, err := graphInstance.DeleteNodeById(request.Body.NodeID); err != nil {
-						return EmptyResponse{}, err
+				func(request endpoint.Request[DeleteRequest]) (DroppedResponse, error) {
+					dropped, err := graphInstance.DeleteNodeById(request.Body.NodeID)
+					if err != nil {
+						return DroppedResponse{}, err
 					}
 					saver.Save()
-					return EmptyResponse{}, nil
+					return DroppedResponse{Dropped: dropped}, nil
 				},
 			),
 		},
@@ -81,11 +82,14 @@ func (as *Server) writeNodeOutput(w http.ResponseWriter, r *http.Request) error 
 	if err != nil {
 		return err
 	}
-	entry := as.NodeOutputSerialization.Run(resolved.output)
-
-	artifact := entry.Artifact
-	w.Header().Set("Content-Type", artifact.Mime())
-	return artifact.Write(w)
+	var entry manifest.Entry
+	var identity string
+	var source nodes.Node
+	as.Graph.Evaluate(func() {
+		entry = as.NodeOutputSerialization.Run(resolved.output)
+		identity, source = outputIdentity(resolved.output)
+	})
+	return as.built.serve(w, r, identity, source, entry.Artifact)
 }
 
 func (as *Server) NodeOutputEndpoint(w http.ResponseWriter, r *http.Request) {

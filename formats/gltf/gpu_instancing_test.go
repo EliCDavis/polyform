@@ -59,3 +59,22 @@ func TestWrite_GpuInstancesOnAGroupWithNoMeshAreRefused(t *testing.T) {
 	assert.Contains(t, err.Error(), `"resistor"`)
 	assert.Contains(t, err.Error(), "has GPU instances but no mesh")
 }
+
+func TestWrite_AnEmptyInstanceListDrawsTheMeshNowhere(t *testing.T) {
+	cube := primitives.Cube{Width: 1, Height: 1, Depth: 1}.UnweldedQuads()
+	tank := &gltf.PolyformModel{Name: "tank", Mesh: &cube, GpuInstances: []trs.TRS{}}
+	once := &gltf.PolyformModel{Name: "once", Mesh: &cube}
+
+	var buf bytes.Buffer
+	require.NoError(t, gltf.WriteText(gltf.PolyformScene{Models: []*gltf.PolyformModel{tank, once}}, &buf, nil))
+	doc, err := gltf.ParseGLTF(&buf)
+	require.NoError(t, err)
+
+	for _, node := range doc.Nodes {
+		if node.Name == "tank" {
+			assert.Nil(t, node.Mesh, "an instance list with nothing in it places the mesh nowhere, not once at the origin")
+		} else {
+			assert.NotNil(t, node.Mesh)
+		}
+	}
+}

@@ -205,6 +205,7 @@ export function NodesSection() {
     () => filteredGroups.reduce((sum, group) => sum + group.matches.length, 0),
     [filteredGroups],
   );
+  const searching = search.trim().length > 0;
 
   if (!editor) return null;
 
@@ -239,21 +240,23 @@ export function NodesSection() {
           </div>
         )}
         {filteredGroups.map((group) => (
-          <div className="node-catalog-group" key={group.path}>
-            <div className="node-catalog-group-header">
+          <details className="node-catalog-group" key={group.path} open={searching}>
+            <summary className="node-catalog-group-header">
               <span className="node-catalog-group-name">{group.path}</span>
               <span className="node-catalog-group-count">
                 {formatCount(group.matches.length, group.total, "node")}
               </span>
+            </summary>
+            <div className="node-catalog-group-body">
+              {group.matches.map(({ def }) => (
+                <NodeCatalogEntry
+                  key={def.type}
+                  def={def}
+                  onAdd={() => editor.nodeManager.createNodeFromType(def.type)}
+                />
+              ))}
             </div>
-            {group.matches.map(({ def }) => (
-              <NodeCatalogEntry
-                key={def.type}
-                def={def}
-                onAdd={() => editor.nodeManager.createNodeFromType(def.type)}
-              />
-            ))}
-          </div>
+          </details>
         ))}
       </div>
     </>
