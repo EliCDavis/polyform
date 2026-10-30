@@ -38,6 +38,27 @@ func TestBuildNodeTypeSchema(t *testing.T) {
 	assert.Equal(t, "float64", schema.Outputs["Out"].Type)
 }
 
+type AdvancedPortsNode struct {
+	Common      nodes.Output[float64]
+	Rare        nodes.Output[float64]     `advanced:"true"`
+	RareList    []nodes.Output[float64]   `advanced:"true"`
+	RareLifted  nodes.LiftedPort[float64] `advanced:"true"`
+	PlainLifted nodes.LiftedPort[float64]
+}
+
+func (AdvancedPortsNode) Out(out *nodes.StructOutput[float64]) {
+}
+
+func TestBuildNodeTypeSchemaMarksAdvancedInputs(t *testing.T) {
+	schema := graph.BuildNodeTypeSchema("", &nodes.Struct[AdvancedPortsNode]{})
+
+	assert.False(t, schema.Inputs["Common"].Advanced)
+	assert.True(t, schema.Inputs["Rare"].Advanced)
+	assert.True(t, schema.Inputs["Rare List"].Advanced)
+	assert.True(t, schema.Inputs["Rare Lifted"].Advanced)
+	assert.False(t, schema.Inputs["Plain Lifted"].Advanced)
+}
+
 func TestInstance_AddProducer_InitializeParameters_Artifacts(t *testing.T) {
 	// ARRANGE ================================================================
 	contentToSetViaFlag := "bruh"

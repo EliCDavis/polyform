@@ -117,3 +117,25 @@ func TestEditorRollsBackARefusedEdit(t *testing.T) {
 	listed := readHistory(t, call(t, handler, http.MethodGet, "/graph/history", ""))
 	assert.Len(t, listed.Undo, 1, "the failed request is not a step")
 }
+
+func TestAVariableWriteIntoAProfileIsOneUndoStep(t *testing.T) {
+	handler, instance := historyServer(t)
+
+	call(t, handler, http.MethodPost, "/variable/instance/Height", `{"type": "float64"}`)
+	call(t, handler, http.MethodPost, "/profile", `{"name": "default"}`)
+
+	rr := call(t, handler, http.MethodPost, "/variable/value/Height?profile=default", `5`)
+	require.Equal(t, http.StatusOK, rr.Code, rr.Body.String())
+
+	saved, err := instance.Profiles().Get("default")
+	require.NoError(t, err)
+	assert.JSONEq(t, `5`, string(saved["Height"]))
+
+	listed := readHistory(t, call(t, handler, http.MethodGet, "/graph/history", ""))
+	assert.Equal(t, []string{"Update variable", "Update profile", "Update variable"}, listed.Undo)
+
+	call(t, handler, http.MethodPost, "/graph/history/undo", "")
+	saved, err = instance.Profiles().Get("default")
+	require.NoError(t, err)
+	assert.JSONEq(t, `0`, string(saved["Height"]))
+}

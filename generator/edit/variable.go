@@ -2,6 +2,8 @@ package edit
 
 import (
 	"net/http"
+	"net/url"
+	"strings"
 
 	"github.com/EliCDavis/polyform/generator/endpoint"
 	"github.com/EliCDavis/polyform/generator/graph"
@@ -14,6 +16,12 @@ const (
 	variableValueEndpointPath           = "/variable/value/"
 	variableNameDescriptionEndpointPath = "/variable/info/"
 )
+
+func saveProfile(graphInstance *graph.Instance, query url.Values) {
+	if name := strings.TrimSpace(query.Get("profile")); name != "" {
+		graphInstance.SaveProfile(name)
+	}
+}
 
 func variableInstanceEndpoint(server *Server, graphInstance *graph.Instance, saver *GraphSaver) endpoint.Handler {
 
@@ -45,6 +53,7 @@ func variableInstanceEndpoint(server *Server, graphInstance *graph.Instance, sav
 				if err != nil {
 					return CreateVariableResponse{}, err
 				}
+				saveProfile(graphInstance, request.Query)
 				saver.Save()
 				return CreateVariableResponse{
 					NodeType: graph.BuildNodeTypeSchema(registeredType, variableInstance.NodeReference()),
@@ -65,6 +74,7 @@ func variableInstanceEndpoint(server *Server, graphInstance *graph.Instance, sav
 					if err := graphInstance.DeleteVariable(variablePath); err != nil {
 						return err
 					}
+					saveProfile(graphInstance, request.URL.Query())
 					saver.Save()
 					return nil
 				},
@@ -93,6 +103,7 @@ func variableValueEndpoint(graphInstance *graph.Instance, saver *GraphSaver) end
 						return err
 					}
 
+					saveProfile(graphInstance, request.Query)
 					saver.Save()
 					return nil
 				},

@@ -441,6 +441,10 @@ func (i *dynamicInput) Description() string {
 	return refutil.GetStructTag(i.data.Data(), i.structField, "description")
 }
 
+func (i *dynamicInput) Advanced() bool {
+	return advancedTag(i.data.Data(), i.structField)
+}
+
 func (i *dynamicInput) Value() OutputPort {
 	return refutil.FieldValue[OutputPort](i.data.Data(), i.structField)
 }
@@ -491,6 +495,10 @@ func (i *dynamicArrayInput) Type() string {
 
 func (i *dynamicArrayInput) Description() string {
 	return refutil.GetStructTag(i.data.Data(), i.structField, "description")
+}
+
+func (i *dynamicArrayInput) Advanced() bool {
+	return advancedTag(i.data.Data(), i.structField)
 }
 
 func (i *dynamicArrayInput) Value() []OutputPort {

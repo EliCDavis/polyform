@@ -166,6 +166,10 @@ func (i *liftedInput) Description() string {
 	return refutil.GetStructTag(i.data.Data(), i.structField, "description")
 }
 
+func (i *liftedInput) Advanced() bool {
+	return advancedTag(i.data.Data(), i.structField)
+}
+
 func (i *liftedInput) Value() OutputPort {
 	return refutil.FieldValue[OutputPort](i.data.Data(), i.structField)
 }
@@ -226,6 +230,10 @@ func (i *liftedArrayInput) AcceptedTypes() []string {
 
 func (i *liftedArrayInput) Description() string {
 	return refutil.GetStructTag(i.data.Data(), i.structField, "description")
+}
+
+func (i *liftedArrayInput) Advanced() bool {
+	return advancedTag(i.data.Data(), i.structField)
 }
 
 func (i *liftedArrayInput) Value() []OutputPort {

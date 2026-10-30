@@ -295,6 +295,10 @@ func (si structArrayInput) Description() string {
 	return refutil.GetStructTag(si.data.Data(), si.structField, "description")
 }
 
+func (si structArrayInput) Advanced() bool {
+	return advancedTag(si.data.Data(), si.structField)
+}
+
 // ============================================================================
 
 type structInput struct {
@@ -334,6 +338,10 @@ func (si structInput) Set(port OutputPort) error {
 
 func (si structInput) Description() string {
 	return refutil.GetStructTag(si.data.Data(), si.structField, "description")
+}
+
+func (si structInput) Advanced() bool {
+	return advancedTag(si.data.Data(), si.structField)
 }
 
 // ============================================================================

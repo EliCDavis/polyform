@@ -384,7 +384,7 @@ func (p *SamplerMinFilterNode) Outputs() map[string]nodes.OutputPort {
 // https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#reference-material
 
 type MaterialNode struct {
-	Name nodes.Output[string] `description:"Name of the material"`
+	Name nodes.Output[string] `description:"Name of the material" advanced:"true"`
 
 	Color                    nodes.Output[coloring.Color]    `description:"The factors for the base color of the material. This value defines linear multipliers for the sampled texels of the base color texture."`
 	ColorTexture             nodes.Output[PolyformTexture]   `description:"The base color texture. The first three components (RGB) MUST be encoded with the sRGB transfer function. They specify the base color of the material. If the fourth component (A) is present, it represents the linear alpha coverage of the material. Otherwise, the alpha coverage is equal to 1.0. The material.alphaMode property specifies how alpha is interpreted. The stored texels MUST NOT be premultiplied. When undefined, the texture MUST be sampled as having 1.0 in all components."`
@@ -394,22 +394,22 @@ type MaterialNode struct {
 	EmissiveTexture          nodes.Output[PolyformTexture]   `description:"The emissive texture. It controls the color and intensity of the light being emitted by the material. This texture contains RGB components encoded with the sRGB transfer function. If a fourth component (A) is present, it MUST be ignored. When undefined, the texture MUST be sampled as having 1.0 in RGB components."`
 	EmissiveFactor           nodes.Output[coloring.Color]    `description:"The factors for the emissive color of the material. This value defines linear multipliers for the sampled texels of the emissive texture."`
 	NormalTexture            nodes.Output[PolyformNormal]    `description:"The tangent space normal texture. The texture encodes RGB components with linear transfer function. Each texel represents the XYZ components of a normal vector in tangent space. The normal vectors use the convention +X is right and +Y is up. +Z points toward the viewer. If a fourth component (A) is present, it **MUST** be ignored. When undefined, the material does not have a tangent space normal texture."`
-	OcclusionTexture         nodes.Output[PolyformOcclusion] `description:"Ambient occlusion map, darkening crevices under ambient light."`
-	AlphaMode                nodes.Output[string]            `description:"OPAQUE (default) ignores alpha, MASK cuts at Alpha Cutoff, BLEND blends by alpha. Alpha comes from Color and Color Texture."`
-	AlphaCutoff              nodes.Output[float64]           `description:"With alpha mode MASK: alpha below this is cut away. glTF's default is 0.5."`
-	Unlit                    nodes.Output[bool]              `description:"Shows Color as is, ignoring lighting. Written as KHR_materials_unlit."`
+	OcclusionTexture         nodes.Output[PolyformOcclusion] `description:"Ambient occlusion map, darkening crevices under ambient light." advanced:"true"`
+	AlphaMode                nodes.Output[string]            `description:"OPAQUE (default) ignores alpha, MASK cuts at Alpha Cutoff, BLEND blends by alpha. Alpha comes from Color and Color Texture." advanced:"true"`
+	AlphaCutoff              nodes.Output[float64]           `description:"With alpha mode MASK: alpha below this is cut away. glTF's default is 0.5." advanced:"true"`
+	Unlit                    nodes.Output[bool]              `description:"Shows Color as is, ignoring lighting. Written as KHR_materials_unlit." advanced:"true"`
 
 	// Extensions
-	IndexOfRefraction nodes.Output[float64]
-	Transmission      nodes.Output[PolyformTransmission]
-	Volume            nodes.Output[PolyformVolume]
-	Anisotropy        nodes.Output[PolyformAnisotropy]
-	Clearcoat         nodes.Output[PolyformClearcoat]
-	Sheen             nodes.Output[PolyformSheen]
-	Specular          nodes.Output[PolyformSpecular]
-	Iridescence       nodes.Output[PolyformIridescence]
-	Dispersion        nodes.Output[PolyformDispersion]
-	EmissiveStrength  nodes.Output[float64]
+	IndexOfRefraction nodes.Output[float64]              `advanced:"true"`
+	Transmission      nodes.Output[PolyformTransmission] `advanced:"true"`
+	Volume            nodes.Output[PolyformVolume]       `advanced:"true"`
+	Anisotropy        nodes.Output[PolyformAnisotropy]   `advanced:"true"`
+	Clearcoat         nodes.Output[PolyformClearcoat]    `advanced:"true"`
+	Sheen             nodes.Output[PolyformSheen]        `advanced:"true"`
+	Specular          nodes.Output[PolyformSpecular]     `advanced:"true"`
+	Iridescence       nodes.Output[PolyformIridescence]  `advanced:"true"`
+	Dispersion        nodes.Output[PolyformDispersion]   `advanced:"true"`
+	EmissiveStrength  nodes.Output[float64]              `advanced:"true"`
 }
 
 func (gmnd MaterialNode) Out(out *nodes.StructOutput[PolyformMaterial]) {
