@@ -82,11 +82,14 @@ func (as *Server) writeNodeOutput(w http.ResponseWriter, r *http.Request) error 
 	if err != nil {
 		return err
 	}
-	entry := as.NodeOutputSerialization.Run(resolved.output)
-
-	artifact := entry.Artifact
-	w.Header().Set("Content-Type", artifact.Mime())
-	return artifact.Write(w)
+	var entry manifest.Entry
+	var identity string
+	var source nodes.Node
+	as.Graph.Evaluate(func() {
+		entry = as.NodeOutputSerialization.Run(resolved.output)
+		identity, source = outputIdentity(resolved.output)
+	})
+	return as.built.serve(w, r, identity, source, entry.Artifact)
 }
 
 func (as *Server) NodeOutputEndpoint(w http.ResponseWriter, r *http.Request) {

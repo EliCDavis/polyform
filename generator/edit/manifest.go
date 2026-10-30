@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"runtime/debug"
+	"strconv"
 	"strings"
 
 	"github.com/EliCDavis/polyform/generator/endpoint"
@@ -49,18 +50,37 @@ func getTypedNodeOutputFromURLPath[T any](r *http.Request, base string, graph *g
 	}, nil
 }
 
-func getNodeOutputFromURLPath(r *http.Request, base string, graph *graph.Instance) (*resolvedNodeOutputUrl, error) {
+// A "scope" query names the sub-graph definition the node lives in; without
+// one the node is looked up at the root.
+func getNodeOutputFromURLPath(r *http.Request, base string, project *graph.Instance) (*resolvedNodeOutputUrl, error) {
 	if strings.Index(r.URL.Path, base) != 0 {
 		panic(fmt.Errorf("expected url to begin with %q, instead: %q", base, r.URL.Path))
 	}
 	components := strings.Split(r.URL.Path[len(base):], "/")
 
+	scoped, err := graph.Scope(r.URL.Query().Get("scope")).ResolveInstance(project)
+	if err != nil {
+		return nil, err
+	}
+
 	nodeID := components[0]
-	node := graph.Node(nodeID)
+	node := scoped.Node(nodeID)
+	if node == nil {
+		return nil, fmt.Errorf("no node %q in scope %q", nodeID, r.URL.Query().Get("scope"))
+	}
 
 	outputs := node.Outputs()
 	outPortName := components[1]
 	output, ok := outputs[outPortName]
+	if !ok {
+		// A placement keys its ports by boundary id and shows the label.
+		for _, port := range outputs {
+			if labeled, is := port.(nodes.Labeled); is && labeled.Label() == outPortName {
+				output, ok = port, true
+				break
+			}
+		}
+	}
 	if !ok {
 		return nil, fmt.Errorf("Node %q does not contain output %q", nodeID, outPortName)
 	}
@@ -81,11 +101,19 @@ func (as *Server) writeManifest(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	var manifest manifest.Manifest
-	as.Graph.Evaluate(func() { manifest = resolvedNode.output.Value() })
+	var version int
+	var identity string
+	var source nodes.Node
+	as.Graph.Evaluate(func() {
+		manifest = resolvedNode.output.Value()
+		version = resolvedNode.output.Version()
+		identity, source = outputIdentity(resolvedNode.output)
+	})
 
 	// We're just trying to get the manifest of the node's output manifest
 	if resolvedNode.remainingUrl == "" {
 		w.Header().Set("Content-Type", string(endpoint.JsonContentType))
+		w.Header().Set("Output-Version", strconv.Itoa(version))
 		data, err := json.Marshal(manifest)
 		if err != nil {
 			return err
@@ -99,9 +127,7 @@ func (as *Server) writeManifest(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("Node %q output %q Manifest does not contain an entry %q", resolvedNode.nodeID, resolvedNode.outputName, resolvedNode.remainingUrl)
 	}
 
-	artifact := entry.Artifact
-	w.Header().Set("Content-Type", artifact.Mime())
-	return artifact.Write(w)
+	return as.built.serve(w, r, identity, source, entry.Artifact)
 }
 
 func (as *Server) ManifestEndpoint(w http.ResponseWriter, r *http.Request) {

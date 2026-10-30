@@ -23,7 +23,8 @@ import {
   FlowGraphBootstrapProvider,
   useFlowGraphInit,
 } from "@/features/nodeFlow/FlowGraphBootstrapContext";
-import { useGraphTabStore, activeGraphScope } from "@/stores/graphTabStore";
+import { useGraphTabStore, activeGraphScope, GraphTabKind } from "@/stores/graphTabStore";
+import { ActiveProfileSync } from "@/features/variables/ActiveProfileSync";
 import type { NodeFlowGraph } from "@elicdavis/node-flow";
 
 const viewportSettings: ViewportSettings = {
@@ -54,10 +55,14 @@ function GraphTabScopeSync({
   nodeFlowGraph: NodeFlowGraph;
 }) {
   const activeTabId = useGraphTabStore((s) => s.activeTabId);
+  const pendingFocus = useGraphTabStore((s) => s.pendingFocus);
+  const flowGraphInit = useFlowGraphInit();
   const previousTabId = useRef<string | null>(null);
 
   useEffect(() => {
     if (!schemaManager.currentGraph) return;
+    // A preview tab sits over the canvas; the canvas keeps its scope.
+    if (useGraphTabStore.getState().getTab(activeTabId)?.kind === GraphTabKind.Preview) return;
 
     if (previousTabId.current !== null) {
       useGraphTabStore
@@ -81,6 +86,16 @@ function GraphTabScopeSync({
 
     previousTabId.current = activeTabId;
   }, [activeTabId, nodeManager, noteManager, schemaManager, nodeFlowGraph]);
+
+  useEffect(() => {
+    if (!pendingFocus || pendingFocus.tabId !== activeTabId) return;
+    const canvas = flowGraphInit?.Canvas;
+    nodeManager.focusNode(pendingFocus.nodeId, {
+      width: canvas?.clientWidth ?? window.innerWidth,
+      height: canvas?.clientHeight ?? window.innerHeight,
+    });
+    useGraphTabStore.getState().clearPendingFocus();
+  }, [pendingFocus, activeTabId, nodeManager, flowGraphInit]);
 
   return null;
 }
@@ -350,6 +365,7 @@ export function EditorProvider({
               nodeFlowGraph={ctx.nodeFlowGraph}
             />
             <EditorModelVersionPoller />
+            <ActiveProfileSync />
           </>
         )}
         {registeredTypes && !ctx && (

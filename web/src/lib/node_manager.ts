@@ -259,6 +259,21 @@ export class NodeManager {
         this.updateNodes(schema);
     }
 
+    focusNode(nodeId: string, viewport: { width: number; height: number }): void {
+        const controller = this.nodeIdToNode.get(nodeId);
+        if (!controller) return;
+        const position = controller.flowNode.getPosition();
+        this.nodeFlowGraph.setCamera({
+            position: {
+                x: viewport.width / 2 - (position.x + 120),
+                y: viewport.height / 2 - (position.y + 60),
+            },
+            zoom: 1,
+        });
+        this.nodeFlowGraph.unselectAllNodes();
+        controller.flowNode.select();
+    }
+
     syncLivePositionsIntoSchema(schema: GraphInstance): void {
         const scopedNodes = getScopedNodes(schema, this.graphScope);
         this.nodeIdToNode.forEach((controller, nodeId) => {
@@ -279,11 +294,14 @@ export class NodeManager {
 
     refreshExecutionReport(): void {
         this.requestManager.getExecutionReport((executionReport: GraphExecutionReport) => {
+            if (this.graphScope.kind !== GraphScopeKind.Root) {
+                return;
+            }
 
             for (let nodeID in executionReport.nodes) {
                 const nodeExecutionReport = executionReport.nodes[nodeID];
                 if (!this.nodeIdToNode.has(nodeID)) {
-                    return;
+                    continue;
                 }
                 const nodeToUpdate = this.nodeIdToNode.get(nodeID);
                 nodeToUpdate.flowNode.clearMessages();
@@ -366,12 +384,8 @@ export class NodeManager {
                 afterCreate?.(null, flowNode);
             },
             onSelect: (portType) => {
-                const typedNode = this.replacePlaceholderBoundaryNode(
-                    flowNode,
-                    kind,
-                    portType,
-                );
-                this.finishNodeCreation(typedNode, nodeType, portType, (nodeID, node) => {
+                this.setBoundaryPortType(flowNode, portType);
+                this.finishNodeCreation(flowNode, nodeType, portType, (nodeID, node) => {
                     afterCreate?.(nodeID, node);
 
                     const portName = node.title();
@@ -390,28 +404,14 @@ export class NodeManager {
         });
     }
 
-    /** Swap the menu-created placeholder for a node whose ports use the chosen type. */
-    private replacePlaceholderBoundaryNode(
-        oldFlowNode: FlowNode,
-        kind: BoundaryType,
-        portType: string,
-    ): FlowNode {
-        const position = oldFlowNode.getPosition();
-        const title = oldFlowNode.title();
-        const config = buildBoundaryFlowNodeConfig(kind, portType);
-
-        this.serverUpdatingNodeConnections = true;
-        this.nodeFlowGraph.removeNode(oldFlowNode);
-
-        const newFlowNode = new FlowNode({
-            ...config,
-            title: title || config.title,
-            position,
-        });
-        this.nodeFlowGraph.addNode(newFlowNode);
-        newFlowNode.setProperty("portType", portType);
-        this.serverUpdatingNodeConnections = false;
-        return newFlowNode;
+    private setBoundaryPortType(flowNode: FlowNode, portType: string): void {
+        for (let i = 0; i < flowNode.inputs(); i++) {
+            flowNode.inputPort(i).setDataType(portType);
+        }
+        for (let i = 0; i < flowNode.outputs(); i++) {
+            flowNode.outputPort(i).setDataType(portType);
+        }
+        flowNode.setProperty("portType", portType);
     }
 
     private finishNodeCreation(
@@ -686,6 +686,7 @@ export class NodeManager {
             nodeConfig.inputs.push({
                 ...flowPortConfig(inputName, nodeDefinition.inputs[inputName]),
                 array: nodeDefinition.inputs[inputName].isArray,
+                hidden: nodeDefinition.inputs[inputName].advanced === true,
             });
         }
 

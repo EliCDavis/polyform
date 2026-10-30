@@ -1,4 +1,4 @@
-import { FlowNode, GlobalWidgetFactory, type Widget } from '@elicdavis/node-flow';
+import { FlowNode, GlobalWidgetFactory, RowWidget, type Widget } from '@elicdavis/node-flow';
 import { NodeManager } from '../node_manager';
 import { ThreeApp } from '../three_app';
 import { TRSGizmo, TRSGizmoMode } from '../gizmo/trs';
@@ -23,15 +23,12 @@ export class TRSParameterNodeController {
 
     gizmo: TRSGizmo;
 
-    updating: boolean;
-
     modeButtons: Array<Widget>;
 
     constructor(flowNode: FlowNode, nodeManager: NodeManager, id: string, parameterData: TRSNodeParameter, app: ThreeApp) {
         this.id = id;
         this.nodeManager = nodeManager;
         this.flowNode = flowNode;
-        this.updating = false;
         this.modeButtons = [];
 
         const value = parameterData.currentValue ?? identityTRS;
@@ -51,32 +48,31 @@ export class TRSParameterNodeController {
         this.flowNode.setTitle(parameterData.name);
         this.setProperties(value);
 
-        for (const mode of ["translate", "rotate", "scale"] as const) {
-            this.flowNode.addWidget(GlobalWidgetFactory.create(this.flowNode, "button", {
-                text: mode[0].toUpperCase() + mode.slice(1),
-                callback: () => this.gizmo.setMode(mode as TRSGizmoMode),
-            }));
-        }
+        const modes: Array<[string, TRSGizmoMode]> = [["Move", "translate"], ["Rotate", "rotate"], ["Scale", "scale"]];
+        this.modeButtons = modes.map(([text, mode]) => GlobalWidgetFactory.create(this.flowNode, "button", {
+            text,
+            width: 72,
+            callback: () => this.gizmo.setMode(mode),
+        }));
+        this.flowNode.addWidget(new RowWidget(this.modeButtons));
 
         this.flowNode.addSelectListener(() => this.gizmo.setEnabled(true));
         this.flowNode.addUnselectListener(() => this.gizmo.setEnabled(false));
 
         for (const prefix of ["p", "r", "s"]) {
             for (const axis of axes) {
-                this.flowNode.addPropertyChangeListener(prefix + axis, this.propertyChange.bind(this));
+                this.flowNode.addPropertyEditListener(prefix + axis, this.propertyChange.bind(this));
             }
         }
     }
 
     private setProperties(value: TRS): void {
-        this.updating = true;
         const euler = quatToEuler(value.rotation);
         for (const axis of axes) {
             this.flowNode.setProperty("p" + axis, value.position[axis]);
             this.flowNode.setProperty("r" + axis, Number(euler[axis].toFixed(4)));
             this.flowNode.setProperty("s" + axis, value.scale[axis]);
         }
-        this.updating = false;
     }
 
     private value(): TRS {
@@ -93,9 +89,6 @@ export class TRSParameterNodeController {
     }
 
     propertyChange() {
-        if (this.updating) {
-            return;
-        }
         const next = this.value();
         this.gizmo.setValue(next);
         this.nodeManager.nodeParameterChanged({ id: this.id, data: next, binary: false });

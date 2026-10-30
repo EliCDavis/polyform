@@ -1,9 +1,11 @@
+import { useCallback, useEffect, useState } from "react";
+import { Redo2, Undo2 } from "lucide-react";
 import { requestManager } from "@/api/client";
 import { useEditorOptional } from "@/features/editor/EditorContext";
-import { useCallback, useEffect, useState } from "react";
 import type { GraphHistory } from "@/lib/schema";
+import styles from "./GraphTabBar.module.css";
 
-export function HistoryControls() {
+export function HistoryButtons() {
   const editor = useEditorOptional();
   const [history, setHistory] = useState<GraphHistory>({ undo: [], redo: [] });
 
@@ -59,30 +61,27 @@ export function HistoryControls() {
     steps.length === 0 ? `Nothing to ${verb}` : `${verb}: ${steps[0]}`;
 
   return (
-    <div id="history-controls-section">
-      <div className="sidebar-header">History</div>
-      <div className="sidebar-section-content" style={{ flexDirection: "row" }}>
-        <button
-          type="button"
-          className="sidebar-button"
-          style={{ flex: 1 }}
-          disabled={history.undo.length === 0}
-          title={`${label("Undo", history.undo)} (Ctrl+Z)`}
-          onClick={() => walk("undo")}
-        >
-          Undo
-        </button>
-        <button
-          type="button"
-          className="sidebar-button"
-          style={{ flex: 1 }}
-          disabled={history.redo.length === 0}
-          title={`${label("Redo", history.redo)} (Ctrl+Y)`}
-          onClick={() => walk("redo")}
-        >
-          Redo
-        </button>
-      </div>
+    <div className={styles.actions}>
+      <button
+        type="button"
+        className={styles.actionButton}
+        title={`${label("Undo", history.undo)} (Ctrl+Z)`}
+        aria-label={label("Undo", history.undo)}
+        disabled={history.undo.length === 0}
+        onClick={() => walk("undo")}
+      >
+        <Undo2 size={15} />
+      </button>
+      <button
+        type="button"
+        className={styles.actionButton}
+        title={`${label("Redo", history.redo)} (Ctrl+Y)`}
+        aria-label={label("Redo", history.redo)}
+        disabled={history.redo.length === 0}
+        onClick={() => walk("redo")}
+      >
+        <Redo2 size={15} />
+      </button>
     </div>
   );
 }

@@ -11,6 +11,7 @@ export interface NodeInput {
   isArray: boolean;
   description?: string;
   dynamic?: boolean;
+  advanced?: boolean;
 
   // Set when the port takes more than one type, because `type` is only the
   // one it happens to be showing.
@@ -102,6 +103,9 @@ export interface NodeInstance {
   subGraphOutputBoundary?: SubGraphOutputBoundary;
   subGraphId?: string;
 
+  // A placement set to run its subgraph once per item of the lists it is fed.
+  forEach?: boolean;
+
   // For a node with dynamic ports, what each of its type variables settled
   // on, keyed by the variable the ports were declared with.
   dynamicTypes?: { [variable: string]: string };
@@ -135,8 +139,8 @@ export interface Variable {
 }
 
 export interface VariableGroup {
-  subgroups: VariableGroup;
-  variables: { [key: string]: Variable };
+  subgroups?: { [name: string]: VariableGroup };
+  variables?: { [name: string]: Variable };
 }
 
 export interface Entry {

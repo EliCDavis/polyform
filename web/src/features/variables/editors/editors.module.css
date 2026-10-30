@@ -18,6 +18,85 @@
   font-family: monospace;
 }
 
+.listToggle {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 2px 0;
+  background: none;
+  border: none;
+  border-radius: 0;
+  color: #8fa8b0;
+  font-size: 12px;
+  text-align: left;
+}
+
+.listToggle:hover {
+  color: #fff;
+}
+
+.listToggleIcon {
+  display: inline-block;
+  width: 10px;
+  font-size: 10px;
+  transition: transform 0.1s;
+}
+
+.listToggleOpen .listToggleIcon {
+  transform: rotate(90deg);
+}
+
+.listItem {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 4px 6px;
+  border-left: 2px solid transparent;
+  border-radius: 3px;
+}
+
+.listIndex {
+  flex: none;
+  min-width: 14px;
+  text-align: right;
+  font-size: 11px;
+  line-height: 24px;
+  color: #8fa8b0;
+  font-family: monospace;
+}
+
+.listBody {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.remove {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  padding: 0;
+  border: 1px solid #2a4a55;
+  border-radius: 50%;
+  background: none;
+  color: #8fa8b0;
+  font-size: 15px;
+  line-height: 1;
+}
+
+.remove:hover,
+.remove:focus-visible {
+  background-color: #7f1d1d;
+  border-color: #7f1d1d;
+  color: #fff;
+}
+
 .insert {
   display: flex;
   flex-direction: row;

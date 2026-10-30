@@ -3,7 +3,6 @@ import {
   ContextMenuItemState,
   NodeFlowGraph,
   Publisher,
-  Theme,
 } from "@elicdavis/node-flow";
 import { parameterNodeConfigs } from "./parameterNodeConfigs";
 import { useFlowGraphBootstrap } from "./FlowGraphBootstrapContext";
@@ -22,9 +21,6 @@ export function NodeFlowPanel() {
     if (!canvas || initialized.current) return;
 
     initialized.current = true;
-
-    Theme.Minimap.BackgroundColor = "rgba(15, 49, 60, 0.9)";
-    Theme.Minimap.BorderColor = "#154050";
 
     // SubGraph Input/Output are registered by NodeManager only while a
     // sub-graph tab is active (they require a port type at create time).
@@ -65,6 +61,7 @@ export function NodeFlowPanel() {
     registerFlowGraph({
       NodeFlowGraph: nodeFlowGraph,
       PolyformNodesPublisher: publisher,
+      Canvas: canvas,
     });
   }, [registerFlowGraph]);
 

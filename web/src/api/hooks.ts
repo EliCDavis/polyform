@@ -5,7 +5,6 @@ import {
   fetchNodeTypes,
   fetchStartedTime,
 } from "./client";
-import type { GraphInstance } from "../types/schema";
 
 export const schemaQueryKey = ["schema"] as const;
 export const nodeTypesQueryKey = ["nodeTypes"] as const;
@@ -48,12 +47,4 @@ export function useStartedPolling(onModelVersion: (version: number) => void) {
 export function useInvalidateSchema() {
   const queryClient = useQueryClient();
   return () => queryClient.invalidateQueries({ queryKey: schemaQueryKey });
-}
-
-export function getVariablesFromGraph(graph: GraphInstance | undefined) {
-  if (!graph?.variables?.variables) return [];
-  return Object.entries(graph.variables.variables).map(([key, variable]) => ({
-    key,
-    variable,
-  }));
 }

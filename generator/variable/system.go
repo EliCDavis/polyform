@@ -140,7 +140,6 @@ func (s *system) RuntimeSchema() (schema.NestedGroup[schema.Variable], error) {
 	defer s.mutex.RUnlock()
 
 	variables := make(map[string]schema.Variable)
-	subgroups := make(map[string]schema.NestedGroup[schema.Variable])
 
 	for name, entry := range s.entries {
 		switch v := entry.(type) {
@@ -152,10 +151,7 @@ func (s *system) RuntimeSchema() (schema.NestedGroup[schema.Variable], error) {
 		}
 	}
 
-	return schema.NestedGroup[schema.Variable]{
-		Variables: variables,
-		SubGroups: subgroups,
-	}, nil
+	return schema.Nest(variables), nil
 }
 
 func (s *system) PersistedSchema(encoder *jbtf.Encoder) (schema.NestedGroup[persistence.Variable], error) {
@@ -163,7 +159,6 @@ func (s *system) PersistedSchema(encoder *jbtf.Encoder) (schema.NestedGroup[pers
 	defer s.mutex.RUnlock()
 
 	variables := make(map[string]persistence.Variable)
-	subgroups := make(map[string]schema.NestedGroup[persistence.Variable])
 
 	for name, entry := range s.entries {
 		switch v := entry.(type) {
@@ -184,10 +179,7 @@ func (s *system) PersistedSchema(encoder *jbtf.Encoder) (schema.NestedGroup[pers
 		}
 	}
 
-	return schema.NestedGroup[persistence.Variable]{
-		Variables: variables,
-		SubGroups: subgroups,
-	}, nil
+	return schema.Nest(variables), nil
 }
 
 func (s *system) Variables() []Info {

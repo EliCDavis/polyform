@@ -2,6 +2,7 @@ package graph
 
 import (
 	"cmp"
+	"fmt"
 	"maps"
 	"slices"
 	"strings"
@@ -20,6 +21,10 @@ type SubgraphInstanceNode struct {
 	mu     sync.Mutex
 	inputs map[string]nodes.OutputPort
 	copied *copy
+
+	each    bool
+	runs    []*copy
+	outputs map[string]*eachOutput
 }
 
 type copy struct {
@@ -74,6 +79,9 @@ func (r *SubgraphInstanceNode) LiveGraph() *Graph {
 }
 
 func (r *SubgraphInstanceNode) Live() (*Graph, error) {
+	if r.ForEach() {
+		return nil, fmt.Errorf("the placement runs once per item, so it has runs rather than one live graph")
+	}
 	signature, _ := r.signature()
 	if current := r.current(signature); current != nil {
 		return current, nil
@@ -93,7 +101,9 @@ func (r *SubgraphInstanceNode) current(signature string) *Graph {
 
 func (r *SubgraphInstanceNode) build(signature string) (*Graph, error) {
 	version := r.runtime().version
-	graph, err := r.owner.copyDefinition(r)
+	graph, err := r.owner.copyDefinition(r, func(id, _ string) subgraph.External {
+		return subgraphInstanceInputPort{node: r, id: id}
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -107,6 +117,9 @@ func (r *SubgraphInstanceNode) build(signature string) (*Graph, error) {
 // Called by settle once the inputs are held; a copy is built only when an
 // array is fed where the definition has a single value.
 func (r *SubgraphInstanceNode) refresh() error {
+	if r.ForEach() {
+		return nil
+	}
 	signature, lifted := r.signature()
 	if r.current(signature) != nil {
 		return nil
@@ -151,10 +164,19 @@ func (r *SubgraphInstanceNode) Inputs() map[string]nodes.InputPort {
 
 func (r *SubgraphInstanceNode) Outputs() map[string]nodes.OutputPort {
 	definition := r.definition()
+	each := r.ForEach()
 	ports := make(map[string]nodes.OutputPort, len(definition.boundaryNodes))
 	for id := range definition.boundaryNodes {
 		boundary, ok := definition.outputPort(id)
 		if !ok {
+			continue
+		}
+		if each {
+			port := eachOutputPort{node: r, id: id, label: boundary.BoundaryPortName(), portType: boundary.BoundaryPortType()}
+			ports[id] = port
+			if builder, found := nodes.LookupPortTypeDynamicArray(r.itemType(id, port.portType)); found {
+				ports[id] = builder.BuildDynamicArrayOutput(port)
+			}
 			continue
 		}
 		port := subgraphInstanceOutputPort{node: r, id: id, label: boundary.BoundaryPortName(), portType: boundary.BoundaryPortType()}
@@ -206,7 +228,11 @@ func (p subgraphInstanceInputPort) Type() string {
 	return fedType(p.portType, p.Value())
 }
 
+// Run once per item, a boundary declared as a list also takes a list of lists.
 func (p subgraphInstanceInputPort) AcceptedTypes() []string {
+	if p.node.ForEach() {
+		return []string{p.portType, subgraph.ArrayOf(p.portType)}
+	}
 	return subgraph.AcceptedBoundaryTypes(p.portType)
 }
 
@@ -262,6 +288,10 @@ func (p subgraphInstanceOutputPort) Type() string {
 		return cmp.Or(output.EffectiveType(), p.portType)
 	}
 	return p.portType
+}
+
+func (p subgraphInstanceOutputPort) InstanceType() string {
+	return p.Type()
 }
 
 func (p subgraphInstanceOutputPort) Version() int {

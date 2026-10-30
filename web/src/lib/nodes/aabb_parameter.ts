@@ -12,14 +12,11 @@ export class AABBParameterNodeController {
 
     nodeManager: NodeManager;
 
-    updating: boolean;
-
     gizmo: BoxGizmo;
 
     constructor(flowNode: FlowNode, nodeManager: NodeManager, id: string, parameterData: AABBNodeParameter, app: ThreeApp) {
         this.lightNode = flowNode;
         this.lightNode.setTitle(parameterData.name);
-        this.updating = false;
         this.nodeManager = nodeManager;
         this.id = id;
 
@@ -44,12 +41,9 @@ export class AABBParameterNodeController {
         this.lightNode.setProperty("max-y", curVal.center.y + curVal.extents.y);
         this.lightNode.setProperty("max-z", curVal.center.z + curVal.extents.z);
 
-        this.lightNode.addPropertyChangeListener("min-x", this.propertyChange.bind(this));
-        this.lightNode.addPropertyChangeListener("min-y", this.propertyChange.bind(this));
-        this.lightNode.addPropertyChangeListener("min-z", this.propertyChange.bind(this));
-        this.lightNode.addPropertyChangeListener("max-x", this.propertyChange.bind(this));
-        this.lightNode.addPropertyChangeListener("max-y", this.propertyChange.bind(this));
-        this.lightNode.addPropertyChangeListener("max-z", this.propertyChange.bind(this));
+        for (const property of ["min-x", "min-y", "min-z", "max-x", "max-y", "max-z"]) {
+            this.lightNode.addPropertyEditListener(property, this.propertyChange.bind(this));
+        }
 
         this.gizmo.setEnabled(false);
 
@@ -71,10 +65,6 @@ export class AABBParameterNodeController {
     }
 
     propertyChange() {
-        if (this.updating) {
-            return
-        }
-
         this.gizmo.setRight(this.lightNode.getProperty("max-x"));
         this.gizmo.setLeft(this.lightNode.getProperty("min-x"));
         this.gizmo.setUp(this.lightNode.getProperty("max-y"));
@@ -84,8 +74,6 @@ export class AABBParameterNodeController {
     }
 
     update(parameterData: AABBNodeParameter) {
-        this.updating = true;
-
         const curVal: AABB = parameterData.currentValue;
 
         this.gizmo.set(curVal);
@@ -95,8 +83,6 @@ export class AABBParameterNodeController {
         this.lightNode.setProperty("max-x", curVal.center.x + curVal.extents.x);
         this.lightNode.setProperty("max-y", curVal.center.y + curVal.extents.y);
         this.lightNode.setProperty("max-z", curVal.center.z + curVal.extents.z);
-
-        this.updating = false;
     }
 
 }     

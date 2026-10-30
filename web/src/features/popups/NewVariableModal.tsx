@@ -4,6 +4,11 @@ import { VARIABLE_TYPE_OPTIONS, VariableType } from "@/features/variables/variab
 import type { SchemaManager } from "@/lib/schema_manager";
 import type { NodeManager } from "@/lib/node_manager";
 import { getApiErrorMessage, requestManager } from "@/api/client";
+import { PortTypeList } from "./PortTypeList";
+
+const TYPES: string[] = VARIABLE_TYPE_OPTIONS.map((opt) => opt.value);
+const LABELS = new Map<string, string>(VARIABLE_TYPE_OPTIONS.map((opt) => [opt.value, opt.label]));
+const typeLabel = (type: string) => LABELS.get(type) ?? type;
 
 interface NewVariableModalProps {
   open: boolean;
@@ -20,9 +25,10 @@ export function NewVariableModal({
 }: NewVariableModalProps) {
   const [name, setName] = useState("New Variable");
   const [description, setDescription] = useState("");
-  const [type, setType] = useState(VariableType.Float);
+  const [type, setType] = useState<string>(VariableType.Float);
 
   const create = () => {
+    if (!type) return;
     requestManager.newVariable(
       name,
       { type, description },
@@ -43,7 +49,7 @@ export function NewVariableModal({
       actions={
         <>
           <PopupButton onClick={onClose}>Close</PopupButton>
-          <PopupButton variant="primary" onClick={create}>
+          <PopupButton variant="primary" onClick={create} disabled={!type}>
             Create
           </PopupButton>
         </>
@@ -52,16 +58,11 @@ export function NewVariableModal({
       <div style={{ display: "flex", flexDirection: "column", gap: 12, width: 400 }}>
         <label>Name</label>
         <input type="text" value={name} onChange={(e) => setName(e.target.value)} />
+        <span className="field-hint">A slash puts it in a group: Lighting/Sun</span>
         <label>Description</label>
         <textarea value={description} onChange={(e) => setDescription(e.target.value)} />
         <label>Type</label>
-        <select value={type} onChange={(e) => setType(e.target.value as VariableType)}>
-          {VARIABLE_TYPE_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
+        <PortTypeList options={TYPES} selected={type} onSelect={setType} onConfirm={create} label={typeLabel} />
       </div>
     </Modal>
   );

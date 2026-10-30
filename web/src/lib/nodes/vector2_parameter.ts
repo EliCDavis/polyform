@@ -8,14 +8,11 @@ export class Vector2ParameterNodeController {
 
     nodeManager: NodeManager;
 
-    updating: boolean;
-
     flowNode: FlowNode;
 
     constructor(lightNode: FlowNode, nodeManager: NodeManager, id: string, parameterData: Vector2NodeParameter) {
         this.nodeManager = nodeManager;
         this.id = id;
-        this.updating = false;
 
         this.flowNode = lightNode;
         this.flowNode.setTitle(parameterData.name);
@@ -24,15 +21,11 @@ export class Vector2ParameterNodeController {
         this.flowNode.setProperty("x", curVal.x);
         this.flowNode.setProperty("y", curVal.y);
 
-        this.flowNode.addPropertyChangeListener("x", this.propertyChange.bind(this));
-        this.flowNode.addPropertyChangeListener("y", this.propertyChange.bind(this));
-
+        this.flowNode.addPropertyEditListener("x", this.propertyChange.bind(this));
+        this.flowNode.addPropertyEditListener("y", this.propertyChange.bind(this));
     }
 
     propertyChange() {
-        if (this.updating) {
-            return
-        }
         this.nodeManager.nodeParameterChanged({
             id: this.id,
             data: {
@@ -44,10 +37,8 @@ export class Vector2ParameterNodeController {
     }
 
     update(parameterData: Vector2NodeParameter) {
-        this.updating = true;
         const curVal = parameterData.currentValue;
         this.flowNode.setProperty("x", curVal.x);
         this.flowNode.setProperty("y", curVal.y);
-        this.updating = false;
     }
-}     
+}

@@ -1,19 +1,16 @@
-import { GraphControls } from "@/features/graph/GraphControls";
-import { HistoryControls } from "@/features/graph/HistoryControls";
-import { ProfileSection } from "@/features/profiles/ProfileSection";
+import { FileMenu } from "./FileMenu";
 import { VariableSection } from "@/features/variables/VariableSection";
 import { SubGraphSection } from "@/features/subgraph/SubGraphSection";
 import { useUiStore } from "@/stores/uiStore";
 import { ReactNode, useState } from "react";
 
-import { Puzzle, Variable, BookMarked, Video, Workflow, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { Puzzle, Variable, Video, Search, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { RenderingSection } from "../rendering/RenderingSection";
 import { ThreeApp } from "@/lib/three_app";
 import { NodesSection } from "../NodesSection/NodesSection";
 
 enum SidebarSection {
   Subgraphs = "Subgraphs",
-  Profiles = "Profiles",
   Variables = "Variables",
   Rendering = "Rendering",
   Nodes = "Nodes",
@@ -55,7 +52,9 @@ interface SidebarProps {}
 
 export function Sidebar({}: SidebarProps) {
   const hideInfo = useUiStore((s) => s.hideInfo);
+  const hideFileControls = useUiStore((s) => s.hideFileControls);
   const hideWatermark = useUiStore((s) => s.hideWatermark);
+  const graphTitle = useUiStore((s) => s.graphTitle);
   const collapsed = useUiStore((s) => s.sidebarCollapsed);
   const setCollapsed = useUiStore((s) => s.setSidebarCollapsed);
   const drawer = useUiStore((s) => s.compactLayout) && !collapsed;
@@ -81,7 +80,7 @@ export function Sidebar({}: SidebarProps) {
           section={SidebarSection.Nodes}
           currentState={sectionShown}
           click={setSectionShown}
-          icon={<Workflow />}
+          icon={<Search />}
         />
         <SideBarIcon
           section={SidebarSection.Variables}
@@ -94,12 +93,6 @@ export function Sidebar({}: SidebarProps) {
           currentState={sectionShown}
           click={setSectionShown}
           icon={<Puzzle />}
-        />
-        <SideBarIcon
-          section={SidebarSection.Profiles}
-          currentState={sectionShown}
-          click={setSectionShown}
-          icon={<BookMarked />}
         />
         <SideBarIcon
           section={SidebarSection.Rendering}
@@ -130,14 +123,12 @@ export function Sidebar({}: SidebarProps) {
       <div id="sidebar-content" style={collapsed ? { display: "none" } : undefined}>
         {!hideInfo && (
           <div id="info">
-            <h1>{document.title || "Polyform"}</h1>
+            <h1>{graphTitle}</h1>
+            {!hideFileControls && <FileMenu />}
           </div>
         )}
-        <GraphControls />
-        <HistoryControls />
         {sectionShown == SidebarSection.Variables && <VariableSection />}
         {sectionShown == SidebarSection.Subgraphs && <SubGraphSection />}
-        {sectionShown == SidebarSection.Profiles && <ProfileSection />}
         {sectionShown == SidebarSection.Rendering && <RenderingSection />}
         {sectionShown == SidebarSection.Nodes && <NodesSection />}
       </div>

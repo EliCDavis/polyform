@@ -1,3 +1,4 @@
+import { useProfileStore } from "@/stores/profileStore";
 import type {
   ConvertSelectionToSubGraphRequest,
   ConvertSelectionToSubGraphResponse,
@@ -11,6 +12,15 @@ import type {
   NodeInstance,
   RegisteredTypes,
 } from "./schema";
+
+function intoActiveProfile(url: string): string {
+  const profile = useProfileStore.getState().activeProfile;
+  return profile === null ? url : `${url}?profile=${encodeURIComponent(profile)}`;
+}
+
+export function variableValueUrl(variableKey: string): string {
+  return intoActiveProfile(`./variable/value/${variableKey}`);
+}
 
 enum GraphChangeEventType {
   Node_New = "Node_New",
@@ -31,6 +41,7 @@ enum GraphChangeEventType {
   Parameter = "Parameter",
   Producer = "Producer",
   GraphMetadata = "GraphMetadata",
+  GraphDetails = "GraphDetails",
   SubGraph_New = "SubGraph_New",
   SubGraph_Update = "SubGraph_Update",
   SubGraph_Delete = "SubGraph_Delete",
@@ -38,6 +49,23 @@ enum GraphChangeEventType {
 }
 
 export type ResponseCallback<T> = (response: T) => void;
+
+export interface AuthorContact {
+  medium: string;
+  value: string;
+}
+
+export interface Author {
+  name: string;
+  contactInfo?: Array<AuthorContact>;
+}
+
+export interface GraphDetails {
+  name: string;
+  version: string;
+  description: string;
+  authors: Array<Author> | null;
+}
 
 export interface SetProducerBody {
   nodePort: string;
@@ -359,13 +387,15 @@ export class RequestManager {
     inputPortName: string,
     outNodeId: string,
     outPortName: string,
-    callback?: () => void
+    callback?: () => void,
+    insert?: boolean
   ): void {
     void postJsonVoid(this.scopedConnectionUrl(), {
       nodeOutId: outNodeId,
       outPortName,
       nodeInId: inNodeId,
       inPortName: inputPortName,
+      insert,
     }).then((ok) => {
       if (ok) this.onGraphChange(GraphChangeEventType.Node_Connection, callback)();
     });
@@ -460,8 +490,27 @@ export class RequestManager {
     this.fetchJSON("./graph", callback);
   }
 
-  getManifest(nodeId: string, portName: string, callback?: ResponseCallback<Manifest>): void {
-    this.fetchJSON(`./manifest/${nodeId}/${portName}`, callback ?? (() => {}));
+  getGraphDetails(callback: ResponseCallback<GraphDetails>): void {
+    this.fetchJSON("./graph/details", callback);
+  }
+
+  setGraphDetails(details: GraphDetails, callback?: ResponseCallback<GraphDetails>): void {
+    void postJson<GraphDetails>("./graph/details", details).then((saved) => {
+      if (saved !== undefined) this.onGraphChangeResponse(GraphChangeEventType.GraphDetails, callback)(saved);
+    });
+  }
+
+  async getManifest(nodeId: string, portName: string): Promise<{ manifest: Manifest; version: number } | undefined> {
+    try {
+      const response = await fetch(`./manifest/${nodeId}/${portName}`);
+      if (!response.ok) return undefined;
+      return {
+        manifest: (await response.json()) as Manifest,
+        version: Number(response.headers.get("Output-Version")),
+      };
+    } catch {
+      return undefined;
+    }
   }
 
   getSwagger(callback: ResponseCallback<unknown>): void {
@@ -545,7 +594,7 @@ export class RequestManager {
 
   updateSubGraphInfo(
     subGraphId: string,
-    body: { name: string; description?: string },
+    body: { name: string; description?: string; group?: string },
     success: () => void,
     error: (err: unknown) => void
   ): void {
@@ -621,12 +670,24 @@ export class RequestManager {
     });
   }
 
+  setSubGraphInstanceForEach(
+    nodeId: string,
+    body: { each: boolean; scope: string | null },
+    callback?: () => void
+  ): void {
+    void postJson<unknown>(`./subgraph/instance/${nodeId}/for-each`, body).then((response) => {
+      if (response !== undefined) {
+        this.onGraphChangeResponse(GraphChangeEventType.WholeGraph, callback)(response);
+      }
+    });
+  }
+
   deleteVariable(
     variableKey: string,
     success: (response: Response) => void,
     error: (response: Response) => void
   ): void {
-    void fetch(`./variable/instance/${variableKey}`, { method: "DELETE" }).then((response) => {
+    void fetch(intoActiveProfile(`./variable/instance/${variableKey}`), { method: "DELETE" }).then((response) => {
       response.ok ? success(response) : error(response);
       this.notifyGraphChange(GraphChangeEventType.Variable_Delete);
     });
@@ -638,7 +699,7 @@ export class RequestManager {
     success: (response: CreateVariableResponse) => void,
     error: (err: unknown) => void
   ): void {
-    void fetch(`./variable/instance/${variableKey}`, {
+    void fetch(intoActiveProfile(`./variable/instance/${variableKey}`), {
       method: "POST",
       headers: JSON_HEADERS,
       body: JSON.stringify(body),
@@ -671,7 +732,7 @@ export class RequestManager {
   }
 
   setVariableValue(variableKey: string, value: unknown): Promise<Response> {
-    return fetch(`./variable/value/${variableKey}`, {
+    return fetch(variableValueUrl(variableKey), {
       method: "POST",
       body: JSON.stringify(value),
     }).then((response) => {

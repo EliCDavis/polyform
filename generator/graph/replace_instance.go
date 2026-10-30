@@ -57,6 +57,7 @@ func (a *Graph) replaceSubgraphInstance(nodeID, subGraphID string, result *Repla
 	if !ok {
 		return fmt.Errorf("sub-graph %q has no registered node type", subGraphID)
 	}
+	fresh.each = old.each
 
 	oldInputs, oldOutputs := old.Inputs(), old.Outputs()
 	inbound := a.reads[old]

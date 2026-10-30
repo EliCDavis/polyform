@@ -8,18 +8,19 @@ import { DeleteVariableModal } from "@/features/popups/DeleteVariableModal";
 
 interface VariableRowProps {
   variableKey: string;
+  label: string;
   variable: Variable;
   threeApp?: ThreeApp;
 }
 
-export function VariableRow({ variableKey, variable, threeApp }: VariableRowProps) {
+export function VariableRow({ variableKey, label, variable, threeApp }: VariableRowProps) {
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
 
   return (
     <div className="variable-row">
       <div className="variable-header">
-        <span className="variable-name">{variableKey}</span>
+        <span className="variable-name" title={variableKey}>{label}</span>
         <DropdownMenu
           items={[
             { label: "Edit", onClick: () => setEditOpen(true) },

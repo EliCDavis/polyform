@@ -10,21 +10,18 @@ export class Vector4ParameterNodeController {
 
     nodeManager: NodeManager;
 
-    updating: boolean;
-
     flowNode: FlowNode;
 
     constructor(flowNode: FlowNode, nodeManager: NodeManager, id: string, parameterData: Vector4NodeParameter) {
         this.nodeManager = nodeManager;
         this.id = id;
-        this.updating = false;
 
         this.flowNode = flowNode;
         this.flowNode.setTitle(parameterData.name);
 
         this.setProperties(parameterData);
         for (const c of components) {
-            this.flowNode.addPropertyChangeListener(c, this.propertyChange.bind(this));
+            this.flowNode.addPropertyEditListener(c, this.propertyChange.bind(this));
         }
     }
 
@@ -36,9 +33,6 @@ export class Vector4ParameterNodeController {
     }
 
     propertyChange() {
-        if (this.updating) {
-            return
-        }
         this.nodeManager.nodeParameterChanged({
             id: this.id,
             data: {
@@ -52,8 +46,6 @@ export class Vector4ParameterNodeController {
     }
 
     update(parameterData: Vector4NodeParameter) {
-        this.updating = true;
         this.setProperties(parameterData);
-        this.updating = false;
     }
 }

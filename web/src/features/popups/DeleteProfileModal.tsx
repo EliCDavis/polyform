@@ -7,6 +7,7 @@ interface DeleteProfileModalProps {
   profileName: string;
   schemaManager: SchemaManager;
   onClose: () => void;
+  onDeleted?: () => void;
 }
 
 export function DeleteProfileModal({
@@ -14,11 +15,13 @@ export function DeleteProfileModal({
   profileName,
   schemaManager,
   onClose,
+  onDeleted,
 }: DeleteProfileModalProps) {
   const deleteProfile = () => {
     requestManager.deleteProfile(
       profileName,
       () => {
+        onDeleted?.();
         schemaManager.refreshSchema("deleted a profile");
         onClose();
       },

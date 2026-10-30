@@ -4,6 +4,7 @@ import type { NodeFlowGraph, Publisher } from "@elicdavis/node-flow";
 export interface FlowGraphInit {
   PolyformNodesPublisher: Publisher;
   NodeFlowGraph: NodeFlowGraph;
+  Canvas: HTMLCanvasElement;
 }
 
 interface FlowGraphBootstrapContextValue {

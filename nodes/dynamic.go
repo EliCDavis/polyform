@@ -265,6 +265,7 @@ type dynamicTyped[T any] struct {
 
 func (d dynamicTyped[T]) Node() Node                { return d.source.Node() }
 func (d dynamicTyped[T]) Name() string              { return d.source.Name() }
+func (d dynamicTyped[T]) Label() string             { return labelOf(d.source) }
 func (d dynamicTyped[T]) Version() int              { return d.source.Version() }
 func (d dynamicTyped[T]) Type() string              { return d.source.Type() }
 func (d dynamicTyped[T]) CurrentSource() OutputPort { return d.source.CurrentSource() }

@@ -119,3 +119,25 @@ func TestNestedGroupTraverse_stopsInSubgroup(t *testing.T) {
 
 	assert.Equal(t, []string{"parent/first"}, visited)
 }
+
+func TestNestSplitsPathsIntoGroupsAndTraverseFlattensThemBack(t *testing.T) {
+	flat := map[string]int{
+		"Height":            1,
+		"Lighting/Sun":      2,
+		"Lighting/Sky/Blue": 3,
+		"Lighting/Sky/Haze": 4,
+	}
+
+	nested := schema.Nest(flat)
+
+	assert.Equal(t, map[string]int{"Height": 1}, nested.Variables)
+	assert.Equal(t, map[string]int{"Sun": 2}, nested.SubGroups["Lighting"].Variables)
+	assert.Equal(t, map[string]int{"Blue": 3, "Haze": 4}, nested.SubGroups["Lighting"].SubGroups["Sky"].Variables)
+
+	back := map[string]int{}
+	nested.Traverse(func(path string, v int) bool {
+		back[path] = v
+		return true
+	})
+	assert.Equal(t, flat, back)
+}

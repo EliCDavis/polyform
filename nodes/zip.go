@@ -83,7 +83,7 @@ func (o liftedOperand[T]) at(i int) T {
 
 // A length of one stretches to meet anything; past that the lengths have to
 // agree, because a mismatch is a wiring mistake rather than a guess.
-func broadcastLength(lengths ...int) (int, error) {
+func BroadcastLength(lengths ...int) (int, error) {
 	n := 1
 	for _, length := range lengths {
 		if length == 1 {
@@ -137,7 +137,7 @@ func Zip2[A, B, R any](out *Lifted[R], a LiftedPort[A], b LiftedPort[B], kernel 
 	left, right := operandOf[A](out, a), operandOf[B](out, b)
 
 	rank := max(left.rank, right.rank)
-	count, err := broadcastLength(len(left.values), len(right.values))
+	count, err := BroadcastLength(len(left.values), len(right.values))
 	if err != nil {
 		out.CaptureError(err)
 		finish(out, rank, nil)
@@ -155,7 +155,7 @@ func Zip3[A, B, C, R any](out *Lifted[R], a LiftedPort[A], b LiftedPort[B], c Li
 	left, middle, right := operandOf[A](out, a), operandOf[B](out, b), operandOf[C](out, c)
 
 	rank := max(left.rank, middle.rank, right.rank)
-	count, err := broadcastLength(len(left.values), len(middle.values), len(right.values))
+	count, err := BroadcastLength(len(left.values), len(middle.values), len(right.values))
 	if err != nil {
 		out.CaptureError(err)
 		finish(out, rank, nil)
@@ -180,7 +180,7 @@ func Zip4[A, B, C, D, R any](
 	first, second, third, fourth := operandOf[A](out, a), operandOf[B](out, b), operandOf[C](out, c), operandOf[D](out, d)
 
 	rank := max(first.rank, second.rank, third.rank, fourth.rank)
-	count, err := broadcastLength(
+	count, err := BroadcastLength(
 		len(first.values), len(second.values), len(third.values), len(fourth.values))
 	if err != nil {
 		out.CaptureError(err)
@@ -208,7 +208,7 @@ func Zip5[A, B, C, D, E, R any](
 	fourth, fifth := operandOf[D](out, d), operandOf[E](out, e)
 
 	rank := max(first.rank, second.rank, third.rank, fourth.rank, fifth.rank)
-	count, err := broadcastLength(
+	count, err := BroadcastLength(
 		len(first.values), len(second.values), len(third.values), len(fourth.values), len(fifth.values))
 	if err != nil {
 		out.CaptureError(err)
@@ -263,7 +263,7 @@ func ZipAll2[A, B, R any](out *Lifted[R], a []LiftedPort[A], b []LiftedPort[B], 
 	leftCount, leftRank, leftErr := alignOperands(left)
 	rightCount, rightRank, rightErr := alignOperands(right)
 	rank := max(leftRank, rightRank)
-	count, err := broadcastLength(leftCount, rightCount)
+	count, err := BroadcastLength(leftCount, rightCount)
 	if err = errors.Join(leftErr, rightErr, err); err != nil {
 		out.CaptureError(err)
 		finish(out, rank, nil)
@@ -306,6 +306,6 @@ func alignOperands[A any](operands []liftedOperand[A]) (int, int, error) {
 		lengths[i] = len(operand.values)
 		rank = max(rank, operand.rank)
 	}
-	count, err := broadcastLength(lengths...)
+	count, err := BroadcastLength(lengths...)
 	return count, rank, err
 }

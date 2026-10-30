@@ -13,7 +13,6 @@ export function AppShell() {
 
   return (
     <>
-      <div id="running-message">Running...</div>
       <AppOverlays />
       {compactLayout && !sidebarCollapsed && (
         <div id="sidebar-backdrop" onClick={() => setSidebarCollapsed(true)} />

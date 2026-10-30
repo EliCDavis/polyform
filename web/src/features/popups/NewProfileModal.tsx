@@ -7,15 +7,18 @@ interface NewProfileModalProps {
   open: boolean;
   onClose: () => void;
   schemaManager: SchemaManager;
+  onCreated?: (name: string) => void;
 }
 
-export function NewProfileModal({ open, onClose, schemaManager }: NewProfileModalProps) {
+export function NewProfileModal({ open, onClose, schemaManager, onCreated }: NewProfileModalProps) {
   const [name, setName] = useState("New Profile");
 
   const create = () => {
+    const created = name || "New Profile";
     requestManager.newProfile(
-      name || "New Profile",
+      created,
       () => {
+        onCreated?.(created);
         schemaManager.refreshSchema("created a profile");
         onClose();
       },

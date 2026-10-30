@@ -548,19 +548,27 @@ func (s *Struct[T]) Inputs() map[string]InputPort {
 	return nodeInputs
 }
 
-func identity(port OutputPort) string {
+// A proxy reports its own node but forwards the version of whatever sits
+// behind it, so two sources at the same version look identical through it.
+// The key has to name the port the value actually comes from.
+func Identity(port OutputPort) string {
+	source := Source(port)
+	if _, proxy := source.(interface{ CurrentSource() OutputPort }); proxy {
+		return fmt.Sprintf("%p:unset:%d", source.Node(), source.Version())
+	}
+	return fmt.Sprintf("%p:%d", source.Node(), source.Version())
+}
+
+// Source follows proxies to the port the value comes from; an unset proxy is its own source.
+func Source(port OutputPort) OutputPort {
 	for {
 		proxy, ok := port.(interface{ CurrentSource() OutputPort })
 		if !ok {
-			return fmt.Sprintf("%p:%d", port.Node(), port.Version())
+			return port
 		}
-
-		// A proxy reports its own node but forwards the version of whatever sits
-		// behind it, so two sources at the same version look identical through it.
-		// The key has to name the port the value actually comes from.
 		source := proxy.CurrentSource()
 		if source == nil {
-			return fmt.Sprintf("%p:unset:%d", port.Node(), port.Version())
+			return port
 		}
 		port = source
 	}
@@ -593,7 +601,7 @@ func (s *Struct[T]) computeInputVersions() string {
 		case SingleValueInputPort:
 			val := v.Value()
 			if val != nil {
-				builder.WriteString(identity(val))
+				builder.WriteString(Identity(val))
 			} else {
 				builder.WriteString("nil")
 			}
@@ -603,7 +611,7 @@ func (s *Struct[T]) computeInputVersions() string {
 
 			for _, val := range v.Value() {
 				if val != nil {
-					builder.WriteString(identity(val))
+					builder.WriteString(Identity(val))
 					builder.WriteString(",")
 				} else {
 					builder.WriteString("nil,")

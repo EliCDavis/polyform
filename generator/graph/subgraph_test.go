@@ -5,8 +5,8 @@ import (
 
 	"github.com/EliCDavis/jbtf"
 	"github.com/EliCDavis/polyform/generator/graph"
-	"github.com/EliCDavis/polyform/generator/persistence"
 	"github.com/EliCDavis/polyform/generator/parameter"
+	"github.com/EliCDavis/polyform/generator/persistence"
 	"github.com/EliCDavis/polyform/generator/subgraph"
 	"github.com/EliCDavis/polyform/math"
 	"github.com/EliCDavis/polyform/modeling"
@@ -206,16 +206,17 @@ func TestSubGraphDeleteAfterRemovingInstances(t *testing.T) {
 func TestSubGraphSetInfo(t *testing.T) {
 	inst := testInstanceWithSubGraphTypes(t)
 	require.NoError(t, inst.CreateSubGraph("info", "Old", "old desc"))
-	require.NoError(t, inst.SetSubGraphInfo("info", "New Name", "new desc"))
+	require.NoError(t, inst.SetSubGraphInfo("info", "New Name", "new desc", "Tools"))
 
 	runtimeNode := graph.NewRuntimeNode(inst, "info")
 	assert.Equal(t, "New Name", runtimeNode.Name())
 	assert.Equal(t, "new desc", runtimeNode.Description())
+	assert.Equal(t, "Tools", inst.Schema().SubGraphs["info"].Group)
 }
 
 func TestSubGraphSetInfoNotFound(t *testing.T) {
 	inst := testInstanceWithSubGraphTypes(t)
-	err := inst.SetSubGraphInfo("nope", "X", "")
+	err := inst.SetSubGraphInfo("nope", "X", "", "")
 	require.Error(t, err)
 }
 

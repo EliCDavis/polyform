@@ -37,10 +37,21 @@ func (p proxyOutput[T]) Version() int {
 }
 
 func (p proxyOutput[T]) Label() string {
-	if labeled, ok := p.source.(Labeled); ok {
+	return labelOf(p.source)
+}
+
+func (p proxyOutput[T]) InstanceType() string {
+	if instance, ok := p.source.(InstanceTyped); ok {
+		return instance.InstanceType()
+	}
+	return ""
+}
+
+func labelOf(port Port) string {
+	if labeled, ok := port.(Labeled); ok {
 		return labeled.Label()
 	}
-	return p.source.Name()
+	return port.Name()
 }
 
 func (p proxyOutput[T]) CurrentSource() OutputPort {

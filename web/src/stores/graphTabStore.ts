@@ -5,6 +5,7 @@ import { ROOT_SCOPE, subgraphScope, type GraphScope } from "@/lib/portTypes";
 export enum GraphTabKind {
   Root = "root",
   SubGraph = "subgraph",
+  Preview = "preview",
 }
 
 export type GraphTab = {
@@ -12,12 +13,22 @@ export type GraphTab = {
   kind: GraphTabKind;
   label: string;
   camera?: CameraOrientation;
+  // A preview tab shows one node output as a model instead of a canvas.
+  nodeId?: string;
+  port?: string;
+  scope?: string | null;
 };
+
+export type NodeFocus = { tabId: string; nodeId: string };
 
 interface GraphTabState {
   tabs: GraphTab[];
   activeTabId: string;
+  pendingFocus: NodeFocus | null;
   openSubGraphTab: (id: string, label: string) => void;
+  openPreviewTab: (nodeId: string, port: string, label: string, scope: string | null) => void;
+  focusNodeInTab: (tabId: string, label: string, nodeId: string) => void;
+  clearPendingFocus: () => void;
   renameSubGraphTab: (id: string, label: string) => void;
   setActiveTab: (tabId: string) => void;
   closeTab: (tabId: string) => void;
@@ -49,6 +60,29 @@ function updateTab(
 export const useGraphTabStore = create<GraphTabState>((set, get) => ({
   tabs: [ROOT_TAB],
   activeTabId: "root",
+  pendingFocus: null,
+  focusNodeInTab: (tabId, label, nodeId) => {
+    const { tabs } = get();
+    const opened = tabId === "root" || tabs.some((t) => t.id === tabId);
+    set({
+      tabs: opened
+        ? tabs
+        : [...tabs, { id: tabId, kind: GraphTabKind.SubGraph, label }],
+      activeTabId: tabId,
+      pendingFocus: { tabId, nodeId },
+    });
+  },
+  clearPendingFocus: () => set({ pendingFocus: null }),
+  openPreviewTab: (nodeId, port, label, scope) => {
+    const id = `preview:${scope ?? "root"}:${nodeId}:${port}`;
+    const { tabs } = get();
+    set({
+      tabs: tabs.some((t) => t.id === id)
+        ? updateTab(tabs, id, { label })
+        : [...tabs, { id, kind: GraphTabKind.Preview, label, nodeId, port, scope }],
+      activeTabId: id,
+    });
+  },
   openSubGraphTab: (id, label) => {
     const { tabs } = get();
     const existing = tabs.find((t) => t.id === id);

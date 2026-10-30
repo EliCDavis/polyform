@@ -20,12 +20,16 @@ func WriteMermaid(a *Instance, out io.Writer) error {
 
 	schema := a.Schema()
 	for id, n := range schema.Nodes {
+		name := n.Name
+		if n.ForEach {
+			name += " (for each)"
+		}
 
 		if len(n.AssignedInput) > 0 {
-			fmt.Fprintf(out, "\tsubgraph %s%s\n\tdirection LR\n", id, sanitizeMermaidName(n.Name))
+			fmt.Fprintf(out, "\tsubgraph %s%s\n\tdirection LR\n", id, sanitizeMermaidName(name))
 			fmt.Fprintf(out, "\tsubgraph %s-In[%s]\n\tdirection TB\n", id, "Input")
 		} else {
-			fmt.Fprintf(out, "\t%s%s\n", id, sanitizeMermaidName(n.Name))
+			fmt.Fprintf(out, "\t%s%s\n", id, sanitizeMermaidName(name))
 		}
 
 		for i, name := range slices.Sorted(maps.Keys(n.AssignedInput)) {

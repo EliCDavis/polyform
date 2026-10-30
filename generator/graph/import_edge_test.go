@@ -337,7 +337,7 @@ func TestTheGroupFollowsARenameAndAnInfoEdit(t *testing.T) {
 	require.NoError(t, err)
 
 	require.NoError(t, dest.RenameSubGraph("piece", "part"))
-	require.NoError(t, dest.SetSubGraphInfo("part", "Part", "renamed"))
+	require.NoError(t, dest.SetSubGraphInfo("part", "Part", "renamed", "Library"))
 
 	assert.Equal(t, "Library", dest.Schema().SubGraphs["part"].Group)
 }

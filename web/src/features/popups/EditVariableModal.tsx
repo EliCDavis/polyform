@@ -49,6 +49,7 @@ export function EditVariableModal({
       <div style={{ display: "flex", flexDirection: "column", gap: 12, width: 400 }}>
         <label>Name</label>
         <input type="text" value={name} onChange={(e) => setName(e.target.value)} />
+        <span className="field-hint">A slash puts it in a group: Lighting/Sun</span>
         <label>Description</label>
         <textarea value={description} onChange={(e) => setDescription(e.target.value)} />
       </div>

@@ -29,6 +29,38 @@
   color: #fff;
 }
 
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+  padding-bottom: 4px;
+}
+
+.actionButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 24px;
+  padding: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #aaa;
+}
+
+.actionButton:hover:not(:disabled) {
+  background: #2a2a2a;
+  color: #fff;
+}
+
+.actionButton:disabled,
+.actionButton:disabled:hover {
+  background: transparent;
+  color: #555;
+  opacity: 1;
+}
+
 .closeButton {
   border: none;
   background: transparent;

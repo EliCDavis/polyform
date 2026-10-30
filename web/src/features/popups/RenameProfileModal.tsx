@@ -8,6 +8,7 @@ interface RenameProfileModalProps {
   profileName: string;
   schemaManager: SchemaManager;
   onClose: () => void;
+  onRenamed?: (name: string) => void;
 }
 
 export function RenameProfileModal({
@@ -15,6 +16,7 @@ export function RenameProfileModal({
   profileName,
   schemaManager,
   onClose,
+  onRenamed,
 }: RenameProfileModalProps) {
   const [name, setName] = useState(profileName);
 
@@ -31,6 +33,7 @@ export function RenameProfileModal({
       profileName,
       name,
       () => {
+        onRenamed?.(name);
         schemaManager.refreshSchema("renamed a profile");
         onClose();
       },
