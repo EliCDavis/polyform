@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"slices"
+	"sync"
 )
 
 type typeEntry struct {
@@ -12,6 +13,7 @@ type typeEntry struct {
 }
 
 type TypeFactory struct {
+	mu    sync.RWMutex
 	types map[string]typeEntry
 }
 
@@ -35,7 +37,10 @@ func getTypeWithPackage(v any) string {
 	return TypeResolution{IncludePackage: true, IncludePointer: true}.Resolve(v)
 }
 
-func (tf TypeFactory) Types() []string {
+func (tf *TypeFactory) Types() []string {
+	tf.mu.RLock()
+	defer tf.mu.RUnlock()
+
 	t := make([]string, 0, len(tf.types))
 	for key := range tf.types {
 		t = append(t, key)
@@ -45,7 +50,10 @@ func (tf TypeFactory) Types() []string {
 	return t
 }
 
-func (tf TypeFactory) KeyRegistered(key string) bool {
+func (tf *TypeFactory) KeyRegistered(key string) bool {
+	tf.mu.RLock()
+	defer tf.mu.RUnlock()
+
 	if tf.types == nil {
 		return false
 	}
@@ -53,11 +61,17 @@ func (tf TypeFactory) KeyRegistered(key string) bool {
 	return ok
 }
 
-func (tf TypeFactory) Unregister(key string) {
+func (tf *TypeFactory) Unregister(key string) {
+	tf.mu.Lock()
+	defer tf.mu.Unlock()
+
 	delete(tf.types, key)
 }
 
-func (tf TypeFactory) TypeRegistered(v any) bool {
+func (tf *TypeFactory) TypeRegistered(v any) bool {
+	tf.mu.RLock()
+	defer tf.mu.RUnlock()
+
 	if tf.types == nil {
 		return false
 	}
@@ -65,7 +79,10 @@ func (tf TypeFactory) TypeRegistered(v any) bool {
 	return ok
 }
 
-func (tf TypeFactory) New(key string) any {
+func (tf *TypeFactory) New(key string) any {
+	tf.mu.RLock()
+	defer tf.mu.RUnlock()
+
 	if tf.types != nil {
 		if entry, ok := tf.types[key]; ok {
 			return entry.builder()
@@ -76,6 +93,9 @@ func (tf TypeFactory) New(key string) any {
 }
 
 func (factory *TypeFactory) RegisterType(v any) {
+	factory.mu.Lock()
+	defer factory.mu.Unlock()
+
 	if factory.types == nil {
 		factory.types = make(map[string]typeEntry)
 	}
@@ -94,6 +114,9 @@ func (factory *TypeFactory) RegisterType(v any) {
 }
 
 func (factory *TypeFactory) RegisterBuilder(key string, builder func() any) {
+	factory.mu.Lock()
+	defer factory.mu.Unlock()
+
 	if factory.types == nil {
 		factory.types = make(map[string]typeEntry)
 	}
@@ -103,21 +126,28 @@ func (factory *TypeFactory) RegisterBuilder(key string, builder func() any) {
 	}
 }
 
-func (factory TypeFactory) Combine(others ...*TypeFactory) *TypeFactory {
-	newFactory := make(map[string]typeEntry)
-
+func (factory *TypeFactory) Combine(others ...*TypeFactory) *TypeFactory {
+	factory.mu.RLock()
+	newFactory := make(map[string]typeEntry, len(factory.types))
 	for key, val := range factory.types {
 		newFactory[key] = val
 	}
+	factory.mu.RUnlock()
 
 	for _, f := range others {
+		if f == nil {
+			continue
+		}
+		f.mu.RLock()
 		for key, val := range f.types {
 			if _, ok := newFactory[key]; ok {
+				f.mu.RUnlock()
 				panic(fmt.Errorf("combining type factories led to a collision: '%s'", key))
 			}
 
 			newFactory[key] = val
 		}
+		f.mu.RUnlock()
 	}
 
 	return &TypeFactory{
@@ -126,6 +156,9 @@ func (factory TypeFactory) Combine(others ...*TypeFactory) *TypeFactory {
 }
 
 func RegisterType[T any](factory *TypeFactory) {
+	factory.mu.Lock()
+	defer factory.mu.Unlock()
+
 	if factory.types == nil {
 		factory.types = make(map[string]typeEntry)
 	}
@@ -141,6 +174,9 @@ func RegisterType[T any](factory *TypeFactory) {
 }
 
 func RegisterTypeWithBuilder[T any](factory *TypeFactory, builder func() T) {
+	factory.mu.Lock()
+	defer factory.mu.Unlock()
+
 	if factory.types == nil {
 		factory.types = make(map[string]typeEntry)
 	}
@@ -154,4 +190,3 @@ func RegisterTypeWithBuilder[T any](factory *TypeFactory, builder func() T) {
 		},
 	}
 }
-
