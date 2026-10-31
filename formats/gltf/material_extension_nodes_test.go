@@ -106,7 +106,7 @@ func TestMaterialNodeWritesAlphaModeOcclusionAndUnlit(t *testing.T) {
 	}}, "Out").Value()
 
 	material := materialWith(t, func(m *gltf.MaterialNode) {
-		m.AlphaMode = nodes.ConstOutput[string]{Val: "mask"}
+		m.AlphaMode = nodes.ConstOutput[gltf.AlphaMode]{Val: gltf.AlphaMask}
 		m.AlphaCutoff = nodes.ConstOutput[float64]{Val: 0.3}
 		m.Unlit = nodes.ConstOutput[bool]{Val: true}
 		m.OcclusionTexture = nodes.ConstOutput[gltf.PolyformOcclusion]{Val: occlusion}
@@ -121,11 +121,13 @@ func TestMaterialNodeWritesAlphaModeOcclusionAndUnlit(t *testing.T) {
 	assert.Contains(t, doc["extensionsUsed"], "KHR_materials_unlit")
 }
 
-func TestMaterialNodeRefusesAnUnknownAlphaModeAndAStrayCutoff(t *testing.T) {
+func TestMaterialNodeRefusesAStrayCutoff(t *testing.T) {
 	for name, set := range map[string]func(m *gltf.MaterialNode){
-		"unknown mode": func(m *gltf.MaterialNode) { m.AlphaMode = nodes.ConstOutput[string]{Val: "cutout"} },
 		"cutoff with blend": func(m *gltf.MaterialNode) {
-			m.AlphaMode = nodes.ConstOutput[string]{Val: "BLEND"}
+			m.AlphaMode = nodes.ConstOutput[gltf.AlphaMode]{Val: gltf.AlphaBlend}
+			m.AlphaCutoff = nodes.ConstOutput[float64]{Val: 0.5}
+		},
+		"cutoff with the default opaque": func(m *gltf.MaterialNode) {
 			m.AlphaCutoff = nodes.ConstOutput[float64]{Val: 0.5}
 		},
 	} {

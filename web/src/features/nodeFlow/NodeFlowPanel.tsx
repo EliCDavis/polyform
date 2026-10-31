@@ -1,12 +1,14 @@
 import { useEffect, useRef } from "react";
 import {
   ContextMenuItemState,
+  GlobalWidgetFactory,
   NodeFlowGraph,
   Publisher,
 } from "@elicdavis/node-flow";
 import { parameterNodeConfigs } from "./parameterNodeConfigs";
 import { useFlowGraphBootstrap } from "./FlowGraphBootstrapContext";
 import { InstanceIDProperty } from "@/lib/nodes/node";
+import { SelectWidget } from "@/lib/nodes/select_widget";
 import { useConvertSubGraphStore } from "@/stores/convertSubGraphStore";
 import { useGraphTabStore } from "@/stores/graphTabStore";
 import styles from "./NodeFlowPanel.module.css";
@@ -21,6 +23,8 @@ export function NodeFlowPanel() {
     if (!canvas || initialized.current) return;
 
     initialized.current = true;
+
+    GlobalWidgetFactory.register("select", (node, config) => new SelectWidget(node, config));
 
     // SubGraph Input/Output are registered by NodeManager only while a
     // sub-graph tab is active (they require a port type at create time).

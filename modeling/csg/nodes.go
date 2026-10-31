@@ -3,7 +3,7 @@ package csg
 import (
 	"fmt"
 
-	"github.com/EliCDavis/polyform/generator"
+	"github.com/EliCDavis/polyform/generator/registry"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
@@ -14,7 +14,7 @@ func init() {
 	refutil.RegisterType[nodes.Struct[UnionNode]](factory)
 	refutil.RegisterType[nodes.Struct[IntersectionNode]](factory)
 	refutil.RegisterType[nodes.Struct[SubtractNode]](factory)
-	generator.RegisterTypes(factory)
+	registry.Register(factory)
 }
 
 type UnionNode struct {

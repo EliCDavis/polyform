@@ -6,6 +6,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/EliCDavis/polyform/generator/enum"
+	"github.com/EliCDavis/polyform/generator/parameter"
 	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/triangulation"
@@ -21,22 +23,52 @@ import (
 	"golang.org/x/image/math/fixed"
 )
 
-var fontData = map[string][]byte{
-	"sans":      goregular.TTF,
-	"sans bold": gobold.TTF,
-	"mono":      gomono.TTF,
-	"mono bold": gomonobold.TTF,
+type Font int
+
+const (
+	Sans Font = iota
+	SansBold
+	Mono
+	MonoBold
+)
+
+var fonts = parameter.DefineEnum(
+	enum.Value(Sans, "Sans", "Go Regular"),
+	enum.Value(SansBold, "Sans Bold", "Go Bold"),
+	enum.Value(Mono, "Mono", "Go Mono"),
+	enum.Value(MonoBold, "Mono Bold", "Go Mono Bold"),
+)
+
+var fontData = map[Font][]byte{
+	Sans:     goregular.TTF,
+	SansBold: gobold.TTF,
+	Mono:     gomono.TTF,
+	MonoBold: gomonobold.TTF,
 }
+
+type Align int
+
+const (
+	AlignLeft Align = iota
+	AlignCenter
+	AlignRight
+)
+
+var _ = parameter.DefineEnum(
+	enum.Value(AlignLeft, "Left", "The line starts at the origin."),
+	enum.Value(AlignCenter, "Center", "The line is centred on the origin."),
+	enum.Value(AlignRight, "Right", "The line ends at the origin."),
+)
 
 var parsedFonts sync.Map
 
-func loadFont(name string) (*truetype.Font, error) {
+func loadFont(name Font) (*truetype.Font, error) {
 	if f, ok := parsedFonts.Load(name); ok {
 		return f.(*truetype.Font), nil
 	}
 	data, ok := fontData[name]
 	if !ok {
-		return nil, fmt.Errorf("unknown font %q", name)
+		return nil, fmt.Errorf("unknown font %d", name)
 	}
 	f, err := truetype.Parse(data)
 	if err != nil {
@@ -56,11 +88,10 @@ type Text struct {
 	// other way. Zero leaves a single face.
 	Depth float64
 
-	// sans, sans bold, mono or mono bold. Empty is sans.
-	Font string
+	Font Font
 
-	// "left", "center" or "right": which end of each line sits on the origin.
-	Align string
+	// Which end of each line sits on the origin.
+	Align Align
 
 	// Straight segments each curve of a letter's outline is drawn with.
 	CurveSegments int
@@ -99,11 +130,7 @@ func (t Text) mesh(extrude func(triangulation.Region, float64) modeling.Mesh) (m
 	if t.Height <= 0 {
 		return empty, fmt.Errorf("height must be positive, got %g", t.Height)
 	}
-	name := t.Font
-	if name == "" {
-		name = "sans"
-	}
-	f, err := loadFont(name)
+	f, err := loadFont(t.Font)
 	if err != nil {
 		return empty, err
 	}
@@ -145,13 +172,10 @@ func (t Text) mesh(extrude func(triangulation.Region, float64) modeling.Mesh) (m
 
 		start := 0.
 		switch t.Align {
-		case "", "left":
-		case "center":
+		case AlignCenter:
 			start = -pen / 2
-		case "right":
+		case AlignRight:
 			start = -pen
-		default:
-			return empty, fmt.Errorf("unknown align %q", t.Align)
 		}
 
 		baseline := -float64(line) * lineHeight
@@ -172,7 +196,7 @@ func (t Text) mesh(extrude func(triangulation.Region, float64) modeling.Mesh) (m
 
 	var missingErr error
 	if len(missing) > 0 {
-		missingErr = fmt.Errorf("font %q has no glyph for %s, left blank", name, strings.Join(missing, " "))
+		missingErr = fmt.Errorf("font %s has no glyph for %s, left blank", fonts.Name(t.Font), strings.Join(missing, " "))
 	}
 	region, err := triangulation.Fill(contours...)
 	if err != nil {
@@ -220,8 +244,8 @@ type TextNode struct {
 	Text          nodes.LiftedPort[string]  `description:"Text to render."`
 	Height        nodes.LiftedPort[float64] `description:"Height of a capital letter. Defaults to 1."`
 	Depth         nodes.LiftedPort[float64] `description:"Thickness: the solid spans 0 to Depth along the output's axis; negative goes the other way. 0 (the default) gives a single face."`
-	Font          nodes.Output[string]      `description:"sans (the default), sans bold, mono or mono bold."`
-	Align         nodes.LiftedPort[string]  `description:"Which end of each line sits on the origin: left (the default), center or right."`
+	Font          nodes.Output[Font]        `description:"Typeface the letters are cut from."`
+	Align         nodes.LiftedPort[Align]   `description:"Which end of each line sits on the origin."`
 	CurveSegments nodes.Output[int]         `description:"Straight segments per letter curve. Defaults to 6."`
 }
 
@@ -258,7 +282,7 @@ func (TextNode) ZDescription() string {
 }
 
 func (n TextNode) out(out *nodes.Lifted[modeling.Mesh], mesh func(Text) (modeling.Mesh, error)) {
-	font := nodes.TryGetOutputValue(out, n.Font, "")
+	font := nodes.TryGetOutputValue(out, n.Font, Sans)
 	segments := nodes.TryGetOutputValue(out, n.CurveSegments, 6)
 	nodes.Zip4(
 		out,
@@ -266,7 +290,7 @@ func (n TextNode) out(out *nodes.Lifted[modeling.Mesh], mesh func(Text) (modelin
 		nodes.LiftedOr(n.Height, 1.),
 		n.Depth,
 		n.Align,
-		func(text string, height, depth float64, align string) modeling.Mesh {
+		func(text string, height, depth float64, align Align) modeling.Mesh {
 			m, err := mesh(Text{
 				Text:          text,
 				Height:        height,

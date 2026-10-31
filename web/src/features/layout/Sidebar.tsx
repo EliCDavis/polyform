@@ -1,5 +1,6 @@
 import { FileMenu } from "./FileMenu";
 import { VariableSection } from "@/features/variables/VariableSection";
+import { EnumSection } from "@/features/enums/EnumSection";
 import { SubGraphSection } from "@/features/subgraph/SubGraphSection";
 import { useUiStore } from "@/stores/uiStore";
 import { ReactNode, useState } from "react";
@@ -127,7 +128,12 @@ export function Sidebar({}: SidebarProps) {
             {!hideFileControls && <FileMenu />}
           </div>
         )}
-        {sectionShown == SidebarSection.Variables && <VariableSection />}
+        {sectionShown == SidebarSection.Variables && (
+          <>
+            <VariableSection />
+            <EnumSection />
+          </>
+        )}
         {sectionShown == SidebarSection.Subgraphs && <SubGraphSection />}
         {sectionShown == SidebarSection.Rendering && <RenderingSection />}
         {sectionShown == SidebarSection.Nodes && <NodesSection />}

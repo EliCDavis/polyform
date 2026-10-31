@@ -2,7 +2,7 @@ package modeling
 
 import (
 	"github.com/EliCDavis/iter"
-	"github.com/EliCDavis/polyform/generator"
+	"github.com/EliCDavis/polyform/generator/registry"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
 	"github.com/EliCDavis/vector/vector2"
@@ -36,7 +36,7 @@ func init() {
 	refutil.RegisterType[nodes.Struct[FillAttribute4DNode]](factory)
 	refutil.RegisterType[TopologyNode](factory)
 	refutil.RegisterType[AttributeNode](factory)
-	generator.RegisterTypes(factory)
+	registry.Register(factory)
 }
 
 type SelectFromMeshNode struct {

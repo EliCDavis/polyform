@@ -5,13 +5,16 @@ package variabletypes
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/EliCDavis/polyform/drawing/coloring"
+	"github.com/EliCDavis/polyform/generator/enum"
 	"github.com/EliCDavis/polyform/generator/variable"
 	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/polyform/math/trs"
+	"github.com/EliCDavis/polyform/refutil"
 	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
 	"github.com/EliCDavis/vector/vector4"
@@ -67,16 +70,33 @@ var entries = []entry{
 	{"file", func() variable.Variable { return &variable.FileVariable{} }},
 }
 
+var registered []entry
+
+func RegisterEnum[E comparable](set enum.Set[E]) {
+	key := refutil.TypeResolution{}.Resolve(*new(E))
+	for _, e := range all() {
+		if strings.EqualFold(e.key, key) {
+			panic(fmt.Errorf("variable type %q registered twice", key))
+		}
+	}
+	registered = append(registered, entry{key, func() variable.Variable { return variable.NewEnumTypeVariable(set) }})
+}
+
+func all() []entry {
+	return append(slices.Clone(entries), registered...)
+}
+
 func Keys() []string {
-	keys := make([]string, len(entries))
-	for i, e := range entries {
+	all := all()
+	keys := make([]string, len(all))
+	for i, e := range all {
 		keys[i] = e.key
 	}
 	return keys
 }
 
 func New(typeKey string) (variable.Variable, error) {
-	for _, e := range entries {
+	for _, e := range all() {
 		if strings.EqualFold(e.key, typeKey) {
 			return e.build(), nil
 		}

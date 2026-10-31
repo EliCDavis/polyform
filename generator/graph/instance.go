@@ -34,6 +34,7 @@ type Instance struct {
 	variantSets    *named.Collection[variant.Set]
 	namedManifests *namedOutputManager[manifest.Manifest]
 	subGraphs      map[string]*subGraphRuntime
+	enums          map[string]*graphEnum
 	history        *history.History
 
 	edit editState
@@ -92,10 +93,11 @@ func (a *Instance) Reset() {
 	a.profiles = named.New[variable.Profile]("profile")
 	a.variantSets = named.New[variant.Set]("variant set")
 	a.subGraphs = make(map[string]*subGraphRuntime)
+	a.enums = make(map[string]*graphEnum)
 
 	// A snapshot is restored into a registry holding only what it defines.
 	for _, key := range a.typeFactory.Types() {
-		if subgraph.IsRuntimeNodeType(key) {
+		if subgraph.IsRuntimeNodeType(key) || IsEnumParameterType(key) {
 			a.typeFactory.Unregister(key)
 		}
 	}

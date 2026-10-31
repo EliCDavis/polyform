@@ -1,4 +1,4 @@
-import { FlowNode, FlowNodeConfig, FlowNodeStyle, NodeFlowGraph, Publisher } from "@elicdavis/node-flow";
+import { FlowNode, FlowNodeConfig, FlowNodeStyle, NodeFlowGraph, Publisher, type WidgetConfig } from "@elicdavis/node-flow";
 import { AfterNodeCreated, GraphClipboard } from "./graph_clipboard";
 import { InstanceIDProperty, PolyNodeController } from "./nodes/node";
 import { RequestManager } from "./requests";
@@ -7,6 +7,7 @@ import {
   GraphExecutionReport,
   GraphInstance,
   GraphInstanceNodes,
+  EnumDefinition,
   NodeDefinition,
   NodeInput,
   NodeInstance,
@@ -23,6 +24,9 @@ import {
   ROOT_SCOPE,
   SUBGRAPH_INPUT_TYPE,
   SUBGRAPH_OUTPUT_TYPE,
+    enumMembersOf,
+    formatPortTypeLabel,
+    isEnumType,
     isSubGraphRuntimeType,
     scopeToApiPath,
     shortDynamicPattern,
@@ -35,18 +39,35 @@ import {
   subGraphNodeConfigs,
 } from "@/features/nodeFlow/subGraphNodeConfigs";
 import { portTypePickerActions } from "@/stores/portTypePickerStore";
+import { ParameterStyle } from "@/features/nodeFlow/parameterNodeConfigs";
 
 export const GeneratorVariablePublisherPath = "Generator/Variable/";
 
-function flowPortConfig(name: string, port: NodeInput | NodeOutput) {
+function flowPortConfig(name: string, port: NodeInput | NodeOutput, members?: string[]) {
     const dynamic = port.dynamic === true;
+    let description = port.description;
+    if (members) {
+        description = (description ? description + "\n" : "") + "One of: " + members.join(", ");
+    }
     return {
         name: name,
         type: dynamic ? shortDynamicPattern(port.type) : port.type,
         anyType: dynamic,
         acceptedTypes: "acceptedTypes" in port ? port.acceptedTypes : undefined,
-        description: port.description,
+        description,
     };
+}
+
+function enumParameterLabel(parameterType: string): string {
+    if (isEnumType(parameterType)) {
+        return formatPortTypeLabel(parameterType);
+    }
+    const name = parameterType.substring(parameterType.lastIndexOf(".") + 1);
+    return name.replace(/([a-z0-9])([A-Z])/g, "$1 $2");
+}
+
+function enumParameterPublisherPath(parameterType: string): string {
+    return "Parameters/" + parameterType;
 }
 
 
@@ -129,6 +150,8 @@ export class NodeManager {
 
     registeredTypes: RegisteredTypes;
 
+    graphEnums: { [id: string]: EnumDefinition } = {};
+
     private clipboard: GraphClipboard;
 
     private onSchemaRefreshNeeded: (() => void) | null = null;
@@ -175,13 +198,56 @@ export class NodeManager {
     registerNodeTypesFromRegistry(registeredTypes: RegisteredTypes): void {
         this.registeredTypes = registeredTypes;
         registeredTypes.nodeTypes.forEach((type) => {
-            if (type.parameter) {
-                return;
-            }
             if (type.type === SUBGRAPH_INPUT_TYPE || type.type === SUBGRAPH_OUTPUT_TYPE) {
                 return;
             }
             this.registerCustomNodeType(type);
+        });
+    }
+
+    /** Re-fetches /node-types and re-registers everything it lists. */
+    refreshRegisteredTypes(onComplete?: () => void): void {
+        this.requestManager.getNodeTypes((types) => {
+            this.registerNodeTypesFromRegistry(types);
+            onComplete?.();
+        });
+    }
+
+    goEnums(): { [type: string]: EnumDefinition } {
+        return this.registeredTypes?.enums ?? {};
+    }
+
+    enumMembers(type: string): string[] | undefined {
+        return enumMembersOf(type, { graphEnums: this.graphEnums, goEnums: this.registeredTypes?.enums });
+    }
+
+    unregisterEnumParameterType(parameterType: string): void {
+        this.nodesPublisher.unregister(enumParameterPublisherPath(parameterType));
+    }
+
+    private registerEnumParameterType(nodeDefinition: NodeDefinition): void {
+        const values = this.enumMembers(nodeDefinition.parameter.type);
+        if (!values) {
+            return;
+        }
+
+        const path = enumParameterPublisherPath(nodeDefinition.parameter.type);
+        if (this.nodesPublisher.nodes().has(path)) {
+            this.nodesPublisher.unregister(path);
+        }
+
+        const label = enumParameterLabel(nodeDefinition.parameter.type);
+        const outputs = Object.entries(nodeDefinition.outputs ?? {}).map(([name, port]) => flowPortConfig(name, port, this.enumMembers(port.type)));
+        const select = { type: "select", config: { property: "value", options: values } } as unknown as WidgetConfig;
+        this.nodesPublisher.register(path, {
+            title: label + " Parameter",
+            subTitle: label,
+            canEditTitle: true,
+            canEditInfo: true,
+            outputs,
+            widgets: [select],
+            style: ParameterStyle,
+            metadata: { typeData: { type: nodeDefinition.type } },
         });
     }
 
@@ -655,13 +721,17 @@ export class NodeManager {
 
         this.nodeTypeToFlowNodePath.forEach((nodeType: string, flowNodePath: string) => {
             if (flowNodePath === nodePublisherPath) {
-                console.log(nodeType, flowNodePath)
                 this.nodeTypeToFlowNodePath.delete(nodeType);
             }
         });
     }
 
     registerCustomNodeType(nodeDefinition: NodeDefinition): void {
+        if (nodeDefinition.parameter) {
+            this.registerEnumParameterType(nodeDefinition);
+            return;
+        }
+
         const isRuntimeSubGraph = isSubGraphRuntimeType(nodeDefinition.type);
 
         const existingPath = this.nodeTypeToFlowNodePath.get(nodeDefinition.type);
@@ -683,8 +753,9 @@ export class NodeManager {
         };
 
         for (let inputName in nodeDefinition.inputs) {
+            const input = nodeDefinition.inputs[inputName];
             nodeConfig.inputs.push({
-                ...flowPortConfig(inputName, nodeDefinition.inputs[inputName]),
+                ...flowPortConfig(inputName, input, this.enumMembers(input.type)),
                 array: nodeDefinition.inputs[inputName].isArray,
                 hidden: nodeDefinition.inputs[inputName].advanced === true,
             });
@@ -698,7 +769,8 @@ export class NodeManager {
 
         if (nodeDefinition.outputs) {
             for (let outName in nodeDefinition.outputs) {
-                nodeConfig.outputs.push(flowPortConfig(outName, nodeDefinition.outputs[outName]));
+                const output = nodeDefinition.outputs[outName];
+                nodeConfig.outputs.push(flowPortConfig(outName, output, this.enumMembers(output.type)));
             }
         }
 
@@ -802,6 +874,14 @@ export class NodeManager {
     }
 
     updateNodes(newSchema: GraphInstance): void {
+        const enums = newSchema.enums ?? {};
+        if (JSON.stringify(enums) !== JSON.stringify(this.graphEnums)) {
+            this.graphEnums = enums;
+            // Enum parameter widgets bake the member list in, so a changed enum re-registers its node type.
+            this.registeredTypes.nodeTypes
+                .filter((type) => type.parameter && isEnumType(type.parameter.type))
+                .forEach((type) => this.registerEnumParameterType(type));
+        }
         const scopedNodes = getScopedNodes(newSchema, this.graphScope);
         const scopedProducers = getScopedProducers(newSchema, this.graphScope);
         const sortedNodes = this.sortNodesByName(scopedNodes);

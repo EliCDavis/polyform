@@ -193,6 +193,7 @@ func (as *Server) Handler(indexFile string) (*http.ServeMux, error) {
 	mux.Handle(variableInstanceEndpointPath, undoable(as.Graph, "variable", variableInstanceEndpoint(as, as.Graph, graphSaver)))
 	mux.Handle(variableValueEndpointPath, undoable(as.Graph, "variable", variableValueEndpoint(as.Graph, graphSaver)))
 	mux.Handle(variableNameDescriptionEndpointPath, undoable(as.Graph, "variable name", variableInfoEndpoint(as.Graph, graphSaver)))
+	mux.Handle(enumInstanceEndpointPath, undoable(as.Graph, "enum", enumInstanceEndpoint(as.Graph, graphSaver)))
 
 	hub := room.NewHub(as.Webscene, as.Graph)
 	go hub.Run()
@@ -277,4 +278,3 @@ func (as *Server) SwaggerEndpoint(w http.ResponseWriter, r *http.Request) {
 		log.Println(err.Error())
 	}
 }
-

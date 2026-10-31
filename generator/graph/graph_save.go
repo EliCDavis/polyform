@@ -29,6 +29,7 @@ func (a *Instance) encodeToAppSchema() ([]byte, error) {
 		Profiles:    make(map[string]persistence.Profile),
 		Variants:    make(map[string]persistence.VariantSet),
 		Metadata:    a.metadata.Data(),
+		Enums:       a.persistedEnums(),
 	}
 
 	for name, data := range a.profiles.All() {

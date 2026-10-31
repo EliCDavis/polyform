@@ -107,13 +107,13 @@ func TestTextLeavesTheCounterOfAnOOpen(t *testing.T) {
 }
 
 func TestTextAlignsEachLineAndStacksThemDownward(t *testing.T) {
-	centered, err := extrude.Text{Text: "WIDE\nI", Height: 1, Align: "center"}.MeshZ()
+	centered, err := extrude.Text{Text: "WIDE\nI", Height: 1, Align: extrude.AlignCenter}.MeshZ()
 	require.NoError(t, err)
 	box := centered.BoundingBox(modeling.PositionAttribute)
 	assert.InDelta(t, 0, box.Center().X(), 0.1)
 	assert.Less(t, box.Min().Y(), -1., "the second line sits below the first")
 
-	right, err := extrude.Text{Text: "I", Height: 1, Align: "right"}.MeshZ()
+	right, err := extrude.Text{Text: "I", Height: 1, Align: extrude.AlignRight}.MeshZ()
 	require.NoError(t, err)
 	assert.LessOrEqual(t, right.BoundingBox(modeling.PositionAttribute).Max().X(), 0.)
 }
@@ -123,7 +123,12 @@ func TestTextNamesWhatItCannotSet(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "͸")
 	assert.Positive(t, mesh.PrimitiveCount(), "the rest is still set")
+}
 
-	_, err = extrude.Text{Text: "A", Height: 1, Font: "comic"}.MeshZ()
-	assert.ErrorContains(t, err, `unknown font "comic"`)
+func TestEveryFontLoads(t *testing.T) {
+	for _, f := range []extrude.Font{extrude.Sans, extrude.SansBold, extrude.Mono, extrude.MonoBold} {
+		mesh, err := extrude.Text{Text: "A", Height: 1, Font: f}.MeshZ()
+		require.NoError(t, err)
+		assert.Positive(t, mesh.PrimitiveCount())
+	}
 }

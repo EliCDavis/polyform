@@ -5,7 +5,7 @@ import (
 	_ "embed"
 
 	"github.com/EliCDavis/polyform/formats/ply"
-	"github.com/EliCDavis/polyform/generator"
+	"github.com/EliCDavis/polyform/generator/registry"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
@@ -36,7 +36,7 @@ func init() {
 	refutil.RegisterType[nodes.Struct[TorusNode]](factory)
 	refutil.RegisterType[nodes.Struct[TorusUVNode]](factory)
 
-	generator.RegisterTypes(factory)
+	registry.Register(factory)
 }
 
 //go:embed stanford-bunny.ply

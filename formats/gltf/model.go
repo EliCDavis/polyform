@@ -8,6 +8,8 @@ import (
 	"reflect"
 
 	"github.com/EliCDavis/iter"
+	"github.com/EliCDavis/polyform/generator/enum"
+	"github.com/EliCDavis/polyform/generator/parameter"
 	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/polyform/math/trs"
 	"github.com/EliCDavis/polyform/modeling"
@@ -156,6 +158,13 @@ const (
 	ImageCompressionBalanced
 	ImageCompressionSmallest
 	ImageCompressionNone
+)
+
+var _ = parameter.DefineEnum(
+	enum.Value(ImageCompressionFast, "Fast", "PNG BestSpeed: quickest encode, largest file."),
+	enum.Value(ImageCompressionBalanced, "Balanced", "PNG DefaultCompression."),
+	enum.Value(ImageCompressionSmallest, "Smallest", "PNG BestCompression: slowest encode, smallest file."),
+	enum.Value(ImageCompressionNone, "None", "Stored uncompressed."),
 )
 
 func (c ImageCompression) pngLevel() png.CompressionLevel {

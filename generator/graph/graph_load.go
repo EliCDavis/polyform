@@ -61,10 +61,15 @@ func (a *Instance) applyAppSchema(jsonPayload []byte) error {
 	a.details = Details{Name: app.Name, Version: app.Version, Description: app.Description, Authors: app.Authors}
 	a.metadata.OverwriteData(app.Metadata)
 
+	if err := a.loadEnums(app.Enums); err != nil {
+		return err
+	}
+
 	app.Variables.Traverse(func(path string, saved persistence.Variable) bool {
 		var loaded variable.Variable
-		loaded, err = variable.DeserializePersistantVariableJSON(saved.Data, decoder, a.variableFactory)
+		loaded, err = variable.DeserializePersistantVariableJSON(saved.Data, decoder, a.buildVariable)
 		if err != nil {
+			err = fmt.Errorf("variable %s: %w", path, err)
 			return false
 		}
 		if _, err = a.newVariable(path, loaded); err != nil {

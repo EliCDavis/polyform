@@ -101,6 +101,39 @@ func (sn SumNode) Sum(out *nodes.StructOutput[float64]) {
 }
 ```
 
+### Enum Inputs
+
+```go
+type Finish int
+
+const (
+	Matte Finish = iota
+	Gloss
+	Satin
+)
+
+var finishes = parameter.DefineEnum(
+	enum.Value(Matte, "Matte", "No reflections."),
+	enum.Value(Gloss, "Gloss", "Mirror-like highlights."),
+	enum.Value(Satin, "Satin", "Soft highlights."),
+)
+```
+
+That one declaration names the members and gives the enum a parameter node and a variable type. The zero value must be listed: it is what an unwired port holds. `DefineEnum` panics at start-up if it is missing or if a name or value repeats.
+
+A node then declares the port like any other and reads it with the zero value as the fallback:
+
+```go
+type PaintNode struct {
+	Finish nodes.Output[Finish] `description:"How light leaves the surface."`
+}
+
+func (pn PaintNode) Out(out *nodes.StructOutput[Material]) {
+	finish := nodes.TryGetOutputValue(out, pn.Finish, Matte)
+	...
+}
+```
+
 ## Registering a Node
 
 Now that you've defined your node, you need to take steps to include it in a build of the graph system.
@@ -109,7 +142,7 @@ Now that you've defined your node, you need to take steps to include it in a bui
 
 The standard way to register your nodes with the graph system is to define a `init` function in your package. You can read more about its [specifics of execution here](https://go.dev/doc/effective_go#init).
 
-Inside the init function, you create a `TypeFactory` which collects all the types your package wants to register. Then you pass that factory to `generator.RegisterTypes(factory)` to integrate your custom nodes into Polyform’s node registry.
+Inside the init function, you create a `TypeFactory` which collects all the types your package wants to register. Then you pass that factory to `registry.Register(factory)` to integrate your custom nodes into Polyform’s node registry.
 
 In this guide, we've been defining a node that takes advantage of the `nodes.Struct[T]` functionality. To have our node work, we need to wrap our type while registering it, resulting in `refutil.RegisterType[nodes.Struct[MathNode]](factory)`.
 
@@ -117,7 +150,7 @@ In this guide, we've been defining a node that takes advantage of the `nodes.Str
 package mycoolpackage
 
 import (
-	"github.com/EliCDavis/polyform/generator"
+	"github.com/EliCDavis/polyform/generator/registry"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
 )
@@ -127,7 +160,7 @@ func init() {
 
 	refutil.RegisterType[nodes.Struct[MathNode]](factory)
 
-	generator.RegisterTypes(factory)
+	registry.Register(factory)
 }
 ```
 

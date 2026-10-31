@@ -17,6 +17,7 @@ import (
 	"github.com/EliCDavis/polyform/generator/graph"
 	"github.com/EliCDavis/polyform/generator/manifest"
 	"github.com/EliCDavis/polyform/generator/persistence"
+	"github.com/EliCDavis/polyform/generator/registry"
 	"github.com/EliCDavis/polyform/generator/room"
 	"github.com/EliCDavis/polyform/generator/run"
 	"github.com/EliCDavis/polyform/generator/serialize"
@@ -65,7 +66,7 @@ func (a *App) initGraphInstance() {
 		return
 	}
 	a.Graph = graph.New(graph.Config{
-		TypeFactory:     types,
+		TypeFactory:     registry.Types(),
 		VariableFactory: a.VariableFactory,
 	})
 }
@@ -549,7 +550,7 @@ func (a *App) Run(args []string) error {
 					Title:       name,
 					Description: description,
 					Version:     version,
-					NodeTypes:   types,
+					NodeTypes:   registry.Types(),
 				}
 
 				switch format {

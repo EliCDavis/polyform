@@ -8,13 +8,18 @@ export function applyImportedSubGraphs(
   for (const entry of result.imported) {
     nodeManager.registerCustomNodeType(entry.nodeType);
   }
+  if ((result.enums ?? []).some((entry) => !entry.reused)) {
+    nodeManager.refreshRegisteredTypes(() => nodeManager.notifySubGraphDefinitionChanged());
+    return;
+  }
   if (result.imported.length > 0) {
     nodeManager.notifySubGraphDefinitionChanged();
   }
 }
 
 export function formatImportSummary(result: ImportSubGraphsResult): string {
-  if (result.imported.length === 0) {
+  const enums = result.enums ?? [];
+  if (result.imported.length === 0 && enums.length === 0) {
     return "No sub-graph definitions found in the file.";
   }
 
@@ -38,6 +43,19 @@ export function formatImportSummary(result: ImportSubGraphsResult): string {
   );
   if (inputs.length > 0) {
     sections.push("Variables turned into inputs:\n" + inputs.join("\n"));
+  }
+
+  if (enums.length > 0) {
+    sections.push(
+      "Enums:\n" +
+        enums
+          .map((entry) => {
+            if (entry.reused) return `${entry.name} reused`;
+            const renamed = entry.originalId && entry.originalId !== entry.id ? ` as ${entry.id}` : "";
+            return `${entry.name} imported${renamed}`;
+          })
+          .join("\n")
+    );
   }
 
   return sections.join("\n\n");

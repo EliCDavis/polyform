@@ -1,5 +1,7 @@
 import type { Variable } from "@/types/schema";
 import type { ThreeApp } from "@/lib/three_app";
+import { useNodeTypes, useSchema } from "@/api/hooks";
+import { enumMembersOf } from "@/lib/portTypes";
 import { VariableType } from "../variableType";
 import { BoolEditor, NumberEditor, NumberListEditor, StringListEditor, TextEditor } from "./scalar";
 import { ColorEditor, ColorListEditor, GradientEditor } from "./color";
@@ -7,6 +9,7 @@ import { AABBEditor, Vector2Editor, Vector3Editor, VectorEditor } from "./vector
 import { PointListEditor } from "./points";
 import { QuaternionVariableEditor, TRSEditor, TRSListEditor } from "./transform";
 import { FileEditor, ImageEditor } from "./file";
+import { EnumEditor } from "./enum";
 
 interface VariableValueEditorProps {
   variableKey: string;
@@ -17,6 +20,12 @@ interface VariableValueEditorProps {
 const parseInteger = (s: string) => parseInt(s, 10);
 
 export function VariableValueEditor({ variableKey, variable, threeApp }: VariableValueEditorProps) {
+  const { data: graph } = useSchema();
+  const { data: registered } = useNodeTypes();
+  const members = enumMembersOf(variable.type, { graphEnums: graph?.enums, goEnums: registered?.enums });
+  if (members) {
+    return <EnumEditor variableKey={variableKey} value={String(variable.value ?? "")} values={members} />;
+  }
   switch (variable.type) {
     case VariableType.Bool:
       return <BoolEditor variableKey={variableKey} value={variable.value} />;

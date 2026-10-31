@@ -1,7 +1,7 @@
 package quaternion
 
 import (
-	"github.com/EliCDavis/polyform/generator"
+	"github.com/EliCDavis/polyform/generator/registry"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
 	"github.com/EliCDavis/vector/vector3"
@@ -16,7 +16,7 @@ func init() {
 	refutil.RegisterType[nodes.Struct[MultiplyNode]](factory)
 	refutil.RegisterType[nodes.Struct[FromEulerAngleNode]](factory)
 
-	generator.RegisterTypes(factory)
+	registry.Register(factory)
 }
 
 type NewNode struct {

@@ -5,8 +5,8 @@ import (
 	"io"
 
 	"github.com/EliCDavis/polyform/drawing/coloring"
-	"github.com/EliCDavis/polyform/generator"
 	"github.com/EliCDavis/polyform/generator/manifest"
+	"github.com/EliCDavis/polyform/generator/registry"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
@@ -22,7 +22,7 @@ func init() {
 	refutil.RegisterType[nodes.Struct[EntryNode]](factory)
 	refutil.RegisterType[nodes.Struct[MaterialNode]](factory)
 
-	generator.RegisterTypes(factory)
+	registry.Register(factory)
 }
 
 type Artifact struct {

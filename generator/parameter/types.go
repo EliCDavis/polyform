@@ -2,7 +2,7 @@ package parameter
 
 import (
 	"github.com/EliCDavis/polyform/drawing/coloring"
-	"github.com/EliCDavis/polyform/generator"
+	"github.com/EliCDavis/polyform/generator/registry"
 	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/polyform/math/trs"
@@ -61,5 +61,5 @@ func init() {
 	})
 	refutil.RegisterTypeWithBuilder(factory, func() TRSArray { return TRSArray{} })
 
-	generator.RegisterTypes(factory)
+	registry.Register(factory)
 }

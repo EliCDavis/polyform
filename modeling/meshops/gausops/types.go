@@ -1,7 +1,7 @@
 package gausops
 
 import (
-	"github.com/EliCDavis/polyform/generator"
+	"github.com/EliCDavis/polyform/generator/registry"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
 )
@@ -15,5 +15,5 @@ func init() {
 	refutil.RegisterType[nodes.Struct[RotateAttributeNode]](factory)
 	refutil.RegisterType[nodes.Struct[FilterNode]](factory)
 
-	generator.RegisterTypes(factory)
+	registry.Register(factory)
 }

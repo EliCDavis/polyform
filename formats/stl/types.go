@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"io"
 
-	"github.com/EliCDavis/polyform/generator"
 	"github.com/EliCDavis/polyform/generator/manifest"
+	"github.com/EliCDavis/polyform/generator/registry"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
@@ -15,7 +15,7 @@ func init() {
 	factory := &refutil.TypeFactory{}
 	refutil.RegisterType[nodes.Struct[ReadNode]](factory)
 	refutil.RegisterType[nodes.Struct[ManifestNode]](factory)
-	generator.RegisterTypes(factory)
+	registry.Register(factory)
 }
 
 type ReadNode struct {

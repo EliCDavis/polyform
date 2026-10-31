@@ -153,6 +153,7 @@ func (a *Instance) Schema() schema.Graph {
 	graph.Profiles = a.profiles.Names()
 	graph.Variants = a.variantSets.Names()
 	graph.Producers = a.producerSchema()
+	graph.Enums = a.enumSchemas()
 	for name, producer := range graph.Producers {
 		node := graph.Nodes[producer.NodeID]
 		node.Name = name

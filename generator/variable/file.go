@@ -102,13 +102,16 @@ type fileDetails struct {
 }
 
 func (tv FileVariable) runtimeSchema() schema.Variable {
-	return schema.Variable{
-		Description: tv.info.Description(),
-		Type:        "file", // refutil.GetTypeName(tv.value),
+	v := schema.Variable{
+		Type: "file",
 		Value: fileDetails{
 			Size: len(tv.value),
 		},
 	}
+	if tv.info != nil {
+		v.Description = tv.info.Description()
+	}
+	return v
 }
 
 type fileNodeGraphSchema struct {

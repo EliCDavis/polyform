@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/EliCDavis/polyform/generator"
+	"github.com/EliCDavis/polyform/generator/registry"
 	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/math/sample"
 	"github.com/EliCDavis/polyform/modeling"
@@ -19,7 +19,7 @@ func init() {
 	refutil.RegisterType[nodes.Struct[MarchNode]](factory)
 	refutil.RegisterType[nodes.Struct[ApplyColorFieldNode]](factory)
 
-	generator.RegisterTypes(factory)
+	registry.Register(factory)
 }
 
 type MarchNode struct {

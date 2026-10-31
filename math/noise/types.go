@@ -1,7 +1,7 @@
 package noise
 
 import (
-	"github.com/EliCDavis/polyform/generator"
+	"github.com/EliCDavis/polyform/generator/registry"
 	"github.com/EliCDavis/polyform/math/sample"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
@@ -17,7 +17,7 @@ func init() {
 	refutil.RegisterType[nodes.Struct[Perlin3DNode]](factory)
 	refutil.RegisterType[nodes.Struct[Perlin3DFieldNode]](factory)
 
-	generator.RegisterTypes(factory)
+	registry.Register(factory)
 }
 
 type Perlin1DNode struct {

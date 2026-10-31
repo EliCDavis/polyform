@@ -205,7 +205,7 @@ func (l *variableLifter) portType(saved persistence.Variable) (string, error) {
 	if err := json.Unmarshal(saved.Data, &header); err != nil {
 		return "", err
 	}
-	v, err := l.instance.variableFactory(header.Type)
+	v, err := l.instance.buildVariable(header.Type)
 	if err != nil {
 		return "", err
 	}

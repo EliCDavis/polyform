@@ -5,11 +5,12 @@ import (
 	"image"
 	"image/color"
 	"io"
-	"strings"
 
 	"github.com/EliCDavis/polyform/drawing/coloring"
-	"github.com/EliCDavis/polyform/generator"
+	"github.com/EliCDavis/polyform/generator/enum"
 	"github.com/EliCDavis/polyform/generator/manifest"
+	"github.com/EliCDavis/polyform/generator/parameter"
+	"github.com/EliCDavis/polyform/generator/registry"
 	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/polyform/math/trs"
 	"github.com/EliCDavis/polyform/modeling"
@@ -49,7 +50,7 @@ func init() {
 	refutil.RegisterType[nodes.Struct[SamplerMinFilterNode]](factory)
 	refutil.RegisterType[nodes.Struct[SamplerMagFilterNode]](factory)
 
-	generator.RegisterTypes(factory)
+	registry.Register(factory)
 }
 
 type Artifact struct {
@@ -177,18 +178,20 @@ func (gmnd TextureReferenceNode) Description() string {
 }
 
 type TextureNode struct {
-	Image    nodes.Output[image.Image]
-	Sampler  nodes.Output[Sampler]
-	Offset   nodes.Output[vector2.Float64] `description:"Shifts the texture, in texture repeats. Written as KHR_texture_transform."`
-	Rotation nodes.Output[float64]         `description:"Turns the texture counter-clockwise, in radians. Written as KHR_texture_transform."`
-	Scale    nodes.Output[vector2.Float64] `description:"Repeats the texture this many times along u and v. Written as KHR_texture_transform."`
+	Image       nodes.Output[image.Image]
+	Sampler     nodes.Output[Sampler]
+	Offset      nodes.Output[vector2.Float64]  `description:"Shifts the texture, in texture repeats. Written as KHR_texture_transform."`
+	Rotation    nodes.Output[float64]          `description:"Turns the texture counter-clockwise, in radians. Written as KHR_texture_transform."`
+	Scale       nodes.Output[vector2.Float64]  `description:"Repeats the texture this many times along u and v. Written as KHR_texture_transform."`
+	Compression nodes.Output[ImageCompression] `description:"How the image is encoded when the file is written." advanced:"true"`
 }
 
 func (tnd TextureNode) Out(out *nodes.StructOutput[PolyformTexture]) {
 	out.Set(PolyformTexture{
-		Sampler:    nodes.TryGetOutputReference(out, tnd.Sampler, nil),
-		Image:      nodes.TryGetOutputValue(out, tnd.Image, nil),
-		Extensions: textureTransform(out, tnd.Offset, tnd.Rotation, tnd.Scale),
+		Sampler:     nodes.TryGetOutputReference(out, tnd.Sampler, nil),
+		Image:       nodes.TryGetOutputValue(out, tnd.Image, nil),
+		Extensions:  textureTransform(out, tnd.Offset, tnd.Rotation, tnd.Scale),
+		Compression: nodes.TryGetOutputValue(out, tnd.Compression, ImageCompressionFast),
 	})
 }
 
@@ -381,6 +384,30 @@ func (p *SamplerMinFilterNode) Outputs() map[string]nodes.OutputPort {
 	}
 }
 
+type AlphaMode int
+
+const (
+	AlphaOpaque AlphaMode = iota
+	AlphaMask
+	AlphaBlend
+)
+
+var _ = parameter.DefineEnum(
+	enum.Value(AlphaOpaque, "OPAQUE", "Alpha is ignored; the surface is fully opaque."),
+	enum.Value(AlphaMask, "MASK", "Fully opaque or fully transparent, cut at Alpha Cutoff."),
+	enum.Value(AlphaBlend, "BLEND", "Composited over the background by alpha."),
+)
+
+func (m AlphaMode) toGLTF() MaterialAlphaMode {
+	switch m {
+	case AlphaMask:
+		return MaterialAlphaMode_MASK
+	case AlphaBlend:
+		return MaterialAlphaMode_BLEND
+	}
+	return MaterialAlphaMode_OPAQUE
+}
+
 // https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#reference-material
 
 type MaterialNode struct {
@@ -395,7 +422,7 @@ type MaterialNode struct {
 	EmissiveFactor           nodes.Output[coloring.Color]    `description:"The factors for the emissive color of the material. This value defines linear multipliers for the sampled texels of the emissive texture."`
 	NormalTexture            nodes.Output[PolyformNormal]    `description:"The tangent space normal texture. The texture encodes RGB components with linear transfer function. Each texel represents the XYZ components of a normal vector in tangent space. The normal vectors use the convention +X is right and +Y is up. +Z points toward the viewer. If a fourth component (A) is present, it **MUST** be ignored. When undefined, the material does not have a tangent space normal texture."`
 	OcclusionTexture         nodes.Output[PolyformOcclusion] `description:"Ambient occlusion map, darkening crevices under ambient light." advanced:"true"`
-	AlphaMode                nodes.Output[string]            `description:"OPAQUE (default) ignores alpha, MASK cuts at Alpha Cutoff, BLEND blends by alpha. Alpha comes from Color and Color Texture." advanced:"true"`
+	AlphaMode                nodes.Output[AlphaMode]         `description:"How the material's alpha, from Color and Color Texture, is interpreted." advanced:"true"`
 	AlphaCutoff              nodes.Output[float64]           `description:"With alpha mode MASK: alpha below this is cut away. glTF's default is 0.5." advanced:"true"`
 	Unlit                    nodes.Output[bool]              `description:"Shows Color as is, ignoring lighting. Written as KHR_materials_unlit." advanced:"true"`
 
@@ -533,17 +560,13 @@ func (gmnd MaterialNode) Out(out *nodes.StructOutput[PolyformMaterial]) {
 	}
 
 	var alphaMode *MaterialAlphaMode
-	if raw := nodes.TryGetOutputValue(out, gmnd.AlphaMode, ""); raw != "" {
-		mode := MaterialAlphaMode(strings.ToUpper(strings.TrimSpace(raw)))
-		switch mode {
-		case MaterialAlphaMode_OPAQUE, MaterialAlphaMode_MASK, MaterialAlphaMode_BLEND:
-			alphaMode = &mode
-		default:
-			out.CaptureError(fmt.Errorf("alpha mode %q is not OPAQUE, MASK or BLEND", raw))
-		}
+	mode := nodes.TryGetOutputValue(out, gmnd.AlphaMode, AlphaOpaque)
+	if gmnd.AlphaMode != nil {
+		wire := mode.toGLTF()
+		alphaMode = &wire
 	}
 	alphaCutoff := nodes.TryGetOutputReference(out, gmnd.AlphaCutoff, nil)
-	if alphaCutoff != nil && (alphaMode == nil || *alphaMode != MaterialAlphaMode_MASK) {
+	if alphaCutoff != nil && mode != AlphaMask {
 		out.CaptureError(fmt.Errorf("alpha cutoff only applies with alpha mode MASK"))
 		alphaCutoff = nil
 	}

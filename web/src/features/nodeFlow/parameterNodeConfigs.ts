@@ -33,7 +33,7 @@ const ColorSchemes = {
 const parameterPallete: ColorScheme = ColorSchemes.Grey;
 
 const ParameterOutPortName = "Value";
-const ParameterStyle = {
+export const ParameterStyle = {
   title: { color: parameterPallete.Title },
   idle: { color: parameterPallete.Background },
   mouseOver: { color: parameterPallete.Background },
