@@ -3,6 +3,7 @@ package persistence
 import (
 	"encoding/json"
 
+	"github.com/EliCDavis/polyform/generator/enum"
 	"github.com/EliCDavis/polyform/generator/schema"
 )
 
@@ -19,6 +20,13 @@ type App struct {
 	Profiles    map[string]Profile           `json:"profiles,omitempty"`
 	Variants    map[string]VariantSet        `json:"variants,omitempty"`
 	SubGraphs   map[string]SubGraph          `json:"subGraphs,omitempty"`
+	Enums       map[string]Enum              `json:"enums,omitempty"`
+}
+
+type Enum struct {
+	Name        string        `json:"name"`
+	Description string        `json:"description,omitempty"`
+	Members     []enum.Member `json:"members"`
 }
 
 type Profile struct {

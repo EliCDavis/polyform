@@ -28,6 +28,8 @@ export interface RegisteredTypes {
   nodeTypes: Array<NodeDefinition>;
   serializableOutputTypes: Array<string>;
   portTypes: Array<string>;
+  // Go enums, keyed by variable type (`gltf.AlphaMode`); graph enums arrive on the schema.
+  enums?: { [type: string]: EnumDefinition };
 }
 
 export interface NodeDefinition {
@@ -122,6 +124,17 @@ export interface RuntimeSubGraphDefinition {
   variables?: VariableGroup;
 }
 
+export interface EnumMember {
+  name: string;
+  description?: string;
+}
+
+export interface EnumDefinition {
+  name: string;
+  description?: string;
+  members: EnumMember[];
+}
+
 export interface GraphInstance {
   producers: { [key: string]: any };
   nodes: GraphInstanceNodes;
@@ -129,6 +142,7 @@ export interface GraphInstance {
   variables: VariableGroup;
   profiles: Array<string>;
   subGraphs?: { [key: string]: RuntimeSubGraphDefinition };
+  enums?: { [id: string]: EnumDefinition };
 }
 
 export interface Variable {
@@ -160,6 +174,26 @@ export interface CreateSubGraphResponse {
   nodeType: NodeDefinition;
 }
 
+export interface EnumBody {
+  name: string;
+  description: string;
+  members: EnumMember[];
+  renamed?: { [oldName: string]: string };
+}
+
+export interface EnumResponse {
+  id: string;
+  type: string;
+  nodeType: NodeDefinition;
+}
+
+export interface ImportedEnumEntry {
+  id: string;
+  originalId?: string;
+  name: string;
+  reused: boolean;
+}
+
 export interface ImportedSubGraphEntry {
   id: string;
   name: string;
@@ -177,6 +211,7 @@ export interface ImportedVariableInput {
 export interface ImportSubGraphsResult {
   group?: string;
   imported: ImportedSubGraphEntry[];
+  enums?: ImportedEnumEntry[];
 }
 
 export interface ConvertSelectionToSubGraphRequest {

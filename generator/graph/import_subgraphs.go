@@ -24,6 +24,7 @@ type ImportedSubGraph struct {
 type ImportSubGraphsResult struct {
 	Group    string
 	Imported []ImportedSubGraph
+	Enums    []ImportedEnum
 }
 
 // A taken id gets a numeric suffix (Adder_2); variables the definitions read
@@ -46,20 +47,30 @@ func (a *Instance) ImportSubGraphDefinitions(payload []byte, group string) (resu
 }
 
 func (a *Instance) importSubGraphDefinitions(app persistence.App, decoder jbtf.Decoder, result ImportSubGraphsResult) (_ ImportSubGraphsResult, err error) {
-	defs, inputs, err := a.liftVariables(app)
-	if err != nil {
-		return result, err
-	}
-
-	// All created before any is filled in, so one placing another finds its type.
+	enumIDs, importedEnums, createdEnums, err := a.mergeEnums(app, referencedEnumIDs(app))
 	newIDs := make(map[string]string, len(app.SubGraphs))
 	defer func() {
 		if err != nil {
 			for _, id := range newIDs {
 				_ = a.deleteSubGraph(id)
 			}
+			for _, id := range createdEnums {
+				_ = a.deleteEnum(id)
+			}
 		}
 	}()
+	if err != nil {
+		return result, err
+	}
+	app = rewriteEnumIDs(app, enumIDs)
+	result.Enums = importedEnums
+
+	defs, inputs, err := a.liftVariables(app)
+	if err != nil {
+		return result, err
+	}
+
+	// All created before any is filled in, so one placing another finds its type.
 	for _, id := range slices.Sorted(maps.Keys(app.SubGraphs)) {
 		newID := a.freeSubGraphID(cmp.Or(id, "Subgraph"))
 		if err := a.createSubGraph(newID, app.SubGraphs[id].Name, app.SubGraphs[id].Description); err != nil {

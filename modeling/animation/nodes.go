@@ -1,7 +1,7 @@
 package animation
 
 import (
-	"github.com/EliCDavis/polyform/generator"
+	"github.com/EliCDavis/polyform/generator/registry"
 	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
@@ -14,7 +14,7 @@ func init() {
 	refutil.RegisterType[nodes.Struct[UniformFramesNode[vector3.Float64]]](factory)
 	refutil.RegisterType[nodes.Struct[UniformFramesNode[quaternion.Quaternion]]](factory)
 
-	generator.RegisterTypes(factory)
+	registry.Register(factory)
 }
 
 type UniformFramesNode[T any] struct {

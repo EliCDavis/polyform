@@ -3,7 +3,7 @@ package triangulation
 import (
 	"errors"
 
-	"github.com/EliCDavis/polyform/generator"
+	"github.com/EliCDavis/polyform/generator/registry"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
@@ -14,7 +14,7 @@ func init() {
 	factory := &refutil.TypeFactory{}
 	refutil.RegisterType[nodes.Struct[BowyerWatsonNode]](factory)
 	refutil.RegisterType[nodes.Struct[VoronoiNode]](factory)
-	generator.RegisterTypes(factory)
+	registry.Register(factory)
 }
 
 type BowyerWatsonNode struct {

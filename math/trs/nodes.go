@@ -5,7 +5,7 @@ import (
 	"math"
 	"time"
 
-	"github.com/EliCDavis/polyform/generator"
+	"github.com/EliCDavis/polyform/generator/registry"
 	"github.com/EliCDavis/polyform/math/chance"
 	"github.com/EliCDavis/polyform/math/mat"
 	"github.com/EliCDavis/polyform/math/quaternion"
@@ -28,7 +28,7 @@ func init() {
 	refutil.RegisterType[nodes.Struct[SelectNode]](factory)
 	refutil.RegisterType[nodes.Struct[FilterPositionNode]](factory)
 	refutil.RegisterType[nodes.Struct[FilterScaleNode]](factory)
-	generator.RegisterTypes(factory)
+	registry.Register(factory)
 }
 
 // ============================================================================

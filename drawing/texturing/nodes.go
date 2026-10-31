@@ -2,7 +2,7 @@ package texturing
 
 import (
 	"github.com/EliCDavis/polyform/drawing/coloring"
-	"github.com/EliCDavis/polyform/generator"
+	"github.com/EliCDavis/polyform/generator/registry"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
 	"github.com/EliCDavis/vector/vector2"
@@ -89,5 +89,5 @@ func init() {
 	refutil.RegisterType[nodes.Struct[GaussianBlurFloat3Node]](factory)
 	refutil.RegisterType[nodes.Struct[GaussianBlurColorNode]](factory)
 
-	generator.RegisterTypes(factory)
+	registry.Register(factory)
 }

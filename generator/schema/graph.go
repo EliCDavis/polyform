@@ -8,4 +8,5 @@ type Graph struct {
 	Profiles  []string              `json:"profiles,omitempty"`
 	Variants  []string              `json:"variants,omitempty"`
 	SubGraphs map[string]SubGraph   `json:"subGraphs,omitempty"`
+	Enums     map[string]Enum       `json:"enums,omitempty"`
 }

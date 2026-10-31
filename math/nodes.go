@@ -3,7 +3,7 @@ package math
 import (
 	"math"
 
-	"github.com/EliCDavis/polyform/generator"
+	"github.com/EliCDavis/polyform/generator/registry"
 	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
@@ -72,7 +72,7 @@ func init() {
 
 	refutil.RegisterType[nodes.Struct[RemapNode[float64]]](factory)
 
-	generator.RegisterTypes(factory)
+	registry.Register(factory)
 }
 
 // ============================================================================

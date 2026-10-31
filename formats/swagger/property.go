@@ -51,10 +51,11 @@ type Property struct {
 	// of the string
 	Format PropertyFormat `json:"format,omitempty"`
 
-	Example     any `json:"example,omitempty"`
-	Ref         any `json:"$ref,omitempty"`
-	Description any `json:"description,omitempty"`
-	Items       any `json:"items,omitempty"`
+	Example     any   `json:"example,omitempty"`
+	Ref         any   `json:"$ref,omitempty"`
+	Description any   `json:"description,omitempty"`
+	Items       any   `json:"items,omitempty"`
+	Enum        []any `json:"enum,omitempty"`
 
 	// If type is object
 	Properties []Property `json:"properties,omitempty"`

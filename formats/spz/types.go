@@ -3,7 +3,7 @@ package spz
 import (
 	"bytes"
 
-	"github.com/EliCDavis/polyform/generator"
+	"github.com/EliCDavis/polyform/generator/registry"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
@@ -12,7 +12,7 @@ import (
 func init() {
 	factory := &refutil.TypeFactory{}
 	refutil.RegisterType[nodes.Struct[ReadNode]](factory)
-	generator.RegisterTypes(factory)
+	registry.Register(factory)
 }
 
 type ReadNode struct {

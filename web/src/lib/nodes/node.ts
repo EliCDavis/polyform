@@ -16,7 +16,7 @@ import { RequestManager, saveFileToDisk } from '../requests.js';
 import { FlowNode, GlobalWidgetFactory, ImageWidget, MessageType, Port, ToggleWidget, type Widget } from '@elicdavis/node-flow';
 import { ThreeApp } from '../three_app.js';
 import { ProducerViewManager } from '../ProducerView/producer_view_manager.js';
-import type { NodeParameter } from '../../types/parameter.js';
+import type { NodeParameter, ScalarNodeParameter } from '../../types/parameter.js';
 import { SubGraphBoundaryNodeController } from './boundary_node_controller.js';
 import { isSubGraphRuntimeType, resolveDynamicType, shortDynamicPattern } from '../portTypes.js';
 import { useGraphTabStore } from '../../stores/graphTabStore.js';
@@ -56,6 +56,10 @@ function BuildParameter(
     parameterData: NodeParameter,
     app: ThreeApp
 ): ParameterController {
+    if (nodeManager.enumMembers(parameterData.type)) {
+        return new BasicParameterNodeController(flowNode, nodeManager, id, parameterData as ScalarNodeParameter);
+    }
+
     switch (parameterData.type) {
         case "float64":
         case "float32":

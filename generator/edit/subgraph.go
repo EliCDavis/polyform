@@ -34,9 +34,17 @@ func importSubGraphsEndpoint(graphInstance *graph.Instance, saver *GraphSaver) e
 		Inputs     []VariableInput `json:"inputs,omitempty"`
 	}
 
+	type ImportedEnum struct {
+		ID         string `json:"id"`
+		OriginalID string `json:"originalId,omitempty"`
+		Name       string `json:"name"`
+		Reused     bool   `json:"reused"`
+	}
+
 	type ImportResponse struct {
 		Group    string          `json:"group,omitempty"`
 		Imported []ImportedEntry `json:"imported"`
+		Enums    []ImportedEnum  `json:"enums,omitempty"`
 	}
 
 	return endpoint.Handler{
@@ -53,6 +61,9 @@ func importSubGraphsEndpoint(graphInstance *graph.Instance, saver *GraphSaver) e
 					resp := ImportResponse{
 						Group:    result.Group,
 						Imported: make([]ImportedEntry, 0, len(result.Imported)),
+					}
+					for _, imported := range result.Enums {
+						resp.Enums = append(resp.Enums, ImportedEnum(imported))
 					}
 					for _, entry := range result.Imported {
 						inputs := make([]VariableInput, 0, len(entry.Inputs))

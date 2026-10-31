@@ -18,3 +18,8 @@ func (pb ParameterBase) DisplayName() string {
 func (pb ParameterBase) ValueType() string {
 	return pb.Type
 }
+
+type EnumParameter struct {
+	ParameterBase
+	CurrentValue string `json:"currentValue"`
+}

@@ -1,6 +1,7 @@
 import { Observable, Subject } from "rxjs";
 import { RequestManager } from "./requests";
 import { GraphInstance } from "./schema";
+import { ENUM_TYPE_PREFIX, rememberEnumNames } from "./portTypes";
 
 export class SchemaManager {
 
@@ -34,6 +35,9 @@ export class SchemaManager {
     }
 
     setGraph(newGraph: GraphInstance): void {
+        rememberEnumNames(
+            Object.entries(newGraph.enums ?? {}).map(([id, def]) => [ENUM_TYPE_PREFIX + id, def.name]),
+        );
         this.currentGraph = newGraph;
         this.subscribers.forEach(sub => {
             sub(this.currentGraph);

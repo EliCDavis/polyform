@@ -27,13 +27,14 @@ import (
 	_ "github.com/EliCDavis/polyform/formats/spz"
 	_ "github.com/EliCDavis/polyform/formats/stl"
 
+	_ "github.com/EliCDavis/polyform/generator/enum"
 	"github.com/EliCDavis/polyform/generator/manifest"
 	"github.com/EliCDavis/polyform/generator/manifest/basics"
 	_ "github.com/EliCDavis/polyform/generator/manifest/basics"
 	_ "github.com/EliCDavis/polyform/generator/parameter"
 	"github.com/EliCDavis/polyform/generator/persistence"
 	"github.com/EliCDavis/polyform/generator/serialize"
-	_ "github.com/EliCDavis/polyform/generator/subgraph/register"
+	_ "github.com/EliCDavis/polyform/generator/subgraph"
 
 	_ "github.com/EliCDavis/polyform/arrays"
 	_ "github.com/EliCDavis/polyform/debug"

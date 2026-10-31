@@ -4,6 +4,8 @@ import type {
   ConvertSelectionToSubGraphResponse,
   CreateSubGraphResponse,
   CreateVariableResponse,
+  EnumBody,
+  EnumResponse,
   GraphExecutionReport,
   GraphHistory,
   GraphInstance,
@@ -45,6 +47,9 @@ enum GraphChangeEventType {
   SubGraph_New = "SubGraph_New",
   SubGraph_Update = "SubGraph_Update",
   SubGraph_Delete = "SubGraph_Delete",
+  Enum_New = "Enum_New",
+  Enum_Update = "Enum_Update",
+  Enum_Delete = "Enum_Delete",
   WholeGraph = "WholeGraph",
 }
 
@@ -629,6 +634,65 @@ export class RequestManager {
         }
         success();
         this.notifyGraphChange(GraphChangeEventType.SubGraph_Delete);
+      })
+      .catch(error);
+  }
+
+  createEnum(
+    body: EnumBody,
+    success: (response: EnumResponse) => void,
+    error: (err: unknown) => void
+  ): void {
+    this.enumRequest("./enum/instance/", "POST", body, GraphChangeEventType.Enum_New, success, error);
+  }
+
+  updateEnum(
+    enumId: string,
+    body: EnumBody,
+    success: (response: EnumResponse) => void,
+    error: (err: unknown) => void
+  ): void {
+    this.enumRequest(`./enum/instance/${enumId}`, "PUT", body, GraphChangeEventType.Enum_Update, success, error);
+  }
+
+  deleteEnum(
+    enumId: string,
+    success: () => void,
+    error: (err: unknown) => void
+  ): void {
+    void fetch(`./enum/instance/${enumId}`, { method: "DELETE" })
+      .then(async (response) => {
+        if (!response.ok) {
+          error(await response.json().catch(() => ({ error: response.statusText })));
+          return;
+        }
+        success();
+        this.notifyGraphChange(GraphChangeEventType.Enum_Delete);
+      })
+      .catch(error);
+  }
+
+  private enumRequest(
+    url: string,
+    method: "POST" | "PUT",
+    body: EnumBody,
+    event: GraphChangeEventType,
+    success: (response: EnumResponse) => void,
+    error: (err: unknown) => void
+  ): void {
+    void fetch(url, {
+      method,
+      headers: JSON_HEADERS,
+      body: JSON.stringify(body),
+    })
+      .then(async (response) => {
+        if (!response.ok) {
+          error(await response.json().catch(() => ({ error: response.statusText })));
+          return;
+        }
+        const data = (await response.json()) as EnumResponse;
+        success(data);
+        this.notifyGraphChange(event);
       })
       .catch(error);
   }

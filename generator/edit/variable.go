@@ -40,12 +40,7 @@ func variableInstanceEndpoint(server *Server, graphInstance *graph.Instance, sav
 			// Create a new instance of a variable
 			http.MethodPost: endpoint.JsonMethod(func(request endpoint.Request[CreateVariableRequest]) (CreateVariableResponse, error) {
 				variablePath := request.Url[len(variableInstanceEndpointPath):]
-				variableInstance, err := server.VariableFactory(request.Body.Type)
-				if err != nil {
-					return CreateVariableResponse{}, err
-				}
-
-				registeredType, err := graphInstance.NewVariable(variablePath, variableInstance)
+				variableInstance, registeredType, err := graphInstance.NewVariableOfType(variablePath, request.Body.Type)
 				if err != nil {
 					return CreateVariableResponse{}, err
 				}

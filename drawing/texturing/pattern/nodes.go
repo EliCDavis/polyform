@@ -2,7 +2,7 @@ package pattern
 
 import (
 	"github.com/EliCDavis/polyform/drawing/coloring"
-	"github.com/EliCDavis/polyform/generator"
+	"github.com/EliCDavis/polyform/generator/registry"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
 	"github.com/EliCDavis/vector/vector2"
@@ -36,5 +36,5 @@ func init() {
 	refutil.RegisterType[nodes.Struct[RectanglesNode[bool]]](factory)
 	refutil.RegisterType[nodes.Struct[RectanglesNode[coloring.Color]]](factory)
 
-	generator.RegisterTypes(factory)
+	registry.Register(factory)
 }

@@ -126,11 +126,14 @@ func (tv *ImageVariable) NodeReference() nodes.Node {
 // }
 
 func (tv ImageVariable) runtimeSchema() schema.Variable {
-	return schema.Variable{
-		Description: tv.info.Description(),
-		Type:        "image.Image", // refutil.GetTypeName(tv.value),
-		Value:       tv.value,
+	v := schema.Variable{
+		Type:  "image.Image",
+		Value: tv.value,
 	}
+	if tv.info != nil {
+		v.Description = tv.info.Description()
+	}
+	return v
 }
 
 type imageNodeGraphSchema struct {

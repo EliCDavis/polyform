@@ -121,7 +121,7 @@ func (s *system) ApplyProfile(profile Profile) error {
 		}
 
 		if err := entry.ApplyProfile(data); err != nil {
-			return err
+			return fmt.Errorf("%s: %w", key, err)
 		}
 	}
 	return nil

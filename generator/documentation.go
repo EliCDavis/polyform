@@ -8,12 +8,23 @@ import (
 	"strings"
 
 	"github.com/EliCDavis/polyform/formats/markdown"
+	"github.com/EliCDavis/polyform/generator/enum"
 	"github.com/EliCDavis/polyform/generator/graph"
 	"github.com/EliCDavis/polyform/generator/schema"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
 	"github.com/EliCDavis/polyform/utils"
 )
+
+func writeEnum(writer markdown.Writer, portType string) {
+	def, ok := enum.Lookup(strings.TrimPrefix(portType, "[]"))
+	if !ok {
+		return
+	}
+	writer.Text(" (one of: ")
+	writer.Text(strings.Join(def.Names(), ", "))
+	writer.Text(")")
+}
 
 func inputTypes(input schema.NodeTypeInput) string {
 	if len(input.AcceptedTypes) < 2 {
@@ -139,6 +150,7 @@ func (dw DocumentationWriter) writeSingle(writer markdown.Writer) error {
 						writer.Text(" - ")
 						writer.Text(input.Val.Description)
 					}
+					writeEnum(writer, input.Val.Type)
 
 					writer.EndBullet()
 				}
@@ -164,6 +176,7 @@ func (dw DocumentationWriter) writeSingle(writer markdown.Writer) error {
 						writer.Text(" - ")
 						writer.Text(output.Val.Description)
 					}
+					writeEnum(writer, output.Val.Type)
 					writer.EndBullet()
 				}
 				writer.EndBulletList()

@@ -3,13 +3,16 @@ package edit
 import (
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/EliCDavis/polyform/generator/endpoint"
+	"github.com/EliCDavis/polyform/generator/enum"
 	"github.com/EliCDavis/polyform/generator/graph"
 	"github.com/EliCDavis/polyform/generator/manifest"
 	"github.com/EliCDavis/polyform/generator/schema"
 	"github.com/EliCDavis/polyform/generator/serialize"
 	"github.com/EliCDavis/polyform/nodes"
+	"github.com/EliCDavis/polyform/utils"
 )
 
 const (
@@ -119,9 +122,26 @@ func (as *Server) NodeOutputEndpoint(w http.ResponseWriter, r *http.Request) {
 }
 
 type RegisteredTypes struct {
-	NodeTypes            []schema.NodeType `json:"nodeTypes"`
-	SerializeOutputTypes []string          `json:"serializableOutputTypes"`
-	PortTypes            []string          `json:"portTypes"`
+	NodeTypes            []schema.NodeType      `json:"nodeTypes"`
+	SerializeOutputTypes []string               `json:"serializableOutputTypes"`
+	PortTypes            []string               `json:"portTypes"`
+	Enums                map[string]schema.Enum `json:"enums,omitempty"`
+}
+
+func goEnums() map[string]schema.Enum {
+	out := map[string]schema.Enum{}
+	for _, def := range enum.Definitions() {
+		key := def.TypeName()[strings.LastIndex(def.TypeName(), "/")+1:]
+		members := make([]enum.Member, 0)
+		for _, name := range def.Names() {
+			members = append(members, enum.Member{Name: name, Description: def.Describe(name)})
+		}
+		out[key] = schema.Enum{
+			Name:    utils.CamelCaseToSpaceCase(key[strings.LastIndex(key, ".")+1:]),
+			Members: members,
+		}
+	}
+	return out
 }
 
 func nodeTypesEndpoint(graphInstance *graph.Instance, serializer *serialize.TypeSwitch[manifest.Entry]) endpoint.Handler {
@@ -132,6 +152,7 @@ func nodeTypesEndpoint(graphInstance *graph.Instance, serializer *serialize.Type
 					b := RegisteredTypes{
 						NodeTypes: graphInstance.BuildSchemaForAllNodeTypes(),
 						PortTypes: nodes.KnownPortTypes(),
+						Enums:     goEnums(),
 					}
 					if serializer != nil {
 						b.SerializeOutputTypes = serializer.Types()

@@ -1,7 +1,7 @@
 package logic
 
 import (
-	"github.com/EliCDavis/polyform/generator"
+	"github.com/EliCDavis/polyform/generator/registry"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
 )
@@ -11,13 +11,15 @@ func init() {
 
 	refutil.RegisterType[nodes.Struct[SelectNode]](factory)
 	refutil.RegisterType[nodes.Struct[SwitchNode]](factory)
+	refutil.RegisterType[nodes.Struct[EqualsNode]](factory)
 
-	generator.RegisterTypes(factory)
+	registry.Register(factory)
 }
 
 type (
 	SelectType nodes.DynamicType
 	SwitchType nodes.DynamicType
+	EqualsType nodes.DynamicType
 )
 
 type SelectNode struct {

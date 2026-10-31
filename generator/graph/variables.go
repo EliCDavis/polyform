@@ -8,11 +8,42 @@ import (
 	"strings"
 
 	"github.com/EliCDavis/polyform/formats/swagger"
+	"github.com/EliCDavis/polyform/generator/enum"
 	"github.com/EliCDavis/polyform/generator/named"
 	"github.com/EliCDavis/polyform/generator/variable"
 	"github.com/EliCDavis/polyform/generator/variant"
 	"github.com/EliCDavis/polyform/nodes"
 )
+
+// A graph's own enums are resolved here; every other type comes from the
+// app's factory.
+func (a *Instance) buildVariable(typeKey string) (variable.Variable, error) {
+	if id := enum.RuntimeTypeID(typeKey); id != "" {
+		def, ok := a.enums[id]
+		if !ok {
+			return nil, fmt.Errorf("this graph has no enum %q", id)
+		}
+		return variable.NewEnumVariable(def.table), nil
+	}
+	if a.variableFactory == nil {
+		return nil, fmt.Errorf("no variable factory to build a %q variable with", typeKey)
+	}
+	return a.variableFactory(typeKey)
+}
+
+// NewVariableOfType returns the variable and the node type its reference
+// nodes are created with.
+func (a *Instance) NewVariableOfType(variablePath, typeKey string) (created variable.Variable, nodeType string, err error) {
+	_, err = a.write(refuseConflicts, func() (err error) {
+		created, err = a.buildVariable(typeKey)
+		if err != nil {
+			return err
+		}
+		nodeType, err = a.newVariable(variablePath, created)
+		return err
+	})
+	return created, nodeType, err
+}
 
 // NewVariable returns the node type its reference nodes are created with.
 func (a *Instance) NewVariable(variablePath string, variable variable.Variable) (nodeType string, err error) {
@@ -255,7 +286,10 @@ func (a *Instance) UpdateVariable(variablePath string, data []byte) (changed boo
 			return err
 		}
 		changed, err = variable.ApplyMessage(data)
-		return err
+		if err != nil {
+			return fmt.Errorf("%s: %w", variablePath, err)
+		}
+		return nil
 	})
 	return changed, err
 }
