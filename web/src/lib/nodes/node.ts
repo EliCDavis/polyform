@@ -481,34 +481,39 @@ export class PolyNodeController {
             return;
         }
 
-        // Don't do anything if we're up to date
-        if (this.nodeOutputWidgets.has(outputKey) && outputKey in this.outputs && this.outputs[outputKey].version === version) {
+        if (!this.serializableOutputTypes.includes(this.nodeDefinition.outputs[outputKey].type)) {
             return;
         }
 
-        let found = false;
-        for (let i = 0; i < this.serializableOutputTypes.length; i++) {
-            if (this.nodeDefinition.outputs[outputKey].type == this.serializableOutputTypes[i]) {
-                found = true;
-                break;
-            }
-        }
-
-        if (!found) {
+        if (this.thumbnailVersions.get(outputKey) === version) {
             return;
         }
+        this.thumbnailVersions.set(outputKey, version);
 
-        // const stringWidget = GlobalWidgetFactory.create(this.flowNode, "string", {}) as StringWidget;
-        // this.flowNode.addWidget(stringWidget);
-        // stringWidget.Set("" + version);
-
-        if (!this.nodeOutputWidgets.has(outputKey)) {
-            const imageWidget = GlobalWidgetFactory.create(this.flowNode, "image", {});
-            this.flowNode.addWidget(imageWidget);
-            this.nodeOutputWidgets.set(outputKey, imageWidget)
-        }
-
-        this.nodeOutputWidgets.get(outputKey).SetUrl(nodeOutputUrl(this.id, outputKey, this.nodeManager.getScopeApiPath()));
+        const url = nodeOutputUrl(this.id, outputKey, this.nodeManager.getScopeApiPath());
+        fetch(url)
+            .then(async (response) => {
+                if (this.thumbnailVersions.get(outputKey) !== version) {
+                    return;
+                }
+                if (response.status === 204) {
+                    this.removePreview(outputKey);
+                    this.thumbnailVersions.set(outputKey, version);
+                    return;
+                }
+                if (!response.ok) {
+                    throw new Error(`${response.status} fetching ${url}`);
+                }
+                const blob = await response.blob();
+                let widget = this.nodeOutputWidgets.get(outputKey);
+                if (!widget) {
+                    widget = GlobalWidgetFactory.create(this.flowNode, "image", {}) as ImageWidget;
+                    this.flowNode.addWidget(widget);
+                    this.nodeOutputWidgets.set(outputKey, widget);
+                }
+                widget.SetBlob(blob);
+            })
+            .catch((err) => console.warn(`preview for ${this.id}.${outputKey}:`, err));
     }
 
     // A dynamic port has no type until something is wired into it

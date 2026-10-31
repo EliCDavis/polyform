@@ -73,47 +73,48 @@ import (
 	_ "github.com/EliCDavis/polyform/nodes/text"
 )
 
+func textureEntry[T any](tex texturing.Texture[T], conversion func(T) color.Color) manifest.Entry {
+	if tex.Width() == 0 || tex.Height() == 0 {
+		return manifest.Entry{}
+	}
+	return manifest.Entry{Artifact: texturing.Artifact[T]{Texture: tex, Conversion: conversion}}
+}
+
 func main() {
 	nodeSerializer := &serialize.TypeSwitch[manifest.Entry]{}
 	gltf.RegisterOutputSerializers(nodeSerializer)
 
 	serialize.Register(nodeSerializer, func(i image.Image) manifest.Entry {
+		if i == nil || i.Bounds().Empty() {
+			return manifest.Entry{}
+		}
 		return manifest.Entry{Artifact: basics.Image{Image: i}}
 	})
 
 	serialize.Register(nodeSerializer, func(tex texturing.Texture[float64]) manifest.Entry {
-		return manifest.Entry{Artifact: texturing.Artifact[float64]{
-			Texture: tex,
-			Conversion: func(v float64) color.Color {
-				b := byte(math.Min(math.Max(v, 0), 1) * 255)
-				return color.RGBA{R: b, G: b, B: b, A: 255}
-			},
-		}}
+		return textureEntry(tex, func(v float64) color.Color {
+			b := byte(math.Min(math.Max(v, 0), 1) * 255)
+			return color.RGBA{R: b, G: b, B: b, A: 255}
+		})
 	})
 
 	serialize.Register(nodeSerializer, func(tex texturing.Texture[bool]) manifest.Entry {
-		return manifest.Entry{Artifact: texturing.Artifact[bool]{
-			Texture: tex,
-			Conversion: func(b bool) color.Color {
-				var v byte = 0
-				if b {
-					v = 255
-				}
-				return color.RGBA{R: v, G: v, B: v, A: 255}
-			},
-		}}
+		return textureEntry(tex, func(b bool) color.Color {
+			var v byte = 0
+			if b {
+				v = 255
+			}
+			return color.RGBA{R: v, G: v, B: v, A: 255}
+		})
 	})
 
-	serialize.Register(nodeSerializer, func(i texturing.Texture[color.Color]) manifest.Entry {
-		return manifest.Entry{Artifact: texturing.Artifact[color.Color]{
-			Texture: i,
-			Conversion: func(b color.Color) color.Color {
-				if b == nil {
-					return color.RGBA{R: 0, G: 0, B: 0, A: 255}
-				}
-				return b
-			},
-		}}
+	serialize.Register(nodeSerializer, func(tex texturing.Texture[color.Color]) manifest.Entry {
+		return textureEntry(tex, func(b color.Color) color.Color {
+			if b == nil {
+				return color.RGBA{R: 0, G: 0, B: 0, A: 255}
+			}
+			return b
+		})
 	})
 
 	serialize.Register(nodeSerializer, func(g coloring.Gradient[float64]) manifest.Entry {

@@ -713,6 +713,13 @@ export class NodeManager {
     //     })
     // }
 
+    unregisterCustomNodeType(nodeType: string): void {
+        const path = this.nodeTypeToFlowNodePath.get(nodeType);
+        if (path) {
+            this.unregisterNodeType(path);
+        }
+    }
+
     unregisterNodeType(nodePublisherPath: string): void {
         if (!this.nodesPublisher.unregister(nodePublisherPath)) {
             console.error("Failed to unregister", nodePublisherPath);

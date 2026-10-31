@@ -119,7 +119,7 @@ var finishes = parameter.DefineEnum(
 )
 ```
 
-That one declaration names the members and gives the enum a parameter node and a variable type. The zero value must be listed: it is what an unwired port holds. `DefineEnum` panics at start-up if it is missing or if a name or value repeats.
+That one declaration names the members and gives the enum a parameter node, a Members node that outputs every value in declared order, and a variable type. The zero value must be listed: it is what an unwired port holds. `DefineEnum` panics at start-up if it is missing or if a name or value repeats.
 
 A node then declares the port like any other and reads it with the zero value as the fallback:
 

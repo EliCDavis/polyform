@@ -9,21 +9,32 @@ import (
 	"github.com/EliCDavis/polyform/nodes"
 )
 
-const EnumParameterTypePrefix = "enum-parameter/"
+const (
+	EnumParameterTypePrefix = "enum-parameter/"
+	EnumMembersTypePrefix   = "enum-members/"
+)
 
-func IsEnumParameterType(typeName string) bool {
-	return len(typeName) > len(EnumParameterTypePrefix) && typeName[:len(EnumParameterTypePrefix)] == EnumParameterTypePrefix
-}
+func IsEnumParameterType(typeName string) bool { return EnumParameterTypeID(typeName) != "" }
 
 func EnumParameterTypeID(typeName string) string {
-	if !IsEnumParameterType(typeName) {
-		return ""
-	}
-	return typeName[len(EnumParameterTypePrefix):]
+	return enumNodeTypeID(EnumParameterTypePrefix, typeName)
 }
 
-func EnumParameterTypePath(id string) string {
-	return EnumParameterTypePrefix + id
+func EnumParameterTypePath(id string) string { return EnumParameterTypePrefix + id }
+
+func IsEnumMembersType(typeName string) bool { return EnumMembersTypeID(typeName) != "" }
+
+func EnumMembersTypeID(typeName string) string {
+	return enumNodeTypeID(EnumMembersTypePrefix, typeName)
+}
+
+func EnumMembersTypePath(id string) string { return EnumMembersTypePrefix + id }
+
+func enumNodeTypeID(prefix, typeName string) string {
+	if len(typeName) <= len(prefix) || typeName[:len(prefix)] != prefix {
+		return ""
+	}
+	return typeName[len(prefix):]
 }
 
 const enumParameterOutputPortName = "Value"

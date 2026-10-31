@@ -97,7 +97,7 @@ func (a *Instance) Reset() {
 
 	// A snapshot is restored into a registry holding only what it defines.
 	for _, key := range a.typeFactory.Types() {
-		if subgraph.IsRuntimeNodeType(key) || IsEnumParameterType(key) {
+		if subgraph.IsRuntimeNodeType(key) || IsEnumParameterType(key) || IsEnumMembersType(key) {
 			a.typeFactory.Unregister(key)
 		}
 	}

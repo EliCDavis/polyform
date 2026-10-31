@@ -42,6 +42,7 @@ func TestDefineEnumRegistersParameterNodeAndVariableType(t *testing.T) {
 
 	key := "github.com/EliCDavis/polyform/generator/parameter.Enum[github.com/EliCDavis/polyform/generator/parameter_test.Grain]"
 	require.True(t, registry.Types().KeyRegistered(key))
+	require.True(t, registry.Types().KeyRegistered("github.com/EliCDavis/polyform/generator/enum.Members[github.com/EliCDavis/polyform/generator/parameter_test.Grain]"))
 	assert.True(t, nodes.IsPortTypeKnown("github.com/EliCDavis/polyform/generator/parameter_test.Grain"))
 
 	_, err := variabletypes.New("parameter_test.Grain")

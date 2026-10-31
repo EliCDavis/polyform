@@ -92,6 +92,10 @@ func (as *Server) writeNodeOutput(w http.ResponseWriter, r *http.Request) error 
 		entry = as.NodeOutputSerialization.Run(resolved.output)
 		identity, source = outputIdentity(resolved.output)
 	})
+	if entry.Artifact == nil {
+		w.WriteHeader(http.StatusNoContent)
+		return nil
+	}
 	return as.built.serve(w, r, identity, source, entry.Artifact)
 }
 

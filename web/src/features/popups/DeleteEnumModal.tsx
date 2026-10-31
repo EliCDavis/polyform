@@ -19,6 +19,7 @@ export function DeleteEnumModal({ open, enumId, name, schemaManager, nodeManager
       enumId,
       () => {
         nodeManager.unregisterEnumParameterType(ENUM_TYPE_PREFIX + enumId);
+        nodeManager.unregisterCustomNodeType("enum-members/" + enumId);
         nodeManager.refreshRegisteredTypes(() => schemaManager.refreshSchema("deleted an enum"));
         onClose();
       },

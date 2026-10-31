@@ -21,9 +21,10 @@ type EnumBody struct {
 }
 
 type EnumResponse struct {
-	ID       string          `json:"id"`
-	Type     string          `json:"type"`
-	NodeType schema.NodeType `json:"nodeType"`
+	ID              string          `json:"id"`
+	Type            string          `json:"type"`
+	NodeType        schema.NodeType `json:"nodeType"`
+	MembersNodeType schema.NodeType `json:"membersNodeType"`
 }
 
 func enumInstanceEndpoint(graphInstance *graph.Instance, saver *GraphSaver) endpoint.Handler {
@@ -32,7 +33,11 @@ func enumInstanceEndpoint(graphInstance *graph.Instance, saver *GraphSaver) endp
 		if err != nil {
 			return EnumResponse{}, err
 		}
-		return EnumResponse{ID: id, Type: enum.RuntimeTypePath(id), NodeType: nodeType}, nil
+		membersType, err := graphInstance.EnumMembersNodeType(id)
+		if err != nil {
+			return EnumResponse{}, err
+		}
+		return EnumResponse{ID: id, Type: enum.RuntimeTypePath(id), NodeType: nodeType, MembersNodeType: membersType}, nil
 	}
 
 	idOf := func(url string) (string, error) {

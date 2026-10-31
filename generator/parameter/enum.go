@@ -16,6 +16,7 @@ func DefineEnum[E comparable](entries ...enum.Entry[E]) enum.Set[E] {
 	set := enum.Define(entries...)
 	factory := &refutil.TypeFactory{}
 	refutil.RegisterTypeWithBuilder(factory, func() Enum[E] { return Enum[E]{set: set} })
+	refutil.RegisterTypeWithBuilder(factory, func() enum.Members[E] { return enum.NewMembers(set) })
 	registry.Register(factory)
 	variabletypes.RegisterEnum(set)
 	return set

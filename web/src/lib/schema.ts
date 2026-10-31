@@ -185,6 +185,7 @@ export interface EnumResponse {
   id: string;
   type: string;
   nodeType: NodeDefinition;
+  membersNodeType: NodeDefinition;
 }
 
 export interface ImportedEnumEntry {

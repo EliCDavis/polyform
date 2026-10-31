@@ -54,7 +54,11 @@ func (a *Instance) createEnum(id, name, description string, members []enum.Membe
 	a.typeFactory.RegisterBuilder(EnumParameterTypePath(id), func() any {
 		return NewEnumParameter(a.enums[id].table, a.enums[id].name)
 	})
+	a.typeFactory.RegisterBuilder(EnumMembersTypePath(id), func() any {
+		return NewEnumMembers(a.enums[id].table, a.enums[id].name)
+	})
 	nodes.DiscoverNodePortTypes(NewEnumParameter(table, name))
+	nodes.DiscoverNodePortTypes(NewEnumMembers(table, name))
 	return nil
 }
 
@@ -113,8 +117,24 @@ func (a *Instance) updateEnum(id string, update EnumUpdate) error {
 	if err != nil {
 		return err
 	}
+	for _, members := range a.enumMembersNodes(id) {
+		members.SetTable(table)
+	}
 	a.renameEnumMembersInProfiles(id, update.Renamed)
 	return nil
+}
+
+func (a *Instance) enumMembersNodes(id string) []*EnumMembersNode {
+	typeName := enum.RuntimeTypePath(id)
+	var found []*EnumMembersNode
+	for _, scope := range a.scopes() {
+		for node := range scope.graph.nodeIDs {
+			if members, ok := node.(*EnumMembersNode); ok && members.Table().TypeName() == typeName {
+				found = append(found, members)
+			}
+		}
+	}
+	return found
 }
 
 func (a *Instance) DeleteEnum(id string) error {
@@ -133,6 +153,7 @@ func (a *Instance) deleteEnum(id string) error {
 		return fmt.Errorf("enum %q is still used by %s", def.name, strings.Join(holders, ", "))
 	}
 	a.typeFactory.Unregister(EnumParameterTypePath(id))
+	a.typeFactory.Unregister(EnumMembersTypePath(id))
 	delete(a.enums, id)
 	return nil
 }
@@ -193,6 +214,17 @@ func (a *Instance) EnumParameterNodeType(id string) (schema.NodeType, error) {
 	}
 	typePath := EnumParameterTypePath(id)
 	return BuildNodeTypeSchema(typePath, NewEnumParameter(def.table, def.name)), nil
+}
+
+func (a *Instance) EnumMembersNodeType(id string) (schema.NodeType, error) {
+	a.mu().RLock()
+	defer a.mu().RUnlock()
+	def, ok := a.enums[id]
+	if !ok {
+		return schema.NodeType{}, fmt.Errorf("enum %q does not exist", id)
+	}
+	typePath := EnumMembersTypePath(id)
+	return BuildNodeTypeSchema(typePath, NewEnumMembers(def.table, def.name)), nil
 }
 
 func (a *Instance) freeEnumID(base string) string {
@@ -292,6 +324,9 @@ func (a *Instance) enumTypeHolders(id string) []string {
 		for node, nodeID := range scope.graph.nodeIDs {
 			if param, ok := node.(*EnumParameterNode); ok && param.Table().TypeName() == typeName {
 				held = append(held, "parameter "+scope.prefix+nodeID)
+			}
+			if members, ok := node.(*EnumMembersNode); ok && members.Table().TypeName() == typeName {
+				held = append(held, "members "+scope.prefix+nodeID)
 			}
 			if boundary, ok := subgraph.IsBoundaryNode(node); ok && boundary.BoundaryPortType() == typeName {
 				held = append(held, "port "+scope.prefix+nodeID)

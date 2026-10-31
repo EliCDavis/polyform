@@ -35,6 +35,9 @@ func referencedEnumIDs(app persistence.App) []string {
 			if id := EnumParameterTypeID(node.Type); id != "" {
 				referenced[id] = true
 			}
+			if id := EnumMembersTypeID(node.Type); id != "" {
+				referenced[id] = true
+			}
 			if node.Type == subgraph.InputNodeTypeKey || node.Type == subgraph.OutputNodeTypeKey {
 				note(boundaryPortType(node.Data))
 			}
@@ -160,6 +163,11 @@ func rewriteEnumIDs(app persistence.App, idMap map[string]string) persistence.Ap
 			if oldID := EnumParameterTypeID(node.Type); oldID != "" {
 				if newID, ok := idMap[oldID]; ok {
 					node.Type = EnumParameterTypePath(newID)
+				}
+			}
+			if oldID := EnumMembersTypeID(node.Type); oldID != "" {
+				if newID, ok := idMap[oldID]; ok {
+					node.Type = EnumMembersTypePath(newID)
 				}
 			}
 			if node.Type == subgraph.InputNodeTypeKey || node.Type == subgraph.OutputNodeTypeKey {

@@ -44,11 +44,18 @@ func countingOutputServer(t *testing.T) (http.Handler, *int) {
 	tf.RegisterBuilder(subgraph.InputNodeTypeKey, func() any { return subgraph.NewInputNode("", "") })
 	tf.RegisterBuilder(subgraph.OutputNodeTypeKey, func() any { return subgraph.NewOutputNode("", "") })
 	tf.RegisterBuilder("Float64", func() any { return &parameter.Float64{CurrentValue: 7} })
+	tf.RegisterBuilder("String", func() any { return &parameter.String{} })
 	tf.RegisterBuilder("Text", func() any { return &nodes.Struct[basics.TextNode]{} })
 
 	serializer := &serialize.TypeSwitch[manifest.Entry]{}
 	serialize.Register(serializer, func(f float64) manifest.Entry {
 		return manifest.Entry{Artifact: countedArtifact{Artifact: basics.Binary{Data: []byte(fmt.Sprint(f))}, writes: writes}}
+	})
+	serialize.Register(serializer, func(s string) manifest.Entry {
+		if s == "" {
+			return manifest.Entry{}
+		}
+		return manifest.Entry{Artifact: basics.TextArtifact{Data: s}}
 	})
 
 	instance := graph.New(graph.Config{TypeFactory: tf})
@@ -73,6 +80,20 @@ func TestNodeOutputIsBuiltOncePerVersion(t *testing.T) {
 	changed := call(t, handler, http.MethodGet, "/node/output/"+value+"/Value", "")
 	assert.Equal(t, "9", changed.Body.String())
 	assert.Equal(t, 2, *writes)
+}
+
+func TestNodeOutputWithNothingToShowIsNoContent(t *testing.T) {
+	handler := outputServer(t)
+	text := createRootNode(t, handler, "String")
+
+	empty := call(t, handler, http.MethodGet, "/node/output/"+text+"/Value", "")
+	assert.Equal(t, http.StatusNoContent, empty.Code)
+	assert.Empty(t, empty.Body.String())
+
+	setParameterValue(t, handler, text, `"hi"`)
+	filled := call(t, handler, http.MethodGet, "/node/output/"+text+"/Value", "")
+	require.Equal(t, http.StatusOK, filled.Code, filled.Body.String())
+	assert.Equal(t, "hi", filled.Body.String())
 }
 
 func TestNodeOutputIsRebuiltForANewNodeAtTheSameIDAndVersion(t *testing.T) {

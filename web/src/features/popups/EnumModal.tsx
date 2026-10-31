@@ -66,6 +66,7 @@ export function EnumModal({ open, onClose, schemaManager, nodeManager, enumId, i
 
   const applied = (resp: EnumResponse) => {
     nodeManager.registerCustomNodeType(resp.nodeType);
+    nodeManager.registerCustomNodeType(resp.membersNodeType);
     nodeManager.refreshRegisteredTypes(() => {
       if (enumId) {
         // Canvas nodes bake the member list into their widgets; rebuild them.
