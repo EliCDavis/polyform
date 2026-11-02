@@ -29,7 +29,7 @@ func onSpline(spline Spline, at func(Spline) vector3.Float64) vector3.Float64 {
 
 type PositionNode struct {
 	Spline   nodes.LiftedPort[Spline]  `description:"The spline to sample."`
-	Distance nodes.LiftedPort[float64] `description:"Distance along the spline, from 0 at the start. Defaults to 0."`
+	Distance nodes.LiftedPort[float64] `description:"Distance along the spline, from 0 at the start."`
 }
 
 func (tn PositionNode) Description() string {
@@ -59,7 +59,7 @@ func (ln LengthNode) Out(out *nodes.StructOutput[float64]) {
 
 type TangentNode struct {
 	Spline   nodes.LiftedPort[Spline]  `description:"The spline to sample."`
-	Distance nodes.LiftedPort[float64] `description:"Distance along the spline, from 0 at the start. Defaults to 0."`
+	Distance nodes.LiftedPort[float64] `description:"Distance along the spline, from 0 at the start."`
 }
 
 func (tn TangentNode) Description() string {
@@ -71,4 +71,3 @@ func (tn TangentNode) Tangent(out *nodes.Lifted[vector3.Float64]) {
 		return onSpline(spline, func(s Spline) vector3.Float64 { return s.Tangent(distance) })
 	})
 }
-

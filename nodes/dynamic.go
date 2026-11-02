@@ -371,6 +371,7 @@ func (d *dynamicOutput) evaluate() dynamicResult {
 		}
 	}
 
+	fillDefaults(d.node)
 	handleValue := reflect.New(d.handleType.Elem())
 	handle := handleValue.Interface().(dynamicHandle)
 	handle.attachType(d.Type())

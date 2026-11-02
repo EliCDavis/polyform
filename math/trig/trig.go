@@ -28,8 +28,8 @@ func wave(
 
 type SinNode struct {
 	Input     nodes.LiftedPort[float64] `description:"Angle in radians."`
-	Amplitude nodes.LiftedPort[float64] `description:"Multiplies every result: Amplitude * f(Input + Shift). Defaults to 1."`
-	Shift     nodes.LiftedPort[float64] `description:"Added to the input before the function, a phase shift, not an output offset: Amplitude * f(Input + Shift). Defaults to 0."`
+	Amplitude nodes.LiftedPort[float64] `description:"Multiplies every result: Amplitude * f(Input + Shift)." default:"1"`
+	Shift     nodes.LiftedPort[float64] `description:"Added to the input before the function, a phase shift, not an output offset: Amplitude * f(Input + Shift)."`
 }
 
 func (n SinNode) Description() string {
@@ -44,8 +44,8 @@ func (n SinNode) Out(out *nodes.Lifted[float64]) {
 
 type CosNode struct {
 	Input     nodes.LiftedPort[float64] `description:"Angle in radians."`
-	Amplitude nodes.LiftedPort[float64] `description:"Multiplies every result: Amplitude * f(Input + Shift). Defaults to 1."`
-	Shift     nodes.LiftedPort[float64] `description:"Added to the input before the function, a phase shift, not an output offset: Amplitude * f(Input + Shift). Defaults to 0."`
+	Amplitude nodes.LiftedPort[float64] `description:"Multiplies every result: Amplitude * f(Input + Shift)." default:"1"`
+	Shift     nodes.LiftedPort[float64] `description:"Added to the input before the function, a phase shift, not an output offset: Amplitude * f(Input + Shift)."`
 }
 
 func (n CosNode) Description() string {
@@ -60,8 +60,8 @@ func (n CosNode) Out(out *nodes.Lifted[float64]) {
 
 type TanNode struct {
 	Input     nodes.LiftedPort[float64] `description:"Angle in radians."`
-	Amplitude nodes.LiftedPort[float64] `description:"Multiplies every result: Amplitude * f(Input + Shift). Defaults to 1."`
-	Shift     nodes.LiftedPort[float64] `description:"Added to the input before the function, a phase shift, not an output offset: Amplitude * f(Input + Shift). Defaults to 0."`
+	Amplitude nodes.LiftedPort[float64] `description:"Multiplies every result: Amplitude * f(Input + Shift)." default:"1"`
+	Shift     nodes.LiftedPort[float64] `description:"Added to the input before the function, a phase shift, not an output offset: Amplitude * f(Input + Shift)."`
 }
 
 func (n TanNode) Description() string {
@@ -76,8 +76,8 @@ func (n TanNode) Out(out *nodes.Lifted[float64]) {
 
 type ArcSinNode struct {
 	Input     nodes.LiftedPort[float64] `description:"The ratio."`
-	Amplitude nodes.LiftedPort[float64] `description:"Multiplies every result: Amplitude * f(Input + Shift). Defaults to 1."`
-	Shift     nodes.LiftedPort[float64] `description:"Added to the input before the function: Amplitude * f(Input + Shift). Defaults to 0."`
+	Amplitude nodes.LiftedPort[float64] `description:"Multiplies every result: Amplitude * f(Input + Shift)." default:"1"`
+	Shift     nodes.LiftedPort[float64] `description:"Added to the input before the function: Amplitude * f(Input + Shift)."`
 }
 
 func (n ArcSinNode) Description() string {
@@ -92,8 +92,8 @@ func (n ArcSinNode) Out(out *nodes.Lifted[float64]) {
 
 type ArcCosNode struct {
 	Input     nodes.LiftedPort[float64] `description:"The ratio."`
-	Amplitude nodes.LiftedPort[float64] `description:"Multiplies every result: Amplitude * f(Input + Shift). Defaults to 1."`
-	Shift     nodes.LiftedPort[float64] `description:"Added to the input before the function: Amplitude * f(Input + Shift). Defaults to 0."`
+	Amplitude nodes.LiftedPort[float64] `description:"Multiplies every result: Amplitude * f(Input + Shift)." default:"1"`
+	Shift     nodes.LiftedPort[float64] `description:"Added to the input before the function: Amplitude * f(Input + Shift)."`
 }
 
 func (n ArcCosNode) Description() string {
@@ -108,8 +108,8 @@ func (n ArcCosNode) Out(out *nodes.Lifted[float64]) {
 
 type ArcTanNode struct {
 	Input     nodes.LiftedPort[float64] `description:"The ratio."`
-	Amplitude nodes.LiftedPort[float64] `description:"Multiplies every result: Amplitude * f(Input + Shift). Defaults to 1."`
-	Shift     nodes.LiftedPort[float64] `description:"Added to the input before the function: Amplitude * f(Input + Shift). Defaults to 0."`
+	Amplitude nodes.LiftedPort[float64] `description:"Multiplies every result: Amplitude * f(Input + Shift)." default:"1"`
+	Shift     nodes.LiftedPort[float64] `description:"Added to the input before the function: Amplitude * f(Input + Shift)."`
 }
 
 func (n ArcTanNode) Description() string {

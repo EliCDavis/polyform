@@ -6,10 +6,10 @@ import (
 )
 
 type RandomFloatNode struct {
-	Min     nodes.Output[float64] `description:"Lower bound of the random range, inclusive. Defaults to 0."`
-	Max     nodes.Output[float64] `description:"Upper bound of the random range, exclusive. Defaults to 1."`
-	Samples nodes.Output[int]     `description:"How many values to produce. Defaults to 0."`
-	Seed    nodes.Output[int]     `description:"The same seed always produces the same values. Defaults to 0."`
+	Min     nodes.Output[float64] `description:"Lower bound of the random range, inclusive."`
+	Max     nodes.Output[float64] `description:"Upper bound of the random range, exclusive." default:"1"`
+	Samples nodes.Output[int]     `description:"How many values to produce."`
+	Seed    nodes.Output[int]     `description:"The same seed always produces the same values."`
 }
 
 func (snd RandomFloatNode) Description() string {
@@ -17,13 +17,13 @@ func (snd RandomFloatNode) Description() string {
 }
 
 func (snd RandomFloatNode) Out(out *nodes.StructOutput[[]float64]) {
-	minV := nodes.TryGetOutputValue(out, snd.Min, 0.)
-	maxV := nodes.TryGetOutputValue(out, snd.Max, 1.)
+	minV := nodes.GetOutputValue(out, snd.Min)
+	maxV := nodes.GetOutputValue(out, snd.Max)
 	rangeV := maxV - minV
 
-	samples := max(nodes.TryGetOutputValue(out, snd.Samples, 0), 0)
+	samples := max(nodes.GetOutputValue(out, snd.Samples), 0)
 
-	rnd := chance.FromSeed(nodes.TryGetOutputValue(out, snd.Seed, 0))
+	rnd := chance.FromSeed(nodes.GetOutputValue(out, snd.Seed))
 	arr := make([]float64, samples)
 	for i := range samples {
 		v := minV + (rnd.Float64() * rangeV)
@@ -34,8 +34,8 @@ func (snd RandomFloatNode) Out(out *nodes.StructOutput[[]float64]) {
 }
 
 type RandomBoolNode struct {
-	Samples nodes.Output[int] `description:"How many values to produce. Defaults to 0."`
-	Seed    nodes.Output[int] `description:"The same seed always produces the same values. Defaults to 0."`
+	Samples nodes.Output[int] `description:"How many values to produce."`
+	Seed    nodes.Output[int] `description:"The same seed always produces the same values."`
 }
 
 func (snd RandomBoolNode) Description() string {
@@ -43,9 +43,9 @@ func (snd RandomBoolNode) Description() string {
 }
 
 func (snd RandomBoolNode) Out(out *nodes.StructOutput[[]bool]) {
-	samples := max(nodes.TryGetOutputValue(out, snd.Samples, 0), 0)
+	samples := max(nodes.GetOutputValue(out, snd.Samples), 0)
 
-	rnd := chance.FromSeed(nodes.TryGetOutputValue(out, snd.Seed, 0))
+	rnd := chance.FromSeed(nodes.GetOutputValue(out, snd.Seed))
 	arr := make([]bool, samples)
 	for i := range samples {
 		arr[i] = rnd.Float64() > 0.5

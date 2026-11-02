@@ -29,7 +29,7 @@ func (n BoundsNode) bounds(recorder nodes.ExecutionRecorder) (vector2.Float64, v
 		max = vector2.Max(max, p)
 	}
 
-	padding := nodes.TryGetOutputValue(recorder, n.Padding, 0)
+	padding := nodes.GetOutputValue(recorder, n.Padding)
 	pad := vector2.New(padding, padding)
 	return min.Sub(pad), max.Add(pad)
 }

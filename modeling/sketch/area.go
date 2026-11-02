@@ -250,9 +250,9 @@ func (n SubtractNode) Out(out *nodes.StructOutput[Area]) {
 
 type TransformAreaNode struct {
 	Area        nodes.LiftedPort[Area]            `description:"The area to move."`
-	Translation nodes.LiftedPort[vector2.Float64] `description:"Applied last. Defaults to no move."`
-	Rotation    nodes.LiftedPort[float64]         `description:"Degrees counter-clockwise about the origin. Defaults to 0."`
-	Scale       nodes.LiftedPort[vector2.Float64] `description:"Applied first, about the origin. A negative axis mirrors it. Defaults to 1 by 1."`
+	Translation nodes.LiftedPort[vector2.Float64] `description:"Applied last."`
+	Rotation    nodes.LiftedPort[float64]         `description:"Degrees counter-clockwise about the origin."`
+	Scale       nodes.LiftedPort[vector2.Float64] `description:"Applied first, about the origin. A negative axis mirrors it." default:"1,1"`
 }
 
 func (TransformAreaNode) Description() string {
@@ -267,9 +267,9 @@ func (n TransformAreaNode) Out(out *nodes.Lifted[Area]) {
 	nodes.Zip4(
 		out,
 		n.Area,
-		nodes.LiftedOr(n.Translation, vector2.Zero[float64]()),
+		n.Translation,
 		n.Rotation,
-		nodes.LiftedOr(n.Scale, vector2.One[float64]()),
+		n.Scale,
 		Area.Transform,
 	)
 }

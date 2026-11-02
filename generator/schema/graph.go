@@ -9,4 +9,10 @@ type Graph struct {
 	Variants  []string              `json:"variants,omitempty"`
 	SubGraphs map[string]SubGraph   `json:"subGraphs,omitempty"`
 	Enums     map[string]Enum       `json:"enums,omitempty"`
+	Version   GraphVersion          `json:"version"`
+}
+
+type GraphVersion struct {
+	Rebuilds uint32 `json:"rebuilds"`
+	Revision uint32 `json:"revision"`
 }

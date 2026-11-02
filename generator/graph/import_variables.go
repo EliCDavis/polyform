@@ -163,7 +163,10 @@ func (s *liftScope) lift(path, boundaryID string) (liftedVariable, error) {
 	boundary := persistence.Node{Type: subgraph.InputNodeTypeKey, Data: boundaryData}
 
 	input := VariableInput{Variable: path, Port: name}
-	if constant, ok := s.lifter.constant(saved, portType, name); ok {
+	if value, ok := s.lifter.literal(saved, portType); ok {
+		boundary.Literals = map[string]json.RawMessage{subgraph.DefaultPortName: value}
+		input.HasDefault = true
+	} else if constant, ok := s.lifter.constant(saved, portType, name); ok {
 		constantID := freeNodeID(s.def.Nodes, boundaryID)
 		s.def.Nodes[constantID] = constant
 		boundary.AssignedInput = map[string]schema.PortReference{
@@ -214,6 +217,22 @@ func (l *variableLifter) portType(saved persistence.Variable) (string, error) {
 		return "", fmt.Errorf("variable type %q has no typed value", header.Type)
 	}
 	return typed.Type(), nil
+}
+
+func (l *variableLifter) literal(saved persistence.Variable, portType string) (json.RawMessage, bool) {
+	variableType, ok := literalVariableType(portType)
+	if !ok {
+		return nil, false
+	}
+	if _, err := l.instance.buildVariable(variableType); err != nil {
+		return nil, false
+	}
+	var fields map[string]json.RawMessage
+	if json.Unmarshal(saved.Data, &fields) != nil {
+		return nil, false
+	}
+	value, ok := fields["value"]
+	return value, ok
 }
 
 func (l *variableLifter) constant(saved persistence.Variable, portType, name string) (persistence.Node, bool) {

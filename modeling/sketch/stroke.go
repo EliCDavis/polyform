@@ -53,9 +53,9 @@ func capsule(a, b vector2.Float64, radius float64, segments int) geometry.Shape 
 
 type StrokeNode struct {
 	Path     nodes.LiftedPort[[]vector2.Float64] `description:"Points to run through, in order."`
-	Width    nodes.LiftedPort[float64]           `description:"Full width of the stroke. Defaults to 1."`
-	Segments nodes.Output[int]                   `description:"Straight segments per half circle at the ends and bends. Defaults to 8."`
-	Closed   nodes.Output[bool]                  `description:"Joins the last point back to the first, so the stroke is a ring. Defaults to false."`
+	Width    nodes.LiftedPort[float64]           `description:"Full width of the stroke." default:"1"`
+	Segments nodes.Output[int]                   `description:"Straight segments per half circle at the ends and bends." default:"8"`
+	Closed   nodes.Output[bool]                  `description:"Joins the last point back to the first, so the stroke is a ring."`
 }
 
 func (StrokeNode) Description() string {
@@ -67,9 +67,9 @@ func (StrokeNode) Keywords() []string {
 }
 
 func (n StrokeNode) Out(out *nodes.Lifted[Area]) {
-	segments := max(nodes.TryGetOutputValue(out, n.Segments, 8), 1)
-	closed := nodes.TryGetOutputValue(out, n.Closed, false)
-	nodes.Zip2(out, n.Path, nodes.LiftedOr(n.Width, 1.), func(path []vector2.Float64, width float64) Area {
+	segments := max(nodes.GetOutputValue(out, n.Segments), 1)
+	closed := nodes.GetOutputValue(out, n.Closed)
+	nodes.Zip2(out, n.Path, n.Width, func(path []vector2.Float64, width float64) Area {
 		area, err := Stroke(path, width, segments, closed)
 		out.CaptureError(err)
 		return area

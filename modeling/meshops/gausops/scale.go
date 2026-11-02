@@ -37,8 +37,8 @@ func Scale(m modeling.Mesh, scaleAttr string, amount vector3.Float64) modeling.M
 
 type ScaleNode struct {
 	Mesh      nodes.Output[modeling.Mesh]
-	Attribute nodes.Output[string]
-	Amount    nodes.Output[vector3.Float64]
+	Attribute nodes.Output[string]          `default:"Scale"`
+	Amount    nodes.Output[vector3.Float64] `default:"1,1,1"`
 }
 
 func (sa3dn ScaleNode) Description() string {
@@ -52,12 +52,7 @@ func (sa3dn ScaleNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	}
 
 	mesh := nodes.GetOutputValue(out, sa3dn.Mesh)
-	if sa3dn.Amount == nil {
-		out.Set(mesh)
-		return
-	}
-
-	attr := nodes.TryGetOutputValue(out, sa3dn.Attribute, modeling.ScaleAttribute)
+	attr := nodes.GetOutputValue(out, sa3dn.Attribute)
 	amount := nodes.GetOutputValue(out, sa3dn.Amount)
 
 	out.Set(Scale(mesh, attr, amount))

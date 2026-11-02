@@ -45,7 +45,7 @@ type ManifestNode struct {
 
 func (pn ManifestNode) Out(out *nodes.StructOutput[manifest.Manifest]) {
 	entry := manifest.Entry{Artifact: Artifact{
-		MaterialFile: nodes.TryGetOutputValue(out, pn.MaterialFile, ""),
+		MaterialFile: nodes.GetOutputValue(out, pn.MaterialFile),
 		Scene:        nodes.TryGetOutputValue(out, pn.Scene, Scene{}),
 	}}
 	out.Set(manifest.SingleEntryManifest("model.obj", entry))
@@ -74,7 +74,7 @@ func (pn ObjectNode) Description() string {
 
 func (pn ObjectNode) Out(out *nodes.StructOutput[Object]) {
 	out.Set(Object{
-		Name:    nodes.TryGetOutputValue(out, pn.Name, ""),
+		Name:    nodes.GetOutputValue(out, pn.Name),
 		Entries: nodes.GetOutputValues(out, pn.Entrys),
 	})
 }
@@ -97,23 +97,23 @@ func (pn EntryNode) Out(out *nodes.StructOutput[Entry]) {
 
 type MaterialNode struct {
 	Name              nodes.Output[string]
-	AmbientColor      nodes.Output[coloring.Color]
-	DiffuseColor      nodes.Output[coloring.Color]
-	SpecularColor     nodes.Output[coloring.Color]
-	SpecularHighlight nodes.Output[float64]
-	OpticalDensity    nodes.Output[float64]
+	AmbientColor      nodes.Output[coloring.Color] `default:"#333333"`
+	DiffuseColor      nodes.Output[coloring.Color] `default:"#cccccc"`
+	SpecularColor     nodes.Output[coloring.Color] `default:"#ffffff"`
+	SpecularHighlight nodes.Output[float64]        `default:"100"`
+	OpticalDensity    nodes.Output[float64]        `default:"1"`
 	Transparency      nodes.Output[float64]
 }
 
 func (pn MaterialNode) Out(out *nodes.StructOutput[Material]) {
 	out.Set(Material{
-		Name:              nodes.TryGetOutputValue(out, pn.Name, ""),
-		SpecularHighlight: nodes.TryGetOutputValue(out, pn.SpecularHighlight, 100),
-		OpticalDensity:    nodes.TryGetOutputValue(out, pn.OpticalDensity, 1),
-		Transparency:      nodes.TryGetOutputValue(out, pn.Transparency, 0),
-		AmbientColor:      nodes.TryGetOutputReference(out, pn.AmbientColor, nil),
-		DiffuseColor:      nodes.TryGetOutputReference(out, pn.DiffuseColor, nil),
-		SpecularColor:     nodes.TryGetOutputReference(out, pn.SpecularColor, nil),
+		Name:              nodes.GetOutputValue(out, pn.Name),
+		SpecularHighlight: nodes.GetOutputValue(out, pn.SpecularHighlight),
+		OpticalDensity:    nodes.GetOutputValue(out, pn.OpticalDensity),
+		Transparency:      nodes.GetOutputValue(out, pn.Transparency),
+		AmbientColor:      nodes.GetOutputReference(out, pn.AmbientColor),
+		DiffuseColor:      nodes.GetOutputReference(out, pn.DiffuseColor),
+		SpecularColor:     nodes.GetOutputReference(out, pn.SpecularColor),
 	})
 }
 

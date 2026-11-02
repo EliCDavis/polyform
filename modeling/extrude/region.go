@@ -177,7 +177,7 @@ func extrudeArea(area sketch.Area, depth float64, uvs *primitives.StripUVs, extr
 
 type AreaNode struct {
 	Area  nodes.LiftedPort[sketch.Area]     `description:"The area to extrude."`
-	Depth nodes.LiftedPort[float64]         `description:"Thickness: the solid spans 0 to Depth along the output's axis; negative goes the other way. 0 (the default) gives a single face."`
+	Depth nodes.LiftedPort[float64]         `description:"Thickness: the solid spans 0 to Depth along the output's axis; negative goes the other way. 0 gives a single face."`
 	UVs   nodes.Output[primitives.StripUVs] `description:"Lays each wall loop out as a strip in world units: the distance around the loop runs across it, the depth along it. A cap takes the area's own X and Y. Defaults to the unit strip, so a texture repeats once per unit."`
 }
 

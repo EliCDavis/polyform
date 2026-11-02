@@ -117,7 +117,7 @@ type MapEntryNode[T any] struct {
 func (men MapEntryNode[T]) Out(out *nodes.StructOutput[MapEntry[T]]) {
 	var val T
 	out.Set(MapEntry[T]{
-		Name: nodes.TryGetOutputValue(out, men.Name, ""),
+		Name: nodes.GetOutputValue(out, men.Name),
 		Data: nodes.TryGetOutputValue(out, men.Data, val),
 	})
 }
@@ -255,11 +255,16 @@ func setAttribute[T any](
 	data nodes.LiftedPort[[]T],
 	setAttr func(Mesh, string, []T) Mesh,
 ) {
-	if attribute == nil || data == nil {
+	if data == nil {
 		nodes.Zip1(out, nodes.LiftedOr(mesh, EmptyMesh(PointTopology)), func(m Mesh) Mesh { return m })
 		return
 	}
-	nodes.Zip3(out, nodes.LiftedOr(mesh, EmptyPointcloud()), attribute, data, setAttr)
+	nodes.Zip3(out, nodes.LiftedOr(mesh, EmptyPointcloud()), attribute, data, func(m Mesh, name string, values []T) Mesh {
+		if name == "" {
+			return m
+		}
+		return setAttr(m, name, values)
+	})
 }
 
 type SetAttribute1DNode struct {
@@ -328,12 +333,10 @@ func fillAttribute[T any](
 	setAttr func(Mesh, string, []T) Mesh,
 ) {
 	meshes := nodes.LiftedOr(mesh, EmptyMesh(PointTopology))
-	if attribute == nil {
-		nodes.Zip1(out, meshes, func(m Mesh) Mesh { return m })
-		return
-	}
-
 	nodes.Zip3(out, meshes, attribute, value, func(m Mesh, attr string, v T) Mesh {
+		if attr == "" {
+			return m
+		}
 		data := make([]T, m.AttributeLength())
 		for i := range data {
 			data[i] = v

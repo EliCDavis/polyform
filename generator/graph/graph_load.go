@@ -56,7 +56,7 @@ func (a *Instance) applyAppSchema(jsonPayload []byte) error {
 	}
 
 	a.Reset()
-	a.modelVersion++
+	a.version.Revision++
 
 	a.details = Details{Name: app.Name, Version: app.Version, Description: app.Description, Authors: app.Authors}
 	a.metadata.OverwriteData(app.Metadata)
@@ -164,6 +164,22 @@ func (a *Graph) loadNodes(saved map[string]persistence.Node, decoder jbtf.Decode
 			reads[port] = append(reads[port], source{node: producer, port: from.PortName})
 		}
 		a.reads[created[id]] = reads
+	}
+
+	// After FromJSON: a boundary has no port type before it.
+	if _, err := a.reconcileLiterals(); err != nil {
+		return err
+	}
+	for _, id := range order {
+		for port, raw := range saved[id].Literals {
+			lit, err := a.literalOf(created[id], port)
+			if err == nil {
+				_, err = lit.value.ApplyMessage(raw)
+			}
+			if err != nil {
+				return fmt.Errorf("node %s literal %q: %w", id, port, err)
+			}
+		}
 	}
 
 	_, err := a.settle(refuseConflicts)

@@ -18,7 +18,7 @@ func Translate(field sample.Vec3ToFloat, translation vector3.Float64) sample.Vec
 }
 
 type TranslateNode struct {
-	Position nodes.Output[vector3.Float64]    `description:"Offset to shift the field by. Defaults to no movement."`
+	Position nodes.Output[vector3.Float64]    `description:"Offset to shift the field by."`
 	Field    nodes.Output[sample.Vec3ToFloat] `description:"The field to move."`
 }
 
@@ -33,7 +33,7 @@ func (cn TranslateNode) Result(out *nodes.StructOutput[sample.Vec3ToFloat]) {
 
 	out.Set(Translate(
 		nodes.GetOutputValue(out, cn.Field),
-		nodes.TryGetOutputValue(out, cn.Position, vector3.Zero[float64]()),
+		nodes.GetOutputValue(out, cn.Position),
 	))
 }
 
@@ -48,7 +48,7 @@ func Rotate(field sample.Vec3ToFloat, rotation quaternion.Quaternion) sample.Vec
 }
 
 type RotateNode struct {
-	Rotation nodes.Output[quaternion.Quaternion] `description:"Rotation to apply about the origin. Defaults to no rotation."`
+	Rotation nodes.Output[quaternion.Quaternion] `description:"Rotation to apply about the origin."`
 	Field    nodes.Output[sample.Vec3ToFloat]    `description:"The field to rotate."`
 }
 
@@ -63,7 +63,7 @@ func (cn RotateNode) Result(out *nodes.StructOutput[sample.Vec3ToFloat]) {
 
 	out.Set(Rotate(
 		nodes.GetOutputValue(out, cn.Field),
-		nodes.TryGetOutputValue(out, cn.Rotation, quaternion.Identity()),
+		nodes.GetOutputValue(out, cn.Rotation),
 	))
 }
 
@@ -82,7 +82,7 @@ func Scale(field sample.Vec3ToFloat, scale vector3.Float64) (sample.Vec3ToFloat,
 }
 
 type ScaleNode struct {
-	Scale nodes.Output[vector3.Float64]    `description:"Per-axis scale about the origin. Equal components keep distances exact; unequal ones report the shortest distance, which stays safe to march and blend. A zero component is an error. Defaults to no scaling."`
+	Scale nodes.Output[vector3.Float64]    `description:"Per-axis scale about the origin. Equal components keep distances exact; unequal ones report the shortest distance, which stays safe to march and blend. A zero component is an error." default:"1,1,1"`
 	Field nodes.Output[sample.Vec3ToFloat] `description:"The field to scale."`
 }
 
@@ -97,7 +97,7 @@ func (cn ScaleNode) Result(out *nodes.StructOutput[sample.Vec3ToFloat]) {
 
 	scaled, err := Scale(
 		nodes.GetOutputValue(out, cn.Field),
-		nodes.TryGetOutputValue(out, cn.Scale, vector3.One[float64]()),
+		nodes.GetOutputValue(out, cn.Scale),
 	)
 	if err != nil {
 		out.CaptureError(err)
@@ -118,7 +118,7 @@ func Transform(field sample.Vec3ToFloat, transformation trs.TRS) sample.Vec3ToFl
 }
 
 type TransformNode struct {
-	Transform nodes.Output[trs.TRS]            `description:"The translation/rotation/scale to apply. Defaults to identity (no change)."`
+	Transform nodes.Output[trs.TRS]            `description:"The translation/rotation/scale to apply."`
 	Field     nodes.Output[sample.Vec3ToFloat] `description:"The field to transform."`
 }
 
@@ -133,6 +133,6 @@ func (cn TransformNode) Result(out *nodes.StructOutput[sample.Vec3ToFloat]) {
 
 	out.Set(Transform(
 		nodes.GetOutputValue(out, cn.Field),
-		nodes.TryGetOutputValue(out, cn.Transform, trs.Identity()),
+		nodes.GetOutputValue(out, cn.Transform),
 	))
 }

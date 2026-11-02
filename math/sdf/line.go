@@ -73,9 +73,9 @@ func VarryingThicknessLine(linePoints []LinePoint) sample.Vec3ToFloat {
 }
 
 type LineNode struct {
-	Start  nodes.Output[vector3.Float64] `description:"One end of the line segment. Defaults to the origin."`
-	End    nodes.Output[vector3.Float64] `description:"The other end of the line segment. Defaults to (1, 1, 1)."`
-	Radius nodes.Output[float64]         `description:"Radius of the capsule around the segment. Defaults to 0.25."`
+	Start  nodes.Output[vector3.Float64] `description:"One end of the line segment."`
+	End    nodes.Output[vector3.Float64] `description:"The other end of the line segment." default:"1,1,1"`
+	Radius nodes.Output[float64]         `description:"Radius of the capsule around the segment." default:"0.25"`
 }
 
 func (cn LineNode) Description() string {
@@ -84,15 +84,15 @@ func (cn LineNode) Description() string {
 
 func (cn LineNode) Field(out *nodes.StructOutput[sample.Vec3ToFloat]) {
 	out.Set(Line(
-		nodes.TryGetOutputValue(out, cn.Start, vector3.Zero[float64]()),
-		nodes.TryGetOutputValue(out, cn.End, vector3.One[float64]()),
-		nodes.TryGetOutputValue(out, cn.Radius, .25),
+		nodes.GetOutputValue(out, cn.Start),
+		nodes.GetOutputValue(out, cn.End),
+		nodes.GetOutputValue(out, cn.Radius),
 	))
 }
 
 type LinesNode struct {
 	Points nodes.Output[[]vector3.Float64] `description:"Points to connect in order; each consecutive pair becomes a capsule segment, and all segments are unioned together. 0 points produces an empty field; 1 point, or 2 identical points, produces a single sphere."`
-	Radius nodes.Output[float64]           `description:"Radius of the capsule around every segment. Defaults to 0.25."`
+	Radius nodes.Output[float64]           `description:"Radius of the capsule around every segment." default:"0.25"`
 }
 
 func (cn LinesNode) Description() string {
@@ -102,7 +102,7 @@ func (cn LinesNode) Description() string {
 func (cn LinesNode) Field(out *nodes.StructOutput[sample.Vec3ToFloat]) {
 	out.Set(MultipointLine(
 		nodes.TryGetOutputValue(out, cn.Points, nil),
-		nodes.TryGetOutputValue(out, cn.Radius, .25),
+		nodes.GetOutputValue(out, cn.Radius),
 	))
 }
 

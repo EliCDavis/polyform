@@ -53,6 +53,7 @@ func (a *Graph) NodeInstanceSchema(node nodes.Node) schema.Node {
 		Type:          nodeTypeName(node),
 		DynamicTypes:  dynamicTypes,
 		AssignedInput: a.assignedInputs(node, label),
+		Literals:      a.literalValues(node, label),
 		Output:        make(map[string]schema.NodeOutputPort),
 		Metadata:      metadata,
 	}
@@ -149,6 +150,7 @@ func (a *Instance) Schema() schema.Graph {
 	}
 
 	graph := a.Graph.schema()
+	graph.Version = a.version
 	graph.Variables = variableSchema
 	graph.Profiles = a.profiles.Names()
 	graph.Variants = a.variantSets.Names()

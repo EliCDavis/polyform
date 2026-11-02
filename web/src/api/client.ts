@@ -7,7 +7,7 @@ export {
   type SetProducerBody,
 } from "../lib/requests";
 
-import { RequestManager } from "../lib/requests";
+import { RequestManager, type StartedResponse } from "../lib/requests";
 import type { GraphInstance, GraphExecutionReport, RegisteredTypes } from "../types/schema";
 
 export const requestManager = new RequestManager();
@@ -24,7 +24,7 @@ export function fetchNodeTypes(): Promise<RegisteredTypes> {
   });
 }
 
-export function fetchStartedTime(): Promise<{ time: string; modelVersion: number }> {
+export function fetchStartedTime(): Promise<StartedResponse> {
   return new Promise((resolve) => {
     requestManager.getStartedTime(resolve);
   });

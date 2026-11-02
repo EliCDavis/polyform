@@ -147,6 +147,10 @@ func TestInstance_AddProducer_InitializeParameters_Artifacts(t *testing.T) {
 	"variables": {
 		"variables": {},
 		"subgroups": {}
+	},
+	"version": {
+		"rebuilds": 1,
+		"revision": 1
 	}
 }`, string(instanceSchemaData))
 
@@ -220,7 +224,7 @@ func testInstanceWithTextProducer(t *testing.T) (*graph.Instance, *refutil.TypeF
 	return instance, factory
 }
 
-func TestInstance_MutationsThatChangeOutputsBumpTheModelVersion(t *testing.T) {
+func TestInstance_MutationsThatChangeOutputsBumpTheRevision(t *testing.T) {
 	factory := &refutil.TypeFactory{}
 	factory.RegisterBuilder("Param", func() any { return &parameter.String{CurrentValue: "bruh"} })
 	factory.RegisterBuilder("Text", func() any { return &nodes.Struct[basics.TextNode]{} })
@@ -251,9 +255,9 @@ func TestInstance_MutationsThatChangeOutputsBumpTheModelVersion(t *testing.T) {
 	for name, step := range steps {
 		t.Run(name, func(t *testing.T) {
 			f := build()
-			before := f.instance.ModelVersion()
+			before := f.instance.Version().Revision
 			step(f)
-			assert.NotEqualf(t, before, f.instance.ModelVersion(), "left the model version at %d", before)
+			assert.NotEqualf(t, before, f.instance.Version().Revision, "left the revision at %d", before)
 		})
 	}
 }

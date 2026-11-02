@@ -28,7 +28,7 @@ func RotateAttribute(m modeling.Mesh, attribute string, amount quaternion.Quater
 
 type RotateAttributeNode struct {
 	Mesh      nodes.Output[modeling.Mesh]
-	Attribute nodes.Output[string]
+	Attribute nodes.Output[string] `default:"Rotation"`
 	Amount    nodes.Output[quaternion.Quaternion]
 }
 
@@ -43,12 +43,7 @@ func (rand RotateAttributeNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	}
 
 	mesh := nodes.GetOutputValue(out, rand.Mesh)
-	if rand.Amount == nil {
-		out.Set(mesh)
-		return
-	}
-
 	amt := nodes.GetOutputValue(out, rand.Amount)
-	attr := nodes.TryGetOutputValue(out, rand.Attribute, modeling.RotationAttribute)
+	attr := nodes.GetOutputValue(out, rand.Attribute)
 	out.Set(RotateAttribute(mesh, attr, amt))
 }

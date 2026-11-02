@@ -33,6 +33,7 @@ func (a *Graph) forget(node nodes.Node) {
 	delete(a.nodeIDs, node)
 	delete(a.nodeTypeKeys, node)
 	delete(a.reads, node)
+	delete(a.literals, node)
 }
 
 func (a *Graph) nextNodeID() string {
@@ -62,7 +63,8 @@ func (a *Graph) registerWithInputs(node nodes.Node, typeKey string) {
 			held = slot.Value()
 		}
 		for _, port := range held {
-			if port != nil {
+			// A default the node filled in for itself is not an edge.
+			if port != nil && port.Node() != node && !a.isLiteralNode(port.Node()) {
 				a.registerWithInputs(port.Node(), "")
 				reads[name] = append(reads[name], source{node: port.Node(), port: port.Name()})
 			}

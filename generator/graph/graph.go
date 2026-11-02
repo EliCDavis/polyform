@@ -25,6 +25,8 @@ type Graph struct {
 	// inputs keyed by boundary node id. Node fields follow this, via settle only.
 	reads map[nodes.Node]map[string][]source
 
+	literals map[nodes.Node]nodeLiterals
+
 	metadata *sync.NestedSyncMap
 }
 
@@ -40,6 +42,7 @@ func (a *Graph) clear() {
 	a.nodeTypeKeys = make(map[nodes.Node]string)
 	a.boundaryNodes = make(map[string]subgraph.Boundary)
 	a.reads = make(map[nodes.Node]map[string][]source)
+	a.literals = make(map[nodes.Node]nodeLiterals)
 	a.nodeIDHighWater = 0
 	a.metadata = sync.NewNestedSyncMap()
 }

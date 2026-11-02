@@ -34,10 +34,10 @@ func (cn NewNode) Out(out *nodes.Lifted[Quaternion]) {
 	nodes.ZipAll(
 		out,
 		[]nodes.LiftedPort[float64]{
-			nodes.LiftedOr(cn.X, 0.),
-			nodes.LiftedOr(cn.Y, 0.),
-			nodes.LiftedOr(cn.Z, 0.),
-			nodes.LiftedOr(cn.W, 0.),
+			cn.X,
+			cn.Y,
+			cn.Z,
+			cn.W,
 		},
 		func(v []float64) Quaternion {
 			return New(vector3.New(v[0], v[1], v[2]), v[3])
@@ -63,8 +63,8 @@ func (cn FromThetaNode) Out(out *nodes.Lifted[Quaternion]) {
 // ============================================================================
 
 type RotationToNode struct {
-	From nodes.LiftedPort[vector3.Float64]
-	To   nodes.LiftedPort[vector3.Float64]
+	From nodes.LiftedPort[vector3.Float64] `default:"0,0,1"`
+	To   nodes.LiftedPort[vector3.Float64] `default:"0,0,1"`
 }
 
 func (RotationToNode) Description() string {
@@ -76,11 +76,10 @@ func (RotationToNode) Keywords() []string {
 }
 
 func (n RotationToNode) Out(out *nodes.Lifted[Quaternion]) {
-	forward := vector3.Forward[float64]()
 	nodes.Zip2(
 		out,
-		nodes.LiftedOr(n.From, forward),
-		nodes.LiftedOr(n.To, forward),
+		n.From,
+		n.To,
 		func(from, to vector3.Float64) Quaternion {
 			return RotationTo(from.Normalized(), to.Normalized())
 		},
@@ -105,8 +104,8 @@ func (MultiplyNode) Keywords() []string {
 func (n MultiplyNode) Out(out *nodes.Lifted[Quaternion]) {
 	nodes.Zip2(
 		out,
-		nodes.LiftedOr(n.First, Identity()),
-		nodes.LiftedOr(n.Then, Identity()),
+		n.First,
+		n.Then,
 		func(first, then Quaternion) Quaternion {
 			return then.Multiply(first)
 		},

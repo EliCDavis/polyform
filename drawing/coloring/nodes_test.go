@@ -30,10 +30,10 @@ func TestInterpolateNode(t *testing.T) {
 			t:   nodes.ConstOutput[float64]{Val: 0.5},
 			val: coloring.Black(),
 		},
-		"white = white": {
+		"white + unwired black = grey": {
 			a:   nodes.ConstOutput[coloring.Color]{Val: coloring.White()},
 			t:   nodes.ConstOutput[float64]{Val: 0.5},
-			val: coloring.White(),
+			val: coloring.Color{R: 0.5, G: 0.5, B: 0.5, A: 1},
 		},
 	}
 

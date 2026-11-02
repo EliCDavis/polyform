@@ -49,10 +49,10 @@ func init() {
 }
 
 type InterpolateNode struct {
-	A     nodes.LiftedPort[Color]   `description:"Color at Time=0."`
-	B     nodes.LiftedPort[Color]   `description:"Color at Time=1."`
-	Time  nodes.LiftedPort[float64] `description:"Blend factor between A and B, 0 to 1. Defaults to 0.5"`
-	Clamp nodes.Output[bool]        `description:"Defaults to false."`
+	A     nodes.LiftedPort[Color]   `description:"Color at Time=0." default:"#000000"`
+	B     nodes.LiftedPort[Color]   `description:"Color at Time=1." default:"#000000"`
+	Time  nodes.LiftedPort[float64] `description:"Blend factor between A and B, 0 to 1." default:"0.5"`
+	Clamp nodes.Output[bool]        `description:"Holds Time inside 0 to 1, so the result stays between A and B."`
 }
 
 func (n InterpolateNode) Description() string {
@@ -60,21 +60,8 @@ func (n InterpolateNode) Description() string {
 }
 
 func (n InterpolateNode) Out(out *nodes.Lifted[Color]) {
-	// One end left unwired is the other end rather than black, so that a
-	// half-built blend shows the color that is wired up.
-	a, b := n.A, n.B
-	switch {
-	case a == nil && b == nil:
-		opaqueBlack := nodes.ConstOutput[Color]{Val: Color{A: 1}}
-		a, b = opaqueBlack, opaqueBlack
-	case a == nil:
-		a = b
-	case b == nil:
-		b = a
-	}
-
-	clamp := nodes.TryGetOutputValue(out, n.Clamp, false)
-	nodes.Zip3(out, a, b, nodes.LiftedOr(n.Time, 0.5), func(a, b Color, time float64) Color {
+	clamp := nodes.GetOutputValue(out, n.Clamp)
+	nodes.Zip3(out, n.A, n.B, n.Time, func(a, b Color, time float64) Color {
 		if clamp {
 			time = min(max(time, 0), 1)
 		}
@@ -192,7 +179,7 @@ func (n GradientKeyNode[T]) Gradient(out *nodes.StructOutput[GradientKey[T]]) {
 	}
 
 	out.Set(GradientKey[T]{
-		Time:  nodes.TryGetOutputValue(out, n.Time, 0),
+		Time:  nodes.GetOutputValue(out, n.Time),
 		Value: val,
 	})
 }

@@ -123,7 +123,7 @@ func (a *Instance) convertSelectionToSubGraph(scope Scope, nodeIDs []string, nam
 		SubGraphID:    id,
 		Name:          name,
 		RuntimeNodeID: placed,
-		NodeType:      BuildNodeTypeSchema(typePath, NewRuntimeNode(a, id)),
+		NodeType:      a.NodeTypeSchema(typePath, NewRuntimeNode(a, id)),
 	}, nil
 }
 

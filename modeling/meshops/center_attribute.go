@@ -48,7 +48,7 @@ func CenterFloat3Attribute(m modeling.Mesh, attr string) modeling.Mesh {
 }
 
 type CenterAttribute3DNode struct {
-	Attribute nodes.Output[string]
+	Attribute nodes.Output[string] `default:"Position"`
 	Mesh      nodes.Output[modeling.Mesh]
 }
 
@@ -64,6 +64,6 @@ func (ca3dn CenterAttribute3DNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 
 	out.Set(CenterFloat3Attribute(
 		nodes.GetOutputValue(out, ca3dn.Mesh),
-		nodes.TryGetOutputValue(out, ca3dn.Attribute, modeling.PositionAttribute),
+		nodes.GetOutputValue(out, ca3dn.Attribute),
 	))
 }

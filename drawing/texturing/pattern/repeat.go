@@ -41,8 +41,8 @@ func Repeat[T any](element texturing.Texture[T], repeat vector2.Int, targetDimen
 }
 
 type RepeatNode[T any] struct {
-	Dimensions nodes.Output[vector2.Int]
-	Repeat     nodes.Output[vector2.Int]
+	Dimensions nodes.Output[vector2.Int] `default:"256,256"`
+	Repeat     nodes.Output[vector2.Int] `default:"2,2"`
 	Element    nodes.Output[texturing.Texture[T]]
 }
 
@@ -51,13 +51,13 @@ func (gnd RepeatNode[T]) Texture(out *nodes.StructOutput[texturing.Texture[T]]) 
 		return
 	}
 
-	dimensions := nodes.TryGetOutputValue(out, gnd.Dimensions, vector2.New(256, 256))
+	dimensions := nodes.GetOutputValue(out, gnd.Dimensions)
 	if dimensions.MinComponent() <= 0 {
 		out.CaptureError(texturing.InvalidDimension(dimensions))
 		return
 	}
 
-	repeat := nodes.TryGetOutputValue(out, gnd.Repeat, vector2.New(2, 2))
+	repeat := nodes.GetOutputValue(out, gnd.Repeat)
 	if repeat.MinComponent() <= 0 {
 		out.CaptureError(fmt.Errorf("can't repeat something %d times", repeat.MinComponent()))
 		return

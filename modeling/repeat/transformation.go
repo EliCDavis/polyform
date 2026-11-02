@@ -30,9 +30,9 @@ func (t Transformation) TRS() ([]trs.TRS, error) {
 }
 
 type TransformationNode struct {
-	Initial        nodes.LiftedPort[trs.TRS] `description:"Starting transform (the first copy's placement before any repetition is applied). Defaults to identity."`
-	Transformation nodes.LiftedPort[trs.TRS] `description:"The transform applied on top of the previous copy to produce the next one. Applied once for copy 1, twice for copy 2, and so on (cumulative, not reset each time). Defaults to identity (no change between copies)."`
-	Samples        nodes.LiftedPort[int]     `description:"How many copies to produce. Defaults to 0."`
+	Initial        nodes.LiftedPort[trs.TRS] `description:"Starting transform (the first copy's placement before any repetition is applied)."`
+	Transformation nodes.LiftedPort[trs.TRS] `description:"The transform applied on top of the previous copy to produce the next one. Applied once for copy 1, twice for copy 2, and so on (cumulative, not reset each time)."`
+	Samples        nodes.LiftedPort[int]     `description:"How many copies to produce."`
 }
 
 func (rnd TransformationNode) Description() string {
@@ -42,8 +42,8 @@ func (rnd TransformationNode) Description() string {
 func (rnd TransformationNode) Out(out *nodes.Lifted[[]trs.TRS]) {
 	nodes.Zip3(
 		out,
-		nodes.LiftedOr(rnd.Initial, trs.Identity()),
-		nodes.LiftedOr(rnd.Transformation, trs.Identity()),
+		rnd.Initial,
+		rnd.Transformation,
 		rnd.Samples,
 		func(initial, transformation trs.TRS, samples int) []trs.TRS {
 			result, err := Transformation{

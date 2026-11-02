@@ -75,7 +75,7 @@ func offsetLoop(loop geometry.Shape, distance float64, segments int) geometry.Sh
 type OffsetNode struct {
 	Area     nodes.LiftedPort[Area]    `description:"The area to grow or shrink."`
 	Distance nodes.LiftedPort[float64] `description:"How far to move every edge outward; negative moves it inward. Corners it grows around come out round."`
-	Segments nodes.Output[int]         `description:"Straight segments per half circle at grown corners. Defaults to 8."`
+	Segments nodes.Output[int]         `description:"Straight segments per half circle at grown corners." default:"8"`
 }
 
 func (OffsetNode) Description() string {
@@ -87,7 +87,7 @@ func (OffsetNode) Keywords() []string {
 }
 
 func (n OffsetNode) Out(out *nodes.Lifted[Area]) {
-	segments := max(nodes.TryGetOutputValue(out, n.Segments, 8), 1)
+	segments := max(nodes.GetOutputValue(out, n.Segments), 1)
 	nodes.Zip2(out, n.Area, n.Distance, func(area Area, distance float64) Area {
 		offset, err := Offset(area, distance, segments)
 		out.CaptureError(err)

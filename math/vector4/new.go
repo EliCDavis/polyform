@@ -7,10 +7,10 @@ import (
 )
 
 type NewNode[T vector.Number] struct {
-	X nodes.LiftedPort[T] `description:"Defaults to 0."`
-	Y nodes.LiftedPort[T] `description:"Defaults to 0."`
-	Z nodes.LiftedPort[T] `description:"Defaults to 0."`
-	W nodes.LiftedPort[T] `description:"Defaults to 0."`
+	X nodes.LiftedPort[T]
+	Y nodes.LiftedPort[T]
+	Z nodes.LiftedPort[T]
+	W nodes.LiftedPort[T]
 }
 
 func (cn NewNode[T]) Description() string {

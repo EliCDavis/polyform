@@ -83,8 +83,8 @@ func (c Circle) ToMesh() modeling.Mesh {
 }
 
 type CircleUVsNode struct {
-	Center nodes.Output[vector2.Float64]
-	Radius nodes.Output[float64]
+	Center nodes.Output[vector2.Float64] `default:"0.5,0.5"`
+	Radius nodes.Output[float64]         `default:"0.5"`
 }
 
 func (c CircleUVsNode) Description() string {
@@ -93,16 +93,16 @@ func (c CircleUVsNode) Description() string {
 
 func (c CircleUVsNode) Out(out *nodes.StructOutput[CircleUVs]) {
 	out.Set(CircleUVs{
-		Radius: nodes.TryGetOutputValue(out, c.Radius, 0.5),
-		Center: nodes.TryGetOutputValue(out, c.Center, vector2.Fill(0.5)),
+		Radius: nodes.GetOutputValue(out, c.Radius),
+		Center: nodes.GetOutputValue(out, c.Center),
 	})
 }
 
 type CircleNode struct {
-	Radius     nodes.Output[float64]
-	Sides      nodes.Output[int]
+	Radius     nodes.Output[float64] `default:"0.5"`
+	Sides      nodes.Output[int]     `default:"12"`
 	UVs        nodes.Output[CircleUVs]
-	StartAngle nodes.Output[float64] `description:"Where the arc begins, in radians counterclockwise from +X. Defaults to 0."`
+	StartAngle nodes.Output[float64] `description:"Where the arc begins, in radians counterclockwise from +X."`
 	EndAngle   nodes.Output[float64] `description:"Where the arc ends. Equal to Start, or a full turn apart, gives the whole disc."`
 }
 
@@ -112,10 +112,10 @@ func (c CircleNode) Description() string {
 
 func (c CircleNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	circle := Circle{
-		Radius:     nodes.TryGetOutputValue(out, c.Radius, 0.5),
-		Sides:      nodes.TryGetOutputValue(out, c.Sides, 12),
-		StartAngle: nodes.TryGetOutputValue(out, c.StartAngle, 0),
-		EndAngle:   nodes.TryGetOutputValue(out, c.EndAngle, 0),
+		Radius:     nodes.GetOutputValue(out, c.Radius),
+		Sides:      nodes.GetOutputValue(out, c.Sides),
+		StartAngle: nodes.GetOutputValue(out, c.StartAngle),
+		EndAngle:   nodes.GetOutputValue(out, c.EndAngle),
 		UVs: nodes.TryGetOutputReference(out, c.UVs, &CircleUVs{
 			Center: vector2.Fill(0.5),
 			Radius: 0.5,

@@ -22,9 +22,9 @@ func init() {
 
 type Perlin1DNode struct {
 	Time      nodes.LiftedPort[float64] `description:"The values to sample the noise at."`
-	Shift     nodes.LiftedPort[float64] `description:"Offset added before sampling, for a different slice of the same noise. Defaults to 0."`
-	Amplitude nodes.LiftedPort[float64] `description:"Scales the noise's output range. Defaults to 1."`
-	Frequency nodes.LiftedPort[float64] `description:"Scales the input before sampling, so higher means finer noise. Defaults to 1."`
+	Shift     nodes.LiftedPort[float64] `description:"Offset added before sampling, for a different slice of the same noise."`
+	Amplitude nodes.LiftedPort[float64] `description:"Scales the noise's output range." default:"1"`
+	Frequency nodes.LiftedPort[float64] `description:"Scales the input before sampling, so higher means finer noise." default:"1"`
 }
 
 func (cn Perlin1DNode) Description() string {
@@ -34,10 +34,10 @@ func (cn Perlin1DNode) Description() string {
 func (cn Perlin1DNode) Out(out *nodes.Lifted[float64]) {
 	nodes.Zip4(
 		out,
-		nodes.LiftedOr(cn.Time, 0.),
-		nodes.LiftedOr(cn.Frequency, 1.),
-		nodes.LiftedOr(cn.Shift, 0.),
-		nodes.LiftedOr(cn.Amplitude, 1.),
+		cn.Time,
+		cn.Frequency,
+		cn.Shift,
+		cn.Amplitude,
 		func(time, frequency, shift, amplitude float64) float64 {
 			return Perlin1D((time*frequency)+shift) * amplitude
 		},
@@ -46,9 +46,9 @@ func (cn Perlin1DNode) Out(out *nodes.Lifted[float64]) {
 
 type Perlin2DNode struct {
 	Time      nodes.LiftedPort[vector2.Float64] `description:"The points to sample the noise at, despite the name - pass positions here."`
-	Amplitude nodes.LiftedPort[float64]         `description:"Scales the noise's output range. Defaults to 1."`
-	Frequency nodes.LiftedPort[vector2.Float64] `description:"Scales each point before sampling, so higher means finer noise. Defaults to (1,1)."`
-	Shift     nodes.LiftedPort[vector2.Float64] `description:"Offset added to each point before sampling, for a different slice of the same noise. Defaults to (0,0)."`
+	Amplitude nodes.LiftedPort[float64]         `description:"Scales the noise's output range." default:"1"`
+	Frequency nodes.LiftedPort[vector2.Float64] `description:"Scales each point before sampling, so higher means finer noise." default:"1,1"`
+	Shift     nodes.LiftedPort[vector2.Float64] `description:"Offset added to each point before sampling, for a different slice of the same noise."`
 }
 
 func (cn Perlin2DNode) Description() string {
@@ -58,10 +58,10 @@ func (cn Perlin2DNode) Description() string {
 func (cn Perlin2DNode) Out(out *nodes.Lifted[float64]) {
 	nodes.Zip4(
 		out,
-		nodes.LiftedOr(cn.Time, vector2.Zero[float64]()),
-		nodes.LiftedOr(cn.Frequency, vector2.One[float64]()),
-		nodes.LiftedOr(cn.Shift, vector2.Zero[float64]()),
-		nodes.LiftedOr(cn.Amplitude, 1.),
+		cn.Time,
+		cn.Frequency,
+		cn.Shift,
+		cn.Amplitude,
 		func(time, frequency, shift vector2.Float64, amplitude float64) float64 {
 			return Perlin2D(time.MultByVector(frequency).Add(shift)) * amplitude
 		},
@@ -70,9 +70,9 @@ func (cn Perlin2DNode) Out(out *nodes.Lifted[float64]) {
 
 type Perlin3DNode struct {
 	Time      nodes.LiftedPort[vector3.Float64] `description:"The points to sample the noise at, despite the name - pass positions here."`
-	Amplitude nodes.LiftedPort[float64]         `description:"Scales the noise's output range. Defaults to 1."`
-	Frequency nodes.LiftedPort[vector3.Float64] `description:"Scales each point before sampling, so higher means finer noise. Defaults to (1,1,1)."`
-	Shift     nodes.LiftedPort[vector3.Float64] `description:"Offset added to each point before sampling, for a different slice of the same noise. Defaults to (0,0,0)."`
+	Amplitude nodes.LiftedPort[float64]         `description:"Scales the noise's output range." default:"1"`
+	Frequency nodes.LiftedPort[vector3.Float64] `description:"Scales each point before sampling, so higher means finer noise." default:"1,1,1"`
+	Shift     nodes.LiftedPort[vector3.Float64] `description:"Offset added to each point before sampling, for a different slice of the same noise."`
 }
 
 func (cn Perlin3DNode) Description() string {
@@ -82,10 +82,10 @@ func (cn Perlin3DNode) Description() string {
 func (cn Perlin3DNode) Out(out *nodes.Lifted[float64]) {
 	nodes.Zip4(
 		out,
-		nodes.LiftedOr(cn.Time, vector3.Zero[float64]()),
-		nodes.LiftedOr(cn.Frequency, vector3.One[float64]()),
-		nodes.LiftedOr(cn.Shift, vector3.Zero[float64]()),
-		nodes.LiftedOr(cn.Amplitude, 1.),
+		cn.Time,
+		cn.Frequency,
+		cn.Shift,
+		cn.Amplitude,
 		func(time, frequency, shift vector3.Float64, amplitude float64) float64 {
 			return Perlin3D(time.MultByVector(frequency).Add(shift)) * amplitude
 		},
@@ -93,9 +93,9 @@ func (cn Perlin3DNode) Out(out *nodes.Lifted[float64]) {
 }
 
 type Perlin3DFieldNode struct {
-	Amplitude nodes.Output[float64]         `description:"Scales the noise's output range. Defaults to 1."`
-	Frequency nodes.Output[vector3.Float64] `description:"Scales input position before sampling. Defaults to (1,1,1)."`
-	Shift     nodes.Output[vector3.Float64] `description:"Offset added to position before sampling. Defaults to (0,0,0)."`
+	Amplitude nodes.Output[float64]         `description:"Scales the noise's output range." default:"1"`
+	Frequency nodes.Output[vector3.Float64] `description:"Scales input position before sampling." default:"1,1,1"`
+	Shift     nodes.Output[vector3.Float64] `description:"Offset added to position before sampling."`
 }
 
 func (cn Perlin3DFieldNode) Description() string {
@@ -103,9 +103,9 @@ func (cn Perlin3DFieldNode) Description() string {
 }
 
 func (cn Perlin3DFieldNode) Field(out *nodes.StructOutput[sample.Vec3ToFloat]) {
-	amplitude := nodes.TryGetOutputValue(out, cn.Amplitude, 1.)
-	frequency := nodes.TryGetOutputValue(out, cn.Frequency, vector3.One[float64]())
-	shift := nodes.TryGetOutputValue(out, cn.Shift, vector3.Zero[float64]())
+	amplitude := nodes.GetOutputValue(out, cn.Amplitude)
+	frequency := nodes.GetOutputValue(out, cn.Frequency)
+	shift := nodes.GetOutputValue(out, cn.Shift)
 
 	out.Set(func(v vector3.Float64) float64 {
 		return Perlin3D(v.MultByVector(frequency).Add(shift)) * amplitude

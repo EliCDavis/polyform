@@ -52,9 +52,9 @@ func Polygon(times, sides int, radius float64) []trs.TRS {
 }
 
 type polygonNode struct {
-	Radius nodes.Output[float64] `description:"Distance from the center to each of the polygon's corners. Defaults to 0."`
-	Sides  nodes.Output[int]     `description:"Number of corners the polygon has (3 = triangle, 4 = square, ...). Defaults to 1, clamped to 3 minimum."`
-	Times  nodes.Output[int]     `description:"How many copies to place evenly spaced (by arc length) around the polygon's perimeter, including across its corners. Defaults to 1, clamped to 0 minimum."`
+	Radius nodes.Output[float64] `description:"Distance from the center to each of the polygon's corners."`
+	Sides  nodes.Output[int]     `description:"Number of corners the polygon has (3 = triangle, 4 = square, ...). Clamped to 3 minimum." default:"1"`
+	Times  nodes.Output[int]     `description:"How many copies to place evenly spaced (by arc length) around the polygon's perimeter, including across its corners. Clamped to 0 minimum." default:"1"`
 }
 
 func (r polygonNode) Description() string {
@@ -63,8 +63,8 @@ func (r polygonNode) Description() string {
 
 func (r polygonNode) Out(out *nodes.StructOutput[[]trs.TRS]) {
 	out.Set(Polygon(
-		max(nodes.TryGetOutputValue(out, r.Times, 1), 0),
-		max(nodes.TryGetOutputValue(out, r.Sides, 1), 3),
-		nodes.TryGetOutputValue(out, r.Radius, 0.),
+		max(nodes.GetOutputValue(out, r.Times), 0),
+		max(nodes.GetOutputValue(out, r.Sides), 3),
+		nodes.GetOutputValue(out, r.Radius),
 	))
 }

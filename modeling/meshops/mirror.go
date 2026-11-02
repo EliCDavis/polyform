@@ -56,9 +56,9 @@ func ReverseWinding(m modeling.Mesh) modeling.Mesh {
 
 type MirrorNode struct {
 	Mesh   nodes.Output[modeling.Mesh]
-	Origin nodes.Output[vector3.Float64] `description:"A point on the mirror plane. Defaults to the world origin."`
-	Normal nodes.Output[vector3.Float64] `description:"The plane's normal. Defaults to +X."`
-	Union  nodes.Output[bool]            `description:"When true (default), appends the reflection to the original so both sides are present. When false, this is a pure reflection and the original is dropped."`
+	Origin nodes.Output[vector3.Float64] `description:"A point on the mirror plane."`
+	Normal nodes.Output[vector3.Float64] `description:"The plane's normal." default:"1,0,0"`
+	Union  nodes.Output[bool]            `description:"When true, appends the reflection to the original so both sides are present. When false, this is a pure reflection and the original is dropped." default:"true"`
 }
 
 func (n MirrorNode) Description() string {
@@ -78,11 +78,11 @@ func (n MirrorNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	mesh := nodes.GetOutputValue(out, n.Mesh)
 	mirrored := Mirror(
 		mesh,
-		nodes.TryGetOutputValue(out, n.Origin, vector3.Zero[float64]()),
-		nodes.TryGetOutputValue(out, n.Normal, vector3.Right[float64]()),
+		nodes.GetOutputValue(out, n.Origin),
+		nodes.GetOutputValue(out, n.Normal),
 	)
 
-	if nodes.TryGetOutputValue(out, n.Union, true) {
+	if nodes.GetOutputValue(out, n.Union) {
 		mirrored = mesh.Append(mirrored)
 	}
 	out.Set(mirrored)

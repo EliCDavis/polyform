@@ -118,9 +118,9 @@ func (n DrawLinesNode) NormalMap(out *nodes.StructOutput[NormalMap]) {
 }
 
 type DrawLineNode struct {
-	Thicknesses nodes.Output[float64]
+	Thicknesses nodes.Output[float64] `default:"0.5"`
 	Start       nodes.Output[vector2.Float64]
-	End         nodes.Output[vector2.Float64]
+	End         nodes.Output[vector2.Float64] `default:"1,1"`
 	Subtract    nodes.Output[bool]
 	Texture     nodes.Output[NormalMap] `description:"texture to draw on"`
 }
@@ -136,13 +136,13 @@ func (n DrawLineNode) NormalMap(out *nodes.StructOutput[NormalMap]) {
 	img := nodes.GetOutputValue(out, n.Texture).Copy()
 	dim := vector2.New(img.Width(), img.Height()).ToFloat64()
 
-	start := nodes.TryGetOutputValue(out, n.Start, vector2.New(0., 0.))
-	end := nodes.TryGetOutputValue(out, n.End, vector2.New(1., 1.))
+	start := nodes.GetOutputValue(out, n.Start)
+	end := nodes.GetOutputValue(out, n.End)
 
-	radius := nodes.TryGetOutputValue(out, n.Thicknesses, 0.5)
+	radius := nodes.GetOutputValue(out, n.Thicknesses)
 
 	dir := Additive
-	if nodes.TryGetOutputValue(out, n.Subtract, false) {
+	if nodes.GetOutputValue(out, n.Subtract) {
 		dir = Subtractive
 	}
 

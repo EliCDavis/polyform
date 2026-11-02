@@ -305,7 +305,7 @@ func TestMessage_ServerRoomStateUpdate(t *testing.T) {
 	}{
 		"123": {
 			input: room.RoomState{
-				ModelVersion: 1234,
+				Revision: 1234,
 				Players: map[string]*room.Player{
 					"id1": {
 						Name: "Something",

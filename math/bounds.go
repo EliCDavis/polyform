@@ -22,7 +22,7 @@ func (n BoundsNode) bounds(recorder nodes.ExecutionRecorder) (float64, float64) 
 		recorder.CaptureError(errors.New("no values to bound"))
 		return 0, 0
 	}
-	padding := nodes.TryGetOutputValue(recorder, n.Padding, 0)
+	padding := nodes.GetOutputValue(recorder, n.Padding)
 	return slices.Min(values) - padding, slices.Max(values) + padding
 }
 

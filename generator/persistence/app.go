@@ -40,6 +40,7 @@ type VariantSet struct {
 type Node struct {
 	Type          string                          `json:"type"`
 	AssignedInput map[string]schema.PortReference `json:"assignedInput,omitempty"`
+	Literals      map[string]json.RawMessage      `json:"literals,omitempty"`
 	Data          json.RawMessage                 `json:"data,omitempty"`
 	Variable      *string                         `json:"variable,omitempty"`
 }

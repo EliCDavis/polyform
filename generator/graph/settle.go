@@ -160,10 +160,21 @@ func (s seat) fill(offered offers) (untyped *edgeConflict, err error) {
 			}
 		}
 
+		fromLiteral := false
+		if len(want) == 0 {
+			if lit := s.graph.literals[s.node][input]; lit != nil {
+				want = []nodes.OutputPort{lit.port()}
+				fromLiteral = true
+			}
+		}
+
 		if !typed {
 			continue
 		}
 		if i, err := hold(in, want); err != nil {
+			if fromLiteral {
+				return nil, fmt.Errorf("node %q's %q input would not take its literal: %v", s.graph.nodeIDs[s.node], label(in), err)
+			}
 			e := s.edge(input, i)
 			return nil, &edgeConflict{e, fmt.Errorf("node %q's %q output now carries %s, which node %q's %q input cannot take (%v)",
 				e.producerID, e.outputLabel(), portTypeOf(want[i]), e.consumerID, label(in), err)}

@@ -178,9 +178,9 @@ func rebuild(m modeling.Mesh, representative []int) modeling.Mesh {
 
 type WeldNode struct {
 	Mesh            nodes.Output[modeling.Mesh]
-	Attribute       nodes.Output[string]  `description:"Attribute whose values decide which vertices are the same point (default: Position)."`
+	Attribute       nodes.Output[string]  `description:"Attribute whose values decide which vertices are the same point." default:"Position"`
 	Tolerance       nodes.Output[float64] `description:"How far apart two vertices can be and still merge. Zero merges only exact matches."`
-	MatchAttributes nodes.Output[bool]    `description:"When true, vertices merge only if every other attribute is also identical, so no vertex data is lost. Defaults to false, which keeps the first vertex's data."`
+	MatchAttributes nodes.Output[bool]    `description:"When true, vertices merge only if every other attribute is also identical, so no vertex data is lost. False keeps the first vertex's data."`
 }
 
 func (n WeldNode) Description() string {
@@ -194,21 +194,21 @@ func (n WeldNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	}
 
 	mesh := nodes.GetOutputValue(out, n.Mesh)
-	attribute := nodes.TryGetOutputValue(out, n.Attribute, modeling.PositionAttribute)
+	attribute := nodes.GetOutputValue(out, n.Attribute)
 	if !mesh.HasFloat3Attribute(attribute) {
 		out.CaptureError(fmt.Errorf("input is missing %s data", attribute))
 		out.Set(mesh)
 		return
 	}
 
-	tolerance := nodes.TryGetOutputValue(out, n.Tolerance, 0.)
+	tolerance := nodes.GetOutputValue(out, n.Tolerance)
 	if tolerance < 0 {
 		out.CaptureError(fmt.Errorf("Tolerance cannot be negative (received %f)", tolerance))
 		out.Set(mesh)
 		return
 	}
 
-	if nodes.TryGetOutputValue(out, n.MatchAttributes, false) {
+	if nodes.GetOutputValue(out, n.MatchAttributes) {
 		out.Set(WeldIdentical(mesh, attribute, tolerance))
 		return
 	}

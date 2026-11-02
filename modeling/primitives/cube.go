@@ -371,12 +371,12 @@ func (c Cube) calcUVs() []vector2.Float64 {
 }
 
 type CubeNode struct {
-	Width      nodes.LiftedPort[float64] `description:"Full size along X (left/right). Defaults to 1."`
-	Height     nodes.LiftedPort[float64] `description:"Full size along Y (up/down). Defaults to 1."`
-	Depth      nodes.LiftedPort[float64] `description:"Full size along Z (front/back). Defaults to 1."`
-	Dimensions nodes.Output[int]         `description:"Subdivisions per face edge. Defaults to 1 (a single quad per face)."`
+	Width      nodes.LiftedPort[float64] `description:"Full size along X (left/right)." default:"1"`
+	Height     nodes.LiftedPort[float64] `description:"Full size along Y (up/down)." default:"1"`
+	Depth      nodes.LiftedPort[float64] `description:"Full size along Z (front/back)." default:"1"`
+	Dimensions nodes.Output[int]         `description:"Subdivisions per face edge. 1 is a single quad per face." default:"1"`
 	UVs        nodes.Output[CubeUVs]     `description:"Per-face UV layout. Defaults to a 6-strip atlas if unset."`
-	Welded     nodes.Output[bool]        `description:"Whether or not the vertices are welded. Defaults to false."`
+	Welded     nodes.Output[bool]        `description:"Whether or not the vertices are welded."`
 }
 
 func (c CubeNode) Description() string {
@@ -386,7 +386,7 @@ func (c CubeNode) Description() string {
 func (c CubeNode) Out(out *nodes.Lifted[modeling.Mesh]) {
 	unit := UnitStripUVs()
 	strip := &unit
-	dimensions := max(1, nodes.TryGetOutputValue(out, c.Dimensions, 1))
+	dimensions := max(1, nodes.GetOutputValue(out, c.Dimensions))
 	uvs := nodes.TryGetOutputReference(out, c.UVs, &CubeUVs{
 		Top:    strip,
 		Bottom: strip,
@@ -395,13 +395,13 @@ func (c CubeNode) Out(out *nodes.Lifted[modeling.Mesh]) {
 		Front:  strip,
 		Back:   strip,
 	})
-	welded := nodes.TryGetOutputValue(out, c.Welded, false)
+	welded := nodes.GetOutputValue(out, c.Welded)
 
 	nodes.Zip3(
 		out,
-		nodes.LiftedOr(c.Width, 1.),
-		nodes.LiftedOr(c.Height, 1.),
-		nodes.LiftedOr(c.Depth, 1.),
+		c.Width,
+		c.Height,
+		c.Depth,
 		func(width, height, depth float64) modeling.Mesh {
 			cube := Cube{Height: height, Width: width, Depth: depth, Dimensions: dimensions, UVs: uvs}
 			if welded {

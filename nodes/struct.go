@@ -117,6 +117,7 @@ func (so *StructOutput[T]) Value() T {
 	if !so.cache.Outdated(so.functionName) {
 		val = so.cache.Get(so.functionName).(StructOutput[T])
 	} else {
+		fillDefaults(so.node)
 		start := time.Now()
 		so.call(&val)
 		val.report.TotalTime = time.Since(start)
@@ -342,6 +343,10 @@ func (si structInput) Description() string {
 
 func (si structInput) Advanced() bool {
 	return advancedTag(si.data.Data(), si.structField)
+}
+
+func (si structInput) Default() string {
+	return refutil.GetStructTag(si.data.Data(), si.structField, "default")
 }
 
 // ============================================================================

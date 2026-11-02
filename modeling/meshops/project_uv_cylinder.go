@@ -107,10 +107,10 @@ func CylinderProjectUV(m modeling.Mesh, center, axis vector3.Float64, around, he
 
 type CylinderProjectUVNode struct {
 	Mesh   nodes.Output[modeling.Mesh]
-	Axis   nodes.Output[vector3.Float64] `description:"Direction the cylinder runs along. Defaults to +Y."`
-	Center nodes.Output[vector3.Float64] `description:"A point on the axis. Defaults to the center of the mesh's bounds."`
-	Around nodes.Output[float64]         `description:"Texture repeats once around the circumference this many times. Defaults to 1."`
-	Height nodes.Output[float64]         `description:"World length of one texture repeat along the axis, and across the caps, in meters. Defaults to 1."`
+	Axis   nodes.Output[vector3.Float64] `description:"Direction the cylinder runs along." default:"0,1,0"`
+	Center nodes.Output[vector3.Float64] `description:"A point on the axis."`
+	Around nodes.Output[float64]         `description:"Texture repeats once around the circumference this many times." default:"1"`
+	Height nodes.Output[float64]         `description:"World length of one texture repeat along the axis, and across the caps, in meters." default:"1"`
 }
 
 func (CylinderProjectUVNode) Description() string {
@@ -127,16 +127,12 @@ func (n CylinderProjectUVNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 		return
 	}
 	m := nodes.GetOutputValue(out, n.Mesh)
-	center := vector3.Zero[float64]()
-	if m.HasFloat3Attribute(modeling.PositionAttribute) {
-		center = m.BoundingBox(modeling.PositionAttribute).Center()
-	}
 	mesh, err := CylinderProjectUV(
 		m,
-		nodes.TryGetOutputValue(out, n.Center, center),
-		nodes.TryGetOutputValue(out, n.Axis, vector3.Up[float64]()),
-		nodes.TryGetOutputValue(out, n.Around, 1.),
-		nodes.TryGetOutputValue(out, n.Height, 1.),
+		nodes.GetOutputValue(out, n.Center),
+		nodes.GetOutputValue(out, n.Axis),
+		nodes.GetOutputValue(out, n.Around),
+		nodes.GetOutputValue(out, n.Height),
 	)
 	if err != nil {
 		out.CaptureError(err)

@@ -314,9 +314,9 @@ func UVSphereUnwelded(radius float64, rows, columns int) modeling.Mesh {
 }
 
 type UvSphereNode struct {
-	Radius  nodes.Output[float64]
-	Rows    nodes.Output[int]
-	Columns nodes.Output[int]
+	Radius  nodes.Output[float64] `default:"0.5"`
+	Rows    nodes.Output[int]     `default:"10"`
+	Columns nodes.Output[int]     `default:"10"`
 	Weld    nodes.Output[bool]
 }
 
@@ -325,11 +325,11 @@ func (c UvSphereNode) Description() string {
 }
 
 func (c UvSphereNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
-	radius := nodes.TryGetOutputValue(out, c.Radius, .5)
-	rows := max(nodes.TryGetOutputValue(out, c.Rows, 10), 2)
-	columns := max(nodes.TryGetOutputValue(out, c.Columns, 10), 3)
+	radius := nodes.GetOutputValue(out, c.Radius)
+	rows := max(nodes.GetOutputValue(out, c.Rows), 2)
+	columns := max(nodes.GetOutputValue(out, c.Columns), 3)
 
-	if nodes.TryGetOutputValue(out, c.Weld, false) {
+	if nodes.GetOutputValue(out, c.Weld) {
 		out.Set(UVSphere(radius, rows, columns))
 	} else {
 		out.Set(UVSphereUnwelded(radius, rows, columns))
@@ -337,10 +337,10 @@ func (c UvSphereNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 }
 
 type QuadSphereNode struct {
-	Radius     nodes.Output[float64]
+	Radius     nodes.Output[float64] `default:"0.5"`
 	Weld       nodes.Output[bool]
-	DewarpUVs  nodes.Output[bool]
-	Resolution nodes.Output[int]
+	DewarpUVs  nodes.Output[bool] `default:"true"`
+	Resolution nodes.Output[int]  `default:"10"`
 	UVs        nodes.Output[CubeUVs]
 }
 
@@ -353,12 +353,12 @@ func (c QuadSphereNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	strip := &unit
 
 	out.Set(QuadSphere(
-		nodes.TryGetOutputValue(out, c.Radius, .5),
+		nodes.GetOutputValue(out, c.Radius),
 		Cube{
 			Height:     1,
 			Width:      1,
 			Depth:      1,
-			Dimensions: max(1, nodes.TryGetOutputValue(out, c.Resolution, 10)),
+			Dimensions: max(1, nodes.GetOutputValue(out, c.Resolution)),
 			UVs: nodes.TryGetOutputReference(out, c.UVs, &CubeUVs{
 				Top:    strip,
 				Bottom: strip,
@@ -368,7 +368,7 @@ func (c QuadSphereNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 				Back:   strip,
 			}),
 		},
-		nodes.TryGetOutputValue(out, c.Weld, false),
-		nodes.TryGetOutputValue(out, c.DewarpUVs, true),
+		nodes.GetOutputValue(out, c.Weld),
+		nodes.GetOutputValue(out, c.DewarpUVs),
 	))
 }

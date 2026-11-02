@@ -1,5 +1,7 @@
 package schema
 
+import "encoding/json"
+
 type NodeTypeOutput struct {
 	Type        string `json:"type"`
 	Description string `json:"description,omitempty"`
@@ -15,6 +17,9 @@ type NodeTypeInput struct {
 
 	// Lifted port stuff
 	AcceptedTypes []string `json:"acceptedTypes,omitempty"`
+
+	Literal bool            `json:"literal,omitempty"`
+	Default json.RawMessage `json:"default,omitempty"`
 }
 
 type NodeType struct {

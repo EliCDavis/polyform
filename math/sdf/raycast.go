@@ -60,8 +60,8 @@ func Normal(field sample.Vec3ToFloat, point vector3.Float64) vector3.Float64 {
 type RaycastNode struct {
 	Field       nodes.Output[sample.Vec3ToFloat]  `description:"The field to march against."`
 	Origin      nodes.LiftedPort[vector3.Float64] `description:"Where the ray starts. Inside the shape is fine; the march then runs outward to the wall."`
-	Direction   nodes.LiftedPort[vector3.Float64] `description:"Which way to travel, any length. Defaults to +Y."`
-	MaxDistance nodes.Output[float64]             `description:"How far to travel before giving up. Defaults to 10."`
+	Direction   nodes.LiftedPort[vector3.Float64] `description:"Which way to travel, any length." default:"0,1,0"`
+	MaxDistance nodes.Output[float64]             `description:"How far to travel before giving up." default:"10"`
 }
 
 func (n RaycastNode) Description() string {
@@ -104,8 +104,8 @@ func (n RaycastNode) Point(out *nodes.Lifted[vector3.Float64]) {
 		return
 	}
 	field := nodes.GetOutputValue(out, n.Field)
-	march := n.march(field, nodes.TryGetOutputValue(out, n.MaxDistance, 10))
-	nodes.Zip2(out, n.Origin, nodes.LiftedOr(n.Direction, vector3.Up[float64]()),
+	march := n.march(field, nodes.GetOutputValue(out, n.MaxDistance))
+	nodes.Zip2(out, n.Origin, n.Direction,
 		func(origin, direction vector3.Float64) vector3.Float64 {
 			return march(origin, direction).point
 		})
@@ -116,8 +116,8 @@ func (n RaycastNode) Normal(out *nodes.Lifted[vector3.Float64]) {
 		return
 	}
 	field := nodes.GetOutputValue(out, n.Field)
-	march := n.march(field, nodes.TryGetOutputValue(out, n.MaxDistance, 10))
-	nodes.Zip2(out, n.Origin, nodes.LiftedOr(n.Direction, vector3.Up[float64]()),
+	march := n.march(field, nodes.GetOutputValue(out, n.MaxDistance))
+	nodes.Zip2(out, n.Origin, n.Direction,
 		func(origin, direction vector3.Float64) vector3.Float64 {
 			return march(origin, direction).normal
 		})
@@ -128,8 +128,8 @@ func (n RaycastNode) Distance(out *nodes.Lifted[float64]) {
 		return
 	}
 	field := nodes.GetOutputValue(out, n.Field)
-	march := n.march(field, nodes.TryGetOutputValue(out, n.MaxDistance, 10))
-	nodes.Zip2(out, n.Origin, nodes.LiftedOr(n.Direction, vector3.Up[float64]()),
+	march := n.march(field, nodes.GetOutputValue(out, n.MaxDistance))
+	nodes.Zip2(out, n.Origin, n.Direction,
 		func(origin, direction vector3.Float64) float64 {
 			return march(origin, direction).distance
 		})
@@ -140,8 +140,8 @@ func (n RaycastNode) Hit(out *nodes.Lifted[bool]) {
 		return
 	}
 	field := nodes.GetOutputValue(out, n.Field)
-	march := n.march(field, nodes.TryGetOutputValue(out, n.MaxDistance, 10))
-	nodes.Zip2(out, n.Origin, nodes.LiftedOr(n.Direction, vector3.Up[float64]()),
+	march := n.march(field, nodes.GetOutputValue(out, n.MaxDistance))
+	nodes.Zip2(out, n.Origin, n.Direction,
 		func(origin, direction vector3.Float64) bool {
 			return march(origin, direction).hit
 		})

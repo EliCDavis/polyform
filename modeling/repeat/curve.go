@@ -62,7 +62,7 @@ func (rnd SplineNode) Description() string {
 }
 
 func (r SplineNode) Out(out *nodes.StructOutput[[]trs.TRS]) {
-	if r.Curve == nil || r.Times == nil {
+	if r.Curve == nil {
 		return
 	}
 

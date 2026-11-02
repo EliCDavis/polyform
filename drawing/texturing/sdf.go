@@ -12,7 +12,7 @@ import (
 
 type SampleSDFNode struct {
 	Texture nodes.Output[Texture[float64]]
-	Size    nodes.Output[vector3.Float64]
+	Size    nodes.Output[vector3.Float64] `default:"1,1,1"`
 }
 
 func (n SampleSDFNode) Description() string {
@@ -24,7 +24,7 @@ func (n SampleSDFNode) SDF(out *nodes.StructOutput[sample.Vec3ToFloat]) {
 		return
 	}
 	tex := nodes.GetOutputValue(out, n.Texture)
-	size := nodes.TryGetOutputValue(out, n.Size, vector3.One[float64]())
+	size := nodes.GetOutputValue(out, n.Size)
 	bounds := geometry.NewAABB(vector3.Zero[float64](), size)
 	half := size.Scale(0.5)
 	out.Set(func(f vector3.Float64) float64 {

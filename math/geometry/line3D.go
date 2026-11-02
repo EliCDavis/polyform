@@ -238,7 +238,7 @@ func (n LineLengths3DNode) Lengths(out *nodes.Lifted[float64]) {
 
 type PositionOnLine3DNode struct {
 	Line nodes.LiftedPort[Line3D]
-	Time nodes.LiftedPort[float64] `description:"0 at the line's start, 1 at its end. Defaults to 0."`
+	Time nodes.LiftedPort[float64] `description:"0 at the line's start, 1 at its end."`
 }
 
 func (n PositionOnLine3DNode) Description() string {
@@ -256,7 +256,7 @@ type TrsFromLines3DNode struct {
 	ScaleX  nodes.Output[bool]
 	ScaleY  nodes.Output[bool]
 	ScaleZ  nodes.Output[bool]
-	Forward nodes.Output[vector3.Float64]
+	Forward nodes.Output[vector3.Float64] `default:"0,0,1"`
 }
 
 func (n TrsFromLines3DNode) Description() string {
@@ -264,10 +264,10 @@ func (n TrsFromLines3DNode) Description() string {
 }
 
 func (n TrsFromLines3DNode) TRS(out *nodes.Lifted[trs.TRS]) {
-	scaleX := nodes.TryGetOutputValue(out, n.ScaleX, false)
-	scaleY := nodes.TryGetOutputValue(out, n.ScaleY, false)
-	scaleZ := nodes.TryGetOutputValue(out, n.ScaleZ, false)
-	fwd := nodes.TryGetOutputValue(out, n.Forward, vector3.Forward[float64]())
+	scaleX := nodes.GetOutputValue(out, n.ScaleX)
+	scaleY := nodes.GetOutputValue(out, n.ScaleY)
+	scaleZ := nodes.GetOutputValue(out, n.ScaleZ)
+	fwd := nodes.GetOutputValue(out, n.Forward)
 
 	nodes.Zip1(out, n.Lines, func(line Line3D) trs.TRS {
 		direction := line.p2.Sub(line.p1)

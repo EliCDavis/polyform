@@ -62,10 +62,10 @@ func (tabp TranslateAttribute3DByPerlinNoiseTransformer) Transform(m modeling.Me
 }
 
 type TranslateAttributeByPerlinNoise3DNode struct {
-	Attribute nodes.Output[string]
+	Attribute nodes.Output[string] `default:"Position"`
 	Mesh      nodes.Output[modeling.Mesh]
-	Frequency nodes.Output[vector3.Float64]
-	Amplitude nodes.Output[vector3.Float64]
+	Frequency nodes.Output[vector3.Float64] `default:"1,1,1"`
+	Amplitude nodes.Output[vector3.Float64] `default:"1,1,1"`
 	Shift     nodes.Output[vector3.Float64]
 }
 
@@ -81,9 +81,9 @@ func (ta3dn TranslateAttributeByPerlinNoise3DNode) Out(out *nodes.StructOutput[m
 
 	out.Set(TranslateAttribute3DByPerlinNoise(
 		nodes.GetOutputValue(out, ta3dn.Mesh),
-		nodes.TryGetOutputValue(out, ta3dn.Attribute, modeling.PositionAttribute),
-		nodes.TryGetOutputValue(out, ta3dn.Frequency, vector3.One[float64]()),
-		nodes.TryGetOutputValue(out, ta3dn.Amplitude, vector3.One[float64]()),
-		nodes.TryGetOutputValue(out, ta3dn.Shift, vector3.Zero[float64]()),
+		nodes.GetOutputValue(out, ta3dn.Attribute),
+		nodes.GetOutputValue(out, ta3dn.Frequency),
+		nodes.GetOutputValue(out, ta3dn.Amplitude),
+		nodes.GetOutputValue(out, ta3dn.Shift),
 	))
 }

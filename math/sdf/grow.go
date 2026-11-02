@@ -27,7 +27,7 @@ func Shell(field sample.Vec3ToFloat, thickness float64) sample.Vec3ToFloat {
 
 type GrowNode struct {
 	Field    nodes.Output[sample.Vec3ToFloat] `description:"The field to grow."`
-	Distance nodes.Output[float64]            `description:"World units to move the surface along its normal. Positive grows the shape, negative shrinks it. Defaults to 0."`
+	Distance nodes.Output[float64]            `description:"World units to move the surface along its normal. Positive grows the shape, negative shrinks it."`
 }
 
 func (n GrowNode) Description() string {
@@ -42,12 +42,12 @@ func (n GrowNode) Grow(out *nodes.StructOutput[sample.Vec3ToFloat]) {
 	if n.Field == nil {
 		return
 	}
-	out.Set(Grow(nodes.GetOutputValue(out, n.Field), nodes.TryGetOutputValue(out, n.Distance, 0)))
+	out.Set(Grow(nodes.GetOutputValue(out, n.Field), nodes.GetOutputValue(out, n.Distance)))
 }
 
 type ShellNode struct {
 	Field     nodes.Output[sample.Vec3ToFloat] `description:"The field whose surface becomes a hollow shell."`
-	Thickness nodes.Output[float64]            `description:"Total wall thickness in world units, centered on the original surface. Defaults to 0.01."`
+	Thickness nodes.Output[float64]            `description:"Total wall thickness in world units, centered on the original surface." default:"0.01"`
 }
 
 func (n ShellNode) Description() string {
@@ -58,5 +58,5 @@ func (n ShellNode) Shell(out *nodes.StructOutput[sample.Vec3ToFloat]) {
 	if n.Field == nil {
 		return
 	}
-	out.Set(Shell(nodes.GetOutputValue(out, n.Field), nodes.TryGetOutputValue(out, n.Thickness, 0.01)))
+	out.Set(Shell(nodes.GetOutputValue(out, n.Field), nodes.GetOutputValue(out, n.Thickness)))
 }

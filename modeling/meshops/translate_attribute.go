@@ -40,7 +40,7 @@ func TranslateAttribute3D(m modeling.Mesh, attribute string, amount vector3.Floa
 }
 
 type TranslateAttribute3DNode struct {
-	Attribute nodes.Output[string]
+	Attribute nodes.Output[string] `default:"Position"`
 	Mesh      nodes.Output[modeling.Mesh]
 	Amount    nodes.Output[vector3.Float64]
 }
@@ -56,14 +56,9 @@ func (ta3dn TranslateAttribute3DNode) Out(out *nodes.StructOutput[modeling.Mesh]
 	}
 
 	mesh := nodes.GetOutputValue(out, ta3dn.Mesh)
-	if ta3dn.Amount == nil {
-		out.Set(mesh)
-		return
-	}
-
 	out.Set(TranslateAttribute3D(
 		mesh,
-		nodes.TryGetOutputValue(out, ta3dn.Attribute, modeling.PositionAttribute),
+		nodes.GetOutputValue(out, ta3dn.Attribute),
 		nodes.GetOutputValue(out, ta3dn.Amount),
 	))
 }

@@ -19,6 +19,7 @@ import (
 	"github.com/EliCDavis/polyform/generator/manifest"
 	"github.com/EliCDavis/polyform/generator/persistence"
 	"github.com/EliCDavis/polyform/generator/room"
+	"github.com/EliCDavis/polyform/generator/schema"
 	"github.com/EliCDavis/polyform/generator/serialize"
 	"github.com/EliCDavis/polyform/generator/variable"
 )
@@ -158,6 +159,7 @@ func (as *Server) Handler(indexFile string) (*http.ServeMux, error) {
 	mux.Handle("/node-types", nodeTypesEndpoint(as.Graph, as.NodeOutputSerialization))
 	mux.Handle("/node", undoable(as.Graph, "node", nodeEndpoint(as.Graph, graphSaver)))
 	mux.Handle("/node/connection", undoable(as.Graph, "connection", nodeConnectionEndpoint(as.Graph, graphSaver)))
+	mux.Handle(nodeLiteralEndpointPath, undoable(as.Graph, "literal", nodeLiteralEndpoint(as.Graph.Graph, graphSaver)))
 	mux.Handle(subGraphDefinitionEndpointPath, undoable(as.Graph, "subgraph", subGraphDefinitionEndpoint(as.Graph, graphSaver)))
 	mux.Handle(subGraphBoundaryEndpointPath, undoable(as.Graph, "boundary port", subGraphBoundaryEndpoint(as.Graph, graphSaver)))
 	mux.Handle(subGraphInstanceEndpointPath, undoable(as.Graph, "for each", subGraphInstanceEndpoint(as.Graph, graphSaver)))
@@ -261,8 +263,13 @@ func (as *Server) writeProducerDataToRequest(producerToLoad, file string, w http
 
 func (as *Server) StartedEndpoint(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	time := as.serverStarted.Format("2006-01-02 15:04:05")
-	fmt.Fprintf(w, "{ \"time\": \"%s\", \"modelVersion\": %d }", time, as.Graph.ModelVersion())
+	json.NewEncoder(w).Encode(struct {
+		Time    string              `json:"time"`
+		Version schema.GraphVersion `json:"version"`
+	}{
+		Time:    as.serverStarted.Format("2006-01-02 15:04:05"),
+		Version: as.Graph.Version(),
+	})
 }
 
 func (as *Server) MermaidEndpoint(w http.ResponseWriter, r *http.Request) {

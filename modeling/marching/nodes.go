@@ -10,7 +10,6 @@ import (
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
-	"github.com/EliCDavis/vector/vector3"
 )
 
 func init() {
@@ -24,9 +23,9 @@ func init() {
 
 type MarchNode struct {
 	Field      nodes.Output[sample.Vec3ToFloat] `description:"The SDF to tesselate"`
-	Resolution nodes.Output[float64]            `description:"Marching cube voxels per unit of space. Voxel size is 1/Resolution, so higher means finer detail. Must be large enough that 1/Resolution is smaller than the Domain, or nothing is produced."`
-	Surface    nodes.Output[float64]            `description:"Value of the SDF that represents the surface (default: 0). Positive grows the shape outward by that distance, negative shrinks it inward."`
-	Domain     nodes.Output[geometry.AABB]      `description:"The region in which the marching cubes algorithm runs"`
+	Resolution nodes.Output[float64]            `description:"Marching cube voxels per unit of space. Voxel size is 1/Resolution, so higher means finer detail. Must be large enough that 1/Resolution is smaller than the Domain, or nothing is produced." default:"1"`
+	Surface    nodes.Output[float64]            `description:"Value of the SDF that represents the surface. Positive grows the shape outward by that distance, negative shrinks it inward."`
+	Domain     nodes.Output[geometry.AABB]      `description:"The region in which the marching cubes algorithm runs" default:"0,0,0;10,10,10"`
 }
 
 func (cn MarchNode) Description() string {
@@ -39,7 +38,7 @@ func (cn MarchNode) Mesh(out *nodes.StructOutput[modeling.Mesh]) {
 		return
 	}
 
-	resolution := nodes.TryGetOutputValue(out, cn.Resolution, 1.)
+	resolution := nodes.GetOutputValue(out, cn.Resolution)
 	if resolution <= 0 {
 		out.CaptureError(nodes.InvalidInputError{
 			Input:   cn.Resolution,
@@ -48,18 +47,14 @@ func (cn MarchNode) Mesh(out *nodes.StructOutput[modeling.Mesh]) {
 		return
 	}
 
-	domain := nodes.TryGetOutputValue(
-		out,
-		cn.Domain,
-		geometry.NewAABB(vector3.Zero[float64](), vector3.Fill(10.)),
-	)
+	domain := nodes.GetOutputValue(out, cn.Domain)
 	voxelSize := 1 / resolution
 
 	mesh := March(
 		nodes.GetOutputValue(out, cn.Field),
 		domain,
 		voxelSize,
-		nodes.TryGetOutputValue(out, cn.Surface, 0.),
+		nodes.GetOutputValue(out, cn.Surface),
 	)
 	out.Set(mesh)
 

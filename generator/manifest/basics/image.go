@@ -23,7 +23,7 @@ func (ia Image) Write(w io.Writer) error {
 
 type ImageNode struct {
 	Image nodes.Output[image.Image] `description:"The image to save"`
-	Name  nodes.Output[string]      `description:"Name of the image file, defaults to 'image.png'"`
+	Name  nodes.Output[string]      `description:"Name of the image file" default:"image.png"`
 }
 
 func (pn ImageNode) Description() string {
@@ -32,6 +32,6 @@ func (pn ImageNode) Description() string {
 
 func (pn ImageNode) Out(out *nodes.StructOutput[manifest.Manifest]) {
 	entry := manifest.Entry{Artifact: Image{Image: nodes.TryGetOutputValue(out, pn.Image, nil)}}
-	name := nodes.TryGetOutputValue(out, pn.Name, "image.png")
+	name := nodes.GetOutputValue(out, pn.Name)
 	out.Set(manifest.SingleEntryManifest(name, entry))
 }

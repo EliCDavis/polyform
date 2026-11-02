@@ -79,12 +79,12 @@ func texture(
 }
 
 type NoiseNode struct {
-	Width       nodes.Output[int]             `description:"number of pixels in the x direction of the texture"`
-	Height      nodes.Output[int]             `description:"number of pixels in the y direction of the texture"`
-	Scale       nodes.Output[vector2.Float64] `description:"the X and Y scale of the first octave noise"`
+	Width       nodes.Output[int]             `description:"number of pixels in the x direction of the texture" default:"64"`
+	Height      nodes.Output[int]             `description:"number of pixels in the y direction of the texture" default:"64"`
+	Scale       nodes.Output[vector2.Float64] `description:"the X and Y scale of the first octave noise" default:"1,1"`
 	Folds       nodes.Output[int]             `description:"the number of folds (offsetting the noise negatively and taking the absolute value)"`
-	Octaves     nodes.Output[int]             `description:"the number of iterations"`
-	Persistence nodes.Output[float64]         `description:"the strength of each subsequent iteration"`
+	Octaves     nodes.Output[int]             `description:"the number of iterations" default:"3"`
+	Persistence nodes.Output[float64]         `description:"the strength of each subsequent iteration" default:"0.5"`
 	Offset      nodes.Output[float64]         `description:"the offset of the points, can be used to animate the noise"`
 	Seed        nodes.Output[float64]         `description:"RNG seed"`
 	Polar       nodes.Output[bool]            `description:"Whether or not to use polar coordinates to sample the random function"`

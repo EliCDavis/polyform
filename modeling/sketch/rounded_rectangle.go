@@ -40,10 +40,10 @@ func RoundedRectangle(size vector2.Float64, radius float64, center vector2.Float
 }
 
 type RoundedRectangleNode struct {
-	Size     nodes.LiftedPort[vector2.Float64] `description:"Full width and height. Defaults to 1 by 1."`
-	Radius   nodes.LiftedPort[float64]         `description:"Corner radius, at most half the shorter side. Defaults to 0."`
-	Center   nodes.LiftedPort[vector2.Float64] `description:"Defaults to the origin."`
-	Segments nodes.Output[int]                 `description:"Straight segments per corner. Defaults to 8."`
+	Size     nodes.LiftedPort[vector2.Float64] `description:"Full width and height." default:"1,1"`
+	Radius   nodes.LiftedPort[float64]         `description:"Corner radius, at most half the shorter side."`
+	Center   nodes.LiftedPort[vector2.Float64] `description:"Middle of the rectangle."`
+	Segments nodes.Output[int]                 `description:"Straight segments per corner." default:"8"`
 }
 
 func (RoundedRectangleNode) Description() string {
@@ -55,12 +55,12 @@ func (RoundedRectangleNode) Keywords() []string {
 }
 
 func (n RoundedRectangleNode) Out(out *nodes.Lifted[[]vector2.Float64]) {
-	segments := max(nodes.TryGetOutputValue(out, n.Segments, 8), 1)
+	segments := max(nodes.GetOutputValue(out, n.Segments), 1)
 	nodes.Zip3(
 		out,
-		nodes.LiftedOr(n.Size, vector2.One[float64]()),
-		nodes.LiftedOr(n.Radius, 0.),
-		nodes.LiftedOr(n.Center, vector2.Zero[float64]()),
+		n.Size,
+		n.Radius,
+		n.Center,
 		func(size vector2.Float64, radius float64, center vector2.Float64) []vector2.Float64 {
 			return RoundedRectangle(size, radius, center, segments)
 		},

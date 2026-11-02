@@ -74,9 +74,9 @@ func (suv StripUVs) LeftToRight() vector2.Float64 {
 }
 
 type StripUVsNode struct {
-	Width nodes.Output[float64]
-	Start nodes.Output[vector2.Float64]
-	End   nodes.Output[vector2.Float64]
+	Width nodes.Output[float64]         `default:"1"`
+	Start nodes.Output[vector2.Float64] `default:"0,0.5"`
+	End   nodes.Output[vector2.Float64] `default:"1,0.5"`
 }
 
 func (sund StripUVsNode) Description() string {
@@ -85,8 +85,8 @@ func (sund StripUVsNode) Description() string {
 
 func (sund StripUVsNode) Out(out *nodes.StructOutput[StripUVs]) {
 	out.Set(StripUVs{
-		Start: nodes.TryGetOutputValue(out, sund.Start, vector2.New(0, 0.5)),
-		End:   nodes.TryGetOutputValue(out, sund.End, vector2.New(1, 0.5)),
-		Width: nodes.TryGetOutputValue(out, sund.Width, 1.),
+		Start: nodes.GetOutputValue(out, sund.Start),
+		End:   nodes.GetOutputValue(out, sund.End),
+		Width: nodes.GetOutputValue(out, sund.Width),
 	})
 }

@@ -499,18 +499,18 @@ func TestSubGraphEncodeDecodeWithMetadata(t *testing.T) {
 	require.NotNil(t, notes)
 }
 
-func TestSubGraphModelVersionBubblesFromChild(t *testing.T) {
+func TestSubGraphRevisionBubblesFromChild(t *testing.T) {
 	inst := testInstanceWithSubGraphTypes(t)
 	require.NoError(t, inst.CreateSubGraph("version", "Version", ""))
 
-	v0 := inst.ModelVersion()
+	v0 := inst.Version().Revision
 	child, err := inst.SubGraphInstance("version")
 	require.NoError(t, err)
 
 	_, _, err = child.CreateBoundaryNode(subgraph.InputNodeTypeKey, "float64")
 	require.NoError(t, err)
 
-	assert.Greater(t, inst.ModelVersion(), v0)
+	assert.Greater(t, inst.Version().Revision, v0)
 }
 
 func TestRegisterSubGraphNodeType(t *testing.T) {

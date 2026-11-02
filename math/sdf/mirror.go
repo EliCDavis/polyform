@@ -80,7 +80,7 @@ func mirrorUnion(f sample.Vec3ToFloat, mirrorX, mirrorY, mirrorZ bool) sample.Ve
 
 type MirrorNode struct {
 	Field nodes.Output[sample.Vec3ToFloat] `description:"The field to mirror. Each output port reflects it across a different axis through the origin."`
-	Union nodes.Output[bool]               `description:"When true (default), unions the original with every mirrored copy, so both sides are present. When false, this is a pure reflection only and the original is not included."`
+	Union nodes.Output[bool]               `description:"When true, unions the original with every mirrored copy, so both sides are present. When false, this is a pure reflection only and the original is not included." default:"true"`
 }
 
 func (n MirrorNode) Description() string {
@@ -88,7 +88,7 @@ func (n MirrorNode) Description() string {
 }
 
 func (n MirrorNode) union(out nodes.ExecutionRecorder) bool {
-	return nodes.TryGetOutputValue(out, n.Union, true)
+	return nodes.GetOutputValue(out, n.Union)
 }
 
 func (n MirrorNode) X(out *nodes.StructOutput[sample.Vec3ToFloat]) {

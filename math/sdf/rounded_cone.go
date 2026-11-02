@@ -64,10 +64,10 @@ func RoundedCone(a, b vector3.Float64, r1, r2 float64) sample.Vec3ToFloat {
 }
 
 type RoundedConeNode struct {
-	A       nodes.Output[vector3.Float64] `description:"One end of the cone's axis. Defaults to the origin."`
-	B       nodes.Output[vector3.Float64] `description:"The other end of the cone's axis. Defaults to (0, 1, 0)."`
-	Radius1 nodes.Output[float64]         `description:"Radius at A. Defaults to 1."`
-	Radius2 nodes.Output[float64]         `description:"Radius at B. Defaults to 0.1."`
+	A       nodes.Output[vector3.Float64] `description:"One end of the cone's axis."`
+	B       nodes.Output[vector3.Float64] `description:"The other end of the cone's axis." default:"0,1,0"`
+	Radius1 nodes.Output[float64]         `description:"Radius at A." default:"1"`
+	Radius2 nodes.Output[float64]         `description:"Radius at B." default:"0.1"`
 }
 
 func (cn RoundedConeNode) Description() string {
@@ -76,9 +76,9 @@ func (cn RoundedConeNode) Description() string {
 
 func (cn RoundedConeNode) Field(out *nodes.StructOutput[sample.Vec3ToFloat]) {
 	out.Set(RoundedCone(
-		nodes.TryGetOutputValue(out, cn.A, vector3.Zero[float64]()),
-		nodes.TryGetOutputValue(out, cn.B, vector3.Up[float64]()),
-		nodes.TryGetOutputValue(out, cn.Radius1, 1),
-		nodes.TryGetOutputValue(out, cn.Radius2, .1),
+		nodes.GetOutputValue(out, cn.A),
+		nodes.GetOutputValue(out, cn.B),
+		nodes.GetOutputValue(out, cn.Radius1),
+		nodes.GetOutputValue(out, cn.Radius2),
 	))
 }

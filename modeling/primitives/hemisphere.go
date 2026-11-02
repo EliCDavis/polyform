@@ -120,11 +120,11 @@ func (h Hemisphere) normals(positions []vector3.Float64) []vector3.Float64 {
 }
 
 type HemisphereNode struct {
-	Rows    nodes.Output[int]
-	Columns nodes.Output[int]
-	Radius  nodes.Output[float64]
-	Height  nodes.Output[float64]
-	Capped  nodes.Output[bool]
+	Rows    nodes.Output[int]     `default:"20"`
+	Columns nodes.Output[int]     `default:"20"`
+	Radius  nodes.Output[float64] `default:"0.5"`
+	Height  nodes.Output[float64] `description:"0 or less means the same as Radius."`
+	Capped  nodes.Output[bool]    `default:"true"`
 }
 
 func (hnd HemisphereNode) Description() string {
@@ -137,16 +137,20 @@ func (hnd HemisphereNode) Keywords() []string {
 
 func (hnd HemisphereNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 
-	radius := nodes.TryGetOutputValue(out, hnd.Radius, 0.5)
+	radius := nodes.GetOutputValue(out, hnd.Radius)
+	height := nodes.GetOutputValue(out, hnd.Height)
+	if height <= 0 {
+		height = radius
+	}
 
 	hemi := Hemisphere{
 		Radius: radius,
-		Height: nodes.TryGetOutputValue(out, hnd.Height, radius),
-		Capped: nodes.TryGetOutputValue(out, hnd.Capped, true),
+		Height: height,
+		Capped: nodes.GetOutputValue(out, hnd.Capped),
 	}
 
 	out.Set(hemi.UV(
-		max(minHemisphereRows, nodes.TryGetOutputValue(out, hnd.Rows, 20)),
-		max(minHemisphereColumns, nodes.TryGetOutputValue(out, hnd.Columns, 20)),
+		max(minHemisphereRows, nodes.GetOutputValue(out, hnd.Rows)),
+		max(minHemisphereColumns, nodes.GetOutputValue(out, hnd.Columns)),
 	))
 }

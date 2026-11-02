@@ -20,11 +20,11 @@ func TestInterpolateNodeOverArrays(t *testing.T) {
 			nodetest.AssertOutput("Out", black),
 		),
 		nodetest.NewTestCase(
-			"one end alone is that end",
+			"an unwired end is black",
 			nodetest.NewNode(coloring.InterpolateNode{
 				B: nodetest.NewPortValue(red),
 			}),
-			nodetest.AssertOutput("Out", red),
+			nodetest.AssertOutput("Out", coloring.Color{R: 0.5, A: 1}),
 		),
 		nodetest.NewTestCase(
 			"halfway between two colors",

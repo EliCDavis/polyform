@@ -65,9 +65,9 @@ type Player struct {
 }
 
 type RoomState struct {
-	ModelVersion uint32
-	WebScene     *persistence.WebScene
-	Players      map[string]*Player
+	Revision uint32
+	WebScene *persistence.WebScene
+	Players  map[string]*Player
 }
 
 type clientUpdate struct {
@@ -176,7 +176,7 @@ func (h *Hub) Run() {
 			}
 
 		case <-h.sceneUpdate:
-			h.state.ModelVersion = h.graphInstance.ModelVersion()
+			h.state.Revision = h.graphInstance.Version().Revision
 			for client := range h.clients {
 				select {
 				case client.send <- ServerRoomStateUpdate(h.state):

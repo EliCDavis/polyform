@@ -1,5 +1,7 @@
 package schema
 
+import "encoding/json"
+
 type PortReference struct {
 	NodeId   string `json:"id"`
 	PortName string `json:"port"`
@@ -17,6 +19,8 @@ type Node struct {
 	Name          string                    `json:"name"`
 	AssignedInput map[string]PortReference  `json:"assignedInput"`
 	Output        map[string]NodeOutputPort `json:"output"`
+
+	Literals map[string]json.RawMessage `json:"literals,omitempty"`
 
 	Parameter Parameter      `json:"parameter,omitempty"`
 	Variable  any            `json:"variable,omitempty"`

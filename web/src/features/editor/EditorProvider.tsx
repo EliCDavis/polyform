@@ -35,10 +35,10 @@ const viewportSettings: ViewportSettings = {
   ground: "#cbcbcb",
 };
 
-function EditorModelVersionPoller() {
+function EditorRevisionPoller() {
   const editor = useEditorOptional();
-  useStartedPolling((modelVersion) => {
-    editor?.producerViewManager.setModelVersion(modelVersion);
+  useStartedPolling((revision) => {
+    editor?.producerViewManager.setRevision(revision);
   });
   return null;
 }
@@ -364,7 +364,7 @@ export function EditorProvider({
               schemaManager={ctx.schemaManager}
               nodeFlowGraph={ctx.nodeFlowGraph}
             />
-            <EditorModelVersionPoller />
+            <EditorRevisionPoller />
             <ActiveProfileSync />
           </>
         )}

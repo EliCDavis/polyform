@@ -6,7 +6,7 @@ import (
 
 type SampleNode struct {
 	Start   nodes.Output[float64]
-	End     nodes.Output[float64]
+	End     nodes.Output[float64] `default:"1"`
 	Samples nodes.Output[int]
 }
 
@@ -15,9 +15,9 @@ func (snd SampleNode) Description() string {
 }
 
 func (snd SampleNode) Out(out *nodes.StructOutput[[]float64]) {
-	start := nodes.TryGetOutputValue(out, snd.Start, 0.)
-	end := nodes.TryGetOutputValue(out, snd.End, 1.)
-	samples := max(nodes.TryGetOutputValue(out, snd.Samples, 0), 0)
+	start := nodes.GetOutputValue(out, snd.Start)
+	end := nodes.GetOutputValue(out, snd.End)
+	samples := max(nodes.GetOutputValue(out, snd.Samples), 0)
 
 	arr := make([]float64, samples)
 	inc := (end - start) / float64(samples-1)
@@ -44,11 +44,6 @@ func (snd ShiftNode) Out(out *nodes.StructOutput[[]float64]) {
 	}
 
 	in := nodes.GetOutputValue(out, snd.In)
-	if snd.Shift == nil {
-		out.Set(in)
-		return
-	}
-
 	shift := nodes.GetOutputValue(out, snd.Shift)
 
 	arr := make([]float64, len(in))

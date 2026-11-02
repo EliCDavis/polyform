@@ -116,8 +116,8 @@ func nonZero(v float64) float64 {
 
 type BoxProjectUVNode struct {
 	Mesh   nodes.Output[modeling.Mesh]
-	Scale  nodes.Output[vector2.Float64] `description:"World size of one texture repeat along u and v, in meters. Defaults to 1 x 1."`
-	Offset nodes.Output[vector2.Float64] `description:"Added to every uv after scaling. Defaults to zero."`
+	Scale  nodes.Output[vector2.Float64] `description:"World size of one texture repeat along u and v, in meters." default:"1,1"`
+	Offset nodes.Output[vector2.Float64] `description:"Added to every uv after scaling."`
 }
 
 func (BoxProjectUVNode) Description() string {
@@ -135,8 +135,8 @@ func (n BoxProjectUVNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	}
 	mesh, err := BoxProjectUV(
 		nodes.GetOutputValue(out, n.Mesh),
-		nodes.TryGetOutputValue(out, n.Scale, vector2.One[float64]()),
-		nodes.TryGetOutputValue(out, n.Offset, vector2.Zero[float64]()),
+		nodes.GetOutputValue(out, n.Scale),
+		nodes.GetOutputValue(out, n.Offset),
 	)
 	if err != nil {
 		out.CaptureError(err)

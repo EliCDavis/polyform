@@ -10,8 +10,8 @@ import (
 
 type ScaleWithinRegionNode struct {
 	Mesh     nodes.Output[modeling.Mesh]
-	Scale    nodes.Output[float64]
-	Radius   nodes.Output[float64]
+	Scale    nodes.Output[float64] `default:"1"`
+	Radius   nodes.Output[float64] `default:"1"`
 	Position nodes.Output[vector3.Float64]
 }
 
@@ -40,9 +40,9 @@ func (swrnd ScaleWithinRegionNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	newPos := make([]vector3.Float64, count)
 	newScale := make([]vector3.Float64, count)
 
-	baloonPos := nodes.TryGetOutputValue(out, swrnd.Position, vector3.Zero[float64]())
-	baloonRadius := nodes.TryGetOutputValue(out, swrnd.Radius, 1)
-	baloonStrength := nodes.TryGetOutputValue(out, swrnd.Scale, 1)
+	baloonPos := nodes.GetOutputValue(out, swrnd.Position)
+	baloonRadius := nodes.GetOutputValue(out, swrnd.Radius)
+	baloonStrength := nodes.GetOutputValue(out, swrnd.Scale)
 
 	for i := range count {
 		curPos := posData.At(i)

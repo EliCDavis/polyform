@@ -78,7 +78,7 @@ func init() {
 // ============================================================================
 
 type PlaneFromNormalNode struct {
-	Normal   nodes.LiftedPort[vector3.Float64]
+	Normal   nodes.LiftedPort[vector3.Float64] `default:"0,1,0"`
 	Position nodes.LiftedPort[vector3.Float64]
 }
 
@@ -89,8 +89,8 @@ func (n PlaneFromNormalNode) Description() string {
 func (n PlaneFromNormalNode) Out(out *nodes.Lifted[geometry.Plane]) {
 	nodes.Zip2(
 		out,
-		nodes.LiftedOr(n.Position, vector3.Zero[float64]()),
-		nodes.LiftedOr(n.Normal, vector3.Up[float64]()),
+		n.Position,
+		n.Normal,
 		geometry.NewPlane,
 	)
 }
@@ -386,12 +386,12 @@ type RemapNode[T vector.Number] struct {
 	Value nodes.LiftedPort[T]
 
 	InMin nodes.LiftedPort[T]
-	InMax nodes.LiftedPort[T]
+	InMax nodes.LiftedPort[T] `default:"1"`
 
 	OutMin nodes.LiftedPort[T]
-	OutMax nodes.LiftedPort[T]
+	OutMax nodes.LiftedPort[T] `default:"1"`
 
-	Clamp nodes.Output[bool] `description:"Holds results inside Out Min..Out Max (not 0..1). Defaults to true."`
+	Clamp nodes.Output[bool] `description:"Holds results inside Out Min..Out Max (not 0..1)." default:"true"`
 }
 
 func (n RemapNode[T]) Description() string {
@@ -399,7 +399,7 @@ func (n RemapNode[T]) Description() string {
 }
 
 func (n RemapNode[T]) Out(out *nodes.Lifted[T]) {
-	clamped := nodes.TryGetOutputValue(out, n.Clamp, true)
+	clamped := nodes.GetOutputValue(out, n.Clamp)
 
 	nodes.ZipAll(
 		out,

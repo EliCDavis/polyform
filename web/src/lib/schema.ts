@@ -16,6 +16,9 @@ export interface NodeInput {
   // Set when the port takes more than one type, because `type` is only the
   // one it happens to be showing.
   acceptedTypes?: Array<string>;
+
+  literal?: boolean;
+  default?: unknown;
 }
 
 export interface GraphHistory {
@@ -98,6 +101,8 @@ export interface NodeInstance {
   name: string;
   assignedInput: NodeInstanceAssignedInput;
   output: NodeInstanceOutput;
+
+  literals?: { [port: string]: unknown };
   parameter?: NodeParameter;
   variable?: any;
   metadata?: { [key: string]: any };
@@ -135,7 +140,13 @@ export interface EnumDefinition {
   members: EnumMember[];
 }
 
+export interface GraphVersion {
+  rebuilds: number;
+  revision: number;
+}
+
 export interface GraphInstance {
+  version: GraphVersion;
   producers: { [key: string]: any };
   nodes: GraphInstanceNodes;
   notes: { [key: string]: any };

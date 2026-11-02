@@ -2,7 +2,6 @@ package trs
 
 import (
 	"fmt"
-	"math"
 	"time"
 
 	"github.com/EliCDavis/polyform/generator/registry"
@@ -36,7 +35,7 @@ func init() {
 type NewNode struct {
 	Position nodes.LiftedPort[vector3.Float64]
 	Rotation nodes.LiftedPort[quaternion.Quaternion]
-	Scale    nodes.LiftedPort[vector3.Float64]
+	Scale    nodes.LiftedPort[vector3.Float64] `default:"1,1,1"`
 }
 
 func (tnd NewNode) Description() string {
@@ -46,9 +45,9 @@ func (tnd NewNode) Description() string {
 func (tnd NewNode) Out(out *nodes.Lifted[TRS]) {
 	nodes.Zip3(
 		out,
-		nodes.LiftedOr(tnd.Position, vector3.Zero[float64]()),
-		nodes.LiftedOr(tnd.Rotation, quaternion.Identity()),
-		nodes.LiftedOr(tnd.Scale, vector3.One[float64]()),
+		tnd.Position,
+		tnd.Rotation,
+		tnd.Scale,
 		New,
 	)
 }
@@ -58,12 +57,12 @@ func (tnd NewNode) Out(out *nodes.Lifted[TRS]) {
 type RandomizeArrayNode struct {
 	TranslationMinimum nodes.Output[vector3.Float64]
 	TranslationMaximum nodes.Output[vector3.Float64]
-	ScaleMinimum       nodes.Output[vector3.Float64]
-	ScaleMaximum       nodes.Output[vector3.Float64]
+	ScaleMinimum       nodes.Output[vector3.Float64] `default:"1,1,1"`
+	ScaleMaximum       nodes.Output[vector3.Float64] `default:"1,1,1"`
 	RotationMinimum    nodes.Output[vector3.Float64]
 	RotationMaximum    nodes.Output[vector3.Float64]
 	Array              nodes.Output[[]TRS]
-	Seed               nodes.Output[int] `description:"The same seed always produces the same offsets. Defaults to 0."`
+	Seed               nodes.Output[int] `description:"The same seed always produces the same offsets."`
 }
 
 func (tnd RandomizeArrayNode) Description() string {
@@ -76,19 +75,19 @@ func (tnd RandomizeArrayNode) Out(out *nodes.StructOutput[[]TRS]) {
 		return
 	}
 
-	minT := nodes.TryGetOutputValue(out, tnd.TranslationMinimum, vector3.Zero[float64]())
-	maxT := nodes.TryGetOutputValue(out, tnd.TranslationMaximum, vector3.Zero[float64]())
+	minT := nodes.GetOutputValue(out, tnd.TranslationMinimum)
+	maxT := nodes.GetOutputValue(out, tnd.TranslationMaximum)
 	rangeT := maxT.Sub(minT)
 
-	minS := nodes.TryGetOutputValue(out, tnd.ScaleMinimum, vector3.One[float64]())
-	maxS := nodes.TryGetOutputValue(out, tnd.ScaleMaximum, vector3.One[float64]())
+	minS := nodes.GetOutputValue(out, tnd.ScaleMinimum)
+	maxS := nodes.GetOutputValue(out, tnd.ScaleMaximum)
 	rangeS := maxS.Sub(minS)
 
-	minR := nodes.TryGetOutputValue(out, tnd.RotationMinimum, vector3.Zero[float64]())
-	maxR := nodes.TryGetOutputValue(out, tnd.RotationMaximum, vector3.Zero[float64]())
+	minR := nodes.GetOutputValue(out, tnd.RotationMinimum)
+	maxR := nodes.GetOutputValue(out, tnd.RotationMaximum)
 	rangeR := maxR.Sub(minR)
 
-	rnd := chance.FromSeed(nodes.TryGetOutputValue(out, tnd.Seed, 0))
+	rnd := chance.FromSeed(nodes.GetOutputValue(out, tnd.Seed))
 
 	arr := make([]TRS, len(input))
 	for i := range input {
@@ -131,15 +130,15 @@ func (tnd SelectNode) Description() string {
 }
 
 func (tnd SelectNode) Position(out *nodes.Lifted[vector3.Float64]) {
-	nodes.Zip1(out, nodes.LiftedOr(tnd.TRS, Identity()), TRS.Position)
+	nodes.Zip1(out, tnd.TRS, TRS.Position)
 }
 
 func (tnd SelectNode) Scale(out *nodes.Lifted[vector3.Float64]) {
-	nodes.Zip1(out, nodes.LiftedOr(tnd.TRS, Identity()), TRS.Scale)
+	nodes.Zip1(out, tnd.TRS, TRS.Scale)
 }
 
 func (tnd SelectNode) Rotation(out *nodes.Lifted[quaternion.Quaternion]) {
-	nodes.Zip1(out, nodes.LiftedOr(tnd.TRS, Identity()), TRS.Rotation)
+	nodes.Zip1(out, tnd.TRS, TRS.Rotation)
 }
 
 // ============================================================================
@@ -161,8 +160,8 @@ func (tnd MultiplyNode) Out(out *nodes.Lifted[TRS]) {
 	compose(out, func(recorder nodes.ExecutionRecorder) {
 		nodes.Zip2(
 			out,
-			nodes.LiftedOr(tnd.A, Identity()),
-			nodes.LiftedOr(tnd.B, Identity()),
+			tnd.A,
+			tnd.B,
 			func(a, b TRS) TRS {
 				return decompose(recorder, a.Multiply(b))
 			},
@@ -186,9 +185,9 @@ func (n MultiplyToArrayNode) Out(out *nodes.Lifted[TRS]) {
 	compose(out, func(recorder nodes.ExecutionRecorder) {
 		nodes.Zip3(
 			out,
-			nodes.LiftedOr(n.Left, Identity()),
-			nodes.LiftedOr(n.Middle, Identity()),
-			nodes.LiftedOr(n.Right, Identity()),
+			n.Left,
+			n.Middle,
+			n.Right,
 			func(left, middle, right TRS) TRS {
 				inner := decompose(recorder, middle.Multiply(right))
 				return decompose(recorder, left.Multiply(inner))
@@ -232,7 +231,7 @@ func decompose(recorder nodes.ExecutionRecorder, m mat.Matrix4x4) TRS {
 type PivotNode struct {
 	Pivot    nodes.LiftedPort[vector3.Float64]
 	Rotation nodes.LiftedPort[quaternion.Quaternion]
-	Scale    nodes.LiftedPort[vector3.Float64] `description:"Defaults to (1,1,1); applied about the pivot as well"`
+	Scale    nodes.LiftedPort[vector3.Float64] `description:"Applied about the pivot as well" default:"1,1,1"`
 }
 
 func (PivotNode) Description() string {
@@ -246,9 +245,9 @@ func (PivotNode) Keywords() []string {
 func (n PivotNode) Out(out *nodes.Lifted[TRS]) {
 	nodes.Zip3(
 		out,
-		nodes.LiftedOr(n.Pivot, vector3.Zero[float64]()),
-		nodes.LiftedOr(n.Rotation, quaternion.Identity()),
-		nodes.LiftedOr(n.Scale, vector3.One[float64]()),
+		n.Pivot,
+		n.Rotation,
+		n.Scale,
 		func(pivot vector3.Float64, rotation quaternion.Quaternion, scale vector3.Float64) TRS {
 			moved := rotation.Rotate(pivot.MultByVector(scale))
 			return New(pivot.Sub(moved), rotation, scale)
@@ -261,7 +260,7 @@ func (n PivotNode) Out(out *nodes.Lifted[TRS]) {
 type LookAtNode struct {
 	Position nodes.LiftedPort[vector3.Float64]
 	Target   nodes.LiftedPort[vector3.Float64]
-	Scale    nodes.LiftedPort[vector3.Float64] `description:"Defaults to (1,1,1)"`
+	Scale    nodes.LiftedPort[vector3.Float64] `default:"1,1,1"`
 }
 
 func (LookAtNode) Description() string {
@@ -273,7 +272,7 @@ func (LookAtNode) Keywords() []string {
 }
 
 func (n LookAtNode) Out(out *nodes.Lifted[TRS]) {
-	nodes.Zip3(out, n.Position, n.Target, nodes.LiftedOr(n.Scale, vector3.One[float64]()), func(position, target, scale vector3.Float64) TRS {
+	nodes.Zip3(out, n.Position, n.Target, n.Scale, func(position, target, scale vector3.Float64) TRS {
 		if target.Sub(position).LengthSquared() == 0 {
 			return New(position, quaternion.Identity(), scale)
 		}
@@ -299,7 +298,7 @@ func (TransformPointNode) Keywords() []string {
 func (n TransformPointNode) Out(out *nodes.Lifted[vector3.Float64]) {
 	nodes.Zip2(
 		out,
-		nodes.LiftedOr(n.TRS, Identity()),
+		n.TRS,
 		n.Point,
 		TRS.Transform,
 	)
@@ -319,7 +318,7 @@ func (tnd RotateDirectionNode) Description() string {
 func (tnd RotateDirectionNode) Out(out *nodes.Lifted[vector3.Float64]) {
 	nodes.Zip2(
 		out,
-		nodes.LiftedOr(tnd.TRS, Identity()),
+		tnd.TRS,
 		tnd.Direction,
 		TRS.RotateDirection,
 	)
@@ -358,32 +357,17 @@ func filter(
 		return nil, nil
 	}
 
-	inputs := []nodes.Output[float64]{
-		MinX, MinY, MinZ,
-		MaxX, MaxY, MaxZ,
-	}
-	allNil := true
-	for _, v := range inputs {
-		if v != nil {
-			allNil = false
-			break
-		}
-	}
-
 	arr := nodes.GetOutputValue(recorder, Input)
-	if allNil {
-		return arr, nil
-	}
 
 	min := vector3.New(
-		nodes.TryGetOutputValue(recorder, MinX, -math.MaxFloat64),
-		nodes.TryGetOutputValue(recorder, MinY, -math.MaxFloat64),
-		nodes.TryGetOutputValue(recorder, MinZ, -math.MaxFloat64),
+		nodes.GetOutputValue(recorder, MinX),
+		nodes.GetOutputValue(recorder, MinY),
+		nodes.GetOutputValue(recorder, MinZ),
 	)
 	max := vector3.New(
-		nodes.TryGetOutputValue(recorder, MaxX, math.MaxFloat64),
-		nodes.TryGetOutputValue(recorder, MaxY, math.MaxFloat64),
-		nodes.TryGetOutputValue(recorder, MaxZ, math.MaxFloat64),
+		nodes.GetOutputValue(recorder, MaxX),
+		nodes.GetOutputValue(recorder, MaxY),
+		nodes.GetOutputValue(recorder, MaxZ),
 	)
 
 	kept := make([]TRS, 0)
@@ -412,12 +396,12 @@ func filter(
 
 type FilterPositionNode struct {
 	Input nodes.Output[[]TRS]
-	MinX  nodes.Output[float64]
-	MinY  nodes.Output[float64]
-	MinZ  nodes.Output[float64]
-	MaxX  nodes.Output[float64]
-	MaxY  nodes.Output[float64]
-	MaxZ  nodes.Output[float64]
+	MinX  nodes.Output[float64] `default:"min"`
+	MinY  nodes.Output[float64] `default:"min"`
+	MinZ  nodes.Output[float64] `default:"min"`
+	MaxX  nodes.Output[float64] `default:"max"`
+	MaxY  nodes.Output[float64] `default:"max"`
+	MaxZ  nodes.Output[float64] `default:"max"`
 }
 
 func (tnd FilterPositionNode) Description() string {
@@ -446,12 +430,12 @@ func (tnd FilterPositionNode) Removed(out *nodes.StructOutput[[]TRS]) {
 
 type FilterScaleNode struct {
 	Input nodes.Output[[]TRS]
-	MinX  nodes.Output[float64]
-	MinY  nodes.Output[float64]
-	MinZ  nodes.Output[float64]
-	MaxX  nodes.Output[float64]
-	MaxY  nodes.Output[float64]
-	MaxZ  nodes.Output[float64]
+	MinX  nodes.Output[float64] `default:"min"`
+	MinY  nodes.Output[float64] `default:"min"`
+	MinZ  nodes.Output[float64] `default:"min"`
+	MaxX  nodes.Output[float64] `default:"max"`
+	MaxY  nodes.Output[float64] `default:"max"`
+	MaxZ  nodes.Output[float64] `default:"max"`
 }
 
 func (tnd FilterScaleNode) Description() string {

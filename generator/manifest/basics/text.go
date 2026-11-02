@@ -24,7 +24,7 @@ func (TextArtifact) Mime() string {
 
 type TextNode struct {
 	In   nodes.Output[string]
-	Name nodes.Output[string]
+	Name nodes.Output[string] `default:"text.txt"`
 }
 
 func (tand TextNode) Description() string {
@@ -32,7 +32,7 @@ func (tand TextNode) Description() string {
 }
 
 func (tand TextNode) Out(out *nodes.StructOutput[manifest.Manifest]) {
-	name := nodes.TryGetOutputValue(out, tand.Name, "text.txt")
-	entry := manifest.Entry{Artifact: TextArtifact{Data: nodes.TryGetOutputValue(out, tand.In, "")}}
+	name := nodes.GetOutputValue(out, tand.Name)
+	entry := manifest.Entry{Artifact: TextArtifact{Data: nodes.GetOutputValue(out, tand.In)}}
 	out.Set(manifest.SingleEntryManifest(name, entry))
 }

@@ -19,7 +19,7 @@ func init() {
 
 type UniformFramesNode[T any] struct {
 	Data     nodes.Output[[]T]
-	Duration nodes.Output[float64]
+	Duration nodes.Output[float64] `default:"1"`
 }
 
 func (node UniformFramesNode[T]) Description() string {
@@ -29,6 +29,6 @@ func (node UniformFramesNode[T]) Description() string {
 func (node UniformFramesNode[T]) Out(out *nodes.StructOutput[[]Frame[T]]) {
 	out.Set(UniformFrames(
 		nodes.TryGetOutputValue(out, node.Data, nil),
-		nodes.TryGetOutputValue(out, node.Duration, 1),
+		nodes.GetOutputValue(out, node.Duration),
 	))
 }

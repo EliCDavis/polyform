@@ -73,7 +73,7 @@ func VertexColorSpace(m modeling.Mesh, attribute string, transformation VertexCo
 }
 
 type SrgbToLinearNode struct {
-	Attribute nodes.Output[string]
+	Attribute nodes.Output[string] `default:"Color"`
 	Mesh      nodes.Output[modeling.Mesh]
 }
 
@@ -92,7 +92,7 @@ func convertVertexColorSpace(out *nodes.StructOutput[modeling.Mesh], meshIn node
 	}
 
 	mesh := nodes.GetOutputValue(out, meshIn)
-	attr := nodes.TryGetOutputValue(out, attrIn, modeling.ColorAttribute)
+	attr := nodes.GetOutputValue(out, attrIn)
 	if mesh.AttributeLength() == 0 {
 		out.CaptureError(fmt.Errorf("mesh has no %s vertex data to convert", attr))
 		out.Set(mesh)
@@ -103,7 +103,7 @@ func convertVertexColorSpace(out *nodes.StructOutput[modeling.Mesh], meshIn node
 }
 
 type LinearToSRGBNode struct {
-	Attribute nodes.Output[string]
+	Attribute nodes.Output[string] `default:"Color"`
 	Mesh      nodes.Output[modeling.Mesh]
 }
 

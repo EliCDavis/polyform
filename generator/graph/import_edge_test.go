@@ -256,7 +256,7 @@ func TestVariablesSharingANameInDifferentGroupsBecomeSeparateInputs(t *testing.T
 	assert.Equal(t, 15.0, out(t, placement), "only the wood input changed")
 }
 
-func TestAVariableWithNoValueNodeStillBecomesAnInputWithoutADefault(t *testing.T) {
+func TestAVariableWithNoValueNodeKeepsItsDefaultAsALiteral(t *testing.T) {
 	src := importTestInstance(t, "Source")
 	require.NoError(t, errOf(src.NewVariable("Flag", newBoolVariable(true))))
 	require.NoError(t, src.CreateSubGraph("flagged", "Flagged", ""))
@@ -273,9 +273,10 @@ func TestAVariableWithNoValueNodeStillBecomesAnInputWithoutADefault(t *testing.T
 	result, err := dest.ImportSubGraphDefinitions(encode(t, src), "")
 	require.NoError(t, err)
 
-	assert.Equal(t, []graph.VariableInput{{Variable: "Flag", Port: "Flag", HasDefault: false}}, result.Imported[0].Inputs)
+	assert.Equal(t, []graph.VariableInput{{Variable: "Flag", Port: "Flag", HasDefault: true}}, result.Imported[0].Inputs)
 	placement, _ := place(t, dest, "flagged")
 	assert.Contains(t, inputLabels(placement), "Flag")
+	assert.True(t, nodes.GetNodeOutputPort[bool](placement, "Out").Value())
 }
 
 func TestAVariableReadOnlyByTheRootIsNotLifted(t *testing.T) {

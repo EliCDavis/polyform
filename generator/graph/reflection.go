@@ -21,9 +21,28 @@ func (i *Instance) BuildSchemaForAllNodeTypes() []schema.NodeType {
 		if !ok {
 			panic(fmt.Errorf("Registered type %q is not a node: %s", registeredType, instance))
 		}
-		nodeTypes = append(nodeTypes, BuildNodeTypeSchema(registeredType, nodeInstance))
+		nodeTypes = append(nodeTypes, i.NodeTypeSchema(registeredType, nodeInstance))
 	}
 	return nodeTypes
+}
+
+func (i *Instance) NodeTypeSchema(registeredType string, node nodes.Node) schema.NodeType {
+	typeSchema := BuildNodeTypeSchema(registeredType, node)
+	i.describeLiterals(node, &typeSchema)
+	return typeSchema
+}
+
+func (i *Instance) describeLiterals(node nodes.Node, typeSchema *schema.NodeType) {
+	for key, input := range node.Inputs() {
+		lit, err := i.Graph.buildLiteral(node, key, input)
+		if err != nil || lit == nil {
+			continue
+		}
+		entry := typeSchema.Inputs[label(input)]
+		entry.Literal = true
+		entry.Default = lit.value.ToMessage()
+		typeSchema.Inputs[label(input)] = entry
+	}
 }
 
 func BuildNodeTypeSchema(registeredType string, node nodes.Node) schema.NodeType {
@@ -160,4 +179,3 @@ func BuildNodeTypeSchema(registeredType string, node nodes.Node) schema.NodeType
 
 	return typeSchema
 }
-

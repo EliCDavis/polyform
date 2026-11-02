@@ -3,9 +3,9 @@ package sequence
 import "github.com/EliCDavis/polyform/nodes"
 
 type LinearNode struct {
-	Start   nodes.Output[float64] `description:"Value of the first sample. Defaults to 0."`
-	End     nodes.Output[float64] `description:"Value of the last sample. Defaults to 1."`
-	Samples nodes.Output[int]     `description:"How many evenly-spaced values to produce, including both Start and End. Defaults to 0."`
+	Start   nodes.Output[float64] `description:"Value of the first sample."`
+	End     nodes.Output[float64] `description:"Value of the last sample." default:"1"`
+	Samples nodes.Output[int]     `description:"How many evenly-spaced values to produce, including both Start and End."`
 }
 
 func (snd LinearNode) Description() string {
@@ -13,9 +13,9 @@ func (snd LinearNode) Description() string {
 }
 
 func (snd LinearNode) Out(out *nodes.StructOutput[[]float64]) {
-	start := nodes.TryGetOutputValue(out, snd.Start, 0.)
-	end := nodes.TryGetOutputValue(out, snd.End, 1.)
-	samples := max(nodes.TryGetOutputValue(out, snd.Samples, 0), 0)
+	start := nodes.GetOutputValue(out, snd.Start)
+	end := nodes.GetOutputValue(out, snd.End)
+	samples := max(nodes.GetOutputValue(out, snd.Samples), 0)
 
 	if samples == 0 {
 		return

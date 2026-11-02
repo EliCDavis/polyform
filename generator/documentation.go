@@ -1,6 +1,7 @@
 package generator
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"sort"
@@ -24,6 +25,30 @@ func writeEnum(writer markdown.Writer, portType string) {
 	writer.Text(" (one of: ")
 	writer.Text(strings.Join(def.Names(), ", "))
 	writer.Text(")")
+}
+
+func noteDefaults(node nodes.Node, typeSchema *schema.NodeType) {
+	for _, input := range node.Inputs() {
+		defaulted, ok := input.(nodes.Defaulted)
+		if !ok || defaulted.Default() == "" {
+			continue
+		}
+		name := input.Name()
+		if labeled, ok := input.(nodes.Labeled); ok {
+			name = labeled.Label()
+		}
+		entry := typeSchema.Inputs[name]
+		entry.Default, _ = json.Marshal(defaulted.Default())
+		typeSchema.Inputs[name] = entry
+	}
+}
+
+func defaultText(input schema.NodeTypeInput) string {
+	var text string
+	if json.Unmarshal(input.Default, &text) != nil {
+		return string(input.Default)
+	}
+	return text
 }
 
 func inputTypes(input schema.NodeTypeInput) string {
@@ -65,6 +90,7 @@ func (dw DocumentationWriter) writeSingle(writer markdown.Writer) error {
 	sections := make(map[string][]schema.NodeType)
 	for _, instance := range instances {
 		builtSchema := graph.BuildNodeTypeSchema("TODO", instance)
+		noteDefaults(instance, &builtSchema)
 		if _, ok := sections[builtSchema.Path]; !ok {
 			sections[builtSchema.Path] = make([]schema.NodeType, 0)
 		}
@@ -151,6 +177,11 @@ func (dw DocumentationWriter) writeSingle(writer markdown.Writer) error {
 						writer.Text(input.Val.Description)
 					}
 					writeEnum(writer, input.Val.Type)
+					if text := defaultText(input.Val); text != "" {
+						writer.Text(" (default: ")
+						writer.Text(text)
+						writer.Text(")")
+					}
 
 					writer.EndBullet()
 				}

@@ -17,11 +17,11 @@ func FillImage(img draw.Image) {
 }
 
 type NewNode struct {
-	Dimensions nodes.Output[vector2.Int]
+	Dimensions nodes.Output[vector2.Int] `default:"256,256"`
 }
 
 func (n NewNode) NormalMap(out *nodes.StructOutput[NormalMap]) {
-	dim := nodes.TryGetOutputValue(out, n.Dimensions, vector2.New(256, 256))
+	dim := nodes.GetOutputValue(out, n.Dimensions)
 	if dim.MinComponent() <= 0 {
 		out.CaptureError(texturing.InvalidDimension(dim))
 		return

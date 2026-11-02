@@ -200,7 +200,7 @@ func (n TrimLines2DNode) Description() string {
 }
 
 func (n TrimLines2DNode) Trimmed(out *nodes.StructOutput[[]Line2D]) {
-	amount := nodes.TryGetOutputValue(out, n.Amount, 0.)
+	amount := nodes.GetOutputValue(out, n.Amount)
 	lines := nodes.TryGetOutputValue(out, n.Lines, nil)
 	trimmed := make([]Line2D, 0, len(lines))
 	for _, line := range lines {
@@ -216,7 +216,7 @@ func (n TrimLines2DNode) Trimmed(out *nodes.StructOutput[[]Line2D]) {
 
 type Lines2DTo3DNode struct {
 	Lines  nodes.LiftedPort[[]Line2D] `description:"The 2D lines to place in 3D."`
-	Offset nodes.LiftedPort[float64]  `description:"How far along the output's axis the plane sits. Defaults to 0."`
+	Offset nodes.LiftedPort[float64]  `description:"How far along the output's axis the plane sits."`
 }
 
 func (n Lines2DTo3DNode) Description() string {

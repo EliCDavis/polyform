@@ -118,10 +118,10 @@ func (q Quad) ToMesh() modeling.Mesh {
 }
 
 type QuadNode struct {
-	Width   nodes.Output[float64]
-	Depth   nodes.Output[float64]
-	Columns nodes.Output[int]
-	Rows    nodes.Output[int]
+	Width   nodes.Output[float64] `default:"1"`
+	Depth   nodes.Output[float64] `default:"1"`
+	Columns nodes.Output[int]     `default:"1"`
+	Rows    nodes.Output[int]     `default:"1"`
 	UVs     nodes.Output[StripUVs]
 }
 
@@ -131,10 +131,10 @@ func (c QuadNode) Description() string {
 
 func (c QuadNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	quad := Quad{
-		Width:   nodes.TryGetOutputValue(out, c.Width, 1.),
-		Depth:   nodes.TryGetOutputValue(out, c.Depth, 1.),
-		Rows:    max(nodes.TryGetOutputValue(out, c.Rows, 1), 1),
-		Columns: max(nodes.TryGetOutputValue(out, c.Columns, 1), 1),
+		Width:   nodes.GetOutputValue(out, c.Width),
+		Depth:   nodes.GetOutputValue(out, c.Depth),
+		Rows:    max(nodes.GetOutputValue(out, c.Rows), 1),
+		Columns: max(nodes.GetOutputValue(out, c.Columns), 1),
 	}
 
 	if uvs := nodes.TryGetOutputReference(out, c.UVs, nil); uvs != nil {

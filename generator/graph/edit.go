@@ -26,8 +26,9 @@ type editState struct {
 	// Settled on close, with everything placing them.
 	dirty map[*Graph]bool
 	// Copies go stale; nothing to settle.
-	changed map[*Graph]bool
-	before  map[*Graph]map[nodes.Node]map[string][]source
+	changed        map[*Graph]bool
+	before         map[*Graph]map[nodes.Node]map[string][]source
+	literalsBefore map[*Graph]map[nodes.Node]nodeLiterals
 }
 
 // dirty has the edit settle this graph, and everything placing it, on close.
@@ -36,10 +37,12 @@ func (a *Graph) dirty() {
 	if edit.dirty == nil {
 		edit.dirty = map[*Graph]bool{}
 		edit.before = map[*Graph]map[nodes.Node]map[string][]source{}
+		edit.literalsBefore = map[*Graph]map[nodes.Node]nodeLiterals{}
 	}
 	if !edit.dirty[a] {
 		edit.dirty[a] = true
-		edit.before[a] = cloneReads(a.reads)
+		edit.before[a] = cloneByNode(a.reads)
+		edit.literalsBefore[a] = cloneByNode(a.literals)
 	}
 }
 
@@ -51,10 +54,10 @@ func (a *Graph) changed() {
 	edit.changed[a] = true
 }
 
-func cloneReads(reads map[nodes.Node]map[string][]source) map[nodes.Node]map[string][]source {
-	cloned := make(map[nodes.Node]map[string][]source, len(reads))
-	for node, inputs := range reads {
-		cloned[node] = maps.Clone(inputs)
+func cloneByNode[M ~map[string]V, V any](byNode map[nodes.Node]M) map[nodes.Node]M {
+	cloned := make(map[nodes.Node]M, len(byNode))
+	for node, inner := range byNode {
+		cloned[node] = maps.Clone(inner)
 	}
 	return cloned
 }
@@ -92,26 +95,36 @@ func (a *Instance) Batch(f func() error) ([]DroppedEdge, error) {
 }
 
 func (a *Instance) close(policy conflictPolicy) ([]DroppedEdge, error) {
-	dirty, changed, before := a.edit.dirty, a.edit.changed, a.edit.before
-	a.edit = editState{}
-	a.modelVersion++
-
 	stale := map[*Graph]bool{}
-	maps.Copy(stale, dirty)
-	maps.Copy(stale, changed)
+	maps.Copy(stale, a.edit.dirty)
+	maps.Copy(stale, a.edit.changed)
+
 	for _, graph := range a.affectedOrder(stale) {
+		graph.dirty()
+	}
+
+	dirty, before, literalsBefore := a.edit.dirty, a.edit.before, a.edit.literalsBefore
+	a.edit = editState{}
+	a.version.Revision++
+
+	order := a.affectedOrder(dirty)
+	for _, graph := range order {
 		if definition, ok := a.subGraphs[graph.scope]; ok {
 			definition.version++
 		}
 	}
 
-	order := a.affectedOrder(dirty)
+	// Innermost first, each settled before the next reconciles.
 	var dropped []DroppedEdge
 	for _, graph := range order {
+		if _, err := graph.reconcileLiterals(); err != nil {
+			a.restore(dirty, before, literalsBefore, order)
+			return nil, err
+		}
 		lost, err := graph.settle(policy)
 		dropped = append(dropped, lost...)
 		if err != nil {
-			a.restore(dirty, before, order)
+			a.restore(dirty, before, literalsBefore, order)
 			return nil, err
 		}
 	}
@@ -119,9 +132,10 @@ func (a *Instance) close(policy conflictPolicy) ([]DroppedEdge, error) {
 }
 
 // Copies built while the refused edit was in place are stale again.
-func (a *Instance) restore(dirty map[*Graph]bool, before map[*Graph]map[nodes.Node]map[string][]source, order []*Graph) {
+func (a *Instance) restore(dirty map[*Graph]bool, before map[*Graph]map[nodes.Node]map[string][]source, literalsBefore map[*Graph]map[nodes.Node]nodeLiterals, order []*Graph) {
 	for graph := range dirty {
 		graph.reads = before[graph]
+		graph.literals = literalsBefore[graph]
 	}
 	for _, graph := range order {
 		if definition, ok := a.subGraphs[graph.scope]; ok {

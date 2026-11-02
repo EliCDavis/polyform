@@ -130,8 +130,8 @@ func RadialGaussianBlur[T any](space vector.Space[T], src Texture[T], radius int
 
 type GaussianBlurFloatNode struct {
 	Texture nodes.Output[Texture[float64]] `description:"Texture to blur"`
-	Radius  nodes.Output[int]              `description:"Size of the kernel in pixels"`
-	Signma  nodes.Output[float64]          `description:"standard deviation of the gaussian"`
+	Radius  nodes.Output[int]              `description:"Size of the kernel in pixels" default:"1"`
+	Signma  nodes.Output[float64]          `description:"standard deviation of the gaussian" default:"1"`
 }
 
 func (n GaussianBlurFloatNode) Description() string {
@@ -145,15 +145,15 @@ func (n GaussianBlurFloatNode) Value(out *nodes.StructOutput[Texture[float64]]) 
 	out.Set(RadialGaussianBlur(
 		vector1.Space[float64]{},
 		nodes.GetOutputValue(out, n.Texture),
-		nodes.TryGetOutputValue(out, n.Radius, 1),
-		nodes.TryGetOutputValue(out, n.Signma, 1),
+		nodes.GetOutputValue(out, n.Radius),
+		nodes.GetOutputValue(out, n.Signma),
 	))
 }
 
 type GaussianBlurFloat2Node struct {
 	Texture nodes.Output[Texture[vector2.Float64]] `description:"Texture to blur"`
-	Radius  nodes.Output[int]                      `description:"Size of the kernel in pixels"`
-	Signma  nodes.Output[float64]                  `description:"standard deviation of the gaussian"`
+	Radius  nodes.Output[int]                      `description:"Size of the kernel in pixels" default:"1"`
+	Signma  nodes.Output[float64]                  `description:"standard deviation of the gaussian" default:"1"`
 }
 
 func (n GaussianBlurFloat2Node) Description() string {
@@ -167,15 +167,15 @@ func (n GaussianBlurFloat2Node) Value(out *nodes.StructOutput[Texture[vector2.Fl
 	out.Set(RadialGaussianBlur(
 		vector2.Space[float64]{},
 		nodes.GetOutputValue(out, n.Texture),
-		nodes.TryGetOutputValue(out, n.Radius, 1),
-		nodes.TryGetOutputValue(out, n.Signma, 1),
+		nodes.GetOutputValue(out, n.Radius),
+		nodes.GetOutputValue(out, n.Signma),
 	))
 }
 
 type GaussianBlurFloat3Node struct {
 	Texture nodes.Output[Texture[vector3.Float64]] `description:"Texture to blur"`
-	Radius  nodes.Output[int]                      `description:"Size of the kernel in pixels"`
-	Signma  nodes.Output[float64]                  `description:"standard deviation of the gaussian"`
+	Radius  nodes.Output[int]                      `description:"Size of the kernel in pixels" default:"1"`
+	Signma  nodes.Output[float64]                  `description:"standard deviation of the gaussian" default:"1"`
 }
 
 func (n GaussianBlurFloat3Node) Description() string {
@@ -189,15 +189,15 @@ func (n GaussianBlurFloat3Node) Value(out *nodes.StructOutput[Texture[vector3.Fl
 	out.Set(RadialGaussianBlur(
 		vector3.Space[float64]{},
 		nodes.GetOutputValue(out, n.Texture),
-		nodes.TryGetOutputValue(out, n.Radius, 1),
-		nodes.TryGetOutputValue(out, n.Signma, 1),
+		nodes.GetOutputValue(out, n.Radius),
+		nodes.GetOutputValue(out, n.Signma),
 	))
 }
 
 type GaussianBlurColorNode struct {
 	Texture nodes.Output[Texture[coloring.Color]] `description:"Texture to blur"`
-	Radius  nodes.Output[int]                     `description:"Size of the kernel in pixels"`
-	Signma  nodes.Output[float64]                 `description:"standard deviation of the gaussian"`
+	Radius  nodes.Output[int]                     `description:"Size of the kernel in pixels" default:"1"`
+	Signma  nodes.Output[float64]                 `description:"standard deviation of the gaussian" default:"1"`
 }
 
 func (n GaussianBlurColorNode) Description() string {
@@ -211,7 +211,7 @@ func (n GaussianBlurColorNode) Value(out *nodes.StructOutput[Texture[coloring.Co
 	out.Set(RadialGaussianBlur(
 		coloring.Space{},
 		nodes.GetOutputValue(out, n.Texture),
-		nodes.TryGetOutputValue(out, n.Radius, 1),
-		nodes.TryGetOutputValue(out, n.Signma, 1),
+		nodes.GetOutputValue(out, n.Radius),
+		nodes.GetOutputValue(out, n.Signma),
 	))
 }

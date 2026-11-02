@@ -364,8 +364,8 @@ func (crc *CatmullRomSpline) At(distance float64) vector3.Float64 {
 
 type CatmullRomSplineNode struct {
 	Points nodes.Output[[]vector3.Float64] `description:"Control points the curve passes through, in order. Fewer than 2 points produces a degenerate spline."`
-	Alpha  nodes.Output[float64]           `description:"Interpolation parameterization: 0 for uniform, 0.5 for centripetal, 1 for chordal. Defaults to 0."`
-	Closed nodes.Output[bool]              `description:"If true, the curve loops back from the last point to the first instead of ending. Defaults to false."`
+	Alpha  nodes.Output[float64]           `description:"Interpolation parameterization: 0 for uniform, 0.5 for centripetal, 1 for chordal."`
+	Closed nodes.Output[bool]              `description:"If true, the curve loops back from the last point to the first instead of ending."`
 }
 
 func (r CatmullRomSplineNode) Description() string {
@@ -380,8 +380,8 @@ func (r CatmullRomSplineNode) Out(out *nodes.StructOutput[Spline]) {
 
 	spline := CatmullRomSplineParameters{
 		Points: points,
-		Alpha:  nodes.TryGetOutputValue(out, r.Alpha, 0),
-		Closed: nodes.TryGetOutputValue(out, r.Closed, false),
+		Alpha:  nodes.GetOutputValue(out, r.Alpha),
+		Closed: nodes.GetOutputValue(out, r.Closed),
 	}.Spline()
 
 	// UGGO: Force a calculation to fill all the temp data

@@ -13,8 +13,8 @@ import (
 
 type ScrewNode struct {
 	Line        nodes.Output[[]vector3.Float64] `description:"Profile swept around the Y axis. On the +X side, running up faces outward and running down faces the axis."`
-	Segments    nodes.Output[int]               `description:"Steps the sweep is divided into. Defaults to 20."`
-	Revolutions nodes.Output[float64]
+	Segments    nodes.Output[int]               `description:"Steps the sweep is divided into." default:"20"`
+	Revolutions nodes.Output[float64]           `default:"1"`
 	Distance    nodes.Output[float64]
 	UVs         nodes.Output[primitives.StripUVs]
 }
@@ -33,13 +33,13 @@ func (snd ScrewNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 		return
 	}
 	line := withoutRepeats(nodes.GetOutputValue(out, snd.Line), false)
-	segments := nodes.TryGetOutputValue(out, snd.Segments, 20)
+	segments := nodes.GetOutputValue(out, snd.Segments)
 	if len(line) < 2 || segments < 1 {
 		return
 	}
 
-	turn := math.Pi * 2 * nodes.TryGetOutputValue(out, snd.Revolutions, 1.)
-	climb := nodes.TryGetOutputValue(out, snd.Distance, 0.)
+	turn := math.Pi * 2 * nodes.GetOutputValue(out, snd.Revolutions)
+	climb := nodes.GetOutputValue(out, snd.Distance)
 	strip := nodes.TryGetOutputValue(out, snd.UVs, primitives.UnitStripUVs())
 	axis := vector3.Up[float64]()
 

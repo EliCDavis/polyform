@@ -170,6 +170,10 @@ func (i *liftedInput) Advanced() bool {
 	return advancedTag(i.data.Data(), i.structField)
 }
 
+func (i *liftedInput) Default() string {
+	return refutil.GetStructTag(i.data.Data(), i.structField, "default")
+}
+
 func (i *liftedInput) Value() OutputPort {
 	return refutil.FieldValue[OutputPort](i.data.Data(), i.structField)
 }
@@ -363,6 +367,7 @@ func (o *liftedOutput) evaluate() liftedResult {
 		}
 	}
 
+	fillDefaults(o.node)
 	handleValue := reflect.New(o.handleType.Elem())
 	handle := handleValue.Interface().(liftedHandle)
 	handle.attachRank(o.rank())

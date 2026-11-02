@@ -3,14 +3,14 @@ import type { GraphInstance } from "@/types/schema";
 
 interface GraphState {
   graph: GraphInstance | null;
-  modelVersion: number;
+  revision: number;
   setGraph: (graph: GraphInstance) => void;
-  setModelVersion: (version: number) => void;
+  setRevision: (revision: number) => void;
 }
 
 export const useGraphStore = create<GraphState>((set) => ({
   graph: null,
-  modelVersion: 0,
+  revision: 0,
   setGraph: (graph) => set({ graph }),
-  setModelVersion: (modelVersion) => set({ modelVersion }),
+  setRevision: (revision) => set({ revision }),
 }));

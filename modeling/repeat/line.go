@@ -55,10 +55,10 @@ func (l Line) TRS() []trs.TRS {
 }
 
 type LineNode struct {
-	Start     nodes.LiftedPort[vector3.Float64] `description:"Position of the first sample. Defaults to the origin."`
-	End       nodes.LiftedPort[vector3.Float64] `description:"Position of the last sample. Defaults to the origin."`
-	Samples   nodes.LiftedPort[int]             `description:"How many TRS matrices to produce, evenly spaced between Start and End (inclusive unless Exclusive is true). A single sample sits at the midpoint, Exclusive or not. Defaults to 0, clamped to 0 minimum."`
-	Exclusive nodes.LiftedPort[bool]            `description:"If true, the line is split into Samples equal segments with one TRS at the center of each, so Start and End are not included. Defaults to false."`
+	Start     nodes.LiftedPort[vector3.Float64] `description:"Position of the first sample."`
+	End       nodes.LiftedPort[vector3.Float64] `description:"Position of the last sample."`
+	Samples   nodes.LiftedPort[int]             `description:"How many TRS matrices to produce, evenly spaced between Start and End (inclusive unless Exclusive is true). A single sample sits at the midpoint, Exclusive or not. Clamped to 0 minimum."`
+	Exclusive nodes.LiftedPort[bool]            `description:"If true, the line is split into Samples equal segments with one TRS at the center of each, so Start and End are not included."`
 }
 
 func (r LineNode) Description() string {

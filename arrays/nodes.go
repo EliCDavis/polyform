@@ -63,7 +63,7 @@ func (i IndexNode) Out(out *nodes.Dynamic[Element]) {
 		return
 	}
 
-	index := nodes.TryGetOutputValue(out, i.Index, 0)
+	index := nodes.GetOutputValue(out, i.Index)
 	if index < 0 {
 		index += values.Len()
 	}
@@ -140,7 +140,7 @@ func (l LengthNode) Out(out *nodes.StructOutput[int]) {
 type SliceNode struct {
 	Array nodes.DynamicPort[[]Element] `description:"The array to take a run out of."`
 	Start nodes.Output[int]            `description:"First element to keep, counting from 0."`
-	End   nodes.Output[int]            `description:"One past the last element to keep. Left at 0 it means the end of the array."`
+	End   nodes.Output[int]            `description:"One past the last element to keep. 0 means the end of the array."`
 }
 
 func (SliceNode) Description() string {
@@ -155,9 +155,9 @@ func (s SliceNode) Out(out *nodes.Dynamic[[]Element]) {
 		return
 	}
 
-	start := nodes.TryGetOutputValue(out, s.Start, 0)
-	end := nodes.TryGetOutputValue(out, s.End, 0)
-	if s.End == nil || end == 0 {
+	start := nodes.GetOutputValue(out, s.Start)
+	end := nodes.GetOutputValue(out, s.End)
+	if end == 0 {
 		end = values.Len()
 	}
 	if start < 0 {
@@ -355,7 +355,7 @@ func (r RepeatNode) Out(out *nodes.Dynamic[[]Element]) {
 		return
 	}
 
-	times := max(nodes.TryGetOutputValue(out, r.Times, 0), 0)
+	times := max(nodes.GetOutputValue(out, r.Times), 0)
 	values := make([]any, times)
 	for i := range values {
 		values[i] = value
@@ -389,7 +389,7 @@ func (c ChunkNode) Out(out *nodes.Dynamic[[][]Element]) {
 		return
 	}
 
-	size := nodes.TryGetOutputValue(out, c.Size, 0)
+	size := nodes.GetOutputValue(out, c.Size)
 	if size < 1 {
 		out.CaptureError(fmt.Errorf("chunk size has to be at least 1, got %d", size))
 		return
@@ -423,7 +423,7 @@ func (PartitionNode) Keywords() []string {
 }
 
 func (p PartitionNode) at(recorder nodes.ExecutionRecorder, length int) int {
-	at := nodes.TryGetOutputValue(recorder, p.At, 0)
+	at := nodes.GetOutputValue(recorder, p.At)
 	if at < 0 {
 		at += length
 	}
@@ -526,7 +526,7 @@ func (s ShuffleNode) Out(out *nodes.Dynamic[[]Element]) {
 	}
 
 	shuffled := values.Values()
-	random := chance.FromSeed(nodes.TryGetOutputValue(out, s.Seed, 0))
+	random := chance.FromSeed(nodes.GetOutputValue(out, s.Seed))
 	random.Shuffle(len(shuffled), func(a, b int) {
 		shuffled[a], shuffled[b] = shuffled[b], shuffled[a]
 	})
@@ -557,8 +557,8 @@ func (s SampleNode) Out(out *nodes.Dynamic[[]Element]) {
 	}
 
 	pool := values.Values()
-	count := min(max(nodes.TryGetOutputValue(out, s.Count, 0), 0), len(pool))
-	random := chance.FromSeed(nodes.TryGetOutputValue(out, s.Seed, 0))
+	count := min(max(nodes.GetOutputValue(out, s.Count), 0), len(pool))
+	random := chance.FromSeed(nodes.GetOutputValue(out, s.Seed))
 
 	picked := make([]any, 0, count)
 	for range count {
@@ -592,13 +592,13 @@ func (p RandomPickNode) Out(out *nodes.Dynamic[[]Element]) {
 		return
 	}
 
-	count := max(nodes.TryGetOutputValue(out, p.Count, 0), 0)
+	count := max(nodes.GetOutputValue(out, p.Count), 0)
 	if count > 0 && values.Len() == 0 {
 		out.CaptureError(fmt.Errorf("can not pick %d element(s) from an empty array", count))
 		return
 	}
 
-	random := chance.FromSeed(nodes.TryGetOutputValue(out, p.Seed, 0))
+	random := chance.FromSeed(nodes.GetOutputValue(out, p.Seed))
 	picked := make([]any, count)
 	for i := range picked {
 		picked[i] = values.At(random.IntN(values.Len()))
@@ -629,7 +629,7 @@ func (p PadNode) Out(out *nodes.Dynamic[[]Element]) {
 	}
 
 	padded := values.Values()
-	length := nodes.TryGetOutputValue(out, p.Length, 0)
+	length := nodes.GetOutputValue(out, p.Length)
 	if length > len(padded) {
 		value, _ := nodes.DynamicAnyValue(out, p.Value)
 		for len(padded) < length {

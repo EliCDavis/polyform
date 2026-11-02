@@ -103,8 +103,8 @@ func (c TorusUVNode) Description() string {
 
 func (c TorusUVNode) Out(out *nodes.StructOutput[TorusUVs]) {
 	out.Set(TorusUVs{
-		MinorOffset: nodes.TryGetOutputValue(out, c.MinorOffset, 0),
-		MajorOffset: nodes.TryGetOutputValue(out, c.MajorOffset, 0),
+		MinorOffset: nodes.GetOutputValue(out, c.MinorOffset),
+		MajorOffset: nodes.GetOutputValue(out, c.MajorOffset),
 		Strip: nodes.TryGetOutputValue(out, c.Strip, StripUVs{
 			Start: vector2.New(0.5, 0.),
 			End:   vector2.New(0.5, 1.),
@@ -114,10 +114,10 @@ func (c TorusUVNode) Out(out *nodes.StructOutput[TorusUVs]) {
 }
 
 type TorusNode struct {
-	MajorRadius     nodes.Output[float64]
-	MinorRadius     nodes.Output[float64]
-	MajorResolution nodes.Output[int]
-	MinorResolution nodes.Output[int]
+	MajorRadius     nodes.Output[float64] `default:"0.5"`
+	MinorRadius     nodes.Output[float64] `default:"0.25"`
+	MajorResolution nodes.Output[int]     `default:"20"`
+	MinorResolution nodes.Output[int]     `default:"20"`
 	UVs             nodes.Output[TorusUVs]
 }
 
@@ -127,10 +127,10 @@ func (c TorusNode) Description() string {
 
 func (c TorusNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	circle := Torus{
-		MajorRadius:     nodes.TryGetOutputValue(out, c.MajorRadius, .5),
-		MinorRadius:     nodes.TryGetOutputValue(out, c.MinorRadius, .25),
-		MajorResolution: nodes.TryGetOutputValue(out, c.MajorResolution, 20),
-		MinorResolution: nodes.TryGetOutputValue(out, c.MinorResolution, 20),
+		MajorRadius:     nodes.GetOutputValue(out, c.MajorRadius),
+		MinorRadius:     nodes.GetOutputValue(out, c.MinorRadius),
+		MajorResolution: nodes.GetOutputValue(out, c.MajorResolution),
+		MinorResolution: nodes.GetOutputValue(out, c.MinorResolution),
 		UVs:             nodes.TryGetOutputReference(out, c.UVs, nil),
 	}
 	out.Set(circle.ToMesh())

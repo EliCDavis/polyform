@@ -7,6 +7,7 @@ import (
 	"github.com/EliCDavis/polyform/generator/manifest"
 	"github.com/EliCDavis/polyform/generator/named"
 	"github.com/EliCDavis/polyform/generator/persistence"
+	"github.com/EliCDavis/polyform/generator/schema"
 	"github.com/EliCDavis/polyform/generator/subgraph"
 	"github.com/EliCDavis/polyform/generator/variable"
 	"github.com/EliCDavis/polyform/generator/variant"
@@ -27,7 +28,7 @@ type Instance struct {
 	details         Details
 	typeFactory     *refutil.TypeFactory
 	variableFactory func(string) (variable.Variable, error)
-	modelVersion    uint32
+	version         schema.GraphVersion
 
 	variables      variable.System
 	profiles       *named.Collection[variable.Profile]
@@ -77,6 +78,7 @@ func New(config Config) *Instance {
 }
 
 func (a *Instance) Reset() {
+	a.version.Rebuilds++
 	a.details = Details{
 		Name:    "New Graph",
 		Version: "v0.0.0",
@@ -119,6 +121,6 @@ func (a *Instance) SetDetails(details Details) {
 	a.details = details
 }
 
-func (a *Instance) ModelVersion() uint32 {
-	return a.modelVersion
+func (a *Instance) Version() schema.GraphVersion {
+	return a.version
 }

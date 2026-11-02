@@ -107,7 +107,7 @@ type OutlineNode struct {
 	Outline        nodes.LiftedPort[[]vector2.Float64] `description:"Closed 2D outline to sweep. Winding does not matter. Looking along the path, x is to the right and y is up wherever the path runs level."`
 	Path           nodes.LiftedPort[[]vector3.Float64] `description:"Points to sweep through. Sharp turns are mitred, keeping the sweep's width."`
 	Closed         nodes.Output[bool]                  `description:"Joins the last path point back to the first and leaves the ends uncapped."`
-	SmoothingAngle nodes.Output[float64]               `description:"Corners in the outline or the path turning at least this many degrees keep a hard edge. Defaults to 45."`
+	SmoothingAngle nodes.Output[float64]               `description:"Corners in the outline or the path turning at least this many degrees keep a hard edge." default:"45"`
 	UVs            nodes.Output[primitives.StripUVs]   `description:"Lays the sweep out as a strip: the outline's perimeter runs across it, the path along it. Each cap takes the whole strip separately. Defaults to the unit strip, 0 to 1 both ways."`
 }
 
@@ -116,9 +116,9 @@ func (node OutlineNode) Description() string {
 }
 
 func (node OutlineNode) Out(out *nodes.Lifted[modeling.Mesh]) {
-	smoothing := nodes.TryGetOutputValue(out, node.SmoothingAngle, defaultSmoothingAngle)
+	smoothing := nodes.GetOutputValue(out, node.SmoothingAngle)
 	strip := nodes.TryGetOutputValue(out, node.UVs, primitives.UnitStripUVs())
-	closed := nodes.TryGetOutputValue(out, node.Closed, false)
+	closed := nodes.GetOutputValue(out, node.Closed)
 	nodes.Zip2(out, node.Outline, node.Path, func(shape []vector2.Float64, path []vector3.Float64) modeling.Mesh {
 		if node.Outline == nil || node.Path == nil {
 			return modeling.EmptyMesh(modeling.TriangleTopology)

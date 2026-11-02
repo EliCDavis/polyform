@@ -72,10 +72,10 @@ func (c Cone) ToMesh() modeling.Mesh {
 }
 
 type ConeNode struct {
-	Height         nodes.Output[float64]
-	Radius         nodes.Output[float64]
-	Sides          nodes.Output[int]
-	HeightSegments nodes.Output[int] `description:"Rings of vertices between the base and the tip. Defaults to 1."`
+	Height         nodes.Output[float64] `default:"1"`
+	Radius         nodes.Output[float64] `default:"0.5"`
+	Sides          nodes.Output[int]     `default:"3"`
+	HeightSegments nodes.Output[int]     `description:"Rings of vertices between the base and the tip." default:"1"`
 }
 
 func (r ConeNode) Description() string {
@@ -84,10 +84,10 @@ func (r ConeNode) Description() string {
 
 func (r ConeNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	cone := Cone{
-		Height:         nodes.TryGetOutputValue(out, r.Height, 1),
-		Radius:         nodes.TryGetOutputValue(out, r.Radius, 0.5),
-		Sides:          max(nodes.TryGetOutputValue(out, r.Sides, 3), 3),
-		HeightSegments: max(nodes.TryGetOutputValue(out, r.HeightSegments, 1), 1),
+		Height:         nodes.GetOutputValue(out, r.Height),
+		Radius:         nodes.GetOutputValue(out, r.Radius),
+		Sides:          max(nodes.GetOutputValue(out, r.Sides), 3),
+		HeightSegments: max(nodes.GetOutputValue(out, r.HeightSegments), 1),
 	}
 	out.Set(cone.ToMesh())
 }

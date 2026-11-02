@@ -19,7 +19,7 @@ func DotProduct(texture Texture[vector3.Float64], v vector3.Float64) Texture[flo
 
 type DotProductNode struct {
 	Texture nodes.Output[Texture[vector3.Float64]]
-	Vector  nodes.Output[vector3.Float64]
+	Vector  nodes.Output[vector3.Float64] `default:"0,1,0"`
 }
 
 func (n DotProductNode) Description() string {
@@ -33,6 +33,6 @@ func (n DotProductNode) DotProduct(out *nodes.StructOutput[Texture[float64]]) {
 
 	out.Set(DotProduct(
 		nodes.GetOutputValue(out, n.Texture),
-		nodes.TryGetOutputValue(out, n.Vector, vector3.Up[float64]()),
+		nodes.GetOutputValue(out, n.Vector),
 	))
 }

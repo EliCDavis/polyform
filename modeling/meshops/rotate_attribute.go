@@ -41,7 +41,7 @@ func RotateAttribute3D(m modeling.Mesh, attribute string, q quaternion.Quaternio
 }
 
 type RotateAttribute3DNode struct {
-	Attribute nodes.Output[string]
+	Attribute nodes.Output[string] `default:"Position"`
 	Mesh      nodes.Output[modeling.Mesh]
 	Amount    nodes.Output[quaternion.Quaternion]
 }
@@ -57,12 +57,7 @@ func (ra3dn RotateAttribute3DNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	}
 
 	mesh := nodes.GetOutputValue(out, ra3dn.Mesh)
-	if ra3dn.Amount == nil {
-		out.Set(mesh)
-		return
-	}
-
-	attr := nodes.TryGetOutputValue(out, ra3dn.Attribute, modeling.PositionAttribute)
+	attr := nodes.GetOutputValue(out, ra3dn.Attribute)
 	ammount := nodes.GetOutputValue(out, ra3dn.Amount)
 	out.Set(RotateAttribute3D(mesh, attr, ammount))
 }

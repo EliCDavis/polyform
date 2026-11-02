@@ -77,10 +77,10 @@ func clamp01(v float64) float64 {
 // ============================================================================
 
 type AdjustHSVNode struct {
-	In         nodes.LiftedPort[Color]   `description:"Color to adjust."`
-	Hue        nodes.LiftedPort[float64] `description:"Degrees to rotate the hue by, positive or negative. Wraps around the color wheel. Defaults to 0."`
-	Saturation nodes.LiftedPort[float64] `description:"Multiplier on saturation - below 1 washes the color out toward grey, above 1 makes it more vivid. Defaults to 1."`
-	Value      nodes.LiftedPort[float64] `description:"Multiplier on brightness - below 1 darkens, above 1 lightens. Defaults to 1."`
+	In         nodes.LiftedPort[Color]   `description:"Color to adjust." default:"#000000"`
+	Hue        nodes.LiftedPort[float64] `description:"Degrees to rotate the hue by, positive or negative. Wraps around the color wheel."`
+	Saturation nodes.LiftedPort[float64] `description:"Multiplier on saturation - below 1 washes the color out toward grey, above 1 makes it more vivid." default:"1"`
+	Value      nodes.LiftedPort[float64] `description:"Multiplier on brightness - below 1 darkens, above 1 lightens." default:"1"`
 }
 
 func (n AdjustHSVNode) Description() string {
@@ -90,10 +90,10 @@ func (n AdjustHSVNode) Description() string {
 func (n AdjustHSVNode) Out(out *nodes.Lifted[Color]) {
 	nodes.Zip4(
 		out,
-		nodes.LiftedOr(n.In, Color{A: 1}),
+		n.In,
 		n.Hue,
-		nodes.LiftedOr(n.Saturation, 1.),
-		nodes.LiftedOr(n.Value, 1.),
+		n.Saturation,
+		n.Value,
 		func(in Color, hue, saturation, value float64) Color {
 			h, s, v := RGBToHSV(in.R, in.G, in.B)
 			r, g, b := HSVToRGB(h+hue, clamp01(s*saturation), clamp01(v*value))
@@ -105,8 +105,8 @@ func (n AdjustHSVNode) Out(out *nodes.Lifted[Color]) {
 // ============================================================================
 
 type BrightnessNode struct {
-	In     nodes.LiftedPort[Color]   `description:"Color to lighten or darken."`
-	Amount nodes.LiftedPort[float64] `description:"Multiplier on each color channel - 0.5 is half as bright, 2 is twice. Defaults to 1."`
+	In     nodes.LiftedPort[Color]   `description:"Color to lighten or darken." default:"#000000"`
+	Amount nodes.LiftedPort[float64] `description:"Multiplier on each color channel - 0.5 is half as bright, 2 is twice." default:"1"`
 }
 
 func (n BrightnessNode) Description() string {
@@ -114,7 +114,7 @@ func (n BrightnessNode) Description() string {
 }
 
 func (n BrightnessNode) Out(out *nodes.Lifted[Color]) {
-	nodes.Zip2(out, nodes.LiftedOr(n.In, Color{A: 1}), nodes.LiftedOr(n.Amount, 1.), func(in Color, amount float64) Color {
+	nodes.Zip2(out, n.In, n.Amount, func(in Color, amount float64) Color {
 		return Color{
 			R: clamp01(in.R * amount),
 			G: clamp01(in.G * amount),
@@ -127,8 +127,8 @@ func (n BrightnessNode) Out(out *nodes.Lifted[Color]) {
 // ============================================================================
 
 type MultiplyNode struct {
-	A nodes.LiftedPort[Color] `description:"First color."`
-	B nodes.LiftedPort[Color] `description:"Second color, multiplied into the first channel by channel."`
+	A nodes.LiftedPort[Color] `description:"First color." default:"#ffffff"`
+	B nodes.LiftedPort[Color] `description:"Second color, multiplied into the first channel by channel." default:"#ffffff"`
 }
 
 func (n MultiplyNode) Description() string {
@@ -136,8 +136,7 @@ func (n MultiplyNode) Description() string {
 }
 
 func (n MultiplyNode) Out(out *nodes.Lifted[Color]) {
-	white := Color{R: 1, G: 1, B: 1, A: 1}
-	nodes.Zip2(out, nodes.LiftedOr(n.A, white), nodes.LiftedOr(n.B, white), func(a, b Color) Color {
+	nodes.Zip2(out, n.A, n.B, func(a, b Color) Color {
 		return Color{
 			R: a.R * b.R,
 			G: a.G * b.G,
@@ -150,9 +149,9 @@ func (n MultiplyNode) Out(out *nodes.Lifted[Color]) {
 // ============================================================================
 
 type FromHSVNode struct {
-	Hue        nodes.LiftedPort[float64] `description:"Hue in degrees, 0-360. Defaults to 0."`
-	Saturation nodes.LiftedPort[float64] `description:"Saturation, 0 (grey) to 1 (fully vivid). Defaults to 1."`
-	Value      nodes.LiftedPort[float64] `description:"Brightness, 0 (black) to 1. Defaults to 1."`
+	Hue        nodes.LiftedPort[float64] `description:"Hue in degrees, 0-360."`
+	Saturation nodes.LiftedPort[float64] `description:"Saturation, 0 (grey) to 1 (fully vivid)." default:"1"`
+	Value      nodes.LiftedPort[float64] `description:"Brightness, 0 (black) to 1." default:"1"`
 }
 
 func (n FromHSVNode) Description() string {
@@ -160,7 +159,7 @@ func (n FromHSVNode) Description() string {
 }
 
 func (n FromHSVNode) Out(out *nodes.Lifted[Color]) {
-	nodes.Zip3(out, n.Hue, nodes.LiftedOr(n.Saturation, 1.), nodes.LiftedOr(n.Value, 1.), func(hue, saturation, value float64) Color {
+	nodes.Zip3(out, n.Hue, n.Saturation, n.Value, func(hue, saturation, value float64) Color {
 		r, g, b := HSVToRGB(hue, clamp01(saturation), clamp01(value))
 		return Color{R: r, G: g, B: b, A: 1}
 	})
@@ -169,7 +168,7 @@ func (n FromHSVNode) Out(out *nodes.Lifted[Color]) {
 // ============================================================================
 
 type ToHSVNode struct {
-	In nodes.LiftedPort[Color] `description:"Color to break apart."`
+	In nodes.LiftedPort[Color] `description:"Color to break apart." default:"#000000"`
 }
 
 func (n ToHSVNode) Description() string {
@@ -177,7 +176,7 @@ func (n ToHSVNode) Description() string {
 }
 
 func (n ToHSVNode) channel(out *nodes.Lifted[float64], pick func(h, s, v float64) float64) {
-	nodes.Zip1(out, nodes.LiftedOr(n.In, Color{A: 1}), func(in Color) float64 {
+	nodes.Zip1(out, n.In, func(in Color) float64 {
 		return pick(RGBToHSV(in.R, in.G, in.B))
 	})
 }
@@ -198,7 +197,7 @@ func (n ToHSVNode) Value(out *nodes.Lifted[float64]) {
 
 type FromVectorNode struct {
 	Vector3 nodes.LiftedPort[vector3.Float64] `description:"RGB as x/y/z in 0-1. Alpha becomes 1."`
-	Vector4 nodes.LiftedPort[vector4.Float64] `description:"RGBA as x/y/z/w in 0-1. Takes priority over Vector3 when both are wired."`
+	Vector4 nodes.LiftedPort[vector4.Float64] `description:"RGBA as x/y/z/w in 0-1. Anything but all zeros takes priority over Vector3."`
 }
 
 func (n FromVectorNode) Description() string {
@@ -206,14 +205,13 @@ func (n FromVectorNode) Description() string {
 }
 
 func (n FromVectorNode) Out(out *nodes.Lifted[Color]) {
-	if n.Vector4 != nil {
-		nodes.Zip1(out, n.Vector4, func(v vector4.Float64) Color {
-			return Color{R: clamp01(v.X()), G: clamp01(v.Y()), B: clamp01(v.Z()), A: clamp01(v.W())}
+	nodes.Zip2(out,
+		n.Vector4,
+		n.Vector3,
+		func(v4 vector4.Float64, v3 vector3.Float64) Color {
+			if v4 != vector4.Zero[float64]() {
+				return Color{R: clamp01(v4.X()), G: clamp01(v4.Y()), B: clamp01(v4.Z()), A: clamp01(v4.W())}
+			}
+			return Color{R: clamp01(v3.X()), G: clamp01(v3.Y()), B: clamp01(v3.Z()), A: 1}
 		})
-		return
-	}
-
-	nodes.Zip1(out, nodes.LiftedOr(n.Vector3, vector3.Zero[float64]()), func(v vector3.Float64) Color {
-		return Color{R: clamp01(v.X()), G: clamp01(v.Y()), B: clamp01(v.Z()), A: 1}
-	})
 }

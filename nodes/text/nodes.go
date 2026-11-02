@@ -18,7 +18,7 @@ func init() {
 
 type ConcatNode struct {
 	Strings   []nodes.LiftedPort[string] `description:"The strings to join, in order."`
-	Separator nodes.Output[string]       `description:"Placed between each pair of strings. Defaults to nothing."`
+	Separator nodes.Output[string]       `description:"Placed between each pair of strings."`
 }
 
 func (ConcatNode) Description() string {
@@ -30,7 +30,7 @@ func (ConcatNode) Keywords() []string {
 }
 
 func (n ConcatNode) Out(out *nodes.Lifted[string]) {
-	separator := nodes.TryGetOutputValue(out, n.Separator, "")
+	separator := nodes.GetOutputValue(out, n.Separator)
 	nodes.ZipAll(out, n.Strings, func(values []string) string {
 		return strings.Join(values, separator)
 	})

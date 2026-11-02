@@ -80,9 +80,9 @@ func ScaleAttribute2D(m modeling.Mesh, attribute string, origin, amount vector2.
 }
 
 type ScaleAttribute3DNode struct {
-	Attribute nodes.Output[string]
+	Attribute nodes.Output[string] `default:"Position"`
 	Mesh      nodes.Output[modeling.Mesh]
-	Amount    nodes.Output[vector3.Float64]
+	Amount    nodes.Output[vector3.Float64] `default:"1,1,1"`
 	Origin    nodes.Output[vector3.Float64]
 }
 
@@ -97,8 +97,8 @@ func (sa3dn ScaleAttribute3DNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	}
 	out.Set(ScaleAttribute3D(
 		nodes.GetOutputValue(out, sa3dn.Mesh),
-		nodes.TryGetOutputValue(out, sa3dn.Attribute, modeling.PositionAttribute),
-		nodes.TryGetOutputValue(out, sa3dn.Origin, vector3.Zero[float64]()),
-		nodes.TryGetOutputValue(out, sa3dn.Amount, vector3.One[float64]()),
+		nodes.GetOutputValue(out, sa3dn.Attribute),
+		nodes.GetOutputValue(out, sa3dn.Origin),
+		nodes.GetOutputValue(out, sa3dn.Amount),
 	))
 }

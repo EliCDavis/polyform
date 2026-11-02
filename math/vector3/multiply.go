@@ -8,7 +8,7 @@ import (
 
 type Multiply[T vector.Number] struct {
 	A nodes.LiftedPort[vector3.Vector[T]]
-	B nodes.LiftedPort[vector3.Vector[T]] `description:"Defaults to (1,1,1)"`
+	B nodes.LiftedPort[vector3.Vector[T]] `default:"1,1,1"`
 }
 
 func (Multiply[T]) Description() string {

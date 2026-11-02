@@ -244,8 +244,8 @@ func Convert[T, G any](in Texture[T], cb func(x int, y int, v T) G) Texture[G] {
 
 type UniformNode[T any] struct {
 	Fill   nodes.Output[T]
-	Width  nodes.Output[int]
-	Height nodes.Output[int]
+	Width  nodes.Output[int] `default:"1"`
+	Height nodes.Output[int] `default:"1"`
 }
 
 func (n UniformNode[T]) Description() string {
@@ -254,8 +254,8 @@ func (n UniformNode[T]) Description() string {
 
 func (n UniformNode[T]) Texture(out *nodes.StructOutput[Texture[T]]) {
 	t := Empty[T](
-		nodes.TryGetOutputValue(out, n.Width, 1),
-		nodes.TryGetOutputValue(out, n.Height, 1),
+		nodes.GetOutputValue(out, n.Width),
+		nodes.GetOutputValue(out, n.Height),
 	)
 
 	if n.Fill != nil {
@@ -348,8 +348,8 @@ func (n CompareValueNode[T]) Equal(out *nodes.StructOutput[Texture[T]]) {
 
 type FromArrayNode[T any] struct {
 	Array  nodes.Output[[]T]
-	Width  nodes.Output[int]
-	Height nodes.Output[int]
+	Width  nodes.Output[int] `default:"1"`
+	Height nodes.Output[int] `default:"1"`
 }
 
 func (n FromArrayNode[T]) Description() string {
@@ -357,12 +357,8 @@ func (n FromArrayNode[T]) Description() string {
 }
 
 func (n FromArrayNode[T]) Texture(out *nodes.StructOutput[Texture[T]]) {
-	if n.Width == nil && n.Height == nil {
-		return
-	}
-
-	width := nodes.TryGetOutputValue(out, n.Width, 1)
-	height := nodes.TryGetOutputValue(out, n.Height, 1)
+	width := nodes.GetOutputValue(out, n.Width)
+	height := nodes.GetOutputValue(out, n.Height)
 	arr := nodes.TryGetOutputValue(out, n.Array, nil)
 
 	if width*height == len(arr) {
@@ -513,10 +509,10 @@ func (n FloatToImageNode) tex(out nodes.ExecutionRecorder) Texture[coloring.Colo
 		return Empty[coloring.Color](0, 0)
 	}
 
-	rFill := nodes.TryGetOutputValue(out, n.RFill, 0.)
-	gFill := nodes.TryGetOutputValue(out, n.GFill, 0.)
-	bFill := nodes.TryGetOutputValue(out, n.BFill, 0.)
-	aFill := nodes.TryGetOutputValue(out, n.AFill, 0.)
+	rFill := nodes.GetOutputValue(out, n.RFill)
+	gFill := nodes.GetOutputValue(out, n.GFill)
+	bFill := nodes.GetOutputValue(out, n.BFill)
+	aFill := nodes.GetOutputValue(out, n.AFill)
 
 	rTex := nodes.TryGetOutputReference(out, n.R, nil)
 	gTex := nodes.TryGetOutputReference(out, n.G, nil)
@@ -759,7 +755,7 @@ func scaleTextureUniform[T any](
 	}
 	texture := nodes.GetOutputValue(out, texturePort)
 
-	amt := nodes.TryGetOutputValue(out, amount, 1)
+	amt := nodes.GetOutputValue(out, amount)
 	if amt == 1 {
 		out.Set(texture)
 		return
@@ -815,7 +811,7 @@ func scaleTexture[T any](
 
 type ScaleFloat1UniformNode struct {
 	Texture nodes.Output[Texture[float64]]
-	Scale   nodes.Output[float64]
+	Scale   nodes.Output[float64] `default:"1"`
 }
 
 func (n ScaleFloat1UniformNode) Description() string {
@@ -828,7 +824,7 @@ func (n ScaleFloat1UniformNode) Result(out *nodes.StructOutput[Texture[float64]]
 
 type ScaleFloat2UniformNode struct {
 	Texture nodes.Output[Texture[vector2.Float64]]
-	Scale   nodes.Output[float64]
+	Scale   nodes.Output[float64] `default:"1"`
 }
 
 func (n ScaleFloat2UniformNode) Description() string {
@@ -841,7 +837,7 @@ func (n ScaleFloat2UniformNode) Result(out *nodes.StructOutput[Texture[vector2.F
 
 type ScaleFloat3UniformNode struct {
 	Texture nodes.Output[Texture[vector3.Float64]]
-	Scale   nodes.Output[float64]
+	Scale   nodes.Output[float64] `default:"1"`
 }
 
 func (n ScaleFloat3UniformNode) Description() string {
@@ -854,7 +850,7 @@ func (n ScaleFloat3UniformNode) Result(out *nodes.StructOutput[Texture[vector3.F
 
 type ScaleFloat4UniformNode struct {
 	Texture nodes.Output[Texture[vector4.Float64]]
-	Scale   nodes.Output[float64]
+	Scale   nodes.Output[float64] `default:"1"`
 }
 
 func (n ScaleFloat4UniformNode) Description() string {
@@ -867,7 +863,7 @@ func (n ScaleFloat4UniformNode) Result(out *nodes.StructOutput[Texture[vector4.F
 
 type ScaleColorUniformNode struct {
 	Texture nodes.Output[Texture[coloring.Color]]
-	Scale   nodes.Output[float64]
+	Scale   nodes.Output[float64] `default:"1"`
 }
 
 func (n ScaleColorUniformNode) Description() string {

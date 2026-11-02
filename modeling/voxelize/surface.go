@@ -70,7 +70,7 @@ func Surface(mesh modeling.Mesh, attribute string, voxelSize float64) []vector3.
 }
 
 type SurfaceNode struct {
-	Attribute nodes.Output[string]
+	Attribute nodes.Output[string] `default:"Position"`
 	Mesh      nodes.Output[modeling.Mesh]
 	VoxelSize nodes.Output[float64]
 }
@@ -80,7 +80,7 @@ func (sn SurfaceNode) Description() string {
 }
 
 func (sn SurfaceNode) Positions(out *nodes.StructOutput[[]vector3.Float64]) {
-	if sn.Mesh == nil || sn.VoxelSize == nil {
+	if sn.Mesh == nil {
 		return
 	}
 
@@ -96,7 +96,7 @@ func (sn SurfaceNode) Positions(out *nodes.StructOutput[[]vector3.Float64]) {
 		return
 	}
 
-	attribute := nodes.TryGetOutputValue(out, sn.Attribute, modeling.PositionAttribute)
+	attribute := nodes.GetOutputValue(out, sn.Attribute)
 	if !mesh.HasFloat3Attribute(attribute) {
 		out.CaptureError(fmt.Errorf("input mesh does not have Float3 attribute named %q", attribute))
 		return

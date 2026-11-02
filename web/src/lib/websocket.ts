@@ -133,7 +133,7 @@ interface WebsocketRoomPlayer {
 }
 
 interface WebsocketRoom {
-    ModelVersion: number,
+    Revision: number,
     WebScene: {
         renderWireframe: boolean,
         antiAlias: boolean,
@@ -420,7 +420,7 @@ export class WebSocketManager {
     }
 
     onRoomStateUpdate(messageData: WebsocketRoom): void {
-        this.producerView.setModelVersion(messageData.ModelVersion);
+        this.producerView.setRevision(messageData.Revision);
 
         if (this.viewportSettings.SettingsHaveChanged() === false) {
             const webScene = messageData.WebScene;
@@ -509,7 +509,7 @@ export class WebSocketManager {
 
             case ServerMessageType.RoomStateUpdateMessage:
                 const room: WebsocketRoom = {
-                    ModelVersion: 0,
+                    Revision: 0,
                     WebScene: {
                         renderWireframe: false,
                         antiAlias: false,
@@ -526,7 +526,7 @@ export class WebSocketManager {
                     Players: {}
                 }
 
-                room.ModelVersion = reader.UInt32();
+                room.Revision = reader.UInt32();
                 room.WebScene.renderWireframe = reader.Bool();
                 room.WebScene.antiAlias = reader.Bool();
                 room.WebScene.xrEnabled = reader.Bool();

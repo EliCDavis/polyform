@@ -97,7 +97,7 @@ func (m Message) ServerRoomStateUpdate() RoomState {
 		Players: make(map[string]*Player),
 	}
 
-	room.ModelVersion = reader.UInt32()
+	room.Revision = reader.UInt32()
 	webScene, err := bitlib.Read[persistence.WebScene](reader)
 	if err != nil {
 		panic(err)
@@ -157,7 +157,7 @@ func ServerRoomStateUpdate(room RoomState) Message {
 	data := bytes.Buffer{}
 	writer := bitlib.NewWriter(&data, binary.LittleEndian)
 
-	writer.UInt32(uint32(room.ModelVersion))
+	writer.UInt32(uint32(room.Revision))
 	bitlib.Write(writer, room.WebScene)
 
 	writer.Byte(byte(len(room.Players)))

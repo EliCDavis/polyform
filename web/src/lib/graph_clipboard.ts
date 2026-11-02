@@ -12,6 +12,7 @@ interface CopiedNode {
     nodeType: string;
     offset: Vec2;
     parameter?: unknown;
+    literals?: { [port: string]: unknown };
 }
 
 interface CopiedConnection {
@@ -94,6 +95,7 @@ export class GraphClipboard {
                     y: node.getPosition().y - originY,
                 },
                 parameter: data?.parameter?.currentValue,
+                literals: data?.literals,
             });
         });
 
@@ -118,6 +120,12 @@ export class GraphClipboard {
         }
 
         this.clipboard = { nodes: copied, connections: wires };
+    }
+
+    private pasteLiterals(nodeID: string, copy: CopiedNode): void {
+        for (const [port, value] of Object.entries(copy.literals ?? {})) {
+            this.requestManager.setLiteral(nodeID, port, value);
+        }
     }
 
     paste(position: Vec2): void {
@@ -162,6 +170,7 @@ export class GraphClipboard {
                     if (copy.parameter !== undefined) {
                         this.requestManager.setParameter(resp.nodeID, copy.parameter, false);
                     }
+                    this.pasteLiterals(resp.nodeID, copy);
                     this.requestManager.setNodeMetadata(resp.nodeID, "position", at);
                     finished();
                 }, undefined, finished);
@@ -177,6 +186,7 @@ export class GraphClipboard {
                     if (copy.parameter !== undefined) {
                         this.requestManager.setParameter(nodeID, copy.parameter, false);
                     }
+                    this.pasteLiterals(nodeID, copy);
                     pasted.select();
                 }
                 finished();

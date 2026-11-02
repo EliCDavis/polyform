@@ -9,6 +9,7 @@ import type {
   GraphExecutionReport,
   GraphHistory,
   GraphInstance,
+  GraphVersion,
   ImportSubGraphsResult,
   Manifest,
   NodeInstance,
@@ -41,6 +42,7 @@ enum GraphChangeEventType {
   Profile_Rename = "Profile_Rename",
   Profile_Overwrite = "Profile_Overwrite",
   Parameter = "Parameter",
+  Literal = "Literal",
   Producer = "Producer",
   GraphMetadata = "GraphMetadata",
   GraphDetails = "GraphDetails",
@@ -79,7 +81,7 @@ export interface SetProducerBody {
 
 export interface StartedResponse {
   time: string;
-  modelVersion: number;
+  version: GraphVersion;
 }
 
 export interface CreateNodeResponse {
@@ -371,6 +373,13 @@ export class RequestManager {
   setProducerTitle(nodeId: string, value: SetProducerBody, callback?: () => void): void {
     void postJsonVoid(`./producer/name/${nodeId}`, value).then((ok) => {
       if (ok) this.onGraphChange(GraphChangeEventType.Producer, callback)();
+    });
+  }
+
+  setLiteral(nodeId: string, port: string, value: unknown, callback?: () => void): void {
+    const base = this.graphScopePath ? `./${this.graphScopePath}/node/literal` : "./node/literal";
+    void postJsonVoid(`${base}/${nodeId}/${encodeURIComponent(port)}`, value).then((ok) => {
+      if (ok) this.onGraphChange(GraphChangeEventType.Literal, callback)();
     });
   }
 

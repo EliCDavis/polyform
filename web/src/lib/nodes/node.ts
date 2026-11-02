@@ -13,7 +13,7 @@ import { TRSParameterNodeController } from './trs_parameter';
 import { QuaternionParameterNodeController } from './quaternion_parameter';
 import { NodeInstance, NodeInstanceAssignedInput, NodeInstanceOutput, NodeDefinition, NodeInput, NodeOutput, ExecutionReport, subGraphBoundaryKind } from '../schema.js';
 import { RequestManager, saveFileToDisk } from '../requests.js';
-import { FlowNode, GlobalWidgetFactory, ImageWidget, MessageType, Port, ToggleWidget, type Widget } from '@elicdavis/node-flow';
+import { FlowNode, GlobalWidgetFactory, MessageType, Port, ToggleWidget } from '@elicdavis/node-flow';
 import { ThreeApp } from '../three_app.js';
 import { ProducerViewManager } from '../ProducerView/producer_view_manager.js';
 import type { NodeParameter, ScalarNodeParameter } from '../../types/parameter.js';
@@ -23,6 +23,8 @@ import { useGraphTabStore } from '../../stores/graphTabStore.js';
 import { nodeOutputUrl } from '../../features/preview/PreviewPanel.js';
 import { thumbnails } from '../../features/preview/thumbnail_renderer.js';
 import { lockIfReadOnly } from './read_only.js';
+import { OutputPreviews } from './output_previews.js';
+import { applyLiteral, literalKind, literalProperties, readLiteral, type LiteralKind } from './literal_widgets.js';
 
 export const InstanceIDProperty: string = "instanceID"
 
@@ -166,11 +168,7 @@ export class PolyNodeController {
 
     serializableOutputTypes: Array<string>;
 
-    nodeOutputWidgets: Map<string, ImageWidget>;
-
-    previewButtons: Map<string, Widget>;
-
-    thumbnailVersions: Map<string, number>;
+    previews: OutputPreviews;
 
     constructor(
         flowNode: FlowNode,
@@ -193,9 +191,7 @@ export class PolyNodeController {
         this.producerViewManager = producerViewManager;
         this.nodeDefinition = nodeDefinition;
         this.serializableOutputTypes = serializableOutputTypes;
-        this.nodeOutputWidgets = new Map<string, ImageWidget>();
-        this.previewButtons = new Map<string, Widget>();
-        this.thumbnailVersions = new Map<string, number>();
+        this.previews = new OutputPreviews(flowNode, () => this.nodeManager.graphVersion());
 
         this.name = "";
         this.outputs = {};
@@ -344,8 +340,53 @@ export class PolyNodeController {
         this.flowNode.widgets().forEach(lockIfReadOnly);
 
         this.attachInputConnectionListeners();
+        this.attachLiteralListeners();
 
         this.update(nodeData);
+    }
+
+    attachLiteralListeners(): void {
+        for (let i = 0; i < this.flowNode.inputs(); i++) {
+            const port = this.flowNode.inputPort(i);
+            const widget = port.widget();
+            if (widget === null) {
+                continue;
+            }
+            const name = port.getDisplayName();
+            const kind = this.literalKindOf(port);
+            if (!kind) {
+                continue;
+            }
+            lockIfReadOnly(widget);
+            for (const property of literalProperties(name, kind)) {
+                this.flowNode.addPropertyEditListener(property, () => {
+                    this.requestManager.setLiteral(this.id, name, readLiteral(this.flowNode, name, kind));
+                });
+            }
+        }
+    }
+
+    private literalKindOf(port: Port): LiteralKind | undefined {
+        const type = port.getDataType();
+        return literalKind(type, this.nodeManager.enumMembers(type));
+    }
+
+    applyLiterals(nodeData: NodeInstance): void {
+        const literals = nodeData.literals;
+        if (!literals) {
+            return;
+        }
+        for (let i = 0; i < this.flowNode.inputs(); i++) {
+            const port = this.flowNode.inputPort(i);
+            const name = port.getDisplayName();
+            if (port.widget() === null || !(name in literals)) {
+                continue;
+            }
+            const kind = this.literalKindOf(port);
+            if (kind) {
+                applyLiteral(this.flowNode, name, kind, literals[name]);
+            }
+        }
     }
 
     attachInputConnectionListeners(): void {
@@ -397,15 +438,13 @@ export class PolyNodeController {
 
     // A thumbnail of the geometry sits above a button that opens it in a tab.
     private ensurePreviewButton(outputKey: string): void {
-        if (this.previewButtons.has(outputKey)) {
+        if (this.previews.hasButton(outputKey)) {
             return;
         }
-        const thumbnail = GlobalWidgetFactory.create(this.flowNode, "image", { maxWidth: 180 });
-        this.flowNode.addWidget(thumbnail);
-        this.nodeOutputWidgets.set(outputKey, thumbnail);
+        this.previews.addImage(outputKey, { maxWidth: 180 });
 
         const single = Object.keys(this.nodeDefinition.outputs).length === 1;
-        const button = GlobalWidgetFactory.create(this.flowNode, "button", {
+        this.previews.addButton(outputKey, {
             text: single ? "Open" : `Open ${outputKey}`,
             callback: () => {
                 const title = this.name || this.nodeDefinition.displayName || this.id;
@@ -417,21 +456,19 @@ export class PolyNodeController {
                 );
             },
         });
-        this.flowNode.addWidget(button);
-        this.previewButtons.set(outputKey, button);
     }
 
     private refreshThumbnail(outputKey: string, version: number): void {
-        if (this.thumbnailVersions.get(outputKey) === version) {
+        const stamp = this.previews.claim(outputKey, version);
+        if (stamp === null) {
             return;
         }
-        this.thumbnailVersions.set(outputKey, version);
         const scope = this.nodeManager.getScopeApiPath();
         const url = nodeOutputUrl(this.id, outputKey, scope);
         thumbnails
-            .request(`${scope ?? "root"}:${this.id}:${outputKey}`, `${url}${url.includes("?") ? "&" : "?"}v=${version}`)
+            .request(`${scope ?? "root"}:${this.id}:${outputKey}`, `${url}${url.includes("?") ? "&" : "?"}v=${stamp}`)
             .then((dataUrl) => {
-                const widget = this.nodeOutputWidgets.get(outputKey);
+                const widget = this.previews.image(outputKey);
                 if (!widget || dataUrl === null) {
                     return;
                 }
@@ -450,20 +487,6 @@ export class PolyNodeController {
         return false;
     }
 
-    private removePreview(outputKey: string): void {
-        const image = this.nodeOutputWidgets.get(outputKey);
-        if (image) {
-            this.flowNode.removeWidget(image);
-            this.nodeOutputWidgets.delete(outputKey);
-        }
-        const button = this.previewButtons.get(outputKey);
-        if (button) {
-            this.flowNode.removeWidget(button);
-            this.previewButtons.delete(outputKey);
-        }
-        this.thumbnailVersions.delete(outputKey);
-    }
-
     fetchOutput(outputKey: string, version: number): void {
         let recognizeOutput = this.nodeDefinition?.outputs && outputKey in this.nodeDefinition.outputs;
         if (!recognizeOutput) {
@@ -471,7 +494,7 @@ export class PolyNodeController {
         }
 
         if (!this.outputConnected(outputKey)) {
-            this.removePreview(outputKey);
+            this.previews.remove(outputKey);
             return;
         }
 
@@ -485,33 +508,26 @@ export class PolyNodeController {
             return;
         }
 
-        if (this.thumbnailVersions.get(outputKey) === version) {
+        const stamp = this.previews.claim(outputKey, version);
+        if (stamp === null) {
             return;
         }
-        this.thumbnailVersions.set(outputKey, version);
 
         const url = nodeOutputUrl(this.id, outputKey, this.nodeManager.getScopeApiPath());
         fetch(url)
             .then(async (response) => {
-                if (this.thumbnailVersions.get(outputKey) !== version) {
+                if (!this.previews.isCurrent(outputKey, stamp)) {
                     return;
                 }
                 if (response.status === 204) {
-                    this.removePreview(outputKey);
-                    this.thumbnailVersions.set(outputKey, version);
+                    this.previews.clear(outputKey);
                     return;
                 }
                 if (!response.ok) {
                     throw new Error(`${response.status} fetching ${url}`);
                 }
                 const blob = await response.blob();
-                let widget = this.nodeOutputWidgets.get(outputKey);
-                if (!widget) {
-                    widget = GlobalWidgetFactory.create(this.flowNode, "image", {}) as ImageWidget;
-                    this.flowNode.addWidget(widget);
-                    this.nodeOutputWidgets.set(outputKey, widget);
-                }
-                widget.SetBlob(blob);
+                this.previews.addImage(outputKey).SetBlob(blob);
             })
             .catch((err) => console.warn(`preview for ${this.id}.${outputKey}:`, err));
     }
@@ -575,6 +591,7 @@ export class PolyNodeController {
         this.name = nodeData.name;
         this.dependencies = nodeData.assignedInput;
         this.applyDynamicTypes(nodeData);
+        this.applyLiterals(nodeData);
 
         if (nodeData.metadata) {
             if (nodeData.metadata.position) {

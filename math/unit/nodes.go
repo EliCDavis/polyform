@@ -68,7 +68,7 @@ func (ftm ParseFeetNode) Description() string {
 }
 
 func (ftm ParseFeetNode) Float64(out *nodes.StructOutput[float64]) {
-	feet, err := ParseFeet(nodes.TryGetOutputValue(out, ftm.Feet, ""))
+	feet, err := ParseFeet(nodes.GetOutputValue(out, ftm.Feet))
 	out.Set(feet)
 	if err != nil {
 		out.CaptureError(err)
@@ -76,7 +76,7 @@ func (ftm ParseFeetNode) Float64(out *nodes.StructOutput[float64]) {
 }
 
 func (ftm ParseFeetNode) Int(out *nodes.StructOutput[int]) {
-	feet, err := ParseFeet(nodes.TryGetOutputValue(out, ftm.Feet, ""))
+	feet, err := ParseFeet(nodes.GetOutputValue(out, ftm.Feet))
 	out.Set(int(math.Round(feet)))
 	if err != nil {
 		out.CaptureError(err)

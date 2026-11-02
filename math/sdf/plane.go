@@ -14,9 +14,9 @@ func Plane(position, normal vector3.Float64, height float64) sample.Vec3ToFloat 
 }
 
 type PlaneNode struct {
-	Position nodes.Output[vector3.Float64] `description:"A point the plane passes through. Defaults to the origin."`
-	Normal   nodes.Output[vector3.Float64] `description:"Direction the plane faces. The side it points toward is 'outside'. Defaults to (0, 1, 0)."`
-	Height   nodes.Output[float64]         `description:"Offset along Normal, added to the signed distance. Defaults to 0."`
+	Position nodes.Output[vector3.Float64] `description:"A point the plane passes through."`
+	Normal   nodes.Output[vector3.Float64] `description:"Direction the plane faces. The side it points toward is 'outside'." default:"0,1,0"`
+	Height   nodes.Output[float64]         `description:"Offset along Normal, added to the signed distance."`
 }
 
 func (cn PlaneNode) Description() string {
@@ -25,8 +25,8 @@ func (cn PlaneNode) Description() string {
 
 func (cn PlaneNode) Field(out *nodes.StructOutput[sample.Vec3ToFloat]) {
 	out.Set(Plane(
-		nodes.TryGetOutputValue(out, cn.Position, vector3.Zero[float64]()),
-		nodes.TryGetOutputValue(out, cn.Normal, vector3.Up[float64]()).Normalized(),
-		nodes.TryGetOutputValue(out, cn.Height, .0),
+		nodes.GetOutputValue(out, cn.Position),
+		nodes.GetOutputValue(out, cn.Normal).Normalized(),
+		nodes.GetOutputValue(out, cn.Height),
 	))
 }

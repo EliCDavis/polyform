@@ -143,7 +143,7 @@ export class ProducerViewManager {
 
   nodeTypeManifestPorts: Map<string, string>;
 
-  modelVersion: number;
+  revision: number;
 
   readonly schemaManager: SchemaManager;
 
@@ -190,7 +190,7 @@ export class ProducerViewManager {
   ) {
     this.runningMessage = document.getElementById("running-message");
     this.completeRefreshSubscriber = [];
-    this.modelVersion = -1;
+    this.revision = -1;
     this.schemaManager = schemaManager;
     this.nodeTypeManifestPorts = new Map<string, string>();
     app.UpdateLoop.addToUpdate({
@@ -259,17 +259,17 @@ export class ProducerViewManager {
     }
   }
 
-  setModelVersion(newModelVersion: number): void {
-    if (newModelVersion === this.modelVersion) {
+  setRevision(revision: number): void {
+    if (revision === this.revision) {
       return;
     }
-    const previousVersion = this.modelVersion;
-    this.modelVersion = newModelVersion;
-    // Initial poll only records version; schema is already loading from bootstrap.
-    if (previousVersion === -1) {
+    const previous = this.revision;
+    this.revision = revision;
+    // Initial poll only records the revision; schema is already loading from bootstrap.
+    if (previous === -1) {
       return;
     }
-    this.schemaManager.refreshSchema("Model version change");
+    this.schemaManager.refreshSchema("Revision change");
   }
 
   SubscribeToProducerRefresh(callback: ProducerRefreshCallback): void {

@@ -83,9 +83,9 @@ func (ms MeshSurface) TRS() []trs.TRS {
 
 type SampleMeshSurfaceNode struct {
 	Mesh      nodes.Output[modeling.Mesh] `description:"The mesh to scatter points across. Must have triangle topology."`
-	Attribute nodes.Output[string]        `description:"Which mesh attribute to sample area/position/normal from. Defaults to modeling.PositionAttribute (\"Position\")."`
-	Samples   nodes.Output[int]           `description:"How many points to scatter, distributed so larger triangles get proportionally more samples (uniform per unit area, not per triangle). Defaults to 0."`
-	Seed      nodes.Output[int]           `description:"The same seed always produces the same scatter. Defaults to 0."`
+	Attribute nodes.Output[string]        `description:"Which mesh attribute to sample area/position/normal from." default:"Position"`
+	Samples   nodes.Output[int]           `description:"How many points to scatter, distributed so larger triangles get proportionally more samples (uniform per unit area, not per triangle)."`
+	Seed      nodes.Output[int]           `description:"The same seed always produces the same scatter."`
 }
 
 func (rnd SampleMeshSurfaceNode) Description() string {
@@ -105,9 +105,9 @@ func (rnd SampleMeshSurfaceNode) Out(out *nodes.StructOutput[[]trs.TRS]) {
 
 	surface := MeshSurface{
 		Mesh:      mesh,
-		Attribute: nodes.TryGetOutputValue(out, rnd.Attribute, modeling.PositionAttribute),
-		Samples:   nodes.TryGetOutputValue(out, rnd.Samples, 0),
-		Seed:      nodes.TryGetOutputValue(out, rnd.Seed, 0),
+		Attribute: nodes.GetOutputValue(out, rnd.Attribute),
+		Samples:   nodes.GetOutputValue(out, rnd.Samples),
+		Seed:      nodes.GetOutputValue(out, rnd.Seed),
 	}
 	out.Set(surface.TRS())
 }

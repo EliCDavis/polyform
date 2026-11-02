@@ -47,7 +47,7 @@ func SliceByPlaneWithAttribute(m modeling.Mesh, plane geometry.Plane, attribute 
 type SliceAttributeByPlaneNode struct {
 	Mesh      nodes.Output[modeling.Mesh]
 	Plane     nodes.Output[geometry.Plane]
-	Attribute nodes.Output[string] `description:"The vector3 attribute measured against the plane. Defaults to Position."`
+	Attribute nodes.Output[string] `description:"The vector3 attribute measured against the plane." default:"Position"`
 }
 
 func (n SliceAttributeByPlaneNode) Description() string {
@@ -70,7 +70,7 @@ func (n SliceAttributeByPlaneNode) slice(out *nodes.StructOutput[modeling.Mesh],
 	aboveM, belowM := SliceByPlaneWithAttribute(
 		mesh,
 		plane,
-		nodes.TryGetOutputValue(out, n.Attribute, modeling.PositionAttribute),
+		nodes.GetOutputValue(out, n.Attribute),
 	)
 	if above {
 		out.Set(aboveM)

@@ -106,7 +106,7 @@ func UnionColored(fields ...ColoredField) ColoredField {
 
 type WithColorNode struct {
 	Field nodes.Output[sample.Vec3ToFloat] `description:"The field to attach a color to."`
-	Color nodes.Output[coloring.Color]     `description:"The color given to every point in Field."`
+	Color nodes.Output[coloring.Color]     `description:"The color given to every point in Field." default:"#000000"`
 }
 
 func (n WithColorNode) Description() string {
@@ -115,7 +115,7 @@ func (n WithColorNode) Description() string {
 
 func (n WithColorNode) Out(out *nodes.StructOutput[ColoredField]) {
 	field := nodes.TryGetOutputValue(out, n.Field, nullField)
-	color := nodes.TryGetOutputValue(out, n.Color, coloring.Color{A: 1})
+	color := nodes.GetOutputValue(out, n.Color)
 	out.Set(ColoredField{
 		Distance: field,
 		Color:    ConstantColor(color),
@@ -124,7 +124,7 @@ func (n WithColorNode) Out(out *nodes.StructOutput[ColoredField]) {
 
 type SmoothUnionColoredNode struct {
 	Fields []nodes.Output[ColoredField] `description:"The colored fields to combine."`
-	Radius nodes.Output[float64]        `description:"Width of the blend region in world units. Zero or less is a hard union. Defaults to 0.1."`
+	Radius nodes.Output[float64]        `description:"Width of the blend region in world units. Zero or less is a hard union." default:"0.1"`
 }
 
 func (n SmoothUnionColoredNode) Description() string {
@@ -137,7 +137,7 @@ func (n SmoothUnionColoredNode) Union(out *nodes.StructOutput[ColoredField]) {
 		out.CaptureError(errors.New("No fields provided to union"))
 		return
 	}
-	out.Set(SmoothUnionColored(nodes.TryGetOutputValue(out, n.Radius, .1), fields...))
+	out.Set(SmoothUnionColored(nodes.GetOutputValue(out, n.Radius), fields...))
 }
 
 type UnionColoredNode struct {

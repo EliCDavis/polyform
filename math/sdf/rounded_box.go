@@ -22,9 +22,9 @@ func RoundedBox(position, bounds vector3.Float64, roundness float64) sample.Vec3
 }
 
 type RoundCubeNode struct {
-	Position  nodes.Output[vector3.Float64] `description:"Center of the box. Defaults to the origin."`
-	Size      nodes.Output[vector3.Float64] `description:"Full width/height/depth of the box before rounding, which grows by 2x Roundness on every axis. Defaults to (1, 1, 1)."`
-	Roundness nodes.Output[float64]         `description:"Radius of the fillet, added outward on every axis rather than carved off the corners. Defaults to 0.1."`
+	Position  nodes.Output[vector3.Float64] `description:"Center of the box."`
+	Size      nodes.Output[vector3.Float64] `description:"Full width/height/depth of the box before rounding, which grows by 2x Roundness on every axis." default:"1,1,1"`
+	Roundness nodes.Output[float64]         `description:"Radius of the fillet, added outward on every axis rather than carved off the corners." default:"0.1"`
 }
 
 func (cn RoundCubeNode) Description() string {
@@ -33,8 +33,8 @@ func (cn RoundCubeNode) Description() string {
 
 func (cn RoundCubeNode) Field(out *nodes.StructOutput[sample.Vec3ToFloat]) {
 	out.Set(RoundedBox(
-		nodes.TryGetOutputValue(out, cn.Position, vector3.Zero[float64]()),
-		nodes.TryGetOutputValue(out, cn.Size, vector3.One[float64]()),
-		nodes.TryGetOutputValue(out, cn.Roundness, 0.1),
+		nodes.GetOutputValue(out, cn.Position),
+		nodes.GetOutputValue(out, cn.Size),
+		nodes.GetOutputValue(out, cn.Roundness),
 	))
 }

@@ -166,12 +166,12 @@ func (n CylinderUVsNode) Out(out *nodes.StructOutput[CylinderUVs]) {
 }
 
 type CylinderNode struct {
-	Sides   nodes.Output[int]
-	Height  nodes.LiftedPort[float64]
-	Radius  nodes.LiftedPort[float64] `description:"Radius at the bottom (-Y) end"`
-	Radius2 nodes.LiftedPort[float64] `description:"Radius at the top (+Y) end; defaults to Radius, so setting it makes a truncated cone"`
-	Top     nodes.Output[bool]
-	Bottom  nodes.Output[bool]
+	Sides   nodes.Output[int]         `default:"20"`
+	Height  nodes.LiftedPort[float64] `default:"1"`
+	Radius  nodes.LiftedPort[float64] `description:"Radius at the bottom (-Y) end" default:"0.5"`
+	Radius2 nodes.LiftedPort[float64] `description:"Radius at the top (+Y) end; a different value from Radius makes a truncated cone. 0 or less means the same as Radius."`
+	Top     nodes.Output[bool]        `default:"true"`
+	Bottom  nodes.Output[bool]        `default:"true"`
 	UVs     nodes.Output[CylinderUVs]
 }
 
@@ -180,17 +180,15 @@ func (hnd CylinderNode) Description() string {
 }
 
 func (hnd CylinderNode) Out(out *nodes.Lifted[modeling.Mesh]) {
-	bottom := nodes.LiftedOr(hnd.Radius, 0.5)
-	top := hnd.Radius2
-	if top == nil {
-		top = bottom
-	}
-	sides := max(nodes.TryGetOutputValue(out, hnd.Sides, 20), 3)
-	noTop := !nodes.TryGetOutputValue(out, hnd.Top, true)
-	noBottom := !nodes.TryGetOutputValue(out, hnd.Bottom, true)
+	sides := max(nodes.GetOutputValue(out, hnd.Sides), 3)
+	noTop := !nodes.GetOutputValue(out, hnd.Top)
+	noBottom := !nodes.GetOutputValue(out, hnd.Bottom)
 	uvs := nodes.TryGetOutputReference(out, hnd.UVs, nil)
 
-	nodes.Zip3(out, nodes.LiftedOr(hnd.Height, 1.), bottom, top, func(height, bottomRadius, topRadius float64) modeling.Mesh {
+	nodes.Zip3(out, hnd.Height, hnd.Radius, hnd.Radius2, func(height, bottomRadius, topRadius float64) modeling.Mesh {
+		if topRadius <= 0 {
+			topRadius = bottomRadius
+		}
 		return TruncatedCone{
 			TopRadius:    topRadius,
 			BottomRadius: bottomRadius,

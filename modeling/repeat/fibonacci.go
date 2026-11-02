@@ -66,8 +66,8 @@ func FibonacciSphere(samples int, radius float64) []trs.TRS {
 }
 
 type FibonacciSphereNode struct {
-	Count  nodes.Output[int]     `description:"Number of points to place. Defaults to 10."`
-	Radius nodes.Output[float64] `description:"Radius of the sphere the points sit on. Defaults to 1."`
+	Count  nodes.Output[int]     `description:"Number of points to place." default:"10"`
+	Radius nodes.Output[float64] `description:"Radius of the sphere the points sit on." default:"1"`
 }
 
 func (fpnd FibonacciSphereNode) Description() string {
@@ -75,14 +75,14 @@ func (fpnd FibonacciSphereNode) Description() string {
 }
 
 func (fpnd FibonacciSphereNode) Out(out *nodes.StructOutput[[]trs.TRS]) {
-	radius := nodes.TryGetOutputValue(out, fpnd.Radius, 1.)
-	count := nodes.TryGetOutputValue(out, fpnd.Count, 10)
+	radius := nodes.GetOutputValue(out, fpnd.Radius)
+	count := nodes.GetOutputValue(out, fpnd.Count)
 	out.Set(FibonacciSphere(count, radius))
 }
 
 type FibonacciSpiralNode struct {
-	Count  nodes.Output[int]     `description:"Number of points to place. Defaults to 10."`
-	Radius nodes.Output[float64] `description:"Radius of the outermost point of the spiral (the spiral grows from the center out to this radius). Defaults to 1."`
+	Count  nodes.Output[int]     `description:"Number of points to place." default:"10"`
+	Radius nodes.Output[float64] `description:"Radius of the outermost point of the spiral (the spiral grows from the center out to this radius)." default:"1"`
 }
 
 func (fpnd FibonacciSpiralNode) Description() string {
@@ -91,7 +91,7 @@ func (fpnd FibonacciSpiralNode) Description() string {
 
 func (fpnd FibonacciSpiralNode) Out(out *nodes.StructOutput[[]trs.TRS]) {
 	out.Set(FibonacciSpiral(
-		nodes.TryGetOutputValue(out, fpnd.Count, 10),
-		nodes.TryGetOutputValue(out, fpnd.Radius, 1.),
+		nodes.GetOutputValue(out, fpnd.Count),
+		nodes.GetOutputValue(out, fpnd.Radius),
 	))
 }

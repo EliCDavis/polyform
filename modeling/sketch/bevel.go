@@ -97,7 +97,7 @@ type BevelPathNode struct {
 	Outline  nodes.LiftedPort[[]vector2.Float64] `description:"The path or outline whose corners to cut."`
 	Distance nodes.LiftedPort[float64]           `description:"How far back along each side a cut starts, at most half the side. On a right angle a round corner's radius equals it."`
 	Round    nodes.Output[bool]                  `description:"Rounds each corner with an arc instead of a straight cut."`
-	Segments nodes.Output[int]                   `description:"Straight pieces per round corner. Defaults to 8."`
+	Segments nodes.Output[int]                   `description:"Straight pieces per round corner." default:"8"`
 	Closed   nodes.Output[bool]                  `description:"Treats the points as a closed outline, so every corner is cut. Off, the two ends stay put."`
 }
 
@@ -106,9 +106,9 @@ func (BevelPathNode) Description() string {
 }
 
 func (n BevelPathNode) Out(out *nodes.Lifted[[]vector2.Float64]) {
-	round := nodes.TryGetOutputValue(out, n.Round, false)
-	segments := max(nodes.TryGetOutputValue(out, n.Segments, 8), 1)
-	closed := nodes.TryGetOutputValue(out, n.Closed, false)
+	round := nodes.GetOutputValue(out, n.Round)
+	segments := max(nodes.GetOutputValue(out, n.Segments), 1)
+	closed := nodes.GetOutputValue(out, n.Closed)
 	nodes.Zip2(out, n.Outline, n.Distance, func(shape []vector2.Float64, distance float64) []vector2.Float64 {
 		return Corners{Distance: distance, Round: round, Segments: segments, Closed: closed}.Apply(shape)
 	})
@@ -118,7 +118,7 @@ type BevelNode struct {
 	Area     nodes.LiftedPort[Area]    `description:"The area whose corners to cut, outlines and holes alike."`
 	Distance nodes.LiftedPort[float64] `description:"How far back along each side a cut starts, at most half the side."`
 	Round    nodes.Output[bool]        `description:"Rounds each corner with an arc instead of a straight cut."`
-	Segments nodes.Output[int]         `description:"Straight pieces per round corner. Defaults to 8."`
+	Segments nodes.Output[int]         `description:"Straight pieces per round corner." default:"8"`
 }
 
 func (BevelNode) Description() string {
@@ -130,8 +130,8 @@ func (BevelNode) Keywords() []string {
 }
 
 func (n BevelNode) Out(out *nodes.Lifted[Area]) {
-	round := nodes.TryGetOutputValue(out, n.Round, false)
-	segments := max(nodes.TryGetOutputValue(out, n.Segments, 8), 1)
+	round := nodes.GetOutputValue(out, n.Round)
+	segments := max(nodes.GetOutputValue(out, n.Segments), 1)
 	nodes.Zip2(out, n.Area, n.Distance, func(area Area, distance float64) Area {
 		cut, err := BevelArea(area, Corners{Distance: distance, Round: round, Segments: segments})
 		out.CaptureError(err)

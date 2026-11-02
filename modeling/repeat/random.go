@@ -33,9 +33,9 @@ func RandomPointsInSphere(radius float64, count int, rnd *rand.Rand) []vector3.F
 }
 
 type RandomPointsInSphereNode struct {
-	Radius nodes.Output[float64] `description:"Radius of the sphere containing the random points. Defaults to 0.5."`
-	Points nodes.Output[int]     `description:"number of points to generate. Defaults to 1. Must not be negative."`
-	Seed   nodes.Output[int]     `description:"The same seed always produces the same scatter. Defaults to 0."`
+	Radius nodes.Output[float64] `description:"Radius of the sphere containing the random points." default:"0.5"`
+	Points nodes.Output[int]     `description:"number of points to generate. Must not be negative." default:"1"`
+	Seed   nodes.Output[int]     `description:"The same seed always produces the same scatter."`
 }
 
 func (g RandomPointsInSphereNode) Description() string {
@@ -43,7 +43,7 @@ func (g RandomPointsInSphereNode) Description() string {
 }
 
 func (g RandomPointsInSphereNode) points(recorder nodes.ExecutionRecorder) []vector3.Float64 {
-	points := nodes.TryGetOutputValue(recorder, g.Points, 1)
+	points := nodes.GetOutputValue(recorder, g.Points)
 	if points < 0 {
 		recorder.CaptureError(nodes.InvalidInputError{
 			Input:   g.Points,
@@ -53,9 +53,9 @@ func (g RandomPointsInSphereNode) points(recorder nodes.ExecutionRecorder) []vec
 	}
 
 	return RandomPointsInSphere(
-		nodes.TryGetOutputValue(recorder, g.Radius, 0.5),
+		nodes.GetOutputValue(recorder, g.Radius),
 		points,
-		chance.FromSeed(nodes.TryGetOutputValue(recorder, g.Seed, 0)),
+		chance.FromSeed(nodes.GetOutputValue(recorder, g.Seed)),
 	)
 }
 

@@ -22,9 +22,9 @@ func Transform(shape []vector2.Float64, translation vector2.Float64, degrees flo
 
 type TransformNode struct {
 	Outline     nodes.LiftedPort[[]vector2.Float64] `description:"The outline or path to move."`
-	Translation nodes.LiftedPort[vector2.Float64]   `description:"Applied last. Defaults to no move."`
-	Rotation    nodes.LiftedPort[float64]           `description:"Degrees counter-clockwise about the origin. Defaults to 0."`
-	Scale       nodes.LiftedPort[vector2.Float64]   `description:"Applied first, about the origin. Defaults to 1 by 1."`
+	Translation nodes.LiftedPort[vector2.Float64]   `description:"Applied last."`
+	Rotation    nodes.LiftedPort[float64]           `description:"Degrees counter-clockwise about the origin."`
+	Scale       nodes.LiftedPort[vector2.Float64]   `description:"Applied first, about the origin." default:"1,1"`
 }
 
 func (TransformNode) Description() string {
@@ -35,9 +35,9 @@ func (n TransformNode) Out(out *nodes.Lifted[[]vector2.Float64]) {
 	nodes.Zip4(
 		out,
 		n.Outline,
-		nodes.LiftedOr(n.Translation, vector2.Zero[float64]()),
+		n.Translation,
 		n.Rotation,
-		nodes.LiftedOr(n.Scale, vector2.One[float64]()),
+		n.Scale,
 		Transform,
 	)
 }

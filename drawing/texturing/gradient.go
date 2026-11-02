@@ -34,9 +34,9 @@ func (rg RadialGradient[T]) Texture() Texture[T] {
 }
 
 type RadialGradientNode[T any] struct {
-	Repetitions nodes.Output[float64]
-	Width       nodes.Output[int]
-	Height      nodes.Output[int]
+	Repetitions nodes.Output[float64] `default:"1"`
+	Width       nodes.Output[int]     `default:"1"`
+	Height      nodes.Output[int]     `default:"1"`
 	Gradient    nodes.Output[coloring.Gradient[T]]
 }
 
@@ -45,8 +45,8 @@ func (n RadialGradientNode[T]) Description() string {
 }
 
 func (n RadialGradientNode[T]) LinearGradient(out *nodes.StructOutput[Texture[T]]) {
-	width := nodes.TryGetOutputValue(out, n.Width, 1)
-	height := nodes.TryGetOutputValue(out, n.Height, 1)
+	width := nodes.GetOutputValue(out, n.Width)
+	height := nodes.GetOutputValue(out, n.Height)
 
 	if n.Gradient == nil {
 		out.Set(Empty[T](width, height))
@@ -54,7 +54,7 @@ func (n RadialGradientNode[T]) LinearGradient(out *nodes.StructOutput[Texture[T]
 	}
 
 	lg := RadialGradient[T]{
-		Repetitions: nodes.TryGetOutputValue(out, n.Repetitions, 1),
+		Repetitions: nodes.GetOutputValue(out, n.Repetitions),
 		Width:       width,
 		Height:      height,
 		Gradient:    nodes.GetOutputValue(out, n.Gradient),
@@ -101,10 +101,10 @@ func (lg LinearGradient[T]) Texture() Texture[T] {
 }
 
 type LinearGradientNode[T any] struct {
-	Repetitions nodes.Output[float64]
+	Repetitions nodes.Output[float64] `default:"1"`
 	Rotation    nodes.Output[float64]
-	Width       nodes.Output[int]
-	Height      nodes.Output[int]
+	Width       nodes.Output[int] `default:"1"`
+	Height      nodes.Output[int] `default:"1"`
 	Gradient    nodes.Output[coloring.Gradient[T]]
 }
 
@@ -113,8 +113,8 @@ func (n LinearGradientNode[T]) Description() string {
 }
 
 func (n LinearGradientNode[T]) LinearGradient(out *nodes.StructOutput[Texture[T]]) {
-	width := nodes.TryGetOutputValue(out, n.Width, 1)
-	height := nodes.TryGetOutputValue(out, n.Height, 1)
+	width := nodes.GetOutputValue(out, n.Width)
+	height := nodes.GetOutputValue(out, n.Height)
 
 	if n.Gradient == nil {
 		out.Set(Empty[T](width, height))
@@ -122,8 +122,8 @@ func (n LinearGradientNode[T]) LinearGradient(out *nodes.StructOutput[Texture[T]
 	}
 
 	lg := LinearGradient[T]{
-		Repetitions: nodes.TryGetOutputValue(out, n.Repetitions, 1),
-		Rotation:    nodes.TryGetOutputValue(out, n.Rotation, 0),
+		Repetitions: nodes.GetOutputValue(out, n.Repetitions),
+		Rotation:    nodes.GetOutputValue(out, n.Rotation),
 		Width:       width,
 		Height:      height,
 		Gradient:    nodes.GetOutputValue(out, n.Gradient),

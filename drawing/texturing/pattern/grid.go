@@ -73,17 +73,17 @@ func (c Grid[T]) Texture(dimensions vector2.Int) texturing.Texture[T] {
 }
 
 type GridNode[T any] struct {
-	HorizontalLines     nodes.Output[int]
-	VerticalLines       nodes.Output[int]
-	Dimensions          nodes.Output[vector2.Int]
+	HorizontalLines     nodes.Output[int]         `default:"5"`
+	VerticalLines       nodes.Output[int]         `default:"5"`
+	Dimensions          nodes.Output[vector2.Int] `default:"256,256"`
 	BackgroundValue     nodes.Output[T]
 	LineValue           nodes.Output[T]
-	HorizontalLineWidth nodes.Output[float64]
-	VerticalLineWidth   nodes.Output[float64]
+	HorizontalLineWidth nodes.Output[float64] `default:"0.05"`
+	VerticalLineWidth   nodes.Output[float64] `default:"0.05"`
 }
 
 func (gnd GridNode[T]) Texture(out *nodes.StructOutput[texturing.Texture[T]]) {
-	dimensions := nodes.TryGetOutputValue(out, gnd.Dimensions, vector2.New(256, 256))
+	dimensions := nodes.GetOutputValue(out, gnd.Dimensions)
 	if dimensions.MinComponent() <= 0 {
 		out.CaptureError(texturing.InvalidDimension(dimensions))
 		return
@@ -91,12 +91,12 @@ func (gnd GridNode[T]) Texture(out *nodes.StructOutput[texturing.Texture[T]]) {
 
 	var t T
 	grid := Grid[T]{
-		HorizontalLines:     nodes.TryGetOutputValue(out, gnd.HorizontalLines, 5),
-		VerticalLines:       nodes.TryGetOutputValue(out, gnd.VerticalLines, 5),
+		HorizontalLines:     nodes.GetOutputValue(out, gnd.HorizontalLines),
+		VerticalLines:       nodes.GetOutputValue(out, gnd.VerticalLines),
 		BackgroundValue:     nodes.TryGetOutputValue(out, gnd.BackgroundValue, t),
 		LineValue:           nodes.TryGetOutputValue(out, gnd.LineValue, t),
-		HorizontalLineWidth: nodes.TryGetOutputValue(out, gnd.HorizontalLineWidth, .05),
-		VerticalLineWidth:   nodes.TryGetOutputValue(out, gnd.VerticalLineWidth, .05),
+		HorizontalLineWidth: nodes.GetOutputValue(out, gnd.HorizontalLineWidth),
+		VerticalLineWidth:   nodes.GetOutputValue(out, gnd.VerticalLineWidth),
 	}
 
 	out.Set(grid.Texture(dimensions))

@@ -155,10 +155,10 @@ func (n TubeUVsNode) Out(out *nodes.StructOutput[TubeUVs]) {
 }
 
 type TubeNode struct {
-	Sides       nodes.Output[int]
-	Height      nodes.Output[float64]
-	InnerRadius nodes.Output[float64]
-	OuterRadius nodes.Output[float64]
+	Sides       nodes.Output[int]     `default:"20"`
+	Height      nodes.Output[float64] `default:"1"`
+	InnerRadius nodes.Output[float64] `default:"0.25"`
+	OuterRadius nodes.Output[float64] `default:"0.5"`
 	UVs         nodes.Output[TubeUVs]
 }
 
@@ -172,10 +172,10 @@ func (t TubeNode) Keywords() []string {
 
 func (t TubeNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	tube := Tube{
-		Sides:       nodes.TryGetOutputValue(out, t.Sides, 20),
-		Height:      nodes.TryGetOutputValue(out, t.Height, 1),
-		InnerRadius: nodes.TryGetOutputValue(out, t.InnerRadius, 0.25),
-		OuterRadius: nodes.TryGetOutputValue(out, t.OuterRadius, 0.5),
+		Sides:       nodes.GetOutputValue(out, t.Sides),
+		Height:      nodes.GetOutputValue(out, t.Height),
+		InnerRadius: nodes.GetOutputValue(out, t.InnerRadius),
+		OuterRadius: nodes.GetOutputValue(out, t.OuterRadius),
 		UVs:         nodes.TryGetOutputReference(out, t.UVs, nil),
 	}
 	out.Set(tube.ToMesh())

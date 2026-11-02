@@ -3,7 +3,7 @@ package coloring
 import "github.com/EliCDavis/polyform/nodes"
 
 type SRGBToLinearNode struct {
-	In nodes.LiftedPort[Color] `description:"A color as picked on screen."`
+	In nodes.LiftedPort[Color] `description:"A color as picked on screen." default:"#000000"`
 }
 
 func (n SRGBToLinearNode) Description() string {
@@ -11,7 +11,7 @@ func (n SRGBToLinearNode) Description() string {
 }
 
 func (n SRGBToLinearNode) Out(out *nodes.Lifted[Color]) {
-	nodes.Zip1(out, nodes.LiftedOr(n.In, Color{A: 1}), func(in Color) Color {
+	nodes.Zip1(out, n.In, func(in Color) Color {
 		return Color{
 			R: SRGBToLinear(in.R),
 			G: SRGBToLinear(in.G),
@@ -22,7 +22,7 @@ func (n SRGBToLinearNode) Out(out *nodes.Lifted[Color]) {
 }
 
 type LinearToSRGBNode struct {
-	In nodes.LiftedPort[Color] `description:"A linear-space color."`
+	In nodes.LiftedPort[Color] `description:"A linear-space color." default:"#000000"`
 }
 
 func (n LinearToSRGBNode) Description() string {
@@ -30,7 +30,7 @@ func (n LinearToSRGBNode) Description() string {
 }
 
 func (n LinearToSRGBNode) Out(out *nodes.Lifted[Color]) {
-	nodes.Zip1(out, nodes.LiftedOr(n.In, Color{A: 1}), func(in Color) Color {
+	nodes.Zip1(out, n.In, func(in Color) Color {
 		return Color{
 			R: LinearToSRGB(in.R),
 			G: LinearToSRGB(in.G),

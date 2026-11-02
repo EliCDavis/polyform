@@ -7,8 +7,8 @@ import (
 )
 
 type NewNode struct {
-	Center nodes.Output[vector3.Float64] `description:"Middle of the box. Defaults to the origin."`
-	Size   nodes.Output[vector3.Float64] `description:"Full width, height and depth of the box - not the half-extents. Defaults to 1x1x1."`
+	Center nodes.Output[vector3.Float64] `description:"Middle of the box."`
+	Size   nodes.Output[vector3.Float64] `description:"Full width, height and depth of the box - not the half-extents." default:"1,1,1"`
 }
 
 func (n NewNode) Description() string {
@@ -17,8 +17,8 @@ func (n NewNode) Description() string {
 
 func (n NewNode) Out(out *nodes.StructOutput[geometry.AABB]) {
 	out.Set(geometry.NewAABB(
-		nodes.TryGetOutputValue(out, n.Center, vector3.Zero[float64]()),
-		nodes.TryGetOutputValue(out, n.Size, vector3.One[float64]()),
+		nodes.GetOutputValue(out, n.Center),
+		nodes.GetOutputValue(out, n.Size),
 	))
 }
 
@@ -34,8 +34,8 @@ func (n FromMinMaxNode) Description() string {
 }
 
 func (n FromMinMaxNode) Out(out *nodes.StructOutput[geometry.AABB]) {
-	min := nodes.TryGetOutputValue(out, n.Min, vector3.Zero[float64]())
-	max := nodes.TryGetOutputValue(out, n.Max, vector3.Zero[float64]())
+	min := nodes.GetOutputValue(out, n.Min)
+	max := nodes.GetOutputValue(out, n.Max)
 
 	box := geometry.NewEmptyAABB()
 	box.SetMinMax(vector3.Min(min, max), vector3.Max(min, max))
@@ -68,8 +68,8 @@ func (n ExpandNode) Description() string {
 }
 
 func (n ExpandNode) Out(out *nodes.StructOutput[geometry.AABB]) {
-	box := nodes.TryGetOutputValue(out, n.AABB, geometry.NewEmptyAABB())
-	box.Expand(nodes.TryGetOutputValue(out, n.Amount, 0))
+	box := nodes.GetOutputValue(out, n.AABB)
+	box.Expand(nodes.GetOutputValue(out, n.Amount))
 	out.Set(box)
 }
 
@@ -84,21 +84,21 @@ func (n SelectNode) Description() string {
 }
 
 func (n SelectNode) Center(out *nodes.StructOutput[vector3.Float64]) {
-	out.Set(nodes.TryGetOutputValue(out, n.AABB, geometry.NewEmptyAABB()).Center())
+	out.Set(nodes.GetOutputValue(out, n.AABB).Center())
 }
 
 func (n SelectNode) Size(out *nodes.StructOutput[vector3.Float64]) {
-	out.Set(nodes.TryGetOutputValue(out, n.AABB, geometry.NewEmptyAABB()).Size())
+	out.Set(nodes.GetOutputValue(out, n.AABB).Size())
 }
 
 func (n SelectNode) Min(out *nodes.StructOutput[vector3.Float64]) {
-	out.Set(nodes.TryGetOutputValue(out, n.AABB, geometry.NewEmptyAABB()).Min())
+	out.Set(nodes.GetOutputValue(out, n.AABB).Min())
 }
 
 func (n SelectNode) Max(out *nodes.StructOutput[vector3.Float64]) {
-	out.Set(nodes.TryGetOutputValue(out, n.AABB, geometry.NewEmptyAABB()).Max())
+	out.Set(nodes.GetOutputValue(out, n.AABB).Max())
 }
 
 func (n SelectNode) Volume(out *nodes.StructOutput[float64]) {
-	out.Set(nodes.TryGetOutputValue(out, n.AABB, geometry.NewEmptyAABB()).Volume())
+	out.Set(nodes.GetOutputValue(out, n.AABB).Volume())
 }

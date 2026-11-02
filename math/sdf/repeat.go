@@ -55,7 +55,7 @@ func Repeat(field sample.Vec3ToFloat, transforms []trs.TRS, radius float64) samp
 type RepeatNode struct {
 	Transforms nodes.Output[[]trs.TRS]          `description:"One TRS per copy to place. Defaults to a single identity transform (one unmoved copy). An empty array produces an empty field (nothing)."`
 	Field      nodes.Output[sample.Vec3ToFloat] `description:"The field to repeat. Nothing is set on the output until this is connected."`
-	Radius     nodes.Output[float64]            `description:"Width of the blend region in world units. Zero or less is a regular union. Defaults to 0."`
+	Radius     nodes.Output[float64]            `description:"Width of the blend region in world units. Zero or less is a regular union."`
 }
 
 func (cn RepeatNode) Description() string {
@@ -70,6 +70,6 @@ func (cn RepeatNode) Result(out *nodes.StructOutput[sample.Vec3ToFloat]) {
 	out.Set(Repeat(
 		nodes.GetOutputValue(out, cn.Field),
 		nodes.TryGetOutputValue(out, cn.Transforms, []trs.TRS{trs.Identity()}),
-		nodes.TryGetOutputValue(out, cn.Radius, 0),
+		nodes.GetOutputValue(out, cn.Radius),
 	))
 }

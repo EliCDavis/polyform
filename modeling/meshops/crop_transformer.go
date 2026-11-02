@@ -89,7 +89,7 @@ func CropFloat3Attribute(m modeling.Mesh, attr string, boundingBox geometry.AABB
 }
 
 type CropAttribute3DNode struct {
-	Attribute nodes.Output[string]
+	Attribute nodes.Output[string] `default:"Position"`
 	Mesh      nodes.Output[modeling.Mesh]
 	AABB      nodes.Output[geometry.AABB]
 }
@@ -105,12 +105,11 @@ func (ca3dn CropAttribute3DNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	}
 
 	mesh := nodes.GetOutputValue(out, ca3dn.Mesh)
-	if ca3dn.AABB == nil {
+	attr := nodes.GetOutputValue(out, ca3dn.Attribute)
+	aabb := nodes.GetOutputValue(out, ca3dn.AABB)
+	if aabb.Size() == vector3.Zero[float64]() {
 		out.Set(mesh)
 		return
 	}
-
-	attr := nodes.TryGetOutputValue(out, ca3dn.Attribute, modeling.PositionAttribute)
-	aabb := nodes.GetOutputValue(out, ca3dn.AABB)
 	out.Set(CropFloat3Attribute(mesh, attr, aabb))
 }

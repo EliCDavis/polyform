@@ -242,11 +242,11 @@ func glyphContour(points []truetype.Point, segments int, at func(truetype.Point)
 
 type TextNode struct {
 	Text          nodes.LiftedPort[string]  `description:"Text to render."`
-	Height        nodes.LiftedPort[float64] `description:"Height of a capital letter. Defaults to 1."`
-	Depth         nodes.LiftedPort[float64] `description:"Thickness: the solid spans 0 to Depth along the output's axis; negative goes the other way. 0 (the default) gives a single face."`
-	Font          nodes.Output[Font]        `description:"Typeface the letters are cut from."`
+	Height        nodes.LiftedPort[float64] `description:"Height of a capital letter." default:"1"`
+	Depth         nodes.LiftedPort[float64] `description:"Thickness: the solid spans 0 to Depth along the output's axis; negative goes the other way. 0 gives a single face."`
+	Font          nodes.Output[Font]        `description:"Typeface the letters are cut from." default:"Sans"`
 	Align         nodes.LiftedPort[Align]   `description:"Which end of each line sits on the origin."`
-	CurveSegments nodes.Output[int]         `description:"Straight segments per letter curve. Defaults to 6."`
+	CurveSegments nodes.Output[int]         `description:"Straight segments per letter curve." default:"6"`
 }
 
 func (TextNode) Description() string {
@@ -282,12 +282,12 @@ func (TextNode) ZDescription() string {
 }
 
 func (n TextNode) out(out *nodes.Lifted[modeling.Mesh], mesh func(Text) (modeling.Mesh, error)) {
-	font := nodes.TryGetOutputValue(out, n.Font, Sans)
-	segments := nodes.TryGetOutputValue(out, n.CurveSegments, 6)
+	font := nodes.GetOutputValue(out, n.Font)
+	segments := nodes.GetOutputValue(out, n.CurveSegments)
 	nodes.Zip4(
 		out,
 		n.Text,
-		nodes.LiftedOr(n.Height, 1.),
+		n.Height,
 		n.Depth,
 		n.Align,
 		func(text string, height, depth float64, align Align) modeling.Mesh {

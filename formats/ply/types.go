@@ -106,12 +106,12 @@ func (pn ArtifactNode) Out(out *nodes.StructOutput[manifest.Artifact]) {
 // ============================================================================
 
 type ManifestNode struct {
-	Name nodes.Output[string] `description:"Name of the main file in the manifest, defaults to 'model.ply'"`
+	Name nodes.Output[string] `description:"Name of the main file in the manifest" default:"model.ply"`
 	Mesh nodes.Output[modeling.Mesh]
 }
 
 func (pn ManifestNode) Out(out *nodes.StructOutput[manifest.Manifest]) {
-	name := nodes.TryGetOutputValue(out, pn.Name, "model.ply")
+	name := nodes.GetOutputValue(out, pn.Name)
 	mesh := nodes.TryGetOutputValue(out, pn.Mesh, modeling.EmptyPointcloud())
 	metadata := map[string]any{}
 

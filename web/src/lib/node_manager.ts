@@ -1,12 +1,14 @@
 import { FlowNode, FlowNodeConfig, FlowNodeStyle, NodeFlowGraph, Publisher, type WidgetConfig } from "@elicdavis/node-flow";
 import { AfterNodeCreated, GraphClipboard } from "./graph_clipboard";
 import { InstanceIDProperty, PolyNodeController } from "./nodes/node";
+import { literalKind, literalWidgetConfig } from "./nodes/literal_widgets";
 import { RequestManager } from "./requests";
 import {
   BoundaryType,
   GraphExecutionReport,
   GraphInstance,
   GraphInstanceNodes,
+  GraphVersion,
   EnumDefinition,
   NodeDefinition,
   NodeInput,
@@ -765,6 +767,7 @@ export class NodeManager {
                 ...flowPortConfig(inputName, input, this.enumMembers(input.type)),
                 array: nodeDefinition.inputs[inputName].isArray,
                 hidden: nodeDefinition.inputs[inputName].advanced === true,
+                widget: this.literalWidget(inputName, input),
             });
         }
 
@@ -839,10 +842,30 @@ export class NodeManager {
         const boundary = subGraphBoundaryInfo(nodeData);
         const portType = boundary?.portType ?? "";
         const config = buildBoundaryFlowNodeConfig(kind, portType);
+        if (kind === BoundaryType.Input && portType && config.inputs) {
+            const defaultPort = config.inputs[0];
+            const literal = nodeData.literals?.[defaultPort.name ?? "default"];
+            config.inputs[0] = {
+                ...defaultPort,
+                widget: this.literalWidget(defaultPort.name ?? "default", { type: portType, isArray: false, literal: literal !== undefined, default: literal }),
+            };
+        }
         return new FlowNode({
             ...config,
             title: boundary?.portName || config.title,
         });
+    }
+
+    private literalWidget(inputName: string, input: NodeInput): WidgetConfig | undefined {
+        if (!input.literal) {
+            return undefined;
+        }
+        const members = this.enumMembers(input.type);
+        const kind = literalKind(input.type, members);
+        if (!kind) {
+            return undefined;
+        }
+        return literalWidgetConfig(inputName, kind, input.default, members);
     }
 
     newNode(nodeData: NodeInstance): FlowNode {
@@ -880,7 +903,14 @@ export class NodeManager {
         throw new Error("what tf is this.")
     }
 
+    private version: GraphVersion = { rebuilds: 0, revision: 0 };
+
+    graphVersion(): GraphVersion {
+        return this.version;
+    }
+
     updateNodes(newSchema: GraphInstance): void {
+        this.version = newSchema.version;
         const enums = newSchema.enums ?? {};
         if (JSON.stringify(enums) !== JSON.stringify(this.graphEnums)) {
             this.graphEnums = enums;

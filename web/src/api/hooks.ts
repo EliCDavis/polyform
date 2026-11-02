@@ -25,7 +25,7 @@ export function useNodeTypes() {
   });
 }
 
-export function useStartedPolling(onModelVersion: (version: number) => void) {
+export function useStartedPolling(onRevision: (revision: number) => void) {
   const initTimeRef = useRef<string | null>(null);
 
   return useQuery({
@@ -37,7 +37,7 @@ export function useStartedPolling(onModelVersion: (version: number) => void) {
       } else if (initTimeRef.current !== payload.time) {
         location.reload();
       }
-      onModelVersion(payload.modelVersion);
+      onRevision(payload.version.revision);
       return payload;
     },
     refetchInterval: 1000,

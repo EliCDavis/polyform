@@ -121,7 +121,7 @@ func TestMaterialNodeWritesAlphaModeOcclusionAndUnlit(t *testing.T) {
 	assert.Contains(t, doc["extensionsUsed"], "KHR_materials_unlit")
 }
 
-func TestMaterialNodeRefusesAStrayCutoff(t *testing.T) {
+func TestMaterialNodeWritesTheCutoffOnlyWithMask(t *testing.T) {
 	for name, set := range map[string]func(m *gltf.MaterialNode){
 		"cutoff with blend": func(m *gltf.MaterialNode) {
 			m.AlphaMode = nodes.ConstOutput[gltf.AlphaMode]{Val: gltf.AlphaBlend}
@@ -137,9 +137,34 @@ func TestMaterialNodeRefusesAStrayCutoff(t *testing.T) {
 			node := &nodes.Struct[gltf.MaterialNode]{Data: data}
 			material := nodes.GetNodeOutputPort[gltf.PolyformMaterial](node, "Out").Value()
 			assert.Nil(t, material.AlphaCutoff)
-			assert.NotEmpty(t, node.Outputs()["Out"].(nodes.ObservableExecution).ExecutionReport().Errors)
+			assert.Empty(t, node.Outputs()["Out"].(nodes.ObservableExecution).ExecutionReport().Errors)
 		})
 	}
+
+	node := &nodes.Struct[gltf.MaterialNode]{Data: gltf.MaterialNode{
+		AlphaMode:   nodes.ConstOutput[gltf.AlphaMode]{Val: gltf.AlphaMask},
+		AlphaCutoff: nodes.ConstOutput[float64]{Val: 0.3},
+	}}
+	material := nodes.GetNodeOutputPort[gltf.PolyformMaterial](node, "Out").Value()
+	if assert.NotNil(t, material.AlphaCutoff) {
+		assert.Equal(t, 0.3, *material.AlphaCutoff)
+	}
+}
+
+func TestMaterialNodeOmitsExtensionsAtTheirSpecDefaults(t *testing.T) {
+	plain := nodes.GetNodeOutputPort[gltf.PolyformMaterial](&nodes.Struct[gltf.MaterialNode]{Data: gltf.MaterialNode{
+		IndexOfRefraction: nodes.ConstOutput[float64]{Val: 1.5},
+		EmissiveStrength:  nodes.ConstOutput[float64]{Val: 1},
+		AlphaMode:         nodes.ConstOutput[gltf.AlphaMode]{Val: gltf.AlphaOpaque},
+	}}, "Out").Value()
+	assert.Empty(t, plain.Extensions)
+	assert.Nil(t, plain.AlphaMode)
+
+	changed := nodes.GetNodeOutputPort[gltf.PolyformMaterial](&nodes.Struct[gltf.MaterialNode]{Data: gltf.MaterialNode{
+		IndexOfRefraction: nodes.ConstOutput[float64]{Val: 1.3},
+		EmissiveStrength:  nodes.ConstOutput[float64]{Val: 2},
+	}}, "Out").Value()
+	assert.Len(t, changed.Extensions, 2)
 }
 
 func TestExtensionNodesWriteTheirTextures(t *testing.T) {

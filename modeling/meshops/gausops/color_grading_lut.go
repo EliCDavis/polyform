@@ -62,7 +62,7 @@ func ColorGradingLut(m modeling.Mesh, lut image.Image, attr string) modeling.Mes
 
 type ColorGradingLutNode struct {
 	Mesh      nodes.Output[modeling.Mesh]
-	Attribute nodes.Output[string]
+	Attribute nodes.Output[string] `default:"FDC"`
 	LUT       nodes.Output[image.Image]
 }
 
@@ -83,6 +83,6 @@ func (ca3dn ColorGradingLutNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 		return
 	}
 
-	attr := nodes.TryGetOutputValue(out, ca3dn.Attribute, modeling.FDCAttribute)
+	attr := nodes.GetOutputValue(out, ca3dn.Attribute)
 	out.Set(ColorGradingLut(mesh, img, attr))
 }

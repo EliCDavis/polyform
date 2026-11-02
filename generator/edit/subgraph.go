@@ -164,7 +164,7 @@ func subGraphDefinitionEndpoint(graphInstance *graph.Instance, saver *GraphSaver
 					}
 
 					typePath := subgraph.RuntimeTypePath(subGraphID)
-					nodeType := graph.BuildNodeTypeSchema(typePath, graph.NewRuntimeNode(graphInstance, subGraphID))
+					nodeType := graphInstance.NodeTypeSchema(typePath, graph.NewRuntimeNode(graphInstance, subGraphID))
 					saver.Save()
 					return CreateResponse{NodeType: nodeType}, nil
 				},
@@ -231,7 +231,7 @@ func subGraphBoundaryEndpoint(graphInstance *graph.Instance, saver *GraphSaver) 
 					var response BoundaryInfoResponse
 					if subGraphID != "" {
 						typePath := subgraph.RuntimeTypePath(subGraphID)
-						response.NodeType = graph.BuildNodeTypeSchema(typePath, graph.NewRuntimeNode(graphInstance, subGraphID))
+						response.NodeType = graphInstance.NodeTypeSchema(typePath, graph.NewRuntimeNode(graphInstance, subGraphID))
 					}
 
 					saver.Save()
@@ -443,6 +443,8 @@ func parseSubGraphScopeFromURL(urlPath string) (graph.Scope, error) {
 			subGraphID = rest[:idx]
 		} else if idx := strings.Index(rest, "/parameter/"); idx != -1 {
 			subGraphID = rest[:idx]
+		} else if idx := strings.Index(rest, nodeLiteralEndpointPath); idx != -1 {
+			subGraphID = rest[:idx]
 		}
 	}
 
@@ -459,6 +461,20 @@ func scopedGraphHandler(graphInstance *graph.Instance, saver *GraphSaver) http.H
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasSuffix(r.URL.Path, "/connection") {
 			connectionHandler.ServeHTTP(w, r)
+			return
+		}
+		if strings.Contains(r.URL.Path, nodeLiteralEndpointPath) {
+			scope, err := parseSubGraphScopeFromURL(r.URL.Path)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			scopeInstance, err := scope.ResolveInstance(graphInstance)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			nodeLiteralEndpoint(scopeInstance, saver).ServeHTTP(w, r)
 			return
 		}
 		if strings.HasSuffix(r.URL.Path, "/node") {

@@ -89,8 +89,8 @@ func (c Circle[T]) Texture(dimensions vector2.Int) texturing.Texture[T] {
 }
 
 type CircleNode[T any] struct {
-	Dimensions nodes.Output[vector2.Int]
-	Radius     nodes.Output[float64]
+	Dimensions nodes.Output[vector2.Int] `default:"256,256"`
+	Radius     nodes.Output[float64]     `default:"0.5"`
 
 	Background nodes.Output[T]
 	Fill       nodes.Output[T]
@@ -103,7 +103,7 @@ type CircleNode[T any] struct {
 }
 
 func (c CircleNode[T]) Texture(out *nodes.StructOutput[texturing.Texture[T]]) {
-	dimensions := nodes.TryGetOutputValue(out, c.Dimensions, vector2.New(256, 256))
+	dimensions := nodes.GetOutputValue(out, c.Dimensions)
 	if dimensions.MinComponent() <= 0 {
 		out.CaptureError(texturing.InvalidDimension(dimensions))
 		return
@@ -112,12 +112,12 @@ func (c CircleNode[T]) Texture(out *nodes.StructOutput[texturing.Texture[T]]) {
 	var t T
 	circle := Circle[T]{
 		Background:           nodes.TryGetOutputValue(out, c.Background, t),
-		Radius:               nodes.TryGetOutputValue(out, c.Radius, 0.5),
+		Radius:               nodes.GetOutputValue(out, c.Radius),
 		Fill:                 nodes.TryGetOutputValue(out, c.Fill, t),
 		InnerBorder:          nodes.TryGetOutputValue(out, c.InnerBorder, t),
-		InnerBorderThickness: nodes.TryGetOutputValue(out, c.InnerBorderThickness, 0),
+		InnerBorderThickness: nodes.GetOutputValue(out, c.InnerBorderThickness),
 		OuterBorder:          nodes.TryGetOutputValue(out, c.OuterBorder, t),
-		OuterBorderThickness: nodes.TryGetOutputValue(out, c.OuterBorderThickness, 0),
+		OuterBorderThickness: nodes.GetOutputValue(out, c.OuterBorderThickness),
 	}
 
 	out.Set(circle.Texture(dimensions))

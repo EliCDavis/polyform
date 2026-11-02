@@ -26,6 +26,10 @@ func advancedTag(data any, field string) bool {
 	return refutil.GetStructTag(data, field, "advanced") == "true"
 }
 
+type Defaulted interface {
+	Default() string
+}
+
 type Keyworded interface {
 	Keywords() []string
 }

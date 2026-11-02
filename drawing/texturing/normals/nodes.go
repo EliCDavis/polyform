@@ -30,7 +30,7 @@ func init() {
 
 type FromImageNode struct {
 	In    nodes.Output[image.Image]
-	Scale nodes.Output[float64]
+	Scale nodes.Output[float64] `default:"1"`
 }
 
 func (n FromImageNode) Description() string {
@@ -43,7 +43,7 @@ func (n FromImageNode) Heightmap(out *nodes.StructOutput[HeightMap]) {
 		return
 	}
 
-	scale := nodes.TryGetOutputValue(out, n.Scale, 1.)
+	scale := nodes.GetOutputValue(out, n.Scale)
 	out.Set(ImageToHeightmap(img, scale))
 }
 
@@ -53,7 +53,7 @@ func (n FromImageNode) Normalmap(out *nodes.StructOutput[NormalMap]) {
 		return
 	}
 
-	scale := nodes.TryGetOutputValue(out, n.Scale, 1.)
+	scale := nodes.GetOutputValue(out, n.Scale)
 	heightmap := ImageToHeightmap(img, scale)
 	out.Set(FromHeightmap(heightmap, 1))
 }
@@ -64,7 +64,7 @@ func (n FromImageNode) NormalMapImage(out *nodes.StructOutput[image.Image]) {
 		return
 	}
 
-	scale := nodes.TryGetOutputValue(out, n.Scale, 1.)
+	scale := nodes.GetOutputValue(out, n.Scale)
 	heightmap := ImageToHeightmap(img, scale)
 	normalMap := FromHeightmap(heightmap, 1)
 	out.Set(image.Image(RasterizeNormalmap(normalMap)))
@@ -74,7 +74,7 @@ func (n FromImageNode) NormalMapImage(out *nodes.StructOutput[image.Image]) {
 
 type FromHeightMapNode struct {
 	In    nodes.Output[HeightMap]
-	Scale nodes.Output[float64]
+	Scale nodes.Output[float64] `default:"1"`
 }
 
 func (n FromHeightMapNode) Description() string {
@@ -88,7 +88,7 @@ func (n FromHeightMapNode) NormalMapImage(out *nodes.StructOutput[image.Image]) 
 
 	out.Set(RasterizeNormalmap(FromHeightmap(
 		nodes.GetOutputValue(out, n.In),
-		nodes.TryGetOutputValue(out, n.Scale, 1.),
+		nodes.GetOutputValue(out, n.Scale),
 	)))
 }
 
@@ -99,7 +99,7 @@ func (n FromHeightMapNode) NormalMap(out *nodes.StructOutput[NormalMap]) {
 
 	out.Set(FromHeightmap(
 		nodes.GetOutputValue(out, n.In),
-		nodes.TryGetOutputValue(out, n.Scale, 1.),
+		nodes.GetOutputValue(out, n.Scale),
 	))
 }
 

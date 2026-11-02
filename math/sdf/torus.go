@@ -16,9 +16,9 @@ func Torus(position vector3.Float64, majorRadius, minorRadius float64) sample.Ve
 }
 
 type TorusNode struct {
-	Position   nodes.Output[vector3.Float64] `description:"Center of the torus. Defaults to the origin."`
-	RingRadius nodes.Output[float64]         `description:"The distance from Position to the center of the tube, in the XZ plane. Defaults to 1."`
-	TubeRadius nodes.Output[float64]         `description:"The thickness of the ring. Defaults to 0.1."`
+	Position   nodes.Output[vector3.Float64] `description:"Center of the torus."`
+	RingRadius nodes.Output[float64]         `description:"The distance from Position to the center of the tube, in the XZ plane." default:"1"`
+	TubeRadius nodes.Output[float64]         `description:"The thickness of the ring." default:"0.1"`
 }
 
 func (cn TorusNode) Description() string {
@@ -27,8 +27,8 @@ func (cn TorusNode) Description() string {
 
 func (cn TorusNode) Field(out *nodes.StructOutput[sample.Vec3ToFloat]) {
 	out.Set(Torus(
-		nodes.TryGetOutputValue(out, cn.Position, vector3.Zero[float64]()),
-		nodes.TryGetOutputValue(out, cn.RingRadius, 1),
-		nodes.TryGetOutputValue(out, cn.TubeRadius, 0.1),
+		nodes.GetOutputValue(out, cn.Position),
+		nodes.GetOutputValue(out, cn.RingRadius),
+		nodes.GetOutputValue(out, cn.TubeRadius),
 	))
 }

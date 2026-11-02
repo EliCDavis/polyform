@@ -37,7 +37,7 @@ func (SelectNode) Keywords() []string {
 }
 
 func (s SelectNode) Out(out *nodes.Dynamic[SelectType]) {
-	if nodes.TryGetOutputValue(out, s.Condition, false) {
+	if nodes.GetOutputValue(out, s.Condition) {
 		out.Forward(s.A)
 		return
 	}
@@ -61,7 +61,7 @@ func (SwitchNode) Keywords() []string {
 }
 
 func (s SwitchNode) Out(out *nodes.Dynamic[SwitchType]) {
-	index := nodes.TryGetOutputValue(out, s.Index, 0)
+	index := nodes.GetOutputValue(out, s.Index)
 	if index < 0 {
 		out.Forward(s.Fallback)
 		return
@@ -84,4 +84,3 @@ func (s SwitchNode) Out(out *nodes.Dynamic[SwitchType]) {
 	}
 	out.Forward(s.Fallback)
 }
-

@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
 )
 
@@ -78,6 +79,7 @@ func Define[T comparable](entries ...Entry[T]) Set[T] {
 		panic(fmt.Errorf("enum %s: defined twice", short))
 	}
 	byTypeName[s.typeName] = s
+	nodes.RegisterLiteralParser(entries[0].value, s.Parse)
 	return s
 }
 

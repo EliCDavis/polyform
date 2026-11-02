@@ -60,12 +60,12 @@ func (duvt DebugUV) Image() image.Image {
 }
 
 type DebugUVNode struct {
-	ImageResolution      nodes.Output[int]
-	BoardResolution      nodes.Output[int]
-	PositiveCheckerColor nodes.Output[coloring.Color]
-	NegativeCheckerColor nodes.Output[coloring.Color]
-	XColorScale          nodes.Output[coloring.Color]
-	YColorScale          nodes.Output[coloring.Color]
+	ImageResolution      nodes.Output[int]            `default:"256"`
+	BoardResolution      nodes.Output[int]            `default:"10"`
+	PositiveCheckerColor nodes.Output[coloring.Color] `default:"#00ff00"`
+	NegativeCheckerColor nodes.Output[coloring.Color] `default:"#000000"`
+	XColorScale          nodes.Output[coloring.Color] `default:"#ff0000"`
+	YColorScale          nodes.Output[coloring.Color] `default:"#00ffff"`
 }
 
 func (n DebugUVNode) Description() string {
@@ -74,11 +74,11 @@ func (n DebugUVNode) Description() string {
 
 func (n DebugUVNode) Result(out *nodes.StructOutput[image.Image]) {
 	out.Set(DebugUV{
-		ImageResolution:      nodes.TryGetOutputValue(out, n.ImageResolution, 256),
-		BoardResolution:      nodes.TryGetOutputValue(out, n.BoardResolution, 10),
-		PositiveCheckerColor: color.Color(nodes.TryGetOutputValue(out, n.PositiveCheckerColor, coloring.Color{R: 0, G: 1, B: 0, A: 1})),
-		NegativeCheckerColor: color.Color(nodes.TryGetOutputValue(out, n.PositiveCheckerColor, coloring.Color{R: 0, G: 0, B: 0, A: 1})),
-		XColorScale:          color.Color(nodes.TryGetOutputValue(out, n.PositiveCheckerColor, coloring.Color{R: 1, G: 0, B: 0, A: 1})),
-		YColorScale:          color.Color(nodes.TryGetOutputValue(out, n.PositiveCheckerColor, coloring.Color{R: 0, G: 1, B: 1, A: 1})),
+		ImageResolution:      nodes.GetOutputValue(out, n.ImageResolution),
+		BoardResolution:      nodes.GetOutputValue(out, n.BoardResolution),
+		PositiveCheckerColor: color.Color(nodes.GetOutputValue(out, n.PositiveCheckerColor)),
+		NegativeCheckerColor: color.Color(nodes.GetOutputValue(out, n.NegativeCheckerColor)),
+		XColorScale:          color.Color(nodes.GetOutputValue(out, n.XColorScale)),
+		YColorScale:          color.Color(nodes.GetOutputValue(out, n.YColorScale)),
 	}.Image())
 }

@@ -42,6 +42,10 @@ func (root *Instance) copyDefinition(placement *SubgraphInstanceNode, feed func(
 		}
 		clone.reads[copied[consumer]] = reads
 	}
+	// Shared, not copied: a definition's literal is what every placement runs.
+	for consumer, literals := range from.literals {
+		clone.literals[copied[consumer]] = maps.Clone(literals)
+	}
 
 	if _, err := clone.settle(refuseConflicts); err != nil {
 		return nil, fmt.Errorf("copying sub-graph %q: %w", placement.subGraphID, err)

@@ -188,9 +188,9 @@ func LaplacianSmoothImplicitWeld(m modeling.Mesh, attribute string, iterations i
 
 type LaplacianSmoothNode struct {
 	Mesh            nodes.Output[modeling.Mesh]
-	Attribute       nodes.Output[string]
-	Iterations      nodes.Output[int]
-	SmoothingFactor nodes.Output[float64]
+	Attribute       nodes.Output[string]  `default:"Position"`
+	Iterations      nodes.Output[int]     `default:"10"`
+	SmoothingFactor nodes.Output[float64] `default:"0.1"`
 }
 
 func (lp LaplacianSmoothNode) Description() string {
@@ -204,7 +204,7 @@ func (lp LaplacianSmoothNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	}
 
 	mesh := nodes.GetOutputValue(out, lp.Mesh)
-	attr := nodes.TryGetOutputValue(out, lp.Attribute, modeling.PositionAttribute)
+	attr := nodes.GetOutputValue(out, lp.Attribute)
 	if !mesh.HasFloat3Attribute(attr) {
 		out.CaptureError(fmt.Errorf("input is missing %s data", attr))
 		out.Set(mesh)
@@ -214,17 +214,17 @@ func (lp LaplacianSmoothNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	out.Set(LaplacianSmooth(
 		mesh,
 		attr,
-		nodes.TryGetOutputValue(out, lp.Iterations, 10),
-		nodes.TryGetOutputValue(out, lp.SmoothingFactor, 0.1),
+		nodes.GetOutputValue(out, lp.Iterations),
+		nodes.GetOutputValue(out, lp.SmoothingFactor),
 	))
 }
 
 type LaplacianSmoothImplicitWeldNode struct {
 	Mesh            nodes.Output[modeling.Mesh]
-	Attribute       nodes.Output[string]
-	Iterations      nodes.Output[int]
-	SmoothingFactor nodes.Output[float64]
-	WeldDistance    nodes.Output[float64]
+	Attribute       nodes.Output[string]  `default:"Position"`
+	Iterations      nodes.Output[int]     `default:"10"`
+	SmoothingFactor nodes.Output[float64] `default:"0.1"`
+	WeldDistance    nodes.Output[float64] `default:"0.00001"`
 }
 
 func (lp LaplacianSmoothImplicitWeldNode) Description() string {
@@ -238,7 +238,7 @@ func (lp LaplacianSmoothImplicitWeldNode) Out(out *nodes.StructOutput[modeling.M
 	}
 
 	mesh := nodes.GetOutputValue(out, lp.Mesh)
-	attr := nodes.TryGetOutputValue(out, lp.Attribute, modeling.PositionAttribute)
+	attr := nodes.GetOutputValue(out, lp.Attribute)
 	if !mesh.HasFloat3Attribute(attr) {
 		out.Set(mesh)
 		out.CaptureError(fmt.Errorf("input is missing %s data", attr))
@@ -248,8 +248,8 @@ func (lp LaplacianSmoothImplicitWeldNode) Out(out *nodes.StructOutput[modeling.M
 	out.Set(LaplacianSmoothImplicitWeld(
 		mesh,
 		attr,
-		nodes.TryGetOutputValue(out, lp.Iterations, 10),
-		nodes.TryGetOutputValue(out, lp.SmoothingFactor, 0.1),
-		nodes.TryGetOutputValue(out, lp.WeldDistance, 0.00001),
+		nodes.GetOutputValue(out, lp.Iterations),
+		nodes.GetOutputValue(out, lp.SmoothingFactor),
+		nodes.GetOutputValue(out, lp.WeldDistance),
 	))
 }

@@ -103,7 +103,7 @@ func (a *Instance) importSubGraphDefinitions(app persistence.App, decoder jbtf.D
 		imported := ImportedSubGraph{
 			ID:       newID,
 			Name:     def.Name,
-			NodeType: BuildNodeTypeSchema(subgraph.RuntimeTypePath(newID), NewRuntimeNode(a, newID)),
+			NodeType: a.NodeTypeSchema(subgraph.RuntimeTypePath(newID), NewRuntimeNode(a, newID)),
 			Inputs:   inputs[id],
 		}
 		if newID != id {

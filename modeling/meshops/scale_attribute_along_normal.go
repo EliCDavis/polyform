@@ -86,12 +86,12 @@ func ScaleAttributeAlongNormalWithTexture(
 
 type ScaleAttributeAlongNormalNode struct {
 	Mesh             nodes.Output[modeling.Mesh]
-	Amount           nodes.Output[float64]
-	AttributeToScale nodes.Output[string]
-	NormalAttribute  nodes.Output[string]
+	Amount           nodes.Output[float64] `default:"1"`
+	AttributeToScale nodes.Output[string]  `default:"Position"`
+	NormalAttribute  nodes.Output[string]  `default:"Normal"`
 
 	Texture     nodes.Output[texturing.Texture[float64]]
-	UvAttribute nodes.Output[string]
+	UvAttribute nodes.Output[string] `default:"TexCoord"`
 }
 
 func (sa3dn ScaleAttributeAlongNormalNode) Description() string {
@@ -106,14 +106,14 @@ func (sa3dn ScaleAttributeAlongNormalNode) Out(out *nodes.StructOutput[modeling.
 
 	mesh := nodes.GetOutputValue(out, sa3dn.Mesh)
 
-	attrToScale := nodes.TryGetOutputValue(out, sa3dn.AttributeToScale, modeling.PositionAttribute)
+	attrToScale := nodes.GetOutputValue(out, sa3dn.AttributeToScale)
 	if !mesh.HasFloat3Attribute(attrToScale) {
 		out.CaptureError(fmt.Errorf("mesh does not contain %s to scale", attrToScale))
 		out.Set(mesh)
 		return
 	}
 
-	attrNormal := nodes.TryGetOutputValue(out, sa3dn.NormalAttribute, modeling.NormalAttribute)
+	attrNormal := nodes.GetOutputValue(out, sa3dn.NormalAttribute)
 	if !mesh.HasFloat3Attribute(attrNormal) {
 		out.CaptureError(fmt.Errorf("mesh does not contain %s to scale along", attrNormal))
 		out.Set(mesh)
@@ -125,12 +125,12 @@ func (sa3dn ScaleAttributeAlongNormalNode) Out(out *nodes.StructOutput[modeling.
 			mesh,
 			attrToScale,
 			attrNormal,
-			nodes.TryGetOutputValue(out, sa3dn.Amount, 0.),
+			nodes.GetOutputValue(out, sa3dn.Amount),
 		))
 		return
 	}
 
-	attrUV := nodes.TryGetOutputValue(out, sa3dn.UvAttribute, modeling.TexCoordAttribute)
+	attrUV := nodes.GetOutputValue(out, sa3dn.UvAttribute)
 	if !mesh.HasFloat2Attribute(attrUV) {
 		out.CaptureError(fmt.Errorf("mesh does not contain %s to scale along", attrUV))
 		out.Set(mesh)
@@ -149,7 +149,7 @@ func (sa3dn ScaleAttributeAlongNormalNode) Out(out *nodes.StructOutput[modeling.
 		attrToScale,
 		attrNormal,
 		attrUV,
-		nodes.TryGetOutputValue(out, sa3dn.Amount, 1.),
+		nodes.GetOutputValue(out, sa3dn.Amount),
 		tex,
 	))
 }

@@ -7,11 +7,11 @@ import (
 )
 
 type SeamlessPerlinNode struct {
-	Dimensions nodes.Output[int]
-	Positive   nodes.Output[float64]
+	Dimensions nodes.Output[int]     `default:"256"`
+	Positive   nodes.Output[float64] `default:"1"`
 	Negative   nodes.Output[float64]
-	Octaves    nodes.Output[int]
-	Frequency  nodes.Output[float64] `description:"Cycles per pixel, so a larger texture at the same frequency shows more of the pattern. Defaults to 1/64."`
+	Octaves    nodes.Output[int]     `default:"3"`
+	Frequency  nodes.Output[float64] `description:"Cycles per pixel, so a larger texture at the same frequency shows more of the pattern." default:"0.015625"`
 	Seed       nodes.Output[int]
 }
 
@@ -20,17 +20,17 @@ func (an SeamlessPerlinNode) Description() string {
 }
 
 func (an SeamlessPerlinNode) Out(out *nodes.StructOutput[Texture[float64]]) {
-	dim := nodes.TryGetOutputValue(out, an.Dimensions, 256)
+	dim := nodes.GetOutputValue(out, an.Dimensions)
 	n := noise.NewTilingNoiseWithSeed(
 		dim,
-		nodes.TryGetOutputValue(out, an.Frequency, 1/64.),
-		nodes.TryGetOutputValue(out, an.Octaves, 3),
-		nodes.TryGetOutputValue(out, an.Seed, 0),
+		nodes.GetOutputValue(out, an.Frequency),
+		nodes.GetOutputValue(out, an.Octaves),
+		nodes.GetOutputValue(out, an.Seed),
 	)
 
 	tex := Empty[float64](dim, dim)
-	negative := nodes.TryGetOutputValue(out, an.Negative, 0)
-	positive := nodes.TryGetOutputValue(out, an.Positive, 1)
+	negative := nodes.GetOutputValue(out, an.Negative)
+	positive := nodes.GetOutputValue(out, an.Positive)
 	valueRange := positive - negative
 
 	for y := range dim {
@@ -46,11 +46,11 @@ func (an SeamlessPerlinNode) Out(out *nodes.StructOutput[Texture[float64]]) {
 // ============================================================================
 
 type PerlinNode struct {
-	Width     nodes.Output[int]
-	Height    nodes.Output[int]
-	Positive  nodes.Output[float64]
+	Width     nodes.Output[int]     `default:"1"`
+	Height    nodes.Output[int]     `default:"1"`
+	Positive  nodes.Output[float64] `default:"1"`
 	Negative  nodes.Output[float64]
-	Frequency nodes.Output[vector2.Float64]
+	Frequency nodes.Output[vector2.Float64] `default:"1,1"`
 }
 
 func (n PerlinNode) Description() string {
@@ -59,13 +59,13 @@ func (n PerlinNode) Description() string {
 
 func (n PerlinNode) Out(out *nodes.StructOutput[Texture[float64]]) {
 	tex := Empty[float64](
-		nodes.TryGetOutputValue(out, n.Width, 1),
-		nodes.TryGetOutputValue(out, n.Height, 1),
+		nodes.GetOutputValue(out, n.Width),
+		nodes.GetOutputValue(out, n.Height),
 	)
 
-	frequncy := nodes.TryGetOutputValue(out, n.Frequency, vector2.New(1., 1.))
-	negative := nodes.TryGetOutputValue(out, n.Negative, 0)
-	positive := nodes.TryGetOutputValue(out, n.Positive, 1)
+	frequncy := nodes.GetOutputValue(out, n.Frequency)
+	negative := nodes.GetOutputValue(out, n.Negative)
+	positive := nodes.GetOutputValue(out, n.Positive)
 	valueRange := positive - negative
 
 	for y := range tex.height {

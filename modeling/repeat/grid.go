@@ -69,10 +69,10 @@ func (g Grid) Vector2() []vector2.Float64 {
 }
 
 type GridNode struct {
-	Rows    nodes.Output[int]     `description:"Number of rows (spread along Z). Defaults to 1, clamped to 0 minimum."`
-	Columns nodes.Output[int]     `description:"Number of columns (spread along X). Defaults to 1, clamped to 0 minimum."`
-	Width   nodes.Output[float64] `description:"Total span of the grid along X, center to center of the outer columns. Ignored (no spacing) if Columns is 1. Defaults to 1, clamped to 0 minimum."`
-	Height  nodes.Output[float64] `description:"Total span of the grid along Z, center to center of the outer rows. Ignored (no spacing) if Rows is 1. Defaults to 1, clamped to 0 minimum."`
+	Rows    nodes.Output[int]     `description:"Number of rows (spread along Z). Clamped to 0 minimum." default:"1"`
+	Columns nodes.Output[int]     `description:"Number of columns (spread along X). Clamped to 0 minimum." default:"1"`
+	Width   nodes.Output[float64] `description:"Total span of the grid along X, center to center of the outer columns. Ignored (no spacing) if Columns is 1. Clamped to 0 minimum." default:"1"`
+	Height  nodes.Output[float64] `description:"Total span of the grid along Z, center to center of the outer rows. Ignored (no spacing) if Rows is 1. Clamped to 0 minimum." default:"1"`
 }
 
 func (g GridNode) Description() string {
@@ -81,10 +81,10 @@ func (g GridNode) Description() string {
 
 func (g GridNode) grid(recorder nodes.ExecutionRecorder) Grid {
 	return Grid{
-		Rows:    max(nodes.TryGetOutputValue(recorder, g.Rows, 1), 0),
-		Columns: max(nodes.TryGetOutputValue(recorder, g.Columns, 1), 0),
-		Width:   max(nodes.TryGetOutputValue(recorder, g.Width, 1), 0),
-		Height:  max(nodes.TryGetOutputValue(recorder, g.Height, 1), 0),
+		Rows:    max(nodes.GetOutputValue(recorder, g.Rows), 0),
+		Columns: max(nodes.GetOutputValue(recorder, g.Columns), 0),
+		Width:   max(nodes.GetOutputValue(recorder, g.Width), 0),
+		Height:  max(nodes.GetOutputValue(recorder, g.Height), 0),
 	}
 }
 

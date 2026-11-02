@@ -45,11 +45,11 @@ func ProjectUV(m modeling.Mesh, normal vector3.Float64, scale, offset vector2.Fl
 
 type ProjectUVNode struct {
 	Mesh   nodes.Output[modeling.Mesh]
-	Normal nodes.Output[vector3.Float64] `description:"Direction to project along. Defaults to +Z, so u follows world X and v follows world Y."`
-	Scale  nodes.Output[vector2.Float64] `description:"World size of one texture repeat along u and v, in meters. Defaults to 1 x 1."`
-	Offset nodes.Output[vector2.Float64] `description:"Added to every uv after scaling. Defaults to zero."`
+	Normal nodes.Output[vector3.Float64] `description:"Direction to project along. Along +Z, u follows world X and v follows world Y." default:"0,0,1"`
+	Scale  nodes.Output[vector2.Float64] `description:"World size of one texture repeat along u and v, in meters." default:"1,1"`
+	Offset nodes.Output[vector2.Float64] `description:"Added to every uv after scaling."`
 
-	Rotation nodes.Output[float64] `description:"Turns u and v within the projection plane, in radians, before scaling. Defaults to 0."`
+	Rotation nodes.Output[float64] `description:"Turns u and v within the projection plane, in radians, before scaling."`
 }
 
 func (ProjectUVNode) Description() string {
@@ -67,9 +67,9 @@ func (n ProjectUVNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	}
 	out.Set(ProjectUV(
 		nodes.GetOutputValue(out, n.Mesh),
-		nodes.TryGetOutputValue(out, n.Normal, vector3.Forward[float64]()),
-		nodes.TryGetOutputValue(out, n.Scale, vector2.One[float64]()),
-		nodes.TryGetOutputValue(out, n.Offset, vector2.Zero[float64]()),
-		nodes.TryGetOutputValue(out, n.Rotation, 0),
+		nodes.GetOutputValue(out, n.Normal),
+		nodes.GetOutputValue(out, n.Scale),
+		nodes.GetOutputValue(out, n.Offset),
+		nodes.GetOutputValue(out, n.Rotation),
 	))
 }
