@@ -29,6 +29,8 @@ export interface NodeParameterBase<TType extends string, TCurrentValue = unknown
 export type ScalarParameterType =
   | "float64"
   | "float32"
+  | "norm.UFloat64"
+  | "norm.SFloat64"
   | "int"
   | "bool"
   | "string"

@@ -115,19 +115,177 @@
 .variable-inputs {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
 }
 
-.labeled-field {
+.var-panel {
+  background-color: #062f3b;
+  border: 1px solid #0d4452;
+  border-radius: 4px;
+}
+
+.var-panel .var-panel {
+  background-color: #083846;
+}
+
+.var-panel > summary {
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  padding: 6px 8px;
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
 }
 
-.labeled-field label {
-  margin-right: 8px;
-  white-space: nowrap;
+.var-panel > summary::-webkit-details-marker {
+  display: none;
+}
+
+.var-panel > summary::before {
+  content: "▶";
+  width: 10px;
+  font-size: 9px;
+  color: #8fa8b0;
+  transition: transform 0.1s;
+}
+
+.var-panel[open] > summary {
+  border-bottom: 1px solid #0d4452;
+}
+
+.var-panel[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+.var-panel-count {
+  margin-left: auto;
+  font-size: 11px;
+  color: #8fa8b0;
+}
+
+.var-panel-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 8px;
+  container-type: inline-size;
+}
+
+.var-panel :where(input:not([type="checkbox"], [type="color"], [type="range"]), select) {
+  background-color: #00212b;
+  border: 1px solid #1d4753;
+  border-radius: 3px;
+}
+
+.var-row.var-inline {
+  display: grid;
+  grid-template-columns: 42% minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px 8px;
+}
+
+.var-row.var-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.var-row {
+  margin: -3px -8px;
+  padding: 3px 8px 3px 5px;
+  border-left: 3px solid transparent;
+}
+
+.var-row.hovered {
+  border-left-color: #196e6c;
+  background-color: #0b3540;
+}
+
+.var-header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+}
+
+.var-name {
+  min-width: 0;
+  line-height: 16px;
+  color: #c9dbe0;
+  overflow-wrap: anywhere;
+}
+
+.var-block .var-name {
+  flex: 1;
+}
+
+.var-editor {
+  display: flex;
+  min-width: 0;
+}
+
+.var-editor > * {
+  flex: 1;
+  min-width: 0;
+}
+
+.var-description {
+  grid-column: 1 / -1;
+  font-size: 11px;
+  line-height: 15px;
+  color: #8fa8b0;
+}
+
+@container (max-width: 200px) {
+  .var-row.var-inline {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .var-inline > .var-editor {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}
+
+.var-count {
+  padding: 0 2px;
+  border-radius: 0;
+  background: none;
+  font-size: 11px;
+  color: #8fa8b0;
+}
+
+.var-count::after {
+  content: " ▸";
+}
+
+.var-count.open::after {
+  content: " ▾";
+}
+
+.var-count:hover {
+  color: #fff;
+}
+
+.var-gizmo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid #1d4753;
+  border-radius: 3px;
+  background: none;
+  color: #8fa8b0;
+}
+
+.var-gizmo.on {
+  background-color: #196e6c;
+  border-color: #196e6c;
+  color: #fff;
 }
 
 .node-catalog-result-count {

@@ -1,8 +1,12 @@
 import type { FlowNode, WidgetConfig } from "@elicdavis/node-flow";
 import { eulerToQuat, quatToEuler, type Quat } from "../rotation";
+import { opaque, shownAlpha, withAlpha } from "../color_alpha";
+import { alphaWidgetConfig } from "./color_widgets";
 
 export type LiteralKind =
     | "float"
+    | "unorm"
+    | "snorm"
     | "int"
     | "bool"
     | "string"
@@ -20,6 +24,8 @@ const AXES = ["x", "y", "z", "w"];
 const kindsByType: { [type: string]: LiteralKind } = {
     "float64": "float",
     "float32": "float",
+    "github.com/EliCDavis/polyform/math/norm.UFloat64": "unorm",
+    "github.com/EliCDavis/polyform/math/norm.SFloat64": "snorm",
     "int": "int",
     "bool": "bool",
     "string": "string",
@@ -59,6 +65,9 @@ export function literalProperty(port: string, axis?: string): string {
 }
 
 export function literalProperties(port: string, kind: LiteralKind): string[] {
+    if (kind === "color") {
+        return [literalProperty(port), literalProperty(port, "a")];
+    }
     const axes = axesOf(kind);
     if (axes.length === 0) {
         return [literalProperty(port)];
@@ -90,14 +99,31 @@ export function literalWidgetConfig(
     switch (kind) {
         case "float":
             return { type: "number", config: { property, value: Number(defaultValue ?? 0), width: 90 } };
+        case "unorm":
+        case "snorm":
+            return {
+                type: "slider",
+                config: { property, value: Number(defaultValue ?? 0), min: kind === "snorm" ? -1 : 0, max: 1, width: 90 },
+            };
         case "int":
             return { type: "number", config: { property, value: Number(defaultValue ?? 0), integer: true, width: 90 } };
         case "bool":
             return { type: "toggle", config: { property, value: defaultValue === true, width: 60, label: "" } };
         case "string":
             return { type: "string", config: { property, value: String(defaultValue ?? ""), width: 120 } };
-        case "color":
-            return { type: "color", config: { property, value: String(defaultValue ?? "#000000"), width: 90 } };
+        case "color": {
+            const hex = String(defaultValue ?? "#000000");
+            return {
+                type: "row",
+                config: {
+                    grow: [1, 0],
+                    widgets: [
+                        { type: "color", config: { property, value: opaque(hex), width: 90 } },
+                        { type: "number", config: { ...alphaWidgetConfig, property: literalProperty(port, "a"), value: shownAlpha(hex) } },
+                    ],
+                },
+            };
+        }
         case "enum":
             return {
                 type: "select",
@@ -125,6 +151,11 @@ export function literalWidgetConfig(
 }
 
 export function applyLiteral(node: FlowNode, port: string, kind: LiteralKind, value: unknown): void {
+    if (kind === "color") {
+        node.setProperty(literalProperty(port), opaque(String(value)));
+        node.setProperty(literalProperty(port, "a"), shownAlpha(String(value)));
+        return;
+    }
     const axes = axesOf(kind);
     if (axes.length === 0) {
         node.setProperty(literalProperty(port), value);
@@ -137,11 +168,16 @@ export function applyLiteral(node: FlowNode, port: string, kind: LiteralKind, va
 }
 
 export function readLiteral(node: FlowNode, port: string, kind: LiteralKind): unknown {
+    if (kind === "color") {
+        return withAlpha(String(node.getProperty(literalProperty(port))), Number(node.getProperty(literalProperty(port, "a"))));
+    }
     const axes = axesOf(kind);
     if (axes.length === 0) {
         const value = node.getProperty(literalProperty(port));
         switch (kind) {
             case "float":
+            case "unorm":
+            case "snorm":
                 return Number(value);
             case "int":
                 return Math.round(Number(value));

@@ -37,6 +37,18 @@ func nodeTypeName(node nodes.Node) string {
 	return refutil.TypeResolution{IncludePackage: true}.Resolve(node)
 }
 
+// The type load can create the node from again.
+func (a *Graph) typeOf(node nodes.Node) string {
+	// A reference's creation key goes stale when its variable is renamed.
+	if reference, ok := node.(variable.Reference); ok {
+		return a.project.variablePath(reference.Reference())
+	}
+	if key := a.nodeTypeKeys[node]; key != "" {
+		return key
+	}
+	return nodeTypeName(node)
+}
+
 func (a *Graph) NodeInstanceSchema(node nodes.Node) schema.Node {
 	var metadata map[string]any
 	if data, ok := a.Metadata("nodes." + a.nodeIDs[node]).(map[string]any); ok {
@@ -50,7 +62,7 @@ func (a *Graph) NodeInstanceSchema(node nodes.Node) schema.Node {
 
 	nodeInstance := schema.Node{
 		Name:          "Unamed",
-		Type:          nodeTypeName(node),
+		Type:          a.typeOf(node),
 		DynamicTypes:  dynamicTypes,
 		AssignedInput: a.assignedInputs(node, label),
 		Literals:      a.literalValues(node, label),

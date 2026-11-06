@@ -36,9 +36,7 @@ import (
 	"github.com/EliCDavis/polyform/generator/serialize"
 	_ "github.com/EliCDavis/polyform/generator/subgraph"
 
-	_ "github.com/EliCDavis/polyform/arrays"
 	_ "github.com/EliCDavis/polyform/debug"
-	_ "github.com/EliCDavis/polyform/logic"
 
 	_ "github.com/EliCDavis/polyform/math"
 	_ "github.com/EliCDavis/polyform/math/constant"
@@ -68,7 +66,9 @@ import (
 	_ "github.com/EliCDavis/polyform/modeling/triangulation"
 	_ "github.com/EliCDavis/polyform/modeling/voxelize"
 
+	_ "github.com/EliCDavis/polyform/nodes/arrays"
 	_ "github.com/EliCDavis/polyform/nodes/experimental"
+	_ "github.com/EliCDavis/polyform/nodes/logic"
 	_ "github.com/EliCDavis/polyform/nodes/opearations"
 	_ "github.com/EliCDavis/polyform/nodes/text"
 )
@@ -156,6 +156,7 @@ func main() {
 			},
 		},
 		NodeOutputSerialization: nodeSerializer,
+		Casts:                   casts(),
 		VariableFactory:         variabletypes.New,
 
 		Out: os.Stdout,

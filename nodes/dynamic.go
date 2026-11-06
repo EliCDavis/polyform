@@ -278,11 +278,7 @@ func (d dynamicTyped[T]) BuildDynamicOutput(s DynamicSource) OutputPort {
 
 func (d dynamicTyped[T]) Value() T {
 	if src := d.source.CurrentSource(); src != nil {
-		if typed, ok := src.(Output[T]); ok {
-			return typed.Value()
-		}
-		var zero T
-		return zero
+		return readAs[T](src)
 	}
 	if v, ok := d.source.AnyValue().(T); ok {
 		return v

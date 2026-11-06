@@ -1,11 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import type { ThreeApp } from "@/lib/three_app";
-import { LabeledField } from "@/components/LabeledField";
-import { NumberInput } from "@/components/NumberInput";
-import { GizmoToggle } from "@/components/GizmoToggle";
 import { PointPathGizmo, pathInsertionPoint } from "@/lib/gizmo/point_path";
 import type { Point3 } from "./vector";
 import { ListEditor, type ListHandle } from "./ListEditor";
+import { AxisRow } from "./fields";
 
 type Point = Record<string, number>;
 
@@ -18,6 +16,7 @@ export function PointListEditor({
   variableKey,
   value,
   threeApp,
+  open,
   planar,
   parse,
   step,
@@ -25,6 +24,7 @@ export function PointListEditor({
   variableKey: string;
   value: Array<Point>;
   threeApp?: ThreeApp;
+  open: boolean;
   planar: boolean;
   parse: (s: string) => number;
   step: string;
@@ -34,12 +34,11 @@ export function PointListEditor({
   const drop = planar ? dropPlanar : (p: Point3) => p as Point;
   const fields = planar ? (["x", "y"] as const) : (["x", "y", "z"] as const);
 
-  const [gizmoOn, setGizmoOn] = useState(false);
   const handle = useRef<ListHandle<Point> | null>(null);
   const gizmoRef = useRef<PointPathGizmo | null>(null);
 
   useEffect(() => {
-    if (!threeApp || !gizmoOn) return;
+    if (!threeApp) return;
     const gizmo = new PointPathGizmo({
       camera: threeApp.Camera,
       domElement: threeApp.Renderer.domElement,
@@ -62,30 +61,27 @@ export function PointListEditor({
       gizmo.dispose();
       gizmoRef.current = null;
     };
-  }, [threeApp, gizmoOn, variableKey]);
+  }, [threeApp, variableKey]);
 
   return (
     <ListEditor<Point>
       variableKey={variableKey}
       value={value}
+      open={open}
       handle={handle}
       onItems={(items) => gizmoRef.current?.setPoints(items.map(lift))}
       onFocus={(i) => gizmoRef.current?.setFocus(i)}
       onInsertPreview={(i) => gizmoRef.current?.setInsertPreview(i)}
       blank={(items, index) => drop(pathInsertionPoint(items.map(lift), index))}
-      renderItem={(item, update) =>
-        fields.map((f) => (
-          <LabeledField key={f} label={`${f.toUpperCase()}:`}>
-            <NumberInput
-              step={step}
-              integer={parse !== parseFloat}
-              value={item[f]}
-              onCommit={(n) => update({ ...item, [f]: snap(n) })}
-            />
-          </LabeledField>
-        ))
-      }
-      footer={threeApp && <GizmoToggle value={gizmoOn} onChange={setGizmoOn} />}
+      renderItem={(item, update) => (
+        <AxisRow
+          labels={fields.map((f) => f.toUpperCase())}
+          values={fields.map((f) => item[f])}
+          step={step}
+          integer={parse !== parseFloat}
+          onCommit={(i, n) => update({ ...item, [fields[i]]: snap(n) })}
+        />
+      )}
     />
   );
 }

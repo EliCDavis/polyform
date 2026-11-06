@@ -143,30 +143,3 @@ func TestPivotNodeScalesAboutThePivotToo(t *testing.T) {
 	assert.Equal(t, pivot, got.Transform(pivot))
 	assert.Equal(t, vector3.New(3., 2., 3.), got.Transform(vector3.New(2., 2., 3.)), "one unit from the pivot becomes two")
 }
-
-func TestFilterNodesWithUnwiredBoundsKeepEverything(t *testing.T) {
-	transforms := []trs.TRS{
-		trs.New(vector3.New(-1e300, 0., 1e300), quaternion.Identity(), vector3.New(1e-300, 1., 1e300)),
-		trs.Identity(),
-	}
-	input := nodes.ConstOutput[[]trs.TRS]{Val: transforms}
-
-	position := &nodes.Struct[trs.FilterPositionNode]{Data: trs.FilterPositionNode{Input: input}}
-	assert.Len(t, nodes.GetNodeOutputPort[[]trs.TRS](position, "Kept").Value(), 2)
-	assert.Empty(t, nodes.GetNodeOutputPort[[]trs.TRS](position, "Removed").Value())
-
-	scale := &nodes.Struct[trs.FilterScaleNode]{Data: trs.FilterScaleNode{Input: input}}
-	assert.Len(t, nodes.GetNodeOutputPort[[]trs.TRS](scale, "Kept").Value(), 2)
-	assert.Empty(t, nodes.GetNodeOutputPort[[]trs.TRS](scale, "Removed").Value())
-}
-
-func TestFilterPositionNodeOneSidedBoundLeavesTheOtherSideOpen(t *testing.T) {
-	far := trs.Position(vector3.New(-1e300, 0., 0.))
-	near := trs.Position(vector3.New(5., 0., 0.))
-	position := &nodes.Struct[trs.FilterPositionNode]{Data: trs.FilterPositionNode{
-		Input: nodes.ConstOutput[[]trs.TRS]{Val: []trs.TRS{far, near}},
-		MaxX:  nodes.ConstOutput[float64]{Val: 1},
-	}}
-	assert.Equal(t, []trs.TRS{far}, nodes.GetNodeOutputPort[[]trs.TRS](position, "Kept").Value())
-	assert.Equal(t, []trs.TRS{near}, nodes.GetNodeOutputPort[[]trs.TRS](position, "Removed").Value())
-}

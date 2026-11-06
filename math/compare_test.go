@@ -32,18 +32,8 @@ func TestCompareNode(t *testing.T) {
 	suite.Run(t)
 }
 
-func TestBoolToNumberAndNot(t *testing.T) {
+func TestNot(t *testing.T) {
 	suite := nodetest.NewSuite(
-		nodetest.NewTestCase("true",
-			nodetest.NewNode(math.BoolToNumberNode{In: nodetest.NewPortValue(true)}),
-			nodetest.AssertOutput("Int", 1),
-			nodetest.AssertOutput("Float 64", 1.),
-		),
-		nodetest.NewTestCase("false",
-			nodetest.NewNode(math.BoolToNumberNode{In: nodetest.NewPortValue(false)}),
-			nodetest.AssertOutput("Int", 0),
-			nodetest.AssertOutput("Float 64", 0.),
-		),
 		nodetest.NewTestCase("not",
 			nodetest.NewNode(math.NotNode{In: nodetest.NewPortValue(true)}),
 			nodetest.AssertOutput("Out", false),

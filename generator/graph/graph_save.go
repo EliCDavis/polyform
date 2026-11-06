@@ -69,20 +69,13 @@ func (a *Graph) savedNodes(encoder *jbtf.Encoder) map[string]persistence.Node {
 
 func (a *Graph) savedNode(node nodes.Node, encoder *jbtf.Encoder) persistence.Node {
 	saved := persistence.Node{
-		Type:          nodeTypeName(node),
+		Type:          a.typeOf(node),
 		AssignedInput: a.assignedInputs(node, nodes.Port.Name),
 		Literals:      a.literalValues(node, nodes.Port.Name),
 	}
 
-	// The key the node was created under is what load can create it from again.
-	if key := a.nodeTypeKeys[node]; key != "" {
-		saved.Type = key
-	}
-
-	// A reference's creation key goes stale when its variable is renamed.
 	if reference, ok := node.(variable.Reference); ok {
 		path := a.project.variablePath(reference.Reference())
-		saved.Type = path
 		saved.Variable = &path
 	}
 

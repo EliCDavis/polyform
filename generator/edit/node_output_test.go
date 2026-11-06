@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/http/httptest"
 	"strconv"
 	"testing"
 
@@ -80,6 +81,32 @@ func TestNodeOutputIsBuiltOncePerVersion(t *testing.T) {
 	changed := call(t, handler, http.MethodGet, "/node/output/"+value+"/Value", "")
 	assert.Equal(t, "9", changed.Body.String())
 	assert.Equal(t, 2, *writes)
+}
+
+func TestNodeOutputCanBeReadWhileNodesAreCreated(t *testing.T) {
+	handler := outputServer(t)
+	value := createRootNode(t, handler, "Float64")
+
+	stop := make(chan struct{})
+	reading := make(chan struct{})
+	go func() {
+		defer close(reading)
+		for {
+			select {
+			case <-stop:
+				return
+			default:
+				request := httptest.NewRequest(http.MethodGet, "/node/output/"+value+"/Value", nil)
+				handler.ServeHTTP(httptest.NewRecorder(), request)
+			}
+		}
+	}()
+
+	for range 200 {
+		createRootNode(t, handler, "Float64")
+	}
+	close(stop)
+	<-reading
 }
 
 func TestNodeOutputWithNothingToShowIsNoContent(t *testing.T) {

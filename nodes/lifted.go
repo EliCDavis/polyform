@@ -3,6 +3,7 @@ package nodes
 import (
 	"fmt"
 	"reflect"
+	"strings"
 	"sync"
 	"time"
 
@@ -40,6 +41,13 @@ func liftedRank(data any) int {
 			continue
 		}
 		if portValueTypeName(port) == arrayOf(elem) {
+			return rankArray
+		}
+	}
+
+	for field, pattern := range refutil.GenericFieldTypes(dynamicPortFieldType, data) {
+		port := refutil.FieldValue[OutputPort](data, field)
+		if port != nil && !strings.HasPrefix(pattern, "[]") && strings.HasPrefix(portValueTypeName(port), "[]") {
 			return rankArray
 		}
 	}

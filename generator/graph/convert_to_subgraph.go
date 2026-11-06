@@ -479,7 +479,7 @@ func copySelection(parent, child *Graph, selection map[string]nodes.Node, ports 
 		saved[id] = copied
 
 		if layout, ok := parent.Metadata("nodes." + id).(map[string]any); ok {
-			child.metadata.Set("nodes."+id, cloneMetadataMap(layout))
+			child.metadata.Set("nodes."+id, layout)
 		}
 	}
 	for _, port := range ports.inputs {
@@ -521,17 +521,6 @@ func decoderOf(encoder *jbtf.Encoder) (jbtf.Decoder, error) {
 		return jbtf.Decoder{}, err
 	}
 	return jbtf.NewDecoder(payload)
-}
-
-func cloneMetadataMap(in map[string]any) map[string]any {
-	out := make(map[string]any, len(in))
-	for k, v := range in {
-		if nested, ok := v.(map[string]any); ok {
-			v = cloneMetadataMap(nested)
-		}
-		out[k] = v
-	}
-	return out
 }
 
 // Unknown when nothing was laid out; then nothing new gets a position either.

@@ -1,11 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import type { ThreeApp } from "@/lib/three_app";
 import { setVariableValue } from "@/api/variables";
-import { LabeledField } from "@/components/LabeledField";
-import { NumberInput } from "@/components/NumberInput";
-import { GizmoToggle } from "@/components/GizmoToggle";
 import { TransformGizmo } from "@/lib/gizmo/transform";
 import { BoxGizmo } from "@/lib/gizmo/box";
+import { AxisRow, PartRow, XYZ, axes } from "./fields";
 
 export type Point3 = { x: number; y: number; z: number };
 
@@ -37,13 +35,13 @@ export function VectorEditor({
   };
 
   return (
-    <div className="variable-inputs">
-      {fields.map((f) => (
-        <LabeledField key={f} label={`${f.toUpperCase()}:`}>
-          <NumberInput step={step} integer={parse !== parseFloat} value={current[f]} onCommit={(n) => commit(f, n)} />
-        </LabeledField>
-      ))}
-    </div>
+    <AxisRow
+      labels={fields.map((f) => f.toUpperCase())}
+      values={fields.map((f) => current[f])}
+      step={step}
+      integer={parse !== parseFloat}
+      onCommit={(i, n) => commit(fields[i], n)}
+    />
   );
 }
 
@@ -70,7 +68,6 @@ export function Vector3Editor({
   parse: (s: string) => number;
 }) {
   const [current, setCurrent] = useState<Point3>({ x: value?.x ?? 0, y: value?.y ?? 0, z: value?.z ?? 0 });
-  const [gizmoOn, setGizmoOn] = useState(false);
   const gizmoRef = useRef<TransformGizmo | null>(null);
 
   useEffect(() => {
@@ -87,7 +84,7 @@ export function Vector3Editor({
   }, [current]);
 
   useEffect(() => {
-    if (!threeApp || !gizmoOn) return;
+    if (!threeApp) return;
     const gizmo = new TransformGizmo({
       camera: threeApp.Camera,
       domElement: threeApp.Renderer.domElement,
@@ -108,22 +105,16 @@ export function Vector3Editor({
       gizmo.dispose();
       gizmoRef.current = null;
     };
-  }, [threeApp, gizmoOn, variableKey]);
+  }, [threeApp, variableKey]);
 
   return (
-    <div className="variable-inputs">
-      {(["x", "y", "z"] as const).map((axis) => (
-        <LabeledField key={axis} label={`${axis.toUpperCase()}:`}>
-          <NumberInput
-            step={step}
-            integer={parse !== parseFloat}
-            value={current[axis]}
-            onCommit={(n) => commit({ ...current, [axis]: n })}
-          />
-        </LabeledField>
-      ))}
-      {threeApp && <GizmoToggle value={gizmoOn} onChange={setGizmoOn} />}
-    </div>
+    <AxisRow
+      labels={XYZ}
+      values={axes.map((a) => current[a])}
+      step={step}
+      integer={parse !== parseFloat}
+      onCommit={(i, n) => commit({ ...current, [axes[i]]: n })}
+    />
   );
 }
 
@@ -138,7 +129,6 @@ export function AABBEditor({
 }) {
   const [center, setCenter] = useState(value?.center ?? { x: 0, y: 0, z: 0 });
   const [extents, setExtents] = useState(value?.extents ?? { x: 1, y: 1, z: 1 });
-  const [gizmoOn, setGizmoOn] = useState(false);
   const gizmoRef = useRef<BoxGizmo | null>(null);
 
   useEffect(() => {
@@ -155,7 +145,7 @@ export function AABBEditor({
   };
 
   useEffect(() => {
-    if (!threeApp || !gizmoOn) return;
+    if (!threeApp) return;
     const gizmo = new BoxGizmo({
       camera: threeApp.Camera,
       domElement: threeApp.Renderer.domElement,
@@ -176,35 +166,27 @@ export function AABBEditor({
       gizmo.dispose();
       gizmoRef.current = null;
     };
-  }, [threeApp, gizmoOn, variableKey]);
+  }, [threeApp, variableKey]);
 
-  const num = (label: string, v: number, onCommit: (n: number) => void) => (
-    <LabeledField label={label}>
-      <NumberInput value={v} onCommit={onCommit} />
-    </LabeledField>
-  );
-  const setCenterAxis = (axis: "x" | "y" | "z", n: number) => {
-    const c = { ...center, [axis]: n };
+  const setCenterAxis = (i: number, n: number) => {
+    const c = { ...center, [axes[i]]: n };
     setCenter(c);
     commit(c, extents);
   };
-  const setExtentsAxis = (axis: "x" | "y" | "z", n: number) => {
-    const e = { ...extents, [axis]: n };
+  const setExtentsAxis = (i: number, n: number) => {
+    const e = { ...extents, [axes[i]]: n };
     setExtents(e);
     commit(center, e);
   };
 
   return (
     <div className="variable-inputs">
-      <span>center</span>
-      {num("X:", center.x, (n) => setCenterAxis("x", n))}
-      {num("Y:", center.y, (n) => setCenterAxis("y", n))}
-      {num("Z:", center.z, (n) => setCenterAxis("z", n))}
-      <span>extents</span>
-      {num("X:", extents.x, (n) => setExtentsAxis("x", n))}
-      {num("Y:", extents.y, (n) => setExtentsAxis("y", n))}
-      {num("Z:", extents.z, (n) => setExtentsAxis("z", n))}
-      {threeApp && <GizmoToggle value={gizmoOn} onChange={setGizmoOn} />}
+      <PartRow label="center">
+        <AxisRow labels={XYZ} values={axes.map((a) => center[a])} onCommit={setCenterAxis} />
+      </PartRow>
+      <PartRow label="extents">
+        <AxisRow labels={XYZ} values={axes.map((a) => extents[a])} onCommit={setExtentsAxis} />
+      </PartRow>
     </div>
   );
 }

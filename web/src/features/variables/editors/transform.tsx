@@ -1,14 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import type { ThreeApp } from "@/lib/three_app";
 import { setVariableValue } from "@/api/variables";
-import { LabeledField } from "@/components/LabeledField";
-import { NumberInput } from "@/components/NumberInput";
-import { GizmoToggle } from "@/components/GizmoToggle";
 import { pathInsertionPoint } from "@/lib/gizmo/point_path";
 import { TRSGizmo, type TRSGizmoMode, type TRSValue } from "@/lib/gizmo/trs";
 import { TRSListGizmo } from "@/lib/gizmo/trs_list";
 import { eulerToQuat, identityQuat, quatEquals, quatToEuler, type Quat } from "@/lib/rotation";
 import { ListEditor, type ListHandle } from "./ListEditor";
+import { AxisRow, PartRow, XYZ, axes } from "./fields";
 import styles from "./editors.module.css";
 
 const identityTRS: TRSValue = {
@@ -16,6 +14,7 @@ const identityTRS: TRSValue = {
   rotation: identityQuat,
   scale: { x: 1, y: 1, z: 1 },
 };
+
 
 // Edited as Euler degrees, stored as a quaternion. The degrees are kept as
 // typed rather than re-derived from the quaternion, which would fold 370
@@ -38,49 +37,61 @@ function QuaternionEditor({ value, onChange }: { value: Quat; onChange: (q: Quat
     onChange(q);
   };
 
-  const field = (axis: "x" | "y" | "z") => (
-    <LabeledField key={axis} label={`${axis.toUpperCase()}°:`}>
-      <NumberInput value={Number(euler[axis].toFixed(4))} onCommit={(n) => commit({ ...euler, [axis]: n })} />
-    </LabeledField>
+  return (
+    <AxisRow
+      labels={["X°", "Y°", "Z°"]}
+      values={axes.map((a) => Number(euler[a].toFixed(4)))}
+      onCommit={(i, n) => commit({ ...euler, [axes[i]]: n })}
+    />
   );
-
-  return <div className="variable-inputs">{(["x", "y", "z"] as const).map(field)}</div>;
 }
 
 function TRSFields({ value, onChange }: { value: TRSValue; onChange: (next: TRSValue) => void }) {
   const vec = (label: string, key: "position" | "scale") => (
-    <div className={styles.pointRow}>
-      <span className={styles.pointIndex}>{label}</span>
-      {(["x", "y", "z"] as const).map((axis) => (
-        <LabeledField key={axis} label={`${axis.toUpperCase()}:`}>
-          <NumberInput
-            value={value[key][axis]}
-            onCommit={(n) => onChange({ ...value, [key]: { ...value[key], [axis]: n } })}
-          />
-        </LabeledField>
-      ))}
-    </div>
+    <PartRow label={label}>
+      <AxisRow
+        labels={XYZ}
+        values={axes.map((a) => value[key][a])}
+        onCommit={(i, n) => onChange({ ...value, [key]: { ...value[key], [axes[i]]: n } })}
+      />
+    </PartRow>
   );
 
   return (
-    <>
-      {vec("position", "position")}
-      <div className={styles.pointRow}>
-        <span className={styles.pointIndex}>rotation</span>
+    <div className="variable-inputs">
+      {vec("pos", "position")}
+      <PartRow label="rot">
         <QuaternionEditor value={value.rotation} onChange={(q) => onChange({ ...value, rotation: q })} />
-      </div>
+      </PartRow>
       {vec("scale", "scale")}
-    </>
+    </div>
+  );
+}
+
+const round = (n: number) => Number(n.toFixed(2));
+
+function TRSItem({ value, onChange }: { value: TRSValue; onChange: (next: TRSValue) => void }) {
+  const [open, setOpen] = useState(false);
+  const { x, y, z } = value.position;
+  return (
+    <div className="variable-inputs">
+      <button type="button" className={styles.itemSummary} aria-expanded={open} onClick={() => setOpen(!open)}>
+        {open ? "▾" : "▸"} pos {round(x)}, {round(y)}, {round(z)}
+      </button>
+      {open && <TRSFields value={value} onChange={onChange} />}
+    </div>
   );
 }
 
 function GizmoModeSelect({ mode, onChange }: { mode: TRSGizmoMode; onChange: (m: TRSGizmoMode) => void }) {
   return (
-    <select value={mode} onChange={(e) => onChange(e.target.value as TRSGizmoMode)}>
-      <option value="translate">Move</option>
-      <option value="rotate">Rotate</option>
-      <option value="scale">Scale</option>
-    </select>
+    <PartRow label="gizmo">
+      <select value={mode} onChange={(e) => onChange(e.target.value as TRSGizmoMode)}>
+        <option value="translate">Move</option>
+        <option value="rotate">Rotate</option>
+        <option value="scale">Scale</option>
+      </select>
+    </PartRow>
   );
 }
 
@@ -94,7 +105,6 @@ export function TRSEditor({
   threeApp?: ThreeApp;
 }) {
   const [trs, setTRS] = useState<TRSValue>(value ?? identityTRS);
-  const [gizmoOn, setGizmoOn] = useState(false);
   const [mode, setMode] = useState<TRSGizmoMode>("translate");
   const gizmoRef = useRef<TRSGizmo | null>(null);
   const pendingWrites = useRef(0);
@@ -113,7 +123,7 @@ export function TRSEditor({
   };
 
   useEffect(() => {
-    if (!threeApp || !gizmoOn) return;
+    if (!threeApp) return;
     const gizmo = new TRSGizmo({
       camera: threeApp.Camera,
       domElement: threeApp.Renderer.domElement,
@@ -131,7 +141,7 @@ export function TRSEditor({
       gizmo.dispose();
       gizmoRef.current = null;
     };
-  }, [threeApp, gizmoOn, variableKey]);
+  }, [threeApp, variableKey]);
 
   useEffect(() => {
     gizmoRef.current?.setValue(trs);
@@ -144,12 +154,7 @@ export function TRSEditor({
   return (
     <div className="variable-inputs">
       <TRSFields value={trs} onChange={commit} />
-      {threeApp && (
-        <>
-          <GizmoToggle value={gizmoOn} onChange={setGizmoOn} />
-          {gizmoOn && <GizmoModeSelect mode={mode} onChange={setMode} />}
-        </>
-      )}
+      {threeApp && <GizmoModeSelect mode={mode} onChange={setMode} />}
     </div>
   );
 }
@@ -158,18 +163,19 @@ export function TRSListEditor({
   variableKey,
   value,
   threeApp,
+  open,
 }: {
   variableKey: string;
   value: TRSValue[];
   threeApp?: ThreeApp;
+  open: boolean;
 }) {
-  const [gizmoOn, setGizmoOn] = useState(false);
   const [mode, setMode] = useState<TRSGizmoMode>("translate");
   const handle = useRef<ListHandle<TRSValue> | null>(null);
   const gizmoRef = useRef<TRSListGizmo | null>(null);
 
   useEffect(() => {
-    if (!threeApp || !gizmoOn) return;
+    if (!threeApp) return;
     const gizmo = new TRSListGizmo({
       camera: threeApp.Camera,
       domElement: threeApp.Renderer.domElement,
@@ -189,7 +195,7 @@ export function TRSListEditor({
       gizmo.dispose();
       gizmoRef.current = null;
     };
-  }, [threeApp, gizmoOn, variableKey]);
+  }, [threeApp, variableKey]);
 
   useEffect(() => {
     gizmoRef.current?.setMode(mode);
@@ -199,6 +205,7 @@ export function TRSListEditor({
     <ListEditor<TRSValue>
       variableKey={variableKey}
       value={value}
+      open={open}
       handle={handle}
       onItems={(items) => gizmoRef.current?.setItems(items)}
       onFocus={(i) => gizmoRef.current?.setFocus(i)}
@@ -209,15 +216,8 @@ export function TRSListEditor({
         ...structuredClone(items[index - 1] ?? identityTRS),
         position: pathInsertionPoint(items.map((it) => it.position), index),
       })}
-      renderItem={(item, update) => <TRSFields value={item} onChange={update} />}
-      footer={
-        threeApp && (
-          <>
-            <GizmoToggle value={gizmoOn} onChange={setGizmoOn} />
-            {gizmoOn && <GizmoModeSelect mode={mode} onChange={setMode} />}
-          </>
-        )
-      }
+      renderItem={(item, update) => <TRSItem value={item} onChange={update} />}
+      footer={threeApp && <GizmoModeSelect mode={mode} onChange={setMode} />}
     />
   );
 }
@@ -232,7 +232,6 @@ export function QuaternionVariableEditor({
   value: Quat;
   threeApp?: ThreeApp;
 }) {
-  const [gizmoOn, setGizmoOn] = useState(false);
   const [current, setCurrent] = useState<Quat>(value ?? identityQuat);
   const gizmoRef = useRef<TRSGizmo | null>(null);
 
@@ -246,7 +245,7 @@ export function QuaternionVariableEditor({
   };
 
   useEffect(() => {
-    if (!threeApp || !gizmoOn) return;
+    if (!threeApp) return;
     const gizmo = new TRSGizmo({
       camera: threeApp.Camera,
       domElement: threeApp.Renderer.domElement,
@@ -264,16 +263,11 @@ export function QuaternionVariableEditor({
       gizmo.dispose();
       gizmoRef.current = null;
     };
-  }, [threeApp, gizmoOn, variableKey]);
+  }, [threeApp, variableKey]);
 
   useEffect(() => {
     gizmoRef.current?.setValue({ ...identityTRS, rotation: current });
   }, [current]);
 
-  return (
-    <div className="variable-inputs">
-      <QuaternionEditor value={current} onChange={commit} />
-      {threeApp && <GizmoToggle value={gizmoOn} onChange={setGizmoOn} />}
-    </div>
-  );
+  return <QuaternionEditor value={current} onChange={commit} />;
 }

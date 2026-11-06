@@ -1,5 +1,6 @@
 import { FlowNode, GlobalWidgetFactory, RowWidget, type Widget } from '@elicdavis/node-flow';
 import { NodeManager } from '../node_manager';
+import { colorWidgets } from './color_widgets';
 import { InsertRuleWidget, RemoveWidget } from './list_widgets';
 import { lockIfReadOnly } from './read_only';
 import type { ColorGradientNodeParameter, GradientKey } from '../../types/parameter';
@@ -68,15 +69,12 @@ export class GradientParameterNodeController {
                 new RemoveWidget(() => this.commit(this.keys.filter((_, i) => i !== index))),
             ], { grow: [1, 0] }));
 
-            const color = GlobalWidgetFactory.create(this.flowNode, "color", {
-                value: key.value,
-                callback: (value) => replace(index, { value }),
-            });
+            const color = colorWidgets(this.flowNode, key.value, (value) => replace(index, { value }));
             if (pinned(index)) {
-                this.add(color);
+                this.add(new RowWidget(color.widgets, { grow: [1, 0] }));
                 this.slots.push((next) => {
                     heading.setText(`t = ${next.time}`);
-                    color.setValue(next.value);
+                    color.set(next.value);
                 });
                 return;
             }
@@ -90,9 +88,9 @@ export class GradientParameterNodeController {
                 step: 0.005,
                 callback: (t) => replace(index, { time: t }),
             });
-            this.add(new RowWidget([color, time], { grow: [1, 0] }));
+            this.add(new RowWidget([...color.widgets, time], { grow: [1, 0, 0] }));
             this.slots.push((next) => {
-                color.setValue(next.value);
+                color.set(next.value);
                 time.setValue(next.time);
             });
         });

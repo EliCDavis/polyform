@@ -58,18 +58,26 @@ func getNodeOutputFromURLPath(r *http.Request, base string, project *graph.Insta
 	}
 	components := strings.Split(r.URL.Path[len(base):], "/")
 
-	scoped, err := graph.Scope(r.URL.Query().Get("scope")).ResolveInstance(project)
+	nodeID := components[0]
+	var node nodes.Node
+	var outputs map[string]nodes.OutputPort
+	var err error
+	project.Evaluate(func() {
+		var scoped *graph.Graph
+		if scoped, err = graph.Scope(r.URL.Query().Get("scope")).ResolveInstance(project); err != nil {
+			return
+		}
+		if node = scoped.Node(nodeID); node != nil {
+			outputs = node.Outputs()
+		}
+	})
 	if err != nil {
 		return nil, err
 	}
-
-	nodeID := components[0]
-	node := scoped.Node(nodeID)
 	if node == nil {
 		return nil, fmt.Errorf("no node %q in scope %q", nodeID, r.URL.Query().Get("scope"))
 	}
 
-	outputs := node.Outputs()
 	outPortName := components[1]
 	output, ok := outputs[outPortName]
 	if !ok {

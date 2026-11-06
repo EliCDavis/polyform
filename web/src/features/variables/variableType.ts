@@ -1,5 +1,7 @@
 export enum VariableType {
   Float = "float64",
+  UNorm = "norm.UFloat64",
+  SNorm = "norm.SFloat64",
   Float2 = "vector2.Vector[float64]",
   Float3 = "vector3.Vector[float64]",
   Float4 = "vector4.Vector[float64]",
@@ -31,6 +33,8 @@ export const VARIABLE_TYPE_OPTIONS: Array<{ value: VariableType; label: string }
   { value: VariableType.Float2, label: "Float2" },
   { value: VariableType.Float3, label: "Float3" },
   { value: VariableType.Float4, label: "Float4" },
+  { value: VariableType.UNorm, label: "UNorm (0 to 1)" },
+  { value: VariableType.SNorm, label: "SNorm (-1 to 1)" },
   { value: VariableType.Int, label: "Int" },
   { value: VariableType.Int2, label: "Int2" },
   { value: VariableType.Int3, label: "Int3" },

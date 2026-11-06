@@ -1,4 +1,5 @@
 import type { FlowNodeConfig, WidgetConfig } from "@elicdavis/node-flow";
+import { alphaWidgetConfig } from "@/lib/nodes/color_widgets";
 
 const AXES = ["X", "Y", "Z", "W"];
 
@@ -67,6 +68,22 @@ const FloatParameter: FlowNodeConfig = {
   },
 };
 
+function normParameter(name: "UNorm" | "SNorm", goType: "UFloat64" | "SFloat64", min: number): FlowNodeConfig {
+  const type = `github.com/EliCDavis/polyform/math/norm.${goType}`;
+  return {
+    title: `${name} Parameter`,
+    subTitle: name,
+    canEditTitle: true,
+    canEditInfo: true,
+    outputs: [{ name: ParameterOutPortName, type }],
+    widgets: [{ type: "slider", config: { property: "value", min, max: 1 } }],
+    style: ParameterStyle,
+    metadata: {
+      typeData: { type: `github.com/EliCDavis/polyform/generator/parameter.Value[${type}]` },
+    },
+  };
+}
+
 const AABBParameter: FlowNodeConfig = {
   title: "AABB Parameter",
   subTitle: "AABB",
@@ -120,7 +137,16 @@ const ColorParameter: FlowNodeConfig = {
   canEditTitle: true,
   canEditInfo: true,
   outputs: [{ name: ParameterOutPortName, type: "github.com/EliCDavis/polyform/drawing/coloring.Color" }],
-  widgets: [{ type: "color", config: { property: "value" } }],
+  widgets: [{
+    type: "row",
+    config: {
+      grow: [1, 0],
+      widgets: [
+        { type: "color", config: { property: "value", width: 90 } },
+        { type: "number", config: { ...alphaWidgetConfig, property: "alpha", value: 1 } },
+      ],
+    },
+  }],
   style: ParameterStyle,
   metadata: {
     typeData: {
@@ -294,6 +320,8 @@ export const parameterNodeConfigs: Record<string, FlowNodeConfig> = {
   "Parameters/bool": BoolParameter,
   "Parameters/int": IntParameter,
   "Parameters/float64": FloatParameter,
+  "Parameters/norm.UFloat64": normParameter("UNorm", "UFloat64", 0),
+  "Parameters/norm.SFloat64": normParameter("SNorm", "SFloat64", -1),
   "Parameters/coloring.Color": ColorParameter,
   "Parameters/string": StringParameter,
   "Parameters/geometry.AABB": AABBParameter,

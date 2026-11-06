@@ -73,13 +73,7 @@ func (p proxyOutput[T]) Value() T {
 	if lazy, ok := p.source.(LazyProxySource); ok {
 		src = lazy.SourceForValue()
 	}
-	if src != nil {
-		if typed, ok := src.(Output[T]); ok {
-			return typed.Value()
-		}
-	}
-	var zero T
-	return zero
+	return readAs[T](src)
 }
 
 func (p proxyOutput[T]) BuildProxyOutput(source ProxySource) OutputPort {

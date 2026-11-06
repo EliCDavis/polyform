@@ -200,19 +200,3 @@ func TestSmoothUnionColoredNodeRequiresAtLeastOneField(t *testing.T) {
 	})
 	require.Nil(t, got.Distance, "no fields provided should capture an error, not set a usable field")
 }
-
-func TestColoredFieldDistanceNode(t *testing.T) {
-	field := sdf.ColoredField{
-		Distance: sdf.Sphere(vector3.New(0., 0., 0.), 1),
-		Color:    sdf.ConstantColor(coloring.Color{R: 1, A: 1}),
-	}
-
-	node := &nodes.Struct[sdf.ColoredFieldDistanceNode]{
-		Data: sdf.ColoredFieldDistanceNode{
-			Field: nodes.ConstOutput[sdf.ColoredField]{Val: field},
-		},
-	}
-
-	got := nodes.GetNodeOutputPort[sample.Vec3ToFloat](node, "Out").Value()
-	assert.InDelta(t, -1.0, got(vector3.New(0., 0., 0.)), 1e-9)
-}

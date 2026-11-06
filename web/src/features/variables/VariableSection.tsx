@@ -12,17 +12,30 @@ const sorted = <T,>(entries: Record<string, T> | undefined): [string, T][] =>
   Object.entries(entries ?? {}).sort(([a], [b]) => a.localeCompare(b));
 
 // A variable's key is its full path, "Group/Sub/Name"; the schema nests it by group.
-function VariableGroupRows({ group, path, threeApp }: { group: VariableGroup; path: string; threeApp?: ThreeApp }) {
+function VariableRows({ group, path, threeApp }: { group: VariableGroup; path: string; threeApp?: ThreeApp }) {
   return (
     <>
       {sorted(group.variables).map(([name, variable]) => (
         <VariableRow key={name} variableKey={path + name} label={name} variable={variable} threeApp={threeApp} />
       ))}
+    </>
+  );
+}
+
+function VariableSubgroups({ group, path, threeApp }: { group: VariableGroup; path: string; threeApp?: ThreeApp }) {
+  return (
+    <>
       {sorted(group.subgroups).map(([name, subgroup]) => (
-        <details key={name} className="sidebar-group" open>
-          <summary>{name}</summary>
-          <div className="sidebar-group-body">
-            <VariableGroupRows group={subgroup} path={`${path}${name}/`} threeApp={threeApp} />
+        <details key={name} className="var-panel" open>
+          <summary>
+            {name}
+            <span className="var-panel-count">
+              {Object.keys(subgroup.variables ?? {}).length + Object.keys(subgroup.subgroups ?? {}).length}
+            </span>
+          </summary>
+          <div className="var-panel-body">
+            <VariableRows group={subgroup} path={`${path}${name}/`} threeApp={threeApp} />
+            <VariableSubgroups group={subgroup} path={`${path}${name}/`} threeApp={threeApp} />
           </div>
         </details>
       ))}
@@ -53,7 +66,14 @@ export function VariableSection() {
             New Variable
           </button>
         )}
-        {graph?.variables && <VariableGroupRows group={graph.variables} path="" threeApp={editor?.threeApp} />}
+        {Object.keys(graph?.variables?.variables ?? {}).length > 0 && (
+          <div className="var-panel">
+            <div className="var-panel-body">
+              <VariableRows group={graph!.variables!} path="" threeApp={editor?.threeApp} />
+            </div>
+          </div>
+        )}
+        {graph?.variables && <VariableSubgroups group={graph.variables} path="" threeApp={editor?.threeApp} />}
         {isEmpty(graph?.variables) && <div>No Variables Defined</div>}
       </div>
       {editor && (

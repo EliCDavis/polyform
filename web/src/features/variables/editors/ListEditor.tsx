@@ -7,24 +7,24 @@ export interface ListHandle<T> {
   commit: (next: T[]) => void;
 }
 
-export function ListToggle({ label, open, onToggle }: { label: string; open: boolean; onToggle: () => void }) {
+export function RemoveButton({ label, onClick }: { label: string; onClick: () => void }) {
   return (
-    <button
-      type="button"
-      className={`${styles.listToggle} ${open ? styles.listToggleOpen : ""}`}
-      aria-expanded={open}
-      onClick={onToggle}
-    >
-      <span className={styles.listToggleIcon}>▶</span>
-      {label}
+    <button type="button" className={styles.remove} title={label} aria-label={label} onClick={onClick}>
+      ×
     </button>
   );
 }
 
-export function RemoveButton({ label, onClick }: { label: string; onClick: () => void }) {
+export function AddButton({ label, onClick, onPreview }: { label: string; onClick: () => void; onPreview?: (on: boolean) => void }) {
   return (
-    <button type="button" className={styles.remove} title={label} aria-label={label} onClick={onClick}>
-      −
+    <button
+      type="button"
+      className={styles.add}
+      onClick={onClick}
+      onPointerEnter={() => onPreview?.(true)}
+      onPointerLeave={() => onPreview?.(false)}
+    >
+      + {label}
     </button>
   );
 }
@@ -60,6 +60,7 @@ export function ListItem({
 export function ListEditor<T>({
   variableKey,
   value,
+  open,
   blank,
   renderItem,
   handle,
@@ -70,6 +71,7 @@ export function ListEditor<T>({
 }: {
   variableKey: string;
   value: T[];
+  open: boolean;
   blank: (items: T[], index: number) => T;
   renderItem: (item: T, update: (next: T) => void) => React.ReactNode;
   // Lets a gizmo owned by the caller read and write the list. The list's
@@ -82,7 +84,6 @@ export function ListEditor<T>({
   footer?: React.ReactNode;
 }) {
   const [items, setItems] = useState<T[]>(value ?? []);
-  const [open, setOpen] = useState(false);
   const [focused, setFocusedState] = useState<number | null>(null);
   const itemsRef = useRef(items);
   itemsRef.current = items;
@@ -139,8 +140,7 @@ export function ListEditor<T>({
   );
 
   return (
-    <div className="variable-inputs">
-      <ListToggle label={`${items.length} items`} open={open} onToggle={() => setOpen(!open)} />
+    <div className={styles.list}>
       {open && (
         <>
           {items.map((item, i) => (
@@ -159,7 +159,11 @@ export function ListEditor<T>({
               </ListItem>
             </Fragment>
           ))}
-          {insertControl(items.length, "Add at the end")}
+          <AddButton
+            label="add"
+            onClick={() => insertItem(items.length)}
+            onPreview={(on) => previewInsert(on ? items.length : null)}
+          />
         </>
       )}
       {footer}

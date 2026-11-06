@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/EliCDavis/polyform/generator/cast"
 	"github.com/EliCDavis/polyform/generator/endpoint"
 	"github.com/EliCDavis/polyform/generator/enum"
 	"github.com/EliCDavis/polyform/generator/graph"
@@ -130,6 +131,7 @@ type RegisteredTypes struct {
 	SerializeOutputTypes []string               `json:"serializableOutputTypes"`
 	PortTypes            []string               `json:"portTypes"`
 	Enums                map[string]schema.Enum `json:"enums,omitempty"`
+	Casts                []cast.Pair            `json:"casts"`
 }
 
 func goEnums() map[string]schema.Enum {
@@ -157,6 +159,7 @@ func nodeTypesEndpoint(graphInstance *graph.Instance, serializer *serialize.Type
 						NodeTypes: graphInstance.BuildSchemaForAllNodeTypes(),
 						PortTypes: nodes.KnownPortTypes(),
 						Enums:     goEnums(),
+						Casts:     graphInstance.Casts().Pairs(),
 					}
 					if serializer != nil {
 						b.SerializeOutputTypes = serializer.Types()

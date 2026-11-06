@@ -18,6 +18,8 @@ func init() {
 
 	refutil.RegisterTypeWithBuilder(factory, func() Int { return Int{} })
 	refutil.RegisterTypeWithBuilder(factory, func() Float64 { return Float64{} })
+	refutil.RegisterTypeWithBuilder(factory, func() UFloat64 { return UFloat64{} })
+	refutil.RegisterTypeWithBuilder(factory, func() SFloat64 { return SFloat64{} })
 	refutil.RegisterTypeWithBuilder(factory, func() Vector3 { return Vector3{} })
 	refutil.RegisterTypeWithBuilder(factory, func() Vector2 { return Vector2{} })
 	refutil.RegisterTypeWithBuilder(factory, func() Bool { return Bool{} })

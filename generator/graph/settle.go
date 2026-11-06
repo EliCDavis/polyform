@@ -8,6 +8,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/EliCDavis/polyform/generator/cast"
 	"github.com/EliCDavis/polyform/nodes"
 )
 
@@ -155,8 +156,12 @@ func (s seat) fill(offered offers) (untyped *edgeConflict, err error) {
 				}
 			}
 			if outType != "" && !accepts(in, outType) {
-				e := s.edge(input, i)
-				return nil, &edgeConflict{e, typeMismatch(e)}
+				converted, ok := castInto(s.graph.project.casts, in, want[i])
+				if !ok {
+					e := s.edge(input, i)
+					return nil, &edgeConflict{e, typeMismatch(e)}
+				}
+				want[i] = converted
 			}
 		}
 
@@ -298,6 +303,15 @@ func accepts(in nodes.InputPort, outType string) bool {
 	return accepted[0] == "" || slices.Contains(accepted, outType)
 }
 
+func castInto(casts *cast.Table, in nodes.InputPort, out nodes.OutputPort) (nodes.OutputPort, bool) {
+	for _, want := range acceptedTypes(in) {
+		if converted, ok := casts.Output(out, want); ok {
+			return converted, true
+		}
+	}
+	return nil, false
+}
+
 func typeMismatch(e edge) error {
 	return fmt.Errorf(
 		"node %q's %q output is %s, but node %q's %q input takes %s%s",
@@ -326,10 +340,6 @@ func connectionHint(from, to, inPort string) string {
 	switch {
 	case to == "[]"+from:
 		return fmt.Sprintf(" - %q takes the whole array as one value, so build the array first (an arrays.FromElements node) and connect its single output, rather than connecting one element at a time", inPort)
-	case from == "int" && to == "float64":
-		return " - put a math.IntToFloatNode between them, or feed a float64 source (a float64 parameter or boundary input) in the first place"
-	case from == "float64" && to == "int":
-		return " - put a math.RoundNode (its Int output) between them, or feed an int source in the first place"
 	}
 	return ""
 }

@@ -3,6 +3,7 @@ package enum
 import (
 	"fmt"
 	"slices"
+	"strings"
 
 	"github.com/EliCDavis/polyform/nodes"
 )
@@ -10,21 +11,19 @@ import (
 type valueType nodes.DynamicType
 
 type MemberNameNode struct {
-	Value nodes.DynamicPort[valueType] `description:"An enum value, from a Go enum or one of this graph's enums."`
+	Value nodes.DynamicPort[valueType] `description:"An enum value, or a list of them, from a Go enum or one of this graph's enums."`
 }
 
 func (MemberNameNode) Description() string {
 	return "The name of an enum value, as the editor shows it."
 }
 
-func (n MemberNameNode) Out(out *nodes.StructOutput[string]) {
-	name, _, err := memberOf(out, n.Value)
-	out.CaptureError(err)
-	out.Set(name)
+func (n MemberNameNode) Out(out *nodes.Lifted[string]) {
+	eachMember(out, n.Value, func(name string, _ int) string { return name })
 }
 
 type MemberIndexNode struct {
-	Value nodes.DynamicPort[valueType] `description:"An enum value, from a Go enum or one of this graph's enums."`
+	Value nodes.DynamicPort[valueType] `description:"An enum value, or a list of them, from a Go enum or one of this graph's enums."`
 }
 
 func (MemberIndexNode) Description() string {
@@ -35,25 +34,32 @@ func (MemberIndexNode) Keywords() []string {
 	return []string{"ordinal", "switch"}
 }
 
-func (n MemberIndexNode) Out(out *nodes.StructOutput[int]) {
-	_, index, err := memberOf(out, n.Value)
-	out.CaptureError(err)
-	out.Set(index)
+func (n MemberIndexNode) Out(out *nodes.Lifted[int]) {
+	eachMember(out, n.Value, func(_ string, index int) int { return index })
 }
 
-func memberOf(out nodes.ExecutionRecorder, port nodes.OutputPort) (string, int, error) {
-	if port == nil {
+func eachMember[R any](out *nodes.Lifted[R], port nodes.OutputPort, read func(name string, index int) R) {
+	element := ""
+	if typed, ok := port.(nodes.Typed); ok {
+		element = strings.TrimPrefix(typed.Type(), "[]")
+	}
+	nodes.ZipDynamic(out, port, func(value any) R {
+		name, index, err := memberOf(value, element)
+		out.CaptureError(err)
+		return read(name, index)
+	})
+}
+
+func memberOf(value any, element string) (string, int, error) {
+	if value == nil {
 		return "", 0, nil
 	}
-	value, _ := nodes.DynamicAnyValue(out, port)
 	if choice, ok := value.(Choice); ok {
 		return choice.Name, choice.Index, nil
 	}
-	if typed, ok := port.(nodes.Typed); ok {
-		if def, found := Lookup(typed.Type()); found {
-			name, _ := def.NameOf(value)
-			return name, slices.Index(def.Names(), name), nil
-		}
+	if def, found := Lookup(element); found {
+		name, _ := def.NameOf(value)
+		return name, slices.Index(def.Names(), name), nil
 	}
 	return "", 0, fmt.Errorf("%T is not an enum", value)
 }

@@ -1,36 +1,56 @@
 package norm
 
-import "math"
+import (
+	"encoding/json"
+	"math"
+)
 
 type UNorm interface {
 	Value() float64
 }
 
-type u8 struct{ v uint8 }
+type UFloat64 float64
 
-func (u u8) Value() float64 { return float64(u.v) / math.MaxUint8 }
-func U8(v float64) UNorm    { return u8{v: uint8(clampU(v) * math.MaxUint8)} }
-
-// ============================================================================
-
-type u16 struct{ v uint16 }
-
-func (u u16) Value() float64 { return float64(u.v) / math.MaxUint16 }
-func U16(v float64) UNorm    { return u16{v: uint16(clampU(v) * math.MaxUint16)} }
+func (u UFloat64) Value() float64    { return clampU(float64(u)) }
+func NewUFloat64(v float64) UFloat64 { return UFloat64(clampU(v)) }
 
 // ============================================================================
 
-type u32 struct{ v uint32 }
+type U8 uint8
 
-func (u u32) Value() float64 { return float64(u.v) / math.MaxUint32 }
-func U32(v float64) UNorm    { return u32{v: uint32(clampU(v) * math.MaxUint32)} }
+func (u U8) Value() float64               { return float64(u) / math.MaxUint8 }
+func (u U8) MarshalJSON() ([]byte, error) { return json.Marshal(u.Value()) }
+func NewU8(v float64) U8                  { return U8(clampU(v) * math.MaxUint8) }
 
 // ============================================================================
 
-type u64 struct{ v uint64 }
+type U16 uint16
 
-func (u u64) Value() float64 { return float64(u.v) / math.MaxUint64 }
-func U64(v float64) UNorm    { return u64{v: uint64(clampU(v) * math.MaxUint64)} }
+func (u U16) Value() float64               { return float64(u) / math.MaxUint16 }
+func (u U16) MarshalJSON() ([]byte, error) { return json.Marshal(u.Value()) }
+func NewU16(v float64) U16                 { return U16(clampU(v) * math.MaxUint16) }
+
+// ============================================================================
+
+type U32 uint32
+
+func (u U32) Value() float64               { return float64(u) / math.MaxUint32 }
+func (u U32) MarshalJSON() ([]byte, error) { return json.Marshal(u.Value()) }
+func NewU32(v float64) U32                 { return U32(clampU(v) * math.MaxUint32) }
+
+// ============================================================================
+
+type U64 uint64
+
+func (u U64) Value() float64               { return float64(u) / math.MaxUint64 }
+func (u U64) MarshalJSON() ([]byte, error) { return json.Marshal(u.Value()) }
+
+func NewU64(v float64) U64 {
+	if v >= 1 {
+		return U64(math.MaxUint64)
+	}
+	return U64(clampU(v) * math.MaxUint64)
+}
 
 // ============================================================================
 

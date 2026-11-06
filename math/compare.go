@@ -42,32 +42,6 @@ func (n CompareNode[T]) LessOrEqual(out *nodes.Lifted[bool]) {
 	nodes.Zip2(out, n.A, n.B, func(a, b T) bool { return a <= b })
 }
 
-type BoolToNumberNode struct {
-	In nodes.LiftedPort[bool]
-}
-
-func (BoolToNumberNode) Description() string {
-	return "True as 1, false as 0."
-}
-
-func (n BoolToNumberNode) Int(out *nodes.Lifted[int]) {
-	nodes.Zip1(out, n.In, func(v bool) int {
-		if v {
-			return 1
-		}
-		return 0
-	})
-}
-
-func (n BoolToNumberNode) Float64(out *nodes.Lifted[float64]) {
-	nodes.Zip1(out, n.In, func(v bool) float64 {
-		if v {
-			return 1
-		}
-		return 0
-	})
-}
-
 type NotNode struct {
 	In nodes.LiftedPort[bool]
 }

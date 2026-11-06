@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/EliCDavis/polyform/arrays"
 	"github.com/EliCDavis/polyform/nodes"
+	"github.com/EliCDavis/polyform/nodes/arrays"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

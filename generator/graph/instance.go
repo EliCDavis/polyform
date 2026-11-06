@@ -3,6 +3,7 @@ package graph
 import (
 	gsync "sync"
 
+	"github.com/EliCDavis/polyform/generator/cast"
 	"github.com/EliCDavis/polyform/generator/graph/history"
 	"github.com/EliCDavis/polyform/generator/manifest"
 	"github.com/EliCDavis/polyform/generator/named"
@@ -28,6 +29,7 @@ type Instance struct {
 	details         Details
 	typeFactory     *refutil.TypeFactory
 	variableFactory func(string) (variable.Variable, error)
+	casts           *cast.Table
 	version         schema.GraphVersion
 
 	variables      variable.System
@@ -49,6 +51,7 @@ type Config struct {
 	Authors         []persistence.Author
 	TypeFactory     *refutil.TypeFactory
 	VariableFactory func(string) (variable.Variable, error)
+	Casts           *cast.Table
 }
 
 func New(config Config) *Instance {
@@ -63,6 +66,7 @@ func New(config Config) *Instance {
 	instance := &Instance{
 		typeFactory:     factory,
 		variableFactory: config.VariableFactory,
+		casts:           config.Casts,
 		variables:       variable.NewSystem(),
 	}
 	instance.Graph = newGraph(instance, "")
@@ -105,6 +109,10 @@ func (a *Instance) Reset() {
 	}
 }
 
+func (a *Instance) Casts() *cast.Table {
+	return a.casts
+}
+
 func (a *Instance) History() *history.History {
 	return a.history
 }
@@ -122,5 +130,7 @@ func (a *Instance) SetDetails(details Details) {
 }
 
 func (a *Instance) Version() schema.GraphVersion {
+	a.mu().RLock()
+	defer a.mu().RUnlock()
 	return a.version
 }

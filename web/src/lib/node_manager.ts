@@ -41,6 +41,7 @@ import {
   subGraphNodeConfigs,
 } from "@/features/nodeFlow/subGraphNodeConfigs";
 import { portTypePickerActions } from "@/stores/portTypePickerStore";
+import { useVariableHoverStore } from "@/stores/variableHoverStore";
 import { ParameterStyle } from "@/features/nodeFlow/parameterNodeConfigs";
 
 export const GeneratorVariablePublisherPath = "Generator/Variable/";
@@ -58,6 +59,11 @@ function flowPortConfig(name: string, port: NodeInput | NodeOutput, members?: st
         acceptedTypes: "acceptedTypes" in port ? port.acceptedTypes : undefined,
         description,
     };
+}
+
+function variableKeyOf(node: FlowNode): string | null {
+    const typeData: NodeDefinition | undefined = node.metadata()?.typeData;
+    return typeData?.path === "generator/variable" ? typeData.type : null;
 }
 
 function enumParameterLabel(parameterType: string): string {
@@ -184,6 +190,19 @@ export class NodeManager {
 
         nodeFlowGraph.addOnNodeAddedListener(this.onNodeAddedCallback.bind(this));
         nodeFlowGraph.addOnNodeRemovedListener(this.nodeRemoved.bind(this));
+        let hoveredInGraph: string | null = null;
+        nodeFlowGraph.addNodeHoverListener((node) => {
+            const variableKey = node ? variableKeyOf(node) : null;
+            const hover = useVariableHoverStore.getState();
+            if (variableKey !== null) {
+                hover.setHovered(variableKey, "graph");
+            } else if (hoveredInGraph !== null && hover.hovered === hoveredInGraph) {
+                hover.setHovered(null, "graph");
+            }
+            hoveredInGraph = variableKey;
+        });
+        useVariableHoverStore.subscribe((state) =>
+            this.highlightVariable(state.source === "sidebar" ? state.hovered : null));
         this.clipboard = new GraphClipboard(
             nodeFlowGraph,
             nodesPublisher,
@@ -196,9 +215,16 @@ export class NodeManager {
         this.serializableOutputTypes = registeredTypes.serializableOutputTypes;
     }
 
+    private highlightVariable(variableKey: string | null): void {
+        this.nodeIdToNode.forEach((controller) => {
+            controller.flowNode.setHighlighted(variableKey !== null && variableKeyOf(controller.flowNode) === variableKey);
+        });
+    }
+
     /** Registers node types from /node-types, including dynamic sub-graph runtime types (subgraph/*). */
     registerNodeTypesFromRegistry(registeredTypes: RegisteredTypes): void {
         this.registeredTypes = registeredTypes;
+        this.nodeFlowGraph.setCasts(registeredTypes.casts);
         registeredTypes.nodeTypes.forEach((type) => {
             if (type.type === SUBGRAPH_INPUT_TYPE || type.type === SUBGRAPH_OUTPUT_TYPE) {
                 return;
@@ -791,6 +817,10 @@ export class NodeManager {
 
         if (isVariable) {
             nodeConfig.style = VariableColorScheme;
+            const group = nodeDefinition.type.lastIndexOf("/");
+            if (group > 0) {
+                nodeConfig.subTitle = nodeDefinition.type.substring(0, group);
+            }
         }
 
         // nm.onNodeCreateCallback(this, typeData.type);

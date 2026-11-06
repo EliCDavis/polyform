@@ -33,3 +33,6 @@ jobs:
         run: |
           go test ./... -covermode=count -coverprofile=coverage.out
           go tool cover -func=coverage.out -o=coverage.out
+
+      - name: Run Race Detector
+        run: go test -race ./generator/... ./nodes/...

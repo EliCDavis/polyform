@@ -102,29 +102,23 @@ func (tv *TypeVariable[T]) NodeReference() nodes.Node {
 	}
 }
 
+func typeKey[T any]() string {
+	return refutil.TypeResolution{StripSinglePointer: true}.Resolve(new(T))
+}
+
 func (tv TypeVariable[T]) MarshalJSON() ([]byte, error) {
-	resolver := refutil.TypeResolution{
-		IncludePackage: false,
-		IncludePointer: false,
-	}
-	var t T
 	return json.Marshal(typedVariableSchema[T]{
 		variableSchemaBase: variableSchemaBase{
-			Type: resolver.Resolve(t),
+			Type: typeKey[T](),
 		},
 		Value: tv.value,
 	})
 }
 
 func (tv TypeVariable[T]) runtimeSchema() schema.Variable {
-	resolver := refutil.TypeResolution{
-		IncludePackage: false,
-		IncludePointer: false,
-	}
-	var t T
 	return schema.Variable{
 		Description: tv.info.Description(),
-		Type:        resolver.Resolve(t),
+		Type:        typeKey[T](),
 		Value:       tv.value,
 	}
 }
@@ -153,13 +147,7 @@ func (tv *TypeVariable[T]) SwaggerProperty() swagger.Property {
 
 	prop := swagger.Property{}
 
-	resolver := refutil.TypeResolution{
-		IncludePackage: false,
-		IncludePointer: false,
-	}
-
-	var t T
-	switch resolver.Resolve(t) {
+	switch typeKey[T]() {
 	case "string":
 		prop.Type = swagger.StringPropertyType
 
@@ -174,6 +162,18 @@ func (tv *TypeVariable[T]) SwaggerProperty() swagger.Property {
 	case "float32":
 		prop.Type = swagger.NumberPropertyType
 		prop.Format = swagger.FloatPropertyFormat
+
+	case "norm.UFloat64":
+		prop.Type = swagger.NumberPropertyType
+		prop.Format = swagger.DoublePropertyFormat
+		prop.Minimum = 0.
+		prop.Maximum = 1.
+
+	case "norm.SFloat64":
+		prop.Type = swagger.NumberPropertyType
+		prop.Format = swagger.DoublePropertyFormat
+		prop.Minimum = -1.
+		prop.Maximum = 1.
 
 	case "bool":
 		prop.Type = swagger.BooleanPropertyType
