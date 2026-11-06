@@ -4,13 +4,22 @@ import { getApiErrorMessage, requestManager } from "@/api/client";
 import { useEditorOptional } from "@/features/editor/EditorContext";
 import { useGraphTabStore } from "@/stores/graphTabStore";
 import { useUiStore } from "@/stores/uiStore";
-import type { RuntimeSubGraphDefinition } from "@/lib/schema";
+import { BoundaryType, subGraphBoundaryInfo, subGraphBoundaryKind, type RuntimeSubGraphDefinition } from "@/lib/schema";
 import {
   applyImportedSubGraphs,
   formatImportSummary,
 } from "@/lib/importSubGraphs";
 import { NewSubGraphModal } from "@/features/popups/NewSubGraphModal";
-import { SubGraphRow, type SubGraphPlacement } from "./SubGraphRow";
+import { SubGraphRow, type SubGraphPlacement, type SubGraphPort } from "./SubGraphRow";
+
+function boundaryPorts(def: RuntimeSubGraphDefinition, kind: BoundaryType): SubGraphPort[] {
+  const ports: SubGraphPort[] = [];
+  for (const node of Object.values(def.nodes ?? {})) {
+    const info = subGraphBoundaryInfo(node);
+    if (info && subGraphBoundaryKind(node) === kind) ports.push({ name: info.portName, type: info.portType });
+  }
+  return ports;
+}
 
 export function SubGraphSection() {
   const { data: graph } = useSchema();
@@ -123,6 +132,8 @@ export function SubGraphSection() {
               groups={groupNames}
               nodeCount={Object.keys(def.nodes ?? {}).length}
               placements={placements[id] ?? []}
+              inputs={boundaryPorts(def, BoundaryType.Input)}
+              outputs={boundaryPorts(def, BoundaryType.Output)}
             />
           ));
           if (!group) return rows;

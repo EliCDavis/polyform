@@ -5,7 +5,10 @@ import (
 
 	"github.com/EliCDavis/polyform/generator/enum"
 	"github.com/EliCDavis/polyform/generator/graph"
+	"github.com/EliCDavis/polyform/generator/subgraph"
 	"github.com/EliCDavis/polyform/nodes"
+	"github.com/EliCDavis/polyform/nodes/arrays"
+	"github.com/EliCDavis/polyform/refutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -45,4 +48,74 @@ func TestEnumMembersNodeListsTheMembersAndFollowsEdits(t *testing.T) {
 	loaded := enumTestInstance()
 	require.NoError(t, loaded.ApplyAppSchema(saved))
 	assert.Len(t, loaded.Node(nodeID).(*graph.EnumMembersNode).Members(), 2)
+}
+
+func TestArrayNodesCarryGraphEnumValues(t *testing.T) {
+	tf := &refutil.TypeFactory{}
+	refutil.RegisterType[nodes.Struct[arrays.ReverseNode]](tf)
+	refutil.RegisterType[nodes.Struct[enum.MemberIndexNode]](tf)
+	instance := graph.New(graph.Config{TypeFactory: tf})
+	id := windowStyle(t, instance)
+
+	_, members, err := instance.CreateNode(graph.EnumMembersTypePath(id))
+	require.NoError(t, err)
+	_, reverse, err := instance.CreateNode("github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/nodes/arrays.ReverseNode]")
+	require.NoError(t, err)
+	index, indexID, err := instance.CreateNode("github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/generator/enum.MemberIndexNode]")
+	require.NoError(t, err)
+	require.NoError(t, instance.ConnectNodes(members, "Members", reverse, "Array"))
+	require.NoError(t, instance.ConnectNodes(reverse, "Out", indexID, "Value"))
+
+	instance.Evaluate(func() {
+		assert.Equal(t, []int{2, 1, 0}, nodes.GetNodeOutputPort[[]int](index, "Out").Value())
+	})
+}
+
+func TestForEachCarriesGraphEnumValuesFromAnArrayNode(t *testing.T) {
+	tf := &refutil.TypeFactory{}
+	tf.RegisterBuilder(subgraph.InputNodeTypeKey, func() any { return subgraph.NewInputNode("", "") })
+	tf.RegisterBuilder(subgraph.OutputNodeTypeKey, func() any { return subgraph.NewOutputNode("", "") })
+	refutil.RegisterType[nodes.Struct[arrays.ReverseNode]](tf)
+	refutil.RegisterType[nodes.Struct[enum.MemberIndexNode]](tf)
+	instance := graph.New(graph.Config{TypeFactory: tf})
+	id := windowStyle(t, instance)
+
+	require.NoError(t, instance.CreateSubGraph("position", "Position", ""))
+	definition, err := instance.SubGraphInstance("position")
+	require.NoError(t, err)
+	_, styleID, err := definition.CreateBoundaryNode(subgraph.InputNodeTypeKey, "enum/"+id)
+	require.NoError(t, err)
+	_, indexID, err := definition.CreateNode("github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/generator/enum.MemberIndexNode]")
+	require.NoError(t, err)
+	_, outID, err := definition.CreateBoundaryNode(subgraph.OutputNodeTypeKey, "int")
+	require.NoError(t, err)
+	require.NoError(t, definition.SetBoundaryNodeInfo(styleID, "Style"))
+	require.NoError(t, definition.SetBoundaryNodeInfo(outID, "Index"))
+	require.NoError(t, definition.ConnectNodes(styleID, subgraph.ValuePortName, indexID, "Value"))
+	require.NoError(t, definition.ConnectNodes(indexID, "Out", outID, subgraph.ValuePortName))
+
+	_, members, err := instance.CreateNode(graph.EnumMembersTypePath(id))
+	require.NoError(t, err)
+	_, reverse, err := instance.CreateNode("github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/nodes/arrays.ReverseNode]")
+	require.NoError(t, err)
+	placement, placementID, err := instance.CreateNode(subgraph.RuntimeTypePath("position"))
+	require.NoError(t, err)
+	_, err = instance.SetForEach(placementID, true)
+	require.NoError(t, err)
+	require.NoError(t, instance.ConnectNodes(members, "Members", reverse, "Array"))
+	require.NoError(t, instance.ConnectNodes(reverse, "Out", placementID, "Style"))
+
+	instance.Evaluate(func() {
+		assert.Equal(t, []int{2, 1, 0}, nodes.GetNodeOutputPort[[]int](placement, "Index").Value())
+	})
+}
+
+func TestEnumMembersNodeSchemaNamesItsRegisteredType(t *testing.T) {
+	instance := enumTestInstance()
+	id := windowStyle(t, instance)
+
+	node, _, err := instance.CreateNode(graph.EnumMembersTypePath(id))
+	require.NoError(t, err)
+
+	assert.Equal(t, graph.EnumMembersTypePath(id), instance.NodeInstanceSchema(node).Type)
 }

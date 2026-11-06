@@ -1,6 +1,7 @@
 package variabletypes_test
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/EliCDavis/polyform/generator/enum"
@@ -32,12 +33,28 @@ func TestKeyOfPortType(t *testing.T) {
 	}
 }
 
+func TestNormVariablesStartAtZeroAndSaveAsNumbers(t *testing.T) {
+	for _, key := range []string{"norm.UFloat64", "norm.SFloat64"} {
+		v, err := variabletypes.New(key)
+		require.NoError(t, err)
+		assert.Equal(t, "0", string(v.ToMessage()), key)
+
+		_, err = v.ApplyMessage([]byte("0.25"))
+		require.NoError(t, err)
+		saved, err := json.Marshal(v)
+		require.NoError(t, err)
+		assert.JSONEq(t, `{"type":"`+key+`","value":0.25}`, string(saved))
+	}
+}
+
 func TestParseDefaultAppliesToItsVariable(t *testing.T) {
 	cases := []struct {
 		key, text, json string
 	}{
 		{"float64", "0.5", "0.5"},
 		{"float64", "1.", "1"},
+		{"norm.UFloat64", "0.25", "0.25"},
+		{"norm.SFloat64", "-0.5", "-0.5"},
 		{"int", "64", "64"},
 		{"bool", "true", "true"},
 		{"string", "hello world", `"hello world"`},

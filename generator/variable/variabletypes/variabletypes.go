@@ -15,6 +15,7 @@ import (
 	"github.com/EliCDavis/polyform/generator/enum"
 	"github.com/EliCDavis/polyform/generator/variable"
 	"github.com/EliCDavis/polyform/math/geometry"
+	"github.com/EliCDavis/polyform/math/norm"
 	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/polyform/math/trs"
 	"github.com/EliCDavis/polyform/nodes"
@@ -51,6 +52,8 @@ func typed[T any]() entry {
 
 var entries = []entry{
 	typed[float64](),
+	typed[norm.UFloat64](),
+	typed[norm.SFloat64](),
 	typed[int](),
 	typed[string](),
 	typed[bool](),

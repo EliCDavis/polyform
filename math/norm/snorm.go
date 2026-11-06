@@ -1,36 +1,57 @@
 package norm
 
-import "math"
+import (
+	"encoding/json"
+	"math"
+)
 
 type SNorm interface {
 	Value() float64
 }
 
-type s8 struct{ v int8 }
+type SFloat64 float64
 
-func (u s8) Value() float64 { return float64(u.v) / math.MaxInt8 }
-func S8(v float64) SNorm    { return s8{v: int8(clampS(v) * math.MaxInt8)} }
-
-// ============================================================================
-
-type s16 struct{ v int16 }
-
-func (u s16) Value() float64 { return float64(u.v) / math.MaxInt16 }
-func S16(v float64) SNorm    { return s16{v: int16(clampS(v) * math.MaxInt16)} }
+func (u SFloat64) Value() float64    { return clampS(float64(u)) }
+func NewSFloat64(v float64) SFloat64 { return SFloat64(clampS(v)) }
 
 // ============================================================================
 
-type s32 struct{ v int32 }
+type S8 int8
 
-func (u s32) Value() float64 { return float64(u.v) / math.MaxInt32 }
-func S32(v float64) SNorm    { return s32{v: int32(clampS(v) * math.MaxInt32)} }
+func (u S8) Value() float64               { return clampS(float64(u) / math.MaxInt8) }
+func (u S8) MarshalJSON() ([]byte, error) { return json.Marshal(u.Value()) }
+func NewS8(v float64) S8                  { return S8(clampS(v) * math.MaxInt8) }
 
 // ============================================================================
 
-type s64 struct{ v int64 }
+type S16 int16
 
-func (u s64) Value() float64 { return float64(u.v) / math.MaxInt64 }
-func S64(v float64) SNorm    { return s64{v: int64(clampS(v) * math.MaxInt64)} }
+func (u S16) Value() float64               { return clampS(float64(u) / math.MaxInt16) }
+func (u S16) MarshalJSON() ([]byte, error) { return json.Marshal(u.Value()) }
+func NewS16(v float64) S16                 { return S16(clampS(v) * math.MaxInt16) }
+
+// ============================================================================
+
+type S32 int32
+
+func (u S32) Value() float64               { return clampS(float64(u) / math.MaxInt32) }
+func (u S32) MarshalJSON() ([]byte, error) { return json.Marshal(u.Value()) }
+func NewS32(v float64) S32                 { return S32(clampS(v) * math.MaxInt32) }
+
+// ============================================================================
+
+type S64 int64
+
+func (u S64) Value() float64               { return clampS(float64(u) / math.MaxInt64) }
+func (u S64) MarshalJSON() ([]byte, error) { return json.Marshal(u.Value()) }
+
+func NewS64(v float64) S64 {
+	// MaxInt64 rounds up as a float, so scaling 1 overflows the conversion.
+	if v >= 1 {
+		return S64(math.MaxInt64)
+	}
+	return S64(clampS(v) * math.MaxInt64)
+}
 
 // ============================================================================
 

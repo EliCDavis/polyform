@@ -12,6 +12,7 @@ func init() {
 	refutil.RegisterType[nodes.Struct[SelectNode]](factory)
 	refutil.RegisterType[nodes.Struct[SwitchNode]](factory)
 	refutil.RegisterType[nodes.Struct[EqualsNode]](factory)
+	refutil.RegisterType[nodes.Struct[AndNode]](factory)
 
 	registry.Register(factory)
 }

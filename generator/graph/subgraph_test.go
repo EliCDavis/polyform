@@ -169,23 +169,31 @@ func TestSubGraphCreateDuplicate(t *testing.T) {
 
 func TestSubGraphDeleteNotFound(t *testing.T) {
 	inst := testInstanceWithSubGraphTypes(t)
-	err := inst.DeleteSubGraph("missing")
+	err := errOf(inst.DeleteSubGraph("missing"))
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "does not exist")
 }
 
-func TestSubGraphDeleteGuard(t *testing.T) {
+func TestSubGraphDeleteRemovesEveryPlacement(t *testing.T) {
 	inst := testInstanceWithSubGraphTypes(t)
+	require.NoError(t, inst.CreateSubGraph("part", "Part", ""))
+	require.NoError(t, inst.CreateSubGraph("host", "Host", ""))
 
-	err := inst.CreateSubGraph("guarded", "Guarded", "")
+	_, rootPlacement, err := inst.CreateNode(subgraph.RuntimeTypePath("part"))
+	require.NoError(t, err)
+	host, err := inst.SubGraphInstance("host")
+	require.NoError(t, err)
+	_, nestedPlacement, err := host.CreateNode(subgraph.RuntimeTypePath("part"))
+	require.NoError(t, err)
+	_, _, err = inst.CreateNode(subgraph.RuntimeTypePath("host"))
 	require.NoError(t, err)
 
-	_, _, err = inst.CreateNode(subgraph.RuntimeTypePath("guarded"))
-	require.NoError(t, err)
+	require.NoError(t, errOf(inst.DeleteSubGraph("part")))
 
-	err = inst.DeleteSubGraph("guarded")
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "still referenced")
+	assert.False(t, inst.HasNodeWithId(rootPlacement))
+	assert.False(t, host.HasNodeWithId(nestedPlacement))
+	_, err = inst.SubGraphInstance("part")
+	assert.Error(t, err)
 }
 
 func TestSubGraphDeleteAfterRemovingInstances(t *testing.T) {
@@ -197,7 +205,7 @@ func TestSubGraphDeleteAfterRemovingInstances(t *testing.T) {
 	require.NotNil(t, runtimeNode)
 
 	require.NoError(t, errOf(inst.DeleteNodeById(nodeID)))
-	require.NoError(t, inst.DeleteSubGraph("temp"))
+	require.NoError(t, errOf(inst.DeleteSubGraph("temp")))
 
 	_, err = inst.SubGraphInstance("temp")
 	require.Error(t, err)
@@ -582,9 +590,9 @@ func TestSubgraphInstanceNodeInputsConcurrentWithRebuild(t *testing.T) {
 		defer close(done)
 		for i := 0; i < 200; i++ {
 			_ = inst.Schema()
-			_ = runtimeNode.Inputs()
-			_ = runtimeNode.Outputs()
 			inst.Evaluate(func() {
+				_ = runtimeNode.Inputs()
+				_ = runtimeNode.Outputs()
 				_ = nodes.GetNodeOutputPort[float64](runtimeNode, "Out").Value()
 			})
 		}

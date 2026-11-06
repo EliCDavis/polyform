@@ -25,12 +25,30 @@ func timeRead(recorder ExecutionRecorder, port OutputPort, start time.Time) {
 	}
 }
 
+func readAs[T any](port OutputPort) T {
+	if typed, ok := port.(Output[T]); ok {
+		return typed.Value()
+	}
+	if bare, ok := port.(interface{ AnyValue() any }); ok {
+		if value, ok := bare.AnyValue().(T); ok {
+			return value
+		}
+	}
+	var zero T
+	return zero
+}
+
 func dynamicValueMethod(port OutputPort) (reflect.Value, bool) {
 	if port == nil {
 		return reflect.Value{}, false
 	}
 	method := reflect.ValueOf(port).MethodByName("Value")
 	if !method.IsValid() {
+		// A type no port is registered for stays a bare dynamic output.
+		if bare, ok := port.(interface{ AnyValue() any }); ok {
+			value := reflect.ValueOf(bare.AnyValue())
+			return value, value.IsValid()
+		}
 		return reflect.Value{}, false
 	}
 	t := method.Type()

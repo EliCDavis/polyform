@@ -56,6 +56,8 @@ type Property struct {
 	Description any   `json:"description,omitempty"`
 	Items       any   `json:"items,omitempty"`
 	Enum        []any `json:"enum,omitempty"`
+	Minimum     any   `json:"minimum,omitempty"`
+	Maximum     any   `json:"maximum,omitempty"`
 
 	// If type is object
 	Properties []Property `json:"properties,omitempty"`

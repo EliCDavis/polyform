@@ -1,4 +1,5 @@
 import { BasicParameterNodeController } from './basic_parameter';
+import { ColorParameterNodeController } from './color_parameter';
 import { Vector3ParameterNodeController } from './vector3_parameter';
 import { ImageParameterNodeController } from './image_parameter';
 import { AABBParameterNodeController } from './aabb_parameter';
@@ -65,11 +66,15 @@ function BuildParameter(
     switch (parameterData.type) {
         case "float64":
         case "float32":
+        case "norm.UFloat64":
+        case "norm.SFloat64":
         case "int":
         case "bool":
         case "string":
-        case "coloring.Color":
             return new BasicParameterNodeController(flowNode, nodeManager, id, parameterData);
+
+        case "coloring.Color":
+            return new ColorParameterNodeController(flowNode, nodeManager, id, parameterData);
 
         case "vector2.Vector[float64]":
         case "vector2.Vector[float32]":

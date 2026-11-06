@@ -180,15 +180,15 @@ func subGraphDefinitionEndpoint(graphInstance *graph.Instance, saver *GraphSaver
 					return EmptyResponse{}, nil
 				},
 			),
-			http.MethodDelete: endpoint.Func(
-				func(request *http.Request) error {
+			http.MethodDelete: endpoint.JsonResponseMethod(
+				func(request *http.Request) (DroppedResponse, error) {
 					subGraphID := strings.TrimPrefix(request.URL.Path, subGraphDefinitionEndpointPath)
-					err := graphInstance.DeleteSubGraph(subGraphID)
+					dropped, err := graphInstance.DeleteSubGraph(subGraphID)
 					if err != nil {
-						return err
+						return DroppedResponse{}, err
 					}
 					saver.Save()
-					return nil
+					return DroppedResponse{Dropped: dropped}, nil
 				},
 			),
 		},

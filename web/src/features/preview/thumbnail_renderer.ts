@@ -99,15 +99,17 @@ class ThumbnailRenderer {
     if (bytes.byteLength > THUMBNAIL_BYTE_LIMIT) return null;
 
     const gltf = await this.loader.parseAsync(bytes, "");
+    const root = gltf.scene ?? gltf.scenes?.[0];
+    if (!root) return null;
     const renderer = this.ensureRenderer();
-    this.model.add(gltf.scene);
+    this.model.add(root);
     try {
       this.frame();
       renderer.render(this.scene, this.camera);
       return renderer.domElement.toDataURL("image/png");
     } finally {
-      this.model.remove(gltf.scene);
-      gltf.scene.traverse((o) => {
+      this.model.remove(root);
+      root.traverse((o) => {
         if (o instanceof Mesh) {
           o.geometry.dispose();
           const materials = Array.isArray(o.material) ? o.material : [o.material];

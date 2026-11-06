@@ -3,7 +3,6 @@ package extrude_test
 import (
 	"testing"
 
-	"github.com/EliCDavis/polyform/arrays"
 	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/csg"
@@ -12,6 +11,7 @@ import (
 	"github.com/EliCDavis/polyform/modeling/sketch"
 	"github.com/EliCDavis/polyform/modeling/triangulation"
 	"github.com/EliCDavis/polyform/nodes"
+	"github.com/EliCDavis/polyform/nodes/arrays"
 	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
 	"github.com/stretchr/testify/assert"

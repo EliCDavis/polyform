@@ -3,10 +3,10 @@ package logic_test
 import (
 	"testing"
 
-	"github.com/EliCDavis/polyform/logic"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/primitives"
 	"github.com/EliCDavis/polyform/nodes"
+	"github.com/EliCDavis/polyform/nodes/logic"
 	"github.com/EliCDavis/vector/vector3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -46,7 +46,7 @@ func TestSelectTakesItsTypeFromWhicheverEndIsWiredFirst(t *testing.T) {
 
 	wire(t, node, "B", nodes.ConstOutput[vector3.Float64]{Val: vector3.One[float64]()})
 	assert.Equal(t, map[string]string{
-		"github.com/EliCDavis/polyform/logic.SelectType": "github.com/EliCDavis/vector/vector3.Vector[float64]",
+		"github.com/EliCDavis/polyform/nodes/logic.SelectType": "github.com/EliCDavis/vector/vector3.Vector[float64]",
 	}, node.DynamicTypes())
 	assert.Equal(t, "github.com/EliCDavis/vector/vector3.Vector[float64]",
 		node.Inputs()["A"].(nodes.Typed).Type(), "the other input took the same type")

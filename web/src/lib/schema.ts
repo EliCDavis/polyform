@@ -33,6 +33,7 @@ export interface RegisteredTypes {
   portTypes: Array<string>;
   // Go enums, keyed by variable type (`gltf.AlphaMode`); graph enums arrive on the schema.
   enums?: { [type: string]: EnumDefinition };
+  casts: Array<{ from: string; to: string }>;
 }
 
 export interface NodeDefinition {

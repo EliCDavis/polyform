@@ -70,7 +70,7 @@ func (sm *NestedSyncMap) Data() map[string]any {
 	sm.mutex.Lock()
 	defer sm.mutex.Unlock()
 
-	return sm.data
+	return clone(sm.data).(map[string]any)
 }
 
 func (sm *NestedSyncMap) Get(key string) any {
@@ -78,7 +78,26 @@ func (sm *NestedSyncMap) Get(key string) any {
 	defer sm.mutex.Unlock()
 
 	data, key := sm.lookup(key)
-	return data[key]
+	return clone(data[key])
+}
+
+// A live map handed out would be read, by a JSON encoder say, with the lock released.
+func clone(value any) any {
+	switch typed := value.(type) {
+	case map[string]any:
+		out := make(map[string]any, len(typed))
+		for k, v := range typed {
+			out[k] = clone(v)
+		}
+		return out
+	case []any:
+		out := make([]any, len(typed))
+		for i, v := range typed {
+			out[i] = clone(v)
+		}
+		return out
+	}
+	return value
 }
 
 func (sm *NestedSyncMap) Delete(key string) {

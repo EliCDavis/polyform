@@ -1,6 +1,8 @@
 package modeling
 
 import (
+	"fmt"
+
 	"github.com/EliCDavis/iter"
 	"github.com/EliCDavis/polyform/generator/registry"
 	"github.com/EliCDavis/polyform/nodes"
@@ -30,6 +32,10 @@ func init() {
 	refutil.RegisterType[nodes.Struct[SetAttribute2DNode]](factory)
 	refutil.RegisterType[nodes.Struct[SetAttribute3DNode]](factory)
 	refutil.RegisterType[nodes.Struct[SetAttribute4DNode]](factory)
+	refutil.RegisterType[nodes.Struct[GetAttribute1DNode]](factory)
+	refutil.RegisterType[nodes.Struct[GetAttribute2DNode]](factory)
+	refutil.RegisterType[nodes.Struct[GetAttribute3DNode]](factory)
+	refutil.RegisterType[nodes.Struct[GetAttribute4DNode]](factory)
 	refutil.RegisterType[nodes.Struct[FillAttribute1DNode]](factory)
 	refutil.RegisterType[nodes.Struct[FillAttribute2DNode]](factory)
 	refutil.RegisterType[nodes.Struct[FillAttribute3DNode]](factory)
@@ -321,6 +327,79 @@ func (n SetAttribute4DNode) Description() string {
 
 func (n SetAttribute4DNode) Out(out *nodes.Lifted[Mesh]) {
 	setAttribute(out, n.Mesh, n.Attribute, n.Data, Mesh.SetFloat4Attribute)
+}
+
+// ============================================================================
+
+func getAttribute[T any](
+	out *nodes.Lifted[[]T],
+	mesh nodes.LiftedPort[Mesh],
+	attribute nodes.LiftedPort[string],
+	has func(Mesh, string) bool,
+	get func(Mesh, string) *iter.ArrayIterator[T],
+) {
+	nodes.Zip2(out, nodes.LiftedOr(mesh, EmptyPointcloud()), attribute, func(m Mesh, name string) []T {
+		if name == "" {
+			return []T{}
+		}
+		if !has(m, name) {
+			out.CaptureError(fmt.Errorf("mesh has no %q attribute of this size", name))
+			return []T{}
+		}
+		return iterToArr(get(m, name))
+	})
+}
+
+type GetAttribute1DNode struct {
+	Mesh      nodes.LiftedPort[Mesh]
+	Attribute nodes.LiftedPort[string]
+}
+
+func (n GetAttribute1DNode) Description() string {
+	return "Reads a named attribute off a mesh as an array of numbers."
+}
+
+func (n GetAttribute1DNode) Out(out *nodes.Lifted[[]float64]) {
+	getAttribute(out, n.Mesh, n.Attribute, Mesh.HasFloat1Attribute, Mesh.Float1Attribute)
+}
+
+type GetAttribute2DNode struct {
+	Mesh      nodes.LiftedPort[Mesh]
+	Attribute nodes.LiftedPort[string]
+}
+
+func (n GetAttribute2DNode) Description() string {
+	return "Reads a named attribute off a mesh as an array of 2D vectors."
+}
+
+func (n GetAttribute2DNode) Out(out *nodes.Lifted[[]vector2.Float64]) {
+	getAttribute(out, n.Mesh, n.Attribute, Mesh.HasFloat2Attribute, Mesh.Float2Attribute)
+}
+
+type GetAttribute3DNode struct {
+	Mesh      nodes.LiftedPort[Mesh]
+	Attribute nodes.LiftedPort[string]
+}
+
+func (n GetAttribute3DNode) Description() string {
+	return "Reads a named attribute off a mesh as an array of 3D vectors."
+}
+
+func (n GetAttribute3DNode) Out(out *nodes.Lifted[[]vector3.Float64]) {
+	getAttribute(out, n.Mesh, n.Attribute, Mesh.HasFloat3Attribute, Mesh.Float3Attribute)
+}
+
+type GetAttribute4DNode struct {
+	Mesh      nodes.LiftedPort[Mesh]
+	Attribute nodes.LiftedPort[string]
+}
+
+func (n GetAttribute4DNode) Description() string {
+	return "Reads a named attribute off a mesh as an array of 4D vectors."
+}
+
+func (n GetAttribute4DNode) Out(out *nodes.Lifted[[]vector4.Float64]) {
+	getAttribute(out, n.Mesh, n.Attribute, Mesh.HasFloat4Attribute, Mesh.Float4Attribute)
 }
 
 // ============================================================================

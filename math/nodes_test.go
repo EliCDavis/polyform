@@ -552,17 +552,6 @@ func TestUnaryNodesFollowTheirInput(t *testing.T) {
 			nodetest.AssertLiftedInput("In", "bool"),
 		),
 		nodetest.NewTestCase(
-			"Bool to number over an array",
-			nodetest.NewNode(math.BoolToNumberNode{In: nodetest.NewPortValue([]bool{true, false})}),
-			nodetest.AssertOutput("Float 64", []float64{1, 0}),
-			nodetest.AssertOutput("Int", []int{1, 0}),
-		),
-		nodetest.NewTestCase(
-			"Int to float over an array",
-			nodetest.NewNode(math.IntToFloatNode{In: nodetest.NewPortValue([]int{1, 2})}),
-			nodetest.AssertOutput("Out", []float64{1, 2}),
-		),
-		nodetest.NewTestCase(
 			"Inverse over an array reports the zero it could not divide by",
 			nodetest.NewNode(math.InverseNode[float64]{In: nodetest.NewPortValue([]float64{2, 0})}),
 			nodetest.AssertOutput("Multiplicative", []float64{0.5, 0}),

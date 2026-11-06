@@ -14,7 +14,6 @@ func init() {
 	refutil.RegisterType[nodes.Struct[NewNode]](factory)
 
 	refutil.RegisterType[nodes.Struct[FromImageNode]](factory)
-	refutil.RegisterType[nodes.Struct[FromNormalMapNode]](factory)
 	refutil.RegisterType[nodes.Struct[FromHeightMapNode]](factory)
 
 	refutil.RegisterType[nodes.Struct[DrawSpheresNode]](factory)
@@ -101,22 +100,4 @@ func (n FromHeightMapNode) NormalMap(out *nodes.StructOutput[NormalMap]) {
 		nodes.GetOutputValue(out, n.In),
 		nodes.GetOutputValue(out, n.Scale),
 	))
-}
-
-// ============================================================================
-
-type FromNormalMapNode struct {
-	Normals nodes.Output[NormalMap]
-}
-
-func (n FromNormalMapNode) Description() string {
-	return "Converts a normal map into an image."
-}
-
-func (n FromNormalMapNode) Image(out *nodes.StructOutput[image.Image]) {
-	if n.Normals == nil {
-		return
-	}
-
-	out.Set(RasterizeNormalmap(nodes.GetOutputValue(out, n.Normals)))
 }

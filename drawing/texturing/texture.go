@@ -464,30 +464,6 @@ func (n SelectColorNode) A(out *nodes.StructOutput[Texture[float64]]) {
 
 // ============================================================================
 
-type ColorToImageNode struct {
-	Texture nodes.Output[Texture[coloring.Color]]
-}
-
-func (n ColorToImageNode) Description() string {
-	return "Converts a color texture into an image."
-}
-
-func (n ColorToImageNode) Image(out *nodes.StructOutput[image.Image]) {
-	if n.Texture == nil {
-		return
-	}
-	out.Set(nodes.GetOutputValue(out, n.Texture).ToImage(func(c coloring.Color) color.Color {
-		return coloring.Color{
-			R: math.Max(0, math.Min(1, c.R)),
-			G: math.Max(0, math.Min(1, c.G)),
-			B: math.Max(0, math.Min(1, c.B)),
-			A: math.Max(0, math.Min(1, c.A)),
-		}
-	}))
-}
-
-// ============================================================================
-
 type FloatToImageNode struct {
 	R nodes.Output[Texture[float64]]
 	G nodes.Output[Texture[float64]]

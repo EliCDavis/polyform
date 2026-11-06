@@ -2,12 +2,13 @@ package parameter
 
 import (
 	"encoding/json"
-	"fmt"
+	"reflect"
 
 	"github.com/EliCDavis/jbtf"
 	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/generator/schema"
 	"github.com/EliCDavis/polyform/math/geometry"
+	"github.com/EliCDavis/polyform/math/norm"
 	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/polyform/math/trs"
 	"github.com/EliCDavis/polyform/nodes"
@@ -74,6 +75,8 @@ type parameterNodeGraphSchema[T any] struct {
 // Common types for shorthand purposes
 type Float64 = Value[float64]
 type Float32 = Value[float32]
+type UFloat64 = Value[norm.UFloat64]
+type SFloat64 = Value[norm.SFloat64]
 type Int = Value[int]
 type String = Value[string]
 type Bool = Value[bool]
@@ -192,7 +195,7 @@ func (pn *Value[T]) Schema() schema.Parameter {
 		ParameterBase: schema.ParameterBase{
 			Name:        pn.Name,
 			Description: pn.Description,
-			Type:        fmt.Sprintf("%T", *new(T)),
+			Type:        reflect.TypeFor[T]().String(),
 		},
 		CurrentValue: pn.Value(),
 	}

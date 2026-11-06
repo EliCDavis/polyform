@@ -5,7 +5,7 @@ import { SubGraphSection } from "@/features/subgraph/SubGraphSection";
 import { useUiStore } from "@/stores/uiStore";
 import { ReactNode, useState } from "react";
 
-import { Puzzle, Variable, Video, Search, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { Puzzle, Variable, Video, Search, PanelLeftClose, PanelLeftOpen, List } from "lucide-react";
 import { RenderingSection } from "../rendering/RenderingSection";
 import { ThreeApp } from "@/lib/three_app";
 import { NodesSection } from "../NodesSection/NodesSection";
@@ -13,6 +13,7 @@ import { NodesSection } from "../NodesSection/NodesSection";
 enum SidebarSection {
   Subgraphs = "Subgraphs",
   Variables = "Variables",
+  Enums = "Enums",
   Rendering = "Rendering",
   Nodes = "Nodes",
 }
@@ -90,6 +91,12 @@ export function Sidebar({}: SidebarProps) {
           icon={<Variable />}
         />
         <SideBarIcon
+          section={SidebarSection.Enums}
+          currentState={sectionShown}
+          click={setSectionShown}
+          icon={<List />}
+        />
+        <SideBarIcon
           section={SidebarSection.Subgraphs}
           currentState={sectionShown}
           click={setSectionShown}
@@ -128,12 +135,8 @@ export function Sidebar({}: SidebarProps) {
             {!hideFileControls && <FileMenu />}
           </div>
         )}
-        {sectionShown == SidebarSection.Variables && (
-          <>
-            <VariableSection />
-            <EnumSection />
-          </>
-        )}
+        {sectionShown == SidebarSection.Variables && <VariableSection />}
+        {sectionShown == SidebarSection.Enums && <EnumSection />}
         {sectionShown == SidebarSection.Subgraphs && <SubGraphSection />}
         {sectionShown == SidebarSection.Rendering && <RenderingSection />}
         {sectionShown == SidebarSection.Nodes && <NodesSection />}

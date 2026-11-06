@@ -2,45 +2,54 @@ import { useEffect, useRef, useState } from "react";
 import { setVariableValue } from "@/api/variables";
 import { NumberInput } from "@/components/NumberInput";
 import { useLiveValue } from "@/components/useLiveValue";
-import { ListEditor, ListItem, ListToggle } from "./ListEditor";
+import { alphaOf, opaque, shownAlpha, withAlpha } from "@/lib/color_alpha";
+import { ListEditor, ListItem } from "./ListEditor";
+import styles from "./editors.module.css";
+
+function ColorInput({ value, onChange }: { value: string; onChange: (hex: string) => void }) {
+  return (
+    <>
+      <input
+        type="color"
+        value={opaque(value)}
+        style={{ minHeight: 25, width: 25, maxWidth: 25, padding: 0, cursor: "pointer" }}
+        onChange={(e) => onChange(withAlpha(e.target.value, alphaOf(value)))}
+      />
+      <label className={styles.alpha} title="Alpha">
+        A
+        <NumberInput
+          step="0.01"
+          min={0}
+          max={1}
+          value={shownAlpha(value)}
+          onCommit={(alpha) => onChange(withAlpha(value, alpha))}
+        />
+      </label>
+    </>
+  );
+}
 
 export function ColorEditor({ variableKey, value }: { variableKey: string; value: string }) {
   const [color, , commit] = useLiveValue(value, (v) => setVariableValue(variableKey, v));
   return (
-    <div style={{ display: "flex", flexDirection: "row", gap: 16, alignItems: "center" }}>
-      <input
-        type="color"
-        value={color}
-        style={{ minHeight: 25, width: 25, maxWidth: 25, padding: 0, cursor: "pointer" }}
-        onChange={(e) => commit(e.target.value)}
-      />
-      <span>{color}</span>
+    <div style={{ display: "flex", flexDirection: "row", gap: 8, alignItems: "center" }}>
+      <ColorInput value={color} onChange={commit} />
+      <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>{opaque(color)}</span>
     </div>
   );
 }
 
-// Alpha is dropped: <input type="color"> only speaks #rrggbb.
-function ColorSwatch({ value, onChange }: { value: string; onChange: (hex: string) => void }) {
-  return (
-    <input
-      type="color"
-      value={(value ?? "#000000").slice(0, 7)}
-      style={{ minHeight: 25, width: 25, maxWidth: 25, padding: 0, cursor: "pointer" }}
-      onChange={(e) => onChange(e.target.value)}
-    />
-  );
-}
-
-export function ColorListEditor({ variableKey, value }: { variableKey: string; value: string[] }) {
+export function ColorListEditor({ variableKey, value, open }: { variableKey: string; value: string[]; open: boolean }) {
   return (
     <ListEditor<string>
       variableKey={variableKey}
       value={value}
+      open={open}
       blank={(items, index) => items[index - 1] ?? "#ffffff"}
       renderItem={(item, update) => (
-        <div style={{ display: "flex", flexDirection: "row", gap: 16, alignItems: "center" }}>
-          <ColorSwatch value={item} onChange={update} />
-          <span>{item}</span>
+        <div style={{ display: "flex", flexDirection: "row", gap: 8, alignItems: "center" }}>
+          <ColorInput value={item} onChange={update} />
+          <span>{opaque(item)}</span>
         </div>
       )}
     />
@@ -64,9 +73,8 @@ function gradientCSS(keys: GradientKey[]): string {
 
 // The backend renormalizes key times to span 0..1 on every write, so the
 // first and last stops are pinned and only the ones between them move.
-export function GradientEditor({ variableKey, value }: { variableKey: string; value: GradientValue }) {
+export function GradientEditor({ variableKey, value, open }: { variableKey: string; value: GradientValue; open: boolean }) {
   const [keys, setKeys] = useState<GradientKey[]>(value?.keys ?? []);
-  const [open, setOpen] = useState(false);
   const pendingWrites = useRef(0);
 
   useEffect(() => {
@@ -96,12 +104,11 @@ export function GradientEditor({ variableKey, value }: { variableKey: string; va
   return (
     <div className="variable-inputs">
       <div style={{ height: 18, borderRadius: 3, background: gradientCSS(keys) }} />
-      <ListToggle label={`${keys.length} stops`} open={open} onToggle={() => setOpen(!open)} />
       {open &&
         keys.map((key, i) => (
           <ListItem key={i} index={i} onRemove={() => commit(keys.filter((_, j) => j !== i))}>
             <div style={{ display: "flex", flexDirection: "row", gap: 8, alignItems: "center" }}>
-              <ColorSwatch value={key.value} onChange={(hex) => commit(keys.map((k, j) => (j === i ? { ...k, value: hex } : k)))} />
+              <ColorInput value={key.value} onChange={(hex) => commit(keys.map((k, j) => (j === i ? { ...k, value: hex } : k)))} />
               <NumberInput
                 step="0.01"
                 min={0}
@@ -110,7 +117,7 @@ export function GradientEditor({ variableKey, value }: { variableKey: string; va
                 disabled={pinned(i)}
                 onCommit={(t) => commit(keys.map((k, j) => (j === i ? { ...k, time: t } : k)))}
               />
-              <button type="button" title="Insert a stop after this one" onClick={() => insertAfter(i)}>
+              <button type="button" className={styles.iconButton} title="Insert a stop after this one" onClick={() => insertAfter(i)}>
                 +
               </button>
             </div>

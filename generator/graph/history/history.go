@@ -5,6 +5,7 @@ package history
 import (
 	"errors"
 	"fmt"
+	"sync"
 )
 
 const (
@@ -26,6 +27,8 @@ type History struct {
 	snapshot func() ([]byte, error)
 	restore  func([]byte) error
 
+	// Held for a whole step: a rollback restores the state from before it, which would erase any step overlapping it.
+	mu     sync.Mutex
 	past   []entry
 	future []entry
 }
@@ -37,6 +40,9 @@ func New(snapshot func() ([]byte, error), restore func([]byte) error) *History {
 // Transact runs f as one undoable step. A step that fails is rolled back
 // rather than left half applied.
 func (h *History) Transact(label string, f func() error) (err error) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
 	before, err := h.snapshot()
 	if err != nil {
 		return fmt.Errorf("could not snapshot the graph before %q: %w", label, err)
@@ -88,15 +94,27 @@ func safely(f func() error) (err error) {
 	return f()
 }
 
-func (h *History) CanUndo() bool { return len(h.past) > 0 }
+func (h *History) CanUndo() bool {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	return len(h.past) > 0
+}
 
-func (h *History) CanRedo() bool { return len(h.future) > 0 }
+func (h *History) CanRedo() bool {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	return len(h.future) > 0
+}
 
 func (h *History) Undo() (string, error) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
 	return h.step(&h.past, &h.future, "undo")
 }
 
 func (h *History) Redo() (string, error) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
 	return h.step(&h.future, &h.past, "redo")
 }
 
@@ -126,6 +144,9 @@ type Steps struct {
 }
 
 func (h *History) Steps() Steps {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
 	labels := func(stack []entry) []string {
 		out := make([]string, 0, len(stack))
 		for i := len(stack) - 1; i >= 0; i-- {

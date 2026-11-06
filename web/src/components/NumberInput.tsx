@@ -29,7 +29,8 @@ export function NumberInput({ value, onCommit, integer, step, min, max, disabled
     lastCommitted.current = value;
   }, [value, editing]);
 
-  const parse = (s: string) => (integer ? parseInt(s, 10) : parseFloat(s));
+  const parse = (s: string) =>
+    Math.min(Math.max(integer ? parseInt(s, 10) : parseFloat(s), min ?? -Infinity), max ?? Infinity);
 
   const tryCommit = (s: string) => {
     const n = parse(s);

@@ -59,10 +59,8 @@ func init() {
 	refutil.RegisterType[nodes.Struct[MaxArrayNode[float64]]](factory)
 	refutil.RegisterType[nodes.Struct[BoundsNode]](factory)
 
-	refutil.RegisterType[nodes.Struct[IntToFloatNode]](factory)
 	refutil.RegisterType[nodes.Struct[CompareNode[int]]](factory)
 	refutil.RegisterType[nodes.Struct[CompareNode[float64]]](factory)
-	refutil.RegisterType[nodes.Struct[BoolToNumberNode]](factory)
 	refutil.RegisterType[nodes.Struct[NotNode]](factory)
 
 	refutil.RegisterType[nodes.Struct[PlaneFromNormalNode]](factory)
@@ -159,20 +157,6 @@ func (cn HalfNode[T]) Float64(out *nodes.Lifted[float64]) {
 
 func (cn HalfNode[T]) Description() string {
 	return "Divides the number in half"
-}
-
-// ============================================================================
-
-type IntToFloatNode struct {
-	In nodes.LiftedPort[int]
-}
-
-func (cn IntToFloatNode) Description() string {
-	return "Converts a whole number to a decimal one."
-}
-
-func (cn IntToFloatNode) Out(out *nodes.Lifted[float64]) {
-	nodes.Zip1(out, cn.In, func(v int) float64 { return float64(v) })
 }
 
 // ============================================================================

@@ -2,11 +2,13 @@ import { Modal, PopupButton } from "@/components/Modal";
 import type { SchemaManager } from "@/lib/schema_manager";
 import type { NodeManager } from "@/lib/node_manager";
 import { getApiErrorMessage, requestManager } from "@/api/client";
+import type { SubGraphPlacement } from "@/features/subgraph/SubGraphRow";
 
 interface DeleteSubGraphModalProps {
   open: boolean;
   subGraphId: string;
   name: string;
+  placements: SubGraphPlacement[];
   schemaManager: SchemaManager;
   nodeManager: NodeManager;
   onDeleted: () => void;
@@ -17,6 +19,7 @@ export function DeleteSubGraphModal({
   open,
   subGraphId,
   name,
+  placements,
   schemaManager,
   nodeManager,
   onDeleted,
@@ -52,7 +55,12 @@ export function DeleteSubGraphModal({
       <p>
         Are you sure you want to delete <strong>{name}</strong>?
       </p>
-      <p>This cannot be undone. Sub-graph nodes on the main graph must be removed first.</p>
+      {placements.length > 0 && (
+        <p>
+          This also removes its {placements.length === 1 ? "placement" : `${placements.length} placements`} in{" "}
+          {[...new Set(placements.map((p) => p.label))].join(", ")}.
+        </p>
+      )}
     </Modal>
   );
 }

@@ -18,48 +18,55 @@ func GetOutputValues[G any](recorder ExecutionRecorder, output []Output[G]) []G 
 		start := time.Now()
 		if spread, ok := SpreadValues[G](out); ok {
 			recorder.CaptureTiming(out.Name(), time.Since(start))
+			captureOutputError(recorder, out)
 			results = append(results, spread...)
 			continue
 		}
-		v := out.Value()
-		recorder.CaptureTiming(out.Name(), time.Since(start))
-		results = append(results, v)
+		results = append(results, readOutput(recorder, out))
 	}
 
 	return results
+}
+
+type FailingOutput interface {
+	Err() error
+}
+
+func captureOutputError(recorder ExecutionRecorder, output OutputPort) {
+	if failing, ok := output.(FailingOutput); ok {
+		recorder.CaptureError(failing.Err())
+	}
+}
+
+func readOutput[G any](recorder ExecutionRecorder, output Output[G]) G {
+	start := time.Now()
+	v := output.Value()
+	recorder.CaptureTiming(output.Name(), time.Since(start))
+	captureOutputError(recorder, output)
+	return v
 }
 
 func TryGetOutputValue[G any](recorder ExecutionRecorder, output Output[G], fallback G) G {
 	if output == nil {
 		return fallback
 	}
-	start := time.Now()
-	v := output.Value()
-	recorder.CaptureTiming(output.Name(), time.Since(start))
-	return v
+	return readOutput(recorder, output)
 }
 
 func GetOutputValue[G any](recorder ExecutionRecorder, output Output[G]) G {
-	start := time.Now()
-	v := output.Value()
-	recorder.CaptureTiming(output.Name(), time.Since(start))
-	return v
+	return readOutput(recorder, output)
 }
 
 func TryGetOutputReference[G any](result ExecutionRecorder, output Output[G], fallback *G) *G {
 	if output == nil {
 		return fallback
 	}
-	start := time.Now()
-	v := output.Value()
-	result.CaptureTiming(output.Name(), time.Since(start))
+	v := readOutput(result, output)
 	return &v
 }
 
 func GetOutputReference[G any](result ExecutionRecorder, output Output[G]) *G {
-	start := time.Now()
-	v := output.Value()
-	result.CaptureTiming(output.Name(), time.Since(start))
+	v := readOutput(result, output)
 	return &v
 }
 

@@ -3,8 +3,8 @@ package logic_test
 import (
 	"testing"
 
-	"github.com/EliCDavis/polyform/logic"
 	"github.com/EliCDavis/polyform/nodes"
+	"github.com/EliCDavis/polyform/nodes/logic"
 	"github.com/stretchr/testify/assert"
 )
 

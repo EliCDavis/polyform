@@ -12,6 +12,7 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/EliCDavis/polyform/generator/cast"
 	"github.com/EliCDavis/polyform/generator/cli"
 	"github.com/EliCDavis/polyform/generator/edit"
 	"github.com/EliCDavis/polyform/generator/graph"
@@ -34,6 +35,7 @@ type App struct {
 	Authors                 []persistence.Author
 	VariableFactory         func(variableType string) (variable.Variable, error)
 	NodeOutputSerialization *serialize.TypeSwitch[manifest.Entry]
+	Casts                   *cast.Table
 
 	Out   io.Writer
 	Err   io.Writer
@@ -68,6 +70,7 @@ func (a *App) initGraphInstance() {
 	a.Graph = graph.New(graph.Config{
 		TypeFactory:     registry.Types(),
 		VariableFactory: a.VariableFactory,
+		Casts:           a.Casts,
 	})
 }
 

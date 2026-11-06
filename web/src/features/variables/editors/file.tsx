@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { setBinaryVariableValue } from "@/api/variables";
+import styles from "./editors.module.css";
 
 function formatFileSize(bytes: number): string {
   if (bytes === 0) return "0 B";
@@ -12,30 +13,34 @@ function formatFileSize(bytes: number): string {
 
 export function ImageEditor({ variableKey }: { variableKey: string }) {
   const [src, setSrc] = useState(`./variable/value/${variableKey}?t=${Date.now()}`);
+  const [missing, setMissing] = useState(false);
   return (
-    <div className="variable-inputs">
-      <img src={src} alt={variableKey} style={{ maxWidth: "100%" }} />
-      <button type="button" onClick={() => setBinaryVariableValue(variableKey, () => setSrc(`./variable/value/${variableKey}?t=${Date.now()}`))}>
-        Set Image
+    <div className={styles.fileRow}>
+      <a href={src} target="_blank" rel="noopener noreferrer" className={styles.thumb}>
+        {!missing && <img src={src} alt="" onError={() => setMissing(true)} />}
+      </a>
+      <button
+        type="button"
+        className={styles.setButton}
+        onClick={() =>
+          setBinaryVariableValue(variableKey, () => {
+            setMissing(false);
+            setSrc(`./variable/value/${variableKey}?t=${Date.now()}`);
+          })
+        }
+      >
+        Set…
       </button>
     </div>
   );
 }
 
 export function FileEditor({ variableKey, size }: { variableKey: string; size: number }) {
-  const [displaySize] = useState(formatFileSize(size));
   return (
-    <div className="variable-inputs">
-      <span>{displaySize}</span>
-      <button
-        type="button"
-        onClick={() =>
-          setBinaryVariableValue(variableKey, () => {
-            /* size updates on schema refresh */
-          })
-        }
-      >
-        Set File
+    <div className={styles.fileRow}>
+      <span className={styles.fileSize}>{formatFileSize(size)}</span>
+      <button type="button" className={styles.setButton} onClick={() => setBinaryVariableValue(variableKey)}>
+        Set…
       </button>
     </div>
   );

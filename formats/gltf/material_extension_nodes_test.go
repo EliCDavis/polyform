@@ -9,6 +9,7 @@ import (
 
 	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/formats/gltf"
+	"github.com/EliCDavis/polyform/math/norm"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/vector/vector2"
 	"github.com/stretchr/testify/assert"
@@ -46,14 +47,14 @@ func glbJSON(t *testing.T, material gltf.PolyformMaterial) map[string]any {
 func TestMaterialNodeCarriesSheenSpecularIridescenceAndDispersion(t *testing.T) {
 	sheen := nodes.GetNodeOutputPort[gltf.PolyformSheen](&nodes.Struct[gltf.MaterialSheenExtensionNode]{Data: gltf.MaterialSheenExtensionNode{
 		ColorFactor:     nodes.ConstOutput[coloring.Color]{Val: coloring.Color{R: 0.8, G: 0.1, B: 0.1, A: 1}},
-		RoughnessFactor: nodes.ConstOutput[float64]{Val: 0.6},
+		RoughnessFactor: nodes.ConstOutput[norm.UFloat64]{Val: 0.6},
 	}}, "Out").Value()
 	specular := nodes.GetNodeOutputPort[gltf.PolyformSpecular](&nodes.Struct[gltf.MaterialSpecularExtensionNode]{Data: gltf.MaterialSpecularExtensionNode{
-		Factor:      nodes.ConstOutput[float64]{Val: 0.5},
+		Factor:      nodes.ConstOutput[norm.UFloat64]{Val: 0.5},
 		ColorFactor: nodes.ConstOutput[coloring.Color]{Val: coloring.Color{R: 1, G: 0.9, B: 0.5, A: 1}},
 	}}, "Out").Value()
 	iridescence := nodes.GetNodeOutputPort[gltf.PolyformIridescence](&nodes.Struct[gltf.MaterialIridescenceExtensionNode]{Data: gltf.MaterialIridescenceExtensionNode{
-		Factor:            nodes.ConstOutput[float64]{Val: 1},
+		Factor:            nodes.ConstOutput[norm.UFloat64]{Val: 1},
 		IndexOfRefraction: nodes.ConstOutput[float64]{Val: 1.5},
 		ThicknessMinimum:  nodes.ConstOutput[float64]{Val: 200},
 		ThicknessMaximum:  nodes.ConstOutput[float64]{Val: 600},
@@ -102,7 +103,7 @@ func textureOutput(t *testing.T) nodes.Output[gltf.PolyformTexture] {
 func TestMaterialNodeWritesAlphaModeOcclusionAndUnlit(t *testing.T) {
 	occlusion := nodes.GetNodeOutputPort[gltf.PolyformOcclusion](&nodes.Struct[gltf.OcclusionTextureNode]{Data: gltf.OcclusionTextureNode{
 		Texture:  textureOutput(t),
-		Strength: nodes.ConstOutput[float64]{Val: 0.7},
+		Strength: nodes.ConstOutput[norm.UFloat64]{Val: 0.7},
 	}}, "Out").Value()
 
 	material := materialWith(t, func(m *gltf.MaterialNode) {
@@ -171,7 +172,7 @@ func TestExtensionNodesWriteTheirTextures(t *testing.T) {
 	coatNormal := texture(t, gltf.TextureNode{})
 	coatNormalScale := 0.4
 	anisotropy := nodes.GetNodeOutputPort[gltf.PolyformAnisotropy](&nodes.Struct[gltf.MaterialAnisotropyExtensionNode]{Data: gltf.MaterialAnisotropyExtensionNode{
-		AnisotropyStrength: nodes.ConstOutput[float64]{Val: 0.6},
+		AnisotropyStrength: nodes.ConstOutput[norm.UFloat64]{Val: 0.6},
 		AnisotropyTexture:  textureOutput(t),
 	}}, "Out").Value()
 	volume := nodes.GetNodeOutputPort[gltf.PolyformVolume](&nodes.Struct[gltf.MaterialVolumeExtensionNode]{Data: gltf.MaterialVolumeExtensionNode{
@@ -179,7 +180,7 @@ func TestExtensionNodesWriteTheirTextures(t *testing.T) {
 		ThicknessTexture: textureOutput(t),
 	}}, "Out").Value()
 	clearcoat := nodes.GetNodeOutputPort[gltf.PolyformClearcoat](&nodes.Struct[gltf.MaterialClearcoatExtensionNode]{Data: gltf.MaterialClearcoatExtensionNode{
-		ClearcoatFactor:           nodes.ConstOutput[float64]{Val: 1},
+		ClearcoatFactor:           nodes.ConstOutput[norm.UFloat64]{Val: 1},
 		ClearcoatTexture:          textureOutput(t),
 		ClearcoatRoughnessTexture: textureOutput(t),
 		ClearcoatNormalTexture:    nodes.ConstOutput[gltf.PolyformNormal]{Val: gltf.PolyformNormal{PolyformTexture: &coatNormal, Scale: &coatNormalScale}},

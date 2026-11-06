@@ -311,87 +311,110 @@ select {
 }
 
 .subgraph-row {
-  border-radius: 4px;
-  overflow: hidden;
-  background-color: #122a34;
+  padding: 4px 0 10px 8px;
+  border-left: 3px solid transparent;
+  border-bottom: 1px solid #003847;
+}
+
+.subgraph-row.active {
+  border-left-color: #196e6c;
+  background-color: #0b3540;
 }
 
 .subgraph-row-header {
   display: flex;
   flex-direction: row;
-  align-items: stretch;
-  background-color: #0d3d45;
-}
-
-.subgraph-row.active .subgraph-row-header {
-  background-color: #196e6c;
+  align-items: center;
 }
 
 .subgraph-row-name {
   flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   text-align: left;
-  font-size: 16px;
-  padding: 6px 10px;
+  font-size: 18px;
+  padding: 0;
   border-radius: 0;
   background-color: transparent;
 }
 
 .subgraph-row-name:hover {
-  background-color: #196e6c;
+  color: #8fd3cf;
 }
 
-.subgraph-row-body {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px 6px;
-  padding: 6px 10px 8px;
-}
-
-.subgraph-row-count {
-  font-size: 11px;
-  line-height: 18px;
-  color: #8fa8b0;
-  white-space: nowrap;
-}
-
-.subgraph-row-divider {
-  width: 1px;
-  height: 12px;
-  background-color: #2a4a55;
-}
-
-.used-in-chip {
+.subgraph-row-meta {
   font-size: 11px;
   line-height: 16px;
-  padding: 1px 8px;
-  border: 1px solid #2a4a55;
-  border-radius: 9px;
-  background-color: #00212b;
-  color: #cfe3e8;
-  cursor: pointer;
+  color: #8fa8b0;
 }
 
-.used-in-chip:hover {
-  background-color: #196e6c;
-  border-color: #196e6c;
-  color: #fff;
+.used-in-link {
+  font-size: inherit;
+  padding: 0;
+  border-radius: 0;
+  background-color: transparent;
+  color: #5fb3b0;
+}
+
+.used-in-link:hover {
+  color: #8fd3cf;
+  text-decoration: underline;
 }
 
 .used-in-count {
-  margin-left: 4px;
+  margin-left: 2px;
   color: #8fa8b0;
-}
-
-.used-in-chip:hover .used-in-count {
-  color: #d6ecee;
 }
 
 .used-in-none {
-  font-size: 11px;
-  line-height: 18px;
-  color: #8fa8b0;
   font-style: italic;
+}
+
+.subgraph-row-ports {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) fit-content(60%);
+  gap: 0 8px;
+  margin-top: 6px;
+  padding-right: 8px;
+  font-size: 11px;
+  line-height: 17px;
+  color: #b5c7cc;
+}
+
+.subgraph-port-list {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.subgraph-port-list.output {
+  align-items: flex-end;
+}
+
+.subgraph-port {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+}
+
+.subgraph-port-list.output .subgraph-port {
+  flex-direction: row-reverse;
+}
+
+.subgraph-port-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.subgraph-port-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 #three-canvas {
@@ -605,23 +628,4 @@ button.dropdown-item {
 
 button.dropdown-item:hover {
   background-color: #122a34;
-}
-
-button.toggle {
-  width: 50px;
-  padding: 3px;
-  border-radius: 28px;
-  border-color: #003847;
-  background-color: #0a2e3d;
-  display: flex;
-  flex-direction: row;
-  border-style: solid;
-  border-width: 2px;
-}
-
-.toggle > .toggle-slider {
-  height: 20px;
-  width: 20px;
-  background-color: #003847;
-  border-radius: 20px;
 }

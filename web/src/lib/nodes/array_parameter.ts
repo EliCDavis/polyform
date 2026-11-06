@@ -4,6 +4,7 @@ import { ThreeApp } from '../three_app';
 import { PointPathGizmo, pathInsertionPoint } from '../gizmo/point_path';
 import { TRSListGizmo } from '../gizmo/trs_list';
 import { eulerToQuat, identityQuat, quatToEuler } from '../rotation';
+import { colorWidgets } from './color_widgets';
 import { InsertRuleWidget, RemoveWidget } from './list_widgets';
 import { lockIfReadOnly } from './read_only';
 import type { NodeParameterBase, TRS, Vec2, Vec3 } from '../../types/parameter';
@@ -220,6 +221,12 @@ export class ArrayParameterNodeController<T> {
     private buildItem(item: T, index: number): (item: T) => void {
         const replace = (next: T) => this.commit(this.items.map((it, i) => (i === index ? next : it)));
 
+        if (this.kind.widget === "color") {
+            const color = colorWidgets(this.flowNode, String(item), (hex) => replace(hex as T));
+            this.add(new RowWidget(color.widgets, { grow: [1, 0] }));
+            return (next) => color.set(String(next));
+        }
+
         const components = this.kind.components;
         if (components === null) {
             const widget = this.scalarWidget(item, (v) => replace(v as T));
@@ -265,9 +272,6 @@ export class ArrayParameterNodeController<T> {
     }
 
     private scalarWidget(value: unknown, onChange: (v: unknown) => void): ValueWidget<any> {
-        if (this.kind.widget === "color") {
-            return GlobalWidgetFactory.create(this.flowNode, "color", { value: String(value), callback: onChange });
-        }
         if (this.kind.widget === "string") {
             return GlobalWidgetFactory.create(this.flowNode, "string", { value: String(value), callback: onChange });
         }

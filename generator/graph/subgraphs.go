@@ -7,6 +7,7 @@ import (
 	"github.com/EliCDavis/jbtf"
 	"github.com/EliCDavis/polyform/generator/persistence"
 	"github.com/EliCDavis/polyform/generator/subgraph"
+	"github.com/EliCDavis/polyform/nodes"
 )
 
 type subGraphRuntime struct {
@@ -63,11 +64,10 @@ func (a *Instance) createSubGraph(id, name, description string) error {
 	return nil
 }
 
-func (a *Instance) DeleteSubGraph(id string) error {
-	_, err := a.write(refuseConflicts, func() error {
+func (a *Instance) DeleteSubGraph(id string) ([]DroppedEdge, error) {
+	return a.write(dropConflicts, func() error {
 		return a.deleteSubGraph(id)
 	})
-	return err
 }
 
 func (a *Instance) deleteSubGraph(id string) error {
@@ -75,14 +75,21 @@ func (a *Instance) deleteSubGraph(id string) error {
 		return fmt.Errorf("sub-graph %q does not exist", id)
 	}
 
-	placed := 0
-	for node := range a.nodeIDs {
-		if placement, ok := node.(*SubgraphInstanceNode); ok && placement.subGraphID == id {
-			placed++
+	for _, scope := range a.scopes() {
+		if scope.graph.scope == id {
+			continue
 		}
-	}
-	if placed > 0 {
-		return fmt.Errorf("sub-graph %q is still referenced by %d node instance(s)", id, placed)
+		var placements []nodes.Node
+		for node := range scope.graph.nodeIDs {
+			if placement, ok := node.(*SubgraphInstanceNode); ok && placement.subGraphID == id {
+				placements = append(placements, placement)
+			}
+		}
+		for _, placement := range placements {
+			if err := scope.graph.deleteNode(placement); err != nil {
+				return err
+			}
+		}
 	}
 
 	a.typeFactory.Unregister(subgraph.RuntimeTypePath(id))

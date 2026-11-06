@@ -77,6 +77,9 @@ func (tv *ImageVariable) ApplyMessage(msg []byte) (bool, error) {
 }
 
 func (tv ImageVariable) ToMessage() []byte {
+	if tv.value == nil {
+		return nil
+	}
 	out := bytes.Buffer{}
 	err := png.Encode(&out, tv.value)
 	if err != nil {
@@ -99,13 +102,19 @@ func (tv *ImageVariable) applyProfile(profile json.RawMessage) error {
 	if err != nil {
 		return err
 	}
-	tv.version++
-	nodes.Touch()
+	if len(data) == 0 {
+		tv.value = nil
+		tv.version++
+		nodes.Touch()
+		return nil
+	}
 	img, _, err := image.Decode(bytes.NewReader(data))
 	if err != nil {
 		return err
 	}
 	tv.value = img
+	tv.version++
+	nodes.Touch()
 	return nil
 }
 

@@ -3,6 +3,7 @@ package nodes
 import (
 	"errors"
 	"fmt"
+	"reflect"
 	"time"
 )
 
@@ -121,6 +122,26 @@ func finish[R any](out *Lifted[R], rank int, results []R) {
 	}
 	out.rank = rankArray
 	out.array = results
+}
+
+// Unwired, the kernel gets a nil.
+func ZipDynamic[R any](out *Lifted[R], port OutputPort, kernel func(any) R) {
+	value, _ := DynamicAnyValue(out, port)
+	if out.rank == rankScalar {
+		finish(out, rankScalar, []R{kernel(value)})
+		return
+	}
+
+	list := reflect.ValueOf(value)
+	if list.Kind() != reflect.Slice {
+		finish(out, rankArray, []R{})
+		return
+	}
+	results := make([]R, list.Len())
+	for i := range results {
+		results[i] = kernel(list.Index(i).Interface())
+	}
+	finish(out, rankArray, results)
 }
 
 func Zip1[A, R any](out *Lifted[R], a LiftedPort[A], kernel func(A) R) {

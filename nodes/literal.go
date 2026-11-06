@@ -36,7 +36,7 @@ func RegisterLiteralParser[T any](initial T, parse func(text string) (T, error))
 }
 
 func registerLiteral[T any](initial T, parse func(string) (any, error)) {
-	t := reflect.TypeOf(initial)
+	t := reflect.TypeFor[T]()
 	literalMu.Lock()
 	defer literalMu.Unlock()
 	literalTypes[t] = literalType{

@@ -156,16 +156,3 @@ func (n UnionColoredNode) Union(out *nodes.StructOutput[ColoredField]) {
 	}
 	out.Set(UnionColored(fields...))
 }
-
-type ColoredFieldDistanceNode struct {
-	Field nodes.Output[ColoredField] `description:"The colored field to extract the plain distance field from."`
-}
-
-func (n ColoredFieldDistanceNode) Description() string {
-	return "Extracts the distance field from a colored field."
-}
-
-func (n ColoredFieldDistanceNode) Out(out *nodes.StructOutput[sample.Vec3ToFloat]) {
-	field := nodes.TryGetOutputValue(out, n.Field, ColoredField{})
-	out.Set(field.Distance)
-}

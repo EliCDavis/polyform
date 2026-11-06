@@ -3,15 +3,15 @@ package graph_test
 import (
 	"testing"
 
-	"github.com/EliCDavis/polyform/arrays"
 	"github.com/EliCDavis/polyform/generator/graph"
 	"github.com/EliCDavis/polyform/nodes"
+	"github.com/EliCDavis/polyform/nodes/arrays"
 	"github.com/EliCDavis/polyform/refutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-const spreadType = "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/arrays.SpreadNode]"
+const spreadType = "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/nodes/arrays.SpreadNode]"
 
 func TestOnlyListInputsTakeASpread(t *testing.T) {
 	factory := &refutil.TypeFactory{}
