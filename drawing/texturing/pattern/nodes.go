@@ -36,5 +36,15 @@ func init() {
 	refutil.RegisterType[nodes.Struct[RectanglesNode[bool]]](factory)
 	refutil.RegisterType[nodes.Struct[RectanglesNode[coloring.Color]]](factory)
 
+	refutil.RegisterType[nodes.Struct[CellNode]](factory)
+	refutil.RegisterType[nodes.Struct[StripesNode]](factory)
+	refutil.RegisterType[nodes.Struct[CheckerNode]](factory)
+	refutil.RegisterType[nodes.Struct[CrossedStripesNode]](factory)
+	refutil.RegisterType[nodes.Struct[WeaveNode]](factory)
+	refutil.RegisterType[nodes.Struct[TransformUVNode]](factory)
+	refutil.RegisterType[nodes.Struct[ZigzagUVNode]](factory)
+	refutil.RegisterType[nodes.Struct[DisplaceUVNode]](factory)
+	refutil.RegisterType[nodes.Struct[DistanceNode]](factory)
+
 	registry.Register(factory)
 }

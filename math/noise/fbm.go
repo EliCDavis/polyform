@@ -169,6 +169,11 @@ func permute(x float64) float64 {
 	return mod289(((x * 34.0) + 1.0) * x)
 }
 
+func wrapToUV(p, size vector2.Float64) vector2.Float64 {
+	x, y := math.Mod(p.X(), size.X()), math.Mod(p.Y(), size.Y())
+	return vector2.New(x+0.5*y, y)
+}
+
 func rgrad2(p vector2.Float64, rot, seed float64) vector2.Float64 {
 	u := permute(permute(p.X())+p.Y())*0.0243902439 + rot // /41
 	u = fract(u+seed) * tau
@@ -210,14 +215,9 @@ func simplex(coord, size vector2.Float64, offset, seed float64) float64 {
 	d1 := coord.Sub(p1)
 	d2 := coord.Sub(p2)
 
-	xw := [3]float64{math.Mod(p0.X(), size.X()), math.Mod(p1.X(), size.X()), math.Mod(p2.X(), size.X())}
-	yw := [3]float64{math.Mod(p0.Y(), size.Y()), math.Mod(p1.Y(), size.Y()), math.Mod(p2.Y(), size.Y())}
-	iuw := [3]float64{xw[0] + 0.5*yw[0], xw[1] + 0.5*yw[1], xw[2] + 0.5*yw[2]}
-	ivw := [3]float64{yw[0], yw[1], yw[2]}
-
-	g0 := rgrad2(vector2.New(iuw[0], ivw[0]), offset, seed)
-	g1 := rgrad2(vector2.New(iuw[1], ivw[1]), offset, seed)
-	g2 := rgrad2(vector2.New(iuw[2], ivw[2]), offset, seed)
+	g0 := rgrad2(wrapToUV(p0, size), offset, seed)
+	g1 := rgrad2(wrapToUV(p1, size), offset, seed)
+	g2 := rgrad2(wrapToUV(p2, size), offset, seed)
 
 	w0 := g0.Dot(d0)
 	w1 := g1.Dot(d1)

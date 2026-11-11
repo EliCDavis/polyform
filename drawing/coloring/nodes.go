@@ -36,6 +36,12 @@ func init() {
 	refutil.RegisterType[nodes.Struct[GradientKeyNode[vector4.Float64]]](factory)
 	refutil.RegisterType[nodes.Struct[GradientKeyNode[Color]]](factory)
 
+	refutil.RegisterType[nodes.Struct[SampleGradientNode[float64]]](factory)
+	refutil.RegisterType[nodes.Struct[SampleGradientNode[vector2.Float64]]](factory)
+	refutil.RegisterType[nodes.Struct[SampleGradientNode[vector3.Float64]]](factory)
+	refutil.RegisterType[nodes.Struct[SampleGradientNode[vector4.Float64]]](factory)
+	refutil.RegisterType[nodes.Struct[SampleGradientNode[Color]]](factory)
+
 	refutil.RegisterType[nodes.Struct[RedNode]](factory)
 	refutil.RegisterType[nodes.Struct[GreenNode]](factory)
 	refutil.RegisterType[nodes.Struct[BlueNode]](factory)
@@ -182,6 +188,25 @@ func (n GradientKeyNode[T]) Gradient(out *nodes.StructOutput[GradientKey[T]]) {
 		Time:  nodes.GetOutputValue(out, n.Time),
 		Value: val,
 	})
+}
+
+// ============================================================================
+
+type SampleGradientNode[T any] struct {
+	Gradient nodes.Output[Gradient[T]]
+	Time     nodes.LiftedPort[float64] `description:"Where to read the gradient, 0 to 1. Times outside that hold the end keys." default:"0"`
+}
+
+func (n SampleGradientNode[T]) Description() string {
+	return "Reads the value a gradient holds at a time."
+}
+
+func (n SampleGradientNode[T]) Out(out *nodes.Lifted[T]) {
+	var gradient Gradient[T]
+	if n.Gradient != nil {
+		gradient = nodes.GetOutputValue(out, n.Gradient)
+	}
+	nodes.Zip1(out, n.Time, gradient.Sample)
 }
 
 // ============================================================================

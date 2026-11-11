@@ -34,15 +34,17 @@ func (c Color) MarshalJSON() ([]byte, error) {
 }
 
 func (c Color) RGBA() (r, g, b, a uint32) {
-	r = uint32(c.R * 255)
-	r |= r << 8
-	g = uint32(c.G * 255)
-	g |= g << 8
-	b = uint32(c.B * 255)
-	b |= b << 8
-	a = uint32(c.A * 255)
-	a |= a << 8
-	return
+	return channel16(c.R), channel16(c.G), channel16(c.B), channel16(c.A)
+}
+
+func channel16(v float64) uint32 {
+	if v <= 0 {
+		return 0
+	}
+	if v >= 1 {
+		return 0xffff
+	}
+	return uint32(v*0xffff + 0.5)
 }
 
 func (c Color) RGBA8() color.RGBA {

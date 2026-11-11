@@ -15,6 +15,7 @@ func init() {
 
 	refutil.RegisterType[nodes.Struct[FromImageNode]](factory)
 	refutil.RegisterType[nodes.Struct[FromHeightMapNode]](factory)
+	refutil.RegisterType[nodes.Struct[OcclusionFromHeightMapNode]](factory)
 
 	refutil.RegisterType[nodes.Struct[DrawSpheresNode]](factory)
 	refutil.RegisterType[nodes.Struct[DrawSphereNode]](factory)

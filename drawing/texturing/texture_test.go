@@ -1,8 +1,10 @@
 package texturing_test
 
 import (
+	"image/color"
 	"testing"
 
+	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/drawing/texturing"
 	"github.com/stretchr/testify/assert"
 )
@@ -53,4 +55,22 @@ func TestTexture_Convert(t *testing.T) {
 	assert.Equal(t, 2, out.Width())
 	assert.Equal(t, 2, out.Height())
 
+}
+
+func TestColorImageMatchesStandardConversion(t *testing.T) {
+	colors := []coloring.Color{
+		{R: 0.2, G: 0.5, B: 0.8, A: 1},
+		{R: -1, G: 2, B: 0.333, A: 0.5},
+		{R: 1, G: 0, B: 0.999, A: 0},
+	}
+	tex := texturing.Empty[coloring.Color](len(colors), 1)
+	for x, c := range colors {
+		tex.Set(x, 0, c)
+	}
+
+	img := texturing.ColorImage(tex)
+
+	for x, c := range colors {
+		assert.Equal(t, color.RGBAModel.Convert(c), img.At(x, 0))
+	}
 }

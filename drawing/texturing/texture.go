@@ -7,11 +7,10 @@ import (
 	"image/png"
 	"math"
 	"os"
-	"runtime"
-	"sync"
 
 	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/nodes"
+	"github.com/EliCDavis/polyform/utils"
 	"github.com/EliCDavis/vector"
 	"github.com/EliCDavis/vector/vector1"
 	"github.com/EliCDavis/vector/vector2"
@@ -104,102 +103,43 @@ func (t Texture[T]) Mutate(cb func(x int, y int, v T) T) {
 	}
 }
 
-func (t Texture[T]) scanWorker(start, end int, cb func(x int, y int, v T), wg *sync.WaitGroup) {
-	defer wg.Done()
-	for i := start; i < end; i++ {
-		x := i % t.width
-		y := i / t.width
-		cb(x, y, t.data[i])
-	}
-}
-
-func (t Texture[T]) mutateWorker(start, end int, cb func(x int, y int, v T) T, wg *sync.WaitGroup) {
-	defer wg.Done()
-	for i := start; i < end; i++ {
-		x := i % t.width
-		y := i / t.width
-		t.data[i] = cb(x, y, t.data[i])
-	}
-}
-
-func (t Texture[T]) ScanParallelAcross(workers int, cb func(x int, y int, v T)) {
-	if workers <= 1 || len(t.data) <= 1 {
-		t.Scan(cb)
-		return
-	}
-
-	total := len(t.data)
-	base := total / workers
-	extra := total % workers // remainder to distribute
-
-	wg := &sync.WaitGroup{}
-	start := 0
-	for i := range workers {
-
-		// This happens whenever we have more workers than pixels
-		if start == total {
-			break
-		}
-
-		size := base
-		if i < extra {
-			size++
-		}
-		end := start + size
-		wg.Add(1)
-		go t.scanWorker(start, end, cb, wg)
-		start = end
-	}
-	wg.Wait()
-}
-
-func (t Texture[T]) MutateParallelAcross(workers int, cb func(x int, y int, v T) T) {
-	if workers <= 1 || len(t.data) <= 1 {
-		t.Mutate(cb)
-		return
-	}
-
-	total := len(t.data)
-	base := total / workers
-	extra := total % workers // remainder to distribute
-
-	wg := &sync.WaitGroup{}
-	start := 0
-	for i := range workers {
-
-		// This happens whenever we have more workers than pixels
-		if start == total {
-			break
-		}
-
-		size := base
-		if i < extra {
-			size++
-		}
-		end := start + size
-		wg.Add(1)
-		go t.mutateWorker(start, end, cb, wg)
-		start = end
-	}
-	wg.Wait()
-}
-
 func (t Texture[T]) ScanParallel(cb func(x int, y int, v T)) {
-	t.ScanParallelAcross(runtime.NumCPU(), cb)
+	utils.ParallelRange(len(t.data), func(start, end int) {
+		for i := start; i < end; i++ {
+			cb(i%t.width, i/t.width, t.data[i])
+		}
+	})
 }
 
 func (t Texture[T]) MutateParallel(cb func(x int, y int, v T) T) {
-	t.MutateParallelAcross(runtime.NumCPU(), cb)
+	utils.ParallelRange(len(t.data), func(start, end int) {
+		for i := start; i < end; i++ {
+			t.data[i] = cb(i%t.width, i/t.width, t.data[i])
+		}
+	})
 }
 
 func (t Texture[T]) ToImage(f func(T) color.Color) *image.RGBA {
 	img := image.NewRGBA(image.Rect(0, 0, t.width, t.height))
-	for y := range t.height {
-		yAdjust := y * t.width
-		for x := range t.width {
-			img.Set(x, y, f(t.data[x+yAdjust]))
+	utils.ParallelRange(t.height, func(start, end int) {
+		for i := start * t.width; i < end*t.width; i++ {
+			c := color.RGBAModel.Convert(f(t.data[i])).(color.RGBA)
+			p := img.Pix[i*4 : i*4+4 : i*4+4]
+			p[0], p[1], p[2], p[3] = c.R, c.G, c.B, c.A
 		}
-	}
+	})
+	return img
+}
+
+func ColorImage(t Texture[coloring.Color]) *image.RGBA {
+	img := image.NewRGBA(image.Rect(0, 0, t.width, t.height))
+	utils.ParallelRange(t.height, func(start, end int) {
+		for i := start * t.width; i < end*t.width; i++ {
+			r, g, b, a := t.data[i].RGBA()
+			p := img.Pix[i*4 : i*4+4 : i*4+4]
+			p[0], p[1], p[2], p[3] = uint8(r>>8), uint8(g>>8), uint8(b>>8), uint8(a>>8)
+		}
+	})
 	return img
 }
 
@@ -462,6 +402,61 @@ func (n SelectColorNode) A(out *nodes.StructOutput[Texture[float64]]) {
 	}))
 }
 
+func selectComponent[T any](out *nodes.StructOutput[Texture[float64]], texture nodes.Output[Texture[T]], f func(T) float64) {
+	if texture == nil {
+		return
+	}
+	out.Set(Map(nodes.GetOutputValue(out, texture), f))
+}
+
+type SelectFloat2Node struct {
+	Texture nodes.Output[Texture[vector2.Float64]]
+}
+
+func (n SelectFloat2Node) Description() string {
+	return "Splits a 2D vector texture into separate X and Y textures."
+}
+
+func (n SelectFloat2Node) Width(out *nodes.StructOutput[int])  { selectWidth(out, n.Texture) }
+func (n SelectFloat2Node) Height(out *nodes.StructOutput[int]) { selectHeight(out, n.Texture) }
+func (n SelectFloat2Node) Array(out *nodes.StructOutput[[]vector2.Float64]) {
+	selectArray(out, n.Texture)
+}
+
+func (n SelectFloat2Node) X(out *nodes.StructOutput[Texture[float64]]) {
+	selectComponent(out, n.Texture, vector2.Float64.X)
+}
+
+func (n SelectFloat2Node) Y(out *nodes.StructOutput[Texture[float64]]) {
+	selectComponent(out, n.Texture, vector2.Float64.Y)
+}
+
+type SelectFloat3Node struct {
+	Texture nodes.Output[Texture[vector3.Float64]]
+}
+
+func (n SelectFloat3Node) Description() string {
+	return "Splits a 3D vector texture into separate X, Y and Z textures."
+}
+
+func (n SelectFloat3Node) Width(out *nodes.StructOutput[int])  { selectWidth(out, n.Texture) }
+func (n SelectFloat3Node) Height(out *nodes.StructOutput[int]) { selectHeight(out, n.Texture) }
+func (n SelectFloat3Node) Array(out *nodes.StructOutput[[]vector3.Float64]) {
+	selectArray(out, n.Texture)
+}
+
+func (n SelectFloat3Node) X(out *nodes.StructOutput[Texture[float64]]) {
+	selectComponent(out, n.Texture, vector3.Float64.X)
+}
+
+func (n SelectFloat3Node) Y(out *nodes.StructOutput[Texture[float64]]) {
+	selectComponent(out, n.Texture, vector3.Float64.Y)
+}
+
+func (n SelectFloat3Node) Z(out *nodes.StructOutput[Texture[float64]]) {
+	selectComponent(out, n.Texture, vector3.Float64.Z)
+}
+
 // ============================================================================
 
 type FloatToImageNode struct {
@@ -551,10 +546,7 @@ func (n FloatToImageNode) Texture(out *nodes.StructOutput[Texture[coloring.Color
 }
 
 func (n FloatToImageNode) Image(out *nodes.StructOutput[image.Image]) {
-	texture := n.tex(out)
-	out.Set(texture.ToImage(func(c coloring.Color) color.Color {
-		return c
-	}))
+	out.Set(ColorImage(n.tex(out)))
 }
 
 // ============================================================================
@@ -847,7 +839,7 @@ func (n ScaleColorUniformNode) Description() string {
 }
 
 func (n ScaleColorUniformNode) Result(out *nodes.StructOutput[Texture[coloring.Color]]) {
-	scaleTextureUniform(n.Texture, out, coloring.Space{}, n.Scale)
+	scaleTextureUniform(n.Texture, out, opaqueScaleSpace{}, n.Scale)
 }
 
 type ScaleColorNode struct {
@@ -860,5 +852,12 @@ func (n ScaleColorNode) Description() string {
 }
 
 func (n ScaleColorNode) Result(out *nodes.StructOutput[Texture[coloring.Color]]) {
-	scaleTexture(n.Texture, out, coloring.Space{}, n.Scale)
+	scaleTexture(n.Texture, out, opaqueScaleSpace{}, n.Scale)
+}
+
+// Brightening or darkening a color must not change how opaque it is.
+type opaqueScaleSpace struct{ coloring.Space }
+
+func (opaqueScaleSpace) Scale(c coloring.Color, amount float64) coloring.Color {
+	return coloring.Color{R: c.R * amount, G: c.G * amount, B: c.B * amount, A: c.A}
 }

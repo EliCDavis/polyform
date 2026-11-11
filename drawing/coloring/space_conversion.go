@@ -11,6 +11,14 @@ func SRGBToLinear(c float64) float64 {
 	return math.Pow(c*0.9478672986+0.0521327014, 2.4)
 }
 
+func (c Color) SRGBToLinear() Color {
+	return Color{R: SRGBToLinear(c.R), G: SRGBToLinear(c.G), B: SRGBToLinear(c.B), A: c.A}
+}
+
+func (c Color) LinearToSRGB() Color {
+	return Color{R: LinearToSRGB(c.R), G: LinearToSRGB(c.G), B: LinearToSRGB(c.B), A: c.A}
+}
+
 // From Three.js
 // https://github.com/mrdoob/three.js/blob/e6f7c4e677cb8869502739da2640791d020d8d2f/src/math/ColorManagement.js#L12
 func LinearToSRGB(c float64) float64 {

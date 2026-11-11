@@ -6,6 +6,7 @@ import (
 
 	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/drawing/texturing"
+	"github.com/EliCDavis/polyform/utils"
 	"github.com/EliCDavis/vector/vector3"
 )
 
@@ -39,21 +40,37 @@ func ImageToHeightmap(img image.Image, scale float64) HeightMap {
 
 // https://stackoverflow.com/questions/5281261/generating-a-normal-map-from-a-height-map
 func FromHeightmap(heightmap HeightMap, scale float64) NormalMap {
-	dst := texturing.Empty[vector3.Float64](heightmap.Width(), heightmap.Height())
+	width, height := heightmap.Width(), heightmap.Height()
+	dst := texturing.Empty[vector3.Float64](width, height)
 
-	texturing.Convolve(heightmap, func(x, y int, values []float64) {
-		s01 := values[3]
-		s21 := values[5]
-		s10 := values[1]
-		s12 := values[7]
+	utils.ParallelRange(height, func(start, end int) {
+		for y := start; y < end; y++ {
+			above, below := mirrored(y+1, height), mirrored(y-1, height)
+			for x := range width {
+				left, right := mirrored(x-1, width), mirrored(x+1, width)
 
-		va := vector3.New(2, 0, (s21-s01)*scale).Normalized()
-		vb := vector3.New(0, 2, (s12-s10)*scale).Normalized()
+				va := vector3.New(2, 0, (heightmap.Get(right, y)-heightmap.Get(left, y))*scale).Normalized()
+				vb := vector3.New(0, 2, (heightmap.Get(x, below)-heightmap.Get(x, above))*scale).Normalized()
 
-		dst.Set(x, y, va.Cross(vb).Normalized())
+				dst.Set(x, y, va.Cross(vb).Normalized())
+			}
+		}
 	})
 
 	return dst
+}
+
+func mirrored(i, n int) int {
+	if n == 1 {
+		return 0
+	}
+	if i < 0 {
+		return 1
+	}
+	if i >= n {
+		return n - 2
+	}
+	return i
 }
 
 func RasterizeNormalmap(normals NormalMap) image.Image {

@@ -19,7 +19,7 @@ func texture(
 	Octaves nodes.Output[int],
 	Persistence nodes.Output[float64],
 	Offset nodes.Output[float64],
-	Seed nodes.Output[float64],
+	Seed nodes.Output[int],
 	Polar nodes.Output[bool],
 ) {
 	width := nodes.TryGetOutputValue(out, Width, 64)
@@ -38,7 +38,7 @@ func texture(
 
 	scale := nodes.TryGetOutputValue(out, Scale, vector2.One[float64]())
 	offset := nodes.TryGetOutputValue(out, Offset, 0)
-	seed := nodes.TryGetOutputValue(out, Seed, 0)
+	seed := float64(nodes.TryGetOutputValue(out, Seed, 0))
 	persistance := nodes.TryGetOutputValue(out, Persistence, 0.5)
 	octaves := nodes.TryGetOutputValue(out, Octaves, 3)
 	folds := nodes.TryGetOutputValue(out, Folds, 0)
@@ -86,7 +86,7 @@ type NoiseNode struct {
 	Octaves     nodes.Output[int]             `description:"the number of iterations" default:"3"`
 	Persistence nodes.Output[float64]         `description:"the strength of each subsequent iteration" default:"0.5"`
 	Offset      nodes.Output[float64]         `description:"the offset of the points, can be used to animate the noise"`
-	Seed        nodes.Output[float64]         `description:"RNG seed"`
+	Seed        nodes.Output[int]             `description:"The same seed always produces the same texture."`
 	Polar       nodes.Output[bool]            `description:"Whether or not to use polar coordinates to sample the random function"`
 }
 

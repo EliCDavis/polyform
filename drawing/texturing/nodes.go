@@ -29,9 +29,21 @@ func init() {
 	refutil.RegisterType[nodes.Struct[FromArrayNode[bool]]](factory)
 	refutil.RegisterType[nodes.Struct[FromArrayNode[coloring.Color]]](factory)
 
+	refutil.RegisterType[nodes.Struct[UVNode]](factory)
+
+	refutil.RegisterType[nodes.Struct[SubtractFloat1Node]](factory)
+	refutil.RegisterType[nodes.Struct[MinFloat1Node]](factory)
+	refutil.RegisterType[nodes.Struct[MaxFloat1Node]](factory)
+	refutil.RegisterType[nodes.Struct[RemapFloat1Node]](factory)
+	refutil.RegisterType[nodes.Struct[ClampFloat1Node]](factory)
+	refutil.RegisterType[nodes.Struct[PowerFloat1Node]](factory)
+	refutil.RegisterType[nodes.Struct[SmoothstepFloat1Node]](factory)
+	refutil.RegisterType[nodes.Struct[MixFloat1Node]](factory)
+	refutil.RegisterType[nodes.Struct[MixColorNode]](factory)
+
 	refutil.RegisterType[nodes.Struct[SelectNode[float64]]](factory)
-	refutil.RegisterType[nodes.Struct[SelectNode[vector2.Float64]]](factory)
-	refutil.RegisterType[nodes.Struct[SelectNode[vector3.Float64]]](factory)
+	refutil.RegisterType[nodes.Struct[SelectFloat2Node]](factory)
+	refutil.RegisterType[nodes.Struct[SelectFloat3Node]](factory)
 	refutil.RegisterType[nodes.Struct[SelectNode[bool]]](factory)
 	refutil.RegisterType[nodes.Struct[SelectColorNode]](factory)
 

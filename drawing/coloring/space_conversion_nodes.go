@@ -11,14 +11,7 @@ func (n SRGBToLinearNode) Description() string {
 }
 
 func (n SRGBToLinearNode) Out(out *nodes.Lifted[Color]) {
-	nodes.Zip1(out, n.In, func(in Color) Color {
-		return Color{
-			R: SRGBToLinear(in.R),
-			G: SRGBToLinear(in.G),
-			B: SRGBToLinear(in.B),
-			A: in.A,
-		}
-	})
+	nodes.Zip1(out, n.In, Color.SRGBToLinear)
 }
 
 type LinearToSRGBNode struct {
@@ -30,12 +23,5 @@ func (n LinearToSRGBNode) Description() string {
 }
 
 func (n LinearToSRGBNode) Out(out *nodes.Lifted[Color]) {
-	nodes.Zip1(out, n.In, func(in Color) Color {
-		return Color{
-			R: LinearToSRGB(in.R),
-			G: LinearToSRGB(in.G),
-			B: LinearToSRGB(in.B),
-			A: in.A,
-		}
-	})
+	nodes.Zip1(out, n.In, Color.LinearToSRGB)
 }

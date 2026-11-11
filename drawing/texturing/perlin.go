@@ -33,13 +33,10 @@ func (an SeamlessPerlinNode) Out(out *nodes.StructOutput[Texture[float64]]) {
 	positive := nodes.GetOutputValue(out, an.Positive)
 	valueRange := positive - negative
 
-	for y := range dim {
-		for x := range dim {
-			p := (n.Noise(x, y) * 0.5) + 0.5
-
-			tex.Set(x, y, negative+(valueRange*p))
-		}
-	}
+	tex.MutateParallel(func(x, y int, _ float64) float64 {
+		p := (n.Noise(x, y) * 0.5) + 0.5
+		return negative + (valueRange * p)
+	})
 	out.Set(tex)
 }
 
