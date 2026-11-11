@@ -33,6 +33,7 @@ func TestRandomNodeRegistersOncePerValueType(t *testing.T) {
 	for _, name := range []string{
 		"github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/math/chance.RandomNode[float64]]",
 		"github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/math/chance.RandomNode[github.com/EliCDavis/vector/vector3.Vector[float64]]]",
+		"github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/math/chance.RandomNode[github.com/EliCDavis/polyform/math/quaternion.Quaternion]]",
 	} {
 		assert.Contains(t, registry.Types().Types(), name)
 	}

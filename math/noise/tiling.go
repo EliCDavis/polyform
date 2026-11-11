@@ -82,10 +82,17 @@ func wrappedIndex(a, per, size int) int {
 	return r
 }
 
+func fadeOut(d float64) float64 {
+	d3 := d * d * d
+	d4 := d3 * d
+	d5 := d4 * d
+	return 1 - (6 * d5) + (15 * d4) - (10 * d3)
+}
+
 func (tn *TilingNoise) surflet(v vector2.Float64, g vector2.Int, per int) float64 {
 	dist := v.Sub(g.ToFloat64()).Abs()
-	polyX := 1 - (6 * math.Pow(dist.X(), 5)) + (15 * math.Pow(dist.X(), 4)) - (10 * math.Pow(dist.X(), 3))
-	polyY := 1 - (6 * math.Pow(dist.Y(), 5)) + (15 * math.Pow(dist.Y(), 4)) - (10 * math.Pow(dist.Y(), 3))
+	polyX := fadeOut(dist.X())
+	polyY := fadeOut(dist.Y())
 
 	size := len(tn.dirs)
 	gx := wrappedIndex(g.X(), per, size)

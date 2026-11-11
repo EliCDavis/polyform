@@ -5,6 +5,7 @@ import (
 
 	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/generator/registry"
+	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
 	"github.com/EliCDavis/vector/vector2"
@@ -39,8 +40,12 @@ func init() {
 	refutil.RegisterType[nodes.Struct[Uniform2DNode]](factory)
 	refutil.RegisterType[nodes.Struct[Uniform3DNode]](factory)
 	refutil.RegisterType[nodes.Struct[Uniform4DNode]](factory)
+	refutil.RegisterType[nodes.Struct[InsideCircleNode]](factory)
 	refutil.RegisterType[nodes.Struct[InsideSphereNode]](factory)
+	refutil.RegisterType[nodes.Struct[Direction2DNode]](factory)
 	refutil.RegisterType[nodes.Struct[DirectionNode]](factory)
+	refutil.RegisterType[nodes.Struct[RotationNode]](factory)
+	refutil.RegisterType[nodes.Struct[RandomNode[quaternion.Quaternion]]](factory)
 
 	registry.Register(factory)
 }
@@ -402,6 +407,55 @@ func (Uniform4DNode) Keywords() []string {
 
 func (u Uniform4DNode) Out(out *nodes.Lifted[Distribution[vector4.Float64]]) {
 	nodes.Zip2(out, nodes.LiftedOr(u.Min, vector4.Zero[float64]()), u.Max, Uniform4D)
+}
+
+type InsideCircleNode struct {
+	Radius nodes.LiftedPort[float64] `default:"1"`
+}
+
+func (InsideCircleNode) Description() string {
+	return "Points spread evenly through a disc around the origin."
+}
+
+func (InsideCircleNode) Keywords() []string {
+	return []string{"disc"}
+}
+
+func (i InsideCircleNode) Out(out *nodes.Lifted[Distribution[vector2.Float64]]) {
+	nodes.Zip1(out, i.Radius, InsideCircle)
+}
+
+type Direction2DNode struct {
+	Axis      nodes.LiftedPort[vector2.Float64] `description:"The centre of the arc." default:"0,1"`
+	ConeAngle nodes.LiftedPort[float64]         `description:"Degrees either side of Axis a direction may lean, 0 to 180. 0 always gives Axis, 180 any direction."`
+}
+
+func (Direction2DNode) Description() string {
+	return "Unit vectors spread evenly within an arc around Axis."
+}
+
+func (Direction2DNode) Keywords() []string {
+	return []string{"orientation", "tilt"}
+}
+
+func (d Direction2DNode) Out(out *nodes.Lifted[Distribution[vector2.Float64]]) {
+	nodes.Zip2(out, d.Axis, nodes.LiftedOr(d.ConeAngle, 0), Direction2D)
+}
+
+type RotationNode struct {
+	MaxAngle nodes.LiftedPort[float64] `description:"Degrees a rotation may turn from no rotation, 0 to 180. 180 gives any rotation." default:"180"`
+}
+
+func (RotationNode) Description() string {
+	return "Rotations spread evenly within Max Angle of no rotation, about any axis."
+}
+
+func (RotationNode) Keywords() []string {
+	return []string{"quaternion"}
+}
+
+func (r RotationNode) Out(out *nodes.Lifted[Distribution[quaternion.Quaternion]]) {
+	nodes.Zip1(out, r.MaxAngle, Rotation)
 }
 
 type InsideSphereNode struct {

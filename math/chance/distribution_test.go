@@ -6,6 +6,7 @@ import (
 
 	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/math/chance"
+	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
 	"github.com/EliCDavis/vector/vector4"
@@ -198,6 +199,52 @@ func TestUniform2DAnd4DStayInsideTheirBounds(t *testing.T) {
 		assert.Less(t, q.W(), 20.0)
 		assert.NotEqual(t, q.X(), q.Y(), "components draw their own values")
 	}
+}
+
+func TestInsideCircleStaysInsideAndFillsTheArea(t *testing.T) {
+	d := chance.InsideCircle(2)
+	inner := 0
+	for key := range 20000 {
+		p := d(chance.Roll(1, key))
+		assert.LessOrEqual(t, p.Length(), 2.0+1e-9)
+		if p.Length() < 2*math.Sqrt(0.5) {
+			inner++
+		}
+	}
+	assert.InDelta(t, 10000, inner, 400, "half the points sit inside half the area")
+}
+
+func TestDirection2DStaysInsideTheArc(t *testing.T) {
+	axis := vector2.New(0.0, 1)
+	d := chance.Direction2D(axis, 30)
+	for key := range 2000 {
+		v := d(chance.Roll(2, key))
+		assert.InDelta(t, 1, v.Length(), 1e-9)
+		angle := math.Acos(v.Dot(axis)) * 180 / math.Pi
+		assert.LessOrEqual(t, angle, 30+1e-6)
+	}
+	exact := chance.Direction2D(vector2.New(3.0, 0), 0)(chance.Roll(2, 5))
+	assert.InDelta(t, 1, exact.X(), 1e-9)
+}
+
+func rotationAngle(q quaternion.Quaternion) float64 {
+	return 2 * math.Acos(math.Min(1, math.Abs(q.W()))) * 180 / math.Pi
+}
+
+func TestRotationStaysWithinMaxAngleAndIsEvenOverRotations(t *testing.T) {
+	within := chance.Rotation(30)
+	for key := range 2000 {
+		assert.LessOrEqual(t, rotationAngle(within(chance.Roll(3, key))), 30+1e-6)
+	}
+
+	any := chance.Rotation(180)
+	under90 := 0
+	for key := range 20000 {
+		if rotationAngle(any(chance.Roll(4, key))) < 90 {
+			under90++
+		}
+	}
+	assert.InDelta(t, 20000*(math.Pi/2-1)/math.Pi, under90, 400, "rotations are spread evenly over rotation space, not over angles")
 }
 
 func TestInsideSphereStaysInsideAndFillsTheVolume(t *testing.T) {

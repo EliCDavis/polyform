@@ -104,10 +104,10 @@ func perlin(coord, size vector2.Float64, offset, seed float64) float64 {
 	a10 := randf(mod2(o.Add(vector2.New(1.0, 0.0)), size))*tau + offset*tau
 	a11 := randf(mod2(o.Add(vector2.New(1.0, 1.0)), size))*tau + offset*tau
 
-	v00 := vector2.New(math.Cos(a00), math.Sin(a00))
-	v01 := vector2.New(math.Cos(a01), math.Sin(a01))
-	v10 := vector2.New(math.Cos(a10), math.Sin(a10))
-	v11 := vector2.New(math.Cos(a11), math.Sin(a11))
+	v00 := unitAt(a00)
+	v01 := unitAt(a01)
+	v10 := unitAt(a10)
+	v11 := unitAt(a11)
 
 	f := coord.Fract()
 	p00 := v00.Dot(f)
@@ -172,7 +172,12 @@ func permute(x float64) float64 {
 func rgrad2(p vector2.Float64, rot, seed float64) vector2.Float64 {
 	u := permute(permute(p.X())+p.Y())*0.0243902439 + rot // /41
 	u = fract(u+seed) * tau
-	return vector2.New(math.Cos(u), math.Sin(u))
+	return unitAt(u)
+}
+
+func unitAt(angle float64) vector2.Float64 {
+	sin, cos := math.Sincos(angle)
+	return vector2.New(cos, sin)
 }
 
 // ---------- simplex Noise (tiling-aware as in shader) ----------

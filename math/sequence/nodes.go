@@ -10,8 +10,7 @@ func init() {
 	factory := &refutil.TypeFactory{}
 
 	refutil.RegisterType[nodes.Struct[LinearNode]](factory)
-	refutil.RegisterType[nodes.Struct[RandomFloatNode]](factory)
-	refutil.RegisterType[nodes.Struct[RandomBoolNode]](factory)
+	refutil.RegisterType[nodes.Struct[IntegersNode]](factory)
 
 	registry.Register(factory)
 }

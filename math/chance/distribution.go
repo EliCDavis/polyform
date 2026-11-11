@@ -174,6 +174,46 @@ func InsideSphere(radius float64) Distribution[vector3.Float64] {
 	}
 }
 
+func InsideCircle(radius float64) Distribution[vector2.Float64] {
+	return func(next Stream) vector2.Float64 {
+		r := radius * math.Sqrt(next())
+		phi := 2 * math.Pi * next()
+		return vector2.New(r*math.Cos(phi), r*math.Sin(phi))
+	}
+}
+
+func Direction2D(axis vector2.Float64, coneAngle float64) Distribution[vector2.Float64] {
+	axis = axis.Normalized()
+	half := coneAngle * math.Pi / 180
+	return func(next Stream) vector2.Float64 {
+		theta := (2*next() - 1) * half
+		sin, cos := math.Sincos(theta)
+		return vector2.New(axis.X()*cos-axis.Y()*sin, axis.X()*sin+axis.Y()*cos)
+	}
+}
+
+func Rotation(maxAngle float64) Distribution[quaternion.Quaternion] {
+	limit := math.Min(math.Max(maxAngle, 0), 180) * math.Pi / 180
+	total := limit - math.Sin(limit)
+	return func(next Stream) quaternion.Quaternion {
+		target := next() * total
+		lo, hi := 0., limit
+		for range 40 {
+			mid := (lo + hi) / 2
+			if mid-math.Sin(mid) < target {
+				lo = mid
+			} else {
+				hi = mid
+			}
+		}
+		z := 2*next() - 1
+		ring := math.Sqrt(max(0, 1-z*z))
+		phi := 2 * math.Pi * next()
+		axis := vector3.New(ring*math.Cos(phi), ring*math.Sin(phi), z)
+		return quaternion.FromTheta((lo+hi)/2, axis)
+	}
+}
+
 // Direction is a unit vector within Cone Angle degrees of Axis.
 func Direction(axis vector3.Float64, coneAngle float64) Distribution[vector3.Float64] {
 	rotation := quaternion.RotationTo(vector3.Forward[float64](), axis.Normalized())
