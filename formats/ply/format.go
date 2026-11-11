@@ -1,8 +1,6 @@
 package ply
 
-import (
-	"errors"
-)
+import "errors"
 
 // Format of the data contained within the body of the PLY file
 type Format string
@@ -25,8 +23,8 @@ func (f Format) String() string {
 
 const (
 	ASCII              Format = "ascii"
-	BinaryBigEndian    Format = "binary_little_endian"
-	BinaryLittleEndian Format = "binary_big_endian"
+	BinaryBigEndian    Format = "binary_big_endian"
+	BinaryLittleEndian Format = "binary_little_endian"
 )
 
 const VertexElementName = "vertex"

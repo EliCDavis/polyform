@@ -13,6 +13,12 @@ func TestFormat_String(t *testing.T) {
 	assert.Equal(t, "Binary Little Endian", ply.BinaryLittleEndian.String())
 
 	assert.PanicsWithError(t, "unrecognized format Test", func() {
-		ply.Format("Test").String()
+		_ = ply.Format("Test").String()
 	})
+}
+
+func TestFormatValuesMatchTheHeaderKeywords(t *testing.T) {
+	assert.Equal(t, "ascii", string(ply.ASCII))
+	assert.Equal(t, "binary_big_endian", string(ply.BinaryBigEndian))
+	assert.Equal(t, "binary_little_endian", string(ply.BinaryLittleEndian))
 }

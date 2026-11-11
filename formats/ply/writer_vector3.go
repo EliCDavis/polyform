@@ -3,9 +3,7 @@ package ply
 import (
 	"encoding/binary"
 	"fmt"
-	"io"
 	"math"
-	"strconv"
 
 	"github.com/EliCDavis/iter"
 	"github.com/EliCDavis/polyform/modeling"
@@ -24,7 +22,7 @@ func (v3pw Vector3PropertyWriter) MeshQualifies(mesh modeling.Mesh) bool {
 	return mesh.HasFloat3Attribute(v3pw.ModelAttribute)
 }
 
-func (v3pw Vector3PropertyWriter) Properties() []Property {
+func (v3pw Vector3PropertyWriter) Properties(modeling.Mesh) []Property {
 	return []Property{
 		ScalarProperty{PropertyName: v3pw.PlyPropertyX, Type: v3pw.Type},
 		ScalarProperty{PropertyName: v3pw.PlyPropertyY, Type: v3pw.Type},
@@ -33,103 +31,120 @@ func (v3pw Vector3PropertyWriter) Properties() []Property {
 }
 
 func (v3pw Vector3PropertyWriter) build(mesh modeling.Mesh, format Format) builtPropertyWriter {
+	column := vector3Column{arr: mesh.Float3Attribute(v3pw.ModelAttribute)}
+	switch format {
+	case ASCII:
+		switch v3pw.Type {
+		case UChar:
+			return asciiUCharVector3(column)
+		case Int, UInt, Short, UShort:
+			return asciiIntVector3(column)
+		case Float, Double:
+			return asciiFloatVector3(column)
+		}
 
-	if format == ASCII {
-		return &asciiVector3PropertyWriter{
-			arr:    mesh.Float3Attribute(v3pw.ModelAttribute),
-			format: v3pw.Type,
-			buf:    make([]byte, 0),
+	case BinaryBigEndian:
+		switch v3pw.Type {
+		case UChar:
+			return ucharVector3(column)
+		case Int:
+			return bigIntVector3(column)
+		case Float:
+			return bigFloatVector3(column)
+		case Double:
+			return bigDoubleVector3(column)
+		}
+
+	default:
+		switch v3pw.Type {
+		case UChar:
+			return ucharVector3(column)
+		case Int:
+			return littleIntVector3(column)
+		case Float:
+			return littleFloatVector3(column)
+		case Double:
+			return littleDoubleVector3(column)
 		}
 	}
-
-	var endian binary.ByteOrder = binary.LittleEndian
-	if format == BinaryBigEndian {
-		endian = binary.BigEndian
-	}
-
-	return builtVector3PropertyWriter{
-		arr:    mesh.Float3Attribute(v3pw.ModelAttribute),
-		format: v3pw.Type,
-		buf:    make([]byte, v3pw.Type.Size()*3),
-		endian: endian,
-	}
+	panic(fmt.Errorf("unimplemented %s", v3pw.Type))
 }
 
-type builtVector3PropertyWriter struct {
-	arr    *iter.ArrayIterator[vector3.Float64]
-	format ScalarPropertyType
-	endian binary.ByteOrder
-	buf    []byte
+type vector3Column struct {
+	arr *iter.ArrayIterator[vector3.Float64]
 }
 
-func (bv3pw builtVector3PropertyWriter) Write(out io.Writer, i int) (err error) {
-	switch bv3pw.format {
-	case UChar:
-		v3 := bv3pw.arr.At(i).Scale(255).RoundToInt()
-		bv3pw.buf[0] = byte(v3.X())
-		bv3pw.buf[1] = byte(v3.Y())
-		bv3pw.buf[2] = byte(v3.Z())
+type (
+	asciiUCharVector3   vector3Column
+	asciiIntVector3     vector3Column
+	asciiFloatVector3   vector3Column
+	ucharVector3        vector3Column
+	littleIntVector3    vector3Column
+	bigIntVector3       vector3Column
+	littleFloatVector3  vector3Column
+	bigFloatVector3     vector3Column
+	littleDoubleVector3 vector3Column
+	bigDoubleVector3    vector3Column
+)
 
-	case Int:
-		v3 := bv3pw.arr.At(i)
-		bv3pw.endian.PutUint32(bv3pw.buf, uint32(v3.X()))
-		bv3pw.endian.PutUint32(bv3pw.buf[4:], uint32(v3.Y()))
-		bv3pw.endian.PutUint32(bv3pw.buf[8:], uint32(v3.Z()))
-
-	case Float:
-		v3 := bv3pw.arr.At(i).ToFloat32()
-		bv3pw.endian.PutUint32(bv3pw.buf, math.Float32bits(v3.X()))
-		bv3pw.endian.PutUint32(bv3pw.buf[4:], math.Float32bits(v3.Y()))
-		bv3pw.endian.PutUint32(bv3pw.buf[8:], math.Float32bits(v3.Z()))
-
-	case Double:
-		v3 := bv3pw.arr.At(i)
-		bv3pw.endian.PutUint64(bv3pw.buf, math.Float64bits(v3.X()))
-		bv3pw.endian.PutUint64(bv3pw.buf[8:], math.Float64bits(v3.Y()))
-		bv3pw.endian.PutUint64(bv3pw.buf[16:], math.Float64bits(v3.Z()))
-
-	default:
-		panic(fmt.Errorf("unimplemented %s", bv3pw.format))
-	}
-
-	_, err = out.Write(bv3pw.buf)
-	return
+func (w asciiUCharVector3) Append(dst []byte, i int) []byte {
+	v := w.arr.At(i).Clamp(0, 1).Scale(255).Round()
+	return appendAsciiInts(dst, v.X(), v.Y(), v.Z())
 }
 
-type asciiVector3PropertyWriter struct {
-	arr    *iter.ArrayIterator[vector3.Float64]
-	format ScalarPropertyType
-	buf    []byte
+func (w asciiIntVector3) Append(dst []byte, i int) []byte {
+	v := w.arr.At(i)
+	return appendAsciiInts(dst, v.X(), v.Y(), v.Z())
 }
 
-func (av4pw *asciiVector3PropertyWriter) Write(out io.Writer, i int) (err error) {
+func (w asciiFloatVector3) Append(dst []byte, i int) []byte {
+	v := w.arr.At(i)
+	return appendAsciiFloats(dst, v.X(), v.Y(), v.Z())
+}
 
-	v3 := av4pw.arr.At(i)
+func (w ucharVector3) Append(dst []byte, i int) []byte {
+	v := w.arr.At(i).Scale(255).RoundToInt()
+	return append(dst, byte(v.X()), byte(v.Y()), byte(v.Z()))
+}
 
-	switch av4pw.format {
-	case UChar:
-		v3 = av4pw.arr.At(i).Clamp(0, 1).Scale(255).Round()
-		fallthrough
+func (w littleIntVector3) Append(dst []byte, i int) []byte {
+	v := w.arr.At(i)
+	dst = binary.LittleEndian.AppendUint32(dst, uint32(v.X()))
+	dst = binary.LittleEndian.AppendUint32(dst, uint32(v.Y()))
+	return binary.LittleEndian.AppendUint32(dst, uint32(v.Z()))
+}
 
-	case Int, UInt, Short, UShort:
-		av4pw.buf = strconv.AppendInt(av4pw.buf, int64(v3.X()), 10)
-		av4pw.buf = append(av4pw.buf, ' ')
-		av4pw.buf = strconv.AppendInt(av4pw.buf, int64(v3.Y()), 10)
-		av4pw.buf = append(av4pw.buf, ' ')
-		av4pw.buf = strconv.AppendInt(av4pw.buf, int64(v3.Z()), 10)
+func (w bigIntVector3) Append(dst []byte, i int) []byte {
+	v := w.arr.At(i)
+	dst = binary.BigEndian.AppendUint32(dst, uint32(v.X()))
+	dst = binary.BigEndian.AppendUint32(dst, uint32(v.Y()))
+	return binary.BigEndian.AppendUint32(dst, uint32(v.Z()))
+}
 
-	case Double, Float:
-		av4pw.buf = strconv.AppendFloat(av4pw.buf, v3.X(), 'f', -1, 64)
-		av4pw.buf = append(av4pw.buf, ' ')
-		av4pw.buf = strconv.AppendFloat(av4pw.buf, v3.Y(), 'f', -1, 64)
-		av4pw.buf = append(av4pw.buf, ' ')
-		av4pw.buf = strconv.AppendFloat(av4pw.buf, v3.Z(), 'f', -1, 64)
+func (w littleFloatVector3) Append(dst []byte, i int) []byte {
+	v := w.arr.At(i).ToFloat32()
+	dst = binary.LittleEndian.AppendUint32(dst, math.Float32bits(v.X()))
+	dst = binary.LittleEndian.AppendUint32(dst, math.Float32bits(v.Y()))
+	return binary.LittleEndian.AppendUint32(dst, math.Float32bits(v.Z()))
+}
 
-	default:
-		panic(fmt.Errorf("unimplemented %s", av4pw.format))
-	}
+func (w bigFloatVector3) Append(dst []byte, i int) []byte {
+	v := w.arr.At(i).ToFloat32()
+	dst = binary.BigEndian.AppendUint32(dst, math.Float32bits(v.X()))
+	dst = binary.BigEndian.AppendUint32(dst, math.Float32bits(v.Y()))
+	return binary.BigEndian.AppendUint32(dst, math.Float32bits(v.Z()))
+}
 
-	_, err = out.Write(av4pw.buf)
-	av4pw.buf = av4pw.buf[:0]
-	return
+func (w littleDoubleVector3) Append(dst []byte, i int) []byte {
+	v := w.arr.At(i)
+	dst = binary.LittleEndian.AppendUint64(dst, math.Float64bits(v.X()))
+	dst = binary.LittleEndian.AppendUint64(dst, math.Float64bits(v.Y()))
+	return binary.LittleEndian.AppendUint64(dst, math.Float64bits(v.Z()))
+}
+
+func (w bigDoubleVector3) Append(dst []byte, i int) []byte {
+	v := w.arr.At(i)
+	dst = binary.BigEndian.AppendUint64(dst, math.Float64bits(v.X()))
+	dst = binary.BigEndian.AppendUint64(dst, math.Float64bits(v.Y()))
+	return binary.BigEndian.AppendUint64(dst, math.Float64bits(v.Z()))
 }

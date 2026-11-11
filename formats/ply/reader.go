@@ -309,6 +309,7 @@ var defaultReader MeshReader = MeshReader{
 			PlyPropertyZ:   "rot_2",
 			PlyPropertyW:   "rot_3",
 		},
+		SHPropertyReader{},
 		// <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 	},
 }
@@ -505,17 +506,9 @@ func (mr MeshReader) Read(reader io.Reader) (*modeling.Mesh, error) {
 			}
 		}
 
-		// Read vertex buffers
-		vertexBuf := make([]byte, totalSize)
-		for i := int64(0); i < vertexElement.Count; i++ {
-			_, err := io.ReadFull(reader, vertexBuf)
-			if err != nil {
-				return nil, fmt.Errorf("can't read %q element %w", mr.AttributeElement, err)
-			}
-
-			for _, reader := range binReaders {
-				reader.Read(vertexBuf, i)
-			}
+		err = readBinaryVertices(reader, binReaders, int(vertexElement.Count), totalSize)
+		if err != nil {
+			return nil, fmt.Errorf("can't read %q element %w", mr.AttributeElement, err)
 		}
 
 		// Read face data if present

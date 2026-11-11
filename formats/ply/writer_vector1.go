@@ -3,7 +3,6 @@ package ply
 import (
 	"encoding/binary"
 	"fmt"
-	"io"
 	"math"
 	"strconv"
 
@@ -21,88 +20,105 @@ func (vpw Vector1PropertyWriter) MeshQualifies(mesh modeling.Mesh) bool {
 	return mesh.HasFloat1Attribute(vpw.ModelAttribute)
 }
 
-func (vpw Vector1PropertyWriter) Properties() []Property {
+func (vpw Vector1PropertyWriter) Properties(modeling.Mesh) []Property {
 	return []Property{
 		ScalarProperty{PropertyName: vpw.PlyProperty, Type: vpw.Type},
 	}
 }
 
 func (vpw Vector1PropertyWriter) build(mesh modeling.Mesh, format Format) builtPropertyWriter {
-	if format == ASCII {
-		return &asciiVector1PropertyWriter{
-			arr:    mesh.Float1Attribute(vpw.ModelAttribute),
-			format: vpw.Type,
-			buf:    make([]byte, 0),
+	column := vector1Column{arr: mesh.Float1Attribute(vpw.ModelAttribute)}
+	switch format {
+	case ASCII:
+		switch vpw.Type {
+		case UChar:
+			return asciiUCharVector1(column)
+		case Int, UInt, Short, UShort:
+			return asciiIntVector1(column)
+		case Float, Double:
+			return asciiFloatVector1(column)
+		}
+
+	case BinaryBigEndian:
+		switch vpw.Type {
+		case UChar:
+			return ucharVector1(column)
+		case Int:
+			return bigIntVector1(column)
+		case Float:
+			return bigFloatVector1(column)
+		case Double:
+			return bigDoubleVector1(column)
+		}
+
+	default:
+		switch vpw.Type {
+		case UChar:
+			return ucharVector1(column)
+		case Int:
+			return littleIntVector1(column)
+		case Float:
+			return littleFloatVector1(column)
+		case Double:
+			return littleDoubleVector1(column)
 		}
 	}
-
-	var endian binary.ByteOrder = binary.LittleEndian
-	if format == BinaryBigEndian {
-		endian = binary.BigEndian
-	}
-	return builtVector1PropertyWriter{
-		arr:    mesh.Float1Attribute(vpw.ModelAttribute),
-		format: vpw.Type,
-		buf:    make([]byte, vpw.Type.Size()),
-		endian: endian,
-	}
+	panic(fmt.Errorf("unimplemented %s", vpw.Type))
 }
 
-type builtVector1PropertyWriter struct {
-	arr    *iter.ArrayIterator[float64]
-	format ScalarPropertyType
-	endian binary.ByteOrder
-	buf    []byte
+type vector1Column struct {
+	arr *iter.ArrayIterator[float64]
 }
 
-func (bvpw builtVector1PropertyWriter) Write(out io.Writer, i int) (err error) {
-	v := bvpw.arr.At(i)
+type (
+	asciiUCharVector1   vector1Column
+	asciiIntVector1     vector1Column
+	asciiFloatVector1   vector1Column
+	ucharVector1        vector1Column
+	littleIntVector1    vector1Column
+	bigIntVector1       vector1Column
+	littleFloatVector1  vector1Column
+	bigFloatVector1     vector1Column
+	littleDoubleVector1 vector1Column
+	bigDoubleVector1    vector1Column
+)
 
-	switch bvpw.format {
-	case UChar:
-		bvpw.buf[0] = byte(math.Round(bvpw.arr.At(i) * 255))
-
-	case Int:
-		bvpw.endian.PutUint32(bvpw.buf, uint32(v))
-
-	case Float:
-		bvpw.endian.PutUint32(bvpw.buf, math.Float32bits(float32(v)))
-
-	case Double:
-		bvpw.endian.PutUint64(bvpw.buf, math.Float64bits(v))
-
-	default:
-		panic(fmt.Errorf("unimplemented %s", bvpw.format))
-	}
-
-	_, err = out.Write(bvpw.buf)
-	return
+func (w asciiUCharVector1) Append(dst []byte, i int) []byte {
+	return strconv.AppendInt(dst, int64(math.Round(w.arr.At(i)*255)), 10)
 }
 
-type asciiVector1PropertyWriter struct {
-	arr    *iter.ArrayIterator[float64]
-	format ScalarPropertyType
-	buf    []byte
+func (w asciiIntVector1) Append(dst []byte, i int) []byte {
+	return strconv.AppendInt(dst, int64(w.arr.At(i)), 10)
 }
 
-func (av4pw *asciiVector1PropertyWriter) Write(out io.Writer, i int) (err error) {
-	v := av4pw.arr.At(i)
+func (w asciiFloatVector1) Append(dst []byte, i int) []byte {
+	return strconv.AppendFloat(dst, w.arr.At(i), 'f', -1, 64)
+}
 
-	switch av4pw.format {
-	case UChar:
-		av4pw.buf = strconv.AppendInt(av4pw.buf, int64(math.Round(v*255)), 10)
+func (w ucharVector1) Append(dst []byte, i int) []byte {
+	return append(dst, byte(math.Round(w.arr.At(i)*255)))
+}
 
-	case Int, UInt, Short, UShort:
-		av4pw.buf = strconv.AppendInt(av4pw.buf, int64(v), 10)
+func (w littleIntVector1) Append(dst []byte, i int) []byte {
+	return binary.LittleEndian.AppendUint32(dst, uint32(w.arr.At(i)))
+}
 
-	case Double, Float:
-		av4pw.buf = strconv.AppendFloat(av4pw.buf, v, 'f', -1, 64)
+func (w bigIntVector1) Append(dst []byte, i int) []byte {
+	return binary.BigEndian.AppendUint32(dst, uint32(w.arr.At(i)))
+}
 
-	default:
-		panic(fmt.Errorf("unimplemented %s", av4pw.format))
-	}
+func (w littleFloatVector1) Append(dst []byte, i int) []byte {
+	return binary.LittleEndian.AppendUint32(dst, math.Float32bits(float32(w.arr.At(i))))
+}
 
-	_, err = out.Write(av4pw.buf)
-	av4pw.buf = av4pw.buf[:0]
-	return
+func (w bigFloatVector1) Append(dst []byte, i int) []byte {
+	return binary.BigEndian.AppendUint32(dst, math.Float32bits(float32(w.arr.At(i))))
+}
+
+func (w littleDoubleVector1) Append(dst []byte, i int) []byte {
+	return binary.LittleEndian.AppendUint64(dst, math.Float64bits(w.arr.At(i)))
+}
+
+func (w bigDoubleVector1) Append(dst []byte, i int) []byte {
+	return binary.BigEndian.AppendUint64(dst, math.Float64bits(w.arr.At(i)))
 }

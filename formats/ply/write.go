@@ -60,6 +60,7 @@ var defaultWriter = MeshWriter{
 			PlyPropertyZ:   "rot_2",
 			PlyPropertyW:   "rot_3",
 		},
+		SHPropertyWriter{Type: Float},
 		// <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 	},
 }

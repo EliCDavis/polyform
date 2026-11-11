@@ -14,12 +14,12 @@ import (
 
 type PropertyWriter interface {
 	MeshQualifies(mesh modeling.Mesh) bool
-	Properties() []Property
-	build(mesh modeling.Mesh, endian Format) builtPropertyWriter
+	Properties(mesh modeling.Mesh) []Property
+	build(mesh modeling.Mesh, format Format) builtPropertyWriter
 }
 
 type builtPropertyWriter interface {
-	Write(out io.Writer, i int) error
+	Append(dst []byte, i int) []byte
 }
 
 // ============================================================================
@@ -37,7 +37,6 @@ func (mw MeshWriter) Write(mesh modeling.Mesh, texture string, writer io.Writer)
 
 	writers := make([]PropertyWriter, 0)
 	properties := make([]Property, 0)
-	builtWriters := make([]builtPropertyWriter, 0)
 
 	claimedV1 := make(map[string]bool)
 	claimedV2 := make(map[string]bool)
@@ -66,6 +65,10 @@ func (mw MeshWriter) Write(mesh modeling.Mesh, texture string, writer io.Writer)
 			claimedV2[v.ModelAttribute] = true
 		case *Vector1PropertyWriter:
 			claimedV1[v.ModelAttribute] = true
+		case SHPropertyWriter, *SHPropertyWriter:
+			for j := 0; j < modeling.SHCoefficientCount(mesh); j++ {
+				claimedV3[modeling.SHAttribute(j)] = true
+			}
 		default:
 			panic("what is this type")
 		}
@@ -121,8 +124,7 @@ func (mw MeshWriter) Write(mesh modeling.Mesh, texture string, writer io.Writer)
 	}
 
 	for _, prop := range writers {
-		builtWriters = append(builtWriters, prop.build(mesh, mw.Format))
-		properties = append(properties, prop.Properties()...)
+		properties = append(properties, prop.Properties(mesh)...)
 	}
 
 	attributeLength := mesh.AttributeLength()
@@ -175,25 +177,8 @@ func (mw MeshWriter) Write(mesh modeling.Mesh, texture string, writer io.Writer)
 		return err
 	}
 
-	spaceByte := []byte{' '}
-	newLineByte := []byte{'\n'}
-
-	for i := 0; i < attributeLength; i++ {
-		for propI, prop := range builtWriters {
-			err = prop.Write(writer, i)
-			if err != nil {
-				return err
-			}
-
-			if mw.Format == ASCII {
-				if propI < len(builtWriters)-1 {
-					writer.Write(spaceByte)
-				} else {
-					writer.Write(newLineByte)
-				}
-			}
-
-		}
+	if err := writeVertices(writer, mesh, writers, mw.Format, attributeLength); err != nil {
+		return err
 	}
 
 	if mesh.Topology() != modeling.TriangleTopology {

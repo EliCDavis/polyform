@@ -2,7 +2,6 @@ package ply
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 
 	"github.com/EliCDavis/polyform/generator/manifest"
@@ -70,15 +69,7 @@ func (sa Artifact) Write(w io.Writer) error {
 			PlyProperty:    "opacity",
 			Type:           Float,
 		},
-	}
-
-	harmonics := 45
-	for i := 0; i < harmonics; i++ {
-		writers = append(writers, Vector1PropertyWriter{
-			ModelAttribute: fmt.Sprintf("f_rest_%d", i),
-			PlyProperty:    fmt.Sprintf("f_rest_%d", i),
-			Type:           Float,
-		})
+		SHPropertyWriter{Type: Float},
 	}
 
 	writer := MeshWriter{
