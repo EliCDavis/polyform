@@ -6,16 +6,16 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/EliCDavis/polyform/generator"
 	"github.com/EliCDavis/polyform/generator/graph"
 	"github.com/EliCDavis/polyform/generator/graph/history"
+	"github.com/EliCDavis/polyform/generator/registry"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestAFailedRollbackFreezesTheAutosaveUntilAGraphIsLoaded(t *testing.T) {
 	dir := t.TempDir()
-	s := NewServer(graph.New(graph.Config{TypeFactory: generator.Types(), VariableFactory: NewTypedVariable}))
+	s := NewServer(graph.New(graph.Config{TypeFactory: registry.Types(), VariableFactory: NewTypedVariable}))
 	s.projectDir = dir
 	autosave := filepath.Join(dir, autosaveFileName)
 

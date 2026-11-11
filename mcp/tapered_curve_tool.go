@@ -2,10 +2,8 @@ package mcp
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
-	"github.com/EliCDavis/polyform/generator/graph"
 	"github.com/EliCDavis/polyform/generator/subgraph"
 	mcpsdk "github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -116,15 +114,11 @@ func (s *Server) createTaperedCurveSubgraph(ctx context.Context, req *mcpsdk.Cal
 		}
 
 		// LinearNode(0, length, Samples) -> dense Distances
-		zeroID, e := createFloatLiteral(child, 0)
-		if e != nil {
-			return e
-		}
 		_, distancesID, e := child.CreateNode(tcLinearNodeType)
 		if e != nil {
 			return e
 		}
-		if e := child.ConnectNodes(zeroID, "Value", distancesID, "Start"); e != nil {
+		if e := child.SetLiteral(distancesID, "Start", []byte("0")); e != nil {
 			return e
 		}
 		if e := child.ConnectNodes(lengthID, "Out", distancesID, "End"); e != nil {
@@ -193,23 +187,6 @@ func (s *Server) createTaperedCurveSubgraph(ctx context.Context, req *mcpsdk.Cal
 		return nil
 	})
 	return nil, out, err
-}
-
-// createFloatLiteral creates a float64 parameter node preset to v inside
-// inst, returning its node id.
-func createFloatLiteral(inst *graph.Graph, v float64) (string, error) {
-	_, id, err := inst.CreateNode(eqFloatParamType)
-	if err != nil {
-		return "", fmt.Errorf("create literal %v: %w", v, err)
-	}
-	data, err := json.Marshal(v)
-	if err != nil {
-		return "", err
-	}
-	if _, err := inst.UpdateParameter(id, data); err != nil {
-		return "", fmt.Errorf("set literal %v: %w", v, err)
-	}
-	return id, nil
 }
 
 func (s *Server) registerTaperedCurveTools() {

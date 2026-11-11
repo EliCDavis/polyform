@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/EliCDavis/polyform/generator"
 	"github.com/EliCDavis/polyform/generator/graph"
+	"github.com/EliCDavis/polyform/generator/registry"
 	polyformmcp "github.com/EliCDavis/polyform/mcp"
 	mcpsdk "github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/stretchr/testify/assert"
@@ -16,7 +16,7 @@ import (
 )
 
 func newServer() *polyformmcp.Server {
-	return polyformmcp.NewServer(graph.New(graph.Config{TypeFactory: generator.Types(), VariableFactory: polyformmcp.NewTypedVariable}))
+	return polyformmcp.NewServer(graph.New(graph.Config{TypeFactory: registry.Types(), VariableFactory: polyformmcp.NewTypedVariable}))
 }
 
 func connect(t *testing.T, server *polyformmcp.Server) *mcpsdk.ClientSession {

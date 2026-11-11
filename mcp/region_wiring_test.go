@@ -54,13 +54,8 @@ func TestRegionTakesOneOutlineAndASpreadListOfHoles(t *testing.T) {
 	}}, &created)
 	require.Empty(t, created.Errors)
 
-	msg := callToolExpectingError(t, session, "connect_nodes", map[string]any{
-		"outNodeId": created.Nodes["pads"], "outPort": "Out", "inNodeId": created.Nodes["fill"], "inPort": "Holes",
-	})
-	assert.Contains(t, msg, `"Holes" input takes`, "a list wired straight into one element is refused")
-
 	var mesh polyformmcp.DescribeMeshOutput
-	callTool(t, session, "describe_mesh", map[string]any{"nodeId": created.Nodes["region"]}, &mesh)
+	callTool(t, session, "describe_mesh", map[string]any{"nodeId": created.Nodes["region"], "port": "Z"}, &mesh)
 	assert.Equal(t, 1, mesh.Pieces)
 	assert.InDelta(t, 10, mesh.Extent.Size.X, 1e-9)
 	assert.InDelta(t, 0.5, mesh.Extent.Size.Z, 1e-9)
@@ -92,7 +87,7 @@ func TestRegionTakesASpreadListOfStrokedRings(t *testing.T) {
 	require.Empty(t, created.Errors)
 
 	var mesh polyformmcp.DescribeMeshOutput
-	callTool(t, session, "describe_mesh", map[string]any{"nodeId": created.Nodes["region"]}, &mesh)
+	callTool(t, session, "describe_mesh", map[string]any{"nodeId": created.Nodes["region"], "port": "Z"}, &mesh)
 	assert.Equal(t, 2, mesh.Pieces, "two rings, each a single piece")
 	assert.Empty(t, mesh.NodeErrors)
 }

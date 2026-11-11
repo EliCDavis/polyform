@@ -12,8 +12,8 @@ Each `PATH` goes inside
 Wire `Out` into `MaterialNode`'s `Sheen` port.
 
 - **`Color Factor` is the sheen's colour, and it defaults to black,
-  which is no sheen at all.** Always set it. It is linear, so pass a hex
-  pick through `coloring.SRGBToLinearNode`, as for the base colour.
+  which is no sheen at all.** Always set it. It is linear and not
+  converted for you, so pass a hex pick through `coloring.SRGBToLinearNode`.
   - Velvet: a lighter, more saturated version of the fabric colour.
   - Satin: near-white.
 - **`Roughness Factor`**, 0 to 1 (default 0):
@@ -30,6 +30,8 @@ sheen reads as plastic with a halo.
 
 ## Verify
 
-`render_preview` doesn't show sheen. `describe_manifest` lists
+`render_preview` approximates sheen as a glow toward grazing angles,
+softer at higher roughness; it ignores the sheen textures.
+`describe_manifest` lists
 `KHR_materials_sheen` with `sheenColorFactor` not black and the
 `sheenRoughnessFactor`.

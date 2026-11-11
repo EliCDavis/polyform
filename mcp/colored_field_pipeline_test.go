@@ -12,8 +12,8 @@ import (
 // TestColoredFieldEndToEndPipeline builds two overlapping colored spheres
 // entirely through the real MCP tool surface (create_node/connect_nodes,
 // the same calls an agent would make) - SphereNode x2 -> WithColorNode x2
-// -> SmoothUnionColoredNode -> both ColoredFieldDistanceNode (to
-// MarchNode) and the same ColoredField directly (to ApplyColorFieldNode)
+// -> SmoothUnionColoredNode -> both MarchNode (through the cast to its
+// distance) and ApplyColorFieldNode
 // - then reads the resulting mesh's real "Color" attribute back to
 // confirm the whole chain actually produces a red-to-blue gradient, not
 // just that no tool call errored.
@@ -23,7 +23,6 @@ func TestColoredFieldEndToEndPipeline(t *testing.T) {
 	sphereType := "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/math/sdf.SphereNode]"
 	withColorType := "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/math/sdf.WithColorNode]"
 	unionType := "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/math/sdf.SmoothUnionColoredNode]"
-	distanceType := "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/math/sdf.ColoredFieldDistanceNode]"
 	marchType := "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/modeling/marching.MarchNode]"
 	applyType := "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/modeling/marching.ApplyColorFieldNode]"
 
@@ -76,19 +75,12 @@ func TestColoredFieldEndToEndPipeline(t *testing.T) {
 		"inNodeId": union.NodeId, "inPort": "Fields",
 	}, &polyformmcp.ConnectNodesOutput{})
 
-	var distance, march, apply polyformmcp.CreateNodeOutput
-
-	callTool(t, session, "create_node", map[string]any{
-		"type": distanceType,
-		"inputs": map[string]any{
-			"Field": map[string]any{"nodeId": union.NodeId, "port": "Union"},
-		},
-	}, &distance)
+	var march, apply polyformmcp.CreateNodeOutput
 
 	callTool(t, session, "create_node", map[string]any{
 		"type": marchType,
 		"inputs": map[string]any{
-			"Field":      map[string]any{"nodeId": distance.NodeId, "port": "Out"},
+			"Field":      map[string]any{"nodeId": union.NodeId, "port": "Union"},
 			"Resolution": map[string]any{"value": "8"},
 			"Domain": map[string]any{"value": `{
 				"center": {"x": 0.75, "y": 0, "z": 0},

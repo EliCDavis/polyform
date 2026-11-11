@@ -10,6 +10,51 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestUndoSkipsCallsThatChangedNothing(t *testing.T) {
+	session, inst := testSessionWithInstance(t)
+
+	var cube polyformmcp.CreateNodeOutput
+	callTool(t, session, "create_node", map[string]any{"type": cubeNodeType}, &cube)
+	callTool(t, session, "describe_graph", map[string]any{}, &polyformmcp.DescribeGraphOutput{})
+	callTool(t, session, "list_nodes", map[string]any{}, &polyformmcp.ListNodesOutput{})
+
+	var out polyformmcp.HistoryOutput
+	callTool(t, session, "undo", map[string]any{}, &out)
+
+	assert.Equal(t, []string{"create_node"}, out.Undone)
+	assert.NotContains(t, inst.Schema().Nodes, cube.NodeId)
+}
+
+func TestAReadAfterUndoKeepsRedo(t *testing.T) {
+	session, inst := testSessionWithInstance(t)
+
+	var cube polyformmcp.CreateNodeOutput
+	callTool(t, session, "create_node", map[string]any{"type": cubeNodeType}, &cube)
+	callTool(t, session, "undo", map[string]any{}, &polyformmcp.HistoryOutput{})
+	callTool(t, session, "describe_graph", map[string]any{}, &polyformmcp.DescribeGraphOutput{})
+
+	callTool(t, session, "redo", map[string]any{}, &polyformmcp.HistoryOutput{})
+	assert.Contains(t, inst.Schema().Nodes, cube.NodeId)
+}
+
+func TestUndoTakesBackALiteral(t *testing.T) {
+	session, inst := testSessionWithInstance(t)
+
+	var cube polyformmcp.CreateNodeOutput
+	callTool(t, session, "create_node", map[string]any{"type": cubeNodeType}, &cube)
+	before, err := inst.LiteralValue(cube.NodeId, "Width")
+	require.NoError(t, err)
+	callTool(t, session, "set_parameter", map[string]any{"nodeId": cube.NodeId, "port": "Width", "value": "7"}, &polyformmcp.SetParameterOutput{})
+
+	var out polyformmcp.HistoryOutput
+	callTool(t, session, "undo", map[string]any{}, &out)
+
+	assert.Equal(t, []string{"set_parameter"}, out.Undone)
+	after, err := inst.LiteralValue(cube.NodeId, "Width")
+	require.NoError(t, err)
+	assert.JSONEq(t, string(before), string(after))
+}
+
 func TestUndoTakesBackTheLastCall(t *testing.T) {
 	session, inst := testSessionWithInstance(t)
 

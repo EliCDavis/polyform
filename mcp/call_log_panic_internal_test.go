@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/EliCDavis/polyform/generator"
 	"github.com/EliCDavis/polyform/generator/graph"
+	"github.com/EliCDavis/polyform/generator/registry"
 	mcpsdk "github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -20,7 +20,7 @@ func dereferenceNothingInATool() int {
 }
 
 func TestCallLogRecordsTheStackOfAPanic(t *testing.T) {
-	s := NewServer(graph.New(graph.Config{TypeFactory: generator.Types(), VariableFactory: NewTypedVariable}))
+	s := NewServer(graph.New(graph.Config{TypeFactory: registry.Types(), VariableFactory: NewTypedVariable}))
 	mcpsdk.AddTool(s.sdk, &mcpsdk.Tool{Name: "probe_panic"}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in struct{}) (*mcpsdk.CallToolResult, struct{}, error) {
 		var err error
 		s.atomic(&err, func() error {

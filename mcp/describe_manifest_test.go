@@ -104,7 +104,7 @@ func TestDescribeManifestReportsExtensionsAttributesInstancesAndBounds(t *testin
 		map[string]any{"alias": "glass", "type": materialNodeType, "inputs": map[string]any{
 			"Name":              map[string]any{"value": `"Glass"`},
 			"Color":             map[string]any{"value": `"#ffffff"`},
-			"IndexOfRefraction": map[string]any{"value": "1.5"},
+			"IndexOfRefraction": map[string]any{"value": "1.6"},
 			"EmissiveStrength":  map[string]any{"value": "2"},
 			"Transmission":      map[string]any{"nodeId": "transmission", "port": "Out"},
 			"Volume":            map[string]any{"nodeId": "volume", "port": "Out"},
@@ -130,7 +130,7 @@ func TestDescribeManifestReportsExtensionsAttributesInstancesAndBounds(t *testin
 	assert.Equal(t, "Glass", glass.Name)
 	assert.InDelta(t, 0.9, glass.Extensions["KHR_materials_transmission"]["transmissionFactor"], 1e-9)
 	assert.InDelta(t, 0.5, glass.Extensions["KHR_materials_volume"]["thicknessFactor"], 1e-9)
-	assert.InDelta(t, 1.5, glass.Extensions["KHR_materials_ior"]["ior"], 1e-9)
+	assert.InDelta(t, 1.6, glass.Extensions["KHR_materials_ior"]["ior"], 1e-9)
 	assert.InDelta(t, 0.36, glass.Extensions["KHR_materials_dispersion"]["dispersion"], 1e-9)
 	assert.InDelta(t, 2, glass.Extensions["KHR_materials_emissive_strength"]["emissiveStrength"], 1e-9)
 	assert.ElementsMatch(t, []string{
@@ -230,7 +230,7 @@ func TestDescribeManifestWarnsWhenAMaterialNeedsUVsTheMeshLacks(t *testing.T) {
 	var out polyformmcp.DescribeManifestOutput
 	callTool(t, session, "describe_manifest", map[string]any{"nodeId": created.Nodes["manifest"]}, &out)
 
-	assert.Equal(t, []string{"POSITION"}, out.Models[0].Attributes)
+	assert.Equal(t, []string{"NORMAL", "POSITION"}, out.Models[0].Attributes)
 	require.Len(t, out.Warnings, 3, "%v", out.Warnings)
 	assert.Contains(t, out.Warnings[0], `Small: material "Brushed" uses KHR_materials_anisotropy but the mesh has no TEXCOORD_0`)
 	assert.Contains(t, out.Warnings[1], `Large: material "Brushed" uses KHR_materials_anisotropy`)

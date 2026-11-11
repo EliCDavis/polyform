@@ -39,6 +39,37 @@ func TestFitRadiusRoundTripsThroughDistance(t *testing.T) {
 	assert.InDelta(t, 0.3*4.4, distanceForRadius(0.3, defaultFov), 0.01, "the long-standing 4.4x rule still holds at the default fov")
 }
 
+func plateFacingTarget(z float64) []*fauxgl.Triangle {
+	return []*fauxgl.Triangle{
+		fauxgl.NewTriangleForPoints(fauxgl.V(-3, -3, z), fauxgl.V(3, 3, z), fauxgl.V(3, -3, z)),
+		fauxgl.NewTriangleForPoints(fauxgl.V(-3, -3, z), fauxgl.V(-3, 3, z), fauxgl.V(3, 3, z)),
+	}
+}
+
+func poseFramingUnitRadius() cameraPose {
+	distance := distanceForRadius(1, defaultFov)
+	return cameraPose{eye: fauxgl.V(0, 0, distance), target: fauxgl.V(0, 0, 0), up: fauxgl.V(0, 1, 0), distance: distance, fov: defaultFov}
+}
+
+func TestClearCameraLeavesTheFramedSubjectAlone(t *testing.T) {
+	pose := poseFramingUnitRadius()
+	moved, note := clearCamera(pose, plateFacingTarget(0.2))
+	assert.Empty(t, note)
+	assert.Equal(t, pose, moved)
+}
+
+func TestClearCameraPullsInFrontOfGeometryOutsideTheFramedRadius(t *testing.T) {
+	moved, note := clearCamera(poseFramingUnitRadius(), plateFacingTarget(2))
+	assert.Contains(t, note, "pulled in")
+	assert.InDelta(t, 1.8, moved.distance, 1e-9)
+}
+
+func TestClearCameraNeverPullsInsideTheFramedRadius(t *testing.T) {
+	moved, _ := clearCamera(poseFramingUnitRadius(), plateFacingTarget(1.05))
+	assert.GreaterOrEqual(t, moved.distance, 1.)
+	assert.Less(t, moved.distance, 1.05)
+}
+
 func TestLineOfSightTellsEnteringFromLeaving(t *testing.T) {
 	// A unit cube's +Z face, wound counter-clockwise seen from +Z.
 	face := []*fauxgl.Triangle{

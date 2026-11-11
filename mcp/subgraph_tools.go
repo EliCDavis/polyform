@@ -122,7 +122,7 @@ func (s *Server) createSubgraph(ctx context.Context, req *mcpsdk.CallToolRequest
 		for _, port := range in.Inputs {
 			id, e := createBoundary(child, subgraph.InputNodeTypeKey, port.Name, port.Type)
 			if e != nil {
-				_ = s.graph.DeleteSubGraph(in.Id)
+				_, _ = s.graph.DeleteSubGraph(in.Id)
 				return fmt.Errorf("input %q: %w", port.Name, e)
 			}
 			out.Inputs[port.Name] = id
@@ -130,7 +130,7 @@ func (s *Server) createSubgraph(ctx context.Context, req *mcpsdk.CallToolRequest
 				continue
 			}
 			if e := setBoundaryDefault(child, id, port.Default); e != nil {
-				_ = s.graph.DeleteSubGraph(in.Id)
+				_, _ = s.graph.DeleteSubGraph(in.Id)
 				return fmt.Errorf("input %q default: %w", port.Name, e)
 			}
 		}
@@ -138,14 +138,14 @@ func (s *Server) createSubgraph(ctx context.Context, req *mcpsdk.CallToolRequest
 		for _, port := range in.Outputs {
 			if port.Type == "" {
 				if port.NodeId == "" {
-					_ = s.graph.DeleteSubGraph(in.Id)
+					_, _ = s.graph.DeleteSubGraph(in.Id)
 					return fmt.Errorf("output %q: type is required unless nodeId names what feeds it", port.Name)
 				}
 				continue
 			}
 			id, e := createBoundary(child, subgraph.OutputNodeTypeKey, port.Name, port.Type)
 			if e != nil {
-				_ = s.graph.DeleteSubGraph(in.Id)
+				_, _ = s.graph.DeleteSubGraph(in.Id)
 				return fmt.Errorf("output %q: %w", port.Name, e)
 			}
 			out.Outputs[port.Name] = id
@@ -159,7 +159,7 @@ func (s *Server) createSubgraph(ctx context.Context, req *mcpsdk.CallToolRequest
 				return e
 			})
 			if e != nil {
-				_ = s.graph.DeleteSubGraph(in.Id)
+				_, _ = s.graph.DeleteSubGraph(in.Id)
 				return e
 			}
 			out.Nodes = nodeIDs
@@ -403,7 +403,7 @@ func (s *Server) convertToSubgraph(ctx context.Context, req *mcpsdk.CallToolRequ
 func convertedPorts(parent, child *graph.Graph, instanceID string) (inputs, outputs map[string]ConvertedPort) {
 	outside := map[string]string{}
 	for name, port := range parent.Node(instanceID).Inputs() {
-		if single, ok := port.(nodes.SingleValueInputPort); ok && single.Value() != nil {
+		if single, ok := port.(nodes.SingleValueInputPort); ok && single.Value() != nil && !holdsLiteral(parent, single.Value()) {
 			outside[name] = parent.NodeId(single.Value().Node()) + "." + portLabel(single.Value())
 		}
 	}
@@ -543,16 +543,22 @@ type DeleteSubgraphInput struct {
 }
 
 type DeleteSubgraphOutput struct {
-	Deleted bool `json:"deleted"`
+	Deleted bool                 `json:"deleted"`
+	Dropped []DroppedEdgeSummary `json:"dropped,omitempty" jsonschema:"other edges removed because their producer now carries a type their input cannot take. Rewire any that were meant to stay."`
 }
 
 func (s *Server) deleteSubgraph(ctx context.Context, req *mcpsdk.CallToolRequest, in DeleteSubgraphInput) (*mcpsdk.CallToolResult, DeleteSubgraphOutput, error) {
 	var out DeleteSubgraphOutput
 	var err error
 	s.atomic(&err, func() error {
-		if e := s.graph.DeleteSubGraph(in.Id); e != nil {
+		if placed := subgraphInstances(s.graph.Schema(), in.Id); len(placed) > 0 {
+			return fmt.Errorf("subgraph %q still has %d instance(s): %s; delete those nodes first", in.Id, len(placed), strings.Join(placed, ", "))
+		}
+		dropped, e := s.graph.DeleteSubGraph(in.Id)
+		if e != nil {
 			return e
 		}
+		out.Dropped = summarizeDrops(dropped)
 		dropOutlinePart(s.graph, in.Id)
 		out.Deleted = true
 		return nil
@@ -565,7 +571,7 @@ type SubgraphSummary struct {
 	Name        string   `json:"name"`
 	Description string   `json:"description,omitempty"`
 	Placements  []string `json:"placements,omitempty" jsonschema:"'scope/nodeId' of every instance; scope is the subgraph definition holding it, empty for the root graph ('/Node-12')"`
-	Instances   []string `json:"instances,omitempty" jsonschema:"live paths from the root graph to every instance, 'Node-81/Node-158' for one nested inside another part's instance: what evaluate_node, sample_field, raycast_field and describe_mesh take as instanceId"`
+	Instances   []string `json:"instances,omitempty" jsonschema:"live paths from the root graph to every instance, 'Node-81/Node-158' for one nested inside another part's instance: what evaluate_node, sample_field, raycast_field and describe_mesh take as instanceId. 'Node-81[i]' is an instance running once per item: replace i with the run to inspect, from 0."`
 }
 
 type ListSubgraphsInput struct{}
@@ -585,7 +591,7 @@ func instancePaths(sch schema.Graph, id string, visiting map[string]bool) []stri
 	var paths []string
 	for nodeID, n := range sch.Nodes {
 		if n.SubGraphId == id {
-			paths = append(paths, nodeID)
+			paths = append(paths, instanceSegment(nodeID, n.ForEach))
 		}
 	}
 	for scope, sg := range sch.SubGraphs {
@@ -594,12 +600,19 @@ func instancePaths(sch schema.Graph, id string, visiting map[string]bool) []stri
 				continue
 			}
 			for _, outer := range instancePaths(sch, scope, visiting) {
-				paths = append(paths, outer+"/"+nodeID)
+				paths = append(paths, outer+"/"+instanceSegment(nodeID, n.ForEach))
 			}
 		}
 	}
 	sort.Strings(paths)
 	return paths
+}
+
+func instanceSegment(nodeID string, forEach bool) string {
+	if forEach {
+		return nodeID + "[i]"
+	}
+	return nodeID
 }
 
 func (s *Server) listSubgraphs(ctx context.Context, req *mcpsdk.CallToolRequest, in ListSubgraphsInput) (*mcpsdk.CallToolResult, ListSubgraphsOutput, error) {
@@ -890,7 +903,8 @@ type InstantiateSubgraphInput struct {
 	SubgraphId     string                   `json:"subgraphId"`
 	Scope          string                   `json:"scope,omitempty" jsonschema:"where to place the instance; omit for the root graph, or another subgraph id to nest it"`
 	Inputs         map[string]NodeInputSpec `json:"inputs,omitempty" jsonschema:"optionally wire the instance's boundary inputs immediately — same shape as create_node's 'inputs': either {nodeId, port} to reference an existing node's output, or {value: <json text>} for a literal (only for types with a registered parameter node)"`
-	CopyInputsFrom string                   `json:"copyInputsFrom,omitempty" jsonschema:"id of an existing subgraph instance in the same scope: every input wired on it whose port name the new subgraph also has is wired identically on the new one (same upstream nodes, shared - not copied). The instance may be of another subgraph; ports it has that the new one lacks come back in 'skipped'. 'inputs' then overrides individual ports. The way to make a second pipeline that differs in one or two inputs (a low-poly march, a mirrored copy) without re-wiring the other twenty."`
+	CopyInputsFrom string                   `json:"copyInputsFrom,omitempty" jsonschema:"id of an existing subgraph instance in the same scope: every input wired on it whose port name the new subgraph also has is wired identically on the new one (same upstream nodes, shared - not copied), and every literal value is copied. The instance may be of another subgraph; ports it has that the new one lacks come back in 'skipped'. 'inputs' then overrides individual ports. The way to make a second pipeline that differs in one or two inputs (a low-poly march, a mirrored copy) without re-wiring the other twenty."`
+	ForEach        bool                     `json:"forEach,omitempty" jsonschema:"run the subgraph once per item: an input fed a list one level deeper than it declares is iterated, anything else is broadcast, and every output becomes the list of the runs' results"`
 }
 
 type InstantiateSubgraphOutput struct {
@@ -926,6 +940,12 @@ func (s *Server) instantiateSubgraph(ctx context.Context, req *mcpsdk.CallToolRe
 		}
 		out.NodeId = id
 
+		if in.ForEach {
+			if _, e := inst.SetForEach(id, true); e != nil {
+				return e
+			}
+		}
+
 		if template != nil {
 			ownPorts := node.Inputs()
 			templatePorts := template.Inputs()
@@ -959,7 +979,15 @@ func (s *Server) instantiateSubgraph(ctx context.Context, req *mcpsdk.CallToolRe
 					if upstream == nil {
 						continue
 					}
-					if failed = inst.ConnectNodes(inst.NodeId(upstream.Node()), upstream.Name(), id, ownKey); failed != nil {
+					if holdsLiteral(inst, upstream) {
+						var held []byte
+						if held, failed = inst.LiteralValue(in.CopyInputsFrom, byLabel[portName]); failed == nil {
+							failed = inst.SetLiteral(id, ownKey, held)
+						}
+					} else {
+						failed = inst.ConnectNodes(inst.NodeId(upstream.Node()), upstream.Name(), id, ownKey)
+					}
+					if failed != nil {
 						break
 					}
 				}
@@ -971,6 +999,34 @@ func (s *Server) instantiateSubgraph(ctx context.Context, req *mcpsdk.CallToolRe
 			}
 		}
 		return wireCreatedNodeInputs(inst, node, id, in.Inputs)
+	})
+	return nil, out, err
+}
+
+type SetForEachInput struct {
+	NodeId  string `json:"nodeId" jsonschema:"the subgraph instance"`
+	Scope   string `json:"scope,omitempty" jsonschema:"subgraph id the instance lives in; omit for the root graph"`
+	ForEach bool   `json:"forEach" jsonschema:"true to run once per item, false to run once"`
+}
+
+type SetForEachOutput struct {
+	Dropped []DroppedEdgeSummary `json:"dropped,omitempty" jsonschema:"edges removed because the instance's outputs changed between a value and a list of them. Rewire any that were meant to stay."`
+}
+
+func (s *Server) setForEach(ctx context.Context, req *mcpsdk.CallToolRequest, in SetForEachInput) (*mcpsdk.CallToolResult, SetForEachOutput, error) {
+	var out SetForEachOutput
+	var err error
+	s.atomic(&err, func() error {
+		inst, e := s.resolveScope(in.Scope)
+		if e != nil {
+			return e
+		}
+		dropped, e := inst.SetForEach(in.NodeId, in.ForEach)
+		if e != nil {
+			return s.explainMissingNode(in.Scope, in.NodeId, e)
+		}
+		out.Dropped = summarizeDrops(dropped)
+		return nil
 	})
 	return nil, out, err
 }
@@ -1010,7 +1066,7 @@ func (s *Server) replaceInstance(ctx context.Context, req *mcpsdk.CallToolReques
 		out.KeptInputs, out.KeptOutputs = result.KeptInputs, result.KeptOutputs
 		out.LostInputs, out.LostOutputs = result.LostInputs, result.LostOutputs
 		for _, port := range inst.Node(in.NodeId).Inputs() {
-			if single, ok := port.(nodes.SingleValueInputPort); ok && single.Value() == nil {
+			if single, ok := port.(nodes.SingleValueInputPort); ok && (single.Value() == nil || holdsLiteral(inst, single.Value())) {
 				out.OpenInputs = append(out.OpenInputs, portLabel(port))
 			}
 		}
@@ -1112,6 +1168,11 @@ func (s *Server) registerSubgraphTools() {
 		Name:        "rename_subgraph",
 		Description: "Change a subgraph's id. Every instance follows, and an outline part of the old name is renamed with it.",
 	}, s.renameSubgraph)
+
+	mcpsdk.AddTool(s.sdk, &mcpsdk.Tool{
+		Name:        "set_for_each",
+		Description: "Make a subgraph instance run once per item, or once. Per item, an input fed a list one level deeper than it declares is iterated, anything else is broadcast, and every output becomes the list of the runs' results. For work one node can't do per element; a single node takes lists on its own.",
+	}, s.setForEach)
 
 	mcpsdk.AddTool(s.sdk, &mcpsdk.Tool{
 		Name:        "replace_instance",

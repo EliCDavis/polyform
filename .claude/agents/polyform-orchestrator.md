@@ -1,7 +1,7 @@
 ---
 name: polyform-orchestrator
 description: Takes a high-level modeling prompt and turns it into a polyform node graph by decomposing it into components and controls, building each part directly, then assembling and rendering the result. Use when the user asks to model, build, or generate a 3D object/scene with polyform. For iterative/multi-round work (critique → revise loops), spawn it ONCE and send every later round to that same agent with SendMessage; never spawn a new orchestrator per round.
-tools: SendUserFile, Read, mcp__polyform__search_node_types, mcp__polyform__get_node_types, mcp__polyform__create_equation_subgraph, mcp__polyform__update_equation_subgraph, mcp__polyform__create_tapered_curve_subgraph, mcp__polyform__create_vertex_color_gradient_subgraph, mcp__polyform__create_flush_position_subgraph, mcp__polyform__create_sphere_surface_point_subgraph, mcp__polyform__create_node, mcp__polyform__create_nodes, mcp__polyform__delete_node, mcp__polyform__delete_subgraph, mcp__polyform__connect_nodes, mcp__polyform__disconnect, mcp__polyform__set_parameter, mcp__polyform__create_subgraph, mcp__polyform__create_boundary_node, mcp__polyform__convert_to_subgraph, mcp__polyform__rename_boundary_port, mcp__polyform__set_outline, mcp__polyform__get_outline, mcp__polyform__patch_outline, mcp__polyform__check_outline, mcp__polyform__graph_stats, mcp__polyform__instantiate_subgraph, mcp__polyform__list_variables, mcp__polyform__list_subgraphs, mcp__polyform__list_nodes, mcp__polyform__rename_subgraph, mcp__polyform__replace_instance, mcp__polyform__describe_graph, mcp__polyform__set_graph_info, mcp__polyform__render_preview, mcp__polyform__sample_field, mcp__polyform__raycast_field, mcp__polyform__describe_mesh, mcp__polyform__evaluate_node, mcp__polyform__profile_graph, mcp__polyform__prune_orphans, mcp__polyform__describe_manifest, mcp__polyform__save_graph, mcp__polyform__load_graph, mcp__polyform__set_producer, mcp__polyform__generate, mcp__polyform__create_variables, mcp__polyform__update_variable, mcp__polyform__update_variables, mcp__polyform__rename_variable, mcp__polyform__delete_variable, mcp__polyform__create_variant_set, mcp__polyform__save_profile, mcp__polyform__list_profiles, mcp__polyform__get_profile, mcp__polyform__update_profile, mcp__polyform__apply_profile, mcp__polyform__delete_profile, mcp__polyform__list_variant_sets, mcp__polyform__delete_variant_set, mcp__polyform__run_variant_sweep, mcp__polyform__rename_variant_set, mcp__polyform__create_variable, mcp__polyform__render_mermaid, mcp__polyform__undo, mcp__polyform__redo, mcp__polyform__list_history, mcp__polyform__start_project, mcp__polyform__report_issue, ToolSearch
+tools: SendUserFile, Read, mcp__polyform__search_node_types, mcp__polyform__get_node_types, mcp__polyform__create_equation_subgraph, mcp__polyform__update_equation_subgraph, mcp__polyform__create_tapered_curve_subgraph, mcp__polyform__create_vertex_color_gradient_subgraph, mcp__polyform__create_flush_position_subgraph, mcp__polyform__create_sphere_surface_point_subgraph, mcp__polyform__create_node, mcp__polyform__create_nodes, mcp__polyform__delete_node, mcp__polyform__delete_subgraph, mcp__polyform__connect_nodes, mcp__polyform__disconnect, mcp__polyform__set_parameter, mcp__polyform__create_subgraph, mcp__polyform__create_boundary_node, mcp__polyform__convert_to_subgraph, mcp__polyform__rename_boundary_port, mcp__polyform__set_for_each, mcp__polyform__define_enum, mcp__polyform__edit_enum, mcp__polyform__delete_enum, mcp__polyform__list_enums, mcp__polyform__set_outline, mcp__polyform__get_outline, mcp__polyform__patch_outline, mcp__polyform__check_outline, mcp__polyform__graph_stats, mcp__polyform__instantiate_subgraph, mcp__polyform__list_variables, mcp__polyform__list_subgraphs, mcp__polyform__list_nodes, mcp__polyform__rename_subgraph, mcp__polyform__replace_instance, mcp__polyform__describe_graph, mcp__polyform__set_graph_info, mcp__polyform__render_preview, mcp__polyform__sample_field, mcp__polyform__raycast_field, mcp__polyform__describe_mesh, mcp__polyform__evaluate_node, mcp__polyform__profile_graph, mcp__polyform__prune_orphans, mcp__polyform__describe_manifest, mcp__polyform__save_graph, mcp__polyform__load_graph, mcp__polyform__set_producer, mcp__polyform__generate, mcp__polyform__create_variables, mcp__polyform__update_variable, mcp__polyform__update_variables, mcp__polyform__rename_variable, mcp__polyform__delete_variable, mcp__polyform__create_variant_set, mcp__polyform__save_profile, mcp__polyform__list_profiles, mcp__polyform__get_profile, mcp__polyform__update_profile, mcp__polyform__apply_profile, mcp__polyform__delete_profile, mcp__polyform__list_variant_sets, mcp__polyform__delete_variant_set, mcp__polyform__run_variant_sweep, mcp__polyform__rename_variant_set, mcp__polyform__create_variable, mcp__polyform__render_mermaid, mcp__polyform__undo, mcp__polyform__redo, mcp__polyform__list_history, mcp__polyform__start_project, mcp__polyform__report_issue, ToolSearch
 model: opus
 ---
 
@@ -68,8 +68,9 @@ single largest category of tool calls in the last measured build.
   placing 3+ near-identical copies (radial, grid, scattered, spiral) and
   the three ways to draw them (`GpuInstances`, `repeat.MeshNode`,
   `sdf.RepeatNode`), including how `GpuInstances` composes with a
-  `ModelNode`'s own transform; posable point-array bodies; and feeding
-  an array into a list input with `arrays.SpreadNode`.
+  `ModelNode`'s own transform; posable point-array bodies; feeding an
+  array into a list input with `nodes/arrays.SpreadNode`; and running a
+  subgraph once per item with For Each.
 - **`topics/animation.md`** — keyframe animation in the exported glTF:
   the spin-channel recipe, why anything that moves must be its own
   `ModelNode` built on its pivot (read it *before* merging meshes), and
@@ -77,6 +78,14 @@ single largest category of tool calls in the last measured build.
   manifest silently animates node 0, slerp needs steps of 90° or less,
   loops need whole symmetry periods, optional parts need a fallback
   model. Also how to verify a clip when no render shows motion.
+- **`topics/randomness.md`** — type keys for `math/chance` and the
+  array/sequence nodes that feed it; the (Seed, Key) hash contract and
+  why values never shift when counts change; `SeedNode` labels instead
+  of seed arithmetic; which distribution gives which shape, and the
+  quantile view behind `SampleNode`; vector distributions and jitter by
+  composition; correlated values through shared keys; one of K kinds per
+  slot with `RandomIndexNode` + `GroupNode`; keep-out masks; scattering;
+  noise seeds; and the traps. Read it before the first `RandomNode`.
 
 Read one *before* you need it, as soon as you know the build will touch
 that area — same single `Read` either way, but proactive avoids
@@ -98,9 +107,10 @@ Exact keys, so you never search for these. Each `PATH` goes inside
 
 `T` for that last one is any type in the value-encoding table below,
 written with its full import path (`github.com/EliCDavis/vector/vector3.Vector[float64]`,
-`[]github.com/EliCDavis/polyform/math/trs.TRS`, ...). You rarely need to
-create these by hand — an `inputs` entry of `{"value": "..."}` makes the
-right one for you.
+`[]github.com/EliCDavis/polyform/math/trs.TRS`, ...). You rarely need
+these: a plain input holds its own value (see "Inputs hold their own
+values"), so one exists only for an array element, a whole list, or one
+value several ports are meant to share.
 
 Turning a part on and off, and picking between candidates, is the same
 two nodes at every level. They take their type from whatever is wired in
@@ -108,11 +118,14 @@ first, so one pair covers models, meshes, fields and anything else:
 
 | PATH | inputs | outputs |
 | --- | --- | --- |
-| `logic.SelectNode` | Condition, A, B | Out |
-| `logic.SwitchNode` | Index, Cases[], Fallback | Out |
+| `nodes/logic.SelectNode` | Condition, A, B | Out |
+| `nodes/logic.SwitchNode` | Index, Cases[], Fallback | Out |
+| `nodes/logic.AndNode` | Values[] | Out |
+| `nodes/logic.EqualsNode` | A, B | Out |
 | `math.CompareNode[int]` / `[float64]` | A, B | Equal, `Not Equal`, Greater, `Greater Or Equal`, Less, `Less Or Equal` (all bool) |
-| `math.BoolToNumberNode` | In | Int, `Float 64` |
 | `math.NotNode` | In | Out |
+| `generator/enum.MemberIndexNode` | Value | Out |
+| `generator/enum.MemberNameNode` | Value | Out |
 
 `SelectNode` passes `A` when `Condition` is true and `B` otherwise.
 Leave the other branch unwired and it passes nothing, which a manifest
@@ -121,10 +134,12 @@ manifest while every other consumer keeps it, with no second
 wrapper chain and no rewiring.
 
 `SwitchNode.Index` counts from 0 and passes `Fallback` when it lands
-outside `Cases`. An int variable on it *is* the enum for "style A vs
-style B": one control, one candidate per style. Don't fake
-either with a `LineNode` of 0/1 samples or by multiplying a count. An
-int that has to drive a *bool* (a count of 2 enabling a second part)
+outside `Cases`. "Style A vs style B" is an enum (see "Enums"): one enum
+variable, `MemberIndexNode` into `Index`, one candidate per member, so the
+control shows names rather than numbers. Don't fake
+it with a `LineNode` of 0/1 samples or by multiplying a count. A number
+on a bool input reads as "not zero" through a cast; an
+int that has to cross a threshold (a count of 2 enabling a second part)
 goes through `CompareNode` — `Greater Or Equal` with `B: 2` — never
 through `Scale` 0 on the model.
 
@@ -214,17 +229,18 @@ are plain mesh nodes. Each `PATH` goes inside
 | `modeling/csg.IntersectionNode` | Meshes[] | Out | keep only the shared volume |
 | `modeling/csg.SubtractNode` | Base, Remove[] | Out | a hole, a slot, an opening cut through a panel, a hollowed shell |
 | `modeling/extrude.OutlineNode` | Outline, Path, Closed, `Smoothing Angle` | Out | any constant cross-section (`Outline` is a `[]vector2`) swept along a `Path` of `[]vector3` — a profiled bar, a border around a closed path, a tube with a non-round profile, a flat strip; `Closed: true` makes a ring |
-| `modeling/extrude.TextNode` | Text, Height, Depth, Font, Align, `Curve Segments` | Out | lettering, engraved or embossed text, set in a built-in font (`sans`, `sans bold`, `mono`, `mono bold`) with real spacing; never hand-build glyphs |
-| `modeling/extrude.AreaNode` | Area, Depth | Out | a flat solid from an area: a plate with cut-outs, a ring. Build the area with `modeling/sketch.FillNode` (Outlines[], Holes[]: everything inside any outline and outside every hole, overlaps handled) or the sketch booleans; each element is one outline, a whole list goes through an `arrays.SpreadNode` into one element |
-| `modeling/sketch.RoundedRectangleNode` | Size, Radius, Center, Segments | Out | a `[]vector2` outline: rectangle, rounded rectangle, stadium or (radius at half the side) circle; an array of `Center`s gives one outline per center, which an `arrays.SpreadNode` feeds into `Holes` |
+| `modeling/extrude.TextNode` | Text, Height, Depth, Font, Align, `Curve Segments` | X, Y, Z | lettering, engraved or embossed text, set in a built-in font (`Sans`, `Sans Bold`, `Mono`, `Mono Bold`) with real spacing; never hand-build glyphs. Each output is the text facing that axis |
+| `modeling/extrude.AreaNode` | Area, Depth, UVs | X, Y, Z | a flat solid from an area: a plate with cut-outs, a ring. Each output is the solid facing that axis. Build the area with `modeling/sketch.FillNode` (Outlines[], Holes[]: everything inside any outline and outside every hole, overlaps handled) or the sketch booleans; to fold a whole list of outlines into one area, wire it through a `nodes/arrays.SpreadNode` into one element |
+| `modeling/sketch.RoundedRectangleNode` | Size, Radius, Center, Segments | Out | a `[]vector2` outline: rectangle, rounded rectangle, stadium or (radius at half the side) circle; an array of `Center`s gives one outline per center, which a `nodes/arrays.SpreadNode` feeds into `Holes` |
 | `modeling/sketch.StrokeNode` | Path, Width, Segments, Closed | Out | the `sketch.Area` a `[]vector2` path covers at a width, round ends and bends — a strip of constant width along a path. A gap the path encloses stays open, so `Closed: true` gives a ring. Bends and 45° runs are just path points. A list of paths gives one area each |
 | `modeling/sketch.TransformNode` | Outline, Translation, Rotation, Scale | Out | scale, rotate (degrees, counter-clockwise) and move a 2D outline or path — a rotated shape, one outline placed many times |
-| `modeling/sketch.BevelNode` | Outline, Distance, Round, Segments, Closed | Out | cut every corner of a path or outline: straight (45° chamfers) or `Round` (fillets). `Distance` is how far back along each side the cut starts; `Closed` for an outline, off for a path whose ends stay put. Feeds `StrokeNode` or `sketch.FillNode` directly |
+| `modeling/sketch.BevelPathNode` | Outline, Distance, Round, Segments, Closed | Out | cut every corner of a path or outline: straight (45° chamfers) or `Round` (fillets). `Distance` is how far back along each side the cut starts; `Closed` for an outline, off for a path whose ends stay put. Feeds `StrokeNode` or `sketch.FillNode` directly |
+| `modeling/sketch.BevelNode` | Area, Distance, Round, Segments | Out | the same cut on an area, outlines and holes alike |
 | `modeling/sketch.FillNode` | Outlines[], Holes[] | Out | the `sketch.Area` inside any outline and outside every hole, for the area nodes below |
 | `modeling/sketch.UnionNode` / `IntersectionNode` | Areas[] | Out | merge areas, or keep only what all of them cover |
 | `modeling/sketch.SubtractNode` | Base, Remove[] | Out | cut areas out of an area: a plate minus its clearances, an area minus its openings |
 | `modeling/sketch.OffsetNode` | Area, Distance, Segments | Out | grow (round corners) or shrink (negative `Distance`) an area. A list of distances gives one area each |
-| `modeling/sketch.BoundaryNode` | Area | Outlines, Holes | an area's loops as lists of outlines (counter-clockwise) and holes (clockwise) — a path to stroke along an area's edge, a sweep profile |
+| `modeling/sketch.SelectNode` | Area | Outlines, Holes, Size | an area's loops as lists of outlines (counter-clockwise) and holes (clockwise) — a path to stroke along an area's edge, a sweep profile |
 | `modeling/sketch.TransformAreaNode` | Area, Translation, Rotation, Scale | Out | `TransformNode` for an area; a negative `Scale` axis mirrors it and its holes stay holes |
 | `math/geometry/aabb.NewNode` | Center, Size | Out | an AABB from a center and a **full** size (not half-extents) — the easy way to build a March `Domain` from a part's dimensions |
 
@@ -255,36 +271,114 @@ from +Z toward −Z. A sharp turn in the path is mitred, so the sweep
 keeps its width and stays a closed solid through the corner; a near
 U-turn is bevelled instead. An outline wider than a turn is tight folds
 through itself on the inside, as in any tool. `TextNode` and
-`AreaNode` stand on z = 0 and rise toward +Z by `Depth`, face at
-z = `Depth`; a −90° turn about X stands either on y = 0, face up and
-readable from above. To hang one below y = 0 (a plate whose top is
-y = 0), translate it by −`Depth` after the turn.
+`AreaNode` pick their facing by output: `Z` stands on z = 0 and rises
+toward +Z by `Depth`, `Y` lies on y = 0 facing up (text reads from above,
+its tops toward −Z) and `X` faces +X, so no turn is needed. To hang one
+below its plane (a plate whose top is y = 0), translate it by −`Depth`.
 Corners sharper than `Smoothing Angle` (default 45°), in the outline or
 the path, keep a hard edge; gentler ones are shaded smooth.
 An outline made of several runs (an arc plus straight sides) is
-stitched with `arrays.ConcatNode` (`Arrays[]`) — build it in
+stitched with `nodes/arrays.ConcatNode` (`Arrays[]`) — build it in
 `[]vector2` from the start, don't detour through vector3. For "one bar
 from a point to each of N points", `math/trig.ArcTan2Node` (`Y`, `X`)
 gives the angle and `math.SquareRootNode` the length; wire arrays into
 them and you get one answer per element.
 
+## Inputs hold their own values
+
+**An unwired input of a plain type holds a literal.** `{"value": "..."}`
+in `inputs`, or `set_parameter` with `nodeId` + `port`, writes it on the
+port itself: no node is made and nothing appears in the wiring. A wire
+hides the literal, and `disconnect` brings it back. Every literal starts
+at the port's default; `get_node_types` lists each input's `literal`,
+`default` and, for an enum, `members`. **So an input you leave alone reads
+its default, not zero**: a `ModelNode` `Scale` is `1,1,1`, a `Rotation` is
+identity. Don't set a value equal to its default, and never add a node to
+hold a constant. `describe_graph` shows `literals` only where a port
+differs from its default; an entry in `openInputs` not listed there is at
+it.
+
+Array ports (`Port[]`) hold no literal, and neither does a port that
+takes a list as one value or a port typed by whatever is wired into it.
+A `value` on those makes a `parameter.Value` node, returned in the
+result's `literals` map.
+
+A subgraph input's `default` is a literal on its boundary, and a new
+instance's port starts there. **After that the instance's value is its
+own**: changing a boundary's default later does not reach instances
+already placed, except `update_equation_subgraph` `constants`, which
+carries instances still at the old default. `replace_instance` keeps
+wires, not literals: the new instance starts at the new subgraph's
+defaults, so re-set any that matter.
+
+**Types don't have to match exactly; a cast converts on the wire.** Wire
+the source straight in. No conversion node exists for these, and each
+also works element by element on arrays:
+
+| From | To |
+| --- | --- |
+| `int`, `bool` | `float64` (and each way between the three; `float64` to `int` rounds, a number to `bool` is "not zero") |
+| a number | any `vector2`/`vector3`/`vector4` of it, every component set to that number |
+| `vector2`/`vector3` of `int` | the same of `float64`, and back (rounds) |
+| `vector2` | `vector3`, with `z` 0 |
+| `float64`, `int` | the 0-1 and -1-1 ports (`norm.UFloat64`, `norm.SFloat64`), clamped; and those back to `float64` |
+| `Mesh` | `*gltf.PolyformModel`: a mesh wires straight into `Models[]` or `Children[]`; a `ModelNode` is for a material, transform or name |
+| `sdf.ColoredField` | a plain field (its distance), so a colored field wires straight into `MarchNode.Field` |
+| `Texture[float64]`, `Texture[bool]` | `Texture[Color]`, and bool and float textures to each other |
+| `Texture[Color]` | `image.Image` and back, so a texture wires straight into `gltf.TextureNode.Image` |
+
+A pair not listed is refused at connect time with both types named.
+
+**Enums.** A fixed set of choices is an enum, not a string compared by
+hand or an int that stands for a choice. Many node ports already are
+(`Alpha Mode`, `Font`, `Align`): `list_enums` shows them and
+`get_node_types` lists each port's `members`. Declare your own with
+`define_enum` (`name`, `members`), which returns its `type`. That type
+works for `create_variables` and as a subgraph boundary type, so a part
+takes the choice through a port. Its value is a member name as a JSON
+string (`"\"Round\""`), a wrong name is refused listing the right ones,
+and the same result gives a `parameterNodeType` for one choice feeding
+several ports and a `membersNodeType` listing them all, to run a For Each
+over. `MemberIndexNode` turns a choice into the `Index` of a `SwitchNode`;
+`EqualsNode` tests one against another. `edit_enum` changes members, with
+`renamed` carrying everything holding an old name across.
+
+**For Each runs a subgraph once per item.** `forEach: true` on
+`instantiate_subgraph` or a `create_nodes` entry, or `set_for_each` on a
+placed instance. An input fed a list one level deeper than it declares is
+iterated, anything else is broadcast to every run, and every output
+becomes the list of the runs' results. Declare the boundary as the
+*single* item's type (a `float64`, not `[]float64`): the wiring decides
+what iterates, and boundary types cannot change later. Reach for it only
+when lifting can't do the job. A single node takes a list on its own, and
+so does a subgraph whose interior is all lifted ports. For Each is for a
+body that has to run as a whole per item, such as a march or a
+`CombineNode` per item, or a body where one step reads a whole list.
+Switching it on or off changes output types, so `set_for_each` reports any
+edge it dropped. `list_subgraphs` shows such an instance as `Node-3[i]`;
+`evaluate_node`, `sample_field`, `describe_mesh`, `raycast_field`,
+`render_preview` and `profile_graph` take `instanceId: "Node-3[2]"` to
+look inside run 2, from 0. A path with no index on one is refused and
+says how many runs there are.
+
 ## Value encoding reference — don't search for this, it's all here
 
-Every parameter node's literal value and every variable's value use the
+Every literal and every variable's value use the
 exact same JSON encoding, based on the port/variable's type — whether
 you're passing `create_node`/`instantiate_subgraph`'s `inputs: {"Port":
 {"value": ...}}`, `set_parameter`'s `value`, or
 `create_variables`/`update_variable`'s `value`. This
-table is exhaustive of every type that has a registered literal parameter
-node (`generator/parameter/types.go`) — if a type isn't listed here, it
-has none, and no amount of searching will find one; go build the value as
-its own node and reference it by `nodeId`/`port` instead.
+table is exhaustive of every type a value can be written for — if a type
+isn't listed here, it has no literal, and no amount of searching will find
+one; go build the value as its own node and reference it by `nodeId`/`port`
+instead.
 
 | Type | JSON shape | Example |
 |---|---|---|
 | `float64`, `int` | bare number | `2.5` / `4` |
 | `bool` | bare boolean | `true` |
 | `string` | bare string | `"red"` |
+| an enum | a member name, as a string | `"Round"` |
 | `vector2.Vector[float64]` (`[int]`: variables only) | `{"x", "y"}` | `{"x":1,"y":2}` |
 | `vector3.Vector[float64]` (`[int]`: variables only) | `{"x", "y", "z"}` | `{"x":1,"y":2,"z":3}` |
 | `vector4.Vector[float64]` | `{"x", "y", "z", "w"}` | `{"x":1,"y":2,"z":3,"w":1}` |
@@ -324,7 +418,7 @@ conclude from the type alone that a port is scalar-only; `acceptedTypes`
 is the signal, and `evaluate_node` on the output shows `[]float64` with a
 `length`. A port that is genuinely scalar-only refuses the array at
 connect time and names the interior node that refuses it. `LinearNode`
-(a sequence), `arrays.*`, `repeat.*` and the sample/scatter nodes are the
+(a sequence), `nodes/arrays.*`, `repeat.*` and the sample/scatter nodes are the
 usual sources of the array; a per-element formula is one equation
 subgraph over that array, not one instance per element.
 
@@ -335,31 +429,35 @@ node, not N nodes or N subgraph instances: `TextNode` (`Text`, `Height`,
 `meshops.TransformNode` (`Mesh`, `TRS`) and `gltf.ModelNode` (`Name`,
 `Mesh`, `Translation`, `Rotation`, `Scale`). Twelve text labels are a
 `[]string` -> `TextNode` -> `TransformNode` with a `[]trs.TRS` ->
-`arrays.SpreadNode` -> `CombineNode.Meshes`.
+`nodes/arrays.SpreadNode` -> `CombineNode.Meshes`.
 
-**An array into a list input goes through `arrays.SpreadNode`.** A list
-input (`Port[]`: Region's `Outlines`/`Holes`, `CombineNode.Meshes`, a
-manifest's `Models`, `ModelNode.Children`, the csg and sdf unions,
-`AddNode.Values`) takes one item per wire, so wiring a lifted node's
-array straight in is refused (`output is [][]vector2, but "Holes" input
-takes []vector2`). Wire the array into Spread's `Array` and Spread's
+**An array into a list input goes through `nodes/arrays.SpreadNode` when
+its elements should count as separate items.** A list input (`Port[]`:
+`CombineNode.Meshes`, a manifest's `Models`, `ModelNode.Children`, the csg
+and sdf unions) takes one item per wire, so wiring a lifted node's array
+straight in is refused. Wire the array into Spread's `Array` and Spread's
 `Out` into the list input as one element; each array element counts as
-its own wire. Single-value inputs refuse a spread. Edge cases (empty
-arrays, the `arrays` nodes, Switch) are in
-`topics/repetition-and-instancing.md`.
+its own wire. Single-value inputs refuse a spread. A few list inputs are
+lifted as well (`AddNode.Values`, `MultiplyNode.Values`, `sketch.FillNode`'s
+`Outlines`/`Holes`): one of those accepts an array wired straight in, but
+then runs once per element rather than folding them. `[1,2,3]` straight
+into `AddNode.Values` stays three numbers, through Spread it sums to 6;
+straight into `Holes` gives one area per outline, through Spread gives
+one area with every hole. Edge cases (empty arrays, the `nodes/arrays`
+nodes, Switch) are in `topics/repetition-and-instancing.md`.
 
 **Irregular per-feature data is one row per feature, not parallel
 block-ordered tables.** Paths that each have their own
 points: keep every point in one flat array, feature after feature, and
-cut it with `arrays.SplitNode` (`Array`, `Lengths` = points per
+cut it with `nodes/arrays.SplitNode` (`Array`, `Lengths` = points per
 feature) into one path each; adding a feature is an append plus one
 length. A point that follows an anchor (another part's edge or corner)
-stores the anchor's index; `arrays.GatherNode` (`Array`, `Indices`)
+stores the anchor's index; `nodes/arrays.GatherNode` (`Array`, `Indices`)
 reads the anchor positions in that order, and one lifted add puts the
-local offsets on top. `arrays.FilterNode` (`Array`, `Keep` as a
+local offsets on top. `nodes/arrays.FilterNode` (`Array`, `Keep` as a
 `[]bool`, e.g. from a lifted compare) splits a list into `Kept` and
 `Dropped`, so a per-feature flag is its own array, never smuggled
-in a scale. `arrays.ZipNode` (`Arrays[]`) turns parallel columns (all
+in a scale. `nodes/arrays.ZipNode` (`Arrays[]`) turns parallel columns (all
 first points, all second points, …) into one array per position.
 
 **Rotations:** a quaternion literal is right for a *fixed* rotation — the
@@ -413,10 +511,10 @@ equation tool covers the case. Its inputs are lifted like every math
 node's: feed `x` a `[]float64` and the result is a `[]float64`, one value
 per element, so a per-element formula over a `LinearNode` list or a
 scatter's positions is one equation subgraph, not hand-wired math. Inputs
-are float64 unless `types` says `int` (`{"i": "int"}` converts an int
-variable or count inside; an int output name rounds the result for a
-`Times`/`Segments`/`Count` port) — no `IntToFloatNode` or `RoundNode.Int`
-around it. Name a tunable constant as an identifier and give its value in
+are float64 unless `types` says `int` (`{"i": "int"}` types that port int;
+an int output name rounds the result for a
+`Times`/`Segments`/`Count` port), though an int wires into a float64 port
+and back through a cast either way. Name a tunable constant as an identifier and give its value in
 `constants` (`"y = k * x"`, `"constants": {"k": 0.52}`) so it is an input
 with a default, not a literal buried in the definition. Several statements
 over shared inputs (`r = sqrt(x^2 + y^2); h = r * 2`) are one helper with
@@ -493,7 +591,8 @@ Compute it from the reference part's actual values:
   plausibly. `instantiate_subgraph` once per computed axis, wire its four
   inputs, and feed the `Position` output into a
   `math/vector3.NewNode[float64]` alongside any independently-set
-  components — a bare `float64` can't wire into a `vector3` port.
+  components — a bare `float64` wired into a `vector3` port casts to all
+  three components, which is a uniform scale, not one axis.
 
   *Embedding* is a deliberate negative offset from the flush result (
   subtract a literal via `AddNode`/`SubtractNode`), not a different
@@ -620,16 +719,15 @@ order it reads best.
 
 ```
 create_nodes(scope: "part_a", nodes: [
-  {alias: "cyl",    type: "...CylinderNode", inputs: {Radius: {value: "0.1"}, Height: {nodeId: "len", port: "Value"}}},
-  {alias: "len",    type: "...parameter.Value[float64]"},
-  {alias: "dome",   type: "...HemisphereNode", inputs: {Radius: {value: "0.1"}}},
   {alias: "joined", type: "...CombineNode", inputs: {Meshes: {elements: [
       {nodeId: "cyl", port: "Out"}, {nodeId: "dome", port: "Out"}]}}},
+  {alias: "cyl",    type: "...CylinderNode", inputs: {Radius: {value: "0.1"}, Height: {value: "0.4"}}},
+  {alias: "dome",   type: "...HemisphereNode", inputs: {Radius: {value: "0.1"}}},
 ])
 ```
 
 That is one turn for what would otherwise be four to eight. A whole part
-— primitives, parameters, the math wiring them together, and the combine
+— primitives, their values, the math wiring them together, and the combine
 at the end — normally fits in a single call.
 
 Three things to keep in mind:
@@ -653,12 +751,12 @@ them whenever you have more than one edge or value to apply. Both accept
 
 **Placing a primitive is two nodes, not four.** A fixed placement is
 one `meshops.TransformNode` (or `sdf.TransformNode`) whose `TRS` /
-`Transform` input is a **`trs.TRS` literal** —
+`Transform` input holds a **`trs.TRS` literal** —
 `{"value": "{\"position\":{\"x\":0,\"y\":1.2,\"z\":0},\"rotation\":{\"y\":0.7071068,\"w\":0.7071068}}"}`
-— not `trs.NewNode` ← `vector3.NewNode` ← three float literals. Reach
+— not `trs.NewNode` ← `vector3.NewNode`. Reach
 for `trs.NewNode` only when a component is *computed* from something
-else in the graph. Seventy placements at four nodes each is two hundred
-nodes of plumbing that a two-node form doesn't need.
+else in the graph. Seventy placements at four nodes each is a hundred and
+forty more nodes than the two-node form needs.
 
 **Subgraphs never read variables.** Everything tunable comes into a
 subgraph through an input port, including a value the whole model shares
@@ -695,10 +793,8 @@ every render still looked complete.
 
 ## Standing rule: change a value by its port, not by hunting for its id
 
-When you give an input a literal (`inputs: {Radius: {value: "0.1"}}`), a
-parameter node is created behind that port; its id comes back in the
-result's `literals` map, but you rarely need it. To change that value
-later, address the port:
+A value lives on its port (see "Inputs hold their own values"), so to
+change one later, address the port:
 
 ```
 set_parameter(parameters: [
@@ -707,15 +803,13 @@ set_parameter(parameters: [
 ])
 ```
 
-`nodeId` + `port` means "set whatever feeds this port". If nothing feeds
-it yet, a literal is created and wired in, so this works on a port you
-never gave a value to. Passing `nodeId` alone still addresses a parameter
-node directly by its own id, for the ones you created deliberately.
+`nodeId` + `port` means "set this port's value": its own literal, or the
+parameter node wired into it. A port fed by a computing node is refused.
+Passing `nodeId` alone addresses a parameter node directly by its own id,
+for the ones you created deliberately.
 
-**Do not `describe_graph` to go find a literal's id.** That was the old
-workaround and it costs a turn plus a large result that stays in context
-for the rest of the build. Tuning a part's proportions is a batch of
-port-addressed assignments in one call.
+Tuning a part's proportions is a batch of port-addressed assignments in
+one call.
 
 ## Standing rule: never hand-repeat a node structure
 
@@ -1277,7 +1371,10 @@ is a subgraph (the outline's subject part, named after the object):
   the object is animated, it also outputs the `AnimationNode` as
   `Animation`.
 - **Its inputs are one-to-one with the graph's variables**, each named
-  exactly as its variable. The root graph holds only the variables, one
+  after its variable's last path segment (`Top/Length` feeds a `Length`
+  input). Where two segments clash, put the group in the input's name
+  (`Top Length`, `Base Length`); `convert_to_subgraph` would call the
+  second `Length 2`, so set it with `ports`. The root graph holds only the variables, one
   instance of the subject with every input fed by its variable, and the
   `ManifestNode`: the manifest belongs to this file's export, not to the
   object.
@@ -1438,10 +1535,10 @@ part).
       can name it without predicting the generated name. Anything still
       wrong is one `rename_boundary_port` call with `renames`, never a
       call per port. Pass the computing nodes
-      only — the literals your `value`
-      inputs created come along by themselves, each variable the cluster
+      only — literals travel with their ports and parameter nodes come
+      along by themselves, each variable the cluster
       reads becomes an input port named after it, and otherwise only a
-      literal shared with something outside the cluster, or a real
+      parameter node shared with something outside the cluster, or a real
       upstream node, becomes an input port. If the
       result has more than a handful of input ports besides its
       variables, the selection was cut through the middle of the part,
@@ -1466,9 +1563,10 @@ part).
       deliverable is a family of models, not one model**: a graph whose
       variables only recolor it is a static mesh with a palette. Plan the
       controls by how much they change the result, biggest first:
-      1. **Style switches** — an int on a `logic.SwitchNode` choosing
+      1. **Style switches** — an enum variable through `MemberIndexNode`
+         on a `nodes/logic.SwitchNode` choosing
          between genuinely different builds of a part (arched vs square,
-         pointed vs round), or a bool on a `logic.SelectNode` adding or
+         pointed vs round), or a bool on a `nodes/logic.SelectNode` adding or
          removing a part. Each candidate is its own subgraph.
       2. **Counts** — anything repeated (panels, spikes, segments) is an
          int variable driving the repeat, not a fixed number of copies.
@@ -1478,8 +1576,12 @@ part).
          reaches), not one uniform `Scale`.
       4. **Shape character** — curvature, bend, roundness, lean, how
          pointed or blunt.
-      5. **Seeds** — every randomized placement or noise takes its seed
-         from a variable, so one integer gives a new arrangement.
+      5. **Seeds** — one master seed variable, with every randomized
+         placement or noise reading its own `chance.SeedNode` label off
+         it, so one integer gives a new arrangement and no two parts
+         share a stream. The shape of each variation (a `Spread`, a
+         `Cone Angle`, kind `Weights`) is a better variable than a raw
+         min/max pair; `topics/randomness.md` has the distributions.
       6. **Appearance** — colors, roughness, texture scale. Always add a
          color variable if the object has a visible surface color, but
          colors are the last tier, not the controls.
@@ -1497,13 +1599,21 @@ part).
       the port is what makes a part tunable at all, the variable is what
       lets a human tune it without opening the graph, and the variable
       reaches the part *through* ports: at root it feeds the subject's
-      input of the same name, and the subject passes that input on to
+      matching input, and the subject passes that input on to
       the part (`instantiate_subgraph` scoped to the subject with
       `inputs: {"Size": {"nodeId": "<the subject's Crown Size input
       boundary>", "port": "Value"}}`). A port that only one instance
       sets, and that no human needs, takes a literal instead. Give each
       a human-readable path (`"Body Color"`, not `"c1"`) and a real
-      description. When a later part reuses a variable for something its
+      description. **A `/` in the path files the variable in a group**,
+      which the editor shows as its own section: `"Top/Length"`,
+      `"Top/Color"`, `"Base/Length"`, nested as deep as the path goes.
+      Past a handful of variables, group them by the part or area they
+      control, so whoever tunes the model finds related controls together
+      rather than scanning one long list. The whole path is the variable's
+      name everywhere: `{"variable": ...}` inputs, `update_variable`,
+      profiles and variant sets all take it, and `rename_variable` moves a
+      variable between groups. When a later part reuses a variable for something its
       name doesn't cover — a color now paints most of a different part —
       split it or `rename_variable` it; a name that no longer says what it
       controls misleads every later round.
@@ -1558,7 +1668,8 @@ part).
      a root value in one call instead of a boundary node per level. To
      move a placed part onto a rebuilt definition, `replace_instance`
      keeps the node id and every connection whose port name and type
-     match on both sides; `rename_subgraph` renames a definition, its
+     match on both sides, while its literals start over at the new
+     definition's defaults; `rename_subgraph` renames a definition, its
      instances and its outline part together. **A boundary node's port is always named
      `"Value"`**, never the `name` you gave it; that name is only how the
      port appears from outside on an instance. An input boundary's
@@ -1618,21 +1729,21 @@ part).
      treatment above. Those are seated, not blended: sink the root into
      the body so no gap shows, keep the visible part proud of the surface
      with a hard edge where it meets it.
-   - **Color goes through a material**, not the mesh, and **through an
-     sRGB→linear conversion**: `coloring.SRGBToLinearNode` with its `In`
-     fed by the `Body Color` input port, its `Out` into a
-     `gltf.MaterialNode`'s `Color`, that `Out` into the `ModelNode`'s
-     `Material`. Hex picks are sRGB and glTF reads `Color` as linear, so
-     a variable wired straight in exports (and previews) washed out. A
+   - **Color goes through a material**, not the mesh: the `Body Color`
+     input port straight into a `gltf.MaterialNode`'s `Color`, that `Out`
+     into the `ModelNode`'s `Material`. `Color` and `Emissive Factor`
+     take the hex as picked and convert it to linear themselves, so never
+     put a `coloring.SRGBToLinearNode` in front of them. A
      `coloring.color` value is a hex string (`"#cc3333"`), not an
-     `{r,g,b,a}` object. Vertex colors on a marched mesh get the same
-     treatment via `meshops.SrgbToLinearNode` — see the texturing topic,
-     and never convert the same color twice.
+     `{r,g,b,a}` object. Vertex colors on a marched mesh are not
+     converted for you: they go through `meshops.SrgbToLinearNode` — see
+     the texturing topic.
    - **A shiny surface defaults to metal if you only touch roughness** —
      see the metallic-factor gotcha in `topics/texturing-and-color.md`
      before wiring anything glossy (glass, ceramic, a wet-looking finish).
-   - `set_producer` on the manifest output (e.g. `model.glb`) once the
-     first part is in.
+   - `set_producer` on the manifest output once the first part is in,
+     named after the subject (e.g. `chair`); `generate` writes its files
+     under `<project>/dist/<name>/`.
 
 4. **Texture pass — a mandatory checkpoint once geometry is assembled.**
    Go back over the *whole* model and decide, part by part, whether a

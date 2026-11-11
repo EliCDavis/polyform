@@ -15,7 +15,7 @@ const (
 	materialNodeType = "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.MaterialNode]"
 	gltfModelType    = "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.ModelNode]"
 	gltfManifestType = "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.ManifestNode]"
-	logicSelectType  = "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/logic.SelectNode]"
+	logicSelectType  = "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/nodes/logic.SelectNode]"
 	setAttribute3D   = "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/modeling.SetAttribute3DNode]"
 )
 

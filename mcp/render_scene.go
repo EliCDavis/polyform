@@ -3,6 +3,7 @@ package mcp
 import (
 	"fmt"
 	"math"
+	"slices"
 	"sort"
 	"strings"
 
@@ -135,7 +136,7 @@ func (s *Server) collectScene(inst *graph.Graph, in RenderPreviewInput, req scen
 		return renderScene{}, err
 	}
 
-	scene, err := buildScene(subject.models, exclude, only, in.NodeId, len(req.exclude))
+	scene, err := buildScene(subject.models, exclude, only, in.NodeId, len(req.exclude), in.UVChecker)
 	if err != nil {
 		return renderScene{}, err
 	}
@@ -263,17 +264,27 @@ func modelsOutputBy(n nodes.Node) []*gltf.PolyformModel {
 	outputs := n.Outputs()
 	var models []*gltf.PolyformModel
 	for _, name := range sortedOutputKeys(outputs) {
-		switch out := outputs[name].(type) {
+		models = append(models, modelsCarriedBy(outputs[name])...)
+	}
+	return models
+}
+
+func modelsCarriedBy(port nodes.OutputPort) []*gltf.PolyformModel {
+	var found []*gltf.PolyformModel
+	if spread, ok := nodes.SpreadValues[*gltf.PolyformModel](port); ok {
+		found = spread
+	} else {
+		switch out := port.(type) {
 		case nodes.Output[*gltf.PolyformModel]:
-			if m := out.Value(); m != nil {
-				models = append(models, m)
-			}
+			found = []*gltf.PolyformModel{out.Value()}
 		case nodes.Output[[]*gltf.PolyformModel]:
-			for _, m := range out.Value() {
-				if m != nil {
-					models = append(models, m)
-				}
-			}
+			found = out.Value()
+		}
+	}
+	var models []*gltf.PolyformModel
+	for _, m := range found {
+		if m != nil {
+			models = append(models, m)
 		}
 	}
 	return models
@@ -324,9 +335,7 @@ func renderSubjectOf(node nodes.Node, in RenderPreviewInput) (renderSubject, err
 		if arr, ok := node.Inputs()["Models"].(nodes.ArrayValueInputPort); ok {
 			var models []*gltf.PolyformModel
 			for _, port := range arr.Value() {
-				if out, ok := port.(nodes.Output[*gltf.PolyformModel]); ok && out.Value() != nil {
-					models = append(models, out.Value())
-				}
+				models = append(models, modelsCarriedBy(port)...)
 			}
 			return renderSubject{models: models}, nil
 		}
@@ -538,8 +547,9 @@ func flattenModel(model *gltf.PolyformModel, parent mat.Matrix4x4, lineage []*gl
 	// Transforming a mesh with no Position attribute panics deep in meshops
 	// without naming the model, so an empty mesh is skipped here.
 	if model.Mesh != nil && model.Mesh.HasFloat3Attribute(modeling.PositionAttribute) {
+		// A wired but empty instance list places the mesh nowhere, as the glTF writer does.
 		placements := []mat.Matrix4x4{world}
-		if len(model.GpuInstances) > 0 {
+		if model.GpuInstances != nil {
 			placements = placements[:0]
 			for _, instance := range model.GpuInstances {
 				placements = append(placements, world.Multiply(instance.Matrix()))
@@ -553,6 +563,7 @@ func flattenModel(model *gltf.PolyformModel, parent mat.Matrix4x4, lineage []*gl
 				ExplicitColor: explicit,
 				Texture:       materialTexture(model.Material),
 				Finish:        materialFinish(model.Material),
+				Surface:       materialSurface(model.Material),
 				Lineage:       lineage,
 			})
 		}
@@ -565,7 +576,7 @@ func flattenModel(model *gltf.PolyformModel, parent mat.Matrix4x4, lineage []*gl
 
 // buildScene flattens the models into draw groups, dropping the parts that
 // exclude names and, when only is set, every part it does not.
-func buildScene(models []*gltf.PolyformModel, exclude, only modelRefs, nodeID string, excluded int) (renderScene, error) {
+func buildScene(models []*gltf.PolyformModel, exclude, only modelRefs, nodeID string, excluded int, uvChecker bool) (renderScene, error) {
 	var parts []renderablePart
 	for _, model := range models {
 		flattenModel(model, mat.Identity(), nil, &parts)
@@ -573,12 +584,23 @@ func buildScene(models []*gltf.PolyformModel, exclude, only modelRefs, nodeID st
 
 	var scene renderScene
 	warned := map[string]bool{}
+	var noUVs []string
 	for _, part := range parts {
 		if exclude.matches(part.Lineage) || (!only.empty() && !only.matches(part.Lineage)) {
 			scene.parts = append(scene.parts, scenePart{lineage: part.Lineage})
 			continue
 		}
-		triangles := partTriangles(part)
+		if uvChecker {
+			if part.Mesh.HasFloat2Attribute(modeling.TexCoordAttribute) {
+				part.Checker = true
+				part.Texture = uvCheckerTexture{}
+				part.Surface.emissive = fauxgl.Color{}
+				part.Surface.emissiveTexture = nil
+			} else if path := lineagePath(part.Lineage); !slices.Contains(noUVs, path) {
+				noUVs = append(noUVs, path)
+			}
+		}
+		triangles, tangents := partTriangles(part)
 		if len(triangles) == 0 {
 			continue
 		}
@@ -592,10 +614,18 @@ func buildScene(models []*gltf.PolyformModel, exclude, only modelRefs, nodeID st
 		scene.triangles = append(scene.triangles, triangles...)
 		scene.parts = append(scene.parts, scenePart{triangles: triangles, lineage: part.Lineage})
 		group := drawGroup{Mesh: fauxgl.NewTriangleMesh(triangles), Finish: part.Finish}
-		if part.Texture != nil && part.Mesh.HasFloat2Attribute(modeling.TexCoordAttribute) {
+		if part.Mesh.HasFloat2Attribute(modeling.TexCoordAttribute) {
 			group.Texture = part.Texture
+			group.Surface = part.Surface
+			group.Surface.tangents = tangents
+		} else {
+			group.Surface.emissive = part.Surface.emissive
+			group.Surface.layers = part.Surface.layers
 		}
 		scene.groups = append(scene.groups, group)
+	}
+	if len(noUVs) > 0 {
+		scene.warnings = append(scene.warnings, fmt.Sprintf("uvChecker: no UVs, drawn without the checker: %s", strings.Join(noUVs, ", ")))
 	}
 	if len(scene.triangles) == 0 {
 		if !only.empty() || excluded > 0 {
@@ -610,14 +640,21 @@ func buildScene(models []*gltf.PolyformModel, exclude, only modelRefs, nodeID st
 // baseColorFactor rather than letting either win, and the texture by both,
 // so a vertex-painted or textured part is combined the way a viewer draws
 // it; a part with neither takes the material's flat color.
-func partTriangles(part renderablePart) []*fauxgl.Triangle {
-	vertexColored := part.Mesh.HasFloat3Attribute(modeling.ColorAttribute)
-	textured := part.Texture != nil && part.Mesh.HasFloat2Attribute(modeling.TexCoordAttribute)
+func partTriangles(part renderablePart) ([]*fauxgl.Triangle, []tangentFrame) {
+	vertexColored := !part.Checker && part.Mesh.HasFloat3Attribute(modeling.ColorAttribute)
+	hasUVs := part.Mesh.HasFloat2Attribute(modeling.TexCoordAttribute)
+	textured := part.Texture != nil && hasUVs
 	smooth := part.Mesh.HasFloat3Attribute(modeling.NormalAttribute)
+	mapped := hasUVs && (textured || part.Surface.readsUVs())
 
 	tint := fauxgl.Color{R: 1, G: 1, B: 1, A: 1}
-	if part.ExplicitColor {
+	if part.ExplicitColor && !part.Checker {
 		tint = part.Color
+	}
+
+	var tangents []tangentFrame
+	if hasUVs && part.Surface.normal != nil {
+		tangents = make([]tangentFrame, 0, part.Mesh.PrimitiveCount())
 	}
 
 	triangles := make([]*fauxgl.Triangle, 0, part.Mesh.PrimitiveCount())
@@ -636,15 +673,20 @@ func partTriangles(part renderablePart) []*fauxgl.Triangle {
 			t.V2.Normal = vertexNormal(tri.P2Vec3Attr(modeling.NormalAttribute))
 			t.V3.Normal = vertexNormal(tri.P3Vec3Attr(modeling.NormalAttribute))
 		}
-		switch {
-		case textured:
+		if mapped {
 			uv1 := tri.P1Vec2Attr(modeling.TexCoordAttribute)
 			uv2 := tri.P2Vec2Attr(modeling.TexCoordAttribute)
 			uv3 := tri.P3Vec2Attr(modeling.TexCoordAttribute)
-			t.V1.Texture = fauxgl.V(uv1.X(), uv1.Y(), 0)
-			t.V2.Texture = fauxgl.V(uv2.X(), uv2.Y(), 0)
-			t.V3.Texture = fauxgl.V(uv3.X(), uv3.Y(), 0)
-
+			index := float64(len(triangles))
+			t.V1.Texture = fauxgl.V(uv1.X(), uv1.Y(), index)
+			t.V2.Texture = fauxgl.V(uv2.X(), uv2.Y(), index)
+			t.V3.Texture = fauxgl.V(uv3.X(), uv3.Y(), index)
+			if tangents != nil {
+				tangents = append(tangents, faceTangentFrame(p1, p2, p3, uv1, uv2, uv3))
+			}
+		}
+		switch {
+		case textured:
 			c1, c2, c3 := tint, tint, tint
 			if vertexColored {
 				c1 = tintedVertexColor(tri.P1Vec3Attr(modeling.ColorAttribute), tint)
@@ -663,5 +705,5 @@ func partTriangles(part renderablePart) []*fauxgl.Triangle {
 		}
 		triangles = append(triangles, t)
 	}
-	return triangles
+	return triangles, tangents
 }

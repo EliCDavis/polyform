@@ -34,9 +34,11 @@ type NodeInstanceSummary struct {
 	AssignedInput map[string]PortReferenceSummary `json:"assignedInput,omitempty" jsonschema:"input port name -> the output port feeding it"`
 	Outputs       []string                        `json:"outputs,omitempty" jsonschema:"names of this node's output ports"`
 	OpenInputs    map[string]string               `json:"openInputs,omitempty" jsonschema:"input ports with nothing wired into them yet, mapped to the type each accepts. This is the only place a subgraph instance's boundary inputs are listed, since get_node_types has no registered type to describe for one."`
+	Literals      map[string]any                  `json:"literals,omitempty" jsonschema:"unwired inputs whose held value differs from the port's default, port name -> value. An open input not listed here is at its default."`
 	IsParameter   bool                            `json:"isParameter,omitempty"`
 	Value         any                             `json:"value,omitempty" jsonschema:"for a parameter (literal) node: its current value as JSON, so a number can be checked without reading the saved file. Omitted for large values such as images."`
 	SubGraphId    string                          `json:"subGraphId,omitempty" jsonschema:"set if this node is an instance of a subgraph"`
+	ForEach       bool                            `json:"forEach,omitempty" jsonschema:"set on a subgraph instance that runs once per item"`
 }
 
 const describeValueMaxBytes = 2048
@@ -66,6 +68,7 @@ type VariableSummary struct {
 	Description string   `json:"description,omitempty"`
 	Type        string   `json:"type"`
 	Value       any      `json:"value"`
+	Members     []string `json:"members,omitempty" jsonschema:"for an enum variable: the member names it takes"`
 	References  []string `json:"references,omitempty" jsonschema:"every place the variable is read, as 'consumerNodeId.Port' (root) or 'subgraphId/consumerNodeId.Port' - the ports a change to this variable reaches, and what to rewire if it is replaced. Omitted from describe_graph."`
 }
 
@@ -94,6 +97,7 @@ func summarizeGraph(g schema.Graph) DescribeGraphOutput {
 			Name:        n.Name,
 			IsParameter: n.Parameter != nil,
 			SubGraphId:  n.SubGraphId,
+			ForEach:     n.ForEach,
 		}
 		if n.Parameter != nil {
 			summary.Value = parameterValue(n.Parameter)
@@ -143,18 +147,29 @@ func summarizeGraph(g schema.Graph) DescribeGraphOutput {
 // - showed up with its outputs and nothing else. A build wired guessed
 // ports into a tapered-curve instance for exactly this reason.
 func addOpenInputs(inst *graph.Graph, out *DescribeGraphOutput) {
+	literals := inst.Schema().Nodes
 	for i := range out.Nodes {
 		node := inst.Node(out.Nodes[i].Id)
 		if node == nil {
 			continue
 		}
+		defaults := inst.Root().NodeTypeSchema(out.Nodes[i].Type, node).Inputs
 		for _, port := range node.Inputs() {
 			name := portLabel(port)
 			if _, wired := out.Nodes[i].AssignedInput[name]; wired {
 				continue
 			}
 			if single, ok := port.(nodes.SingleValueInputPort); ok && single.Value() != nil {
-				continue
+				if !holdsLiteral(inst, single.Value()) {
+					continue
+				}
+				held := literals[out.Nodes[i].Id].Literals[name]
+				if !bytes.Equal(held, defaults[name].Default) {
+					if out.Nodes[i].Literals == nil {
+						out.Nodes[i].Literals = map[string]any{}
+					}
+					out.Nodes[i].Literals[name] = decodeJSON(held)
+				}
 			}
 			if array, ok := port.(nodes.ArrayValueInputPort); ok && len(array.Value()) > 0 {
 				continue
@@ -229,6 +244,9 @@ func (s *Server) describeGraph(ctx context.Context, req *mcpsdk.CallToolRequest,
 		}
 		out = summarizeGraph(inst.Schema())
 		addOpenInputs(inst, &out)
+		for i := range out.Variables {
+			out.Variables[i].Members = s.enumMembers(out.Variables[i].Type)
+		}
 		if len(in.NodeIds) > 0 {
 			// A question about specific nodes doesn't need the graph's
 			// header repeated back every time.
@@ -273,7 +291,7 @@ func (s *Server) setGraphInfo(ctx context.Context, req *mcpsdk.CallToolRequest, 
 			if in.Description != "" {
 				out.Description = in.Description
 			}
-			return s.graph.SetSubGraphInfo(in.SubgraphId, out.Name, out.Description)
+			return s.graph.SetSubGraphInfo(in.SubgraphId, out.Name, out.Description, current.Group)
 		}
 
 		details := s.graph.Details()
@@ -325,6 +343,7 @@ func (s *Server) saveGraph(ctx context.Context, req *mcpsdk.CallToolRequest, in 
 	var out SaveGraphOutput
 	var err error
 	s.atomic(&err, func() error {
+		s.layoutAllScopes()
 		data, e := s.graph.EncodeToAppSchema()
 		if e != nil {
 			return e
@@ -375,7 +394,7 @@ func (s *Server) loadGraph(ctx context.Context, req *mcpsdk.CallToolRequest, in 
 type SetProducerInput struct {
 	NodeId string `json:"nodeId" jsonschema:"id of the node whose output produces a manifest artifact, e.g. a gltf.ManifestNode"`
 	Port   string `json:"port" jsonschema:"name of the manifest-producing output port"`
-	Name   string `json:"name" jsonschema:"the artifact's output name, e.g. 'model.glb'"`
+	Name   string `json:"name" jsonschema:"folder name for this producer's files under generate's output dir, e.g. 'chair'"`
 }
 
 type SetProducerOutput struct {
@@ -464,7 +483,7 @@ func (s *Server) registerIOTools() {
 
 	mcpsdk.AddTool(s.sdk, &mcpsdk.Tool{
 		Name:        "set_producer",
-		Description: "Name a node's manifest-producing output as a top-level output artifact (e.g. 'model.glb'), so it's included by name when generate runs.",
+		Description: "Name a node's manifest-producing output so generate writes its files to <outputDir>/<name>/. The manifest sets the file names inside that folder.",
 	}, s.setProducer)
 
 	mcpsdk.AddTool(s.sdk, &mcpsdk.Tool{

@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/EliCDavis/polyform/generator/schema"
 	mcpsdk "github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -69,6 +70,7 @@ type StartProjectOutput struct {
 	AutosavePath        string `json:"autosavePath" jsonschema:"where the graph will be continuously autosaved from now on - not meant to be loaded directly, it's overwritten after every call; see recoveredFrom for a one-time exception"`
 	RecoveredFrom       string `json:"recoveredFrom,omitempty" jsonschema:"set whenever an autosave already existed at this path - it's been moved here, out of the way of future autosaves. This is normal on a deliberate resume of a cleanly saved project, not a sign of a crash: if you already have a saved graph.json, load that; load this only when the last save may have been lost"`
 	RecoveredModifiedAt string `json:"recoveredModifiedAt,omitempty" jsonschema:"last-modified time (RFC3339) of the recovered autosave, so staleness can be judged before deciding to resume it"`
+	Cleared             bool   `json:"cleared,omitempty" jsonschema:"the graph that was open before this call held content and has been emptied; a project always starts from an empty graph, so save_graph first if that content was wanted"`
 }
 
 func (s *Server) startProject(ctx context.Context, req *mcpsdk.CallToolRequest, in StartProjectInput) (*mcpsdk.CallToolResult, StartProjectOutput, error) {
@@ -93,12 +95,26 @@ func (s *Server) startProject(ctx context.Context, req *mcpsdk.CallToolRequest, 
 			out.RecoveredModifiedAt = info.ModTime().UTC().Format(time.RFC3339)
 		}
 
+		if graphHasContent(s.graph.Schema()) {
+			s.graph.Reset()
+			out.Cleared = true
+		}
+
 		s.projectDir = path
 		out.Path = path
 		out.AutosavePath = autosavePath
 		return nil
 	})
 	return nil, out, err
+}
+
+func graphHasContent(sch schema.Graph) bool {
+	variables := false
+	sch.Variables.Traverse(func(string, schema.Variable) bool {
+		variables = true
+		return false
+	})
+	return variables || len(sch.Nodes) > 0 || len(sch.SubGraphs) > 0 || len(sch.Profiles) > 0 || len(sch.Enums) > 0
 }
 
 func projectPath(root string, in StartProjectInput) (string, error) {
@@ -156,6 +172,6 @@ func isProject(dir string) bool {
 func (s *Server) registerProjectTools() {
 	mcpsdk.AddTool(s.sdk, &mcpsdk.Tool{
 		Name:        "start_project",
-		Description: "Start (or resume) a project directory for this build. Every new build lives in the projects folder (~/polyform-output): pass name for a readable folder, and pass path only to resume an existing project or when the user named a location. While active, the graph is autosaved to a fixed file in this directory after every successful tool call - crash/token-exhaustion insurance beyond whatever was last saved with save_graph. If an autosave already exists here from an earlier session, it's moved aside and reported back (recoveredFrom) instead of being silently overwritten. That happens on every resume, clean or not; load_graph your saved graph.json if you have one, and fall back to the recovered autosave only if the last save was lost.",
+		Description: "Start (or resume) a project directory for this build, with an empty graph: whatever was open is discarded (save_graph it first if it matters), and a resumed project is brought back with load_graph. Every new build lives in the projects folder (~/polyform-output): pass name for a readable folder, and pass path only to resume an existing project or when the user named a location. While active, the graph is autosaved to a fixed file in this directory after every successful tool call - crash/token-exhaustion insurance beyond whatever was last saved with save_graph. If an autosave already exists here from an earlier session, it's moved aside and reported back (recoveredFrom) instead of being silently overwritten. That happens on every resume, clean or not; load_graph your saved graph.json if you have one, and fall back to the recovered autosave only if the last save was lost.",
 	}, s.startProject)
 }

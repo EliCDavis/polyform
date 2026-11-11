@@ -50,8 +50,11 @@ refract what is behind it, add `volume.md` with a thickness. Set `ior.md` for th
 
 ## Verify
 
-`render_preview` does not render transmission: the part shows as an
-opaque surface. Check the export with `describe_manifest`:
+`render_preview` approximates transmission: the part draws see-through,
+more opaque toward grazing angles, tinted by its colour and a volume's
+attenuation colour. There is no refraction, and it ignores the
+transmission texture, so judge the look in a real viewer. Check the
+export with `describe_manifest`:
 `KHR_materials_transmission` must be in `extensionsUsed`, with the
 material's `transmissionFactor`. The web editor's viewer renders it.
 Note that a viewer shows other transmissive objects behind it only

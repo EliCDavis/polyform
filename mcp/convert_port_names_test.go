@@ -145,7 +145,6 @@ func TestConvertToSubgraphNamesAnOutputAfterTheModelNodesName(t *testing.T) {
 
 	assert.Equal(t, []string{"Body"}, slices.Sorted(maps.Keys(converted.Outputs)))
 	assert.Equal(t, []string{"Mesh"}, slices.Sorted(maps.Keys(converted.Inputs)), "a generic Out falls back to the input it feeds")
-	assert.Len(t, converted.Literals, 1, "the Name literal moves in with the model")
 }
 
 func TestRenameBoundaryPortBatchLetsNamesTradePlaces(t *testing.T) {

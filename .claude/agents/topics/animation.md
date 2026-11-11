@@ -104,7 +104,7 @@ turned off (`Part Count`, `Attached Part Index`), fall back to an empty
 placeholder `ModelNode` (no mesh), and target the channel at the same
 select output that feeds the tree, so the channel always has a real node.
 `AnimationNode.Channels` takes one channel per wire; an array of
-channels goes in through `arrays.SpreadNode`.
+channels goes in through `nodes/arrays.SpreadNode`.
 
 **8. Timing is a control.** Expose the clip length and the turn counts as
 variables (`Clip Seconds`, `Turns` as an int/float array, `Drive

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/EliCDavis/polyform/generator/graph"
@@ -121,6 +122,44 @@ func resolveColoredFieldOutput(node nodes.Node, requested string) (nodes.Output[
 	return outputs[found[0]].(nodes.Output[sdf.ColoredField]), found[0], nil
 }
 
+// splitRun parses one instance path segment, "Node-3" or "Node-3[2]". run is
+// -1 when the segment names no run.
+func splitRun(segment string) (id string, run int, err error) {
+	id, rest, indexed := strings.Cut(segment, "[")
+	if !indexed {
+		return id, -1, nil
+	}
+	index, ok := strings.CutSuffix(rest, "]")
+	if ok {
+		run, err = strconv.Atoi(index)
+	}
+	if !ok || err != nil || run < 0 {
+		return "", 0, fmt.Errorf("%q: a run is named by its index from zero, like %s[0]", segment, id)
+	}
+	return id, run, nil
+}
+
+func liveInstance(sub *graph.SubgraphInstanceNode, id string, run int) (*graph.Graph, error) {
+	if !sub.ForEach() {
+		if run >= 0 {
+			return nil, fmt.Errorf("instance %q runs once, so it has no run %d; drop the index", id, run)
+		}
+		copied, err := sub.Live()
+		if err != nil {
+			return nil, fmt.Errorf("instance %q could not be built: %w", id, err)
+		}
+		return copied, nil
+	}
+	runs, err := sub.Runs()
+	if err != nil {
+		return nil, fmt.Errorf("instance %q could not be built: %w", id, err)
+	}
+	if run < 0 || run >= len(runs) {
+		return nil, fmt.Errorf("instance %q runs once per item and has %d run(s); name one as %s[i], i from 0", id, len(runs), id)
+	}
+	return runs[run], nil
+}
+
 // resolveFieldGraph picks the graph a field query should be evaluated in.
 //
 // A `scope` alone names the subgraph *definition*, which is shared by every
@@ -138,7 +177,11 @@ func (s *Server) resolveFieldGraph(scope, instanceID string) (*graph.Graph, stri
 		live := s.graph.Graph
 		where := "the root graph"
 		var instance *graph.SubgraphInstanceNode
-		for _, id := range strings.Split(instanceID, "/") {
+		for _, segment := range strings.Split(instanceID, "/") {
+			id, run, e := splitRun(segment)
+			if e != nil {
+				return nil, "", e
+			}
 			if !live.HasNodeWithId(id) {
 				return nil, "", fmt.Errorf("no node exists with id %q in %s; instanceId names a subgraph instance placed there (nest with 'outer/inner'), not a node inside the subgraph", id, where)
 			}
@@ -147,9 +190,9 @@ func (s *Server) resolveFieldGraph(scope, instanceID string) (*graph.Graph, stri
 				return nil, "", fmt.Errorf("node %q is not a subgraph instance, so it has no inputs to evaluate through", id)
 			}
 			instance = sub
-			copied, err := sub.Live()
+			copied, err := liveInstance(sub, id, run)
 			if err != nil {
-				return nil, "", fmt.Errorf("instance %q could not be built: %w", id, err)
+				return nil, "", err
 			}
 			live = copied
 			where = fmt.Sprintf("instance %q (subgraph %q)", id, sub.SubGraphID())

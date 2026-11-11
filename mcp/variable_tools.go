@@ -22,8 +22,8 @@ func NewTypedVariable(typeKey string) (variable.Variable, error) {
 }
 
 type CreateVariableInput struct {
-	Path        string `json:"path" jsonschema:"unique variable path, e.g. 'Radius'; this is also the type key passed to create_node to place a reference to this variable in the graph"`
-	Type        string `json:"type" jsonschema:"one of: float64, int, string, bool, vector2.Vector[float64], vector2.Vector[int], vector3.Vector[float64], vector3.Vector[int], vector4.Vector[float64], []float64, []int, []string, []vector2.Vector[float64], []vector2.Vector[int], []vector3.Vector[float64], []vector3.Vector[int], geometry.AABB, quaternion.Quaternion, trs.TRS, []trs.TRS, coloring.Color, []coloring.Color, coloring.Gradient[github.com/EliCDavis/polyform/drawing/coloring.Color], image.Image, file"`
+	Path        string `json:"path" jsonschema:"unique variable path, e.g. 'Radius', or 'Top/Radius' to file it in a group ('/' nests); this is also the type key passed to create_node to place a reference to this variable in the graph"`
+	Type        string `json:"type" jsonschema:"one of: float64, int, string, bool, vector2.Vector[float64], vector2.Vector[int], vector3.Vector[float64], vector3.Vector[int], vector4.Vector[float64], []float64, []int, []string, []vector2.Vector[float64], []vector2.Vector[int], []vector3.Vector[float64], []vector3.Vector[int], geometry.AABB, quaternion.Quaternion, trs.TRS, []trs.TRS, coloring.Color, []coloring.Color, coloring.Gradient[github.com/EliCDavis/polyform/drawing/coloring.Color], image.Image, file, or an enum's type from list_enums (its value is a member name)"`
 	Description string `json:"description,omitempty" jsonschema:"shown to whoever edits this variable's value later; explain what it controls"`
 	Value       string `json:"value,omitempty" jsonschema:"the initial value as JSON text inside a string, never a bare JSON number/object: \"5\", \"\\\"red\\\"\", \"{\\\"x\\\":1,\\\"y\\\":2,\\\"z\\\":3}\"; omit to use the type's zero value"`
 }
@@ -58,7 +58,7 @@ func applyJSONText(value string, apply func([]byte) (bool, error)) (bool, error)
 // individual create_variable calls (same validation, same error text).
 // Callers must already hold s.mu (i.e. call this from within s.atomic).
 func (s *Server) createOneVariable(in CreateVariableInput) error {
-	v, e := NewTypedVariable(in.Type)
+	v, _, e := s.graph.NewVariableOfType(in.Path, in.Type)
 	if e != nil {
 		return e
 	}
@@ -67,10 +67,6 @@ func (s *Server) createOneVariable(in CreateVariableInput) error {
 		if _, e := applyJSONText(in.Value, v.ApplyMessage); e != nil {
 			return fmt.Errorf("value doesn't match type %q: %w", in.Type, e)
 		}
-	}
-
-	if _, e := s.graph.NewVariable(in.Path, v); e != nil {
-		return e
 	}
 
 	if in.Description != "" {
@@ -362,6 +358,7 @@ func (s *Server) listVariables(ctx context.Context, req *mcpsdk.CallToolRequest,
 				Description: v.Description,
 				Type:        v.Type,
 				Value:       v.Value,
+				Members:     s.enumMembers(v.Type),
 				References:  refs[path],
 			})
 			return true

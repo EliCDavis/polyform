@@ -10,12 +10,13 @@ a separate node.
 
 The `PATH` goes inside
 `github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/PATH]`.
-`Index Of Refraction` takes a float, e.g. `{"value": "1.5"}`.
+`Index Of Refraction` takes a float, e.g. `{"value": "1.33"}`.
 
 ## Values
 
-glTF's default is `1.5`, which already suits glass and most plastics, so
-only set it when the material differs.
+glTF's default is `1.5`, which already suits glass and most plastics. The
+extension is only written when the value differs from it, so
+`describe_manifest` lists `KHR_materials_ior` only then.
 
 | Material | IOR |
 | --- | --- |

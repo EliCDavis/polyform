@@ -37,8 +37,8 @@ Wire `Out` into `MaterialNode`'s `Volume` port.
 - **`Attenuation Color`** is the colour white light becomes after
   travelling `Attenuation Distance` through the medium. Examples: amber
   `#ffaa33`, green glass `#55aa55`, sea water `#3399aa`.
-  - It is a linear factor, so pass a hex pick through
-    `coloring.SRGBToLinearNode` first, the same as the base colour.
+  - It is a linear factor and not converted for you, so pass a hex pick
+    through `coloring.SRGBToLinearNode` first.
 - **`Attenuation Distance`** is in world units (metres in a metre-scale
   scene). Shorter is denser.
   - Leave it unset for clear glass, which absorbs nothing.
@@ -49,7 +49,9 @@ Wire `Out` into `MaterialNode`'s `Volume` port.
 
 ## Verify
 
-`render_preview` shows none of it. Use `describe_manifest`:
+`render_preview` uses only the attenuation colour, as a tint on the
+transmissive surface; thickness, distance and refraction aren't shown.
+Use `describe_manifest`:
 `KHR_materials_volume` in `extensionsUsed`, `thicknessFactor` and the
 attenuation values on the material, and no volume-thickness warning. The
 web editor's viewer renders refraction.

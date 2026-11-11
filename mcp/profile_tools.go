@@ -2,7 +2,6 @@ package mcp
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"sort"
 	"strings"
@@ -185,7 +184,7 @@ func (s *Server) applyProfile(ctx context.Context, req *mcpsdk.CallToolRequest, 
 
 type UpdateProfileInput struct {
 	Name      string            `json:"name" jsonschema:"an existing profile"`
-	Variables map[string]string `json:"variables" jsonschema:"variable path -> JSON value text to set in the profile; keys it already holds are replaced, the rest are kept. The live values are not changed."`
+	Variables map[string]string `json:"variables" jsonschema:"variable path -> JSON value text to set in the profile; keys it already holds are replaced, the rest are kept. The live values are not changed. A file variable takes the {\"sha256\":...} reference get_profile shows for content the graph already holds."`
 }
 
 type UpdateProfileOutput struct {
@@ -226,7 +225,7 @@ func (s *Server) updateProfile(ctx context.Context, req *mcpsdk.CallToolRequest,
 }
 
 // canonicalValues checks each value against its variable's type by applying
-// it, reads back the variable's own encoding, and puts the live value back.
+// it, reads back the variable's own profile entry, and puts the live value back.
 func (s *Server) canonicalValues(values map[string]string) (variable.Profile, error) {
 	canonical := make(variable.Profile, len(values))
 	paths := make([]string, 0, len(values))
@@ -235,21 +234,21 @@ func (s *Server) canonicalValues(values map[string]string) (variable.Profile, er
 	}
 	sort.Strings(paths)
 	for _, path := range paths {
-		before, e := s.graph.VariableData(path)
+		before, e := s.graph.VariableProfile(path)
 		if e != nil {
 			return nil, fmt.Errorf("variables[%q]: %w", path, e)
 		}
 		if _, e := applyJSONText(values[path], func(data []byte) (bool, error) {
-			return s.graph.UpdateVariable(path, data)
+			return true, s.graph.ApplyProfile(variable.Profile{path: data})
 		}); e != nil {
 			return nil, fmt.Errorf("variables[%q]: %w", path, e)
 		}
-		after, e := s.graph.VariableData(path)
+		after, e := s.graph.VariableProfile(path)
 		if e != nil {
 			return nil, e
 		}
-		canonical[path] = json.RawMessage(after)
-		if _, e := s.graph.UpdateVariable(path, before); e != nil {
+		canonical[path] = after
+		if e := s.graph.ApplyProfile(variable.Profile{path: before}); e != nil {
 			return nil, fmt.Errorf("restoring variables[%q]: %w", path, e)
 		}
 	}

@@ -12,6 +12,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"time"
 
@@ -78,6 +79,7 @@ type RenderPreviewInput struct {
 	Light        *RenderLight       `json:"light,omitempty" jsonschema:"where the key light sits relative to the camera, and how much fill. Omit for a three-quarter key that shows form. Raise 'azimuth' toward 0 to flatten shading, or swing it wide (60-80) with low 'ambient' to rake across shallow relief a front light cannot show."`
 
 	ShowBackFaces bool `json:"showBackFaces,omitempty" jsonschema:"draw back faces solid magenta instead of culling them. A surface wound inside out is culled by viewers, so it looks missing or see-through; here it turns magenta, as does an open surface seen from behind."`
+	UVChecker     bool `json:"uvChecker,omitempty" jsonschema:"paint every part that has UVs with an 8x8 checker per UV tile instead of its colors: red grows with U, green with V. Stretched or sheared cells, a texture's size changing across a part, seams and pinched poles show at a glance. Normal maps still apply; parts without UVs are listed in warnings."`
 
 	Domain          *FieldProbeDomain `json:"domain,omitempty" jsonschema:"only when rendering an SDF field output: the box to march it in. Defaults to bounds found by sampling the field, which fails for an unbounded field (a ground plane)."`
 	MarchResolution float64           `json:"marchResolution,omitempty" jsonschema:"only when rendering an SDF field output: cells per unit for the preview march, as MarchNode's Resolution. Defaults to 80 cells across the domain's longest side; the value used is reported in 'march'."`
@@ -136,6 +138,8 @@ type renderablePart struct {
 	ExplicitColor bool
 	Texture       fauxgl.Texture
 	Finish        finish
+	Surface       surface
+	Checker       bool
 	Lineage       []*gltf.PolyformModel
 }
 
@@ -151,14 +155,13 @@ func materialFinish(mat *gltf.PolyformMaterial) finish {
 		return finish{}
 	}
 	pbr := mat.PbrMetallicRoughness
-	if pbr.MetallicFactor == nil && pbr.RoughnessFactor == nil {
+	metallic := math.Min(math.Max(orDefault(pbr.MetallicFactor, 1), 0), 1)
+	roughness := math.Min(math.Max(orDefault(pbr.RoughnessFactor, 1), 0), 1)
+	// Both ports default to 1, and fully rough metal has no shading gradient to read form from.
+	if metallic == 1 && roughness == 1 {
 		return finish{}
 	}
-	return finish{
-		set:       true,
-		metallic:  math.Min(math.Max(orDefault(pbr.MetallicFactor, 1), 0), 1),
-		roughness: math.Min(math.Max(orDefault(pbr.RoughnessFactor, 1), 0), 1),
-	}
+	return finish{set: true, metallic: metallic, roughness: roughness}
 }
 
 func materialColor(mat *gltf.PolyformMaterial) (fauxgl.Color, bool) {
@@ -178,11 +181,11 @@ func materialTexture(mat *gltf.PolyformMaterial) fauxgl.Texture {
 	if mat == nil || mat.PbrMetallicRoughness == nil || mat.PbrMetallicRoughness.BaseColorTexture == nil {
 		return nil
 	}
-	img := mat.PbrMetallicRoughness.BaseColorTexture.Image
-	if img == nil {
+	tex := imageTexture(mat.PbrMetallicRoughness.BaseColorTexture)
+	if tex == nil {
 		return nil
 	}
-	return srgbTexture{fauxgl.NewImageTexture(img)}
+	return srgbTexture{tex}
 }
 
 // glTF stores baseColorTexture sRGB-encoded while shading here runs in
@@ -226,6 +229,7 @@ type drawGroup struct {
 	Mesh    *fauxgl.Mesh
 	Texture fauxgl.Texture
 	Finish  finish
+	Surface surface
 }
 
 // Composed transforms can shear, which no TRS holds, so positions go through
@@ -314,9 +318,18 @@ func renderMeshView(groups []drawGroup, width, height int, pose cameraPose, ligh
 
 	dc := fauxgl.NewContext(width, height)
 	dc.ClearColorBufferWith(renderBackground)
-	for _, g := range groups {
+	// See-through parts go last, so whatever is behind them is already drawn to show through.
+	last := func(g drawGroup) int {
+		if g.Surface.layers.transmissive() {
+			return 1
+		}
+		return 0
+	}
+	ordered := slices.Clone(groups)
+	slices.SortStableFunc(ordered, func(a, b drawGroup) int { return last(a) - last(b) })
+	for _, g := range ordered {
 		phong.Texture = g.Texture
-		dc.Shader = previewShader{phong, g.Finish}
+		dc.Shader = previewShader{phong, g.Finish, g.Surface}
 		dc.DrawMesh(g.Mesh)
 	}
 
@@ -335,7 +348,8 @@ func renderMeshView(groups []drawGroup, width, height int, pose cameraPose, ligh
 // unchanged; only Fragment differs.
 type previewShader struct {
 	*fauxgl.PhongShader
-	finish finish
+	finish  finish
+	surface surface
 }
 
 func (s previewShader) Fragment(v fauxgl.Vertex) fauxgl.Color {
@@ -349,12 +363,15 @@ func (s previewShader) Fragment(v fauxgl.Vertex) fauxgl.Color {
 		// a textured part - which is what a real viewer draws.
 		color = s.Texture.BilinearSample(v.Texture.X, v.Texture.Y).Mul(color)
 	}
+	v.Normal = s.surface.shadingNormal(v)
+	ambient := s.AmbientColor.MulScalar(s.surface.occlusionAt(v))
+	emission := s.surface.emissionAt(v)
 	if s.finish.set {
-		return toneMap(s.finished(color, v)).Alpha(color.A)
+		return s.layered(s.finished(color, v, ambient).Add(emission), color, v)
 	}
 
 	diffuse := math.Max(v.Normal.Dot(s.LightDirection), 0)
-	light := s.AmbientColor.Add(s.DiffuseColor.MulScalar(diffuse))
+	light := ambient.Add(s.DiffuseColor.MulScalar(diffuse))
 	if diffuse > 0 && s.SpecularPower > 0 {
 		camera := s.CameraPosition.Sub(v.Position).Normalize()
 		reflected := s.LightDirection.Negate().Reflect(v.Normal)
@@ -363,14 +380,20 @@ func (s previewShader) Fragment(v fauxgl.Vertex) fauxgl.Color {
 			light = light.Add(s.SpecularColor.MulScalar(specular))
 		}
 	}
-	shaded := color.Mul(light)
+	shaded := color.Mul(light).Add(emission)
 
-	return toneMap(shaded).Alpha(color.A)
+	return s.layered(shaded, color, v)
+}
+
+func (s previewShader) layered(shaded, albedo fauxgl.Color, v fauxgl.Vertex) fauxgl.Color {
+	toCamera := s.CameraPosition.Sub(v.Position).Normalize()
+	shaded, alpha := s.surface.layers.at(v).apply(shaded, albedo, v.Normal, toCamera, s.LightDirection)
+	return toneMap(shaded).Alpha(albedo.A * alpha)
 }
 
 // With no environment map a metal reflects nothing and renders near black, so
 // a sky brightening upward stands in for one.
-func (s previewShader) finished(albedo fauxgl.Color, v fauxgl.Vertex) fauxgl.Color {
+func (s previewShader) finished(albedo fauxgl.Color, v fauxgl.Vertex, ambient fauxgl.Color) fauxgl.Color {
 	f := s.finish
 	toCamera := s.CameraPosition.Sub(v.Position).Normalize()
 
@@ -378,7 +401,7 @@ func (s previewShader) finished(albedo fauxgl.Color, v fauxgl.Vertex) fauxgl.Col
 	reflectance := dielectric.Lerp(albedo, f.metallic)
 
 	lit := math.Max(v.Normal.Dot(s.LightDirection), 0)
-	shaded := albedo.MulScalar(1 - f.metallic).Mul(s.AmbientColor.Add(s.DiffuseColor.MulScalar(lit)))
+	shaded := albedo.MulScalar(1 - f.metallic).Mul(ambient.Add(s.DiffuseColor.MulScalar(lit)))
 
 	// Capped so a glossy highlight still covers a few pixels of a preview.
 	spread := math.Max(f.roughness*f.roughness, 0.01)
@@ -690,7 +713,7 @@ func (s *Server) renderPreview(ctx context.Context, req *mcpsdk.CallToolRequest,
 					up = v.Up.vector().Normalize()
 				}
 				pose = cameraPose{eye: eye, target: target, up: up, distance: distance, fov: fov}
-				if blockedAt, blocked := firstOccluder(viewScene.triangles, pose); blocked {
+				if blockedAt, blocked := firstOccluder(viewScene.triangles, pose, 0); blocked {
 					note = fmt.Sprintf("geometry %.3g from lookAt stands between it and the explicit eye; the camera was left where you put it", blockedAt)
 				}
 			} else {
@@ -843,6 +866,6 @@ func (s *Server) overrideVariables(overrides map[string]string) (func() error, e
 func (s *Server) registerRenderTools() {
 	mcpsdk.AddTool(s.sdk, &mcpsdk.Tool{
 		Name:        "render_preview",
-		Description: "Rasterize a fast preview PNG of a gltf Manifest/Model scene with a CPU rasterizer, or of one node's Model, Mesh or SDF field output on its own (nodeId + port, with instanceId to reach inside a subgraph instance) - no throwaway manifest or material needed, and the graph is untouched. Surface color is the mesh's per-vertex \"Color\" attribute multiplied by the material's BaseColorFactor (as glTF combines COLOR_0 with baseColorFactor), or the flat factor alone with no vertex colors; a ColorTexture replaces both where the mesh has UVs, and is NOT multiplied by the factor here as a real viewer would, so keep a textured part's factor white. Colors are treated as glTF does - factors and vertex colors are linear multipliers, a ColorTexture is sRGB and is decoded on sample, and the result is sRGB-encoded on output - so the preview matches a real viewer: a raw hex pick like #c8322f renders pale as a factor (it is being read as linear), while the same hex baked into a texture renders as the hex; run screen-picked colors through coloring.SRGBToLinearNode (single colors) or meshops.SrgbToLinearNode (a vertex Color attribute) to get the color you see in the hex, and leave texture images alone. Output is also tone mapped, so a near-black surface still shows readable form rather than a flat silhouette. A material that sets MetallicFactor or RoughnessFactor is shaded with them - a metal reflects in its own color, a smooth surface takes a tight highlight - against a stand-in sky; one that sets neither is shaded as a matte non-metal, though glTF reads an unset MetallicFactor as fully metallic. Shading follows the mesh's Normal attribute where it has one, and is faceted where it has none, as in a viewer. With no views, auto-frames one default angle - use that for routine checkpoints. Pass views to composite several angles into one grid image laid out with no empty cells. Every view fits the camera to the projected bounds of what it frames - the whole scene, or the parts named by frameOn (a close-up of one part with no world point to compute), minus frameExclude - and the result's cameras[] gives back each view's eye, target, up, fov and fitRadius, so a framing can be repeated exactly (pass eye/lookAt/up/fov, or target/fitRadius) or tightened by scaling fitRadius. An auto-placed camera that lands behind or inside geometry is pulled in front of it and says so in cameras[].notes and warnings; a view that drew nothing but background is flagged the same way. Pass exclude (node ids, instance ids, instance paths or model names) to drop parts from just this render, and only to keep just the named ones - the non-destructive way to find which part causes a defect; an entry that names nothing is an error rather than a silently identical render. Pass variables (path -> JSON value) to render one look of a variant without touching the saved values: they are applied for this call and restored afterward, so a color or pose catalog is one call per look with no update_variable bookkeeping. evalMs and rasterMs say where the time went.",
+		Description: "Rasterize a fast preview PNG of a gltf Manifest/Model scene with a CPU rasterizer, or of one node's Model, Mesh or SDF field output on its own (nodeId + port, with instanceId to reach inside a subgraph instance) - no throwaway manifest or material needed, and the graph is untouched. Surface color is the material's color, times its ColorTexture where the mesh has UVs, times the mesh's per-vertex \"Color\" attribute, as glTF combines them. Colors are treated as glTF does - factors and vertex colors are linear multipliers, a ColorTexture is sRGB and is decoded on sample, and the result is sRGB-encoded on output - so the preview matches a real viewer. MaterialNode's Color and Emissive Factor convert a hex pick to linear themselves; vertex colors are not converted for you (meshops.SrgbToLinearNode). Where the mesh has UVs, the material's normal map bends the shading, its occlusion map darkens ambient light, and emission (factor, texture and strength) adds light. Three extensions are approximated, not rendered: transmission draws the surface see-through and tinted by a volume's attenuation color (no refraction), clearcoat adds a glossy reflection on top, and sheen adds a glow at grazing angles. Iridescence, anisotropy, dispersion, specular and the metallic-roughness texture are not shown; check them with describe_manifest. Output is also tone mapped, so a near-black surface still shows readable form rather than a flat silhouette. A material that sets MetallicFactor or RoughnessFactor is shaded with them - a metal reflects in its own color, a smooth surface takes a tight highlight - against a stand-in sky; one that sets neither is shaded as a matte non-metal, though glTF reads an unset MetallicFactor as fully metallic. Shading follows the mesh's Normal attribute where it has one, and is faceted where it has none, as in a viewer. With no views, auto-frames one default angle - use that for routine checkpoints. Pass views to composite several angles into one grid image laid out with no empty cells. Every view fits the camera to the projected bounds of what it frames - the whole scene, or the parts named by frameOn (a close-up of one part with no world point to compute), minus frameExclude - and the result's cameras[] gives back each view's eye, target, up, fov and fitRadius, so a framing can be repeated exactly (pass eye/lookAt/up/fov, or target/fitRadius) or tightened by scaling fitRadius. An auto-placed camera that lands behind or inside geometry is pulled in front of it and says so in cameras[].notes and warnings; a view that drew nothing but background is flagged the same way. Pass exclude (node ids, instance ids, instance paths or model names) to drop parts from just this render, and only to keep just the named ones - the non-destructive way to find which part causes a defect; an entry that names nothing is an error rather than a silently identical render. Pass variables (path -> JSON value) to render one look of a variant without touching the saved values: they are applied for this call and restored afterward, so a color or pose catalog is one call per look with no update_variable bookkeeping. evalMs and rasterMs say where the time went.",
 	}, s.renderPreview)
 }

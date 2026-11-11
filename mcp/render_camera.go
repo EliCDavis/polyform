@@ -162,10 +162,10 @@ func rayTriangle(origin, dir, a, b, c fauxgl.Vector) (float64, bool) {
 	return e2.Dot(q) * inv, true
 }
 
-func firstOccluder(triangles []*fauxgl.Triangle, pose cameraPose) (float64, bool) {
-	eps := pose.distance * 1e-6
+func firstOccluder(triangles []*fauxgl.Triangle, pose cameraPose, beyond float64) (float64, bool) {
+	skip := math.Max(pose.distance*1e-6, beyond)
 	for _, hit := range lineOfSight(triangles, pose.target, pose.eye) {
-		if hit.t > eps && hit.entering {
+		if hit.t > skip && hit.entering {
 			return hit.t, true
 		}
 	}
@@ -176,15 +176,13 @@ func firstOccluder(triangles []*fauxgl.Triangle, pose cameraPose) (float64, bool
 // between it and its target, widening the field of view so the framed
 // radius keeps its size in the picture.
 func clearCamera(pose cameraPose, triangles []*fauxgl.Triangle) (cameraPose, string) {
-	blockedAt, blocked := firstOccluder(triangles, pose)
+	radius := fitRadiusOf(pose.distance, pose.fov)
+	// Geometry inside the framed radius is the subject, not something in front of it.
+	blockedAt, blocked := firstOccluder(triangles, pose, radius)
 	if !blocked {
 		return pose, ""
 	}
-	radius := fitRadiusOf(pose.distance, pose.fov)
-	pulled := blockedAt * 0.9
-	if pulled < radius*0.5 {
-		return pose, fmt.Sprintf("geometry %.3g from the target blocks this view and leaves no room in front of it; move target, change the angle, or exclude the part", blockedAt)
-	}
+	pulled := math.Max(blockedAt*0.9, radius)
 	fov := math.Min(2*math.Atan(fitMargin*radius/pulled)*180/math.Pi, maxFov)
 	moved := pose
 	moved.distance = pulled

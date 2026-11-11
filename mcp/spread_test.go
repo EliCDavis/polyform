@@ -12,14 +12,14 @@ import (
 )
 
 const (
-	spreadNodeType       = "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/arrays.SpreadNode]"
-	fromElementsNodeType = "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/arrays.FromElementsNode]"
+	spreadNodeType       = "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/nodes/arrays.SpreadNode]"
+	fromElementsNodeType = "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/nodes/arrays.FromElementsNode]"
 	sumNodeType          = "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/math.AddNode[float64]]"
 	combineNodeType      = "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/modeling/meshops.CombineNode]"
-	repeatArrayNodeType  = "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/arrays.RepeatNode]"
-	appendNodeType       = "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/arrays.AppendNode]"
-	concatNodeType       = "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/arrays.ConcatNode]"
-	switchNodeType       = "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/logic.SwitchNode]"
+	repeatArrayNodeType  = "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/nodes/arrays.RepeatNode]"
+	appendNodeType       = "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/nodes/arrays.AppendNode]"
+	concatNodeType       = "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/nodes/arrays.ConcatNode]"
+	switchNodeType       = "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/nodes/logic.SwitchNode]"
 	csgUnionNodeType     = "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/modeling/csg.UnionNode]"
 )
 

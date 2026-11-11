@@ -1,6 +1,7 @@
 package mcp
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"maps"
@@ -10,7 +11,6 @@ import (
 
 	"github.com/EliCDavis/polyform/generator/graph"
 	"github.com/EliCDavis/polyform/generator/subgraph"
-	"github.com/EliCDavis/polyform/nodes"
 	mcpsdk "github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -27,32 +27,29 @@ type CreateEquationSubgraphInput struct {
 	Name        string             `json:"name,omitempty" jsonschema:"human-readable display name; defaults to the equation's output variable name"`
 	Description string             `json:"description,omitempty"`
 	Equation    string             `json:"equation" jsonschema:"an equation of the form 'output = expression', e.g. 'c = sqrt(a^2 + b^2)'. Supports + - * / ^ (numeric-literal exponents only, including negative and 0.5 for sqrt), unary minus, parentheses, the functions sqrt(x), hypot(a,b)/hypotenuse(a,b), min(a,b,...), max(a,b,...), floor(x), ceil(x), round(x), abs(x), mod(a,b) (remainder taking the divisor's sign, so it never goes negative over a repeating range — which copy of a repeating pattern an index lands on), sin(x), cos(x), tan(x), asin(x), acos(x), atan(x), atan2(y,x), radians(deg), degrees(rad) (angles in radians, matching quaternion.FromEulerAngleNode), and the constant pi (lowercase only; e is an ordinary input - write 2.718281828459045 for Euler's number). Every other bare identifier becomes a float64 boundary input, deduplicated by name if it appears more than once. Several statements separated by ';' or newlines ('r = sqrt(x^2+y^2); h = r*2') give one subgraph with one output per statement, sharing inputs; a later statement may read an earlier output by name. There is no general pow(base,exponent) node, so that is not supported — you'll get a clear error naming the unsupported piece rather than a silent wrong answer."`
-	Types       map[string]string  `json:"types,omitempty" jsonschema:"{input or output name: 'int'} to type that boundary port int instead of float64: an int input is converted inside, so an int variable or a count wires straight in; an int output rounds the result (for Times, Segments, Count ports). Any name not listed stays float64."`
+	Types       map[string]string  `json:"types,omitempty" jsonschema:"{input or output name: 'int'} to type that boundary port int instead of float64: an int variable or a count wires straight in; an int output rounds the result (for Times, Segments, Count ports). Any name not listed stays float64."`
 	Constants   map[string]float64 `json:"constants,omitempty" jsonschema:"{input name: default value}: the named input gets that value as its default, so instances read it unless something is wired in, and set_parameter/update_equation_subgraph can tune it later. Write the constant as a named identifier in the equation (k, not 0.52) and give its value here instead of freezing a literal into the definition."`
 }
 
 type CreateEquationSubgraphOutput struct {
-	SubgraphId string            `json:"subgraphId"`
-	Inputs     []string          `json:"inputs" jsonschema:"boundary input names, in first-appearance order in the equation"`
-	Output     string            `json:"output" jsonschema:"boundary output name (the first statement's left-hand side)"`
-	Outputs    []string          `json:"outputs,omitempty" jsonschema:"every boundary output name, when the equation has more than one statement"`
-	Defaults   map[string]string `json:"defaults,omitempty" jsonschema:"input name -> the literal node inside the subgraph holding its default, from 'constants'"`
-	Warning    string            `json:"warning,omitempty"`
+	SubgraphId string   `json:"subgraphId"`
+	Inputs     []string `json:"inputs" jsonschema:"boundary input names, in first-appearance order in the equation"`
+	Output     string   `json:"output" jsonschema:"boundary output name (the first statement's left-hand side)"`
+	Outputs    []string `json:"outputs,omitempty" jsonschema:"every boundary output name, when the equation has more than one statement"`
+	Warning    string   `json:"warning,omitempty"`
 }
 
 type equationSpec struct {
-	statements       []eqStatement
-	types            map[string]string
-	constants        map[string]float64
-	existingInputs   map[string]string
-	existingOutputs  map[string]string
-	existingDefaults map[string]string
+	statements      []eqStatement
+	types           map[string]string
+	constants       map[string]float64
+	existingInputs  map[string]string
+	existingOutputs map[string]string
 }
 
 type equationBuild struct {
 	inputs    []string
 	outputs   []string
-	defaults  map[string]string
 	constants []string
 }
 
@@ -126,43 +123,27 @@ func buildEquation(child *graph.Graph, spec equationSpec) (equationBuild, error)
 			return built, fmt.Errorf("constants: %q is not an input of this equation; inputs are %s", name, strings.Join(compiler.varOrder, ", "))
 		}
 		value := spec.constants[name]
-		paramType, data := eqFloatParamType, []byte(fmt.Sprintf("%v", value))
-		if compiler.ints[name] {
-			if value != math.Trunc(value) {
-				return built, fmt.Errorf("constants: %q is an int input, so its default must be a whole number, got %v", name, value)
-			}
-			paramType, data = eqIntParamType, []byte(fmt.Sprintf("%d", int(value)))
+		if compiler.ints[name] && value != math.Trunc(value) {
+			return built, fmt.Errorf("constants: %q is an int input, so its default must be a whole number, got %v", name, value)
 		}
-		literalID, exists := spec.existingDefaults[name]
-		if !exists {
-			if _, literalID, err = child.CreateNode(paramType); err != nil {
-				return built, err
-			}
-			if err := child.ConnectNodes(literalID, subgraph.ValuePortName, inputID, subgraph.DefaultPortName); err != nil {
-				return built, err
-			}
-		}
-		if _, err := child.UpdateParameter(literalID, data); err != nil {
+		if err := child.SetLiteral(inputID, subgraph.DefaultPortName, []byte(fmt.Sprintf("%v", value))); err != nil {
 			return built, fmt.Errorf("constants: %q: %w", name, err)
 		}
-		if built.defaults == nil {
-			built.defaults = map[string]string{}
-		}
-		built.defaults[name] = literalID
-	}
-	for name, literalID := range spec.existingDefaults {
-		if _, redefined := built.defaults[name]; redefined {
-			continue
-		}
-		if built.defaults == nil {
-			built.defaults = map[string]string{}
-		}
-		built.defaults[name] = literalID
 	}
 
 	built.inputs = compiler.varOrder
 	built.constants = compiler.constants
 	return built, nil
+}
+
+// A batch drops an edge that doesn't fit where a lone connect would refuse it.
+func refuseInteriorDrops(subgraphID string, dropped []graph.DroppedEdge) error {
+	for _, drop := range dropped {
+		if drop.Scope == subgraphID {
+			return fmt.Errorf("%s.%s does not fit %s.%s: %s", drop.From, drop.FromPort, drop.To, drop.ToPort, drop.Reason)
+		}
+	}
+	return nil
 }
 
 func (built equationBuild) warning() string {
@@ -198,7 +179,14 @@ func (s *Server) createEquationSubgraph(ctx context.Context, req *mcpsdk.CallToo
 			return e
 		}
 
-		built, e := buildEquation(child, equationSpec{statements: statements, types: in.Types, constants: in.Constants})
+		var built equationBuild
+		dropped, e := s.graph.Batch(func() (e error) {
+			built, e = buildEquation(child, equationSpec{statements: statements, types: in.Types, constants: in.Constants})
+			return e
+		})
+		if e == nil {
+			e = refuseInteriorDrops(in.Id, dropped)
+		}
 		if e != nil {
 			return fmt.Errorf("compiling equation %q: %w", in.Equation, e)
 		}
@@ -210,7 +198,6 @@ func (s *Server) createEquationSubgraph(ctx context.Context, req *mcpsdk.CallToo
 		if len(built.outputs) > 1 {
 			out.Outputs = built.outputs
 		}
-		out.Defaults = built.defaults
 		out.Warning = built.warning()
 		return nil
 	})
@@ -223,7 +210,7 @@ type UpdateEquationSubgraphInput struct {
 	Statements map[string]string  `json:"statements,omitempty" jsonschema:"{output name: expression} to change or add single statements of the stored equation, e.g. {\"cgZ\": \"min(bz - 2, cz)\"}; every other statement stays as it is. New ones are added, and statements are ordered so each output is computed before it is read"`
 	Remove     []string           `json:"remove,omitempty" jsonschema:"output names whose statements to delete from the stored equation"`
 	Types      map[string]string  `json:"types,omitempty" jsonschema:"as create_equation_subgraph, merged over the current port types: a port not listed keeps its type. A port whose type changes is recreated, dropping its wires"`
-	Constants  map[string]float64 `json:"constants,omitempty" jsonschema:"as create_equation_subgraph; a kept input's existing default is updated in place, and defaults not listed stay"`
+	Constants  map[string]float64 `json:"constants,omitempty" jsonschema:"as create_equation_subgraph; a kept input's default is updated in place, instances still holding the old default follow, and defaults not listed stay"`
 }
 
 type UpdateEquationSubgraphOutput struct {
@@ -237,7 +224,6 @@ type UpdateEquationSubgraphOutput struct {
 	RenamedOutput  string               `json:"renamedOutput,omitempty" jsonschema:"'old -> new' when the single output changed name; its consumers followed"`
 	Dropped        []DroppedEdgeSummary `json:"dropped,omitempty" jsonschema:"outside wires removed with the ports that went: 'scope' is the graph holding the instance"`
 	Instances      []string             `json:"instances,omitempty" jsonschema:"'scope/nodeId' of every instance, each of which needs any addedInputs wired"`
-	Defaults       map[string]string    `json:"defaults,omitempty"`
 	Warning        string               `json:"warning,omitempty"`
 	Equation       string               `json:"equation,omitempty" jsonschema:"the current equation, one statement per line; returned when only id was passed"`
 }
@@ -340,20 +326,54 @@ type boundaryPort struct {
 	portType string
 }
 
-func boundaryPorts(child *graph.Graph) (inputs, outputs map[string]boundaryPort, defaults map[string]string) {
-	inputs, outputs, defaults = map[string]boundaryPort{}, map[string]boundaryPort{}, map[string]string{}
+func boundaryPorts(child *graph.Graph) (inputs, outputs map[string]boundaryPort) {
+	inputs, outputs = map[string]boundaryPort{}, map[string]boundaryPort{}
 	for _, id := range child.NodeIds() {
 		switch boundary := child.Node(id).(type) {
 		case *subgraph.InputNode:
 			inputs[boundary.PortName] = boundaryPort{id: id, portType: boundary.PortType}
-			if fed, ok := boundary.Inputs()[subgraph.DefaultPortName].(nodes.SingleValueInputPort); ok && fed.Value() != nil {
-				defaults[boundary.PortName] = child.NodeId(fed.Value().Node())
-			}
 		case *subgraph.OutputNode:
 			outputs[boundary.PortName] = boundaryPort{id: id, portType: boundary.PortType}
 		}
 	}
-	return inputs, outputs, defaults
+	return inputs, outputs
+}
+
+// carryDefault moves every placement still holding a boundary's old default
+// to its current one: a placement's literal is its own once placed.
+func (s *Server) carryDefault(subgraphID, boundaryID string, was []byte) error {
+	definition, err := s.graph.SubGraphInstance(subgraphID)
+	if err != nil {
+		return err
+	}
+	now, err := definition.LiteralValue(boundaryID, subgraph.DefaultPortName)
+	if err != nil {
+		return err
+	}
+	graphs := []*graph.Graph{s.graph.Graph}
+	for id := range s.graph.Schema().SubGraphs {
+		inner, err := s.graph.SubGraphInstance(id)
+		if err != nil {
+			return err
+		}
+		graphs = append(graphs, inner)
+	}
+	for _, holder := range graphs {
+		for _, id := range holder.NodeIds() {
+			placement, ok := holder.Node(id).(*graph.SubgraphInstanceNode)
+			if !ok || placement.SubGraphID() != subgraphID {
+				continue
+			}
+			held, err := holder.LiteralValue(id, boundaryID)
+			if err != nil || !bytes.Equal(held, was) {
+				continue
+			}
+			if err := holder.SetLiteral(id, boundaryID, now); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 func (s *Server) readEquation(id string) (UpdateEquationSubgraphOutput, error) {
@@ -404,18 +424,17 @@ func (s *Server) updateEquationSubgraph(ctx context.Context, req *mcpsdk.CallToo
 			return fmt.Errorf("parsing equation %q: %w", source, e)
 		}
 
-		oldInputs, oldOutputs, oldDefaults := boundaryPorts(child)
+		oldInputs, oldOutputs := boundaryPorts(child)
 		types := equationTypes(statements, in.Types, oldInputs, oldOutputs)
 		if e := checkEquationTypes(statements, types); e != nil {
 			return e
 		}
 		spec := equationSpec{
-			statements:       statements,
-			types:            types,
-			constants:        in.Constants,
-			existingInputs:   map[string]string{},
-			existingOutputs:  map[string]string{},
-			existingDefaults: map[string]string{},
+			statements:      statements,
+			types:           types,
+			constants:       in.Constants,
+			existingInputs:  map[string]string{},
+			existingOutputs: map[string]string{},
 		}
 
 		named := map[string]bool{}
@@ -441,9 +460,6 @@ func (s *Server) updateEquationSubgraph(ctx context.Context, req *mcpsdk.CallToo
 		for _, name := range freeVariables(statements) {
 			if old, ok := oldInputs[name]; ok && old.portType == equationPortType(types, name) {
 				spec.existingInputs[name] = old.id
-				if literal, ok := oldDefaults[name]; ok {
-					spec.existingDefaults[name] = literal
-				}
 			} else {
 				out.AddedInputs = append(out.AddedInputs, name)
 			}
@@ -478,13 +494,9 @@ func (s *Server) updateEquationSubgraph(ctx context.Context, req *mcpsdk.CallToo
 			}
 		}
 
-		keptDefaults := map[string]bool{}
-		for _, literal := range spec.existingDefaults {
-			keptDefaults[literal] = true
-		}
 		var interior []string
 		for _, id := range slices.Sorted(slices.Values(child.NodeIds())) {
-			if _, isBoundary := subgraph.IsBoundaryNode(child.Node(id)); !isBoundary && !keptDefaults[id] {
+			if _, isBoundary := subgraph.IsBoundaryNode(child.Node(id)); !isBoundary {
 				interior = append(interior, id)
 			}
 		}
@@ -493,32 +505,47 @@ func (s *Server) updateEquationSubgraph(ctx context.Context, req *mcpsdk.CallToo
 				if !child.HasNodeWithId(id) {
 					continue
 				}
-				dropped, e := child.DeleteNodeById(id)
-				if e != nil {
+				if _, e := child.DeleteNodeById(id); e != nil {
 					return e
-				}
-				for _, drop := range dropped {
-					if drop.Scope == in.Id {
-						continue
-					}
-					if name, ok := removedNames[drop.ToPort]; ok {
-						drop.ToPort = name
-					}
-					out.Dropped = append(out.Dropped, summarizeDrops([]graph.DroppedEdge{drop})...)
 				}
 			}
 			return nil
 		}
 
-		if e := deleteNodes(clashing); e != nil {
-			return e
+		oldDefaults := map[string][]byte{}
+		for name := range in.Constants {
+			if id, kept := spec.existingInputs[name]; kept {
+				if held, e := child.LiteralValue(id, subgraph.DefaultPortName); e == nil {
+					oldDefaults[id] = held
+				}
+			}
 		}
-		built, e := buildEquation(child, spec)
+		var built equationBuild
+		dropped, e := s.graph.Batch(func() (e error) {
+			if e = deleteNodes(clashing); e != nil {
+				return e
+			}
+			if built, e = buildEquation(child, spec); e != nil {
+				return e
+			}
+			return deleteNodes(append(interior, doomed...))
+		})
+		if e == nil {
+			e = refuseInteriorDrops(in.Id, dropped)
+		}
 		if e != nil {
 			return fmt.Errorf("compiling equation %q: %w", source, e)
 		}
-		if e := deleteNodes(append(interior, doomed...)); e != nil {
-			return e
+		for _, drop := range dropped {
+			if name, ok := removedNames[drop.ToPort]; ok {
+				drop.ToPort = name
+			}
+			out.Dropped = append(out.Dropped, summarizeDrops([]graph.DroppedEdge{drop})...)
+		}
+		for id, was := range oldDefaults {
+			if e := s.carryDefault(in.Id, id, was); e != nil {
+				return e
+			}
 		}
 		storeEquation(child, statements)
 
@@ -528,7 +555,6 @@ func (s *Server) updateEquationSubgraph(ctx context.Context, req *mcpsdk.CallToo
 		if len(built.outputs) > 1 {
 			out.Outputs = built.outputs
 		}
-		out.Defaults = built.defaults
 		out.Warning = built.warning()
 		if len(out.AddedInputs) > 0 {
 			out.Instances = subgraphInstances(s.graph.Schema(), in.Id)

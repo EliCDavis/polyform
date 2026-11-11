@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/formats/gltf"
 	"github.com/EliCDavis/polyform/generator/manifest"
 	"github.com/EliCDavis/polyform/math/geometry"
@@ -91,12 +92,12 @@ func (m *ManifestModelSummary) dropIdentity() {
 
 type ManifestMaterialSummary struct {
 	Name       string                    `json:"name" jsonschema:"the material's own name, or 'material N' by its index in the file when it has none"`
-	Color      string                    `json:"color,omitempty" jsonschema:"baseColorFactor as hex. A linear multiplier, so a viewer shows it lighter than the hex reads."`
+	Color      string                    `json:"color,omitempty" jsonschema:"baseColorFactor as an sRGB hex, comparable to what MaterialNode's Color was given."`
 	Alpha      *float64                  `json:"alpha,omitempty" jsonschema:"baseColorFactor alpha when below 1"`
 	AlphaMode  string                    `json:"alphaMode,omitempty"`
 	Metallic   *float64                  `json:"metallic,omitempty" jsonschema:"omitted when unset, which a viewer reads as 1: fully metallic"`
 	Roughness  *float64                  `json:"roughness,omitempty" jsonschema:"omitted when unset, which a viewer reads as 1"`
-	Emissive   string                    `json:"emissive,omitempty" jsonschema:"emissiveFactor as hex"`
+	Emissive   string                    `json:"emissive,omitempty" jsonschema:"emissiveFactor as an sRGB hex"`
 	Textures   []string                  `json:"textures,omitempty" jsonschema:"each texture slot it fills, with the image's size or the URI it points at"`
 	Extensions map[string]map[string]any `json:"extensions,omitempty" jsonschema:"every extension written on this material, keyed by its glTF id (KHR_materials_transmission, ...), with the factors exactly as the file carries them; a texture slot reads 'texture N'"`
 	Models     int                       `json:"models" jsonschema:"models drawn with it, instances counted once"`
@@ -409,7 +410,7 @@ func (w *manifestWalk) materials() {
 		}
 		if pbr := m.PbrMetallicRoughness; pbr != nil {
 			if pbr.BaseColorFactor != nil {
-				summary.Color = hexOf(pbr.BaseColorFactor[:3])
+				summary.Color = srgbHexOf(pbr.BaseColorFactor[:3])
 				if alpha := pbr.BaseColorFactor[3]; alpha < 1 {
 					summary.Alpha = &alpha
 				}
@@ -417,7 +418,7 @@ func (w *manifestWalk) materials() {
 			summary.Metallic, summary.Roughness = pbr.MetallicFactor, pbr.RoughnessFactor
 		}
 		if m.EmissiveFactor != nil {
-			summary.Emissive = hexOf(m.EmissiveFactor[:])
+			summary.Emissive = srgbHexOf(m.EmissiveFactor[:])
 		}
 		if m.AlphaMode != nil {
 			summary.AlphaMode = string(*m.AlphaMode)
@@ -455,6 +456,10 @@ func hexOf(rgb []float64) string {
 	return fmt.Sprintf("#%02x%02x%02x", channel(rgb[0]), channel(rgb[1]), channel(rgb[2]))
 }
 
+func srgbHexOf(linear []float64) string {
+	return hexOf([]float64{coloring.LinearToSRGB(linear[0]), coloring.LinearToSRGB(linear[1]), coloring.LinearToSRGB(linear[2])})
+}
+
 func (w *manifestWalk) model(model *gltf.PolyformModel, parentPath string, parent trs.TRS) bool {
 	path := model.Name
 	if parentPath != "" {
@@ -487,7 +492,8 @@ func (w *manifestWalk) model(model *gltf.PolyformModel, parentPath string, paren
 	w.next++
 	w.slots[model] = slot
 
-	if model.Mesh != nil && model.Mesh.PrimitiveCount() > 0 {
+	placedNowhere := model.GpuInstances != nil && len(model.GpuInstances) == 0
+	if model.Mesh != nil && model.Mesh.PrimitiveCount() > 0 && !placedNowhere {
 		hasGeometry = true
 		w.geometry(model, world, &summary)
 	} else if !hasGeometry {

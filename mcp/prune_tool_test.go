@@ -20,7 +20,7 @@ func TestPruneOrphansListsDeadChainsAndSparesProducersAndBoundaries(t *testing.T
 	}, &manifest)
 	callTool(t, session, "set_producer", map[string]any{"nodeId": manifest.NodeId, "port": "Out", "name": "out.glb"}, &polyformmcp.SetProducerOutput{})
 
-	// A dead chain: literal -> sphere that nothing reads.
+	// A sphere nothing reads.
 	var dead polyformmcp.CreateNodeOutput
 	callTool(t, session, "create_node", map[string]any{
 		"type":   sphereNodeType,
@@ -48,14 +48,14 @@ func TestPruneOrphansListsDeadChainsAndSparesProducersAndBoundaries(t *testing.T
 	for _, o := range preview.Orphans {
 		byScope[o.Scope] = append(byScope[o.Scope], o.Id)
 	}
-	assert.Len(t, byScope["root"], 2, "the dead sphere and its literal: %v", preview.Orphans)
+	assert.Len(t, byScope["root"], 1, "the dead sphere: %v", preview.Orphans)
 	assert.Contains(t, byScope["root"], dead.NodeId)
 	assert.Len(t, byScope["prunable"], 1, "only the stray sphere; the output boundary and what feeds it stay: %v", preview.Orphans)
 
 	var applied polyformmcp.PruneOrphansOutput
 	callTool(t, session, "prune_orphans", map[string]any{"scope": "all", "apply": true}, &applied)
 	require.True(t, applied.Applied)
-	assert.Equal(t, before-2, len(inst.NodeIds()))
+	assert.Equal(t, before-1, len(inst.NodeIds()))
 	assert.False(t, inst.HasNodeWithId(dead.NodeId))
 	assert.True(t, inst.HasNodeWithId(manifest.NodeId), "the producer's source survives")
 	assert.True(t, inst.HasNodeWithId(body))

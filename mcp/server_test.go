@@ -13,30 +13,31 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/EliCDavis/polyform/generator"
+	"github.com/EliCDavis/polyform/drawing/coloring"
+	"github.com/EliCDavis/polyform/drawing/texturing"
+	"github.com/EliCDavis/polyform/generator/cast"
 	"github.com/EliCDavis/polyform/generator/graph"
+	"github.com/EliCDavis/polyform/generator/registry"
+	"github.com/EliCDavis/polyform/math/sample"
+	"github.com/EliCDavis/polyform/math/sdf"
 	polyformmcp "github.com/EliCDavis/polyform/mcp"
 	"github.com/EliCDavis/polyform/nodes"
 	mcpsdk "github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/stretchr/testify/require"
 
 	// Blank-imported so their node types are registered for these tests.
-	_ "github.com/EliCDavis/polyform/arrays"
 	_ "github.com/EliCDavis/polyform/debug"
-	_ "github.com/EliCDavis/polyform/drawing/coloring"
-	_ "github.com/EliCDavis/polyform/drawing/texturing"
 	_ "github.com/EliCDavis/polyform/drawing/texturing/normals"
+	_ "github.com/EliCDavis/polyform/drawing/texturing/pattern"
 	_ "github.com/EliCDavis/polyform/formats/gltf"
 	_ "github.com/EliCDavis/polyform/generator/manifest/basics"
 	_ "github.com/EliCDavis/polyform/generator/parameter"
-	_ "github.com/EliCDavis/polyform/generator/subgraph/register"
-	_ "github.com/EliCDavis/polyform/logic"
+	_ "github.com/EliCDavis/polyform/generator/subgraph"
 	_ "github.com/EliCDavis/polyform/math"
 	_ "github.com/EliCDavis/polyform/math/curves"
 	_ "github.com/EliCDavis/polyform/math/geometry"
 	_ "github.com/EliCDavis/polyform/math/geometry/aabb"
 	_ "github.com/EliCDavis/polyform/math/quaternion"
-	_ "github.com/EliCDavis/polyform/math/sdf"
 	_ "github.com/EliCDavis/polyform/math/sequence"
 	_ "github.com/EliCDavis/polyform/math/trig"
 	_ "github.com/EliCDavis/polyform/math/trs"
@@ -48,6 +49,8 @@ import (
 	_ "github.com/EliCDavis/polyform/modeling/primitives"
 	_ "github.com/EliCDavis/polyform/modeling/repeat"
 	_ "github.com/EliCDavis/polyform/modeling/sketch"
+	_ "github.com/EliCDavis/polyform/nodes/arrays"
+	_ "github.com/EliCDavis/polyform/nodes/logic"
 )
 
 const (
@@ -71,9 +74,16 @@ func testSession(t *testing.T) *mcpsdk.ClientSession {
 func testSessionWithInstance(t *testing.T) (*mcpsdk.ClientSession, *graph.Instance) {
 	t.Helper()
 
+	casts := &cast.Table{}
+	cast.Register(casts, func(v int) float64 { return float64(v) })
+	cast.Register(casts, func(f sdf.ColoredField) sample.Vec3ToFloat { return f.Distance })
+	cast.Register(casts, func(t texturing.Texture[coloring.Color]) image.Image {
+		return t.ToImage(func(c coloring.Color) color.Color { return c })
+	})
 	inst := graph.New(graph.Config{
-		TypeFactory:     generator.Types(),
+		TypeFactory:     registry.Types(),
 		VariableFactory: polyformmcp.NewTypedVariable,
+		Casts:           casts,
 	})
 	server := polyformmcp.NewServer(inst)
 
@@ -1333,11 +1343,10 @@ func TestCreateNodeWithLiteralInputs(t *testing.T) {
 	}, &sub)
 	require.NotEmpty(t, sub.NodeId)
 
-	// One node call should have produced 3 nodes total: the subtract node
-	// plus one literal parameter node per input.
 	var desc polyformmcp.DescribeGraphOutput
 	callTool(t, session, "describe_graph", map[string]any{}, &desc)
-	require.Len(t, desc.Nodes, 3)
+	require.Len(t, desc.Nodes, 1)
+	require.Equal(t, map[string]any{"A": 10.0, "B": 3.0}, desc.Nodes[0].Literals)
 
 	got := evalFloat64Output(t, inst, sub.NodeId, "Float")
 	require.InDelta(t, 7.0, got, 1e-9)
@@ -1430,11 +1439,9 @@ func TestInstantiateSubgraphWithInputs(t *testing.T) {
 	}, &instantiated)
 	require.NotEmpty(t, instantiated.NodeId)
 
-	// One instantiate_subgraph call should have produced 2 nodes: the
-	// subgraph instance plus the literal parameter node for x.
 	var desc polyformmcp.DescribeGraphOutput
 	callTool(t, session, "describe_graph", map[string]any{}, &desc)
-	require.Len(t, desc.Nodes, 2)
+	require.Len(t, desc.Nodes, 1)
 
 	got := evalFloat64Output(t, inst, instantiated.NodeId, "y")
 	require.InDelta(t, 42.0, got, 1e-9)
@@ -1456,11 +1463,9 @@ func TestCreateNodeWithVariableInput(t *testing.T) {
 		},
 	}, &sub)
 
-	// One node call should have produced 2 nodes: the subtract node plus
-	// the variable-reference node — not a third node for a literal.
 	var desc polyformmcp.DescribeGraphOutput
 	callTool(t, session, "describe_graph", map[string]any{}, &desc)
-	require.Len(t, desc.Nodes, 3) // subtract + variable reference + literal "B"
+	require.Len(t, desc.Nodes, 2) // subtract + variable reference
 
 	got := evalFloat64Output(t, inst, sub.NodeId, "Float")
 	require.InDelta(t, 5.0, got, 1e-9)
@@ -2353,7 +2358,7 @@ func TestPortNameResolutionStillRejectsBogusNames(t *testing.T) {
 
 func TestEnableCallLog(t *testing.T) {
 	inst := graph.New(graph.Config{
-		TypeFactory:     generator.Types(),
+		TypeFactory:     registry.Types(),
 		VariableFactory: polyformmcp.NewTypedVariable,
 	})
 	server := polyformmcp.NewServer(inst)
@@ -2555,7 +2560,7 @@ func TestAutosave_WritesAfterEveryCall(t *testing.T) {
 	data, err := os.ReadFile(autosavePath(dir))
 	require.NoError(t, err)
 
-	restored := graph.New(graph.Config{TypeFactory: generator.Types(), VariableFactory: polyformmcp.NewTypedVariable})
+	restored := graph.New(graph.Config{TypeFactory: registry.Types(), VariableFactory: polyformmcp.NewTypedVariable})
 	require.NoError(t, restored.ApplyAppSchema(data))
 	_, err = restored.GetVariable("Radius")
 	require.NoError(t, err, "expected the autosaved graph to contain the variable created before it")
@@ -2629,6 +2634,17 @@ func TestCreateEquationSubgraphReadsEAsAnInput(t *testing.T) {
 	}, &e)
 	require.Equal(t, []string{"e"}, e.Inputs)
 	require.Empty(t, e.Warning)
+}
+
+func TestCreateEquationSubgraphWarnsAboutPiOnce(t *testing.T) {
+	session := testSession(t)
+
+	var eq polyformmcp.CreateEquationSubgraphOutput
+	callTool(t, session, "create_equation_subgraph", map[string]any{
+		"id": "wave", "equation": "a = sin(pi * v)\nb = cos(pi * v)",
+	}, &eq)
+	require.Contains(t, eq.Warning, "pi read as the constant")
+	require.NotContains(t, eq.Warning, "pi and pi")
 }
 
 func TestCreateEquationSubgraphWarnsWhenPiIsReadAsAConstant(t *testing.T) {

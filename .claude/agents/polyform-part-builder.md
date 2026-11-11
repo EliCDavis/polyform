@@ -1,7 +1,7 @@
 ---
 name: polyform-part-builder
 description: Builds exactly one self-contained polyform subgraph component, given a precise spec from the session that spawned it. This is an exception path, not the default — spawn it from a top-level chat only for a single part substantial enough to justify an isolated context (heavy SDF/boolean/marching-cubes work, extensive procedural texturing, 15+ tool calls of interior structure). For a whole object, spawn polyform-orchestrator instead; it builds every part itself, inline, and cannot spawn this agent, because delegating parts was measured at ~50-100x the token cost with no quality benefit.
-tools: Read, mcp__polyform__search_node_types, mcp__polyform__get_node_types, mcp__polyform__create_equation_subgraph, mcp__polyform__update_equation_subgraph, mcp__polyform__create_tapered_curve_subgraph, mcp__polyform__create_vertex_color_gradient_subgraph, mcp__polyform__create_flush_position_subgraph, mcp__polyform__create_sphere_surface_point_subgraph, mcp__polyform__create_node, mcp__polyform__create_nodes, mcp__polyform__delete_node, mcp__polyform__delete_subgraph, mcp__polyform__connect_nodes, mcp__polyform__disconnect, mcp__polyform__set_parameter, mcp__polyform__create_subgraph, mcp__polyform__create_boundary_node, mcp__polyform__convert_to_subgraph, mcp__polyform__rename_boundary_port, mcp__polyform__list_subgraphs, mcp__polyform__list_nodes, mcp__polyform__replace_instance, mcp__polyform__rename_subgraph, mcp__polyform__describe_graph, mcp__polyform__sample_field, mcp__polyform__raycast_field, mcp__polyform__describe_mesh, mcp__polyform__evaluate_node, mcp__polyform__report_issue, ToolSearch
+tools: Read, mcp__polyform__search_node_types, mcp__polyform__get_node_types, mcp__polyform__create_equation_subgraph, mcp__polyform__update_equation_subgraph, mcp__polyform__create_tapered_curve_subgraph, mcp__polyform__create_vertex_color_gradient_subgraph, mcp__polyform__create_flush_position_subgraph, mcp__polyform__create_sphere_surface_point_subgraph, mcp__polyform__create_node, mcp__polyform__create_nodes, mcp__polyform__delete_node, mcp__polyform__delete_subgraph, mcp__polyform__connect_nodes, mcp__polyform__disconnect, mcp__polyform__set_parameter, mcp__polyform__create_subgraph, mcp__polyform__create_boundary_node, mcp__polyform__convert_to_subgraph, mcp__polyform__rename_boundary_port, mcp__polyform__set_for_each, mcp__polyform__list_enums, mcp__polyform__list_subgraphs, mcp__polyform__list_nodes, mcp__polyform__replace_instance, mcp__polyform__rename_subgraph, mcp__polyform__describe_graph, mcp__polyform__sample_field, mcp__polyform__raycast_field, mcp__polyform__describe_mesh, mcp__polyform__evaluate_node, mcp__polyform__report_issue, ToolSearch
 model: sonnet
 ---
 
@@ -24,8 +24,9 @@ working around not knowing them:
 
 - **`topics/repetition-and-instancing.md`** — placing 3+ near-identical
   copies, and how `GpuInstances` transforms compose with a `ModelNode`'s
-  base transform. Also posable point-array bodies, and feeding an array
-  into a list input (`Port[]`) with `arrays.SpreadNode`.
+  base transform. Also posable point-array bodies, feeding an array
+  into a list input (`Port[]`) with `nodes/arrays.SpreadNode`, and
+  running a subgraph once per item with For Each.
 - **`topics/organic-sdf-modeling.md`** — the full `math/sdf` roster, hard
   vs. smooth union, the march + smooth-normals pipeline, why a part meant
   to grow out of another one outputs its pre-march `Field` (not a mesh)
@@ -40,9 +41,17 @@ working around not knowing them:
   pivot, so it can't be merged into a neighbour's mesh.
 
 Most mesh and math nodes take a list on any port whose `acceptedTypes`
-lists the `[]` form and give one result per element. That list goes into
-a list input (`Outlines[]`, `Meshes[]`, `Models[]`) through
-`arrays.SpreadNode`, never straight in.
+lists the `[]` form and give one result per element. To count as separate
+items in a list input (`Outlines[]`, `Meshes[]`, `Models[]`), that list
+goes through `nodes/arrays.SpreadNode`.
+
+An unwired input of a plain type holds its own value and starts at the
+port's default (`get_node_types` lists it), so an input you leave alone
+reads that default, not zero, and a `value` makes no node. Types don't
+have to match exactly: a cast converts on the wire (`int` to `float64`, a
+number to every component of a vector, a `Mesh` to a model, a colored
+field to a plain one, a color texture to an image), so never look for a
+conversion node. A pair with no cast is refused at connect time.
 
 ## World coordinate convention — confirm this, don't guess it per part
 
@@ -59,19 +68,20 @@ etc.), not a separate one.
 
 ## Value encoding reference — don't search for this, it's all here
 
-Every parameter node's literal value uses the exact same JSON encoding,
+Every literal uses the exact same JSON encoding,
 based on the port's type — whether you're passing `create_node`'s
 `inputs: {"Port": {"value": ...}}` or `set_parameter`'s `value`. This
-table is exhaustive of every type that has a registered literal parameter
-node (`generator/parameter/types.go`) — if a type isn't listed here, it
-has none, and no amount of searching will find one; build the value as
-its own node and reference it by `nodeId`/`port` instead.
+table is exhaustive of every type a value can be written for — if a type
+isn't listed here, it has no literal, and no amount of searching will find
+one; build the value as its own node and reference it by `nodeId`/`port`
+instead.
 
 | Type | JSON shape | Example |
 |---|---|---|
 | `float64`, `int` | bare number | `2.5` / `4` |
 | `bool` | bare boolean | `true` |
 | `string` | bare string | `"red"` |
+| an enum | a member name, as a string (`get_node_types` lists a port's `members`) | `"Round"` |
 | `vector2.Vector[float64]` | `{"x", "y"}` | `{"x":1,"y":2}` |
 | `vector3.Vector[float64]` | `{"x", "y", "z"}` | `{"x":1,"y":2,"z":3}` |
 | `vector4.Vector[float64]` | `{"x", "y", "z", "w"}` | `{"x":1,"y":2,"z":3,"w":1}` |
@@ -147,15 +157,15 @@ variables (they need real file content, not a JSON value).
    - `create_node` takes an optional `inputs` map so you don't need a
      separate `connect_nodes`/`set_parameter` call per port: `{"PortName":
      {"nodeId": ..., "port": ...}}` to reference an existing node's output,
-     or `{"PortName": {"value": "<json text>"}}` for a literal (a matching
-     parameter node is created and wired automatically — only works for
+     or `{"PortName": {"value": "<json text>"}}` for a literal (it lands
+     on the port, no node made — only works for
      the types in the value-encoding table above; anything else, e.g. a
      mesh or a material, build it as its own node and reference it by
      `nodeId`/`port` instead). Use this by default instead of a
      create-then-connect-then-connect dance.
    - To change a literal you already set through `inputs`, address it by
-     port — `set_parameter` with `nodeId` + `port` sets whatever feeds
-     that port, creating and wiring a literal if the port is still empty.
+     port — `set_parameter` with `nodeId` + `port` sets that port's value,
+     whether it is the port's own or a parameter node wired into it.
    - `RoundCubeNode`'s `Roundness` is added outward, not carved off: the
      final half-extent per axis is `Size/2 + Roundness`, so a thin panel
      needs a `Roundness` below its intended half-thickness or that axis
@@ -268,9 +278,10 @@ Before defaulting to "one primitive, no booleans," ask yourself:
   pipeline, the vertex-color recipe for parts with no UVs
   (`UvSphereNode` included, despite the name), the
   metallic-factor-defaults-to-1.0 gotcha for any shiny material you build
-  yourself, and the sRGB→linear conversion every hex color needs
-  (`coloring.SRGBToLinearNode` before a `MaterialNode`/`WithColorNode`,
-  or `meshops.SrgbToLinearNode` on a vertex-colored mesh — one or the
+  yourself, and which hex colors need an sRGB→linear conversion
+  (`MaterialNode`'s `Color` and `Emissive Factor` convert themselves;
+  a `WithColorNode` color needs `coloring.SRGBToLinearNode`, or
+  `meshops.SrgbToLinearNode` on the vertex-colored mesh — one or the
   other, never both).
 
 None of these are required for every part — plenty of parts are genuinely

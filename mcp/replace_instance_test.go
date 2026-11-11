@@ -1,6 +1,7 @@
 package mcp_test
 
 import (
+	"fmt"
 	"testing"
 
 	polyformmcp "github.com/EliCDavis/polyform/mcp"
@@ -36,7 +37,25 @@ func offsetSubgraph(t *testing.T, session *mcpsdk.ClientSession, id string) {
 	}, &polyformmcp.CreateSubgraphOutput{})
 }
 
-func TestReplaceInstanceKeepsMatchingWiringUnderTheSameId(t *testing.T) {
+func placeScaled(t *testing.T, session *mcpsdk.ClientSession, base, scale float64) polyformmcp.InstantiateSubgraphOutput {
+	t.Helper()
+	var wired polyformmcp.CreateNodesOutput
+	callTool(t, session, "create_nodes", map[string]any{"nodes": []any{
+		map[string]any{"alias": "base", "type": floatParamType, "value": fmt.Sprint(base)},
+		map[string]any{"alias": "scale", "type": floatParamType, "value": fmt.Sprint(scale)},
+	}}, &wired)
+	var placed polyformmcp.InstantiateSubgraphOutput
+	callTool(t, session, "instantiate_subgraph", map[string]any{
+		"subgraphId": "scaled",
+		"inputs": map[string]any{
+			"Base":  map[string]any{"nodeId": wired.Nodes["base"], "port": "Value"},
+			"Scale": map[string]any{"nodeId": wired.Nodes["scale"], "port": "Value"},
+		},
+	}, &placed)
+	return placed
+}
+
+func TestReplaceInstanceStartsLiteralsAtTheNewDefinitionsDefaults(t *testing.T) {
 	session, inst := testSessionWithInstance(t)
 	scaledSubgraph(t, session, "scaled")
 	offsetSubgraph(t, session, "offset")
@@ -44,11 +63,19 @@ func TestReplaceInstanceKeepsMatchingWiringUnderTheSameId(t *testing.T) {
 	var placed polyformmcp.InstantiateSubgraphOutput
 	callTool(t, session, "instantiate_subgraph", map[string]any{
 		"subgraphId": "scaled",
-		"inputs": map[string]any{
-			"Base":  map[string]any{"value": "3"},
-			"Scale": map[string]any{"value": "4"},
-		},
+		"inputs":     map[string]any{"Base": map[string]any{"value": "3"}},
 	}, &placed)
+
+	callTool(t, session, "replace_instance", map[string]any{"nodeId": placed.NodeId, "subgraphId": "offset"}, &polyformmcp.ReplaceInstanceOutput{})
+	assert.InDelta(t, 0, evalFloat64Output(t, inst, placed.NodeId, "Result"), 1e-9)
+}
+
+func TestReplaceInstanceKeepsMatchingWiringUnderTheSameId(t *testing.T) {
+	session, inst := testSessionWithInstance(t)
+	scaledSubgraph(t, session, "scaled")
+	offsetSubgraph(t, session, "offset")
+
+	placed := placeScaled(t, session, 3, 4)
 	var consumer polyformmcp.CreateNodeOutput
 	callTool(t, session, "create_node", map[string]any{
 		"type":   negateNodeType,
@@ -78,11 +105,7 @@ func TestReplaceInstanceKeepsArrayElementsInPlace(t *testing.T) {
 	scaledSubgraph(t, session, "scaled")
 	offsetSubgraph(t, session, "offset")
 
-	var placed polyformmcp.InstantiateSubgraphOutput
-	callTool(t, session, "instantiate_subgraph", map[string]any{
-		"subgraphId": "scaled",
-		"inputs":     map[string]any{"Base": map[string]any{"value": "2"}, "Scale": map[string]any{"value": "5"}},
-	}, &placed)
+	placed := placeScaled(t, session, 2, 5)
 	var product polyformmcp.CreateNodeOutput
 	callTool(t, session, "create_node", map[string]any{
 		"type": multiplyNodeType,

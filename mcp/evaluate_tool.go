@@ -9,8 +9,10 @@ import (
 	"strings"
 
 	"github.com/EliCDavis/polyform/formats/gltf"
+	"github.com/EliCDavis/polyform/generator/enum"
 	"github.com/EliCDavis/polyform/generator/graph/history"
 	"github.com/EliCDavis/polyform/modeling"
+	"github.com/EliCDavis/polyform/nodes"
 	mcpsdk "github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -101,10 +103,23 @@ func (s *Server) evaluateNode(ctx context.Context, req *mcpsdk.CallToolRequest, 
 		if maxItems <= 0 {
 			maxItems = evaluateDefaultMaxItems
 		}
+		if name, ok := enumName(port, value); ok {
+			value = name
+		}
 		describeValue(&out, value, maxItems)
 		return nil
 	})
 	return nil, out, err
+}
+
+func enumName(port nodes.OutputPort, value any) (string, bool) {
+	if choice, ok := value.(enum.Choice); ok {
+		return choice.Name, true
+	}
+	if def, ok := enum.Lookup(portType(port)); ok {
+		return def.NameOf(value)
+	}
+	return "", false
 }
 
 func describeValue(out *EvaluateNodeOutput, value any, maxItems int) {

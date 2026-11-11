@@ -481,11 +481,10 @@ matter how the axis or range is tuned. Use colored fields instead, from
    composes into a bigger union the same way, and the two kinds can mix
    (a `UnionColoredNode` feeding into a `SmoothUnionColoredNode`, or vice
    versa).
-3. Once every part is combined into one final `ColoredField`, split it in
-   two: `ColoredFieldDistanceNode` extracts the plain distance half — wire
-   that into `MarchNode` exactly as before, nothing about marching
-   changes. Separately, wire the *same* final `ColoredField` (not the
-   distance-only extraction) into `modeling/marching.ApplyColorFieldNode`
+3. Once every part is combined into one final `ColoredField`, wire it
+   into `MarchNode.Field` directly — a cast takes the distance half, and
+   nothing about marching changes. Separately, wire the *same* final
+   `ColoredField` into `modeling/marching.ApplyColorFieldNode`
    alongside `MarchNode`'s `Mesh` output — it samples the color half at
    each real vertex position and writes `"Color"` directly. This replaces
    `create_vertex_color_gradient_subgraph`/the manual select-remap-
@@ -493,7 +492,7 @@ matter how the axis or range is tuned. Use colored fields instead, from
    pass on top; the color is already baked in per region.
 
 `get_node_types` on `WithColorNode`/`UnionColoredNode`/
-`SmoothUnionColoredNode`/`ColoredFieldDistanceNode` (`math/sdf`) and
+`SmoothUnionColoredNode` (`math/sdf`) and
 `ApplyColorFieldNode` (`modeling/marching`) for exact ports — don't guess
 the wiring.
 

@@ -16,14 +16,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/EliCDavis/polyform/generator"
 	"github.com/EliCDavis/polyform/generator/graph"
+	"github.com/EliCDavis/polyform/generator/registry"
 	"github.com/EliCDavis/polyform/mcp"
 
 	// Blank-imported so each package's init() registers its node types with
 	// the shared generator type factory, retrieved below via
-	// generator.Types(). This mirrors the import list in cmd/polyform/main.go.
-	_ "github.com/EliCDavis/polyform/arrays"
+	// registry.Types(). This mirrors the import list in cmd/polyform/main.go.
 	_ "github.com/EliCDavis/polyform/debug"
 	_ "github.com/EliCDavis/polyform/drawing/coloring"
 	_ "github.com/EliCDavis/polyform/drawing/texturing"
@@ -39,10 +38,11 @@ import (
 	_ "github.com/EliCDavis/polyform/formats/spz"
 	_ "github.com/EliCDavis/polyform/formats/stl"
 
+	_ "github.com/EliCDavis/polyform/generator/enum"
 	_ "github.com/EliCDavis/polyform/generator/manifest/basics"
 	_ "github.com/EliCDavis/polyform/generator/parameter"
-	_ "github.com/EliCDavis/polyform/generator/subgraph/register"
-	_ "github.com/EliCDavis/polyform/logic"
+	_ "github.com/EliCDavis/polyform/generator/subgraph"
+	_ "github.com/EliCDavis/polyform/nodes/logic"
 
 	_ "github.com/EliCDavis/polyform/math"
 	_ "github.com/EliCDavis/polyform/math/constant"
@@ -51,6 +51,7 @@ import (
 	_ "github.com/EliCDavis/polyform/math/noise"
 	_ "github.com/EliCDavis/polyform/math/quaternion"
 	_ "github.com/EliCDavis/polyform/math/sdf"
+	_ "github.com/EliCDavis/polyform/math/chance"
 	_ "github.com/EliCDavis/polyform/math/sequence"
 	_ "github.com/EliCDavis/polyform/math/trig"
 	_ "github.com/EliCDavis/polyform/math/trs"
@@ -72,6 +73,7 @@ import (
 	_ "github.com/EliCDavis/polyform/modeling/triangulation"
 	_ "github.com/EliCDavis/polyform/modeling/voxelize"
 
+	_ "github.com/EliCDavis/polyform/nodes/arrays"
 	_ "github.com/EliCDavis/polyform/nodes/experimental"
 	_ "github.com/EliCDavis/polyform/nodes/opearations"
 	_ "github.com/EliCDavis/polyform/nodes/text"
@@ -89,8 +91,9 @@ func main() {
 	flag.Parse()
 
 	inst := graph.New(graph.Config{
-		TypeFactory:     generator.Types(),
+		TypeFactory:     registry.Types(),
 		VariableFactory: mcp.NewTypedVariable,
+		Casts:           casts(),
 	})
 
 	if *logSummaryPath != "" {

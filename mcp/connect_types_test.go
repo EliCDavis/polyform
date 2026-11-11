@@ -60,7 +60,7 @@ func TestConnectAcceptsTheArrayTypeItAsksFor(t *testing.T) {
 			map[string]any{"alias": "p1", "type": vec3ValueType},
 			map[string]any{
 				"alias": "points",
-				"type":  "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/arrays.FromElementsNode]",
+				"type":  "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/nodes/arrays.FromElementsNode]",
 				"inputs": map[string]any{
 					"Elements": map[string]any{"elements": []any{
 						map[string]any{"nodeId": "p0", "port": "Value"},
@@ -141,7 +141,7 @@ func TestDescribeGraphListsUnwiredInputs(t *testing.T) {
 	}
 }
 
-func TestConnectNamesTheConversionNodeForIntToFloat(t *testing.T) {
+func TestConnectCastsIntIntoAFloatInput(t *testing.T) {
 	session := testSession(t)
 
 	var whole polyformmcp.CreateNodeOutput
@@ -149,9 +149,10 @@ func TestConnectNamesTheConversionNodeForIntToFloat(t *testing.T) {
 	var march polyformmcp.CreateNodeOutput
 	callTool(t, session, "create_node", map[string]any{"type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/modeling/marching.MarchNode]"}, &march)
 
-	msg := callToolExpectingError(t, session, "connect_nodes", map[string]any{
+	var connected polyformmcp.ConnectNodesOutput
+	callTool(t, session, "connect_nodes", map[string]any{
 		"outNodeId": whole.NodeId, "outPort": "Value",
 		"inNodeId": march.NodeId, "inPort": "Resolution",
-	})
-	assert.Contains(t, msg, "IntToFloatNode")
+	}, &connected)
+	assert.True(t, connected.Connected)
 }

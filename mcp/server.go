@@ -65,6 +65,7 @@ func NewServer(g *graph.Instance) *Server {
 	s.registerNodeTools()
 	s.registerPruneTools()
 	s.registerSubgraphTools()
+	s.registerEnumTools()
 	s.registerOutlineTools()
 	s.registerIOTools()
 	s.registerRenderTools()
@@ -163,6 +164,7 @@ func (s *Server) autosaveLocked() {
 		return
 	}
 
+	s.layoutAllScopes()
 	data, err := s.graph.EncodeToAppSchema()
 	if err != nil {
 		return

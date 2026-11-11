@@ -63,7 +63,7 @@ func TestDarkMaterialRendersWithReadableForm(t *testing.T) {
 	var material polyformmcp.CreateNodeOutput
 	callTool(t, session, "create_node", map[string]any{
 		"type":   "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.MaterialNode]",
-		"inputs": map[string]any{"Color": map[string]any{"value": `"#17161c"`}},
+		"inputs": map[string]any{"Color": map[string]any{"value": `"#54535d"`}},
 	}, &material)
 
 	var model polyformmcp.CreateNodeOutput

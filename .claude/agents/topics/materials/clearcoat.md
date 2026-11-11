@@ -42,7 +42,8 @@ the base is already smooth, the coat adds little.
 
 ## Verify
 
-`render_preview` shows only the base metallic and roughness, not the
-coat. `describe_manifest` lists `KHR_materials_clearcoat` with
+`render_preview` approximates the coat as a glossy reflection on top of
+the base, enough to tell lacquered from bare; it ignores the coat's
+textures and normal map. `describe_manifest` lists `KHR_materials_clearcoat` with
 `clearcoatFactor` and `clearcoatRoughnessFactor` on the material, and
 `clearcoatNormalTexture` when a coat normal map is wired.

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"slices"
 	"strings"
 
 	"github.com/EliCDavis/polyform/generator/graph"
@@ -28,8 +29,6 @@ const (
 	eqRoundNodeType  = "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/math.RoundNode]"
 	eqAbsNodeType    = "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/math.AbsNode]"
 	eqModNodeType    = "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/math.ModuloNode]"
-	eqIntToFloatType = "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/math.IntToFloatNode]"
-	eqIntParamType   = "github.com/EliCDavis/polyform/generator/parameter.Value[int]"
 
 	eqSinNodeType   = "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/math/trig.SinNode]"
 	eqCosNodeType   = "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/math/trig.CosNode]"
@@ -142,12 +141,6 @@ func (c *equationCompiler) variable(name string) (eqPort, error) {
 		}
 	}
 	p := eqPort{nodeID: id, port: "Value"}
-	if c.ints[name] {
-		var err error
-		if p, err = c.unary(eqIntToFloatType, "In", "Out", p); err != nil {
-			return eqPort{}, fmt.Errorf("convert int input %q: %w", name, err)
-		}
-	}
 	c.variables[name] = p
 	c.inputIDs[name] = id
 	c.varOrder = append(c.varOrder, name)
@@ -377,7 +370,9 @@ func (c *equationCompiler) compile(e *eqExpr) (eqPort, error) {
 
 	case eqExprVar:
 		if e.name == "pi" {
-			c.constants = append(c.constants, "pi")
+			if !slices.Contains(c.constants, "pi") {
+				c.constants = append(c.constants, "pi")
+			}
 			return c.literal(math.Pi)
 		}
 		return c.variable(e.name)

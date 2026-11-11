@@ -19,8 +19,8 @@ const (
 	combineType    = "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/modeling/meshops.CombineNode]"
 )
 
-func TestCreateNodesNumbersInlineLiteralsInPortNameOrder(t *testing.T) {
-	session := testSession(t)
+func TestCreateNodesMakesNoNodeForAValueOnAPort(t *testing.T) {
+	session, inst := testSessionWithInstance(t)
 	var made polyformmcp.CreateNodesOutput
 	callTool(t, session, "create_nodes", map[string]any{"nodes": []any{
 		map[string]any{"alias": "can", "type": cylinderNodeType, "inputs": map[string]any{
@@ -30,9 +30,11 @@ func TestCreateNodesNumbersInlineLiteralsInPortNameOrder(t *testing.T) {
 	}}, &made)
 	require.Empty(t, made.Errors)
 
-	assert.Equal(t, map[string]string{
-		"can.Height": "Node-1", "can.Radius": "Node-2", "can.Radius 2": "Node-3", "can.Sides": "Node-4",
-	}, made.Literals)
+	assert.Empty(t, made.Literals)
+	assert.Len(t, inst.NodeIds(), 1)
+	held, err := inst.LiteralValue(made.Nodes["can"], "Radius 2")
+	require.NoError(t, err)
+	assert.JSONEq(t, "0.05", string(held))
 }
 
 // TestCreateNodesResolvesForwardAliases is the property the whole tool
@@ -165,7 +167,7 @@ func TestCreateNodesOneBadPortDoesNotStripTheEntrysOtherInputs(t *testing.T) {
 	assert.InDelta(t, 12, evalFloat64Output(t, inst, out.Nodes["mul"], "Float"), 1e-9, "the good inputs were still wired")
 }
 
-func TestCreateNodesSkipsDefaultLiteralsAndSharesRepeatedOnes(t *testing.T) {
+func TestCreateNodesHoldsValuesOnPortsAndSharesRepeatedArrayElements(t *testing.T) {
 	const vec3NewType = "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/math/vector3.NewNode[float64]]"
 	session, inst := testSessionWithInstance(t)
 
@@ -190,11 +192,9 @@ func TestCreateNodesSkipsDefaultLiteralsAndSharesRepeatedOnes(t *testing.T) {
 	require.Empty(t, out.Errors)
 
 	before := len(inst.NodeIds())
-	v := inst.Node(out.Nodes["v"])
-	x := v.Inputs()["X"].(nodes.SingleValueInputPort)
-	assert.Nil(t, x.Value(), "a zero X on vector3.New needs no literal; the port already defaults to 0")
-	assert.Nil(t, v.Inputs()["Z"].(nodes.SingleValueInputPort).Value())
-	assert.NotNil(t, v.Inputs()["Y"].(nodes.SingleValueInputPort).Value())
+	held, err := inst.LiteralValue(out.Nodes["v"], "Y")
+	require.NoError(t, err)
+	assert.JSONEq(t, "1.5", string(held))
 
 	values := inst.Node(out.Nodes["mul"]).Inputs()["Values"].(nodes.ArrayValueInputPort).Value()
 	require.Len(t, values, 4)
@@ -203,8 +203,8 @@ func TestCreateNodesSkipsDefaultLiteralsAndSharesRepeatedOnes(t *testing.T) {
 	assert.NotSame(t, values[0].Node(), values[3].Node())
 	assert.InDelta(t, 2e-12, evalFloat64Output(t, inst, out.Nodes["mul"], "Float"), 1e-20)
 
-	// v + Y literal + mul + two distinct literals.
-	assert.Equal(t, 5, before)
+	// v + mul + two distinct element literals.
+	assert.Equal(t, 4, before)
 }
 
 // Two ports that happen to hold the same number are not the same number:
@@ -323,15 +323,17 @@ func TestConnectNodesBatch(t *testing.T) {
 
 func TestConnectNodesSwapsTwoInputsInOneBatch(t *testing.T) {
 	session, inst := testSessionWithInstance(t)
-	var sub polyformmcp.CreateNodeOutput
-	callTool(t, session, "create_node", map[string]any{
-		"type": subtractNodeType,
-		"inputs": map[string]any{
-			"A": map[string]any{"value": "5"},
-			"B": map[string]any{"value": "2"},
-		},
-	}, &sub)
-	a, b := sub.Literals["A"], sub.Literals["B"]
+	var made polyformmcp.CreateNodesOutput
+	callTool(t, session, "create_nodes", map[string]any{"nodes": []any{
+		map[string]any{"alias": "a", "type": floatParamType, "value": "5"},
+		map[string]any{"alias": "b", "type": floatParamType, "value": "2"},
+		map[string]any{"alias": "sub", "type": subtractNodeType, "inputs": map[string]any{
+			"A": map[string]any{"nodeId": "a", "port": "Value"},
+			"B": map[string]any{"nodeId": "b", "port": "Value"},
+		}},
+	}}, &made)
+	a, b := made.Nodes["a"], made.Nodes["b"]
+	sub := polyformmcp.CreateNodeOutput{NodeId: made.Nodes["sub"]}
 
 	callTool(t, session, "connect_nodes", map[string]any{"connections": []any{
 		map[string]any{"outNodeId": a, "outPort": "Value", "inNodeId": sub.NodeId, "inPort": "B"},
@@ -613,7 +615,7 @@ func TestCreateNodesReportsEdgesItDroppedWithTheEntryThatCausedThem(t *testing.T
 	session := testSession(t)
 	var made polyformmcp.CreateNodesOutput
 	callTool(t, session, "create_nodes", map[string]any{"nodes": []any{
-		map[string]any{"alias": "paths", "type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/arrays.ChunkNode]", "inputs": map[string]any{
+		map[string]any{"alias": "paths", "type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/nodes/arrays.ChunkNode]", "inputs": map[string]any{
 			"Array": map[string]any{"value": `[{"x":0,"y":0},{"x":1,"y":0},{"x":2,"y":0},{"x":3,"y":0}]`},
 			"Size":  map[string]any{"value": "2"},
 		}},

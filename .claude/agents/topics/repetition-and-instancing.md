@@ -153,10 +153,11 @@ count until it happens to miss:
   geometry like any other, so it can be sized off the feature it
   protects.
 - **Meshes/instances**: filter the transform array before drawing it.
-  `math/trs.FilterPositionNode` splits a `[]TRS` by an axis-aligned box
-  (`MinX`/`MinY`/`MinZ`/`MaxX`/`MaxY`/`MaxZ`) into the transforms inside
-  it and those outside — take the outside set and the protected box stays
-  empty.
+  `math/trs.SelectNode`'s `Position` gives the points, a lifted
+  `math.CompareNode[float64]` on each bound gives a `[]bool` (`nodes/logic.AndNode`
+  joins several), and `nodes/arrays.FilterNode` (`Array`, `Keep`) splits
+  the transforms into `Kept` and `Dropped` — take the side outside the
+  protected box and it stays empty.
 
 Name the keep-out volume after what it protects, and check it in the same
 render where you check the scatter: a mask that is slightly too small
@@ -215,14 +216,14 @@ joint rather than a clean taper.
 
 A few positions that each come from their own math (four corners
 computed from two spacings, a mirrored pair) collect into one array
-with `arrays.FromElementsNode` (`Elements[]`, one element per node),
+with `nodes/arrays.FromElementsNode` (`Elements[]`, one element per node),
 and `math/trs.NewNode` turns that into the `[]trs.TRS` a
 `GpuInstances` or `RepeatNode` wants — its `Position`/`Rotation`/`Scale`
 are lifted, so feeding an array of positions gives back an array of
 transforms from one node. No need to reach for a grid node whose
 spacing you then have to back-solve. Going the other way,
-`arrays.IndexNode` (`Array`, `Index`; negative counts from the end)
-reads one element back out, and `arrays.LastNode` the final one. A
+`nodes/arrays.IndexNode` (`Array`, `Index`; negative counts from the end)
+reads one element back out, and `nodes/arrays.LastNode` the final one. A
 point that lies on a curve (a sphere or a colour marking at its tip)
 is better read off the spline itself: `PositionNode` (`Spline`,
 `Distance` <- `LengthNode`) is the end point, and follows the pose
@@ -230,29 +231,78 @@ variable instead of duplicating its last entry as a literal. Something at *every
 chain) is `sdf.RepeatNode` over `trs.NewNode` with only `Position` <-
 the points connected; rotation and scale default to identity.
 
-## An array into a list input: `arrays.SpreadNode`
+## An array into a list input: `nodes/arrays.SpreadNode`
 
 A list input (`meshops.CombineNode.Meshes`, a manifest's `Models`, a
 `ModelNode`'s `Children`, the csg, sdf and sketch unions' inputs,
 `sketch.FillNode`'s `Outlines` and `Holes`, `math.AddNode`'s `Values`) takes one item per wire. When the items arrive as one array —
-the output of a lifted node fed a list, or an `arrays` node —
-`arrays.SpreadNode` (`Array` -> `Out`) hands each element over as if it
+the output of a lifted node fed a list, or a `nodes/arrays` node —
+`nodes/arrays.SpreadNode` (`Array` -> `Out`) hands each element over as if it
 had its own wire. Wire its `Out` into the list input like any other
 element; it can sit next to ordinary wires on the same input.
+
+A few list inputs are lifted as well (`AddNode.Values`,
+`MultiplyNode.Values`, the min and max nodes, `FillNode`'s `Outlines` and
+`Holes`, `AndNode.Values`). Those accept an array wired straight in, but
+then run once per element instead of folding the elements into one
+result, so the choice is about what you want back: one area per outline
+straight in, one area holding every outline through Spread.
 
 - Twelve text meshes from one array -> Spread -> `CombineNode.Meshes`
   gives one combined mesh; -> a manifest's `Models` exports twelve models.
   The array comes from a lifted node: `TextNode` fed a `[]string` (cut
-  to a variable count with `arrays.SliceNode`), placed by
+  to a variable count with `nodes/arrays.SliceNode`), placed by
   `meshops.TransformNode` with a `[]trs.TRS`.
 - `[1, 2, 3]` -> Spread -> `math.AddNode.Values` sums to 6. A spread of
   arrays (`[][]float64`) adds the arrays element by element instead.
-- The `arrays` nodes' list inputs take it too: `FromElements`, `Append`'s
+- The `nodes/arrays` nodes' list inputs take it too: `FromElements`, `Append`'s
   `Elements`, `Concat`'s `Arrays` (a spread of arrays), and
-  `logic.SwitchNode`'s `Cases`, where each element counts as one case.
+  `nodes/logic.SwitchNode`'s `Cases`, where each element counts as one case.
 - Only list inputs accept it. A single-value input, a lifted single input
   and subgraph boundaries all refuse it, because each would read just one
   element.
 - An empty array contributes nothing, so a combine of only an empty
   spread is an empty mesh and a sum is 0. Min and Max of nothing report
   "no values to compare".
+
+## A subgraph once per item: For Each
+
+Lifting runs one node per element. When the work per item is a whole
+chain that can't lift, such as a march per item, a combine per item, or a
+step that reads a list inside each run, set the instance to run once per
+item: `forEach: true` on `instantiate_subgraph` or a `create_nodes` entry,
+or `set_for_each` afterwards.
+
+- Declare each boundary input as what **one run** reads. An input then fed
+  a list one level deeper than that is iterated; anything else, a plain
+  value or a list at the declared depth, is broadcast to every run.
+- Lists fed to several iterated inputs are paired by index, so give them
+  the same length.
+- Every output becomes a list of the runs' results. Into a list input it
+  goes through Spread like any other array.
+- Don't reach for it when the interior is all lifted ports. That subgraph
+  already takes a list, and one evaluation is cheaper than one per item.
+- To look inside one run, pass `instanceId: "Node-3[2]"` (from 0) to
+  `evaluate_node`, `sample_field`, `describe_mesh`, `raycast_field`,
+  `render_preview` or `profile_graph`.
+
+## One of several kinds per slot
+
+To give each slot one of K kinds, pick a kind per slot
+(`chance.RandomIndexNode` over `IndicesNode` keys, weighted), split the
+slots by kind with `nodes/arrays.GroupNode`, and feed the groups to one
+subgraph run For Each, its boundary taking one kind's transforms (a
+list) plus whatever differs per kind, rather than K parallel chains.
+`nodes/arrays.IndexNode` reads out one group when the kinds are separate
+parts. The draw, the weights, masks and keep-outs are in
+`topics/randomness.md`.
+
+## Random values per element
+
+Everything random is a hash of (`Seed`, `Key`) through a `Distribution`
+value: keys from `IndicesNode` of the list being varied, seeds per part
+from `chance.SeedNode` labels, the shape from a distribution node wired
+into `chance.RandomNode`. Jitter is a vector `RandomNode` into
+`trs.NewNode` then the lifted `trs.MultiplyNode`, not a node of its own.
+`Read topics/randomness.md` for the type keys, the distributions and the
+patterns (correlated values, keep-outs, scattering, noise seeds).

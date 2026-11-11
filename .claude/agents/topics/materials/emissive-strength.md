@@ -22,8 +22,8 @@ ports.
 - **`Emissive Factor` must be set.** It defaults to black, and black
   times any strength is nothing. `Emissive Strength` alone writes the
   extension and glows not at all.
-- `Emissive Factor` is linear, so pass a hex pick through
-  `coloring.SRGBToLinearNode`, like the base colour.
+- `Emissive Factor` takes the hex as picked and converts it to linear
+  itself; don't put a `coloring.SRGBToLinearNode` in front of it.
 - Strength:
   - `1`: lit but not glowing;
   - `2-4`: a visible glow;
@@ -41,7 +41,8 @@ ports.
 
 ## Verify
 
-`render_preview` ignores emission; the part shows its base colour.
-`describe_manifest` lists the material's `emissive` colour and
+`render_preview` adds emission (factor, texture and strength) on top
+of the lit colour; it has no bloom, so a strong glow reads as a bright
+flat colour. `describe_manifest` lists the material's `emissive` colour and
 `KHR_materials_emissive_strength` with `emissiveStrength`. If `emissive`
 is missing or `#000000`, nothing glows whatever the strength.

@@ -2,11 +2,9 @@ package mcp
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 
-	"github.com/EliCDavis/polyform/generator/graph"
 	"github.com/EliCDavis/polyform/generator/subgraph"
 	mcpsdk "github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -26,8 +24,6 @@ const (
 
 	vcgMeshPortType  = "github.com/EliCDavis/polyform/modeling.Mesh"
 	vcgColorPortType = "github.com/EliCDavis/polyform/drawing/coloring.Color"
-	vcgBoolParamType = "github.com/EliCDavis/polyform/generator/parameter.Value[bool]"
-	vcgStrParamType  = "github.com/EliCDavis/polyform/generator/parameter.Value[string]"
 )
 
 type CreateVertexColorGradientSubgraphInput struct {
@@ -135,19 +131,6 @@ func (s *Server) createVertexColorGradientSubgraph(ctx context.Context, req *mcp
 			return e
 		}
 
-		outMinID, e := createFloatLiteral(child, 0)
-		if e != nil {
-			return e
-		}
-		outMaxID, e := createFloatLiteral(child, 1)
-		if e != nil {
-			return e
-		}
-		clampID, e := createBoolLiteral(child, true)
-		if e != nil {
-			return e
-		}
-
 		// RemapNode(axis array, mesh's own min/max -> 0..1)
 		_, remapID, e := child.CreateNode(vcgRemapArrayType)
 		if e != nil {
@@ -162,13 +145,13 @@ func (s *Server) createVertexColorGradientSubgraph(ctx context.Context, req *mcp
 		if e := child.ConnectNodes(maxID, "Float 64", remapID, "In Max"); e != nil {
 			return e
 		}
-		if e := child.ConnectNodes(outMinID, "Value", remapID, "Out Min"); e != nil {
+		if e := child.SetLiteral(remapID, "Out Min", []byte("0")); e != nil {
 			return e
 		}
-		if e := child.ConnectNodes(outMaxID, "Value", remapID, "Out Max"); e != nil {
+		if e := child.SetLiteral(remapID, "Out Max", []byte("1")); e != nil {
 			return e
 		}
-		if e := child.ConnectNodes(clampID, "Value", remapID, "Clamp"); e != nil {
+		if e := child.SetLiteral(remapID, "Clamp", []byte("true")); e != nil {
 			return e
 		}
 
@@ -196,11 +179,6 @@ func (s *Server) createVertexColorGradientSubgraph(ctx context.Context, req *mcp
 			return e
 		}
 
-		attrID, e := createStringLiteral(child, "Color")
-		if e != nil {
-			return e
-		}
-
 		// SetAttribute3DNode(Mesh, "Color", []vector3.Float64) -> colored Mesh
 		_, setAttrID, e := child.CreateNode(vcgSetAttribute3DType)
 		if e != nil {
@@ -209,7 +187,7 @@ func (s *Server) createVertexColorGradientSubgraph(ctx context.Context, req *mcp
 		if e := child.ConnectNodes(meshID, "Value", setAttrID, "Mesh"); e != nil {
 			return e
 		}
-		if e := child.ConnectNodes(attrID, "Value", setAttrID, "Attribute"); e != nil {
+		if e := child.SetLiteral(setAttrID, "Attribute", []byte(`"Color"`)); e != nil {
 			return e
 		}
 		if e := child.ConnectNodes(toVecID, "Vector 3", setAttrID, "Data"); e != nil {
@@ -248,39 +226,6 @@ func vcgAxisPort(axis string) (string, error) {
 	default:
 		return "", fmt.Errorf("axis must be one of \"X\", \"Y\", \"Z\" (got %q)", axis)
 	}
-}
-
-// createBoolLiteral creates a bool parameter node preset to v inside inst.
-func createBoolLiteral(inst *graph.Graph, v bool) (string, error) {
-	_, id, err := inst.CreateNode(vcgBoolParamType)
-	if err != nil {
-		return "", fmt.Errorf("create literal %v: %w", v, err)
-	}
-	data, err := json.Marshal(v)
-	if err != nil {
-		return "", err
-	}
-	if _, err := inst.UpdateParameter(id, data); err != nil {
-		return "", fmt.Errorf("set literal %v: %w", v, err)
-	}
-	return id, nil
-}
-
-// createStringLiteral creates a string parameter node preset to v inside
-// inst.
-func createStringLiteral(inst *graph.Graph, v string) (string, error) {
-	_, id, err := inst.CreateNode(vcgStrParamType)
-	if err != nil {
-		return "", fmt.Errorf("create literal %q: %w", v, err)
-	}
-	data, err := json.Marshal(v)
-	if err != nil {
-		return "", err
-	}
-	if _, err := inst.UpdateParameter(id, data); err != nil {
-		return "", fmt.Errorf("set literal %q: %w", v, err)
-	}
-	return id, nil
 }
 
 func (s *Server) registerVertexColorGradientTools() {

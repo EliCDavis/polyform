@@ -18,7 +18,7 @@ func TestRenderPreviewWarnsAboutAndShowsZeroNormals(t *testing.T) {
 	})
 	glass := &gltf.PolyformModel{Name: "Glazing", Mesh: &mesh}
 
-	scene, err := buildScene([]*gltf.PolyformModel{{Name: "Helicopter", Children: []*gltf.PolyformModel{glass}}}, modelRefs{}, modelRefs{}, "Node-1", 0)
+	scene, err := buildScene([]*gltf.PolyformModel{{Name: "Helicopter", Children: []*gltf.PolyformModel{glass}}}, modelRefs{}, modelRefs{}, "Node-1", 0, false)
 	require.NoError(t, err)
 
 	assert.Equal(t, []string{"Helicopter/Glazing: 1 of 3 vertex normals are zero or not finite"}, scene.warnings)

@@ -264,8 +264,8 @@ func TestConvertToSubgraphPullsInLiteralsOnlyTheSelectionUses(t *testing.T) {
 		"name":    "Eleven",
 	}, &converted)
 
-	assert.Empty(t, converted.Inputs, "the three literals feed nothing else, so none becomes a port")
-	assert.Len(t, converted.Literals, 3)
+	assert.Empty(t, converted.Inputs, "the element literals feed nothing else, so none becomes a port")
+	assert.Len(t, converted.Literals, 2)
 	assert.Len(t, converted.Outputs, 0, "nothing downstream consumes sub")
 	for _, id := range converted.Literals {
 		assert.False(t, inst.HasNodeWithId(id), "literal %s should have left the root graph", id)
@@ -279,7 +279,7 @@ func TestConvertToSubgraphPullsInLiteralsOnlyTheSelectionUses(t *testing.T) {
 			interior++
 		}
 	}
-	assert.Equal(t, 3, interior)
+	assert.Equal(t, 2, interior)
 }
 
 func TestConvertToSubgraphPassesVariablesThroughPortsThatDefaultToTheirValue(t *testing.T) {

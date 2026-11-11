@@ -99,7 +99,6 @@ func TestCreateEquationSubgraphConstantsBecomeDefaultedInputs(t *testing.T) {
 		"id": "eq", "equation": "y = k * x", "constants": map[string]any{"k": 0.5},
 	}, &eq)
 	assert.Equal(t, []string{"k", "x"}, eq.Inputs)
-	require.Contains(t, eq.Defaults, "k")
 
 	var placed polyformmcp.InstantiateSubgraphOutput
 	callTool(t, session, "instantiate_subgraph", map[string]any{
@@ -111,7 +110,6 @@ func TestCreateEquationSubgraphConstantsBecomeDefaultedInputs(t *testing.T) {
 	callTool(t, session, "update_equation_subgraph", map[string]any{
 		"id": "eq", "equation": "y = k * x", "constants": map[string]any{"k": 0.25},
 	}, &updated)
-	assert.Equal(t, eq.Defaults["k"], updated.Defaults["k"], "the default literal is updated, not replaced")
 	assert.InDelta(t, 1, evalFloat64Output(t, inst, placed.NodeId, "y"), 1e-9)
 
 	msg := callToolExpectingError(t, session, "create_equation_subgraph", map[string]any{

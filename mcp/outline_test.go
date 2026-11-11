@@ -183,7 +183,7 @@ func TestCheckOutlineFlagsAMarchTooCoarseForThePlan(t *testing.T) {
 	callTool(t, session, "create_subgraph", map[string]any{
 		"id": "dog", "name": "Dog",
 		"nodes": []map[string]any{
-			{"alias": "blob", "type": sdfSphereType},
+			{"alias": "blob", "type": sdfSphereType, "inputs": map[string]any{"Radius": map[string]any{"value": "0.0079"}}},
 			{"alias": "union", "type": sdfSmoothUnionNodeType, "inputs": map[string]any{
 				"Fields": map[string]any{"elements": []map[string]any{{"nodeId": "blob", "port": "Field"}}},
 				"Radius": map[string]any{"value": "0.05"},
@@ -724,7 +724,7 @@ func TestCheckOutlineBudgetsAMarchByWhatFeedsIt(t *testing.T) {
 		callTool(t, session, "create_subgraph", map[string]any{
 			"id": part, "name": part,
 			"outputs": []map[string]any{{"name": "Field", "type": "github.com/EliCDavis/polyform/math/sample.Vec3ToFloat", "nodeId": "blob", "port": "Field"}},
-			"nodes":   []map[string]any{{"alias": "blob", "type": sdfSphereType}},
+			"nodes":   []map[string]any{{"alias": "blob", "type": sdfSphereType, "inputs": map[string]any{"Radius": map[string]any{"value": "0.0075"}}}},
 		}, &polyformmcp.CreateSubgraphOutput{})
 
 		var inst polyformmcp.InstantiateSubgraphOutput

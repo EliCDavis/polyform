@@ -1,6 +1,7 @@
 package mcp
 
 import (
+	"cmp"
 	"context"
 	"encoding/json"
 	"errors"
@@ -16,9 +17,7 @@ import (
 	"github.com/EliCDavis/polyform/generator/schema"
 	"github.com/EliCDavis/polyform/generator/subgraph"
 	"github.com/EliCDavis/polyform/generator/variable"
-	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/polyform/nodes"
-	"github.com/EliCDavis/vector/vector3"
 	mcpsdk "github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -28,6 +27,11 @@ type PortSummary struct {
 	Type        string `json:"type"`
 	IsArray     bool   `json:"isArray,omitempty"`
 	Description string `json:"description,omitempty"`
+
+	Literal bool     `json:"literal,omitempty" jsonschema:"while unwired this input holds its own value: set it with a 'value' input or set_parameter, no node needed"`
+	Default any      `json:"default,omitempty" jsonschema:"the value a literal input starts with"`
+	Members []string `json:"members,omitempty" jsonschema:"for an enum input: the member names it takes"`
+	Lifts   bool     `json:"lifts,omitempty" jsonschema:"this input also takes a list of its type: the node then runs once per element and its outputs become lists"`
 }
 
 // NodeTypeSummary is a lightweight, search-result-sized view of a
@@ -69,7 +73,7 @@ func summarizeNodeType(nt schema.NodeType) NodeTypeSummary {
 	}
 }
 
-func detailNodeType(nt schema.NodeType) NodeTypeDetail {
+func (s *Server) detailNodeType(nt schema.NodeType) NodeTypeDetail {
 	detail := NodeTypeDetail{
 		Type:        nt.Type,
 		DisplayName: nt.DisplayName,
@@ -84,6 +88,10 @@ func detailNodeType(nt schema.NodeType) NodeTypeDetail {
 			Type:        in.Type,
 			IsArray:     in.IsArray,
 			Description: in.Description,
+			Literal:     in.Literal,
+			Default:     decodeJSON(in.Default),
+			Members:     s.enumMembers(cmp.Or(firstOf(in.AcceptedTypes), in.Type)),
+			Lifts:       slices.Contains(in.AcceptedTypes, "[]"+in.Type),
 		})
 	}
 	sort.Slice(detail.Inputs, func(i, j int) bool { return detail.Inputs[i].Name < detail.Inputs[j].Name })
@@ -98,6 +106,13 @@ func detailNodeType(nt schema.NodeType) NodeTypeDetail {
 	sort.Slice(detail.Outputs, func(i, j int) bool { return detail.Outputs[i].Name < detail.Outputs[j].Name })
 
 	return detail
+}
+
+func firstOf(types []string) string {
+	if len(types) == 0 {
+		return ""
+	}
+	return types[0]
 }
 
 // nodeTypeHaystack is what search_node_types matches a query against:
@@ -311,7 +326,7 @@ func (s *Server) getNodeTypes(ctx context.Context, req *mcpsdk.CallToolRequest, 
 			out.NotFound = append(out.NotFound, t)
 			continue
 		}
-		out.Results = append(out.Results, detailNodeType(nt))
+		out.Results = append(out.Results, s.detailNodeType(nt))
 	}
 
 	return nil, out, nil
@@ -323,7 +338,7 @@ func (s *Server) getNodeTypes(ctx context.Context, req *mcpsdk.CallToolRequest, 
 type NodeInputElement struct {
 	NodeId   string `json:"nodeId,omitempty" jsonschema:"wire this element to an existing node's output port; mutually exclusive with 'value' and 'variable'"`
 	Port     string `json:"port,omitempty" jsonschema:"the output port name on nodeId; required when nodeId is set"`
-	Value    string `json:"value,omitempty" jsonschema:"literal JSON text for this element's value; a matching parameter node is created and wired in automatically. Mutually exclusive with nodeId and variable."`
+	Value    string `json:"value,omitempty" jsonschema:"literal JSON text for this element's value; array elements hold no literal, so a matching parameter node is created and wired in. Mutually exclusive with nodeId and variable."`
 	Variable string `json:"variable,omitempty" jsonschema:"wire this element to a live reference to an existing variable, by its path. Mutually exclusive with nodeId and value."`
 }
 
@@ -332,7 +347,7 @@ type NodeInputSpec struct {
 
 	NodeId   string `json:"nodeId,omitempty" jsonschema:"wire this input to an existing node's output port; mutually exclusive with 'value' and 'variable'"`
 	Port     string `json:"port,omitempty" jsonschema:"the output port name on nodeId; required when nodeId is set"`
-	Value    string `json:"value,omitempty" jsonschema:"literal JSON text for this input's value, e.g. \"2.5\", \"true\", \"{\\\"x\\\":1,\\\"y\\\":2,\\\"z\\\":3}\", \"\\\"#cc3333\\\"\"; a matching parameter node is created and wired in automatically. Only works for input types that have a registered literal parameter node: float64, int, bool, string, vector2/3/4 (and int variants), []float64/[]int/[]string, []vector2, []vector3, quaternion.Quaternion, trs.TRS, []trs.TRS, coloring.Color, []coloring.Color, coloring.Gradient, geometry.AABB — for anything else (a mesh, a material), create that node yourself and reference it via nodeId/port instead. Mutually exclusive with nodeId and variable."`
+	Value    string `json:"value,omitempty" jsonschema:"literal JSON text for this input's value, e.g. \"2.5\", \"true\", \"{\\\"x\\\":1,\\\"y\\\":2,\\\"z\\\":3}\", \"\\\"#cc3333\\\"\", an enum's member name as a JSON string. Held on the port itself, no node made: float64, int, bool, string, vector2/3/4 (and int variants), quaternion.Quaternion, trs.TRS, coloring.Color, coloring.Gradient, geometry.AABB, enums. A whole list ([]float64/[]int/[]string, []vector2, []vector3, []trs.TRS, []coloring.Color) makes a parameter node. For anything else (a mesh, a material), create that node yourself and reference it via nodeId/port instead. Mutually exclusive with nodeId and variable."`
 	Variable string `json:"variable,omitempty" jsonschema:"wire this input to a live reference to an existing variable, by its path (from create_variable/list_variables/create_variables); a reference node is created and wired in automatically, and updates whenever the variable does. Mutually exclusive with nodeId and value."`
 }
 
@@ -344,17 +359,13 @@ type CreateNodeInput struct {
 
 type CreateNodeOutput struct {
 	NodeId   string            `json:"nodeId"`
-	Literals map[string]string `json:"literals,omitempty" jsonschema:"'Port' (or 'Port.N') -> the id of the literal parameter node a 'value' input created, for set_parameter/delete_node later"`
+	Literals map[string]string `json:"literals,omitempty" jsonschema:"'Port' (or 'Port.N') -> the id of the parameter node a 'value' input had to create: array elements and whole lists. A value on any other input lands on the port and makes no node."`
 }
 
 // wireCreatedNodeInputs applies a CreateNodeInput.Inputs spec to a
 // freshly-created node: connecting an existing node's output, creating a
-// live reference to an existing variable, or (for a literal value)
-// creating and wiring a matching generator/parameter.Value[T] node — the
-// same type-key construction (Value[<port's Go type>]) that only succeeds
-// when that instantiation was actually registered (see
-// generator/parameter/types.go), so unsupported port types fail with a
-// clear error rather than silently doing nothing.
+// live reference to an existing variable, or setting a literal value (see
+// wireOneInput).
 func wireCreatedNodeInputs(inst *graph.Graph, node nodes.Node, nodeID string, inputs map[string]NodeInputSpec) error {
 	if len(inputs) == 0 {
 		return nil
@@ -415,10 +426,6 @@ func wireCreatedNodeInputs(inst *graph.Graph, node nodes.Node, nodeID string, in
 				failures = append(failures, elementFailures...)
 				failures = append(failures, noElementWired(rawPortName))
 			}
-			continue
-		}
-
-		if spec.Value != "" && spec.NodeId == "" && spec.Variable == "" && literalIsPortDefault(node, portName, spec.Value) {
 			continue
 		}
 
@@ -491,30 +498,10 @@ func describePortType(port nodes.InputPort) string {
 // changed the height too.
 type literalPool map[string]string
 
-// literalIsPortDefault reports a literal the port already yields when
-// left unconnected, so wiring it would only add a node: a zero component
-// on a vector2/3/4 NewNode, a zero Position or identity Rotation on
-// trs.NewNode.
-func literalIsPortDefault(node nodes.Node, port, value string) bool {
-	typeName := fmt.Sprintf("%T", node)
-	switch {
-	case strings.Contains(typeName, "vector2.NewNode") || strings.Contains(typeName, "vector3.NewNode") || strings.Contains(typeName, "vector4.NewNode"):
-		switch port {
-		case "X", "Y", "Z", "W":
-			var n float64
-			return json.Unmarshal([]byte(value), &n) == nil && n == 0
-		}
-	case strings.Contains(typeName, "trs.NewNode"):
-		switch port {
-		case "Position":
-			var v vector3.Float64
-			return json.Unmarshal([]byte(value), &v) == nil && v == vector3.Zero[float64]()
-		case "Rotation":
-			var q quaternion.Quaternion
-			return json.Unmarshal([]byte(value), &q) == nil && q == quaternion.Identity()
-		}
-	}
-	return false
+// holdsLiteral reports an input reading its own literal rather than a wire:
+// the literal's node has no id in the graph.
+func holdsLiteral(inst *graph.Graph, upstream nodes.OutputPort) bool {
+	return upstream != nil && inst.NodeId(upstream.Node()) == ""
 }
 
 // variableReferenceNode returns a node in inst that reads the variable at
@@ -620,6 +607,12 @@ func wireOneInput(
 	}
 	if !json.Valid([]byte(spec.Value)) {
 		return fmt.Errorf("value is not valid JSON: %s", spec.Value)
+	}
+
+	if _, isArray := port.(nodes.ArrayValueInputPort); !isArray && !strings.HasPrefix(literalType, "[]") {
+		if err := inst.SetLiteral(nodeID, portName, []byte(spec.Value)); !errors.Is(err, graph.ErrNoLiteral) {
+			return err
+		}
 	}
 
 	poolKey := portName + "\x00" + literalType + "\x00" + canonicalJSON(spec.Value)
@@ -1347,7 +1340,7 @@ func parameterFeedingPort(inst *graph.Graph, nodeID, portName, value string) (st
 	}
 
 	upstream := single.Value()
-	if upstream == nil {
+	if upstream == nil || holdsLiteral(inst, upstream) {
 		if e := wireOneInput(inst, nodeID, resolved, NodeInputElement{Value: value}, inputs, nil); e != nil {
 			return "", e
 		}
@@ -1400,7 +1393,7 @@ func setOneParameter(inst *graph.Graph, nodeID, portName, value string) (bool, e
 			return false, e
 		}
 		if id == "" {
-			// Port was unconnected; a literal holding value was wired in.
+			// Port was unconnected: it took the value as its literal.
 			return true, nil
 		}
 		targetID = id
@@ -1485,7 +1478,7 @@ func (s *Server) registerNodeTools() {
 
 	mcpsdk.AddTool(s.sdk, &mcpsdk.Tool{
 		Name:        "create_node",
-		Description: "Create one node of a registered type in the graph (or a named subgraph); returns its id. To create several, use create_nodes instead. Optionally pass 'inputs' to wire its ports in the same call: an existing node's output, a variable reference, or a literal value (a parameter node is made for you).",
+		Description: "Create one node of a registered type in the graph (or a named subgraph); returns its id. To create several, use create_nodes instead. Optionally pass 'inputs' to wire its ports in the same call: an existing node's output, a variable reference, or a literal value (held on the port itself; only an array element or a whole list makes a parameter node).",
 	}, s.createNode)
 
 	mcpsdk.AddTool(s.sdk, &mcpsdk.Tool{
@@ -1500,17 +1493,17 @@ func (s *Server) registerNodeTools() {
 
 	mcpsdk.AddTool(s.sdk, &mcpsdk.Tool{
 		Name:        "connect_nodes",
-		Description: "Connect one node's output port to another's input port. Connecting into a bare array port name appends; 'Port.N' sets element N in place (or appends when N is the next free slot; anything beyond is an error), so an existing element can be swapped without renumbering the rest. A connection that would create a cycle is refused. The source may be a variable (by path) instead of a node. Pass 'connections' to make many in one call; the single-edge fields are then ignored. Swapping two inputs is one batch connecting each one's current source into the other.",
+		Description: "Connect one node's output port to another's input port. Types need not match when a cast exists between them (int to float64, a number to a vector, a Mesh to a Model...), so no conversion node is needed; a pair with no cast is refused. Connecting into a bare array port name appends; 'Port.N' sets element N in place (or appends when N is the next free slot; anything beyond is an error), so an existing element can be swapped without renumbering the rest. A connection that would create a cycle is refused. The source may be a variable (by path) instead of a node. Pass 'connections' to make many in one call; the single-edge fields are then ignored. Swapping two inputs is one batch connecting each one's current source into the other.",
 	}, s.connectNodes)
 
 	mcpsdk.AddTool(s.sdk, &mcpsdk.Tool{
 		Name:        "disconnect",
-		Description: "Remove an existing connection from a node's input port. Removing 'Port.N' from an array port shifts every later element down by one; the result lists what remains, in their new positions. Pass 'connections' to remove several in one call: every entry ('Port.N' or 'Port.@nodeId') is resolved before anything is removed, so indices mean what they mean now and several elements of one array go in a single call.",
+		Description: "Remove an existing connection from a node's input port; an input that holds a literal goes back to reading it. Removing 'Port.N' from an array port shifts every later element down by one; the result lists what remains, in their new positions. Pass 'connections' to remove several in one call: every entry ('Port.N' or 'Port.@nodeId') is resolved before anything is removed, so indices mean what they mean now and several elements of one array go in a single call.",
 	}, s.disconnect)
 
 	mcpsdk.AddTool(s.sdk, &mcpsdk.Tool{
 		Name:        "set_parameter",
-		Description: "Set the literal value held by a parameter node, addressed by its own node id, or by 'nodeId' plus 'port' to set whatever feeds that port (wiring a literal in if the port is empty; on an array port, 'Port.N' with N equal to the current length appends a new literal element). A port fed by a computing node (not a literal) is refused, never silently replaced: disconnect it first, or set the literal upstream of it. Pass 'parameters' to set many values in one call; the single-value fields are then ignored.",
+		Description: "Set a literal value: 'nodeId' plus 'port' sets an input's own literal, or the parameter node wired into it (on an array port, 'Port.N' with N equal to the current length appends a new literal element); 'nodeId' alone sets a parameter node. An enum input takes a member name. A port fed by a computing node (not a literal) is refused, never silently replaced: disconnect it first, or set the literal upstream of it. Pass 'parameters' to set many values in one call; the single-value fields are then ignored.",
 	}, s.setParameter)
 }
 
@@ -1521,6 +1514,7 @@ type CreateNodesEntry struct {
 	SubgraphId string                   `json:"subgraphId,omitempty" jsonschema:"instead of type: place an instance of this existing subgraph (an equation helper, a reusable part) as this entry, exactly as instantiate_subgraph would, so its boundary ports can be wired in the same batch."`
 	Inputs     map[string]NodeInputSpec `json:"inputs,omitempty" jsonschema:"same shape as create_node's 'inputs'. A 'nodeId' may be a real node id or any entry's alias, including an entry listed later."`
 	Value      string                   `json:"value,omitempty" jsonschema:"for a parameter.Value[T] entry only: its initial value as JSON text (\"0.1\", \"\\\"red\\\"\"), so a named literal several entries share needs no follow-up set_parameter"`
+	ForEach    bool                     `json:"forEach,omitempty" jsonschema:"with subgraphId: run the instance once per item, as set_for_each would"`
 }
 
 func (e CreateNodesEntry) typeKey() (string, error) {
@@ -1543,7 +1537,7 @@ type CreateNodesInput struct {
 
 type CreateNodesOutput struct {
 	Nodes    map[string]string `json:"nodes" jsonschema:"alias (or the entry's index as a string, when it had no alias) mapped to the created node id"`
-	Literals map[string]string `json:"literals,omitempty" jsonschema:"'alias.Port' (or 'alias.Port.N' for an array element) -> the id of the literal parameter node feeding it, for every port a 'value' created; pass that id to set_parameter or delete_node later without a describe_graph"`
+	Literals map[string]string `json:"literals,omitempty" jsonschema:"'alias.Port' (or 'alias.Port.N' for an array element) -> the id of the parameter node feeding it, for every array element or whole list a 'value' created. A value on any other input lands on the port and makes no node."`
 	Errors   []string          `json:"errors,omitempty" jsonschema:"per-entry failures, naming the entry. ALWAYS check: entries outside these still applied."`
 }
 
@@ -1685,6 +1679,11 @@ func (s *Server) createNodeBatch(inst *graph.Graph, entries []CreateNodesEntry, 
 		}
 		created[i], ids[i] = node, id
 		named[label(i)] = id
+		if entry.ForEach {
+			if _, e := inst.SetForEach(id, true); e != nil {
+				errs = append(errs, fmt.Sprintf("entry %s: forEach: %v (the node was still created)", label(i), e))
+			}
+		}
 		if entry.Value != "" {
 			if _, e := setOneParameter(inst, id, "", entry.Value); e != nil {
 				errs = append(errs, fmt.Sprintf("entry %s: value: %v (the node was still created)", label(i), e))

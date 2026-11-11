@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/EliCDavis/polyform/generator"
 	"github.com/EliCDavis/polyform/generator/graph"
+	"github.com/EliCDavis/polyform/generator/registry"
 	polyformmcp "github.com/EliCDavis/polyform/mcp"
 	"github.com/stretchr/testify/require"
 )
@@ -134,7 +134,7 @@ func registeredTypes(t *testing.T) (*graph.Instance, map[string]bool) {
 	t.Helper()
 
 	inst := graph.New(graph.Config{
-		TypeFactory:     generator.Types(),
+		TypeFactory:     registry.Types(),
 		VariableFactory: polyformmcp.NewTypedVariable,
 	})
 	registered := map[string]bool{}

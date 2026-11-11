@@ -93,7 +93,11 @@ normals when `Weld` is true), and neither do `extrude.AreaNode` or `extrude.Circ
 sweep out as a strip — the outline's perimeter runs across it, the path
 along it, each cap taking the whole strip as its own unwrap — spanning 0
 to 1 both ways unless their `UVs` port takes a `primitives.StripUVsNode`
-(Width, Start, End) to set the repeat. `csg` carries through whatever
+(Width, Start, End) to set the repeat. On a `ScrewNode` whose radius
+varies, that stretches a texture big at the rim and pinched near the
+axis; set its `Tile Size` (world size of one repeat) instead, and the
+texture keeps one size everywhere, with a whole number of repeats around
+each ring so the seam meets. `csg` carries through whatever
 UVs its operands already had, so make them before the cuts, not after.
 `meshops.CombineNode` fills a missing attribute with zeros, so combining
 a mesh without UVs into one with them gives it all-zero UVs, not none.
@@ -135,10 +139,15 @@ zero-area UV triangles; the fix is the box or cylinder projection. Use
 the strip when the part *is* a sweep. For a sphere-like part, vertex
 color (below) still reads better.
 
+`render_preview` with `uvChecker: true` paints every part that has UVs
+with a checker, one 8x8 grid per UV tile, red growing with U and green
+with V. Check it before texturing: stretched or sheared cells, a size
+change across the part, a seam or a pinched pole all show directly.
+
 Where UVs do exist, the proven pipeline is `drawing/texturing.NoiseNode`
 (or `SeamlessPerlinNode`) -> `texturing.ApplyGradientNode[coloring.Color]`
--> `texturing.ColorToImageNode` -> `gltf.TextureNode` ->
-`MaterialNode.ColorTexture`. `ApplyGradientNode.Gradient` takes a
+-> `gltf.TextureNode` (a color texture casts to the `Image` it takes, no
+conversion node) -> `MaterialNode.ColorTexture`. `ApplyGradientNode.Gradient` takes a
 `coloring.Gradient[...coloring.Color]` **literal or variable** directly —
 `{"keys":[{"time":0,"value":"#2a4d1e"},{"time":1,"value":"#9bbf6a"}]}` —
 so a colour ramp the user should be able to tune is one variable with a
@@ -148,6 +157,105 @@ wiring — `Read` an existing example graph that already does exactly this
 (`generator/edit/examples/terrain.json`, `doughnut.json`, or
 `snowglobe.json`, which also shows the matching normal-map half via
 `normals.FromHeightMapNode`) and follow its pattern.
+`generator/edit/examples/texturing.json` wires every node in this topic
+into twenty-four small materials, one subgraph each; read the subgraph
+matching what you need:
+- **Node walkthroughs:** patterns, UV warps, texture math, normals,
+  occlusion, packed metallic-roughness.
+- **Classic materials:** wood, marble, brushed metal (anisotropy),
+  weathered paint (masks built from masks: paint, chips, rust), water,
+  emissive lava, brick, scales, layered terrain (masks, puddles, height
+  shaping), leather, and a riveted plate (normals drawn from a position
+  list).
+- **Material extensions:** frosted glass (transmission, volume), car
+  paint (clearcoat), knit wool (sheen), gemstone (dispersion), glazed ceramic (specular).
+
+Each one generates a texture once and wires it into several maps
+(color, roughness, normal, an extension's texture). Do the same: the
+noise behind a color is usually the right roughness or height too.
+
+### Procedural patterns
+
+A texture that isn't noise — cloth, weave, tiles, stripes, plaid — is
+built from textures end to end, so every step previews:
+
+1. A `UVNode` (Dimensions) makes a UV texture: each pixel holds its own
+   0-1 coordinate. Bend it with the warp nodes if the pattern needs it.
+2. Pattern nodes read that UV texture and turn it into `Texture[float64]`
+   values. Their `UV` input is required; unwired, they report an error.
+3. The texture math nodes shape and combine them; `ApplyGradientNode`,
+   `FromHeightMapNode` and the occlusion node take the result.
+
+Every texture in one chain must be the same size. The `UVNode`'s
+Dimensions set it for everything downstream; one `UVNode` can feed
+several patterns.
+
+| PATH | inputs | outputs |
+| --- | --- | --- |
+| `drawing/texturing.UVNode` | Dimensions | UV |
+| `drawing/texturing/pattern.TransformUVNode` | In, Scale, Rotation, Offset | UV |
+| `drawing/texturing/pattern.ZigzagUVNode` | In, Count, Amplitude | UV |
+| `drawing/texturing/pattern.DisplaceUVNode` | In, Amount, Shift | UV |
+| `drawing/texturing/pattern.CellNode` | UV, Columns, Rows, `Row Offset`, Seed | Column, Row, `Local UV`, Random |
+| `drawing/texturing/pattern.DistanceNode` | UV, Center | Value |
+| `drawing/texturing/pattern.SplitUVNode` | UV | U, V |
+| `drawing/texturing/pattern.StripesNode` | UV, Count, Width, Softness, Angle | Value |
+| `drawing/texturing/pattern.CheckerNode` | UV, Columns, Rows | Value |
+| `drawing/texturing/pattern.GinghamNode` | UV, Columns, Rows, Width, Softness | Value |
+| `drawing/texturing/pattern.WeaveNode` | UV, Columns, Rows, Over, Under, Herringbone, Gap, Seed | Height, Weft, Warp, Random |
+
+- **`TransformUVNode`** scales (tiles), rotates about the centre and
+  slides the pattern. **`ZigzagUVNode`** shifts V up and down along U,
+  turning straight bands into chevrons: a plait is a weave or stripes
+  sampled through it. **`DisplaceUVNode`** moves each UV by `Shift` times
+  the matching pixel of `Amount`; with noise as `Amount`, stripes become
+  wood rings, marble veins or ripples.
+- **`CellNode`** splits UV into a grid: which cell, the UV inside it,
+  and a seeded random value per cell, for per-tile or per-plank
+  variation. Feed `Local UV` to another pattern to repeat it per cell.
+  `Row Offset` 0.5 slides every other row half a cell: running-bond
+  brick, scales, shingles. Never hand-roll a hash from `sin`.
+- **`DistanceNode`** is each pixel's distance from `Center` in UV units.
+  Fed `Local UV`, it gives one disc per cell for dots, studs or scales.
+- **`SplitUVNode`** gives U and V as 0-1 ramps. Fed `Local UV`, each
+  ramp restarts per cell; scaled by a cell's `Random` and added to a
+  height, it tilts every cell its own way (uneven tiles, warped planks).
+- **`GinghamNode`** gives 0, 0.5 or 1: no band, one band, or two crossing.
+  A three-key gradient colours it.
+- **`WeaveNode`** gives strands passing over and under each other:
+  - `Over` and `Under` set the pattern: 1 and 1 is a plain weave, 2 and 2
+    a twill.
+  - `Herringbone` reverses the diagonal every that many columns.
+  - `Gap` opens space between strands.
+  - `Height` feeds `FromHeightMapNode` and the occlusion node below.
+  - `Weft` and `Warp` are 1 where that direction's strand shows, for
+    colouring the two directions differently.
+  - `Random` is one value per strand; run it through a gradient for
+    strand-to-strand colour variation.
+
+Whole column and row counts tile across the UV seam.
+
+Texture math, every input a texture of the same size:
+
+| PATH | inputs | outputs |
+| --- | --- | --- |
+| `drawing/texturing.AddFloat1Node` | Textures | Result |
+| `drawing/texturing.SubtractFloat1Node` | A, B | Result |
+| `drawing/texturing.MultiplyFloat1Node` | Textures | Result |
+| `drawing/texturing.MinFloat1Node` / `MaxFloat1Node` | Textures | Result |
+| `drawing/texturing.ScaleFloat1UniformNode` | Texture, Scale | Result |
+| `drawing/texturing.OneMinusNode` | Texture | Result |
+| `drawing/texturing.RemapFloat1Node` | Texture, `In Min`, `In Max`, `Out Min`, `Out Max`, Clamp | Result |
+| `drawing/texturing.ClampFloat1Node` | Texture, Min, Max | Result |
+| `drawing/texturing.PowerFloat1Node` | Texture, Exponent | Result |
+| `drawing/texturing.SmoothstepFloat1Node` | Texture, Low, High | Result |
+| `drawing/texturing.MixFloat1Node` | A, B, Factor, Amount | Result |
+| `drawing/texturing.MixColorNode` | A, B, Factor, Amount | Result |
+
+`Mix` blends by `Factor` per pixel when it is wired, by `Amount`
+everywhere otherwise; `MixColorNode` with a pattern as `Factor` lays one
+colour texture over another. `Smoothstep` with `Low` equal to `High` is
+a hard threshold.
 
 ### Normal maps
 
@@ -159,18 +267,19 @@ built for colour:
 | --- | --- | --- |
 | `drawing/texturing/normals.FromImageNode` | In, Scale | Heightmap, Normalmap, `Normal Map Image` |
 | `drawing/texturing/normals.FromHeightMapNode` | In, Scale | `Normal Map`, `Normal Map Image` |
+| `drawing/texturing/normals.OcclusionFromHeightMapNode` | In, Radius, Strength | Occlusion, `Occlusion Image` |
 | `drawing/texturing/normals.NewNode` | Dimensions | `Normal Map` |
 | `drawing/texturing/normals.DrawLineNode` | Start, End, Thicknesses, Texture, Subtract | `Normal Map` |
 | `formats/gltf.NormalTextureNode` | Texture, Scale | Out |
 
-`FromImageNode.In` is an `image.Image` — the same image you fed
-`gltf.TextureNode` for colour. `FromHeightMapNode.In` is a
+`FromImageNode.In` is an `image.Image` — the same image or color texture
+you fed `gltf.TextureNode` for colour. `FromHeightMapNode.In` is a
 `texturing.Texture[float64]`. `NewNode` makes a blank map to draw into,
 and `DrawLineNode`/`DrawLinesNode`/`DrawSphereNode`/`DrawSpheresNode`
 scratch creases and bumps straight onto one (`Subtract` carves instead of
 raising).
 
-Take the same image feeding `ColorToImageNode`, run it through
+Take the same texture feeding the color `gltf.TextureNode`, run it through
 `normals.FromImageNode` with a `Scale` (relief depth; start near 1 and
 judge it), take **`Normal Map Image`**, and wire that into a second
 `gltf.TextureNode`. **That does not go straight into the material**:
@@ -185,12 +294,16 @@ glTF does not require a TANGENT attribute: a viewer computes the tangent
 basis from the normals and UVs when the mesh has none, so there is
 nothing extra to generate.
 
-**`render_preview` does not apply normal maps** — it is a Phong
-rasterizer shading from vertex normals, so a normal map changes nothing
-in the preview even when it is wired correctly and exports correctly.
-Don't tune one against a preview, and don't read a flat-looking preview
-as the map being broken. Check it is wired with `describe_graph`, keep
-`Scale` sane, and say in the report that it is unverifiable in-preview.
+The height map that made the normal map also makes occlusion:
+`OcclusionFromHeightMapNode` darkens the low points that higher
+surroundings shade. Its `Occlusion Image` goes through a
+`gltf.TextureNode` into `OcclusionTextureNode` and the material's
+`Occlusion Texture`. Alternatively, multiply its `Occlusion` into the
+colour so the gaps read dark everywhere.
+
+`render_preview` applies the normal map, the occlusion map and emission
+on parts with UVs. Relief reads best under a raking light (`light`
+azimuth 60-80, low ambient).
 
 ## Vertex-colored parts (marched/SDF meshes, or anything without UVs)
 
@@ -291,21 +404,23 @@ color; reserve `1.0` for a scene that will be lit by an HDRI.
 
 glTF reads `baseColorFactor` and the vertex `Color` attribute as **linear**
 multipliers, and every viewer (the web editor, model-viewer, Blender)
-applies the sRGB curve on output. Polyform passes color values through
-unchanged, so a hex pick like `#c8322f` wired straight into a
-`MaterialNode.Color` exports as linear (0.78, 0.20, 0.18) and displays as
-pale salmon, not the red you picked; a mid-tone `#d3a468` comes out
+applies the sRGB curve on output. An sRGB hex read as linear displays
+washed out: `#c8322f` becomes pale salmon, a mid-tone `#d3a468`
 near-white. `render_preview` treats colors the same way, so if the preview
 looks washed out, the export will too — that is the signal, not a preview
 bug.
 
-Convert at the last step, keep the variables human:
-
-- one color → `drawing/coloring.SRGBToLinearNode` (`In` → `Out`) between
-  the color variable/literal and the `MaterialNode`/`WithColorNode`;
-- a marched mesh's vertex colors → `modeling/meshops.SrgbToLinearNode`
-  (`Mesh`, `Attribute: "Color"`) after `ApplyColorFieldNode` or the
-  gradient subgraph, if the colors that went in were sRGB picks.
+- `MaterialNode`'s `Color` and `Emissive Factor` take the hex as picked
+  and convert it themselves. Wire the variable straight in; a
+  `SRGBToLinearNode` in front of them converts twice and darkens.
+- Color textures are sRGB by spec; leave them alone.
+- Everything else is linear and not converted for you. Convert at the
+  last step, keep the variables human:
+  - one color (a `WithColorNode` color, an extension node's color
+    factor) → `drawing/coloring.SRGBToLinearNode` (`In` → `Out`);
+  - a marched mesh's vertex colors → `modeling/meshops.SrgbToLinearNode`
+    (`Mesh`, `Attribute: "Color"`) after `ApplyColorFieldNode` or the
+    gradient subgraph, if the colors that went in were sRGB picks.
 
 Don't do both on the same color (a colored field converted per
 `WithColorNode` *and* again on the mesh) — it double-darkens. White,
