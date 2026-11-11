@@ -224,7 +224,7 @@ func (n Lines2DTo3DNode) Description() string {
 }
 
 func (n Lines2DTo3DNode) Keywords() []string {
-	return []string{"promote", "lift", "plane"}
+	return []string{"promote", "plane"}
 }
 
 func (n Lines2DTo3DNode) promote(out *nodes.Lifted[[]Line3D], place func(Line2D, float64) Line3D) {

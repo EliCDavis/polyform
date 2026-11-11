@@ -58,6 +58,16 @@ Resources either directly contributing to the code, or are just interesting find
   - [Newell's method for a polygon's plane, Graphics Gems III](https://www.realtimerendering.com/resources/GraphicsGems/gemsiii/newell.c)
 - Texturing
   - [Normal Map From Color Map](https://stackoverflow.com/questions/5281261/generating-a-normal-map-from-a-height-map)
+  - Occlusion from a height map
+    - Horizon-based: for each direction, the steepest angle a neighbour rises above the pixel
+      - [_"Horizon mapping: shadows for bump-mapped surfaces"_ Nelson Max (The Visual Computer 1988)](https://doi.org/10.1007/BF01905562): the original height-field horizon tables
+      - [_"Image-Space Horizon-Based Ambient Occlusion"_ Louis Bavoil, Miguel Sainz, Rouslan Dimitrov (SIGGRAPH 2008)](https://developer.download.nvidia.cn/presentations/2008/SIGGRAPH/HBAO_SIG08b.pdf): HBAO, the same idea run over a depth buffer
+      - [_"Prism Parallax Occlusion Mapping with Accurate Silhouette Generation"_ Carsten Dachsbacher, Natalya Tatarchuk (2007)](https://core.ac.uk/download/49976609.pdf): fast horizon-angle AO on height fields, 4 to 8 directions, per-pixel rotation to hide the pattern
+      - [Material Maker HBAO node](https://rodzill4.github.io/material-maker/doc/node_filter_hbao.html) and [its shader](https://github.com/RodZill4/material-maker/blob/master/addons/material_maker/nodes/hbao.mmg)
+    - Cavity / high-pass: darken where a pixel sits below the local average height
+      - [Material Maker Occlusion node](https://rodzill4.github.io/material-maker/doc/node_filter_occlusion.html): Gaussian blur of the height map blended against the original
+      - [_"Improve Your Organic Textures with a Cavity Map"_ 80.lv](https://80.lv/articles/improve-your-organic-textures-with-a-cavity-map)
+    - [rayshader `ambient_shade`](https://rdrr.io/cran/rayshader/man/ambient_shade.html): ray-cast version, evenly spaced directions out to a max distance
 - Formats
   - OBJ/MTL
     - [jburkardt MTL](https://people.sc.fsu.edu/~jburkardt/data/mtl/mtl.html)

@@ -104,7 +104,7 @@ type SplitNode struct {
 }
 
 func (SplitNode) Description() string {
-	return "Cuts an array into consecutive runs of the given lengths, like a flat list of points into one path per run."
+	return "Cuts an array into consecutive runs of the given lengths."
 }
 
 func (SplitNode) Keywords() []string {
@@ -147,12 +147,73 @@ func (s SplitNode) Out(out *nodes.Dynamic[[][]Element]) {
 
 // ============================================================================
 
+type GroupNode struct {
+	Array  nodes.DynamicPort[[]Element] `description:"The array to sort into groups."`
+	Groups nodes.Output[[]int]          `description:"Which group each element joins, counting from 0. -1 leaves it out."`
+	Count  nodes.Output[int]            `description:"How many groups to make. Empty groups are kept, so group i is always output i."`
+}
+
+func (GroupNode) Description() string {
+	return "Sorts an array's elements into numbered groups, keeping their order within each group. Elements in group -1 are dropped."
+}
+
+func (GroupNode) Keywords() []string {
+	return []string{"bucket", "partition"}
+}
+
+func (g GroupNode) Out(out *nodes.Dynamic[[][]Element]) {
+	values, ok := nodes.DynamicArrayValue(out, g.Array)
+	if !ok {
+		return
+	}
+
+	groups := nodes.TryGetOutputValue(out, g.Groups, nil)
+	if len(groups) != values.Len() {
+		out.CaptureError(fmt.Errorf("%d group(s) for %d element(s)", len(groups), values.Len()))
+		return
+	}
+
+	count := nodes.GetOutputValue(out, g.Count)
+	if count < 0 {
+		out.CaptureError(fmt.Errorf("group count %d is negative", count))
+		return
+	}
+
+	members := make([][]any, count)
+	for i := range members {
+		members[i] = make([]any, 0)
+	}
+	for i, group := range groups {
+		if group == -1 {
+			continue
+		}
+		if group < 0 || group >= count {
+			out.CaptureError(fmt.Errorf("element %d is in group %d, outside 0 to %d", i, group, count-1))
+			return
+		}
+		members[group] = append(members[group], values.At(i))
+	}
+
+	built := make([]any, count)
+	for i, picked := range members {
+		built[i] = values.Build(picked)
+	}
+
+	result, ok := nodes.DynamicArrayOf(g.Array, built)
+	if !ok {
+		return
+	}
+	out.Set(result)
+}
+
+// ============================================================================
+
 type ZipNode struct {
 	Arrays []nodes.DynamicPort[[]Element] `description:"Arrays of equal length, in order."`
 }
 
 func (ZipNode) Description() string {
-	return "Turns parallel arrays into one array per position: element i of every input, in input order. All first points, all second points and so on become one path each."
+	return "Turns parallel arrays into one array per position: element i of every input, in input order."
 }
 
 func (ZipNode) Keywords() []string {

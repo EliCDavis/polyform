@@ -126,7 +126,7 @@ func (BevelNode) Description() string {
 }
 
 func (BevelNode) Keywords() []string {
-	return []string{"fillet", "chamfer", "round corners"}
+	return []string{"fillet", "chamfer"}
 }
 
 func (n BevelNode) Out(out *nodes.Lifted[Area]) {

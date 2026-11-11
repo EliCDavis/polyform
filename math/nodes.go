@@ -220,7 +220,7 @@ func (cn RoundNode) Description() string {
 }
 
 func (cn RoundNode) Keywords() []string {
-	return []string{"floor", "ceil", "ceiling", "truncate", "int", "integer", "nearest", "whole"}
+	return []string{"floor", "ceil"}
 }
 
 func (cn RoundNode) Int(out *nodes.Lifted[int]) {

@@ -16,7 +16,7 @@ func (EqualsNode) Description() string {
 }
 
 func (EqualsNode) Keywords() []string {
-	return []string{"compare", "same", "=="}
+	return []string{"compare", "=="}
 }
 
 func (n EqualsNode) Out(out *nodes.StructOutput[bool]) {

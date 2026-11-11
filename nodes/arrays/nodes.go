@@ -19,6 +19,7 @@ func init() {
 	refutil.RegisterType[nodes.Struct[FirstNode]](factory)
 	refutil.RegisterType[nodes.Struct[LastNode]](factory)
 	refutil.RegisterType[nodes.Struct[LengthNode]](factory)
+	refutil.RegisterType[nodes.Struct[IndicesNode]](factory)
 	refutil.RegisterType[nodes.Struct[SliceNode]](factory)
 	refutil.RegisterType[nodes.Struct[ReverseNode]](factory)
 	refutil.RegisterType[nodes.Struct[AppendNode]](factory)
@@ -37,6 +38,7 @@ func init() {
 	refutil.RegisterType[nodes.Struct[GatherNode]](factory)
 	refutil.RegisterType[nodes.Struct[FilterNode]](factory)
 	refutil.RegisterType[nodes.Struct[SplitNode]](factory)
+	refutil.RegisterType[nodes.Struct[GroupNode]](factory)
 	refutil.RegisterType[nodes.Struct[ZipNode]](factory)
 
 	registry.Register(factory)
@@ -133,6 +135,31 @@ func (l LengthNode) Out(out *nodes.StructOutput[int]) {
 		return
 	}
 	out.Set(values.Len())
+}
+
+// ============================================================================
+
+type IndicesNode struct {
+	Array nodes.DynamicPort[[]Element] `description:"The array to number."`
+}
+
+func (IndicesNode) Description() string {
+	return "The position of every element in an array, 0 to length - 1."
+}
+
+func (IndicesNode) Keywords() []string { return []string{"keys", "enumerate"} }
+
+func (i IndicesNode) Out(out *nodes.StructOutput[[]int]) {
+	values, ok := nodes.DynamicArrayValue(out, i.Array)
+	if !ok {
+		out.Set(make([]int, 0))
+		return
+	}
+	indices := make([]int, values.Len())
+	for n := range indices {
+		indices[n] = n
+	}
+	out.Set(indices)
 }
 
 // ============================================================================
@@ -525,13 +552,15 @@ func (s ShuffleNode) Out(out *nodes.Dynamic[[]Element]) {
 		return
 	}
 
-	shuffled := values.Values()
-	random := chance.FromSeed(nodes.GetOutputValue(out, s.Seed))
-	random.Shuffle(len(shuffled), func(a, b int) {
-		shuffled[a], shuffled[b] = shuffled[b], shuffled[a]
-	})
+	out.Set(values.Build(shuffle(values.Values(), nodes.GetOutputValue(out, s.Seed))))
+}
 
-	out.Set(values.Build(shuffled))
+func shuffle(values []any, seed int) []any {
+	for i := len(values) - 1; i > 0; i-- {
+		j := int(chance.Unit(seed, i) * float64(i+1))
+		values[i], values[j] = values[j], values[i]
+	}
+	return values
 }
 
 // ============================================================================
@@ -556,18 +585,9 @@ func (s SampleNode) Out(out *nodes.Dynamic[[]Element]) {
 		return
 	}
 
-	pool := values.Values()
+	pool := shuffle(values.Values(), nodes.GetOutputValue(out, s.Seed))
 	count := min(max(nodes.GetOutputValue(out, s.Count), 0), len(pool))
-	random := chance.FromSeed(nodes.GetOutputValue(out, s.Seed))
-
-	picked := make([]any, 0, count)
-	for range count {
-		index := random.IntN(len(pool))
-		picked = append(picked, pool[index])
-		pool = append(pool[:index], pool[index+1:]...)
-	}
-
-	out.Set(values.Build(picked))
+	out.Set(values.Build(pool[:count]))
 }
 
 // ============================================================================
@@ -579,11 +599,11 @@ type RandomPickNode struct {
 }
 
 func (RandomPickNode) Description() string {
-	return "Picks elements at random from an array, each pick independent of the others, so an element can come up more than once."
+	return "Picks elements at random from an array. An element can come up more than once."
 }
 
 func (RandomPickNode) Keywords() []string {
-	return []string{"random", "sample", "choose", "replacement"}
+	return []string{"sample", "choose"}
 }
 
 func (p RandomPickNode) Out(out *nodes.Dynamic[[]Element]) {
@@ -598,10 +618,10 @@ func (p RandomPickNode) Out(out *nodes.Dynamic[[]Element]) {
 		return
 	}
 
-	random := chance.FromSeed(nodes.GetOutputValue(out, p.Seed))
+	seed := nodes.GetOutputValue(out, p.Seed)
 	picked := make([]any, count)
 	for i := range picked {
-		picked[i] = values.At(random.IntN(values.Len()))
+		picked[i] = values.At(int(chance.Unit(seed, i) * float64(values.Len())))
 	}
 	out.Set(values.Build(picked))
 }

@@ -111,11 +111,11 @@ func TestColorTextureAndImageCastBothWays(t *testing.T) {
 	img, ok := table.Output(nodes.ConstOutput[texturing.Texture[coloring.Color]]{Val: tex}, "image.Image")
 	require.True(t, ok)
 	r, g, b, a := img.(nodes.Output[image.Image]).Value().At(0, 0).RGBA()
-	assert.Equal(t, []uint32{255, 127, 0, 255}, []uint32{r >> 8, g >> 8, b >> 8, a >> 8})
+	assert.Equal(t, []uint32{255, 128, 0, 255}, []uint32{r >> 8, g >> 8, b >> 8, a >> 8})
 
 	back, ok := table.Output(img, colorType)
 	require.True(t, ok)
-	assert.Equal(t, coloring.Color{R: 1, G: 127. / 255, B: 0, A: 1}, back.(nodes.Output[texturing.Texture[coloring.Color]]).Value().Get(0, 0))
+	assert.Equal(t, coloring.Color{R: 1, G: 128. / 255, B: 0, A: 1}, back.(nodes.Output[texturing.Texture[coloring.Color]]).Value().Get(0, 0))
 }
 
 type errorRecorder struct{ errors []error }

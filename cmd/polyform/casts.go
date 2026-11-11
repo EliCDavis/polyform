@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	"image"
-	"image/color"
 	"math"
 
 	"github.com/EliCDavis/polyform/drawing/coloring"
@@ -95,14 +94,7 @@ func registerTextureCasts(table *cast.Table) {
 	})
 
 	cast.Register(table, func(t texturing.Texture[coloring.Color]) image.Image {
-		return t.ToImage(func(c coloring.Color) color.Color {
-			return coloring.Color{
-				R: math.Max(0, math.Min(1, c.R)),
-				G: math.Max(0, math.Min(1, c.G)),
-				B: math.Max(0, math.Min(1, c.B)),
-				A: math.Max(0, math.Min(1, c.A)),
-			}
-		})
+		return texturing.ColorImage(t)
 	})
 
 	cast.RegisterFallible(table, func(img image.Image) (texturing.Texture[coloring.Color], error) {

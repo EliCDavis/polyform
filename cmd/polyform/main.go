@@ -45,6 +45,7 @@ import (
 	_ "github.com/EliCDavis/polyform/math/noise"
 	_ "github.com/EliCDavis/polyform/math/quaternion"
 	_ "github.com/EliCDavis/polyform/math/sdf"
+	_ "github.com/EliCDavis/polyform/math/chance"
 	_ "github.com/EliCDavis/polyform/math/sequence"
 	_ "github.com/EliCDavis/polyform/math/trig"
 	_ "github.com/EliCDavis/polyform/math/trs"

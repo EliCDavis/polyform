@@ -1,6 +1,8 @@
 package logic
 
 import (
+	"fmt"
+
 	"github.com/EliCDavis/polyform/generator/registry"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
@@ -24,7 +26,7 @@ type (
 )
 
 type SelectNode struct {
-	Condition nodes.Output[bool]            `description:"Which of the two inputs to pass through."`
+	Condition nodes.LiftedPort[bool]        `description:"A when true, B when false."`
 	A         nodes.DynamicPort[SelectType] `description:"Passed through when Condition is true."`
 	B         nodes.DynamicPort[SelectType] `description:"Passed through when Condition is false."`
 }
@@ -38,11 +40,58 @@ func (SelectNode) Keywords() []string {
 }
 
 func (s SelectNode) Out(out *nodes.Dynamic[SelectType]) {
-	if nodes.GetOutputValue(out, s.Condition) {
-		out.Forward(s.A)
+	condition, _ := nodes.DynamicAnyValue(out, s.Condition)
+	flags, perElement := condition.([]bool)
+	if !perElement {
+		if on, _ := condition.(bool); on {
+			out.Forward(s.A)
+			return
+		}
+		out.Forward(s.B)
 		return
 	}
-	out.Forward(s.B)
+
+	a, aOk := nodes.DynamicArrayValue(out, s.A)
+	b, bOk := nodes.DynamicArrayValue(out, s.B)
+	if !aOk && !bOk {
+		return
+	}
+	builder := a
+	if !aOk {
+		builder = b
+	}
+	length := func(ok bool, arr nodes.DynamicArray) int {
+		if !ok {
+			return len(flags)
+		}
+		return arr.Len()
+	}
+	if (length(aOk, a) != len(flags) && length(aOk, a) != 1) || (length(bOk, b) != len(flags) && length(bOk, b) != 1) {
+		out.CaptureError(fmt.Errorf("%d condition(s) for A of %d and B of %d element(s); a side of one element applies to every condition", len(flags), length(aOk, a), length(bOk, b)))
+		return
+	}
+
+	// A one-element side stands in for a single value: wire a list of one
+	// to use the same value wherever that side is chosen.
+	at := func(ok bool, arr nodes.DynamicArray, i int) any {
+		if !ok {
+			return nil
+		}
+		if arr.Len() == 1 {
+			return arr.At(0)
+		}
+		return arr.At(i)
+	}
+
+	picked := make([]any, len(flags))
+	for i, on := range flags {
+		if on {
+			picked[i] = at(aOk, a, i)
+		} else {
+			picked[i] = at(bOk, b, i)
+		}
+	}
+	out.Set(builder.Build(picked))
 }
 
 // ============================================================================

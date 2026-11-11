@@ -237,3 +237,22 @@ func TestMaterialsDifferingOnlyInTheirImagesAreNotMerged(t *testing.T) {
 	require.NoError(t, json.Unmarshal(raw[20:20+jsonLen], &doc))
 	assert.Len(t, doc["materials"], 3)
 }
+
+func TestMaterialNodeWritesPickedColorsAsLinearFactors(t *testing.T) {
+	grey := coloring.Color{R: 0.5, G: 0.5, B: 0.5, A: 1}
+	material := materialWith(t, func(m *gltf.MaterialNode) {
+		m.Color = nodes.ConstOutput[coloring.Color]{Val: grey}
+		m.EmissiveFactor = nodes.ConstOutput[coloring.Color]{Val: grey}
+	})
+
+	doc := glbJSON(t, material)
+	written := doc["materials"].([]any)[0].(map[string]any)
+	base := written["pbrMetallicRoughness"].(map[string]any)["baseColorFactor"].([]any)
+	emissive := written["emissiveFactor"].([]any)
+	linear := coloring.SRGBToLinear(0.5)
+	for i := range 3 {
+		assert.InDelta(t, linear, base[i], 5e-4)
+		assert.InDelta(t, linear, emissive[i], 5e-4)
+	}
+	assert.InDelta(t, 1, base[3], 1e-9)
+}

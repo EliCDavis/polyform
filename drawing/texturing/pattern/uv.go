@@ -193,7 +193,7 @@ func (n CrossedStripesNode) Description() string {
 }
 
 func (n CrossedStripesNode) Keywords() []string {
-	return []string{"gingham", "plaid", "tartan", "grid"}
+	return []string{"gingham", "plaid"}
 }
 
 func (n CrossedStripesNode) Value(out *nodes.StructOutput[texturing.Texture[float64]]) {

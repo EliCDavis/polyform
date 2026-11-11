@@ -119,6 +119,10 @@ func (gmnd ModelNode) Out(out *nodes.Lifted[*PolyformModel]) {
 		}
 	}
 	instances := nodes.TryGetOutputValue(out, gmnd.GpuInstances, nil)
+	// A wired list is never nil: nil is the writer's "unwired, draw once".
+	if gmnd.GpuInstances != nil && instances == nil {
+		instances = []trs.TRS{}
+	}
 	material := nodes.TryGetOutputReference(out, gmnd.Material, nil)
 
 	nodes.Zip5(
@@ -235,7 +239,7 @@ func (tnd NormalTextureNode) Out(out *nodes.StructOutput[PolyformNormal]) {
 
 type OcclusionTextureNode struct {
 	Texture  nodes.Output[PolyformTexture] `description:"Ambient occlusion, read from the red channel: 0 fully occluded, 1 open."`
-	Strength nodes.Output[norm.UFloat64]      `description:"How much of the occlusion applies, 0 to 1." default:"1"`
+	Strength nodes.Output[norm.UFloat64]   `description:"How much of the occlusion applies, 0 to 1." default:"1"`
 }
 
 func (tnd OcclusionTextureNode) Description() string {
@@ -431,13 +435,13 @@ func (m AlphaMode) toGLTF() MaterialAlphaMode {
 type MaterialNode struct {
 	Name nodes.Output[string] `description:"Name of the material" advanced:"true"`
 
-	Color                    nodes.Output[coloring.Color]    `description:"The factors for the base color of the material. This value defines linear multipliers for the sampled texels of the base color texture." default:"#ffffff"`
+	Color                    nodes.Output[coloring.Color]    `description:"Base color as picked on screen (sRGB). Converted to linear on export, and multiplies the color texture." default:"#ffffff"`
 	ColorTexture             nodes.Output[PolyformTexture]   `description:"The base color texture. The first three components (RGB) MUST be encoded with the sRGB transfer function. They specify the base color of the material. If the fourth component (A) is present, it represents the linear alpha coverage of the material. Otherwise, the alpha coverage is equal to 1.0. The material.alphaMode property specifies how alpha is interpreted. The stored texels MUST NOT be premultiplied. When undefined, the texture MUST be sampled as having 1.0 in all components."`
-	MetallicFactor           nodes.Output[norm.UFloat64]        `description:"The factor for the metalness of the material. This value defines a linear multiplier for the sampled metalness values of the metallic-roughness texture." default:"1"`
-	RoughnessFactor          nodes.Output[norm.UFloat64]        `description:"The factor for the roughness of the material. This value defines a linear multiplier for the sampled roughness values of the metallic-roughness texture." default:"1"`
+	MetallicFactor           nodes.Output[norm.UFloat64]     `description:"The factor for the metalness of the material. This value defines a linear multiplier for the sampled metalness values of the metallic-roughness texture." default:"1"`
+	RoughnessFactor          nodes.Output[norm.UFloat64]     `description:"The factor for the roughness of the material. This value defines a linear multiplier for the sampled roughness values of the metallic-roughness texture." default:"1"`
 	MetallicRoughnessTexture nodes.Output[PolyformTexture]   `description:"The metallic-roughness texture. The metalness values are sampled from the B channel. The roughness values are sampled from the G channel. These values MUST be encoded with a linear transfer function. If other channels are present (R or A), they MUST be ignored for metallic-roughness calculations. When undefined, the texture MUST be sampled as having 1.0 in G and B components."`
 	EmissiveTexture          nodes.Output[PolyformTexture]   `description:"The emissive texture. It controls the color and intensity of the light being emitted by the material. This texture contains RGB components encoded with the sRGB transfer function. If a fourth component (A) is present, it MUST be ignored. When undefined, the texture MUST be sampled as having 1.0 in RGB components." advanced:"true"`
-	EmissiveFactor           nodes.Output[coloring.Color]    `description:"The factors for the emissive color of the material. This value defines linear multipliers for the sampled texels of the emissive texture." default:"#000000" advanced:"true"`
+	EmissiveFactor           nodes.Output[coloring.Color]    `description:"Emitted color as picked on screen (sRGB). Converted to linear on export, and multiplies the emissive texture." default:"#000000" advanced:"true"`
 	NormalTexture            nodes.Output[PolyformNormal]    `description:"The tangent space normal texture. The texture encodes RGB components with linear transfer function. Each texel represents the XYZ components of a normal vector in tangent space. The normal vectors use the convention +X is right and +Y is up. +Z points toward the viewer. If a fourth component (A) is present, it **MUST** be ignored. When undefined, the material does not have a tangent space normal texture."`
 	OcclusionTexture         nodes.Output[PolyformOcclusion] `description:"Ambient occlusion map, darkening crevices under ambient light." advanced:"true"`
 	AlphaMode                nodes.Output[AlphaMode]         `description:"How the material's alpha, from Color and Color Texture, is interpreted." advanced:"true" default:"OPAQUE"`
@@ -459,7 +463,7 @@ type MaterialNode struct {
 
 func (gmnd MaterialNode) Out(out *nodes.StructOutput[PolyformMaterial]) {
 	pbr := &PolyformPbrMetallicRoughness{
-		BaseColorFactor: nodes.GetOutputValue(out, gmnd.Color),
+		BaseColorFactor: nodes.GetOutputValue(out, gmnd.Color).SRGBToLinear(),
 		MetallicFactor:  unormReference(out, gmnd.MetallicFactor),
 		RoughnessFactor: unormReference(out, gmnd.RoughnessFactor),
 	}
@@ -486,7 +490,7 @@ func (gmnd MaterialNode) Out(out *nodes.StructOutput[PolyformMaterial]) {
 		}
 	}
 
-	var emissiveFactor color.Color = nodes.GetOutputValue(out, gmnd.EmissiveFactor)
+	var emissiveFactor color.Color = nodes.GetOutputValue(out, gmnd.EmissiveFactor).SRGBToLinear()
 
 	extensions := make([]MaterialExtension, 0)
 	if gmnd.Transmission != nil {
@@ -578,7 +582,7 @@ func (gmnd MaterialNode) Description() string {
 }
 
 type MaterialTransmissionExtensionNode struct {
-	Factor  nodes.Output[norm.UFloat64]      `description:"The base percentage of light that is transmitted through the surface"`
+	Factor  nodes.Output[norm.UFloat64]   `description:"The base percentage of light that is transmitted through the surface"`
 	Texture nodes.Output[PolyformTexture] `description:"A texture that defines the transmission percentage of the surface, stored in the R channel. This will be multiplied by transmissionFactor."`
 }
 
@@ -621,7 +625,7 @@ func (node MaterialVolumeExtensionNode) Description() string {
 }
 
 type MaterialAnisotropyExtensionNode struct {
-	AnisotropyStrength nodes.Output[norm.UFloat64]      `description:"The anisotropy strength. When the anisotropy texture is present, this value is multiplied by the texture's blue channel."`
+	AnisotropyStrength nodes.Output[norm.UFloat64]   `description:"The anisotropy strength. When the anisotropy texture is present, this value is multiplied by the texture's blue channel."`
 	AnisotropyRotation nodes.Output[float64]         `description:"The rotation of the anisotropy in tangent, bitangent space, measured in radians counter-clockwise from the tangent. When the anisotropy texture is present, this value provides additional rotation to the vectors in the texture."`
 	AnisotropyTexture  nodes.Output[PolyformTexture] `description:"Per-texel direction in red and green (tangent and bitangent, -1 to 1 stored as 0 to 1) and strength in blue, linear."`
 }
@@ -663,7 +667,7 @@ func (node MaterialClearcoatExtensionNode) Description() string {
 type MaterialSheenExtensionNode struct {
 	ColorFactor      nodes.Output[coloring.Color]  `description:"Color of the sheen layer, in linear space. Black is no sheen." default:"#000000"`
 	ColorTexture     nodes.Output[PolyformTexture] `description:"Sheen color texture, RGB in sRGB; multiplied by the color factor."`
-	RoughnessFactor  nodes.Output[norm.UFloat64]       `description:"Roughness of the sheen layer, 0 to 1."`
+	RoughnessFactor  nodes.Output[norm.UFloat64]   `description:"Roughness of the sheen layer, 0 to 1."`
 	RoughnessTexture nodes.Output[PolyformTexture] `description:"Sheen roughness texture, read from the alpha channel, linear; multiplied by the roughness factor."`
 }
 
@@ -685,7 +689,7 @@ func (node MaterialSheenExtensionNode) Keywords() []string {
 }
 
 type MaterialSpecularExtensionNode struct {
-	Factor       nodes.Output[norm.UFloat64]      `description:"Strength of the specular reflection, 0 to 1." default:"1"`
+	Factor       nodes.Output[norm.UFloat64]   `description:"Strength of the specular reflection, 0 to 1." default:"1"`
 	Texture      nodes.Output[PolyformTexture] `description:"Specular strength texture, read from the alpha channel; multiplied by Factor."`
 	ColorFactor  nodes.Output[coloring.Color]  `description:"F0 color of the specular reflection, linear RGB." default:"#ffffff"`
 	ColorTexture nodes.Output[PolyformTexture] `description:"Specular color texture, RGB in sRGB; multiplied by the color factor."`
@@ -709,7 +713,7 @@ func (node MaterialSpecularExtensionNode) Keywords() []string {
 }
 
 type MaterialIridescenceExtensionNode struct {
-	Factor            nodes.Output[norm.UFloat64]      `description:"Iridescence intensity, 0 to 1."`
+	Factor            nodes.Output[norm.UFloat64]   `description:"Iridescence intensity, 0 to 1."`
 	Texture           nodes.Output[PolyformTexture] `description:"Iridescence intensity texture, read from the R channel, linear; multiplied by Factor."`
 	IndexOfRefraction nodes.Output[float64]         `description:"Index of refraction of the thin film." default:"1.3"`
 	ThicknessMinimum  nodes.Output[float64]         `description:"Minimum thin-film thickness in nanometers." default:"100"`

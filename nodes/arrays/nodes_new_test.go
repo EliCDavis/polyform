@@ -35,6 +35,61 @@ func TestChunkRefusesASizeBelowOne(t *testing.T) {
 	assert.NotEmpty(t, errorsOf(node, "Out"), "a zero size would never terminate")
 }
 
+func TestGroupSortsElementsIntoNumberedGroups(t *testing.T) {
+	node := &nodes.Struct[arrays.GroupNode]{}
+	wire(t, node, "Array", letters())
+	wire(t, node, "Groups", nodes.ConstOutput[[]int]{Val: []int{2, 0, 2, 0, 2}})
+	wire(t, node, "Count", nodes.ConstOutput[int]{Val: 4})
+
+	out := node.Outputs()["Out"]
+	assert.Equal(t, "[][]string", out.(nodes.Typed).Type())
+
+	typed, ok := out.(nodes.Output[[][]string])
+	require.True(t, ok, "got %T", out)
+	assert.Equal(t, [][]string{{"b", "d"}, {}, {"a", "c", "e"}, {}}, typed.Value())
+}
+
+func TestGroupDiscardsElementsInGroupMinusOne(t *testing.T) {
+	node := &nodes.Struct[arrays.GroupNode]{}
+	wire(t, node, "Array", letters())
+	wire(t, node, "Groups", nodes.ConstOutput[[]int]{Val: []int{0, -1, 1, -1, 0}})
+	wire(t, node, "Count", nodes.ConstOutput[int]{Val: 2})
+
+	assert.Equal(t, [][]string{{"a", "e"}, {"c"}}, nodes.GetNodeOutputPort[[][]string](node, "Out").Value())
+}
+
+func TestIndicesCountsTheArray(t *testing.T) {
+	node := &nodes.Struct[arrays.IndicesNode]{}
+	wire(t, node, "Array", letters())
+
+	assert.Equal(t, []int{0, 1, 2, 3, 4}, nodes.GetNodeOutputPort[[]int](node, "Out").Value())
+}
+
+func TestGroupRefusesAGroupOutsideCount(t *testing.T) {
+	for name, groups := range map[string][]int{
+		"too high": {0, 1, 2, 3, 0},
+		"negative": {0, 1, -2, 0, 0},
+	} {
+		t.Run(name, func(t *testing.T) {
+			node := &nodes.Struct[arrays.GroupNode]{}
+			wire(t, node, "Array", letters())
+			wire(t, node, "Groups", nodes.ConstOutput[[]int]{Val: groups})
+			wire(t, node, "Count", nodes.ConstOutput[int]{Val: 3})
+
+			assert.NotEmpty(t, errorsOf(node, "Out"))
+		})
+	}
+}
+
+func TestGroupRefusesMismatchedLengths(t *testing.T) {
+	node := &nodes.Struct[arrays.GroupNode]{}
+	wire(t, node, "Array", letters())
+	wire(t, node, "Groups", nodes.ConstOutput[[]int]{Val: []int{0, 1}})
+	wire(t, node, "Count", nodes.ConstOutput[int]{Val: 2})
+
+	assert.NotEmpty(t, errorsOf(node, "Out"))
+}
+
 func TestFlattenJoinsInnerArraysInOrder(t *testing.T) {
 	node := &nodes.Struct[arrays.FlattenNode]{}
 	wire(t, node, "Arrays", nodes.ConstOutput[[][]string]{Val: [][]string{{"a", "b"}, {}, {"c"}, {"d", "e"}}})

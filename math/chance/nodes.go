@@ -53,13 +53,13 @@ func init() {
 // ============================================================================
 
 type RandomNode[T any] struct {
-	Key          nodes.LiftedPort[int]             `description:"The element each value is for: its index, or a stable id. A list gives one value per key."`
-	Seed         nodes.LiftedPort[int]             `description:"Changes every value. The same seed and key always give the same value."`
+	Key          nodes.LiftedPort[int]             `description:"The element each value is for: its index, or a stable id."`
+	Seed         nodes.LiftedPort[int]             `description:"The same seed and key always give the same value."`
 	Distribution nodes.LiftedPort[Distribution[T]] `description:"The shape and range the values follow."`
 }
 
 func (RandomNode[T]) Description() string {
-	return "A random value per key, shaped by Distribution. The same seed and key always give the same value, whatever changes around them."
+	return "A random value for each key, shaped by Distribution."
 }
 
 func (RandomNode[T]) Keywords() []string {
@@ -84,13 +84,13 @@ func (r RandomNode[T]) Out(out *nodes.Lifted[T]) {
 // ============================================================================
 
 type RandomBoolNode struct {
-	Key         nodes.LiftedPort[int]     `description:"The element each value is for: its index, or a stable id. A list gives one value per key."`
-	Seed        nodes.LiftedPort[int]     `description:"Changes every value. The same seed and key always give the same value."`
+	Key         nodes.LiftedPort[int]     `description:"The element each value is for: its index, or a stable id."`
+	Seed        nodes.LiftedPort[int]     `description:"The same seed and key always give the same value."`
 	Probability nodes.LiftedPort[float64] `description:"The share of keys that come out true, 0 to 1." default:"0.5"`
 }
 
 func (RandomBoolNode) Description() string {
-	return "True or false for every key, true with the given probability."
+	return "True with the given probability."
 }
 
 func (RandomBoolNode) Keywords() []string {
@@ -105,13 +105,13 @@ func (r RandomBoolNode) Out(out *nodes.Lifted[bool]) {
 // ============================================================================
 
 type RandomIndexNode struct {
-	Key     nodes.LiftedPort[int]   `description:"The element each value is for: its index, or a stable id. A list gives one value per key."`
-	Seed    nodes.LiftedPort[int]   `description:"Changes every value. The same seed and key always give the same value."`
-	Weights nodes.Output[[]float64] `description:"How likely each index is, relative to the others. Index i comes up Weights[i] / sum of Weights of the time; 0 never comes up."`
+	Key     nodes.LiftedPort[int]   `description:"The element each value is for: its index, or a stable id."`
+	Seed    nodes.LiftedPort[int]   `description:"The same seed and key always give the same value."`
+	Weights nodes.Output[[]float64] `description:"How likely each index is, relative to the others. 0 never comes up."`
 }
 
 func (RandomIndexNode) Description() string {
-	return "An index into Weights for every key, each index coming up in proportion to its weight."
+	return "An index into Weights, each coming up in proportion to its weight."
 }
 
 func (RandomIndexNode) Keywords() []string {
@@ -137,7 +137,7 @@ func (r RandomIndexNode) Out(out *nodes.Lifted[int]) {
 
 type SampleNode struct {
 	Distribution nodes.LiftedPort[Distribution[float64]] `description:"The shape to read from."`
-	Fraction     nodes.LiftedPort[float64]               `description:"Where to read, 0 to 1: the share of draws that fall below the result. 0.5 is the middle value, 0.9 a value only 1 draw in 10 exceeds."`
+	Fraction     nodes.LiftedPort[float64]               `description:"Where to read, 0 to 1: the share of draws that fall below the result."`
 }
 
 func (SampleNode) Description() string {
@@ -145,7 +145,7 @@ func (SampleNode) Description() string {
 }
 
 func (SampleNode) Keywords() []string {
-	return []string{"quantile", "inverse cdf", "remap"}
+	return []string{"quantile", "inverse cdf"}
 }
 
 func (s SampleNode) Out(out *nodes.Lifted[float64]) {
@@ -161,7 +161,7 @@ type SeedNode struct {
 }
 
 func (SeedNode) Description() string {
-	return "A seed of its own for each label, derived from one master seed, so separate parts never draw the same values."
+	return "A seed per label, derived from one master seed."
 }
 
 func (SeedNode) Keywords() []string {
@@ -297,7 +297,7 @@ func (d DiscreteNode) Out(out *nodes.StructOutput[Distribution[float64]]) {
 }
 
 type RampNode struct {
-	Gradient nodes.LiftedPort[coloring.Gradient[float64]] `description:"The distribution as a curve: the value at time t is what a share t of draws fall below, so a steep stretch is rare and a flat one common."`
+	Gradient nodes.LiftedPort[coloring.Gradient[float64]] `description:"The distribution as a curve: the value at time t is what a share t of draws fall below."`
 }
 
 func (RampNode) Description() string {
@@ -317,8 +317,8 @@ func (r RampNode) Out(out *nodes.Lifted[Distribution[float64]]) {
 }
 
 type Compose2DNode struct {
-	X nodes.LiftedPort[Distribution[float64]] `description:"Shapes the X component. Unwired, it spreads evenly over [0, 1)."`
-	Y nodes.LiftedPort[Distribution[float64]] `description:"Shapes the Y component. Unwired, it spreads evenly over [0, 1)."`
+	X nodes.LiftedPort[Distribution[float64]] `description:"Unwired, spreads evenly over [0, 1)."`
+	Y nodes.LiftedPort[Distribution[float64]] `description:"Unwired, spreads evenly over [0, 1)."`
 }
 
 func (Compose2DNode) Description() string {
@@ -330,9 +330,9 @@ func (c Compose2DNode) Out(out *nodes.Lifted[Distribution[vector2.Float64]]) {
 }
 
 type Compose3DNode struct {
-	X nodes.LiftedPort[Distribution[float64]] `description:"Shapes the X component. Unwired, it spreads evenly over [0, 1)."`
-	Y nodes.LiftedPort[Distribution[float64]] `description:"Shapes the Y component. Unwired, it spreads evenly over [0, 1)."`
-	Z nodes.LiftedPort[Distribution[float64]] `description:"Shapes the Z component. Unwired, it spreads evenly over [0, 1)."`
+	X nodes.LiftedPort[Distribution[float64]] `description:"Unwired, spreads evenly over [0, 1)."`
+	Y nodes.LiftedPort[Distribution[float64]] `description:"Unwired, spreads evenly over [0, 1)."`
+	Z nodes.LiftedPort[Distribution[float64]] `description:"Unwired, spreads evenly over [0, 1)."`
 }
 
 func (Compose3DNode) Description() string {
@@ -344,10 +344,10 @@ func (c Compose3DNode) Out(out *nodes.Lifted[Distribution[vector3.Float64]]) {
 }
 
 type Compose4DNode struct {
-	X nodes.LiftedPort[Distribution[float64]] `description:"Shapes the X component. Unwired, it spreads evenly over [0, 1)."`
-	Y nodes.LiftedPort[Distribution[float64]] `description:"Shapes the Y component. Unwired, it spreads evenly over [0, 1)."`
-	Z nodes.LiftedPort[Distribution[float64]] `description:"Shapes the Z component. Unwired, it spreads evenly over [0, 1)."`
-	W nodes.LiftedPort[Distribution[float64]] `description:"Shapes the W component. Unwired, it spreads evenly over [0, 1)."`
+	X nodes.LiftedPort[Distribution[float64]] `description:"Unwired, spreads evenly over [0, 1)."`
+	Y nodes.LiftedPort[Distribution[float64]] `description:"Unwired, spreads evenly over [0, 1)."`
+	Z nodes.LiftedPort[Distribution[float64]] `description:"Unwired, spreads evenly over [0, 1)."`
+	W nodes.LiftedPort[Distribution[float64]] `description:"Unwired, spreads evenly over [0, 1)."`
 }
 
 func (Compose4DNode) Description() string {
@@ -368,7 +368,7 @@ func (Uniform2DNode) Description() string {
 }
 
 func (Uniform2DNode) Keywords() []string {
-	return []string{"jitter", "offset", "rectangle"}
+	return []string{"jitter", "rectangle"}
 }
 
 func (u Uniform2DNode) Out(out *nodes.Lifted[Distribution[vector2.Float64]]) {
@@ -385,7 +385,7 @@ func (Uniform3DNode) Description() string {
 }
 
 func (Uniform3DNode) Keywords() []string {
-	return []string{"jitter", "offset", "box"}
+	return []string{"jitter", "box"}
 }
 
 func (u Uniform3DNode) Out(out *nodes.Lifted[Distribution[vector3.Float64]]) {
@@ -427,7 +427,7 @@ func (i InsideCircleNode) Out(out *nodes.Lifted[Distribution[vector2.Float64]]) 
 
 type Direction2DNode struct {
 	Axis      nodes.LiftedPort[vector2.Float64] `description:"The centre of the arc." default:"0,1"`
-	ConeAngle nodes.LiftedPort[float64]         `description:"Degrees either side of Axis a direction may lean, 0 to 180. 0 always gives Axis, 180 any direction."`
+	ConeAngle nodes.LiftedPort[float64]         `description:"Degrees either side of Axis a direction may lean, 0 to 180."`
 }
 
 func (Direction2DNode) Description() string {
@@ -443,7 +443,7 @@ func (d Direction2DNode) Out(out *nodes.Lifted[Distribution[vector2.Float64]]) {
 }
 
 type RotationNode struct {
-	MaxAngle nodes.LiftedPort[float64] `description:"Degrees a rotation may turn from no rotation, 0 to 180. 180 gives any rotation." default:"180"`
+	MaxAngle nodes.LiftedPort[float64] `description:"Degrees a rotation may turn, 0 to 180." default:"180"`
 }
 
 func (RotationNode) Description() string {
@@ -476,7 +476,7 @@ func (i InsideSphereNode) Out(out *nodes.Lifted[Distribution[vector3.Float64]]) 
 
 type DirectionNode struct {
 	Axis      nodes.LiftedPort[vector3.Float64] `description:"The centre of the cone." default:"0,1,0"`
-	ConeAngle nodes.LiftedPort[float64]         `description:"Degrees from Axis a direction may lean, 0 to 180. 0 always gives Axis, 180 any direction."`
+	ConeAngle nodes.LiftedPort[float64]         `description:"Degrees from Axis a direction may lean, 0 to 180."`
 }
 
 func (DirectionNode) Description() string {
