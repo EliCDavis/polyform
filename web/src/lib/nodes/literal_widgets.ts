@@ -2,6 +2,7 @@ import type { FlowNode, WidgetConfig } from "@elicdavis/node-flow";
 import { eulerToQuat, quatToEuler, type Quat } from "../rotation";
 import { opaque, shownAlpha, withAlpha } from "../color_alpha";
 import { alphaWidgetConfig } from "./color_widgets";
+import "./gradient_literal_widget";
 
 export type LiteralKind =
     | "float"
@@ -17,7 +18,8 @@ export type LiteralKind =
     | "vector3"
     | "vector3int"
     | "vector4"
-    | "quaternion";
+    | "quaternion"
+    | "gradient";
 
 const AXES = ["x", "y", "z", "w"];
 
@@ -36,6 +38,7 @@ const kindsByType: { [type: string]: LiteralKind } = {
     "github.com/EliCDavis/vector/vector3.Vector[int]": "vector3int",
     "github.com/EliCDavis/vector/vector4.Vector[float64]": "vector4",
     "github.com/EliCDavis/polyform/math/quaternion.Quaternion": "quaternion",
+    "github.com/EliCDavis/polyform/drawing/coloring.Gradient[github.com/EliCDavis/polyform/drawing/coloring.Color]": "gradient",
 };
 
 export function literalKind(portType: string, enumMembers?: string[]): LiteralKind | undefined {
@@ -129,6 +132,8 @@ export function literalWidgetConfig(
                 type: "select",
                 config: { property, value: String(defaultValue ?? enumMembers?.[0] ?? ""), options: enumMembers ?? [], width: 120 },
             } as unknown as WidgetConfig;
+        case "gradient":
+            return { type: "gradient", config: { property, value: defaultValue } } as unknown as WidgetConfig;
     }
 
     const integer = kind === "vector2int" || kind === "vector3int";
@@ -183,6 +188,8 @@ export function readLiteral(node: FlowNode, port: string, kind: LiteralKind): un
                 return Math.round(Number(value));
             case "bool":
                 return value === true;
+            case "gradient":
+                return value;
             default:
                 return String(value ?? "");
         }

@@ -615,6 +615,21 @@ export class PolyNodeController {
         if (this.forEachToggle) {
             this.forEach = !!nodeData.forEach;
             this.forEachToggle.setValue(this.forEach);
+            this.applyForEachTypes();
+        }
+    }
+
+    // Run once per item, every input also takes a list of what it declares.
+    applyForEachTypes(): void {
+        const inputs = this.nodeDefinition?.inputs ?? {};
+        for (let i = 0; i < this.flowNode.inputs(); i++) {
+            const port = this.flowNode.inputPort(i);
+            const declared = inputs[port.getDisplayName()];
+            if (!declared) {
+                continue;
+            }
+            const accepted = declared.acceptedTypes?.length ? declared.acceptedTypes : [declared.type];
+            port.setAcceptedTypes(this.forEach ? [declared.type, "[]" + declared.type] : accepted);
         }
     }
 
