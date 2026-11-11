@@ -66,6 +66,24 @@ func TestList(t *testing.T) {
 	}
 }
 
+func TestListNeverPicksAZeroWeightAtAnyTemperature(t *testing.T) {
+	for _, temperature := range []float64{0.5, 1, 5, math.Inf(1)} {
+		list := bias.NewList(
+			[]bias.ListItem[string]{{Item: "A", Weight: 0.7}, {Item: "B", Weight: 0}, {Item: "C", Weight: 0.1}},
+			bias.ListConfig{Seed: rand.New(rand.NewPCG(0, 0)), Temperature: ptr(temperature)},
+		)
+
+		results := map[string]int{}
+		for range 10000 {
+			results[list.Next()] += 1
+		}
+
+		assert.Zero(t, results["B"], "temperature %v", temperature)
+		assert.Positive(t, results["A"], "temperature %v", temperature)
+		assert.Positive(t, results["C"], "temperature %v", temperature)
+	}
+}
+
 func TestNewListPanicsOnEmptyItems(t *testing.T) {
 	assert.PanicsWithError(t, "No items provided", func() {
 		bias.NewList[int](nil, bias.ListConfig{})

@@ -187,38 +187,27 @@ func rewight[T any](items []ListItem[T], temperature float64) []ListItem[T] {
 	//     logits = [math.log(w) for w in weights]
 	//     scaled_logits = [l / temperature for l in logits]
 	scaled_logits := make([]float64, len(weights))
-	hasInf := false
 	for i, l := range weights {
 		scaled_logits[i] = math.Log(l) / temperature
-		if math.IsInf(scaled_logits[i], 0) {
-			hasInf = true
-		}
-	}
-
-	// Handle overflow
-	//     if any(math.isinf(sl) for sl in scaled_logits):
-	//         return [1.0 if math.isinf(sl) else 0.0 for sl in scaled_logits]
-	if hasInf {
-		out := make([]ListItem[T], 0)
-		for i := range items {
-			if math.IsInf(scaled_logits[i], 0) {
-				out = append(out, ListItem[T]{Item: items[i].Item, Weight: 1.0})
-			}
-		}
-		return out
 	}
 
 	// Convert back to weights
 	//     max_logit = max(scaled_logits)
 	//     exp_logits = [math.exp(l - max_logit) for l in scaled_logits]
-	maxLogit := scaled_logits[0]
-	for _, l := range scaled_logits[1:] {
-		maxLogit = max(maxLogit, l)
+	maxLogit := math.Inf(-1)
+	for i, l := range scaled_logits {
+		if weights[i] > 0 {
+			maxLogit = max(maxLogit, l)
+		}
 	}
 
 	exp := make([]float64, len(scaled_logits))
 	sum := 0.0
 	for i, l := range scaled_logits {
+		// A zero weight stays zero at every temperature; log(0)/Inf would be NaN.
+		if weights[i] <= 0 {
+			continue
+		}
 		exp[i] = math.Exp(l - maxLogit)
 		sum += exp[i]
 	}
