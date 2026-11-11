@@ -3,6 +3,8 @@ package graph
 import (
 	"encoding/json"
 	"fmt"
+	"maps"
+	"slices"
 
 	"github.com/EliCDavis/jbtf"
 	"github.com/EliCDavis/polyform/generator/persistence"
@@ -18,7 +20,10 @@ func (a *Instance) EncodeToAppSchema() ([]byte, error) {
 
 func (a *Instance) encodeToAppSchema() ([]byte, error) {
 	encoder := &jbtf.Encoder{}
+	return a.encodeApp(encoder, variable.NewEncoder(encoder, nil))
+}
 
+func (a *Instance) encodeApp(encoder *jbtf.Encoder, variables variable.Encoder) ([]byte, error) {
 	app := persistence.App{
 		Name:        a.details.Name,
 		Version:     a.details.Version,
@@ -32,7 +37,17 @@ func (a *Instance) encodeToAppSchema() ([]byte, error) {
 		Enums:       a.persistedEnums(),
 	}
 
-	for name, data := range a.profiles.All() {
+	var err error
+	if app.Variables, err = a.variables.PersistedSchema(variables); err != nil {
+		return nil, err
+	}
+
+	profiles := a.profiles.All()
+	for _, name := range slices.Sorted(maps.Keys(profiles)) {
+		data, err := a.variables.PersistProfile(variables, profiles[name])
+		if err != nil {
+			return nil, fmt.Errorf("encoding profile %q: %w", name, err)
+		}
 		app.Profiles[name] = persistence.Profile{Data: data}
 	}
 
@@ -48,10 +63,6 @@ func (a *Instance) encodeToAppSchema() ([]byte, error) {
 		app.Variants[name] = persistence.VariantSet{Dimensions: encoded}
 	}
 
-	var err error
-	if app.Variables, err = a.variables.PersistedSchema(encoder); err != nil {
-		return nil, err
-	}
 	if app.SubGraphs, err = a.encodeSubGraphDefinitions(encoder); err != nil {
 		return nil, err
 	}

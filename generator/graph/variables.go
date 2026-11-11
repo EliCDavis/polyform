@@ -324,9 +324,27 @@ func (a *Instance) SaveProfile(profileName string) {
 // LoadProfile skips a saved key whose variable has since been deleted;
 // ApplyProfile, which takes a profile from a caller, does not.
 func (a *Instance) LoadProfile(profileName string) error {
-	profile, err := a.Profiles().Get(profileName)
+	known, err := a.savedProfile(profileName)
 	if err != nil {
 		return err
+	}
+	return a.ApplyProfile(known)
+}
+
+func (a *Instance) ProfileMatches(profileName string) (bool, error) {
+	known, err := a.savedProfile(profileName)
+	if err != nil {
+		return false, err
+	}
+	a.mu().RLock()
+	defer a.mu().RUnlock()
+	return a.variables.Matches(known), nil
+}
+
+func (a *Instance) savedProfile(profileName string) (variable.Profile, error) {
+	profile, err := a.Profiles().Get(profileName)
+	if err != nil {
+		return nil, err
 	}
 	known := make(variable.Profile, len(profile))
 	for path, value := range profile {
@@ -334,14 +352,26 @@ func (a *Instance) LoadProfile(profileName string) error {
 			known[path] = value
 		}
 	}
-	return a.ApplyProfile(known)
+	return known, nil
 }
 
 func (a *Instance) ApplyProfile(profile variable.Profile) error {
 	_, err := a.write(refuseConflicts, func() error {
 		return a.variables.ApplyProfile(profile)
 	})
+	a.pruneFileBlobs()
 	return err
+}
+
+// A file variable's profile entry names content; the content is held by the variable.
+func (a *Instance) pruneFileBlobs() {
+	a.variables.PruneBlobs(a.profiles.All())
+}
+
+func (a *Instance) VariableProfile(variablePath string) (json.RawMessage, error) {
+	a.mu().RLock()
+	defer a.mu().RUnlock()
+	return a.variables.VariableProfile(variablePath)
 }
 
 func (a *Instance) VariantSets() *named.Collection[variant.Set] {

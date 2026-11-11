@@ -80,11 +80,6 @@ func variableInstanceEndpoint(server *Server, graphInstance *graph.Instance, sav
 
 func variableValueEndpoint(graphInstance *graph.Instance, saver *GraphSaver) endpoint.Handler {
 
-	updateVariable := func(variablePath string, body []byte) error {
-		_, err := graphInstance.UpdateVariable(variablePath, body)
-		return err
-	}
-
 	return endpoint.Handler{
 		Methods: map[string]endpoint.Method{
 
@@ -93,8 +88,8 @@ func variableValueEndpoint(graphInstance *graph.Instance, saver *GraphSaver) end
 				Handler: func(request endpoint.Request[[]byte]) error {
 
 					variablePath := request.Url[len(variableValueEndpointPath):]
-					err := updateVariable(variablePath, request.Body)
-					if err != nil {
+					changed, err := graphInstance.UpdateVariable(variablePath, request.Body)
+					if err != nil || !changed {
 						return err
 					}
 

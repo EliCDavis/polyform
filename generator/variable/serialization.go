@@ -1,10 +1,6 @@
 package variable
 
-import (
-	"encoding/json"
-
-	"github.com/EliCDavis/jbtf"
-)
+import "encoding/json"
 
 type cliConfig[T any] struct {
 	FlagName string `json:"flagName"`
@@ -15,7 +11,7 @@ type variableSchemaBase struct {
 	Type string `json:"type"`
 }
 
-func DeserializePersistantVariableJSON(msg []byte, decoder jbtf.Decoder, variableFactory func(string) (Variable, error)) (Variable, error) {
+func DeserializePersistantVariableJSON(msg []byte, decoder Decoder, variableFactory func(string) (Variable, error)) (Variable, error) {
 	vsb := &variableSchemaBase{}
 	err := json.Unmarshal(msg, vsb)
 	if err != nil {

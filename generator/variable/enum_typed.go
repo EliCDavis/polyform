@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/EliCDavis/jbtf"
 	"github.com/EliCDavis/polyform/formats/swagger"
 	"github.com/EliCDavis/polyform/generator/enum"
 	"github.com/EliCDavis/polyform/generator/schema"
@@ -101,11 +100,11 @@ func (ev EnumTypeVariable[E]) MarshalJSON() ([]byte, error) {
 	})
 }
 
-func (ev EnumTypeVariable[E]) toPersistantJSON(encoder *jbtf.Encoder) ([]byte, error) {
+func (ev EnumTypeVariable[E]) toPersistantJSON(encoder Encoder) ([]byte, error) {
 	return json.Marshal(ev)
 }
 
-func (ev *EnumTypeVariable[E]) fromPersistantJSON(decoder jbtf.Decoder, body []byte) error {
+func (ev *EnumTypeVariable[E]) fromPersistantJSON(decoder Decoder, body []byte) error {
 	var saved enumVariableSchema
 	if err := json.Unmarshal(body, &saved); err != nil {
 		return err

@@ -3,7 +3,6 @@ package variable
 import (
 	"encoding/json"
 
-	"github.com/EliCDavis/jbtf"
 	"github.com/EliCDavis/polyform/formats/swagger"
 	"github.com/EliCDavis/polyform/generator/schema"
 	"github.com/EliCDavis/polyform/nodes"
@@ -23,8 +22,8 @@ type Variable interface {
 	currentValue() any
 	currentVersion() int
 
-	toPersistantJSON(encoder *jbtf.Encoder) ([]byte, error)
-	fromPersistantJSON(decoder jbtf.Decoder, body []byte) error
+	toPersistantJSON(encoder Encoder) ([]byte, error)
+	fromPersistantJSON(decoder Decoder, body []byte) error
 
 	applyProfile(profile json.RawMessage) error
 	getProfile() json.RawMessage

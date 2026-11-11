@@ -58,7 +58,7 @@ func (a *Instance) convertSelectionToSubGraph(scope Scope, nodeIDs []string, nam
 	if err := parent.refuseConvertCycles(selection, inbound); err != nil {
 		return result, err
 	}
-	ports, err := planPorts(selection, inbound, outbound, parent.layoutOf(selection))
+	ports, err := parent.planPorts(selection, inbound, outbound, parent.layoutOf(selection))
 	if err != nil {
 		return result, err
 	}
@@ -208,7 +208,7 @@ var genericOutputNames = map[string]bool{
 	"Float": true, "Int": true, "Bool": true, "String": true,
 }
 
-func givenNodeName(node nodes.Node) string {
+func (a *Graph) givenNodeName(node nodes.Node) string {
 	switch n := node.(type) {
 	case variable.Reference:
 		return n.Reference().Info().Name()
@@ -227,7 +227,8 @@ func givenNodeName(node nodes.Node) string {
 	if !ok || port.Value() == nil {
 		return ""
 	}
-	if _, isLiteral := port.Value().Node().(Parameter); !isLiteral {
+	from := port.Value().Node()
+	if _, isParameter := from.(Parameter); !isParameter && !a.isLiteralNode(from) {
 		return ""
 	}
 	if named, ok := port.Value().(nodes.Output[string]); ok {
@@ -238,12 +239,13 @@ func givenNodeName(node nodes.Node) string {
 
 // A named producer crossing through several outputs is told apart by output.
 type portNamer struct {
+	graph           *Graph
 	outputsCrossing map[string]int
 }
 
-func newPortNamer(cuts []edge) portNamer {
+func newPortNamer(graph *Graph, cuts []edge) portNamer {
 	seen := map[string]bool{}
-	namer := portNamer{outputsCrossing: map[string]int{}}
+	namer := portNamer{graph: graph, outputsCrossing: map[string]int{}}
 	for _, cut := range cuts {
 		if key := sourceKey(cut); !seen[key] {
 			seen[key] = true
@@ -254,7 +256,7 @@ func newPortNamer(cuts []edge) portNamer {
 }
 
 func (namer portNamer) producerName(e edge) string {
-	name := givenNodeName(e.producer)
+	name := namer.graph.givenNodeName(e.producer)
 	if name != "" && namer.outputsCrossing[e.producerID] > 1 {
 		return name + " " + e.outputLabel()
 	}
@@ -374,7 +376,7 @@ type portPlan struct {
 	rewired map[string]string
 }
 
-func planPorts(selection map[string]nodes.Node, inbound, outbound []edge, layout selectionLayout) (portPlan, error) {
+func (a *Graph) planPorts(selection map[string]nodes.Node, inbound, outbound []edge, layout selectionLayout) (portPlan, error) {
 	plan := portPlan{
 		layout:  layout,
 		inputs:  map[string]plannedPort{},
@@ -386,7 +388,7 @@ func planPorts(selection map[string]nodes.Node, inbound, outbound []edge, layout
 		ids.taken[id] = true
 	}
 
-	namer := newPortNamer(slices.Concat(inbound, outbound))
+	namer := newPortNamer(a, slices.Concat(inbound, outbound))
 
 	// One input per outside value, however many selected nodes read it.
 	inputNames := portNames{}

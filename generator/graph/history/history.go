@@ -18,28 +18,33 @@ const (
 // restore left it, which can be anything down to empty.
 var ErrRollbackFailed = errors.New("the graph could not be rolled back")
 
-type entry struct {
-	label string
-	state []byte
+type Snapshot[S any] interface {
+	Equal(S) bool
+	Size() int
 }
 
-type History struct {
-	snapshot func() ([]byte, error)
-	restore  func([]byte) error
+type entry[S any] struct {
+	label string
+	state S
+}
+
+type History[S Snapshot[S]] struct {
+	snapshot func() (S, error)
+	restore  func(S) error
 
 	// Held for a whole step: a rollback restores the state from before it, which would erase any step overlapping it.
 	mu     sync.Mutex
-	past   []entry
-	future []entry
+	past   []entry[S]
+	future []entry[S]
 }
 
-func New(snapshot func() ([]byte, error), restore func([]byte) error) *History {
-	return &History{snapshot: snapshot, restore: restore}
+func New[S Snapshot[S]](snapshot func() (S, error), restore func(S) error) *History[S] {
+	return &History[S]{snapshot: snapshot, restore: restore}
 }
 
 // Transact runs f as one undoable step. A step that fails is rolled back
-// rather than left half applied.
-func (h *History) Transact(label string, f func() error) (err error) {
+// rather than left half applied, and one that changed nothing is not a step.
+func (h *History[S]) Transact(label string, f func() error) (err error) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
@@ -54,7 +59,9 @@ func (h *History) Transact(label string, f func() error) (err error) {
 		}
 
 		if err == nil {
-			h.record(entry{label: label, state: before})
+			if after, snapshotErr := h.snapshot(); snapshotErr != nil || !before.Equal(after) {
+				h.record(entry[S]{label: label, state: before})
+			}
 			return
 		}
 		if restoreErr := safely(func() error { return h.restore(before) }); restoreErr != nil {
@@ -65,19 +72,19 @@ func (h *History) Transact(label string, f func() error) (err error) {
 	return f()
 }
 
-func (h *History) record(e entry) {
+func (h *History[S]) record(e entry[S]) {
 	// Acting after an undo abandons the branch that was undone.
 	h.future = nil
 	h.past = append(h.past, e)
 
 	total := 0
 	for _, kept := range h.past {
-		total += len(kept.state)
+		total += kept.state.Size()
 	}
 
 	drop := 0
 	for drop < len(h.past)-1 && (len(h.past)-drop > maxEntries || total > maxBytes) {
-		total -= len(h.past[drop].state)
+		total -= h.past[drop].state.Size()
 		drop++
 	}
 	h.past = append(h.past[:0], h.past[drop:]...)
@@ -94,31 +101,31 @@ func safely(f func() error) (err error) {
 	return f()
 }
 
-func (h *History) CanUndo() bool {
+func (h *History[S]) CanUndo() bool {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	return len(h.past) > 0
 }
 
-func (h *History) CanRedo() bool {
+func (h *History[S]) CanRedo() bool {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	return len(h.future) > 0
 }
 
-func (h *History) Undo() (string, error) {
+func (h *History[S]) Undo() (string, error) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	return h.step(&h.past, &h.future, "undo")
 }
 
-func (h *History) Redo() (string, error) {
+func (h *History[S]) Redo() (string, error) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	return h.step(&h.future, &h.past, "redo")
 }
 
-func (h *History) step(from, to *[]entry, verb string) (string, error) {
+func (h *History[S]) step(from, to *[]entry[S], verb string) (string, error) {
 	if len(*from) == 0 {
 		return "", fmt.Errorf("nothing to %s", verb)
 	}
@@ -133,7 +140,7 @@ func (h *History) step(from, to *[]entry, verb string) (string, error) {
 	}
 
 	*from = (*from)[:len(*from)-1]
-	*to = append(*to, entry{label: last.label, state: current})
+	*to = append(*to, entry[S]{label: last.label, state: current})
 	return last.label, nil
 }
 
@@ -143,11 +150,11 @@ type Steps struct {
 	Redo []string `json:"redo"`
 }
 
-func (h *History) Steps() Steps {
+func (h *History[S]) Steps() Steps {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
-	labels := func(stack []entry) []string {
+	labels := func(stack []entry[S]) []string {
 		out := make([]string, 0, len(stack))
 		for i := len(stack) - 1; i >= 0; i-- {
 			out = append(out, stack[i].label)

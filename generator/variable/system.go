@@ -3,12 +3,13 @@ package variable
 import (
 	"encoding/json"
 	"fmt"
+	"maps"
 	"path"
 	"reflect"
+	"slices"
 	"strings"
 	"sync"
 
-	"github.com/EliCDavis/jbtf"
 	"github.com/EliCDavis/polyform/formats/swagger"
 	"github.com/EliCDavis/polyform/generator/persistence"
 	"github.com/EliCDavis/polyform/generator/schema"
@@ -32,11 +33,23 @@ type System interface {
 	Remove(path string) error
 	Move(oldName, newName string) error
 	Traverse(func(path string, info Info, v Variable))
-	PersistedSchema(encoder *jbtf.Encoder) (schema.NestedGroup[persistence.Variable], error)
+	PersistedSchema(encoder Encoder) (schema.NestedGroup[persistence.Variable], error)
 	RuntimeSchema() (schema.NestedGroup[schema.Variable], error)
 	ApplyProfile(profile Profile) error
+	Matches(profile Profile) bool
 	GetProfile() Profile
+	VariableProfile(path string) (json.RawMessage, error)
+	PersistProfile(encoder Encoder, profile Profile) (Profile, error)
+	LoadProfile(decoder Decoder, profile Profile) (Profile, error)
+	PruneBlobs(profiles map[string]Profile)
 	SwaggerDefinition() swagger.Definition
+}
+
+// Implemented by variables whose profile entries name shared byte content.
+type blobProfiled interface {
+	persistProfile(encoder Encoder, profile json.RawMessage) (json.RawMessage, error)
+	loadProfile(decoder Decoder, profile json.RawMessage) (json.RawMessage, error)
+	pruneBlobs(referenced []json.RawMessage)
 }
 
 func NewSystem() System {
@@ -94,8 +107,8 @@ func (s *system) SwaggerDefinition() swagger.Definition {
 }
 
 func (s *system) GetProfile() Profile {
-	s.mutex.RLock()
-	defer s.mutex.RUnlock()
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
 
 	result := make(Profile)
 
@@ -104,6 +117,80 @@ func (s *system) GetProfile() Profile {
 	}
 
 	return result
+}
+
+func (s *system) VariableProfile(path string) (json.RawMessage, error) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	entry, ok := s.entries[path]
+	if !ok {
+		return nil, fmt.Errorf("variable does not exist at path: %s", path)
+	}
+	return entry.GetProfile(), nil
+}
+
+func (s *system) blobVariable(path string) (blobProfiled, bool) {
+	entry, ok := s.entries[path].(*systemVariableEntry)
+	if !ok {
+		return nil, false
+	}
+	blobs, ok := entry.variable.(blobProfiled)
+	return blobs, ok
+}
+
+func (s *system) PersistProfile(encoder Encoder, profile Profile) (Profile, error) {
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
+
+	persisted := make(Profile, len(profile))
+	for _, path := range slices.Sorted(maps.Keys(profile)) {
+		raw := profile[path]
+		if blobs, ok := s.blobVariable(path); ok {
+			var err error
+			if raw, err = blobs.persistProfile(encoder, raw); err != nil {
+				return nil, fmt.Errorf("%s: %w", path, err)
+			}
+		}
+		persisted[path] = raw
+	}
+	return persisted, nil
+}
+
+func (s *system) LoadProfile(decoder Decoder, profile Profile) (Profile, error) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	loaded := make(Profile, len(profile))
+	for path, raw := range profile {
+		if blobs, ok := s.blobVariable(path); ok {
+			var err error
+			if raw, err = blobs.loadProfile(decoder, raw); err != nil {
+				return nil, fmt.Errorf("%s: %w", path, err)
+			}
+		}
+		loaded[path] = raw
+	}
+	return loaded, nil
+}
+
+func (s *system) PruneBlobs(profiles map[string]Profile) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	for path := range s.entries {
+		blobs, ok := s.blobVariable(path)
+		if !ok {
+			continue
+		}
+		referenced := make([]json.RawMessage, 0, len(profiles))
+		for _, profile := range profiles {
+			if raw, ok := profile[path]; ok {
+				referenced = append(referenced, raw)
+			}
+		}
+		blobs.pruneBlobs(referenced)
+	}
 }
 
 func (s *system) ApplyProfile(profile Profile) error {
@@ -125,6 +212,18 @@ func (s *system) ApplyProfile(profile Profile) error {
 		}
 	}
 	return nil
+}
+
+func (s *system) Matches(profile Profile) bool {
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
+	for key, data := range profile {
+		entry, ok := s.entries[key]
+		if !ok || !sameJSON(entry.GetProfile(), data) {
+			return false
+		}
+	}
+	return true
 }
 
 func sameJSON(a, b json.RawMessage) bool {
@@ -154,18 +253,19 @@ func (s *system) RuntimeSchema() (schema.NestedGroup[schema.Variable], error) {
 	return schema.Nest(variables), nil
 }
 
-func (s *system) PersistedSchema(encoder *jbtf.Encoder) (schema.NestedGroup[persistence.Variable], error) {
+// Sorted, so equal states produce equal buffer-view numbering.
+func (s *system) PersistedSchema(encoder Encoder) (schema.NestedGroup[persistence.Variable], error) {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 
 	variables := make(map[string]persistence.Variable)
 
-	for name, entry := range s.entries {
+	for _, name := range slices.Sorted(maps.Keys(s.entries)) {
+		entry := s.entries[name]
 		switch v := entry.(type) {
 
 		case *systemVariableEntry:
 			data, err := v.variable.toPersistantJSON(encoder)
-			// data, err := json.Marshal(v.variable)
 			if err != nil {
 				return schema.NestedGroup[persistence.Variable]{}, err
 			}

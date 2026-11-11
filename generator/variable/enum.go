@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/EliCDavis/jbtf"
 	"github.com/EliCDavis/polyform/formats/swagger"
 	"github.com/EliCDavis/polyform/generator/enum"
 	"github.com/EliCDavis/polyform/generator/schema"
@@ -104,14 +103,14 @@ type enumVariableSchema struct {
 	Value string `json:"value"`
 }
 
-func (ev EnumVariable) toPersistantJSON(encoder *jbtf.Encoder) ([]byte, error) {
+func (ev EnumVariable) toPersistantJSON(encoder Encoder) ([]byte, error) {
 	return json.Marshal(enumVariableSchema{
 		variableSchemaBase: variableSchemaBase{Type: ev.table.TypeName()},
 		Value:              ev.value,
 	})
 }
 
-func (ev *EnumVariable) fromPersistantJSON(decoder jbtf.Decoder, body []byte) error {
+func (ev *EnumVariable) fromPersistantJSON(decoder Decoder, body []byte) error {
 	var saved enumVariableSchema
 	if err := json.Unmarshal(body, &saved); err != nil {
 		return err

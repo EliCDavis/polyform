@@ -38,7 +38,7 @@ type Instance struct {
 	namedManifests *namedOutputManager[manifest.Manifest]
 	subGraphs      map[string]*subGraphRuntime
 	enums          map[string]*graphEnum
-	history        *history.History
+	history        *history.History[State]
 
 	edit editState
 	lock gsync.RWMutex
@@ -77,7 +77,7 @@ func New(config Config) *Instance {
 		Version:     config.Version,
 		Authors:     config.Authors,
 	}
-	instance.history = history.New(instance.EncodeToAppSchema, instance.ApplyAppSchema)
+	instance.history = history.New(instance.snapshotState, instance.restoreState)
 	return instance
 }
 
@@ -97,6 +97,7 @@ func (a *Instance) Reset() {
 	a.variables = variable.NewSystem()
 	a.namedManifests = newNamedOutputManager[manifest.Manifest]()
 	a.profiles = named.New[variable.Profile]("profile")
+	a.profiles.OnChange(a.pruneFileBlobs)
 	a.variantSets = named.New[variant.Set]("variant set")
 	a.subGraphs = make(map[string]*subGraphRuntime)
 	a.enums = make(map[string]*graphEnum)
@@ -113,7 +114,7 @@ func (a *Instance) Casts() *cast.Table {
 	return a.casts
 }
 
-func (a *Instance) History() *history.History {
+func (a *Instance) History() *history.History[State] {
 	return a.history
 }
 

@@ -117,6 +117,28 @@ func TestSettingALiteralChangesTheOutput(t *testing.T) {
 	assert.Equal(t, "4", string(value))
 }
 
+func TestSettingALiteralOnANodeMadeInTheSameBatch(t *testing.T) {
+	instance := literalInstance(t)
+
+	var sink nodes.Node
+	_, err := instance.Batch(func() error {
+		var id string
+		var err error
+		if sink, id, err = instance.CreateNode(literalSinkType); err != nil {
+			return err
+		}
+		return instance.SetLiteral(id, "Count", []byte("4"))
+	})
+	require.NoError(t, err)
+
+	assert.Equal(t, 3., sinkOut(sink), "0.5 * 4 + offset.x")
+}
+
+func TestAPortWithNoLiteralSaysSo(t *testing.T) {
+	instance, _, id := literalSink(t)
+	assert.ErrorIs(t, instance.SetLiteral(id, "Thing", []byte("{}")), graph.ErrNoLiteral)
+}
+
 func TestSettingALiteralRefusesTheWrongShape(t *testing.T) {
 	instance, _, id := literalSink(t)
 

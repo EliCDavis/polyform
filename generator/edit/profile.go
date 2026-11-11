@@ -51,12 +51,17 @@ func applyProfileEndpoint(graphInstance *graph.Instance, saver *GraphSaver) endp
 	return endpoint.Handler{
 		Methods: map[string]endpoint.Method{
 			http.MethodPost: endpoint.JsonBodyMethod(func(request endpoint.Request[ApplyProfileRequest]) error {
-				err := graphInstance.LoadProfile(request.Body.Name)
-				if err != nil {
+				matches, err := graphInstance.ProfileMatches(request.Body.Name)
+				if err != nil || matches {
 					return err
 				}
-				saver.Save()
-				return nil
+				return graphInstance.History().Transact(undoVerb(http.MethodPost)+" applied profile", func() error {
+					if err := graphInstance.LoadProfile(request.Body.Name); err != nil {
+						return err
+					}
+					saver.Save()
+					return nil
+				})
 			}),
 		},
 	}

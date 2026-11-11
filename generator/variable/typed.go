@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/EliCDavis/jbtf"
 	"github.com/EliCDavis/polyform/formats/swagger"
 	"github.com/EliCDavis/polyform/generator/schema"
 	"github.com/EliCDavis/polyform/nodes"
@@ -63,6 +62,9 @@ func (tv *TypeVariable[T]) ApplyMessage(msg []byte) (bool, error) {
 	err := json.Unmarshal(msg, &val)
 	if err != nil {
 		return false, err
+	}
+	if sameJSON(tv.ToMessage(), msg) {
+		return false, nil
 	}
 
 	tv.version++
@@ -123,7 +125,7 @@ func (tv TypeVariable[T]) runtimeSchema() schema.Variable {
 	}
 }
 
-func (tv TypeVariable[T]) toPersistantJSON(encoder *jbtf.Encoder) ([]byte, error) {
+func (tv TypeVariable[T]) toPersistantJSON(encoder Encoder) ([]byte, error) {
 	return json.Marshal(tv)
 }
 
@@ -133,7 +135,7 @@ type typedVariableSchema[T any] struct {
 	CLI   *cliConfig[T] `json:"cli,omitempty"`
 }
 
-func (tv *TypeVariable[T]) fromPersistantJSON(decoder jbtf.Decoder, body []byte) error {
+func (tv *TypeVariable[T]) fromPersistantJSON(decoder Decoder, body []byte) error {
 	vsb := &typedVariableSchema[T]{}
 	err := json.Unmarshal(body, vsb)
 	if err != nil {

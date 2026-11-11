@@ -172,7 +172,7 @@ func (as *Server) Handler(indexFile string) (*http.ServeMux, error) {
 	mux.Handle("/parameter/description/", undoable(as.Graph, "parameter description", parameterDescriptionEndpoint(as.Graph.Graph, graphSaver)))
 
 	mux.Handle("/profile", undoable(as.Graph, "profile", profileEndpoint(as.Graph, graphSaver)))
-	mux.Handle("/profile/apply", undoable(as.Graph, "applied profile", applyProfileEndpoint(as.Graph, graphSaver)))
+	mux.Handle("/profile/apply", applyProfileEndpoint(as.Graph, graphSaver))
 	mux.Handle("/profile/rename", undoable(as.Graph, "profile name", renameProfileEndpoint(as.Graph, graphSaver)))
 	mux.Handle("/profile/overwrite", undoable(as.Graph, "profile", overwriteProfileEndpoint(as.Graph, graphSaver)))
 

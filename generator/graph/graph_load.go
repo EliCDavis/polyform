@@ -20,7 +20,7 @@ func (a *Instance) ApplyAppSchema(jsonPayload []byte) (err error) {
 	a.mu().Lock()
 	defer a.mu().Unlock()
 
-	before, err := a.encodeToAppSchema()
+	before, err := a.snapshotStateLocked()
 	if err != nil {
 		return fmt.Errorf("saving the open graph before loading over it: %w", err)
 	}
@@ -31,11 +31,11 @@ func (a *Instance) ApplyAppSchema(jsonPayload []byte) (err error) {
 		if err == nil {
 			return
 		}
-		if restoreErr := a.applyAppSchema(before); restoreErr != nil {
+		if restoreErr := a.restoreStateLocked(before); restoreErr != nil {
 			err = fmt.Errorf("%w (and restoring the open graph failed: %v)", err, restoreErr)
 		}
 	}()
-	return a.applyAppSchema(jsonPayload)
+	return a.applyAppSchema(jsonPayload, nil)
 }
 
 func parseSavedGraph(payload []byte) (app persistence.App, decoder jbtf.Decoder, err error) {
@@ -48,12 +48,13 @@ func parseSavedGraph(payload []byte) (app persistence.App, decoder jbtf.Decoder,
 	return app, decoder, nil
 }
 
-func (a *Instance) applyAppSchema(jsonPayload []byte) error {
+func (a *Instance) applyAppSchema(jsonPayload []byte, blobs map[string][]byte) error {
 	// Parsed before anything is cleared: loading is destructive from here on.
 	app, decoder, err := parseSavedGraph(jsonPayload)
 	if err != nil {
 		return err
 	}
+	variables := variable.NewDecoder(decoder, blobs)
 
 	a.Reset()
 	a.version.Revision++
@@ -67,7 +68,7 @@ func (a *Instance) applyAppSchema(jsonPayload []byte) error {
 
 	app.Variables.Traverse(func(path string, saved persistence.Variable) bool {
 		var loaded variable.Variable
-		loaded, err = variable.DeserializePersistantVariableJSON(saved.Data, decoder, a.buildVariable)
+		loaded, err = variable.DeserializePersistantVariableJSON(saved.Data, variables, a.buildVariable)
 		if err != nil {
 			err = fmt.Errorf("variable %s: %w", path, err)
 			return false
@@ -83,7 +84,11 @@ func (a *Instance) applyAppSchema(jsonPayload []byte) error {
 	}
 
 	for name, profile := range app.Profiles {
-		a.profiles.Set(name, profile.Data)
+		loaded, err := a.variables.LoadProfile(variables, profile.Data)
+		if err != nil {
+			return fmt.Errorf("profile %q: %w", name, err)
+		}
+		a.profiles.Set(name, loaded)
 	}
 
 	for name, saved := range app.Variants {

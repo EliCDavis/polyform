@@ -27,8 +27,13 @@ func (gs *GraphSaver) Save() {
 		panic(err)
 	}
 
-	err = os.WriteFile(gs.savePath, data, 0666)
-	if err != nil {
+	// Written beside and renamed over: overwriting a large file in place waits
+	// on the virus scan of its previous version, and a crash mid-write keeps the old graph.
+	partial := gs.savePath + ".partial"
+	if err = os.WriteFile(partial, data, 0666); err != nil {
+		panic(err)
+	}
+	if err = os.Rename(partial, gs.savePath); err != nil {
 		panic(err)
 	}
 	log.Printf("Graph written %s\n", gs.savePath)

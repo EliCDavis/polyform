@@ -12,7 +12,8 @@ import (
 )
 
 func TestStepsTakenTogetherRunOneAtATime(t *testing.T) {
-	h := history.New(func() ([]byte, error) { return nil, nil }, func([]byte) error { return nil })
+	var taken atomic.Int32
+	h := history.New(func() (bytesState, error) { return bytesState{byte(taken.Load())}, nil }, func(bytesState) error { return nil })
 
 	var running, most atomic.Int32
 	var steps sync.WaitGroup
@@ -24,6 +25,7 @@ func TestStepsTakenTogetherRunOneAtATime(t *testing.T) {
 				most.Store(max(most.Load(), running.Add(1)))
 				time.Sleep(time.Millisecond)
 				running.Add(-1)
+				taken.Add(1)
 				return nil
 			})
 		}()
@@ -43,12 +45,12 @@ func TestFailedStepKeepsAStepRequestedDuringIt(t *testing.T) {
 		state = next
 	}
 	h := history.New(
-		func() ([]byte, error) {
+		func() (bytesState, error) {
 			mu.Lock()
 			defer mu.Unlock()
-			return []byte(state), nil
+			return bytesState(state), nil
 		},
-		func(saved []byte) error {
+		func(saved bytesState) error {
 			set(string(saved))
 			return nil
 		},

@@ -2,6 +2,7 @@ package graph
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"maps"
 	"slices"
@@ -13,6 +14,8 @@ import (
 	"github.com/EliCDavis/polyform/generator/variable/variabletypes"
 	"github.com/EliCDavis/polyform/nodes"
 )
+
+var ErrNoLiteral = errors.New("takes no literal")
 
 // node is kept, never rebuilt: settle tells ports apart by their node.
 type literal struct {
@@ -180,14 +183,39 @@ func (a *Graph) literalOf(node nodes.Node, port string) (*literal, error) {
 	}
 	lit := a.literals[node][name]
 	if lit == nil {
-		return nil, fmt.Errorf("input %q takes no literal", label(inputs[name]))
+		return nil, fmt.Errorf("input %q %w", label(inputs[name]), ErrNoLiteral)
 	}
 	return lit, nil
+}
+
+// A node made earlier in the same batch has no literals until the batch closes.
+func (a *Graph) seatLiteral(nodeID, port string) error {
+	node, ok := a.nodesByID[nodeID]
+	if !ok {
+		return nil
+	}
+	inputs := node.Inputs()
+	name, element, ok := inputKey(inputs, port)
+	if !ok || element != nextElement || a.literals[node][name] != nil {
+		return nil
+	}
+	lit, err := a.buildLiteral(node, name, inputs[name])
+	if err != nil || lit == nil {
+		return err
+	}
+	if a.literals[node] == nil {
+		a.literals[node] = nodeLiterals{}
+	}
+	a.literals[node][name] = lit
+	return nil
 }
 
 // Neither dirties nor marks changed: the literal's own version carries the edit.
 func (a *Graph) SetLiteral(nodeID, port string, value []byte) error {
 	_, err := a.project.write(refuseConflicts, func() error {
+		if err := a.seatLiteral(nodeID, port); err != nil {
+			return err
+		}
 		lit, err := a.literalAt(nodeID, port)
 		if err != nil {
 			return err

@@ -9,9 +9,10 @@ import (
 )
 
 type Collection[T any] struct {
-	noun  string
-	mu    sync.RWMutex
-	items map[string]T
+	noun     string
+	mu       sync.RWMutex
+	items    map[string]T
+	onChange func()
 }
 
 // noun is what errors call an item, such as "profile".
@@ -19,11 +20,23 @@ func New[T any](noun string) *Collection[T] {
 	return &Collection[T]{noun: noun, items: make(map[string]T)}
 }
 
+// f runs after every Set, Rename and Delete, outside the collection's lock.
+func (c *Collection[T]) OnChange(f func()) {
+	c.onChange = f
+}
+
+func (c *Collection[T]) changed() {
+	if c.onChange != nil {
+		c.onChange()
+	}
+}
+
 // Set replaces any item already saved under name.
 func (c *Collection[T]) Set(name string, item T) {
 	c.mu.Lock()
-	defer c.mu.Unlock()
 	c.items[name] = item
+	c.mu.Unlock()
+	c.changed()
 }
 
 func (c *Collection[T]) Get(name string) (T, error) {
@@ -39,28 +52,31 @@ func (c *Collection[T]) Get(name string) (T, error) {
 
 func (c *Collection[T]) Rename(name, newName string) error {
 	c.mu.Lock()
-	defer c.mu.Unlock()
-
 	if _, ok := c.items[name]; !ok {
+		c.mu.Unlock()
 		return fmt.Errorf("%s %q does not exist", c.noun, name)
 	}
 	if _, ok := c.items[newName]; ok {
+		c.mu.Unlock()
 		return fmt.Errorf("%s %q already exists", c.noun, newName)
 	}
 
 	c.items[newName] = c.items[name]
 	delete(c.items, name)
+	c.mu.Unlock()
+	c.changed()
 	return nil
 }
 
 func (c *Collection[T]) Delete(name string) error {
 	c.mu.Lock()
-	defer c.mu.Unlock()
-
 	if _, ok := c.items[name]; !ok {
+		c.mu.Unlock()
 		return fmt.Errorf("graph contains no %s named %q", c.noun, name)
 	}
 	delete(c.items, name)
+	c.mu.Unlock()
+	c.changed()
 	return nil
 }
 

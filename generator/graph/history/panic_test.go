@@ -15,7 +15,7 @@ func dereferenceNothing() int {
 }
 
 func TestTransactKeepsTheStackOfAPanic(t *testing.T) {
-	h := history.New(func() ([]byte, error) { return []byte("state"), nil }, func([]byte) error { return nil })
+	h := history.New(func() (bytesState, error) { return bytesState("state"), nil }, func(bytesState) error { return nil })
 
 	err := h.Transact("probe", func() error {
 		dereferenceNothing()

@@ -150,7 +150,7 @@ type imageNodeGraphSchema struct {
 	Value *jbtf.Png
 }
 
-func (tv ImageVariable) toPersistantJSON(encoder *jbtf.Encoder) ([]byte, error) {
+func (tv ImageVariable) toPersistantJSON(encoder Encoder) ([]byte, error) {
 	schema := imageNodeGraphSchema{
 		Type: "image.Image",
 	}
@@ -164,8 +164,8 @@ func (tv ImageVariable) toPersistantJSON(encoder *jbtf.Encoder) ([]byte, error) 
 	return encoder.Marshal(schema)
 }
 
-func (tv *ImageVariable) fromPersistantJSON(decoder jbtf.Decoder, body []byte) error {
-	gn, err := jbtf.Decode[imageNodeGraphSchema](decoder, body)
+func (tv *ImageVariable) fromPersistantJSON(decoder Decoder, body []byte) error {
+	gn, err := jbtf.Decode[imageNodeGraphSchema](decoder.jbtf, body)
 	if err != nil {
 		return err
 	}
