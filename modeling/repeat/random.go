@@ -1,33 +1,17 @@
 package repeat
 
 import (
-	"math"
-	"math/rand/v2"
-
 	"github.com/EliCDavis/polyform/math/chance"
 	"github.com/EliCDavis/polyform/math/trs"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/vector/vector3"
 )
 
-func RandomPointInSphere(radius float64, rnd *rand.Rand) vector3.Float64 {
-	// Sample random direction (normalized Gaussian)
-	x := rnd.NormFloat64()
-	y := rnd.NormFloat64()
-	z := rnd.NormFloat64()
-	len := math.Sqrt(x*x + y*y + z*z)
-
-	// Uniform random radius
-	u := rnd.Float64()
-	r := radius * math.Cbrt(u)
-
-	return vector3.New(x, y, z).DivByConstant(len).Scale(r)
-}
-
-func RandomPointsInSphere(radius float64, count int, rnd *rand.Rand) []vector3.Float64 {
-	results := make([]vector3.Float64, count)
+func RandomPointsInSphere(radius float64, count, seed int) []vector3.Float64 {
+	inside := chance.InsideSphere(radius)
+	results := make([]vector3.Float64, max(count, 0))
 	for i := range results {
-		results[i] = RandomPointInSphere(radius, rnd)
+		results[i] = inside(chance.Roll(seed, i))
 	}
 	return results
 }
@@ -55,7 +39,7 @@ func (g RandomPointsInSphereNode) points(recorder nodes.ExecutionRecorder) []vec
 	return RandomPointsInSphere(
 		nodes.GetOutputValue(recorder, g.Radius),
 		points,
-		chance.FromSeed(nodes.GetOutputValue(recorder, g.Seed)),
+		nodes.GetOutputValue(recorder, g.Seed),
 	)
 }
 

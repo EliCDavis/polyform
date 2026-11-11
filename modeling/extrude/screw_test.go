@@ -153,3 +153,43 @@ func TestScrewNormalsSurviveAwkwardProfiles(t *testing.T) {
 		})
 	}
 }
+
+func tiledDisc(t *testing.T) modeling.Mesh {
+	t.Helper()
+
+	return nodes.GetNodeOutputPort[modeling.Mesh](&nodes.Struct[extrude.ScrewNode]{
+		Data: extrude.ScrewNode{
+			Line: nodes.ConstOutput[[]vector3.Float64]{Val: []vector3.Float64{
+				vector3.New(0., 0., 0.),
+				vector3.New(1., 0., 0.),
+				vector3.New(2., 0., 0.),
+			}},
+			Segments: nodes.ConstOutput[int]{Val: 64},
+			TileSize: nodes.ConstOutput[float64]{Val: 0.5},
+		},
+	}, "Out").Value()
+}
+
+func TestScrewTileSizeCountsWholeRepeatsAroundEachRing(t *testing.T) {
+	uvs := tiledDisc(t).Float2Attribute(modeling.TexCoordAttribute)
+	lastRing := 64 * 3
+
+	assert.InDelta(t, 0., uvs.At(lastRing).X(), 1e-9)
+	assert.InDelta(t, 2., uvs.At(lastRing+1).X(), 1e-9)
+	assert.InDelta(t, 4., uvs.At(lastRing+2).X(), 1e-9)
+
+	assert.InDelta(t, 1., uvs.At(lastRing).Y(), 1e-9)
+	assert.InDelta(t, 13., uvs.At(lastRing+1).Y(), 1e-9)
+	assert.InDelta(t, 25., uvs.At(lastRing+2).Y(), 1e-9)
+}
+
+func TestScrewTileSizeLeavesNoTriangleWithoutUVArea(t *testing.T) {
+	mesh := tiledDisc(t)
+	uvs := mesh.Float2Attribute(modeling.TexCoordAttribute)
+	indices := mesh.Indices()
+	for i := 0; i < indices.Len(); i += 3 {
+		a, b, c := uvs.At(indices.At(i)), uvs.At(indices.At(i+1)), uvs.At(indices.At(i+2))
+		area := b.Sub(a).X()*c.Sub(a).Y() - b.Sub(a).Y()*c.Sub(a).X()
+		assert.NotZero(t, area, "triangle %d", i/3)
+	}
+}

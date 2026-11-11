@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"compress/gzip"
 	"encoding/binary"
-	"fmt"
 	"io"
 	"math"
 	"os"
@@ -202,7 +201,7 @@ func Read(inUncompressed io.Reader) (*Cloud, error) {
 	}
 
 	for i, h := range sh {
-		v3Data[fmt.Sprintf("SH_%d", i)] = h
+		v3Data[modeling.SHAttribute(i)] = h
 	}
 
 	/*

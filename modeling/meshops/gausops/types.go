@@ -13,6 +13,7 @@ func init() {
 	refutil.RegisterType[nodes.Struct[ScaleNode]](factory)
 	refutil.RegisterType[nodes.Struct[ScaleWithinRegionNode]](factory)
 	refutil.RegisterType[nodes.Struct[RotateAttributeNode]](factory)
+	refutil.RegisterType[nodes.Struct[RotateNode]](factory)
 	refutil.RegisterType[nodes.Struct[FilterNode]](factory)
 
 	registry.Register(factory)

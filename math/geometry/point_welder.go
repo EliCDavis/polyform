@@ -1,8 +1,6 @@
 package geometry
 
 import (
-	"math"
-
 	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
 )
@@ -12,10 +10,10 @@ import (
 type pointWelder[T comparable] struct {
 	tolerance float64
 	cell      float64
-	dims      int
-	coords    func(T) [3]float64
+	extent    vector3.Float64
+	coords    func(T) vector3.Float64
 	distance  func(a, b T) float64
-	buckets   map[[3]int64][]int
+	buckets   map[vector3.Int][]int
 	exact     map[T]int
 	points    []T
 }
@@ -24,19 +22,19 @@ const cellsPerTolerance = 8
 
 func newPointWelder[T comparable](
 	tolerance float64,
-	dims int,
-	coords func(T) [3]float64,
+	extent vector3.Float64,
+	coords func(T) vector3.Float64,
 	distance func(a, b T) float64,
 ) pointWelder[T] {
 	w := pointWelder[T]{
 		tolerance: tolerance,
 		cell:      tolerance * cellsPerTolerance,
-		dims:      dims,
+		extent:    extent.Scale(tolerance),
 		coords:    coords,
 		distance:  distance,
 	}
 	if tolerance > 0 {
-		w.buckets = make(map[[3]int64][]int)
+		w.buckets = make(map[vector3.Int][]int)
 	} else {
 		w.exact = make(map[T]int)
 	}
@@ -45,12 +43,8 @@ func newPointWelder[T comparable](
 
 func (w *pointWelder[T]) Tolerance() float64 { return w.tolerance }
 
-func (w *pointWelder[T]) cellOf(c [3]float64) [3]int64 {
-	var key [3]int64
-	for i := 0; i < w.dims; i++ {
-		key[i] = int64(math.Floor(c[i] / w.cell))
-	}
-	return key
+func (w *pointWelder[T]) cellOf(c vector3.Float64) vector3.Int {
+	return c.DivByConstant(w.cell).FloorToInt()
 }
 
 func (w *pointWelder[T]) find(p T) (int, bool) {
@@ -60,18 +54,12 @@ func (w *pointWelder[T]) find(p T) (int, bool) {
 	}
 
 	c := w.coords(p)
-	var lo, hi [3]float64
-	for i := 0; i < w.dims; i++ {
-		lo[i] = c[i] - w.tolerance
-		hi[i] = c[i] + w.tolerance
-	}
-	from, to := w.cellOf(lo), w.cellOf(hi)
+	from, to := w.cellOf(c.Sub(w.extent)), w.cellOf(c.Add(w.extent))
 
-	var key [3]int64
-	for key[0] = from[0]; key[0] <= to[0]; key[0]++ {
-		for key[1] = from[1]; key[1] <= to[1]; key[1]++ {
-			for key[2] = from[2]; key[2] <= to[2]; key[2]++ {
-				for _, i := range w.buckets[key] {
+	for x := from.X(); x <= to.X(); x++ {
+		for y := from.Y(); y <= to.Y(); y++ {
+			for z := from.Z(); z <= to.Z(); z++ {
+				for _, i := range w.buckets[vector3.New(x, y, z)] {
 					if w.distance(w.points[i], p) <= w.tolerance {
 						return i, true
 					}
@@ -112,8 +100,8 @@ type PointWelder3D struct {
 }
 
 func NewPointWelder3D(tolerance float64) *PointWelder3D {
-	return &PointWelder3D{newPointWelder(tolerance, 3,
-		func(p vector3.Float64) [3]float64 { return [3]float64{p.X(), p.Y(), p.Z()} },
+	return &PointWelder3D{newPointWelder(tolerance, vector3.One[float64](),
+		func(p vector3.Float64) vector3.Float64 { return p },
 		func(a, b vector3.Float64) float64 { return a.Distance(b) },
 	)}
 }
@@ -133,8 +121,8 @@ type PointWelder2D struct {
 }
 
 func NewPointWelder2D(tolerance float64) *PointWelder2D {
-	return &PointWelder2D{newPointWelder(tolerance, 2,
-		func(p vector2.Float64) [3]float64 { return [3]float64{p.X(), p.Y(), 0} },
+	return &PointWelder2D{newPointWelder(tolerance, vector3.New(1., 1, 0),
+		func(p vector2.Float64) vector3.Float64 { return vector3.New(p.X(), p.Y(), 0) },
 		func(a, b vector2.Float64) float64 { return a.Distance(b) },
 	)}
 }

@@ -2,9 +2,8 @@ package repeat
 
 import (
 	"fmt"
-	"math"
+	"sort"
 
-	"github.com/EliCDavis/polyform/math/bias"
 	"github.com/EliCDavis/polyform/math/chance"
 	"github.com/EliCDavis/polyform/math/trs"
 	"github.com/EliCDavis/polyform/modeling"
@@ -19,16 +18,8 @@ type MeshSurface struct {
 	Seed      int
 }
 
-func phi(d int) float64 {
-	x := 2.0000
-	for range 10 {
-		x = math.Pow(1+x, 1./(float64(d)+1))
-	}
-	return x
-}
-
 func (ms MeshSurface) TRS() []trs.TRS {
-	if ms.Samples == 0 {
+	if ms.Samples <= 0 {
 		return nil
 	}
 
@@ -36,46 +27,32 @@ func (ms MeshSurface) TRS() []trs.TRS {
 		panic(fmt.Errorf("can only sample triangle mesh"))
 	}
 
-	attr := ms.Attribute
-
 	triCount := ms.Mesh.PrimitiveCount()
 	if triCount == 0 {
 		return nil
 	}
 
-	items := make([]bias.ListItem[int], 0, triCount)
+	cumulative := make([]float64, triCount)
+	total := 0.
 	for i := range triCount {
-		items = append(items, bias.ListItem[int]{
-			Item:   i,
-			Weight: ms.Mesh.Tri(i).Area3D(attr),
-		})
+		total += ms.Mesh.Tri(i).Area3D(ms.Attribute)
+		cumulative[i] = total
+	}
+	if total <= 0 {
+		return nil
 	}
 
-	list := bias.NewList(items, bias.ListConfig{Seed: chance.FromSeed(ms.Seed)})
-
-	samplesPerTri := make([]int, triCount)
-	for range ms.Samples {
-		samplesPerTri[list.Next()]++
-	}
-
-	g := phi(2)
-	a1 := 1. / g
-	a2 := 1. / (g * g)
-	alpha := vector2.New(a1, a2)
-	seed := vector2.New(0.5, 0.5)
-
-	transforms := make([]trs.TRS, 0, ms.Samples)
-	for triIndex, sampleCount := range samplesPerTri {
-		tri := ms.Mesh.Tri(triIndex)
-		normal := tri.Normal(ms.Attribute)
-
-		for range sampleCount {
-			n := float64(len(transforms))
-			// u := vector2.New(math.Mod(0.5+a1*n, 1.), math.Mod(0.5+a2*n, 1.))
-			u := alpha.Scale(n).Add(seed).Mod(1)
-			p := tri.UniformSample(ms.Attribute, u)
-			transforms = append(transforms, trs.Position(p).LookAt(p.Add(normal)))
+	transforms := make([]trs.TRS, ms.Samples)
+	for i := range transforms {
+		next := chance.Roll(ms.Seed, i)
+		target := next() * total
+		triIndex := min(sort.SearchFloat64s(cumulative, target), triCount-1)
+		for triIndex < triCount-1 && cumulative[triIndex] <= target {
+			triIndex++
 		}
+		tri := ms.Mesh.Tri(triIndex)
+		p := tri.UniformSample(ms.Attribute, vector2.New(next(), next()))
+		transforms[i] = trs.Position(p).LookAt(p.Add(tri.Normal(ms.Attribute)))
 	}
 
 	return transforms

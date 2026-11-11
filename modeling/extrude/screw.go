@@ -17,6 +17,7 @@ type ScrewNode struct {
 	Revolutions nodes.Output[float64]           `default:"1"`
 	Distance    nodes.Output[float64]
 	UVs         nodes.Output[primitives.StripUVs]
+	TileSize    nodes.Output[float64]           `description:"World size of one texture repeat. Above 0 it replaces UVs, with a whole number of repeats around each ring."`
 }
 
 func (snd ScrewNode) Description() string {
@@ -41,6 +42,7 @@ func (snd ScrewNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 	turn := math.Pi * 2 * nodes.GetOutputValue(out, snd.Revolutions)
 	climb := nodes.GetOutputValue(out, snd.Distance)
 	strip := nodes.TryGetOutputValue(out, snd.UVs, primitives.UnitStripUVs())
+	tileSize := nodes.TryGetOutputValue(out, snd.TileSize, 0)
 	axis := vector3.Up[float64]()
 
 	// The surface's normal is the way a point moves through the sweep
@@ -66,6 +68,14 @@ func (snd ScrewNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 		}
 	}
 
+	repeatsAround := make([]float64, len(line))
+	if tileSize > 0 {
+		for i, p := range line {
+			path := math.Hypot(turn*math.Hypot(p.X(), p.Z()), climb)
+			repeatsAround[i] = math.Max(1, math.Round(path/tileSize))
+		}
+	}
+
 	rings := segments + 1
 	verts := make([]vector3.Float64, 0, len(line)*rings)
 	normals := make([]vector3.Float64, 0, len(line)*rings)
@@ -80,7 +90,11 @@ func (snd ScrewNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 			}
 			verts = append(verts, q.Rotate(p).Add(axis.Scale(climb*t)))
 			normals = append(normals, q.Rotate(normal.Normalized()))
-			uvs = append(uvs, strip.AtXY(vector2.New(across[i]/across[len(line)-1], t)))
+			if tileSize > 0 {
+				uvs = append(uvs, vector2.New(across[i]/tileSize, t*repeatsAround[i]))
+			} else {
+				uvs = append(uvs, strip.AtXY(vector2.New(across[i]/across[len(line)-1], t)))
+			}
 		}
 	}
 

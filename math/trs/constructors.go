@@ -104,9 +104,7 @@ func FromMatrix(m mat.Matrix4x4) (TRS, error) {
 	if axes[0].Cross(axes[1]).Dot(axes[2]) < 0 {
 		i := mostReflectedAxis(axes)
 		axes[i] = axes[i].Scale(-1)
-		flip := [3]float64{1, 1, 1}
-		flip[i] = -1
-		scale = scale.MultByVector(vector3.New(flip[0], flip[1], flip[2]))
+		scale = scale.MultByVector(vector3.One[float64]().Sub(basis(i).Scale(2)))
 	}
 	rotM := mat.Matrix4x4{
 		X00: axes[0].X(), X01: axes[1].X(), X02: axes[2].X(),
@@ -126,14 +124,24 @@ func FromMatrix(m mat.Matrix4x4) (TRS, error) {
 // one pointing furthest against its own basis vector, so an axis-aligned
 // mirror decomposes back to the scale it was built from.
 func mostReflectedAxis(axes [3]vector3.Float64) int {
-	along := [3]float64{axes[0].X(), axes[1].Y(), axes[2].Z()}
 	worst := 0
 	for i := 1; i < 3; i++ {
-		if along[i] < along[worst] {
+		if axes[i].Component(i) < axes[worst].Component(worst) {
 			worst = i
 		}
 	}
 	return worst
+}
+
+func basis(i int) vector3.Float64 {
+	switch i {
+	case 0:
+		return vector3.Right[float64]()
+	case 1:
+		return vector3.Up[float64]()
+	default:
+		return vector3.Forward[float64]()
+	}
 }
 
 // rotationAxes normalizes each column with any length and rebuilds the

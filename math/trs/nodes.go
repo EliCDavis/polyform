@@ -1,11 +1,9 @@
 package trs
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/EliCDavis/polyform/generator/registry"
-	"github.com/EliCDavis/polyform/math/chance"
 	"github.com/EliCDavis/polyform/math/mat"
 	"github.com/EliCDavis/polyform/math/quaternion"
 	"github.com/EliCDavis/polyform/nodes"
@@ -21,7 +19,6 @@ func init() {
 	refutil.RegisterType[nodes.Struct[TransformPointNode]](factory)
 	refutil.RegisterType[nodes.Struct[LookAtNode]](factory)
 	refutil.RegisterType[nodes.Struct[PivotNode]](factory)
-	refutil.RegisterType[nodes.Struct[RandomizeArrayNode]](factory)
 	refutil.RegisterType[nodes.Struct[MultiplyNode]](factory)
 	refutil.RegisterType[nodes.Struct[MultiplyToArrayNode]](factory)
 	refutil.RegisterType[nodes.Struct[SelectNode]](factory)
@@ -48,73 +45,6 @@ func (tnd NewNode) Out(out *nodes.Lifted[TRS]) {
 		tnd.Scale,
 		New,
 	)
-}
-
-// ============================================================================
-
-type RandomizeArrayNode struct {
-	TranslationMinimum nodes.Output[vector3.Float64]
-	TranslationMaximum nodes.Output[vector3.Float64]
-	ScaleMinimum       nodes.Output[vector3.Float64] `default:"1,1,1"`
-	ScaleMaximum       nodes.Output[vector3.Float64] `default:"1,1,1"`
-	RotationMinimum    nodes.Output[vector3.Float64]
-	RotationMaximum    nodes.Output[vector3.Float64]
-	Array              nodes.Output[[]TRS]
-	Seed               nodes.Output[int] `description:"The same seed always produces the same offsets."`
-}
-
-func (tnd RandomizeArrayNode) Description() string {
-	return "Randomly offsets each transform's position, scale and rotation within the given ranges."
-}
-
-func (tnd RandomizeArrayNode) Out(out *nodes.StructOutput[[]TRS]) {
-	input := nodes.TryGetOutputValue(out, tnd.Array, nil)
-	if len(input) == 0 {
-		return
-	}
-
-	minT := nodes.GetOutputValue(out, tnd.TranslationMinimum)
-	maxT := nodes.GetOutputValue(out, tnd.TranslationMaximum)
-	rangeT := maxT.Sub(minT)
-
-	minS := nodes.GetOutputValue(out, tnd.ScaleMinimum)
-	maxS := nodes.GetOutputValue(out, tnd.ScaleMaximum)
-	rangeS := maxS.Sub(minS)
-
-	minR := nodes.GetOutputValue(out, tnd.RotationMinimum)
-	maxR := nodes.GetOutputValue(out, tnd.RotationMaximum)
-	rangeR := maxR.Sub(minR)
-
-	rnd := chance.FromSeed(nodes.GetOutputValue(out, tnd.Seed))
-
-	arr := make([]TRS, len(input))
-	for i := range input {
-		sample := New(
-			minT.Add(vector3.New(
-				rangeT.X()*rnd.Float64(),
-				rangeT.Y()*rnd.Float64(),
-				rangeT.Z()*rnd.Float64(),
-			)),
-			quaternion.FromEulerAngle(minR.Add(vector3.New(
-				rangeR.X()*rnd.Float64(),
-				rangeR.Y()*rnd.Float64(),
-				rangeR.Z()*rnd.Float64(),
-			))),
-			minS.Add(vector3.New(
-				rangeS.X()*rnd.Float64(),
-				rangeS.Y()*rnd.Float64(),
-				rangeS.Z()*rnd.Float64(),
-			)),
-		)
-		composed, err := FromMatrix(input[i].Multiply(sample))
-		if err != nil {
-			out.CaptureError(fmt.Errorf("entry %d: %w", i, err))
-			return
-		}
-		arr[i] = composed
-	}
-
-	out.Set(arr)
 }
 
 // ============================================================================

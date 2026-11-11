@@ -31,13 +31,9 @@ func RotateAttribute3D(m modeling.Mesh, attribute string, q quaternion.Quaternio
 		panic(err)
 	}
 
-	oldData := m.Float3Attribute(attribute)
-	scaledData := make([]vector3.Float64, oldData.Len())
-	for i := 0; i < oldData.Len(); i++ {
-		scaledData[i] = q.Rotate(oldData.At(i))
-	}
-
-	return m.SetFloat3Attribute(attribute, scaledData)
+	return m.ModifyFloat3AttributeParallel(attribute, func(_ int, v vector3.Float64) vector3.Float64 {
+		return q.Rotate(v)
+	})
 }
 
 type RotateAttribute3DNode struct {

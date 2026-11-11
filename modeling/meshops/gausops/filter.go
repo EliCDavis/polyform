@@ -6,6 +6,26 @@ import (
 	"github.com/EliCDavis/polyform/nodes"
 )
 
+func Filter(m modeling.Mesh, minOpacity, maxOpacity, minVolume, maxVolume float64) modeling.Mesh {
+	byOpacity := maxOpacity > minOpacity
+	byVolume := maxVolume > minVolume
+
+	opacity := m.Float1Attribute(modeling.OpacityAttribute)
+	scale := m.Float3Attribute(modeling.ScaleAttribute)
+
+	kept := meshops.SelectIndices(opacity.Len(), func(i int) bool {
+		if byOpacity && (opacity.At(i) < minOpacity || opacity.At(i) > maxOpacity) {
+			return false
+		}
+
+		exp := scale.At(i).Exp()
+		volume := exp.X() * exp.Y() * exp.Z()
+		return !(byVolume && (volume < minVolume || volume > maxVolume))
+	})
+
+	return meshops.GatherPoints(m, kept)
+}
+
 type FilterNode struct {
 	Splat nodes.Output[modeling.Mesh]
 
@@ -25,30 +45,11 @@ func (fnd FilterNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 		return
 	}
 
-	minOpacity := nodes.GetOutputValue(out, fnd.MinOpacity)
-	maxOpacity := nodes.GetOutputValue(out, fnd.MaxOpacity)
-	minVolume := nodes.GetOutputValue(out, fnd.MinVolume)
-	maxVolume := nodes.GetOutputValue(out, fnd.MaxVolume)
-	byOpacity := maxOpacity > minOpacity
-	byVolume := maxVolume > minVolume
-
-	m := nodes.GetOutputValue(out, fnd.Splat)
-	opacity := m.Float1Attribute(modeling.OpacityAttribute)
-	scale := m.Float3Attribute(modeling.ScaleAttribute)
-
-	indicesKept := make([]int, 0)
-	for i := 0; i < opacity.Len(); i++ {
-		if byOpacity && (opacity.At(i) < minOpacity || opacity.At(i) > maxOpacity) {
-			continue
-		}
-
-		exp := scale.At(i).Exp()
-		length := exp.X() * exp.Y() * exp.Z()
-		if byVolume && (length < minVolume || length > maxVolume) {
-			continue
-		}
-		indicesKept = append(indicesKept, i)
-	}
-
-	out.Set(meshops.RemovedUnreferencedVertices(m.SetIndices(indicesKept)))
+	out.Set(Filter(
+		nodes.GetOutputValue(out, fnd.Splat),
+		nodes.GetOutputValue(out, fnd.MinOpacity),
+		nodes.GetOutputValue(out, fnd.MaxOpacity),
+		nodes.GetOutputValue(out, fnd.MinVolume),
+		nodes.GetOutputValue(out, fnd.MaxVolume),
+	))
 }
