@@ -6,7 +6,9 @@ import (
 	"sort"
 
 	"github.com/EliCDavis/polyform/generator/graph"
+	"github.com/EliCDavis/polyform/generator/manifest"
 	"github.com/EliCDavis/polyform/generator/subgraph"
+	"github.com/EliCDavis/polyform/nodes"
 	mcpsdk "github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -29,8 +31,8 @@ type PruneOrphansOutput struct {
 
 // orphansIn lists nodes in inst that feed nothing, iterating so a chain
 // whose only consumer was itself dead is listed whole. Producers'
-// sources, subgraph boundary nodes of either direction, and anything in
-// keep survive.
+// sources, manifests, subgraph boundary nodes of either direction, and
+// anything in keep survive.
 func orphansIn(inst *graph.Graph, keep map[string]bool) []string {
 	sch := inst.Schema()
 	protected := map[string]bool{}
@@ -46,7 +48,7 @@ func orphansIn(inst *graph.Graph, keep map[string]bool) []string {
 	// that port and leaves the outline describing an input that no longer
 	// exists.
 	for id, n := range sch.Nodes {
-		if n.SubGraphOutputBoundary != nil || n.SubGraphInputBoundary != nil {
+		if n.SubGraphOutputBoundary != nil || n.SubGraphInputBoundary != nil || producesManifest(inst.Node(id)) {
 			protected[id] = true
 		}
 	}
@@ -81,6 +83,18 @@ func orphansIn(inst *graph.Graph, keep map[string]bool) []string {
 	}
 	sort.Strings(ids)
 	return ids
+}
+
+func producesManifest(node nodes.Node) bool {
+	if node == nil {
+		return false
+	}
+	for _, out := range node.Outputs() {
+		if _, ok := out.(nodes.Output[manifest.Manifest]); ok {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *Server) pruneOrphans(ctx context.Context, req *mcpsdk.CallToolRequest, in PruneOrphansInput) (*mcpsdk.CallToolResult, PruneOrphansOutput, error) {
@@ -148,6 +162,6 @@ func (s *Server) pruneOrphans(ctx context.Context, req *mcpsdk.CallToolRequest, 
 func (s *Server) registerPruneTools() {
 	mcpsdk.AddTool(s.sdk, &mcpsdk.Tool{
 		Name:        "prune_orphans",
-		Description: fmt.Sprintf("List (or with apply: true, delete) every node whose outputs nothing reads - literals left behind by a rewire, variable references that lost their consumer, a primitive that was replaced - and the whole dead chain behind each one. Producer sources and subgraph boundary ports (inputs and outputs alike, since both are the subgraph's public interface) are never touched. Run it before save_graph; a graph is not done while it carries nodes that compute nothing. Scope '%s' covers the root and every subgraph.", "all"),
+		Description: fmt.Sprintf("List (or with apply: true, delete) every node whose outputs nothing reads - literals left behind by a rewire, variable references that lost their consumer, a primitive that was replaced - and the whole dead chain behind each one. Manifest nodes, producer sources and subgraph boundary ports (inputs and outputs alike, since both are the subgraph's public interface) are never touched. Run it before save_graph; a graph is not done while it carries nodes that compute nothing. Scope '%s' covers the root and every subgraph.", "all"),
 	}, s.pruneOrphans)
 }

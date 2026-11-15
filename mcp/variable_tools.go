@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
+	"strings"
 
 	"github.com/EliCDavis/polyform/generator/graph"
 	"github.com/EliCDavis/polyform/generator/schema"
@@ -23,7 +24,7 @@ func NewTypedVariable(typeKey string) (variable.Variable, error) {
 
 type CreateVariableInput struct {
 	Path        string `json:"path" jsonschema:"unique variable path, e.g. 'Radius', or 'Top/Radius' to file it in a group ('/' nests); this is also the type key passed to create_node to place a reference to this variable in the graph"`
-	Type        string `json:"type" jsonschema:"one of: float64, int, string, bool, vector2.Vector[float64], vector2.Vector[int], vector3.Vector[float64], vector3.Vector[int], vector4.Vector[float64], []float64, []int, []string, []vector2.Vector[float64], []vector2.Vector[int], []vector3.Vector[float64], []vector3.Vector[int], geometry.AABB, quaternion.Quaternion, trs.TRS, []trs.TRS, coloring.Color, []coloring.Color, coloring.Gradient[github.com/EliCDavis/polyform/drawing/coloring.Color], image.Image, file, or an enum's type from list_enums (its value is a member name)"`
+	Type        string `json:"type" jsonschema:"one of: float64, int, norm.UFloat64 (0 to 1), norm.SFloat64 (-1 to 1), string, bool, vector2.Vector[float64], vector2.Vector[int], vector3.Vector[float64], vector3.Vector[int], vector4.Vector[float64], []float64, []int, []string, []vector2.Vector[float64], []vector2.Vector[int], []vector3.Vector[float64], []vector3.Vector[int], geometry.AABB, quaternion.Quaternion, trs.TRS, []trs.TRS, coloring.Color, []coloring.Color, coloring.Gradient[github.com/EliCDavis/polyform/drawing/coloring.Color], image.Image, file, or an enum's type from list_enums (its value is a member name)"`
 	Description string `json:"description,omitempty" jsonschema:"shown to whoever edits this variable's value later; explain what it controls"`
 	Value       string `json:"value,omitempty" jsonschema:"the initial value as JSON text inside a string, never a bare JSON number/object: \"5\", \"\\\"red\\\"\", \"{\\\"x\\\":1,\\\"y\\\":2,\\\"z\\\":3}\"; omit to use the type's zero value"`
 }
@@ -117,6 +118,7 @@ type UpdateVariableInput struct {
 	Path        string `json:"path"`
 	Value       string `json:"value,omitempty" jsonschema:"the new value as JSON text inside a string, never a bare JSON number/object: \"5\", \"\\\"red\\\"\", \"{\\\"x\\\":1,\\\"y\\\":2,\\\"z\\\":3}\". Omit to change only the description."`
 	Description string `json:"description,omitempty" jsonschema:"if set, replaces the variable's description; references and the value are untouched"`
+	Type        string `json:"type,omitempty" jsonschema:"if set, changes the variable's type in place (same keys as create_variable's type). Path, description, reference nodes and their wiring, profile keys and variant sets all stay. The current value carries over unless value is passed. Refused, with nothing changed, when the value, a profile's value, a variant set's value or an input reading the variable does not fit the new type."`
 	Reset       bool   `json:"reset,omitempty" jsonschema:"set the variable back to its creation default. The graph does not record that default, so this currently reports that instead of changing anything; pass value to set a default you know."`
 }
 
@@ -128,10 +130,19 @@ func (s *Server) updateOneVariable(in UpdateVariableInput) (bool, error) {
 	if in.Reset {
 		return false, fmt.Errorf("variable %q has no recorded default: the graph stores only a variable's current value, so reset has nothing to restore - pass value instead", in.Path)
 	}
-	if in.Value == "" && in.Description == "" {
-		return false, fmt.Errorf("pass a value, a description, or both")
+	if in.Value == "" && in.Description == "" && in.Type == "" {
+		return false, fmt.Errorf("pass a value, a description, a type, or several")
 	}
-	updated := false
+	if in.Type != "" {
+		if e := s.retypeVariable(in); e != nil {
+			return false, e
+		}
+		in.Value = ""
+		if in.Description == "" {
+			return true, nil
+		}
+	}
+	updated := in.Type != ""
 	if in.Description != "" {
 		if e := s.graph.SetVariableDescription(in.Path, in.Description); e != nil {
 			return false, e
@@ -150,6 +161,22 @@ func (s *Server) updateOneVariable(in UpdateVariableInput) (bool, error) {
 	return updated || ok, nil
 }
 
+func (s *Server) retypeVariable(in UpdateVariableInput) error {
+	var e error
+	if in.Value == "" {
+		e = s.graph.RetypeVariable(in.Path, in.Type, nil)
+	} else {
+		_, e = applyJSONText(in.Value, func(value []byte) (bool, error) {
+			e := s.graph.RetypeVariable(in.Path, in.Type, value)
+			return e == nil, e
+		})
+	}
+	if readers := s.variableReferences()[in.Path]; e != nil && len(readers) > 0 {
+		return fmt.Errorf("%w; it is read by %s", e, strings.Join(readers, ", "))
+	}
+	return e
+}
+
 func (s *Server) updateVariable(ctx context.Context, req *mcpsdk.CallToolRequest, in UpdateVariableInput) (*mcpsdk.CallToolResult, UpdateVariableOutput, error) {
 	var out UpdateVariableOutput
 	var err error
@@ -162,7 +189,7 @@ func (s *Server) updateVariable(ctx context.Context, req *mcpsdk.CallToolRequest
 }
 
 type UpdateVariablesInput struct {
-	Variables []UpdateVariableInput `json:"variables" jsonschema:"one entry per variable, same shape as update_variable's arguments (path, value, description, reset)"`
+	Variables []UpdateVariableInput `json:"variables" jsonschema:"one entry per variable, same shape as update_variable's arguments (path, value, description, type, reset)"`
 }
 
 type UpdateVariableStatus struct {
@@ -382,7 +409,7 @@ func (s *Server) registerVariableTools() {
 
 	mcpsdk.AddTool(s.sdk, &mcpsdk.Tool{
 		Name:        "update_variable",
-		Description: "Set a variable's current value and/or description. Every node referencing this variable picks up the new value immediately. The value is JSON text; a number or object wrapped in a JSON string is unwrapped. Saved profiles are snapshots and do not follow this change - update_profile the ones that should.",
+		Description: "Set a variable's current value, description and/or type. Every node referencing this variable picks up the new value immediately. Passing type changes it in place, keeping references, profiles and variant sets. The value is JSON text; a number or object wrapped in a JSON string is unwrapped. Saved profiles are snapshots and do not follow this change - update_profile the ones that should.",
 	}, s.updateVariable)
 
 	mcpsdk.AddTool(s.sdk, &mcpsdk.Tool{

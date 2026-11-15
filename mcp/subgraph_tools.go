@@ -120,19 +120,12 @@ func (s *Server) createSubgraph(ctx context.Context, req *mcpsdk.CallToolRequest
 		// on it yet, so the subgraph can be discarded cleanly.
 		out.Inputs = make(map[string]string, len(in.Inputs))
 		for _, port := range in.Inputs {
-			id, e := createBoundary(child, subgraph.InputNodeTypeKey, port.Name, port.Type)
+			id, e := createBoundary(child, subgraph.InputNodeTypeKey, port.Name, port.Type, port.Default)
 			if e != nil {
 				_, _ = s.graph.DeleteSubGraph(in.Id)
 				return fmt.Errorf("input %q: %w", port.Name, e)
 			}
 			out.Inputs[port.Name] = id
-			if port.Default == "" {
-				continue
-			}
-			if e := setBoundaryDefault(child, id, port.Default); e != nil {
-				_, _ = s.graph.DeleteSubGraph(in.Id)
-				return fmt.Errorf("input %q default: %w", port.Name, e)
-			}
 		}
 		out.Outputs = make(map[string]string, len(in.Outputs))
 		for _, port := range in.Outputs {
@@ -143,7 +136,7 @@ func (s *Server) createSubgraph(ctx context.Context, req *mcpsdk.CallToolRequest
 				}
 				continue
 			}
-			id, e := createBoundary(child, subgraph.OutputNodeTypeKey, port.Name, port.Type)
+			id, e := createBoundary(child, subgraph.OutputNodeTypeKey, port.Name, port.Type, "")
 			if e != nil {
 				_, _ = s.graph.DeleteSubGraph(in.Id)
 				return fmt.Errorf("output %q: %w", port.Name, e)
@@ -196,7 +189,7 @@ func (s *Server) createSubgraph(ctx context.Context, req *mcpsdk.CallToolRequest
 					if e != nil {
 						return e
 					}
-					id, e := createBoundary(child, subgraph.OutputNodeTypeKey, port.Name, typeKey)
+					id, e := createBoundary(child, subgraph.OutputNodeTypeKey, port.Name, typeKey, "")
 					if e != nil {
 						return e
 					}
@@ -239,10 +232,16 @@ func outputPortTypeKey(node nodes.Node, portName string) (string, error) {
 	return typed.Type(), nil
 }
 
-func createBoundary(child *graph.Graph, kind, name, portType string) (string, error) {
+func createBoundary(child *graph.Graph, kind, name, portType, defaultValue string) (string, error) {
 	_, id, err := child.CreateBoundaryNode(kind, portType)
 	if err != nil {
 		return "", err
+	}
+	// The default must land before the name: naming seats existing instances' literals from it.
+	if defaultValue != "" {
+		if err := setBoundaryDefault(child, id, defaultValue); err != nil {
+			return "", fmt.Errorf("default: %w", err)
+		}
 	}
 	if err := child.SetBoundaryNodeInfo(id, name); err != nil {
 		return "", err
@@ -687,7 +686,7 @@ type CreateBoundaryNodeInput struct {
 	Kind          string             `json:"kind,omitempty" jsonschema:"either 'input' or 'output' — whether this port feeds a value into the subgraph or exposes one out of it"`
 	PortType      string             `json:"portType,omitempty" jsonschema:"the boundary port's data type key, e.g. float64, github.com/EliCDavis/vector/vector3.Vector[float64]"`
 	Name          string             `json:"name,omitempty" jsonschema:"the port name callers will see on nodes created by instantiate_subgraph. This is the OUTSIDE name only; the boundary node's own ports are always called 'Value' regardless of what you name it here"`
-	WireInstances *NodeInputElement  `json:"wireInstances,omitempty" jsonschema:"for an input: feed every existing instance of the subgraph in this same call - {variable: path}, {value: json literal} (one literal per instance), or {nodeId, port} (looked up in each instance's own scope). Without it the new port is unconnected on every instance and reads the type's zero value."`
+	WireInstances *NodeInputElement  `json:"wireInstances,omitempty" jsonschema:"for an input: feed every existing instance of the subgraph in this same call - {variable: path}, {value: json literal} (one literal per instance), or {nodeId, port} (looked up in each instance's own scope). Without it the new port is unconnected on every instance and reads 'default', else the type's zero value."`
 	Default       string             `json:"default,omitempty" jsonschema:"for an input: JSON literal an unwired instance reads. Omitted, it is the value or the variable's current value that wireInstances feeds"`
 	Through       []string           `json:"through,omitempty" jsonschema:"for an input: the subgraph ids that nest this one, outermost first - ['outer','middle'] when outer places middle and middle places subgraphId. Each gets a same-named input wired to its inner instances, so the value reaches this port from the outermost's instances in one call; wireInstances then feeds the outermost's instances."`
 	Ports         []BoundaryPortSpec `json:"ports,omitempty" jsonschema:"several ports in one call, each with its own kind, name, portType, default and wireInstances; the single-port fields must then be left out. 'through' applies to every input in the list."`
@@ -698,7 +697,7 @@ type CreatedBoundaryPort struct {
 	NodeId    string            `json:"nodeId"`
 	Port      string            `json:"port" jsonschema:"the port name to pass to connect_nodes for this boundary node inside the subgraph - always 'Value', never the name you gave it. An input boundary's 'Value' is an output port (wire it into the subgraph's interior); an output boundary's 'Value' is an input port (wire the interior into it)."`
 	Chain     map[string]string `json:"chain,omitempty" jsonschema:"for 'through': outer subgraph id -> the boundary node created there, already wired to its inner instances"`
-	Instances []string          `json:"instances,omitempty" jsonschema:"for a new input: 'scope/nodeId' of every existing instance that got this port (of the outermost subgraph when 'through' is set). Each reads the type's zero value until wired, unless wireInstances fed it."`
+	Instances []string          `json:"instances,omitempty" jsonschema:"for a new input: 'scope/nodeId' of every existing instance that got this port (of the outermost subgraph when 'through' is set). Each unfed one reads 'default', else the type's zero value."`
 	Wired     []string          `json:"wired,omitempty" jsonschema:"instances wireInstances fed"`
 	Unwired   []string          `json:"unwired,omitempty" jsonschema:"instances left unfed, with why: a 'through' chain only reaches instances placed along it"`
 }
@@ -707,7 +706,7 @@ type CreateBoundaryNodeOutput struct {
 	NodeId    string                `json:"nodeId,omitempty"`
 	Port      string                `json:"port,omitempty" jsonschema:"always 'Value'; see ports[].port"`
 	Chain     map[string]string     `json:"chain,omitempty"`
-	Instances []string              `json:"instances,omitempty" jsonschema:"for a new input: 'scope/nodeId' of every existing instance of this subgraph, each of which now has this port unconnected and reads the type's zero value until wired. Empty when there are no instances yet."`
+	Instances []string              `json:"instances,omitempty" jsonschema:"for a new input: 'scope/nodeId' of every existing instance of this subgraph, each of which reads 'default', else the type's zero value, until wired. Empty when there are no instances yet."`
 	Wired     []string              `json:"wired,omitempty"`
 	Unwired   []string              `json:"unwired,omitempty"`
 	Ports     []CreatedBoundaryPort `json:"ports,omitempty" jsonschema:"one entry per port when 'ports' was passed"`
@@ -769,18 +768,9 @@ func (s *Server) addBoundaryPort(subgraphID string, spec BoundaryPortSpec, throu
 		return port, fmt.Errorf("kind must be \"input\" or \"output\", got %q", spec.Kind)
 	}
 
-	id, err := createBoundary(child, typeKey, spec.Name, spec.PortType)
-	if err != nil {
-		return port, err
-	}
-	port.Name, port.NodeId, port.Port = spec.Name, id, subgraph.ValuePortName
-	if spec.Kind == "output" {
-		return port, nil
-	}
-
 	sch := s.graph.Schema()
 	defaultValue := spec.Default
-	if defaultValue == "" && spec.WireInstances != nil {
+	if spec.Kind == "input" && defaultValue == "" && spec.WireInstances != nil {
 		switch {
 		case spec.WireInstances.Value != "":
 			defaultValue = spec.WireInstances.Value
@@ -792,18 +782,16 @@ func (s *Server) addBoundaryPort(subgraphID string, spec BoundaryPortSpec, throu
 			}
 		}
 	}
-	withDefault := func(g *graph.Graph, boundaryID string) error {
-		if defaultValue == "" {
-			return nil
-		}
-		if e := setBoundaryDefault(g, boundaryID, defaultValue); e != nil {
-			return fmt.Errorf("default: %w", e)
-		}
-		return nil
-	}
-	if err := withDefault(child, id); err != nil {
+
+	id, err := createBoundary(child, typeKey, spec.Name, spec.PortType, defaultValue)
+	if err != nil {
 		return port, err
 	}
+	port.Name, port.NodeId, port.Port = spec.Name, id, subgraph.ValuePortName
+	if spec.Kind == "output" {
+		return port, nil
+	}
+
 	target := subgraphID
 	for i := len(through) - 1; i >= 0; i-- {
 		outer := through[i]
@@ -823,11 +811,8 @@ func (s *Server) addBoundaryPort(subgraphID string, spec BoundaryPortSpec, throu
 				port.Unwired = append(port.Unwired, fmt.Sprintf("%s: an instance of %q outside the through chain", placement, target))
 			}
 		}
-		outerID, err := createBoundary(outerGraph, subgraph.InputNodeTypeKey, spec.Name, spec.PortType)
+		outerID, err := createBoundary(outerGraph, subgraph.InputNodeTypeKey, spec.Name, spec.PortType, defaultValue)
 		if err != nil {
-			return port, fmt.Errorf("through: subgraph %q: %w", outer, err)
-		}
-		if err := withDefault(outerGraph, outerID); err != nil {
 			return port, fmt.Errorf("through: subgraph %q: %w", outer, err)
 		}
 		for _, placement := range inner {
@@ -1188,6 +1173,11 @@ func (s *Server) registerSubgraphTools() {
 		Name:        "create_boundary_node",
 		Description: "Add input or output boundary ports to an existing subgraph's interface; pass 'ports' for several in one call. The port you connect to on the boundary node itself is always called 'Value' - the 'name' argument only sets the port name seen from outside, on instances. For an input, 'wireInstances' feeds every existing instance in the same call ({variable}, {value} or {nodeId, port}), and 'through' carries a port down through nested subgraphs (outer, middle, this) so a value reaches a grandchild in one call.",
 	}, s.createBoundaryNode)
+
+	mcpsdk.AddTool(s.sdk, &mcpsdk.Tool{
+		Name:        "import_subgraphs",
+		Description: "Copy every subgraph definition from another saved graph file into this graph, with the subgraphs they place. Its root nodes are not imported; variables the definitions read become inputs defaulting to the variable's value. A taken id gets a numeric suffix. Then instantiate_subgraph places them.",
+	}, s.importSubgraphs)
 
 	mcpsdk.AddTool(s.sdk, &mcpsdk.Tool{
 		Name:        "instantiate_subgraph",

@@ -26,7 +26,11 @@ on any node in it — every node is documented. Each one outputs a `[]trs.TRS` t
   piece is built in the grid's local frame, where its `Height` ends up
   along world Z.
 - **`LineNode`** — evenly spaced along a straight segment.
-- **`SplineNode`** — evenly spaced along a curve, tangent-aligned.
+- **`LineBySpacingNode`** — along a straight segment at a pitch
+  (`MaxSpacing`) instead of a count, ends excluded. Lifted over a list of
+  lines, it spaces every segment of a path (below).
+- **`SplineNode`** — evenly spaced along a smooth curve, tangent-aligned.
+  It rounds corners, so it is not for a path with hard corners.
 - **`FibonacciSphereNode`** / **`FibonacciSpiralNode`** — even coverage
   over a sphere's surface or a flat spiral, no visible clustering.
 - **`SampleMeshSurfaceNode`** — random scatter across a mesh's surface,
@@ -41,6 +45,52 @@ on any node in it — every node is documented. Each one outputs a `[]trs.TRS` t
   `trs.MultiplyNode` with `A` the one transform and `B` the list — its
   ports are lifted, so one node does the whole list.
 
+## Along a path of points
+
+A path is a `[]vector3` of points joined by straight segments.
+`math/geometry.LinesFromPoints3DNode`'s `Line Strips` output turns it into
+one `Line3D` per segment, and the line nodes are lifted, so each one works
+on every segment at once:
+
+- `modeling/repeat.LineBySpacingNode`: copies at a pitch on each segment,
+  none across a corner. One list per segment; `nodes/arrays.FlattenNode`
+  joins them.
+- `math/geometry.LineLengths3DNode`: each segment's length.
+  `math/geometry.PathLengthNode` gives the whole path's `Length` and each
+  point's `Distances` along it.
+- `math/geometry.SamplePathNode`: the `Position`, `Tangent`, `Transform`
+  and `Segment` at a `Distance` along the path, corners kept sharp. Feed
+  it a list of distances for one sample each: a door span, a run of
+  positions from `layout.FitCountNode`'s `Centers`.
+- `math/geometry.PositionOnLine3DNode` (a 0 to 1 `Time` on each segment)
+  and `math/geometry.TrsFromLines3DNode` (a transform per segment, at its
+  start, facing along it).
+- `math.CumulativeNode[float64]`: running totals of any list, such as
+  segment lengths into the distance where each segment starts.
+- `math/geometry.PathFramesNode`: a transform at every point, carried
+  along the path without twisting, travel along +Z and up along +Y, sharp
+  corners split in two. `math/curves.SplineFramesNode` does the same for a
+  spline at a `Spacing`. Both give `Along`, each frame's 0 to 1 fraction of
+  the way. The frames feed `extrude.AreaAlongPathNode`, or GPU instances
+  that should stand on the path.
+- `math/trs.ScaleNode` and `math/trs.RotateAroundAxisNode` change a list
+  of transforms in their own space: a taper from `Along` through
+  `math.RemapNode`, a roll about +Z. Anything else goes through
+  `trs.NewNode` and `trs.MultiplyNode`.
+
+## Spans: `math/layout`
+
+- `layout.FitCountNode`: how many items of a `Size` fit between `Start`
+  and `End` with a `Gap`, capped by `MaxCount`, and their `Centers`. This
+  is the count for a grid, a row of seats, slats or bays.
+- `layout.SplitSpanNode`: divides one span between several items in
+  order, sized the way CSS Flexbox sizes flex items. `Basis` is each
+  item's size, `Grow` shares spare room, `Shrink` (times `Basis`) shares a
+  shortfall, `Min`/`Max` bound each one. Give the item that should keep
+  its size `Grow` 0 and the one that takes what's left `Grow` 1. `Free`
+  goes negative when even the `Min`s don't fit, which is the test for
+  dropping an item.
+
 ## Exact type keys, do not search for these
 
 Each `PATH` goes inside `github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/PATH]`.
@@ -48,7 +98,7 @@ Confirmed against the registry; use them directly.
 
 | PATH | inputs | outputs |
 | --- | --- | --- |
-| `formats/gltf.ModelNode` | Mesh, Material, Translation, Rotation, Scale, `Gpu Instances`, Children[], Name | Out |
+| `formats/gltf.ModelNode` | Mesh, Material, Translation, Rotation, Scale, `Gpu Instances`, Children[], Name, Light | Out |
 | `formats/gltf.ManifestNode` | Models[], Animations[] | Out |
 | `math/trs.NewNode` | Position, Rotation, Scale | Out |
 | `math/quaternion.FromEulerAngleNode` | Angle | Out |

@@ -25,7 +25,7 @@ them:
 | A soft fibrous surface | `materials/sheen.md` |
 | A smooth but dull non-metal | `materials/specular.md` |
 | A thin-film surface whose colour shifts with viewing angle | `materials/iridescence.md` |
-| Anything that emits light | `materials/emissive-strength.md` |
+| Anything that emits light | `materials/emissive-strength.md`, plus `lighting.md` if it lights other parts |
 | Any non-metal that should look glossier or duller without changing roughness | `materials/ior.md`, `materials/specular.md` |
 | Cut-outs or a faded, partly see-through surface | `Alpha Mode` on `MaterialNode`; `materials/transmission.md` explains which to use |
 | Flat, unshaded colour | `materials/unlit.md` |
@@ -85,11 +85,12 @@ do is set both to a strong color and expect one to win; they compound.
 
 ## UV-textured parts
 
-`CubeNode`/`CylinderNode`/`TorusNode`/cone/circle/quad primitives (and
-mechanical assemblies built from them) and `QuadSphereNode` generate UVs
-— **`UvSphereNode` does not**, despite the name (position only, plus
-normals when `Weld` is true), and neither do `extrude.AreaNode` or `extrude.CircleNode`.
-`extrude.OutlineNode`, `CircleAlongSplineNode` and `ScrewNode` lay the
+Every `modeling/primitives` node generates UVs with its `UVs` port
+unwired: `UvSphereNode` an equirectangular map, `HemisphereNode` a
+top-down projection, the rest a 0..1 unwrap per face, wall or cap.
+So does every `modeling/extrude` node. `AreaNode` and `TextNode` lay each
+wall loop out as a strip in world units, each cap taking its own X and Y.
+`AreaAlongPathNode`, `OutlineNode`, `CircleNode`, `CircleAlongSplineNode` and `ScrewNode` lay the
 sweep out as a strip — the outline's perimeter runs across it, the path
 along it, each cap taking the whole strip as its own unwrap — spanning 0
 to 1 both ways unless their `UVs` port takes a `primitives.StripUVsNode`
@@ -198,10 +199,10 @@ several patterns.
 | `drawing/texturing/pattern.DisplaceUVNode` | In, Amount, Shift | UV |
 | `drawing/texturing/pattern.CellNode` | UV, Columns, Rows, `Row Offset`, Seed | Column, Row, `Local UV`, Random |
 | `drawing/texturing/pattern.DistanceNode` | UV, Center | Value |
-| `drawing/texturing/pattern.SplitUVNode` | UV | U, V |
+| `drawing/texturing.SelectFloat2Node` | Texture | X, Y, Width, Height, Array |
 | `drawing/texturing/pattern.StripesNode` | UV, Count, Width, Softness, Angle | Value |
 | `drawing/texturing/pattern.CheckerNode` | UV, Columns, Rows | Value |
-| `drawing/texturing/pattern.GinghamNode` | UV, Columns, Rows, Width, Softness | Value |
+| `drawing/texturing/pattern.CrossedStripesNode` | UV, Columns, Rows, Width, Softness | Value |
 | `drawing/texturing/pattern.WeaveNode` | UV, Columns, Rows, Over, Under, Herringbone, Gap, Seed | Height, Weft, Warp, Random |
 
 - **`TransformUVNode`** scales (tiles), rotates about the centre and
@@ -217,11 +218,13 @@ several patterns.
   brick, scales, shingles. Never hand-roll a hash from `sin`.
 - **`DistanceNode`** is each pixel's distance from `Center` in UV units.
   Fed `Local UV`, it gives one disc per cell for dots, studs or scales.
-- **`SplitUVNode`** gives U and V as 0-1 ramps. Fed `Local UV`, each
-  ramp restarts per cell; scaled by a cell's `Random` and added to a
-  height, it tilts every cell its own way (uneven tiles, warped planks).
-- **`GinghamNode`** gives 0, 0.5 or 1: no band, one band, or two crossing.
-  A three-key gradient colours it.
+- **`texturing.SelectFloat2Node`** splits any 2D vector texture into `X`
+  and `Y` float textures, so a UV texture gives U and V as 0-1 ramps. Fed
+  `Local UV`, each ramp restarts per cell; scaled by a cell's `Random`
+  and added to a height, it tilts every cell its own way (uneven tiles,
+  warped planks). `SelectFloat3Node` does the same with `Z` for normals.
+- **`CrossedStripesNode`** gives 0, 0.5 or 1: no stripe, one stripe, or
+  two crossing. A three-key gradient colours it.
 - **`WeaveNode`** gives strands passing over and under each other:
   - `Over` and `Under` set the pattern: 1 and 1 is a plain weave, 2 and 2
     a twill.

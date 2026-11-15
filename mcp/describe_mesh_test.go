@@ -116,17 +116,22 @@ func TestDescribeMeshReportsAttributesOfEveryWidth(t *testing.T) {
 
 	var created polyformmcp.CreateNodesOutput
 	callTool(t, session, "create_nodes", map[string]any{"nodes": []any{
-		map[string]any{"alias": "sphere", "type": sphereNodeType, "inputs": map[string]any{
+		map[string]any{"alias": "field", "type": sdfSphereNodeType, "inputs": map[string]any{
 			"Radius": map[string]any{"value": "1"},
 		}},
+		map[string]any{"alias": "sphere", "type": marchNodeType, "inputs": map[string]any{
+			"Field":      map[string]any{"nodeId": "field", "port": "Field"},
+			"Resolution": map[string]any{"value": "10"},
+			"Domain":     map[string]any{"value": `{"center":{"x":0,"y":0,"z":0},"extents":{"x":3,"y":3,"z":3}}`},
+		}},
 		map[string]any{"alias": "uv", "type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/modeling/meshops.ProjectUVNode]",
-			"inputs": map[string]any{"Mesh": map[string]any{"nodeId": "sphere", "port": "Out"}}},
+			"inputs": map[string]any{"Mesh": map[string]any{"nodeId": "sphere", "port": "Mesh"}}},
 	}}, &created)
 	require.Empty(t, created.Errors)
 
 	var bare polyformmcp.DescribeMeshOutput
 	callTool(t, session, "describe_mesh", map[string]any{"nodeId": created.Nodes["sphere"]}, &bare)
-	assert.NotContains(t, bare.Attribute, "TexCoord", "a UV sphere carries no UVs")
+	assert.NotContains(t, bare.Attribute, "TexCoord", "a marched mesh carries no UVs")
 
 	var mapped polyformmcp.DescribeMeshOutput
 	callTool(t, session, "describe_mesh", map[string]any{"nodeId": created.Nodes["uv"]}, &mapped)

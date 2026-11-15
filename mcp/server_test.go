@@ -37,6 +37,7 @@ import (
 	_ "github.com/EliCDavis/polyform/math/curves"
 	_ "github.com/EliCDavis/polyform/math/geometry"
 	_ "github.com/EliCDavis/polyform/math/geometry/aabb"
+	_ "github.com/EliCDavis/polyform/math/layout"
 	_ "github.com/EliCDavis/polyform/math/quaternion"
 	_ "github.com/EliCDavis/polyform/math/sequence"
 	_ "github.com/EliCDavis/polyform/math/trig"
@@ -2707,7 +2708,7 @@ func TestUpdateVariableCanChangeTheDescriptionAlone(t *testing.T) {
 	require.Equal(t, 0.5, list.Variables[0].Value, "the value is untouched")
 
 	msg := callToolExpectingError(t, session, "update_variable", map[string]any{"path": "Curl"})
-	require.Contains(t, msg, "value, a description, or both")
+	require.Contains(t, msg, "pass a value, a description, a type")
 }
 
 func TestListVariablesReportsWhoReadsEachVariable(t *testing.T) {

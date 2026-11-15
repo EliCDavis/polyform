@@ -87,6 +87,38 @@ func TestSetOutlineAcceptsAWellFormedPlan(t *testing.T) {
 	assert.Contains(t, toe.Primitive, "sdf.SphereNode", "short primitive spelling resolves to the registered key")
 }
 
+func TestOutlinePartNamesMayHoldSpacesLikeTheSubgraphIdsTheyMatch(t *testing.T) {
+	session := testSession(t)
+	var set polyformmcp.SetOutlineOutput
+	callTool(t, session, "set_outline", map[string]any{"yaml": `
+version: 1
+subject: Coffee Counter
+style: mechanical
+extent: 3.0
+parts:
+  Coffee Counter:
+    material: painted
+    children:
+      Pastry Case: { count: 2, size: 0.2, layout: line }
+      top: { count: 1, size: 1.0, thickness: 0.02, whole: true, primitive: primitives.Cube }
+  Pastry Case:
+    kind: mesh
+    children:
+      glass: { count: 4, size: 0.5, thickness: 0.05, layout: ring, primitive: primitives.Cube }
+`}, &set)
+	require.True(t, set.Accepted, issueMessages(set.Issues))
+
+	callTool(t, session, "create_subgraph", map[string]any{"id": "Pastry Case", "name": "Pastry Case",
+		"nodes": []map[string]any{{"alias": "glass", "type": sphereNodeType}}}, &polyformmcp.CreateSubgraphOutput{})
+
+	var out polyformmcp.CheckOutlineOutput
+	callTool(t, session, "check_outline", map[string]any{}, &out)
+	assert.Equal(t, 1, out.Matched)
+	for _, f := range out.Findings {
+		assert.NotEqual(t, "extra-subgraph", f.Kind, f.Message)
+	}
+}
+
 func TestSetOutlineRejectsLargeLeaf(t *testing.T) {
 	session := testSession(t)
 	var out polyformmcp.SetOutlineOutput

@@ -1,6 +1,6 @@
 ---
 name: polyform-part-builder
-description: Builds exactly one self-contained polyform subgraph component, given a precise spec from the session that spawned it. This is an exception path, not the default — spawn it from a top-level chat only for a single part substantial enough to justify an isolated context (heavy SDF/boolean/marching-cubes work, extensive procedural texturing, 15+ tool calls of interior structure). For a whole object, spawn polyform-orchestrator instead; it builds every part itself, inline, and cannot spawn this agent, because delegating parts was measured at ~50-100x the token cost with no quality benefit.
+description: Builds exactly one self-contained, fitted polyform subgraph component (it sizes itself to the inputs it is given), from a precise spec from the session that spawned it. This is an exception path, not the default — spawn it from a top-level chat only for a single part substantial enough to justify an isolated context (heavy SDF/boolean/marching-cubes work, extensive procedural texturing, 15+ tool calls of interior structure). For a whole object, spawn polyform-orchestrator instead; it builds every part itself, inline, and cannot spawn this agent, because delegating parts was measured at ~50-100x the token cost with no quality benefit.
 tools: Read, mcp__polyform__search_node_types, mcp__polyform__get_node_types, mcp__polyform__create_equation_subgraph, mcp__polyform__update_equation_subgraph, mcp__polyform__create_tapered_curve_subgraph, mcp__polyform__create_vertex_color_gradient_subgraph, mcp__polyform__create_flush_position_subgraph, mcp__polyform__create_sphere_surface_point_subgraph, mcp__polyform__create_node, mcp__polyform__create_nodes, mcp__polyform__delete_node, mcp__polyform__delete_subgraph, mcp__polyform__connect_nodes, mcp__polyform__disconnect, mcp__polyform__set_parameter, mcp__polyform__create_subgraph, mcp__polyform__create_boundary_node, mcp__polyform__convert_to_subgraph, mcp__polyform__rename_boundary_port, mcp__polyform__set_for_each, mcp__polyform__list_enums, mcp__polyform__list_subgraphs, mcp__polyform__list_nodes, mcp__polyform__replace_instance, mcp__polyform__rename_subgraph, mcp__polyform__describe_graph, mcp__polyform__sample_field, mcp__polyform__raycast_field, mcp__polyform__describe_mesh, mcp__polyform__evaluate_node, mcp__polyform__report_issue, ToolSearch
 model: sonnet
 ---
@@ -36,6 +36,8 @@ working around not knowing them:
 - **`topics/texturing-and-color.md`** — the UV texture pipeline, the
   vertex-color recipe for parts with no UVs, and the metallic-factor
   gotcha.
+- **`topics/lighting.md`**: read it before the first `LightNode`;
+  sizing `Intensity` in candela from a target lux.
 - **`topics/animation.md`** — read it before building anything that
   will move: a moving piece must be its own `ModelNode` built around its
   pivot, so it can't be merged into a neighbour's mesh.
@@ -79,6 +81,7 @@ instead.
 | Type | JSON shape | Example |
 |---|---|---|
 | `float64`, `int` | bare number | `2.5` / `4` |
+| `norm.UFloat64`, `norm.SFloat64` | bare number, clamped to 0..1 / -1..1; the type for a boundary port that is an amount, fraction or blend | `0.35` / `-0.5` |
 | `bool` | bare boolean | `true` |
 | `string` | bare string | `"red"` |
 | an enum | a member name, as a string (`get_node_types` lists a port's `members`) | `"Round"` |
@@ -108,7 +111,16 @@ variables (they need real file content, not a JSON value).
 
 1. Read the spec you were given: a subgraph id, a human name/description,
    the boundary interface (named inputs/outputs with their types), and what
-   geometry it should produce.
+   geometry it should produce. The part must fit what its inputs give it,
+   across their whole range:
+   - Its sizes come from its inputs, in the part's own measurements.
+   - A path input is the part's back edge, with the front to the right of
+     travel, and corners close with no gap or overlap.
+   - Repeats get their count from the length they fill
+     (`math/layout.FitCountNode`).
+   - Nothing sticks out past the space the inputs describe.
+   - Its origin follows the orchestrator's origin rule: Y = 0 at its
+     lowest point, and in X and Z the point whoever places it would hold.
 2. Call `create_subgraph` with the given id/name/description **and the
    boundary interface from the spec** as `inputs` (name + type) and
    `outputs` (name + type). Leave `nodes` out of this first call only if
@@ -236,10 +248,13 @@ Before defaulting to "one primitive, no booleans," ask yourself:
   join, that's still `math/sdf.SmoothUnionNode`.
 - **Is it a constant cross-section swept along a line or curve**, round
   or not?
-  `modeling/extrude.OutlineNode` takes the profile as an `Outline`
-  (`[]vector2`, a closed 2D shape) and the `Path` (`[]vector3`), caps the
-  ends, and `Closed: true` turns it into a ring. `ScrewNode` is the
-  lathe/revolve for round profiles.
+  `modeling/extrude.AreaAlongPathNode` takes the profile as a
+  `sketch.Area` (holes allowed; `sketch.CircleNode` and
+  `RoundedRectangleNode` give one directly) and `Frames` from
+  `math/geometry.PathFramesNode` or `math/curves.SplineFramesNode`, caps
+  the ends, and `Closed: true` turns it into a ring. Taper or twist it
+  with `math/trs.ScaleNode` / `RotateAroundAxisNode` on the frames.
+  `ScrewNode` is the lathe/revolve for round profiles.
 - **About to create more than 2-3 near-identical copies of something**
   (copies in a ring, in a grid, or along an edge)? Stop before hand-placing the second copy — `Read
   topics/repetition-and-instancing.md` for the node roster and the three

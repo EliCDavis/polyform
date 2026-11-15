@@ -364,10 +364,11 @@ func (s previewShader) Fragment(v fauxgl.Vertex) fauxgl.Color {
 		color = s.Texture.BilinearSample(v.Texture.X, v.Texture.Y).Mul(color)
 	}
 	v.Normal = s.surface.shadingNormal(v)
-	ambient := s.AmbientColor.MulScalar(s.surface.occlusionAt(v))
+	occlusion := s.surface.occlusionAt(v)
+	ambient := s.AmbientColor.MulScalar(occlusion)
 	emission := s.surface.emissionAt(v)
 	if s.finish.set {
-		return s.layered(s.finished(color, v, ambient).Add(emission), color, v)
+		return s.layered(s.finished(color, v, ambient, occlusion).Add(emission), color, v)
 	}
 
 	diffuse := math.Max(v.Normal.Dot(s.LightDirection), 0)
@@ -393,7 +394,7 @@ func (s previewShader) layered(shaded, albedo fauxgl.Color, v fauxgl.Vertex) fau
 
 // With no environment map a metal reflects nothing and renders near black, so
 // a sky brightening upward stands in for one.
-func (s previewShader) finished(albedo fauxgl.Color, v fauxgl.Vertex, ambient fauxgl.Color) fauxgl.Color {
+func (s previewShader) finished(albedo fauxgl.Color, v fauxgl.Vertex, ambient fauxgl.Color, occlusion float64) fauxgl.Color {
 	f := s.finish
 	toCamera := s.CameraPosition.Sub(v.Position).Normalize()
 
@@ -417,7 +418,9 @@ func (s previewShader) finished(albedo fauxgl.Color, v fauxgl.Vertex, ambient fa
 	up := toCamera.Negate().Reflect(v.Normal).Y
 	band := 0.05 + f.roughness
 	sky := 0.15 + math.Min(math.Max((up+band)/(2*band), 0), 1)
-	environment := sky + (0.65-sky)*f.roughness
+	// The sky is ambient light too: a metal has no other, so occlusion that
+	// spared it would never show on one.
+	environment := (sky + (0.65-sky)*f.roughness) * occlusion
 	return shaded.Add(rim.MulScalar(environment))
 }
 

@@ -17,9 +17,10 @@ unless written out. `V3` stands for `github.com/EliCDavis/vector/vector3.Vector[
 |---|---|---|
 | Random (float) | `math/chance.RandomNode[float64]` | `Key`, `Seed`, `Distribution` → `Out` float64 |
 | Random (vector) | `math/chance.RandomNode[V2]` / `[V3]` / `[V4]` | same, with a vector distribution → vector |
+| Random (rotation) | `math/chance.RandomNode[github.com/EliCDavis/polyform/math/quaternion.Quaternion]` | same, with a rotation distribution → quaternion |
 | Random Bool | `math/chance.RandomBoolNode` | `Key`, `Seed`, `Probability` → `Out` bool |
 | Random Index | `math/chance.RandomIndexNode` | `Key`, `Seed`, `Weights` ([]float64) → `Out` int |
-| Sample | `math/chance.SampleNode` | `Distribution`, `U` → `Out` float64 |
+| Sample | `math/chance.SampleNode` | `Distribution`, `Fraction` → `Out` float64 |
 | Seed | `math/chance.SeedNode` | `Seed`, `Label` (string) → `Out` int |
 | Constant | `math/chance.ConstantNode` | `Value` |
 | Uniform | `math/chance.UniformNode` | `Min`, `Max` |
@@ -31,9 +32,12 @@ unless written out. `V3` stands for `github.com/EliCDavis/vector/vector3.Vector[
 | Discrete | `math/chance.DiscreteNode` | `Values`, `Weights` ([]float64 each) |
 | Ramp | `math/chance.RampNode` | `Gradient` (`coloring.Gradient[float64]`) |
 | Compose 2D/3D/4D | `math/chance.Compose2DNode` / `Compose3DNode` / `Compose4DNode` | `X`, `Y`, `Z`, `W`: one scalar distribution each |
-| Box | `math/chance.BoxNode` | `Min`, `Max` (V3) |
-| Inside Sphere | `math/chance.InsideSphereNode` | `Radius` |
+| Uniform 2D/3D/4D | `math/chance.Uniform2DNode` / `Uniform3DNode` / `Uniform4DNode` | `Min`, `Max` (V2 / V3 / V4) |
+| Inside Circle | `math/chance.InsideCircleNode` | `Radius` → V2 distribution |
+| Inside Sphere | `math/chance.InsideSphereNode` | `Radius` → V3 distribution |
+| Direction 2D | `math/chance.Direction2DNode` | `Axis` (V2), `ConeAngle` (degrees) |
 | Direction | `math/chance.DirectionNode` | `Axis` (V3), `ConeAngle` (degrees) |
+| Rotation | `math/chance.RotationNode` | `MaxAngle` (degrees, default 180) → quaternion distribution |
 | Integers | `math/sequence.IntegersNode` | `Count`, `Start` → `Out` []int |
 | Linear | `math/sequence.LinearNode` | `Start`, `End`, `Samples` → `Out` []float64 |
 | Indices | `nodes/arrays.IndicesNode` | `Array` → `Out` []int |
@@ -49,8 +53,9 @@ unless written out. `V3` stands for `github.com/EliCDavis/vector/vector3.Vector[
 | Noise texture | `drawing/texturing.NoiseNode` | ..., `Seed` (int) |
 
 Distribution ports carry a `math/chance.Distribution[float64]` value (or
-`Distribution[V3]` for vectors); a boundary input of that type passes a
-distribution into a subgraph like any other value.
+`Distribution[V2]`, `[V3]`, `[V4]`, `[quaternion.Quaternion]`); a
+boundary input of that type passes a distribution into a subgraph like
+any other value.
 
 ## The contract: a value is a hash of (Seed, Key)
 
@@ -95,21 +100,22 @@ Pick by the shape you want, not by the name:
 | a most-likely value with hard limits either side | `Triangular(Min, Mode, Max)` |
 | crowded toward one end of a range | `Power(Min, Max, Exponent)`; above 1 crowds toward `Min`, below 1 toward `Max` |
 | one of a fixed set of values, weighted | `Discrete(Values, Weights)`; a weight of 0 never comes up |
-| a custom shape | `Ramp(Gradient)`: the gradient's value at time t is what the quantile t gives, so a flat stretch is common and a steep one is rare |
+| a custom shape | `Ramp(Gradient)`: the gradient's value at time t is what a share t of draws fall below, so a flat stretch is common and a steep one is rare |
 | always the same value | `Constant(Value)`: the way to turn variation off at one input without rewiring |
 
-Every scalar distribution is an inverse CDF, also called a quantile
-function: the value at u is what a random draw lands below u of the
-time, so u = 0.5 is the median and u = 0.9 the value only one draw in
-ten exceeds. `SampleNode` applies that function to a `U` you supply. Use
-it to shape a value that is not random at all, such as height along a
-trunk or normalized index, the way a distribution would, or to draw a
-distribution's curve by feeding it `LinearNode` quantiles. Keep supplied
-quantiles inside (0, 1): the open-tailed `Exponential` and `LogNormal`
-go to infinity at exactly 1, so use bin midpoints (`Start 0.025`,
-`End 0.975` for 20) rather than 0 to 1.
+Every scalar distribution is a curve over a fraction 0 to 1: the value
+at fraction f is what a share f of draws fall below, so 0.5 is the
+median and 0.9 the value only one draw in ten exceeds (the inverse CDF,
+or quantile function, in statistics). `SampleNode` reads that curve at a
+`Fraction` you supply. Use it to shape a value that is not random at
+all, such as height along a trunk or a normalized index, the way a
+distribution would, or to draw a distribution's curve by feeding it
+`LinearNode` fractions. Keep supplied fractions inside (0, 1): the
+open-tailed `Exponential` and `LogNormal` go to infinity at exactly 1,
+so use bin midpoints (`Start 0.025`, `End 0.975` for 20) rather than 0
+to 1.
 
-### Vectors
+### Vectors and rotations
 
 A vector `RandomNode` takes a vector distribution:
 
@@ -118,27 +124,39 @@ A vector `RandomNode` takes a vector distribution:
   key's stream, so the components are independent even when the same
   scalar distribution feeds all three. `Compose2D` and `Compose4D` do the
   same for `V2` and `V4`.
-- `BoxNode` (`Min`, `Max`): uniform through a box. Offsets and jitter.
+- `Uniform3DNode` (`Min`, `Max`): uniform through a box. Offsets and
+  jitter. It is `Compose3D` of three `Uniform`s; `Uniform2D` and
+  `Uniform4D` likewise.
 - `InsideSphereNode` (`Radius`): uniform through a solid ball. Isotropic
-  jitter, scatter inside a volume.
+  jitter, scatter inside a volume. `InsideCircleNode` is the 2D disc,
+  uniform by area, for a scatter on a plane or a UV jitter.
 - `DirectionNode` (`Axis`, `ConeAngle`): a unit vector within the cone.
   `0` always gives the axis, `180` any direction. Tilts, growth
-  directions, normals for a scatter.
+  directions, normals for a scatter. `Direction2DNode` is the same within
+  an arc in the plane.
 
-`DirectionNode` gives a direction, not a rotation: turn it into one with
-`quaternion.RotationToNode` from the part's own up axis, or compose Euler
-angles through `Compose3DNode` into `quaternion.FromEulerAngleNode`.
+A rotation `RandomNode` (`RandomNode[quaternion.Quaternion]`) takes
+`RotationNode` (`MaxAngle`): rotations spread evenly over rotation space
+within `MaxAngle` degrees of no rotation, about any axis. `180` is a
+fully random orientation. This is the node for random orientations and
+rotational jitter; its output goes straight into `trs.NewNode`.
+
+When the turn must be limited per axis (a tilt of up to 10° but a free
+spin about the vertical), compose Euler angles through `Compose3DNode`
+into `quaternion.FromEulerAngleNode` instead. `DirectionNode` gives a
+direction, not a rotation: turn it into one with
+`quaternion.RotationToNode` from the part's own up axis.
 
 ## Jitter is composition, not a node
 
 To jitter a list of transforms: `IndicesNode` of the list for keys, a
-vector `RandomNode` with `BoxNode` or `InsideSphereNode` for the offset,
-another with `Compose3DNode` of angle distributions into
-`quaternion.FromEulerAngleNode` for the turn, a float `RandomNode` with
-`LogNormalNode` for the scale, all into `trs.NewNode`, then the lifted
-`trs.MultiplyNode` with `A` the original transforms and `B` the jitter
-list. Each of the three draws reads its own `SeedNode` label. Nothing in
-that chain is specific to jitter, which is why there is no jitter node.
+vector `RandomNode` with `Uniform3DNode` or `InsideSphereNode` for the
+offset, a rotation `RandomNode` with `RotationNode` for the turn, a float
+`RandomNode` with `LogNormalNode` for the scale, all into `trs.NewNode`,
+then the lifted `trs.MultiplyNode` with `A` the original transforms and
+`B` the jitter list. Each of the three draws reads its own `SeedNode`
+label. Nothing in that chain is specific to jitter, which is why there
+is no jitter node.
 
 ## Values that move together
 
@@ -172,7 +190,7 @@ construction, so a correlated vector is three correlated scalars through
 ## Keep-outs and masks
 
 A per-element `logic.SelectNode` takes a `[]bool` `Condition`: `A` and
-`B` are lists of the same length, or one element used for every flag.
+`B` are lists of the same length, or a single value used for every flag.
 Writing `-1` over a kind index where a mask is true drops that slot in
 `GroupNode`; `FilterNode` (`Array`, `Keep`) splits any list by the same
 flags. The flags come from `RandomBoolNode` (a random fraction of slots),

@@ -32,6 +32,7 @@ const (
 	eqTokLParen
 	eqTokRParen
 	eqTokComma
+	eqTokCompare
 	eqTokEOF
 )
 
@@ -84,6 +85,19 @@ func (l *eqLexer) next() (eqToken, error) {
 	case ',':
 		l.pos++
 		return eqToken{kind: eqTokComma}, nil
+	case '<', '>', '=', '!':
+		l.pos++
+		if l.pos < len(l.input) && l.input[l.pos] == '=' {
+			l.pos++
+			return eqToken{kind: eqTokCompare, text: string(c) + "="}, nil
+		}
+		switch c {
+		case '=':
+			return eqToken{}, fmt.Errorf("a statement has one '='; compare with ==")
+		case '!':
+			return eqToken{}, fmt.Errorf("negate a condition with not(x); compare with !=")
+		}
+		return eqToken{kind: eqTokCompare, text: string(c)}, nil
 	}
 
 	if unicode.IsDigit(c) || c == '.' {
@@ -129,6 +143,7 @@ const (
 	eqExprBinOp
 	eqExprNeg
 	eqExprCall
+	eqExprCompare
 )
 
 type eqExpr struct {
@@ -136,6 +151,7 @@ type eqExpr struct {
 	num  float64
 	name string // variable name, or function name for calls
 	op   byte   // '+' '-' '*' '/' '^'
+	cmp  string // "<" "<=" ">" ">=" "==" "!="
 	args []*eqExpr
 }
 
@@ -156,6 +172,25 @@ func (p *eqParser) advance() error {
 	}
 	p.cur = t
 	return nil
+}
+
+func (p *eqParser) parseCondition() (*eqExpr, error) {
+	left, err := p.parseExpr()
+	if err != nil || p.cur.kind != eqTokCompare {
+		return left, err
+	}
+	cmp := p.cur.text
+	if err := p.advance(); err != nil {
+		return nil, err
+	}
+	right, err := p.parseExpr()
+	if err != nil {
+		return nil, err
+	}
+	if p.cur.kind == eqTokCompare {
+		return nil, fmt.Errorf("comparisons don't chain; join them with and(a < b, b < c)")
+	}
+	return &eqExpr{kind: eqExprCompare, cmp: cmp, args: []*eqExpr{left, right}}, nil
 }
 
 func (p *eqParser) parseExpr() (*eqExpr, error) {
@@ -264,7 +299,7 @@ func (p *eqParser) parseAtom() (*eqExpr, error) {
 			var args []*eqExpr
 			if p.cur.kind != eqTokRParen {
 				for {
-					a, err := p.parseExpr()
+					a, err := p.parseCondition()
 					if err != nil {
 						return nil, err
 					}
@@ -292,7 +327,7 @@ func (p *eqParser) parseAtom() (*eqExpr, error) {
 		if err := p.advance(); err != nil {
 			return nil, err
 		}
-		e, err := p.parseExpr()
+		e, err := p.parseCondition()
 		if err != nil {
 			return nil, err
 		}
@@ -342,7 +377,7 @@ func parseEquation(s string) (outputName string, ast *eqExpr, err error) {
 	if err != nil {
 		return "", nil, err
 	}
-	e, err := p.parseExpr()
+	e, err := p.parseCondition()
 	if err != nil {
 		return "", nil, err
 	}
@@ -440,6 +475,36 @@ func orderStatements(statements []eqStatement) ([]eqStatement, error) {
 		}
 	}
 	return ordered, nil
+}
+
+func isCondition(e *eqExpr, named func(string) bool) bool {
+	switch e.kind {
+	case eqExprCompare:
+		return true
+	case eqExprVar:
+		return named(e.name)
+	case eqExprCall:
+		switch strings.ToLower(e.name) {
+		case "and", "or", "not":
+			return true
+		case "if":
+			return len(e.args) == 3 && isCondition(e.args[1], named)
+		}
+	}
+	return false
+}
+
+func conditionOutputs(statements []eqStatement, types map[string]string) map[string]bool {
+	conditions := map[string]bool{}
+	for _, statement := range statements {
+		conditions[statement.output] = isCondition(statement.expr, func(name string) bool {
+			if earlier, ok := conditions[name]; ok {
+				return earlier
+			}
+			return types[name] == "bool"
+		})
+	}
+	return conditions
 }
 
 // freeVariables lists the identifiers that become inputs, in first-appearance order.

@@ -30,8 +30,8 @@ ports.
   - `5-10`: a bright light source.
 - Emission is not a light. It does not light the parts around it, and it
   doesn't cast or remove shadows; only bloom in the viewer spreads it.
-  The writer can export `KHR_lights_punctual` lights, but no node places
-  one yet.
+  For light that reaches other parts, add a `LightNode`; read
+  `topics/lighting.md` first for how to size its intensity.
 - Glow only the part that emits: a small emissive core inside a clear or
   diffuse body, not the whole body. Making the whole body emissive turns
   it into a glowing slab that reads as some other part.

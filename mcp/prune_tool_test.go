@@ -65,6 +65,23 @@ func TestPruneOrphansListsDeadChainsAndSparesProducersAndBoundaries(t *testing.T
 	assert.Empty(t, again.Orphans, "a second pass finds nothing")
 }
 
+func TestPruneOrphansSparesAManifestNotYetSetAsProducer(t *testing.T) {
+	session, inst := testSessionWithInstance(t)
+
+	body := makeSphereModel(t, session, "1", "0")
+	var manifest polyformmcp.CreateNodeOutput
+	callTool(t, session, "create_node", map[string]any{
+		"type":   gltfManifestType,
+		"inputs": map[string]any{"Models": map[string]any{"elements": []any{map[string]any{"nodeId": body, "port": "Out"}}}},
+	}, &manifest)
+
+	var applied polyformmcp.PruneOrphansOutput
+	callTool(t, session, "prune_orphans", map[string]any{"scope": "all", "apply": true}, &applied)
+	assert.Empty(t, applied.Orphans)
+	assert.True(t, inst.HasNodeWithId(manifest.NodeId))
+	assert.True(t, inst.HasNodeWithId(body))
+}
+
 // An input port the interior has not wired up yet is still a declared part
 // of the subgraph's interface. Pruning it drops every instance's
 // connection into that port and desyncs the outline.

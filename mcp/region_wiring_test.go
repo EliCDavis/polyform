@@ -42,9 +42,11 @@ func TestRegionTakesOneOutlineAndASpreadListOfHoles(t *testing.T) {
 		map[string]any{"alias": "pads", "type": roundedRectangleNodeType, "inputs": map[string]any{
 			"Center": map[string]any{"value": `[{"x":-2,"y":0},{"x":2,"y":0}]`},
 		}},
-		spreadOf("spread", "pads"),
+		map[string]any{"alias": "spread", "type": spreadNodeType, "inputs": map[string]any{
+			"Array": map[string]any{"nodeId": "pads", "port": "Outline"},
+		}},
 		map[string]any{"alias": "fill", "type": fillNodeType, "inputs": map[string]any{
-			"Outlines": map[string]any{"elements": []any{map[string]any{"nodeId": "board", "port": "Out"}}},
+			"Outlines": map[string]any{"elements": []any{map[string]any{"nodeId": "board", "port": "Outline"}}},
 			"Holes":    map[string]any{"elements": []any{map[string]any{"nodeId": "spread", "port": "Out"}}},
 		}},
 		map[string]any{"alias": "region", "type": areaNodeType, "inputs": map[string]any{

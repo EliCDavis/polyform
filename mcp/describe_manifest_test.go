@@ -22,6 +22,64 @@ const (
 	animationNodeType   = "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.AnimationNode]"
 )
 
+func TestDescribeManifestBoundsFitRotatedInstancesToTheirMesh(t *testing.T) {
+	session := testSession(t)
+	var created polyformmcp.CreateNodesOutput
+	callTool(t, session, "create_nodes", map[string]any{"nodes": []any{
+		map[string]any{"alias": "ball", "type": sphereNodeType, "inputs": map[string]any{
+			"Radius": map[string]any{"value": "1"},
+		}},
+		map[string]any{"alias": "balls", "type": gltfModelType, "inputs": map[string]any{
+			"Mesh":          map[string]any{"nodeId": "ball", "port": "Out"},
+			"Gpu Instances": map[string]any{"value": `[{"position":{"x":0,"y":0,"z":0},"rotation":{"x":0,"y":0.38268343,"z":0,"w":0.92387953}}]`},
+		}},
+		map[string]any{"alias": "manifest", "type": gltfManifestType, "inputs": map[string]any{
+			"Models": map[string]any{"elements": []any{map[string]any{"nodeId": "balls", "port": "Out"}}},
+		}},
+	}}, &created)
+	require.Empty(t, created.Errors)
+
+	var out polyformmcp.DescribeManifestOutput
+	callTool(t, session, "describe_manifest", map[string]any{"nodeId": created.Nodes["manifest"]}, &out)
+	require.NotNil(t, out.Bounds)
+	assert.InDelta(t, 2, out.Bounds.Size.X, 0.05, "a sphere turned 45° is still 2 wide")
+	assert.InDelta(t, 2, out.Bounds.Size.Z, 0.05)
+}
+
+func TestDescribeManifestReportsAModelsLight(t *testing.T) {
+	session := testSession(t)
+	var created polyformmcp.CreateNodesOutput
+	callTool(t, session, "create_nodes", map[string]any{"nodes": []any{
+		map[string]any{"alias": "light", "type": "github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/formats/gltf.LightNode]", "inputs": map[string]any{
+			"Type":      map[string]any{"value": `"Spot"`},
+			"Color":     map[string]any{"value": `"#ffd9a0"`},
+			"Intensity": map[string]any{"value": "1.5"},
+			"Range":     map[string]any{"value": "6"},
+		}},
+		map[string]any{"alias": "bulb", "type": gltfModelType, "inputs": map[string]any{
+			"Name":  map[string]any{"value": `"Bulb"`},
+			"Light": map[string]any{"nodeId": "light", "port": "Out"},
+		}},
+		map[string]any{"alias": "manifest", "type": gltfManifestType, "inputs": map[string]any{
+			"Models": map[string]any{"elements": []any{map[string]any{"nodeId": "bulb", "port": "Out"}}},
+		}},
+	}}, &created)
+	require.Empty(t, created.Errors)
+
+	var out polyformmcp.DescribeManifestOutput
+	callTool(t, session, "describe_manifest", map[string]any{"nodeId": created.Nodes["manifest"]}, &out)
+
+	require.Len(t, out.Models, 1)
+	light := out.Models[0].Light
+	require.NotNil(t, light)
+	assert.Equal(t, "spot", light.Type)
+	assert.Equal(t, "#ffd9a0", light.Color)
+	assert.Equal(t, 1.5, light.Intensity)
+	assert.Equal(t, 6., light.Range)
+	assert.InDelta(t, 0.785398, light.OuterConeAngle, 1e-5)
+	assert.Contains(t, out.ExtensionsUsed, "KHR_lights_punctual")
+}
+
 func TestDescribeManifestListsMaterialsAndFileSize(t *testing.T) {
 	session := testSession(t)
 	var created polyformmcp.CreateNodesOutput
@@ -195,8 +253,18 @@ func TestDescribeManifestWarnsWhenAMaterialNeedsUVsTheMeshLacks(t *testing.T) {
 	session := testSession(t)
 	var created polyformmcp.CreateNodesOutput
 	callTool(t, session, "create_nodes", map[string]any{"nodes": []any{
-		map[string]any{"alias": "sphere", "type": sphereNodeType},
-		map[string]any{"alias": "big", "type": sphereNodeType, "inputs": map[string]any{"Radius": map[string]any{"value": "5"}}},
+		map[string]any{"alias": "smallField", "type": sdfSphereNodeType, "inputs": map[string]any{"Radius": map[string]any{"value": "0.5"}}},
+		map[string]any{"alias": "bigField", "type": sdfSphereNodeType, "inputs": map[string]any{"Radius": map[string]any{"value": "5"}}},
+		map[string]any{"alias": "sphere", "type": marchNodeType, "inputs": map[string]any{
+			"Field":      map[string]any{"nodeId": "smallField", "port": "Field"},
+			"Resolution": map[string]any{"value": "10"},
+			"Domain":     map[string]any{"value": `{"center":{"x":0,"y":0,"z":0},"extents":{"x":1.5,"y":1.5,"z":1.5}}`},
+		}},
+		map[string]any{"alias": "big", "type": marchNodeType, "inputs": map[string]any{
+			"Field":      map[string]any{"nodeId": "bigField", "port": "Field"},
+			"Resolution": map[string]any{"value": "1"},
+			"Domain":     map[string]any{"value": `{"center":{"x":0,"y":0,"z":0},"extents":{"x":12,"y":12,"z":12}}`},
+		}},
 		map[string]any{"alias": "anisotropy", "type": anisotropyExtType, "inputs": map[string]any{
 			"AnisotropyStrength": map[string]any{"value": "0.8"},
 		}},
@@ -210,12 +278,12 @@ func TestDescribeManifestWarnsWhenAMaterialNeedsUVsTheMeshLacks(t *testing.T) {
 		}},
 		map[string]any{"alias": "small", "type": gltfModelType, "inputs": map[string]any{
 			"Name":     map[string]any{"value": `"Small"`},
-			"Mesh":     map[string]any{"nodeId": "sphere", "port": "Out"},
+			"Mesh":     map[string]any{"nodeId": "sphere", "port": "Mesh"},
 			"Material": map[string]any{"nodeId": "brushed", "port": "Out"},
 		}},
 		map[string]any{"alias": "large", "type": gltfModelType, "inputs": map[string]any{
 			"Name":     map[string]any{"value": `"Large"`},
-			"Mesh":     map[string]any{"nodeId": "big", "port": "Out"},
+			"Mesh":     map[string]any{"nodeId": "big", "port": "Mesh"},
 			"Material": map[string]any{"nodeId": "brushed", "port": "Out"},
 		}},
 		map[string]any{"alias": "manifest", "type": gltfManifestType, "inputs": map[string]any{
@@ -230,7 +298,7 @@ func TestDescribeManifestWarnsWhenAMaterialNeedsUVsTheMeshLacks(t *testing.T) {
 	var out polyformmcp.DescribeManifestOutput
 	callTool(t, session, "describe_manifest", map[string]any{"nodeId": created.Nodes["manifest"]}, &out)
 
-	assert.Equal(t, []string{"NORMAL", "POSITION"}, out.Models[0].Attributes)
+	assert.NotContains(t, out.Models[0].Attributes, "TEXCOORD_0")
 	require.Len(t, out.Warnings, 3, "%v", out.Warnings)
 	assert.Contains(t, out.Warnings[0], `Small: material "Brushed" uses KHR_materials_anisotropy but the mesh has no TEXCOORD_0`)
 	assert.Contains(t, out.Warnings[1], `Large: material "Brushed" uses KHR_materials_anisotropy`)

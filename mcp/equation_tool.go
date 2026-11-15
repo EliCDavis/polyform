@@ -26,8 +26,8 @@ type CreateEquationSubgraphInput struct {
 	Id          string             `json:"id" jsonschema:"unique id for the new subgraph"`
 	Name        string             `json:"name,omitempty" jsonschema:"human-readable display name; defaults to the equation's output variable name"`
 	Description string             `json:"description,omitempty"`
-	Equation    string             `json:"equation" jsonschema:"an equation of the form 'output = expression', e.g. 'c = sqrt(a^2 + b^2)'. Supports + - * / ^ (numeric-literal exponents only, including negative and 0.5 for sqrt), unary minus, parentheses, the functions sqrt(x), hypot(a,b)/hypotenuse(a,b), min(a,b,...), max(a,b,...), floor(x), ceil(x), round(x), abs(x), mod(a,b) (remainder taking the divisor's sign, so it never goes negative over a repeating range — which copy of a repeating pattern an index lands on), sin(x), cos(x), tan(x), asin(x), acos(x), atan(x), atan2(y,x), radians(deg), degrees(rad) (angles in radians, matching quaternion.FromEulerAngleNode), and the constant pi (lowercase only; e is an ordinary input - write 2.718281828459045 for Euler's number). Every other bare identifier becomes a float64 boundary input, deduplicated by name if it appears more than once. Several statements separated by ';' or newlines ('r = sqrt(x^2+y^2); h = r*2') give one subgraph with one output per statement, sharing inputs; a later statement may read an earlier output by name. There is no general pow(base,exponent) node, so that is not supported — you'll get a clear error naming the unsupported piece rather than a silent wrong answer."`
-	Types       map[string]string  `json:"types,omitempty" jsonschema:"{input or output name: 'int'} to type that boundary port int instead of float64: an int variable or a count wires straight in; an int output rounds the result (for Times, Segments, Count ports). Any name not listed stays float64."`
+	Equation    string             `json:"equation" jsonschema:"an equation of the form 'output = expression', e.g. 'c = sqrt(a^2 + b^2)'. Supports + - * / ^ (numeric-literal exponents only, including negative and 0.5 for sqrt), unary minus, parentheses, the functions sqrt(x), hypot(a,b)/hypotenuse(a,b), min(a,b,...), max(a,b,...), floor(x), ceil(x), round(x), abs(x), mod(a,b) (remainder taking the divisor's sign, so it never goes negative over a repeating range — which copy of a repeating pattern an index lands on), sin(x), cos(x), tan(x), asin(x), acos(x), atan(x), atan2(y,x), radians(deg), degrees(rad) (angles in radians, matching quaternion.FromEulerAngleNode), comparisons < <= > >= == != (a condition, not a number), if(cond, a, b), and(c, ...), or(c, ...), not(c), and the constant pi (lowercase only; e is an ordinary input - write 2.718281828459045 for Euler's number). Every other bare identifier becomes a float64 boundary input, deduplicated by name if it appears more than once. Several statements separated by ';' or newlines ('r = sqrt(x^2+y^2); h = r*2') give one subgraph with one output per statement, sharing inputs; a later statement may read an earlier output by name. A statement whose expression is a condition is a bool output. There is no general pow(base,exponent) node, so that is not supported — you'll get a clear error naming the unsupported piece rather than a silent wrong answer."`
+	Types       map[string]string  `json:"types,omitempty" jsonschema:"{input or output name: 'int' or 'bool'} to type that boundary port int or bool instead of float64: an int variable or a count wires straight in; an int output rounds the result (for Times, Segments, Count ports); a bool input is a condition, for if(), and(), or(), not(). Any name not listed stays float64."`
 	Constants   map[string]float64 `json:"constants,omitempty" jsonschema:"{input name: default value}: the named input gets that value as its default, so instances read it unless something is wired in, and set_parameter/update_equation_subgraph can tune it later. Write the constant as a named identifier in the equation (k, not 0.52) and give its value here instead of freezing a literal into the definition."`
 }
 
@@ -54,26 +54,45 @@ type equationBuild struct {
 }
 
 func equationPortType(types map[string]string, name string) string {
-	if types[name] == "int" {
-		return "int"
+	switch types[name] {
+	case "int", "bool":
+		return types[name]
 	}
 	return "float64"
 }
 
+func outputPortType(types map[string]string, conditions map[string]bool, name string) string {
+	if conditions[name] {
+		return "bool"
+	}
+	return equationPortType(types, name)
+}
+
 func checkEquationTypes(statements []eqStatement, types map[string]string) error {
 	named := map[string]bool{}
+	inputs := map[string]bool{}
 	for _, name := range freeVariables(statements) {
 		named[name] = true
+		inputs[name] = true
 	}
 	for _, statement := range statements {
 		named[statement.output] = true
 	}
 	for name, typeName := range types {
-		if typeName != "int" && typeName != "float64" {
-			return fmt.Errorf("types: %q must be \"int\" or \"float64\", got %q", name, typeName)
+		if typeName != "int" && typeName != "float64" && typeName != "bool" {
+			return fmt.Errorf("types: %q must be \"int\", \"float64\" or \"bool\", got %q", name, typeName)
 		}
 		if !named[name] {
 			return fmt.Errorf("types: %q is neither an input nor an output of this equation; names are %s", name, strings.Join(slices.Sorted(maps.Keys(named)), ", "))
+		}
+	}
+	conditions := conditionOutputs(statements, types)
+	for _, statement := range statements {
+		switch typeName := types[statement.output]; {
+		case conditions[statement.output] && typeName == "int":
+			return fmt.Errorf("types: %q is a condition, so it can't be an int output", statement.output)
+		case !conditions[statement.output] && typeName == "bool" && !inputs[statement.output]:
+			return fmt.Errorf("types: %q is a number; an output is a bool when its expression is a comparison, and(), or(), not() or an if() choosing between conditions", statement.output)
 		}
 	}
 	return nil
@@ -88,8 +107,11 @@ func buildEquation(child *graph.Graph, spec equationSpec) (equationBuild, error)
 	compiler := newEquationCompiler(child)
 	compiler.existing = spec.existingInputs
 	for _, name := range freeVariables(spec.statements) {
-		if equationPortType(spec.types, name) == "int" {
+		switch equationPortType(spec.types, name) {
+		case "int":
 			compiler.ints[name] = true
+		case "bool":
+			compiler.bools[name] = true
 		}
 	}
 	results, err := compiler.compileStatements(spec.statements)
@@ -97,9 +119,10 @@ func buildEquation(child *graph.Graph, spec equationSpec) (equationBuild, error)
 		return built, err
 	}
 
+	conditions := conditionOutputs(spec.statements, spec.types)
 	for i, statement := range spec.statements {
 		result := results[i]
-		portType := equationPortType(spec.types, statement.output)
+		portType := outputPortType(spec.types, conditions, statement.output)
 		if portType == "int" {
 			if result, err = compiler.intOutput(result); err != nil {
 				return built, err
@@ -107,7 +130,7 @@ func buildEquation(child *graph.Graph, spec equationSpec) (equationBuild, error)
 		}
 		outID, kept := spec.existingOutputs[statement.output]
 		if !kept {
-			if outID, err = createBoundary(child, subgraph.OutputNodeTypeKey, statement.output, portType); err != nil {
+			if outID, err = createBoundary(child, subgraph.OutputNodeTypeKey, statement.output, portType, ""); err != nil {
 				return built, err
 			}
 		}
@@ -123,6 +146,9 @@ func buildEquation(child *graph.Graph, spec equationSpec) (equationBuild, error)
 			return built, fmt.Errorf("constants: %q is not an input of this equation; inputs are %s", name, strings.Join(compiler.varOrder, ", "))
 		}
 		value := spec.constants[name]
+		if compiler.bools[name] {
+			return built, fmt.Errorf("constants: %q is a bool input; constants hold numbers", name)
+		}
 		if compiler.ints[name] && value != math.Trunc(value) {
 			return built, fmt.Errorf("constants: %q is an int input, so its default must be a whole number, got %v", name, value)
 		}
@@ -270,7 +296,7 @@ func patchEquation(stored []string, set map[string]string, remove []string) (str
 
 	expressions := map[string]string{}
 	for name, expr := range set {
-		if lhs, rhs, full := strings.Cut(expr, "="); full {
+		if lhs, rhs, full := strings.Cut(expr, "="); full && isValidEqIdent(strings.TrimSpace(lhs)) && !strings.HasPrefix(rhs, "=") {
 			if strings.TrimSpace(lhs) != name {
 				return "", fmt.Errorf("statements[%q] assigns %q instead", name, strings.TrimSpace(lhs))
 			}
@@ -308,8 +334,8 @@ func patchEquation(stored []string, set map[string]string, remove []string) (str
 func equationTypes(statements []eqStatement, requested map[string]string, oldInputs, oldOutputs map[string]boundaryPort) map[string]string {
 	types := map[string]string{}
 	for _, name := range freeVariables(statements) {
-		if old, ok := oldInputs[name]; ok && old.portType == "int" {
-			types[name] = "int"
+		if old, ok := oldInputs[name]; ok && (old.portType == "int" || old.portType == "bool") {
+			types[name] = old.portType
 		}
 	}
 	for _, statement := range statements {
@@ -471,14 +497,15 @@ func (s *Server) updateEquationSubgraph(ctx context.Context, req *mcpsdk.CallToo
 			}
 		}
 
+		conditions := conditionOutputs(statements, types)
 		for _, statement := range statements {
-			if old, ok := oldOutputs[statement.output]; ok && old.portType == equationPortType(types, statement.output) {
+			if old, ok := oldOutputs[statement.output]; ok && old.portType == outputPortType(types, conditions, statement.output) {
 				spec.existingOutputs[statement.output] = old.id
 			}
 		}
 		if len(oldOutputs) == 1 && len(statements) == 1 && len(spec.existingOutputs) == 0 {
 			oldName := slices.Collect(maps.Keys(oldOutputs))[0]
-			if old := oldOutputs[oldName]; old.portType == equationPortType(types, statements[0].output) {
+			if old := oldOutputs[oldName]; old.portType == outputPortType(types, conditions, statements[0].output) {
 				if e := child.RenameBoundaryPorts(map[string]string{old.id: statements[0].output}); e != nil {
 					return e
 				}

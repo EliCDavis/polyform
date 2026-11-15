@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/EliCDavis/iter"
 	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/formats/gltf"
 	"github.com/EliCDavis/polyform/generator/manifest"
@@ -66,6 +67,41 @@ type ManifestModelSummary struct {
 	WorldRotation *[4]float64   `json:"worldRotation,omitempty" jsonschema:"composed rotation as a quaternion (x, y, z, w). Omitted when unrotated"`
 	WorldScale    *Vector3Input `json:"worldScale,omitempty" jsonschema:"omitted when 1, 1, 1"`
 	Bounds        *ModelBounds  `json:"bounds,omitempty" jsonschema:"world-space box of this model's own mesh after every parent transform, covering every GPU instance when it has them; children carry their own"`
+
+	Light *ManifestLightSummary `json:"light,omitempty" jsonschema:"the KHR_lights_punctual light this model emits"`
+}
+
+type ManifestLightSummary struct {
+	Type           string  `json:"type"`
+	Color          string  `json:"color,omitempty" jsonschema:"sRGB hex, as picked"`
+	Intensity      float64 `json:"intensity" jsonschema:"candela for point and spot, lux for directional"`
+	Range          float64 `json:"range,omitempty" jsonschema:"omitted when infinite"`
+	InnerConeAngle float64 `json:"innerConeAngle,omitempty"`
+	OuterConeAngle float64 `json:"outerConeAngle,omitempty"`
+}
+
+func manifestLight(light gltf.KHR_LightsPunctual) *ManifestLightSummary {
+	summary := &ManifestLightSummary{Type: string(light.Type), Intensity: 1}
+	if summary.Type == "" {
+		summary.Type = string(gltf.KHR_LightsPunctualType_Point)
+	}
+	if light.Color != nil {
+		r, g, b, _ := light.Color.RGBA()
+		summary.Color = srgbHexOf([]float64{float64(r) / math.MaxUint16, float64(g) / math.MaxUint16, float64(b) / math.MaxUint16})
+	}
+	if light.Intensity != nil {
+		summary.Intensity = *light.Intensity
+	}
+	if light.Range != nil {
+		summary.Range = *light.Range
+	}
+	if light.InnerConeAngle != nil {
+		summary.InnerConeAngle = *light.InnerConeAngle
+	}
+	if light.OuterConeAngle != nil {
+		summary.OuterConeAngle = *light.OuterConeAngle
+	}
+	return summary
 }
 
 type ModelBounds struct {
@@ -479,6 +515,9 @@ func (w *manifestWalk) model(model *gltf.PolyformModel, parentPath string, paren
 		WorldRotation: &[4]float64{rot.Dir().X(), rot.Dir().Y(), rot.Dir().Z(), rot.W()},
 		WorldScale:    &scale,
 	}
+	if model.Light != nil {
+		summary.Light = manifestLight(*model.Light)
+	}
 	slot := len(w.out.Models)
 	w.out.Models = append(w.out.Models, summary)
 
@@ -527,7 +566,7 @@ func (w *manifestWalk) geometry(model *gltf.PolyformModel, world trs.TRS, summar
 			transforms = append(transforms, world.Multiply(instance))
 		}
 	}
-	bounds := geometry.NewAABBFromPoints(worldCorners(local, transforms)...)
+	bounds := worldBounds(mesh, local, transforms)
 	summary.Bounds = &ModelBounds{Min: vector3Input(bounds.Min()), Max: vector3Input(bounds.Max())}
 	if w.hasBounds {
 		w.bounds.EncapsulateBounds(bounds)
@@ -726,19 +765,58 @@ func componentName(t gltf.AccessorComponentType) string {
 	return fmt.Sprint(int(t))
 }
 
-func worldCorners(local geometry.AABB, transforms []mat.Matrix4x4) []vector3.Float64 {
+// A box's corners bound it exactly only under quarter turns; any other
+// rotation needs the vertices themselves.
+func worldBounds(mesh modeling.Mesh, local geometry.AABB, transforms []mat.Matrix4x4) geometry.AABB {
 	lo, hi := local.Min(), local.Max()
-	corners := make([]vector3.Float64, 0, 8*len(transforms))
+	var positions *iter.ArrayIterator[vector3.Float64]
+	low := vector3.Fill(math.Inf(1))
+	high := vector3.Fill(math.Inf(-1))
+	include := func(p vector3.Float64) {
+		low, high = vector3.Min(low, p), vector3.Max(high, p)
+	}
 	for _, m := range transforms {
+		if !axisAligned(m) && mesh.HasFloat3Attribute(modeling.PositionAttribute) {
+			if positions == nil {
+				positions = mesh.Float3Attribute(modeling.PositionAttribute)
+			}
+			for i := range positions.Len() {
+				include(m.MulPosition(positions.At(i)))
+			}
+			continue
+		}
 		for _, x := range []float64{lo.X(), hi.X()} {
 			for _, y := range []float64{lo.Y(), hi.Y()} {
 				for _, z := range []float64{lo.Z(), hi.Z()} {
-					corners = append(corners, m.MulPosition(vector3.New(x, y, z)))
+					include(m.MulPosition(vector3.New(x, y, z)))
 				}
 			}
 		}
 	}
-	return corners
+	bounds := geometry.AABB{}
+	bounds.SetMinMax(low, high)
+	return bounds
+}
+
+func axisAligned(m mat.Matrix4x4) bool {
+	const eps = 1e-9
+	rows := [3][3]float64{
+		{m.X00, m.X01, m.X02},
+		{m.X10, m.X11, m.X12},
+		{m.X20, m.X21, m.X22},
+	}
+	for _, row := range rows {
+		nonZero := 0
+		for _, v := range row {
+			if math.Abs(v) > eps {
+				nonZero++
+			}
+		}
+		if nonZero > 1 {
+			return false
+		}
+	}
+	return true
 }
 
 func extentOf(box geometry.AABB) *Extent {

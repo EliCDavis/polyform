@@ -120,6 +120,39 @@ func TestCreateSubgraphInputDefaultIsReadByAnUnwiredInstance(t *testing.T) {
 	assert.InDelta(t, 30, evalFloat64Output(t, inst, wired.NodeId, "Result"), 1e-9)
 }
 
+func TestCreateBoundaryNodeDefaultReachesExistingInstances(t *testing.T) {
+	session, inst := testSessionWithInstance(t)
+	half := halfSubgraph(t, session, "half")
+	var placed polyformmcp.InstantiateSubgraphOutput
+	callTool(t, session, "instantiate_subgraph", map[string]any{"subgraphId": "half"}, &placed)
+
+	var out polyformmcp.CreateBoundaryNodeOutput
+	callTool(t, session, "create_boundary_node", map[string]any{
+		"subgraphId": "half", "kind": "input", "portType": "float64", "name": "X", "default": "4",
+	}, &out)
+	callTool(t, session, "connect_nodes", map[string]any{
+		"scope": "half", "outNodeId": out.NodeId, "outPort": "Value", "inNodeId": half.Nodes["m"], "inPort": "Values",
+	}, &polyformmcp.ConnectNodesOutput{})
+
+	assert.InDelta(t, 2, evalFloat64Output(t, inst, placed.NodeId, "Result"), 1e-9)
+}
+
+func TestCreateBoundaryNodeDefaultReachesInstancesThroughNesting(t *testing.T) {
+	session, inst := testSessionWithInstance(t)
+	halfSubgraph(t, session, "half")
+	callTool(t, session, "create_subgraph", map[string]any{"id": "outer", "name": "Outer"}, &polyformmcp.CreateSubgraphOutput{})
+	callTool(t, session, "instantiate_subgraph", map[string]any{"subgraphId": "half", "scope": "outer"}, &polyformmcp.InstantiateSubgraphOutput{})
+	var placed polyformmcp.InstantiateSubgraphOutput
+	callTool(t, session, "instantiate_subgraph", map[string]any{"subgraphId": "outer"}, &placed)
+
+	callTool(t, session, "create_boundary_node", map[string]any{
+		"subgraphId": "half", "kind": "input", "portType": "float64", "name": "X", "default": "4",
+		"through": []string{"outer"},
+	}, &polyformmcp.CreateBoundaryNodeOutput{})
+
+	assert.Equal(t, "4", string(inst.Schema().Nodes[placed.NodeId].Literals["X"]))
+}
+
 func TestCreateBoundaryNodeDefaultsToTheVariableItWires(t *testing.T) {
 	session, inst := testSessionWithInstance(t)
 	half := halfSubgraph(t, session, "half")

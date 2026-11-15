@@ -382,9 +382,6 @@ func validateOutline(o Outline, resolver primitiveResolver) ([]OutlineIssue, []O
 		if strings.TrimSpace(name) == "" {
 			errorf(name, "", "part names cannot be blank")
 		}
-		if strings.Contains(name, " ") {
-			errorf(name, "", "part names become subgraph ids; use camelCase, no spaces")
-		}
 		k := o.kindOf(part)
 		if k != "field" && k != "mesh" && k != "helper" {
 			errorf(name, "", "kind must be field, mesh or helper, got %q", k)

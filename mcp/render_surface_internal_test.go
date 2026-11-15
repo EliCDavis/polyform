@@ -83,6 +83,18 @@ func TestOcclusionMapDarkensAmbientLight(t *testing.T) {
 	assert.Less(t, occluded.R, open.R)
 }
 
+func TestOcclusionMapDarkensAMetal(t *testing.T) {
+	shader := unlitShader(nil)
+	shader.finish = finish{set: true, metallic: 1, roughness: 0.4}
+	shader.LightDirection = fauxgl.V(1, 0, 0)
+	open := fragment(shader, fauxgl.Color{R: 1, G: 1, B: 1, A: 1})
+	shader.surface = surface{occlusion: solidTexture(color.RGBA{R: 64, G: 64, B: 64, A: 255}), occlusionStrength: 1}
+
+	occluded := fragment(shader, fauxgl.Color{R: 1, G: 1, B: 1, A: 1})
+
+	assert.Less(t, occluded.R, open.R*0.8)
+}
+
 func TestUVCheckerPaintsPartsWithUVsAndListsTheRest(t *testing.T) {
 	positions := []vector3.Float64{vector3.New(0., 0., 0.), vector3.New(1., 0., 0.), vector3.New(0., 1., 0.)}
 	mapped := modeling.NewTriangleMesh([]int{0, 1, 2}).
