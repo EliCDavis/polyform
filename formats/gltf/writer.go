@@ -869,6 +869,13 @@ func (w *Writer) addModel(model *PolyformModel, parentTransformOverride *trs.TRS
 		node.Children = append(node.Children, *childeNodeIndex)
 	}
 
+	if model.Light != nil {
+		if node.Extensions == nil {
+			node.Extensions = make(Extensions)
+		}
+		node.Extensions[khrLightsPunctualID] = map[string]any{"light": w.addLight(*model.Light)}
+	}
+
 	if len(positions) > 0 && node.Mesh != nil {
 		switch w.Options.GpuInstancingStrategy {
 		case WriterInstancingStrategy_Default, WriterInstancingStrategy_Collapse:
@@ -1265,11 +1272,17 @@ func (w *Writer) AddAnimations(animations []animation.Sequence, skeleton animati
 	}
 }
 
-func (w *Writer) AddLight(light KHR_LightsPunctual) GltfId {
-	nodeIndex := len(w.nodes)
+const khrLightsPunctualID = "KHR_lights_punctual"
 
+func (w *Writer) addLight(light KHR_LightsPunctual) int {
 	lightIndex := len(w.lights)
 	w.lights = append(w.lights, light)
+	w.extensionsUsed[khrLightsPunctualID] = true
+	return lightIndex
+}
+
+func (w *Writer) AddLight(light KHR_LightsPunctual) GltfId {
+	nodeIndex := len(w.nodes)
 
 	var translation = [3]float64{
 		light.Position.X(),
@@ -1281,15 +1294,14 @@ func (w *Writer) AddLight(light KHR_LightsPunctual) GltfId {
 		ChildOfRootProperty: ChildOfRootProperty{
 			Property: Property{
 				Extensions: map[string]any{
-					"KHR_lights_punctual": map[string]any{
-						"light": lightIndex,
+					khrLightsPunctualID: map[string]any{
+						"light": w.addLight(light),
 					},
 				},
 			},
 		},
 		Translation: &translation,
 	})
-	w.extensionsUsed["KHR_lights_punctual"] = true
 	return nodeIndex
 }
 
@@ -1332,7 +1344,7 @@ func (w Writer) ToGLTF(embeddingStrategy BufferEmbeddingStrategy) Gltf {
 			arr = append(arr, l.ToExtension())
 		}
 
-		extensions["KHR_lights_punctual"] = map[string]any{
+		extensions[khrLightsPunctualID] = map[string]any{
 			"lights": arr,
 		}
 	}

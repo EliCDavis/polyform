@@ -35,6 +35,7 @@ func init() {
 	refutil.RegisterType[nodes.Struct[MaterialTransmissionExtensionNode]](factory)
 	refutil.RegisterType[nodes.Struct[MaterialVolumeExtensionNode]](factory)
 	refutil.RegisterType[nodes.Struct[ModelNode]](factory)
+	refutil.RegisterType[nodes.Struct[LightNode]](factory)
 	refutil.RegisterType[nodes.Struct[TextureReferenceNode]](factory)
 	refutil.RegisterType[nodes.Struct[TextureNode]](factory)
 	refutil.RegisterType[nodes.Struct[NormalTextureNode]](factory)
@@ -105,10 +106,12 @@ type ModelNode struct {
 	Scale       nodes.LiftedPort[vector3.Float64] `default:"1,1,1"`
 
 	GpuInstances nodes.Output[[]trs.TRS]
+
+	Light nodes.Output[KHR_LightsPunctual]
 }
 
 func (gmnd ModelNode) Description() string {
-	return "A mesh placed in the scene with a material and a transform. Gpu Instances draws one copy of the mesh per transform, each relative to this model's own; children are not repeated."
+	return "A mesh placed in the scene with a material and a transform. Gpu Instances draws one copy of the mesh per transform, each relative to this model's own; children and the light are not repeated."
 }
 
 func (gmnd ModelNode) Out(out *nodes.Lifted[*PolyformModel]) {
@@ -124,6 +127,7 @@ func (gmnd ModelNode) Out(out *nodes.Lifted[*PolyformModel]) {
 		instances = []trs.TRS{}
 	}
 	material := nodes.TryGetOutputReference(out, gmnd.Material, nil)
+	light := nodes.TryGetOutputReference(out, gmnd.Light, nil)
 
 	nodes.Zip5(
 		out,
@@ -140,6 +144,7 @@ func (gmnd ModelNode) Out(out *nodes.Lifted[*PolyformModel]) {
 				Material:     material,
 				TRS:          &transform,
 				Children:     children,
+				Light:        light,
 			}
 			if gmnd.Mesh != nil {
 				model.Mesh = &mesh

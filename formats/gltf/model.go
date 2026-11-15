@@ -70,6 +70,10 @@ type PolyformModel struct {
 	Skeleton   *animation.Skeleton
 	Animations []animation.Sequence
 
+	// Emitted from this model's node, so it follows the model's transform.
+	// GpuInstances do not repeat it.
+	Light *KHR_LightsPunctual
+
 	Children []*PolyformModel
 }
 

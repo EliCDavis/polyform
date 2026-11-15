@@ -21,6 +21,9 @@ type KHR_LightsPunctual struct {
 	Intensity *float64
 	Range     *float64
 	Position  vector3.Float64
+
+	InnerConeAngle *float64
+	OuterConeAngle *float64
 }
 
 func (khr_lp KHR_LightsPunctual) ToExtension() map[string]any {
@@ -42,6 +45,21 @@ func (khr_lp KHR_LightsPunctual) ToExtension() map[string]any {
 
 	if khr_lp.Intensity != nil {
 		data["intensity"] = *khr_lp.Intensity
+	}
+
+	if khr_lp.Name != nil {
+		data["name"] = *khr_lp.Name
+	}
+
+	if khr_lp.Type == KHR_LightsPunctualType_Spot {
+		spot := make(map[string]any)
+		if khr_lp.InnerConeAngle != nil {
+			spot["innerConeAngle"] = *khr_lp.InnerConeAngle
+		}
+		if khr_lp.OuterConeAngle != nil {
+			spot["outerConeAngle"] = *khr_lp.OuterConeAngle
+		}
+		data["spot"] = spot
 	}
 
 	return data
