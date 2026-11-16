@@ -3,6 +3,7 @@ package nodes
 import (
 	"reflect"
 	"sort"
+	"strings"
 	"sync"
 
 	"github.com/EliCDavis/polyform/refutil"
@@ -67,9 +68,24 @@ func lookupPortType(typeName string) (OutputPort, bool) {
 		return nil, false
 	}
 	portTypeMu.RLock()
-	defer portTypeMu.RUnlock()
 	port, ok := portTypeSamples[typeName]
-	return port, ok
+	portTypeMu.RUnlock()
+	if ok {
+		return port, true
+	}
+	elem, isArray := strings.CutPrefix(typeName, "[]")
+	if !isArray {
+		return nil, false
+	}
+	elemSample, ok := lookupPortType(elem)
+	if !ok {
+		return nil, false
+	}
+	builder, ok := elemSample.(DynamicArrayOutputBuilder)
+	if !ok {
+		return nil, false
+	}
+	return builder.BuildDynamicArrayOutput(nil), true
 }
 
 // LookupPortTypeProxy returns a factory for a pass-through port of the given

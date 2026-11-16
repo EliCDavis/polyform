@@ -48,11 +48,11 @@ func TestWeldMergesAcrossARoundNumber(t *testing.T) {
 }
 
 func TestWeldLeavesDistinctPointsAlone(t *testing.T) {
-	sphere := primitives.UVSphere(1, 12, 16)
-	joined := meshops.Weld(sphere, modeling.PositionAttribute, 1e-9)
+	grid := primitives.Quad{Width: 1, Depth: 1, Rows: 12, Columns: 16}.ToMesh()
+	joined := meshops.Weld(grid, modeling.PositionAttribute, 1e-9)
 
-	assert.Equal(t, sphere.AttributeLength(), joined.AttributeLength())
-	assert.Equal(t, sphere.PrimitiveCount(), joined.PrimitiveCount())
+	assert.Equal(t, grid.AttributeLength(), joined.AttributeLength())
+	assert.Equal(t, grid.PrimitiveCount(), joined.PrimitiveCount())
 }
 
 func TestWeldDropsFacesCollapsedToALine(t *testing.T) {

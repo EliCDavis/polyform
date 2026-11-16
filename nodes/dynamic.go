@@ -319,8 +319,23 @@ func (d *dynamicOutput) Description() string {
 	return ""
 }
 
+// A lifted input carrying a list makes a single-valued output a list of it.
 func (d *dynamicOutput) Type() string {
-	return d.pattern.resolve(d.bindings.boundFor(d.pattern.variable()))
+	concrete := d.pattern.resolve(d.bindings.boundFor(d.pattern.variable()))
+	if concrete == "" || strings.HasPrefix(concrete, "[]") || d.liftedInputsRank() != rankArray {
+		return concrete
+	}
+	return arrayOf(concrete)
+}
+
+func (d *dynamicOutput) liftedInputsRank() int {
+	generation := Generation()
+	if memo := d.cache.liftedArg.Load(); memo != nil && memo.generation == generation {
+		return memo.rank
+	}
+	rank := liftedPortsRank(d.data)
+	d.cache.liftedArg.Store(&rankMemo{generation: generation, rank: rank})
+	return rank
 }
 
 func (d *dynamicOutput) Version() int {

@@ -35,14 +35,8 @@ func arrayOf(elem string) string {
 // An array when any lifted input carries one. No rank is stored anywhere;
 // it falls out of the connections.
 func liftedRank(data any) int {
-	for field, elem := range refutil.GenericFieldTypes(liftedPortFieldType, data) {
-		port := refutil.FieldValue[OutputPort](data, field)
-		if port == nil {
-			continue
-		}
-		if portValueTypeName(port) == arrayOf(elem) {
-			return rankArray
-		}
+	if liftedPortsRank(data) == rankArray {
+		return rankArray
 	}
 
 	for field, pattern := range refutil.GenericFieldTypes(dynamicPortFieldType, data) {
@@ -66,6 +60,19 @@ func liftedRank(data any) int {
 			if portValueTypeName(port) == arrayOf(elem) {
 				return rankArray
 			}
+		}
+	}
+	return rankScalar
+}
+
+func liftedPortsRank(data any) int {
+	for field, elem := range refutil.GenericFieldTypes(liftedPortFieldType, data) {
+		port := refutil.FieldValue[OutputPort](data, field)
+		if port == nil {
+			continue
+		}
+		if portValueTypeName(port) == arrayOf(elem) {
+			return rankArray
 		}
 	}
 	return rankScalar

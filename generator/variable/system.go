@@ -31,6 +31,7 @@ type System interface {
 	Info(path string) (Info, error)
 	Exists(path string) bool
 	Remove(path string) error
+	Replace(path string, variable Variable) error
 	Move(oldName, newName string) error
 	Traverse(func(path string, info Info, v Variable))
 	PersistedSchema(encoder Encoder) (schema.NestedGroup[persistence.Variable], error)
@@ -354,6 +355,27 @@ func (s *system) Add(systemPath string, variable Variable) error {
 		variable: variable,
 		info:     info,
 	}
+	return nil
+}
+
+func (s *system) Replace(path string, variable Variable) error {
+	if variable == nil {
+		return fmt.Errorf("variable is nil")
+	}
+
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	entry, ok := s.entries[path].(*systemVariableEntry)
+	if !ok {
+		return fmt.Errorf("variable does not exist at path: %s", path)
+	}
+	if variable.Info() != entry.info {
+		if err := variable.setInfo(entry.info); err != nil {
+			return err
+		}
+	}
+	entry.variable = variable
 	return nil
 }
 

@@ -415,6 +415,38 @@ func TestForEachSurvivesASaveAndLoad(t *testing.T) {
 	assert.Equal(t, []float64{3, 4, 5}, nodes.GetNodeOutputPort[[]float64](placement, "Sum").Value())
 }
 
+func TestANestedForEachSurvivesASaveAndLoad(t *testing.T) {
+	root := testInstanceForForEach(t)
+	doublerType, _, _ := liftedPassThroughSubgraphIn(t, root, "doubler")
+
+	require.NoError(t, root.CreateSubGraph("doubleAll", "doubleAll", ""))
+	outer, err := root.SubGraphInstance("doubleAll")
+	require.NoError(t, err)
+	in := boundary(t, outer, subgraph.InputNodeTypeKey, "[]float64", "Values")
+	out := boundary(t, outer, subgraph.OutputNodeTypeKey, "[]float64", "Doubled")
+	_, inner, err := outer.CreateNode(doublerType)
+	require.NoError(t, err)
+	require.NoError(t, errOf(outer.SetForEach(inner, true)))
+	require.NoError(t, outer.ConnectNodes(in, subgraph.ValuePortName, inner, "Value In"))
+	require.NoError(t, outer.ConnectNodes(inner, "Value Out", out, subgraph.ValuePortName))
+	outerType, err := root.RegisterSubGraphNodeType("doubleAll")
+	require.NoError(t, err)
+
+	_, placement, err := root.CreateNode(outerType)
+	require.NoError(t, err)
+	_, pair, err := root.CreateNode(floatPairSourceType)
+	require.NoError(t, err)
+	require.NoError(t, root.ConnectNodes(pair, "Out", placement, "Values"))
+	require.Equal(t, []float64{20, 40}, nodes.GetNodeOutputPort[[]float64](root.Node(placement), "Doubled").Value())
+
+	saved, err := root.EncodeToAppSchema()
+	require.NoError(t, err)
+	reloaded := testInstanceForForEach(t)
+	require.NoError(t, reloaded.ApplyAppSchema(saved))
+
+	assert.Equal(t, []float64{20, 40}, nodes.GetNodeOutputPort[[]float64](reloaded.Node(placement), "Doubled").Value())
+}
+
 func TestADownstreamNodeRecomputesWhenAnIteratedListChanges(t *testing.T) {
 	p := placeEachAdder(t)
 	p.each(t, true)

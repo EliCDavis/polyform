@@ -10,35 +10,26 @@ import (
 // frame places one ring of a sweep: the profile's x lands on x and its y on
 // y, and x × tangent = y, so the profile is never mirrored.
 type frame struct {
-	point   int
-	origin  vector3.Float64
-	tangent vector3.Float64
-	x, y    vector3.Float64
-	size    vector2.Float64
-
-	// Zero where the ring ends the path or is one side of a bevel.
-	incoming, outgoing vector3.Float64
-
-	miter   vector3.Float64
-	stretch float64
+	geometry.PathFrame
+	size vector2.Float64
 }
 
 const maxMiterStretch = geometry.MaxMiterStretch
 
 func (f frame) place(p vector2.Float64) vector3.Float64 {
-	return f.origin.Add(f.offset(p))
+	return f.Origin.Add(f.offset(p))
 }
 
 func (f frame) offset(p vector2.Float64) vector3.Float64 {
 	offset := f.direction(vector2.New(p.X()*f.size.X(), p.Y()*f.size.Y()))
-	if f.stretch > 1 {
-		offset = offset.Add(f.miter.Scale(offset.Dot(f.miter) * (f.stretch - 1)))
+	if f.Stretch > 1 {
+		offset = offset.Add(f.Miter.Scale(offset.Dot(f.Miter) * (f.Stretch - 1)))
 	}
 	return offset
 }
 
 func (f frame) direction(p vector2.Float64) vector3.Float64 {
-	return f.x.Scale(p.X()).Add(f.y.Scale(p.Y()))
+	return f.X.Scale(p.X()).Add(f.Y.Scale(p.Y()))
 }
 
 func (f frame) mirrored() bool {
@@ -92,18 +83,7 @@ func pathFrames(path []vector3.Float64, closed bool) []frame {
 	pathed := geometry.PathFrames(path, closed)
 	frames := make([]frame, len(pathed))
 	for i, f := range pathed {
-		frames[i] = frame{
-			point:    f.Point,
-			origin:   f.Origin,
-			tangent:  f.Tangent,
-			x:        f.X,
-			y:        f.Y,
-			size:     vector2.One[float64](),
-			incoming: f.Incoming,
-			outgoing: f.Outgoing,
-			miter:    f.Miter,
-			stretch:  f.Stretch,
-		}
+		frames[i] = frame{PathFrame: f, size: vector2.One[float64]()}
 	}
 	return frames
 }
@@ -117,17 +97,19 @@ func framesFromTRS(transforms []trs.TRS, closed bool) []frame {
 		rotation := t.Rotation()
 		scale := t.Scale()
 		frames[i] = frame{
-			point:   i,
-			origin:  t.Position(),
-			tangent: rotation.Rotate(vector3.Forward[float64]()).Normalized(),
-			x:       rotation.Rotate(vector3.Left[float64]()).Normalized(),
-			y:       rotation.Rotate(vector3.Up[float64]()).Normalized(),
-			size:    vector2.New(scale.X(), scale.Y()),
+			PathFrame: geometry.PathFrame{
+				Point:   i,
+				Origin:  t.Position(),
+				Tangent: rotation.Rotate(vector3.Forward[float64]()).Normalized(),
+				X:       rotation.Rotate(vector3.Left[float64]()).Normalized(),
+				Y:       rotation.Rotate(vector3.Up[float64]()).Normalized(),
+			},
+			size: vector2.New(scale.X(), scale.Y()),
 		}
 	}
 
 	toward := func(from, to int) vector3.Float64 {
-		along := frames[to].origin.Sub(frames[from].origin)
+		along := frames[to].Origin.Sub(frames[from].Origin)
 		if along.Length() <= 1e-12 {
 			return vector3.Float64{}
 		}
@@ -135,17 +117,17 @@ func framesFromTRS(transforms []trs.TRS, closed bool) []frame {
 	}
 	for i := range frames {
 		if i > 0 || closed {
-			frames[i].incoming = toward((i+count-1)%count, i)
+			frames[i].Incoming = toward((i+count-1)%count, i)
 		}
 		if i < count-1 || closed {
-			frames[i].outgoing = toward(i, (i+1)%count)
+			frames[i].Outgoing = toward(i, (i+1)%count)
 		}
-		if frames[i].incoming != (vector3.Float64{}) && frames[i].outgoing != (vector3.Float64{}) {
+		if frames[i].Incoming != (vector3.Float64{}) && frames[i].Outgoing != (vector3.Float64{}) {
 			// Flattened into the frame's plane, so a frame that does not face
 			// the corner evenly still places a flat section.
-			miter, stretch := geometry.Miter(frames[i].incoming, frames[i].outgoing)
-			frames[i].miter = miter.Sub(frames[i].tangent.Scale(miter.Dot(frames[i].tangent)))
-			frames[i].stretch = stretch
+			miter, stretch := geometry.Miter(frames[i].Incoming, frames[i].Outgoing)
+			frames[i].Miter = miter.Sub(frames[i].Tangent.Scale(miter.Dot(frames[i].Tangent)))
+			frames[i].Stretch = stretch
 		}
 	}
 	return frames
@@ -154,7 +136,7 @@ func framesFromTRS(transforms []trs.TRS, closed bool) []frame {
 func distances(frames []frame) []float64 {
 	walked := make([]float64, len(frames))
 	for i := 1; i < len(frames); i++ {
-		walked[i] = walked[i-1] + frames[i].origin.Distance(frames[i-1].origin)
+		walked[i] = walked[i-1] + frames[i].Origin.Distance(frames[i-1].Origin)
 	}
 	return walked
 }

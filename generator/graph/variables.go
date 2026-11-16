@@ -12,6 +12,7 @@ import (
 	"github.com/EliCDavis/polyform/generator/named"
 	"github.com/EliCDavis/polyform/generator/variable"
 	"github.com/EliCDavis/polyform/generator/variant"
+	"github.com/EliCDavis/polyform/math/norm"
 	"github.com/EliCDavis/polyform/nodes"
 )
 
@@ -150,6 +151,171 @@ func (a *Instance) removeReferences(deleted variable.Variable, report *VariableD
 		}
 	}
 	return nil
+}
+
+// A nil value carries the current one over.
+func (a *Instance) RetypeVariable(variablePath, typeKey string, value []byte) error {
+	var old variable.Variable
+	var swapped []swappedNode
+	_, err := a.write(refuseConflicts, func() (err error) {
+		old, swapped, err = a.retypeVariable(variablePath, typeKey, value)
+		return err
+	})
+	if err == nil || old == nil {
+		return err
+	}
+
+	_, undone := a.write(refuseConflicts, func() error {
+		if err := a.installVariable(variablePath, old); err != nil {
+			return err
+		}
+		for _, swap := range swapped {
+			swap.graph.swapNode(swap.fresh, swap.old)
+		}
+		return nil
+	})
+	if undone != nil {
+		return fmt.Errorf("%w; putting the variable back also failed: %w", err, undone)
+	}
+	return fmt.Errorf("%s cannot become %s, an input reading it does not take that type: %w", variablePath, typeKey, err)
+}
+
+type swappedNode struct {
+	graph      *Graph
+	old, fresh nodes.Node
+}
+
+func (a *Instance) retypeVariable(variablePath, typeKey string, value []byte) (variable.Variable, []swappedNode, error) {
+	old, err := a.variables.Variable(variablePath)
+	if err != nil {
+		return nil, nil, fmt.Errorf("trying to retype a variable at the path %q which doesn't contain a variable", variablePath)
+	}
+	fresh, err := a.buildVariable(typeKey)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if value == nil {
+		value = old.ToMessage()
+	}
+	if _, err := fresh.ApplyMessage(value); err != nil {
+		return nil, nil, fmt.Errorf("%s: the value %s is not a %s: %w", variablePath, value, typeKey, err)
+	}
+	if err := withinNormRange(fresh); err != nil {
+		return nil, nil, fmt.Errorf("%s: %w; pass a value that fits", variablePath, err)
+	}
+	if err := a.savedValuesFit(variablePath, typeKey); err != nil {
+		return nil, nil, err
+	}
+	if err := a.installVariable(variablePath, fresh); err != nil {
+		return nil, nil, err
+	}
+
+	var swapped []swappedNode
+	for _, scope := range a.scopes() {
+		for _, id := range slices.Sorted(maps.Keys(scope.graph.nodesByID)) {
+			node := scope.graph.nodesByID[id]
+			if ref, ok := node.(variable.Reference); ok && ref.Reference() == old {
+				swap := swappedNode{graph: scope.graph, old: node, fresh: fresh.NodeReference()}
+				scope.graph.swapNode(swap.old, swap.fresh)
+				swapped = append(swapped, swap)
+			}
+		}
+	}
+	return old, swapped, nil
+}
+
+func (a *Instance) installVariable(variablePath string, v variable.Variable) error {
+	if err := a.variables.Replace(variablePath, v); err != nil {
+		return err
+	}
+	a.typeFactory.Unregister(variablePath)
+	a.typeFactory.RegisterBuilder(variablePath, func() any {
+		return v.NodeReference()
+	})
+	nodes.DiscoverNodePortTypes(v.NodeReference())
+	return nil
+}
+
+func (a *Instance) savedValuesFit(variablePath, typeKey string) error {
+	fits := func(value json.RawMessage) error {
+		scratch, err := a.buildVariable(typeKey)
+		if err != nil {
+			return err
+		}
+		if _, err := scratch.ApplyMessage(value); err != nil {
+			return fmt.Errorf("the value %s is not a %s: %w", value, typeKey, err)
+		}
+		return withinNormRange(scratch)
+	}
+
+	for _, name := range a.profiles.Names() {
+		profile, _ := a.profiles.Get(name)
+		value, ok := profile[variablePath]
+		if !ok {
+			continue
+		}
+		if err := fits(value); err != nil {
+			return fmt.Errorf("profile %q sets %s to a value the new type cannot hold: %w", name, variablePath, err)
+		}
+	}
+
+	for _, name := range a.variantSets.Names() {
+		set, _ := a.variantSets.Get(name)
+		for _, dimension := range set.Dimensions {
+			if dimension.Path() != variablePath {
+				continue
+			}
+			for i := range dimension.Count() {
+				value, err := dimension.Value(i)
+				if err != nil {
+					return fmt.Errorf("variant set %q: %w", name, err)
+				}
+				if err := fits(value); err != nil {
+					return fmt.Errorf("variant set %q varies %s through a value the new type cannot hold: %w", name, variablePath, err)
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func withinNormRange(v variable.Variable) error {
+	switch typed := v.(type) {
+	case *variable.TypeVariable[norm.UFloat64]:
+		if held := typed.GetValue(); float64(held) != held.Value() {
+			return fmt.Errorf("the value %v is outside a norm.UFloat64's 0 to 1", float64(held))
+		}
+	case *variable.TypeVariable[norm.SFloat64]:
+		if held := typed.GetValue(); float64(held) != held.Value() {
+			return fmt.Errorf("the value %v is outside a norm.SFloat64's -1 to 1", float64(held))
+		}
+	}
+	return nil
+}
+
+func (a *Graph) swapNode(old, fresh nodes.Node) {
+	a.dirty()
+	id, typeKey := a.nodeIDs[old], a.nodeTypeKeys[old]
+	a.forget(old)
+	a.register(fresh, id, typeKey)
+	a.reads[fresh] = map[string][]source{}
+
+	for consumer, inputs := range a.reads {
+		for input, sources := range inputs {
+			swapped := slices.Clone(sources)
+			changed := false
+			for i, from := range swapped {
+				if from.node == old {
+					swapped[i].node = fresh
+					changed = true
+				}
+			}
+			if changed {
+				a.setSources(consumer, input, swapped)
+			}
+		}
+	}
 }
 
 type scopedGraph struct {

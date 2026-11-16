@@ -43,10 +43,10 @@ func TestTheEdgeDroppedFromAListInputIsTheOneThatDoesNotFit(t *testing.T) {
 
 	_, one, err := instance.CreateNode(fillType)
 	require.NoError(t, err)
-	require.NoError(t, instance.ConnectNodes(oneOutline, "Out", one, "Outlines"))
+	require.NoError(t, instance.ConnectNodes(oneOutline, "Outline", one, "Outlines"))
 	_, many, err := instance.CreateNode(fillType)
 	require.NoError(t, err)
-	require.NoError(t, instance.ConnectNodes(manyOutlines, "Out", many, "Outlines"))
+	require.NoError(t, instance.ConnectNodes(manyOutlines, "Outline", many, "Outlines"))
 
 	union, unionID, err := instance.CreateNode(unionType)
 	require.NoError(t, err)

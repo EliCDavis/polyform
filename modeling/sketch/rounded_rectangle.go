@@ -47,14 +47,14 @@ type RoundedRectangleNode struct {
 }
 
 func (RoundedRectangleNode) Description() string {
-	return "A closed 2D rounded-rectangle outline."
+	return "A 2D rounded rectangle."
 }
 
 func (RoundedRectangleNode) Keywords() []string {
 	return []string{"fillet"}
 }
 
-func (n RoundedRectangleNode) Out(out *nodes.Lifted[[]vector2.Float64]) {
+func (n RoundedRectangleNode) Outline(out *nodes.Lifted[[]vector2.Float64]) {
 	segments := max(nodes.GetOutputValue(out, n.Segments), 1)
 	nodes.Zip3(
 		out,
@@ -65,4 +65,23 @@ func (n RoundedRectangleNode) Out(out *nodes.Lifted[[]vector2.Float64]) {
 			return RoundedRectangle(size, radius, center, segments)
 		},
 	)
+}
+
+func (n RoundedRectangleNode) Area(out *nodes.Lifted[Area]) {
+	segments := max(nodes.GetOutputValue(out, n.Segments), 1)
+	nodes.Zip3(
+		out,
+		n.Size,
+		n.Radius,
+		n.Center,
+		func(size vector2.Float64, radius float64, center vector2.Float64) Area {
+			return enclosed(out, RoundedRectangle(size, radius, center, segments))
+		},
+	)
+}
+
+func enclosed(out interface{ CaptureError(error) }, shape geometry.Shape) Area {
+	area, err := Fill([]geometry.Shape{shape}, nil)
+	out.CaptureError(err)
+	return area
 }

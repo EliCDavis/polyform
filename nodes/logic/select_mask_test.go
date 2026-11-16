@@ -45,6 +45,27 @@ func TestSelectWithAListOfConditionsBroadcastsAOneElementSide(t *testing.T) {
 	assert.Empty(t, maskErrors(node))
 }
 
+func TestSelectWithAListOfConditionsBroadcastsSingleValues(t *testing.T) {
+	node := &nodes.Struct[logic.SelectNode]{}
+	wire(t, node, "Condition", nodes.ConstOutput[[]bool]{Val: []bool{true, false, true}})
+	wire(t, node, "A", nodes.ConstOutput[int]{Val: 1})
+	wire(t, node, "B", nodes.ConstOutput[int]{Val: -1})
+
+	out := node.Outputs()["Out"]
+	assert.Equal(t, "[]int", out.(nodes.Typed).Type())
+	assert.Equal(t, []int{1, -1, 1}, nodes.GetNodeOutputPort[[]int](node, "Out").Value())
+	assert.Empty(t, maskErrors(node))
+}
+
+func TestSelectWithAListOfConditionsBroadcastsASingleValueBesideAList(t *testing.T) {
+	node := &nodes.Struct[logic.SelectNode]{}
+	wire(t, node, "Condition", nodes.ConstOutput[[]bool]{Val: []bool{true, false, true}})
+	wire(t, node, "A", nodes.ConstOutput[[]int]{Val: []int{4, 5, 6}})
+	wire(t, node, "B", nodes.ConstOutput[[]int]{Val: []int{-1}})
+
+	assert.Equal(t, []int{4, -1, 6}, nodes.GetNodeOutputPort[[]int](node, "Out").Value())
+}
+
 func TestSelectRefusesConditionsThatDoNotMatchTheLists(t *testing.T) {
 	node := &nodes.Struct[logic.SelectNode]{}
 	wire(t, node, "Condition", nodes.ConstOutput[[]bool]{Val: []bool{true, false}})

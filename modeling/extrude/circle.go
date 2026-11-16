@@ -182,16 +182,16 @@ func (pnd CircleNode) Out(out *nodes.Lifted[modeling.Mesh]) {
 
 type CircleAlongSplineNode struct {
 	Closed           nodes.Output[bool]
-	CircleResolution nodes.Output[int]     `default:"3"`
-	Radius           nodes.Output[float64] `default:"1"`
-	Radii            nodes.Output[[]float64]
+	CircleResolution nodes.Output[int]       `default:"3"`
+	Radius           nodes.Output[float64]   `default:"1"`
+	Radii            nodes.Output[[]float64] `description:"Thickness along the tube's length."`
 	Spline           nodes.Output[curves.Spline]
 	SplineResolution nodes.Output[int]                 `default:"3"`
 	UVs              nodes.Output[primitives.StripUVs] `description:"Around the circle runs across the strip, the spline along it."`
 }
 
 func (pnd CircleAlongSplineNode) Description() string {
-	return "Sweeps a circle along a spline, making a tube. Radii varies the thickness along its length."
+	return "Sweeps a circle along a spline, making a tube."
 }
 
 func (pnd CircleAlongSplineNode) Out(out *nodes.StructOutput[modeling.Mesh]) {

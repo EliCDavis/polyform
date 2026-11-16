@@ -26,6 +26,7 @@ type structOutputCache struct {
 	versioner inputVersions
 	cache     map[string]cachedStructOutput
 	rank      atomic.Pointer[rankMemo]
+	liftedArg atomic.Pointer[rankMemo]
 }
 
 type rankMemo struct {

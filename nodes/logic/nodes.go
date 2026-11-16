@@ -15,6 +15,7 @@ func init() {
 	refutil.RegisterType[nodes.Struct[SwitchNode]](factory)
 	refutil.RegisterType[nodes.Struct[EqualsNode]](factory)
 	refutil.RegisterType[nodes.Struct[AndNode]](factory)
+	refutil.RegisterType[nodes.Struct[OrNode]](factory)
 
 	registry.Register(factory)
 }
@@ -32,7 +33,7 @@ type SelectNode struct {
 }
 
 func (SelectNode) Description() string {
-	return "Passes through A when Condition is true, otherwise B."
+	return "Passes through one of two values."
 }
 
 func (SelectNode) Keywords() []string {
@@ -51,47 +52,62 @@ func (s SelectNode) Out(out *nodes.Dynamic[SelectType]) {
 		return
 	}
 
-	a, aOk := nodes.DynamicArrayValue(out, s.A)
-	b, bOk := nodes.DynamicArrayValue(out, s.B)
-	if !aOk && !bOk {
+	a := readSelectSide(out, s.A, len(flags))
+	b := readSelectSide(out, s.B, len(flags))
+	if a.length != len(flags) && a.length != 1 || b.length != len(flags) && b.length != 1 {
+		out.CaptureError(fmt.Errorf("%d condition(s) for A of %d and B of %d element(s); a side of one element applies to every condition", len(flags), a.length, b.length))
 		return
-	}
-	builder := a
-	if !aOk {
-		builder = b
-	}
-	length := func(ok bool, arr nodes.DynamicArray) int {
-		if !ok {
-			return len(flags)
-		}
-		return arr.Len()
-	}
-	if (length(aOk, a) != len(flags) && length(aOk, a) != 1) || (length(bOk, b) != len(flags) && length(bOk, b) != 1) {
-		out.CaptureError(fmt.Errorf("%d condition(s) for A of %d and B of %d element(s); a side of one element applies to every condition", len(flags), length(aOk, a), length(bOk, b)))
-		return
-	}
-
-	// A one-element side stands in for a single value: wire a list of one
-	// to use the same value wherever that side is chosen.
-	at := func(ok bool, arr nodes.DynamicArray, i int) any {
-		if !ok {
-			return nil
-		}
-		if arr.Len() == 1 {
-			return arr.At(0)
-		}
-		return arr.At(i)
 	}
 
 	picked := make([]any, len(flags))
 	for i, on := range flags {
 		if on {
-			picked[i] = at(aOk, a, i)
+			picked[i] = a.at(i)
 		} else {
-			picked[i] = at(bOk, b, i)
+			picked[i] = b.at(i)
 		}
 	}
-	out.Set(builder.Build(picked))
+
+	switch {
+	case a.isArray:
+		out.Set(a.array.Build(picked))
+	case b.isArray:
+		out.Set(b.array.Build(picked))
+	case s.A != nil:
+		built, _ := nodes.DynamicArrayOf(s.A, picked)
+		out.Set(built)
+	case s.B != nil:
+		built, _ := nodes.DynamicArrayOf(s.B, picked)
+		out.Set(built)
+	}
+}
+
+type selectSide struct {
+	array   nodes.DynamicArray
+	isArray bool
+	value   any
+	length  int
+}
+
+func readSelectSide(out *nodes.Dynamic[SelectType], port nodes.OutputPort, unwiredLength int) selectSide {
+	if port == nil {
+		return selectSide{length: unwiredLength}
+	}
+	if array, ok := nodes.DynamicArrayValue(out, port); ok {
+		return selectSide{array: array, isArray: true, length: array.Len()}
+	}
+	value, _ := nodes.DynamicAnyValue(out, port)
+	return selectSide{value: value, length: 1}
+}
+
+func (s selectSide) at(i int) any {
+	if !s.isArray {
+		return s.value
+	}
+	if s.array.Len() == 1 {
+		return s.array.At(0)
+	}
+	return s.array.At(i)
 }
 
 // ============================================================================
@@ -103,7 +119,7 @@ type SwitchNode struct {
 }
 
 func (SwitchNode) Description() string {
-	return "Passes through the case at Index, or Fallback when Index is outside the list."
+	return "Passes through one of a list of cases."
 }
 
 func (SwitchNode) Keywords() []string {

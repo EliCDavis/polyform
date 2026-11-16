@@ -17,7 +17,7 @@ type sweep struct {
 	frames  []frame
 	closed  bool
 
-	// Indexed by frame.point; nil leaves the profile at its own size.
+	// Indexed by frame.Point; nil leaves the profile at its own size.
 	scales []float64
 
 	// Outline and path corners turning at least this many radians keep a
@@ -38,10 +38,10 @@ func (s sweep) scale(point int) float64 {
 }
 
 func (s sweep) hard(f frame) bool {
-	if f.incoming == (vector3.Float64{}) || f.outgoing == (vector3.Float64{}) {
+	if f.Incoming == (vector3.Float64{}) || f.Outgoing == (vector3.Float64{}) {
 		return false
 	}
-	return f.incoming.Angle(f.outgoing) >= s.smoothing-1e-9
+	return f.Incoming.Angle(f.Outgoing) >= s.smoothing-1e-9
 }
 
 func (s sweep) creased(f frame, incoming, outgoing []vector3.Float64) bool {
@@ -64,7 +64,7 @@ func (s sweep) blended(f frame, slots []outlineSlot, incoming, outgoing []vector
 	case incoming == nil && outgoing == nil:
 		lone := make([]vector3.Float64, len(slots))
 		for k, slot := range slots {
-			lone[k] = f.normal(slot.normal, s.scale(f.point), vector3.Float64{})
+			lone[k] = f.normal(slot.normal, s.scale(f.Point), vector3.Float64{})
 		}
 		return lone
 	case incoming == nil:
@@ -87,7 +87,7 @@ func (s sweep) along() []float64 {
 	walked := distances(s.frames)
 	total := walked[len(walked)-1]
 	if s.closed {
-		total += s.frames[len(s.frames)-1].origin.Distance(s.frames[0].origin)
+		total += s.frames[len(s.frames)-1].Origin.Distance(s.frames[0].Origin)
 	}
 	if total > 0 {
 		for i := range walked {
@@ -110,7 +110,7 @@ func (s sweep) shell() modeling.Mesh {
 	for i, f := range s.frames {
 		placed[i] = make([]vector3.Float64, len(slots))
 		for k, slot := range slots {
-			placed[i][k] = f.place(s.profile[slot.point].Scale(s.scale(f.point)))
+			placed[i][k] = f.place(s.profile[slot.point].Scale(s.scale(f.Point)))
 		}
 	}
 
@@ -129,7 +129,7 @@ func (s sweep) shell() modeling.Mesh {
 			if reach.Dot(dir) < 0 {
 				reach = reach.Scale(-1)
 			}
-			normals[k] = f.normal(slot.normal, s.scale(f.point), reach)
+			normals[k] = f.normal(slot.normal, s.scale(f.Point), reach)
 		}
 		return normals
 	}
@@ -142,7 +142,7 @@ func (s sweep) shell() modeling.Mesh {
 		normals = append(normals, shading...)
 		if s.uv != nil {
 			for k := range slots {
-				uvs = append(uvs, s.uv(s.frames[i].point, across[k], along))
+				uvs = append(uvs, s.uv(s.frames[i].Point, across[k], along))
 			}
 		}
 		return base
@@ -153,8 +153,8 @@ func (s sweep) shell() modeling.Mesh {
 	after := make([]int, count)
 	var seam []vector3.Float64
 	for i, f := range s.frames {
-		incoming := side(i, (i+count-1)%count, i, f.incoming)
-		outgoing := side(i, i, (i+1)%count, f.outgoing)
+		incoming := side(i, (i+count-1)%count, i, f.Incoming)
+		outgoing := side(i, i, (i+1)%count, f.Outgoing)
 		if s.creased(f, incoming, outgoing) {
 			before[i] = ring(i, incoming, along[i])
 			after[i] = ring(i, outgoing, along[i])
@@ -207,12 +207,12 @@ func (s sweep) shell() modeling.Mesh {
 // faces back along its tangent, so the start cap keeps its winding and the
 // end cap reverses it; a mirrored frame swaps the two.
 func (s sweep) cap(region triangulation.Region, f frame, end bool, uv func(vector2.Float64) vector2.Float64) modeling.Mesh {
-	normal := f.tangent.Scale(-1)
+	normal := f.Tangent.Scale(-1)
 	if end {
-		normal = f.tangent
+		normal = f.Tangent
 	}
 
-	scale := s.scale(f.point)
+	scale := s.scale(f.Point)
 	vertices := make([]vector3.Float64, len(region.Points))
 	normals := make([]vector3.Float64, len(region.Points))
 	for i, p := range region.Points {

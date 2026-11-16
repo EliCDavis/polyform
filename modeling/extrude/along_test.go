@@ -53,7 +53,7 @@ func TestAreaAlongPathKeepsTheProfilesHoles(t *testing.T) {
 
 func TestAreaAlongPathTakesEachFramesScale(t *testing.T) {
 	frames := framesAlong(rise, false)
-	frames[1] = frames[1].ScaleLocal(vector3.New(0.5, 0.5, 1))
+	frames[1] = frames[1].ScaleBy(vector3.New(0.5, 0.5, 1))
 
 	mesh, err := extrude.AreaAlongPath{
 		Profile: areaOf(t, []geometry.Shape{square(2, vector2.Zero[float64]())}, nil),
@@ -69,7 +69,7 @@ func TestAreaAlongPathTakesEachFramesScale(t *testing.T) {
 func TestAreaAlongPathShadesAProfileStretchedByItsFrames(t *testing.T) {
 	frames := framesAlong(rise, false)
 	for i := range frames {
-		frames[i] = frames[i].ScaleLocal(vector3.New(4., 1., 1.))
+		frames[i] = frames[i].ScaleBy(vector3.New(4., 1., 1.))
 	}
 
 	mesh, err := extrude.AreaAlongPath{
@@ -92,7 +92,7 @@ func TestAreaAlongPathShadesAProfileStretchedByItsFrames(t *testing.T) {
 
 func TestAreaAlongPathShadesAFrameScaledToAPoint(t *testing.T) {
 	frames := framesAlong(rise, false)
-	frames[1] = frames[1].ScaleLocal(vector3.New(0., 0., 1.))
+	frames[1] = frames[1].ScaleBy(vector3.New(0., 0., 1.))
 
 	mesh, err := extrude.AreaAlongPath{
 		Profile: areaOf(t, []geometry.Shape{square(2, vector2.Zero[float64]())}, nil),
@@ -133,7 +133,7 @@ func TestCircleShadesACone(t *testing.T) {
 
 func TestAreaAlongPathShadesATaper(t *testing.T) {
 	frames := framesAlong(rise, false)
-	frames[1] = frames[1].ScaleLocal(vector3.New(0.2, 0.2, 1))
+	frames[1] = frames[1].ScaleBy(vector3.New(0.2, 0.2, 1))
 
 	mesh, err := extrude.AreaAlongPath{
 		Profile: areaOf(t, []geometry.Shape{circleOutline(64, 1)}, nil),
@@ -145,7 +145,7 @@ func TestAreaAlongPathShadesATaper(t *testing.T) {
 
 func TestAreaAlongPathCreasesWhereATaperStartsSharply(t *testing.T) {
 	frames := framesAlong([]vector3.Float64{vector3.New(0., 0., 0.), vector3.New(0., 2., 0.), vector3.New(0., 2.5, 0.)}, false)
-	frames[2] = frames[2].ScaleLocal(vector3.New(0., 0., 1.))
+	frames[2] = frames[2].ScaleBy(vector3.New(0., 0., 1.))
 
 	mesh, err := extrude.AreaAlongPath{
 		Profile: areaOf(t, []geometry.Shape{circleOutline(64, 1)}, nil),
@@ -172,7 +172,7 @@ func TestAreaAlongPathShadesFramesTiltedAgainstThePath(t *testing.T) {
 func TestAreaAlongPathFacesOutwardThroughMirroredFrames(t *testing.T) {
 	frames := framesAlong(rise, false)
 	for i := range frames {
-		frames[i] = frames[i].ScaleLocal(vector3.New(-1., 1., 1.))
+		frames[i] = frames[i].ScaleBy(vector3.New(-1., 1., 1.))
 	}
 
 	mesh, err := extrude.AreaAlongPath{

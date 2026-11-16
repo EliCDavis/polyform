@@ -60,10 +60,10 @@ func TestPathFramesTurnOnlyAsMuchAsThePath(t *testing.T) {
 			require.Len(t, frames, len(tc.path))
 
 			for i, f := range frames {
-				require.InDeltaf(t, 1, f.x.Length(), 1e-9, "ring %d x is not a unit vector", i)
-				require.InDeltaf(t, 1, f.tangent.Length(), 1e-9, "ring %d tangent is not a unit vector", i)
-				assert.InDeltaf(t, 0, f.x.Dot(f.tangent), 1e-9, "ring %d x is not square to the tangent", i)
-				assert.InDeltaf(t, 0, f.y.Sub(f.x.Cross(f.tangent)).Length(), 1e-9, "ring %d is mirrored", i)
+				require.InDeltaf(t, 1, f.X.Length(), 1e-9, "ring %d x is not a unit vector", i)
+				require.InDeltaf(t, 1, f.Tangent.Length(), 1e-9, "ring %d tangent is not a unit vector", i)
+				assert.InDeltaf(t, 0, f.X.Dot(f.Tangent), 1e-9, "ring %d x is not square to the tangent", i)
+				assert.InDeltaf(t, 0, f.Y.Sub(f.X.Cross(f.Tangent)).Length(), 1e-9, "ring %d is mirrored", i)
 
 				previous := i - 1
 				if i == 0 {
@@ -81,9 +81,9 @@ func TestPathFramesTurnOnlyAsMuchAsThePath(t *testing.T) {
 					allowed = 1 * math.Pi / 180
 				}
 
-				chord := f.origin.Sub(frames[previous].origin).Normalized()
-				turned := frames[previous].tangent.Angle(chord) + chord.Angle(f.tangent)
-				twisted := frames[previous].x.Angle(f.x)
+				chord := f.Origin.Sub(frames[previous].Origin).Normalized()
+				turned := frames[previous].Tangent.Angle(chord) + chord.Angle(f.Tangent)
+				twisted := frames[previous].X.Angle(f.X)
 				assert.LessOrEqualf(t, twisted, turned+allowed,
 					"ring %d twisted %.2f degrees while the path only turned %.2f",
 					i, twisted*180/math.Pi, turned*180/math.Pi)
@@ -106,10 +106,10 @@ func TestPathFramesLayAProfileFlatHoweverALevelPathStarts(t *testing.T) {
 	} {
 		t.Run(name, func(t *testing.T) {
 			for i, f := range pathFrames(path, false) {
-				if math.Abs(f.tangent.Y()) > 1e-9 {
+				if math.Abs(f.Tangent.Y()) > 1e-9 {
 					continue
 				}
-				assert.InDeltaf(t, 1, f.y.Y(), 1e-9, "ring %d does not point the profile's y up", i)
+				assert.InDeltaf(t, 1, f.Y.Y(), 1e-9, "ring %d does not point the profile's y up", i)
 			}
 		})
 	}
@@ -123,8 +123,8 @@ func TestPathFramesLevelARampNoSteeperThanADiagonal(t *testing.T) {
 	} {
 		t.Run(name, func(t *testing.T) {
 			for i, f := range pathFrames([]vector3.Float64{vector3.Zero[float64](), end}, false) {
-				assert.InDeltaf(t, 0, f.x.Y(), 1e-9, "ring %d x is not level", i)
-				assert.Positivef(t, f.y.Y(), "ring %d y points down", i)
+				assert.InDeltaf(t, 0, f.X.Y(), 1e-9, "ring %d x is not level", i)
+				assert.Positivef(t, f.Y.Y(), "ring %d y points down", i)
 			}
 		})
 	}
@@ -147,13 +147,13 @@ func TestPathFramesFaceALeaningPathTheWayAPlumbOneFaces(t *testing.T) {
 				}
 
 				first := pathFrames(path, false)[0]
-				tilt := first.tangent.Angle(plumb.tangent)
-				assert.LessOrEqualf(t, first.x.Angle(plumb.x), tilt+1e-9,
+				tilt := first.Tangent.Angle(plumb.Tangent)
+				assert.LessOrEqualf(t, first.X.Angle(plumb.X), tilt+1e-9,
 					"climbing %g and leaning %g toward %s turned x %.1f degrees",
-					climb, lean, name, first.x.Angle(plumb.x)*180/math.Pi)
-				assert.LessOrEqualf(t, first.y.Angle(plumb.y), tilt+1e-9,
+					climb, lean, name, first.X.Angle(plumb.X)*180/math.Pi)
+				assert.LessOrEqualf(t, first.Y.Angle(plumb.Y), tilt+1e-9,
 					"climbing %g and leaning %g toward %s turned y %.1f degrees",
-					climb, lean, name, first.y.Angle(plumb.y)*180/math.Pi)
+					climb, lean, name, first.Y.Angle(plumb.Y)*180/math.Pi)
 			}
 		}
 	}
@@ -175,11 +175,11 @@ func TestFramesSurviveATripThroughTransforms(t *testing.T) {
 			got := framesFromTRS(geometry.FrameTRSs(geometry.PathFrames(tc.path, tc.closed)), tc.closed)
 			require.Len(t, got, len(want))
 			for i := range want {
-				assert.InDeltaf(t, 0, want[i].origin.Distance(got[i].origin), 1e-9, "ring %d origin", i)
-				assert.InDeltaf(t, 0, want[i].tangent.Distance(got[i].tangent), 1e-9, "ring %d tangent", i)
-				assert.InDeltaf(t, 0, want[i].x.Distance(got[i].x), 1e-9, "ring %d x", i)
-				assert.InDeltaf(t, 0, want[i].y.Distance(got[i].y), 1e-9, "ring %d y", i)
-				assert.InDeltaf(t, want[i].stretch, got[i].stretch, 1e-9, "ring %d stretch", i)
+				assert.InDeltaf(t, 0, want[i].Origin.Distance(got[i].Origin), 1e-9, "ring %d origin", i)
+				assert.InDeltaf(t, 0, want[i].Tangent.Distance(got[i].Tangent), 1e-9, "ring %d tangent", i)
+				assert.InDeltaf(t, 0, want[i].X.Distance(got[i].X), 1e-9, "ring %d x", i)
+				assert.InDeltaf(t, 0, want[i].Y.Distance(got[i].Y), 1e-9, "ring %d y", i)
+				assert.InDeltaf(t, want[i].Stretch, got[i].Stretch, 1e-9, "ring %d stretch", i)
 				assert.Equal(t, vector2.One[float64](), got[i].size)
 			}
 		})
@@ -193,7 +193,7 @@ func TestPathFramesBevelATurnTooSharpToMiter(t *testing.T) {
 
 	require.Len(t, frames, 4, "the hairpin is two rings")
 	for i, f := range frames {
-		assert.LessOrEqualf(t, f.stretch, maxMiterStretch, "ring %d", i)
+		assert.LessOrEqualf(t, f.Stretch, maxMiterStretch, "ring %d", i)
 	}
-	assert.Equal(t, frames[1].origin, frames[2].origin)
+	assert.Equal(t, frames[1].Origin, frames[2].Origin)
 }

@@ -14,6 +14,7 @@ func init() {
 	refutil.RegisterType[nodes.Struct[BevelNode]](factory)
 	refutil.RegisterType[nodes.Struct[BevelPathNode]](factory)
 	refutil.RegisterType[nodes.Struct[FillNode]](factory)
+	refutil.RegisterType[nodes.Struct[CircleNode]](factory)
 	refutil.RegisterType[nodes.Struct[UnionNode]](factory)
 	refutil.RegisterType[nodes.Struct[IntersectionNode]](factory)
 	refutil.RegisterType[nodes.Struct[SubtractNode]](factory)

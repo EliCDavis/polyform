@@ -75,3 +75,15 @@ func TestLineBySpacingNode(t *testing.T) {
 		),
 	).Run(t)
 }
+
+func TestLineBySpacingSpacesEachSegmentOfAPath(t *testing.T) {
+	path := []vector3.Float64{vector3.New(0., 0., 0.), vector3.New(0., 0., 4.), vector3.New(6., 0., 4.)}
+	node := &nodes.Struct[repeat.LineBySpacingNode]{Data: repeat.LineBySpacingNode{
+		Line:       nodetest.NewPortValue(geometry.LineStripsFromPoints3D(path, false)),
+		MaxSpacing: nodetest.NewPortValue(2.),
+	}}
+	perSegment := nodes.GetNodeOutputPort[[][]trs.TRS](node, "Out").Value()
+	require.Len(t, perSegment, 2)
+	assert.InDeltaSlice(t, []float64{2}, zPositions(perSegment[0]), 1e-9)
+	assert.Len(t, perSegment[1], 2, "the 6 m leg gets its own copies, none at the corner")
+}
