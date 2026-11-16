@@ -1,6 +1,8 @@
 package texturing
 
 import (
+	"math"
+
 	"github.com/EliCDavis/polyform/math/noise"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/vector/vector2"
@@ -11,7 +13,7 @@ type SeamlessPerlinNode struct {
 	Positive   nodes.Output[float64] `default:"1"`
 	Negative   nodes.Output[float64]
 	Octaves    nodes.Output[int]     `default:"3"`
-	Frequency  nodes.Output[float64] `description:"Cycles per pixel, so a larger texture at the same frequency shows more of the pattern." default:"0.015625"`
+	Frequency  nodes.Output[float64] `description:"Cycles per pixel, rounded to whole cycles across the image." default:"0.015625"`
 	Seed       nodes.Output[int]
 }
 
@@ -47,7 +49,7 @@ type PerlinNode struct {
 	Height    nodes.Output[int]     `default:"1"`
 	Positive  nodes.Output[float64] `default:"1"`
 	Negative  nodes.Output[float64]
-	Frequency nodes.Output[vector2.Float64] `default:"1,1"`
+	Frequency nodes.Output[vector2.Float64] `description:"Cycles per pixel." default:"0.015625,0.015625"`
 }
 
 func (n PerlinNode) Description() string {
@@ -68,8 +70,8 @@ func (n PerlinNode) Out(out *nodes.StructOutput[Texture[float64]]) {
 	for y := range tex.height {
 		for x := range tex.width {
 			v := vector2.New(x, y).ToFloat64().MultByVector(frequncy)
-			p := (noise.Perlin2D(v) * 0.5) + 0.5
-			// log.Println(p)
+			// Perlin2D is centred on 0.5 and reaches √2/2 either side of it.
+			p := (noise.Perlin2D(v)-0.5)/math.Sqrt2 + 0.5
 			tex.Set(x, y, negative+(valueRange*p))
 		}
 	}
