@@ -13,6 +13,7 @@ import {
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { roomEnvironment } from "./environment";
+import { applyMaxAnisotropy } from "./anisotropy";
 
 // A small stand-alone viewer for one node output, kept apart from the main
 // viewport so a preview never disturbs the producer scene.
@@ -57,6 +58,7 @@ export class PreviewViewer {
     new GLTFLoader().load(url, (gltf) => {
       if (request !== this.latest) return;
       this.model.clear();
+      applyMaxAnisotropy(gltf.scene, this.renderer);
       this.model.add(gltf.scene);
       this.frameModel();
     });

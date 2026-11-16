@@ -35,6 +35,16 @@ import { ViewportGizmo } from "three-viewport-gizmo";
 // https://threejs.org/examples/?q=Directional#webgl_lights_hemisphere
 // https://threejs.org/examples/#webgl_geometry_spline_editor
 
+export const DEFAULT_SUN_INTENSITY = 2.2;
+// Ambient is all the light a surface facing away from the sun gets; lowering it darkens every graph's shaded side.
+export const DEFAULT_AMBIENT_INTENSITY = 1.0;
+export const DEFAULT_EXPOSURE_EV100 = 7.7;
+
+// Exposure scales only a model's own lights, never the sun or ambient, so graphs without lights look the same at any EV.
+export function exposureScale(ev100: number): number {
+  return 1 / (1.2 * Math.pow(2, ev100));
+}
+
 export interface ThreeAppLighting {
     DirLight: DirectionalLight;
     HemiLight: HemisphereLight;
@@ -184,13 +194,11 @@ export function CreateThreeApp(
   labelRenderer.domElement.style.pointerEvents = "none";
   container.appendChild(labelRenderer.domElement);
 
-  const defaultLightIntensity = 1.1;
-
-  const hemiLight = new HemisphereLight(viewportSettings.lighting, 0x8d8d8d, defaultLightIntensity);
+  const hemiLight = new HemisphereLight(viewportSettings.lighting, 0x8d8d8d, DEFAULT_AMBIENT_INTENSITY);
   hemiLight.position.set(0, 20, 0);
   scene.add(hemiLight);
 
-  const dirLight = new DirectionalLight(viewportSettings.lighting, defaultLightIntensity);
+  const dirLight = new DirectionalLight(viewportSettings.lighting, DEFAULT_SUN_INTENSITY);
   dirLight.position.set(100, 100, 100);
   dirLight.castShadow = true;
   dirLight.shadow.camera.top = 100;
@@ -225,6 +233,7 @@ export function CreateThreeApp(
   const orbitControls = new OrbitControls(camera, renderer.domElement);
   orbitControls.minDistance = 0;
   orbitControls.maxDistance = 100;
+  orbitControls.zoomToCursor = true;
   orbitControls.target.set(0, 0, 0);
   orbitControls.update();
 

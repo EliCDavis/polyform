@@ -7,6 +7,7 @@ import {
   RenderingOption,
   RenderingColorOption,
   RenderingSelectOption,
+  RenderingButtonGroupOption,
   RenderingSliderOption,
   RenderingToggleOption,
   RenderingGroup,
@@ -31,7 +32,8 @@ enum ToneMappingOption {
 const SHADING_OPTIONS: Array<{ label: string; value: ShadingMode }> = [
   { label: "Shaded", value: ShadingMode.Shaded },
   { label: "Normals", value: ShadingMode.Normals },
-  { label: "UV Checker", value: ShadingMode.UVs },
+  { label: "UVs", value: ShadingMode.UVs },
+  { label: "AO", value: ShadingMode.AmbientOcclusion },
 ];
 
 const TONE_MAPPING_OPTIONS: Array<{ label: string; value: string }> = [
@@ -93,8 +95,14 @@ export function RenderingSection() {
   const [lightColor, setLightColor] = useState<string>(
     `#${editor.threeApp.Lighting.DirLight.color.getHexString()}`,
   );
-  const [lightIntensity, setLightIntensity] = useState<number>(
+  const [sunIntensity, setSunIntensity] = useState<number>(
     editor.threeApp.Lighting.DirLight.intensity,
+  );
+  const [ambientIntensity, setAmbientIntensity] = useState<number>(
+    editor.producerViewManager.ambient,
+  );
+  const [exposure, setExposure] = useState<number>(
+    editor.producerViewManager.exposure,
   );
   const [skyColor, setSkyColor] = useState<string>(
     `#${(editor.threeApp.Scene.background as Color).getHexString()}`,
@@ -164,9 +172,16 @@ export function RenderingSection() {
   }, [lightColor]);
 
   useEffect(() => {
-    editor.threeApp.Lighting.DirLight.intensity = lightIntensity;
-    editor.threeApp.Lighting.HemiLight.intensity = lightIntensity;
-  }, [lightIntensity]);
+    editor.threeApp.Lighting.DirLight.intensity = sunIntensity;
+  }, [sunIntensity]);
+
+  useEffect(() => {
+    editor.producerViewManager.SetAmbient(ambientIntensity);
+  }, [ambientIntensity]);
+
+  useEffect(() => {
+    editor.producerViewManager.SetExposure(exposure);
+  }, [exposure]);
 
   useEffect(() => {
     (editor.threeApp.Scene.background as Color).set(skyColor);
@@ -223,7 +238,7 @@ export function RenderingSection() {
           value={toneMapping}
           options={TONE_MAPPING_OPTIONS}
         />
-        <RenderingSelectOption
+        <RenderingButtonGroupOption<ShadingMode>
           name="shading"
           description="Replaces the model's materials with a debug visualization"
           setValue={setShading}
@@ -243,11 +258,32 @@ export function RenderingSection() {
             setValue={setLightColor}
             value={lightColor}
           />
-          <RenderingOption
-            name="intensity"
-            description="How strongly the scene's lighting contributes to the render"
-            setValue={setLightIntensity}
-            value={lightIntensity}
+          <RenderingSliderOption
+            name="sun"
+            description="Directional light intensity; the only light that casts shadows"
+            setValue={setSunIntensity}
+            value={sunIntensity}
+            min={0}
+            max={10}
+            step={0.1}
+          />
+          <RenderingSliderOption
+            name="ambient"
+            description="Hemisphere light and environment map intensity; lights the sides facing away from the sun"
+            setValue={setAmbientIntensity}
+            value={ambientIntensity}
+            min={0}
+            max={5}
+            step={0.05}
+          />
+          <RenderingSliderOption
+            name="exposure"
+            description="EV100 applied to the model's own lights; about 7.7 indoors, 15 in daylight"
+            setValue={setExposure}
+            value={exposure}
+            min={0}
+            max={16}
+            step={0.1}
           />
           <RenderingSliderOption
             name="angle"

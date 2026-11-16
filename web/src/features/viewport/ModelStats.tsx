@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Box, ChevronDown, ChevronRight, CircleDot, Eye, EyeOff, Layers } from "lucide-react";
+import { Box, ChevronDown, ChevronRight, CircleDot, Eye, EyeOff, Focus, Layers } from "lucide-react";
 import { useModelStatsStore } from "@/stores/modelStatsStore";
 import { useAnimationStore } from "@/stores/animationStore";
 import { useUiStore } from "@/stores/uiStore";
@@ -21,9 +21,10 @@ interface RowProps {
   onToggleExpanded: (path: string) => void;
   onToggleVisible: (entry: HierarchyEntry) => void;
   onHover: (path: string | null) => void;
+  onFrame: (path: string) => void;
 }
 
-function HierarchyRow({ entry, depth, ancestorHidden, expanded, onToggleExpanded, onToggleVisible, onHover }: RowProps) {
+function HierarchyRow({ entry, depth, ancestorHidden, expanded, onToggleExpanded, onToggleVisible, onHover, onFrame }: RowProps) {
   const open = expanded.has(entry.path);
   const hasChildren = entry.children.length > 0;
   const KindIcon = KIND_ICONS[entry.kind];
@@ -52,6 +53,14 @@ function HierarchyRow({ entry, depth, ancestorHidden, expanded, onToggleExpanded
         >
           <VisibleIcon size={12} />
         </button>
+        <button
+          className={styles.iconButton}
+          onClick={() => onFrame(entry.path)}
+          aria-label="Frame"
+          title="Frame in view"
+        >
+          <Focus size={12} />
+        </button>
         <KindIcon size={12} className={styles.kind} />
         <span className={styles.name} title={entry.name}>
           {entry.name}
@@ -75,6 +84,7 @@ function HierarchyRow({ entry, depth, ancestorHidden, expanded, onToggleExpanded
             onToggleExpanded={onToggleExpanded}
             onToggleVisible={onToggleVisible}
             onHover={onHover}
+            onFrame={onFrame}
           />
         ))}
     </>
@@ -153,6 +163,7 @@ export function ModelStats() {
               onToggleExpanded={toggleExpanded}
               onToggleVisible={toggleVisible}
               onHover={hover}
+              onFrame={(path) => editor?.producerViewManager.FramePart(path)}
             />
           ))}
         </div>

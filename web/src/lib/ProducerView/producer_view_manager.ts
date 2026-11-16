@@ -2,6 +2,8 @@ import {
   Box3,
   DirectionalLight,
   GridHelper,
+  HemisphereLight,
+  Light,
   Material,
   MathUtils,
   EquirectangularReflectionMapping,
@@ -24,8 +26,10 @@ import {
   LessEqualDepth,
   MeshBasicMaterial,
   Object3D,
+  Raycaster,
   SkinnedMesh,
   Sphere,
+  Vector2,
 } from "three";
 import { messageActions } from "@/stores/messageStore";
 import { modelStatsActions } from "@/stores/modelStatsStore";
@@ -43,10 +47,11 @@ import { SSAOEffect } from "postprocessing";
 import { RequestManager } from "../requests";
 import * as GaussianSplats3D from "@mkkellogg/gaussian-splats-3d";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-import { ThreeApp } from "../three_app";
+import { DEFAULT_EXPOSURE_EV100, exposureScale, ThreeApp } from "../three_app";
 import { requestRender } from "../render_scheduler";
 import { SchemaManager } from "../schema_manager";
 import { thumbnails } from "../../features/preview/thumbnail_renderer";
+import { applyMaxAnisotropy } from "../../features/preview/anisotropy";
 
 type ProducerRefreshCallback = (string: string, thing: any) => void;
 
@@ -74,6 +79,17 @@ const GRID_REACH = 5;
 const GRID_MAX_DIVISIONS = 500;
 const CAPTURE_PADDING = 1.1;
 const CAPTURE_FIT_PASSES = 3;
+
+const ORBIT_RETARGET_SECONDS = 0.3;
+
+function shownInScene(object: Object3D): boolean {
+  for (let o: Object3D | null = object; o; o = o.parent) {
+    if (!o.visible) {
+      return false;
+    }
+  }
+  return true;
+}
 
 function boxCorners(box: Box3): Vector3[] {
   const corners: Vector3[] = [];
@@ -127,6 +143,12 @@ export class ProducerViewManager {
 
   dirLight: DirectionalLight;
 
+  hemiLight: HemisphereLight;
+
+  ambient: number;
+
+  exposure = DEFAULT_EXPOSURE_EV100;
+
   ground: Mesh;
 
   ssaoEffect: SSAOEffect;
@@ -168,6 +190,10 @@ export class ProducerViewManager {
   private animationTime = 0;
 
   private readonly hiddenParts = new Set<string>();
+
+  private readonly raycaster = new Raycaster();
+
+  private targetTween: { from: Vector3; to: Vector3; t: number } | null = null;
 
   private highlightedPart: string | null = null;
 
@@ -219,9 +245,15 @@ export class ProducerViewManager {
     this.renderer = app.Renderer;
     this.camera = app.Camera;
     this.dirLight = app.Lighting.DirLight;
+    this.hemiLight = app.Lighting.HemiLight;
+    this.ambient = app.Lighting.HemiLight.intensity;
     this.ground = app.Ground.Mesh;
     this.ssaoEffect = app.PostProcessing.SSAO;
     this.orbitControls = app.OrbitControls;
+    this.orbitControls.addEventListener("start", () => {
+      this.targetTween = null;
+    });
+    app.Renderer.domElement.addEventListener("dblclick", (event) => this.onDoubleClick(event));
     this.viewerContainer = app.ViewerScene;
     this.grid = app.Grid;
     this.gridHelper = null;
@@ -239,6 +271,8 @@ export class ProducerViewManager {
   }
 
   private updateLoop(delta: number): void {
+    this.stepTargetTween(delta);
+
     if (this.animationAction && this.animationPlaying) {
       const duration = this.animationAction.getClip().duration;
       let time = this.animationTime + delta;
@@ -517,7 +551,6 @@ export class ProducerViewManager {
   // aabb is in the model's own space; the model is drawn lifted by floorShift.
   private frameModel(aabb: Box3): void {
     const center = aabb.getCenter(new Vector3());
-    const half = aabb.getSize(new Vector3()).multiplyScalar(0.5);
     center.y += floorShift(aabb);
 
     const azimuth = MathUtils.degToRad(35);
@@ -527,11 +560,89 @@ export class ProducerViewManager {
       Math.sin(elevation),
       Math.cos(azimuth) * Math.cos(elevation),
     );
+    this.frameBox(center, aabb.getSize(new Vector3()).multiplyScalar(0.5), back);
+  }
+
+  private frameWorldBox(box: Box3): void {
+    if (box.isEmpty() || !isFinite(box.min.x) || !isFinite(box.max.x)) {
+      return;
+    }
+    const back = this.camera.position.clone().sub(this.orbitControls.target);
+    if (back.lengthSq() === 0) {
+      back.set(0, 0, 1);
+    }
+    this.targetTween = null;
+    this.frameBox(
+      box.getCenter(new Vector3()),
+      box.getSize(new Vector3()).multiplyScalar(0.5),
+      back.normalize(),
+    );
+  }
+
+  FramePart(path: string): void {
+    const part = this.findPart(path);
+    if (part) {
+      this.frameWorldBox(new Box3().setFromObject(part));
+    }
+  }
+
+  FrameAll(): void {
+    if (this.producerScene) {
+      this.frameWorldBox(new Box3().setFromObject(this.producerScene));
+    }
+  }
+
+  private onDoubleClick(event: MouseEvent): void {
+    if (!this.producerScene) {
+      return;
+    }
+    const rect = this.renderer.domElement.getBoundingClientRect();
+    const pointer = new Vector2(
+      ((event.clientX - rect.left) / rect.width) * 2 - 1,
+      -((event.clientY - rect.top) / rect.height) * 2 + 1,
+    );
+    this.raycaster.setFromCamera(pointer, this.camera);
+    const hit = this.raycaster
+      .intersectObject(this.producerScene, true)
+      .find((h) => h.object instanceof Mesh && shownInScene(h.object));
+    if (!hit) {
+      this.FrameAll();
+      return;
+    }
+    this.targetTween = {
+      from: this.orbitControls.target.clone(),
+      to: hit.point.clone(),
+      t: 0,
+    };
+    requestRender();
+  }
+
+  private stepTargetTween(delta: number): void {
+    const tween = this.targetTween;
+    if (!tween) {
+      return;
+    }
+    tween.t = Math.min(tween.t + delta / ORBIT_RETARGET_SECONDS, 1);
+    const eased = 1 - Math.pow(1 - tween.t, 3);
+    this.orbitControls.target.lerpVectors(tween.from, tween.to, eased);
+    this.orbitControls.update();
+    requestRender();
+    if (tween.t >= 1) {
+      this.targetTween = null;
+    }
+  }
+
+  private frameBox(center: Vector3, half: Vector3, back: Vector3): void {
     const right = new Vector3(0, 1, 0).cross(back).normalize();
+    if (right.lengthSq() === 0) {
+      right.set(1, 0, 0);
+    }
     const up = back.clone().cross(right);
 
     const tanV = Math.tan(MathUtils.degToRad(this.camera.fov) / 2);
-    const tanH = tanV * this.camera.aspect;
+    // A viewport that hasn't been laid out yet reports 0/0 = NaN.
+    const aspect = this.camera.aspect > 0 ? this.camera.aspect : 1;
+    const tanH = tanV * aspect;
     let distance = 0;
     const corner = new Vector3();
     for (const sx of [-1, 1]) {
@@ -626,7 +737,11 @@ export class ProducerViewManager {
     shadowCamera.far = -minZ + margin;
     shadowCamera.updateProjectionMatrix();
 
-    this.dirLight.shadow.normalBias = radius * 0.01;
+    const texel = Math.max(
+      (shadowCamera.right - shadowCamera.left) / this.dirLight.shadow.mapSize.width,
+      (shadowCamera.top - shadowCamera.bottom) / this.dirLight.shadow.mapSize.height,
+    );
+    this.dirLight.shadow.normalBias = texel * 1.5;
 
     // radius is resolution-relative and needs no rescaling.
     // worldProximityThreshold/Falloff are world-space, so they do.
@@ -675,6 +790,7 @@ export class ProducerViewManager {
         const aabb = new Box3();
         aabb.setFromObject(gltf.scene);
 
+        applyMaxAnisotropy(gltf.scene, this.renderer);
         this.producerScene.add(gltf.scene);
         requestRender();
 
@@ -693,14 +809,18 @@ export class ProducerViewManager {
             object.castShadow = true;
             object.receiveShadow = true;
             object.material.envMap = textureEquirec;
+            object.material.envMapIntensity = this.ambient;
             object.material.needsUpdate = true;
             // object.material.transparent = true;
 
             objects.push(object);
           } else if (object.isPoints) {
             object.material.size = 2;
+          } else if (object.isLight) {
+            object.userData.fileIntensity = object.intensity;
           }
         });
+        this.applyExposure();
 
         // progressiveSurfacemap.addObjectsToLightMap(objects);
 
@@ -830,7 +950,6 @@ export class ProducerViewManager {
   }
 
   private applyShading(): void {
-    const override = debugMaterialFor(this.shading);
     this.producerScene?.traverse((object) => {
       if (!(object instanceof Mesh)) {
         return;
@@ -838,7 +957,10 @@ export class ProducerViewManager {
       if (object.userData.polyformMaterial === undefined) {
         object.userData.polyformMaterial = object.material;
       }
-      object.material = override ?? object.userData.polyformMaterial;
+      const original = object.userData.polyformMaterial;
+      object.material = Array.isArray(original)
+        ? original.map((m) => debugMaterialFor(this.shading, m) ?? m)
+        : debugMaterialFor(this.shading, original) ?? original;
     });
   }
 
@@ -891,6 +1013,37 @@ export class ProducerViewManager {
     this.gridHelper = new GridHelper(size, divisions, 0x6b6b6b, 0xb4b4b4);
     (this.gridHelper.material as Material).depthWrite = false;
     this.grid.add(this.gridHelper);
+  }
+
+  SetAmbient(intensity: number): void {
+    this.ambient = intensity;
+    this.hemiLight.intensity = intensity;
+    this.producerScene?.traverse((object) => {
+      if (!(object instanceof Mesh)) {
+        return;
+      }
+      const materials = [object.material, object.userData.polyformMaterial].flat();
+      for (const material of materials) {
+        if (material && "envMapIntensity" in material) {
+          material.envMapIntensity = intensity;
+        }
+      }
+    });
+  }
+
+  SetExposure(ev100: number): void {
+    this.exposure = ev100;
+    this.applyExposure();
+  }
+
+  private applyExposure(): void {
+    const scale = exposureScale(this.exposure);
+    this.producerScene?.traverse((object) => {
+      if (object instanceof Light && typeof object.userData.fileIntensity === "number") {
+        object.intensity = object.userData.fileIntensity * scale;
+      }
+    });
+    requestRender();
   }
 
   SetWireframe(wireframe: boolean): void {

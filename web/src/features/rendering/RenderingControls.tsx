@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import styles from "./RenderingControls.module.css";
 
 interface RenderingOptionProps {
@@ -14,6 +14,14 @@ export function RenderingOption({
   value,
   setValue,
 }: RenderingOptionProps) {
+  const [text, setText] = useState(String(value));
+
+  useEffect(() => {
+    if (parseFloat(text) !== value) {
+      setText(String(value));
+    }
+  }, [value]);
+
   return (
     <div className="variable-row">
       <div className="variable-header">
@@ -21,8 +29,16 @@ export function RenderingOption({
       </div>
       {description && <div className="variable-description">{description}</div>}
       <input
-        value={value}
-        onChange={(e) => setValue(parseFloat(e.target.value))}
+        inputMode="decimal"
+        value={text}
+        onChange={(e) => {
+          setText(e.target.value);
+          const parsed = Number(e.target.value);
+          if (e.target.value.trim() !== "" && Number.isFinite(parsed)) {
+            setValue(parsed);
+          }
+        }}
+        onBlur={() => setText(String(value))}
       ></input>
     </div>
   );
@@ -128,6 +144,45 @@ export function RenderingSelectOption<T extends string>({
           </option>
         ))}
       </select>
+    </div>
+  );
+}
+
+interface RenderingButtonGroupOptionProps<T extends string> {
+  name: string;
+  description?: string;
+  value: T;
+  options: Array<{ label: string; value: T }>;
+  setValue: (value: T) => void;
+}
+
+export function RenderingButtonGroupOption<T extends string>({
+  name,
+  description,
+  value,
+  options,
+  setValue,
+}: RenderingButtonGroupOptionProps<T>) {
+  return (
+    <div className="variable-row">
+      <div className="variable-header">
+        <span className="variable-name">{name}</span>
+      </div>
+      {description && <div className="variable-description">{description}</div>}
+      <div className={styles.buttonGroup} role="radiogroup" aria-label={name}>
+        {options.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            role="radio"
+            aria-checked={option.value === value}
+            className={`${styles.groupButton} ${option.value === value ? styles.selected : ""}`}
+            onClick={() => setValue(option.value)}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

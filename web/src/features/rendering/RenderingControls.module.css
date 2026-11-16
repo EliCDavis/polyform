@@ -35,6 +35,40 @@
   cursor: pointer;
 }
 
+.buttonGroup {
+  display: flex;
+  border: 1px solid #196d6d;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.groupButton {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 6px;
+  border: none;
+  border-left: 1px solid #196d6d;
+  border-radius: 0;
+  background: transparent;
+  color: #8fa8b0;
+  font-size: 11px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.groupButton:first-child {
+  border-left: none;
+}
+
+.groupButton:hover {
+  background: rgba(25, 109, 109, 0.35);
+}
+
+.groupButton.selected {
+  background: #196d6d;
+  color: #ffffff;
+}
+
 .sliderValue {
   margin-left: auto;
   font-family: monospace;

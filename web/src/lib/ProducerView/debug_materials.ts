@@ -3,6 +3,7 @@ import {
     Material,
     MeshBasicMaterial,
     MeshNormalMaterial,
+    MeshStandardMaterial,
     RepeatWrapping,
     SRGBColorSpace,
 } from "three";
@@ -11,6 +12,7 @@ export enum ShadingMode {
     Shaded = "shaded",
     Normals = "normals",
     UVs = "uvs",
+    AmbientOcclusion = "ao",
 }
 
 const CHECKER_CELLS = 16;
@@ -60,15 +62,41 @@ function createUVCheckerTexture(): CanvasTexture {
 }
 
 let uvMaterial: MeshBasicMaterial | null = null;
-let normalMaterial: MeshNormalMaterial | null = null;
+const normalMaterials = new WeakMap<Material, MeshNormalMaterial>();
+const occlusionMaterials = new WeakMap<Material, MeshBasicMaterial>();
 
-export function debugMaterialFor(mode: ShadingMode): Material | null {
+function cached<T extends Material>(cache: WeakMap<Material, T>, source: Material, build: () => T): T {
+    let material = cache.get(source);
+    if (!material) {
+        material = build();
+        cache.set(source, material);
+    }
+    return material;
+}
+
+export function debugMaterialFor(mode: ShadingMode, source: Material): Material | null {
     switch (mode) {
         case ShadingMode.Normals:
-            if (!normalMaterial) {
-                normalMaterial = new MeshNormalMaterial();
-            }
-            return normalMaterial;
+            return cached(normalMaterials, source, () => {
+                const original = source as MeshStandardMaterial;
+                return new MeshNormalMaterial({
+                    normalMap: original.normalMap ?? null,
+                    normalMapType: original.normalMapType,
+                    normalScale: original.normalScale?.clone(),
+                    side: original.side,
+                });
+            });
+
+        case ShadingMode.AmbientOcclusion:
+            return cached(occlusionMaterials, source, () => {
+                const original = source as MeshStandardMaterial;
+                return new MeshBasicMaterial({
+                    color: 0xffffff,
+                    aoMap: original.aoMap ?? null,
+                    aoMapIntensity: original.aoMapIntensity ?? 1,
+                    side: original.side,
+                });
+            });
 
         case ShadingMode.UVs:
             if (!uvMaterial) {
