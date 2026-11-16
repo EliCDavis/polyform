@@ -18,5 +18,5 @@ func TestQuadNodeWithNoUVsConnected(t *testing.T) {
 		mesh = nodes.GetNodeOutputPort[modeling.Mesh](node, "Out").Value()
 	})
 	assert.Equal(t, 2, mesh.PrimitiveCount())
-	assert.False(t, mesh.HasFloat2Attribute(modeling.TexCoordAttribute))
+	assert.True(t, mesh.HasFloat2Attribute(modeling.TexCoordAttribute))
 }

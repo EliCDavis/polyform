@@ -176,7 +176,7 @@ func (t TubeNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 		Height:      nodes.GetOutputValue(out, t.Height),
 		InnerRadius: nodes.GetOutputValue(out, t.InnerRadius),
 		OuterRadius: nodes.GetOutputValue(out, t.OuterRadius),
-		UVs:         nodes.TryGetOutputReference(out, t.UVs, nil),
+		UVs:         nodes.TryGetOutputReference(out, t.UVs, &TubeUVs{}),
 	}
 	out.Set(tube.ToMesh())
 }

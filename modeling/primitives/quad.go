@@ -137,9 +137,7 @@ func (c QuadNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 		Columns: max(nodes.GetOutputValue(out, c.Columns), 1),
 	}
 
-	if uvs := nodes.TryGetOutputReference(out, c.UVs, nil); uvs != nil {
-		quad.UVs = uvs
-	}
+	quad.UVs = nodes.TryGetOutputValue(out, c.UVs, UnitStripUVs())
 	out.Set(quad.ToMesh())
 }
 

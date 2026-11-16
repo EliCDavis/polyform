@@ -80,22 +80,30 @@ func (c TruncatedCone) ToMesh() modeling.Mesh {
 
 	if c.UVs != nil {
 		top.UVs = c.UVs.Top
-		bottom.UVs = c.UVs.Bottom
-
-		if c.UVs.Side != nil {
-			uvs := make([]vector2.Float64, (c.Sides*2)+2)
-			start := c.UVs.Side.Start
-			dir := c.UVs.Side.End.Sub(start)
-
-			perpendicular := dir.Perpendicular().Normalized().Scale(c.UVs.Side.Width / 2)
-			for sideIndex := 0; sideIndex <= c.Sides; sideIndex++ {
-				percent := float64(sideIndex) / float64(c.Sides)
-				percentDir := start.Add(dir.Scale(percent))
-				uvs[sideIndex*2] = percentDir.Add(perpendicular)
-				uvs[(sideIndex*2)+1] = percentDir.Sub(perpendicular)
-			}
-			float2Data[modeling.TexCoordAttribute] = uvs
+		if top.UVs == nil {
+			top.UVs = &CircleUVs{Center: vector2.Fill(0.5), Radius: 0.5}
 		}
+		bottom.UVs = c.UVs.Bottom
+		if bottom.UVs == nil {
+			bottom.UVs = &CircleUVs{Center: vector2.Fill(0.5), Radius: 0.5}
+		}
+		side := UnitStripUVs()
+		if c.UVs.Side != nil {
+			side = *c.UVs.Side
+		}
+
+		uvs := make([]vector2.Float64, (c.Sides*2)+2)
+		start := side.Start
+		dir := side.End.Sub(start)
+
+		perpendicular := dir.Perpendicular().Normalized().Scale(side.Width / 2)
+		for sideIndex := 0; sideIndex <= c.Sides; sideIndex++ {
+			percent := float64(sideIndex) / float64(c.Sides)
+			percentDir := start.Add(dir.Scale(percent))
+			uvs[sideIndex*2] = percentDir.Add(perpendicular)
+			uvs[(sideIndex*2)+1] = percentDir.Sub(perpendicular)
+		}
+		float2Data[modeling.TexCoordAttribute] = uvs
 	}
 
 	cylinderMesh := modeling.NewTriangleMesh(tris).
@@ -183,7 +191,7 @@ func (hnd CylinderNode) Out(out *nodes.Lifted[modeling.Mesh]) {
 	sides := max(nodes.GetOutputValue(out, hnd.Sides), 3)
 	noTop := !nodes.GetOutputValue(out, hnd.Top)
 	noBottom := !nodes.GetOutputValue(out, hnd.Bottom)
-	uvs := nodes.TryGetOutputReference(out, hnd.UVs, nil)
+	uvs := nodes.TryGetOutputReference(out, hnd.UVs, &CylinderUVs{})
 
 	nodes.Zip3(out, hnd.Height, hnd.Radius, hnd.Radius2, func(height, bottomRadius, topRadius float64) modeling.Mesh {
 		if topRadius <= 0 {

@@ -6,6 +6,7 @@ import (
 
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/nodes"
+	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
 )
 
@@ -91,7 +92,21 @@ func (h Hemisphere) UV(rows, columns int) modeling.Mesh {
 		SetFloat3Data(map[string][]vector3.Float64{
 			modeling.PositionAttribute: positions,
 			modeling.NormalAttribute:   h.normals(positions),
-		})
+		}).
+		SetFloat2Attribute(modeling.TexCoordAttribute, h.uvs(positions))
+}
+
+func (h Hemisphere) uvs(positions []vector3.Float64) []vector2.Float64 {
+	uvs := make([]vector2.Float64, len(positions))
+	for i, p := range positions {
+		u, v := 0.5, 0.5
+		if h.Radius != 0 {
+			u += p.X() / (2 * h.Radius)
+			v += p.Z() / (2 * h.Radius)
+		}
+		uvs[i] = vector2.New(u, v)
+	}
+	return uvs
 }
 
 func (h Hemisphere) normals(positions []vector3.Float64) []vector3.Float64 {

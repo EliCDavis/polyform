@@ -101,15 +101,19 @@ func (c TorusUVNode) Description() string {
 	return "UV layout for the Torus primitive."
 }
 
+func defaultTorusStrip() StripUVs {
+	return StripUVs{
+		Start: vector2.New(0.5, 0.),
+		End:   vector2.New(0.5, 1.),
+		Width: 1,
+	}
+}
+
 func (c TorusUVNode) Out(out *nodes.StructOutput[TorusUVs]) {
 	out.Set(TorusUVs{
 		MinorOffset: nodes.GetOutputValue(out, c.MinorOffset),
 		MajorOffset: nodes.GetOutputValue(out, c.MajorOffset),
-		Strip: nodes.TryGetOutputValue(out, c.Strip, StripUVs{
-			Start: vector2.New(0.5, 0.),
-			End:   vector2.New(0.5, 1.),
-			Width: 1,
-		}),
+		Strip:       nodes.TryGetOutputValue(out, c.Strip, defaultTorusStrip()),
 	})
 }
 
@@ -131,7 +135,7 @@ func (c TorusNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 		MinorRadius:     nodes.GetOutputValue(out, c.MinorRadius),
 		MajorResolution: nodes.GetOutputValue(out, c.MajorResolution),
 		MinorResolution: nodes.GetOutputValue(out, c.MinorResolution),
-		UVs:             nodes.TryGetOutputReference(out, c.UVs, nil),
+		UVs:             nodes.TryGetOutputReference(out, c.UVs, &TorusUVs{Strip: defaultTorusStrip()}),
 	}
 	out.Set(circle.ToMesh())
 }
