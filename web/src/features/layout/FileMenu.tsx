@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Download, FilePlus, FolderOpen, Info, Save } from "lucide-react";
 import { downloadBlob, requestManager } from "@/api/client";
 import { DropdownMenu, type MenuItem } from "@/components/DropdownMenu";
 import { NewGraphModal } from "@/features/popups/NewGraphModal";
@@ -53,27 +54,31 @@ export function FileMenu() {
     requestManager.getSwagger((swagger) => download("swagger.json", new Blob([JSON.stringify(swagger)], { type: "application/json" })));
   };
 
-  const graph: MenuItem = {
-    label: "Graph",
-    items: [
-      { label: "New", onClick: () => setNewGraphOpen(true) },
-      ...(canEdit ? [{ label: "Details", onClick: () => setDetailsOpen(true) }] : []),
-      { label: "Open from disk", onClick: loadGraph },
-      { label: "Save to disk", onClick: saveGraph },
-    ],
-  };
-  const exports: MenuItem = {
-    label: "Export",
-    items: [
-      { label: "Model", onClick: saveModel },
-      { label: "Mermaid diagram", onClick: viewMermaid },
-      { label: "Swagger definition", onClick: saveSwagger },
-    ],
-  };
+  const items: MenuItem[] = [
+    { label: "New graph…", icon: <FilePlus size={15} />, onClick: () => setNewGraphOpen(true) },
+    { label: "Open from disk…", icon: <FolderOpen size={15} />, onClick: loadGraph },
+    { label: "Save to disk", icon: <Save size={15} />, onClick: saveGraph },
+    ...(canEdit
+      ? (["separator", { label: "Graph details…", icon: <Info size={15} />, onClick: () => setDetailsOpen(true) }] as MenuItem[])
+      : []),
+    ...(hideExportControls
+      ? []
+      : (["separator",
+          {
+            label: "Export",
+            icon: <Download size={15} />,
+            items: [
+              { label: "Model (.zip)", onClick: saveModel },
+              { label: "Mermaid diagram", onClick: viewMermaid },
+              { label: "Swagger definition", onClick: saveSwagger },
+            ],
+          },
+        ] as MenuItem[])),
+  ];
 
   return (
     <>
-      <DropdownMenu items={hideExportControls ? [graph] : [graph, exports]} />
+      <DropdownMenu items={items} />
       <NewGraphModal
         open={newGraphOpen}
         onClose={() => {

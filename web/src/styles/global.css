@@ -621,11 +621,3 @@ button.icon-button {
 button.icon-button:hover {
   background-color: rgba(0, 0, 0, 0.25);
 }
-
-button.dropdown-item {
-  background-color: unset;
-}
-
-button.dropdown-item:hover {
-  background-color: #122a34;
-}

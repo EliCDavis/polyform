@@ -50,34 +50,42 @@ export function NewGraphModal({ open, onClose }: NewGraphModalProps) {
         </>
       }
     >
-      <div style={{ display: "flex", gap: 24 }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <h3 style={{ fontWeight: "bold", margin: 0 }}>New</h3>
-          <label>Name</label>
-          <input type="text" value={name} onChange={(e) => setName(e.target.value)} />
-          <label>Description</label>
-          <textarea value={description} onChange={(e) => setDescription(e.target.value)} />
-          <label>Author</label>
-          <input type="text" value={author} onChange={(e) => setAuthor(e.target.value)} />
-          <label>Version</label>
-          <input type="text" value={version} onChange={(e) => setVersion(e.target.value)} />
-        </div>
-        <div style={{ alignSelf: "center" }}>OR</div>
-        <div>
-          <h3 style={{ fontWeight: "bold" }}>Open Example</h3>
-          <div style={{ width: 170 }}>
+      <div className="new-graph">
+        <section className="new-graph-form">
+          <h3>Blank graph</h3>
+          <label className="new-graph-field">
+            <span>Name</span>
+            <input type="text" placeholder="New Graph" value={name} onChange={(e) => setName(e.target.value)} />
+          </label>
+          <label className="new-graph-field">
+            <span>Description</span>
+            <textarea rows={3} value={description} onChange={(e) => setDescription(e.target.value)} />
+          </label>
+          <label className="new-graph-field">
+            <span>Author</span>
+            <input type="text" value={author} onChange={(e) => setAuthor(e.target.value)} />
+          </label>
+          <label className="new-graph-field">
+            <span>Version</span>
+            <input type="text" placeholder="v0.0.0" value={version} onChange={(e) => setVersion(e.target.value)} />
+          </label>
+        </section>
+        <div className="new-graph-divider">or</div>
+        <section className="new-graph-examples">
+          <h3>Open an example</h3>
+          <div className="new-graph-example-list">
             {examples.map((ex) => (
               <button
                 key={ex}
                 type="button"
-                className="example-graph-item"
+                className="new-graph-example"
                 onClick={() => loadExample(ex)}
               >
-                {ex}
+                {ex.replace(/\.json$/, "")}
               </button>
             ))}
           </div>
-        </div>
+        </section>
       </div>
     </Modal>
   );

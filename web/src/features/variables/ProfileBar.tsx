@@ -39,7 +39,7 @@ export function ProfileBar() {
         className="profile-bar-select"
         title="Open profile"
         value={current}
-        disabled={!canEdit || profiles.length === 0}
+        disabled={profiles.length === 0}
         onChange={(e) => e.target.value !== current && switchTo(e.target.value)}
       >
         {profiles.map((name) => (

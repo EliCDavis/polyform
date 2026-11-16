@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { createPortal } from "react-dom";
 
 interface ModalProps {
   title: string;
@@ -11,14 +12,15 @@ interface ModalProps {
 export function Modal({ title, open, onClose, children, actions }: ModalProps) {
   if (!open) return null;
 
-  return (
+  return createPortal(
     <div className="popup-overlay" onClick={onClose}>
       <div className="popup" onClick={(e) => e.stopPropagation()}>
         <h2>{title}</h2>
         {children}
         {actions && <div className="popup-actions">{actions}</div>}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
