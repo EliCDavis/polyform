@@ -7,6 +7,16 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestTilingNoiseWrapsAtTheImageEdgeForAnyFrequency(t *testing.T) {
+	const size = 256
+	n := noise.NewTilingNoise(size, 0.03, 3)
+
+	for i := range size {
+		assert.InDelta(t, n.Noise(0, i), n.Noise(size, i), 1e-9, "left/right at row %d", i)
+		assert.InDelta(t, n.Noise(i, 0), n.Noise(i, size), 1e-9, "top/bottom at column %d", i)
+	}
+}
+
 func TestTilingNoiseIsTheSameEveryTime(t *testing.T) {
 	first := noise.NewTilingNoise(64, 1/16., 3)
 	second := noise.NewTilingNoise(64, 1/16., 3)

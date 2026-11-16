@@ -10,6 +10,7 @@ import (
 	"github.com/EliCDavis/polyform/generator/parameter"
 	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/modeling"
+	"github.com/EliCDavis/polyform/modeling/primitives"
 	"github.com/EliCDavis/polyform/modeling/triangulation"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/vector/vector2"
@@ -95,6 +96,8 @@ type Text struct {
 
 	// Straight segments each curve of a letter's outline is drawn with.
 	CurveSegments int
+
+	UVs *primitives.StripUVs
 }
 
 type placedGlyph struct {
@@ -104,7 +107,7 @@ type placedGlyph struct {
 
 // The text lies in the YZ plane facing +X, its lines running along Y.
 func (t Text) MeshX() (modeling.Mesh, error) {
-	return t.mesh(func(region triangulation.Region, depth float64) modeling.Mesh { return RegionX(region, depth, nil) })
+	return t.mesh(func(region triangulation.Region, depth float64) modeling.Mesh { return RegionX(region, depth, t.UVs) })
 }
 
 // The text lies in the XZ plane facing +Y, its lines running along X and the
@@ -113,13 +116,13 @@ func (t Text) MeshY() (modeling.Mesh, error) {
 	return t.mesh(func(region triangulation.Region, depth float64) modeling.Mesh {
 		return extrudeRegion(region, depth, func(v vector3.Float64) vector3.Float64 {
 			return vector3.New(v.X(), v.Z(), -v.Y())
-		}, nil)
+		}, t.UVs)
 	})
 }
 
 // The text lies in the XY plane facing +Z, its lines running along X.
 func (t Text) MeshZ() (modeling.Mesh, error) {
-	return t.mesh(func(region triangulation.Region, depth float64) modeling.Mesh { return RegionZ(region, depth, nil) })
+	return t.mesh(func(region triangulation.Region, depth float64) modeling.Mesh { return RegionZ(region, depth, t.UVs) })
 }
 
 // The first line's baseline runs through the origin and each further line
@@ -241,12 +244,13 @@ func glyphContour(points []truetype.Point, segments int, at func(truetype.Point)
 }
 
 type TextNode struct {
-	Text          nodes.LiftedPort[string]  `description:"Text to render."`
-	Height        nodes.LiftedPort[float64] `description:"Height of a capital letter." default:"1"`
-	Depth         nodes.LiftedPort[float64] `description:"Thickness: the solid spans 0 to Depth along the output's axis; negative goes the other way. 0 gives a single face."`
-	Font          nodes.Output[Font]        `description:"Typeface the letters are cut from." default:"Sans"`
-	Align         nodes.LiftedPort[Align]   `description:"Which end of each line sits on the origin."`
-	CurveSegments nodes.Output[int]         `description:"Straight segments per letter curve." default:"6"`
+	Text          nodes.LiftedPort[string]
+	Height        nodes.LiftedPort[float64]         `description:"Height of a capital letter." default:"1"`
+	Depth         nodes.LiftedPort[float64]         `description:"Spans 0 to Depth along the output's axis; 0 gives one face."`
+	Font          nodes.Output[Font]                `description:"Typeface the letters are cut from." default:"Sans"`
+	Align         nodes.LiftedPort[Align]           `description:"Which end of each line sits on the origin."`
+	CurveSegments nodes.Output[int]                 `description:"Straight segments per letter curve." default:"6"`
+	UVs           nodes.Output[primitives.StripUVs] `description:"Walls as strips in world units; caps use the text's X and Y."`
 }
 
 func (TextNode) Description() string {
@@ -284,6 +288,7 @@ func (TextNode) ZDescription() string {
 func (n TextNode) out(out *nodes.Lifted[modeling.Mesh], mesh func(Text) (modeling.Mesh, error)) {
 	font := nodes.GetOutputValue(out, n.Font)
 	segments := nodes.GetOutputValue(out, n.CurveSegments)
+	strip := nodes.TryGetOutputValue(out, n.UVs, primitives.UnitStripUVs())
 	nodes.Zip4(
 		out,
 		n.Text,
@@ -298,6 +303,7 @@ func (n TextNode) out(out *nodes.Lifted[modeling.Mesh], mesh func(Text) (modelin
 				Font:          font,
 				Align:         align,
 				CurveSegments: segments,
+				UVs:           &strip,
 			})
 			out.CaptureError(err)
 			return m

@@ -114,17 +114,16 @@ func (tn *TilingNoise) NoiseAtPermutation(v vector2.Float64, per int) float64 {
 
 func (tn *TilingNoise) Noise(x, y int) float64 {
 	val := 0.
-	sf := int(float64(tn.size) * tn.frequncy)
-	if sf < 1 {
-		sf = 1
-	}
+	sf := max(1, int(math.Round(float64(tn.size)*tn.frequncy)))
+	// Sampled at a whole number of cycles per image, or the edges don't meet.
+	frequency := float64(sf) / float64(tn.size)
 	octaveFreq := 1.
 	octaveStrength := 1.
 	for range tn.octaves {
 		n := tn.NoiseAtPermutation(
 			vector2.New(
-				(float64(x)*tn.frequncy)*octaveFreq,
-				(float64(y)*tn.frequncy)*octaveFreq,
+				(float64(x)*frequency)*octaveFreq,
+				(float64(y)*frequency)*octaveFreq,
 			),
 			sf*int(octaveFreq),
 		)

@@ -9,6 +9,7 @@ import (
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/vector/vector3"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestTransformPointNodeScalesRotatesThenTranslates(t *testing.T) {
@@ -142,4 +143,70 @@ func TestPivotNodeScalesAboutThePivotToo(t *testing.T) {
 	}, "Out").Value()
 	assert.Equal(t, pivot, got.Transform(pivot))
 	assert.Equal(t, vector3.New(3., 2., 3.), got.Transform(vector3.New(2., 2., 3.)), "one unit from the pivot becomes two")
+}
+
+func turned() trs.TRS {
+	return trs.New(
+		vector3.New(1., 2., 3.),
+		quaternion.FromTheta(0.7, vector3.New(1., 2., 0.5)),
+		vector3.New(1., 2., 0.5),
+	)
+}
+
+func assertSameTransform(t *testing.T, want, got trs.TRS) {
+	t.Helper()
+	for _, p := range []vector3.Float64{vector3.New(1., 0., 0.), vector3.New(0., 1., 0.), vector3.New(0., 0., 1.), vector3.New(0.3, -2., 1.5)} {
+		assert.InDelta(t, 0, want.Transform(p).Distance(got.Transform(p)), 1e-9, "point %v", p)
+	}
+}
+
+func TestScaleLocalScalesAlongTheTransformsOwnAxes(t *testing.T) {
+	start := turned()
+	amount := vector3.New(3., 0.5, 2.)
+	want, err := trs.FromMatrix(start.Multiply(trs.Scale(amount)))
+	require.NoError(t, err)
+	assertSameTransform(t, want, start.ScaleBy(amount))
+}
+
+func TestRotateLocalTurnsAboutTheTransformsOwnAxis(t *testing.T) {
+	start := turned().SetScale(vector3.Fill(2.))
+	axis := vector3.Forward[float64]()
+	want, err := trs.FromMatrix(start.Multiply(trs.Rotation(quaternion.FromTheta(1.1, axis))))
+	require.NoError(t, err)
+	assertSameTransform(t, want, start.RotateAroundAxis(axis, 1.1))
+}
+
+func TestRotateLocalTurnsAnUnevenScaleWithIt(t *testing.T) {
+	oval := trs.Scale(vector3.New(2., 1., 1.)).RotateAroundAxis(vector3.Forward[float64](), math.Pi/2)
+	assert.InDelta(t, 0, oval.Transform(vector3.New(1., 0., 0.)).Distance(vector3.New(0., 2., 0.)), 1e-9)
+}
+
+func TestRotateLocalAboutNoAxisLeavesTheTransform(t *testing.T) {
+	start := turned()
+	assert.Equal(t, start, start.RotateAroundAxis(vector3.Zero[float64](), 1))
+}
+
+func TestScaleNodeLiftsOverAListOfTransforms(t *testing.T) {
+	frames := []trs.TRS{trs.Identity(), trs.Position(vector3.New(1., 0., 0.))}
+	out := nodes.GetNodeOutputPort[[]trs.TRS](&nodes.Struct[trs.ScaleNode]{Data: trs.ScaleNode{
+		TRS:     nodes.ConstOutput[[]trs.TRS]{Val: frames},
+		Uniform: nodes.ConstOutput[[]float64]{Val: []float64{2, 0.5}},
+	}}, "Out").Value()
+
+	require.Len(t, out, 2)
+	assert.Equal(t, vector3.New(2., 2., 2.), out[0].Scale())
+	assert.Equal(t, vector3.New(0.5, 0.5, 0.5), out[1].Scale())
+	assert.Equal(t, vector3.New(1., 0., 0.), out[1].Position())
+}
+
+func TestRotateAroundAxisNodeRollsEachFrameByItsOwnAngle(t *testing.T) {
+	frames := []trs.TRS{trs.Identity(), trs.Identity()}
+	out := nodes.GetNodeOutputPort[[]trs.TRS](&nodes.Struct[trs.RotateAroundAxisNode]{Data: trs.RotateAroundAxisNode{
+		TRS:   nodes.ConstOutput[[]trs.TRS]{Val: frames},
+		Angle: nodes.ConstOutput[[]float64]{Val: []float64{0, math.Pi / 2}},
+	}}, "Out").Value()
+
+	require.Len(t, out, 2)
+	assert.InDelta(t, 0, out[0].RotateDirection(vector3.Up[float64]()).Distance(vector3.Up[float64]()), 1e-9)
+	assert.InDelta(t, 0, out[1].RotateDirection(vector3.Up[float64]()).Distance(vector3.Left[float64]()), 1e-9, "the default axis is +Z")
 }

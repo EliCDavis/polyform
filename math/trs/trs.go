@@ -31,6 +31,17 @@ func (trs TRS) Rotation() quaternion.Quaternion {
 	return trs.rotation
 }
 
+func (trs TRS) ScaleBy(amount vector3.Float64) TRS {
+	return trs.SetScale(trs.scale.MultByVector(amount))
+}
+
+func (trs TRS) RotateAroundAxis(axis vector3.Float64, angle float64) TRS {
+	if axis.Length() == 0 {
+		return trs
+	}
+	return trs.SetRotation(trs.rotation.Multiply(quaternion.FromTheta(angle, axis)))
+}
+
 func (trs TRS) Matrix() mat.Matrix4x4 {
 	// https://github.com/UltravioletFramework/ultraviolet/issues/92
 	p := trs.position

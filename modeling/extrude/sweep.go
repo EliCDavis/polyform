@@ -44,6 +44,45 @@ func (s sweep) hard(f frame) bool {
 	return f.incoming.Angle(f.outgoing) >= s.smoothing-1e-9
 }
 
+func (s sweep) creased(f frame, incoming, outgoing []vector3.Float64) bool {
+	if incoming == nil || outgoing == nil {
+		return false
+	}
+	if s.hard(f) {
+		return true
+	}
+	for k := range incoming {
+		if incoming[k].Angle(outgoing[k]) >= s.smoothing-1e-9 {
+			return true
+		}
+	}
+	return false
+}
+
+func (s sweep) blended(f frame, slots []outlineSlot, incoming, outgoing []vector3.Float64) []vector3.Float64 {
+	switch {
+	case incoming == nil && outgoing == nil:
+		lone := make([]vector3.Float64, len(slots))
+		for k, slot := range slots {
+			lone[k] = f.normal(slot.normal, s.scale(f.point), vector3.Float64{})
+		}
+		return lone
+	case incoming == nil:
+		return outgoing
+	case outgoing == nil:
+		return incoming
+	}
+
+	blend := make([]vector3.Float64, len(incoming))
+	for k := range blend {
+		blend[k] = incoming[k]
+		if sum := incoming[k].Add(outgoing[k]); sum.Length() > 0 {
+			blend[k] = sum.Normalized()
+		}
+	}
+	return blend
+}
+
 func (s sweep) along() []float64 {
 	walked := distances(s.frames)
 	total := walked[len(walked)-1]
@@ -66,54 +105,89 @@ func (s sweep) shell() modeling.Mesh {
 	}
 	along := s.along()
 
+	count := len(s.frames)
+	placed := make([][]vector3.Float64, count)
+	for i, f := range s.frames {
+		placed[i] = make([]vector3.Float64, len(slots))
+		for k, slot := range slots {
+			placed[i][k] = f.place(s.profile[slot.point].Scale(s.scale(f.point)))
+		}
+	}
+
+	// A ring's normals on the side that runs between two rings, nil where
+	// it has no surface there. Inside a turn too tight for the profile the
+	// next ring lands behind this one, and the reach is turned back round so
+	// the fold does not shade inside out.
+	side := func(i, from, to int, dir vector3.Float64) []vector3.Float64 {
+		if dir == (vector3.Float64{}) {
+			return nil
+		}
+		f := s.frames[i]
+		normals := make([]vector3.Float64, len(slots))
+		for k, slot := range slots {
+			reach := placed[to][k].Sub(placed[from][k])
+			if reach.Dot(dir) < 0 {
+				reach = reach.Scale(-1)
+			}
+			normals[k] = f.normal(slot.normal, s.scale(f.point), reach)
+		}
+		return normals
+	}
+
 	var vertices, normals []vector3.Float64
 	var uvs []vector2.Float64
-	ring := func(f, shading frame, along float64) int {
+	ring := func(i int, shading []vector3.Float64, along float64) int {
 		base := len(vertices)
-		scale := s.scale(f.point)
-		for k, slot := range slots {
-			vertices = append(vertices, f.place(s.profile[slot.point].Scale(scale)))
-			normals = append(normals, shading.direction(slot.normal).Normalized())
-			if s.uv != nil {
-				uvs = append(uvs, s.uv(f.point, across[k], along))
+		vertices = append(vertices, placed[i]...)
+		normals = append(normals, shading...)
+		if s.uv != nil {
+			for k := range slots {
+				uvs = append(uvs, s.uv(s.frames[i].point, across[k], along))
 			}
 		}
 		return base
 	}
 
-	// A hard corner gets a ring per side, shaded square to that side's
-	// segment.
-	before := make([]int, len(s.frames))
-	after := make([]int, len(s.frames))
+	// A crease gets a ring per side, each shaded square to its own side.
+	before := make([]int, count)
+	after := make([]int, count)
+	var seam []vector3.Float64
 	for i, f := range s.frames {
-		if s.hard(f) {
-			before[i] = ring(f, f.facing(f.incoming), along[i])
-			after[i] = ring(f, f.facing(f.outgoing), along[i])
-			continue
+		incoming := side(i, (i+count-1)%count, i, f.incoming)
+		outgoing := side(i, i, (i+1)%count, f.outgoing)
+		if s.creased(f, incoming, outgoing) {
+			before[i] = ring(i, incoming, along[i])
+			after[i] = ring(i, outgoing, along[i])
+		} else {
+			incoming = s.blended(f, slots, incoming, outgoing)
+			before[i] = ring(i, incoming, along[i])
+			after[i] = before[i]
 		}
-		before[i] = ring(f, f, along[i])
-		after[i] = before[i]
+		if i == 0 {
+			seam = incoming
+		}
 	}
 
-	segments := len(s.frames) - 1
+	segments := count - 1
 	if s.closed {
-		segments = len(s.frames)
+		segments = count
 		if s.uv != nil {
-			first := s.frames[0]
-			shading := first
-			if s.hard(first) {
-				shading = first.facing(first.incoming)
-			}
-			before[0] = ring(first, shading, 1)
+			before[0] = ring(0, seam, 1)
 		}
 	}
 
 	tris := make([]int, 0, segments*len(s.profile)*6)
 	for i := 0; i < segments; i++ {
-		lower, upper := after[i], before[(i+1)%len(s.frames)]
+		next := (i + 1) % count
+		lower, upper := after[i], before[next]
+		flipped := s.frames[i].mirrored() || s.frames[next].mirrored()
 		for j := range s.profile {
 			a, b := lower+start[j], lower+end[j]
 			c, d := upper+start[j], upper+end[j]
+			if flipped {
+				tris = append(tris, a, d, c, a, b, d)
+				continue
+			}
 			tris = append(tris, a, c, d, a, d, b)
 		}
 	}
@@ -131,7 +205,7 @@ func (s sweep) shell() modeling.Mesh {
 
 // cap closes the sweep at f. A counter-clockwise triangle placed by a frame
 // faces back along its tangent, so the start cap keeps its winding and the
-// end cap reverses it.
+// end cap reverses it; a mirrored frame swaps the two.
 func (s sweep) cap(region triangulation.Region, f frame, end bool, uv func(vector2.Float64) vector2.Float64) modeling.Mesh {
 	normal := f.tangent.Scale(-1)
 	if end {
@@ -148,7 +222,7 @@ func (s sweep) cap(region triangulation.Region, f frame, end bool, uv func(vecto
 
 	tris := make([]int, 0, len(region.Triangles)*3)
 	for _, tri := range region.Triangles {
-		if end {
+		if end != f.mirrored() {
 			tris = append(tris, tri[0], tri[2], tri[1])
 		} else {
 			tris = append(tris, tri[0], tri[1], tri[2])

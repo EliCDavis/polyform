@@ -14,5 +14,6 @@ func init() {
 	refutil.RegisterType[nodes.Struct[OutlineNode]](factory)
 	refutil.RegisterType[nodes.Struct[TextNode]](factory)
 	refutil.RegisterType[nodes.Struct[AreaNode]](factory)
+	refutil.RegisterType[nodes.Struct[AreaAlongPathNode]](factory)
 	registry.Register(factory)
 }

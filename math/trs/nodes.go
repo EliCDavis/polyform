@@ -22,6 +22,8 @@ func init() {
 	refutil.RegisterType[nodes.Struct[MultiplyNode]](factory)
 	refutil.RegisterType[nodes.Struct[MultiplyToArrayNode]](factory)
 	refutil.RegisterType[nodes.Struct[SelectNode]](factory)
+	refutil.RegisterType[nodes.Struct[ScaleNode]](factory)
+	refutil.RegisterType[nodes.Struct[RotateAroundAxisNode]](factory)
 	registry.Register(factory)
 }
 
@@ -100,13 +102,13 @@ func (tnd MultiplyNode) Out(out *nodes.Lifted[TRS]) {
 // ============================================================================
 
 type MultiplyToArrayNode struct {
-	Left   nodes.LiftedPort[TRS]
+	Left   nodes.LiftedPort[TRS] `description:"The identity when unwired."`
 	Middle nodes.LiftedPort[TRS]
-	Right  nodes.LiftedPort[TRS]
+	Right  nodes.LiftedPort[TRS] `description:"The identity when unwired."`
 }
 
 func (n MultiplyToArrayNode) Description() string {
-	return "Composes three transforms as `Left * Middle * Right`. An unwired end is the identity."
+	return "Composes three transforms as `Left * Middle * Right`."
 }
 
 func (n MultiplyToArrayNode) Out(out *nodes.Lifted[TRS]) {
@@ -163,7 +165,11 @@ type PivotNode struct {
 }
 
 func (PivotNode) Description() string {
-	return "A transform that rotates and scales about a point instead of the origin: the position works out to Pivot - R·S·Pivot."
+	return "A transform that rotates and scales about a point instead of the origin."
+}
+
+func (PivotNode) OutDescription() string {
+	return "Its position works out to Pivot - R·S·Pivot."
 }
 
 func (PivotNode) Keywords() []string {
@@ -187,12 +193,12 @@ func (n PivotNode) Out(out *nodes.Lifted[TRS]) {
 
 type LookAtNode struct {
 	Position nodes.LiftedPort[vector3.Float64]
-	Target   nodes.LiftedPort[vector3.Float64]
+	Target   nodes.LiftedPort[vector3.Float64] `description:"The point local +Z faces."`
 	Scale    nodes.LiftedPort[vector3.Float64] `default:"1,1,1"`
 }
 
 func (LookAtNode) Description() string {
-	return "A transform placed at Position and turned so its local +Z points at Target, with +Y kept up."
+	return "A transform aimed at a target, with +Y kept up."
 }
 
 func (LookAtNode) Keywords() []string {
@@ -250,4 +256,40 @@ func (tnd RotateDirectionNode) Out(out *nodes.Lifted[vector3.Float64]) {
 		tnd.Direction,
 		TRS.RotateDirection,
 	)
+}
+
+type ScaleNode struct {
+	TRS     nodes.LiftedPort[TRS]
+	Uniform nodes.LiftedPort[float64]         `default:"1"`
+	Axes    nodes.LiftedPort[vector3.Float64] `description:"Per-axis factor, applied with Uniform." default:"1,1,1"`
+}
+
+func (ScaleNode) Description() string {
+	return "Multiplies a transform's scale along its own axes."
+}
+
+func (n ScaleNode) Out(out *nodes.Lifted[TRS]) {
+	nodes.Zip3(out, n.TRS, n.Uniform, n.Axes, func(t TRS, uniform float64, axes vector3.Float64) TRS {
+		return t.ScaleBy(axes.Scale(uniform))
+	})
+}
+
+type RotateAroundAxisNode struct {
+	TRS   nodes.LiftedPort[TRS]
+	Angle nodes.LiftedPort[float64]         `description:"In radians."`
+	Axis  nodes.LiftedPort[vector3.Float64] `description:"In the transform's own space." default:"0,0,1"`
+}
+
+func (RotateAroundAxisNode) Description() string {
+	return "Turns a transform about one of its own axes."
+}
+
+func (RotateAroundAxisNode) Keywords() []string {
+	return []string{"roll", "twist"}
+}
+
+func (n RotateAroundAxisNode) Out(out *nodes.Lifted[TRS]) {
+	nodes.Zip3(out, n.TRS, n.Angle, n.Axis, func(t TRS, angle float64, axis vector3.Float64) TRS {
+		return t.RotateAroundAxis(axis, angle)
+	})
 }

@@ -27,6 +27,7 @@ func init() {
 	refutil.RegisterType[nodes.Struct[AddNode[float64]]](factory)
 	refutil.RegisterType[nodes.Struct[SumArrayNode[int]]](factory)
 	refutil.RegisterType[nodes.Struct[SumArrayNode[float64]]](factory)
+	refutil.RegisterType[nodes.Struct[CumulativeNode]](factory)
 
 	refutil.RegisterType[nodes.Struct[DivideNode[int]]](factory)
 	refutil.RegisterType[nodes.Struct[DivideNode[float64]]](factory)
@@ -216,7 +217,7 @@ type RoundNode struct {
 }
 
 func (cn RoundNode) Description() string {
-	return "Rounds a number to a whole number: Float and Int are the nearest, Down is the floor, Up is the ceiling."
+	return "Rounds a number to a whole number."
 }
 
 func (cn RoundNode) Keywords() []string {
@@ -228,7 +229,7 @@ func (cn RoundNode) Int(out *nodes.Lifted[int]) {
 }
 
 func (cn RoundNode) IntDescription() string {
-	return "The nearest whole number, as an int: the float-to-int conversion for counts and segment inputs."
+	return "The nearest whole number, as an int."
 }
 
 func (cn RoundNode) Float(out *nodes.Lifted[float64]) {

@@ -10,6 +10,9 @@ func init() {
 	factory := &refutil.TypeFactory{}
 	refutil.RegisterType[nodes.Struct[LinesFromPoints3DNode]](factory)
 	refutil.RegisterType[nodes.Struct[LineLengths3DNode]](factory)
+	refutil.RegisterType[nodes.Struct[PathLengthNode]](factory)
+	refutil.RegisterType[nodes.Struct[SamplePathNode]](factory)
+	refutil.RegisterType[nodes.Struct[PathFramesNode]](factory)
 	refutil.RegisterType[nodes.Struct[PositionOnLine3DNode]](factory)
 	refutil.RegisterType[nodes.Struct[TrsFromLines3DNode]](factory)
 	refutil.RegisterType[nodes.Struct[ConvexHullNode]](factory)

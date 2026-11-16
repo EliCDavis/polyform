@@ -73,7 +73,7 @@ func TestAreaNodeExtrudesAFilledAreaWithASpreadListOfHoles(t *testing.T) {
 			Size:   nodes.ConstOutput[vector2.Float64]{Val: vector2.New(1., 1.)},
 			Center: nodes.ConstOutput[[]vector2.Float64]{Val: []vector2.Float64{vector2.New(-2., 0.), vector2.New(2., 0.)}},
 		},
-	}, "Out")
+	}, "Outline")
 	spread := &nodes.Struct[arrays.SpreadNode]{}
 	require.NoError(t, spread.Inputs()["Array"].(nodes.SingleValueInputPort).Set(pads))
 	holes, ok := spread.Outputs()["Out"].(nodes.Output[[]vector2.Float64])

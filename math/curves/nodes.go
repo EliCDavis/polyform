@@ -15,6 +15,7 @@ func init() {
 
 	refutil.RegisterType[nodes.Struct[PositionNode]](factory)
 	refutil.RegisterType[nodes.Struct[TangentNode]](factory)
+	refutil.RegisterType[nodes.Struct[SplineFramesNode]](factory)
 
 	registry.Register(factory)
 }

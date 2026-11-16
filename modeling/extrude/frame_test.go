@@ -4,6 +4,8 @@ import (
 	"math"
 	"testing"
 
+	"github.com/EliCDavis/polyform/math/geometry"
+	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -100,6 +102,7 @@ func TestPathFramesLayAProfileFlatHoweverALevelPathStarts(t *testing.T) {
 		"doubling back":  {vector3.New(0., 0., 0.), vector3.New(5., 0., 0.), vector3.New(5., 0., 1.), vector3.New(0., 0., 1.)},
 		"climbing first": {vector3.New(0., 0., 0.), vector3.New(0., 3., 0.), vector3.New(4., 3., 0.)},
 		"with a hairpin": {vector3.New(0., 0., 0.), vector3.New(5., 0., 0.), vector3.New(0., 0., .1)},
+		"tall then flat": {vector3.New(0., 0., 0.), vector3.New(0., 30., 0.), vector3.New(.5, 30., 0.)},
 	} {
 		t.Run(name, func(t *testing.T) {
 			for i, f := range pathFrames(path, false) {
@@ -107,6 +110,77 @@ func TestPathFramesLayAProfileFlatHoweverALevelPathStarts(t *testing.T) {
 					continue
 				}
 				assert.InDeltaf(t, 1, f.y.Y(), 1e-9, "ring %d does not point the profile's y up", i)
+			}
+		})
+	}
+}
+
+func TestPathFramesLevelARampNoSteeperThanADiagonal(t *testing.T) {
+	for name, end := range map[string]vector3.Float64{
+		"diagonal": vector3.New(1., 1., 0.),
+		"gentle":   vector3.New(3., 1., 2.),
+		"falling":  vector3.New(1., -1., 0.),
+	} {
+		t.Run(name, func(t *testing.T) {
+			for i, f := range pathFrames([]vector3.Float64{vector3.Zero[float64](), end}, false) {
+				assert.InDeltaf(t, 0, f.x.Y(), 1e-9, "ring %d x is not level", i)
+				assert.Positivef(t, f.y.Y(), "ring %d y points down", i)
+			}
+		})
+	}
+}
+
+func TestPathFramesFaceALeaningPathTheWayAPlumbOneFaces(t *testing.T) {
+	for _, climb := range []float64{1, -1} {
+		plumb := pathFrames([]vector3.Float64{vector3.Zero[float64](), vector3.New(0., climb, 0.)}, false)[0]
+
+		for _, lean := range []float64{1e-12, 1e-6, 1e-3, 0.15, 0.4} {
+			for name, toward := range map[string]vector3.Float64{
+				"+X": vector3.New(1., 0., 0.), "-X": vector3.New(-1., 0., 0.),
+				"+Z": vector3.New(0., 0., 1.), "-Z": vector3.New(0., 0., -1.),
+				"+X+Z": vector3.New(1., 0., 1.), "-X-Z": vector3.New(-1., 0., -1.),
+			} {
+				path := make([]vector3.Float64, 11)
+				for i := range path {
+					s := float64(i) / 10
+					path[i] = toward.Normalized().Scale(lean * s * s).Add(vector3.New(0., climb*s, 0.))
+				}
+
+				first := pathFrames(path, false)[0]
+				tilt := first.tangent.Angle(plumb.tangent)
+				assert.LessOrEqualf(t, first.x.Angle(plumb.x), tilt+1e-9,
+					"climbing %g and leaning %g toward %s turned x %.1f degrees",
+					climb, lean, name, first.x.Angle(plumb.x)*180/math.Pi)
+				assert.LessOrEqualf(t, first.y.Angle(plumb.y), tilt+1e-9,
+					"climbing %g and leaning %g toward %s turned y %.1f degrees",
+					climb, lean, name, first.y.Angle(plumb.y)*180/math.Pi)
+			}
+		}
+	}
+}
+
+func TestFramesSurviveATripThroughTransforms(t *testing.T) {
+	for name, tc := range map[string]struct {
+		path   []vector3.Float64
+		closed bool
+	}{
+		"bend":    {[]vector3.Float64{vector3.New(0., 0., 0.), vector3.New(0., 1., 0.), vector3.New(1., 3., 0.), vector3.New(4.5, 3.5, 2.)}, false},
+		"hairpin": {[]vector3.Float64{vector3.New(0., 0., 0.), vector3.New(5., 0., 0.), vector3.New(0., 0., .1)}, false},
+		"square loop": {[]vector3.Float64{
+			vector3.New(0., 0., 0.), vector3.New(2., 0., 0.), vector3.New(2., 0., 2.), vector3.New(0., 0., 2.),
+		}, true},
+	} {
+		t.Run(name, func(t *testing.T) {
+			want := pathFrames(tc.path, tc.closed)
+			got := framesFromTRS(geometry.FrameTRSs(geometry.PathFrames(tc.path, tc.closed)), tc.closed)
+			require.Len(t, got, len(want))
+			for i := range want {
+				assert.InDeltaf(t, 0, want[i].origin.Distance(got[i].origin), 1e-9, "ring %d origin", i)
+				assert.InDeltaf(t, 0, want[i].tangent.Distance(got[i].tangent), 1e-9, "ring %d tangent", i)
+				assert.InDeltaf(t, 0, want[i].x.Distance(got[i].x), 1e-9, "ring %d x", i)
+				assert.InDeltaf(t, 0, want[i].y.Distance(got[i].y), 1e-9, "ring %d y", i)
+				assert.InDeltaf(t, want[i].stretch, got[i].stretch, 1e-9, "ring %d stretch", i)
+				assert.Equal(t, vector2.One[float64](), got[i].size)
 			}
 		})
 	}

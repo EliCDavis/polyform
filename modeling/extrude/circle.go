@@ -87,6 +87,7 @@ type Circle struct {
 	Radii      []float64
 	ClosePath  bool
 	Path       []vector3.Float64
+	UVs        *primitives.StripUVs
 }
 
 func (c Circle) Extrude() (modeling.Mesh, error) {
@@ -94,7 +95,16 @@ func (c Circle) Extrude() (modeling.Mesh, error) {
 	if err != nil {
 		return modeling.EmptyMesh(modeling.TriangleTopology), err
 	}
-	return tube(c.Resolution, c.Path, radii, c.ClosePath, nil)
+	return tube(c.Resolution, c.Path, radii, c.ClosePath, stripUV(c.UVs))
+}
+
+func stripUV(strip *primitives.StripUVs) func(point int, across, along float64) vector2.Float64 {
+	if strip == nil {
+		return nil
+	}
+	return func(_ int, across, along float64) vector2.Float64 {
+		return strip.AtXY(vector2.New(across, along))
+	}
 }
 
 type CircleAlongSpline struct {
@@ -130,13 +140,7 @@ func (c CircleAlongSpline) Extrude() (modeling.Mesh, error) {
 		path, radii = path[:last], radii[:last]
 	}
 
-	var uv func(point int, across, along float64) vector2.Float64
-	if c.UVs != nil {
-		uv = func(_ int, across, along float64) vector2.Float64 {
-			return c.UVs.AtXY(vector2.New(across, along))
-		}
-	}
-	return tube(c.CircleResolution, path, radii, c.ClosePath, uv)
+	return tube(c.CircleResolution, path, radii, c.ClosePath, stripUV(c.UVs))
 }
 
 type CircleNode struct {
@@ -145,6 +149,7 @@ type CircleNode struct {
 	Radius     nodes.LiftedPort[float64] `default:"1"`
 	Radii      nodes.LiftedPort[[]float64]
 	Path       nodes.LiftedPort[[]vector3.Float64]
+	UVs        nodes.Output[primitives.StripUVs] `description:"Around the circle runs across the strip, the path along it."`
 }
 
 func (pnd CircleNode) Description() string {
@@ -154,6 +159,7 @@ func (pnd CircleNode) Description() string {
 func (pnd CircleNode) Out(out *nodes.Lifted[modeling.Mesh]) {
 	resolution := max(3, nodes.GetOutputValue(out, pnd.Resolution))
 	closed := nodes.GetOutputValue(out, pnd.Closed)
+	strip := nodes.TryGetOutputValue(out, pnd.UVs, primitives.UnitStripUVs())
 	nodes.Zip3(out, pnd.Radius, pnd.Radii, pnd.Path, func(radius float64, radii []float64, path []vector3.Float64) modeling.Mesh {
 		if pnd.Path == nil {
 			return modeling.EmptyMesh(modeling.TriangleTopology)
@@ -164,6 +170,7 @@ func (pnd CircleNode) Out(out *nodes.Lifted[modeling.Mesh]) {
 			ClosePath:  closed,
 			Path:       path,
 			Radii:      radii,
+			UVs:        &strip,
 		}.Extrude()
 		if err != nil {
 			out.CaptureError(err)
@@ -180,7 +187,7 @@ type CircleAlongSplineNode struct {
 	Radii            nodes.Output[[]float64]
 	Spline           nodes.Output[curves.Spline]
 	SplineResolution nodes.Output[int]                 `default:"3"`
-	UVs              nodes.Output[primitives.StripUVs] `description:"Lays the tube out as a strip: around the circle runs across it, the spline along it. Defaults to the unit strip, 0 to 1 both ways."`
+	UVs              nodes.Output[primitives.StripUVs] `description:"Around the circle runs across the strip, the spline along it."`
 }
 
 func (pnd CircleAlongSplineNode) Description() string {
