@@ -37,7 +37,6 @@ import (
 	_ "github.com/EliCDavis/polyform/math/curves"
 	_ "github.com/EliCDavis/polyform/math/geometry"
 	_ "github.com/EliCDavis/polyform/math/geometry/aabb"
-	_ "github.com/EliCDavis/polyform/math/layout"
 	_ "github.com/EliCDavis/polyform/math/quaternion"
 	_ "github.com/EliCDavis/polyform/math/sequence"
 	_ "github.com/EliCDavis/polyform/math/trig"

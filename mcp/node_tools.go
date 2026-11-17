@@ -447,6 +447,39 @@ func wireCreatedNodeInputs(inst *graph.Graph, node nodes.Node, nodeID string, in
 	return nil
 }
 
+// Literals on an input whose type nothing has decided yet, with no
+// reference beside them to decide it.
+func splitUntypedLiterals(node nodes.Node, inputs map[string]NodeInputSpec) (now, later map[string]NodeInputSpec) {
+	ports := node.Inputs()
+	for raw, spec := range inputs {
+		elements := spec.Elements
+		if len(elements) == 0 {
+			elements = []NodeInputElement{{NodeId: spec.NodeId, Value: spec.Value, Variable: spec.Variable}}
+		}
+		literal := ""
+		referenced := false
+		for _, element := range elements {
+			referenced = referenced || element.NodeId != "" || element.Variable != ""
+			if literal == "" {
+				literal = element.Value
+			}
+		}
+		port, ok := ports[resolveInputPortName(node, raw)]
+		if ok && !referenced && literal != "" && literalTypeFor(port, literal) == "" {
+			if later == nil {
+				later = map[string]NodeInputSpec{}
+			}
+			later[raw] = spec
+			continue
+		}
+		if now == nil {
+			now = map[string]NodeInputSpec{}
+		}
+		now[raw] = spec
+	}
+	return now, later
+}
+
 func noElementWired(port string) string {
 	return fmt.Sprintf("input %q: no element was wired, so none moved into another's place", port)
 }
@@ -1601,14 +1634,16 @@ func (s *Server) createNodes(ctx context.Context, req *mcpsdk.CallToolRequest, i
 			return e
 		}
 
+		var wireLater func() []string
 		dropped, e := s.graph.Batch(func() (hard error) {
-			out.Nodes, out.Errors, hard = s.createNodeBatch(inst, in.Nodes, nil)
+			out.Nodes, out.Errors, wireLater, hard = s.createNodeBatch(inst, in.Nodes, nil)
 			return hard
 		})
 		if e != nil {
 			return e
 		}
 		out.Errors = append(out.Errors, batchErrorLines(dropped, out.Nodes)...)
+		out.Errors = append(out.Errors, wireLater()...)
 		out.Literals = literalsFeeding(inst, out.Nodes)
 		return nil
 	})
@@ -1620,7 +1655,7 @@ func (s *Server) createNodes(ctx context.Context, req *mcpsdk.CallToolRequest, i
 // map with names already bound to node ids (create_subgraph passes its
 // boundary ports this way); those names are reserved, and an entry that
 // reuses one is a hard error since the reference would be ambiguous.
-func (s *Server) createNodeBatch(inst *graph.Graph, entries []CreateNodesEntry, aliases map[string]string) (map[string]string, []string, error) {
+func (s *Server) createNodeBatch(inst *graph.Graph, entries []CreateNodesEntry, aliases map[string]string) (map[string]string, []string, func() []string, error) {
 	var errs []string
 
 	label := func(i int) string {
@@ -1639,7 +1674,7 @@ func (s *Server) createNodeBatch(inst *graph.Graph, entries []CreateNodesEntry, 
 			continue
 		}
 		if _, reserved := aliases[entry.Alias]; reserved {
-			return nil, nil, fmt.Errorf("alias %q on entry %d is already the name of a boundary port; pick another", entry.Alias, i)
+			return nil, nil, nil, fmt.Errorf("alias %q on entry %d is already the name of a boundary port; pick another", entry.Alias, i)
 		}
 		if prev, dup := seen[entry.Alias]; dup {
 			if !skip[prev] {
@@ -1693,6 +1728,7 @@ func (s *Server) createNodeBatch(inst *graph.Graph, entries []CreateNodesEntry, 
 
 	// Second pass: every id exists now, so an entry can reference an
 	// alias regardless of where it sits in the list.
+	untypedLiterals := make([]map[string]NodeInputSpec, len(entries))
 	for i, entry := range entries {
 		if created[i] == nil {
 			continue
@@ -1702,6 +1738,7 @@ func (s *Server) createNodeBatch(inst *graph.Graph, entries []CreateNodesEntry, 
 		// stale alias can't silently strip a node of every other input it
 		// was given.
 		resolved, resolveErr := resolveAliasedInputs(entry.Inputs, named, seen, inst)
+		resolved, untypedLiterals[i] = splitUntypedLiterals(created[i], resolved)
 		wireErr := wireCreatedNodeInputs(inst, created[i], ids[i], resolved)
 
 		// wireErr already carries the "every other input was wired"
@@ -1720,13 +1757,27 @@ func (s *Server) createNodeBatch(inst *graph.Graph, entries []CreateNodesEntry, 
 		}
 	}
 
+	// Once the batch has settled, a consumer may have typed them.
+	wireLater := func() []string {
+		var errs []string
+		for i, later := range untypedLiterals {
+			if len(later) == 0 {
+				continue
+			}
+			if e := wireCreatedNodeInputs(inst, created[i], ids[i], later); e != nil {
+				errs = append(errs, fmt.Sprintf("entry %s: %v", label(i), e))
+			}
+		}
+		return errs
+	}
+
 	result := make(map[string]string, len(entries))
 	for i := range entries {
 		if created[i] != nil {
 			result[label(i)] = ids[i]
 		}
 	}
-	return result, errs, nil
+	return result, errs, wireLater, nil
 }
 
 // resolveAliasedInputs rewrites any nodeId naming a batch alias into the

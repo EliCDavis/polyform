@@ -144,11 +144,12 @@ func (s *Server) createSubgraph(ctx context.Context, req *mcpsdk.CallToolRequest
 			out.Outputs[port.Name] = id
 		}
 
+		wireLater := func() []string { return nil }
 		if len(in.Nodes) > 0 {
 			var nodeIDs map[string]string
 			var errs []string
 			dropped, e := s.graph.Batch(func() (e error) {
-				nodeIDs, errs, e = s.createNodeBatch(child, in.Nodes, out.Inputs)
+				nodeIDs, errs, wireLater, e = s.createNodeBatch(child, in.Nodes, out.Inputs)
 				return e
 			})
 			if e != nil {
@@ -205,6 +206,7 @@ func (s *Server) createSubgraph(ctx context.Context, req *mcpsdk.CallToolRequest
 			return fmt.Errorf("nothing was created, because the subgraph's outputs could not be wired:\n%s%s",
 				strings.Join(outputErrors, "\n"), interiorErrors(out.Errors))
 		}
+		out.Errors = append(out.Errors, wireLater()...)
 		return nil
 	})
 	return nil, out, err
