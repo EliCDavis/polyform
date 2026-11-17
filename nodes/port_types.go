@@ -2,6 +2,7 @@ package nodes
 
 import (
 	"reflect"
+	"regexp"
 	"sort"
 	"strings"
 	"sync"
@@ -106,7 +107,14 @@ func LookupPortTypeDynamic(typeName string) (DynamicOutputBuilder, bool) {
 	if !ok {
 		return nil, false
 	}
-	builder, ok := port.(DynamicOutputBuilder)
+	if builder, ok := port.(DynamicOutputBuilder); ok {
+		return builder, true
+	}
+	proxy, ok := port.(ProxyOutputBuilder)
+	if !ok {
+		return nil, false
+	}
+	builder, ok := proxy.BuildProxyOutput(nil).(DynamicOutputBuilder)
 	return builder, ok
 }
 
@@ -124,6 +132,28 @@ func LookupPortTypeDynamicArray(typeName string) (DynamicArrayOutputBuilder, boo
 func IsPortTypeKnown(typeName string) bool {
 	_, ok := lookupPortType(typeName)
 	return ok
+}
+
+var importPath = regexp.MustCompile(`(?:[\w.-]+/)+`)
+
+// A short key drops any of its import paths ("norm.UFloat64"); it resolves
+// only when exactly one known type shortens to the same thing.
+func ResolvePortType(typeName string) (string, bool) {
+	if IsPortTypeKnown(typeName) {
+		return typeName, true
+	}
+	short := importPath.ReplaceAllString(typeName, "")
+	match := ""
+	for _, known := range KnownPortTypes() {
+		if importPath.ReplaceAllString(known, "") != short {
+			continue
+		}
+		if match != "" {
+			return "", false
+		}
+		match = known
+	}
+	return match, match != ""
 }
 
 func KnownPortTypes() []string {

@@ -140,9 +140,11 @@ func (a *Graph) createNode(nodeType, portType string) (nodes.Node, string, error
 		if portType == "" {
 			return nil, "", fmt.Errorf("boundary port type is required")
 		}
-		if !nodes.IsPortTypeKnown(portType) {
+		resolved, ok := nodes.ResolvePortType(portType)
+		if !ok {
 			return nil, "", fmt.Errorf("unknown boundary port type %q", portType)
 		}
+		portType = resolved
 		if err := subgraph.ConfigureBoundaryPortType(boundary, portType); err != nil {
 			return nil, "", err
 		}

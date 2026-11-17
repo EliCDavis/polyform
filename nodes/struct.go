@@ -24,6 +24,7 @@ type outputPortBuilder interface {
 
 type structOutputCache struct {
 	versioner inputVersions
+	mu        sync.Mutex
 	cache     map[string]cachedStructOutput
 	rank      atomic.Pointer[rankMemo]
 	liftedArg atomic.Pointer[rankMemo]
@@ -34,30 +35,45 @@ type rankMemo struct {
 	rank       int
 }
 
+// While outdated, Version promises the number the next value will carry.
+// A consumer can record that promise while still holding the old value, so
+// a promise is tied to the inputs it was made for and is never handed out
+// again for different ones.
 func (soc *structOutputCache) Version(key string) int {
-	val, ok := soc.cache[key]
+	now := soc.versioner.inputVersions()
 
+	soc.mu.Lock()
+	defer soc.mu.Unlock()
+
+	val, ok := soc.cache[key]
 	if !ok {
 		return -1
 	}
 
-	version := val.version
-	if soc.Outdated(key) {
-		version++
+	if now == val.nodeInputVersions {
+		if val.promised > val.version {
+			val.version = val.promised
+			soc.cache[key] = val
+		}
+		return val.version
 	}
 
-	return version
+	if val.promised <= val.version || val.promisedFor != now {
+		val.promised = max(val.version, val.promised) + 1
+		val.promisedFor = now
+		soc.cache[key] = val
+	}
+	return val.promised
 }
 
 func (soc *structOutputCache) Outdated(key string) bool {
+	now := soc.versioner.inputVersions()
+
+	soc.mu.Lock()
+	defer soc.mu.Unlock()
+
 	val, ok := soc.cache[key]
-
-	if !ok {
-		return true
-	}
-
-	newVersion := soc.versioner.inputVersions()
-	return val.nodeInputVersions != newVersion
+	return !ok || val.nodeInputVersions != now
 }
 
 func (soc *structOutputCache) Cache(key string, val any) {
@@ -65,14 +81,17 @@ func (soc *structOutputCache) Cache(key string, val any) {
 	// a memo taken before they ran could still hold a first-run -1.
 	inputVersions := soc.versioner.refreshInputVersions()
 
-	version := soc.Version(key)
-	newVersion := version + 1
+	soc.mu.Lock()
+	defer soc.mu.Unlock()
 
-	// subtract one because we add one when we're outdated
-	// So we're kinda just saying:
-	// "heres the value to the version we where telling you about"
-	if version > -1 && soc.Outdated(key) {
-		newVersion--
+	newVersion := 0
+	if prev, ok := soc.cache[key]; ok {
+		switch {
+		case prev.promised > prev.version && prev.promisedFor == inputVersions:
+			newVersion = prev.promised
+		default:
+			newVersion = max(prev.version, prev.promised) + 1
+		}
 	}
 
 	soc.cache[key] = cachedStructOutput{
@@ -83,6 +102,8 @@ func (soc *structOutputCache) Cache(key string, val any) {
 }
 
 func (soc *structOutputCache) Get(key string) any {
+	soc.mu.Lock()
+	defer soc.mu.Unlock()
 	return soc.cache[key].val
 }
 
@@ -90,6 +111,8 @@ type cachedStructOutput struct {
 	nodeInputVersions string
 	version           int
 	val               any
+	promised          int
+	promisedFor       string
 }
 
 type StructOutput[T any] struct {

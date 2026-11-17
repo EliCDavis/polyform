@@ -159,6 +159,21 @@ func TestCreateBoundaryNodeRequiresPortType(t *testing.T) {
 	assert.Contains(t, err.Error(), "port name")
 }
 
+func TestCreateBoundaryNodeTakesAShortTypeKey(t *testing.T) {
+	nodes.DiscoverNodePortTypes(&nodes.Struct[vector3IdentityNode]{})
+	inst := testInstanceWithSubGraphTypes(t)
+	require.NoError(t, inst.CreateSubGraph("short", "Short", ""))
+	child, err := inst.SubGraphInstance("short")
+	require.NoError(t, err)
+
+	_, id, err := child.CreateBoundaryNode(subgraph.InputNodeTypeKey, "vector3.Vector[float64]")
+	require.NoError(t, err)
+
+	boundary, ok := subgraph.IsBoundaryNode(child.Node(id))
+	require.True(t, ok)
+	assert.Equal(t, "github.com/EliCDavis/vector/vector3.Vector[float64]", boundary.BoundaryPortType())
+}
+
 func TestSubGraphCreateDuplicate(t *testing.T) {
 	inst := testInstanceWithSubGraphTypes(t)
 	require.NoError(t, inst.CreateSubGraph("dup", "One", ""))

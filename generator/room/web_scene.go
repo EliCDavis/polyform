@@ -8,7 +8,7 @@ func DefaultWebScene() *persistence.WebScene {
 	return &persistence.WebScene{
 		RenderWireframe: false,
 		AntiAlias:       true,
-		XrEnabled:       false,
+		XrEnabled:       true,
 		Fog: persistence.WebSceneFog{
 			Color: persistence.WebColor{R: 0xA0, B: 0xA0, G: 0xA0},
 			Near:  10,

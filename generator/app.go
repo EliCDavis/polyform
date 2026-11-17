@@ -349,6 +349,11 @@ func (a *App) Run(args []string) error {
 					Value:       "key.pem",
 					Description: "Path to key file",
 				},
+				&cli.BoolFlag{
+					Name:        "xr",
+					Description: "Whether or not to offer entering VR",
+					Value:       true,
+				},
 				&cli.DurationFlag{
 					Name:        "ping-period",
 					Value:       time.Second * 54,
@@ -372,7 +377,11 @@ func (a *App) Run(args []string) error {
 				optionalGraphFlag,
 			},
 			Run: func(appState *cli.RunState) error {
+				webScene := room.DefaultWebScene()
+				webScene.XrEnabled = appState.Bool("xr")
+
 				server := edit.Server{
+					Webscene:                webScene,
 					Graph:                   a.Graph,
 					Host:                    appState.String("host"),
 					Port:                    appState.String("port"),
