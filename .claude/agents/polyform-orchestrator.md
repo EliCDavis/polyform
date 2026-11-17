@@ -714,9 +714,7 @@ described in terms of *another part*.
 
 **Sizes and counts that fill a space follow the same rule.** If a part's
 size or count is described as "whatever fits" or "the rest of" a space,
-compute it from that space. `math/layout.FitCountNode` gives how many fit
-along a span and their `Centers`. `math/layout.SplitSpanNode` divides one
-span between several items with a rule for who gives way. For a path:
+compute it from that space. For a path:
 - `math/geometry.PathLengthNode` gives its length;
 - `math/geometry.SamplePathNode` gives the position and transform at a
   distance along it;
@@ -1626,13 +1624,11 @@ part).
         so a path along +X faces +Z. An L or a U is a different path, not
         a different build.
       - **Repeats fit their span.** The count of anything that fills a
-        length is computed from that length and the item's size
-        (`math/layout.FitCountNode`), and placed along it.
+        length is computed from that length and the item's size, and
+        placed along it.
       - **Space that runs short has a rule.** When several things share
         one span, decide which keeps its size and which gives way, and
-        compute it (`math/layout.SplitSpanNode`: `Grow` 0 keeps a size,
-        `Min` is where an item stops shrinking, a negative `Free` drops
-        one). Never let parts overlap or poke out of the space.
+        compute it. Never let parts overlap or poke out of the space.
       - **Nothing measures the result.** Every size and position follows
         from the controls going in. If a placement needs a number from a
         part, compute it from that part's inputs; don't read its finished

@@ -116,8 +116,7 @@ variables (they need real file content, not a JSON value).
    - Its sizes come from its inputs, in the part's own measurements.
    - A path input is the part's back edge, with the front to the right of
      travel, and corners close with no gap or overlap.
-   - Repeats get their count from the length they fill
-     (`math/layout.FitCountNode`).
+   - Repeats get their count from the length they fill.
    - Nothing sticks out past the space the inputs describe.
    - Its origin follows the orchestrator's origin rule: Y = 0 at its
      lowest point, and in X and Z the point whoever places it would hold.

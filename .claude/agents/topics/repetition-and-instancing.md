@@ -60,8 +60,7 @@ on every segment at once:
   point's `Distances` along it.
 - `math/geometry.SamplePathNode`: the `Position`, `Tangent`, `Transform`
   and `Segment` at a `Distance` along the path, corners kept sharp. Feed
-  it a list of distances for one sample each: a door span, a run of
-  positions from `layout.FitCountNode`'s `Centers`.
+  it a list of distances for one sample each.
 - `math/geometry.PositionOnLine3DNode` (a 0 to 1 `Time` on each segment)
   and `math/geometry.TrsFromLines3DNode` (a transform per segment, at its
   start, facing along it).
@@ -77,19 +76,6 @@ on every segment at once:
   of transforms in their own space: a taper from `Along` through
   `math.RemapNode`, a roll about +Z. Anything else goes through
   `trs.NewNode` and `trs.MultiplyNode`.
-
-## Spans: `math/layout`
-
-- `layout.FitCountNode`: how many items of a `Size` fit between `Start`
-  and `End` with a `Gap`, capped by `MaxCount`, and their `Centers`. This
-  is the count for a grid, a row of seats, slats or bays.
-- `layout.SplitSpanNode`: divides one span between several items in
-  order, sized the way CSS Flexbox sizes flex items. `Basis` is each
-  item's size, `Grow` shares spare room, `Shrink` (times `Basis`) shares a
-  shortfall, `Min`/`Max` bound each one. Give the item that should keep
-  its size `Grow` 0 and the one that takes what's left `Grow` 1. `Free`
-  goes negative when even the `Min`s don't fit, which is the test for
-  dropping an item.
 
 ## Exact type keys, do not search for these
 
