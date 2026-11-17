@@ -201,7 +201,10 @@ function EditorBootstrap({
       representationManager.AddRepresentation(0, threeApp.Camera);
 
       if (renderingConfig.XrEnabled) {
-        new XRManager(threeApp, representationManager, updateLoop);
+        new XRManager(threeApp, representationManager, updateLoop, {
+          graph: flowGraphInit.NodeFlowGraph,
+          canvas: flowGraphInit.Canvas,
+        });
       }
 
       const websocketManager = new WebSocketManager(
@@ -288,6 +291,12 @@ function EditorBootstrap({
       updateLoop.addToUpdate({
         name: "Rendering",
         loop: (delta) => {
+          if (threeApp.Renderer.xr.isPresenting) {
+            threeApp.Renderer.render(threeApp.Scene, threeApp.Camera);
+            producerViewManager.Render();
+            return;
+          }
+
           resize();
 
           threeApp.OrbitControls.update();

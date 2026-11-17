@@ -32,9 +32,16 @@ export class TransformGizmo {
 
     private drag$: Subject<Vector3>;
 
+    private domElement: HTMLElement;
+
+    private touchAction: string;
+
     constructor(config: TransformGizmoConfig) {
         this.change$ = new Subject<Vector3>();
         this.drag$ = new Subject<Vector3>();
+
+        this.domElement = config.domElement;
+        this.touchAction = config.domElement.style.touchAction;
 
         this.controls = new TransformControls(config.camera, config.domElement);
         this.controls.setMode('translate');
@@ -131,5 +138,7 @@ export class TransformGizmo {
         this.helper.removeFromParent();
         this.controls.detach();
         this.controls.dispose();
+        // TransformControls.dispose clears the touch-action OrbitControls needs on the shared canvas.
+        this.domElement.style.touchAction = this.touchAction;
     }
 }

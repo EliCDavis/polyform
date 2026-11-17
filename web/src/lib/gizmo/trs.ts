@@ -32,9 +32,15 @@ export class TRSGizmo {
 
     private change$: Subject<TRSValue>;
 
+    private domElement: HTMLElement;
+
+    private touchAction: string;
+
     constructor(config: TRSGizmoConfig) {
         this.change$ = new Subject<TRSValue>();
 
+        this.domElement = config.domElement;
+        this.touchAction = config.domElement.style.touchAction;
         this.controls = new TransformControls(config.camera, config.domElement);
         this.controls.setMode(config.mode ?? "translate");
         this.controls.setSpace("local");
@@ -106,5 +112,7 @@ export class TRSGizmo {
         this.helper.removeFromParent();
         this.controls.detach();
         this.controls.dispose();
+        // TransformControls.dispose clears the touch-action OrbitControls needs on the shared canvas.
+        this.domElement.style.touchAction = this.touchAction;
     }
 }

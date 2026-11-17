@@ -9,6 +9,8 @@ import { Puzzle, Variable, Video, Search, PanelLeftClose, PanelLeftOpen, List } 
 import { RenderingSection } from "../rendering/RenderingSection";
 import { ThreeApp } from "@/lib/three_app";
 import { NodesSection } from "../NodesSection/NodesSection";
+import { XRSection } from "../xr/XRSection";
+import { getRenderingConfiguration } from "@/config";
 
 enum SidebarSection {
   Subgraphs = "Subgraphs",
@@ -16,6 +18,7 @@ enum SidebarSection {
   Enums = "Enums",
   Rendering = "Rendering",
   Nodes = "Nodes",
+  XR = "XR",
 }
 
 interface SideBarIconProps {
@@ -60,6 +63,7 @@ export function Sidebar({}: SidebarProps) {
   const collapsed = useUiStore((s) => s.sidebarCollapsed);
   const setCollapsed = useUiStore((s) => s.setSidebarCollapsed);
   const drawer = useUiStore((s) => s.compactLayout) && !collapsed;
+  const xrEnabled = getRenderingConfiguration().XrEnabled;
 
   const [shown, setShown] = useState<SidebarSection>(
     SidebarSection.Variables,
@@ -108,6 +112,14 @@ export function Sidebar({}: SidebarProps) {
           click={setSectionShown}
           icon={<Video />}
         />
+        {xrEnabled && (
+          <SideBarIcon
+            section={SidebarSection.XR}
+            currentState={sectionShown}
+            click={setSectionShown}
+            icon={<i className="fa-solid fa-vr-cardboard" style={{ fontSize: 19, width: 24, lineHeight: "24px" }} />}
+          />
+        )}
         <button
           id="sidebar-collapse"
           onClick={() => setCollapsed(!collapsed)}
@@ -135,11 +147,12 @@ export function Sidebar({}: SidebarProps) {
             {!hideFileControls && <FileMenu />}
           </div>
         )}
-        {sectionShown == SidebarSection.Variables && <VariableSection />}
-        {sectionShown == SidebarSection.Enums && <EnumSection />}
-        {sectionShown == SidebarSection.Subgraphs && <SubGraphSection />}
-        {sectionShown == SidebarSection.Rendering && <RenderingSection />}
-        {sectionShown == SidebarSection.Nodes && <NodesSection />}
+        {shown == SidebarSection.Variables && <VariableSection />}
+        {shown == SidebarSection.Enums && <EnumSection />}
+        {shown == SidebarSection.Subgraphs && <SubGraphSection />}
+        {shown == SidebarSection.Rendering && <RenderingSection />}
+        {shown == SidebarSection.Nodes && <NodesSection />}
+        {shown == SidebarSection.XR && <XRSection />}
       </div>
     </div>
   );
