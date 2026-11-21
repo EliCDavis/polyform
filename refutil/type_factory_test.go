@@ -3,6 +3,7 @@ package refutil_test
 import (
 	"bytes"
 	"io"
+	"sync"
 	"testing"
 
 	"github.com/EliCDavis/polyform/refutil"
@@ -88,5 +89,30 @@ func TestTypeFactory_RegisterTypeWithBuilder(t *testing.T) {
 	assert.NotNil(t, cast)
 	assert.Equal(t, 7, *cast)
 	assert.True(t, ok)
+}
+
+func TestTypeFactory_ConcurrentRegisterAndRead(t *testing.T) {
+	factory := &refutil.TypeFactory{}
+	const goroutines = 32
+
+	var wg sync.WaitGroup
+	wg.Add(goroutines)
+	for range goroutines {
+		go func() {
+			defer wg.Done()
+			refutil.RegisterType[int](factory)
+			refutil.RegisterType[string](factory)
+			_ = factory.Types()
+			_ = factory.KeyRegistered("int")
+			_ = factory.TypeRegistered(0)
+			if factory.KeyRegistered("int") {
+				_ = factory.New("int")
+			}
+		}()
+	}
+	wg.Wait()
+
+	assert.True(t, factory.KeyRegistered("int"))
+	assert.True(t, factory.KeyRegistered("string"))
 }
 
