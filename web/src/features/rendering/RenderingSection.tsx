@@ -14,6 +14,7 @@ import {
 } from "./RenderingControls";
 import { SSAOGroup } from "./SSAOGroup";
 import { BloomGroup } from "./BloomGroup";
+import { FogGroup } from "./FogGroup";
 import { AutoRotateGroup } from "./AutoRotateGroup";
 import { requestRender } from "@/lib/render_scheduler";
 
@@ -310,6 +311,7 @@ export function RenderingSection() {
             value={shadows}
           />
         </RenderingGroup>
+        <FogGroup producerViewManager={editor.producerViewManager} />
         <SSAOGroup
           threeApp={editor.threeApp}
           producerViewManager={editor.producerViewManager}

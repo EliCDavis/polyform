@@ -65,6 +65,8 @@ export type NumberArrayNodeParameter = NodeParameterBase<"[]float64" | "[]int", 
 
 export type StringArrayNodeParameter = NodeParameterBase<"[]string", string[]>;
 
+export type BoolArrayNodeParameter = NodeParameterBase<"[]bool", boolean[]>;
+
 export type Vector2ArrayNodeParameter = NodeParameterBase<
   "[]vector2.Vector[float64]" | "[]vector2.Vector[int]",
   Vec2[]
@@ -110,6 +112,7 @@ export type NodeParameter =
   | Vector3ArrayNodeParameter
   | NumberArrayNodeParameter
   | StringArrayNodeParameter
+  | BoolArrayNodeParameter
   | Vector2ArrayNodeParameter
   | Vector3IntArrayNodeParameter
   | ImageNodeParameter

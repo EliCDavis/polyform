@@ -22,6 +22,7 @@ import {
   LoopOnce,
   BoxHelper,
   DoubleSide,
+  Fog,
   InstancedMesh,
   LessEqualDepth,
   MeshBasicMaterial,
@@ -77,6 +78,8 @@ function floorShift(aabb: Box3): number {
 const GRID_SLACK = 1.15;
 const GRID_REACH = 5;
 const GRID_MAX_DIVISIONS = 500;
+const FOG_NEAR_DIAGONALS = 3;
+const FOG_FAR_DIAGONALS = 8;
 const CAPTURE_PADDING = 1.1;
 const CAPTURE_FIT_PASSES = 3;
 
@@ -150,6 +153,12 @@ export class ProducerViewManager {
   exposure = DEFAULT_EXPOSURE_EV100;
 
   ground: Mesh;
+
+  readonly fog: Fog;
+
+  fogEnabled = true;
+
+  fogAuto = true;
 
   ssaoEffect: SSAOEffect;
 
@@ -248,6 +257,7 @@ export class ProducerViewManager {
     this.hemiLight = app.Lighting.HemiLight;
     this.ambient = app.Lighting.HemiLight.intensity;
     this.ground = app.Ground.Mesh;
+    this.fog = app.Fog;
     this.ssaoEffect = app.PostProcessing.SSAO;
     this.orbitControls = app.OrbitControls;
     this.orbitControls.addEventListener("start", () => {
@@ -311,8 +321,11 @@ export class ProducerViewManager {
   }
 
   // Called whenever
-  SubscribeToCompleteRefresh(subsriber: () => void): void {
+  SubscribeToCompleteRefresh(subsriber: () => void): () => void {
     this.completeRefreshSubscriber.push(subsriber);
+    return () => {
+      this.completeRefreshSubscriber = this.completeRefreshSubscriber.filter((s) => s !== subsriber);
+    };
   }
 
   private showRunningMessage() {
@@ -372,6 +385,9 @@ export class ProducerViewManager {
     thumbnails.release();
     this.applyHiddenParts();
     this.fitGridToModel();
+    if (this.fogAuto) {
+      this.fitFogToModel();
+    }
     this.applyShading();
     this.applyWireframe();
     this.publishModelStats();
@@ -1002,6 +1018,38 @@ export class ProducerViewManager {
 
     this.buildGrid(divisions * cell, divisions);
     this.grid.position.y = this.viewerContainer.position.y + cell * 0.001;
+  }
+
+  SetFogEnabled(enabled: boolean): void {
+    this.fogEnabled = enabled;
+    this.scene.fog = enabled ? this.fog : null;
+  }
+
+  SetFogAuto(auto: boolean): void {
+    this.fogAuto = auto;
+    if (auto) {
+      this.fitFogToModel();
+    }
+  }
+
+  SetFogRange(near: number, far: number): void {
+    this.fog.near = near;
+    this.fog.far = far;
+  }
+
+  private fitFogToModel(): void {
+    if (!this.producerScene) {
+      return;
+    }
+    const box = new Box3().setFromObject(this.producerScene);
+    const diagonal = box.getSize(new Vector3()).length();
+    if (box.isEmpty() || !isFinite(diagonal) || diagonal <= 0) {
+      return;
+    }
+    this.SetFogRange(
+      Number((diagonal * FOG_NEAR_DIAGONALS).toPrecision(3)),
+      Number((diagonal * FOG_FAR_DIAGONALS).toPrecision(3)),
+    );
   }
 
   private buildGrid(size: number, divisions: number): void {

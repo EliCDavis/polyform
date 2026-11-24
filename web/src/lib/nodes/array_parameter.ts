@@ -31,7 +31,7 @@ export interface ArrayItemKind<T> {
     // What an insert at `index` puts there, given what is already there.
     blank: (items: Array<T>, index: number) => T;
     components: ReadonlyArray<ItemComponent<T>> | null;
-    widget: "number" | "string" | "color";
+    widget: "number" | "string" | "color" | "toggle";
     parse?: (n: number) => number;
     gizmo?: ListGizmoFactory<T>;
 }
@@ -82,6 +82,7 @@ const before = <T,>(fallback: T) => (items: Array<T>, index: number) => items[in
 export const floatItem: ArrayItemKind<number> = { blank: before(0), components: null, widget: "number" };
 export const intItem: ArrayItemKind<number> = { blank: before(0), components: null, widget: "number", parse: Math.round };
 export const stringItem: ArrayItemKind<string> = { blank: () => "", components: null, widget: "string" };
+export const boolItem: ArrayItemKind<boolean> = { blank: before(false), components: null, widget: "toggle" };
 export const colorItem: ArrayItemKind<string> = { blank: before("#ffffff"), components: null, widget: "color" };
 export const vec2Item: ArrayItemKind<Vec2> = {
     blank: (items, index) => dropPlanar(pathInsertionPoint(items.map(liftPlanar), index)),
@@ -274,6 +275,9 @@ export class ArrayParameterNodeController<T> {
     private scalarWidget(value: unknown, onChange: (v: unknown) => void): ValueWidget<any> {
         if (this.kind.widget === "string") {
             return GlobalWidgetFactory.create(this.flowNode, "string", { value: String(value), callback: onChange });
+        }
+        if (this.kind.widget === "toggle") {
+            return GlobalWidgetFactory.create(this.flowNode, "toggle", { value: value === true, label: "", callback: onChange });
         }
         const parse = this.kind.parse ?? ((n: number) => n);
         return GlobalWidgetFactory.create(this.flowNode, "number", {

@@ -115,6 +115,18 @@ export function StringListEditor({ variableKey, value, open }: { variableKey: st
   );
 }
 
+export function BoolListEditor({ variableKey, value, open }: { variableKey: string; value: boolean[]; open: boolean }) {
+  return (
+    <ListEditor<boolean>
+      variableKey={variableKey}
+      value={value}
+      open={open}
+      blank={(items, index) => items[index - 1] ?? false}
+      renderItem={(item, update) => <input type="checkbox" checked={item} onChange={(e) => update(e.target.checked)} />}
+    />
+  );
+}
+
 function StringListItem({ value, onCommit }: { value: string; onCommit: (next: string) => void }) {
   const [text, setText, commit] = useLiveValue(value, async (next) => onCommit(next));
   return (

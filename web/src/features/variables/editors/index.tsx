@@ -3,7 +3,7 @@ import type { ThreeApp } from "@/lib/three_app";
 import { useNodeTypes, useSchema } from "@/api/hooks";
 import { enumMembersOf } from "@/lib/portTypes";
 import { VariableType } from "../variableType";
-import { BoolEditor, NormEditor, NumberEditor, NumberListEditor, StringListEditor, TextEditor } from "./scalar";
+import { BoolEditor, BoolListEditor, NormEditor, NumberEditor, NumberListEditor, StringListEditor, TextEditor } from "./scalar";
 import { ColorEditor, ColorListEditor, GradientEditor } from "./color";
 import { AABBEditor, Vector2Editor, Vector3Editor, VectorEditor } from "./vector";
 import { PointListEditor } from "./points";
@@ -52,6 +52,7 @@ const listTypes: Record<string, (value: any) => number> = {
   [VariableType.Int2Array]: arrayLength,
   [VariableType.Int3Array]: arrayLength,
   [VariableType.StringArray]: arrayLength,
+  [VariableType.BoolArray]: arrayLength,
   [VariableType.ColorArray]: arrayLength,
   [VariableType.TRSArray]: arrayLength,
   [VariableType.ColorGradient]: (value) => value?.keys?.length ?? 0,
@@ -162,6 +163,8 @@ export function VariableValueEditor({ variableKey, variable, threeApp, gizmo, op
       );
     case VariableType.StringArray:
       return <StringListEditor variableKey={variableKey} value={variable.value} open={open} />;
+    case VariableType.BoolArray:
+      return <BoolListEditor variableKey={variableKey} value={variable.value} open={open} />;
     case VariableType.ColorArray:
       return <ColorListEditor variableKey={variableKey} value={variable.value} open={open} />;
     case VariableType.ColorGradient:

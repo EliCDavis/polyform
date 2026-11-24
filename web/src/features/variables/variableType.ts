@@ -20,6 +20,7 @@ export enum VariableType {
   ColorArray = "[]coloring.Color",
   ColorGradient = "coloring.Gradient[github.com/EliCDavis/polyform/drawing/coloring.Color]",
   Bool = "bool",
+  BoolArray = "[]bool",
   AABB = "geometry.AABB",
   Quaternion = "quaternion.Quaternion",
   TRS = "trs.TRS",
@@ -54,6 +55,7 @@ export const VARIABLE_TYPE_OPTIONS: Array<{ value: VariableType; label: string }
   { value: VariableType.Int2Array, label: "Int2 Array" },
   { value: VariableType.Int3Array, label: "Int3 Array" },
   { value: VariableType.StringArray, label: "String Array" },
+  { value: VariableType.BoolArray, label: "Bool Array" },
   { value: VariableType.Image, label: "Image" },
   { value: VariableType.File, label: "File" },
 ];

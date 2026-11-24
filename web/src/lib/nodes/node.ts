@@ -8,7 +8,7 @@ import { FileParameterNodeController } from './file_parameter';
 import { getFileExtension, getLastSegmentOfURL } from '../utils.js';
 import { Vector2ParameterNodeController } from './vector2_parameter';
 import { Vector4ParameterNodeController } from './vector4_parameter';
-import { ArrayParameterNodeController, colorItem, floatItem, intItem, stringItem, trsItem, vec2Item, vec2IntItem, vec3Item, vec3IntItem } from './array_parameter';
+import { ArrayParameterNodeController, boolItem, colorItem, floatItem, intItem, stringItem, trsItem, vec2Item, vec2IntItem, vec3Item, vec3IntItem } from './array_parameter';
 import { GradientParameterNodeController } from './gradient_parameter';
 import { TRSParameterNodeController } from './trs_parameter';
 import { QuaternionParameterNodeController } from './quaternion_parameter';
@@ -100,6 +100,9 @@ function BuildParameter(
 
         case "[]string":
             return new ArrayParameterNodeController(flowNode, nodeManager, id, parameterData, stringItem);
+
+        case "[]bool":
+            return new ArrayParameterNodeController(flowNode, nodeManager, id, parameterData, boolItem);
 
         case "[]vector2.Vector[float64]":
             return new ArrayParameterNodeController(flowNode, nodeManager, id, parameterData, vec2Item, app);
