@@ -24,6 +24,17 @@ func liftedValues[T any](recorder ExecutionRecorder, port OutputPort) ([]T, int,
 		recorder.CaptureTiming(port.Name(), time.Since(start))
 		return []T{value}, rankScalar, true
 	}
+	value, ok := dynamicAnyValue(port)
+	recorder.CaptureTiming(port.Name(), time.Since(start))
+	if !ok {
+		return nil, rankScalar, false
+	}
+	if values, ok := value.([]T); ok {
+		return values, rankArray, true
+	}
+	if value, ok := value.(T); ok {
+		return []T{value}, rankScalar, true
+	}
 	return nil, rankScalar, false
 }
 

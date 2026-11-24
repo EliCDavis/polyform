@@ -5,10 +5,10 @@ import (
 	"image"
 	"image/color"
 	"image/png"
-	"math"
 	"os"
 
 	"github.com/EliCDavis/polyform/drawing/coloring"
+	"github.com/EliCDavis/polyform/math/scalar"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/utils"
 	"github.com/EliCDavis/vector"
@@ -57,8 +57,6 @@ func (t Texture[T]) Fill(v T) {
 	}
 }
 
-func fract(v float64) float64 { return v - math.Floor(v) }
-
 func negativeWrap(f float64) float64 {
 	if f >= 0 {
 		return f
@@ -68,8 +66,8 @@ func negativeWrap(f float64) float64 {
 
 func (t Texture[T]) UV(x, y float64) T {
 	return t.Get(
-		int(negativeWrap(fract(x))*float64(t.width)),
-		int(negativeWrap(fract(y))*float64(t.height)),
+		int(negativeWrap(scalar.Fract(x))*float64(t.width)),
+		int(negativeWrap(scalar.Fract(y))*float64(t.height)),
 	)
 }
 

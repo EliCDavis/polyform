@@ -13,6 +13,7 @@ import (
 	"github.com/EliCDavis/polyform/formats/gltf"
 	"github.com/EliCDavis/polyform/formats/ply"
 	"github.com/EliCDavis/polyform/math/quaternion"
+	"github.com/EliCDavis/polyform/math/scalar"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/meshops"
 	"github.com/EliCDavis/vector/vector2"
@@ -162,10 +163,6 @@ func ComputeVisibility(depthBuffer texturing.Texture[float64], positionBuffer te
 	return outDepth, outColor
 }
 
-func clamp(val, minV, maxV float64) float64 {
-	return math.Min(math.Max(val, minV), maxV)
-}
-
 func ApplyAnisotropicFilling(inDepth texturing.Texture[float64], inColor texturing.Texture[color.Color], iterations int, depthContribution float64) (texturing.Texture[float64], texturing.Texture[color.Color]) {
 	outDepth := inDepth
 	outColor := inColor
@@ -246,9 +243,9 @@ func ApplyAnisotropicFilling(inDepth texturing.Texture[float64], inColor texturi
 					if totalWeight > 0 {
 						currentDepth.Set(inX, inY, sum/totalWeight)
 						currentColor.Set(inX, inY, color.RGBA{
-							R: uint8(math.Round(clamp(rSum/totalWeight, 0, 1.) * 255.)),
-							G: uint8(math.Round(clamp(gSum/totalWeight, 0, 1.) * 255.)),
-							B: uint8(math.Round(clamp(bSum/totalWeight, 0, 1.) * 255.)),
+							R: uint8(math.Round(scalar.Clamp(rSum/totalWeight, 0, 1.) * 255.)),
+							G: uint8(math.Round(scalar.Clamp(gSum/totalWeight, 0, 1.) * 255.)),
+							B: uint8(math.Round(scalar.Clamp(bSum/totalWeight, 0, 1.) * 255.)),
 							A: 255,
 						})
 					}

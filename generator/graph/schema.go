@@ -86,8 +86,9 @@ func (a *Graph) NodeInstanceSchema(node nodes.Node) schema.Node {
 
 	if boundary, ok := subgraph.IsBoundaryNode(node); ok {
 		portBoundary := &schema.SubGraphPortBoundary{
-			PortName: boundary.BoundaryPortName(),
-			PortType: boundary.BoundaryPortType(),
+			PortName:    boundary.BoundaryPortName(),
+			PortType:    boundary.BoundaryPortType(),
+			Description: subgraph.BoundaryPortDescription(boundary),
 		}
 		if _, isInput := subgraph.IsInputBoundary(node); isInput {
 			nodeInstance.SubGraphInputBoundary = portBoundary

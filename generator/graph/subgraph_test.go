@@ -1182,3 +1182,41 @@ func TestRuntimeInputDefaultRoundTrip(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, 6.25, nodes.GetNodeOutputPort[float64](restoredRuntime, "Out").Value())
 }
+
+func TestBoundaryPortDescriptionsReachInstancePorts(t *testing.T) {
+	inst := testInstanceWithSubGraphTypesExtended(t)
+	require.NoError(t, inst.CreateSubGraph("described", "Described", ""))
+
+	child, err := inst.SubGraphInstance("described")
+	require.NoError(t, err)
+	_, inputID, err := child.CreateBoundaryNode(subgraph.InputNodeTypeKey, "float64")
+	require.NoError(t, err)
+	_, outputID, err := child.CreateBoundaryNode(subgraph.OutputNodeTypeKey, "float64")
+	require.NoError(t, err)
+	require.NoError(t, child.RenameBoundaryPorts(map[string]string{inputID: "Width", outputID: "Area"}))
+	require.NoError(t, child.ConnectNodes(inputID, subgraph.ValuePortName, outputID, subgraph.ValuePortName))
+	require.NoError(t, child.SetBoundaryPortDescriptions(map[string]string{
+		inputID:  "Voxels across the longest side",
+		outputID: "Covered area",
+	}))
+
+	assertDescribed := func(t *testing.T, inst *graph.Instance) {
+		t.Helper()
+		nodeType := inst.NodeTypeSchema(subgraph.RuntimeTypePath("described"), graph.NewRuntimeNode(inst, "described"))
+		assert.Equal(t, "Voxels across the longest side", nodeType.Inputs["Width"].Description)
+		assert.Equal(t, "Covered area", nodeType.Outputs["Area"].Description)
+
+		child, err := inst.SubGraphInstance("described")
+		require.NoError(t, err)
+		nodes := child.Schema().Nodes
+		assert.Equal(t, "Voxels across the longest side", nodes[inputID].SubGraphInputBoundary.Description)
+		assert.Equal(t, "Covered area", nodes[outputID].SubGraphOutputBoundary.Description)
+	}
+	assertDescribed(t, inst)
+
+	payload, err := inst.EncodeToAppSchema()
+	require.NoError(t, err)
+	fresh := testInstanceWithSubGraphTypesExtended(t)
+	require.NoError(t, fresh.ApplyAppSchema(payload))
+	assertDescribed(t, fresh)
+}

@@ -588,6 +588,16 @@ func Identity(port OutputPort) string {
 	return fmt.Sprintf("%p:%d", source.Node(), source.Version())
 }
 
+// A port nothing has evaluated (-1) was not read, so its first value (0) is no change to a consumer.
+func inputIdentity(port OutputPort) string {
+	source := Source(port)
+	version := max(source.Version(), 0)
+	if _, proxy := source.(interface{ CurrentSource() OutputPort }); proxy {
+		return fmt.Sprintf("%p:unset:%d", source.Node(), version)
+	}
+	return fmt.Sprintf("%p:%d", source.Node(), version)
+}
+
 // Source follows proxies to the port the value comes from; an unset proxy is its own source.
 func Source(port OutputPort) OutputPort {
 	for {
@@ -630,7 +640,7 @@ func (s *Struct[T]) computeInputVersions() string {
 		case SingleValueInputPort:
 			val := v.Value()
 			if val != nil {
-				builder.WriteString(Identity(val))
+				builder.WriteString(inputIdentity(val))
 			} else {
 				builder.WriteString("nil")
 			}
@@ -640,7 +650,7 @@ func (s *Struct[T]) computeInputVersions() string {
 
 			for _, val := range v.Value() {
 				if val != nil {
-					builder.WriteString(Identity(val))
+					builder.WriteString(inputIdentity(val))
 					builder.WriteString(",")
 				} else {
 					builder.WriteString("nil,")

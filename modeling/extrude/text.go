@@ -2,6 +2,7 @@ package extrude
 
 import (
 	"fmt"
+	"math"
 	"slices"
 	"strings"
 	"sync"
@@ -125,44 +126,44 @@ func (t Text) MeshZ() (modeling.Mesh, error) {
 	return t.mesh(func(region triangulation.Region, depth float64) modeling.Mesh { return RegionZ(region, depth, t.UVs) })
 }
 
-// The first line's baseline runs through the origin and each further line
-// sits below it. Characters the font has no glyph for are left blank and
-// named in the error, which still comes with the mesh.
-func (t Text) mesh(extrude func(triangulation.Region, float64) modeling.Mesh) (modeling.Mesh, error) {
-	empty := modeling.EmptyMesh(modeling.TriangleTopology)
+type textLayout struct {
+	font  *truetype.Font
+	em    fixed.Int26_6
+	scale float64
+	lines [][]placedGlyph
+	missing []string
+}
+
+// Glyph x positions are in font units, with each line's alignment applied.
+func (t Text) layout() (textLayout, error) {
 	if t.Height <= 0 {
-		return empty, fmt.Errorf("height must be positive, got %g", t.Height)
+		return textLayout{}, fmt.Errorf("height must be positive, got %g", t.Height)
 	}
 	f, err := loadFont(t.Font)
 	if err != nil {
-		return empty, err
+		return textLayout{}, err
 	}
 
 	// One em in 26.6 units of font units, so every coordinate is a font
 	// unit times 64.
-	unitsPerEm := int(f.FUnitsPerEm())
-	em := fixed.I(unitsPerEm)
+	em := fixed.I(int(f.FUnitsPerEm()))
 	var glyph truetype.GlyphBuf
 	if err := glyph.Load(f, em, f.Index('H'), font.HintingNone); err != nil {
-		return empty, err
+		return textLayout{}, err
 	}
 	capHeight := float64(glyph.Bounds.Max.Y) / 64
 	if capHeight <= 0 {
-		capHeight = 0.7 * float64(unitsPerEm)
+		capHeight = 0.7 * float64(f.FUnitsPerEm())
 	}
-	scale := t.Height / capHeight
-	lineHeight := 1.2 * float64(unitsPerEm)
-	segments := max(t.CurveSegments, 1)
 
-	var contours []geometry.Shape
-	var missing []string
-	for line, text := range strings.Split(strings.ReplaceAll(t.Text, "\r", ""), "\n") {
+	out := textLayout{font: f, em: em, scale: t.Height / capHeight}
+	for _, text := range strings.Split(strings.ReplaceAll(t.Text, "\r", ""), "\n") {
 		var placed []placedGlyph
 		pen := 0.
 		for _, r := range text {
 			index := f.Index(r)
 			if index == 0 {
-				missing = append(missing, string(r))
+				out.missing = append(out.missing, string(r))
 				pen += float64(f.HMetric(em, index).AdvanceWidth) / 64
 				continue
 			}
@@ -180,17 +181,70 @@ func (t Text) mesh(extrude func(triangulation.Region, float64) modeling.Mesh) (m
 		case AlignRight:
 			start = -pen
 		}
+		for i := range placed {
+			placed[i].x += start
+		}
+		out.lines = append(out.lines, placed)
+	}
+	return out, nil
+}
 
+// Width spans the ink of every line, not their advance widths.
+func (t Text) Measure() (width float64, lines int, err error) {
+	l, err := t.layout()
+	if err != nil {
+		return 0, 0, err
+	}
+	segments := max(t.CurveSegments, 1)
+	var glyph truetype.GlyphBuf
+	left, right := math.Inf(1), math.Inf(-1)
+	for _, line := range l.lines {
+		for _, p := range line {
+			if err := glyph.Load(l.font, l.em, p.index, font.HintingNone); err != nil {
+				return 0, 0, err
+			}
+			first := 0
+			for _, end := range glyph.Ends {
+				for _, v := range glyphContour(glyph.Points[first:end], segments, func(pt truetype.Point) vector2.Float64 {
+					return vector2.New(p.x+float64(pt.X)/64, 0)
+				}) {
+					left, right = min(left, v.X()), max(right, v.X())
+				}
+				first = end
+			}
+		}
+	}
+	if right > left {
+		width = (right - left) * l.scale
+	}
+	return width, len(l.lines), nil
+}
+
+// The first line's baseline runs through the origin and each further line
+// sits below it. Characters the font has no glyph for are left blank and
+// named in the error, which still comes with the mesh.
+func (t Text) mesh(extrude func(triangulation.Region, float64) modeling.Mesh) (modeling.Mesh, error) {
+	empty := modeling.EmptyMesh(modeling.TriangleTopology)
+	l, err := t.layout()
+	if err != nil {
+		return empty, err
+	}
+	lineHeight := 1.2 * float64(l.font.FUnitsPerEm())
+	segments := max(t.CurveSegments, 1)
+
+	var glyph truetype.GlyphBuf
+	var contours []geometry.Shape
+	for line, placed := range l.lines {
 		baseline := -float64(line) * lineHeight
 		for _, p := range placed {
-			if err := glyph.Load(f, em, p.index, font.HintingNone); err != nil {
+			if err := glyph.Load(l.font, l.em, p.index, font.HintingNone); err != nil {
 				return empty, err
 			}
-			origin := vector2.New(start+p.x, baseline)
+			origin := vector2.New(p.x, baseline)
 			first := 0
 			for _, end := range glyph.Ends {
 				contours = append(contours, glyphContour(glyph.Points[first:end], segments, func(p truetype.Point) vector2.Float64 {
-					return origin.Add(vector2.New(float64(p.X)/64, float64(p.Y)/64)).Scale(scale)
+					return origin.Add(vector2.New(float64(p.X)/64, float64(p.Y)/64)).Scale(l.scale)
 				}))
 				first = end
 			}
@@ -198,8 +252,8 @@ func (t Text) mesh(extrude func(triangulation.Region, float64) modeling.Mesh) (m
 	}
 
 	var missingErr error
-	if len(missing) > 0 {
-		missingErr = fmt.Errorf("font %s has no glyph for %s, left blank", fonts.Name(t.Font), strings.Join(missing, " "))
+	if len(l.missing) > 0 {
+		missingErr = fmt.Errorf("font %s has no glyph for %s, left blank", fonts.Name(t.Font), strings.Join(l.missing, " "))
 	}
 	region, err := triangulation.Fill(contours...)
 	if err != nil {
@@ -283,6 +337,26 @@ func (n TextNode) Z(out *nodes.Lifted[modeling.Mesh]) {
 
 func (TextNode) ZDescription() string {
 	return "The text in the XY plane facing +Z: lines along X, letters standing up along Y."
+}
+
+func (n TextNode) Width(out *nodes.Lifted[float64]) {
+	font := nodes.GetOutputValue(out, n.Font)
+	segments := nodes.GetOutputValue(out, n.CurveSegments)
+	nodes.Zip2(out, n.Text, n.Height, func(text string, height float64) float64 {
+		width, _, err := Text{Text: text, Height: height, Font: font, CurveSegments: segments}.Measure()
+		out.CaptureError(err)
+		return width
+	})
+}
+
+func (TextNode) WidthDescription() string {
+	return "Width of the text's ink, without building the mesh."
+}
+
+func (n TextNode) Lines(out *nodes.Lifted[int]) {
+	nodes.Zip1(out, n.Text, func(text string) int {
+		return strings.Count(strings.ReplaceAll(text, "\r", ""), "\n") + 1
+	})
 }
 
 func (n TextNode) out(out *nodes.Lifted[modeling.Mesh], mesh func(Text) (modeling.Mesh, error)) {

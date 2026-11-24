@@ -8,6 +8,7 @@ import (
 
 	"github.com/EliCDavis/polyform/generator/registry"
 	"github.com/EliCDavis/polyform/math/chance"
+	"github.com/EliCDavis/polyform/math/scalar"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
 )
@@ -22,6 +23,7 @@ func init() {
 	refutil.RegisterType[nodes.Struct[IndicesNode]](factory)
 	refutil.RegisterType[nodes.Struct[SliceNode]](factory)
 	refutil.RegisterType[nodes.Struct[ReverseNode]](factory)
+	refutil.RegisterType[nodes.Struct[RotateNode]](factory)
 	refutil.RegisterType[nodes.Struct[AppendNode]](factory)
 	refutil.RegisterType[nodes.Struct[ConcatNode]](factory)
 	refutil.RegisterType[nodes.Struct[FromElementsNode]](factory)
@@ -167,7 +169,7 @@ func (i IndicesNode) Out(out *nodes.StructOutput[[]int]) {
 type SliceNode struct {
 	Array nodes.DynamicPort[[]Element] `description:"The array to take a run out of."`
 	Start nodes.Output[int]            `description:"First element to keep, counting from 0."`
-	End   nodes.Output[int]            `description:"One past the last element to keep. 0 means the end of the array."`
+	End   nodes.Output[int]            `description:"One past the last element to keep."`
 }
 
 func (SliceNode) Description() string {
@@ -184,9 +186,6 @@ func (s SliceNode) Out(out *nodes.Dynamic[[]Element]) {
 
 	start := nodes.GetOutputValue(out, s.Start)
 	end := nodes.GetOutputValue(out, s.End)
-	if end == 0 {
-		end = values.Len()
-	}
 	if start < 0 {
 		start += values.Len()
 	}
@@ -219,6 +218,34 @@ func (r ReverseNode) Out(out *nodes.Dynamic[[]Element]) {
 		reversed[i], reversed[j] = reversed[j], reversed[i]
 	}
 	out.Set(values.Build(reversed))
+}
+
+// ============================================================================
+
+type RotateNode struct {
+	Array nodes.DynamicPort[[]Element]
+	By    nodes.Output[int] `description:"Places to shift toward the front; negative shifts back."`
+}
+
+func (RotateNode) Description() string {
+	return "Shifts an array's elements, wrapping those pushed off one end onto the other."
+}
+
+func (RotateNode) Keywords() []string { return []string{"wrap", "neighbors"} }
+
+func (r RotateNode) Out(out *nodes.Dynamic[[]Element]) {
+	values, ok := nodes.DynamicArrayValue(out, r.Array)
+	if !ok {
+		return
+	}
+	n := values.Len()
+	if n == 0 {
+		out.Set(values.Build(nil))
+		return
+	}
+	by := scalar.Modulo(nodes.GetOutputValue(out, r.By), n)
+	all := values.Values()
+	out.Set(values.Build(append(all[by:], all[:by]...)))
 }
 
 // ============================================================================

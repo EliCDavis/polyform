@@ -35,6 +35,28 @@ func (a *Graph) RenameBoundaryPorts(names map[string]string) error {
 	return err
 }
 
+func (a *Graph) SetBoundaryPortDescriptions(descriptions map[string]string) error {
+	_, err := a.project.write(refuseConflicts, func() error {
+		for id := range descriptions {
+			if _, ok := subgraph.IsBoundaryNode(a.boundaryNodes[id]); !ok {
+				return fmt.Errorf("node %q is not a sub-graph boundary node", id)
+			}
+		}
+		for id, description := range descriptions {
+			description = strings.TrimSpace(description)
+			switch boundary := a.boundaryNodes[id].(type) {
+			case *subgraph.InputNode:
+				boundary.PortDescription = description
+			case *subgraph.OutputNode:
+				boundary.PortDescription = description
+			}
+		}
+		a.dirty()
+		return nil
+	})
+	return err
+}
+
 func (a *Graph) renameBoundaryPorts(names map[string]string) error {
 	final := map[BoundaryPortKind]map[string]string{}
 	for id, boundary := range a.boundaryNodes {

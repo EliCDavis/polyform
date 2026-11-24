@@ -364,6 +364,54 @@ func liftedPassThroughSubgraphIn(t *testing.T, inst *graph.Instance, id string) 
 	return typePath, in, out
 }
 
+type listOnlyItem struct{ v float64 }
+
+type listOnlyItemsSourceNode struct{}
+
+func (listOnlyItemsSourceNode) Out(out *nodes.Lifted[[]listOnlyItem]) {
+	nodes.Zip1(out, nil, func(bool) []listOnlyItem { return []listOnlyItem{{v: 1}, {v: 2}, {v: 3}} })
+}
+
+type listOnlyItemValueNode struct {
+	In nodes.LiftedPort[listOnlyItem]
+}
+
+func (n listOnlyItemValueNode) Out(out *nodes.Lifted[float64]) {
+	nodes.Zip1(out, n.In, func(item listOnlyItem) float64 { return item.v })
+}
+
+func TestForEachOverATypeOnlyEverProducedAsAList(t *testing.T) {
+	factory := &refutil.TypeFactory{}
+	refutil.RegisterType[nodes.Struct[listOnlyItemsSourceNode]](factory)
+	refutil.RegisterType[nodes.Struct[listOnlyItemValueNode]](factory)
+	factory.RegisterBuilder(subgraph.InputNodeTypeKey, func() any { return subgraph.NewInputNode("", "") })
+	factory.RegisterBuilder(subgraph.OutputNodeTypeKey, func() any { return subgraph.NewOutputNode("", "") })
+	root := graph.New(graph.Config{TypeFactory: factory})
+	nodes.DiscoverPortTypes(factory)
+
+	require.NoError(t, root.CreateSubGraph("read", "read", ""))
+	definition, err := root.SubGraphInstance("read")
+	require.NoError(t, err)
+	in := boundary(t, definition, subgraph.InputNodeTypeKey, "float64", "Item")
+	definition.Node(in).(*subgraph.InputNode).PortType = "github.com/EliCDavis/polyform/generator/graph_test.listOnlyItem"
+	out := boundary(t, definition, subgraph.OutputNodeTypeKey, "float64", "Value")
+	_, value, err := definition.CreateNode("github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/generator/graph_test.listOnlyItemValueNode]")
+	require.NoError(t, err)
+	require.NoError(t, definition.ConnectNodes(in, subgraph.ValuePortName, value, "In"))
+	require.NoError(t, definition.ConnectNodes(value, "Out", out, subgraph.ValuePortName))
+	typePath, err := root.RegisterSubGraphNodeType("read")
+	require.NoError(t, err)
+
+	_, placement, err := root.CreateNode(typePath)
+	require.NoError(t, err)
+	require.NoError(t, errOf(root.SetForEach(placement, true)))
+	_, source, err := root.CreateNode("github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/generator/graph_test.listOnlyItemsSourceNode]")
+	require.NoError(t, err)
+	require.NoError(t, root.ConnectNodes(source, "Out", placement, "Item"))
+
+	assert.Equal(t, []float64{1, 2, 3}, nodes.GetNodeOutputPort[[]float64](root.Node(placement), "Value").Value())
+}
+
 func TestARunsErrorNamesItsItem(t *testing.T) {
 	root := testInstanceForForEach(t)
 	require.NoError(t, root.CreateSubGraph("limited", "limited", ""))

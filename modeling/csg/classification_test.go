@@ -114,7 +114,7 @@ func TestGroupingSpendsFarFewerRaysThanFaces(t *testing.T) {
 		primitives.UVSphere(1.28, 24, 36).Translate(vector3.New(0.6, 0.4, 0.3)),
 	)
 
-	patches := patchesOf(p.a.cornerIDs, p.a.onCurve, p.a.touching)
+	patches := patchesOf(p.a.cornerIDs, p.a.onCurve, p.a.offCurve, p.a.touching)
 	rays := rayBudget(patches)
 
 	require.Greater(t, len(p.a.faces), 1000, "sanity: this should be a mesh worth grouping")

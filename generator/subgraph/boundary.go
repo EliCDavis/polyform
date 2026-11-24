@@ -41,13 +41,25 @@ func IsInputBoundary(node nodes.Node) (InputBoundary, bool) {
 }
 
 type boundaryData struct {
-	PortName string `json:"portName"`
-	PortType string `json:"portType"`
+	PortName        string `json:"portName"`
+	PortType        string `json:"portType"`
+	PortDescription string `json:"portDescription,omitempty"`
+}
+
+func BoundaryPortDescription(boundary Boundary) string {
+	switch n := boundary.(type) {
+	case *InputNode:
+		return n.PortDescription
+	case *OutputNode:
+		return n.PortDescription
+	}
+	return ""
 }
 
 type InputNode struct {
-	PortName string
-	PortType string
+	PortName        string
+	PortType        string
+	PortDescription string
 
 	external    External
 	defaultPort *inputNodeDefaultPort
@@ -179,8 +191,9 @@ func (n *InputNode) Outputs() map[string]nodes.OutputPort {
 
 func (n *InputNode) ToJSON(encoder *jbtf.Encoder) ([]byte, error) {
 	return json.Marshal(boundaryData{
-		PortName: n.PortName,
-		PortType: n.PortType,
+		PortName:        n.PortName,
+		PortType:        n.PortType,
+		PortDescription: n.PortDescription,
 	})
 }
 
@@ -191,6 +204,7 @@ func (n *InputNode) FromJSON(decoder jbtf.Decoder, body []byte) error {
 	}
 	n.PortName = data.PortName
 	n.PortType = data.PortType
+	n.PortDescription = data.PortDescription
 	return nil
 }
 
@@ -271,8 +285,9 @@ func (p *inputNodeDefaultPort) Set(port nodes.OutputPort) error {
 }
 
 type OutputNode struct {
-	PortName string
-	PortType string
+	PortName        string
+	PortType        string
+	PortDescription string
 
 	inputPort *outputNodeInputPort
 }
@@ -312,8 +327,9 @@ func (n *OutputNode) ConnectedSource() nodes.OutputPort {
 
 func (n *OutputNode) ToJSON(encoder *jbtf.Encoder) ([]byte, error) {
 	return json.Marshal(boundaryData{
-		PortName: n.PortName,
-		PortType: n.PortType,
+		PortName:        n.PortName,
+		PortType:        n.PortType,
+		PortDescription: n.PortDescription,
 	})
 }
 
@@ -324,6 +340,7 @@ func (n *OutputNode) FromJSON(decoder jbtf.Decoder, body []byte) error {
 	}
 	n.PortName = data.PortName
 	n.PortType = data.PortType
+	n.PortDescription = data.PortDescription
 	return nil
 }
 

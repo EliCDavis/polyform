@@ -132,6 +132,10 @@ func cutsAgainst(target, against []face, tolerance float64) (cuts [][]geometry.L
 			if !ok {
 				if other.plane().Holds(f.verts, tolerance) {
 					touching[i] = true
+					for _, cut := range coplanarCuts(f, other, tolerance) {
+						cuts[i] = append(cuts[i], cut)
+						curvePoints = append(curvePoints, cut.GetStartPoint(), cut.GetEndPoint())
+					}
 				}
 				continue
 			}
@@ -141,6 +145,194 @@ func cutsAgainst(target, against []face, tolerance float64) (cuts [][]geometry.L
 	}
 
 	return cuts, curvePoints, touching
+}
+
+// Points one face's snap merges must merge in every face of both solids, or the seams disagree.
+func mergeCurvePoints(target, against []face, cutsTarget, cutsAgainst [][]geometry.Line3D, curvePoints []vector3.Float64, tolerance float64) {
+	if len(curvePoints) < 2 {
+		return
+	}
+
+	indexOf := make(map[vector3.Float64]int, len(curvePoints))
+	points := make([]vector3.Float64, 0, len(curvePoints))
+	for _, p := range curvePoints {
+		if _, ok := indexOf[p]; !ok {
+			indexOf[p] = len(points)
+			points = append(points, p)
+		}
+	}
+
+	group := make([]int, len(points))
+	for i := range group {
+		group[i] = i
+	}
+	var root func(int) int
+	root = func(i int) int {
+		if group[i] != i {
+			group[i] = root(group[i])
+		}
+		return group[i]
+	}
+	join := func(i, j int) {
+		ri, rj := root(i), root(j)
+		if ri < rj {
+			group[rj] = ri
+		} else if rj < ri {
+			group[ri] = rj
+		}
+	}
+
+	boxes := make([]trees.Element, len(points))
+	for i, p := range points {
+		boxes[i] = faceElement{bounds: geometry.NewAABBFromPoints(p)}
+	}
+	tree := trees.NewOctree(boxes)
+	for i, p := range points {
+		for _, j := range tree.ElementsWithinRange(p, tolerance) {
+			if j != i && points[j].Distance(p) <= tolerance {
+				join(i, j)
+			}
+		}
+	}
+
+	edgesOf := make([][]geometry.Line3D, len(points))
+	snapGroups := func(faces []face, cuts [][]geometry.Line3D) {
+		for i, f := range faces {
+			if len(cuts[i]) == 0 {
+				continue
+			}
+			members := make([]int, 0)
+			for _, j := range tree.ElementsWithinRange(f.verts.Centroid(), f.verts.Reach()+tolerance) {
+				if f.verts.Contains(points[j], tolerance) {
+					members = append(members, j)
+				}
+			}
+			if len(members) < 2 {
+				continue
+			}
+			snapped := make([]vector3.Float64, len(members))
+			for k, m := range members {
+				snapped[k] = snapToEdge(f, points[m], tolerance)
+				for e := 0; e < 3; e++ {
+					edge := geometry.NewLine3D(f.verts[e], f.verts[(e+1)%3])
+					if edge.ClosestPointOnLine(points[m]).Distance(points[m]) <= tolerance {
+						edgesOf[m] = append(edgesOf[m], edge)
+					}
+				}
+			}
+			for k := range members {
+				for l := k + 1; l < len(members); l++ {
+					if snapped[k].Distance(snapped[l]) <= tolerance {
+						join(members[k], members[l])
+					}
+				}
+			}
+		}
+	}
+	snapGroups(target, cutsTarget)
+	snapGroups(against, cutsAgainst)
+
+	members := make(map[int][]int)
+	for i := range points {
+		r := root(i)
+		members[r] = append(members[r], i)
+	}
+	chosen := make([]vector3.Float64, len(points))
+	for _, group := range members {
+		edges := make([]geometry.Line3D, 0)
+		for _, m := range group {
+			edges = append(edges, edgesOf[m]...)
+		}
+		best, bestOn := group[0], -1
+		for _, m := range group {
+			on := 0
+			for _, edge := range edges {
+				if edge.ClosestPointOnLine(points[m]).Distance(points[m]) <= tolerance {
+					on++
+				}
+			}
+			if on > bestOn {
+				best, bestOn = m, on
+			}
+		}
+		for _, m := range group {
+			chosen[m] = points[best]
+		}
+	}
+
+	moved := func(p vector3.Float64) vector3.Float64 { return chosen[indexOf[p]] }
+	for _, cuts := range [][][]geometry.Line3D{cutsTarget, cutsAgainst} {
+		for i := range cuts {
+			for k, cut := range cuts[i] {
+				cuts[i][k] = geometry.NewLine3D(moved(cut.GetStartPoint()), moved(cut.GetEndPoint()))
+			}
+		}
+	}
+	for i, p := range curvePoints {
+		curvePoints[i] = moved(p)
+	}
+}
+
+// An edge running along f's outline would cross the outline constraints, so it gives only its endpoints.
+func coplanarCuts(f, other face, tolerance float64) []geometry.Line3D {
+	cuts := make([]geometry.Line3D, 0, 3)
+	for k := 0; k < 3; k++ {
+		a := snapToFace(f, other.verts[k], tolerance)
+		b := snapToFace(f, other.verts[(k+1)%3], tolerance)
+		from, to, ok := clipToFace(f, a, b, tolerance*1e-3)
+		if !ok {
+			continue
+		}
+		if from.Distance(to) <= tolerance || alongOutline(f, from, to, tolerance) {
+			cuts = append(cuts, geometry.NewLine3D(from, from), geometry.NewLine3D(to, to))
+			continue
+		}
+		cuts = append(cuts, geometry.NewLine3D(from, to))
+	}
+	return cuts
+}
+
+func snapToFace(f face, point vector3.Float64, tolerance float64) vector3.Float64 {
+	for _, corner := range f.verts {
+		if corner.Distance(point) <= tolerance {
+			return corner
+		}
+	}
+	return snapToEdge(f, point, tolerance)
+}
+
+func clipToFace(f face, a, b vector3.Float64, slack float64) (vector3.Float64, vector3.Float64, bool) {
+	low, high := 0., 1.
+	direction := b.Sub(a)
+	for i := 0; i < 3; i++ {
+		inward := f.normal.Cross(f.verts[(i+1)%3].Sub(f.verts[i])).Normalized()
+		start := a.Sub(f.verts[i]).Dot(inward) + slack
+		rate := direction.Dot(inward)
+		switch {
+		case rate == 0:
+			if start < 0 {
+				return a, b, false
+			}
+		case rate > 0:
+			low = max(low, -start/rate)
+		default:
+			high = min(high, -start/rate)
+		}
+	}
+	if high < low {
+		return a, b, false
+	}
+	return a.Add(direction.Scale(low)), a.Add(direction.Scale(high)), true
+}
+
+func alongOutline(f face, from, to vector3.Float64, tolerance float64) bool {
+	for i := 0; i < 3; i++ {
+		edge := geometry.NewLine3D(f.verts[i], f.verts[(i+1)%3])
+		if edge.ClosestPointOnLine(from).Distance(from) <= tolerance && edge.ClosestPointOnLine(to).Distance(to) <= tolerance {
+			return true
+		}
+	}
+	return false
 }
 
 // Splits every face along its cuts and at any curve point landing on it.
@@ -155,8 +347,9 @@ func splitAll(
 	ids *idSpace,
 ) (half, error) {
 	onCurve := make(map[int]bool, len(curvePoints))
+	offCurve := make(map[[2]int]bool)
 	if len(curvePoints) == 0 {
-		return half{target, cornerIDs, touching, onCurve}, nil
+		return half{target, cornerIDs, touching, onCurve, offCurve}, nil
 	}
 
 	boxes := make([]trees.Element, len(curvePoints))
@@ -170,6 +363,7 @@ func splitAll(
 		cornerIDs: make([][3]int, 0, len(target)),
 		touching:  make([]bool, 0, len(target)),
 		onCurve:   onCurve,
+		offCurve:  offCurve,
 	}
 
 	for i, f := range target {
@@ -189,7 +383,7 @@ func splitAll(
 			continue
 		}
 
-		pieces, pieceIDs, err := splitFace(f, cornerIDs[i], cuts[i], landedPoints, tolerance, ids, onCurve)
+		pieces, pieceIDs, err := splitFace(f, cornerIDs[i], cuts[i], landedPoints, tolerance, ids, onCurve, offCurve)
 		if err != nil {
 			return half{}, err
 		}
@@ -213,6 +407,7 @@ func splitFace(
 	tolerance float64,
 	ids *idSpace,
 	onCurve map[int]bool,
+	offCurve map[[2]int]bool,
 ) ([]face, [][3]int, error) {
 	axis := geometry.DominantAxis(f.normal)
 
@@ -261,11 +456,21 @@ func splitFace(
 	outline := geometry.Triangle2D{flat[0], flat[1], flat[2]}
 	constraints := [][2]int{{0, 1}, {1, 2}, {2, 0}}
 
+	cutLines := make([]geometry.Line3D, 0, len(cuts))
 	for _, cut := range cuts {
 		from, to := place(cut.GetStartPoint()), place(cut.GetEndPoint())
 		if from != to {
 			constraints = append(constraints, [2]int{from, to})
+			cutLines = append(cutLines, geometry.NewLine3D(world[from], world[to]))
 		}
+	}
+	alongCut := func(a, b vector3.Float64) bool {
+		for _, line := range cutLines {
+			if line.ClosestPointOnLine(a).Distance(a) <= tolerance && line.ClosestPointOnLine(b).Distance(b) <= tolerance {
+				return true
+			}
+		}
+		return false
 	}
 
 	// Carried by no edge of their own; they are here so the triangulator
@@ -326,7 +531,7 @@ func splitFace(
 
 		// A point on the outline leaves the triangulator a zero-area triangle
 		// along that edge, which the face across the edge never sees.
-		if worldCorners.Degenerate(tolerance) {
+		if worldCorners.Degenerate(tolerance) && onOneEdge(f, worldCorners, tolerance) {
 			continue
 		}
 
@@ -346,12 +551,33 @@ func splitFace(
 		}
 		pieces = append(pieces, piece)
 		pieceIDs = append(pieceIDs, pieceCornerIDs)
+
+		for k := 0; k < 3; k++ {
+			a, b := piece.verts[k], piece.verts[(k+1)%3]
+			if alongCut(a, b) || alongOutline(f, a, b, tolerance) {
+				continue
+			}
+			from, to := pieceCornerIDs[k], pieceCornerIDs[(k+1)%3]
+			offCurve[[2]int{min(from, to), max(from, to)}] = true
+		}
 	}
 
 	if len(pieces) == 0 {
 		return []face{f}, [][3]int{cornerIDs}, nil
 	}
 	return pieces, pieceIDs, nil
+}
+
+func onOneEdge(f face, corners geometry.Triangle, tolerance float64) bool {
+	for i := 0; i < 3; i++ {
+		edge := geometry.NewLine3D(f.verts[i], f.verts[(i+1)%3])
+		if edge.ClosestPointOnLine(corners[0]).Distance(corners[0]) <= tolerance &&
+			edge.ClosestPointOnLine(corners[1]).Distance(corners[1]) <= tolerance &&
+			edge.ClosestPointOnLine(corners[2]).Distance(corners[2]) <= tolerance {
+			return true
+		}
+	}
+	return false
 }
 
 // Weights over this face's corners re-expressed over its parent's.

@@ -5,6 +5,7 @@ import (
 	"math"
 
 	"github.com/EliCDavis/iter"
+	"github.com/EliCDavis/polyform/math/scalar"
 	"github.com/EliCDavis/vector/vector3"
 )
 
@@ -181,14 +182,17 @@ func (aabb AABB) ClosestPoint(v vector3.Float64) vector3.Float64 {
 	result := v
 	min := aabb.Min()
 	max := aabb.Max()
-	result = result.SetX(clamp(v.X(), min.X(), max.X()))
-	result = result.SetY(clamp(v.Y(), min.Y(), max.Y()))
-	result = result.SetZ(clamp(v.Z(), min.Z(), max.Z()))
+	result = result.SetX(scalar.Clamp(v.X(), min.X(), max.X()))
+	result = result.SetY(scalar.Clamp(v.Y(), min.Y(), max.Y()))
+	result = result.SetZ(scalar.Clamp(v.Z(), min.Z(), max.Z()))
 	return result
 }
 
-func clamp(v, min, max float64) float64 {
-	return math.Min(math.Max(v, min), max)
+func (aabb AABB) DistanceSquared(v vector3.Float64) float64 {
+	x := math.Max(math.Abs(v.X()-aabb.center.X())-aabb.extents.X(), 0)
+	y := math.Max(math.Abs(v.Y()-aabb.center.Y())-aabb.extents.Y(), 0)
+	z := math.Max(math.Abs(v.Z()-aabb.center.Z())-aabb.extents.Z(), 0)
+	return x*x + y*y + z*z
 }
 
 // IntersectsRayInRange determines whether or not a ray intersects the bounding

@@ -2,6 +2,7 @@ package trees
 
 import (
 	"math"
+	"sync"
 
 	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/vector/vector3"
@@ -139,10 +140,8 @@ func (ot *OctTree) collectWithin(position vector3.Float64, distanceSquared float
 }
 
 type octDistItem struct {
-	dist  float64
-	cell  *OctTree
-	index int
-	point vector3.Float64
+	dist float64
+	cell *OctTree
 }
 
 type octDistHeap []octDistItem
@@ -187,37 +186,52 @@ func (h *octDistHeap) pop() octDistItem {
 	}
 }
 
+var octDistHeapPool = sync.Pool{
+	New: func() any {
+		queue := make(octDistHeap, 0, 64)
+		return &queue
+	},
+}
+
 func (ot *OctTree) ClosestPoint(v vector3.Float64) (int, vector3.Float64) {
-	queue := make(octDistHeap, 0, 64)
-	queue.push(octDistItem{
-		dist: ot.bounds.ClosestPoint(v).DistanceSquared(v),
-		cell: ot,
-	})
+	pooled := octDistHeapPool.Get().(*octDistHeap)
+	defer func() {
+		*pooled = (*pooled)[:0]
+		octDistHeapPool.Put(pooled)
+	}()
 
-	for len(queue) > 0 {
+	queue := pooled
+	queue.push(octDistItem{dist: ot.bounds.DistanceSquared(v), cell: ot})
+
+	best := math.Inf(1)
+	bestIndex := -1
+	bestPoint := vector3.Zero[float64]()
+
+	for len(*queue) > 0 {
 		item := queue.pop()
+		if item.dist >= best {
+			break
+		}
 
-		if item.cell == nil {
-			return item.index, item.point
+		for i := range item.cell.elements {
+			element := &item.cell.elements[i]
+			if element.bounds.DistanceSquared(v) >= best {
+				continue
+			}
+			point := element.primitive.ClosestPoint(v)
+			if dist := point.DistanceSquared(v); dist < best {
+				best, bestIndex, bestPoint = dist, element.originalIndex, point
+			}
 		}
 
 		for _, child := range item.cell.children {
-			queue.push(octDistItem{
-				dist: child.bounds.ClosestPoint(v).DistanceSquared(v),
-				cell: child,
-			})
-		}
-		for i := range item.cell.elements {
-			point := item.cell.elements[i].primitive.ClosestPoint(v)
-			queue.push(octDistItem{
-				dist:  point.DistanceSquared(v),
-				index: item.cell.elements[i].originalIndex,
-				point: point,
-			})
+			if dist := child.bounds.DistanceSquared(v); dist < best {
+				queue.push(octDistItem{dist: dist, cell: child})
+			}
 		}
 	}
 
-	return -1, vector3.Zero[float64]()
+	return bestIndex, bestPoint
 }
 
 func boundsOf(elements []elementReference) geometry.AABB {

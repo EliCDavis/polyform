@@ -1,12 +1,12 @@
 package texturing
 
 import (
-	"cmp"
 	"image"
 	"image/color"
 	"math"
 
 	"github.com/EliCDavis/polyform/drawing/coloring"
+	"github.com/EliCDavis/polyform/math/scalar"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/vector"
 	"github.com/EliCDavis/vector/vector1"
@@ -83,10 +83,6 @@ func gaussianKernel(radius int, sigma float64) []float64 {
 	return kernel
 }
 
-func clamp[T cmp.Ordered](i, minimum, maximum T) T {
-	return max(min(i, maximum), minimum)
-}
-
 // Applies a 1D convolution along x or y
 func convolve1DGaussian[T any](space vector.Space[T], src Texture[T], dst Texture[T], kernel []float64, horizontal bool) {
 	radius := len(kernel) / 2
@@ -95,7 +91,7 @@ func convolve1DGaussian[T any](space vector.Space[T], src Texture[T], dst Textur
 		src.ScanParallel(func(x, y int, v T) {
 			var accum T
 			for k := -radius; k <= radius; k++ {
-				sx := clamp(x+k, 0, src.width-1)
+				sx := scalar.Clamp(x+k, 0, src.width-1)
 				weighted := space.Scale(src.Get(sx, y), kernel[k+radius])
 				accum = space.Add(accum, weighted)
 			}
@@ -105,7 +101,7 @@ func convolve1DGaussian[T any](space vector.Space[T], src Texture[T], dst Textur
 		src.ScanParallel(func(x, y int, v T) {
 			var accum T
 			for k := -radius; k <= radius; k++ {
-				sy := clamp(y+k, 0, src.height-1)
+				sy := scalar.Clamp(y+k, 0, src.height-1)
 				weighted := space.Scale(src.Get(x, sy), kernel[k+radius])
 				accum = space.Add(accum, weighted)
 			}

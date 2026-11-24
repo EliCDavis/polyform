@@ -74,7 +74,6 @@ func Intersect(a, b modeling.Mesh) (modeling.Mesh, error) {
 }
 
 // Subtract returns the mesh enclosing the points of a that lie outside b.
-// Coplanar faces are carried over from a unsplit, the paper's known weak spot.
 func Subtract(a, b modeling.Mesh) (modeling.Mesh, error) {
 	return meshes(a, b, difference)
 }
@@ -106,6 +105,7 @@ func combine(a, b *Solid, op operation) (modeling.Mesh, []face, error) {
 	cutsA, curvePointsA, touchingA := cutsAgainst(a.faces, b.faces, tolerance)
 	cutsB, curvePointsB, touchingB := cutsAgainst(b.faces, a.faces, tolerance)
 	curvePoints := append(curvePointsA, curvePointsB...)
+	mergeCurvePoints(a.faces, b.faces, cutsA, cutsB, curvePoints, tolerance)
 
 	splitA, err := splitAll(a.faces, a.cornerIDs, cutsA, curvePoints, touchingA, tolerance, newIDSpace(a.weld, tolerance))
 	if err != nil {
@@ -150,13 +150,16 @@ type half struct {
 	cornerIDs [][3]int
 	touching  []bool
 	onCurve   map[int]bool
+
+	// Edges between two curve ids that no cut runs along.
+	offCurve map[[2]int]bool
 }
 
 // Section 8 groups faces into regions the intersection curve does not cross
 // and settles each with a few rays instead of one per face.
 func classifyBoth(splitA, splitB half, tolerance float64) (answersA, answersB []classification) {
-	patchesA := patchesOf(splitA.cornerIDs, splitA.onCurve, splitA.touching)
-	patchesB := patchesOf(splitB.cornerIDs, splitB.onCurve, splitB.touching)
+	patchesA := patchesOf(splitA.cornerIDs, splitA.onCurve, splitA.offCurve, splitA.touching)
+	patchesB := patchesOf(splitB.cornerIDs, splitB.onCurve, splitB.offCurve, splitB.touching)
 
 	// Each solid is cast against by the other's patches, so that is the count
 	// that decides whether indexing it pays.

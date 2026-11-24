@@ -7,6 +7,7 @@ import (
 
 	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/math/sample"
+	"github.com/EliCDavis/polyform/math/scalar"
 	"github.com/EliCDavis/polyform/math/sdf"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/trees"
@@ -14,22 +15,12 @@ import (
 	"github.com/EliCDavis/vector/vector3"
 )
 
-func clamp01(t float64) float64 {
-	if t < 0 {
-		return 0
-	} else if t > 1 {
-		return 1
-	}
-
-	return t
-}
-
 const BLEND_SIZE = 0.05
 
 func getBlend(d1, d2 float64) float64 {
 	diff := -math.Abs(d1 - d2)
 	blend := diff / BLEND_SIZE
-	blend = clamp01((blend + 1.0) * 0.5)
+	blend = scalar.Clamp((blend+1.0)*0.5, 0, 1)
 	return blend
 }
 

@@ -3,6 +3,7 @@ package noise
 import (
 	"math"
 
+	"github.com/EliCDavis/polyform/math/scalar"
 	"github.com/EliCDavis/vector/vector2"
 	"github.com/EliCDavis/vector/vector3"
 )
@@ -14,8 +15,6 @@ const (
 	tau = math.Pi * 2
 	eps = 1e-9
 )
-
-func fract(v float64) float64 { return v - math.Floor(v) }
 
 func mod2(a, b vector2.Float64) vector2.Float64 {
 	return vector2.New(math.Mod(a.X(), b.X()), math.Mod(a.Y(), b.Y()))
@@ -34,7 +33,7 @@ func fade2(f vector2.Float64) vector2.Float64 {
 // ---------- hash / rand helpers (GLSL-style) ----------
 // Common 2D-to-N hash (not cryptographic), tuned to look like shader hashes.
 func hash2(v vector2.Float64, a, b, k float64) float64 {
-	return fract(math.Sin(v.X()*a+v.Y()*b) * k)
+	return scalar.Fract(math.Sin(v.X()*a+v.Y()*b) * k)
 }
 
 func randf(v vector2.Float64) float64 {
@@ -176,7 +175,7 @@ func wrapToUV(p, size vector2.Float64) vector2.Float64 {
 
 func rgrad2(p vector2.Float64, rot, seed float64) vector2.Float64 {
 	u := permute(permute(p.X())+p.Y())*0.0243902439 + rot // /41
-	u = fract(u+seed) * tau
+	u = scalar.Fract(u+seed) * tau
 	return unitAt(u)
 }
 

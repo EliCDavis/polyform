@@ -125,6 +125,28 @@ func TestTextNamesWhatItCannotSet(t *testing.T) {
 	assert.Positive(t, mesh.PrimitiveCount(), "the rest is still set")
 }
 
+func TestTextWidthMatchesTheBuiltMeshWithoutBuildingIt(t *testing.T) {
+	for _, align := range []extrude.Align{extrude.AlignLeft, extrude.AlignCenter, extrude.AlignRight} {
+		text := extrude.Text{Text: "LIT\nHILL", Height: 2, Align: align, CurveSegments: 6}
+		mesh, err := text.MeshZ()
+		require.NoError(t, err)
+		width, lines, err := text.Measure()
+		require.NoError(t, err)
+		assert.InDelta(t, mesh.BoundingBox(modeling.PositionAttribute).Size().X(), width, 1e-9)
+		assert.Equal(t, 2, lines)
+	}
+}
+
+func TestTextNodeMeasuresEachString(t *testing.T) {
+	node := &nodes.Struct[extrude.TextNode]{Data: extrude.TextNode{
+		Text: nodes.ConstOutput[[]string]{Val: []string{"I", "III", "A\nB\nC"}},
+	}}
+	widths := nodes.GetNodeOutputPort[[]float64](node, "Width").Value()
+	require.Len(t, widths, 3)
+	assert.Greater(t, widths[1], widths[0])
+	assert.Equal(t, []int{1, 1, 3}, nodes.GetNodeOutputPort[[]int](node, "Lines").Value())
+}
+
 func TestEveryFontLoads(t *testing.T) {
 	for _, f := range []extrude.Font{extrude.Sans, extrude.SansBold, extrude.Mono, extrude.MonoBold} {
 		mesh, err := extrude.Text{Text: "A", Height: 1, Font: f}.MeshZ()

@@ -571,11 +571,19 @@ func TestUnaryNodesFollowTheirInput(t *testing.T) {
 		),
 		nodetest.NewTestCase(
 			"Modulo over an array",
-			nodetest.NewNode(math.ModuloNode{
+			nodetest.NewNode(math.ModuloNode[float64]{
 				A: nodetest.NewPortValue([]float64{-1, 3, 5}),
 				B: nodetest.NewPortValue(4.),
 			}),
 			nodetest.AssertOutput("Out", []float64{3, 3, 1}),
+		),
+		nodetest.NewTestCase(
+			"Integer modulo takes the divisor's sign",
+			nodetest.NewNode(math.ModuloNode[int]{
+				A: nodetest.NewPortValue([]int{-3, 9, 7}),
+				B: nodetest.NewPortValue(8),
+			}),
+			nodetest.AssertOutput("Out", []int{5, 1, 7}),
 		),
 		nodetest.NewTestCase(
 			"Hypotenuse over an array",

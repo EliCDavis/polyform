@@ -6,6 +6,7 @@ import (
 
 	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/drawing/texturing"
+	"github.com/EliCDavis/polyform/math/scalar"
 	"github.com/EliCDavis/polyform/utils"
 	"github.com/EliCDavis/vector/vector3"
 )
@@ -45,9 +46,9 @@ func FromHeightmap(heightmap HeightMap, scale float64) NormalMap {
 
 	utils.ParallelRange(height, func(start, end int) {
 		for y := start; y < end; y++ {
-			above, below := mirrored(y+1, height), mirrored(y-1, height)
+			above, below := scalar.Modulo(y+1, height), scalar.Modulo(y-1, height)
 			for x := range width {
-				left, right := mirrored(x-1, width), mirrored(x+1, width)
+				left, right := scalar.Modulo(x-1, width), scalar.Modulo(x+1, width)
 
 				va := vector3.New(2, 0, (heightmap.Get(right, y)-heightmap.Get(left, y))*scale).Normalized()
 				vb := vector3.New(0, 2, (heightmap.Get(x, below)-heightmap.Get(x, above))*scale).Normalized()
@@ -58,19 +59,6 @@ func FromHeightmap(heightmap HeightMap, scale float64) NormalMap {
 	})
 
 	return dst
-}
-
-func mirrored(i, n int) int {
-	if n == 1 {
-		return 0
-	}
-	if i < 0 {
-		return 1
-	}
-	if i >= n {
-		return n - 2
-	}
-	return i
 }
 
 func RasterizeNormalmap(normals NormalMap) image.Image {

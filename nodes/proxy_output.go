@@ -47,6 +47,13 @@ func (p proxyOutput[T]) InstanceType() string {
 	return ""
 }
 
+func (p proxyOutput[T]) Description() string {
+	if described, ok := p.source.(Describable); ok {
+		return described.Description()
+	}
+	return ""
+}
+
 func labelOf(port Port) string {
 	if labeled, ok := port.(Labeled); ok {
 		return labeled.Label()

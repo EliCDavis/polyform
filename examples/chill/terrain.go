@@ -11,6 +11,7 @@ import (
 	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/math/noise"
 	"github.com/EliCDavis/polyform/math/sample"
+	"github.com/EliCDavis/polyform/math/scalar"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/meshops"
 	"github.com/EliCDavis/polyform/modeling/triangulation"
@@ -62,7 +63,7 @@ func TerrainTexture(
 			pixel := vector2.New(float64(x), float64(y))
 
 			colorSample := colorSampleFunc(pixel)
-			clampedSample := modeling.Clamp(colorSample/(float64(textureSize)/40.), 0, 1)
+			clampedSample := scalar.Clamp(colorSample/(float64(textureSize)/40.), 0, 1)
 			tex.Set(x, y, colors.Sample(clampedSample))
 
 			// worldSpacePos := pixel.Scale(scaleFactor)
@@ -70,7 +71,7 @@ func TerrainTexture(
 
 			spec := uint8((reSample(1.-clampedSample, vector2.New(.0, 1.), vector2.New(0.5, 0.75)) * .65) * 255)
 
-			clampedSample = modeling.Clamp((colorSample+(df6.Sample(pixel)/2))/(float64(textureSize)/40.), 0, 1)
+			clampedSample = scalar.Clamp((colorSample+(df6.Sample(pixel)/2))/(float64(textureSize)/40.), 0, 1)
 			nrml := uint8((reSample(1.-clampedSample, vector2.New(0., 1.), vector2.New(0.2, 0.75)) * .85) * 255)
 
 			specTex.Set(x, y, color.RGBA{

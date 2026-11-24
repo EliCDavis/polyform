@@ -65,6 +65,7 @@ var entries = []entry{
 	typed[[]float64](),
 	typed[[]int](),
 	typed[[]string](),
+	typed[[]bool](),
 	typed[[]vector2.Float64](),
 	typed[[]vector2.Int](),
 	typed[[]vector3.Float64](),

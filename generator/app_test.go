@@ -365,6 +365,8 @@ COMMANDS:
         Create a swagger 2.0 file
     Outline: outline 
         outline the data embedded in a graph
+    Coverage: coverage 
+        Report which registered node types the graphs under a folder use
     Help: help h 
         
     `, string(contents))

@@ -76,6 +76,13 @@ func (snd ScrewNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 		}
 	}
 
+	revolutions := nodes.GetOutputValue(out, snd.Revolutions)
+	closes := climb == 0 && revolutions != 0 && revolutions == math.Trunc(revolutions)
+	onAxis := make([]bool, len(line))
+	for i, p := range line {
+		onAxis[i] = p.X() == 0 && p.Z() == 0
+	}
+
 	rings := segments + 1
 	verts := make([]vector3.Float64, 0, len(line)*rings)
 	normals := make([]vector3.Float64, 0, len(line)*rings)
@@ -88,8 +95,17 @@ func (snd ScrewNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 			if normal.Length() == 0 {
 				normal = axis
 			}
-			verts = append(verts, q.Rotate(p).Add(axis.Scale(climb*t)))
-			normals = append(normals, q.Rotate(normal.Normalized()))
+			switch {
+			case closes && ring == segments:
+				verts = append(verts, verts[i])
+				normals = append(normals, normals[i])
+			case onAxis[i]:
+				verts = append(verts, p.Add(axis.Scale(climb*t)))
+				normals = append(normals, q.Rotate(normal.Normalized()))
+			default:
+				verts = append(verts, q.Rotate(p).Add(axis.Scale(climb*t)))
+				normals = append(normals, q.Rotate(normal.Normalized()))
+			}
 			if tileSize > 0 {
 				uvs = append(uvs, vector2.New(across[i]/tileSize, t*repeatsAround[i]))
 			} else {
@@ -105,12 +121,12 @@ func (snd ScrewNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 			bottomRight := l + ((ring - 1) * len(line))
 			topLeft := (l - 1) + (ring * len(line))
 			topRight := l + (ring * len(line))
-
-			indices = append(
-				indices,
-				bottomRight, bottomLeft, topLeft,
-				topRight, bottomRight, topLeft,
-			)
+			if !onAxis[l-1] {
+				indices = append(indices, bottomRight, bottomLeft, topLeft)
+			}
+			if !onAxis[l] {
+				indices = append(indices, topRight, bottomRight, topLeft)
+			}
 		}
 	}
 

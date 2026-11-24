@@ -33,13 +33,14 @@ func requireUnitNormals(t *testing.T, m modeling.Mesh) []vector3.Float64 {
 
 func TestConeNormals(t *testing.T) {
 	const height, radius = 2., 0.5
-	cone := primitives.Cone{Height: height, Radius: radius, Sides: 16}.ToMesh()
+	const sides = 16
+	cone := primitives.Cone{Height: height, Radius: radius, Sides: sides}.ToMesh()
 
 	normals := requireUnitNormals(t, cone)
 	positions := cone.Float3Attribute(modeling.PositionAttribute)
 	apex := vector3.New(0., height, 0.)
 
-	for i := 0; i < positions.Len()-1; i++ {
+	for i := 0; i < sides; i++ {
 		p := positions.At(i)
 		slant := apex.Sub(p).Normalized()
 

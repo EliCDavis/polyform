@@ -242,6 +242,10 @@ func (tv *TypeVariable[T]) SwaggerProperty() swagger.Property {
 		prop.Type = swagger.ArrayPropertyType
 		prop.Items = map[string]any{"type": swagger.StringPropertyType}
 
+	case "[]bool":
+		prop.Type = swagger.ArrayPropertyType
+		prop.Items = map[string]any{"type": swagger.BooleanPropertyType}
+
 	case "[]vector2.Vector[float64]":
 		prop.Type = swagger.ArrayPropertyType
 		prop.Items = map[string]any{"$ref": "#/definitions/Float2"}

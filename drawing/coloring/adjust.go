@@ -3,6 +3,7 @@ package coloring
 import (
 	"math"
 
+	"github.com/EliCDavis/polyform/math/scalar"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/vector/vector3"
 	"github.com/EliCDavis/vector/vector4"
@@ -70,10 +71,6 @@ func HSVToRGB(h, s, v float64) (r, g, b float64) {
 	return rp + m, gp + m, bp + m
 }
 
-func clamp01(v float64) float64 {
-	return math.Max(0, math.Min(1, v))
-}
-
 // ============================================================================
 
 type AdjustHSVNode struct {
@@ -96,7 +93,7 @@ func (n AdjustHSVNode) Out(out *nodes.Lifted[Color]) {
 		n.Value,
 		func(in Color, hue, saturation, value float64) Color {
 			h, s, v := RGBToHSV(in.R, in.G, in.B)
-			r, g, b := HSVToRGB(h+hue, clamp01(s*saturation), clamp01(v*value))
+			r, g, b := HSVToRGB(h+hue, scalar.Clamp(s*saturation, 0, 1), scalar.Clamp(v*value, 0, 1))
 			return Color{R: r, G: g, B: b, A: in.A}
 		},
 	)
@@ -116,9 +113,9 @@ func (n BrightnessNode) Description() string {
 func (n BrightnessNode) Out(out *nodes.Lifted[Color]) {
 	nodes.Zip2(out, n.In, n.Amount, func(in Color, amount float64) Color {
 		return Color{
-			R: clamp01(in.R * amount),
-			G: clamp01(in.G * amount),
-			B: clamp01(in.B * amount),
+			R: scalar.Clamp(in.R*amount, 0, 1),
+			G: scalar.Clamp(in.G*amount, 0, 1),
+			B: scalar.Clamp(in.B*amount, 0, 1),
 			A: in.A,
 		}
 	})
@@ -160,7 +157,7 @@ func (n FromHSVNode) Description() string {
 
 func (n FromHSVNode) Out(out *nodes.Lifted[Color]) {
 	nodes.Zip3(out, n.Hue, n.Saturation, n.Value, func(hue, saturation, value float64) Color {
-		r, g, b := HSVToRGB(hue, clamp01(saturation), clamp01(value))
+		r, g, b := HSVToRGB(hue, scalar.Clamp(saturation, 0, 1), scalar.Clamp(value, 0, 1))
 		return Color{R: r, G: g, B: b, A: 1}
 	})
 }
@@ -210,8 +207,10 @@ func (n FromVectorNode) Out(out *nodes.Lifted[Color]) {
 		n.Vector3,
 		func(v4 vector4.Float64, v3 vector3.Float64) Color {
 			if v4 != vector4.Zero[float64]() {
-				return Color{R: clamp01(v4.X()), G: clamp01(v4.Y()), B: clamp01(v4.Z()), A: clamp01(v4.W())}
+				v4 = v4.Clamp(0, 1)
+				return Color{R: v4.X(), G: v4.Y(), B: v4.Z(), A: v4.W()}
 			}
-			return Color{R: clamp01(v3.X()), G: clamp01(v3.Y()), B: clamp01(v3.Z()), A: 1}
+			v3 = v3.Clamp(0, 1)
+			return Color{R: v3.X(), G: v3.Y(), B: v3.Z(), A: 1}
 		})
 }

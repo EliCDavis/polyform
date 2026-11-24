@@ -644,3 +644,13 @@ func (aabb arrAABB) IntersectsRayInRange(ray arrRay, min, max float64) bool {
 	}
 	return true
 }
+
+func TestAABBDistanceSquaredMatchesClosestPoint(t *testing.T) {
+	box := geometry.NewAABBFromPoints(vector3.New(-1., 0., 2.), vector3.New(3., 0.5, 4.))
+	for _, p := range []vector3.Float64{
+		vector3.New(0., 0.25, 3.), vector3.New(5., 0.25, 3.), vector3.New(-2., -1., 1.),
+		vector3.New(1., 2., 3.), vector3.New(4., 1., 6.), vector3.New(3., 0.5, 4.),
+	} {
+		assert.InDelta(t, box.ClosestPoint(p).DistanceSquared(p), box.DistanceSquared(p), 1e-12, "at %v", p)
+	}
+}

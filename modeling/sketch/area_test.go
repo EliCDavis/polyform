@@ -146,6 +146,22 @@ func TestStrokeNodeGivesOneAreaPerPath(t *testing.T) {
 	}
 }
 
+func TestContainsNodeTestsEachPoint(t *testing.T) {
+	ring, err := sketch.Subtract(squareArea(t, 10, vector2.New(0., 0.)), squareArea(t, 2, vector2.New(0., 0.)))
+	require.NoError(t, err)
+
+	inside := nodes.GetNodeOutputPort[[]bool](&nodes.Struct[sketch.ContainsNode]{Data: sketch.ContainsNode{
+		Area: nodes.ConstOutput[sketch.Area]{Val: ring},
+		Point: nodes.ConstOutput[[]vector2.Float64]{Val: []vector2.Float64{
+			vector2.New(3., 0.),
+			vector2.New(0., 0.),
+			vector2.New(8., 0.),
+		}},
+	}}, "Out").Value()
+
+	assert.Equal(t, []bool{true, false, false}, inside)
+}
+
 func TestSubtractNodeCutsEveryRemovedArea(t *testing.T) {
 	cut := nodes.GetNodeOutputPort[sketch.Area](&nodes.Struct[sketch.SubtractNode]{Data: sketch.SubtractNode{
 		Base: nodes.ConstOutput[sketch.Area]{Val: squareArea(t, 10, vector2.New(0., 0.))},
@@ -158,4 +174,15 @@ func TestSubtractNodeCutsEveryRemovedArea(t *testing.T) {
 	require.Len(t, cut.Polygons, 1)
 	assert.Len(t, cut.Polygons[0].Holes, 2)
 	assert.InDelta(t, 92, cut.Size(), 1e-9)
+}
+
+func TestCentroidWeighsHolesOut(t *testing.T) {
+	assert.InDelta(t, 0, squareArea(t, 2, vector2.New(3., -1.)).Centroid().Distance(vector2.New(3., -1.)), 1e-9)
+
+	holed, err := sketch.Subtract(squareArea(t, 4, vector2.New(2., 2.)), squareArea(t, 1, vector2.New(3., 3.)))
+	require.NoError(t, err)
+	want := (16*2.0 - 3.0) / 15
+	assert.InDelta(t, 0, holed.Centroid().Distance(vector2.New(want, want)), 1e-9)
+
+	assert.Equal(t, vector2.Zero[float64](), sketch.Area{}.Centroid())
 }

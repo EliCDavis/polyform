@@ -211,11 +211,14 @@ func (r *SubgraphInstanceNode) Runs() ([]*Graph, error) {
 // ============================================================================
 
 type eachOutputPort struct {
-	node     *SubgraphInstanceNode
-	id       string
-	label    string
-	portType string
+	node        *SubgraphInstanceNode
+	id          string
+	label       string
+	portType    string
+	description string
 }
+
+func (p eachOutputPort) Description() string { return p.description }
 
 func (p eachOutputPort) Node() nodes.Node                       { return p.node }
 func (p eachOutputPort) Name() string                           { return p.id }
