@@ -6,6 +6,7 @@ import (
 	"github.com/EliCDavis/polyform/drawing/texturing"
 	"github.com/EliCDavis/polyform/drawing/texturing/pattern"
 	"github.com/EliCDavis/polyform/math/norm"
+	"github.com/EliCDavis/polyform/math/scalar"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/vector/vector2"
 	"github.com/stretchr/testify/assert"
@@ -102,6 +103,45 @@ func TestBlocksEdgeDistanceIsInPixels(t *testing.T) {
 	assert.InDelta(t, 0.5, distance.Get(0, 4), 1e-9)
 	assert.InDelta(t, 0.5, distance.Get(1, 4), 1e-9)
 	assert.InDelta(t, 0.5, distance.Get(4, 0), 1e-9)
+}
+
+func TestBlocksEdgeDistanceStaysInPixelsUnderTransformedUVs(t *testing.T) {
+	transformed := func(scale vector2.Float64, degrees float64) pattern.BlocksNode {
+		node := blocks(nodes.GetNodeOutputPort[uvTexture](&nodes.Struct[pattern.TransformUVNode]{Data: pattern.TransformUVNode{
+			In:       plainUV(64, 32),
+			Scale:    nodes.ConstOutput[vector2.Float64]{Val: scale},
+			Rotation: number(degrees),
+		}}, "UV"))
+		node.Rows = integer(1)
+		node.Units = integer(1)
+		node.RowHeightVariation = unorm(0)
+		node.RowSlide = unorm(0)
+		return node
+	}
+
+	scaled := texture[float64](t, transformed(vector2.New(2., 1.), 0), "Edge Distance")
+	assert.InDelta(t, 0.5, scaled.Get(16, 16), 1e-9)
+	assert.InDelta(t, 4.5, scaled.Get(20, 16), 1e-9)
+
+	turned := texture[float64](t, transformed(vector2.New(1., 1.), 90), "Edge Distance")
+	assert.InDelta(t, 0.5, turned.Get(0, 16), 1e-9)
+	assert.InDelta(t, 5.5, turned.Get(5, 16), 1e-9)
+	assert.InDelta(t, 5.5, turned.Get(32, 5), 1e-9)
+}
+
+func TestBlocksEdgeDistanceIgnoresWhereUVsWrap(t *testing.T) {
+	wrapped := nodes.ConstOutput[uvTexture]{Val: texturing.Map(texturing.UVs(64, 64), func(uv vector2.Float64) vector2.Float64 {
+		return vector2.New(scalar.Fract(uv.X()*4), scalar.Fract(uv.Y()*4))
+	})}
+	node := blocks(wrapped)
+	node.Rows = integer(1)
+	node.Units = integer(1)
+	node.RowHeightVariation = unorm(0)
+	node.RowSlide = unorm(0)
+
+	distance := texture[float64](t, node, "Edge Distance")
+	assert.InDelta(t, 0.5, distance.Get(0, 8), 1e-9)
+	assert.InDelta(t, 3.5, distance.Get(19, 8), 1e-9)
 }
 
 func TestBlocksRoundPullsCornersIn(t *testing.T) {

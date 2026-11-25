@@ -1,12 +1,15 @@
 package sdf_test
 
 import (
+	"math"
 	"math/rand"
 	"testing"
 
+	"github.com/EliCDavis/polyform/math/sample"
 	"github.com/EliCDavis/polyform/math/sdf"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/primitives"
+	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/vector/vector3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -77,4 +80,19 @@ func TestMeshEmptyIsNothing(t *testing.T) {
 func TestMeshRejectsPointClouds(t *testing.T) {
 	_, err := sdf.Mesh(modeling.EmptyPointcloud())
 	assert.Error(t, err)
+
+	out := nodes.GetNodeOutputPort[sample.Vec3ToFloat](&nodes.Struct[sdf.MeshNode]{Data: sdf.MeshNode{
+		Mesh: nodes.ConstOutput[modeling.Mesh]{Val: modeling.EmptyPointcloud()},
+	}}, "Field")
+	field := out.Value()
+	require.NotNil(t, field)
+	assert.Greater(t, field(vector3.Zero[float64]()), 1e9)
+	assert.Len(t, out.(nodes.ObservableExecution).ExecutionReport().Errors, 1)
+}
+
+func TestMeshSampledOffTheNumberLineDoesNotPanic(t *testing.T) {
+	field, err := sdf.Mesh(primitives.UnitCube())
+	require.NoError(t, err)
+	assert.True(t, math.IsNaN(field(vector3.New(math.NaN(), 0., 0.))))
+	assert.True(t, math.IsInf(field(vector3.New(math.Inf(1), 0., 0.)), 1))
 }

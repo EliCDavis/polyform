@@ -169,7 +169,7 @@ func (i IndicesNode) Out(out *nodes.StructOutput[[]int]) {
 type SliceNode struct {
 	Array nodes.DynamicPort[[]Element] `description:"The array to take a run out of."`
 	Start nodes.Output[int]            `description:"First element to keep, counting from 0."`
-	End   nodes.Output[int]            `description:"One past the last element to keep."`
+	End   nodes.Output[int]            `description:"One past the last element to keep." default:"2147483647"`
 }
 
 func (SliceNode) Description() string {

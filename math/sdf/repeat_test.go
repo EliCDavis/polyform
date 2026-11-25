@@ -79,16 +79,44 @@ func TestRepeatMatchesBruteForceUnion(t *testing.T) {
 	}
 }
 
-func TestRepeatUnboundedFieldMatchesBruteForceUnion(t *testing.T) {
-	rng := rand.New(rand.NewSource(2))
-	plane := func(v vector3.Float64) float64 { return v.Y() }
-	transforms := randomTransforms(rng, 40)
-	fast := sdf.Repeat(plane, transforms, 0)
-	slow := bruteForceRepeat(plane, transforms, 0)
-	for i := 0; i < 500; i++ {
-		p := vector3.New(rng.Float64()*16-8, rng.Float64()*16-8, rng.Float64()*16-8)
-		assert.InDelta(t, slow(p), fast(p), 1e-9)
+func TestRepeatFieldsThatCannotBePrunedMatchBruteForceUnion(t *testing.T) {
+	box := sdf.Box(vector3.Zero[float64](), vector3.New(0.6, 2.3, 0.9))
+	fields := map[string]sample.Vec3ToFloat{
+		"plane":          func(v vector3.Float64) float64 { return v.Y() },
+		"inverted":       func(v vector3.Float64) float64 { return -box(v) },
+		"steep":          func(v vector3.Float64) float64 { return 2 * box(v) },
+		"slightly steep": func(v vector3.Float64) float64 { return 1.05 * box(v) },
+		"displaced": func(v vector3.Float64) float64 {
+			return box(v) + 0.6*math.Sin(3*v.X())*math.Sin(3*v.Y())*math.Sin(3*v.Z())
+		},
+		"nothing": func(v vector3.Float64) float64 { return math.Inf(1) },
 	}
+	for name, field := range fields {
+		t.Run(name, func(t *testing.T) {
+			rng := rand.New(rand.NewSource(2))
+			transforms := randomTransforms(rng, 40)
+			fast := sdf.Repeat(field, transforms, 0)
+			slow := bruteForceRepeat(field, transforms, 0)
+			for i := 0; i < 5000; i++ {
+				p := vector3.New(rng.Float64()*16-8, rng.Float64()*16-8, rng.Float64()*16-8)
+				assert.InDelta(t, slow(p), fast(p), 1e-9)
+			}
+		})
+	}
+}
+
+func TestRepeatLeavesOutCopiesScaledToNothing(t *testing.T) {
+	sphere := sdf.Sphere(vector3.Zero[float64](), 1)
+	nothing := scaledAt(vector3.New(1., 5., 0.), 0)
+	for _, radius := range []float64{0, 0.1} {
+		transforms := []trs.TRS{nothing}
+		for x := range 10 {
+			transforms = append(transforms, scaledAt(vector3.New(float64(x)*3, 0., 0.), 1))
+		}
+		assert.InDelta(t, -1, sdf.Repeat(sphere, transforms, radius)(vector3.New(3., 0., 0.)), 1e-9)
+		assert.InDelta(t, -1, sdf.Repeat(sphere, transforms[:2], radius)(vector3.Zero[float64]()), 1e-9)
+	}
+	assert.True(t, math.IsInf(sdf.Repeat(sphere, []trs.TRS{nothing}, 0)(vector3.Zero[float64]()), 1))
 }
 
 func TestRepeatEvaluatesFewCopiesNearOne(t *testing.T) {

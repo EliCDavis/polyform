@@ -202,6 +202,10 @@ func (n TerraceFloat1Node) Result(out *nodes.StructOutput[Texture[float64]]) {
 			return v
 		}
 		f := v / step
+		// 0.3/0.1 lands just under 3.
+		if nearest := math.Round(f); math.Abs(f-nearest) < 1e-9 {
+			f = nearest
+		}
 		whole := math.Floor(f)
 		return (whole + scalar.SmoothStep(f-whole, 1-softness, 1)) * step
 	})

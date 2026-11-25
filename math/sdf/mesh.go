@@ -164,6 +164,9 @@ func (f meshField) pseudoNormal(t int, closest vector3.Float64) vector3.Float64 
 
 func (f meshField) distance(v vector3.Float64) float64 {
 	t, closest := f.tree.ClosestPoint(v)
+	if t < 0 {
+		return v.Length()
+	}
 	offset := v.Sub(closest)
 	dist := offset.Length()
 	if offset.Dot(f.pseudoNormal(t, closest)) < 0 {
@@ -197,7 +200,10 @@ func (cn MeshNode) Field(out *nodes.Lifted[sample.Vec3ToFloat]) {
 			return nullField
 		}
 		field, err := Mesh(mesh)
-		out.CaptureError(err)
+		if err != nil {
+			out.CaptureError(err)
+			return nullField
+		}
 		return field
 	})
 }

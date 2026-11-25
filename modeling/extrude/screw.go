@@ -121,10 +121,10 @@ func (snd ScrewNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
 			bottomRight := l + ((ring - 1) * len(line))
 			topLeft := (l - 1) + (ring * len(line))
 			topRight := l + (ring * len(line))
-			if !onAxis[l-1] {
+			if climb != 0 || !onAxis[l-1] {
 				indices = append(indices, bottomRight, bottomLeft, topLeft)
 			}
-			if !onAxis[l] {
+			if climb != 0 || !onAxis[l] {
 				indices = append(indices, topRight, bottomRight, topLeft)
 			}
 		}

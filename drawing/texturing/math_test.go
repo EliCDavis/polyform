@@ -101,6 +101,13 @@ func TestTerraceRoundsDownToWholeSteps(t *testing.T) {
 	assert.InDeltaSlice(t, []float64{0, 0.1, 0.2, -0.1}, row(terraced), 1e-9)
 }
 
+func TestTerraceLeavesWholeStepsWhereTheyAre(t *testing.T) {
+	steps := []float64{-0.7, -0.3, 0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1}
+	terraced, _ := result[float64](texturing.TerraceFloat1Node{Texture: floats(steps...), Step: number(0.1)})
+
+	assert.InDeltaSlice(t, steps, row(terraced), 1e-9)
+}
+
 func TestTerraceSoftnessRampsIntoTheNextStep(t *testing.T) {
 	terraced, _ := result[float64](texturing.TerraceFloat1Node{Texture: floats(0.04, 0.09999, 0.1), Step: number(0.1), Softness: unorm(0.5)})
 

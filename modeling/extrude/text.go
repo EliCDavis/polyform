@@ -127,10 +127,10 @@ func (t Text) MeshZ() (modeling.Mesh, error) {
 }
 
 type textLayout struct {
-	font  *truetype.Font
-	em    fixed.Int26_6
-	scale float64
-	lines [][]placedGlyph
+	font    *truetype.Font
+	em      fixed.Int26_6
+	scale   float64
+	lines   [][]placedGlyph
 	missing []string
 }
 

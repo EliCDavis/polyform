@@ -1,6 +1,7 @@
 package extrude_test
 
 import (
+	"math"
 	"testing"
 
 	"github.com/EliCDavis/polyform/modeling"
@@ -42,6 +43,25 @@ func TestFullTurnLatheFromAxisToAxisIsAClosedSolid(t *testing.T) {
 	cut, err := csg.Subtract(mesh, notch)
 	require.NoError(t, err)
 	assert.NotZero(t, cut.PrimitiveCount())
+}
+
+func TestHelixFromTheAxisHasNoHoles(t *testing.T) {
+	const segments, climb = 256, 3.
+	ramp := nodes.GetNodeOutputPort[modeling.Mesh](&nodes.Struct[extrude.ScrewNode]{
+		Data: extrude.ScrewNode{
+			Line:     nodes.ConstOutput[[]vector3.Float64]{Val: []vector3.Float64{vector3.New(0., 0., 0.), vector3.New(1., 0., 0.)}},
+			Segments: nodes.ConstOutput[int]{Val: segments},
+			Distance: nodes.ConstOutput[float64]{Val: climb},
+		},
+	}, "Out").Value()
+
+	area := 0.
+	for i := range ramp.PrimitiveCount() {
+		area += ramp.Tri(i).Triangle(modeling.PositionAttribute).Area()
+	}
+	pitch := climb / (2 * math.Pi)
+	assert.InDelta(t, math.Pi*(pitch+math.Hypot(1, pitch)), area, 1e-3)
+	assert.Equal(t, 2*segments, ramp.PrimitiveCount())
 }
 
 func TestPartialTurnLatheStaysOpen(t *testing.T) {

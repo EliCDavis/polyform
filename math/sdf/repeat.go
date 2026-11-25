@@ -15,6 +15,7 @@ import (
 const (
 	boundProbeDistance = 1e5
 	boundProbeCoverage = 0.85
+	boundProbeSlack    = 1e-6
 	repeatLeafSize     = 4
 )
 
@@ -40,7 +41,11 @@ func boundingRadius(field sample.Vec3ToFloat) (float64, bool) {
 	radius := 0.
 	for _, dir := range boundProbeDirections {
 		probe := field(dir.Scale(d))
-		if math.IsNaN(probe) || probe*probe <= uncovered {
+		if !(probe > 0) || probe*probe <= uncovered {
+			return 0, false
+		}
+		// A field growing faster than distance does would put the radius too small.
+		if growth := field(dir.Scale(2*d)) - probe; !(growth <= d+boundProbeSlack) {
 			return 0, false
 		}
 		radius = math.Max(radius, d*c-math.Sqrt(probe*probe-uncovered))
@@ -153,19 +158,22 @@ func (q *repeatQuery) visit(n *repeatNode) {
 }
 
 func Repeat(field sample.Vec3ToFloat, transforms []trs.TRS, radius float64) sample.Vec3ToFloat {
-	if len(transforms) == 0 {
-		return nullField
-	}
-
-	copies := make([]repeatCopy, len(transforms))
-	for i, t := range transforms {
+	copies := make([]repeatCopy, 0, len(transforms))
+	for _, t := range transforms {
 		smallest, largest := minMaxAbs(t.Scale())
-		copies[i] = repeatCopy{
+		if smallest == 0 {
+			continue
+		}
+		copies = append(copies, repeatCopy{
 			inverse: t.Inverse(),
 			center:  t.Position(),
 			factor:  smallest,
 			slope:   smallest / largest,
-		}
+		})
+	}
+
+	if len(copies) == 0 {
+		return nullField
 	}
 
 	if len(copies) == 1 {

@@ -582,20 +582,20 @@ func (s *Struct[T]) Inputs() map[string]InputPort {
 // The key has to name the port the value actually comes from.
 func Identity(port OutputPort) string {
 	source := Source(port)
-	if _, proxy := source.(interface{ CurrentSource() OutputPort }); proxy {
-		return fmt.Sprintf("%p:unset:%d", source.Node(), source.Version())
-	}
-	return fmt.Sprintf("%p:%d", source.Node(), source.Version())
+	return identityAt(source, source.Version())
 }
 
 // A port nothing has evaluated (-1) was not read, so its first value (0) is no change to a consumer.
 func inputIdentity(port OutputPort) string {
 	source := Source(port)
-	version := max(source.Version(), 0)
+	return identityAt(source, max(source.Version(), 0))
+}
+
+func identityAt(source OutputPort, version int) string {
 	if _, proxy := source.(interface{ CurrentSource() OutputPort }); proxy {
-		return fmt.Sprintf("%p:unset:%d", source.Node(), version)
+		return fmt.Sprintf("%p:%s:unset:%d", source.Node(), source.Name(), version)
 	}
-	return fmt.Sprintf("%p:%d", source.Node(), version)
+	return fmt.Sprintf("%p:%s:%d", source.Node(), source.Name(), version)
 }
 
 // Source follows proxies to the port the value comes from; an unset proxy is its own source.

@@ -153,6 +153,14 @@ func TestSliceClampsOutOfRangeBounds(t *testing.T) {
 	assert.Len(t, node.Outputs()["Out"].(nodes.Output[[]vector3.Float64]).Value(), 2)
 }
 
+func TestSliceWithNoEndRunsToTheEnd(t *testing.T) {
+	node := &nodes.Struct[arrays.SliceNode]{}
+	wire(t, node, "Array", vectors(vector3.Zero[float64](), vector3.One[float64](), vector3.One[float64]()))
+	wire(t, node, "Start", nodes.ConstOutput[int]{Val: 1})
+
+	assert.Len(t, node.Outputs()["Out"].(nodes.Output[[]vector3.Float64]).Value(), 2)
+}
+
 func TestSliceEndZeroIsEmpty(t *testing.T) {
 	node := &nodes.Struct[arrays.SliceNode]{}
 	wire(t, node, "Array", vectors(vector3.Zero[float64](), vector3.One[float64]()))

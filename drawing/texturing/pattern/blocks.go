@@ -2,6 +2,7 @@ package pattern
 
 import (
 	"math"
+	"slices"
 
 	"github.com/EliCDavis/polyform/drawing/texturing"
 	"github.com/EliCDavis/polyform/math/norm"
@@ -83,7 +84,39 @@ func (l blockLayout) boundary(j int) float64 {
 	return float64(j) + l.heights[scalar.Modulo(j, l.rows)]
 }
 
-func (l blockLayout) sample(uv vector2.Float64, width, height float64) blockSample {
+func medianStep(count int, at func(i int) vector2.Float64) vector2.Float64 {
+	if count < 2 {
+		return vector2.Zero[float64]()
+	}
+	us, vs := make([]float64, count-1), make([]float64, count-1)
+	for i := range us {
+		step := at(i + 1).Sub(at(i)).Abs()
+		us[i], vs[i] = step.X(), step.Y()
+	}
+	slices.Sort(us)
+	slices.Sort(vs)
+	return vector2.New(us[len(us)/2], vs[len(vs)/2])
+}
+
+// Medians, so the jumps where UVs wrap don't count.
+func pixelsPerUV(uv uvTexture) vector2.Float64 {
+	width, height := uv.Width(), uv.Height()
+	pixels := vector2.New(float64(width), float64(height))
+	if width == 0 || height == 0 {
+		return pixels
+	}
+	across := medianStep(width, func(x int) vector2.Float64 { return uv.Get(x, height/2) })
+	up := medianStep(height, func(y int) vector2.Float64 { return uv.Get(width/2, y) })
+	if perPixel := math.Hypot(across.X(), up.X()); perPixel > 0 {
+		pixels = pixels.SetX(1 / perPixel)
+	}
+	if perPixel := math.Hypot(across.Y(), up.Y()); perPixel > 0 {
+		pixels = pixels.SetY(1 / perPixel)
+	}
+	return pixels
+}
+
+func (l blockLayout) sample(uv, pixels vector2.Float64) blockSample {
 	vt := uv.Y() * float64(l.rows)
 	j := int(math.Floor(vt))
 	switch {
@@ -101,8 +134,8 @@ func (l blockLayout) sample(uv vector2.Float64, width, height float64) blockSamp
 	start, length := l.starts[row][unit], l.lengths[row][unit]
 	left := float64(k - (unit - start))
 
-	pxPerUnit := width / float64(l.units)
-	pxPerRow := height / float64(l.rows)
+	pxPerUnit := pixels.X() / float64(l.units)
+	pxPerRow := pixels.Y() / float64(l.rows)
 	halfW := float64(length) * pxPerUnit / 2
 	halfH := (top - bottom) * pxPerRow / 2
 	px := (x-left)*pxPerUnit - halfW
@@ -121,13 +154,17 @@ func (l blockLayout) sample(uv vector2.Float64, width, height float64) blockSamp
 	}
 }
 
-func (n BlocksNode) blocks(out nodes.ExecutionRecorder, f func(s blockSample, l blockLayout) float64) texturing.Texture[float64] {
+func mapBlocks[T any](out *nodes.StructOutput[texturing.Texture[T]], n BlocksNode, f func(s blockSample, l blockLayout) T) {
+	if n.UV == nil {
+		out.CaptureError(errNoUV)
+		return
+	}
 	uv := nodes.GetOutputValue(out, n.UV)
 	l := n.layout(out)
-	width, height := float64(uv.Width()), float64(uv.Height())
-	return texturing.Map(uv, func(uv vector2.Float64) float64 {
-		return f(l.sample(uv, width, height), l)
-	})
+	pixels := pixelsPerUV(uv)
+	out.Set(texturing.Map(uv, func(uv vector2.Float64) T {
+		return f(l.sample(uv, pixels), l)
+	}))
 }
 
 func (n BlocksNode) layout(out nodes.ExecutionRecorder) blockLayout {
@@ -143,40 +180,16 @@ func (n BlocksNode) layout(out nodes.ExecutionRecorder) blockLayout {
 	)
 }
 
-func requireUV(out nodes.ExecutionRecorder, uv nodes.OutputPort) bool {
-	if uv == nil {
-		out.CaptureError(errNoUV)
-		return false
-	}
-	return true
-}
-
 func (n BlocksNode) Random(out *nodes.StructOutput[texturing.Texture[float64]]) {
-	if !requireUV(out, n.UV) {
-		return
-	}
-	out.Set(n.blocks(out, func(s blockSample, l blockLayout) float64 {
-		return hash01(s.start, s.row, l.seed)
-	}))
+	mapBlocks(out, n, func(s blockSample, l blockLayout) float64 { return hash01(s.start, s.row, l.seed) })
 }
 
 func (n BlocksNode) EdgeDistance(out *nodes.StructOutput[texturing.Texture[float64]]) {
-	if !requireUV(out, n.UV) {
-		return
-	}
-	out.Set(n.blocks(out, func(s blockSample, l blockLayout) float64 { return s.edgeDistance }))
+	mapBlocks(out, n, func(s blockSample, l blockLayout) float64 { return s.edgeDistance })
 }
 
 func (n BlocksNode) LocalUV(out *nodes.StructOutput[uvTexture]) {
-	if !requireUV(out, n.UV) {
-		return
-	}
-	uv := nodes.GetOutputValue(out, n.UV)
-	l := n.layout(out)
-	width, height := float64(uv.Width()), float64(uv.Height())
-	out.Set(texturing.Map(uv, func(uv vector2.Float64) vector2.Float64 {
-		return l.sample(uv, width, height).local
-	}))
+	mapBlocks(out, n, func(s blockSample, l blockLayout) vector2.Float64 { return s.local })
 }
 
 // ============================================================================

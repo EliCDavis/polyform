@@ -49,7 +49,7 @@ func (SplitNode) Description() string {
 }
 
 func (SplitNode) Keywords() []string {
-	return []string{"words", "tokenize"}
+	return []string{"words"}
 }
 
 func (n SplitNode) Out(out *nodes.Lifted[[]string]) {

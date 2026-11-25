@@ -43,3 +43,28 @@ func TestAnInputAnOutputNeverReadDoesNotStaleItWhenFirstEvaluated(t *testing.T) 
 	assert.Equal(t, version, onlyFirst.Version())
 	assert.Equal(t, 1, onlyFirstRuns)
 }
+
+type twoOutputsNode struct{}
+
+func (twoOutputsNode) One(out *nodes.StructOutput[float64]) { out.Set(1) }
+func (twoOutputsNode) Two(out *nodes.StructOutput[float64]) { out.Set(2) }
+
+func TestRewiringToAnotherOutputOfTheSameNodeReadsIt(t *testing.T) {
+	for name, evaluatedFirst := range map[string]bool{"never evaluated": false, "already evaluated": true} {
+		t.Run(name, func(t *testing.T) {
+			source := &nodes.Struct[twoOutputsNode]{}
+			if evaluatedFirst {
+				nodes.GetNodeOutputPort[float64](source, "Two").Value()
+			}
+
+			reader := &nodes.Struct[twoReadersNode]{}
+			first := reader.Inputs()["First"].(nodes.SingleValueInputPort)
+			out := nodes.GetNodeOutputPort[float64](reader, "Only First")
+
+			assert.NoError(t, first.Set(source.Outputs()["One"]))
+			assert.Equal(t, 1., out.Value())
+			assert.NoError(t, first.Set(source.Outputs()["Two"]))
+			assert.Equal(t, 2., out.Value())
+		})
+	}
+}
