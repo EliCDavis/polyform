@@ -171,11 +171,11 @@ func (n GradientColorNode) Gradient(out *nodes.StructOutput[Gradient[Color]]) {
 
 type GradientKeyNode[T any] struct {
 	Value nodes.LiftedPort[T]
-	Time  nodes.LiftedPort[float64]
+	Time  nodes.LiftedPort[float64] `description:"Where the stop lands, 0 to 1."`
 }
 
 func (n GradientKeyNode[T]) Description() string {
-	return "One stop in a gradient: a value and the 0-1 time it lands at."
+	return "One stop in a gradient."
 }
 
 func (n GradientKeyNode[T]) Gradient(out *nodes.Lifted[GradientKey[T]]) {

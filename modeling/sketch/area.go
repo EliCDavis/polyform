@@ -252,7 +252,7 @@ func (SubtractNode) Description() string {
 }
 
 func (SubtractNode) Keywords() []string {
-	return []string{"difference", "boolean"}
+	return []string{"boolean"}
 }
 
 func (n SubtractNode) Out(out *nodes.StructOutput[Area]) {

@@ -100,13 +100,13 @@ func TestSubGraphCreateAndBoundaryPorts(t *testing.T) {
 	require.True(t, ok)
 	err = child.SetBoundaryNodeInfo(inputID, "Position")
 	require.NoError(t, err)
-	require.Equal(t, "Position", input.BoundaryPortName())
+	require.Equal(t, "Position", input.PortName())
 
 	output, ok := outputNode.(*subgraph.OutputNode)
 	require.True(t, ok)
 	err = child.SetBoundaryNodeInfo(outputID, "Result")
 	require.NoError(t, err)
-	require.Equal(t, "Result", output.BoundaryPortName())
+	require.Equal(t, "Result", output.PortName())
 
 	ports, err := inst.CollectBoundaryPorts("test-sub")
 	require.NoError(t, err)
@@ -171,7 +171,7 @@ func TestCreateBoundaryNodeTakesAShortTypeKey(t *testing.T) {
 
 	boundary, ok := subgraph.IsBoundaryNode(child.Node(id))
 	require.True(t, ok)
-	assert.Equal(t, "github.com/EliCDavis/vector/vector3.Vector[float64]", boundary.BoundaryPortType())
+	assert.Equal(t, "github.com/EliCDavis/vector/vector3.Vector[float64]", boundary.PortType())
 }
 
 func TestSubGraphCreateDuplicate(t *testing.T) {

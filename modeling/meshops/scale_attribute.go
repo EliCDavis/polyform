@@ -113,7 +113,7 @@ type ScaleAttribute1DNode struct {
 }
 
 func (n ScaleAttribute1DNode) Description() string {
-	return "Scales one named scalar attribute of a mesh about an origin."
+	return "Scales one named scalar attribute of a mesh."
 }
 
 func (n ScaleAttribute1DNode) Out(out *nodes.Lifted[modeling.Mesh]) {

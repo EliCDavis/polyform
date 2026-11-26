@@ -191,7 +191,7 @@ type TerraceFloat1Node struct {
 }
 
 func (n TerraceFloat1Node) Description() string {
-	return "Rounds every value down to a whole number of steps, turning slopes into flat shelves."
+	return "Rounds every value down to a whole number of steps."
 }
 
 func (n TerraceFloat1Node) Result(out *nodes.StructOutput[Texture[float64]]) {

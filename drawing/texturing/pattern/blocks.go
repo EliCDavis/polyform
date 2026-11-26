@@ -24,7 +24,19 @@ type BlocksNode struct {
 }
 
 func (n BlocksNode) Description() string {
-	return "Courses of blocks of varying length that tile: a random value per block, the UV within it, and the distance in pixels to its edge."
+	return "Tiling courses of blocks of varying length."
+}
+
+func (BlocksNode) RandomDescription() string {
+	return "A value from 0 to 1 per block."
+}
+
+func (BlocksNode) EdgeDistanceDescription() string {
+	return "Distance in pixels to the block's edge."
+}
+
+func (BlocksNode) LocalUVDescription() string {
+	return "0 to 1 across each block."
 }
 
 type blockLayout struct {

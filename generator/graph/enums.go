@@ -328,7 +328,7 @@ func (a *Instance) enumTypeHolders(id string) []string {
 			if members, ok := node.(*EnumMembersNode); ok && members.Table().TypeName() == typeName {
 				held = append(held, "members "+scope.prefix+nodeID)
 			}
-			if boundary, ok := subgraph.IsBoundaryNode(node); ok && boundary.BoundaryPortType() == typeName {
+			if boundary, ok := subgraph.IsBoundaryNode(node); ok && boundary.PortType() == typeName {
 				held = append(held, "port "+scope.prefix+nodeID)
 			}
 		}

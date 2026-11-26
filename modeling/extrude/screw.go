@@ -12,16 +12,16 @@ import (
 )
 
 type ScrewNode struct {
-	Line        nodes.Output[[]vector3.Float64] `description:"Profile swept around the Y axis. On the +X side, running up faces outward and running down faces the axis."`
+	Line        nodes.Output[[]vector3.Float64] `description:"Profile; running up on the +X side faces outward."`
 	Segments    nodes.Output[int]               `description:"Steps the sweep is divided into." default:"20"`
 	Revolutions nodes.Output[float64]           `default:"1"`
-	Distance    nodes.Output[float64]
+	Distance    nodes.Output[float64]           `description:"Rise along Y over the sweep; non-zero gives a helix."`
 	UVs         nodes.Output[primitives.StripUVs]
-	TileSize    nodes.Output[float64]           `description:"World size of one texture repeat. Above 0 it replaces UVs, with a whole number of repeats around each ring."`
+	TileSize    nodes.Output[float64] `description:"World size of one texture repeat; above 0 it replaces UVs."`
 }
 
 func (snd ScrewNode) Description() string {
-	return "Sweeps a profile line around the Y axis. Distance 0 gives a closed round shape; non-zero screws it into a helix."
+	return "Sweeps a profile line around the Y axis."
 }
 
 func (snd ScrewNode) Keywords() []string {

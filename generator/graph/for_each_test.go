@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/EliCDavis/jbtf"
 	"github.com/EliCDavis/polyform/generator/graph"
 	"github.com/EliCDavis/polyform/generator/parameter"
 	"github.com/EliCDavis/polyform/generator/subgraph"
@@ -393,7 +394,7 @@ func TestForEachOverATypeOnlyEverProducedAsAList(t *testing.T) {
 	definition, err := root.SubGraphInstance("read")
 	require.NoError(t, err)
 	in := boundary(t, definition, subgraph.InputNodeTypeKey, "float64", "Item")
-	definition.Node(in).(*subgraph.InputNode).PortType = "github.com/EliCDavis/polyform/generator/graph_test.listOnlyItem"
+	require.NoError(t, definition.Node(in).(*subgraph.InputNode).FromJSON(jbtf.Decoder{}, []byte(`{"portName":"Item","portType":"github.com/EliCDavis/polyform/generator/graph_test.listOnlyItem"}`)))
 	out := boundary(t, definition, subgraph.OutputNodeTypeKey, "float64", "Value")
 	_, value, err := definition.CreateNode("github.com/EliCDavis/polyform/nodes.Struct[github.com/EliCDavis/polyform/generator/graph_test.listOnlyItemValueNode]")
 	require.NoError(t, err)

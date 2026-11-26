@@ -156,7 +156,7 @@ func (r *SubgraphInstanceNode) runCount() (int, error) {
 			continue
 		}
 		fed := r.input(id)
-		if !iterates(boundary.BoundaryPortType(), fed) {
+		if !iterates(boundary.PortType(), fed) {
 			continue
 		}
 		if list, ok := nodes.DynamicArrayValue(nil, fed); ok {

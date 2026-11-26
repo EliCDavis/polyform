@@ -203,7 +203,7 @@ func (a *Instance) CollectBoundaryPorts(subGraphID string) ([]SubgraphBoundaryPo
 	ports := make([]SubgraphBoundaryPort, 0, len(child.boundaryNodes))
 	for id, boundary := range child.boundaryNodes {
 		if isPort(boundary) {
-			ports = append(ports, SubgraphBoundaryPort{ID: id, Name: boundary.BoundaryPortName(), Type: boundary.BoundaryPortType(), Kind: GetBoundaryKind(boundary)})
+			ports = append(ports, SubgraphBoundaryPort{ID: id, Name: boundary.PortName(), Type: boundary.PortType(), Kind: GetBoundaryKind(boundary)})
 		}
 	}
 	return ports, nil

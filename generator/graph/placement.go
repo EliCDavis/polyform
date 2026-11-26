@@ -144,8 +144,8 @@ func (r *SubgraphInstanceNode) signature() (signature string, lifted bool) {
 		if !ok {
 			continue
 		}
-		fed := fedType(boundary.BoundaryPortType(), r.inputs[id])
-		lifted = lifted || fed != boundary.BoundaryPortType()
+		fed := fedType(boundary.PortType(), r.inputs[id])
+		lifted = lifted || fed != boundary.PortType()
 		parts = append(parts, id+":"+fed)
 	}
 	return strings.Join(parts, ";"), lifted
@@ -156,7 +156,7 @@ func (r *SubgraphInstanceNode) Inputs() map[string]nodes.InputPort {
 	ports := make(map[string]nodes.InputPort, len(definition.boundaryNodes))
 	for id := range definition.boundaryNodes {
 		if boundary, ok := definition.inputPort(id); ok {
-			ports[id] = subgraphInstanceInputPort{node: r, id: id, label: boundary.BoundaryPortName(), portType: boundary.BoundaryPortType(), description: subgraph.BoundaryPortDescription(boundary)}
+			ports[id] = subgraphInstanceInputPort{node: r, id: id, label: boundary.PortName(), portType: boundary.PortType(), description: boundary.PortDescription()}
 		}
 	}
 	return ports
@@ -172,14 +172,14 @@ func (r *SubgraphInstanceNode) Outputs() map[string]nodes.OutputPort {
 			continue
 		}
 		if each {
-			port := eachOutputPort{node: r, id: id, label: boundary.BoundaryPortName(), portType: boundary.BoundaryPortType(), description: boundary.PortDescription}
+			port := eachOutputPort{node: r, id: id, label: boundary.PortName(), portType: boundary.PortType(), description: boundary.PortDescription()}
 			ports[id] = port
 			if builder, found := nodes.LookupPortTypeDynamicArray(r.itemType(id, port.portType)); found {
 				ports[id] = builder.BuildDynamicArrayOutput(port)
 			}
 			continue
 		}
-		port := subgraphInstanceOutputPort{node: r, id: id, label: boundary.BoundaryPortName(), portType: boundary.BoundaryPortType(), description: boundary.PortDescription}
+		port := subgraphInstanceOutputPort{node: r, id: id, label: boundary.PortName(), portType: boundary.PortType(), description: boundary.PortDescription()}
 		ports[id] = port
 		if builder, found := nodes.LookupPortTypeProxy(port.Type()); found {
 			ports[id] = builder.BuildProxyOutput(port)

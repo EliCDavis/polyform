@@ -411,8 +411,8 @@ func TestSubGraphBoundaryInfoUpdate(t *testing.T) {
 	node := child.Node(createResp.NodeID)
 	input, ok := node.(*subgraph.InputNode)
 	require.True(t, ok)
-	assert.Equal(t, "Scale", input.BoundaryPortName())
-	assert.Equal(t, "float64", input.BoundaryPortType())
+	assert.Equal(t, "Scale", input.PortName())
+	assert.Equal(t, "float64", input.PortType())
 }
 
 func TestScopedSubGraphNoteMetadata(t *testing.T) {

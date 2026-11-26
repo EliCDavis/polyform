@@ -287,7 +287,7 @@ func (cn AbsNode) Out(out *nodes.Lifted[float64]) {
 
 type ModuloNode[T int | float64] struct {
 	A nodes.LiftedPort[T]
-	B nodes.LiftedPort[T] `description:"The divisor. Zero gives zero rather than NaN."`
+	B nodes.LiftedPort[T] `description:"The divisor; zero gives zero."`
 }
 
 func (cn ModuloNode[T]) Description() string {
@@ -295,7 +295,7 @@ func (cn ModuloNode[T]) Description() string {
 }
 
 func (cn ModuloNode[T]) Keywords() []string {
-	return []string{"mod", "remainder"}
+	return []string{"%", "wrap"}
 }
 
 func (cn ModuloNode[T]) Out(out *nodes.Lifted[T]) {

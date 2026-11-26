@@ -219,7 +219,7 @@ func (a *Graph) givenNodeName(node nodes.Node) string {
 	}
 	if boundary, ok := subgraph.IsInputBoundary(node); ok {
 		if subgraph.BoundaryPortNameConfigured(boundary) {
-			return boundary.BoundaryPortName()
+			return boundary.PortName()
 		}
 		return ""
 	}

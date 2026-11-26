@@ -109,8 +109,8 @@ type CylinderProjectUVNode struct {
 	Mesh   nodes.LiftedPort[modeling.Mesh]
 	Axis   nodes.LiftedPort[vector3.Float64] `description:"Direction the cylinder runs along." default:"0,1,0"`
 	Center nodes.LiftedPort[vector3.Float64] `description:"A point on the axis."`
-	Around nodes.LiftedPort[float64]         `description:"Texture repeats once around the circumference this many times." default:"1"`
-	Height nodes.LiftedPort[float64]         `description:"World length of one texture repeat along the axis, and across the caps, in meters." default:"1"`
+	Around nodes.LiftedPort[float64]         `description:"Texture repeats around the circumference." default:"1"`
+	Height nodes.LiftedPort[float64]         `description:"World length of one repeat along the axis and caps." default:"1"`
 }
 
 func (CylinderProjectUVNode) Description() string {

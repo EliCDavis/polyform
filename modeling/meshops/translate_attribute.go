@@ -48,7 +48,7 @@ type TranslateAttribute3DNode struct {
 }
 
 func (ta3dn TranslateAttribute3DNode) Description() string {
-	return "Moves one named vector attribute of a mesh by an offset."
+	return "Offsets the 3D attribute of a mesh."
 }
 
 func (ta3dn TranslateAttribute3DNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
@@ -110,7 +110,7 @@ type TranslateAttribute1DNode struct {
 }
 
 func (n TranslateAttribute1DNode) Description() string {
-	return "Offsets one named scalar attribute of a mesh."
+	return "Offsets the 1D attribute of a mesh."
 }
 
 func (n TranslateAttribute1DNode) Out(out *nodes.Lifted[modeling.Mesh]) {
@@ -124,7 +124,7 @@ type TranslateAttribute2DNode struct {
 }
 
 func (n TranslateAttribute2DNode) Description() string {
-	return "Moves one named 2D attribute of a mesh by an offset."
+	return "Offsets the 2D attribute of a mesh."
 }
 
 func (n TranslateAttribute2DNode) Out(out *nodes.Lifted[modeling.Mesh]) {
@@ -138,7 +138,7 @@ type TranslateAttribute4DNode struct {
 }
 
 func (n TranslateAttribute4DNode) Description() string {
-	return "Moves one named 4D attribute of a mesh by an offset."
+	return "Offsets the 4D attribute of a mesh."
 }
 
 func (n TranslateAttribute4DNode) Out(out *nodes.Lifted[modeling.Mesh]) {

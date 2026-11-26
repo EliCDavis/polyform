@@ -350,7 +350,7 @@ func (n TextNode) Width(out *nodes.Lifted[float64]) {
 }
 
 func (TextNode) WidthDescription() string {
-	return "Width of the text's ink, without building the mesh."
+	return "Width of the text's geometry."
 }
 
 func (n TextNode) Lines(out *nodes.Lifted[int]) {

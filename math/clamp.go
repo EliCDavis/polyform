@@ -35,7 +35,7 @@ type SmoothStepNode struct {
 }
 
 func (SmoothStepNode) Description() string {
-	return "Eases from 0 at From to 1 at To along a smooth S-curve."
+	return "Eases from 0 at From to 1 at To along an S-curve."
 }
 
 func (n SmoothStepNode) Out(out *nodes.Lifted[float64]) {
