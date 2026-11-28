@@ -16,8 +16,11 @@ const (
 
 type Boundary interface {
 	nodes.Node
-	BoundaryPortName() string
-	BoundaryPortType() string
+	PortName() string
+	PortType() string
+	PortDescription() string
+	SetPortName(name string)
+	SetPortDescription(description string)
 }
 
 type InputBoundary interface {
@@ -41,13 +44,15 @@ func IsInputBoundary(node nodes.Node) (InputBoundary, bool) {
 }
 
 type boundaryData struct {
-	PortName string `json:"portName"`
-	PortType string `json:"portType"`
+	PortName        string `json:"portName"`
+	PortType        string `json:"portType"`
+	PortDescription string `json:"portDescription,omitempty"`
 }
 
 type InputNode struct {
-	PortName string
-	PortType string
+	portName        string
+	portType        string
+	portDescription string
 
 	external    External
 	defaultPort *inputNodeDefaultPort
@@ -56,8 +61,8 @@ type InputNode struct {
 
 func NewInputNode(portName, portType string) *InputNode {
 	n := &InputNode{
-		PortName: portName,
-		PortType: portType,
+		portName: portName,
+		portType: portType,
 	}
 	n.defaultPort = &inputNodeDefaultPort{node: n}
 	return n
@@ -65,11 +70,23 @@ func NewInputNode(portName, portType string) *InputNode {
 
 func NewOutputNode(portName, portType string) *OutputNode {
 	n := &OutputNode{
-		PortName: portName,
-		PortType: portType,
+		portName: portName,
+		portType: portType,
 	}
 	n.inputPort = &outputNodeInputPort{node: n}
 	return n
+}
+
+func (n *InputNode) Copy() *InputNode {
+	copied := NewInputNode(n.portName, n.portType)
+	copied.portDescription = n.portDescription
+	return copied
+}
+
+func (n *OutputNode) Copy() *OutputNode {
+	copied := NewOutputNode(n.portName, n.portType)
+	copied.portDescription = n.portDescription
+	return copied
 }
 
 func ConfigureBoundaryPortType(boundary Boundary, portType string) error {
@@ -79,15 +96,15 @@ func ConfigureBoundaryPortType(boundary Boundary, portType string) error {
 	}
 	switch n := boundary.(type) {
 	case *InputNode:
-		if n.PortType != "" && n.PortType != portType {
+		if n.portType != "" && n.portType != portType {
 			return fmt.Errorf("boundary port type cannot be changed")
 		}
-		n.PortType = portType
+		n.portType = portType
 	case *OutputNode:
-		if n.PortType != "" && n.PortType != portType {
+		if n.portType != "" && n.portType != portType {
 			return fmt.Errorf("boundary port type cannot be changed")
 		}
-		n.PortType = portType
+		n.portType = portType
 	default:
 		return fmt.Errorf("node is not a sub-graph boundary node")
 	}
@@ -97,23 +114,35 @@ func ConfigureBoundaryPortType(boundary Boundary, portType string) error {
 func BoundaryPortNameConfigured(boundary Boundary) bool {
 	switch n := boundary.(type) {
 	case *InputNode:
-		return strings.TrimSpace(n.PortName) != ""
+		return strings.TrimSpace(n.portName) != ""
 	case *OutputNode:
-		return strings.TrimSpace(n.PortName) != ""
+		return strings.TrimSpace(n.portName) != ""
 	default:
 		return false
 	}
 }
 
-func (n *InputNode) BoundaryPortName() string {
-	if n.PortName == "" {
+func (n *InputNode) PortName() string {
+	if n.portName == "" {
 		return "Input"
 	}
-	return n.PortName
+	return n.portName
 }
 
-func (n *InputNode) BoundaryPortType() string {
-	return n.PortType
+func (n *InputNode) PortType() string {
+	return n.portType
+}
+
+func (n *InputNode) PortDescription() string {
+	return n.portDescription
+}
+
+func (n *InputNode) SetPortName(name string) {
+	n.portName = name
+}
+
+func (n *InputNode) SetPortDescription(description string) {
+	n.portDescription = description
 }
 
 func ArrayOf(portType string) string {
@@ -143,7 +172,7 @@ func effectivePortType(declared string, source nodes.OutputPort) string {
 }
 
 func (n *InputNode) EffectiveType() string {
-	return effectivePortType(n.PortType, n.source())
+	return effectivePortType(n.portType, n.source())
 }
 
 func (n *InputNode) source() nodes.OutputPort {
@@ -156,7 +185,7 @@ func (n *InputNode) source() nodes.OutputPort {
 }
 
 func (n *InputNode) Name() string {
-	return n.BoundaryPortName()
+	return n.PortName()
 }
 
 func (n *InputNode) ReadFrom(external External) {
@@ -179,8 +208,9 @@ func (n *InputNode) Outputs() map[string]nodes.OutputPort {
 
 func (n *InputNode) ToJSON(encoder *jbtf.Encoder) ([]byte, error) {
 	return json.Marshal(boundaryData{
-		PortName: n.PortName,
-		PortType: n.PortType,
+		PortName:        n.portName,
+		PortType:        n.portType,
+		PortDescription: n.portDescription,
 	})
 }
 
@@ -189,8 +219,9 @@ func (n *InputNode) FromJSON(decoder jbtf.Decoder, body []byte) error {
 	if err := json.Unmarshal(body, &data); err != nil {
 		return err
 	}
-	n.PortName = data.PortName
-	n.PortType = data.PortType
+	n.portName = data.PortName
+	n.portType = data.PortType
+	n.portDescription = data.PortDescription
 	return nil
 }
 
@@ -250,7 +281,7 @@ func (p *inputNodeDefaultPort) Type() string {
 }
 
 func (p *inputNodeDefaultPort) AcceptedTypes() []string {
-	return AcceptedBoundaryTypes(p.node.PortType)
+	return AcceptedBoundaryTypes(p.node.portType)
 }
 
 func (p *inputNodeDefaultPort) Clear() {
@@ -271,29 +302,42 @@ func (p *inputNodeDefaultPort) Set(port nodes.OutputPort) error {
 }
 
 type OutputNode struct {
-	PortName string
-	PortType string
+	portName        string
+	portType        string
+	portDescription string
 
 	inputPort *outputNodeInputPort
 }
 
-func (n *OutputNode) BoundaryPortName() string {
-	if n.PortName == "" {
+func (n *OutputNode) PortName() string {
+	if n.portName == "" {
 		return "Output"
 	}
-	return n.PortName
+	return n.portName
 }
 
-func (n *OutputNode) BoundaryPortType() string {
-	return n.PortType
+func (n *OutputNode) PortType() string {
+	return n.portType
+}
+
+func (n *OutputNode) PortDescription() string {
+	return n.portDescription
+}
+
+func (n *OutputNode) SetPortName(name string) {
+	n.portName = name
+}
+
+func (n *OutputNode) SetPortDescription(description string) {
+	n.portDescription = description
 }
 
 func (n *OutputNode) EffectiveType() string {
-	return effectivePortType(n.PortType, n.inputPort.Value())
+	return effectivePortType(n.portType, n.inputPort.Value())
 }
 
 func (n *OutputNode) Name() string {
-	return n.BoundaryPortName()
+	return n.PortName()
 }
 
 func (n *OutputNode) Inputs() map[string]nodes.InputPort {
@@ -312,8 +356,9 @@ func (n *OutputNode) ConnectedSource() nodes.OutputPort {
 
 func (n *OutputNode) ToJSON(encoder *jbtf.Encoder) ([]byte, error) {
 	return json.Marshal(boundaryData{
-		PortName: n.PortName,
-		PortType: n.PortType,
+		PortName:        n.portName,
+		PortType:        n.portType,
+		PortDescription: n.portDescription,
 	})
 }
 
@@ -322,8 +367,9 @@ func (n *OutputNode) FromJSON(decoder jbtf.Decoder, body []byte) error {
 	if err := json.Unmarshal(body, &data); err != nil {
 		return err
 	}
-	n.PortName = data.PortName
-	n.PortType = data.PortType
+	n.portName = data.PortName
+	n.portType = data.PortType
+	n.portDescription = data.PortDescription
 	return nil
 }
 
@@ -345,7 +391,7 @@ func (p *outputNodeInputPort) Type() string {
 }
 
 func (p *outputNodeInputPort) AcceptedTypes() []string {
-	return AcceptedBoundaryTypes(p.node.PortType)
+	return AcceptedBoundaryTypes(p.node.portType)
 }
 
 func (p *outputNodeInputPort) Clear() {

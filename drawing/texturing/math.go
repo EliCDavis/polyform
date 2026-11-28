@@ -4,6 +4,8 @@ import (
 	"math"
 
 	"github.com/EliCDavis/polyform/drawing/coloring"
+	"github.com/EliCDavis/polyform/math/norm"
+	"github.com/EliCDavis/polyform/math/scalar"
 	"github.com/EliCDavis/polyform/nodes"
 )
 
@@ -117,7 +119,7 @@ func (n RemapFloat1Node) Result(out *nodes.StructOutput[Texture[float64]]) {
 			t = (v - inMin) / span
 		}
 		if clamp {
-			t = math.Min(math.Max(t, 0), 1)
+			t = scalar.Clamp(t, 0, 1)
 		}
 		return outMin + t*(outMax-outMin)
 	})
@@ -138,7 +140,7 @@ func (n ClampFloat1Node) Description() string {
 func (n ClampFloat1Node) Result(out *nodes.StructOutput[Texture[float64]]) {
 	lo, hi := nodes.GetOutputValue(out, n.Min), nodes.GetOutputValue(out, n.Max)
 	mapTex(out, n.Texture, func(v float64) float64 {
-		return math.Min(math.Max(v, lo), hi)
+		return scalar.Clamp(v, lo, hi)
 	})
 }
 
@@ -174,15 +176,38 @@ func (n SmoothstepFloat1Node) Description() string {
 
 func (n SmoothstepFloat1Node) Result(out *nodes.StructOutput[Texture[float64]]) {
 	lo, hi := nodes.GetOutputValue(out, n.Low), nodes.GetOutputValue(out, n.High)
+	hi = max(lo, hi)
 	mapTex(out, n.Texture, func(v float64) float64 {
-		if hi <= lo {
-			if v < lo {
-				return 0
-			}
-			return 1
+		return scalar.SmoothStep(v, lo, hi)
+	})
+}
+
+// ============================================================================
+
+type TerraceFloat1Node struct {
+	Texture  nodes.Output[Texture[float64]]
+	Step     nodes.Output[float64]       `description:"Height of each step." default:"0.1"`
+	Softness nodes.Output[norm.UFloat64] `description:"Share of each step that ramps up to the next."`
+}
+
+func (n TerraceFloat1Node) Description() string {
+	return "Rounds every value down to a whole number of steps."
+}
+
+func (n TerraceFloat1Node) Result(out *nodes.StructOutput[Texture[float64]]) {
+	step := nodes.GetOutputValue(out, n.Step)
+	softness := nodes.GetOutputValue(out, n.Softness).Value()
+	mapTex(out, n.Texture, func(v float64) float64 {
+		if step <= 0 {
+			return v
 		}
-		t := math.Min(math.Max((v-lo)/(hi-lo), 0), 1)
-		return t * t * (3 - 2*t)
+		f := v / step
+		// 0.3/0.1 lands just under 3.
+		if nearest := math.Round(f); math.Abs(f-nearest) < 1e-9 {
+			f = nearest
+		}
+		whole := math.Floor(f)
+		return (whole + scalar.SmoothStep(f-whole, 1-softness, 1)) * step
 	})
 }
 

@@ -3,6 +3,7 @@ package arrays_test
 import (
 	"testing"
 
+	"github.com/EliCDavis/polyform/math/geometry"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/primitives"
 	"github.com/EliCDavis/polyform/nodes"
@@ -53,6 +54,22 @@ func TestIndexReadsAnElementOfAnyType(t *testing.T) {
 	typed, ok := out.(nodes.Output[vector3.Float64])
 	require.True(t, ok, "the element port really is an Output[vector3.Float64], got %T", out)
 	assert.Equal(t, b, typed.Value())
+}
+
+func TestIndexedLineReachesALiftedConsumer(t *testing.T) {
+	lines := &nodes.Struct[geometry.LinesFromPoints3DNode]{}
+	wire(t, lines, "Points", vectors(vector3.New(0., 0., 0.), vector3.New(2., 0., 0.), vector3.New(2., 0., 4.)))
+	wire(t, lines, "Closed", nodes.ConstOutput[bool]{Val: true})
+
+	index := &nodes.Struct[arrays.IndexNode]{}
+	wire(t, index, "Array", lines.Outputs()["Line Strips"])
+	wire(t, index, "Index", nodes.ConstOutput[int]{Val: 1})
+
+	position := &nodes.Struct[geometry.PositionOnLine3DNode]{}
+	wire(t, position, "Line", index.Outputs()["Out"])
+	wire(t, position, "Time", nodes.ConstOutput[float64]{Val: 0.5})
+
+	assert.Equal(t, vector3.New(2., 0., 2.), nodes.GetNodeOutputPort[vector3.Float64](position, "Positions").Value())
 }
 
 func TestIndexCountsBackFromTheEnd(t *testing.T) {
@@ -114,6 +131,19 @@ func TestSliceAndReverseKeepTheArrayType(t *testing.T) {
 	}, reverse.Outputs()["Out"].(nodes.Output[[]vector3.Float64]).Value())
 }
 
+func TestRotateWrapsElementsAround(t *testing.T) {
+	values := vectors(vector3.New(1., 0., 0.), vector3.New(2., 0., 0.), vector3.New(3., 0., 0.))
+	rotated := func(by int) []vector3.Float64 {
+		node := &nodes.Struct[arrays.RotateNode]{}
+		wire(t, node, "Array", values)
+		wire(t, node, "By", nodes.ConstOutput[int]{Val: by})
+		return node.Outputs()["Out"].(nodes.Output[[]vector3.Float64]).Value()
+	}
+	assert.Equal(t, []vector3.Float64{vector3.New(2., 0., 0.), vector3.New(3., 0., 0.), vector3.New(1., 0., 0.)}, rotated(1))
+	assert.Equal(t, []vector3.Float64{vector3.New(3., 0., 0.), vector3.New(1., 0., 0.), vector3.New(2., 0., 0.)}, rotated(-1))
+	assert.Equal(t, []vector3.Float64{vector3.New(2., 0., 0.), vector3.New(3., 0., 0.), vector3.New(1., 0., 0.)}, rotated(4))
+}
+
 func TestSliceClampsOutOfRangeBounds(t *testing.T) {
 	node := &nodes.Struct[arrays.SliceNode]{}
 	wire(t, node, "Array", vectors(vector3.Zero[float64](), vector3.One[float64]()))
@@ -121,6 +151,23 @@ func TestSliceClampsOutOfRangeBounds(t *testing.T) {
 	wire(t, node, "End", nodes.ConstOutput[int]{Val: 99})
 
 	assert.Len(t, node.Outputs()["Out"].(nodes.Output[[]vector3.Float64]).Value(), 2)
+}
+
+func TestSliceWithNoEndRunsToTheEnd(t *testing.T) {
+	node := &nodes.Struct[arrays.SliceNode]{}
+	wire(t, node, "Array", vectors(vector3.Zero[float64](), vector3.One[float64](), vector3.One[float64]()))
+	wire(t, node, "Start", nodes.ConstOutput[int]{Val: 1})
+
+	assert.Len(t, node.Outputs()["Out"].(nodes.Output[[]vector3.Float64]).Value(), 2)
+}
+
+func TestSliceEndZeroIsEmpty(t *testing.T) {
+	node := &nodes.Struct[arrays.SliceNode]{}
+	wire(t, node, "Array", vectors(vector3.Zero[float64](), vector3.One[float64]()))
+	wire(t, node, "Start", nodes.ConstOutput[int]{Val: 0})
+	wire(t, node, "End", nodes.ConstOutput[int]{Val: 0})
+
+	assert.Empty(t, node.Outputs()["Out"].(nodes.Output[[]vector3.Float64]).Value())
 }
 
 func TestFromElementsCollectsIndividualPortsIntoAnArray(t *testing.T) {

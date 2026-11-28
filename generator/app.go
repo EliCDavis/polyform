@@ -613,6 +613,43 @@ func (a *App) Run(args []string) error {
 			},
 		},
 		{
+			Name:        "Coverage",
+			Description: "Report which registered node types the graphs under a folder use",
+			Aliases:     []string{"coverage"},
+			Flags: []cli.Flag{
+				&cli.StringFlag{
+					Name:        "folder",
+					Description: "Folder searched recursively for graph files",
+					Required:    true,
+				},
+				&cli.StringFlag{
+					Name:        "baseline",
+					Description: "Optional folder of graphs already covered; ranks folder's graphs by the types they add",
+				},
+			},
+			Run: func(appState *cli.RunState) error {
+				report, err := NodeCoverage(registry.Types(), appState.String("folder"))
+				if err != nil {
+					return err
+				}
+
+				baselineFolder := appState.String("baseline")
+				if baselineFolder == "" {
+					return report.WriteMarkdown(appState.Out)
+				}
+
+				baseline, err := NodeCoverage(registry.Types(), baselineFolder)
+				if err != nil {
+					return err
+				}
+				if err := baseline.WriteMarkdown(appState.Out); err != nil {
+					return err
+				}
+				covered := baseline.Used()
+				return WriteAdditionsMarkdown(appState.Out, len(covered), len(baseline.Usage), report.RankAdditions(covered, 10))
+			},
+		},
+		{
 			Name:        "Help",
 			Description: "",
 			Aliases:     []string{"help", "h"},

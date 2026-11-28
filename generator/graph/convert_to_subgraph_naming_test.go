@@ -1,6 +1,7 @@
 package graph_test
 
 import (
+	"fmt"
 	"maps"
 	"slices"
 	"testing"
@@ -196,8 +197,8 @@ func TestRenameBoundaryPorts_NamesTradePlacesAndInstancesFollow(t *testing.T) {
 
 	require.NoError(t, child.RenameBoundaryPorts(map[string]string{a: "B", b: "A"}))
 
-	assert.Equal(t, "B", child.Node(a).(*subgraph.InputNode).PortName)
-	assert.Equal(t, "A", child.Node(b).(*subgraph.InputNode).PortName)
+	assert.Equal(t, "B", child.Node(a).(*subgraph.InputNode).PortName())
+	assert.Equal(t, "A", child.Node(b).(*subgraph.InputNode).PortName())
 	fed := inputByLabel(t, inst.Node(placed), "B").(nodes.SingleValueInputPort)
 	assert.Equal(t, param.Outputs()["Value"], fed.Value(), "the wire follows the port it was on")
 }
@@ -218,9 +219,30 @@ func TestRenameBoundaryPorts_RefusesAClashInTheFinalNames(t *testing.T) {
 	err = child.RenameBoundaryPorts(map[string]string{a: "B"})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "would be used by both")
-	assert.Equal(t, "A", child.Node(a).(*subgraph.InputNode).PortName)
+	assert.Equal(t, "A", child.Node(a).(*subgraph.InputNode).PortName())
 
 	err = child.RenameBoundaryPorts(map[string]string{"Node-999": "C"})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "no node exists")
+}
+
+func TestRenameBoundaryPorts_RenamesNothingWhenAnIdIsBad(t *testing.T) {
+	inst := testInstanceForPortNaming(t)
+	require.NoError(t, inst.CreateSubGraph("part", "Part", ""))
+	child, err := inst.SubGraphInstance("part")
+	require.NoError(t, err)
+
+	ids := make([]string, 20)
+	renames := map[string]string{"Node-999": "Z"}
+	for i := range ids {
+		_, ids[i], err = child.CreateBoundaryNode(subgraph.InputNodeTypeKey, "float64")
+		require.NoError(t, err)
+		require.NoError(t, child.SetBoundaryNodeInfo(ids[i], fmt.Sprintf("Old %d", i)))
+		renames[ids[i]] = fmt.Sprintf("New %d", i)
+	}
+
+	require.Error(t, child.RenameBoundaryPorts(renames))
+	for i, id := range ids {
+		assert.Equal(t, fmt.Sprintf("Old %d", i), child.Node(id).(*subgraph.InputNode).PortName())
+	}
 }

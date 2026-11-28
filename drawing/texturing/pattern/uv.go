@@ -5,23 +5,16 @@ import (
 	"math"
 
 	"github.com/EliCDavis/polyform/drawing/texturing"
+	"github.com/EliCDavis/polyform/math/scalar"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/vector/vector2"
 )
-
-func floorMod(a, b int) int {
-	return ((a % b) + b) % b
-}
-
-func fract(v float64) float64 {
-	return v - math.Floor(v)
-}
 
 // Wraps by the whole count so cells keep their identity across a tiled UV seam.
 func cellIndex(coordinate, count float64) int {
 	i := int(math.Floor(coordinate * count))
 	if whole := int(math.Round(count)); whole >= 1 {
-		return floorMod(i, whole)
+		return scalar.Modulo(i, whole)
 	}
 	return i
 }
@@ -36,28 +29,17 @@ func hash01(a, b, seed int) float64 {
 	return float64(h>>11) / float64(uint64(1)<<53)
 }
 
-func smoothstep(edge0, edge1, x float64) float64 {
-	if edge1 <= edge0 {
-		if x < edge0 {
-			return 0
-		}
-		return 1
-	}
-	t := math.Min(math.Max((x-edge0)/(edge1-edge0), 0), 1)
-	return t * t * (3 - 2*t)
-}
-
 func stripe(coordinate, count, width, softness float64) float64 {
-	f := fract(coordinate * count)
+	f := scalar.Fract(coordinate * count)
 	half := width / 2
 	dist := math.Abs(f - half)
 	dist = math.Min(dist, 1-dist)
-	s := softness / 2
-	return 1 - smoothstep(half-s, half+s, dist)
+	s := max(softness, 0) / 2
+	return 1 - scalar.SmoothStep(dist, half-s, half+s)
 }
 
 func triangleWave(t float64) float64 {
-	return 1 - math.Abs(2*fract(t)-1)
+	return 1 - math.Abs(2*scalar.Fract(t)-1)
 }
 
 type uvTexture = texturing.Texture[vector2.Float64]
@@ -98,13 +80,13 @@ func (n CellNode) cells(out nodes.ExecutionRecorder) func(uv vector2.Float64) ce
 	return func(uv vector2.Float64) cell {
 		row := cellIndex(uv.Y(), rows)
 		u := uv.X()
-		if floorMod(row, 2) == 1 {
+		if scalar.Modulo(row, 2) == 1 {
 			u += offset / columns
 		}
 		return cell{
 			column: cellIndex(u, columns),
 			row:    row,
-			local:  vector2.New(fract(u*columns), fract(uv.Y()*rows)),
+			local:  vector2.New(scalar.Fract(u*columns), scalar.Fract(uv.Y()*rows)),
 		}
 	}
 }
@@ -174,7 +156,7 @@ func (n CheckerNode) Value(out *nodes.StructOutput[texturing.Texture[float64]]) 
 	columns := nodes.GetOutputValue(out, n.Columns)
 	rows := nodes.GetOutputValue(out, n.Rows)
 	fromUV(out, n.UV, func(uv vector2.Float64) float64 {
-		return float64(floorMod(cellIndex(uv.X(), columns)+cellIndex(uv.Y(), rows), 2))
+		return float64(scalar.Modulo(cellIndex(uv.X(), columns)+cellIndex(uv.Y(), rows), 2))
 	})
 }
 
@@ -250,13 +232,13 @@ func strandProfile(across, gap float64) float64 {
 func (w weave) sample(u, v float64) weaveSample {
 	period := w.over + w.under
 	column, row := cellIndex(u, w.columns), cellIndex(v, w.rows)
-	localU, localV := fract(u*w.columns), fract(v*w.rows)
+	localU, localV := scalar.Fract(u*w.columns), scalar.Fract(v*w.rows)
 
 	step := 1
-	if w.herringbone > 0 && floorMod(column/w.herringbone, 2) == 1 {
+	if w.herringbone > 0 && scalar.Modulo(column/w.herringbone, 2) == 1 {
 		step = -1
 	}
-	phase := floorMod(column+step*row, period)
+	phase := scalar.Modulo(column+step*row, period)
 
 	uOnTop := phase < w.over
 	var along float64
@@ -301,7 +283,7 @@ func (n WeaveNode) weave(out *nodes.StructOutput[texturing.Texture[float64]], f 
 		over:        max(nodes.GetOutputValue(out, n.Over), 1),
 		under:       max(nodes.GetOutputValue(out, n.Under), 1),
 		herringbone: nodes.GetOutputValue(out, n.Herringbone),
-		gap:         math.Min(math.Max(nodes.GetOutputValue(out, n.Gap), 0), 1),
+		gap:         scalar.Clamp(nodes.GetOutputValue(out, n.Gap), 0, 1),
 	}
 	seed := nodes.GetOutputValue(out, n.Seed)
 	fromUV(out, n.UV, func(uv vector2.Float64) float64 {

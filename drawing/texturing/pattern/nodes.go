@@ -37,6 +37,8 @@ func init() {
 	refutil.RegisterType[nodes.Struct[RectanglesNode[coloring.Color]]](factory)
 
 	refutil.RegisterType[nodes.Struct[CellNode]](factory)
+	refutil.RegisterType[nodes.Struct[BlocksNode]](factory)
+	refutil.RegisterType[nodes.Struct[RehashNode]](factory)
 	refutil.RegisterType[nodes.Struct[StripesNode]](factory)
 	refutil.RegisterType[nodes.Struct[CheckerNode]](factory)
 	refutil.RegisterType[nodes.Struct[CrossedStripesNode]](factory)

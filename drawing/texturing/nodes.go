@@ -38,6 +38,7 @@ func init() {
 	refutil.RegisterType[nodes.Struct[ClampFloat1Node]](factory)
 	refutil.RegisterType[nodes.Struct[PowerFloat1Node]](factory)
 	refutil.RegisterType[nodes.Struct[SmoothstepFloat1Node]](factory)
+	refutil.RegisterType[nodes.Struct[TerraceFloat1Node]](factory)
 	refutil.RegisterType[nodes.Struct[MixFloat1Node]](factory)
 	refutil.RegisterType[nodes.Struct[MixColorNode]](factory)
 

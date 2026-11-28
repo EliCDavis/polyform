@@ -18,6 +18,7 @@ func init() {
 	refutil.RegisterType[nodes.Struct[UnionNode]](factory)
 	refutil.RegisterType[nodes.Struct[IntersectionNode]](factory)
 	refutil.RegisterType[nodes.Struct[SubtractNode]](factory)
+	refutil.RegisterType[nodes.Struct[ContainsNode]](factory)
 	refutil.RegisterType[nodes.Struct[TransformAreaNode]](factory)
 	refutil.RegisterType[nodes.Struct[OffsetNode]](factory)
 	refutil.RegisterType[nodes.Struct[SelectNode]](factory)

@@ -12,8 +12,54 @@ func init() {
 	factory := &refutil.TypeFactory{}
 
 	refutil.RegisterType[nodes.Struct[ConcatNode]](factory)
+	refutil.RegisterType[nodes.Struct[EqualNode]](factory)
+	refutil.RegisterType[nodes.Struct[SplitNode]](factory)
 
 	registry.Register(factory)
+}
+
+type EqualNode struct {
+	A nodes.LiftedPort[string]
+	B nodes.LiftedPort[string]
+}
+
+func (EqualNode) Description() string {
+	return "Whether two strings match exactly."
+}
+
+func (EqualNode) Keywords() []string {
+	return []string{"compare"}
+}
+
+func (n EqualNode) Equal(out *nodes.Lifted[bool]) {
+	nodes.Zip2(out, n.A, n.B, func(a, b string) bool { return a == b })
+}
+
+func (n EqualNode) NotEqual(out *nodes.Lifted[bool]) {
+	nodes.Zip2(out, n.A, n.B, func(a, b string) bool { return a != b })
+}
+
+type SplitNode struct {
+	Text      nodes.LiftedPort[string]
+	Separator nodes.Output[string] `description:"Empty splits at runs of whitespace."`
+}
+
+func (SplitNode) Description() string {
+	return "Cuts a string into the pieces between each separator."
+}
+
+func (SplitNode) Keywords() []string {
+	return []string{"words"}
+}
+
+func (n SplitNode) Out(out *nodes.Lifted[[]string]) {
+	separator := nodes.GetOutputValue(out, n.Separator)
+	nodes.Zip1(out, n.Text, func(text string) []string {
+		if separator == "" {
+			return strings.Fields(text)
+		}
+		return strings.Split(text, separator)
+	})
 }
 
 type ConcatNode struct {

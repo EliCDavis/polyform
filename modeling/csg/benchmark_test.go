@@ -99,8 +99,8 @@ func TestBenchmarkStages(t *testing.T) {
 		splitting := time.Since(mark)
 
 		mark = time.Now()
-		patchesA := patchesOf(halfA.cornerIDs, halfA.onCurve, halfA.touching)
-		patchesB := patchesOf(halfB.cornerIDs, halfB.onCurve, halfB.touching)
+		patchesA := patchesOf(halfA.cornerIDs, halfA.onCurve, halfA.offCurve, halfA.touching)
+		patchesB := patchesOf(halfB.cornerIDs, halfB.onCurve, halfB.offCurve, halfB.touching)
 		grouping := time.Since(mark)
 
 		mark = time.Now()

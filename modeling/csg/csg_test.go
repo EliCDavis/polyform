@@ -143,8 +143,7 @@ func TestFullyNestedSolids(t *testing.T) {
 	assert.InDelta(t, 7., volume(hollow), 1e-9)
 }
 
-// Section 4 never splits coplanar pairs, and section 9 always takes a shared
-// face from the first solid. Two cubes meeting flush exercise both.
+// Section 9 always takes a shared face from the first solid.
 func TestSolidsMeetingOnASharedFace(t *testing.T) {
 	a := cube(vector3.Zero[float64](), 2)
 	b := cube(vector3.New(2., 0., 0.), 2)

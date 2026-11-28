@@ -5,6 +5,7 @@ import (
 
 	"github.com/EliCDavis/polyform/drawing/coloring"
 	"github.com/EliCDavis/polyform/drawing/texturing"
+	"github.com/EliCDavis/polyform/math/norm"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/vector/vector2"
 	"github.com/stretchr/testify/assert"
@@ -16,6 +17,10 @@ func floats(values ...float64) nodes.Output[texturing.Texture[float64]] {
 
 func number(v float64) nodes.Output[float64] {
 	return nodes.ConstOutput[float64]{Val: v}
+}
+
+func unorm(v float64) nodes.Output[norm.UFloat64] {
+	return nodes.ConstOutput[norm.UFloat64]{Val: norm.NewUFloat64(v)}
 }
 
 func result[T, N any](data N) (texturing.Texture[T], []string) {
@@ -88,6 +93,34 @@ func TestTextureMathNodes(t *testing.T) {
 
 	stepped, _ := result[float64](texturing.SmoothstepFloat1Node{Texture: floats(0, 0.5, 1), Low: number(0.25), High: number(0.75)})
 	assert.Equal(t, []float64{0, 0.5, 1}, row(stepped))
+}
+
+func TestTerraceRoundsDownToWholeSteps(t *testing.T) {
+	terraced, _ := result[float64](texturing.TerraceFloat1Node{Texture: floats(0.05, 0.15, 0.29, -0.05), Step: number(0.1)})
+
+	assert.InDeltaSlice(t, []float64{0, 0.1, 0.2, -0.1}, row(terraced), 1e-9)
+}
+
+func TestTerraceLeavesWholeStepsWhereTheyAre(t *testing.T) {
+	steps := []float64{-0.7, -0.3, 0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1}
+	terraced, _ := result[float64](texturing.TerraceFloat1Node{Texture: floats(steps...), Step: number(0.1)})
+
+	assert.InDeltaSlice(t, steps, row(terraced), 1e-9)
+}
+
+func TestTerraceSoftnessRampsIntoTheNextStep(t *testing.T) {
+	terraced, _ := result[float64](texturing.TerraceFloat1Node{Texture: floats(0.04, 0.09999, 0.1), Step: number(0.1), Softness: unorm(0.5)})
+
+	values := row(terraced)
+	assert.InDelta(t, 0., values[0], 1e-9)
+	assert.InDelta(t, 0.1, values[1], 1e-4)
+	assert.InDelta(t, 0.1, values[2], 1e-9)
+}
+
+func TestTerraceWithNoStepPassesValuesThrough(t *testing.T) {
+	terraced, _ := result[float64](texturing.TerraceFloat1Node{Texture: floats(0.37), Step: number(0)})
+
+	assert.Equal(t, []float64{0.37}, row(terraced))
 }
 
 func TestMixUsesTheFactorTextureOverTheAmount(t *testing.T) {

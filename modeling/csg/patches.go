@@ -7,7 +7,7 @@ const patchRayHueristic = 5
 
 // Groups faces sharing an edge off the intersection curve, as lists of face
 // indices. A face on the other solid's surface joins nothing and stands alone.
-func patchesOf(cornerIDs [][3]int, onCurve map[int]bool, touching []bool) [][]int {
+func patchesOf(cornerIDs [][3]int, onCurve map[int]bool, offCurve map[[2]int]bool, touching []bool) [][]int {
 	parent := make([]int, len(cornerIDs))
 	for i := range parent {
 		parent[i] = i
@@ -30,14 +30,14 @@ func patchesOf(cornerIDs [][3]int, onCurve map[int]bool, touching []bool) [][]in
 		}
 		for k := 0; k < 3; k++ {
 			from, to := corners[k], corners[(k+1)%3]
-			if from == to || (onCurve[from] && onCurve[to]) {
-				continue
-			}
 			if from > to {
 				from, to = to, from
 			}
-
 			edge := [2]int{from, to}
+			if from == to || (onCurve[from] && onCurve[to] && !offCurve[edge]) {
+				continue
+			}
+
 			earlierFace, seen := firstFaceOnEdge[edge]
 			if !seen {
 				firstFaceOnEdge[edge] = faceIndex

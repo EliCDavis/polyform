@@ -19,15 +19,15 @@ type stubOutputPort struct {
 	name    string
 }
 
-func (s *stubOutputPort) Node() nodes.Node  { return nil }
-func (s *stubOutputPort) Name() string      { return s.name }
-func (s *stubOutputPort) Version() int      { return s.version }
-func (s *stubOutputPort) Type() string      { return "float64" }
+func (s *stubOutputPort) Node() nodes.Node { return nil }
+func (s *stubOutputPort) Name() string     { return s.name }
+func (s *stubOutputPort) Version() int     { return s.version }
+func (s *stubOutputPort) Type() string     { return "float64" }
 
 func TestInputNodeDefaults(t *testing.T) {
 	n := subgraph.NewInputNode("", "")
-	assert.Equal(t, "Input", n.BoundaryPortName())
-	assert.Equal(t, "", n.BoundaryPortType())
+	assert.Equal(t, "Input", n.PortName())
+	assert.Equal(t, "", n.PortType())
 	assert.Equal(t, "Input", n.Name())
 	assert.Len(t, n.Inputs(), 1)
 	assert.Contains(t, n.Inputs(), subgraph.DefaultPortName)
@@ -37,8 +37,8 @@ func TestInputNodeDefaults(t *testing.T) {
 
 func TestInputNodeCustomPort(t *testing.T) {
 	n := subgraph.NewInputNode("Scale", "float64")
-	assert.Equal(t, "Scale", n.BoundaryPortName())
-	assert.Equal(t, "float64", n.BoundaryPortType())
+	assert.Equal(t, "Scale", n.PortName())
+	assert.Equal(t, "float64", n.PortType())
 
 	out := n.Outputs()[subgraph.ValuePortName]
 	assert.Equal(t, "float64", out.(interface{ Type() string }).Type())
@@ -136,14 +136,13 @@ func TestInputNodeJSONRoundtrip(t *testing.T) {
 	err = restored.FromJSON(decoder, data)
 	require.NoError(t, err)
 
-	assert.Equal(t, "Position", restored.PortName)
-	assert.Equal(t, "github.com/EliCDavis/vector/vector3.Vector[float64]", restored.PortType)
-	assert.Equal(t, "Position", restored.BoundaryPortName())
+	assert.Equal(t, "Position", restored.PortName())
+	assert.Equal(t, "github.com/EliCDavis/vector/vector3.Vector[float64]", restored.PortType())
 }
 
 func TestOutputNodeDefaults(t *testing.T) {
 	n := subgraph.NewOutputNode("", "")
-	assert.Equal(t, "Output", n.BoundaryPortName())
+	assert.Equal(t, "Output", n.PortName())
 	assert.Nil(t, n.Outputs())
 	assert.Len(t, n.Inputs(), 1)
 }
@@ -172,8 +171,8 @@ func TestOutputNodeJSONRoundtrip(t *testing.T) {
 	restored := subgraph.NewOutputNode("", "")
 	require.NoError(t, restored.FromJSON(decoder, data))
 
-	assert.Equal(t, "Mesh", restored.BoundaryPortName())
-	assert.Equal(t, "github.com/EliCDavis/polyform/generator/manifest.Manifest", restored.BoundaryPortType())
+	assert.Equal(t, "Mesh", restored.PortName())
+	assert.Equal(t, "github.com/EliCDavis/polyform/generator/manifest.Manifest", restored.PortType())
 }
 
 func TestIsBoundaryNode(t *testing.T) {
@@ -182,7 +181,7 @@ func TestIsBoundaryNode(t *testing.T) {
 
 	b, ok := subgraph.IsBoundaryNode(input)
 	assert.True(t, ok)
-	assert.Equal(t, "In", b.BoundaryPortName())
+	assert.Equal(t, "In", b.PortName())
 
 	_, ok = subgraph.IsBoundaryNode(output)
 	assert.True(t, ok)
@@ -215,8 +214,41 @@ func TestBoundaryDataJSONShape(t *testing.T) {
 
 	n := subgraph.NewInputNode("", "")
 	require.NoError(t, n.FromJSON(decoder, data))
-	assert.Equal(t, "Foo", n.BoundaryPortName())
-	assert.Equal(t, "int", n.BoundaryPortType())
+	assert.Equal(t, "Foo", n.PortName())
+	assert.Equal(t, "int", n.PortType())
+}
+
+func TestCopyKeepsPortNameTypeAndDescription(t *testing.T) {
+	in := subgraph.NewInputNode("Scale", "float64")
+	in.SetPortDescription("Uniform scale")
+	out := subgraph.NewOutputNode("Mesh", "int")
+	out.SetPortDescription("The result")
+
+	for original, copied := range map[subgraph.Boundary]subgraph.Boundary{in: in.Copy(), out: out.Copy()} {
+		assert.Equal(t, original.PortName(), copied.PortName())
+		assert.Equal(t, original.PortType(), copied.PortType())
+		assert.Equal(t, original.PortDescription(), copied.PortDescription())
+	}
+}
+
+func TestCopyLeavesAnUnnamedBoundaryUnnamed(t *testing.T) {
+	assert.False(t, subgraph.BoundaryPortNameConfigured(subgraph.NewInputNode("", "float64").Copy()))
+	assert.False(t, subgraph.BoundaryPortNameConfigured(subgraph.NewOutputNode("", "float64").Copy()))
+}
+
+func TestCopyDoesNotShareConnections(t *testing.T) {
+	in := subgraph.NewInputNode("Scale", "float64")
+	defaultIn := in.Inputs()[subgraph.DefaultPortName].(nodes.SingleValueInputPort)
+	require.NoError(t, defaultIn.Set(nodes.ConstOutput[float64]{Val: 2}))
+	in.ReadFrom(fed{nodes.ConstOutput[float64]{Val: 3}})
+
+	copied := in.Copy()
+	assert.Nil(t, copied.Inputs()[subgraph.DefaultPortName].(nodes.SingleValueInputPort).Value())
+	assert.Equal(t, 0., copied.Outputs()[subgraph.ValuePortName].(nodes.Output[float64]).Value())
+
+	out := subgraph.NewOutputNode("Result", "float64")
+	require.NoError(t, out.Inputs()[subgraph.ValuePortName].(nodes.SingleValueInputPort).Set(nodes.ConstOutput[float64]{Val: 1}))
+	assert.Nil(t, out.Copy().ConnectedSource())
 }
 
 type fed struct{ port nodes.OutputPort }

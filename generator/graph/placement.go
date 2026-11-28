@@ -144,8 +144,8 @@ func (r *SubgraphInstanceNode) signature() (signature string, lifted bool) {
 		if !ok {
 			continue
 		}
-		fed := fedType(boundary.BoundaryPortType(), r.inputs[id])
-		lifted = lifted || fed != boundary.BoundaryPortType()
+		fed := fedType(boundary.PortType(), r.inputs[id])
+		lifted = lifted || fed != boundary.PortType()
 		parts = append(parts, id+":"+fed)
 	}
 	return strings.Join(parts, ";"), lifted
@@ -156,7 +156,7 @@ func (r *SubgraphInstanceNode) Inputs() map[string]nodes.InputPort {
 	ports := make(map[string]nodes.InputPort, len(definition.boundaryNodes))
 	for id := range definition.boundaryNodes {
 		if boundary, ok := definition.inputPort(id); ok {
-			ports[id] = subgraphInstanceInputPort{node: r, id: id, label: boundary.BoundaryPortName(), portType: boundary.BoundaryPortType()}
+			ports[id] = subgraphInstanceInputPort{node: r, id: id, label: boundary.PortName(), portType: boundary.PortType(), description: boundary.PortDescription()}
 		}
 	}
 	return ports
@@ -172,14 +172,14 @@ func (r *SubgraphInstanceNode) Outputs() map[string]nodes.OutputPort {
 			continue
 		}
 		if each {
-			port := eachOutputPort{node: r, id: id, label: boundary.BoundaryPortName(), portType: boundary.BoundaryPortType()}
+			port := eachOutputPort{node: r, id: id, label: boundary.PortName(), portType: boundary.PortType(), description: boundary.PortDescription()}
 			ports[id] = port
 			if builder, found := nodes.LookupPortTypeDynamicArray(r.itemType(id, port.portType)); found {
 				ports[id] = builder.BuildDynamicArrayOutput(port)
 			}
 			continue
 		}
-		port := subgraphInstanceOutputPort{node: r, id: id, label: boundary.BoundaryPortName(), portType: boundary.BoundaryPortType()}
+		port := subgraphInstanceOutputPort{node: r, id: id, label: boundary.PortName(), portType: boundary.PortType(), description: boundary.PortDescription()}
 		ports[id] = port
 		if builder, found := nodes.LookupPortTypeProxy(port.Type()); found {
 			ports[id] = builder.BuildProxyOutput(port)
@@ -206,10 +206,15 @@ func label(port nodes.Port) string {
 // ============================================================================
 
 type subgraphInstanceInputPort struct {
-	node     *SubgraphInstanceNode
-	id       string
-	label    string
-	portType string
+	node        *SubgraphInstanceNode
+	id          string
+	label       string
+	portType    string
+	description string
+}
+
+func (p subgraphInstanceInputPort) Description() string {
+	return p.description
 }
 
 func (p subgraphInstanceInputPort) Node() nodes.Node {
@@ -261,10 +266,15 @@ func (p subgraphInstanceInputPort) Clear() {
 
 // What a typed proxy handed to consumers reads through.
 type subgraphInstanceOutputPort struct {
-	node     *SubgraphInstanceNode
-	id       string
-	label    string
-	portType string
+	node        *SubgraphInstanceNode
+	id          string
+	label       string
+	portType    string
+	description string
+}
+
+func (p subgraphInstanceOutputPort) Description() string {
+	return p.description
 }
 
 func (p subgraphInstanceOutputPort) Node() nodes.Node {

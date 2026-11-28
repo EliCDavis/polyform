@@ -27,6 +27,12 @@ func init() {
 	refutil.RegisterType[nodes.Struct[Normalize]](factory)
 	refutil.RegisterType[nodes.Struct[NormalizeArray]](factory)
 
+	refutil.RegisterType[nodes.Struct[Length[float64]]](factory)
+	refutil.RegisterType[nodes.Struct[Length[int]]](factory)
+	refutil.RegisterType[nodes.Struct[Distance[float64]]](factory)
+	refutil.RegisterType[nodes.Struct[Distance[int]]](factory)
+	refutil.RegisterType[nodes.Struct[Dot]](factory)
+
 	refutil.RegisterType[nodes.Struct[BoundsNode]](factory)
 
 	registry.Register(factory)

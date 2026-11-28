@@ -106,11 +106,11 @@ func CylinderProjectUV(m modeling.Mesh, center, axis vector3.Float64, around, he
 }
 
 type CylinderProjectUVNode struct {
-	Mesh   nodes.Output[modeling.Mesh]
-	Axis   nodes.Output[vector3.Float64] `description:"Direction the cylinder runs along." default:"0,1,0"`
-	Center nodes.Output[vector3.Float64] `description:"A point on the axis."`
-	Around nodes.Output[float64]         `description:"Texture repeats once around the circumference this many times." default:"1"`
-	Height nodes.Output[float64]         `description:"World length of one texture repeat along the axis, and across the caps, in meters." default:"1"`
+	Mesh   nodes.LiftedPort[modeling.Mesh]
+	Axis   nodes.LiftedPort[vector3.Float64] `description:"Direction the cylinder runs along." default:"0,1,0"`
+	Center nodes.LiftedPort[vector3.Float64] `description:"A point on the axis."`
+	Around nodes.LiftedPort[float64]         `description:"Texture repeats around the circumference." default:"1"`
+	Height nodes.LiftedPort[float64]         `description:"World length of one repeat along the axis and caps." default:"1"`
 }
 
 func (CylinderProjectUVNode) Description() string {
@@ -121,22 +121,17 @@ func (CylinderProjectUVNode) Keywords() []string {
 	return []string{"unwrap"}
 }
 
-func (n CylinderProjectUVNode) Out(out *nodes.StructOutput[modeling.Mesh]) {
-	out.Set(modeling.EmptyMesh(modeling.TriangleTopology))
-	if n.Mesh == nil {
-		return
-	}
-	m := nodes.GetOutputValue(out, n.Mesh)
-	mesh, err := CylinderProjectUV(
-		m,
-		nodes.GetOutputValue(out, n.Center),
-		nodes.GetOutputValue(out, n.Axis),
-		nodes.GetOutputValue(out, n.Around),
-		nodes.GetOutputValue(out, n.Height),
-	)
-	if err != nil {
-		out.CaptureError(err)
-		return
-	}
-	out.Set(mesh)
+func (n CylinderProjectUVNode) Out(out *nodes.Lifted[modeling.Mesh]) {
+	mesh := nodes.LiftedOr(n.Mesh, modeling.EmptyMesh(modeling.TriangleTopology))
+	nodes.Zip5(out, mesh, n.Center, n.Axis, n.Around, n.Height, func(m modeling.Mesh, center, axis vector3.Float64, around, height float64) modeling.Mesh {
+		if m.AttributeLength() == 0 {
+			return m
+		}
+		mesh, err := CylinderProjectUV(m, center, axis, around, height)
+		if err != nil {
+			out.CaptureError(err)
+			return modeling.EmptyMesh(modeling.TriangleTopology)
+		}
+		return mesh
+	})
 }

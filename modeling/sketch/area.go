@@ -47,6 +47,23 @@ func (a Area) Size() float64 {
 	return total
 }
 
+func (a Area) Centroid() vector2.Float64 {
+	var sum vector2.Float64
+	twiceArea := 0.
+	for _, loop := range a.Loops() {
+		for i, p := range loop {
+			q := loop[(i+1)%len(loop)]
+			cross := p.X()*q.Y() - q.X()*p.Y()
+			twiceArea += cross
+			sum = sum.Add(p.Add(q).Scale(cross))
+		}
+	}
+	if twiceArea == 0 {
+		return vector2.Zero[float64]()
+	}
+	return sum.Scale(1 / (3 * twiceArea))
+}
+
 func (a Area) Transform(translation vector2.Float64, degrees float64, scale vector2.Float64) Area {
 	mirrored := scale.X()*scale.Y() < 0
 	move := func(loop []vector2.Float64) []vector2.Float64 {
@@ -231,11 +248,11 @@ type SubtractNode struct {
 }
 
 func (SubtractNode) Description() string {
-	return "Cuts areas out of a base area: holes, notches, the area around other shapes."
+	return "Cuts areas out of a base area."
 }
 
 func (SubtractNode) Keywords() []string {
-	return []string{"difference", "boolean"}
+	return []string{"boolean"}
 }
 
 func (n SubtractNode) Out(out *nodes.StructOutput[Area]) {
@@ -246,6 +263,19 @@ func (n SubtractNode) Out(out *nodes.StructOutput[Area]) {
 	area, err := Subtract(nodes.GetOutputValue(out, n.Base), nodes.GetOutputValues(out, n.Remove)...)
 	out.CaptureError(err)
 	out.Set(area)
+}
+
+type ContainsNode struct {
+	Area  nodes.LiftedPort[Area]
+	Point nodes.LiftedPort[vector2.Float64]
+}
+
+func (ContainsNode) Description() string {
+	return "Whether a point lies in the area, counting outline edges but not hole edges."
+}
+
+func (n ContainsNode) Out(out *nodes.Lifted[bool]) {
+	nodes.Zip2(out, n.Area, n.Point, Area.Contains)
 }
 
 type TransformAreaNode struct {
@@ -316,4 +346,12 @@ func (n SelectNode) Size(out *nodes.Lifted[float64]) {
 
 func (SelectNode) SizeDescription() string {
 	return "The area covered, holes excluded."
+}
+
+func (n SelectNode) Centroid(out *nodes.Lifted[vector2.Float64]) {
+	nodes.Zip1(out, n.Area, Area.Centroid)
+}
+
+func (SelectNode) CentroidDescription() string {
+	return "The center of mass of the area covered."
 }

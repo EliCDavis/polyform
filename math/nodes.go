@@ -5,6 +5,7 @@ import (
 
 	"github.com/EliCDavis/polyform/generator/registry"
 	"github.com/EliCDavis/polyform/math/geometry"
+	"github.com/EliCDavis/polyform/math/scalar"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/refutil"
 	"github.com/EliCDavis/vector"
@@ -16,7 +17,8 @@ func init() {
 
 	refutil.RegisterType[nodes.Struct[RoundNode]](factory)
 	refutil.RegisterType[nodes.Struct[AbsNode]](factory)
-	refutil.RegisterType[nodes.Struct[ModuloNode]](factory)
+	refutil.RegisterType[nodes.Struct[ModuloNode[float64]]](factory)
+	refutil.RegisterType[nodes.Struct[ModuloNode[int]]](factory)
 
 	refutil.RegisterType[nodes.Struct[CircumferenceNode]](factory)
 
@@ -70,6 +72,9 @@ func init() {
 	refutil.RegisterType[nodes.Struct[HypotenuseNode]](factory)
 
 	refutil.RegisterType[nodes.Struct[RemapNode[float64]]](factory)
+	refutil.RegisterType[nodes.Struct[ClampNode[int]]](factory)
+	refutil.RegisterType[nodes.Struct[ClampNode[float64]]](factory)
+	refutil.RegisterType[nodes.Struct[SmoothStepNode]](factory)
 
 	registry.Register(factory)
 }
@@ -256,6 +261,14 @@ func (cn RoundNode) UpDescription() string {
 	return "Ceiling: the smallest whole number not below the input."
 }
 
+func (cn RoundNode) DownInt(out *nodes.Lifted[int]) {
+	nodes.Zip1(out, cn.In, func(v float64) int { return int(math.Floor(v)) })
+}
+
+func (cn RoundNode) UpInt(out *nodes.Lifted[int]) {
+	nodes.Zip1(out, cn.In, func(v float64) int { return int(math.Ceil(v)) })
+}
+
 // ============================================================================
 
 type AbsNode struct {
@@ -272,30 +285,21 @@ func (cn AbsNode) Out(out *nodes.Lifted[float64]) {
 
 // ============================================================================
 
-type ModuloNode struct {
-	A nodes.LiftedPort[float64]
-	B nodes.LiftedPort[float64] `description:"The divisor. Zero gives zero rather than NaN."`
+type ModuloNode[T int | float64] struct {
+	A nodes.LiftedPort[T]
+	B nodes.LiftedPort[T] `description:"The divisor; zero gives zero."`
 }
 
-func (cn ModuloNode) Description() string {
+func (cn ModuloNode[T]) Description() string {
 	return "Remainder of A divided by B, always with B's sign."
 }
 
-func (cn ModuloNode) Keywords() []string {
-	return []string{"mod", "remainder"}
+func (cn ModuloNode[T]) Keywords() []string {
+	return []string{"%", "wrap"}
 }
 
-func (cn ModuloNode) Out(out *nodes.Lifted[float64]) {
-	nodes.Zip2(out, cn.A, cn.B, func(a, b float64) float64 {
-		if b == 0 {
-			return 0
-		}
-		remainder := math.Mod(a, b)
-		if remainder != 0 && (remainder < 0) != (b < 0) {
-			remainder += b
-		}
-		return remainder
-	})
+func (cn ModuloNode[T]) Out(out *nodes.Lifted[T]) {
+	nodes.Zip2(out, cn.A, cn.B, scalar.Modulo[T])
 }
 
 // ============================================================================
@@ -405,16 +409,9 @@ func (n RemapNode[T]) Out(out *nodes.Lifted[T]) {
 			}
 			scaled := ((value - inMin) / (inMax - inMin) * (outMax - outMin)) + outMin
 			if clamped {
-				return clamp(scaled, outMin, outMax)
+				return scalar.Clamp(scaled, min(outMin, outMax), max(outMin, outMax))
 			}
 			return scaled
 		},
 	)
-}
-
-func clamp[T vector.Number](t, minV, maxV T) T {
-	if minV > maxV {
-		minV, maxV = maxV, minV
-	}
-	return min(max(t, minV), maxV)
 }

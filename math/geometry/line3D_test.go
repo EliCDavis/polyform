@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/EliCDavis/polyform/math/geometry"
+	"github.com/EliCDavis/polyform/math/trs"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/polyform/nodes/nodetest"
 	"github.com/EliCDavis/vector/vector3"
@@ -136,6 +137,18 @@ func TestLinesFromPoints3DNodeTakesManyPathsAndClosesThem(t *testing.T) {
 			geometry.LineStripsFromPoints3D(paths[1], true),
 		}),
 	).Run(t)
+}
+
+func TestTrsFromLines3DSitsAtTheMidpointAsDescribed(t *testing.T) {
+	node := &nodes.Struct[geometry.TrsFromLines3DNode]{Data: geometry.TrsFromLines3DNode{
+		Lines:  nodes.ConstOutput[geometry.Line3D]{Val: geometry.NewLine3D(vector3.New(-5., 0., 4.), vector3.New(5., 0., 4.))},
+		ScaleZ: nodes.ConstOutput[bool]{Val: true},
+	}}
+
+	transform := nodes.GetNodeOutputPort[trs.TRS](node, "TRS").Value()
+	assert.Equal(t, vector3.New(0., 0., 4.), transform.Position())
+	assert.InDelta(t, 10, transform.Scale().Z(), 1e-12)
+	assert.Contains(t, node.Description(), "midpoint")
 }
 
 func TestLinesFromPoints3D(t *testing.T) {

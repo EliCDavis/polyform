@@ -9,7 +9,7 @@ import (
 
 // A boundary is a port once it has both a type and a name.
 func isPort(boundary subgraph.Boundary) bool {
-	return boundary.BoundaryPortType() != "" && subgraph.BoundaryPortNameConfigured(boundary)
+	return boundary.PortType() != "" && subgraph.BoundaryPortNameConfigured(boundary)
 }
 
 // inputPort is the input boundary with this id, if it is a port.
@@ -35,7 +35,32 @@ func (a *Graph) RenameBoundaryPorts(names map[string]string) error {
 	return err
 }
 
+func (a *Graph) SetBoundaryPortDescriptions(descriptions map[string]string) error {
+	_, err := a.project.write(refuseConflicts, func() error {
+		for id := range descriptions {
+			if _, ok := subgraph.IsBoundaryNode(a.boundaryNodes[id]); !ok {
+				return fmt.Errorf("node %q is not a sub-graph boundary node", id)
+			}
+		}
+		for id, description := range descriptions {
+			a.boundaryNodes[id].SetPortDescription(strings.TrimSpace(description))
+		}
+		a.dirty()
+		return nil
+	})
+	return err
+}
+
 func (a *Graph) renameBoundaryPorts(names map[string]string) error {
+	for id := range names {
+		if _, exists := a.nodesByID[id]; !exists {
+			return fmt.Errorf("no node exists with id %q", id)
+		}
+		if _, ok := a.boundaryNodes[id]; !ok {
+			return fmt.Errorf("node %q is not a sub-graph boundary node", id)
+		}
+	}
+
 	final := map[BoundaryPortKind]map[string]string{}
 	for id, boundary := range a.boundaryNodes {
 		name, renamed := names[id]
@@ -46,7 +71,7 @@ func (a *Graph) renameBoundaryPorts(names map[string]string) error {
 		case !renamed && !subgraph.BoundaryPortNameConfigured(boundary):
 			continue
 		case !renamed:
-			name = boundary.BoundaryPortName()
+			name = boundary.PortName()
 		}
 		kind := GetBoundaryKind(boundary)
 		if final[kind] == nil {
@@ -59,17 +84,7 @@ func (a *Graph) renameBoundaryPorts(names map[string]string) error {
 	}
 
 	for id, name := range names {
-		if _, exists := a.nodesByID[id]; !exists {
-			return fmt.Errorf("no node exists with id %q", id)
-		}
-		switch boundary := a.boundaryNodes[id].(type) {
-		case *subgraph.InputNode:
-			boundary.PortName = strings.TrimSpace(name)
-		case *subgraph.OutputNode:
-			boundary.PortName = strings.TrimSpace(name)
-		default:
-			return fmt.Errorf("node %q is not a sub-graph boundary node", id)
-		}
+		a.boundaryNodes[id].SetPortName(strings.TrimSpace(name))
 	}
 	a.dirty()
 	return nil

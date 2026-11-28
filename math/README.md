@@ -20,6 +20,10 @@ There are also some general utility functions for building common mappings betwe
     - Sin - Maps a float value to a sin wave with some specified amplitude and frequency.
     - Cos - Maps a float value to a sin wave with some specified amplitude and frequency.
 
+## Scalar
+
+Functions over plain numbers: Clamp, Fract, Modulo and SmoothStep. Imports only the standard library, so anything can import it.
+
 ## Curves
 
 Curves builds off of the sample package. The one restriction it makes is that the input domain is restricted to float values between 0 and 1. This is where more common animation curves reside.

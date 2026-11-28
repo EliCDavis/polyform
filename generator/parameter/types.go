@@ -28,6 +28,7 @@ func init() {
 	refutil.RegisterTypeWithBuilder(factory, func() Float64Array { return Float64Array{} })
 	refutil.RegisterTypeWithBuilder(factory, func() IntArray { return IntArray{} })
 	refutil.RegisterTypeWithBuilder(factory, func() StringArray { return StringArray{} })
+	refutil.RegisterTypeWithBuilder(factory, func() BoolArray { return BoolArray{} })
 	refutil.RegisterTypeWithBuilder(factory, func() Vector2Array { return Vector2Array{} })
 	refutil.RegisterTypeWithBuilder(factory, func() Vector2IntArray { return Vector2IntArray{} })
 	refutil.RegisterTypeWithBuilder(factory, func() Vector3Array { return Vector3Array{} })

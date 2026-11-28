@@ -6,13 +6,69 @@ import (
 
 	"github.com/EliCDavis/iter"
 	"github.com/EliCDavis/polyform/math/quaternion"
+	"github.com/EliCDavis/polyform/math/trs"
 	"github.com/EliCDavis/polyform/modeling"
 	"github.com/EliCDavis/polyform/modeling/csg"
+	"github.com/EliCDavis/polyform/modeling/meshops"
+	"github.com/EliCDavis/polyform/modeling/primitives"
+	"github.com/EliCDavis/polyform/modeling/repeat"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/vector/vector3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestUnionOfABoxAndALyingCylinderIsClosed(t *testing.T) {
+	box := nodes.GetNodeOutputPort[modeling.Mesh](&nodes.Struct[meshops.TransformNode]{Data: meshops.TransformNode{
+		Mesh: nodes.GetNodeOutputPort[modeling.Mesh](&nodes.Struct[primitives.CubeNode]{Data: primitives.CubeNode{
+			Width:  nodes.ConstOutput[float64]{Val: 5},
+			Height: nodes.ConstOutput[float64]{Val: 4.2},
+			Depth:  nodes.ConstOutput[float64]{Val: 3.92},
+		}}, "Out"),
+		TRS: nodes.ConstOutput[trs.TRS]{Val: trs.Position(vector3.New(0., 1.6, 0.))},
+	}}, "Out")
+	arch := nodes.GetNodeOutputPort[modeling.Mesh](&nodes.Struct[meshops.TransformNode]{Data: meshops.TransformNode{
+		Mesh: nodes.GetNodeOutputPort[modeling.Mesh](&nodes.Struct[primitives.CylinderNode]{Data: primitives.CylinderNode{
+			Radius: nodes.ConstOutput[float64]{Val: 2},
+			Height: nodes.ConstOutput[float64]{Val: 5},
+			Sides:  nodes.ConstOutput[int]{Val: 24},
+		}}, "Out"),
+		TRS: nodes.ConstOutput[trs.TRS]{Val: trs.New(
+			vector3.New(0., 3., 0.),
+			quaternion.New(vector3.New(0., 0., math.Sqrt(0.5)), math.Sqrt(0.5)),
+			vector3.One[float64](),
+		)},
+	}}, "Out")
+
+	union := &nodes.Struct[csg.UnionNode]{Data: csg.UnionNode{Meshes: []nodes.Output[modeling.Mesh]{box, arch}}}
+	out := nodes.GetNodeOutputPort[modeling.Mesh](union, "Out")
+	solid := out.Value()
+
+	assert.Empty(t, out.(nodes.ObservableExecution).ExecutionReport().Errors)
+	require.NoError(t, csg.CheckClosed(solid))
+}
+
+func TestCuttersCentredOnACylinderEdgeLeaveAClosedSolid(t *testing.T) {
+	const radius, depth = 2.39, 0.6 * 2.39
+	tower := primitives.Cylinder{Sides: 32, Height: 16.5, Radius: radius}.ToMesh().
+		Translate(vector3.New(0., 8.25, 0.))
+
+	block := primitives.Cube{Width: 0.46, Height: 1, Depth: depth}.UnweldedQuads()
+	arch := primitives.Cylinder{Sides: 16, Height: depth, Radius: 0.23}.ToMesh().
+		Rotate(quaternion.FromTheta(math.Pi/2, vector3.Right[float64]())).
+		Translate(vector3.New(0., 0.5, 0.))
+	slit, err := csg.Union(block, arch)
+	require.NoError(t, err)
+
+	ring := repeat.Mesh(slit.Translate(vector3.New(0., 10., 0.)), repeat.Circle(4, radius, 1))
+	turned := ring.ApplyTRS(trs.Rotation(quaternion.New(vector3.New(0., 0.3826834, 0.), 0.9238795)))
+
+	pierced, err := csg.Subtract(tower, ring)
+	require.NoError(t, err)
+	pierced, err = csg.Subtract(pierced, turned)
+	require.NoError(t, err)
+	require.NoError(t, csg.CheckClosed(pierced))
+}
 
 func TestCheckClosedRejectsAFaceWoundAgainstItsNeighbours(t *testing.T) {
 	indices := iter.ReadFull(cube(vector3.Zero[float64](), 2).Indices())

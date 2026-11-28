@@ -1,6 +1,7 @@
 package geometry
 
 import (
+	"encoding/json"
 	"math"
 
 	"github.com/EliCDavis/polyform/math/quaternion"
@@ -19,6 +20,13 @@ type Line3D struct {
 // NewLine3D create a new line
 func NewLine3D(p1, p2 vector3.Float64) Line3D {
 	return Line3D{p1, p2}
+}
+
+func (l Line3D) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		Start vector3.Float64 `json:"start"`
+		End   vector3.Float64 `json:"end"`
+	}{l.p1, l.p2})
 }
 
 // GetStartPoint returns the starting point of the line segment
@@ -260,7 +268,7 @@ type TrsFromLines3DNode struct {
 }
 
 func (n TrsFromLines3DNode) Description() string {
-	return "Builds a transform per line, positioned at its start and oriented along it."
+	return "Builds a transform per line, positioned at its midpoint and oriented along it."
 }
 
 func (n TrsFromLines3DNode) TRS(out *nodes.Lifted[trs.TRS]) {

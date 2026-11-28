@@ -56,11 +56,11 @@ func (root *Instance) copyDefinition(placement *SubgraphInstanceNode, feed func(
 func (root *Instance) copyNode(original nodes.Node, typeKey string, feed func(id, portType string) subgraph.External, id string) (nodes.Node, error) {
 	switch n := original.(type) {
 	case *subgraph.InputNode:
-		in := subgraph.NewInputNode(n.PortName, n.PortType)
-		in.ReadFrom(feed(id, n.PortType))
+		in := n.Copy()
+		in.ReadFrom(feed(id, n.PortType()))
 		return in, nil
 	case *subgraph.OutputNode:
-		return subgraph.NewOutputNode(n.PortName, n.PortType), nil
+		return n.Copy(), nil
 	case *SubgraphInstanceNode:
 		placed := NewRuntimeNode(root, n.subGraphID)
 		placed.each = n.ForEach()

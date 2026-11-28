@@ -6,13 +6,10 @@ import (
 	"math"
 
 	"github.com/EliCDavis/polyform/drawing/texturing"
+	"github.com/EliCDavis/polyform/math/scalar"
 	"github.com/EliCDavis/polyform/nodes"
 	"github.com/EliCDavis/vector/vector2"
 )
-
-func wrap(i, n int) int {
-	return ((i % n) + n) % n
-}
 
 // Neighbors wrap around the edges, since a height map built for a tiling texture has none.
 func OcclusionFromHeightmap(heightmap HeightMap, radius int, strength float64) texturing.Texture[float64] {
@@ -36,9 +33,9 @@ func OcclusionFromHeightmap(heightmap HeightMap, radius int, strength float64) t
 		h := heightmap.Get(x, y)
 		above := 0.
 		for _, o := range offsets {
-			above += math.Max(heightmap.Get(wrap(x+o.X(), width), wrap(y+o.Y(), height))-h, 0)
+			above += math.Max(heightmap.Get(scalar.Modulo(x+o.X(), width), scalar.Modulo(y+o.Y(), height))-h, 0)
 		}
-		return math.Min(math.Max(1-strength*above/float64(len(offsets)), 0), 1)
+		return scalar.Clamp(1-strength*above/float64(len(offsets)), 0, 1)
 	})
 	return occlusion
 }

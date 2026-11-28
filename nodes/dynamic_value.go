@@ -29,8 +29,8 @@ func readAs[T any](port OutputPort) T {
 	if typed, ok := port.(Output[T]); ok {
 		return typed.Value()
 	}
-	if bare, ok := port.(interface{ AnyValue() any }); ok {
-		if value, ok := bare.AnyValue().(T); ok {
+	if value, ok := dynamicAnyValue(port); ok {
+		if value, ok := value.(T); ok {
 			return value
 		}
 	}
@@ -48,6 +48,9 @@ func dynamicValueMethod(port OutputPort) (reflect.Value, bool) {
 		if bare, ok := port.(interface{ AnyValue() any }); ok {
 			value := reflect.ValueOf(bare.AnyValue())
 			return value, value.IsValid()
+		}
+		if proxy, ok := port.(interface{ CurrentSource() OutputPort }); ok {
+			return dynamicValueMethod(proxy.CurrentSource())
 		}
 		return reflect.Value{}, false
 	}

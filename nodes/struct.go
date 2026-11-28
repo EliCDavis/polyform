@@ -32,7 +32,7 @@ type structOutputCache struct {
 
 type rankMemo struct {
 	generation uint64
-	rank       int
+	rank       liftRank
 }
 
 // While outdated, Version promises the number the next value will carry.
@@ -582,10 +582,20 @@ func (s *Struct[T]) Inputs() map[string]InputPort {
 // The key has to name the port the value actually comes from.
 func Identity(port OutputPort) string {
 	source := Source(port)
+	return identityAt(source, source.Version())
+}
+
+// A port nothing has evaluated (-1) was not read, so its first value (0) is no change to a consumer.
+func inputIdentity(port OutputPort) string {
+	source := Source(port)
+	return identityAt(source, max(source.Version(), 0))
+}
+
+func identityAt(source OutputPort, version int) string {
 	if _, proxy := source.(interface{ CurrentSource() OutputPort }); proxy {
-		return fmt.Sprintf("%p:unset:%d", source.Node(), source.Version())
+		return fmt.Sprintf("%p:%s:unset:%d", source.Node(), source.Name(), version)
 	}
-	return fmt.Sprintf("%p:%d", source.Node(), source.Version())
+	return fmt.Sprintf("%p:%s:%d", source.Node(), source.Name(), version)
 }
 
 // Source follows proxies to the port the value comes from; an unset proxy is its own source.
@@ -630,7 +640,7 @@ func (s *Struct[T]) computeInputVersions() string {
 		case SingleValueInputPort:
 			val := v.Value()
 			if val != nil {
-				builder.WriteString(Identity(val))
+				builder.WriteString(inputIdentity(val))
 			} else {
 				builder.WriteString("nil")
 			}
@@ -640,7 +650,7 @@ func (s *Struct[T]) computeInputVersions() string {
 
 			for _, val := range v.Value() {
 				if val != nil {
-					builder.WriteString(Identity(val))
+					builder.WriteString(inputIdentity(val))
 					builder.WriteString(",")
 				} else {
 					builder.WriteString("nil,")

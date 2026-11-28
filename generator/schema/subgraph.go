@@ -1,14 +1,15 @@
 package schema
 
 type SubGraphPortBoundary struct {
-	PortName string `json:"portName"`
-	PortType string `json:"portType"`
+	PortName    string `json:"portName"`
+	PortType    string `json:"portType"`
+	Description string `json:"description,omitempty"`
 }
 
 type SubGraph struct {
-	Name        string            `json:"name"`
-	Description string            `json:"description,omitempty"`
-	Group       string            `json:"group,omitempty"`
-	Nodes      map[string]Node   `json:"nodes"`
-	Notes       map[string]any    `json:"notes,omitempty"`
+	Name        string          `json:"name"`
+	Description string          `json:"description,omitempty"`
+	Group       string          `json:"group,omitempty"`
+	Nodes       map[string]Node `json:"nodes"`
+	Notes       map[string]any  `json:"notes,omitempty"`
 }

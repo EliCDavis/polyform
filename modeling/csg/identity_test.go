@@ -36,7 +36,8 @@ func TestACutEndpointNearACornerIsThatCornerOnBothSides(t *testing.T) {
 		onCurve := map[int]bool{}
 
 		near := f.verts[0].Add(inward.Scale(gap))
-		pieces, pieceIDs, err := splitFace(f, ids, []geometry.Line3D{geometry.NewLine3D(near, across)}, nil, tolerance, newIDSpace(weld, tolerance), onCurve)
+		offCurve := map[[2]int]bool{}
+		pieces, pieceIDs, err := splitFace(f, ids, []geometry.Line3D{geometry.NewLine3D(near, across)}, nil, tolerance, newIDSpace(weld, tolerance), onCurve, offCurve)
 		require.NoErrorf(t, err, "gap %g", gap)
 		require.Greaterf(t, len(pieces), 1, "gap %g", gap)
 
@@ -49,7 +50,7 @@ func TestACutEndpointNearACornerIsThatCornerOnBothSides(t *testing.T) {
 		}
 
 		touching := make([]bool, len(pieces))
-		assert.Lenf(t, patchesOf(pieceIDs, onCurve, touching), 2, "gap %g: the cut should separate the face", gap)
+		assert.Lenf(t, patchesOf(pieceIDs, onCurve, offCurve, touching), 2, "gap %g: the cut should separate the face", gap)
 	}
 }
 
@@ -72,7 +73,7 @@ func TestANeedleFaceIsStillSplit(t *testing.T) {
 	// are still taller than the tolerance.
 	onCurve := map[int]bool{}
 	cut := geometry.NewLine3D(c.Add(a.Sub(c).Scale(0.95)), c.Add(b.Sub(c).Scale(0.95)))
-	pieces, pieceIDs, err := splitFace(f, ids, []geometry.Line3D{cut}, nil, tolerance, newIDSpace(weld, tolerance), onCurve)
+	pieces, pieceIDs, err := splitFace(f, ids, []geometry.Line3D{cut}, nil, tolerance, newIDSpace(weld, tolerance), onCurve, map[[2]int]bool{})
 	require.NoError(t, err)
 	assert.GreaterOrEqual(t, len(pieces), 2)
 
