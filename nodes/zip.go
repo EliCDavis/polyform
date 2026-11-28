@@ -9,7 +9,7 @@ import (
 
 // []T is checked for first so that a T which is itself a slice still
 // resolves: a port satisfies exactly one of the two interfaces.
-func liftedValues[T any](recorder ExecutionRecorder, port OutputPort) ([]T, int, bool) {
+func liftedValues[T any](recorder ExecutionRecorder, port OutputPort) ([]T, liftRank, bool) {
 	if port == nil {
 		return nil, rankScalar, false
 	}
@@ -42,7 +42,7 @@ func liftedValues[T any](recorder ExecutionRecorder, port OutputPort) ([]T, int,
 // kernel loop does not care what rank it came in at.
 type liftedOperand[T any] struct {
 	values []T
-	rank   int
+	rank   liftRank
 }
 
 func operandOf[T any](recorder ExecutionRecorder, port OutputPort) liftedOperand[T] {
@@ -123,7 +123,7 @@ func describeLengths(lengths []int) string {
 	return out
 }
 
-func finish[R any](out *Lifted[R], rank int, results []R) {
+func finish[R any](out *Lifted[R], rank liftRank, results []R) {
 	if rank == rankScalar {
 		out.rank = rankScalar
 		if len(results) > 0 {
@@ -331,7 +331,7 @@ func operandsOf[A any](recorder ExecutionRecorder, ports []LiftedPort[A]) []lift
 	return operands
 }
 
-func alignOperands[A any](operands []liftedOperand[A]) (int, int, error) {
+func alignOperands[A any](operands []liftedOperand[A]) (int, liftRank, error) {
 	lengths := make([]int, len(operands))
 	rank := rankScalar
 	for i, operand := range operands {

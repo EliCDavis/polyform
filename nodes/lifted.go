@@ -23,9 +23,11 @@ const liftedHandleType = "*nodes.Lifted"
 
 // Never deeper than one: a lifted port's element type is already whatever
 // the author asked for.
+type liftRank uint8
+
 const (
-	rankScalar = 0
-	rankArray  = 1
+	rankScalar liftRank = iota
+	rankArray
 )
 
 func arrayOf(elem string) string {
@@ -34,7 +36,7 @@ func arrayOf(elem string) string {
 
 // An array when any lifted input carries one. No rank is stored anywhere;
 // it falls out of the connections.
-func liftedRank(data any) int {
+func liftedRank(data any) liftRank {
 	if liftedPortsRank(data) == rankArray {
 		return rankArray
 	}
@@ -65,7 +67,7 @@ func liftedRank(data any) int {
 	return rankScalar
 }
 
-func liftedPortsRank(data any) int {
+func liftedPortsRank(data any) liftRank {
 	for field, elem := range refutil.GenericFieldTypes(liftedPortFieldType, data) {
 		port := refutil.FieldValue[OutputPort](data, field)
 		if port == nil {
@@ -83,14 +85,14 @@ func liftedPortsRank(data any) int {
 // Filled by Zip rather than by the author, so rank alignment is decided in
 // one place instead of in every node.
 type Lifted[T any] struct {
-	rank   int
+	rank   liftRank
 	scalar T
 	array  []T
 	report ExecutionReport
 }
 
 // 1 when carrying an array, 0 for a single value.
-func (l *Lifted[T]) Rank() int { return l.rank }
+func (l *Lifted[T]) Rank() int { return int(l.rank) }
 
 func (l *Lifted[T]) CaptureError(err error) {
 	if err == nil {
@@ -126,7 +128,7 @@ func (l *Lifted[T]) BuildDynamicArrayOutput(source DynamicSource) OutputPort {
 	return NewDynamicOutput[[]T](source)
 }
 
-func (l *Lifted[T]) attachRank(rank int) { l.rank = rank }
+func (l *Lifted[T]) attachRank(rank liftRank) { l.rank = rank }
 
 func (l *Lifted[T]) drain() liftedResult {
 	if l.rank == rankArray {
@@ -141,7 +143,7 @@ func (l *Lifted[T]) drain() liftedResult {
 // liftedHandle is every instantiation of Lifted, so Struct.Outputs can
 // drive one without naming its type parameter.
 type liftedHandle interface {
-	attachRank(rank int)
+	attachRank(rank liftRank)
 	drain() liftedResult
 }
 
@@ -334,7 +336,7 @@ func (o *liftedOutput) Type() string {
 
 // Memoized against the mutation generation: the rank is read off the types
 // upstream, and that walk is exponential where upstream nodes are shared.
-func (o *liftedOutput) rank() int {
+func (o *liftedOutput) rank() liftRank {
 	generation := Generation()
 	if memo := o.cache.rank.Load(); memo != nil && memo.generation == generation {
 		return memo.rank

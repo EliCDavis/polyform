@@ -328,7 +328,7 @@ func (d *dynamicOutput) Type() string {
 	return arrayOf(concrete)
 }
 
-func (d *dynamicOutput) liftedInputsRank() int {
+func (d *dynamicOutput) liftedInputsRank() liftRank {
 	generation := Generation()
 	if memo := d.cache.liftedArg.Load(); memo != nil && memo.generation == generation {
 		return memo.rank

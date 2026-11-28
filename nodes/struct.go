@@ -32,7 +32,7 @@ type structOutputCache struct {
 
 type rankMemo struct {
 	generation uint64
-	rank       int
+	rank       liftRank
 }
 
 // While outdated, Version promises the number the next value will carry.
